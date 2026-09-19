@@ -852,15 +852,41 @@
     var w = Math.min(W - 40, 420), x = (W - w) / 2, y = narrow ? 254 : 14;
     var r = Math.max(0, b.hp / b.hpMax);
     ctx.fillStyle = 'rgba(10,12,16,0.72)';
-    ctx.fillRect(x - 6, y - 4, w + 12, 26);
+    ctx.fillRect(x - 6, y - 4, w + 12, b.gate ? 46 : 26);
     ctx.fillStyle = 'rgba(255,255,255,0.12)';
     ctx.fillRect(x, y + 10, w, 8);
-    ctx.fillStyle = b.charge > 0 ? '#ffb14a' : '#e06565';
+    ctx.fillStyle = b.charge > 0 ? '#ffb14a' : (b.gate && b.enraged ? '#ff3a3a' : '#e06565');
     ctx.fillRect(x, y + 10, w * r, 8);
+    /* 3단 체력바(§5-4) — 단계별 판정은 없다, 눈에 셋으로 나눠 보이게 금만 긋는다 */
+    if (b.gate) {
+      ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x + w / 3, y + 10); ctx.lineTo(x + w / 3, y + 18);
+      ctx.moveTo(x + w * 2 / 3, y + 10); ctx.lineTo(x + w * 2 / 3, y + 18);
+      ctx.stroke();
+    }
     ctx.font = '600 12px system-ui, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillStyle = '#f0e2c8';
-    ctx.fillText('👺 ' + b.ref.name + (b.charge > 0 ? ' — 달려든다!' : ''), W / 2, y + 6);
+    ctx.fillText((b.gate ? '🏯 ' : '👺 ') + b.ref.name +
+      (b.charge > 0 ? ' — 달려든다!' : (b.gate && b.enraged ? ' — 광폭화!' : '')), W / 2, y + 6);
+    if (b.gate) {
+      /* 방패 — 안 깨졌으면 등 뒤 피해가 얼마나 쌓였는지, 깨졌으면 취약 남은 시간 */
+      var shieldR = b.gateShieldBroken ? 1 : Math.min(1, (b.gateShieldHp || 0) / (b.hpMax * 0.30));
+      ctx.fillStyle = 'rgba(255,255,255,0.10)';
+      ctx.fillRect(x, y + 24, w, 6);
+      ctx.fillStyle = b.gateShieldBroken ? '#ffd24a' : '#6ab8e0';
+      ctx.fillRect(x, y + 24, w * shieldR, 6);
+      ctx.font = '600 10px system-ui, sans-serif';
+      ctx.fillStyle = b.gateShieldBroken ? '#ffd24a' : '#bcd8ea';
+      ctx.fillText(b.gateShieldBroken ? '🛡️💥 취약 ' + Math.ceil(b.gateVulnT || 0) + 's'
+        : '🛡️ 등 뒤를 노리면 깨진다', W / 2, y + 34);
+      var tLeft = Math.max(0, Math.ceil(run.gateT || 0));
+      ctx.textAlign = 'right';
+      ctx.fillStyle = tLeft <= 0 ? '#ff6a4a' : '#f0e2c8';
+      ctx.fillText('⏱️ ' + Math.floor(tLeft / 60) + ':' + (tLeft % 60 < 10 ? '0' : '') + (tLeft % 60), x + w, y + 6);
+    }
     ctx.textAlign = 'left';
   }
 
@@ -1011,6 +1037,17 @@
         ctx.arc(x, f.y, f.r * (1.2 - f.life), 0, Math.PI * 2);
         ctx.strokeStyle = 'rgba(245,180,69,' + Math.min(1, f.life * 3) + ')';
         ctx.lineWidth = 3;
+        ctx.stroke();
+      } else if (f.t === 'zonewarn') {
+        /* 관문 대장(§5-4) 패턴 2 — 내려찍을 자리를 바닥에 미리 그린다.
+           life 가 줄수록(경고 시간이 다 되어 갈수록) 채움이 짙어진다 */
+        var zk = 1 - Math.max(0, f.life);
+        ctx.beginPath();
+        ctx.ellipse(x, f.y, f.r, f.r * 0.4, 0, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,60,40,' + (0.12 + zk * 0.28) + ')';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,120,70,' + (0.4 + zk * 0.5) + ')';
+        ctx.lineWidth = 2.5;
         ctx.stroke();
       } else if (f.t === 'pop') {
         /* 보스는 목숨을 0.9로 길게 잡는데(잡졸은 0.5) 이 반지름 식은 0.5부터

@@ -193,6 +193,10 @@
       }
       if (act === 's-enter') {
         global.DG.side.enter(b.getAttribute('data-stage'));
+      } else if (act === 's-gate') {
+        if (!global.DG.side.challengeGate(b.getAttribute('data-stage'))) {
+          toast('🔒 지금은 도전할 수 없습니다 — 이번 주 완료했거나 오늘 이미 도전했습니다');
+        }
       } else if (act === 's-leave') {
         global.DG.side.leave();
       } else if (act === 's-skill') {
@@ -576,7 +580,11 @@
     var bossFlags = st.stages.map(function (e) {
       return e.ref.boss ? (S.bossReady(e.ref.key) ? '1' : '0') : '-';
     }).join('');
-    var key = [core.save.player.level, st.kills, st.deaths, st.potions, st.bosses, bossFlags,
+    var gateFlags = st.stages.map(function (e) {
+      var gi = e.ref.gateBoss ? S.gateInfo(e.ref.key) : null;
+      return gi ? (gi.ready ? '1' : (gi.wonThisWeek ? 'w' : 'd')) : '-';
+    }).join('');
+    var key = [core.save.player.level, st.kills, st.deaths, st.potions, st.bosses, bossFlags, gateFlags,
                me && me.id, global.DG.auto.active(), global.DG.auto.status().doing].join('|');
     if (key === campKey) { els.camp.classList.add('show'); return; }
     campKey = key;
@@ -594,10 +602,15 @@
     for (var i = 0; i < list.length; i++) {
       var e = list[i];
       var bmark = (e.open && e.ref.boss && S.bossReady(e.ref.key)) ? ' 👺' : '';
+      var gi2 = (e.open && e.ref.gateBoss) ? S.gateInfo(e.ref.key) : null;
       html += '<button class="btn ' + (e.open ? (i === 0 ? 'primary' : '') : 'ghost') + ' wide"' +
         (e.open ? '' : ' disabled') + ' data-act="s-enter" data-stage="' + e.ref.key + '">' +
-        (e.open ? '🏃 ' : '🔒 ') + esc(e.ref.name) + bmark +
+        (e.open ? '🏃 ' : '🔒 ') + esc(e.ref.name) + bmark + (gi2 && gi2.ready ? ' 🏯' : '') +
         (e.open ? '' : ' (Lv.' + e.ref.need + ' 부터)') + '</button>';
+      if (gi2 && gi2.ready) {
+        html += '<button class="btn tiny ghost wide" data-act="s-gate" data-stage="' + e.ref.key + '">' +
+          '🏯 ' + esc(gi2.name) + ' 도전</button>';
+      }
     }
     html += '<div class="camp-auto">' + sectionAuto() + '</div>';
     html += '<small class="muted">쓰러지면 그 판에서 주운 금의 <b>절반만</b> 남습니다. ' +
@@ -757,14 +770,26 @@
           '<span style="color:' + (ready ? '#e8c15a' : 'inherit') + '">' +
           (ready ? '지키고 있음' : bossLeftLabel(left) + ' 뒤 다시 나옴') + '</span></div>';
       }
+      /* 관문 대장(§5-4) — 마을에만 있다. 주 1회, 지면 내일 다시(일일 1회) */
+      var gateLine = '', gateBtn = '';
+      var gi = e.open ? S.gateInfo(e.ref.key) : null;
+      if (gi) {
+        var gstate = gi.wonThisWeek ? '이번 주 완료' : (gi.triedToday ? '내일 다시' : '도전 가능');
+        gateLine = '<div class="stat-row"><span class="muted">🏯 ' + esc(gi.name) + '</span>' +
+          '<span style="color:' + (gi.ready ? '#e8c15a' : 'inherit') + '">' + gstate + '</span></div>';
+        gateBtn = gi.ready
+          ? '<button class="btn wide" data-act="s-gate" data-stage="' + e.ref.key + '">🏯 관문 대장에 도전</button>'
+          : '';
+      }
       html += '<div class="card">' +
         '<div class="stat-row"><span><b>' + (e.ref.town ? '🏘️ ' : '') + esc(e.ref.name) + '</b></span>' +
           '<span class="muted">' + (e.ref.town ? '안전지대 · 쉼터'
             : '적 Lv.' + e.ref.enemyLv + ' · ' + e.ref.spawn + '마리') + '</span></div>' +
-        bossLine +
+        bossLine + gateLine +
         (e.open
           ? '<button class="btn primary wide" data-act="s-enter" data-stage="' + e.ref.key + '">들어간다</button>'
           : '<button class="btn ghost wide" disabled>🔒 Lv.' + e.ref.need + ' 부터</button>') +
+        gateBtn +
         '</div>';
     }
     html += '</div>';

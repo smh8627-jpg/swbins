@@ -20,6 +20,12 @@
 (function (global) {
   'use strict';
 
+  /* 관문 대장(PLAN §5-4, 2026-09-19) — 마을 다섯 곳에 미사용 보스(`data-enemy.js`
+     BOSSES 중 어느 사냥터에도 안 걸린 여섯) 를 주 1회 도전 상대로 배치한다.
+     이름은 `bossByName()`으로 그 보스 정의만 빌려 쓴다(data-enemy.js 무수정, §2-2).
+     여섯째 **관문 수호장**(tier4)은 PLAN이 "마을 5 + 비경 입구"라 적었는데 §5-3
+     비경이 아직 없어(로드맵 Phase 3, 5-4 다음 항목) 자리가 없다 — 이름 그대로도
+     "관문을 지키는" 쪽이라 §5-3 이 비경 입구를 낼 때 그리로 옮긴다. */
   var STAGES = [
     /* ── 오버월드 마을 (2026-09-02) ────────────────────────────
        삼국지 실제 지명을 딴 안전지대. `town:true` 만 붙인 사냥터 항목이다 —
@@ -33,7 +39,8 @@
       plats: [[520, 430, 240]], ropes: [[540, 430, 560, 'ladder']],
       portals: [[1130, 'heodo']],
       npcs: [[220, 'elder'], [620, 'guard'], [800, 'merchant'], [980, 'wanderer']],
-      enemyLv: 1, spawn: 0
+      enemyLv: 1, spawn: 0,
+      gateBoss: { name: '몽골 만호장', hpMul: 40, dmgMul: 2.5 }
     },
     {
       key: 'heodo', name: '허도', need: 1, sky: ['#e8c15a', '#f5e2a0'], mood: 'sky',
@@ -42,7 +49,8 @@
       ropes: [[320, 430, 560, 'ladder'], [920, 380, 560, 'rope']],
       portals: [[70, 'sinya'], [1330, 'field']],
       npcs: [[220, 'merchant'], [620, 'healer'], [980, 'guard'], [1100, 'wanderer']],
-      enemyLv: 1, spawn: 0
+      enemyLv: 1, spawn: 0,
+      gateBoss: { name: '왜장', hpMul: 40, dmgMul: 2.5 }
     },
     {
       key: 'field', name: '허창 들판', need: 1, sky: ['#79c3e8', '#c6e6f2'], mood: 'sky',
@@ -64,7 +72,8 @@
       ropes: [[420, 420, 560, 'ladder'], [840, 360, 560, 'rope']],
       portals: [[70, 'field'], [1230, 'forest']],
       npcs: [[220, 'guard'], [620, 'elder'], [980, 'merchant']],
-      enemyLv: 5, spawn: 0
+      enemyLv: 5, spawn: 0,
+      gateBoss: { name: '왜구 선장', hpMul: 40, dmgMul: 2.5 }
     },
     {
       key: 'forest', name: '오림 숲', need: 5, sky: ['#5fa06a', '#a8d49a'], mood: 'forest',
@@ -85,7 +94,8 @@
       ropes: [[400, 420, 560, 'ladder'], [880, 360, 560, 'rope']],
       portals: [[70, 'forest'], [1230, 'cave']],
       npcs: [[220, 'guard'], [620, 'healer'], [800, 'merchant'], [980, 'wanderer']],
-      enemyLv: 12, spawn: 0
+      enemyLv: 12, spawn: 0,
+      gateBoss: { name: '거란 도통', hpMul: 40, dmgMul: 2.5 }
     },
     {
       key: 'cave', name: '한중 굴혈', need: 12, sky: ['#2b2436', '#4a3d58'], mood: 'cave',
@@ -106,7 +116,8 @@
       ropes: [[400, 420, 560, 'ladder'], [880, 360, 560, 'rope']],
       portals: [[70, 'cave'], [1230, 'gorge']],
       npcs: [[220, 'wanderer'], [620, 'guard'], [980, 'merchant']],
-      enemyLv: 25, spawn: 0
+      enemyLv: 25, spawn: 0,
+      gateBoss: { name: '산채 두령', hpMul: 40, dmgMul: 2.5 }
     },
     {
       /* 넷째 — **가장 깊은 곳**(2026-08-26). 3차 전직(Lv.45)이 설 자리가 없어 넣었다:

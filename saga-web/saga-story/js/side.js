@@ -95,6 +95,11 @@
     if (!s.side.bossAt) { s.side.bossAt = {}; }
     if (typeof s.side.bosses !== 'number') { s.side.bosses = 0; }
     if (!s.side.mats) { s.side.mats = {}; }   // 채집 재료(PLAN 10절) — { kind: 개수 }
+    /* 관문 대장(§5-4) — gateWeek: 마지막으로 이긴 주(주간 잠금), gateDay: 마지막으로
+       도전한 날(승패 무관, 일일 재도전 제한). gateUniq: 고유 보상이 부위를 순환하는 커서 */
+    if (!s.side.gateWeek) { s.side.gateWeek = {}; }
+    if (!s.side.gateDay) { s.side.gateDay = {}; }
+    if (typeof s.side.gateUniq !== 'number') { s.side.gateUniq = 0; }
     return s.side;
   }
 
@@ -596,6 +601,124 @@
     return e;
   }
 
+  /* ── 관문 대장(§5-4) ──────────────────────────────────────
+   * 사냥터 보스(위)와 다른 리젠 규칙이다 — 시간이 아니라 **주** 단위로 잠기고,
+   * 지면 그 주 안에 하루 한 번만 다시 붙을 수 있다. 마을(`town:true`)에서
+   * 플레이어가 직접 도전을 눌러야 나온다(사냥터 보스처럼 저절로 나오지 않는다
+   * — 마을은 안전지대라는 약속을 깨지 않는다). */
+  var GATE_TIME = 180;          // 제한 시간(초) — 넘으면 광폭
+  var GATE_ENRAGE_MUL = 1.5;
+  var GATE_SHIELD_FRAC = 0.30;  // 방패 파괴 임계 — 최대 체력의 30%(등 뒤 피해 누적)
+  var GATE_VULN_MUL = 1.5;
+  var GATE_VULN_DUR = 10;
+  var GATE_SLAM_R = 90;
+
+  /** 주간 키 — 그 해 몇째 주인지(월요일 기준은 아니고 1/1부터 7일씩, 리셋 감만 맞으면 된다) */
+  function gateWeekKey(t) {
+    var d = new Date(t || Date.now());
+    var jan1 = new Date(d.getFullYear(), 0, 1);
+    var week = Math.ceil((((d - jan1) / 86400000) + jan1.getDay() + 1) / 7);
+    return d.getFullYear() + '-w' + week;
+  }
+  /** 하루 키 — quest.js todayKey() 와 같은 규칙(로컬 달력의 '그 날') */
+  function gateDayKey(t) {
+    var d = new Date(t || Date.now());
+    return d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate();
+  }
+
+  /** 이 마을의 관문 대장에 도전할 수 있나 — 이번 주에 안 이겼고, 오늘 안 붙어 봤어야 한다 */
+  function gateReady(key) {
+    var stg = SD.stage(key);
+    if (!stg.gateBoss) { return false; }
+    var s = st();
+    if (s.gateWeek[key] === gateWeekKey()) { return false; }
+    if (s.gateDay[key] === gateDayKey()) { return false; }
+    return true;
+  }
+
+  /** 마을 화면(§5-4 대장 문)이 읽는 요약 — 이름·이번 주 상태 */
+  function gateInfo(key) {
+    var stg = SD.stage(key);
+    if (!stg.gateBoss) { return null; }
+    var s = st();
+    return {
+      name: stg.gateBoss.name,
+      ready: gateReady(key),
+      wonThisWeek: s.gateWeek[key] === gateWeekKey(),
+      triedToday: s.gateDay[key] === gateDayKey()
+    };
+  }
+
+  /** 마을에서 관문 대장에게 도전한다 — HUD 의 "대장 문" 단추가 부른다 */
+  function challengeGate(key) {
+    if (!gateReady(key)) { return false; }
+    /* 시트 목록(어디서든 접근)에서 눌러도 되게 — 그 마을에 없으면 먼저 들어간다.
+       기존 field 보스가 enter() 끝에서 저절로 기다리는 것과 달리, 마을은
+       spawn:0(안전지대)라 여기서 명시적으로 불러야만 나온다 */
+    if (!run || run.stage.key !== key) { enter(key); }
+    if (!run || run.stage.key !== key || run.boss) { return false; }
+    var stg = run.stage;
+    var ed = global.DG.enemyData;
+    var ref = ed ? ed.bossByName(stg.gateBoss.name) : { name: stg.gateBoss.name, kind: 'human', color: '#7a3a3a' };
+    var lv = stg.enemyLv;
+    var baseHp = Math.round(18 * Math.pow(1.22, lv - 1));
+    var hp = Math.max(1, Math.round(baseHp * stg.gateBoss.hpMul * E_HP));
+    var e = {
+      ref: ref, boss: true, gate: true, gateKey: key,
+      x: stg.width - 220, y: stg.floor - 52, w: 52, h: 52,
+      hp: hp, hpMax: hp,
+      dmg: Math.round((4 + lv * 1.6) * stg.gateBoss.dmgMul * E_DMG),
+      dir: -1,
+      spd: 38 + Math.min(40, lv * 2),
+      phase: 0, hurt: 0, cd: 0, atkAnim: 0,
+      chargeCd: 4 + Math.random() * 3, charge: 0,
+      patternCd: 6 + Math.random() * 3, patternT: 0, patternKind: '',
+      slamX: 0, slamY: 0,
+      gateShieldHp: 0, gateShieldBroken: false, gateVulnT: 0,
+      enraged: false
+    };
+    run.enemies.push(e);
+    run.boss = e;
+    run.gateT = GATE_TIME;
+    st().gateDay[key] = gateDayKey();   // 오늘 도전을 썼다 — 이기든 지든 내일까지 못 연다
+    fx.push({ t: 'bossintro', name: ref.name, life: BOSS_INTRO_DUR });
+    sfx('boss');
+    core.emit('changed');
+    core.persist();
+    return true;
+  }
+
+  /** 관문 대장을 잡았을 때 확정 보상 — 고유 장비 1(부위 순환) + 주문서 60% 2 + 기억 조각 3 */
+  function grantGateReward(e) {
+    var GG = global.DG.gear, UD = global.DG.uniqueData, GD2 = global.DG.gearData;
+    var s = st(), bits = [];
+    if (GG && UD && UD.UNIQUES.length) {
+      var uq = UD.UNIQUES[s.gateUniq % UD.UNIQUES.length];
+      s.gateUniq += 1;
+      var made = GG.make(uq.key);
+      if (GG.put(made)) {
+        bits.push('⭐ ' + GG.nameOf(made));
+      } else {
+        sfx('bagfull');   // 가방이 가득 차면 사냥터 드롭과 같은 답답함 — 못 받고 그대로 흘려보낸다
+      }
+    }
+    if (GG && GD2) {
+      var pool60 = GD2.SCROLLS.filter(function (sc) { return sc.rate === 0.6; });
+      var picked = [];
+      for (var i = 0; i < 2; i++) {
+        var sc = core.pick(pool60.length ? pool60 : GD2.SCROLLS);
+        GG.addScroll(sc.key, 1);
+        picked.push(sc.name);
+      }
+      bits.push('📜 ' + picked.join(' · '));
+    }
+    core.save.player.memFrag = (core.save.player.memFrag || 0) + 3;
+    bits.push('🧩 기억 조각 +3');
+    core.log('🏯 ' + e.ref.name + '(관문 대장) 을(를) 꺾었다! — ' + bits.join(' · '), 'good');
+    core.emit('toast', '🏯 관문 대장 토벌!');
+    core.persist();
+  }
+
   /* ── 적 ───────────────────────────────────────────────── */
 
   /** 적 정의 — 던전 게임과 같은 data-enemy.js 를 쓴다 (poolFor 는 관문 번호를 받는다) */
@@ -925,9 +1048,28 @@
     if (p.shadowHitT > 0) { m *= p.shadowHitMul; p.shadowHitT = 0; }
     var crit = forceCrit || Math.random() < critRate();
     var dmg = atkOf() * m * (0.88 + Math.random() * 0.24) * (crit ? critMul() : 1);
+    /* 관문 대장(§5-4) 취약 — 방패가 깨진 10초 동안 받는 피해 ×1.5 */
+    if (e.gate && e.gateVulnT > 0) { dmg *= GATE_VULN_MUL; }
     dmg = Math.max(1, Math.round(dmg));
     e.hp -= dmg;
     e.hurt = HURT_FLASH;
+    /* 관문 대장(§5-4) 방패 — **등 뒤**(e.dir 이 가리키는 반대쪽)에서 낸 피해만 쌓는다.
+       e.dir 은 패턴 실행 중(update() 의 근접 판정, patternT>0)엔 얼어붙어 있어
+       그 틈에 돌아가 때려야 뒤를 잡을 수 있다. 깨지면 10초 취약, 그 창이 끝나면
+       다시 쌓을 수 있다(3분 싸움 동안 여러 번 깨질 수 있다). */
+    if (e.gate && !e.gateShieldBroken) {
+      var backSide = ((p.x + P_W / 2) - (e.x + e.w / 2) >= 0 ? 1 : -1);
+      if (backSide !== e.dir) {
+        e.gateShieldHp = (e.gateShieldHp || 0) + dmg;
+        if (e.gateShieldHp >= e.hpMax * GATE_SHIELD_FRAC) {
+          e.gateShieldBroken = true;
+          e.gateVulnT = GATE_VULN_DUR;
+          fx.push({ t: 'ring', x: e.x + e.w / 2, y: e.y + e.h / 2, r: 60, life: 0.5 });
+          core.emit('toast', '🛡️💥 방패 파괴! 10초간 취약');
+          sfx('crit');
+        }
+      }
+    }
     /* 탱커형(PLAN 13절)은 보스처럼 밀리지 않는다 — 맷집이 그 컨셉이다 */
     if (!e.boss && e.role !== 'tank') {
       var away = (e.x + e.w / 2) - (run.player.x + P_W / 2) >= 0 ? 1 : -1;
@@ -1008,6 +1150,19 @@
     var idx = run.enemies.indexOf(e);
     if (idx >= 0) { run.enemies.splice(idx, 1); }
 
+    if (e.gate) {
+      /* 관문 대장(§5-4) — 사냥터 보스와 리젠 규칙이 다르다(주간 잠금).
+         run.stage 에는 `.boss` 가 없는 마을이라 위 분기와 반드시 갈라야 한다. */
+      var sg = st();
+      sg.bosses = (sg.bosses || 0) + 1;
+      sg.gateWeek[e.gateKey] = gateWeekKey();     // 이겼다 — 이번 주는 다시 안 나온다
+      run.boss = null;
+      run.gateT = 0;
+      core.gainFeat(30 + lv * 4, '관문 대장');
+      grantGateReward(e);
+      core.emit('changed');
+      return;
+    }
     if (e.boss) {
       var s = st();
       s.bosses = (s.bosses || 0) + 1;
@@ -1260,6 +1415,17 @@
     if (run.hitstopT > 0) { run.hitstopT -= dt; dt *= 0.15; }
     var p = run.player, stg = run.stage, i;
 
+    /* 관문 대장(§5-4) 제한 시간 — 넘기면 그 자리에서 광폭화(공격 ×1.5), 실패로 끝나진 않는다 */
+    if (run.gateT > 0) {
+      run.gateT -= dt;
+      if (run.gateT <= 0 && run.boss && run.boss.gate && !run.boss.enraged) {
+        run.boss.enraged = true;
+        run.boss.dmg = Math.round(run.boss.dmg * GATE_ENRAGE_MUL);
+        fx.push({ t: 'shake', x: run.boss.x, y: run.boss.y, life: 0.5, span: 0.5, amt: 8, big: true });
+        core.emit('toast', '🔥 관문 대장이 광폭화했다! 공격 +50%');
+      }
+    }
+
     /* 대화창을 연 채 자리를 뜨면 저절로 닫는다 — 닫는 것을 잊고 걸어가도 막혀 있지 않게 */
     if (run.talk && Math.abs((p.x + P_W / 2) - run.talk.x) > TALK_LEAVE_R) { closeTalk(); }
 
@@ -1471,12 +1637,20 @@
         if (e.hp <= 0) { kill(e); i--; continue; }
       }
       if (e.slowT > 0) { e.slowT -= dt; }
+      /* 관문 대장(§5-4) 취약 — 10초가 다 지나면 방패를 다시 채운다(재도전 가능) */
+      if (e.gate && e.gateVulnT > 0) {
+        e.gateVulnT -= dt;
+        if (e.gateVulnT <= 0) { e.gateShieldBroken = false; e.gateShieldHp = 0; }
+      }
       e.phase += dt * 6;
       var dx = (p.x + P_W / 2) - (e.x + e.w / 2);
       var near = Math.abs(dx) < (e.boss ? 420 : 260) && Math.abs((p.y + P_H) - (e.y + e.h)) < 70;
-      if (near) { e.dir = dx > 0 ? 1 : -1; }
+      /* 패턴(§5-4) 실행 중엔 등을 돌린 채 얼어붙는다 — 그 틈이 방패를 깨는 창이다 */
+      if (near && !(e.gate && e.patternT > 0)) { e.dir = dx > 0 ? 1 : -1; }
       /* 보스의 한 가지 패턴 — 뜸을 들이다 달려든다. 서서 때리기만 하면 안 되게.
-         돌진형 잡몹(PLAN 13절)도 같은 패턴을 쓴다 — `chargeCd` 가 있는지로 본다 */
+         돌진형 잡몹(PLAN 13절)도 같은 패턴을 쓴다 — `chargeCd` 가 있는지로 본다.
+         관문 대장(§5-4)의 "달려들기"(패턴 1)는 이 자리를 그대로 쓴다 — e.boss 라
+         따로 안 늘린다 */
       var chargeMul = 1;
       if (e.boss || e.role === 'dash') {
         if (e.charge > 0) {
@@ -1491,6 +1665,43 @@
             fx.push({ t: 'ring', x: e.x + e.w / 2, y: e.y + e.h / 2, r: 46, life: 0.3 });
             /* 소리만으로는 못 듣는 사람이 있다 — 화면에도 한 박자 띄운다 */
             fx.push({ t: 'warn', x: e.x + e.w / 2, y: e.y, life: 0.9 });
+          }
+        }
+      }
+      /* 관문 대장(§5-4) 패턴 2·3 — 범위 표시 후 내려찍기 · 소환 2. 달려들기와
+         겹치지 않게 e.charge<=0 일 때만 새로 문다(둘이 같이 터지면 정신없다) */
+      if (e.gate) {
+        if (e.patternT > 0) {
+          e.patternT -= dt;
+          if (e.patternT <= 0 && e.patternKind === 'slam') {
+            var slamDx = Math.abs(e.slamX - (p.x + P_W / 2));
+            var slamDy = Math.abs(e.slamY - (p.y + P_H));
+            if (slamDx < GATE_SLAM_R && slamDy < GATE_SLAM_R && p.invuln <= 0) {
+              hurtMe(Math.round(e.dmg * 1.3));
+              if (!run) { return; }
+            }
+            fx.push({ t: 'shake', x: e.x, y: e.y, life: 0.4, span: 0.4, amt: 6, big: true });
+            sfx('charge');
+            e.patternKind = '';
+          }
+        } else {
+          e.patternCd -= dt;
+          if (e.patternCd <= 0 && near && e.charge <= 0) {
+            e.patternCd = 7 + Math.random() * 4;
+            if (Math.random() < 0.5) {
+              e.patternKind = 'slam';
+              e.slamX = p.x + P_W / 2; e.slamY = p.y + P_H;
+              e.patternT = 1.0;
+              fx.push({ t: 'zonewarn', x: e.slamX, y: e.slamY, r: GATE_SLAM_R, life: 1.0 });
+              sfx('charge');
+            } else {
+              e.patternKind = 'summon';
+              e.patternT = 0.4;
+              spawnEnemy(Math.max(40, e.x - 90));
+              spawnEnemy(Math.min(stg.width - 40, e.x + 90));
+              core.emit('toast', '👥 관문 대장이 병력을 불렀다!');
+              sfx('boss');
+            }
           }
         }
       }
@@ -1810,6 +2021,15 @@
         hp: Math.max(0, Math.round(run.boss.hp)), hpMax: run.boss.hpMax,
         charging: run.boss.charge > 0
       };
+      if (run.boss.gate) {
+        base.boss.gate = true;
+        base.boss.timeLeft = Math.max(0, run.gateT || 0);
+        base.boss.enraged = !!run.boss.enraged;
+        base.boss.shieldBroken = !!run.boss.gateShieldBroken;
+        base.boss.shieldPct = run.boss.gateShieldBroken ? 1 :
+          Math.min(1, (run.boss.gateShieldHp || 0) / (run.boss.hpMax * GATE_SHIELD_FRAC));
+        base.boss.vulnT = Math.max(0, run.boss.gateVulnT || 0);
+      }
     }
     return base;
   }
@@ -1837,6 +2057,7 @@
     ropeAt: ropeAt, portalAt: portalAt, npcAt: npcAt, talk: talk, closeTalk: closeTalk, letGo: letGo,
     power: power, unlocked: unlocked, stages: stages, barSkills: barSkills,
     bossReady: bossReady, bossLeft: bossLeft,
+    gateInfo: gateInfo, challengeGate: challengeGate,
     status: status, state: st, meRef: meRef,
     /** 화면 전용 — 상태를 직접 읽는다 (쓰지는 말 것) */
     raw: function () { return run; },

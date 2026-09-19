@@ -3304,6 +3304,114 @@ window.DG_NO_TUNE = true;
         ('idle←' + m.idle + ' · walk←' + m.walk + ' · attack←' + m.attack + ' · 빈 목록 → 빈 표');
     });
 
+    /* ── 관문 대장(PLAN §5-4, 2026-09-19) ──────────────────
+     * 마을 다섯 곳(신야성·허도·강릉진·남정성·기산채)에 미사용 보스를 주간
+     * 도전 상대로 배치했다 — 여섯째(관문 수호장, tier4)는 §5-3 비경 입구가
+     * 생기면 그리로 옮긴다(data-side.js 머리 주석). 아직 실기(헤드리스) 확인
+     * 전이다 — 다음 세션에서 가장 먼저 3회 돌려 이 절이 그대로인지 볼 것. */
+    t('관문 대장(§5-4) — 마을에서 도전하면 3단 체력바 gate 보스가 나온다', function () {
+      var S = DG.side;
+      if (S.active()) { S.leave(); }
+      ensureParty();
+      C.save.player.level = 10;
+      C.save.side.gateWeek = {}; C.save.side.gateDay = {};
+      var before = S.gateInfo('sinya');
+      var ok = S.challengeGate('sinya');
+      var run = S.raw(), b = run && run.boss;
+      S.leave();
+      return !!(before && before.ready && ok && b && b.gate === true &&
+        b.ref.name === '몽골 만호장') && ('도전 성공 · ' + (b && b.ref.name));
+    });
+
+    t('관문 대장(§5-4) — 이번 주에 이기면 같은 주엔 재도전이 거절된다', function () {
+      var S = DG.side;
+      if (S.active()) { S.leave(); }
+      ensureParty();
+      C.save.player.level = 10;
+      C.save.side.gateWeek = {}; C.save.side.gateDay = {};
+      S.challengeGate('sinya');
+      var run = S.raw(), p = run.player, e = run.boss;
+      e.hp = 1; e.dir = 1;
+      p.x = e.x; p.y = e.y; p.facing = 1; p.cds[0] = 0; run.mp = run.mpMax;
+      S.castSkill(0);
+      var won = C.save.side.gateWeek.sinya != null;
+      var again = S.challengeGate('sinya');
+      S.leave();
+      return won && again === false && '이긴 뒤 gateWeek 기록 O · 같은 주 재도전 거절 O';
+    });
+
+    t('관문 대장(§5-4) — 등 뒤 피해가 30% 쌓이면 방패가 깨지고 10초 취약해진다', function () {
+      var S = DG.side;
+      if (S.active()) { S.leave(); }
+      ensureParty();
+      C.save.player.level = 10;
+      C.save.side.gateWeek = {}; C.save.side.gateDay = {};
+      S.challengeGate('sinya');
+      var run = S.raw(), p = run.player, e = run.boss;
+      e.dir = -1;                                    // 정면은 왼쪽 — 오른쪽에 서면 등 뒤다
+      e.gateShieldHp = e.hpMax * 0.30 - 1;
+      e.gateShieldBroken = false; e.gateVulnT = 0;
+      p.x = e.x + 10; p.y = e.y; p.facing = -1; p.cds[0] = 0; run.mp = run.mpMax;
+      S.castSkill(0);
+      var broke = e.gateShieldBroken === true && e.gateVulnT > 0;
+      var stillHurts = false;
+      if (broke) {
+        var hpBefore = e.hp;
+        p.cds[0] = 0; run.mp = run.mpMax;
+        S.castSkill(0);
+        stillHurts = e.hp < hpBefore;
+      }
+      S.leave();
+      return broke && stillHurts && '방패 파괴 O(취약 ' + Math.round(e.gateVulnT || 0) + 's) · 취약 중 피해 O';
+    });
+
+    t('관문 대장(§5-4) — 제한 시간(3분)을 넘으면 광폭화로 공격력이 오른다', function () {
+      var S = DG.side;
+      if (S.active()) { S.leave(); }
+      ensureParty();
+      C.save.player.level = 10;
+      C.save.side.gateWeek = {}; C.save.side.gateDay = {};
+      S.challengeGate('sinya');
+      var run = S.raw(), e = run.boss;
+      var dmg0 = e.dmg;
+      run.gateT = 0.01;
+      S.update(0.05);
+      var enraged = e.enraged === true && e.dmg > dmg0;
+      S.leave();
+      return enraged && ('광폭화 O — 공격 ' + dmg0 + '→' + e.dmg);
+    });
+
+    t('관문 대장(§5-4) — 확정 보상(고유 장비·주문서 60%·기억 조각)이 부위를 순환한다', function () {
+      var S = DG.side, G = DG.gear;
+      if (S.active()) { S.leave(); }
+      ensureParty();
+      C.save.player.level = 10;
+      C.save.side.gateWeek = {}; C.save.side.gateDay = {}; C.save.side.gateUniq = 0;
+      C.save.gear = { uid: 1, inv: [], equip: {} };
+      C.save.scrolls = {};
+      var frag0 = C.save.player.memFrag || 0;
+      S.challengeGate('sinya');
+      var run = S.raw(), p = run.player, e = run.boss;
+      e.hp = 1; e.dir = 1;
+      p.x = e.x; p.y = e.y; p.facing = 1; p.cds[0] = 0; run.mp = run.mpMax;
+      S.castSkill(0);
+      var firstUniq = G.state().inv.filter(function (it) { return G.isUnique(it); })[0];
+      var frag1 = C.save.player.memFrag || 0;
+      var scrollGot = Object.keys(C.save.scrolls).length > 0;
+      C.save.side.gateDay = {};                      // 오늘 도전 기록만 지운다(다른 마을이라 주간 잠금과는 무관)
+      S.challengeGate('heodo');
+      var run2 = S.raw(), p2 = run2.player, e2 = run2.boss;
+      e2.hp = 1; e2.dir = 1;
+      p2.x = e2.x; p2.y = e2.y; p2.facing = 1; p2.cds[0] = 0; run2.mp = run2.mpMax;
+      S.castSkill(0);
+      var secondUniq = G.state().inv.filter(function (it) { return G.isUnique(it); }).pop();
+      S.leave();
+      var rotated = firstUniq && secondUniq && G.defOf(firstUniq).slot !== G.defOf(secondUniq).slot;
+      return !!(firstUniq && frag1 === frag0 + 3 && scrollGot && rotated) &&
+        ('고유 O · 기억 조각 +3 O · 주문서 O · 부위 순환(' +
+         (firstUniq && G.defOf(firstUniq).slot) + '→' + (secondUniq && G.defOf(secondUniq).slot) + ')');
+    });
+
     t('런타임 에러 없음', function () {
       return errors.length === 0 || ('에러 ' + errors.length + '건: ' + errors.join(' | ')) === '';
     });
