@@ -1,0 +1,126 @@
+{
+  "name": "go_ruins",
+  "roles": 8,
+  "colors": [
+    {
+      "role": "ruins_ground",
+      "band": "base",
+      "hex": "#736b66"
+    },
+    {
+      "role": "ruins_ground",
+      "band": "light",
+      "hex": "#a49f9c"
+    },
+    {
+      "role": "ruins_ground",
+      "band": "dark",
+      "hex": "#4b4642"
+    },
+    {
+      "role": "debris",
+      "band": "base",
+      "hex": "#665c4c"
+    },
+    {
+      "role": "debris",
+      "band": "light",
+      "hex": "#9c958b"
+    },
+    {
+      "role": "debris",
+      "band": "dark",
+      "hex": "#423c32"
+    },
+    {
+      "role": "weathered_stone",
+      "band": "base",
+      "hex": "#7a705c"
+    },
+    {
+      "role": "weathered_stone",
+      "band": "light",
+      "hex": "#a9a295"
+    },
+    {
+      "role": "weathered_stone",
+      "band": "dark",
+      "hex": "#50493c"
+    },
+    {
+      "role": "moss_stone",
+      "band": "base",
+      "hex": "#4c5c3d"
+    },
+    {
+      "role": "moss_stone",
+      "band": "light",
+      "hex": "#8b9581"
+    },
+    {
+      "role": "moss_stone",
+      "band": "dark",
+      "hex": "#323c28"
+    },
+    {
+      "role": "mountain_stone",
+      "band": "base",
+      "hex": "#8c8780"
+    },
+    {
+      "role": "mountain_stone",
+      "band": "light",
+      "hex": "#b4b1ac"
+    },
+    {
+      "role": "mountain_stone",
+      "band": "dark",
+      "hex": "#5b5853"
+    },
+    {
+      "role": "path",
+      "band": "base",
+      "hex": "#9e8052"
+    },
+    {
+      "role": "path",
+      "band": "light",
+      "hex": "#c0ac8e"
+    },
+    {
+      "role": "path",
+      "band": "dark",
+      "hex": "#675335"
+    },
+    {
+      "role": "cave_dark",
+      "band": "base",
+      "hex": "#333338"
+    },
+    {
+      "role": "cave_dark",
+      "band": "light",
+      "hex": "#7a7a7e"
+    },
+    {
+      "role": "cave_dark",
+      "band": "dark",
+      "hex": "#212124"
+    },
+    {
+      "role": "plains",
+      "band": "base",
+      "hex": "#618c3d"
+    },
+    {
+      "role": "plains",
+      "band": "light",
+      "hex": "#98b481"
+    },
+    {
+      "role": "plains",
+      "band": "dark",
+      "hex": "#3f5b28"
+    }
+  ]
+}
