@@ -54,9 +54,14 @@ static func _apply_baked_face(mesh_instance: MeshInstance3D) -> void:
 		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
 		## 원본 VRM 얼굴 재질은 KHR_materials_unlit(무광원)이었다 — 새로
 		## 만드는 이 재질도 같게 맞춘다(원본과 다르게 라이트를 받게 두면
-		## 안 되는 게 맞다). 이것만으로 하얗게 비는 문제는 안 고쳐졌다 —
-		## 위 클래스 주석 참고.
+		## 안 되는 게 맞다).
 		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		## 원인 확정(2026-09-19⑤, cull_mode 검증): Face_00_SKIN·FaceBrow·
+		## FaceEyeline·EyeHighlight 서피스는 원본이 CULL_DISABLED(양면)인데
+		## 새 StandardMaterial3D 기본값 CULL_BACK이 이 메시의 노멀 방향과
+		## 안 맞아 앞면이 컬링돼 하얗게 비어 있었다. 7서피스 전부 같은
+		## 텍스처를 쓰므로 양면 렌더링은 안전하다.
+		mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 		mesh_instance.set_surface_override_material(surface_index, mat)
 	mesh_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 

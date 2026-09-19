@@ -7491,3 +7491,11 @@ PROJECT_STATE.md` 참고. 요약:
 - 부수적으로 익힌 스크린샷 기법: 창이 포커스를 못 받을 때(`SetForegroundWindow`가 OS 정책으로 실패할 수 있다, 실제로 이번에 한 번 걸려서 화면의 다른 창(VRoid Studio로 보임)을 잘못 찍은 적 있음 — 바로 지움) `PrintWindow(hwnd, hdc, PW_RENDERFULLCONTENT=2)`를 쓰면 포커스·z-order와 무관하게 그 창 내용을 그대로 캡처할 수 있다(Vulkan/GL 렌더 창도 됨). 이후 세션은 SetForegroundWindow보다 이 방법을 기본으로 쓸 것.
 - `tools/godot_regress.sh` 다섯 판 3회 통과, `.import`/`project.godot` 잡음 없음(신규 `assets/characters_vroid/generated/*`·`ground_noise.gdshader.uid`만 추가).
 - 다음: `cull_mode` 검증부터. 그래도 안 풀리면 102-6 갈림길로 돌아가 저폴리 툰 캐릭터로 재전환하는 것도 진지하게 고려할 것 — VRoid 얼굴 하나에 이미 세션 하나를 다 썼다.
+
+## VRoid 얼굴 하얗게 빔 — cull_mode 확정, 실질적으로 해결 (2026-09-19⑤)
+
+- 지난 세션 마지막 제안대로 `cull_mode`부터 검증. headless 스크립트(`SceneTree`로 GLB 직접 로드+`get_active_material` 순회)로 Face 메시 7서피스의 원본 재질값을 찍어보니 Face_00_SKIN·FaceBrow·FaceEyeline·EyeHighlight 4개가 `cull_mode=2`(`CULL_DISABLED`, 양면)였다 — `_apply_baked_face`가 새로 만드는 `StandardMaterial3D`는 기본값 `cull_mode=0`(`CULL_BACK`)이라 이 4서피스의 앞면이 컬링되고 있었던 것으로 확정.
+- `cel_shader_apply.gd::_apply_baked_face()`에 `mat.cull_mode = BaseMaterial3D.CULL_DISABLED` 한 줄 추가(7서피스 전부 같은 텍스처라 양면 렌더링은 안전). 클래스 헤더 주석도 갱신.
+- 실기로 확인: 새로 만든 임시 검증 씬(빈 씬+GLB+가까운 카메라)은 물리 낙하·조준 각도 맞추기가 까다로워 포기하고, 대신 **실제 TestVillage**에서 `camera_rig.gd`의 `spring_arm.spring_length`를 3-9.0→2.5(뒤늦게 9.0으로 원복)로 잠깐 좁혀 스크린샷 — 눈썹(갈색)·홍채(눈 디테일)까지 또렷이 나옴. 이전 "완전히 하얗게 빔"에서 뚜렷이 개선됐다. 피부가 여전히 좀 창백해 보이는 건 씬 전체에 낀 안개(fog_density 0.012) 때문으로 보임(건물·바닥도 같이 뿌옇게 찍힘) — 별개 결함인지는 사용자 실기에서 안개 옅은 시간대로 재확인 필요.
+- `tools/godot_regress.sh` 다섯 판 통과(md5 이전 실행과 완전히 동일 — 결정적), `.import`/`project.godot`/`camera_rig.gd` 잡음 없음(스크린샷 테스트용으로 잠깐 바꾼 `spring_arm.spring_length`·`rotation_degrees.x`는 정확히 원복 확인). 스크린샷 테스트에 쓴 스크래치 씬(`_scratch_facecam.tscn` 등)은 커밋 전 삭제.
+- 다음: 사용자 실기 확인(얼굴 최종 판정) → 103-4 Mixamo 리타겟(애니메이션 연결)으로.
