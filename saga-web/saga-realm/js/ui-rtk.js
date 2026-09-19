@@ -429,6 +429,7 @@
     });
     core.on('rtk:camp', function () { syncDock(); });
     core.on('rtk:end', function (kind) { showEnd(kind); });
+    core.on('rtk:milestone', function (list) { showMilestone(list); });
 
     if (!R().state().started) { showScenPick(); }
     else { centerOnMine(); }
@@ -850,6 +851,7 @@
         '<div class="p-sub">🏯 성 <b>' + s.cities + '/' + CD.CITIES.length + '</b>' +
           ' · 👤 <b>' + s.officers + '</b>' +
           ' · 수입 <b>' + core.fmt(s.income - s.upkeep) + '</b>/월</div>' +
+        goalLine() +
       '</div>';
 
     els.wallet.innerHTML =
@@ -860,6 +862,18 @@
         (st.result ? ' disabled' : '') + '>▶ 다음 달</button>';
     var nb = els.wallet.querySelector('.next-btn');
     if (nb) { nb.addEventListener('click', function () { act('next-month', nb); }); }
+  }
+
+  /** 상단 목표 한 줄 — 지금 겨냥하는 이정표와 진척 막대(PLAN §5-4) */
+  function goalLine() {
+    var mv = R().milestoneView();
+    if (!mv) { return ''; }
+    if (!mv.cur) { return '<div class="p-goal">🚩 <b>' + mv.total + '/' + mv.total + '</b> 이정표를 모두 넘었다</div>'; }
+    var pg = mv.progress;
+    var pct = Math.min(100, Math.round(100 * pg.cur / Math.max(1, pg.need)));
+    return '<div class="p-goal" title="' + esc(mv.cur.desc) + '">🚩 <b>' + (mv.idx + 1) + '/' + mv.total + '</b> ' +
+      esc(mv.cur.name) + ' <span class="gbar"><i style="width:' + pct + '%"></i></span> ' +
+      pg.cur + '/' + pg.need + (pg.note ? ' · ' + pg.note : '') + '</div>';
   }
 
   function coin(icon, val, label) {
@@ -1702,20 +1716,48 @@
     els.encounter.classList.add('show');
   }
 
+  /** 다른 카드가 떠 있으면 줄을 세웠다가 그 카드를 닫을 때 띄운다(이정표 카드가 전황 카드를 덮지 않게) */
+  var encQueue = [];
+  function showEncQueued(html) {
+    if (els.encounter.classList.contains('show')) { encQueue.push(html); } else { showEnc(html); }
+  }
+
   function closeEnc() {
     els.encounter.classList.remove('show');
     els.encounter.innerHTML = '';
+    if (encQueue.length) { showEnc(encQueue.shift()); }
+  }
+
+  /** 이정표를 깬 달의 카드 — 보상(금·소문·보물)과 다음 이정표 */
+  function showMilestone(list) {
+    var html = '<div style="text-align:center"><div class="enc-big">🚩</div>', i;
+    for (i = 0; i < list.length; i++) {
+      var g = list[i];
+      html += '<h3 style="margin:6px 0 2px;font-size:19px;color:var(--gold)">' + esc(g.name) + '</h3>' +
+        '<small class="muted">이정표 ' + (g.idx + 1) + '/5 · ' + esc(g.desc) + '</small>' +
+        '<div class="enc-hist"><span class="good">🪙 금 +' + core.fmt(g.gold) + '</span>' +
+        (g.found.length ? '<br>🔍 ' + esc(g.found.join(' · ')) + ' 의 소문이 돈다' : '') +
+        (g.relic ? '<br>' + g.relic.emoji + ' ' + esc(g.relic.name) + ' → ' + esc(g.relic.who) : '') +
+        '</div>';
+    }
+    var mv = R().milestoneView();
+    html += '<small class="muted">' + (mv && mv.cur
+      ? '다음 — ' + esc(mv.cur.name) + ': ' + esc(mv.cur.desc)
+      : '다섯 이정표를 모두 넘었습니다.') + '</small></div>' +
+      '<button class="btn primary wide" data-act="close-enc">확인</button>';
+    showEncQueued(html);
   }
 
   /** 먼저 **판(시나리오)** 을 고른다 */
   function showScenPick() {
     var html = '<h3 style="margin:0 0 2px;font-size:19px">어느 해에서 시작하시겠습니까</h3>' +
-      '<small class="muted">같은 서른 성이지만, 누가 어디를 쥐고 있는지가 다릅니다.</small>' +
+      '<small class="muted">누가 어디서 시작하는지가 판마다 다릅니다. ★ 은 어려운 정도입니다.</small>' +
       '<div class="fpick scen">';
     for (var i = 0; i < FD.SCENARIOS.length; i++) {
       var sc = FD.SCENARIOS[i];
       html += '<button class="fcard wide-card" data-act="pick-scen" data-id="' + sc.id + '">' +
-        '<b>' + sc.year + '년 · ' + esc(sc.name) + '</b>' +
+        '<b>' + sc.year + '년 · ' + esc(sc.name) +
+          ' <span class="stars">' + '★★★'.slice(0, sc.stars || 1) + '</span></b>' +
         '<small class="muted">' + esc(sc.hanja) + ' · 세력 ' + sc.forces.length + '</small>' +
         '<small class="muted">' + esc(sc.desc) + '</small>' +
         '</button>';
@@ -1732,7 +1774,9 @@
       '<small class="muted">' + esc(sc.desc) + ' 성이 적을수록 어렵습니다.</small>' +
       '<button class="btn tiny ghost" data-act="back-scen" style="margin:8px 0 0">↩ 다른 해</button>' +
       '<div class="fpick">';
-    var list = FD.FORCES.slice().sort(function (a, b) { return b.cities.length - a.cities.length; });
+    var list = FD.FORCES.filter(function (f) {
+      return !sc.playable || sc.playable.indexOf(f.id) >= 0;
+    }).sort(function (a, b) { return b.cities.length - a.cities.length; });
     for (var i = 0; i < list.length; i++) {
       var f = list[i];
       var lord = off().find(f.lord);
@@ -1742,7 +1786,7 @@
         (lord ? pt(lord, 44) : '') +
         '<b>' + esc(f.name) + '</b>' +
         '<small>🏯 ' + f.cities.length + ' · 👤 ' + (f.officers.length + 1) + '</small>' +
-        '<small class="muted">' + esc(CD.find(f.cities[0]).name) + ' · ' +
+        '<small class="muted">' + (sc.shuffle ? '🎲 무작위' : esc(CD.find(f.cities[0]).name)) + ' · ' +
           CREED_KOR[f.creed] + '</small>' +
         '</button>';
     }
@@ -1810,7 +1854,7 @@
     openSheet: openSheet, closeSheet: closeSheet, openCity: openCity,
     renderTop: renderTop, renderMap: renderMap, renderSheet: renderSheet,
     showScenPick: showScenPick, showForcePick: showForcePick,
-    showHelp: showHelp, showBattle: showBattle,
+    showHelp: showHelp, showBattle: showBattle, showMilestone: showMilestone,
     closeEnc: closeEnc,
     /** 자가진단용 */
     _act: act, _tab: function () { return openTab; }, _city: function () { return openCityId; },

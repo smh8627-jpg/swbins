@@ -79,6 +79,7 @@ window.DG_NO_TUNE = true;
 <script src="js/sfx.js"></script>
 <script src="js/bgm.js"></script>
 <script src="js/toon3d.js"></script>
+<script src="js/anim-own.js"></script>
 <script src="js/asset3d.js"></script>
 <script src="js/portrait3d.js"></script>
 <script src="js/account.js"></script>
@@ -209,6 +210,150 @@ window.DG_NO_TUNE = true;
       return m.attack === 'idle' && m.alias.attack === 'idle' &&
         m.hit === 'idle' && m.alias.hit === 'idle' &&
         'attack·hit 모두 idle 대타';
+    });
+
+    /* ── 자체 몸짓 (anim-own.js, 2026-09-20) ─────────────────────
+       Mixamo 는 공개 저장소에 못 올려서 VRM 몸짓을 코드로 짰다. 렌더 없이 FK 로 잰다 — 눈으로 보는 일은 실기 몫. */
+
+    t('anim-own — 아홉 클립이 같은 뼈 전부를 움직이고, 값이 유한·단위이며, 반복 클립은 이어진다', function () {
+      var OA = DG.ownAnim, rig = OA.refRig(), clips = OA.clipData(rig), i, j, bad = [];
+      if (clips.length !== 9) { return false; }
+      var sig = function (c) { return c.tracks.map(function (x) { return x.bone + ':' + x.kind; }).sort().join(','); };
+      var s0 = sig(clips[0]);
+      clips.forEach(function (c) {
+        if (sig(c) !== s0) { bad.push(c.name + ' 트랙 집합'); }
+        c.tracks.forEach(function (tr) {
+          var w = tr.kind === 'q' ? 4 : 3, n = tr.times.length, k, l;
+          for (k = 0; k < tr.values.length; k++) { if (!isFinite(tr.values[k])) { bad.push(c.name + ' 비유한'); break; } }
+          if (tr.kind === 'q') {
+            for (k = 0; k < n; k++) {
+              l = Math.hypot(tr.values[k * 4], tr.values[k * 4 + 1], tr.values[k * 4 + 2], tr.values[k * 4 + 3]);
+              if (Math.abs(l - 1) > 1e-4) { bad.push(c.name + ' 비단위 ' + tr.bone); break; }
+            }
+          }
+          if (c.loop) {
+            var d = 0, d2 = 0;
+            for (k = 0; k < w; k++) {
+              d = Math.max(d, Math.abs(tr.values[k] - tr.values[(n - 1) * w + k]));
+              d2 = Math.max(d2, Math.abs(tr.values[k] + tr.values[(n - 1) * w + k]));
+            }
+            if (tr.kind === 'q') { d = Math.min(d, d2); }
+            if (d > 1e-3) { bad.push(c.name + ' 루프 ' + tr.bone); }
+          }
+        });
+      });
+      return bad.length === 0 && ('아홉 클립 · 트랙 ' + clips[0].tracks.length + '개씩 · 루프 셋 이음매 0');
+    });
+
+    t('anim-own — 걷기·달리기: 왼발이 나갈 때 오른팔이 나가고, 발바닥은 땅에 붙어 있다', function () {
+      var OA = DG.ownAnim, rig = OA.refRig(), B = OA.BONES, m = OA.math, fr = rig.frame;
+      var clips = OA.clipData(rig, ['Walk_Loop', 'Run_Loop', 'Idle_Loop']);
+      var by = {}; clips.forEach(function (c) { by[c.name] = c; });
+      var fwd = function (v) { return m.vdot(v, fr.f); };
+      var W = OA.fkAt(rig, by.Walk_Loop, 0.25), R = OA.fkAt(rig, by.Run_Loop, by.Run_Loop.duration * 0.25);
+      var stride = fwd(W[B.lfoot].p) - fwd(W[B.rfoot].p), arms = fwd(W[B.rhand].p) - fwd(W[B.lhand].p);
+      var runStride = fwd(R[B.lfoot].p) - fwd(R[B.rfoot].p);
+      var worst = 0;
+      ['Idle_Loop', 'Walk_Loop', 'Run_Loop'].forEach(function (nm) {
+        var c = by[nm], k;
+        for (k = 0; k <= 60; k++) {
+          var pts = OA.groundPoints(rig, OA.fkAt(rig, c, c.duration * k / 60));
+          var dev = Math.min.apply(null, pts) - rig.rest.minUp;
+          /* 박히는 것(음수)은 언제나 안 되고, 뜨는 것(양수)은 달리기의 공중 뜸만 허용한다 */
+          worst = Math.max(worst, -dev, nm === 'Run_Loop' ? 0 : dev);
+        }
+      });
+      return stride > 0.3 && arms > 0.2 && runStride > 0.35 && worst < 0.008 &&
+        ('걷기 보폭 ' + stride.toFixed(2) + 'm · 팔 차 ' + arms.toFixed(2) + 'm · 달리기 보폭 ' + runStride.toFixed(2) + 'm · 발 접지 오차 최대 ' + (worst * 1000).toFixed(1) + 'mm');
+    });
+
+    t('anim-own — 공격은 뒤에서 앞으로 휘두르고, 쓰러지면 눕고, 구르기는 한 바퀴 돌아 일어선다', function () {
+      var OA = DG.ownAnim, rig = OA.refRig(), B = OA.BONES, m = OA.math, fr = rig.frame;
+      var clips = OA.clipData(rig, ['Attack', 'Death', 'Dodge', 'Hit', 'Jump', 'Land']);
+      var by = {}; clips.forEach(function (c) { by[c.name] = c; });
+      var fwd = function (v) { return m.vdot(v, fr.f); }, up = function (v) { return m.vdot(v, fr.u); };
+      var A0 = OA.fkAt(rig, by.Attack, 0.3 * by.Attack.duration), A1 = OA.fkAt(rig, by.Attack, 0.46 * by.Attack.duration);
+      var swing = fwd(A1[B.rhand].p) - fwd(A0[B.rhand].p), raised = up(A0[B.rhand].p) > up(A0[B.head].p);
+      var D = OA.fkAt(rig, by.Death, by.Death.duration);
+      var torso = m.vsub(D[B.head].p, D[B.hips].p);
+      var lying = up(D[B.head].p) < 0.3 && Math.abs(m.vdot(torso, fr.u)) < 0.3 * m.vlen(torso) &&
+        fwd(D[B.head].p) < fwd(D[B.hips].p) - 0.3;
+      var G0 = OA.fkAt(rig, by.Dodge, 0), G1 = OA.fkAt(rig, by.Dodge, by.Dodge.duration);
+      var stood = Math.abs(up(G1[B.hips].p) - up(G0[B.hips].p)) < 0.02;
+      var head0 = OA.fkAt(rig, by.Hit, 0)[B.head].p, head1 = OA.fkAt(rig, by.Hit, 0.22 * by.Hit.duration)[B.head].p;
+      var flinch = fwd(head1) < fwd(head0) - 0.06;
+      var J1 = OA.fkAt(rig, by.Jump, by.Jump.duration * 0.42), Jc = OA.fkAt(rig, by.Jump, by.Jump.duration * 0.24);
+      var jumped = up(J1[B.lhand].p) > up(J1[B.head].p) && up(Jc[B.hips].p) < 0.72;
+      var Ld = OA.fkAt(rig, by.Land, by.Land.duration);
+      var landed = Math.abs(up(Ld[B.hips].p) - up(G0[B.hips].p)) < 0.02;
+      return raised && swing > 0.3 && lying && stood && flinch && jumped && landed &&
+        ('휘두름 ' + swing.toFixed(2) + 'm · 쓰러진 머리 높이 ' + up(D[B.head].p).toFixed(2) + ' · 구르기 뒤 서 있는 높이 그대로');
+    });
+
+    t('anim-own — 어느 클립에서도 관절이 땅에 박히거나 각속도가 튀지 않는다', function () {
+      var OA = DG.ownAnim, rig = OA.refRig(), fr = rig.frame, m = OA.math, clips = OA.clipData(rig);
+      var lowest = 1e9, lowName = '', maxAv = 0, maxName = '';
+      clips.forEach(function (c) {
+        var k, nm;
+        for (k = 0; k <= 80; k++) {
+          var W = OA.fkAt(rig, c, c.duration * k / 80);
+          for (nm in W) {
+            if (/Index|Middle|Ring|Little|Thumb/.test(nm)) { continue; }
+            var y = m.vdot(W[nm].p, fr.u);
+            if (y < lowest) { lowest = y; lowName = c.name + ':' + nm; }
+          }
+        }
+        c.tracks.forEach(function (tr) {
+          if (tr.kind !== 'q') { return; }
+          var i;
+          for (i = 1; i < tr.times.length; i++) {
+            var a = tr.values.slice(i * 4 - 4, i * 4), b = tr.values.slice(i * 4, i * 4 + 4);
+            var d = Math.abs(a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3]);
+            var av = 2 * Math.acos(Math.min(1, d)) * 180 / Math.PI / (tr.times[i] - tr.times[i - 1]);
+            if (av > maxAv) { maxAv = av; maxName = c.name; }
+          }
+        });
+      });
+      return lowest > -0.045 && maxAv < 3200 &&
+        ('가장 낮은 관절 ' + (lowest * 100).toFixed(1) + 'cm(' + lowName + ') · 최대 각속도 ' + Math.round(maxAv) + '°/s(' + maxName + ')');
+    });
+
+    t('anim-own — 실제 three 뼈대에 굽혀 믹서로 돌려도 FK 계산과 같은 자리에 선다', function () {
+      var OA = DG.ownAnim, TH = window.THREE, rig = OA.refRig();
+      if (!TH || !TH.AnimationMixer) { return '(three 없음 — 건너뜀)'; }
+      var bones = {}, root = new TH.Group();
+      rig.order.forEach(function (nm) {
+        var n = rig.by[nm], b = new TH.Bone();
+        b.name = nm; b.position.set(n.p[0], n.p[1], n.p[2]); b.quaternion.set(n.q[0], n.q[1], n.q[2], n.q[3]);
+        bones[nm] = b;
+        (n.parent ? bones[n.parent] : root).add(b);
+      });
+      var clips = OA.clipsFor(root, TH);
+      var names = clips.map(function (c) { return c.name; });
+      var map = DG.asset3d.mapClips(names);
+      var slotsOk = ['idle', 'walk', 'run', 'attack', 'hit', 'dodge', 'death', 'jump', 'land'].every(function (s) {
+        return !!map[s] && !map.alias[s];
+      });
+      var walk = clips.filter(function (c) { return c.name === 'Walk_Loop'; })[0];
+      var mx = new TH.AnimationMixer(root), act = mx.clipAction(walk);
+      act.play(); mx.update(0.25); root.updateMatrixWorld(true);
+      var p = new TH.Vector3(); bones[OA.BONES.lfoot].getWorldPosition(p);
+      var W = OA.fkAt(rig, OA.clipData(rig, ['Walk_Loop'])[0], 0.25), q = W[OA.BONES.lfoot].p;
+      var err = Math.hypot(p.x - q[0], p.y - q[1], p.z - q[2]);
+      return clips.length === 9 && slotsOk && err < 0.004 &&
+        ('AnimationClip 9 · mapClips 아홉 자리 전부 제 이름(대타 0) · 왼발 위치 오차 ' + (err * 1000).toFixed(2) + 'mm');
+    });
+
+    t('anim-own — VRM 몸(anime 경로)만 자체 몸짓을 쓰고, 손잡이로 되돌릴 수 있다', function () {
+      var A3 = DG.asset3d, C = DG.core, keep = C.tuned('world3d.ownAnim', 1);
+      var on = A3.wantsOwnAnim('assets/models/people/anime/avatar_sample_a.glb') &&
+        A3.wantsOwnAnim('assets/generated/people/anime/npc_keeper.glb');
+      var others = !A3.wantsOwnAnim('assets/models/people/quaternius_rpg/Warrior.glb') &&
+        !A3.wantsOwnAnim('assets/models/people/regular/Male_Peasant.gltf');
+      C.setTune('world3d.ownAnim', 0);
+      var off = !A3.wantsOwnAnim('assets/models/people/anime/avatar_sample_a.glb');
+      C.setTune('world3d.ownAnim', keep);
+      return on && others && off && 'anime 경로만 켜짐 · 손잡이 0 이면 UAL1 길';
     });
 
     /* ── 툰 재질·외곽선 (PLAN §6.1, 2026-09-19 §10-Q3 + 배우 외곽선) ── */

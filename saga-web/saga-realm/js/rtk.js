@@ -98,8 +98,8 @@
       };
     }
     var want = s.rtk.scen || '194';
-    if (scenApplied !== want) { FD.use(want); scenApplied = want; }
-    if (s.rtk.started) { migrateNewCities(s.rtk); }
+    if (scenApplied !== want) { FD.use(want, s.rtk.seed); scenApplied = want; }
+    if (s.rtk.started) { migrateNewCities(s.rtk); ensureMilestone(s.rtk); }
     return s.rtk;
   }
 
@@ -188,14 +188,21 @@
   /**
    * 판을 세운다.
    * @param meId  내가 잡을 세력 id
-   * @param scen  시나리오 id ('194' · '200' · '208'). 없으면 194년
+   * @param scen  시나리오 id ('194' · '200' · '208' · 'blank' · 'rift' · 'chaos'). 없으면 194년
+   * @param seed  섞는 시나리오('chaos')의 씨앗. 안 주면 새로 굴린다 — 세이브(`save.rtk.seed`)에 적어 둔다
    */
-  function setup(meId, scen) {
+  function setup(meId, scen, seed) {
     var st = state();
     var off = global.DG.off;
-    var sc = FD.use(scen || '194');
+    var want = scen || '194';
+    var sd = 0;
+    if (FD.scenario(want).shuffle) {
+      sd = (seed >>> 0) || ((Math.random() * 4294967296) >>> 0) || 1;
+    }
+    var sc = FD.use(want, sd);
     scenApplied = sc.id;
     st.scen = sc.id;
+    st.seed = sd;
     st.started = true;
     st.year = sc.year || START_YEAR; st.month = 1; st.turn = 0;
     st.me = meId; st.result = null;
@@ -237,7 +244,7 @@
       for (j = 0; j < f.cities.length; j++) {
         var here = off.atCity(f.cities[j], f.id);
         st.cities[f.cities[j]].gov = here.length ? here[0].id : null;
-        st.cities[f.cities[j]].troops = 3000 + Math.round(st.cities[f.cities[j]].pop / 90);
+        st.cities[f.cities[j]].troops = startTroops(f, f.cities[j], st.cities[f.cities[j]]);
         st.cities[f.cities[j]].food = 8000 + st.cities[f.cities[j]].agri * 8;
       }
     }
@@ -259,6 +266,8 @@
         global.DG.diplo.setPact(pacts[i][0], pacts[i][1], pacts[i][2], pacts[i][3]);
       }
     }
+
+    st.milestone = { idx: 0, at: 0, base: { core: coreCount(st, meId), cities: citiesOf(meId).length } };
 
     core.log('🏳️ ' + st.year + '년 봄 · ' + sc.name + '(' + sc.hanja + ') — ' +
       forceName(meId) + ' 의 깃발을 들었다.', 'good');
@@ -307,6 +316,9 @@
       var d = CD.CITIES[i];
       if (!d.garrison) { continue; }
       var c = st.cities[d.id];
+      /* ④⑤ 시나리오는 확장 지역의 성을 처음부터 세력이 쥔다 — 그 성의 병력과 수비 무장은
+         `setup()` 이 세력 표대로 이미 놓았으니 주인 없는 성의 수비대로 덮어쓰지 않는다 */
+      if (c.force) { continue; }
       c.troops = d.garrison;
       c.food = d.garrison * 2;
       var ids = (FD.KOREA_GARRISON && FD.KOREA_GARRISON[d.id]) ||
@@ -322,12 +334,22 @@
         (FD.TOMB_GARRISON && FD.TOMB_GARRISON[d.id]) || [];
       var gov = null;
       for (var j = 0; j < ids.length; j++) {
+        /* 다른 세력의 명부에 든 사람(④ 의 양평 수령 등)은 제자리에 둔다 */
+        if (st.officers[ids[j]] && st.officers[ids[j]].force) { continue; }
         var r = off.placeAt(ids[j], d.id, null);
         r.found = true;
         if (!gov) { gov = ids[j]; }
       }
       c.gov = gov;
     }
+  }
+
+  /** 세력이 처음 쥔 성의 병력 — `troops` 가 숫자면 그 값, 'garrison' 이면 성의 수비병, 없으면 3000 + 인구/90 */
+  function startTroops(f, cityId, c) {
+    var d = CD.find(cityId);
+    if (typeof f.troops === 'number') { return f.troops; }
+    if (f.troops === 'garrison' && d && d.garrison) { return d.garrison; }
+    return 3000 + Math.round(c.pop / 90);
   }
 
   function forceName(id) {
@@ -775,7 +797,7 @@
   }
 
   /** 우리 땅에 묻힌 재야 하나를 드러낸다 (가장 귀한 사람부터) */
-  function revealFree() {
+  function revealFree(note) {
     var off = global.DG.off;
     var mine = citiesOf(me()), pool = [], i;
     for (i = 0; i < mine.length; i++) {
@@ -787,7 +809,7 @@
     if (!pool.length) { return null; }
     pool.sort(function (a, b) { return b.rarity - a.rarity; });
     off.rec(pool[0].id).found = true;
-    core.log('📚 학식이 쌓여 ' + pool[0].name + ' 의 이름이 들려왔다', 'good');
+    core.log('📚 ' + (note || '학식이 쌓여') + ' ' + pool[0].name + ' 의 이름이 들려왔다', 'good');
     core.emit('toast', '🔍 ' + pool[0].name + ' 이(가) 드러났다');
     return pool[0];
   }
@@ -839,8 +861,130 @@
 
     core.emit('rtk:month', { year: st.year, month: st.month });
     core.emit('changed');
+    checkMilestones();
     core.persist();
     return { year: st.year, month: st.month };
+  }
+
+  /* ── 이정표 (PLAN §5-4) ─────────────────────────────────
+   * `save.rtk.milestone = { idx, at, base:{core, cities} }` — idx 는 **깬 단 수**(0~5), at 은 마지막으로
+   * 깬 달(turn), base 는 시작 때의 성 수(사다리의 눈금). 옛 세이브는 칸이 없으면 지금을 기준으로 0 에서 시작한다.
+   * 표(`FD.milestonesFor`)는 조건과 보상만 갖고, 판정·지급은 여기 한 곳이다.
+   */
+
+  function coreCount(st, forceId) {
+    var n = 0, k;
+    for (k in st.cities) {
+      if (!Object.prototype.hasOwnProperty.call(st.cities, k)) { continue; }
+      var d = CD.find(k);
+      if (st.cities[k].force === forceId && d && !d.garrison) { n++; }
+    }
+    return n;
+  }
+
+  function ensureMilestone(st) {
+    if (st.milestone || !st.started || !st.me) { return; }
+    var mine = 0, k;
+    for (k in st.cities) {
+      if (Object.prototype.hasOwnProperty.call(st.cities, k) && st.cities[k].force === st.me) { mine++; }
+    }
+    st.milestone = { idx: 0, at: st.turn || 0, base: { core: coreCount(st, st.me), cities: mine } };
+  }
+
+  /** 이 판의 이정표 표(조건이 풀린 다섯 단) */
+  function milestones() {
+    var st = state();
+    ensureMilestone(st);
+    return FD.milestonesFor(st.scen || '194', st.milestone ? st.milestone.base.core : 0);
+  }
+
+  /** 조건 하나의 진척 — { cur, need, ok, note } (막대는 cur/need) */
+  function condProgress(cond) {
+    var st = state(), mine = citiesOf(st.me), i, n = 0, tot = 0;
+    if (cond.c === 'cities') {
+      return { cur: mine.length, need: cond.n, ok: mine.length >= cond.n };
+    }
+    if (cond.c === 'core') {
+      n = coreCount(st, st.me);
+      return { cur: n, need: cond.n, ok: n >= cond.n };
+    }
+    if (cond.c === 'prov') {
+      for (i = 0; i < CD.CITIES.length; i++) {
+        if (CD.CITIES[i].prov !== cond.prov) { continue; }
+        tot++;
+        if (st.cities[CD.CITIES[i].id] && st.cities[CD.CITIES[i].id].force === st.me) { n++; }
+      }
+      var need = cond.all ? tot : 1;
+      return { cur: Math.min(n, need), need: need, ok: n >= need };
+    }
+    if (cond.c === 'city') {
+      var has = st.cities[cond.id] && st.cities[cond.id].force === st.me ? 1 : 0;
+      return { cur: has, need: 1, ok: !!has };
+    }
+    if (cond.c === 'rank') {
+      var rk = ranking(), pos = 0;
+      for (i = 0; i < rk.length; i++) { if (rk[i].id === st.me) { pos = i + 1; break; } }
+      return { cur: Math.min(mine.length, cond.min), need: cond.min,
+               ok: !!pos && pos <= cond.n && mine.length >= cond.min,
+               note: pos ? (pos + '위') : '' };
+    }
+    return { cur: 0, need: 1, ok: false };
+  }
+
+  /** 화면용 — 지금 겨냥하는 이정표와 진척. 다 깼으면 cur:null */
+  function milestoneView() {
+    var st = state();
+    if (!st.started || !st.milestone) { return null; }
+    var list = milestones(), idx = st.milestone.idx;
+    var out = { idx: idx, total: list.length, cur: null, progress: null, list: list };
+    if (idx < list.length) {
+      out.cur = list[idx];
+      out.progress = condProgress(list[idx].cond);
+    }
+    return out;
+  }
+
+  function awardMilestone(m, idx) {
+    var st = state(), f = myForce(), off = global.DG.off, ID = global.DG.item;
+    var got = { idx: idx, name: m.name, desc: m.desc, gold: m.gold || 0, found: [], relic: null };
+    if (f && m.gold) { f.gold += m.gold; }
+    var i;
+    for (i = 0; i < (m.reveal || 0); i++) {
+      var h = revealFree('이정표 「' + m.name + '」 — 소문이 돌아');
+      if (h) { got.found.push(h.name); }
+    }
+    if (m.relic && ID) {
+      var it = ID.randomItem(), team = off.ofForce(st.me), who = null;
+      for (i = 0; i < team.length; i++) { if (!off.rec(team[i].id).item) { who = team[i]; break; } }
+      if (!who && team.length) { who = team[0]; }
+      if (who) {
+        off.equip(who.id, it.id);
+        got.relic = { emoji: it.emoji, name: it.name, who: who.name };
+      }
+    }
+    core.log('🚩 이정표 ' + (idx + 1) + '/5 「' + m.name + '」 — ' + m.desc +
+      ' (금 +' + core.fmt(got.gold) + ')', 'good');
+    return got;
+  }
+
+  /**
+   * 다음 달로 넘어갈 때(그리고 어드민이 부를 때) 깬 이정표를 지급한다.
+   * 한 번에 여러 단을 깨면 차례로 모두 준다. 승패가 난 판은 세지 않는다.
+   * @returns 이번에 깬 단들의 결과 배열
+   */
+  function checkMilestones() {
+    var st = state(), out = [];
+    if (!st.started || st.result || !st.milestone) { return out; }
+    var list = milestones();
+    while (st.milestone.idx < list.length) {
+      var m = list[st.milestone.idx];
+      if (!condProgress(m.cond).ok) { break; }
+      out.push(awardMilestone(m, st.milestone.idx));
+      st.milestone.idx += 1;
+      st.milestone.at = st.turn;
+    }
+    if (out.length) { core.emit('rtk:milestone', out); core.emit('changed'); }
+    return out;
   }
 
   /* ── 요약 (화면용) ────────────────────────────────────── */
@@ -882,6 +1026,8 @@
     state: state, city: city, force: force, me: me, myForce: myForce,
     isMine: isMine, citiesOf: citiesOf, liveForces: liveForces, forceName: forceName,
     setup: setup, scatterFree: scatterFree,
+    milestones: milestones, milestoneView: milestoneView, condProgress: condProgress,
+    checkMilestones: checkMilestones,
     readyAt: readyAt, capOf: capOf, order: order, tryHire: tryHire,
     setGov: setGov, govMul: govMul, reward: reward,
     goldOf: goldOf, foodOf: foodOf, eatOf: eatOf, secMul: secMul, harvestMul: harvestMul,
