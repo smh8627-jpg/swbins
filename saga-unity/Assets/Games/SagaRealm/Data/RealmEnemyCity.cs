@@ -311,6 +311,7 @@ namespace Saga.Realm.Data
         public const string SheyiId = "sheyi";
         public const string ZhuwuId = "zhuwu";
         public const string XiquanId = "xiquan";
+        public const string QuzuId = "quzu";
 
         public static readonly string[] AllIds =
         {
@@ -320,7 +321,7 @@ namespace Saga.Realm.Data
             ShuofangId, WuyuanId, TianshuiId, NanhaiId, ZhutiId, CangwuId, JianningId, YulinId, YuexiId,
             JiaozhiId, ZangkeId, JiuzhenId, HepuId, RinanId, YunnanId, XianglinId, YongchangId,
             DianchongId, ShenduId, BijingId, JiantuoluoId, LuorongId, JibinId, DaxiaId, WuyishanliId, MoqietuoId, SheyiId, ZhuwuId,
-            XiquanId,
+            XiquanId, QuzuId,
         };
 
         private static readonly Dictionary<string, RealmEnemyCityDef> Catalog = new Dictionary<string, RealmEnemyCityDef>
@@ -596,6 +597,14 @@ namespace Saga.Realm.Data
             // hill을 Plain으로 보정(건타라·대하와 같은 이유). 원작에 더
             // 뻗는 LINKS 없어(잎사귀) 이 가지는 여기서 끝.
             [XiquanId] = new RealmEnemyCityDef(XiquanId, "서권", RealmLand.Plain, baseWall: 2700, baseTroops: 621, baseTrain: 280, baseTech: 100, attackFromCityId: "dianchong"),
+            // 구속은 전충(dianchong)과만 맞닿아 있다(원작 LINKS: dianchong-quzu,
+            // "지도 위 가장 남쪽 이름, 여기서부터는 기록도 흐릿하다") — 32차
+            // 확장, 전충의 셋째이자 마지막 자식(비경·서권과 형제 가지, 전충이
+            // 목표 셋으로 늘어난 첫 사례). train은 전충 자신의 265+15=280
+            // (비경·서권과 동률). land는 원작 hill을 Plain으로 보정(서권과
+            // 같은 이유). 원작에 더 뻗는 LINKS 없어(잎사귀) 전충 갈래가
+            // 이걸로 전부 닫힌다.
+            [QuzuId] = new RealmEnemyCityDef(QuzuId, "구속", RealmLand.Plain, baseWall: 2500, baseTroops: 575, baseTrain: 280, baseTech: 100, attackFromCityId: "dianchong"),
         };
 
         public static RealmEnemyCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;

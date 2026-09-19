@@ -7608,3 +7608,18 @@ troops=wall×0.23 반올림(850·900). 둘 다 원작 land가 이미 plain이라
 `tools/unity-batch.sh -- <Unity 인자...>`로 컴파일(error CS 0건)·`PlaytestRealmSlice` 3연속 실행(`Saga.EditorTools.PlaytestRealmSlice.Run`, `-quit` 안 줌) — 서권 함락 로그 매 회 확인, `ProjectSettings/`·`Packages/` 부작용 없음(래퍼가 매번 원복). 로컬라이제이션 JSON 추가 뒤 1회 더 재검증(문법 확인 `node -e "JSON.parse(...)"` 포함). 씬 재생성 불필요.
 
 `docs/PROJECT_STATE.md` 갱신(REALM 완료 요약 적국 50→51·성 53→54, 16~31차 절 갱신, "다음 작업"(32차 후보: 전충의 마지막 이웃 구속 — 고르면 전충 갈래 완전히 닫힘) · 테스트 상태 · 실기 확인 대기 전부 갱신, 14910B로 15KB 상한 안쪽 유지).
+
+## 2026-09-19 — REALM 51장 32차 확장(전충→구속, 교주·남중 두 사슬 완전히 닫힘)
+
+31차가 남긴 마지막 후보 구속을 채웠다(원작 LINKS: dianchong-quzu, "지도 위 가장 남쪽 이름, 여기서부터는 기록도 흐릿하다"). train은 전충 자신의 265+15=280(비경·서권과 동률, 전충이 목표 셋으로 늘어난 첫 사례 — jianning 21차·shendu 28차와 같은 패턴). wall은 원작 그대로(2500), troops=wall×0.23 반올림(575). land는 원작 hill을 Plain으로 보정(서권과 같은 이유). 원작에 더 뻗는 LINKS 없어(잎사귀) **전충 갈래가 이걸로 전부 닫힌다 — 상림 이하(전충·노용 두 자식 트리)가 완전히 닫히면서 교주 사슬 전체(남해→창오→울림→교지→구진→일남→상림→…, 합포)가 완전히 닫혔고, 29차에 이미 닫힌 남중 사슬(신독 이하)과 합쳐 51장의 두 남방 사슬이 모두 끝났다.**
+
+- `RealmEnemyCity.cs` — `QuzuId` 신설, `AllIds`·`Catalog`에 추가(`attackFromCityId: "dianchong"`).
+- `RealmCityData.cs` — 같은 성 추가.
+- `PlaytestRealmSlice.cs` — 전충이 목표 셋이 되며 `Phase.AttackXiquan`도 enemyId(XiquanId) 명시로 바꾸고 다음 단계를 새 `Phase.AttackQuzu`로, 그 안에서 QuizCorrect로 복귀.
+- 로컬라이제이션: `city.quzu`(ko/en) 신설.
+
+`tools/unity-batch.sh -- <Unity 인자...>`로 컴파일(error CS 0건)·`PlaytestRealmSlice` 3연속 실행(`Saga.EditorTools.PlaytestRealmSlice.Run`, `-quit` 안 줌) — 구속 함락 로그 매 회 확인, `ProjectSettings/`·`Packages/` 부작용 없음(래퍼가 매번 원복). `bash tools/precheck.sh` 통과(문서 크기 `saga-unity/docs/PROJECT_STATE.md` 15271B, 15360B 상한 안쪽). 씬 재생성 불필요.
+
+**남은 REALM 확장 후보(별개 지역)**: 13~14차가 남긴 막북(운중 이웃) 안문(yanmen)·정양(dingxiang), 상군 이웃 북지(beidi) — 셋 다 잎사귀, 웹판 원본 `data-city.js` LINKS 확인 완료(543~544행). 교주·남중 두 사슬은 더 뻗을 곳이 없다.
+
+`docs/PROJECT_STATE.md` 갱신(REALM 완료 요약 적국 51→52·성 54→55, 16~32차 절을 "교주·남중 완전히 닫힘"으로 갱신, "다음 작업"(33차 후보: 막북 안문/정양/북지) · 테스트 상태 · 실기 확인 대기 전부 갱신, 15271B로 15KB(15360B) 상한 안쪽 유지).

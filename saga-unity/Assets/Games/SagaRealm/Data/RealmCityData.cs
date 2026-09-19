@@ -339,6 +339,11 @@ namespace Saga.Realm.Data
             // Plain으로 보정. wall은 RealmEnemyCity.cs 서권 정의(2700)와
             // 맞춘다.
             ["xiquan"] = new RealmCityDef("xiquan", "서권", RealmLand.Plain, agri: 140, comm: 110, wall: 2700, pop: 40000, mapX: 50, mapY: 120),
+            // 51장 "대규모 콘텐츠" 32차 확장(2026-09-19) — 전충(dianchong)의
+            // 셋째이자 마지막 자식(비경·서권과 형제 가지), 전충 갈래가 이걸로
+            // 전부 닫힌다. land는 원작 hill을 Plain으로 보정. wall은
+            // RealmEnemyCity.cs 구속 정의(2500)와 맞춘다.
+            ["quzu"] = new RealmCityDef("quzu", "구속", RealmLand.Plain, agri: 120, comm: 100, wall: 2500, pop: 34000, mapX: 36, mapY: 134),
         };
 
         public static RealmCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;

@@ -81,7 +81,7 @@ namespace Saga.EditorTools
             AttackTianshui, AttackNanhai, AttackZhuti, AttackCangwu, AttackJianning, AttackYulin, AttackYuexi,
             AttackZangke, AttackJiaozhi, AttackHepu, AttackJiuzhen, AttackYunnan, AttackRinan,
             AttackYongchang, AttackXianglin, AttackDianchong, AttackShendu,
-            AttackBijing, AttackJiantuoluo, AttackLuorong, AttackJibin, AttackDaxia, AttackWuyishanli, AttackMoqietuo, AttackSheyi, AttackZhuwu, AttackXiquan,
+            AttackBijing, AttackJiantuoluo, AttackLuorong, AttackJibin, AttackDaxia, AttackWuyishanli, AttackMoqietuo, AttackSheyi, AttackZhuwu, AttackXiquan, AttackQuzu,
             QuizCorrect, QuizWrong, QuizArchive,
             SaveLoad, Done,
         }
@@ -1301,10 +1301,18 @@ namespace Saga.EditorTools
 
                 case Phase.AttackXiquan:
                 {
-                    // 31차 확장(2026-09-19) — 전충의 둘째 목표(비경과 형제
-                    // 가지, TargetFrom("dianchong")), 원작에 더 뻗는 LINKS
-                    // 없어 이 가지는 여기서 끝.
-                    if (!AttackChainStep(RealmEnemyCity.DianchongId, RealmEnemyCity.XiquanId, Phase.QuizCorrect, RealmEnemyCity.XiquanId)) return;
+                    // 31차 확장(2026-09-19) — 전충의 둘째 목표(32차부터
+                    // 구속과 형제 가지가 돼 enemyId 명시 유지).
+                    if (!AttackChainStep(RealmEnemyCity.DianchongId, RealmEnemyCity.XiquanId, Phase.AttackQuzu, RealmEnemyCity.XiquanId)) return;
+                    break;
+                }
+
+                case Phase.AttackQuzu:
+                {
+                    // 32차 확장(2026-09-19) — 전충의 셋째이자 마지막 목표
+                    // (TargetFrom("dianchong")), 원작에 더 뻗는 LINKS 없어
+                    // 전충 갈래가 이걸로 전부 닫힌다.
+                    if (!AttackChainStep(RealmEnemyCity.DianchongId, RealmEnemyCity.QuzuId, Phase.QuizCorrect, RealmEnemyCity.QuzuId)) return;
                     break;
                 }
 
