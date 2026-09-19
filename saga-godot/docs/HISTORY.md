@@ -7478,3 +7478,16 @@ PROJECT_STATE.md` 참고. 요약:
 - **그런데 실제 TestVillage에서는 여전히 하얗게 빈다** — TestVillage의 Sun(그림자 있음, 특정 각도)까지 격리 씬에 그대로 옮기니 부분 재현(눈·눈썹은 나오는데 입만 빠짐, 완전 공백은 아니었음)됐지만, 실제 게임 씬은 그보다 더 나쁜 완전 공백이다. `cast_shadow = OFF`도 시도했지만 효과 없었음. 남은 차이(다른 오브젝트·Landmarks·터레인의 그림자/안개 누적 등)를 다 격리하지 못한 채 시간을 많이 썼다.
 - **결론**: VRM의 UV 서브영역별 해상도가 다른 겹친 데칼 방식 자체가 Godot 런타임 셰이더 트릭으로 완전히 재현하기 어려운 구조로 보인다. `_fix_layered_face()`는 최소한 해가 없고 부분적으로 도움이 되므로 남겨뒀다. 다음 세션이 볼 것: (a) VRoid Studio나 Blender로 얼굴을 오프라인에서 단일 텍스처로 구워(bake) 재수출하거나, (b) 102-6의 "저폴리 툰" 갈래로 되돌아가는 것도 고려할 가치 있음(얼굴 문제 자체가 없음).
 - `tools/godot_regress.sh` 다섯 판 3회 통과, `.import`/`project.godot` 잡음 없음. 테스트용 `_scratch_facetest.*` 파일들은 커밋 전 삭제 확인함.
+
+## VRoid 얼굴 — Blender 헤드리스 오프라인 bake 파이프라인 (2026-09-19④)
+
+- 사용자가 "VRoid Studio/Blender 자동으로 해줄 수 없냐"고 물어서, Blender를 스크래치패드에 받아(4.2.23 LTS 포터블) `--background --python`으로 완전 자동화했다(VRoid Studio는 CLI/배치 자동화 API가 없어 후보에서 제외).
+- 1차 시도(순수 Python, trimesh+PIL로 UV 삼각형을 직접 래스터라이즈)는 실패 — 마스크가 부정확해 눈썹/입 텍스처가 캔버스 전체를 뒤덮는 결과가 나왔다. **Blender의 실제 베이크 엔진으로 "이 서피스가 어디를 차지하는지" 소유권 마스크를 서피스마다 구워** 문제를 우회했다(각 서피스를 흰색 Emission으로, 나머지 6개를 검은색으로 바꿔치기해 EMIT 베이크 — `tools/asset-forge/vroid_face_bake_masks.py`).
+- 중간에 두 가지 함정을 겪음: ① 얼굴 재질이 `KHR_materials_unlit`이라 Blender가 Emission 셰이더로 들여오는데, `DIFFUSE` 베이크 타입으로는 완전히 검게 나온다(디퓨즈 성분이 없으니까) — `EMIT`로 바꿔야 함. ② `EMIT` 베이크로 원본 텍스처 색을 직접 구우면 Mix Shader(Transparent/Emission, 텍스처 알파로 섞음)의 블렌딩이 무시되어 알파 낮은 곳까지 원색(대부분 검정)이 그대로 나와 지그재그 검은 블록이 생겼다 — 그래서 색은 Blender가 아니라 **Python에서 원본 PNG를 직접 읽어 진짜 알파와 함께** 합성하기로(`tools/asset-forge/vroid_face_bake_combine.py`), Blender는 순수 소유권 마스크만 담당하도록 역할을 나눴다.
+- 이렇게 나온 최종 마스크에서 드러난 사실: SKIN 서피스의 실제 UV 소유 영역은 거의 전체 얼굴(귀 포함)을 덮고 눈 두 개 자리만 뚫려 있다 — 정상적인 눈구멍. 눈꺼풀선(Eyeline) 소유 영역은 "속눈썹" 모양의 지그재그였는데, 그 자리의 실제 알파는 완전히 0(어떤 서피스도 못 덮음) — 이건 버그가 아니라 Face 메시가 애초에 안 쓰는 진짜 빈 UV 공간이었다(눈썹/속눈썹이 별도 메시일 수도).
+- **결과 텍스처(`assets/characters_vroid/generated/AvatarSample_A_Face_Baked.png`)는 확인해 보니 맞게 나왔다** — 피부톤·귀·눈썹(갈색)·홍채(파란 점)까지 다 보임(좌우가 UV 특성상 거울처럼 겹쳐 보이지만 3D에 다시 매핑되면 문제없을 것으로 판단).
+- `cel_shader_apply.gd`를 고쳐 `_apply_baked_face()` 신설 — Face의 7개 서피스 전부에 이 한 장의 텍스처를 준 새 `StandardMaterial3D`를 씌운다(이제 어느 서피스가 위에 그려지든 내용이 같아 정렬 문제 자체가 사라져야 함). `LAYERED_FACE_MESH_NAMES`/`_fix_layered_face`(어제의 transparency+priority 임시방편)는 이걸로 대체.
+- **그런데도 실기(TestVillage)에서는 여전히 완전히 하얗게 빈다.** 순서로 기각한 원인들: `transparency`(SCISSOR로도, 완전히 DISABLED로도 시도 — 둘 다 하얗게 빔), `shading_mode`(원본이 UNSHADED였다는 걸 알아내 새 재질에도 그대로 줬지만 변화 없음). 텍스처 자체가 로드되는 것(headless print로 1024×1024 CompressedTexture2D 확인)과 픽셀 내용이 맞는 것(PIL로 직접 샘플링해 확인)은 둘 다 검증했는데도 안 보인다 — 남은 유력 후보는 `cull_mode`(새 StandardMaterial3D 기본값 CULL_BACK이 이 메시의 노멀 방향과 안 맞아 앞면이 컬링되고 있을 가능성, 아직 실기로 못 검증)이지만 시간 관계상 다음 세션으로 넘긴다.
+- 부수적으로 익힌 스크린샷 기법: 창이 포커스를 못 받을 때(`SetForegroundWindow`가 OS 정책으로 실패할 수 있다, 실제로 이번에 한 번 걸려서 화면의 다른 창(VRoid Studio로 보임)을 잘못 찍은 적 있음 — 바로 지움) `PrintWindow(hwnd, hdc, PW_RENDERFULLCONTENT=2)`를 쓰면 포커스·z-order와 무관하게 그 창 내용을 그대로 캡처할 수 있다(Vulkan/GL 렌더 창도 됨). 이후 세션은 SetForegroundWindow보다 이 방법을 기본으로 쓸 것.
+- `tools/godot_regress.sh` 다섯 판 3회 통과, `.import`/`project.godot` 잡음 없음(신규 `assets/characters_vroid/generated/*`·`ground_noise.gdshader.uid`만 추가).
+- 다음: `cull_mode` 검증부터. 그래도 안 풀리면 102-6 갈림길로 돌아가 저폴리 툰 캐릭터로 재전환하는 것도 진지하게 고려할 것 — VRoid 얼굴 하나에 이미 세션 하나를 다 썼다.

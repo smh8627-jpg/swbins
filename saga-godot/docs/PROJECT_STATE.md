@@ -17,12 +17,12 @@
 
 ## 현재 작업
 
-- **2026-09-19③ GO 그래픽 3연타+VRoid 착수**(상세 HISTORY.md): 흰색 날아감=glow 아니라 cel_toon 클램프 누락(고침) · `ground_noise.gdshader` 신규 · 안개 밀도↑ · 외곽선 원래 정상 · Player→VRoid. 미해결은 "알려진 오류" 참고. 회귀 3회 통과.
-- 2026-09-19② 103-3 Fantasy Town 4/4 스냅(씬 미연결) · ① palette.py 신설(`py -3`로만) · 09-18 FOREST 발견 격자+101-3 C 완결.
+- **09-19④ VRoid 얼굴 Blender 오프라인 bake**(HISTORY.md): `tools/asset-forge/vroid_face_bake_masks.py`+`vroid_face_bake_combine.py` 신규 — 결과 텍스처(`assets/characters_vroid/generated/AvatarSample_A_Face_Baked.png`)는 맞게 나옴(커밋). `_apply_baked_face`로 7서피스 다 이걸 쓰게 해도 **GO 실기는 여전히 하얗게 빈다** — transparency·shading_mode 기각, `cull_mode` 미검증.
+- 09-19③ 흰색 날아감 진범(cel_toon 클램프) 고침·노이즈 바닥·안개↑·Player→VRoid. 09-19② 103-3 스냅(미연결)·palette.py. 09-18 FOREST 발견 격자 완결.
 
 ## 다음 작업 (우선순위 — 상세는 PLAN 해당 장)
 
-1. **VRoid 얼굴 bake, 또는 저폴리 툰으로 재전환 검토** — "알려진 오류" 참고.
+1. **VRoid 얼굴 하얗게 빔 계속** — `cull_mode`(새 재질 기본 CULL_BACK이 노멀과 안 맞을 가능성) 검증. 안 되면 저폴리 툰 재전환 고려.
 2. **팔레트 결과물 사람 확인** — `variants/*__go_village.glb` 4종 확인 후 씬 연결 + Modular Cave·character-a~d로 확장.
 3. **실기 확인 몰아서**(아래) — 사용자 몫. 105 Q-h(1.7m vs 3.4m)도 결정 대기.
 
@@ -30,7 +30,7 @@
 
 - 코드 오류: 없음(회귀 오류 0). `ChoicePrompt` 클로저 null 크래시 2026-09-16 고침.
 - 그래픽 결함(해소): 흰 알베도+rim+glow 날아가던 것 — `cel_toon.gdshader` 클램프로 고침.
-- **신규(미해결, 원인 특정)**: GO Player(VRoid) 얼굴이 하얗게 빈다 — 데칼 7장 alpha-blend+priority 수정(`_fix_layered_face`)이 단순 씬은 되는데 TestVillage는 안 됨. UV 서브영역별 다른 해상도 데칼이라 셰이더 트릭만으론 어려움(HISTORY.md). 추천: VRoid Studio/Blender서 얼굴 단일 텍스처로 구워(bake) 재도입, 애니 없음.
+- **신규(미해결)**: GO Player(VRoid) 얼굴이 하얗게 빈다 — 오프라인 bake까지 했는데도 안 됨(위 참고). 애니도 없음(T포즈).
 - 문서: `saga-unity/`와 그래픽 목표가 갈라섰다(이쪽 카툰, 그쪽 사실적) — 개념 공유 안 함.
 
 ## 테스트 상태
