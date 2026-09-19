@@ -7506,3 +7506,11 @@ PROJECT_STATE.md` 참고. 요약:
 - `landmarks_builder.gd`의 `WALL_GLB`·`ROOF_GLB` 상수를 원본 `assets/buildings/*.glb`에서 팔레트 변형 경로로 바꿨다(`_add_village`·`_add_waystation`이 이 상수를 그대로 쓰므로 두 자리 다 자동 적용). `PILLAR_GLB`(폐허 기둥)·`PLANK_GLB`(다리 널판)는 그대로 뒀다 — 둘 다 "go_village" 색이 아니라 103-3 표가 예고한 "폐허"·"시대 퓨전" 팔레트를 기다려야 할 자리라(폐허는 이 판 자체가 시대혼합 컨셉, 마을 초록으로 물들이면 어긋난다) 판단 보류.
 - `tools/godot_regress.sh` 다섯 판 통과(issues=0, `.import`/`project.godot` 잡음 없음). GO md5만 이전과 다름(로드하는 GLB 경로가 바뀌었으니 당연) — GO 자체는 3회 동일해 결정적임을 확인.
 - 다음: 사용자가 실기로 마을집 색감 확인(이전 회색 원본 대비 팔레트가 실제로 배어드는지). 폐허·시대 퓨전 팔레트는 아직 없음 — 필요해지면 palette.py PALETTES에 새 항목부터.
+
+## GO 폐허 팔레트 신설 + 씬 연결 — go_ruins (2026-09-19⑦) — PLAN 103-3/103-5
+
+- 지난 항목에서 보류했던 "폐허" 팔레트를 만들었다. `tools/asset-forge/palette.py` PALETTES에 `go_ruins` base8 추가 — go_village과 같은 원칙(새로 안 지어냄): `terrain_builder.gd` LEGEND["R"](폐허 지형색)·`landmarks_builder.gd`의 바위 재질(mossstone 포함)·`region3_ruins.gd` DEBRIS_COLOR에서 그대로 뽑았다. "시대 퓨전"(녹슨 금속·홀로그램) 갈래는 이 판 전장 잔해 4종(방패·투구·화살통·깃발)이 실제로 그런 소재가 아니라 여전히 보류.
+- `pillar-stone.glb`를 `go_ruins`로 스냅 → `pillar-stone__go_ruins.glb`. preview PNG로 확인(알록달록한 원본 아틀라스 → 흙빛·회색 톤). `landmarks_builder.gd`의 `PILLAR_GLB`를 이 변형으로 연결(`_add_ruins`에만 쓰임). `PLANK_GLB`(다리)는 폐허가 아니라 마을 시설이라 그대로 뒀다.
+- **동시 세션 충돌 주의**: `tools/asset-forge/palette.py`는 저장소 공유 도구라 saga-forest 세션이 같은 시각에 `--exclude-node-prefix` 기능을 그 파일에 추가하고 있었다. `git add`로 전체를 쓸어 담으면 상대 세션의 미완성 변경까지 내 커밋에 딸려 온다 — `git apply --cached`로 내 PALETTES 훅만 먼저 골라 스테이징했었는데, 그새 상대 세션이 `git add <전체 파일>`을 돌려 인덱스가 두 변경 다 합쳐진 채로 있었다. 결국 내 `go_ruins` 훅은 palette.py를 내 커밋에서 **아예 빼고** saga-godot 쪽 파일만 커밋했고, palette.py 자체는 상대 세션의 뒤이은 커밋(`7a86e0da`)에 함께 실려 안전하게 들어갔다 — 데이터 유실 없음, 다만 다음부턴 공유 도구 파일은 손대자마자 더 빨리 커밋할 것.
+- `tools/godot_regress.sh` 다섯 판 통과(이번엔 시스템 부하로 평소보다 훨씬 느렸다 — 스캔 종료까지 20분 가까이 걸림, 원인은 불명이나 결과 자체는 issues=0·잡음 없음으로 정상).
+- 다음: 사용자 실기로 마을집·역참·폐허 기둥 색감 전부 확인.
