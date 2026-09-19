@@ -46,6 +46,8 @@ const FACE_BAKE_BY_GLB := {
 		preload("res://assets/characters_vroid/generated/AvatarSample_A_Face_Baked.png"),
 	"res://assets/characters_vroid/saga_forest_avatar_01.glb":
 		preload("res://assets/characters_vroid/generated/saga_forest_avatar_01_Face_Baked.png"),
+	"res://assets/characters_vroid/dungeon_hero_01.glb":
+		preload("res://assets/characters_vroid/generated/dungeon_hero_01_Face_Baked.png"),
 }
 
 static func apply_to(root: Node) -> int:

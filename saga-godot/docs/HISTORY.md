@@ -7649,3 +7649,14 @@ PROJECT_STATE.md` 참고. 요약:
 - VRM 내보내기 설정에서 포맷은 기존 AvatarSample_A와 같은 **VRM1.0**(`VRMC_vrm` 확장자 존재로 확인) 유지, 아바타 이름 `dungeon_hero_01`·제작자 `saga-godot`, 허가 설정도 AvatarSample_A와 동일하게(아바타 이용 허가=모든 유저, 상업 이용=개인 및 법인 상업 이용 허용, 재배포 허용, 수정 허용) 맞춤 — 마우스 휠 스크롤(`mouse_event` 0x0800, `BitConverter`로 음수→uint32 변환 필요)로 다단 설정 화면을 훑음.
 - 내보낸 파일(`Downloads\새 폴더\dungeon_hero_01.vrm`, 14.3MB)을 `assets/characters_vroid/dungeon_hero_01.{vrm,glb}`로 복사해 들여옴. **씬 연결은 다음 세션 몫**(사용자가 "완료하면 내일 이어" 요청으로 중단) — 얼굴 베이크(Blender 필요)·1.7m 스케일 재계산·Mixamo 리타겟·`DungeonPlayer.tscn` 교체 남음, 순서는 PROJECT_STATE에 적음.
 - VRoid Studio·(이미 꺼져 있던) Godot 프로세스 전부 종료 확인.
+
+## DUNGEON 전용 VRoid — 얼굴 베이크·1.7m·Mixamo 리타겟·씬 연결 마무리 (2026-09-20②)
+
+- 09-20① 조형·내보내기(`dungeon_hero_01.{vrm,glb}`, add만)에 이어 나머지 5단계 완료.
+- 얼굴: 이전 세션 스크래치패드에 남아있던 Blender 4.2.23 포터블 재사용, `tools/asset-forge/vroid_face_bake_project.py` 그대로(스크립트 수정 없음) → `generated/dungeon_hero_01_Face_Baked.png`. MATERIALS 로그에 `FaceEyelash`가 추가로 있었지만 ORDER·HIDE_KEYS 밖이라 원래 자기 텍스처로 그대로 그려짐(EyeWhite류와 같은 처리) — 코드 변경 불필요.
+- `cel_shader_apply.gd` FACE_BAKE_BY_GLB에 `dungeon_hero_01.glb` 항목 한 줄 추가.
+- 스케일: dungeon_hero_01.glb가 임포트된 적이 없어 최초 AABB 프로브가 무한정 멈춤(`--headless` 스크립트 모드는 import를 안 돌린다) — `--headless --editor --quit` 1회로 임포트 후 재실측. 실측 높이 1.821077m → ×0.933514(105 Q-h 1.7m 표준).
+- `tools/mixamo_retarget.gd`로 `dungeon_hero_01_{idle,walk,run,attack,hit,dodge,death,pickup}.res`+`_lib.res` 생성(hip scale≈0.999, 전부 save_err=0).
+- `DungeonPlayer.tscn`: ext_resource id=3 → `dungeon_hero_01.glb`, Visual transform 1.091→0.933514, AnimationPlayer library_path → `dungeon_hero_01_lib.res`.
+- `tools/godot_regress.sh` 다섯 판 통과(issues=0, md5 3회 동일), `project.godot`·`*.import` 잡음 없음. `bash tools/precheck.sh` OK.
+- 다음: 사용자 실기 확인(PROJECT_STATE "실기 확인 대기" DUNGEON 항목에 VRoid 얼굴·1.7m·애니 합류). Torch 조명 부족은 그대로 남음.
