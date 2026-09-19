@@ -7,6 +7,7 @@ using UnityEngine.UI;
 using Saga.Realm.World;
 using Saga.Realm.Player;
 using Saga.Realm.UI;
+using Saga.Realm.Data;
 using Saga.Core;
 
 namespace Saga.EditorTools
@@ -41,6 +42,15 @@ namespace Saga.EditorTools
         [MenuItem("Saga/Build TestCity Scene")]
         public static void Build()
         {
+            // 2026-09-20 실제로 겪음 — `RealmCommandUi.Build()`가 설정 버튼
+            // 이름을 `RealmLocalization.CurrentLanguage`(PlayerPrefs, 이
+            // 배치 프로세스와 무관하게 디스크에 남는다)로 짓는다("Btn_설정"/
+            // "Btn_Settings"). 직전에 실패해 "en"으로 멈춘 헤드리스 실행
+            // 뒤 이 스크립트를 그대로 돌리면 씬에 영어 이름이 구워져
+            // `PlaytestRealmSlice.CheckSettingsPanel()`이 "Btn_설정"을
+            // 영영 못 찾는다 — `PlaytestRealmSlice.Run()`이 자기 실행 전에
+            // "ko"로 고정하는 것과 같은 이유로 여기서도 고정한다.
+            RealmLocalization.CurrentLanguage = "ko";
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
             BuildLighting();

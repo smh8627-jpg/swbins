@@ -86,6 +86,13 @@ namespace Saga.Realm.UI
         [SerializeField] private Text _mapLabel;
         [SerializeField] private Text _archiveToggleLabel;
         [SerializeField] private Text _saveLabel;
+        [SerializeField] private Text _tacticToggleLabel;
+
+        // PLAN.md 101-2 5-6 "지형·진형 전술 개입"(2026-09-20) — 다음 공격에
+        // 전술을 쓸지 말지 켜 두는 토글. 값 자체는 위 GameObject 참조들과
+        // 달리 씬 저장·재로드로 잃을 게 없는 순수 런타임 상태라
+        // [SerializeField] 없이 둔다(기본 false로 시작해도 무방).
+        private bool _tacticEnabled;
 
         public void Build()
         {
@@ -143,6 +150,15 @@ namespace Saga.Realm.UI
             var saveButton = RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("command.save"),
                 new Vector2(1f, 1f), new Vector2(-110f, -450f), new Vector2(180f, 110f), ExecuteSave);
             _saveLabel = saveButton.GetComponentInChildren<Text>();
+
+            // 전술 토글(101-2 5-6, 2026-09-20) — 저장 바로 아래, 같은 구석
+            // 기둥을 한 칸 더 잇는다(-450 바로 아래, 같은 120px 간격).
+            // 공격 패널 안이 아니라 여기 둔 이유: 목표가 하나뿐인 성은
+            // 패널 없이 바로 공격이 나가(ExecuteAttack() 참고) 패널 안
+            // 토글은 대부분의 공격에서 보이지도 않을 것이기 때문.
+            var tacticToggleButton = RealmUiKit.NewButton(canvas.transform, TacticToggleLabelText(),
+                new Vector2(1f, 1f), new Vector2(-110f, -570f), new Vector2(180f, 110f), ToggleTactic);
+            _tacticToggleLabel = tacticToggleButton.GetComponentInChildren<Text>();
 
             BuildOrderPanel(canvas.transform);
             BuildCityPanel(canvas.transform);
@@ -573,6 +589,7 @@ namespace Saga.Realm.UI
             _mapLabel.text = RealmLocalization.T("command.map");
             _archiveToggleLabel.text = RealmLocalization.T("command.archive");
             _saveLabel.text = RealmLocalization.T("command.save");
+            _tacticToggleLabel.text = TacticToggleLabelText();
         }
 
         private void ToggleSettingsPanel()
@@ -642,6 +659,7 @@ namespace Saga.Realm.UI
         {
             RealmCityState.SetCurrentCity(cityId);
             _cityPanel.SetActive(false);
+            _tacticToggleLabel.text = TacticToggleLabelText(); // 성이 바뀌면 지형 힌트도 바뀐다(101-2 5-6).
         }
 
         private void ExecuteNextMonth()
@@ -678,7 +696,7 @@ namespace Saga.Realm.UI
                 return;
             }
 
-            var result = RealmWarState.Attack(RealmCityState.CurrentCity);
+            var result = RealmWarState.Attack(RealmCityState.CurrentCity, useTactic: _tacticEnabled);
             RealmToast.Instance?.Show(result.Message, 6f);
             // 출진 자체가 무효면 error, 유효하면 전투 결과(승/패)로 고른다
             // (Won은 Ok=true일 때만 뜻이 있다 — RealmWarState.AttackResult 참고).
@@ -687,10 +705,28 @@ namespace Saga.Realm.UI
 
         private void ChooseAttackTarget(string enemyId)
         {
-            var result = RealmWarState.Attack(RealmCityState.CurrentCity, enemyId);
+            var result = RealmWarState.Attack(RealmCityState.CurrentCity, enemyId, _tacticEnabled);
             RealmToast.Instance?.Show(result.Message, 6f);
             PlayOutcomeSfx(result.Won);
             _attackPanel.SetActive(false);
+        }
+
+        /// <summary>PLAN.md 101-2 5-6 — 다음 공격에 지형 전술을 쓸지 켜고
+        /// 끈다. 버튼 글자 자체에 현재 성 기준 힌트(지형·필요 능력치)를
+        /// 얹어 "명령" 패널을 열지 않고도 미리 볼 수 있게 한다.</summary>
+        private void ToggleTactic()
+        {
+            _tacticEnabled = !_tacticEnabled;
+            _tacticToggleLabel.text = TacticToggleLabelText();
+        }
+
+        private string TacticToggleLabelText()
+        {
+            string state = RealmLocalization.T(_tacticEnabled ? "state.on" : "state.off");
+            string hint = RealmWarState.TacticHintFrom(RealmCityState.CurrentCity);
+            return string.IsNullOrEmpty(hint)
+                ? $"{RealmLocalization.T("command.tactic", "전술")}:{state}"
+                : $"{RealmLocalization.T("command.tactic", "전술")}:{state}\n{hint}";
         }
 
         private void ChoosePlot(string key, string enemyId = null)

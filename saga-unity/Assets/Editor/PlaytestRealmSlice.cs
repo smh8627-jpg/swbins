@@ -204,6 +204,7 @@ namespace Saga.EditorTools
                     if (!CheckCommandUiPanelsWork()) { Fail(); return; }
                     if (!CheckGoalBoardAndSessionCard()) { Fail(); return; }
                     if (!CheckOfficerTraits()) { Fail(); return; }
+                    if (!CheckTactic()) { Fail(); return; }
                     _phase = Phase.WorldMap;
                     break;
 
@@ -1705,6 +1706,55 @@ namespace Saga.EditorTools
             }
 
             Debug.Log("[PlaytestRealmSlice] officer traits/ambition OK - 결정성·계략 배율·야망 달성+중복 방지 확인");
+            return true;
+        }
+
+        /// <summary>PLAN.md 101-2 5-6 "지형·진형 전술 개입" — `ResolveTactic()`은
+        /// private이라 리플렉션으로 직접 불러 순수 판정만 본다(사이드 이펙트
+        /// 없음, 게임 진행 상태를 안 건드려 다른 phase와 안 부딪힌다).
+        /// ① 평야 기병 돌격 — 무력 80 미만 조합은 배율 1, 80 이상 조합은
+        /// 1.25, ② 강 화공 — 지력 60 미만은 배율 1, 60 이상은 defMul 0.85,
+        /// ③ 힌트 문구가 성마다 지형에 맞게 나오는지.</summary>
+        private static bool CheckTactic()
+        {
+            var method = typeof(RealmWarState).GetMethod("ResolveTactic", BindingFlags.NonPublic | BindingFlags.Static);
+            if (method == null)
+            {
+                Debug.LogError("[PlaytestRealmSlice] RealmWarState.ResolveTactic()을 리플렉션으로 못 찾음");
+                return false;
+            }
+
+            // 현책(무력 38)만 있으면 기병 돌격 문턱 미달, 해장(무력 92)이 있으면 충족.
+            var weakMight = new List<string> { "sg_zhugeliang" };
+            var strongMight = new List<string> { "sg_zhugeliang", "kr_yisunsin" };
+            var weakResult = ((float firstRoundMul, float defMul, string note))method.Invoke(null, new object[] { RealmLand.Plain, weakMight });
+            var strongResult = ((float firstRoundMul, float defMul, string note))method.Invoke(null, new object[] { RealmLand.Plain, strongMight });
+            if (!Mathf.Approximately(weakResult.firstRoundMul, 1f) || !Mathf.Approximately(strongResult.firstRoundMul, 1.25f))
+            {
+                Debug.LogError($"[PlaytestRealmSlice] 평야 기병 돌격 배율이 이상함 — 무력 부족={weakResult.firstRoundMul}(기대 1) 무력 충분={strongResult.firstRoundMul}(기대 1.25)");
+                return false;
+            }
+
+            // 셋 다 지력 70 이상이라(현책 100·해장 98·이도인 70) 화공은 항상 성공한다 —
+            // 문턱 미달 경로는 빈 리스트로 대신 본다(RealmOfficerPool.Get이 null을 걸러 bestWisdom=0).
+            var noOfficer = new List<string>();
+            var anyOfficer = new List<string> { "sg_zhugeliang" };
+            var noneResult = ((float firstRoundMul, float defMul, string note))method.Invoke(null, new object[] { RealmLand.River, noOfficer });
+            var fireResult = ((float firstRoundMul, float defMul, string note))method.Invoke(null, new object[] { RealmLand.River, anyOfficer });
+            if (!Mathf.Approximately(noneResult.defMul, 1f) || !Mathf.Approximately(fireResult.defMul, 0.85f))
+            {
+                Debug.LogError($"[PlaytestRealmSlice] 강 화공 배율이 이상함 — 무장 없음={noneResult.defMul}(기대 1) 현책={fireResult.defMul}(기대 0.85)");
+                return false;
+            }
+
+            string hint = RealmWarState.TacticHintFrom("xuchang");
+            if (string.IsNullOrEmpty(hint))
+            {
+                Debug.LogError("[PlaytestRealmSlice] TacticHintFrom(xuchang)이 빈 문자열 — 허창은 소패(평야)를 쳐야 정상");
+                return false;
+            }
+
+            Debug.Log($"[PlaytestRealmSlice] tactic OK - 평야 기병 돌격/강 화공 배율 문턱 확인, 힌트=\"{hint}\"");
             return true;
         }
 

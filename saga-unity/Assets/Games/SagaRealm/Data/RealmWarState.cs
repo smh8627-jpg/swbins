@@ -56,8 +56,11 @@ namespace Saga.Realm.Data
         /// Q-U2)부터 국경 성 일부가 목표를 둘 갖는다 — 그런 성은 `enemyId`를
         /// 명시해야 한다(생략하면 `TargetFrom`이 그중 하나만 골라 버려
         /// 플레이어가 고른 것과 다를 수 있다, `RealmCommandUi.ExecuteAttack()`
-        /// 이 이 경우 고르기 패널을 먼저 연다).</summary>
-        public static AttackResult Attack(string fromCityId, string enemyId = null)
+        /// 이 이 경우 고르기 패널을 먼저 연다). PLAN.md 101-2 5-6(2026-09-20)
+        /// — `useTactic`이 true면 <see cref="ResolveTactic"/>이 목표 성의
+        /// 지형(<see cref="RealmLand"/>)에 맞는 전술을 골라 <see cref="RealmWar.Fight"/>
+        /// 에 배율을 얹는다.</summary>
+        public static AttackResult Attack(string fromCityId, string enemyId = null, bool useTactic = false)
         {
             if (enemyId == null) enemyId = RealmEnemyCity.TargetFrom(fromCityId);
             else if (!RealmEnemyCity.TargetsFrom(fromCityId).Contains(enemyId)) enemyId = null;
@@ -92,7 +95,11 @@ namespace Saga.Realm.Data
             var atk = new RealmArmy { Troops = troops, Start = troops, Train = city.Train, Tech = city.Tech, OfficerIds = officers, Morale = 1f };
             var defArmy = new RealmArmy { Troops = enemy.Troops, Start = enemy.Troops, Train = enemy.Train, Tech = enemy.Tech, OfficerIds = new List<string>(), Morale = 1f };
 
-            var result = RealmWar.Fight(atk, defArmy, enemy, def.Land);
+            string tacticNote = null;
+            float firstRoundMul = 1f, defMul = 1f;
+            if (useTactic) (firstRoundMul, defMul, tacticNote) = ResolveTactic(def.Land, officers);
+
+            var result = RealmWar.Fight(atk, defArmy, enemy, def.Land, firstRoundMul, defMul);
 
             int eaten = Mathf.RoundToInt(troops / 1000f * RealmCityState.FoodPer1000);
             int baggage = Mathf.Max(0, need - eaten);
@@ -120,8 +127,59 @@ namespace Saga.Realm.Data
                     atk.Troops, result.LossD, baggage);
             }
 
+            if (tacticNote != null) message = tacticNote + " " + message;
+
             Changed?.Invoke();
             return new AttackResult(true, message, result.Won);
+        }
+
+        /// <summary>PLAN.md 101-2 5-6 "지형·진형 전술 개입" — 웹판(`saga-web/saga-realm/PLAN.md`
+        /// 107행)은 지형 4종(산·숲·평야·강) 전술 4개 + 진형 수동 선택까지
+        /// 전제하지만, 이 트랙엔 성 지형이 <see cref="RealmLand"/> 둘(Plain/River)
+        /// 뿐이라 각 지형에 전술 하나씩만 물렸다. "진형 수동 선택"(자동 진형
+        /// 대비 페널티 ×0.5)은 이 트랙에 진형 시스템 자체가 없어(`RealmArmy`에
+        /// 그런 필드가 없다) 스코프에서 뺐다. 문턱 미달이면 조용히 배율 없이
+        /// 진행한다(웹판처럼 "쓸까 말까" 3택이 아니라 이 트랙은 토글 하나뿐이라
+        /// 실패해도 공격 자체는 그대로 나간다).</summary>
+        private static (float firstRoundMul, float defMul, string note) ResolveTactic(RealmLand land, List<string> officerIds)
+        {
+            if (land == RealmLand.Plain)
+            {
+                // 평야 — 기병 돌격(웹판 그대로: 무력 80+, 첫 합 ×1.25).
+                int bestMight = 0;
+                foreach (var id in officerIds)
+                {
+                    var o = RealmOfficerPool.Get(id);
+                    if (o != null && o.Might > bestMight) bestMight = o.Might;
+                }
+                return bestMight >= 80
+                    ? (1.25f, 1f, RealmLocalization.T("war.tactic_charge_ok", "⚔️ 기병 돌격 성공 —"))
+                    : (1f, 1f, RealmLocalization.T("war.tactic_charge_fail", "⚔️ 기병 돌격 실패(무력 80 필요) —"));
+            }
+
+            // 강 — 화공(웹판 "숲 화공" 재해석: 지력 60+, 이 슬라이스엔 "한 합"
+            // 개념을 밖으로 못 빼내 전투 내내 적 전투력 ×0.85로 옮겼다).
+            int bestWisdom = 0;
+            foreach (var id in officerIds)
+            {
+                var o = RealmOfficerPool.Get(id);
+                if (o != null && o.Wisdom > bestWisdom) bestWisdom = o.Wisdom;
+            }
+            return bestWisdom >= 60
+                ? (1f, 0.85f, RealmLocalization.T("war.tactic_fire_ok", "🔥 화공 성공 —"))
+                : (1f, 1f, RealmLocalization.T("war.tactic_fire_fail", "🔥 화공 실패(지력 60 필요) —"));
+        }
+
+        /// <summary>전술 토글 버튼 라벨용 — 이 성에서 나갈 공격이 어느
+        /// 지형·전술을 쓰게 될지 미리 보여준다(목표가 없으면 빈 문자열).</summary>
+        public static string TacticHintFrom(string fromCityId)
+        {
+            var enemyId = RealmEnemyCity.TargetFrom(fromCityId);
+            if (enemyId == null) return "";
+            var def = RealmEnemyCity.Get(enemyId);
+            return def.Land == RealmLand.Plain
+                ? RealmLocalization.T("war.tactic_hint_plain", "평야: 기병 돌격(무력 80+)")
+                : RealmLocalization.T("war.tactic_hint_river", "강: 화공(지력 60+)");
         }
 
         public readonly struct PlotResult
