@@ -7518,3 +7518,18 @@ troops=wall×0.23 반올림(850·900). 둘 다 원작 land가 이미 plain이라
 `tools/unity-batch.sh -- <Unity 인자...>`로 컴파일(error CS 0건)·`PlaytestRealmSlice` 3연속 실행(`Saga.EditorTools.PlaytestRealmSlice.Run`, `-quit` 안 줌) — 노용·계빈 함락 로그와 상림 다중 목표(enemyId 명시) 분기 매 회 확인, `ProjectSettings/`·`Packages/` 부작용 없음(래퍼가 매번 원복). 씬 재생성 불필요.
 
 `docs/PROJECT_STATE.md` 갱신(REALM 완료 요약 적국 43→45·성 46→48, 16~25차 절 갱신, "다음 작업"(26차 후보: 신독의 다른 이웃 대하/마게타/사위) · 테스트 상태 · 실기 확인 대기 전부 갱신, 15323B로 15KB 상한 안쪽 유지).
+
+## REALM 51장 26차 확장 — 신독 둘째 자식 대하 (2026-09-19, 새 세션 "사가 유니티 이어 해")
+
+25차가 남긴 후보(신독의 다른 이웃 대하/마게타/사위) 중 웹판 원본 `data-city.js` LINKS를 다시 grep해 확인했다: 신독의 네 이웃 건타라·대하·마게타·사위 중 건타라(24차에서 이미 선택, →계빈)와 대하만 원작에 한 단계 더 뻗는 LINKS가 있고(각각 jibin, wuyishanli), 마게타·사위는 잎사귀. 이번엔 대하(원작 LINKS: shendu-daxia, "박트리아의 옛 이름" — 건타라와 형제 가지, train은 신독 자신의 185+15=200으로 건타라와 동률)를 골랐다. wall은 원작 그대로(3200), troops=wall×0.23 반올림(736). land는 원작 hill이라 Plain으로 보정(24차 건타라 때와 같은 이유).
+
+**신독이 상림·건녕에 이어 세 번째로 목표 둘 이상을 가진 성이 됐다** — 25차가 상림에 처음 적용한 것과 같은 패턴을 그대로 적용:
+
+- `RealmEnemyCity.cs` — `DaxiaId` 신설, `AllIds`·`Catalog`에 추가.
+- `RealmCityData.cs` — 같은 성 추가.
+- `PlaytestRealmSlice.cs` — `Phase.AttackShendu`의 다음 단계를 새 `Phase.AttackDaxia`로 바꾸고(대하를 먼저 공략), `AttackDaxia`가 기존 `Phase.AttackJiantuoluo`로 이어지게 신설. 신독이 목표 둘을 갖게 됐으니 `AttackDaxia`·`AttackJiantuoluo` 둘 다 `AttackChainStep`에 `enemyId`를 명시(25차 상림과 같은 이유). OK 로그 문구에 "chain-26th(daxia)" 추가.
+- 로컬라이제이션: `city.daxia`(ko/en) 신설.
+
+`tools/unity-batch.sh -- <Unity 인자...>`로 컴파일(error CS 0건)·`PlaytestRealmSlice` 3연속 실행(`Saga.EditorTools.PlaytestRealmSlice.Run`, `-quit` 안 줌) — 대하 함락 로그와 신독 다중 목표(enemyId 명시) 분기 매 회 확인, `ProjectSettings/`·`Packages/` 부작용 없음(래퍼가 매번 원복). 씬 재생성 불필요.
+
+`docs/PROJECT_STATE.md` 갱신(REALM 완료 요약 적국 45→46·성 48→49, 16~26차 절 갱신, "다음 작업"(27차 후보: 대하→오익산리, 또는 신독 잎사귀 마게타/사위) · 테스트 상태 · 실기 확인 대기 전부 갱신, 15353B로 15KB 상한 안쪽 유지).

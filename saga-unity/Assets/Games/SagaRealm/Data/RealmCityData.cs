@@ -308,6 +308,11 @@ namespace Saga.Realm.Data
             // Plain으로 보정(이 트랙 enum엔 Hill/Mount가 없음). wall은
             // RealmEnemyCity.cs 계빈 정의(2800)와 맞춘다.
             ["jibin"] = new RealmCityDef("jibin", "계빈", RealmLand.Plain, agri: 120, comm: 140, wall: 2800, pop: 40000, mapX: -25, mapY: 80),
+            // 51장 "대규모 콘텐츠" 26차 확장(2026-09-19) — 신독(shendu)의
+            // 둘째 자식(건타라와 형제 가지, 24차가 안 골랐던 쪽). land는
+            // 원작 hill을 Plain으로 보정. wall은 RealmEnemyCity.cs 대하
+            // 정의(3200)와 맞춘다.
+            ["daxia"] = new RealmCityDef("daxia", "대하", RealmLand.Plain, agri: 150, comm: 170, wall: 3200, pop: 52000, mapX: -15, mapY: 86),
         };
 
         public static RealmCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;

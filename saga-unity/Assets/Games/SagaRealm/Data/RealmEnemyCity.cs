@@ -305,6 +305,7 @@ namespace Saga.Realm.Data
         public const string JiantuoluoId = "jiantuoluo";
         public const string LuorongId = "luorong";
         public const string JibinId = "jibin";
+        public const string DaxiaId = "daxia";
 
         public static readonly string[] AllIds =
         {
@@ -313,7 +314,7 @@ namespace Saga.Realm.Data
             YonganId, JianglingId, ChangshaId, ChaisangId, JianyeId, KuaijiId, YunzhongId, ShangjunId,
             ShuofangId, WuyuanId, TianshuiId, NanhaiId, ZhutiId, CangwuId, JianningId, YulinId, YuexiId,
             JiaozhiId, ZangkeId, JiuzhenId, HepuId, RinanId, YunnanId, XianglinId, YongchangId,
-            DianchongId, ShenduId, BijingId, JiantuoluoId, LuorongId, JibinId,
+            DianchongId, ShenduId, BijingId, JiantuoluoId, LuorongId, JibinId, DaxiaId,
         };
 
         private static readonly Dictionary<string, RealmEnemyCityDef> Catalog = new Dictionary<string, RealmEnemyCityDef>
@@ -546,6 +547,14 @@ namespace Saga.Realm.Data
             // 더 뻗는 LINKS 없음). train은 건타라 자신의 200+15=215.
             // land는 원작 mount라 Plain으로 보정(hill과 같은 이유).
             [JibinId] = new RealmEnemyCityDef(JibinId, "계빈", RealmLand.Plain, baseWall: 2800, baseTroops: 644, baseTrain: 215, baseTech: 100, attackFromCityId: "jiantuoluo"),
+            // 대하는 신독(shendu)과만 맞닿아 있다(원작 LINKS:
+            // shendu-daxia, "박트리아의 옛 이름") — 26차 확장, 건타라와
+            // 형제 가지(둘 다 신독의 자식, train은 신독 자신의 185+15=200으로
+            // 건타라와 동률). 24차가 안 골랐던 쪽을 이번에 채운다. land는
+            // 원작 hill이라 Plain으로 보정(건타라와 같은 이유). 오익산리로
+            // 한 단계 더 뻗을 수 있어 다음 확장 후보로 남긴다. 다른 이웃
+            // (마게타·사위)은 둘 다 잎사귀.
+            [DaxiaId] = new RealmEnemyCityDef(DaxiaId, "대하", RealmLand.Plain, baseWall: 3200, baseTroops: 736, baseTrain: 200, baseTech: 100, attackFromCityId: "shendu"),
         };
 
         public static RealmEnemyCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;
