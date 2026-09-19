@@ -887,3 +887,32 @@ MToon 매트캡/스펙큘러·썸네일 등 plain `THREE.GLTFLoader`가 안 읽�
 배정에 전혀 안 끼어든다(`HERO_RECIPES_MIXAMO`/`wantsMixamoReal()`과
 같은 결). **실기 확인 전 — 손잡이를 켜고 실제로 걷는 모습·비례·재질이
 이 판 톤(§6.1 툰+외곽선+림 라이트)과 어울리는지는 전부 미확인.**
+
+## VRoid Studio GUI 자동화로 직접 빚은 커스텀 아바타 (2026-09-19)
+
+사용자가 "GUI 조작 도구 설치해서 해줘"로 요청 — PowerShell(.NET
+`System.Drawing`/`user32.dll` P/Invoke, 별도 설치 없이 이미 되는 기능)로
+스크린샷·마우스 클릭 루프를 짜서 VRoid Studio 2.14.0(이 PC에 이미 설치돼
+있었음, `AppData\Local\Programs\VRoidStudio\2.14.0\`)을 직접 조작해
+캐릭터 하나를 처음부터 새로 만들었다 — 위 공식 샘플 셋과 달리 "완성품을
+받은" 게 아니라 이 세션이 직접 빚은 첫 캐릭터.
+
+| 항목 | |
+|---|---|
+| **만든 방식** | VRoid Studio 2.14.0 GUI 자동화(여성 베이스 → 얼굴 세트 변경 → 헤어 세트 변경 → 전신 세트(하와이안 셔츠+데님 반바지) 적용 → VRM0.0 내보내기) |
+| **라이선스** | 내보내기 시 직접 설정: 상업 이용 허가 체크, 라이선스 유형 "Creative Commons CC BY"(재배포·수정 허용, 표시 요구) — VRM 파일 메타데이터에 그대로 저장됨. 밑에 깔린 얼굴·헤어·의상 파츠 자체는 VRoid Studio 번들 프리셋(공식 배포물)이다 |
+| **가공** | 위 AvatarSample 셋과 같은 방식으로 pygltflib 텍스처 축소(15장 중 실제 baseColorTexture 만 512px, 나머지 자리표시자) — 원본 17.7MB → 9.0MB. 이미지 자체는 803KB뿐이라 나머지는 메시·블렌드셰이프 무게(원본 51,946 폴리곤, VRoid 자체 폴리곤 감량 슬라이더는 이번엔 안 씀 — 다음에 줄일 여지) |
+| **뼈·재질** | 위 AvatarSample 절과 동일(`J_Bip_*`→UAL1 리타겟, `toonifyAnime()`) — 같은 VRoid 파이프라인 산출물이라 구조가 같다 |
+
+| 파일 | 이 판에서 쓰는 곳 |
+|---|---|
+| `models/people/anime/avatar_custom_01.glb` | `hero` kind, key `anime_avatar_custom01`(`world3d.animeAvatar` 손잡이, 기본 꺼짐) |
+
+**GUI 자동화 메모**(다음에 이어갈 때 참고): VRoid Studio 는 Unity 빌드라
+버튼·슬라이더가 네이티브 Windows 컨트롤이 아니라 캔버스 그림이라 좌표
+클릭만 된다 — 창이 포커스를 잃으면(같은 데스크톱의 다른 세션이 자기
+창을 앞으로 가져올 때 등) 좌표가 안 맞을 수 있어 매 클릭 전에
+`SetForegroundWindow`+스크린샷 재확인이 필요했다. VRM 내보내기는
+프로젝트를 먼저 "다른 이름으로 저장"(`.vroid`)해야 상단 공유 아이콘에
+"VRM 내보내기" 항목이 나타난다(저장 전엔 계정 메뉴만 보인다). **실기
+확인 전**: 위 샘플 셋과 마찬가지로 렌더된 모습은 미확인.

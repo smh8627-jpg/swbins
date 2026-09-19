@@ -95,7 +95,13 @@
      NPC 배정에 전혀 안 끼어든다. */
   var HERO_RECIPES_ANIME = ['a', 'b', 'c'].map(function (n) {
     return { key: 'anime_avatar_' + n, body: PEOPLE_ANIME + 'avatar_sample_' + n + '.glb' };
-  });
+  }).concat([
+    /* 2026-09-19 — GUI 자동화(PowerShell, VRoid Studio 2.14.0 직접 조작)로
+       처음부터 새로 빚은 커스텀 몸(여성, 하와이안 셔츠+데님 반바지 세트) —
+       샘플 셋과 달리 캐릭터 자체가 이 세션에서 새로 만들어졌다. 경위·라이선스는
+       assets/ASSET_LICENSES.md 참고 */
+    { key: 'anime_avatar_custom01', body: PEOPLE_ANIME + 'avatar_custom_01.glb' }
+  ]);
   function wantsAnimeAvatar() { return core().tuned('world3d.animeAvatar', 0) ? true : false; }
 
   /* 되돌림 자리 — 위 QRPG 조차 못 실리면(파일 손상 등) 이 옛 조합형으로 한 번 더
