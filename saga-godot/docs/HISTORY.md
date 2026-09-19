@@ -7467,3 +7467,14 @@ PROJECT_STATE.md` 참고. 요약:
 - 애니메이션(idle/walk/sprint)도 이 GLB엔 없어 T포즈로 정지 — 103-4 Mixamo 리타겟 전까지는 원래 이렇다. `player.gd::_play_anim()`은 `_anim`이 null이면 조용히 넘어가게 이미 방어돼 있어 크래시는 없음.
 - `tools/godot_regress.sh` 다섯 판 3회 통과(GO md5만 바뀜, 나머지 동일), `.import`/`project.godot` 잡음 없음(매 단계마다 재확인).
 - 다음: 얼굴 데칼 문제 해결(위 참고) → 그 다음 103-4 Mixamo 리타겟으로 애니 연결. 105 Q-h(세계 스케일 재조정 범위)는 여전히 사용자 결정 대기.
+
+## VRoid 얼굴 하얗게 빔 — 원인 특정, 완전 해결은 못함 (2026-09-19④)
+
+- 사용자가 "이어가"로 계속 파봄. 원본 face 텍스처(`AvatarSample_A__04.png` 등)를 직접 열어 보니 눈썹·입·볼터치가 다 정상적으로 그려져 있었다 — 텍스처 자체는 멀쩡했다.
+- 격리 테스트(빈 씬+GLB만+카메라 하나)로 렌더하니 **얼굴이 완벽하게 나왔다**. env_pc.tres를 그 격리 씬에 그대로 얹어도 멀쩡 → 환경(ambient/glow/톤맵) 탓이 아님을 확인(ambient_light_energy를 실제로 0.5까지 내려 실기로도 재확인, 효과 없었음 — 그 값은 원복).
+- 카메라를 9m(TestVillage SpringArm 거리)로 물리니 격리 씬에서도 재현됨 — **거리가 핵심 변수**. `near`를 0.5로 올려도(정밀도 이론) 그대로, 밉맵을 꺼도(해상도 이론) 그대로 — 둘 다 기각.
+- 진짜 원인: VRoid Face 메시는 눈썹·눈꺼풀선·홍채·하이라이트·입 등 7장을 **완전히 같은 깊이**에 겹쳐 그리는데(원래 Unity MToon은 렌더큐 순서로만 순서를 보장, 실제 지오메트리 z-offset이 없음), 이게 Godot의 불투명(ALPHA_SCISSOR) 큐에 들어가면 카메라 거리·장면 복잡도에 따라 그리기 순서가 흔들린다.
+- **부분 해법**: `cel_shader_apply.gd`에 `_fix_layered_face()` 신설 — Face 메시는 cel_toon으로 안 바꾸고, 재질 이름(`FaceMouth`·`EyeIris`·`EyeHighlight`·`Face_00_SKIN`·`EyeWhite`·`FaceBrow`·`FaceEyeline`)으로 뒤→앞 순서를 매겨 `transparency=ALPHA`+`render_priority`를 강제(불투명 큐 대신 정렬이 보장되는 투명 큐로 옮김). 격리 씬(같은 스케일 2.182·같은 카메라 9m·같은 env_pc.tres)에서는 **완전히 고쳐짐**(눈·눈썹까지 또렷).
+- **그런데 실제 TestVillage에서는 여전히 하얗게 빈다** — TestVillage의 Sun(그림자 있음, 특정 각도)까지 격리 씬에 그대로 옮기니 부분 재현(눈·눈썹은 나오는데 입만 빠짐, 완전 공백은 아니었음)됐지만, 실제 게임 씬은 그보다 더 나쁜 완전 공백이다. `cast_shadow = OFF`도 시도했지만 효과 없었음. 남은 차이(다른 오브젝트·Landmarks·터레인의 그림자/안개 누적 등)를 다 격리하지 못한 채 시간을 많이 썼다.
+- **결론**: VRM의 UV 서브영역별 해상도가 다른 겹친 데칼 방식 자체가 Godot 런타임 셰이더 트릭으로 완전히 재현하기 어려운 구조로 보인다. `_fix_layered_face()`는 최소한 해가 없고 부분적으로 도움이 되므로 남겨뒀다. 다음 세션이 볼 것: (a) VRoid Studio나 Blender로 얼굴을 오프라인에서 단일 텍스처로 구워(bake) 재수출하거나, (b) 102-6의 "저폴리 툰" 갈래로 되돌아가는 것도 고려할 가치 있음(얼굴 문제 자체가 없음).
+- `tools/godot_regress.sh` 다섯 판 3회 통과, `.import`/`project.godot` 잡음 없음. 테스트용 `_scratch_facetest.*` 파일들은 커밋 전 삭제 확인함.
