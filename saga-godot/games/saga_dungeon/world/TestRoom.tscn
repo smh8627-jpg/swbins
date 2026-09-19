@@ -15,12 +15,6 @@ script = ExtResource("1")
 environment = ExtResource("2")
 script = ExtResource("3")
 
-[node name="Torch" type="OmniLight3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.5, 0)
-light_energy = 1.4
-omni_range = 16.0
-shadow_enabled = true
-
 [node name="Player" parent="." instance=ExtResource("4")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 4)
 

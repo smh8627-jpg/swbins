@@ -105,6 +105,7 @@ func _ready() -> void:
 		_room_origin_z.append(origin_z)
 		_spawn_room_mesh(origin_z)
 		_spawn_walls(origin_z, i > 0)
+		_spawn_torch(origin_z)
 		_spawn_gate(origin_z, true) # 북쪽(출구) 문은 방마다
 		if i > 0:
 			_spawn_gate(origin_z, false) # 남쪽(입구) 문 — 복도 쪽에서 보이는 면
@@ -231,6 +232,23 @@ func _spawn_room_mesh(origin_z: float) -> void:
 	floor_body.position = Vector3(0, -0.2, origin_z)
 	floor_body.add_child(floor_cs)
 	add_child(floor_body)
+
+
+## 09-20 조명 버그 — `TestRoom.tscn`에 방 하나 몫(원점) 횃불만 고정으로
+## 박혀 있어 ROOM_SPACING(20m)만큼 떨어진 나머지 6개 방은 앰비언트뿐이라
+## 실기에서 새까맣게 보였다(PROJECT_STATE "DUNGEON 조명 부족"). 방마다
+## 하나씩 원점에 심는 걸로 고친다 — energy도 1.4→3.2로 올렸다(env_pc.tres
+## tonemap AgX가 Reinhard보다 중간톤을 어둡게 눌러 같은 수치가 더
+## 어두워 보인다, 다섯 판 공유 env라 여기서 못 올리고 광원 쪽에서 보정).
+func _spawn_torch(origin_z: float) -> void:
+	var torch := OmniLight3D.new()
+	torch.name = "Torch"
+	torch.position = Vector3(0, 3.5, origin_z)
+	torch.light_color = Color(1.0, 0.78, 0.5)
+	torch.light_energy = 3.2
+	torch.omni_range = 14.0
+	torch.shadow_enabled = true
+	add_child(torch)
 
 
 ## 벽 넷 중 북쪽(-z, 출구)은 항상 틈을 남긴다. 남쪽(+z)은 첫 방(입구가

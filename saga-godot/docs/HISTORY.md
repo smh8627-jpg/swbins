@@ -7660,3 +7660,11 @@ PROJECT_STATE.md` 참고. 요약:
 - `DungeonPlayer.tscn`: ext_resource id=3 → `dungeon_hero_01.glb`, Visual transform 1.091→0.933514, AnimationPlayer library_path → `dungeon_hero_01_lib.res`.
 - `tools/godot_regress.sh` 다섯 판 통과(issues=0, md5 3회 동일), `project.godot`·`*.import` 잡음 없음. `bash tools/precheck.sh` OK.
 - 다음: 사용자 실기 확인(PROJECT_STATE "실기 확인 대기" DUNGEON 항목에 VRoid 얼굴·1.7m·애니 합류). Torch 조명 부족은 그대로 남음.
+
+## DUNGEON Torch 조명 부족 — 구조 버그였다 (2026-09-20③)
+
+- 원인은 밝기 수치가 아니라 배치 버그: `TestRoom.tscn`에 방 1개 몫(원점, `0,3.5,0`) 횃불 하나만 고정 노드로 박혀 있었는데, `test_room.gd`는 `ROOM_COUNT=7`개 방을 `ROOM_SPACING=20m`(`ROOM_HALF.z*2 + CORRIDOR_GAP`) 간격으로 z축에 줄지어 세운다 — 즉 방 1개(z=0)만 그 횃불의 `omni_range=16` 안에 들고, 나머지 6개 방(z=-20~-120)은 앰비언트뿐이라 실기에서 새까맣게 보였다.
+- `test_room.gd::_spawn_torch(origin_z)` 신설, `_ready()` 방 생성 루프(`_spawn_walls` 다음)에서 방마다 원점에 하나씩 심는다. `TestRoom.tscn`의 정적 Torch 노드는 삭제(중복).
+- 겸사겸사 밝기도 손봤다: `light_energy` 1.4→3.2(env_pc.tres tonemap AgX가 Reinhard보다 중간톤을 더 눌러 어둡게 보인다는 기존 관찰 반영, 다섯 판 공유 env_pc.tres 자체는 안 건드림 — 다른 네 판 밝기에 영향 없음), `light_color`를 흰색→주황(1.0, 0.78, 0.5)으로.
+- `tools/godot_regress.sh` 다섯 판 통과(issues=0, 3회 md5 동일), `project.godot`·`*.import` 잡음 없음. `bash tools/precheck.sh` OK.
+- 헤드리스는 더미 렌더러라 실제 밝기는 확인 못 함 — 방 7개 전부 밝기 일관 여부·AgX 톤에서 과하지 않은지는 사용자 실기 확인 필요(PROJECT_STATE에 반영).
