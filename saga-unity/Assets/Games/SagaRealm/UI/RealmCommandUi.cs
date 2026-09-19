@@ -53,6 +53,16 @@ namespace Saga.Realm.UI
         [SerializeField] private Transform _quizButtonsRoot;
         [SerializeField] private Transform _archiveButtonsRoot;
         [SerializeField] private Transform _attackButtonsRoot;
+        // 101-2 5-2 "관계·이벤트 체인"(2026-09-20) — 월간 서사 카드. 다른
+        // 패널과 달리 사용자가 여닫는 게 아니라 RealmEventState.Presented가
+        // 뜰 때 스스로 열린다(OnEventPresented). CloseAllPanels()가 안
+        // 건드리는 유일한 패널 — 답하기 전엔 다른 패널을 열고 닫아도 그대로
+        // 남아 있어야 카드가 사라지지 않는다(Build()에서 맨 마지막에 지어
+        // 항상 다른 패널 위에 그려진다).
+        [SerializeField] private GameObject _eventPanel;
+        [SerializeField] private Text _eventTitleText;
+        [SerializeField] private Text _eventBodyText;
+        [SerializeField] private Transform _eventButtonsRoot;
         [SerializeField] private Text _quizQuestionText;
         [SerializeField] private Text _quizProgressText;
         [SerializeField] private Text _settingsToggleLabel;
@@ -93,6 +103,16 @@ namespace Saga.Realm.UI
         // 달리 씬 저장·재로드로 잃을 게 없는 순수 런타임 상태라
         // [SerializeField] 없이 둔다(기본 false로 시작해도 무방).
         private bool _tacticEnabled;
+
+        private void Awake()
+        {
+            RealmEventState.Presented += OnEventPresented;
+        }
+
+        private void OnDestroy()
+        {
+            RealmEventState.Presented -= OnEventPresented;
+        }
 
         public void Build()
         {
@@ -167,6 +187,9 @@ namespace Saga.Realm.UI
             BuildArchivePanel(canvas.transform);
             BuildSettingsPanel(canvas.transform);
             BuildAttackPanel(canvas.transform);
+            // 맨 마지막 — 이벤트 카드가 항상 다른 패널 위에 그려지게(위
+            // 필드 주석 참고).
+            BuildEventPanel(canvas.transform);
         }
 
         /// <summary>PLAN.md 51장 16차 확장(2026-09-18) — 목표가 둘 이상인
@@ -735,6 +758,70 @@ namespace Saga.Realm.UI
             RealmToast.Instance?.Show(result.Message, 6f);
             PlayOutcomeSfx(result.Ok);
             if (result.Ok) _plotPanel.SetActive(false);
+        }
+
+        /// <summary>101-2 5-2 — 월간 서사 카드. 계략/공격 패널과 달리
+        /// 열 때마다 다시 짓지 않고 제목·본문·버튼 세 개를 그때그때
+        /// 갱신한다(선택지 문구가 카드마다 다르지만 항상 3개 고정이라
+        /// 자리 자체는 재사용).</summary>
+        private void BuildEventPanel(Transform parent)
+        {
+            _eventPanel = RealmUiKit.NewPanel(parent, new Vector2(0.5f, 0.5f), new Vector2(680f, 520f),
+                new Color(0f, 0f, 0f, 0.85f));
+            _eventPanel.SetActive(false);
+
+            _eventTitleText = RealmUiKit.NewText(_eventPanel.transform, "", new Vector2(0.5f, 1f), new Vector2(0f, -60f),
+                new Vector2(600f, 60f), 32);
+            _eventBodyText = RealmUiKit.NewText(_eventPanel.transform, "", new Vector2(0.5f, 1f), new Vector2(0f, -140f),
+                new Vector2(600f, 100f), 24);
+
+            var root = new GameObject("EventButtons", typeof(RectTransform));
+            root.transform.SetParent(_eventPanel.transform, false);
+            var rootRect = (RectTransform)root.transform;
+            rootRect.anchorMin = Vector2.zero;
+            rootRect.anchorMax = Vector2.one;
+            rootRect.sizeDelta = Vector2.zero;
+            rootRect.anchoredPosition = Vector2.zero;
+            _eventButtonsRoot = root.transform;
+        }
+
+        /// <summary>RealmEventState.Presented 구독 — 다른 패널을 안 닫고
+        /// 그 위에 그냥 띄운다(위 _eventPanel 필드 주석 참고).</summary>
+        private void OnEventPresented(RealmEventState.Card card)
+        {
+            RefreshEventPanel(card);
+            _eventPanel.SetActive(true);
+        }
+
+        private void RefreshEventPanel(RealmEventState.Card card)
+        {
+            for (int i = _eventButtonsRoot.childCount - 1; i >= 0; i--)
+            {
+                Destroy(_eventButtonsRoot.GetChild(i).gameObject);
+            }
+
+            var (title, body, a, b, c) = RealmEventState.Describe(card);
+            _eventTitleText.text = title;
+            _eventBodyText.text = body;
+
+            var labels = new[] { a, b, c };
+            var choices = new[] { RealmEventState.Choice.A, RealmEventState.Choice.B, RealmEventState.Choice.C };
+            float y = -260f;
+            for (int i = 0; i < labels.Length; i++)
+            {
+                var choice = choices[i];
+                RealmUiKit.NewButton(_eventButtonsRoot, labels[i], new Vector2(0.5f, 1f), new Vector2(0f, y),
+                    new Vector2(600f, 84f), () => ChooseEvent(card, choice));
+                y -= 100f;
+            }
+        }
+
+        private void ChooseEvent(RealmEventState.Card card, RealmEventState.Choice choice)
+        {
+            var result = RealmEventState.Resolve(card, choice);
+            RealmToast.Instance?.Show(result.Message, 6f);
+            PlayOutcomeSfx(result.Ok);
+            _eventPanel.SetActive(false);
         }
     }
 }

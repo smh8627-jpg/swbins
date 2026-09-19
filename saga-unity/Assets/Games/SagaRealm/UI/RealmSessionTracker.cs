@@ -64,7 +64,14 @@ namespace Saga.Realm.UI
             // 정확히 한 달만 넘어갔을 때만 "다음 달" 버튼으로 자연스럽게
             // 진행한 것으로 본다 — 세이브 로드(Restore)는 여러 달을 한 번에
             // 되돌리거나 되감아 델타가 1이 아니라 걸러진다.
-            if (deltaMonths == 1) ShowSummary();
+            if (deltaMonths == 1)
+            {
+                ShowSummary();
+                // 101-2 5-2 "관계·이벤트 체인"(2026-09-20) — 월간 카드도
+                // 세션 카드와 같은 게이트를 쓴다(같은 이유: 세이브 로드로
+                // 여러 달을 건너뛸 때는 안 낸다).
+                RealmEventState.RollForMonth();
+            }
         }
 
         private static int CapturedCount()

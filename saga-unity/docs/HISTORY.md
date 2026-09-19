@@ -7871,3 +7871,17 @@ FOREST 5.8①(채집 손맛) 뒤 다음 후보를 고르며 REALM PLAN.md 101-2 
 **검증**: `Editor/PlaytestRealmSlice.cs`에 `CheckTactic()` 신설, `CheckOfficerTraits()` 다음(WorldMap 전환 직전)에 부른다 — `ResolveTactic()`이 private이라 리플렉션으로 직접 불러 순수 판정만 본다(게임 상태를 안 건드려 이후 51개 성 정복 체인과 안 부딪힘). ① 평야: 현책(무력38)만 있으면 배율 1, 해장(무력92) 추가하면 1.25, ② 강: 무장 없음이면 배율 1, 현책(지력100) 있으면 0.85, ③ `TacticHintFrom("xuchang")`이 빈 문자열이 아닌지(허창은 소패=평야를 친다).
 
 `tools/unity-batch.sh -- <Unity 인자...>`로 컴파일(오류 0, `ProjectSettings/`·`Packages/` 변경 없음) → 헤드리스 1차 FAIL(위 첫 함정, 씬 미재빌드) → 씬 재빌드 → 헤드리스 2차도 FAIL(위 두 번째 함정, "Btn_설정" 못 찾음) → `BuildTestCityScene.cs`에 언어 고정 추가 → 씬 재빌드 → 헤드리스 3연속 OK("tactic OK" + 기존 30차 성 정복·문답·저장/불러오기 전부 그대로 통과). `docs/PROJECT_STATE.md` 갱신(REALM 요약에 5-6 추가, 두 함정 경위 요약, 다음 작업·테스트 상태·실기 확인 대기 갱신 — 15KB 상한에 걸려 여러 줄 압축). `PLAN.md` 101-2 REALM 행에 5-6 재해석 이유·대응 파일(`RealmWar` 추가) 반영.
+
+## 2026-09-20 — PLAN 101-2 5-2 REALM 관계·이벤트 체인 ("사가 유니티 이어 해" 세션, 5-6 지형·진형 전술 다음)
+
+웹판(`saga-web/saga-realm/PLAN.md` 117행) "관계·이벤트 체인"은 무장 사이 관계(의형제·원수·사제) 20~30쌍 + 세력 간 월간 이벤트를 전제하지만, 이 트랙은 무장이 3명뿐이고 충성·이탈 축이 없어(`RealmOfficerTraits.cs` 클래스 주석과 같은 이유) 그대로 못 옮긴다. saga-godot REALM이 이미 "관계 대신 특성·야망(5-1) 조건의 1인 서사 카드 8종, 달마다 18%로 카드+3택"으로 재해석해 2026-09-19 게이트 결정(godot 실기 승인 = 3D 착수 신호)을 통과했다 — 이 트랙도 같은 결로 가되 UI·수치·코드는 이 트랙 자체 컴포넌트로 새로 짰다(코드 공유 없음 원칙).
+
+카드 7종 — 특성(용맹·교활·현명) 각 1(결투 신청·밀서·강론 초빙) + 야망(부귀·숙적·학문) 각 1(재물 기회·숙적 첩보·학사 방문) + 체인 후속 1(논공행상, 결투를 "응한다"로 이겨야만 3달 뒤 예약). 매달 18%(웹판 수치 그대로) 확률로 하나 뽑되 예약된 체인이 기한에 닿으면 그쪽을 먼저 낸다 — 세력이 하나뿐이라 웹판 "동시 진행 최대 2" 대신 한 달 한 장으로 좁혔다. 효과는 전부 금만 건드린다(전투력·계략 배율을 이벤트로 또 건드리면 5-1·5-6과 겹쳐 원인 추적이 어려워짐). 세이브도 안 한다 — 진행 중 카드·예약된 체인은 재시작하면 사라진다(문답 학습 기록과 달리 값이 작아 잃어도 무방, `RealmQuizState`류와 같은 판단).
+
+새 `RealmEventState.cs`(카드 정의·`RollForMonth()`·`Describe()`·`Resolve()`, 테스트 전용 `HasPendingChain()`·`ClearForTest()`). `RealmSessionTracker.OnCityStateChanged()`가 "정확히 한 달 넘어갔을 때"(`ShowSummary()`와 같은 게이트) `RealmEventState.RollForMonth()`를 부른다. `RealmCommandUi`에 `_eventPanel`(자동 팝업, 사용자가 여닫는 다른 아홉 패널과 달리 `CloseAllPanels()`가 안 건드린다 — 답하기 전엔 다른 패널을 열고 닫아도 카드가 안 사라져야 하고, `Build()` 맨 마지막에 지어 항상 다른 패널 위에 그려지게 했다) 추가. `PlaytestRealmSlice.CheckEventChain()`(Init phase, `CheckTactic()` 다음) — 카드 7종 서술 완전성, 결투 200회 반복해 승리 시 금 증가+논공행상 체인 예약 확인, `RollForMonth()` 100회 반복해 통계적으로 카드가 뜨는지, 응답 뒤 `Current`가 비는지 확인.
+
+**함정 재발(2026-09-15 사고와 같은 결)**: `RealmCommandUi`의 새 `[SerializeField]` 참조(`_eventPanel`·`_eventTitleText`·`_eventBodyText`·`_eventButtonsRoot`)는 필드 선언만으로는 부족하다 — `BuildTestCityScene.Build()`가 실제로 그 GameObject들을 짓고 씬(`TestCity.unity`)에 저장해야 헤드리스가 읽는 저장된 씬에 들어간다. 코드만 고치고 첫 헤드리스를 돌렸다가 `UnassignedReferenceException: _eventButtonsRoot`로 즉시 실패 — `-executeMethod Saga.EditorTools.BuildTestCityScene.Build`로 씬을 재생성한 뒤 통과했다. **다음에 REALM UI에 새 `[SerializeField]` 참조를 늘릴 때마다 씬 재빌드를 빠뜨리지 말 것.**
+
+이 세션은 이 PC의 Unity 설치를 `find "/c/Program Files/Unity/Hub/Editor" -maxdepth 1`로 처음 확인했을 때 빈 출력을 받아 "Unity 미설치"로 오판할 뻔했다 — `ls`로 같은 경로를 직접 찍어보니 6000.3.24f1이 멀쩡히 있었다(`find`가 이 환경에서 이유 없이 빈 결과를 낸 것으로 보임, rtk 프록시 관련 가능성). **앞으로 이 PC에서 `find`가 빈 결과를 주면 `ls`로 한 번 더 확인할 것** — Unity 설치 여부처럼 중요한 전제를 `find` 결과 하나로 단정하지 않는다.
+
+`tools/unity-batch.sh`로 컴파일(오류 0, `CompileScripts` 6.6초, `ProjectSettings/`·`Packages/` 변경 없음 확인) → 헤드리스 1차 FAIL(위 함정) → 씬 재빌드 → 헤드리스 3연속 OK("event chain OK" + 기존 30차 성 정복·문답·저장/불러오기 전부 그대로 통과). `docs/PROJECT_STATE.md` 갱신(REALM 요약에 5-2 추가, 다음 작업에서 REALM5-2 제거, 테스트 상태·실기 확인 대기 갱신 — 15KB 상한에 걸려 여러 줄 압축, 자세한 경위는 이 절로 옮김).

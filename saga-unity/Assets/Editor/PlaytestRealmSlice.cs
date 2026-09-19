@@ -205,6 +205,7 @@ namespace Saga.EditorTools
                     if (!CheckGoalBoardAndSessionCard()) { Fail(); return; }
                     if (!CheckOfficerTraits()) { Fail(); return; }
                     if (!CheckTactic()) { Fail(); return; }
+                    if (!CheckEventChain()) { Fail(); return; }
                     _phase = Phase.WorldMap;
                     break;
 
@@ -1755,6 +1756,73 @@ namespace Saga.EditorTools
             }
 
             Debug.Log($"[PlaytestRealmSlice] tactic OK - 평야 기병 돌격/강 화공 배율 문턱 확인, 힌트=\"{hint}\"");
+            return true;
+        }
+
+        /// <summary>PLAN.md 101-2 5-2 "관계·이벤트 체인"(2026-09-20) —
+        /// ① 카드 7종 전부 제목·본문·선택지 3개가 채워지는지, ② 결투
+        /// 신청(A)이 이길 때까지 반복하면 금이 늘고 3달 뒤 논공행상
+        /// 체인이 예약되는지, ③ 월간 확률(18%)이 반복 호출하면 통계적으로
+        /// 곧 하나는 뜨는지, ④ 응답 뒤 Current가 비워져 같은 카드가 다시
+        /// 안 뜨는지. 시작 무장(현책) 하나로 Describe/Resolve를 직접
+        /// 불러 확인한다(UI 버튼 클릭 시뮬레이션은 이 파일 관행대로 안 함).</summary>
+        private static bool CheckEventChain()
+        {
+            foreach (RealmEventState.Kind kind in System.Enum.GetValues(typeof(RealmEventState.Kind)))
+            {
+                var card = new RealmEventState.Card(kind, RealmOfficerPool.StartingOfficerId);
+                var (title, body, a, b, c) = RealmEventState.Describe(card);
+                if (string.IsNullOrEmpty(title) || string.IsNullOrEmpty(body) ||
+                    string.IsNullOrEmpty(a) || string.IsNullOrEmpty(b) || string.IsNullOrEmpty(c))
+                {
+                    Debug.LogError($"[PlaytestRealmSlice] 이벤트 카드({kind}) 서술 누락 — title/body/선택지 중 빔");
+                    return false;
+                }
+            }
+
+            RealmEventState.ClearForTest();
+            var duelCard = new RealmEventState.Card(RealmEventState.Kind.BraveChallenge, RealmOfficerPool.StartingOfficerId);
+            bool wonOnce = false;
+            for (int i = 0; i < 200 && !wonOnce; i++)
+            {
+                int before = RealmCityState.Gold;
+                RealmEventState.Resolve(duelCard, RealmEventState.Choice.A);
+                if (RealmCityState.Gold > before) wonOnce = true;
+            }
+            if (!wonOnce)
+            {
+                Debug.LogError("[PlaytestRealmSlice] 결투 신청 200회 시도했는데 한 번도 안 이김(확률표 이상 의심)");
+                return false;
+            }
+            if (!RealmEventState.HasPendingChain(RealmEventState.Kind.BraveReward))
+            {
+                Debug.LogError("[PlaytestRealmSlice] 결투 승리 뒤 논공행상 체인이 예약되지 않음");
+                return false;
+            }
+
+            RealmEventState.ClearForTest();
+            bool presented = false;
+            for (int i = 0; i < 100 && !presented; i++)
+            {
+                RealmEventState.RollForMonth();
+                presented = RealmEventState.Current != null;
+            }
+            if (!presented)
+            {
+                Debug.LogError("[PlaytestRealmSlice] RollForMonth 100회 중 카드가 한 번도 안 뜸(확률 이상 의심)");
+                return false;
+            }
+
+            var current = RealmEventState.Current.Value;
+            RealmEventState.Resolve(current, RealmEventState.Choice.B); // "거절/무시" 계열 — 효과 없이 안전하게 닫히는지.
+            if (RealmEventState.Current != null)
+            {
+                Debug.LogError("[PlaytestRealmSlice] 이벤트 응답 뒤에도 Current가 안 비워짐");
+                return false;
+            }
+
+            RealmEventState.ClearForTest();
+            Debug.Log("[PlaytestRealmSlice] event chain OK - 카드 7종 서술·결투 승리 체인 예약·월간 확률·응답 뒤 카드 해제 확인");
             return true;
         }
 
