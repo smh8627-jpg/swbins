@@ -2817,7 +2817,7 @@ Combat Core 생성
 | 폴더 | 내용 | 판정 | 이유·조건 |
 |---|---|---|---|
 | `assets/characters/` character-a~d (Kenney Blocky) | 플레이어·NPC·산적 | **교체 대기(보류)** | 각진 블록 얼굴이 셀 램프와 안 맞음(66-2). 대체 GLB 확정 전까지 지우지 않는다(마이그레이션 규칙) |
-| `assets/characters_vroid/` AvatarSample_A | 파이프라인 검증용 | **보류 → Q3** | 하이폴(29542) 애니 비율. 저폴리 툰으로 가면 컷신·초상만, VRoid 계열로 가면 기준 캐릭터. 둘 다는 안 된다 |
+| `assets/characters_vroid/` AvatarSample_A | GO 플레이어 기준 캐릭터 | **Q3 결정(a)** | 하이폴(29542) 애니 비율. 2026-09-19 사용자가 "VRoid로" 명시 지시해 GO `Player.tscn`에 적용 완료(a: VRoid 주역 + 저폴리 나머지). DUNGEON/FOREST 플레이어도 VRoid로 바꿀지는 별도 확인 필요 — 아직 character-a.glb(저폴리) 그대로 |
 | `assets/buildings/` (Fantasy Town 모듈) | 마을집·기둥 | **남김** | 66-2 결론대로 셰이더+팔레트 스냅+painterly 톤으로 충분. `colormap.png` 를 팔레트 24색으로 스냅 |
 | `assets/vegetation/`·`rocks/` (Nature Kit) | 나무·바위 | **교체(Quaternius Stylized Nature)** | 뭉게 캐노피가 목표 톤에 맞음. 사람이 itch.io 에서 받아 줘야 함. 그 전엔 팔레트 스냅만 |
 | `assets/dungeon/` (Modular Cave) | 방·복도·문 | **남김** | 굴혈 mood 팔레트 3종 스냅 |
@@ -2881,7 +2881,7 @@ assets/generated/
 ## 103-4. VRoid·Mixamo 활용 조건
 
 - **Mixamo**: 인간형 GLB(character-a~d 는 리그가 Kenney 자체 — 리타겟 필요, VRoid 는 VRM 휴머노이드) 를 FBX 로 올려 자동 리깅 + 애니(idle·walk·run·attack·hit·dodge·death) 받기 → Godot `BoneMap`(`SkeletonProfileHumanoid`) 리타겟. 라이선스는 게임 사용 허용. 사람이 Adobe 계정으로 다운로드해야 한다(자동화 불가).
-- **VRoid**: 105장 Q3 결과에 따라 (a) 기준 캐릭터로 쓰면 인물 105 조형은 사람 몫이라 현실적으로 **주역 5~10명만** VRoid, 나머지는 kitbash 저폴리 (b) 저폴리 툰으로 가면 VRoid 는 초상·컷신만. 어느 쪽이든 `cel_toon` 으로만 렌더(MToon 원본 셰이더는 안 씀).
+- **VRoid**: 105장 Q3 결정(a, 2026-09-19) — 인물 105 조형은 사람 몫이라 현실적으로 **주역 5~10명만** VRoid, 나머지는 kitbash 저폴리. GO 플레이어(AvatarSample_A)부터 적용, DUNGEON/FOREST 플레이어도 같은 VRoid로 바꿀지는 별도 확인 필요(102-6). `cel_toon` 으로만 렌더(MToon 원본 셰이더는 안 씀).
 - 66-1/66-2 와의 관계: 66-1 결정(Godot 유지)·66-2 결정(카툰 방향·원작 리소스 금지·Kenney 순차 교체)은 그대로. 이 장은 "무엇으로 교체하나" 의 실행 계획이다. AI 생성(SAGA-DESIGN §7.4)은 소품·건물 텍스처에만, 원작 IP 프롬프트 금지, 결과물도 팔레트 스냅.
 
 ## 103-5. 판정 절차(새 에셋 하나를 들일 때)
@@ -2914,12 +2914,8 @@ assets/generated/
 # 105. 열린 질문 (사용자 결정 — 답이 나오면 해당 장에 내려보내고 여기서 지운다)
 
 - **Q1 완성판 트랙**(SAGA-DESIGN §10-Q1): godot·unity 병행은 유지하되 그래픽·에셋 투자를 먼저 집중할 트랙을 고를 것인가. 이 트랙 입장: 카툰/셀 방향은 Godot 쪽이 이미 셰이더·파이프라인이 있다.
-- **Q3 캐릭터 기본 스타일**: 66-2 "원신류"(VRoid 계열 애니 비율) 와 SAGA-DESIGN §6.0-1 "저폴리 툰" 이 캐릭터 조형에서 갈린다. (a) VRoid 주역 5~10 + 저폴리 나머지 (b) 전부 저폴리 툰(VRoid 는 초상만). **둘 다는 안 된다** — 102-6·103-4 가 이 답을 기다린다.
-- **Q4 생성 에셋 커밋**: `assets/generated/` 산출물을 커밋하나, 스크립트+씨앗만 커밋하고 빌드 단계에서 만들나.
-- **Q-a 다섯 판 동시 진행**: 2026-08-31 방침("하나만 먼저 완성")과 달리 지금은 다섯 판이 다 진행 중이다. 101장 이식을 다섯 판 동시(공용 UI 먼저)로 갈지, GO 한 판에서 표준 8 을 다 채운 뒤 넷으로 갈지.
-- **Q-b SDFGI vs LightmapGI**: PC 프로파일에서 SDFGI 를 끄고 LightmapGI 베이크로 두 프로파일 톤을 맞출 것인가(102-2 제안), PC 만 SDFGI 유지할 것인가.
+- **Q-b SDFGI vs LightmapGI**: PC 프로파일에서 SDFGI 를 끄고 LightmapGI 베이크로 두 프로파일 톤을 맞출 것인가(102-2 제안), PC 만 SDFGI 유지할 것인가. 승인판 그래픽 톤을 바꾸는 일이라 실기 확인 몰아서 하기 전엔 착수 안 함.
 - **Q-d 사람 몫 셋**: Quaternius Stylized Nature 다운로드, Mixamo 애니 다운로드, VRoid 조형(주역 몇 명) — 언제 해 줄 수 있는가. 이게 없으면 102·103 은 팔레트 스냅·procgen 까지만 간다.
-- **Q-e 빌드 도구 공유**: `tools/asset-forge/` 를 다섯 판·두 트랙이 함께 써도 되는가("코드 공유 없음" 원칙은 게임 코드에 한정한다고 해석 — 확인 필요).
 - **Q-g GO "75초 토벌" 부위 3 파괴**(101-2 ⑥에서 보류): 갑주·병장·기마 3부위를 따로 깎으려면 새 조준(부위 선택) UI가 필요하다 — 지금은 저스트 회피만 옮겼다. 할 거면 조준 방식(버튼 순환? 탭 대상?)부터 정해야 한다.
 
 ---
