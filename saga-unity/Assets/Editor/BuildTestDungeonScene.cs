@@ -337,6 +337,7 @@ namespace Saga.EditorTools
             BuildWhirlButton(playerCombat);
             BuildDodgeButton(playerController);
             BuildMobileHud();
+            BuildBlessingChoiceUi();
             BuildBootstrap();
 
             AssetDatabase.SaveAssets();
@@ -1628,6 +1629,16 @@ namespace Saga.EditorTools
             var joystick = baseGo.AddComponent<VirtualJoystick>();
             SetPrivateField(joystick, "knob", knobRect);
             SetPrivateField(joystick, "radius", 60f);
+        }
+
+        /// <summary>PLAN.md 101-2 5.1 "축복 3택"(2026-09-19) — GameBootstrap이
+        /// FindFirstObjectByType로 찾아 보스층 진입마다 띄운다(PerkChoiceUi.cs와
+        /// 같은 결, 자기 캔버스를 스스로 짓는다). GoalBoardUi 뒤·Bootstrap 앞.</summary>
+        private static void BuildBlessingChoiceUi()
+        {
+            var go = new GameObject("BlessingChoiceUI");
+            var ui = go.AddComponent<BlessingChoiceUi>();
+            ui.Build();
         }
 
         private static void BuildBootstrap()

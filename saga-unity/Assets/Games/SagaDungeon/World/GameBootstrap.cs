@@ -26,6 +26,9 @@ namespace Saga.Dungeon.World
 
         private CameraRig _cameraRig;
 
+        // PLAN.md 101-2 5.1 "축복 3택"(2026-09-19) — 보스층 진입 이벤트에 얹는다.
+        private BlessingChoiceUi _blessingChoiceUi;
+
         private void Start()
         {
             SfxPlayer.Configure(hitClip, heavyHitClip, enemyDeathClip, levelUpClip, discoveryClip, bgmClip);
@@ -36,12 +39,25 @@ namespace Saga.Dungeon.World
             QuestState.StageCompleted += OnQuestStageCompleted;
             HeroState.LeveledUp += OnLeveledUp; // "사운드" 슬라이스 — PLAN.md 37장, 레벨업 신호음.
             _cameraRig = Object.FindFirstObjectByType<CameraRig>(); // 101-3 G "성장 연출"용.
+            _blessingChoiceUi = Object.FindFirstObjectByType<BlessingChoiceUi>();
+            if (DungeonFloorRunner.Instance != null) DungeonFloorRunner.Instance.FloorDescended += OnFloorDescended;
         }
 
         private void OnDestroy()
         {
             QuestState.StageCompleted -= OnQuestStageCompleted;
             HeroState.LeveledUp -= OnLeveledUp;
+            if (DungeonFloorRunner.Instance != null) DungeonFloorRunner.Instance.FloorDescended -= OnFloorDescended;
+        }
+
+        private void OnFloorDescended(int floor)
+        {
+            if (!DungeonFormulas.IsBossFloor(floor)) return;
+            // 이미 카드가 떠 있으면 새로 안 띄운다(PerkChoiceUi.cs와 같은 방어).
+            if (_blessingChoiceUi == null || _blessingChoiceUi.IsShowing) return;
+
+            var offer = BlessingState.RollChoice();
+            _blessingChoiceUi.Show(offer, BlessingState.Choose, () => BlessingState.Reject(floor));
         }
 
         private void OnLeveledUp(int newLevel)

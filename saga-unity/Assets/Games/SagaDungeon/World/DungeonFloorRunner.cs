@@ -86,6 +86,11 @@ namespace Saga.Dungeon.World
         /// 안 남긴다, 아래 `JumpToFloor()` 주석 참고).</summary>
         public int CurrentFloor => _floor;
 
+        /// <summary>PLAN.md 101-2 5.1 "축복 3택" 트리거 — GameBootstrap이 구독해
+        /// `DungeonFormulas.IsBossFloor(floor)`일 때만 카드를 띄운다(웹판 "3층마다"와 같은 문턱,
+        /// `JumpToFloor()`로 세이브를 복원할 땐 안 쏜다 — 그건 "다시 내려간다"가 아니라 이어하기다).</summary>
+        public event Action<int> FloorDescended;
+
         private void Awake()
         {
             Instance = this;
@@ -227,6 +232,7 @@ namespace Saga.Dungeon.World
             DialogueLabel.Instance?.Show($"🪜 제{_floor}층으로 내려간다", 4f);
             BuildRoomContent("fight");
             RepositionPlayerToEntry();
+            FloorDescended?.Invoke(_floor);
         }
 
         /// <summary>`PlaytestDungeonFloorProgression.cs`가 잡아낸 결함 수정 — 문 표지

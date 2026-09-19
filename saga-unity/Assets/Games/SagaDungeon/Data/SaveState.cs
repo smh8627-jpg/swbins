@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using UnityEngine;
 using Saga.Dungeon.World;
 
@@ -20,7 +21,9 @@ namespace Saga.Dungeon.Data
         // 저장할 "층" 개념 자체가 없어서 문제가 안 됐다). v4 이하 세이브는
         // dungeonFloor가 int 기본값 0으로 채워지고, `TryLoad()`가 2 미만이면
         // 무시하도록 짜서 옛 세이브도 그대로 로드된다(새로 층2부터 시작).
-        private const int SaveVersion = 5;
+        // v6 — PLAN.md 101-2 5.1 "축복 3택"(BlessingState) 저장. v5 이하 세이브는
+        // blessings가 null로 채워지고 Restore(null)는 조용히 아무것도 안 앉힌다.
+        private const int SaveVersion = 6;
 
         private static string SavePath => Path.Combine(Application.persistentDataPath, "save_dungeon.json");
 
@@ -41,6 +44,7 @@ namespace Saga.Dungeon.Data
             public bool minibossDead;
             public bool captiveFreed;
             public int dungeonFloor; // v5 — DungeonFloorRunner.CurrentFloor, 0이면 "없음"(v4 이하 세이브).
+            public string[] blessings; // v6 — BlessingState.SnapshotIds(), 축별 최대 3개.
         }
 
         public static bool Save()
@@ -63,6 +67,7 @@ namespace Saga.Dungeon.Data
                 minibossDead = QuestState.MinibossDead,
                 captiveFreed = QuestState.CaptiveFreed,
                 dungeonFloor = DungeonFloorRunner.Instance?.CurrentFloor ?? 0,
+                blessings = BlessingState.SnapshotIds().ToArray(),
             };
 
             try
@@ -111,6 +116,10 @@ namespace Saga.Dungeon.Data
             if (data.version >= 5 && data.dungeonFloor >= 2)
             {
                 DungeonFloorRunner.Instance?.JumpToFloor(data.dungeonFloor);
+            }
+            if (data.version >= 6)
+            {
+                BlessingState.Restore(data.blessings);
             }
 
             Transform player = FindPlayer();

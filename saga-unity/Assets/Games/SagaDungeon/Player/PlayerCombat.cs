@@ -164,7 +164,9 @@ namespace Saga.Dungeon.Player
             }
             if (!hitAny) return;
 
-            _whirlCooldownLeft = WhirlCooldown;
+            // PLAN.md 101-2 5.1 "축복 3택" 선(旋) 축 — BlessingState.SweepMultiplier로
+            // 나눈다(클수록 회전베기를 더 자주 쓴다, 51장 "범위형 빌드"를 직접 강화).
+            _whirlCooldownLeft = WhirlCooldown / BlessingState.SweepMultiplier;
             _cooldownLeft = Mathf.Max(_cooldownLeft, WhirlRecoverSec);
             _cameraRig?.Shake(WhirlShakeMag, WhirlShakeSec);
             SfxPlayer.PlayHit();

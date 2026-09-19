@@ -7699,3 +7699,22 @@ DFS 순서 재배선: 기존 사슬은 운중→상군→삭방→오원→(바�
 `tools/unity-batch.sh -- <Unity 인자...>`로 컴파일(error CS 0건) → `PlaytestHeadless`(GO) 3연속 OK(`Saga.EditorTools.PlaytestHeadless.Run`, `-quit` 안 줌 — 첫 2회는 위 두 함정으로 실패, 원인 수정 후 3연속 OK). 이 사건은 씬 구성(GameObject 추가) 변경이 없어(기존 `RareWolfEncounter` 컴포넌트에 로직만 얹음) **씬 재빌드 불필요**했다(101-2 ⑦ 승급 3택 때와 다른 점 — 그때는 새 UI GameObject를 추가해 재빌드가 필요했다).
 
 `docs/PROJECT_STATE.md` 갱신(GO 완료 요약에 101-2 ④⑦③ 전부 완료 표기, "다음 작업"을 "GO 첫 세 항목 완료, ①②⑥⑧ 중 결정 대기"로 교체, 테스트 상태·실기 확인 대기 갱신 — 15KB 상한에 걸려 여러 줄 압축). `PLAN.md` 101-2 GO 행에 완료 주석 추가(대응 파일에 `RareWolfEncounter` 추가).
+
+## 2026-09-19 — PLAN 101-2 5.1 DUNGEON 축복 3택 (새 세션 "사가 유니티 이어 하자")
+
+101-2 표에서 GO 세 항목이 전부 닫혀 사용자 결정 대기 상태였던 반면, DUNGEON 5.1(축복 3택)은 순서상 다음(5.8→5.1→5.2)이고 사용자 결정이 필요 없어 이쪽을 이었다.
+
+**웹판을 그대로 안 옮긴 이유**: 웹판 §5.1(`saga-web/saga-dungeon/PLAN.md` 121행, 2026-09-18 코드분 완료·실기 미확인)은 무예 4칸 로드아웃·서명 무예·7원소 조합표(36개 축복)를 전제한다. 이 트랙 `HeroState`(Data/HeroState.cs)는 단일 인물·단일 무기라 로드아웃 자체가 없고 원소 시스템도 없다 — 36개 표를 그대로 옮길 대상이 없다. 대신 이 트랙엔 웹판에 없는 실제 "빌드" 갈림이 이미 있다: `PlayerCombat.cs`(51장 "DUNGEON 확장 — 빌드", 2026-09-14)가 "하나를 크게(강공격)" 대 "여럿을 조금씩(회전베기)" 트레이드오프를 이미 만들어 뒀다. 그래서 SagaGo `PerkState.cs`(승급 3택 — 축마다 정확히 하나, 고르면 교체)와 같은 구조를 가져오되, 축은 이 트랙 고유의 **공(攻)/수(守)/선(旋)** 셋으로 잡았다 — 선(旋) 축이 회전베기 빌드를 직접 강화해 "범위형으로 계속 밀어붙일지"가 실제로 의미 있는 선택이 되게 했다.
+
+- `Data/BlessingState.cs`(신규) — `PerkState.cs`와 거의 같은 구조: `Axis{Atk,Def,Sweep}`, 풀 12(축당 4, 배율 +5~8%), `RollChoice()`/`Choose()`/`Reject(floor)`/`SnapshotIds()`/`Restore()`. `Reject`는 웹판 "거절 = 금 30×층" 뜻을 이 트랙 통화 규모로 가져와 `RejectGoldPerFloor(10) × floor`.
+- 적용 지점 셋, 전부 배율만(기초 능력치 불변 원칙): `Data/HeroState.cs`의 `HitDamage`에 `AtkMultiplier`를 곱한다(평타·강공격·회전베기가 전부 이 값을 밑값으로 쓰므로 셋 다 같이 큰다) · `TakeDamage()`가 받는 피해를 `DefMultiplier`로 나눈다(HeroState엔 원래 "방어" 스탯 자체가 없었다 — 이 축이 처음 만든 새 레버) · `Player/PlayerCombat.cs`의 `TryWhirl()`이 회전베기 쿨다운을 `SweepMultiplier`로 나눈다.
+- 트리거: `World/DungeonFloorRunner.cs`에 `event Action<int> FloorDescended`를 신설해 `Descend()`(`_floor++` 직후) 끝에서 쏜다. **`JumpToFloor()`(세이브 복원 경로)는 이 이벤트를 안 쏜다** — Descend()를 안 거치므로(직접 `_floor = floor` 대입) 자동으로 그렇게 됐지만, 클래스 주석에 "이어하기는 다시 내려가는 게 아니다"로 명문화해 나중에 실수로 못 얹게 해 뒀다.
+- `World/GameBootstrap.cs` — `FloorDescended` 구독, `DungeonFormulas.IsBossFloor(floor)`(3층마다, 웹판과 같은 문턱)일 때만 `BlessingChoiceUi`를 찾아 띄운다. `PerkChoiceUi`처럼 "이미 떠 있으면 새로 안 띄운다" 가드 그대로.
+- `UI/BlessingChoiceUi.cs`(신규) — `PerkChoiceUi.cs`와 같은 카드 UI지만, 이 트랙엔 `EncounterUiKit` 같은 공용 부품이 없어(BanditEncounter류가 없다) `StoryJobChoiceUi.cs`처럼 캔버스/패널/텍스트/버튼을 스스로 짓는다(세 번째 재사용처가 아직 없어 kit로 안 뽑는 같은 판단).
+- `Data/SaveState.cs` — v5→v6, `blessings` 필드(`BlessingState.SnapshotIds()`) 추가. v5 이하 세이브는 `blessings`가 null로 채워지고 `Restore(null)`이 조용히 무시(마이그레이션 코드 없음, GO SaveState.cs와 같은 패턴).
+- `Resources/Localization/dungeon_ko.json`·`dungeon_en.json` — `blessing.title`·`blessing.reject` 키 추가(GO `perk.*`와 같은 자리).
+- `Editor/BuildTestDungeonScene.cs` — `BuildBlessingChoiceUi()` 신설(`PerkChoiceUi`용 `BuildPerkChoiceUi()`와 같은 결), `BuildMobileHud()` 뒤·`BuildBootstrap()` 앞에서 호출.
+
+**검증**: `tools/unity-batch.sh -- <Unity 인자...>`로 컴파일(error CS 0건, `ProjectSettings/`·`Packages/` 부작용 없음 — 래퍼가 매번 원복) → `BuildTestDungeonScene.Build`로 씬 재빌드(새 `BlessingChoiceUI` GameObject 포함) → `PlaytestDungeonHeadless`(`Saga.EditorTools.PlaytestDungeonHeadless.Run`, `-quit` 안 줌) 10 frames no errors → `PlaytestDungeonFloorProgression`(같은 방식)도 12 room advances·floor 4 no errors, 이 과정에서 실제로 3층(보스층)을 지나며 `FloorDescended`→축복 카드 트리거 경로를 태웠는데도 오류 없음. 실기 확인은 아직(카드 UI 실제로 뜨는지·공수선 배율 체감) — PROJECT_STATE.md "실기 확인 대기"에 추가해 뒀다(몰아서 확인 방침).
+
+`docs/PROJECT_STATE.md` 갱신(DUNGEON 완료 요약에 101-2 5.1 추가, "다음 작업" 1순위에 DUNGEON 5.1 완료·다음은 5.2 명시, 테스트 상태·실기 확인 대기 갱신). `PLAN.md` 101-2 DUNGEON 행에 완료 경위·재해석 이유 추가(대응 파일에 `BlessingState`·`BlessingChoiceUi` 추가).

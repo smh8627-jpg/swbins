@@ -60,6 +60,8 @@
     { "key": "action.attack", "value": "Attack" },
     { "key": "action.heavy_attack", "value": "Heavy Attack" },
     { "key": "action.whirl", "value": "Whirl" },
-    { "key": "action.dodge", "value": "Dodge" }
+    { "key": "action.dodge", "value": "Dodge" },
+    { "key": "blessing.title", "value": "Blessing! Pick one" },
+    { "key": "blessing.reject", "value": "Decline — Gold by floor" }
   ]
 }

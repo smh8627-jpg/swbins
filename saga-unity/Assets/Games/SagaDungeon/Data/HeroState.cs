@@ -50,8 +50,10 @@ namespace Saga.Dungeon.Data
         public static float Atk => BaseAtk + (Level - 1) * AtkPerLevel
             + (EquippedWeapon?.AtkBonus ?? 0f) + (SocketedGem?.AtkBonus ?? 0f) + DepthAtkBonus;
 
-        /// <summary>js/dungeon.js:140 — `Math.max(4, p.atk * ... / 6)` 한 타 피해.</summary>
-        public static float HitDamage => Math.Max(4f, Atk / 6f);
+        /// <summary>js/dungeon.js:140 — `Math.max(4, p.atk * ... / 6)` 한 타 피해.
+        /// PLAN.md 101-2 5.1 "축복 3택" 공(攻) 축(<see cref="BlessingState.AtkMultiplier"/>)을
+        /// 곱한다 — 평타·강공격·회전베기가 전부 이 값을 밑값으로 쓰므로 세 공격 다 같이 큰다.</summary>
+        public static float HitDamage => Math.Max(4f, Atk / 6f) * BlessingState.AtkMultiplier;
 
         /// <summary>회피(Player/PlayerController.cs) 중에만 켜진다 — 켜져
         /// 있는 동안 TakeDamage가 전부 무시된다(dungeon.js `p.invuln`과
@@ -114,10 +116,12 @@ namespace Saga.Dungeon.Data
             return true;
         }
 
+        /// <summary>PLAN.md 101-2 5.1 "축복 3택" 수(守) 축 — <see cref="BlessingState.DefMultiplier"/>로
+        /// 나눈다(클수록 덜 맞는다, PerkState.cs의 def 곱과 같은 방향).</summary>
         public static void TakeDamage(float amount)
         {
             if (Invulnerable || amount <= 0f || Hp <= 0) return;
-            Hp = Math.Max(0, Hp - RoundInt(amount));
+            Hp = Math.Max(0, Hp - RoundInt(amount / BlessingState.DefMultiplier));
             if (Hp <= 0) Died?.Invoke();
         }
 
