@@ -308,6 +308,7 @@ namespace Saga.Realm.Data
         public const string DaxiaId = "daxia";
         public const string WuyishanliId = "wuyishanli";
         public const string MoqietuoId = "moqietuo";
+        public const string SheyiId = "sheyi";
 
         public static readonly string[] AllIds =
         {
@@ -316,7 +317,7 @@ namespace Saga.Realm.Data
             YonganId, JianglingId, ChangshaId, ChaisangId, JianyeId, KuaijiId, YunzhongId, ShangjunId,
             ShuofangId, WuyuanId, TianshuiId, NanhaiId, ZhutiId, CangwuId, JianningId, YulinId, YuexiId,
             JiaozhiId, ZangkeId, JiuzhenId, HepuId, RinanId, YunnanId, XianglinId, YongchangId,
-            DianchongId, ShenduId, BijingId, JiantuoluoId, LuorongId, JibinId, DaxiaId, WuyishanliId, MoqietuoId,
+            DianchongId, ShenduId, BijingId, JiantuoluoId, LuorongId, JibinId, DaxiaId, WuyishanliId, MoqietuoId, SheyiId,
         };
 
         private static readonly Dictionary<string, RealmEnemyCityDef> Catalog = new Dictionary<string, RealmEnemyCityDef>
@@ -571,6 +572,13 @@ namespace Saga.Realm.Data
             // 없어 여기서 끝. land는 원작이 이미 plain이라 보정 불필요.
             // 다른 이웃(사위)도 잎사귀라 다음 확장 후보로 남긴다.
             [MoqietuoId] = new RealmEnemyCityDef(MoqietuoId, "마게타", RealmLand.Plain, baseWall: 3600, baseTroops: 828, baseTrain: 200, baseTech: 100, attackFromCityId: "shendu"),
+            // 사위는 신독(shendu)과만 맞닿아 있다(원작 LINKS: shendu-sheyi,
+            // "순례자들이 마지막으로 닿는 저자") — 29차 확장, 건타라·대하·
+            // 마게타와 형제 가지(넷 다 신독의 자식, train은 신독 자신의
+            // 185+15=200으로 나머지 셋과 동률 — 신독이 목표 넷으로 늘어난
+            // 첫 사례). 원작에 더 뻗는 LINKS 없어 신독 갈래가 이걸로
+            // 전부 닫힌다. land는 원작이 이미 plain이라 보정 불필요.
+            [SheyiId] = new RealmEnemyCityDef(SheyiId, "사위", RealmLand.Plain, baseWall: 3000, baseTroops: 690, baseTrain: 200, baseTech: 100, attackFromCityId: "shendu"),
         };
 
         public static RealmEnemyCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;

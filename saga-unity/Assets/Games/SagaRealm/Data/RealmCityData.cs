@@ -323,6 +323,11 @@ namespace Saga.Realm.Data
             // 첫 사례). land는 원작 그대로 plain. wall은 RealmEnemyCity.cs
             // 마게타 정의(3600)와 맞춘다.
             ["moqietuo"] = new RealmCityDef("moqietuo", "마게타", RealmLand.Plain, agri: 200, comm: 190, wall: 3600, pop: 70000, mapX: -30, mapY: 106),
+            // 51장 "대규모 콘텐츠" 29차 확장(2026-09-19) — 신독(shendu)의
+            // 넷째 자식이자 마지막 이웃(신독 갈래 전부 닫힘). land는 원작
+            // 그대로 plain. wall은 RealmEnemyCity.cs 사위 정의(3000)와
+            // 맞춘다.
+            ["sheyi"] = new RealmCityDef("sheyi", "사위", RealmLand.Plain, agri: 170, comm: 150, wall: 3000, pop: 48000, mapX: -26, mapY: 112),
         };
 
         public static RealmCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;

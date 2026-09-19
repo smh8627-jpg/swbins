@@ -7563,3 +7563,20 @@ troops=wall×0.23 반올림(850·900). 둘 다 원작 land가 이미 plain이라
 `tools/unity-batch.sh -- <Unity 인자...>`로 컴파일(error CS 0건)·`PlaytestRealmSlice` 3연속 실행(`Saga.EditorTools.PlaytestRealmSlice.Run`, `-quit` 안 줌) — 마게타 함락 로그와 신독 3자 분기(enemyId 명시) 매 회 확인, `ProjectSettings/`·`Packages/` 부작용 없음(래퍼가 매번 원복). 씬 재생성 불필요.
 
 `docs/PROJECT_STATE.md` 갱신(REALM 완료 요약 적국 47→48·성 50→51, 16~28차 절 갱신, "다음 작업"(29차 후보: 신독 마지막 이웃 사위, 고르면 신독 갈래 전부 닫힘) · 테스트 상태 · 실기 확인 대기 전부 갱신, 15348B로 15KB 상한 안쪽 유지).
+
+## REALM 51장 29차 확장 — 신독 넷째 자식 사위, 신독 갈래 완전히 닫힘 (2026-09-19, 같은 세션 "사가 유니티 이어 해")
+
+28차가 남긴 마지막 후보 사위를 추가했다(원작 LINKS: shendu-sheyi, "순례자들이 마지막으로 닿는 저자" — 건타라·대하·마게타와 형제 가지, 신독의 자식이 넷으로 늘어난 첫 사례. train은 신독 자신의 185+15=200으로 나머지 셋과 동률). wall은 원작 그대로(3000), troops=wall×0.23 반올림(690). land는 원작이 이미 plain이라 보정 불필요.
+
+**신독이 원작 LINKS(건타라·대하·마게타·사위 넷)를 전부 채워 이 갈래가 완전히 닫혔다** — `RealmWarState.Attack()`에서 신독은 이제 4자 분기 성으로, 이 트랙에서 가장 많은 목표를 가진 성이 됐다(기존 최다였던 건녕의 3개를 넘어섬).
+
+- `RealmEnemyCity.cs` — `SheyiId` 신설, `AllIds`·`Catalog`에 추가.
+- `RealmCityData.cs` — 같은 성 추가.
+- `PlaytestRealmSlice.cs` — `Phase.AttackShendu`의 다음 단계를 새 `Phase.AttackSheyi`로 바꾸고(사위를 먼저 공략), 그 다음은 기존 `Phase.AttackMoqietuo`로 이어지게 신설(`enemyId` 명시). OK 로그 문구에 "chain-29th(sheyi)" 추가.
+- 로컬라이제이션: `city.sheyi`(ko/en) 신설.
+
+`tools/unity-batch.sh -- <Unity 인자...>`로 컴파일(error CS 0건)·`PlaytestRealmSlice` 3연속 실행(`Saga.EditorTools.PlaytestRealmSlice.Run`, `-quit` 안 줌) — 사위 함락 로그와 신독 4자 분기(enemyId 명시) 매 회 확인, `ProjectSettings/`·`Packages/` 부작용 없음(래퍼가 매번 원복). 씬 재생성 불필요.
+
+**남은 후보 재조사**: 신독 갈래가 닫혀 다음 후보를 웹판 원본 `data-city.js` LINKS 전체를 다시 훑어 확인했다 — 노용→주오(원작 LINKS: luorong-zhuwu, 25차에서 노용을 추가했을 때는 미탐색 상태로 남아있던 자식), 전충의 다른 이웃 서권·구속(원작에 둘 다 잎사귀, 24차에서 비경을 골랐을 때 남긴 형제 가지).
+
+`docs/PROJECT_STATE.md` 갱신(REALM 완료 요약 적국 48→49·성 51→52, 16~29차 절 갱신하며 "신독 갈래 전부 닫힘" 명시, "다음 작업"(30차 후보: 노용→주오 또는 전충의 다른 이웃 서권/구속) · 테스트 상태 · 실기 확인 대기 전부 갱신, "캐릭터 자산" 절 압축해 15KB 상한 안쪽 유지 — 14806B).
