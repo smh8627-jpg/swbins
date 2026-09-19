@@ -189,13 +189,24 @@ namespace Saga.Dungeon.Player
             if (defender != null) defender.speed = 1f;
         }
 
-        /// <summary>이번 슬라이스는 죽음 화면·페널티 없이 바로 회복한다 —
-        /// 다음 슬라이스가 실제 죽음 처리(귀환·손실 등)를 다룰 몫.</summary>
-        private void OnDied()
+        /// <summary>PLAN.md 101-2 5.2 "유품" — <paramref name="lostGold"/>는
+        /// <see cref="HeroState.DropGoldAsGrave"/>가 이미 떼어 둔 값(0이면
+        /// 잃을 게 없었다는 뜻, 마커를 안 세운다). 죽음 화면(웹판 §5.2의
+        /// 세션 카드)은 GameBootstrap이 `HeroState.Died`를 같이 구독해 띄운다
+        /// — 이 메서드는 애니메이션·마커 등 "그 자리" 반응만 맡는다.</summary>
+        private void OnDied(int lostGold)
         {
             _controller.Animator?.SetTrigger("Death");
+            if (lostGold > 0)
+            {
+                GraveMarker.Spawn(transform.position, lostGold);
+            }
             HeroState.FullHeal();
-            DialogueLabel.Instance?.Show("쓰러졌다가 정신을 차렸다.", 3f);
+
+            string msg = lostGold > 0
+                ? string.Format(DungeonLocalization.T("grave.dropped", "쓰러졌다가 정신을 차렸다. 이 자리에 금 {0}을 유품으로 남겼다."), lostGold)
+                : DungeonLocalization.T("grave.dropped_none", "쓰러졌다가 정신을 차렸다.");
+            DialogueLabel.Instance?.Show(msg, 4f);
         }
     }
 }

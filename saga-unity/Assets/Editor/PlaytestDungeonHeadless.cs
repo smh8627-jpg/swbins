@@ -111,6 +111,7 @@ namespace Saga.EditorTools
                 CheckPlayerHudLocalization();
                 CheckActionButtonLocalization();
                 CheckGoalBoardAndSessionCard();
+                CheckGraveMarker(); // SessionCard를 띄우므로 CheckGoalBoardAndSessionCard 뒤(그 체크가 "시작부터 숨김" 전제를 이미 다 씀).
                 CheckGroundDecal();
             }
 
@@ -219,6 +220,45 @@ namespace Saga.EditorTools
                 return;
             }
             Debug.Log("[PlaytestDungeonHeadless] loot marker OK - 사망마다 LootMarker.Spawn 호출 확인(픽업 경로는 이후 자연 프레임에서 같이 검증됨)");
+        }
+
+        /// <summary>PLAN.md 101-2 5.2 "유품"(2026-09-19 추가) — 플레이어를 실제로
+        /// 죽여(`HeroState.TakeDamage`) `GraveMarker.Spawn()`이 불렸는지, 그리고
+        /// 소지 골드가 정확히 그 값만큼 0으로 비워지는지 본다(`CheckLootMarker`와
+        /// 같은 결 — 회수 경로는 마커가 플레이어 자리에 그대로 스폰돼(거리 0,
+        /// PickupRadius 2m 안) 이후 자연 프레임에서 예외 없이 타는지로 대신
+        /// 확인한다). `CheckGoalBoardAndSessionCard` 뒤에 둔다 — 이 죽음이
+        /// `GameBootstrap.OnHeroDied()`로 SessionCard를 띄우는데, 그 체크는
+        /// "세션 시작부터 떠 있으면 실패"를 전제해 먼저 끝나 있어야 한다.</summary>
+        private static void CheckGraveMarker()
+        {
+            var playerGo = GameObject.FindWithTag("Player");
+            if (playerGo == null)
+            {
+                Debug.LogError("[PlaytestDungeonHeadless] 유품(사망) 검증용 player를 못 찾음");
+                _hadError = true;
+                return;
+            }
+
+            HeroState.AddGold(77);
+            int goldBefore = HeroState.Gold;
+            int before = GraveMarker.SpawnCount;
+
+            HeroState.TakeDamage(999999f);
+
+            if (GraveMarker.SpawnCount != before + 1)
+            {
+                Debug.LogError($"[PlaytestDungeonHeadless] 유품(사망) 마커가 안 생김 — SpawnCount {before} → {GraveMarker.SpawnCount}");
+                _hadError = true;
+                return;
+            }
+            if (HeroState.Gold != 0)
+            {
+                Debug.LogError($"[PlaytestDungeonHeadless] 사망 후 골드가 안 비워짐 — {HeroState.Gold}(기대 0, 원래 {goldBefore})");
+                _hadError = true;
+                return;
+            }
+            Debug.Log($"[PlaytestDungeonHeadless] grave marker OK - 사망 시 금 {goldBefore} 전부 유품으로, HeroState.Gold=0(픽업 경로는 이후 자연 프레임에서 같이 검증됨)");
         }
 
         /// <summary>PLAN.md 101-3 G "성장 연출"(2026-09-17 추가) — Timeline

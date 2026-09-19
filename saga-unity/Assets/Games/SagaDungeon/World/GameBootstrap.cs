@@ -1,4 +1,5 @@
 using UnityEngine;
+using Saga.Core;
 using Saga.Dungeon.Audio;
 using Saga.Dungeon.Data;
 using Saga.Dungeon.Player;
@@ -29,6 +30,9 @@ namespace Saga.Dungeon.World
         // PLAN.md 101-2 5.1 "축복 3택"(2026-09-19) — 보스층 진입 이벤트에 얹는다.
         private BlessingChoiceUi _blessingChoiceUi;
 
+        // PLAN.md 101-2 5.2 "유품"(2026-09-19) — 사망 시 세션 카드로 죽음을 요약한다.
+        private SessionCard _sessionCard;
+
         private void Start()
         {
             SfxPlayer.Configure(hitClip, heavyHitClip, enemyDeathClip, levelUpClip, discoveryClip, bgmClip);
@@ -38,8 +42,10 @@ namespace Saga.Dungeon.World
             DungeonSettingsState.ApplyGraphicsQuality();
             QuestState.StageCompleted += OnQuestStageCompleted;
             HeroState.LeveledUp += OnLeveledUp; // "사운드" 슬라이스 — PLAN.md 37장, 레벨업 신호음.
+            HeroState.Died += OnHeroDied;
             _cameraRig = Object.FindFirstObjectByType<CameraRig>(); // 101-3 G "성장 연출"용.
             _blessingChoiceUi = Object.FindFirstObjectByType<BlessingChoiceUi>();
+            _sessionCard = Object.FindFirstObjectByType<SessionCard>();
             if (DungeonFloorRunner.Instance != null) DungeonFloorRunner.Instance.FloorDescended += OnFloorDescended;
         }
 
@@ -47,7 +53,20 @@ namespace Saga.Dungeon.World
         {
             QuestState.StageCompleted -= OnQuestStageCompleted;
             HeroState.LeveledUp -= OnLeveledUp;
+            HeroState.Died -= OnHeroDied;
             if (DungeonFloorRunner.Instance != null) DungeonFloorRunner.Instance.FloorDescended -= OnFloorDescended;
+        }
+
+        /// <summary>PLAN.md 101-2 5.2 "유품" — 웹판 "사망 화면 = 세션 카드"를
+        /// 이 트랙 표준 `SessionCard`(101-2 B)로 그대로 잇는다(GoalBoard용
+        /// UI를 새로 안 만든다). `PlayerCombat.OnDied()`가 애니메이션·마커를
+        /// 맡고, 여기는 요약 카드만.</summary>
+        private void OnHeroDied(int lostGold)
+        {
+            string lostLine = lostGold > 0
+                ? string.Format(DungeonLocalization.T("grave.card_lost", "유품으로 금 {0} — 돌아가기 전에 되찾을 것"), lostGold)
+                : DungeonLocalization.T("grave.card_lost_none", "잃은 것 없음");
+            _sessionCard?.Show(DungeonLocalization.T("grave.card_title", "쓰러졌다"), lostLine);
         }
 
         private void OnFloorDescended(int floor)

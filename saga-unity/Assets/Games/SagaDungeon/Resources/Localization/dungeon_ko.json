@@ -62,6 +62,12 @@
     { "key": "action.whirl", "value": "회전베기" },
     { "key": "action.dodge", "value": "회피" },
     { "key": "blessing.title", "value": "축복! 하나를 고르세요" },
-    { "key": "blessing.reject", "value": "거절 — 층수만큼 금 획득" }
+    { "key": "blessing.reject", "value": "거절 — 층수만큼 금 획득" },
+    { "key": "grave.recovered", "value": "유품을 되찾았다 — 금 {0}" },
+    { "key": "grave.dropped", "value": "쓰러졌다가 정신을 차렸다. 이 자리에 금 {0}을 유품으로 남겼다." },
+    { "key": "grave.dropped_none", "value": "쓰러졌다가 정신을 차렸다." },
+    { "key": "grave.card_title", "value": "쓰러졌다" },
+    { "key": "grave.card_lost", "value": "유품으로 금 {0} — 돌아가기 전에 되찾을 것" },
+    { "key": "grave.card_lost_none", "value": "잃은 것 없음" }
   ]
 }

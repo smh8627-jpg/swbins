@@ -7718,3 +7718,22 @@ DFS 순서 재배선: 기존 사슬은 운중→상군→삭방→오원→(바�
 **검증**: `tools/unity-batch.sh -- <Unity 인자...>`로 컴파일(error CS 0건, `ProjectSettings/`·`Packages/` 부작용 없음 — 래퍼가 매번 원복) → `BuildTestDungeonScene.Build`로 씬 재빌드(새 `BlessingChoiceUI` GameObject 포함) → `PlaytestDungeonHeadless`(`Saga.EditorTools.PlaytestDungeonHeadless.Run`, `-quit` 안 줌) 10 frames no errors → `PlaytestDungeonFloorProgression`(같은 방식)도 12 room advances·floor 4 no errors, 이 과정에서 실제로 3층(보스층)을 지나며 `FloorDescended`→축복 카드 트리거 경로를 태웠는데도 오류 없음. 실기 확인은 아직(카드 UI 실제로 뜨는지·공수선 배율 체감) — PROJECT_STATE.md "실기 확인 대기"에 추가해 뒀다(몰아서 확인 방침).
 
 `docs/PROJECT_STATE.md` 갱신(DUNGEON 완료 요약에 101-2 5.1 추가, "다음 작업" 1순위에 DUNGEON 5.1 완료·다음은 5.2 명시, 테스트 상태·실기 확인 대기 갱신). `PLAN.md` 101-2 DUNGEON 행에 완료 경위·재해석 이유 추가(대응 파일에 `BlessingState`·`BlessingChoiceUi` 추가).
+
+## 2026-09-19 — PLAN 101-2 5.2 DUNGEON 유품 (같은 "사가 유니티 이어 해" 세션, 5.1 축복 3택 다음)
+
+DUNGEON 순서(5.8→5.1→5.2)의 마지막 항목. 지금까지 죽으면 `PlayerCombat.OnDied()`가 `HeroState.FullHeal()`만 부르고 아무 비용 없이 그대로 부활했다(클래스 주석에 "다음 슬라이스가 실제 죽음 처리를 다룰 몫"으로 명시돼 있던 자리).
+
+**웹판을 그대로 안 옮긴 이유**: 웹판 §5.2(`saga-web/saga-dungeon/PLAN.md` 143행, 2026-09-18 코드분 완료·실기 미확인)는 "런(회차)을 리셋하고 다음 회차에 그 층에 도달하면 유품을 회수한다"는 로그라이크 전제다. 이 트랙 DUNGEON은 편도 절차적 진행(`DungeonFloorRunner.cs`, 51장) — 방을 뜨면 그 방은 물리적으로 사라지고 되돌아갈 길이 없다. "다음 회차에 그 층에" 자체가 성립하지 않는다. 그래서 "회수 전에 방을 뜨면 잃는다"로 좁혔다 — 죽은 그 자리에서 곧바로 회수할 기회를 주고, 다음 방으로 넘어가면 자동으로 사라진다. 노획물 종류도 웹판(금·장비·재료)과 다르다 — 이 트랙 `HeroState`는 가방이 없고 장비가 "지금 낀 것" 하나뿐이라(더 센 것만 자동 장착) 유품으로 내려놓을 게 사실상 골드뿐이다.
+
+- `Data/HeroState.cs` — `DropGoldAsGrave()`(소지 골드 전부를 0으로 비우고 반환) 신설, `TakeDamage()`의 사망 분기가 이 값을 `Died` 이벤트 인자로 넘긴다(`event Action<int> Died` — 기존 `Action`에서 시그니처 변경, 구독자가 `PlayerCombat.cs` 하나뿐이라 안전).
+- `World/GraveMarker.cs`(신규) — `LootMarker.cs`(101-3 F)와 겉모습은 비슷하지만 뜻이 다르다: LootMarker는 이미 지급된 보상의 "시각적 잔향"이라 주워도 아무것도 안 주는 반면, GraveMarker는 실제로 `HeroState.AddGold()`를 돌려준다. 한 번에 하나만 존재(`Spawn()`이 이전 것을 먼저 Destroy — 웹판 "회수 전에 다시 죽으면 옛 유품 소멸"). 방 갈이에 따른 자동 소멸은 별도 타이머 없이 `DungeonFloorRunner.AddToRoom()`(신설, `_contentRoot`에 `worldPositionStays: true`로 붙임 — 그 방이 갈릴 때 통째로 Destroy되는 기존 로직에 얹기만 했다)로 공짜로 얻었다.
+- `Player/PlayerCombat.cs`의 `OnDied(int lostGold)` — 애니메이션·마커 스폰(자기 위치)·회복·토스트 문구(잃은 게 있으면 금액 명시)만 맡는다.
+- `World/GameBootstrap.cs` — `HeroState.Died`를 새로 구독(`OnHeroDied`), 웹판 "사망 화면 = 세션 카드" 뜻을 이 트랙 표준 `SessionCard`(101-2 B, `Assets/SagaCore/SessionCard.cs`)로 그대로 재사용해 띄운다(자동 5초 닫힘 — 웹판은 "사용자가 닫는다"였지만 이 트랙 SessionCard는 다섯 판 전부 자동 닫힘으로 통일돼 있어 그 표준을 그대로 따랐다, 새 UI를 안 만듦).
+- `Resources/Localization/dungeon_ko.json`·`dungeon_en.json` — `grave.recovered`·`grave.dropped`·`grave.dropped_none`·`grave.card_title`·`grave.card_lost`·`grave.card_lost_none` 키 추가(`{0}` 플레이스홀더는 `DungeonEnemy.cs`의 `enemy.bestiary_new`와 같은 결로 `string.Format()`에 넘긴다 — `DungeonLocalization.T()`는 포맷을 몰라서 fallback 텍스트에 넣어도 그대로 안 치환된다는 걸 GO `PerkChoiceUi` 스타일로 처음엔 잘못 짤 뻔했다가, `enemy.bestiary_new` 선례를 보고 `string.Format` 경유로 고쳤다).
+- 세이브에는 안 남긴다 — 편도 진행이라 "같은 자리로 돌아와 로드"할 일이 약해, `SaveState.cs`는 이번에 안 건드렸다(다음 손질 후보로 문서에 남겨 둠).
+
+**검증**: `Editor/PlaytestDungeonHeadless.cs`에 `CheckGraveMarker()` 신설 — 플레이어에게 골드를 채운 뒤 `HeroState.TakeDamage(999999f)`로 실제로 죽여 `GraveMarker.SpawnCount` 증가·`HeroState.Gold`가 정확히 0이 되는지 확인한다(`CheckLootMarker`와 같은 결 — 회수 자체는 마커가 플레이어 자리에 그대로 스폰돼(거리 0, PickupRadius 2m 안) 이후 자연 프레임에서 예외 없이 타는지로 대신 본다). **호출 순서 함정**: `CheckGoalBoardAndSessionCard()`가 "SessionCard가 세션 시작부터 떠 있으면 실패"를 전제하는데, 이 죽음이 `GameBootstrap.OnHeroDied()`로 SessionCard를 띄우므로 `CheckGraveMarker()`를 그 체크**뒤**에 둬야 한다 — 처음엔 `CheckLootMarker` 옆(먼저)에 넣을 뻔했다가 이 전제를 뒤늦게 알아채 순서를 옮겼다.
+
+`tools/unity-batch.sh -- <Unity 인자...>`로 컴파일(error CS 0건, `ProjectSettings/`·`Packages/` 부작용 없음) → `PlaytestDungeonHeadless`(`Saga.EditorTools.PlaytestDungeonHeadless.Run`, `-quit` 안 줌) 10 frames no errors, 새 grave marker 체크 통과("사망 시 금 85 전부 유품으로, HeroState.Gold=0") → `PlaytestDungeonFloorProgression`도 12 room advances·floor 4 no errors(회귀 없음). 이 사건은 씬 구성(GameObject 추가) 변경이 없어(기존 컴포넌트에 로직만 얹음, `GraveMarker`는 런타임에 코드로 스폰) 씬 재빌드는 불필요했다.
+
+`docs/PROJECT_STATE.md` 갱신(DUNGEON 완료 요약에 101-2 5.1·5.2 완료 표기, "다음 작업"을 "DUNGEON 5.1·5.2 완료 — 다음은 5.3(부적 던전 티어)"로 교체, 테스트 상태·실기 확인 대기 갱신 — 15KB 상한에 걸려 여러 줄 압축). `PLAN.md` 101-2 DUNGEON 행에 5.2 완료·재해석 이유 추가(대응 파일에 `GraveMarker` 추가).

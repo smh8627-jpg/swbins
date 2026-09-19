@@ -61,7 +61,11 @@ namespace Saga.Dungeon.Data
         public static bool Invulnerable { get; set; }
 
         public static event Action<int> LeveledUp;
-        public static event Action Died;
+
+        /// <summary>PLAN.md 101-2 5.2 "유품" — 인자는 <see cref="DropGoldAsGrave"/>가
+        /// 돌려준 유품 골드(0이면 잃을 게 없었다는 뜻). `PlayerCombat.OnDied()`가
+        /// 이 값으로 그 자리에 `GraveMarker`를 세운다.</summary>
+        public static event Action<int> Died;
 
         /// <summary>PLAN.md 101-3 G "장비 가시화" — `WeaponVisual`이 무기를
         /// 다시 쥐어야 할 때만 구독(`EquipIfBetter`가 실제로 바뀔 때만
@@ -122,7 +126,18 @@ namespace Saga.Dungeon.Data
         {
             if (Invulnerable || amount <= 0f || Hp <= 0) return;
             Hp = Math.Max(0, Hp - RoundInt(amount / BlessingState.DefMultiplier));
-            if (Hp <= 0) Died?.Invoke();
+            if (Hp <= 0) Died?.Invoke(DropGoldAsGrave());
+        }
+
+        /// <summary>PLAN.md 101-2 5.2 "유품" — 웹판 §5.2("회수 시 금 100%")의 뜻을
+        /// 이 트랙에 옮긴다. 이 트랙엔 가방·다중 장비 슬롯이 없어(장비는 항상
+        /// "지금 낀 것" 하나뿐 — <see cref="EquipIfBetter"/>) 유품으로 남길 수
+        /// 있는 노획물은 사실상 골드뿐이다 — 소지 골드 전부를 내려놓고 돌려준다.</summary>
+        public static int DropGoldAsGrave()
+        {
+            int amount = Gold;
+            Gold = 0;
+            return amount;
         }
 
         /// <summary>죽었다가 다시 방에 들어올 때(이번 슬라이스는 죽음 화면

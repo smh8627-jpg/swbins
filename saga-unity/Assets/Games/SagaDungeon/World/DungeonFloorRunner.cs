@@ -91,6 +91,12 @@ namespace Saga.Dungeon.World
         /// `JumpToFloor()`로 세이브를 복원할 땐 안 쏜다 — 그건 "다시 내려간다"가 아니라 이어하기다).</summary>
         public event Action<int> FloorDescended;
 
+        /// <summary>PLAN.md 101-2 5.2 "유품" — `GraveMarker`가 이 자리로 자신을
+        /// 옮겨 붙는다. `_contentRoot`(방 갈이마다 통째로 Destroy되는 자리)에
+        /// 얹으면 "회수 전에 방을 뜨면 사라진다"가 별도 로직 없이 저절로
+        /// 지켜진다 — `worldPositionStays: true`로 스폰 당시 월드 좌표를 그대로 둔다.</summary>
+        public void AddToRoom(GameObject go) => go.transform.SetParent(_contentRoot, true);
+
         private void Awake()
         {
             Instance = this;

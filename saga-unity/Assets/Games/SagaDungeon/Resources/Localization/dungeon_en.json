@@ -62,6 +62,12 @@
     { "key": "action.whirl", "value": "Whirl" },
     { "key": "action.dodge", "value": "Dodge" },
     { "key": "blessing.title", "value": "Blessing! Pick one" },
-    { "key": "blessing.reject", "value": "Decline — Gold by floor" }
+    { "key": "blessing.reject", "value": "Decline — Gold by floor" },
+    { "key": "grave.recovered", "value": "Recovered your grave — +{0} Gold" },
+    { "key": "grave.dropped", "value": "You fell, then came to. Left {0} Gold behind as a grave." },
+    { "key": "grave.dropped_none", "value": "You fell, then came to." },
+    { "key": "grave.card_title", "value": "You fell" },
+    { "key": "grave.card_lost", "value": "Left {0} Gold as a grave — recover it before you leave" },
+    { "key": "grave.card_lost_none", "value": "Lost nothing" }
   ]
 }
