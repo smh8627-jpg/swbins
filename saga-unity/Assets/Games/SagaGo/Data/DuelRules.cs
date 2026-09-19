@@ -26,6 +26,20 @@ namespace Saga.Go.Data
         public const float DodgeCut = 0.15f;
         public const float MoraleMul = 3.0f;
 
+        // PLAN.md 101-2 ③ "75초 토벌" — 웹판 §5 ③(`saga-web/saga-go/PLAN.md`
+        // 190행, raid.js) 수치 그대로. 웹판이 "토벌에서만 켠다(create({raid:true}))
+        // — 야생 조우·성채 수비대는 옛 판정 그대로" 로 이미 정리해 둔 스코프를
+        // 그대로 따른다: Raid=false(기본)면 위 DodgeCut 경로가 바이트 단위로
+        // 그대로다. World/RareWolfEncounter.cs만 raid:true로 이 경로를 켠다
+        // (BanditEncounter.cs는 안 건드림).
+        public const float RaidTimeSec = 75f;
+        public const float JustWindowSec = 0.25f; // 예고 끝 이 창 안에서만 저스트.
+        public const float PassiveMitigation = 0.5f; // 예고 중 걷기만(아무 것도 안 눌러도)으로는 절반만 맞는다.
+        public const float JustKiBonus = 0.30f; // 저스트 성공 시 기 +30%(KiMax 기준).
+        public const int PartCount = 3;
+        public const int PartRewardGold = 4; // 웹판 "재료 단사 4/부위"를 이 트랙 통화로.
+        private static readonly float[] PartThresholds = { 0.75f, 0.50f, 0.25f }; // 기세 누적 문턱(웹판 구현 그대로 — 부위별 HP를 안 나눔).
+
         public float FoeHp, Hp, FoeAtk, MyAtk, Morale, MoraleMax, Left, Ki, Cd, FoeT, Tell;
         public int FoeN;
         public bool Dodged;
@@ -35,13 +49,17 @@ namespace Saga.Go.Data
         // (Create 시그니처를 안 늘려 기존 호출부를 안 건드리려고).
         public float KiMul = 1f;
 
+        public bool Raid;
+        public readonly bool[] PartBroken = new bool[PartCount];
+        public int PartsJustBroken; // Act() 호출마다 리셋 — 이번 타격으로 새로 깨진 부위 수.
+
         public float Dealt;
         public int Hits, Ults, DodgeTry, DodgeOk;
         public float Taken;
 
         public bool Over, Cleared, Fled;
 
-        public static DuelRules Create(float foeHpIn, float myAtkIn, float myDefIn, float timeSec = TimeSec)
+        public static DuelRules Create(float foeHpIn, float myAtkIn, float myDefIn, float timeSec = TimeSec, bool raid = false)
         {
             var s = new DuelRules();
             s.FoeHp = Mathf.Max(1f, Mathf.Round(foeHpIn));
@@ -50,7 +68,8 @@ namespace Saga.Go.Data
             s.MyAtk = Mathf.Max(1f, Mathf.Round(myAtkIn));
             s.Morale = Mathf.Max(200f, Mathf.Round(myDefIn * MoraleMul));
             s.MoraleMax = s.Morale;
-            s.Left = timeSec;
+            s.Raid = raid;
+            s.Left = raid ? RaidTimeSec : timeSec;
             s.FoeT = FoeGap;
             return s;
         }
@@ -77,18 +96,24 @@ namespace Saga.Go.Data
         /// <summary>한 수 둔다. kind: "quick" | "ult" | "dodge"</summary>
         public ActResult Act(string kind)
         {
+            PartsJustBroken = 0;
             if (Over) return new ActResult { Ok = false, Reason = "over" };
 
             if (kind == "dodge")
             {
                 DodgeTry++;
-                if (Tell > 0f)
+                if (Tell <= 0f) return new ActResult { Ok = false, Kind = "dodge", Reason = "notell" };
+
+                // PLAN.md 101-2 ③ "저스트 회피" — Raid에서만 예고 끝 JustWindowSec
+                // 안으로 좁힌다(그 밖은 실패 "early" — 이르다). 비raid는 예전 그대로
+                // Tell 창 전체가 성공.
+                if (Raid && Tell > JustWindowSec)
                 {
-                    Dodged = true;
-                    DodgeOk++;
-                    return new ActResult { Ok = true, Kind = "dodge" };
+                    return new ActResult { Ok = false, Kind = "dodge", Reason = "early" };
                 }
-                return new ActResult { Ok = false, Kind = "dodge", Reason = "notell" };
+                Dodged = true;
+                DodgeOk++;
+                return new ActResult { Ok = true, Kind = "dodge" };
             }
 
             if (kind == "ult")
@@ -99,6 +124,7 @@ namespace Saga.Go.Data
                 Hp -= big;
                 Dealt += big;
                 Ults++;
+                CheckPartBreak();
                 FinishIfDone();
                 return new ActResult { Ok = true, Kind = "ult", Dmg = big };
             }
@@ -112,8 +138,26 @@ namespace Saga.Go.Data
             Hp -= dmg;
             Dealt += dmg;
             Hits++;
+            CheckPartBreak();
             FinishIfDone();
             return new ActResult { Ok = true, Kind = "quick", Dmg = dmg };
+        }
+
+        /// <summary>PLAN.md 101-2 ③ — 웹판 구현 그대로 부위별 HP를 안 나누고
+        /// 같은 기세 풀을 75%·50%·25% 누적 문턱으로 읽는다(문턱을 넘을 때마다
+        /// 부위 하나 파괴). Raid가 아니면 아무 일도 안 한다.</summary>
+        private void CheckPartBreak()
+        {
+            if (!Raid) return;
+            float frac = Mathf.Max(0f, Hp) / FoeHp;
+            for (int i = 0; i < PartCount; i++)
+            {
+                if (!PartBroken[i] && frac <= PartThresholds[i])
+                {
+                    PartBroken[i] = true;
+                    PartsJustBroken++;
+                }
+            }
         }
 
         private void FinishIfDone()
@@ -148,7 +192,24 @@ namespace Saga.Go.Data
                 {
                     Tell = 0f;
                     float heavy = Mathf.Round(FoeAtk * HeavyMul);
-                    if (Dodged) heavy = Mathf.Round(heavy * DodgeCut);
+                    if (Raid)
+                    {
+                        if (Dodged)
+                        {
+                            // 저스트 회피 성공 — 완전 회피 + 기 +30%(KiMax 기준).
+                            heavy = 0f;
+                            Ki = Mathf.Min(KiMax, Ki + KiMax * JustKiBonus * KiMul);
+                        }
+                        else
+                        {
+                            // 예고 중 걷기만으로는(저스트를 안 맞혀도) 절반만 맞는다.
+                            heavy = Mathf.Round(heavy * PassiveMitigation);
+                        }
+                    }
+                    else if (Dodged)
+                    {
+                        heavy = Mathf.Round(heavy * DodgeCut);
+                    }
                     Morale -= heavy;
                     Taken += heavy;
                     ev.Add(new DuelEvent { T = "heavy", Dmg = heavy, Dodged = Dodged });

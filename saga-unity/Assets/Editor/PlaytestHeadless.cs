@@ -129,6 +129,7 @@ namespace Saga.EditorTools
                 CheckPerkChoice();
                 CheckBanditLootMarker();
                 CheckWeaponVisual();
+                CheckRaidBoss();
                 // 반드시 마지막 — DailyTaskState 진단이 SaveState.TryLoad()로
                 // 세이브 파일을 v9 모양으로 잠깐 바꿔치기해 로드하는데, 이건
                 // 살아있는 PartyState/Inventory/GoldState 등을 그 v9 기본값으로
@@ -727,6 +728,104 @@ namespace Saga.EditorTools
                 return;
             }
             Debug.Log($"[PlaytestHeadless] weapon visual OK - 무기 교체 시 칼날 길이 {lengthBefore:F2}→{lengthAfter:F2}(등급 갱신 반영)");
+        }
+
+        /// <summary>PLAN.md 101-2 ③ "75초 토벌"(2026-09-19) — `RareWolfEncounter`에
+        /// 건 raid 모드(`DuelRules.Raid`)를 두 사이클로 확인한다. 첫 사이클은
+        /// 저스트 회피(0.25s 창 안=완전 회피+기 보너스, 밖="early")·예고 중
+        /// 아무 것도 안 눌러도 절반만 맞는지(수동 mitigation)를 `DuelRules`의
+        /// public 필드를 직접 조작해(Act/Step은 public이라 리플렉션 불필요)
+        /// 결정적으로 본다. 두 번째 사이클은 `RareWolfEncounter.StartFight()`를
+        /// 다시 불러 깨끗한 `_duel`을 받은 뒤, `Hp`를 75%·50%·25% 문턱 바로
+        /// 위로 세팅하고 실제 `DoAct("quick")`(private, 버튼 클릭과 같은 경로)를
+        /// 태워 부위 파괴 보상(골드)·완파 보너스까지 실제 배선을 확인한다.</summary>
+        private static void CheckRaidBoss()
+        {
+            var rareWolf = Object.FindFirstObjectByType<RareWolfEncounter>();
+            if (rareWolf == null)
+            {
+                Debug.LogError("[PlaytestHeadless] 75초 토벌 검증용 RareWolfEncounter를 못 찾음");
+                _hadError = true;
+                return;
+            }
+
+            var rwType = typeof(RareWolfEncounter);
+            var startFight = rwType.GetMethod("StartFight", BindingFlags.NonPublic | BindingFlags.Instance);
+            var duelField = rwType.GetField("_duel", BindingFlags.NonPublic | BindingFlags.Instance);
+            var doAct = rwType.GetMethod("DoAct", BindingFlags.NonPublic | BindingFlags.Instance);
+
+            // ---- 사이클 1: raid 플래그·저스트 회피·수동 mitigation ----
+            startFight.Invoke(rareWolf, null);
+            var duel = (DuelRules)duelField.GetValue(rareWolf);
+
+            if (!duel.Raid || !Mathf.Approximately(duel.Left, DuelRules.RaidTimeSec))
+            {
+                Debug.LogError($"[PlaytestHeadless] 75초 토벌 — raid 모드가 안 켜짐(Raid={duel.Raid}, Left={duel.Left})");
+                _hadError = true;
+                return;
+            }
+
+            duel.Tell = DuelRules.JustWindowSec + 0.1f; // 저스트 창보다 이르다.
+            var early = duel.Act("dodge");
+            if (early.Ok || early.Reason != "early")
+            {
+                Debug.LogError($"[PlaytestHeadless] 75초 토벌 — 저스트 창 밖 회피가 실패(early)해야 하는데 Ok={early.Ok} Reason={early.Reason}");
+                _hadError = true;
+                return;
+            }
+
+            duel.Tell = DuelRules.JustWindowSec - 0.05f; // 저스트 창 안.
+            var just = duel.Act("dodge");
+            if (!just.Ok || !duel.Dodged)
+            {
+                Debug.LogError($"[PlaytestHeadless] 75초 토벌 — 저스트 창 안 회피가 실패함(Ok={just.Ok})");
+                _hadError = true;
+                return;
+            }
+            float kiBefore = duel.Ki;
+            var justEvents = duel.Step(0.2f); // Tell을 0 밑으로 밀어 heavy 판정.
+            var justHeavy = justEvents.Find(e => e.T == "heavy");
+            float expectedKi = Mathf.Min(DuelRules.KiMax, kiBefore + DuelRules.KiMax * DuelRules.JustKiBonus * duel.KiMul);
+            if (justHeavy.T != "heavy" || justHeavy.Dmg != 0f || !justHeavy.Dodged || !Mathf.Approximately(duel.Ki, expectedKi))
+            {
+                Debug.LogError($"[PlaytestHeadless] 75초 토벌 — 저스트 회피가 완전 회피+기 보너스로 안 이어짐(dmg={justHeavy.Dmg}, ki {kiBefore:F1}→{duel.Ki:F1}, 기대={expectedKi:F1})");
+                _hadError = true;
+                return;
+            }
+
+            duel.Tell = DuelRules.TellSec; // 새 예고 — 이번엔 아무 것도 안 누른다.
+            var passiveEvents = duel.Step(DuelRules.TellSec + 0.05f);
+            var passiveHeavy = passiveEvents.Find(e => e.T == "heavy");
+            float expectedHeavy = Mathf.Round(duel.FoeAtk * DuelRules.HeavyMul * DuelRules.PassiveMitigation);
+            if (passiveHeavy.T != "heavy" || passiveHeavy.Dodged || !Mathf.Approximately(passiveHeavy.Dmg, expectedHeavy))
+            {
+                Debug.LogError($"[PlaytestHeadless] 75초 토벌 — 예고 중 아무 것도 안 누르면 절반만 맞아야 하는데 dmg={passiveHeavy.Dmg}(기대 {expectedHeavy})");
+                _hadError = true;
+                return;
+            }
+
+            // ---- 사이클 2: 부위 파괴 보상 — 실제 DoAct("quick") 경로 ----
+            startFight.Invoke(rareWolf, null); // 깨끗한 _duel로 다시.
+            duel = (DuelRules)duelField.GetValue(rareWolf);
+            int fullBreakBonusGold = (int)rwType.GetField("FullBreakBonusGold", BindingFlags.NonPublic | BindingFlags.Static).GetValue(null);
+            float[] thresholds = { 0.75f, 0.50f, 0.25f };
+
+            for (int i = 0; i < thresholds.Length; i++)
+            {
+                duel.Hp = duel.FoeHp * thresholds[i] + 2f; // 문턱 바로 위(margin은 quick 한 방 dmg보다 작아야 넘어간다).
+                duel.Cd = 0f; // 이전 반복의 QuickCd가 남아 있으면 이번 quick이 "cd"로 조용히 실패한다.
+                int goldBefore = GoldState.Gold;
+                doAct.Invoke(rareWolf, new object[] { "quick" });
+                int expectedGold = goldBefore + DuelRules.PartRewardGold + (i == thresholds.Length - 1 ? fullBreakBonusGold : 0);
+                if (GoldState.Gold != expectedGold || !duel.PartBroken[i])
+                {
+                    Debug.LogError($"[PlaytestHeadless] 75초 토벌 — {i}번째 부위 파괴 보상 실패(gold {goldBefore}->{GoldState.Gold}, 기대 {expectedGold}, broken={duel.PartBroken[i]})");
+                    _hadError = true;
+                    return;
+                }
+            }
+
+            Debug.Log($"[PlaytestHeadless] raid boss OK - raid 모드(75s)·저스트 회피(완전 회피+기)·수동 mitigation(절반)·부위 3 파괴 보상+완파 보너스 전부 확인");
         }
 
         /// <summary>PLAN.md 101-2 ④ 일과판(2026-09-19, GO 첫 실장) — 날짜 해시

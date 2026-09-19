@@ -16,6 +16,15 @@ namespace Saga.Go.World
     /// 확정 보상(경험치·돈·전용 방어구)이 도적보다 후하다("희귀"가
     /// 실제로 특별해야 한다). UI 조립은 두 사건이 같이 쓰는
     /// UI/EncounterUiKit.cs로 만든다.
+    ///
+    /// PLAN.md 101-2 ③ "75초 토벌"(2026-09-19) — 웹판 §5 ③(raid.js, "몬스터헌터
+    /// 나우" 참고)을 이 사건에 건다. 웹판이 "토벌에서만 켠다(create({raid:true}))
+    /// — 야생 조우·성채 수비대는 옛 판정 그대로"로 이미 정리해 둔 스코프를
+    /// 그대로 따른다: `BanditEncounter.cs`(웹판 "야생 조우"에 대응)는 옛 판정
+    /// 그대로 두고, "희귀 몬스터를 일부러 찾아가 잡는다"는 이 사건이 이미
+    /// 가장 "토벌"에 가까운 결이라(도장도 "희귀 늑대 토벌") 여기에 얹었다
+    /// (`DuelRules.Create(..., raid: true)`). 부위 3(갑주·병장·기마)은 사람
+    /// 산적 전용 이름이라 짐승엔 안 맞아 다리/몸통/급소로 재해석했다.
     /// </summary>
     [RequireComponent(typeof(SphereCollider))]
     public class RareWolfEncounter : MonoBehaviour
@@ -33,6 +42,13 @@ namespace Saga.Go.World
         private const int RewardGold = 50;
         private const string RewardItemId = "ar_wolf";
         private const string EventId = "rare_wolf";
+
+        // PLAN.md 101-2 ③ "75초 토벌" — 부위 3 전부 파괴 보너스(웹판 "등용
+        // 확률 ×1.5"는 이 사건이 등용 대상이 아니라 안 맞아, 즉시 지급되는
+        // 다른 부위 보상들과 같은 결의 골드 보너스로 재해석).
+        private const int FullBreakBonusGold = 20;
+        private static readonly string[] PartKeys = { "part.leg", "part.torso", "part.core" };
+        private static readonly string[] PartFallback = { "다리", "몸통", "급소" };
 
         // PLAN.md 101-3 C hitstop(2026-09-17) — `BanditEncounter.cs`와 완전히
         // 같은 값·로직. 늑대 쪽(`_visualMat`뿐, Animator 없는 primitive
@@ -60,10 +76,12 @@ namespace Saga.Go.World
         private Image _moraleFill;
         private Image _kiFill;
         private Text _timerText;
+        private Text _partsText; // PLAN.md 101-2 ③ 부위 3 게이지(텍스트로 대신).
         private Button _ultButton;
 
         private Coroutine _flashRoutine;
         private Coroutine _pulseRoutine;
+        private bool _fullBreakBonusGiven;
 
         private void Awake()
         {
@@ -242,6 +260,11 @@ namespace Saga.Go.World
             _moraleFill = EncounterUiKit.NewBarRow(canvas.transform, GoLocalization.T("combat.morale", "사기"), -160f, out _);
             _kiFill = EncounterUiKit.NewBarRow(canvas.transform, GoLocalization.T("combat.ki", "기(氣)"), -210f, out _);
 
+            // PLAN.md 101-2 ③ "75초 토벌" 부위 3 게이지 — 새 UI 부품을 안
+            // 만들고(EncounterUiKit엔 바 로우뿐) 기세 바로 아래 한 줄 텍스트로.
+            _partsText = EncounterUiKit.NewText(canvas.transform, "", new Vector2(0f, 1f), new Vector2(150f, -260f), new Vector2(500f, 40f), 22);
+            _partsText.alignment = TextAnchor.MiddleLeft;
+
             EncounterUiKit.NewButton(canvas.transform, GoLocalization.T("combat.quick"), new Vector2(0f, 0f), new Vector2(150f, 130f), new Vector2(220f, 110f), () => DoAct("quick"));
             _ultButton = EncounterUiKit.NewButton(canvas.transform, GoLocalization.T("combat.ult"), new Vector2(0.5f, 0f), new Vector2(0f, 130f), new Vector2(220f, 110f), () => DoAct("ult"));
             EncounterUiKit.NewButton(canvas.transform, GoLocalization.T("combat.dodge"), new Vector2(1f, 0f), new Vector2(-150f, 130f), new Vector2(220f, 110f), () => DoAct("dodge"));
@@ -255,8 +278,10 @@ namespace Saga.Go.World
             // PLAN.md 101-2 ⑦ "승급 3택" — BanditEncounter.StartFight()와 같은 배율 적용.
             float atk = (PartyState.Atk + PlayerStats.AtkBonus + Inventory.AtkBonus) * PerkState.AtkMultiplier;
             float def = (PartyState.Def + PlayerStats.DefBonus + Inventory.DefBonus) * PerkState.DefMultiplier;
-            _duel = DuelRules.Create(foeHp, atk, def);
+            // PLAN.md 101-2 ③ "75초 토벌" — 이 사건만 raid:true(75s·부위 3·저스트 회피).
+            _duel = DuelRules.Create(foeHp, atk, def, raid: true);
             _duel.KiMul = PerkState.KiMultiplier;
+            _fullBreakBonusGiven = false;
             _combatRoot.SetActive(true);
             RefreshCombatUi();
 
@@ -273,11 +298,34 @@ namespace Saga.Go.World
                 if (kind == "quick") PulseVisual(1.15f);
                 else if (kind == "ult") PulseVisual(1.4f);
             }
+            if (_duel.PartsJustBroken > 0) OnPartsBroken(_duel.PartsJustBroken);
             RefreshCombatUi();
             if (_duel.Over)
             {
                 FinishFight();
             }
+        }
+
+        /// <summary>PLAN.md 101-2 ③ — 부위 파괴 즉시 보상(재료 단사→돈) + 스태거
+        /// 연출(강한 pulse + 추가 hitstop). 셋 다 깨지면 완파 보너스까지 한 메시지에
+        /// 같이 묶는다(DialogueLabel이 단일 인스턴스라 Toast를 연달아 부르면
+        /// 뒤엣것이 앞엣것을 지운다 — FinishFight()가 이미 그러듯 한 문자열로 모은다).</summary>
+        private void OnPartsBroken(int count)
+        {
+            int gold = DuelRules.PartRewardGold * count;
+            GoldState.Add(gold);
+            PulseVisual(1.6f);
+            ApplyHitstop(heavy: true);
+            ScreenFlash(new Color(1.0f, 0.85f, 0.2f, 0.4f));
+
+            var msg = string.Format(GoLocalization.T("encounter.part_broken", "부위 파괴! (재료 +{0}냥)"), gold);
+            if (!_fullBreakBonusGiven && _duel.PartBroken[0] && _duel.PartBroken[1] && _duel.PartBroken[2])
+            {
+                _fullBreakBonusGiven = true;
+                GoldState.Add(FullBreakBonusGold);
+                msg += string.Format(GoLocalization.T("encounter.full_break_bonus", "\n부위 전파! 완파 보너스 +{0}냥"), FullBreakBonusGold);
+            }
+            Toast(msg, 1.6f);
         }
 
         private void FleeCombat()
@@ -300,6 +348,13 @@ namespace Saga.Go.World
                 case "heavy":
                     _visualMat.color = BaseColor;
                     ScreenFlash(e.Dodged ? new Color(0.2f, 1.0f, 0.4f, 0.35f) : new Color(1.0f, 0.15f, 0.15f, 0.45f));
+                    if (e.Dodged && _duel.Raid)
+                    {
+                        // PLAN.md 101-2 ③ "저스트 회피" — 완전 회피는 이 raid 사건에서만
+                        // 가능(비raid 사건은 DodgeCut 15%만 깎여 e.Dmg>0). 화면 플래시는
+                        // 위에서 이미 초록으로 반응했으니 짧은 "간발!" 팝만 더한다.
+                        Toast(GoLocalization.T("combat.just_dodge", "간발!"), 1.2f);
+                    }
                     if (!e.Dodged)
                     {
                         ApplyHitstop(heavy: true);
@@ -322,6 +377,17 @@ namespace Saga.Go.World
             _kiFill.fillAmount = Mathf.Clamp01(_duel.Ki / DuelRules.KiMax);
             _timerText.text = string.Format(GoLocalization.T("combat.timer", "{0}초"), Mathf.CeilToInt(Mathf.Max(0f, _duel.Left)));
             _ultButton.interactable = _duel.Ki >= DuelRules.KiMax;
+
+            // PLAN.md 101-2 ③ "75초 토벌" 부위 3 게이지 — 깨진 부위는 취소선 대신
+            // 괄호로(Text엔 취소선이 없다) 표시.
+            var sb = new System.Text.StringBuilder(GoLocalization.T("combat.parts", "부위 "));
+            for (int i = 0; i < DuelRules.PartCount; i++)
+            {
+                if (i > 0) sb.Append(' ');
+                string name = GoLocalization.T(PartKeys[i], PartFallback[i]);
+                sb.Append(_duel.PartBroken[i] ? $"({name})" : name);
+            }
+            _partsText.text = sb.ToString();
         }
 
         private void FinishFight()

@@ -7682,3 +7682,20 @@ DFS 순서 재배선: 기존 사슬은 운중→상군→삭방→오원→(바�
 `tools/unity-batch.sh -- <Unity 인자...>`로 컴파일(error CS 0건) → 씬 재빌드(`BuildTestVillageScene.Build`) → `PlaytestHeadless`(GO) 3연속 OK(`Saga.EditorTools.PlaytestHeadless.Run`, `-quit` 안 줌; 1회차는 씬 재빌드 전이라 PerkChoiceUi를 못 찾아 실패, 재빌드 후 2~4회차 전부 OK). `ProjectSettings/`·`Packages/` 부작용 없음(래퍼가 매번 원복).
 
 `docs/PROJECT_STATE.md` 갱신(GO 완료 요약에 101-2 ⑦ 추가, 세이브 버전 v10→v11, "다음 작업" 1순위를 "GO ③ 75초 토벌"로 교체, 테스트 상태·실기 확인 대기 갱신 — 15KB 상한에 걸려 여러 줄 압축).
+
+## 2026-09-19 — PLAN 101-2 ③ GO 75초 토벌 (같은 "사가 유니티 이어 해" 세션, ⑦ 승급 3택 다음)
+
+101-2 GO 표의 ④⑦ 다음 순서, 마지막 셋째 항목. 웹판 §5 ③(`saga-web/saga-go/PLAN.md` 190행, "75초 토벌 — 부위 파괴·저스트 회피", 몬스터헌터 나우 참고, 2026-09-17 웹판 자체는 "토벌에서만 켠다(create({raid:true})) — 야생 조우·성채 수비대는 옛 판정 그대로"로 스코프를 정리해 둔 상태)을 이 트랙에 이식했다.
+
+**어디에 걸었나**: 이 트랙 GO엔 웹판처럼 "야생 조우"와 "토벌"이 분리된 별도 사건이 없다 — `BanditEncounter.cs`(습격, 상시 반복)와 `RareWolfEncounter.cs`(희귀 몬스터, 일회성·이미 "토벌"이라 불림 — 도장도 "희귀 늑대 토벌") 둘뿐이다. 웹판의 스코프 결정("야생 조우는 그대로")을 그대로 지키려고 `BanditEncounter.cs`는 전혀 안 건드리고, 이미 "일부러 찾아가 잡는 토벌"에 가장 가까운 `RareWolfEncounter.cs`에만 raid 모드를 켰다 — 새 보스 캐릭터·새 월드 배치는 안 만들었다(범위를 좁게 유지).
+
+- `Data/DuelRules.cs` — `Raid`(bool)·`PartBroken[3]`·`PartsJustBroken` 필드, `Create(..., raid: false)` 옵션 인자(raid=true면 `Left`를 강제로 `RaidTimeSec`(75) — 기존 호출부(BanditEncounter)는 인자를 안 줘 바이트 단위로 예전 그대로). `Act("dodge")`가 raid에서만 `JustWindowSec`(0.25s, 예고 끝)으로 창을 좁힌다 — 창 밖은 `Reason="early"`로 실패(비raid는 예전처럼 Tell 전체가 성공). `Step()`의 heavy 판정도 raid에서 갈라진다: 저스트 성공(`Dodged`)이면 완전 회피(`heavy=0`)+기 `+KiMax*0.30*KiMul`, 실패(아무 것도 안 눌러도)면 `PassiveMitigation`(0.5)로 절반만 — "예고 중 걷기만으로는 절반만 피한다"의 재해석(비raid는 예전 `DodgeCut`(0.15) 경로 그대로). `CheckPartBreak()`(private, `Act`의 quick/ult 데미지 분기 뒤 호출)이 웹판 구현 그대로 부위별 HP를 안 나누고 같은 기세 풀을 75%/50%/25% 누적 문턱으로 읽어 문턱을 넘을 때마다 부위 하나씩 파괴한다.
+- `World/RareWolfEncounter.cs` — `StartFight()`가 `DuelRules.Create(..., raid: true)`로 켠다. `DoAct()`가 `_duel.PartsJustBroken>0`이면 `OnPartsBroken()`(재료 보상 골드 즉시 지급 + pulse/hitstop/flash 연출 + 부위 3 전부면 완파 보너스, 한 Toast 문자열에 모아서 — `DialogueLabel`이 단일 인스턴스라 Toast를 연달아 부르면 뒤엣것이 앞엣것을 지운다는 걸 `FinishFight()`가 이미 보여준 패턴). "부위 3(갑주·병장·기마)"은 사람 산적 전용 이름이라 짐승(늑대)엔 안 맞아 **다리/몸통/급소**로 재해석(`part.leg`/`part.torso`/`part.core` 로컬라이제이션 키). 부위 게이지는 새 UI 부품을 안 만들고(`EncounterUiKit`엔 바 로우뿐) 기세 바로 아래 한 줄 텍스트로("부위 다리 몸통 (급소)" — 괄호=파괴됨, Text엔 취소선이 없어서). 저스트 성공 시 기존 초록 플래시(`e.Dodged`)에 "간발!" 팝 토스트를 얹었다. 웹판 "부위 3 전부 파괴 = 등용 확률 ×1.5"는 이 사건이 등용 대상이 아니라(위 클래스 주석) 안 맞아 즉시 골드 보너스로 재해석.
+- `Resources/Localization/go_ko.json`·`go_en.json` — `combat.just_dodge`·`combat.parts`·`part.leg`·`part.torso`·`part.core`·`encounter.part_broken`·`encounter.full_break_bonus` 키 추가(GO 전용).
+- `Editor/PlaytestHeadless.cs` — 새 `CheckRaidBoss()`(`CheckWeaponVisual()` 바로 뒤, `CheckDailyTasks()` 앞). 두 사이클: ① `RareWolfEncounter.StartFight()` 뒤 raid 플래그·Left=75 확인, `DuelRules.Act`/`Step`이 전부 public이라 리플렉션 없이 `duel.Tell`을 직접 조작해 저스트 창 밖("early")·안(완전 회피+기 보너스, 정확한 기대값까지 근사 비교)·수동 mitigation(절반, 기대값 계산까지) 결정적으로 확인. ② `StartFight()`를 다시 불러 깨끗한 `_duel`을 받은 뒤 `Hp`를 75%/50%/25% 문턱 바로 위(margin 2 — quick 한 방 dmg보다 작아야 넘어간다)로 세팅하고 private `DoAct("quick")`(버튼 클릭과 같은 경로)를 실제로 태워 부위 파괴 골드 보상·완파 보너스까지 검증.
+
+**함정(실제로 겪음, 둘 다 이 체크 작성 중)**: (1) 첫 시도에 margin을 20으로 잘못 잡아 quick 한 방(보통 6~10 dmg)이 못 넘어서 "부위가 안 깨짐"으로 실패했다 — margin은 dmg보다 **작아야** 문턱을 넘는다는, 방향이 반대인 실수. (2) margin을 고쳐도 두 번째 문턱(50%)에서 또 실패했는데, 원인은 `DuelRules.Act("quick")`의 `QuickCd`(0.35s) 쿨다운이 반복문 사이에 안 풀려 두 번째 `DoAct("quick")`가 조용히 `"cd"`로 실패한 것 — 반복마다 `duel.Cd = 0f`로 직접 리셋해야 했다. 둘 다 "왜 골드가 그대로냐"는 같은 증상이라 로그의 `broken=False`를 보고서야 원인을 갈랐다.
+
+`tools/unity-batch.sh -- <Unity 인자...>`로 컴파일(error CS 0건) → `PlaytestHeadless`(GO) 3연속 OK(`Saga.EditorTools.PlaytestHeadless.Run`, `-quit` 안 줌 — 첫 2회는 위 두 함정으로 실패, 원인 수정 후 3연속 OK). 이 사건은 씬 구성(GameObject 추가) 변경이 없어(기존 `RareWolfEncounter` 컴포넌트에 로직만 얹음) **씬 재빌드 불필요**했다(101-2 ⑦ 승급 3택 때와 다른 점 — 그때는 새 UI GameObject를 추가해 재빌드가 필요했다).
+
+`docs/PROJECT_STATE.md` 갱신(GO 완료 요약에 101-2 ④⑦③ 전부 완료 표기, "다음 작업"을 "GO 첫 세 항목 완료, ①②⑥⑧ 중 결정 대기"로 교체, 테스트 상태·실기 확인 대기 갱신 — 15KB 상한에 걸려 여러 줄 압축). `PLAN.md` 101-2 GO 행에 완료 주석 추가(대응 파일에 `RareWolfEncounter` 추가).

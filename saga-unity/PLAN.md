@@ -1058,7 +1058,7 @@ Slice 승인/재설계 결정.** 100단계에서 무조건 다음 콘텐츠로 �
 
 | 게임 | 웹 §5 후보(우선순위 순, 제목만) | 3D 첫 이식 | 이 트랙 대응 파일 |
 |---|---|---|---|
-| GO | ① 봉수대(탑→지도 해제) ② 사당 시련 3분 방 ③ 75초 토벌·부위·저스트 회피 ④ 일과판+마무리 카드 ⑤ 비석 순례(GPS) ⑥ 인연(동행 관계) ⑦ 승급 3택 ⑧ 패배 비용·회수 | **④ → ⑦ → ③** (⑤ GPS 는 Unity 모바일 빌드 뒤) | `PlayerHud`·`QuestState`·`BanditEncounter`·`PartyState`·`LandmarksBuilder` |
+| GO | ① 봉수대(탑→지도 해제) ② 사당 시련 3분 방 ③ 75초 토벌·부위·저스트 회피 ④ 일과판+마무리 카드 ⑤ 비석 순례(GPS) ⑥ 인연(동행 관계) ⑦ 승급 3택 ⑧ 패배 비용·회수 | **④ → ⑦ → ③**(전부 완료, 2026-09-19) — 다음은 ①②⑥⑧ 중 사용자 결정 대기(⑤ GPS 는 Unity 모바일 빌드 뒤). ③은 "야생 조우"(`BanditEncounter`)가 아니라 이미 "토벌" 결인 `RareWolfEncounter`에 얹었다(`DuelRules.Raid`) | `PlayerHud`·`QuestState`·`BanditEncounter`·`RareWolfEncounter`·`PartyState`·`LandmarksBuilder` |
 | DUNGEON | 5.1 축복 3택 5.2 유품(죽음 비용·회수) 5.3 부적 던전 티어 5.4 월드 보스 75초 5.5 난입 파도 5.6 목표판·카드 5.7 시대 퓨전 5.8 손맛 2차·가시화 | **5.8 → 5.1 → 5.2** (5.7 은 웹 선행 결과 뒤. 5.8 중 hitstop·타격 VFX·죽음 표식 은 2026-09-17 완료 — 101-3 C·F 표 참고, **`LootMarker`는 101-3 F 항목이라 이 5.2(플레이어 죽음 비용·회수, 아직 미착수)와 다른 것 — 혼동 주의**. 나머지 G 항목(데칼·장비 소켓)은 남음, 성장 연출은 2026-09-17 완료) | `PlayerCombat`·`DungeonEnemy`·`DungeonFloorRunner`·`HeroState`·`DamagePopup`·`HitSpark`·`LootMarker`·`CameraRig` |
 | FOREST | 5.1 일과판 5.2 마무리 카드 5.3 마을 번들 5.4 관계 하트 5.5 발견 격자+정령 60 5.6 축제 5.7 택배 사슬 5.8 채집 손맛 | **5.1+5.2 → 5.4 → 5.5** | `ForestState`·`ForestVillager`·`ForestHomeState`·`ForestGroundBuilder` |
 | STORY | 5-1 직업 정체성(고유 조작) 5-2 무예 유파 재해석 5-3 비경 미니던전 5-4 관문 대장 주간 보스 5-5 이동 손맛 5-6 목표판·카드 5-7 손맛 표준 5-8 동료 교대 | **5-5 → 5-7 → 5-1** (전직 4직이 이미 있어 고유 조작 1개씩 얹기 쉬움. 5-7 은 2026-09-17 완료 — hitstop·shake·flash·popup 전부, 크리티컬 전역 슬로모는 웹판 원문 그대로 유지) | `StoryPlayerController`·`StoryCombat`·`StoryJobState`·`StoryEnemy` |
