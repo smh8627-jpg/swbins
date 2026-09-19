@@ -312,6 +312,9 @@ namespace Saga.Realm.Data
         public const string ZhuwuId = "zhuwu";
         public const string XiquanId = "xiquan";
         public const string QuzuId = "quzu";
+        public const string BeidiId = "beidi";
+        public const string YanmenId = "yanmen";
+        public const string DingxiangId = "dingxiang";
 
         public static readonly string[] AllIds =
         {
@@ -321,7 +324,7 @@ namespace Saga.Realm.Data
             ShuofangId, WuyuanId, TianshuiId, NanhaiId, ZhutiId, CangwuId, JianningId, YulinId, YuexiId,
             JiaozhiId, ZangkeId, JiuzhenId, HepuId, RinanId, YunnanId, XianglinId, YongchangId,
             DianchongId, ShenduId, BijingId, JiantuoluoId, LuorongId, JibinId, DaxiaId, WuyishanliId, MoqietuoId, SheyiId, ZhuwuId,
-            XiquanId, QuzuId,
+            XiquanId, QuzuId, BeidiId, YanmenId, DingxiangId,
         };
 
         private static readonly Dictionary<string, RealmEnemyCityDef> Catalog = new Dictionary<string, RealmEnemyCityDef>
@@ -424,6 +427,28 @@ namespace Saga.Realm.Data
             // 복양 사슬의 새 일곱째 단계 목표. 오원엔 다른 LINKS가 없어
             // (잎사귀) 이 사슬의 마지막 칸이다.
             [WuyuanId] = new RealmEnemyCityDef(WuyuanId, "오원", RealmLand.Plain, baseWall: 2700, baseTroops: 600, baseTrain: 135, baseTech: 100, attackFromCityId: "shuofang"),
+            // 북지는 상군(shangjun)과만 맞닿아 있다(원작 LINKS: shangjun-beidi,
+            // "농서와 이어지는 변경") — 33차 확장, 상군의 둘째 자식(삭방과
+            // 형제 가지, 14차가 안 골랐던 이웃을 이번에 채운다 — 상군이 목표
+            // 둘로 늘어난 첫 사례). train은 상군 자신의 105+15=120(삭방과
+            // 동률). land는 원작 그대로 plain(보정 불필요). 원작에 더 뻗는
+            // LINKS 없어(잎사귀) 이 가지는 여기서 끝 — 상군 갈래가 전부 닫힌다.
+            [BeidiId] = new RealmEnemyCityDef(BeidiId, "북지", RealmLand.Plain, baseWall: 3000, baseTroops: 690, baseTrain: 120, baseTech: 100, attackFromCityId: "shangjun"),
+            // 안문은 운중(yunzhong)과만 맞닿아 있다(원작 LINKS: yunzhong-yanmen,
+            // "기러기도 넘기 힘들다는 고개") — 34차 확장, 운중의 둘째 자식
+            // (상군과 형제 가지, 13차가 안 골랐던 두 이웃 안문·정양 중 이번엔
+            // 안문을 골랐다 — 운중이 목표 둘로 늘어난 첫 사례). train은 운중
+            // 자신의 90+15=105(상군과 동률). land는 원작 mount를 Plain으로
+            // 보정(건타라·대하·서권·구속과 같은 이유). 원작에 더 뻗는 LINKS
+            // 없어(잎사귀) 이 가지는 여기서 끝.
+            [YanmenId] = new RealmEnemyCityDef(YanmenId, "안문", RealmLand.Plain, baseWall: 3000, baseTroops: 690, baseTrain: 105, baseTech: 100, attackFromCityId: "yunzhong"),
+            // 정양은 운중(yunzhong)과만 맞닿아 있다(원작 LINKS:
+            // yunzhong-dingxiang, "초원의 첫 저자") — 35차 확장, 운중의
+            // 셋째이자 마지막 자식(상군·안문과 형제 가지, 운중이 목표 셋으로
+            // 늘어난 첫 사례). train은 운중 자신의 90+15=105(상군·안문과 동률).
+            // land는 원작 그대로 plain(보정 불필요). 원작에 더 뻗는 LINKS
+            // 없어(잎사귀) 이걸로 운중 갈래, 즉 막북 전체가 완전히 닫힌다.
+            [DingxiangId] = new RealmEnemyCityDef(DingxiangId, "정양", RealmLand.Plain, baseWall: 2800, baseTroops: 644, baseTrain: 105, baseTech: 100, attackFromCityId: "yunzhong"),
             // 천수는 장안(changan)과 맞닿아 있다(원작 LINKS: changan-tianshui,
             // "농서의 요충") — 16차 확장, 장안의 둘째 목표(장안은 이미
             // 한중을 갖고 있다 — 성 하나당 목표 하나 제약을 이번에 풀었다,

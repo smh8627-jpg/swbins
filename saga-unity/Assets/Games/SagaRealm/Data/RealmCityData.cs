@@ -191,6 +191,22 @@ namespace Saga.Realm.Data
             // 원작 land는 hill인데 진양·한중 등과 같은 이유로 Plain 처리.
             // wall은 RealmEnemyCity.cs 오원 정의(2700)와 맞춘다.
             ["wuyuan"] = new RealmCityDef("wuyuan", "오원", RealmLand.Plain, agri: 120, comm: 90, wall: 2700, pop: 36000, mapX: 38, mapY: -15),
+            // 51장 "대규모 콘텐츠" 33차 확장(2026-09-19) — 상군(shangjun)의
+            // 둘째 자식(삭방과 형제 가지, 14차가 안 골랐던 이웃을 채운다).
+            // land는 원작 그대로 plain. wall은 RealmEnemyCity.cs 북지
+            // 정의(3000)와 맞춘다.
+            ["beidi"] = new RealmCityDef("beidi", "북지", RealmLand.Plain, agri: 170, comm: 110, wall: 3000, pop: 44000, mapX: 18, mapY: 6),
+            // 51장 "대규모 콘텐츠" 34차 확장(2026-09-19) — 운중(yunzhong)의
+            // 둘째 자식(상군과 형제 가지, 13차가 안 골랐던 두 이웃 안문·정양
+            // 중 이번엔 안문을 채운다). land는 원작 mount를 다른 성들과 같은
+            // 이유로 Plain 처리. wall은 RealmEnemyCity.cs 안문 정의(3000)와
+            // 맞춘다.
+            ["yanmen"] = new RealmCityDef("yanmen", "안문", RealmLand.Plain, agri: 130, comm: 110, wall: 3000, pop: 42000, mapX: 55, mapY: 0),
+            // 51장 "대규모 콘텐츠" 35차 확장(2026-09-19) — 운중의 셋째이자
+            // 마지막 자식(상군·안문과 형제 가지), 이걸로 운중 갈래·막북
+            // 전체가 완전히 닫힌다. land는 원작 그대로 plain. wall은
+            // RealmEnemyCity.cs 정양 정의(2800)와 맞춘다.
+            ["dingxiang"] = new RealmCityDef("dingxiang", "정양", RealmLand.Plain, agri: 140, comm: 100, wall: 2800, pop: 38000, mapX: 52, mapY: -10),
             // 51장 "대규모 콘텐츠" 16차 확장(2026-09-18) — "성 하나당 목표
             // 하나" 제약을 풀고(PLAN.md Q-U2, 사용자 결정) 국경 성이 여러
             // 방향으로 뻗을 수 있게 했다. 장안(changan)의 둘째 목표(원작

@@ -7623,3 +7623,24 @@ troops=wall×0.23 반올림(850·900). 둘 다 원작 land가 이미 plain이라
 **남은 REALM 확장 후보(별개 지역)**: 13~14차가 남긴 막북(운중 이웃) 안문(yanmen)·정양(dingxiang), 상군 이웃 북지(beidi) — 셋 다 잎사귀, 웹판 원본 `data-city.js` LINKS 확인 완료(543~544행). 교주·남중 두 사슬은 더 뻗을 곳이 없다.
 
 `docs/PROJECT_STATE.md` 갱신(REALM 완료 요약 적국 51→52·성 54→55, 16~32차 절을 "교주·남중 완전히 닫힘"으로 갱신, "다음 작업"(33차 후보: 막북 안문/정양/북지) · 테스트 상태 · 실기 확인 대기 전부 갱신, 15271B로 15KB(15360B) 상한 안쪽 유지).
+
+## 2026-09-19 — REALM 51장 33~35차 확장(막북 북지·안문·정양, 복양 사슬 완전히 닫힘)
+
+사용자 요청("막북 안문·정양·북지도 이어서 확장해줘")으로 13~14차가 남긴 세 후보를 한 세션에 모두 채웠다. 웹판 원본 `data-city.js` 320~336행·542~544행 LINKS 재확인: `yunzhong-yanmen`, `yunzhong-dingxiang`, `shangjun-beidi` — 셋 다 잎사귀(원작에 더 뻗는 LINKS 없음).
+
+- **33차 북지(beidi)** — 상군(shangjun)의 둘째 자식(삭방과 형제 가지, 상군이 목표 둘로 늘어난 첫 사례). train=상군 자신의 105+15=120(삭방과 동률). wall 3000(원작 그대로), troops=690. land plain(보정 불필요). 이걸로 상군 갈래가 전부 닫힌다.
+- **34차 안문(yanmen)** — 운중(yunzhong)의 둘째 자식(상군과 형제 가지, 운중이 목표 둘로 늘어난 첫 사례). train=운중 자신의 90+15=105(상군과 동률). wall 3000(원작 그대로), troops=690. land는 원작 mount를 Plain으로 보정(건타라·대하·서권·구속과 같은 이유).
+- **35차 정양(dingxiang)** — 운중의 셋째이자 마지막 자식(상군·안문과 형제 가지, 운중이 목표 셋으로 늘어난 첫 사례 — 전충과 동급 최다). train=운중 자신의 90+15=105(동률). wall 2800(원작 그대로), troops=644. land plain(보정 불필요). **이걸로 운중 갈래, 즉 복양(막북) 사슬 전체가 완전히 닫혔다.**
+
+DFS 순서 재배선: 기존 사슬은 운중→상군→삭방→오원→(바로 한중으로) 였는데, 오원(삭방의 유일한 자식, 잎사귀) 다음에 상군의 둘째 자식 북지를 먼저 채워 상군 서브트리를 완전히 닫고, 그다음 운중으로 돌아가 안문→정양 순으로 운중의 남은 두 자식을 채운 뒤 기존 한중 단계로 복귀하도록 체인을 다시 이었다(다이안총이 비경→서권→구속으로 뻗을 때 쓴 것과 같은 패턴).
+
+- `RealmEnemyCity.cs` — `BeidiId`·`YanmenId`·`DingxiangId` 신설, `AllIds`·`Catalog`에 추가(각각 `attackFromCityId: "shangjun"`·`"yunzhong"`·`"yunzhong"`).
+- `RealmCityData.cs` — 같은 성 셋 추가.
+- `PlaytestRealmSlice.cs` — 상군이 목표 둘(삭방·북지), 운중이 목표 셋(상군·안문·정양)이 되며 `Phase.AttackShangjun`·`Phase.AttackShuofang`에 enemyId 명시 추가. `Phase.AttackWuyuan`의 다음 단계를 기존 `Phase.AttackHanzhong`에서 새 `Phase.AttackBeidi`로 바꾸고, `AttackBeidi`→`AttackYanmen`→`AttackDingxiang`→`AttackHanzhong` 순으로 이어 기존 사슬에 복귀시켰다.
+- 로컬라이제이션: `city.beidi`·`city.yanmen`·`city.dingxiang`(ko/en) 신설.
+
+`tools/unity-batch.sh -- <Unity 인자...>`로 컴파일(error CS 0건)·`PlaytestRealmSlice` 3연속 실행(`Saga.EditorTools.PlaytestRealmSlice.Run`, `-quit` 안 줌) — 북지·안문·정양 함락 로그 매 회 확인, `ProjectSettings/`·`Packages/` 부작용 없음(래퍼가 매번 원복). `bash tools/precheck.sh` 통과(문서 크기 `saga-unity/docs/PROJECT_STATE.md` 15291B, 15360B 상한 안쪽). 씬 재생성 불필요.
+
+**REALM 51장 국경 확장 결론**: 교주(16~32차 관련분)·남중(16~29차)·복양/막북(12~15차, 33~35차) 세 사슬 모두 웹판 원본 LINKS 기준으로 완전히 닫혔다(적국 55·성 58). 더 늘리려면 새 지역이나 51장 밖 다른 축이 필요 — 사용자 결정 대기.
+
+`docs/PROJECT_STATE.md` 갱신(REALM 완료 요약을 "교주·남중·복양 세 사슬 전부 완전히 닫힘"으로 압축(상세는 HISTORY 위임, 문서 크기 여유 확보), "다음 작업"(REALM 국경 확장 후속은 사용자 결정 대기로 변경) · 테스트 상태 · 실기 확인 대기 전부 갱신, 15291B로 15KB(15360B) 상한 안쪽 유지).

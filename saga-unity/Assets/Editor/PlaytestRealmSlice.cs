@@ -75,7 +75,7 @@ namespace Saga.EditorTools
             PlotGate, PlotRumor, PlotFire,
             AttackWrongCity, AttackTooFewTroops, AttackWeak, AttackOverwhelm,
             CapturedCityDevelop, AttackAgainBlocked, AttackLuoyang, AttackXiapi, AttackDingtao, AttackYe,
-            AttackChangan, AttackShouchun, AttackJinyang, AttackYunzhong, AttackShangjun, AttackShuofang, AttackWuyuan, AttackHanzhong, AttackRunan,
+            AttackChangan, AttackShouchun, AttackJinyang, AttackYunzhong, AttackShangjun, AttackShuofang, AttackWuyuan, AttackBeidi, AttackYanmen, AttackDingxiang, AttackHanzhong, AttackRunan,
             AttackChengdu, AttackJiangxia, AttackJiangzhou, AttackXiangyang,
             AttackYongan, AttackJiangling, AttackChangsha, AttackChaisang, AttackJianye, AttackKuaiji,
             AttackTianshui, AttackNanhai, AttackZhuti, AttackCangwu, AttackJianning, AttackYulin, AttackYuexi,
@@ -945,18 +945,18 @@ namespace Saga.EditorTools
                 case Phase.AttackShangjun:
                 {
                     // 51장 13차 확장(2026-09-17, 같은 세션 "막북 안쪽으로
-                    // 계속 이어해") — 운중을 함락한 뒤 이어지는 복양 사슬의
-                    // 새 다섯째 단계 목표(TargetFrom("yunzhong")).
-                    if (!AttackChainStep(RealmEnemyCity.YunzhongId, RealmEnemyCity.ShangjunId, Phase.AttackShuofang)) return;
+                    // 계속 이어해") — 운중의 첫째 목표(34~35차부터 안문·정양과
+                    // 형제 가지가 돼 enemyId 명시).
+                    if (!AttackChainStep(RealmEnemyCity.YunzhongId, RealmEnemyCity.ShangjunId, Phase.AttackShuofang, RealmEnemyCity.ShangjunId)) return;
                     break;
                 }
 
                 case Phase.AttackShuofang:
                 {
                     // 51장 14차 확장(2026-09-17, 같은 세션 "묻지말고
-                    // 이어해줘") — 상군을 함락한 뒤 이어지는 복양 사슬의
-                    // 새 여섯째 단계 목표(TargetFrom("shangjun")).
-                    if (!AttackChainStep(RealmEnemyCity.ShangjunId, RealmEnemyCity.ShuofangId, Phase.AttackWuyuan)) return;
+                    // 이어해줘") — 상군의 첫째 목표(33차부터 북지와 형제
+                    // 가지가 돼 enemyId 명시).
+                    if (!AttackChainStep(RealmEnemyCity.ShangjunId, RealmEnemyCity.ShuofangId, Phase.AttackWuyuan, RealmEnemyCity.ShuofangId)) return;
                     break;
                 }
 
@@ -965,8 +965,35 @@ namespace Saga.EditorTools
                     // 51장 15차 확장(2026-09-17, 같은 세션 "오원까지
                     // 마무리하고 이어해줘") — 삭방을 함락한 뒤 이어지는
                     // 복양 사슬의 새 일곱째·마지막 단계 목표
-                    // (TargetFrom("shuofang")).
-                    if (!AttackChainStep(RealmEnemyCity.ShuofangId, RealmEnemyCity.WuyuanId, Phase.AttackHanzhong)) return;
+                    // (TargetFrom("shuofang")), 삭방 갈래는 여기서 끝.
+                    if (!AttackChainStep(RealmEnemyCity.ShuofangId, RealmEnemyCity.WuyuanId, Phase.AttackBeidi)) return;
+                    break;
+                }
+
+                case Phase.AttackBeidi:
+                {
+                    // 33차 확장(2026-09-19) — 상군의 둘째 목표(TargetFrom
+                    // ("shangjun")), 원작에 더 뻗는 LINKS 없어(잎사귀) 상군
+                    // 갈래가 이걸로 전부 닫힌다.
+                    if (!AttackChainStep(RealmEnemyCity.ShangjunId, RealmEnemyCity.BeidiId, Phase.AttackYanmen, RealmEnemyCity.BeidiId)) return;
+                    break;
+                }
+
+                case Phase.AttackYanmen:
+                {
+                    // 34차 확장(2026-09-19) — 운중의 둘째 목표(35차부터
+                    // 정양과 형제 가지가 돼 enemyId 명시). 원작에 더 뻗는
+                    // LINKS 없어(잎사귀) 이 가지는 여기서 끝.
+                    if (!AttackChainStep(RealmEnemyCity.YunzhongId, RealmEnemyCity.YanmenId, Phase.AttackDingxiang, RealmEnemyCity.YanmenId)) return;
+                    break;
+                }
+
+                case Phase.AttackDingxiang:
+                {
+                    // 35차 확장(2026-09-19) — 운중의 셋째이자 마지막 목표
+                    // (TargetFrom("yunzhong")), 원작에 더 뻗는 LINKS
+                    // 없어(잎사귀) 이걸로 운중 갈래·막북 전체가 완전히 닫힌다.
+                    if (!AttackChainStep(RealmEnemyCity.YunzhongId, RealmEnemyCity.DingxiangId, Phase.AttackHanzhong, RealmEnemyCity.DingxiangId)) return;
                     break;
                 }
 
