@@ -307,6 +307,7 @@ namespace Saga.Realm.Data
         public const string JibinId = "jibin";
         public const string DaxiaId = "daxia";
         public const string WuyishanliId = "wuyishanli";
+        public const string MoqietuoId = "moqietuo";
 
         public static readonly string[] AllIds =
         {
@@ -315,7 +316,7 @@ namespace Saga.Realm.Data
             YonganId, JianglingId, ChangshaId, ChaisangId, JianyeId, KuaijiId, YunzhongId, ShangjunId,
             ShuofangId, WuyuanId, TianshuiId, NanhaiId, ZhutiId, CangwuId, JianningId, YulinId, YuexiId,
             JiaozhiId, ZangkeId, JiuzhenId, HepuId, RinanId, YunnanId, XianglinId, YongchangId,
-            DianchongId, ShenduId, BijingId, JiantuoluoId, LuorongId, JibinId, DaxiaId, WuyishanliId,
+            DianchongId, ShenduId, BijingId, JiantuoluoId, LuorongId, JibinId, DaxiaId, WuyishanliId, MoqietuoId,
         };
 
         private static readonly Dictionary<string, RealmEnemyCityDef> Catalog = new Dictionary<string, RealmEnemyCityDef>
@@ -562,6 +563,14 @@ namespace Saga.Realm.Data
             // 이 갈래의 끝(원작에 더 뻗는 LINKS 없음). train은 대하 자신의
             // 200+15=215. land는 원작 hill이라 Plain으로 보정.
             [WuyishanliId] = new RealmEnemyCityDef(WuyishanliId, "오익산리", RealmLand.Plain, baseWall: 2600, baseTroops: 598, baseTrain: 215, baseTech: 100, attackFromCityId: "daxia"),
+            // 마게타는 신독(shendu)과만 맞닿아 있다(원작 LINKS:
+            // shendu-moqietuo, "항하 유역의 크고 오래된 나라") — 28차
+            // 확장, 건타라·대하와 형제 가지(셋 다 신독의 자식, train은
+            // 신독 자신의 185+15=200으로 둘과 동률 — 신독이 목표 셋으로
+            // 늘어난 첫 사례, 건녕과 같은 패턴). 원작에 더 뻗는 LINKS
+            // 없어 여기서 끝. land는 원작이 이미 plain이라 보정 불필요.
+            // 다른 이웃(사위)도 잎사귀라 다음 확장 후보로 남긴다.
+            [MoqietuoId] = new RealmEnemyCityDef(MoqietuoId, "마게타", RealmLand.Plain, baseWall: 3600, baseTroops: 828, baseTrain: 200, baseTech: 100, attackFromCityId: "shendu"),
         };
 
         public static RealmEnemyCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;

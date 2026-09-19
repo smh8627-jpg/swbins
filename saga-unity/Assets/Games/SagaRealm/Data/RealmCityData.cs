@@ -318,6 +318,11 @@ namespace Saga.Realm.Data
             // land는 원작 hill을 Plain으로 보정. wall은 RealmEnemyCity.cs
             // 오익산리 정의(2600)와 맞춘다.
             ["wuyishanli"] = new RealmCityDef("wuyishanli", "오익산리", RealmLand.Plain, agri: 110, comm: 130, wall: 2600, pop: 36000, mapX: -32, mapY: 88),
+            // 51장 "대규모 콘텐츠" 28차 확장(2026-09-19) — 신독(shendu)의
+            // 셋째 자식(건타라·대하와 형제 가지, 신독이 목표 셋으로 늘어난
+            // 첫 사례). land는 원작 그대로 plain. wall은 RealmEnemyCity.cs
+            // 마게타 정의(3600)와 맞춘다.
+            ["moqietuo"] = new RealmCityDef("moqietuo", "마게타", RealmLand.Plain, agri: 200, comm: 190, wall: 3600, pop: 70000, mapX: -30, mapY: 106),
         };
 
         public static RealmCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;

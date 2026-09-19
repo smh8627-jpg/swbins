@@ -7548,3 +7548,18 @@ troops=wall×0.23 반올림(850·900). 둘 다 원작 land가 이미 plain이라
 `tools/unity-batch.sh -- <Unity 인자...>`로 컴파일(error CS 0건)·`PlaytestRealmSlice` 3연속 실행(`Saga.EditorTools.PlaytestRealmSlice.Run`, `-quit` 안 줌) — 오익산리 함락 로그 매 회 확인, `ProjectSettings/`·`Packages/` 부작용 없음(래퍼가 매번 원복). 씬 재생성 불필요.
 
 `docs/PROJECT_STATE.md` 갱신(REALM 완료 요약 적국 46→47·성 49→50, 16~27차 절 갱신, "다음 작업"(28차 후보: 신독 잎사귀 마게타/사위 중 하나, 고르면 신독 갈래 전부 닫힘) · 테스트 상태 · 실기 확인 대기 전부 갱신, 15352B로 15KB 상한 안쪽 유지).
+
+## REALM 51장 28차 확장 — 신독 셋째 자식 마게타 (2026-09-19, 새 세션 "사가 유니티 이어 해")
+
+27차가 남긴 후보(신독 잎사귀 마게타/사위) 중 마게타를 골랐다(원작 LINKS: shendu-moqietuo, "항하 유역의 크고 오래된 나라" — 건타라·대하와 형제 가지, 신독의 자식이 셋으로 늘어난 첫 사례. train은 신독 자신의 185+15=200으로 나머지 둘과 동률). wall은 원작 그대로(3600), troops=wall×0.23 반올림(828). land는 원작이 이미 plain이라 보정 불필요.
+
+**신독이 건녕과 같은 패턴(목표 셋)에 도달했다** — 25·26차에서 상림·신독을 각각 목표 둘로 만든 뒤, 이번에 신독이 세 번째 목표를 갖게 되면서 21차 건녕(목표 3)과 같은 규모가 됐다. 대하·오익산리 체인(단일 자식, enemyId 불필요)은 그대로 두고, 신독에서 갈라지는 세 목표(건타라·대하·마게타) 전부에 `enemyId`를 명시해야 한다.
+
+- `RealmEnemyCity.cs` — `MoqietuoId` 신설, `AllIds`·`Catalog`에 추가.
+- `RealmCityData.cs` — 같은 성 추가.
+- `PlaytestRealmSlice.cs` — `Phase.AttackShendu`의 다음 단계를 새 `Phase.AttackMoqietuo`로 바꾸고(마게타를 먼저 공략), 그 다음은 기존 `Phase.AttackDaxia`로 이어지게 신설(`enemyId` 명시). OK 로그 문구에 "chain-28th(moqietuo)" 추가.
+- 로컬라이제이션: `city.moqietuo`(ko/en) 신설.
+
+`tools/unity-batch.sh -- <Unity 인자...>`로 컴파일(error CS 0건)·`PlaytestRealmSlice` 3연속 실행(`Saga.EditorTools.PlaytestRealmSlice.Run`, `-quit` 안 줌) — 마게타 함락 로그와 신독 3자 분기(enemyId 명시) 매 회 확인, `ProjectSettings/`·`Packages/` 부작용 없음(래퍼가 매번 원복). 씬 재생성 불필요.
+
+`docs/PROJECT_STATE.md` 갱신(REALM 완료 요약 적국 47→48·성 50→51, 16~28차 절 갱신, "다음 작업"(29차 후보: 신독 마지막 이웃 사위, 고르면 신독 갈래 전부 닫힘) · 테스트 상태 · 실기 확인 대기 전부 갱신, 15348B로 15KB 상한 안쪽 유지).

@@ -81,7 +81,7 @@ namespace Saga.EditorTools
             AttackTianshui, AttackNanhai, AttackZhuti, AttackCangwu, AttackJianning, AttackYulin, AttackYuexi,
             AttackZangke, AttackJiaozhi, AttackHepu, AttackJiuzhen, AttackYunnan, AttackRinan,
             AttackYongchang, AttackXianglin, AttackDianchong, AttackShendu,
-            AttackBijing, AttackJiantuoluo, AttackLuorong, AttackJibin, AttackDaxia, AttackWuyishanli,
+            AttackBijing, AttackJiantuoluo, AttackLuorong, AttackJibin, AttackDaxia, AttackWuyishanli, AttackMoqietuo,
             QuizCorrect, QuizWrong, QuizArchive,
             SaveLoad, Done,
         }
@@ -150,7 +150,7 @@ namespace Saga.EditorTools
 
                 bool ok = !_hadError && _phase == Phase.Done;
                 Debug.Log(ok
-                    ? "[PlaytestRealmSlice] OK - world-map/location gate/ships gate/orders(10)/draft/search/hire/city-assignment/war/diplo(rumor+fire)/captured-city-absorb/multi-target-attack(16th)/multi-target-plot/chain-17th(cangwu+jianning)/chain-18th(yulin+yuexi)/chain-19th(jiaozhi+zangke)/chain-20th(hepu+jiuzhen)/chain-21st(yunnan+rinan)/chain-22nd(yongchang+xianglin)/chain-23rd(shendu+dianchong)/chain-24th(jiantuoluo+bijing)/chain-25th(luorong+jibin)/chain-26th(daxia)/chain-27th(wuyishanli)/quiz/save-load all verified, no errors"
+                    ? "[PlaytestRealmSlice] OK - world-map/location gate/ships gate/orders(10)/draft/search/hire/city-assignment/war/diplo(rumor+fire)/captured-city-absorb/multi-target-attack(16th)/multi-target-plot/chain-17th(cangwu+jianning)/chain-18th(yulin+yuexi)/chain-19th(jiaozhi+zangke)/chain-20th(hepu+jiuzhen)/chain-21st(yunnan+rinan)/chain-22nd(yongchang+xianglin)/chain-23rd(shendu+dianchong)/chain-24th(jiantuoluo+bijing)/chain-25th(luorong+jibin)/chain-26th(daxia)/chain-27th(wuyishanli)/chain-28th(moqietuo)/quiz/save-load all verified, no errors"
                     : $"[PlaytestRealmSlice] FAIL - error={_hadError} phase={_phase} frames={_framesSeen}");
                 EditorApplication.Exit(ok ? 0 : 1);
             }
@@ -1175,7 +1175,16 @@ namespace Saga.EditorTools
                 {
                     // 23차 확장(2026-09-19) — 영창을 함락한 뒤 이어지는
                     // 남중 사슬의 다음 단계(TargetFrom("yongchang")).
-                    if (!AttackChainStep(RealmEnemyCity.YongchangId, RealmEnemyCity.ShenduId, Phase.AttackDaxia)) return;
+                    if (!AttackChainStep(RealmEnemyCity.YongchangId, RealmEnemyCity.ShenduId, Phase.AttackMoqietuo)) return;
+                    break;
+                }
+
+                case Phase.AttackMoqietuo:
+                {
+                    // 28차 확장(2026-09-19) — 신독의 셋째 목표(건타라·대하와
+                    // 형제 가지, 목표가 셋으로 늘어난 첫 사례 — jianning
+                    // 21차와 같은 패턴). enemyId 명시 필요.
+                    if (!AttackChainStep(RealmEnemyCity.ShenduId, RealmEnemyCity.MoqietuoId, Phase.AttackDaxia, RealmEnemyCity.MoqietuoId)) return;
                     break;
                 }
 
