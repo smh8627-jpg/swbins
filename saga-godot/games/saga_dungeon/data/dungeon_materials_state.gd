@@ -132,11 +132,6 @@ func remove_jewel(id: String) -> Dictionary:
 	return {}
 
 
-func jewel_by_id(id: String) -> Dictionary:
-	for j: Dictionary in jewels:
-		if str(j.id) == id:
-			return j
-	return {}
 
 
 ## forge.js makeGem() — 같은 보석·같은 등급 3개를 태워 한 등급 위 하나로.

@@ -117,6 +117,7 @@ var _base_color := Color(0.5, 0.14, 0.14)
 var _using_glb := false
 
 var _prompt_layer: CanvasLayer
+var _fight_button: Button
 var _combat_layer: CanvasLayer
 var _flash_rect: ColorRect
 var _hp_bar: ProgressBar
@@ -191,6 +192,7 @@ func _process(delta: float) -> void:
 			if _player_in_range():
 				_state = State.PROMPT
 				CodexState.discover("event", name)
+				_refresh_fight_odds()
 				_prompt_layer.show()
 		State.FIGHT:
 			if _duel:
@@ -243,6 +245,17 @@ func _build_prompt_ui() -> void:
 		{"label": choice_flee_label, "cb": _choose_flee_event},
 	])
 	_prompt_layer.visible = false
+	_fight_button = _prompt_layer.find_children("*", "Button", true, false)[0]
+
+## `duel_rules.gd::win_chance()`는 웹판 winChance()를 옮겨 둔 뒤 "전투 중엔
+## 안 쓰고 사건에 맞설지 고를 때 참고용으로만" 남겨 뒀는데(그 파일 주석),
+## 실제로는 이 판 어디서도 부르는 곳이 없어 죽어 있었다(2026-09-20 감사로
+## 발견) — 정확히 그 파일 주석이 말하는 자리(맞선다 버튼)에 붙인다.
+func _refresh_fight_odds() -> void:
+	if _fight_button == null:
+		return
+	var pct := int(round(DuelRules.win_chance(PartyState.atk + PartyState.def, foe_power) * 100.0))
+	_fight_button.text = "%s (승산 %d%%)" % [choice_fight_label, pct]
 
 func _choose_fight() -> void:
 	_prompt_layer.hide()

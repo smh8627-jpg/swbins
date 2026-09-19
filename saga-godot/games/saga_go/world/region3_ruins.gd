@@ -73,6 +73,22 @@ const DEBRIS := [
 const DEBRIS_TRIGGER_RADIUS := 14.0
 const DEBRIS_COLOR := Color(0.4, 0.36, 0.3)
 
+## 2026-09-20, PLAN 101-1 E 재점검 — 재보니 여전히 32.0%(ENTRY_GRID·
+## RELIC_GRID·DEBRIS 넷 다 R 바닥 8칸까지는 안 닿는다, RELIC은 kind
+## "event"라 이 밀도(place 전용)에도 안 잡힌다). R 바닥 8칸에 위 DEBRIS와
+## 같은 결(선택지 없는 순수 발견)로 여덟을 더 얹는다 — 전장 잔해와
+## 구별되는 "무너진 건물 자체의 잔해"로.
+const FLOOR_DEBRIS := [
+	{"id": "ruins_brick", "grid": Vector2i(1, 1), "shape": "brick"},
+	{"id": "ruins_step", "grid": Vector2i(3, 1), "shape": "step"},
+	{"id": "ruins_urn", "grid": Vector2i(5, 1), "shape": "urn"},
+	{"id": "ruins_column", "grid": Vector2i(1, 3), "shape": "column"},
+	{"id": "ruins_mural", "grid": Vector2i(5, 3), "shape": "mural"},
+	{"id": "ruins_ash", "grid": Vector2i(1, 5), "shape": "ash"},
+	{"id": "ruins_well", "grid": Vector2i(3, 5), "shape": "well"},
+	{"id": "ruins_gateframe", "grid": Vector2i(5, 5), "shape": "gateframe"},
+]
+
 var _layer: CanvasLayer
 var _triggered := false
 
@@ -85,6 +101,7 @@ func _ready() -> void:
 	_build_relic()
 	_build_beacon()
 	_build_debris()
+	_build_floor_debris()
 
 
 ## PLAN.md 101-2 GO ⑤"봉수대" — 폐허 몫. 기존 콘텐츠(입구·귀환·유물)와
@@ -205,6 +222,76 @@ func _build_debris() -> void:
 				mi.position = pos + Vector3(0, 1.2, 0)
 		var mat := StandardMaterial3D.new()
 		mat.albedo_color = DEBRIS_COLOR
+		mi.material_override = mat
+		add_child(mi)
+		_add_discovery_area(d.id, pos, DEBRIS_TRIGGER_RADIUS)
+
+
+## PLAN 101-1 E — 위 FLOOR_DEBRIS 상수 참고, R 바닥(폐허 건물 자체가
+## 무너진 잔해) 여덟 — _build_debris()의 "전장 잔해"(T 칸, 결사의 최후
+## 항전)와 자리값이 다르다는 걸 모양·색으로도 가른다(더 밝은 돌색).
+func _build_floor_debris() -> void:
+	var ground: float = TerrainBuilder.LEGEND["R"].height
+	for d in FLOOR_DEBRIS:
+		var pos: Vector3 = TestMap.world_pos(d.grid.x, d.grid.y, RUINS_REGION) + Vector3(0, ground, 0)
+		if d.grid == RELIC_GRID:
+			pos += Vector3(2.5, 0, 2.5) # RELIC_GRID와 같은 칸 — 유물 기둥과 안 겹치게 살짝 비켜 놓는다.
+		var mi := MeshInstance3D.new()
+		match d.shape:
+			"brick":
+				var mesh := BoxMesh.new()
+				mesh.size = Vector3(0.6, 0.25, 0.4)
+				mi.mesh = mesh
+				mi.rotation = Vector3(0, deg_to_rad(20.0), deg_to_rad(8.0))
+				mi.position = pos + Vector3(0, 0.12, 0)
+			"step":
+				var mesh := BoxMesh.new()
+				mesh.size = Vector3(1.3, 0.2, 0.5)
+				mi.mesh = mesh
+				mi.position = pos + Vector3(0, 0.1, 0)
+			"urn":
+				var mesh := CylinderMesh.new()
+				mesh.top_radius = 0.25
+				mesh.bottom_radius = 0.4
+				mesh.height = 0.7
+				mi.mesh = mesh
+				mi.rotation = Vector3(0, 0, deg_to_rad(60.0))
+				mi.position = pos + Vector3(0, 0.2, 0)
+			"column":
+				var mesh := CylinderMesh.new()
+				mesh.top_radius = 0.3
+				mesh.bottom_radius = 0.3
+				mesh.height = 1.8
+				mi.mesh = mesh
+				mi.rotation = Vector3(0, 0, deg_to_rad(85.0))
+				mi.position = pos + Vector3(0, 0.15, 0)
+			"mural":
+				var mesh := BoxMesh.new()
+				mesh.size = Vector3(1.4, 1.0, 0.1)
+				mi.mesh = mesh
+				mi.position = pos + Vector3(0, 0.5, 0)
+			"ash":
+				var mesh := CylinderMesh.new()
+				mesh.top_radius = 0.55
+				mesh.bottom_radius = 0.65
+				mesh.height = 0.12
+				mi.mesh = mesh
+				mi.position = pos + Vector3(0, 0.06, 0)
+			"well":
+				var mesh := CylinderMesh.new()
+				mesh.top_radius = 0.5
+				mesh.bottom_radius = 0.55
+				mesh.height = 0.5
+				mi.mesh = mesh
+				mi.position = pos + Vector3(0, 0.25, 0)
+			"gateframe":
+				var mesh := BoxMesh.new()
+				mesh.size = Vector3(0.2, 1.6, 0.9)
+				mi.mesh = mesh
+				mi.rotation = Vector3(0, 0, deg_to_rad(18.0))
+				mi.position = pos + Vector3(0, 0.8, 0)
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = Color(0.58, 0.54, 0.48) if d.shape != "ash" else Color(0.22, 0.2, 0.19)
 		mi.material_override = mat
 		add_child(mi)
 		_add_discovery_area(d.id, pos, DEBRIS_TRIGGER_RADIUS)

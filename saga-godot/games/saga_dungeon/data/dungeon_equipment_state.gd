@@ -103,14 +103,6 @@ func item_for(slot_name: String) -> Dictionary:
 	return _item_for(slot_name)
 
 
-func equip_weapon(it: Dictionary) -> void:
-	equip("weapon", it)
-
-
-func equip_charm(it: Dictionary) -> void:
-	equip("charm", it)
-
-
 ## `slot_name -> item` Dictionary 하나로 8부위를 한 번에 되돌린다(각
 ## 부위를 위치 인자로 받던 옛 방식은 다섯이 더 늘며 못 버틴다 — dungeon_
 ## save_state.gd가 저장된 슬롯만 채워 넘긴다, 없는 슬롯은 {}로 남는다).

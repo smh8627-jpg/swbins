@@ -112,6 +112,15 @@ const BEACH_DEBRIS := [
 	{"id": "coast_anchor", "grid": Vector2i(4, 4), "shape": "anchor"},
 	{"id": "coast_netpile", "grid": Vector2i(6, 6), "shape": "netpile"},
 	{"id": "coast_shellmidden", "grid": Vector2i(1, 6), "shape": "shellmidden"},
+	## 2026-09-20, PLAN 101-1 E 재점검(09-18 이후 처음 재측정) — 여전히
+	## 17.2%(다섯 칸)라 위와 같은 결로 다섯을 더 얹는다. boat(7,5)는 event
+	## kind라 이 밀도(place 전용)에 안 잡힌다 — 같은 칸에 place 하나(게딱지)
+	## 더해도 결이 다르니 안 겹친다.
+	{"id": "coast_firepit", "grid": Vector2i(3, 5), "shape": "firepit"},
+	{"id": "coast_mast", "grid": Vector2i(5, 5), "shape": "mast"},
+	{"id": "coast_crabshell", "grid": Vector2i(7, 5), "shape": "crabshell"},
+	{"id": "coast_sandcastle", "grid": Vector2i(5, 7), "shape": "sandcastle"},
+	{"id": "coast_tidepool", "grid": Vector2i(7, 7), "shape": "tidepool"},
 ]
 const BEACH_DEBRIS_TRIGGER_RADIUS := 15.0
 
@@ -362,8 +371,40 @@ func _build_beach_debris() -> void:
 				mesh.size = Vector3(0.9, 0.3, 0.9)
 				mi.mesh = mesh
 				mi.position = pos + Vector3(0, 0.15, 0)
+			"firepit":
+				var mesh := CylinderMesh.new()
+				mesh.top_radius = 0.6
+				mesh.bottom_radius = 0.7
+				mesh.height = 0.2
+				mi.mesh = mesh
+				mi.position = pos + Vector3(0, 0.1, 0)
+			"mast":
+				var mesh := BoxMesh.new()
+				mesh.size = Vector3(0.22, 0.22, 2.6)
+				mi.mesh = mesh
+				mi.rotation = Vector3(0, 0, deg_to_rad(72.0))
+				mi.position = pos + Vector3(0, 0.4, 0)
+			"crabshell":
+				var mesh := BoxMesh.new()
+				mesh.size = Vector3(0.4, 0.12, 0.32)
+				mi.mesh = mesh
+				mi.position = pos + Vector3(0, 0.06, 0)
+			"sandcastle":
+				var mesh := PrismMesh.new()
+				mesh.size = Vector3(0.7, 0.6, 0.7)
+				mi.mesh = mesh
+				mi.position = pos + Vector3(0, 0.3, 0)
+			"tidepool":
+				var mesh := CylinderMesh.new()
+				mesh.top_radius = 0.85
+				mesh.bottom_radius = 0.85
+				mesh.height = 0.06
+				mi.mesh = mesh
+				mi.position = pos + Vector3(0, 0.03, 0)
 		var mat := StandardMaterial3D.new()
-		mat.albedo_color = Color(0.62, 0.56, 0.42)
+		mat.albedo_color = Color(0.25, 0.45, 0.62, 0.72) if d.shape == "tidepool" else (Color(0.35, 0.28, 0.2) if d.shape == "firepit" else Color(0.62, 0.56, 0.42))
+		if d.shape == "tidepool":
+			mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		mi.material_override = mat
 		add_child(mi)
 		_add_discovery_area(d.id, pos, BEACH_DEBRIS_TRIGGER_RADIUS)

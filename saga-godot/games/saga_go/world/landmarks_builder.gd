@@ -94,6 +94,23 @@ const FIELD_MARKERS := [
 	{"id": "village_mossstone", "grid": Vector2i(1, 9), "shape": "mossstone"},
 	{"id": "village_scarecrow", "grid": Vector2i(8, 9), "shape": "scarecrow"},
 	{"id": "village_milestone", "grid": Vector2i(5, 9), "shape": "milestone"},
+	## 2026-09-20, PLAN 101-1 E 재점검 — 09-18 넷을 더한 뒤에도 46.8%(서·동
+	## 숲 테두리가 그대로 안 닿는다, 60m 반경이 48m 타일 하나 정도밖에 못
+	## 덮어서 넷으로는 어림없었다). 서쪽 셋·동쪽 셋을 대칭으로 더 심고,
+	## 마을 안쪽 남은 두 칸(6,4)(6,6)은 우물 하나로 같이 덮고, 북쪽 산길
+	## 어귀((5,0), 굴·사당보다도 북쪽) 하나를 더한다.
+	{"id": "village_foxden", "grid": Vector2i(1, 2), "shape": "burrow"},
+	{"id": "village_hollow", "grid": Vector2i(1, 4), "shape": "hollow"},
+	{"id": "village_beehive", "grid": Vector2i(1, 6), "shape": "beehive"},
+	{"id": "village_squirrelnest", "grid": Vector2i(9, 2), "shape": "nest"},
+	{"id": "village_badgerden", "grid": Vector2i(9, 4), "shape": "burrow"},
+	{"id": "village_woodpecker", "grid": Vector2i(9, 6), "shape": "hollow"},
+	{"id": "village_well", "grid": Vector2i(6, 5), "shape": "well"},
+	{"id": "village_pass_cairn", "grid": Vector2i(5, 0), "shape": "cairn"},
+	## 위 여덟을 심고 재보니 46.8%→12.9%(HISTORY 09-20), 서쪽 숲 안쪽
+	## (0,3)(0,5) 두 칸만 딱 하나 모자라 10% 문턱을 못 넘었다 — 옹달샘
+	## 하나로 그 둘을 같이 덮는다.
+	{"id": "village_spring", "grid": Vector2i(0, 4), "shape": "spring"},
 ]
 
 
@@ -154,8 +171,59 @@ func _add_field_markers() -> void:
 				mesh.size = Vector3(0.4, 1.0, 0.2)
 				mi.mesh = mesh
 				mi.position = pos + Vector3(0, 0.5, 0)
+			"burrow":
+				var mesh := SphereMesh.new()
+				mesh.radius = 0.35
+				mesh.height = 0.35
+				mi.mesh = mesh
+				mi.position = pos + Vector3(0, 0.08, 0)
+			"hollow":
+				var mesh := CylinderMesh.new()
+				mesh.top_radius = 0.4
+				mesh.bottom_radius = 0.55
+				mesh.height = 2.2
+				mi.mesh = mesh
+				mi.position = pos + Vector3(0, 1.1, 0)
+			"beehive":
+				var mesh := SphereMesh.new()
+				mesh.radius = 0.3
+				mesh.height = 0.55
+				mi.mesh = mesh
+				mi.position = pos + Vector3(0, 1.4, 0)
+			"nest":
+				var mesh := SphereMesh.new()
+				mesh.radius = 0.28
+				mesh.height = 0.4
+				mi.mesh = mesh
+				mi.position = pos + Vector3(0, 0.9, 0)
+			"well":
+				var mesh := CylinderMesh.new()
+				mesh.top_radius = 0.6
+				mesh.bottom_radius = 0.65
+				mesh.height = 0.7
+				mi.mesh = mesh
+				mi.position = pos + Vector3(0, 0.35, 0)
+			"spring":
+				var mesh := CylinderMesh.new()
+				mesh.top_radius = 0.7
+				mesh.bottom_radius = 0.7
+				mesh.height = 0.05
+				mi.mesh = mesh
+				mi.position = pos + Vector3(0, 0.03, 0)
 		var mat := StandardMaterial3D.new()
-		mat.albedo_color = Color(0.48, 0.44, 0.36) if m.shape != "mossstone" else Color(0.3, 0.36, 0.24)
+		if m.shape == "mossstone":
+			mat.albedo_color = Color(0.3, 0.36, 0.24)
+		elif m.shape in ["burrow", "hollow", "nest"]:
+			mat.albedo_color = Color(0.32, 0.24, 0.16)
+		elif m.shape == "beehive":
+			mat.albedo_color = Color(0.62, 0.5, 0.2)
+		elif m.shape == "well":
+			mat.albedo_color = Color(0.5, 0.5, 0.52)
+		elif m.shape == "spring":
+			mat.albedo_color = Color(0.25, 0.45, 0.62, 0.72)
+			mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		else:
+			mat.albedo_color = Color(0.48, 0.44, 0.36)
 		mi.material_override = mat
 		add_child(mi)
 		_add_discovery_area(m.id, pos, self)

@@ -203,10 +203,6 @@ func mark_gifted(npc_id: String) -> void:
 	gifted[npc_id] = ForestDay.today_key()
 
 
-func add_affinity(npc_id: String, amount: int) -> void:
-	affinity[npc_id] = int(affinity.get(npc_id, 0)) + amount
-
-
 func heart(npc_id: String) -> int:
 	return int(affinity.get(npc_id, 0))
 

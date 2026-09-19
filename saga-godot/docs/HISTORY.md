@@ -7668,3 +7668,22 @@ PROJECT_STATE.md` 참고. 요약:
 - 겸사겸사 밝기도 손봤다: `light_energy` 1.4→3.2(env_pc.tres tonemap AgX가 Reinhard보다 중간톤을 더 눌러 어둡게 보인다는 기존 관찰 반영, 다섯 판 공유 env_pc.tres 자체는 안 건드림 — 다른 네 판 밝기에 영향 없음), `light_color`를 흰색→주황(1.0, 0.78, 0.5)으로.
 - `tools/godot_regress.sh` 다섯 판 통과(issues=0, 3회 md5 동일), `project.godot`·`*.import` 잡음 없음. `bash tools/precheck.sh` OK.
 - 헤드리스는 더미 렌더러라 실제 밝기는 확인 못 함 — 방 7개 전부 밝기 일관 여부·AgX 톤에서 과하지 않은지는 사용자 실기 확인 필요(PROJECT_STATE에 반영).
+
+## 죽은 코드 재감사 + win_chance 연결 (2026-09-20④)
+
+- fork 서브에이전트로 다섯 판 344개 .gd 파일 전수 단어빈도 감사(정의 줄만 걸리는=1회 것) → 12개 후보. 직접 하나씩 확인:
+  - **삭제(진짜 죽음, 대체판이 있음)**: `dungeon_equipment_state.gd::equip_weapon/equip_charm`(범용 `equip(slot,item)`로 대체됨) · `dungeon_materials_state.gd::jewel_by_id`(호출부 없음) · `forest_save_state.gd::add_affinity`(하루 상한 없는 옛판, `gain_affinity()`가 실제 쓰이는 대체판 — 남겨 두면 상한을 우회하는 구멍처럼 보여 지웠다).
+  - **연결(죽은 게 아니라 안 붙어 있었다)**: `duel_rules.gd::win_chance()` — 주석 자체가 "사건에 맞설지 고를 때 참고용"이라고 밝혀 둔 자리(도적 조우 "맞선다" 버튼)에 실제로는 아무도 안 부르고 있었다. `bandit_encounter.gd`에 `_fight_button`+`_refresh_fight_odds()` 추가, PROMPT 전환 시(플레이어가 사건 반경에 들어올 때) 호출해 버튼 문구를 "맞선다 (승산 44%)" 식으로 갱신. BanditEncounter/BanditLeaderEncounter/WolfPackEvent/EnemyScoutEvent 넷이 이 스크립트를 공유해 한 번에 넷 다 적용됨(헤드리스로 SAGA_VERIFY_ODDS=1 임시 훅으로 27~51% 사이 값 확인 후 훅 제거).
+  - **확인 후 유지(오탐 — 실제로는 살아있는 관례)**: `elem_name`·`MAGE_ELEMENT_NAME`(UI에 아직 안 붙었지만 웹 parity 표시 헬퍼, story_player.gd 원소 전환에 토스트 자체가 없어 STORY 다른 세 직업과 일관됨 — 새 UI 만드는 건 이번 범위 밖) · `force_epoch_day`/`force_morning`(웹판 `weather.force()`류 진단 훅, saga-godot엔 아직 `_test.html`격 진단 씬이 없어 미리 준비된 것) · `arrival_from_gorge_m`/`arrival_from_sinya_m`/`merchant_position_m` — STORY 지도 파일 전체(cave/field/forest/gangneungjin/gisanchae/gorge/heodo/namjeongseong/sinya map.gd)에 걸쳐 `portal_west_m`/`portal_east_m`/`arrival_from_*_m`류가 전부 런타임 호출자 없이 반복되는 걸 확인 — 씬을 손으로 배치할 때 좌표를 계산해 두는 저작 도구 상수라는 뜻, 이 3개만 지우면 나머지 15개 안팎과 일관성이 깨져 전부 유지.
+- 회귀 다섯 판 3회 issues=0, `project.godot`/`*.import` 잡음 없음.
+
+## GO 발견 밀도(101-1 E) 재점검 — 마을·포구·폐허 셋 다 10% 밑으로 (2026-09-20⑤)
+
+- `SAGA_DENSITY_REPORT=1` 재측정: 마을 46.8%·포구 17.2%·폐허 32.0%(전부 09-18 이후 처음 재측정, 그 사이 후퇴는 아니고 그때 수치 그대로 남아 있었던 것). 60m 반경 자체를 올리는 건 시험해 보니(72m) 포구·폐허가 곧장 0.0%로 신호가 죽어(FOREST 105 Q-f 때와 같은 함정) 기각 — 대신 각 지역에 실제 콘텐츠를 얹었다(101-3 E 원래 취지대로).
+- 빈 격자 좌표를 직접 짚어(임시 진단 코드로 좌표 목록 출력 후 제거) 정확히 그 자리에 순수 발견(선택지 없음, primitive+`_add_discovery_area`, 기존 FIELD_MARKERS/DEBRIS/BEACH_DEBRIS와 같은 결) 배치:
+  - **마을** 여덟(여우굴·고목구멍·벌집·다람쥐둥지·오소리굴·딱따구리나무·우물·산길돌탑) + 옹달샘 하나 더(46.8%→12.9%→9.7%).
+  - **포구** 다섯(불자리·돛대·게딱지·모래성·밀물웅덩이, `region2_coast.gd` BEACH_DEBRIS 확장) — 게딱지는 이미 있는 조각배(BOAT_GRID(7,5), kind="event")와 같은 칸이지만 kind가 달라 안 겹친다(17.2%→0.0%).
+  - **폐허** 여덟(벽돌·계단·항아리·기둥·벽화·잿더미·마른우물·문틀 조각, `region3_ruins.gd` 새 FLOOR_DEBRIS 배열) — 벽돌은 RELIC_GRID(1,1)과 같은 칸이라 유물 기둥과 안 겹치게 2.5m 살짝 비켜 놓음(32.0%→0.0%).
+- `codex_state.gd` TOTAL["place"] 21→43(다섯 벌 md5 대상 아님, GO 전용 파일).
+- 회귀 다섯 판 3회 issues=0, 잡음 없음.
+- **미룬 것**: 102장 그래픽 개편(LightmapGI/ReflectionProbe/접지 그림자 Decal/트라이플레이너 지형) — 전부 "실제로 뭘 그리는지"가 핵심인 항목이라 헤드리스로는 위치·크기가 맞는지 확인이 안 된다(더미 렌더러). 잘못 짚으면 승인된 다섯 판 화면에 안 보이는 리소스만 얹거나 성능만 깎을 위험이 있어, 숫자를 확신 없이 넣기보다 사람 확인 몫으로 남겨 둠.
