@@ -16,6 +16,12 @@ tools/glb-compress 처럼 다섯 판·두 트랙이 공유하는 빌드 도구�
 3. `preview` — 스냅 전/후 텍스처를 나란히 붙인 비교 PNG 하나(GUI를 띄우지
    않고 결과를 눈으로 확인하는 자리 — 3D 스크린샷 금지 규칙과 별개, 평면
    이미지 비교일 뿐).
+4. `tint-glb`/`tint-preview`(2026-09-19) — `snap-glb`와 달리 **명도(V)는
+   원본 그대로 두고 색상·채도만** 팔레트 한 색으로 바꾼다. 부드럽게 음영진
+   천 텍스처(VRoid 옷 등)를 최근접 스냅하면 그라디언트가 얼룩덜룩 깨지는
+   문제(§"VRoid 옷" 발견, HANDOFF 참고)를 피한다. `--only-suffix`로
+   material.name 접미사(예: VRoid 의 `_CLOTH`)를 골라 얼굴·피부·머리는
+   그대로 둘 수 있다.
 
 무엇을 안 하나: 어떤 GLB를 스냅할지 고르는 것(자산마다 사람/세션이 판단),
 스냅한 GLB를 실제 씬에 물리는 것(103-5 절차의 다음 단계, 여기선 안 한다).
@@ -25,6 +31,7 @@ tools/glb-compress 처럼 다섯 판·두 트랙이 공유하는 빌드 도구�
 """
 
 import argparse
+import colorsys
 import json
 import os
 import sys
@@ -100,6 +107,92 @@ def save_palette(name, out_dir):
 	return out_path
 
 
+def load_role_rgb01(path, role, band="base"):
+	"""2026-09-19 — VRoid 옷감 물들이기(tint) 용. `snap_rgb_array`의 최근접
+	스냅은 부드럽게 음영진 천 텍스처(하이라이트~그림자 그라디언트)를 8색
+	중 하나로 픽셀마다 따로 반올림해 버려, 원단이 아니라 얼룩덜룩한
+	패치워크로 뭉갠다(2026-09-19, avatar_sample_a Tops 텍스처로 확인 —
+	`_material_matches`+CLOTH 필터로 얼굴/피부/머리는 지켰는데도 옷 자체가
+	깨졌다). 그래서 옷은 스냅이 아니라 **색조(H)·채도(S)만 팔레트 색으로
+	갈아 끼우고 명도(V, 원본 음영)는 그대로 두는** `tint_image()`를 쓴다."""
+	with open(path, "r", encoding="utf-8") as f:
+		data = json.load(f)
+	for c in data["colors"]:
+		if c["role"] == role and c["band"] == band:
+			h = c["hex"].lstrip("#")
+			return tuple(int(h[i:i + 2], 16) / 255.0 for i in (0, 2, 4))
+	sys.exit("팔레트 %s 에 role=%s band=%s 가 없습니다." % (path, role, band))
+
+
+def tint_image(img: Image.Image, target_rgb01, sat_scale=1.0) -> Image.Image:
+	"""원본의 명도(V, 음영·하이라이트)는 그대로 두고 색상(H)·채도(S)만
+	target 색으로 맞춘다 — `snap_image()`(최근접 스냅)와 달리 그라디언트가
+	안 깨진다. `sat_scale` < 1 이면 target 채도를 눌러 더 차분하게(팔레트
+	원색 그대로 쓰면 애니메 특유의 쨍한 채도가 남을 수 있어서)."""
+	img = img.convert("RGBA")
+	r, g, b, a = img.split()
+	hsv = Image.merge("RGB", (r, g, b)).convert("HSV")
+	_h, s_ch, v_ch = hsv.split()
+	th, ts, _tv = colorsys.rgb_to_hsv(*target_rgb01)
+	ts = max(0.0, min(1.0, ts * sat_scale))
+	h_new = Image.new("L", img.size, int(round(th * 255)) % 256)
+	s_new = Image.new("L", img.size, int(round(ts * 255)))
+	rgb_new = Image.merge("HSV", (h_new, s_new, v_ch)).convert("RGB")
+	nr, ng, nb = rgb_new.split()
+	return Image.merge("RGBA", (nr, ng, nb, a))
+
+
+def tint_glb(in_path, palette_path, role, out_path, only_suffix=None, band="base", sat_scale=1.0):
+	import trimesh
+
+	target = load_role_rgb01(palette_path, role, band)
+	scene = trimesh.load(in_path, force="scene")
+	touched, skipped = [], []
+	for name, geom in scene.geometry.items():
+		visual = geom.visual
+		mat = getattr(visual, "material", None)
+		if not _material_matches(mat, only_suffix):
+			skipped.append(name)
+			continue
+		tex = getattr(mat, "baseColorTexture", None) if mat is not None else None
+		if tex is not None:
+			visual.material.baseColorTexture = tint_image(tex, target, sat_scale)
+			touched.append("%s(texture)" % name)
+	if not touched:
+		print("경고 — 대상 재질에서 텍스처를 못 찾았습니다(%s). 그대로 내보냅니다." % in_path)
+	os.makedirs(os.path.dirname(out_path), exist_ok=True)
+	scene.export(out_path)
+	print("물들임(%s) %s -> %s (%s)%s" % (
+		role, in_path, out_path, ", ".join(touched) or "변경 없음",
+		" [건너뜀: %s]" % ", ".join(skipped) if skipped else ""))
+	return touched
+
+
+def tint_preview(in_path, palette_path, role, out_path, only_suffix=None, band="base", sat_scale=1.0):
+	import trimesh
+
+	target = load_role_rgb01(palette_path, role, band)
+	scene = trimesh.load(in_path, force="scene")
+	tex = None
+	for geom in scene.geometry.values():
+		mat = getattr(geom.visual, "material", None)
+		if not _material_matches(mat, only_suffix):
+			continue
+		tex = getattr(mat, "baseColorTexture", None) if mat is not None else None
+		if tex is not None:
+			break
+	if tex is None:
+		sys.exit("대상 재질에 텍스처가 없어 preview 를 못 만듭니다: %s" % in_path)
+	before = tex.convert("RGBA")
+	after = tint_image(before, target, sat_scale)
+	combo = Image.new("RGBA", (before.width * 2 + 8, before.height), (0, 0, 0, 0))
+	combo.paste(before, (0, 0))
+	combo.paste(after, (before.width + 8, 0))
+	os.makedirs(os.path.dirname(out_path), exist_ok=True)
+	combo.save(out_path)
+	print("물들임 비교 PNG(좌 원본/우 %s) -> %s" % (role, out_path))
+
+
 def load_palette_rgb(path):
 	with open(path, "r", encoding="utf-8") as f:
 		data = json.load(f)
@@ -132,15 +225,35 @@ def snap_image(img: Image.Image, palette_rgb) -> Image.Image:
 	return Image.fromarray(out, mode="RGBA")
 
 
-def snap_glb(in_path, palette_path, out_path):
+def _material_matches(mat, only_suffix):
+	"""only_suffix 가 없으면 전부 통과. 있으면 material.name 에 `_<suffix>`
+	토큰이 있을 때만 통과 — VRoid는 `F00_..._Tops_01_CLOTH`처럼 이름 끝에
+	FACE/EYE/SKIN/CLOTH/HAIR 범주를 붙여 내보낸다(2026-09-19 확인,
+	avatar_sample_a.glb material 17개 실제 이름 대조). **끝이 아니라 토큰
+	검사인 이유** — GUI 자동화로 뽑은 `avatar_custom_01.glb`는 같은 이름
+	끝에 `(Instance)`가 덧붙어(`..._CLOTH (Instance)`) 단순 endswith 로는
+	하나도 안 걸렸다(실제로 tint-glb 첫 실행에서 "변경 없음"으로 드러남).
+	얼굴·눈·피부·머리는 그대로 두고 옷(`CLOTH`)만 바이옴 팔레트로 물들일 때
+	쓴다 — 전체를 8색으로 스냅하면 얼굴이 뭉개진다(§tint_image 주석 참고)."""
+	if not only_suffix:
+		return True
+	name = (getattr(mat, "name", "") or "").upper()
+	return ("_" + only_suffix.upper()) in name
+
+
+def snap_glb(in_path, palette_path, out_path, only_suffix=None):
 	import trimesh
 
 	palette_rgb = load_palette_rgb(palette_path)
 	scene = trimesh.load(in_path, force="scene")
 	touched = []
+	skipped = []
 	for name, geom in scene.geometry.items():
 		visual = geom.visual
 		mat = getattr(visual, "material", None)
+		if not _material_matches(mat, only_suffix):
+			skipped.append(name)
+			continue
 		tex = getattr(mat, "baseColorTexture", None) if mat is not None else None
 		if tex is not None:
 			visual.material.baseColorTexture = snap_image(tex, palette_rgb)
@@ -158,11 +271,13 @@ def snap_glb(in_path, palette_path, out_path):
 		print("경고 — 텍스처도 정점색도 못 찾았습니다(%s). 그대로 내보냅니다." % in_path)
 	os.makedirs(os.path.dirname(out_path), exist_ok=True)
 	scene.export(out_path)
-	print("스냅 %s -> %s (%s)" % (in_path, out_path, ", ".join(touched) or "변경 없음"))
+	print("스냅 %s -> %s (%s)%s" % (
+		in_path, out_path, ", ".join(touched) or "변경 없음",
+		" [건너뜀: %s]" % ", ".join(skipped) if skipped else ""))
 	return touched
 
 
-def preview_texture(in_path, palette_path, out_path):
+def preview_texture(in_path, palette_path, out_path, only_suffix=None):
 	import trimesh
 
 	palette_rgb = load_palette_rgb(palette_path)
@@ -170,6 +285,8 @@ def preview_texture(in_path, palette_path, out_path):
 	tex = None
 	for geom in scene.geometry.values():
 		mat = getattr(geom.visual, "material", None)
+		if not _material_matches(mat, only_suffix):
+			continue
 		tex = getattr(mat, "baseColorTexture", None) if mat is not None else None
 		if tex is not None:
 			break
@@ -198,19 +315,47 @@ def main():
 	p_snap.add_argument("glb_path")
 	p_snap.add_argument("palette_path")
 	p_snap.add_argument("out_path")
+	p_snap.add_argument("--only-suffix", default=None,
+		help="material.name 이 이 접미사로 끝나는 것만 스냅(예: CLOTH). VRoid 처럼 "
+			"한 GLB에 얼굴/피부/머리/옷 재질이 섞여 있을 때 옷만 물들이는 용도")
 
 	p_prev = sub.add_parser("preview", help="스냅 전/후 텍스처 비교 PNG")
 	p_prev.add_argument("glb_path")
 	p_prev.add_argument("palette_path")
 	p_prev.add_argument("out_path")
+	p_prev.add_argument("--only-suffix", default=None)
+
+	p_tint = sub.add_parser("tint-glb", help="GLB 텍스처를 팔레트 한 색으로 물들인다(명도는 원본 유지)")
+	p_tint.add_argument("glb_path")
+	p_tint.add_argument("palette_path")
+	p_tint.add_argument("role", help="팔레트 JSON 의 role 이름(예: leaf, stem, accent)")
+	p_tint.add_argument("out_path")
+	p_tint.add_argument("--only-suffix", default=None)
+	p_tint.add_argument("--band", default="base", choices=["base", "light", "dark"])
+	p_tint.add_argument("--sat-scale", type=float, default=1.0)
+
+	p_tprev = sub.add_parser("tint-preview", help="물들이기 전/후 텍스처 비교 PNG")
+	p_tprev.add_argument("glb_path")
+	p_tprev.add_argument("palette_path")
+	p_tprev.add_argument("role")
+	p_tprev.add_argument("out_path")
+	p_tprev.add_argument("--only-suffix", default=None)
+	p_tprev.add_argument("--band", default="base", choices=["base", "light", "dark"])
+	p_tprev.add_argument("--sat-scale", type=float, default=1.0)
 
 	args = ap.parse_args()
 	if args.cmd == "build":
 		save_palette(args.name, args.out_dir)
 	elif args.cmd == "snap-glb":
-		snap_glb(args.glb_path, args.palette_path, args.out_path)
+		snap_glb(args.glb_path, args.palette_path, args.out_path, only_suffix=args.only_suffix)
 	elif args.cmd == "preview":
-		preview_texture(args.glb_path, args.palette_path, args.out_path)
+		preview_texture(args.glb_path, args.palette_path, args.out_path, only_suffix=args.only_suffix)
+	elif args.cmd == "tint-glb":
+		tint_glb(args.glb_path, args.palette_path, args.role, args.out_path,
+			only_suffix=args.only_suffix, band=args.band, sat_scale=args.sat_scale)
+	elif args.cmd == "tint-preview":
+		tint_preview(args.glb_path, args.palette_path, args.role, args.out_path,
+			only_suffix=args.only_suffix, band=args.band, sat_scale=args.sat_scale)
 
 
 if __name__ == "__main__":

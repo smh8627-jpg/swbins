@@ -259,6 +259,21 @@ PowerShell 스크린샷·클릭 자동화를 얹어 VRoid Studio(이미 설치�
 포함)는 HANDOFF.md 참고. 같은 `world3d.animeAvatar` 손잡이 아래라 여전히
 기본 꺼짐 — 위 실기 확인 항목에 이 아바타도 포함됐다.
 
+**2026-09-19 재추가 — "마을 배경이랑 이질감" 제보로 위 "다음" 결정 확정**:
+전체 105명이 아니라 **이름 있는 숲 NPC 7명(`data-village.js` `NPCS`)에만**
+적용하기로 좁혔다 — 저폴리+절제된 팔레트 마을에 정교한 애니메 인물이
+서면 재질을 맞춰도(같은 `toonifyAnime()`) 디테일·채도 자체가 튀어서다.
+추가로 옷(`_CLOTH` 재질만, 얼굴·피부·머리는 원본)을 `palette.py tint-glb`
+로 §6.3 `forest_green` 팔레트 한 색씩 물들여 배경과 맞췄다 — 처음 시도한
+최근접 스냅(`snap-glb`)은 부드러운 천 그라디언트를 얼룩덜룩 뭉갰다(명도는
+그대로 두고 색상·채도만 바꾸는 `tint-glb`를 새로 추가해 해결). `asset3d.js`
+`HERO_RECIPES_ANIME_NPC[id]`가 NPC id → 물들인 GLB(`assets/generated/
+people/anime/npc_<id>.glb`)를 잇는다 — 마을 주민(residents)은 여전히 QRPG
+저폴리 그대로. 상세 표·라이선스는 `assets/ASSET_LICENSES.md` 해당 절.
+`node -c`·`_test.html` 통과(304/306, 나머지 2건은 채집/마무리카드 쪽 기존
+실패로 이 변경과 무관 — HANDOFF 참고). **실기 확인 전**: 옷 색이 실제
+화면에서 배경과 어울리는지는 미확인.
+
 ## 7. 버그·안정화
 
 1. **완료(2026-09-17)** — 공사 진단 4 FAIL(262/266, 세 세션째 원인 미확인이던 것) + 덤으로 발견한 날짜 의존 FAIL 2개(가방·판매, 행사). 지금 267/267(세 번 동일). 원인·수정은 `HANDOFF.md` 2026-09-17 절 참고 — `terrain.js`는 무죄였고, `_test.html` 자체의 테스트 위생 문제였다.

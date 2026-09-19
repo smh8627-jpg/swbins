@@ -916,3 +916,42 @@ MToon 매트캡/스펙큘러·썸네일 등 plain `THREE.GLTFLoader`가 안 읽�
 프로젝트를 먼저 "다른 이름으로 저장"(`.vroid`)해야 상단 공유 아이콘에
 "VRM 내보내기" 항목이 나타난다(저장 전엔 계정 메뉴만 보인다). **실기
 확인 전**: 위 샘플 셋과 마찬가지로 렌더된 모습은 미확인.
+
+## 옷 색 물들인 숲 NPC 전용 애니메 아바타 (2026-09-19, `assets/generated/`)
+
+제보 "마을 배경이랑 이질감 있는 게 제일 크다"(§6.5 다음 단계 결정) 뒤로
+방향을 좁혔다: 위 두 절(AvatarSample A/B/C·커스텀01)의 몸은 그대로 두고,
+**이름 있는 숲 NPC 7명에만** 적용하면서 옷 색만 이 판의 `forest_green`
+판별 팔레트(PLAN.md §6.3)로 물들였다. 원본(`models/people/anime/*.glb`)은
+전혀 안 건드리고, 출력만 `assets/generated/`에 새로 둔다(§7.2 결).
+
+**만든 방식**: `tools/asset-forge/palette.py tint-glb --only-suffix CLOTH`.
+VRoid 는 material.name 끝에 `FACE`/`EYE`/`SKIN`/`HAIR`/`CLOTH` 범주를 붙여
+내보내(`avatar_custom_01.glb`처럼 GUI로 병합한 것은 끝에 `(Instance)`가
+더 붙는다 — `_CLOTH` 토큰 검사로 잡음) `_CLOTH` 재질(Tops·Bottoms·Shoes)
+텍스처만 골라 물들이고 얼굴·피부·머리는 원본 그대로 둔다. 처음엔 기존
+`snap-glb`(최근접 색 스냅)로 시도했다가 **부드럽게 음영진 천이 얼룩덜룩한
+패치워크로 뭉개지는 걸 확인**(`preview` 비교 PNG로 눈으로 봄, 스크린샷
+금지 규칙과 무관한 평면 이미지 비교)하고 `tint-glb`(명도는 원본 유지,
+색상·채도만 목표 색으로 — 새로 추가한 함수)로 방향을 바꿨다.
+
+| NPC id | 몸(원본) | 팔레트 role | 채도 배율 |
+|---|---|---|---|
+| keeper(숲지기) | avatar_sample_a | leaf(잎, 초록) | 0.7 |
+| angler(낚시꾼) | avatar_sample_b | water(물, 파랑) | 0.75 |
+| merchant(상인) | avatar_sample_c | path(길, 황갈) | 0.9 |
+| explorer(탐험가) | avatar_custom_01 | stone(돌, 회색) | 0.85 |
+| herbalist(약초꾼) | avatar_sample_a | stem(줄기, 갈색) | 0.85 |
+| wanderer(나그네) | avatar_sample_b | accent(강조, 산호빛) | 0.6 |
+| courier(배달원) | avatar_sample_c | sky(하늘, 옅은 파랑) | 0.7 |
+
+**라이선스**: 위 두 절과 동일(원본이 CC0 또는 CC BY) — 색만 바꾼 파생물이라
+같은 라이선스가 그대로 적용된다.
+
+| 파일 | 이 판에서 쓰는 곳 |
+|---|---|
+| `generated/people/anime/npc_<id>.glb`(7개) | `asset3d.js` `HERO_RECIPES_ANIME_NPC[id]` — `world3d.animeAvatar` 손잡이(기본 꺼짐)를 켜면 위 표의 숲 NPC 7명에게만 적용, 마을 주민(residents)은 그대로 QRPG 저폴리 |
+
+**실기 확인 전**: 옷 색이 실제로 배경과 어울리는지, 채도 배율(0.6~0.9)이
+적당한지는 화면이 있어야 판단 가능 — 위 표는 눈대중 배정이라 조정 여지가
+있다.

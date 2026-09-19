@@ -300,8 +300,22 @@ window.DG_NO_TUNE = true;
       var A3 = DG.asset3d;
       var recs = A3.heroRecipesAnime();
       var allAnime = recs.every(function (r) { return r.body.indexOf('/people/anime/') >= 0; });
-      return A3.wantsAnimeAvatar() === false && recs.length === 3 && allAnime &&
-        '기본 꺼짐 · 레시피 3개 다 people/anime/ 경로';
+      return A3.wantsAnimeAvatar() === false && recs.length === 4 && allAnime &&
+        '기본 꺼짐 · 레시피 4개 다 people/anime/ 경로';
+    });
+
+    t('asset3d — 애니메 아바타는 이름 있는 숲 NPC 7명에만 건다(§6.5 "이질감" 뒤 축소)', function () {
+      var A3 = DG.asset3d, VD = DG.villageData;
+      var npc = A3.heroRecipesAnimeNpc();
+      var ids = Object.keys(npc);
+      var matchesNpcTable = VD && VD.NPCS &&
+        ids.every(function (id) { return Object.prototype.hasOwnProperty.call(VD.NPCS, id); }) &&
+        Object.keys(VD.NPCS).length === ids.length;
+      var allGenerated = ids.every(function (id) {
+        return npc[id].body.indexOf('assets/generated/people/anime/npc_') === 0;
+      });
+      return ids.length === 7 && matchesNpcTable && allGenerated &&
+        'NPC ' + ids.length + '명 다 generated 옷 물들인 아바타 · NPCS 표와 id 일치';
     });
 
     /* ── 3D 마을 화면 (PLAN 40절 PHASE 2 — Player 3D) ─────── */

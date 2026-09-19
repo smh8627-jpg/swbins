@@ -1582,3 +1582,44 @@ Nature Pack, 킷배싱 마을·주민 집 외형 확장(§6.4), §5.4 3♥·10�
 반복해서 열 때마다 2D→3D 로 깜빡였다. `pt()`와 도감 상세 두 자리(`dt-portrait`,
 hero/pet 150×172)에 `p3src()`를 추가해 캐시가 있으면 처음부터 그 그림으로
 시작하게 고쳤다. `node -c js/ui.js` 통과. 실기 확인 대기.
+
+## 2026-09-19 — 애니메 아바타 "마을 배경과 이질감" 제보 → 숲 NPC 7명 축소 + 옷 팔레트 물들임
+
+§6.5 "다음(실기 확인 뒤 결정)"에 대한 사용자 답: "마을 배경이랑 이질감 있는
+게 제일 커". 재질(툰 램프·외곽선·림 라이트)은 이미 배경과 같은 함수를
+타는데도 이질감이 크다면 원인은 셰이더가 아니라 **디테일·채도 수준
+자체**라고 판단 — 정교한 VRoid 인물이 저폴리+절제된 팔레트 마을 옆에
+서면 셰이더를 맞춰도 튄다.
+
+**결정 둘 다 적용**(사용자 "둘다해"):
+1. **범위 축소** — 전체 105명이 아니라 이름 있는 숲 NPC 7명(`data-village.js`
+   `NPCS`: keeper·angler·merchant·explorer·herbalist·wanderer·courier)에만
+   건다. `asset3d.js` `buildHero()`가 `oneOf(HERO_RECIPES_ANIME, ref)`(전체
+   해시 배정)를 쓰던 자리를 새 `HERO_RECIPES_ANIME_NPC[ref.id]`(정확히
+   이 7개 id만 매칭) 로 바꿨다. 표에 없으면(마을 주민) 그냥 기존
+   `buildHeroDefault`(QRPG 저폴리)로 빠진다.
+2. **옷 색 팔레트 매칭** — `tools/asset-forge/palette.py`에 `tint-glb`/
+   `tint-preview`/`_material_matches`(신규)를 추가했다. 처음엔 기존
+   `snap-glb`(최근접 색 스냅)로 시도했는데 `preview` 비교 PNG로 보니
+   부드럽게 음영진 천이 얼룩덜룩한 패치워크로 뭉개졌다(스크린샷 금지
+   규칙과 무관한 평면 이미지 비교 — palette.py 자체 기능). 그래서
+   **명도(V)는 원본 유지, 색상·채도(H·S)만 팔레트 색으로 바꾸는**
+   `tint_image()`를 새로 짰다 — 원단 그라디언트가 안 깨지고 색만 바뀐다.
+   `--only-suffix CLOTH`로 VRoid material.name 의 `_CLOTH` 토큰만 골라
+   옷(Tops/Bottoms/Shoes)만 물들이고 얼굴·피부·머리는 원본 그대로 뒀다.
+   - **주의**: `avatar_custom_01.glb`(GUI 자동화로 병합한 파일)는 material
+     이름 끝에 `(Instance)`가 더 붙어(`..._CLOTH (Instance)`) 단순
+     `endswith` 매칭으로는 하나도 안 걸렸다 — `_material_matches()`를
+     "끝 문자열 일치"에서 "`_<접미사>` 토큰 포함"으로 바꿔 고쳤다.
+   - NPC별 배정(몸/팔레트 role/채도 배율)은 `assets/ASSET_LICENSES.md`
+     "옷 색 물들인 숲 NPC 전용 애니메 아바타" 절 표 참고. 출력은
+     `assets/generated/people/anime/npc_<id>.glb`(7개, 커밋 대상).
+
+**검증**: `node -c js/asset3d.js`·`tools/asset-forge/palette.py` 구문 통과.
+`_test.html` 헤드리스(file:// 단독판, 서버 안 띄움) 304/306 — 새로 고친
+애니메 아바타 테스트 2건(레시피 4개 검사 수정 + NPC 7명 매칭 신규) 통과.
+남은 실패 2건(채집·마무리카드)은 이 변경 전 기준선(302/305, `git stash`로
+확인)에서도 이미 실패하던 것이라 무관 — 이번 작업 범위 밖으로 둔다.
+
+**실기 확인 전**: 옷 색이 실제 화면에서 배경과 어울리는지, 채도 배율이
+적당한지는 렌더가 있어야 판단 가능.

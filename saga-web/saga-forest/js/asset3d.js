@@ -104,6 +104,27 @@
   ]);
   function wantsAnimeAvatar() { return core().tuned('world3d.animeAvatar', 0) ? true : false; }
 
+  /* 2026-09-19 — "마을 배경이랑 이질감 있는 게 제일 크다"는 제보로 §6.5
+     "다음(실기 확인 뒤 결정)"의 방향이 정해졌다: 저폴리+절제된 팔레트인
+     마을 안에 정교한 애니메 인물 하나가 서면(재질을 맞춰도) 디테일·채도
+     자체가 튄다. 그래서 (1) **전체 주민이 아니라 이름 있는 숲 NPC 7명에만**
+     적용하고 (2) 위 HERO_RECIPES_ANIME 몸의 옷(`_CLOTH` 재질만, 얼굴·피부·
+     머리는 원본 그대로)을 `tools/asset-forge/palette.py tint-glb`로
+     forest_green 팔레트 한 색씩 물들여 배경과 맞췄다(명도는 원본 유지 —
+     최근접 스냅은 그라디언트가 얼룩덜룩 깨져 버려서 안 씀, palette.py
+     주석 참고). 출력은 `assets/generated/people/anime/npc_<id>.glb`
+     (§7.2 결 그대로 generated/ 에 커밋, 원본 models/ 는 안 건드림). 키는
+     `data-village.js`의 `NPCS` id와 같다 — 늘어도 이 표만 늘리면 된다. */
+  var HERO_RECIPES_ANIME_NPC = {
+    keeper:    { key: 'anime_npc_keeper', body: 'assets/generated/people/anime/npc_keeper.glb' },
+    angler:    { key: 'anime_npc_angler', body: 'assets/generated/people/anime/npc_angler.glb' },
+    merchant:  { key: 'anime_npc_merchant', body: 'assets/generated/people/anime/npc_merchant.glb' },
+    explorer:  { key: 'anime_npc_explorer', body: 'assets/generated/people/anime/npc_explorer.glb' },
+    herbalist: { key: 'anime_npc_herbalist', body: 'assets/generated/people/anime/npc_herbalist.glb' },
+    wanderer:  { key: 'anime_npc_wanderer', body: 'assets/generated/people/anime/npc_wanderer.glb' },
+    courier:   { key: 'anime_npc_courier', body: 'assets/generated/people/anime/npc_courier.glb' }
+  };
+
   /* 되돌림 자리 — 위 QRPG 조차 못 실리면(파일 손상 등) 이 옛 조합형으로 한 번 더
      갈아탄다. 2026-08-29 이전 기본값, 사람 비례는 QRPG보다 단순하지만 훨씬 가볍다 */
   var HERO_RECIPES_FALLBACK = [
@@ -926,7 +947,10 @@
       }
     }
     if (wantsAnimeAvatar()) {
-      var arec = oneOf(HERO_RECIPES_ANIME, ref);
+      /* 2026-09-19 — 전체 주민이 아니라 위 HERO_RECIPES_ANIME_NPC 표에 있는
+         이름 있는 숲 NPC 7명에게만 건다(§6.5 "이질감" 제보 뒤 방향 전환).
+         표에 없는 id(마을 주민 등)는 그냥 아래 buildHeroDefault 로 빠진다 */
+      var arec = HERO_RECIPES_ANIME_NPC[ref && ref.id];
       if (arec) {
         loadHeroRecipe(arec, function (model) {
           if (model) { cb(model); return; }
@@ -1080,6 +1104,7 @@
     /** 진단 전용 — VRM 애니메 아바타(§"원신급" 요청 ②) 손잡이·레시피·뼈 매핑표 조회 */
     wantsAnimeAvatar: wantsAnimeAvatar,
     heroRecipesAnime: function () { return HERO_RECIPES_ANIME; },
+    heroRecipesAnimeNpc: function () { return HERO_RECIPES_ANIME_NPC; },
     vrmToUal1Bones: function () { return VRM_TO_UAL1_BONES; },
     boneNameMap: boneNameMap
   };
