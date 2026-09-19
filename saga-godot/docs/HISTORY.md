@@ -7514,3 +7514,12 @@ PROJECT_STATE.md` 참고. 요약:
 - **동시 세션 충돌 주의**: `tools/asset-forge/palette.py`는 저장소 공유 도구라 saga-forest 세션이 같은 시각에 `--exclude-node-prefix` 기능을 그 파일에 추가하고 있었다. `git add`로 전체를 쓸어 담으면 상대 세션의 미완성 변경까지 내 커밋에 딸려 온다 — `git apply --cached`로 내 PALETTES 훅만 먼저 골라 스테이징했었는데, 그새 상대 세션이 `git add <전체 파일>`을 돌려 인덱스가 두 변경 다 합쳐진 채로 있었다. 결국 내 `go_ruins` 훅은 palette.py를 내 커밋에서 **아예 빼고** saga-godot 쪽 파일만 커밋했고, palette.py 자체는 상대 세션의 뒤이은 커밋(`7a86e0da`)에 함께 실려 안전하게 들어갔다 — 데이터 유실 없음, 다만 다음부턴 공유 도구 파일은 손대자마자 더 빨리 커밋할 것.
 - `tools/godot_regress.sh` 다섯 판 통과(이번엔 시스템 부하로 평소보다 훨씬 느렸다 — 스캔 종료까지 20분 가까이 걸림, 원인은 불명이나 결과 자체는 issues=0·잡음 없음으로 정상).
 - 다음: 사용자 실기로 마을집·역참·폐허 기둥 색감 전부 확인.
+
+## GO 나무·바위 팔레트 지역화 — go_coast 신설 + region_id 지원 (2026-09-19⑧) — PLAN 103-3
+
+- 사용자 지정으로 "GO 나무·바위 팔레트(포구/폐허별)" 진행. `vegetation_builder.gd`에 `region_id`(기본 "village") 추가 — `TestMap.rows_of/world_pos(region_id)` 로 바꿔 TerrainBuilder·BeaconTower와 같은 패턴이 됐다. `REGION_TREE_GLB`·`REGION_ROCK_LARGE/SMALL_GLB` 딕셔너리로 지역별 스냅 변형을 고른다.
+- `go_coast` 팔레트 신설 — LEGEND["D"]·water 앵커·region2_coast.gd 실제 소품 색(선착장·표류물·갈매기·고래뼈·해변잡동사니·조각배·게)에서 뽑음.
+- **함정**: `tree_oak.glb`·`rock_*.glb`는 텍스처도 정점색도 없이 재질마다 `baseColorFactor` 단색뿐(material.name이 "leafsGreen"·"woodBark"·"grass"·"dirt")이라 기존 `snap-glb`(텍스처/정점색 전용)로는 아예 안 건드려졌다. `snap_glb()`에 단색 스냅 분기를 추가했더니 이번엔 순수 RGB 최근접이 teal-green 잎(leafsGreen)을 go_village의 파란 water 색에 더 가깝다고 판단해 **나무가 파랗게 나오는** 결과가 나왔다(원본이 스타일라이즈드 색이라 색 거리만으론 "잎"이라는 뜻을 모른다) — material 이름으로 녹색/갈색 갈래를 나눠 각 팔레트의 알맞은 role(go_village: grass/shrine_wood, go_ruins: moss_stone/debris, go_coast: boat_gray/driftwood)로 강제하는 1회성 스크립트로 바로잡았다.
+- `region2_coast.gd`·`region3_ruins.gd`에 `VegetationBuilder` 인스턴스(각각 region_id="coast"/"ruins") 추가 — 이 두 지역엔 지금까지 나무·바위가 전혀 없었다(TerrainBuilder만 있었음). 포구는 T(숲) 칸이 없어 산 테두리 바위만, 폐허는 나무+바위 둘 다 선다. TestVillage 메인 지도는 `region_id` 기본값 "village" 라 손 안 대고도 자동으로 go_village 변형을 쓰게 됨.
+- `tools/godot_regress.sh` 다섯 판 통과(issues=0, `.import`/`project.godot` 잡음 없음). 이번 세션 내내 시스템이 유독 느려(회귀 1회에 20분 안팎) 원인은 못 밝혔지만 결과 자체는 정상.
+- 다음: 사용자 실기로 포구 바위·폐허 나무/바위 색감 확인.
