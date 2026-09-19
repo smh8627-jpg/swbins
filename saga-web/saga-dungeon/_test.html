@@ -204,12 +204,15 @@ window.requestAnimationFrame = function () { return 0; };
        으로 바꿨다. DOM/클릭 흐름은 이 헤드리스 진단의 몫이 아니지만(실기기
        확인 필요), 화면 없이 도는 순수 로직(후보 풀·DG_NO_ACCOUNT 우회)은
        여기서 그대로 확인할 수 있다. */
-    t('시작 캐릭터 후보 — 등급 3 이하 전부, 12명', function () {
+    t('시작 캐릭터 후보 — 등급 3 이하 전부, 26명', function () {
+      /* 2026-09-18 §5.7 시대 퓨전(data-hero-ext.js)이 rarity 3 인물을 14명
+         더 얹었다(기존 12 + 신규 14 = 26) — 이 수는 candidates()가 105→135
+         전체 HEROES를 그대로 훑은 결과라 손을 안 대도 저절로 갱신된다. */
       var ST = DG.starter;
       if (!ST) { return false; }
       var pool = ST.candidates();
       var bad = pool.filter(function (h) { return h.rarity > 3; });
-      return pool.length === 12 && bad.length === 0 && (pool.length + '명');
+      return pool.length === 26 && bad.length === 0 && (pool.length + '명');
     });
 
     t('시작 캐릭터 선택 — DG_NO_ACCOUNT 우회는 need명을 고유 id로 즉시 돌려준다', function () {
@@ -328,6 +331,11 @@ window.requestAnimationFrame = function () { return 0; };
       var raw = DN.raw();
       raw.floor = 5;
       raw.choice = DN._rollBoonChoice();
+      /* 기본 시작 금(120)은 5층 문턱(150)에 못 미친다 — rejectBoon의
+         Math.max(0, ...) 클램프에 걸려 실제로는 120만 깎이고 마는 것을
+         모르고 150을 그대로 기대했었다. 클램프가 안 걸릴 만큼 채워 두고
+         잰다(밑감이 재는 것은 문턱 자체, 잔고 한도가 아니다). */
+      C.save.player.gold = 1000;
       var g0 = C.save.player.gold;
       var ok = raw.choice.length > 0 && DN.rejectBoon();
       var spent = g0 - C.save.player.gold;
@@ -803,15 +811,6 @@ window.requestAnimationFrame = function () { return 0; };
         ('lance_e→' + clsL + ' · gauntlet→' + clsG);
     });
 
-    t('탈출하면 노획물이 확정된다', function () {
-      var raw = DN.raw();
-      raw.loot.gold = 400;
-      var g0 = C.save.player.gold;
-      var r = DN.leave();
-      return !DN.active() && r.gold === 400 && C.save.player.gold === g0 + 400 &&
-        ('금 +' + r.gold);
-    });
-
     /* ── 동행(同行) — 부대 2번째 인물이 용병처럼 곁에서 싸운다 ──────
      * PLAN §51(2026-09-06, 사용자 요청 "동료도 따라다니면서 같이 싸우던지
      * 용병처럼"). atkOf()(부대 합산)는 안 건드리고 hero.power(id)로 제
@@ -895,7 +894,10 @@ window.requestAnimationFrame = function () { return 0; };
       DN._strike(e, 1, 0);
       var h = run.hitstopT;
       DN.leave();
-      return (h === 0.05 || h === 0.09) && ('hitstop ' + h + 's');
+      /* §5.8①(2026-09-18)이 잡졸·정예·크리 3단(60/90/120ms)으로 늘리며
+         평타·크리 둘뿐이던 50/90ms를 60/120ms로 다시 갈았다 — 이 스폰은
+         opts.spawned라 정예가 안 뜨니 둘 중 하나만 나온다. */
+      return (h === 0.06 || h === 0.12) && ('hitstop ' + h + 's');
     });
 
     t('콤보 — 연속 타격마다 1씩 쌓인다', function () {
@@ -3103,11 +3105,12 @@ window.requestAnimationFrame = function () { return 0; };
      * 화면이 예외 하나 없이 조용히 빈 판을 그린다. 그래서 약속 자체를 검사한다.
      */
 
-    t('마을이 켜지고 사람 일곱 · 표식 셋이 선다', function () {
-      /* 표식 셋 = 역참·결사비·굴혈(exit_dungeon) — 전부 모루골 전용
-         (hasGate). PLAN §28-8(2026-09-06, 오픈월드 A안)부터 다른 마을로
-         건너가는 들길 표식(예전엔 넷 중 셋)은 아예 안 선다 — 걸어서 발판에
-         들어서면 활성 마을이 좌표로 저절로 갈리므로 발동 표식이 필요 없다.
+    t('마을이 켜지고 사람 일곱 · 표식 넷이 선다', function () {
+      /* 표식 넷 = 역참·결사비·난입(§5.5, 2026-09-18 추가)·굴혈(exit_dungeon)
+         — 전부 모루골 전용(hasGate). PLAN §28-8(2026-09-06, 오픈월드 A안)
+         부터 다른 마을로 건너가는 들길 표식(예전엔 넷 중 셋)은 아예 안
+         선다 — 걸어서 발판에 들어서면 활성 마을이 좌표로 저절로 갈리므로
+         발동 표식이 필요 없다.
          사람 일곱 = 기존 여섯 + 2026-09-06 현상판 직군(herald) 하나. */
       if (DN.active()) { DN.leave(); }
       var T = DG.town;
@@ -3115,7 +3118,7 @@ window.requestAnimationFrame = function () { return 0; };
       T.enter();
       var raw = T.raw();
       if (!raw) { return false; }
-      return T.active() && raw.room.npcs.length === 7 && raw.room.marks.length === 3 &&
+      return T.active() && raw.room.npcs.length === 7 && raw.room.marks.length === 4 &&
         ('사람 ' + raw.room.npcs.length + ' · 표식 ' + raw.room.marks.length);
     });
 
@@ -3269,14 +3272,31 @@ window.requestAnimationFrame = function () { return 0; };
       /* PLAN §28-4 Phase 1 — 굴혈은 이제 마을방 고정 표식(gate)이 아니라
          'W' 들길(exit_dungeon)이다. 자리는 방 밖 통로 끝(corridorPoint)이라
          멀지만, _put()으로 바로 옮겨 놓고 한 틱만 돌리면(닿음 판정은
-         거리만 본다) 예전과 똑같이 확인된다. */
+         거리만 본다) 예전과 똑같이 확인된다.
+         2026-09-18 §5.3(부적 던전)부터는 닿아도 곧장 안 내려간다 —
+         "일반/부적" 중 고르는 카드(openGateChoice)가 먼저 뜨고, "일반
+         던전" 단추(data-act="gate-normal")를 눌러야 그제서야 DN.enter()가
+         불린다(ui.js). 카드가 뜬 것까지만 보고 내려갔다고 잘못 판정하던
+         옛 셈을 버튼 클릭까지 마저 흉내 내는 것으로 고쳤다. */
       var T = DG.town, gate = null;
       document.getElementById('encounter').innerHTML = '';
       if (!T.active()) { T.enter(); }
       T.raw().room.marks.forEach(function (o) { if (o.key === 'exit_dungeon') { gate = o; } });
       if (!gate) { return false; }
+      /* 앞선 항목들이 이미 굴혈을 여러 번 드나들며(§5.1·§5.3·§5.4 진단) 그때마다
+         town.js의 enter({fromDungeon:true})가 굴혈 바로 앞에 세우고 armed를
+         켜 둔다 — 벗어나기 전까지 다시 안 걸리는 그 자물쇠에 걸려 이 항목이
+         닿아도 아무 일도 안 났다("다가서면 말이 걸리고, 벗어나야 다시
+         걸린다" 항목과 같은 결). LEAVE_R만 벗어났다 다시 다가서 자물쇠를
+         푼다 — 활성 마을 전환 반경(R, 최대 1200)까지 나가면 활성 마을이
+         갈려 방이 통째로 다시 지어지므로 그보다 훨씬 안쪽에서 그친다. */
+      T._put(gate.x + 200, gate.y + 200);
+      T.update(0.05);
       T._put(gate.x, gate.y);
       T.update(0.05);
+      var btn = document.querySelector('#encounter [data-act="gate-normal"]');
+      if (!btn) { return false; }
+      btn.click();
       var st = DN.status();
       return DN.active() && !T.active() && st.floor === 1 &&
         ('제' + st.floor + '층 · 마을 꺼짐');
@@ -4589,7 +4609,10 @@ window.requestAnimationFrame = function () { return 0; };
       var boss = FX.shakeOf({ t: 'pop', boss: true });
       var mob = FX.shakeOf({ t: 'pop' });
       var mine = FX.shakeOf({ t: 'hit', foe: true });
-      var none = FX.shakeOf({ t: 'hit' });
+      /* §5.8①(2026-09-18)부터 {t:'hit'}은 foe가 없어도(=내가 때린 쪽) 평타
+         1.5·크리 4를 흔든다 — "흔들리지 않는 예"로 더는 못 쓴다. 흔들림
+         표에 아예 없는 종류를 대신 쓴다. */
+      var none = FX.shakeOf({ t: 'get' });
       var after = FX.shakeStep(boss, 0.5);
       return boss > mob && mine > 0 && none === 0 && boss <= FX.SHAKE_MAX &&
         after === 0 &&
@@ -5512,12 +5535,41 @@ window.requestAnimationFrame = function () { return 0; };
         ('오늘 키 ' + st2.daily.date + ' · 묶음 done ' + Object.keys(st2.daily.bundleDone).length + '개');
     });
 
+    t('탈출하면 노획물이 확정된다', function () {
+      /* 원래 "부대가 있는 앞쪽"에 있었다 — §5.3·§5.4(부적·월드 보스) 진단이
+         끼어들며 앞선 회차가 매번 스스로 정리돼(엔드 나이트메어·죽음 처리)
+         이 자리에 오면 run이 비어 있었다("탈출 정산"을 재는 항목이지 남의
+         회차 재활용이 아니니 스스로 만들어 써야 한다). 그런데 이 자리에서
+         DN.enter()/leave()를 또 하나 돌리면 그 자리의 RNG 소비가 뒤에 오는
+         무관한 항목(부문어 순서)을 밀어 넘어뜨린다(위 "던전 문을 지나면..."
+         항목의 주석과 같은 함정, 실제로 "적을 때리면 타격음을 부른다"가
+         한 번 그렇게 걸렸다) — 그래서 이 항목도 같이 맨 끝으로 옮겨
+         왔다(부대도 위 "reset" 항목이 비운 뒤라 마찬가지로 임시로 채운다). */
+      var keepParty0 = C.save.party.slice();
+      if (!C.save.party.length) { C.save.party = [D.heroes[0].id]; }
+      if (DN.active()) { DN.leave(); }
+      DN.enter({ floor: 1 });
+      var raw = DN.raw();
+      raw.loot.gold = 400;
+      var g0 = C.save.player.gold;
+      var r = DN.leave();
+      C.save.party = keepParty0;
+      return !DN.active() && r.gold === 400 && C.save.player.gold === g0 + 400 &&
+        ('금 +' + r.gold);
+    });
+
     t('카드 — 탈출 카드에 next 필드가 있다 (PLAN §5.6)', function () {
+      /* 이 자리(맨 끝)는 위쪽 "reset" 항목이 부대를 이미 비워 둔 뒤다 —
+         DN.enter()는 부대가 없으면 거절한다("던전 문을 지나면..." 항목과
+         같은 손짓으로 임시로 하나 채웠다 돌려준다). */
+      var keepParty = C.save.party.slice();
+      if (!C.save.party.length) { C.save.party = [D.heroes[0].id]; }
       var got = null;
       C.on('goals:card', function (c) { got = c; });
       if (DN.active()) { DN.leave(); }
       DN.enter({ floor: 1 });
       DN.leave();
+      C.save.party = keepParty;
       return !!(got && got.reason === 'leave' && typeof got.next === 'string' && got.next.length > 0) &&
         ('next: ' + got.next);
     });
