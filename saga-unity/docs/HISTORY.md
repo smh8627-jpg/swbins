@@ -7580,3 +7580,18 @@ troops=wall×0.23 반올림(850·900). 둘 다 원작 land가 이미 plain이라
 **남은 후보 재조사**: 신독 갈래가 닫혀 다음 후보를 웹판 원본 `data-city.js` LINKS 전체를 다시 훑어 확인했다 — 노용→주오(원작 LINKS: luorong-zhuwu, 25차에서 노용을 추가했을 때는 미탐색 상태로 남아있던 자식), 전충의 다른 이웃 서권·구속(원작에 둘 다 잎사귀, 24차에서 비경을 골랐을 때 남긴 형제 가지).
 
 `docs/PROJECT_STATE.md` 갱신(REALM 완료 요약 적국 48→49·성 51→52, 16~29차 절 갱신하며 "신독 갈래 전부 닫힘" 명시, "다음 작업"(30차 후보: 노용→주오 또는 전충의 다른 이웃 서권/구속) · 테스트 상태 · 실기 확인 대기 전부 갱신, "캐릭터 자산" 절 압축해 15KB 상한 안쪽 유지 — 14806B).
+
+## REALM 51장 30차 확장 — 노용→주오 (2026-09-19, 같은 세션 "사가 유니티 이어 해")
+
+29차 뒤 재조사한 후보(노용→주오, 전충의 다른 이웃 서권/구속) 중 노용의 유일한 이웃 주오를 골랐다(원작 LINKS: luorong-zhuwu, "한(漢)의 문서에 남은 가장 남쪽 현" — 원작에 더 뻗는 LINKS 없어 이 갈래는 여기서 끝). train은 노용 자신의 265+15=280. wall은 원작 그대로(2600), troops=wall×0.23 반올림(598). land는 원작 river 그대로.
+
+노용은 자식이 주오 하나뿐이라(신독처럼 형제 가지가 아님) `enemyId` 명시가 필요 없는 단순 체인 삽입 — 27차 대하→오익산리와 같은 패턴.
+
+- `RealmEnemyCity.cs` — `ZhuwuId` 신설, `AllIds`·`Catalog`에 추가.
+- `RealmCityData.cs` — 같은 성 추가.
+- `PlaytestRealmSlice.cs` — `Phase.AttackLuorong`의 다음 단계를 새 `Phase.AttackZhuwu`로 바꾸고, 그 다음은 기존 `Phase.AttackDianchong`으로 복귀. OK 로그 문구에 "chain-30th(zhuwu)" 추가.
+- 로컬라이제이션: `city.zhuwu`(ko/en) 신설.
+
+`tools/unity-batch.sh -- <Unity 인자...>`로 컴파일(error CS 0건)·`PlaytestRealmSlice` 3연속 실행(`Saga.EditorTools.PlaytestRealmSlice.Run`, `-quit` 안 줌) — 주오 함락 로그 매 회 확인, `ProjectSettings/`·`Packages/` 부작용 없음(래퍼가 매번 원복). 씬 재생성 불필요.
+
+`docs/PROJECT_STATE.md` 갱신(REALM 완료 요약 적국 49→50·성 52→53, 16~30차 절 갱신, "다음 작업"(31차 후보: 전충의 다른 이웃 서권 또는 구속) · 테스트 상태 · 실기 확인 대기 전부 갱신, 14664B로 15KB 상한 안쪽 유지).

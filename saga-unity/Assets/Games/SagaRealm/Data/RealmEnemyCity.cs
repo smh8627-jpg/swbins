@@ -309,6 +309,7 @@ namespace Saga.Realm.Data
         public const string WuyishanliId = "wuyishanli";
         public const string MoqietuoId = "moqietuo";
         public const string SheyiId = "sheyi";
+        public const string ZhuwuId = "zhuwu";
 
         public static readonly string[] AllIds =
         {
@@ -317,7 +318,7 @@ namespace Saga.Realm.Data
             YonganId, JianglingId, ChangshaId, ChaisangId, JianyeId, KuaijiId, YunzhongId, ShangjunId,
             ShuofangId, WuyuanId, TianshuiId, NanhaiId, ZhutiId, CangwuId, JianningId, YulinId, YuexiId,
             JiaozhiId, ZangkeId, JiuzhenId, HepuId, RinanId, YunnanId, XianglinId, YongchangId,
-            DianchongId, ShenduId, BijingId, JiantuoluoId, LuorongId, JibinId, DaxiaId, WuyishanliId, MoqietuoId, SheyiId,
+            DianchongId, ShenduId, BijingId, JiantuoluoId, LuorongId, JibinId, DaxiaId, WuyishanliId, MoqietuoId, SheyiId, ZhuwuId,
         };
 
         private static readonly Dictionary<string, RealmEnemyCityDef> Catalog = new Dictionary<string, RealmEnemyCityDef>
@@ -579,6 +580,12 @@ namespace Saga.Realm.Data
             // 첫 사례). 원작에 더 뻗는 LINKS 없어 신독 갈래가 이걸로
             // 전부 닫힌다. land는 원작이 이미 plain이라 보정 불필요.
             [SheyiId] = new RealmEnemyCityDef(SheyiId, "사위", RealmLand.Plain, baseWall: 3000, baseTroops: 690, baseTrain: 200, baseTech: 100, attackFromCityId: "shendu"),
+            // 주오는 노용(luorong)과만 맞닿아 있다(원작 LINKS: luorong-zhuwu,
+            // "한(漢)의 문서에 남은 가장 남쪽 현") — 30차 확장, 노용을
+            // 함락해야 열리는 교주 사슬의 다음 단계이자 이 갈래의 끝(원작에
+            // 더 뻗는 LINKS 없음). train은 노용 자신의 265+15=280. 노용은
+            // 자식이 하나뿐이라 enemyId 불필요. land는 원작 그대로 river.
+            [ZhuwuId] = new RealmEnemyCityDef(ZhuwuId, "주오", RealmLand.River, baseWall: 2600, baseTroops: 598, baseTrain: 280, baseTech: 100, attackFromCityId: "luorong"),
         };
 
         public static RealmEnemyCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;

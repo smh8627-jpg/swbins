@@ -81,7 +81,7 @@ namespace Saga.EditorTools
             AttackTianshui, AttackNanhai, AttackZhuti, AttackCangwu, AttackJianning, AttackYulin, AttackYuexi,
             AttackZangke, AttackJiaozhi, AttackHepu, AttackJiuzhen, AttackYunnan, AttackRinan,
             AttackYongchang, AttackXianglin, AttackDianchong, AttackShendu,
-            AttackBijing, AttackJiantuoluo, AttackLuorong, AttackJibin, AttackDaxia, AttackWuyishanli, AttackMoqietuo, AttackSheyi,
+            AttackBijing, AttackJiantuoluo, AttackLuorong, AttackJibin, AttackDaxia, AttackWuyishanli, AttackMoqietuo, AttackSheyi, AttackZhuwu,
             QuizCorrect, QuizWrong, QuizArchive,
             SaveLoad, Done,
         }
@@ -150,7 +150,7 @@ namespace Saga.EditorTools
 
                 bool ok = !_hadError && _phase == Phase.Done;
                 Debug.Log(ok
-                    ? "[PlaytestRealmSlice] OK - world-map/location gate/ships gate/orders(10)/draft/search/hire/city-assignment/war/diplo(rumor+fire)/captured-city-absorb/multi-target-attack(16th)/multi-target-plot/chain-17th(cangwu+jianning)/chain-18th(yulin+yuexi)/chain-19th(jiaozhi+zangke)/chain-20th(hepu+jiuzhen)/chain-21st(yunnan+rinan)/chain-22nd(yongchang+xianglin)/chain-23rd(shendu+dianchong)/chain-24th(jiantuoluo+bijing)/chain-25th(luorong+jibin)/chain-26th(daxia)/chain-27th(wuyishanli)/chain-28th(moqietuo)/chain-29th(sheyi)/quiz/save-load all verified, no errors"
+                    ? "[PlaytestRealmSlice] OK - world-map/location gate/ships gate/orders(10)/draft/search/hire/city-assignment/war/diplo(rumor+fire)/captured-city-absorb/multi-target-attack(16th)/multi-target-plot/chain-17th(cangwu+jianning)/chain-18th(yulin+yuexi)/chain-19th(jiaozhi+zangke)/chain-20th(hepu+jiuzhen)/chain-21st(yunnan+rinan)/chain-22nd(yongchang+xianglin)/chain-23rd(shendu+dianchong)/chain-24th(jiantuoluo+bijing)/chain-25th(luorong+jibin)/chain-26th(daxia)/chain-27th(wuyishanli)/chain-28th(moqietuo)/chain-29th(sheyi)/chain-30th(zhuwu)/quiz/save-load all verified, no errors"
                     : $"[PlaytestRealmSlice] FAIL - error={_hadError} phase={_phase} frames={_framesSeen}");
                 EditorApplication.Exit(ok ? 0 : 1);
             }
@@ -1269,7 +1269,16 @@ namespace Saga.EditorTools
                     // 25차 확장(2026-09-19) — 상림의 둘째 목표(전충과 형제
                     // 가지, 목표가 둘이 됐으니 enemyId 명시 — changan과
                     // 같은 이유).
-                    if (!AttackChainStep(RealmEnemyCity.XianglinId, RealmEnemyCity.LuorongId, Phase.AttackDianchong, RealmEnemyCity.LuorongId)) return;
+                    if (!AttackChainStep(RealmEnemyCity.XianglinId, RealmEnemyCity.LuorongId, Phase.AttackZhuwu, RealmEnemyCity.LuorongId)) return;
+                    break;
+                }
+
+                case Phase.AttackZhuwu:
+                {
+                    // 30차 확장(2026-09-19) — 노용을 함락한 뒤 이어지는
+                    // 교주 사슬의 다음 단계이자 이 갈래의 끝
+                    // (TargetFrom("luorong")).
+                    if (!AttackChainStep(RealmEnemyCity.LuorongId, RealmEnemyCity.ZhuwuId, Phase.AttackDianchong)) return;
                     break;
                 }
 

@@ -328,6 +328,11 @@ namespace Saga.Realm.Data
             // 그대로 plain. wall은 RealmEnemyCity.cs 사위 정의(3000)와
             // 맞춘다.
             ["sheyi"] = new RealmCityDef("sheyi", "사위", RealmLand.Plain, agri: 170, comm: 150, wall: 3000, pop: 48000, mapX: -26, mapY: 112),
+            // 51장 "대규모 콘텐츠" 30차 확장(2026-09-19) — 노용(luorong)을
+            // 함락한 뒤 이어지는 교주 사슬의 다음 단계이자 이 갈래의 끝.
+            // land는 원작 그대로 river. wall은 RealmEnemyCity.cs 주오
+            // 정의(2600)와 맞춘다.
+            ["zhuwu"] = new RealmCityDef("zhuwu", "주오", RealmLand.River, agri: 130, comm: 120, wall: 2600, pop: 38000, mapX: 30, mapY: 130),
         };
 
         public static RealmCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;
