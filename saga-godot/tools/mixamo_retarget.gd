@@ -98,7 +98,7 @@ func _init():
 		var out_path = "%s/%s_%s.res" % [OUT_DIR, out_prefix, clip]
 		_retarget_one(src_path, correction, chain_order, hips_src_name,
 			hips_rest_local_pos, tgt_hips_rest_pos, pos_scale, out_path,
-			LOOP_CLIPS.has(clip))
+			LOOP_CLIPS.has(clip), LOOP_CLIPS.has(clip))
 
 	_build_library(out_prefix)
 	print("DONE")
@@ -184,7 +184,8 @@ func _depth(name, parent_map):
 
 
 func _retarget_one(src_path, correction, chain_order, hips_src_name,
-		hips_rest_local_pos, tgt_hips_rest_pos, pos_scale, out_path, should_loop := false):
+		hips_rest_local_pos, tgt_hips_rest_pos, pos_scale, out_path,
+		should_loop := false, strip_horizontal := false):
 	var packed = load(src_path)
 	var inst = packed.instantiate()
 	var skel = _find_skeleton(inst)
@@ -245,6 +246,12 @@ func _retarget_one(src_path, correction, chain_order, hips_src_name,
 		var src_hips_pos = skel.get_bone_pose_position(hips_bidx)
 		var delta = (src_hips_pos - hips_rest_local_pos) * pos_scale
 		var corrected_delta = correction[hips_src_name] * delta
+		if strip_horizontal:
+			## Mixamo 소스가 "In Place" 없이 내려와 walk/run 은 1초에 1.5m씩
+			## Hips 가 실제로 전진한다 — 게임 이동은 코드(속도)가 맡으므로
+			## 수평(X·Z) 이동은 버리고 세로(Y) 들썩임만 남겨 제자리 루프로 만든다.
+			corrected_delta.x = 0.0
+			corrected_delta.z = 0.0
 		out_anim.position_track_insert_key(pos_track_idx, t, tgt_hips_rest_pos + corrected_delta)
 
 	var err = ResourceSaver.save(out_anim, out_path)

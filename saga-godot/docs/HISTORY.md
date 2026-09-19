@@ -7627,3 +7627,11 @@ PROJECT_STATE.md` 참고. 요약:
 - walk.fbx 가 "In Place" 안 걸려 있던 것(⑯ 기록)은 이번 확인 범위 밖 — 다음에 실제로 걸어 보며 체감 확인.
 - 교훈: **헤드리스 수치 검증(FK 계산 등)은 "데이터가 옳다"만 증명하지 "런타임에 실제로 재생된다"는 증명 못 한다** — `.tscn` 프로퍼티 텍스트 대입·주석 위치 같은 씬 파일 특유의 함정은 실제로 띄워봐야 잡힌다. Godot 헤드리스 검증(`--headless --editor --quit`)은 파싱 오류만 잡지 이런 조용한 무동작은 안 걸린다.
 - `tools/godot_regress.sh` 다섯 판 재확인 통과, GUI 확인 끝나고 Godot 프로세스 전부 PID로 정리.
+
+## walk/run "In Place" 미체크 — 헤드리스로 마무리 (2026-09-19⑲)
+
+- ⑱에서 범위 밖으로 미뤄둔 것: Mixamo walk.fbx 가 "In Place" 없이 내려와 Hips 가 초당 1.5m 실제로 전진(⑯ 기록) — 게임 이동은 코드(속도)가 맡으므로 애니 쪽 수평 이동이 겹치면 밀림/미끄러짐이 생길 수 있다.
+- 실기 없이도 잡히는 종류의 버그라 판단해 `tools/mixamo_retarget.gd`에서 고쳤다: `LOOP_CLIPS`(idle/walk/run)에 대해서만 Hips 위치 트랙의 X·Z(수평)를 0으로 버리고 Y(세로 들썩임)만 남기는 `strip_horizontal` 옵션 추가. attack/hit/dodge/death/pickup 은 원래 전진이 있는 동작이라 그대로 둠.
+- 검증: 임시 스크립트(`verify_inplace.gd`, 스크래치패드)로 재생성한 `AvatarSample_A_walk/run/idle.res`의 Hips 위치 트랙을 프레임마다 훑어 `max_horizontal_drift=0.0` 확인(수정 전엔 컸을 것 — 비교값은 안 남김). GO(AvatarSample_A)·FOREST(saga_forest_avatar_01) 둘 다 재생성.
+- `tools/godot_regress.sh` 다섯 판 3회 통과, `.import`/`project.godot` 잡음 없음. 재생성된 `assets/characters_vroid/anim/*.res`는 `.gitignore` 대상(로컬 전용)이라 커밋 대상 아님 — 커밋은 `tools/mixamo_retarget.gd` 만.
+- 실기 확인은 그대로 남는다: 세로 들썩임 크기·발이 미끄러지듯 안 보이는지는 실제로 걸어봐야 한다(PROJECT_STATE "실기 확인 대기" GO/DUNGEON walk/run 항목).

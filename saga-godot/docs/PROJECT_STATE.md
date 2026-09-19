@@ -17,11 +17,11 @@
 
 ## 현재 작업
 
-- **09-19⑱ Mixamo 실기 확인 — 버그 2개 고침**: windowed 스크린샷으로 직접 확인하니 T포즈였다. `.tscn`의 `libraries={...}` 텍스트 대입이 실제론 등록 안 됨(→ `anim_library_loader.gd` 런타임 등록으로 우회) + `mixamo_retarget.gd`가 idle/walk/run까지 `LOOP_NONE`으로 저장해 1프레임에 얼어붙음(→ `LOOP_CLIPS`만 `LOOP_LINEAR`). 재확인(2초 간격 스크린샷)으로 idle 순환 확정. 경위 `docs/HISTORY.md` ⑱.
+- **09-19⑲ walk/run "In Place" 미체크 고침(헤드리스)**: ⑱에서 미룬 Hips 초당 1.5m 전진을 `mixamo_retarget.gd`에 `strip_horizontal` 옵션 추가로 해소(idle/walk/run 만 수평 버리고 세로 들썩임만 남김). GO·FOREST 재생성, 회귀 통과. 세로 들썩임 체감·미끄러짐 여부는 실기 확인 대기로 남음. 경위 `docs/HISTORY.md` ⑲(Mixamo T포즈 2버그 고친 ⑱ 이어서).
 
 ## 다음 작업 (우선순위 — 상세는 PLAN 해당 장)
 
-1. **사용자 실기·색감 확인**(아래) — VRoid 눈·입 · 1.7m · walk/run 루트 이동 체감(GO·FOREST) · **굴혈 mood 3 톤**(`assets/generated/variants/*__dungeon_*.glb`).
+1. **사용자 실기·색감 확인**(아래) — VRoid 눈·입 · 1.7m · walk/run 세로 들썩임 체감(GO·FOREST, 09-19⑲로 수평 미끄러짐은 이미 고침) · **굴혈 mood 3 톤**(`assets/generated/variants/*__dungeon_*.glb`).
 2. **"시대 퓨전" 팔레트** — 소품 자체가 없어 소품 생기기 전엔 착수 안 함.
 
 ## 알려진 오류
