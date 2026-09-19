@@ -253,3 +253,13 @@ ASSET_LICENSES.md`의 "MPFB2 + makehuman_system_assets" 절 참고).
 정규화된 모델을 기준으로 하면 캐시가 처음 잰 배율에 고정돼 다른 배율로
 부른 다음 배우가 뒤틀린다(`js/asset3d.js`의 `retargetInto` 주석 참고,
 saga-forest와 다른 점 — 그 판은 hero 배율이 늘 1이라 이 문제가 없다).
+
+## VRM 애니메 아바타 (2026-09-20, saga-forest 에서 옮김)
+
+`assets/models/people/anime/avatar_{sample_a,sample_b,sample_c,custom_01}.glb` —
+VRoid Studio 공식 CC0 샘플 AvatarSample_A/B/C(github.com/madjin/vrm-samples,
+저작권 포기·상업 이용 무료·표시 의무 없음) + 이 저장소가 GUI 자동화로 새로
+빚은 avatar_custom_01(라이선스는 상업 이용 허가 CC BY로 내보냄). 넷 다
+`saga-forest/assets/ASSET_LICENSES.md`의 같은 절과 같은 파일(md5 동일) —
+자세한 출처·내보내기 경위는 그쪽 문서 참고. `js/asset3d.js`의
+`HERO_RECIPES_ANIME`(기본 꺼짐, `world3d.animeAvatar` 손잡이)로만 쓰인다.

@@ -224,8 +224,29 @@
     return gltf.scene.clone(true);
   }
 
+  /* 2026-09-20 — "원신급" VRM 애니메 아바타(사가의숲 asset3d.js에서 먼저 만든 것,
+     경위는 saga-forest HANDOFF.md 2026-09-19 절)를 이 판에도 옮긴다. VRoid Studio
+     공식 CC0 샘플 AvatarSample_A/B/C(github.com/madjin/vrm-samples) + 이 저장소가
+     GUI 자동화로 새로 빚은 avatar_custom_01 — 넷 다 사가의숲과 같은 파일(md5 동일,
+     assets/ASSET_LICENSES.md 참고). **기본은 꺼짐**(0) — 손잡이를 켜기 전엔
+     기존 QRPG/MPFB 배정에 전혀 안 끼어든다. */
+  var PEOPLE_ANIME = 'assets/models/people/anime/';
+  var HERO_RECIPES_ANIME = ['a', 'b', 'c'].map(function (n) {
+    return { key: 'anime_avatar_' + n, body: PEOPLE_ANIME + 'avatar_sample_' + n + '.glb' };
+  }).concat([
+    { key: 'anime_avatar_custom01', body: PEOPLE_ANIME + 'avatar_custom_01.glb' }
+  ]);
+  function wantsAnimeAvatar() {
+    var C = global.DG.core;
+    return (C && C.tuned && C.tuned('world3d.animeAvatar', 0)) ? true : false;
+  }
+
   /** 표에서 이 씨앗이 고를 몸+옷+머리 조합 — 조합 객체일 때만 돌려준다 */
   function heroRecipe(seed) {
+    if (wantsAnimeAvatar()) {
+      var arec = oneOf(HERO_RECIPES_ANIME, seed);
+      if (arec) { return arec; }
+    }
     var h = lookup('hero');
     if (!h) { return null; }
     var v = oneOf(h.url, seed);
@@ -348,15 +369,35 @@
     return found;
   }
 
-  /** 목표 뼈 이름 → 원본 뼈 이름 표. 이름이 같은 것만 잇는다(항등) —
-   *  saga-go `asset3d.js`의 `boneNameMap()`과 동일 */
+  /** VRM Humanoid(VRoid, `J_Bip_C/L/R_*`) → 이 판 뼈 이름 표(2026-09-20, 사가의숲
+   *  asset3d.js에서 옮김). 손가락은 뺐다 — 이 판 로코모션 클립이 손가락을 안
+   *  건드려 굳이 안 옮겨도 무방하다. 항등 매칭이 하나도 안 걸리는 VRM 몸에만
+   *  덧붙는 보충표라, 기존 QRPG·MPFB(이미 이름이 같아 항등만으로 되던 몸)는 이
+   *  표를 안 거친다 — 손 안 댐. */
+  var VRM_TO_UAL1_BONES = {
+    J_Bip_C_Hips: 'pelvis', J_Bip_C_Spine: 'spine_01', J_Bip_C_Chest: 'spine_02',
+    J_Bip_C_UpperChest: 'spine_03', J_Bip_C_Neck: 'neck_01', J_Bip_C_Head: 'Head',
+    J_Bip_L_Shoulder: 'clavicle_l', J_Bip_L_UpperArm: 'upperarm_l', J_Bip_L_LowerArm: 'lowerarm_l', J_Bip_L_Hand: 'hand_l',
+    J_Bip_R_Shoulder: 'clavicle_r', J_Bip_R_UpperArm: 'upperarm_r', J_Bip_R_LowerArm: 'lowerarm_r', J_Bip_R_Hand: 'hand_r',
+    J_Bip_L_UpperLeg: 'thigh_l', J_Bip_L_LowerLeg: 'calf_l', J_Bip_L_Foot: 'foot_l', J_Bip_L_ToeBase: 'ball_l',
+    J_Bip_R_UpperLeg: 'thigh_r', J_Bip_R_LowerLeg: 'calf_r', J_Bip_R_Foot: 'foot_r', J_Bip_R_ToeBase: 'ball_r'
+  };
+
+  /** 목표 뼈 이름 → 원본 뼈 이름 표. 이름이 같은 것만 먼저 잇고(항등) —
+   *  saga-go `asset3d.js`의 `boneNameMap()`과 동일 — 그 위에 VRM 표를
+   *  덧붙인다(항등으로 이미 잡힌 이름은 건드리지 않는다). */
   function boneNameMap(tm, sm) {
-    var map = {}, n = 0, i;
+    var map = {}, n = 0, i, vname;
     if (!tm.skeleton || !sm.skeleton) { return { map: map, count: 0 }; }
     var have = {}, sb = sm.skeleton.bones, tb = tm.skeleton.bones;
     for (i = 0; i < sb.length; i++) { have[sb[i].name] = 1; }
     for (i = 0; i < tb.length; i++) {
       if (have[tb[i].name]) { map[tb[i].name] = tb[i].name; n++; }
+    }
+    for (i = 0; i < tb.length; i++) {
+      if (map[tb[i].name]) { continue; }
+      vname = VRM_TO_UAL1_BONES[tb[i].name];
+      if (vname && have[vname]) { map[tb[i].name] = vname; n++; }
     }
     return { map: map, count: n };
   }
@@ -551,6 +592,11 @@
     ownAllMat: ownAllMat,
     three: three,
     REG: function () { return REG; },
-    stats: function () { return { built: built, broke: broke }; }
+    stats: function () { return { built: built, broke: broke }; },
+    /** 진단 전용 — VRM 애니메 아바타 손잡이·레시피·뼈 매핑표 조회(2026-09-20) */
+    wantsAnimeAvatar: wantsAnimeAvatar,
+    heroRecipesAnime: function () { return HERO_RECIPES_ANIME; },
+    vrmToUal1Bones: function () { return VRM_TO_UAL1_BONES; },
+    boneNameMap: boneNameMap
   };
 })(typeof window !== 'undefined' ? window : this);
