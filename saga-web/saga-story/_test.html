@@ -1075,7 +1075,10 @@ window.DG_NO_TUNE = true;
       var t2 = J.spTotal();
       C.save.player.level = 11;
       var stored = ('sp' in C.save) || ('skillPoints' in C.save);
-      return t1 === 30 && l1 === 30 && t2 === 60 && !stored &&
+      /* 수치는 하드코딩하지 않는다 — §5-2 에서 SP_PER_LEVEL 이 3→2 로 한 번
+         바뀌었듯 앞으로 또 바뀔 수 있다. 식 자체(레벨-1)×SP_PER_LEVEL만 잰다 */
+      var exp1 = 10 * JD.SP_PER_LEVEL, exp2 = 20 * JD.SP_PER_LEVEL;
+      return t1 === exp1 && l1 === exp1 && t2 === exp2 && !stored &&
         ('Lv.11 → ' + t1 + '점 · Lv.21 → ' + t2 + '점 · 세이브에 칸 없음');
     });
 
@@ -1136,7 +1139,7 @@ window.DG_NO_TUNE = true;
       var why = J.canRaise('w_cut');
       unlearn();
       return done === 10 && maxed && spent === 10 && why === '이미 다 익혔습니다' &&
-        ('열 점까지 · 남은 점수 ' + (30 - spent));
+        ('열 점까지 · 남은 점수 ' + (J.spTotal() - spent));
     });
 
     t('무예 레벨이 오르면 실제로 세진다', function () {
@@ -1150,6 +1153,58 @@ window.DG_NO_TUNE = true;
       unlearn();
       return five > one && Math.abs(five - (1.15 + 0.09 * 4)) < 0.001 &&
         ('참격 1레벨 ×' + one.toFixed(2) + ' → 5레벨 ×' + five.toFixed(2));
+    });
+
+    /* ── 유파(PLAN §5-2) ────────────────────────────────── */
+
+    t('유파(§5-2) — 띠에 같은 유파가 2/4개면 세트가 켜진다(2=소효과,4=대효과)', function () {
+      /* join()/raise() 의 문턱 사슬을 다 밟을 필요 없이, 세이브를 직접 채워
+         "이미 이만큼 찍혀 있다"만 흉내낸다(3차 무예 진단과 같은 요령) */
+      unlearn();
+      C.save.player.level = 90;
+      C.save.job = 'warrior';
+      C.save.skills = { w_cut: 10 };
+      var none = J.activeSchools().w_jung;                // 1개(w_cut) — 세트 아님
+      C.save.job = 'general';
+      C.save.skills = { w_cut: 10, g_smash: 10 };
+      var two = J.activeSchools().w_jung;                  // 2개 — 소세트
+      C.save.job = 'marshal';
+      C.save.skills = { w_cut: 10, g_smash: 10, n_heaven: 10 };
+      var three = J.activeSchools().w_jung;                // 3개 — 여전히 소세트
+      C.save.job = 'warlord';
+      C.save.skills = { w_cut: 10, g_smash: 10, n_heaven: 10, o_ruin: 10 };
+      var four = J.activeSchools().w_jung;                 // 4개 — 대세트
+      unlearn();
+      return !none && two === 2 && three === 2 && four === 4 &&
+        ('1개 없음 · 2개 ' + two + '세트 · 3개 ' + three + '세트 · 4개 ' + four + '세트');
+    });
+
+    t('유파(§5-2) — 세트는 배율만 바꾸고 무예의 효과 종류는 그대로다', function () {
+      unlearn();
+      C.save.player.level = 90;
+      C.save.job = 'warlord';
+      C.save.skills = { w_cut: 10, g_smash: 10, n_heaven: 10, o_ruin: 10 };   // w_jung 4세트
+      var sk = JD.skill('o_ruin');
+      var effBefore = sk.effect;
+      var sb = J.schoolBonus(sk);
+      unlearn();
+      return effBefore === 'melee' && sk.effect === 'melee' && sb.dmgMul === 1.35 &&
+        ('효과 ' + sk.effect + ' 그대로 · 대세트 배율 ×' + sb.dmgMul);
+    });
+
+    t('유파(§5-2) — SP 총량이 줄어도 옛 세이브가 이미 찍은 점수는 그대로다', function () {
+      /* SP_PER_LEVEL 3→2 마이그레이션(PLAN 5-2 수치) — 환급·삭제 없이
+         "새로 못 찍게만" 막는다. Lv.11 은 새 식으로 20점인데 23점을 이미
+         찍어 뒀다고 흉내낸다(옛 식 30점 시절에 찍었을 법한 값). */
+      unlearn();
+      C.save.player.level = 11;
+      C.save.job = 'warrior';
+      C.save.skills = { w_cut: 10, w_whirl: 10, w_rush: 3 };
+      var kept = J.spSpent() === 23 && J.levelOf('w_cut') === 10 && J.levelOf('w_rush') === 3;
+      var blocked = J.canRaise('w_rush');
+      unlearn();
+      return kept && blocked === '무예 점수가 없습니다' &&
+        ('찍어 둔 23점 그대로 · 더 못 찍음 "' + blocked + '"');
     });
 
     t('윗자리는 아랫자리 무예를 5 이상 익혀야 오른다', function () {

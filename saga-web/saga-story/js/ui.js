@@ -969,31 +969,43 @@
       html += '</div>';
     }
 
-    /* 무예 목록 */
+    /* 무예 목록 — 유파(§5-2)별로 묶는다. 띠(bar)에 같은 유파가 2/4개 있으면
+       그 유파 전체(무예 카드 + 아래 조작 띠 슬롯)가 색을 받는다(.set2/.set4) */
     var mine = JD.skillsOf(me.key).filter(function (s) { return s.max > 0; });
+    var active = J.activeSchools();
     html += '<div class="sec"><h4>무예</h4>';
     if (!mine.length) {
       html += '<div class="hint">아직 익힐 무예가 없습니다. <b>Lv.10</b> 에 전직하면 열립니다 — ' +
         '그때까지는 연참·횡소·기탄·기합 넷을 씁니다.</div>';
     }
-    for (i = 0; i < mine.length; i++) {
-      var sk = mine[i], lv = J.levelOf(sk.key), why2 = J.canRaise(sk.key);
-      var mul = J.mulOf(sk);
-      html += '<div class="card' + (lv > 0 ? ' on' : '') + '">' +
-        '<div class="stat-row"><span>' + sk.emoji + ' <b>' + esc(sk.name) + '</b></span>' +
-          '<b>' + lv + ' / ' + sk.max + '</b></div>' +
-        '<div class="stat-row"><span class="muted">' + esc(sk.desc) + '</span>' +
-          '<span class="muted">기력 ' + sk.cost + ' · 쿨 ' + sk.cd + 's</span></div>' +
-        (lv > 0 && sk.mul[0]
-          ? '<div class="stat-row"><span class="muted">지금 힘</span><b>공격력 ×' +
-            mul.toFixed(2) + '</b></div>'
-          : '') +
-        '<div class="btn-row">' +
-          (why2
-            ? '<button class="btn tiny ghost" disabled>' + esc(why2) + '</button>'
-            : '<button class="btn tiny primary" data-act="j-raise" data-skill="' + sk.key +
-              '">＋ 한 점 붓는다</button>') +
-        '</div></div>';
+    var groups = JD.SCHOOLS.filter(function (s) {
+      return mine.some(function (m) { return m.school === s.id; });
+    });
+    for (var gi = 0; gi < groups.length; gi++) {
+      var def = groups[gi], tier = active[def.id] || 0;
+      html += '<div class="school-head' + (tier ? ' set' + tier : '') + '">' +
+        '<b>' + esc(def.name) + ' 유파</b> <span class="muted">— ' +
+        (tier ? tier + '세트 발동 중' : '띠에 2개면 소효과, 4개면 대효과') + '</span></div>';
+      var list = mine.filter(function (s) { return s.school === def.id; });
+      for (i = 0; i < list.length; i++) {
+        var sk = list[i], lv = J.levelOf(sk.key), why2 = J.canRaise(sk.key);
+        var mul = J.mulOf(sk);
+        html += '<div class="card' + (lv > 0 ? ' on' : '') + (tier ? ' set' + tier : '') + '">' +
+          '<div class="stat-row"><span>' + sk.emoji + ' <b>' + esc(sk.name) + '</b></span>' +
+            '<b>' + lv + ' / ' + sk.max + '</b></div>' +
+          '<div class="stat-row"><span class="muted">' + esc(sk.desc) + '</span>' +
+            '<span class="muted">기력 ' + sk.cost + ' · 쿨 ' + sk.cd + 's</span></div>' +
+          (lv > 0 && sk.mul[0]
+            ? '<div class="stat-row"><span class="muted">지금 힘</span><b>공격력 ×' +
+              mul.toFixed(2) + '</b></div>'
+            : '') +
+          '<div class="btn-row">' +
+            (why2
+              ? '<button class="btn tiny ghost" disabled>' + esc(why2) + '</button>'
+              : '<button class="btn tiny primary" data-act="j-raise" data-skill="' + sk.key +
+                '">＋ 한 점 붓는다</button>') +
+          '</div></div>';
+      }
     }
     html += '</div>';
 
@@ -1001,9 +1013,21 @@
     var bar = J.bar();
     html += '<div class="sec"><h4>조작 띠</h4><div class="card">';
     for (i = 0; i < bar.length; i++) {
-      html += '<div class="stat-row"><span>' + (i + 1) + ' · ' + bar[i].emoji + ' ' +
-        esc(bar[i].name) + '</span><span class="muted">' +
+      var bDef = bar[i].school ? JD.schoolDef(bar[i].school) : null;
+      var bTier = bDef ? (active[bDef.id] || 0) : 0;
+      html += '<div class="stat-row' + (bTier ? ' set' + bTier : '') + '"><span>' + (i + 1) + ' · ' +
+        bar[i].emoji + ' ' + esc(bar[i].name) +
+        (bDef ? ' <small class="muted">[' + esc(bDef.name) + ']</small>' : '') +
+        '</span><span class="muted">' +
         (bar[i].max ? '레벨 ' + J.levelOf(bar[i].key) : '고정') + '</span></div>';
+    }
+    var onNames = Object.keys(active).map(function (id) {
+      var d = JD.schoolDef(id);
+      return (d ? d.name : id) + ' ' + active[id] + '세트';
+    });
+    if (onNames.length) {
+      html += '<div class="stat-row"><span class="muted">지금 켜진 세트</span><b>' +
+        onNames.join(' · ') + '</b></div>';
     }
     html += '<small class="muted">키 1~8 · 화면 아래 단추. 자리가 여덟을 넘으면 ' +
       '<b>윗자리 무예부터</b> 놓입니다 — 4차까지 열리면 한 갈래가 열다섯입니다.</small></div></div>';

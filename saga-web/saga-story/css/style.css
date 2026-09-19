@@ -272,6 +272,19 @@ body.focus #top, body.focus #autobar, body.focus #dock { display: none !importan
 .btn-row { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; align-items: center; }
 .card.on { border-color: rgba(232,193,90,.5); background: rgba(232,193,90,.07); }
 .card + .card { margin-top: 7px; }
+
+/* 유파 세트(PLAN §5-2) — 2개면 파랑, 4개면 보라(이미 쓰던 --gold 는 "찍은
+   무예"를 가리키는 색이라 겹치면 안 헷갈리게 다른 색을 골랐다). 무예 카드·
+   조작 띠 줄·유파 머리글 셋 다 같은 두 색을 쓴다. */
+.school-head { font-size: 11px; color: var(--ink-dim); margin: 10px 0 5px; }
+.school-head:first-child { margin-top: 0; }
+.school-head b { color: var(--ink); }
+.school-head.set2 b { color: var(--blue); }
+.school-head.set4 b { color: var(--purple); }
+.card.set2 { border-color: rgba(74,163,240,.5); }
+.card.set4 { border-color: rgba(181,123,245,.5); }
+.stat-row.set2 { color: var(--blue); }
+.stat-row.set4 { color: var(--purple); }
 .muted { color: var(--ink-dim); }
 .warn { color: var(--bad); }
 small.muted { display: block; margin-top: 7px; font-size: 10.5px; }

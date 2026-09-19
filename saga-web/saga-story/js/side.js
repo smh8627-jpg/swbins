@@ -730,7 +730,9 @@
     if (!run) { return false; }
     var p = run.player;
     if (p.climb || p.dodgeCd > 0) { return false; }
-    p.dodgeCd = DODGE_COOL;
+    /* 유파(§5-2) — 띠에 dash 계열 유파 세트(2 이상)가 있으면 회피가 더 자주 돈다 */
+    var J = global.DG.job;
+    p.dodgeCd = DODGE_COOL * (J ? J.dodgeCdMul() : 1);
     var from = p.x, dir = input.left ? -1 : (input.right ? 1 : p.facing);
     p.x = core.clamp(p.x + DODGE_DIST * dir, 0, run.stage.width - P_W);
     p.dropThru = 0;
@@ -779,8 +781,8 @@
    * 판정을 흔들지 않으면서 "때렸다" 는 감각을 주는 가장 싼 값이다.
    * 다만 **보스는 밀리지 않는다**(밀리면 달려드는 패턴이 뜻을 잃는다).
    */
-  function strike(e, mul) {
-    var crit = Math.random() < critRate();
+  function strike(e, mul, forceCrit) {
+    var crit = forceCrit || Math.random() < critRate();
     var dmg = atkOf() * (mul || 1) * (0.88 + Math.random() * 0.24) * (crit ? critMul() : 1);
     dmg = Math.max(1, Math.round(dmg));
     e.hp -= dmg;
@@ -973,6 +975,12 @@
 
     var j, e, dx, dy, mul = mulOf(sk);
     var eff = sk.effect;
+    /* 유파(§5-2) — 띠 조합에 따른 보정을 여기 한 곳에서 구해, 아래 갈래마다
+       제 자리(mul·r·buff.sec·heal·shots)에 곱하거나 더하기만 한다. side.js 는
+       유파가 뭔지 몰라도 된다(job.js schoolBonus() 가 다 정한다). */
+    var JB = global.DG.job;
+    var sb = JB ? JB.schoolBonus(sk) : null;
+    mul *= sb ? sb.dmgMul : 1;
 
     if (eff === 'melee') {
       var hits = sk.hits || 1;
@@ -984,7 +992,7 @@
         }
       }
     } else if (eff === 'aoe') {
-      var r = sk.r || REACH * 1.5;
+      var r = (sk.r || REACH * 1.5) * (sb ? sb.aoeMul : 1);
       fx.push({ t: 'ring', x: p.x + P_W / 2, y: p.y + P_H / 2, r: r, life: 0.28 });
       for (j = 0; j < run.enemies.length; j++) {
         e = run.enemies[j];
@@ -1000,8 +1008,9 @@
                        mul: mul, pierce: eff === 'bolt', kind: sk.key, hit: {},
                        ox: p.x + P_W / 2 });
     } else if (eff === 'volley') {
-      /* 여러 발 — 높이를 조금씩 달리해 한 줄로 겹치지 않게 한다 */
-      var n = sk.shots || 2;
+      /* 여러 발 — 높이를 조금씩 달리해 한 줄로 겹치지 않게 한다.
+         유파(§5-2) 연·화·탄 세트가 발수를 늘린다(2=+1·4=+2) */
+      var n = (sk.shots || 2) + (sb ? sb.shotsAdd : 0);
       for (j = 0; j < n; j++) {
         run.shots.push({ x: p.x + P_W / 2, y: p.y + P_H * (0.3 + 0.16 * j), dir: p.facing,
                          spd: 600 + j * 34, life: 1.1,
@@ -1026,7 +1035,8 @@
       for (j = 0; j < run.enemies.length; j++) {
         e = run.enemies[j];
         if (e.x + e.w > lo && e.x < hi && Math.abs((e.y + e.h) - (p.y + P_H)) < 60) {
-          strike(e, mul);
+          /* 유파(§5-2) 질·퇴·보·축 4세트 — dash 무예로 때리면 급소가 확정된다 */
+          strike(e, mul, sb && sb.critForce);
         }
       }
     } else if (eff === 'rain') {
@@ -1047,13 +1057,14 @@
         }
       }
     } else if (eff === 'heal') {
-      var pct = sk.heal ? (sk.heal[0] + sk.heal[1] * Math.max(0, lvOf(sk) - 1)) : 0.2;
+      var pct = (sk.heal ? (sk.heal[0] + sk.heal[1] * Math.max(0, lvOf(sk) - 1)) : 0.2) *
+        (sb ? sb.healMul : 1);
       run.hp = Math.min(run.hpMax, run.hp + Math.round(run.hpMax * pct));
       fx.push({ t: 'heal', x: p.x, y: p.y, life: 0.5 });
     } else if (eff === 'buff') {
       var b = sk.buff || { sec: BRACE_SEC, atk: 1.35 };
       p.buff = {
-        until: Date.now() + (b.sec || BRACE_SEC) * 1000,
+        until: Date.now() + (b.sec || BRACE_SEC) * 1000 * (sb ? sb.buffMul : 1),
         atk: b.atk || 1, speed: b.speed || 1, guard: b.guard || 0, regen: b.regen || 1,
         name: sk.name
       };

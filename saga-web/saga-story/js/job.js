@@ -7,8 +7,13 @@
  *   save.job    = 'none' | 'warrior' | …          지금 직업
  *   save.skills = { 무예key: 레벨 }               찍은 것
  *
- * **무예 점수(SP)는 담지 않는다.** 총점 (레벨-1)×3 에서 찍은 레벨의 합을 뺀 것이
- * 남은 점수다 — 파생값이라 옛 세이브에도 그냥 맞고, 레벨이 오르면 저절로 는다.
+ * **무예 점수(SP)는 담지 않는다.** 총점 (레벨-1)×`SP_PER_LEVEL`(§5-2 이후 2)
+ * 에서 찍은 레벨의 합을 뺀 것이 남은 점수다 — 파생값이라 옛 세이브에도 그냥
+ * 맞고, 레벨이 오르면 저절로 는다.
+ *
+ * **유파(§5-2)** — 띠(bar())에 놓인 것들 중 같은 `school`(SKILLS 의 태그)이
+ * 2개면 소효과, 4개면 대효과가 붙는다. 세이브 칸은 안 늘린다 — 지금 찍은
+ * 무예·직업만으로 매번 다시 계산한다(schoolBonus 참고).
  */
 (function (global) {
   'use strict';
@@ -181,6 +186,62 @@
     return out;
   }
 
+  /* ── 유파(§5-2) ───────────────────────────────────────── */
+
+  /** 띠에 놓인 것들 중 유파별로 몇 개씩인지 — school 없는 것(무명 넷)은 안 센다 */
+  function schoolCounts() {
+    var list = bar(), out = {};
+    for (var i = 0; i < list.length; i++) {
+      var sc = list[i].school;
+      if (!sc) { continue; }
+      out[sc] = (out[sc] || 0) + 1;
+    }
+    return out;
+  }
+
+  /** 지금 세트가 켜진 유파들 — {유파id: 2|4} */
+  function activeSchools() {
+    var counts = schoolCounts(), out = {};
+    for (var id in counts) {
+      if (!Object.prototype.hasOwnProperty.call(counts, id)) { continue; }
+      if (counts[id] >= 4) { out[id] = 4; } else if (counts[id] >= 2) { out[id] = 2; }
+    }
+    return out;
+  }
+
+  /**
+   * 그 무예 하나가 지금 세트로 받는 보정 — **판정은 여기 한 곳에서만 정한다**
+   * (side.js 는 이 결과를 받아 자기 자리(mul·r·buff.sec·heal·shots)에 곱하거나
+   * 더할 뿐, 유파가 뭔지는 몰라도 된다). 세트가 없으면 전부 중립값을 돌려준다.
+   */
+  function schoolBonus(sk) {
+    var out = { dmgMul: 1, aoeMul: 1, buffMul: 1, healMul: 1, shotsAdd: 0, dodgeCdMul: 1, critForce: false };
+    if (!sk || !sk.school) { return out; }
+    var tier = activeSchools()[sk.school];
+    if (!tier) { return out; }
+    var def = JD.schoolDef(sk.school);
+    if (!def) { return out; }
+    var v = tier === 4 ? def.v4 : def.v2;
+    if (def.kind === 'dmg') { out.dmgMul = v; }
+    else if (def.kind === 'aoe') { out.aoeMul = v; }
+    else if (def.kind === 'buff') { out.buffMul = v; }
+    else if (def.kind === 'heal') { out.healMul = v; }
+    else if (def.kind === 'volley') { out.shotsAdd = v; }   // 배율표 v 값 자체가 더할 발수다(v2=1발·v4=2발)
+    else if (def.kind === 'dash') { out.dodgeCdMul = def.v2; out.critForce = tier >= 4; }
+    return out;
+  }
+
+  /** 회피(§5-5 대시)의 재사용 대기 배율 — 지금 띠에 dash 유파 세트(2 이상)가
+   *  있으면 낮아진다. side.js 의 dodge() 하나에서만 쓴다. */
+  function dodgeCdMul() {
+    var list = bar(), mul = 1;
+    for (var i = 0; i < list.length; i++) {
+      var b = schoolBonus(list[i]);
+      if (b.dodgeCdMul < mul) { mul = b.dodgeCdMul; }
+    }
+    return mul;
+  }
+
   /** 그 무예의 지금 힘 (레벨이 실린 배율) */
   function mulOf(sk) {
     if (!sk || !sk.mul) { return 0; }
@@ -208,6 +269,8 @@
     state: st, cur: cur, levelOf: levelOf,
     spTotal: spTotal, spSpent: spSpent, spLeft: spLeft,
     canJoin: canJoin, join: join, resetJob: resetJob, canRaise: canRaise, raise: raise,
-    bar: bar, mulOf: mulOf, grow: grow
+    bar: bar, mulOf: mulOf, grow: grow,
+    schoolCounts: schoolCounts, activeSchools: activeSchools, schoolBonus: schoolBonus,
+    dodgeCdMul: dodgeCdMul
   };
 })(window);
