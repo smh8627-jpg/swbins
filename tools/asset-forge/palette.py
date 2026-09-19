@@ -56,6 +56,22 @@ PALETTES = {
 		"sand": (0.76, 0.68, 0.50),
 		"shrine_wood": (0.50, 0.42, 0.30),
 	},
+	## saga-godot PLAN.md 103-3 "폐허" 갈래 base8 — go_village과 같은 원칙
+	## (새로 안 지어냄). terrain_builder.gd LEGEND["R"]·landmarks_builder.gd
+	## 바위 재질(mossstone 포함)·region3_ruins.gd DEBRIS_COLOR에서 그대로
+	## 뽑았다(2026-09-19). "시대 퓨전"(녹슨 금속·홀로그램) 갈래는 아직 이
+	## 판에 실제 색이 없어(전장 잔해 4종은 방패·투구·화살통·깃발, 미래 소품
+	## 아님) 보류 — 실제로 그 소품이 생기면 그때 base8을 뽑는다.
+	"go_ruins": {
+		"ruins_ground": (0.45, 0.42, 0.40),
+		"debris": (0.40, 0.36, 0.30),
+		"weathered_stone": (0.48, 0.44, 0.36),
+		"moss_stone": (0.30, 0.36, 0.24),
+		"mountain_stone": (0.55, 0.53, 0.50),
+		"path": (0.62, 0.50, 0.32),
+		"cave_dark": (0.20, 0.20, 0.22),
+		"plains": (0.38, 0.55, 0.24),
+	},
 	## saga-forest PLAN.md §6.3 "green"(기본) 바이옴 판별 팔레트 base8.
 	## TILES(grass/path 등)·FOG_COLOR 앵커에서 그대로 옮겼다(2026-09-19,
 	## Kenney Fantasy Town Kit 킷배싱 건물의 diffuse 를 이 팔레트로 스냅).
@@ -241,7 +257,26 @@ def _material_matches(mat, only_suffix):
 	return ("_" + only_suffix.upper()) in name
 
 
-def snap_glb(in_path, palette_path, out_path, only_suffix=None):
+def _node_excluded(scene, geom_name, exclude_node_prefix):
+	"""snap-glb 전용 — material.name 만으로는 못 가리는 조립물(kitbash.py
+	가 여러 부품을 하나로 합치면 부품마다 원래 material 이 달라도 텍스처
+	내용이 우연히 같으면 glTF 내보내기 단계에서 재질이 하나로 합쳐진다.
+	그래서 material 기준(`_material_matches`)이 아니라 **씬 그래프 노드
+	이름**(kitbash.py `assemble()`이 `"<원본 파일명>_<idx>"`로 붙인다,
+	예: "roof-gable_5")으로 가린다. 2026-09-19 — 집 지붕만 색을 다르게
+	해 §6.4 "주민 집 외형 3종"을 만들 때, 조립 뒤 전체 스냅이 미리 물들여
+	둔 지붕 텍스처까지 다시 8색으로 덮어써 버리는 걸 막는 용도."""
+	if not exclude_node_prefix:
+		return False
+	prefix = exclude_node_prefix.lower()
+	for node in scene.graph.nodes_geometry:
+		_, gname = scene.graph[node]
+		if gname == geom_name and node.lower().startswith(prefix):
+			return True
+	return False
+
+
+def snap_glb(in_path, palette_path, out_path, only_suffix=None, exclude_node_prefix=None):
 	import trimesh
 
 	palette_rgb = load_palette_rgb(palette_path)
@@ -251,7 +286,7 @@ def snap_glb(in_path, palette_path, out_path, only_suffix=None):
 	for name, geom in scene.geometry.items():
 		visual = geom.visual
 		mat = getattr(visual, "material", None)
-		if not _material_matches(mat, only_suffix):
+		if not _material_matches(mat, only_suffix) or _node_excluded(scene, name, exclude_node_prefix):
 			skipped.append(name)
 			continue
 		tex = getattr(mat, "baseColorTexture", None) if mat is not None else None
@@ -318,6 +353,10 @@ def main():
 	p_snap.add_argument("--only-suffix", default=None,
 		help="material.name 이 이 접미사로 끝나는 것만 스냅(예: CLOTH). VRoid 처럼 "
 			"한 GLB에 얼굴/피부/머리/옷 재질이 섞여 있을 때 옷만 물들이는 용도")
+	p_snap.add_argument("--exclude-node-prefix", default=None,
+		help="씬 그래프 노드 이름이 이 접두사로 시작하는 부품은 건너뛴다(kitbash.py "
+			"조립물 전용, 예: roof — tint-glb로 미리 물들여 둔 지붕을 전체 스냅이 "
+			"다시 덮어쓰지 않게)")
 
 	p_prev = sub.add_parser("preview", help="스냅 전/후 텍스처 비교 PNG")
 	p_prev.add_argument("glb_path")
@@ -347,7 +386,8 @@ def main():
 	if args.cmd == "build":
 		save_palette(args.name, args.out_dir)
 	elif args.cmd == "snap-glb":
-		snap_glb(args.glb_path, args.palette_path, args.out_path, only_suffix=args.only_suffix)
+		snap_glb(args.glb_path, args.palette_path, args.out_path, only_suffix=args.only_suffix,
+			exclude_node_prefix=args.exclude_node_prefix)
 	elif args.cmd == "preview":
 		preview_texture(args.glb_path, args.palette_path, args.out_path, only_suffix=args.only_suffix)
 	elif args.cmd == "tint-glb":

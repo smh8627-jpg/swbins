@@ -955,3 +955,48 @@ VRoid 는 material.name 끝에 `FACE`/`EYE`/`SKIN`/`HAIR`/`CLOTH` 범주를 붙�
 **실기 확인 전**: 옷 색이 실제로 배경과 어울리는지, 채도 배율(0.6~0.9)이
 적당한지는 화면이 있어야 판단 가능 — 위 표는 눈대중 배정이라 조정 여지가
 있다.
+
+## 첫 캠프 집 3채 — 킷배싱 + 지붕 색 물들임 (2026-09-19, `assets/generated/`)
+
+PLAN.md §6.4 "주민 집 외형 3종(집 GLB + 지붕 색)". 첫 캠프(hamletSpot)의
+세 채(hamletHouse·hamletHut·hamletShed)를 Quaternius `medieval_village_pack`
+(House_1~3, 위 "models/buildings/" 절)에서 위 "Kenney Fantasy Town Kit"
+절과 같은 킷배싱 계열로 갈아 끼웠다 — home·tailor·museum과 같은 자산
+계열로 통일된다. House_1~3.glb 파일 자체는 지우지 않았다(되돌림 자리).
+
+**만든 방식**: 벽 배치는 `house_wood_home`과 완전히 같다(문벽+벽×2+둥근창벽,
+0/90/180/270° + 굴뚝). 세 채를 서로 다르게 보이려고 **지붕만** 다른 색으로
+물들였다 — `roof-gable.glb`(원본, 위 Kenney 절과 동일 출처)를
+`palette.py tint-glb`로 미리 물들인 뒤(`roof-gable-stem/stone/accent.glb`,
+`models/buildings/kenney_parts/`에 둔다), `kitbash.py`(`house_camp_a/b/c`
+레시피)로 조립했다. 조립 직후엔 지붕만 텍스처 내용이 달라 다른 부품과
+재질이 안 합쳐지는데(트리메시가 내용이 같은 재질은 자동으로 합친다 —
+바로 이 성질 때문에 지붕에 다른 색을 먼저 입혀 둬야 뒤에도 안 섞인다),
+이 상태로 `palette.py snap-glb`를 그냥 돌리면 전체 텍스처가 다시 8색으로
+스냅되며 지붕색까지 지워진다 — 그래서 `snap-glb`에 새 `--exclude-node-prefix`
+인자를 추가해 `roof`로 시작하는 씬 그래프 노드(kitbash.py가 부품 파일명으로
+붙인 이름, 예: `roof-gable-stem_5`)만 건너뛰게 했다. 재질 이름(`_material_matches`)
+이 아니라 **노드 이름** 기준인 이유 — 이 조립물은 부품 7개가 전부 같은
+`colormap` 재질 하나를 공유해(Kenney 킷 공통 스와치 아틀라스) 재질
+이름으로는 부품을 구분할 수 없었다.
+
+| 항목 | |
+|---|---|
+| **만든 이·라이선스** | 원본(`roof-gable.glb`·벽·굴뚝)은 위 "Kenney — Fantasy Town Kit" 절과 동일(CC0). 색만 바꾼 파생물이라 같은 라이선스가 그대로 적용된다 |
+
+| 생성 파일 | 이 판에서 쓰는 곳 | 지붕 색(팔레트 role, `forest_green`) |
+|---|---|---|
+| `generated/buildings/house_camp_a.glb` | `hamletHouse`(오두막) | stem(줄기, 갈색) |
+| `generated/buildings/house_camp_b.glb` | `hamletHut`(움집) | stone(돌, 옅은 회색·채도 0.6) |
+| `generated/buildings/house_camp_c.glb` | `hamletShed`(흙집) | accent(강조, 산호빛·채도 0.75) |
+
+**실기 확인 전**: 세 지붕 색이 실제 화면에서 서로 잘 구분되고 forest_green
+벽·툰 외곽선과 어울리는지는 렌더가 있어야 판단 가능.
+
+**바로잡음 — 캠프 소품(천막·모닥불·벤치·우물·등롱) 배치 현황**: 이 문서·
+PLAN.md 양쪽에 "캠프 소품이 미착수"로 적힌 옛 기록이 있었는데, 실제로는
+`village.js` `buildProps()`에 세 캠프 자리(hamletSpot·hamlet2Spot·ruinSpot)
+모두 이미 배치돼 있다(천막 2+모닥불+벤치 2+우물+등롱 2 — 첫 캠프 기준).
+다만 그 소품들의 GLB(`Tent.glb`·`Bench_1.glb`·`Well.glb`·`WoodenTorch.glb`,
+위 "models/props/" 절)는 여전히 옛 팩 그대로라 이번 킷배싱·팔레트 스냅
+대상에서는 뺐다 — 집 세 채만 이번 범위다.

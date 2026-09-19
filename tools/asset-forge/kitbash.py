@@ -97,6 +97,39 @@ RECIPES = {
         {"file": "wall-window-stone.glb", "rot": 270},
         {"file": "roof-flat.glb", "pos": (0, 1, 0)},
     ],
+
+    # 2026-09-19 — §6.4 "주민 집 외형 3종(집 GLB + 지붕 색)". 첫 캠프
+    # (hamletSpot)의 세 채(hamletHouse·hamletHut·hamletShed, 지금은
+    # Quaternius medieval_village_pack House_1~3.glb)를 이 판의 킷배싱
+    # 스타일로 갈아 끼운다 — 벽 배치는 house_wood_home과 완전히 같고,
+    # 지붕만 tools/asset-forge/palette.py tint-glb로 미리 물들여 둔 것으로
+    # 바꿔 세 채가 서로 다르게 보이게 한다(부품 낭비 없이 "3종" 확보).
+    # 조립 뒤 palette.py snap-glb --exclude-node-prefix roof 로 벽만 forest_green
+    # 팔레트에 맞추고, 이미 물들인 지붕은 그대로 둔다(README·HANDOFF 참고).
+    "house_camp_a": [
+        {"file": "wall-wood-door.glb", "rot": 0},
+        {"file": "wall-wood.glb", "rot": 90},
+        {"file": "wall-wood.glb", "rot": 180},
+        {"file": "wall-wood-window-round.glb", "rot": 270},
+        {"file": "roof-gable-stem.glb", "pos": (0, 1, 0)},
+        {"file": "chimney.glb", "pos": (0, 1, 0)},
+    ],
+    "house_camp_b": [
+        {"file": "wall-wood-door.glb", "rot": 0},
+        {"file": "wall-wood.glb", "rot": 90},
+        {"file": "wall-wood.glb", "rot": 180},
+        {"file": "wall-wood-window-round.glb", "rot": 270},
+        {"file": "roof-gable-stone.glb", "pos": (0, 1, 0)},
+        {"file": "chimney.glb", "pos": (0, 1, 0)},
+    ],
+    "house_camp_c": [
+        {"file": "wall-wood-door.glb", "rot": 0},
+        {"file": "wall-wood.glb", "rot": 90},
+        {"file": "wall-wood.glb", "rot": 180},
+        {"file": "wall-wood-window-round.glb", "rot": 270},
+        {"file": "roof-gable-accent.glb", "pos": (0, 1, 0)},
+        {"file": "chimney.glb", "pos": (0, 1, 0)},
+    ],
 }
 
 

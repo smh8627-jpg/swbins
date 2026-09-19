@@ -1623,3 +1623,54 @@ hero/pet 150×172)에 `p3src()`를 추가해 캐시가 있으면 처음부터 �
 
 **실기 확인 전**: 옷 색이 실제 화면에서 배경과 어울리는지, 채도 배율이
 적당한지는 렌더가 있어야 판단 가능.
+
+## 2026-09-19 (이어서) — §6.4 "주민 집 외형 3종" 완료 + 옛 PLAN 기록 정정
+
+"이어해"로 §6.4 다음 후보 두 개(캠프 소품 3종·주민 집 외형 3종) 중
+사용자가 "둘 다(집 먼저, 캠프 이어서)"로 답해 시작. **착수 전 확인하다
+캠프 쪽이 이미 완료돼 있는 걸 발견** — `village.js` `buildProps()`에
+hamletSpot·hamlet2Spot·ruinSpot 세 자리 모두 천막·모닥불·벤치·우물·등롱이
+이미 배치돼 있었다(첫 캠프 기준 천막 2+모닥불+벤치 2+우물+등롱 2). PLAN.md
+§6.4·이 문서 옛 기록이 "미착수"로 잘못 적혀 있었던 것 — 옛 세션이 코드는
+앞서가고 문서를 안 갱신했다. PLAN.md·ASSET_LICENSES.md 양쪽에 바로잡는
+절을 남겼다. (참고: 그 소품들 자체는 여전히 옛 팩 그대로라 킷배싱 대상은
+아니다 — 그건 남겨 둔 채로.)
+
+그래서 실제로 한 일은 **주민 집 외형 3종**뿐이다 — 첫 캠프(hamletSpot)의
+집 세 채(hamletHouse·hamletHut·hamletShed, Quaternius `House_1~3.glb`)를
+이 판 자체 킷배싱 조립으로 갈아 끼웠다(home·tailor·museum과 같은 계열로
+통일). 벽 배치는 `house_wood_home`과 완전히 같고, **지붕 색만** 셋을
+가른다.
+
+**함정 하나 겪음** — 조립된 house_wood_home.glb를 열어 보니 부품 7개가
+전부 같은 `colormap` 재질 하나로 합쳐져 있었다(재질 내용이 같으면
+트리메시/glTF 내보내기가 자동으로 하나로 합친다). 그래서 "재질 이름으로
+지붕만 골라 물들인다"는 처음 접근(VRoid 옷에 썼던 `_material_matches`)이
+안 먹혔다 — 부품마다 재질 이름이 다 `colormap`이라 구분이 안 됐다.
+**해결**: (1) 지붕 부품(`roof-gable.glb`)을 조립 **전에** 미리
+`tint-glb`로 물들여 벽과 텍스처 내용 자체를 다르게 만들어 둔다(그러면
+조립해도 재질이 안 합쳐진다) → (2) 조립 뒤 벽·굴뚝만 forest_green으로
+마저 스냅할 때는 재질 이름이 아니라 **씬 그래프 노드 이름**(kitbash.py가
+부품 파일명으로 붙인다, 예: `roof-gable-stem_5`)으로 지붕을 가린다 —
+`palette.py`에 `snap-glb --exclude-node-prefix roof` 새로 추가.
+
+**만든 것**:
+- `tools/asset-forge/palette.py` — `_node_excluded()`·`snap_glb()`의
+  `exclude_node_prefix` 인자·CLI `--exclude-node-prefix` 추가.
+- `tools/asset-forge/kitbash.py` — `house_camp_a/b/c` 레시피 3개(지붕만
+  다름: stem 갈색·stone 회색(채도 0.6)·accent 산호빛(채도 0.75)).
+- 지붕 물들인 부품 3개: `assets/models/buildings/kenney_parts/
+  roof-gable-{stem,stone,accent}.glb`(파이프라인 중간 산출물, 원본 옆에 둠).
+- 최종 GLB 3개: `assets/generated/buildings/house_camp_{a,b,c}.glb`.
+- `asset3d.js` — `building:hamletHouse/hamletHut/hamletShed`를 위 세
+  파일로 갈아 끼움. `hamlet2House`(House_4, 두 번째 캠프)는 이번 범위 밖.
+
+**검증**: `node -c js/asset3d.js`·`tools/asset-forge/{palette,kitbash}.py`
+구문 통과. 조립 직후(스냅 전) 지붕 재질 id가 벽과 다른지 trimesh로 직접
+확인, 최종 GLB에서 지붕/벽 텍스처를 각각 이미지로 뽑아 눈으로 대조(스냅
+전후처럼 평면 이미지 비교 — 3D 스크린샷 금지 규칙과 무관). `_test.html`
+헤드리스(file://, 서버 안 띄움) 304/306 — 기존에도 있던 무관한 실패
+2건(채집·마무리카드) 제외 전부 통과, 새 회귀 없음.
+
+**실기 확인 전**: 세 지붕 색이 실제 화면에서 forest_green 벽·툰 외곽선과
+어울리는지, 서로 충분히 구분되는지는 렌더가 있어야 판단 가능.

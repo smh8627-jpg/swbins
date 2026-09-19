@@ -220,7 +220,7 @@
 
 ### 6.4 에셋 변형 배가(§7.2) — 이 판 계획
 - `palette.py`: **2026-09-19 첫 실사용** — `forest_green` 팔레트(§6.3 green 바이옴 base8 그대로)를 만들어 Kenney 킷배싱 건물 셋의 텍스처를 스냅했다(§6.2). 나무 5종(계절 갈래 포함) × 바이옴 5 → 25변형, 꽃·버섯·바위 동일은 아직. 정점색/텍스처 스냅, 원본은 `assets/models/`, 출력 `assets/generated/`(§10-Q4 커밋 방식).
-- `kitbash.py`(§7.2 2번): **2026-09-19 첫 쓰임** — Kenney 모듈 벽·지붕·굴뚝을 좌표·회전으로 배치해 `home`·`tailor`·`museum` 셋(§6.2)을 조립했다. 계획해 뒀던 캠프 천막·우물·평상·등롱 조합의 **작은 마을 3종**(캠프 A/B/폐허 야영), 주민 집 외형 3종(집 GLB + 지붕 색)은 여전히 미착수 — RECIPES 표만 늘리면 되는 구조라 다음 후보로 바로 이어갈 수 있다.
+- `kitbash.py`(§7.2 2번): **2026-09-19 첫 쓰임** — Kenney 모듈 벽·지붕·굴뚝을 좌표·회전으로 배치해 `home`·`tailor`·`museum` 셋(§6.2)을 조립했다. **바로잡음(2026-09-19)** — 이 줄이 "캠프 천막·우물·평상·등롱 조합의 작은 마을 3종(캠프 A/B/폐허 야영)"을 미착수라 적어 뒀는데, 실제로는 `village.js` `buildProps()`에 세 자리(hamletSpot·hamlet2Spot·ruinSpot) 다 이미 배치돼 있었다(천막·모닥불·벤치·우물·등롱 — 옛 세션이 PLAN을 안 갱신한 채 코드만 앞서갔다). 다만 그 소품들은 여전히 옛 팩(Quaternius `survival_pack` 등) 그대로라 킷배싱·팔레트 스냅은 아직 안 거쳤다 — 필요해지면 그 갱신만 남았다. **완료(2026-09-19)** — 주민 집 외형 3종(집 GLB + 지붕 색)은 첫 캠프(hamletSpot)의 세 채(hamletHouse·hamletHut·hamletShed)를 대상으로 마쳤다: `kitbash.py`에 `house_camp_a/b/c` 레시피(벽 배치는 `house_wood_home`과 동일, 지붕만 `roof-gable-{stem,stone,accent}.glb`) 추가 → `palette.py`에 새 `--exclude-node-prefix`(snap-glb) 인자를 더해 조립 뒤 **벽·굴뚝만** forest_green으로 스냅하고 **지붕은 미리 물들여 둔 색을 그대로 지킨다**(전체 스냅이 지붕색까지 덮어써 버리는 문제를 이렇게 피했다 — 재질 이름이 아니라 kitbash가 붙인 씬 그래프 노드 이름으로 가린다). 두 번째 캠프(hamlet2House, House_4)는 이번 범위 밖으로 남겨 뒀다. `asset3d.js` 등록·`node -c`·`_test.html`(304/306, 무관한 기존 실패 2건 제외 전부 통과) 확인. 렌더 실기 확인 전.
 - `procgen.py`: 돌무리·꽃 원(§5.5 퍼즐)·비석(§5.3)·조개 길 타일.
 - `tilegen.py`: 잔디·흙·모래·돌·눈 5 타일 × 바이옴 팔레트(3D 바닥 트라이플레이너, 2D 는 그대로).
 - `spritegen.py`: 정령 아이콘 60(바이옴 12 × 5 형태 변주), 번들 6 아이콘, 하트·목표판 UI.

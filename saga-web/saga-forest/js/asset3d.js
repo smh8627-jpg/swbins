@@ -388,9 +388,17 @@
        마저 태웠다. **또 이어서** — "두 번째 캠프 새로 열어"로 새 자리
        (hamlet2Spot)를 열며 마지막 House_4까지 썼다 — 이걸로 House_1~4 넷
        다 실제로 쓰인다 */
-    'building:hamletHouse': BLD + 'House_2.glb',
-    'building:hamletHut': BLD + 'House_1.glb',
-    'building:hamletShed': BLD + 'House_3.glb',
+    /* 2026-09-19 — §6.4 "주민 집 외형 3종(집 GLB + 지붕 색)". 첫 캠프 세 채를
+       Quaternius medieval_village_pack(House_1~3, 여전히 정지 도형 실루엣이라
+       §6.2 가 우려하던 스타일 혼재는 아니지만 이 판만의 킷배싱 결과 아니었다)
+       에서 이 판 자체 킷배싱 조립(`tools/asset-forge/kitbash.py` house_camp_a/b/c,
+       벽 배치는 house_wood_home과 동일 + 지붕만 tint-glb로 미리 다르게 물들임)
+       으로 갈아 끼웠다 — home·tailor·museum과 같은 자산 계열로 통일. House_4
+       (hamlet2House, 두 번째 캠프)는 이번 범위 밖(PLAN §6.4, 3종만 지정)이라
+       그대로 둔다 — House_1~3.glb 파일 자체는 안 지웠다(되돌림 자리) */
+    'building:hamletHouse': BLD_GEN + 'house_camp_a.glb',
+    'building:hamletHut': BLD_GEN + 'house_camp_b.glb',
+    'building:hamletShed': BLD_GEN + 'house_camp_c.glb',
     'building:hamlet2House': BLD + 'House_4.glb',
 
     /* 동물 (PLAN 16절) — 사슴·여우·늑대(Quaternius). 2026-09-09, 토끼·다람쥐·
