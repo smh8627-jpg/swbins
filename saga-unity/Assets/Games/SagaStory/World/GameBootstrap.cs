@@ -19,6 +19,10 @@ namespace Saga.Story.World
         private void Start()
         {
             StorySaveState.TryLoad();
+            // 101-2 5-4 "관문 대장" — 세이브 로드 뒤에야 이번 주 도전 여부를
+            // 알 수 있어(StoryEnemy.Awake()는 아직 세이브가 안 실렸을 수
+            // 있다) 여기서 명시적으로 승격시킨다. 두목이 아니면 조용히 넘어간다.
+            foreach (var enemy in StoryEnemy.All) enemy.TryBecomeChampion();
             StorySettingsState.ApplyToAllScalers();
             StorySettingsState.ApplyGraphicsQuality();
             StoryAudio.PlayBgm(bgmClip);

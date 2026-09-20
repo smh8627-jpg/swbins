@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Saga.Story.Data;
 using Saga.Story.Audio;
+using Saga.Story.UI;
 
 namespace Saga.Story.World
 {
@@ -64,6 +65,79 @@ namespace Saga.Story.World
         /// 직후)에 불러야 한다(BuildVisual()·HP 초기화가 이 값을 본다).</summary>
         public void SetBoss(bool value) => isBoss = value;
 
+        // ── 101-2 5-4 "관문 대장"(2026-09-20) ──────────────────────
+        // godot STORY(`story_boss_spawner.gd`/`story_enemy.gd`, HISTORY
+        // 2026-09-17 실기 승인분)의 재해석. 이 슬라이스는 두목이 하나뿐이고
+        // (godot은 필드 넷이 각자 자동 리스폰) 상시 그 자리에 서 있는 편도
+        // 필드라 "매주 강화판으로 다시 살아난다"를 "이번 주 미도전이면 이
+        // 두목이 챔피언으로 승격한다"로 좁혔다. 시간 초과(광폭화, 웹판
+        // "3분 초과 시 공격력 +50%")는 이 슬라이스 두목이 애초에 반격을
+        // 안 해(클래스 주석 "재해석" 참고) 적용할 데미지 축 자체가 없다 —
+        // 대신 "시간 안에 못 잡으면 태세를 정비한다"(체력 회복+재도전,
+        // 재방문 없는 필드라 도망(Destroy)이 아니라 리셋으로 재해석)로 바꿨다.
+        private const float ChampionHpMul = 2.5f; // godot 그대로.
+        private const float ChampionExpMul = 2f; // godot "경험치·골드 ×2" 중 골드 없는 이 트랙은 경험치만.
+        private const float ChampionTimeLimitSec = 180f; // godot "3분" 그대로.
+        private const float ShieldBreakThreshold = 0.3f; // godot "누적 피해 30%" 그대로.
+        private const float ShieldVulnerableMul = 1.5f; // godot 그대로.
+        private const float ShieldVulnerableSec = 10f; // godot 그대로.
+
+        /// <summary>지금 챔피언전이 진행 중인 그 개체 — `StoryHud.cs`가
+        /// 폴링해 카운트다운을 보여준다(DUNGEON `DungeonEnemy.ActiveWorldBoss`와
+        /// 같은 결). 두목이 하나뿐이라 이 정적 참조로 충분하다.</summary>
+        public static StoryEnemy ActiveChampion { get; private set; }
+
+        private bool _isChampion;
+        private float _championMaxHp;
+        private float _championDamageTaken;
+        private bool _shieldBroken;
+        private float _shieldTimer;
+        private float _championTimeLeft;
+
+        public bool IsChampion => _isChampion;
+        public float ChampionTimeLeft => _championTimeLeft;
+        public bool ChampionShieldBroken => _shieldBroken;
+
+        /// <summary>`GameBootstrap.Start()`가 `StorySaveState.TryLoad()` 뒤
+        /// 부른다 — `Awake()` 시점엔 아직 세이브가 안 실렸을 수 있어(세이브
+        /// 로드도 다른 컴포넌트의 Start()에서 돈다) 스폰 직후가 아니라
+        /// 명시적으로 나중에 승격시킨다. 두목이 아니거나 이미 죽었거나
+        /// 이번 주에 이미 받았으면 조용히 넘어간다.</summary>
+        public void TryBecomeChampion()
+        {
+            if (!isBoss || _dead || _isChampion || !StorySaveState.ChampionAvailable()) return;
+            _isChampion = true;
+            _hp *= ChampionHpMul;
+            _championMaxHp = _hp;
+            _championTimeLeft = ChampionTimeLimitSec;
+            ActiveChampion = this;
+            DialogueLabel.Instance?.Show(
+                StoryLocalization.T("gatechampion.start", "🚪 관문 대장 — 이번 주 강화판으로 나타났다! 180초 안에 쓰러뜨려라"), 4f);
+        }
+
+        private void CheckChampionShield(float rawAmount)
+        {
+            if (_shieldBroken) return; // 창이 열려 있는 동안은 다시 안 쌓는다.
+            _championDamageTaken += rawAmount;
+            if (_championDamageTaken < _championMaxHp * ShieldBreakThreshold) return;
+            _shieldBroken = true;
+            _shieldTimer = ShieldVulnerableSec;
+            DialogueLabel.Instance?.Show(StoryLocalization.T("gatechampion.shield_broken", "🛡 방패 파괴! 10초간 받는 피해 증가"), 3f);
+        }
+
+        /// <summary>시간 초과 — 재방문 없는 편도 필드라 도망(Destroy) 대신
+        /// 체력을 되돌려 그 자리에서 계속 도전할 수 있게 한다(클래스 주석
+        /// "재해석" 참고).</summary>
+        private void Regroup()
+        {
+            _hp = _championMaxHp;
+            _championDamageTaken = 0f;
+            _shieldBroken = false;
+            _championTimeLeft = ChampionTimeLimitSec;
+            DialogueLabel.Instance?.Show(
+                StoryLocalization.T("gatechampion.regroup", "⏱ 시간 초과 — 관문 대장이 태세를 정비했다, 다시 도전하라"), 4f);
+        }
+
         /// <summary>`Destroy()`는 실제 파괴를 프레임 끝으로 미루므로(즉시
         /// null이 안 된다), 같은 프레임 안에서 죽었는지 확인해야 하는
         /// 호출부(PlaytestStorySlice.cs)는 GameObject 파괴 대신 이 플래그를
@@ -77,7 +151,29 @@ namespace Saga.Story.World
             if (transform.Find("Visual") == null) BuildVisual();
         }
 
-        private void OnDestroy() => AllList.Remove(this);
+        private void OnDestroy()
+        {
+            AllList.Remove(this);
+            if (ActiveChampion == this) ActiveChampion = null;
+        }
+
+        private void Update()
+        {
+            if (!_isChampion || _dead) return;
+
+            if (_shieldBroken)
+            {
+                _shieldTimer -= Time.deltaTime;
+                if (_shieldTimer <= 0f)
+                {
+                    _shieldBroken = false;
+                    _championDamageTaken = 0f; // godot "10초가 다 되면 방패가 다시 채워져 한 판 안에서 여러 번 깰 수 있다".
+                }
+            }
+
+            _championTimeLeft -= Time.deltaTime;
+            if (_championTimeLeft <= 0f) Regroup();
+        }
 
         private void BuildVisual()
         {
@@ -118,14 +214,16 @@ namespace Saga.Story.World
         public void TakeDamage(float amount, bool crit = false)
         {
             if (_dead || amount <= 0f) return;
-            _hp -= amount;
+            float applied = _isChampion && _shieldBroken ? amount * ShieldVulnerableMul : amount;
+            _hp -= applied;
             StoryAudio.PlaySfx(hitClip);
 
             float height = isBoss ? 1.6f * BossVisualScaleMul : 1.6f;
             Vector3 popupPos = transform.position + Vector3.up * height;
-            DamagePopup.Spawn(popupPos, amount, crit);
+            DamagePopup.Spawn(popupPos, applied, crit);
             HitSpark.Spawn(popupPos, crit);
             StoryGroundDecal.Spawn(transform.position, StoryGroundDecal.Kind.HitMark); // PLAN.md 101-3 G "지형 반응".
+            if (_isChampion) CheckChampionShield(amount); // 배율 전 원본 피해로 문턱 판정.
 
             if (_visualGo != null)
             {
@@ -153,11 +251,19 @@ namespace Saga.Story.World
         {
             if (_dead) return;
             _dead = true;
+            if (ActiveChampion == this) ActiveChampion = null;
             StoryAudio.PlaySfx(deathClip);
             StoryLootMarker.Spawn(transform.position); // PLAN.md 101-3 F "죽음" — Destroy 전에, transform이 아직 유효할 때.
             StoryQuestState.AddKill();
             if (isBoss) StoryQuestState.AddBossKill();
-            StoryJobState.GainExp(isBoss ? StoryCombat.BossExp : StoryCombat.GruntExp);
+            float expMul = _isChampion ? ChampionExpMul : 1f;
+            StoryJobState.GainExp((isBoss ? StoryCombat.BossExp : StoryCombat.GruntExp) * expMul);
+            if (_isChampion)
+            {
+                StorySaveState.ClaimChampion();
+                DialogueLabel.Instance?.Show(
+                    string.Format(StoryLocalization.T("gatechampion.claimed", "🚪 관문 대장 처치! 경험치 ×{0:0} — 다음 주에 다시 나타난다"), ChampionExpMul), 4f);
+            }
             Destroy(gameObject);
         }
     }

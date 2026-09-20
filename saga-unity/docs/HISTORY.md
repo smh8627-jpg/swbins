@@ -8005,3 +8005,23 @@ godot REALM(`realm_save_state.gd` `check_result()`/`_closest_victory_progress()`
 **검증**: `tools/unity-batch.sh`로 컴파일(오류 0, 처음에 `RealmVictoryState.CapturedCount()`가 `IReadOnlyList<string>.Contains()`를 써서 `using System.Linq;` 누락으로 CS1061 — 바로 고침). `PlaytestRealmSlice.cs`의 기존 55개 성 전멸 시퀀스가 어차피 정복 승리를 실제로 발동시키므로(전 적국 함락 뒤 `RealmSessionTracker`가 자동으로 판정), `Phase.SaveLoad`에 "이 시점엔 이미 정복 승리여야 한다" 사전 확인 + `RealmVictoryState.Restore(null)`로 흩트렸다가 `TryLoad()` 뒤 다시 `Conquest`로 돌아오는지 round-trip 확인을 편입했다(영구 회귀). 문화 승리·목표판 셋째 줄·"다음 달" 게이트는 이 시퀀스가 정답 30을 안 채워 커버가 안 돼, godot HISTORY 2026-09-17 `_diag_victory.gd`와 같은 결로 **임시 자가진단**(`CheckVictoryCultureAndGate()` — 정답 30 채워 발동 확인, `ExecuteNextMonth()`를 리플렉션으로 직접 불러 게이트 확인, 부작용(문답 진행·금·야망 달성)은 스냅샷/복원으로 전부 원상복구)을 `Phase.Init`에 잠깐 끼워 넣어 한 번 통과 확인한 뒤 메서드·호출부를 그대로 지웠다. 최종 3연속 `PlaytestRealmSlice.Run` OK(신규 SaveLoad 확인 포함, 기존 30여 항목 회귀 없음). 배치 모드 부작용 4파일은 스크립트가 자동 원복.
 
 REALM 101-2는 이제 완전히 닫혔다 — 남은 5-4(제외 확정, PLAN.md Q-U2)를 빼면 이 트랙에 새로 이어받을 REALM 101-2 잔여 작업이 없다. 다음 세션은 GO⑤(비석 GPS, 모바일 빌드 뒤)·DUNGEON5.7(웹 선행 뒤)·FOREST5.6/5.7(웹·godot 승인 사례 없음) 중에서 고르거나, STORY 5-2~5-4·5-8 재검토가 남은 후보다.
+
+## 2026-09-20 — STORY 5-4 "관문 대장" 구현 ("사가 유니티 이어해" 세션, REALM 5-5 다음)
+
+godot STORY(`story_boss_spawner.gd`/`story_enemy.gd`, HISTORY 2026-09-17 실기 승인)의 재해석. 웹판 `saga-story/PLAN.md` §5-4 "관문 대장 — 주간 보스(미사용 보스 6종 활용)"을 godot이 먼저 옮기며 "3D엔 미사용 보스 자체가 없다"고 재해석했는데(있는 넷을 매주 강화판으로), 이 트랙은 그보다 더 얇다 — 두목이 애초에 **하나뿐**이고 상시 그 자리에 서 있는 편도 필드(`StoryEnemySpawner`가 씬 하나에 고정 배치)라 "이번 주 미도전이면 그 두목이 챔피언으로 승격한다"로 더 좁혔다. 반격 자체가 없는 두목이라(`StoryEnemy.cs` 클래스 주석 "재해석" — "다음 콘텐츠 확장 때 붙이면 된다"고 처음부터 미뤄 둔 것) godot의 "3분 초과 시 광폭화"(공격력 배율)는 적용할 축이 없어, 대신 "시간 안에 못 잡으면 태세를 정비한다"(체력 회복+무제한 재도전 — 재방문 없는 필드라 도망(Destroy) 대신 리셋으로 재해석)로 바꿨다.
+
+**저장**(`StorySaveState.cs`): `_championWeek`(int, 주 index) + `CurrentWeekIndex()`(`DateTimeOffset.UtcNow.ToUnixTimeSeconds()/(7*86400)`, godot `current_week()`와 같은 결) + `ChampionAvailable()`/`ClaimChampion()`. `SaveData.championWeek` 필드 추가(SAVE_VERSION 안 올림 — quiz류와 같은 이유, 없으면 0="아직 없음"). 테스트 전용 `ResetChampionForTest()`도 같이 추가(다른 XxxState의 `Restore(기본값)`과 같은 자리).
+
+**`StoryEnemy.cs`**: `ChampionHpMul=2.5·ChampionExpMul=2·ChampionTimeLimitSec=180·ShieldBreakThreshold=0.3·ShieldVulnerableMul=1.5·ShieldVulnerableSec=10`(전부 godot 수치 그대로, 경험치만 골드 대신 — 이 트랙엔 금·고유장비가 없다). `TryBecomeChampion()` — 두목이고 안 죽었고 이번 주 미도전이면 HP를 ×2.5로 올리고 타이머를 켠다. `Update()`에서 타이머 감소·방패 창(10초) 만료 시 누적 피해 리셋. `TakeDamage()`가 방패 파괴 중이면 피해 ×1.5 적용, 원본 피해로 `CheckChampionShield()`(누적 30% 문턱 판정). `Die()`가 챔피언이면 경험치 ×2 + `StorySaveState.ClaimChampion()`. `Regroup()`(타임아웃) — HP 전체 회복+누적 피해·방패 초기화+타이머 리셋, Destroy 안 함.
+
+**호출 순서 함정** — `TryBecomeChampion()`을 두목 스폰 시점(`StoryEnemySpawner.Build()`, 에디터 빌드 시각)이나 `StoryEnemy.Awake()`에서 바로 못 부른다. `StorySaveState.TryLoad()`가 `GameBootstrap.Start()`에서 도는데, Unity 생명주기는 "씬의 모든 Awake() 먼저, 그다음 모든 Start()" 순서만 보장하고 서로 다른 컴포넌트의 Start() 간 순서는 안 보장한다 — 세이브가 실리기 전에 챔피언 여부를 판정하면 항상 틀린다. `GameBootstrap.Start()`가 `TryLoad()` **바로 뒤**에 `StoryEnemy.All`(이미 다 채워져 있다 — Awake는 이미 끝났으므로)을 순회하며 명시적으로 `TryBecomeChampion()`을 부르는 것으로 해결.
+
+**UI**(`StoryHud.cs`): `StoryEnemy.ActiveChampion`(DUNGEON `DungeonEnemy.ActiveWorldBoss`와 같은 결)이 있으면 타이머+방패 상태 한 줄을 얹는다(폴링, 새 신호 배선 없음).
+
+**검증**(`PlaytestStorySlice.cs`): 기존 `Phase.KillBoss`가 원래 "두목은 216(BossHp)이라 한 방엔 안 죽는다"만 봤는데, 새 게임은 항상 이번 주 미도전이라 이제 두목이 항상 챔피언(540)으로 뜬다 — 이 사실 자체를 자연스러운 기본 경로로 흡수해 어서션을 다시 짰다: 챔피언 승격 확인 → 히트 캡을 40→50으로(최저 변동폭 0.88만 나와도 540/(21×0.88)≈30번이면 확실히 죽는 수학적 상한, RNG 운에 안 기댐) → 루프 중 방패 파괴 최소 한 번 목격 확인 → 처치 후 `ChampionAvailable()==false` 확인. `Phase.SaveLoad`에도 클레임 상태 disturb+round-trip 확인 편입(`ResetChampionForTest()`로 진짜로 흩트린 뒤 `TryLoad()`로 되돌아오는지).
+
+**함정 — 이전 실행이 남긴 `save_story.json`이 챔피언 판정을 오염시킴**(PROJECT_STATE.md 2026-09-19 REALM worktree 세션의 것과 같은 부류, 이번엔 STORY에서). 첫 로컬 실행은 통과했는데 연속 2·3회차가 `Phase.KillBoss`에서 "새 게임 두목이 관문 대장으로 안 승격됨(available=False)"로 실패했다 — 1회차의 `Phase.SaveLoad`가 실제로 디스크에 `save_story.json`을 남기고, 그 파일의 `championWeek`가 "이번 주"라서 2회차 `GameBootstrap.Start()`가 그걸 그대로 불러와 미도전 판정을 뒤집었다. `Phase.Init`이 이미 "이전 실행이 남긴 세이브 무시" 목적으로 `StoryQuestState`·`StoryWorldEventState`·`StoryNpcState`·`StoryJobState` 넷을 강제 리셋하는 자리(주석 "새 정적 상태를 추가할 때마다 여기 잊지 말 것")가 있었는데, 새 `championWeek`를 처음엔 안 넣어서 겪었다 — `ResetChampionForTest()` 호출을 그 목록에 추가하고, **리셋만으론 안 끝난다**: `GameBootstrap.Start()`가 이미 (틀린 판정으로) `TryBecomeChampion()`을 불러 두목이 챔피언이 아닌 채로 굳어 있었으므로, 리셋 직후 `StoryEnemy.All`을 다시 순회해 `TryBecomeChampion()`을 재호출해야 했다(멱등이라 안전).
+
+`tools/unity-batch.sh`로 컴파일(오류 0) → `PlaytestStorySlice.Run` 3연속 OK(신규 챔피언 검증 포함, 히트 수 18~20회로 안정적). 배치 모드 부작용 4파일은 스크립트가 자동 원복.
+
+다음 후보: STORY 5-3(비경, godot `story_labyrinth.gd` 코드 완료 — 5층 노드 지도+진입 축복 3택+기억 조각, 이 트랙엔 죽음 시스템이 없어 "패퇴" 재해석 필요) 또는 GO⑤(모바일 빌드 뒤)·DUNGEON5.7(웹 선행 뒤)·FOREST5.6/5.7(승인 사례 없음).

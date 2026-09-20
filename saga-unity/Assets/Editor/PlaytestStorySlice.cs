@@ -158,6 +158,12 @@ namespace Saga.EditorTools
                     StoryWorldEventState.Restore(null); // 위와 같은 이유 — 이전 실행이 남긴 save_story.json 무시.
                     StoryNpcState.Restore(0, 0); // 위와 같은 이유 — 새 정적 상태를 추가할 때마다 여기 잊지 말 것(2026-09-14에 한 번 빠뜨려 겪음).
                     StoryJobState.Restore(1, 0f, StoryJobState.NoJob); // 위와 같은 이유(2026-09-15 "전직" 추가).
+                    // 101-2 5-4 "관문 대장"(2026-09-20) — 위와 같은 이유. 리셋 전에
+                    // GameBootstrap.Start()가 이미 (이전 실행이 남긴 값으로) 잘못
+                    // 판정해 TryBecomeChampion()을 불렀을 수 있어, 리셋 뒤 다시 부른다
+                    // (이미 승격됐으면 TryBecomeChampion() 자체가 조용히 no-op).
+                    StorySaveState.ResetChampionForTest();
+                    foreach (var se in StoryEnemy.All) se.TryBecomeChampion();
                     if (!CheckSettingsPanel()) { Fail(); return; }
                     if (!CheckPlayerHudLocalization()) { Fail(); return; }
                     if (!CheckActionButtonLocalization()) { Fail(); return; }
@@ -365,31 +371,55 @@ namespace Saga.EditorTools
                     var boss = StoryEnemy.All[0];
                     TeleportPlayer(boss.transform.position + new Vector3(-1f, 0f, 0f));
 
-                    // 잡졸(EnemyHp=18)과 달리 두목은 HP가 12배(216)라 한
-                    // 방(StartAtk≈21)엔 안 죽어야 한다 — 그 자체가 "두목"이
+                    // 101-2 5-4 "관문 대장"(2026-09-20) — 새 게임은 항상
+                    // 이번 주 미도전이라 GameBootstrap.Start()가 이 두목을
+                    // 챔피언(HP×2.5=540)으로 이미 승격시켜 뒀어야 한다.
+                    if (!boss.IsChampion || StoryEnemy.ActiveChampion != boss || !StorySaveState.ChampionAvailable())
+                    {
+                        Debug.LogError($"[PlaytestStorySlice] 새 게임 두목이 관문 대장으로 안 승격됨 — isChampion={boss.IsChampion} activeChampion={(StoryEnemy.ActiveChampion == boss)} available={StorySaveState.ChampionAvailable()}");
+                        Fail();
+                        return;
+                    }
+
+                    // 잡졸(EnemyHp=18)과 달리 두목은 챔피언 HP(540, =BossHp×2.5)라
+                    // 한 방(StartAtk≈21)엔 안 죽어야 한다 — 그 자체가 "두목"이
                     // 다르다는 첫 증거.
                     SetPrivate(_storyController, "_attackCooldownLeft", 0f);
                     InvokePrivate(_storyController, "TryAttack");
                     if (boss.IsDead)
                     {
-                        Debug.LogError($"[PlaytestStorySlice] 두목이 한 방에 죽어 버림(BossHp={StoryCombat.BossHp}가 잡졸과 다르지 않은 듯)");
+                        Debug.LogError($"[PlaytestStorySlice] 두목이 한 방에 죽어 버림(챔피언 HP가 안 먹은 듯)");
                         Fail();
                         return;
                     }
 
-                    // 남은 체력을 마저 깎는다 — 최대 40번(StartAtk 변동폭
-                    // 0.88~1.12·크리티컬 포함해도 216/(21*0.88)≈12번이면
-                    // 충분하지만 여유 있게 잡았다).
+                    // 남은 체력을 마저 깎는다 — 최저 변동폭(0.88)만 나와도
+                    // 540/(21*0.88)≈30번이면 확실히 죽는다(수학적 상한, RNG
+                    // 운에 안 기댐) — 여유 잡아 50.
                     int hits = 1;
-                    while (!boss.IsDead && hits < 40)
+                    bool sawShieldBroken = false;
+                    while (!boss.IsDead && hits < 50)
                     {
                         SetPrivate(_storyController, "_attackCooldownLeft", 0f);
                         InvokePrivate(_storyController, "TryAttack");
+                        if (boss.ChampionShieldBroken) sawShieldBroken = true;
                         hits++;
                     }
                     if (!boss.IsDead)
                     {
-                        Debug.LogError($"[PlaytestStorySlice] 두목이 {hits}번 쳐도 안 죽음(BossHp={StoryCombat.BossHp})");
+                        Debug.LogError($"[PlaytestStorySlice] 두목이 {hits}번 쳐도 안 죽음(챔피언 HP)");
+                        Fail();
+                        return;
+                    }
+                    if (!sawShieldBroken)
+                    {
+                        Debug.LogError("[PlaytestStorySlice] 관문 대장 방패 파괴(누적 피해 30%)가 한 번도 안 걸림");
+                        Fail();
+                        return;
+                    }
+                    if (StorySaveState.ChampionAvailable())
+                    {
+                        Debug.LogError("[PlaytestStorySlice] 관문 대장 처치 후에도 이번 주 클레임이 안 찍힘");
                         Fail();
                         return;
                     }
@@ -399,7 +429,7 @@ namespace Saga.EditorTools
                         Fail();
                         return;
                     }
-                    Debug.Log($"[PlaytestStorySlice] boss killed in {hits} hits, quest boss done, bossKills={StoryQuestState.BossKills}");
+                    Debug.Log($"[PlaytestStorySlice] gate champion killed in {hits} hits (shield broken={sawShieldBroken}), claimed for this week, quest boss done, bossKills={StoryQuestState.BossKills}");
                     _phase = Phase.TalkNpcChoice;
                     break;
                 }
@@ -779,6 +809,9 @@ namespace Saga.EditorTools
                     int levelBeforeSave = StoryJobState.Level;
                     float expBeforeSave = StoryJobState.Exp;
                     string jobBeforeSave = StoryJobState.Job;
+                    // 세이브 스키마(버전 안 올림) — 101-2 5-4 "관문 대장"
+                    // 클레임(KillBoss phase에서 이번 주 이미 찍음)도 같이 본다.
+                    bool championAvailableBeforeSave = StorySaveState.ChampionAvailable();
                     if (!StorySaveState.Save())
                     {
                         Debug.LogError("[PlaytestStorySlice] StorySaveState.Save() 실패");
@@ -791,6 +824,7 @@ namespace Saga.EditorTools
                     StoryWorldEventState.Restore(null);
                     StoryNpcState.Restore(0, 0);
                     StoryJobState.Restore(1, 0f, StoryJobState.NoJob);
+                    StorySaveState.ResetChampionForTest();
                     TeleportPlayer(new Vector3(0f, 0.1f, 0f));
                     if (!StorySaveState.TryLoad())
                     {
@@ -825,6 +859,12 @@ namespace Saga.EditorTools
                     if (StoryJobState.Level != levelBeforeSave || !Mathf.Approximately(StoryJobState.Exp, expBeforeSave) || StoryJobState.Job != jobBeforeSave)
                     {
                         Debug.LogError($"[PlaytestStorySlice] 로드 후 level={StoryJobState.Level}(기대={levelBeforeSave}) exp={StoryJobState.Exp}(기대={expBeforeSave}) job={StoryJobState.Job}(기대={jobBeforeSave})");
+                        Fail();
+                        return;
+                    }
+                    if (StorySaveState.ChampionAvailable() != championAvailableBeforeSave)
+                    {
+                        Debug.LogError($"[PlaytestStorySlice] 로드 후 관문 대장 클레임 상태 불일치 — available={StorySaveState.ChampionAvailable()}(기대={championAvailableBeforeSave})");
                         Fail();
                         return;
                     }

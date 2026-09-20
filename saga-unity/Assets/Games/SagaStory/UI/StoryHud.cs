@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using Saga.Story.Data;
+using Saga.Story.World;
 
 namespace Saga.Story.UI
 {
@@ -43,6 +44,16 @@ namespace Saga.Story.UI
                          $"\n👺 {StoryLocalization.T("quest.boss_head", "두목의 목")} {Mathf.Min(StoryQuestState.BossKills, StoryQuestState.BossGoal)}/{StoryQuestState.BossGoal}" +
                          (bossDone ? StoryLocalization.T("hud.done") : "") +
                          $"\n{mp}";
+
+            // PLAN.md 101-2 5-4 "관문 대장" — 챔피언전이 진행 중일 때만 카운트다운을 얹는다(DUNGEON PlayerHud와 같은 결).
+            var champion = StoryEnemy.ActiveChampion;
+            if (champion != null)
+            {
+                string shield = champion.ChampionShieldBroken ? StoryLocalization.T("gatechampion.shield_hud", " 🛡깨짐") : "";
+                string timer = string.Format(StoryLocalization.T("gatechampion.timer", "🚪 관문 대장 — {0:0}초{1}"),
+                    Mathf.Max(0f, champion.ChampionTimeLeft), shield);
+                label.text += $"\n{timer}";
+            }
         }
     }
 }

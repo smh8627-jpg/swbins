@@ -25,6 +25,24 @@ namespace Saga.Story.Data
 
         private static string SavePath => Path.Combine(Application.persistentDataPath, "save_story.json");
 
+        // 101-2 5-4 "관문 대장" — godot `current_week()`와 같은 결
+        // (Time.get_unix_time_from_system()/(86400*7)의 정수 몫 — 달력
+        // 요일 기준이 아니라 그냥 7일 창이다, 실제 플레이 텀에서 체감 차이 없음).
+        private static int _championWeek; // 0 = 아직 못 받음(실제 주 index는 항상 0보다 훨씬 크다).
+
+        private static int CurrentWeekIndex() => (int)(DateTimeOffset.UtcNow.ToUnixTimeSeconds() / (7 * 86400));
+
+        /// <summary>이번 주에 아직 관문 대장 보상을 못 받았으면 true —
+        /// `StoryEnemy.TryBecomeChampion()`이 이걸로 챔피언 승격 여부를 정한다.</summary>
+        public static bool ChampionAvailable() => _championWeek != CurrentWeekIndex();
+
+        public static void ClaimChampion() => _championWeek = CurrentWeekIndex();
+
+        /// <summary>PlaytestStorySlice.cs 전용 — 세이브 round-trip 진단이
+        /// TryLoad() 전에 상태를 실제로 흩트리려고 쓴다(다른 XxxState류의
+        /// Restore(기본값)과 같은 자리). 실제 게임 코드 경로에선 안 쓴다.</summary>
+        public static void ResetChampionForTest() => _championWeek = 0;
+
         [Serializable]
         private class SaveData
         {
@@ -38,6 +56,11 @@ namespace Saga.Story.Data
             public int level;
             public float exp;
             public string job;
+            // 101-2 5-4 "관문 대장"(2026-09-20) — 이번 주에 이미 챔피언
+            // 보상을 받았는지(주 index, 0=아직 없음). quiz류와 같은 이유로
+            // 버전을 안 올린다 — 없는 필드는 JsonUtility가 0으로 채워
+            // 옛 세이브도 "아직 안 받음"으로 시작한다.
+            public int championWeek;
         }
 
         public static bool Save()
@@ -58,6 +81,7 @@ namespace Saga.Story.Data
                 level = StoryJobState.Level,
                 exp = StoryJobState.Exp,
                 job = StoryJobState.Job,
+                championWeek = _championWeek,
             };
 
             try
@@ -92,6 +116,7 @@ namespace Saga.Story.Data
             StoryWorldEventState.Restore(data.triggeredEvents);
             StoryNpcState.Restore(data.scoutTalkCount, data.choiceMade);
             StoryJobState.Restore(data.level, data.exp, data.job);
+            _championWeek = data.championWeek;
 
             Transform player = FindPlayer();
             if (player != null && data.playerPos != null && data.playerPos.Length == 3)
