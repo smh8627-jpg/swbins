@@ -222,7 +222,17 @@ namespace Saga.Realm.Data
             return best;
         }
 
-        public static OrderResult ExecuteOrder(string orderKey)
+        /// <summary>PLAN.md 101-2 5-3 "설전" — UI가 설전 패널을 열기 전에
+        /// "누구 지력 기준인가"를 미리 알아야 해서 공개한다. hire 명령이
+        /// 실제로 쓸 사자와 같은 사람(BestAvailableOfficer(Wisdom, false)) —
+        /// 이 사이에 다른 명령을 쓰지 않는 한 ExecuteOrder("hire", ...)가
+        /// 그대로 이 사람을 다시 고른다.</summary>
+        public static RealmOfficer HireEnvoyOfficer() => BestAvailableOfficer(RealmStat.Wisdom, false);
+
+        /// <summary>PLAN.md 101-2 5-3 "설전" — hire에만 쓰이는 배율(기본
+        /// 1 — 안 쓰면 그대로). 나머지 아홉 명령은 인자를 안 받는 옛
+        /// 호출부와 동치.</summary>
+        public static OrderResult ExecuteOrder(string orderKey, float debateMul = 1f)
         {
             var order = RealmOrderData.Get(orderKey);
             if (order == null) return new OrderResult(false, RealmLocalization.T("order.err_unknown", "없는 명령"));
@@ -251,7 +261,7 @@ namespace Saga.Realm.Data
             OrderResult result = orderKey switch
             {
                 "search" => DoSearch(officer),
-                "hire" => DoHire(officer),
+                "hire" => DoHire(officer, debateMul),
                 "draft" => DoDraft(order, officer, record),
                 _ => DoDevelop(orderKey, order, officer, cityDef, record),
             };
@@ -319,10 +329,22 @@ namespace Saga.Realm.Data
             return new OrderResult(true, string.Format(RealmLocalization.T("order.search_found", "{0} — {1}을(를) 찾아냈다!"), officer.Name, found.Name));
         }
 
+        /// <summary>등용 성공률 — rtk.js tryHire() 그대로(0.28 + 지력/260 -
+        /// (희귀도-2)×0.09, 0.05~0.9). PLAN.md 101-2 5-3 "설전"의
+        /// `debateMul`(정답 수 0~3 → 0.8/0.95/1.1/1.3, 기본 1)을 곱한 뒤
+        /// 같은 구간으로 다시 눌러 담는다(godot `_do_hire()`와 같은 결).
+        /// 순수 함수라 PlaytestRealmSlice.cs가 리플렉션으로 직접 확인한다
+        /// (ResolveTactic()과 같은 관행).</summary>
+        private static float HireChance(int officerWisdom, int targetRarity, float debateMul)
+        {
+            float chance = Mathf.Clamp(0.28f + officerWisdom / 260f - (targetRarity - 2) * 0.09f, 0.05f, 0.9f);
+            return Mathf.Clamp(chance * debateMul, 0.05f, 0.9f);
+        }
+
         /// <summary>등용 — rtk.js doHire()/tryHire(). 지금 조망 중인 성에서
         /// 찾아낸 재야 중 아직 로스터에 없는 사람을 부른다(이 슬라이스는
         /// 포로가 없다). 성공하면 그 성에 배치된다.</summary>
-        private static OrderResult DoHire(RealmOfficer officer)
+        private static OrderResult DoHire(RealmOfficer officer, float debateMul)
         {
             string targetId = null;
             foreach (var id in RealmOfficerPool.HiddenAt(CurrentCity))
@@ -332,7 +354,7 @@ namespace Saga.Realm.Data
             if (targetId == null) return new OrderResult(true, RealmLocalization.T("order.hire_none_found", "부를 사람이 없다 (먼저 수색하시오)"));
 
             var target = RealmOfficerPool.Get(targetId);
-            float chance = Mathf.Clamp(0.28f + officer.Wisdom / 260f - (target.Rarity - 2) * 0.09f, 0.05f, 0.9f);
+            float chance = HireChance(officer.Wisdom, target.Rarity, debateMul);
             if (UnityEngine.Random.value > chance)
             {
                 return new OrderResult(true, string.Format(RealmLocalization.T("order.hire_declined", "{0}이(가) 설득에 응하지 않았다."), target.Name));

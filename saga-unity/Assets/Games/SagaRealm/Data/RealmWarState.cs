@@ -59,8 +59,10 @@ namespace Saga.Realm.Data
         /// 이 이 경우 고르기 패널을 먼저 연다). PLAN.md 101-2 5-6(2026-09-20)
         /// — `useTactic`이 true면 <see cref="ResolveTactic"/>이 목표 성의
         /// 지형(<see cref="RealmLand"/>)에 맞는 전술을 골라 <see cref="RealmWar.Fight"/>
-        /// 에 배율을 얹는다.</summary>
-        public static AttackResult Attack(string fromCityId, string enemyId = null, bool useTactic = false)
+        /// 에 배율을 얹는다. PLAN.md 101-2 5-3(2026-09-20) — `duelPowerMul`은
+        /// `RealmCommandUi`가 일기토 3합(<see cref="RealmDuelState"/>) 결과를
+        /// 미리 평균 내 넘겨준 배율(기본 1 — 안 쓰면 그대로).</summary>
+        public static AttackResult Attack(string fromCityId, string enemyId = null, bool useTactic = false, float duelPowerMul = 1f)
         {
             if (enemyId == null) enemyId = RealmEnemyCity.TargetFrom(fromCityId);
             else if (!RealmEnemyCity.TargetsFrom(fromCityId).Contains(enemyId)) enemyId = null;
@@ -99,7 +101,7 @@ namespace Saga.Realm.Data
             float firstRoundMul = 1f, defMul = 1f;
             if (useTactic) (firstRoundMul, defMul, tacticNote) = ResolveTactic(def.Land, officers);
 
-            var result = RealmWar.Fight(atk, defArmy, enemy, def.Land, firstRoundMul, defMul);
+            var result = RealmWar.Fight(atk, defArmy, enemy, def.Land, firstRoundMul, defMul, duelPowerMul);
 
             int eaten = Mathf.RoundToInt(troops / 1000f * RealmCityState.FoodPer1000);
             int baggage = Mathf.Max(0, need - eaten);

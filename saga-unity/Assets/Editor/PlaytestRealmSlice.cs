@@ -205,6 +205,8 @@ namespace Saga.EditorTools
                     if (!CheckGoalBoardAndSessionCard()) { Fail(); return; }
                     if (!CheckOfficerTraits()) { Fail(); return; }
                     if (!CheckTactic()) { Fail(); return; }
+                    if (!CheckDuel()) { Fail(); return; }
+                    if (!CheckDebateHire()) { Fail(); return; }
                     if (!CheckEventChain()) { Fail(); return; }
                     _phase = Phase.WorldMap;
                     break;
@@ -1757,6 +1759,130 @@ namespace Saga.EditorTools
             }
 
             Debug.Log($"[PlaytestRealmSlice] tactic OK - 평야 기병 돌격/강 화공 배율 문턱 확인, 힌트=\"{hint}\"");
+            return true;
+        }
+
+        /// <summary>PLAN.md 101-2 5-3 "일기토" — ① 베기>막기·막기>찌르기·
+        /// 찌르기>베기 순환과 비김 판정, ② 승/무/패 배율(1.3/1.0/0.8),
+        /// ③ 3합 평균 배율 산술, ④ 그 배율(duelPowerMul)이 실제로
+        /// RealmWar.Fight() 결과를 바꾸는지(같은 RNG 시드에서 배율만
+        /// 다르게 — 사이드 이펙트 없는 합성 부대라 게임 진행 상태를
+        /// 안 건드린다, CheckTactic()과 같은 관행)까지 본다.</summary>
+        private static bool CheckDuel()
+        {
+            if (RealmDuelState.RoundResult("slash", "guard") != "win"
+                || RealmDuelState.RoundResult("guard", "stab") != "win"
+                || RealmDuelState.RoundResult("stab", "slash") != "win"
+                || RealmDuelState.RoundResult("slash", "stab") != "lose"
+                || RealmDuelState.RoundResult("slash", "slash") != "tie")
+            {
+                Debug.LogError("[PlaytestRealmSlice] 일기토 — 베기/찌르기/막기 순환 판정이 틀림");
+                return false;
+            }
+            if (!Mathf.Approximately(RealmDuelState.RoundMul("win"), 1.3f)
+                || !Mathf.Approximately(RealmDuelState.RoundMul("tie"), 1.0f)
+                || !Mathf.Approximately(RealmDuelState.RoundMul("lose"), 0.8f))
+            {
+                Debug.LogError("[PlaytestRealmSlice] 일기토 — 승/무/패 배율이 웹판 수치(1.3/1.0/0.8)와 다름");
+                return false;
+            }
+            float avg = RealmDuelState.AverageMul(new List<string> { "win", "tie", "lose" });
+            if (!Mathf.Approximately(avg, (1.3f + 1.0f + 0.8f) / 3f))
+            {
+                Debug.LogError($"[PlaytestRealmSlice] 일기토 — 3합 평균 배율 계산이 틀림(avg={avg})");
+                return false;
+            }
+
+            RealmArmy MakeAtk() => new RealmArmy { Troops = 3000, Start = 3000, Train = 50, Tech = 300, OfficerIds = new List<string> { RealmOfficerPool.StartingOfficerId }, Morale = 1f };
+            RealmEnemyRecord MakeWallRef() => new RealmEnemyRecord { Wall = 50, MaxWall = 50, Troops = 3000, Train = 50, Tech = 300 };
+
+            Random.InitState(20260920);
+            var wallRefLow = MakeWallRef();
+            var defLow = new RealmArmy { Troops = wallRefLow.Troops, Start = wallRefLow.Troops, Train = wallRefLow.Train, Tech = wallRefLow.Tech, OfficerIds = new List<string>(), Morale = 1f };
+            var resultLow = RealmWar.Fight(MakeAtk(), defLow, wallRefLow, RealmLand.Plain, 1f, 1f, 0.8f);
+
+            Random.InitState(20260920);
+            var wallRefHigh = MakeWallRef();
+            var defHigh = new RealmArmy { Troops = wallRefHigh.Troops, Start = wallRefHigh.Troops, Train = wallRefHigh.Train, Tech = wallRefHigh.Tech, OfficerIds = new List<string>(), Morale = 1f };
+            var resultHigh = RealmWar.Fight(MakeAtk(), defHigh, wallRefHigh, RealmLand.Plain, 1f, 1f, 1.3f);
+
+            if (resultHigh.LossD <= resultLow.LossD)
+            {
+                Debug.LogError($"[PlaytestRealmSlice] 일기토 — duelPowerMul이 커져도(0.8→1.3) 적 손실이 안 늘어남(low={resultLow.LossD}, high={resultHigh.LossD})");
+                return false;
+            }
+
+            Debug.Log($"[PlaytestRealmSlice] duel OK - 순환·배율·평균 산술 확인, duelPowerMul이 Fight() 결과에 반영됨(적 손실 {resultLow.LossD}→{resultHigh.LossD})");
+            return true;
+        }
+
+        /// <summary>PLAN.md 101-2 5-3 "설전" — ① 사자 지력에 따른 난도 상한
+        /// (70+→3등급, 40+→2등급, 그 밖 1등급) 필터링, ② 정답 수(0~3) →
+        /// 배율(0.8/0.95/1.1/1.3) 매핑, ③ RealmCityState.HireChance()가
+        /// (private, ResolveTactic()과 같은 관행으로 리플렉션) debateMul을
+        /// 실제로 곱해 같은 구간(0.05~0.9)으로 다시 눌러 담는지까지 본다.</summary>
+        private static bool CheckDebateHire()
+        {
+            var lowDrawn = RealmDebateState.Draw(20);
+            foreach (var q in lowDrawn)
+            {
+                if (RealmQuizData.ById(q.Id).Lv > 1)
+                {
+                    Debug.LogError($"[PlaytestRealmSlice] 설전 — 지력 20인데 Lv{RealmQuizData.ById(q.Id).Lv} 문제가 뽑힘(1등급만 나와야 함)");
+                    return false;
+                }
+            }
+            var highDrawn = RealmDebateState.Draw(90);
+            bool sawLv3 = false;
+            for (int i = 0; i < 20 && !sawLv3; i++)
+            {
+                foreach (var q in RealmDebateState.Draw(90)) if (RealmQuizData.ById(q.Id).Lv == 3) sawLv3 = true;
+            }
+            if (!sawLv3)
+            {
+                Debug.LogError("[PlaytestRealmSlice] 설전 — 지력 90인데 20회 추첨에도 Lv3 문제가 한 번도 안 나옴(3등급까지 열려야 함)");
+                return false;
+            }
+            if (highDrawn.Count != RealmDebateState.Rounds)
+            {
+                Debug.LogError($"[PlaytestRealmSlice] 설전 — 3문이 아니라 {highDrawn.Count}문이 뽑힘");
+                return false;
+            }
+
+            // Result() — 전부 정답(0번, Present()가 correctIndex를 알려준다)·
+            // 전부 오답(correctIndex+1을 mod 4로 어긋나게)일 때 배율 매핑 확인.
+            var allCorrect = new List<int>();
+            var allWrong = new List<int>();
+            foreach (var q in highDrawn)
+            {
+                allCorrect.Add(q.CorrectIndex);
+                allWrong.Add((q.CorrectIndex + 1) % 4);
+            }
+            var (correctN, mulN) = RealmDebateState.Result(highDrawn, allCorrect);
+            var (wrongN, mulW) = RealmDebateState.Result(highDrawn, allWrong);
+            if (correctN != 3 || !Mathf.Approximately(mulN, 1.3f) || wrongN != 0 || !Mathf.Approximately(mulW, 0.8f))
+            {
+                Debug.LogError($"[PlaytestRealmSlice] 설전 — 정답 수→배율 매핑이 틀림(전정답 correct={correctN} mul={mulN}, 전오답 correct={wrongN} mul={mulW})");
+                return false;
+            }
+
+            var method = typeof(RealmCityState).GetMethod("HireChance", BindingFlags.NonPublic | BindingFlags.Static);
+            if (method == null)
+            {
+                Debug.LogError("[PlaytestRealmSlice] RealmCityState.HireChance()를 리플렉션으로 못 찾음");
+                return false;
+            }
+            float baseChance = (float)method.Invoke(null, new object[] { 100, 2, 1f });
+            float boosted = (float)method.Invoke(null, new object[] { 100, 2, 1.3f });
+            float reduced = (float)method.Invoke(null, new object[] { 100, 2, 0.8f });
+            float capped = (float)method.Invoke(null, new object[] { 100, 2, 5f }); // 극단값도 0.9를 못 넘어야.
+            if (!(boosted > baseChance) || !(reduced < baseChance) || capped > 0.9f)
+            {
+                Debug.LogError($"[PlaytestRealmSlice] 설전 — debateMul이 등용 성공률에 안 반영되거나 상한을 넘음(base={baseChance} boosted={boosted} reduced={reduced} capped={capped})");
+                return false;
+            }
+
+            Debug.Log($"[PlaytestRealmSlice] debate OK - 난도 문턱·3문 추첨·정답수→배율 매핑·HireChance() debateMul 반영·상한 클램프 전부 확인");
             return true;
         }
 

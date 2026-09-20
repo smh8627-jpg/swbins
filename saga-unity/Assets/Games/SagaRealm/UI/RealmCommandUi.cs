@@ -53,6 +53,16 @@ namespace Saga.Realm.UI
         [SerializeField] private Transform _quizButtonsRoot;
         [SerializeField] private Transform _archiveButtonsRoot;
         [SerializeField] private Transform _attackButtonsRoot;
+        // PLAN.md 101-2 5-3 "일기토·설전"(2026-09-20) — 둘 다 강제 진행형
+        // 모달(취소 버튼 없음, 3라운드를 다 골라야 닫힌다)이라 위
+        // [SerializeField] 승격 사고(2026-09-15) 재발을 막으려고 처음부터
+        // [SerializeField]로 선언한다.
+        [SerializeField] private GameObject _duelPanel;
+        [SerializeField] private Text _duelRoundText;
+        [SerializeField] private GameObject _debatePanel;
+        [SerializeField] private Transform _debateButtonsRoot;
+        [SerializeField] private Text _debateQuestionText;
+        [SerializeField] private Text _debateProgressText;
         // 101-2 5-2 "관계·이벤트 체인"(2026-09-20) — 월간 서사 카드. 다른
         // 패널과 달리 사용자가 여닫는 게 아니라 RealmEventState.Presented가
         // 뜰 때 스스로 열린다(OnEventPresented). CloseAllPanels()가 안
@@ -99,12 +109,27 @@ namespace Saga.Realm.UI
         [SerializeField] private Text _archiveToggleLabel;
         [SerializeField] private Text _saveLabel;
         [SerializeField] private Text _tacticToggleLabel;
+        [SerializeField] private Text _duelToggleLabel;
 
         // PLAN.md 101-2 5-6 "지형·진형 전술 개입"(2026-09-20) — 다음 공격에
         // 전술을 쓸지 말지 켜 두는 토글. 값 자체는 위 GameObject 참조들과
         // 달리 씬 저장·재로드로 잃을 게 없는 순수 런타임 상태라
         // [SerializeField] 없이 둔다(기본 false로 시작해도 무방).
         private bool _tacticEnabled;
+
+        // PLAN.md 101-2 5-3 "일기토"(2026-09-20) — 전술 토글과 같은 결의
+        // 런타임 전용 상태. _pendingAttackEnemyId는 일기토가 끝날 때까지
+        // 어느 적을 칠지 들고 있는 자리(null이면 TargetFrom()이 스스로
+        // 고른다 — ExecuteAttack()의 옛 동작과 같다).
+        private bool _duelEnabled;
+        private string _pendingAttackEnemyId;
+        private bool _pendingAttackHasEnemyId;
+        private readonly List<string> _duelResults = new List<string>();
+        private int _duelRoundIndex;
+
+        // PLAN.md 101-2 5-3 "설전" — 등용에만 거는 3문 카드 진행 상태.
+        private List<RealmQuizState.Presented> _debateQuestions;
+        private List<int> _debateAnswers;
 
         private void Awake()
         {
@@ -191,6 +216,12 @@ namespace Saga.Realm.UI
                 new Vector2(1f, 1f), new Vector2(-110f, -570f), new Vector2(180f, 110f), ToggleTactic);
             _tacticToggleLabel = tacticToggleButton.GetComponentInChildren<Text>();
 
+            // 일기토 토글(101-2 5-3, 2026-09-20) — 전술 토글 바로 아래,
+            // 같은 구석 기둥을 한 칸 더 잇는다(-570 바로 아래, 같은 120px 간격).
+            var duelToggleButton = RealmUiKit.NewButton(canvas.transform, DuelToggleLabelText(),
+                new Vector2(1f, 1f), new Vector2(-110f, -690f), new Vector2(180f, 110f), ToggleDuel);
+            _duelToggleLabel = duelToggleButton.GetComponentInChildren<Text>();
+
             BuildOrderPanel(canvas.transform);
             BuildCityPanel(canvas.transform);
             BuildPlotPanel(canvas.transform);
@@ -198,6 +229,8 @@ namespace Saga.Realm.UI
             BuildArchivePanel(canvas.transform);
             BuildSettingsPanel(canvas.transform);
             BuildAttackPanel(canvas.transform);
+            BuildDuelPanel(canvas.transform);
+            BuildDebatePanel(canvas.transform);
             // 맨 마지막 — 이벤트 카드가 항상 다른 패널 위에 그려지게(위
             // 필드 주석 참고).
             BuildEventPanel(canvas.transform);
@@ -228,6 +261,56 @@ namespace Saga.Realm.UI
 
             RealmUiKit.NewButton(_attackPanel.transform, RealmLocalization.T("settings.close"), new Vector2(0.5f, 0f), new Vector2(0f, 30f),
                 new Vector2(300f, 70f), () => _attackPanel.SetActive(false));
+        }
+
+        /// <summary>PLAN.md 101-2 5-3 "일기토" — 강제 진행형 모달(닫기 버튼
+        /// 없음, 3라운드를 다 골라야 저절로 닫힌다). 라운드 진행은
+        /// `_duelRoundText` 한 줄과 베기/찌르기/막기 버튼 셋뿐 — 승/무/패
+        /// 결과는 각 선택 직후 토스트로 짧게 알린다(RefreshDuelPanel 참고).</summary>
+        private void BuildDuelPanel(Transform parent)
+        {
+            _duelPanel = RealmUiKit.NewPanel(parent, new Vector2(0.5f, 0.5f), new Vector2(640f, 420f),
+                new Color(0f, 0f, 0f, 0.8f));
+            _duelPanel.SetActive(false);
+
+            RealmUiKit.NewText(_duelPanel.transform, RealmLocalization.T("duel.title", "🤺 일기토"), new Vector2(0.5f, 1f), new Vector2(0f, -60f),
+                new Vector2(560f, 60f), 32);
+            _duelRoundText = RealmUiKit.NewText(_duelPanel.transform, "", new Vector2(0.5f, 1f), new Vector2(0f, -140f),
+                new Vector2(560f, 50f), 24);
+
+            RealmUiKit.NewButton(_duelPanel.transform, RealmDuelState.MoveName("slash"), new Vector2(0.5f, 1f), new Vector2(0f, -230f),
+                new Vector2(460f, 80f), () => ChooseDuelMove("slash"));
+            RealmUiKit.NewButton(_duelPanel.transform, RealmDuelState.MoveName("stab"), new Vector2(0.5f, 1f), new Vector2(0f, -320f),
+                new Vector2(460f, 80f), () => ChooseDuelMove("stab"));
+            RealmUiKit.NewButton(_duelPanel.transform, RealmDuelState.MoveName("guard"), new Vector2(0.5f, 1f), new Vector2(0f, -410f),
+                new Vector2(460f, 80f), () => ChooseDuelMove("guard"));
+        }
+
+        /// <summary>PLAN.md 101-2 5-3 "설전" — 등용에만 거는 3문 카드
+        /// (RealmQuizState.Presented 재사용, 문답 패널과 뼈대는 같지만
+        /// _learned/_wrongs 등 학당 상태는 안 건드리는 별도 상태 — 클래스
+        /// 주석 참고). 보기 수가 문답과 같이 4개라 위치도 그대로 베꼈다.</summary>
+        private void BuildDebatePanel(Transform parent)
+        {
+            _debatePanel = RealmUiKit.NewPanel(parent, new Vector2(0.5f, 0.5f), new Vector2(760f, 640f),
+                new Color(0f, 0f, 0f, 0.82f));
+            _debatePanel.SetActive(false);
+
+            RealmUiKit.NewText(_debatePanel.transform, RealmLocalization.T("debate.title", "🗣️ 설전"), new Vector2(0.5f, 1f), new Vector2(0f, -50f),
+                new Vector2(680f, 50f), 28);
+            _debateProgressText = RealmUiKit.NewText(_debatePanel.transform, "", new Vector2(0.5f, 1f), new Vector2(0f, -110f),
+                new Vector2(680f, 40f), 22);
+            _debateQuestionText = RealmUiKit.NewText(_debatePanel.transform, "", new Vector2(0.5f, 1f), new Vector2(0f, -190f),
+                new Vector2(680f, 130f), 26);
+
+            var root = new GameObject("DebateButtons", typeof(RectTransform));
+            root.transform.SetParent(_debatePanel.transform, false);
+            var rootRect = (RectTransform)root.transform;
+            rootRect.anchorMin = Vector2.zero;
+            rootRect.anchorMax = Vector2.one;
+            rootRect.sizeDelta = Vector2.zero;
+            rootRect.anchoredPosition = Vector2.zero;
+            _debateButtonsRoot = root.transform;
         }
 
         private void RefreshAttackPanel(List<string> targets)
@@ -488,6 +571,8 @@ namespace Saga.Realm.UI
             _archivePanel.SetActive(false);
             _settingsPanel.SetActive(false);
             _attackPanel.SetActive(false);
+            _duelPanel.SetActive(false);
+            _debatePanel.SetActive(false);
         }
 
         /// <summary>서고(godot REALM 10절) — 익힌 문제를 최근 순으로 다시
@@ -687,10 +772,84 @@ namespace Saga.Realm.UI
 
         private void ChooseOrder(string key)
         {
-            var result = RealmCityState.ExecuteOrder(key);
-            RealmToast.Instance?.Show(result.Message, 5f);
+            // PLAN.md 101-2 5-3 "설전" — 등용만, 사자가 있을 때만(없으면
+            // 옛 동작 그대로 바로 실행 — ExecuteOrder()가 스스로 "무장이
+            // 없습니다" 에러를 돌려준다).
+            if (key == "hire")
+            {
+                var envoy = RealmCityState.HireEnvoyOfficer();
+                if (envoy != null)
+                {
+                    StartDebate(envoy.Wisdom);
+                    return;
+                }
+            }
+            RunOrder(key, 1f, -1);
+        }
+
+        private void RunOrder(string key, float debateMul, int debateCorrect)
+        {
+            var result = RealmCityState.ExecuteOrder(key, debateMul);
+            string prefix = debateCorrect >= 0
+                ? string.Format(RealmLocalization.T("debate.result_prefix", "🗣️ 설전 {0}/3 정답 — "), debateCorrect)
+                : "";
+            RealmToast.Instance?.Show(prefix + result.Message, 5f);
             PlayOutcomeSfx(result.Ok);
             if (result.Ok) _orderPanel.SetActive(false);
+        }
+
+        /// <summary>사자의 지력으로 난도를 정해 3문을 뽑고 첫 문제부터
+        /// 보여준다 — 명령 패널은 결과가 나올 때까지 안 필요해 미리 닫는다
+        /// (다른 아홉 명령과 달리, 성공/실패가 갈리기 전에 이미 닫힌다).</summary>
+        private void StartDebate(int wisdom)
+        {
+            _debateQuestions = RealmDebateState.Draw(wisdom);
+            _debateAnswers = new List<int>();
+            CloseAllPanels();
+            if (_debateQuestions.Count == 0)
+            {
+                // 문제은행이 통째로 비는 일은 없지만(RealmQuizData.Bank 36문항
+                // 고정), 방어적으로 설전 없이 바로 실행한다.
+                RunOrder("hire", 1f, -1);
+                return;
+            }
+            RefreshDebatePanel();
+            _debatePanel.SetActive(true);
+        }
+
+        private void RefreshDebatePanel()
+        {
+            for (int i = _debateButtonsRoot.childCount - 1; i >= 0; i--)
+            {
+                Destroy(_debateButtonsRoot.GetChild(i).gameObject);
+            }
+
+            var q = _debateQuestions[_debateAnswers.Count];
+            _debateProgressText.text = string.Format(RealmLocalization.T("debate.progress", "설전 {0}/{1}"), _debateAnswers.Count + 1, _debateQuestions.Count);
+            _debateQuestionText.text = q.Q;
+
+            float y = -350f;
+            for (int i = 0; i < q.Choices.Length; i++)
+            {
+                int idx = i;
+                RealmUiKit.NewButton(_debateButtonsRoot, q.Choices[i], new Vector2(0.5f, 1f), new Vector2(0f, y),
+                    new Vector2(660f, 84f), () => ChooseDebateAnswer(idx));
+                y -= 100f;
+            }
+        }
+
+        private void ChooseDebateAnswer(int choiceIdx)
+        {
+            _debateAnswers.Add(choiceIdx);
+            if (_debateAnswers.Count < _debateQuestions.Count)
+            {
+                RefreshDebatePanel();
+                return;
+            }
+
+            _debatePanel.SetActive(false);
+            var (correct, mul) = RealmDebateState.Result(_debateQuestions, _debateAnswers);
+            RunOrder("hire", mul, correct);
         }
 
         private void ChooseCity(string cityId)
@@ -734,19 +893,76 @@ namespace Saga.Realm.UI
                 return;
             }
 
-            var result = RealmWarState.Attack(RealmCityState.CurrentCity, useTactic: _tacticEnabled);
-            RealmToast.Instance?.Show(result.Message, 6f);
+            BeginAttackFlow(null, false);
+        }
+
+        private void ChooseAttackTarget(string enemyId)
+        {
+            _attackPanel.SetActive(false);
+            BeginAttackFlow(enemyId, true);
+        }
+
+        /// <summary>PLAN.md 101-2 5-3 "일기토" — 켜져 있으면 실제 출진 전에
+        /// 3합 카드를 먼저 돌린다(FinishAttackFlow가 결과를 받아 실행).
+        /// 꺼져 있으면 옛 동작 그대로 바로 출진.</summary>
+        private void BeginAttackFlow(string enemyId, bool hasEnemyId)
+        {
+            _pendingAttackEnemyId = enemyId;
+            _pendingAttackHasEnemyId = hasEnemyId;
+            if (_duelEnabled)
+            {
+                StartDuel();
+            }
+            else
+            {
+                FinishAttackFlow(1f, null);
+            }
+        }
+
+        private void FinishAttackFlow(float duelMul, string duelPrefix)
+        {
+            var result = _pendingAttackHasEnemyId
+                ? RealmWarState.Attack(RealmCityState.CurrentCity, _pendingAttackEnemyId, _tacticEnabled, duelMul)
+                : RealmWarState.Attack(RealmCityState.CurrentCity, useTactic: _tacticEnabled, duelPowerMul: duelMul);
+            string msg = duelPrefix != null ? duelPrefix + result.Message : result.Message;
+            RealmToast.Instance?.Show(msg, 6f);
             // 출진 자체가 무효면 error, 유효하면 전투 결과(승/패)로 고른다
             // (Won은 Ok=true일 때만 뜻이 있다 — RealmWarState.AttackResult 참고).
             PlayOutcomeSfx(result.Won);
         }
 
-        private void ChooseAttackTarget(string enemyId)
+        private void StartDuel()
         {
-            var result = RealmWarState.Attack(RealmCityState.CurrentCity, enemyId, _tacticEnabled);
-            RealmToast.Instance?.Show(result.Message, 6f);
-            PlayOutcomeSfx(result.Won);
-            _attackPanel.SetActive(false);
+            _duelResults.Clear();
+            _duelRoundIndex = 0;
+            CloseAllPanels();
+            RefreshDuelPanel();
+            _duelPanel.SetActive(true);
+        }
+
+        private void RefreshDuelPanel()
+        {
+            _duelRoundText.text = string.Format(RealmLocalization.T("duel.round", "일기토 {0}/{1} — 무엇을 낼까?"), _duelRoundIndex + 1, RealmDuelState.Rounds);
+        }
+
+        private void ChooseDuelMove(string move)
+        {
+            string enemyMove = RealmDuelState.AiMove();
+            string result = RealmDuelState.RoundResult(move, enemyMove);
+            _duelResults.Add(result);
+            _duelRoundIndex++;
+
+            if (_duelRoundIndex < RealmDuelState.Rounds)
+            {
+                RefreshDuelPanel();
+                return;
+            }
+
+            _duelPanel.SetActive(false);
+            float mul = RealmDuelState.AverageMul(_duelResults);
+            int wins = _duelResults.FindAll(r => r == "win").Count;
+            string prefix = string.Format(RealmLocalization.T("duel.result_prefix", "🤺 일기토 {0}승 — "), wins);
+            FinishAttackFlow(mul, prefix);
         }
 
         /// <summary>PLAN.md 101-2 5-6 — 다음 공격에 지형 전술을 쓸지 켜고
@@ -765,6 +981,22 @@ namespace Saga.Realm.UI
             return string.IsNullOrEmpty(hint)
                 ? $"{RealmLocalization.T("command.tactic", "전술")}:{state}"
                 : $"{RealmLocalization.T("command.tactic", "전술")}:{state}\n{hint}";
+        }
+
+        /// <summary>PLAN.md 101-2 5-3 — 다음 공격에 일기토(3합 베기/찌르기/
+        /// 막기)를 쓸지 켜고 끈다. 전술 토글과 독립 — 둘 다 켜면 배율이
+        /// 같이 곱해진다(RealmWar.Fight의 firstRoundPowerMul·defPowerMul·
+        /// duelPowerMul 세 자리가 서로 안 겹치는 축이라 자연히 그렇다).</summary>
+        private void ToggleDuel()
+        {
+            _duelEnabled = !_duelEnabled;
+            _duelToggleLabel.text = DuelToggleLabelText();
+        }
+
+        private string DuelToggleLabelText()
+        {
+            string state = RealmLocalization.T(_duelEnabled ? "state.on" : "state.off");
+            return $"{RealmLocalization.T("command.duel", "일기토")}:{state}";
         }
 
         private void ChoosePlot(string key, string enemyId = null)

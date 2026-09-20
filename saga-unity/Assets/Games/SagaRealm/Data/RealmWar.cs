@@ -66,16 +66,17 @@ namespace Saga.Realm.Data
         /// <summary>합(合) 하나 — war.js stepRound() 그대로. `round==0`에만
         /// 거는 `firstRoundPowerMul`(101-2 5-6 "기병 돌격" 같은 첫 합
         /// 한정 전술)과 매 합 거는 `defPowerMul`(같은 5-6 "화공" 같은
-        /// 전투 내내 가는 전술) 두 자리만 새로 열었다 — 둘 다 기본값
-        /// 1이라 안 쓰면 war.js 그대로다.</summary>
+        /// 전투 내내 가는 전술) 두 자리를 열었고, 101-2 5-3 "일기토"로
+        /// `duelPowerMul`(매 합, atk 쪽) 한 자리를 더 열었다 — 셋 다
+        /// 기본값 1이라 안 쓰면 war.js 그대로다.</summary>
         private static string StepRound(RealmArmy atk, RealmArmy def, RealmEnemyRecord wallRef, RealmLand land, bool sortie,
-            int round, float firstRoundPowerMul, float defPowerMul)
+            int round, float firstRoundPowerMul, float defPowerMul, float duelPowerMul)
         {
             float wallF = sortie
                 ? RealmCityData.DefMul(land)
                 : RealmCityData.DefMul(land) * (1f + (float)wallRef.Wall / Mathf.Max(1, wallRef.MaxWall) * 0.9f);
 
-            float ap = ArmyPower(atk) * (round == 0 ? firstRoundPowerMul : 1f);
+            float ap = ArmyPower(atk) * (round == 0 ? firstRoundPowerMul : 1f) * duelPowerMul;
             float dp = ArmyPower(def) * wallF * defPowerMul;
 
             int lossA = Mathf.RoundToInt(dp * 0.055f * (0.85f + UnityEngine.Random.value * 0.3f));
@@ -98,10 +99,10 @@ namespace Saga.Realm.Data
 
         /// <summary>한 달치 싸움 — war.js fight() 그대로(최대 10합).
         /// 승부가 안 갈리면(날이 저묾) 이 슬라이스엔 진영(camp) 시스템이
-        /// 없어 routed와 같이 취급한다(문서 "뺀 것" 재해석). 101-2 5-6
-        /// 전술 두 자리는 기본값(둘 다 1)이면 war.js 그대로.</summary>
+        /// 없어 routed와 같이 취급한다(문서 "뺀 것" 재해석). 101-2 5-6·5-3
+        /// 세 배율 자리는 기본값(전부 1)이면 war.js 그대로.</summary>
         public static FightResult Fight(RealmArmy atk, RealmArmy def, RealmEnemyRecord wallRef, RealmLand land,
-            float firstRoundPowerMul = 1f, float defPowerMul = 1f)
+            float firstRoundPowerMul = 1f, float defPowerMul = 1f, float duelPowerMul = 1f)
         {
             bool sortie = def.Troops > atk.Troops * 0.85f;
             int wallFrom = wallRef.Wall;
@@ -109,7 +110,7 @@ namespace Saga.Realm.Data
 
             for (int r = 0; r < Rounds; r++)
             {
-                string outcome = StepRound(atk, def, wallRef, land, sortie, r, firstRoundPowerMul, defPowerMul);
+                string outcome = StepRound(atk, def, wallRef, land, sortie, r, firstRoundPowerMul, defPowerMul, duelPowerMul);
                 if (outcome == "won") { won = true; break; }
                 if (outcome == "routed") { routed = true; break; }
             }
