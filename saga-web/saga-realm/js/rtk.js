@@ -206,6 +206,7 @@
     st.started = true;
     st.year = sc.year || START_YEAR; st.month = 1; st.turn = 0;
     st.me = meId; st.result = null;
+    st.victories = []; st.pactStreak = 0; st.topStreak = 0;
     st.cities = {}; st.forces = {}; st.officers = {}; st.captives = {};
     st.camps = []; st.campSeq = 0;
     st.journeys = []; st.journeySeq = 0;
@@ -826,10 +827,171 @@
       core.emit('rtk:end', 'lose');
     } else if (mine.length === Object.keys(st.cities).length) {
       st.result = 'win';
+      recordVictory(st, 'conquest');
       core.log('👑 천하가 하나가 되었다! ' + st.year + '년 ' + st.month + '월.', 'good');
       core.emit('rtk:end', 'win');
     }
     return st.result;
+  }
+
+  /* ── 승리 조건 (PLAN §5-5) ───────────────────────────────
+   * 정복(천하통일)은 예전 그대로 `st.result = 'win'` 으로 판을 닫는다. 나머지 넷은 **판을 닫지 않는다** —
+   * 달성하면 `save.rtk.victories = [{kind, month}]` 에 **한 번만** 적고 결과 카드를 띄운다(이어하기가 기본).
+   * 카운터 `pactStreak`·`topStreak` 은 달을 넘길 때마다 `tickVictories` 가 센다(옛 세이브는 칸이 없으면 0 에서).
+   *   패권  관문 성(`landmark` 확장 지역 열 곳) 4곳 이상 + 세력 1위 — 둘을 함께 24달 잇는다
+   *   문화  문답 정답 200 + 서로 다른 보물 8종(무장이 든 것) — 카운터 없이 지금 값으로 본다
+   *   외교  살아 있는 다른 모든 세력과 동맹·화친 36달 연속
+   *   생존  ⑤ 균열의 왕 전용 — 240달 버티기
+   * 손잡이 `rtk.victory.<종류>` 를 0 으로 두면 그 조건은 꺼진다(어드민 '균형 손잡이').
+   * ※ PLAN 초안의 "학식 상한" 은 이 판에 상한이라는 값이 없어(`st.lore` 는 쌓이기만 한다) 뺐다. */
+  var VICTORY = {
+    hegemony:  { name: '패권', emoji: '🏯', gates: 4, months: 24 },
+    culture:   { name: '문화', emoji: '📚', correct: 200, relics: 8 },
+    diplomacy: { name: '외교', emoji: '🕊️', months: 36 },
+    survival:  { name: '생존', emoji: '🛡️', months: 240 }
+  };
+  var VICTORY_KINDS = ['hegemony', 'culture', 'diplomacy', 'survival'];
+  var CONQUEST = { name: '천하통일', emoji: '👑' };
+
+  function victoryOn(kind) { return core.tuned('rtk.victory.' + kind, 1) !== 0; }
+
+  /** 이 판에서 겨룰 수 있는 승리 조건 — 생존은 균열의 왕 판만, 꺼 둔 것은 뺀다 */
+  function victoryKinds() {
+    var st = state(), out = [], i;
+    for (i = 0; i < VICTORY_KINDS.length; i++) {
+      var k = VICTORY_KINDS[i];
+      if (k === 'survival' && st.scen !== 'rift') { continue; }
+      if (victoryOn(k)) { out.push(k); }
+    }
+    return out;
+  }
+
+  function victoryDone(st, kind) {
+    var v = st.victories || [], i;
+    for (i = 0; i < v.length; i++) { if (v[i].kind === kind) { return true; } }
+    return false;
+  }
+
+  function recordVictory(st, kind) {
+    if (!st.victories) { st.victories = []; }
+    if (!victoryDone(st, kind)) { st.victories.push({ kind: kind, month: st.turn || 0 }); }
+  }
+
+  function gateCount(st, forceId) {
+    var n = 0, i;
+    for (i = 0; i < CD.CITIES.length; i++) {
+      var d = CD.CITIES[i];
+      if (d.landmark && st.cities[d.id] && st.cities[d.id].force === forceId) { n++; }
+    }
+    return n;
+  }
+
+  function relicKinds(forceId) {
+    var team = global.DG.off.ofForce(forceId), seen = {}, n = 0, i;
+    for (i = 0; i < team.length; i++) {
+      var it = global.DG.off.rec(team[i].id).item;
+      if (it && !seen[it]) { seen[it] = 1; n++; }
+    }
+    return n;
+  }
+
+  function rankOf(forceId) {
+    var rk = ranking(), i;
+    for (i = 0; i < rk.length; i++) { if (rk[i].id === forceId) { return i + 1; } }
+    return 0;
+  }
+
+  /** 지금 살아 있는 다른 세력 중 나와 동맹·화친이 아닌 곳의 수(외교 승리의 조건) */
+  function unpacted(st) {
+    var D = global.DG.diplo, ids = liveForces(), n = 0, i;
+    for (i = 0; i < ids.length; i++) {
+      if (ids[i] === st.me) { continue; }
+      if (!D || !(D.alliedWith(st.me, ids[i]) || D.trucedWith(st.me, ids[i]))) { n++; }
+    }
+    return n;
+  }
+
+  /** 조건 하나의 진척 — { pct: 0~1, ok, note } (화면은 pct 막대와 note 한 줄) */
+  function victoryProgress(kind) {
+    var st = state(), V = VICTORY[kind], quiz = (core.save.quiz && core.save.quiz.correct) || 0;
+    var hi = function (a, b) { return Math.min(1, a / b); };
+    if (kind === 'hegemony') {
+      var g = gateCount(st, st.me), pos = rankOf(st.me), sk = st.topStreak || 0;
+      return { pct: sk / V.months, ok: sk >= V.months,
+               note: '관문 ' + g + '/' + V.gates + ' · ' + (pos ? pos + '위' : '—') + ' · ' + sk + '/' + V.months + '달' };
+    }
+    if (kind === 'culture') {
+      var rk = relicKinds(st.me);
+      return { pct: (hi(quiz, V.correct) + hi(rk, V.relics)) / 2, ok: quiz >= V.correct && rk >= V.relics,
+               note: '정답 ' + Math.min(quiz, V.correct) + '/' + V.correct + ' · 보물 ' + Math.min(rk, V.relics) + '/' + V.relics };
+    }
+    if (kind === 'diplomacy') {
+      var ps = st.pactStreak || 0, bad = unpacted(st);
+      return { pct: ps / V.months, ok: ps >= V.months,
+               note: ps + '/' + V.months + '달' + (bad ? ' · 화친 안 한 세력 ' + bad : '') };
+    }
+    var t = st.turn || 0;   // survival
+    return { pct: t / V.months, ok: t >= V.months, note: t + '/' + V.months + '달' };
+  }
+
+  /** 화면용 — 가장 가까운(이루지 못한) 승리 조건. 정복도 후보다. 없으면 null */
+  function victoryNext() {
+    var st = state();
+    if (!st.started) { return null; }
+    var best = null, ks = victoryKinds(), i;
+    for (i = 0; i < ks.length; i++) {
+      if (victoryDone(st, ks[i])) { continue; }
+      var p = victoryProgress(ks[i]);
+      if (!best || p.pct > best.pct) { best = { kind: ks[i], name: VICTORY[ks[i]].name + ' 승리', emoji: VICTORY[ks[i]].emoji, pct: p.pct, note: p.note }; }
+    }
+    var total = Object.keys(st.cities).length, mine = citiesOf(st.me).length;
+    var cp = mine / Math.max(1, total);
+    if (!best || cp > best.pct) {
+      best = { kind: 'conquest', name: CONQUEST.name, emoji: CONQUEST.emoji, pct: cp, note: '성 ' + mine + '/' + total };
+    }
+    return best;
+  }
+
+  /** 결과 카드에 실을 것 — 걸린 달·성·인물 다섯·기록 셋·다음 도전 하나 */
+  function resultCard(kind) {
+    var st = state(), off = global.DG.off, team = off.ofForce(st.me), i, top = [];
+    for (i = 0; i < team.length && i < 5; i++) { top.push({ name: team[i].name, power: off.power(team[i].id) }); }
+    var total = Object.keys(st.cities).length, s = summary(st.me), q = (core.save.quiz && core.save.quiz.correct) || 0;
+    var name = kind === 'conquest' ? CONQUEST.name : VICTORY[kind].name + ' 승리';
+    var next = victoryNext();
+    return {
+      kind: kind, name: name, emoji: kind === 'conquest' ? CONQUEST.emoji : VICTORY[kind].emoji,
+      month: st.turn || 0, year: st.year, mon: st.month, cities: s.cities, total: total, top: top,
+      lines: [
+        '성 ' + s.cities + '/' + total + ' · 병력 ' + core.fmt(s.troops) + ' · 금 ' + core.fmt(s.gold),
+        '세력 ' + rankOf(st.me) + '위(살아 있는 ' + liveForces().length + ') · 무장 ' + s.officers + '명',
+        '문답 정답 ' + q + ' · 보물 ' + relicKinds(st.me) + '종 · 이정표 ' + (st.milestone ? st.milestone.idx : 0) + '/5'
+      ],
+      next: next ? next.emoji + ' ' + next.name + ' — ' + next.note : ''
+    };
+  }
+
+  /**
+   * 달을 넘긴 뒤 부른다 — 카운터를 세고, 이번 달에 처음 이룬 승리 조건을 적고 카드를 띄운다.
+   * 승패가 난 판은 세지 않는다(정복 판정은 checkResult 가 한다). @returns 이번에 이룬 종류 배열
+   */
+  function tickVictories() {
+    var st = state(), out = [];
+    if (!st.started || st.result) { return out; }
+    var g = gateCount(st, st.me);
+    st.topStreak = (g >= VICTORY.hegemony.gates && rankOf(st.me) === 1) ? (st.topStreak || 0) + 1 : 0;
+    var others = liveForces().length - (citiesOf(st.me).length ? 1 : 0);
+    st.pactStreak = (others > 0 && unpacted(st) === 0) ? (st.pactStreak || 0) + 1 : 0;
+    var ks = victoryKinds(), i;
+    for (i = 0; i < ks.length; i++) {
+      if (victoryDone(st, ks[i]) || !victoryProgress(ks[i]).ok) { continue; }
+      recordVictory(st, ks[i]);
+      out.push(ks[i]);
+      core.log('🏆 ' + VICTORY[ks[i]].name + ' 승리! ' + st.year + '년 ' + st.month + '월 — 판은 이어진다.', 'good');
+    }
+    for (i = 0; i < out.length; i++) { core.emit('rtk:victory', resultCard(out[i])); }
+    if (out.length) { core.emit('changed'); }
+    return out;
   }
 
   /* ── 달 넘기기 ────────────────────────────────────────── */
@@ -861,6 +1023,7 @@
 
     core.emit('rtk:month', { year: st.year, month: st.month });
     core.emit('changed');
+    tickVictories();
     checkMilestones();
     core.persist();
     return { year: st.year, month: st.month };
@@ -1028,6 +1191,8 @@
     setup: setup, scatterFree: scatterFree,
     milestones: milestones, milestoneView: milestoneView, condProgress: condProgress,
     checkMilestones: checkMilestones,
+    VICTORY: VICTORY, victoryKinds: victoryKinds, victoryProgress: victoryProgress, victoryNext: victoryNext,
+    victoryDone: function (k) { return victoryDone(state(), k); }, resultCard: resultCard, tickVictories: tickVictories,
     readyAt: readyAt, capOf: capOf, order: order, tryHire: tryHire,
     setGov: setGov, govMul: govMul, reward: reward,
     goldOf: goldOf, foodOf: foodOf, eatOf: eatOf, secMul: secMul, harvestMul: harvestMul,

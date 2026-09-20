@@ -430,6 +430,7 @@
     core.on('rtk:camp', function () { syncDock(); });
     core.on('rtk:end', function (kind) { showEnd(kind); });
     core.on('rtk:milestone', function (list) { showMilestone(list); });
+    core.on('rtk:victory', function (card) { showVictory(card); });
 
     if (!R().state().started) { showScenPick(); }
     else { centerOnMine(); }
@@ -864,16 +865,24 @@
     if (nb) { nb.addEventListener('click', function () { act('next-month', nb); }); }
   }
 
-  /** 상단 목표 한 줄 — 지금 겨냥하는 이정표와 진척 막대(PLAN §5-4) */
+  /** 상단 목표 두 줄 — ① 지금 겨냥하는 이정표(§5-4) ② 가장 가까운 승리 조건과 진척 %(§5-5) */
   function goalLine() {
     var mv = R().milestoneView();
     if (!mv) { return ''; }
-    if (!mv.cur) { return '<div class="p-goal">🚩 <b>' + mv.total + '/' + mv.total + '</b> 이정표를 모두 넘었다</div>'; }
-    var pg = mv.progress;
-    var pct = Math.min(100, Math.round(100 * pg.cur / Math.max(1, pg.need)));
-    return '<div class="p-goal" title="' + esc(mv.cur.desc) + '">🚩 <b>' + (mv.idx + 1) + '/' + mv.total + '</b> ' +
-      esc(mv.cur.name) + ' <span class="gbar"><i style="width:' + pct + '%"></i></span> ' +
-      pg.cur + '/' + pg.need + (pg.note ? ' · ' + pg.note : '') + '</div>';
+    var line1;
+    if (!mv.cur) { line1 = '<div class="p-goal">🚩 <b>' + mv.total + '/' + mv.total + '</b> 이정표를 모두 넘었다</div>'; }
+    else {
+      var pg = mv.progress;
+      var pct = Math.min(100, Math.round(100 * pg.cur / Math.max(1, pg.need)));
+      line1 = '<div class="p-goal" title="' + esc(mv.cur.desc) + '">🚩 <b>' + (mv.idx + 1) + '/' + mv.total + '</b> ' +
+        esc(mv.cur.name) + ' <span class="gbar"><i style="width:' + pct + '%"></i></span> ' +
+        pg.cur + '/' + pg.need + (pg.note ? ' · ' + pg.note : '') + '</div>';
+    }
+    var vn = R().victoryNext();
+    if (!vn) { return line1; }
+    var vp = Math.min(100, Math.round(100 * vn.pct));
+    return line1 + '<div class="p-goal p-vic" title="' + esc(vn.note) + '">' + vn.emoji + ' <b>' + esc(vn.name) + '</b> ' +
+      '<span class="gbar"><i style="width:' + vp + '%"></i></span> ' + vp + '% <span class="vnote">' + esc(vn.note) + '</span></div>';
   }
 
   function coin(icon, val, label) {
@@ -1662,9 +1671,17 @@
   /* ── 기록 ─────────────────────────────────────────────── */
 
   function viewLog() {
-    var log = core.save.log;
-    if (!log.length) { return '<div class="hint">아직 기록이 없습니다.</div>'; }
-    var out = '<div class="loglist">';
+    var log = core.save.log, out = '', vs = R().state().victories || [];
+    if (vs.length) {
+      out += '<div class="loglist">';
+      for (var v = 0; v < vs.length; v++) {
+        var vk = vs[v].kind, vn = vk === 'conquest' ? '👑 천하통일' : R().VICTORY[vk].emoji + ' ' + R().VICTORY[vk].name + ' 승리';
+        out += '<div class="lrow good">🏆 ' + esc(vn) + ' — 시작부터 ' + vs[v].month + '달째</div>';
+      }
+      out += '</div>';
+    }
+    if (!log.length) { return out + '<div class="hint">아직 기록이 없습니다.</div>'; }
+    out += '<div class="loglist">';
     for (var i = 0; i < log.length; i++) {
       out += '<div class="lrow ' + log[i].kind + '">' + esc(log[i].text) + '</div>';
     }
@@ -1748,6 +1765,27 @@
     showEncQueued(html);
   }
 
+  /** 결과 카드(§5-5) — 걸린 달·성·인물 다섯·기록 셋·다음 도전. 이룬 승리는 이어하기가 기본이고 새 판은 단추로 */
+  function resultHtml(card, over) {
+    var html = '<div style="text-align:center"><div class="enc-big">' + card.emoji + '</div>' +
+      '<h3 style="margin:6px 0 2px;font-size:20px;color:var(--gold)">' + esc(card.name) + '</h3>' +
+      '<small class="muted">' + card.year + '년 ' + card.mon + '월 · 시작부터 ' + card.month + '달째' +
+      (over ? '' : ' · 판은 이어집니다') + '</small></div>' +
+      '<div class="enc-hist"><b>🧑‍✈️ 이끈 사람</b><br>';
+    for (var i = 0; i < card.top.length; i++) {
+      html += esc(card.top[i].name) + ' <span class="muted">' + card.top[i].power + '</span>' + (i < card.top.length - 1 ? ' · ' : '');
+    }
+    html += '<br><b>📜 기록</b>';
+    for (i = 0; i < card.lines.length; i++) { html += '<br>' + esc(card.lines[i]); }
+    if (card.next) { html += '<br><b>🎯 다음 도전</b><br>' + esc(card.next); }
+    html += '</div>';
+    return html + (over
+      ? '<button class="btn primary wide" data-act="back-scen">새 판</button><button class="btn wide" data-act="close-enc">닫기</button>'
+      : '<button class="btn primary wide" data-act="close-enc">이어하기</button><button class="btn wide" data-act="back-scen">새 판</button>');
+  }
+
+  function showVictory(card) { showEncQueued(resultHtml(card, false)); }
+
   /** 먼저 **판(시나리오)** 을 고른다 */
   function showScenPick() {
     var html = '<h3 style="margin:0 0 2px;font-size:19px">어느 해에서 시작하시겠습니까</h3>' +
@@ -1816,6 +1854,7 @@
 
   function showEnd(kind) {
     var st = R().state();
+    if (kind === 'win') { showEnc(resultHtml(R().resultCard('conquest'), true)); return; }
     showEnc('<h3 style="margin:0 0 6px;font-size:20px">' +
       (kind === 'win' ? '👑 천하통일' : '🏳️ 멸망') + '</h3>' +
       '<small class="muted">' + st.year + '년 ' + st.month + '월. ' +
