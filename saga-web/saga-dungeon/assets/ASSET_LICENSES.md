@@ -1822,3 +1822,12 @@ VRoid Studio 공식 CC0 샘플 AvatarSample_A/B/C(github.com/madjin/vrm-samples,
 인물 id 를 해시해 열넷 중 하나를 **늘 같은 얼굴로** 고르고, 좌우 뒤집기와 걸음 통통거림은 그림과 무관하게 산다. 이 판의 양식인
 디아블로풍 후처리(`diabloize`, 어둡고 채도 낮게)는 그림에도 그대로 건다. 그림이 아직 안 실린 첫 프레임만 옛 코드 그림으로
 채우고 곧 다시 굽는다. 짐승(`beast()`)은 아직 코드 그림이다(Phase 3). 3D 던전 뷰와 도감 초상은 영향이 없다.
+
+## 몬스터 2D 시트 — 3D 몸을 옆모습 걷기 그림으로 미리 구움 (`assets/sprites2d/mon_*.webp`, 2026-09-20)
+
+`tools/bake-portraits/bake.mjs --sprites=monsters` 가 `data-enemy.js` 의 짐승 형 적 몸 60종(`asset3d.js` REG 의 `monster:*`·`beast*` 키)을
+**옆에서 본 5컷 가로 시트**(걷기 4 + 서기 1, 컷 128px, 외곽선 끔)로 구운 것이다. 2D 던전 뷰(`sprite.js` 의 `bake()` 짐승 분기)만 쓰고
+`mon-manifest.js` 에 적힌 몸만 그린다. **원본은 위 각 절의 GLB 그대로다 — 새로 받은 것이 하나도 없고**, 이 그림은 그 모델을 화면에
+찍은 파생물이므로 **각 모델의 라이선스가 그대로 따른다**(표시 의무 포함): Quaternius·KayKit 몬스터·동물은 CC0(표시 불필요),
+**Slime Enemy 는 Charlie 의 CC-BY(저작자 표시 필요)**, **Boar·Tiger·Elephant 는 Poly by Google 의 CC-BY 3.0(표시 필요)** — 표시 문구는
+위 해당 절과 같고 그대로 이행한다. 이 그림을 다시 뽑거나 모델을 바꾸면 이 절과 위 절을 같이 본다.

@@ -3,6 +3,8 @@
  * `<게임>/assets/portraits/` 에 webp 파일로 둔다. 게임은 이 파일을 곧바로 <img> 로 쓴다.
  *
  *   node tools/bake-portraits/bake.mjs <게임폴더> [--kind=hero|pet] [--limit=N] [--only=id,id]
+ *   node tools/bake-portraits/bake.mjs saga-dungeon --sprites=monsters --tune=world3d.outline:0   (적 짐승 몸 → 옆모습 걷기 시트 assets/sprites2d/mon_*.webp)
+ *   부가 옵션: --tune=키:값(굽는 동안 손잡이) --gl=d3d11(실제 GPU) --out=경로 --eval=파일.js(페이지 안에서 스크립트 실행)
  *
  * 그림은 **게임 자신의 `DG.portrait3d.warm()`** 이 굽는다 — 이 도구는 헤드리스 크롬(swiftshader)을
  * CDP 로 부려 결과 dataURL 을 webp 로 바꿔 받을 뿐이다. 그래서 다섯 판이 각자 다른 굽기 방식
@@ -138,6 +140,85 @@ try {
 
   /* --tune=키:값 — 굽는 동안만 손잡이를 바꾼다(예: 외곽선 끄기 world3d.outline:0). 임시 프로필이라 세이브에 안 남는다 */
   if (opt.tune) { for (const kv of String(opt.tune).split(',')) { const [k, v] = kv.split(':'); await evalJs('DG.core.setTune(' + JSON.stringify(k) + ', ' + Number(v) + '); true'); } }
+
+  /* ── --sprites=monsters : 적 짐승의 3D 몸을 옆모습 걷기 시트로 굽는다(SAGA-DESIGN §11 Phase 3) ──
+   * 몸 키(`data-enemy.js` 의 body, 없으면 'beast')마다 5컷 가로 시트 — 걷기 4컷 + 서 있기 1컷, 컷당 128px 정사각,
+   * 발이 아래·몸 중심이 가운데, 앞(+Z)이 **오른쪽**(카메라가 -X 에서 +X 를 본다). 컷 사이 배율은 같다(흔들림 없게).
+   * 결과 `assets/sprites2d/mon_<몸>.webp` + `mon-manifest.js`(굽힌 키 목록). */
+  if (opt.sprites === 'monsters') {
+    await evalJs(`(function () {
+      var T = THREE, A3 = DG.asset3d, R = null, scene = null, cam = null, rig = null, CELL = 128, SS = 2;
+      function boot() {
+        if (R) { return; }
+        var cv = document.createElement('canvas');
+        R = new T.WebGLRenderer({ canvas: cv, antialias: true, alpha: true, preserveDrawingBuffer: true });
+        R.setClearColor(0x000000, 0); R.setPixelRatio(1); R.setSize(CELL * SS, CELL * SS, false);
+        if (T.ACESFilmicToneMapping) { R.toneMapping = T.ACESFilmicToneMapping; }
+        R.toneMappingExposure = 1.2;
+        if (T.SRGBColorSpace) { R.outputColorSpace = T.SRGBColorSpace; }
+        scene = new T.Scene();
+        scene.add(new T.HemisphereLight(0xdce8ff, 0x746a5c, 2.2));
+        var sun = new T.DirectionalLight(0xfff3dc, 1.9); sun.position.set(-1.2, 1.7, 0.7); scene.add(sun);
+        var fill = new T.DirectionalLight(0xbdd2ee, 0.9); fill.position.set(-0.8, 0.6, -1.2); scene.add(fill);
+        cam = new T.OrthographicCamera(-1, 1, 1, -1, 0.1, 5000);
+        rig = new T.Group(); scene.add(rig);
+      }
+      function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+      window.__bakeSprite = async function (key, quality) {
+        boot();
+        var node = A3.build(key, 'spr', 42, null, function () { return new T.Group(); });
+        for (var i = 0; i < 300 && node.userData.assetState === 'shape'; i++) { await sleep(100); }
+        if (node.userData.assetState !== 'glb') { return null; }
+        while (rig.children.length) { rig.remove(rig.children[0]); }
+        rig.add(node);
+        var u = node.userData, dur = 1, hasWalk = false;
+        A3.step(node, { t: 0, walking: true });                       // 걷기 슬롯을 켠다
+        var wa = u.actions && u.clipMap && u.actions[u.clipMap.walk];
+        if (wa) { hasWalk = true; dur = wa.getClip().duration || 1; }
+        function pose(f) {
+          if (f < 4) { A3.play(node, hasWalk ? 'walk' : 'idle'); if (u.mixer) { u.mixer.setTime(hasWalk ? f / 4 * dur : 0); } }
+          else { A3.play(node, 'idle'); if (u.mixer) { u.mixer.setTime(0.2); } }
+          node.updateMatrixWorld(true);
+        }
+        var box = new T.Box3(), tmp = new T.Box3(), f;
+        for (f = 0; f < 5; f++) { pose(f); tmp.setFromObject(node, true); if (!tmp.isEmpty()) { box.union(tmp); } }
+        if (box.isEmpty()) { return null; }
+        var cy = (box.min.y + box.max.y) / 2, cz = (box.min.z + box.max.z) / 2;
+        var h = box.max.y - box.min.y, d = box.max.z - box.min.z, half = Math.max(h, d) / 2 * 1.06;
+        cam.left = -half; cam.right = half; cam.top = half; cam.bottom = -half; cam.updateProjectionMatrix();
+        cam.position.set(-2000, cy, cz); cam.lookAt(0, cy, cz);
+        var out = document.createElement('canvas'); out.width = CELL * 5; out.height = CELL;
+        var oc = out.getContext('2d'); oc.imageSmoothingQuality = 'high';
+        for (f = 0; f < 5; f++) { pose(f); R.render(scene, cam); oc.drawImage(R.domElement, f * CELL, 0, CELL, CELL); }
+        rig.remove(node);
+        return out.toDataURL('image/webp', quality);
+      };
+      return true;
+    })()`);
+    const keys = await evalJs(`(function () {
+      var E = DG.enemyData, seen = {}, out = [];
+      (E.enemies || []).concat(E.bosses || []).forEach(function (e) { if (e.kind === 'beast') { var k = e.body || 'beast'; if (!seen[k]) { seen[k] = 1; out.push(k); } } });
+      return out;
+    })()`);
+    fs.mkdirSync(path.join(gameDir, 'assets', 'sprites2d'), { recursive: true });
+    const outDir = path.resolve(opt.out || path.join(gameDir, 'assets', 'sprites2d'));
+    fs.mkdirSync(outDir, { recursive: true });
+    const only2 = opt.only ? String(opt.only).split(',') : null;
+    const okKeys = []; const bad = [];
+    for (const k of keys.filter(x => !only2 || only2.includes(x))) {
+      const url = await evalJs(`window.__bakeSprite(${JSON.stringify(k)}, 0.85)`, 70000).catch(() => null);
+      if (url && url.startsWith('data:image/webp')) { fs.writeFileSync(path.join(outDir, `mon_${k}.webp`), Buffer.from(url.split(',')[1], 'base64')); okKeys.push(k); }
+      else { bad.push(k); }
+    }
+    const mfp = path.join(outDir, 'mon-manifest.js');
+    let prevKeys = [];
+    if (fs.existsSync(mfp)) { const m = fs.readFileSync(mfp, 'utf8').match(/keys:"([^"]*)"/); if (m && m[1]) { prevKeys = m[1].split(','); } }
+    const all = [...new Set([...prevKeys, ...okKeys])].sort();
+    fs.writeFileSync(mfp, `/* bake-portraits --sprites=monsters 가 쓴다 — 손으로 고치지 않는다. 5컷 가로 시트(걷기 4 + 서기 1), 컷 128px. */\n(function(g){g.DG=g.DG||{};g.DG.monsterSprites={v:1,cell:128,walk:4,keys:"${all.join(',')}"};})(window);\n`);
+    console.log(`몬스터 시트 — 구움 ${okKeys.length}, 못 구움 ${bad.length}${bad.length ? ' (' + bad.join(',') + ')' : ''}`);
+    done(0);
+    await new Promise(() => {});
+  }
 
   const kinds = opt.kind ? [opt.kind] : ['hero', 'pet'];
   const only = opt.only ? String(opt.only).split(',') : null;

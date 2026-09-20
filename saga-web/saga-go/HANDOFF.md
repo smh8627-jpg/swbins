@@ -3432,3 +3432,13 @@ id 해시로 받는다(배정 코드는 이미 있었고 기본 꺼짐이었을 
 
 사가스토리와 같은 길 — `saga-dungeon/js/sprite.js` `bake()` 사람 분기를 Kenney 열넷(`assets/sprites2d/human_01~14.png`, 사가의숲 것과 md5 동일, 새 폴더) + 인물 id 해시로. 4곳의 `stamp()`(`dungeon-view.js`: NPC·동행·주인공·인간형 적)가 다 이 길을 탄다. **이 판의 양식인 `diabloize`(어둡고 채도 낮게, 위쪽 테)는 그림에도 그대로 건다**(사가스토리는 후처리를 뺐던 것과 다르다). 그림이 안 실린 첫 프레임은 옛 `human()`, 실린 뒤 `stamp()` 가 한 번 다시 굽고 이후 캐시(프로브로 확인: 첫 컷 462픽셀 → 재구움 2218픽셀 → 셋째는 히트). `ASSET_LICENSES.md` 에 Kenney 절 추가, sw VERSION 올림. `human()`·`beast()` 는 남겼다(초상 되돌림·짐승 Phase 3).
 - **모른다(실기 몫)**: 화면을 못 봤다(스크린샷 금지 규칙). 디아블로풍 어둠 속에서 밝은 Kenney 그림이 어울리는지·크기(H×1.2)가 예전 코드 그림과 키가 맞는지 — 어색하면 `diabloize` 세기나 `bake()` 의 그림 크기(`hdw`)만 손보면 된다.
+
+## 2026-09-20 (이어서 7) — 2D 교체 Phase 3(일부): 사가블로·사가스토리 적 짐승을 3D 몸에서 구운 옆모습 걷기 시트로
+
+- **도구**: `tools/bake-portraits/bake.mjs --sprites=monsters [--tune=world3d.outline:0]`(사가블로용). `data-enemy.js` 의 짐승 형 적 몸(`body`, 없으면 `beast`) 60종을 게임의 `asset3d.build()` 로 세워 **측면 직교 카메라**(-X 에서 +X, 앞(+Z)이 오른쪽)로 5컷 가로 시트(걷기 4 + 서기 1, 컷 128px, 발 아래·중심 가운데, 컷 사이 배율 동일)를 `assets/sprites2d/mon_<몸>.webp` 로 굽고 `mon-manifest.js`(`DG.monsterSprites.keys`)에 키를 적는다. 걷기 클립이 있는 몸(대부분)은 걷기 4컷이 실제 걷는 자세다. 외곽선은 끈다(펫과 같은 줄무늬 문제).
+- **런타임(사가블로)**: `sprite.js` `bake()` 짐승 분기 — `monKeyOf(ref)`(manifest 에 있는 몸 && `ref.body` 또는 `tier` 있는 적 정의)이면 시트 컷을 그린다(걷는 위상 `pb>>1`, 서기 `pb===PHASES`→컷 4, 크기 `H×1.55`) + `diabloize` 유지. 못 쓰면(파일 없음·manifest 없는 단독 빌드·**도감 펫은 `tier` 가 없어 안 탐**) 옛 `beast()`. 그림이 안 실린 첫 프레임 컷은 실린 뒤 `stamp()` 가 한 번 다시 굽는다(사람 그림과 같은 장치, `e.img`). index.html·sw.js(SHELL·VERSION)·`build-single`(sprites2d 스크립트 제외) 연결. **`build-single.mjs` 네 개의 주석 글자가 지난 커밋에서 깨져 있던 것(인코딩 실수, 코드는 정상)을 이번에 바로잡았다.**
+- **사가스토리**: 사가블로가 구운 시트 셋(`beast`=늑대·`beast_big`=코끼리·`beast_boar`=멧돼지, md5 동일)을 복사해 오고 manifest 를 손으로 씀. 몸 고르기는 이름으로(`코끼리`→big, `산짐승|멧돼지`→boar, 나머지 늑대) — 이 판 3D 뷰의 `beast_big` 은 소(`Cow.glb`)지만 2D 는 이름에 맞게 코끼리. 메이플풍 후처리(`storyize`)는 짐승 시트엔 그대로 건다(윤곽이 없어 어두운 배경에 묻힘 방지).
+- **라이선스**: 시트는 각 원본 모델의 파생물 — Slime Enemy(Charlie)·Boar·Tiger·Elephant(Poly by Google)는 **CC-BY 표시 의무**가 그대로 따른다. 두 판 `ASSET_LICENSES.md` 에 절 추가.
+- 진단: 사가블로 362/362, 사가스토리 197/199(같은 기존 실패 2건). 프로브로 확인: 사가블로 늑대·티렉스 첫 컷 코드 그림 → 시트 재구움 → 캐시 히트, 도감 펫은 코드 그림 그대로.
+- **모른다(실기 몫)**: 화면을 못 봤다. 시트 크기·발 위치가 예전 코드 그림과 맞는지, 유령·해골처럼 정면/뒷모습이 섞여 보이는 몸(KayKit 해골 등은 측면이 어색)이 눈에 거슬리는지, 시트가 어두운 던전에서 `diabloize` 로 읽히는지. 어색한 몸만 manifest 에서 빼면 옛 코드 그림으로 돌아간다.
+- **남은 Phase 3**: 사가고 지도 건물(`building()`)·깃발·에셋에 없는 배경 생물(`beast()`), 사가블로 건물·환경 그림. Phase 4(코드 그림 함수 삭제)는 호출부가 0 이 되면.

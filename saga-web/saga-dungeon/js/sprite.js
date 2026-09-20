@@ -1657,6 +1657,25 @@
     return (h % HUMAN_SPRITE_N) + 1;
   }
 
+  /** 2D 던전 뷰의 적 짐승 — 3D 몸(`data-enemy.js` 의 body, 없으면 'beast'=늑대)을 옆모습 걷기 시트로 미리 구운 그림
+   *  (`tools/bake-portraits --sprites=monsters` → `assets/sprites2d/mon_<몸>.webp`, 5컷 가로: 걷기 4 + 서기 1, 컷 128px, 앞이 오른쪽).
+   *  `mon-manifest.js` 에 적힌 몸만 쓰고 나머지·도감 펫·단독 빌드(파일 없음)는 옛 `beast()` 코드 그림 그대로다.
+   *  SAGA-DESIGN §11 Phase 3(2026-09-20). 도감 펫은 `tier` 가 없어 여기 안 탄다. */
+  var monSet = null, monFrom = null, monImgCache = {};
+  function monKeyOf(ref) {
+    var M = global.DG.monsterSprites;
+    if (!M || !M.keys || !ref) { return null; }
+    if (monFrom !== M) { monSet = {}; monFrom = M; String(M.keys).split(',').forEach(function (k) { if (k) { monSet[k] = 1; } }); }
+    var k = ref.body || (ref.tier ? 'beast' : null);
+    return k && monSet[k] ? k : null;
+  }
+  function monImg(key) {
+    var im = monImgCache[key];
+    if (!im) { im = new Image(); im.src = 'assets/sprites2d/mon_' + key + '.webp'; monImgCache[key] = im; }
+    return im;
+  }
+  function monReady(ref) { var k = monKeyOf(ref); if (!k) { return false; } var im = monImg(k); return !!(im.complete && im.naturalWidth); }
+
   /** 캐시에 한 컷을 굽는다 */
   function bake(kind, ref, sc, pb, o) {
     var base = kind === 'human' ? 40 : 30;
@@ -1679,7 +1698,7 @@
       walking: walking, noBounce: true, t: 0
     };
     var himg = kind === 'human' ? humanImg(humanIndexOf(o.ref)) : null;
-    var useImg = !!(himg && himg.complete && himg.naturalWidth);
+    var useImg = !!(himg && himg.complete && himg.naturalWidth);   // 짐승은 아래에서 켠다
     if (kind === 'human') {
       if (useImg) {
         var hdw = H * 1.2, hdh = H * 1.2;
@@ -1692,9 +1711,17 @@
         human(c, common);
       }
     } else {
-      common.form = o.form; common.color = o.color; common.divine = o.divine;
-      common.ref = o.ref;                      // 무늬는 ref 에서 뽑는다
-      beast(c, common);
+      var mk = monKeyOf(o.ref), mim = mk ? monImg(mk) : null;
+      if (mim && mim.complete && mim.naturalWidth) {
+        var cell = mim.naturalHeight, frame = pb === PHASES ? 4 : (pb >> 1) % 4, sq = H * 1.55;
+        c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high';
+        c.drawImage(mim, frame * cell, 0, cell, cell, footX - sq / 2, footY - sq * 0.97, sq, sq);
+        useImg = true;
+      } else {
+        common.form = o.form; common.color = o.color; common.divine = o.divine;
+        common.ref = o.ref;                      // 무늬는 ref 에서 뽑는다
+        beast(c, common);
+      }
     }
     /* 디아블로풍 — 무대 위 인물은 커 봐야 40~60px 이라 **거의 모든 픽셀이 테**다.
        초상만큼 두르면 인물이 통째로 밝은 실루엣이 된다(그렇게 나왔다).
@@ -1716,7 +1743,7 @@
     var key = kind + '|' + id + '|' + sc.toFixed(2) + '|' + pb;
 
     var e = stampCache[key];
-    if (e && kind === 'human' && !e.img && humanReady(o.ref)) { e = null; }   // 그림이 실리기 전에 구운 코드 그림 컷은 다시 굽는다
+    if (e && !e.img && (kind === 'human' ? humanReady(o.ref) : monReady(o.ref))) { e = null; }   // 그림이 실리기 전에 구운 코드 그림 컷은 다시 굽는다
     if (e) { stat.hit++; }
     else {
       stat.miss++;

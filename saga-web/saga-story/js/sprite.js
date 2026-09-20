@@ -1646,6 +1646,26 @@
     return (h % HUMAN_SPRITE_N) + 1;
   }
 
+  /** 옆면 뷰의 적 짐승 — 사가블로가 3D 몸으로 미리 구운 옆모습 걷기 시트(5컷 가로: 걷기 4 + 서기 1, 컷 128px, 앞이 오른쪽)를
+   *  그대로 쓴다(`assets/sprites2d/mon_<몸>.webp` 셋, `mon-manifest.js` 에 적힌 것만 — 사가블로 `tools/bake-portraits --sprites=monsters` 산출).
+   *  몸 고르기: 코끼리병 → beast_big(코끼리), 산짐승 무리 → beast_boar(멧돼지), 나머지 → beast(늑대). 못 쓰면 옛 `beast()` 코드 그림.
+   *  SAGA-DESIGN §11 Phase 3(2026-09-20). 도감 펫은 `tier` 가 없어 여기 안 탄다. */
+  var monSet = null, monFrom = null, monImgCache = {};
+  function monKeyOf(ref) {
+    var M = global.DG.monsterSprites;
+    if (!M || !M.keys || !ref || !ref.tier) { return null; }
+    if (monFrom !== M) { monSet = {}; monFrom = M; String(M.keys).split(',').forEach(function (k) { if (k) { monSet[k] = 1; } }); }
+    var n = String(ref.name || '');
+    var k = /코끼리/.test(n) ? 'beast_big' : (/산짐승|멧돼지/.test(n) ? 'beast_boar' : 'beast');
+    return monSet[k] ? k : null;
+  }
+  function monImg(key) {
+    var im = monImgCache[key];
+    if (!im) { im = new Image(); im.src = 'assets/sprites2d/mon_' + key + '.webp'; monImgCache[key] = im; }
+    return im;
+  }
+  function monReady(ref) { var k = monKeyOf(ref); if (!k) { return false; } var im = monImg(k); return !!(im.complete && im.naturalWidth); }
+
   /** 캐시에 한 컷을 굽는다 */
   function bake(kind, ref, sc, pb, o) {
     var base = kind === 'human' ? 40 : 30;
@@ -1681,13 +1701,21 @@
         human(c, common);
       }
     } else {
-      common.form = o.form; common.color = o.color; common.divine = o.divine;
-      common.ref = o.ref;                      // 무늬는 ref 에서 뽑는다
-      beast(c, common);
+      var mk = monKeyOf(o.ref), mim = mk ? monImg(mk) : null;
+      if (mim && mim.complete && mim.naturalWidth) {
+        var cell = mim.naturalHeight, frame = pb === PHASES ? 4 : (pb >> 1) % 4, sq = H * 1.55;
+        c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high';
+        c.drawImage(mim, frame * cell, 0, cell, cell, footX - sq / 2, footY - sq * 0.97, sq, sq);
+        useImg = true;
+      } else {
+        common.form = o.form; common.color = o.color; common.divine = o.divine;
+        common.ref = o.ref;                      // 무늬는 ref 에서 뽑는다
+        beast(c, common);
+      }
     }
     /* 메이플풍은 여기서 한 번 훑는다 — 지도 위 스탬프는 어두운 배경에 서므로
        실루엣만 진하게 둘러 형태가 묻히지 않게 한다 */
-    if (!useImg) { storyize(cv, mapleOpts(H < 40)); }
+    if (!useImg || kind === 'beast') { storyize(cv, mapleOpts(H < 40)); }
     return { cv: cv, w: w, h: h, footX: footX, footY: footY, base: base, sc: sc, img: useImg };
   }
 
@@ -1703,7 +1731,7 @@
     var key = kind + '|' + id + '|' + sc.toFixed(2) + '|' + pb;
 
     var e = stampCache[key];
-    if (e && kind === 'human' && !e.img && humanReady(o.ref)) { e = null; }   // 그림이 실리기 전에 구운 코드 그림 컷은 다시 굽는다
+    if (e && !e.img && (kind === 'human' ? humanReady(o.ref) : monReady(o.ref))) { e = null; }   // 그림이 실리기 전에 구운 코드 그림 컷은 다시 굽는다
     if (e) { stat.hit++; }
     else {
       stat.miss++;

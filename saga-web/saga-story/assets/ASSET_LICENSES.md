@@ -286,3 +286,12 @@ VRoid Studio 공식 CC0 샘플 AvatarSample_A/B/C(github.com/madjin/vrm-samples,
 `ASSET_LICENSES.md` 의 같은 절과 같다. **트레이드오프** — 인물별 색·등신·걷기 다리 애니메이션은 못 낸다(고정 그림 한 장).
 인물 id 를 해시해 열넷 중 하나를 **늘 같은 얼굴로** 고르고, 좌우 뒤집기와 걸음 통통거림은 그림과 무관하게 산다.
 그림이 아직 안 실린 첫 프레임만 옛 코드 그림으로 채우고 곧 다시 굽는다. 3D 옆면 뷰(`sideView3d`)와 도감 초상은 영향이 없다.
+
+## 몬스터 2D 시트 셋 (`assets/sprites2d/mon_beast*.webp`, 2026-09-20, saga-dungeon 에서 옮김)
+
+옆면 뷰의 2D 폴백이 짐승 형 적(들개·승냥이 → 늑대, 코끼리병 → 코끼리, 산짐승 무리 → 멧돼지)을 그리는 그림이다.
+`saga-dungeon/assets/sprites2d/mon_beast.webp`·`mon_beast_big.webp`·`mon_beast_boar.webp` 와 같은 파일(md5 동일)이며, 사가블로 `bake-portraits
+--sprites=monsters` 가 3D 동물 모델(`Wolf.glb` **Quaternius CC0**, `Elephant.glb`·`Boar.glb` **Poly by Google CC-BY 3.0 — 저작자 표시 필요**)을
+옆모습 걷기 시트로 구운 파생물이다. **원본 모델의 라이선스가 그대로 따른다** — 출처·표시 문구는
+`saga-dungeon/assets/ASSET_LICENSES.md` 의 "몬스터 2D 시트"·"짐승 형 몬스터 다양화"·"도감(펫) 초상 실사화" 절과 같다.
+이 판 3D 뷰가 쓰는 `Wolf.glb`·`Cow.glb` 와는 별개로, 코끼리·멧돼지는 이 판에 GLB 가 없고 그림만 들어온다.
