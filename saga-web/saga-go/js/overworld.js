@@ -151,7 +151,8 @@
       beacon: { c: 'rgba(255,157,61,.45)', r: 4 },
       'beacon-lit': { c: '#ff5a1e', r: 5 },
       station: { c: '#7fd0ff', r: 2.6 },
-      fort: { c: '#c9a7ff', r: 2.6 }
+      fort: { c: '#c9a7ff', r: 2.6 },
+      shrine: { c: '#f0d878', r: 2.8 }
     };
 
     function px(pt) { return { x: ox + (pt.x + 1) / 2 * side, y: oy + (pt.y + 1) / 2 * side }; }

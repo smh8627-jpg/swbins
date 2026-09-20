@@ -49,7 +49,8 @@
     npc:     { c: '#e6dccd', r: 2.1 },
     place:   { c: '#f2e4b6', r: 2.6 },
     beacon:      { c: '#ff9d3d', r: 3.2 },
-    'beacon-lit': { c: '#ff5a1e', r: 3.6 }
+    'beacon-lit': { c: '#ff5a1e', r: 3.6 },
+    shrine:      { c: '#f0d878', r: 3.0 }
   };
 
   var node = null, canvas = null, ctx = null;
@@ -201,6 +202,18 @@
         var bw = BC.worldPos(bl[i]);
         if (Math.hypot(bw.x - pos.x, bw.y - pos.y) > NEAR_BEACON) { continue; }
         put(BC.lit(bl[i].key) ? 'beacon-lit' : 'beacon', bw.x, bw.y, bl[i].name, true);
+      }
+    }
+
+    /* 사당(PLAN §5 ②) — 숨은 자리라 **보이는 것만**(120m 안·봉수대 반경·깬 자리), 6km 안에서 */
+    var SH = global.DG.shrine;
+    if (SH && SH.list) {
+      var sl = SH.list();
+      for (i = 0; i < sl.length; i++) {
+        var sw = SH.worldPos(sl[i]);
+        if (Math.hypot(sw.x - pos.x, sw.y - pos.y) > NEAR_BEACON) { continue; }
+        if (!SH.visible(sl[i])) { continue; }
+        put('shrine', sw.x, sw.y, sl[i].name, true);
       }
     }
 
