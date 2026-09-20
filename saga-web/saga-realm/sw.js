@@ -11,7 +11,7 @@
  *       사내 http 주소로 폰에서 열면 홈 화면 추가는 되지만 이 캐시는 동작하지 않는다.
  */
 
-var VERSION = 'realm-v1.33.0';
+var VERSION = 'realm-v1.34.0';
 var APP_CACHE = 'sr-app-' + VERSION;
 var TILE_CACHE = 'sr-tiles-v1';
 var TILE_MAX = 500;
@@ -31,6 +31,7 @@ var SHELL = [
   './js/data-city.js',
   './js/data-force.js',
   './js/data-item.js',
+  './js/data-relation.js',
   './js/data-quiz.js',
   './js/sprite.js',
   './js/core.js',
@@ -47,6 +48,7 @@ var SHELL = [
   './js/war.js',
   './js/diplo.js',
   './js/rtk-ai.js',
+  './js/event.js',
   './js/quiz.js',
   './js/net.js',
   './js/ai.js',
