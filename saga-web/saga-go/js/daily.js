@@ -99,6 +99,7 @@
     if (s.daily.date !== dayKey()) {
       s.daily.date = dayKey();
       s.daily.tasks = [];
+      s.daily.shrine = 0;                 // 사당 시련(shrine.js)은 하루 셋 — 날이 바뀌면 다시
     }
     if (typeof s.daily.stamps !== 'number') { s.daily.stamps = 0; }
     if (!Array.isArray(s.daily.tasks) || !s.daily.tasks.length) {

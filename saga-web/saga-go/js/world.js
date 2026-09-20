@@ -823,11 +823,12 @@
   /**
    * 명사(名士) 하나를 코앞에 세운다 — 사명의 인장 일곱이 부른다(quest.js).
    * 보통 스폰과 같은 모양이라 조우·자동은 손댈 것이 없다.
+   * `ref` 를 주면 그 인물을 세운다(사당 시련 — 그 권역의 인물, shrine.js).
    */
-  function spawnSpecial(rarity) {
+  function spawnSpecial(rarity, ref) {
     var pos = core.save.player.pos;
     var want = rarity || 5;
-    var pool = data.heroes.filter(function (h) { return h.rarity === want; });
+    var pool = ref ? [ref] : data.heroes.filter(function (h) { return h.rarity === want; });
     if (!pool.length) { pool = data.heroes.filter(function (h) { return h.rarity >= 4; }); }
     if (!pool.length) { pool = data.heroes.slice(); }
     var ang = Math.random() * Math.PI * 2;

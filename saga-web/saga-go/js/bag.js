@@ -33,6 +33,11 @@
       desc: '인물을 등용할 때 한 장씩 든다.' },
     { key: 'feed', name: '사료', emoji: '🍖', kind: 'base',
       desc: '짐승을 포획할 때 한 줌씩 든다.' },
+    /* 사당 시련(shrine.js) 보상 — 조각 셋이 자동으로 인장 하나가 된다. 쓸 곳은 뒤 후보(승급 3택) 몫 */
+    { key: 'shard', name: '인장 조각', emoji: '🔖', kind: 'base',
+      desc: '사당 시련의 증표. 셋이 모이면 인장이 된다.' },
+    { key: 'seal', name: '사당 인장', emoji: '🏵️', kind: 'base',
+      desc: '사당 인장 조각 셋을 합친 증표.' },
     { key: 'treat', name: '별미', emoji: '🍯', kind: 'use', sec: 120,
       eff: { catchPct: 25 },
       desc: '2분간 포획이 눈에 띄게 쉬워진다.' },

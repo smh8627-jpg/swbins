@@ -92,6 +92,11 @@
         if (nb && nb.inRange) { core.emit('beacon:request', nb.beacon); }
         return;
       }
+      if (e.target.closest('[data-act="shrine"]')) {
+        var SH0 = global.DG.shrine, ns0 = SH0 && SH0.nearest(SHRINE_NEAR);
+        if (ns0 && ns0.inRange) { core.emit('shrine:request', ns0.shrine); }
+        return;
+      }
       var appr = e.target.closest('[data-act="approach"]');
       if (appr) {
         var tx = parseFloat(appr.getAttribute('data-tx')), ty = parseFloat(appr.getAttribute('data-ty'));
@@ -371,6 +376,11 @@
       cands.push({ d: nb.dist, txt: '🗼 ' + esc(nb.beacon.name) + ' 봉수대' +
         (nb.dist <= BC.HIT_RADIUS ? ' — 불 올리기' : ' · ' + Math.round(nb.dist) + 'm') });
     }
+    var SH1 = global.DG.shrine, nsh = SH1 ? SH1.nearest(SHRINE_NEAR) : null;
+    if (nsh) {
+      cands.push({ d: nsh.dist, txt: '⛩️ ' + esc(nsh.shrine.name) +
+        (nsh.inRange ? ' — 시련 받기' : ' · ' + Math.round(nsh.dist) + 'm') });
+    }
     if (!cands.length) { return '걸으면 새로운 것을 만납니다'; }
     cands.sort(function (a, b) { return a.d - b.d; });
     return cands[0].txt;
@@ -524,13 +534,31 @@
       '</div>';
   }
 
+  /** 사당 카드(PLAN §5 ②) — 보이는 자리만 뜬다(120m 안·봉수대로 열린 반경·깬 자리) */
+  function nearShrineCard(nsh) {
+    var s = nsh.shrine, SH = global.DG.shrine, en = SH.entry(s);
+    var tag = nsh.state.clears > 0 ? ' · ' + nsh.state.clears + '승' : '';
+    var note = en.reason === 'lock' ? ' · 닫힘' : (en.reason === 'daily' ? ' · 오늘은 끝' : '');
+    return '<div class="near-card">' +
+        '<div class="near-ico" style="border-color:#f0d878">⛩️</div>' +
+        '<div class="near-meta"><b>' + esc(s.name) + '</b>' +
+          '<small style="color:#f0d878">' + s.region.name + ' 권역 · ' + Math.round(nsh.dist) + 'm' + tag + note + '</small></div>' +
+        (nsh.inRange
+          ? '<button class="btn primary" data-act="shrine">시련을 받는다</button>'
+          : approachBtn(SH.worldPos(s).x, SH.worldPos(s).y)) +
+      '</div>';
+  }
+
+  var SHRINE_NEAR = 500;     // m — 이보다 먼 사당은 (보여도) 근접 패널에 안 올린다
+
   function renderNear() {
     var w = global.DG.world;
     var n = w.nearest();
     var ns = w.nearestStation();
     var BC = global.DG.beacon;
     var nb = BC ? BC.nearestUnlit() : null;
-    if (!n && !ns && !nb) {
+    var SHR = global.DG.shrine, nsh = SHR ? SHR.nearest(SHRINE_NEAR) : null;
+    if (!n && !ns && !nb && !nsh) {
       els.near.classList.remove('show');
       nearUid = null;
       return;
@@ -542,11 +570,14 @@
       (ns ? ns.station.key + '|' + ns.inRange + '|' + Math.round(ns.dist / 5) + '|' +
         Math.ceil(stn.stateOf(ns.station.key).left / 1000) + '|' +
         (global.DG.rogue && global.DG.rogue.occupied(ns.station) ? 'R' : '-') : '-') + '||' +
-      (nb ? nb.beacon.key + '|' + (nb.dist <= BC.HIT_RADIUS) + '|' + Math.round(nb.dist / 5) : '-');
+      (nb ? nb.beacon.key + '|' + (nb.dist <= BC.HIT_RADIUS) + '|' + Math.round(nb.dist / 5) : '-') + '||' +
+      (nsh ? nsh.shrine.key + '|' + nsh.inRange + '|' + Math.round(nsh.dist / 5) + '|' + nsh.state.clears + '|' +
+        SHR.entry(nsh.shrine).reason : '-');
     if (key !== nearUid) {
       nearUid = key;
       els.near.innerHTML = (n ? nearSpawnCard(n) : '') + (ns ? nearStationCard(ns) : '') +
-        (nb ? nearBeaconCard({ beacon: nb.beacon, dist: nb.dist, inRange: nb.dist <= BC.HIT_RADIUS }) : '');
+        (nb ? nearBeaconCard({ beacon: nb.beacon, dist: nb.dist, inRange: nb.dist <= BC.HIT_RADIUS }) : '') +
+        (nsh ? nearShrineCard(nsh) : '');
     }
     els.near.classList.add('show');
   }
