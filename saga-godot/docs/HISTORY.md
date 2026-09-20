@@ -7737,3 +7737,11 @@ PROJECT_STATE.md` 참고. 요약:
 - Godot 4.7 exe 새로 받아(세션 전용, 커밋 안 함) `--headless --editor --quit` 임포트 — 오류 0, `.import` 34개 생성. `godot_regress.sh` 재실행 — 다섯 대표 씬 md5 완전 불변, `.import`/`project.godot` 잡음 없음.
 - **씬엔 안 물림** — 103-5 절차의 fit_height·팔레트 스냅·씬 배치는 102 그래픽 개편(사람이 톤 볼 때, §8-1)으로 남겨 둠.
 - 문서: ASSET_GUIDE.md 2026-09-20 항목, PLAN.md 105장 Q-d·66-2 "사람 손이 필요한 것" 갱신(Quaternius 항목 해소, Mixamo·VRoid는 여전히 열림).
+
+## Quaternius 나무 팔레트 스냅 20종 + 눈으로 확인 (2026-09-20⑫, 같은 세션 이어서, "이어 해줘")
+
+- 103-5 절차 3~4단계: forest_green 팔레트 신규 build, 대표 나무 5종(CommonTree_1·Pine_1·TwistedTree_1·DeadTree_1·Bush_Common) × GO 3팔레트+FOREST 1팔레트 = 20개 `snap-glb` 실행 → `assets/generated/variants/`. preview PNG 20장으로 평면 비교(3D 스크린샷 금지와 무관, 텍스처 이미지 직접 대조).
+- 직접 눈으로 확인: DeadTree×go_ruins 자연스러운 회갈색, CommonTree/Pine 나무껍질도 각 팔레트 근접색으로 무난하게 스냅됨. TwistedTree/Bush 잎 텍스처가 원래 빨강이라는 것(버그 아님, 원본 확인함)도 이번에 확인.
+- **기술적 한계 발견**: trimesh gltf 로더가 로드 시점에 `COLOR_0`(정점색)을 이미 버린다 — palette.py 스냅 로직 문제가 아니라 trimesh 자체 한계. `assets/vegetation/` 원본(.gltf, Godot 직접 임포트)은 영향 없음, `assets/generated/variants/`의 스냅 GLB만 정점색 없음. 잎 색은 텍스처가 이미 정해서 큰 문제 아닐 가능성 높으나 최종 확인은 GUI 몫으로 남김.
+- 헤드리스 임포트 오류 0(변형 GLB 20개+자동 추출 텍스처), `godot_regress.sh` 통과 — 다섯 대표 씬 md5 불변, `.import`/`project.godot` 잡음 없음. **씬엔 안 물림**(§8-1).
+- 문서: ASSET_GUIDE.md 해당 날짜 항목.

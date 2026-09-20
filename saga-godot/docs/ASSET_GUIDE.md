@@ -382,3 +382,32 @@ Godot이 불필요한 `.import`를 만들지 않게). 예비 판단: 용암 쪽�
 - **아직 어느 씬에도 안 물렸다** — 103-5 판정 절차대로 fit_height 스케일·
   실루엣 확인·팔레트 스냅은 다음 단계, 실제 배치는 102 그래픽 개편과
   같이 사람이 톤을 볼 때(§8-1).
+
+## 2026-09-20 — Quaternius 나무 5종 × GO/FOREST 팔레트 4종 스냅(103-5 3~4단계)
+
+`assets/vegetation/`의 Quaternius 나무(CommonTree_1·Pine_1·TwistedTree_1·
+DeadTree_1·Bush_Common, 각 계열의 대표 1종)를 `palette.py snap-glb`로
+go_village·go_coast·go_ruins·forest_green(신규 build) 4개 팔레트에 스냅
+— 20개 GLB를 `assets/generated/variants/`에, 비교 PNG 20장은 res:// 트리
+밖 스크래치패드에만 뒀다(103-3 dungeon 사례와 같은 이유).
+
+- **눈으로 직접 확인(평면 PNG 비교, 3D 스크린샷 금지 규칙과 무관)**:
+  DeadTree_1×go_ruins 는 어두운 회갈색으로 자연스럽게 낙착 — 폐허 톤에
+  맞는다. CommonTree/Pine(정상 계열) 나무껍질은 원본 적갈색이 각 팔레트의
+  가장 가까운 색(대개 village_wall/shrine_wood 계열 황갈색)으로 스냅되어
+  괜찮아 보인다.
+- **원본 잎 텍스처 확인**: `Leaves_NormalTree_C.png`(CommonTree/Pine 계열)는
+  원래부터 초록, `Leaves_TwistedTree_C.png`(TwistedTree/Bush 계열)는 원래
+  부터 빨강 — 버그가 아니라 종별로 다른 원작 색.
+- **알아낸 제약**: 이 팩 GLB는 `COLOR_0`(정점색) 속성이 텍스처와 같이
+  있는데(잎·나무껍질 둘 다), `palette.py`가 쓰는 trimesh 의 gltf 로더가
+  로드 단계에서부터 이미 `COLOR_0`을 버린다(스냅 전 원본을 그냥 다시
+  로드만 해봐도 동일 — 우리 스냅 로직 탓이 아니라 trimesh 자체 한계).
+  그래서 `assets/generated/variants/`의 스냅 결과물은 정점색 정보가 없다.
+  반면 `assets/vegetation/`의 원본 `.gltf`는 Godot이 직접 읽으므로
+  `COLOR_0`이 그대로 살아 있다 — **원본은 안전, 스냅 변형본만 정점색 없음**.
+  잎 색 자체는 텍스처가 이미 정하고 있어(위 항목) 큰 결함은 아닐 가능성이
+  높지만, 실제 명암 차이는 GUI 로만 확인 가능 — 다음에 사람이 톤을 볼 때
+  같이 봐야 한다.
+- 헤드리스 임포트 오류 0, `godot_regress.sh` 통과(다섯 대표 씬 md5 불변,
+  `.import`/`project.godot` 잡음 없음). **씬엔 안 물렸다**(§8-1).
