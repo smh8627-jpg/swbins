@@ -77,6 +77,7 @@ namespace Saga.EditorTools
             BuildFinishStall();
             BuildCreatures();
             BuildMuseum();
+            BuildTownScoreBoard();
             var (playerGo, playerTransform) = BuildPlayer();
             BuildCurveDriver(playerTransform);
             BuildPostProcessingVolume();
@@ -239,6 +240,17 @@ namespace Saga.EditorTools
                 new Color(0.55f, 0.5f, 0.42f)); // 바위 지대.
             BuildCollectSpot(ForestMuseumState.Category.Flower, new Vector3(19f, 0f, -14f),
                 new Color(0.95f, 0.6f, 0.75f)); // 꽃밭.
+        }
+
+        // 마을 중심 통행로(플레이어 스폰(-15z)과 네 존·집·주민이 흩어진
+        // 본 마을 사이) — 다른 오브젝트와 안 겹치는 빈 자리.
+        private static readonly Vector3 TownScoreBoardSpawn = new Vector3(0f, 0f, -5f);
+
+        private static void BuildTownScoreBoard()
+        {
+            var go = new GameObject("TownScoreBoard");
+            go.transform.position = TownScoreBoardSpawn;
+            go.AddComponent<ForestTownScoreBoard>();
         }
 
         private static void BuildCollectSpot(ForestMuseumState.Category category, Vector3 pos, Color color)

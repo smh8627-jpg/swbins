@@ -87,6 +87,7 @@ namespace Saga.EditorTools
                 CheckGoalBoardAndSessionCard();
                 CheckMuseum();
                 CheckGatherFeel();
+                CheckTownScore();
             }
             if (_framesSeen >= FramesToRun)
             {
@@ -486,6 +487,74 @@ namespace Saga.EditorTools
             }
 
             Debug.Log("[PlaytestForestHeadless] gather feel OK - 채집마다 한 번씩 트리거, 3연속째 리듬 보너스 지급 확인");
+        }
+
+        /// <summary>PLAN.md 101-2 5.8② "마을 평가" — `CheckMuseum()`이 이 시점까지
+        /// 네 갈래를 전부 채워 둬 박물관 점수(12개×5점=60점)가 고정값이라,
+        /// 그 상태에서 별점이 정확히 2(등급 60 문턱)인지부터 확인하고, 가구를
+        /// 잔뜩 채워 넣어 5(등급 200 문턱)까지 오르는지 본다(등급이 절대
+        /// 안 내려가는 것도 이 트랙엔 잡초류 감소 축이 없다는 뜻 그대로).</summary>
+        private static void CheckTownScore()
+        {
+            int museumTotal = ForestTownScore.MuseumDiscoveredTotal();
+            if (museumTotal != 12 || ForestTownScore.MuseumPoints() != 60)
+            {
+                Debug.LogError($"[PlaytestForestHeadless] 박물관 점수가 이상함 — discovered={museumTotal}(기대 12) points={ForestTownScore.MuseumPoints()}(기대 60)");
+                _hadError = true;
+                return;
+            }
+
+            int starsBefore = ForestTownScore.Stars();
+            if (starsBefore != 2)
+            {
+                Debug.LogError($"[PlaytestForestHeadless] 가구 없는 상태의 별점이 이상함 — stars={starsBefore}(기대 2, 총점 60)");
+                _hadError = true;
+                return;
+            }
+
+            ForestState.AddFruit(200);
+            int placed = 0;
+            for (int x = -ForestHomeState.GridHalfExtent; x <= ForestHomeState.GridHalfExtent; x++)
+            {
+                for (int y = -ForestHomeState.GridHalfExtent; y <= ForestHomeState.GridHalfExtent; y++)
+                {
+                    if (!ForestHomeState.TryBuy("bangseok")) continue;
+                    if (ForestHomeState.TryPlaceAny(new Vector2Int(x, y)) != null) placed++;
+                }
+            }
+
+            int starsAfter = ForestTownScore.Stars();
+            if (placed < 5 || starsAfter != 5)
+            {
+                Debug.LogError($"[PlaytestForestHeadless] 가구를 채운 뒤 별점이 이상함 — placed={placed}(5 이상 기대) stars={starsAfter}(기대 5) total={ForestTownScore.Total()}");
+                _hadError = true;
+                return;
+            }
+            if (starsAfter <= starsBefore)
+            {
+                Debug.LogError($"[PlaytestForestHeadless] 점수가 늘었는데 별점이 그대로/줄어듦 — before={starsBefore} after={starsAfter}");
+                _hadError = true;
+                return;
+            }
+
+            var (homeLine, museumLine) = ForestTownScore.ConditionLines();
+            if (string.IsNullOrEmpty(homeLine) || string.IsNullOrEmpty(museumLine) ||
+                !homeLine.Contains(placed.ToString()) || !museumLine.Contains("12"))
+            {
+                Debug.LogError($"[PlaytestForestHeadless] 조건 문구가 이상함 — homeLine=\"{homeLine}\" museumLine=\"{museumLine}\"");
+                _hadError = true;
+                return;
+            }
+
+            var boardGo = GameObject.Find("TownScoreBoard");
+            if (boardGo == null || boardGo.GetComponent<ForestTownScoreBoard>() == null)
+            {
+                Debug.LogError("[PlaytestForestHeadless] TownScoreBoard 오브젝트/컴포넌트를 못 찾음");
+                _hadError = true;
+                return;
+            }
+
+            Debug.Log($"[PlaytestForestHeadless] town score OK - 박물관 고정 60점에서 별2 확인, 가구 {placed}개 채워 별5(총점 {ForestTownScore.Total()}) 도달, 조건 문구·보드 오브젝트 확인");
         }
     }
 }

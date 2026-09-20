@@ -7885,3 +7885,19 @@ FOREST 5.8①(채집 손맛) 뒤 다음 후보를 고르며 REALM PLAN.md 101-2 
 이 세션은 이 PC의 Unity 설치를 `find "/c/Program Files/Unity/Hub/Editor" -maxdepth 1`로 처음 확인했을 때 빈 출력을 받아 "Unity 미설치"로 오판할 뻔했다 — `ls`로 같은 경로를 직접 찍어보니 6000.3.24f1이 멀쩡히 있었다(`find`가 이 환경에서 이유 없이 빈 결과를 낸 것으로 보임, rtk 프록시 관련 가능성). **앞으로 이 PC에서 `find`가 빈 결과를 주면 `ls`로 한 번 더 확인할 것** — Unity 설치 여부처럼 중요한 전제를 `find` 결과 하나로 단정하지 않는다.
 
 `tools/unity-batch.sh`로 컴파일(오류 0, `CompileScripts` 6.6초, `ProjectSettings/`·`Packages/` 변경 없음 확인) → 헤드리스 1차 FAIL(위 함정) → 씬 재빌드 → 헤드리스 3연속 OK("event chain OK" + 기존 30차 성 정복·문답·저장/불러오기 전부 그대로 통과). `docs/PROJECT_STATE.md` 갱신(REALM 요약에 5-2 추가, 다음 작업에서 REALM5-2 제거, 테스트 상태·실기 확인 대기 갱신 — 15KB 상한에 걸려 여러 줄 압축, 자세한 경위는 이 절로 옮김).
+
+## 2026-09-20 — PLAN 101-2 5.8② FOREST 마을 평가 ("사가 유니티 이어 해" 세션, REALM 5-2 다음)
+
+REALM 5-2를 커밋·푸시한 뒤 "다 완료 되면 이어서 작업하고" 지시로 다음 후보를 찾다가, 남은 두 후보(REALM 5-8 계승, FOREST 5.8② 마을 평가) 둘 다 이 트랙에 애초에 그 값을 걸 시스템 자체가 없다는 걸 확인해 사용자에게 방향을 물었다("REALM 5-8은 충성 축 자체가 없어 계승이 바꿀 값이 없고, FOREST 5.8②는 잡초/꾸미기 점수 시스템 자체가 코드에 없다") — 사용자가 "1,2번 해줘"(FOREST 먼저, REALM 다음)로 둘 다 이어가라고 답해 FOREST부터 시작.
+
+웹판(`saga-web/saga-forest/PLAN.md` 177행) 5.8②는 마을 전체의 잡초·꽃·심은 나무·집 꾸미기·사고 기증 다섯 축을 `town.js beauty()`로 합산해 별 5개로 보여준다. 코드를 뒤져보니 이 트랙엔 잡초·꽃·나무 심기(자라는 식생) 자체가 없다(`ForestGroundBuilder`는 고정 지형만 깐다) — 그런데 실제로 값이 자라는 축이 둘 있었다: `ForestHomeState.Score()`(101-2 이전부터 있던 웹판 `home.js score()` 그대로의 이식, 지금까지 UI에서 쓰인 적은 없었다)와 `ForestMuseumState`(101-2 5.3, 발견 도감). 이 둘만 합쳐 별로 매기기로 했다.
+
+새 `ForestTownScore.cs`(`Total() = ForestHomeState.Score().Total + MuseumDiscoveredTotal()*5`, `Stars()`는 웹판 `town.js BEAUTY_GRADES`(0/60/100/150/200)를 그대로 재사용해 1~5 환산, `ConditionLines()`가 조건 2줄 문자열을 냄 — 웹판 5줄 중 이 트랙에 실제로 있는 두 축만). 웹판의 "별이 떨어질 조건" 경고는 안 옮겼다 — 이 트랙 두 축 다 늘기만 해(잡초처럼 시간이 지나며 깎는 축이 없음) 별이 내려갈 일 자체가 없기 때문. 5.8③("자동 순행은 손맛 건너뜀")은 이 트랙에 자동 순행 시스템 자체가 없어(GO/DUNGEON의 `auto.js` 대응 없음) 해당 없음으로 스코프에서 뺐다.
+
+UI는 새 `ForestTownScoreBoard.cs`(`ForestCollectSpot.cs`와 같은 결 — 걸어서 가까이 가면 반응, "놓기" 버튼류가 없는 이 트랙 관례 그대로) — 마을 중심(0,0,-5, 플레이어 스폰과 본 마을 사이 빈 자리)에 원기둥 기둥을 세우고, 2.5m 반경에 들어오면 6초 쿨다운으로 `DialogueLabel` 토스트에 별 이모지(★☆)+조건 2줄을 띄운다. `BuildTestVillageForestScene.cs`에 `BuildTownScoreBoard()` 추가.
+
+`PlaytestForestHeadless.CheckTownScore()`(`CheckGatherFeel()` 다음) — `CheckMuseum()`이 이미 네 갈래를 다 채워 둔 시점이라 박물관 점수가 고정 60점(12개×5점)인 걸 이용: 가구 없는 상태의 별점이 정확히 2(60점 문턱)인지 먼저 보고, 과일 200개를 채워 준 뒤 방석(bangseok)을 유효 칸(5×5 격자, `ForestHomeState.GridHalfExtent`) 전부에 채워 넣어(18칸 성공) 총점 285점으로 별 5(200점 문턱)까지 오르는지, 별점이 절대 안 내려가는지(전 단계보다 높아야 함), 조건 문구·보드 오브젝트가 실제로 있는지까지 확인.
+
+`tools/unity-batch.sh -- <Unity 인자...>`로 컴파일(오류 0) → 씬 재빌드(`BuildTestVillageForestScene.Build`) → 헤드리스 1차는 패키지 매니저가 그 시점에 `com.unity.cloud.gltfast`를 6.9.0→6.14.1로 조용히 올리려다 "operation cancelled"로 프로세스가 자체적으로 죽어 FAIL(exit 1, 내 코드와 무관 — 재시도로 재현 안 됨, 환경 일시적 현상으로 보임) → 재시도 1차부터 3연속 OK("town score OK - 박물관 고정 60점에서 별2 확인, 가구 18개 채워 별5(총점 285) 도달"). `docs/PROJECT_STATE.md` 갱신(FOREST 요약에 5.8② 추가, "다음 작업"에서 FOREST5.8②③ 제거(③은 해당 없음으로 명시)·5.6/5.7만 남김, 테스트 상태·실기 확인 대기 갱신 — 15KB 상한에 걸려 여러 줄 압축). `PLAN.md` 101-2 FOREST 행에 5.8② 재해석 이유·대응 파일(`ForestTownScore`·`ForestTownScoreBoard` 추가) 반영.
+
+다음은 REALM 5-8(계승) — 충성 축이 없는 문제를 어떻게 좁힐지부터 설계해야 한다(이 절 위 "사용자에게 방향을 물었다" 참고).
