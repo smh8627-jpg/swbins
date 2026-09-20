@@ -73,6 +73,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/vendor/three.iife.js"></script>
 <script src="js/toon3d.js"></script>
 <script src="js/anim-own.js"></script>
+<script src="js/vroid-variant.js"></script>
 <script src="js/asset3d.js"></script>
 <script src="js/account.js"></script>
 <script src="js/hero.js"></script>
@@ -2508,6 +2509,77 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         m.attack === 'Anim_Attack_Slash' && m.run === 'RunCycle' &&
         empty.idle === undefined && !!empty.alias &&
         ('idle←' + m.idle + ' · walk←' + m.walk + ' · attack←' + m.attack + ' · 빈 목록 → 빈 표');
+    });
+
+    /* ── VRoid 몸 변형 (vroid-variant.js, 2026-09-20) — 인물 전원에게 VRoid 몸을 나눠 입히고 색만 바꾼다 ─────────── */
+
+    t('vroid-variant — 인물 전원의 머리·옷·눈 칸이 늘 같고(해시), 서로 거의 안 겹친다', function () {
+      var V = DG.vroidVariant, heroes = DG.data.heroes, seen = {}, n = 0, again = true, inRange = true;
+      heroes.forEach(function (h) {
+        var p = V.pick(h.id), q = V.pick(h.id);
+        if (p.hair !== q.hair || p.cloth !== q.cloth || p.eye !== q.eye) { again = false; }
+        [p.hair, p.cloth, p.eye].forEach(function (v) { if (!(v >= 0 && v < V.N)) { inRange = false; } });
+        var k = p.hair + '.' + p.cloth + '.' + p.eye;
+        if (!seen[k]) { seen[k] = 1; n++; }
+      });
+      return heroes.length >= 100 && again && inRange && n >= Math.floor(heroes.length * 0.9) &&
+        ('인물 ' + heroes.length + '명 · 서로 다른 조합 ' + n + '(' + V.N + '³ 칸)');
+    });
+
+    t('vroid-variant — 머리·옷·눈 재질만 인물 색으로 바꾸고, 피부·얼굴과 원본 재질은 그대로다', function () {
+      var V = DG.vroidVariant, TH = window.THREE, i;
+      function body() {
+        var g = new TH.Group(), names = ['F00_000_00_Body_00_SKIN', 'F00_000_00_Face_00_SKIN', 'F00_000_00_EyeIris_00_EYE',
+          'F00_006_01_Tops_01_CLOTH', 'F00_008_01_Bottoms_01_CLOTH', 'F00_001_01_Shoes_01_CLOTH', 'F00_000_Hair_00_HAIR_01'];
+        return { g: g, names: names };
+      }
+      var base = {};
+      var mats = {};
+      var mk = body();
+      mk.names.forEach(function (nm) {
+        var m = new TH.MeshStandardMaterial({ name: nm }); mats[nm] = m;
+        var mesh = new TH.Mesh(new TH.BoxGeometry(1, 1, 1), m); mk.g.add(mesh);
+      });
+      /* 두 인물이 머리·옷 칸이 다르고 0 칸이 아닌 것을 고른다 */
+      var idA = null, idB = null;
+      for (i = 0; i < 400 && !idB; i++) {
+        var p = V.pick('t' + i);
+        if (p.hair && p.cloth && p.eye) {
+          if (!idA) { idA = 't' + i; }
+          else { var pa = V.pick(idA); if (pa.hair !== p.hair && pa.cloth !== p.cloth) { idB = 't' + i; } }
+        }
+      }
+      function clone() { var c = new TH.Group(); mk.g.children.forEach(function (m) { c.add(new TH.Mesh(m.geometry, m.material)); }); return c; }
+      var a = clone(), b = clone();
+      V.apply(a, idA); V.apply(b, idB);
+      function matOf(root, nm) { var r = null; root.traverse(function (o) { if (o.isMesh && o.material.name === nm) { r = o.material; } }); return r; }
+      var hairA = matOf(a, 'F00_000_Hair_00_HAIR_01'), hairB = matOf(b, 'F00_000_Hair_00_HAIR_01');
+      var topA = matOf(a, 'F00_006_01_Tops_01_CLOTH'), botA = matOf(a, 'F00_008_01_Bottoms_01_CLOTH');
+      var skinA = matOf(a, 'F00_000_00_Body_00_SKIN'), faceB = matOf(b, 'F00_000_00_Face_00_SKIN');
+      var irisA = matOf(a, 'F00_000_00_EyeIris_00_EYE'), irisB = matOf(b, 'F00_000_00_EyeIris_00_EYE');
+      var hexDiff = function (x, y) { return x.color.getHex() !== y.color.getHex(); };
+      var again = clone(); V.apply(again, idA);
+      var ok = !!idB && hairA !== mats['F00_000_Hair_00_HAIR_01'] && hexDiff(hairA, hairB) && hexDiff(topA, botA) && hexDiff(irisA, irisB) &&
+        skinA === mats['F00_000_00_Body_00_SKIN'] && faceB === mats['F00_000_00_Face_00_SKIN'] &&
+        mats['F00_000_Hair_00_HAIR_01'].color.getHex() === 0xffffff && mats['F00_006_01_Tops_01_CLOTH'].color.getHex() === 0xffffff &&
+        matOf(again, 'F00_000_Hair_00_HAIR_01') === hairA;   // 같은 인물·같은 칸은 같은 재질(캐시)
+      V.apply(a, idB);                                      // 두 번 입혀도 원본에서 다시 만든다
+      var twice = matOf(a, 'F00_000_Hair_00_HAIR_01') === hairB;
+      return ok && twice && ('머리·옷·눈 변형 · 피부·얼굴·원본 재질 그대로 · 같은 인물 같은 재질 · 두 번 입혀도 원본 기준');
+    });
+
+    t('vroid-variant — VRoid 경로에만 건다(QRPG·MPFB 몸엔 안 건다), 손잡이는 기본 켜짐이고 0 이면 꺼진다', function () {
+      var V = DG.vroidVariant, A3 = DG.asset3d, C = DG.core;
+      var isV = V.isVroid('assets/models/people/anime/avatar_sample_a.glb') &&
+        !V.isVroid('assets/models/people/quaternius/qrpg.glb') && !V.isVroid('assets/models/people/mpfb/x.glb') && !V.isVroid(null);
+      var on = A3.wantsAnimeAvatar() === true;
+      C.setTune('world3d.animeAvatar', 0);
+      var off = A3.wantsAnimeAvatar() === false;
+      C.setTune('world3d.animeAvatar', null);
+      var back = A3.wantsAnimeAvatar() === true;
+      var recs = A3.heroRecipesAnime();
+      var four = recs.length === 4 && recs.every(function (r) { return V.isVroid(r.body); });
+      return isV && on && off && back && four && ('기본 켜짐 · 0 이면 꺼짐 · 몸 넷 모두 people/anime/');
     });
 
     /* ── 자체 몸짓 (anim-own.js, 2026-09-20) ─────────────────────

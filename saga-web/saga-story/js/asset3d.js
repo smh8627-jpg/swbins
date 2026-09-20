@@ -241,9 +241,14 @@
   }).concat([
     { key: 'anime_avatar_custom01', body: PEOPLE_ANIME + 'avatar_custom_01.glb' }
   ]);
+  /** 2026-09-20 — VRoid 몸이면 인물 id 로 머리·옷·눈 색을 바꾼다(vroid-variant.js, 다섯 판 공용). 다른 몸엔 안 건다 */
+  function applyVroid(model, rec, id) {
+    var V = global.DG && global.DG.vroidVariant;
+    if (V && rec && V.isVroid(rec.body)) { V.apply(model, id); }
+  }
   function wantsAnimeAvatar() {
     var C = global.DG.core;
-    return (C && C.tuned && C.tuned('world3d.animeAvatar', 0)) ? true : false;
+    return (C && C.tuned && C.tuned('world3d.animeAvatar', 1)) ? true : false;
   }
 
   /** 표에서 이 씨앗이 고를 몸+옷+머리 조합 — 조합 객체일 때만 돌려준다 */
@@ -510,6 +515,7 @@
       var model;
       try {
         model = assembleHero(parts, heightPx, tintHex);
+        applyVroid(model, rec, seed);
       } catch (e) {
         broke = (e && e.message) ? e.message : 'hero assemble 실패';
         cb(null);

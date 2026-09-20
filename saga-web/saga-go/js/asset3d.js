@@ -190,7 +190,12 @@
   }).concat([
     { key: 'anime_avatar_custom01', body: PEOPLE_ANIME + 'avatar_custom_01.glb' }
   ]);
-  function wantsAnimeAvatar() { return core().tuned('world3d.animeAvatar', 0) ? true : false; }
+  /** 2026-09-20 — VRoid 몸이면 인물 id 로 머리·옷·눈 색을 바꾼다(vroid-variant.js, 다섯 판 공용). 다른 몸엔 안 건다 */
+  function applyVroid(model, rec, id) {
+    var V = global.DG && global.DG.vroidVariant;
+    if (V && rec && V.isVroid(rec.body)) { V.apply(model, id); }
+  }
+  function wantsAnimeAvatar() { return core().tuned('world3d.animeAvatar', 1) ? true : false; }
 
   /**
    * 옛 인물 조합 — **몸 하나 + 옷 하나 + 머리 하나**가 한 벌이다. 셋 다 뼈 개수(65)와
@@ -1167,6 +1172,7 @@
       var model;
       try {
         model = assembleHero(parts, ref, rec);
+        applyVroid(model, rec, ref && ref.id);
       } catch (e) {
         shell.userData.assetState = 'fail';
         broke = (e && e.message) ? e.message : 'hero assemble 실패';

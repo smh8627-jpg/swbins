@@ -104,7 +104,12 @@
       return { key: 'anime_avatar_custom01', body: f, anim: f };
     })()
   ]);
-  function wantsAnimeAvatar() { return core.tuned('world3d.animeAvatar', 0) ? true : false; }
+  /** 2026-09-20 — VRoid 몸이면 인물 id 로 머리·옷·눈 색을 바꾼다(vroid-variant.js, 다섯 판 공용). 다른 몸엔 안 건다 */
+  function applyVroid(model, rec, id) {
+    var V = global.DG && global.DG.vroidVariant;
+    if (V && rec && V.isVroid(rec.body)) { V.apply(model, id); }
+  }
+  function wantsAnimeAvatar() { return core.tuned('world3d.animeAvatar', 1) ? true : false; }
 
   /* ── 클립 이름 → 표준 슬롯(2026-09-10, 사가블로 asset3d.js 에서 그대로 옮김) ──
    * GLB 마다 클립 이름이 다 다르다("Attack1_swordShield" 같은 식) — 실제 이름을
@@ -611,6 +616,7 @@
       var model;
       try {
         model = assembleHero(parts);
+        applyVroid(model, rec, ref && ref.id);
         if (tintHex) { applyTint(model, tintHex); }
       } catch (e) {
         broke = (e && e.message) ? e.message : 'hero assemble 실패';

@@ -102,7 +102,12 @@
        assets/ASSET_LICENSES.md 참고 */
     { key: 'anime_avatar_custom01', body: PEOPLE_ANIME + 'avatar_custom_01.glb' }
   ]);
-  function wantsAnimeAvatar() { return core().tuned('world3d.animeAvatar', 0) ? true : false; }
+  /** 2026-09-20 — VRoid 몸이면 인물 id 로 머리·옷·눈 색을 바꾼다(vroid-variant.js, 다섯 판 공용). 다른 몸엔 안 건다 */
+  function applyVroid(model, rec, id) {
+    var V = global.DG && global.DG.vroidVariant;
+    if (V && rec && V.isVroid(rec.body)) { V.apply(model, id); }
+  }
+  function wantsAnimeAvatar() { return core().tuned('world3d.animeAvatar', 1) ? true : false; }
   /** 2026-09-20 — VRM 몸은 남의 몸짓(UAL1)을 뼈 이름표로 다시 굽는 대신 `anim-own.js` 가 코드로 짠 자체 몸짓을 입는다
    *  (Mixamo 는 약관상 공개 저장소에 못 올리고, UAL1 은 VRM 뼈 길이·축이 달라 손이 갔다). 기본 켜짐,
    *  `world3d.ownAnim`=0 이면 예전 길(UAL1 retarget)로 되돌아간다 */
@@ -963,15 +968,17 @@
       }
     }
     if (wantsAnimeAvatar()) {
-      /* 2026-09-19 — 전체 주민이 아니라 위 HERO_RECIPES_ANIME_NPC 표에 있는
-         이름 있는 숲 NPC 7명에게만 건다(§6.5 "이질감" 제보 뒤 방향 전환).
-         표에 없는 id(마을 주민 등)는 그냥 아래 buildHeroDefault 로 빠진다 */
-      var arec = HERO_RECIPES_ANIME_NPC[ref && ref.id];
+      /* 2026-09-19 — "이질감" 제보로 이름 있는 숲 NPC 7명(위 표, 옷을 숲 팔레트로 물들임)에만 걸었다.
+         2026-09-20 — 사용자 "104명은 다 바꾸라고 했는데" → 나머지 주민도 VRoid 몸 넷에 id 해시로 나눠 입히고
+         머리·옷·눈 색만 인물마다 바꾼다(vroid-variant.js). 마을 배경과 어울리는지는 실기 확인 몫 —
+         튀면 이 줄의 oneOf(HERO_RECIPES_ANIME, ref) 만 지우면 NPC 7명만 남는다 */
+      var npcRec = HERO_RECIPES_ANIME_NPC[ref && ref.id];
+      var arec = npcRec || oneOf(HERO_RECIPES_ANIME, ref);
       if (arec) {
         loadHeroRecipe(arec, function (model) {
           if (model) { cb(model); return; }
           buildHeroDefault(ref, cb);
-        });
+        }, npcRec ? undefined : (ref && ref.id));
         return;
       }
     }
@@ -990,7 +997,7 @@
     });
   }
 
-  function loadHeroRecipe(rec, cb) {
+  function loadHeroRecipe(rec, cb, variantId) {
     var t = three(); // assemble() 아래서 AnimationMixer 를 만들 때 쓴다 — buildHero() 의 t 는 안 물려받는다
     built++;
 
@@ -1009,6 +1016,7 @@
       var model;
       try {
         model = assembleHero(parts);
+        if (variantId !== undefined) { applyVroid(model, rec, variantId); }   // 색 변형은 주민(표 밖)만 — NPC 는 이미 팔레트로 물들였다
       } catch (e) {
         broke = (e && e.message) ? e.message : 'hero assemble 실패';
         cb(null);

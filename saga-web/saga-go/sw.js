@@ -11,7 +11,7 @@
  *       사내 http 주소로 폰에서 열면 홈 화면 추가는 되지만 이 캐시는 동작하지 않는다.
  */
 
-var VERSION = 'go-v5.35.0';
+var VERSION = 'go-v5.36.0';
 var APP_CACHE = 'dg-app-' + VERSION;
 var TILE_CACHE = 'dg-tiles-v1';
 var TILE_MAX = 500;
@@ -49,6 +49,7 @@ var SHELL = [
   './js/buddy.js',
   './js/toon3d.js',
   './js/anim-own.js',
+  './js/vroid-variant.js',
   './js/asset3d.js',
   './js/prop3d.js',
   './js/relief3d.js',
