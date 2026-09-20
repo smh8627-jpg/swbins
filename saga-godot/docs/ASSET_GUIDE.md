@@ -502,3 +502,29 @@ Rock_Medium_2~3·RockPath_Round_Small×3+Thin·RockPath_Square_Small×3+Thin)
 둘 다 앞서 본 것과 같은 패턴으로 무난. 새 결함 없음.
 - 헤드리스 임포트 오류 0(96개 전부), `godot_regress.sh` 통과. **씬엔
 안 물렸다**(§8-1).
+
+## 2026-09-20 — Quaternius 잔디·꽃 22종 전부 팔레트 스냅 완료 + 용도 판단
+
+09-20⑯ 시험 5종(Fern_1·Grass_Common_Short·Flower_3_Group·Mushroom_Common·
+Plant_1)에 이어 나머지 17종(Clover_1~2·Flower_3_Single·Flower_4_Group/
+Single·Grass_Common_Tall·Grass_Wispy_Short/Tall·Mushroom_Laetiporus·
+Petal_1~5·Plant_1_Big·Plant_7·Plant_7_Big)까지 마저 스냅 — 잔디·꽃류
+22종×4팔레트=88개 `assets/generated/variants/` 완비(나무 22+바위 24+
+잔디꽃 22=68종×4=272개, 기존 dungeon/props 25개 합쳐 총 297개).
+
+- **용도 판단(사용자 승인)**: "FOREST 꽃 교배 시스템과 겹칠 우려"는 실제
+  코드를 보니 근거 없음으로 확인 — `forest_planting.gd`의 심은 꽃은
+  지금 3D 모델 없이 색 입힌 `SphereMesh` placeholder다(교배 단계별
+  분홍/자홍/금빛 tint만). 즉 이 22종은 심은 꽃의 모델 후보가 될 수는
+  있어도 지금 당장 경합하는 시스템이 없다 — 마을 번들 장식·바이옴
+  지면 채움 등 순수 장식 용도로 스냅만 먼저 끝내고, 실제로 어디에
+  박을지(심은 꽃 모델 교체 포함)는 여전히 102 그래픽 개편 때 사람 몫.
+- `py` 런처로 처음 돌렸을 때 원인 불명 오류(exit 49, cp949 콘솔 인코딩과
+  얽힌 argparse 출력 실패로 추정)로 68개 전부 실패 — Python 3.12
+  `python.exe`를 직접 호출(`PYTHONIOENCODING=utf-8`)해 재실행해 해결.
+  이 프로젝트에서 `palette.py` 등 한글 docstring이 있는 스크립트는 `py`
+  런처 대신 python.exe 직접 경로를 쓸 것.
+- 헤드리스 임포트 오류 0(88개 전부), `godot_regress.sh` 통과(다섯 대표
+  씬 md5 불변, `.import`/`project.godot` 잡음 없음). **씬엔 안 물렸다**
+  (§8-1) — 이걸로 Quaternius 나무·바위·잔디꽃(68종) 팔레트 스냅 4단계는
+  전부 끝, 5단계(씬 배치)만 102 사람 몫으로 남는다.

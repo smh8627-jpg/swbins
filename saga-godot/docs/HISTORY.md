@@ -7779,3 +7779,11 @@ PROJECT_STATE.md` 참고. 요약:
 - 새 조합 3개(Rock_Medium_2×go_coast·Pebble_Round_3×go_ruins·RockPath_Round_Small_1×forest_green) 눈 확인 — 전부 앞서와 같은 패턴으로 무난, 새 결함 없음.
 - 헤드리스 임포트 오류 0(96개), `godot_regress.sh` 통과. **씬엔 안 물림**(§8-1).
 - 이걸로 나무·바위(총 46종) 팔레트 스냅은 4단계까지 전부 끝. 잔디·꽃 21종은 여전히 용도 미정(시험 스냅만 5종). 5단계(씬 배치)는 102 그래픽 개편 사람 몫.
+
+## Quaternius 잔디·꽃 22종 전부 팔레트 스냅 완료 (2026-09-20⑱, 새 세션, "사가고독 이어 하기")
+
+- "잔디·꽃 21종 용도 판단" 항목을 사용자에게 물어 "전부 스냅 완료" 선택받음. 코드 확인 결과 FOREST 꽃 교배(`forest_planting.gd`)는 지금 SphereMesh placeholder만 쓰고 있어 실제 겹침 없음 — 근거 삼아 진행.
+- 시험 5종에 이어 나머지 17종(Clover_1~2·Flower_3_Single·Flower_4_Group/Single·Grass_Common_Tall·Grass_Wispy_Short/Tall·Mushroom_Laetiporus·Petal_1~5·Plant_1_Big·Plant_7·Plant_7_Big) 마저 스냅 — 22종×4팔레트=88개 완비. 나무·바위·잔디꽃 68종×4=272개+기존 25개=총 297개 `assets/generated/variants/`.
+- `py` 런처가 cp949 콘솔에서 원인 불명 exit 49로 68개 전부 실패 → python.exe 직접 호출(PYTHONIOENCODING=utf-8)로 재실행해 해결(상세 ASSET_GUIDE.md 해당 날짜).
+- 헤드리스 임포트 오류 0(88개), `godot_regress.sh` 통과(다섯 대표 씬 md5 불변, `.import`/`project.godot` 잡음 없음). **씬엔 안 물림**(§8-1).
+- 이걸로 Quaternius Standard 68/68 전부(나무22+바위24+잔디꽃22) 팔레트 스냅 4단계 완전히 끝. 5단계(씬 배치)만 102 그래픽 개편 사람 몫으로 남는다.
