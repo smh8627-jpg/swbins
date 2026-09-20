@@ -326,8 +326,10 @@ namespace Saga.Go.World
             // 장비(Inventory) 세 축을 합쳐 실제 전투력을 만든다. 기초 능력치
             // 자체는 안 건드리고(101-2 ⑦ "기본치 불변" 규칙) 승급 특성 배율만
             // 여기서 곱한다.
-            float atk = (PartyState.Atk + PlayerStats.AtkBonus + Inventory.AtkBonus) * PerkState.AtkMultiplier;
-            float def = (PartyState.Def + PlayerStats.DefBonus + Inventory.DefBonus) * PerkState.DefMultiplier;
+            // PLAN.md 101-2 ⑥ "인연" — BondState.AtkMultiplier/DefMultiplier도
+            // PerkState와 같은 결로 곱한다(등용된 인물이 없으면 1f, 무해).
+            float atk = (PartyState.Atk + PlayerStats.AtkBonus + Inventory.AtkBonus) * PerkState.AtkMultiplier * BondState.AtkMultiplier;
+            float def = (PartyState.Def + PlayerStats.DefBonus + Inventory.DefBonus) * PerkState.DefMultiplier * BondState.DefMultiplier;
             _duel = DuelRules.Create(foeHp, atk, def);
             _duel.KiMul = PerkState.KiMultiplier;
             _combatRoot.SetActive(true);
@@ -412,6 +414,7 @@ namespace Saga.Go.World
             {
                 DailyTaskState.ReportProgress(DailyTaskState.Kind.BanditWin, 1);
                 PartyState.Recruit(RecruitId);
+                BondState.ReportWin(); // PLAN.md 101-2 ⑥ "인연" — 등용된 전원의 "함께 이긴 토벌" +1.
 
                 // PLAN.md 66장 Reward — 등용 외에 경험치·장비 보상도 준다.
                 // 레벨업 여러 번은 LeveledUp 이벤트로, 실제 문구는 아래서 한 번에 모은다.
@@ -464,7 +467,15 @@ namespace Saga.Go.World
             }
             else
             {
-                Toast(GoLocalization.T("encounter.retreat_pushed", "밀렸다. 물러났다."));
+                // PLAN.md 101-2 ⑧ "패배 비용과 회수" — 진짜로 밀린 패배에서만 짐을 떨어뜨린다.
+                string msg = GoLocalization.T("encounter.retreat_pushed", "밀렸다. 물러났다.");
+                if (DropState.TryDrop(transform.position, out var drop))
+                {
+                    DropMarker.Spawn(drop);
+                    msg += string.Format(GoLocalization.T("encounter.drop_lost",
+                        "\n짐 {0}냥을 떨어뜨렸다 — 10분 안에 이 자리로 돌아오면 되찾을 수 있다."), drop.Gold);
+                }
+                Toast(msg);
             }
             EnterCooldown();
         }

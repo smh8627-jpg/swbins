@@ -14,7 +14,7 @@ namespace Saga.Go.Data
     /// </summary>
     public static class SaveState
     {
-        private const int SaveVersion = 11;
+        private const int SaveVersion = 12;
 
         private static string SavePath => Path.Combine(Application.persistentDataPath, "save.json");
 
@@ -61,6 +61,13 @@ namespace Saga.Go.Data
             // v11(PLAN.md 101-2 ⑦ 승급 3택, 2026-09-19) — v10까지는 없던 필드.
             // 축(공/수/보) 순서로 최대 3개, PerkState.Restore가 id로 되찾는다.
             public List<string> perkIds;
+            // v12(PLAN.md 101-2 ⑥ 인연 · ⑧ 패배 비용과 회수, 2026-09-20) — v11까지는
+            // 없던 필드. bondWalkedM/bondWins는 partyMembers와 같은 길이·순서
+            // (BondState.Snapshot*가 그렇게 만든다). drops는 아직 회수/만료 안 된
+            // "떨어진 짐" 목록.
+            public float[] bondWalkedM;
+            public int[] bondWins;
+            public DropState.Drop[] drops;
         }
 
         public static bool Save()
@@ -89,6 +96,9 @@ namespace Saga.Go.Data
                 dailyStampGranted = DailyTaskState.SnapshotDayStampGranted(),
                 dailyStamps = DailyTaskState.Stamps,
                 perkIds = PerkState.SnapshotIds(),
+                bondWalkedM = BondState.SnapshotWalked(PartyState.MemberIds),
+                bondWins = BondState.SnapshotWins(PartyState.MemberIds),
+                drops = DropState.Snapshot(),
             };
 
             try
@@ -135,6 +145,8 @@ namespace Saga.Go.Data
             WorldEventState.Restore(data.worldFlags);
             DailyTaskState.Restore(data.dailyDate, data.dailyProgress, data.dailyDone, data.dailyStampGranted, data.dailyStamps);
             PerkState.Restore(data.perkIds ?? new List<string>());
+            BondState.Restore(PartyState.MemberIds, data.bondWalkedM, data.bondWins);
+            DropState.Restore(data.drops);
 
             Transform player = FindPlayer();
             if (player != null && data.playerPos != null && data.playerPos.Length == 3)
@@ -260,6 +272,16 @@ namespace Saga.Go.Data
                 // 같은 기본값(빈 목록)으로 채운다.
                 data.version = 11;
                 data.perkIds = new List<string>();
+                return data;
+            }
+            if (fromVersion == 11)
+            {
+                // v11엔 인연·짐 필드가 없었다 — 아직 하나도 안 쌓인 것과 같은
+                // 기본값(빈 배열)으로 채운다.
+                data.version = 12;
+                data.bondWalkedM = Array.Empty<float>();
+                data.bondWins = Array.Empty<int>();
+                data.drops = Array.Empty<DropState.Drop>();
                 return data;
             }
             return null;

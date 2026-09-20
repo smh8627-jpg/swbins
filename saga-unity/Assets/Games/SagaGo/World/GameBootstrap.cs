@@ -29,6 +29,19 @@ namespace Saga.Go.World
         private void Start()
         {
             SaveState.TryLoad();
+
+            // PLAN.md 101-2 ⑧ "패배 비용과 회수" — 앱이 꺼져 있던 사이 10분
+            // 창을 넘긴 짐은 먼저 걸러내고, 남은 것만 마커로 되살린다.
+            DropState.PurgeExpired();
+            foreach (var drop in DropState.ActiveDrops)
+            {
+                DropMarker.Spawn(drop);
+            }
+            // PLAN.md 101-2 ① "봉수대" — Awake 시점엔 세이브가 아직 안 얹혀
+            // 있어(SaveState.TryLoad가 여기 Start에서야 불린다) 불꽃 색이
+            // 낡은 채일 수 있다.
+            Object.FindFirstObjectByType<BeaconTower>()?.RefreshVisualFromState();
+
             CombineStaticBatches();
             GoSettingsState.ApplyToAllScalers();
             GoSettingsState.ApplyGraphicsQuality();

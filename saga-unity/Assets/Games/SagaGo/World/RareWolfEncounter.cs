@@ -275,9 +275,9 @@ namespace Saga.Go.World
         {
             _state = State.Fight;
             float foeHp = Mathf.Max(1f, Mathf.Round(FoePower * FoeHpMul));
-            // PLAN.md 101-2 ⑦ "승급 3택" — BanditEncounter.StartFight()와 같은 배율 적용.
-            float atk = (PartyState.Atk + PlayerStats.AtkBonus + Inventory.AtkBonus) * PerkState.AtkMultiplier;
-            float def = (PartyState.Def + PlayerStats.DefBonus + Inventory.DefBonus) * PerkState.DefMultiplier;
+            // PLAN.md 101-2 ⑦ "승급 3택"·⑥ "인연" — BanditEncounter.StartFight()와 같은 배율 적용.
+            float atk = (PartyState.Atk + PlayerStats.AtkBonus + Inventory.AtkBonus) * PerkState.AtkMultiplier * BondState.AtkMultiplier;
+            float def = (PartyState.Def + PlayerStats.DefBonus + Inventory.DefBonus) * PerkState.DefMultiplier * BondState.DefMultiplier;
             // PLAN.md 101-2 ③ "75초 토벌" — 이 사건만 raid:true(75s·부위 3·저스트 회피).
             _duel = DuelRules.Create(foeHp, atk, def, raid: true);
             _duel.KiMul = PerkState.KiMultiplier;
@@ -401,6 +401,7 @@ namespace Saga.Go.World
             {
                 WorldEventState.TryTrigger(EventId);
                 DailyTaskState.ReportProgress(DailyTaskState.Kind.WolfWin, 1);
+                BondState.ReportWin(); // PLAN.md 101-2 ⑥ "인연" — 늑대 자신은 등용 대상이 아니지만, 이미 등용된 인물의 "함께 이긴 토벌"은 오른다.
 
                 int levelBefore = PlayerStats.Level;
                 PlayerStats.AddExp(ExpReward);
@@ -430,7 +431,15 @@ namespace Saga.Go.World
             }
             else
             {
-                Toast(GoLocalization.T("encounter.retreat_pushed", "밀렸다. 물러났다."));
+                // PLAN.md 101-2 ⑧ "패배 비용과 회수" — BanditEncounter.FinishFight()와 같은 로직.
+                string msg = GoLocalization.T("encounter.retreat_pushed", "밀렸다. 물러났다.");
+                if (DropState.TryDrop(transform.position, out var drop))
+                {
+                    DropMarker.Spawn(drop);
+                    msg += string.Format(GoLocalization.T("encounter.drop_lost",
+                        "\n짐 {0}냥을 떨어뜨렸다 — 10분 안에 이 자리로 돌아오면 되찾을 수 있다."), drop.Gold);
+                }
+                Toast(msg);
             }
             EnterCooldown();
         }

@@ -7915,3 +7915,21 @@ FOREST 5.8②를 커밋한 뒤 REALM 5-8(계승)을 설계하다가, 무장 풀�
 `tools/unity-batch.sh -- <Unity 인자...>`로 컴파일(오류 0) → 씬 재빌드(`BuildTestCityScene.Build`, 설정 패널 새 토글 배선) → 헤드리스 3연속 OK("succession OK - 허창 배치 계승·치안 절반 하락·안내 문구 확인" + 기존 30차 성 정복·문답·저장/불러오기 전부 그대로 통과, 계승 복원이 이후 phase를 안 깬 것도 확인). `docs/PROJECT_STATE.md` 갱신(REALM 요약에 5-8 추가, "다음 작업"에서 REALM5-8 제거·5-3/5-5 상태 미확인으로 표시, 테스트 상태·실기 확인 대기 갱신, 이제 다 닫혀 가벼워진 "REALM 51장" 절 삭제해 15KB 여유 확보). `PLAN.md` 101-2 REALM 행에 5-8 재해석 이유·대응 파일(`RealmSuccessionState` 추가) 반영.
 
 **사용자가 "이 작업 다 완료 하고 새로운 세션에서 하자"고 지시** — 이 세션은 여기서 마무리하고 커밋까지만 한다. 다음 세션이 이어받을 것: FOREST 5.6(축제)·5.7(택배 사슬)은 웹·saga-godot 어디에도 실기 승인 사례가 없어 착수 전에 사용자 확인이 먼저 필요하다(이 세션에서 확인은 안 함, PROJECT_STATE "다음 작업" 참고). REALM 5-3(일기토·설전)·5-5(승리 조건·결과 카드)는 이 트랙에 실제로 필요한지조차 아직 안 살펴봤다 — 다음 세션이 saga-godot·웹판 상태부터 다시 확인할 것. GO ①②⑥⑧은 여전히 사용자 결정 대기.
+
+## 2026-09-20 — PLAN 101-2 GO ①⑥⑧ ("사가 유니티 이어 해" 세션, REALM 5-8 다음)
+
+"사가 유니티 이어 해" 지시로 시작 — PROJECT_STATE "다음 작업"의 나머지 후보(DUNGEON5.7·FOREST5.6/5.7·REALM5-3/5-5)가 전부 웹·godot 실기 승인 게이트에 걸려 있는 걸 확인해 사용자에게 물었더니, "사용자 결정 대기"로 명시돼 있던 GO ①봉수대·⑥인연·⑧패배 비용·회수 세 후보를 한꺼번에("1,2,3 다해") 지시받아 착수.
+
+TestVillage는 GPS 오버월드가 아니라 9×11 고정 격자 하나뿐이라 웹판 §5 설계(27개 권역·파티 5명 궁합·GPS 200m 격자) 셋 다 원문 그대로는 못 옮긴다 — 세 후보 모두 크게 좁혔다.
+
+**① 봉수대**: 27개 권역 대신 마을에 하나뿐인 봉수대(격자 4,4 — 수집 자리·LuckyCairn과 안 겹치는 빈 들판). 불을 올리기 전까지는 `HiddenTreasure` 등과 같은 자격의 목표판 최근접 후보고, 올린 뒤로는(GPS 반경 1.5km 노출 대신, 미니맵이 없는 이 트랙이라) 목표판(`GoSessionTracker.GoalLineNow()`)이 그 뒤로 아직 못 찾은 세 갈래(숨은 보물·산신당·동쪽 숲 유적)를 최근접 후보로 통째로 받아들이는 쪽으로 재해석 — 웹판 48절 "가 보기 전까지 안 뜬다"의 예외를 봉수대만 허용한다는 규칙의 정신을 살렸다. 새 `BeaconTower.cs`(primitive 원기둥+발광 구, 불 켜지면 색이 바뀐다 — 세이브 로드는 GameBootstrap.Start()가 Awake보다 늦게 WorldEventState를 복원하니 `RefreshVisualFromState()`를 로드 뒤 따로 불러 준다).
+
+**⑥ 인연**: 이 슬라이스의 등용 대상이 "산적"(BanditEncounter) 하나뿐이라(RareWolfEncounter의 늑대는 등용 안 됨) faction/era 궁합("결") 축은 스코프 밖으로 뺐다 — 그 축 자체가 없다. 남은 "함께 걸은 거리·함께 이긴 토벌로 인연 0~3, +2%/등급"만 그대로 옮겼다(수치는 웹판 그대로: 2/6/15km 또는 3/10/25승). 새 `BondState.cs`(등용된 인물마다 Dictionary 항목, `PartyState.Recruit`/`Restore`가 자동으로 등록) — `GoSessionTracker.Update()`가 걸은 거리를 매 프레임 보고하고, Bandit/RareWolf 승리 시 `ReportWin()`. 배율은 `PerkState.AtkMultiplier`와 같은 자리에 곱으로 얹었다(`BondState.AtkMultiplier`·`DefMultiplier`, BanditEncounter·RareWolfEncounter 둘 다). 등급이 오르면 `GoSessionTracker`가 구독해 토스트.
+
+**⑧ 패배 비용과 회수**: 그대로 옮겼다 — 진짜로 밀린 패배(`dealt>0`, "한 대도 못 때리고 물러난 것은 패배로 안 친다"는 기존 경계 그대로 유지)에서 소지금 15%(상한 300)가 그 자리에 남고, 10분 안에 돌아가 마커를 밟으면 회수, 아니면 소멸. 10분 창은 `Time.time`(앱 재시작 시 0으로 리셋)이 아니라 `DateTime.Now.Ticks`(실제 달력 날짜를 쓰는 `DailyTaskState`와 같은 결)로 재서 앱을 완전히 껐다 켜도 창이 그대로 흐른다. 새 `DropState.cs`(데이터, 동시 3개 상한)·`DropMarker.cs`(화면층, `LootMarker.cs`와 같은 경계지만 실제로 돈을 돌려준다) — BanditEncounter·RareWolfEncounter 둘 다의 패배 분기에 얹었다. `GameBootstrap.Start()`가 로드 직후 `DropState.PurgeExpired()`(앱이 꺼져 있던 사이 창을 넘긴 것부터 거름) 후 남은 것만 마커로 되살린다.
+
+세이브는 v11→v12(`bondWalkedM`·`bondWins`는 `partyMembers`와 같은 순서, `drops`는 `DropState.Drop[]`을 JsonUtility가 그대로 직렬화). `MigrateStep(11,...)`이 둘 다 빈 배열로 채운다.
+
+`tools/unity-batch.sh -- <Unity 인자...>`로 컴파일(오류 0) → 씬 재빌드(`BuildTestVillageScene.Build`, BeaconTower 신설 반영) → 헤드리스 3연속 OK(기존 goal board·bandit hitstop·ground decal·level-up cut·perk choice·loot marker·weapon visual·raid boss·daily tasks 전부 회귀 없이 통과 — 이번 세 기능 전용 헤드리스 체크는 아직 안 짰다, 다음 세션 숙제). `docs/PROJECT_STATE.md` 갱신(GO 요약에 ①⑥⑧ 추가, "다음 작업"에서 GO 항목 제거, 실기 확인 대기·테스트 상태 갱신). `PLAN.md` 101-2 GO 행에 재해석 이유·대응 파일 반영.
+
+**다음 세션 숙제**: ①⑥⑧ 전용 헤드리스 진단(`PlaytestHeadless.cs`)이 아직 없다 — 봉수대 점등·목표판 전환, 인연 등급 상승·배율, 패배 시 짐 드롭·회수·만료를 코드로 확인하는 절이 없이 이번엔 컴파일+기존 회귀만으로 검증했다. 실기 확인도 전부 대기(아래 목록). GO 101-2는 이제 ①②⑥⑧ 중 ②(사당 시련)만 안 건드렸다(사용자가 "1,2,3"으로 지목한 셋만 진행) — ⑤(비석 GPS)는 모바일 빌드 뒤 그대로 보류.

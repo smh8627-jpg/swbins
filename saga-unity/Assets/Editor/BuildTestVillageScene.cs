@@ -68,6 +68,7 @@ namespace Saga.EditorTools
             BuildMountainShrine();
             BuildEastGroveRelic();
             BuildLuckyCairn();
+            BuildBeaconTower();
             var (playerGo, cameraRig) = BuildPlayer();
             BuildReviewCamera();
             BuildPostProcessingVolume();
@@ -319,6 +320,16 @@ namespace Saga.EditorTools
             var go = new GameObject("LuckyCairn");
             var cairn = go.AddComponent<LuckyCairn>();
             cairn.Build();
+        }
+
+        // PLAN.md 101-2 GO ① "봉수대" — (4,4)는 마을(row3)·다리(row5) 사이
+        // 빈 들판('.') 자리로, 어느 기존 콘텐츠와도 격자 좌표가 안 겹친다
+        // (수집 자리는 (1,2)(5,2)(2,4)(3,7)(2,9), LuckyCairn은 (4,7)).
+        private static void BuildBeaconTower()
+        {
+            var go = new GameObject("BeaconTower");
+            var beacon = go.AddComponent<BeaconTower>();
+            beacon.Build();
         }
 
         private static void BuildGatherables()

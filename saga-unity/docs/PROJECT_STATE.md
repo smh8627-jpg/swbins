@@ -1,17 +1,17 @@
 # PROJECT_STATE — saga-unity (상태만, ≤15KB, 덮어쓴다)
 
 **규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다(2026-09-16 재편 전 본문 5,532줄은 그쪽 첫 절에 그대로 있다). 넘치면 `tools/precheck.sh` 가 막는다.
-마지막 갱신: 2026-09-20 (FOREST 5.8② 다음 **PLAN 101-2 5-8 REALM 계승** — 무장 풀 3명 고정이라 원작처럼 죽이면 로스터가 영구히 줄어 사용자와 두 차례 상의 끝에 "허창(본거지) 배치가 통솔 최고 무장에게 넘어간다"(아무도 안 죽음, 대가로 허창 치안 절반 하락)로 확정. 새 `RealmSuccessionState`+`RealmCityState.SwapOfficerCities`+설정 토글(기본 꺼짐). 경위 HISTORY grep. 컴파일 0 오류, 헤드리스 3연속 OK. REALM 101-2는 5-1·5-2·5-6·5-7·5-8 완료 — 5-3·5-4·5-5는 다음 세션이 필요 여부부터 확인. DUNGEON 전부 완료(5.7 웹 선행 뒤). FOREST 남은 5.6·5.7(웹·godot 승인 사례 없음, 착수 전 확인 필요). GO는 ①②⑥⑧ 사용자 결정 대기. **다음은 새 세션이 이어받는다(사용자 지시).**
+마지막 갱신: 2026-09-20 (REALM 5-8 다음 **PLAN 101-2 GO ①⑥⑧** — 나머지 후보가 전부 웹·godot 실기 승인 게이트 대기라 "사용자 결정 대기"이던 GO 세 후보를 한꺼번에 지시받음. TestVillage엔 GPS 오버월드가 없어 좁혔다: ①봉수대 하나(4,4)가 불 켜기 전엔 다른 발견형과 같은 목표판 후보, 켠 뒤엔 남은 랜드마크 전부가 후보로 들어옴(`BeaconTower`). ⑥인연은 등용 대상이 "산적" 하나뿐이라 결(궁합) 축은 빼고 거리/토벌→0~3등급·+2%(`BondState`). ⑧패배 비용·회수는 원문 그대로(15%·상한300·10분, `DateTime.Now.Ticks` 기준이라 앱 재시작에도 창이 흐름 — `DropState`/`DropMarker`). 세이브 v12. 경위 HISTORY grep. 컴파일 0 오류, 헤드리스 3연속 OK(기존 회귀만 — 전용 진단은 다음 숙제). GO 101-2는 이제 ②·⑤만 남음.
 
 ## 캐릭터 자산 — 이 PC 기준 (2026-09-19)
 
-Maria(플레이어)·Abe(잡졸)·Brute(두목) 셋만 mixamo.com 실자산 확보(`Assets/Art/CharactersRealistic/`, `.gitignore`로 로컬 전용 — **PC마다 새로 받아야 함**, 목록은 `SetupXxxCharacterImport.cs`). GUI 육안 확인: Maria idle/run/attack 정상(범용 Mixamo 스톡 수준). Abe/Brute는 Dungeon 배치 확인, **전신 구도 스크린샷은 아직 못 얻음**(`PlaytestDungeonEnemiesGui.cs`). 경위는 HISTORY.md grep.
+Maria(플레이어)·Abe(잡졸)·Brute(두목) 셋만 mixamo.com 실자산 확보(`Assets/Art/CharactersRealistic/`, `.gitignore`로 로컬 전용 — **PC마다 새로 받아야 함**, 목록은 `SetupXxxCharacterImport.cs`). GUI 육안 확인: Maria idle/run/attack 정상. Abe/Brute는 Dungeon 배치 확인, **전신 구도 스크린샷은 아직 못 얻음**(`PlaytestDungeonEnemiesGui.cs`). 경위는 HISTORY.md grep.
 
 ## 완료 요약 — 다섯 게임 × 진척
 
 | 게임 | 씬 | Vertical Slice(Phase 1~8) | 51장 콘텐츠 확장 | 44장 에셋 교체 | 공통(66-2 라이팅·67~69 사운드/설정/Localization) |
 |---|---|---|---|---|---|
-| GO | `TestVillage` | 완료 — 도적의 습격(이동·촌장·상인·나그네·조우·전투·등용·EXP·장비·루트·저장 v11) | 동물 Group·나그네·은닉 보물·산신당·행운 돌탑·동굴 유물·채집·오버월드 지도 · **101-2 ④⑦③ 전부 완료(2026-09-19)**: 일과판·승급 3택(`PerkState`)·75초 토벌(`RareWolfEncounter`+`DuelRules.Raid`) | Player·주요 Enemy·Environment·Building·Props 전부 GLB/PBR | 전부 붙음. **목표판/세션카드(101-2 A·B)**. **101-3 C·F·G 전부 완료(2026-09-17)** |
+| GO | `TestVillage` | 완료 — 도적의 습격(이동·촌장·상인·나그네·조우·전투·등용·EXP·장비·루트·저장 v12) | 동물 Group·나그네·은닉 보물·산신당·행운 돌탑·동굴 유물·채집 · **101-2 ④⑦③(2026-09-19)**: 일과판·승급 3택·75초 토벌 · **101-2 ①⑥⑧(2026-09-20)**: 봉수대(`BeaconTower`)·인연(`BondState`)·패배 비용·회수(`DropState`/`DropMarker`) | Player·주요 Enemy·Environment·Building·Props 전부 GLB/PBR | 전부 붙음. **목표판/세션카드(101-2 A·B)**. **101-3 C·F·G 전부 완료(2026-09-17)** |
 | DUNGEON | `TestDungeon` | 완료 — 첫 방→무리·엘리트/보스·방 종류(우물·상자·성소·행상)·회피·강공격·필드(방 2+복도)·동행 | 마을 넷·층 진행·매복·구출·수수께끼·은닉 창고·빌드(회전베기)·도감·보석/영웅 상태 · **101-2 5.1~5.5 완료(5.7 남음)** | Player·잡졸(황건적)·미니보스/두목·Environment·Building | 전부 붙음(SFX 실클립 통일). **목표판/세션카드(101-2 A·B)**. **101-3 C·F·G 전부 완료(2026-09-17)** |
 | FOREST | `TestVillageForest` | 완료(이동 전용 컨트롤러) — 마을·집·주민 | 벽지/장판·가구 자유 배치(1m 격자)·생물(Flee/Group)·과일나무·채집·좌판·밀어내기 전투 · **5.1~5.5 완료**: 마을 번들(`ForestMuseumState`) · **5.8①②(2026-09-20)**: 채집 손맛(`ForestGatherFeel`)·마을 평가(`ForestTownScore`, 별 5) | Environment 완료 | 전부 붙음. **목표판/세션카드(A·B)**. 101-3 해당 없음 |
 | STORY | `TestField` | 완료 — 2.5D 횡스크롤(Z 고정)·잡졸 10·두목·사명 2·볼트·로프 | 척후병 NPC·사건·관계·선택(51장 완결)·전직(Lv.10, 무사/궁수/협객/방사, `StoryJobChoiceUi` 팝업까지 실제 검증) | 척후병 실제 모델 | 전부 붙음. **목표판/세션카드(101-2 A·B)**. **101-3 C·F·G 전부 완료(2026-09-18)** — C(hitstop/shake, 2026-09-17) + F 죽음(`StoryLootMarker`) + G 지형 반응(`StoryGroundDecal`, 발자국+타격 흔적) + G 성장 연출(`StoryCameraFollow.PlayLevelUpCut()`, ZDistance 가변화) + G 장비 가시화(`StoryWeaponVisual`, "직업별 무기": 무사→검·궁수→활·협객→표창·방사→지팡이) |
@@ -35,7 +35,7 @@ STORY 세부(경위는 HISTORY grep): `StoryJobState.JobChosen` 이벤트로 `Re
 
 ## 다음 작업 (우선순위, 상세는 PLAN 해당 장 · 경위는 HISTORY 날짜 grep)
 
-1. **PLAN 101-2 이어서** — GO④⑦③·DUNGEON5.1~5.5·FOREST5.1~5.5,5.8①②·REALM5-1,5-2,5-6,5-8 완료(FOREST5.8③은 해당 없음). 다음: GO①②⑥⑧(사용자 결정 대기, ⑤는 모바일 빌드 뒤)·DUNGEON5.7(웹 선행 뒤)·FOREST5.6/5.7(웹·godot 승인 사례 없음, 착수 전 확인)·REALM5-3/5-5(필요 여부 확인, 5-4는 안 옮기기로 결정됨). STORY 5-2~5-4·5-8은 선행 시스템 없어 재검토 필요.
+1. **PLAN 101-2 이어서** — GO①④⑥⑦⑧·DUNGEON5.1~5.5·FOREST5.1~5.5,5.8①②·REALM5-1,5-2,5-6,5-8 완료(FOREST5.8③ 해당 없음). 다음: GO②(사당 시련, 사용자 결정 대기, ⑤는 모바일 빌드 뒤)·DUNGEON5.7(웹 선행 뒤)·FOREST5.6/5.7(웹·godot 승인 사례 없음)·REALM5-3/5-5(필요 여부 확인, 5-4는 제외 확정). STORY 5-2~5-4·5-8은 선행 시스템 없어 재검토 필요. **GO①⑥⑧ 전용 헤드리스 진단 없음**(컴파일+기존 회귀만 확인) — `PlaytestHeadless.cs`에 추가할 것.
 2. **실기 GUI 확인 몰아서** — "실기 확인 대기" 전부(아래 목록, GO 일과판 신규 포함). 사용자 몫.
    - **다른 PC로 이어받으면** `CharactersRealistic/`가 비어 있음 — mixamo.com에서 새로 받을 것(로그인은 사람 몫). 목록은 `SetupXxxCharacterImport.cs`의 `AnimMap`/`BodyFileName`.
    - Dungeon Abe/Brute **전신 구도 스크린샷은 아직 못 얻음**(카메라 클로즈업, 파편만 확인) — `PlaytestDungeonEnemiesGui.cs`의 `TeleportPos`/줌 더 조정하면 재시도 가능.
@@ -46,7 +46,7 @@ STORY 세부(경위는 HISTORY grep): `StoryJobState.JobChosen` 이벤트로 `Re
 
 ## 알려진 오류
 
-- 없음(컴파일·헤드리스 기준, 2026-09-19 재확인).
+- 없음(컴파일·헤드리스 기준, 2026-09-20 재확인).
 - **함정(오류 아님)**: 이 PC Unity 6000.3.24f1 > 프로젝트 6000.3.23f1 → 배치 모드가 `ProjectSettings/ProjectVersion.txt`·`EditorSettings.asset`·`Packages/manifest.json`·`packages-lock.json` 을 조용히 고친다. **`tools/unity-batch.sh -- <Unity 인자...>`로 부르면 자동 원복** — 매번 손으로 `git checkout` 안 해도 됨.
 - **`Animator.GetBoneTransform()`은 `isHuman`으로 먼저 거를 것** — Animator가 있어도 Avatar가 없거나 Humanoid가 아니면 `InvalidOperationException: Avatar is null`을 던진다. `CharacterVisual.FindOrCreateWeaponSocket()`(DUNGEON·GO·STORY 셋 다)이 `animator.isHuman` 가드로 고쳐 둠.
 - **정적 상태의 `Restore()`가 관련 이벤트를 안 쏘면 다른 컴포넌트가 낡은 시각 상태를 계속 든다** — 2026-09-18 STORY `StoryWeaponVisual` 개발 중 실제로 겪음: `StoryJobState.Restore()`가 `JobChosen`을 안 쏘던 시절엔, 세션 중간에 상태를 초기화해도(테스트가 하듯) 이미 지어진 무기 모델이 안 사라졌다. 앞으로 "장착/보유 상태를 보고 시각을 짓는" 컴포넌트를 새로 달 땐 그 상태의 `Restore()`/로드 경로도 같은 이벤트를 쏘는지 확인할 것.
@@ -62,23 +62,22 @@ STORY 세부(경위는 HISTORY grep): `StoryJobState.JobChosen` 이벤트로 `Re
 - **DUNGEON `CameraRig` 기본값(zoom=6·pitch=55°)은 `DungeonRoomBuilder.WallHeight`(4m) 천장 위로 뜬다** — 벽지 텍스처만 꽉 찬 클로즈업이 찍힌다(2026-09-19 실제로 겪음). 확인용은 리플렉션으로 `_zoom`≤3·`_pitchDeg`≤30.
 - **헤드리스 검증이 `SaveState.Save()`를 부르면 `persistentDataPath/save.json`이 진짜로 남는다** — `GameBootstrap.Start()`가 부팅마다 `TryLoad()`를 불러, 원본을(Save() 부르기 **전** 시점 기준으로, 없었으면 삭제까지) 안 되돌리면 다음 헤드리스 실행이 이 상태를 이어받아 다른 체크가 간헐적으로 깨진다(2026-09-19 GO `CheckDailyTasks` 개발 중 실제 발생).
 
-## 테스트 상태 (2026-09-20 기준, 전부 배치 모드, 이 PC Unity 6000.3.24f1로 실제 실행)
+## 테스트 상태 (2026-09-20, 배치 모드, Unity 6000.3.24f1)
 
 | 검증 | 결과 |
 |---|---|
 | `-batchmode -nographics -quit` 컴파일 | exit 0, 오류 0(DUNGEON 5.5 추가 뒤 재확인) |
-| `PlaytestHeadless`(GO) | 2026-09-19 기준 3연속 OK, 이번 세션 미변경 |
-| `PlaytestDungeonHeadless` | **재검증 OK**(2026-09-20, 5.5 뒤 — 10 frames, no errors. 완주·사망 두 종료 경로 다 새로 확인) |
-| `PlaytestDungeonFloorProgression`·`FieldAmbush`·`Shortcut`·`Town2`·`Towns34` | **재검증 OK**(`DungeonEnemy` 핵심 변경이라 하위 슬라이스까지 전부 재확인) |
+| `PlaytestHeadless`(GO) | **재검증 3연속 OK**(2026-09-20, GO①⑥⑧ 뒤 — 기존 항목 전부 회귀 없음, 이 세 기능 전용 체크는 아직 없음) |
+| `PlaytestDungeonHeadless`·`FloorProgression`·`FieldAmbush`·`Shortcut`·`Town2`·`Towns34` | **전부 재검증 OK**(2026-09-20, 5.5 뒤 — 완주·사망 두 종료 경로 포함, `DungeonEnemy` 핵심 변경이라 하위 슬라이스까지 확인) |
 | `PlaytestForestHeadless` | **3연속 OK**(2026-09-20, 5.8② 마을 평가 뒤 — `CheckTownScore()` 신규) |
-| `PlaytestOverworldMap`(GO) | 이전 세션 기준 1회 재검증 OK, 이번 세션 미변경 |
+| `PlaytestOverworldMap`(GO) | 이전 세션 1회 재검증 OK, 미변경 |
 | `PlaytestStorySlice` | **3연속 OK**(2026-09-18, 101-3 F·G·장비가시화 확장 뒤 — 죽음 표식/지형 데칼/레벨업 줌/직업별 무기 전부 새 검증 포함) |
 | `PlaytestRealmSlice` | **3연속 OK**(2026-09-20, 5-8 계승 뒤 — 신규 `CheckSuccession()` 포함, 씬 재빌드로 설정 패널 새 토글 배선 확인) |
-| GUI 실제 Play 확인 | GO 라이팅 톤·`TestCharacterRealistic`(Maria idle/run/attack)·**Dungeon Abe/Brute(2026-09-19, `PlaytestDungeonEnemiesGui.cs` 신규, 파편적 확인)**. 나머지 미확인(STORY 신규 101-3 F·G도 포함) |
+| GUI 실제 Play 확인 | GO 라이팅 톤·Maria idle/run/attack·**Dungeon Abe/Brute(`PlaytestDungeonEnemiesGui.cs`, 파편적 확인)**. 나머지 미확인 |
 
 ## 실기 확인 대기 (항목명만 — 경위는 HISTORY grep)
 
-- GO: 조우·전투·등용 손맛, 상점·퀘스트 대사 3단계, 은닉 보물·산신당·돌탑·유물, 채집, 목표판/세션카드, hitstop 체감, 유품 마커·무기 소켓·지형 데칼(101-3 F·G), 일과판·승급 3택 UI, **75초 토벌 손맛(저스트 회피 타이밍·부위 게이지·완파 보너스, 101-2 ③, 2026-09-19 신규 — 이게 첫 실기 확인)**
+- GO: 조우·전투·등용 손맛, 상점·퀘스트 대사 3단계, 은닉 보물·산신당·돌탑·유물, 채집, 목표판/세션카드, hitstop 체감, 유품 마커·무기 소켓·지형 데칼(101-3 F·G), 일과판·승급 3택 UI, 75초 토벌 손맛(101-2 ③), **봉수대 점등·목표판 전환·인연 등급 토스트·패배 시 짐 드롭/회수(101-2 ①⑥⑧, 2026-09-20 신규, 첫 실기 확인)**
 - DUNGEON: 카메라 각도, 아홉 슬라이스, 목표판/세션카드, hitstop·타격VFX·레벨업줌·무기소켓·지형데칼 체감(101-3 전체), **축복·유품·부적 던전·월드 보스·난입 체감(101-2 5.1~5.5, 신규 — 난입은 표식 위치·파도 난이도 포함 첫 실기 확인)**
 - FOREST: 벽지/장판, 가구 배치, 생물·과일나무·좌판, 목표판/세션카드, 마을 번들(5.3), 채집 손맛(5.8①), **마을 평가판 별점(5.8②, 2026-09-20 신규)**
 - STORY: 두목 크기·타격감, 사건·관계·선택 흐름, 전직 팝업, 목표판/세션카드, hitstop/shake/flash/popup/타격 VFX 체감, **유품 마커·지형 데칼(발자국/타격 흔적)·레벨업 줌·직업별 무기(검/활/표창/지팡이) 실제로 보이는지(101-3 F·G, 2026-09-18 신규 — 이게 첫 실기 확인)**

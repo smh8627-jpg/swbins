@@ -38,6 +38,7 @@ namespace Saga.Go.Data
         public static void Recruit(string id)
         {
             Members.Add(id);
+            BondState.EnsureMember(id); // PLAN.md 101-2 ⑥ "인연" — 등용 순간부터 인연이 쌓이기 시작한다.
             Recompute();
             PowerChanged?.Invoke(Atk, Def);
         }
@@ -49,6 +50,7 @@ namespace Saga.Go.Data
         {
             Members.Clear();
             Members.AddRange(savedMembers);
+            foreach (var id in Members) BondState.EnsureMember(id);
             Recompute();
             PowerChanged?.Invoke(Atk, Def);
         }
