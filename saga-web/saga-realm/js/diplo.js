@@ -263,7 +263,7 @@
       var cands = off.atCity(cityId, c.force);
       /* 충성이 가장 낮은 사람이 가장 잘 흔들린다 */
       cands.sort(function (a, b) { return off.loyalOf(a.id) - off.loyalOf(b.id); });
-      var lord = (FD.force(c.force) || {}).lord;
+      var lord = off.lordOf(c.force);
       cands = cands.filter(function (h) { return h.id !== lord; });
       targetId = cands.length ? cands[0].id : null;
       if (!targetId) { return { ok: false, why: '흔들 사람이 없습니다' }; }
@@ -333,9 +333,11 @@
       if (!Object.prototype.hasOwnProperty.call(st.officers, k)) { continue; }
       var r = st.officers[k];
       if (!r.force) { continue; }
-      if ((FD.force(r.force) || {}).lord === k) { continue; }
+      if (off.lordOf(r.force) === k) { continue; }
+      var unrest = r.unrest > 0;
+      if (unrest) { r.unrest -= 1; }   // 새 군주 즉위 뒤 3달(§5-8) — 이 창 안에서는 이탈 판정이 두 배. 손잡이가 꺼져 있으면 칸이 안 생긴다
       if (r.loyal > 12) { continue; }
-      if (Math.random() > 0.35) { continue; }
+      if (Math.random() > 0.35 * (unrest ? 2 : 1)) { continue; }
       var wasForce = r.force;
       var c = R.city(r.city);
       if (c && c.gov === k) { c.gov = null; }

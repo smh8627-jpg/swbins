@@ -125,7 +125,16 @@
     /* 목표판(§5.6) — 폰 폭에서는 첫 줄만 보이다가 탭하면 셋 다 펼쳐진다.
        css 가 실제 접고 펴는 일을 한다(넓은 화면은 처음부터 셋 다 보인다). */
     if (els.goals) {
-      els.goals.addEventListener('click', function () { els.goals.classList.toggle('open'); });
+      els.goals.addEventListener('click', function (e) {
+        /* 숨김·보임 단추(✕ / 🎯 칩)는 폰의 접고 펴기와 별개다 — 상태는 손잡이 ui.goalsHidden(세이브)에 남는다 */
+        var hb = e.target && e.target.closest ? e.target.closest('[data-goals]') : null;
+        if (hb) {
+          core.setTune('ui.goalsHidden', hb.getAttribute('data-goals') === 'hide' ? 1 : null);
+          renderGoals();
+          return;
+        }
+        els.goals.classList.toggle('open');
+      });
     }
 
     /* 본영(첫 화면)의 버튼들 — 시트와 같은 data-act 규칙을 쓴다 */
@@ -726,6 +735,13 @@
     if (!els.goals) { return; }
     var G = global.DG.goals;
     if (!G) { return; }
+    /* 숨겨 두면 작은 칩 하나만 남는다 — 눌러 다시 펼친다(화면이 좁거나 목표판이 커서 거슬릴 때) */
+    var hidden = core.tuned('ui.goalsHidden', 0) ? true : false;
+    els.goals.classList.toggle('goals-hidden', hidden);
+    if (hidden) {
+      els.goals.innerHTML = '<button class="goal-chip" data-goals="show" title="목표판 다시 보기">🎯 목표판 ▸</button>';
+      return;
+    }
     var L = G.lines();
     function row(icon, l) {
       return '<div class="goal-row"><span class="gi">' + icon + '</span>' +
@@ -733,6 +749,7 @@
         '<span class="gp">' + l.progress + '/' + l.target + '</span></div>';
     }
     els.goals.innerHTML =
+      '<button class="goal-hide" data-goals="hide" title="목표판 숨기기">✕</button>' +
       row('⏱️', L.now) + row('🎯', L.session) + row('📅', L.weekly);
   }
 
@@ -2516,6 +2533,6 @@
     init: init, toast: toast, tickRefresh: tickRefresh,
     openSheet: openSheet, closeSheet: closeSheet,
     openDetail: openDetail, closeDetail: closeDetail,
-    renderPanel: renderSheet, renderHud: renderTop, renderCamp: renderCamp
+    renderPanel: renderSheet, renderHud: renderTop, renderCamp: renderCamp, renderGoals: renderGoals
   };
 })(window);

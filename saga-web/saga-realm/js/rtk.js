@@ -733,8 +733,7 @@
       if (!Object.prototype.hasOwnProperty.call(st.officers, k)) { continue; }
       var r = st.officers[k];
       if (!r.force) { continue; }
-      var f = FD.force(r.force);
-      if (f && f.lord === k) { r.loyal = 100; continue; }
+      if (off.lordOf(r.force) === k) { r.loyal = 100; continue; }
       var base = off.baseLoyal(k, r.force);
       /* 큰 성에 있으면 대접받는 느낌이 난다 */
       var c = st.cities[r.city];
@@ -1106,7 +1105,7 @@
     var log = core.save.log, fresh = [], i, mine = forceName(state().me);
     for (i = 0; i < log.length; i++) { if (log[i] === head) { break; } fresh.push({ e: log[i], at: i }); }
     fresh.forEach(function (x) {
-      x.score = (LOG_KIND[x.e.kind] || 1) + (/함락|멸망|이탈|가뭄|수해|역병|황충|풍년|일기토|입성|이정표|승리/.test(x.e.text) ? 2 : 0) +
+      x.score = (LOG_KIND[x.e.kind] || 1) + (/함락|멸망|이탈|가뭄|수해|역병|황충|풍년|일기토|입성|이정표|승리|즉위/.test(x.e.text) ? 2 : 0) +
         (mine && x.e.text.indexOf(mine) >= 0 ? 2 : 0);
     });
     fresh.sort(function (a, b) { return b.score - a.score || a.at - b.at; });

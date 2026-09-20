@@ -115,14 +115,23 @@
    * 2026-09-20 — **정면을 +Z 로 맞춘다.** 이 저장소의 VRM(`/people/anime/`) 넷은 전부 VRM 0.x 라 정면이 **-Z** 다
    * (GLB 를 직접 재 봤다 — 발끝이 발목보다 -Z). 다섯 판의 배우는 QRPG·MPFB 처럼 +Z 가 앞이라는 가정으로 돌려 세우는데
    * (`rotation.y = atan2(dx, dz)`·`lookAt`) VRM 만 그대로 세우면 **뒷걸음질(이동 반대)·마주 서야 할 때 등을 돌림·초상이 뒷모습**이 된다.
-   * 몸을 감싼 그룹을 반 바퀴 돌려 세운다 — 뼈·몸짓은 안 건드린다(`anim-own` 은 뼈 로컬 값만 읽어 바깥 회전에 안 흔들린다).
+   * 몸의 **안쪽**에 그룹 하나를 끼워 그 안에서 반 바퀴 돌린다 — 뼈·몸짓은 안 건드린다(`anim-own` 은 뼈 로컬 값만 읽어 바깥 회전에 안 흔들린다).
+   * **모델 자신의 `rotation.y` 는 건드리지 않는다**: 사가의숲은 돌려받은 모델을 그대로 `player.group` 으로 쓰며 매 프레임
+   * `group.rotation.y = 걸음각` 을 대입한다 — 처음 고침(모델에 π 를 줌)은 그 대입에 지워져 숲에서만 여전히 뒤로 걸었다(2026-09-20 재보고).
    * 이미 돌렸으면 다시 안 돌린다. VRM 이 아닌 몸(url 이 다르면)은 그대로 둔다.
    */
   function faceFront(model, url) {
     if (!model || !isVroid(url)) { return model; }
     model.userData = model.userData || {};
     if (model.userData.vrmFront) { return model; }
-    model.rotation.y = Math.PI;
+    if (model.isMesh) { model.rotation.y = Math.PI; }   // 몸이 메시 하나인 경우는 안쪽에 낄 자리가 없다(지금 VRM 은 전부 그룹)
+    else {
+      var inner = new model.constructor();
+      inner.name = 'vrmFront';
+      while (model.children.length) { inner.add(model.children[0]); }
+      inner.rotation.y = Math.PI;
+      model.add(inner);
+    }
     model.userData.vrmFront = true;
     return model;
   }

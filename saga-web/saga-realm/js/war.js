@@ -798,7 +798,7 @@
 
     for (i = 0; i < def.officers.length; i++) {
       var id = def.officers[i];
-      var isLord = (global.DG.forceData.force(oldForce) || {}).lord === id;
+      var isLord = off.lordOf(oldForce) === id;
       if (refuge && (isLord || Math.random() < 0.6)) {
         off.placeAt(id, refuge, oldForce);
         fled.push(id);
