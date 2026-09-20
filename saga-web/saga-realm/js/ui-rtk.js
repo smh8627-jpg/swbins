@@ -435,7 +435,7 @@
     core.on('rtk:challenge', function (res) { showChallenge(res); });
 
     if (!R().state().started) { showScenPick(); }
-    else { centerOnMine(); }
+    else { centerOnMine(); showEvent(); }
     renderTop(); renderMap();
   }
 
@@ -499,9 +499,18 @@
       renderTop(); renderMap(); renderSheet();
       /* 이정표·승리·도전 카드가 이미 떠 있으면 그 뒤에 줄을 선다. 판이 닫혔으면 끝 카드만 */
       if (moved && moved.report && monthCardOn() && !R().state().result) { showMonthCard(moved.report); }
+      if (!R().state().result) { showEvent(); }
       return;
     }
     if (a === 'close-enc') { closeEnc(); return; }
+    if (a === 'ev-pick') {
+      var er = global.DG.event.choose(g('data-k'));
+      if (!er.ok) { toast(er.why); return; }
+      showEnc('<div style="text-align:center"><div class="enc-big">📜</div></div><div class="enc-hist">' + esc(er.text) + '</div>' +
+        '<button class="btn primary wide" data-act="close-enc">확인</button>');
+      renderTop(); renderMap(); renderSheet();
+      return;
+    }
     if (a === 'ask-part') {
       var rg = $('askrange');
       if (rg) {
@@ -1721,6 +1730,15 @@
       }
       out += '</div>';
     }
+    var chains = global.DG.event ? global.DG.event.activeView() : [];
+    if (chains.length) {
+      out += '<div class="loglist">';
+      for (var ci = 0; ci < chains.length; ci++) {
+        out += '<div class="lrow info">' + chains[ci].emoji + ' ' + esc(chains[ci].name) + ' — ' + chains[ci].step + '번째 이야기 · ' +
+          (chains[ci].in ? chains[ci].in + '달 뒤' : '곧') + ' (' + esc(chains[ci].who.join(' · ')) + ')</div>';
+      }
+      out += '</div>';
+    }
     if (!log.length) { return out + '<div class="hint">아직 기록이 없습니다.</div>'; }
     out += '<div class="loglist">';
     for (var i = 0; i < log.length; i++) {
@@ -1821,6 +1839,24 @@
       '<br>이 주 최고 ' + res.best + '점<br><small class="muted">공유 코드 ' + esc(res.code) + '</small></div>' +
       '<button class="btn primary wide" data-act="close-enc">' + (res.how === 'time' ? '이어하기' : '확인') + '</button>' +
       '<button class="btn wide" data-act="back-scen">새 판</button>');
+  }
+
+  /** 사연 카드(§5-2) — 세 갈래를 고를 때까지 안 닫힌다. 고르지 않고 나가도 세이브에 남아 다시 뜬다 */
+  var EV_AXIS = { atk: '⚔️', def: '🛡️', util: '💡' };
+  function showEvent() {
+    var E = global.DG.event, v = E && E.view();
+    if (!v) { return; }
+    var kd = v.kind ? global.DG.relData.KINDS[v.kind] : null, html, i;
+    html = '<div style="text-align:center"><div class="enc-big">' + v.emoji + '</div>' +
+      '<h3 style="margin:6px 0 2px;font-size:19px;color:var(--gold)">' + esc(v.name) + '</h3>' +
+      '<small class="muted">' + (kd ? kd.emoji + ' ' + kd.name + ' · ' : '') + (v.step > 1 ? v.step + '번째 이야기' : '사연') + '</small></div>' +
+      '<div class="enc-hist">' + esc(v.text) + '</div>';
+    for (i = 0; i < v.choices.length; i++) {
+      var c = v.choices[i];
+      html += '<button class="btn wide' + (c.k === 'atk' ? ' primary' : '') + '" data-act="ev-pick" data-k="' + c.k + '"' + (c.ok ? '' : ' disabled') + '>' +
+        EV_AXIS[c.k] + ' ' + esc(c.label) + '<br><small>' + esc(c.hint) + (c.ok || !c.cost ? '' : ' (금이 모자랍니다)') + '</small></button>';
+    }
+    showEncQueued(html);
   }
 
   /** 이정표를 깬 달의 카드 — 보상(금·소문·보물)과 다음 이정표 */
@@ -1977,7 +2013,7 @@
     openSheet: openSheet, closeSheet: closeSheet, openCity: openCity,
     renderTop: renderTop, renderMap: renderMap, renderSheet: renderSheet,
     showScenPick: showScenPick, showForcePick: showForcePick,
-    showHelp: showHelp, showBattle: showBattle, showMilestone: showMilestone,
+    showHelp: showHelp, showBattle: showBattle, showMilestone: showMilestone, showEvent: showEvent,
     closeEnc: closeEnc,
     /** 자가진단용 */
     _act: act, _tab: function () { return openTab; }, _city: function () { return openCityId; },

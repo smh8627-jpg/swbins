@@ -66,6 +66,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/data-city.js"></script>
 <script src="js/data-force.js"></script>
 <script src="js/data-item.js"></script>
+<script src="js/data-relation.js"></script>
 <script src="js/data-quiz.js"></script>
 <script src="js/sprite.js"></script>
 <script src="js/core.js"></script>
@@ -82,6 +83,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/war.js"></script>
 <script src="js/diplo.js"></script>
 <script src="js/rtk-ai.js"></script>
+<script src="js/event.js"></script>
 <script src="js/quiz.js"></script>
 <script src="js/net.js"></script>
 <script src="js/ai.js"></script>
@@ -1198,6 +1200,35 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ('1차: ' + rep1.log[0] + ' · 2차는 조용함');
     });
 
+    t('역사 분기 — 여섯으로 늘었다: 적벽·이릉·한중·합비는 싸움이 난 성(at)이 맞아야 붙고, 관문은 성마다 한 번(글줄만, 금 없음)', function () {
+      fresh('cao');
+      R.state().history = {};
+      var f = R.force('cao'), g0 = f.gold, hist = R.state().history;
+      var six = W.HISTORY_BRANCHES.length === 6;
+      var ids = W.HISTORY_BRANCHES.map(function (h) { return h.id; }).join(',');
+      var r1 = { won: true, force: 'cao', defForce: 'quan', to: 'chaisang', log: [] };   // 적벽 자리
+      W.checkHistoryBranch(r1);
+      var chibi = !!hist.chibi && !hist.hefei && r1.log.length === 1 && r1.log[0].indexOf('적벽대전') >= 0 && f.gold === g0 + 800;
+      var r2 = { won: true, force: 'cao', defForce: 'quan', to: 'shouchun', log: [] };   // 합비 자리 — 적벽은 이미 갈렸어도 이건 따로
+      W.checkHistoryBranch(r2);
+      var hefei = !!hist.hefei && r2.log.length === 1 && r2.log[0].indexOf('합비') >= 0;
+      var r3 = { won: true, force: 'cao', defForce: 'bei', to: 'puyang', log: [] };      // 한중 자리가 아니면 안 붙는다
+      W.checkHistoryBranch(r3);
+      var wrongCity = r3.log.length === 0 && !hist.hanzhong;
+      var r4 = { won: false, routed: true, force: 'cao', defForce: 'bei', to: 'hanzhong', log: [] };
+      W.checkHistoryBranch(r4);
+      var hz = !!hist.hanzhong && r4.log.length === 1 && r4.log[0].indexOf('한중 공방') >= 0;
+      var g1 = f.gold;
+      var r5 = { won: true, force: 'cao', defForce: null, to: 'guknae', log: [] };
+      W.checkHistoryBranch(r5);
+      var r6 = { won: true, force: 'cao', defForce: null, to: 'guknae', log: [] };
+      W.checkHistoryBranch(r6);
+      var r7 = { won: true, force: 'cao', defForce: null, to: 'wuwei', log: [] };        // 관문(landmark)이 아니면 없다
+      W.checkHistoryBranch(r7);
+      var gate = !!hist['gate:guknae'] && r5.log.length === 1 && r5.log[0].indexOf('관문의 첫 충돌') >= 0 && f.gold === g1 && r6.log.length === 0 && r7.log.length === 0;
+      return six && chibi && hefei && wrongCity && hz && gate && ('여섯(' + ids + ') · 적벽 +800 · 합비 · 한중은 성이 맞을 때만 · 관문 성마다 한 번');
+    });
+
     t('탐험·보스전 — 랜드마크 성을 처음 함락하면 발견 보상이, boss 수비 무장을 꺾으면 처치 보상이 함께 붙는다', function () {
       /* 신독(천축 관문 다음 성)은 이 세션이 추가한 landmark 이자 boss(번왕)가
          지키는 성이라 한 번의 함락으로 "탐험"·"보스전" 둘 다 확인된다 */
@@ -2248,6 +2279,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
     t('다음 달 카드 — 화면: 다음 달을 누르면 카드가 뜨고, 설정에서 끄면 안 뜬다', function () {
       chalReset();
       R.setup('cao', '194');
+      C.setTune('rtk.eventChance', 0);      // 사연 카드(§5-2)가 끼어들지 않게
       var enc = document.getElementById('encounter');
       DG.ui._act('next-month', { getAttribute: function () { return null; } });
       var txt = enc.textContent;
@@ -2262,6 +2294,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       DG.ui._act('next-month', { getAttribute: function () { return null; } });
       var quiet = !enc.classList.contains('show');
       C.setTune('rtk.monthCard', null);
+      C.setTune('rtk.eventChance', null);
       R.setup('cao');
       return shown && hasToggle && offNow && quiet && ('카드 뜸(📅·권고·확인) · 설정 토글 · 끄면 조용');
     });
@@ -2496,6 +2529,233 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       } catch (e) { threw = true; }
       R.setup('cao');
       return !threw && bad === 0 && ('칸 없이 40달 진행 · 능력·충성 이상 0');
+    });
+
+    /* ── 관계·사연 체인 (PLAN §5-2) ─────────────────────── */
+
+    var E = DG.event, RD = DG.relData;
+    function evFresh() { R.setup('cao', '194'); C.setTune('rtk.eventChance', 0); return R.state(); }
+    function evDone() { C.setTune('rtk.eventChance', null); R.setup('cao'); }
+    function put(id, F, cid) {
+      var r = off.rec(id);
+      r.dead = false; r.camp = null; r.journey = null; r.hurt = 0;
+      off.placeAt(id, cid || R.citiesOf('cao')[0], F);
+      if (F) { r.loyal = 60; }
+      return r;
+    }
+    function nonLord(F) { return off.ofForce(F).filter(function (h) { return h.id !== FD.force(F).lord; }); }
+    function neighbourForce() { return D.neighbours('cao')[0]; }
+    var EV_CASES = {
+      sworn_join: function (c) { put('rf_caohong', null, c); off.rec('rf_caohong').found = true; put('sg_caocao', 'cao', c); },
+      foe_clash: function (c) { put('rf_lijue', 'cao', c); put('rf_guosi', 'cao', c); },
+      master_promote: function (c) { put('sg_xunyu', 'cao', c); put('rf_guojia', 'cao', c); },
+      rival_duel: function (c) { put('sg_zhugeliang', 'cao', c); put('sg_simayi', 'cao', c); },
+      elder_retire: function () { R.state().year = 260; },
+      captive_letter: function (c) { put('rf_yanliang', null, c); R.state().captives['rf_yanliang'] = c; },
+      free_terms: function (c) { put('kr_yisunsin', null, c); off.rec('kr_yisunsin').found = true; },
+      gov_graft: function (c) { var g = nonLord('cao')[0].id; put(g, 'cao', c); R.city(c).gov = g; off.rec(g).loyal = 30; },
+      alien_friction: function (c) { put('fu_seonghon', 'cao', c); put('sg_xiahoudun', 'cao', c); },
+      brothers_feast: function (c) { put('rf_mizhu', 'cao', c); put('rf_jianyong', 'cao', c); },
+      foe_neighbor: function (c) {
+        var nb = neighbourForce();
+        put('sg_machao', 'cao', c); put('rf_hansui', nb, R.citiesOf(nb)[0]);
+      },
+      sworn_sorrow: function (c) { put('sg_liubei', 'cao', c); off.rec('sg_guanyu').dead = true; }
+    };
+    function foeFire(c) { return { id: 'foe_clash', step: 1, ctx: { a: 'rf_lijue', b: 'rf_guosi', city: c, force: 'cao' } }; }
+
+    t('관계 표 — 짝의 id 가 다 명부에 있고, 네 결이 다 쓰이며, 지역 수비 무장은 같은 지역 안에서 한 쌍씩 자동으로 잇는다', function () {
+      evFresh();
+      var all = RD.all(), kinds = {}, missing = [], auto = 0, samePlace = true;
+      all.forEach(function (p) {
+        kinds[p.kind] = (kinds[p.kind] || 0) + 1;
+        if (!off.find(p.a) || !off.find(p.b) || p.a === p.b || !RD.KINDS[p.kind]) { missing.push(p.a + '|' + p.b); }
+        if (p.auto) {
+          auto++;
+          var list = RD.REGION_LISTS.map(function (n) { return FD[n] || []; }).filter(function (l) {
+            return l.some(function (h) { return h.id === p.a; });
+          })[0];
+          if (!list || !list.some(function (h) { return h.id === p.b; })) { samePlace = false; }
+        }
+      });
+      var sig = function (l) { return l.map(function (p) { return p.a + p.b + p.kind; }).join(); };
+      var again = sig(RD.all()) === sig(all);
+      var sym = E.kindOf('sg_liubei', 'sg_guanyu') === 'sworn' && E.kindOf('sg_guanyu', 'sg_liubei') === 'sworn';
+      evDone();
+      return missing.length === 0 && Object.keys(kinds).length === 4 && auto === RD.REGION_LISTS.length && samePlace && again && sym && all.length >= 30 &&
+        ('짝 ' + all.length + '쌍(손으로 ' + RD.PAIRS.length + ' + 지역 ' + auto + ') · 결 ' + Object.keys(kinds).length + '/4 · 결정적');
+    });
+
+    t('사연 표 — 열두 사연 + 체인 넷, 모두 세 갈래(공세·신중·수단, 중복 0)이고 신중은 값이 안 든다', function () {
+      var chains = Object.keys(E.DEFS).filter(function (k) { return E.DEFS[k].chain; });
+      var bad = [];
+      Object.keys(E.DEFS).forEach(function (k) {
+        var d = E.DEFS[k], ks = d.choices.map(function (c) { return c.k; }).sort().join(',');
+        if (ks !== 'atk,def,util') { bad.push(k + ':axes'); }
+        d.choices.forEach(function (c) { if (c.k === 'def' && c.cost) { bad.push(k + ':defcost'); } if (!c.label || !c.hint) { bad.push(k + ':text'); } });
+        if (!d.chain && typeof d.find !== 'function') { bad.push(k + ':find'); }
+        if (d.chain && typeof d.valid !== 'function') { bad.push(k + ':valid'); }
+      });
+      return E.ORDER.length === 12 && chains.length === 4 && bad.length === 0 && ('사연 ' + E.ORDER.length + ' + 체인 ' + chains.length + ' · 갈래 3' + (bad.length ? ' 문제 ' + bad.join(',') : ''));
+    });
+
+    t('사연 — 조건이 맞으면 열두 사연이 각각 후보로 잡힌다(ctx 에 사람이 든다)', function () {
+      var miss = [], n = 0;
+      E.ORDER.forEach(function (id) {
+        evFresh();
+        EV_CASES[id](R.citiesOf('cao')[0]);
+        var ctx = E.DEFS[id].find('cao');
+        if (!ctx || !ctx.a) { miss.push(id); } else { n++; }
+      });
+      evDone();
+      return miss.length === 0 && ('열두 사연 후보 ' + n + '/12' + (miss.length ? ' 실패 ' + miss.join(',') : ''));
+    });
+
+    t('사연 — 세 갈래가 각자 다른 결과를 낸다(원수 갈등: 벌·갈라놓기·술자리), 금이 모자라면 거절', function () {
+      function run(k, gold) {
+        var st = evFresh(), c = R.citiesOf('cao')[0];
+        EV_CASES.foe_clash(c);
+        R.myForce().gold = gold;
+        var r = E.resolve(foeFire(c), k);
+        return { r: r, a: off.loyalOf('rf_lijue'), b: off.loyalOf('rf_guosi'), rel: E.relLv('rf_lijue', 'rf_guosi'), gold: R.myForce().gold,
+          act: st.events.active.slice(), turn: st.turn };
+      }
+      var atk = run('atk', 1000), def = run('def', 1000), util = run('util', 1000), poor = run('util', 100);
+      evDone();
+      var atkOk = atk.r.ok && Math.min(atk.a, atk.b) === 48 && Math.max(atk.a, atk.b) === 64 && atk.rel === -1 && atk.gold === 1000 && atk.act.length === 0;
+      var defOk = def.r.ok && def.a === 58 && def.b === 58 && def.rel === 0 && def.gold === 1000;
+      var utilOk = util.r.ok && util.a === 66 && util.b === 66 && util.rel === 1 && util.gold === 600 &&
+        util.act.length === 1 && util.act[0].id === 'foe_truce' && util.act[0].due === util.turn + 4 && util.act[0].step === 2;
+      var poorOk = !poor.r.ok && poor.a === 60 && poor.b === 60 && poor.gold === 100 && poor.act.length === 0;
+      return atkOk && defOk && utilOk && poorOk && ('벌 → 48/64 · 갈라놓기 → 58/58 · 술자리 → 66/66 · 금 -400 · 체인 예약 · 금 100 이면 거절');
+    });
+
+    t('사연 체인 — 술자리 4달 뒤 화해의 자리가 뜨고, 화해도 2 에 닿으면 앙금이 풀려 충성 +5. 사람이 빠지면 조용히 사라진다', function () {
+      var st = evFresh(), c = R.citiesOf('cao')[0];
+      EV_CASES.foe_clash(c); R.myForce().gold = 2000;
+      E.resolve(foeFire(c), 'util');
+      st.turn += 3; E.tick();
+      var early = E.view();
+      st.turn += 1; E.tick();
+      var v = E.view();
+      var shown = v && v.id === 'foe_truce' && v.step === 2 && v.choices.length === 3 && v.kind === 'foe';
+      var before = off.loyalOf('rf_lijue');
+      var r = E.choose('util');
+      var relNow = E.relLv('rf_lijue', 'rf_guosi'), pendingGone = E.view() === null;
+      var healed = relNow === 2 && off.loyalOf('rf_lijue') === before + 5;
+      /* 두 번째 판 — 때가 되기 전에 한 사람이 떠나면 사연이 조용히 사라진다 */
+      var st2 = evFresh(); c = R.citiesOf('cao')[0];
+      EV_CASES.foe_clash(c); R.myForce().gold = 2000;
+      E.resolve(foeFire(c), 'util');
+      put('rf_guosi', null, c);
+      st2.turn += 4; E.tick();
+      var dropped = E.view() === null && st2.events.active.length === 0;
+      evDone();
+      return !early && shown && r.ok && pendingGone && healed && dropped && ('3달 뒤엔 없음 · 4달 뒤 2단 카드 · 화해도 ' + relNow + ' → 충성 +5 · 사람이 빠지면 소멸');
+    });
+
+    t('사연 — 세 번째 단에서 체인이 멈추고(MAX_STEP), 세력당 동시 체인은 둘까지다', function () {
+      var st = evFresh(), c = R.citiesOf('cao')[0];
+      EV_CASES.master_promote(c);
+      var fire = { id: 'master_promote', step: 3, ctx: { a: 'sg_xunyu', b: 'rf_guojia', city: c, force: 'cao' } };
+      E.resolve(fire, 'def');
+      var stopped = st.events.active.length === 0;
+      fire.step = 1; E.resolve(fire, 'def');
+      var queued = st.events.active.length === 1 && st.events.active[0].step === 2;
+      st.events.active.push({ id: 'foe_truce', step: 2, due: st.turn + 9, force: 'cao', a: 'rf_lijue', b: 'rf_guosi', city: c });
+      C.setTune('rtk.eventChance', 1);
+      EV_CASES.foe_clash(c);
+      E.tick();
+      var noNew = E.view() === null;
+      evDone();
+      return stopped && queued && noNew && ('3단에서 멈춤 · 2단 예약 · 체인 둘이면 새 사연 없음');
+    });
+
+    t('사연 — 발생: 확률 0 이면 없고 1 이면 뜬다(카드는 세이브에 남고 고를 때까지 다음 사연이 안 뜬다). 굴림은 결정적이고 Math.random 을 안 쓴다', function () {
+      var st = evFresh(), c = R.citiesOf('cao')[0];
+      EV_CASES.foe_clash(c);
+      E.tick();
+      var none = E.view() === null;
+      C.setTune('rtk.eventChance', 1);
+      var keep = Math.random, calls = 0;
+      Math.random = function () { calls++; return keep(); };
+      var r1 = E.roll('cao', 'x'), r2 = E.roll('cao', 'x'), pick;
+      try { pick = E.pickNew('cao'); } finally { Math.random = keep; }
+      E.tick();
+      var v = E.view();
+      var saved = st.events.pending && st.events.pending.ctx && st.events.pending.ctx.force === 'cao';
+      var id0 = v && v.id;
+      E.tick();
+      var same = E.view() && E.view().id === id0;
+      evDone();
+      return none && r1 === r2 && r1 >= 0 && r1 < 1 && calls === 0 && !!pick && !!v && v.choices.length === 3 && saved && same &&
+        ('확률 0 → 없음 · 1 → ' + (v && v.name) + ' · 굴림 결정적 · Math.random 0회 · 고를 때까지 유지');
+    });
+
+    t('사연 — AI 세력도 같은 resolve 로 군주 특성대로 자동 선택한다(금이 없으면 신중으로)', function () {
+      var st = evFresh(), nb = neighbourForce(), nc = R.citiesOf(nb)[0];
+      put('rf_lijue', nb, nc); put('rf_guosi', nb, nc);
+      C.setTune('rtk.eventChance', 1);
+      R.force(nb).gold = 5000;
+      E.tick();
+      var aiDone = Object.keys(st.events.cool).filter(function (k) { return k.indexOf(nb + '|') === 0; }).length;
+      var pref = E.pref(nb), valid = ['atk', 'def', 'util'].indexOf(pref) >= 0;
+      var f = { id: 'foe_clash', step: 1, ctx: { a: 'rf_lijue', b: 'rf_guosi', city: nc, force: nb } };
+      R.force(nb).gold = 0;
+      var poor = E.autoPick(f);
+      R.force(nb).gold = 5000;
+      var rich = E.autoPick(f);
+      evDone();
+      return aiDone >= 1 && valid && poor === (pref === 'util' ? 'def' : pref) && rich === pref && ('AI(' + nb + ') 자동 해결 · 군주 성향 ' + pref + ' · 금 0 → ' + poor + ' · 금 5000 → ' + rich);
+    });
+
+    t('사연 — 60달 시뮬(확률 0.6 로 몰아 자동 선택): 에러 0·금 음수 0·충성 0~100·능력 유한', function () {
+      var threw = null, bad = 0, done = 0, seeds = [20260824, 7, 1234];
+      seeds.forEach(function (sd) {
+        R.setup('cao', '194', sd);
+        var st = R.state();
+        C.setTune('rtk.eventChance', 0.6);
+        try {
+          var i;
+          for (i = 0; i < 60; i++) {
+            if (!R.endMonth()) { break; }
+            var p = st.events && st.events.pending;
+            if (p) { E.choose(E.autoPick(p)); }
+          }
+        } catch (e) { threw = e.message; }
+        Object.keys(st.forces).forEach(function (k) { if (!(st.forces[k].gold >= 0) || !isFinite(st.forces[k].gold)) { bad++; } });
+        Object.keys(st.officers).forEach(function (k) {
+          var s = off.stats(k), l = off.loyalOf(k);
+          if (!(isFinite(s.might) && isFinite(s.wisdom) && isFinite(s.command)) || !(l >= 0 && l <= 100)) { bad++; }
+        });
+        Object.keys(st.events.done).forEach(function (k) { done += st.events.done[k]; });
+      });
+      evDone();
+      return threw === null && bad === 0 && done >= 15 && ('씨앗 3 × 60달 · 사연 ' + done + '회 · 이상 0' + (threw ? ' 에러 ' + threw : ''));
+    });
+
+    t('사연 — 옛 세이브(사연·화해도 칸 없음)도 안 터지고, 카드는 세 단추, 고르면 결과 카드로 바뀐다', function () {
+      var st = evFresh(), threw = false, c = R.citiesOf('cao')[0], btns = 0, dis = 0, after = '', chainRow = false;
+      delete st.events; delete st.rel;
+      try { E.tick(); E.view(); E.activeView(); } catch (e) { threw = true; }
+      EV_CASES.foe_clash(c);
+      R.myForce().gold = 0;
+      st.events.pending = foeFire(c);
+      var enc = document.querySelector('#encounter'), guard = 0;
+      while (enc.classList.contains('show') && guard++ < 10) { DG.ui.closeEnc(); }   // 앞 진단이 남긴 카드를 치운다
+      DG.ui.showEvent();
+      btns = enc.querySelectorAll('[data-act="ev-pick"]').length;
+      dis = enc.querySelectorAll('[data-act="ev-pick"][disabled]').length;
+      DG.ui._act('ev-pick', { getAttribute: function () { return 'def'; } });
+      after = enc.textContent;
+      var closed = E.view() === null;
+      DG.ui.closeEnc();
+      st.events.active.push({ id: 'foe_truce', step: 2, due: st.turn + 3, force: 'cao', a: 'rf_lijue', b: 'rf_guosi', city: c });
+      DG.ui.openSheet('log');
+      chainRow = document.querySelector('#sheet-body').textContent.indexOf('화해의 자리') >= 0;
+      DG.ui.closeSheet();
+      evDone();
+      return !threw && btns === 3 && dis === 1 && closed && after.indexOf('확인') >= 0 && chainRow && ('단추 ' + btns + '(금 모자라 잠긴 것 ' + dis + ') · 결과 카드 · 기록 시트에 체인 줄');
     });
 
     /* ── 폰에서 손이 닿는가 ──────────────────────────── */
@@ -2914,6 +3174,22 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       V.apply(a, idB);                                      // 두 번 입혀도 원본에서 다시 만든다
       var twice = matOf(a, 'F00_000_Hair_00_HAIR_01') === hairB;
       return ok && twice && ('머리·옷·눈 변형 · 피부·얼굴·원본 재질 그대로 · 같은 인물 같은 재질 · 두 번 입혀도 원본 기준');
+    });
+
+    t('vroid-variant — faceFront: VRM 몸(정면 -Z)만 반 바퀴 돌려 +Z 로 맞추고, 두 번 돌리지 않으며, 다른 몸은 안 건드린다', function () {
+      /* GLB 를 직접 재 봤다 — 넷 다 VRM 0.x, 발끝이 발목보다 -Z(정면 -Z). 배우는 전부 +Z 가 앞이라는 가정으로 돌려 세우므로
+         그대로면 뒷걸음질·등을 돌림·뒷모습 초상이 된다(2026-09-20 실기 보고) */
+      var V = DG.vroidVariant, TH = window.THREE;
+      var a = new TH.Group(), b = new TH.Group(), c = new TH.Group(), d = new TH.Group();
+      V.faceFront(a, 'assets/models/people/anime/avatar_sample_a.glb');
+      V.faceFront(a, 'assets/models/people/anime/avatar_sample_a.glb');   // 두 번째는 무시
+      V.faceFront(b, 'assets/models/people/quaternius_rpg/Ranger.glb');
+      V.faceFront(c, null);
+      V.faceFront(d, 'assets/models/people/anime/avatar_custom_01.glb');
+      var front = new TH.Vector3(0, 0, -1).applyQuaternion(a.quaternion);   // VRM 의 정면(-Z)이 돌려 세운 뒤 어디를 보는가
+      var ok = Math.abs(a.rotation.y - Math.PI) < 1e-9 && front.z > 0.999 && a.userData.vrmFront === true &&
+        b.rotation.y === 0 && c.rotation.y === 0 && d.rotation.y !== 0 && V.faceFront(null, 'x') === null;
+      return ok && ('VRM 반 바퀴(두 번 안 돎) · QRPG·빈 값 그대로 · 정면 -Z → +Z');
     });
 
     t('vroid-variant — VRoid 경로에만 건다(QRPG·MPFB 몸엔 안 건다), 손잡이는 기본 켜짐이고 0 이면 꺼진다', function () {

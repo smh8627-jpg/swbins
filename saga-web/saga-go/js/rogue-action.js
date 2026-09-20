@@ -82,6 +82,8 @@
   /* ── 토벌 전용(§10-Q2 "토벌만 적용") ─────────────────────
    * PLAN §5 ③. `o.raid` 를 준 `create()` 호출(=`fort.js`의 `startRaidDuel()`)
    * 에서만 켜진다 — 야생 조우·성채 수비대·적도는 옛 그대로(걸어서 완전히 피함) */
+  /** 자동 전투가 예고를 보고 물러서기 시작하기까지의 반응 시간(초) — 사람보다 살짝 느리다 */
+  function AUTO_REACT() { return core.tuned('rogueAction.autoReact', 0.3); }
   function JUST_WINDOW() { return core.tuned('rogueAction.justWindow', 0.25); }     // 저스트 회피 창(초)
   function WALK_DODGE_MUL() { return core.tuned('rogueAction.walkDodgeMul', 0.5); } // 걷기만으로 피하면 남는 피해 비율
   function JUST_KI_PCT() { return core.tuned('rogueAction.justKiPct', 30); }        // 저스트 성공 시 기 +30%
@@ -397,6 +399,30 @@
     return { ok: true, kind: 'ranged', dmg: dmg, staggerEv: ev };
   }
 
+  /**
+   * 자동 전투의 판단 — **입력만 대신 낸다.** 이동(다가가기·물러나기)과 필살·차지·원거리, 이 넷은 사람이
+   * 화면에서 하는 것과 똑같은 함수를 부르고(`ult`·`chargeAttack`·`ranged`·`tick` 안의 거리 판정), 판정은 한 줄도 새로 안 만든다.
+   * 사람보다 살짝 느리다 — 예고가 뜬 뒤 `react` 초가 지나야 물러서기 시작해서, 돌진·휩쓸기(예고가 짧거나 반경이 넓은 것)는
+   * 자주 맞는다. 저스트 회피(토벌)는 안 한다. 그래서 손으로 잘 하는 쪽이 늘 낫다.
+   * @returns {{move:'in'|'out'|'hold', ult:boolean, charge:boolean, ranged:boolean}}
+   */
+  function autoPlan(s, dist, react) {
+    var plan = { move: 'hold', ult: false, charge: false, ranged: false };
+    if (!s || s.over) { return plan; }
+    var Dl = D(), d = (dist === undefined || dist === null) ? 1e9 : dist;
+    var wait = (react === undefined || react === null) ? AUTO_REACT() : react;
+    if (s.tell > 0) {
+      var mv = moveByKey(s.tellMove);
+      if (mv.tellSec - s.tell >= wait && d <= mv.range + 0.8) { plan.move = 'out'; }   // 반응 시간 전엔 서서 하던 대로 때린다
+    } else if (d > MY_REACH() * 0.85) {
+      plan.move = 'in';
+    }
+    if (s.ki >= Dl.KI_MAX) { plan.ult = true; }
+    if ((s.charge || 0) >= CHARGE_MAX() && d <= MY_REACH() * 1.4) { plan.charge = true; }   // 헛치지 않을 거리에서만
+    if (!(s.rangedCd > 0)) { plan.ranged = true; }
+    return plan;
+  }
+
   /** 물러난다 — 성과는 그때까지 낸 만큼만 인정된다 */
   function flee(s) { s.over = true; s.fled = true; s.cleared = false; }
 
@@ -495,6 +521,7 @@
           '<button class="btn primary" id="ra-ult" data-ra="ult" disabled>필살</button>' +
           '<button class="btn primary" id="ra-charge" data-ra="charge" disabled>차지 일격</button>' +
           '<button class="btn primary" id="ra-ranged" data-ra="ranged">원거리</button>' +
+          '<button class="btn ghost' + (autoOn() ? ' on' : '') + '" id="ra-auto" data-ra="auto">🤖 자동' + (autoOn() ? ' 켜짐' : '') + '</button>' +
           '<button class="btn ghost" id="ra-flee" data-ra="flee">물러나기</button>' +
         '</div>' +
       '</div>';
@@ -533,6 +560,10 @@
       } else if (cur.tell > 0) {
         tell.textContent = moveByKey(cur.tellMove).label;
         tell.classList.remove('stagger'); tell.classList.add('show');
+      } else if (cur.lastDist > MY_REACH() && autoOn()) {
+        var gw = global.DG.world;
+        tell.textContent = gw && gw.mode !== 'keyboard' ? '🚶 GPS 모드 — 자동은 몸을 못 움직입니다, 직접 걸어 다가가세요' : '🤖 자동 — 다가가는 중';
+        tell.classList.remove('stagger'); tell.classList.add('show');
       } else if (cur.lastDist > MY_REACH()) {
         tell.textContent = '🚶 다가가세요 — 사거리 안이면 저절로 공격합니다 (원거리는 지금도 씁니다)';
         tell.classList.remove('stagger'); tell.classList.add('show');
@@ -549,44 +580,74 @@
     }
   }
 
+  /* 버튼과 자동 전투가 **같은 함수**를 부른다 */
+  function doUlt() {
+    if (!cur) { return; }
+    var r = ult(cur);
+    if (r.ok) {
+      core.emit('duel:fx', { kind: 'ult', dmg: r.dmg, mine: true });
+      if (r.partsEv && r.partsEv.length) { emitEvents(r.partsEv); }
+      refresh();
+      if (cur.over) { finish(); }
+    }
+  }
+  function doCharge() {
+    if (!cur) { return; }
+    var r = chargeAttack(cur, cur.lastDist);
+    if (r.ok) {
+      core.emit('duel:fx', { kind: 'charge', dmg: r.dmg, mine: true, whiffed: !!r.whiffed });
+      if (r.staggerEv && r.staggerEv.length) { emitEvents(r.staggerEv); }
+      refresh();
+      if (cur.over) { finish(); }
+    }
+  }
+  function doRanged() {
+    if (!cur) { return; }
+    var r = ranged(cur);
+    if (r.ok) {
+      core.emit('duel:fx', { kind: 'ranged', dmg: r.dmg, mine: true });
+      if (r.staggerEv && r.staggerEv.length) { emitEvents(r.staggerEv); }
+      refresh();
+      if (cur.over) { finish(); }
+    }
+  }
+
+  /* ── 자동 전투(2026-09-20, 사용자 요청) — 켜 두면 이 판정 위에서 입력을 대신 낸다 ─────────
+   * 켜짐은 세이브(save.settings.autoBattle)에 남아 다음 전투에도 이어진다. GPS 모드에서는 몸을 코드로 못 움직이므로
+   * (실제로 걸어야 한다) 필살·차지·원거리만 대신 낸다. */
+  function autoOn() { var st = core.save && core.save.settings; return !!(st && st.autoBattle); }
+  function setAuto(v) {
+    core.save.settings = core.save.settings || {};
+    core.save.settings.autoBattle = !!v;
+    if (!v) { releaseStick(); }
+    core.persist();
+  }
+  function releaseStick() {
+    var W = global.DG.world;
+    if (W && W.setStick) { W.setStick(0, 0, false); }
+  }
+  /** 자동 이동 — 화면 스틱과 같은 통로(`world.setStick`)로만 움직인다. 물러날 때도 걷는 속도다(달리기 안 함) */
+  function driveMove(kind, pos, fp) {
+    var W = global.DG.world;
+    if (!W || !W.setStick || W.mode !== 'keyboard') { return; }
+    if (kind === 'hold') { W.setStick(0, 0, false); return; }
+    var dx = fp.x - pos.x, dy = fp.y - pos.y, l = Math.hypot(dx, dy) || 1, sg = kind === 'in' ? 1 : -1;
+    W.setStick(sg * dx / l, sg * dy / l, false);
+  }
+
   function bind() {
     var u = $('[data-ra="ult"]');
-    if (u) {
-      u.addEventListener('click', function () {
-        if (!cur) { return; }
-        var r = ult(cur);
-        if (r.ok) {
-          core.emit('duel:fx', { kind: 'ult', dmg: r.dmg, mine: true });
-          if (r.partsEv && r.partsEv.length) { emitEvents(r.partsEv); }
-          refresh();
-          if (cur.over) { finish(); }
-        }
-      });
-    }
+    if (u) { u.addEventListener('click', doUlt); }
     var c = $('[data-ra="charge"]');
-    if (c) {
-      c.addEventListener('click', function () {
-        if (!cur) { return; }
-        var r = chargeAttack(cur, cur.lastDist);
-        if (r.ok) {
-          core.emit('duel:fx', { kind: 'charge', dmg: r.dmg, mine: true, whiffed: !!r.whiffed });
-          if (r.staggerEv && r.staggerEv.length) { emitEvents(r.staggerEv); }
-          refresh();
-          if (cur.over) { finish(); }
-        }
-      });
-    }
+    if (c) { c.addEventListener('click', doCharge); }
     var r2 = $('[data-ra="ranged"]');
-    if (r2) {
-      r2.addEventListener('click', function () {
-        if (!cur) { return; }
-        var r = ranged(cur);
-        if (r.ok) {
-          core.emit('duel:fx', { kind: 'ranged', dmg: r.dmg, mine: true });
-          if (r.staggerEv && r.staggerEv.length) { emitEvents(r.staggerEv); }
-          refresh();
-          if (cur.over) { finish(); }
-        }
+    if (r2) { r2.addEventListener('click', doRanged); }
+    var au = $('[data-ra="auto"]');
+    if (au) {
+      au.addEventListener('click', function () {
+        setAuto(!autoOn());
+        au.classList.toggle('on', autoOn());
+        au.textContent = autoOn() ? '🤖 자동 켜짐' : '🤖 자동';
       });
     }
     var dg = $('[data-ra="dodge"]');
@@ -640,6 +701,14 @@
     var pos = core.save.player.pos, fp = foePos();
     var dist = Math.hypot(pos.x - fp.x, pos.y - fp.y);
     cur.lastDist = dist;
+    if (autoOn()) {
+      var plan = autoPlan(cur, dist);
+      driveMove(plan.move, pos, fp);
+      if (plan.ult) { doUlt(); }
+      if (cur && plan.charge) { doCharge(); }
+      if (cur && plan.ranged) { doRanged(); }
+      if (!cur) { return; }             // 위 필살·차지·원거리로 전투가 끝났으면 finish() 가 이미 정리했다
+    }
     var ev = tick(cur, dt, dist);
     emitEvents(ev);
     refresh();
@@ -671,6 +740,7 @@
 
   function finish() {
     if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+    if (autoOn()) { releaseStick(); }       // 자동이 밀고 있던 스틱을 놓는다
     var p = perf(cur);
     p.folded = fold(cur);
     var cb = doneCb;
@@ -687,7 +757,8 @@
     JUST_WINDOW: JUST_WINDOW, WALK_DODGE_MUL: WALK_DODGE_MUL, PART_N: PART_N, PART_STEP: PART_STEP,
     foeMoves: foeMoves, moveByKey: moveByKey,
     /* 판정 층 — 화면 없이 굴린다 (자가진단이 쓰는 문) */
-    create: create, tick: tick, ult: ult, flee: flee, perf: perf, fold: fold,
+    create: create, tick: tick, ult: ult, flee: flee, perf: perf, fold: fold, autoPlan: autoPlan,
+    autoOn: autoOn, setAuto: setAuto, AUTO_REACT: AUTO_REACT,
     chargeAttack: chargeAttack, ranged: ranged, dodge: dodge,
     /* 화면 층 */
     open: open,

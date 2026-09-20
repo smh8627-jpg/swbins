@@ -112,14 +112,32 @@
    * 장비와 같은 결 — "판정은 한 곳"). 같은 두 세력의 첫 충돌에만 한 번 붙는다
    * (그 뒤로 이 둘이 몇 번을 더 싸워도 다시 안 뜬다 — `save.rtk.history` 로 표시).
    *
-   * v1 은 하나뿐이다 — **관도대전**(조조 vs 원소). 표만 늘리면 다른 갈림길도
-   * 같은 방식으로 붙는다(적벽·이릉처럼 이미 수전·화공으로 재현된 것은 넣지
-   * 않았다 — 겹치는 flavor 라 뜻이 없다).
+   * v1 은 하나뿐이었다 — **관도대전**. 2026-09-20(§5-2) 여섯으로 늘렸다: 적벽·이릉·한중·합비는 같은 표에
+   * `at`(싸움이 난 성 목록)만 얹어 같은 두 세력의 다른 갈림길과 안 겹치게 했고, 여섯째는 **관문(landmark)의 첫 충돌**
+   * (`gate:true` — 세력 지정 없이 그 관문 성에서 처음 벌어진 싸움, 성마다 한 번)이다.
    */
   var HISTORY_BRANCHES = [
     { id: 'guandu', name: '관도대전', hanja: '官渡大戰', a: 'cao', b: 'shao', gold: 800,
       textA: '역사와 같이 패헌이 고문을 꺾었다 — 관도의 승부가 갈렸다.',
-      textB: '역사와 다르게 고문이 패헌을 밀어냈다 — 관도의 승부가 뒤집혔다.' }
+      textB: '역사와 다르게 고문이 패헌을 밀어냈다 — 관도의 승부가 뒤집혔다.' },
+    { id: 'chibi', name: '적벽대전', hanja: '赤壁大戰', a: 'quan', b: 'cao', gold: 800,
+      at: ['chaisang', 'jiangxia', 'jiangling', 'xiangyang', 'wan', 'xinye', 'changsha'],
+      textA: '역사와 같이 벽해가 강 위에서 패헌을 막았다 — 적벽의 불길이 하늘을 물들였다.',
+      textB: '역사와 다르게 패헌이 강을 건너 밀어붙였다 — 적벽의 승부가 뒤집혔다.' },
+    { id: 'yiling', name: '이릉의 싸움', hanja: '夷陵', a: 'quan', b: 'bei', gold: 600,
+      at: ['jiangling', 'yongan', 'jiangzhou', 'jiangxia', 'changsha'],
+      textA: '역사와 같이 벽해가 인형의 동진을 불로 꺾었다 — 이릉의 숲이 탔다.',
+      textB: '역사와 다르게 인형이 강동의 벽을 뚫었다 — 이릉의 승부가 뒤집혔다.' },
+    { id: 'hanzhong', name: '한중 공방', hanja: '漢中', a: 'bei', b: 'cao', gold: 700,
+      at: ['hanzhong', 'tianshui', 'wuwei', 'changan'],
+      textA: '역사와 같이 인형이 산길을 틀어쥐고 패헌을 물렸다 — 한중이 그의 손에 남았다.',
+      textB: '역사와 다르게 패헌이 산길을 뚫고 한중을 눌렀다 — 촉의 문이 열렸다.' },
+    { id: 'hefei', name: '합비 수성', hanja: '合肥', a: 'cao', b: 'quan', gold: 600,
+      at: ['shouchun', 'xiapi', 'xiaopei', 'jianye', 'kuaiji'],
+      textA: '역사와 같이 패헌의 소수 정병이 벽해의 대군을 되받아 쳤다 — 합비는 끝내 열리지 않았다.',
+      textB: '역사와 다르게 벽해의 대군이 성을 짓눌렀다 — 합비의 문이 흔들렸다.' },
+    /* 여섯째 — 관문의 첫 충돌. 누가 싸우든, 그 관문 성에서 **처음** 벌어진 싸움을 갈라 준다(성마다 한 번). 글줄만 — 금은 탐험·보스 보상이 이미 있어 겹쳐 주지 않는다 */
+    { id: 'gate', name: '관문의 첫 충돌', hanja: '關門', gate: true, gold: 0 }
   ];
 
   /** report 를 보고 역사 분기 표를 훑는다 — finishMarch() 가 부른다 */
@@ -131,9 +149,11 @@
     var a = report.force, b = report.defForce;
     for (var i = 0; i < HISTORY_BRANCHES.length; i++) {
       var h = HISTORY_BRANCHES[i];
+      if (h.gate) { checkGateBranch(h, report, st); continue; }
       if (st.history[h.id]) { continue; }
       var match = (a === h.a && b === h.b) || (a === h.b && b === h.a);
       if (!match) { continue; }
+      if (h.at && h.at.indexOf(report.to) < 0) { continue; }   // 싸움이 난 성이 그 갈림길의 땅이 아니면 다음 표로
       st.history[h.id] = true;
       /* 공격자가 이겼으면(report.won) 공격자 쪽이 이 충돌의 승자다.
          물러났으면(report.routed) 수비자가 막아 낸 것이다. */
@@ -146,6 +166,23 @@
       core.log('📜 ' + h.name + ' — ' + text, 'good');
       core.emit('rtk:history', { id: h.id, winner: winnerForce });
     }
+  }
+
+  /** 관문(landmark) 성에서 처음 벌어진 싸움 — 이기면 공격자가 열었고, 못 이겼으면 수비가 버텼다. 글줄만이고 금은 없다(탐험 보상 1000·보스 600 이 이미 그 자리에 붙어 있다) */
+  function checkGateBranch(h, report, st) {
+    var R = global.DG.rtk, d = report.to ? global.DG.cityData.find(report.to) : null;
+    if (!d || !d.landmark) { return; }
+    if (!report.won && !report.routed) { return; }
+    var key = h.id + ':' + report.to;
+    if (st.history[key]) { return; }
+    st.history[key] = true;
+    var winnerForce = report.won ? report.force : report.defForce;
+    var f = winnerForce ? R.force(winnerForce) : null;
+    if (f && h.gold) { f.gold += h.gold; }
+    var text = report.won ? d.name + ' 의 관문이 처음으로 열렸다.' : d.name + ' 의 관문이 첫 공세를 버텨 냈다.';
+    report.log.push('📜 ' + h.name + '(' + h.hanja + ') — ' + text + (f && h.gold ? ' (금 ' + core.fmt(h.gold) + ')' : ''));
+    core.log('📜 ' + h.name + ' — ' + text, 'good');
+    core.emit('rtk:history', { id: key, winner: winnerForce });
   }
 
   /** 이 무장들로 지금 설 수 있는 진형 중 가장 센 것(없으면 null) */

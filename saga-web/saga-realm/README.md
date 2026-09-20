@@ -343,6 +343,8 @@ js/war.js         출진 · 일기토 · 야전/공성/**수전** · 구원군 �
                   **수군** — 배 싣기 · 화공(fireRoll) · 배 침몰(sinkShips)
 js/diplo.js       우호 · 동맹/화친/조공 · 계략 4 · 이탈
 js/rtk-ai.js      다른 열두 세력의 한 달                          ← 사람이 쓰는 함수만 부른다
+js/data-relation.js 인물 관계 표 44쌍(의형제·원수·사제·호적수)      ← PLAN §5-2
+js/event.js       사연 12 + 체인 4 — 세 갈래 카드, AI 는 같은 resolve 로 자동 선택
 js/ui-rtk.js      지도(svg) · 성 · 무장 · 진영 · 외교 · 학당 · 기록 · 전황
 js/quiz.js        학당(문답) — 상금은 세력 금고로 들어간다
 js/core.js        상태·저장·이벤트 버스

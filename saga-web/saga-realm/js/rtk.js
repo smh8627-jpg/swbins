@@ -207,6 +207,7 @@
     st.year = sc.year || START_YEAR; st.month = 1; st.turn = 0;
     st.me = meId; st.result = null;
     st.victories = []; st.pactStreak = 0; st.topStreak = 0; st.challenge = null;
+    st.events = null; st.rel = {};                   // 사연·관계(§5-2) — 새 판은 이어받지 않는다(event.js 가 필요할 때 채운다)
     st.cities = {}; st.forces = {}; st.officers = {}; st.captives = {};
     st.camps = []; st.campSeq = 0;
     st.journeys = []; st.journeySeq = 0;
@@ -1171,6 +1172,7 @@
     }
 
     global.DG.off.tickAmbitions();
+    if (global.DG.event) { global.DG.event.tick(); }     // 사연(§5-2) — 예약된 체인 → 새 사연, 세력마다 하나까지
     core.emit('rtk:month', { year: st.year, month: st.month });
     core.emit('changed');
     tickVictories();
