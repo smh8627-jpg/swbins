@@ -38,7 +38,8 @@ namespace Saga.Forest.World
             if (bonus)
             {
                 BonusCount++;
-                ForestState.AddFruit(BonusFruit);
+                // PLAN.md 101-2 5.6 "축제 하루"(2026-09-21) — 소원 버프가 있으면 이 보너스도 ×1.5.
+                ForestState.AddFruit(Mathf.RoundToInt(BonusFruit * ForestFestivalState.FruitMultiplier));
             }
 
             ForestGatherPopup.Spawn(worldPos, label, bonus);

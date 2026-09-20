@@ -76,6 +76,17 @@ namespace Saga.Forest.World
 
             string popupLabel = isNew ? $"NEW! {item}" : item;
             ForestGatherFeel.Play(transform.position + Vector3.up * 1.2f, _visual, popupLabel, gatherClips);
+
+            // PLAN.md 101-2 5.6 "축제 하루"(2026-09-21) — 꽃놀이(매달 8일)만
+            // 이 채집 자리 넷이 맡는다(웹판 "1분 안에 꽃 8종류"를 이 트랙의
+            // 실제 갈래 수 4로 좁힘).
+            int flowerHuntReward = ForestFestivalState.ReportCollectSpotGather(category);
+            if (flowerHuntReward > 0)
+            {
+                DialogueLabel.Instance?.Show(
+                    string.Format(ForestLocalization.T("festival.flowerhunt_done", "🌸 꽃놀이 성사! — 네 갈래를 1분 안에 모두 찾았다 (과일 +{0})"), flowerHuntReward),
+                    ToastSec);
+            }
         }
     }
 }

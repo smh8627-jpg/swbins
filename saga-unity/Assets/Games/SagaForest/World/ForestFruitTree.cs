@@ -80,7 +80,8 @@ namespace Saga.Forest.World
             if (Vector3.Distance(transform.position, _player.position) > GatherRadius) return;
 
             _cooldownLeft = GatherCooldownSec;
-            ForestState.AddFruit(1);
+            // PLAN.md 101-2 5.6 "축제 하루"(2026-09-21) — 소원 버프가 있으면 과일 획득 ×1.5.
+            ForestState.AddFruit(Mathf.RoundToInt(1 * ForestFestivalState.FruitMultiplier));
             DialogueLabel.Instance?.Show(
                 string.Format(ForestLocalization.T("fruit.gather_toast", "나무를 흔들었다 — {0}을(를) 주웠다 (보유 {1}개)"),
                     FruitName, ForestState.FruitCount),

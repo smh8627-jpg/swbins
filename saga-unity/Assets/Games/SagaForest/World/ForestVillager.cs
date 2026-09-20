@@ -53,6 +53,18 @@ namespace Saga.Forest.World
             if (Vector3.Distance(transform.position, _player.position) > TalkRadius) return;
 
             _cooldownLeft = RetalkCooldownSec;
+
+            // PLAN.md 101-2 5.6 "축제 하루"(2026-09-21) — 세배(매달 1일)만
+            // 이 숲지기가 맡는다(웹판 "주민 5에게 세배"를 1명으로 좁힘).
+            if (ForestFestivalState.TodayKind() == ForestFestivalState.Kind.Sebae &&
+                ForestFestivalState.TryComplete(ForestFestivalState.Kind.Sebae, out int reward))
+            {
+                DialogueLabel.Instance?.Show(
+                    string.Format(ForestLocalization.T("festival.sebae", "{0} — \"새해 복 많이 받으시게 — 세배값이네.\" (과일 +{1})"), DisplayName, reward),
+                    ToastSec);
+                return;
+            }
+
             DialogueLabel.Instance?.Show($"{DisplayName} — \"{Line}\"", ToastSec);
         }
     }

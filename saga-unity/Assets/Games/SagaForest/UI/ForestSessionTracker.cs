@@ -13,8 +13,9 @@ namespace Saga.Forest.UI
     /// 없다, 그냥 가장 가까운 나무까지 거리. "이번 세션"=걸은 거리·이번
     /// 세션에 주운 과일 — `ForestState.FruitCount`엔 아직 금 경제가 없어
     /// (`ForestState.cs` 클래스 주석 참고) GO/DUNGEON의 "금"을 "과일"로
-    /// 바꿔 그대로 옮겼다), "이번 주"는 나머지 두 판과 같은 이유(⑦ 승급
-    /// 3택 미이식)로 자리만 잡아 둔 문구다.
+    /// 바꿔 그대로 옮겼다), "이번 주"는 5.6(2026-09-21)부터
+    /// <see cref="ForestFestivalState"/>가 채운다 — 오늘이 행사날이면
+    /// 안내, 아니면 다음 행사까지 D-day.
     ///
     /// 무입력 5분 또는 앱 백그라운드 전환을 세션 끝으로 보고
     /// <see cref="SessionCard"/>를 띄운다(GO·DUNGEON과 동일).
@@ -133,6 +134,6 @@ namespace Saga.Forest.UI
             return $"이동 {_walkedMeters:F0}m · 과일 +{fruitGained} · 택배 {delivered}건";
         }
 
-        public string GoalLineWeek() => "다음 승급 이정표 준비 중(101-2 ⑦ 대기)";
+        public string GoalLineWeek() => ForestFestivalState.GoalLineText();
     }
 }

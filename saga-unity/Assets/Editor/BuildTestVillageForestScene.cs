@@ -80,6 +80,7 @@ namespace Saga.EditorTools
             BuildTownScoreBoard();
             BuildDeliveryCounter();
             BuildDeliveryMailboxes();
+            BuildWishStone();
             var (playerGo, playerTransform) = BuildPlayer();
             BuildCurveDriver(playerTransform);
             BuildPostProcessingVolume();
@@ -248,6 +249,8 @@ namespace Saga.EditorTools
         // 본 마을 사이) — 다른 오브젝트와 안 겹치는 빈 자리.
         private static readonly Vector3 TownScoreBoardSpawn = new Vector3(0f, 0f, -5f);
         private static readonly Vector3 DeliveryCounterSpawn = new Vector3(-5f, 0f, -5f);
+        // TownScoreBoard(0,-5)·DeliveryCounter(-5,-5)와 같은 통행로 위, 반대편 빈 자리.
+        private static readonly Vector3 WishStoneSpawn = new Vector3(5f, 0f, -5f);
 
         private static void BuildTownScoreBoard()
         {
@@ -261,6 +264,14 @@ namespace Saga.EditorTools
             var go = new GameObject("DeliveryCounter");
             go.transform.position = DeliveryCounterSpawn;
             go.AddComponent<ForestDeliveryCounter>();
+        }
+
+        /// <summary>PLAN.md 101-2 5.6 "축제 하루"(2026-09-21) — 소원(칠석 재해석).</summary>
+        private static void BuildWishStone()
+        {
+            var go = new GameObject("WishStone");
+            go.transform.position = WishStoneSpawn;
+            go.AddComponent<ForestWishStone>();
         }
 
         /// <summary>PLAN.md 101-2 5.7 "택배 사슬"(2026-09-20) — 네 바이옴 존 중심에서

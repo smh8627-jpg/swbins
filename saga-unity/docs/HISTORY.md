@@ -8111,3 +8111,28 @@ DUNGEON 101-2는 이제 5.6(목표판·카드, 공통 A·B가 이미 일부 덮�
 `docs/PROJECT_STATE.md` 갱신(DUNGEON 완료 요약에 101-2 전부 완료 표기, "다음 작업"에서 DUNGEON5.6 제거, 테스트 상태·실기 확인 대기 갱신 — 15KB 상한 안). `PLAN.md` 101-2 DUNGEON 행에 5.6 완료·재해석 이유·대응 파일(`DungeonDailyTaskState`) 추가, "DUNGEON 101-2 전부 닫혔다"로 갱신.
 
 **DUNGEON 101-2는 이제 완전히 닫혔다.** 다섯 판 전체로 GO⑤(모바일 빌드 뒤)·FOREST5.6(축제)·STORY5-2/5-8만 남았고, 전부 게이트에 걸려 있거나(GO⑤) 재해석 범위를 먼저 정해야 한다(FOREST5.6 날짜/일과 시스템 부재, STORY5-2 웹·godot 둘 다 미확정, STORY5-8 파티 시스템 부재) — 다음 세션이 사용자와 상의해 고를 것.
+
+## 2026-09-21 — FOREST 5.6 "축제 하루" 구현, FOREST 101-2 전부 닫힘 ("사가 유니티 이어해" 세션, DUNGEON 5.6 다음)
+
+DUNGEON 5.6 마무리 뒤 커밋·푸시 지시를 받고 101-2 남은 넷(GO⑤·FOREST5.6·STORY5-2·STORY5-8) 중 사용자에게 AskUserQuestion으로 물어 "FOREST 5.6 축제"를 골랐다(GO⑤는 모바일 빌드 선행 조건이라 선택지에서 제외).
+
+**범위 좁히기** — 웹판 §5.6(`saga-web/saga-forest/PLAN.md` 157행)은 설날·대보름·삼짇날·단오·칠석·백중·한가위·동지 8개(음력 날짜)를 전제한다. 이 트랙엔 낚시·부엌·주민 5명(`ForestVillager`는 숲지기 1명뿐)·음력 계산이 전부 없어 8개 중 **셋만** 골랐다: 세배(숲지기에게 말 걸기, "주민 5"를 1명으로 축소)·꽃놀이("꽃 8종류 찾기"를 이 트랙의 실제 채집 갈래 수 4(`ForestMuseumState.Category`)로 좁혀 "60초 안에 채집 자리 넷 모두")·소원("별똥별 확정"을 고정 소원돌 오브젝트로, 보상 "다음 날 채집 ×1.5"는 그대로 유지). 나머지 다섯(대보름 모닥불·단오 그네(낚시 재사용)·백중 사진·한가위 연타·동지 부엌)은 각각 새 오브젝트나 시스템이 없어 스코프 밖에 남겼다.
+
+**음력 → 매달 고정 일자** — 진짜 음력 계산은 새 라이브러리 없이는 불가능해 **매달 고정 일자**로 재해석했다: 1일=세배·8일=꽃놀이·15일=소원. `DateTime.Now.Day`가 매달 그 날짜에 반복되므로 GO/DUNGEON 일과판처럼 날짜 문자열을 해싱할 필요가 없다(행사가 날짜 하나에 결정적으로 묶인다) — 새 `Data/ForestFestivalState.cs`.
+
+**구현 셋**:
+1. **세배** — `World/ForestVillager.cs` `Update()`에서 오늘이 세배날이고 아직 안 치렀으면 평소 대사 대신 세배 대사+과일 보상(5)을 준다(`ForestFestivalState.TryComplete`).
+2. **꽃놀이** — `World/ForestCollectSpot.cs`가 채집이 성사될 때마다 `ForestFestivalState.ReportCollectSpotGather(category)`를 부른다. 60초 창 안에 갈래 4개(Insect/Mushroom/Fossil/Flower)를 전부 방문하면 그 자리에서 완료(과일 8) — 창이 만료되면 다음 채집이 새 창을 연다(실패 벌칙 없음, 원문 그대로).
+3. **소원** — 새 `World/ForestWishStone.cs`(`ForestVillager`와 같은 결의 고정 오브젝트, 마을 통행로 빈 자리 `(5,0,-5)`에 배치). 오늘이 소원날이면 24시간 채집 배율(×1.5) 버프를 건다(`ForestFestivalState.WishActive`/`FruitMultiplier`, GO `DropState`처럼 `DateTime.Now.Ticks` 기반이라 앱을 완전히 껐다 켜도 흐른다). `World/ForestFruitTree.cs`·`World/ForestGatherFeel.cs`의 두 `AddFruit` 호출 지점에 배율을 곱했다.
+
+**GoalBoard "이번 주"도 같이 고쳤다** — `UI/ForestSessionTracker.cs`의 `GoalLineWeek()`가 DUNGEON과 똑같이 자리표시 문구("101-2 ⑦ 대기")였다. `ForestFestivalState.GoalLineText()`로 교체 — 오늘이 행사날이면 "오늘은 OO! <안내>", 아니면 "다음 축제: OO(D-N)"(31일 안에서 순회 탐색, 실제 달력 기준).
+
+**세이브** — `ForestSaveState.cs` v6→v7, `festivalDoneDate`(string)·`festivalWishUntilTicks`(long) 추가. 꽃놀이 진행 중인 60초 창은 회차성이라 세이브 대상이 아니다(`StoryLabyrinthState`와 같은 결).
+
+**헤드리스 진단 — 날짜 강제 훅** — `DateTime.Now`는 리플렉션으로도 못 바꾸므로 `ForestFestivalState.ForceDayForTest(int?)`(진단 전용, `ForestGatherStreak.ResetForTest()`류와 같은 결)를 신설해 실제 달력 날짜와 무관하게 결정적으로 검증한다. 새 `CheckFestival()`(`PlaytestForestHeadless.cs`)이 강제 날짜 1→8→15→20을 순서대로 돌며 세배·꽃놀이·소원 완료 1회·같은 날 중복 거절·소원 배율(나무 채집 1→2)·D-day 문구("다음 축제: 세배(D-12)")까지 값으로 확인. 도중 **`_doneDate`가 세 행사가 공유하는 단일 플래그**라 forceDay로 하루 안에 세 날짜를 훑는 이 진단 방식과 부딪히는 걸 발견 — 실제 플레이에선 하루에 행사날이 최대 하나뿐이라 문제가 안 되지만(1/8/15가 서로 다른 날), 진단은 단계마다 `ForestFestivalState.Restore("", 0)`으로 리셋해 우회했다(세이브 복원 API를 진단 리셋 용도로 재사용).
+
+씬 빌더(`Editor/BuildTestVillageForestScene.cs`)에 `BuildWishStone()` 추가(TownScoreBoard·DeliveryCounter와 같은 통행로 위 빈 자리 `(5,0,-5)`). `tools/unity-batch.sh`로 컴파일(오류 0) → 씬 재빌드 → `PlaytestForestHeadless.Run` 신규 `festival OK` 포함 전부 통과 → 공유 파일(`ForestCollectSpot`·`ForestFruitTree`·`ForestGatherFeel`·`ForestVillager`)을 건드렸으므로 `PlaytestForestCreatures`·`Finish`·`Furniture`·`HouseTransition` 넷도 재검증(회귀 없음).
+
+`docs/PROJECT_STATE.md` 갱신(FOREST 완료 요약에 101-2 전부 완료 표기, "다음 작업"에서 FOREST 제거 — 이제 GO⑤·STORY5-2/5-8만 남음, 테스트 상태·실기 확인 대기 갱신 — 15KB 상한에 걸려 여러 줄 압축). `PLAN.md` 101-2 FOREST 행에 5.6 완료·재해석 이유·대응 파일(`ForestFestivalState`·`ForestWishStone`) 추가, "FOREST 101-2 전부 닫혔다"로 갱신.
+
+**FOREST 101-2는 이제 완전히 닫혔다.** 다섯 판 전체로 GO⑤(모바일 빌드 뒤)·STORY5-2(웹·godot 둘 다 미확정, 보류)·STORY5-8(파티 시스템 자체가 없어 재검토 필요)만 남았다 — 다음 세션이 사용자와 상의해 고를 것.

@@ -89,6 +89,7 @@ namespace Saga.EditorTools
                 CheckGatherFeel();
                 CheckTownScore();
                 CheckDelivery();
+                CheckFestival();
             }
             if (_framesSeen >= FramesToRun)
             {
@@ -661,6 +662,160 @@ namespace Saga.EditorTools
             }
 
             Debug.Log("[PlaytestForestHeadless] delivery chain OK - 오배송 거절, 정상 배송, 3배달째 사슬 보너스, 파손, 시간초과, 세이브 round-trip, 씬 오브젝트, 목표판 연동까지 확인");
+        }
+
+        /// <summary>PLAN.md 101-2 5.6 "축제 하루"(2026-09-21) — 실제 달력
+        /// 날짜가 며칠이든 결정적으로 확인할 수 있게
+        /// <see cref="ForestFestivalState.ForceDayForTest"/>로 날짜를
+        /// 고정한다(`CheckDailyTasks()`(GO)가 날짜 문자열을 직접 넘기는
+        /// 것과 같은 결). 세배(1일)·꽃놀이(8일)·소원(15일) 셋 다 완료
+        /// 1회·중복 거절·목표판 D-day 문구까지 값으로 확인한다.</summary>
+        private static void CheckFestival()
+        {
+            var playerGo = GameObject.FindWithTag("Player");
+            if (playerGo == null)
+            {
+                Debug.LogError("[PlaytestForestHeadless] 축제 검증용 player를 못 찾음");
+                _hadError = true;
+                return;
+            }
+
+            // ---- 세배(1일) — 숲지기에게 말 걸기 ----
+            ForestFestivalState.ForceDayForTest(1);
+            var villager = Object.FindFirstObjectByType<ForestVillager>();
+            if (villager == null)
+            {
+                Debug.LogError("[PlaytestForestHeadless] ForestVillager를 못 찾음(축제 검증)");
+                _hadError = true;
+                return;
+            }
+            playerGo.transform.position = villager.transform.position;
+            var villagerUpdate = typeof(ForestVillager).GetMethod("Update", BindingFlags.NonPublic | BindingFlags.Instance);
+            var villagerCooldown = typeof(ForestVillager).GetField("_cooldownLeft", BindingFlags.NonPublic | BindingFlags.Instance);
+
+            int fruitBefore = ForestState.FruitCount;
+            villagerCooldown.SetValue(villager, 0f);
+            villagerUpdate.Invoke(villager, null);
+            int fruitAfterSebae = ForestState.FruitCount;
+            if (fruitAfterSebae != fruitBefore + 5 || !ForestFestivalState.IsDoneToday())
+            {
+                Debug.LogError($"[PlaytestForestHeadless] 세배 보상이 이상함 — fruit {fruitBefore}->{fruitAfterSebae}(기대 +5) doneToday={ForestFestivalState.IsDoneToday()}(기대 true)");
+                _hadError = true;
+                return;
+            }
+
+            villagerCooldown.SetValue(villager, 0f);
+            villagerUpdate.Invoke(villager, null); // 같은 날 재시도 — 보상 중복 지급 안 됨.
+            if (ForestState.FruitCount != fruitAfterSebae)
+            {
+                Debug.LogError($"[PlaytestForestHeadless] 세배를 같은 날 두 번 받음 — fruit {fruitAfterSebae}->{ForestState.FruitCount}");
+                _hadError = true;
+                return;
+            }
+
+            // _doneDate는 세 행사가 공유하는 "오늘 치른 행사 있음" 플래그다
+            // (실제 플레이에선 하루에 행사날이 하나뿐이라 문제가 안 되지만,
+            // 이 진단은 forceDay로 하루 안에 세 날짜를 다 훑으므로 단계마다
+            // 리셋해야 한다 — Restore()를 세이브 복원이 아니라 진단 리셋
+            // 용도로도 쓴다, GO GatherStreak.ResetForTest()류와 같은 결).
+            ForestFestivalState.Restore("", 0);
+
+            // ---- 꽃놀이(8일) — 채집 자리 넷을 60초 안에 모두 ----
+            ForestFestivalState.ForceDayForTest(8);
+            ForestGatherFeel.ResetForTest(); // 리듬 보너스가 4번째(완성 시점)에 안 겹치게 스트릭을 비운다.
+            var spots = Object.FindObjectsByType<ForestCollectSpot>(FindObjectsSortMode.None);
+            if (spots.Length != 4)
+            {
+                Debug.LogError($"[PlaytestForestHeadless] ForestCollectSpot이 4개가 아님(축제 검증) — {spots.Length}");
+                _hadError = true;
+                return;
+            }
+            var spotUpdate = typeof(ForestCollectSpot).GetMethod("Update", BindingFlags.NonPublic | BindingFlags.Instance);
+            var spotCooldown = typeof(ForestCollectSpot).GetField("_cooldownLeft", BindingFlags.NonPublic | BindingFlags.Instance);
+
+            int fruitBeforeFourth = 0;
+            for (int i = 0; i < spots.Length; i++)
+            {
+                if (i == spots.Length - 1) fruitBeforeFourth = ForestState.FruitCount;
+                playerGo.transform.position = spots[i].transform.position;
+                spotCooldown.SetValue(spots[i], 0f);
+                spotUpdate.Invoke(spots[i], null);
+            }
+            int fruitAfterFlowerHunt = ForestState.FruitCount;
+            if (fruitAfterFlowerHunt != fruitBeforeFourth + 8 || !ForestFestivalState.IsDoneToday())
+            {
+                Debug.LogError($"[PlaytestForestHeadless] 꽃놀이 완성 보상이 이상함 — 4번째 채집 전후 fruit {fruitBeforeFourth}->{fruitAfterFlowerHunt}(기대 +8) doneToday={ForestFestivalState.IsDoneToday()}(기대 true)");
+                _hadError = true;
+                return;
+            }
+            if (ForestFestivalState.ReportCollectSpotGather(ForestMuseumState.Category.Insect) != 0)
+            {
+                Debug.LogError("[PlaytestForestHeadless] 꽃놀이를 같은 날 두 번 완성 처리함");
+                _hadError = true;
+                return;
+            }
+
+            ForestFestivalState.Restore("", 0); // 위 주석과 같은 이유 — 꽃놀이 완료가 다음 단계를 막지 않게.
+
+            // ---- 소원(15일) — 소원돌, 다음 채집 배율 ----
+            ForestFestivalState.ForceDayForTest(15);
+            var wishStone = Object.FindFirstObjectByType<ForestWishStone>();
+            if (wishStone == null)
+            {
+                Debug.LogError("[PlaytestForestHeadless] ForestWishStone을 못 찾음(축제 검증)");
+                _hadError = true;
+                return;
+            }
+            if (ForestFestivalState.WishActive || ForestFestivalState.FruitMultiplier != 1f)
+            {
+                Debug.LogError($"[PlaytestForestHeadless] 소원을 빌기 전인데 배율이 이미 켜져 있음 — active={ForestFestivalState.WishActive} mul={ForestFestivalState.FruitMultiplier}");
+                _hadError = true;
+                return;
+            }
+            playerGo.transform.position = wishStone.transform.position;
+            var wishUpdate = typeof(ForestWishStone).GetMethod("Update", BindingFlags.NonPublic | BindingFlags.Instance);
+            var wishCooldown = typeof(ForestWishStone).GetField("_cooldownLeft", BindingFlags.NonPublic | BindingFlags.Instance);
+            wishCooldown.SetValue(wishStone, 0f);
+            wishUpdate.Invoke(wishStone, null);
+            if (!ForestFestivalState.WishActive || ForestFestivalState.FruitMultiplier != 1.5f)
+            {
+                Debug.LogError($"[PlaytestForestHeadless] 소원 완료 후 배율이 안 켜짐 — active={ForestFestivalState.WishActive} mul={ForestFestivalState.FruitMultiplier}(기대 1.5)");
+                _hadError = true;
+                return;
+            }
+            if (ForestFestivalState.TryComplete(ForestFestivalState.Kind.Wish, out int again))
+            {
+                Debug.LogError($"[PlaytestForestHeadless] 소원을 같은 날 두 번 빎(again reward={again})");
+                _hadError = true;
+                return;
+            }
+
+            var fruitTree = Object.FindFirstObjectByType<ForestFruitTree>();
+            var treeUpdate = typeof(ForestFruitTree).GetMethod("Update", BindingFlags.NonPublic | BindingFlags.Instance);
+            var treeCooldown = typeof(ForestFruitTree).GetField("_cooldownLeft", BindingFlags.NonPublic | BindingFlags.Instance);
+            playerGo.transform.position = fruitTree.transform.position;
+            int fruitBeforeWishGather = ForestState.FruitCount;
+            treeCooldown.SetValue(fruitTree, 0f);
+            treeUpdate.Invoke(fruitTree, null);
+            if (ForestState.FruitCount != fruitBeforeWishGather + 2)
+            {
+                Debug.LogError($"[PlaytestForestHeadless] 소원 배율(×1.5)이 나무 채집에 안 먹음 — fruit {fruitBeforeWishGather}->{ForestState.FruitCount}(기대 +2)");
+                _hadError = true;
+                return;
+            }
+
+            // ---- 목표판 D-day 문구 — 행사날이 아닌 날 ----
+            ForestFestivalState.ForceDayForTest(20);
+            string goalLine = ForestFestivalState.GoalLineText();
+            if (goalLine != "다음 축제: 세배(D-12)")
+            {
+                Debug.LogError($"[PlaytestForestHeadless] 축제 D-day 문구가 이상함 — \"{goalLine}\"(기대 \"다음 축제: 세배(D-12)\")");
+                _hadError = true;
+                return;
+            }
+
+            ForestFestivalState.ForceDayForTest(null);
+            Debug.Log("[PlaytestForestHeadless] festival OK - 세배·꽃놀이·소원 완료 1회·같은 날 중복 거절·소원 배율·목표판 D-day 문구까지 확인");
         }
     }
 }
