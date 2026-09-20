@@ -38,7 +38,10 @@ static func show(parent: Node, title_text: String, lines: Array) -> CanvasLayer:
 	var btn := Button.new()
 	btn.text = "닫기"
 	btn.custom_minimum_size = Vector2(0, 44)
-	btn.pressed.connect(func() -> void: layer.queue_free())
+	btn.pressed.connect(func() -> void:
+		CombatFeel.ui()
+		layer.queue_free()
+	)
 	vbox.add_child(btn)
 
 	return layer
