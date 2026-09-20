@@ -66,6 +66,7 @@ namespace Saga.EditorTools
             BuildHiddenTreasure();
             BuildGatherables();
             BuildMountainShrine();
+            BuildShrineTrial();
             BuildEastGroveRelic();
             BuildLuckyCairn();
             BuildBeaconTower();
@@ -303,6 +304,15 @@ namespace Saga.EditorTools
             var go = new GameObject("MountainShrine");
             var shrine = go.AddComponent<MountainShrine>();
             shrine.Build();
+        }
+
+        // PLAN.md 101-2 GO ② "사당 시련" — 산신당(5,1) 옆 격자 (4,1)
+        // ("^TT=TS^^^"의 forest 타일, 비어 있음 확인됨).
+        private static void BuildShrineTrial()
+        {
+            var go = new GameObject("ShrineTrialEncounter");
+            var trial = go.AddComponent<ShrineTrialEncounter>();
+            trial.Build();
         }
 
         private static void BuildEastGroveRelic()

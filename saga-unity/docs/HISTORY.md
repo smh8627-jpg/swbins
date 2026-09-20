@@ -7961,3 +7961,17 @@ GO 101-2는 이제 ②(사당 시련, 사용자 결정 대기)·⑤(비석 GPS, 
 - **다음 세션이 할 일**: 위 설계대로 `ShrineTrialState.cs`(재작성, 이 절 코드 그대로) + `ShrineTrialEncounter.cs`(신규) + `BuildTestVillageScene.cs`(`BuildShrineTrial()` 추가) + `SaveState.cs`(v13) 구현 → 컴파일 → 씬 재빌드 → 헤드리스 3연속 OK → `PlaytestHeadless.cs`에 전용 진단 추가(같은 세션에 같이 하거나 다음 숙제로 남기거나는 그때 판단) → PROJECT_STATE/PLAN 갱신 → 커밋.
 
 **"게이트 무시하고 다른 트랙 먼저 착수" 쪽은 아직 어느 후보를 고를지도 안 정했다** — DUNGEON5.7·FOREST5.6/5.7·REALM5-3/5-5 중 REALM(이미 godot 참고 설계가 있어 가장 수월해 보임, 5-3 일기토·설전 또는 5-5 승리 조건 다중 중 하나)이 유력 후보라는 판단만 하고 코드는 손 안 댔다 — 다음 세션이 이어서 고를 것.
+
+## 2026-09-20 — GO② 사당 시련 구현·완료 ("사가 유니티 이어 해" 세션, 전전 세션이 남긴 설계 그대로)
+
+전전 세션(같은 날짜, "GO② 사당 시련 설계 뒤 중단" 절)이 남긴 설계를 그대로 구현했다 — 재설계 없이 그 절의 수치·구조 그대로.
+
+새 `ShrineTrialState.cs`(Data, static): `DailyLimit=3`·`ShardsPerStamp=3`·`LockWindowSec=600`. `EnsureToday()`로 실제 달력 날짜(`DateTime.Now.ToString("yyyy-MM-dd")`)가 바뀌면 하루 카운트를 리셋(`DailyTaskState`와 같은 결). `CanEnter()`는 잠금(`DateTime.Now.Ticks < _lockUntilTicks`)과 하루 한도를 같이 본다. `ReportClear()`는 조각을 하나 늘리고 3의 배수가 되면 인장을 하나 늘리며 true(이정표 보상 신호)를 돌려준다. 저장은 5필드(날짜·하루카운트·조각·인장·잠금시각) — `SaveState.cs` v12→v13, v12 이하는 빈 날짜·잠금 없음으로 마이그레이션.
+
+새 `ShrineTrialEncounter.cs`(World): 입구는 산신당(5,1) 옆 격자 (4,1)("^TT=TS^^^"의 forest 타일) — 항상 보이는 작은 돌 아치(기둥 둘+상인방, Cube 3개)로 자리를 표시하고, 파도 적은 짐승형 새 자산 없이 RareWolfEncounter처럼 primitive 캡슐(보라색 계열, 파도마다 진하게)만 전투 중에만 활성화한다. `StartTrial()`이 `ShrineTrialState.ReportEntry()`(하루 카운트 소비, 승패 무관)를 부르고 파도 0을 `SharedTimeSec=180`으로 시작. `OnWaveOver()`가 이 클래스의 유일한 분기점 — 클리어(`_duel.Cleared`)면서 마지막 파도가 아니면 `_duel.Left`(남은 시간)를 그대로 다음 `DuelRules.Create(..., timeSec: left)`로 넘겨 파도를 잇고, 아니면(마지막 파도 클리어이거나 애초에 못 깼으면) `FinishTrial()`로 시련 전체를 끝낸다. 클리어 보상은 EXP120·금70, 인장 완성 시 추가 EXP100·금80(`LootMarker.Spawn`도 기존 두 사건과 같이). 실패(시간 초과·기세 소진, `_totalDealt>0`인 진짜 패배만 — 한 대도 못 때린 클린 리트리트는 무비용)는 `GoldState.TrySpend(10)`(모자라면 조용히 스킵) + `ShrineTrialState.ReportFailLock()`. 도전 자체는 `ShrineTrialState.CanEnter()`가 false면(잠금 중이거나 하루 3회 다 씀) "맞선다" 선택 시점에 거절 메시지만 뜨고 하루 카운트는 안 늘어난다(문 앞 프롬프트 자체는 항상 뜬다).
+
+`BuildTestVillageScene.cs`에 `BuildShrineTrial()` 추가(`BuildMountainShrine()` 뒤). `PlaytestHeadless.cs`에 `CheckShrineTrial()` 추가 — ①조각 3개=인장 1 산술을 인카운터 없이 `ShrineTrialState.ReportClear()` 직접 3회로 확인, ②`StartTrial()`+`OnWaveOver()`를 리플렉션으로 몰아 파도 0→1→2 진행마다 `_waveIndex`가 늘고 새 `DuelRules`의 `Left`가 이전 파도의 `Left`와 정확히 같은지, ③마지막 파도 클리어 시 `_waveIndex`가 0으로 정리되고 `Visual`이 다시 비활성화되며 골드가 정확히(exp는 레벨업 랩어라운드 때문에 `Level>levelBefore || Exp==expBefore+ClearExpReward`로 느슨하게) 늘었는지, ④두 번째 진입에서 `Cleared=false, Dealt=5f`로 진짜 실패를 태워 `GoldState.TrySpend`가 정확히 차감(모자라면 무차감 — `TryDrop`과 달리 `TrySpend`는 부분 차감이 없다는 점 주의)됐는지·`IsLocked`가 켜지고 `CanEnter()`가 꺼지는지까지 실제 판정 결과로 확인.
+
+`tools/unity-batch.sh -- <Unity 인자...>`로 컴파일(오류 0) → `BuildTestVillageScene.Build` 재실행(멱등, `ShrineTrialEncounter` 추가 확인) → 헤드리스 3연속 OK(신규 `CheckShrineTrial()` 포함, 기존 항목 회귀 없음). 배치 모드 부작용 4파일(`ProjectVersion.txt`·`Packages/manifest.json`·`packages-lock.json`)이 스크립트의 자동 `git checkout`에도 한 번 남아 있어(Unity가 `-quit` 이후에도 미세하게 늦게 다시 쓴 것으로 추정) 커밋 전에 수동으로 한 번 더 `git checkout --` 로 확인·정리했다 — 다음 세션도 커밋 직전엔 `git status --porcelain -- Packages/ ProjectSettings/`로 한 번 더 확인할 것.
+
+GO 101-2는 이제 ⑤(비석 GPS, Unity 모바일 빌드 뒤)만 남았다. "게이트 무시하고 다른 트랙 먼저 착수"(REALM 5-3/5-5 유력 후보) 쪽은 이번 세션에도 손 안 댔다 — 다음 세션이 고를 것.

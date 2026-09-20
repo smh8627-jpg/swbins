@@ -135,6 +135,7 @@ namespace Saga.EditorTools
                 CheckBondProgress(); // CheckBanditLootMarker 뒤 — "산적"이 실제로 등용된 뒤라야 BondState에 등록돼 있다.
                 CheckWeaponVisual();
                 CheckRaidBoss();
+                CheckShrineTrial();
                 // 반드시 마지막 — DailyTaskState 진단이 SaveState.TryLoad()로
                 // 세이브 파일을 v9 모양으로 잠깐 바꿔치기해 로드하는데, 이건
                 // 살아있는 PartyState/Inventory/GoldState 등을 그 v9 기본값으로
@@ -1069,6 +1070,116 @@ namespace Saga.EditorTools
 
             Debug.Log($"[PlaytestHeadless] raid boss OK - raid 모드(75s)·저스트 회피(완전 회피+기)·수동 mitigation(절반)·부위 3 파괴 보상+완파 보너스 전부 확인");
         }
+
+        /// <summary>PLAN.md 101-2 GO ② "사당 시련"(2026-09-20) — 파도 3을
+        /// 공유 타이머로 잇는 OnWaveOver() 전환(클리어 시 남은 시간을 그대로
+        /// 다음 파도로), 최종 클리어 보상·인장 조각 3개=인장 1(이정표
+        /// 보너스), 실패 시 소지금 손실+10분 잠금, 잠금 중 재입장 차단까지
+        /// 본다. ShrineTrialState 자체는 인카운터 없이도 조각→인장 산술을
+        /// 먼저 단위로 확인한다(3회째 true, Stamps+1).</summary>
+        private static void CheckShrineTrial()
+        {
+            int stampsBefore = ShrineTrialState.Stamps;
+            bool r1 = ShrineTrialState.ReportClear();
+            bool r2 = ShrineTrialState.ReportClear();
+            bool r3 = ShrineTrialState.ReportClear();
+            if (r1 || r2 || !r3 || ShrineTrialState.Stamps != stampsBefore + 1)
+            {
+                Debug.LogError($"[PlaytestHeadless] 사당 시련 — 조각 3개=인장 1 산술이 안 맞음(r1={r1} r2={r2} r3={r3}, stamps {stampsBefore}->{ShrineTrialState.Stamps})");
+                _hadError = true;
+                return;
+            }
+
+            var encounter = Object.FindFirstObjectByType<ShrineTrialEncounter>();
+            if (encounter == null)
+            {
+                Debug.LogError("[PlaytestHeadless] 사당 시련 검증용 ShrineTrialEncounter를 못 찾음");
+                _hadError = true;
+                return;
+            }
+
+            var seType = typeof(ShrineTrialEncounter);
+            var startTrial = seType.GetMethod("StartTrial", BindingFlags.NonPublic | BindingFlags.Instance);
+            var onWaveOver = seType.GetMethod("OnWaveOver", BindingFlags.NonPublic | BindingFlags.Instance);
+            var duelField = seType.GetField("_duel", BindingFlags.NonPublic | BindingFlags.Instance);
+            var waveIndexField = seType.GetField("_waveIndex", BindingFlags.NonPublic | BindingFlags.Instance);
+
+            if (!ShrineTrialState.CanEnter())
+            {
+                Debug.LogError("[PlaytestHeadless] 사당 시련 — 검증 시작 전인데 이미 못 들어가는 상태(잠금/일일 한도)");
+                _hadError = true;
+                return;
+            }
+
+            // ---- 진입 1: 파도 3 전부 클리어 → 시간 이월·최종 보상 ----
+            startTrial.Invoke(encounter, null);
+            int expBefore = PlayerStats.Exp;
+            int levelBefore = PlayerStats.Level;
+            int goldBefore = GoldState.Gold;
+
+            for (int wave = 0; wave < 2; wave++)
+            {
+                var duel = (DuelRules)duelField.GetValue(encounter);
+                duel.Cleared = true;
+                float leftBefore = duel.Left;
+                onWaveOver.Invoke(encounter, null);
+
+                int waveIndexNow = (int)waveIndexField.GetValue(encounter);
+                var nextDuel = (DuelRules)duelField.GetValue(encounter);
+                if (waveIndexNow != wave + 1 || nextDuel == duel || !Mathf.Approximately(nextDuel.Left, leftBefore))
+                {
+                    Debug.LogError($"[PlaytestHeadless] 사당 시련 — 파도 {wave} 클리어가 다음 파도로 안 이어짐(waveIndex={waveIndexNow}, left {leftBefore}->{nextDuel.Left})");
+                    _hadError = true;
+                    return;
+                }
+            }
+
+            // 마지막 파도(2) 클리어 — 시련 전체 종료.
+            var finalDuel = (DuelRules)duelField.GetValue(encounter);
+            finalDuel.Cleared = true;
+            onWaveOver.Invoke(encounter, null);
+
+            int waveIndexAfter = (int)waveIndexField.GetValue(encounter);
+            bool visualActiveAfter = encounter.transform.Find("Visual").gameObject.activeSelf;
+            // exp는 이 헤드리스 실행에서 이미 여러 체크가 레벨업 문턱 가까이
+            // 올려놨을 수 있어(PlayerStats.Exp가 레벨업마다 랩어라운드된다,
+            // PlayerStats.AddExp() 참고) 정확한 값 대신 "레벨업했거나 딱
+            // ClearExpReward만큼 늘었거나"로 느슨하게 본다 — CheckBanditLootMarker
+            // 등 기존 체크들도 같은 이유로 exp 정확값은 안 잰다. gold는 안
+            // 랩되니 정확히 잰다.
+            bool expOk = PlayerStats.Level > levelBefore || PlayerStats.Exp == expBefore + ClearExpConst(seType);
+            if (waveIndexAfter != 0 || visualActiveAfter
+                || !expOk
+                || GoldState.Gold != goldBefore + ClearGoldConst(seType))
+            {
+                Debug.LogError($"[PlaytestHeadless] 사당 시련 — 최종 클리어 보상·정리가 기대와 다름(waveIndex={waveIndexAfter}, visual={visualActiveAfter}, exp {expBefore}->{PlayerStats.Exp}, gold {goldBefore}->{GoldState.Gold})");
+                _hadError = true;
+                return;
+            }
+
+            // ---- 진입 2: 실패(밀림) → 소지금 손실 + 10분 잠금 ----
+            startTrial.Invoke(encounter, null);
+            var failDuel = (DuelRules)duelField.GetValue(encounter);
+            failDuel.Cleared = false;
+            failDuel.Dealt = 5f; // "한 대도 못 때리고 물러난 것은 실패로 안 친다" 경계 밖(진짜 실패).
+            int goldBeforeFail = GoldState.Gold;
+            onWaveOver.Invoke(encounter, null);
+
+            // GoldState.TrySpend는 부분 차감이 없다(모자라면 아예 0을 뺀다) — DropState.TryDrop과 다른 결.
+            int expectedGoldAfterFail = goldBeforeFail >= FailGoldConst(seType) ? goldBeforeFail - FailGoldConst(seType) : goldBeforeFail;
+            if (GoldState.Gold != expectedGoldAfterFail || !ShrineTrialState.IsLocked || ShrineTrialState.CanEnter())
+            {
+                Debug.LogError($"[PlaytestHeadless] 사당 시련 — 실패 비용·잠금이 기대와 다름(gold {goldBeforeFail}->{GoldState.Gold}, 기대 {expectedGoldAfterFail}, locked={ShrineTrialState.IsLocked}, canEnter={ShrineTrialState.CanEnter()})");
+                _hadError = true;
+                return;
+            }
+
+            Debug.Log("[PlaytestHeadless] shrine trial OK - 조각3=인장1, 파도 3 시간 이월, 최종 클리어 보상, 실패 비용+10분 잠금(재입장 차단) 전부 확인");
+        }
+
+        private static int ClearExpConst(System.Type t) => (int)t.GetField("ClearExpReward", BindingFlags.NonPublic | BindingFlags.Static).GetValue(null);
+        private static int ClearGoldConst(System.Type t) => (int)t.GetField("ClearGoldReward", BindingFlags.NonPublic | BindingFlags.Static).GetValue(null);
+        private static int FailGoldConst(System.Type t) => (int)t.GetField("FailGoldCost", BindingFlags.NonPublic | BindingFlags.Static).GetValue(null);
 
         /// <summary>PLAN.md 101-2 ④ 일과판(2026-09-19, GO 첫 실장) — 날짜 해시
         /// 선택의 결정성("같은 날은 같은 셋"), 진행→완료→도장 누적, 도장 7=

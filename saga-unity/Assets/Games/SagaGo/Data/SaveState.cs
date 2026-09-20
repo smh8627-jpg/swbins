@@ -14,7 +14,7 @@ namespace Saga.Go.Data
     /// </summary>
     public static class SaveState
     {
-        private const int SaveVersion = 12;
+        private const int SaveVersion = 13;
 
         private static string SavePath => Path.Combine(Application.persistentDataPath, "save.json");
 
@@ -68,6 +68,12 @@ namespace Saga.Go.Data
             public float[] bondWalkedM;
             public int[] bondWins;
             public DropState.Drop[] drops;
+            // v13(PLAN.md 101-2 ② 사당 시련, 2026-09-20) — v12까지는 없던 필드.
+            public string shrineDate;
+            public int shrineDailyCount;
+            public int shrineShards;
+            public int shrineStamps;
+            public long shrineLockUntilTicks;
         }
 
         public static bool Save()
@@ -99,6 +105,11 @@ namespace Saga.Go.Data
                 bondWalkedM = BondState.SnapshotWalked(PartyState.MemberIds),
                 bondWins = BondState.SnapshotWins(PartyState.MemberIds),
                 drops = DropState.Snapshot(),
+                shrineDate = ShrineTrialState.SnapshotDate(),
+                shrineDailyCount = ShrineTrialState.SnapshotDailyCount(),
+                shrineShards = ShrineTrialState.SnapshotShards(),
+                shrineStamps = ShrineTrialState.SnapshotStamps(),
+                shrineLockUntilTicks = ShrineTrialState.SnapshotLockUntilTicks(),
             };
 
             try
@@ -147,6 +158,7 @@ namespace Saga.Go.Data
             PerkState.Restore(data.perkIds ?? new List<string>());
             BondState.Restore(PartyState.MemberIds, data.bondWalkedM, data.bondWins);
             DropState.Restore(data.drops);
+            ShrineTrialState.Restore(data.shrineDate, data.shrineDailyCount, data.shrineShards, data.shrineStamps, data.shrineLockUntilTicks);
 
             Transform player = FindPlayer();
             if (player != null && data.playerPos != null && data.playerPos.Length == 3)
@@ -282,6 +294,18 @@ namespace Saga.Go.Data
                 data.bondWalkedM = Array.Empty<float>();
                 data.bondWins = Array.Empty<int>();
                 data.drops = Array.Empty<DropState.Drop>();
+                return data;
+            }
+            if (fromVersion == 12)
+            {
+                // v12엔 사당 시련 필드가 없었다 — 아직 하나도 안 도전한 것과
+                // 같은 기본값(빈 날짜, 잠금 없음)으로 채운다.
+                data.version = 13;
+                data.shrineDate = "";
+                data.shrineDailyCount = 0;
+                data.shrineShards = 0;
+                data.shrineStamps = 0;
+                data.shrineLockUntilTicks = 0;
                 return data;
             }
             return null;

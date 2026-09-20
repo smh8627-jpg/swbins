@@ -1,7 +1,7 @@
 # PROJECT_STATE — saga-unity (상태만, ≤15KB, 덮어쓴다)
 
 **규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다(2026-09-16 재편 전 본문 5,532줄은 그쪽 첫 절에 그대로 있다). 넘치면 `tools/precheck.sh` 가 막는다.
-마지막 갱신: 2026-09-20 (GO①⑥⑧ 진단 보강 다음 **GO② 사당 시련 설계만 하고 중단** — 사용자가 "GO②도 진행 + 게이트 무시하고 다른 트랙도 착수" 둘 다 지시했으나, GO② 코드 작성 중 "새로운 세션에서 이어 하자"로 중단. **코드는 하나도 안 남았다**(orphan 파일 하나 만들었다 지움, 커밋 전이라 안전) — 설계만 `docs/HISTORY.md` 2026-09-20 "GO② 사당 시련 설계 뒤 중단" 절에 그대로 있다: 입구 산신당 옆(4,1) 하나, 3파도를 `DuelRules`의 `timeSec`로 이어받는 공유 180초 타이머, 클리어=인장 조각(3=인장1, 이정표 보상), 실패=금10 손실+10분 재입장 잠금(`DropState`와 같은 결). **다음 세션은 그 절 그대로 구현**(`ShrineTrialState.cs`+`ShrineTrialEncounter.cs`+씬 배선+SaveState v13)하면 된다. "게이트 무시하고 다른 트랙" 쪽은 후보(REALM 5-3/5-5 유력, godot 참고 설계 있음)만 짚고 착수는 안 함.
+마지막 갱신: 2026-09-20 (전전 세션이 설계만 남기고 중단한 **GO② 사당 시련을 이번 세션이 그대로 구현·완료**) — `ShrineTrialState.cs`(날짜·하루카운트·조각·인장·잠금시각) + `ShrineTrialEncounter.cs`(입구 산신당 옆 4,1, 파도 3을 공유 180초 타이머로 잇는 `OnWaveOver()`, 클리어=인장 조각 수집, 실패=금10 손실+10분 잠금) 신규, `BuildTestVillageScene.cs`에 `BuildShrineTrial()` 배선, `SaveState.cs` v12→v13. `PlaytestHeadless.cs`에 `CheckShrineTrial()` 추가(조각3=인장1 산술, 파도 시간 이월, 최종 보상, 실패 비용+잠금까지). GO 101-2는 이제 ⑤(비석 GPS, 모바일 빌드 뒤)만 남았다. "게이트 무시하고 다른 트랙" 후보(REALM 5-3/5-5)는 이번 세션에도 착수 안 함 — 다음 세션이 고를 것.
 
 ## 캐릭터 자산 — 이 PC 기준 (2026-09-19)
 
@@ -11,7 +11,7 @@ Maria(플레이어)·Abe(잡졸)·Brute(두목) 셋만 mixamo.com 실자산 확�
 
 | 게임 | 씬 | Vertical Slice(Phase 1~8) | 51장 콘텐츠 확장 | 44장 에셋 교체 | 공통(66-2 라이팅·67~69 사운드/설정/Localization) |
 |---|---|---|---|---|---|
-| GO | `TestVillage` | 완료 — 도적의 습격(이동·촌장·상인·나그네·조우·전투·등용·EXP·장비·루트·저장 v12) | 동물 Group·나그네·은닉 보물·산신당·행운 돌탑·동굴 유물·채집 · **101-2 ④⑦③(2026-09-19)**: 일과판·승급 3택·75초 토벌 · **101-2 ①⑥⑧(2026-09-20)**: 봉수대(`BeaconTower`)·인연(`BondState`)·패배 비용·회수(`DropState`/`DropMarker`) | Player·주요 Enemy·Environment·Building·Props 전부 GLB/PBR | 전부 붙음. **목표판/세션카드(101-2 A·B)**. **101-3 C·F·G 전부 완료(2026-09-17)** |
+| GO | `TestVillage` | 완료 — 도적의 습격(이동·촌장·상인·나그네·조우·전투·등용·EXP·장비·루트·저장 v13) | 동물 Group·나그네·은닉 보물·산신당·행운 돌탑·동굴 유물·채집 · **101-2 ④⑦③(2026-09-19)**: 일과판·승급 3택·75초 토벌 · **101-2 ①⑥⑧(2026-09-20)**: 봉수대(`BeaconTower`)·인연(`BondState`)·패배 비용·회수(`DropState`/`DropMarker`) · **101-2 ②(2026-09-20)**: 사당 시련(`ShrineTrialState`/`ShrineTrialEncounter`, 파도 3·인장 조각) | Player·주요 Enemy·Environment·Building·Props 전부 GLB/PBR | 전부 붙음. **목표판/세션카드(101-2 A·B)**. **101-3 C·F·G 전부 완료(2026-09-17)** |
 | DUNGEON | `TestDungeon` | 완료 — 첫 방→무리·엘리트/보스·방 종류(우물·상자·성소·행상)·회피·강공격·필드(방 2+복도)·동행 | 마을 넷·층 진행·매복·구출·수수께끼·은닉 창고·빌드(회전베기)·도감·보석/영웅 상태 · **101-2 5.1~5.5 완료(5.7 남음)** | Player·잡졸(황건적)·미니보스/두목·Environment·Building | 전부 붙음(SFX 실클립 통일). **목표판/세션카드(101-2 A·B)**. **101-3 C·F·G 전부 완료(2026-09-17)** |
 | FOREST | `TestVillageForest` | 완료(이동 전용 컨트롤러) — 마을·집·주민 | 벽지/장판·가구 자유 배치(1m 격자)·생물(Flee/Group)·과일나무·채집·좌판·밀어내기 전투 · **5.1~5.5 완료**: 마을 번들(`ForestMuseumState`) · **5.8①②(2026-09-20)**: 채집 손맛(`ForestGatherFeel`)·마을 평가(`ForestTownScore`, 별 5) | Environment 완료 | 전부 붙음. **목표판/세션카드(A·B)**. 101-3 해당 없음 |
 | STORY | `TestField` | 완료 — 2.5D 횡스크롤(Z 고정)·잡졸 10·두목·사명 2·볼트·로프 | 척후병 NPC·사건·관계·선택(51장 완결)·전직(Lv.10, 무사/궁수/협객/방사, `StoryJobChoiceUi` 팝업까지 실제 검증) | 척후병 실제 모델 | 전부 붙음. **목표판/세션카드(101-2 A·B)**. **101-3 C·F·G 전부 완료(2026-09-18)** — C(hitstop/shake, 2026-09-17) + F 죽음(`StoryLootMarker`) + G 지형 반응(`StoryGroundDecal`, 발자국+타격 흔적) + G 성장 연출(`StoryCameraFollow.PlayLevelUpCut()`, ZDistance 가변화) + G 장비 가시화(`StoryWeaponVisual`, "직업별 무기": 무사→검·궁수→활·협객→표창·방사→지팡이) |
@@ -35,7 +35,7 @@ STORY 세부(경위는 HISTORY grep): `StoryJobState.JobChosen` 이벤트로 `Re
 
 ## 다음 작업 (우선순위, 상세는 PLAN 해당 장 · 경위는 HISTORY 날짜 grep)
 
-1. **PLAN 101-2 이어서** — GO①④⑥⑦⑧·DUNGEON5.1~5.5·FOREST5.1~5.5,5.8①②·REALM5-1,5-2,5-6,5-8 완료(FOREST5.8③ 해당 없음). 다음: GO②(사당 시련, 사용자 결정 대기, ⑤는 모바일 빌드 뒤)·DUNGEON5.7(웹 선행 뒤)·FOREST5.6/5.7(웹·godot 승인 사례 없음)·REALM5-3/5-5(필요 여부 확인, 5-4는 제외 확정). STORY 5-2~5-4·5-8은 선행 시스템 없어 재검토 필요.
+1. **PLAN 101-2 이어서** — GO①②④⑥⑦⑧·DUNGEON5.1~5.5·FOREST5.1~5.5,5.8①②·REALM5-1,5-2,5-6,5-8 완료(FOREST5.8③ 해당 없음). 다음: GO⑤(비석 GPS, 모바일 빌드 뒤)·DUNGEON5.7(웹 선행 뒤)·FOREST5.6/5.7(웹·godot 승인 사례 없음)·REALM5-3/5-5(필요 여부 확인, 5-4는 제외 확정). STORY 5-2~5-4·5-8은 선행 시스템 없어 재검토 필요.
 2. **실기 GUI 확인 몰아서** — "실기 확인 대기" 전부(아래 목록, GO 일과판 신규 포함). 사용자 몫.
    - **다른 PC로 이어받으면** `CharactersRealistic/`가 비어 있음 — mixamo.com에서 새로 받을 것(로그인은 사람 몫). 목록은 `SetupXxxCharacterImport.cs`의 `AnimMap`/`BodyFileName`.
    - Dungeon Abe/Brute **전신 구도 스크린샷은 아직 못 얻음**(카메라 클로즈업, 파편만 확인) — `PlaytestDungeonEnemiesGui.cs`의 `TeleportPos`/줌 더 조정하면 재시도 가능.
@@ -66,8 +66,8 @@ STORY 세부(경위는 HISTORY grep): `StoryJobState.JobChosen` 이벤트로 `Re
 
 | 검증 | 결과 |
 |---|---|
-| `-batchmode -nographics -quit` 컴파일 | exit 0, 오류 0(DUNGEON 5.5 추가 뒤 재확인) |
-| `PlaytestHeadless`(GO) | **3연속 OK**(2026-09-20, GO①⑥⑧ 전용 진단 3종 추가 뒤 — 신규·기존 전부 통과) |
+| `-batchmode -nographics -quit` 컴파일 | exit 0, 오류 0(GO② 사당 시련 추가 뒤 재확인) |
+| `PlaytestHeadless`(GO) | **3연속 OK**(2026-09-20, GO② `CheckShrineTrial()` 추가 뒤 — 신규·기존 전부 통과, 세이브 v13) |
 | `PlaytestDungeonHeadless`·`FloorProgression`·`FieldAmbush`·`Shortcut`·`Town2`·`Towns34` | **전부 재검증 OK**(2026-09-20, 5.5 뒤 — 완주·사망 두 종료 경로 포함, `DungeonEnemy` 핵심 변경이라 하위 슬라이스까지 확인) |
 | `PlaytestForestHeadless` | **3연속 OK**(2026-09-20, 5.8② 마을 평가 뒤 — `CheckTownScore()` 신규) |
 | `PlaytestOverworldMap`(GO) | 이전 세션 1회 재검증 OK, 미변경 |
@@ -77,7 +77,7 @@ STORY 세부(경위는 HISTORY grep): `StoryJobState.JobChosen` 이벤트로 `Re
 
 ## 실기 확인 대기 (항목명만 — 경위는 HISTORY grep)
 
-- GO: 조우·전투·등용 손맛, 상점·퀘스트 대사 3단계, 은닉 보물·산신당·돌탑·유물, 채집, 목표판/세션카드, hitstop 체감, 유품 마커·무기 소켓·지형 데칼(101-3 F·G), 일과판·승급 3택 UI, 75초 토벌 손맛(101-2 ③), **봉수대 점등·목표판 전환·인연 등급 토스트·패배 시 짐 드롭/회수(101-2 ①⑥⑧, 2026-09-20 신규, 첫 실기 확인)**
+- GO: 조우·전투·등용 손맛, 상점·퀘스트 대사 3단계, 은닉 보물·산신당·돌탑·유물, 채집, 목표판/세션카드, hitstop 체감, 유품 마커·무기 소켓·지형 데칼(101-3 F·G), 일과판·승급 3택 UI, 75초 토벌 손맛(101-2 ③), 봉수대 점등·목표판 전환·인연 등급 토스트·패배 시 짐 드롭/회수(101-2 ①⑥⑧), **사당 시련 입구·파도 3 전투감·인장 조각/이정표 보상·실패 잠금(101-2 ②, 2026-09-20 신규, 첫 실기 확인)**
 - DUNGEON: 카메라 각도, 아홉 슬라이스, 목표판/세션카드, hitstop·타격VFX·레벨업줌·무기소켓·지형데칼 체감(101-3 전체), **축복·유품·부적 던전·월드 보스·난입 체감(101-2 5.1~5.5, 신규 — 난입은 표식 위치·파도 난이도 포함 첫 실기 확인)**
 - FOREST: 벽지/장판, 가구 배치, 생물·과일나무·좌판, 목표판/세션카드, 마을 번들(5.3), 채집 손맛(5.8①), **마을 평가판 별점(5.8②, 2026-09-20 신규)**
 - STORY: 두목 크기·타격감, 사건·관계·선택 흐름, 전직 팝업, 목표판/세션카드, hitstop/shake/flash/popup/타격 VFX 체감, **유품 마커·지형 데칼(발자국/타격 흔적)·레벨업 줌·직업별 무기(검/활/표창/지팡이) 실제로 보이는지(101-3 F·G, 2026-09-18 신규 — 이게 첫 실기 확인)**
