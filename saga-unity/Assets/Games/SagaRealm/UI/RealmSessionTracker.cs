@@ -43,11 +43,13 @@ namespace Saga.Realm.UI
             if (_sessionCard == null) _sessionCard = Object.FindFirstObjectByType<SessionCard>();
 
             RealmCityState.Changed += OnCityStateChanged;
+            RealmVictoryState.Achieved += OnVictoryAchieved;
         }
 
         private void OnDestroy()
         {
             RealmCityState.Changed -= OnCityStateChanged;
+            RealmVictoryState.Achieved -= OnVictoryAchieved;
         }
 
         private void OnCityStateChanged()
@@ -56,6 +58,9 @@ namespace Saga.Realm.UI
             // 금·문답·전투가 바뀔 때마다 곧바로 달성 여부를 본다(재진입
             // 안전 — RealmOfficerTraits.cs 클래스 주석 참고).
             RealmOfficerTraits.CheckAmbitions();
+            // 101-2 5-5 "승리 조건"(2026-09-20) — 같은 자리, 같은 이유(재진입
+            // 안전 — RealmVictoryState.cs 클래스 주석 참고).
+            RealmVictoryState.CheckResult();
 
             int deltaMonths = (RealmCityState.Year - _lastYear) * 12 + (RealmCityState.Month - _lastMonth);
             _lastYear = RealmCityState.Year;
@@ -76,14 +81,24 @@ namespace Saga.Realm.UI
             }
         }
 
-        private static int CapturedCount()
+        private static int CapturedCount() => RealmVictoryState.CapturedCount();
+
+        /// <summary>godot이 기존 정복 승리의 5초 토스트도 결과 카드로 올린
+        /// 것과 같은 결(HISTORY.md 2026-09-17) — 월간 요약과 같은 카드를
+        /// 재사용한다. 판이 끝났다는 사실 자체는 <see cref="RealmVictoryState.IsOver"/>가
+        /// 계속 들고 있으니, 이 카드는 5초 뒤 사라져도 무방하다.</summary>
+        private void OnVictoryAchieved(RealmVictoryState.Kind kind)
         {
-            int count = 0;
-            foreach (var id in RealmEnemyCity.AllIds)
-            {
-                if (RealmCityState.ActiveCityIds.Contains(id)) count++;
-            }
-            return count;
+            if (_sessionCard == null) return;
+            string title = kind == RealmVictoryState.Kind.Conquest
+                ? RealmLocalization.T("victory.title_conquest", "🏆 정복 승리")
+                : RealmLocalization.T("victory.title_culture", "🏆 문화 승리");
+            // godot 결과 카드 스펙(HISTORY.md 2026-09-17) — "걸린 달·성·인물·
+            // 기록" 중 이 슬라이스가 가진 값(연월·함락 성·로스터)만 3줄로.
+            _sessionCard.Show(title,
+                $"{RealmCityState.Year}년 {RealmCityState.Month}월",
+                $"함락 {CapturedCount()}/{RealmEnemyCity.AllIds.Length}성",
+                $"로스터 {RealmCityState.RosterIds.Count}명");
         }
 
         private void ShowSummary()
@@ -114,12 +129,19 @@ namespace Saga.Realm.UI
 
         /// <summary>다른 네 판은 "이번 주"(주간 사다리)지만 REALM 은 주 단위
         /// 개념이 없어 "다음 이정표"(적국 함락 진행)로 의미를 바꿨다
-        /// (GoalBoard.cs 라벨 자체는 공용이라 안 바꾼다).</summary>
+        /// (GoalBoard.cs 라벨 자체는 공용이라 안 바꾼다). 101-2 5-5(2026-09-20)
+        /// — godot 목표판 셋째 줄 스펙(§5-5 "가장 가까운 승리 조건 + 진척 %")
+        /// 대로 정복/문화 중 더 가까운 쪽으로 갈아 끼웠다.</summary>
         public string GoalLineWeek()
         {
-            int captured = CapturedCount();
-            int total = RealmEnemyCity.AllIds.Length;
-            return $"함락 {captured}/{total}성";
+            if (RealmVictoryState.IsOver)
+            {
+                return RealmVictoryState.Result == RealmVictoryState.Kind.Conquest
+                    ? RealmLocalization.T("victory.done_conquest", "정복 승리 — 판 끝")
+                    : RealmLocalization.T("victory.done_culture", "문화 승리 — 판 끝");
+            }
+            var (name, progress) = RealmVictoryState.ClosestProgress();
+            return $"{name} {Mathf.RoundToInt(progress * 100f)}%";
         }
     }
 }

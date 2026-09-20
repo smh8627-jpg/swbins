@@ -859,8 +859,17 @@ namespace Saga.Realm.UI
             _tacticToggleLabel.text = TacticToggleLabelText(); // 성이 바뀌면 지형 힌트도 바뀐다(101-2 5-6).
         }
 
+        /// <summary>101-2 5-5(2026-09-20) — 승리 조건이 한 번 굳으면(닫힌
+        /// 판, `RealmVictoryState.cs` 클래스 주석) godot `realm_month_button.gd`
+        /// 처럼 "다음 달"만 막는다. "공격"·"명령" 등은 계속해도 무해해(이미
+        /// 정복했거나 더 얻을 것이 없을 뿐) 안 막는다.</summary>
         private void ExecuteNextMonth()
         {
+            if (RealmVictoryState.IsOver)
+            {
+                RealmToast.Instance?.Show(RealmLocalization.T("command.game_over", "이미 판이 끝났다."), 3f);
+                return;
+            }
             string summary = RealmCityState.NextMonth();
             RealmToast.Instance?.Show(summary, 5f);
         }

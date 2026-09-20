@@ -1444,6 +1444,17 @@ namespace Saga.EditorTools
                         enemySnapBefore[enemyId] = RealmWarState.Snapshot(enemyId);
                     }
                     var quizBefore = RealmQuizState.GetProgress();
+                    // 101-2 5-5 "승리 조건"(2026-09-20) — 위 AttackXxx 단계들이
+                    // RealmEnemyCity.AllIds 전부를 이미 함락했으니 이 시점엔
+                    // 정복 승리가 확정돼 있어야 한다(RealmSessionTracker가
+                    // RealmCityState.Changed마다 RealmVictoryState.CheckResult()를
+                    // 부른다).
+                    if (RealmVictoryState.Result != RealmVictoryState.Kind.Conquest)
+                    {
+                        Debug.LogError($"[PlaytestRealmSlice] 전 적국 함락 뒤인데 승리 조건이 정복이 아님(result={RealmVictoryState.Result})");
+                        Fail();
+                        return;
+                    }
 
                     if (!RealmSaveState.Save())
                     {
@@ -1469,6 +1480,7 @@ namespace Saga.EditorTools
                         dummyCities);
                     foreach (var enemyId in RealmEnemyCity.AllIds) RealmWarState.Restore(enemyId, 1, 1, 1, 1, 1, false);
                     RealmQuizState.Restore(new List<string>(), null, null, 0, 0, 0, 0);
+                    RealmVictoryState.Restore(null); // 101-2 5-5 — round-trip 검증을 위해 진짜로 흩트린다.
 
                     if (!RealmSaveState.TryLoad())
                     {
@@ -1499,7 +1511,8 @@ namespace Saga.EditorTools
                         RealmCityState.CityRecord("puyang").Wall != puyangWallBefore ||
                         RealmCityState.OfficerCityId("jp_musashi") != musashiCityBefore ||
                         enemyMismatch ||
-                        RealmCityState.OfficerCityId(RealmOfficerPool.StartingOfficerId) != startOfficerCityBefore;
+                        RealmCityState.OfficerCityId(RealmOfficerPool.StartingOfficerId) != startOfficerCityBefore ||
+                        RealmVictoryState.Result != RealmVictoryState.Kind.Conquest;
                     var quizAfter = RealmQuizState.GetProgress();
                     bool quizMismatch = quizAfter.Learned != quizBefore.Learned || quizAfter.Answered != quizBefore.Answered ||
                         quizAfter.Correct != quizBefore.Correct || quizAfter.Streak != quizBefore.Streak ||
@@ -1952,6 +1965,7 @@ namespace Saga.EditorTools
             Debug.Log("[PlaytestRealmSlice] event chain OK - 카드 7종 서술·결투 승리 체인 예약·월간 확률·응답 뒤 카드 해제 확인");
             return true;
         }
+
 
         /// <summary>PLAN.md 101-2 5-8 "허창 자리 계승"(2026-09-20) — Phase
         /// .AgriByNewOfficer 시점(로스터가 방금 2명이 된 직후)에서 확인한다.

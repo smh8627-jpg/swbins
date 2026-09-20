@@ -67,6 +67,12 @@ namespace Saga.Realm.Data
             // 안 올렸다 — 없는 필드는 JsonUtility가 null로 채워 옛 세이브도 그냥
             // "아직 아무도 달성 안 함" 상태로 시작한다.
             public List<string> officerAmbitionsDone;
+            // 101-2 5-5 "승리 조건"(2026-09-20) — 결과는 Kind enum 이름
+            // 문자열 하나뿐(닫힌 판이라 "언제·어느 조건"만 있으면 된다).
+            // quiz·야망 필드와 같은 이유로 버전을 안 올린다 — 없는 필드는
+            // JsonUtility가 null로 채워 옛 세이브도 RealmVictoryState.Restore(null)
+            // 로 "아직 안 끝남" 상태로 시작한다.
+            public string victoryResult;
         }
 
         /// <summary>PlaytestRealmSlice.cs 전용 — GameBootstrap.Awake()가
@@ -134,6 +140,7 @@ namespace Saga.Realm.Data
                 quizStreak = RealmQuizState.GetProgress().Streak,
                 quizBestStreak = RealmQuizState.GetProgress().BestStreak,
                 officerAmbitionsDone = RealmOfficerTraits.SnapshotDone(),
+                victoryResult = RealmVictoryState.SnapshotResult(),
             };
 
             try
@@ -189,6 +196,7 @@ namespace Saga.Realm.Data
             RealmQuizState.Restore(data.quizLearned, data.quizWrongIds, data.quizWrongCounts,
                 data.quizTotal, data.quizCorrect, data.quizStreak, data.quizBestStreak);
             RealmOfficerTraits.Restore(data.officerAmbitionsDone);
+            RealmVictoryState.Restore(data.victoryResult);
             return true;
         }
 

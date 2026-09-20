@@ -7991,3 +7991,17 @@ GO② 완료 뒤 "게이트 무시하고 다른 트랙" 후보였던 REALM 5-3(�
 `tools/unity-batch.sh -- <Unity 인자...>`로 컴파일(오류 0) → `BuildTestCityScene.Build` 재실행(멱등, 새 토글·모달 GameObject 반영) → `PlaytestRealmSlice.Run` 헤드리스 3연속 OK(신규 `CheckDuel()`/`CheckDebateHire()` 포함, 기존 30여 항목 회귀 없음). 배치 모드 부작용 4파일은 스크립트가 자동 원복 — 이번엔 재원복 없이 한 번에 깨끗했다.
 
 REALM 101-2는 이제 5-4(제외 확정, PLAN.md Q-U2)·5-5(승리 조건 4종+결과 카드, godot 참고 설계 있음 — 다음 유력 후보)만 남았다.
+
+## 2026-09-20 — REALM 5-5 "승리 조건·결과 카드" 구현, 101-2 REALM 전부 완료 ("사가 유니티 이어해" 세션, REALM 5-3 다음)
+
+godot REALM(`realm_save_state.gd` `check_result()`/`_closest_victory_progress()`, HISTORY 2026-09-17 실기 승인)의 재해석. 웹판 `saga-realm/PLAN.md` §5-5 "승리 조건 다중"(패권·문화·외교·생존 넷) 중 godot은 세력·화친 시스템이 있어 문화·외교 둘을 옮겼지만, 이 트랙은 적국이 전부 무주공산 성일 뿐(`RealmEnemyCity.cs`) 다른 세력(AI 로드)·외교·화친·순위 시스템 자체가 없다 — 패권(세력 순위)·외교(화친 유지)·생존(전용 시나리오) 셋 다 그 개념 자체가 없어 보류하고, **정복**(지금까지 판정 자체가 없던 것을 이번에 신설)과 **문화**(문답 정답 수, `RealmQuizState.GetProgress().Correct`) 둘만 남겼다. 문화 임계값은 godot의 200(문답 은행 260개 기준)을 그대로 못 옮긴다 — 이 트랙 은행은 36개뿐이라(`RealmQuizData.Bank`) 대신 이 트랙의 다른 문답 목표(`RealmOfficerTraits` "학문" 야망=15)의 두 배인 **30**으로 잡았다.
+
+새 `RealmVictoryState`(정적 클래스) — `CheckResult()`가 `RealmCityState.Changed`마다(`RealmSessionTracker.OnCityStateChanged()`, `RealmOfficerTraits.CheckAmbitions()`와 같은 자리) 두 조건을 보고, 한 번 굳으면(`IsOver`) 다시 안 본다 — godot과 같은 "닫힌 판"(웹판처럼 victories 배열로 계속 모으는 열린 판이 아니라, 둘 중 먼저 채운 조건 하나로 그 판이 끝난다, 재해석 확정). `ClosestProgress()`가 두 조건 중 더 가까운 쪽 이름·진척률을 돌려준다(godot `_closest_victory_progress()` 재해석).
+
+**UI**: 결과가 확정되면 `RealmSessionTracker.OnVictoryAchieved()`가 기존 월간 요약과 같은 `SessionCard`로 결과 카드(연월·함락 성/전체·로스터 수 3줄)를 띄운다 — godot이 "기존 정복 승리의 5초 토스트도 같은 카드로 올렸다"는 것과 같은 결. 목표판 셋째 줄(`GoalLineWeek()`)이 godot §5-5 UI 스펙("가장 가까운 승리 조건 + 진척 %") 그대로 "함락 N/58성" 고정 문구에서 "정복 NN%"/"문화 NN%"(판이 끝나면 "OO 승리 — 판 끝")로 바뀌었다. `RealmCommandUi.ExecuteNextMonth()`만 godot `realm_month_button.gd`처럼 판이 끝난 뒤를 막는다(토스트 "이미 판이 끝났다.") — "공격"·"명령" 등은 계속해도 무해해(이미 정복했거나 더 얻을 것이 없을 뿐) 안 막았다, godot도 월간 버튼만 막았다.
+
+**세이브**(`RealmSaveState.cs`): `victoryResult`(Kind enum 이름 문자열) 필드 추가, quiz·야망 필드와 같은 이유로 SAVE_VERSION 안 올림(JsonUtility가 없는 필드를 null로 채워 옛 세이브도 `RealmVictoryState.Restore(null)`로 "아직 안 끝남" 상태로 시작한다).
+
+**검증**: `tools/unity-batch.sh`로 컴파일(오류 0, 처음에 `RealmVictoryState.CapturedCount()`가 `IReadOnlyList<string>.Contains()`를 써서 `using System.Linq;` 누락으로 CS1061 — 바로 고침). `PlaytestRealmSlice.cs`의 기존 55개 성 전멸 시퀀스가 어차피 정복 승리를 실제로 발동시키므로(전 적국 함락 뒤 `RealmSessionTracker`가 자동으로 판정), `Phase.SaveLoad`에 "이 시점엔 이미 정복 승리여야 한다" 사전 확인 + `RealmVictoryState.Restore(null)`로 흩트렸다가 `TryLoad()` 뒤 다시 `Conquest`로 돌아오는지 round-trip 확인을 편입했다(영구 회귀). 문화 승리·목표판 셋째 줄·"다음 달" 게이트는 이 시퀀스가 정답 30을 안 채워 커버가 안 돼, godot HISTORY 2026-09-17 `_diag_victory.gd`와 같은 결로 **임시 자가진단**(`CheckVictoryCultureAndGate()` — 정답 30 채워 발동 확인, `ExecuteNextMonth()`를 리플렉션으로 직접 불러 게이트 확인, 부작용(문답 진행·금·야망 달성)은 스냅샷/복원으로 전부 원상복구)을 `Phase.Init`에 잠깐 끼워 넣어 한 번 통과 확인한 뒤 메서드·호출부를 그대로 지웠다. 최종 3연속 `PlaytestRealmSlice.Run` OK(신규 SaveLoad 확인 포함, 기존 30여 항목 회귀 없음). 배치 모드 부작용 4파일은 스크립트가 자동 원복.
+
+REALM 101-2는 이제 완전히 닫혔다 — 남은 5-4(제외 확정, PLAN.md Q-U2)를 빼면 이 트랙에 새로 이어받을 REALM 101-2 잔여 작업이 없다. 다음 세션은 GO⑤(비석 GPS, 모바일 빌드 뒤)·DUNGEON5.7(웹 선행 뒤)·FOREST5.6/5.7(웹·godot 승인 사례 없음) 중에서 고르거나, STORY 5-2~5-4·5-8 재검토가 남은 후보다.
