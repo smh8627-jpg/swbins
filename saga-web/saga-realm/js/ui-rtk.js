@@ -1248,7 +1248,7 @@
         html += '<button class="offrow" data-act="do-order" data-id="' + sorted[k].id + '">' +
           pt(sorted[k], 36) + '<span class="offname">' + esc(sorted[k].name) +
           '<small class="muted">' + off().STAT_KOR[od.stat] + ' ' + s[od.stat] +
-          ' · 충성 ' + off().loyalOf(sorted[k].id) + '</small></span>' +
+          ' · 충성 ' + off().loyalOf(sorted[k].id) + ' · ' + traitEmoji(sorted[k].id) + '</small></span>' +
           '<b>' + (gain === null ? '—' : '+' + core.fmt(gain)) + '</b></button>';
       }
     }
@@ -1274,7 +1274,8 @@
         html += '<div class="offrow">' + pt(pool[m], 36) +
           '<span class="offname">' + esc(pool[m].name) +
           (isCap ? ' <span class="tag">포로</span>' : ' <span class="muted">재야</span>') +
-          '<small class="muted">무 ' + ps.might + ' 지 ' + ps.wisdom + ' 통 ' + ps.command + '</small></span>' +
+          '<small class="muted">무 ' + ps.might + ' 지 ' + ps.wisdom + ' 통 ' + ps.command + ' · ' + traitEmoji(pool[m].id) + ' ' +
+            traitNames(pool[m].id) + '</small></span>' +
           (caller
             ? '<button class="btn tiny primary" data-act="hire-one" data-by="' + caller.id +
               '" data-id="' + pool[m].id + '">등용</button>'
@@ -1514,6 +1515,25 @@
       ' +' + it.bonus + ')</span></b></div>';
   }
 
+  /** 특성 배지 둘(PLAN §5-1) — 이모지 + 이름, 설명은 title */
+  function traitTags(id) {
+    return off().traitsOf(id).map(function (t) {
+      return '<span class="tag trait" title="' + esc(t.desc) + '">' + t.emoji + ' ' + t.name + '</span>';
+    }).join(' ');
+  }
+  function traitEmoji(id) { return off().traitsOf(id).map(function (t) { return t.emoji; }).join(''); }
+  function traitNames(id) { return off().traitsOf(id).map(function (t) { return t.name; }).join('·'); }
+
+  /** 야망 한 줄 + 진행 막대. 이루면 ✓, 좌절이면 경고 문구 */
+  function ambRow(id) {
+    var v = off().ambView(id);
+    if (!v) { return ''; }
+    var pct = v.done ? 100 : Math.round(100 * v.prog / v.need);
+    return '<div class="rstat amb' + (v.frustrated ? ' frus' : '') + '"><span>' + v.emoji + ' 야망 ' + esc(v.name) + '</span>' +
+      '<div class="bar sm gold"><i style="width:' + pct + '%"></i></div><b>' + (v.done ? '✓' : v.prog + '/' + v.need) + '</b></div>' +
+      '<small class="muted">' + esc(v.text) + (v.done ? ' — 이루었다' : '') + (v.frustrated ? ' — 좌절해 충성이 깎입니다' : '') + '</small>';
+  }
+
   /** 무장 한 장 — 능력치 · 충성 · 열전. 도감 상세를 여기로 옮겼다 */
   function officerCard(h, cityId) {
     var s = off().stats(h.id);
@@ -1543,11 +1563,13 @@
           '<span>통 <b>' + s.command + '</b></span>' +
           '<span class="muted">Lv.' + g.lv + '</span></div>' +
         '</div></div>' +
+      '<div class="traits">' + traitTags(h.id) + '</div>' +
       (itemBadge(r.item)) +
       '<div class="rstat"><span>충성</span><div class="bar sm' +
         (r.loyal < 25 ? ' bad' : '') + '"><i style="width:' + r.loyal + '%"></i></div>' +
         '<b>' + r.loyal + '</b></div>' +
       growRow(h) +
+      ambRow(h.id) +
       (bio ? '<small class="muted dt-bio">' + esc(bio) + '</small>' : '') +
       (h.quote ? '<small class="quote">“' + esc(h.quote) + '”</small>' : '') +
       /* 군주는 상도 승진도 없다 — 제 나라에서 제가 올라갈 자리가 없다 */

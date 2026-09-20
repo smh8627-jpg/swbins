@@ -753,7 +753,7 @@
     gold = Math.max(50, Math.round(gold || 200));
     if (f.gold < gold) { return { ok: false, why: '금이 모자랍니다' }; }
     f.gold -= gold;
-    var up = core.clamp(Math.round(gold / 40), 1, 20);
+    var up = core.clamp(Math.round(gold / 40 * off.traitMul(officerId, 'rewardUp')), 1, 20);
     var now = off.addLoyal(officerId, up);
     var h = off.find(officerId);
     core.log('🎁 ' + h.name + ' 에게 금 ' + core.fmt(gold) + ' — 충성 ' + now, 'good');
@@ -770,11 +770,19 @@
    * 문답은 이 판의 **곁가지**다 — 군자금과, 이따금 재야 하나를 드러내는 것까지.
    * 여기서 성을 넓히거나 병력을 주면 삼국지가 문답 게임이 되어 버린다.
    */
+  /** 학구 특성 무장이 우리 편에 있으면 학당 상금 ×1.3 (여럿이어도 한 번만) */
+  function prizeMul(forceId) {
+    var team = global.DG.off.ofForce(forceId), m = 1, i;
+    for (i = 0; i < team.length; i++) { m = Math.max(m, global.DG.off.traitMul(team[i].id, 'prize')); }
+    return m;
+  }
+
   function study(lv, gold, first) {
     var st = state();
     var f = myForce();
     if (!st.started || !f) { return null; }
-    f.gold += Math.max(0, Math.round(gold || 0));
+    gold = Math.max(0, Math.round((gold || 0) * prizeMul(st.me)));
+    f.gold += gold;
     var out = { gold: gold, found: null };
     if (!first) { return out; }
     st.lore = (st.lore || 0) + Math.max(1, lv || 1);
@@ -1162,6 +1170,7 @@
       if (Object.prototype.hasOwnProperty.call(st.officers, k)) { st.officers[k].done = false; }
     }
 
+    global.DG.off.tickAmbitions();
     core.emit('rtk:month', { year: st.year, month: st.month });
     core.emit('changed');
     tickVictories();

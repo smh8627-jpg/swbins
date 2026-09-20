@@ -230,6 +230,9 @@
     }
     /* 치안이 낮은 성일수록 무슨 짓이든 통한다 */
     if (c) { p += (60 - c.sec) / 400; }
+    /* 특성(PLAN §5-1) — 거는 쪽의 교활·냉혈, 매수당하는 쪽의 탐욕·청렴 */
+    p *= off.traitMul(byId, 'plot');
+    if (kind === 'bribe' && targetId) { p *= off.traitMul(targetId, 'bribed'); }
     return core.clamp(p, 0.05, 0.9);
   }
 
@@ -280,7 +283,8 @@
 
     var text = '';
     if (kind === 'discord') {
-      var now = off.addLoyal(targetId, -(12 + Math.floor(Math.random() * 14)));
+      var now = off.addLoyal(targetId, -Math.round((12 + Math.floor(Math.random() * 14)) *
+          off.traitMul(targetId, 'discorded') * (off.frustrated(targetId) ? 1.5 : 1)));
       text = off.find(targetId).name + ' 의 충성이 ' + now + ' 로 떨어졌다';
     } else if (kind === 'rumor') {
       var was = c.sec;

@@ -2300,6 +2300,204 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       return !threw && v === null && ('칸이 없어도 도전 없음 · 카드·시나리오 화면 통과');
     });
 
+    /* ── 인물 특성·야망 (PLAN §5-1) ─────────────────────── */
+
+    function heroBy(pred) { return DG.data.heroes.filter(pred); }
+    function stubRandom(v, fn) { var keep = Math.random; Math.random = function () { return v; }; try { return fn(); } finally { Math.random = keep; } }
+
+    t('특성 — 결정적으로 둘, 서로 다르고 반대 짝이 없으며, 계수는 0.7~1.5 안이고 열두 가지가 다 쓰인다', function () {
+      R.setup('cao', '194');
+      var heroes = DG.data.heroes, seen = {}, again = true, two = true, opp = true, range = true;
+      var OPP = { brave: 'careful', greedy: 'clean', warlike: 'gentle', loyal: 'ambitious', righteous: 'greedy' };
+      var axes = ['duelMight', 'duelRate', 'bribed', 'rewardUp', 'bond', 'discorded', 'plot', 'prize'];
+      heroes.forEach(function (h) {
+        var a = off.traitsOf(h.id), b = off.traitsOf(h.id);
+        if (a.map(function (x) { return x.k; }).join() !== b.map(function (x) { return x.k; }).join()) { again = false; }
+        if (a.length !== 2 || a[0].k === a[1].k) { two = false; }
+        if (a.length === 2 && (OPP[a[0].k] === a[1].k || OPP[a[1].k] === a[0].k)) { opp = false; }
+        a.forEach(function (x) { seen[x.k] = 1; });
+        axes.forEach(function (ax) { var m = off.traitMul(h.id, ax); if (m < 0.7 - 1e-9 || m > 1.5 + 1e-9) { range = false; } });
+      });
+      off.TRAITS.forEach(function (x) { Object.keys(x.mul).forEach(function (ax) { if (x.mul[ax] < 0.7 || x.mul[ax] > 1.5) { range = false; } }); });
+      var kinds = Object.keys(seen).length;
+      R.setup('cao');
+      return again && two && opp && range && kinds === 12 && off.TRAITS.length === 12 &&
+        ('인물 ' + heroes.length + '명 · 특성 ' + kinds + '/12종 · 계수 0.7~1.5 · 반대 짝 0');
+    });
+
+    t('특성 — 상: 탐욕은 충성이 더 오르고 의리는 덜 오른다(금 400 → +15 / +7)', function () {
+      R.setup('cao', '194');
+      var g = heroBy(function (h) { return off.traitMul(h.id, 'rewardUp') === 1.5; })[0];
+      var r = heroBy(function (h) { return off.traitMul(h.id, 'rewardUp') === 0.7; })[0];
+      var st = R.state();
+      [g, r].forEach(function (h) { var rc = off.rec(h.id); rc.force = 'cao'; rc.loyal = 40; rc.city = R.citiesOf('cao')[0]; });
+      R.myForce().gold = 5000;
+      var ug = R.reward(g.id, 400).up, ur = R.reward(r.id, 400).up;
+      R.setup('cao');
+      return ug === 15 && ur === 7 && ('탐욕 ' + ug + ' · 의리 ' + ur);
+    });
+
+    t('특성 — 매수: 탐욕은 넘어가기 쉽고 청렴은 어렵다(같은 조건에서 확률이 두 배쯤 차이)', function () {
+      R.setup('cao', '194');
+      var mine = R.citiesOf('cao')[0], by = off.ofForce('cao')[0].id;
+      var enemyCity = null;
+      Object.keys(R.state().cities).forEach(function (k) { if (!enemyCity && R.city(k).force && R.city(k).force !== 'cao') { enemyCity = k; } });
+      var gs = heroBy(function (h) { return off.traitMul(h.id, 'bribed') === 1.4; });
+      var cs = heroBy(function (h) { return off.traitMul(h.id, 'bribed') === 0.7; });
+      var g = null, c = null;
+      gs.some(function (a) { return cs.some(function (b) { if (a.rarity === b.rarity) { g = a; c = b; return true; } return false; }); });
+      off.rec(g.id).loyal = 50; off.rec(c.id).loyal = 50;
+      var pg = D.plotChance('bribe', by, enemyCity, g.id), pc = D.plotChance('bribe', by, enemyCity, c.id);
+      R.setup('cao');
+      return !!g && pg > pc && Math.abs(pg / pc - 2) < 0.06 && ('탐욕 ' + pg.toFixed(3) + ' · 청렴 ' + pc.toFixed(3));
+    });
+
+    t('특성 — 일기토: 호전 둘은 자주 붙고 신중 둘은 잘 안 붙는다(같은 굴림 0.4 에서 갈린다)', function () {
+      R.setup('cao', '194');
+      function pair(list) {
+        for (var i = 0; i < list.length; i++) { for (var j = i + 1; j < list.length; j++) {
+          if (Math.abs(off.stats(list[i].id).might - off.stats(list[j].id).might) <= 15) { return [list[i].id, list[j].id]; } } }
+        return null;
+      }
+      var war = pair(heroBy(function (h) { return off.traitMul(h.id, 'duelRate') === 1.5 && off.traitMul(h.id, 'duelMight') === 1; }));
+      var cau = pair(heroBy(function (h) { return off.traitMul(h.id, 'duelRate') === 0.7 && off.traitMul(h.id, 'duelMight') === 1; }));
+      var flat = pair(heroBy(function (h) { return off.traitMul(h.id, 'duelRate') === 1 && off.traitMul(h.id, 'duelMight') === 1; }));
+      var rW = stubRandom(0.4, function () { return W.duel(war[0], war[1]); });
+      var rC = stubRandom(0.4, function () { return W.duel(cau[0], cau[1]); });
+      var rF = stubRandom(0.4, function () { return W.duel(flat[0], flat[1]); });
+      R.setup('cao');
+      return !!war && !!cau && !!flat && !!rW && rC === null && rF === null && ('호전 쌍 성립 · 신중 쌍·보통 쌍은 굴림 0.4 에서 불발');
+    });
+
+    t('특성 — 군주와 결이 같으면 충직은 크게, 야심은 덜 끌린다(인연 12 × 계수)', function () {
+      R.setup('cao', '194');
+      var f = FD.force('cao'), lord = off.find(f.lord);
+      var expect = function (h) {
+        var v = 52 + Math.round(12 * off.traitMul(h.id, 'bond')) - (h.rarity - 3) * 6 - (h.era !== '삼국지' ? 4 : 0) - (f.alien && h.era !== f.alien ? 10 : 0);
+        return Math.max(25, Math.min(85, v));
+      };
+      var same = heroBy(function (h) { return h.trait === lord.trait && h.id !== lord.id; });
+      var lo = same.filter(function (h) { return off.traitMul(h.id, 'bond') === 1.5; })[0];
+      var ha = same.filter(function (h) { return off.traitMul(h.id, 'bond') === 0.7; })[0];
+      var ok = !!lo && !!ha && off.baseLoyal(lo.id, 'cao') === expect(lo) && off.baseLoyal(ha.id, 'cao') === expect(ha) && off.baseLoyal(lo.id, 'cao') % 1 === 0 && off.baseLoyal(ha.id, 'cao') % 1 === 0;
+      var b1 = off.baseLoyal(lo.id, 'cao'), b2 = off.baseLoyal(ha.id, 'cao');
+      R.setup('cao');
+      return ok && ('충직 ' + b1 + ' · 야심 ' + b2 + ' (군주 결과 같은 사람)');
+    });
+
+    t('특성 — 학구 무장이 우리 편에 있으면 학당 상금이 ×1.3(여럿이어도 한 번)', function () {
+      R.setup('cao', '194');
+      var st = R.state();
+      off.ofForce('cao').forEach(function (h) { if (off.traitMul(h.id, 'prize') > 1) { off.rec(h.id).force = null; } });
+      var base = R.study(1, 100, false).gold;
+      var s1 = heroBy(function (h) { return off.traitMul(h.id, 'prize') > 1; }).slice(0, 2);
+      s1.forEach(function (h) { var rc = off.rec(h.id); rc.force = 'cao'; rc.city = R.citiesOf('cao')[0]; });
+      var boosted = R.study(1, 100, false).gold;
+      R.setup('cao');
+      return base === 100 && boosted === 130 && ('학구 없음 ' + base + ' → 학구 ' + s1.length + '명 ' + boosted);
+    });
+
+    t('야망 — 인물마다 하나(군주 제외), 결정적이고 여섯 가지가 다 쓰이며 세이브 칸에 남는다', function () {
+      R.setup('cao', '194');
+      var st = R.state(), seen = {}, lordNone = true, again = true, saved = true;
+      var lords = R.liveForces().map(function (id) { return FD.force(id).lord; });
+      lords.forEach(function (id) { if (off.ambOf(id) !== null) { lordNone = false; } });
+      DG.data.heroes.forEach(function (h) {
+        if (lords.indexOf(h.id) >= 0) { return; }
+        var a = off.ambOf(h.id), k = a.k;
+        if (off.ambOf(h.id).k !== k) { again = false; }
+        seen[k] = 1;
+        var s = st.officers[h.id].amb;
+        if (!s || s.k !== k || s.done !== false || s.prog !== 0) { saved = false; }
+      });
+      var n = Object.keys(seen).length;
+      R.setup('cao');
+      return lordNone && again && saved && n === 6 && off.AMBITIONS.length === 6 && ('야망 ' + n + '/6종 · 군주는 없음 · save.rtk.officers[id].amb');
+    });
+
+    t('야망 — 이루면 충성 +20·능력 +2(영구)가 딱 한 번 붙는다', function () {
+      R.setup('cao', '194');
+      var st = R.state(), id = off.ofForce('cao').filter(function (h) { return h.id !== FD.force('cao').lord; })[0].id;
+      var a = off.ambOf(id), rc = off.rec(id);
+      a.k = 'governor'; a.prog = 0; a.done = false;
+      rc.loyal = 50;
+      var before = off.stats(id), cid = rc.city;
+      R.city(cid).gov = id;
+      var out = off.tickAmbitions();
+      var after = off.stats(id), loyal = off.loyalOf(id);
+      var again = off.tickAmbitions();
+      var after2 = off.stats(id);
+      var ok = out.indexOf(id) >= 0 && a.done && loyal === 70 && after.might === before.might + 2 && after.wisdom === before.wisdom + 2 &&
+        after.command === before.command + 2 && again.indexOf(id) < 0 && after2.might === after.might && off.loyalOf(id) === 70;
+      var view = off.ambView(id);
+      R.setup('cao');
+      return ok && view.done && ('태수 야망 → 충성 50→70 · 능력 +2 · 재호출 무변화');
+    });
+
+    t('야망 — 못 이룬 채 서른여섯 달 + 열두 달이 지나면 좌절: 충성이 달마다 -3, 이간 낙폭 ×1.5', function () {
+      R.setup('cao', '194');
+      var st = R.state(), id = off.ofForce('cao').filter(function (h) { return h.id !== FD.force('cao').lord; })[0].id;
+      var a = off.ambOf(id), rc = off.rec(id);
+      a.k = 'fame'; a.prog = 0; a.done = false; a.age = 35; a.failMonths = 0; rc.loyal = 80;
+      var i, l = [];
+      for (i = 0; i < 16; i++) { off.tickAmbitions(); l.push(off.loyalOf(id)); }
+      /* age 36 은 유예 끝(>36 부터 센다) → 다섯째 틱부터 좌절 카운트... 정확한 시작은 값으로 확인한다 */
+      var fr = off.frustrated(id);
+      var firstDrop = l.findIndex(function (v) { return v < 80; });
+      var steady = l[l.length - 1] === l[l.length - 2] - 3;
+      /* 이간 낙폭: 굴림 0(=성공, 기본 12) — 좌절이면 ×1.5. 실제 D.plot 으로 건다 */
+      var enemy = null;
+      Object.keys(st.cities).forEach(function (k) { if (!enemy && st.cities[k].force && st.cities[k].force !== 'cao' && D.touching('cao', k)) { enemy = k; } });
+      var eforce = st.cities[enemy].force;
+      var tg = off.atCity(enemy, eforce).filter(function (h) { return h.id !== FD.force(eforce).lord; })[0];
+      var ta = off.ambOf(tg.id), tr = off.rec(tg.id), by = off.ofForce('cao')[0];
+      var expNorm = Math.round(12 * off.traitMul(tg.id, 'discorded'));
+      var expFrus = Math.round(12 * off.traitMul(tg.id, 'discorded') * 1.5);
+      function hit() {
+        tr.loyal = 90; off.rec(by.id).done = false; R.myForce().gold = 5000;
+        stubRandom(0, function () { return D.plot('discord', by.id, enemy, tg.id); });
+        return tr.loyal;
+      }
+      ta.failMonths = 0; ta.done = false;
+      var norm = hit();
+      ta.failMonths = 12;
+      var frus = hit();
+      R.setup('cao');
+      return fr && firstDrop > 0 && steady && norm === 90 - expNorm && frus === 90 - expFrus && expFrus >= expNorm &&
+        ('좌절 후 충성 ' + l[firstDrop - 1] + '→' + l[firstDrop] + '… 매달 -3 · 이간 낙폭 ' + expNorm + ' → ' + expFrus);
+    });
+
+    t('특성·야망 — 화면: 무장 카드에 특성 배지 둘과 야망 한 줄이 뜨고, 등용 화면에도 특성이 보인다', function () {
+      R.setup('cao', '194');
+      DG.ui.openSheet('officers');
+      var cards = document.querySelectorAll('#sheet-body .offcard');
+      var withTraits = 0, withAmb = 0, lords = 0;
+      Array.prototype.forEach.call(cards, function (c) {
+        if (c.querySelectorAll('.tag.trait').length === 2) { withTraits++; }
+        if (c.querySelector('.rstat.amb')) { withAmb++; }
+        if (c.textContent.indexOf('군주') >= 0 && !c.querySelector('.rstat.amb')) { lords++; }
+      });
+      DG.ui.closeSheet();
+      R.setup('cao');
+      return cards.length >= 3 && withTraits === cards.length && withAmb + lords === cards.length && lords >= 1 &&
+        ('무장 카드 ' + cards.length + '장 — 특성 배지 둘 ' + withTraits + ' · 야망 줄 ' + withAmb + ' · 군주 ' + lords);
+    });
+
+    t('특성·야망 — 옛 세이브(야망 칸 없음)도 안 터지고 60달 뒤에도 값이 유한하다', function () {
+      R.setup('cao', '194');
+      var st = R.state(), threw = false, bad = 0, i;
+      Object.keys(st.officers).forEach(function (k) { delete st.officers[k].amb; delete st.officers[k].ambBonus; });
+      try {
+        for (i = 0; i < 40 && R.endMonth(); i++) { /* 판이 닫히면 멈춘다 */ }
+        Object.keys(st.officers).forEach(function (k) {
+          var s = off.stats(k), l = off.loyalOf(k);
+          if (!(isFinite(s.might) && isFinite(s.wisdom) && isFinite(s.command)) || !(l >= 0 && l <= 100)) { bad++; }
+        });
+      } catch (e) { threw = true; }
+      R.setup('cao');
+      return !threw && bad === 0 && ('칸 없이 40달 진행 · 능력·충성 이상 0');
+    });
+
     /* ── 폰에서 손이 닿는가 ──────────────────────────── */
 
     t('출진은 카드로 묻는다 — prompt 를 쓰지 않는다', function () {
