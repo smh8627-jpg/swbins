@@ -90,7 +90,9 @@ namespace Saga.Story.Data
         /// StorySaveState.cs 참고, 다음 켤 때도 금방 다시 차므로 무해).</summary>
         public static float Mp { get; private set; } = MpMax;
 
-        public static void TickMpRegen(float dt) => Mp = Mathf.Min(MpMaxCurrent, Mp + MpRegenPerSec * dt);
+        /// <summary>101-2 5-3 "비경" — `StoryLabyrinthState.MpRegenMul`은
+        /// 회차 밖에선 항상 1이라 평소엔 원문 그대로 돈다.</summary>
+        public static void TickMpRegen(float dt) => Mp = Mathf.Min(MpMaxCurrent, Mp + MpRegenPerSec * StoryLabyrinthState.MpRegenMul * dt);
 
         public static bool TrySpendMp(float cost)
         {
@@ -105,10 +107,12 @@ namespace Saga.Story.Data
 
         private static bool _hitstopActive;
 
-        /// <summary>side.js hit(): atk*(mul||1)*(0.88~1.12)*(crit?1.6:1).</summary>
+        /// <summary>side.js hit(): atk*(mul||1)*(0.88~1.12)*(crit?1.6:1).
+        /// PLAN.md 101-2 STORY "5-3 비경" — `StoryLabyrinthState.CritRateBonus`는
+        /// 회차 밖에선 항상 0이라 이 함수는 평소엔 원문 그대로 돈다.</summary>
         public static (float dmg, bool crit) RollDamage(float atk, float mul = 1f)
         {
-            bool crit = Random.value < CritRate;
+            bool crit = Random.value < CritRate + StoryLabyrinthState.CritRateBonus;
             float variance = 0.88f + Random.value * 0.24f;
             float dmg = atk * mul * variance * (crit ? CritMul : 1f);
             return (dmg, crit);

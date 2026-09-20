@@ -54,6 +54,19 @@ namespace Saga.Story.UI
                     Mathf.Max(0f, champion.ChampionTimeLeft), shield);
                 label.text += $"\n{timer}";
             }
+
+            // PLAN.md 101-2 5-3 "비경" — 회차 중일 때만 층수+(전투 노드
+            // 진행 중이면) 제한시간을 얹는다.
+            if (StoryLabyrinthState.InRun)
+            {
+                string floorLine = string.Format(StoryLocalization.T("labyrinth.floor_hud", "🌀 비경 {0}층"), StoryLabyrinthState.Floor);
+                var runner = StoryLabyrinthRunner.Instance;
+                if (runner != null && runner.NodeActive)
+                {
+                    floorLine += " " + string.Format(StoryLocalization.T("labyrinth.timer_hud", "— {0:0}초"), Mathf.Max(0f, runner.NodeTimeLeft));
+                }
+                label.text += $"\n{floorLine}";
+            }
         }
     }
 }

@@ -61,6 +61,13 @@ namespace Saga.Story.Data
             // 버전을 안 올린다 — 없는 필드는 JsonUtility가 0으로 채워
             // 옛 세이브도 "아직 안 받음"으로 시작한다.
             public int championWeek;
+            // 101-2 5-3 "비경"(2026-09-20) — 회차 진행 자체는 메모리만
+            // 두지만(StoryLabyrinthState.cs 클래스 주석) 확정된 기억
+            // 조각·영구 강화 단수는 championWeek와 같은 이유로 버전을
+            // 안 올린다 — 없는 필드는 0으로 채워져 옛 세이브도 "기억
+            // 조각 0·강화 0단"으로 무해하게 시작한다.
+            public int memoryShards;
+            public int memoryTier;
         }
 
         public static bool Save()
@@ -82,6 +89,8 @@ namespace Saga.Story.Data
                 exp = StoryJobState.Exp,
                 job = StoryJobState.Job,
                 championWeek = _championWeek,
+                memoryShards = StoryLabyrinthState.MemoryShards,
+                memoryTier = StoryLabyrinthState.MemoryTier,
             };
 
             try
@@ -117,6 +126,7 @@ namespace Saga.Story.Data
             StoryNpcState.Restore(data.scoutTalkCount, data.choiceMade);
             StoryJobState.Restore(data.level, data.exp, data.job);
             _championWeek = data.championWeek;
+            StoryLabyrinthState.Restore(data.memoryShards, data.memoryTier);
 
             Transform player = FindPlayer();
             if (player != null && data.playerPos != null && data.playerPos.Length == 3)

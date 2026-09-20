@@ -8025,3 +8025,29 @@ godot STORY(`story_boss_spawner.gd`/`story_enemy.gd`, HISTORY 2026-09-17 실기 
 `tools/unity-batch.sh`로 컴파일(오류 0) → `PlaytestStorySlice.Run` 3연속 OK(신규 챔피언 검증 포함, 히트 수 18~20회로 안정적). 배치 모드 부작용 4파일은 스크립트가 자동 원복.
 
 다음 후보: STORY 5-3(비경, godot `story_labyrinth.gd` 코드 완료 — 5층 노드 지도+진입 축복 3택+기억 조각, 이 트랙엔 죽음 시스템이 없어 "패퇴" 재해석 필요) 또는 GO⑤(모바일 빌드 뒤)·DUNGEON5.7(웹 선행 뒤)·FOREST5.6/5.7(승인 사례 없음).
+
+## 2026-09-20 — STORY 5-3 "비경" 구현, 101-2 STORY 후보 전부 소진 ("사가 유니티 이어해" 세션, STORY 5-4 다음)
+
+godot STORY(`story_labyrinth.gd`, HISTORY 2026-09-18 실기 승인)의 재해석을 이어 옮겼다. 웹판 `saga-story/PLAN.md` §5-3 "비경(祕境) — 경로 선택 미니던전 + 진입 축복 3택 + 기억 조각"(웹 자신도 아직 미착수, §8 로드맵 Phase 3)이 원안 — "5층 노드 지도(전투·정예·보물·휴식·사건), 진입/정예 처치 후 축복 3택(도감 인물 서명 효과 대여), 죽으면 나가고 기억 조각만 남음, 영구 강화(최대 HP +2%×10단)".
+
+**재해석 셋, 전부 godot 선례를 그대로 이었다**:
+1. **축복** — 이 트랙엔 인물 로스터가 없다(`StoryCombat.cs` StartAtk 주석 — 웹판도 "인물 미선택 대체값"으로 시작). godot과 같은 결로 이 판에 실제 있는 채널(공격/방어/유틸 3축, 9종)로 다시 짰다. godot은 뽑은 뒤 축 중복을 검사하지만, 이 포트는 **축마다 하나씩 뽑는 구조**(`StoryLabyrinthMapUi.ShowBlessingPick`이 `AxisPools` 3개를 순서대로 돈다)로 짜서 애초에 중복이 생길 수 없다 — 진단 항목 하나를 구조 자체로 해치웠다.
+2. **죽음** — 이 트랙 플레이어는 피격당하지 않는다(`StoryCombat.cs` StartHp 주석 "이 슬라이스는 플레이어가 안 맞아 미사용", `StoryJobTrainer.cs`도 "체력 상한이 어디에도 안 쓰인다"고 명시). HP 기반 죽음 자체가 없어, 이 비경의 진짜 위협인 **노드 제한시간**(전투 50s·정예 60s·보스 90s, PLAN 원안 "층당 전투 40~60s 목표"를 강제 실패 조건으로 승격)을 대신 세웠다. 시간 안에 못 끝내면 회차가 끝난다(이미 확정된 기억 조각은 유지 — 아래 "저장" 참고).
+3. **실행 방식** — godot은 완전히 새 3D 씬(`StoryLabyrinth.tscn`)에 5층 발판 지도를 짓지만, 이 트랙은 필드 전체가 고정 좌표(`FieldMapData`) 기반이고 `StoryTerrainBuilder.BuildBoundaryWalls()`가 필드 폭(-0.5~44.5)만 막는 게 아니라 그 **경계벽이 물리적으로 벗어날 수 없게 막아** 새 구역을 끼워 넣을 자리가 없다(음의 X로 걸어 나가려던 첫 시도가 벽에 막혀 확인, 아래 "설계 확인" 참고). 노드 지도 자체는 **풀스크린 UI**(`StoryLabyrinthMapUi`, 슬레이 더 스파이어 식)로 다루고, 전투가 필요한 노드(전투·정예·보스)만 필드 밖 멀리(x=1000~) 지어 둔 **전용 아레나**(`StoryLabyrinthRunner.BuildArena()`, 바닥+양쪽 벽뿐인 primitive)로 순간이동시켜 실제 `StoryEnemy`를 스폰해 싸운다(보물·휴식·사건은 자리 이동 없이 즉시 판정). 판정 엔진은 필드와 완전히 같은 `StoryEnemy`/`StoryCombat`을 그대로 재사용한다(웹판 "판정은 side.js 사냥터 엔진 재사용"과 같은 정신).
+
+**영구 강화** — 원안 "최대 HP +2%×10단"은 위 2번과 같은 이유로 적용 축이 없다. 실제로 쓰이는 채널인 공격력(`StoryCombat.StartAtk`)에 얹는다(`StoryLabyrinthData.MemoryAtkBonusPerTier = StartAtk*0.02`, `StoryLabyrinthState.MemoryAtkBonus = MemoryTier * 그 값`).
+
+**새 파일**: `StoryLabyrinthData.cs`(BLESSINGS 9종 3축·NodeType 5+Boss·주간 변형자 3종·`GenerateFloors(seed)` — `System.Random` 시드 고정, 1~4층 각 2~3개 노드), `StoryLabyrinthState.cs`(정적 상태 — 영구는 기억 조각·강화 단수만, 회차 진행은 메모리만), `StoryLabyrinthRunner.cs`(아레나 빌드·노드 진입/판정·제한시간 틱), `StoryLabyrinthGate.cs`(문, `StoryChoiceUi` 재사용 — 새 2택 UI를 안 만듦), `StoryLabyrinthMapUi.cs`(노드 지도+은사 3택, `StoryJobChoiceUi`와 같은 결로 자기 UI를 스스로 짓는다).
+
+**기존 파일 6곳 배율 합류**(godot `story_player.gd` 6곳과 같은 규모) — `StoryPlayerController.CurrentAtk`(AtkMul+MemoryAtkBonus)·`TryAttack/TrySweep/TryBolt/TryBrace`의 쿨다운(×CooldownMul)·`Walk()`의 runSpeed(×MoveSpeedMul)·`StoryCombat.RollDamage`의 crit rate(+CritRateBonus)·`StoryCombat.TickMpRegen`의 회복량(×MpRegenMul). 회차 밖에서는 전부 중립값(1/0)이라 평소 필드 전투는 원문 그대로 돈다. `StoryEnemy.cs`엔 `isLabyrinthEnemy` 플래그(+`ApplyLabyrinthHpMul()`) 추가 — 아레나 개체가 필드 사명(`StoryQuestState`)·정상 경험치 지급 경로를 안 타게 막는다(Runner가 노드 종류별 정확한 총량을 한 번에 준다).
+
+**세이브**(`StorySaveState.cs`) — `memoryShards`/`memoryTier` 두 필드만(championWeek와 같은 이유로 SAVE_VERSION 안 올림). **재해석 — 세이브 범위**: 웹판/godot은 진행 중 회차(층·경로·축복)까지 세이브에 넣지만, 이 트랙은 `StoryCombat.Mp`(세션 중요치 아님)와 같은 선례를 따라 **회차 진행은 메모리만** — 앱을 끄면 그 회차는 사라진다(이미 확정된 기억 조각·영구강화 단수만 남는다). 웹판보다 좁힌 결정이지만 이 트랙의 기존 "세션 상태 vs 영구 상태" 경계와 일치시켰다.
+
+**헤드리스 진단 중 실제 버그 둘 발견·수정**(`PlaytestStorySlice.cs`에 `LabyrinthTest` 단계 신설, `ExitRope`→`LabyrinthTest`→`SaveLoad` 순, 지도 결정성·축복 축 구조·노드 5종(실 UI 클릭 포함)·전투/정예 아레나 처치·제한시간 실패·재기(再起)·맵 UI 버튼으로 1~5층 실제 완주·영구 강화 10단 상한·세이브 round-trip까지 검증하며 잡음):
+1. `StoryLabyrinthMapUi.Instance`가 `Build()`(에디터 전용, 런타임 재호출 없음)에서만 채워져 있어 `StoryJobChoiceUi.cs`와 똑같은 함정(도메인 리로드 이후 실제 플레이 세션엔 null로 남는다 — `StoryChoiceUi`/`StoryCameraFollow`처럼 `Awake()`에서도 채워야 함)을 그대로 반복할 뻔했다. 첫 헤드리스 실행에서 `runner=True mapUi=False`로 바로 걸려 `Awake() => Instance = this;`를 추가해 고쳤다 — 고치지 않았다면 실제 게임에서 문에 다가가도 은사 카드/노드 지도가 영원히 안 떴을 것이다(치명적이었을 버그).
+2. `StoryLabyrinthMapUi.ClearChildren()`이 `Destroy()`(프레임 끝 지연, `StoryEnemy.IsDead` 클래스 주석과 같은 함정)를 써서, 같은 프레임에 은사 패널을 연달아 다시 그리면(정예 처치 직후 은사 뽑고 곧바로 다음 회차 진입 은사를 또 뽑는 내 진단이 실제로 이 경로를 밟았다) 이전 버튼이 안 지워진 채 쌓였다(3개여야 할 버튼이 6개) — `DestroyImmediate`로 고침.
+3. (설계 확인, 버그 아님) ExitRope의 `Move(10,0,0)` 스윕이 낸 `OnTriggerExit`는 물리 스텝에서 비동기 처리되는데(원래 `SaveLoad` 첫 줄의 실시간 0.2초 대기가 이걸 기다린다), 새 `LabyrinthTest` 단계가 그 대기 없이 곧바로 CharacterController를 또 disable/enable(비경 순간이동)하면 대기 중이던 로프 트리거 상태가 꼬였다 — `LabyrinthTest` 첫 줄에도 같은 실시간 대기를 넣어 해결(경위는 CLAUDE.md 없음, 이 절이 유일한 기록).
+
+`tools/unity-batch.sh`로 컴파일(오류 0) → `BuildTestStoryScene` 재빌드 → `PlaytestStorySlice.Run` 3연속 OK. 배치 모드 부작용 4파일은 스크립트가 자동 원복.
+
+**101-2 STORY 후보 전부 소진** — 5-1·5-3·5-4·5-5·5-7 다 완료, 남은 건 5-2(웹·godot 둘 다 미확정이라 보류)·5-8(파티 시스템 자체가 없어 재검토 필요)뿐. 다음 후보: GO⑤(모바일 빌드 뒤)·DUNGEON5.7(웹 선행 뒤)·FOREST5.6/5.7(승인 사례 없음).

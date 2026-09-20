@@ -46,6 +46,25 @@ namespace Saga.Story.World
         [SerializeField] private float riggedBossVisualScale = 1f;
         [SerializeField] private bool isBoss;
 
+        // ── 101-2 5-3 "비경"(2026-09-20) ──────────────────────────
+        // `StoryLabyrinthRunner.cs`가 아레나에 스폰하는 개체 전용 표시.
+        // 이 플래그가 있으면 Die()가 사명(StoryQuestState)·경험치 지급을
+        // 안 한다 — 필드 사명("첫 사냥"·"두목의 목")과 섞이면 안 되고
+        // (아레나 잡졸을 필드 잡졸로 잘못 세면 안 됨), 경험치는 Runner가
+        // 노드 종류별로 한 번에 정확한 총량을 준다(잡졸 여럿을 각자
+        // Die()가 중복으로 주면 노드 보상표와 안 맞는다).
+        [SerializeField] private bool isLabyrinthEnemy;
+        public void SetLabyrinthEnemy(bool value) => isLabyrinthEnemy = value;
+
+        /// <summary>StoryLabyrinthRunner 전용 — Awake() 뒤(스폰 직후) HP에
+        /// 배율을 곱한다(정예 2배·주간 변형자 등). 관문 대장(챔피언)과는
+        /// 완전히 별개 축이라 챔피언 필드는 안 건드린다.</summary>
+        public void ApplyLabyrinthHpMul(float mul)
+        {
+            if (mul == 1f) return;
+            _hp *= mul;
+        }
+
         // 2026-09-14 "사운드" — StoryAudio.cs 클래스 주석 참고. 이 컴포넌트
         // 하나가 잡졸·두목 공통이라(SetBoss로만 갈린다) 클립도 공용 한 벌.
         [SerializeField] private AudioClip hitClip;
@@ -254,15 +273,18 @@ namespace Saga.Story.World
             if (ActiveChampion == this) ActiveChampion = null;
             StoryAudio.PlaySfx(deathClip);
             StoryLootMarker.Spawn(transform.position); // PLAN.md 101-3 F "죽음" — Destroy 전에, transform이 아직 유효할 때.
-            StoryQuestState.AddKill();
-            if (isBoss) StoryQuestState.AddBossKill();
-            float expMul = _isChampion ? ChampionExpMul : 1f;
-            StoryJobState.GainExp((isBoss ? StoryCombat.BossExp : StoryCombat.GruntExp) * expMul);
-            if (_isChampion)
+            if (!isLabyrinthEnemy)
             {
-                StorySaveState.ClaimChampion();
-                DialogueLabel.Instance?.Show(
-                    string.Format(StoryLocalization.T("gatechampion.claimed", "🚪 관문 대장 처치! 경험치 ×{0:0} — 다음 주에 다시 나타난다"), ChampionExpMul), 4f);
+                StoryQuestState.AddKill();
+                if (isBoss) StoryQuestState.AddBossKill();
+                float expMul = _isChampion ? ChampionExpMul : 1f;
+                StoryJobState.GainExp((isBoss ? StoryCombat.BossExp : StoryCombat.GruntExp) * expMul);
+                if (_isChampion)
+                {
+                    StorySaveState.ClaimChampion();
+                    DialogueLabel.Instance?.Show(
+                        string.Format(StoryLocalization.T("gatechampion.claimed", "🚪 관문 대장 처치! 경험치 ×{0:0} — 다음 주에 다시 나타난다"), ChampionExpMul), 4f);
+                }
             }
             Destroy(gameObject);
         }

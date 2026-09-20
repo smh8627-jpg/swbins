@@ -51,9 +51,11 @@ namespace Saga.EditorTools
             BuildLighting();
             BuildTerrain();
             BuildEnemies();
+            BuildLabyrinthRunner();
             BuildNpc();
             BuildJobTrainer();
             BuildDiscovery();
+            BuildLabyrinthGate();
             var (playerGo, playerController) = BuildPlayer();
             BuildCamera();
             BuildPostProcessingVolume();
@@ -62,6 +64,7 @@ namespace Saga.EditorTools
             BuildDialogueLabel();
             BuildChoiceUi();
             BuildJobChoiceUi();
+            BuildLabyrinthUi();
             BuildDebugOverlay();
             BuildSaveButton();
             BuildSettingsUi();
@@ -180,6 +183,59 @@ namespace Saga.EditorTools
                 SetPrivateField(spawner, "riggedBossVisualScale", BossTargetHeight / BruteNativeHeight);
             }
             spawner.Build();
+        }
+
+        /// <summary>PLAN.md 101-2 STORY "5-3 비경" 실행기 — 아레나 잡졸/보스도
+        /// 필드와 같은 배역(Abe/Brute, 없으면 character-d)을 그대로
+        /// 쓴다(BuildEnemies()와 같은 자산, 새 다운로드 없음).</summary>
+        private static void BuildLabyrinthRunner()
+        {
+            var go = new GameObject("StoryLabyrinthRunner");
+            var runner = go.AddComponent<StoryLabyrinthRunner>();
+
+            var hitClip = AssetDatabase.LoadAssetAtPath<AudioClip>(HitClipPath);
+            var deathClip = AssetDatabase.LoadAssetAtPath<AudioClip>(DeathClipPath);
+            if (hitClip != null) SetPrivateField(runner, "hitClip", hitClip);
+            if (deathClip != null) SetPrivateField(runner, "deathClip", deathClip);
+
+            var abe = AssetDatabase.LoadAssetAtPath<GameObject>(AbeAnimatedPrefabPath);
+            var brute = AssetDatabase.LoadAssetAtPath<GameObject>(BruteAnimatedPrefabPath);
+            if (abe != null)
+            {
+                SetPrivateField(runner, "gruntModelPrefab", abe);
+                SetPrivateField(runner, "riggedVisualScale", GruntTargetHeight / AbeNativeHeight);
+            }
+            else
+            {
+                SetPrivateField(runner, "gruntModelPrefab", _characterD);
+            }
+            if (brute != null)
+            {
+                SetPrivateField(runner, "bossModelPrefab", brute);
+                SetPrivateField(runner, "riggedBossVisualScale", BossTargetHeight / BruteNativeHeight);
+            }
+        }
+
+        /// <summary>PLAN.md 101-2 STORY "5-3 비경" 입구 — 필드가 이미
+        /// 빽빽해서(잡졸 열 자리·발판 다섯·NPC 둘) 겹치지 않는 자리가
+        /// 없다 — 척후병(0.6m)·플레이어 스폰(2m) 사이에 끼워 넣는다
+        /// (다른 트리거와 반경이 겹쳐도 각자 독립으로 반응해 무해하다,
+        /// 척후병 자신도 스폰 반경과 겹치는 게 기존 동작이다).</summary>
+        private static void BuildLabyrinthGate()
+        {
+            var gateGo = new GameObject("Gate_Labyrinth");
+            gateGo.transform.position = new Vector3(1.4f, 0.1f, 0f);
+            gateGo.AddComponent<StoryLabyrinthGate>();
+        }
+
+        /// <summary>PLAN.md 101-2 STORY "5-3 비경" — `StoryLabyrinthMapUi.cs`가
+        /// 자기 UI를 스스로 짓는 컴포넌트(StoryJobChoiceUi와 같은 결)라
+        /// Build() 한 번만 부르면 끝난다.</summary>
+        private static void BuildLabyrinthUi()
+        {
+            var go = new GameObject("StoryLabyrinthMapUI");
+            var ui = go.AddComponent<StoryLabyrinthMapUi>();
+            ui.Build();
         }
 
         private const string VillagerModelPath = "Assets/Art/Characters/character-b.glb"; // GO/FOREST 주민 배역과 같은 모델(StoryNpc.cs 클래스 주석 참고).

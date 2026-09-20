@@ -59,8 +59,12 @@ namespace Saga.Story.Player
 
         /// <summary>side.js buffOn().atk와 같은 자리 — 기합이 켜져 있으면
         /// 연참·횡소·기탄 전부 이 값으로 굴린다. 2026-09-15 — 전직으로
-        /// 얻은 grow.atk(StoryJobState.AtkBonus)를 기초값 위에 얹는다.</summary>
-        private float CurrentAtk => (StoryCombat.StartAtk + StoryJobState.AtkBonus) * (BuffActive ? StoryCombat.BraceAtkMul : 1f);
+        /// 얻은 grow.atk(StoryJobState.AtkBonus)를 기초값 위에 얹는다.
+        /// 101-2 5-3 "비경"(2026-09-20) — 영구 강화(StoryLabyrinthState.
+        /// MemoryAtkBonus, 기억 조각으로 산 것 — 평소에도 적용)와 회차
+        /// 중 공격 축복(AtkMul, 회차 밖엔 항상 1)을 더 얹는다.</summary>
+        private float CurrentAtk => (StoryCombat.StartAtk + StoryJobState.AtkBonus + StoryLabyrinthState.MemoryAtkBonus)
+            * (BuffActive ? StoryCombat.BraceAtkMul : 1f) * StoryLabyrinthState.AtkMul;
 
         private void Awake()
         {
@@ -124,7 +128,7 @@ namespace Saga.Story.Player
         private void TryAttack()
         {
             if (_attackCooldownLeft > 0f) return;
-            _attackCooldownLeft = AttackCooldown;
+            _attackCooldownLeft = AttackCooldown * StoryLabyrinthState.CooldownMul;
             PlayAttackAnim();
 
             bool hitAny = false;
@@ -150,7 +154,7 @@ namespace Saga.Story.Player
         private void TrySweep()
         {
             if (_sweepCooldownLeft > 0f || !StoryCombat.TrySpendMp(StoryCombat.SweepCost)) return;
-            _sweepCooldownLeft = StoryCombat.SweepCooldown;
+            _sweepCooldownLeft = StoryCombat.SweepCooldown * StoryLabyrinthState.CooldownMul;
             PlayAttackAnim();
 
             bool hitAny = false;
@@ -190,7 +194,7 @@ namespace Saga.Story.Player
         private void TryBolt()
         {
             if (_boltCooldownLeft > 0f || !StoryCombat.TrySpendMp(StoryCombat.BoltCost)) return;
-            _boltCooldownLeft = StoryCombat.BoltCooldown;
+            _boltCooldownLeft = StoryCombat.BoltCooldown * StoryLabyrinthState.CooldownMul;
             PlayAttackAnim();
 
             var go = new GameObject("StoryBolt");
@@ -204,7 +208,7 @@ namespace Saga.Story.Player
         private void TryBrace()
         {
             if (_braceCooldownLeft > 0f || !StoryCombat.TrySpendMp(StoryCombat.BraceCost)) return;
-            _braceCooldownLeft = StoryCombat.BraceCooldown;
+            _braceCooldownLeft = StoryCombat.BraceCooldown * StoryLabyrinthState.CooldownMul;
             _buffUntilTime = Time.time + StoryCombat.BraceSeconds;
         }
 
@@ -226,7 +230,7 @@ namespace Saga.Story.Player
                 }
             }
 
-            float runSpeed = RunSpeed * (BuffActive ? StoryCombat.BraceSpeedMul : 1f);
+            float runSpeed = RunSpeed * (BuffActive ? StoryCombat.BraceSpeedMul : 1f) * StoryLabyrinthState.MoveSpeedMul;
             var move = new Vector3(axis * runSpeed, _verticalVelocity, 0f);
             _controller.Move(move * dt);
 
