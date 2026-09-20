@@ -7704,3 +7704,11 @@ PROJECT_STATE.md` 참고. 요약:
 - 샘플 18장(6종×3장)을 `saga-godot/assets/generated/tiles/`에 실제로 생성, 헤드리스 임포트 오류 0(.import 18개). regress 재실행 — 다섯 대표 씬 md5 불변, `.import`/`project.godot` 잡음 없음.
 - **셰이더/씬 배선은 안 함** — 102-5(트라이플레이너 지형)는 여전히 실기 확인 전 보류 대상(§8-1). 이번은 도구+샘플 산출물까지만.
 - 103장 남은 것: spritegen.py·sfxgen.py.
+
+## 103 sfxgen.py 신설 (2026-09-20⑧, 같은 세션 이어서)
+
+- `tools/asset-forge/sfxgen.py` — `saga-web/saga-realm/js/sfx.js`(WebAudio 절차 사운드, 그 파일이 밝히듯 원본은 saga-dungeon js/sfx.js)의 tone/noise/chime 합성·지수 엔벨로프를 numpy로 그대로 옮겼다. `saga_core/combat_feel.gd`의 `SOUND_CUE_COUNT=3`에 맞춰 hit/pick/ui 각 3종(라운드로빈용) 생성.
+- **ogg가 아니라 wav** — 이 PC에 vorbis 인코더(ffmpeg 등)가 없어(오프라인) 표준 라이브러리 `wave`(16bit PCM)로 대신했다. Godot 임포트엔 지장 없음. PLAN.md 103-1 받는 자리 표에 반영.
+- 샘플 9개(hit×3·pick×3·ui×3)를 `assets/generated/sfx/`에 생성 — 재생 미리듣기로 클리핑·무음 없음 확인(peak 0.2~0.6, RMS 0.04~0.09), 헤드리스 임포트 오류 0. regress 재실행 — md5 불변, 잡음 없음.
+- **`combat_feel.gd`의 `sound_triggered` 신호에 실제로 연결(AudioStreamPlayer3D)하는 배선은 안 함** — §8-1(실기 확인 전 새 콘텐츠 보류). 다음 단계로 남김.
+- 103장 남은 것: spritegen.py 하나뿐(SVG 아이콘 소스가 아직 없어 우선순위 낮음).

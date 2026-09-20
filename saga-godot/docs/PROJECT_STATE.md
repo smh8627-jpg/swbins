@@ -15,11 +15,11 @@
 
 **공통(saga_core)**: `data/characters.gd`(인물 105, id 불변)·`data/pets.gd`(신수 11) · `ui/toast.gd`·`ui/virtual_joystick.gd`·`ui/goal_board.gd`+`ui/session_card.gd`(101-4, 목표판 3줄·마무리 카드, 다섯 판 전부 붙음)·`ui/duel_hud.gd` · `combat_feel.gd`(101-3, 다섯 판 끝 — GO/DUNGEON/STORY `hit()`·FOREST `pickup()`·REALM 대상없음) · `world/world_curve_material.gd`+`shaders/curved_*`(FOREST 구면) · `world/density_report.gd`(104-5, 발견 밀도, FOREST는 반경 10m) · `shaders/cel_toon.gdshader`+`cel_shader_apply.gd`(66-2/102-3, hit_flash+아웃라인 next_pass 자동) · `world/glb_utils.gd::fit_height()`(102-1, 여전히 미호출). 렌더러 Forward+/Mobile 이중(66-1, `env_pc.tres`·`env_mobile.tres`, 102-2 값).
 
-## 현재 작업 — 중단 지점(09-20⑦, 다음 세션 이어서)
+## 현재 작업 — 중단 지점(09-20⑧, 다음 세션 이어서)
 
 - **DUNGEON VRoid·Torch 조명·GO 발견 밀도·죽은 코드 재감사(09-20④⑤) 완료.**
 - **104 재점검**(09-20⑥) — regress 재통과(md5 불변)·세이브 버전 5판 `_migrate` 확인·ChoicePrompt 클로저 39개 재전수(안전).
-- **103 procgen.py+tilegen.py 신설**(09-20⑥⑦) — 소품 4종(rock·stele·fence·wall)+지형 타일 6종(시임리스 베이스+노멀+러프니스). 샘플 임포트 오류 0. **씬·셰이더 배선 아직**(§8-1 보류).
+- **103 procgen+tilegen+sfxgen 신설**(09-20⑥⑦⑧) — 소품 4종·타일 6종(시임리스)·hit/pick/ui 사운드 각 3종(wav, ogg 인코더 없어 대신). 임포트 오류 0. **배선 전부 아직**(§8-1).
 - 102 개편은 여전히 안 건드림(헤드리스 확인 불가). STORY는 AvatarSample_A 임시.
 
 ## 다음 작업 (우선순위)
@@ -27,7 +27,7 @@
 1. **사용자 실기·색감 확인**(아래 목록).
 2. **102 그래픽 개편** — 사람이 값을 봐 가며 잡을 것.
 3. **STORY 전용 VRoid**(사람이 조형 몫).
-4. **procgen/tilegen 배치 판단** — 실기 확인 뒤 결정. 103 나머지(spritegen·sfxgen)는 아직.
+4. **procgen/tilegen/sfxgen 배치 판단** — 실기 확인 뒤 결정. 103 나머지는 spritegen 하나(SVG 소스 없어 후순위).
 5. **"시대 퓨전" 팔레트** — 소품 없어 보류.
 
 ## 알려진 오류
