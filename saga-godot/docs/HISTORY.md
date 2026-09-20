@@ -7830,3 +7830,13 @@ PROJECT_STATE.md` 참고. 요약:
 - 헤드리스 실측: `test_village.gd`에 `SAGA_SOUND_DEBUG` 훅으로 `CombatFeel.ui()`×2 강제 호출 → `DEBUG_SOUND_OK` 확인 후 훅 제거(09-20㉒와 같은 방식). 스크립트 에러 없음.
 - `godot_regress.sh` 재실행 — 다섯 대표 씬 md5 완전 불변(session_card 는 이 씬들에서 안 불려 당연), `.import`/`project.godot` 잡음 없음.
 - 실기 확인 목록에 "세션 카드 닫기 UI 사운드 체감" 추가(PROJECT_STATE "공통").
+
+## GO "부위 파괴" — 결정 뒤집힘+구현 (2026-09-21, 같은 세션, "커밋 푸시하고 이어해")
+
+- UI 사운드 배선 뒤 §8-1 후보가 더 안 보여, saga-godot §8-1 자체를 늘릴지 사용자에게 직접 물어 허가받았다.
+- 유일한 미구현 결정 "GO 75초 토벌 부위 조준"(2026-09-20, Target 버튼 순환)을 다시 보니, 웹판 실제 구현(`saga-web/saga-go/PLAN.md` §5-③ "구현(2026-09-17)")과 다른 새 설계였다 — 웹은 조준 UI 없이 기세를 25/50/75% 누적 문턱으로 읽어 파괴마다 스태거만 강제한다.
+- "새로 설계하지 않는다" 원칙대로 웹의 실제 방식을 그대로 포팅. `duel_rules.gd`에 `is_raid` 플래그+`STAGGER_THRESHOLDS`+`_check_stagger()` 신설, `act()` quick/ult 양쪽에서 문턱 통과마다 카운트. `bandit_encounter.gd`에 `@export is_raid`(기본 false, 기존 4개 인스턴스 안 바뀜)+`stagger_exp_reward` 추가, "도적 두목"만 `TestVillage.tscn`에서 `is_raid = true`로 켬. 스태거 시 화면 플래시+토스트("자세가 무너졌다")+경험치 지급(웹의 재료 "단사" 대체, 3D GO엔 그 자원이 없어서).
+- 헤드리스 실측: `test_village.gd`에 `SAGA_STAGGER_DEBUG` 임시 훅으로 raid duel(`is_raid=true`) 60틱 시뮬레이션 → `staggers=3 cleared=true`, normal duel → `staggers=0` 확인 후 훅 제거(같은 절차, 매번 확인 뒤 제거).
+- `godot_regress.sh` 재실행 — 다섯 대표 씬 md5 완전 불변(전투는 유저 입력으로만 시작돼 부팅 5초 안엔 안 걸림), `.import`/`project.godot` 잡음 없음.
+- `PLAN.md` 101-2 GO⑥ 결정 문단을 새 결론으로 갱신(날짜 세션기록이 아니라 "결정이 바뀌었을 때"에 해당).
+- 실기 확인 목록에 "도적 두목 부위 파괴 스태거 3회 체감" 추가.

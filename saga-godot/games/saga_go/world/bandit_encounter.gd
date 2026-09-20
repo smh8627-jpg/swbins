@@ -59,6 +59,13 @@ const TOAST_SEC := 4.0
 ## 산적·도적 두목·늑대 무리·정찰병 넷은 하나도 안 바뀐다).
 @export var time_sec := DuelRules.TIME_SEC
 
+## 2026-09-21 — PLAN.md 101-2 GO ⑥"부위 파괴"(duel_rules.gd 헤더 참고).
+## "토벌" 대상만 켠다(웹의 create({raid:true})와 같은 자리, 기본 false라
+## 기존 넷은 안 바뀐다). 웹의 보상 "단사"(재료)는 3D GO 경제에 없어
+## 경험치로 대체 — 한 번 스태거마다 stagger_exp_reward만큼 즉시 지급.
+@export var is_raid := false
+@export var stagger_exp_reward := 10.0
+
 ## 물리친 적이 부대에 등용될 때 PartyState에 남기는 id. 아직 인물별
 ## 개성(saga_core 인물 데이터 연동)은 없다 — 이번 슬라이스는 "합류했다는
 ## 사실 자체"만 loop에 채운다.
@@ -101,6 +108,7 @@ enum State { IDLE, PROMPT, FIGHT, COOLDOWN }
 
 var _state := State.IDLE
 var _duel: DuelRules = null
+var _pre_stagger_count := 0
 var _cooldown_left := 0.0
 
 var _area: Area3D
@@ -320,7 +328,8 @@ func _build_combat_ui() -> void:
 func _start_fight() -> void:
 	_state = State.FIGHT
 	var foe_hp := maxf(1.0, roundf(foe_power * foe_hp_mul))
-	_duel = DuelRules.create(foe_hp, PartyState.atk, PartyState.def, time_sec)
+	_duel = DuelRules.create(foe_hp, PartyState.atk, PartyState.def, time_sec, is_raid)
+	_pre_stagger_count = 0
 	_combat_layer.show()
 	_refresh_combat_ui()
 
@@ -339,6 +348,12 @@ func _do_act(kind: String) -> void:
 			## 올려 hitstop 120ms(치명 값)를 빌려 쓴다 — 무게감 차이만
 			## 필요하지 실제 "치명타" 개념을 새로 두는 게 아니다.
 			CombatFeel.hit(_visual, float(r.get("dmg", 0.0)), true)
+		if r.get("stagger", false):
+			for i in _duel.stagger_count - _pre_stagger_count:
+				PartyState.add_exp(stagger_exp_reward)
+			_screen_flash(Color(1.0, 0.85, 0.2, 0.5))
+			_toast("💥 %s 자세가 무너졌다!" % foe_name)
+	_pre_stagger_count = _duel.stagger_count
 	_refresh_combat_ui()
 	if _duel.over:
 		_finish_fight()
