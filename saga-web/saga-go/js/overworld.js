@@ -134,6 +134,12 @@
         pois.push({ lat: bl[i2].lat, lng: bl[i2].lng,
           t: BC.lit(bl[i2].key) ? 'beacon-lit' : 'beacon', name: bl[i2].name });
       }
+      /* 발견한 비석은 어디 있든 진하게(48절: 발견한 것만) — 봉수대 반경의 미발견은 아래 revealedAll 이 흐릿하게 */
+      var STL = global.DG.stela;
+      if (STL) {
+        var fa = STL.foundAll();
+        for (i2 = 0; i2 < fa.length; i2++) { pois.push({ lat: fa[i2].lat, lng: fa[i2].lng, t: 'stele', name: '비석' }); }
+      }
       var rev = BC.revealedAll();
       for (i2 = 0; i2 < rev.length; i2++) {
         var rp = wl.worldToLatLng(rev[i2].x, rev[i2].y);
@@ -152,7 +158,9 @@
       'beacon-lit': { c: '#ff5a1e', r: 5 },
       station: { c: '#7fd0ff', r: 2.6 },
       fort: { c: '#c9a7ff', r: 2.6 },
-      shrine: { c: '#f0d878', r: 2.8 }
+      shrine: { c: '#f0d878', r: 2.8 },
+      stele: { c: '#d9d2c0', r: 2.4 },
+      'stele-faint': { c: 'rgba(217,210,192,.28)', r: 2.2 }
     };
 
     function px(pt) { return { x: ox + (pt.x + 1) / 2 * side, y: oy + (pt.y + 1) / 2 * side }; }

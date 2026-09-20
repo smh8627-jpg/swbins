@@ -106,6 +106,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/station.js"></script>
 <script src="js/beacon.js"></script>
 <script src="js/shrine.js"></script>
+<script src="js/stela.js"></script>
 <script src="js/event.js"></script>
 <script src="js/codex.js"></script>
 <script src="js/ambient.js"></script>
@@ -6230,12 +6231,14 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       return rolled && ('새 날짜 ' + s.date);
     });
 
-    t('일과 — 비석·사당(아직 없는 후보)은 안 뽑힌다', function () {
+    t('일과 — 사당(아직 없는 후보)은 안 뽑힌다(비석은 이제 뽑힌다)', function () {
       var bad = false;
       for (var i = 1; i <= 40; i++) {
         if (DG.daily.pickToday('probe-' + i).some(function (d) { return d.disabled; })) { bad = true; }
       }
-      return !bad && '40일 표본 — 비활성 후보 없음';
+      var hasStele = false;
+      for (var j = 1; j <= 60; j++) { if (DG.daily.pickToday('probe-' + j).some(function (d) { return d.key === 'stele'; })) { hasStele = true; } }
+      return !bad && hasStele && '40일 표본 — 비활성 후보 없음 · 60일 표본에 비석 일과가 든다';
     });
 
     t('일과 완료 — 진행이 차면 즉시 보상과 도장', function () {
@@ -6735,6 +6738,191 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       HR.stats(id); HR.breakdown(id); HR.rankUpCheck(id);
       var after = JSON.stringify(C.save);
       return before === after && '세이브 그대로';
+    });
+
+    /* ── 비석 순례(PLAN §5 ⑤, 2026-09-21) ────────────────────────
+     * 200m 격자·해시 12%·15m 발견·권역 열 = 초대장(천거장 `st:<권역>` 등급)·발견한 것만 지도에.
+     * 판정(전투력·능력치)에는 한 줄도 안 닿는다. 아직 실기(GPS) 확인 전.
+     */
+    /** 비석 진단이 만지는 세이브를 통째로 되돌리는 틀 */
+    function stelaKeep() {
+      var keys = ['stelae', 'stelaeInv', 'letters', 'codex', 'daily', 'dex', 'heroes', 'dust', 'items', 'party'];
+      var snap = {}; keys.forEach(function (k) { snap[k] = C.save[k] === undefined ? undefined : JSON.stringify(C.save[k]); });
+      var pl = JSON.parse(JSON.stringify(C.save.player)), px = C.save.player.pos.x, py = C.save.player.pos.y;
+      return function () {
+        keys.forEach(function (k) { C.save[k] = snap[k] === undefined ? undefined : JSON.parse(snap[k]); });
+        Object.keys(pl).forEach(function (k) { if (k !== 'pos') { C.save.player[k] = pl[k]; } });
+        C.save.player.pos.x = px; C.save.player.pos.y = py;
+        DG.stela._resetForTest();
+      };
+    }
+    /** 대표점(서울급) 근처에서 (lat,lng) 로 서 있는 비석 하나 */
+    function stelaNear(region, i) {
+      var S = DG.stela, near = S.within(region.center.lat, region.center.lng, 1500);
+      return near[i || 0].stela;
+    }
+    function standAt(s, dLng) {
+      var w = DG.world.latLngToWorld(s.lat, s.lng + (dLng || 0));
+      C.save.player.pos.x = w.x; C.save.player.pos.y = w.y;
+    }
+
+    t('비석 — 같은 격자는 늘 같은 답(해시), 칸 안 자리는 가장자리를 피한다', function () {
+      var S = DG.stela;
+      if (!S) { return false; }
+      var a = [], b = [], ok = true;
+      for (var r = 20000; r < 20040; r++) { for (var c = 60000; c < 60040; c++) { var x = S.cell(r, c); a.push(x ? x.key + '|' + x.lat + '|' + x.lng : '-'); } }
+      S._resetForTest();
+      for (r = 20000; r < 20040; r++) { for (c = 60000; c < 60040; c++) { var y = S.cell(r, c); b.push(y ? y.key + '|' + y.lat + '|' + y.lng : '-'); } }
+      var hits = a.filter(function (v) { return v !== '-'; }).length;
+      return a.join() === b.join() && hits > 0 && ('40×40 칸 두 번 같음 · ' + hits + '칸에 비석');
+    });
+
+    t('비석 — 1km² 표본에서 밀도가 2~4 (한·일·중 대표점 둘레)', function () {
+      var S = DG.stela, all = [].concat(DG.regionKr.REGIONS, DG.regionJp.REGIONS, DG.regionCn.REGIONS);
+      var tot = 0, wins = 0;
+      all.forEach(function (rg) {
+        var r0 = Math.floor(rg.center.lat / (200 / 111320)) + 3;
+        var c0 = Math.floor(rg.center.lng / (200 / (111320 * Math.cos(rg.center.lat * Math.PI / 180)))) + 3;
+        for (var w = 0; w < 4; w++) {                            // 5×5 칸(= 1km²) 네 창
+          var n = 0;
+          for (var r = r0 + w * 5; r < r0 + w * 5 + 5; r++) { for (var c = c0; c < c0 + 5; c++) { if (S.cell(r, c)) { n++; } } }
+          tot += n; wins++;
+        }
+      });
+      var mean = tot / wins;
+      return mean >= 2 && mean <= 4 && (wins + '개 창 평균 ' + mean.toFixed(2) + '/km²');
+    });
+
+    t('비석 — 15m 안에서만 저절로 발견되고 두 번 발견되지 않는다', function () {
+      var S = DG.stela, undo = stelaKeep(), out = false, why = '';
+      try {
+        C.save.stelae = undefined; C.save.stelaeInv = undefined;
+        var rg = DG.regionKr.REGIONS[0], s = stelaNear(rg, 0);
+        standAt(s, 30 / (111320 * Math.cos(s.lat * Math.PI / 180)));   // 동쪽으로 30m
+        S.tick(1);
+        var far = S.found(s.key);
+        standAt(s, 10 / (111320 * Math.cos(s.lat * Math.PI / 180)));   // 10m
+        var dust0 = DG.growth.dust(), feat0 = C.save.player.feat, gold0 = C.save.player.gold;
+        S.tick(1);
+        var got = S.found(s.key), dust1 = DG.growth.dust(), feat1 = C.save.player.feat;
+        S.tick(1);
+        var again = S.discover(s);
+        out = far === false && got === true && dust1 === dust0 + S.REWARD.dan && feat1 >= feat0 + S.REWARD.feat &&
+          again.ok === false && again.reason === 'already' && DG.growth.dust() === dust1 && C.save.player.gold === gold0 && S.count() === 1;
+        why = '30m 밖 ' + far + ' · 10m 안 ' + got + ' · 丹 +' + (dust1 - dust0) + ' · 공적 +' + (feat1 - feat0) + ' · 두 번째 거절';
+      } finally { undo(); }
+      return out && why;
+    });
+
+    t('비석 — 일과 "비석을 찾는다" 가 발견으로 오른다', function () {
+      var S = DG.stela, undo = stelaKeep(), out = false;
+      try {
+        C.save.stelae = undefined;
+        DG.daily.state();
+        C.save.daily.tasks = [{ key: 'stele', got: 0, need: 3, done: false }];
+        var rg = DG.regionKr.REGIONS[1], near = S.within(rg.center.lat, rg.center.lng, 2000);
+        for (var i = 0; i < 3; i++) { S.discover(near[i].stela); }
+        out = C.save.daily.tasks[0].got === 3 && C.save.daily.tasks[0].done === true;
+      } finally { undo(); }
+      return out && '셋 찾으면 일과 완료';
+    });
+
+    t('비석 — 권역 열이면 초대장이 오고, 행낭에 넣어 걸으면 그 권역 ★4 인물이 온다', function () {
+      var S = DG.stela, L = DG.letter, undo = stelaKeep(), out = false, why = '';
+      try {
+        C.save.stelae = undefined; C.save.stelaeInv = undefined; C.save.letters = undefined;
+        var rg = DG.regionKr.REGIONS[2], near = S.within(rg.center.lat, rg.center.lng, 3500)
+          .map(function (v) { return v.stela; }).filter(function (v) { return S.regionOfLatLng(v.lat, v.lng).code === rg.code; });
+        var enough = near.length >= 12;
+        for (var i = 0; i < 9; i++) { S.discover(near[i]); }
+        var bag9 = L.state().bag.length, owed9 = Object.keys(S.owed()).length;
+        S.discover(near[9]);
+        var bag10 = L.state().bag.slice(), key = 'st:' + rg.code;
+        var g = L.gradeOf(key);
+        // 가방이 가득이면 몫이 남고, 비운 뒤 다시 받는다
+        C.save.letters = undefined; L.state();
+        var full = L.state().bag; while (full.length < L.BAG_MAX) { full.push('g2'); }
+        C.save.stelaeInv = undefined;
+        var got0 = S.grantInvites(), owedFull = S.owed()[rg.code];
+        L.state().bag.length = 0;
+        var got1 = S.grantInvites();
+        // 봉을 뗀다
+        L.state().bag.length = 0; L.state().bag.push(key);
+        L.put(0, 0);
+        C.save.player.distance += 3001;
+        var res = L.open(0);
+        out = enough && bag9 === 0 && owed9 === 0 && bag10.length === 1 && bag10[0] === key &&
+          g.region && g.region.code === rg.code && g.km === 3 && got0 === 0 && owedFull === 1 && got1 === 1 &&
+          !!res && res.hero.rarity === 4 && String(res.hero.id).indexOf(rg.code) >= 0;
+        why = rg.name + ' 9개까지 초대장 0 · 10개째 ' + key + ' · 가방이 차면 몫이 남고 비우면 받음 · 3km 뒤 ' + (res && res.hero.name) + '(★' + (res && res.hero.rarity) + ')';
+      } finally { undo(); }
+      return out && why;
+    });
+
+    t('비석 — 도감 "비문": 권역 27 줄, 첫 비석을 찾으면 그 줄이 보이고 힌트는 n/10', function () {
+      var S = DG.stela, X = DG.codex, undo = stelaKeep(), out = false, why = '';
+      try {
+        C.save.stelae = undefined; C.save.codex = undefined;
+        var t0 = X.tally('stele');
+        var rg = DG.regionKr.REGIONS[3], s = stelaNear(rg, 0);
+        var reg = S.regionOfLatLng(s.lat, s.lng);
+        S.discover(s);
+        var t1 = X.tally('stele'), row = t1.rows.filter(function (r) { return r.id === reg.code; })[0];
+        out = t0.total === 27 && t0.seen === 0 && t1.seen === 1 && row.seen === true && row.hint === '1/10';
+        why = '분모 ' + t0.total + ' · 찾은 뒤 ' + row.name + ' ' + row.hint;
+      } finally { undo(); }
+      return out && why;
+    });
+
+    t('비석 — 미니맵엔 발견한 것만, 봉수대에 불을 올린 반경의 미발견은 오버월드에 흐릿하게', function () {
+      var S = DG.stela, BC = DG.beacon, undo = stelaKeep(), out = false, why = '';
+      var beacons0 = JSON.stringify(C.save.beacons || null);
+      try {
+        C.save.stelae = undefined; C.save.beacons = {};
+        var b = BC.list()[0], bw = BC.worldPos(b);
+        C.save.player.pos.x = bw.x; C.save.player.pos.y = bw.y;
+        var ll = S.here(), near = S.within(ll.lat, ll.lng, 550);
+        var before = S.foundNear(600).length;                                     // 아직 아무것도 못 찾음
+        var dark = BC.revealedNear(b).filter(function (p) { return p.type.indexOf('stele') === 0; }).length;   // 불 안 올림
+        S.discover(near[0].stela);
+        var after = S.foundNear(600);
+        C.save.beacons[b.key] = Date.now();
+        var rev = BC.revealedNear(b).filter(function (p) { return p.type.indexOf('stele') === 0; });
+        var faint = rev.filter(function (p) { return p.type === 'stele-faint'; }).length;
+        var solid = rev.filter(function (p) { return p.type === 'stele'; }).length;
+        out = near.length > 0 && before === 0 && dark === 0 && after.length === 1 && after[0].key === near[0].stela.key &&
+          solid === 1 && faint > 0;
+        why = '미니맵 0 → 1(찾은 것만) · 불 전 0곳 · 불 뒤 진하게 ' + solid + ' + 흐리게 ' + faint;
+      } finally { C.save.beacons = JSON.parse(beacons0) || undefined; undo(); }
+      return out && why;
+    });
+
+    t('비석 — 판정에 한 줄도 안 닿는다(전투력·금 불변, 살피기는 세이브 불변)', function () {
+      var S = DG.stela, undo = stelaKeep(), out = false;
+      try {
+        C.save.stelae = undefined;
+        var rg = DG.regionKr.REGIONS[4], s = stelaNear(rg, 0);
+        var pw0 = JSON.stringify(HR.partyPower()), gold0 = C.save.player.gold;
+        var snap = JSON.stringify(C.save);
+        S.cell(1, 2); S.within(rg.center.lat, rg.center.lng, 800); S.found(s.key); S.count(); S.regionCounts(); S.owed();
+        S.foundNear(500); S.foundAll(); S.regionList(); S.revealedWithin({ x: 0, y: 0 }, 500);
+        var same = snap === JSON.stringify(C.save);
+        S.discover(s);
+        out = same && JSON.stringify(HR.partyPower()) === pw0 && C.save.player.gold === gold0;
+      } finally { undo(); }
+      return out && '살피기 세이브 그대로 · 발견 뒤에도 전투력·금 그대로';
+    });
+
+    t('비석 — 세이브 상한 2000 을 넘으면 더 기록하지 않는다', function () {
+      var S = DG.stela, undo = stelaKeep(), out = false;
+      try {
+        var fake = {}; for (var i = 0; i < S.CAP; i++) { fake['9:' + i] = 1; }
+        C.save.stelae = fake;
+        var rg = DG.regionKr.REGIONS[5], s = stelaNear(rg, 0);
+        var r = S.discover(s);
+        out = r.ok === false && r.reason === 'cap' && S.count() === S.CAP && !S.found(s.key);
+      } finally { undo(); }
+      return out && '2000 칸이 차면 거절(cap)';
     });
 
     /* ── VRoid 몸 변형 (vroid-variant.js, 2026-09-20) — 인물 전원에게 VRoid 몸을 나눠 입히고 색만 바꾼다 ─────────── */

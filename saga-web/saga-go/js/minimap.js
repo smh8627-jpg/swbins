@@ -50,7 +50,8 @@
     place:   { c: '#f2e4b6', r: 2.6 },
     beacon:      { c: '#ff9d3d', r: 3.2 },
     'beacon-lit': { c: '#ff5a1e', r: 3.6 },
-    shrine:      { c: '#f0d878', r: 3.0 }
+    shrine:      { c: '#f0d878', r: 3.0 },
+    stele:       { c: '#d9d2c0', r: 2.2 }
   };
 
   var node = null, canvas = null, ctx = null;
@@ -215,6 +216,13 @@
         if (!SH.visible(sl[i])) { continue; }
         put('shrine', sw.x, sw.y, sl[i].name, true);
       }
+    }
+
+    /* 비석(PLAN §5 ⑤) — 발견한 것만(48절), 가까운 600m 안 */
+    var STM = global.DG.stela;
+    if (STM && STM.foundNear) {
+      var fl = STM.foundNear(600);
+      for (i = 0; i < fl.length; i++) { put('stele', fl[i].x, fl[i].y, '', false); }
     }
 
     return out;

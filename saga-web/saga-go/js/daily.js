@@ -11,7 +11,7 @@
  * `quest.js`의 `progress()` 참고, "이중 계수 방지"는 그 전달이 한 곳뿐이라는 뜻이다).
  * 사건(event)·반려(buddy) 는 quest 표에 없던 kind 라 각 파일에 한 줄만 보탰다.
  *
- * 비석(⑤)·사당(②) 은 아직 안 지어졌다 — 풀에는 적어 두되 `disabled` 로 꺼 둔다.
+ * 비석(⑤)은 stela.js 로 섰다. 사당(②)은 27 대표점 근처에만 있어 못 채우는 사람이 생기니 `disabled` 로 꺼 둔다.
  * 그 후보가 서면 이 줄만 지우면 곧바로 오늘의 일과 후보로 들어온다.
  */
 (function (global) {
@@ -35,9 +35,9 @@
       reward: { gold: 60, treat: 1, exp: 120 } },
     { key: 'buddy', kind: 'buddy', name: '반려와 함께 걷는다', emoji: '🐕', n: 500,
       reward: { gold: 30, exp: 70 } },
-    /* PLAN §5 ⑤ 비석 순례가 서기 전엔 셀 길이 없다 */
+    /* PLAN §5 ⑤ 비석 순례(stela.js) — 격자가 어디서나 서므로 어디 사는 사람이든 채울 수 있다 */
     { key: 'stele', kind: 'stele', name: '비석을 찾는다', emoji: '🪦', n: 3,
-      reward: { gold: 50, exp: 100 }, disabled: true },
+      reward: { gold: 50, exp: 100 } },
     /* PLAN §5 ② 사당 시련이 서기 전엔 셀 길이 없다 */
     { key: 'shrine', kind: 'shrine', name: '사당에서 시련을 받는다', emoji: '⛩️', n: 1,
       reward: { gold: 50, incense: 1, exp: 100 }, disabled: true }

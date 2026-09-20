@@ -36,7 +36,19 @@
   var BAG_MAX = 9;        // 원작 알 가방과 같다
   var SLOTS = 3;          // 행낭 칸
 
+  /** 비문 초대장(PLAN §5 ⑤) — 키 'st:<권역코드>'. 3km 를 걸으면 그 권역의 ★4 인물이 온다 */
+  function stelaGrade(key) {
+    var S = global.DG.stela, r = S ? S.regionByCode(String(key).slice(3)) : null;
+    if (!r) { return null; }
+    return { key: key, km: 3, name: r.name + ' 비문 초대장', emoji: '📜', color: '#b8a6ff',
+      rarity: [4], weight: [100], region: r, desc: '비석 열 개를 찾아 낸 이에게 온 초대' };
+  }
+
   function gradeOf(key) {
+    if (typeof key === 'string' && key.indexOf('st:') === 0) {
+      var sg = stelaGrade(key);
+      if (sg) { return sg; }
+    }
     for (var i = 0; i < GRADES.length; i++) { if (GRADES[i].key === key) { return GRADES[i]; } }
     return GRADES[0];
   }
@@ -142,6 +154,14 @@
 
   /** 이 등급에서 나올 사람 하나 */
   function pickHero(g) {
+    if (g.region) {
+      /* 비문 초대장 — 그 권역 인물(genchar ★4). 열 때마다 다른 사람이 오도록 연 횟수를 섞는다 */
+      var GC = g.region.country === 'jp' ? global.DG.gencharJp
+        : (g.region.country === 'cn' ? global.DG.gencharCn : global.DG.genchar);
+      var idx = (state().opened + 1) * 131 + g.region.code.charCodeAt(0);
+      var gh = GC ? GC.hero(g.region.code, 4, idx) : null;
+      if (gh) { return gh; }
+    }
     var want = parseInt(pickWeighted(g.rarity, g.weight), 10);
     var pool = data.heroes.filter(function (h) { return h.rarity === want; });
     if (!pool.length) {

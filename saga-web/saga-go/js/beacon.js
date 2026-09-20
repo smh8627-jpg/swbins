@@ -10,8 +10,7 @@
  *
  * 30m 안에서 3초를 눌러 **불을 올린다** — 한 번만 보상. 그 뒤로는 그 권역
  * 반경 1.5km 의 역참·성채가 오버월드·미니맵에 미리 뜬다(48절 "가 보기 전까지
- * 안 뜬다"의 예외를 봉수대만 허용). 사당(②)은 `revealedNear()`에 이어 붙었고(shrine.js),
- * 비석(⑤)은 아직 없어 자리만 비워 뒀다 — 그 후보가 서면 한 줄 보탠다.
+ * 안 뜬다"의 예외를 봉수대만 허용). 사당(②)·비석(⑤)은 `revealedNear()`에 이어 붙었다(shrine.js·stela.js).
  *
  * **3D 탑 모델은 이 세션에 안 넣는다** — `asset3d.js`에 새 GLB 레시피(팔레트
  * 스왑)를 추가하는 일인데, 같은 종류(역참 `tower_ruin.glb`)의 아이콘 굽기가
@@ -191,6 +190,9 @@
     /* 사당(②)도 같은 반경에 뜬다 — 숨은 자리의 예외는 봉수대만 허용한다 */
     var SH = global.DG.shrine;
     if (SH && SH.within) { out = out.concat(SH.within(c, REVEAL_RADIUS)); }
+    /* 비석(⑤)도 같은 반경에 — 미발견은 흐릿하게(stele-faint), 발견은 진하게 */
+    var ST = global.DG.stela;
+    if (ST && ST.revealedWithin) { out = out.concat(ST.revealedWithin(c, REVEAL_RADIUS)); }
     return out;
   }
 

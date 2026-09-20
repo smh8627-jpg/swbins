@@ -82,6 +82,13 @@
         return B.list().map(function (b) {
           return { id: b.key, name: b.name + ' 봉수대', hint: b.region.name + ' 권역' };
         });
+      } },
+    /* 비문(PLAN §5 ⑤) — 비석 순례. 권역 27 줄, 그 권역의 첫 비석을 찾으면 도장이 찍히고
+       힌트는 n/10(열 개 = 초대장). stela.js 가 유일한 소유자다 */
+    { key: 'stele', name: '비문', emoji: '🪦',
+      list: function () {
+        var S = global.DG.stela;
+        return S ? S.regionList() : [];
       } }
   ];
 
@@ -100,7 +107,9 @@
     record: { exp: 14, gold: 0 },
     /* landmark(봉수대)는 beacon.js 의 light() 가 이미 금·공적·丹을 크게 주므로
        여기는 발견 도장에 붙는 소액만(다른 갈래와 같은 결) */
-    landmark: { exp: 20, gold: 0 }
+    landmark: { exp: 20, gold: 0 },
+    /* stele(비문)는 stela.js 의 discover() 가 丹·공적을 주므로 도장엔 소액만 */
+    stele: { exp: 4, gold: 0 }
   };
 
   /** 이 발견이 "숨은 곳" 같은 특별한 것인가 — 있으면 hint 문자열, 없으면 null */
