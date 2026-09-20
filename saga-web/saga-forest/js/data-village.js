@@ -1048,7 +1048,23 @@
   };
 
   global.DG = global.DG || {};
+  /**
+   * 등급(아이템·장비 등급 체계 — 사용자 요청 2026-09-10, 이 판 적용 2026-09-20) — 이 판엔 장비도 접사도 없고 물건마다 **값**이 있다.
+   * 등급은 굴리지 않고 값에서 읽는다(값·세이브·판정에 안 닿는 이름표):
+   *   goods   가구·옷·바닥·벽   <800 기본 · <1600 상급 · <2800 희귀 · <4200 영웅 · 그 이상 전설
+   *   gather  채집물·물고기·벌레 <60 기본 · <120 상급 · <250 희귀 · <450 영웅 · 그 이상 전설
+   * 이름·색·별은 도감 인물·펫이 쓰는 `data.js` 의 `RARITY` 와 같다.
+   */
+  var GRADE_CUTS = { goods: [800, 1600, 2800, 4200], gather: [60, 120, 250, 450] };
+  function gradeOf(kind, price) {
+    var cuts = GRADE_CUTS[kind] || GRADE_CUTS.goods, p = price || 0, r = 1;
+    while (r <= cuts.length && p >= cuts[r - 1]) { r++; }
+    var R = global.DG && global.DG.data && global.DG.data.rarity && global.DG.data.rarity[r];
+    return { rank: r, name: R ? R.name : '', color: R ? R.color : '#9aa4b2', label: R ? R.label : '' };
+  }
+
   global.DG.villageData = {
+    gradeOf: gradeOf,
     TILES: TILES, PROPS: PROPS, ITEMS: ITEMS, PHASES: PHASES, REQUEST_N: REQUEST_N,
     ANIMALS: ANIMALS, MONSTER_BIOME: MONSTER_BIOME, NPCS: NPCS, QUESTS: QUESTS,
     SEASONS: SEASONS, TOOLS: TOOLS,

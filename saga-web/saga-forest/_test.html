@@ -4693,6 +4693,44 @@ window.DG_NO_TUNE = true;
       return ('자리표시 SVG 캐시 · 갈아 끼울 자리 ' + (ready ? '판정' : '(3D 꺼짐 — 옛 그림)') + ' · 포기하면 옛 그림으로 되돌림');
     });
 
+    t('디스크 초상(SAGA-DESIGN §11 Phase 1) — 구워 둔 파일이 목록에 있으면 of() 가 굽기 없이 파일 주소를 주고 warm() 이 다시 안 굽는다, 목록에 없거나 꼴이 안 맞으면 파일로 안 간다, sweep() 이 이름표 <img> 를 그 파일로 갈아 끼운다', function () {
+      var P3 = DG.portrait3d, D = DG.data, keep = DG.portraitDisk, res;
+      if (!P3 || !P3.of || !P3.warm || !P3.sweep || !P3.keyOf) { throw new Error('portrait3d 내보내기 없음'); }
+      var h0 = D.heroes[0], h1 = D.heroes[1], base = 'assets/portraits/';
+      DG.portraitDisk = { v: 1, base: base, ids: { hero: { s: h0.id, c: h0.id }, pet: { s: '', c: '' } } };
+      try {
+        var fs_ = base + 'hero/' + h0.id + '_s.webp', fc_ = base + 'hero/' + h0.id + '_c.webp';
+        var sq = P3.of('hero', h0, 96, 96) === fs_ && P3.of('hero', h0, 40, 40) === fs_;       // 정사각은 크기 무관 _s
+        var card = P3.of('hero', h0, 150, 172) === fc_ && P3.of('hero', h0, 128, 148) === fc_;   // 150×172 꼴은 _c
+        var nolist = String(P3.of('hero', h1, 96, 96) || '').indexOf(base) !== 0;                // 목록에 없으면 파일로 안 간다
+        var noshape = String(P3.of('hero', h0, 130, 200) || '').indexOf(base) !== 0 && String(P3.of('hero', h0, 300, 300) || '').indexOf(base) !== 0;  // 꼴이 안 맞거나 너무 크면 굽는 쪽
+        var nowarm = P3.warm('hero', h0, 96, 96) === false;                                       // 파일이 있으면 굽지 않는다
+        var img = document.createElement('img');
+        img.setAttribute('data-p3', P3.keyOf('hero', h0, 96, 96)); img.src = 'data:image/gif;base64,R0lGODlhAQABAAAAACw=';
+        document.body.appendChild(img);
+        P3.sweep();
+        var swapped = img.getAttribute('src') === fs_ && img.getAttribute('data-p3-done') === '1';
+        document.body.removeChild(img);
+        res = { sq: sq, card: card, nolist: nolist, noshape: noshape, nowarm: nowarm, swapped: swapped };
+      } finally { DG.portraitDisk = keep; }
+      var bad = Object.keys(res).filter(function (k) { return !res[k]; });
+      if (bad.length) { throw new Error('실패: ' + bad.join(', ')); }
+      return '정사각 _s · 카드 _c · 목록 밖은 굽는 쪽 · 있으면 안 굽고 sweep 이 파일로 교체';
+    });
+
+    t('물건 등급(등급 체계) — 값에서 읽는다: 가구·옷은 <800 기본 … ≥4200 전설, 채집물은 <60 기본 … ≥450 전설, 이름·색은 인물·펫 RARITY 와 같다', function () {
+      var VD = DG.villageData, R = DG.data.rarity, bad = [];
+      if (!VD || !VD.gradeOf) { throw new Error('villageData.gradeOf 없음'); }
+      var cases = [['goods', 0, 1], ['goods', 799, 1], ['goods', 800, 2], ['goods', 1599, 2], ['goods', 1600, 3], ['goods', 2800, 4], ['goods', 4199, 4], ['goods', 4200, 5], ['goods', 5200, 5],
+        ['gather', 40, 1], ['gather', 60, 2], ['gather', 119, 2], ['gather', 120, 3], ['gather', 250, 4], ['gather', 449, 4], ['gather', 450, 5], ['gather', 700, 5]];
+      cases.forEach(function (c) {
+        var g = VD.gradeOf(c[0], c[1]);
+        if (g.rank !== c[2] || g.name !== R[c[2]].name || g.color !== R[c[2]].color) { bad.push(c[0] + ':' + c[1] + '=' + g.rank); }
+      });
+      if (bad.length) { throw new Error('실패: ' + bad.join(', ')); }
+      return '경계 ' + cases.length + '곳 통과 · 가구·옷 ' + R[1].name + '→' + R[5].name + ' · 채집물 ' + R[1].name + '→' + R[5].name;
+    });
+
     t('런타임 에러 없음', function () {
       return errors.length === 0 || ('에러 ' + errors.length + '건: ' + errors.join(' | ')) === '';
     });

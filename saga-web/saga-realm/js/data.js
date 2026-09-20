@@ -447,13 +447,19 @@
   /** 기질 표기 */
   var TRAIT_MARK = { might: '武', wisdom: '智', virtue: '德' };
 
-  /** 등급별 표시 정보 */
+  /** 등급별 표시 정보. `name` 은 2026-09-10 추가 — 그동안 별 개수(`label`)만
+   *  있고 말로 된 등급 이름이 없었다("아이템·장비 등급 체계를 다섯 판 전체에"
+   *  요청, 사가블로 `data-item.js`의 상품→전설 다섯 단과 같은 결로 "기본→전설"
+   *  로 이름 붙였다). **사가고는 등용서·사료 같은 소모품만 있고 장비 체계
+   *  자체가 없어(`bag.js` 머리말 참고) 장비에 등급을 얹지 않는다** — 이미
+   *  있던 인물·펫의 1~5 등급(`rarity`)에 이름만 보탰다, 숫자·색·별 개수는
+   *  그대로라 세이브·정렬 로직에 영향 없다. */
   var RARITY = {
-    1: { label: '★',      color: '#9aa4b2' },
-    2: { label: '★★',     color: '#5ec26a' },
-    3: { label: '★★★',    color: '#4aa3f0' },
-    4: { label: '★★★★',   color: '#b06bf0' },
-    5: { label: '★★★★★',  color: '#f0a53a' }
+    1: { label: '★',      color: '#9aa4b2', name: '기본' },
+    2: { label: '★★',     color: '#5ec26a', name: '상급' },
+    3: { label: '★★★',    color: '#4aa3f0', name: '희귀' },
+    4: { label: '★★★★',   color: '#b06bf0', name: '영웅' },
+    5: { label: '★★★★★',  color: '#f0a53a', name: '전설' }
   };
 
   /** 설득 어필 방향 (인물 trait 과 맞으면 호감도 크게 상승) */
@@ -476,11 +482,14 @@
       return FACTIONS[name] || { color: '#5b6572', mark: '·' };
     },
     /** 열전 한 줄 (없으면 빈 문자열). 정적 BIOS에 없으면 절차적 생성기
-     *  (`js/genchar.js`, saga-go 전용)의 것을 시도한다 — 그 모듈이 없는
-     *  나머지 네 판에서는 그냥 빈 문자열로 그친다(회귀 아님). */
+     *  (`js/genchar.js`(한국)·`js/genchar-jp.js`(일본)·`js/genchar-cn.js`
+     *  (중국), saga-go 전용)의 것을 시도한다 — 그 모듈들이 없는 나머지
+     *  네 판에서는 그냥 빈 문자열로 그친다(회귀 아님). */
     bio: function (id) {
       if (BIOS[id]) { return BIOS[id]; }
-      return (global.DG.genchar && global.DG.genchar.bio(id)) || '';
+      return (global.DG.genchar && global.DG.genchar.bio(id)) ||
+        (global.DG.gencharJp && global.DG.gencharJp.bio(id)) ||
+        (global.DG.gencharCn && global.DG.gencharCn.bio(id)) || '';
     },
     /** id 로 찾기. 정적 HEROES/PETS에 없으면 절차적 생성기(있는 판에서만)로
      *  되살린다 — 세이브에는 id만 있으면 되므로 정적 배열에 없어도 된다. */
@@ -488,7 +497,9 @@
       var i;
       for (i = 0; i < HEROES.length; i++) { if (HEROES[i].id === id) { return HEROES[i]; } }
       for (i = 0; i < PETS.length; i++) { if (PETS[i].id === id) { return PETS[i]; } }
-      return (global.DG.genchar && global.DG.genchar.find(id)) || null;
+      return (global.DG.genchar && global.DG.genchar.find(id)) ||
+        (global.DG.gencharJp && global.DG.gencharJp.find(id)) ||
+        (global.DG.gencharCn && global.DG.gencharCn.find(id)) || null;
     }
   };
 })(window);

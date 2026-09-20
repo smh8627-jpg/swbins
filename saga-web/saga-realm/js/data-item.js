@@ -71,6 +71,18 @@
     return out;
   }
 
+  /**
+   * 등급(아이템·장비 등급 체계 — 사용자 요청 2026-09-10, 이 판 적용 2026-09-20) — 보물은 굴리는 값이 없어 **보너스 크기에서 읽는다**:
+   * +6 기본 · +8 상급 · +9 희귀 · +10 영웅(이 표에 전설은 없다 — 새 보물이 +12 이상이면 전설).
+   * 이름·색·별은 무장 도감이 쓰는 `data.js` 의 `RARITY` 와 같다. 값·세이브에는 안 닿는다 — 보이는 이름표뿐이다.
+   */
+  function gradeOf(it) {
+    var b = it ? it.bonus : 0;
+    var r = b >= 12 ? 5 : b >= 10 ? 4 : b >= 9 ? 3 : b >= 8 ? 2 : 1;
+    var R = global.DG && global.DG.data && global.DG.data.rarity && global.DG.data.rarity[r];
+    return { rank: r, name: R ? R.name : '', color: R ? R.color : '#9aa4b2', label: R ? R.label : '' };
+  }
+
   global.DG = global.DG || {};
-  global.DG.item = { ITEMS: ITEMS, itemById: itemById, randomItem: randomItem, statBonus: statBonus };
+  global.DG.item = { ITEMS: ITEMS, itemById: itemById, randomItem: randomItem, statBonus: statBonus, gradeOf: gradeOf };
 })(window);

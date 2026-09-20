@@ -102,6 +102,34 @@
   var pending = {};         // { key: true }  굽는 중
   var made = 0, gaveUp = 0;
 
+  /* ── 디스크 초상 (SAGA-DESIGN §11 Phase 1) ───────────────────
+   * `tools/bake-portraits` 가 미리 구워 둔 `assets/portraits/<종류>/<id>_s|c.webp` — `manifest.js` 에 적힌 것만 있다.
+   * 굽기(three·GLB 대기)를 거치지 않고 `of()` 가 곧바로 파일 주소를 준다. 정사각(≤110px)은 _s, 150×172 꼴은 _c.
+   * 목록에 없거나 손잡이(`portrait3d.on`)가 내려가면 null — 예전처럼 굽는다. */
+  var diskSet = null, diskFrom = null;
+  function diskClass(w, h) {
+    if (w === h && w <= 110) { return 's'; }
+    if (h > 0 && Math.abs(w / h - 150 / 172) < 0.03) { return 'c'; }
+    return '';
+  }
+  function diskById(kind, id, w, h) {
+    var M = global.DG.portraitDisk, t = diskClass(w, h), k, tt;
+    if (!M || !M.ids || !t || !ON()) { return null; }
+    if (diskFrom !== M) {
+      diskSet = {}; diskFrom = M;
+      for (k in M.ids) { for (tt in M.ids[k]) { String(M.ids[k][tt]).split(',').forEach(function (x) { if (x) { diskSet[k + ':' + tt + ':' + x] = 1; } }); } }
+    }
+    return diskSet[kind + ':' + t + ':' + id] ? M.base + kind + '/' + id + '_' + t + '.webp' : null;
+  }
+  function diskOf(kind, ref, w, h) {
+    var id = ref && (ref.id || ref.key || ref.name);
+    return id ? diskById(kind, id, Math.round(w), Math.round(h)) : null;
+  }
+  function diskOfKey(k) {
+    var p = parseKey(k);
+    return p ? diskById(p.kind, p.id, p.w, p.h) : null;
+  }
+
   function ready() { return !!(three() && ON() && !failed); }
 
   function boot() {
@@ -237,6 +265,8 @@
   }
 
   function of(kind, ref, w, h) {
+    var d = diskOf(kind, ref, w, h);
+    if (d) { return d; }
     if (!ready()) { return null; }
     return cache[keyOf(kind, ref, w, h)] || null;
   }
@@ -287,6 +317,7 @@
 
   /** 줄에 올린다 — `asset3d.buildHero`/`build` 콜백이 한 번 오면 그 자리에서 곧바로 굽는다 */
   function warm(kind, ref, w, h) {
+    if (diskOf(kind, ref, w, h)) { return false; }      // 구워 둔 파일이 있으면 다시 안 굽는다
     if (!ready() || !ref || !supports(kind, ref)) { return false; }
     var key = keyOf(kind, ref, w, h);
     if (has(key) || pending[key]) { return false; }
@@ -347,7 +378,7 @@
     for (i = 0; i < list.length; i++) {
       var el = list[i];
       var k = el.getAttribute('data-p3');
-      var got = live ? cache[k] : null;
+      var got = diskOfKey(k) || (live ? cache[k] : null);
       if (got) {
         if (el.getAttribute('data-p3-done') !== '1') {
           el.src = got;
