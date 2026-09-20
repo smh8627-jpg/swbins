@@ -13,26 +13,25 @@
 | STORY | `games/saga_story/world/SinyaField.tscn`(세계 첫 자리)·`HeodoField.tscn`(전직)·`TestField.tscn` | 게이트 **미기록**(실기 몰아서) | 사냥터 9 완주 · 무예·MP·사다리·채집·보스·배경 · 장비 10부위 tier1~4·고유·주문서 · 원거리 적 · 업적·상점·사명 20/20+반복/일일 6 · 전직 4단(tier1~4 무예 완주)·SP 투자·칭호 라벨 · NPC_TALK 밀도 · **플레이어 VRoid**(임시) · **101-4 ①목표판+세션 카드**(우상단 3줄, "사명 완수 N/13"+처치·골드 세션 델타, 저장 시 세션 카드) · **101-2 ①손맛 표준**(combat_feel.gd 5요소를 무예 18곳에 연결) · **101-2 ②이동 손맛**(대시 Shift·코요테 0.1s·점프 버퍼 0.12s) · **101-2 ③직업 정체성**(`story_dash` 길게 누르면 갈래별 고유 조작 1개, 전직 때 스승 인물 표시 — 수치 보정 없음) · **101-2 ④관문 대장**(네 보스를 매주 강화판으로 재해석 — hp×2.5·dmg×1.5, 방패 파괴, 3분 광폭, 확정 드롭+보상×2) · **101-2 ⑤비경**(`StoryLabyrinth.tscn`, 허도 문 `LabyrinthGate`(x=24)에서 입장 — 5층 발판 노드 지도, 1~4층 전투·정예·보물·휴식·사건 중 2~3개 발판에 올라 K로 확정, 5층은 곧장 보스. 축복 3택(공격/방어/유틸 9종)을 진입 직후+정예 처치 후 고른다 — 서명무예 대신 이 판 실제 채널(story_player.gd 6곳 합류)로 재해석. 패퇴·클리어 둘 다 기억 조각을 얻어 문에서 영구 강화(최대 HP)로 새긴다. 주간 변형자·클리어 보상(고유 장비+주문서 확정) |
 | REALM | `games/saga_realm/world/TestCity.tscn` | 게이트 **미기록** | 성 107 전부 · 명령 7·전임 · 월드맵(드래그 궤도, 좌표 수정) · 전쟁·외교(조공·화친)·정복 편입·충성·계략·이간·매수 · 문답 260·서고 · 인구·재해·성벽·승진 5단·정복 후 관리 · 타 세력 AI(creed)·멸망 판정·경제 AI · 시나리오 3(기본·200 관도·208 적벽)+새 게임 UI · 3D 몬스터 실루엣 · **101-4 ①목표판+월간 요약 카드**(우상단 3줄, "성 N/107 편입"+골드·편입 세션 델타, "다음 달" 누를 때마다 정산 카드) · **101-2 ②승리 조건**(정복 외 문화(문답 200)·외교(36달 연속 화친) 추가, 목표판 셋째 줄 진척 %, 달성 시 결과 카드 — 패권·생존은 새 시스템 필요해 보류) · **101-2 ③인물 특성·야망**(id 해시로 결정적 특성 2+야망 1, 다섯 특성만 계수 배정, 야망 달성 시 충성+20·능력+2, 12달 좌절이면 충성↓·이탈↑. SAVE_VERSION 14) · **101-2 ④일기토·설전**(3합 가위바위보 승/무/패 배율, 화친·등용 전 설전 3문 정답 수→배율) · **101-2 ⑤이벤트 체인**(관계 대신 특성·야망(③) 조건의 1인 서사 카드 8종, 달마다 18%로 카드+3택, 일부 체인 후속) · **101-2 ⑥계승**(나이 시스템이 없어 매달 0.6% 고정 확률로 "군주 유고" 재해석, 손잡이 기본 꺼짐(`SuccessionButton`). 후계(지정 또는 충성·관직 최고 자동)가 즉위, 나머지 충성 -15(충직 0·야심 -25+3달 이탈×2) — SAVE_VERSION 16) |
 
-**공통(saga_core)**: `data/characters.gd`(인물 105, id 불변)·`data/pets.gd`(신수 11) · `ui/toast.gd`·`ui/virtual_joystick.gd`·`ui/goal_board.gd`+`ui/session_card.gd`(101-4, 목표판 3줄·마무리 카드, 다섯 판 전부 붙음)·`ui/duel_hud.gd` · `combat_feel.gd`(101-3, 다섯 판 끝 — GO/DUNGEON/STORY `hit()`·FOREST `pickup()`·REALM 대상없음) · `world/world_curve_material.gd`+`shaders/curved_*`(FOREST 구면) · `world/density_report.gd`(104-5, 발견 밀도, FOREST는 반경 10m) · `shaders/cel_toon.gdshader`+`cel_shader_apply.gd`(66-2/102-3, hit_flash+아웃라인 next_pass 자동) · `world/glb_utils.gd::fit_height()`(102-1, 여전히 미호출). 렌더러 Forward+/Mobile 이중(66-1, `env_pc.tres`·`env_mobile.tres`, 102-2 값).
+**공통(saga_core)**: `data/characters.gd`(인물 105, id 불변)·`data/pets.gd`(신수 11) · `ui/toast.gd`·`ui/virtual_joystick.gd`·`ui/goal_board.gd`+`ui/session_card.gd`(101-4, 목표판 3줄·마무리 카드, 다섯 판 전부 붙음)·`ui/duel_hud.gd` · `combat_feel.gd`(101-3, 다섯 판 끝, 09-20㉒ 타격음 배선) · `world/world_curve_material.gd`+`shaders/curved_*`(FOREST 구면) · `world/density_report.gd`(104-5, 발견 밀도, FOREST는 반경 10m) · `shaders/cel_toon.gdshader`+`cel_shader_apply.gd`(66-2/102-3, hit_flash+아웃라인 next_pass 자동) · `world/glb_utils.gd::fit_height()`(102-1, 여전히 미호출). 렌더러 Forward+/Mobile 이중(66-1, `env_pc.tres`·`env_mobile.tres`, 102-2 값).
 
-## 현재 작업 — 중단 지점(09-20㉑, 다음 세션 이어서)
+## 현재 작업 — 중단 지점(09-20㉒, 다음 세션 이어서)
 
 - 103 신설·Quaternius 68/68 스냅·KayKit 무기 5등급 전부 완료.
-- **09-20⑳ 사용자 지시로 §8-1 override, 오늘 것 전부 Test 씬에 배선**: GO 나무·바위(Quaternius)+잔디꽃 클러터 신설, FOREST 나무·바위(원본 gltf, vertex_color라 텍스처 무의미), DUNGEON 무기 노획 비주얼. 스케일은 옛 승인 크기 실측 역산. `godot_regress.sh` 통과.
-- **DUNGEON 회귀 flaky 버그 고침** — 무기 GLB `load()`를 굴림 후 부르면 RNG마다 로그가 달라짐 → `preload()` 20종으로 해결.
-- PC 빌드 3종(go·dungeon·forest) 재생성+GUI 확인.
+- **09-20⑳ §8-1 override, Test 씬 배선**(경위 HISTORY): GO/FOREST 나무·바위+클러터, DUNGEON 무기 노획 비주얼 + 회귀 flaky 버그 고침(`preload()`). PC 빌드 3종 재생성.
 - **09-20㉑ GO 스폰 카메라 버그 조사 완료 — 코드 결함 아님**(아래 "알려진 오류").
+- **09-20㉒ §8-1 재override → `combat_feel.gd` 타격음 배선**: sfxgen 산출물(hit/pick 각 3종) 재생 연결, 다섯 판 자동 적용. 헤드리스 무오류 확인, regress md5 불변.
 
 ## 다음 작업 (우선순위)
 
-1. **사용자 실기 확인**(아래, 오늘분 포함).
+1. **사용자 실기 확인**(아래, 타격음 포함).
 2. **102 그래픽 개편** — 사람 몫.
 3. **STORY VRoid·Mixamo 애니** — 사람 몫.
-4. **103 procgen 등 배치** — 실기 확인 뒤.
+4. **103 procgen 소품 씬 배치** — 실기 확인 뒤.
 
 ## 알려진 오류
 
-- 없음. **GO 스폰 카메라**(09-20⑳→㉑, 경위 HISTORY) — 코드 버그 아님, 세이브 `player_pos`가 집 벽 0.9m 자리였을 뿐. 정상 동작 확인, 코드 수정 안 함.
+- 없음. **GO 스폰 카메라**(09-20⑳→㉑, 경위 HISTORY) — 세이브 `player_pos`가 집 벽 0.9m 자리였을 뿐, 코드 버그 아님.
 
 ## 테스트 상태
 

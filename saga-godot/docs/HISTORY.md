@@ -7812,3 +7812,12 @@ PROJECT_STATE.md` 참고. 요약:
 - 스폰 직후 플레이어 위치가 `(-66.1, 0.1, -24.2)`로 찍힘 — 씬에 놓인 스폰(-48,0.1,-24)이 아니었다. `%APPDATA%\Godot\app_userdata\SAGA\save.json`을 열어보니 `player_pos`가 정확히 이 값 — `test_village.gd`의 `SaveState.try_load()`가 정상적으로 저장된 좌표를 복원한 것뿐이었다.
 - 이 좌표는 마을 집(`House_4`, x -77~-67) 동쪽 벽에서 0.9m 거리 — 실기에서 이전에 벽 바로 옆에 서서 저장한 흔적. 카메라를 코드로 강제로 북쪽·서쪽(벽 방향) 양쪽 다 돌려 `arm_hit_length`를 찍어보니 8.0(무충돌) 또는 정상 축소 — `SpringArm3D`는 벽을 뚫지 않고 제대로 동작.
 - **결론: 스폰 좌표·카메라 수식엔 결함이 없다.** 캐릭터가 벽에 바짝 붙어 저장된 자리에서 고정 각도(북쪽·피치 -35)로 깨어나 벽이 화면 대부분을 채운 것 — "낙하 자세로 붕 뜸"은 그 각도에서 본 시각적 인상으로 보인다. 방어적 보정(벽 근처 복원 시 밀어내기 등)은 과한 손질로 판단해 넣지 않음 — 필요하면 사용자가 다시 지시.
+
+## combat_feel.gd 타격음 실제 재생 배선 (2026-09-20㉒, 새 세션, "사가고돗 커밋 푸시 해주고 이어해"→"§8-1 override 계속")
+
+- 앞선 대화에서 "커밋할 새 변경 없음·다음 코드 작업은 전부 §8-1 또는 사람 몫"이라 보고했는데도 사용자가 세 번째로 "이어해"를 반복 — AskUserQuestion으로 "§8-1 override 계속" 선택을 직접 확인받은 뒤 착수(무단 override 아님).
+- GO 나무·바위(⑳)와 달리 씬 자체를 안 건드리는 더 안전한 후보를 골랐다 — 103-1 `sfxgen.py`가 이미 만들어 둔 `assets/generated/sfx/hit_0{1,2,3}.wav`·`pick_0{1,2,3}.wav`를 09-20⑧에서 "다음 단계로 남김"이라 적어 뒀던 `combat_feel.gd`의 `sound_triggered` 신호 자리에 실제로 연결.
+- `_do_sound(kind)`로 hit/pick 계열을 분리(라운드로빈 각 3개, 인덱스 별도) — `hit()`은 hit_, `pickup()`은 pick_ 재생. 재생은 `_do_popup`/`_do_pickup_popup`과 같은 결(매번 `AudioStreamPlayer` 생성 → `play()` → `finished` 신호로 `queue_free()`, 풀링 없음).
+- 헤드리스로 실측 검증(`test_village.gd`에 `SAGA_SOUND_DEBUG` 임시 훅 넣어 `CombatFeel.hit()`×4·`pickup()`×1 강제 호출 → `DEBUG_SOUND_OK` 확인 후 훅 제거) — 스크립트 에러 없음. `--quit-after 10`로 재생 중 강제 종료해 "4 resources still in use at exit"가 찍혔지만 이는 wav 재생이 채 안 끝난 채 죽여서 생기는 종료 시점 아티팩트일 뿐(실제 플레이에선 `finished` 신호가 정상적으로 돈다) — 회귀 스크립트(`--quit-after 5`, `CombatFeel` 미호출) 쪽엔 안 나타남.
+- `godot_regress.sh` 재실행 — 다섯 대표 씬 md5 완전 불변(오토로드 조용히 로드만 되고 아무도 안 때려서 당연), `.import`/`project.godot` 잡음 없음.
+- 사운드는 소리 자체를 들어야 진짜 판정이라 실기 확인 목록에 추가(PROJECT_STATE "다음 작업" 1번에 반영).

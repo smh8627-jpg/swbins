@@ -30,10 +30,14 @@ extends Node
 ##    `albedo_color`를 흰색으로 80ms 바꿨다 되돌리는 근사를 그대로 쓴다.
 ## ④ **숫자 팝** — `Label3D` 하나를 현재 씬 루트에 띄워 0.6초 동안 0.8m
 ##    떠오르며 사라진다(크리는 1.4배 크기·주황).
-## ⑤ **타격음** — 3종 라운드로빈 인덱스만 돈다(67장 "사운드는 구조만" —
-##    실제 오디오 자산이 없어 `AudioStreamPlayer3D`를 안 만든다, 소리가
-##    생기면 이 자리에 스트림만 꽂으면 된다). `sound_triggered(idx)`
-##    신호로 "울렸다"는 사실만 낸다.
+## ⑤ **타격음** — 103-1 `sfxgen.py`가 만든 `assets/generated/sfx/hit_0{1,2,3}.wav`·
+##    `pick_0{1,2,3}.wav`를 3종 라운드로빈으로 실제로 재생한다(2026-09-20㉒,
+##    "sound_triggered 신호에 실제로 연결하는 배선은 안 함"으로 남겨 뒀던
+##    자리 — 사용자가 §8-1 override 재승인). `hit()`은 hit_ 계열,
+##    `pickup()`은 pick_ 계열(과일·채집=피격이 아니라는 느낌 구분). 매번
+##    `AudioStreamPlayer` 하나를 만들어 재생 뒤 `queue_free`(위 Label3D
+##    팝업과 같은 결 — 짧은 원샷이라 풀링 없이도 부담 없다). `sound_triggered(idx)`
+##    신호는 그대로 "울렸다"는 사실만 낸다(진단용, 실제 소비자 아님).
 ##
 ## 다섯 신호(hitstop_triggered·shake_triggered·flash_triggered·
 ## popup_triggered·sound_triggered)는 101-3이 요구한 진단("hit() 1회 →
@@ -60,10 +64,21 @@ const POPUP_RISE_M := 0.8
 const POPUP_CRIT_SCALE := 1.4
 const SOUND_CUE_COUNT := 3
 const CEL_SHADER := preload("res://saga_core/shaders/cel_toon.gdshader")
+const HIT_SOUNDS: Array[AudioStream] = [
+	preload("res://assets/generated/sfx/hit_01.wav"),
+	preload("res://assets/generated/sfx/hit_02.wav"),
+	preload("res://assets/generated/sfx/hit_03.wav"),
+]
+const PICK_SOUNDS: Array[AudioStream] = [
+	preload("res://assets/generated/sfx/pick_01.wav"),
+	preload("res://assets/generated/sfx/pick_02.wav"),
+	preload("res://assets/generated/sfx/pick_03.wav"),
+]
 
 var _hitstop_until_msec := 0
 var _flash_state: Dictionary = {}  # MeshInstance3D 인스턴스ID -> {mesh, orig, until}
 var _sound_idx := 0
+var _pick_sound_idx := 0
 
 
 func hit(target: Node3D, amount: float, crit: bool) -> void:
@@ -72,7 +87,7 @@ func hit(target: Node3D, amount: float, crit: bool) -> void:
 	if is_instance_valid(target):
 		_do_flash(target)
 		_do_popup(target, amount, crit)
-	_do_sound()
+	_do_sound("hit")
 
 
 ## PLAN 101-4 순서 2(FOREST 연결), 2026-09-18. 웹 §5 "채집 손맛" 후보용 —
@@ -87,7 +102,7 @@ func hit(target: Node3D, amount: float, crit: bool) -> void:
 func pickup(target: Node3D, label: String) -> void:
 	if is_instance_valid(target):
 		_do_pickup_popup(target, label)
-	_do_sound()
+	_do_sound("pick")
 	pickup_triggered.emit(label)
 
 
@@ -227,6 +242,26 @@ func _do_pickup_popup(target: Node3D, label: String) -> void:
 	tw.tween_callback(lbl.queue_free)
 
 
-func _do_sound() -> void:
-	_sound_idx = (_sound_idx + 1) % SOUND_CUE_COUNT
-	sound_triggered.emit(_sound_idx)
+func _do_sound(kind: String = "hit") -> void:
+	if kind == "pick":
+		_pick_sound_idx = (_pick_sound_idx + 1) % SOUND_CUE_COUNT
+		_play_one_shot(PICK_SOUNDS[_pick_sound_idx])
+		sound_triggered.emit(_pick_sound_idx)
+	else:
+		_sound_idx = (_sound_idx + 1) % SOUND_CUE_COUNT
+		_play_one_shot(HIT_SOUNDS[_sound_idx])
+		sound_triggered.emit(_sound_idx)
+
+
+## `_do_popup`·`_do_pickup_popup`과 같은 결(짧은 원샷 하나 만들고 끝나면
+## `queue_free`) — 이 자리도 풀링 없이 매번 새로 만든다. 씬 전환 중처럼
+## `current_scene`이 없는 순간엔 조용히 건너뛴다.
+func _play_one_shot(stream: AudioStream) -> void:
+	var scene := get_tree().current_scene
+	if scene == null or stream == null:
+		return
+	var player := AudioStreamPlayer.new()
+	player.stream = stream
+	scene.add_child(player)
+	player.play()
+	player.finished.connect(player.queue_free)
