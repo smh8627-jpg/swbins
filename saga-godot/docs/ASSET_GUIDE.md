@@ -447,3 +447,23 @@ res:// 트리에 있다.
   시스템과 겹칠 수 있어 판단 필요, 바위는 이미 procgen.py 대안이 있어
   중복 여부도 확인해야 함). 다음 세션이나 102 개편 때 판단할 몫으로
   "확보·임포트 검증 끝" 상태로만 남겨 둔다.
+
+## 2026-09-20 — Quaternius 바위 계열 대표 5종 팔레트 스냅(103-5 3~4단계)
+
+`assets/rocks/`의 Quaternius 바위(Rock_Medium_1·Pebble_Round_1·
+Pebble_Square_1·RockPath_Round_Wide·RockPath_Square_Wide)를 GO 3팔레트+
+forest_green 에 스냅 — 20개 `assets/generated/variants/`.
+
+- **눈으로 확인**: Rock_Medium×go_ruins 는 원본 이끼 낀 회녹색 바위가
+  자연스러운 폐허 톤으로. Pebble_Round×go_coast 는 원본 배경의 초록
+  잔디가 어색했는데 스냅 후 갈색 모래톤이 돼 오히려 해변에 더 맞게
+  고쳐졌다. Pebble_Square×go_village·RockPath_Round_Wide×forest_green·
+  RockPath_Square_Wide×go_village 전부 조약돌 길처럼 자연스럽다(마을
+  정원길·숲길 후보로 쓸 만함). Pebble_Square 와 RockPath_Square_Wide 는
+  같은 원본 텍스처(`PathRocks_Diffuse.png`)를 공유해 결과가 동일하다.
+  다섯 조합 다 결함 없음 — 나무 때(TwistedTree×go_village 애매)와 달리
+  이번엔 전부 무난.
+- 헤드리스 임포트 오류 0(20개), `godot_regress.sh` 통과. **씬엔 안
+  물렸다**(§8-1) — Pebble/RockPath 는 "정원·산책로 장식" 용도로 procgen
+  바위(101-1 E 빈칸 채우기)와 다른 자리라 중복이 아니다, 다음에 배치
+  판단.

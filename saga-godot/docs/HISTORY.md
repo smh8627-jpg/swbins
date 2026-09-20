@@ -7759,3 +7759,10 @@ PROJECT_STATE.md` 참고. 요약:
 - 헤드리스 임포트 오류 0(46종 전부), `godot_regress.sh` 통과 — 다섯 대표 씬 md5 불변, `.import`/`project.godot` 잡음 없음.
 - **팔레트 스냅·씬 배치 안 함** — 나무와 달리 용도 미정(잔디·꽃은 FOREST 꽃 교배 시스템과 겹칠 가능성, 바위는 procgen.py 대안과 중복 여부 확인 필요). "확보·임포트 검증 끝" 상태로만 남김, 다음 판단은 사람 몫.
 - 이걸로 Stylized Nature MegaKit Standard 68/68 전부가 res:// 트리에 들어왔다.
+
+## Quaternius 바위 계열 대표 5종 팔레트 스냅 (2026-09-20⑮, 같은 세션 이어서, "이어 해줘")
+
+- 09-20⑭ 46종 확보 뒤, 바위 계열 중 대표 5종(Rock_Medium_1·Pebble_Round_1·Pebble_Square_1·RockPath_Round_Wide·RockPath_Square_Wide)만 나무와 같은 절차로 4팔레트 스냅 — 20개 `assets/generated/variants/`.
+- 눈 확인: 다섯 조합 전부 무난 — 특히 Pebble_Round×go_coast 는 원본의 어색한 초록 배경이 스냅으로 갈색 모래톤이 되며 오히려 더 자연스러워짐. Pebble_Square/RockPath_Square_Wide 는 같은 원본 텍스처 공유라 결과 동일.
+- **procgen 바위와 용도 구분**: Pebble/RockPath 는 "정원·산책로 장식"(사람이 걷는 길 느낌), procgen.py 바위는 "빈칸 채우기"(101-1 E) — 중복 아님, 서로 다른 자리.
+- 헤드리스 임포트 오류 0, `godot_regress.sh` 통과. **씬엔 안 물림**(§8-1). 잔디·꽃·이끼류(FOREST 겹침 우려)는 이번에도 안 건드림 — 그건 여전히 사람 판단 대기.
