@@ -44,6 +44,7 @@ namespace Saga.EditorTools
         private enum Phase
         {
             Init, TalkNpc, TriggerDiscovery, KillEnemies, KillBoss, TalkNpcChoice, SweepTest, BoltCast, BoltWait, BraceTest,
+            PartySwapTest, PartySwapWait,
             LandBeforeJump, EnterRope, RopeTopClearance, RopeDescend, ExitRope, LabyrinthTest, SaveLoad, Done,
         }
         private static Phase _phase = Phase.Init;
@@ -59,6 +60,8 @@ namespace Saga.EditorTools
         private static StoryEnemy _sweepDummy;
         private static StoryEnemy _boltNearDummy;
         private static StoryEnemy _boltFarDummy;
+        private static StoryEnemy _partySwapNearDummy;
+        private static StoryEnemy _partySwapFarDummy;
 
         [MenuItem("Saga/Playtest Story Slice (Headless)")]
         public static void Run()
@@ -590,8 +593,78 @@ namespace Saga.EditorTools
                         return;
                     }
                     Debug.Log("[PlaytestStorySlice] brace OK - buff window set, mp deducted");
+                    _phase = Phase.PartySwapTest;
+                    break;
+
+                case Phase.PartySwapTest:
+                {
+                    // PLAN.md 101-2 5-8 "동료 교대" — 기본 활성 역할은 0(선봉).
+                    if (StoryPartyState.ActiveIndex != 0)
+                    {
+                        Debug.LogError($"[PlaytestStorySlice] 기본 활성 역할이 0(선봉)이 아님 — {StoryPartyState.ActiveIndex}");
+                        Fail();
+                        return;
+                    }
+                    TeleportPlayer(new Vector3(5f, 0.1f, 0f));
+                    _partySwapNearDummy = SpawnDummyEnemy(new Vector3(7f, 0.1f, 0f));
+                    _partySwapFarDummy = SpawnDummyEnemy(new Vector3(9.5f, 0.1f, 0f));
+                    StoryCombat.RestoreMp(StoryCombat.MpMax);
+                    SetPrivate(_storyController, "_boltCooldownLeft", 0f);
+
+                    // 유격(1) — 서명은 기탄(관통) — MP 없이 즉시 발동돼야 한다.
+                    _storyController.TriggerPartySwap(1);
+                    if (StoryPartyState.ActiveIndex != 1)
+                    {
+                        Debug.LogError($"[PlaytestStorySlice] 교대 후 ActiveIndex={StoryPartyState.ActiveIndex}(기대=1, 유격)");
+                        Fail();
+                        return;
+                    }
+                    if (!Mathf.Approximately(StoryCombat.Mp, StoryCombat.MpMax))
+                    {
+                        Debug.LogError($"[PlaytestStorySlice] 동료 서명(기탄)이 MP를 소모함 — mp={StoryCombat.Mp}(기대={StoryCombat.MpMax}, 무료여야 함)");
+                        Fail();
+                        return;
+                    }
+                    _waitUntilRealTime = Time.realtimeSinceStartup + 0.5f; // BoltCast/BoltWait와 같은 여유(관통 투사체 도달 시간).
+                    _phase = Phase.PartySwapWait;
+                    break;
+                }
+
+                case Phase.PartySwapWait:
+                {
+                    if (Time.realtimeSinceStartup < _waitUntilRealTime) return;
+                    if (!_partySwapNearDummy.IsDead || !_partySwapFarDummy.IsDead)
+                    {
+                        Debug.LogError($"[PlaytestStorySlice] 동료 서명(기탄) 뒤에도 더미가 안 죽음 — near={_partySwapNearDummy.IsDead} far={_partySwapFarDummy.IsDead}");
+                        Fail();
+                        return;
+                    }
+
+                    // 교대 쿨다운(4초) 안에 다른 역할로 재교대 시도 — 거절돼야 한다.
+                    _storyController.TriggerPartySwap(2);
+                    if (StoryPartyState.ActiveIndex != 1)
+                    {
+                        Debug.LogError($"[PlaytestStorySlice] 교대 쿨다운(4초) 중인데 재교대가 성사됨 — ActiveIndex={StoryPartyState.ActiveIndex}(기대=1 유지)");
+                        Fail();
+                        return;
+                    }
+
+                    // 쿨다운을 강제로 비운 뒤(실제 4초를 기다리지 않는다, BraceTest류와
+                    // 같은 관례) 다시 시도하면 이번엔 성사돼야 한다.
+                    typeof(StoryPartyState).GetField("_cooldownLeft", BindingFlags.NonPublic | BindingFlags.Static)?.SetValue(null, 0f);
+                    _storyController.TriggerPartySwap(2);
+                    if (StoryPartyState.ActiveIndex != 2)
+                    {
+                        Debug.LogError($"[PlaytestStorySlice] 쿨다운 해제 후에도 교대 실패 — ActiveIndex={StoryPartyState.ActiveIndex}(기대=2 호법)");
+                        Fail();
+                        return;
+                    }
+
+                    Debug.Log("[PlaytestStorySlice] party swap OK - MP-free signature fired on swap, 4s cooldown enforced then respected after reset");
+                    StoryPartyState.Restore(0); // 이후 단계(공격력 관련)가 역할 배율에 안 영향받게 기본값(선봉)으로.
                     _phase = Phase.LandBeforeJump;
                     break;
+                }
 
                 case Phase.LandBeforeJump:
                     // 배치 모드는 실시간보다 훨씬 빠르게 돈다(초당 수천 프레임 —
@@ -834,6 +907,11 @@ namespace Saga.EditorTools
                     // 이미 여럿 쌓고 10단까지 밀어붙여 둔 값).
                     int memoryShardsBeforeSave = StoryLabyrinthState.MemoryShards;
                     int memoryTierBeforeSave = StoryLabyrinthState.MemoryTier;
+                    // 세이브 스키마(버전 안 올림) — 101-2 5-8 "동료 교대" 활성
+                    // 역할도 같이 본다(PartySwapTest가 되돌려 둔 0=선봉이 아니라
+                    // 실제로 다른 값이어도 왕복이 되는지 보려고 여기서 2로 바꿔 둔다).
+                    StoryPartyState.Restore(2);
+                    int partyIndexBeforeSave = StoryPartyState.ActiveIndex;
                     if (!StorySaveState.Save())
                     {
                         Debug.LogError("[PlaytestStorySlice] StorySaveState.Save() 실패");
@@ -848,6 +926,7 @@ namespace Saga.EditorTools
                     StoryJobState.Restore(1, 0f, StoryJobState.NoJob);
                     StorySaveState.ResetChampionForTest();
                     StoryLabyrinthState.Restore(0, 0);
+                    StoryPartyState.Restore(0);
                     TeleportPlayer(new Vector3(0f, 0.1f, 0f));
                     if (!StorySaveState.TryLoad())
                     {
@@ -894,6 +973,12 @@ namespace Saga.EditorTools
                     if (StoryLabyrinthState.MemoryShards != memoryShardsBeforeSave || StoryLabyrinthState.MemoryTier != memoryTierBeforeSave)
                     {
                         Debug.LogError($"[PlaytestStorySlice] 로드 후 비경 기억 조각/강화 불일치 — shards={StoryLabyrinthState.MemoryShards}(기대={memoryShardsBeforeSave}) tier={StoryLabyrinthState.MemoryTier}(기대={memoryTierBeforeSave})");
+                        Fail();
+                        return;
+                    }
+                    if (StoryPartyState.ActiveIndex != partyIndexBeforeSave)
+                    {
+                        Debug.LogError($"[PlaytestStorySlice] 로드 후 동료 교대 활성 역할 불일치 — {StoryPartyState.ActiveIndex}(기대={partyIndexBeforeSave})");
                         Fail();
                         return;
                     }

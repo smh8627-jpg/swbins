@@ -62,9 +62,11 @@ namespace Saga.Story.Player
         /// 얻은 grow.atk(StoryJobState.AtkBonus)를 기초값 위에 얹는다.
         /// 101-2 5-3 "비경"(2026-09-20) — 영구 강화(StoryLabyrinthState.
         /// MemoryAtkBonus, 기억 조각으로 산 것 — 평소에도 적용)와 회차
-        /// 중 공격 축복(AtkMul, 회차 밖엔 항상 1)을 더 얹는다.</summary>
+        /// 중 공격 축복(AtkMul, 회차 밖엔 항상 1)을 더 얹는다. 101-2 5-8
+        /// "동료 교대"(2026-09-21) — 활성 역할의 공격 배율(웹판 "인물의
+        /// 몸" 재해석)도 곱한다.</summary>
         private float CurrentAtk => (StoryCombat.StartAtk + StoryJobState.AtkBonus + StoryLabyrinthState.MemoryAtkBonus)
-            * (BuffActive ? StoryCombat.BraceAtkMul : 1f) * StoryLabyrinthState.AtkMul;
+            * (BuffActive ? StoryCombat.BraceAtkMul : 1f) * StoryLabyrinthState.AtkMul * StoryPartyState.AtkMultiplier;
 
         private void Awake()
         {
@@ -80,6 +82,7 @@ namespace Saga.Story.Player
             _boltCooldownLeft = Mathf.Max(0f, _boltCooldownLeft - dt);
             _braceCooldownLeft = Mathf.Max(0f, _braceCooldownLeft - dt);
             StoryCombat.TickMpRegen(dt);
+            StoryPartyState.TickCooldown(dt); // 101-2 5-8 "동료 교대".
             CheckRope();
 
             if (_onRope && _ropeArea != null) Climb(dt);
@@ -119,6 +122,31 @@ namespace Saga.Story.Player
         public void TriggerBolt() => TryBolt();
         public void TriggerBrace() => TryBrace();
 
+        /// <summary>모바일 "선봉/유격/호법" 교대 버튼(OnClick)이 부른다 —
+        /// 101-2 5-8 "동료 교대". 교대 자체가 성사됐을 때만(쿨다운 중이면
+        /// 조용히 무시, `StoryHud`가 쿨다운 남은 시간을 상시 보여준다)
+        /// 그 역할의 서명을 무료로(MP 소모 없이, 그 무예 자신의 쿨다운은
+        /// 그대로 존중 — "새 효과 없음" 원칙대로 기존 셋을 그대로 쓴다)
+        /// 즉시 발동한다.</summary>
+        public void TriggerPartySwap(int index)
+        {
+            if (!StoryPartyState.TrySwap(index)) return;
+            TriggerCompanionSignature(StoryPartyState.Active.Signature);
+            DialogueLabel.Instance?.Show(
+                string.Format(StoryLocalization.T("party.swapped_toast", "{0}(으)로 교대! 서명을 발동했다."), StoryPartyState.Active.Name),
+                2.5f);
+        }
+
+        private void TriggerCompanionSignature(StoryPartyState.Signature signature)
+        {
+            switch (signature)
+            {
+                case StoryPartyState.Signature.Sweep: TrySweep(free: true); break;
+                case StoryPartyState.Signature.Bolt: TryBolt(free: true); break;
+                case StoryPartyState.Signature.Brace: TryBrace(free: true); break;
+            }
+        }
+
         /// <summary>모바일 "점프" 버튼(OnClick)이 부른다.</summary>
         public void TriggerJump()
         {
@@ -150,10 +178,13 @@ namespace Saga.Story.Player
         }
 
         /// <summary>횡소(橫掃) — data-job.js sweep, aoe. 등 뒤·앞 구분 없이
-        /// 반경 안 전부(side.js castSkill() effect==='aoe'와 같은 결).</summary>
-        private void TrySweep()
+        /// 반경 안 전부(side.js castSkill() effect==='aoe'와 같은 결).
+        /// <paramref name="free"/>=true(101-2 5-8 "동료 교대" 서명 전용)면
+        /// MP를 안 쓴다 — 이 무예 자신의 쿨다운은 그대로 존중한다.</summary>
+        private void TrySweep(bool free = false)
         {
-            if (_sweepCooldownLeft > 0f || !StoryCombat.TrySpendMp(StoryCombat.SweepCost)) return;
+            if (_sweepCooldownLeft > 0f) return;
+            if (!free && !StoryCombat.TrySpendMp(StoryCombat.SweepCost)) return;
             _sweepCooldownLeft = StoryCombat.SweepCooldown * StoryLabyrinthState.CooldownMul;
             PlayAttackAnim();
 
@@ -190,10 +221,11 @@ namespace Saga.Story.Player
         }
 
         /// <summary>기탄(氣彈) — data-job.js bolt, 관통 투사체
-        /// (`StoryBolt.cs` 참고).</summary>
-        private void TryBolt()
+        /// (`StoryBolt.cs` 참고). <paramref name="free"/>는 TrySweep()과 같은 뜻.</summary>
+        private void TryBolt(bool free = false)
         {
-            if (_boltCooldownLeft > 0f || !StoryCombat.TrySpendMp(StoryCombat.BoltCost)) return;
+            if (_boltCooldownLeft > 0f) return;
+            if (!free && !StoryCombat.TrySpendMp(StoryCombat.BoltCost)) return;
             _boltCooldownLeft = StoryCombat.BoltCooldown * StoryLabyrinthState.CooldownMul;
             PlayAttackAnim();
 
@@ -204,10 +236,12 @@ namespace Saga.Story.Player
 
         /// <summary>기합(氣合) — data-job.js brace, buff. 8초간 공격·이동
         /// 배율만 올린다(side.js buffOn()과 달리 guard·regen은 이 슬라이스가
-        /// 아직 안 쓰는 축이라 배선 안 함 — RunSpeed·CurrentAtk 둘만).</summary>
-        private void TryBrace()
+        /// 아직 안 쓰는 축이라 배선 안 함 — RunSpeed·CurrentAtk 둘만).
+        /// <paramref name="free"/>는 TrySweep()과 같은 뜻.</summary>
+        private void TryBrace(bool free = false)
         {
-            if (_braceCooldownLeft > 0f || !StoryCombat.TrySpendMp(StoryCombat.BraceCost)) return;
+            if (_braceCooldownLeft > 0f) return;
+            if (!free && !StoryCombat.TrySpendMp(StoryCombat.BraceCost)) return;
             _braceCooldownLeft = StoryCombat.BraceCooldown * StoryLabyrinthState.CooldownMul;
             _buffUntilTime = Time.time + StoryCombat.BraceSeconds;
         }

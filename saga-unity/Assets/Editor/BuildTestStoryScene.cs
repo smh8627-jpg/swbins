@@ -701,6 +701,13 @@ namespace Saga.EditorTools
             BuildActionButton(canvasGo.transform, new Vector2(-100f, 380f), "기합", new Color(0.75f, 0.55f, 0.1f, 0.55f), controller.TriggerBrace, "action.brace");
             BuildActionButton(canvasGo.transform, new Vector2(-280f, 380f), "기탄", new Color(0.2f, 0.4f, 0.75f, 0.55f), controller.TriggerBolt, "action.bolt");
             BuildActionButton(canvasGo.transform, new Vector2(-460f, 380f), "횡소", new Color(0.4f, 0.6f, 0.25f, 0.55f), controller.TriggerSweep, "action.sweep");
+
+            // PLAN.md 101-2 5-8 "동료 교대"(2026-09-21) — 무예 셋(y=380) 위
+            // 한 줄(y=580)에 역할 셋. 웹판 "버튼 1개(초상 탭)" 대신 이 트랙엔
+            // 초상이 없어 역할마다 버튼을 두는 쪽으로 재해석(더 명확하다).
+            BuildActionButton(canvasGo.transform, new Vector2(-100f, 580f), "호법", new Color(0.55f, 0.35f, 0.65f, 0.55f), () => controller.TriggerPartySwap(2), "action.party_guardian");
+            BuildActionButton(canvasGo.transform, new Vector2(-280f, 580f), "유격", new Color(0.35f, 0.55f, 0.6f, 0.55f), () => controller.TriggerPartySwap(1), "action.party_skirmisher");
+            BuildActionButton(canvasGo.transform, new Vector2(-460f, 580f), "선봉", new Color(0.65f, 0.35f, 0.35f, 0.55f), () => controller.TriggerPartySwap(0), "action.party_vanguard");
         }
 
         private static HoldButton BuildHoldButton(Transform parent, Vector2 anchorFromBottomLeft, Vector2 offset, string label, Color color)
