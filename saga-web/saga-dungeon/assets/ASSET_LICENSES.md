@@ -1804,3 +1804,21 @@ VRoid Studio 공식 CC0 샘플 AvatarSample_A/B/C(github.com/madjin/vrm-samples,
 `assets/models/people/anime/avatar_*.glb` 넷은 `tools/glb-compress/vrm-slim.mjs` 로 **가공한 파일**이다 —
 표정 모프 타깃(54~57개)을 떼고 같은 재질 프리미티브를 합쳤다(정점·뼈·재질·텍스처는 그대로, 용량 25MB → 11MB,
 캐릭터당 드로우콜 90~135 → 14~19). 다섯 판 복사본은 같은 파일(md5 동일)이다.
+
+## Kenney — Roguelike Characters Pack (`assets/sprites2d/human_*.png`, 2026-09-20, saga-forest 에서 옮김)
+
+| 항목 | |
+|---|---|
+| **만든 이** | Kenney (<https://kenney.nl>) |
+| **라이선스** | **CC0 1.0 Universal** (퍼블릭 도메인 헌정) |
+| **저작자 표시** | 필요 없다. 그래도 적어 둔다 |
+| **재배포** | 허용된다 |
+| **받은 곳** | <https://kenney.nl/assets/roguelike-characters> — `kenney_roguelike-characters.zip` 안 `Spritesheet/roguelikeChar_transparent.png` |
+
+2D 던전 뷰(`dungeon-view.js` 의 `stamp()` 넷)가 부르는 `sprite.js` 의 `bake()`(`kind==='human'`)가 여태 원·선으로 절차적으로
+그리던 **사람**(NPC·동행·주인공·인간형 적)을 이 시트에서 오려 낸 정지 그림 열넷으로 바꿨다(SAGA-DESIGN §11 Phase 2, 사용자가
+"사가블로 2D 살려서" 로 Q-2D-2 결정). 파일은 `saga-forest/assets/sprites2d/human_01~14.png` 와 같은 것(md5 동일)이고 자르는 좌표·표도
+그쪽 `ASSET_LICENSES.md` 의 같은 절과 같다. **트레이드오프** — 인물별 색·등신·걷기 다리 애니메이션은 못 낸다(고정 그림 한 장).
+인물 id 를 해시해 열넷 중 하나를 **늘 같은 얼굴로** 고르고, 좌우 뒤집기와 걸음 통통거림은 그림과 무관하게 산다. 이 판의 양식인
+디아블로풍 후처리(`diabloize`, 어둡고 채도 낮게)는 그림에도 그대로 건다. 그림이 아직 안 실린 첫 프레임만 옛 코드 그림으로
+채우고 곧 다시 굽는다. 짐승(`beast()`)은 아직 코드 그림이다(Phase 3). 3D 던전 뷰와 도감 초상은 영향이 없다.
