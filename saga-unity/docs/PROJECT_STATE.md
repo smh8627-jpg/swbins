@@ -1,7 +1,7 @@
 # PROJECT_STATE — saga-unity (상태만, ≤15KB, 덮어쓴다)
 
 **규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다(2026-09-16 재편 전 본문 5,532줄은 그쪽 첫 절에 그대로 있다). 넘치면 `tools/precheck.sh` 가 막는다.
-마지막 갱신: 2026-09-20 (GO①⑥⑧ 다음 **전용 헤드리스 진단 보강** — 직전 세션이 "컴파일+기존 회귀만" 확인하고 남긴 숙제. `PlaytestHeadless.cs`에 `CheckBeaconTower()`(점등 전후 목표판 전환·중복 점등 방지)·`CheckDropOnLossAndRecovery()`(진짜 패배 경로 강제→15% 드롭·마커·창 안 회수·만료 뒤 재회수 방지, `CheckBanditLootMarker`보다 먼저)·`CheckBondProgress()`(실제 등용된 "산적"+합성 시험 id로 거리/승수 문턱·`LeveledUp`·`AtkMultiplier` 확인, `CheckBanditLootMarker` 뒤) 셋 추가. 경위 HISTORY grep. 컴파일 0 오류, 헤드리스 3연속 OK(신규 셋 포함, 기존 회귀 없음). GO 101-2는 여전히 ②(사당 시련, 사용자 결정 대기)·⑤(비석 GPS, 모바일 빌드 뒤)만 남음 — 나머지 게임 후보(DUNGEON5.7·FOREST5.6/5.7·REALM5-3/5-5)도 전부 게이트 대기라 다음은 사용자가 방향을 고를 차례.
+마지막 갱신: 2026-09-20 (GO①⑥⑧ 진단 보강 다음 **GO② 사당 시련 설계만 하고 중단** — 사용자가 "GO②도 진행 + 게이트 무시하고 다른 트랙도 착수" 둘 다 지시했으나, GO② 코드 작성 중 "새로운 세션에서 이어 하자"로 중단. **코드는 하나도 안 남았다**(orphan 파일 하나 만들었다 지움, 커밋 전이라 안전) — 설계만 `docs/HISTORY.md` 2026-09-20 "GO② 사당 시련 설계 뒤 중단" 절에 그대로 있다: 입구 산신당 옆(4,1) 하나, 3파도를 `DuelRules`의 `timeSec`로 이어받는 공유 180초 타이머, 클리어=인장 조각(3=인장1, 이정표 보상), 실패=금10 손실+10분 재입장 잠금(`DropState`와 같은 결). **다음 세션은 그 절 그대로 구현**(`ShrineTrialState.cs`+`ShrineTrialEncounter.cs`+씬 배선+SaveState v13)하면 된다. "게이트 무시하고 다른 트랙" 쪽은 후보(REALM 5-3/5-5 유력, godot 참고 설계 있음)만 짚고 착수는 안 함.
 
 ## 캐릭터 자산 — 이 PC 기준 (2026-09-19)
 

@@ -7945,3 +7945,19 @@ TestVillage는 GPS 오버월드가 아니라 9×11 고정 격자 하나뿐이라
 `tools/unity-batch.sh -- <Unity 인자...>`로 컴파일(오류 0) → 씬 재빌드 없이(로직만 추가, 씬 구성 안 바뀜) 헤드리스 3연속 OK(신규 세 체크 전부 포함, 기존 항목도 회귀 없음). `docs/PROJECT_STATE.md` 갱신("다음 작업"에서 GO①⑥⑧ 진단 숙제 항목 제거, 테스트 상태 갱신).
 
 GO 101-2는 이제 ②(사당 시련, 사용자 결정 대기)·⑤(비석 GPS, 모바일 빌드 뒤)만 남았고, 실기 확인도 여전히 대기 상태다. 다음은 여전히 DUNGEON5.7·FOREST5.6/5.7·REALM5-3/5-5(전부 게이트 대기)나 GO②(사용자 결정) 중 사용자가 고르는 쪽.
+
+## 2026-09-20 — GO② 사당 시련 설계 뒤 중단 ("사가 유니티 이어 해" 세션, GO①⑥⑧ 진단 다음)
+
+사용자가 "GO②(사당 시련) 진행 + 게이트 무시하고 다른 트랙 먼저 착수" 둘 다 지시(질문 1,2 선택). GO②부터 설계에 들어갔다가 코드 작성 중간에 "새로운 세션에서 이어 하자"는 지시로 중단 — **코드는 데이터 클래스 하나(`ShrineTrialState.cs`, 커밋 전 상태)만 만들고 지웠다**(미완성 orphan 파일을 안 남기려고, 커밋된 적 없어 안전). 설계는 여기 이 절에 그대로 남겨 다음 세션이 다시 고민 안 해도 되게 한다.
+
+**GO② 사당 시련 — 확정된 재해석 설계(다음 세션이 그대로 구현할 것)**:
+- 웹판(`saga-web/saga-go/PLAN.md` §5②, 132행)은 27개 권역마다 입구를 두고 클리어 보상으로 "그 권역 인물 조우"(새 동료)를 준다 — 이 트랙엔 GPS 권역도 105명 인물 풀도 없어 크게 좁힌다.
+- **입구는 하나만, 산신당(`World.MountainShrine`, 격자 5,1) 옆 격자 (4,1)**(row1 `"^TT=TS^^^"`의 forest 타일, 비어 있음 확인됨).
+- **3파도를 하나의 공유 타이머(180초, 웹판 수치 그대로)로 잇는다** — `DuelRules.Create(foeHp, atk, def, timeSec: 남은시간)`을 파도마다 다시 불러 이전 파도가 남긴 `_duel.Left`를 다음 파도 타임아웃으로 그대로 이어받는다(새 타이머 필드 불필요, `DuelRules` 수정도 불필요). 파도 상대 난이도는 웹판 "wolfpack 90→bandit 120→scout 170"을 `FoePower` 배열로 그대로 옮기고(`{90,120,170}`, `FoeHpMul=7`은 기존 두 사건과 같은 배율), 짐승형 새 시각 자산 없이 `RareWolfEncounter`처럼 primitive 캡슐(보라색 계열로 구분)만 쓴다. 마지막 파도(3번째)가 "미니보스" 역할을 겸한다(웹판의 "파도 3 + 별도 미니보스"를 4번째 전투 추가 없이 좁힌 것).
+- **클리어 보상은 "인장 조각" 수집**(웹판 그대로: 3개=인장 1) — 이 후보 표준 태그가 "A E F"뿐이고 D(선택)·G(성장가시화)가 없어서, 영구 배율(PerkState·BondState 같은) 새로 만들지 않고 `DailyTaskState.StampsPerReward`(도장 7=주간보상)와 같은 결의 **일회성 이정표 보상**(경험치+돈 한 번 더)으로 좁혔다. 매 클리어 EXP120·금70, 3조각째(인장 획득)마다 추가로 EXP100·금80.
+- **실패**: 소지금 10냥 손실(TrySpend, 못 내면 그냥 스킵하고 문구만 다르게) + **10분 재입장 잠금**(웹판 "재입장 10분" 그대로, `DropState`와 같은 결로 `DateTime.Now.Ticks` 기준 — 앱 재시작에도 창이 흐름). 하루 3회 제한은 `DailyTaskState`와 같은 실제 달력 날짜(`DateTime.Now.ToString("yyyy-MM-dd")`) 비교.
+- 새 `ShrineTrialState.cs`(Data, 위에 적은 그대로 — 날짜·클리어수·조각·인장·잠금시각) + 새 `ShrineTrialEncounter.cs`(World, `BanditEncounter`/`RareWolfEncounter`와 뼈대 동일 — `EncounterUiKit` 조립, hitstop·화면 플래시, `PulseVisual` — 다른 점은 `Update()`의 `OnWaveOver()`가 파도 클리어 시 다음 파도로 넘어가거나 최종 성공/실패로 갈라지는 것뿐). `BuildTestVillageScene.cs`에 `BuildShrineTrial()` 추가(BuildMountainShrine 뒤). `SaveState.cs` v12→v13(날짜·클리어수·조각·인장·잠금시각 5필드).
+- 전투력 배율 체인은 기존 두 사건과 통일: `(PartyState.Atk+PlayerStats.AtkBonus+Inventory.AtkBonus) * PerkState.AtkMultiplier * BondState.AtkMultiplier`.
+- **다음 세션이 할 일**: 위 설계대로 `ShrineTrialState.cs`(재작성, 이 절 코드 그대로) + `ShrineTrialEncounter.cs`(신규) + `BuildTestVillageScene.cs`(`BuildShrineTrial()` 추가) + `SaveState.cs`(v13) 구현 → 컴파일 → 씬 재빌드 → 헤드리스 3연속 OK → `PlaytestHeadless.cs`에 전용 진단 추가(같은 세션에 같이 하거나 다음 숙제로 남기거나는 그때 판단) → PROJECT_STATE/PLAN 갱신 → 커밋.
+
+**"게이트 무시하고 다른 트랙 먼저 착수" 쪽은 아직 어느 후보를 고를지도 안 정했다** — DUNGEON5.7·FOREST5.6/5.7·REALM5-3/5-5 중 REALM(이미 godot 참고 설계가 있어 가장 수월해 보임, 5-3 일기토·설전 또는 5-5 승리 조건 다중 중 하나)이 유력 후보라는 판단만 하고 코드는 손 안 댔다 — 다음 세션이 이어서 고를 것.
