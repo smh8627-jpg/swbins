@@ -7766,3 +7766,9 @@ PROJECT_STATE.md` 참고. 요약:
 - 눈 확인: 다섯 조합 전부 무난 — 특히 Pebble_Round×go_coast 는 원본의 어색한 초록 배경이 스냅으로 갈색 모래톤이 되며 오히려 더 자연스러워짐. Pebble_Square/RockPath_Square_Wide 는 같은 원본 텍스처 공유라 결과 동일.
 - **procgen 바위와 용도 구분**: Pebble/RockPath 는 "정원·산책로 장식"(사람이 걷는 길 느낌), procgen.py 바위는 "빈칸 채우기"(101-1 E) — 중복 아님, 서로 다른 자리.
 - 헤드리스 임포트 오류 0, `godot_regress.sh` 통과. **씬엔 안 물림**(§8-1). 잔디·꽃·이끼류(FOREST 겹침 우려)는 이번에도 안 건드림 — 그건 여전히 사람 판단 대기.
+
+## Quaternius 잔디·꽃·이끼 대표 5종 시험 스냅 (2026-09-20⑯, 같은 세션 이어서, "다 되면 미리보기 이미지 확인해줘")
+
+- Fern_1·Grass_Common_Short·Flower_3_Group·Mushroom_Common·Plant_1 을 파이프라인 검증 차원에서 4팔레트 스냅 — 20개. **"쓴다"는 결정 아님**, 나무·바위와 달리 이번엔 파이프라인이 도는지만 확인.
+- 눈 확인: Fern/Flower/Plant 셋 다 같은 `Leaves.png` 다색 아틀라스 공유, 원본의 초록/파랑/빨강/보라가 각 팔레트 역할로 자연스럽게 분산돼 결함 없음. Grass_Common_Short 는 대부분 투명 영역이라 스냅 결과가 안 보이는 부분에만 영향. Mushroom_Common 원본 주황 갓이 forest_green "accent"(진분홍)로 튀는 색이 됨 — 결함은 아니고 사람이 톤 취향 판단.
+- 헤드리스 임포트 오류 0, `godot_regress.sh` 통과. **씬엔 안 물림**(§8-1). FOREST 꽃 교배 시스템과의 겹침 여부는 여전히 미결 — 이 스냅은 그 결정과 무관하게 파이프라인만 확인한 것.

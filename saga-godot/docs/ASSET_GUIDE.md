@@ -467,3 +467,25 @@ forest_green 에 스냅 — 20개 `assets/generated/variants/`.
   물렸다**(§8-1) — Pebble/RockPath 는 "정원·산책로 장식" 용도로 procgen
   바위(101-1 E 빈칸 채우기)와 다른 자리라 중복이 아니다, 다음에 배치
   판단.
+
+## 2026-09-20 — Quaternius 잔디·꽃·이끼 계열 대표 5종 팔레트 스냅(시험, 용도 미확정)
+
+`assets/vegetation/`의 잔디·꽃 계열(Fern_1·Grass_Common_Short·
+Flower_3_Group·Mushroom_Common·Plant_1)도 나무·바위와 같은 절차로 시험
+스냅 — 20개 `assets/generated/variants/`. **이건 "이 종을 실제로 쓴다"는
+결정이 아니라 파이프라인이 이 종류에도 무리 없이 도는지 확인하는
+시험이다** — FOREST 꽃 교배·마을 번들과 겹칠지는 여전히 미정.
+
+- Fern_1·Flower_3_Group·Plant_1 은 전부 같은 공유 텍스처(`Leaves.png`,
+  잎사귀·클로버·깃털 모양이 한 시트에 다색으로 모여 있는 아틀라스)를
+  쓴다 — 원본의 초록/파랑/빨강/보라 다색이 스냅 후에도 각 팔레트의
+  가장 가까운 역할(leaf/water/village_wall/mountain_stone 등)로 분산
+  배정돼 다양성이 유지된다. 결함 없음.
+- Grass_Common_Short 텍스처는 대부분 투명(알파 0)인 좁은 그라데이션
+  띠라, 스냅 후 안 보이는 영역이 하늘색으로 바뀌어도 실제 렌더에는
+  영향 없다(알파로 가려짐).
+- Mushroom_Common 은 원본 주황 갓이 forest_green 의 "accent"(진분홍)로
+  스냅돼 꽤 튀는 색이 된다 — 결함은 아니지만 "환상적인 버섯" 톤을
+  원하는지는 사람이 볼 때 판단.
+- 헤드리스 임포트 오류 0, `godot_regress.sh` 통과. **씬엔 안 물렸다**,
+  이 종류를 실제로 쓸지는 FOREST 겹침 여부 결정 후.
