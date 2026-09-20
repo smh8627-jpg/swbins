@@ -426,3 +426,24 @@ TwistedTree_2~5·DeadTree_2~5·Bush_Common_Flowers)까지 같은 4팔레트
   나무가 아니라 돌기둥처럼 보인다. 버그는 아니고(최근접 8색의 구조적
   한계), 102 그래픽 개편 때 사람이 이 조합을 쓸지 판단해야 한다.
 - 헤드리스 임포트 오류 0(88개 전부)·`godot_regress.sh` 통과, 씬엔 안 물림.
+
+## 2026-09-20 — Quaternius 나머지 46종(잔디·꽃·이끼·바위) 확보(Standard 68/68 전부)
+
+09-20⑪에서 나무·덤불 22종만 받았던 것에 이어, 같은 zip(Downloads에 그대로
+있음)에서 나머지 46종을 마저 꺼냈다 — 이제 Standard 버전 68종 전부
+res:// 트리에 있다.
+
+- **`assets/vegetation/`에 추가(21종)**: Clover 2·Fern 1·Flower_3/4
+  Group/Single 4·Grass_Common/Wispy Short/Tall 4·Mushroom_Common/
+  Laetiporus 2·Petal 5·Plant_1/1_Big/7/7_Big 4 + 텍스처 3장(`Grass.png`·
+  `Leaves.png`·`Mushrooms.png`, `Flowers.png`는 이미 있음).
+- **`assets/rocks/`에 추가(25종)**: Pebble_Round 5·Pebble_Square 6·
+  Rock_Medium 3·RockPath_Round/Square(Small×3+Thin+Wide 각 계열) 11 +
+  텍스처 2장(`PathRocks_Diffuse.png`·`Rocks_Diffuse.png`).
+- 헤드리스 임포트 오류 0(46종 전부), `godot_regress.sh` 통과 — 다섯 대표
+  씬 md5 불변, `.import`/`project.godot` 잡음 없음.
+- **팔레트 스냅·씬 배치는 안 함** — 나무 22종과 달리 이번 46종은 아직
+  "어디에 쓸지" 조차 결정된 바 없다(잔디·꽃은 FOREST 기존 꽃 교배
+  시스템과 겹칠 수 있어 판단 필요, 바위는 이미 procgen.py 대안이 있어
+  중복 여부도 확인해야 함). 다음 세션이나 102 개편 때 판단할 몫으로
+  "확보·임포트 검증 끝" 상태로만 남겨 둔다.

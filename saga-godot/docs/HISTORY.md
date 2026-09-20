@@ -7752,3 +7752,10 @@ PROJECT_STATE.md` 참고. 요약:
 - 새 조합 6개 preview PNG로 확인: 대부분 자연스러움(CommonTree_2×go_coast·Pine_3×go_ruins·DeadTree_2×forest_green·Bush_Common_Flowers×go_village). **TwistedTree_2×go_village 는 회색 돌기둥처럼 보여 애매**(최근접 8색 팔레트의 구조적 한계, 버그 아님) — 102 개편 때 사람이 판단.
 - 헤드리스 임포트 오류 0(88개 전부), `godot_regress.sh` 통과 — 다섯 대표 씬 md5 불변, `.import`/`project.godot` 잡음 없음. **씬엔 안 물림**(§8-1).
 - 103-5 절차(라이선스→임포트→fit_height/실루엣→팔레트 스냅) 중 나무 22종 몫은 4단계까지 완료. 5단계(씬 배치)는 102 그래픽 개편과 함께 사람 몫.
+
+## Quaternius 나머지 46종 확보 — Standard 68/68 전부 (2026-09-20⑭, 같은 세션 이어서, "이어 해줘")
+
+- 09-20⑪ 나무·덤불 22종에 이어 같은 zip(Downloads)에서 잔디·꽃·이끼·자갈·바위 46종을 마저 꺼내 `assets/vegetation/`(21종: Clover·Fern·Flower·Grass·Mushroom·Petal·Plant)·`assets/rocks/`(25종: Pebble·Rock_Medium·RockPath)에 배치. 텍스처 5장(Grass·Leaves·Mushrooms·PathRocks_Diffuse·Rocks_Diffuse) 동봉.
+- 헤드리스 임포트 오류 0(46종 전부), `godot_regress.sh` 통과 — 다섯 대표 씬 md5 불변, `.import`/`project.godot` 잡음 없음.
+- **팔레트 스냅·씬 배치 안 함** — 나무와 달리 용도 미정(잔디·꽃은 FOREST 꽃 교배 시스템과 겹칠 가능성, 바위는 procgen.py 대안과 중복 여부 확인 필요). "확보·임포트 검증 끝" 상태로만 남김, 다음 판단은 사람 몫.
+- 이걸로 Stylized Nature MegaKit Standard 68/68 전부가 res:// 트리에 들어왔다.
