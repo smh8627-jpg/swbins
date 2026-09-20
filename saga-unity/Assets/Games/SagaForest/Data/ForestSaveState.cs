@@ -12,9 +12,11 @@ namespace Saga.Forest.Data
     /// </summary>
     public static class ForestSaveState
     {
-        private const int SaveVersion = 5; // v4 — 가구 "자유 배치"로 재설계, homeAnchors(고정 여섯)를 homePlaceX/Y/Ids(격자 칸)로 교체.
+        private const int SaveVersion = 6; // v4 — 가구 "자유 배치"로 재설계, homeAnchors(고정 여섯)를 homePlaceX/Y/Ids(격자 칸)로 교체.
         // v5 — PLAN.md 101-2 5.3 "마을 번들"(ForestMuseumState) 저장. v4 이하 세이브는
         // museumDiscovered가 null로 채워지고 Restore(null)은 조용히 빈 도감으로 둔다.
+        // v6 — PLAN.md 101-2 5.7 "택배 사슬"(ForestDeliveryState) 누적 배달 수만 저장 —
+        // 들고 있던 소포·사슬 진행은 회차성이라 세이브 대상이 아니다(StoryLabyrinthState와 같은 결).
 
         private static string SavePath => Path.Combine(Application.persistentDataPath, "save_forest.json");
 
@@ -34,6 +36,7 @@ namespace Saga.Forest.Data
             public string homeCurWall;
             public string homeCurFloor;
             public string[] museumDiscovered;
+            public int deliveredCount;
         }
 
         /// <summary>Playtest*.cs 전용 — GameBootstrap이 매 Play 시작마다
@@ -74,6 +77,7 @@ namespace Saga.Forest.Data
                 homeCurWall = finishes.CurWall,
                 homeCurFloor = finishes.CurFloor,
                 museumDiscovered = ForestMuseumState.Snapshot(),
+                deliveredCount = ForestDeliveryState.Snapshot(),
             };
 
             try
@@ -125,6 +129,7 @@ namespace Saga.Forest.Data
             {
                 ForestMuseumState.Restore(data.museumDiscovered);
             }
+            ForestDeliveryState.Restore(data.version >= 6 ? data.deliveredCount : 0);
 
             Transform player = FindPlayer();
             if (player != null && data.playerPos != null && data.playerPos.Length == 3)

@@ -78,6 +78,8 @@ namespace Saga.EditorTools
             BuildCreatures();
             BuildMuseum();
             BuildTownScoreBoard();
+            BuildDeliveryCounter();
+            BuildDeliveryMailboxes();
             var (playerGo, playerTransform) = BuildPlayer();
             BuildCurveDriver(playerTransform);
             BuildPostProcessingVolume();
@@ -245,12 +247,43 @@ namespace Saga.EditorTools
         // 마을 중심 통행로(플레이어 스폰(-15z)과 네 존·집·주민이 흩어진
         // 본 마을 사이) — 다른 오브젝트와 안 겹치는 빈 자리.
         private static readonly Vector3 TownScoreBoardSpawn = new Vector3(0f, 0f, -5f);
+        private static readonly Vector3 DeliveryCounterSpawn = new Vector3(-5f, 0f, -5f);
 
         private static void BuildTownScoreBoard()
         {
             var go = new GameObject("TownScoreBoard");
             go.transform.position = TownScoreBoardSpawn;
             go.AddComponent<ForestTownScoreBoard>();
+        }
+
+        private static void BuildDeliveryCounter()
+        {
+            var go = new GameObject("DeliveryCounter");
+            go.transform.position = DeliveryCounterSpawn;
+            go.AddComponent<ForestDeliveryCounter>();
+        }
+
+        /// <summary>PLAN.md 101-2 5.7 "택배 사슬"(2026-09-20) — 네 바이옴 존 중심에서
+        /// 원점 반대 방향(x축)으로 8m 더 나가 둔다. 존마다 이미 den 둘(중심·중심에서
+        /// 대각선 6~7m)과 도감 채집 자리(대각선 6m)가 있어, 이 셋과 안 겹치는
+        /// 유일한 축 방향이 순수 x축 바깥쪽이다(`ForestCreatureBuilder.cs`
+        /// 좌표 주석과 `BuildMuseum()` 대각선 오프셋 참고).</summary>
+        private static void BuildDeliveryMailboxes()
+        {
+            for (int i = 0; i < ForestBiomeData.Zones.Length; i++)
+            {
+                var center = ForestBiomeData.Zones[i].Center;
+                float x = center.x + (center.x >= 0f ? 8f : -8f);
+                BuildDeliveryMailbox(i, new Vector3(x, 0f, center.y));
+            }
+        }
+
+        private static void BuildDeliveryMailbox(int zoneIndex, Vector3 pos)
+        {
+            var go = new GameObject($"DeliveryMailbox_{ForestBiomeData.Zones[zoneIndex].DisplayName}");
+            go.transform.position = pos;
+            var mailbox = go.AddComponent<ForestDeliveryMailbox>();
+            SetPrivateField(mailbox, "zoneIndex", zoneIndex);
         }
 
         private static void BuildCollectSpot(ForestMuseumState.Category category, Vector3 pos, Color color)

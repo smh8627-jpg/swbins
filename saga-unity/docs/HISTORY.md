@@ -8051,3 +8051,23 @@ godot STORY(`story_labyrinth.gd`, HISTORY 2026-09-18 실기 승인)의 재해석
 `tools/unity-batch.sh`로 컴파일(오류 0) → `BuildTestStoryScene` 재빌드 → `PlaytestStorySlice.Run` 3연속 OK. 배치 모드 부작용 4파일은 스크립트가 자동 원복.
 
 **101-2 STORY 후보 전부 소진** — 5-1·5-3·5-4·5-5·5-7 다 완료, 남은 건 5-2(웹·godot 둘 다 미확정이라 보류)·5-8(파티 시스템 자체가 없어 재검토 필요)뿐. 다음 후보: GO⑤(모바일 빌드 뒤)·DUNGEON5.7(웹 선행 뒤)·FOREST5.6/5.7(승인 사례 없음).
+
+## 2026-09-20 — FOREST 5.7 "택배 사슬" 구현, 게이트 무시 진행 결정 ("사가 유니티 이어해" 세션, STORY 5-3 다음)
+
+세션 시작 시점에 다섯 판 101-2 후보를 전부 훑었다 — GO⑤(GPS 순례, Unity 모바일 빌드 뒤)·DUNGEON5.7(시대 퓨전, 웹 선행 결과 뒤)·STORY5-2(보류)·5-8(파티 시스템 재검토)·REALM(전부 닫힘) 전부 진행 불가, FOREST5.6/5.7도 saga-web·saga-godot 어느 쪽에도 구현·실기 승인 사례가 없어 101-2 게이트("웹에서 통한 것부터", 2026-09-19 결정으로 godot 실기 승인도 인정)에 걸렸다. 정리 작업(102-4 `Assets/Art/Characters` Kenney 플레이스홀더 삭제)도 시도했으나 실제로는 FOREST 주민(`VillagerGlbPath`)·STORY 척후병·DUNGEON/GO 다수 Enemy가 `character-{a,b,c,d}.glb`를 아직 활발히 참조 중이라(`Editor/BuildTestXxxScene.cs` 다수, `World/CharacterVisual.cs` 세 벌) 문서 판정("44장 교체 완료 확인 후 뺄 것")과 달리 안전하지 않았다 — 44장 교체가 Player·주요 Enemy까지만 커버했지 보조 역할(주민·척후병)은 그대로 이 자산을 쓴다.
+
+사용자에게 AskUserQuestion으로 방향을 물어 **"게이트 무시하고 unity 자체 진행"**을 골랐다(PLAN.md 101-2 서두에 2026-09-20 결정으로 기록). FOREST5.6(축제, 행사 8종 미니게임)은 재해석 범위가 넓어(일과/날짜 시스템 자체가 이 트랙에 없음) 다음으로 미루고, 상대적으로 이 트랙 기존 시스템(과일 경제·바이옴 존·Sprint 입력)에 바로 얹을 수 있는 FOREST5.7(택배 사슬)을 골랐다.
+
+**재해석**: 웹판(`saga-web/saga-forest/PLAN.md` 167행)은 우주기지·폐허(과거)·캠프(현대) 같은 고정 목적지 3곳 + 배달 등급 마일스톤(10/30/60 — 수레 소품·배달원 옷·로버 탑승)을 전제한다. 이 트랙 지도엔 그런 랜드마크가 없어 이미 있는 네 바이옴 존(`ForestBiomeData.Zones`)을 배달 목적지로 재해석했다(우체통을 존마다 하나씩, `Editor/BuildTestVillageForestScene.cs BuildDeliveryMailboxes()` — 존 중심에서 원점 반대 방향 x축으로 8m, den·채집 자리와 안 겹치는 유일한 축). 보상은 이 트랙에 금 경제가 없어(`ForestState.cs` 클래스 주석) 과일로, 웹판 "현실 5분" 시간제한은 맵 크기(존 반경 17~45m)에 맞춰 45초로 축소. 배달 등급 마일스톤(코스메틱 자산)은 이 트랙에 그런 소품이 없어 스코프에서 뺐다 — 대신 누적 배달 수만 세이브(v6, `deliveredCount`).
+
+소포 3종(보통/깨지기 쉬움/시간제한)·연속 3배달 사슬 보너스(×1.5)는 원문 결 그대로. "깨지기 쉬움 — 달리면 파손"은 `Player/PlayerController.cs`의 기존 Sprint 입력을 그대로 활용 — 매 프레임 `ForestDeliveryState.NotifyRunning(running)`으로 보고하고, 상태 쪽에서 "깨지기 쉬움을 들고 있을 때만" 파손 플래그를 세운다(플레이어 컨트롤러가 배달 규칙을 몰라도 되게).
+
+**새 파일**: `Data/ForestDeliveryState.cs`(정적 상태 — 소포 종류·목적지·사슬·누적 배달, 회차성 데이터는 세이브 안 함, `ForestMuseumState.cs`와 같은 결), `World/ForestDeliveryCounter.cs`(접수대, `ForestFurnitureStall.cs`와 같은 결 — 다가가면 쿨다운 걸고 무작위 접수), `World/ForestDeliveryMailbox.cs`(목적지 우체통, `ForestCollectSpot.cs`와 같은 결 — 정적 위치 표까지 같은 패턴).
+
+**기존 파일 변경**: `ForestSaveState.cs`(v5→v6, `deliveredCount` 필드, 구버전 로드는 0으로), `Player/PlayerController.cs`(`NotifyRunning()` 훅 한 줄), `UI/ForestSessionTracker.cs`(`GoalLineNow()`가 소포를 들고 있으면 목적지 거리를 우선 보여줌, `GoalLineSession()`/`ShowSummary()`에 "택배 N건" 추가).
+
+**헤드리스 진단**(`PlaytestForestHeadless.cs`에 `CheckDelivery()` 신설, `ForestDeliveryState` 순수 상태 API를 직접 두드리는 `CheckMuseum()`류 결) — 오배송 거절(목적지 다른 우체통), 정상 배송(보상 4), 3배달째 사슬 보너스(보상 6=4×1.5), 파손(달리는 중 깨지기 쉬움 배달 → 보상 0·사슬 끊김), 시간초과(`_deadline` 리플렉션으로 강제, 보상 절반), `Snapshot()`/`Restore(10)` round-trip, 씬 오브젝트(접수대 1·우체통 4) 존재, 목표판 "지금" 줄 연동까지 확인. 첫 실행에서 `counter=null mailboxes=0`으로 실패 — **씬 `Build()`를 안 다시 돌려서** 새 GameObject가 씬 파일에 아직 없었다(PLAN.md 104-2 검증 절차 "GameObject 구성이 바뀔 때만 Build()" 그대로 — 이번엔 바뀐 경우였다). `BuildTestVillageForestScene.Build()` 재실행 후 3연속 OK.
+
+`tools/unity-batch.sh`로 컴파일(오류 0, 4파일 자동 원복 확인) → 씬 재빌드 → `PlaytestForestHeadless.Run` 3연속 OK.
+
+FOREST 101-2는 이제 5.6(축제)만 남았다 — 다음에 이어가려면 이 트랙에 없는 날짜/일과 시스템을 어떻게 재해석할지부터 정해야 한다. 다섯 판 전체로는 GO⑤(모바일 빌드 뒤)·DUNGEON5.7(웹 선행 뒤)·STORY5-2/5-8·FOREST5.6 다섯 후보가 남아 있고, 2026-09-20 결정으로 전부 게이트 없이 다음 세션이 바로 고를 수 있다.

@@ -28,6 +28,7 @@ namespace Saga.Forest.UI
         private Vector3 _lastPlayerPos;
         private float _walkedMeters;
         private int _sessionStartFruit;
+        private int _sessionStartDeliveries;
         private float _idleTimer;
         private bool _summaryShown;
         private SessionCard _sessionCard;
@@ -44,6 +45,7 @@ namespace Saga.Forest.UI
             _player = playerGo != null ? playerGo.transform : null;
             _lastPlayerPos = _player != null ? _player.position : Vector3.zero;
             _sessionStartFruit = ForestState.FruitCount;
+            _sessionStartDeliveries = ForestDeliveryState.DeliveredCount;
 
             // Init()으로 받은 참조도 plain private 필드라 씬 재로드 후엔
             // null이 된다(GoalBoard.cs 클래스 주석과 같은 함정, GO·DUNGEON과
@@ -88,15 +90,25 @@ namespace Saga.Forest.UI
         {
             if (_sessionCard == null) return;
             int fruitGained = ForestState.FruitCount - _sessionStartFruit;
+            int delivered = ForestDeliveryState.DeliveredCount - _sessionStartDeliveries;
             _sessionCard.Show("이번 세션 정리",
                 $"이동 {_walkedMeters:F0}m",
-                $"과일 +{fruitGained}",
+                $"과일 +{fruitGained} · 택배 {delivered}건",
                 $"다음: {GoalLineNow()}");
         }
 
         public string GoalLineNow()
         {
             if (_player == null) return "-";
+
+            // 101-2 5.7 "택배 사슬" — 소포를 들고 있으면 그 목적지까지 거리를 우선 보여준다.
+            if (ForestDeliveryState.Carrying)
+            {
+                var zone = ForestBiomeData.Zones[ForestDeliveryState.TargetIndex];
+                float dist = Vector2.Distance(new Vector2(_player.position.x, _player.position.z), zone.Center);
+                return $"택배 → {zone.DisplayName}까지 {dist:F0}m";
+            }
+
             var trees = Object.FindObjectsByType<ForestFruitTree>(FindObjectsSortMode.None);
             if (trees.Length == 0) return "-";
 
@@ -117,7 +129,8 @@ namespace Saga.Forest.UI
         public string GoalLineSession()
         {
             int fruitGained = ForestState.FruitCount - _sessionStartFruit;
-            return $"이동 {_walkedMeters:F0}m · 과일 +{fruitGained}";
+            int delivered = ForestDeliveryState.DeliveredCount - _sessionStartDeliveries;
+            return $"이동 {_walkedMeters:F0}m · 과일 +{fruitGained} · 택배 {delivered}건";
         }
 
         public string GoalLineWeek() => "다음 승급 이정표 준비 중(101-2 ⑦ 대기)";

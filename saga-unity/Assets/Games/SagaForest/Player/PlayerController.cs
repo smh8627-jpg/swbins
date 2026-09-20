@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Saga.Forest.Data;
 using Saga.Forest.UI;
 
 namespace Saga.Forest.Player
@@ -71,6 +72,7 @@ namespace Saga.Forest.Player
 
             bool running = _sprintAction != null && _sprintAction.IsPressed();
             float speed = running ? RunSpeed : WalkSpeed;
+            ForestDeliveryState.NotifyRunning(running); // 101-2 5.7 "깨지기 쉬움" 소포 — 달리면 파손.
 
             Vector3 horizontal = moveDir * speed;
             _controller.Move(new Vector3(horizontal.x, _verticalVelocity, horizontal.z) * dt);

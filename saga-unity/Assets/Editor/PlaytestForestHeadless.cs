@@ -88,6 +88,7 @@ namespace Saga.EditorTools
                 CheckMuseum();
                 CheckGatherFeel();
                 CheckTownScore();
+                CheckDelivery();
             }
             if (_framesSeen >= FramesToRun)
             {
@@ -555,6 +556,111 @@ namespace Saga.EditorTools
             }
 
             Debug.Log($"[PlaytestForestHeadless] town score OK - 박물관 고정 60점에서 별2 확인, 가구 {placed}개 채워 별5(총점 {ForestTownScore.Total()}) 도달, 조건 문구·보드 오브젝트 확인");
+        }
+
+        /// <summary>PLAN.md 101-2 5.7 "택배 사슬"(2026-09-20 추가) — 순수 상태 API
+        /// (`ForestDeliveryState`)를 직접 두드려 오배송 거절·정상 배송·사슬
+        /// 보너스(3배달째)·파손(달리다 깨짐, 사슬 끊김)·시간초과(보상 절반)를
+        /// 값으로 확인한 뒤(`CheckMuseum`처럼 순수 API 직접 호출), 씬에 접수대
+        /// 1개·우체통 4개가 실제로 서 있는지와 목표판 "지금" 줄이 배달 중일 때
+        /// 바뀌는지까지 마지막에 확인한다.</summary>
+        private static void CheckDelivery()
+        {
+            ForestDeliveryState.ResetForTest();
+
+            if (!ForestDeliveryState.TryPickup(ForestDeliveryState.Kind.Normal, 0) || ForestDeliveryState.TargetIndex != 0)
+            {
+                Debug.LogError("[PlaytestForestHeadless] 택배 접수(보통, 목적지 0)가 실패함");
+                _hadError = true;
+                return;
+            }
+            if (ForestDeliveryState.TryDeliver(1, out _, out _, out _, out _))
+            {
+                Debug.LogError("[PlaytestForestHeadless] 목적지가 다른 우체통인데도 배송이 성사됨");
+                _hadError = true;
+                return;
+            }
+            if (!ForestDeliveryState.Carrying)
+            {
+                Debug.LogError("[PlaytestForestHeadless] 오배송 거절 후 소포를 잃어버림(Carrying이 false)");
+                _hadError = true;
+                return;
+            }
+            ForestDeliveryState.TryDeliver(0, out int reward1, out bool broke1, out bool late1, out bool chainBonus1);
+            if (reward1 != 4 || broke1 || late1 || chainBonus1 || ForestDeliveryState.DeliveredCount != 1)
+            {
+                Debug.LogError($"[PlaytestForestHeadless] 1차 배송 결과가 이상함 — reward={reward1}(기대4) broke={broke1} late={late1} chain={chainBonus1} delivered={ForestDeliveryState.DeliveredCount}(기대1)");
+                _hadError = true;
+                return;
+            }
+
+            ForestDeliveryState.TryPickup(ForestDeliveryState.Kind.Normal, 1);
+            ForestDeliveryState.TryDeliver(1, out int reward2, out _, out _, out bool chainBonus2);
+            ForestDeliveryState.TryPickup(ForestDeliveryState.Kind.Normal, 2);
+            ForestDeliveryState.TryDeliver(2, out int reward3, out _, out _, out bool chainBonus3);
+            if (reward2 != 4 || chainBonus2 || reward3 != 6 || !chainBonus3 || ForestDeliveryState.DeliveredCount != 3)
+            {
+                Debug.LogError($"[PlaytestForestHeadless] 사슬 보너스(3배달째)가 이상함 — reward2={reward2}(기대4) chain2={chainBonus2}(기대false) reward3={reward3}(기대6) chain3={chainBonus3}(기대true) delivered={ForestDeliveryState.DeliveredCount}(기대3)");
+                _hadError = true;
+                return;
+            }
+
+            ForestDeliveryState.TryPickup(ForestDeliveryState.Kind.Fragile, 3);
+            ForestDeliveryState.NotifyRunning(true); // 달리는 중 — 파손 조건.
+            ForestDeliveryState.TryDeliver(3, out int reward4, out bool broke4, out _, out _);
+            if (reward4 != 0 || !broke4 || ForestDeliveryState.Chain != 0 || ForestDeliveryState.DeliveredCount != 3)
+            {
+                Debug.LogError($"[PlaytestForestHeadless] 파손(달리기) 처리가 이상함 — reward4={reward4}(기대0) broke4={broke4}(기대true) chain={ForestDeliveryState.Chain}(기대0) delivered={ForestDeliveryState.DeliveredCount}(기대3, 안 늘어야 함)");
+                _hadError = true;
+                return;
+            }
+
+            ForestDeliveryState.TryPickup(ForestDeliveryState.Kind.Timed, 0);
+            var deadlineField = typeof(ForestDeliveryState).GetField("_deadline", BindingFlags.NonPublic | BindingFlags.Static);
+            deadlineField.SetValue(null, Time.time - 1f); // 실제로 45초를 안 기다리고 시간초과를 강제한다.
+            ForestDeliveryState.TryDeliver(0, out int reward5, out bool broke5, out bool late5, out _);
+            if (reward5 != 3 || broke5 || !late5 || ForestDeliveryState.DeliveredCount != 4)
+            {
+                Debug.LogError($"[PlaytestForestHeadless] 시간초과(보상 절반) 처리가 이상함 — reward5={reward5}(기대3) broke5={broke5}(기대false) late5={late5}(기대true) delivered={ForestDeliveryState.DeliveredCount}(기대4)");
+                _hadError = true;
+                return;
+            }
+
+            if (ForestDeliveryState.Snapshot() != 4)
+            {
+                Debug.LogError($"[PlaytestForestHeadless] Snapshot()이 DeliveredCount와 안 맞음 — {ForestDeliveryState.Snapshot()}(기대4)");
+                _hadError = true;
+                return;
+            }
+            ForestDeliveryState.Restore(10);
+            if (ForestDeliveryState.DeliveredCount != 10 || ForestDeliveryState.Carrying || ForestDeliveryState.Chain != 0)
+            {
+                Debug.LogError($"[PlaytestForestHeadless] Restore(10) 이후 상태가 이상함 — delivered={ForestDeliveryState.DeliveredCount}(기대10) carrying={ForestDeliveryState.Carrying}(기대false) chain={ForestDeliveryState.Chain}(기대0)");
+                _hadError = true;
+                return;
+            }
+
+            var counterGo = GameObject.Find("DeliveryCounter");
+            var mailboxes = Object.FindObjectsByType<ForestDeliveryMailbox>(FindObjectsSortMode.None);
+            if (counterGo == null || counterGo.GetComponent<ForestDeliveryCounter>() == null || mailboxes.Length != 4)
+            {
+                Debug.LogError($"[PlaytestForestHeadless] 접수대/우체통 오브젝트가 이상함 — counter={(counterGo == null ? "null" : "ok")} mailboxes={mailboxes.Length}(기대4)");
+                _hadError = true;
+                return;
+            }
+
+            var tracker = Object.FindFirstObjectByType<ForestSessionTracker>();
+            ForestDeliveryState.TryPickup(ForestDeliveryState.Kind.Normal, 0);
+            string goalLine = tracker != null ? tracker.GoalLineNow() : "";
+            ForestDeliveryState.ResetForTest();
+            if (!goalLine.Contains("택배"))
+            {
+                Debug.LogError($"[PlaytestForestHeadless] 소포를 든 상태에서 GoalLineNow()가 택배를 안 알려줌 — \"{goalLine}\"");
+                _hadError = true;
+                return;
+            }
+
+            Debug.Log("[PlaytestForestHeadless] delivery chain OK - 오배송 거절, 정상 배송, 3배달째 사슬 보너스, 파손, 시간초과, 세이브 round-trip, 씬 오브젝트, 목표판 연동까지 확인");
         }
     }
 }
