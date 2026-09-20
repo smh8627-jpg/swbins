@@ -117,6 +117,10 @@ namespace Saga.EditorTools
                 CheckPlayerHudLocalization();
                 CheckActionButtonLocalization();
                 CheckGoalBoardAndSessionCard();
+                // PLAN.md 101-2 GO ①⑥⑧(2026-09-20) 전용 진단 — 컴파일+기존
+                // 회귀만으로 검증했던 것을 이 세션에서 메운다.
+                CheckBeaconTower();
+                CheckDropOnLossAndRecovery(); // CheckBanditLootMarker보다 먼저 — 그건 cleared=true로 이 인카운터를 Destroy한다.
                 CheckBanditHitstop();
                 CheckGroundDecal();
                 // CheckBanditLootMarker보다 먼저 — DUNGEON에서 겪은 것과 같은
@@ -128,6 +132,7 @@ namespace Saga.EditorTools
                 CheckLevelUpCut();
                 CheckPerkChoice();
                 CheckBanditLootMarker();
+                CheckBondProgress(); // CheckBanditLootMarker 뒤 — "산적"이 실제로 등용된 뒤라야 BondState에 등록돼 있다.
                 CheckWeaponVisual();
                 CheckRaidBoss();
                 // 반드시 마지막 — DailyTaskState 진단이 SaveState.TryLoad()로
@@ -438,6 +443,243 @@ namespace Saga.EditorTools
             }
 
             Debug.Log("[PlaytestHeadless] goal board / session card OK - 3 lines filled, source auto-found, card shows and auto-closes");
+        }
+
+        /// <summary>PLAN.md 101-2 GO ① "봉수대"(2026-09-20) — 존재 확인에서
+        /// 끝내지 않는다(104-1 ② 기준): 점등 전엔 목표판이 봉수대 자신을
+        /// 가리키는지, 점등하면 WorldEventState가 실제로 켜지고 보상이
+        /// 지급되는지, 그 뒤로 목표판이 다른 발견형 랜드마크로 넘어가는지,
+        /// 두 번째 점등이 조용히 무시되는지(중복 보상 방지)까지 본다.</summary>
+        private static void CheckBeaconTower()
+        {
+            var beacon = Object.FindFirstObjectByType<BeaconTower>();
+            var tracker = Object.FindFirstObjectByType<GoSessionTracker>();
+            if (beacon == null || tracker == null)
+            {
+                Debug.LogError($"[PlaytestHeadless] 봉수대 검증용 컴포넌트를 못 찾음(beacon={beacon != null}, tracker={tracker != null})");
+                _hadError = true;
+                return;
+            }
+            if (WorldEventState.IsTriggered(BeaconTower.EventId))
+            {
+                Debug.LogError("[PlaytestHeadless] 봉수대 — 검증 시작 전인데 이미 불이 켜져 있음");
+                _hadError = true;
+                return;
+            }
+
+            string beaconLabel = GoLocalization.T("goal.beacon", "봉수대");
+            string goalBefore = tracker.GoalLineNow();
+            if (!goalBefore.Contains(beaconLabel))
+            {
+                Debug.LogError($"[PlaytestHeadless] 봉수대 — 점등 전 목표판이 봉수대를 안 가리킴 text=\"{goalBefore}\"");
+                _hadError = true;
+                return;
+            }
+
+            var playerCollider = GameObject.FindWithTag("Player")?.GetComponent<Collider>();
+            var onTriggerEnter = typeof(BeaconTower).GetMethod("OnTriggerEnter", BindingFlags.NonPublic | BindingFlags.Instance);
+
+            int expBefore = PlayerStats.Exp;
+            int goldBefore = GoldState.Gold;
+            onTriggerEnter.Invoke(beacon, new object[] { playerCollider });
+
+            if (!WorldEventState.IsTriggered(BeaconTower.EventId) || GoldState.Gold == goldBefore || PlayerStats.Exp == expBefore)
+            {
+                Debug.LogError($"[PlaytestHeadless] 봉수대 — 점등 보상이 안 지급됨(lit={WorldEventState.IsTriggered(BeaconTower.EventId)}, gold {goldBefore}->{GoldState.Gold}, exp {expBefore}->{PlayerStats.Exp})");
+                _hadError = true;
+                return;
+            }
+
+            string goalAfter = tracker.GoalLineNow();
+            if (goalAfter.Contains(beaconLabel))
+            {
+                Debug.LogError($"[PlaytestHeadless] 봉수대 — 점등 후에도 목표판이 여전히 봉수대를 가리킴 text=\"{goalAfter}\"");
+                _hadError = true;
+                return;
+            }
+
+            int goldAfterFirst = GoldState.Gold;
+            onTriggerEnter.Invoke(beacon, new object[] { playerCollider }); // 중복 점등 방지 확인.
+            if (GoldState.Gold != goldAfterFirst)
+            {
+                Debug.LogError($"[PlaytestHeadless] 봉수대 — 두 번째 점등에서도 보상이 또 지급됨(gold {goldAfterFirst}->{GoldState.Gold})");
+                _hadError = true;
+                return;
+            }
+
+            Debug.Log($"[PlaytestHeadless] beacon tower OK - 점등 보상 지급, 목표판 전환(\"{goalBefore}\"→\"{goalAfter}\"), 중복 점등 방지 확인");
+        }
+
+        /// <summary>PLAN.md 101-2 GO ⑧ "패배 비용과 회수"(2026-09-20) —
+        /// BanditEncounter의 진짜 패배 경로(dealt&gt;0, cleared=false)를
+        /// 직접 태워 소지금 15%가 그 자리에 남는지, DropMarker가 실제로
+        /// 하나 생기는지, 창 안 회수가 금을 돌려주는지, 만료된 뒤에는
+        /// 회수가 실패하고 목록에서도 지워지는지 전부 본다. 반드시
+        /// CheckBanditLootMarker()보다 먼저 돈다 — 그건 cleared=true로
+        /// 끝내며 이 BanditEncounter를 Destroy한다.</summary>
+        private static void CheckDropOnLossAndRecovery()
+        {
+            var encounter = Object.FindFirstObjectByType<BanditEncounter>();
+            if (encounter == null)
+            {
+                Debug.LogError("[PlaytestHeadless] 패배 비용·회수 검증용 BanditEncounter를 못 찾음");
+                _hadError = true;
+                return;
+            }
+
+            var beType = typeof(BanditEncounter);
+            var startFight = beType.GetMethod("StartFight", BindingFlags.NonPublic | BindingFlags.Instance);
+            var duelField = beType.GetField("_duel", BindingFlags.NonPublic | BindingFlags.Instance);
+            var finishFight = beType.GetMethod("FinishFight", BindingFlags.NonPublic | BindingFlags.Instance);
+
+            // ---- 사이클 1: 밀린 패배(dealt>0) → 15% 드롭·마커 생성 → 창 안 회수 ----
+            startFight.Invoke(encounter, null);
+            var duel = (DuelRules)duelField.GetValue(encounter);
+            duel.Dealt = 1f; // "한 대도 못 때리고 물러난 것은 패배로 안 친다" 경계 밖(진짜 패배).
+            duel.Cleared = false;
+
+            int goldBefore = GoldState.Gold;
+            int expectedDrop = Mathf.Min(DropState.GoldCap, Mathf.RoundToInt(goldBefore * DropState.GoldFraction));
+            finishFight.Invoke(encounter, null);
+
+            if (expectedDrop <= 0)
+            {
+                Debug.LogError($"[PlaytestHeadless] 패배 비용 — 소지금이 너무 적어(gold={goldBefore}) 드롭 검증을 못 함");
+                _hadError = true;
+                return;
+            }
+            if (GoldState.Gold != goldBefore - expectedDrop)
+            {
+                Debug.LogError($"[PlaytestHeadless] 패배 비용 — 소지금 15%가 안 깎임(gold {goldBefore}->{GoldState.Gold}, 기대 -{expectedDrop})");
+                _hadError = true;
+                return;
+            }
+            if (DropState.ActiveDrops.Count != 1 || DropState.ActiveDrops[0].Gold != expectedDrop)
+            {
+                Debug.LogError($"[PlaytestHeadless] 패배 비용 — DropState 항목이 기대와 다름(count={DropState.ActiveDrops.Count})");
+                _hadError = true;
+                return;
+            }
+            var drop = DropState.ActiveDrops[0];
+            if (Object.FindObjectsByType<DropMarker>(FindObjectsSortMode.None).Length != 1)
+            {
+                Debug.LogError("[PlaytestHeadless] 패배 비용 — DropMarker가 정확히 1개 생성되지 않음");
+                _hadError = true;
+                return;
+            }
+
+            int goldBeforeRecover = GoldState.Gold;
+            if (!DropState.TryRecover(drop.Id, out int recoveredGold) || recoveredGold != expectedDrop)
+            {
+                Debug.LogError($"[PlaytestHeadless] 패배 비용 — 창 안 회수가 실패함(recovered={recoveredGold}, 기대={expectedDrop})");
+                _hadError = true;
+                return;
+            }
+            GoldState.Add(recoveredGold); // DropMarker.Update()가 실제로 하는 것과 같은 순서.
+            if (GoldState.Gold != goldBeforeRecover + expectedDrop || DropState.ActiveDrops.Count != 0)
+            {
+                Debug.LogError($"[PlaytestHeadless] 패배 비용 — 회수 후 상태가 기대와 다름(gold {goldBeforeRecover}->{GoldState.Gold}, 남은 드롭={DropState.ActiveDrops.Count})");
+                _hadError = true;
+                return;
+            }
+
+            // ---- 사이클 2: 만료 뒤엔 회수도 실패하고 목록에서도 지워진다 ----
+            startFight.Invoke(encounter, null);
+            duel = (DuelRules)duelField.GetValue(encounter);
+            duel.Dealt = 1f;
+            duel.Cleared = false;
+            finishFight.Invoke(encounter, null);
+
+            if (DropState.ActiveDrops.Count != 1)
+            {
+                Debug.LogError($"[PlaytestHeadless] 패배 비용 — 두 번째 패배에서 짐이 안 생김(count={DropState.ActiveDrops.Count})");
+                _hadError = true;
+                return;
+            }
+            string secondId = DropState.ActiveDrops[0].Id;
+            DropState.Expire(secondId); // DropMarker.Update()가 창을 넘겼을 때 스스로 부르는 것과 같은 경로.
+            if (DropState.TryRecover(secondId, out _) || DropState.ActiveDrops.Count != 0)
+            {
+                Debug.LogError("[PlaytestHeadless] 패배 비용 — 만료된 짐이 여전히 회수되거나 목록에 남음");
+                _hadError = true;
+                return;
+            }
+
+            Debug.Log("[PlaytestHeadless] drop recovery OK - 패배 시 15% 드롭·마커 생성·창 안 회수·만료 뒤 재회수 방지 확인");
+        }
+
+        /// <summary>PLAN.md 101-2 GO ⑥ "인연"(2026-09-20) — CheckBanditLootMarker()가
+        /// 방금 실제로 등용시킨 "산적"으로 PartyState.Recruit→BondState.
+        /// EnsureMember 배선 자체를 확인하고, 거리 누적→등급 상승→
+        /// LeveledUp 이벤트→AtkMultiplier 반영을 본다. 승수(토벌 승리) 경로는
+        /// ReportWin()이 등록된 전원에게 똑같이 매겨지는 특성상 "산적"은
+        /// 이미 거리로 1등급이 돼 있어 문턱 통과가 안 보이므로, 거리를 하나도
+        /// 안 쌓은 새 합성 id를 하나 더 등록해 따로 확인한다(세이브 대상
+        /// 아님, 이 프로세스 안에서만 존재). 반드시 CheckBanditLootMarker()
+        /// 뒤에 돈다.</summary>
+        private static void CheckBondProgress()
+        {
+            const string heroId = "산적";
+            const string winTestId = "__test_bond_win__";
+            const string winTestId2 = "__test_bond_win2__";
+
+            if (BondState.LevelFor(heroId) != 0)
+            {
+                Debug.LogError($"[PlaytestHeadless] 인연 — 검증 시작 전인데 \"{heroId}\"가 이미 등급 0이 아님(level={BondState.LevelFor(heroId)})");
+                _hadError = true;
+                return;
+            }
+
+            BondState.EnsureMember(winTestId);
+
+            int leveledUpCount = 0;
+            int lastLeveledLevel = -1;
+            void OnLeveledUp(string id, int level) { leveledUpCount++; lastLeveledLevel = level; }
+            BondState.LeveledUp += OnLeveledUp;
+            try
+            {
+                float atkMulBefore = BondState.AtkMultiplier;
+                BondState.ReportWalked(2100f); // 2.1km — heroId·winTestId 둘 다 1등급 문턱(2km)을 넘긴다.
+
+                if (BondState.LevelFor(heroId) != 1 || BondState.LevelFor(winTestId) != 1)
+                {
+                    Debug.LogError($"[PlaytestHeadless] 인연 — 2.1km 걸었는데 1등급이 아님({heroId}={BondState.LevelFor(heroId)}, {winTestId}={BondState.LevelFor(winTestId)})");
+                    _hadError = true;
+                    return;
+                }
+                if (leveledUpCount != 2 || lastLeveledLevel != 1)
+                {
+                    Debug.LogError($"[PlaytestHeadless] 인연 — LeveledUp 이벤트 횟수가 안 맞음(count={leveledUpCount}, 기대 2)");
+                    _hadError = true;
+                    return;
+                }
+
+                float atkMulAfter = BondState.AtkMultiplier;
+                float expectedMul = atkMulBefore + BondState.AtkBonusPerLevel * 2; // 둘 다 1등급씩.
+                if (!Mathf.Approximately(atkMulAfter, expectedMul))
+                {
+                    Debug.LogError($"[PlaytestHeadless] 인연 — 등급 상승이 AtkMultiplier에 안 반영됨({atkMulBefore:F3}→{atkMulAfter:F3}, 기대={expectedMul:F3})");
+                    _hadError = true;
+                    return;
+                }
+
+                BondState.EnsureMember(winTestId2);
+                BondState.ReportWin();
+                BondState.ReportWin();
+                BondState.ReportWin();
+                if (BondState.LevelFor(winTestId2) != 1)
+                {
+                    Debug.LogError($"[PlaytestHeadless] 인연 — 승수 3(문턱)인데 1등급이 아님(level={BondState.LevelFor(winTestId2)})");
+                    _hadError = true;
+                    return;
+                }
+
+                Debug.Log($"[PlaytestHeadless] bond OK - 거리 2.1km→인연 Lv.1(2명), LeveledUp 2회, AtkMultiplier 반영({atkMulBefore:F2}→{atkMulAfter:F2}), 승수 3→Lv.1 확인");
+            }
+            finally
+            {
+                BondState.LeveledUp -= OnLeveledUp;
+            }
         }
 
         /// <summary>PLAN.md 101-3 C hitstop(2026-09-17, DUNGEON·STORY 다음

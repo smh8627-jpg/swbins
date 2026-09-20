@@ -7933,3 +7933,15 @@ TestVillage는 GPS 오버월드가 아니라 9×11 고정 격자 하나뿐이라
 `tools/unity-batch.sh -- <Unity 인자...>`로 컴파일(오류 0) → 씬 재빌드(`BuildTestVillageScene.Build`, BeaconTower 신설 반영) → 헤드리스 3연속 OK(기존 goal board·bandit hitstop·ground decal·level-up cut·perk choice·loot marker·weapon visual·raid boss·daily tasks 전부 회귀 없이 통과 — 이번 세 기능 전용 헤드리스 체크는 아직 안 짰다, 다음 세션 숙제). `docs/PROJECT_STATE.md` 갱신(GO 요약에 ①⑥⑧ 추가, "다음 작업"에서 GO 항목 제거, 실기 확인 대기·테스트 상태 갱신). `PLAN.md` 101-2 GO 행에 재해석 이유·대응 파일 반영.
 
 **다음 세션 숙제**: ①⑥⑧ 전용 헤드리스 진단(`PlaytestHeadless.cs`)이 아직 없다 — 봉수대 점등·목표판 전환, 인연 등급 상승·배율, 패배 시 짐 드롭·회수·만료를 코드로 확인하는 절이 없이 이번엔 컴파일+기존 회귀만으로 검증했다. 실기 확인도 전부 대기(아래 목록). GO 101-2는 이제 ①②⑥⑧ 중 ②(사당 시련)만 안 건드렸다(사용자가 "1,2,3"으로 지목한 셋만 진행) — ⑤(비석 GPS)는 모바일 빌드 뒤 그대로 보류.
+
+## 2026-09-20 — GO ①⑥⑧ 전용 헤드리스 진단 추가 ("사가 유니티 이어 해" 세션, GO ①⑥⑧ 다음)
+
+직전 세션이 GO①⑥⑧(봉수대·인연·패배 비용과 회수)을 컴파일+기존 회귀만으로 검증하고 "전용 헤드리스 진단 없음"을 다음 숙제로 남겼다 — 이 세션은 그 숙제만 처리.
+
+`PlaytestHeadless.cs`에 세 메서드 추가. **`CheckBeaconTower()`**: 점등 전엔 목표판(`GoSessionTracker.GoalLineNow()`)이 봉수대 자신을 가리키는지, `OnTriggerEnter()`를 리플렉션으로 직접 불러 점등 후 `WorldEventState`가 실제로 켜지고 경험치·돈이 지급되는지, 목표판이 다른 발견형(숨은 보물 등)으로 넘어가는지, 두 번째 점등이 조용히 무시되는지(중복 보상 방지)까지 확인. **`CheckDropOnLossAndRecovery()`**: `BanditEncounter`의 `_duel.Dealt=1f`·`Cleared=false`를 강제해 진짜 패배 경로를 태워 소지금 15%가 깎이는지·`DropState`/`DropMarker`가 정확히 하나씩 생기는지·`TryRecover()`로 창 안 회수가 되는지, 두 번째 사이클은 `DropState.Expire()`로 만료 경로를 흉내 내 재회수가 실패하고 목록에서도 지워지는지 확인 — **`CheckBanditLootMarker()`보다 반드시 먼저 돈다**(그건 cleared=true로 이 BanditEncounter를 Destroy한다). **`CheckBondProgress()`**: `CheckBanditLootMarker()`가 방금 실제로 등용시킨 "산적"으로 `PartyState.Recruit`→`BondState.EnsureMember` 배선 자체를 확인하고, 거리 2.1km를 보고해 1등급·`LeveledUp` 이벤트·`AtkMultiplier` 반영을 본다. 승수(토벌 승리) 문턱은 `BondState.ReportWin()`이 등록된 전원에게 똑같이 매겨지는 특성상 "산적"은 이미 거리로 1등급이라 문턱 통과가 안 보여, 거리를 하나도 안 쌓은 합성 id(`__test_bond_win__`/`__test_bond_win2__`, 세이브 대상 아님)를 새로 등록해 따로 확인 — **반드시 `CheckBanditLootMarker()` 뒤에 돈다**.
+
+세 체크 모두 "존재 확인"에서 끝내지 않고 실제 판정 결과(문자열 전환·상태 변화·이벤트 발화 횟수)까지 본다는 점에서 104-1 ② 기준을 그대로 따랐다.
+
+`tools/unity-batch.sh -- <Unity 인자...>`로 컴파일(오류 0) → 씬 재빌드 없이(로직만 추가, 씬 구성 안 바뀜) 헤드리스 3연속 OK(신규 세 체크 전부 포함, 기존 항목도 회귀 없음). `docs/PROJECT_STATE.md` 갱신("다음 작업"에서 GO①⑥⑧ 진단 숙제 항목 제거, 테스트 상태 갱신).
+
+GO 101-2는 이제 ②(사당 시련, 사용자 결정 대기)·⑤(비석 GPS, 모바일 빌드 뒤)만 남았고, 실기 확인도 여전히 대기 상태다. 다음은 여전히 DUNGEON5.7·FOREST5.6/5.7·REALM5-3/5-5(전부 게이트 대기)나 GO②(사용자 결정) 중 사용자가 고르는 쪽.

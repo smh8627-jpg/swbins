@@ -1,7 +1,7 @@
 # PROJECT_STATE — saga-unity (상태만, ≤15KB, 덮어쓴다)
 
 **규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다(2026-09-16 재편 전 본문 5,532줄은 그쪽 첫 절에 그대로 있다). 넘치면 `tools/precheck.sh` 가 막는다.
-마지막 갱신: 2026-09-20 (REALM 5-8 다음 **PLAN 101-2 GO ①⑥⑧** — 나머지 후보가 전부 웹·godot 실기 승인 게이트 대기라 "사용자 결정 대기"이던 GO 세 후보를 한꺼번에 지시받음. TestVillage엔 GPS 오버월드가 없어 좁혔다: ①봉수대 하나(4,4)가 불 켜기 전엔 다른 발견형과 같은 목표판 후보, 켠 뒤엔 남은 랜드마크 전부가 후보로 들어옴(`BeaconTower`). ⑥인연은 등용 대상이 "산적" 하나뿐이라 결(궁합) 축은 빼고 거리/토벌→0~3등급·+2%(`BondState`). ⑧패배 비용·회수는 원문 그대로(15%·상한300·10분, `DateTime.Now.Ticks` 기준이라 앱 재시작에도 창이 흐름 — `DropState`/`DropMarker`). 세이브 v12. 경위 HISTORY grep. 컴파일 0 오류, 헤드리스 3연속 OK(기존 회귀만 — 전용 진단은 다음 숙제). GO 101-2는 이제 ②·⑤만 남음.
+마지막 갱신: 2026-09-20 (GO①⑥⑧ 다음 **전용 헤드리스 진단 보강** — 직전 세션이 "컴파일+기존 회귀만" 확인하고 남긴 숙제. `PlaytestHeadless.cs`에 `CheckBeaconTower()`(점등 전후 목표판 전환·중복 점등 방지)·`CheckDropOnLossAndRecovery()`(진짜 패배 경로 강제→15% 드롭·마커·창 안 회수·만료 뒤 재회수 방지, `CheckBanditLootMarker`보다 먼저)·`CheckBondProgress()`(실제 등용된 "산적"+합성 시험 id로 거리/승수 문턱·`LeveledUp`·`AtkMultiplier` 확인, `CheckBanditLootMarker` 뒤) 셋 추가. 경위 HISTORY grep. 컴파일 0 오류, 헤드리스 3연속 OK(신규 셋 포함, 기존 회귀 없음). GO 101-2는 여전히 ②(사당 시련, 사용자 결정 대기)·⑤(비석 GPS, 모바일 빌드 뒤)만 남음 — 나머지 게임 후보(DUNGEON5.7·FOREST5.6/5.7·REALM5-3/5-5)도 전부 게이트 대기라 다음은 사용자가 방향을 고를 차례.
 
 ## 캐릭터 자산 — 이 PC 기준 (2026-09-19)
 
@@ -35,7 +35,7 @@ STORY 세부(경위는 HISTORY grep): `StoryJobState.JobChosen` 이벤트로 `Re
 
 ## 다음 작업 (우선순위, 상세는 PLAN 해당 장 · 경위는 HISTORY 날짜 grep)
 
-1. **PLAN 101-2 이어서** — GO①④⑥⑦⑧·DUNGEON5.1~5.5·FOREST5.1~5.5,5.8①②·REALM5-1,5-2,5-6,5-8 완료(FOREST5.8③ 해당 없음). 다음: GO②(사당 시련, 사용자 결정 대기, ⑤는 모바일 빌드 뒤)·DUNGEON5.7(웹 선행 뒤)·FOREST5.6/5.7(웹·godot 승인 사례 없음)·REALM5-3/5-5(필요 여부 확인, 5-4는 제외 확정). STORY 5-2~5-4·5-8은 선행 시스템 없어 재검토 필요. **GO①⑥⑧ 전용 헤드리스 진단 없음**(컴파일+기존 회귀만 확인) — `PlaytestHeadless.cs`에 추가할 것.
+1. **PLAN 101-2 이어서** — GO①④⑥⑦⑧·DUNGEON5.1~5.5·FOREST5.1~5.5,5.8①②·REALM5-1,5-2,5-6,5-8 완료(FOREST5.8③ 해당 없음). 다음: GO②(사당 시련, 사용자 결정 대기, ⑤는 모바일 빌드 뒤)·DUNGEON5.7(웹 선행 뒤)·FOREST5.6/5.7(웹·godot 승인 사례 없음)·REALM5-3/5-5(필요 여부 확인, 5-4는 제외 확정). STORY 5-2~5-4·5-8은 선행 시스템 없어 재검토 필요.
 2. **실기 GUI 확인 몰아서** — "실기 확인 대기" 전부(아래 목록, GO 일과판 신규 포함). 사용자 몫.
    - **다른 PC로 이어받으면** `CharactersRealistic/`가 비어 있음 — mixamo.com에서 새로 받을 것(로그인은 사람 몫). 목록은 `SetupXxxCharacterImport.cs`의 `AnimMap`/`BodyFileName`.
    - Dungeon Abe/Brute **전신 구도 스크린샷은 아직 못 얻음**(카메라 클로즈업, 파편만 확인) — `PlaytestDungeonEnemiesGui.cs`의 `TeleportPos`/줌 더 조정하면 재시도 가능.
@@ -67,7 +67,7 @@ STORY 세부(경위는 HISTORY grep): `StoryJobState.JobChosen` 이벤트로 `Re
 | 검증 | 결과 |
 |---|---|
 | `-batchmode -nographics -quit` 컴파일 | exit 0, 오류 0(DUNGEON 5.5 추가 뒤 재확인) |
-| `PlaytestHeadless`(GO) | **재검증 3연속 OK**(2026-09-20, GO①⑥⑧ 뒤 — 기존 항목 전부 회귀 없음, 이 세 기능 전용 체크는 아직 없음) |
+| `PlaytestHeadless`(GO) | **3연속 OK**(2026-09-20, GO①⑥⑧ 전용 진단 3종 추가 뒤 — 신규·기존 전부 통과) |
 | `PlaytestDungeonHeadless`·`FloorProgression`·`FieldAmbush`·`Shortcut`·`Town2`·`Towns34` | **전부 재검증 OK**(2026-09-20, 5.5 뒤 — 완주·사망 두 종료 경로 포함, `DungeonEnemy` 핵심 변경이라 하위 슬라이스까지 확인) |
 | `PlaytestForestHeadless` | **3연속 OK**(2026-09-20, 5.8② 마을 평가 뒤 — `CheckTownScore()` 신규) |
 | `PlaytestOverworldMap`(GO) | 이전 세션 1회 재검증 OK, 미변경 |
