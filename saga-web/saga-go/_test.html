@@ -785,6 +785,69 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ('먼 거리(' + far.toFixed(1) + 'm) · 10초 동안 피해 없음');
     });
 
+    /* ── 자동 전투 (2026-09-20, 사용자 요청) ─────────────────
+     * 입력(이동·필살·차지·원거리)만 대신 낸다 — 판정은 그대로 `tick`·`ult`·`chargeAttack`·`ranged` 다. */
+
+    t('자동 전투 — 판단: 멀면 다가가고 사거리 안이면 서며, 예고엔 반응 시간 뒤에 물러서고, 필살·차지·원거리는 조건이 될 때만 낸다', function () {
+      var RA = DG.rogueAction, Dl = DG.duel;
+      var s = RA.create({ foeHp: 100000, myAtk: 100, myDef: 100000 });
+      var reach = RA.MY_REACH(), mv = RA.moveByKey('heavy');
+      var far = RA.autoPlan(s, reach * 3, 0.3).move, near = RA.autoPlan(s, reach * 0.5, 0.3).move;
+      s.tell = mv.tellSec; s.tellMove = 'heavy';                       // 막 걸린 예고 — 반응 시간 전
+      var early = RA.autoPlan(s, reach * 0.5, 0.3).move;
+      s.tell = mv.tellSec - 0.4;                                       // 반응 시간(0.3초)이 지났다
+      var late = RA.autoPlan(s, reach * 0.5, 0.3).move;
+      var safe = RA.autoPlan(s, mv.range + 2, 0.3).move;               // 이미 반경 밖이면 서 있는다
+      s.tell = 0;
+      var p0 = RA.autoPlan(s, reach * 0.5, 0.3);                       // 기 0·차지 0·쿨 없음 → 원거리만
+      s.ki = Dl.KI_MAX; s.charge = RA.CHARGE_MAX(); s.rangedCd = 2;
+      var p1 = RA.autoPlan(s, reach * 0.5, 0.3);
+      var p2 = RA.autoPlan(s, reach * 2, 0.3);                         // 헛칠 거리면 차지는 아낀다
+      s.over = true;
+      var p3 = RA.autoPlan(s, reach * 0.5, 0.3);
+      return far === 'in' && near === 'hold' && early === 'hold' && late === 'out' && safe === 'hold' &&
+        p0.ranged && !p0.ult && !p0.charge && p1.ult && p1.charge && !p1.ranged && p2.ult && !p2.charge &&
+        p3.move === 'hold' && !p3.ult && !p3.charge && !p3.ranged &&
+        ('멀면 in · 안이면 hold · 예고 초반 hold → 반응 뒤 out · 반경 밖 hold · 조건부 필살/차지/원거리');
+    });
+
+    t('자동 전투 — 화면 없이 굴리면 다가가 끝까지 싸우고, 가만 서 있는 것보다 훨씬 많이 낸다', function () {
+      var RA = DG.rogueAction;
+      function run(auto) {
+        var s = RA.create({ foeHp: 20000, myAtk: 100, myDef: 100000 });
+        var dist = 8, guard = 0, minDist = dist, i;
+        while (!s.over && guard++ < 4000) {
+          if (auto) {
+            var pl = RA.autoPlan(s, dist, 0.3);
+            dist = Math.max(0.5, dist + (pl.move === 'in' ? -0.4 : pl.move === 'out' ? 0.4 : 0));   // 걷는 속도 8m/s × 0.05초
+            if (pl.ult) { RA.ult(s); }
+            if (pl.charge) { RA.chargeAttack(s, dist); }
+            if (pl.ranged) { RA.ranged(s); }
+          }
+          RA.tick(s, 0.05, dist);
+          minDist = Math.min(minDist, dist);
+        }
+        return { dealt: s.dealt, hits: s.hits, over: s.over, minDist: minDist, ult: s.ults, ranged: s.rangedUsed || 0 };
+      }
+      var a = run(true), p = run(false);
+      return a.over && a.hits > 0 && a.minDist <= RA.MY_REACH() && a.dealt > p.dealt * 3 && a.ranged >= 1 &&
+        ('자동 ' + a.dealt + ' 피해(명중 ' + a.hits + '·필살 ' + a.ult + '·원거리 ' + a.ranged + ') vs 가만히 ' + p.dealt);
+    });
+
+    t('자동 전투 — 켜짐은 세이브(settings.autoBattle)에 남고, 옛 세이브(칸 없음)는 꺼짐이며, 끄면 스틱을 놓는다', function () {
+      var RA = DG.rogueAction, C = DG.core, st = C.save.settings;
+      var had = Object.prototype.hasOwnProperty.call(st, 'autoBattle'), keep = st.autoBattle;
+      delete st.autoBattle;
+      var off0 = RA.autoOn() === false;
+      RA.setAuto(true);
+      var on1 = RA.autoOn() === true && C.save.settings.autoBattle === true;
+      DG.world.setStick(1, 0, false);
+      RA.setAuto(false);
+      var off1 = RA.autoOn() === false && C.save.settings.autoBattle === false;
+      if (had) { st.autoBattle = keep; } else { delete st.autoBattle; }
+      return off0 && on1 && off1 && ('칸 없음 → 꺼짐 · 켜면 저장 · 끄면 꺼짐');
+    });
+
     t('강타 예고 때 원 밖에 있으면 완전히 안 맞는다', function () {
       var RA = DG.rogueAction;
       function firstHeavy(farWhenTell) {
@@ -6339,6 +6402,22 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       V.apply(a, idB);                                      // 두 번 입혀도 원본에서 다시 만든다
       var twice = matOf(a, 'F00_000_Hair_00_HAIR_01') === hairB;
       return ok && twice && ('머리·옷·눈 변형 · 피부·얼굴·원본 재질 그대로 · 같은 인물 같은 재질 · 두 번 입혀도 원본 기준');
+    });
+
+    t('vroid-variant — faceFront: VRM 몸(정면 -Z)만 반 바퀴 돌려 +Z 로 맞추고, 두 번 돌리지 않으며, 다른 몸은 안 건드린다', function () {
+      /* GLB 를 직접 재 봤다 — 넷 다 VRM 0.x, 발끝이 발목보다 -Z(정면 -Z). 배우는 전부 +Z 가 앞이라는 가정으로 돌려 세우므로
+         그대로면 뒷걸음질·등을 돌림·뒷모습 초상이 된다(2026-09-20 실기 보고) */
+      var V = DG.vroidVariant, TH = window.THREE;
+      var a = new TH.Group(), b = new TH.Group(), c = new TH.Group(), d = new TH.Group();
+      V.faceFront(a, 'assets/models/people/anime/avatar_sample_a.glb');
+      V.faceFront(a, 'assets/models/people/anime/avatar_sample_a.glb');   // 두 번째는 무시
+      V.faceFront(b, 'assets/models/people/quaternius_rpg/Ranger.glb');
+      V.faceFront(c, null);
+      V.faceFront(d, 'assets/models/people/anime/avatar_custom_01.glb');
+      var front = new TH.Vector3(0, 0, -1).applyQuaternion(a.quaternion);   // VRM 의 정면(-Z)이 돌려 세운 뒤 어디를 보는가
+      var ok = Math.abs(a.rotation.y - Math.PI) < 1e-9 && front.z > 0.999 && a.userData.vrmFront === true &&
+        b.rotation.y === 0 && c.rotation.y === 0 && d.rotation.y !== 0 && V.faceFront(null, 'x') === null;
+      return ok && ('VRM 반 바퀴(두 번 안 돎) · QRPG·빈 값 그대로 · 정면 -Z → +Z');
     });
 
     t('vroid-variant — VRoid 경로에만 건다(QRPG·MPFB 몸엔 안 건다), 손잡이는 기본 켜짐이고 0 이면 꺼진다', function () {

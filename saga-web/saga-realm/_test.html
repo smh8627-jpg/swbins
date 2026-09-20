@@ -3176,6 +3176,22 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       return ok && twice && ('머리·옷·눈 변형 · 피부·얼굴·원본 재질 그대로 · 같은 인물 같은 재질 · 두 번 입혀도 원본 기준');
     });
 
+    t('vroid-variant — faceFront: VRM 몸(정면 -Z)만 반 바퀴 돌려 +Z 로 맞추고, 두 번 돌리지 않으며, 다른 몸은 안 건드린다', function () {
+      /* GLB 를 직접 재 봤다 — 넷 다 VRM 0.x, 발끝이 발목보다 -Z(정면 -Z). 배우는 전부 +Z 가 앞이라는 가정으로 돌려 세우므로
+         그대로면 뒷걸음질·등을 돌림·뒷모습 초상이 된다(2026-09-20 실기 보고) */
+      var V = DG.vroidVariant, TH = window.THREE;
+      var a = new TH.Group(), b = new TH.Group(), c = new TH.Group(), d = new TH.Group();
+      V.faceFront(a, 'assets/models/people/anime/avatar_sample_a.glb');
+      V.faceFront(a, 'assets/models/people/anime/avatar_sample_a.glb');   // 두 번째는 무시
+      V.faceFront(b, 'assets/models/people/quaternius_rpg/Ranger.glb');
+      V.faceFront(c, null);
+      V.faceFront(d, 'assets/models/people/anime/avatar_custom_01.glb');
+      var front = new TH.Vector3(0, 0, -1).applyQuaternion(a.quaternion);   // VRM 의 정면(-Z)이 돌려 세운 뒤 어디를 보는가
+      var ok = Math.abs(a.rotation.y - Math.PI) < 1e-9 && front.z > 0.999 && a.userData.vrmFront === true &&
+        b.rotation.y === 0 && c.rotation.y === 0 && d.rotation.y !== 0 && V.faceFront(null, 'x') === null;
+      return ok && ('VRM 반 바퀴(두 번 안 돎) · QRPG·빈 값 그대로 · 정면 -Z → +Z');
+    });
+
     t('vroid-variant — VRoid 경로에만 건다(QRPG·MPFB 몸엔 안 건다), 손잡이는 기본 켜짐이고 0 이면 꺼진다', function () {
       var V = DG.vroidVariant, A3 = DG.asset3d, C = DG.core;
       var isV = V.isVroid('assets/models/people/anime/avatar_sample_a.glb') &&

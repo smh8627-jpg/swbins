@@ -1016,6 +1016,7 @@
       var model;
       try {
         model = assembleHero(parts);
+        if (global.DG.vroidVariant) { global.DG.vroidVariant.faceFront(model, rec.body); }   // VRM 은 정면이 -Z — 다른 몸은 안 건드린다
         if (variantId !== undefined) { applyVroid(model, rec, variantId); }   // 색 변형은 주민(표 밖)만 — NPC 는 이미 팔레트로 물들였다
       } catch (e) {
         broke = (e && e.message) ? e.message : 'hero assemble 실패';

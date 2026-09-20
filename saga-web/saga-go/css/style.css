@@ -531,6 +531,7 @@ small.muted { display: block; margin-top: 7px; font-size: 10.5px; }
 #rogue-hud .ra-parts i.gone { opacity: .28; filter: grayscale(1); }
 #rogue-hud .ra-pad { display: flex; gap: 8px; margin-top: 8px; }
 #rogue-hud .ra-pad .btn { flex: 1; pointer-events: auto; }
+#rogue-hud .ra-pad .btn.on { box-shadow: 0 0 0 2px #7ed6a4; color: #7ed6a4; }   /* 자동 전투 켜짐 */
 /* 저스트 회피 창 안에서만 살짝 빛나 "지금이다" 를 몸으로 느끼게 한다(§5 ③) */
 #rogue-hud #ra-dodge.ready {
   box-shadow: 0 0 0 2px #ffe066, 0 0 14px 2px rgba(255,224,102,.7);

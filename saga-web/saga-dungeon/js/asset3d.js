@@ -110,7 +110,7 @@
   /** 2026-09-20 — VRoid 몸이면 인물 id 로 머리·옷·눈 색을 바꾼다(vroid-variant.js, 다섯 판 공용). 다른 몸엔 안 건다 */
   function applyVroid(model, rec, id) {
     var V = global.DG && global.DG.vroidVariant;
-    if (V && rec && V.isVroid(rec.body)) { V.apply(model, id); }
+    if (V && rec && V.isVroid(rec.body)) { V.faceFront(model, rec.body); V.apply(model, id); }   // 정면 -Z → +Z 로 돌려 세운 뒤 색 변형
   }
   function wantsAnimeAvatar() { return tuned('world3d.animeAvatar', 1) ? true : false; }
 

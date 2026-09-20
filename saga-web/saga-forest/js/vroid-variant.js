@@ -111,5 +111,21 @@
   /** 이 몸이 VRoid(경로에 /people/anime/) 인가 — 다른 몸(QRPG·MPFB)에는 안 건다 */
   function isVroid(url) { return typeof url === 'string' && url.indexOf('/people/anime/') >= 0; }
 
-  global.DG.vroidVariant = { N: N, HAIR: HAIR, CLOTH: CLOTH, EYE: EYE, pick: pick, apply: apply, isVroid: isVroid, hash: hash };
+  /**
+   * 2026-09-20 — **정면을 +Z 로 맞춘다.** 이 저장소의 VRM(`/people/anime/`) 넷은 전부 VRM 0.x 라 정면이 **-Z** 다
+   * (GLB 를 직접 재 봤다 — 발끝이 발목보다 -Z). 다섯 판의 배우는 QRPG·MPFB 처럼 +Z 가 앞이라는 가정으로 돌려 세우는데
+   * (`rotation.y = atan2(dx, dz)`·`lookAt`) VRM 만 그대로 세우면 **뒷걸음질(이동 반대)·마주 서야 할 때 등을 돌림·초상이 뒷모습**이 된다.
+   * 몸을 감싼 그룹을 반 바퀴 돌려 세운다 — 뼈·몸짓은 안 건드린다(`anim-own` 은 뼈 로컬 값만 읽어 바깥 회전에 안 흔들린다).
+   * 이미 돌렸으면 다시 안 돌린다. VRM 이 아닌 몸(url 이 다르면)은 그대로 둔다.
+   */
+  function faceFront(model, url) {
+    if (!model || !isVroid(url)) { return model; }
+    model.userData = model.userData || {};
+    if (model.userData.vrmFront) { return model; }
+    model.rotation.y = Math.PI;
+    model.userData.vrmFront = true;
+    return model;
+  }
+
+  global.DG.vroidVariant = { N: N, HAIR: HAIR, CLOTH: CLOTH, EYE: EYE, pick: pick, apply: apply, isVroid: isVroid, faceFront: faceFront, hash: hash };
 })(window);
