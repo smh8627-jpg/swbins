@@ -2853,12 +2853,13 @@ assets/generated/
 ├── props/         <kind>_s<seed>_<nn>.glb                      procgen 바위·나무·울타리·비석
 ├── variants/      <원본이름>__<palette>.glb                     palette.py 스냅 결과
 ├── kitbash/       <조합표이름>_<nn>.glb                          부품 조합 캐릭터·건물
+├── sprites/       <kind>.png                                    spritegen — 9-slice 패널·상태 아이콘
 ├── lut/           lut_<판>.png                                  102-2 색보정
 └── sfx/           hit_01~03.wav · pick_01~03.wav · ui_01~03.wav (원안 ogg, vorbis 인코더 없어 wav로 — 103-1)
 ```
 
 - 원본 팩(`assets/characters/…` 등)과 섞지 않는다. 생성물은 씨앗으로 재생성 가능해야 한다(파일명에 `s<seed>`).
-- 스크립트는 저장소 루트 `tools/asset-forge/`(SAGA-DESIGN §7.2 — palette.py(2026-09-19)·kitbash.py·procgen.py(2026-09-20, rock/stele/fence/wall 4종)·tilegen.py(2026-09-20, grass/dirt/stone/sand/snow/lava 6종, 512 베이스+노멀+러프니스, 감싸기 보간이라 완전 시임리스)·sfxgen.py(2026-09-20, saga-realm js/sfx.js 의 tone/noise/chime 합성을 numpy 로 이식, hit/pick/ui 각 3종 라운드로빈. **ogg 아니라 wav** — vorbis 인코더가 이 PC엔 없다) 신설. spritegen.py 는 아직). Python 3.12(문서상 3.14 는 오기) + Pillow + numpy + trimesh + scipy(2026-09-20 추가 설치, trimesh의 fix_normals/vertex_normals 가 내부적으로 필요) 확인됨(Blender 없음). 스크립트는 다섯 판·두 트랙이 같이 쓰되 **출력만** 각 프로젝트로 간다(코드 공유 금지 원칙은 게임 코드 얘기, 빌드 도구는 예외 — 105장 Q 로 확인). **실행 함정**: 이 PC 는 `python`/`python3` 가 WindowsApps 스토어 스텁이고, `py` 단독도 스크립트의 `#!/usr/bin/env python3` 셰뱅을 읽어 같은 스텁으로 샌다(exit 9009, "Python" 한 줄만 찍고 끝) — 반드시 `py -3 tools/asset-forge/<script>.py`로 버전을 못박아 부른다.
+- 스크립트는 저장소 루트 `tools/asset-forge/`(SAGA-DESIGN §7.2 — palette.py(2026-09-19)·kitbash.py·procgen.py(2026-09-20, rock/stele/fence/wall 4종)·tilegen.py(2026-09-20, grass/dirt/stone/sand/snow/lava 6종, 512 베이스+노멀+러프니스, 감싸기 보간이라 완전 시임리스)·sfxgen.py(2026-09-20, saga-realm js/sfx.js 의 tone/noise/chime 합성을 numpy 로 이식, hit/pick/ui 각 3종 라운드로빈. **ogg 아니라 wav** — vorbis 인코더가 이 PC엔 없다)·spritegen.py(2026-09-20, PIL ImageDraw로 직접 래스터화 — **SVG 단계 생략**, 들여올 SVG 소스가 없어서. panel_9slice·icon_heart_filled/empty·icon_star) 신설. 103장 전부 신설 완료). Python 3.12(문서상 3.14 는 오기) + Pillow + numpy + trimesh + scipy(2026-09-20 추가 설치, trimesh의 fix_normals/vertex_normals 가 내부적으로 필요) 확인됨(Blender 없음). 스크립트는 다섯 판·두 트랙이 같이 쓰되 **출력만** 각 프로젝트로 간다(코드 공유 금지 원칙은 게임 코드 얘기, 빌드 도구는 예외 — 105장 Q 로 확인). **실행 함정**: 이 PC 는 `python`/`python3` 가 WindowsApps 스토어 스텁이고, `py` 단독도 스크립트의 `#!/usr/bin/env python3` 셰뱅을 읽어 같은 스텁으로 샌다(exit 9009, "Python" 한 줄만 찍고 끝) — 반드시 `py -3 tools/asset-forge/<script>.py`로 버전을 못박아 부른다.
 
 ## 103-2. `.import` 규칙
 

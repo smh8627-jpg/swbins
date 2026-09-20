@@ -7712,3 +7712,11 @@ PROJECT_STATE.md` 참고. 요약:
 - 샘플 9개(hit×3·pick×3·ui×3)를 `assets/generated/sfx/`에 생성 — 재생 미리듣기로 클리핑·무음 없음 확인(peak 0.2~0.6, RMS 0.04~0.09), 헤드리스 임포트 오류 0. regress 재실행 — md5 불변, 잡음 없음.
 - **`combat_feel.gd`의 `sound_triggered` 신호에 실제로 연결(AudioStreamPlayer3D)하는 배선은 안 함** — §8-1(실기 확인 전 새 콘텐츠 보류). 다음 단계로 남김.
 - 103장 남은 것: spritegen.py 하나뿐(SVG 아이콘 소스가 아직 없어 우선순위 낮음).
+
+## 103 spritegen.py 신설 — 103장 전부 완료 (2026-09-20⑨, 같은 세션 이어서, "사가고돗이어해")
+
+- `tools/asset-forge/spritegen.py` — PIL `ImageDraw`로 직접 벡터 도형을 그려 래스터화(**SVG 단계는 생략** — 들여올 SVG 소스가 아직 없어서, procgen/tilegen과 같은 원칙). `panel_9slice`(둥근 모서리 테두리+안쪽 살+베벨 하이라이트, PLAN 102-7 "9-slice 패널 없음" 처방) · `icon_heart_filled`/`icon_heart_empty`(FOREST 관계 하트 대체용, 하트 방정식으로 그림) · `icon_star`(5각 별).
+- 생성 결과 4장을 Read 툴로 직접 눈으로 확인(평면 이미지 비교, 3D 헤드리스 스크린샷 금지 규칙과 무관) — 넷 다 의도한 모양대로 나옴.
+- `assets/generated/sprites/`에 배치, 헤드리스 임포트 오류 0. regress 재실행 — md5 불변, 잡음 없음.
+- **씬 배선 안 함**(§8-1). PLAN.md 103-1 받는 자리 표에 `sprites/` 항목 추가.
+- **PLAN.md 103장(에셋 창조 파이프라인) 스크립트 6개(palette·kitbash·procgen·tilegen·sfxgen·spritegen) 전부 신설 완료** — 남은 건 실제 씬/셰이더/UI 배선뿐, 전부 사용자 실기 확인 뒤(§8-1).
