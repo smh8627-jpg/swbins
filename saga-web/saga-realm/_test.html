@@ -1942,7 +1942,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       var goalTxt = goal ? goal.textContent : '';
       DG.ui.showScenPick();
       var cards = document.querySelectorAll('#encounter [data-act="pick-scen"]').length;
-      var stars = document.querySelectorAll('#encounter .stars').length;
+      var stars = document.querySelectorAll('#encounter .stars:not(.chal)').length;
       DG.ui.closeEnc();
       DG.ui.showForcePick('blank');
       var blankFlags = document.querySelectorAll('#encounter [data-act="pick-force"]').length;
@@ -2148,6 +2148,156 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       R.setup('cao');
       return lines.length === 2 && vtxt.indexOf('%') >= 0 && log.indexOf('문화 승리') >= 0 && log.indexOf('61달째') >= 0 &&
         ('상단 "' + vtxt.replace(/\s+/g, ' ').trim() + '" · 기록에 문화 승리 61달째');
+    });
+
+    /* ── 다음 달 카드 + 주간 도전 (PLAN §5-7) ────────────── */
+
+    var chalSeen = [];
+    C.on('rtk:challenge', function (r) { chalSeen.push(r); });
+    function chalReset() { chalSeen.length = 0; vicReset(); }
+    function forceMap() { var st = R.state(); return JSON.stringify(Object.keys(st.cities).map(function (k) { return st.cities[k].force; })); }
+
+    t('도전 — ISO 주 번호(월요일 시작)와 주 씨앗: 같은 주는 같은 씨앗, 다른 주는 다르다', function () {
+      var w = function (y, m, d) { return R.isoWeek(new Date(y, m, d)); };
+      var a = w(2026, 8, 20), b = w(2026, 8, 21), c = w(2026, 0, 1), d = w(2025, 11, 29), e = w(2027, 0, 3);
+      var key = function (y, m, d2) { return R.challengeWeek(new Date(y, m, d2)); };
+      var sun = key(2026, 8, 20), mon = key(2026, 8, 21), tue = key(2026, 8, 22);
+      var ok = a.week === 38 && a.year === 2026 && b.week === 39 && c.week === 1 && d.year === 2026 && d.week === 1 &&
+        e.year === 2026 && e.week === 53 &&
+        sun.key === '2026-W38' && mon.key === '2026-W39' && mon.seed === tue.seed && sun.seed !== mon.seed && sun.seed > 0;
+      return ok && ('일요일 W38 · 월요일 W39 · 월·화 같은 씨앗 · 2027-01-03 은 2026-W53');
+    });
+
+    t('도전 — 이번 주 도전 판은 씨앗이 고정된 무작위 판이고, 같은 주엔 같은 판이 나온다', function () {
+      chalReset();
+      var dt = new Date(2026, 8, 22), next = new Date(2026, 8, 29);
+      var ch = R.setupChallenge('cao', dt), scen = R.state().scen, m1 = forceMap();
+      R.setupChallenge('cao', dt);
+      var m2 = forceMap();
+      R.setupChallenge('cao', next);
+      var m3 = forceMap();
+      R.setup('cao', '194');
+      var cleared = R.state().challenge === null;
+      var ok = scen === 'chaos' && ch.week === '2026-W39' && ch.months === 60 && ch.done === false && m1 === m2 && m1 !== m3 && cleared;
+      R.setup('cao'); FD.use('194');
+      return ok && ('chaos · 2026-W39 · 같은 주 같은 판 · 다음 주는 다른 판 · 일반 새 판은 도전을 비운다');
+    });
+
+    t('도전 — 점수 = 성×10 + 무장 + 보물×20, 60달을 채우면 딱 한 번 끝나고 최고 기록만 남는다', function () {
+      chalReset();
+      var dt = new Date(2026, 8, 22);
+      delete C.save.rtkBest;
+      R.setupChallenge('cao', dt);
+      var st = R.state(), team = off.ofForce('cao');
+      var expect0 = R.citiesOf('cao').length * 10 + team.length;
+      var s0 = R.challengeScore('cao');
+      off.rec(team[0].id).item = DG.item.ITEMS[0].id; off.rec(team[1].id).item = DG.item.ITEMS[1].id;
+      var s2 = R.challengeScore('cao');
+      st.turn = 59; R.tickChallenge();
+      var early = chalSeen.length === 0 && !st.challenge.done;
+      st.turn = 60; var r1 = R.tickChallenge(); var r2 = R.tickChallenge();
+      var one = chalSeen.length === 1 && !!r1 && r2 === null && st.challenge.done && r1.score === s2 && r1.isBest && r1.best === s2;
+      var code = /^SG-2026-W39-\d+-[0-9a-z]+$/.test(r1.code);
+      /* 같은 주에 더 낮은 점수로 다시 끝내도 최고 기록은 안 내려간다 */
+      R.setupChallenge('cao', dt);
+      R.state().turn = 60; var r3 = R.tickChallenge();
+      var keeps = r3.score < s2 && !r3.isBest && r3.best === s2 && C.save.rtkBest['2026-W39'] === s2;
+      R.setup('cao'); FD.use('194');
+      return s0 === expect0 && s2 === expect0 + 40 && early && one && code && keeps &&
+        ('점수 ' + s0 + ' → 보물 둘 ' + s2 + ' · 59달 미달·60달 1회 · 코드 ' + r1.code + ' · 낮은 기록은 최고를 안 깎음');
+    });
+
+    t('도전 — 60달 전에 멸망하면 그 자리에서 0점으로 끝난다', function () {
+      chalReset();
+      R.setupChallenge('cao', new Date(2026, 8, 22));
+      var st = R.state();
+      R.citiesOf('cao').forEach(function (c) { st.cities[c].force = null; });
+      var res = R.checkResult();
+      var ok = res === 'lose' && st.challenge.done && st.challenge.score === 0 && chalSeen.length === 1 && chalSeen[0].how === 'lose';
+      R.setup('cao'); FD.use('194');
+      return ok && ('멸망 → 도전 0점 종료 1회');
+    });
+
+    t('다음 달 카드 — 데이터: 일 3줄 이내·재정 증감·권고 1개(AI 가 고른 값과 같다)·다음 행동 한 줄', function () {
+      R.setup('cao', '194');
+      var f = R.myForce(), g0 = f.gold;
+      var res = R.endMonth(), rp = res.report;
+      var rec = rp.rec;
+      var ranks = { sec: 0, comm: 1, wall: 2, ships: 3, draft: 4, train: 5, tech: 6, agri: 7 };
+      var minRank = 99;
+      R.citiesOf('cao').forEach(function (id) { var k = AI.pickOrder(id, 'cao'); minRank = Math.min(minRank, ranks[k] === undefined ? 9 : ranks[k]); });
+      var texts = C.save.log.map(function (l) { return l.text; });
+      var ok = rp.lines.length >= 1 && rp.lines.length <= 3 && rp.gold.from === g0 && rp.gold.to === f.gold && rp.turn === 1 &&
+        !!rec && rec.key === AI.pickOrder(rec.cityId, 'cao') && ranks[rec.key] === minRank && rp.next === rec.text &&
+        rp.month === R.state().month && !!rp.victory;
+      R.setup('cao');
+      return ok && ('일 ' + rp.lines.length + '줄 · 금 ' + rp.gold.from + '→' + rp.gold.to + ' · 권고 ' + rec.text);
+    });
+
+    t('다음 달 카드 — 가장 급한 성의 급한 명령을 고른다(치안이 바닥이면 치안)', function () {
+      R.setup('cao', '194');
+      var mine = R.citiesOf('cao');
+      mine.forEach(function (id) { var c = R.city(id); c.sec = 90; c.train = 90; c.wall = c.maxWall; });
+      R.city(mine[1]).sec = 20;
+      var rec = R.recommend();
+      var ok = rec && rec.cityId === mine[1] && rec.key === 'sec';
+      R.setup('cao');
+      return !!ok && ('치안 20 인 ' + (rec && rec.city) + ' → ' + (rec && rec.text));
+    });
+
+    t('다음 달 카드 — 화면: 다음 달을 누르면 카드가 뜨고, 설정에서 끄면 안 뜬다', function () {
+      chalReset();
+      R.setup('cao', '194');
+      var enc = document.getElementById('encounter');
+      DG.ui._act('next-month', { getAttribute: function () { return null; } });
+      var txt = enc.textContent;
+      var shown = enc.classList.contains('show') && txt.indexOf('📅') >= 0 && txt.indexOf('다음 달 권고') >= 0 &&
+        !!enc.querySelector('[data-act="close-enc"]');
+      DG.ui.closeEnc();
+      DG.ui.openSheet('settings');
+      var hasToggle = !!document.querySelector('#sheet-body [data-act="monthcard-toggle"]');
+      DG.ui._act('monthcard-toggle', { getAttribute: function () { return null; } });
+      var offNow = C.tuned('rtk.monthCard', 1) === 0;
+      DG.ui.closeSheet();
+      DG.ui._act('next-month', { getAttribute: function () { return null; } });
+      var quiet = !enc.classList.contains('show');
+      C.setTune('rtk.monthCard', null);
+      R.setup('cao');
+      return shown && hasToggle && offNow && quiet && ('카드 뜸(📅·권고·확인) · 설정 토글 · 끄면 조용');
+    });
+
+    t('도전 — 화면: 시나리오 일곱 번째 카드 → 깃발 고르기 → 도전 판, 끝나면 결과 카드', function () {
+      chalReset();
+      DG.ui.showScenPick();
+      var enc = document.getElementById('encounter');
+      var scen = enc.querySelectorAll('[data-act="pick-scen"]').length;
+      var chal = enc.querySelectorAll('[data-act="pick-challenge"]');
+      var cardTxt = chal.length ? chal[0].textContent : '';
+      DG.ui._act('pick-challenge', { getAttribute: function () { return null; } });
+      var flags = enc.querySelectorAll('[data-act="pick-force"]').length;
+      var title = enc.querySelector('h3') ? enc.querySelector('h3').textContent : '';
+      DG.ui._act('pick-force', { getAttribute: function (k) { return k === 'data-id' ? 'cao' : null; } });
+      var st = R.state();
+      var started = st.scen === 'chaos' && !!st.challenge && !st.challenge.done;
+      st.turn = 60; R.tickChallenge();
+      var txt = enc.textContent;
+      var card = enc.classList.contains('show') && txt.indexOf('이번 주 도전') >= 0 && txt.indexOf('SG-') >= 0 &&
+        !!enc.querySelector('[data-act="back-scen"]');
+      DG.ui.closeEnc();
+      R.setup('cao'); FD.use('194');
+      return scen === 6 && chal.length === 1 && cardTxt.indexOf('이번 주 도전') >= 0 && flags === 13 && title.indexOf('이번 주 도전') >= 0 &&
+        started && card && ('판 ' + scen + '장 + 도전 1장 · 깃발 ' + flags + ' · 60달 결과 카드(공유 코드)');
+    });
+
+    t('도전 — 옛 세이브(도전·최고 기록 칸 없음)도 안 터진다', function () {
+      chalReset();
+      R.setup('cao', '194');
+      var st = R.state();
+      delete st.challenge; delete C.save.rtkBest;
+      var threw = false, v = 0;
+      try { v = R.challengeView(); R.tickChallenge(); R.monthReport(R.snapshot()); DG.ui.showScenPick(); DG.ui.closeEnc(); } catch (e) { threw = true; }
+      R.setup('cao');
+      return !threw && v === null && ('칸이 없어도 도전 없음 · 카드·시나리오 화면 통과');
     });
 
     /* ── 폰에서 손이 닿는가 ──────────────────────────── */

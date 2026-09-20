@@ -206,7 +206,7 @@
     st.started = true;
     st.year = sc.year || START_YEAR; st.month = 1; st.turn = 0;
     st.me = meId; st.result = null;
-    st.victories = []; st.pactStreak = 0; st.topStreak = 0;
+    st.victories = []; st.pactStreak = 0; st.topStreak = 0; st.challenge = null;
     st.cities = {}; st.forces = {}; st.officers = {}; st.captives = {};
     st.camps = []; st.campSeq = 0;
     st.journeys = []; st.journeySeq = 0;
@@ -823,11 +823,13 @@
     var mine = citiesOf(st.me);
     if (!mine.length) {
       st.result = 'lose';
+      finalizeChallenge(st, 'lose');
       core.log('🏳️ 성을 모두 잃었다. ' + st.year + '년 ' + st.month + '월.', 'warn');
       core.emit('rtk:end', 'lose');
     } else if (mine.length === Object.keys(st.cities).length) {
       st.result = 'win';
       recordVictory(st, 'conquest');
+      finalizeChallenge(st, 'win');
       core.log('👑 천하가 하나가 되었다! ' + st.year + '년 ' + st.month + '월.', 'good');
       core.emit('rtk:end', 'win');
     }
@@ -994,6 +996,144 @@
     return out;
   }
 
+  /* ── 다음 달 카드 + 주간 도전 (PLAN §5-7) ─────────────────
+   * ① `monthReport` — 달을 넘긴 직후 화면이 띄울 요약 데이터. 이번 달 일어난 일 3줄(로그에서 중요도 상위), 금·군량·병력·성 증감,
+   *    **다음 달 권고 1개**(`rtk-ai.pickOrder` 를 내 성마다 돌려 가장 급한 것 — AI 판단을 보여줄 뿐 새 판정 없음), 이정표·승리 진척, 도전 진척.
+   * ② 주간 도전 — ISO 주 번호로 씨앗을 고정한 **무작위 판(chaos)** 을 60달 돌려 점수(성×10 + 무장 + 보물×20)를 겨룬다.
+   *    `save.rtk.challenge = {week, seed, months, done, score}`(이번 판), 로컬 최고는 `save.rtkBest = { '2026-W38': 점수 }`
+   *    (새 판을 세우면 rtk 칸이 비워져 최고 기록은 rtk 밖에 둔다 — PLAN 초안의 `challenge.best` 대신). 서버 없음.
+   *    60달을 채우면 한 번만 끝내고 판은 이어진다. 그 전에 판이 닫히면(멸망·정복) 그 자리에서 끝낸다. */
+  var CHALLENGE_MONTHS = 60;
+
+  /** ISO 8601 주 — { year, week }. 월요일에 시작하고, 그 해 첫 목요일이 든 주가 1주 */
+  function isoWeek(d) {
+    var t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    var dow = t.getUTCDay() || 7;
+    t.setUTCDate(t.getUTCDate() + 4 - dow);
+    var y0 = Date.UTC(t.getUTCFullYear(), 0, 1);
+    return { year: t.getUTCFullYear(), week: Math.ceil(((t.getTime() - y0) / 86400000 + 1) / 7) };
+  }
+
+  /** 그 날짜가 든 주의 도전 — { key: '2026-W38', seed } (같은 주는 늘 같은 씨앗) */
+  function challengeWeek(date) {
+    var w = isoWeek(date || new Date());
+    var key = w.year + '-W' + (w.week < 10 ? '0' : '') + w.week;
+    return { key: key, seed: (Math.imul(w.year * 100 + w.week, 2654435761) >>> 0) || 1 };
+  }
+
+  function heldRelics(forceId) {
+    var team = global.DG.off.ofForce(forceId), n = 0, i;
+    for (i = 0; i < team.length; i++) { if (global.DG.off.rec(team[i].id).item) { n++; } }
+    return n;
+  }
+
+  /** 도전 점수 = 성 수×10 + 무장 수 + 보물×20 (보물은 무장이 든 개수) */
+  function challengeScore(forceId) {
+    forceId = forceId || me();
+    return citiesOf(forceId).length * 10 + global.DG.off.ofForce(forceId).length + heldRelics(forceId) * 20;
+  }
+
+  function challengeCode(ch, score) {
+    return 'SG-' + ch.week + '-' + score + '-' + (ch.seed >>> 0).toString(36);
+  }
+
+  function bests() {
+    if (!core.save.rtkBest) { core.save.rtkBest = {}; }
+    return core.save.rtkBest;
+  }
+
+  /** 이번 주 도전으로 새 판을 세운다 — 무작위 판(chaos)을 그 주의 씨앗으로 */
+  function setupChallenge(meId, date) {
+    var wk = challengeWeek(date);
+    setup(meId, 'chaos', wk.seed);
+    var st = state();
+    st.challenge = { week: wk.key, seed: wk.seed, months: CHALLENGE_MONTHS, done: false, score: null };
+    core.persist();
+    return st.challenge;
+  }
+
+  /** 도전을 끝낸다(한 번만) — 점수·최고 기록·공유 코드. 카드는 화면이 'rtk:challenge' 로 띄운다 */
+  function finalizeChallenge(st, how) {
+    var ch = st.challenge;
+    if (!ch || ch.done) { return null; }
+    ch.done = true;
+    ch.score = how === 'lose' ? 0 : challengeScore(st.me);
+    var b = bests(), prev = b[ch.week] || 0, isBest = ch.score > prev;
+    if (isBest) { b[ch.week] = ch.score; }
+    var out = { week: ch.week, score: ch.score, best: b[ch.week] || 0, isBest: isBest, how: how,
+      months: st.turn || 0, code: challengeCode(ch, ch.score) };
+    core.log('🎯 이번 주 도전 (' + ch.week + ') — 점수 ' + ch.score + (isBest ? ' · 최고 기록!' : ''), 'good');
+    core.emit('rtk:challenge', out);
+    return out;
+  }
+
+  /** 달을 넘긴 뒤 부른다 — 60달을 채웠으면 도전을 끝낸다 */
+  function tickChallenge() {
+    var st = state();
+    if (!st.started || st.result || !st.challenge || st.challenge.done) { return null; }
+    if ((st.turn || 0) < st.challenge.months) { return null; }
+    return finalizeChallenge(st, 'time');
+  }
+
+  /** 화면용 — 이번 판의 도전 진척(없으면 null) */
+  function challengeView() {
+    var st = state();
+    if (!st.started || !st.challenge) { return null; }
+    var ch = st.challenge;
+    return { week: ch.week, month: Math.min(st.turn || 0, ch.months), months: ch.months, done: !!ch.done,
+      score: ch.done ? ch.score : challengeScore(st.me), best: bests()[ch.week] || 0, code: ch.done ? challengeCode(ch, ch.score) : '' };
+  }
+
+  /** 달을 넘기기 전 모습 — 증감과 "이번 달 새로 쌓인 로그" 를 가르는 기준 */
+  function snapshot() {
+    var st = state(), s = summary(st.me), log = core.save.log;
+    return { gold: s.gold, food: s.food, troops: s.troops, cities: s.cities, head: log.length ? log[0] : null };
+  }
+
+  var LOG_KIND = { bad: 4, warn: 3, good: 2, info: 1 };
+
+  /** 이번 달 새로 쌓인 로그 중 중요한 셋 — 종류(나쁜 소식 먼저)·핵심 낱말·내 세력 언급 순 */
+  function monthLines(head) {
+    var log = core.save.log, fresh = [], i, mine = forceName(state().me);
+    for (i = 0; i < log.length; i++) { if (log[i] === head) { break; } fresh.push({ e: log[i], at: i }); }
+    fresh.forEach(function (x) {
+      x.score = (LOG_KIND[x.e.kind] || 1) + (/함락|멸망|이탈|가뭄|수해|역병|황충|풍년|일기토|입성|이정표|승리/.test(x.e.text) ? 2 : 0) +
+        (mine && x.e.text.indexOf(mine) >= 0 ? 2 : 0);
+    });
+    fresh.sort(function (a, b) { return b.score - a.score || a.at - b.at; });
+    var out = fresh.slice(0, 3).map(function (x) { return x.e.text; });
+    return out.length ? out : ['이번 달은 별일 없이 지나갔다.'];
+  }
+
+  /** 다음 달 권고 1개 — 내 성마다 AI 가 고를 명령 중 가장 급한 것. 급함 순서는 pickOrder 안의 검사 순서를 따랐다(agri 는 끝이 밑바닥 기본값이라 뒤로) */
+  var REC_RANK = { sec: 0, comm: 1, wall: 2, ships: 3, draft: 4, train: 5, tech: 6, agri: 7 };
+  function recommend() {
+    var st = state(), AI = global.DG.rtkAI, best = null;
+    if (!AI || !AI.pickOrder) { return null; }
+    citiesOf(st.me).forEach(function (id) {
+      var key = AI.pickOrder(id, st.me), rk = REC_RANK[key] === undefined ? 9 : REC_RANK[key];
+      if (!best || rk < best.rank) { best = { rank: rk, cityId: id, key: key }; }
+    });
+    if (!best) { return null; }
+    var o = orderByKey(best.key), d = CD.find(best.cityId);
+    if (!o || !d) { return null; }
+    return { cityId: best.cityId, city: d.name, key: best.key, name: o.name, emoji: o.emoji, text: d.name + ' — ' + o.emoji + ' ' + o.name };
+  }
+
+  /** 카드 데이터(§3-B 규격) — `next` 는 다음 달 권고 한 줄 */
+  function monthReport(snap) {
+    var st = state(), s = summary(st.me), rec = recommend(), mv = milestoneView();
+    return {
+      year: st.year, month: st.month, turn: st.turn || 0,
+      lines: monthLines(snap.head),
+      gold: { from: snap.gold, to: s.gold }, food: { from: snap.food, to: s.food },
+      troops: { from: snap.troops, to: s.troops }, cities: { from: snap.cities, to: s.cities },
+      rec: rec, next: rec ? rec.text : '',
+      milestone: mv && mv.cur ? { idx: mv.idx + 1, total: mv.total, name: mv.cur.name, cur: mv.progress.cur, need: mv.progress.need } : null,
+      victory: victoryNext(), challenge: challengeView()
+    };
+  }
+
   /* ── 달 넘기기 ────────────────────────────────────────── */
 
   /**
@@ -1005,6 +1145,7 @@
   function endMonth() {
     var st = state();
     if (!st.started || st.result) { return null; }
+    var snap = snapshot();
 
     global.DG.rtkAI.runAll();
     if (global.DG.war) { global.DG.war.resolveAll(); }
@@ -1024,9 +1165,10 @@
     core.emit('rtk:month', { year: st.year, month: st.month });
     core.emit('changed');
     tickVictories();
+    tickChallenge();
     checkMilestones();
     core.persist();
-    return { year: st.year, month: st.month };
+    return { year: st.year, month: st.month, report: monthReport(snap) };
   }
 
   /* ── 이정표 (PLAN §5-4) ─────────────────────────────────
@@ -1191,6 +1333,9 @@
     setup: setup, scatterFree: scatterFree,
     milestones: milestones, milestoneView: milestoneView, condProgress: condProgress,
     checkMilestones: checkMilestones,
+    challengeWeek: challengeWeek, challengeScore: challengeScore, challengeView: challengeView, setupChallenge: setupChallenge,
+    tickChallenge: tickChallenge, monthReport: monthReport, snapshot: snapshot, recommend: recommend, isoWeek: isoWeek,
+    CHALLENGE_MONTHS: CHALLENGE_MONTHS, bests: bests,
     VICTORY: VICTORY, victoryKinds: victoryKinds, victoryProgress: victoryProgress, victoryNext: victoryNext,
     victoryDone: function (k) { return victoryDone(state(), k); }, resultCard: resultCard, tickVictories: tickVictories,
     readyAt: readyAt, capOf: capOf, order: order, tryHire: tryHire,

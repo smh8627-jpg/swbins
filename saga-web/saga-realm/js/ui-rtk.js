@@ -26,6 +26,7 @@
   var quizCur = null;
   var lastBattle = null;
   var pickScen = '194';        // 세력을 고르기 **전에** 고른 시나리오
+  var pickChallenge = false;   // 이번 주 도전으로 세력을 고르는 중인가(§5-7)
 
   /* 개입형 실시간 전투(showBattleLive) — 지금 명령을 기다리는 중이면 여기 담긴다.
      act() 의 'bat-cmd' 손잡이가 이걸 불러 다음 합으로 잇는다 */
@@ -431,6 +432,7 @@
     core.on('rtk:end', function (kind) { showEnd(kind); });
     core.on('rtk:milestone', function (list) { showMilestone(list); });
     core.on('rtk:victory', function (card) { showVictory(card); });
+    core.on('rtk:challenge', function (res) { showChallenge(res); });
 
     if (!R().state().started) { showScenPick(); }
     else { centerOnMine(); }
@@ -450,10 +452,22 @@
 
     if (a === 'pick-scen') {
       pickScen = g('data-id');
+      pickChallenge = false;
       showForcePick(pickScen);
       return;
     }
-    if (a === 'back-scen') { showScenPick(); return; }
+    if (a === 'pick-challenge') {
+      pickScen = 'chaos';
+      pickChallenge = true;
+      showForcePick('chaos');
+      return;
+    }
+    if (a === 'back-scen') { pickChallenge = false; showScenPick(); return; }
+    if (a === 'monthcard-toggle') {
+      core.setTune('rtk.monthCard', monthCardOn() ? 0 : 1);
+      renderSheet();
+      return;
+    }
     if (a === 'snd-toggle') {
       var SF0 = global.DG.sfx;
       if (SF0) { SF0.setEnabled(!SF0.enabled()); renderSheet(); }
@@ -471,7 +485,8 @@
       return;
     }
     if (a === 'pick-force') {
-      R().setup(g('data-id'), pickScen);
+      if (pickChallenge) { R().setupChallenge(g('data-id')); pickChallenge = false; }
+      else { R().setup(g('data-id'), pickScen); }
       closeEnc();
       centerOnMine();
       renderTop(); renderMap(); syncDock();
@@ -480,8 +495,10 @@
     if (a === 'next-month') {
       var was = R().state();
       if (was.result) { return; }
-      R().endMonth();
+      var moved = R().endMonth();
       renderTop(); renderMap(); renderSheet();
+      /* 이정표·승리·도전 카드가 이미 떠 있으면 그 뒤에 줄을 선다. 판이 닫혔으면 끝 카드만 */
+      if (moved && moved.report && monthCardOn() && !R().state().result) { showMonthCard(moved.report); }
       return;
     }
     if (a === 'close-enc') { closeEnc(); return; }
@@ -1047,6 +1064,8 @@
          진짜 화면이 떨리는 것만 끌 수 있다 */
       '<div class="key-row"><b>전투 화면 흔들림</b>' +
         '<button data-act="shake-toggle">' + (shakeOn ? '켜짐' : '꺼짐') + '</button></div>' +
+      '<div class="key-row"><b>다음 달 카드</b>' +
+        '<button data-act="monthcard-toggle">' + (monthCardOn() ? '켜짐' : '꺼짐') + '</button></div>' +
       qRow;
   }
 
@@ -1745,6 +1764,43 @@
     if (encQueue.length) { showEnc(encQueue.shift()); }
   }
 
+  function monthCardOn() { return core.tuned('rtk.monthCard', 1) !== 0; }
+
+  function delta(o) {
+    var d = o.to - o.from;
+    return '<b>' + core.fmt(o.to) + '</b> <span class="' + (d >= 0 ? 'good' : 'meh') + '">' + (d >= 0 ? '+' : '') + core.fmt(d) + '</span>';
+  }
+
+  /** 다음 달 카드(§5-7) — 이번 달 일어난 일 셋·재정·다음 달 권고 하나·진척. 닫으면 그대로 진행 */
+  function showMonthCard(rp) {
+    var html = '<h3 style="margin:0 0 4px;font-size:18px">📅 ' + rp.year + '년 ' + rp.month + '월</h3>' +
+      '<div class="enc-hist">', i;
+    for (i = 0; i < rp.lines.length; i++) { html += (i ? '<br>' : '') + esc(rp.lines[i]); }
+    html += '</div><div class="enc-hist">🪙 ' + delta(rp.gold) + ' · 🍚 ' + delta(rp.food) + '<br>🪖 ' + delta(rp.troops) +
+      ' · 🏯 ' + delta(rp.cities) + '</div>';
+    if (rp.next) { html += '<div class="enc-hist"><b>💡 다음 달 권고</b><br>' + esc(rp.next) + '</div>'; }
+    var prog = '';
+    if (rp.milestone) { prog += '🚩 ' + rp.milestone.idx + '/' + rp.milestone.total + ' ' + esc(rp.milestone.name) + ' ' + rp.milestone.cur + '/' + rp.milestone.need + '<br>'; }
+    if (rp.victory) { prog += rp.victory.emoji + ' ' + esc(rp.victory.name) + ' ' + Math.min(100, Math.round(100 * rp.victory.pct)) + '% · ' + esc(rp.victory.note) + '<br>'; }
+    if (rp.challenge && !rp.challenge.done) {
+      prog += '🎯 도전 ' + rp.challenge.month + '/' + rp.challenge.months + '달 · 점수 ' + rp.challenge.score +
+        (rp.challenge.best ? ' · 최고 ' + rp.challenge.best : '') + '<br>';
+    }
+    if (prog) { html += '<small class="muted">' + prog + '</small>'; }
+    showEncQueued(html + '<button class="btn primary wide" data-act="close-enc">확인</button>');
+  }
+
+  /** 주간 도전을 마친 카드 — 점수·최고 기록·공유 코드. 판은 이어진다 */
+  function showChallenge(res) {
+    showEncQueued('<div style="text-align:center"><div class="enc-big">🎯</div>' +
+      '<h3 style="margin:6px 0 2px;font-size:20px;color:var(--gold)">이번 주 도전 ' + (res.how === 'lose' ? '— 멸망' : '끝') + '</h3>' +
+      '<small class="muted">' + esc(res.week) + ' · ' + res.months + '달째</small></div>' +
+      '<div class="enc-hist"><b>점수 ' + res.score + '</b>' + (res.isBest ? ' <span class="good">최고 기록!</span>' : '') +
+      '<br>이 주 최고 ' + res.best + '점<br><small class="muted">공유 코드 ' + esc(res.code) + '</small></div>' +
+      '<button class="btn primary wide" data-act="close-enc">' + (res.how === 'time' ? '이어하기' : '확인') + '</button>' +
+      '<button class="btn wide" data-act="back-scen">새 판</button>');
+  }
+
   /** 이정표를 깬 달의 카드 — 보상(금·소문·보물)과 다음 이정표 */
   function showMilestone(list) {
     var html = '<div style="text-align:center"><div class="enc-big">🚩</div>', i;
@@ -1800,6 +1856,13 @@
         '<small class="muted">' + esc(sc.desc) + '</small>' +
         '</button>';
     }
+    /* §5-7 — 일곱 번째 카드: 이번 주 도전(무작위 판을 그 주의 씨앗으로, 60달 점수) */
+    var wk = R().challengeWeek(), best = R().bests()[wk.key];
+    html += '<button class="fcard wide-card" data-act="pick-challenge">' +
+      '<b>🎯 이번 주 도전 · ' + esc(wk.key) + ' <span class="stars chal">★★★</span></b>' +
+      '<small class="muted">무작위 판 · ' + R().CHALLENGE_MONTHS + '달 뒤 점수(성×10 + 무장 + 보물×20)</small>' +
+      '<small class="muted">' + (best ? '내 최고 ' + best + '점' : '아직 기록이 없습니다') + ' · 같은 주엔 누구나 같은 판입니다</small>' +
+      '</button>';
     showEnc(html + '</div>');
   }
 
@@ -1807,8 +1870,7 @@
     var sc = FD.scenario(scenId || pickScen);
     pickScen = sc.id;
     FD.use(sc.id);               // 이 화면이 보여 줄 표를 그 시나리오 것으로 갈아 끼운다
-    var html = '<h3 style="margin:0 0 2px;font-size:19px">삼국지 ' + sc.year + '년 — ' +
-      esc(sc.name) + '</h3>' +
+    var html = '<h3 style="margin:0 0 2px;font-size:19px">' + (pickChallenge ? '🎯 이번 주 도전 — 어느 깃발로' : '삼국지 ' + sc.year + '년 — ' + esc(sc.name)) + '</h3>' +
       '<small class="muted">' + esc(sc.desc) + ' 성이 적을수록 어렵습니다.</small>' +
       '<button class="btn tiny ghost" data-act="back-scen" style="margin:8px 0 0">↩ 다른 해</button>' +
       '<div class="fpick">';
