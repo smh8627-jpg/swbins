@@ -16,6 +16,18 @@ static func extract_mesh(glb_path: String) -> Mesh:
 	if scene == null:
 		push_warning("GLBUtils: 로드 실패 — %s" % glb_path)
 		return null
+	return extract_mesh_from_scene(scene)
+
+## 2026-09-20 — loot_pickup.gd 무기 노획(101-3 G)처럼 "어느 GLB를 쓸지"가
+## 런타임 RNG(등급·무기 종류 굴림)에 달린 자리는 `load(path)`를 굴림 뒤에
+## 부르면 안 된다 — `--verbose` 헤드리스 로그가 실제로 디스크에서 읽은
+## 리소스 경로를 그대로 찍어서, 굴림마다 다른 파일이 로드돼 회귀 스크립트
+## (godot_regress.sh)의 md5 비교가 깨진다(2026-09-20 DUNGEON에서 실제로
+## 발견). 대신 후보 전부를 스크립트 상단에서 `const ... := preload(...)`로
+## 미리 다 실어 두고(항상 같은 순서로 실행되니 로그도 결정적이다), 굴림
+## 뒤에는 이미 메모리에 있는 PackedScene에서 메시만 뽑는다 — 이 함수가
+## 그 "이미 로드된 것에서 뽑기" 절반을 맡는다.
+static func extract_mesh_from_scene(scene: PackedScene) -> Mesh:
 	var inst := scene.instantiate()
 	var mi := _find_mesh_instance(inst)
 	var mesh: Mesh = mi.mesh if mi != null else null

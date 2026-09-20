@@ -560,3 +560,48 @@ DUNGEON에 지금 무기 3D 메시가 전혀 없어(추상 아이템 데이터+�
 - 자루3×날4×장식3=36 조합의 나머지(도끼/지팡이 등급별 변형 등)는 필요해
   지면 같은 팔레트로 이어서 낼 수 있다 — 이번엔 "무기 하나당 등급별 GLB
   4개(101-3 G 요건)"를 검증하는 최소 스코프로 좁혔다.
+
+## 2026-09-20 — Quaternius·무기 킷배싱을 실제 Test 씬에 배선(§8-1 예외, 사용자 명시 지시)
+
+"실기 확인 전엔 새 콘텐츠 안 얹는다"(§8-1)를 사용자가 "오늘 만든 것도
+Test 씬에 적용해줘"로 명시 override — 지금까지 "확보·스냅만" 해 두고
+안 물렸던 나무·바위·잔디꽃·무기를 실제로 물렸다.
+
+- **GO** `vegetation_builder.gd`: `tree_oak`/`rock_largeA`/`rock_smallA`
+  (Kenney)를 `CommonTree_1`(village)·`DeadTree_1`(ruins)·`Rock_Medium_1`
+  (큰)·`Rock_Medium_2`(작은, Quaternius)로 교체. Pebble·RockPath 계열은
+  HISTORY 09-20⑰에서 이미 "산책로 장식" 용도로 못박아 뒀으니 산 바위
+  자리엔 안 씀. Quaternius는 실척 모델이라 종별로 다른 배율이 필요해
+  `REGION_TREE_SCALE`(트리마다) 신설 — 옛 최종 크기(tree_oak 5.52m·
+  rock_largeA 0.675m·rock_smallA 0.669m)에 실측(trimesh) 역산해 맞춰
+  승인판 손맛(이동·충돌 반경)을 그대로 지켰다. `_scatter_clutter()`
+  신설(평지 6칸 중 1개꼴, 순수 시각·충돌 없음) — 잔디꽃 22종의 첫
+  실사용(village/coast=Clover_1, ruins=Grass_Wispy_Short).
+- **FOREST**: `forest_vegetation_builder.gd`·`forest_biome_scatter.gd`
+  "rocky" — 나무·바위를 `vertex_color_material`로 완전히 덮어 칠하는
+  판이라(구면 곡률 셰이더 요구) 텍스처 팔레트는 안 보인다 — 그래서 스냅
+  변형이 아니라 `assets/vegetation|rocks/` **원본** gltf(CommonTree_1·
+  Rock_Medium_1)를 그대로 쓰고, 스케일만 옛 크기에 맞춰 역산.
+- **DUNGEON** `loot_pickup.gd`: 무기 노획물이 등급색 박스 대신 실제
+  KayKit 무기 GLB를 쓴다. `dungeon_items.gd` BASES의 `look`을 4종으로
+  근사 매핑(WEAPON_LOOK_KIND). **버그 하나 발견·수정** — 처음엔
+  `load(path % tier)`를 굴림 직후 불렀는데, `--verbose` 헤드리스 로그에
+  실제로 읽은 파일 경로가 그대로 찍혀 굴림(RNG)마다 로그가 달라져
+  `godot_regress.sh` md5 비교가 깨짐(DUNGEON만 3회 중 섞여 나옴 확인).
+  `GLBUtils.extract_mesh_from_scene()` 신설 + 무기 20종 전부 `preload()`
+  로 미리 실어(늘 같은 순서로 로드) 해결 — 이 판단 근거는 코드 주석에도
+  남겼다.
+- **회귀 확인**: 헤드리스 임포트 오류 0, `godot_regress.sh` 3판(GO·
+  DUNGEON·FOREST) md5 내부 일관 + issues=0(STORY·REALM은 안 건드려
+  그대로). `project.godot`/`.import` 잡음 없음.
+- **PC 빌드로 실행 파일 확인**(사용자 요청) — `saga-go`·`saga-dungeon`·
+  `saga-forest` 세 판을 내보내(4.7.2 export 템플릿, HOW_TO_PLAYTEST.md
+  §8 절차) 각각 올바른 Test 씬을 로드하는지 헤드리스로 확인, GUI로도
+  직접 띄워 확인.
+- **별개로 발견한 기존 버그(오늘 변경과 무관, 회귀 아님)** — GO
+  TestVillage를 켜면 카메라가 스폰 직후 한동안 마을 건물 벽에 바짝
+  붙어 뚫고 들어간 각도로 잡힌다(대각선 격자무늬 벽면이 화면을 거의
+  채움, 캐릭터는 낙하 자세로 붕 떠 보임). **오늘 만든 변경을 전부
+  스택시켜 되돌린 순정 코드에서도 똑같이 재현돼 사전 존재 버그로 확인**
+  — 카메라 스폰 초기화 순서 문제로 추정, 별도 조사 필요. PROJECT_STATE
+  "알려진 오류"에 남긴다.

@@ -16,8 +16,14 @@ const ForestBiome := preload("res://games/saga_forest/data/forest_biome.gd")
 const GLBUtils := preload("res://games/saga_go/world/glb_utils.gd")
 const WorldCurveMaterial := preload("res://saga_core/world/world_curve_material.gd")
 
-const TREE_GLB := "res://assets/vegetation/tree_oak.glb"
-const TREE_SCALE := 4.5  # VERTICAL_SLICE_FOREST.md 2절 — GO가 이미 검증한 값 그대로
+## 2026-09-20 — GO와 같은 이유(vegetation_builder.gd 해당 날짜 주석)로
+## Kenney tree_oak 대신 Quaternius CommonTree_1을 쓴다. 이 판은 나무를
+## vertex_color_material로 완전히 덮어 칠하므로(아래 BIOME_TREE_TINT)
+## 팔레트 스냅 텍스처가 어차피 안 보인다 — 그래서 스냅 변형이 아니라
+## `assets/vegetation/` 원본 gltf를 바로 쓴다. 옛 최종 높이(1.226×4.5≈
+## 5.52m) 그대로 맞추려 TREE_SCALE만 CommonTree_1 실측고(7.265)로 역산.
+const TREE_GLB := "res://assets/vegetation/CommonTree_1.gltf"
+const TREE_SCALE := 0.759
 const TREES_PER_EDGE_TILE := 2
 const CURVE_AMOUNT := 0.004
 

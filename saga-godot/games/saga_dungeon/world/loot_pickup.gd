@@ -42,6 +42,59 @@ extends RefCounted
 ## 층에서도 훨씬 센 물건이 나온다.
 
 const Toast := preload("res://saga_core/ui/toast.gd")
+const GLBUtils := preload("res://games/saga_go/world/glb_utils.gd")
+
+## 2026-09-20 — 101-3 G "성장 가시화". 무기 노획물은 등급색 박스 대신
+## KayKit 무기 GLB(103-3 킷배싱, ASSET_GUIDE 해당 날짜)를 쓴다. dungeon_
+## items.gd BASES의 `look` 값(sword/axe/club/spear/halberd/guandao/
+## bow/fan/brush/scroll/staff)을 확보한 4종(sword_1handed·axe_1handed·
+## dagger·staff)으로 근사 매핑한 첫 시안 — 정확한 1:1 대응은 아니고
+## "무기라는 게 보인다" 수준. 등급은 DungeonItems TIERS.key(0~4)와 그대로
+## 맞아떨어진다.
+##
+## **전부 `preload()`로 미리 싣는다** — `_spawn_chest()`처럼 굴림 결과에
+## 따라 무기 종류·등급이 갈리는 자리에서 그때그때 `load(path)`를 부르면
+## `--verbose` 헤드리스 로그에 실제로 읽은 파일명이 그대로 찍혀 굴림마다
+## 로그가 달라지고 `godot_regress.sh`의 md5 비교가 깨진다(2026-09-20 발견
+## — GLBUtils.extract_mesh_from_scene 헤더 참고). `preload`는 이 스크립트가
+## (const로) 불릴 때 20개 전부 항상 같은 순서로 실리므로 로그가 결정적이다.
+const WEAPON_GLB_SCENES := {
+	"sword_1handed": [
+		preload("res://assets/generated/variants/sword_1handed__g0.glb"),
+		preload("res://assets/generated/variants/sword_1handed__g1.glb"),
+		preload("res://assets/generated/variants/sword_1handed__g2.glb"),
+		preload("res://assets/generated/variants/sword_1handed__g3.glb"),
+		preload("res://assets/generated/variants/sword_1handed__g4.glb"),
+	],
+	"axe_1handed": [
+		preload("res://assets/generated/variants/axe_1handed__g0.glb"),
+		preload("res://assets/generated/variants/axe_1handed__g1.glb"),
+		preload("res://assets/generated/variants/axe_1handed__g2.glb"),
+		preload("res://assets/generated/variants/axe_1handed__g3.glb"),
+		preload("res://assets/generated/variants/axe_1handed__g4.glb"),
+	],
+	"dagger": [
+		preload("res://assets/generated/variants/dagger__g0.glb"),
+		preload("res://assets/generated/variants/dagger__g1.glb"),
+		preload("res://assets/generated/variants/dagger__g2.glb"),
+		preload("res://assets/generated/variants/dagger__g3.glb"),
+		preload("res://assets/generated/variants/dagger__g4.glb"),
+	],
+	"staff": [
+		preload("res://assets/generated/variants/staff__g0.glb"),
+		preload("res://assets/generated/variants/staff__g1.glb"),
+		preload("res://assets/generated/variants/staff__g2.glb"),
+		preload("res://assets/generated/variants/staff__g3.glb"),
+		preload("res://assets/generated/variants/staff__g4.glb"),
+	],
+}
+const WEAPON_LOOK_KIND := {
+	"sword": "sword_1handed",
+	"axe": "axe_1handed", "club": "axe_1handed", "guandao": "axe_1handed",
+	"halberd": "staff", "spear": "staff", "staff": "staff",
+	"bow": "dagger", "fan": "dagger", "brush": "dagger", "scroll": "dagger",
+}
+const WEAPON_PICKUP_LENGTH := 0.9 # 바닥에 눕혀 뜨는 목표 길이(m) — 원본 GLB는 손에 쥐는 비율(1.2~2.2m)이라 AABB 최장축 기준으로 역산해 맞춘다.
 const TOAST_SEC := 4.0
 const TRIGGER_RADIUS := 1.4
 const MAT_DROP_CHANCE := 0.12 # dungeon.js "e.boss?0.9:0.12"(dropMat 호출 확률) 그대로
@@ -87,16 +140,29 @@ static func spawn_at(parent: Node, pos: Vector3, ilvl: int, is_boss: bool = fals
 	area.position = pos
 
 	var mi := MeshInstance3D.new()
-	var mesh := BoxMesh.new()
-	mesh.size = Vector3(0.5, 0.5, 0.5)
-	mi.mesh = mesh
-	mi.position = Vector3(0, 0.4, 0)
-	var mat := StandardMaterial3D.new()
-	## 등급색 그대로(data-item.js 원작 색) — "색만 보고 줍는다"는 반사신경을
-	## 이 슬라이스에서도 살린다.
-	mat.albedo_color = Color(String(tier.color))
-	mat.metallic = 0.4
-	mi.material_override = mat
+	var weapon_kind: String = WEAPON_LOOK_KIND.get(str(b.get("look", "")), "")
+	if slot_name == "weapon" and weapon_kind != "":
+		var weapon_scene: PackedScene = WEAPON_GLB_SCENES[weapon_kind][it.tier]
+		var weapon_mesh := GLBUtils.extract_mesh_from_scene(weapon_scene)
+		if weapon_mesh != null:
+			mi.mesh = weapon_mesh
+			var longest: float = maxf(weapon_mesh.get_aabb().size.x, maxf(weapon_mesh.get_aabb().size.y, weapon_mesh.get_aabb().size.z))
+			var s := WEAPON_PICKUP_LENGTH / longest
+			## 원본은 손에 쥐는 자세(Y축이 날 방향)라 눕혀서(X축 90도) 바닥에
+			## 뜬 노획물처럼 보이게 한다 — 다른 노획물과 같은 "hover" 자리.
+			mi.transform = Transform3D(Basis(Vector3.RIGHT, PI * 0.5).scaled(Vector3.ONE * s), Vector3(0, 0.4, 0))
+	if mi.mesh == null:
+		var mesh := BoxMesh.new()
+		mesh.size = Vector3(0.5, 0.5, 0.5)
+		mi.mesh = mesh
+		mi.position = Vector3(0, 0.4, 0)
+		var mat := StandardMaterial3D.new()
+		## 등급색 그대로(data-item.js 원작 색) — "색만 보고 줍는다"는 반사신경을
+		## 이 슬라이스에서도 살린다. 무기는 GLB 자체가 이미 등급색으로 물들어
+		## 있어(tint-glb) 이 material_override가 필요 없다.
+		mat.albedo_color = Color(String(tier.color))
+		mat.metallic = 0.4
+		mi.material_override = mat
 	area.add_child(mi)
 
 	var cs := CollisionShape3D.new()

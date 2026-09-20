@@ -15,29 +15,30 @@
 
 **공통(saga_core)**: `data/characters.gd`(인물 105, id 불변)·`data/pets.gd`(신수 11) · `ui/toast.gd`·`ui/virtual_joystick.gd`·`ui/goal_board.gd`+`ui/session_card.gd`(101-4, 목표판 3줄·마무리 카드, 다섯 판 전부 붙음)·`ui/duel_hud.gd` · `combat_feel.gd`(101-3, 다섯 판 끝 — GO/DUNGEON/STORY `hit()`·FOREST `pickup()`·REALM 대상없음) · `world/world_curve_material.gd`+`shaders/curved_*`(FOREST 구면) · `world/density_report.gd`(104-5, 발견 밀도, FOREST는 반경 10m) · `shaders/cel_toon.gdshader`+`cel_shader_apply.gd`(66-2/102-3, hit_flash+아웃라인 next_pass 자동) · `world/glb_utils.gd::fit_height()`(102-1, 여전히 미호출). 렌더러 Forward+/Mobile 이중(66-1, `env_pc.tres`·`env_mobile.tres`, 102-2 값).
 
-## 현재 작업 — 중단 지점(09-20⑲, 다음 세션 이어서)
+## 현재 작업 — 중단 지점(09-20⑳, 다음 세션 이어서)
 
-- **103장 스크립트 6개 신설 완료**(09-20⑥~⑨), 임포트 오류 0. **배선 아직**(§8-1).
-- **105 처리**(09-20⑩) — Q1 Godot 먼저 집중·Q-g Target 버튼 순환. Q-b 는 렌더 확인 불가라 보류.
-- **Quaternius 68/68 팔레트 스냅 완료**(09-20⑪~⑱) — 나무22+바위24+잔디꽃22×4팔레트=272개. **씬엔 안 물림**(§8-1), 배치는 102 몫.
-- **KayKit 무기 4종+등급 5색 킷배싱 완료**(09-20⑲, 101-3 G) — 기존 등급색(`dungeon_items.gd`)으로 `dungeon_grade` 팔레트+`tint-glb` 20개. **씬엔 안 물림** — 손에 붙이는 건 102 몫.
-- 102 개편 안 건드림. STORY는 AvatarSample_A 임시.
+- 103 신설·Quaternius 68/68 스냅·KayKit 무기 5등급 전부 완료.
+- **09-20⑳ 사용자 지시로 §8-1 override, 오늘 것 전부 Test 씬에 배선**: GO 나무·바위(Quaternius)+잔디꽃 클러터 신설, FOREST 나무·바위(원본 gltf, vertex_color라 텍스처 무의미), DUNGEON 무기 노획 비주얼. 스케일은 옛 승인 크기 실측 역산. `godot_regress.sh` 통과.
+- **DUNGEON 회귀 flaky 버그 고침** — 무기 GLB `load()`를 굴림 후 부르면 RNG마다 로그가 달라짐 → `preload()` 20종으로 해결.
+- PC 빌드 3종(go·dungeon·forest) 재생성+GUI 확인.
 
 ## 다음 작업 (우선순위)
 
-1. **사용자 실기·색감 확인**(아래).
-2. **102 그래픽 개편** — 사람이 값을 봐 가며 잡을 것. Quaternius·무기 씬 배치도 이때.
-3. **STORY VRoid·Mixamo 애니**(사람 몫, Q-d 잔여).
-4. **103 산출물 배치** — 실기 확인 뒤 씬/셰이더/UI 연결 결정.
+1. **사용자 실기 확인**(아래, 오늘 배선분 포함).
+2. **GO 카메라 스폰 버그 조사**(아래 "알려진 오류").
+3. **102 그래픽 개편** — 사람 몫.
+4. **STORY VRoid·Mixamo 애니** — 사람 몫.
+5. **103 procgen 등 배치** — 실기 확인 뒤.
 
 ## 알려진 오류
 
-- 코드 오류 없음. 문서: `saga-unity/`와 그래픽 목표 갈라섬 — 개념 공유 안 함.
+- **GO 스폰 카메라**(09-20⑳ 발견, 오늘 변경과 무관 확인됨) — 스폰 직후 카메라가 건물 벽에 박힌 각도. 원인 미조사.
+- 그 외 오류 없음.
 
 ## 테스트 상태
 
-- 헤드리스: 임포트 오류 0 · `godot_regress.sh` 통과(md5 불변).
-- GUI: 다섯 대표 씬 정상 렌더(포구는 세이브 위치 복원 때문에 못 봄). PC 빌드: 다섯 판 1회 성공.
+- 헤드리스 임포트 오류 0 · `godot_regress.sh` 통과(GO/DUNGEON/FOREST md5 변경, 내부 일관).
+- GUI: 다섯 대표 씬 확인(GO는 위 버그 있음).
 
 ## 실기 확인 대기 (항목명만 — 상세는 `docs/HISTORY.md` 해당 날짜)
 

@@ -7795,3 +7795,13 @@ PROJECT_STATE.md` 참고. 요약:
 - `palette.py`에 `dungeon_grade` 팔레트 신설 — 색은 새로 안 짓고 `dungeon_items.gd` GRADES(상품/양품/명품/보물/전설) 기존 hex 그대로 옮김. `tint-glb`로 무기 4종×5등급=20개 `assets/generated/variants/`.
 - 평면 비교 PNG로 g1(파랑)·g4(금빛) 확인, 명도 유지·결함 없음. 헤드리스 임포트 오류 0, `godot_regress.sh` 통과(다섯 대표 씬 md5 불변, 잡음 없음). **씬엔 안 물림**(§8-1) — 손에 붙이는 건 102 사람 몫.
 - 상세는 ASSET_GUIDE.md 해당 날짜 참고.
+
+## Quaternius·무기 킷배싱 실제 씬 배선 + 기존 카메라 버그 발견 (2026-09-20⑳, 같은 세션 이어서, "오늘 만든 것도 Test 씬에 적용해줘")
+
+- 사용자가 §8-1("실기 확인 전엔 새 콘텐츠 안 얹는다")을 명시적으로 override — GO 나무·바위(Quaternius 4종)·잔디꽃 클러터(신설 `_scatter_clutter()`)·FOREST 나무·바위(vertex_color라 원본 gltf 그대로)·DUNGEON 무기 노획 비주얼(KayKit)을 실제 Test 씬에 배선.
+- 스케일은 옛 승인판 최종 크기(trimesh 실측)에 맞춰 역산 — 새로 지어낸 수치 없음.
+- **DUNGEON 회귀 flaky 버그 발견·수정**: 무기 GLB를 굴림 직후 `load()`하면 RNG마다 다른 파일 경로가 `--verbose` 로그에 찍혀 md5 비교가 깨짐(3회 중 1회만 다름 — 실제로 목격). `GLBUtils.extract_mesh_from_scene()` 신설 + 무기 20종 `preload()`로 해결.
+- 헤드리스 임포트 오류 0, `godot_regress.sh` 통과(GO/DUNGEON/FOREST md5 내부 일관, STORY/REALM 무변경).
+- 사용자 요청으로 saga-go·saga-dungeon·saga-forest PC 빌드(export) 재생성 + 헤드리스로 올바른 씬 로드 확인 + GUI 스크린샷 확인.
+- **다른 세션과의 stash 충돌 겪음** — 이 세션이 작업 중 다른 saga-godot 세션이 `git pull`을 하며 내 미커밋 변경 5개 파일을 stash로 안전하게 치웠다가(`concurrent saga-godot session WIP` 메시지) pop으로 복구, 이후 내가 직접 임시 stash로 이분 탐색하다 그 stash를 다른 세션이 먼저 pop해버림(내용은 무사, 타이밍만 위험) — **앞으로 이 저장소에서 git stash를 격리 실험용으로 쓰지 않는다**(공유 스택이라 동시 세션과 충돌).
+- **기존(오늘 변경과 무관) 버그 발견**: GO TestVillage 스폰 직후 카메라가 건물 벽에 붙어 뚫고 들어간 각도(대각선 격자무늬 벽이 화면 대부분을 채움, 캐릭터 낙하 자세로 붕 뜸) — 오늘 변경을 전부 stash로 되돌린 순정 코드에서도 똑같이 재현돼 회귀 아님으로 확인. 원인 미조사, PROJECT_STATE "알려진 오류"에 등록.
