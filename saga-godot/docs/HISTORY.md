@@ -7745,3 +7745,10 @@ PROJECT_STATE.md` 참고. 요약:
 - **기술적 한계 발견**: trimesh gltf 로더가 로드 시점에 `COLOR_0`(정점색)을 이미 버린다 — palette.py 스냅 로직 문제가 아니라 trimesh 자체 한계. `assets/vegetation/` 원본(.gltf, Godot 직접 임포트)은 영향 없음, `assets/generated/variants/`의 스냅 GLB만 정점색 없음. 잎 색은 텍스처가 이미 정해서 큰 문제 아닐 가능성 높으나 최종 확인은 GUI 몫으로 남김.
 - 헤드리스 임포트 오류 0(변형 GLB 20개+자동 추출 텍스처), `godot_regress.sh` 통과 — 다섯 대표 씬 md5 불변, `.import`/`project.godot` 잡음 없음. **씬엔 안 물림**(§8-1).
 - 문서: ASSET_GUIDE.md 해당 날짜 항목.
+
+## Quaternius 나무 22종 전부 팔레트 스냅 완료 (2026-09-20⑬, 같은 세션 이어서, "이어 해줘")
+
+- 09-20⑫ 대표 5종에 이어 나머지 17종(CommonTree_2~5·Pine_2~5·TwistedTree_2~5·DeadTree_2~5·Bush_Common_Flowers)을 같은 4팔레트로 스냅 — 총 88개(22종×4팔레트) `assets/generated/variants/` 완비.
+- 새 조합 6개 preview PNG로 확인: 대부분 자연스러움(CommonTree_2×go_coast·Pine_3×go_ruins·DeadTree_2×forest_green·Bush_Common_Flowers×go_village). **TwistedTree_2×go_village 는 회색 돌기둥처럼 보여 애매**(최근접 8색 팔레트의 구조적 한계, 버그 아님) — 102 개편 때 사람이 판단.
+- 헤드리스 임포트 오류 0(88개 전부), `godot_regress.sh` 통과 — 다섯 대표 씬 md5 불변, `.import`/`project.godot` 잡음 없음. **씬엔 안 물림**(§8-1).
+- 103-5 절차(라이선스→임포트→fit_height/실루엣→팔레트 스냅) 중 나무 22종 몫은 4단계까지 완료. 5단계(씬 배치)는 102 그래픽 개편과 함께 사람 몫.

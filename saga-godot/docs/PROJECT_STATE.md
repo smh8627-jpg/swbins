@@ -15,19 +15,19 @@
 
 **공통(saga_core)**: `data/characters.gd`(인물 105, id 불변)·`data/pets.gd`(신수 11) · `ui/toast.gd`·`ui/virtual_joystick.gd`·`ui/goal_board.gd`+`ui/session_card.gd`(101-4, 목표판 3줄·마무리 카드, 다섯 판 전부 붙음)·`ui/duel_hud.gd` · `combat_feel.gd`(101-3, 다섯 판 끝 — GO/DUNGEON/STORY `hit()`·FOREST `pickup()`·REALM 대상없음) · `world/world_curve_material.gd`+`shaders/curved_*`(FOREST 구면) · `world/density_report.gd`(104-5, 발견 밀도, FOREST는 반경 10m) · `shaders/cel_toon.gdshader`+`cel_shader_apply.gd`(66-2/102-3, hit_flash+아웃라인 next_pass 자동) · `world/glb_utils.gd::fit_height()`(102-1, 여전히 미호출). 렌더러 Forward+/Mobile 이중(66-1, `env_pc.tres`·`env_mobile.tres`, 102-2 값).
 
-## 현재 작업 — 중단 지점(09-20⑫, 다음 세션 이어서)
+## 현재 작업 — 중단 지점(09-20⑬, 다음 세션 이어서)
 
 - **103장 스크립트 6개 전부 신설 완료**(09-20⑥~⑨). 임포트 오류 0. **배선 전부 아직**(§8-1).
 - **105 처리**(09-20⑩) — Q1 Godot 먼저 집중·Q-g Target 버튼 순환. Q-b 는 렌더 확인 불가라 보류.
-- **Quaternius 나무 22종 확보+대표 5종 팔레트 스냅 20종**(09-20⑪⑫) — `assets/vegetation/`·`assets/generated/variants/`, 평면 PNG로 눈 확인 끝(ASSET_GUIDE). trimesh 가 스냅본 정점색(COLOR_0)을 버리는 한계 발견(원본은 안전). **씬엔 안 물림**.
-- 102 개편은 안 건드림. STORY는 AvatarSample_A 임시.
+- **Quaternius 나무 22종×4팔레트 스냅 88개 완비**(09-20⑪~⑬) — `assets/vegetation/`·`assets/generated/variants/`, 눈 확인 끝(ASSET_GUIDE). TwistedTree×go_village 는 돌기둥처럼 보여 애매. trimesh 가 스냅본 정점색 버리는 한계 있음(원본은 안전). **씬엔 안 물림**.
+- 102 개편 안 건드림. STORY는 AvatarSample_A 임시.
 
 ## 다음 작업 (우선순위)
 
-1. **사용자 실기·색감 확인**(아래 목록).
+1. **사용자 실기·색감 확인**(아래).
 2. **102 그래픽 개편** — 사람이 값을 봐 가며 잡을 것. Quaternius 나무도 이때.
 3. **STORY 전용 VRoid·Mixamo 애니**(사람 몫, Q-d 잔여).
-4. **103 산출물 배치** — 실기 확인 뒤 어느 씬/셰이더/UI에 연결할지 결정.
+4. **103 산출물 배치** — 실기 확인 뒤 씬/셰이더/UI 연결 결정.
 5. **시대 퓨전 팔레트** — 소품 없어 보류.
 
 ## 알려진 오류

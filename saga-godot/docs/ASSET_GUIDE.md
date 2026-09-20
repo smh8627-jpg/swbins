@@ -411,3 +411,18 @@ go_village·go_coast·go_ruins·forest_green(신규 build) 4개 팔레트에 스
   같이 봐야 한다.
 - 헤드리스 임포트 오류 0, `godot_regress.sh` 통과(다섯 대표 씬 md5 불변,
   `.import`/`project.godot` 잡음 없음). **씬엔 안 물렸다**(§8-1).
+
+## 2026-09-20 — Quaternius 나무 22종 전부 팔레트 스냅 완료(103-5 3~4단계 마무리)
+
+09-20⑫에서 대표 5종만 하던 걸 나머지 17종(CommonTree_2~5·Pine_2~5·
+TwistedTree_2~5·DeadTree_2~5·Bush_Common_Flowers)까지 같은 4팔레트
+(go_village·go_coast·go_ruins·forest_green)로 마저 스냅 — 총 88개(22×4)
+`assets/generated/variants/`에 확보. 새로 6개 조합을 더 눈으로 확인:
+
+- CommonTree_2×go_coast·Pine_3×go_ruins·DeadTree_2×forest_green·
+  Bush_Common_Flowers×go_village 는 자연스러움.
+- **TwistedTree_2×go_village 는 애매함** — 원본 나무껍질이 잿빛이라
+  go_village 팔레트의 가장 가까운 역할이 `mountain_stone`(회색)이 돼
+  나무가 아니라 돌기둥처럼 보인다. 버그는 아니고(최근접 8색의 구조적
+  한계), 102 그래픽 개편 때 사람이 이 조합을 쓸지 판단해야 한다.
+- 헤드리스 임포트 오류 0(88개 전부)·`godot_regress.sh` 통과, 씬엔 안 물림.
