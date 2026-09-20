@@ -489,3 +489,16 @@ Flower_3_Group·Mushroom_Common·Plant_1)도 나무·바위와 같은 절차로 
   원하는지는 사람이 볼 때 판단.
 - 헤드리스 임포트 오류 0, `godot_regress.sh` 통과. **씬엔 안 물렸다**,
   이 종류를 실제로 쓸지는 FOREST 겹침 여부 결정 후.
+
+## 2026-09-20 — Quaternius 바위 24종 전부 팔레트 스냅 완료
+
+09-20⑮ 대표 5종에 이어 나머지 19종(Pebble_Round_2~5·Pebble_Square_2~6·
+Rock_Medium_2~3·RockPath_Round_Small×3+Thin·RockPath_Square_Small×3+Thin)
+까지 마저 스냅 — 바위 24종×4팔레트=96개 `assets/generated/variants/`
+완비(나무 22종과 합쳐 총 229개 GLB).
+
+- 새 조합 3개 확인: Rock_Medium_2×go_coast(이끼 바위→driftwood/보트그레이
+톤, 무난)·Pebble_Round_3×go_ruins·RockPath_Round_Small_1×forest_green
+둘 다 앞서 본 것과 같은 패턴으로 무난. 새 결함 없음.
+- 헤드리스 임포트 오류 0(96개 전부), `godot_regress.sh` 통과. **씬엔
+안 물렸다**(§8-1).

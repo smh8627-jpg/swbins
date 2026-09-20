@@ -15,11 +15,11 @@
 
 **공통(saga_core)**: `data/characters.gd`(인물 105, id 불변)·`data/pets.gd`(신수 11) · `ui/toast.gd`·`ui/virtual_joystick.gd`·`ui/goal_board.gd`+`ui/session_card.gd`(101-4, 목표판 3줄·마무리 카드, 다섯 판 전부 붙음)·`ui/duel_hud.gd` · `combat_feel.gd`(101-3, 다섯 판 끝 — GO/DUNGEON/STORY `hit()`·FOREST `pickup()`·REALM 대상없음) · `world/world_curve_material.gd`+`shaders/curved_*`(FOREST 구면) · `world/density_report.gd`(104-5, 발견 밀도, FOREST는 반경 10m) · `shaders/cel_toon.gdshader`+`cel_shader_apply.gd`(66-2/102-3, hit_flash+아웃라인 next_pass 자동) · `world/glb_utils.gd::fit_height()`(102-1, 여전히 미호출). 렌더러 Forward+/Mobile 이중(66-1, `env_pc.tres`·`env_mobile.tres`, 102-2 값).
 
-## 현재 작업 — 중단 지점(09-20⑯, 다음 세션 이어서)
+## 현재 작업 — 중단 지점(09-20⑰, 다음 세션 이어서)
 
 - **103장 스크립트 6개 전부 신설 완료**(09-20⑥~⑨). 임포트 오류 0. **배선 전부 아직**(§8-1).
 - **105 처리**(09-20⑩) — Q1 Godot 먼저 집중·Q-g Target 버튼 순환. Q-b 는 렌더 확인 불가라 보류.
-- **Quaternius Standard 68/68 확보**(09-20⑪~⑯) — 나무·바위 27종×4팔레트 128개 스냅(눈 확인 끝)+잔디·꽃 5종 시험 스냅("쓴다" 결정 아님, Mushroom 색 튐 발견). **씬엔 안 물림**.
+- **Quaternius Standard 68/68 확보**(09-20⑪~⑰) — 나무 22종+바위 24종 각×4팔레트 184개 스냅 완비(눈 확인 끝, 결함 없음)+잔디·꽃 5종 시험 스냅(용도 미정). **씬엔 안 물림**.
 - 102 개편 안 건드림. STORY는 AvatarSample_A 임시.
 
 ## 다음 작업 (우선순위)

@@ -7772,3 +7772,10 @@ PROJECT_STATE.md` 참고. 요약:
 - Fern_1·Grass_Common_Short·Flower_3_Group·Mushroom_Common·Plant_1 을 파이프라인 검증 차원에서 4팔레트 스냅 — 20개. **"쓴다"는 결정 아님**, 나무·바위와 달리 이번엔 파이프라인이 도는지만 확인.
 - 눈 확인: Fern/Flower/Plant 셋 다 같은 `Leaves.png` 다색 아틀라스 공유, 원본의 초록/파랑/빨강/보라가 각 팔레트 역할로 자연스럽게 분산돼 결함 없음. Grass_Common_Short 는 대부분 투명 영역이라 스냅 결과가 안 보이는 부분에만 영향. Mushroom_Common 원본 주황 갓이 forest_green "accent"(진분홍)로 튀는 색이 됨 — 결함은 아니고 사람이 톤 취향 판단.
 - 헤드리스 임포트 오류 0, `godot_regress.sh` 통과. **씬엔 안 물림**(§8-1). FOREST 꽃 교배 시스템과의 겹침 여부는 여전히 미결 — 이 스냅은 그 결정과 무관하게 파이프라인만 확인한 것.
+
+## Quaternius 바위 24종 전부 팔레트 스냅 완료 (2026-09-20⑰, 같은 세션 이어서, "이어 해줘")
+
+- 09-20⑮ 대표 5종에 이어 나머지 19종(Pebble_Round_2~5·Pebble_Square_2~6·Rock_Medium_2~3·RockPath_Round/Square_Small×3+Thin 각)까지 마저 스냅 — 바위 24종×4팔레트=96개 완비. 나무 22종×4=88개+바위 24종×4=96개, 총 229개 GLB(다른 기존 dungeon 12개 포함 그 이상) `assets/generated/variants/`.
+- 새 조합 3개(Rock_Medium_2×go_coast·Pebble_Round_3×go_ruins·RockPath_Round_Small_1×forest_green) 눈 확인 — 전부 앞서와 같은 패턴으로 무난, 새 결함 없음.
+- 헤드리스 임포트 오류 0(96개), `godot_regress.sh` 통과. **씬엔 안 물림**(§8-1).
+- 이걸로 나무·바위(총 46종) 팔레트 스냅은 4단계까지 전부 끝. 잔디·꽃 21종은 여전히 용도 미정(시험 스냅만 5종). 5단계(씬 배치)는 102 그래픽 개편 사람 몫.
