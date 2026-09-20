@@ -1,0 +1,81 @@
+{
+  "name": "dungeon_grade",
+  "roles": 5,
+  "colors": [
+    {
+      "role": "g0",
+      "band": "base",
+      "hex": "#d0c8b8"
+    },
+    {
+      "role": "g0",
+      "band": "light",
+      "hex": "#e1dbd1"
+    },
+    {
+      "role": "g0",
+      "band": "dark",
+      "hex": "#878278"
+    },
+    {
+      "role": "g1",
+      "band": "base",
+      "hex": "#6f6fff"
+    },
+    {
+      "role": "g1",
+      "band": "light",
+      "hex": "#a1a1ff"
+    },
+    {
+      "role": "g1",
+      "band": "dark",
+      "hex": "#4848a6"
+    },
+    {
+      "role": "g2",
+      "band": "base",
+      "hex": "#ffff64"
+    },
+    {
+      "role": "g2",
+      "band": "light",
+      "hex": "#ffff9a"
+    },
+    {
+      "role": "g2",
+      "band": "dark",
+      "hex": "#a6a641"
+    },
+    {
+      "role": "g3",
+      "band": "base",
+      "hex": "#00c000"
+    },
+    {
+      "role": "g3",
+      "band": "light",
+      "hex": "#59d659"
+    },
+    {
+      "role": "g3",
+      "band": "dark",
+      "hex": "#007d00"
+    },
+    {
+      "role": "g4",
+      "band": "base",
+      "hex": "#c7a76c"
+    },
+    {
+      "role": "g4",
+      "band": "light",
+      "hex": "#dbc6a0"
+    },
+    {
+      "role": "g4",
+      "band": "dark",
+      "hex": "#816d46"
+    }
+  ]
+}

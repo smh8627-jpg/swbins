@@ -528,3 +528,35 @@ Petal_1~5·Plant_1_Big·Plant_7·Plant_7_Big)까지 마저 스냅 — 잔디·�
   씬 md5 불변, `.import`/`project.godot` 잡음 없음). **씬엔 안 물렸다**
   (§8-1) — 이걸로 Quaternius 나무·바위·잔디꽃(68종) 팔레트 스냅 4단계는
   전부 끝, 5단계(씬 배치)만 102 사람 몫으로 남는다.
+
+## 2026-09-20 — KayKit Adventurers 무기 4종 확보 + 등급 5색 킷배싱(101-3 G)
+
+`103-3` 표 "무기 kitbash" 항목 착수. 사람/세션 판단으로 자루·날·장식
+모듈 대신 **완성 무기 4종**(1인 검·1인 도끼·단검·지팡이)을 골랐다 —
+DUNGEON에 지금 무기 3D 메시가 전혀 없어(추상 아이템 데이터+토스트뿐)
+"성장 가시화" 최소 요건(등급 1→4 스냅샷 비교)엔 이걸로 충분.
+
+- **KayKit : Adventurers Character Pack**(Kay Lousberg, CC0) GitHub 미러
+  (`github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0`)
+  에서 `raw.githubusercontent.com` 직접 다운로드(2026-09-13 Medieval
+  Hexagon Pack과 같은 방식, itch.io 로그인·JS 렌더링 불필요). glTF+
+  bin 4쌍(`sword_1handed`·`axe_1handed`·`dagger`·`staff`) + 각각이
+  참조하는 캐릭터 아틀라스 텍스처 4장(knight/barbarian/rogue/mage)을
+  `assets/weapons/`에 신설 배치. 무기마다 아틀라스가 달라 4장 다 받아야
+  했다(각 무기 UV가 자기 몫 아틀라스만 참조).
+- **등급 색은 새로 안 지어냄** — `games/saga_dungeon/data/dungeon_items.gd`
+  GRADES(key 0~4, 상품/양품/명품/보물/전설)의 기존 hex를 그대로
+  `palette.py` `PALETTES["dungeon_grade"]`(role g0~g4)로 옮겨 24색
+  JSON 빌드. `tint-glb`(색상·채도만 바꾸고 명도는 원본 그대로 둬 그라디언트
+  안 깨짐, VRoid 옷과 같은 방식)로 무기 4종×등급 5색=20개
+  `assets/generated/variants/`.
+- 평면 비교 PNG(`tint-preview`, 3D 스크린샷 아님)로 sword_1handed g1(양품,
+  파랑)·g4(전설, 금빛) 확인 — 명도 그라디언트 유지된 채 색상만 자연스럽게
+  갈아 끼워짐, 결함 없음. g0(상품)은 원본 톤과 거의 같아(팔레트 자체가
+  원본 hex라 당연) 기준점 역할.
+- 헤드리스 임포트 오류 0(무기 원본 8개+변형 20개), `godot_regress.sh`
+  통과(다섯 대표 씬 md5 불변, 잡음 없음). **씬엔 안 물렸다**(§8-1) —
+  실제로 플레이어/적 손에 붙이는 건 102 그래픽 개편 때 사람 몫.
+- 자루3×날4×장식3=36 조합의 나머지(도끼/지팡이 등급별 변형 등)는 필요해
+  지면 같은 팔레트로 이어서 낼 수 있다 — 이번엔 "무기 하나당 등급별 GLB
+  4개(101-3 G 요건)"를 검증하는 최소 스코프로 좁혔다.

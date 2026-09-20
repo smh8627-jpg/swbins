@@ -7787,3 +7787,11 @@ PROJECT_STATE.md` 참고. 요약:
 - `py` 런처가 cp949 콘솔에서 원인 불명 exit 49로 68개 전부 실패 → python.exe 직접 호출(PYTHONIOENCODING=utf-8)로 재실행해 해결(상세 ASSET_GUIDE.md 해당 날짜).
 - 헤드리스 임포트 오류 0(88개), `godot_regress.sh` 통과(다섯 대표 씬 md5 불변, `.import`/`project.godot` 잡음 없음). **씬엔 안 물림**(§8-1).
 - 이걸로 Quaternius Standard 68/68 전부(나무22+바위24+잔디꽃22) 팔레트 스냅 4단계 완전히 끝. 5단계(씬 배치)만 102 그래픽 개편 사람 몫으로 남는다.
+
+## KayKit 무기 4종 확보 + 등급 5색 킷배싱 완료 — 101-3 G (2026-09-20⑲, 같은 세션 이어서, "이어 해줘")
+
+- 백로그 소진 후 다음 후보로 101-3 G "성장 가시화"(무기 메시 스왑) 선택 — 사용자에게 무기 킷배싱 진행 여부를 물어 승인받음.
+- 모듈 파츠(자루·날·장식) 대신 KayKit Adventurers(CC0, GitHub raw 직접 다운로드)의 완성 무기 4종(sword_1handed·axe_1handed·dagger·staff)을 `assets/weapons/`에 확보 — DUNGEON에 무기 3D 메시가 아예 없어 이걸로 최소 요건 충분.
+- `palette.py`에 `dungeon_grade` 팔레트 신설 — 색은 새로 안 짓고 `dungeon_items.gd` GRADES(상품/양품/명품/보물/전설) 기존 hex 그대로 옮김. `tint-glb`로 무기 4종×5등급=20개 `assets/generated/variants/`.
+- 평면 비교 PNG로 g1(파랑)·g4(금빛) 확인, 명도 유지·결함 없음. 헤드리스 임포트 오류 0, `godot_regress.sh` 통과(다섯 대표 씬 md5 불변, 잡음 없음). **씬엔 안 물림**(§8-1) — 손에 붙이는 건 102 사람 몫.
+- 상세는 ASSET_GUIDE.md 해당 날짜 참고.
