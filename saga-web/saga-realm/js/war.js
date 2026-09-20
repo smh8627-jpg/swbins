@@ -236,9 +236,10 @@
    */
   function duel(aId, dId) {
     var off = global.DG.off;
-    var am = off.stats(aId).might, dm = off.stats(dId).might;
+    /* 특성(PLAN §5-1) — 용맹은 무력이 조금 더 먹히고, 호전·신중·온화는 일기토가 벌어질 확률을 바꾼다 */
+    var am = off.stats(aId).might * off.traitMul(aId, 'duelMight'), dm = off.stats(dId).might * off.traitMul(dId, 'duelMight');
     if (Math.abs(am - dm) > DUEL_GAP) { return null; }
-    if (Math.random() > 0.35) { return null; }
+    if (Math.random() > Math.min(0.9, 0.35 * off.traitMul(aId, 'duelRate') * off.traitMul(dId, 'duelRate'))) { return null; }
 
     var rounds = [], hits = [], ah = 100, dh = 100, n = 0;
     while (ah > 0 && dh > 0 && n < 12) {
@@ -585,6 +586,7 @@
         winSide.morale *= 1.15;
         loseSide.morale *= 0.92;
         off.gainExp(du.winner, off.EXP.duel);
+        off.noteDuel(du.winner, du.loser);
         if (du.hurt) {
           /* 다친 장수는 그 싸움에서 빠진다 */
           var li = loseSide.officers.indexOf(du.loser);

@@ -250,11 +250,12 @@
     var s = global.DG.hero.stats(id);
     if (isLordId(id)) { return s; }   // 군주는 나이 축 전체에서 빠진다(늙지도 죽지도 않는다)
     var mul = agingMul(age(id));
-    if (mul >= 1) { return s; }
+    var bonus = ambBonusOf(id);       // 야망을 이룬 사람은 능력이 영구히 +2(PLAN §5-1) — 이 함수 한 곳에서만 얹는다
+    if (mul >= 1 && !bonus) { return s; }
     return {
-      might: Math.max(1, Math.round(s.might * mul)),
-      wisdom: Math.max(1, Math.round(s.wisdom * mul)),
-      command: Math.max(1, Math.round(s.command * mul))
+      might: Math.max(1, Math.round(s.might * mul) + bonus),
+      wisdom: Math.max(1, Math.round(s.wisdom * mul) + bonus),
+      command: Math.max(1, Math.round(s.command * mul) + bonus)
     };
   }
 
@@ -470,13 +471,167 @@
     if (!h || !f) { return 50; }
     var lord = find(f.lord);
     var v = 52;
-    if (lord && lord.trait === h.trait) { v += 12; }
+    if (lord && lord.trait === h.trait) { v += Math.round(12 * traitMul(id, 'bond')); }   // 충성은 정수 — 충직 18 · 야심 8
     v -= (h.rarity - 3) * 6;                       // 귀한 사람일수록 붙들기 어렵다
     if (h.era !== '삼국지') { v -= 4; }             // 재야에서 온 이방인
     /* ⑤ 균열의 왕(PLAN §5-4) — 그 세력의 era 가 아닌 사람은 "이질" 이라 마음이 덜 붙는다.
        등용 때와 매달 끌려가는 목표(`driftLoyalty`)가 둘 다 이 함수라 한 곳에서 걸린다 */
     if (f.alien && h.era !== f.alien) { v -= 10; }
     return core.clamp(v, 25, 85);
+  }
+
+  /* ── 특성 · 야망 (PLAN §5-1) ────────────────────────────
+   * **특성 둘**은 id 해시로 정해지는 결정값이라 세이브가 필요 없다(`birthHash` 와 같은 요령, 소금만 다르다). 능력치가 아니라
+   * **기존 판정의 계수**만 바꾼다 — 축(axis)마다 곱한다: bribed(매수당함)·discorded(이간 낙폭)·plot(계략을 거는 쪽)·rewardUp(상 받은 충성 상승)·
+   * bond(군주와 같은 결의 인연 끌림)·duelRate(일기토 발생)·duelMight(일기토 무력)·prize(학당 상금). 한 인물의 곱은 0.7~1.5 로 자른다.
+   * 반대 특성(용맹↔신중·탐욕↔청렴·호전↔온화·충직↔야심·탐욕↔의리)은 한 사람에게 같이 안 붙는다.
+   * ※ PLAN 초안의 "충직 인연 2배"·"호전 35%→55%" 는 같은 절의 "계수 0.7~1.5" 와 어긋나서 상한 1.5 로 맞췄다.
+   * **야망 하나**는 `save.rtk.officers[id].amb = {k, prog, done, failMonths, age}` — 처음 볼 때 해시로 정하고 세이브에 남긴다.
+   * 군주는 야망이 없다. 달성하면 충성 +20·능력 +2(영구), 서른여섯 달이 지나도 못 이룬 채 열두 달이 더 가면(좌절) 충성이 달마다 -3, 이간에 ×1.5. */
+  var TRAITS = [
+    { k: 'brave',     name: '용맹', emoji: '🦁', desc: '일기토에서 무력이 조금 더 세게 먹힌다',            mul: { duelMight: 1.08 } },
+    { k: 'careful',   name: '신중', emoji: '🛡️', desc: '일기토를 잘 걸지 않는다',                          mul: { duelRate: 0.7 } },
+    { k: 'greedy',    name: '탐욕', emoji: '💰', desc: '매수에 잘 넘어가고, 상을 받으면 충성이 더 오른다',  mul: { bribed: 1.4, rewardUp: 1.5 } },
+    { k: 'clean',     name: '청렴', emoji: '🧼', desc: '매수에 잘 안 넘어간다',                            mul: { bribed: 0.7, rewardUp: 0.85 } },
+    { k: 'ambitious', name: '야심', emoji: '🔥', desc: '군주와의 인연에 덜 끌리고 이간에 약하다',          mul: { bond: 0.7, discorded: 1.2 } },
+    { k: 'loyal',     name: '충직', emoji: '🎗️', desc: '군주와의 인연에 크게 끌린다',                      mul: { bond: 1.5 } },
+    { k: 'studious',  name: '학구', emoji: '📚', desc: '우리 편에 있으면 학당 상금이 늘어난다',            mul: { prize: 1.3 } },
+    { k: 'warlike',   name: '호전', emoji: '⚔️', desc: '일기토를 잘 건다',                                mul: { duelRate: 1.5 } },
+    { k: 'gentle',    name: '온화', emoji: '🕊️', desc: '일기토를 덜 걸고 이간에 덜 흔들린다',              mul: { duelRate: 0.8, discorded: 0.85 } },
+    { k: 'sly',       name: '교활', emoji: '🦊', desc: '계략을 걸면 더 잘 통한다',                        mul: { plot: 1.15 } },
+    { k: 'righteous', name: '의리', emoji: '🤝', desc: '돈으로 마음을 사기 어렵고 이간에 덜 흔들린다',    mul: { rewardUp: 0.7, discorded: 0.8 } },
+    { k: 'cold',      name: '냉혈', emoji: '🧊', desc: '계략에 능하고 이간에 잘 안 흔들린다',              mul: { plot: 1.1, discorded: 0.7 } }
+  ];
+  var TRAIT_OPPOSE = {
+    brave: ['careful'], careful: ['brave'], greedy: ['clean', 'righteous'], clean: ['greedy'], righteous: ['greedy'],
+    warlike: ['gentle'], gentle: ['warlike'], loyal: ['ambitious'], ambitious: ['loyal']
+  };
+
+  /** 이 사람의 특성 둘 (결정적 — 같은 id 는 늘 같다) */
+  function traitsOf(id) {
+    var n = TRAITS.length, first = TRAITS[birthHash('t1:' + id) % n], j = birthHash('t2:' + id) % n, i;
+    for (i = 0; i < n; i++) {
+      var c = TRAITS[(j + i) % n];
+      if (c.k !== first.k && (TRAIT_OPPOSE[first.k] || []).indexOf(c.k) < 0) { return [first, c]; }
+    }
+    return [first];
+  }
+
+  /** 판정 축 하나에 대한 이 사람의 계수(0.7~1.5). 특성이 그 축을 안 건드리면 1 */
+  function traitMul(id, axis) {
+    var ts = traitsOf(id), m = 1, i;
+    for (i = 0; i < ts.length; i++) { if (ts[i].mul[axis]) { m *= ts[i].mul[axis]; } }
+    return core.clamp(m, 0.7, 1.5);
+  }
+
+  var AMBITIONS = [
+    { k: 'governor', name: '태수', emoji: '🏯', need: 1,  text: '성 하나를 다스린다' },
+    { k: 'hometown', name: '고향', emoji: '🏠', need: 1,  text: '고향 성을 우리 깃발 아래 둔다' },
+    { k: 'rival',    name: '숙적', emoji: '🗡️', need: 1,  text: '자기보다 센 적을 일기토로 꺾는다' },
+    { k: 'wealth',   name: '부귀', emoji: '💎', need: 1,  text: '보물 하나를 손에 넣는다' },
+    { k: 'fame',     name: '명성', emoji: '🏆', need: 3,  text: '일기토에서 세 번 이긴다' },
+    { k: 'learning', name: '학문', emoji: '📖', need: 5,  text: '경험을 쌓아 Lv.5 에 오른다' }
+  ];
+  var AMB_GRACE = 36, AMB_FRUSTRATED = 12;
+
+  function ambDef(k) {
+    for (var i = 0; i < AMBITIONS.length; i++) { if (AMBITIONS[i].k === k) { return AMBITIONS[i]; } }
+    return null;
+  }
+
+  /** 이 사람의 야망 — 없으면 처음 볼 때 해시로 정해 세이브에 남긴다. 군주는 null */
+  function ambOf(id) {
+    if (isLordId(id)) { return null; }
+    var r = rec(id);
+    if (!r.amb) {
+      var def = AMBITIONS[birthHash('a:' + id) % AMBITIONS.length];
+      var a = { k: def.k, prog: 0, done: false, failMonths: 0, age: 0 };
+      if (def.k === 'hometown') {
+        var CD = global.DG.cityData, cs = CD.CITIES.filter(function (c) { return !c.garrison; });
+        a.target = cs[birthHash('h:' + id) % cs.length].id;
+      }
+      r.amb = a;
+    }
+    return r.amb;
+  }
+
+  function ambBonusOf(id) {
+    var r = global.DG.rtk.state().officers[id];
+    return r && r.amb && r.amb.done ? 2 : 0;
+  }
+
+  /** 좌절 중인가 — 못 이룬 채 서른여섯 달 + 열두 달이 지났다 */
+  function frustrated(id) {
+    var r = global.DG.rtk.state().officers[id], a = r && r.amb;
+    return !!a && !a.done && a.failMonths >= AMB_FRUSTRATED;
+  }
+
+  /** 화면용 — { k, name, emoji, text, prog, need, done, frustrated, target? } (군주·기록 없음이면 null) */
+  function ambView(id) {
+    var a = ambOf(id);
+    if (!a) { return null; }
+    var d = ambDef(a.k), text = d.text;
+    if (a.k === 'hometown' && a.target) {
+      var cd = global.DG.cityData.find(a.target);
+      text = '고향 ' + (cd ? cd.name : '') + ' 을(를) 우리 깃발 아래 둔다';
+    }
+    return { k: a.k, name: d.name, emoji: d.emoji, text: text, prog: Math.min(d.need, a.prog), need: d.need,
+             done: a.done, frustrated: frustrated(id) };
+  }
+
+  /** 일기토가 끝났다 — 이긴 쪽의 명성·숙적 야망이 한 걸음 나아간다 */
+  function noteDuel(winnerId, loserId) {
+    var r = global.DG.rtk.state().officers[winnerId];
+    if (!r || !r.force) { return; }
+    var a = ambOf(winnerId);
+    if (!a || a.done) { return; }
+    if (a.k === 'fame') { a.prog += 1; }
+    else if (a.k === 'rival' && stats(loserId).might >= stats(winnerId).might) { a.prog = 1; }
+  }
+
+  function awardAmbition(id, a) {
+    var st = global.DG.rtk.state(), d = ambDef(a.k);
+    a.done = true;
+    addLoyal(id, 20);
+    if (st.officers[id] && st.officers[id].force === st.me) {
+      core.log('🎯 ' + find(id).name + ' 이(가) 야망을 이루었다 — ' + d.emoji + ' ' + d.name + ' (충성 +20 · 능력 +2)', 'good');
+      core.emit('toast', '🎯 ' + find(id).name + ' 의 야망 「' + d.name + '」 달성');
+    }
+    core.emit('rtk:ambition', { id: id, kind: a.k, mine: st.officers[id].force === st.me });
+  }
+
+  /** 달마다 부른다 — 진행을 세고, 이룬 야망을 지급하고, 좌절이면 충성을 깎는다 */
+  function tickAmbitions() {
+    var st = global.DG.rtk.state(), k, out = [];
+    for (k in st.officers) {
+      if (!Object.prototype.hasOwnProperty.call(st.officers, k)) { continue; }
+      var r = st.officers[k];
+      if (!r.force || r.dead) { continue; }
+      var a = ambOf(k);
+      if (!a) { continue; }
+      var d = ambDef(a.k);
+      a.age += 1;
+      if (!a.done) {
+        if (a.k === 'governor') {
+          a.prog = 0;
+          for (var ck in st.cities) {
+            if (Object.prototype.hasOwnProperty.call(st.cities, ck) && st.cities[ck].gov === k) { a.prog = 1; break; }
+          }
+        } else if (a.k === 'hometown') {
+          a.prog = st.cities[a.target] && st.cities[a.target].force === r.force ? 1 : 0;
+        } else if (a.k === 'wealth') {
+          a.prog = r.item ? 1 : 0;
+        } else if (a.k === 'learning') {
+          a.prog = Math.min(d.need, grow(k).lv);
+        }
+        if (a.prog >= d.need) { awardAmbition(k, a); out.push(k); continue; }
+        if (a.age > AMB_GRACE) {
+          a.failMonths += 1;
+          if (a.failMonths >= AMB_FRUSTRATED) { addLoyal(k, -3); }
+        }
+      }
+    }
+    return out;
   }
 
   global.DG = global.DG || {};
@@ -491,6 +646,8 @@
     stats: stats, power: power, skill: skill, equip: equip, unequip: unequip,
     loyalOf: loyalOf, addLoyal: addLoyal, baseLoyal: baseLoyal,
     birthYear: birthYear, age: age, agingMul: agingMul,
-    deathChanceMonthly: deathChanceMonthly, isDead: isDead, rollAging: rollAging
+    deathChanceMonthly: deathChanceMonthly, isDead: isDead, rollAging: rollAging,
+    TRAITS: TRAITS, AMBITIONS: AMBITIONS, traitsOf: traitsOf, traitMul: traitMul,
+    ambOf: ambOf, ambView: ambView, frustrated: frustrated, noteDuel: noteDuel, tickAmbitions: tickAmbitions
   };
 })(window);

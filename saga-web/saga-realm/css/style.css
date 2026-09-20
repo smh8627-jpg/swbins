@@ -100,6 +100,9 @@ body.tilted #vignette {
 .p-goal b { color: var(--gold); font-weight: 600; }
 .p-goal .gbar { display: inline-block; width: 42px; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, .14); overflow: hidden; flex: 0 0 auto; }
 .p-goal .gbar i { display: block; height: 100%; background: linear-gradient(90deg, #d9a441, #f7c96b); }
+.traits { display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0 2px; }
+.tag.trait { font-size: 10.5px; }
+.rstat.amb.frus b, .rstat.amb.frus span { color: var(--bad); }
 .p-goal .vnote { min-width: 0; flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; }
 .stars { color: var(--gold); font-size: 12px; letter-spacing: 1px; font-weight: 400; }
 
