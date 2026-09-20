@@ -61,7 +61,7 @@
                                           //   mark 는 누적 거리 위의 기준점 (갈아타면 거기서 다시 센다)
       buddyLog: {},                       // { petId: {walked, fed, gained, since} }
                                           //   반려를 갈아도 남는 종별 기록 = 우애
-      heroes: {},                         // { heroId: {lv, exp, rank} } 인물 개별 성장
+      heroes: {},                         // { heroId: {lv, exp, rank, perks?, offer?} } 인물 개별 성장(perks·offer = perk.js)
       party: [],                          // 동행 heroId 최대 5 — 선두가 지도 위 아바타
       petEquip: {},                       // { heroId: petId }
       /* 확장(js/_expansion) 필드는 각 모듈이 스스로 만들고,
@@ -323,6 +323,7 @@
     var srcs = [
       global.DG.bag && global.DG.bag.bonus,
       global.DG.weather && global.DG.weather.bonus,
+      global.DG.perk && global.DG.perk.bonus,           // 승급 특성 補 갈래(동행 중인 인물만)
       global.DG.prestige && global.DG.prestige.bonus,   // 확장 보관분(_expansion)
       global.DG.idle && global.DG.idle.bonus,
       global.DG.ai && global.DG.ai.bonus

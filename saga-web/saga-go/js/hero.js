@@ -4,7 +4,7 @@
  * 인물의 능력치는 아래 순서로 쌓인다. 이 순서를 바꾸지 않는다.
  *
  *   1) 기본치      data.js 의 stats (인물마다 고정, 절대 변하지 않는다)
- *   2) 성장 배율    레벨(경험) × 승급(중복 인물 소모)
+ *   2) 성장 배율    레벨(경험) × 승급(중복 인물 소모) × 승급 특성(perk.js 攻·守, 능력치마다)
  *   3) 장비 %       장착 장비의 pct 접사 (배율과 같은 층에서 곱한다)
  *   4) 펫 · 장비 flat  마지막에 더한다 (배율을 타지 않는다)
  *
@@ -47,6 +47,11 @@
     return (1 + (g.lv - 1) * LV_STEP) * (1 + g.rank * RANK_STEP);
   }
 
+  /** 승급 특성(perk.js 攻·守)의 능력치별 배율 — 특성이 없거나 모듈이 없으면 1 */
+  function perkMul(id, statKey) {
+    return global.DG.perk ? global.DG.perk.mulOf(id, statKey) : 1;
+  }
+
   /** 장착 펫 */
   function petOf(id) {
     return data.find(core.save.petEquip[id]);
@@ -70,9 +75,9 @@
     var mul = growMul(id);
     var g = gearOf(id);
     var out = {
-      might: Math.round(h.stats.might * mul * (1 + g.pct.might / 100)) + g.flat.might,
-      wisdom: Math.round(h.stats.wisdom * mul * (1 + g.pct.wisdom / 100)) + g.flat.wisdom,
-      command: Math.round(h.stats.command * mul * (1 + g.pct.command / 100)) + g.flat.command
+      might: Math.round(h.stats.might * mul * perkMul(id, 'might') * (1 + g.pct.might / 100)) + g.flat.might,
+      wisdom: Math.round(h.stats.wisdom * mul * perkMul(id, 'wisdom') * (1 + g.pct.wisdom / 100)) + g.flat.wisdom,
+      command: Math.round(h.stats.command * mul * perkMul(id, 'command') * (1 + g.pct.command / 100)) + g.flat.command
     };
     var pet = petOf(id);
     if (pet && pet.bonus) {
@@ -94,9 +99,9 @@
     var pet = petOf(id);
     var g = gearOf(id);
     var grown = {
-      might: Math.round(h.stats.might * mul),
-      wisdom: Math.round(h.stats.wisdom * mul),
-      command: Math.round(h.stats.command * mul)
+      might: Math.round(h.stats.might * mul * perkMul(id, 'might')),
+      wisdom: Math.round(h.stats.wisdom * mul * perkMul(id, 'wisdom')),
+      command: Math.round(h.stats.command * mul * perkMul(id, 'command'))
     };
     return {
       base: h.stats, grown: grown, final: stats(id),
@@ -192,6 +197,8 @@
     var g = info(id);
     if (!core.save.dex.heroes[id]) { return { ok: false, why: '미획득' }; }
     if (g.rank >= MAX_RANK) { return { ok: false, why: '최대 승급' }; }
+    /* 지난 승급의 특성 카드를 아직 안 골랐다 — 고르거나 물려야 다음 승급이 열린다(perk.js) */
+    if (global.DG.perk && global.DG.perk.pending(id)) { return { ok: false, why: '특성 카드부터' }; }
     var c = rankUpCost(g.rank);
     if (dupOf(id) < c.dup) { return { ok: false, why: '중복 인물 부족', cost: c }; }
     if (core.save.player.gold < c.gold) { return { ok: false, why: '금 부족', cost: c }; }
@@ -213,6 +220,7 @@
     core.gainFeat(g.rank * 6, '인물 승급');
     core.log('✨ ' + (h ? h.name : id) + ' 승급 ★' + g.rank, 'good');
     core.emit('toast', '✨ ' + (h ? h.name : id) + ' 승급 ★' + g.rank);
+    if (global.DG.perk) { global.DG.perk.offer(id); }        // 승급 3택(PLAN §5 ⑦) — 카드를 걸어 둔다
     core.emit('changed');
     core.persist();
     return true;

@@ -191,6 +191,8 @@
         return;
       }
       if (act === 'rankup') { hero().rankUp(id); }
+      else if (act === 'perk-pick') { if (global.DG.perk) { global.DG.perk.choose(id, b.getAttribute('data-perk')); } }
+      else if (act === 'perk-skip') { if (global.DG.perk) { global.DG.perk.decline(id); } }
       else if (act === 'buddy-set') { if (buddy()) { buddy().set(id); } }
       else if (act === 'buddy-clear') { if (buddy()) { buddy().clear(); } }
       else if (act === 'buddy-feed') {
@@ -1113,6 +1115,39 @@
     '</div>';
   }
 
+  /** 승급 특성(PLAN §5 ⑦) — 고르지 않은 카드 셋이 있으면 그것을, 아니면 가진 특성을 보인다 */
+  function perkBlock(id) {
+    var PK = global.DG.perk;
+    if (!PK) { return ''; }
+    var own = PK.perksOf(id), pend = PK.pending(id), out = '<div class="dt-perks">';
+    function axisMark(d) {
+      for (var i = 0; i < PK.AXES.length; i++) { if (PK.AXES[i].key === d.axis) { return PK.AXES[i].mark; } }
+      return '';
+    }
+    if (pend) {
+      out += '<div class="dt-line"><span>🎴 특성 카드 — 하나를 고른다</span><b>' + own.length + '/' + PK.MAX_PERKS + '</b></div>';
+      for (var i = 0; i < pend.length; i++) {
+        var d = PK.def(pend[i]);
+        out += '<button class="btn wide" data-act="perk-pick" data-id="' + id + '" data-perk="' + d.id + '">' +
+          d.emoji + ' <b>' + esc(d.name) + '</b> <small>' + axisMark(d) + ' · ' + esc(d.desc) + '</small></button>';
+      }
+      out += '<button class="btn ghost wide" data-act="perk-skip" data-id="' + id + '">카드를 물린다 (丹 +' + PK.DECLINE_DAN + ')</button>';
+    } else {
+      out += '<div class="dt-line"><span>🎴 특성</span><b>' + own.length + '/' + PK.MAX_PERKS + '</b></div>';
+      if (own.length) {
+        out += '<div class="dt-tags">';
+        for (var j = 0; j < own.length; j++) {
+          var od = PK.def(own[j]);
+          out += '<span class="tag" title="' + esc(od.desc) + '">' + od.emoji + ' ' + esc(od.name) + ' · ' + esc(od.desc) + '</span>';
+        }
+        out += '</div>';
+      } else {
+        out += '<small class="muted">승급할 때마다 특성 카드 셋(攻·守·補) 중 하나를 고릅니다.</small>';
+      }
+    }
+    return out + '</div>';
+  }
+
   function renderDetail() {
     if (!openDetailRef) { return; }
     var host = detailHost();
@@ -1170,7 +1205,8 @@
         statRow('지력', bk.base.wisdom, bk.grown.wisdom, bk.final.wisdom, cap) +
         statRow('통솔', bk.base.command, bk.grown.command, bk.final.command, cap) +
         '</div>' +
-        '<div class="dt-line"><span>인물 됨됨이</span><b>' + core.fmt(hero().power(h.id)) + '</b></div>';
+        '<div class="dt-line"><span>인물 됨됨이</span><b>' + core.fmt(hero().power(h.id)) + '</b></div>' +
+        perkBlock(h.id);
 
       out += '<div class="dt-pet"><span>🐾 펫</span>' +
         '<select data-equip="' + h.id + '">' + petOptions(h.id) + '</select>' +

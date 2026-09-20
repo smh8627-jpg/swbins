@@ -80,6 +80,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/growth.js"></script>
 <script src="js/buddy.js"></script>
 <script src="js/hero.js"></script>
+<script src="js/perk.js"></script>
 <script src="js/vendor/three.iife.js"></script>
 <script src="js/vendor/RGBELoader.js"></script>
 <script src="js/land.js"></script>
@@ -6579,6 +6580,161 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         undo();
       }
       return out && why + ' · 진 판·무피해 이탈도 확인';
+    });
+
+    /* ── 승급 3택 — 특성 갈래(PLAN §5 ⑦, 2026-09-21) ───────────────
+     * 승급하면 攻·守·補 카드 셋이 걸리고, 하나를 고르면 그 인물의 특성이 된다.
+     * 攻·守 는 hero.stats() 의 성장 배율 층에서 곱하고(기본치 불변), 補 는 동행 중일 때만
+     * core.effect() 에 잡힌다. 카드는 (인물, 승급 단계) 해시라 다시 굴릴 수 없다. 아직 실기 확인 전.
+     */
+    /** 인물 하나를 승급 가능한 상태로 세워 두고 되돌리는 틀 */
+    function perkRig(idx) {
+      var id = DG.data.heroes[idx].id;
+      var keep = JSON.stringify({ d: C.save.dex.heroes[id] || null, h: C.save.heroes[id] || null, gold: C.save.player.gold,
+        dust: C.save.dust, party: C.save.party.slice(), log: C.save.log.length });
+      C.save.dex.heroes[id] = { count: 20, firstAt: Date.now() };
+      C.save.heroes[id] = { lv: 1, exp: 0, rank: 0 };
+      C.save.player.gold = 999999;
+      return { id: id, undo: function () {
+        var k = JSON.parse(keep);
+        if (k.d) { C.save.dex.heroes[id] = k.d; } else { delete C.save.dex.heroes[id]; }
+        if (k.h) { C.save.heroes[id] = k.h; } else { delete C.save.heroes[id]; }
+        C.save.player.gold = k.gold; C.save.dust = k.dust; C.save.party = k.party;
+      } };
+    }
+
+    t('승급 3택 — 카드 셋은 攻·守·補 서로 다른 축에서 하나씩 나온다', function () {
+      var PK = DG.perk;
+      if (!PK) { return false; }
+      var cards = PK.roll(DG.data.heroes[3].id, 1, []);
+      var axes = cards.map(function (pid) { return PK.def(pid).axis; });
+      return cards.length === 3 && axes.join() === 'atk,def,sup' && PK.PERKS.length === 12 && ('카드 ' + cards.join(' · '));
+    });
+
+    t('승급 3택 — 100번 굴려 같은 축 중복 0, 가진 특성은 안 나오고, 셋을 채우면 안 뜬다', function () {
+      var PK = DG.perk, bad = 0, n = 0;
+      for (var i = 0; i < 100; i++) {
+        var id = DG.data.heroes[i % DG.data.heroes.length].id, rank = 1 + (i % 5);
+        var owned = [];
+        if (i % 3 === 1) { owned = [PK.PERKS[(i * 7) % 12].id]; }
+        if (i % 3 === 2) { owned = [PK.PERKS[(i * 7) % 12].id, PK.PERKS[(i * 5 + 1) % 12].id].filter(function (v, k, a) { return a.indexOf(v) === k; }); }
+        var cards = PK.roll(id, rank, owned);
+        var axes = cards.map(function (pid) { return PK.def(pid).axis; });
+        var uniq = {}; axes.forEach(function (a) { uniq[a] = 1; });
+        if (cards.length !== 3 || Object.keys(uniq).length !== 3) { bad++; }
+        if (cards.some(function (pid) { return owned.indexOf(pid) >= 0; })) { bad++; }
+        n++;
+      }
+      var full = PK.roll(DG.data.heroes[0].id, 4, ['atk1', 'def1', 'sup1']);
+      return bad === 0 && full.length === 0 && (n + '번 · 중복·재등장 0 · 셋 보유 시 빈 카드');
+    });
+
+    t('승급 3택 — 같은 (인물, 승급 단계)는 늘 같은 카드다(다시 굴릴 수 없다)', function () {
+      var PK = DG.perk, id = DG.data.heroes[8].id;
+      var a = PK.roll(id, 2, []).join(), b = PK.roll(id, 2, []).join(), c = PK.roll(id, 3, []).join();
+      var differ = 0;
+      for (var i = 0; i < 20; i++) { if (PK.roll(DG.data.heroes[i].id, 1, []).join() !== PK.roll(DG.data.heroes[i + 1].id, 1, []).join()) { differ++; } }
+      return a === b && differ > 5 && ('같은 입력 같은 카드 · 인물이 다르면 다른 카드(' + differ + '/20) · 단계 2→3: ' + a + ' / ' + c);
+    });
+
+    t('승급 3택 — 승급하면 카드가 걸리고, 고를 때까지 다음 승급이 잠긴다', function () {
+      var PK = DG.perk, rig = perkRig(41), id = rig.id, ok = false, why = '';
+      try {
+        var r1 = HR.rankUp(id);
+        var pend = PK.pending(id);
+        var chk = HR.rankUpCheck(id);
+        var picked = PK.choose(id, pend[1]);
+        var after = PK.pending(id), unlocked = HR.rankUpCheck(id).ok;
+        why = '카드 ' + pend.join(',') + ' · 잠김 이유 "' + chk.why + '" · 고른 뒤 ' + PK.perksOf(id).join();
+        ok = r1 && pend && pend.length === 3 && chk.ok === false && picked && after === null &&
+          PK.perksOf(id).length === 1 && PK.perksOf(id)[0] === pend[1] && unlocked;
+        // 카드에 없는 특성은 못 고른다
+        HR.rankUp(id);
+        var p2 = PK.pending(id), bogus = PK.choose(id, PK.PERKS.filter(function (d) { return p2.indexOf(d.id) < 0; })[0].id);
+        ok = ok && bogus === false;
+      } finally { rig.undo(); }
+      return ok && why;
+    });
+
+    t('승급 3택 — 고른 특성은 능력치에 곱으로만 들어가고 기본치는 그대로다', function () {
+      var PK = DG.perk, rig = perkRig(42), id = rig.id, base = DG.data.find(id).stats, out = false, why = '';
+      try {
+        C.save.heroes[id].rank = 1;
+        var before = HR.stats(id), bkb = HR.breakdown(id);
+        C.save.heroes[id].offer = ['atk1', 'def1', 'sup1'];
+        PK.choose(id, 'atk1');                      // 무력 +8%
+        var after = HR.stats(id), bk = HR.breakdown(id);
+        var expect = Math.round(base.might * HR.growMul(id) * 1.08);
+        // 다른 두 능력치는 안 변한다
+        out = base.might === DG.data.find(id).stats.might && bk.grown.might === expect &&
+          after.might >= before.might && after.wisdom === before.wisdom && after.command === before.command && bk.base === bkb.base;
+        why = '무력 ' + before.might + ' → ' + after.might + '(기본 ' + base.might + ' 불변) · 지력·통솔 그대로';
+      } finally { rig.undo(); }
+      return out && why;
+    });
+
+    t('승급 3택 — 거절하면 丹 10 이 오고 카드가 사라진다', function () {
+      var PK = DG.perk, rig = perkRig(43), id = rig.id, ok = false, why = '';
+      try {
+        HR.rankUp(id);
+        var d0 = DG.growth.dust(), had = !!PK.pending(id);
+        var r = PK.decline(id);
+        var d1 = DG.growth.dust();
+        ok = had && r === true && d1 === d0 + PK.DECLINE_DAN && PK.pending(id) === null && PK.perksOf(id).length === 0 && PK.decline(id) === false;
+        why = '丹 ' + d0 + ' → ' + d1 + ' · 특성 0 · 두 번 물리지 못함';
+      } finally { rig.undo(); }
+      return ok && why;
+    });
+
+    t('승급 3택 — 補 특성은 동행 중일 때만 core.effect 에 잡힌다', function () {
+      var PK = DG.perk, rig = perkRig(44), id = rig.id, ok = false, why = '';
+      try {
+        C.save.heroes[id].perks = ['sup1', 'sup2'];      // 경험치 +6 · 설득 +5
+        C.save.party = [];
+        var off = [C.effect('expPct'), C.effect('catchPct')];
+        C.save.party = [id];
+        var on = [C.effect('expPct'), C.effect('catchPct')];
+        C.save.heroes[id].perks = ['atk1', 'def1'];       // 攻·守 는 core.effect 를 안 건드린다
+        var stat = [C.effect('expPct'), C.effect('catchPct')];
+        ok = on[0] === off[0] + 6 && on[1] === off[1] + 5 && stat[0] === off[0] && stat[1] === off[1];
+        why = '경험치 +' + (on[0] - off[0]) + ' · 설득 +' + (on[1] - off[1]) + '(동행일 때만) · 攻守는 그대로';
+      } finally { rig.undo(); }
+      return ok && why;
+    });
+
+    t('승급 3택 — 인물당 특성은 셋까지, 셋이면 승급해도 카드가 안 뜬다', function () {
+      var PK = DG.perk, rig = perkRig(45), id = rig.id, ok = false;
+      try {
+        C.save.heroes[id].perks = ['atk1', 'def1', 'sup1'];
+        C.save.heroes[id].rank = 3;
+        var r = HR.rankUp(id);
+        var none = PK.pending(id) === null;
+        C.save.heroes[id].offer = ['atk2'];
+        var over = PK.choose(id, 'atk2');                 // 넷째는 못 고른다
+        ok = r === true && none && over === false && PK.perksOf(id).length === 3;
+      } finally { rig.undo(); }
+      return ok && '셋 보유 시 승급은 되지만 카드 없음 · 넷째 불가';
+    });
+
+    t('승급 3택 — 자동 승급은 첫 카드를 고른다', function () {
+      var PK = DG.perk, rig = perkRig(46), id = rig.id, ok = false, why = '';
+      try {
+        HR.rankUp(id);
+        var first = PK.pending(id)[0];
+        var r = PK.autoPick(id);
+        ok = r === true && PK.perksOf(id)[0] === first && PK.pending(id) === null && PK.autoPick(id) === false;
+        why = '첫 카드 ' + first + ' 선택';
+      } finally { rig.undo(); }
+      return ok && why;
+    });
+
+    t('승급 3택 — 값을 내는 함수는 세이브를 안 건드린다(살피기)', function () {
+      var PK = DG.perk, id = DG.data.heroes[9].id;
+      var before = JSON.stringify(C.save);
+      PK.roll(id, 2, []); PK.perksOf(id); PK.pending(id); PK.mulOf(id, 'might'); PK.bonus(); PK.def('atk1');
+      HR.stats(id); HR.breakdown(id); HR.rankUpCheck(id);
+      var after = JSON.stringify(C.save);
+      return before === after && '세이브 그대로';
     });
 
     /* ── VRoid 몸 변형 (vroid-variant.js, 2026-09-20) — 인물 전원에게 VRoid 몸을 나눠 입히고 색만 바꾼다 ─────────── */

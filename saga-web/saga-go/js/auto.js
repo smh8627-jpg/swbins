@@ -279,7 +279,11 @@
       var score = h ? h.rarity : 0;
       if (score > bestR) { bestR = score; best = ids[i]; }
     }
-    if (best) { global.DG.hero.rankUp(best); return true; }
+    if (best) {
+      global.DG.hero.rankUp(best);
+      if (global.DG.perk) { global.DG.perk.autoPick(best); }    // 자동은 첫 카드(PLAN §5 ⑦)
+      return true;
+    }
     return false;
   }
 
