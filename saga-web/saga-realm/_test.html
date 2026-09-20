@@ -76,6 +76,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/anim-own.js"></script>
 <script src="js/vroid-variant.js"></script>
 <script src="js/asset3d.js"></script>
+<script src="js/portrait3d.js"></script>
 <script src="js/account.js"></script>
 <script src="js/hero.js"></script>
 <script src="js/officer.js"></script>
@@ -3484,6 +3485,33 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       var on1 = count();
       lordDone();
       return !threw && off0.n === 0 && off0.tags === 0 && on1.n >= 3 && on1.tags === 1 && ('끔: 단추 0·배지 0 / 켬: 단추 ' + on1.n + '·배지 ' + on1.tags);
+    });
+
+    t('초상 자리표시(SAGA-DESIGN §11 Phase 0) — 3D 로 갈아 끼울 자리는 코드 스프라이트 대신 자리표시로 시작하고, 굽기를 포기하면 옛 그림으로 되돌리며, 갈아 끼워지지 않을 자리는 옛 그림 그대로다', function () {
+      var P3 = DG.portrait3d, D = DG.data, S = DG.sprite;
+      if (!P3 || !P3.holder || !P3.willSwap || !P3._fail) { throw new Error('portrait3d 내보내기 없음: ' + (P3 ? Object.keys(P3).join(',') : 'P3 없음')); }
+      /* 굽기를 이미 시도한 크기(48 등)는 jsdom 처럼 굽기가 실패하는 곳에서 cache=false 라 판정이 달라진다 — 아무도 안 쓴 53 을 쓴다 */
+      var hero = D.heroes[0], svg = P3.holder(150, 172), ready = P3.ready();
+      var holderOk = svg.indexOf('data:image/svg+xml') === 0 && P3.holder(150, 172) === svg && P3.holder(53, 53) !== svg;
+      /* 갈아 끼워질 자리만 자리표시 — 건물·이름표를 못 되읽는 참조(id 에 ':')·빈 참조는 옛 그림 */
+      var swapOk = P3.willSwap('hero', hero, 53, 53) === ready &&
+        !P3.willSwap('building', hero, 53, 53) && !P3.willSwap('hero', { id: 'no:such' }, 53, 53) && !P3.willSwap('hero', null, 53, 53);
+      /* 굽기를 포기(cache false)하면 자리표시 <img> 가 옛 그림으로 돌아온다 — 안 그러면 영영 빈 액자다 */
+      var keep = S.portrait, k = P3.keyOf('hero', hero, 53, 53), revertOk = true, img = document.createElement('img');
+      S.portrait = function () { return 'data:image/png;base64,SPRITE'; };
+      img.setAttribute('data-p3', k); img.setAttribute('data-p3-holder', '1'); img.src = P3.holder(53, 53);
+      document.body.appendChild(img);
+      if (ready) {
+        P3._fail(k);
+        P3.sweep();
+        revertOk = img.getAttribute('src') === 'data:image/png;base64,SPRITE' && !img.hasAttribute('data-p3-holder') &&
+          img.getAttribute('data-p3-done') === '1' && !P3.willSwap('hero', hero, 53, 53);
+        P3._fail(k, true);
+      }
+      S.portrait = keep;
+      document.body.removeChild(img);
+      if (!(holderOk && swapOk && revertOk)) { throw new Error('holder ' + holderOk + ' · swap ' + swapOk + ' · revert ' + revertOk + ' · ready ' + ready); }
+      return ('자리표시 SVG 캐시 · 갈아 끼울 자리 ' + (ready ? '판정' : '(3D 꺼짐 — 옛 그림)') + ' · 포기하면 옛 그림으로 되돌림');
     });
 
     t('런타임 에러 없음', function () {

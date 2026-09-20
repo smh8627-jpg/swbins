@@ -280,27 +280,80 @@
    * 부르는 쪽(`ui.js`)은 여태처럼 `sprite` 그림으로 `<img>` 를 만들고,
    * 거기에 이름표(`data-p3`)만 붙여 둔다. 다 구워지면 여기서 `src` 만 바꾼다.
    */
+  /* ── 자리표시 (SAGA-DESIGN §11 Phase 0) ─────────────────────
+   * 3D 초상이 구워지기 전에 코드로 그린 스프라이트(`sprite.portrait`)가 먼저 비치던 것을 끊는다. 3D 로 **꼭** 갈아 끼워질
+   * 자리(willSwap)는 중립 자리표시로 시작하고(`data-p3-holder`), 3D 를 못 쓰게 되면(굽기 포기·three 실패·손잡이 내림) 옛 그림으로 되돌린다.
+   * 갈아 끼워지지 않을 자리(건물·되읽을 이름표가 없는 참조)는 예전처럼 코드 그림으로 시작한다 — 그런 자리를 비워 두면 영영 빈다. */
+  var holderCache = {};
+  function holder(w, h) {
+    w = Math.max(8, Math.round(w || 48)); h = Math.max(8, Math.round(h || w));
+    var key = w + 'x' + h;
+    if (holderCache[key]) { return holderCache[key]; }
+    var cx = w / 2, hr = Math.min(w, h) * 0.17, hy = h * 0.38, sy = h * 0.62, sw = hr * 2.1;
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + w + ' ' + h + '">' +
+      '<rect width="' + w + '" height="' + h + '" rx="' + (Math.min(w, h) * 0.08).toFixed(1) + '" fill="#8a8578" fill-opacity=".16"/>' +
+      '<circle cx="' + cx + '" cy="' + hy.toFixed(1) + '" r="' + hr.toFixed(1) + '" fill="#8a8578" fill-opacity=".28"/>' +
+      '<path d="M' + (cx - sw).toFixed(1) + ' ' + h + 'Q' + (cx - sw).toFixed(1) + ' ' + sy.toFixed(1) + ' ' + cx + ' ' + sy.toFixed(1) +
+      'Q' + (cx + sw).toFixed(1) + ' ' + sy.toFixed(1) + ' ' + (cx + sw).toFixed(1) + ' ' + h + 'Z" fill="#8a8578" fill-opacity=".28"/></svg>';
+    holderCache[key] = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    return holderCache[key];
+  }
+
+  /** 이 자리가 3D 로 꼭 갈아 끼워지는가 — 되읽을 이름표가 있고 `data.find` 가 찾으며 아직 굽기를 포기하지 않았을 때만 */
+  function willSwap(kind, ref, w, h) {
+    if (!ready() || !ref || (kind !== 'hero' && kind !== 'pet')) { return false; }
+    if (typeof supports === 'function' && !supports(kind, ref)) { return false; }
+    var key = keyOf(kind, ref, w, h), p = parseKey(key), D = global.DG.data;
+    if (cache[key] === false) { return false; }
+    return !!(p && D && D.find && D.find(p.id));
+  }
+
+  /** 자리표시로 시작한 그림을 옛 그림(코드 스프라이트)으로 되돌린다 */
+  function revert(el, k) {
+    var p = parseKey(k), D = global.DG.data, S = global.DG.sprite;
+    var ref = p && D && D.find ? D.find(p.id) : null, src = '';
+    if (ref && S) {
+      try { src = Math.round(p.w) === Math.round(p.h) ? S.portrait(p.kind, ref, p.w) : S.portraitCard(p.kind, ref, p.w, p.h); } catch (e) { src = ''; }
+    }
+    if (src) { el.src = src; }
+    el.removeAttribute('data-p3-holder');
+    el.setAttribute('data-p3-done', '1');
+  }
+
+  var holderTimer = null;
   function sweep() {
-    if (!ready() || !global.document) { return 0; }
+    if (!global.document) { return 0; }
+    var live = ready();
     var list = document.querySelectorAll('img[data-p3]');
-    var n = 0, i;
+    var n = 0, i, waiting = false;
     for (i = 0; i < list.length; i++) {
       var el = list[i];
       var k = el.getAttribute('data-p3');
-      var got = cache[k];
+      var got = live ? cache[k] : null;
       if (got) {
         if (el.getAttribute('data-p3-done') !== '1') {
           el.src = got;
+          el.removeAttribute('data-p3-holder');
           el.setAttribute('data-p3-done', '1');
           n++;
         }
         continue;
       }
+      if (el.hasAttribute('data-p3-holder')) {
+        /* 굽기를 포기했거나 3D 를 못 쓰게 됐다 — 자리표시를 그대로 두면 영영 비니 옛 그림으로 */
+        if (!live || cache[k] === false) { revert(el, k); n++; continue; }
+        waiting = true;
+      }
+      if (!live) { continue; }
       var p = parseKey(k);
       if (!p) { continue; }
       var D = global.DG.data;
       var ref = D && D.find ? D.find(p.id) : null;
       if (ref) { warm(p.kind, ref, p.w, p.h); }
+    }
+    /* 굽는 쪽은 실패해도 sweep 을 부르지 않는다 — 자리표시가 남아 있는 동안은 스스로 다시 본다 */
+    if (waiting && !holderTimer) {
+      holderTimer = global.setTimeout(function () { holderTimer = null; sweep(); }, 400);
     }
     return n;
   }
@@ -346,10 +399,10 @@
    *  클래스(예: 실패 카드의 `dark`) */
   function img(kind, ref, size, cls) {
     var S = global.DG.sprite;
-    var baked = of(kind, ref, size, size);
-    var src = baked || (S ? S.portrait(kind, ref, size) : '');
+    var baked = of(kind, ref, size, size), hold = !baked && willSwap(kind, ref, size, size);
+    var src = baked || (hold ? holder(size, size) : (S ? S.portrait(kind, ref, size) : ''));   // 갈아 끼울 자리는 코드 그림 대신 자리표시(§11 Phase 0)
     return '<img class="pt' + (cls ? ' ' + cls : '') + '" alt=""' +
-      tag(kind, ref, size, size) + (baked ? ' data-p3-done="1"' : '') +
+      tag(kind, ref, size, size) + (baked ? ' data-p3-done="1"' : (hold ? ' data-p3-holder="1"' : '')) +
       ' src="' + src + '">';
   }
 
@@ -359,6 +412,8 @@
     keyOf: keyOf, parseKey: parseKey,
     /* 만들기 */
     ready: ready, of: of, warm: warm, sweep: sweep, tag: tag, img: img, stats: stats,
+    /* 자리표시(Phase 0) */
+    holder: holder, willSwap: willSwap, _fail: function (k, undo) { if (undo) { delete cache[k]; } else { cache[k] = false; } },
     /** 진단이 제 뒤를 치울 때 */
     reset: function () { cache = {}; pending = {}; made = 0; gaveUp = 0; }
   };
