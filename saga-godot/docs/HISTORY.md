@@ -7729,3 +7729,11 @@ PROJECT_STATE.md` 참고. 요약:
 - **Q-d 사람 몫 재확인**: WebFetch로 `quaternius.itch.io/stylized-nature-megakit`·`quaternius.com/packs/stylizednaturemegakit.html` 재점검 — 여전히 정적 다운로드 URL 없음("Download Now"가 `/purchase` name-your-own-price 결제 페이지로 감, 2026-09-13 결론과 동일). 로그인 없이도 사람이 한 번 눌러야 함, 자동화 불가 확정.
 - **Q-b는 그대로 열어 둠** — 헤드리스로 렌더 결과를 볼 수 없어 대신 결정하지 않음.
 - 코드 변경 없음(문서만). regress 재실행 불필요.
+
+## Quaternius Stylized Nature MegaKit 실제 확보 — 나무·덤불 22종 (2026-09-20⑪, 같은 세션 이어서)
+
+- 사람이 무료 Standard 버전을 itch.io에서 직접 받아 `Downloads\Stylized Nature MegaKit[Standard].zip`(99MB, CC0)로 제공. 09-13·09-19 때 자동 다운로드가 안 됐던 그 팩.
+- glTF+.bin 포맷 22종(CommonTree/Pine/TwistedTree/DeadTree 각 5·Bush_Common·Bush_Common_Flowers) + 참조 텍스처 9장을 `assets/vegetation/`에 플랫 배치(기존 Kenney 파일과 이름 충돌 없음). 바위·잔디·꽃 등 나머지 46종은 이번엔 안 받음.
+- Godot 4.7 exe 새로 받아(세션 전용, 커밋 안 함) `--headless --editor --quit` 임포트 — 오류 0, `.import` 34개 생성. `godot_regress.sh` 재실행 — 다섯 대표 씬 md5 완전 불변, `.import`/`project.godot` 잡음 없음.
+- **씬엔 안 물림** — 103-5 절차의 fit_height·팔레트 스냅·씬 배치는 102 그래픽 개편(사람이 톤 볼 때, §8-1)으로 남겨 둠.
+- 문서: ASSET_GUIDE.md 2026-09-20 항목, PLAN.md 105장 Q-d·66-2 "사람 손이 필요한 것" 갱신(Quaternius 항목 해소, Mixamo·VRoid는 여전히 열림).

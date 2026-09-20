@@ -2415,8 +2415,8 @@ saga-unity `docs/ASSET_GUIDE.md`·`docs/PROJECT_STATE.md`의 "정정" 항목
 - **파이프라인**: VRoid Studio 설치·샘플 VRM 내보내기(라이선스 전체 허용으로 저장)·`.glb` 사본 Godot 헤드리스 임포트 검증 완료. 프리셋 내보내기까지는 PowerShell 좌표 클릭으로 자동화 가능, 실제 조형은 사람 몫. `assets/characters_vroid/AvatarSample_A.{vrm,glb}` 는 **파이프라인 검증용 임시 자산**이다(최종 캐릭터 아님).
 - **셀셰이더**: `saga_core/shaders/cel_toon.gdshader`(band_count 3·band_softness 0.08·rim_strength 0.3·rim_power 4.5, 아웃라인 없음) + 공용 헬퍼 `cel_shader_apply.gd`(`BaseMaterial3D` 에 `albedo_texture` 가 있는 서피스만 덮음). 적용: GO/DUNGEON/FOREST 공용 `player.gd`, `story_player.gd`, GO `npc_builder.gd`. **미적용**: FOREST 주민(`WorldCurveMaterial` 사용 — 곡률+카툰 병합은 별도 작업), Enemy/Boss(전부 단색 캡슐 placeholder, GLB 생기면 한 줄 추가).
 - **톤**: 미확정. 흰 알베도 + rim + `env_pc.tres` glow 가 겹쳐 하얗게 날아가는 문제가 남아 있다. 사람이 GUI 로 최종 승인해야 확정 — 그 전까지 위 적용은 "잠정". 아웃라인은 톤 확정 뒤에만 시작한다(102장 스펙).
-- **에셋 후보 판정**: KayKit Medieval Hexagon — **불채택**(Kenney 와 같은 각진 저폴리, 교체 실익 없음). `assets/_candidates_66-2/` 는 씬에 안 물린 후보 폴더로 남아 있다(삭제 여부는 105장 열린 질문). Quaternius Stylized Nature MegaKit — **채택 방향이나 파일 미확보**(itch.io name-your-own-price 는 사람이 한 번 받아 줘야 함). 결론: **자연물(Vegetation)을 건물보다 먼저 교체**하는 쪽이 비용 대비 효과가 크다, 건물은 셰이더+painterly 톤 보정으로 간다.
-- **사람 손이 필요한 것**: 실제 캐릭터 조형(VRoid), Quaternius 다운로드, 톤 최종 승인.
+- **에셋 후보 판정**: KayKit Medieval Hexagon — **불채택**(Kenney 와 같은 각진 저폴리, 교체 실익 없음, 후보 폴더는 Q-c 로 이미 삭제됨). Quaternius Stylized Nature MegaKit — **나무·덤불 22종 확보 완료**(2026-09-20, `assets/vegetation/`, ASSET_GUIDE 해당 날짜), 씬 배치는 아직. 결론: **자연물(Vegetation)을 건물보다 먼저 교체**하는 쪽이 비용 대비 효과가 크다, 건물은 셰이더+painterly 톤 보정으로 간다.
+- **사람 손이 필요한 것**: 실제 캐릭터 조형(VRoid), Mixamo 애니 다운로드, 톤 최종 승인.
 
 ## 검증
 
@@ -2918,7 +2918,7 @@ assets/generated/
 
 - **Q1 완성판 트랙 — 결정(2026-09-20): Godot 먼저 집중**(SAGA-DESIGN §10-Q1). 팔레트·procgen·tilegen·sfxgen·spritegen 파이프라인이 이미 있어 추가 투자 대비 산출물이 빠르다는 이 트랙 입장 그대로 확정. Unity 병행은 유지.
 - **Q-b SDFGI vs LightmapGI**: PC 프로파일에서 SDFGI 를 끄고 LightmapGI 베이크로 두 프로파일 톤을 맞출 것인가(102-2 제안), PC 만 SDFGI 유지할 것인가. 승인판 그래픽 톤을 바꾸는 일이라 실기 확인 몰아서 하기 전엔 착수 안 함. **여전히 열림** — 헤드리스로는 렌더 결과를 볼 수 없어 이 세션에서 대신 결정하지 않았다.
-- **Q-d 사람 몫 셋**: Quaternius Stylized Nature 다운로드, Mixamo 애니 다운로드, VRoid 조형(주역 몇 명) — 언제 해 줄 수 있는가. 2026-09-20 재확인: Quaternius(itch.io `stylized-nature-megakit`)는 여전히 정적 다운로드 URL이 없다 — "Download Now"가 `/purchase`(name-your-own-price 결제 페이지)로 연결되고 quaternius.com 자체도 같은 itch.io 링크로만 안내한다. 2026-09-13 결론과 동일, 로그인은 필요 없지만 사람이 그 페이지에서 한 번 눌러야 한다. 이게 없으면 102·103 은 팔레트 스냅·procgen 까지만 간다.
+- **Q-d 사람 몫 셋 — Quaternius 부분 해결(2026-09-20)**: 사람이 무료 Standard 버전을 직접 받아 나무·덤불 22종을 `assets/vegetation/`에 확보(임포트 검증 완료, ASSET_GUIDE 해당 날짜 참고). **Mixamo 애니 다운로드·VRoid 조형(주역 몇 명)은 여전히 열려 있음** — 자동화 불가, 사람 몫. Quaternius도 바위·잔디·꽃 등 나머지 46종은 아직 안 받음(필요해지면 같은 zip에서 추가 가능).
 
 ---
 

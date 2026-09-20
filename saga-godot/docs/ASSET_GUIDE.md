@@ -354,3 +354,31 @@ DUNGEON엔 GO의 `terrain_builder` LEGEND 같은 "이미 화면에 승인된" �
 Godot이 불필요한 `.import`를 만들지 않게). 예비 판단: 용암 쪽은 스냅
 결과가 주황/회색 위주로 나와 "용암 동굴"보다는 그냥 밝은 얼룩으로 보인다
 — 더 어두운 벽·바닥 톤으로 재작업이 필요해 보인다(사람 확인 후 반영).
+
+## 2026-09-20 — Quaternius Stylized Nature MegaKit(Standard, CC0) 실제 확보
+
+사람이 `quaternius.itch.io/stylized-nature-megakit`에서 무료 Standard 버전
+(68/116 모델, `Stylized Nature MegaKit[Standard].zip`, 99MB)을 직접 받아
+`C:\Users\user\Downloads\`에 뒀다 — 09-13·09-19 때 자동 다운로드가 안 됐던
+그 팩. 라이선스: `License_Standard.txt` 동봉, **CC0 1.0 Universal**(Kenney와
+동일 계열, 출처 표시 의무 없음).
+
+- 패키지 안엔 FBX·glTF·OBJ 세 포맷이 다 있다 — **glTF+.bin**을 썼다(기존
+  관례와 같은 포맷, FBX 리타겟 이슈 회피).
+- 이번엔 나무·덤불류만 골라 받았다(HISTORY 09-13 결론 "자연물 교체가
+  건물보다 비용 대비 효과 큼" 그대로): `CommonTree_1~5`·`Pine_1~5`·
+  `TwistedTree_1~5`·`DeadTree_1~5`·`Bush_Common`·`Bush_Common_Flowers`
+  (22종) + 참조 텍스처 9장(`Bark_NormalTree(_Normal)`·`Leaves_NormalTree_C`·
+  `Leaf_Pine_C`·`Bark_TwistedTree(_Normal)`·`Leaves_TwistedTree_C`·
+  `Bark_DeadTree(_Normal)`·`Flowers`) 그대로 `assets/vegetation/`에 플랫
+  배치(기존 Kenney `tree_oak.glb`·`crops_wheatStageB.glb`와 파일명 충돌
+  없음). 바위(`Rock_Medium_*`)·잔디·꽃·이끼 등 나머지 46종은 이번엔 안
+  받음 — 필요해지면 같은 zip(스크래치패드에 이미 풀려 있던 것은 세션
+  종료로 사라짐, 원본 zip은 Downloads에 그대로 있으니 다시 풀면 됨)에서
+  더 가져올 수 있다.
+- 헤드리스 임포트(`--headless --editor --quit`) 오류 0, `.import` 34개
+  정상 생성. `godot_regress.sh` 재실행 — 다섯 대표 씬 md5 완전히 불변
+  (아직 씬에 안 물렸으니 당연), `.import`/`project.godot` 잡음 없음.
+- **아직 어느 씬에도 안 물렸다** — 103-5 판정 절차대로 fit_height 스케일·
+  실루엣 확인·팔레트 스냅은 다음 단계, 실제 배치는 102 그래픽 개편과
+  같이 사람이 톤을 볼 때(§8-1).
