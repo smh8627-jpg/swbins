@@ -26,7 +26,11 @@ namespace Saga.Dungeon.Data
         // v7 — PLAN.md 101-2 5.5 "난입"(HordeState) 저장. 웹판 `save.dungeon.horde
         // = {best, runs}` 그대로. v6 이하 세이브는 두 필드가 int 기본값 0으로
         // 채워지고 Restore(0, 0)이 그대로 앉아 "아직 안 해봄"과 같은 뜻이 된다.
-        private const int SaveVersion = 7;
+        // v8 — PLAN.md 101-2 5.6 "목표판·일일/주간"(DungeonDailyTaskState) 저장.
+        // GO의 v10과 같은 구조(날짜 문자열이 오늘의 일과 셋을 해시로 다시 뽑는 키).
+        // v7 이하 세이브는 dailyDate가 null/빈 문자열로 채워지고 Restore가 빈
+        // 상태로 둔다 — 다음 EnsureToday() 호출이 오늘 날짜로 새로 채운다.
+        private const int SaveVersion = 8;
 
         private static string SavePath => Path.Combine(Application.persistentDataPath, "save_dungeon.json");
 
@@ -50,6 +54,13 @@ namespace Saga.Dungeon.Data
             public string[] blessings; // v6 — BlessingState.SnapshotIds(), 축별 최대 3개.
             public int hordeBestSurvivalSec; // v7 — HordeState.BestSurvivalSec.
             public int hordeRuns; // v7 — HordeState.Runs.
+            // v8 — DungeonDailyTaskState. dailyProgress/dailyDone은 dailyDate 기준으로
+            // 뽑힌 오늘의 일과 셋과 같은 길이(Restore가 해시로 다시 뽑아 맞춘다).
+            public string dailyDate;
+            public int[] dailyProgress;
+            public bool[] dailyDone;
+            public bool dailyStampGranted;
+            public int dailyStamps;
         }
 
         public static bool Save()
@@ -75,6 +86,11 @@ namespace Saga.Dungeon.Data
                 blessings = BlessingState.SnapshotIds().ToArray(),
                 hordeBestSurvivalSec = HordeState.BestSurvivalSec,
                 hordeRuns = HordeState.Runs,
+                dailyDate = DungeonDailyTaskState.CurrentDate,
+                dailyProgress = DungeonDailyTaskState.SnapshotProgress(),
+                dailyDone = DungeonDailyTaskState.SnapshotDone(),
+                dailyStampGranted = DungeonDailyTaskState.SnapshotDayStampGranted(),
+                dailyStamps = DungeonDailyTaskState.Stamps,
             };
 
             try
@@ -131,6 +147,10 @@ namespace Saga.Dungeon.Data
             if (data.version >= 7)
             {
                 HordeState.Restore(data.hordeBestSurvivalSec, data.hordeRuns);
+            }
+            if (data.version >= 8)
+            {
+                DungeonDailyTaskState.Restore(data.dailyDate, data.dailyProgress, data.dailyDone, data.dailyStampGranted, data.dailyStamps);
             }
 
             Transform player = FindPlayer();

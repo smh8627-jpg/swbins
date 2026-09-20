@@ -236,7 +236,12 @@ namespace Saga.Dungeon.World
             // 변형자 층이었으면 클리어 보상을 준다. FloorDescended가 사용자
             // 접근점(CurrentFloor)을 새 층으로 바꾸기 전에 여기서 먼저 계산한다.
             int sigilBonus = SigilState.ClearBonusGold(_floor);
-            if (sigilBonus > 0) HeroState.AddGold(sigilBonus);
+            if (sigilBonus > 0)
+            {
+                HeroState.AddGold(sigilBonus);
+                // PLAN.md 101-2 5.6 "목표판·세션 카드·일일/주간"(2026-09-21) — 일일 풀의 "부적 층 클리어".
+                DungeonDailyTaskState.ReportProgress(DungeonDailyTaskState.Kind.SigilClear, 1);
+            }
 
             _floor++;
             _roomIndex = 0;

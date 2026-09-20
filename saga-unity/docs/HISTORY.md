@@ -8087,3 +8087,27 @@ FOREST 101-2는 이제 5.6(축제)만 남았다 — 다음에 이어가려면 �
 `tools/unity-batch.sh`로 컴파일(오류 0, 4파일 자동 원복 확인) → `PlaytestDungeonHeadless.Run` 3연속 OK. `SpawnElite()`·`HeroState.Restore()`가 공유 경로라 `FloorProgression`·`FieldAmbush`·`Shortcut`·`Town2`·`Towns34` 전부 재검증(회귀 없음). 씬 GameObject 구성은 안 바꿔(런타임 스폰뿐) `BuildTestDungeonScene` 재빌드는 안 했다.
 
 DUNGEON 101-2는 이제 5.6(목표판·카드, 공통 A·B가 이미 일부 덮고 있어 재검토 필요)만 남았다. 다섯 판 전체로 GO⑤(모바일 빌드 뒤)·FOREST5.6(축제)·STORY5-2/5-8·DUNGEON5.6 넷이 남아 있고, 게이트 없이 다음 세션이 바로 고를 수 있다.
+
+## 2026-09-21 — DUNGEON 5.6 "목표판·세션 카드·일일/주간" 구현, DUNGEON 101-2 전부 닫힘 ("사가 유니티 이어해" 세션)
+
+다섯 판 101-2 남은 후보(GO⑤·FOREST5.6·STORY5-2/5-8·DUNGEON5.6) 중 GO⑤는 모바일 빌드 뒤, FOREST5.6·STORY5-2/5-8은 웹·godot 둘 다 미확정/재검토가 필요해 범위가 넓다 — 이미 필요한 재료(GoalBoard·SessionCard가 붙어 있고, 채울 반복 시스템도 5.1~5.5로 전부 완성됨)가 갖춰진 DUNGEON5.6을 골랐다.
+
+**현황 확인** — `DungeonSessionTracker.cs`(GoalLineWeek())가 `"다음 승급 이정표 준비 중(101-2 ⑦ 대기)"`라는 자리표시 문구를 그대로 반환하고 있었다. 그 "⑦"은 GO의 승급 3택 번호를 그대로 베낀 주석 오기였다 — DUNGEON 자신의 웹 §5 후보엔 ⑦이 없다. GoalLineSession()도 이동거리·금 델타만 보여줄 뿐 실제 "오늘의 할 일" 개념이 없었다.
+
+**구현** — GO ④ 일과판(`Data/DailyTaskState.cs`)과 같은 구조(날짜 문자열 해싱 → 그날의 풀 3택, 셋 다 채우면 도장 1개, 도장 7=주간 보상)를 그대로 가져오되 풀 내용은 이 트랙 고유 시스템 넷으로 새로 짰다: 걷기(800m, GO와 같은 값)·적 처치(15)·부적 층 클리어(1, 5.3 `SigilState`)·난입 완주(1, 5.5 `HordeState`). 웹판 §5.6(180행) 원안의 유적·현상판·상인은 이 트랙에 허브·상인·현상판이 없어(편도 절차적 진행) 못 옮기고, 월드 보스(5.4)는 GO가 발견형 콘텐츠를 뺀 것과 같은 이유(매 세션 만난다는 보장이 없음)로 일일 풀에서 뺐다. 새 `Data/DungeonDailyTaskState.cs`.
+
+진행 보고는 GO처럼 각 시스템이 자기 이벤트 처리 지점에서 직접 호출한다(중앙 이벤트 구독 없음, GO의 `ReportProgress` 호출 패턴 그대로):
+- `UI/DungeonSessionTracker.cs` Update() — 걷기(정수 m 이월, GO `_walkedMetersSinceDailyReport`와 같은 결).
+- `World/DungeonEnemy.cs` Die() — `AnyDied?.Invoke(this)` 바로 뒤에 적 처치 1 보고(월드 보스도 포함 — 도망(`Flee()`)은 안 침, 진짜로 잡았을 때만).
+- `World/DungeonFloorRunner.cs` Descend() — `SigilState.ClearBonusGold(_floor) > 0`(방금 떠난 층이 부적 층)일 때 클리어 1 보고.
+- `World/HordeRunner.cs` EndRun(survived) — `survived`일 때만 완주 1 보고(중도 사망은 안 침).
+
+`UI/DungeonSessionTracker.cs`의 `GoalLineSession()`/`GoalLineWeek()`을 `DungeonDailyTaskState.SessionLineText()`/`WeekLineText()` 호출로 교체(세션 종료 카드(`ShowSummary()`)의 이동/금 문구는 안 건드림 — 그건 GoalLineSession과 다른 별개의 요약).
+
+**세이브** — `Data/SaveState.cs`를 v7→v8로 올리고 `dailyDate`/`dailyProgress`/`dailyDone`/`dailyStampGranted`/`dailyStamps` 5필드 추가(GO v10과 같은 필드 구성). 이 트랙 SaveState는 GO의 null-tolerant 방식이 아니라 처음부터 버전 게이팅(`if (data.version >= N)`)이라 그 관례를 그대로 따랐다 — v7 이하 세이브는 `dailyDate`가 빈 문자열로 읽혀 `Restore()`가 빈 상태로 두고 다음 `EnsureToday()`가 오늘 날짜로 새로 채운다.
+
+**검증** — `tools/unity-batch.sh`로 컴파일(오류 0, `ProjectSettings/`·`Packages/` 변경 없음) → `PlaytestDungeonHeadless.Run`(goal board 체크가 세 줄이 라벨 접두사(`"지금 —"`/`"이번 세션 —"`/`"이번 주 —"`)만 확인하는 구조라 문구가 바뀌어도 그대로 통과) OK, 전체 스위트("OK - 10 frames, no errors") 통과, `horde survive`·`horde death` 체크도 그대로 통과. `Die()`·`Descend()`·`EndRun()` 셋 다 공유 경로라 `FloorProgression`·`FieldAmbush`·`Shortcut`·`Town2`·`Towns34` 전부 재검증(회귀 없음). `BuildTestDungeonScene` 재빌드는 안 했다(씬 구성 무변경, 런타임 로직만).
+
+`docs/PROJECT_STATE.md` 갱신(DUNGEON 완료 요약에 101-2 전부 완료 표기, "다음 작업"에서 DUNGEON5.6 제거, 테스트 상태·실기 확인 대기 갱신 — 15KB 상한 안). `PLAN.md` 101-2 DUNGEON 행에 5.6 완료·재해석 이유·대응 파일(`DungeonDailyTaskState`) 추가, "DUNGEON 101-2 전부 닫혔다"로 갱신.
+
+**DUNGEON 101-2는 이제 완전히 닫혔다.** 다섯 판 전체로 GO⑤(모바일 빌드 뒤)·FOREST5.6(축제)·STORY5-2/5-8만 남았고, 전부 게이트에 걸려 있거나(GO⑤) 재해석 범위를 먼저 정해야 한다(FOREST5.6 날짜/일과 시스템 부재, STORY5-2 웹·godot 둘 다 미확정, STORY5-8 파티 시스템 부재) — 다음 세션이 사용자와 상의해 고를 것.
