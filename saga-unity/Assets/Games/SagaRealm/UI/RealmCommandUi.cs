@@ -80,6 +80,8 @@ namespace Saga.Realm.UI
         [SerializeField] private Text _settingsLanguageLabel;
         [SerializeField] private Text _settingsBgmNameLabel;
         [SerializeField] private Text _settingsBgmLabel;
+        [SerializeField] private Text _settingsSuccessionNameLabel;
+        [SerializeField] private Text _settingsSuccessionLabel;
         private RealmQuizState.Presented? _currentQuiz; // 런타임 전용 상태 — 저장할 이유 없음, 그대로 둔다.
 
         // 2026-09-15 — 위 [SerializeField] 승격과 같은 세션, 별개 버그.
@@ -107,11 +109,20 @@ namespace Saga.Realm.UI
         private void Awake()
         {
             RealmEventState.Presented += OnEventPresented;
+            RealmSuccessionState.Occurred += OnSuccessionOccurred;
         }
 
         private void OnDestroy()
         {
             RealmEventState.Presented -= OnEventPresented;
+            RealmSuccessionState.Occurred -= OnSuccessionOccurred;
+        }
+
+        /// <summary>101-2 5-8 — 카드 없이 바로 토스트(플레이어가 응답할
+        /// 선택지가 없는, 자동으로 벌어지는 일이라 이벤트 카드와 다른 결).</summary>
+        private void OnSuccessionOccurred(string message)
+        {
+            RealmToast.Instance?.Show(message, 7f);
         }
 
         public void Build()
@@ -542,7 +553,7 @@ namespace Saga.Realm.UI
         /// 버튼 안 Text만 갱신한다(값이 네 개뿐이라 다시 지을 이유가 없다).</summary>
         private void BuildSettingsPanel(Transform parent)
         {
-            _settingsPanel = RealmUiKit.NewPanel(parent, new Vector2(0.5f, 0.5f), new Vector2(680f, 820f),
+            _settingsPanel = RealmUiKit.NewPanel(parent, new Vector2(0.5f, 0.5f), new Vector2(680f, 920f),
                 new Color(0f, 0f, 0f, 0.8f));
             _settingsPanel.SetActive(false);
 
@@ -555,6 +566,7 @@ namespace Saga.Realm.UI
             (_settingsQualityNameLabel, _settingsQualityLabel) = MakeSettingsRow(-460f, "settings.graphics_quality", ChooseGraphicsQuality);
             (_settingsLanguageNameLabel, _settingsLanguageLabel) = MakeSettingsRow(-560f, "settings.language", ChooseLanguage);
             (_settingsBgmNameLabel, _settingsBgmLabel) = MakeSettingsRow(-660f, "settings.bgm", ChooseBgm);
+            (_settingsSuccessionNameLabel, _settingsSuccessionLabel) = MakeSettingsRow(-760f, "settings.succession", ChooseSuccession);
 
             var closeButton = RealmUiKit.NewButton(_settingsPanel.transform, RealmLocalization.T("settings.close"),
                 new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(300f, 70f), () => _settingsPanel.SetActive(false));
@@ -579,6 +591,7 @@ namespace Saga.Realm.UI
         private void ChooseGraphicsQuality() { RealmSettingsState.CycleGraphicsQuality(); RefreshSettingsPanel(); }
         private void ChooseLanguage() { RealmLocalization.CycleLanguage(); RefreshSettingsPanel(); }
         private void ChooseBgm() { RealmSettingsState.BgmOn = !RealmSettingsState.BgmOn; RefreshSettingsPanel(); }
+        private void ChooseSuccession() { RealmSettingsState.SuccessionOn = !RealmSettingsState.SuccessionOn; RefreshSettingsPanel(); }
 
         private void RefreshSettingsPanel()
         {
@@ -593,6 +606,7 @@ namespace Saga.Realm.UI
             _settingsQualityNameLabel.text = RealmLocalization.T("settings.graphics_quality");
             _settingsLanguageNameLabel.text = RealmLocalization.T("settings.language");
             _settingsBgmNameLabel.text = RealmLocalization.T("settings.bgm");
+            _settingsSuccessionNameLabel.text = RealmLocalization.T("settings.succession");
 
             _settingsSfxLabel.text = RealmLocalization.T(RealmSettingsState.SfxOn ? "state.on" : "state.off");
             _settingsVibrationLabel.text = RealmLocalization.T(RealmSettingsState.VibrationOn ? "state.on" : "state.off");
@@ -600,6 +614,7 @@ namespace Saga.Realm.UI
             _settingsQualityLabel.text = RealmSettingsState.GraphicsQualityLabel();
             _settingsLanguageLabel.text = RealmLocalization.LanguageLabel();
             _settingsBgmLabel.text = RealmLocalization.T(RealmSettingsState.BgmOn ? "state.on" : "state.off");
+            _settingsSuccessionLabel.text = RealmLocalization.T(RealmSettingsState.SuccessionOn ? "state.on" : "state.off");
 
             // 2026-09-15 — 설정 패널 자신 말고 바깥의 여덟 상시 버튼도 언어
             // 전환에 반응하게 한다(이전엔 설정 버튼 자기 자신만 갱신됐다).

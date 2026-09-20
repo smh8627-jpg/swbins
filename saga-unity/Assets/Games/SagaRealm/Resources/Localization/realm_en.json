@@ -7,6 +7,7 @@
     { "key": "settings.graphics_quality", "value": "Graphics Quality" },
     { "key": "settings.language", "value": "Language" },
     { "key": "settings.bgm", "value": "Music" },
+    { "key": "settings.succession", "value": "Succession (risky)" },
     { "key": "settings.close", "value": "Close" },
     { "key": "state.on", "value": "On" },
     { "key": "state.off", "value": "Off" },
@@ -376,6 +377,7 @@
     { "key": "war.err_no_food", "value": "Not enough provisions ({0} needed)" },
     { "key": "war.err_no_target", "value": "No enemy nation to attack from this city." },
     { "key": "war.err_too_few_troops", "value": "You need more than five hundred to call it an army." },
-    { "key": "war.retreated", "value": "Retreated — {0} survived, enemy losses {1}, {2} supplies recovered" }
+    { "key": "war.retreated", "value": "Retreated — {0} survived, enemy losses {1}, {2} supplies recovered" },
+    { "key": "succession.occurred", "value": "{0} has grown old and handed Xuchang over to {1}. The transition of power has shaken security." }
   ]
 }

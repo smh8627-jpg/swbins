@@ -71,6 +71,8 @@ namespace Saga.Realm.UI
                 // 세션 카드와 같은 게이트를 쓴다(같은 이유: 세이브 로드로
                 // 여러 달을 건너뛸 때는 안 낸다).
                 RealmEventState.RollForMonth();
+                // 101-2 5-8 "허창 자리 계승"(2026-09-20) — 같은 게이트.
+                RealmSuccessionState.RollForMonth();
             }
         }
 

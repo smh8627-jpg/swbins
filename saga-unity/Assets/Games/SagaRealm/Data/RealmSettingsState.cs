@@ -12,6 +12,7 @@ namespace Saga.Realm.Data
     public static class RealmSettingsState
     {
         private const string VibrationKey = "saga_realm_vibration_on";
+        private const string SuccessionKey = "saga_realm_succession_on";
         private const string UiScaleKey = "saga_realm_ui_scale";
         private const string GraphicsQualityKey = "saga_realm_graphics_quality_high";
 
@@ -35,6 +36,15 @@ namespace Saga.Realm.Data
         {
             get => PlayerPrefs.GetInt(VibrationKey, 1) != 0;
             set => PlayerPrefs.SetInt(VibrationKey, value ? 1 : 0);
+        }
+
+        /// <summary>PLAN.md 101-2 5-8 "허창 자리 계승" — 정권 이양 때 허창
+        /// 치안이 절반으로 깎이는 대가가 있어(`RealmSuccessionState.cs`
+        /// 클래스 주석) 웹판·saga-godot 손잡이 관례 그대로 기본 꺼짐.</summary>
+        public static bool SuccessionOn
+        {
+            get => PlayerPrefs.GetInt(SuccessionKey, 0) != 0;
+            set => PlayerPrefs.SetInt(SuccessionKey, value ? 1 : 0);
         }
 
         public static float UiScaleMultiplier

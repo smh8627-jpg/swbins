@@ -80,6 +80,19 @@ namespace Saga.Realm.Data
 
         public static string OfficerCityId(string officerId) => _officerCity.TryGetValue(officerId, out var c) ? c : null;
 
+        /// <summary>101-2 5-8 "허창 자리 계승"(`RealmSuccessionState.cs`) 전용 —
+        /// 두 무장의 배치 성을 맞바꾼다. 둘 다 로스터에 있고 배치가 있는
+        /// 정상 상황만 상정한다(무장 추가 직후 등 배치가 아예 없는 경우는
+        /// 방어적으로 그대로 둔다).</summary>
+        public static void SwapOfficerCities(string idA, string idB)
+        {
+            string cityA = OfficerCityId(idA);
+            string cityB = OfficerCityId(idB);
+            if (cityB != null) _officerCity[idA] = cityB;
+            if (cityA != null) _officerCity[idB] = cityA;
+            Changed?.Invoke();
+        }
+
         /// <summary>RealmWarState.Plot() 등 외부(다른 static 클래스)가 금고를
         /// 쓸 때 — Gold의 세터가 private이라 이 클래스 밖에서 직접 못
         /// 깎는다. 모자라면 아무 것도 안 하고 false.</summary>

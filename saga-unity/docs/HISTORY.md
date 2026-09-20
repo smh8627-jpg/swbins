@@ -7901,3 +7901,17 @@ UI는 새 `ForestTownScoreBoard.cs`(`ForestCollectSpot.cs`와 같은 결 — 걸
 `tools/unity-batch.sh -- <Unity 인자...>`로 컴파일(오류 0) → 씬 재빌드(`BuildTestVillageForestScene.Build`) → 헤드리스 1차는 패키지 매니저가 그 시점에 `com.unity.cloud.gltfast`를 6.9.0→6.14.1로 조용히 올리려다 "operation cancelled"로 프로세스가 자체적으로 죽어 FAIL(exit 1, 내 코드와 무관 — 재시도로 재현 안 됨, 환경 일시적 현상으로 보임) → 재시도 1차부터 3연속 OK("town score OK - 박물관 고정 60점에서 별2 확인, 가구 18개 채워 별5(총점 285) 도달"). `docs/PROJECT_STATE.md` 갱신(FOREST 요약에 5.8② 추가, "다음 작업"에서 FOREST5.8②③ 제거(③은 해당 없음으로 명시)·5.6/5.7만 남김, 테스트 상태·실기 확인 대기 갱신 — 15KB 상한에 걸려 여러 줄 압축). `PLAN.md` 101-2 FOREST 행에 5.8② 재해석 이유·대응 파일(`ForestTownScore`·`ForestTownScoreBoard` 추가) 반영.
 
 다음은 REALM 5-8(계승) — 충성 축이 없는 문제를 어떻게 좁힐지부터 설계해야 한다(이 절 위 "사용자에게 방향을 물었다" 참고).
+
+## 2026-09-20 — PLAN 101-2 5-8 REALM 계승 ("사가 유니티 이어 해" 세션, FOREST 5.8② 다음)
+
+FOREST 5.8②를 커밋한 뒤 REALM 5-8(계승)을 설계하다가, 무장 풀이 3명 고정(`RealmOfficerPool.Catalog`)이라 원작·saga-godot(무장 258명)처럼 "무장이 죽고 후계자가 잇는다"를 그대로 옮기면 로스터가 영구히 줄어들 뿐 회복 방법이 없다는 걸 확인해 사용자에게 물었다. 처음엔 "일시 요양(능력치 정지, 죽지 않음)" 안을 제시했으나 사용자가 "다른 아이디어 제안"으로 되돌려, 다시 고민한 끝에 **"허창(본거지) 배치 자리 자체가 넘어간다"** 안을 냈다 — 아무도 죽지 않되, 허창에 배치된 무장이 물러나면 로스터의 다른 무장 중 통솔(Command) 최고가 그 자리를 이어받고(이미 있는 `_officerCity` 배치 딕셔너리를 맞바꿀 뿐이라 새 세이브 필드가 필요 없음), 대가로 허창 치안이 절반으로 깎인다(성 함락 뒤처리와 같은 기존 규칙 재사용). 사용자가 "이 안으로 진행"으로 승인.
+
+새 `RealmSuccessionState.cs` — 매달 2% 확률(`RollForMonth()`, `RealmSessionTracker`가 5-2 이벤트 카드와 같은 "정확히 한 달 넘어갔을 때" 게이트로 부른다)로 허창 주재 무장을 찾아(`FindCapitalOfficer`) 로스터의 다른 무장 중 통솔 최고(`FindBestSuccessor`)에게 자리를 넘긴다. 새 `RealmCityState.SwapOfficerCities(idA, idB)`(두 무장의 배치를 맞바꾸는 작은 공개 메서드, `Changed`도 같이 울림) + 허창 `RealmCityRecord.Sec /= 2`(외부에서 직접 필드 대입 — `RealmWarState.cs`가 이미 `city.Troops = 0` 같은 식으로 하는 것과 같은 관행, 이 트랙엔 CityRecord를 캡슐화하는 세터가 따로 없다). 결과 문구는 `Occurred` 이벤트로 내보내 `RealmCommandUi`가 구독해 토스트로 띄운다(카드 없이 자동으로 벌어지는 일이라 5-2의 3택 카드와 다른 결).
+
+위험이 있는 기능이라(치안 하락) 웹판·saga-godot과 같은 "손잡이 뒤에" 원칙대로 `RealmSettingsState.SuccessionOn`을 새로 만들어 **기본 꺼짐**으로 뒀다 — 설정 패널에 7번째 줄로 추가(`MakeSettingsRow(-760f, ...)`, 패널 높이 820→920으로 늘림). `realm_ko.json`/`realm_en.json`에 `settings.succession`·`succession.occurred` 키 추가(이 판의 다른 REALM 전용 문구들처럼 GO/DUNGEON/FOREST/STORY 쪽 로컬라이제이션 파일과는 안 맞춘다 — 클래스 주석의 "다섯 벌 함께" 규칙은 다섯 판 공통 UI 스키마 키에만 해당, 이 판 고유 콘텐츠엔 안 걸림).
+
+`PlaytestRealmSlice.CheckSuccession()` — `Phase.AgriByNewOfficer`(로스터가 방금 2명이 된 직후) 안에서 호출. 토글을 테스트 동안만 켜고 `RollForMonth()`를 최대 500회 반복해(2% 확률, 500회면 사실상 확실) 실제로 터뜨린 뒤 ① 허창 배치가 다른 무장에게 넘어갔는지 ② 허창 치안이 정확히 절반인지 ③ 안내 문구가 비지 않는지 확인하고, **이후 phase(계략·전쟁)가 원래 배치를 전제하므로** 배치·치안·토글을 전부 원래대로 되돌린다(맞바꾸기가 자기 역 연산이라 같은 두 id로 한 번 더 불러 복원 — 이후 phase들을 grep해 특정 무장 id가 특정 성에 있다고 가정하는 검사가 이 지점 이후엔 없는 것도 확인해 안전함을 검증).
+
+`tools/unity-batch.sh -- <Unity 인자...>`로 컴파일(오류 0) → 씬 재빌드(`BuildTestCityScene.Build`, 설정 패널 새 토글 배선) → 헤드리스 3연속 OK("succession OK - 허창 배치 계승·치안 절반 하락·안내 문구 확인" + 기존 30차 성 정복·문답·저장/불러오기 전부 그대로 통과, 계승 복원이 이후 phase를 안 깬 것도 확인). `docs/PROJECT_STATE.md` 갱신(REALM 요약에 5-8 추가, "다음 작업"에서 REALM5-8 제거·5-3/5-5 상태 미확인으로 표시, 테스트 상태·실기 확인 대기 갱신, 이제 다 닫혀 가벼워진 "REALM 51장" 절 삭제해 15KB 여유 확보). `PLAN.md` 101-2 REALM 행에 5-8 재해석 이유·대응 파일(`RealmSuccessionState` 추가) 반영.
+
+**사용자가 "이 작업 다 완료 하고 새로운 세션에서 하자"고 지시** — 이 세션은 여기서 마무리하고 커밋까지만 한다. 다음 세션이 이어받을 것: FOREST 5.6(축제)·5.7(택배 사슬)은 웹·saga-godot 어디에도 실기 승인 사례가 없어 착수 전에 사용자 확인이 먼저 필요하다(이 세션에서 확인은 안 함, PROJECT_STATE "다음 작업" 참고). REALM 5-3(일기토·설전)·5-5(승리 조건·결과 카드)는 이 트랙에 실제로 필요한지조차 아직 안 살펴봤다 — 다음 세션이 saga-godot·웹판 상태부터 다시 확인할 것. GO ①②⑥⑧은 여전히 사용자 결정 대기.

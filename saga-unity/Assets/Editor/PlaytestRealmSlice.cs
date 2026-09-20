@@ -625,6 +625,7 @@ namespace Saga.EditorTools
                         return;
                     }
                     Debug.Log($"[PlaytestRealmSlice] new-officer agri OK - {result.Message}");
+                    if (!CheckSuccession()) { Fail(); return; }
                     RealmCityState.SetCurrentCity("xuchang");
                     RealmCityState.NextMonth(); // 계략/전쟁 테스트를 위해 무장 done을 깨끗이 비운다.
                     _phase = Phase.PlotGate;
@@ -1823,6 +1824,83 @@ namespace Saga.EditorTools
 
             RealmEventState.ClearForTest();
             Debug.Log("[PlaytestRealmSlice] event chain OK - 카드 7종 서술·결투 승리 체인 예약·월간 확률·응답 뒤 카드 해제 확인");
+            return true;
+        }
+
+        /// <summary>PLAN.md 101-2 5-8 "허창 자리 계승"(2026-09-20) — Phase
+        /// .AgriByNewOfficer 시점(로스터가 방금 2명이 된 직후)에서 확인한다.
+        /// 기본 꺼짐 토글을 테스트 동안만 켜고, 낮은 확률을 500회 반복으로
+        /// 통계적으로 터뜨려 ① 허창 배치가 실제로 로스터의 다른 무장에게
+        /// 넘어가는지 ② 허창 치안이 절반으로 깎이는지 ③ 안내 문구가 비지
+        /// 않는지 본 뒤, 이후 phase에 영향이 없도록 배치·치안·토글을 전부
+        /// 원래대로 되돌린다(맞바꾸기 자체가 자기 역인 연산이라 한 번 더
+        /// 불러 복원).</summary>
+        private static bool CheckSuccession()
+        {
+            bool originalToggle = RealmSettingsState.SuccessionOn;
+            RealmSettingsState.SuccessionOn = true;
+
+            string capitalId = null;
+            foreach (var id in RealmCityState.RosterIds)
+            {
+                if (RealmCityState.OfficerCityId(id) == RealmOfficerPool.StartingOfficerCityId) { capitalId = id; break; }
+            }
+            string otherId = null;
+            foreach (var id in RealmCityState.RosterIds)
+            {
+                if (id != capitalId) { otherId = id; break; }
+            }
+            if (capitalId == null || otherId == null)
+            {
+                Debug.LogError($"[PlaytestRealmSlice] 계승 검증 준비 실패 — capitalId={capitalId} otherId={otherId}(로스터 2명 이상 필요)");
+                RealmSettingsState.SuccessionOn = originalToggle;
+                return false;
+            }
+
+            string otherPrevCity = RealmCityState.OfficerCityId(otherId);
+            int secBefore = RealmCityState.CityRecord(RealmOfficerPool.StartingOfficerCityId).Sec;
+
+            string message = null;
+            System.Action<string> handler = m => message = m;
+            RealmSuccessionState.Occurred += handler;
+
+            bool triggered = false;
+            for (int i = 0; i < 500 && !triggered; i++)
+            {
+                RealmSuccessionState.RollForMonth();
+                triggered = message != null;
+            }
+            RealmSuccessionState.Occurred -= handler;
+
+            if (!triggered)
+            {
+                Debug.LogError("[PlaytestRealmSlice] 계승 500회 시도했는데 한 번도 안 일어남(확률표 이상 의심)");
+                RealmSettingsState.SuccessionOn = originalToggle;
+                return false;
+            }
+            if (string.IsNullOrEmpty(message) ||
+                RealmCityState.OfficerCityId(otherId) != RealmOfficerPool.StartingOfficerCityId ||
+                RealmCityState.OfficerCityId(capitalId) != otherPrevCity)
+            {
+                Debug.LogError($"[PlaytestRealmSlice] 계승 배치 결과가 이상함 — otherId 배치={RealmCityState.OfficerCityId(otherId)}(기대 허창) capitalId 배치={RealmCityState.OfficerCityId(capitalId)}(기대 {otherPrevCity}) msg=\"{message}\"");
+                RealmSettingsState.SuccessionOn = originalToggle;
+                return false;
+            }
+            int secAfter = RealmCityState.CityRecord(RealmOfficerPool.StartingOfficerCityId).Sec;
+            if (secAfter != secBefore / 2)
+            {
+                Debug.LogError($"[PlaytestRealmSlice] 계승 뒤 허창 치안이 절반이 아님 — before={secBefore} after={secAfter}(기대 {secBefore / 2})");
+                RealmSettingsState.SuccessionOn = originalToggle;
+                return false;
+            }
+
+            // 이후 phase(계략·전쟁)가 원래 배치를 전제하므로 되돌린다 —
+            // 맞바꾸기는 자기 역이라 같은 두 id로 한 번 더 부르면 원상복귀.
+            RealmCityState.SwapOfficerCities(capitalId, otherId);
+            RealmCityState.CityRecord(RealmOfficerPool.StartingOfficerCityId).Sec = secBefore;
+            RealmSettingsState.SuccessionOn = originalToggle;
+
+            Debug.Log($"[PlaytestRealmSlice] succession OK - 허창 배치 계승·치안 절반 하락·안내 문구 확인, 이후 phase용으로 배치·치안·토글 원복(\"{message}\")");
             return true;
         }
 

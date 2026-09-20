@@ -7,6 +7,7 @@
     { "key": "settings.graphics_quality", "value": "그래픽 품질" },
     { "key": "settings.language", "value": "언어" },
     { "key": "settings.bgm", "value": "배경음악" },
+    { "key": "settings.succession", "value": "계승(위험)" },
     { "key": "settings.close", "value": "닫는다" },
     { "key": "state.on", "value": "켜짐" },
     { "key": "state.off", "value": "꺼짐" },
@@ -376,6 +377,7 @@
     { "key": "war.err_no_food", "value": "군량이 모자랍니다 ({0} 필요)" },
     { "key": "war.err_no_target", "value": "이 성에서는 칠 적국이 없습니다" },
     { "key": "war.err_too_few_troops", "value": "오백은 넘겨야 군대라 하지요" },
-    { "key": "war.retreated", "value": "물러났다 — 생존 {0}, 적 손실 {1}, 치중 {2} 귀환" }
+    { "key": "war.retreated", "value": "물러났다 — 생존 {0}, 적 손실 {1}, 치중 {2} 귀환" },
+    { "key": "succession.occurred", "value": "{0}이(가) 연로하여 허창을 {1}에게 물려주었다. 정권 이양으로 치안이 흔들렸다." }
   ]
 }
