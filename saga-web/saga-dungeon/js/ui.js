@@ -61,13 +61,17 @@
   function p3src(kind, ref, w, h, fallback) {
     var P3 = global.DG.portrait3d;
     var baked = P3 && P3.of ? P3.of(kind, ref, w, h) : null;
-    return { src: baked || fallback, done: baked ? ' data-p3-done="1"' : '' };
+    if (baked) { return { src: baked, done: ' data-p3-done="1"' }; }
+    /* 3D 로 꼭 갈아 끼워질 자리는 코드 스프라이트 대신 자리표시로 시작한다(SAGA-DESIGN §11 Phase 0) — 못 쓰는 자리는 옛 그림.
+       fallback 은 함수라 자리표시일 땐 스프라이트를 아예 안 그린다 */
+    if (P3 && P3.willSwap && P3.willSwap(kind, ref, w, h)) { return { src: P3.holder(w, h), done: ' data-p3-holder="1"' }; }
+    return { src: typeof fallback === 'function' ? fallback() : fallback, done: '' };
   }
 
   /** 스프라이트 초상 <img> (캐시되므로 목록에 여러 번 써도 가볍다) */
   function pt(kind, ref, size) {
     var sz = size || 48;
-    var p = p3src(kind, ref, sz, sz, global.DG.sprite.portrait(kind, ref, sz));
+    var p = p3src(kind, ref, sz, sz, function () { return global.DG.sprite.portrait(kind, ref, sz); });
     return '<img class="pt" alt=""' + p3tag(kind, ref, sz, sz) + p.done + ' src="' +
       p.src + '">';
   }
@@ -2339,7 +2343,7 @@
     var chk = hero().rankUpCheck(h.id);
     var cost = chk.cost || hero().rankUpCost(g.rank);
 
-    var p3h = p3src('hero', h, 150, 172, global.DG.sprite.portraitCard('hero', h, 150, 172));
+    var p3h = p3src('hero', h, 150, 172, function () { return global.DG.sprite.portraitCard('hero', h, 150, 172); });
     var out = '<div class="dt-card">' +
       '<button class="icon-btn sm dt-x" data-act="dt-close">✕</button>' +
       '<div class="dt-top">' +
@@ -2459,7 +2463,7 @@
       if (Object.prototype.hasOwnProperty.call(core.save.petEquip, k) &&
           core.save.petEquip[k] === p.id) { wearer = data.find(k); }
     }
-    var p3p = p3src('pet', p, 150, 172, global.DG.sprite.portraitCard('pet', p, 150, 172));
+    var p3p = p3src('pet', p, 150, 172, function () { return global.DG.sprite.portraitCard('pet', p, 150, 172); });
     return '<div class="dt-card">' +
       '<button class="icon-btn sm dt-x" data-act="dt-close">✕</button>' +
       '<div class="dt-top">' +

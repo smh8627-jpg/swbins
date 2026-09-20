@@ -68,12 +68,15 @@
   function p3src(ref, w, h, fallback) {
     var P3 = global.DG.portrait3d;
     var baked = P3 && P3.of ? P3.of('hero', ref, w, h) : null;
-    return { src: baked || fallback, done: baked ? ' data-p3-done="1"' : '' };
+    if (baked) { return { src: baked, done: ' data-p3-done="1"' }; }
+    /* 3D 로 꼭 갈아 끼워질 자리는 코드 스프라이트 대신 자리표시로 시작한다(SAGA-DESIGN §11 Phase 0) */
+    if (P3 && P3.willSwap && P3.willSwap('hero', ref, w, h)) { return { src: P3.holder(w, h), done: ' data-p3-holder="1"' }; }
+    return { src: typeof fallback === 'function' ? fallback() : fallback, done: '' };
   }
 
   function pt(ref, size) {
     var sz = size || 40;
-    var p = p3src(ref, sz, sz, global.DG.sprite.portrait('hero', ref, sz));
+    var p = p3src(ref, sz, sz, function () { return global.DG.sprite.portrait('hero', ref, sz); });
     return '<img class="pt" alt=""' + p3tag(ref, sz, sz) + p.done + ' src="' +
       p.src + '">';
   }
@@ -87,7 +90,7 @@
    */
   function ptBig(ref, w, h) {
     w = w || 200; h = h || 224;
-    var p = p3src(ref, w, h, global.DG.sprite.portraitCard('hero', ref, w, h));
+    var p = p3src(ref, w, h, function () { return global.DG.sprite.portraitCard('hero', ref, w, h); });
     return '<img class="pt" alt=""' + p3tag(ref, w, h) + p.done + ' src="' +
       p.src + '">';
   }
