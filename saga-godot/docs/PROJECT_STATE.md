@@ -15,12 +15,12 @@
 
 **공통(saga_core)**: `data/characters.gd`(인물 105, id 불변)·`data/pets.gd`(신수 11) · `ui/toast.gd`·`ui/virtual_joystick.gd`·`ui/goal_board.gd`+`ui/session_card.gd`(101-4, 목표판 3줄·마무리 카드, 다섯 판 전부 붙음)·`ui/duel_hud.gd` · `combat_feel.gd`(101-3, 다섯 판 끝 — GO/DUNGEON/STORY `hit()`·FOREST `pickup()`·REALM 대상없음) · `world/world_curve_material.gd`+`shaders/curved_*`(FOREST 구면) · `world/density_report.gd`(104-5, 발견 밀도, FOREST는 반경 10m) · `shaders/cel_toon.gdshader`+`cel_shader_apply.gd`(66-2/102-3, hit_flash+아웃라인 next_pass 자동) · `world/glb_utils.gd::fit_height()`(102-1, 여전히 미호출). 렌더러 Forward+/Mobile 이중(66-1, `env_pc.tres`·`env_mobile.tres`, 102-2 값).
 
-## 현재 작업 — 중단 지점(09-20⑨, 다음 세션 이어서)
+## 현재 작업 — 중단 지점(09-20⑩, 다음 세션 이어서)
 
-- **DUNGEON VRoid·Torch 조명·GO 발견 밀도·죽은 코드 재감사(09-20④⑤) 완료.**
 - **104 재점검**(09-20⑥) — regress 재통과(md5 불변)·세이브 버전 5판 `_migrate` 확인·ChoicePrompt 클로저 39개 재전수(안전).
-- **103장 스크립트 6개 전부 신설 완료**(09-20⑥~⑨) — procgen·tilegen·sfxgen·spritegen 신규(소품 4·타일 6·사운드 9·스프라이트 4). 임포트 오류 0. **배선 전부 아직**(§8-1).
-- 102 개편은 여전히 안 건드림(헤드리스 확인 불가). STORY는 AvatarSample_A 임시.
+- **103장 스크립트 6개 전부 신설 완료**(09-20⑥~⑨) — procgen·tilegen·sfxgen·spritegen 신규. 임포트 오류 0. **배선 전부 아직**(§8-1).
+- **105 처리**(09-20⑩) — Q1 Godot 먼저 집중·Q-g Target 버튼 순환(구현 안 함)·Q-d Quaternius 재확인(여전히 불가). Q-b 는 렌더 확인 불가라 보류.
+- 102 개편은 안 건드림(헤드리스 확인 불가). STORY는 AvatarSample_A 임시.
 
 ## 다음 작업 (우선순위)
 
@@ -36,7 +36,7 @@
 
 ## 테스트 상태
 
-- 헤드리스: 임포트 오류 0(procgen 소품 포함) · `godot_regress.sh` 통과(md5 불변).
+- 헤드리스: 임포트 오류 0 · `godot_regress.sh` 통과(md5 불변).
 - GUI: 다섯 대표 씬 정상 렌더(포구는 세이브 위치 복원 때문에 못 봄). PC 빌드: 다섯 판 1회 성공.
 
 ## 실기 확인 대기 (항목명만 — 상세는 `docs/HISTORY.md` 해당 날짜)

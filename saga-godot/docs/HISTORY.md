@@ -7720,3 +7720,12 @@ PROJECT_STATE.md` 참고. 요약:
 - `assets/generated/sprites/`에 배치, 헤드리스 임포트 오류 0. regress 재실행 — md5 불변, 잡음 없음.
 - **씬 배선 안 함**(§8-1). PLAN.md 103-1 받는 자리 표에 `sprites/` 항목 추가.
 - **PLAN.md 103장(에셋 창조 파이프라인) 스크립트 6개(palette·kitbash·procgen·tilegen·sfxgen·spritegen) 전부 신설 완료** — 남은 건 실제 씬/셰이더/UI 배선뿐, 전부 사용자 실기 확인 뒤(§8-1).
+
+## 105 열린 질문 3건 결정 — Q1·Q-g·Q-d 재확인 (2026-09-20⑩, 같은 세션 이어서, "사가고돗이어해")
+
+- 103장 완료 뒤 다음 작업이 전부 §8-1(실기 확인 전 새 콘텐츠 보류) 또는 사람 몫이라 사용자에게 확인 후 105장 열린 질문을 대신 처리.
+- **Q1 완성판 트랙 — 결정: Godot 먼저 집중**. SAGA-DESIGN.md §10-Q1·PLAN.md 105장에 반영. Unity 병행(진행 중인 커밋 안 된 작업)은 유지.
+- **Q-g GO 75초 토벌 부위 조준 — 결정**: 기존 "Target" 버튼 순환(갑주→병장→기마), 탭 대상 제외. PLAN.md 101-2 GO 행 아래에 기록만, 구현은 안 함(GO 실기 확인 대기 다수).
+- **Q-d 사람 몫 재확인**: WebFetch로 `quaternius.itch.io/stylized-nature-megakit`·`quaternius.com/packs/stylizednaturemegakit.html` 재점검 — 여전히 정적 다운로드 URL 없음("Download Now"가 `/purchase` name-your-own-price 결제 페이지로 감, 2026-09-13 결론과 동일). 로그인 없이도 사람이 한 번 눌러야 함, 자동화 불가 확정.
+- **Q-b는 그대로 열어 둠** — 헤드리스로 렌더 결과를 볼 수 없어 대신 결정하지 않음.
+- 코드 변경 없음(문서만). regress 재실행 불필요.
