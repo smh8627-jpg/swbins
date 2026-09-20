@@ -125,7 +125,7 @@
     var c = cityRec(id);
     if (c) { c[field] = core.clamp(Math.round(c[field] + n), lo, hi); }
   }
-  function isLord(id, F) { var f = FD.force(F); return !!f && f.lord === id; }
+  function isLord(id, F) { return !!FD.force(F) && OFF().lordOf(F) === id; }
 
   /** 재야·포로를 F 의 성에 들인다 — `tryHire` 의 성공 쪽과 같은 자리(`placeAt`·`baseLoyal`) */
   function hire(id, cityId, F, bonus) {
@@ -647,7 +647,7 @@
 
   /** 군주의 특성으로 갈래를 고른다 — AI 의 자동 선택 */
   function pref(F) {
-    var f = FD.force(F), ts = f ? OFF().traitsOf(f.lord) : [], i;
+    var f = FD.force(F), ts = f ? OFF().traitsOf(OFF().lordOf(F)) : [], i;
     var ATK = { brave: 1, ambitious: 1, warlike: 1, cold: 1 }, UTIL = { sly: 1, greedy: 1, studious: 1, righteous: 1 };
     for (i = 0; i < ts.length; i++) {
       if (ATK[ts[i].k]) { return 'atk'; }

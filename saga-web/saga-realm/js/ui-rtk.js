@@ -463,6 +463,11 @@
       return;
     }
     if (a === 'back-scen') { pickChallenge = false; showScenPick(); return; }
+    if (a === 'lordaging-toggle') {
+      core.setTune('rtk.lordAging', off().lordAgingOn() ? 0 : 1);
+      renderSheet();
+      return;
+    }
     if (a === 'monthcard-toggle') {
       core.setTune('rtk.monthCard', monthCardOn() ? 0 : 1);
       renderSheet();
@@ -542,6 +547,9 @@
     } else if (a === 'reward') {
       var rr = R().reward(g('data-id'), 300);
       toast(rr.ok ? '🎁 충성 ' + rr.loyal : rr.why);
+    } else if (a === 'set-heir') {
+      var hs = off().setHeir(R().state().me, g('data-id'));
+      toast(hs.ok ? (hs.heir ? '🎌 후계로 지정했다' : '🎌 지정을 풀었다 — 자동으로 정한다') : hs.why);
     } else if (a === 'hire-one') {
       var hr = R().tryHire(openCityId, g('data-by'), g('data-id'));
       toast(hr.ok ? hr.text : hr.why);
@@ -867,7 +875,7 @@
       return;
     }
     var s = R().summary();
-    var lord = off().find((FD.force(st.me) || {}).lord);
+    var lord = off().find(off().lordOf(st.me));
 
     els.profile.innerHTML =
       (lord ? '<span class="avatar-pt">' + pt(lord, 40) + '</span>' : '') +
@@ -1075,6 +1083,8 @@
         '<button data-act="shake-toggle">' + (shakeOn ? '켜짐' : '꺼짐') + '</button></div>' +
       '<div class="key-row"><b>다음 달 카드</b>' +
         '<button data-act="monthcard-toggle">' + (monthCardOn() ? '켜짐' : '꺼짐') + '</button></div>' +
+      '<div class="key-row" title="켜면 군주도 늙고 65세부터 세상을 떠난다 — 후계가 잇고 나머지는 흔들린다"><b>군주 노쇠·계승</b>' +
+        '<button data-act="lordaging-toggle">' + (off().lordAgingOn() ? '켜짐' : '꺼짐') + '</button></div>' +
       qRow;
   }
 
@@ -1548,7 +1558,8 @@
     var s = off().stats(h.id);
     var r = off().rec(h.id);
     var g = global.DG.hero.info(h.id);
-    var isLord = (FD.force(r.force) || {}).lord === h.id;
+    var isLord = off().lordOf(r.force) === h.id;
+    var mine = r.force === R().state().me;
     var bio = global.DG.data.bio ? global.DG.data.bio(h.id) : '';
     var c = R().city(cityId);
     return '<div class="card offcard">' +
@@ -1556,6 +1567,7 @@
         '<div class="dt-name"><b>' + esc(h.name) + '</b> <span class="muted">' +
           esc(h.hanja || '') + ' · ' + off().age(h.id) + '세</span>' +
           (isLord ? ' <span class="tag">군주</span>' : '') +
+          (mine && !isLord && off().lordAgingOn() && off().heirOf(r.force) === h.id ? ' <span class="tag">후계</span>' : '') +
           (c && c.gov === h.id ? ' <span class="tag">태수</span>' : '') +
           /* 균열·폐허(2026-09-10·11 확장) 수비 무장은 사람이 아니다 —
              등용해서 데려온 뒤에도 이름·초상만 보고는 "괴물"임을 놓치기
@@ -1586,6 +1598,7 @@
         '<div class="camp-acts">' +
           '<button class="btn tiny" data-act="reward" data-id="' + h.id + '">🎁 금 300</button>' +
           promoteBtn(h) +
+          heirBtn(h, r, mine) +
         '</div>') +
       '</div>';
   }
@@ -1599,6 +1612,16 @@
     return '<div class="rstat"><span>' + esc(off().rankName(h.id)) + '</span>' +
       '<div class="bar sm gold"><i style="width:' + pct + '%"></i></div>' +
       '<b>' + (g.lv >= H.MAX_LV ? '만렙' : g.exp + '/' + need) + '</b></div>';
+  }
+
+  /** 후계 지정 단추 — 군주 노쇠·계승(PLAN §5-8)을 켰을 때만, 우리 세력 무장에게만 */
+  function heirBtn(h, r, mine) {
+    if (!mine || !off().lordAgingOn()) { return ''; }
+    var on = off().heirOf(r.force) === h.id;
+    var set = R().state().forces[r.force].heir === h.id;
+    return '<button class="btn tiny' + (set ? ' primary' : '') + '" data-act="set-heir" data-id="' + h.id + '"' +
+      ' title="' + (set ? '지정을 풀면 충성 높은 사람이 자동으로 잇는다' : '군주가 별세하면 이 사람이 잇는다') + '">🎌 ' +
+      (set ? '후계 해제' : (on ? '후계(자동)' : '후계 지정')) + '</button>';
   }
 
   function promoteBtn(h) {

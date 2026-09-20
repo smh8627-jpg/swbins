@@ -5638,15 +5638,21 @@ window.requestAnimationFrame = function () { return 0; };
          그대로면 뒷걸음질·등을 돌림·뒷모습 초상이 된다(2026-09-20 실기 보고) */
       var V = DG.vroidVariant, TH = window.THREE;
       var a = new TH.Group(), b = new TH.Group(), c = new TH.Group(), d = new TH.Group();
+      var mark = new TH.Object3D(); mark.position.set(0, 0, -1); a.add(mark);   // VRM 의 정면(-Z)에 표지를 둔다
+      d.add(new TH.Object3D());
       V.faceFront(a, 'assets/models/people/anime/avatar_sample_a.glb');
       V.faceFront(a, 'assets/models/people/anime/avatar_sample_a.glb');   // 두 번째는 무시
       V.faceFront(b, 'assets/models/people/quaternius_rpg/Ranger.glb');
       V.faceFront(c, null);
       V.faceFront(d, 'assets/models/people/anime/avatar_custom_01.glb');
-      var front = new TH.Vector3(0, 0, -1).applyQuaternion(a.quaternion);   // VRM 의 정면(-Z)이 돌려 세운 뒤 어디를 보는가
-      var ok = Math.abs(a.rotation.y - Math.PI) < 1e-9 && front.z > 0.999 && a.userData.vrmFront === true &&
-        b.rotation.y === 0 && c.rotation.y === 0 && d.rotation.y !== 0 && V.faceFront(null, 'x') === null;
-      return ok && ('VRM 반 바퀴(두 번 안 돎) · QRPG·빈 값 그대로 · 정면 -Z → +Z');
+      /* 게임이 걸음각을 모델의 rotation.y 에 대입해도(사가의숲 player.group) 보정이 안 지워져야 한다 — 걸음각 1.2 를 준 뒤 정면이 (sin, cos) 를 보는가 */
+      a.rotation.y = 1.2; a.updateMatrixWorld(true);
+      var front = mark.getWorldPosition(new TH.Vector3());
+      var ok = Math.abs(front.x - Math.sin(1.2)) < 1e-6 && Math.abs(front.z - Math.cos(1.2)) < 1e-6 &&
+        a.children.length === 1 && a.children[0].name === 'vrmFront' && a.userData.vrmFront === true &&
+        b.rotation.y === 0 && b.children.length === 0 && c.rotation.y === 0 && d.rotation.y === 0 && d.children.length === 1 &&
+        V.faceFront(null, 'x') === null;
+      return ok && ('안쪽 그룹만 반 바퀴(두 번 안 돎) · 바깥 rotation.y 는 게임 몫 · QRPG·빈 값 그대로 · 정면 -Z → +Z');
     });
 
     t('vroid-variant — VRoid 경로에만 건다(QRPG·MPFB 몸엔 안 건다), 손잡이는 기본 켜짐이고 0 이면 꺼진다', function () {
@@ -5802,6 +5808,22 @@ window.requestAnimationFrame = function () { return 0; };
       var others = !A3.wantsOwnAnim('assets/models/people/quaternius_rpg/Warrior.glb') &&
         !A3.wantsOwnAnim('assets/models/people/regular/Male_Peasant.gltf');
       return on && others && 'anime 경로만 켜짐';
+    });
+
+    t('목표판 — 숨길 수 있다: ✕ 로 숨기면 칩 하나만 남고, 칩을 누르면 다시 세 줄이 뜨며, 상태는 손잡이(ui.goalsHidden)에 남는다', function () {
+      var el = document.getElementById('goals');
+      if (!el || !DG.ui.renderGoals) { return false; }
+      C.setTune('ui.goalsHidden', null);
+      DG.ui.renderGoals();
+      var shown = el.querySelectorAll('.goal-row').length === 3 && !!el.querySelector('[data-goals="hide"]') && !el.classList.contains('goals-hidden');
+      el.querySelector('[data-goals="hide"]').click();
+      var hid = el.querySelectorAll('.goal-row').length === 0 && !!el.querySelector('[data-goals="show"]') && el.classList.contains('goals-hidden') && C.tuned('ui.goalsHidden', 0) === 1;
+      DG.ui.renderGoals();   // 다시 그려도(달·세션이 넘어가도) 숨김이 유지된다
+      var kept = !!el.querySelector('[data-goals="show"]') && el.querySelectorAll('.goal-row').length === 0;
+      el.querySelector('[data-goals="show"]').click();
+      var back = el.querySelectorAll('.goal-row').length === 3 && !el.classList.contains('goals-hidden') && C.tuned('ui.goalsHidden', 0) === 0;
+      C.setTune('ui.goalsHidden', null);
+      return shown && hid && kept && back && ('세 줄 → ✕ → 칩 하나(재렌더에도 유지) → 칩 → 세 줄');
     });
 
     t('런타임 에러 없음', function () {

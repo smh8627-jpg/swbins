@@ -163,8 +163,7 @@
   function isLordId(id) {
     var m = global.DG.rtk.state().officers, r = m[id];
     if (!r || !r.force) { return false; }
-    var f = FD.force(r.force);
-    return !!f && f.lord === id;
+    return lordOf(r.force) === id;
   }
 
   /** 무장을 도시에 놓는다 (force=null 이면 재야로) */
@@ -248,7 +247,7 @@
    */
   function stats(id) {
     var s = global.DG.hero.stats(id);
-    if (isLordId(id)) { return s; }   // 군주는 나이 축 전체에서 빠진다(늙지도 죽지도 않는다)
+    if (isLordId(id) && !lordAgingOn()) { return s; }   // 군주는 나이 축 전체에서 빠진다(늙지도 죽지도 않는다) — 손잡이 rtk.lordAging 을 켜면 든다(§5-8)
     var mul = agingMul(age(id));
     var bonus = ambBonusOf(id);       // 야망을 이룬 사람은 능력이 영구히 +2(PLAN §5-1) — 이 함수 한 곳에서만 얹는다
     if (mul >= 1 && !bonus) { return s; }
@@ -308,28 +307,132 @@
   }
   function isDead(id) { return !!rec(id).dead; }
 
+  /* ── 군주 계승 (PLAN §5-8) ───────────────────────────────
+   * 군주는 시나리오 표(`FD.force(f).lord`)에 적혀 있다. 표는 시나리오 정의라 바꾸지 않고, 이어받은 군주는
+   * `save.rtk.forces[f].lord` 에 얹는다 — 군주를 읽는 곳은 전부 `lordOf()` 한 곳을 거친다(표를 직접 읽으면
+   * 계승 뒤에도 옛 군주가 군주로 보인다). 후계 지정은 `forces[f].heir`. 옛 세이브는 두 칸이 없으면 표·자동 후계.
+   * 손잡이 `rtk.lordAging`(기본 0)이 꺼져 있으면 아무것도 안 바뀐다(군주는 늙지도 죽지도 않는다). */
+  function lordAgingOn() { return core.tuned('rtk.lordAging', 0) ? true : false; }
+
+  /** 이 세력의 지금 군주 — 계승했으면 세이브 쪽, 아니면 시나리오 표 */
+  function lordOf(forceId) {
+    if (!forceId) { return null; }
+    var fs = global.DG.rtk.state().forces[forceId];
+    if (fs && fs.lord) { return fs.lord; }
+    var f = FD.force(forceId);
+    return f ? f.lord : null;
+  }
+
+  /** 군주 자리를 이을 수 있는 사람들 — 이 세력 소속의 산 사람(포로·재야는 force 가 비어 절로 빠진다) */
+  function heirPool(forceId, exceptId) {
+    var st = global.DG.rtk.state(), out = [], k;
+    for (k in st.officers) {
+      if (!Object.prototype.hasOwnProperty.call(st.officers, k) || k === exceptId) { continue; }
+      var r = st.officers[k];
+      if (r.force === forceId && !r.dead && find(k)) { out.push(k); }
+    }
+    return out;
+  }
+
+  function govCount(id) {
+    var cs = global.DG.rtk.state().cities, n = 0, k;
+    for (k in cs) { if (Object.prototype.hasOwnProperty.call(cs, k) && cs[k].gov === id) { n++; } }
+    return n;
+  }
+
+  /** 자동 후계 — 충성 최고, 같으면 태수 자리 많은 사람, 그다음 공. 괴물(균열 수비대)은 사람이 없을 때만 */
+  function autoHeir(pool) {
+    return pool.slice().sort(function (a, b) {
+      var ma = find(a).monster ? 1 : 0, mb = find(b).monster ? 1 : 0;
+      return ma - mb || rec(b).loyal - rec(a).loyal || govCount(b) - govCount(a) ||
+        (rec(b).feats || 0) - (rec(a).feats || 0) || (a < b ? -1 : a > b ? 1 : 0);
+    })[0] || null;
+  }
+
+  /** 지금 후계가 될 사람(지정했고 아직 유효하면 그 사람, 아니면 자동) — 이을 사람이 없으면 null */
+  function heirOf(forceId) {
+    var fs = global.DG.rtk.state().forces[forceId], pool = heirPool(forceId, lordOf(forceId));
+    if (!pool.length) { return null; }
+    if (fs && fs.heir && pool.indexOf(fs.heir) >= 0) { return fs.heir; }
+    return autoHeir(pool);
+  }
+
+  /** 후계 지정 — 같은 사람을 또 고르거나 id 가 비면 지정을 푼다(그러면 자동) */
+  function setHeir(forceId, id) {
+    var st = global.DG.rtk.state(), fs = st.forces[forceId], r = id ? st.officers[id] : null;
+    if (!fs) { return { ok: false, why: '그런 세력이 없습니다' }; }
+    if (!id || id === fs.heir) { fs.heir = null; return { ok: true, heir: null }; }
+    if (!r || r.force !== forceId || r.dead) { return { ok: false, why: '우리 세력 무장이 아닙니다' }; }
+    if (lordOf(forceId) === id) { return { ok: false, why: '군주 본인입니다' }; }
+    fs.heir = id;
+    return { ok: true, heir: id };
+  }
+
+  /**
+   * 군주가 죽었다 — 후계가 군주가 되고 나머지는 흔들린다(충성 -10~-20, 특성 충직은 0·야심은 -25 에
+   * 3달간 이탈 판정 두 배 — `diplo.checkDefection` 이 `unrest` 를 읽는다). AI 도 같은 함수(자동 후계).
+   * 죽은 군주의 `dead` 표시·태수 정리는 부른 쪽(`rollAging`)이 한다.
+   */
+  function succeed(forceId, oldId, oldAge) {
+    var R = global.DG.rtk, st = R.state(), fs = st.forces[forceId], heir = heirOf(forceId);
+    if (!fs || !heir) { return null; }
+    var pool = heirPool(forceId, oldId);
+    fs.lord = heir; fs.heir = null;
+    rec(heir).loyal = 100;
+    pool.forEach(function (id) {
+      if (id === heir) { return; }
+      var ks = traitsOf(id).map(function (t) { return t.k; }), d = 10 + Math.floor(Math.random() * 11);
+      if (ks.indexOf('loyal') >= 0) { d = 0; }
+      else if (ks.indexOf('ambitious') >= 0) { d = 25; rec(id).unrest = 3; }
+      if (d) { addLoyal(id, -d); }
+    });
+    core.log('⚰️ ' + find(oldId).name + ' 별세(향년 ' + oldAge + '세) — ' + find(heir).name + ' 이(가) ' +
+      R.forceName(forceId) + ' 군주로 즉위했다', 'warn');
+    if (forceId === R.me()) { core.emit('toast', '⚰️ ' + find(oldId).name + ' 별세, ' + find(heir).name + ' 즉위'); }
+    core.emit('rtk:succession', { force: forceId, from: oldId, to: heir });
+    return heir;
+  }
+
   /**
    * 달마다 한 번 — 노환으로 별세하는 사람이 있는지 본다. `rtk.js`
    * `settleMonth()` 가 재해·이간과 같은 자리에서 부른다.
-   * **군주는 빠진다**(승계 체계가 없다 — 세력이 그 자리에서 끝나 버린다,
-   * "새 판정을 만들지 않는다" 원칙과 같은 결로 이번엔 범위를 좁혔다).
+   * **군주는 기본으로 빠진다**(손잡이 `rtk.lordAging` 이 0 일 때 — 승계 체계를 손잡이 뒤에 둔 것이다).
+   * 손잡이를 켜면 군주도 부하의 절반 확률로 굴리고, 죽으면 `succeed()` 가 후계를 세운다(PLAN §5-8).
    * 태수 자리(city.gov)를 비우는 것까지가 이 함수의 몫이다(`diplo.js`
    * `checkDefection` 이 이간으로 사람을 잃을 때 하는 정리와 같다).
    */
   function rollAging() {
-    var R = global.DG.rtk, st = R.state(), k, gone = [];
+    var R = global.DG.rtk, st = R.state(), k, gone = [], lordForce = {}, fk;
+    for (fk in st.forces) {
+      if (Object.prototype.hasOwnProperty.call(st.forces, fk)) { lordForce[lordOf(fk)] = fk; }   // 군주 id → 그 군주가 이끄는 세력
+    }
     for (k in st.officers) {
       if (!Object.prototype.hasOwnProperty.call(st.officers, k)) { continue; }
       var r = st.officers[k];
       if (r.dead) { continue; }
       var a = age(k);
       if (a < 65) { continue; }
-      if (r.force) {
-        var f = FD.force(r.force);
-        if (f && f.lord === k) { continue; }
+      var lordOfF = lordForce[k] || null, isLordNow = !!lordOfF, lordMul = 1;
+      if (isLordNow) {
+        /* 손잡이(rtk.lordAging)가 꺼져 있으면 옛 그대로 — 제 세력에 있는 군주만 빠진다(사로잡힌 군주는 예전에도 보통 사람처럼 굴렸다).
+           켜면 부하의 절반 확률로 굴리되, 이을 사람이 하나도 없으면 안 죽는다(세력이 그 자리에서 끝나지 않게 — PLAN §5-8) */
+        if (!lordAgingOn()) {
+          if (r.force === lordOfF) { continue; }
+          isLordNow = false;
+        } else {
+          if (!heirPool(lordOfF, k).length) { continue; }
+          lordMul = 0.5;
+        }
       }
-      if (Math.random() >= deathChanceMonthly(a) * core.tuned('rtk.agingDeathMul', 1)) { continue; }
+      if (Math.random() >= deathChanceMonthly(a) * core.tuned('rtk.agingDeathMul', 1) * lordMul) { continue; }
       r.dead = true;
+      if (isLordNow) {
+        var cs = st.cities, ck;
+        for (ck in cs) { if (Object.prototype.hasOwnProperty.call(cs, ck) && cs[ck].gov === k) { cs[ck].gov = null; } }
+        succeed(lordOfF, k, a);
+        gone.push(k);
+        continue;
+      }
       var c = r.city ? R.city(r.city) : null;
       if (c && c.gov === k) { c.gov = null; }
       core.log('⚰️ ' + find(k).name + ' 이(가) 노환으로 별세했다(향년 ' + a + '세)', 'warn');
@@ -469,7 +572,7 @@
     var h = find(id);
     var f = FD.force(forceId);
     if (!h || !f) { return 50; }
-    var lord = find(f.lord);
+    var lord = find(lordOf(forceId));
     var v = 52;
     if (lord && lord.trait === h.trait) { v += Math.round(12 * traitMul(id, 'bond')); }   // 충성은 정수 — 충직 18 · 야심 8
     v -= (h.rarity - 3) * 6;                       // 귀한 사람일수록 붙들기 어렵다
@@ -647,6 +750,7 @@
     loyalOf: loyalOf, addLoyal: addLoyal, baseLoyal: baseLoyal,
     birthYear: birthYear, age: age, agingMul: agingMul,
     deathChanceMonthly: deathChanceMonthly, isDead: isDead, rollAging: rollAging,
+    isLordId: isLordId, lordOf: lordOf, lordAgingOn: lordAgingOn, heirOf: heirOf, heirPool: heirPool, setHeir: setHeir, succeed: succeed,
     TRAITS: TRAITS, AMBITIONS: AMBITIONS, traitsOf: traitsOf, traitMul: traitMul,
     ambOf: ambOf, ambView: ambView, frustrated: frustrated, noteDuel: noteDuel, tickAmbitions: tickAmbitions
   };

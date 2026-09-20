@@ -3181,15 +3181,21 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
          그대로면 뒷걸음질·등을 돌림·뒷모습 초상이 된다(2026-09-20 실기 보고) */
       var V = DG.vroidVariant, TH = window.THREE;
       var a = new TH.Group(), b = new TH.Group(), c = new TH.Group(), d = new TH.Group();
+      var mark = new TH.Object3D(); mark.position.set(0, 0, -1); a.add(mark);   // VRM 의 정면(-Z)에 표지를 둔다
+      d.add(new TH.Object3D());
       V.faceFront(a, 'assets/models/people/anime/avatar_sample_a.glb');
       V.faceFront(a, 'assets/models/people/anime/avatar_sample_a.glb');   // 두 번째는 무시
       V.faceFront(b, 'assets/models/people/quaternius_rpg/Ranger.glb');
       V.faceFront(c, null);
       V.faceFront(d, 'assets/models/people/anime/avatar_custom_01.glb');
-      var front = new TH.Vector3(0, 0, -1).applyQuaternion(a.quaternion);   // VRM 의 정면(-Z)이 돌려 세운 뒤 어디를 보는가
-      var ok = Math.abs(a.rotation.y - Math.PI) < 1e-9 && front.z > 0.999 && a.userData.vrmFront === true &&
-        b.rotation.y === 0 && c.rotation.y === 0 && d.rotation.y !== 0 && V.faceFront(null, 'x') === null;
-      return ok && ('VRM 반 바퀴(두 번 안 돎) · QRPG·빈 값 그대로 · 정면 -Z → +Z');
+      /* 게임이 걸음각을 모델의 rotation.y 에 대입해도(사가의숲 player.group) 보정이 안 지워져야 한다 — 걸음각 1.2 를 준 뒤 정면이 (sin, cos) 를 보는가 */
+      a.rotation.y = 1.2; a.updateMatrixWorld(true);
+      var front = mark.getWorldPosition(new TH.Vector3());
+      var ok = Math.abs(front.x - Math.sin(1.2)) < 1e-6 && Math.abs(front.z - Math.cos(1.2)) < 1e-6 &&
+        a.children.length === 1 && a.children[0].name === 'vrmFront' && a.userData.vrmFront === true &&
+        b.rotation.y === 0 && b.children.length === 0 && c.rotation.y === 0 && d.rotation.y === 0 && d.children.length === 1 &&
+        V.faceFront(null, 'x') === null;
+      return ok && ('안쪽 그룹만 반 바퀴(두 번 안 돎) · 바깥 rotation.y 는 게임 몫 · QRPG·빈 값 그대로 · 정면 -Z → +Z');
     });
 
     t('vroid-variant — VRoid 경로에만 건다(QRPG·MPFB 몸엔 안 건다), 손잡이는 기본 켜짐이고 0 이면 꺼진다', function () {
@@ -3345,6 +3351,139 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       var others = !A3.wantsOwnAnim('assets/models/people/quaternius_rpg/Warrior.glb') &&
         !A3.wantsOwnAnim('assets/models/people/regular/Male_Peasant.gltf');
       return on && others && 'anime 경로만 켜짐';
+    });
+
+    /* ── 군주 노쇠·계승 (PLAN §5-8) ─────────────────────────
+       손잡이 rtk.lordAging(기본 0). 맨 끝에 둔 것은 앞 진단들의 난수 스트림 위치를 밀지 않으려는 것이다. */
+
+    /** 군주보다 6년 넘게 늦게 태어난 사람이 있는 세력 — 군주가 70세일 때 그 사람은 65세 아래라 죽지 않는다 */
+    function lordCase() {
+      var ids = R.liveForces(), i;
+      for (i = 0; i < ids.length; i++) {
+        var F = ids[i], L = off.lordOf(F), best = null;
+        off.heirPool(F, L).forEach(function (id) { if (!best || off.birthYear(id) > off.birthYear(best)) { best = id; } });
+        if (best && off.birthYear(best) - off.birthYear(L) >= 6) { return { F: F, L: L, heir: best, year: off.birthYear(L) + 70 }; }
+      }
+      return null;
+    }
+    function lordFresh(on) { R.setup('cao', '194'); C.setTune('rtk.lordAging', on ? 1 : null); return R.state(); }
+    function lordDone() { C.setTune('rtk.lordAging', null); R.setup('cao'); }
+    function logHas(re) { return C.save.log.slice(0, 40).some(function (e) { return re.test(e.text); }); }
+
+    t('군주 계승 — 손잡이가 꺼져 있으면(기본) 군주는 늙지도 죽지도 않고, lordOf 는 시나리오 표 그대로이며, 세이브에 칸도 안 생긴다', function () {
+      var st = lordFresh(false), c = lordCase(), i;
+      if (!c) { lordDone(); return false; }
+      st.year = c.year;
+      var h = DG.hero.stats(c.L), s = off.stats(c.L), same = s.might === h.might && s.wisdom === h.wisdom && s.command === h.command;
+      stubRandom(0, function () { for (i = 0; i < 12; i++) { off.rollAging(); } });   // 난수 0 이면 죽을 수 있는 사람은 전부 죽는다
+      var lordsOk = R.liveForces().every(function (F) { return off.lordOf(F) === FD.force(F).lord && !off.isDead(FD.force(F).lord); });
+      var noFields = Object.keys(st.forces).every(function (f) { return !('lord' in st.forces[f]) && !('heir' in st.forces[f]); });
+      var dead = Object.keys(st.officers).filter(function (k) { return st.officers[k].dead; }).length;   // 0 이면 굴림 자체가 안 돈 것 — 대조군
+      lordDone();
+      return same && lordsOk && noFields && dead > 0 && ('70세 군주 12달 · 능력 그대로 · 군주 전원 생존 · 보통 무장 ' + dead + '명은 별세(대조)');
+    });
+
+    t('군주 계승 — 손잡이를 켜면 군주가 65세부터 별세하고, 지정한 후계가 즉위한다(충성 100·지정 비움·태수 자리 정리·기록)', function () {
+      var st = lordFresh(true), c = lordCase(), gone;
+      if (!c) { lordDone(); return false; }
+      st.year = c.year;
+      var cid = st.officers[c.L].city; st.cities[cid].gov = c.L;
+      var aged = off.stats(c.L), plain = DG.hero.stats(c.L);
+      off.setHeir(c.F, c.heir);
+      var got = null;   // 난수 0 이면 나이 든 무장이 줄줄이 별세해 로그가 밀리니, 즉위는 이벤트로 잡는다
+      C.on('rtk:succession', function (p) { if (p.force === c.F) { got = p; } });
+      gone = stubRandom(0, function () { return off.rollAging(); });
+      var ok = gone.indexOf(c.L) >= 0 && off.isDead(c.L) && off.lordOf(c.F) === c.heir && off.isLordId(c.heir) && !off.isLordId(c.L) &&
+        st.officers[c.heir].loyal === 100 && st.forces[c.F].heir === null && st.cities[cid].gov === null &&
+        off.ambOf(c.heir) === null && !off.isDead(c.heir) && !!got && got.from === c.L && got.to === c.heir;
+      lordDone();
+      return ok && aged.might <= plain.might && ('군주 ' + c.L + ' 별세 → ' + c.heir + ' 즉위 · 늙은 군주는 능력도 준다(' + aged.might + '/' + plain.might + ')');
+    });
+
+    t('군주 계승 — 나머지 무장의 충성 충격(기본 -10~-20, 충직 0, 야심 -25 에 3달 창)과 이탈 판정 두 배', function () {
+      var rows = [], allOk = true;
+      [0, 0.999].forEach(function (rv) {
+        var st = lordFresh(true), c = lordCase();
+        if (!c) { allOk = false; return; }
+        var others = off.heirPool(c.F, c.L).filter(function (id) { return id !== c.heir; });
+        others.forEach(function (id) { st.officers[id].loyal = 60; delete st.officers[id].unrest; });
+        off.setHeir(c.F, c.heir);
+        stubRandom(rv, function () { off.succeed(c.F, c.L, 70); });
+        if (!logHas(/즉위/) || C.save.log[0].kind !== 'warn') { allOk = false; rows.push('로그'); }   // 바로 뒤라 맨 위 줄이다
+        others.forEach(function (id) {
+          var ks = off.traitsOf(id).map(function (x) { return x.k; }), d = ks.indexOf('loyal') >= 0 ? 0 : ks.indexOf('ambitious') >= 0 ? 25 : 10 + Math.floor(rv * 11);
+          var wantUnrest = ks.indexOf('loyal') < 0 && ks.indexOf('ambitious') >= 0 ? 3 : undefined;
+          if (st.officers[id].loyal !== 60 - d || st.officers[id].unrest !== wantUnrest) { allOk = false; rows.push(id + ':' + st.officers[id].loyal + '/' + d); }
+        });
+      });
+      /* 이탈 판정 — 난수 0.5: 보통은 0.35 를 넘어 남고, 창 안이면 0.7 안이라 떠난다 */
+      var st2 = lordFresh(true), c2 = lordCase(), pair = c2 ? off.heirPool(c2.F, c2.L).filter(function (id) { return id !== c2.heir; }).slice(0, 2) : [];
+      var split = false;
+      if (pair.length === 2) {
+        st2.officers[pair[0]].loyal = 5; st2.officers[pair[0]].unrest = 3;
+        st2.officers[pair[1]].loyal = 5; delete st2.officers[pair[1]].unrest;
+        stubRandom(0.5, function () { D.checkDefection(); });
+        split = st2.officers[pair[0]].force === null && st2.officers[pair[1]].force === c2.F && st2.officers[pair[0]].unrest === 2;
+      }
+      lordDone();
+      return allOk && split && ('충성 60 에서 -10/-20 · 충직 0 · 야심 -25+창 3 · 창 안 이탈(난수 0.5)은 떠나고 밖은 남는다' + (rows.length ? ' 실패 ' + rows.join(',') : ''));
+    });
+
+    t('군주 계승 — 후계 지정 검증(군주·남의 사람·죽은 사람은 거절, 같은 사람을 또 고르면 해제)과 자동 후계(충성 → 태수 → 공), 이을 사람이 없으면 군주는 안 죽는다', function () {
+      var st = lordFresh(true), F = 'cao', L = off.lordOf(F), pool = off.heirPool(F, L).filter(function (id) { return !off.find(id).monster; });
+      var foreign = off.ofForce(neighbourForce())[0].id, a = pool[0], b = pool[1], c = pool[2];
+      var rej = !off.setHeir(F, L).ok && !off.setHeir(F, foreign).ok && !off.setHeir(F, 'no_such_id').ok;
+      pool.forEach(function (id) { st.officers[id].loyal = 50; st.officers[id].feats = 0; });
+      st.officers[a].loyal = 90; st.officers[b].loyal = 90;
+      var byLoyal = (function () { st.officers[a].loyal = 95; return off.heirOf(F) === a; })();
+      st.officers[a].loyal = 90;
+      var cityB = R.citiesOf(F)[0]; R.city(cityB).gov = b;
+      var byGov = off.heirOf(F) === b;                                     // 충성이 같으면 태수 자리가 많은 쪽
+      R.city(cityB).gov = null; st.officers[a].feats = 9;
+      var byFeat = off.heirOf(F) === a;                                    // 그것도 같으면 공
+      var setOk = off.setHeir(F, c).ok && off.heirOf(F) === c && st.forces[F].heir === c;
+      var unset = off.setHeir(F, c).ok && st.forces[F].heir === null && off.heirOf(F) === a;   // 또 고르면 해제 → 자동으로 돌아간다
+      off.setHeir(F, c); st.officers[c].dead = true;
+      var deadFallback = off.heirOf(F) === a;                              // 지정한 사람이 죽으면 자동
+      pool.forEach(function (id) { st.officers[id].dead = true; });
+      var none = off.heirOf(F) === null;
+      st.year = off.birthYear(L) + 80;
+      stubRandom(0, function () { off.rollAging(); });
+      var survives = !off.isDead(L) && off.lordOf(F) === L;                // 이을 사람이 없으면 죽지 않는다 — 세력이 끝나지 않는다
+      lordDone();
+      return rej && byLoyal && byGov && byFeat && setOk && unset && deadFallback && none && survives &&
+        ('거절 3 · 충성→태수→공 · 지정/해제/지정자 사망 · 후계 없으면 80세 군주도 생존');
+    });
+
+    t('군주 계승 — 손잡이를 켜고 세월을 당겨 24달(AI 세력 포함) 굴려도 에러 0 · 살아 있는 세력의 군주는 늘 산 사람 · 충성 0~100 · 즉위 기록 있음', function () {
+      var st = lordFresh(true), threw = false, bad = 0, i;
+      st.year = 250;   // 출생 130~178 → 72~120세, 다들 죽을 나이
+      try { for (i = 0; i < 24 && R.endMonth(); i++) { /* 판이 닫히면 멈춘다 */ } } catch (e) { threw = true; }
+      R.liveForces().forEach(function (F) { if (off.isDead(off.lordOf(F))) { bad++; } });
+      Object.keys(st.officers).forEach(function (k) { var l = st.officers[k].loyal; if (!(l >= 0 && l <= 100)) { bad++; } });
+      var succ = C.save.log.filter(function (e) { return /즉위/.test(e.text); }).length;
+      var moved = Object.keys(st.forces).filter(function (f) { return st.forces[f].lord; }).length;
+      lordDone();
+      return !threw && bad === 0 && (succ > 0 || moved > 0) && ('24달 · 세력 ' + moved + '곳이 군주를 바꿨다(기록 ' + succ + '줄) · 죽은 군주 0');
+    });
+
+    t('군주 계승 — 옛 세이브(forces 칸에 lord·heir 없음, 무장에 unrest 없음)도 그대로 열리고, 화면: 손잡이를 켜면 후계 단추·배지, 끄면 없다', function () {
+      var st = lordFresh(false), threw = false;
+      Object.keys(st.forces).forEach(function (f) { delete st.forces[f].lord; delete st.forces[f].heir; });
+      Object.keys(st.officers).forEach(function (k) { delete st.officers[k].unrest; });
+      try { off.rollAging(); D.checkDefection(); off.heirOf('cao'); } catch (e) { threw = true; }
+      var count = function () {
+        DG.ui.openSheet('officers');
+        var n = document.querySelectorAll('#sheet-body [data-act="set-heir"]').length, tags = 0;
+        Array.prototype.forEach.call(document.querySelectorAll('#sheet-body .offcard .tag'), function (g) { if (g.textContent === '후계') { tags++; } });
+        DG.ui.closeSheet();
+        return { n: n, tags: tags };
+      };
+      var off0 = count();
+      C.setTune('rtk.lordAging', 1);
+      var on1 = count();
+      lordDone();
+      return !threw && off0.n === 0 && off0.tags === 0 && on1.n >= 3 && on1.tags === 1 && ('끔: 단추 0·배지 0 / 켬: 단추 ' + on1.n + '·배지 ' + on1.tags);
     });
 
     t('런타임 에러 없음', function () {
