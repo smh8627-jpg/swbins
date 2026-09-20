@@ -50,6 +50,12 @@
     { "key": "action.attack", "value": "Attack" },
     { "key": "action.brace", "value": "Brace" },
     { "key": "action.bolt", "value": "Bolt" },
-    { "key": "action.sweep", "value": "Sweep" }
+    { "key": "action.sweep", "value": "Sweep" },
+    { "key": "action.party_vanguard", "value": "Vanguard" },
+    { "key": "action.party_skirmisher", "value": "Skirmisher" },
+    { "key": "action.party_guardian", "value": "Guardian" },
+    { "key": "party.cooldown_hud", "value": "(swap in {0:0.0}s)" },
+    { "key": "party.ready_hud", "value": "(swap ready)" },
+    { "key": "party.swapped_toast", "value": "Swapped to {0}! Signature triggered." }
   ]
 }

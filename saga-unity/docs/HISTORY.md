@@ -8136,3 +8136,23 @@ DUNGEON 5.6 마무리 뒤 커밋·푸시 지시를 받고 101-2 남은 넷(GO⑤
 `docs/PROJECT_STATE.md` 갱신(FOREST 완료 요약에 101-2 전부 완료 표기, "다음 작업"에서 FOREST 제거 — 이제 GO⑤·STORY5-2/5-8만 남음, 테스트 상태·실기 확인 대기 갱신 — 15KB 상한에 걸려 여러 줄 압축). `PLAN.md` 101-2 FOREST 행에 5.6 완료·재해석 이유·대응 파일(`ForestFestivalState`·`ForestWishStone`) 추가, "FOREST 101-2 전부 닫혔다"로 갱신.
 
 **FOREST 101-2는 이제 완전히 닫혔다.** 다섯 판 전체로 GO⑤(모바일 빌드 뒤)·STORY5-2(웹·godot 둘 다 미확정, 보류)·STORY5-8(파티 시스템 자체가 없어 재검토 필요)만 남았다 — 다음 세션이 사용자와 상의해 고를 것.
+
+## 2026-09-21 — STORY 5-8 "동료 교대" 구현, STORY 101-2 사실상 전부 닫힘 ("사가 유니티 이어해" 세션, FOREST 5.6 다음)
+
+FOREST 5.6 마무리 뒤 커밋·푸시 지시를 받고(다른 세션이 그 사이 saga-web에 커밋 하나를 올려둬 rebase로 정리 후 푸시), 101-2 마지막 남은 셋(GO⑤·STORY5-2·STORY5-8) 중 GO⑤(모바일 빌드 선행)를 빼고 사용자에게 AskUserQuestion으로 물어 "STORY 5-8 동료 교대"를 골랐다.
+
+**전제 확인 — 이 트랙엔 붙일 축이 훨씬 적다**: 웹판 §5-8(`saga-web/saga-story/PLAN.md` 302행)은 인물 105 로스터에서 셋을 편성해 각자 개별 체력을 갖고, 전투 중 교대 버튼으로 0.2초 무적과 함께 즉시 바뀌며, 쓰러진 인물은 마을 복귀까지 교대할 수 없는 것을 전제한다. 이 트랙엔 인물 로스터 자체가 없고(`StoryCombat.cs` 클래스 주석 "인물 로스터를 아직 안 붙였다"), 결정적으로 **플레이어가 피격당하지 않는다**(`StoryCombat.StartHp` 주석 "플레이어가 안 맞아 미사용", `StoryEnemy.cs` "제자리에 서서 맞기만 한다") — 그래서 "개별 체력"·"쓰러짐"·"0.2초 무적" 셋 다 적용할 대상 자체가 없다.
+
+**재해석**: "편성"을 인물 획득이 아니라 **항상 갖춘 고정 역할 셋**으로 좁혔다 — 선봉(先鋒, 공격 배율 1.15)·유격(遊擊, 1.0)·호법(護法, 0.9). "체력"을 공격 배율로, "서명 1발(효과 9 중 1, 새 효과 없음)"을 그 역할에 매긴 이 트랙 기존 무예 하나(선봉→횡소, 유격→기탄, 호법→기합)를 **MP 소모 없이** 즉시 발동하는 것으로 재해석했다 — 다만 그 무예 자신의 쿨다운(횡소 4s·기탄 6s·기합 14s)은 그대로 존중한다(교대 자체의 4초 쿨다운과는 별개 축, 새 로직 대신 기존 `TrySweep/TryBolt/TryBrace`에 `free` 파라미터 하나만 얹어 재사용 — "새 효과 없음" 원칙 그대로). 직업·무예는 웹판 그대로 계정 단위 — 활성 역할은 계정 위에 얹는 공격 배율+서명 트리거일 뿐 전직·SP와 무관하다.
+
+**UI 재해석**: 웹판 "HUD 왼쪽 아래 초상 3(체력 바)"은 초상·체력이 없어 `StoryHud`의 기존 텍스트 HUD에 한 줄(🎭 활성 역할명 + 교대 쿨다운/가능 여부)로 옮겼다. "교대 버튼 1(폰은 초상 탭)"은 역할별 버튼 셋(선봉/유격/호법)으로 재해석했다(초상이 없어 버튼 하나로 순환시키는 것보다 명확).
+
+**구현**: 새 `Data/StoryPartyState.cs`(순수 로스터·쿨다운 판정, `Swapped` 이벤트). `Player/StoryPlayerController.cs`: `CurrentAtk`에 `StoryPartyState.AtkMultiplier` 곱, `TrySweep/TryBolt/TryBrace`에 `free` 파라미터, 새 `TriggerPartySwap(int)`(교대 성사 시 토스트 + 서명 발동), `Update()`에 `StoryPartyState.TickCooldown(dt)`. `UI/StoryHud.cs`에 교대 상태 줄. `Data/StorySaveState.cs`에 `partyActiveIndex`(버전 안 올림, `championWeek`류와 같은 결 — 없으면 0=선봉). `Editor/BuildTestStoryScene.cs`에 무예 버튼(y=380) 위 한 줄(y=580)로 역할 버튼 셋. `Resources/Localization/story_{ko,en}.json`에 버튼·HUD 키 추가.
+
+**헤드리스 진단**: `PlaytestStorySlice.cs`의 Phase 상태기계(`BraceTest` 다음)에 `PartySwapTest`/`PartySwapWait` 신설 — 유격(기탄)으로 교대 → MP 안 줄었는지(무료) → 관통 투사체로 더미 둘 처치 확인(BoltCast/BoltWait와 같은 실시간 대기 결) → 쿨다운 중 재교대 거절 → `_cooldownLeft`를 리플렉션으로 비운 뒤 재시도하면 성사 확인 → 이후 단계가 공격 배율에 안 물들게 `StoryPartyState.Restore(0)`으로 되돌림. `SaveLoad` phase에도 `partyActiveIndex`(2로 바꿔 둔 뒤 왕복) 검증 추가.
+
+`tools/unity-batch.sh`로 컴파일(오류 0) → 씬 재빌드(`BuildTestStoryScene.Build`) → `PlaytestStorySlice.Run` 전체 통과(`party swap OK` 신규, sweep/bolt/brace/비경/세이브 전부 회귀 없음).
+
+`docs/PROJECT_STATE.md` 갱신(STORY 완료 요약에 5-8 추가·101-3 세부는 위 §24 표와 중복이라 압축, "다음 작업"에서 STORY5-8 제거 — 이제 GO⑤·STORY5-2만 남음, 테스트 상태·실기 확인 대기 갱신). `PLAN.md` 101-2 STORY 행에 5-8 완료·재해석 이유·대응 파일(`StoryPartyState`) 추가.
+
+**STORY 101-2는 이제 5-2(웹·godot 둘 다 미확정, 보류)만 남았다.** 다섯 판 전체로 GO⑤(모바일 빌드 뒤)·STORY5-2뿐 — 사실상 101-2는 다 닫혔다. 다음 세션은 실기 확인(사용자 몫)이나 PLAN 104-1/105 열린 질문 쪽으로 자연스럽게 넘어갈 것.

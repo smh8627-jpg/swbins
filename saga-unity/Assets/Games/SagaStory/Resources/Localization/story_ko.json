@@ -50,6 +50,12 @@
     { "key": "action.attack", "value": "공격" },
     { "key": "action.brace", "value": "기합" },
     { "key": "action.bolt", "value": "기탄" },
-    { "key": "action.sweep", "value": "횡소" }
+    { "key": "action.sweep", "value": "횡소" },
+    { "key": "action.party_vanguard", "value": "선봉" },
+    { "key": "action.party_skirmisher", "value": "유격" },
+    { "key": "action.party_guardian", "value": "호법" },
+    { "key": "party.cooldown_hud", "value": "(교대까지 {0:0.0}초)" },
+    { "key": "party.ready_hud", "value": "(교대 가능)" },
+    { "key": "party.swapped_toast", "value": "{0}(으)로 교대! 서명을 발동했다." }
   ]
 }

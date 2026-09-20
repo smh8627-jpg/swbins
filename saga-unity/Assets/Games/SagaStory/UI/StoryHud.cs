@@ -67,6 +67,15 @@ namespace Saga.Story.UI
                 }
                 label.text += $"\n{floorLine}";
             }
+
+            // PLAN.md 101-2 5-8 "동료 교대" — 웹판 "HUD 왼쪽 아래 초상 3(체력
+            // 바)"을 이 트랙의 텍스트 HUD 한 줄로 재해석(초상·체력 자체가
+            // 없다, StoryPartyState.cs 클래스 주석 참고).
+            string partyName = StoryPartyState.Active.Name;
+            string cooldown = StoryPartyState.CooldownLeft > 0f
+                ? string.Format(StoryLocalization.T("party.cooldown_hud", "(교대까지 {0:0.0}초)"), StoryPartyState.CooldownLeft)
+                : StoryLocalization.T("party.ready_hud", "(교대 가능)");
+            label.text += $"\n🎭 {partyName} {cooldown}";
         }
     }
 }

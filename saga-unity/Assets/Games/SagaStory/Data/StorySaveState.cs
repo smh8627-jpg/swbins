@@ -68,6 +68,10 @@ namespace Saga.Story.Data
             // 조각 0·강화 0단"으로 무해하게 시작한다.
             public int memoryShards;
             public int memoryTier;
+            // 101-2 5-8 "동료 교대"(2026-09-21) — championWeek와 같은 이유로
+            // 버전을 안 올린다. 없는 필드는 0(선봉)으로 채워져 옛 세이브도
+            // "선두 1인" 기본값과 같아 무해하다(웹판 "없으면 선두 1인").
+            public int partyActiveIndex;
         }
 
         public static bool Save()
@@ -91,6 +95,7 @@ namespace Saga.Story.Data
                 championWeek = _championWeek,
                 memoryShards = StoryLabyrinthState.MemoryShards,
                 memoryTier = StoryLabyrinthState.MemoryTier,
+                partyActiveIndex = StoryPartyState.ActiveIndex,
             };
 
             try
@@ -127,6 +132,7 @@ namespace Saga.Story.Data
             StoryJobState.Restore(data.level, data.exp, data.job);
             _championWeek = data.championWeek;
             StoryLabyrinthState.Restore(data.memoryShards, data.memoryTier);
+            StoryPartyState.Restore(data.partyActiveIndex);
 
             Transform player = FindPlayer();
             if (player != null && data.playerPos != null && data.playerPos.Length == 3)
