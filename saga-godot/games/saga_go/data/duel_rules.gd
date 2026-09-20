@@ -30,6 +30,16 @@ const MORALE_MUL := 3.0
 const JUST_DODGE_WINDOW := 0.25
 const JUST_DODGE_KI_BONUS := 0.30 # KI_MAX의 비율
 
+## 2026-09-21 — 위 주석의 "부위 3 파괴"를 이제 옮긴다. 3D PLAN 101-2 의
+## 2026-09-20 결정("Target 버튼으로 갑주→병장→기마 순환 선택")은 웹
+## 실제 구현(saga-web/saga-go/PLAN.md §5-③ "구현(2026-09-17)")과 다른
+## 걸 새로 설계한 것이었다 — 웹은 자리를 나누지 않고 같은 기세 풀을
+## 25%/50%/75% 누적 문턱으로 읽어 파괴마다 스태거를 강제한다. "새로
+## 설계하지 않는다" 원칙대로 새 조준 UI가 아니라 이 방식을 그대로
+## 옮긴다. is_raid(웹의 create({raid:true}))가 꺼져 있으면(기본값,
+## 산적·늑대 무리·정찰병) 전혀 안 걸린다 — "도적 두목"(토벌)만 켠다.
+const STAGGER_THRESHOLDS := [0.75, 0.50, 0.25] # foe_hp 대비 남은 비율, 높은 것부터
+
 var foe_hp := 0.0
 var hp := 0.0
 var foe_atk := 0.0
@@ -44,6 +54,9 @@ var foe_n := 0
 var tell := 0.0
 var dodged := false
 var just_dodged := false
+var is_raid := false
+var stagger_count := 0
+var _stagger_next_idx := 0
 
 var dealt := 0.0
 var hits := 0
@@ -57,7 +70,7 @@ var over := false
 var cleared := false
 var fled := false
 
-static func create(foe_hp_in: float, my_atk_in: float, my_def_in: float, time_sec: float = TIME_SEC) -> DuelRules:
+static func create(foe_hp_in: float, my_atk_in: float, my_def_in: float, time_sec: float = TIME_SEC, is_raid_in: bool = false) -> DuelRules:
 	var s := DuelRules.new()
 	s.foe_hp = maxf(1.0, roundf(foe_hp_in))
 	s.hp = s.foe_hp
@@ -67,6 +80,7 @@ static func create(foe_hp_in: float, my_atk_in: float, my_def_in: float, time_se
 	s.morale_max = s.morale
 	s.left = time_sec
 	s.foe_t = FOE_GAP
+	s.is_raid = is_raid_in
 	return s
 
 ## 웹판 winChance(foeId, mine) 그대로 — 0.12~0.88 사이로 눌러 둔다.
@@ -99,8 +113,9 @@ func act(kind: String) -> Dictionary:
 		hp -= big
 		dealt += big
 		ults += 1
+		var staggers := _check_stagger()
 		_finish_if_done()
-		return {"ok": true, "kind": "ult", "dmg": big}
+		return {"ok": true, "kind": "ult", "dmg": big, "stagger": staggers > 0}
 
 	if kind != "quick":
 		return {"ok": false, "reason": "what"}
@@ -112,8 +127,24 @@ func act(kind: String) -> Dictionary:
 	hp -= dmg
 	dealt += dmg
 	hits += 1
+	var staggers := _check_stagger()
 	_finish_if_done()
-	return {"ok": true, "kind": "quick", "dmg": dmg}
+	return {"ok": true, "kind": "quick", "dmg": dmg, "stagger": staggers > 0}
+
+## 웹 saga-web/saga-go/PLAN.md §5-③ 실제 구현 그대로 — is_raid 인스턴스만
+## 남은 기세(hp/foe_hp)가 75%/50%/25% 문턱을 지날 때마다 스태거 1회씩
+## 강제한다(부위 "파괴" 3회를 같은 기세 풀의 누적 문턱으로 재현). 큰 필살
+## 한 번에 문턱 두 개를 넘으면 그만큼 겹쳐 돌려준다(호출부가 보상·연출을
+## 문턱 수만큼 준다).
+func _check_stagger() -> int:
+	if not is_raid:
+		return 0
+	var n := 0
+	while _stagger_next_idx < STAGGER_THRESHOLDS.size() and hp <= foe_hp * STAGGER_THRESHOLDS[_stagger_next_idx]:
+		_stagger_next_idx += 1
+		n += 1
+	stagger_count += n
+	return n
 
 func _finish_if_done() -> void:
 	if hp <= 0.0:

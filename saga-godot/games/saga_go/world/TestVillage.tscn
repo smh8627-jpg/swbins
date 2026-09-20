@@ -64,6 +64,7 @@ recruit_id = "도적_두목"
 quest_id_to_complete = "village_ask"
 foe_exp_reward = 90.0
 time_sec = 75.0
+is_raid = true
 
 [node name="WolfPackEvent" type="Node3D" parent="."]
 script = ExtResource("7")
