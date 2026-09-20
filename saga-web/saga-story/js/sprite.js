@@ -1,13 +1,11 @@
 /**
- * 스프라이트 — 코드로 그리는 캐릭터 / 몬스터 / 건물
+ * 스프라이트 — 코드로 그리는 캐릭터 / 몬스터
  * ---------------------------------------------------------------
  * 이미지 파일 없이 캔버스 도형으로 형상을 만든다. 벡터라서 2.5D 원근에 맞춰
  * 확대·축소해도 깨지지 않고, 관절 각도로 걷는 동작을 만들 수 있다.
  *
  *   human(ctx, o)     사람 — 머리·몸통·팔·다리·투구·무기. 걸음 위상으로 팔다리가 흔들린다
  *   beast(ctx, o)     짐승 — 네발 / 조류 / 용 / 거북 / 물고기 / 두꺼비
- *   building(ctx, o)  건물 — 한옥 기와 실루엣. 본편에서 부르는 곳은 없다(경영을 뺐다).
- *                     확장(js/_expansion)이 배경·장식으로 다시 쓸 수 있게 남겨 둔다
  *
  * 외형 파라미터는 인물마다 일일이 적지 않는다. 기질(무/지/덕)·세력·등급에서
  * 규칙으로 뽑고, 특징이 뚜렷한 인물만 예외 표에 적는다(LOOKS).
@@ -1331,275 +1329,6 @@
     ctx.fill();
   }
 
-  /* ── 건물 ─────────────────────────────────────────────── */
-
-  /**
-   * @param o {x, y, s, form, color, t, night}
-   *          (x, y) 는 바닥 중앙. s=1 이면 높이 약 46px.
-   */
-  var ROOF = {
-    hall: '#3f4a5c', barracks: '#5f3c3c', wall: '#6c6c76', market: '#7a4636',
-    library: '#3c5450', stable: '#5a4530', farm: '#4a6b32', forge: '#4a4a54',
-    beacon: '#6a6a74', shrine: '#8a3b32'
-  };
-
-  function building(ctx, o) {
-    var H = 46 * (o.s || 1);
-    var form = o.form || 'hall';
-    var wood = '#7a5334', woodDark = '#5a3c26';
-    var roof = o.color || ROOF[form] || '#3f4a5c', roofLite = shade(roof, 0.22), roofDark = shade(roof, -0.4);
-    var wall = '#d9cdb4', wallDark = '#b8a98c';
-
-    ctx.save();
-    ctx.translate(o.x, o.y);
-    ctx.lineJoin = 'round';
-
-    function tiledRoof(cx, cy, w, h) {          // 처마가 살짝 올라간 기와지붕
-      ctx.beginPath();
-      ctx.moveTo(cx - w, cy);
-      ctx.quadraticCurveTo(cx - w * 0.55, cy + h * 0.14, cx - w * 0.30, cy - h * 0.62);
-      ctx.lineTo(cx + w * 0.30, cy - h * 0.62);
-      ctx.quadraticCurveTo(cx + w * 0.55, cy + h * 0.14, cx + w, cy);
-      ctx.closePath();
-      var g = ctx.createLinearGradient(0, cy - h, 0, cy);
-      g.addColorStop(0, roofLite); g.addColorStop(1, roofDark);
-      ctx.fillStyle = g; ctx.fill();
-      ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = H * 0.02; ctx.stroke();
-      // 기와 골
-      ctx.strokeStyle = 'rgba(0,0,0,0.18)'; ctx.lineWidth = H * 0.012;
-      for (var i = -3; i <= 3; i++) {
-        ctx.beginPath();
-        ctx.moveTo(cx + i * w * 0.22, cy - h * 0.6);
-        ctx.lineTo(cx + i * w * 0.30, cy - h * 0.02);
-        ctx.stroke();
-      }
-      // 용마루 — 지붕 꼭대기의 밝은 선
-      ctx.strokeStyle = shade(roof, 0.42); ctx.lineWidth = H * 0.026;
-      ctx.beginPath();
-      ctx.moveTo(cx - w * 0.30, cy - h * 0.62);
-      ctx.lineTo(cx + w * 0.30, cy - h * 0.62);
-      ctx.stroke();
-      // 처마 밑 단청 — 붉은 띠에 푸른 점
-      ctx.fillStyle = 'rgba(170,60,50,0.75)';
-      ctx.fillRect(cx - w * 0.86, cy - h * 0.02, w * 1.72, H * 0.026);
-      ctx.fillStyle = 'rgba(70,110,160,0.75)';
-      for (var dc = -3; dc <= 3; dc++) {
-        ctx.fillRect(cx + dc * w * 0.24 - H * 0.012, cy - h * 0.02, H * 0.024, H * 0.026);
-      }
-    }
-
-    /** 기단 — 건물을 석축 위에 올려 놓으면 바닥에 박힌 느낌이 사라진다 */
-    function stylobate(cx, cy, w) {
-      ctx.beginPath();
-      ctx.moveTo(cx - w * 1.10, cy);
-      ctx.lineTo(cx + w * 1.10, cy);
-      ctx.lineTo(cx + w * 1.00, cy - H * 0.075);
-      ctx.lineTo(cx - w * 1.00, cy - H * 0.075);
-      ctx.closePath();
-      ctx.fillStyle = '#9b9689'; ctx.fill();
-      ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = H * 0.01;
-      ctx.stroke();
-      // 계단
-      ctx.fillStyle = '#b3aea0';
-      ctx.fillRect(cx - w * 0.20, cy - H * 0.055, w * 0.40, H * 0.055);
-    }
-
-    function body(cx, cy, w, h) {               // 벽 + 기둥 + 문
-      ctx.fillStyle = wall;
-      ctx.fillRect(cx - w, cy - h, w * 2, h);
-      ctx.fillStyle = wallDark;
-      ctx.fillRect(cx - w, cy - h * 0.16, w * 2, h * 0.16);
-      ctx.fillStyle = woodDark;
-      ctx.fillRect(cx - w, cy - h, w * 0.13, h);
-      ctx.fillRect(cx + w - w * 0.13, cy - h, w * 0.13, h);
-      ctx.fillStyle = wood;
-      ctx.fillRect(cx - w * 0.26, cy - h * 0.78, w * 0.52, h * 0.78);
-      ctx.fillStyle = 'rgba(255,214,120,0.5)';
-      ctx.fillRect(cx - w * 0.18, cy - h * 0.66, w * 0.36, h * 0.42);
-      // 창호 격자 — 문에 세로 두 줄, 가로 한 줄
-      ctx.strokeStyle = woodDark; ctx.lineWidth = H * 0.012;
-      ctx.beginPath();
-      ctx.moveTo(cx, cy - h * 0.78); ctx.lineTo(cx, cy);
-      ctx.moveTo(cx - w * 0.26, cy - h * 0.40); ctx.lineTo(cx + w * 0.26, cy - h * 0.40);
-      ctx.stroke();
-      // 좌우 벽의 작은 창
-      ctx.fillStyle = 'rgba(240,225,190,0.55)';
-      ctx.fillRect(cx - w * 0.72, cy - h * 0.70, w * 0.24, h * 0.26);
-      ctx.fillRect(cx + w * 0.48, cy - h * 0.70, w * 0.24, h * 0.26);
-    }
-
-    if (form === 'hall') {                       // 집무전 — 2층 기와 + 기단 + 현판
-      stylobate(0, 0, H * 0.42);
-      body(0, 0, H * 0.42, H * 0.42);
-      // 현판 — 처마 아래 벽면에 걸린다
-      ctx.fillStyle = '#2a2620';
-      ctx.fillRect(-H * 0.13, -H * 0.37, H * 0.26, H * 0.075);
-      ctx.fillStyle = '#d9b23c';
-      ctx.fillRect(-H * 0.11, -H * 0.355, H * 0.22, H * 0.013);
-      ctx.fillRect(-H * 0.11, -H * 0.322, H * 0.22, H * 0.013);
-      tiledRoof(0, -H * 0.42, H * 0.56, H * 0.26);
-      body(0, -H * 0.62, H * 0.30, H * 0.28);
-      tiledRoof(0, -H * 0.90, H * 0.44, H * 0.24);
-      ctx.fillStyle = '#d9b23c';
-      ctx.fillRect(-H * 0.03, -H * 1.14, H * 0.06, H * 0.12);
-    } else if (form === 'barracks') {            // 병영 — 낮은 건물 + 깃발
-      body(0, 0, H * 0.44, H * 0.34);
-      tiledRoof(0, -H * 0.34, H * 0.56, H * 0.22);
-      flag(ctx, H * 0.34, -H * 0.52, H, o.t, '#c0453c');
-      flag(ctx, -H * 0.34, -H * 0.52, H, (o.t || 0) + 400, '#c0453c');
-    } else if (form === 'wall') {                // 성벽 — 톱니 성가퀴
-      ctx.fillStyle = '#8f8f98';
-      ctx.fillRect(-H * 0.52, -H * 0.46, H * 1.04, H * 0.46);
-      ctx.fillStyle = '#a8a8b2';
-      for (var w2 = -2; w2 <= 2; w2++) {
-        ctx.fillRect(w2 * H * 0.22 - H * 0.08, -H * 0.60, H * 0.16, H * 0.16);
-      }
-      ctx.strokeStyle = 'rgba(0,0,0,0.22)'; ctx.lineWidth = H * 0.012;
-      for (var r2 = 1; r2 <= 3; r2++) {
-        ctx.beginPath();
-        ctx.moveTo(-H * 0.52, -H * 0.46 + r2 * H * 0.11);
-        ctx.lineTo(H * 0.52, -H * 0.46 + r2 * H * 0.11);
-        ctx.stroke();
-      }
-    } else if (form === 'market') {              // 저잣거리 — 천막 + 좌판
-      ctx.fillStyle = woodDark;
-      ctx.fillRect(-H * 0.40, -H * 0.26, H * 0.80, H * 0.10);
-      ctx.beginPath();
-      ctx.moveTo(-H * 0.50, -H * 0.30);
-      ctx.lineTo(H * 0.50, -H * 0.30);
-      ctx.lineTo(H * 0.34, -H * 0.54);
-      ctx.lineTo(-H * 0.34, -H * 0.54);
-      ctx.closePath();
-      ctx.fillStyle = '#c9563f'; ctx.fill();
-      ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = H * 0.02;
-      ctx.beginPath();
-      ctx.moveTo(-H * 0.12, -H * 0.30); ctx.lineTo(-H * 0.05, -H * 0.54);
-      ctx.moveTo(H * 0.12, -H * 0.30); ctx.lineTo(H * 0.05, -H * 0.54);
-      ctx.stroke();
-      ctx.fillStyle = wood;
-      ctx.fillRect(-H * 0.46, -H * 0.30, H * 0.05, H * 0.30);
-      ctx.fillRect(H * 0.41, -H * 0.30, H * 0.05, H * 0.30);
-    } else if (form === 'library') {             // 서고 — 낮고 긴 건물
-      body(0, 0, H * 0.44, H * 0.30);
-      tiledRoof(0, -H * 0.30, H * 0.54, H * 0.20);
-      ctx.fillStyle = 'rgba(255,255,255,0.5)';
-      ctx.fillRect(-H * 0.36, -H * 0.24, H * 0.14, H * 0.12);
-      ctx.fillRect(H * 0.22, -H * 0.24, H * 0.14, H * 0.12);
-    } else if (form === 'stable') {              // 마구간 — 개방형
-      ctx.fillStyle = woodDark;
-      ctx.fillRect(-H * 0.42, -H * 0.34, H * 0.84, H * 0.34);
-      ctx.fillStyle = '#3b2c1f';
-      ctx.fillRect(-H * 0.30, -H * 0.30, H * 0.24, H * 0.30);
-      ctx.fillRect(H * 0.06, -H * 0.30, H * 0.24, H * 0.30);
-      ctx.beginPath();
-      ctx.moveTo(-H * 0.50, -H * 0.34);
-      ctx.lineTo(H * 0.50, -H * 0.34);
-      ctx.lineTo(H * 0.36, -H * 0.56);
-      ctx.lineTo(-H * 0.36, -H * 0.56);
-      ctx.closePath();
-      ctx.fillStyle = '#6b5030'; ctx.fill();
-    } else if (form === 'farm') {                // 둔전 — 이랑 + 허수아비
-      ctx.fillStyle = '#4a6b32';
-      ctx.beginPath();
-      ctx.ellipse(0, -H * 0.06, H * 0.52, H * 0.16, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = '#6f9147'; ctx.lineWidth = H * 0.03;
-      for (var f = -2; f <= 2; f++) {
-        ctx.beginPath();
-        ctx.moveTo(f * H * 0.18 - H * 0.06, -H * 0.02);
-        ctx.lineTo(f * H * 0.18 + H * 0.02, -H * 0.22);
-        ctx.stroke();
-      }
-      ctx.strokeStyle = wood; ctx.lineWidth = H * 0.035;
-      ctx.beginPath();
-      ctx.moveTo(0, -H * 0.10); ctx.lineTo(0, -H * 0.46);
-      ctx.moveTo(-H * 0.14, -H * 0.34); ctx.lineTo(H * 0.14, -H * 0.34);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.arc(0, -H * 0.52, H * 0.07, 0, Math.PI * 2);
-      ctx.fillStyle = '#c9a24a'; ctx.fill();
-    } else if (form === 'forge') {               // 대장간 — 화덕 + 연기
-      body(0, 0, H * 0.34, H * 0.30);
-      tiledRoof(0, -H * 0.30, H * 0.44, H * 0.18);
-      ctx.fillStyle = '#5a5a64';
-      ctx.fillRect(H * 0.20, -H * 0.62, H * 0.12, H * 0.32);
-      var t = (o.t || 0) / 900;
-      for (var sm = 0; sm < 3; sm++) {
-        var k = (t + sm * 0.33) % 1;
-        ctx.beginPath();
-        ctx.arc(H * 0.26 + Math.sin(k * 6) * H * 0.05, -H * 0.66 - k * H * 0.34,
-          H * (0.05 + k * 0.06), 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(200,200,210,' + (0.28 * (1 - k)) + ')';
-        ctx.fill();
-      }
-      ctx.beginPath();
-      ctx.arc(0, -H * 0.12, H * 0.09, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(255,150,60,0.85)'; ctx.fill();
-    } else if (form === 'beacon') {              // 봉수대 — 돌탑 + 불
-      ctx.fillStyle = '#8a8a94';
-      ctx.beginPath();
-      ctx.moveTo(-H * 0.26, 0);
-      ctx.lineTo(H * 0.26, 0);
-      ctx.lineTo(H * 0.17, -H * 0.62);
-      ctx.lineTo(-H * 0.17, -H * 0.62);
-      ctx.closePath();
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = H * 0.012;
-      for (var b2 = 1; b2 <= 4; b2++) {
-        ctx.beginPath();
-        ctx.moveTo(-H * 0.26 + b2 * H * 0.02, -b2 * H * 0.14);
-        ctx.lineTo(H * 0.26 - b2 * H * 0.02, -b2 * H * 0.14);
-        ctx.stroke();
-      }
-      var fl = 1 + Math.sin((o.t || 0) / 130) * 0.18;
-      ctx.beginPath();
-      ctx.moveTo(-H * 0.13, -H * 0.62);
-      ctx.quadraticCurveTo(-H * 0.05, -H * (0.62 + 0.30 * fl), 0, -H * (0.62 + 0.42 * fl));
-      ctx.quadraticCurveTo(H * 0.05, -H * (0.62 + 0.30 * fl), H * 0.13, -H * 0.62);
-      ctx.closePath();
-      ctx.fillStyle = 'rgba(255,150,50,0.92)'; ctx.fill();
-      ctx.beginPath();
-      ctx.moveTo(-H * 0.06, -H * 0.62);
-      ctx.quadraticCurveTo(0, -H * (0.62 + 0.26 * fl), H * 0.06, -H * 0.62);
-      ctx.closePath();
-      ctx.fillStyle = 'rgba(255,235,140,0.95)'; ctx.fill();
-    } else if (form === 'shrine') {              // 사당 — 홍살문
-      ctx.fillStyle = '#a33b32';
-      ctx.fillRect(-H * 0.34, -H * 0.62, H * 0.08, H * 0.62);
-      ctx.fillRect(H * 0.26, -H * 0.62, H * 0.08, H * 0.62);
-      ctx.fillRect(-H * 0.44, -H * 0.70, H * 0.88, H * 0.08);
-      ctx.fillRect(-H * 0.38, -H * 0.54, H * 0.76, H * 0.05);
-      ctx.beginPath();
-      ctx.moveTo(-H * 0.50, -H * 0.70);
-      ctx.lineTo(H * 0.50, -H * 0.70);
-      ctx.lineTo(H * 0.34, -H * 0.84);
-      ctx.lineTo(-H * 0.34, -H * 0.84);
-      ctx.closePath();
-      ctx.fillStyle = '#2f3a4a'; ctx.fill();
-    } else {
-      body(0, 0, H * 0.38, H * 0.34);
-      tiledRoof(0, -H * 0.34, H * 0.50, H * 0.20);
-    }
-
-    ctx.restore();
-  }
-
-  function flag(ctx, x, y, H, t, color) {
-    ctx.strokeStyle = '#6b5030'; ctx.lineWidth = H * 0.02;
-    ctx.beginPath();
-    ctx.moveTo(x, y + H * 0.30); ctx.lineTo(x, y - H * 0.22);
-    ctx.stroke();
-    var wv = Math.sin((t || 0) / 240) * H * 0.03;
-    ctx.beginPath();
-    ctx.moveTo(x, y - H * 0.22);
-    ctx.quadraticCurveTo(x + H * 0.10, y - H * 0.16 + wv, x + H * 0.20, y - H * 0.20);
-    ctx.lineTo(x + H * 0.20, y - H * 0.05);
-    ctx.quadraticCurveTo(x + H * 0.10, y - H * 0.02 + wv, x, y - H * 0.06);
-    ctx.closePath();
-    ctx.fillStyle = color; ctx.fill();
-  }
-
-
   /* ── 스탬프 캐시 ──────────────────────────────────────────
    * 매 프레임 수십 개의 path 를 다시 그리는 대신, 걸음 위상을 8단계로
    * 크기를 0.08 단위로 묶어 오프스크린에 한 번 굽고 drawImage 로 붙인다.
@@ -1934,8 +1663,6 @@
         phase: 0, walking: false, form: beastFormOf(ref),
         color: beastColorOf(ref), divine: ref.kind === 'divine', ref: ref, t: 0
       });
-    } else if (kind === 'building') {
-      building(c, { x: size * 0.5, y: size * 0.95, s: size / 58, form: ref.key, color: ref.color, t: 0 });
     }
     storyize(cv, mapleOpts(size < 80));
     cache[key] = cv.toDataURL();
@@ -2019,7 +1746,7 @@
 
   global.DG = global.DG || {};
   global.DG.sprite = {
-    human: human, beast: beast, building: building,
+    human: human, beast: beast,
     portraitCard: portraitCard,
     stamp: stamp, stampStats: stampStats,
     lookOf: lookOf, beastFormOf: beastFormOf, beastColorOf: beastColorOf,

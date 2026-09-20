@@ -3452,3 +3452,11 @@ id 해시로 받는다(배정 코드는 이미 있었고 기본 꺼짐이었을 
 - **깃발은 손댈 것이 없다**: `sprite.flag()` 는 `building()` 의 `barracks` 형만 부르는데 그 형은 본편 호출부가 없다("경영을 뺐다"). 지도의 성채 깃발은 `world.js` 가 직접 그린 삼각형이다 — 코드 그림 스프라이트가 아니라 지도 UI 도형이라 유지.
 - **남은 것(Phase 4)**: `portrait()`·`portraitCard()`·`human()`·`beast()`·`building()` 이 아직 호출된다 — `portrait3d.js` 되돌림(347·434행), `ui.js` 1104·1305, `world3d.js` 1901(빌보드 되돌림)·2228, `_test/_demo/_admin`. 이걸 걷으려면 되돌림 그림을 뭘로 할지(디스크 초상 `assets/portraits`·Kenney `human_*`·`beast_*` 로 충분한가) 정해야 한다. 사가블로 건물·환경 그림도 남았다.
 - **모른다(실기 몫)**: 화면을 못 봤다. 역참 그림이 지도에서 성채 그림과 같은 크기 감으로 읽히는지, 배경 생물이 사슴·늑대처럼 보이는지(까치는 비둘기 모델).
+
+## 2026-09-21 (이어서 9) — 2D 교체 Phase 3(마무리): 사가블로·사가의숲·사가스토리·사가국지의 죽은 `building()`·`flag()` 삭제
+
+- **무엇**: 네 판 `js/sprite.js` 에서 `building()`(한옥 기와 건물 그림)과 그것만 부르던 `flag()`·`ROOF` 표·지붕/기단/몸체 보조 함수(270줄)를 지웠다. 내보내기 `DG.sprite.building`, 초상 되돌림의 `kind === 'building'` 분기, 머리말 설명도 함께. 제거 원칙("안 쓰이게 되는 순간 지운다", SAGA-DESIGN §11-2)에 따른 것 — Phase 4 까지 안 미룬다.
+- **왜 지워도 되나**: 네 판 모두 `building` 호출부가 `sprite.js` 안의 `portrait(kind='building')` 분기 하나뿐이었고, 그 분기를 부르는 곳이 없었다(`grep` 으로 js·_test·_admin·_demo 확인). `P3.willSwap('building', …)` 진단은 `portrait3d.js` 쪽이라 영향 없다. `flag()` 는 `building()` 의 barracks 형만 불렀다. 사가의숲 진단 "깃발" 은 마을 깃발(별개 코드)이다.
+- **사가고는 그대로**: `world.js` 1702 가 `DG.sprite.building(…, {img: buildingImg('Inn')})` 로 아직 부른다(역참 마커가 에셋 그림이지만 진입점이 이 함수). Phase 4 에서 그 진입점을 얇은 함수로 바꾸며 함께 정리한다.
+- **확인**: `node -c` 네 판 통과. jsdom 러너(스크래치패드; 서버·크롬 없이 _test.html 을 돌리는 방식)로 수정본과 HEAD 를 같은 러너로 돌려 결과가 **줄 단위로 동일** — 사가블로 360/362(실패 2건 HEAD 에서도 동일), 사가의숲 318/319(깃발 그림 1건 HEAD 동일), 사가스토리 195/199(HEAD 동일 4건), 사가국지 210/210. `git diff --numstat` 은 판마다 +2/-275(줄바꿈 뒤집힘 없음).
+- **남은 것**: Phase 4(사가고 `portrait()`·`portraitCard()`·`human()`·`beast()` 되돌림 그림을 디스크 초상+Kenney/`beast_*` 로 갈지 — **사용자 결정 필요**), 실기 확인, VRoid 캐릭터 추가. 사가블로 "환경 그림"(타일 등)은 `sprite.js` 가 아니라 `dungeon-view.js` 가 캔버스 그라디언트·도형으로 직접 그린다(벽·바닥·문). `sprite.js` 밖이라 이번 삭제 대상이 아니고, 에셋 교체 여부는 사용자 결정 몫이다.
