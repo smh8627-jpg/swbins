@@ -1000,3 +1000,9 @@ PLAN.md 양쪽에 "캠프 소품이 미착수"로 적힌 옛 기록이 있었는
 다만 그 소품들의 GLB(`Tent.glb`·`Bench_1.glb`·`Well.glb`·`WoodenTorch.glb`,
 위 "models/props/" 절)는 여전히 옛 팩 그대로라 이번 킷배싱·팔레트 스냅
 대상에서는 뺐다 — 집 세 채만 이번 범위다.
+
+## VRM 애니메 아바타 가공 (2026-09-20)
+
+`assets/models/people/anime/avatar_*.glb` 넷은 `tools/glb-compress/vrm-slim.mjs` 로 **가공한 파일**이다 —
+표정 모프 타깃(54~57개)을 떼고 같은 재질 프리미티브를 합쳤다(정점·뼈·재질·텍스처는 그대로, 용량 25MB → 11MB,
+캐릭터당 드로우콜 90~135 → 14~19). 다섯 판 복사본은 같은 파일(md5 동일)이다.

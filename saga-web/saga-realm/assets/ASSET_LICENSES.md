@@ -271,3 +271,9 @@ VRoid Studio 공식 CC0 샘플 AvatarSample_A/B/C(github.com/madjin/vrm-samples,
 초상뿐) `anim`을 몸 파일 자신으로 줘 리타깃을 안 건다(위 MPFB와 같은
 이유). `js/asset3d.js`의 `HERO_RECIPES_ANIME`(기본 꺼짐, `world3d.animeAvatar`
 손잡이)로만 쓰인다.
+
+## VRM 애니메 아바타 가공 (2026-09-20)
+
+`assets/models/people/anime/avatar_*.glb` 넷은 `tools/glb-compress/vrm-slim.mjs` 로 **가공한 파일**이다 —
+표정 모프 타깃(54~57개)을 떼고 같은 재질 프리미티브를 합쳤다(정점·뼈·재질·텍스처는 그대로, 용량 25MB → 11MB,
+캐릭터당 드로우콜 90~135 → 14~19). 다섯 판 복사본은 같은 파일(md5 동일)이다.
