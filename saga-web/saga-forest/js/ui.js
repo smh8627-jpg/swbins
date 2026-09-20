@@ -29,6 +29,14 @@
   function ai() { return global.DG.ai; }
 
   function $(id) { return document.getElementById(id); }
+  /** 물건 등급 이름표(`data-village.js` gradeOf) — 색만 입힌 작은 글씨. 등급 이름은 인물·펫과 같다 */
+  function gradeTag(kind, price) {
+    var VD = global.DG.villageData;
+    if (!VD || !VD.gradeOf) { return ''; }
+    var g = VD.gradeOf(kind, price);
+    return g.name ? ' <small class="rar" style="color:' + g.color + '">' + esc(g.name) + '</small>' : '';
+  }
+
   function esc(s) {
     return String(s).replace(/[&<>"]/g, function (c) {
       return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c];
@@ -833,7 +841,7 @@
       var e = list[i];
       var sow = ['fruit', 'nut', 'flower'].indexOf(e.item.cat) >= 0;
       html += '<div class="card gearcard">' +
-        '<div class="gearname">' + e.item.emoji + ' ' + esc(e.item.name) +
+        '<div class="gearname">' + e.item.emoji + ' ' + esc(e.item.name) + gradeTag('gather', e.item.price) +
           ' <small class="muted">×' + e.n + ' · 낱개 🪙 ' + core.fmt(e.item.price) + '</small></div>' +
         '<div class="bagtools">' +
           '<button class="btn tiny" data-act="v-sell" data-id="' + e.item.key + '" data-n="1">1개 판다</button>' +
@@ -894,7 +902,7 @@
       var f = shop[i];
       var set = VD.FURN_SETS[f.set];
       html += '<div class="card gearcard">' +
-        '<div class="gearname">🪑 ' + esc(f.name) +
+        '<div class="gearname">🪑 ' + esc(f.name) + gradeTag('goods', f.price) +
           ' <small class="muted">' + esc(set ? set.name : '') + ' 계열 · 창고에 ' +
           Hm.stockCount(f.key) + '</small></div>' +
         '<div class="bagtools">' +
@@ -911,7 +919,7 @@
     [['wall', fin.wall, '벽지'], ['floor', fin.floor, '장판']].forEach(function (e) {
       var got = Hm.ownsFinish(e[0], e[1].key);
       html += '<div class="card gearcard">' +
-        '<div class="gearname">🎨 ' + esc(e[1].name) +
+        '<div class="gearname">🎨 ' + esc(e[1].name) + gradeTag('goods', e[1].price) +
           ' <small class="muted">' + e[2] + '</small></div>' +
         '<div class="bagtools">' +
           (got
@@ -1265,7 +1273,7 @@
         var e = stt.stock[i];
         var set = VD.FURN_SETS[e.furn.set];
         html += '<div class="card gearcard">' +
-          '<div class="gearname">🪑 ' + esc(e.furn.name) +
+          '<div class="gearname">🪑 ' + esc(e.furn.name) + gradeTag('goods', e.furn.price) +
             ' <small class="muted">×' + e.n + ' · ' + esc(set ? set.name : '') +
             ' · 🪙 ' + core.fmt(e.furn.price) + '</small></div>' +
           '<div class="bagtools">' +
@@ -1574,7 +1582,7 @@
         html += '<div class="card gearcard' + (e.on ? ' hi' : '') + '">' +
           '<div class="gearname">' +
             (e.it.c ? '<span class="swatch" style="background:' + e.it.c + '"></span>' : '🧵 ') +
-            esc(e.it.name) +
+            esc(e.it.name) + gradeTag('goods', e.it.price) +
             (e.on ? ' <small class="muted">— 입고 있음</small>' : '') + '</div>' +
           '<div class="bagtools">' +
             (e.own
@@ -1712,7 +1720,7 @@
       var dup = have ? owned[e.id].count - 1 : 0;
       out += '<button class="dcell' + (have ? '' : ' locked') + '" style="border-color:' +
         (have ? rar.color : 'transparent') + '" title="' +
-        esc(e.name + (have ? (dup ? ' · 중복 ' + dup : '') : ' (미획득)')) + '"' +
+        esc(e.name + ' · ' + rar.name + (have ? (dup ? ' · 중복 ' + dup : '') : ' (미획득)')) + '"' +
         ' data-act="detail" data-kind="' + kind + '" data-id="' + e.id + '">' +
         (have ? '<span class="de">' + pt(kind, e, 52) + '</span>'
               : '<span class="de locked-mark">❔</span>') +
@@ -1850,7 +1858,7 @@
           '<div class="dt-tags">' +
             '<span class="tag fac" style="background:' + fac.color + '">' + fac.mark + ' ' + esc(h.faction) + '</span>' +
             '<span class="tag">' + esc(h.era) + '</span>' +
-            '<span class="tag" style="color:' + rar.color + '">' + rar.label + '</span>' +
+            '<span class="tag" style="color:' + rar.color + '">' + rar.name + ' ' + rar.label + '</span>' +
             '<span class="tag">' + data.traitMark[h.trait] + '</span>' +
           '</div>';
 
@@ -1960,7 +1968,7 @@
           '<div class="dt-tags">' +
             '<span class="tag fac" style="background:' + (p.kind === 'divine' ? '#8a5cc0' : '#5f7a4a') + '">' +
               (p.kind === 'divine' ? '神 신수' : '獸 동물') + '</span>' +
-            '<span class="tag" style="color:' + rar.color + '">' + rar.label + '</span>' +
+            '<span class="tag" style="color:' + rar.color + '">' + rar.name + ' ' + rar.label + '</span>' +
           '</div>' +
           '<div class="dt-lv">' + (owned
             ? '보유 ' + d.count + '마리' + (wearer ? ' · ' + esc(wearer.name) + ' 장착 중' : ' · 장착 안 됨')

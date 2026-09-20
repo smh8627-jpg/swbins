@@ -40,6 +40,13 @@
    * 3D 짝이 없는 펫 — `portrait3d.PET_MAP` 참고)에서는 빈 문자열이라
    * **여태 그림이 그대로 남는다**.
    */
+  /** 장비 등급 이름표 — 밑줄 없이 색만 입힌 작은 글씨(`data-gear.js` grade). 등급 이름은 인물·펫과 같다 */
+  function gradeTag(GD, d) {
+    if (!GD || !GD.grade || !d) { return ''; }
+    var g = GD.grade(d);
+    return g.name ? ' <small class="rar" style="color:' + g.color + '">' + esc(g.name) + '</small>' : '';
+  }
+
   function p3tag(kind, ref, w, h) {
     var P3 = global.DG.portrait3d;
     if (!P3 || !P3.ready() || !P3.supports(kind, ref)) { return ''; }
@@ -904,7 +911,7 @@
       var sl = GD.SLOTS[i], it = eq[sl.key];
       html += '<div class="stat-row"><span>' + sl.emoji + ' ' + esc(sl.name) + '</span>';
       if (it) {
-        html += '<span><b>' + esc(G.nameOf(it)) + '</b> <small class="muted">' +
+        html += '<span><b>' + esc(G.nameOf(it)) + '</b>' + gradeTag(GD, G.defOf(it)) + ' <small class="muted">' +
           esc(optLine(G.statsOf(it))) + '</small> ' +
           '<button class="btn tiny ghost" data-act="g-unequip" data-slot="' + sl.key +
           '">벗기</button></span>';
@@ -931,7 +938,7 @@
       var g = inv[i], d = G.defOf(g), on = G.isEquipped(g.uid);
       var canWear = core.save.player.level >= d.need;
       html += '<div class="card' + (on ? ' on' : '') + '">' +
-        '<div class="stat-row"><span><b>' + esc(G.nameOf(g)) + '</b>' +
+        '<div class="stat-row"><span><b>' + esc(G.nameOf(g)) + '</b>' + gradeTag(GD, d) +
           (on ? ' <small class="muted">— 끼고 있음</small>' : '') + '</span>' +
           '<span class="muted">' + esc(GD.slot(d.slot).name) + ' · Lv.' + d.need + '</span></div>' +
         '<div class="stat-row"><span class="muted">' + esc(optLine(G.statsOf(g))) + '</span>' +
@@ -1138,7 +1145,7 @@
     for (i = 0; i < list.gears.length; i++) {
       var g = list.gears[i];
       html += '<div class="card"><div class="stat-row">' +
-        '<span><b>' + esc(g.name) + '</b> <small class="muted">' +
+        '<span><b>' + esc(g.name) + '</b>' + gradeTag(GD, g) + ' <small class="muted">' +
           esc(GD.slot(g.slot).name) + ' · Lv.' + g.need + '</small></span>' +
         '<span class="muted">' + esc(optLine(g)) + '</span></div>' +
         '<button class="btn tiny ' + (gold >= g.price ? 'primary' : 'ghost') + '"' +
@@ -1194,7 +1201,7 @@
       var dup = have ? owned[e.id].count - 1 : 0;
       out += '<button class="dcell' + (have ? '' : ' locked') + '" style="border-color:' +
         (have ? rar.color : 'transparent') + '" title="' +
-        esc(e.name + (have ? (dup ? ' · 중복 ' + dup : '') : ' (미획득)')) + '"' +
+        esc(e.name + ' · ' + rar.name + (have ? (dup ? ' · 중복 ' + dup : '') : ' (미획득)')) + '"' +
         ' data-act="detail" data-kind="' + kind + '" data-id="' + e.id + '">' +
         (have ? '<span class="de">' + pt(kind, e, 52) + '</span>'
               : '<span class="de locked-mark">❔</span>') +
@@ -1386,7 +1393,7 @@
           '<div class="dt-tags">' +
             '<span class="tag fac" style="background:' + fac.color + '">' + fac.mark + ' ' + esc(h.faction) + '</span>' +
             '<span class="tag">' + esc(h.era) + '</span>' +
-            '<span class="tag" style="color:' + rar.color + '">' + rar.label + '</span>' +
+            '<span class="tag" style="color:' + rar.color + '">' + rar.name + ' ' + rar.label + '</span>' +
             '<span class="tag">' + data.traitMark[h.trait] + '</span>' +
           '</div>';
 
@@ -1496,7 +1503,7 @@
           '<div class="dt-tags">' +
             '<span class="tag fac" style="background:' + (p.kind === 'divine' ? '#8a5cc0' : '#5f7a4a') + '">' +
               (p.kind === 'divine' ? '神 신수' : '獸 동물') + '</span>' +
-            '<span class="tag" style="color:' + rar.color + '">' + rar.label + '</span>' +
+            '<span class="tag" style="color:' + rar.color + '">' + rar.name + ' ' + rar.label + '</span>' +
           '</div>' +
           '<div class="dt-lv">' + (owned
             ? '보유 ' + d.count + '마리' + (wearer ? ' · ' + esc(wearer.name) + ' 장착 중' : ' · 장착 안 됨')

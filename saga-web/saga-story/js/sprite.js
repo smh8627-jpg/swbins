@@ -1625,6 +1625,27 @@
     return Math.floor(t / (TAU / PHASES)) % PHASES;
   }
 
+  /** 옆면 뷰의 사람 그림 — Kenney Roguelike Characters(CC0)에서 오려 낸 열넷 중 인물 id 로
+   *  하나를 정해 고른다(같은 인물은 늘 같은 얼굴). 사가고·사가의숲과 같은 그림이다.
+   *  걷기 다리 애니메이션·개인별 색은 이 그림 하나로는 못 낸다 — 걸음 통통거림(stamp() 의 bounce)과
+   *  좌우 뒤집기는 그대로 산다. SAGA-DESIGN §11 Phase 2(2026-09-20) */
+  var HUMAN_SPRITE_N = 14;
+  var humanImgCache = {};
+  function humanImg(i) {
+    var n = ((i - 1) % HUMAN_SPRITE_N + HUMAN_SPRITE_N) % HUMAN_SPRITE_N + 1;
+    var src = 'assets/sprites2d/human_' + (n < 10 ? '0' + n : n) + '.png';
+    var im = humanImgCache[src];
+    if (!im) { im = new Image(); im.src = src; humanImgCache[src] = im; }
+    return im;
+  }
+  function humanReady(ref) { var im = humanImg(humanIndexOf(ref)); return !!(im.complete && im.naturalWidth); }
+  function humanIndexOf(ref) {
+    var id = String((ref && (ref.id || ref.key || ref.name)) || 'anon');
+    var h = 0;
+    for (var i = 0; i < id.length; i++) { h = (h * 31 + id.charCodeAt(i)) >>> 0; }
+    return (h % HUMAN_SPRITE_N) + 1;
+  }
+
   /** 캐시에 한 컷을 굽는다 */
   function bake(kind, ref, sc, pb, o) {
     var base = kind === 'human' ? 40 : 30;
@@ -1646,10 +1667,19 @@
       x: footX, y: footY, s: sc, facing: 1, phase: phase,
       walking: walking, noBounce: true, t: 0
     };
+    var himg = kind === 'human' ? humanImg(humanIndexOf(o.ref)) : null;
+    var useImg = !!(himg && himg.complete && himg.naturalWidth);
     if (kind === 'human') {
-      common.color = o.color; common.look = o.look; common.skin = o.skin;
-      common.rarity = o.rarity || (o.ref && o.ref.rarity) || 0;
-      human(c, common);
+      if (useImg) {
+        var hdw = H * 1.2, hdh = H * 1.2;
+        c.imageSmoothingEnabled = false;
+        c.drawImage(himg, footX - hdw / 2, footY - hdh, hdw, hdh);
+      } else {
+        /* 그림이 아직 안 실렸으면(첫 프레임) 옛 절차적 그림으로 우선 채운다 — 빈 캔버스가 캐시에 박제되지 않게 */
+        common.color = o.color; common.look = o.look; common.skin = o.skin;
+        common.rarity = o.rarity || (o.ref && o.ref.rarity) || 0;
+        human(c, common);
+      }
     } else {
       common.form = o.form; common.color = o.color; common.divine = o.divine;
       common.ref = o.ref;                      // 무늬는 ref 에서 뽑는다
@@ -1657,8 +1687,8 @@
     }
     /* 메이플풍은 여기서 한 번 훑는다 — 지도 위 스탬프는 어두운 배경에 서므로
        실루엣만 진하게 둘러 형태가 묻히지 않게 한다 */
-    storyize(cv, mapleOpts(H < 40));
-    return { cv: cv, w: w, h: h, footX: footX, footY: footY, base: base, sc: sc };
+    if (!useImg) { storyize(cv, mapleOpts(H < 40)); }
+    return { cv: cv, w: w, h: h, footX: footX, footY: footY, base: base, sc: sc, img: useImg };
   }
 
   /**
@@ -1673,6 +1703,7 @@
     var key = kind + '|' + id + '|' + sc.toFixed(2) + '|' + pb;
 
     var e = stampCache[key];
+    if (e && kind === 'human' && !e.img && humanReady(o.ref)) { e = null; }   // 그림이 실리기 전에 구운 코드 그림 컷은 다시 굽는다
     if (e) { stat.hit++; }
     else {
       stat.miss++;

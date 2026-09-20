@@ -85,7 +85,7 @@
   function cardHtml(h) {
     var D = global.DG.data;
     var rar = D.rarity[h.rarity] || D.rarity[3];
-    var img = global.DG.sprite ? global.DG.sprite.portraitCard('hero', h, 96, 110) : '';
+    var img = (global.DG.portrait3d && global.DG.portrait3d.of('hero', h, 96, 110)) || (global.DG.sprite ? global.DG.sprite.portraitCard('hero', h, 96, 110) : '');   // 구운 초상(§11 Phase 1)이 있으면 코드 그림 대신
     return '<button class="stc-cell" data-id="' + esc(h.id) + '">' +
       (img ? '<img src="' + img + '" alt="">' : '') +
       '<b>' + esc(h.name) + '</b>' +

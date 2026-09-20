@@ -823,7 +823,7 @@
       sigCutinEl.appendChild(img);
       document.body.appendChild(sigCutinEl);
     }
-    sigCutinEl.firstChild.src = S.portraitCard('hero', h, 128, 148);
+    sigCutinEl.firstChild.src = (global.DG.portrait3d && global.DG.portrait3d.of('hero', h, 128, 148)) || S.portraitCard('hero', h, 128, 148);   // 구운 초상(§11 Phase 1)이 있으면 코드 그림 대신
     sigCutinEl.style.opacity = '1';
     if (sigCutinTimer) { global.clearTimeout(sigCutinTimer); }
     sigCutinTimer = global.setTimeout(function () {
