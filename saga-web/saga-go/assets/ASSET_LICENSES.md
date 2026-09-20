@@ -123,7 +123,7 @@ Quaternius·OpenGameArt·Kenney 를 다 뒤져도 리깅된 거북을 못 찾았
 |---|---|
 | `House_1·2·3·4.glb` · `Blacksmith.glb` | 민가 (`prop3d` 의 `house`) |
 | `Tower.glb` · `PointyTower.glb` · `LargeTower.glb` · `Watchtower.glb` · `LargeSquareTowerBricks.glb` | 마을의 높은 집 (`prop3d` 의 `tower`) |
-| `Inn.glb` | **역참** (`asset3d` 의 `station`) |
+| `Inn.glb` | **역참** (`asset3d` 의 `station`) · 2D 지도 마커 `sprites2d/building_Inn.png`(이 모델을 `tools/bake-icons` 로 구운 파생 그림, 같은 CC0) |
 | `Watchtower.glb` | **성채 1등급 · 보(堡)** (`asset3d` 의 `fort:t1`) |
 | `Tower.glb` · `PointyTower.glb` | **성채 2등급 · 진(鎭)** (`fort:t2`) |
 | `LargeTower.glb` · `LargeSquareTowerBricks.glb` | **성채 3등급 · 웅진(雄鎭)** (`fort:t3`) |

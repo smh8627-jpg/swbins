@@ -22,7 +22,8 @@
   var key = params.get('key');
   var group = params.get('group');
   var url = params.get('url');
-  var ICON = 96;
+  var ICON = +params.get('px') || 96;
+  var FIT = +params.get('fit') || 1.6;    // 넓은 건물은 0.9 안팎으로 줄여야 프레임에 다 든다(탑 기준 1.6)
 
   var TIMEOUT_MS = 60000;
 
@@ -40,7 +41,7 @@
     var size = new T.Vector3(); box.getSize(size);
     var center = new T.Vector3(); box.getCenter(center);
     var maxDim = Math.max(size.x, size.y, size.z) || 1;
-    var scale = 1.6 / maxDim;
+    var scale = FIT / maxDim;
     root.position.copy(center).multiplyScalar(-scale);
     root.scale.setScalar(scale);
     var elevDeg = group === 'building' ? 22 : 42;

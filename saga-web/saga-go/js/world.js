@@ -1700,7 +1700,8 @@
 
     ctx.globalAlpha = held ? 0.72 : (ready ? 1 : 0.55);
     global.DG.sprite.building(ctx, {
-      x: p.x, y: p.y, s: z * 0.88, form: 'stable', t: now / 1000
+      x: p.x, y: p.y, s: z * 0.88, form: 'stable', t: now / 1000,
+      img: global.DG.sprite.buildingImg('Inn')     // 옛 역참 여관 모델을 구운 그림(tools/bake-icons)
     });
 
     // 채워진 역참에는 등롱 하나, 점거된 역참에는 검은 깃발 — 멀리서도 눈에 든다

@@ -2817,6 +2817,28 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 
     var AN = DG.animal;
 
+    t('짐승 — 배경 생물 다섯 종이 코드 그림 대신 제 모델 그림을 쓴다(SAGA-DESIGN §11 Phase 3)', function () {
+      var kinds = Object.keys(AN.KINDS);
+      var miss = kinds.filter(function (k) {
+        var im = DG.sprite.beastImgOf(AN.refOf(AN.KINDS[k]));
+        return !im || !/assets\/sprites2d\/beast_/.test(im.src);
+      });
+      /* 그림이 안 실린 채 구운 코드 그림 컷은 실린 뒤 다시 굽는다 */
+      var cv = document.createElement('canvas'); cv.width = 200; cv.height = 200;
+      var c = cv.getContext('2d');
+      var K = AN.KINDS[kinds[0]], ref = AN.refOf(K);
+      var im0 = DG.sprite.beastImgOf(ref);
+      var b0 = DG.sprite.stampStats();
+      DG.sprite.stamp(c, { kind: 'beast', ref: ref, x: 100, y: 150, s: 1.1, facing: 1, phase: 0, walking: false, color: K.color, form: K.form, t: 0 });
+      DG.sprite.stamp(c, { kind: 'beast', ref: ref, x: 100, y: 150, s: 1.1, facing: 1, phase: 0, walking: false, color: K.color, form: K.form, t: 0 });
+      var b1 = DG.sprite.stampStats();
+      var ready = !!(im0 && im0.complete && im0.naturalWidth);
+      /* 안 실렸으면(첫 프레임) 코드 그림 1장을 굽고 그림이 실릴 때까지 그 컷을 쓴다, 실렸으면 2장 이하(옛 컷 다시 굽기 + 적중) */
+      var made = b1.miss - b0.miss;
+      return miss.length === 0 && (ready ? made <= 2 : made === 1) &&
+        (kinds.length + '종 모두 그림 있음 · 그림 ' + (ready ? '실림' : '아직') + ' · 굽기 ' + made + '회');
+    });
+
     t('짐승 — 다섯 종이 무리로 산다', function () {
       var kinds = Object.keys(AN.KINDS);
       var acts = kinds.map(function (k) { return AN.KINDS[k].act || '-'; });

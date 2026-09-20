@@ -973,9 +973,16 @@
     if (!im) { im = new Image(); im.src = src; beastImgCache[src] = im; }
     return im;
   }
-  /** 도감 펫(id가 pt_/pk_로 시작)에만 적용한다 — 배경 생물은 null */
+  /* 들·강의 배경 생물(`animal.js`, id `an_*`)은 도감 펫과 달리 형태당 여럿 중 해시로 고르지 않고
+     닮은 모델 하나를 못 박는다 — 사슴은 언제나 사슴이어야 한다 */
+  var BG_BEAST_FILE = {
+    an_deer: 'Deer', an_wolf: 'Wolf', an_magpie: 'Pigeon', an_carp: 'Koi', an_ox: 'Cow'
+  };
+  /** 도감 펫(id가 pt_/pk_로 시작)과 배경 생물(`an_`, 표에 있는 것)에 적용한다 */
   function beastImgOf(pet) {
-    if (!pet || !pet.id || !/^(pt_|pk_)/.test(pet.id)) { return null; }
+    if (!pet || !pet.id) { return null; }
+    if (BG_BEAST_FILE[pet.id]) { return beastImgFile(BG_BEAST_FILE[pet.id]); }
+    if (!/^(pt_|pk_)/.test(pet.id)) { return null; }
     var list = BEAST_FORM_FILES[beastFormOf(pet)];
     if (!list) { return null; }
     var s = String(pet.id || pet.name || ''), h = 0, i;
@@ -1452,9 +1459,9 @@
    *  실제 CC0 건물 GLB 스냅샷(assets/models/buildings/*.glb, asset3d.js의
    *  fort:t1/t2·station 표와 같은 파일). `o.img`에 로드된 Image를 넘기면
    *  절차적 도형 대신 이 그림을 쓴다 — world.js가 등급(fort tier)·종류에
-   *  맞는 그림을 골라 넘긴다. tier 3(웅진)·역참은 배치 굽기에서 못 구웠으니
-   *  (SAGA-HANDOFF 2026-09-11 참고) `o.img`를 안 넘기면 여기 그대로
-   *  절차적 그림으로 떨어진다 — 회귀가 아니라 그림이 아직 없다. */
+   *  맞는 그림을 골라 넘긴다. 역참은 tower_ruin 이 굽히지 않아 옛 여관 모델
+   *  (Inn.glb)을 구워 쓴다(2026-09-20, `_bake_one.html?...&fit=0.7`). `o.img`를
+   *  안 넘기거나 아직 안 실렸으면 여기 그대로 절차적 그림으로 떨어진다. */
   var buildingImgCache = {};
   function buildingImg(name) {
     var src = 'assets/sprites2d/building_' + name + '.png';
@@ -1798,9 +1805,11 @@
       x: footX, y: footY, s: sc, facing: 1, phase: phase,
       walking: walking, noBounce: true, t: 0
     };
+    var useImg = false;
     if (kind === 'human') {
       var himg = humanImg(humanIndexOf(o.ref));
       if (himg.complete && himg.naturalWidth) {
+        useImg = true;
         var hdw = H * 1.2, hdh = H * 1.2;
         c.imageSmoothingEnabled = false;
         c.drawImage(himg, footX - hdw / 2, footY - hdh, hdw, hdh);
@@ -1814,6 +1823,7 @@
     } else {
       var bimg = beastImgOf(o.ref);
       if (bimg && bimg.complete && bimg.naturalWidth) {
+        useImg = true;
         var bdw = H * 1.5, bdh = H * 1.5;
         c.imageSmoothingEnabled = false;
         c.drawImage(bimg, footX - bdw / 2, footY - bdh, bdw, bdh);
@@ -1828,7 +1838,13 @@
     /* 여기서 한 번 훑는다 — 지도 위 스탬프는 어두운 배경에 서므로
        실루엣만 밝은 테를 둘러 형태가 묻히지 않게 한다 */
     storyize(cv, { rim: STORY_RIM_MAP, inner: H >= 40, thick: 1 });
-    return { cv: cv, w: w, h: h, footX: footX, footY: footY, base: base, sc: sc };
+    return { cv: cv, w: w, h: h, footX: footX, footY: footY, base: base, sc: sc, img: useImg };
+  }
+
+  /** 이 그림 파일이 이미 실렸는가 — 안 실린 채 구운 코드 그림 컷을 다시 굽는 기준 */
+  function imgReady(kind, ref) {
+    var im = kind === 'human' ? humanImg(humanIndexOf(ref)) : beastImgOf(ref);
+    return !!(im && im.complete && im.naturalWidth);
   }
 
   /**
@@ -1843,6 +1859,7 @@
     var key = kind + '|' + id + '|' + sc.toFixed(2) + '|' + pb;
 
     var e = stampCache[key];
+    if (e && !e.img && imgReady(kind, o.ref)) { e = null; }   // 그림이 실리기 전에 구운 코드 그림 컷은 다시 굽는다
     if (e) { stat.hit++; }
     else {
       stat.miss++;
@@ -2149,7 +2166,7 @@
     portraitCard: portraitCard,
     stamp: stamp, stampStats: stampStats,
     lookOf: lookOf, idSeed: idSeed, beastFormOf: beastFormOf, beastColorOf: beastColorOf,
-    beastPatternOf: beastPatternOf,
+    beastPatternOf: beastPatternOf, beastImgOf: beastImgOf,
     portrait: portrait, shade: shade
   };
 })(window);
