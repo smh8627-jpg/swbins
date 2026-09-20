@@ -8,11 +8,12 @@ namespace Saga.Dungeon.UI
     /// <summary>
     /// PLAN.md 101-2 "다섯 게임 × 웹 §5 후보" — DUNGEON 두 번째 이식(GO
     /// 이식을 그대로 따른다, "UI 뼈대만" 범위). <see cref="IGoalSource"/>
-    /// 세 줄 중 실제 값이 있는 것만 채운다("지금"=가장 가까운 살아있는
-    /// 적, DungeonEnemy.Active 그대로 재사용 — 이 판의 핵심 루프가 GO의
-    /// "숨은 보물 찾기"와 달리 근접 전투라 대상을 바꿨다. "이번 세션"=
-    /// 걸은 거리·번 금, GO GoSessionTracker.cs와 완전히 같은 계산),
-    /// "이번 주"는 GO와 같은 이유(⑦ 승급 3택 미이식)로 자리만 잡아 둔 문구다.
+    /// 세 줄 중 "지금"=가장 가까운 살아있는 적(DungeonEnemy.Active 그대로
+    /// 재사용 — 이 판의 핵심 루프가 GO의 "숨은 보물 찾기"와 달리 근접
+    /// 전투라 대상을 바꿨다). "이번 세션"·"이번 주"는 5.6(2026-09-21,
+    /// 재검토 이어 마무리)부터 <see cref="DungeonDailyTaskState"/>가 채운다
+    /// — GO의 ④ 일과판과 같은 구조를 이 트랙의 반복 시스템(걷기·적 처치·
+    /// 부적 층 클리어·난입 완주)에 맞춰 다시 짰다(클래스 주석 참고).
     ///
     /// 무입력 5분 또는 앱 백그라운드 전환을 세션 끝으로 보고
     /// <see cref="SessionCard"/>를 띄운다(GO와 동일).
@@ -25,6 +26,7 @@ namespace Saga.Dungeon.UI
         private Transform _player;
         private Vector3 _lastPlayerPos;
         private float _walkedMeters;
+        private float _walkedMetersSinceDailyReport; // DungeonDailyTaskState.ReportProgress는 int만 받아 정수 m 단위로만 넘긴다 — 나머지는 여기 이월.
         private int _sessionStartGold;
         private float _idleTimer;
         private bool _summaryShown;
@@ -58,6 +60,13 @@ namespace Saga.Dungeon.UI
             if (moved > MoveEpsilon)
             {
                 _walkedMeters += moved;
+                _walkedMetersSinceDailyReport += moved;
+                int wholeMeters = Mathf.FloorToInt(_walkedMetersSinceDailyReport);
+                if (wholeMeters > 0)
+                {
+                    DungeonDailyTaskState.ReportProgress(DungeonDailyTaskState.Kind.Walk, wholeMeters);
+                    _walkedMetersSinceDailyReport -= wholeMeters;
+                }
                 _idleTimer = 0f;
                 _summaryShown = false;
             }
@@ -101,13 +110,8 @@ namespace Saga.Dungeon.UI
             return nearest == null ? "가까운 적 없음" : $"가장 가까운 적까지 {Vector3.Distance(_player.position, nearest.transform.position):F0}m";
         }
 
-        public string GoalLineSession()
-        {
-            int goldGained = HeroState.Gold - _sessionStartGold;
-            string goldStr = goldGained >= 0 ? $"+{goldGained}" : goldGained.ToString();
-            return $"이동 {_walkedMeters:F0}m · 금 {goldStr}";
-        }
+        public string GoalLineSession() => DungeonDailyTaskState.SessionLineText();
 
-        public string GoalLineWeek() => "다음 승급 이정표 준비 중(101-2 ⑦ 대기)";
+        public string GoalLineWeek() => DungeonDailyTaskState.WeekLineText();
     }
 }

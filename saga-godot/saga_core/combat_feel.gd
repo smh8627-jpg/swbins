@@ -74,11 +74,17 @@ const PICK_SOUNDS: Array[AudioStream] = [
 	preload("res://assets/generated/sfx/pick_02.wav"),
 	preload("res://assets/generated/sfx/pick_03.wav"),
 ]
+const UI_SOUNDS: Array[AudioStream] = [
+	preload("res://assets/generated/sfx/ui_01.wav"),
+	preload("res://assets/generated/sfx/ui_02.wav"),
+	preload("res://assets/generated/sfx/ui_03.wav"),
+]
 
 var _hitstop_until_msec := 0
 var _flash_state: Dictionary = {}  # MeshInstance3D 인스턴스ID -> {mesh, orig, until}
 var _sound_idx := 0
 var _pick_sound_idx := 0
+var _ui_sound_idx := 0
 
 
 func hit(target: Node3D, amount: float, crit: bool) -> void:
@@ -104,6 +110,15 @@ func pickup(target: Node3D, label: String) -> void:
 		_do_pickup_popup(target, label)
 	_do_sound("pick")
 	pickup_triggered.emit(label)
+
+
+## 103-1 `sfxgen.py`가 hit_·pick_ 과 같이 만들어 둔 `ui_0{1,2,3}.wav`(67장
+## "UI" 계열)를 처음 연결한다(2026-09-21). target·팝업 없이 소리만 —
+## 화면 안 3D 좌표가 없는 CanvasLayer 버튼 자리라 `_do_popup`류가 필요
+## 없다. `session_card.gd`(다섯 판 공용 "닫기") 호출용.
+func ui() -> void:
+	_ui_sound_idx = (_ui_sound_idx + 1) % SOUND_CUE_COUNT
+	_play_one_shot(UI_SOUNDS[_ui_sound_idx])
 
 
 func _do_hitstop(crit: bool) -> void:

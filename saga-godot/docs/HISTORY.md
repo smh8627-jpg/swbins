@@ -7821,3 +7821,12 @@ PROJECT_STATE.md` 참고. 요약:
 - 헤드리스로 실측 검증(`test_village.gd`에 `SAGA_SOUND_DEBUG` 임시 훅 넣어 `CombatFeel.hit()`×4·`pickup()`×1 강제 호출 → `DEBUG_SOUND_OK` 확인 후 훅 제거) — 스크립트 에러 없음. `--quit-after 10`로 재생 중 강제 종료해 "4 resources still in use at exit"가 찍혔지만 이는 wav 재생이 채 안 끝난 채 죽여서 생기는 종료 시점 아티팩트일 뿐(실제 플레이에선 `finished` 신호가 정상적으로 돈다) — 회귀 스크립트(`--quit-after 5`, `CombatFeel` 미호출) 쪽엔 안 나타남.
 - `godot_regress.sh` 재실행 — 다섯 대표 씬 md5 완전 불변(오토로드 조용히 로드만 되고 아무도 안 때려서 당연), `.import`/`project.godot` 잡음 없음.
 - 사운드는 소리 자체를 들어야 진짜 판정이라 실기 확인 목록에 추가(PROJECT_STATE "다음 작업" 1번에 반영).
+
+## UI 사운드 배선 (2026-09-21, 새 세션, "사가고돗 이어해")
+
+- PROJECT_STATE "다음 작업"이 전부 사람 몫·실기 확인 뒤라, §8-1(실기 확인 전 새 시스템 금지) 재override를 AskUserQuestion으로 직접 확인받고 착수(09-20㉒와 같은 절차).
+- 103-1 `sfxgen.py`가 hit/pick 과 같이 만들어 뒀지만 지금까지 아무도 안 쓴 `ui_0{1,2,3}.wav`(67장 "UI" 계열)를 골랐다 — 씬을 안 건드리는 가장 안전한 후보.
+- `combat_feel.gd`에 `ui()` 신설(target·팝업 없이 소리만, `_do_sound`류와 같은 라운드로빈+`_play_one_shot`). 연결처는 다섯 판 공용 `session_card.gd`(101-4 세션 마무리 카드) "닫기" 버튼 하나 — 새 호출 지점은 이 한 곳뿐.
+- 헤드리스 실측: `test_village.gd`에 `SAGA_SOUND_DEBUG` 훅으로 `CombatFeel.ui()`×2 강제 호출 → `DEBUG_SOUND_OK` 확인 후 훅 제거(09-20㉒와 같은 방식). 스크립트 에러 없음.
+- `godot_regress.sh` 재실행 — 다섯 대표 씬 md5 완전 불변(session_card 는 이 씬들에서 안 불려 당연), `.import`/`project.godot` 잡음 없음.
+- 실기 확인 목록에 "세션 카드 닫기 UI 사운드 체감" 추가(PROJECT_STATE "공통").

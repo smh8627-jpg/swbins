@@ -239,6 +239,9 @@ namespace Saga.Dungeon.World
             if (_survivalTimer >= LongSurvivalBonusThresholdSec) rewardGold += LongSurvivalBonusGold;
             HeroState.AddGold(rewardGold);
             HordeState.RecordRun(survivalSec);
+            // PLAN.md 101-2 5.6 "목표판·세션 카드·일일/주간"(2026-09-21) — 일일 풀의
+            // "난입 완주"는 실제 완주(survived)만 센다, 중도 사망은 안 침.
+            if (survived) DungeonDailyTaskState.ReportProgress(DungeonDailyTaskState.Kind.HordeSurvive, 1);
 
             // "난입 한정" — 원래 회차 축복으로 되돌린다.
             BlessingState.Restore(_savedBlessingIds);
