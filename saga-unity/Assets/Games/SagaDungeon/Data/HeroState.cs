@@ -167,6 +167,14 @@ namespace Saga.Dungeon.Data
             SocketedGemId = gemId; // 없으면 null 그대로 — 소켓 빈 채로 시작(구 세이브도 그대로 로드됨).
             Hp = Math.Clamp(hp, 0, HpMax);
             if (Hp <= 0) Hp = HpMax;
+
+            // PLAN.md 101-2 5.7 진단 중 발견 — 세이브 로드 경로는 그동안
+            // EquipmentChanged를 안 쏴 WeaponVisual.Start()가 SaveState.TryLoad()
+            // 보다 먼저 도는 실행 순서에서 로드된 무기 모양이 안 갱신될 수
+            // 있었다(StoryWeaponVisual의 JobChosen 함정과 같은 결). Start()가
+            // 이미 한 번 Refresh()를 부르니 정상 순서에선 안 드러나지만,
+            // 순서에 기대지 않도록 여기서도 쏜다.
+            EquipmentChanged?.Invoke(EquippedWeaponId);
         }
 
         private static int RoundInt(float v) => (int)Math.Round(v, MidpointRounding.AwayFromZero);

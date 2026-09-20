@@ -15,6 +15,9 @@ namespace Saga.Dungeon.Player
     /// 등급 3단(`ItemData.Grade`)에 따라 칼날 길이·이미시브 림만 갈린다
     /// (표의 "등급별 이미시브 림 3단") — 0=무광, 1=옅은 청록, 2=강한 금색.
     /// `HeroState.EquipmentChanged`를 구독해 무기가 바뀔 때만 갱신한다.
+    /// PLAN.md 101-2 5.7 "미래 무기 look" — `ItemData.WeaponShape`가
+    /// Lance·Gauntlet이면 같은 칼날 메시를 아예 다른 비율로 리사이즈해
+    /// 창·건틀릿처럼 보이게 한다(등급 이미시브 림 3단과 별개 축).
     /// </summary>
     [RequireComponent(typeof(PlayerController))]
     public class WeaponVisual : MonoBehaviour
@@ -30,6 +33,18 @@ namespace Saga.Dungeon.Player
         private const float BladeLengthPerGrade = 0.08f; // 등급이 높을수록 살짝 더 큰 무기.
         private const float BladeWidth = 0.08f;
         private const float BladeThickness = 0.02f;
+
+        // PLAN.md 101-2 5.7 "미래 무기 look" — 등급 이미시브 림과 별개로
+        // 모양 자체가 갈리는 두 종(ItemData.WeaponShape). 창은 길고 얇게,
+        // 건틀릿은 짧고 두껍게 — 등급 배율은 그대로 얹되(칼날 하나만
+        // 리사이즈하는 기존 방식 유지) 형태 자체를 다르게 스케일한다.
+        private const float LanceExtraLength = 0.5f;
+        private const float LanceWidthMul = 0.5f;
+        private static readonly Color LanceEmission = new Color(0.3f, 0.9f, 1f) * 1.4f; // 전자창 — 항상 청록 발광(등급 무관).
+        private const float GauntletLength = 0.22f;
+        private const float GauntletWidthMul = 3.5f;
+        private const float GauntletThicknessMul = 3f;
+        private static readonly Color GauntletEmission = new Color(0.85f, 0.9f, 0.95f) * 1.1f; // 동력장갑 — 은백색 발광.
 
         private static readonly Color HandleColor = new Color(0.3f, 0.22f, 0.15f);
         private static readonly Color BladeBaseColor = new Color(0.75f, 0.78f, 0.8f);
@@ -89,11 +104,30 @@ namespace Saga.Dungeon.Player
         {
             if (_blade == null) return;
 
-            int grade = Mathf.Clamp(HeroState.EquippedWeapon?.Grade ?? 0, 0, GradeEmission.Length - 1);
+            var weapon = HeroState.EquippedWeapon;
+            int grade = Mathf.Clamp(weapon?.Grade ?? 0, 0, GradeEmission.Length - 1);
             float length = BladeLength + grade * BladeLengthPerGrade;
-            _blade.localScale = new Vector3(BladeWidth, length, BladeThickness);
+            var shape = weapon?.Shape ?? ItemData.WeaponShape.Blade;
+            Color emission = GradeEmission[grade];
+
+            switch (shape)
+            {
+                case ItemData.WeaponShape.Lance:
+                    length += LanceExtraLength;
+                    _blade.localScale = new Vector3(BladeWidth * LanceWidthMul, length, BladeThickness * LanceWidthMul);
+                    emission = LanceEmission;
+                    break;
+                case ItemData.WeaponShape.Gauntlet:
+                    length = GauntletLength;
+                    _blade.localScale = new Vector3(BladeWidth * GauntletWidthMul, length, BladeThickness * GauntletThicknessMul);
+                    emission = GauntletEmission;
+                    break;
+                default:
+                    _blade.localScale = new Vector3(BladeWidth, length, BladeThickness);
+                    break;
+            }
             _blade.localPosition = new Vector3(0f, length * 0.5f, 0f);
-            _bladeRenderer.sharedMaterial.SetColor("_EmissionColor", GradeEmission[grade]);
+            _bladeRenderer.sharedMaterial.SetColor("_EmissionColor", emission);
         }
     }
 }

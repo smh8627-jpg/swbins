@@ -63,6 +63,7 @@ namespace Saga.Dungeon.World
             ["폐허의 황건 정예"] = "enemy.elite", // DungeonFloorRunner.SpawnElite() 실제 스폰 표시명.
             ["황건 살수"] = "enemy.miniboss",
             ["황건적 두목"] = "enemy.boss",
+            ["기계화 정찰병"] = "enemy.elite_fusion", // 101-2 5.7 "시대 퓨전" — 깊은 층 정예 변종.
         };
 
         private string LocalizedDisplayName =>

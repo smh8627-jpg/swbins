@@ -323,12 +323,21 @@ namespace Saga.Dungeon.World
             go.transform.localPosition = SoloOffset;
             var enemy = go.AddComponent<DungeonEnemy>();
             enemy.SetSpawnContext(RoomId, gruntModel);
+
+            // PLAN.md 101-2 5.7 "시대 퓨전" — 깊은 층부터 정예를 기계화
+            // 변종으로 바꿔치기(짐승형 파생 규칙이 없는 이 트랙의 재해석,
+            // EraFusionData.cs 클래스 주석 참고).
+            bool fusion = EraFusionData.IsFusionFloor(_floor);
+            string rewardItem = fusion ? EraFusionData.FusionRewardItemId(_floor) : "wp_saber";
+            string displayName = fusion ? "기계화 정찰병" : "폐허의 황건 정예";
+            Color color = fusion ? EraFusionData.FusionBodyColor : new Color(0.75f, 0.35f, 0.15f);
+
             enemy.ConfigureCombat(
                 DungeonFormulas.EliteHp(_floor) * SigilState.EnemyHpMultiplier(_floor),
                 DungeonFormulas.EliteDmg(_floor) * SigilState.EnemyDamageMultiplier(_floor),
                 DungeonFormulas.EliteRewardExp(_floor), DungeonFormulas.EliteRewardGold(_floor),
-                "wp_saber", null, false, "폐허의 황건 정예",
-                new Color(0.75f, 0.35f, 0.15f), 1.25f);
+                rewardItem, null, false, displayName,
+                color, 1.25f);
             go.SetActive(true);
 
             foreach (var offset in EscortOffsets) SpawnGrunt(SoloOffset + offset);

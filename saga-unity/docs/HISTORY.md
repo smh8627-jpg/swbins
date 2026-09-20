@@ -8071,3 +8071,19 @@ godot STORY(`story_labyrinth.gd`, HISTORY 2026-09-18 실기 승인)의 재해석
 `tools/unity-batch.sh`로 컴파일(오류 0, 4파일 자동 원복 확인) → 씬 재빌드 → `PlaytestForestHeadless.Run` 3연속 OK.
 
 FOREST 101-2는 이제 5.6(축제)만 남았다 — 다음에 이어가려면 이 트랙에 없는 날짜/일과 시스템을 어떻게 재해석할지부터 정해야 한다. 다섯 판 전체로는 GO⑤(모바일 빌드 뒤)·DUNGEON5.7(웹 선행 뒤)·STORY5-2/5-8·FOREST5.6 다섯 후보가 남아 있고, 2026-09-20 결정으로 전부 게이트 없이 다음 세션이 바로 고를 수 있다.
+
+## 2026-09-20 — DUNGEON 5.7 "시대 퓨전" 구현, HeroState.Restore() 이벤트 버그 발견·수정 ("사가 유니티 이어해" 세션, FOREST 5.7 다음)
+
+2026-09-20 결정("게이트 무시하고 unity 자체 진행")으로 이어 두 번째 후보를 골랐다. FOREST5.6(축제, 날짜/일과 시스템 자체가 없어 재해석 범위가 넓음)보다 이 트랙 기존 시스템(무기 소켓 시각화·절차적 층 진행)에 바로 얹을 수 있는 DUNGEON5.7(시대 퓨전)을 골랐다.
+
+**재해석 — 뺀 것**: 웹판(`saga-web/saga-dungeon/PLAN.md` 191행) "인물 30"(현대·근미래 인물, `data-hero-ext.js` 확장)은 이 트랙에 인물 로스터 자체가 없다(GO의 `PartyState` 같은 등용 시스템 없음, DUNGEON은 단일 주인공 `HeroState`) — 스코프에서 뺐다. "시대 혼재 건물"(biome 데코 레시피에 시대 층 1개, 고분 옆 폐공장 굴뚝 등)도 검토했으나 이 데코 후크(`World/DungeonRoomBuilder.BuildDecor()`, `SagaBiome` switch)는 손빚은 Room1~4(층1) 전용이고 절차적 층(`World/DungeonFloorRunner.cs`)은 이 후크를 아예 안 써(`grep`로 확인) — 층 번호와 연결할 자리가 없어 마찬가지로 뺐다.
+
+**재해석 — 옮긴 것, 둘**:
+1. **미래 무기 look 2** — `Data/ItemData.cs`에 `WeaponShape` enum(Blade/Lance/Gauntlet) 신설, 기존 5종은 전부 Blade(회귀 없음). 새 `wp_lance_e`(전자창, atk34·grade2·Lance)·`wp_gauntlet`(동력장갑, atk20·grade1·Gauntlet). `Player/WeaponVisual.cs`는 그동안 등급 3단(색·길이)만 갈랐던 걸, Shape가 Lance/Gauntlet이면 **같은 칼날 메시를 아예 다른 비율로 리사이즈**한다(창=길고 얇게+청록 발광 고정, 건틀릿=짧고 두껍게+은백색 발광 고정, 등급 배율과 별개 축). 별도 무기 메시 자산 없이(원작 자산 금지) 기존 primitive 하나를 재활용하는 선택 — `LootMarker`·`HitSpark`류와 같은 결.
+2. **기계화 변종** — 웹판 원안 "짐승형 파생 규칙"은 이 트랙에 짐승형 몬스터 자체가 없어(황건적뿐) 대신 **절차적 정예**(`World/DungeonFloorRunner.SpawnElite()`)를 깊은 층부터 바꿔치기했다. 새 `Data/EraFusionData.cs`(순수 함수 — `IsFusionFloor(floor) => floor>=5`, `FusionRewardItemId(floor)` 홀짝으로 두 미래 무기 번갈아 배정) — 5층부터 정예 표시명이 "폐허의 황건 정예"(wp_saber, 갈색)에서 "기계화 정찰병"(금속 팔레트)으로 바뀌고 확정 드랍이 전자창/동력장갑으로 갈린다. "emp 저항"(웹판 원안)은 이 트랙에 EMP 메커닉 자체가 없어 순수 표시·보상 변형으로만 남겼다. `World/DungeonEnemy.cs`의 `DisplayNameKeys`에 `enemy.elite_fusion` 매핑 한 줄 추가(도감(`BestiaryState`) 신규 항목으로도 자동 등록됨).
+
+**헤드리스 진단 중 실제 버그 발견·수정** — 새 `CheckEraFusion()`(`PlaytestDungeonHeadless.cs`, `CheckWeaponVisual()` 뒤)이 `HeroState.Restore(...)`로 `wp_lance_e`/`wp_gauntlet`을 강제 장착(`EquipIfBetter`의 "더 셀 때만" 문턱을 피하려고)한 뒤 `WeaponVisual`의 칼날 모양을 확인했는데, **두 무기 모두 이전 칼날 모양(등급2 길이 0.71)이 그대로 남아 있었다** — `Data/HeroState.cs`의 `Restore()`(세이브 로드 전용 경로, `Data/SaveState.cs:113`이 부른다)가 `EquipIfBetter()`와 달리 `EquipmentChanged` 이벤트를 안 쏘고 있었다. `WeaponVisual.Start()`가 구독 직후 `Refresh()`를 한 번 부르지만, `GameBootstrap`의 Unity 스크립트 실행 순서상 `WeaponVisual.Start()`가 `SaveState.TryLoad()`보다 먼저 돌면(보장 안 됨) 로드된 무기 모양이 다음 장비 교체 전까지 영영 안 갱신되는 실제 버그 창이었다(2026-09-18 `StoryWeaponVisual.JobChosen`과 완전히 같은 함정 — PROJECT_STATE.md "알려진 오류"가 경고해 둔 패턴을 이번엔 코드 리뷰가 아니라 진단이 실제로 잡아냈다). `HeroState.Restore()` 끝에 `EquipmentChanged?.Invoke(EquippedWeaponId)` 한 줄을 추가해 고쳤다 — Start() 순서에 안 기대게.
+
+`tools/unity-batch.sh`로 컴파일(오류 0, 4파일 자동 원복 확인) → `PlaytestDungeonHeadless.Run` 3연속 OK. `SpawnElite()`·`HeroState.Restore()`가 공유 경로라 `FloorProgression`·`FieldAmbush`·`Shortcut`·`Town2`·`Towns34` 전부 재검증(회귀 없음). 씬 GameObject 구성은 안 바꿔(런타임 스폰뿐) `BuildTestDungeonScene` 재빌드는 안 했다.
+
+DUNGEON 101-2는 이제 5.6(목표판·카드, 공통 A·B가 이미 일부 덮고 있어 재검토 필요)만 남았다. 다섯 판 전체로 GO⑤(모바일 빌드 뒤)·FOREST5.6(축제)·STORY5-2/5-8·DUNGEON5.6 넷이 남아 있고, 게이트 없이 다음 세션이 바로 고를 수 있다.

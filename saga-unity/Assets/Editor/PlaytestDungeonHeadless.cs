@@ -107,6 +107,7 @@ namespace Saga.EditorTools
                 CheckSigilState();
                 CheckWorldBoss();
                 CheckWeaponVisual();
+                CheckEraFusion();
                 CheckWhirl();
                 CheckDebugHud();
                 CheckSettingsPanel();
@@ -443,6 +444,109 @@ namespace Saga.EditorTools
                 return;
             }
             Debug.Log($"[PlaytestDungeonHeadless] weapon visual OK - 무기 교체 시 칼날 길이 {lengthBefore:F2}→{lengthAfter:F2}(등급 갱신 반영)");
+        }
+
+        /// <summary>PLAN.md 101-2 5.7 "시대 퓨전"(2026-09-20 추가) — 순수 함수
+        /// (`EraFusionData`)를 먼저 값으로 확인한 뒤, 절차적 정예 스폰
+        /// (`DungeonFloorRunner.SpawnElite()`)을 리플렉션으로 두 층(비퓨전
+        /// 4층·퓨전 5층)에서 직접 불러 표시명·드랍·색이 실제로 갈리는지,
+        /// 그리고 두 미래 무기(`wp_lance_e`/`wp_gauntlet`)를 강제 장착했을 때
+        /// `WeaponVisual`의 칼날 모양이 등급 3단과 별개로 갈리는지 본다
+        /// (`HeroState.Restore()`로 진행도를 안 흔들고 무기만 바꿔치기 —
+        /// `EquipIfBetter`의 "더 셀 때만" 문턱을 피해야 해서).</summary>
+        private static void CheckEraFusion()
+        {
+            if (EraFusionData.IsFusionFloor(4) || !EraFusionData.IsFusionFloor(5))
+            {
+                Debug.LogError($"[PlaytestDungeonHeadless] EraFusionData.IsFusionFloor 문턱이 어긋남 — 4층={EraFusionData.IsFusionFloor(4)}(기대 false) 5층={EraFusionData.IsFusionFloor(5)}(기대 true)");
+                _hadError = true;
+                return;
+            }
+            if (EraFusionData.FusionRewardItemId(5) != "wp_gauntlet" || EraFusionData.FusionRewardItemId(6) != "wp_lance_e")
+            {
+                Debug.LogError($"[PlaytestDungeonHeadless] EraFusionData.FusionRewardItemId 홀짝 배정이 어긋남 — 5층={EraFusionData.FusionRewardItemId(5)}(기대 wp_gauntlet) 6층={EraFusionData.FusionRewardItemId(6)}(기대 wp_lance_e)");
+                _hadError = true;
+                return;
+            }
+
+            var runner = Object.FindFirstObjectByType<DungeonFloorRunner>();
+            if (runner == null)
+            {
+                Debug.LogError("[PlaytestDungeonHeadless] 시대 퓨전 검증용 DungeonFloorRunner를 못 찾음");
+                _hadError = true;
+                return;
+            }
+
+            object floorBefore = GetPrivate(runner, "_floor");
+            var spawnEliteMethod = typeof(DungeonFloorRunner).GetMethod("SpawnElite", BindingFlags.NonPublic | BindingFlags.Instance);
+            var contentRoot = (Transform)GetPrivate(runner, "_contentRoot");
+
+            // Awake()가 이미 "fight" 방을 지어 둔 상태라(층2 첫 방, 기존 grunt
+            // 다수) 이름으로 지우면 그 원래 방 몬스터까지 같이 지운다 —
+            // 새로 추가되는 자식(인덱스 >= 시작 개수)만 걷어낸다.
+            int countBefore = contentRoot.childCount;
+            SetPrivate(runner, "_floor", 4);
+            spawnEliteMethod.Invoke(runner, null);
+            var normalElite = contentRoot.GetChild(countBefore);
+            string normalName = (string)GetPrivate(normalElite.GetComponent<DungeonEnemy>(), "displayName");
+            string normalItem = (string)GetPrivate(normalElite.GetComponent<DungeonEnemy>(), "rewardItemId");
+            DestroySpawnedFrom(contentRoot, countBefore);
+
+            SetPrivate(runner, "_floor", 5);
+            spawnEliteMethod.Invoke(runner, null);
+            var fusionElite = contentRoot.GetChild(countBefore);
+            string fusionName = (string)GetPrivate(fusionElite.GetComponent<DungeonEnemy>(), "displayName");
+            string fusionItem = (string)GetPrivate(fusionElite.GetComponent<DungeonEnemy>(), "rewardItemId");
+            DestroySpawnedFrom(contentRoot, countBefore);
+
+            SetPrivate(runner, "_floor", floorBefore);
+
+            if (normalName != "폐허의 황건 정예" || normalItem != "wp_saber" || fusionName != "기계화 정찰병" || fusionItem != "wp_gauntlet")
+            {
+                Debug.LogError($"[PlaytestDungeonHeadless] 시대 퓨전 정예 바꿔치기가 이상함 — 4층 name={normalName} item={normalItem}(기대 폐허의 황건 정예/wp_saber), 5층 name={fusionName} item={fusionItem}(기대 기계화 정찰병/wp_gauntlet)");
+                _hadError = true;
+                return;
+            }
+
+            int levelBefore = HeroState.Level, expBefore = HeroState.Exp, hpBefore = HeroState.Hp, goldBefore = HeroState.Gold;
+            string weaponBefore = HeroState.EquippedWeaponId, gemBefore = HeroState.SocketedGemId;
+            var playerGo = GameObject.FindWithTag("Player");
+            var weaponVisual = playerGo != null ? playerGo.GetComponent<WeaponVisual>() : null;
+            var blade = weaponVisual != null ? (Transform)GetPrivate(weaponVisual, "_blade") : null;
+            if (blade == null)
+            {
+                Debug.LogError("[PlaytestDungeonHeadless] 시대 퓨전 무기 모양 검증용 WeaponVisual/_blade를 못 찾음");
+                _hadError = true;
+                return;
+            }
+
+            // HeroState.Restore()가 EquipmentChanged를 쏘게 방금 고쳐서(HeroState.cs
+            // 클래스 주석 참고 — 이 검증 중 실제로 못 갱신되는 걸 처음 발견)
+            // WeaponVisual이 알아서 Refresh()된다.
+            HeroState.Restore(levelBefore, expBefore, hpBefore, goldBefore, "wp_lance_e", gemBefore);
+            Vector3 lanceScale = blade.localScale;
+            HeroState.Restore(levelBefore, expBefore, hpBefore, goldBefore, "wp_gauntlet", gemBefore);
+            Vector3 gauntletScale = blade.localScale;
+            HeroState.Restore(levelBefore, expBefore, hpBefore, goldBefore, weaponBefore, gemBefore); // 원상복귀.
+
+            bool lanceOk = lanceScale.y > 1f && lanceScale.x < 0.1f; // 길고 얇게(기존 최대 칼날 0.71보다 뚜렷히 길게).
+            bool gauntletOk = gauntletScale.y < 0.3f && gauntletScale.x > 0.2f; // 짧고 두껍게.
+            if (!lanceOk || !gauntletOk)
+            {
+                Debug.LogError($"[PlaytestDungeonHeadless] 미래 무기 모양이 이상함 — lance scale={lanceScale}(길고 얇게 기대) gauntlet scale={gauntletScale}(짧고 두껍게 기대)");
+                _hadError = true;
+                return;
+            }
+
+            Debug.Log($"[PlaytestDungeonHeadless] era fusion OK - 문턱/드랍 홀짝 결정적, 4층 정상 정예 vs 5층 기계화 정찰병 바꿔치기, 전자창/동력장갑 모양 갈림(lance={lanceScale}, gauntlet={gauntletScale})");
+        }
+
+        private static void DestroySpawnedFrom(Transform contentRoot, int fromIndex)
+        {
+            for (int i = contentRoot.childCount - 1; i >= fromIndex; i--)
+            {
+                Object.DestroyImmediate(contentRoot.GetChild(i).gameObject);
+            }
         }
 
         private static void CheckWhirl()

@@ -10,6 +10,11 @@ namespace Saga.Dungeon.Data
     /// </summary>
     public class ItemData
     {
+        // PLAN.md 101-2 5.7 "미래 무기 look" — `Player/WeaponVisual.cs`가 등급
+        // 색과 별개로 실제 모양을 바꾸는 축. 기존 다섯 종(도끼~중검)은 전부
+        // 칼날 하나로 뭉뚱그려 그렸던 그대로 Blade.
+        public enum WeaponShape { Blade, Lance, Gauntlet }
+
         public readonly string Id;
         private readonly string _name;
         public string Name => DungeonLocalization.T("item." + Id, _name);
@@ -19,13 +24,15 @@ namespace Saga.Dungeon.Data
         // 고르는 값. 별도 희귀도 시스템은 아직 없어(클래스 상단 주석) 기존
         // AtkBonus 서열을 그대로 3단에 나눠 붙였다.
         public readonly int Grade;
+        public readonly WeaponShape Shape;
 
-        private ItemData(string id, string name, float atk, int grade)
+        private ItemData(string id, string name, float atk, int grade, WeaponShape shape = WeaponShape.Blade)
         {
             Id = id;
             _name = name;
             AtkBonus = atk;
             Grade = grade;
+            Shape = shape;
         }
 
         public static readonly Dictionary<string, ItemData> Catalog = new Dictionary<string, ItemData>
@@ -52,6 +59,13 @@ namespace Saga.Dungeon.Data
             // 그대로 곱해 round(26*13/11)=31로 잡았다(층1 두목 아이템이
             // 이미 floor=1 공식 배율을 재사용한 것과 같은 결).
             ["wp_greatblade"] = new ItemData("wp_greatblade", "흑철중검", 31f, 2),
+            // PLAN.md 101-2 5.7 "시대 퓨전" — 깊은 층 절차적 정예("기계화
+            // 정찰병", World/EraFusionData.cs·DungeonFloorRunner.SpawnElite())
+            // 확정 드랍, 층 홀짝으로 둘을 번갈아 준다. 웹판 lance_e·gauntlet의
+            // atk는 절차적 희귀도 시스템 몫이라(범위 밖) 이 트랙 기존 서열에
+            // 맞춰 wp_greatblade(31) 바로 위/사이로 잡았다.
+            ["wp_lance_e"] = new ItemData("wp_lance_e", "전자창", 34f, 2, WeaponShape.Lance),
+            ["wp_gauntlet"] = new ItemData("wp_gauntlet", "동력장갑", 20f, 1, WeaponShape.Gauntlet),
         };
 
         public static ItemData Get(string id) => id != null && Catalog.TryGetValue(id, out var d) ? d : null;

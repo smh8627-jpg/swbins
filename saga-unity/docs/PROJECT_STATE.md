@@ -1,7 +1,7 @@
 # PROJECT_STATE — saga-unity (상태만, ≤15KB, 덮어쓴다)
 
 **규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다(2026-09-16 재편 전 본문 5,532줄은 그쪽 첫 절에 그대로 있다). 넘치면 `tools/precheck.sh` 가 막는다.
-마지막 갱신: 2026-09-20 (다섯 세션째, 이어서 — **FOREST 5.7 "택배 사슬"** 구현) — 101-2 다섯 판 후보가 전부 게이트(웹 미검증·godot 승인 사례 없음)에 걸린 상황에서 사용자가 "게이트 무시하고 unity 자체 진행"을 골라 착수(101-2 서두 2026-09-20 결정 참고). 네 바이옴 존을 배달 목적지로 재해석, 보상은 과일, 소포 3종(보통/깨지기 쉬움/시간제한)·사슬 보너스. 새 `ForestDeliveryState/Counter/Mailbox`. STORY 5-3(비경, 전 세션)·REALM·GO·DUNGEON은 그대로.
+마지막 갱신: 2026-09-20 (다섯 세션째, 이어서 — **FOREST 5.7 "택배 사슬" → DUNGEON 5.7 "시대 퓨전"** 구현) — 101-2 다섯 판 후보가 전부 게이트(웹 미검증·godot 승인 사례 없음)에 걸린 상황에서 사용자가 "게이트 무시하고 unity 자체 진행"을 골라 착수(101-2 서두 2026-09-20 결정). FOREST: 네 바이옴 존을 배달 목적지로, 소포 3종·사슬 보너스(새 `ForestDeliveryState/Counter/Mailbox`). DUNGEON: 미래 무기 2종(전자창·동력장갑, `ItemData.WeaponShape`)·기계화 정예(5층부터, 새 `EraFusionData`) — "인물 30"·"시대 혼재 건물"은 이 트랙에 대응 시스템이 없어 스코프 밖. 진단 중 `HeroState.Restore()` 무기 시각 미갱신 버그 발견·수정(아래 "알려진 오류"). STORY·REALM·GO는 그대로.
 
 ## 캐릭터 자산 — 이 PC 기준 (2026-09-19)
 
@@ -12,7 +12,7 @@ Maria(플레이어)·Abe(잡졸)·Brute(두목) 셋만 mixamo.com 실자산 확�
 | 게임 | 씬 | Vertical Slice(Phase 1~8) | 51장 콘텐츠 확장 | 44장 에셋 교체 | 공통(66-2 라이팅·67~69 사운드/설정/Localization) |
 |---|---|---|---|---|---|
 | GO | `TestVillage` | 완료 — 도적의 습격(이동·촌장·상인·나그네·조우·전투·등용·EXP·장비·루트·저장 v13) | 동물 Group·나그네·은닉 보물·산신당·행운 돌탑·동굴 유물·채집 · **101-2 ④⑦③(2026-09-19)**: 일과판·승급 3택·75초 토벌 · **101-2 ①⑥⑧(2026-09-20)**: 봉수대(`BeaconTower`)·인연(`BondState`)·패배 비용·회수(`DropState`/`DropMarker`) · **101-2 ②(2026-09-20)**: 사당 시련(`ShrineTrialState`/`ShrineTrialEncounter`, 파도 3·인장 조각) | Player·주요 Enemy·Environment·Building·Props 전부 GLB/PBR | 전부 붙음. **목표판/세션카드(101-2 A·B)**. **101-3 C·F·G 전부 완료(2026-09-17)** |
-| DUNGEON | `TestDungeon` | 완료 — 첫 방→무리·엘리트/보스·방 종류(우물·상자·성소·행상)·회피·강공격·필드(방 2+복도)·동행 | 마을 넷·층 진행·매복·구출·수수께끼·은닉 창고·빌드(회전베기)·도감·보석/영웅 상태 · **101-2 5.1~5.5 완료(5.7 남음)** | Player·잡졸(황건적)·미니보스/두목·Environment·Building | 전부 붙음(SFX 실클립 통일). **목표판/세션카드(101-2 A·B)**. **101-3 C·F·G 전부 완료(2026-09-17)** |
+| DUNGEON | `TestDungeon` | 완료 — 첫 방→무리·엘리트/보스·방 종류(우물·상자·성소·행상)·회피·강공격·필드(방 2+복도)·동행 | 마을 넷·층 진행·매복·구출·수수께끼·은닉 창고·빌드(회전베기)·도감·보석/영웅 상태 · **101-2 5.1~5.5,5.7 완료**(5.6만 남음) | Player·잡졸(황건적)·미니보스/두목·Environment·Building | 전부 붙음(SFX 실클립 통일). **목표판/세션카드(101-2 A·B)**. **101-3 C·F·G 전부 완료(2026-09-17)** |
 | FOREST | `TestVillageForest` | 완료(이동 전용 컨트롤러) — 마을·집·주민 | 벽지/장판·가구 자유 배치(1m 격자)·생물(Flee/Group)·과일나무·채집·좌판·밀어내기 전투 · **5.1~5.5 완료**: 마을 번들(`ForestMuseumState`) · **5.8①②(2026-09-20)**: 채집 손맛(`ForestGatherFeel`)·마을 평가(`ForestTownScore`, 별 5) · **5.7(2026-09-20, 게이트 무시 착수)**: 택배 사슬(`ForestDeliveryState`, 5.6만 남음) | Environment 완료 | 전부 붙음. **목표판/세션카드(A·B)**. 101-3 해당 없음 |
 | STORY | `TestField` | 완료 — 2.5D 횡스크롤(Z 고정)·잡졸 10·두목·사명 2·볼트·로프 | 척후병 NPC·사건·관계·선택(51장 완결)·전직(Lv.10, 무사/궁수/협객/방사, `StoryJobChoiceUi` 팝업까지 실제 검증) · **5-4(2026-09-20)** 관문 대장(주간 챔피언, HP×2.5·방패 파괴·경험치×2) · **5-3(2026-09-20)** 비경(문→노드 지도 UI 5층, 전투/정예/보물/휴식/사건, 축복 3택 9종·기억 조각·영구 강화·주간 변형자, 제한시간 실패+재기) — **101-2 STORY 후보 전부 소진** | 척후병 실제 모델 | 전부 붙음. **목표판/세션카드(101-2 A·B)**. **101-3 C·F·G 전부 완료(2026-09-18)** — C(hitstop/shake, 2026-09-17) + F 죽음(`StoryLootMarker`) + G 지형 반응(`StoryGroundDecal`, 발자국+타격 흔적) + G 성장 연출(`StoryCameraFollow.PlayLevelUpCut()`, ZDistance 가변화) + G 장비 가시화(`StoryWeaponVisual`, "직업별 무기": 무사→검·궁수→활·협객→표창·방사→지팡이) |
 | REALM | `TestCity` | 완료(경영형, 캐릭터 없음) — 명령·계략(유언비어·화계)·문답 36·서고·월드맵·전투·함락 편입 | **적국 55, 성 58**(세 사슬 닫힘) · 5-1 특성·야망 · 5-6 지형 전술 · 5-2 이벤트 체인 · 5-8 계승(허창 배치 승계+치안 하락, 기본 꺼짐) · 5-3 일기토·설전 · **5-5(2026-09-20)** 승리 조건·결과 카드(`RealmVictoryState` — 101-2 REALM 전부 완료, 5-4만 제외) | 도시 Environment/Building | 전부 붙음. **목표판/세션카드(A·B)**. 101-3 해당 없음 |
@@ -35,7 +35,7 @@ STORY 세부(경위는 HISTORY grep): `StoryJobState.JobChosen` 이벤트로 `Re
 
 ## 다음 작업 (우선순위, 상세는 PLAN 해당 장 · 경위는 HISTORY 날짜 grep)
 
-1. **PLAN 101-2 이어서** — GO①②④⑥⑦⑧·DUNGEON5.1~5.5·FOREST5.1~5.5,5.7,5.8①②·**REALM 전부**·**STORY 5-1,5-3,5-4,5-5,5-7** 완료. 남은 건 전부 게이트에 걸리지만 **2026-09-20 사용자 결정으로 게이트 무시 진행이 허용됨**(101-2 서두) — GO⑤(모바일 빌드 뒤라 지금은 불가)·DUNGEON5.7(시대 퓨전)·FOREST5.6(축제)·STORY5-2(보류)·5-8(파티 시스템 선행 검토) 순으로 다음 세션이 고를 수 있다.
+1. **PLAN 101-2 이어서** — GO①②④⑥⑦⑧·DUNGEON5.1~5.5,5.7·FOREST5.1~5.5,5.7,5.8①②·**REALM 전부**·**STORY 5-1,5-3,5-4,5-5,5-7** 완료. **2026-09-20 결정으로 게이트 무시 진행 허용**(101-2 서두) — 남은 건 GO⑤(모바일 빌드 뒤)·DUNGEON5.6(공통 A·B로 이미 일부 덮임, 재검토)·FOREST5.6(축제)·STORY5-2/5-8뿐, 다음 세션이 바로 고를 수 있다.
 2. **실기 GUI 확인 몰아서** — "실기 확인 대기" 전부(아래 목록, GO 일과판 신규 포함). 사용자 몫.
    - **다른 PC로 이어받으면** `CharactersRealistic/`가 비어 있음 — mixamo.com에서 새로 받을 것(로그인은 사람 몫). 목록은 `SetupXxxCharacterImport.cs`의 `AnimMap`/`BodyFileName`.
    - Dungeon Abe/Brute **전신 구도 스크린샷은 아직 못 얻음**(카메라 클로즈업, 파편만 확인) — `PlaytestDungeonEnemiesGui.cs`의 `TeleportPos`/줌 더 조정하면 재시도 가능.
@@ -51,7 +51,7 @@ STORY 세부(경위는 HISTORY grep): `StoryJobState.JobChosen` 이벤트로 `Re
 - **`Destroy()`로 자식을 지우고 같은 프레임에 다시 그리면 안 지워진 채 쌓인다** — `StoryLabyrinthMapUi.ClearChildren()`(`DestroyImmediate`로 고침), `StoryEnemy.IsDead`와 같은 결.
 - **함정(오류 아님)**: Unity 6000.3.24f1 > 프로젝트 6000.3.23f1 → 배치 모드가 ProjectSettings/Packages 4파일을 조용히 고친다. `tools/unity-batch.sh --`로 부르면 자동 원복.
 - `Animator.GetBoneTransform()`은 `isHuman`으로 먼저 거를 것(Humanoid 아니면 예외) — `CharacterVisual.FindOrCreateWeaponSocket()`이 가드.
-- 정적 상태의 `Restore()`가 관련 이벤트(예: `JobChosen`)를 안 쏘면 다른 컴포넌트가 낡은 시각 상태를 계속 든다(2026-09-18 `StoryWeaponVisual`) — 새 "상태 보고 시각 짓는" 컴포넌트는 그 상태의 Restore/로드 경로도 같은 이벤트를 쏘는지 확인.
+- 정적 상태의 `Restore()`가 관련 이벤트(예: `JobChosen`·`EquipmentChanged`)를 안 쏘면 다른 컴포넌트가 낡은 시각 상태를 계속 든다(2026-09-18 `StoryWeaponVisual`, 2026-09-20 DUNGEON `HeroState.Restore()`도 같은 함정이라 고침) — 새 "상태 보고 시각 짓는" 컴포넌트는 그 상태의 Restore/로드 경로도 같은 이벤트를 쏘는지 확인.
 - URP 런타임 타입(`DecalProjector` 등)엔 asmdef에 `Unity.RenderPipelines.Universal.Runtime` 필요(SagaDungeon/SagaGo). SagaStory는 asmdef 자체가 없어 무관.
 - 레벨업 카메라 컷 헤드리스 체크는 "그 세션의 첫 레벨업"이어야 함(자연 발생 레벨업과 겹치면 zoomBefore==zoomAfter로 간헐 실패) — GO·DUNGEON·STORY 다 첫 레벨업으로 앞세움.
 - `GroundDecal` 카운터 검증은 "캡 테스트"를 델타 비교 루프 밖 별도 시점에(캡 40개 스폰을 루프 중간에 끼우면 이후 델타가 캡에 눌어붙어 실패).
@@ -66,7 +66,7 @@ STORY 세부(경위는 HISTORY grep): `StoryJobState.JobChosen` 이벤트로 `Re
 |---|---|
 | `-batchmode -nographics -quit` 컴파일 | exit 0, 오류 0(STORY 5-4 관문 대장 추가 뒤 재확인) |
 | `PlaytestHeadless`(GO) | **3연속 OK**(2026-09-20, GO② `CheckShrineTrial()` 추가 뒤 — 신규·기존 전부 통과, 세이브 v13, 이번 세션엔 안 건드림) |
-| `PlaytestDungeonHeadless`·`FloorProgression`·`FieldAmbush`·`Shortcut`·`Town2`·`Towns34` | **전부 재검증 OK**(2026-09-20, 5.5 뒤 — 완주·사망 두 종료 경로 포함, `DungeonEnemy` 핵심 변경이라 하위 슬라이스까지 확인) |
+| `PlaytestDungeonHeadless`·`FloorProgression`·`FieldAmbush`·`Shortcut`·`Town2`·`Towns34` | **전부 재검증 OK**(2026-09-20, 5.7 뒤 — `CheckEraFusion()` 신규, `SpawnElite()`·`HeroState.Restore()` 변경이라 하위 슬라이스까지 확인) |
 | `PlaytestForestHeadless` | **3연속 OK**(2026-09-20, 5.7 택배 사슬 뒤 — `CheckDelivery()` 신규: 오배송 거절·정상 배송·사슬 보너스·파손·시간초과·세이브 round-trip) |
 | `PlaytestOverworldMap`(GO) | 이전 세션 1회 재검증 OK, 미변경 |
 | `PlaytestStorySlice` | **3연속 OK**(2026-09-20, 5-3 뒤 — 지도 결정성·축복 구조·노드 5종(실 UI 클릭으로 1~5층 완주 포함)·제한시간 실패+재기·영구 강화 10단 상한·세이브 round-trip 신규 검증) |
@@ -76,7 +76,7 @@ STORY 세부(경위는 HISTORY grep): `StoryJobState.JobChosen` 이벤트로 `Re
 ## 실기 확인 대기 (항목명만 — 경위는 HISTORY grep)
 
 - GO: 조우·전투·등용 손맛, 상점·퀘스트 대사 3단계, 은닉 보물·산신당·돌탑·유물, 채집, 목표판/세션카드, hitstop 체감, 유품 마커·무기 소켓·지형 데칼(101-3 F·G), 일과판·승급 3택 UI, 75초 토벌 손맛(101-2 ③), 봉수대 점등·목표판 전환·인연 등급 토스트·패배 시 짐 드롭/회수(101-2 ①⑥⑧), **사당 시련 입구·파도 3 전투감·인장 조각/이정표 보상·실패 잠금(101-2 ②, 2026-09-20 신규, 첫 실기 확인)**
-- DUNGEON: 카메라 각도, 아홉 슬라이스, 목표판/세션카드, hitstop·타격VFX·레벨업줌·무기소켓·지형데칼 체감(101-3 전체), **축복·유품·부적 던전·월드 보스·난입 체감(101-2 5.1~5.5, 신규 — 난입은 표식 위치·파도 난이도 포함 첫 실기 확인)**
+- DUNGEON: 카메라 각도, 아홉 슬라이스, 목표판/세션카드, hitstop·타격VFX·레벨업줌·무기소켓·지형데칼 체감(101-3 전체), 축복·유품·부적 던전·월드 보스·난입 체감(101-2 5.1~5.5), **전자창/동력장갑 모양·기계화 정찰병(5층부터) 체감(5.7, 2026-09-20 신규, 첫 실기 확인 — 5층까지 못 내려가면 못 봄)**
 - FOREST: 벽지/장판, 가구 배치, 생물·과일나무·좌판, 목표판/세션카드, 마을 번들(5.3), 채집 손맛(5.8①), 마을 평가판 별점(5.8②), **접수대·우체통 4·소포 3종·사슬 보너스 체감(5.7, 2026-09-20 신규, 첫 실기 확인)**
 - STORY: 두목 크기·타격감, 사건·관계·선택 흐름, 전직 팝업, 목표판/세션카드, hitstop/shake/flash/popup/타격 VFX 체감, 유품 마커·지형 데칼·레벨업 줌·직업별 무기(101-3 F·G), **관문 대장 승격 연출·방패 파괴 체감·시간 초과 태세 정비 문구(5-4, 2026-09-20 신규, 첫 실기 확인)**, **비경 문·노드 지도 UI·축복 카드·아레나 순간이동·주간 변형자(5-3, 2026-09-20 신규, 첫 실기 확인)**
 - REALM: 월드맵, 적국 사슬 체감, 패널 여덟 조작, 목표판/세션카드, 공격·계략 고르기, 특성·야망(5-1), 전술 토글(5-6), 서사 카드 7종(5-2), 계승 토글(5-8, 기본 꺼짐), 일기토·설전(5-3), **승리 결과 카드·목표판 셋째 줄·"다음 달" 게이트(5-5, 2026-09-20 신규, 첫 확인 — 정복 55성/문화 정답 30)**
