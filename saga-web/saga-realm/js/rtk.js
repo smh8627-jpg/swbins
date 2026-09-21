@@ -103,6 +103,14 @@
     return s.rtk;
   }
 
+  /** 통계 한 칸을 올린다 — `save.rtk.stats` 는 없으면 만든다(옛 세이브가 그대로 열린다). 일기토·설전 기록이 쓴다 */
+  function bumpStat(key, n) {
+    var st = state();
+    st.stats = st.stats || {};
+    st.stats[key] = (st.stats[key] || 0) + (n == null ? 1 : n);
+    return st.stats[key];
+  }
+
   /**
    * **옛 세이브 이사** — `setup()` 을 다시 부르지 않는 이어하기 세이브는
    * `data-city.js` 에 성을 늘려도(2026-09-03 한국 지역 확장) `st.cities` 가
@@ -497,8 +505,9 @@
   /**
    * 한 사람을 콕 집어 등용한다 (화면에서 고를 때).
    * 성공률은 **부르는 사람의 지력**과 **부름받는 사람의 콧대(등급)** 가 가른다.
+   * @param mul 설전(PLAN §5-3)이 낸 배율 — 성공률에 곱한다. 없으면 1(예전 그대로, AI 도 안 넘긴다)
    */
-  function tryHire(cityId, byId, targetId) {
+  function tryHire(cityId, byId, targetId, mul) {
     var off = global.DG.off;
     var c = city(cityId);
     var by = off.find(byId), t = off.find(targetId);
@@ -510,6 +519,7 @@
     if (by.trait === t.trait) { chance += 0.10; }
     var captive = st.captives[targetId] === cityId;
     if (captive) { chance -= 0.15; }         // 잡혀 온 사람은 쉬이 굽히지 않는다
+    if (mul != null && mul !== 1) { chance = core.clamp(chance * mul, 0.03, 0.95); }
 
     if (Math.random() > chance) {
       core.log('🤝 ' + by.name + ' 이 ' + t.name + ' 을(를) 청했으나 거절당했다.', 'info');
@@ -1348,7 +1358,7 @@
     CHALLENGE_MONTHS: CHALLENGE_MONTHS, bests: bests,
     VICTORY: VICTORY, victoryKinds: victoryKinds, victoryProgress: victoryProgress, victoryNext: victoryNext,
     victoryDone: function (k) { return victoryDone(state(), k); }, resultCard: resultCard, tickVictories: tickVictories,
-    readyAt: readyAt, capOf: capOf, order: order, tryHire: tryHire,
+    readyAt: readyAt, capOf: capOf, order: order, tryHire: tryHire, bumpStat: bumpStat,
     setGov: setGov, govMul: govMul, reward: reward,
     goldOf: goldOf, foodOf: foodOf, eatOf: eatOf, secMul: secMul, harvestMul: harvestMul,
     marketRate: marketRate, trade: trade,
