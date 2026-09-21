@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://games/saga_story/ui/quest_label.gd" id="1"]
 [ext_resource type="Script" path="res://games/saga_story/ui/story_save_button.gd" id="2"]
@@ -9,8 +9,25 @@
 [ext_resource type="Script" path="res://games/saga_story/ui/title_label.gd" id="7"]
 [ext_resource type="Script" path="res://saga_core/ui/goal_board.gd" id="8"]
 [ext_resource type="Script" path="res://games/saga_story/ui/goal_board_feed.gd" id="9"]
+[ext_resource type="Texture2D" path="res://assets/generated/sprites/panel_9slice.png" id="10"]
 
 [node name="StoryHUD" type="CanvasLayer"]
+
+[node name="DialoguePanel" type="NinePatchRect" parent="." groups=["dialogue_panel"]]
+visible = false
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 0.0
+offset_left = 40.0
+offset_top = 40.0
+offset_right = -40.0
+offset_bottom = 100.0
+texture = ExtResource("10")
+patch_margin_left = 18
+patch_margin_top = 18
+patch_margin_right = 18
+patch_margin_bottom = 18
 
 [node name="DialogueLabel" type="Label" parent="." groups=["dialogue_label"]]
 visible = false

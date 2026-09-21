@@ -7876,3 +7876,12 @@ PROJECT_STATE.md` 참고. 요약:
 - 헤드리스 실측: `test_village.gd`에 `SAGA_PROBE_DEBUG` 임시 훅으로 두 노드의 position·size·update_mode 확인 후 제거.
 - DUNGEON(우물 방, procedural 배치라 위치 특정 더 필요)·FOREST(낚시터)·STORY·REALM은 물 위치를 씬마다 따로 찾아야 해 이번엔 GO만 하고 범위 밖으로 남김.
 - `--headless --editor --quit` 1회·`godot_regress.sh` 통과, `.import`/`project.godot` 잡음 없음.
+
+## UI 9-slice 패널 배선 (2026-09-21, 새 세션, "사가고돗 이어해")
+
+- PROJECT_STATE "다음 작업"이 전부 사람 몫·실기 확인 뒤라, §8-1 재override를 AskUserQuestion으로 다시 확인받고 착수(새 세션이라 재확인). 후보 중 가장 낮은 리스크로 사용자가 직접 골랐다: 103장 `spritegen.py`가 만들어 뒀지만 아무 데도 안 쓰이던 `panel_9slice.png`(96px, border 18) 배선.
+- `saga_core/ui/toast.gd::show()`에 "dialogue_panel" 그룹 토글을 살짝 확장(그룹 없으면 no-op, 기존 5판 다 그대로 동작). 다섯 판 HUD(`MobileHUD`·`DungeonHUD`·`ForestHUD`·`StoryHUD`·`RealmHUD`)에 `DialoguePanel`(NinePatchRect, "dialogue_panel" 그룹)을 `DialogueLabel`과 같은 자리에 배경으로 추가 — 기존 라벨·스크립트는 안 건드림.
+- RealmHUD.tscn에 새 ext_resource id를 "17"로 넣었다가 이미 `LordPortrait.tscn`이 쓰고 있어 헤드리스에서 파스 실패(issues=117) — id "18"로 고쳐 해결. 다른 4판은 처음부터 issues=0.
+- 헤드리스 실측: `test_village.gd`에 `SAGA_UI_PANEL_DEBUG` 임시 훅으로 `Toast.show()` 호출 뒤 `panel_visible=true label_visible=true` 확인 후 훅 제거.
+- `godot_regress.sh` 다섯 판 전부 통과(md5는 새 리소스 로드 로그로 예전과 다르지만 3회 내부 일관), `.import`/`project.godot` 잡음 없음.
+- 실기 확인 목록에 "대화·토스트 패널 배경(9-slice) 체감" 추가(PROJECT_STATE "공통").
