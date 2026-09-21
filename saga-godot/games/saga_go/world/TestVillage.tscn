@@ -33,6 +33,16 @@ transform = Transform3D(0.8, -0.35, 0.48, 0, 0.807, 0.59, -0.6, -0.472, 0.646, 0
 light_energy = 1.1
 shadow_enabled = true
 
+[node name="ReflectionProbeVillage" type="ReflectionProbe" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 10, 0)
+size = Vector3(528, 40, 528)
+update_mode = 0
+
+[node name="ReflectionProbeCoast" type="ReflectionProbe" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8000, 10, 0)
+size = Vector3(432, 40, 432)
+update_mode = 0
+
 [node name="Terrain" type="Node3D" parent="."]
 script = ExtResource("1")
 

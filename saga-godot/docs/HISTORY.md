@@ -7866,3 +7866,13 @@ PROJECT_STATE.md` 참고. 요약:
 - 헤드리스 실측: GO는 재확인, STORY(`story_town.gd`)에도 임시 `SAGA_SHADOW_DEBUG` 훅을 넣어 `BlobShadow` 노드 존재를 확인 후 둘 다 제거.
 - `godot_regress.sh` 다섯 판 전부 무오류·md5 내부 일관.
 - 부수적으로 `saga-godot/PLAN.md` 가 이전 커밋에서 CRLF로 살짝 뒤바뀌어 `git status`엔 잡히는데 `git diff`엔 내용 변경이 없는 상태였다(ae74ee27 커밋과 같은 부류) — `git checkout --`로 원래 상태 그대로 되돌림(내용 변경 없음, 이번 세션 무관한 잡음).
+
+## GO ReflectionProbe(마을·포구) (2026-09-21, 같은 세션, "이어해")
+
+- 102-4 "ReflectionProbe 1개/지역...물 없는 지역은 생략"을 다시 읽고 뜻을 바로잡았다 — "물 없는 지역"이 생략 대상이라, 물 있는 지역에만 넣는다.
+- `test_map.gd`로 GO 세 지역의 물 여부 확인: 마을(ROWS의 W·~ 타일) 있음, 포구(북쪽 ~ 전부 물) 있음, 폐허("물이 아예 없어" 헤더 명시) 없음 → 마을·포구 둘만.
+- `TestVillage.tscn`에 직접 두 노드 추가 — 중심은 `test_map.gd` 원점(지역 안에서는 중심이 원점이라는 규칙 그대로: 마을 (0,10,0)·포구 (8000,10,0)), 박스는 각 지역 타일 크기(11×11×48=528, 9×9×48=432)에 높이 40, `update_mode ONCE`.
+- `.tscn`에 `##` 주석을 넣었다가 파스 에러(Godot TSCN은 GDScript 문서주석을 안 받는다) — 지우고 순수 속성만 남김, 경위는 이 HISTORY 항목으로 대신.
+- 헤드리스 실측: `test_village.gd`에 `SAGA_PROBE_DEBUG` 임시 훅으로 두 노드의 position·size·update_mode 확인 후 제거.
+- DUNGEON(우물 방, procedural 배치라 위치 특정 더 필요)·FOREST(낚시터)·STORY·REALM은 물 위치를 씬마다 따로 찾아야 해 이번엔 GO만 하고 범위 밖으로 남김.
+- `--headless --editor --quit` 1회·`godot_regress.sh` 통과, `.import`/`project.godot` 잡음 없음.
