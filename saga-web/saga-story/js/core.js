@@ -34,13 +34,16 @@
         fame: 30,
         feat: 0,            // 공적 — 칭호의 연료
         featTotal: 0,       // 누적 공적 (칭호 계산용)
-        memFrag: 0,         // 기억 조각(PLAN §5-3 메타 재화) — §5-4 관문 대장이 먼저 준다,
-                             // 쓰는 자리(§5-3 마을 강화·축복 풀)는 아직 없다
+        memFrag: 0,         // 기억 조각(PLAN §5-3 메타 재화) — 관문 대장·비경이 준다
+        memUp: {},          // 조각으로 산 영구 강화 단 { hp: 0~10 } (rift.js)
+        memOpen: {},        // 조각으로 풀어 둔 축복 { 축복key: true } (rift.js)
         pos: { x: 0, y: 0 },
         distance: 0,        // 누적 이동 거리 (m 환산)
         supplyMark: 0,      // 걷기 보급을 마지막으로 받은 거리
         supplyCount: 0      // 보급 횟수 (짝수 번째마다 등용서)
       },
+      rift: null,                         // 진행 중인 비경(rift.js) — 없으면 null
+      riftStat: { runs: 0, clears: 0, best: 0 },
       items: { scroll: 3, feed: 5 },
       dex: { heroes: {}, pets: {} },     // { id: {count, firstAt} }
       heroes: {},                         // { heroId: {lv, exp, rank} } 인물 개별 성장

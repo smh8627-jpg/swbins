@@ -75,6 +75,7 @@ window.DG_NO_TUNE = true;
 <script src="js/data-unique.js"></script>
 <script src="js/data-job.js"></script>
 <script src="js/data-quest.js"></script>
+<script src="js/data-rift.js"></script>
 <script src="js/data-achieve.js"></script>
 <script src="js/sprite.js"></script>
 <script src="js/core.js"></script>
@@ -91,6 +92,7 @@ window.DG_NO_TUNE = true;
 <script src="js/gear.js"></script>
 <script src="js/job.js"></script>
 <script src="js/quest.js"></script>
+<script src="js/rift.js"></script>
 <script src="js/achieve.js"></script>
 <script src="js/sfx.js"></script>
 <script src="js/bgm.js"></script>
@@ -3413,6 +3415,242 @@ window.DG_NO_TUNE = true;
       return !!(firstUniq && frag1 === frag0 + 3 && scrollGot && rotated) &&
         ('고유 O · 기억 조각 +3 O · 주문서 O · 부위 순환(' +
          (firstUniq && G.defOf(firstUniq).slot) + '→' + (secondUniq && G.defOf(secondUniq).slot) + ')');
+    });
+
+    /* ── 비경(PLAN §5-3, 2026-09-22) ─────────────────────────
+     * 5층 노드 지도 + 축복 3택 + 기억 조각. 판정은 사냥터 엔진 그대로라 여기서는 흐름(지도·축복·
+     * 층·죽음·클리어)과 축복이 엔진에 실제로 걸리는지를 본다. 지도·후보는 씨앗으로만 정해진다. */
+    var riftLastEnd = null;
+    C.on('side:end', function (g) { riftLastEnd = g; });
+    function riftReset() {
+      var S = DG.side;
+      if (S.active()) { S.leave(); }
+      C.save.rift = null;
+      C.save.riftStat = { runs: 0, clears: 0, best: 0 };
+      C.save.player.memFrag = 0; C.save.player.memUp = {}; C.save.player.memOpen = {};
+      C.save.player.level = 12;
+      C.save.gear = { uid: 1, inv: [], equip: {} };
+      C.save.scrolls = {};
+      ensureParty();
+      riftLastEnd = null;
+    }
+    /** 지도 첫 층에서 종류 k 의 칸 번호 */
+    function riftIdx(row, k) {
+      for (var i = 0; i < row.length; i++) { if (row[i].kind === k) { return i; } }
+      return -1;
+    }
+    /** 적 하나를 사거리에 세워 실제 타격 경로로 쓰러뜨린다 */
+    function riftSlay(e) {
+      var S = DG.side, run = S.raw(), p = run.player;
+      run.hp = run.hpMax; p.invuln = 999;
+      e.hp = 1; e.dir = 1;
+      p.x = e.x; p.y = e.y; p.facing = 1; p.cds[0] = 0; run.mp = run.mpMax;
+      S.castSkill(0);
+      p.invuln = 0;
+    }
+
+    t('비경(§5-3) — 같은 씨앗은 같은 지도이고, 200개 씨앗 모두 층 규칙을 지킨다', function () {
+      var R = DG.rift, RD = DG.riftData, ok = true, seen = {}, n = 0, seed, m, f, i;
+      var a = JSON.stringify(R.genMap(20260824)), b = JSON.stringify(R.genMap(20260824));
+      for (seed = 1; seed <= 200; seed++) {
+        m = R.genMap(seed * 7919);
+        if (m.length !== RD.FLOORS) { ok = false; continue; }
+        for (f = 0; f < RD.FLOORS - 1; f++) {
+          var kinds = m[f].map(function (nd) { return nd.kind; });
+          if (kinds.length < 2 || kinds.length > 3) { ok = false; }
+          kinds.forEach(function (k) { if (RD.FLOOR_POOL[f].indexOf(k) < 0) { ok = false; } });
+          if (f < 3 && kinds.indexOf('battle') < 0) { ok = false; }
+          if (f === 3 && kinds.indexOf('rest') < 0) { ok = false; }
+        }
+        if (m[4].length !== 1 || m[4][0].kind !== 'boss') { ok = false; }
+        var key = JSON.stringify(m);
+        if (!seen[key]) { seen[key] = 1; n++; }
+      }
+      return a === b && ok && n >= 60 && ('결정론 O · 층 규칙 200/200 · 서로 다른 지도 ' + n);
+    });
+
+    t('비경(§5-3) — 축복 3택은 세 축에서 하나씩이고 가진 것·잠긴 것은 안 나온다(100회)', function () {
+      var R = DG.rift, RD = DG.riftData, i, bad = 0, again = true;
+      riftReset();
+      for (i = 1; i <= 100; i++) {
+        var owned = (i % 3 === 0) ? ['b_dmg', 'b_guard'] : [];
+        var off = R.offerFor(i * 131, (i % 5) + 1, owned);
+        var axes = {};
+        off.forEach(function (k) {
+          var bo = RD.boon(k);
+          axes[bo.axis] = (axes[bo.axis] || 0) + 1;
+          if (bo.locked || owned.indexOf(k) >= 0) { bad++; }
+        });
+        if (off.length !== 3 || Object.keys(axes).length !== 3) { bad++; }
+        if (JSON.stringify(off) !== JSON.stringify(R.offerFor(i * 131, (i % 5) + 1, owned))) { again = false; }
+      }
+      /* 잠긴 축복을 풀면 후보에 든다 */
+      RD.BOONS.forEach(function (b) { if (b.locked) { C.save.player.memOpen[b.key] = true; } });
+      var sawLocked = false;
+      for (i = 1; i <= 200 && !sawLocked; i++) {
+        R.offerFor(i * 77, 1, []).forEach(function (k) { if (RD.boon(k).locked) { sawLocked = true; } });
+      }
+      C.save.player.memOpen = {};
+      return bad === 0 && again && sawLocked && ('3택 규칙 위반 0/100 · 결정론 O · 풀린 축복은 후보에 든다 O');
+    });
+
+    t('비경(§5-3) — 주간 변형자는 주 키로 정해지고 주가 바뀌면 다른 것이 나온다', function () {
+      var R = DG.rift, RD = DG.riftData, seen = {}, i, stable = true;
+      for (i = 1; i <= 12; i++) {
+        var wk = '2026-w' + i, v = R.variantOf(wk);
+        seen[v.key] = 1;
+        if (R.variantOf(wk).key !== v.key) { stable = false; }
+      }
+      return stable && Object.keys(seen).length >= 3 && typeof DG.side.weekKey() === 'string' &&
+        ('12주 동안 변형자 ' + Object.keys(seen).length + '종 · 같은 주는 같다');
+    });
+
+    t('비경(§5-3) — 시작 → 축복 → 전투 층을 마치면 조각 +1, 다음 층 지도가 열린다', function () {
+      var S = DG.side, R = DG.rift, RD = DG.riftData, i;
+      riftReset();
+      var began = R.begin(), f = R.info(), run = S.raw();
+      var p1 = began && f.phase === 'boon' && f.offer.length === 3 && run && run.stage.key === 'rift' && run.rift === true;
+      var picked = R.pickBoon(f.offer[0]), f2 = R.info();
+      var p2 = picked && f2.phase === 'map' && f2.boons.length === 1 && !!S.raw().rm;
+      var bi = riftIdx(f2.map[0], 'battle');
+      R.choose(bi);
+      var f3 = R.info();
+      run = S.raw();
+      var p3 = f3.phase === 'fight' && f3.cur.kind === 'battle' && run.enemies.length > 0 &&
+        run.stage.rift === true && run.stage.town === false;
+      var frag0 = C.save.player.memFrag;
+      for (i = 0; i < f3.cur.goal; i++) { R.onKill({}); }
+      S.update(0.016);
+      var f4 = R.info();
+      var p4 = f4.phase === 'map' && f4.floor === 1 && C.save.player.memFrag === frag0 + 1 &&
+        S.raw().stage.key === 'rift' && S.raw().stage.town === true && S.raw().enemies.length === 0;
+      S.leave();
+      return !!(p1 && p2 && p3 && p4) && ('시작·축복 O · 전투 층 O(목표 ' + f3.cur.goal + ') · 조각 +1 · 1→2층');
+    });
+
+    t('비경(§5-3) — 정예를 실제로 쓰러뜨리면 축복 3택이 다시 열리고 다음 층으로 간다', function () {
+      var S = DG.side, R = DG.rift, seed, i, found = -1;
+      riftReset();
+      R.begin();
+      R.pickBoon(R.info().offer[0]);
+      /* 2층에 정예가 있는 씨앗으로 맞춘다(지도는 씨앗 함수라 진행에 영향이 없다) */
+      for (seed = 1; seed < 500 && found < 0; seed++) {
+        var row = R.genMap(seed)[1];
+        if (riftIdx(row, 'elite') >= 0) { found = seed; }
+      }
+      C.save.rift.seed = found; C.save.rift.floor = 1; C.save.rift.phase = 'map';
+      R.choose(riftIdx(R.mapOf()[1], 'elite'));
+      var run = S.raw(), el = null;
+      run.enemies.forEach(function (e) { if (e.riftElite) { el = e; } });
+      var hasElite = !!el && el.mini === true;
+      /* 잡졸은 미리 치워 둔다(정예가 잡졸보다 먼저 죽는 경로만 본다) */
+      if (el) { riftSlay(el); }
+      S.update(0.016);
+      var f = R.info();
+      var ok = hasElite && f.phase === 'boon' && f.floor === 2 && f.offer.length >= 1 &&
+        C.save.rift.offerFrom === 'elite' && S.raw().stage.town === true;
+      S.leave();
+      return !!ok && ('정예 O · 처치 → 축복 3택(' + (f.offer || []).length + '장) · 2→3층');
+    });
+
+    t('비경(§5-3) — 쓰러지면 진행(축복·층)은 사라지고 기억 조각만 남는다', function () {
+      var S = DG.side, R = DG.rift;
+      riftReset();
+      R.begin();
+      R.pickBoon(R.info().offer[0]);
+      R.choose(riftIdx(R.info().map[0], 'battle'));
+      C.save.player.memFrag = 5;
+      var run = S.raw();
+      run.hp = 1;
+      var e = run.enemies[0], p = run.player;
+      e.x = p.x; e.y = p.y; e.cd = 0; e.dmg = 99999;
+      p.invuln = 0;
+      S.update(0.03);
+      return !S.active() && C.save.rift === null && C.save.player.memFrag === 5 &&
+        riftLastEnd && riftLastEnd.dead === true && riftLastEnd.rift && riftLastEnd.rift.dead === true &&
+        ('죽음 → 비경 기록 삭제 · 조각 5 그대로 · 카드에 비경 요약');
+    });
+
+    t('비경(§5-3) — 5층 수호장을 쓰러뜨리면 정복 — 조각 3+·기록·나가기까지 한 번에', function () {
+      var S = DG.side, R = DG.rift;
+      riftReset();
+      R.begin();
+      R.pickBoon(R.info().offer[0]);
+      C.save.rift.floor = 4; C.save.rift.phase = 'map';
+      R.choose(0);
+      var run = S.raw(), b = run.boss;
+      var isBoss = !!b && b.riftBoss === true && b.ref.name === '관문 수호장';
+      var frag0 = C.save.player.memFrag;
+      riftSlay(b);
+      S.update(0.016);
+      var uniq = DG.gear.state().inv.filter(function (it) { return DG.gear.isUnique(it); }).length;
+      return isBoss && !S.active() && C.save.rift === null && C.save.riftStat.clears === 1 &&
+        C.save.player.memFrag >= frag0 + 3 && uniq >= 1 && riftLastEnd && riftLastEnd.rift && riftLastEnd.rift.clear === true &&
+        ('수호장 O · 정복 기록 1 · 조각 +' + (C.save.player.memFrag - frag0) + ' · 고유 장비 ' + uniq);
+    });
+
+    t('비경(§5-3) — 축복이 엔진에 걸린다: 강건(최대 체력)·방패(첫 피격)·불굴(부활 한 번)', function () {
+      var S = DG.side, R = DG.rift;
+      riftReset();
+      R.begin();
+      C.save.rift.boons = ['b_hp', 'b_shield', 'b_revive']; C.save.rift.phase = 'map'; C.save.rift.offer = null;
+      R.restore();
+      var run = S.raw();
+      var hpOk = run.hpMax === Math.round(S.power().hp * 1.3);
+      R.choose(riftIdx(R.info().map[0], 'battle'));
+      run = S.raw();
+      var shieldReady = run.riftShield === true;
+      var e = run.enemies[0], p = run.player;
+      run.hp = run.hpMax;
+      e.x = p.x; e.y = p.y; e.cd = 0; e.dmg = 99999; p.invuln = 0;
+      S.update(0.03);
+      var blocked = S.active() && run.hp === run.hpMax && run.riftShield === false;
+      e.cd = 0; p.invuln = 0;
+      S.update(0.03);
+      var revived = S.active() && C.save.rift.revived === true && Math.abs(run.hp - Math.round(run.hpMax * 0.4)) <= 1;
+      e.cd = 0; p.invuln = 0;
+      S.update(0.03);
+      var dead = !S.active() && C.save.rift === null;
+      return hpOk && shieldReady && blocked && revived && dead &&
+        ('최대 체력 ×1.3 O · 방패가 첫 타를 막음 O · 불굴로 40% 부활 O · 두 번째 치명타에 쓰러짐 O');
+    });
+
+    t('비경(§5-3) — 기억 조각 강화: 최대 체력 단 올리기·잠긴 축복 열기(모자라면 거절)', function () {
+      var R = DG.rift, RD = DG.riftData, S = DG.side;
+      riftReset();
+      var hp0 = S.power().hp;
+      C.save.player.memFrag = 2;
+      var poor = R.buyHp() === false && (C.save.player.memUp.hp || 0) === 0;
+      C.save.player.memFrag = 10;
+      var bought = R.buyHp() === true && C.save.player.memUp.hp === 1 && C.save.player.memFrag === 7;
+      var hp1 = S.power().hp;
+      var grew = hp1 > hp0 && Math.abs(hp1 / hp0 - 1.02) < 0.01;
+      var locked = RD.BOONS.filter(function (b) { return b.locked; })[0];
+      C.save.player.memFrag = RD.UNLOCK_COST - 1;
+      var noOpen = R.unlockBoon(locked.key) === false;
+      C.save.player.memFrag = RD.UNLOCK_COST;
+      var opened = R.unlockBoon(locked.key) === true && C.save.player.memOpen[locked.key] === true && C.save.player.memFrag === 0;
+      C.save.player.memUp = {}; C.save.player.memOpen = {};
+      return poor && bought && grew && noOpen && opened &&
+        ('모자라면 거절 O · 1단 +2% 체력(' + hp0 + '→' + hp1 + ') · 잠긴 축복 열림 O');
+    });
+
+    t('비경(§5-3) — 주간 변형자 메마른 길: 비경 안에서는 탕약을 못 마신다', function () {
+      var S = DG.side, R = DG.rift;
+      riftReset();
+      R.begin();
+      C.save.rift.variant = 'dry';
+      R.restore();
+      var run = S.raw();
+      C.save.side.potions = 3; run.hp = 1;
+      var blocked = S.drink() === false && C.save.side.potions === 3 && run.rm.noPotion === true && run.rm.reward === 1.6;
+      C.save.rift.variant = 'tough';
+      R.restore();
+      var run2 = S.raw();
+      run2.hp = 1;
+      var ok2 = S.drink() === true && run2.rm.reward === 1.5;
+      S.leave();
+      return blocked && ok2 && ('dry: 탕약 거절 · 보상 ×1.6 / tough: 탕약 O · 보상 ×1.5');
     });
 
     /* ── VRoid 몸 변형 (vroid-variant.js, 2026-09-20) — 인물 전원에게 VRoid 몸을 나눠 입히고 색만 바꾼다 ─────────── */

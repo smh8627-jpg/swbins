@@ -134,9 +134,10 @@
     var atk = s.might * 0.9 + s.wisdom * 0.3;
     var hp = 60 + s.command * 6 + core.save.player.level * 12;
     var g = gearBonus(), jb = jobGrow();
+    var RM = global.DG.rift;   // 비경(§5-3) 기억 조각 강화 — 없으면 1배
     return {
       atk: Math.max(4, Math.round(atk) + g.atk + jb.atk),
-      hp: Math.round(hp) + g.hp + jb.hp,
+      hp: Math.round((Math.round(hp) + g.hp + jb.hp) * (RM ? RM.memHpMul() : 1)),
       def: g.def,
       mp: MP_MAX + jb.mp,
       bare: { atk: Math.max(4, Math.round(atk)), hp: Math.round(hp) }
@@ -249,7 +250,7 @@
   /** 랜덤 이벤트(PLAN 11절) — 사냥터에 걸어 들어갈 때마다 낮은 확률로 상자가
    *  하나 생긴다. 마을엔 안 둔다(싸울 일이 없는 곳이라 어울리지 않는다) */
   function buildChest(stg) {
-    if (stg.town || Math.random() >= CHEST_CHANCE) { return null; }
+    if (stg.town || stg.rift || Math.random() >= CHEST_CHANCE) { return null; }
     return { x: 200 + Math.random() * (stg.width - 400), opened: false };
   }
 
@@ -259,7 +260,7 @@
    *  `FORAGE_MUL`배 더 나오게, 판정 하나만 덧붙인다(update() 참고).
    *  마을엔 안 둔다(채집 자리 자체가 없다) */
   function buildForageZone(stg) {
-    if (stg.town || Math.random() >= FORAGE_CHANCE) { return null; }
+    if (stg.town || stg.rift || Math.random() >= FORAGE_CHANCE) { return null; }
     var cx = FORAGE_HALF + 40 + Math.random() * (stg.width - (FORAGE_HALF + 40) * 2);
     return { x1: cx - FORAGE_HALF, x2: cx + FORAGE_HALF, notified: false };
   }
@@ -269,7 +270,7 @@
    *  `AMBUSH_COUNT`마리가 한꺼번에 나타난다(update() 참고) — 자리만 여기서 뽑는다.
    *  마을엔 안 둔다(싸울 일이 없는 곳) */
   function buildAmbush(stg) {
-    if (stg.town || Math.random() >= AMBUSH_CHANCE) { return null; }
+    if (stg.town || stg.rift || Math.random() >= AMBUSH_CHANCE) { return null; }
     return { x: 260 + Math.random() * (stg.width - 520), triggered: false };
   }
 
@@ -277,7 +278,7 @@
    *  자리가 하나 생긴다. 지나면 잡졸 하나가 그 자리에서 크게 불려 나온다
    *  (update() 참고) — 진짜 보스(spawnBoss)와 달리 쿨타임·전용 UI가 없다 */
   function buildMiniboss(stg) {
-    if (stg.town || Math.random() >= MINI_CHANCE) { return null; }
+    if (stg.town || stg.rift || Math.random() >= MINI_CHANCE) { return null; }
     return { x: 260 + Math.random() * (stg.width - 520), triggered: false };
   }
 
@@ -285,7 +286,7 @@
    *  확률로 마주치는 자리가 하나 생긴다. 지나면 `MERCHANT_DUR`초 동안 상점
    *  (🏪, 어디서든 연다)이 싸진다 — 자리를 옮기는 게 아니라 값에만 붙는다 */
   function buildMerchant(stg) {
-    if (stg.town || Math.random() >= MERCHANT_CHANCE) { return null; }
+    if (stg.town || stg.rift || Math.random() >= MERCHANT_CHANCE) { return null; }
     return { x: 260 + Math.random() * (stg.width - 520), triggered: false };
   }
 
@@ -293,17 +294,19 @@
    *  사람 자리가 하나 생긴다. 가까이 가면 지키던 잡졸이 나타나고(update()),
    *  그 잡졸을 다 잡으면 사례금을 받는다 */
   function buildRescue(stg) {
-    if (stg.town || Math.random() >= RESCUE_CHANCE) { return null; }
+    if (stg.town || stg.rift || Math.random() >= RESCUE_CHANCE) { return null; }
     return { x: 260 + Math.random() * (stg.width - 520), spawned: false, done: false };
   }
 
-  /** 사냥터에 들어간다 */
-  function enter(key) {
-    var stg = SD.stage(key);
-    if (!unlocked(stg.key)) {
+  /** 사냥터에 들어간다. stgOverride 는 비경(§5-3)이 만든 임시 방을 직접 넘길 때만 쓴다 */
+  function enter(key, stgOverride) {
+    var stg = stgOverride || SD.stage(key);
+    if (!stgOverride && !unlocked(stg.key)) {
       core.emit('toast', '⚠️ Lv.' + stg.need + ' 부터 들어갈 수 있습니다');
       return false;
     }
+    /* 비경 도중에 다른 사냥터로 걸어 들어가면 비경은 접는다(조각은 이미 받은 만큼 남는다) */
+    if (!stgOverride && run && run.rift && global.DG.rift) { global.DG.rift.onEnd('leave'); }
     if (!core.save.party.length) {
       core.emit('toast', '⚠️ 도감에서 인물을 하나 골라 앞에 세우세요');
       return false;
@@ -333,7 +336,7 @@
       kills: 0, gold: 0, hitstopT: 0, hitSeq: 0,
       expGained: 0, gearFound: 0, feat0: achieveDoneCount()   // 세션 카드(§5-6) 몫 — 들어올 때 스냅
     };
-    st().stage = stg.key;
+    if (!stgOverride) { st().stage = stg.key; }
     for (var i = 0; i < stg.spawn; i++) { spawnEnemy(); }
     var b = spawnBoss();
     core.log('🏃 ' + stg.name + ' 에 들어섰다' +
@@ -348,6 +351,7 @@
   function leave() {
     if (!run) { return null; }
     var Q = global.DG.quest;
+    var riftSum = global.DG.rift ? global.DG.rift.onEnd('leave') : null;   // 비경(§5-3) — 진행을 지우고 요약만 받는다
     /* 세션 마무리 카드(§5-6) — got 를 ui.js 가 그대로 5초짜리 시트에 얹는다.
        run 을 지우기 전에 다 챙긴다(exp·gear·feat 는 run 에 쌓아 둔 값,
        feat 는 들어올 때 스냅과 지금의 차, next 는 quest.js 가 우선순위대로 고른다) */
@@ -355,7 +359,8 @@
       gold: Math.round(run.gold), kills: run.kills, stage: run.stage.name,
       exp: run.expGained, gear: run.gearFound,
       feat: achieveDoneCount() - run.feat0,
-      next: Q ? Q.nextTodo() : null
+      next: Q ? Q.nextTodo() : null,
+      rift: riftSum
     };
     core.save.player.gold += got.gold;
     core.log('🚪 ' + got.stage + ' 에서 나왔다 · 🪙 ' + core.fmt(got.gold) +
@@ -374,6 +379,7 @@
    *  안 돌리는 자가진단에서는 이 함수가 안 불려 그 가정이 깨지지 않는다). */
   function resume() {
     if (run || !core.save.party.length) { return false; }
+    if (global.DG.rift && global.DG.rift.pending()) { return global.DG.rift.restore(); }
     return enter(st().stage || 'sinya');
   }
 
@@ -552,6 +558,31 @@
     core.emit('side:travel', run);
     core.emit('changed');
     return true;
+  }
+
+  /** 비경(§5-3) — 문 없이 지금 무대를 다른 방으로 갈아 낀다(체력·기력·주운 금은 그대로).
+   *  travel() 의 몸통에서 문·레벨 문턱·세이브 stage 기록만 뺐다 */
+  function swapStage(stg) {
+    if (!run) { return false; }
+    run.stage = stg;
+    run.enemies = []; run.dying = []; run.drops = []; run.shots = []; run.eshots = []; run.boss = null;
+    run.gathers = buildGathers(stg);
+    run.chest = buildChest(stg); run.forage = buildForageZone(stg); run.ambush = buildAmbush(stg);
+    run.miniboss = buildMiniboss(stg); run.merchant = buildMerchant(stg); run.rescue = buildRescue(stg);
+    run.npcs = buildNpcs(stg); run.talk = null;
+    run.riftTick = false;
+    run.player.x = 130; run.player.y = stg.floor - P_H;
+    run.player.vx = 0; run.player.vy = 0; run.player.climb = null;
+    run.player.onGround = true; run.player.facing = 1;
+    fx.push({ t: 'fade', life: FADE_DUR });
+    core.emit('side:travel', run);
+    core.emit('changed');
+    return true;
+  }
+
+  /** 지금 서 있는 곳이 어디든 그 방으로 — 사냥 중이 아니면 새로 들어간다 */
+  function placeIn(stg) {
+    return run ? swapStage(stg) : enter(null, stg);
   }
 
   /* ── 보스 ─────────────────────────────────────────────────
@@ -869,7 +900,7 @@
     if (p.climb || p.dodgeCd > 0) { return false; }
     /* 유파(§5-2) — 띠에 dash 계열 유파 세트(2 이상)가 있으면 회피가 더 자주 돈다 */
     var J = global.DG.job;
-    p.dodgeCd = DODGE_COOL * (J ? J.dodgeCdMul() : 1);
+    p.dodgeCd = DODGE_COOL * (J ? J.dodgeCdMul() : 1) * (run.rm ? 1 - run.rm.dodge : 1);
     var from = p.x, dir = input.left ? -1 : (input.right ? 1 : p.facing);
     p.x = core.clamp(p.x + DODGE_DIST * dir, 0, run.stage.width - P_W);
     p.dropThru = 0;
@@ -1046,12 +1077,19 @@
        melee·aoe·dash 등 나머지 효과에는 안 걸린다(§5-1 "다음 3발" 범위 그대로) */
     if (p.parryBonus !== 1) { m *= p.parryBonus; p.parryBonus = 1; }
     if (p.shadowHitT > 0) { m *= p.shadowHitMul; p.shadowHitT = 0; }
-    var crit = forceCrit || Math.random() < critRate();
-    var dmg = atkOf() * m * (0.88 + Math.random() * 0.24) * (crit ? critMul() : 1);
+    var rm = run.rm;   // 비경 축복(§5-3) — 비경 밖에서는 null
+    var crit = forceCrit || Math.random() < critRate() + (rm ? rm.crit : 0);
+    var dmg = atkOf() * m * (0.88 + Math.random() * 0.24) * (crit ? critMul() + (rm ? rm.critMul : 0) : 1);
+    if (rm) {
+      dmg *= 1 + rm.dmg;
+      if (e.boss || e.mini) { dmg *= 1 + rm.bossDmg; }
+      if (rm.exec && e.hp <= e.hpMax * 0.3) { dmg *= 1 + rm.exec; }
+    }
     /* 관문 대장(§5-4) 취약 — 방패가 깨진 10초 동안 받는 피해 ×1.5 */
     if (e.gate && e.gateVulnT > 0) { dmg *= GATE_VULN_MUL; }
     dmg = Math.max(1, Math.round(dmg));
     e.hp -= dmg;
+    if (rm && rm.leech) { run.hp = Math.min(run.hpMax, run.hp + dmg * rm.leech); }
     e.hurt = HURT_FLASH;
     /* 관문 대장(§5-4) 방패 — **등 뒤**(e.dir 이 가리키는 반대쪽)에서 낸 피해만 쌓는다.
        e.dir 은 패턴 실행 중(update() 의 근접 판정, patternT>0)엔 얼어붙어 있어
@@ -1100,7 +1138,9 @@
     st().kills = (st().kills || 0) + 1;
     var lv = run.stage.enemyLv;
     var mul = e.boss ? 12 : (e.rare ? RARE_GAIN_MUL : (e.mini ? MINI_GAIN_MUL : 1));
-    var gold = Math.round((6 + lv * 3) * (0.8 + Math.random() * 0.6) * mul * GAIN_GOLD);
+    var rmk = run.rm;   // 비경(§5-3) — 재물 축복·주간 변형자 보상 배수
+    var gold = Math.round((6 + lv * 3) * (0.8 + Math.random() * 0.6) * mul * GAIN_GOLD *
+      (rmk ? (1 + rmk.gold) * rmk.reward : 1));
     run.gold += gold;
     run.drops.push({ kind: 'gold', x: e.x + e.w / 2, y: e.y, vy: -180, n: gold });
     if (e.boss) {
@@ -1120,7 +1160,8 @@
                          x: e.x + e.w / 2 - 12, y: e.y, vy: -240, n: 1 });
       }
     }
-    var expAmt = Math.round((6 + lv * 4) * (e.boss ? 15 : (e.rare ? RARE_GAIN_MUL : (e.mini ? MINI_GAIN_MUL : 1))) * GAIN_EXP);
+    var expAmt = Math.round((6 + lv * 4) * (e.boss ? 15 : (e.rare ? RARE_GAIN_MUL : (e.mini ? MINI_GAIN_MUL : 1))) * GAIN_EXP *
+      (rmk ? rmk.reward : 1));
     core.gainExp(expAmt);
     run.expGained += expAmt;   // 세션 카드(§5-6) — 이 판에서 잡아 얻은 경험치만 잰다(사명 보상 등은 안 잡는다)
     /* 사명(quest.js)이 이 소식을 듣는다 — 규칙이 서로를 부르지 않게 알림으로만 잇는다 */
@@ -1149,6 +1190,9 @@
 
     var idx = run.enemies.indexOf(e);
     if (idx >= 0) { run.enemies.splice(idx, 1); }
+
+    /* 비경(§5-3) — 층이 끝났는지·잡졸을 채울지는 rift.js 가 정한다. 사냥터 보스·잡졸 리젠 분기를 건너뛴다 */
+    if (run.rift && global.DG.rift) { global.DG.rift.onKill(e); return; }
 
     if (e.gate) {
       /* 관문 대장(§5-4) — 사냥터 보스와 리젠 규칙이 다르다(주간 잠금).
@@ -1195,21 +1239,39 @@
       core.emit('toast', '🛡️ 받아쳤다!');
       return;
     }
+    /* 방패(§5-3) — 층마다 첫 피격 하나를 통째로 막는다 */
+    if (run.rm && run.rm.shield && global.DG.rift.tryShield()) {
+      fx.push({ t: 'ring', x: p.x + P_W / 2, y: p.y + P_H / 2, r: 50, life: 0.3 });
+      core.emit('toast', '🛡️ 방패가 막았다');
+      p.invuln = HIT_COOL;
+      return;
+    }
     var G = global.DG.gear;
     var cut = G ? G.cut(power().def) : 0;
     var b = buffOn();
     if (b && b.guard) { cut = Math.min(0.85, cut + b.guard); }   // 철갑 같은 것
+    if (run.rm && run.rm.guard) { cut = Math.min(0.85, cut + run.rm.guard); }   // 철벽(§5-3)
     run.hp -= Math.max(1, Math.round(amount * (1 - cut)));
     sfx('hurt');
     fx.push({ t: 'ouch', x: p.x, y: p.y, life: 0.45 });
     fx.push({ t: 'shake', x: p.x, y: p.y, life: 0.18, big: false });
     p.hurt = 0.3;
-    p.invuln = HIT_COOL;
-    if (run.hp <= 0) { die(); }
+    p.invuln = HIT_COOL + (run.rm ? run.rm.invuln : 0);
+    if (run.hp <= 0) {
+      /* 불굴(§5-3) — 비경에서 한 번은 일어선다 */
+      if (run.rm && run.rm.revive && global.DG.rift.tryRevive()) {
+        p.invuln = 1.5;
+        fx.push({ t: 'heal', x: p.x, y: p.y, life: 0.6 });
+        core.emit('toast', '🔥 불굴 — 다시 일어선다!');
+      } else {
+        die();
+      }
+    }
   }
 
   function die() {
     var stg = run.stage, Q = global.DG.quest;
+    var riftSum = global.DG.rift ? global.DG.rift.onEnd('dead') : null;   // 비경(§5-3) — 진행은 지워지고 조각만 남는다
     st().deaths = (st().deaths || 0) + 1;
     var goldKept = Math.round(run.gold * 0.5);
     core.log('💀 ' + stg.name + ' 에서 쓰러졌다 — 주운 금은 절반만 남는다', 'bad');
@@ -1218,7 +1280,8 @@
       dead: true, stage: stg.name, gold: goldKept, kills: run.kills,
       exp: run.expGained, gear: run.gearFound,
       feat: achieveDoneCount() - run.feat0,
-      next: Q ? Q.nextTodo() : null
+      next: Q ? Q.nextTodo() : null,
+      rift: riftSum
     };
     run = null;
     core.emit('side:end', got);
@@ -1231,8 +1294,9 @@
     var s = st();
     if (!run || s.potions <= 0) { return false; }
     if (run.hp >= run.hpMax) { return false; }
+    if (run.rm && run.rm.noPotion) { core.emit('toast', '🏜️ 이번 주 비경에서는 탕약을 못 마십니다'); return false; }
     s.potions -= 1;
-    run.hp = Math.min(run.hpMax, run.hp + Math.round(run.hpMax * 0.45));
+    run.hp = Math.min(run.hpMax, run.hp + Math.round(run.hpMax * (0.45 + (run.rm ? run.rm.potion : 0))));
     fx.push({ t: 'heal', x: run.player.x, y: run.player.y, life: 0.5 });
     run.player.drinkAnim = DRINK_ANIM_DUR;
     sfx('potion');
@@ -1413,6 +1477,12 @@
        전체"가 아니라 판정 dt 만 — 사가블로 dungeon.js `update()`와 같은
        요령). */
     if (run.hitstopT > 0) { run.hitstopT -= dt; dt *= 0.15; }
+    /* 비경(§5-3) — 층이 끝났으면 타격 반복문 밖인 여기서 정리한다(무대를 갈아 끼우거나 나가기도 한다) */
+    if (run.riftTick && global.DG.rift) {
+      run.riftTick = false;
+      global.DG.rift.tick();
+      if (!run) { return; }
+    }
     var p = run.player, stg = run.stage, i;
 
     /* 관문 대장(§5-4) 제한 시간 — 넘기면 그 자리에서 광폭화(공격 ×1.5), 실패로 끝나진 않는다 */
@@ -1454,7 +1524,8 @@
       p.invuln = Math.max(p.invuln, p.shadowT);   // 이동이 끝나는 순간과 무적이 함께 끝난다
     }
     var bf = buffOn();
-    run.mp = Math.min(run.mpMax, run.mp + MP_REGEN * (bf ? bf.regen : 1) * dt);
+    run.mp = Math.min(run.mpMax, run.mp + MP_REGEN * (bf ? bf.regen : 1) * (run.rm ? 1 + run.rm.mp : 1) * dt);
+    if (run.rm && run.rm.regen) { run.hp = Math.min(run.hpMax, run.hp + run.hpMax * run.rm.regen * dt); }   // 회복 축복(§5-3)
     if (p.invuln > 0) { p.invuln -= dt; }
     if (p.hurt > 0) { p.hurt -= dt; }
 
@@ -1499,7 +1570,7 @@
       }
       var moveMul = p.rollT > 0 ? ROLL_MUL :
         (p.wallKickT > 0 ? (WALL_KICK_VX / SPEED) : (p.shadowT > 0 ? SIG_SHADOW_MUL : 1));
-      p.x = core.clamp(p.x + p.vx * SPEED * mul * moveMul * dt, 0, stg.width - P_W);
+      p.x = core.clamp(p.x + p.vx * SPEED * mul * moveMul * (run.rm ? 1 + run.rm.speed : 1) * dt, 0, stg.width - P_W);
       if (p.vx) { p.phase += dt * 9; }
 
       /* 중력 · 발판 */
@@ -2058,6 +2129,8 @@
     power: power, unlocked: unlocked, stages: stages, barSkills: barSkills,
     bossReady: bossReady, bossLeft: bossLeft,
     gateInfo: gateInfo, challengeGate: challengeGate,
+    /* 비경(§5-3)이 쓰는 곳 — 임시 방 갈아 끼우기·잡졸 소환·주 키 */
+    placeIn: placeIn, spawnEnemy: spawnEnemy, weekKey: gateWeekKey,
     status: status, state: st, meRef: meRef,
     /** 화면 전용 — 상태를 직접 읽는다 (쓰지는 말 것) */
     raw: function () { return run; },
