@@ -1,0 +1,9 @@
+{
+  "name": "mixamo-automation",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Mixamo 애니메이션 클립을 기존(로그인된) Chrome에 CDP로 연결해 백그라운드로 받는다. 라이선스상 로그인만 사람이 하고 이후 검색/선택/다운로드는 자동화.",
+  "dependencies": {
+    "playwright-core": "^1.48.0"
+  }
+}
