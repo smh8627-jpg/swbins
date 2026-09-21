@@ -31,6 +31,9 @@
   /* 개입형 실시간 전투(showBattleLive) — 지금 명령을 기다리는 중이면 여기 담긴다.
      act() 의 'bat-cmd' 손잡이가 이걸 불러 다음 합으로 잇는다 */
   var liveStep = null;
+  /* 지형 전술(PLAN §5-6) — 이번 합 프롬프트가 들고 온 "쓸 수 있는 전술" 과, 출진 카드에서 직접 고른 진형(없으면 자동) */
+  var liveTactic = null, marchForm = '';
+  var LAND_ICON = { plain: '🌾', hill: '⛰️', river: '🌊', mount: '🏔️' };
   var liveRepStub = null;
   var liveBase = null;
 
@@ -582,9 +585,19 @@
     } else if (a === 'journey') {
       doJourney(g('data-from'), g('data-to'));
       return;
+    } else if (a === 'march-form') {
+      marchForm = g('data-form') || '';
+      var mfb = els.encounter.querySelectorAll('[data-act="march-form"]'), mi;
+      for (mi = 0; mi < mfb.length; mi++) {
+        var on = (mfb[mi].getAttribute('data-form') || '') === marchForm;
+        mfb[mi].classList.toggle('primary', on);
+        mfb[mi].classList.toggle('ghost', !on);
+      }
+      return;
     } else if (a === 'bat-cmd') {
       var cmd = g('data-cmd');
       if (!cmd || cmd === 'none') { cmd = null; }
+      else if (cmd === 'tactic') { cmd = { cmd: null, tactic: g('data-tactic') }; }
       var step = liveStep; liveStep = null;
       renderLiveCmd(false);
       if (step) { step(cmd); }
@@ -631,12 +644,13 @@
     if (wet && max < 500) { toast('배가 모자랍니다 — 조선(造船)으로 지으십시오'); return; }
     if (max < 500) { toast('오백은 넘겨야 군대라 하지요'); return; }
     var lead = off().sortByPower(ready).slice(0, 3).map(function (h) { return h.id; });
+    marchForm = '';
     askNumber({
       title: (wet ? '🌊 ' : '⚔️ ') + CD.find(fromId).name + ' → ' + CD.find(toId).name,
       hint: '몇 명을 이끌고 갈까요? 성에 🪖 ' + core.fmt(c.troops) +
         (wet ? ' · <b>물길</b>이라 배로 ' + core.fmt(max) + '까지' : '') +
         '<br>장수 — ' + lead.map(function (id) { return esc(off().find(id).name); }).join(' · ') +
-        formationHint(lead),
+        formationHint(lead) + formationPick(lead) + terrainHint(toId),
       max: max, value: Math.floor(max * 0.8), ok: (wet ? '🌊 물길로 친다' : '⚔️ 친다'),
       done: function (t) { runMarch(fromId, toId, lead, t); }
     });
@@ -647,6 +661,25 @@
     var f = global.DG.war.formationOf(officerIds);
     return f ? '<br><span class="tag">' + f.emoji + ' ' + esc(f.name) + ' 발동 (위력 ×' +
       f.mul.toFixed(2) + ')</span>' : '';
+  }
+
+  /** 진형을 직접 고르는 줄(PLAN §5-6 (b)) — 자동이 기본이다. 문턱에 못 미치는 진형도 고를 수 있으나 위력의 덧붙는 몫이 반이 된다 */
+  function formationPick(lead) {
+    var W = global.DG.war, h = '<br><span class="muted">진형 </span><button class="btn tiny primary" data-act="march-form" data-form="">자동</button>';
+    W.FORMATIONS.forEach(function (f) {
+      var fo = W.formationOf(lead, f.key);
+      h += ' <button class="btn tiny ghost" data-act="march-form" data-form="' + f.key + '" title="' + esc(f.desc) + '">' + f.emoji + ' ' + esc(f.name) +
+        (fo && fo.weak ? ' ½' : '') + '</button>';
+    });
+    return h + '<br><small class="muted">직접 고른 진형이 문턱에 못 미치면 위력이 반으로 줍니다(½)</small>';
+  }
+
+  /** 싸울 땅과 거기서 쓸 수 있는 전술 한 줄 */
+  function terrainHint(toId) {
+    var W = global.DG.war, land = CD.landOf(toId), tac = W.TACTICS[land.key];
+    return '<br><span class="tag">' + (LAND_ICON[land.key] || '') + ' ' + esc(land.name) + '</span>' +
+      (tac ? ' <span class="muted">전술 ' + tac.emoji + ' ' + esc(tac.name) + ' — ' + esc(tac.desc) + ' (' +
+        ({ wisdom: '지력', might: '무력', command: '통솔' })[tac.stat] + ' ' + tac.req + '+, 한 번)</span>' : '');
   }
 
   function runMarch(fromId, toId, lead, t) {
@@ -724,6 +757,14 @@
    *  끝나면 war.js 가 'rtk:battle' 을 쏘고, 그 리스너(위 init())가 showBattle()
    *  로 이 화면을 표준 요약(전체 재생 포함)으로 갈아 끼운다 — 여기선 진행
    *  중일 때만 그린다 */
+  /** 이 땅의 전술 버튼 — 못 쓰면 흐리게(이유는 title). 전투당 한 번 */
+  function tacticButton() {
+    var tt = liveTactic && liveTactic.tactic;
+    if (!tt) { return ''; }
+    return '<button class="btn tiny' + (liveTactic.ok ? ' primary' : ' ghost') + '" data-act="bat-cmd" data-cmd="tactic" data-tactic="' + tt.key + '"' +
+      (liveTactic.ok ? '' : ' disabled') + ' title="' + esc(liveTactic.ok ? tt.desc : liveTactic.why) + '">🎯 ' + tt.emoji + ' ' + esc(tt.name) + '</button>';
+  }
+
   function renderLiveCmd(show) {
     var el = $('livecmd');
     if (!el) { return; }
@@ -731,6 +772,7 @@
       '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">' +
       '<button class="btn tiny" data-act="bat-cmd" data-cmd="press">⚔️ 돌격</button>' +
       '<button class="btn tiny" data-act="bat-cmd" data-cmd="hold">🛡️ 수비</button>' +
+      tacticButton() +
       '<button class="btn tiny ghost" data-act="bat-cmd" data-cmd="none">➡️ 정공법</button>' +
       '<button class="btn tiny ghost" data-act="bat-cmd" data-cmd="retreat">↩️ 퇴각</button>' +
       '</div>';
@@ -798,10 +840,13 @@
 
   function showBattleLive(fromId, toId, lead, t) {
     liveStep = null; liveRepStub = null; liveBase = null;
+    liveTactic = null;
     var res = global.DG.war.marchInteractive(fromId, toId, lead, t, {
+      formation: marchForm || undefined,
       onIntro: function (lines, repStub) {
         var html = (global.DG.battle3d ? '<canvas id="battle3d"></canvas>' : '') +
-          '<h3 style="margin:0 0 6px;font-size:18px">⚔️ 전황 (진행 중)</h3>' +
+          '<h3 style="margin:0 0 6px;font-size:18px">⚔️ 전황 (진행 중)' +
+            (repStub.land ? ' <small class="muted">' + (LAND_ICON[repStub.land] || '') + ' ' + esc(CD.LANDS[repStub.land].name) + '</small>' : '') + '</h3>' +
           battleHudHtml(repStub) +
           '<div class="warlog" id="livelog"></div><div id="livecmd"></div>';
         showEnc(html);
@@ -823,6 +868,7 @@
       },
       onPrompt: function (state, step) {
         liveStep = step;
+        liveTactic = state.tactic || null;
         renderLiveCmd(true);
       },
       onDone: function () {

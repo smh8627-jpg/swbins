@@ -185,9 +185,53 @@
     core.emit('rtk:history', { id: key, winner: winnerForce });
   }
 
-  /** 이 무장들로 지금 설 수 있는 진형 중 가장 센 것(없으면 null) */
-  function formationOf(officerIds) {
+  /**
+   * 지형 전술(PLAN §5-6) — 개입형 전투에서 합마다 명령과 함께 **전투당 한 번** 쓴다.
+   * 지형(성이 선 땅 `land.key`)마다 하나씩이고, 데려간 장수 중 그 능력치가 문턱 이상인 사람이 있어야 한다.
+   *   mount 매복     지력 70+  이번 합 받는 피해 ×0.85
+   *   hill  화공     지력 60+  적 병력의 12.6%(수전 화공 18% 의 ×0.7)를 태우고 적 사기 ×0.95
+   *   plain 기병 돌격 무력 80+  이번 합 주는 피해 ×1.25, 뒤에 우리 사기 -0.03
+   *   river 도하 강행 통솔 65+  이번 합 주는 피해 ×1.15·받는 피해 ×0.9, 다음 합 주는 피해 ×0.85(두 합을 쓴다)
+   * 이 판 지형에 '숲'이 없어(평야·구릉·강·산) 원안의 "숲 화공" 은 구릉에 붙였다.
+   */
+  var TACTICS = {
+    mount: { key: 'ambush', name: '매복',     emoji: '🌲', stat: 'wisdom',  req: 70, desc: '산에 군사를 숨겼다 친다 — 이번 합 받는 피해 ×0.85' },
+    hill:  { key: 'fire',   name: '화공',     emoji: '🔥', stat: 'wisdom',  req: 60, desc: '숲과 골에 불을 놓는다 — 적 병력의 12.6% 를 태운다' },
+    plain: { key: 'charge', name: '기병 돌격', emoji: '🐎', stat: 'might',   req: 80, desc: '기병으로 한 번에 친다 — 이번 합 주는 피해 ×1.25, 뒤에 사기 -0.03' },
+    river: { key: 'ford',   name: '도하 강행', emoji: '🌊', stat: 'command', req: 65, desc: '강을 밀고 건넌다 — 이번 합 주는 피해 ×1.15·받는 피해 ×0.9, 다음 합 주는 피해 ×0.85' }
+  };
+
+  /** 이 싸움터에서 쓸 수 있는 전술 — { tactic, ok, why }. used 는 이미 쓴 전술 key(전투당 한 번) */
+  function tacticFor(landKey, officerIds, used) {
+    var t = TACTICS[landKey] || null;
+    if (!t) { return { tactic: null, ok: false, why: '이 땅에서는 쓸 전술이 없다' }; }
+    if (used) { return { tactic: t, ok: false, why: '이번 싸움에서는 이미 전술을 썼다' }; }
+    var off = global.DG.off, top = 0, i;
+    for (i = 0; i < officerIds.length; i++) { top = Math.max(top, off.stats(officerIds[i])[t.stat]); }
+    if (top < t.req) {
+      return { tactic: t, ok: false, why: t.name + ' 은(는) ' + ({ wisdom: '지력', might: '무력', command: '통솔' })[t.stat] + ' ' + t.req + ' 이상의 장수가 있어야 한다' };
+    }
+    return { tactic: t, ok: true, why: '' };
+  }
+
+  /**
+   * 이 무장들로 지금 설 수 있는 진형 중 가장 센 것(없으면 null).
+   * manual(진형 key)을 주면 그 진형을 **직접 고른 것**이다 — 문턱을 넘으면 그대로 서고,
+   * 못 넘어도 서되 위력의 덧붙는 몫(mul-1)이 절반이 된다(PLAN §5-6 (b)). 자동(manual 없음)은 예전과 똑같다.
+   */
+  function formationOf(officerIds, manual) {
     var off = global.DG.off, best = null, i, j, top;
+    if (manual) {
+      var mf = null;
+      for (i = 0; i < FORMATIONS.length; i++) { if (FORMATIONS[i].key === manual) { mf = FORMATIONS[i]; } }
+      if (mf) {
+        top = 0;
+        for (j = 0; j < officerIds.length; j++) { top = Math.max(top, off.stats(officerIds[j])[mf.reqStat]); }
+        if (top >= mf.req) { return mf; }
+        return { key: mf.key, name: mf.name, emoji: mf.emoji, reqStat: mf.reqStat, req: mf.req, desc: mf.desc,
+                 mul: 1 + (mf.mul - 1) * 0.5, weak: true };
+      }
+    }
     for (i = 0; i < FORMATIONS.length; i++) {
       var f = FORMATIONS[i];
       top = 0;
@@ -222,7 +266,7 @@
     var lead = 1 + bestCmd / 100 * 0.5 + bestMight / 100 * 0.25 +
       Math.max(0, army.officers.length - 1) * 0.03;
     if (extra === 0) { lead = 0.6; }         // 장수 없는 군대는 오합지졸이다
-    var form = formationOf(army.officers);
+    var form = formationOf(army.officers, army.formation);
     return army.troops * trainF * techF * lead * navy * (army.morale || 1) * (form ? form.mul : 1);
   }
 
@@ -476,6 +520,7 @@
 
     var atk = setup.atk, def = setup.def, wallRef = setup.to, land = setup.land;
     var toId2 = setup.toId;
+    if (hooks.formation) { atk.formation = hooks.formation; }     // 진형을 직접 골랐다(PLAN §5-6 (b))
     var log = [];
     var lines = function (s) {
       log.push(s);
@@ -491,7 +536,7 @@
       hooks.onIntro(log.slice(), {
         to: toId2, water: water, force: atk.force, defForce: def.force,
         atkStart: atk.start, defStart: def.start, duel: du, wallFrom: startWall,
-        leadA: leadA, leadD: leadD
+        leadA: leadA, leadD: leadD, land: land.key
       });
     }
 
@@ -538,11 +583,17 @@
         finish('dusk');
         return;
       }
-      if (hooks.onPrompt) { hooks.onPrompt({ r: r, atk: atk.troops, def: def.troops, wall: wallRef.wall }, step); }
+      if (hooks.onPrompt) {
+        hooks.onPrompt({ r: r, atk: atk.troops, def: def.troops, wall: wallRef.wall,
+          tactic: tacticFor(land.key, atk.officers, atk.tacticUsed) }, step);
+      }
       else { step(null); }
     }
 
-    if (hooks.onPrompt) { hooks.onPrompt({ r: 0, atk: atk.troops, def: def.troops, wall: wallRef.wall }, step); }
+    if (hooks.onPrompt) {
+      hooks.onPrompt({ r: 0, atk: atk.troops, def: def.troops, wall: wallRef.wall,
+        tactic: tacticFor(land.key, atk.officers, atk.tacticUsed) }, step);
+    }
     else { step(null); }
 
     return { ok: true, pending: true };
@@ -597,8 +648,11 @@
       ' vs ' + global.DG.rtk.forceName(def.force) + ' ' + core.fmt(def.troops));
 
     /* 진형 — 판정(armyPower)이 이미 반영했으니 여기선 알리기만 한다 */
-    var af = formationOf(atk.officers), df = formationOf(def.officers);
-    if (af) { lines(af.emoji + ' 공격군이 ' + af.name + ' 을 편다 (위력 ×' + af.mul.toFixed(2) + ')'); }
+    var af = formationOf(atk.officers, atk.formation), df = formationOf(def.officers);
+    if (af) {
+      lines(af.emoji + ' 공격군이 ' + af.name + ' 을 편다 (위력 ×' + af.mul.toFixed(2) + ')' +
+        (af.weak ? ' — 직접 골랐으나 문턱에 못 미쳐 위력이 반으로 준다' : ''));
+    }
     if (df) { lines(df.emoji + ' 수비군이 ' + df.name + ' 을 편다 (위력 ×' + df.mul.toFixed(2) + ')'); }
 
     if (water) {
@@ -658,6 +712,23 @@
    * @returns { frame, outcome: null|'won'|'routed' }
    */
   function stepRound(atk, def, wallRef, toId, land, sortie, water, lines, cmd) {
+    /* 지형 전술(PLAN §5-6) — cmd 가 { cmd, tactic } 이면 전술이 얹힌다. 문자열·없음이면 예전 그대로다 */
+    var tacticKey = null;
+    if (cmd && typeof cmd === 'object') { tacticKey = cmd.tactic || null; cmd = cmd.cmd || null; }
+    var tac = null;
+    if (tacticKey) {
+      var tf = tacticFor(land.key, atk.officers, atk.tacticUsed);
+      if (!tf.ok) { lines('🚫 ' + tf.why); }
+      else if (tf.tactic.key !== tacticKey) { lines('🚫 ' + (TACTICS[land.key] ? TACTICS[land.key].name : '전술') + ' 밖에는 이 땅에서 쓸 전술이 없다'); }
+      else { tac = tf.tactic; atk.tacticUsed = tac.key; lines(tac.emoji + ' ' + tac.name + ' — ' + tac.desc); }
+    }
+    if (tac && tac.key === 'fire') {
+      var burn = Math.round(def.troops * 0.18 * 0.7);
+      def.troops = Math.max(0, def.troops - burn);
+      def.morale = (def.morale || 1) * 0.95;
+      lines('🔥 불길이 번져 병사 ' + core.fmt(burn) + ' 이 타 죽거나 흩어졌다');
+    }
+
     /* 성벽이 온전할수록 수비가 세다. 야전·수전이면 성벽을 못 쓴다 */
     var wallF = (sortie || water) ? land.def
       : land.def * (1 + (wallRef.wall / Math.max(1, wallRef.maxWall)) * 0.9);
@@ -671,6 +742,12 @@
     var giveMul = 1, takeMul = 1;
     if (cmd === 'press') { giveMul = 1.2; takeMul = 1.1; }
     else if (cmd === 'hold') { giveMul = 0.85; takeMul = 0.75; }
+    if (atk.fordNext) { giveMul *= 0.85; atk.fordNext = false; lines('🌊 강을 건넌 여파로 이번 합은 기세가 무디다'); }
+    if (tac) {
+      if (tac.key === 'ambush') { takeMul *= 0.85; }
+      else if (tac.key === 'charge') { giveMul *= 1.25; atk.morale = Math.max(0.5, (atk.morale || 1) - 0.03); }
+      else if (tac.key === 'ford') { giveMul *= 1.15; takeMul *= 0.9; atk.fordNext = true; }
+    }
 
     /* 병력 손실은 **상대의 힘**에 비례한다.
        계수는 "힘이 엇비슷하면 열 합에 절반쯤 녹는다" 를 맞춘 값이다.
@@ -1541,7 +1618,7 @@
     ROUNDS: ROUNDS, ROUT: ROUT, DUEL_GAP: DUEL_GAP, SHIP_CREW: SHIP_CREW,
     CAMP_DECAY: CAMP_DECAY, CAMP_QUIT: CAMP_QUIT, CAMP_MIN: CAMP_MIN,
     armyPower: armyPower, topBy: topBy, duel: duel, fireRoll: fireRoll,
-    FORMATIONS: FORMATIONS, formationOf: formationOf,
+    FORMATIONS: FORMATIONS, formationOf: formationOf, TACTICS: TACTICS, tacticFor: tacticFor, stepRound: stepRound,
     HISTORY_BRANCHES: HISTORY_BRANCHES, checkHistoryBranch: checkHistoryBranch,
     reinforce: reinforce, reliefOf: reliefOf, forecast: forecast,
     canMarch: canMarch, march: march, marchInteractive: marchInteractive, capture: capture,

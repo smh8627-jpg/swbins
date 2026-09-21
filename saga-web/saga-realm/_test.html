@@ -625,6 +625,170 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         (f.emoji + f.name + ' ×' + f.mul + ' 확인 — ' + Math.round(withoutMul) + ' → ' + Math.round(withMul));
     });
 
+    /* ── 지형 전술·진형 수동 선택 (PLAN §5-6) ─────────────── */
+
+    /** 같은 씨앗의 난수로 fn 을 굴린다 — stepRound 는 손실에 Math.random 을 쓰므로, 두 번 굴려 비교하려면 필요하다 */
+    function withSeed(seed, fn) {
+      var real = Math.random, s = seed >>> 0;
+      Math.random = function () {
+        s = (s + 0x6D2B79F5) >>> 0;
+        var t = Math.imul(s ^ (s >>> 15), s | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+      try { return fn(); } finally { Math.random = real; }
+    }
+    function byStat(stat, min, max) {
+      return off.all().filter(function (h) { return h.stats; }).filter(function (h) {
+        var s = off.stats(h.id); return s[stat] >= min && (max === undefined || s[stat] <= max);
+      })[0];
+    }
+    /** 공격·수비 한 쌍과 성벽 — 판마다 새로 만든다 */
+    function duelSetup(atkIds, troops) {
+      return {
+        atk: { side: 'atk', force: 'a', troops: troops || 10000, start: troops || 10000, train: 60, tech: 300, officers: atkIds.slice(), morale: 1, water: false, ships: 0 },
+        def: { side: 'def', force: 'd', troops: troops || 10000, start: troops || 10000, train: 60, tech: 300, officers: [], morale: 1, water: false, ships: 0 },
+        wall: { wall: 1000, maxWall: 1000 }
+      };
+    }
+    function round(landKey, ids, cmd, seed, n) {
+      var s = duelSetup(ids), lines = [], i, res;
+      withSeed(seed || 7, function () {
+        for (i = 0; i < (n || 1); i++) { res = W.stepRound(s.atk, s.def, s.wall, 'x', CD.LANDS[landKey], false, false, function (l) { lines.push(l); }, i === 0 ? cmd : (cmd && cmd.next)); }
+      });
+      return { s: s, lines: lines, res: res };
+    }
+
+    t('지형 전술 표 — 지형 넷(평야·구릉·강·산)마다 전술 하나, 문턱·설명이 있고 LANDS 에 key 가 있다', function () {
+      var T = W.TACTICS, keys = Object.keys(CD.LANDS);
+      var ok = keys.length === 4 && keys.every(function (k) { return CD.LANDS[k].key === k && T[k] && T[k].key && T[k].name && T[k].emoji && T[k].req > 0 && T[k].desc; });
+      return ok && ('전술 ' + keys.map(function (k) { return CD.LANDS[k].name + '=' + T[k].emoji + T[k].name + '(' + T[k].req + ')'; }).join(' · '));
+    });
+
+    t('지형 전술 — cmd 가 없거나 {cmd,tactic 없음} 이면 stepRound 는 예전 문자열 cmd 와 똑같다(수치·합)', function () {
+      fresh('cao');
+      var id = byStat('might', 80).id, same = true, why = '';
+      ['plain', 'hill', 'river', 'mount'].forEach(function (lk) {
+        [undefined, 'press', 'hold'].forEach(function (c) {
+          var a = round(lk, [id], c, 11, 3), b = round(lk, [id], c === undefined ? { cmd: null, tactic: null } : { cmd: c, tactic: null }, 11, 3);
+          if (a.s.atk.troops !== b.s.atk.troops || a.s.def.troops !== b.s.def.troops || a.s.wall.wall !== b.s.wall.wall ||
+              JSON.stringify(a.lines) !== JSON.stringify(b.lines)) { same = false; why += ' ' + lk + '/' + c; }
+        });
+      });
+      return same && '4 지형 × (없음·돌격·수비) 모두 동일' + why;
+    });
+
+    t('지형 전술 — 매복(산): 이번 합 받는 피해만 ×0.85, 주는 피해는 그대로', function () {
+      fresh('cao');
+      var id = byStat('wisdom', 70).id;
+      var base = round('mount', [id], null, 21), tac = round('mount', [id], { cmd: null, tactic: 'ambush' }, 21);
+      var lostBase = 10000 - base.s.atk.troops, lostTac = 10000 - tac.s.atk.troops;
+      return base.s.def.troops === tac.s.def.troops && Math.abs(lostTac - Math.round(lostBase * 0.85)) <= 1 && lostTac < lostBase &&
+        tac.s.atk.tacticUsed === 'ambush' && /매복/.test(tac.lines.join('|')) &&
+        ('받은 피해 ' + lostBase + ' → ' + lostTac);
+    });
+
+    t('지형 전술 — 화공(구릉): 적 병력의 12.6% 를 태우고 사기가 ×0.95, 내 피해는 그대로', function () {
+      fresh('cao');
+      var id = byStat('wisdom', 60).id;
+      var t0 = round('hill', [id], null, 33), t1 = round('hill', [id], { cmd: null, tactic: 'fire' }, 33);
+      var burn = Math.round(10000 * 0.18 * 0.7);
+      return t0.s.def.troops - t1.s.def.troops === burn && t1.s.atk.troops >= t0.s.atk.troops &&
+        Math.abs(t1.s.def.morale - 0.95) < 1e-9 && /불길/.test(t1.lines.join('|')) &&
+        ('적 병력 ' + t0.s.def.troops + ' → ' + t1.s.def.troops + ' (태운 몫 ' + burn + ')');
+    });
+
+    t('지형 전술 — 기병 돌격(평야): 이번 합 주는 피해 ×1.25, 내 사기 -0.03', function () {
+      fresh('cao');
+      var id = byStat('might', 80).id;
+      var b = round('plain', [id], null, 44), c = round('plain', [id], { cmd: null, tactic: 'charge' }, 44);
+      var dealtB = 10000 - b.s.def.troops, dealtC = 10000 - c.s.def.troops;
+      return Math.abs(dealtC - Math.round(dealtB * 1.25)) <= 1 && b.s.atk.troops === c.s.atk.troops &&
+        Math.abs(c.s.atk.morale - 0.97) < 1e-9 && b.s.atk.morale === 1 &&
+        ('준 피해 ' + dealtB + ' → ' + dealtC + ' · 사기 ' + c.s.atk.morale);
+    });
+
+    t('지형 전술 — 도하 강행(강): 이번 합 주는 ×1.15·받는 ×0.9, 다음 합 주는 피해 ×0.85(두 합을 쓴다)', function () {
+      fresh('cao');
+      var id = byStat('command', 65).id;
+      var b1 = round('river', [id], null, 55, 1), c1 = round('river', [id], { cmd: null, tactic: 'ford' }, 55, 1);
+      var d1B = 10000 - b1.s.def.troops, d1C = 10000 - c1.s.def.troops;
+      var flagged = c1.s.atk.fordNext === true;
+      var b2 = round('river', [id], null, 55, 2), c2 = round('river', [id], { cmd: null, tactic: 'ford', next: null }, 55, 2);
+      var d2Round2B = b2.s.def.troops - 0, d2Round2C = c2.s.def.troops - 0;
+      // 둘째 합에서 준 피해 = (둘째 합 뒤 병력 차) — 첫 합 뒤 병력에서 뺀다
+      var dealt2B = b1.s.def.troops - b2.s.def.troops, dealt2C = c1.s.def.troops - c2.s.def.troops;
+      return flagged && Math.abs(d1C - Math.round(d1B * 1.15)) <= 1 && (10000 - c1.s.atk.troops) < (10000 - b1.s.atk.troops) &&
+        dealt2C < dealt2B && c2.s.atk.fordNext === false &&
+        ('첫 합 준 피해 ' + d1B + ' → ' + d1C + ' · 둘째 합 ' + dealt2B + ' → ' + dealt2C);
+    });
+
+    t('지형 전술 — 전투당 한 번·문턱 미달 거부·지형에 안 맞는 전술 거부(거부되면 예전과 똑같이 굴러간다)', function () {
+      fresh('cao');
+      var id = byStat('wisdom', 70).id, weak = off.all().filter(function (h) { return h.stats; }).sort(function (a, b) {
+        var sa = off.stats(a.id), sb = off.stats(b.id); return (sa.might + sa.wisdom + sa.command) - (sb.might + sb.wisdom + sb.command); })[0];
+      // 1) 두 번째 시도는 거부
+      var s = duelSetup([id]), l = [];
+      withSeed(66, function () {
+        W.stepRound(s.atk, s.def, s.wall, 'x', CD.LANDS.mount, false, false, function (x) { l.push(x); }, { cmd: null, tactic: 'ambush' });
+        W.stepRound(s.atk, s.def, s.wall, 'x', CD.LANDS.mount, false, false, function (x) { l.push(x); }, { cmd: null, tactic: 'ambush' });
+      });
+      var twice = l.filter(function (x) { return /이미 전술을 썼다/.test(x); }).length === 1;
+      var s2 = duelSetup([id]), s3 = duelSetup([id]);
+      withSeed(66, function () { W.stepRound(s2.atk, s2.def, s2.wall, 'x', CD.LANDS.mount, false, false, function () {}, { cmd: null, tactic: 'ambush' });
+        W.stepRound(s2.atk, s2.def, s2.wall, 'x', CD.LANDS.mount, false, false, function () {}, { cmd: null, tactic: 'ambush' }); });
+      withSeed(66, function () { W.stepRound(s3.atk, s3.def, s3.wall, 'x', CD.LANDS.mount, false, false, function () {}, { cmd: null, tactic: 'ambush' });
+        W.stepRound(s3.atk, s3.def, s3.wall, 'x', CD.LANDS.mount, false, false, function () {}, null); });
+      var secondIsPlain = s2.atk.troops === s3.atk.troops && s2.def.troops === s3.def.troops;
+      // 2) 문턱 미달
+      var w = round('mount', [weak.id], { cmd: null, tactic: 'ambush' }, 66), wb = round('mount', [weak.id], null, 66);
+      var low = /지력 70 이상/.test(w.lines.join('|')) && w.s.atk.troops === wb.s.atk.troops && !w.s.atk.tacticUsed;
+      // 3) 지형 불일치 — 평야에서 화공
+      var m = round('plain', [id], { cmd: null, tactic: 'fire' }, 66), mb = round('plain', [id], null, 66);
+      var wrong = m.s.def.troops === mb.s.def.troops && m.s.atk.troops === mb.s.atk.troops && /밖에는/.test(m.lines.join('|')) && !m.s.atk.tacticUsed;
+      return twice && secondIsPlain && low && wrong && '두 번째 거부(그 합은 정공법과 같음) · 문턱 미달 거부 · 지형 불일치 거부';
+    });
+
+    t('진형 수동 — 문턱을 넘으면 고른 진형 그대로, 못 넘으면 서되 덧붙는 몫이 절반, 자동·없는 key 는 예전과 같다', function () {
+      fresh('cao');
+      var strong = byStat('might', 75), F = W.FORMATIONS[0];
+      if (!strong) { return false; }
+      var auto = W.formationOf([strong.id]);
+      var manOk = W.formationOf([strong.id], 'chukyi');
+      var weakMight = off.all().filter(function (h) { return h.stats; }).filter(function (h) { return off.stats(h.id).might < 75; })[0];
+      var manWeak = W.formationOf([weakMight.id], 'chukyi');
+      var unknown = W.formationOf([strong.id], 'nothing');
+      var army = { troops: 10000, train: 60, tech: 300, morale: 1, officers: [weakMight.id], water: false };
+      var pAuto = W.armyPower(army), pMan = W.armyPower(Object.assign({}, army, { formation: 'chukyi' }));
+      return auto && auto.key === manOk.key && manOk.mul === F.mul && manWeak && manWeak.weak === true &&
+        Math.abs(manWeak.mul - (1 + (F.mul - 1) * 0.5)) < 1e-9 && unknown.key === auto.key && !!pMan &&
+        (weakMight ? pMan > 0 : true) &&
+        ('추행진 ×' + F.mul + ' → 문턱 미달 직접 선택 ×' + manWeak.mul.toFixed(3));
+    });
+
+    t('개입형 전투 — 프롬프트가 이 땅의 전술(쓸 수 있는지·이유)을 들고 오고, 인트로에 지형 key 가 있고, 직접 고른 진형이 부대에 붙는다', function () {
+      var st = fresh('cao'), me = R.me(), from = null, to = null, i, j;
+      for (i = 0; i < CD.CITIES.length && !to; i++) {
+        var c = CD.CITIES[i], rc = R.city(c.id);
+        if (!rc || rc.force !== me || rc.troops < 1500) { continue; }
+        for (j = 0; j < c.adj.length; j++) {
+          var a = R.city(c.adj[j]);
+          if (a && a.force && a.force !== me && !CD.isWater(c.id, c.adj[j])) { from = c.id; to = c.adj[j]; break; }
+        }
+      }
+      if (!from) { return '(이 씨앗에는 붙을 국경이 없다 — 생략)'; }
+      var lead = freeUp(from).map(function (h) { return h.id; }).slice(0, 2);
+      var got = {}, res = W.marchInteractive(from, to, lead, 1000, {
+        formation: 'bangwon',
+        onIntro: function (lines, stub) { got.lines = lines; got.land = stub.land; },
+        onPrompt: function (state, step) { got.prompt = state; step('retreat'); }
+      });
+      var landKey = CD.find(to).land || 'plain';
+      return !!res && got.land === landKey && got.prompt && got.prompt.tactic && got.prompt.tactic.tactic.key === W.TACTICS[landKey].key &&
+        typeof got.prompt.tactic.ok === 'boolean' && got.lines.some(function (l) { return /방원진/.test(l); }) &&
+        ('땅 ' + landKey + ' · 전술 ' + got.prompt.tactic.tactic.name + (got.prompt.tactic.ok ? ' 가능' : ' 불가(' + got.prompt.tactic.why + ')') + ' · 방원진 직접 선택');
+    });
+
     /* ── 나이 (2026-09-10, README "다음에 채울 것" 마지막 항목) ────── */
 
     t('birthYear·age — id마다 결정적, 시나리오를 바꾸면 나이만 그만큼 변한다', function () {

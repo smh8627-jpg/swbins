@@ -596,10 +596,10 @@
 
   /** 지형 — 이름과 전투 보정 */
   var LANDS = {
-    plain: { name: '평야', def: 1.0,  siege: 1.0,  agriCap: 1.0,  commCap: 1.0 },
-    hill:  { name: '구릉', def: 1.15, siege: 0.9,  agriCap: 0.85, commCap: 0.9 },
-    river: { name: '강',   def: 1.1,  siege: 0.95, agriCap: 1.0,  commCap: 1.15 },
-    mount: { name: '산',   def: 1.3,  siege: 0.75, agriCap: 0.7,  commCap: 0.8 }
+    plain: { key: 'plain', name: '평야', def: 1.0,  siege: 1.0,  agriCap: 1.0,  commCap: 1.0 },
+    hill:  { key: 'hill',  name: '구릉', def: 1.15, siege: 0.9,  agriCap: 0.85, commCap: 0.9 },
+    river: { key: 'river', name: '강',   def: 1.1,  siege: 0.95, agriCap: 1.0,  commCap: 1.15 },
+    mount: { key: 'mount', name: '산',   def: 1.3,  siege: 0.75, agriCap: 0.7,  commCap: 0.8 }
   };
 
   function find(id) { return byId[id] || null; }
