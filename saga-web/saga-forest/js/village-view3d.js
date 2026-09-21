@@ -308,6 +308,8 @@
     spiritmark: 'lantern', spiritdone: 'flower',
     /* 발견 밀도 격자(PLAN §5.5 ①) — 새 GLB 없이 기존 키를 빌린다: 상자=작은 상자, 병=풀 한 포기, 채집터=이끼 바위, 야영=천막+불 */
     oldpost: 'building:mail',
+    /* 축제 하루(PLAN §5.6) — 새 GLB 없이 기존 키: 안내판=표지판, 달집=모닥불, 줄=통나무, 솥=우물, 등롱=등 */
+    festboard: 'building:board', festfire: 'campfire', festrope: 'log', festpot: 'well', festlantern: 'lantern',
     gridchest: 'building:mail', gridbottle: 'plant', gridnode: 'rock:moss', gridcamp: 'tent', gridfire: 'campfire',
     /* 다리(2026-09-09) — asset3d.js 에 진작 등록만 되어 있던 'bridge' 를
        처음 쓴다(village.js 의 새 BRIDGE_TY 크로싱) */
@@ -382,6 +384,7 @@
     bridge: 1.4,
     stele: 1.3, fireflyplot: 0.9, spiritmark: 1.5, spiritdone: 0.5,
     oldpost: 0.9,
+    festboard: 1.2, festfire: 0.5, festrope: 0.5, festpot: 1.0, festlantern: 1.6,
     gridchest: 0.6, gridbottle: 0.35, gridnode: 0.9, gridcamp: 1.8, gridfire: 0.5,
     deer: 1.1, fox: 0.55, wolf: 0.95,
     rabbit: 0.3, squirrel: 0.25, duck: 0.35, bird: 0.2,
