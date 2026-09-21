@@ -32,7 +32,7 @@
   var renderer = null, scene = null, camera = null, ready = false;
   var W = 0, H = 0;
   var lastMood = null, worldGroup = null, actorGroup = null, dirLight = null, ambLight = null;
-  var playerMesh = null, enemyPool = [], npcPool = [], gatherPool = [], critterPool = [], chestMesh = null;
+  var playerMesh = null, playerMeshId = null, enemyPool = [], npcPool = [], gatherPool = [], critterPool = [], chestMesh = null;
   var deadMeshes = {};   // run.dying 의 uid → 배우. 인덱스가 아니라 uid로 붙드므로
                           // 죽는 도중에 다른 적이 그 자리를 이어받지 않는다(side.js kill() 참고)
   var stageGen = 0;   // 사냥터가 바뀔 때마다 올린다 — 늦게 도착한 GLB 응답을 걸러낸다
@@ -808,10 +808,15 @@
     dirLight.position.set(focusX + 260, 460, 360);
     dirLight.target.position.set(focusX, 0, 0);
 
+    /* 동료 교대(§5-8) — 나와 있는 인물이 바뀌면 지난 몸을 치우고 새로 세운다 */
+    if (playerMesh && playerMeshId !== S.meRef().id) {
+      actorGroup.remove(playerMesh); disposeDeep(playerMesh); playerMesh = null;
+    }
     if (!playerMesh) {
       var meRef = S.meRef();
       playerMesh = actorShell(Tc, 'human',
         (global.DG.data.faction(meRef.faction) || {}).color, false, meRef.id, false);
+      playerMeshId = meRef.id;
       actorGroup.add(playerMesh);
     }
     place(playerMesh, p.x + S.P_W / 2, stg.floor - (p.y + S.P_H), p.facing);

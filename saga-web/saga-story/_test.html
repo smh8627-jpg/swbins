@@ -93,6 +93,7 @@ window.DG_NO_TUNE = true;
 <script src="js/job.js"></script>
 <script src="js/quest.js"></script>
 <script src="js/rift.js"></script>
+<script src="js/party.js"></script>
 <script src="js/achieve.js"></script>
 <script src="js/sfx.js"></script>
 <script src="js/bgm.js"></script>
@@ -3651,6 +3652,120 @@ window.DG_NO_TUNE = true;
       var ok2 = S.drink() === true && run2.rm.reward === 1.5;
       S.leave();
       return blocked && ok2 && ('dry: 탕약 거절 · 보상 ×1.6 / tough: 탕약 O · 보상 ×1.5');
+    });
+
+    /* ── 동료 교대(PLAN §5-8, 2026-09-22) ─────────────────────
+     * 편성 앞 세 명이 체력을 따로 들고, 교대하면 그 인물의 몸으로 바뀌며 서명 1발을 쏜다. */
+    function partyOf(n) {
+      var hs = DG.data.heroes, ids = [], i;
+      for (i = 0; i < n; i++) { ids.push(hs[i].id); DG.hero.ensure(hs[i].id); }
+      C.save.party = ids;
+      return ids;
+    }
+    function partyReset(n) {
+      var S = DG.side;
+      if (S.active()) { S.leave(); }
+      C.save.rift = null;
+      C.save.player.level = 12;
+      var ids = partyOf(n);
+      S.enter('field');
+      return ids;
+    }
+
+    t('동료 교대(§5-8) — 편성 앞 세 명이 각자 체력을 들고 시작한다(다섯을 넣어도 셋, 한 명이면 없다)', function () {
+      var S = DG.side, ids = partyReset(5), run = S.raw();
+      var t3 = run.pty && run.pty.ids.length === 3 && run.pty.ids[0] === ids[0] && run.pty.i === 0 &&
+        run.pty.hp.every(function (v, k) { return v === run.pty.hpMax[k] && v > 0; }) && run.hp === run.pty.hpMax[0];
+      S.leave();
+      partyReset(1);
+      var one = S.raw().pty === null && S.meRef().id === C.save.party[0];
+      S.leave();
+      return !!(t3 && one) && ('셋(체력 ' + JSON.stringify(run.pty.hpMax) + ') · 한 명이면 교대 없음');
+    });
+
+    t('동료 교대(§5-8) — 교대하면 그 인물의 몸으로 바뀌고 체력은 인물마다 따로 남는다', function () {
+      var S = DG.side, P = DG.party, ids = partyReset(3), run = S.raw();
+      var full0 = run.hpMax;
+      run.hp = Math.round(full0 * 0.4);
+      var ok1 = P.swap(1, false) && S.meRef().id === ids[1] && run.hp === run.pty.hpMax[1] && run.hpMax === run.pty.hpMax[1];
+      var inv = run.player.invuln >= 0.2 && run.pty.cd === P.SWAP_CD;
+      var blocked = P.swap(0, false) === false;                 // 쿨 4초 안에는 못 바꾼다
+      run.pty.cd = 0;
+      var ok2 = P.swap(0, false) && S.meRef().id === ids[0] && run.hp === Math.round(full0 * 0.4);
+      S.leave();
+      return !!(ok1 && inv && blocked && ok2) && ('체력 개별 유지 O · 무적 0.2초 O · 쿨 ' + P.SWAP_CD + '초 O');
+    });
+
+    t('동료 교대(§5-8) — 서명 1발은 능력치·소속으로 정해진 9효과 중 하나, 배율 ×1.6~2.2, 인물 전원이 한결같다', function () {
+      var P = DG.party, heroes = DG.data.heroes, seen = {}, bad = 0, n = 0, valid = {};
+      Object.keys(P.TABLE).forEach(function (ax) { P.TABLE[ax].forEach(function (ef) { valid[ef] = true; }); });
+      heroes.forEach(function (h) {
+        var a = P.signatureOf(h.id), b = P.signatureOf(h.id);
+        if (a.effect !== b.effect || a.mul !== b.mul) { bad++; }
+        if (!valid[a.effect] || a.mul < 1.6 - 1e-9 || a.mul > 2.2 + 1e-9) { bad++; }
+        if (!seen[a.effect]) { seen[a.effect] = 1; n++; }
+      });
+      return bad === 0 && Object.keys(valid).length === 9 && n >= 6 && ('인물 ' + heroes.length + '명 · 효과 9 중 ' + n + '종 쓰임 · 위반 0');
+    });
+
+    t('동료 교대(§5-8) — 나온 인물의 서명 1발이 실제로 적을 친다(기력 안 씀)', function () {
+      var S = DG.side, P = DG.party, ids = partyReset(3), run = S.raw();
+      var hs = DG.data.heroes, k, hitAny = false, tried = 0;
+      /* 세 인물 모두 시도 — 어떤 효과든 적 근처에서는 피해나 상태 변화가 있어야 한다 */
+      for (k = 1; k <= 2; k++) {
+        run.enemies = [];
+        S.spawnEnemy(run.player.x + 40);
+        var e = run.enemies[0]; e.dir = -1; e.hp = e.hpMax = 9999;
+        run.player.facing = 1; run.mp = 3;
+        run.pty.cd = 0;
+        P.swap(k, false);
+        var sig = P.signatureOf(ids[k]);
+        S.update(0.02);
+        for (var fr = 0; fr < 8; fr++) { S.update(0.05); }   // 화살·기탄이 닿을 시간(update 는 한 번에 0.05초까지)
+        tried++;
+        if (e.hp < e.hpMax || sig.effect === 'heal' || sig.effect === 'buff') { hitAny = true; } else { hitAny = false; break; }
+        run.pty.cd = 0; P.swap(0, false); S.update(0.02);
+      }
+      var mpKept = run.mp >= 3;                             // 서명은 기력을 안 쓴다(교대 뒤 update 로는 오히려 조금 찬다)
+      S.leave();
+      return hitAny && mpKept && ('서명 ' + tried + '회 모두 효과 O · 기력 소모 없음');
+    });
+
+    t('동료 교대(§5-8) — 지금 인물이 쓰러지면 동료로 저절로 넘어가고, 쓰러진 인물은 교대가 거절된다', function () {
+      var S = DG.side, P = DG.party, ids = partyReset(3), run = S.raw();
+      /* 접촉 피해만 주는 근접형으로 못박는다(무작위 잡졸이 마법·원거리형이면 접촉으로 안 때린다) */
+      run.enemies = [];
+      var e0 = S.spawnEnemy(run.player.x + 300);
+      e0.role = 'melee'; e0.ranged = null; e0.mini = false;
+      e0.hp = e0.hpMax = 999999;                 // 나온 동료의 서명 1발에 안 죽게
+      run.hp = 1;
+      e0.x = run.player.x; e0.y = run.player.y; e0.cd = 0; e0.dmg = 99999; run.player.invuln = 0;
+      S.update(0.03);
+      var still = S.active() && run.pty.dead[0] === true && run.pty.i === 1 && S.meRef().id === ids[1] && run.player.invuln > 0.5;
+      var refuse = P.swap(0, false) === false && run.pty.i === 1;
+      /* 나온 인물의 서명 1발(돌진일 수도 있다)이 다음 프레임에 나가 자리가 바뀐다 — 비운 뒤 다시 세운다 */
+      S.update(0.02);
+      /* 둘째·셋째도 쓰러지면 판이 끝난다 */
+      run.pty.cd = 0;
+      run.hp = 1; e0.x = run.player.x; e0.y = run.player.y; e0.cd = 0; run.player.invuln = 0;
+      S.update(0.03);
+      var second = S.active() && run.pty.i === 2 && run.pty.dead[1] === true;
+      S.update(0.02);
+      run.hp = 1; e0.x = run.player.x; e0.y = run.player.y; e0.cd = 0; run.player.invuln = 0;
+      S.update(0.03);
+      var over = !S.active();
+      return !!(still && refuse && second && over) && ('첫째 쓰러짐 → 둘째 O · 쓰러진 인물 교대 거절 O · 셋 다 쓰러지면 종료 O');
+    });
+
+    t('동료 교대(§5-8) — 마을로 돌아오면 쓰러진 동료가 일어서고 체력이 찬다', function () {
+      var S = DG.side, P = DG.party, ids = partyReset(3), run = S.raw();
+      run.pty.dead[1] = true; run.pty.hp[1] = 0;
+      run.pty.hp[2] = 1;
+      S.travel('heodo');
+      var back = S.raw().stage.key === 'heodo' && run.pty.dead[1] === false && run.pty.hp[1] === run.pty.hpMax[1] &&
+        run.pty.hp[2] === run.pty.hpMax[2];
+      S.leave();
+      return back && ('마을(허도) 도착 → 쓰러진 동료 복귀 O · 벤치 체력 가득');
     });
 
     /* ── VRoid 몸 변형 (vroid-variant.js, 2026-09-20) — 인물 전원에게 VRoid 몸을 나눠 입히고 색만 바꾼다 ─────────── */

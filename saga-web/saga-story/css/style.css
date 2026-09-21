@@ -992,6 +992,9 @@ body.tilted3 #vignette {
   border-radius: 2px; background: rgba(122,199,255,.9); width: 0; pointer-events: none;
 }
 .hud-sk.armed { box-shadow: 0 0 0 2px rgba(122,199,255,.85) inset; }
+/* 동료 교대(§5-8) — 초상 칸. 어두운 덮개(u)가 잃은 체력, active 는 지금 나온 인물 */
+.hud-sk.pty.active { border-color: rgba(232,193,90,.95); box-shadow: 0 0 0 2px rgba(232,193,90,.55) inset; }
+.hud-sk.pty.dead { opacity: .45; filter: grayscale(1); }
 .hud-sk.armed i.hold { background: rgba(255,220,120,.95); }
 
 /* ── 손가락 조작판 (2026-09-01) ─────────────────────────────

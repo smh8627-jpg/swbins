@@ -230,6 +230,8 @@
         riftQuitAsk = false; global.DG.rift.abandon(); renderSheet();
       } else if (act === 's-leave') {
         global.DG.side.leave();
+      } else if (act === 's-swap') {
+        global.DG.party.swap(parseInt(b.getAttribute('data-i'), 10) || 0, false);
       } else if (act === 's-skill') {
         global.DG.side.castSkill(parseInt(b.getAttribute('data-i'), 10) || 0);
       } else if (act === 's-drink') {
@@ -831,7 +833,8 @@
        나머지 무예는 auto.js 의 tickSkillsOnly 가 조건 맞춰 알아서 쓰므로,
        조작 띠에는 손이 쥐는 "공격"(쿨 가장 짧은 자리) 한 칸만 남긴다. */
     var atkI = st.attackIdx;
-    var key = st.skills.length + ':' + atkI;
+    var pty = st.party && st.party.list.length > 1 ? st.party : null;
+    var key = st.skills.length + ':' + atkI + ':' + (pty ? pty.list.map(function (m) { return m.id; }).join(',') : '');
     if (hudKey === null || hudKey !== key) {
       var html = '<div class="hud-card">' +
         '<div class="hud-hint" id="hud-hint"></div>' +
@@ -840,6 +843,13 @@
         sk = st.skills[atkI];
         html += '<button class="hud-sk" data-act="s-skill" data-i="' + atkI + '" title="' +
           esc(sk.name + ' — ' + sk.desc) + '"><b>' + sk.emoji + '</b><u></u></button>';
+      }
+      if (pty) {
+        for (i = 0; i < pty.list.length; i++) {
+          var pm = pty.list[i];
+          html += '<button class="hud-sk pty" data-act="s-swap" data-i="' + i + '" title="' +
+            esc(pm.name + ' — 서명 ' + pm.sig + ' (E: 다음 동료)') + '"><b>' + esc(pm.emoji) + '</b><u></u></button>';
+        }
       }
       html += '<button class="hud-sk potion" data-act="s-drink" title="탕약을 마신다 (Q)">' +
         '<b>🧪</b><small class="pn"></small></button>' +
@@ -857,6 +867,17 @@
       sk = st.skills[atkI];
       atkBtn.classList.toggle('ready', sk.ready);
       atkBtn.querySelector('u').style.height = (sk.cdMax ? (sk.cd / sk.cdMax * 100) : 0) + '%';
+    }
+    if (pty) {
+      var pbs = els.hud.querySelectorAll('.hud-sk.pty');
+      for (i = 0; i < pbs.length && i < pty.list.length; i++) {
+        var pmm = pty.list[i];
+        pbs[i].classList.toggle('active', pmm.active);
+        pbs[i].classList.toggle('dead', pmm.dead);
+        pbs[i].classList.toggle('ready', !pmm.active && !pmm.dead && pty.cd <= 0);
+        /* 어두운 덮개는 잃은 체력만큼 — 쿨다운 칸(u)과 같은 결 */
+        pbs[i].querySelector('u').style.height = (pmm.hpMax ? (1 - pmm.hp / pmm.hpMax) * 100 : 100) + '%';
+      }
     }
     var dodgeBtn = document.getElementById('hud-dodge');
     if (dodgeBtn && st.dodge) {

@@ -105,7 +105,11 @@
 
   /* ── 내 힘 ────────────────────────────────────────────── */
 
-  function meId() { return core.save.party[0] || null; }
+  /** 지금 몸을 빌려 주는 인물 — 동료 교대(§5-8) 중이면 나와 있는 사람, 아니면 편성 선두 */
+  function meId() {
+    if (run && run.pty) { return run.pty.ids[run.pty.i]; }
+    return core.save.party[0] || null;
+  }
 
   function meRef() {
     var id = meId();
@@ -336,6 +340,7 @@
       kills: 0, gold: 0, hitstopT: 0, hitSeq: 0,
       expGained: 0, gearFound: 0, feat0: achieveDoneCount()   // 세션 카드(§5-6) 몫 — 들어올 때 스냅
     };
+    if (global.DG.party) { global.DG.party.attach(); }   // 동료 교대(§5-8) — 편성 앞 세 명의 체력을 따로 든다
     if (!stgOverride) { st().stage = stg.key; }
     for (var i = 0; i < stg.spawn; i++) { spawnEnemy(); }
     var b = spawnBoss();
@@ -544,6 +549,7 @@
     run.merchant = buildMerchant(stg);
     run.rescue = buildRescue(stg);
     run.npcs = buildNpcs(stg); run.talk = null;
+    if (run.pty && stg.town && global.DG.party) { global.DG.party.restore(); }   // 마을 — 쓰러진 동료가 일어선다(§5-8)
     run.player.x = goingRight ? 130 : stg.width - 160;
     run.player.y = stg.floor - P_H;
     run.player.vx = 0; run.player.vy = 0; run.player.climb = null;
@@ -1263,8 +1269,8 @@
         p.invuln = 1.5;
         fx.push({ t: 'heal', x: p.x, y: p.y, life: 0.6 });
         core.emit('toast', '🔥 불굴 — 다시 일어선다!');
-      } else {
-        die();
+      } else if (!(run.pty && global.DG.party.onFall())) {
+        die();   // 동료 교대(§5-8) — 남은 동료가 없을 때만 판이 끝난다
       }
     }
   }
@@ -1341,17 +1347,23 @@
     if (p.cds[i] > 0 || run.mp < sk.cost) { return false; }
     run.mp -= sk.cost;
     p.cds[i] = sk.cd;
+    return castBody(sk, 0);
+  }
+
+  /** 무예 한 번의 효과. swapMul 이 있으면 교대 서명(§5-8) — 배율을 그 값으로 고정하고 유파 보정·무예 레벨은 안 탄다 */
+  function castBody(sk, swapMul) {
+    var p = run.player;
     p.atkCd = ATK_ANIM_DUR;
     var S0 = global.DG.sfx;
     sfx(sk.cost === 0 ? 'swing' : (S0 ? S0.skillCue(sk.effect) : 'skill'));
 
-    var j, e, dx, dy, mul = mulOf(sk);
+    var j, e, dx, dy, mul = swapMul || mulOf(sk);
     var eff = sk.effect;
     /* 유파(§5-2) — 띠 조합에 따른 보정을 여기 한 곳에서 구해, 아래 갈래마다
        제 자리(mul·r·buff.sec·heal·shots)에 곱하거나 더하기만 한다. side.js 는
        유파가 뭔지 몰라도 된다(job.js schoolBonus() 가 다 정한다). */
     var JB = global.DG.job;
-    var sb = JB ? JB.schoolBonus(sk) : null;
+    var sb = (JB && !swapMul) ? JB.schoolBonus(sk) : null;
     mul *= sb ? sb.dmgMul : 1;
 
     /* 궁수 당기기(§5-1) — 화살·연사 한 번에만 실린다(다음 화살 하나뿐, 평타처럼
@@ -1443,7 +1455,7 @@
         }
       }
     } else if (eff === 'heal') {
-      var pct = (sk.heal ? (sk.heal[0] + sk.heal[1] * Math.max(0, lvOf(sk) - 1)) : 0.2) *
+      var pct = (sk.heal ? (sk.heal[0] + sk.heal[1] * Math.max(0, (swapMul ? 1 : lvOf(sk)) - 1)) : 0.2) *
         (sb ? sb.healMul : 1);
       run.hp = Math.min(run.hpMax, run.hp + Math.round(run.hpMax * pct));
       fx.push({ t: 'heal', x: p.x, y: p.y, life: 0.5 });
@@ -1456,8 +1468,13 @@
       };
       fx.push({ t: 'ring', x: p.x + P_W / 2, y: p.y + P_H / 2, r: 60, life: 0.4 });
     }
-    core.emit('side:skill', sk.key);
+    if (!swapMul) { core.emit('side:skill', sk.key); }
     return true;
+  }
+
+  /** 교대 서명 1발(§5-8) — party.js 가 부른다. 기력·쿨을 안 쓴다 */
+  function castSwap(sk, mul) {
+    return run ? castBody(sk, mul) : false;
   }
 
   function lvOf(sk) {
@@ -1483,6 +1500,8 @@
       global.DG.rift.tick();
       if (!run) { return; }
     }
+    /* 동료 교대(§5-8) — 교대 쿨을 깎고, 막 나온 인물의 서명 1발을 여기서(타격 반복문 밖) 쏜다 */
+    if (run.pty && global.DG.party) { global.DG.party.tick(dt); }
     var p = run.player, stg = run.stage, i;
 
     /* 관문 대장(§5-4) 제한 시간 — 넘기면 그 자리에서 광폭화(공격 ×1.5), 실패로 끝나진 않는다 */
@@ -2065,6 +2084,7 @@
     base.enemies = run.enemies.length;
     base.atk = Math.round(atkOf());
     base.def = power().def;
+    base.party = global.DG.party ? global.DG.party.brief() : null;   // 동료 교대(§5-8) HUD
     base.dodge = { cd: Math.max(0, run.player.dodgeCd), cdMax: DODGE_COOL,
       ready: run.player.dodgeCd <= 0 };
     /* 고유 조작(§5-1) — 회피 단추의 "길게 누름" 게이지가 이 값을 본다.
@@ -2130,7 +2150,7 @@
     bossReady: bossReady, bossLeft: bossLeft,
     gateInfo: gateInfo, challengeGate: challengeGate,
     /* 비경(§5-3)이 쓰는 곳 — 임시 방 갈아 끼우기·잡졸 소환·주 키 */
-    placeIn: placeIn, spawnEnemy: spawnEnemy, weekKey: gateWeekKey,
+    placeIn: placeIn, spawnEnemy: spawnEnemy, weekKey: gateWeekKey, castSwap: castSwap,
     status: status, state: st, meRef: meRef,
     /** 화면 전용 — 상태를 직접 읽는다 (쓰지는 말 것) */
     raw: function () { return run; },
