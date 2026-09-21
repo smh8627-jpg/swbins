@@ -863,6 +863,7 @@ button.pc-emoji { cursor: pointer; padding: 0; }
 .dt-x { position: absolute; top: 11px; right: 11px; z-index: 2; }
 
 .dt-top { display: flex; gap: 14px; align-items: flex-start; }
+.dt-portrait.bond3 { box-shadow: 0 0 0 2px #f0d878, 0 0 12px rgba(240, 216, 120, .55); }
 .dt-portrait {
   width: 132px; height: 152px; flex: 0 0 auto;
   border-radius: 14px; display: block; object-fit: cover;

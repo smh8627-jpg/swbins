@@ -1148,6 +1148,27 @@
     return out + '</div>';
   }
 
+  /** 인연(PLAN §5 ⑥) — 등급·다음까지·결이 맞는 동료 */
+  function bondBlock(id) {
+    var BD = global.DG.bond;
+    if (!BD) { return ''; }
+    var pg = BD.progressOf(id), hearts = '', i;
+    for (i = 0; i < BD.MAX_LV; i++) { hearts += i < pg.lv ? '❤️' : '🤍'; }
+    var out = '<div class="dt-bond"><div class="dt-line"><span>🤝 인연 ' + hearts + '</span><b>+' +
+      Math.round(pg.lv * BD.STEP * 100) + '%</b></div>';
+    if (pg.max) {
+      out += '<small class="muted">더할 것이 없는 사이입니다.</small>';
+    } else {
+      out += '<small class="muted">함께 걸은 ' + distLabel(pg.walk) + ' / ' + distLabel(pg.needWalk) +
+        ' · 토벌 승 ' + pg.wins + ' / ' + pg.needWins + ' (먼저 닿는 쪽) — 동행 중일 때만 쌓입니다.</small>';
+    }
+    var ps = BD.partnersOf(id);
+    if (ps.length) {
+      out += '<small class="muted"> · 🔗 결 — ' + esc(ps.join(', ')) + ' 와(과) 같은 세력 (필살 기 +' + BD.KI_PCT + '%)</small>';
+    }
+    return out + '</div>';
+  }
+
   function renderDetail() {
     if (!openDetailRef) { return; }
     var host = detailHost();
@@ -1172,7 +1193,7 @@
     var out = '<div class="dt-card">' +
       '<button class="icon-btn sm dt-x" data-act="dt-close">✕</button>' +
       '<div class="dt-top">' +
-        '<img class="dt-portrait" alt=""' + p3tag('hero', h, 150, 172) + p3h.done + ' src="' +
+        '<img class="dt-portrait' + (owned && global.DG.bond && global.DG.bond.lvOf(h.id) >= 3 ? ' bond3' : '') + '" alt=""' + p3tag('hero', h, 150, 172) + p3h.done + ' src="' +
           p3h.src + '">' +
         '<div class="dt-head">' +
           '<div class="dt-name"><b>' + esc(h.name) + '</b>' +
@@ -1206,7 +1227,7 @@
         statRow('통솔', bk.base.command, bk.grown.command, bk.final.command, cap) +
         '</div>' +
         '<div class="dt-line"><span>인물 됨됨이</span><b>' + core.fmt(hero().power(h.id)) + '</b></div>' +
-        perkBlock(h.id);
+        perkBlock(h.id) + bondBlock(h.id);
 
       out += '<div class="dt-pet"><span>🐾 펫</span>' +
         '<select data-equip="' + h.id + '">' + petOptions(h.id) + '</select>' +

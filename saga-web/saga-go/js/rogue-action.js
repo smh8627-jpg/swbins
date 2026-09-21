@@ -151,6 +151,7 @@
       left: o.timeSec || Dl.TIME_SEC,
       timeSec: o.timeSec || Dl.TIME_SEC,
       ki: 0,
+      kiMul: 1 + core.effect('kiPct') / 100,   // 인연 결(bond.js) — 만들 때 한 번 읽어 tick 을 순수하게 둔다
       cd: 0,
       foeT: Dl.FOE_GAP,
       foeN: 0,
@@ -269,7 +270,7 @@
       var mul = (finisher ? COMBO_MUL() : 1) * (s.staggered > 0 ? STAGGER_BONUS() : 1);
       var dmg = Math.round(s.myAtk * Dl.QUICK_MUL * (0.9 + Math.random() * 0.2) * mul);
       s.cd = Dl.QUICK_CD;
-      s.ki = Math.min(Dl.KI_MAX, s.ki + Dl.QUICK_KI);
+      s.ki = Math.min(Dl.KI_MAX, s.ki + Dl.QUICK_KI * (s.kiMul || 1));
       s.hp -= dmg;
       s.dealt += dmg;
       s.hits++;
@@ -295,7 +296,7 @@
         if (justOk) {
           /* 저스트 회피(토벌 전용, §5 ③) — 완전히 피하고 기가 붙는다 */
           heavy = 0; dodged = true;
-          s.ki = Math.min(Dl.KI_MAX, s.ki + Dl.KI_MAX * (JUST_KI_PCT() / 100));
+          s.ki = Math.min(Dl.KI_MAX, s.ki + Dl.KI_MAX * (JUST_KI_PCT() / 100) * (s.kiMul || 1));
         } else if (walkedOut) {
           /* §10-Q2: 토벌은 걷기만으론 절반만 샌다, 야생·성채는 옛 그대로 완전히 샌다 */
           heavy = s.raidMode ? Math.round(full * WALK_DODGE_MUL()) : 0;

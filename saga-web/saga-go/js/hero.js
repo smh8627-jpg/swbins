@@ -4,7 +4,7 @@
  * 인물의 능력치는 아래 순서로 쌓인다. 이 순서를 바꾸지 않는다.
  *
  *   1) 기본치      data.js 의 stats (인물마다 고정, 절대 변하지 않는다)
- *   2) 성장 배율    레벨(경험) × 승급(중복 인물 소모) × 승급 특성(perk.js 攻·守, 능력치마다)
+ *   2) 성장 배율    레벨(경험) × 승급(중복 인물 소모) × 승급 특성(perk.js 攻·守, 능력치마다) × 인연(bond.js, 등급당 +2%)
  *   3) 장비 %       장착 장비의 pct 접사 (배율과 같은 층에서 곱한다)
  *   4) 펫 · 장비 flat  마지막에 더한다 (배율을 타지 않는다)
  *
@@ -47,9 +47,10 @@
     return (1 + (g.lv - 1) * LV_STEP) * (1 + g.rank * RANK_STEP);
   }
 
-  /** 승급 특성(perk.js 攻·守)의 능력치별 배율 — 특성이 없거나 모듈이 없으면 1 */
+  /** 승급 특성(perk.js 攻·守)의 능력치별 배율 × 인연(bond.js) 등급당 +2% — 없거나 모듈이 없으면 1 */
   function perkMul(id, statKey) {
-    return global.DG.perk ? global.DG.perk.mulOf(id, statKey) : 1;
+    var m = global.DG.perk ? global.DG.perk.mulOf(id, statKey) : 1;
+    return global.DG.bond ? m * global.DG.bond.mulOf(id) : m;
   }
 
   /** 장착 펫 */

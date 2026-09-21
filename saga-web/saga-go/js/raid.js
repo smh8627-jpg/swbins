@@ -160,6 +160,7 @@
     var exp = core.gainExp(feat * 3);
     core.save.player.gold += gold;
     s.won = (s.won || 0) + 1;
+    if (global.DG.bond) { global.DG.bond.onRaidWin(); }       // 인연(⑥) — 파티 모두 승수 +1
 
     var joined = null;
     if (caught) { joined = global.DG.encounter.gainHero(raid.hero); }

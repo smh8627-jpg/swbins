@@ -81,6 +81,8 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/buddy.js"></script>
 <script src="js/hero.js"></script>
 <script src="js/perk.js"></script>
+<script src="js/data-bond.js"></script>
+<script src="js/bond.js"></script>
 <script src="js/vendor/three.iife.js"></script>
 <script src="js/vendor/RGBELoader.js"></script>
 <script src="js/land.js"></script>
@@ -6923,6 +6925,159 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         out = r.ok === false && r.reason === 'cap' && S.count() === S.CAP && !S.found(s.key);
       } finally { undo(); }
       return out && '2000 칸이 차면 거절(cap)';
+    });
+
+    /* ── 인연(PLAN §5 ⑥, 2026-09-21) ────────────────────────────
+     * 파티가 함께 걸은 거리·함께 이긴 토벌로 인연 0~3, 능력 +2%/등급(성장 배율 층),
+     * 같은 세력 둘이 파티면 필살 기 충전 +10%(core.effect 'kiPct' → rogue-action.create).
+     * 대사는 기질×단계×변형 표(data-bond.js)이고 실명이 없다. 아직 실기 확인 전.
+     */
+    /** 인연 진단이 만지는 세이브를 되돌리는 틀 — 인물 id 들의 성장 기록·파티·걸음 */
+    function bondKeep(ids) {
+      var snap = ids.map(function (id) { return C.save.heroes[id] ? JSON.stringify(C.save.heroes[id]) : null; });
+      var party = C.save.party.slice(), dist = C.save.player.distance;
+      DG.bond._resetForTest();
+      return function () {
+        ids.forEach(function (id, i) { if (snap[i]) { C.save.heroes[id] = JSON.parse(snap[i]); } else { delete C.save.heroes[id]; } });
+        C.save.party = party; C.save.player.distance = dist;
+        DG.bond._resetForTest();
+      };
+    }
+    function bondPair(sameFaction) {
+      var H = DG.data.heroes, i, j;
+      for (i = 0; i < H.length; i++) {
+        for (j = i + 1; j < H.length; j++) {
+          /* 세력이 다르면 시대가 같아도 결이 아니다 — 시대만 같은 쌍을 일부러 고른다 */
+          if (sameFaction ? H[i].faction === H[j].faction : (H[i].faction !== H[j].faction && H[i].era === H[j].era)) { return [H[i].id, H[j].id]; }
+        }
+      }
+      return null;
+    }
+
+    t('인연 — 함께 걸은 거리(2·6·15km)로 오르고 상한은 3이다', function () {
+      var B = DG.bond, id = DG.data.heroes[60].id, undo = bondKeep([id]), out = false, why = '';
+      try {
+        C.save.party = [id];
+        var d0 = C.save.player.distance = 5000;
+        B.tick();                                                  // 첫 호출은 기준점만 잡는다
+        var lv = [];
+        C.save.player.distance = d0 + 1999; B.tick(); lv.push(B.lvOf(id));    // 0
+        C.save.player.distance = d0 + 2000; B.tick(); lv.push(B.lvOf(id));    // 1
+        C.save.player.distance = d0 + 6000; B.tick(); lv.push(B.lvOf(id));    // 2
+        C.save.player.distance = d0 + 15000; B.tick(); lv.push(B.lvOf(id));   // 3
+        C.save.player.distance = d0 + 60000; B.tick(); lv.push(B.lvOf(id));   // 3 그대로
+        out = lv.join() === '0,1,2,3,3' && B.rec(id).walk === 60000;
+        why = '2km 미만 ' + lv[0] + ' → 2km ' + lv[1] + ' → 6km ' + lv[2] + ' → 15km ' + lv[3] + ' → 60km ' + lv[4];
+      } finally { undo(); }
+      return out && why;
+    });
+
+    t('인연 — 함께 이긴 토벌(3·10·25승)로도 오른다, 둘 중 먼저 닿는 쪽', function () {
+      var B = DG.bond, id = DG.data.heroes[61].id, undo = bondKeep([id]), out = false, lv = [];
+      try {
+        C.save.party = [id];
+        for (var i = 1; i <= 25; i++) { B.onRaidWin(); if (i === 2 || i === 3 || i === 9 || i === 10 || i === 24 || i === 25) { lv.push(B.lvOf(id)); } }
+        out = lv.join() === '0,1,1,2,2,3' && B.rec(id).wins === 25;
+        // 걸음이 더 앞서면 그쪽 등급이 이긴다
+        C.save.heroes[id].bond = { walk: 7000, wins: 1, lv: 0 };
+        out = out && B.lvFor(7000, 1) === 2 && B.lvFor(100, 30) === 3 && B.lvFor(0, 0) === 0;
+      } finally { undo(); }
+      return out && '승 2/3/9/10/24/25 → 등급 ' + lv.join('·') + ' · 걸음 7km+승 1 = 2';
+    });
+
+    t('인연 — 파티에 없으면 안 오른다', function () {
+      var B = DG.bond, a = DG.data.heroes[62].id, b = DG.data.heroes[63].id, undo = bondKeep([a, b]), out = false;
+      try {
+        C.save.party = [a];
+        C.save.player.distance = 100; B.tick();
+        C.save.player.distance = 100 + 20000; B.tick();
+        B.onRaidWin(); B.onRaidWin(); B.onRaidWin();
+        out = B.lvOf(a) === 3 && B.lvOf(b) === 0 && B.rec(b).walk === 0 && B.rec(b).wins === 0 && !C.save.heroes[b];
+      } finally { undo(); }
+      return out && '동행 인물만 등급 3 · 대기 인물은 0(기록도 안 생김)';
+    });
+
+    t('인연 — 결이 맞는 둘(같은 세력)이 파티면 필살 기가 10% 빨리 찬다(쌓이지 않는다)', function () {
+      var B = DG.bond, RA = DG.rogueAction, Dl = DG.duel;
+      var same = bondPair(true), diff = bondPair(false), undo = bondKeep([]), out = false, why = '';
+      try {
+        C.save.party = [same[0], same[1]];
+        var k1 = C.effect('kiPct'), s1 = RA.create({ foeHp: 100000, myAtk: 100, myDef: 100000 });
+        C.save.party = [diff[0], diff[1]];
+        var k0 = C.effect('kiPct'), s0 = RA.create({ foeHp: 100000, myAtk: 100, myDef: 100000 });
+        var H = DG.data.heroes.filter(function (h) { return h.faction === DG.data.find(same[0]).faction; });
+        C.save.party = H.slice(0, 4).map(function (h) { return h.id; });
+        var kMany = C.effect('kiPct');                             // 셋·넷이 같아도 +10% 그대로
+        // 실제 속공 한 번의 기 — 결이 있는 쪽이 QUICK_KI × 1.1
+        function firstQuickKi(s) { for (var g = 0; g < 200; g++) { var ev = RA.tick(s, 0.05, RA.MY_REACH() * 0.5); if (s.hits >= 1) { return s.ki; } } return -1; }
+        var ki1 = firstQuickKi(s1), ki0 = firstQuickKi(s0);
+        out = k1 === 10 && k0 === 0 && kMany === 10 && s1.kiMul === 1.1 && s0.kiMul === 1 &&
+          Math.abs(ki0 - Dl.QUICK_KI) < 1e-9 && Math.abs(ki1 - Dl.QUICK_KI * 1.1) < 1e-9 && ki1 > ki0;
+        why = '결 있음 +' + k1 + '% · 없음 +' + k0 + '% · 여럿이 같아도 +' + kMany + '% · 속공 1회 기 ' + ki0.toFixed(2) + ' → ' + ki1.toFixed(2);
+      } finally { undo(); }
+      return out && why;
+    });
+
+    t('인연 — 능력 +2%/등급은 성장 배율 층에서 곱으로만 들어가고 기본치는 그대로다', function () {
+      var B = DG.bond, id = DG.data.heroes[64].id, base = DG.data.find(id).stats, undo = bondKeep([id]), out = false, why = '';
+      try {
+        C.save.dex.heroes[id] = C.save.dex.heroes[id] || { count: 1, firstAt: Date.now() };
+        var g = HR.ensure(id); g.lv = 1; g.rank = 0;
+        var m0 = HR.breakdown(id).grown.might;
+        g.bond = { walk: 0, wins: 0, lv: 2 };
+        var bk = HR.breakdown(id), expect = Math.round(base.might * HR.growMul(id) * 1.04);
+        var w = bk.grown.wisdom, cmd = bk.grown.command;
+        g.bond.lv = 3;
+        out = bk.grown.might === expect && base.might === DG.data.find(id).stats.might && bk.grown.might >= m0 &&
+          HR.breakdown(id).grown.might >= bk.grown.might && w === Math.round(base.wisdom * HR.growMul(id) * 1.04) &&
+          cmd === Math.round(base.command * HR.growMul(id) * 1.04);
+        why = '무력 ' + m0 + ' → 등급2 ' + bk.grown.might + ' → 등급3 ' + HR.breakdown(id).grown.might + '(기본 ' + base.might + ' 불변)';
+      } finally { delete C.save.dex.heroes[id]; undo(); }
+      return out && why;
+    });
+
+    t('인연 — 대사는 인물마다 늘 같고, 실명·실제 사건이 없다', function () {
+      var B = DG.bond, Dx = DG.data, hit = [], empty = 0, same = true, distinct = {};
+      var BLACK = ['유비', '관우', '조조', '사마의', '손권', '주유', '여포', '이순신', '을지문덕', '강감찬', '김유신',
+        '세종대왕', '왕건', '안중근', '이토 히로부미', '유관순', '노부나가', '히데요시', '이에야스', '카이사르',
+        '알렉산더', '나폴레옹', '칭기즈칸', '클레오파트라', '삼국지', '임진왜란', '적벽'];
+      Dx.heroes.forEach(function (h) {
+        for (var lv = 1; lv <= 3; lv++) {
+          var a = B.line(h.id, lv), b = B.line(h.id, lv);
+          if (!a || a.indexOf(h.name) < 0) { empty++; }
+          if (a !== b) { same = false; }
+          distinct[h.trait + lv + '|' + a.replace(h.name, '{n}')] = 1;
+          BLACK.forEach(function (w) { if (a.replace(h.name, '').indexOf(w) >= 0) { hit.push(h.id + '←' + w); } });
+        }
+      });
+      var variants = Object.keys(distinct).length;
+      return empty === 0 && same && hit.length === 0 && variants >= 26 &&
+        (Dx.heroes.length + '명 × 3등급 대사 · 빈 줄 0 · 걸린 실명 0 · 서로 다른 문장 ' + variants + '가지');
+    });
+
+    t('인연 — 오르는 순간 한 번만 알리고(토스트·로그), 이미 오른 등급은 다시 안 알린다', function () {
+      var B = DG.bond, id = DG.data.heroes[65].id, undo = bondKeep([id]), out = false, ups = [], why = '';
+      var listen = true;
+      C.on('bond:up', function (e) { if (listen) { ups.push(e.id + ':' + e.lv); } });
+      try {
+        C.save.party = [id];
+        C.save.player.distance = 0; B.tick();
+        C.save.player.distance = 2500; B.tick();
+        var log1 = C.save.log[0] && C.save.log[0].text;
+        C.save.player.distance = 2600; B.tick();                   // 같은 등급 안에서는 조용하다
+        C.save.player.distance = 6500; B.tick();
+        out = ups.join() === id + ':1,' + id + ':2' && log1.indexOf('인연 1') >= 0 && C.save.log[0].text.indexOf('인연 2') >= 0;
+        why = '알림 ' + ups.length + '번(등급 1 → 2)';
+      } finally { listen = false; undo(); }
+      return out && why;
+    });
+
+    t('인연 — 값을 내는 함수는 세이브를 안 건드린다(살피기)', function () {
+      var B = DG.bond, id = DG.data.heroes[66].id;
+      var before = JSON.stringify(C.save);
+      B.rec(id); B.lvFor(100, 2); B.lvOf(id); B.mulOf(id); B.line(id, 2); B.pairs(); B.kiPct(); B.bonus(); B.partnersOf(id); B.progressOf(id);
+      HR.stats(id); HR.breakdown(id);
+      return before === JSON.stringify(C.save) && '세이브 그대로';
     });
 
     /* ── VRoid 몸 변형 (vroid-variant.js, 2026-09-20) — 인물 전원에게 VRoid 몸을 나눠 입히고 색만 바꾼다 ─────────── */
