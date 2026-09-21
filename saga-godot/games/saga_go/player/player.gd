@@ -7,6 +7,7 @@ extends CharacterBody3D
 ## sprint 애니메이션이 이미 들어 있어서 그걸 그대로 재생만 한다.
 
 const CelShaderApply := preload("res://saga_core/shaders/cel_shader_apply.gd")
+const BlobShadow := preload("res://saga_core/world/blob_shadow.gd")
 
 const WALK_SPEED := 6.0
 const RUN_SPEED := 10.0
@@ -44,6 +45,9 @@ func _ready() -> void:
 		_joystick = found[0]
 	_play_anim("idle")
 	CelShaderApply.apply_to(visual)
+	var shadow := BlobShadow.make_decal()
+	shadow.position = Vector3(0, 0.15, 0)
+	add_child(shadow)
 
 func _physics_process(delta: float) -> void:
 	## 돌진 중엔 move_and_slide()를 안 쓴다 — CharacterBody3D끼리(플레이어

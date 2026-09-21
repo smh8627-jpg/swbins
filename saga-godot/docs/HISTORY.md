@@ -7849,3 +7849,12 @@ PROJECT_STATE.md` 참고. 요약:
 - 원본 StandardMaterial3D 값(알베도 텍스처·알파 시저·러프니스·스페큘러)을 하드코딩 않고 `vegetation_builder.gd::_apply_wind_shader()`가 그 재질에서 직접 읽어 셰이더로 그대로 옮긴다 — 겉모습이 안 바뀌게. GO 마을(CommonTree_1)·폐허(DeadTree_1) 나무 2종에 연결.
 - 헤드리스 실측: `test_village.gd`에 `SAGA_MESH_DEBUG` 임시 훅으로 두 나무의 표면 재질을 찍어 ShaderMaterial 전환·값 일치(scissor 0.2/0.0, roughness 1.0, specular 0.5) 확인, 셰이더 컴파일 오류 없음 확인 후 훅 제거.
 - `--headless --editor --quit` 1회로 신규 셰이더 `.uid` 생성, `godot_regress.sh` 통과(GO md5는 새 리소스 로드 로그가 늘어 예전과 다르지만 3회 내부 일관), `.import`/`project.godot` 잡음 없음.
+
+## GO 발밑 그림자 데칼 (2026-09-21, 같은 세션, "커밋 푸시 이어해")
+
+- 102-4 "캐릭터 발밑 접지 그림자(blob decal)"를 순수 추가로 골랐다. 새 이미지 파일을 안 받고 `saga_core/world/blob_shadow.gd`가 런타임에 64x64 원형 그라디언트(중심 검정→가장자리 투명, 제곱 감쇠)를 한 번만 만들어 `ImageTexture`로 캐시한다.
+- `make_decal()`이 `Decal` 노드를 만들어 반환 — `normal_fade 0.4`로 다리 같은 수직 면엔 안 붙고 바닥(위를 보는 면)에만 붙게 했다(안 그러면 캐릭터 다리에도 그림자가 칠해짐).
+- GO `player.gd::_ready()`에 연결(Player 하나만, 다른 NPC·적·DUNGEON/FOREST/STORY 플레이어는 범위 밖 — 결과 보고 확장할지 결정).
+- 헤드리스 실측: `test_village.gd`에 `SAGA_SHADOW_DEBUG` 임시 훅으로 Player 밑에 `BlobShadow` 노드가 정확한 position(0,0.15,0)·size(1.1,0.4,1.1)·normal_fade(0.4)·텍스처 유무를 확인 후 훅 제거.
+- GDScript `preload()`는 verbose 로그에 "Loading resource" 줄을 안 남긴다는 걸 이번에 알았다(cel_shader_apply.gd 도 마찬가지) — 로그에 안 보인다고 안 실렸다는 뜻이 아니다, 실제 동작 확인은 이 debug 훅처럼 직접 찍어야 한다.
+- `--headless --editor --quit` 1회로 `.uid` 생성, `godot_regress.sh` 통과, `.import`/`project.godot` 잡음 없음.
