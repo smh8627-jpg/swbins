@@ -7858,3 +7858,11 @@ PROJECT_STATE.md` 참고. 요약:
 - 헤드리스 실측: `test_village.gd`에 `SAGA_SHADOW_DEBUG` 임시 훅으로 Player 밑에 `BlobShadow` 노드가 정확한 position(0,0.15,0)·size(1.1,0.4,1.1)·normal_fade(0.4)·텍스처 유무를 확인 후 훅 제거.
 - GDScript `preload()`는 verbose 로그에 "Loading resource" 줄을 안 남긴다는 걸 이번에 알았다(cel_shader_apply.gd 도 마찬가지) — 로그에 안 보인다고 안 실렸다는 뜻이 아니다, 실제 동작 확인은 이 debug 훅처럼 직접 찍어야 한다.
 - `--headless --editor --quit` 1회로 `.uid` 생성, `godot_regress.sh` 통과, `.import`/`project.godot` 잡음 없음.
+
+## 발밑 그림자 STORY 확장 (2026-09-21, 같은 세션, "커밋 푸시 이어해")
+
+- GO Player에 붙인 blob_shadow(직전 항목)가 DUNGEON·FOREST에도 이미 공짜로 적용돼 있었다는 걸 발견 — 세 판 모두 `games/saga_go/player/player.gd`를 그대로 공유해서 쓰기 때문(캡슐 반지름·오프셋도 GO와 같은 관례).
+- STORY만 `story_player.gd`가 따로 있어(사이드뷰 전용) 그 파일에 `BlobShadow` 연결을 한 줄 더 추가(반지름 0.7, 캡슐 반지름 0.6에 맞춤). REALM은 실시간 캐릭터 자체가 없어(턴제 ChoicePrompt) 대상 없음으로 완료.
+- 헤드리스 실측: GO는 재확인, STORY(`story_town.gd`)에도 임시 `SAGA_SHADOW_DEBUG` 훅을 넣어 `BlobShadow` 노드 존재를 확인 후 둘 다 제거.
+- `godot_regress.sh` 다섯 판 전부 무오류·md5 내부 일관.
+- 부수적으로 `saga-godot/PLAN.md` 가 이전 커밋에서 CRLF로 살짝 뒤바뀌어 `git status`엔 잡히는데 `git diff`엔 내용 변경이 없는 상태였다(ae74ee27 커밋과 같은 부류) — `git checkout --`로 원래 상태 그대로 되돌림(내용 변경 없음, 이번 세션 무관한 잡음).

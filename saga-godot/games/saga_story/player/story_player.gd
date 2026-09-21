@@ -40,6 +40,7 @@ const JUMP_BUFFER_TIME := 0.12
 
 const StoryCombat := preload("res://games/saga_story/data/story_combat.gd")
 const CelShaderApply := preload("res://saga_core/shaders/cel_shader_apply.gd")
+const BlobShadow := preload("res://saga_core/world/blob_shadow.gd")
 
 @onready var visual: Node3D = $Visual
 @onready var _anim: AnimationPlayer = visual.find_child("AnimationPlayer", true, false)
@@ -304,6 +305,13 @@ func _ready() -> void:
 	visual.rotation.y = PI * 0.5  # 오른쪽(+X)을 보고 시작 — StoryPlayer.tscn 참고
 	_play_anim("idle")
 	CelShaderApply.apply_to(visual)
+	## PLAN 102-4 — GO/DUNGEON/FOREST는 games/saga_go/player/player.gd를
+	## 같이 쓰는 덕에 09-21 그림자 연결이 이미 셋 다 적용됐다. STORY만
+	## story_player.gd가 따로라 여기 한 줄 더 필요(캡슐 반지름 0.6이라
+	## GO보다 살짝 크게).
+	var shadow := BlobShadow.make_decal(0.7)
+	shadow.position = Vector3(0, 0.15, 0)
+	add_child(shadow)
 
 
 func _physics_process(delta: float) -> void:
