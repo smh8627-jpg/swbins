@@ -1,13 +1,21 @@
 extends SceneTree
 ## Mixamo(assets/_mixamo_src/*.fbx, 로컬 전용 — .gitignore)에서 받은 모션을
-## VRM Humanoid(J_Bip_*) 스켈레톤에 리타겟한다. GUI 없이 순수 계산으로:
-## 1) 본마다 "레스트 포즈에서 상대측 글로벌 회전과 일치하게 만드는" 상수
-##    보정 쿼터니언 C(i) = tgt_rest_global(i) * src_rest_global(i)^-1 를 구하고,
-## 2) 매 프레임 소스의 로컬 포즈를 글로벌로 누적한 뒤 C(i) 를 곱해 타깃
-##    글로벌로 옮기고, 다시 타깃 로컬로 나눠 새 Animation 트랙에 쓴다.
+## VRM Humanoid(J_Bip_*) 스켈레톤에 리타겟한다. GUI 없이 순수 계산으로,
+## 본마다 "다음 본을 향하는 방향 벡터"의 스윙(최단 회전)만 옮긴다:
+## 1) 매 프레임 소스 본의 글로벌 회전을 누적해 "rest 에서 자식 쪽으로
+##    향하던 방향"이 지금 어디로 돌았는지(swing = 최단회전, 트위스트 없음)를 구하고,
+## 2) 그 swing 을 타깃 본의 rest 글로벌 회전에 그대로 적용해 타깃 글로벌을 만들고,
+## 3) 타깃 부모 글로벌로 나눠 로컬 트랙에 쓴다.
+## (2026-09-21 팔 120도 오차 원인: 이전엔 "글로벌 rest 회전차 C=tgt_rest*src_rest^-1"를
+## 통째로 프레임마다 왼쪽곱했었다 — src/tgt 의 트위스트(본 축 관례)가 다르면 이
+## 방식은 rest 근처를 벗어날수록 어긋나고, 특히 팔은 mixamo(FBX) rest 가 진짜
+## T포즈값인데 VRM(glTF) rest 는 거의 항등이라 어긋남이 100도 넘게 커졌다.
+## 방향 벡터의 swing 만 옮기면 두 스켈레톤의 트위스트 관례가 달라도 안 깨진다 —
+## 대신 각 본 자신의 축 비틀림(트위스트)은 rest 그대로 고정된다(팔의 손목
+## pronation 처럼 트위스트가 도드라지는 동작엔 한계, 나머지엔 충분).
 ## 전제(2026-09-19 verify_chain.gd 로 실측 확인됨): 매핑한 22개 본이
 ## 두 스켈레톤에서 부모-자식 관계가 정확히 1:1로 일치한다(중간에 안 매핑된
-## 본이 끼어있지 않음) — 안 그러면 이 "로컬로 나누기"가 틀어진다.
+## 본이 끼어있지 않음) — 안 그러면 부모 글로벌로 나누는 로컬 변환이 틀어진다.
 ## 결과 .res 는 assets/characters_vroid/anim/ 에 쌓인다(마찬가지로 로컬
 ## 전용 — 리타겟해도 모션 자체는 Mixamo 것이라 재배포 금지 그대로 적용).
 ##
@@ -45,6 +53,31 @@ const BONE_MAP = {
 	"mixamorig_RightToeBase": "J_Bip_R_ToeBase",
 }
 
+## 본마다 "스윙 방향"을 잴 기준 자식 하나. 대부분은 체인에 자식이 하나뿐이라
+## 자명하지만 Hips(자식 Spine·LeftUpLeg·RightUpLeg)·Spine2(자식 Neck·양 Shoulder)만
+## 여럿이라 몸통을 잇는 쪽(Spine·Neck)을 명시로 고른다 — 다리·어깨는 각자
+## 자기 부모의 스윙을 물려받은 뒤 자기 체인 안에서 또 스윙을 구하므로 문제없다.
+## 자식이 없는 말단(Head·양 Hand·양 ToeBase)은 이 표에 없고, rest 로컬 회전을
+## 그대로 둔 채 부모 스윙만 물려받는다(손목 비틀림 등은 다음 과제).
+const REF_CHILD = {
+	"mixamorig_Hips": "mixamorig_Spine",
+	"mixamorig_Spine": "mixamorig_Spine1",
+	"mixamorig_Spine1": "mixamorig_Spine2",
+	"mixamorig_Spine2": "mixamorig_Neck",
+	"mixamorig_LeftShoulder": "mixamorig_LeftArm",
+	"mixamorig_LeftArm": "mixamorig_LeftForeArm",
+	"mixamorig_LeftForeArm": "mixamorig_LeftHand",
+	"mixamorig_RightShoulder": "mixamorig_RightArm",
+	"mixamorig_RightArm": "mixamorig_RightForeArm",
+	"mixamorig_RightForeArm": "mixamorig_RightHand",
+	"mixamorig_LeftUpLeg": "mixamorig_LeftLeg",
+	"mixamorig_LeftLeg": "mixamorig_LeftFoot",
+	"mixamorig_LeftFoot": "mixamorig_LeftToeBase",
+	"mixamorig_RightUpLeg": "mixamorig_RightLeg",
+	"mixamorig_RightLeg": "mixamorig_RightFoot",
+	"mixamorig_RightFoot": "mixamorig_RightToeBase",
+}
+
 const CLIPS = ["idle", "walk", "run", "attack", "hit", "dodge", "death", "pickup"]
 ## idle/walk/run 은 이동 루프라 계속 돌아야 한다 — 나머지(공격·피격·구르기·
 ## 죽음·줍기)는 한 번만 재생하고 마지막 프레임에 멈춰야 하는 동작이라 LOOP_NONE
@@ -70,15 +103,19 @@ func _init():
 	_load_skeleton_info(target_glb, tgt_parent, tgt_rest)
 	_load_skeleton_info(SRC_DIR + "/idle.fbx", src_parent, src_rest)
 
-	var correction := {}
-	for src_name in BONE_MAP.keys():
-		var tgt_name = BONE_MAP[src_name]
-		var src_g = _global_rest_rot(src_name, src_parent, src_rest)
-		var tgt_g = _global_rest_rot(tgt_name, tgt_parent, tgt_rest)
-		correction[src_name] = tgt_g * src_g.inverse()
-
 	var chain_order = BONE_MAP.keys()
 	chain_order.sort_custom(func(a, b): return _depth(a, src_parent) < _depth(b, src_parent))
+
+	# 본마다 rest 글로벌 회전(스윙의 기준점) + 스윙 잴 기준 자식 방향(소스 로컬, 정규화).
+	var src_g_rest := {}
+	var tgt_g_rest := {}
+	var dir_local_src := {}
+	for src_name in chain_order:
+		var tgt_name = BONE_MAP[src_name]
+		src_g_rest[src_name] = _global_rest_rot(src_name, src_parent, src_rest)
+		tgt_g_rest[tgt_name] = _global_rest_rot(tgt_name, tgt_parent, tgt_rest)
+		if REF_CHILD.has(src_name):
+			dir_local_src[src_name] = src_rest[REF_CHILD[src_name]].origin.normalized()
 
 	var hips_src_name = "mixamorig_Hips"
 	var hips_rest_local_pos = src_rest[hips_src_name].origin
@@ -96,7 +133,8 @@ func _init():
 			print("건너뜀(없음): ", src_path)
 			continue
 		var out_path = "%s/%s_%s.res" % [OUT_DIR, out_prefix, clip]
-		_retarget_one(src_path, correction, chain_order, hips_src_name,
+		_retarget_one(src_path, src_g_rest, tgt_g_rest, dir_local_src,
+			chain_order, hips_src_name,
 			hips_rest_local_pos, tgt_hips_rest_pos, pos_scale, out_path,
 			LOOP_CLIPS.has(clip), LOOP_CLIPS.has(clip))
 
@@ -183,7 +221,8 @@ func _depth(name, parent_map):
 	return d
 
 
-func _retarget_one(src_path, correction, chain_order, hips_src_name,
+func _retarget_one(src_path, src_g_rest, tgt_g_rest, dir_local_src,
+		chain_order, hips_src_name,
 		hips_rest_local_pos, tgt_hips_rest_pos, pos_scale, out_path,
 		should_loop := false, strip_horizontal := false):
 	var packed = load(src_path)
@@ -224,6 +263,7 @@ func _retarget_one(src_path, correction, chain_order, hips_src_name,
 
 		var src_global := {}
 		var tgt_global := {}
+		var swings := {}
 		for src_name in chain_order:
 			var bidx = bone_idx_cache[src_name]
 			var local_q = skel.get_bone_pose_rotation(bidx)
@@ -232,20 +272,34 @@ func _retarget_one(src_path, correction, chain_order, hips_src_name,
 				src_global[src_name] = local_q
 			else:
 				src_global[src_name] = src_global[p] * local_q
-			var corrected = correction[src_name] * src_global[src_name]
-			tgt_global[src_name] = corrected
+
+			var tgt_name = BONE_MAP[src_name]
+			var tgt_g
+			if REF_CHILD.has(src_name):
+				## 스윙 = "rest 때 자식 쪽을 향하던 방향"이 지금 어디로 돌았는지의
+				## 최단 회전. 트위스트(자기 축 비틀림)는 안 건드린다.
+				var src_dir_rest_world = src_g_rest[src_name] * dir_local_src[src_name]
+				var src_dir_t_world = src_global[src_name] * dir_local_src[src_name]
+				var swing = Quaternion(src_dir_rest_world, src_dir_t_world)
+				swings[src_name] = swing
+				tgt_g = swing * tgt_g_rest[tgt_name]
+			else:
+				## 말단(자식 없음): 부모 스윙만 물려받고 자기 로컬은 rest 그대로.
+				var parent_tgt_g = tgt_global[p] if (p != "" and tgt_global.has(p)) else Quaternion.IDENTITY
+				tgt_g = parent_tgt_g * tgt_rest[tgt_name].basis.get_rotation_quaternion()
+			tgt_global[src_name] = tgt_g
 
 			var tgt_local
 			if p == "" or not tgt_global.has(p):
-				tgt_local = corrected
+				tgt_local = tgt_g
 			else:
-				tgt_local = tgt_global[p].inverse() * corrected
+				tgt_local = tgt_global[p].inverse() * tgt_g
 			out_anim.rotation_track_insert_key(rot_track[src_name], t, tgt_local)
 
 		var hips_bidx = bone_idx_cache[hips_src_name]
 		var src_hips_pos = skel.get_bone_pose_position(hips_bidx)
 		var delta = (src_hips_pos - hips_rest_local_pos) * pos_scale
-		var corrected_delta = correction[hips_src_name] * delta
+		var corrected_delta = swings[hips_src_name] * delta
 		if strip_horizontal:
 			## Mixamo 소스가 "In Place" 없이 내려와 walk/run 은 1초에 1.5m씩
 			## Hips 가 실제로 전진한다 — 게임 이동은 코드(속도)가 맡으므로

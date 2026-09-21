@@ -7953,3 +7953,13 @@ PROJECT_STATE.md` 참고. 요약:
 - **저장소 공용 도구로 배치**(`tools/asset-forge`와 같은 원칙): `saga-godot/tools/mixamo_automation/`이 아니라 루트 `tools/mixamo_automation/`에 둬서 saga-unity(`Assets/Art/CharactersRealistic/`, `--skin "With Skin"`)도 `--dest`만 바꿔 재사용 가능. saga-web 5판은 2D라 해당 없음.
 - 실제로 idle 클립(`--query Idle --match "Standing Idle"`)을 새 도구로 saga-godot `assets/_mixamo_src/idle.fbx`에 받아 세 캐릭터(AvatarSample_A·saga_forest_avatar_01·dungeon_hero_01) 재타겟 재실행, `godot_regress.sh` 통과·`.import`/`project.godot` 잡음 없음 확인. 검증된 (query, match) 레시피는 `tools/mixamo_automation/README.md` 표에 기록 — 나머지 7개 클립(walk~pickup)은 아직 이 도구로 재검증 안 함.
 - 팔 보정 120도 버그(직전 항목)는 **여전히 안 고쳐짐** — 이건 도구가 새 idle 클립을 못 받아서가 아니라 리타겟 수학 자체의 문제였다는 게 이미 확인됐으므로 다음 세션 최우선 그대로.
+
+## mixamo_retarget.gd 팔 120도 오차 수정 — 스윙 기반 재작성 (2026-09-22, 새 세션, "사가고돗 이어해")
+
+- Godot 4.7 표준판을 스크래치패드에 새로 받아 헤드리스로 검증(이 PC엔 설치 없었음).
+- 원인 재확인: 기존 방식은 본마다 "글로벌 rest 회전차 C=tgt_rest*src_rest^-1"를 매 프레임 왼쪽곱했는데, mixamo(FBX) 팔은 rest가 진짜 T포즈(≈90°)고 VRM(glTF) 팔은 rest가 거의 항등이라 C 자체가 ~120°나 되고, 이걸 애니메이션 글로벌에 그냥 곱하면(비가환) rest에서 멀어질수록 어긋난다 — 수기 FK로 직접 찍어보니 팔꿈치가 어깨보다 **위로** 뜨는(부호 반전) 결과가 나와 실측 확인됨.
+- 수정: 본마다 "rest 때 자식을 향하던 방향 벡터"가 지금 어디로 돌았는지의 **스윙(최단회전, 트위스트 없음)** 만 구해 타깃 rest 글로벌에 그대로 곱하는 방식으로 교체(`REF_CHILD` 표 신설, `tools/mixamo_retarget.gd`). 자식이 없는 말단(Head·양 Hand·양 ToeBase)은 부모 스윙만 물려받고 자기 로컬은 rest 고정.
+- 수기 FK로 재검증: 양팔 어깨→손 delta의 Y가 idle 전 구간(t=0/2/4초)에서 -0.48~-0.49(자연스럽게 아래), 양다리 엉덩→발도 -0.75~-0.77로 정상. 이전엔 팔이 위로 뜨는 부호 반전이었음.
+- 세 캐릭터(AvatarSample_A·saga_forest_avatar_01·dungeon_hero_01) 8클립 전부 재실행 save_err=0, `godot_regress.sh` 다섯 씬 3회 md5 동일·issues=0, `.import`/`project.godot` 잡음 없음.
+- 트위스트(팔 자체 축 비틀림, 손목 pronation 등)는 이 방식으로도 안 건드림 — 지금 클립(idle~pickup)엔 안 도드라지지만 다음에 트위스트가 큰 클립을 추가하면 다시 볼 것.
+- 디버그용 `tools/_debug_*_tmp.gd` 8개는 저장소에 안 남기고 삭제. 실기 확인(윈도우 exe 스크린샷)은 다음 항목("102 그래픽 개편 스크린샷 확인")에서 사용자 요청 시.
