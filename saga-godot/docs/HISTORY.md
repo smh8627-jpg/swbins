@@ -7892,3 +7892,11 @@ PROJECT_STATE.md` 참고. 요약:
 - `saga_core/ui/number_format.gd::comma(n)` 신설(음수·0 처리 포함). DUNGEON `gold_label.gd`·STORY `gold_label.gd`·REALM `realm_status_label.gd`의 지갑 표시(🪙/💰, 장기 누적이라 커질 수 있는 값)만 바꿔 적용 — agri/troops/재야 같은 0~수백대 게이지는 그대로 `%d` 유지(가독성에 안 필요).
 - 헤드리스 실측: `test_village.gd`에 `SAGA_NUMFMT_DEBUG` 임시 훅으로 `comma(0/999/1234567/-42000)` → `0|999|1,234,567|-42,000` 확인 후 훅 제거.
 - `godot_regress.sh` 다섯 판 전부 통과·md5 완전 불변(이 스크립트가 안 여는 라벨들이라 당연), `.import`/`project.godot` 잡음 없음.
+
+## 카메라 근접 페이드 (2026-09-21, 같은 세션, "이어해")
+
+- 102-7 "카메라 클리핑"(부분: SpringArm3D 있음, 근접 페이드 없음) 처방. §8-1 재override는 이번 세션에 이미 받아 둔 채 계속.
+- 리스크를 낮추려고 셀 셰이더 머티리얼(`hit_flash` uniform 등)은 안 건드리고, 순수 인스턴스 속성 `GeometryInstance3D.transparency`만 쓰는 `saga_core/world/camera_near_fade.gd` 신설(mesh 수집+거리→투명도 계산). GO `camera_rig.gd`·DUNGEON/FOREST 공용 `dungeon_camera_rig.gd`에 배선 — SpringArm3D가 장애물에 눌려 카메라·캐릭터 거리가 1.5m 밑으로 좁아지면 캐릭터가 투명해진다. STORY(SpringArm 없음)·REALM(플레이어 메시 없음)은 대상 없음.
+- 헤드리스 실측: GO `test_village.gd`에 `SAGA_FADE_DEBUG` 훅으로 `meshes=3`(VRoid) 확인 + 8m→투명도 0.0, 0.5m→0.667(공식 그대로) 확인. DUNGEON `test_room.gd`에도 같은 훅으로 `meshes=3` 확인. 둘 다 확인 후 훅 제거.
+- **주의**: `transparency`가 실제로 화면에서 자연스럽게 흐려지는지(디더링 방식이 cel_toon 커스텀 셰이더와 잘 맞는지)는 헤드리스로 확인 불가 — 실기 확인 목록에 추가.
+- `godot_regress.sh` 다섯 판 전부 통과·md5 완전 불변, `.import`/`project.godot` 잡음 없음.

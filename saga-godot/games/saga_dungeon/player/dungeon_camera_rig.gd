@@ -14,6 +14,9 @@ extends Node3D
 
 @onready var _arm: SpringArm3D = $SpringArm3D
 
+const CameraNearFade := preload("res://saga_core/world/camera_near_fade.gd")
+var _visual_meshes: Array[GeometryInstance3D] = []
+
 ## PLAN 101-2 DUNGEON ③(손맛 2차, 2026-09-17) — saga_core/combat_feel.gd
 ## ②가 "camera_rig" 그룹의 첫 노드를 찾아 shake()를 부른다. SpringArm3D
 ## 자체가 아니라 그 부모(이 노드)의 `position`을 흔든다 — PLAN 101-3
@@ -25,6 +28,9 @@ func _ready() -> void:
 	rotation_degrees.x = -pitch_deg
 	_arm.spring_length = spring_length
 	add_to_group("camera_rig")
+	var visual := get_parent().get_node_or_null("Visual")
+	if visual:
+		_visual_meshes = CameraNearFade.collect_meshes(visual)
 
 
 func _process(_delta: float) -> void:
@@ -36,6 +42,9 @@ func _process(_delta: float) -> void:
 	elif position != Vector3.ZERO:
 		position = Vector3.ZERO
 		_shake_amp_m = 0.0
+	if not _visual_meshes.is_empty():
+		var cam: Camera3D = _arm.get_node("Camera3D")
+		CameraNearFade.apply(_visual_meshes, cam.global_position, global_position)
 
 
 ## combat_feel.gd::_do_shake()가 부른다 — 겹치면(연타) 더 세거나 더 긴

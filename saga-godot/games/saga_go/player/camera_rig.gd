@@ -7,6 +7,9 @@ extends Node3D
 
 @onready var spring_arm: SpringArm3D = $SpringArm3D
 
+const CameraNearFade := preload("res://saga_core/world/camera_near_fade.gd")
+var _visual_meshes: Array[GeometryInstance3D] = []
+
 const ROTATE_SPEED := 0.006
 ## PLAN 102-1·105 Q-h(c, 2026-09-19) — 1.7m 표준 캐릭터 기준 거리 8m,
 ## 줌 범위 6~11m(옛 4~16m는 3.4m 거인 기준이었다).
@@ -33,6 +36,9 @@ func _ready() -> void:
 	spring_arm.spring_length = DEFAULT_ZOOM
 	rotation_degrees.x = -35.0
 	add_to_group("camera_rig")
+	var visual := get_parent().get_node_or_null("Visual")
+	if visual:
+		_visual_meshes = CameraNearFade.collect_meshes(visual)
 
 
 func _process(_delta: float) -> void:
@@ -44,6 +50,9 @@ func _process(_delta: float) -> void:
 	elif position != Vector3.ZERO:
 		position = Vector3.ZERO
 		_shake_amp_m = 0.0
+	if not _visual_meshes.is_empty():
+		var cam: Camera3D = spring_arm.get_node("Camera3D")
+		CameraNearFade.apply(_visual_meshes, cam.global_position, global_position)
 
 
 func shake(amp_m: float, dur_sec: float) -> void:
