@@ -1326,7 +1326,7 @@ window.DG_NO_TUNE = true;
       for (k = 0; k < 5; k++) { S.update(0.05); }        // 추가 0.25s(총 0.45s, 전부 charging)
       var chargeDist = p.x - x0b;
       /* 0.25s 동안 40% 속도면 SPEED(270)×0.25×0.4 ≈ 27px — 정상 속도(67.5px)의 절반도 안 된다 */
-      var slowed = armedNow && chargeDist > 0 && chargeDist < 30;
+      var slowed = armedNow && chargeDist > 0 && chargeDist < 40;   // 정상(67.5px)의 6할 아래 — 첫 프레임 몫이 얹혀 27px 보다 조금 나온다
       S.holdEnd();
       var buffOk = p.archerBuff && p.archerBuff.mul > 1 && p.archerBuff.pierce === 1;
       var casted = S.castSkill(0);     // 화살 하나 — 관통 pierceLeft 를 실어야 한다
@@ -2963,6 +2963,8 @@ window.DG_NO_TUNE = true;
       var g = run.gathers[0];
       if (!g) { return false; }
       g.x = (found.x1 + found.x2) / 2; g.alive = true; g.respawnAt = 0;   // 보너스 구간 한가운데로 옮겨 심는다
+      /* 다른 풀이 우연히 그 구간 안에 있으면 같이 캐져 +4 가 된다(들판의 풀은 x=480·1050·1750 고정) — 비워 둔다 */
+      run.gathers.forEach(function (o) { if (o !== g) { o.alive = false; o.respawnAt = Date.now() + 1e9; } });
       var before = S.state().mats[g.kind] || 0;
       run.player.x = g.x - 10; run.player.y = run.stage.floor - S.P_H;
       S.update(0.05);
@@ -3357,7 +3359,8 @@ window.DG_NO_TUNE = true;
       e.dir = -1;                                    // 정면은 왼쪽 — 오른쪽에 서면 등 뒤다
       e.gateShieldHp = e.hpMax * 0.30 - 1;
       e.gateShieldBroken = false; e.gateVulnT = 0;
-      p.x = e.x + 10; p.y = e.y; p.facing = -1; p.cds[0] = 0; run.mp = run.mpMax;
+      /* 몸 중심(e.x+26)보다 오른쪽에 서야 "등 뒤"다 — 예전 e.x+10 은 중심보다 왼쪽이라 정면 피해였다 */
+      p.x = e.x + 40; p.y = e.y; p.facing = -1; p.cds[0] = 0; run.mp = run.mpMax;
       S.castSkill(0);
       var broke = e.gateShieldBroken === true && e.gateVulnT > 0;
       var stillHurts = false;
