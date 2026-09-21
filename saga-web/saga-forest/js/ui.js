@@ -640,7 +640,7 @@
              r.kind === 'quest') {
       toast((r.name ? r.name + ' — ' : '') + r.text);
     } else if (r.kind === 'gather' || r.kind === 'furn' || r.kind === 'gold' ||
-               r.kind === 'bees' || r.kind === 'treasure') {
+               r.kind === 'bees' || r.kind === 'treasure' || r.kind === 'note') {
       toast(r.text);
       if (r.kind === 'gather' && r.item) { gatherFeedback(r); }
     } else if (r.kind === 'empty' || r.kind === 'locked') {
@@ -1517,7 +1517,7 @@
     var warn = global.DG.town.beautyWarning ? global.DG.town.beautyWarning() : null;
     /* 숲의 정령(PLAN §5.5 ②) — 도감. 바이옴별로 묶어 보이고, 다음 씨앗 보상 한 줄 */
     if (global.DG.spirit) {
-      var spi = global.DG.spirit.summary(), spHtml = '';
+      var spi = global.DG.spirit.summary(), spHtml = '', gridSum = global.DG.grid ? global.DG.grid.summary() : null;
       Object.keys(spi.byBiome).forEach(function (bk) {
         var bb = spi.byBiome[bk];
         spHtml += '<div class="stat-row"><span>' + esc(bb.name) + '</span><b>✨ ' + bb.found + ' / ' + bb.total + '</b></div>';
@@ -1527,6 +1527,10 @@
         '<div class="stat-row"><span>🌱 씨앗</span><b>' + spi.seeds + '개' +
           (spi.next ? ' (다음 보상 ' + spi.next.at + '개)' : ' (모두 모았다)') + '</b></div>' +
         spHtml +
+        (gridSum ? '<div class="stat-row"><span>🗺️ 숲의 만남</span><b>' + gridSum.cells + '곳 (연 것 ' + gridSum.opened + ')</b></div>' +
+          '<small class="muted">🧰 상자 ' + gridSum.byKind.chest + ' · 🍾 쪽지 병 ' + gridSum.byKind.bottle + ' · 💎 채집터 ' + gridSum.byKind.node +
+          ' · 🦌 짐승 무리 ' + gridSum.byKind.herd + ' · ⛺ 나그네 야영 ' + gridSum.byKind.camp +
+          (gridSum.hint ? ' — 금빛 원을 미니맵에서 찾아 보세요' : ' — 야영의 나그네는 🪙 으로 가까운 정령의 터를 알려 줍니다') + '</small>' : '') +
         '<small class="muted">숲 고리에 ✨ 정령의 터가 숨어 있습니다. 가까이 가서 손을 쓰면 무엇을 해야 하는지 알려 줍니다.</small>' +
         '</div></div>';
     }

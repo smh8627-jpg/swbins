@@ -668,7 +668,7 @@
        실제로 뺀 것을 안 하면 `focus()`·`auto.js`가 새로 생긴 수천 그루를 진짜
        채집 대상으로 삼아 하루 벌이가 몇 배로 뛴다 — 자가진단으로 잡았다 */
     var m = forestMargin();
-    var SPI = global.DG.spirit;
+    var SPI = global.DG.spirit, GRD = global.DG.grid;
     for (ty = -m; ty < H + m; ty++) {
       for (tx = -m; tx < W + m; tx++) {
         if (tx >= 0 && ty >= 0 && tx < W && ty < H) { continue; }   // 마을 안은 위에서 이미 채웠다
@@ -679,6 +679,7 @@
         if (inSpaceBase(tx, ty)) { continue; }                      // 우주기지 자리도 비워 둔다
         if (!GRASS_FAMILY[tileAt(tx, ty)]) { continue; }            // 공사로 딴 걸 깔았으면 스킵
         if (SPI && SPI.blocked(tx, ty)) { continue; }               // 정령의 터 둘레는 비워 둔다(PLAN §5.5)
+        if (GRD && GRD.blocked(tx, ty)) { continue; }               // 격자 만남 둘레도 비워 둔다(PLAN §5.5 ①)
         var fh = core.hash2(tx * 31 + s.seed % 613 + 2000, ty * 17 + s.seed % 419 + 2000);
         var fx = tx * TILE + TILE * 0.5, fy = ty * TILE + TILE * 0.5;
         var fid = 'f' + tx + '_' + ty;
@@ -696,6 +697,8 @@
     /* 숲의 정령 60(PLAN §5.5 ②) — 터 표지는 고리 사물이 다 선 뒤에 얹는다(둘레 두 칸은 위에서 비웠다).
        푼 터는 deco(손이 안 닿는 자국), 안 푼 터는 손이 닿아 수수께끼가 시작된다 */
     if (SPI) { Array.prototype.push.apply(props, SPI.marks()); }
+    /* 발견 밀도 격자(PLAN §5.5 ①) — 20타일 칸마다 상자·쪽지 병·채집터·야영 하나. 짐승 무리는 buildAnimals() 몫 */
+    if (GRD) { Array.prototype.push.apply(props, GRD.marks()); }
 
     /* 다리(2026-09-09) — 마을 도로와 같은 줄(BRIDGE_TY)에 실제로 건널 수 있는
        자리가 생겼으니, `Bridge.glb`(2026-08-30부터 등록만 되고 안 쓰이던 것)를
@@ -1025,6 +1028,26 @@
         animals.push({ id: 'spacebug', kind: 'spacebug', x: bx, y: by,
                        home: { x: bx, y: by }, facing: 1, state: 'idle', aim: null, pause: 0 });
       }
+    }
+
+    /* 짐승 무리(PLAN §5.5 ①) — 격자 칸 하나가 "무리" 로 뽑히면 그 바이옴 짐승 셋이 모여 선다.
+       위 BIOME_CELL 뽑기와 별개(같은 흐름·난수를 안 건드려 기존 짐승 수·자리는 그대로) */
+    var GRDH = global.DG.grid;
+    if (GRDH) {
+      GRDH.herds().forEach(function (hc) {
+        var pool = [], k;
+        for (k in VD.ANIMALS) {
+          if (VD.ANIMALS.hasOwnProperty(k) && !VD.ANIMALS[k].rare && VD.ANIMALS[k].biomes.indexOf(hc.biome) >= 0) { pool.push(k); }
+        }
+        if (!pool.length) { return; }
+        var hk = pool[Math.floor(core.hash2(hc.cx * 83 + 1 + s.seed % 353, hc.cy * 79 + 2) * pool.length) % pool.length];
+        var offs = [[-1.2, 0], [1.2, 0.6], [0, -1.2]], oi;
+        for (oi = 0; oi < offs.length; oi++) {
+          var hx = (hc.tx + 0.5 + offs[oi][0]) * TILE, hy = (hc.ty + 0.5 + offs[oi][1]) * TILE;
+          animals.push({ id: 'ah' + hc.key + '_' + oi, kind: hk, x: hx, y: hy,
+                         home: { x: hx, y: hy }, facing: 1, state: 'idle', aim: null, pause: 0 });
+        }
+      });
     }
   }
 
@@ -1812,6 +1835,7 @@
       return { kind: 'empty', text: '✨ 낮에는 그저 풀밭이지만, 밤이 되면 반딧불이가 모여든다고 합니다' };
     }
     if (prop.kind === 'spiritmark') { return global.DG.spirit ? global.DG.spirit.interact(prop) : null; }
+    if (prop.grid !== undefined) { return global.DG.grid ? global.DG.grid.interact(prop) : null; }
     if (prop.kind === 'weed') { return pullWeed(prop); }
     if (prop.kind === 'home') { return enterHome(); }
     if (prop.kind === 'cave') { return enterCave(); }

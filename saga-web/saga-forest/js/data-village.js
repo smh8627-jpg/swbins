@@ -57,6 +57,12 @@
        푼 터는 deco 자국이다 */
     spiritmark: { name: '정령의 터', emoji: '✨', gather: null, reset: 0, hint: '살핀다' },
     spiritdone: { name: '정령이 다녀간 자리', emoji: '🍃', gather: null, reset: 0, hint: '' },
+    /* 발견 밀도 격자(PLAN §5.5 ①) — grid.js 가 숲 고리 20타일 칸마다 하나씩 세운다. 손이 닿는 넷 + 야영 불(deco) */
+    gridchest:  { name: '숲 보물상자', emoji: '🧰', gather: null, reset: 0, hint: '연다' },
+    gridbottle: { name: '쪽지 병',     emoji: '🍾', gather: null, reset: 0, hint: '주워 읽는다' },
+    gridnode:   { name: '빛나는 채집터', emoji: '💎', gather: null, reset: 0, hint: '캔다' },
+    gridcamp:   { name: '나그네의 야영', emoji: '⛺', gather: null, reset: 0, hint: '말을 건다' },
+    gridfire:   { name: '야영 불',     emoji: '🔥', gather: null, reset: 0, hint: '' },
     pole:   { name: '깃대',   emoji: '🚩', gather: null,     reset: 0, hint: '올려다본다' },
     weed:   { name: '잡초',   emoji: '🌿', gather: null,     reset: 0, hint: '뽑는다' },
     tailor: { name: '침선방(針線房)', emoji: '🧵', gather: null, reset: 0, hint: '옷을 고른다' },
@@ -1070,7 +1076,17 @@
     return { rank: r, name: R ? R.name : '', color: R ? R.color : '#9aa4b2', label: R ? R.label : '' };
   }
 
+  /** 격자 만남 갈래(PLAN §5.5 ①) — w 는 뽑기 무게. 정령(여섯째)은 spirit.js 가 따로 세운다 */
+  var ENCOUNTER_KINDS = {
+    chest:  { name: '숲 보물상자',   emoji: '🧰', w: 5 },
+    bottle: { name: '쪽지 병',       emoji: '🍾', w: 5 },
+    node:   { name: '빛나는 채집터', emoji: '💎', w: 4 },
+    herd:   { name: '짐승 무리',     emoji: '🦌', w: 3 },
+    camp:   { name: '나그네의 야영', emoji: '⛺', w: 3 }
+  };
+
   global.DG.villageData = {
+    ENCOUNTER_KINDS: ENCOUNTER_KINDS,
     gradeOf: gradeOf,
     TILES: TILES, PROPS: PROPS, ITEMS: ITEMS, PHASES: PHASES, REQUEST_N: REQUEST_N,
     ANIMALS: ANIMALS, MONSTER_BIOME: MONSTER_BIOME, NPCS: NPCS, QUESTS: QUESTS,

@@ -31,7 +31,8 @@
   var STYLE = {
     resident: { c: '#f2e4b6', r: 2.6 },
     animal:   { c: '#8affb0', r: 2.2 },
-    npc:      { c: '#7fd0ff', r: 3.2 }
+    npc:      { c: '#7fd0ff', r: 3.2 },
+    hint:     { c: '#ffd75a', r: 3.6 }       // 나그네가 일러 준 정령의 터(금빛 원) — PLAN §5.5 ①
   };
 
   var node = null, canvas = null, ctx = null;
@@ -93,6 +94,8 @@
     if (run.residents) { for (i = 0; i < run.residents.length; i++) { put('resident', run.residents[i].x, run.residents[i].y, true); } }
     if (run.animals) { for (i = 0; i < run.animals.length; i++) { put('animal', run.animals[i].x, run.animals[i].y); } }
     if (run.npcs) { for (i = 0; i < run.npcs.length; i++) { put('npc', run.npcs[i].x, run.npcs[i].y, true); } }
+    var hn = global.DG.grid && global.DG.grid.hint ? global.DG.grid.hint() : null;
+    if (hn) { put('hint', hn.x, hn.y, true); out[out.length - 1].hr = hn.r; }
     return out;
   }
 
@@ -213,6 +216,12 @@
       ctx.fillStyle = st.c;
       ctx.beginPath();
       var rr = bs[i].edge ? rad * 0.93 : rad;
+      if (bs[i].t === 'hint' && !bs[i].edge) {          // 힌트는 점이 아니라 원 — 그 안 어딘가에 터가 있다
+        ctx.strokeStyle = st.c; ctx.lineWidth = 1.6;
+        ctx.arc(c + bs[i].dx * rr, c + bs[i].dy * rr, Math.max(4, bs[i].hr / r * rad), 0, Math.PI * 2);
+        ctx.stroke();
+        continue;
+      }
       ctx.arc(c + bs[i].dx * rr, c + bs[i].dy * rr,
               bs[i].edge ? st.r * 0.7 : st.r, 0, Math.PI * 2);
       ctx.fill();
