@@ -90,6 +90,7 @@ window.DG_NO_TUNE = true;
 <script src="js/home.js"></script>
 <script src="js/mail.js"></script>
 <script src="js/museum.js"></script>
+<script src="js/spirit.js"></script>
 <script src="js/town.js"></script>
 <script src="js/folk.js"></script>
 <script src="js/animal.js"></script>
@@ -2577,6 +2578,193 @@ window.DG_NO_TUNE = true;
           typeof icon === 'string' && icon.length > 0;
       } finally { s.donated = saved; s.flag = JSON.parse(flag0); V.buildProps(); }
       return out && '잠김(🔒 문구) · 어드민 force 통과 · 넷 다 채우면 열림 · 문양이 그려진다';
+    });
+
+    /* ── 숲의 정령 60(PLAN §5.5 ②) ───────────────────────── */
+
+    /** 정령 진단이 건드리는 것(세이브 spirits·심은 것·가방·금·플레이어 자리·걸음)을 되돌리는 틀 */
+    function spiritKeep() {
+      var s = V.state(), pl = V.raw().player;
+      var snap = JSON.stringify({ sp: s.spirits || null, planted: s.planted || [], bag: s.bag || {}, gold: core_gold() });
+      var px = pl.x, py = pl.y, sneak0 = V.sneaking();
+      return function () {
+        var k = JSON.parse(snap);
+        s.spirits = k.sp || undefined; s.planted = k.planted; s.bag = k.bag; DG.core.save.player.gold = k.gold;
+        pl.x = px; pl.y = py;
+        if (V.sneaking() !== sneak0) { V.toggleSneak(); }
+        DG.town._setStar(undefined);
+        DG.spirit._resetForTest();
+        V.buildProps(); V.syncPlanted();
+      };
+    }
+    function core_gold() { return DG.core.save.player.gold; }
+    function spiritOf(puzzle) {
+      var list = DG.spirit.spots(), i;
+      for (i = 0; i < list.length; i++) { if (list[i].puzzle === puzzle) { return list[i]; } }
+      list[0].puzzle = puzzle; return list[0];              // 씨앗이 우연히 그 수수께끼를 안 뽑았으면 하나를 빌려 쓴다
+    }
+    function standNear(sp, dTiles) {
+      var pl = V.raw().player, T = V.TILE;
+      pl.x = sp.tx * T + T * 0.5 + (dTiles || 0) * T; pl.y = sp.ty * T + T * 0.5;
+    }
+
+    t('정령 — 60곳이 늘 같은 자리이고, 서로 떨어져 있고, 마을·캠프·물·고정 자리와 안 겹친다', function () {
+      var S = DG.spirit, s = V.state(), before = JSON.stringify(DG.core.save);
+      var a = JSON.stringify(S.spots().map(function (q) { return [q.tx, q.ty, q.puzzle, q.biome]; }));
+      S._resetForTest();
+      var b = JSON.stringify(S.spots().map(function (q) { return [q.tx, q.ty, q.puzzle, q.biome]; }));
+      var list = S.spots(), i, j, gapOk = true, okAll = true, inVillage = false, clash = 0;
+      for (i = 0; i < list.length; i++) {
+        if (!V.ringSpotOk(list[i].tx, list[i].ty)) { okAll = false; }
+        if (list[i].tx >= 0 && list[i].ty >= 0 && list[i].tx < V.W && list[i].ty < V.H) { inVillage = true; }
+        for (j = i + 1; j < list.length; j++) {
+          if (Math.max(Math.abs(list[i].tx - list[j].tx), Math.abs(list[i].ty - list[j].ty)) < S.GAP) { gapOk = false; }
+        }
+      }
+      var T = V.TILE;
+      V.buildProps();
+      V.raw().props.forEach(function (p) {
+        if (p.spirit !== undefined) { return; }
+        var ptx = Math.floor(p.x / T), pty = Math.floor(p.y / T);
+        list.forEach(function (q) { if (Math.max(Math.abs(q.tx - ptx), Math.abs(q.ty - pty)) <= S.CLEAR) { clash++; } });
+      });
+      return a === b && list.length === S.COUNT && gapOk && okAll && !inVillage && clash === 0 &&
+        before === JSON.stringify(DG.core.save) &&
+        ('정령 ' + list.length + ' · 같은 씨앗은 같은 자리 · 터 둘레 ' + S.CLEAR + '칸에 다른 사물 ' + clash + ' · 살피기 세이브 불변');
+    });
+
+    t('정령 — 수수께끼 다섯이 다 쓰이고, 꽃 원은 초록 숲에만 걸리고, 갈래마다 힌트가 있다', function () {
+      var S = DG.spirit, list = S.spots(), seen = {}, flowersOnGreen = true;
+      list.forEach(function (q) {
+        seen[q.puzzle] = (seen[q.puzzle] || 0) + 1;
+        if (q.puzzle === 'flowers' && q.biome !== 'green') { flowersOnGreen = false; }
+      });
+      var hints = S.PUZZLES.every(function (p) { return typeof S.HINT[p] === 'string' && S.HINT[p].length > 4; });
+      var used = S.PUZZLES.filter(function (p) { return seen[p] > 0; }).length;
+      return used >= 4 && flowersOnGreen && hints && ('쓰인 갈래 ' + used + '/5 · ' + JSON.stringify(seen));
+    });
+
+    t('정령 — 돌무리: 광석이 없으면 힌트만, 있으면 하나 내고 정령이 씨앗을 남긴다(두 번은 없다)', function () {
+      var S = DG.spirit, s = V.state(), undo = spiritKeep(), out = false;
+      try {
+        var sp = spiritOf('ore'), prop = { spirit: sp.i, kind: 'spiritmark' };
+        s.spirits = undefined; s.bag = {};
+        var no = S.interact(prop), saveNo = JSON.stringify(s.spirits || null);
+        s.bag.iron = 2;
+        var yes = S.interact(prop);
+        var again = S.interact(prop);
+        out = no.kind === 'no' && saveNo === 'null' && yes.kind === 'spirit' && s.bag.iron === 1 &&
+          S.seeds() === 1 && S.isFound(sp.i) && again.kind === 'empty' && s.bag.iron === 1 && S.seeds() === 1;
+      } finally { undo(); }
+      return out && '광석 없음 → 힌트(세이브 안 만듦) · 철석 2→1 · 씨앗 1 · 두 번째는 다녀간 자리';
+    });
+
+    t('정령 — 꽃 원: 터 둘레에 꽃 5송이를 심어야 풀린다', function () {
+      var S = DG.spirit, s = V.state(), undo = spiritKeep(), out = false, T = V.TILE;
+      try {
+        var sp = spiritOf('flowers'), prop = { spirit: sp.i, kind: 'spiritmark' };
+        s.spirits = undefined; s.planted = [];
+        var cx = sp.tx * T + T * 0.5, cy = sp.ty * T + T * 0.5, i;
+        for (i = 0; i < 4; i++) { s.planted.push({ x: cx + (i - 1.5) * T * 0.6, y: cy + T, kind: 'flower', day: s.day, from: 'x' }); }
+        s.planted.push({ x: cx + T * 30, y: cy, kind: 'flower', day: s.day, from: 'x' });     // 먼 꽃은 안 센다
+        s.planted.push({ x: cx, y: cy + T, kind: 'tree', day: s.day, from: 'x' });             // 나무도 안 센다
+        var four = S.interact(prop);
+        s.planted.push({ x: cx, y: cy - T, kind: 'flower', day: s.day, from: 'x' });
+        var five = S.interact(prop);
+        out = four.kind === 'no' && four.text.indexOf('4/5') >= 0 && five.kind === 'spirit' && S.isFound(sp.i);
+      } finally { undo(); }
+      return out && '4송이(먼 꽃·나무 제외) 4/5 → 5송이 정령';
+    });
+
+    t('정령 — 별 자리: 별이 흐르는 밤에만 소원이 응답한다', function () {
+      var S = DG.spirit, s = V.state(), T = DG.town, undo = spiritKeep(), out = false;
+      try {
+        var sp = spiritOf('wish'), prop = { spirit: sp.i, kind: 'spiritmark' };
+        s.spirits = undefined;
+        T._setStar(null);
+        var dark = S.interact(prop);
+        T._setStar({ slot: 987654, t: 0.5, x: 0.5, y: 0.2 });
+        var wish = S.interact(prop);
+        out = dark.kind === 'no' && wish.kind === 'spirit' && S.isFound(sp.i);
+      } finally { undo(); }
+      return out && '별 없음 → 힌트 · 별이 흐르면 소원 → 정령';
+    });
+
+    t('정령 — 반딧불: 터 둘레에서 곤충을 잡으면 풀리고, 먼 곳에서 잡으면 안 풀린다', function () {
+      var S = DG.spirit, s = V.state(), undo = spiritKeep(), out = false;
+      try {
+        var sp = spiritOf('bug');
+        s.spirits = undefined;
+        standNear(sp, S.NEAR_T + 6);                                // 멀리
+        DG.core.emit('village:bug', { state: 'catch' });
+        var farNo = !S.isFound(sp.i);
+        standNear(sp, 1);                                           // 둘레
+        DG.core.emit('village:bug', { state: 'miss' });           // 잡은 게 아니면 무시
+        var missNo = !S.isFound(sp.i);
+        DG.core.emit('village:bug', { state: 'catch' });
+        out = farNo && missNo && S.isFound(sp.i) && S.seeds() === 1;
+      } finally { undo(); }
+      return out && '먼 곳·놓침은 무반응 · 둘레에서 잡으면 정령';
+    });
+
+    t('정령 — 숨죽임: 살금살금 걸음으로 8초 가만히 서야 풀리고, 걸으면 처음부터다', function () {
+      var S = DG.spirit, s = V.state(), undo = spiritKeep(), out = false;
+      try {
+        var sp = spiritOf('sneak');
+        s.spirits = undefined;
+        standNear(sp, 1);
+        var i;
+        S.tick(0.3);                                              // 자리 기준점
+        for (i = 0; i < 40; i++) { S.tick(0.3); }                 // 걸음을 안 낮췄다 — 안 풀린다
+        var notSneak = !S.isFound(sp.i);
+        if (!V.sneaking()) { V.toggleSneak(); }
+        for (i = 0; i < 20; i++) { S.tick(0.3); }                 // 6초 — 아직
+        var early = !S.isFound(sp.i);
+        standNear(sp, 1.4);                                         // 움직였다 — 처음부터
+        S.tick(0.3);
+        standNear(sp, 1);
+        S.tick(0.3);
+        for (i = 0; i < 20; i++) { S.tick(0.3); }                 // 6초 — 리셋돼서 또 아직
+        var reset = !S.isFound(sp.i);
+        for (i = 0; i < 12; i++) { S.tick(0.3); }                 // 더 서 있으면 8초를 넘긴다
+        out = notSneak && early && reset && S.isFound(sp.i) && S.seeds() === 1;
+      } finally { undo(); }
+      return out && '평상 걸음은 무반응 · 6초는 아직 · 움직이면 리셋 · 8초에 정령';
+    });
+
+    t('정령 — 씨앗 단계 보상은 단조 증가이고 각 단계에 한 번만 지급된다', function () {
+      var S = DG.spirit, s = V.state(), undo = spiritKeep(), out = false;
+      try {
+        var mono = S.TIERS.every(function (tt, i) { return i === 0 || tt.at > S.TIERS[i - 1].at; }) && S.TIERS[S.TIERS.length - 1].at === S.COUNT;
+        s.spirits = undefined;
+        var g0 = DG.core.save.player.gold, list = S.spots(), i;
+        for (i = 0; i < 5; i++) { S.solve(list[i], 'test'); }
+        var g5 = DG.core.save.player.gold;                        // 씨앗 5 — 아직 보상 없음
+        var r6 = S.solve(list[5], 'test');
+        var g6 = DG.core.save.player.gold;
+        var dup = S.solve(list[5], 'test');                       // 같은 터는 두 번 못 푼다
+        S.solve(list[6], 'test');
+        out = mono && g5 === g0 && g6 === g0 + S.TIERS[0].gold && r6.text.indexOf('씨앗 6개') >= 0 && dup === null &&
+          DG.core.save.player.gold === g6 && s.spirits.claimed.join() === '6' && S.seeds() === 7;
+      } finally { undo(); }
+      return out && ('단계 ' + S.TIERS.map(function (x) { return x.at; }).join('·') + ' · 6개째에 🪙 ' + S.TIERS[0].gold + ' 한 번만');
+    });
+
+    t('정령 — 푼 터는 deco 자국이 되고 안 푼 터는 손이 닿는다, 도감 요약이 맞는다', function () {
+      var S = DG.spirit, s = V.state(), undo = spiritKeep(), out = false;
+      try {
+        s.spirits = undefined;
+        var sp = S.spots()[3];
+        var m0 = S.marks().filter(function (q) { return q.spirit === sp.i; })[0];
+        S.solve(sp, 'test');
+        var m1 = V.raw().props.filter(function (q) { return q.spirit === sp.i; })[0];
+        var sum = S.summary(), byN = 0, byF = 0;
+        Object.keys(sum.byBiome).forEach(function (k) { byN += sum.byBiome[k].total; byF += sum.byBiome[k].found; });
+        out = m0.kind === 'spiritmark' && !m0.deco && m1.kind === 'spiritdone' && m1.deco === true &&
+          sum.found === 1 && sum.total === S.COUNT && byN === S.COUNT && byF === 1 && sum.seeds === 1 && sum.next.at === 6 &&
+          !!DG.villageData.PROPS.spiritmark && !!DG.villageData.PROPS.spiritdone;
+      } finally { undo(); }
+      return out && '안 푼 터 spiritmark(손 닿음) → 푼 터 spiritdone(deco) · 바이옴별 합 = 60 · 다음 보상 6';
     });
 
     t('번들 시설 — 석비·반딧불이 정원이 3D 에도 선다(표에 든 기존 asset3d 키)', function () {

@@ -77,7 +77,10 @@
     gather_b: { gap: 0.12, l: [{ v: 'tone', f: 440, f2: 580, dur: 0.10, wave: 'sine', gain: 0.10 }] },
     gather_c: { gap: 0.12, l: [{ v: 'tone', f: 600, f2: 820, dur: 0.08, wave: 'square', gain: 0.07 }] },
     gather_bonus: { gap: 0.2, l: [{ v: 'chime', notes: [659, 880, 1175], step: 0.05,
-                                    dur: 0.28, wave: 'triangle', gain: 0.14 }] }
+                                    dur: 0.28, wave: 'triangle', gain: 0.14 }] },
+    /* 숲의 정령(PLAN §5.5) — 맑고 긴 네 음. 정령을 만난 순간 한 번 */
+    spirit: { gap: 0.6, l: [{ v: 'chime', notes: [784, 988, 1319, 1568], step: 0.09,
+                              dur: 0.42, wave: 'sine', gain: 0.13 }] }
   };
 
   /* ── 상태 ─────────────────────────────────────────────── */
@@ -258,6 +261,7 @@
     play(GATHER_CUES[gatherRR % GATHER_CUES.length]);
     gatherRR++;
   });
+  core.on('village:spirit', function () { play('spirit'); });
 
   /* ── ② 판정 파일을 안 건드리고 폴링으로만 듣는 것 ─────────
    * `village`·`villageData`·`town`은 전부 읽기 전용 공개 함수라, 여기서

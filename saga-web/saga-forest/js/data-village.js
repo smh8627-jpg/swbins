@@ -53,6 +53,10 @@
        석비 문구·반딧불이 밤 파티클 배율은 다음 차례 */
     stele:      { name: '석비',   emoji: '🪧', gather: null, reset: 0, hint: '읽는다' },
     fireflyplot:{ name: '반딧불이 정원', emoji: '✨', gather: null, reset: 0, hint: '바라본다' },
+    /* 숲의 정령(PLAN §5.5 ②) — spirit.js 가 숲 고리에 세운다. 터는 손이 닿고(수수께끼가 시작),
+       푼 터는 deco 자국이다 */
+    spiritmark: { name: '정령의 터', emoji: '✨', gather: null, reset: 0, hint: '살핀다' },
+    spiritdone: { name: '정령이 다녀간 자리', emoji: '🍃', gather: null, reset: 0, hint: '' },
     pole:   { name: '깃대',   emoji: '🚩', gather: null,     reset: 0, hint: '올려다본다' },
     weed:   { name: '잡초',   emoji: '🌿', gather: null,     reset: 0, hint: '뽑는다' },
     tailor: { name: '침선방(針線房)', emoji: '🧵', gather: null, reset: 0, hint: '옷을 고른다' },
