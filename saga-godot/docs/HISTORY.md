@@ -7885,3 +7885,10 @@ PROJECT_STATE.md` 참고. 요약:
 - 헤드리스 실측: `test_village.gd`에 `SAGA_UI_PANEL_DEBUG` 임시 훅으로 `Toast.show()` 호출 뒤 `panel_visible=true label_visible=true` 확인 후 훅 제거.
 - `godot_regress.sh` 다섯 판 전부 통과(md5는 새 리소스 로드 로그로 예전과 다르지만 3회 내부 일관), `.import`/`project.godot` 잡음 없음.
 - 실기 확인 목록에 "대화·토스트 패널 배경(9-slice) 체감" 추가(PROJECT_STATE "공통").
+
+## 숫자 표시 통일 — 천 단위 구분자 (2026-09-21, 같은 세션, "이어해")
+
+- UI 9-slice 패널(직전 항목) 다음으로 102-7 표 "UI 폰트·패널 불일치" 처방의 남은 조각 "숫자 1"을 골랐다 — §8-1 재override는 이번 세션에 이미 받아 둔 채(UI 항목 때) 계속.
+- `saga_core/ui/number_format.gd::comma(n)` 신설(음수·0 처리 포함). DUNGEON `gold_label.gd`·STORY `gold_label.gd`·REALM `realm_status_label.gd`의 지갑 표시(🪙/💰, 장기 누적이라 커질 수 있는 값)만 바꿔 적용 — agri/troops/재야 같은 0~수백대 게이지는 그대로 `%d` 유지(가독성에 안 필요).
+- 헤드리스 실측: `test_village.gd`에 `SAGA_NUMFMT_DEBUG` 임시 훅으로 `comma(0/999/1234567/-42000)` → `0|999|1,234,567|-42,000` 확인 후 훅 제거.
+- `godot_regress.sh` 다섯 판 전부 통과·md5 완전 불변(이 스크립트가 안 여는 라벨들이라 당연), `.import`/`project.godot` 잡음 없음.

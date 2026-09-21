@@ -15,6 +15,7 @@ extends Label
 ## 개월과 함께 상시 표시한다.
 const RealmCities := preload("res://games/saga_realm/data/realm_cities.gd")
 const RealmOrders := preload("res://games/saga_realm/data/realm_orders.gd")
+const NumberFormat := preload("res://saga_core/ui/number_format.gd")
 
 
 func _process(_delta: float) -> void:
@@ -30,10 +31,10 @@ func _process(_delta: float) -> void:
 		var d := RealmOrders.disaster_by_key(disaster_key)
 		disaster_text = " · %s %s(%d개월)" % [String(d.get("emoji", "")), String(d.get("name", "")), int(c.get("d_left", 0))]
 
-	text = "%s · %d년 %d월 · 🪙 %d · 🌾 %d · 🏪 %d · 🪧 %d · 🪖 %d · 🧱 %d%%%s · 재야 %d" % [
+	text = "%s · %d년 %d월 · 🪙 %s · 🌾 %d · 🏪 %d · 🪧 %d · 🪖 %d · 🧱 %d%%%s · 재야 %d" % [
 		String(city_def.get("name", "")),
 		RealmSaveState.year, RealmSaveState.month,
-		RealmSaveState.gold,
+		NumberFormat.comma(RealmSaveState.gold),
 		int(c.get("agri", 0)), int(c.get("comm", 0)), int(c.get("sec", 0)), int(c.get("troops", 0)),
 		wall_pct, disaster_text,
 		RealmSaveState.found.size(),
