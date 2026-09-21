@@ -425,7 +425,43 @@
     return { kind: 'treasure', text: (c.id === 'bossChest' ? '👑 ' : '📦 ') + '🪙 ' + core.fmt(c.reward) };
   }
 
+  /* 강가 조개 길(PLAN §5.3) — 조개 갈래 번들을 다 채우면 강 동쪽 기슭에 모래길이 깔린다.
+     세이브에 칸을 쓰지 않는다: `buildProps()` 가 조건(사고 갈래 완결)과 강 자리에서 매번
+     다시 세워 두는 표(`"tx,ty":1`)이고, `tileAt()` 은 **잔디 칸이면서 사람이 안 고친 칸**만
+     모래로 바꾼다(물·길·공사한 땅은 그대로). 완결 전엔 null 이라 예전과 한 글자도 다르지 않다. */
+  var shellPath = null;
+  var SHELL_PATH_ROWS_UP = 4, SHELL_PATH_ROWS_DOWN = 1, SHELL_PATH_WIDTH = 2;
+
+  function computeShellPath() {
+    shellPath = null;
+    var MU = global.DG.museum, lc = lakeCenter();
+    if (!MU || !MU.byCat || !lc) { return; }
+    var list = MU.byCat(), i, done = false;
+    for (i = 0; i < list.length; i++) {
+      var bd = VD.BUNDLES[list[i].cat.key];
+      if (bd && bd.facility === 'shell' && list[i].total > 0 && list[i].done >= list[i].total) { done = true; }
+    }
+    if (!done) { return; }
+    var path = {}, ty, k;
+    for (ty = lc.ty - SHELL_PATH_ROWS_UP; ty <= lc.ty + SHELL_PATH_ROWS_DOWN; ty++) {
+      var rx = riverCenterX(ty);
+      if (rx === null) { continue; }
+      var x0 = Math.floor(rx + RIVER_HALF_W) + 1;              // 물 바로 동쪽 첫 칸
+      for (k = 0; k < SHELL_PATH_WIDTH; k++) { path[(x0 + k) + ',' + ty] = 1; }
+    }
+    shellPath = path;
+  }
+
   function tileAt(tx, ty) {
+    var t = tileBase(tx, ty);
+    if (shellPath && GRASS_FAMILY[t] && shellPath[tx + ',' + ty]) {
+      var s = st();
+      if (!(s.terrain && s.terrain[tx + ',' + ty])) { return 'sand'; }   // 사람이 고친 칸은 그 사람 것
+    }
+    return t;
+  }
+
+  function tileBase(tx, ty) {
     var s = st();
     /* 사람이 고친 칸이 먼저다 (`terrain.js` 의 공사). 안 고친 마을은 이 표가 비어 있어
        예전 그대로 해시로 풀린다 — 세이브가 늘지 않는 까닭이 이것이다 */
@@ -526,6 +562,8 @@
   function buildProps() {
     var s = st();
     props = [];
+    computeShellPath();          // 아래 타일 순회보다 먼저 — 조개 길이 깔린 자리는 사물이 안 선다
+    core.emit('village:terrain'); // 땅이 바뀌었을 수 있다 — 3D 지면 캐시(제자리 idle)를 털게 한다
     var tx, ty;
     for (ty = 0; ty < H; ty++) {
       for (tx = 0; tx < W; tx++) {
@@ -2263,6 +2301,7 @@
     init: init, update: update, bindKeys: bindKeys, walkTo: walkTo, setJoy: setJoy,
     keymap: keymap, beginRemap: beginRemap, remapping: function () { return remapping; },
     tileAt: tileAt, walkable: walkable,
+    _shellPath: function () { return shellPath; },
     focus: focus, interact: interact, spent: spent,
     talk: talk, requestOf: requestOf, friendOf: friendOf, talkNpc: talkNpc,
     heartOf: heartOf, bumpHeart: bumpHeart, heartNext: heartNext,

@@ -1496,13 +1496,15 @@
           '<div class="bagtools">';
         for (var j = 0; j < e[1].length; j++) {
           var o = e[1][j], sel = stt.flag[e[0]] === o.key;
+          var lockedSym = e[0] === 'sym' && global.DG.town.symLocked(o.key);
           var prev = VV.flagIconOf(
             e[0] === 'bg' ? o.key : stt.flag.bg,
             e[0] === 'fg' ? o.key : stt.flag.fg,
             e[0] === 'sym' ? o.key : stt.flag.sym, 34);
           html += '<button class="btn tiny flagpick' + (sel ? ' primary' : ' ghost') + '"' +
+            (lockedSym ? ' disabled title="사고 네 갈래를 다 채우면 열립니다"' : '') +
             ' data-act="v-flag" data-kind="' + e[0] + '" data-id="' + o.key + '">' +
-            '<img src="' + prev + '" alt="">' + esc(o.name) + (sel ? ' ✔' : '') + '</button>';
+            '<img src="' + prev + '" alt="">' + (lockedSym ? '🔒 ' : '') + esc(o.name) + (sel ? ' ✔' : '') + '</button>';
         }
         html += '</div></div>';
       });

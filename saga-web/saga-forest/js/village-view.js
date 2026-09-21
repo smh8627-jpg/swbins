@@ -2666,6 +2666,21 @@
           ctx.fill();
         }
         break;
+      case 'stele':
+        ctx.beginPath();                             // 사고비 — 윗머리가 둥근 비석과 새긴 글줄 셋
+        ctx.moveTo(cx - r * 0.62, cy + r);
+        ctx.lineTo(cx - r * 0.62, cy - r * 0.35);
+        ctx.arc(cx, cy - r * 0.35, r * 0.62, Math.PI, 0);
+        ctx.lineTo(cx + r * 0.62, cy + r);
+        ctx.closePath();
+        ctx.stroke();
+        for (i = 0; i < 3; i++) {
+          ctx.beginPath();
+          ctx.moveTo(cx - r * 0.3, cy - r * 0.3 + i * r * 0.4);
+          ctx.lineTo(cx + r * 0.3, cy - r * 0.3 + i * r * 0.4);
+          ctx.stroke();
+        }
+        break;
       default:
         ctx.beginPath();
         ctx.arc(cx, cy, r, 0, Math.PI * 2);

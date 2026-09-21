@@ -2508,6 +2508,84 @@ window.DG_NO_TUNE = true;
       return !res.bundleCompleted && res.text.indexOf('🎉') < 0 && '첫 한 종만 들이면 축하 문구 없음';
     });
 
+    /* ── 번들 마무리(PLAN §5.3) — 강가 조개 길 · 깃발 문양 · 3D 소품 표 ───────────── */
+
+    function fillBundles(s, cats) {
+      var VD = DG.villageData;
+      s.donated = {};
+      cats.forEach(function (cat) { VD.ITEMS[cat].forEach(function (it) { s.donated[it.key] = true; }); });
+    }
+
+    t('조개 길 — 조개 갈래를 다 채우면 강 동쪽 기슭이 모래가 되고, 미완결이면 없다', function () {
+      var s = V.state(), saved = s.donated, out = false, why = '';
+      try {
+        s.donated = {}; V.buildProps();
+        var none = V._shellPath() === null;
+        fillBundles(s, ['fossil', 'bug', 'fish']);          // 조개만 빼고
+        V.buildProps();
+        var noneStill = V._shellPath() === null;
+        fillBundles(s, ['shell']);
+        V.buildProps();
+        var path = V._shellPath(), keys = path ? Object.keys(path) : [], sand = 0, water = 0, i;
+        for (i = 0; i < keys.length; i++) {
+          var p = keys[i].split(','), k = V.tileAt(+p[0], +p[1]);
+          if (k === 'sand') { sand++; } else if (k === 'water') { water++; }
+        }
+        var shell0 = V.raw().props.filter(function (q) { return q.id === 'bundle_shell0'; })[0];
+        var onSand = shell0 && V.tileAt(Math.floor(shell0.x / V.TILE), Math.floor(shell0.y / V.TILE)) === 'sand';
+        out = none && noneStill && keys.length >= 6 && sand >= keys.length - 1 && water === 0 && !!onSand;
+        why = '완결 전 null · 완결 뒤 ' + keys.length + '칸 중 모래 ' + sand + ' · 물 칸 ' + water + ' · 조개 소품이 모래 위=' + !!onSand;
+      } finally { s.donated = saved; V.buildProps(); }
+      return out && why;
+    });
+
+    t('조개 길 — 물·사람이 고친 칸은 그대로이고, 안 채운 마을은 예전과 한 글자도 안 다르다', function () {
+      var s = V.state(), saved = s.donated, savedTerrain = s.terrain, out = false;
+      try {
+        s.donated = {}; s.terrain = {}; V.buildProps();
+        var probe = [], tx, ty;
+        for (ty = -12; ty <= 40; ty++) { for (tx = -12; tx <= 40; tx++) { probe.push(V.tileAt(tx, ty)); } }
+        var before = probe.join('');
+        fillBundles(s, ['shell']); V.buildProps();
+        var keys = Object.keys(V._shellPath()), p0 = keys[0].split(',');
+        s.terrain[keys[0]] = 'grass'; V.buildProps();             // 사람이 풀밭으로 고쳐 둔 칸
+        var mine = V.tileAt(+p0[0], +p0[1]) === 'grass';
+        var others = keys.filter(function (k) { return k !== keys[0]; }).some(function (k) {
+          var q = k.split(','); return V.tileAt(+q[0], +q[1]) === 'sand';
+        });
+        s.donated = {}; s.terrain = {}; V.buildProps();
+        var probe2 = [];
+        for (ty = -12; ty <= 40; ty++) { for (tx = -12; tx <= 40; tx++) { probe2.push(V.tileAt(tx, ty)); } }
+        out = mine && others && before === probe2.join('');
+      } finally { s.donated = saved; s.terrain = savedTerrain; V.buildProps(); }
+      return out && '고친 칸은 풀밭 그대로 · 나머지는 모래 · 도로 비우면 격자 전체가 완결 전과 같다';
+    });
+
+    t('깃발 문양 — 사고비는 네 갈래를 다 채워야 열리고, 어드민은 잠금을 넘는다', function () {
+      var s = V.state(), T = DG.town, saved = s.donated, flag0 = JSON.stringify(T.flag()), out = false;
+      try {
+        s.donated = {}; V.buildProps();
+        var locked = T.symLocked('stele') === true && T.symLocked('crane') === false;
+        var denied = T.setFlag('sym', 'stele');
+        var kept = T.flag().sym !== 'stele';
+        var forced = T.setFlag('sym', 'stele', true).kind === 'flag' && T.flag().sym === 'stele';
+        T.setFlag('sym', 'circle');
+        fillBundles(s, ['fossil', 'bug', 'fish', 'shell']); V.buildProps();
+        var open = T.symLocked('stele') === false && T.setFlag('sym', 'stele').kind === 'flag' && T.flagSym().key === 'stele';
+        var icon = DG.villageView.flagIconOf('red', 'white', 'stele', 34);
+        out = locked && denied.kind === 'no' && denied.text.indexOf('🔒') >= 0 && kept && forced && open &&
+          typeof icon === 'string' && icon.length > 0;
+      } finally { s.donated = saved; s.flag = JSON.parse(flag0); V.buildProps(); }
+      return out && '잠김(🔒 문구) · 어드민 force 통과 · 넷 다 채우면 열림 · 문양이 그려진다';
+    });
+
+    t('번들 시설 — 석비·반딧불이 정원이 3D 에도 선다(표에 든 기존 asset3d 키)', function () {
+      var V3 = DG.villageView3d, a = V3.scatterOf('stele'), b = V3.scatterOf('fireflyplot');
+      return !!a && !!b && a.asset === 'rock:moss' && b.asset === 'bush' && a.h > 0 && b.h > 0 &&
+        V3.scatterOf('bench') !== null && V3.scatterOf('없는kind') === null &&
+        ('석비→' + a.asset + '(' + a.h + 'm) · 정원→' + b.asset + '(' + b.h + 'm)');
+    });
+
     t('마을 평가 상한 — _capBeauty 순수 함수: 상한 미만은 그대로, 상한 이상은 번들 완성 여부로 갈린다 (PLAN §5.3)', function () {
       var T = DG.town, G = VD.BEAUTY_GRADES, topAt = G[G.length - 1].at;
       var below = T._capBeauty(topAt - 50, false, G);          // 상한보다 한참 아래 — 안 막힌다

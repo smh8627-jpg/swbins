@@ -297,7 +297,10 @@
     { key: 'mount',  name: '산' },
     { key: 'wave',   name: '물결' },
     { key: 'star',   name: '별' },
-    { key: 'tiger',  name: '범 발자국' }
+    { key: 'tiger',  name: '범 발자국' },
+    /* 사고 네 갈래를 다 채우면 열리는 문양(PLAN §5.3) — `gate` 가 있는 것은 town.js
+       `symLocked()` 가 잠근다 */
+    { key: 'stele',  name: '사고비 (사고 완성)', gate: 'bundles' }
   ];
 
   /* ── 계절 행사 ────────────────────────────────────────────

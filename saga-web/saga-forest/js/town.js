@@ -69,13 +69,25 @@
     return l[0] || VD().FLAG_SYMS[0];
   }
 
-  /** @param {'bg'|'fg'|'sym'} part */
-  function setFlag(part, key) {
+  /** 이 무늬가 아직 잠겨 있나 — `gate:'bundles'` 는 사고 네 갈래를 다 채워야 열린다(PLAN §5.3) */
+  function symLocked(key) {
+    var l = VD().FLAG_SYMS.filter(function (x) { return x.key === key; })[0];
+    if (!l || l.gate !== 'bundles') { return false; }
+    var MU = global.DG.museum;
+    return !(MU && MU.allBundlesDone && MU.allBundlesDone());
+  }
+
+  /** @param {'bg'|'fg'|'sym'} part
+   *  @param {boolean} [force] 어드민 QA — 잠금을 무시한다 */
+  function setFlag(part, key, force) {
     var f = flag();
     if (['bg', 'fg', 'sym'].indexOf(part) < 0) { return { kind: 'no', text: '없는 칸입니다' }; }
     var list = part === 'bg' ? VD().FLAG_BGS : part === 'fg' ? VD().FLAG_FGS : VD().FLAG_SYMS;
     if (list.filter(function (x) { return x.key === key; }).length === 0) {
       return { kind: 'no', text: '없는 것입니다' };
+    }
+    if (part === 'sym' && !force && symLocked(key)) {
+      return { kind: 'no', text: '🔒 사고 네 갈래를 다 채우면 쓸 수 있는 무늬입니다' };
     }
     f[part] = key;
     core.emit('changed');
@@ -249,7 +261,7 @@
   global.DG = global.DG || {};
   global.DG.town = {
     state: st, name: name, setName: setName, pickName: pickName,
-    flag: flag, setFlag: setFlag, flagBg: flagBg, flagFg: flagFg, flagSym: flagSym,
+    flag: flag, setFlag: setFlag, symLocked: symLocked, flagBg: flagBg, flagFg: flagFg, flagSym: flagSym,
     event: event, next: next, priceMul: priceMul, isNewYear: isNewYear,
     weather: weather, raining: raining,
     starNow: starNow, wish: wish, wishesOn: wishesOn, beauty: beauty, beautyWarning: beautyWarning,

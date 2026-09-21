@@ -236,7 +236,7 @@
         });
         sel.value = T.flag()[e[0]];
         sel.addEventListener('change', function () {
-          T.setFlag(e[0], sel.value);
+          T.setFlag(e[0], sel.value, true);
           commit('깃발을 바꿨습니다');
         });
         row.appendChild(sel);

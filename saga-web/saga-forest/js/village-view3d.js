@@ -300,6 +300,10 @@
     bush: 'bush', stump: 'stump', log: 'log', plant: 'plant',
     tent: 'tent', campfire: 'campfire', bench: 'bench', well: 'well', lantern: 'lantern',
     mountain: 'mountain',
+    /* 번들 시설(PLAN §5.3) — 새 GLB 없이 이미 등록된 키를 빌린다. 석비는 이끼 낀 선돌,
+       반딧불이 정원은 덤불(밤엔 fireflyBoost 파티클이 위에 얹힌다). 조개 길은 소품이
+       아니라 땅(`village.js` tileAt 의 모래)이다 */
+    stele: 'rock:moss', fireflyplot: 'bush',
     /* 다리(2026-09-09) — asset3d.js 에 진작 등록만 되어 있던 'bridge' 를
        처음 쓴다(village.js 의 새 BRIDGE_TY 크로싱) */
     bridge: 'bridge',
@@ -371,6 +375,7 @@
     /* 다리(2026-09-09) — 정규화라 원본 비례는 모른다. 난간 높이쯤(well·lantern
        사이) 눈대중으로 잡았다 */
     bridge: 1.4,
+    stele: 1.3, fireflyplot: 0.9,
     deer: 1.1, fox: 0.55, wolf: 0.95,
     rabbit: 0.3, squirrel: 0.25, duck: 0.35, bird: 0.2,
     /* 개구리·뱀 — 토끼·다람쥐보다도 작게, 땅에 붙어 다니는 쪽이라 낮게 잡았다 */
@@ -1136,6 +1141,9 @@
     C().on('village:fish', function (e) {
       if (e && e.state === 'catch') { triggerFishZoom(); }
     });
+    /* 땅이 바뀌었다(공사·조개 길) — `syncTerrain()` 은 인물이 안 움직이면 지면을 다시 안
+       세우므로, 제자리에서 땅만 바뀌면 다음 걸음까지 옛 땅이 보인다. 캐시 키를 비운다 */
+    C().on('village:terrain', function () { lastTermPx = null; });
   }
 
   /** 물 재질(PLAN 12절 "파동·반사") — 나머지 여덟 칸(MeshLambertMaterial)과
@@ -1806,6 +1814,8 @@
     weatherShows: weatherShows,
     fireflyVisible: fireflyVisible,
     fireflyPlotOf: fireflyPlotOf,
+    /** 진단 전용 — village.js 사물 kind 가 3D 에 서는가(표에 든 asset3d 키·눈높이) */
+    scatterOf: function (kind) { return SCATTER_KIND[kind] ? { asset: SCATTER_KIND[kind], h: SCATTER_H[kind] } : null; },
     wrapY: wrapY,
     skyDark: skyDark,
     weatherFog: function (wk) { return WEATHER_FOG[wk] != null ? WEATHER_FOG[wk] : 1; },
