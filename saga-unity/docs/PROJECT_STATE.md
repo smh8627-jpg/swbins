@@ -1,7 +1,7 @@
 # PROJECT_STATE — saga-unity (상태만, ≤15KB, 덮어쓴다)
 
 **규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다(2026-09-16 재편 전 본문 5,532줄은 그쪽 첫 절에 그대로 있다). 넘치면 `tools/precheck.sh` 가 막는다.
-마지막 갱신: 2026-09-21 (여섯 세션째, 이어서 — DUNGEON 5.6 → FOREST 5.6 → **STORY 5-8 "동료 교대"** 구현, 셋 다 101-2 전부 닫힘) — DUNGEON·FOREST 경위는 아래 표·HISTORY grep. STORY 5-8: 이 트랙엔 인물 로스터도, 플레이어가 맞는 판정 자체도 없어(`StoryCombat.StartHp` 주석) 웹판의 "인물 셋 편성+개별 체력"을 **항상 갖춘 고정 역할 셋**(선봉·유격·호법, 공격 배율만 다름)으로, "서명 1발"을 그 역할의 기존 무예(횡소/기탄/기합)를 MP 없이 즉시 발동으로 좁혔다. 새 `StoryPartyState`(교대 쿨 4초). 헤드리스 전부 재확인.
+마지막 갱신: 2026-09-21 (일곱 세션째, 이어서 — DUNGEON 5.6 → FOREST 5.6 → STORY 5-8 → **105 Q4 사용자 결정**) — DUNGEON·FOREST·STORY 5-8 경위는 아래 표·HISTORY grep. **Q4(생성 에셋 커밋)**: 사용자가 "커밋" 확정 — 103-1 로 내리고 105 에서 지움(코드 변경 없음, 정책 문서화만).
 
 ## 캐릭터 자산 — 이 PC 기준 (2026-09-19)
 
@@ -40,7 +40,7 @@ STORY 세부(경위는 HISTORY grep): `StoryJobState.JobChosen` 이벤트로 `Re
    - **다른 PC로 이어받으면** `CharactersRealistic/`가 비어 있음 — mixamo.com에서 새로 받을 것(로그인은 사람 몫). 목록은 `SetupXxxCharacterImport.cs`의 `AnimMap`/`BodyFileName`.
    - Dungeon Abe/Brute **전신 구도 스크린샷은 아직 못 얻음**(카메라 클로즈업, 파편만 확인) — `PlaytestDungeonEnemiesGui.cs`의 `TeleportPos`/줌 더 조정하면 재시도 가능.
 3. **PLAN 104-1 ⑤·102-4** — `Assets/Art/*_candidates` 정리, 105 Q1 결정 대기.
-4. **PLAN 105 열린 질문(Q3′·Q4·Q-U3·Q-U4)** — 전부 사용자 결정 대기(Q1은 2026-09-19 "당분간 병행, godot 검증을 unity 착수 신호로 인정"으로 사실상 처리 — 101-2 서두 참고. Q-U2는 2026-09-18 해결·삭제됨).
+4. **PLAN 105 열린 질문(Q3′·Q-U3·Q-U4)** — 전부 사용자 결정 대기(Q1은 2026-09-19 "당분간 병행, godot 검증을 unity 착수 신호로 인정"으로 사실상 처리 — 101-2 서두 참고. Q-U2는 2026-09-18 해결·삭제됨. **Q4는 2026-09-21 "커밋" 확정 — 103-1로 내림**).
 
 101-3(C·F·G)은 다섯 판 중 해당하는 GO·DUNGEON·STORY 셋 다 완전히 닫혔다 — 다음 세션이 새로 이어받을 101-3 잔여 작업은 없다.
 
