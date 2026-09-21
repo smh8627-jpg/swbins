@@ -10,9 +10,17 @@ static func show(node: Node, text: String, show_sec: float) -> void:
 	if labels.is_empty():
 		return
 	var label: Label = labels[0]
+	## 102-7 "UI 폰트·패널 불일치" — dialogue_panel 그룹이 있는 씬에서만
+	## 9-slice 배경을 같이 켜고 끈다. 없는 씬(그룹 비어있음)은 그대로 label만.
+	var panels := node.get_tree().get_nodes_in_group("dialogue_panel")
 	label.text = text
 	label.show()
+	for panel in panels:
+		panel.show()
 	node.get_tree().create_timer(show_sec).timeout.connect(func() -> void:
 		if is_instance_valid(label) and label.text == text:
 			label.hide()
+			for panel in panels:
+				if is_instance_valid(panel):
+					panel.hide()
 	)

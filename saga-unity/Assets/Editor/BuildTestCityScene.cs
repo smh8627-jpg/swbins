@@ -28,11 +28,11 @@ namespace Saga.EditorTools
 
         // 44장 "Environment/Building" 교체 — RealmCityBuilder.cs 주석 참고
         // (REALM은 Player/Enemy 우선순위가 안 맞아 바닥/성벽을 그 자리에 넣었다).
-        private const string CityGroundMatPath = "Assets/Art/EnvironmentPBR_candidates/cobblestone_floor_01_URPLit.mat";
-        private const string CityWallMatPath = "Assets/Art/EnvironmentPBR_candidates/castle_wall_slates_URPLit.mat";
+        private const string CityGroundMatPath = "Assets/Art/Environment/PBR/cobblestone_floor_01_URPLit.mat";
+        private const string CityWallMatPath = "Assets/Art/Environment/PBR/castle_wall_slates_URPLit.mat";
         // 이어서(2026-09-14 후속) — 농장/저잣거리(곳간은 wallMaterial 재사용).
-        private const string CityFarmMatPath = "Assets/Art/EnvironmentPBR_candidates/leafy_grass_URPLit.mat";
-        private const string CityMarketMatPath = "Assets/Art/EnvironmentPBR_candidates/dark_wooden_planks_URPLit.mat";
+        private const string CityFarmMatPath = "Assets/Art/Environment/PBR/leafy_grass_URPLit.mat";
+        private const string CityMarketMatPath = "Assets/Art/Environment/PBR/dark_wooden_planks_URPLit.mat";
 
         // 2026-09-14 "사운드" — RealmCommandUi.cs 클래스 주석 참고. FOREST/GO와
         // 같은 Kenney CC0 자산 트리(Assets/Art/Audio, 다섯 판 공유 원본).

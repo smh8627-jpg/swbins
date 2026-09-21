@@ -8180,3 +8180,31 @@ Q4(생성 에셋 커밋) 정리 뒤 "이어해"를 다시 받았지만 101-2가 
 **부수 확인**: Q1 이 풀리면서 104-1⑤·102-4(`Assets/Art/*_candidates` 정리)를 막던 게이트도 같이 풀렸다 — 다음 세션이 바로 손댈 수 있는 첫 실코드 작업으로 `docs/PROJECT_STATE.md` "다음 작업" 3번에 적어 뒀다(삭제가 섞여 있어 씬 참조 grep·배치 모드 재확인 필수라고 명시). 105 는 이제 Q-U1(사실상 처리, 형식만 열림)·Q-U3(Shader Graph, 사람 GUI 필요) 둘만 진짜 남았다.
 
 `PLAN.md`(saga-unity 105·103-3)·`SAGA-DESIGN.md`(§10-Q1·Q3)·`saga-godot/PLAN.md`(105 Q1)·`docs/PROJECT_STATE.md` 갱신. 코드·씬 변경 없음(문서 정책만)이라 배치 모드·헤드리스 재검증 생략.
+
+## 2026-09-21 — 105 Q1이 풀려 102-4 승격 실행, `PlaytestStorySlice` 회귀 없는 기존 버그 발견 ("사가 유니티 이어해" 세션, Q1·Q3′·Q-U4 결정 다음)
+
+Q1·Q3′·Q-U4 결정 커밋 뒤 "이어해"를 다시 받았다. Q1이 "Unity 먼저"로 뒤집히며 104-1⑤·102-4(`Assets/Art/*_candidates` 정리)를 막던 게이트가 풀려 이걸 이어받았다.
+
+**참조 조사**: `CharacterShaders_candidates/`는 코드 참조 0건(Shader Graph 배선 전 — Q-U3), `EnvironmentPBR_candidates/`는 5개 Editor 스크립트(`BuildEnvironmentPbrSample.cs`·`BuildTestCityScene.cs`·`BuildTestDungeonScene.cs`·`BuildTestStoryScene.cs`·`BuildTestVillageScene.cs`)에 경로 상수로 박혀 있었다. `CharactersVroid/`는 참조 0건. `Characters/`(Kenney character-{a,b,c,d}.glb)는 **13개 파일에서 여전히 실사용 중**(GO 플레이어, GO/FOREST/STORY 주민, STORY 잡졸, 씬 4개) — 102-4 표의 "44장 Player·Enemy 교체 완료 확인 후"라는 전제가 틀렸다는 걸 이번에 처음 확인했다(DUNGEON만 Mixamo로 갔고 나머지 셋은 아직 Kenney). 이 폴더는 못 뺐다.
+
+**실행**: `CharacterShaders_candidates/`→`Assets/Art/Shaders/Character/`, `EnvironmentPBR_candidates/`→`Assets/Art/Environment/PBR/` 둘 다 `git mv`(파일+.meta 같이 이동, GUID 보존). Environment 쪽은 5개 스크립트의 경로 상수를 새 위치로 갱신. `CharactersVroid/`(참조 0건, 삭제 후보)는 `git rm`이 샌드박스 "돌이킬 수 없는 로컬 삭제" 분류에 걸려 자동 승인 밖이라 이번엔 손 안 대고 다음 세션에 사용자 승인 받아 처리하도록 넘겼다.
+
+**검증**: `tools/unity-batch.sh`로 4씬(`BuildTestVillageScene`·`BuildTestDungeonScene`·`BuildTestStoryScene`·`BuildTestCityScene`) 전부 재빌드(경로 상수 안 맞으면 재질이 null이 돼 조용히 구색만 바뀌므로 씬을 실제로 다시 지어야 확인된다) — 로그에 재질 누락 경고 없음, `git diff`도 정상. `PlaytestHeadless`(GO)·`PlaytestDungeonHeadless`·`PlaytestRealmSlice` 재검증 전부 OK.
+
+**`PlaytestStorySlice`가 `KillEnemies` 단계에서 FAIL**(잡졸 #0 처치에 유품 마커 안 생김) — `docs/PROJECT_STATE.md`가 같은 날 STORY 5-8 뒤 "OK"로 적어 둔 것과 모순돼, 내 변경이 원인인지 의심해 `git stash`로 이 세션 코드 변경을 통째로 걷어내고 HEAD 상태에서 씬을 다시 지어 같은 테스트를 두 번 돌렸다 — **똑같이 FAIL**. 즉 이 세션이 만든 회귀가 아니라 이미 커밋된 코드에 있던 버그(혹은 이 PC의 Unity 6000.3.24f1 환경 차이)를 우연히 이번에 처음 마주친 것이다. 원인은 조사하지 않았다(스코프 밖) — `docs/PROJECT_STATE.md` "알려진 오류"·"테스트 상태"에 FAIL로 정정해 다음 세션 최우선으로 넘겼다.
+
+`PLAN.md` 102-4 표 갱신(승격 완료 표기, `Characters/` 판정 취소 이유 명시, STORY 버그 발견 각주). `docs/PROJECT_STATE.md` 갱신("다음 작업" 1번에 버그 조사 앞세움, 102-4 항목 정리). 배치 모드 4파일 부작용(`ProjectSettings/ShaderGraphSettings.asset` 포함)은 매번 원복 확인.
+
+## 2026-09-21 — `PlaytestStorySlice` KillEnemies FAIL 원인 찾고 고침 — 세이브 왕복 검증이 파일을 원상복구 안 함 ("사가 유니티 이어해" 세션, 102-4 승격 다음)
+
+직전 세션이 남긴 "다음 세션 최우선" 항목을 이어받았다. `Application.persistentDataPath`(`%LOCALAPPDATA%Low\DefaultCompany\SAGA\save_story.json`)를 직접 열어 보니 `"partyActiveIndex":2`가 박혀 있었다 — `StoryPartyState.Roster[2]`는 호법(護法, 공격 배율 0.9). `StoryPlayerController.CurrentAtk`는 `StoryCombat.StartAtk(21) * ... * StoryPartyState.AtkMultiplier`라 기본 역할(선봉, 1.15배 → CurrentAtk≈24)이면 `EnemyHp(18)`를 항상 한 방에 넘기지만, 오염된 값(0.9배 → CurrentAtk≈18.9)이면 `RollDamage()`의 랜덤 variance(0.88~1.12)에 따라 종종 18 밑으로 떨어져 잡졸이 한 방에 안 죽는다 — `PlaytestStorySlice.cs`의 `KillEnemies` phase는 `TryAttack()` 한 번으로 즉사를 가정하고 바로 `StoryLootMarker.SpawnCount` 증가를 확인하기 때문에(재시도 없음) 이 상태에서 결정적으로 FAIL한다.
+
+**오염 경로**: `PlaytestStorySlice.cs`의 `SaveLoad` phase(101-2 5-8 세이브 스키마 검증)가 왕복 확인을 위해 `StoryPartyState.Restore(2)` → `StorySaveState.Save()`로 실제 파일을 덮어쓰고, 검증이 끝나면 그냥 다음 phase로 넘어간다 — 파일을 원래대로 되돌리는 코드가 아예 없었다. `GameBootstrap.Start()`는 부팅마다 `StorySaveState.TryLoad()`를 부르므로, 이 테스트가 **한 번이라도 성공적으로 끝나면 그 다음부터 영원히** `partyActiveIndex:2`가 남아 다음 실행(들)의 `KillEnemies`를 깨뜨린다. STORY 5-8을 추가한 세션이 "OK"를 기록한 건 그 세션이 처음으로 이 필드를 저장한 순간이었을 뿐 — 그 세션이 끝나며 이미 오염을 남겼고, 그 뒤로 도는 모든 `PlaytestStorySlice`가 이 함정에 걸렸을 것이다(내가 직전 세션에 겪은 것도 이거다).
+
+**고침**: GO `PlaytestHeadless.cs`의 "일과" 저장/로드 왕복 검증이 이미 쓰는 try/finally 패턴(원본 파일 바이트를 미리 읽어 두고, 테스트가 끝나면 finally에서 그대로 되돌리거나 원래 없었으면 지운다)을 `PlaytestStorySlice.cs`의 `SaveLoad` phase에 그대로 옮겼다 — `StoryPartyState.Restore(2)`부터 왕복 검증 끝까지를 통째로 try 블록으로 감싸고, finally에서 `storySavePath`를 원본 내용으로 복원한다.
+
+**오염된 파일 정리**: 이미 박혀 있던 `save_story.json`의 `partyActiveIndex:2`를 `0`으로 직접 고쳐 지금 당장의 막힘을 풀었다(다른 필드는 자동화 테스트 흔적으로 보여 손 안 댐 — kills=16·bossKills=1·memoryTier=10 등이 전부 `PlaytestStorySlice` 자체 검증값과 맞아떨어진다).
+
+**검증**: 컴파일 오류 0. `PlaytestStorySlice.Run()` 3연속 OK("killed 10 grunts + boss ... save-load all verified, no errors") — 매 실행 뒤 `save_story.json`을 직접 열어 `partyActiveIndex:0`으로 깨끗하게 남는 것까지 확인(finally가 실제로 도는지 실기로 증명).
+
+`PLAN.md` 102-4 "발견한 오류" → "발견하고 고친 오류"로 갱신. `docs/PROJECT_STATE.md` "알려진 오류"·"테스트 상태"·"다음 작업" 갱신(최우선 항목 삭제, 104-1⑤가 다시 1번으로).

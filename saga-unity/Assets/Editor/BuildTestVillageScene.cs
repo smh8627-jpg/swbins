@@ -147,13 +147,13 @@ namespace Saga.EditorTools
         // 맵(밝은 회색조라 곱해도 크게 어두워지지 않는다)을 정점색 위에
         // 옅게 곱해 미세한 질감만 더한다.
         private const string TerrainDetailTexPath =
-            "Assets/Art/EnvironmentPBR_candidates/PolyHaven_CobblestoneFloor01/cobblestone_floor_01_ao_1k.jpg";
+            "Assets/Art/Environment/PBR/PolyHaven_CobblestoneFloor01/cobblestone_floor_01_ao_1k.jpg";
 
         // 44장 "Building" 교체 — 마을집 벽/지붕뿐 아니라 굴 입구·폐허 기둥·
         // 다리 널판·산신당까지(DUNGEON gate.glb와 같은 방식, LandmarksBuilder.cs
         // 주석 참고) 이 두 재질을 재사용한다.
-        private const string VillageWoodMatPath = "Assets/Art/EnvironmentPBR_candidates/dark_wooden_planks_URPLit.mat";
-        private const string VillageStoneMatPath = "Assets/Art/EnvironmentPBR_candidates/castle_wall_slates_URPLit.mat";
+        private const string VillageWoodMatPath = "Assets/Art/Environment/PBR/dark_wooden_planks_URPLit.mat";
+        private const string VillageStoneMatPath = "Assets/Art/Environment/PBR/castle_wall_slates_URPLit.mat";
 
         private static GameObject BuildTerrain()
         {
