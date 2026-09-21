@@ -8194,3 +8194,17 @@ Q1·Q3′·Q-U4 결정 커밋 뒤 "이어해"를 다시 받았다. Q1이 "Unity 
 **`PlaytestStorySlice`가 `KillEnemies` 단계에서 FAIL**(잡졸 #0 처치에 유품 마커 안 생김) — `docs/PROJECT_STATE.md`가 같은 날 STORY 5-8 뒤 "OK"로 적어 둔 것과 모순돼, 내 변경이 원인인지 의심해 `git stash`로 이 세션 코드 변경을 통째로 걷어내고 HEAD 상태에서 씬을 다시 지어 같은 테스트를 두 번 돌렸다 — **똑같이 FAIL**. 즉 이 세션이 만든 회귀가 아니라 이미 커밋된 코드에 있던 버그(혹은 이 PC의 Unity 6000.3.24f1 환경 차이)를 우연히 이번에 처음 마주친 것이다. 원인은 조사하지 않았다(스코프 밖) — `docs/PROJECT_STATE.md` "알려진 오류"·"테스트 상태"에 FAIL로 정정해 다음 세션 최우선으로 넘겼다.
 
 `PLAN.md` 102-4 표 갱신(승격 완료 표기, `Characters/` 판정 취소 이유 명시, STORY 버그 발견 각주). `docs/PROJECT_STATE.md` 갱신("다음 작업" 1번에 버그 조사 앞세움, 102-4 항목 정리). 배치 모드 4파일 부작용(`ProjectSettings/ShaderGraphSettings.asset` 포함)은 매번 원복 확인.
+
+## 2026-09-21 — `PlaytestStorySlice` KillEnemies FAIL 원인 찾고 고침 — 세이브 왕복 검증이 파일을 원상복구 안 함 ("사가 유니티 이어해" 세션, 102-4 승격 다음)
+
+직전 세션이 남긴 "다음 세션 최우선" 항목을 이어받았다. `Application.persistentDataPath`(`%LOCALAPPDATA%Low\DefaultCompany\SAGA\save_story.json`)를 직접 열어 보니 `"partyActiveIndex":2`가 박혀 있었다 — `StoryPartyState.Roster[2]`는 호법(護法, 공격 배율 0.9). `StoryPlayerController.CurrentAtk`는 `StoryCombat.StartAtk(21) * ... * StoryPartyState.AtkMultiplier`라 기본 역할(선봉, 1.15배 → CurrentAtk≈24)이면 `EnemyHp(18)`를 항상 한 방에 넘기지만, 오염된 값(0.9배 → CurrentAtk≈18.9)이면 `RollDamage()`의 랜덤 variance(0.88~1.12)에 따라 종종 18 밑으로 떨어져 잡졸이 한 방에 안 죽는다 — `PlaytestStorySlice.cs`의 `KillEnemies` phase는 `TryAttack()` 한 번으로 즉사를 가정하고 바로 `StoryLootMarker.SpawnCount` 증가를 확인하기 때문에(재시도 없음) 이 상태에서 결정적으로 FAIL한다.
+
+**오염 경로**: `PlaytestStorySlice.cs`의 `SaveLoad` phase(101-2 5-8 세이브 스키마 검증)가 왕복 확인을 위해 `StoryPartyState.Restore(2)` → `StorySaveState.Save()`로 실제 파일을 덮어쓰고, 검증이 끝나면 그냥 다음 phase로 넘어간다 — 파일을 원래대로 되돌리는 코드가 아예 없었다. `GameBootstrap.Start()`는 부팅마다 `StorySaveState.TryLoad()`를 부르므로, 이 테스트가 **한 번이라도 성공적으로 끝나면 그 다음부터 영원히** `partyActiveIndex:2`가 남아 다음 실행(들)의 `KillEnemies`를 깨뜨린다. STORY 5-8을 추가한 세션이 "OK"를 기록한 건 그 세션이 처음으로 이 필드를 저장한 순간이었을 뿐 — 그 세션이 끝나며 이미 오염을 남겼고, 그 뒤로 도는 모든 `PlaytestStorySlice`가 이 함정에 걸렸을 것이다(내가 직전 세션에 겪은 것도 이거다).
+
+**고침**: GO `PlaytestHeadless.cs`의 "일과" 저장/로드 왕복 검증이 이미 쓰는 try/finally 패턴(원본 파일 바이트를 미리 읽어 두고, 테스트가 끝나면 finally에서 그대로 되돌리거나 원래 없었으면 지운다)을 `PlaytestStorySlice.cs`의 `SaveLoad` phase에 그대로 옮겼다 — `StoryPartyState.Restore(2)`부터 왕복 검증 끝까지를 통째로 try 블록으로 감싸고, finally에서 `storySavePath`를 원본 내용으로 복원한다.
+
+**오염된 파일 정리**: 이미 박혀 있던 `save_story.json`의 `partyActiveIndex:2`를 `0`으로 직접 고쳐 지금 당장의 막힘을 풀었다(다른 필드는 자동화 테스트 흔적으로 보여 손 안 댐 — kills=16·bossKills=1·memoryTier=10 등이 전부 `PlaytestStorySlice` 자체 검증값과 맞아떨어진다).
+
+**검증**: 컴파일 오류 0. `PlaytestStorySlice.Run()` 3연속 OK("killed 10 grunts + boss ... save-load all verified, no errors") — 매 실행 뒤 `save_story.json`을 직접 열어 `partyActiveIndex:0`으로 깨끗하게 남는 것까지 확인(finally가 실제로 도는지 실기로 증명).
+
+`PLAN.md` 102-4 "발견한 오류" → "발견하고 고친 오류"로 갱신. `docs/PROJECT_STATE.md` "알려진 오류"·"테스트 상태"·"다음 작업" 갱신(최우선 항목 삭제, 104-1⑤가 다시 1번으로).

@@ -1,7 +1,7 @@
 # PROJECT_STATE — saga-unity (상태만, ≤15KB, 덮어쓴다)
 
 **규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다(2026-09-16 재편 전 본문 5,532줄은 그쪽 첫 절에 그대로 있다). 넘치면 `tools/precheck.sh` 가 막는다.
-마지막 갱신: 2026-09-21 (여덟 세션째, 이어서 — DUNGEON 5.6 → FOREST 5.6 → STORY 5-8 → 105 Q4·Q1·Q3′ 결정 → **102-4 승격 둘 실행**) — DUNGEON·FOREST·STORY 5-8 경위는 아래 표·HISTORY grep. **Q4·Q1·Q3′·Q-U4**: 전부 결정 완료(Q1 "Unity 먼저"로 뒤집음·Q3′ 불일치 허용·Q4 커밋·Q-U4 3명 유지, 문서는 PLAN 103-1/103-3/105·SAGA-DESIGN §10 참고). **102-4**: Q1이 풀려 `CharacterShaders_candidates/`→`Shaders/Character/`, `EnvironmentPBR_candidates/`→`Environment/PBR/` 승격 실행(코드 참조 5파일 경로 갱신, 4씬 재빌드, GO·DUNGEON·REALM 재검증 OK). 이 과정에서 **`PlaytestStorySlice` KillEnemies FAIL을 새로 발견**(내 변경과 무관 — 아래 "알려진 오류" 참고, 다음 세션 최우선).
+마지막 갱신: 2026-09-21 (여덟 세션째, 이어서 — DUNGEON 5.6 → FOREST 5.6 → STORY 5-8 → 105 Q4·Q1·Q3′ 결정 → 102-4 승격 둘 실행 → **`PlaytestStorySlice` 버그 원인 찾고 고침**) — DUNGEON·FOREST·STORY 5-8 경위는 아래 표·HISTORY grep. **Q4·Q1·Q3′·Q-U4**: 전부 결정 완료(문서는 PLAN 103-1/103-3/105·SAGA-DESIGN §10 참고). **102-4**: `CharacterShaders_candidates/`→`Shaders/Character/`, `EnvironmentPBR_candidates/`→`Environment/PBR/` 승격 완료. **`PlaytestStorySlice`**: 세이브 왕복 검증이 `save_story.json`을 원상복구 안 해 `partyActiveIndex:2`가 눌어붙어 있던 게 원인 — GO와 같은 try/finally 패턴으로 고치고 3연속 OK 재확인(아래 "알려진 오류" 참고).
 
 ## 캐릭터 자산 — 이 PC 기준 (2026-09-19)
 
@@ -35,17 +35,16 @@ STORY 세부(경위는 HISTORY grep): `StoryJobState.JobChosen` 이벤트로 `Re
 
 ## 다음 작업 (우선순위, 상세는 PLAN 해당 장 · 경위는 HISTORY 날짜 grep)
 
-1. **`PlaytestStorySlice` KillEnemies FAIL 원인 조사(신규 최우선)** — "알려진 오류" 참고. `StoryEnemy`/`StoryPlayerController.TryAttack`/`StoryLootMarker` 쪽에서 잡졸이 한 방에 안 죽는지(HP·Atk 배율 변경 이력 의심 — 5-8의 `StoryPartyState.AtkMultiplier` 쪽부터 볼 것) 확인.
-2. **PLAN 104-1 ⑤·102-4 마무리** — 승격 둘(Shaders/Character·Environment/PBR)은 완료. 남은 건: `CharactersVroid/` 삭제(코드 참조 0건 확인됨, `git rm`이 자동 승인 밖이라 사용자 승인 받아 실행) · `Buildings/`·`Dungeon/`·`Props/`·`Rocks/`·`Shrine/`·`Vegetation/` Kenney "단계 교체"(콘텐츠 제작 필요, 아직 미착수) · `Characters/` Kenney는 **아직 못 뺀다**(GO 플레이어·GO/FOREST/STORY 주민·STORY 잡졸이 실사용 중, "44장 완료" 전제가 틀렸었다 — 102-4 표 참고).
-3. **PLAN 101-2 이어서** — 사실상 다 닫힘, 남은 건 GO⑤(모바일 빌드 뒤)·STORY5-2(보류)뿐.
-4. **실기 GUI 확인 몰아서** — "실기 확인 대기" 전부(아래 목록). 사용자 몫. 다른 PC로 이어받으면 `CharactersRealistic/`가 비어 있음 — mixamo.com에서 새로 받을 것(목록은 `SetupXxxCharacterImport.cs`).
-5. **PLAN 105 열린 질문(Q-U1·Q-U3)** — 남은 둘만, 둘 다 사람 몫(Q-U1 형식만 열림, Q-U3 Shader Graph는 사람 GUI 필요). (Q1·Q3′·Q4·Q-U4 는 2026-09-21 결정 완료.)
+1. **PLAN 104-1 ⑤·102-4 마무리** — 승격 둘(Shaders/Character·Environment/PBR)은 완료. 남은 건: `CharactersVroid/` 삭제(코드 참조 0건 확인됨, `git rm`이 자동 승인 밖이라 사용자 승인 받아 실행) · `Buildings/`·`Dungeon/`·`Props/`·`Rocks/`·`Shrine/`·`Vegetation/` Kenney "단계 교체"(콘텐츠 제작 필요, 아직 미착수) · `Characters/` Kenney는 **아직 못 뺀다**(GO 플레이어·GO/FOREST/STORY 주민·STORY 잡졸이 실사용 중, "44장 완료" 전제가 틀렸었다 — 102-4 표 참고).
+2. **PLAN 101-2 이어서** — 사실상 다 닫힘, 남은 건 GO⑤(모바일 빌드 뒤)·STORY5-2(보류)뿐.
+3. **실기 GUI 확인 몰아서** — "실기 확인 대기" 전부(아래 목록). 사용자 몫. 다른 PC로 이어받으면 `CharactersRealistic/`가 비어 있음 — mixamo.com에서 새로 받을 것(목록은 `SetupXxxCharacterImport.cs`).
+4. **PLAN 105 열린 질문(Q-U1·Q-U3)** — 남은 둘만, 둘 다 사람 몫(Q-U1 형식만 열림, Q-U3 Shader Graph는 사람 GUI 필요). (Q1·Q3′·Q4·Q-U4 는 2026-09-21 결정 완료.)
 
 101-3(C·F·G)은 다섯 판 중 해당하는 GO·DUNGEON·STORY 셋 다 완전히 닫혔다 — 다음 세션이 새로 이어받을 101-3 잔여 작업은 없다.
 
 ## 알려진 오류
 
-- **`PlaytestStorySlice`가 `KillEnemies` 단계에서 매번 FAIL(2026-09-21 발견)** — "잡졸 #0 처치에 유품 마커가 안 생김"(`StoryLootMarker.SpawnCount` 불변, `TryAttack()` 한 번으로 안 죽는 듯). `git stash`로 HEAD(이 세션 변경 전)에서도 재현해 회귀 아님을 확인, 원인 미조사(다음 세션 최우선). 아래는 그 외 컴파일·헤드리스 기준 함정, 이미 고침.
+- **원인 찾고 고침(2026-09-21)**: `PlaytestStorySlice`의 세이브 왕복 검증(`SaveLoad` phase)이 `StoryPartyState.Restore(2)`로 바꾼 뒤 `StorySaveState.Save()`로 실제 `persistentDataPath/save_story.json`을 덮어쓰고는 원상복구를 안 했다 — 이 세션이 이 파일을 열어 보니 `partyActiveIndex:2`(호법, 공격 배율 0.9)가 그대로 박혀 있었고, `GameBootstrap.Start()`가 부팅마다 이걸 이어받아 `KillEnemies` 단계의 "잡졸 한 방 처치" 전제(공격력 마진)가 깨져 있었다. GO `PlaytestHeadless.cs`의 try/finally 원상복구 패턴을 그대로 옮겨 고쳤다(`PlaytestStorySlice.cs` SaveLoad phase) — 3연속 OK 재확인, 실행 후 저장 파일도 `partyActiveIndex:0`으로 깨끗하게 남는 것까지 확인. 아래는 그 외 컴파일·헤드리스 기준 함정, 이미 고침.
 - **자기 UI를 스스로 짓는 싱글턴은 `Instance`를 `Build()`(에디터 전용)뿐 아니라 `Awake()`에도 채울 것** — `StoryLabyrinthMapUi`가 `StoryJobChoiceUi`와 같은 함정(도메인 리로드 후 null)을 반복할 뻔함. `Awake() => Instance = this;` 잊지 말 것.
 - **`Destroy()`로 자식을 지우고 같은 프레임에 다시 그리면 안 지워진 채 쌓인다** — `StoryLabyrinthMapUi.ClearChildren()`(`DestroyImmediate`로 고침), `StoryEnemy.IsDead`와 같은 결.
 - **함정(오류 아님)**: Unity 6000.3.24f1 > 프로젝트 6000.3.23f1 → 배치 모드가 ProjectSettings/Packages 4파일을 조용히 고친다. `tools/unity-batch.sh --`로 부르면 자동 원복.
@@ -68,7 +67,7 @@ STORY 세부(경위는 HISTORY grep): `StoryJobState.JobChosen` 이벤트로 `Re
 | `PlaytestDungeonHeadless`·`FloorProgression`·`FieldAmbush`·`Shortcut`·`Town2`·`Towns34` | **전부 재검증 OK**(2026-09-21, 5.6 뒤 — goal board 세 줄 체크 그대로 통과, 공유 경로(`Die()`·`Descend()`·`EndRun()`) 변경이라 하위까지 확인) |
 | `PlaytestForestHeadless`·`Creatures`·`Finish`·`Furniture`·`HouseTransition` | **전부 재검증 OK**(2026-09-21, 5.6 뒤 — 신규 `CheckFestival()`이 `ForceDayForTest()`로 세배·꽃놀이·소원·D-day 문구까지 확인, 씬 재빌드 뒤 하위도 회귀 없음) |
 | `PlaytestOverworldMap`(GO) | 이전 세션 1회 재검증 OK, 미변경 |
-| `PlaytestStorySlice` | **FAIL(2026-09-21, 102-4 승격 작업 중 재확인)** — `KillEnemies` 단계 매번 실패(위 "알려진 오류" 참고). 5-8 직후엔 OK로 기록됐었으나 재현 안 됨 — 그 기록이 오기였거나 그 사이 뭔가 바뀐 것으로 보임, 원인 미조사 |
+| `PlaytestStorySlice` | **3연속 OK(2026-09-21, 세이브 왕복 복원 버그 고친 뒤 재확인)** — 위 "알려진 오류" 참고, 실행 후 `save_story.json`도 깨끗한 상태로 확인 |
 | `PlaytestRealmSlice` | **3연속 OK**(2026-09-20, 5-5 뒤 — 전 적국 함락 시 정복 승리 확정+세이브 round-trip 신규 검증(SaveLoad 단계 편입). 문화 승리·"다음 달" 게이트는 임시 자가진단으로 한 번만 확인 뒤 지움, godot `_diag_victory.gd`와 같은 결) |
 | GUI 실제 Play 확인 | GO 라이팅 톤·Maria idle/run/attack·**Dungeon Abe/Brute(`PlaytestDungeonEnemiesGui.cs`, 파편적 확인)**. 나머지 미확인 |
 

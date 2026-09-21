@@ -1130,14 +1130,14 @@ Slice 승인/재설계 결정.** 100단계에서 무조건 다음 콘텐츠로 �
 | 폴더 | 내용 | 판정 | 이유 |
 |---|---|---|---|
 | `Shaders/Character/`(구 `CharacterShaders_candidates/`) SSS·AnisoHair·HairCards | MIT·MIT·CC0 | **완료(2026-09-21): 승격됨** | 코드 참조 0건(Shader Graph 배선 전이라 아직 아무 데도 안 물림 — Q-U3), grep 확인 후 `git mv`만으로 이동. 사실적 방향의 핵심, 배선만 남음 |
-| `Environment/PBR/`(구 `EnvironmentPBR_candidates/`) Poly Haven 5벌 + .mat | CC0 | **완료(2026-09-21): 승격됨** | `BuildEnvironmentPbrSample.cs`·`BuildTestCityScene.cs`·`BuildTestDungeonScene.cs`·`BuildTestStoryScene.cs`·`BuildTestVillageScene.cs` 5개 경로 상수 갱신, 4씬 재빌드 + `PlaytestHeadless`·`PlaytestDungeonHeadless`·`PlaytestRealmSlice` 전부 재검증 OK(STORY는 아래 "발견한 오류" 참고) |
+| `Environment/PBR/`(구 `EnvironmentPBR_candidates/`) Poly Haven 5벌 + .mat | CC0 | **완료(2026-09-21): 승격됨** | `BuildEnvironmentPbrSample.cs`·`BuildTestCityScene.cs`·`BuildTestDungeonScene.cs`·`BuildTestStoryScene.cs`·`BuildTestVillageScene.cs` 5개 경로 상수 갱신, 4씬 재빌드 + `PlaytestHeadless`·`PlaytestDungeonHeadless`·`PlaytestRealmSlice`·`PlaytestStorySlice` 전부 재검증 OK(STORY는 아래 "발견하고 고친 오류" 참고) |
 | `CharactersRealistic/` (gitignore) | Mixamo Maria·Abe·Brute | 남김(로컬 전용) | ToS 상 재배포 금지, 커밋 안 함 |
 | `CharactersVroid/` AvatarSample_A | 애니풍 | **뺄 것(코드 참조 0건 확인됨, 삭제 승인 대기)** | 임포트 검증 끝, 66-2 와 불일치. `git rm`이 "돌이킬 수 없는 로컬 삭제"로 자동 승인 밖 — 다음 세션이 사용자 승인 받아 실행 |
 | `Characters/` Kenney blocky 4종 | CC0 로우폴리 | **판정 취소 — 아직 못 뺀다** | 2026-09-21 확인: `character-{a,b,c,d}.glb` 가 GO 플레이어·GO/FOREST/STORY 주민·STORY 잡졸·씬 4개에 **여전히 실사용 중**("44장 Player·Enemy 교체 완료" 전제가 틀렸다 — DUNGEON만 Mixamo 교체, 나머지 셋은 아직 Kenney). Q-U4(3명 유지 확정)로 봐도 이 넷을 곧 뗄 계획이 없다 |
 | `Buildings/`·`Dungeon/`·`Props/`·`Rocks/`·`Shrine/`·`Vegetation/` Kenney | CC0 | **단계 교체** — 씬에 남은 참조 grep 후 PBR 재질 모듈로 | 44장 Environment/Building 완료분과 겹치는 것부터, 아직 착수 전(콘텐츠 제작이 필요해 "정리"보다 큰 작업) |
 | `Audio/` Kenney·CC0_BGM | CC0 | 남김 | |
 
-**발견한 오류(2026-09-21, 이 승격 작업 중 우연히 드러남 — 내가 만든 회귀 아님, 커밋 전 `git stash`로 HEAD 상태에서도 재현 확인)**: `PlaytestStorySlice`가 `KillEnemies` 단계에서 매번 FAIL — "잡졸 #0 처치에 유품 마커가 안 생김"(`StoryLootMarker.SpawnCount` 불변). `docs/PROJECT_STATE.md`·`HISTORY.md`가 같은 날 "OK"로 적어 둔 것과 모순 — 원인 미조사(이 세션 스코프 밖), 다음 세션이 먼저 봐야 한다.
+**발견하고 고친 오류(2026-09-21)**: `PlaytestStorySlice`가 `KillEnemies` 단계에서 매번 FAIL(잡졸 #0 처치에 유품 마커 안 생김) — 이 승격 작업 중 우연히 드러났다(`git stash`로 HEAD에서도 재현해 회귀 아님을 확인). 원인은 `PlaytestStorySlice.cs`의 `SaveLoad` phase가 세이브 왕복 검증차 `StoryPartyState.Restore(2)`(호법, 공격 배율 0.9)로 바꾼 뒤 실제 `persistentDataPath/save_story.json`을 덮어쓰고 원상복구를 안 한 것 — 다음 실행마다 `GameBootstrap.Start()`가 이 오염된 파일을 이어받아 "잡졸 한 방 처치" 전제(공격력 마진)가 깨져 있었다. GO `PlaytestHeadless.cs`의 try/finally 원상복구 패턴을 그대로 옮겨 고쳤다. 103-3 과 무관한 별개 버그지만 이 승격 검증 중에 나온 것이라 여기 같이 적는다.
 
 ## 102-5. §6.4 "허접 10가지" 해당 여부
 스타일 혼재 **해당**(Kenney 잔존·VRoid) · 후처리 **일부**(LUT·SSAO·SSS 없음) · 그림자 계단 **해당**(Mobile Cascade 1, blob 없음) · 바닥 한 색 **해당**(`VertexColorLit` 정점색 지형) · 하늘·안개 **GO 외 해당** · 스케일 **해당**(Kenney 1.0 vs Mixamo 1.75 혼재) · 애니 끊김 **해당**(Animator 전이 exitTime 0.9, 블렌드 없음) · 타격 반응 **해당**(101-1 C) · UI 폰트·패널 **일부**(`RealmUiKit`·`EncounterUiKit` 둘, 통일 안 됨) · 카메라 클리핑 **해당**(`CameraRig` 충돌 당김 없음 — `CinemachineDeoccluder` 로).

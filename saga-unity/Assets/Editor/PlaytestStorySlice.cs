@@ -910,83 +910,104 @@ namespace Saga.EditorTools
                     // 세이브 스키마(버전 안 올림) — 101-2 5-8 "동료 교대" 활성
                     // 역할도 같이 본다(PartySwapTest가 되돌려 둔 0=선봉이 아니라
                     // 실제로 다른 값이어도 왕복이 되는지 보려고 여기서 2로 바꿔 둔다).
-                    StoryPartyState.Restore(2);
-                    int partyIndexBeforeSave = StoryPartyState.ActiveIndex;
-                    if (!StorySaveState.Save())
+                    //
+                    // 2026-09-21 발견 — 아래 왕복이 실제 persistentDataPath/
+                    // save_story.json을 두 번 덮어쓴다. GameBootstrap.Start()가
+                    // 부팅마다 StorySaveState.TryLoad()를 부르므로, 이 파일을
+                    // 원래 모습(테스트 시작 전 상태)으로 되돌리지 않으면 이
+                    // 세션이 끝난 뒤 **다음번 헤드리스 실행**이 partyActiveIndex=2
+                    // (호법, 공격 배율 0.9)를 그대로 이어받아 KillEnemies 단계의
+                    // 잡졸 한 방 처치 전제(공격력 마진)가 깨진다 — 실제로 겪음
+                    // (docs/PROJECT_STATE.md "알려진 오류" 참고, GO
+                    // PlaytestHeadless.cs의 같은 결 try/finally를 그대로 옮김).
+                    string storySavePath = System.IO.Path.Combine(Application.persistentDataPath, "save_story.json");
+                    string originalStorySaveJson = System.IO.File.Exists(storySavePath)
+                        ? System.IO.File.ReadAllText(storySavePath) : null;
+                    try
                     {
-                        Debug.LogError("[PlaytestStorySlice] StorySaveState.Save() 실패");
-                        Fail();
-                        return;
-                    }
+                        StoryPartyState.Restore(2);
+                        int partyIndexBeforeSave = StoryPartyState.ActiveIndex;
+                        if (!StorySaveState.Save())
+                        {
+                            Debug.LogError("[PlaytestStorySlice] StorySaveState.Save() 실패");
+                            Fail();
+                            return;
+                        }
 
-                    // 상태를 지운 뒤 다시 불러와 그대로 돌아오는지 확인.
-                    StoryQuestState.Restore(0, 0);
-                    StoryWorldEventState.Restore(null);
-                    StoryNpcState.Restore(0, 0);
-                    StoryJobState.Restore(1, 0f, StoryJobState.NoJob);
-                    StorySaveState.ResetChampionForTest();
-                    StoryLabyrinthState.Restore(0, 0);
-                    StoryPartyState.Restore(0);
-                    TeleportPlayer(new Vector3(0f, 0.1f, 0f));
-                    if (!StorySaveState.TryLoad())
-                    {
-                        Debug.LogError("[PlaytestStorySlice] StorySaveState.TryLoad() 실패");
-                        Fail();
-                        return;
+                        // 상태를 지운 뒤 다시 불러와 그대로 돌아오는지 확인.
+                        StoryQuestState.Restore(0, 0);
+                        StoryWorldEventState.Restore(null);
+                        StoryNpcState.Restore(0, 0);
+                        StoryJobState.Restore(1, 0f, StoryJobState.NoJob);
+                        StorySaveState.ResetChampionForTest();
+                        StoryLabyrinthState.Restore(0, 0);
+                        StoryPartyState.Restore(0);
+                        TeleportPlayer(new Vector3(0f, 0.1f, 0f));
+                        if (!StorySaveState.TryLoad())
+                        {
+                            Debug.LogError("[PlaytestStorySlice] StorySaveState.TryLoad() 실패");
+                            Fail();
+                            return;
+                        }
+                        if (StoryQuestState.Kills != killsBeforeSave || StoryQuestState.BossKills != bossKillsBeforeSave)
+                        {
+                            Debug.LogError($"[PlaytestStorySlice] 로드 후 kills={StoryQuestState.Kills}(기대={killsBeforeSave}) bossKills={StoryQuestState.BossKills}(기대={bossKillsBeforeSave})");
+                            Fail();
+                            return;
+                        }
+                        if (StoryWorldEventState.IsTriggered(StoryDiscovery.EventId) != discoveredBeforeSave)
+                        {
+                            Debug.LogError($"[PlaytestStorySlice] 로드 후 discovery triggered={StoryWorldEventState.IsTriggered(StoryDiscovery.EventId)}(기대={discoveredBeforeSave})");
+                            Fail();
+                            return;
+                        }
+                        if (StoryNpcState.ScoutTalkCount != scoutTalkCountBeforeSave)
+                        {
+                            Debug.LogError($"[PlaytestStorySlice] 로드 후 scoutTalkCount={StoryNpcState.ScoutTalkCount}(기대={scoutTalkCountBeforeSave})");
+                            Fail();
+                            return;
+                        }
+                        if (StoryNpcState.ChoiceMade != choiceMadeBeforeSave)
+                        {
+                            Debug.LogError($"[PlaytestStorySlice] 로드 후 choiceMade={StoryNpcState.ChoiceMade}(기대={choiceMadeBeforeSave})");
+                            Fail();
+                            return;
+                        }
+                        if (StoryJobState.Level != levelBeforeSave || !Mathf.Approximately(StoryJobState.Exp, expBeforeSave) || StoryJobState.Job != jobBeforeSave)
+                        {
+                            Debug.LogError($"[PlaytestStorySlice] 로드 후 level={StoryJobState.Level}(기대={levelBeforeSave}) exp={StoryJobState.Exp}(기대={expBeforeSave}) job={StoryJobState.Job}(기대={jobBeforeSave})");
+                            Fail();
+                            return;
+                        }
+                        if (StorySaveState.ChampionAvailable() != championAvailableBeforeSave)
+                        {
+                            Debug.LogError($"[PlaytestStorySlice] 로드 후 관문 대장 클레임 상태 불일치 — available={StorySaveState.ChampionAvailable()}(기대={championAvailableBeforeSave})");
+                            Fail();
+                            return;
+                        }
+                        if (StoryLabyrinthState.MemoryShards != memoryShardsBeforeSave || StoryLabyrinthState.MemoryTier != memoryTierBeforeSave)
+                        {
+                            Debug.LogError($"[PlaytestStorySlice] 로드 후 비경 기억 조각/강화 불일치 — shards={StoryLabyrinthState.MemoryShards}(기대={memoryShardsBeforeSave}) tier={StoryLabyrinthState.MemoryTier}(기대={memoryTierBeforeSave})");
+                            Fail();
+                            return;
+                        }
+                        if (StoryPartyState.ActiveIndex != partyIndexBeforeSave)
+                        {
+                            Debug.LogError($"[PlaytestStorySlice] 로드 후 동료 교대 활성 역할 불일치 — {StoryPartyState.ActiveIndex}(기대={partyIndexBeforeSave})");
+                            Fail();
+                            return;
+                        }
+                        if (Vector3.Distance(_player.position, posBeforeSave) > 0.01f)
+                        {
+                            Debug.LogError($"[PlaytestStorySlice] 로드 후 위치={_player.position}(기대={posBeforeSave})");
+                            Fail();
+                            return;
+                        }
                     }
-                    if (StoryQuestState.Kills != killsBeforeSave || StoryQuestState.BossKills != bossKillsBeforeSave)
+                    finally
                     {
-                        Debug.LogError($"[PlaytestStorySlice] 로드 후 kills={StoryQuestState.Kills}(기대={killsBeforeSave}) bossKills={StoryQuestState.BossKills}(기대={bossKillsBeforeSave})");
-                        Fail();
-                        return;
-                    }
-                    if (StoryWorldEventState.IsTriggered(StoryDiscovery.EventId) != discoveredBeforeSave)
-                    {
-                        Debug.LogError($"[PlaytestStorySlice] 로드 후 discovery triggered={StoryWorldEventState.IsTriggered(StoryDiscovery.EventId)}(기대={discoveredBeforeSave})");
-                        Fail();
-                        return;
-                    }
-                    if (StoryNpcState.ScoutTalkCount != scoutTalkCountBeforeSave)
-                    {
-                        Debug.LogError($"[PlaytestStorySlice] 로드 후 scoutTalkCount={StoryNpcState.ScoutTalkCount}(기대={scoutTalkCountBeforeSave})");
-                        Fail();
-                        return;
-                    }
-                    if (StoryNpcState.ChoiceMade != choiceMadeBeforeSave)
-                    {
-                        Debug.LogError($"[PlaytestStorySlice] 로드 후 choiceMade={StoryNpcState.ChoiceMade}(기대={choiceMadeBeforeSave})");
-                        Fail();
-                        return;
-                    }
-                    if (StoryJobState.Level != levelBeforeSave || !Mathf.Approximately(StoryJobState.Exp, expBeforeSave) || StoryJobState.Job != jobBeforeSave)
-                    {
-                        Debug.LogError($"[PlaytestStorySlice] 로드 후 level={StoryJobState.Level}(기대={levelBeforeSave}) exp={StoryJobState.Exp}(기대={expBeforeSave}) job={StoryJobState.Job}(기대={jobBeforeSave})");
-                        Fail();
-                        return;
-                    }
-                    if (StorySaveState.ChampionAvailable() != championAvailableBeforeSave)
-                    {
-                        Debug.LogError($"[PlaytestStorySlice] 로드 후 관문 대장 클레임 상태 불일치 — available={StorySaveState.ChampionAvailable()}(기대={championAvailableBeforeSave})");
-                        Fail();
-                        return;
-                    }
-                    if (StoryLabyrinthState.MemoryShards != memoryShardsBeforeSave || StoryLabyrinthState.MemoryTier != memoryTierBeforeSave)
-                    {
-                        Debug.LogError($"[PlaytestStorySlice] 로드 후 비경 기억 조각/강화 불일치 — shards={StoryLabyrinthState.MemoryShards}(기대={memoryShardsBeforeSave}) tier={StoryLabyrinthState.MemoryTier}(기대={memoryTierBeforeSave})");
-                        Fail();
-                        return;
-                    }
-                    if (StoryPartyState.ActiveIndex != partyIndexBeforeSave)
-                    {
-                        Debug.LogError($"[PlaytestStorySlice] 로드 후 동료 교대 활성 역할 불일치 — {StoryPartyState.ActiveIndex}(기대={partyIndexBeforeSave})");
-                        Fail();
-                        return;
-                    }
-                    if (Vector3.Distance(_player.position, posBeforeSave) > 0.01f)
-                    {
-                        Debug.LogError($"[PlaytestStorySlice] 로드 후 위치={_player.position}(기대={posBeforeSave})");
-                        Fail();
-                        return;
+                        if (originalStorySaveJson != null) System.IO.File.WriteAllText(storySavePath, originalStorySaveJson);
+                        else if (System.IO.File.Exists(storySavePath)) System.IO.File.Delete(storySavePath);
                     }
 
                     Debug.Log("[PlaytestStorySlice] save/load round-trip OK");
