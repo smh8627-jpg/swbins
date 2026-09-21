@@ -123,7 +123,9 @@
     cart:  { name: '수레', emoji: '🛒', gather: null, reset: 0, hint: '살펴본다' },
     /* 마을 쪽 배달 접수대 — 우편함(mail)과 다른 자리, 다른 kind. 소포가
        없을 때 손을 쓰면 하나 받는다(반복 가능, village.js pickupParcel()) */
-    courierPost: { name: '택배 접수대', emoji: '📦', gather: null, reset: 0, hint: '소포를 받는다' },
+    courierPost: { name: '택배 접수대', emoji: '📦', gather: null, reset: 0, hint: '소포를 고른다' },
+    /* 택배 사슬(PLAN §5.7) — 폐허의 옛 우체통(배달 목적지). 손을 쓰면 폐허행 소포를 넣는다 */
+    oldpost: { name: '옛 우체통', emoji: '📮', gather: null, reset: 0, hint: '소포를 넣는다' },
     /* 폐허 확장(PLAN 46-2절, 2026-09-11) — §45가 냈던 "과거" 목적지를
        아치 하나뿐이던 폐허(ruinSpot)에 실제로 채웠다. ruinTower는 진짜
        13~14세기 탑성 폐허 사진측량 스캔(saga-go에서 하드링크, 새로 안
@@ -157,7 +159,9 @@
     { key: 'leather', name: '평상복',   price: 0 },
     { key: 'robe',    name: '도포',     price: 2400 },
     { key: 'coat',    name: '두루마기', price: 3600 },
-    { key: 'plate',   name: '갑옷',     price: 6800 }
+    { key: 'plate',   name: '갑옷',     price: 6800 },
+    /* 택배 사슬(PLAN §5.7) — 배달 30건을 채우면 옷장에 든다(짓는 게 아니라 받는 것). 그림은 갑옷 결을 빌린다 */
+    { key: 'spacesuit', name: '배달원 우주복', price: 0, unlock: 'deliver', at: 30, look: 'plate' }
   ];
 
   var WEAR_HEADS = [
@@ -1085,7 +1089,29 @@
     camp:   { name: '나그네의 야영', emoji: '⛺', w: 3 }
   };
 
+  /* 택배 사슬(PLAN §5.7) — parcel.js 가 읽는다.
+     소포 갈래 셋은 서로 다른 축이다: 보통(안전) · 깨지기(살금살금 걸어야, 대신 후하다) · 시간제한(빨라야, 대신 후하다).
+     원안의 "시간제한 현실 5분" 은 이 판 걸음(118/초 = 약 3타일/초)에선 60타일도 20초라 아무 위험이 없어,
+     시한을 거리에 비례(TIMED_BASE + TIMED_PER_TILE × 타일)로 줄였다. 걷기만 하면 넉넉하고 딴짓하면 늦는다 */
+  var PARCEL_KINDS = {
+    plain:   { name: '보통 소포',       emoji: '📦', mul: 1,   note: '조심할 게 없다' },
+    fragile: { name: '깨지기 쉬운 소포', emoji: '🥚', mul: 1.6, brokenMul: 0.5, grace: 2, note: '살금살금 걸어야 한다 — 그냥 걸은 지 2초가 넘으면 깨진다' },
+    timed:   { name: '시간제한 소포',   emoji: '⏱️', mul: 1.5, lateMul: 0.7,     note: '시한 안에 가져다 줘야 한다' }
+  };
+  var DELIVERY_DESTS = {
+    space:   { name: '우주기지',        emoji: '🚀', npc: 'courier' },
+    ruin:    { name: '폐허의 옛 우체통', emoji: '🏚️', prop: 'oldpost' },
+    hamlet:  { name: '작은 마을',       emoji: '🏘️', npc: 'merchant' },
+    hamlet2: { name: '외딴집',          emoji: '⛺', npc: 'wanderer' }
+  };
+  var DELIVERY_GRADES = [
+    { at: 10, name: '수레',   note: '내 집 앞에 배달 수레가 선다' },
+    { at: 30, name: '우주복', note: '침선방 옷장에 배달원 우주복이 든다' },
+    { at: 60, name: '로버',   note: '우주기지의 탐사차에 앉아 볼 수 있다' }
+  ];
+
   global.DG.villageData = {
+    PARCEL_KINDS: PARCEL_KINDS, DELIVERY_DESTS: DELIVERY_DESTS, DELIVERY_GRADES: DELIVERY_GRADES,
     ENCOUNTER_KINDS: ENCOUNTER_KINDS,
     gradeOf: gradeOf,
     TILES: TILES, PROPS: PROPS, ITEMS: ITEMS, PHASES: PHASES, REQUEST_N: REQUEST_N,

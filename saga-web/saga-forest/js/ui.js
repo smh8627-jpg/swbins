@@ -258,6 +258,9 @@
       } else if (act === 'v-follow') {
         var fw = global.DG.village.requestFollow(b.getAttribute('data-who'));
         if (fw) { toast(fw.text); }
+      } else if (act === 'v-parcel') {
+        var pc = global.DG.village.pickupParcel(b.getAttribute('data-kind'), b.getAttribute('data-dest'));
+        if (pc) { toast(pc.text); }
       } else if (act === 'v-wbuy') {
         var wb = global.DG.wear.buy(b.getAttribute('data-kind'), id);
         if (wb) { toast(wb.text); }
@@ -378,7 +381,7 @@
   var SHEET_TITLE = {
     bag: '🎒 가방', folks: '🏡 주민', dex: '📖 도감', log: '📜 기록',
     mail: '📮 편지', home: '🏠 집', museum: '🏛️ 사고(史庫)', town: '🏳️ 마을',
-    wear: '🧵 침선방', build: '🪧 공사', map: '🗺️ 전체지도', keys: '⌨️ 키설정',
+    wear: '🧵 침선방', parcel: '📦 택배 접수대', build: '🪧 공사', map: '🗺️ 전체지도', keys: '⌨️ 키설정',
     settings: '⚙️ 설정'
   };
 
@@ -520,6 +523,7 @@
           : openTab === 'museum' ? viewMuseum()
           : openTab === 'town' ? viewTown()
           : openTab === 'wear' ? viewWear()
+          : openTab === 'parcel' ? viewParcel()
           : openTab === 'build' ? viewBuild()
           : openTab === 'map' ? viewMap()
           : openTab === 'dex' ? viewDex()
@@ -563,6 +567,7 @@
         '<div class="p-sub">' +
           (st.town ? '🏳️ ' + esc(st.town.name) + ' · ' : '') +
           (st.town && st.town.event ? '🎊 ' + esc(st.town.event.name) + ' · ' : '') +
+          parcelChip() +
           (st.stung ? '🐝 쏘임 · ' : '') +
           (st.weeds >= 10 ? '🌿 잡초 ' + st.weeds + ' · ' : '') +
           (st.weather ? st.weather.icon + ' ' + st.weather.name + ' · ' : '') +
@@ -659,6 +664,7 @@
     else if (kind === 'museum') { openSheet('museum'); }
     else if (kind === 'town') { openSheet('town'); }
     else if (kind === 'wear') { openSheet('wear'); }
+    else if (kind === 'parcel') { openSheet('parcel'); }
     else { openSheet('folks'); }
   }
 
@@ -1586,6 +1592,47 @@
    * 원작의 재봉실이다. 사면 옷장에 남고, 옷장에 있는 것만 입는다.
    * 날마다 바뀌는 진열은 두지 않았다 — 옷은 취향이라 "오늘 것" 으로 막으면 답답하다.
    */
+  /** 택배 접수대(PLAN §5.7) — 소포 셋 중 하나를 고른다. 셋은 종류(안전·깨지기·시간제한)와 목적지가 다 다르다 */
+  function viewParcel() {
+    var PC = global.DG.parcel, VDd = global.DG.villageData, stt = PC.status(), html = '', i;
+    html += '<div class="sec"><h4>배달 기록</h4><div class="card">' +
+      '<div class="stat-row"><span>누적 배달</span><b>📦 ' + stt.n + '건</b></div>' +
+      '<div class="stat-row"><span>연속 (깨지거나 늦으면 끊김)</span><b>🔗 ' + stt.chain + '건' +
+        (stt.chain + 1 >= PC.CHAIN_AT ? ' — 다음 배달 ×' + PC.CHAIN_MUL : ' (' + PC.CHAIN_AT + '건째부터 ×' + PC.CHAIN_MUL + ')') + '</b></div>' +
+      '<div class="stat-row"><span>등급</span><b>🎖️ ' + (stt.grade ? esc(VDd.DELIVERY_GRADES[stt.grade - 1].name) : '견습') + '</b></div>' +
+      (stt.next ? '<small class="muted">다음 등급 「' + esc(stt.next.name) + '」까지 ' + (stt.next.at - stt.n) + '건 — ' + esc(stt.next.note) + '</small>'
+                : '<small class="muted">배달 등급을 모두 채웠습니다.</small>') +
+      '</div></div>';
+    if (stt.carrying) {
+      var pk = VDd.PARCEL_KINDS[stt.kind];
+      html += '<div class="sec"><h4>지금 들고 있는 소포</h4><div class="card">' +
+        '<div class="gearname">' + pk.emoji + ' ' + esc(pk.name) + ' → ' + esc(stt.destName) + '</div>' +
+        '<small class="muted">' + (stt.broken ? '🥚 깨졌습니다 — 보상이 절반이 됩니다. ' : '') + esc(pk.note) + '</small></div></div>';
+      return html;
+    }
+    var offers = PC.offers();
+    html += '<div class="sec"><h4>소포 고르기</h4>';
+    for (i = 0; i < offers.length; i++) {
+      var o = offers[i], k = VDd.PARCEL_KINDS[o.kind], dd = VDd.DELIVERY_DESTS[o.dest];
+      html += '<div class="card gearcard"><div class="gearname">' + k.emoji + ' ' + esc(k.name) + ' → ' + dd.emoji + ' ' + esc(o.destName) + '</div>' +
+        '<small class="muted">' + esc(k.note) + (o.limit ? ' · 시한 ' + o.limit + '초' : '') + ' · 거리 ' + o.dist + '칸</small>' +
+        '<div class="bagtools"><button class="btn tiny primary" data-act="v-parcel" data-kind="' + o.kind + '" data-dest="' + o.dest +
+        '">받는다 (🪙 ' + core.fmt(o.reward) + ')</button></div></div>';
+    }
+    return html + '</div>';
+  }
+
+  /** 상단에 "소포 → 어디" 한 줄 — 들고 있을 때만 */
+  function parcelChip() {
+    var PC = global.DG.parcel;
+    if (!PC) { return ''; }
+    var p = PC.status();
+    if (!p.carrying) { return ''; }
+    var t = '';
+    if (p.deadline) { var d = new Date(p.deadline); t = ' ⏱️' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') + '까지'; }
+    return (p.broken ? '🥚 깨짐' : '📦 소포') + ' → ' + esc(p.destName) + t + ' · ';
+  }
+
   function viewWear() {
     var W2 = global.DG.wear, stt = W2.status();
     var html = '', i, j;
@@ -1612,8 +1659,10 @@
                   ? '<button class="btn tiny ghost" disabled>입고 있음</button>'
                   : '<button class="btn tiny primary" data-act="v-wset" data-kind="' +
                     p.part.key + '" data-id="' + e.it.key + '">입는다</button>')
-              : '<button class="btn tiny" data-act="v-wbuy" data-kind="' + p.part.key +
-                '" data-id="' + e.it.key + '">짓는다 (🪙 ' + core.fmt(e.it.price) + ')</button>') +
+              : (e.it.unlock
+                  ? '<button class="btn tiny ghost" disabled>🔒 배달 ' + e.it.at + '건</button>'
+                  : '<button class="btn tiny" data-act="v-wbuy" data-kind="' + p.part.key +
+                    '" data-id="' + e.it.key + '">짓는다 (🪙 ' + core.fmt(e.it.price) + ')</button>')) +
           '</div></div>';
       }
       html += '</div>';

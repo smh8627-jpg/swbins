@@ -307,6 +307,7 @@
     /* 숲의 정령(PLAN §5.5) — 안 푼 터는 횃불(밤에 눈에 띄게), 푼 터는 꽃 한 송이 자국 */
     spiritmark: 'lantern', spiritdone: 'flower',
     /* 발견 밀도 격자(PLAN §5.5 ①) — 새 GLB 없이 기존 키를 빌린다: 상자=작은 상자, 병=풀 한 포기, 채집터=이끼 바위, 야영=천막+불 */
+    oldpost: 'building:mail',
     gridchest: 'building:mail', gridbottle: 'plant', gridnode: 'rock:moss', gridcamp: 'tent', gridfire: 'campfire',
     /* 다리(2026-09-09) — asset3d.js 에 진작 등록만 되어 있던 'bridge' 를
        처음 쓴다(village.js 의 새 BRIDGE_TY 크로싱) */
@@ -380,6 +381,7 @@
        사이) 눈대중으로 잡았다 */
     bridge: 1.4,
     stele: 1.3, fireflyplot: 0.9, spiritmark: 1.5, spiritdone: 0.5,
+    oldpost: 0.9,
     gridchest: 0.6, gridbottle: 0.35, gridnode: 0.9, gridcamp: 1.8, gridfire: 0.5,
     deer: 1.1, fox: 0.55, wolf: 0.95,
     rabbit: 0.3, squirrel: 0.25, duck: 0.35, bird: 0.2,

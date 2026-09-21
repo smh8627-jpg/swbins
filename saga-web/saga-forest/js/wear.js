@@ -38,13 +38,19 @@
       /* 값이 0 인 것은 처음부터 옷장에 있다 */
       var p = VD().wearPart(k);
       for (var i = 0; i < p.list.length; i++) {
-        if (p.list[i].price === 0) { s.wear.owned[k + ':' + p.list[i].key] = true; }
+        if (p.list[i].price === 0 && !p.list[i].unlock) { s.wear.owned[k + ':' + p.list[i].key] = true; }
       }
     }
     return s.wear;
   }
 
-  function owned(part, key) { return !!st().owned[part + ':' + key]; }
+  /** 조건으로 열리는 옷(예: 배달 30건 우주복) — 사는 게 아니라 채우면 옷장에 든다 */
+  function unlocked(it) {
+    return !!(it && it.unlock === 'deliver' && V().deliveryState().n >= it.at);
+  }
+  function owned(part, key) {
+    return !!st().owned[part + ':' + key] || unlocked(VD().wearItem(part, key));
+  }
   function wearing(part) { return st().on[part] || DEFAULT[part]; }
   function item(part) { return VD().wearItem(part, wearing(part)); }
 
@@ -56,6 +62,7 @@
     var it = p.list.filter(function (x) { return x.key === key; })[0];
     if (!it) { return { kind: 'no', text: '없는 물건입니다' }; }
     if (owned(part, key)) { return { kind: 'no', text: '이미 옷장에 있습니다' }; }
+    if (it.unlock === 'deliver') { return { kind: 'no', text: '🔒 배달 ' + it.at + '건을 채우면 옷장에 듭니다' }; }
     if (core.save.player.gold < it.price) {
       return { kind: 'no', text: '금이 모자랍니다 (🪙 ' + core.fmt(it.price) + ')' };
     }
@@ -89,7 +96,8 @@
     for (k in look) {
       if (Object.prototype.hasOwnProperty.call(look, k)) { out[k] = look[k]; }
     }
-    out.armor = wearing('coat');
+    var coat = VD().wearItem('coat', wearing('coat'));
+    out.armor = (coat && coat.look) || wearing('coat');
     out.helm = wearing('head');
     out.cape = wearing('cape') === 'on';
     return out;
