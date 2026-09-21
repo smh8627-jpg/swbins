@@ -6,7 +6,12 @@ Poly Haven (https://polyhaven.com) — all assets are CC0 1.0 Universal
 - grass_path_2 (흙길) — https://polyhaven.com/a/grass_path_2
 - leafy_grass (초목 바닥) — https://polyhaven.com/a/leafy_grass
 - dark_wooden_planks (목재) — https://polyhaven.com/a/dark_wooden_planks
+- bark_willow_02 (나무껍질, procgen tree 트라이플레이너 디테일) — https://polyhaven.com/a/bark_willow_02
+- rock_boulder_dry (바위, procgen rock 트라이플레이너 디테일) — https://polyhaven.com/a/rock_boulder_dry
 
 Downloaded as 1k JPG (diffuse/nor_gl/roughness/AO) via the public
 Poly Haven API (https://api.polyhaven.com) — see PLAN.md 66-2장 and
-docs/ASSET_GUIDE.md for how these are used.
+docs/ASSET_GUIDE.md for how these are used. bark_willow_02/
+rock_boulder_dry는 diffuse만 쓴다(PLAN.md 102-4 — Saga/
+VertexColorTriplanarLit이 그레이스케일 디테일 곱색으로만 씀, normal/
+roughness는 이 셰이더가 안 받는다).

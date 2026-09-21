@@ -173,14 +173,41 @@ namespace Saga.EditorTools
             return terrainGo;
         }
 
+        // PLAN.md 102-4 procgen 교체(2026-09-21) — tools/asset-forge/procgen.py가
+        // 찍은 나무 12벌·바위 10벌(Assets/Art/Generated/SagaGo/, 시드는
+        // Generated/_seed/saga_go_vegetation.json). Kenney tree_oak/rock_*는
+        // 이제 안 쓴다.
+        private const string GeneratedDir = "Assets/Art/Generated/SagaGo/";
+        private const int GeneratedTreeCount = 12;
+        private const int GeneratedRockCount = 10;
+        private const int RockSeedStart = 101;
+
         private static void BuildVegetation()
         {
             var go = new GameObject("Vegetation");
             var builder = go.AddComponent<VegetationBuilder>();
-            builder.Init(
-                AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Vegetation/tree_oak.glb"),
-                AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Rocks/rock_largeA.glb"),
-                AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Rocks/rock_smallA.glb"));
+            var trees = new GameObject[GeneratedTreeCount];
+            for (int i = 0; i < GeneratedTreeCount; i++)
+            {
+                int seed = i + 1;
+                trees[i] = AssetDatabase.LoadAssetAtPath<GameObject>(
+                    $"{GeneratedDir}tree_s{seed}_{(i + 1):D2}.glb");
+            }
+            var rocks = new GameObject[GeneratedRockCount];
+            for (int i = 0; i < GeneratedRockCount; i++)
+            {
+                int seed = RockSeedStart + i;
+                rocks[i] = AssetDatabase.LoadAssetAtPath<GameObject>(
+                    $"{GeneratedDir}rock_s{seed}_{(i + 1):D2}.glb");
+            }
+            var treeMat = AssetDatabase.LoadAssetAtPath<Material>(GeneratedDir + "TriplanarDetail_Bark.mat");
+            var rockMat = AssetDatabase.LoadAssetAtPath<Material>(GeneratedDir + "TriplanarDetail_RockBoulder.mat");
+            if (treeMat == null || rockMat == null)
+            {
+                Debug.LogWarning("[BuildTestVillageScene] 트라이플레이너 재질을 못 찾음 — " +
+                    "Saga/Build Vegetation Triplanar Materials 를 먼저 실행할 것.");
+            }
+            builder.Init(trees, rocks, treeMat, rockMat);
             builder.Build();
         }
 

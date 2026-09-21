@@ -12,24 +12,33 @@ namespace Saga.Go.World
     ///
     /// 2026-09-12 GLB 도입(PLAN.md 8장) — Kenney Nature Kit(CC0, saga-godot
     /// 트랙과 같은 파일, docs/ASSET_GUIDE.md 참고) tree_oak·rock_largeA·
-    /// rock_smallA를 나무 한 그루/바위 하나씩 그대로 인스턴스화한다.
-    /// TerrainBuilder처럼 하나의 결합 메시로 안 묶는 이유 — Unity의
+    /// rock_smallA를 나무 한 그루/바위 하나씩 그대로 인스턴스화하던 첫
+    /// 버전. TerrainBuilder처럼 하나의 결합 메시로 안 묶는 이유 — Unity의
     /// StaticBatchingUtility.Combine()(GameBootstrap.cs, PLAN.md 76장)이
     /// 이미 static MeshRenderer들을 같은 머티리얼끼리 자동으로 묶어 주므로,
     /// 직접 정점을 베이크하는 것보다 표준적이고 UV·텍스처도 그대로 산다.
-    /// GLB를 못 찾으면(다른 PC 등) 예전 결합 메시 방식으로 대체한다.
+    ///
+    /// 2026-09-21 procgen 교체(PLAN.md 102-4·103-1) — Kenney 단일
+    /// 모델 하나 대신 `tools/asset-forge/procgen.py`가 찍은 나무 12벌·
+    /// 바위 10벌(`Assets/Art/Generated/SagaGo/`) 풀에서 타일 좌표로
+    /// 결정적으로 골라 심는다. 그 GLB엔 UV가 없어(트라이플레이너 재질,
+    /// `Saga/VertexColorTriplanarLit`) 대신 정점색(몸통 갈색·수관 초록·
+    /// 바위 회색)을 바탕으로 쓴다. GLB 풀이 비어 있으면(다른 PC 등) 예전
+    /// 결합 메시 방식으로 대체한다.
     /// </summary>
     public class VegetationBuilder : MonoBehaviour
     {
         private const int TreesPerForestTile = 3;
         private const int RocksPerMountainTile = 1;
 
-        // saga-godot의 tree_oak.glb 실측(0.64×1.23×0.74) 기준 스케일(docs/
-        // ASSET_GUIDE.md 표와 동일 — 같은 TileSize=48 세계 축척이라 그대로
-        // 재사용). 나무마다 s(0.7~1.3)를 곱해 크기 변주를 준다(기존 방식 유지).
-        private const float TreeScale = 4.5f;
-        private const float RockLargeScale = 2.6f;
-        private const float RockSmallScale = 3.5f;
+        // procgen.py 기본 치수(trunk_height=3.0m)가 이미 TrunkHeight와 맞춰
+        // 나온 "실제 미터" 치수라 배율은 1이면 된다(Kenney tree_oak.glb는
+        // 0.64×1.23×0.74 짜리 축소 모델이라 4.5배가 필요했던 것과 다르다).
+        // 나무마다 s(0.7~1.3)를 곱해 크기 변주를 준다(기존 방식 유지).
+        private const float GeneratedTreeScale = 1.0f;
+        // 바위도 procgen 반지름(0.5m) 기준 — 예전 Kenney 배율(2.6)과 비슷한
+        // 눈대중으로 시작, 실기 확인 후 조정(PLAN.md 102-4 "실기 확인 대기").
+        private const float GeneratedRockScale = 2.6f;
 
         // 트렁크 충돌은 시각과 분리 — 실제 나무 메시가 어디까지 트렁크인지
         // 몰라도 기존과 같은 크기의 캡슐로 막는다(걷는 느낌을 안 바꾼다).
@@ -45,15 +54,17 @@ namespace Saga.Go.World
 
         // 편집기 빌드 스크립트가 Init()으로 채워 준다 — NpcBuilder.cs와 같은
         // 이유(런타임 Awake()는 AssetDatabase를 못 쓴다).
-        [SerializeField] private GameObject treeModel;
-        [SerializeField] private GameObject rockLargeModel;
-        [SerializeField] private GameObject rockSmallModel;
+        [SerializeField] private GameObject[] treeModels;
+        [SerializeField] private GameObject[] rockModels;
+        [SerializeField] private Material treeMaterial;
+        [SerializeField] private Material rockMaterial;
 
-        public void Init(GameObject tree, GameObject rockLarge, GameObject rockSmall)
+        public void Init(GameObject[] trees, GameObject[] rocks, Material treeMat, Material rockMat)
         {
-            treeModel = tree;
-            rockLargeModel = rockLarge;
-            rockSmallModel = rockSmall;
+            treeModels = trees;
+            rockModels = rocks;
+            treeMaterial = treeMat;
+            rockMaterial = rockMat;
         }
 
         private void Awake()
@@ -112,12 +123,14 @@ namespace Saga.Go.World
             var trunkParent = new GameObject("TreeTrunkCollisions");
             trunkParent.transform.SetParent(transform, false);
 
+            bool hasModels = treeModels != null && treeModels.Length > 0;
+
             // GLB 폴백용 결합 메시 재료(모델을 못 찾았을 때만 실제로 쓰인다).
             var verts = new List<Vector3>();
             var colors = new List<Color>();
             var tris = new List<int>();
-            Mesh trunkSrc = treeModel == null ? GetPrimitiveMesh(PrimitiveType.Cylinder) : null;
-            Mesh canopySrc = treeModel == null ? GetPrimitiveMesh(PrimitiveType.Sphere) : null;
+            Mesh trunkSrc = hasModels ? null : GetPrimitiveMesh(PrimitiveType.Cylinder);
+            Mesh canopySrc = hasModels ? null : GetPrimitiveMesh(PrimitiveType.Sphere);
 
             for (int y = 0; y < TestMapData.RowCount; y++)
             {
@@ -135,13 +148,16 @@ namespace Saga.Go.World
                         Vector3 basePos = TestMapData.WorldPos(x, y) + new Vector3(jx, ground, jz);
                         Quaternion rot = Quaternion.Euler(0f, yaw, 0f);
 
-                        if (treeModel != null)
+                        if (hasModels)
                         {
-                            var tree = Object.Instantiate(treeModel, visualParent.transform);
+                            int variant = Mathf.FloorToInt(Hash(x, y, i * 2 + 300) * treeModels.Length);
+                            variant = Mathf.Clamp(variant, 0, treeModels.Length - 1);
+                            var tree = Object.Instantiate(treeModels[variant], visualParent.transform);
                             tree.name = "Tree";
                             tree.transform.position = basePos;
                             tree.transform.rotation = rot;
-                            tree.transform.localScale = Vector3.one * (TreeScale * s);
+                            tree.transform.localScale = Vector3.one * (GeneratedTreeScale * s);
+                            ApplyMaterial(tree, treeMaterial);
                         }
                         else
                         {
@@ -174,7 +190,7 @@ namespace Saga.Go.World
                 }
             }
 
-            if (treeModel == null && verts.Count > 0)
+            if (!hasModels && verts.Count > 0)
             {
                 BuildBakedMesh(visualParent.transform, "Trees", verts, colors, tris);
             }
@@ -197,8 +213,8 @@ namespace Saga.Go.World
             var verts = new List<Vector3>();
             var colors = new List<Color>();
             var tris = new List<int>();
-            Mesh rockSrc = (rockLargeModel == null && rockSmallModel == null) ? GetPrimitiveMesh(PrimitiveType.Sphere) : null;
-            bool anyModel = rockLargeModel != null || rockSmallModel != null;
+            bool anyModel = rockModels != null && rockModels.Length > 0;
+            Mesh rockSrc = anyModel ? null : GetPrimitiveMesh(PrimitiveType.Sphere);
 
             for (int y = 0; y < TestMapData.RowCount; y++)
             {
@@ -217,17 +233,15 @@ namespace Saga.Go.World
 
                         if (anyModel)
                         {
-                            // 절반은 큰 바위, 절반은 작은 바위 — 결정적 해시로 고른다.
-                            bool useLarge = Hash(x, y, i * 3 + 506) < 0.5f;
-                            GameObject model = useLarge ? rockLargeModel : rockSmallModel;
-                            if (model == null) model = useLarge ? rockSmallModel : rockLargeModel;
-                            float baseScale = useLarge ? RockLargeScale : RockSmallScale;
+                            int variant = Mathf.FloorToInt(Hash(x, y, i * 3 + 506) * rockModels.Length);
+                            variant = Mathf.Clamp(variant, 0, rockModels.Length - 1);
 
-                            var rock = Object.Instantiate(model, visualParent.transform);
+                            var rock = Object.Instantiate(rockModels[variant], visualParent.transform);
                             rock.name = "Rock";
                             rock.transform.position = basePos;
                             rock.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
-                            rock.transform.localScale = Vector3.one * (baseScale * sizeVariant);
+                            rock.transform.localScale = Vector3.one * (GeneratedRockScale * sizeVariant);
+                            ApplyMaterial(rock, rockMaterial);
                         }
                         else
                         {
@@ -251,6 +265,18 @@ namespace Saga.Go.World
         }
 
         // ---- 공통 --------------------------------------------------------
+
+        /// <summary>procgen GLB엔 UV가 없어 임포트 기본 머티리얼이 무의미하다
+        /// — 트라이플레이너 재질(Saga/VertexColorTriplanarLit)로 갈아 끼운다.
+        /// material이 null이면(다른 PC에서 못 지었을 때) 그대로 둔다.</summary>
+        private static void ApplyMaterial(GameObject instance, Material material)
+        {
+            if (material == null) return;
+            foreach (var renderer in instance.GetComponentsInChildren<MeshRenderer>(true))
+            {
+                renderer.sharedMaterial = material;
+            }
+        }
 
         private static void BuildBakedMesh(Transform parent, string name, List<Vector3> verts, List<Color> colors, List<int> tris)
         {

@@ -8243,4 +8243,20 @@ Q1·Q3′·Q-U4 결정 커밋 뒤 "이어해"를 다시 받았다. Q1이 "Unity 
 
 PLAN.md 102-4 표·103-3 Blender 항목을 "미설치"→"설치 완료" 로 갱신(경로·버전 기록), `docs/PROJECT_STATE.md` 다음 작업 1번 줄도 "착수 가능"으로 수정. 실제 `Rocks/`·`Vegetation/` procgen 작업(procgen.py tree kind 추가, PBR 트라이플레이너 재질, VegetationBuilder.cs 배선)은 이번 세션엔 아직 안 함 — 다음 세션이 이어받는다.
 
+## 2026-09-21 — Rocks/Vegetation procgen 교체 실행 (PLAN.md 102-4·103-1, "사가 유니티 이어해" 세션, Blender 설치 다음)
+
+`tools/asset-forge/procgen.py`에 `tree` kind 추가(육각 저폴리 몸통 + 세 형태 수관 — 둥근 다발/원뿔형/성긴 다발, 씨앗으로 결정) + `make_rock`과 함께 정점색(몸통 갈색·수관 초록·바위 회색)을 굽도록 `_concat_colored()` 헬퍼로 확장(기존 `trimesh.util.concatenate`는 파트별 vertex_colors를 안 살렸다). `batch tree --count 12`·`batch rock --count 10`으로 `Assets/Art/Generated/SagaGo/`에 GLB 22벌 생성(씨앗 JSON은 `Generated/_seed/saga_go_vegetation.json`) — trimesh 출력이라 UV가 없다.
+
+**셰이더**: procgen 메시가 UV 없이 정점색만 갖고 있어, `Saga/VertexColorLit`(지형용, 안 건드림)의 자매 셰이더로 `Saga/VertexColorTriplanarLit`을 새로 짰다 — 정점색을 바탕으로 쓰고 그 위에 월드 위치+법선 블렌드(트라이플레이너)로 투영한 그레이스케일 디테일 텍스처를 곱한다(UV 기반 `_DetailTex` 샘플링을 월드 위치 3축 투영으로만 바꾼 것, 나머지는 VertexColorLit과 동일 — normal map·specular 없음, 기존 셰이더와 같은 단순화 수준).
+
+**텍스처**: Poly Haven 공개 API로 `bark_willow_02`(나무껍질)·`rock_boulder_dry`(바위) diffuse만 1k JPG로 받음(`Assets/Art/Environment/PBR/PolyHaven_{BarkWillow02,RockBoulderDry}/`, `LICENSE.txt` 갱신) — 이 셰이더가 normal/roughness를 아예 안 받아 그 둘은 안 받았다(처음엔 받았다가 미사용이라 지움). `BuildVegetationTriplanarMaterials.cs`(`Saga/Build Vegetation Triplanar Materials` 메뉴)가 `TriplanarDetail_Bark`·`TriplanarDetail_RockBoulder` 두 머티리얼을 코드로 지어 `Assets/Art/Generated/SagaGo/`에 커밋.
+
+**배선**: `VegetationBuilder.cs`의 `Init()` 시그니처를 단일 모델 3개(`treeModel`·`rockLargeModel`·`rockSmallModel`)에서 배열 2개+머티리얼 2개(`GameObject[] trees, GameObject[] rocks, Material treeMat, Material rockMat`)로 바꿨다 — 타일 좌표 해시로 배열 인덱스를 골라 매번 같은 자리엔 같은 변종이 서게(결정적) 했다. 스케일 상수도 갈아엎음: 옛 `TreeScale=4.5`(Kenney tree_oak.glb가 0.64×1.23×0.74 축소 모델이라 필요했던 배율)는 procgen 나무가 이미 "실제 미터"(trunk_height=3.0, 기존 `TrunkHeight` 충돌 상수와 정확히 맞음)로 나와서 필요 없어져 `GeneratedTreeScale=1.0`으로, 바위는 `GeneratedRockScale=2.6`(눈대중, 옛 `RockLargeScale`과 같은 값에서 시작 — 실기 확인 후 조정 대상). 호출부 `BuildTestVillageScene.BuildVegetation()`도 새 배열 로딩 방식으로 갱신.
+
+**Kenney→procgen 완전 교체**(GO만) — `tree_oak.glb`·`rock_largeA/smallA.glb`는 이제 GO `VegetationBuilder`에서 안 쓴다(파일 자체는 남김, FOREST의 `ForestFruitTree.cs`가 `tree_oak.glb`를 별개로 직접 참조해서 — 그쪽은 스코프 밖, 다음 단계).
+
+**검증**: `tools/unity-batch.sh`로 컴파일(오류 0) → `BuildVegetationTriplanarMaterials.Build`(머티리얼 2개 생성 확인) → `BuildTestVillageScene.Build`(재질 못 찾음 경고 없음) → `PlaytestHeadless`(GO) 3연속 OK. `ProjectSettings/`·`Packages/` 배치 모드 부작용은 스크립트가 자동 원복. `Assets/Art/Generated/` 총 용량 210KB(103-1의 게임당 20MB 상한에 한참 못 미침).
+
+`PLAN.md` 102-4 표 갱신(완료), 103-3 Blender 항목은 실제로는 이 작업에 안 씀(trimesh만으로 충분) — 다음에 헤어카드·리토폴로지 등 진짜 메시 편집이 필요할 때 쓸 것. `docs/ASSET_GUIDE.md`·`docs/PROJECT_STATE.md`(완료 요약·다음 작업·실기 확인 대기·테스트 상태) 갱신. 실제 화면에서 트라이플레이너 이음매·디테일 강도가 어떻게 보이는지는 사람 확인 몫 — FOREST 확장 여부도 그 확인 뒤 판단.
+
 `PLAN.md` 102-4 표를 세 줄로 다시 씀(Buildings/Dungeon/Shrine=완료, Props=완료+보류 구분, Rocks/Vegetation=procgen 몫). `docs/PROJECT_STATE.md` "완료 요약" GO 행의 "Props 전부 GLB/PBR" 과장 정정, 실기 확인 대기·테스트 상태·다음 작업 갱신.

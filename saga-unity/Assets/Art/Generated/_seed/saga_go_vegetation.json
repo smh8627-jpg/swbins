@@ -1,0 +1,8 @@
+{
+  "generator": "tools/asset-forge/procgen.py",
+  "commands": [
+    "procgen.py batch tree --count 12 --seed-start 1 --out-dir Assets/Art/Generated/SagaGo",
+    "procgen.py batch rock --count 10 --seed-start 101 --out-dir Assets/Art/Generated/SagaGo"
+  ],
+  "note": "PLAN.md 102-4 Rocks/Vegetation 단계 교체 — 시드가 같으면 재생성해도 결과가 같다(103-1). VegetationBuilder.cs가 tree_s*.glb 12벌/rock_s*.glb 10벌 + 기존 Assets/Art/Rocks/rock_largeA·smallA.glb 2벌(합 12) 중에서 타일 해시로 고른다."
+}

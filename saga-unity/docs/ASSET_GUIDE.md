@@ -546,3 +546,29 @@ Art Type=Music, License=CC0) 찾고, 제목·태그만으로 판마다 어울리
 Configure() 시그니처에 bgmClip 인자가 늘어난 것의 회귀 확인) 통과.
 BGM 자체가 실제로 들리는지는(음량·루프 이음매 등) 여전히 사람 확인
 몫 — 헤드리스는 "에러 없이 재생 호출이 걸리는지"까지만 확인한다.
+
+## 2026-09-21 — Rocks/Vegetation procgen 교체 (PLAN.md 102-4·103-1)
+
+GO `VegetationBuilder.cs`의 Kenney `tree_oak.glb`·`rock_largeA/smallA.glb`
+단일 모델을 `tools/asset-forge/procgen.py`가 찍은 나무 12벌·바위 10벌
+(`Assets/Art/Generated/SagaGo/`, 시드는 `Generated/_seed/
+saga_go_vegetation.json`)로 교체했다. procgen 메시는 UV가 없어(trimesh가
+안 만든다) 새 셰이더 `Saga/VertexColorTriplanarLit`(정점색 바탕 + 월드
+위치·법선 기반 트라이플레이너 디테일 곱색)을 짰다 — 정점색은 procgen.py가
+직접 굽는다(몸통 갈색·수관 초록·바위 회색, 씨앗마다 살짝 다르게). 디테일
+텍스처는 Poly Haven `bark_willow_02`·`rock_boulder_dry`의 diffuse만
+1k JPG로 받았다(`Assets/Art/Environment/PBR/PolyHaven_{BarkWillow02,
+RockBoulderDry}/`, LICENSE.txt에 출처 추가) — normal/roughness는 이
+셰이더가 안 받아 안 받았다. 머티리얼 둘(`TriplanarDetail_Bark`,
+`TriplanarDetail_RockBoulder`)은 `BuildVegetationTriplanarMaterials.cs`
+(`Saga/Build Vegetation Triplanar Materials` 메뉴)가 코드로 짓고
+`Assets/Art/Generated/SagaGo/`에 커밋한다.
+
+FOREST는 이번 스코프 밖(`ForestFruitTree.cs`가 별개 컴포넌트로 tree_oak.glb를
+직접 참조 — 다음 단계 몫).
+
+검증: `tools/unity-batch.sh` 컴파일(오류 0) → `BuildVegetationTriplanarMaterials.
+Build` → `BuildTestVillageScene.Build`(재질 못 찾음 경고 없음) →
+`PlaytestHeadless`(GO) 3연속 OK. 실제 화면 톤(트라이플레이너 이음매·
+바크/바위 디테일 강도)은 사람 확인 몫 — `docs/PROJECT_STATE.md` "실기
+확인 대기"에 추가.
