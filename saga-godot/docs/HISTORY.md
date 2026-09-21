@@ -7981,3 +7981,11 @@ PROJECT_STATE.md` 참고. 요약:
 - 코드 수정 안 함(원인 미확정 상태에서 손대는 게 더 위험) — **다음 세션 최우선**으로 넘긴다. 실마리: DungeonPlayer.tscn·GO Player.tscn의 SpringArm3D·CollisionShape3D 설정은 텍스트상 완전히 동일한데 실제 동작이 다르다 — `test_room.gd`가 스폰 시 플레이어에 추가로 하는 일(등용/변형자/방 스크립트 연결 등)이나 DUNGEON 전용 스크립트(`melee_attack.gd` 등 30여 개 `SkillXxx` 노드) 중 하나가 물리 레이어를 건드릴 가능성부터 볼 것.
 - 자동화 도중 다른 창(다른 Claude Code 세션으로 추정)이 잠깐 전면에 떴다 사라진 해프닝 있었음 — 사용자가 "문제없음"으로 확인, 실제 영향 없었던 것으로 보임.
 - 임시 디버그 스크립트(`tools/_tmp_verify_*`, `_debug_dungeon_cam_tmp.gd`) 전부 삭제, 저장소에 안 남김. windowed Godot 프로세스 PID로 정리.
+
+## DUNGEON 카메라 "버그" 해소 — 코드 버그 아니었다, 스러진 결사 세이브 (2026-09-22, 같은 세션, "이어해")
+
+- Godot 4.7.2 콘솔 exe를 새로 받아(이전 세션들이 남긴 스크래치패드 사본은 198KB 손상 다운로드였음) `TestRoom.tscn`을 직접 헤드리스로 열어 재현.
+- `test_room.gd`의 결사(하드코어) 체크 직후에 임시 print를 넣어 실측(조사 뒤 되돌림, 커밋 없음): `DungeonHardcoreState.fallen`이 `{"floor":1,"at":...}`로 비어있지 않았고, `get_tree().paused`가 즉시 `true`로 확정됨.
+- 원인: `%APPDATA%/Godot/app_userdata/SAGA/save_dungeon.json`에 예전 테스트에서 남은 결사 사망 기록(`fallen`)이 있어 `dungeon_hardcore_state.gd` 설계대로(주석에 이미 명시돼 있었음: "스러진 순간 화면을 통째로 멈춘다") `test_room.gd`가 씬 트리를 통째로 pause시켰다 — 이 때문에 `_physics_process` 전체가 멈춰 `SpringArm3D.get_hit_length()`가 초기값 0.0에서 한 번도 안 갱신됐고(GO의 8.0 대비), 조이스틱 이동도 안 먹혔던 것.
+- **코드 결함이 전혀 아니다** — GO의 09-22 앞선 항목("무너진 기둥")과 같은 결의 오진단(둘 다 옛 개발용 세이브 파일 잔재). 코드 수정 없음.
+- 저장 파일은 설계대로 자동 삭제 안 함 — 사용자가 `save_dungeon.json`을 직접 지워야 DUNGEON 실기를 다시 진행할 수 있다(PROJECT_STATE에 남김).
