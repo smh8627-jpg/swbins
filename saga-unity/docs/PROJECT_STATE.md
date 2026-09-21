@@ -1,7 +1,7 @@
 # PROJECT_STATE — saga-unity (상태만, ≤15KB, 덮어쓴다)
 
 **규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다(2026-09-16 재편 전 본문 5,532줄은 그쪽 첫 절에 그대로 있다). 넘치면 `tools/precheck.sh` 가 막는다.
-마지막 갱신: 2026-09-21 (일곱 세션째, 이어서 — DUNGEON 5.6 → FOREST 5.6 → STORY 5-8 → **105 Q4 사용자 결정**) — DUNGEON·FOREST·STORY 5-8 경위는 아래 표·HISTORY grep. **Q4(생성 에셋 커밋)**: 사용자가 "커밋" 확정 — 103-1 로 내리고 105 에서 지움(코드 변경 없음, 정책 문서화만).
+마지막 갱신: 2026-09-21 (일곱 세션째, 이어서 — DUNGEON 5.6 → FOREST 5.6 → STORY 5-8 → **105 Q4·Q1·Q3′ 사용자 결정**) — DUNGEON·FOREST·STORY 5-8 경위는 아래 표·HISTORY grep. **Q4(생성 에셋 커밋)**: "커밋" 확정, 103-1 로 내림. **Q1(트랙 투자 우선순위)**: 2026-09-20 "Godot 먼저" 결정을 사용자가 **"Unity 먼저"로 뒤집음**(SAGA-DESIGN §10-Q1·saga-godot PLAN 105 도 같이 갱신). **Q3′(스타일 불일치)**: 트랙 간 불일치 **허용 확정**(SAGA-DESIGN §10-Q3 도 갱신, §6.0-1 은 이미 그 전제로 쓰여 있었다). **Q-U4(Mixamo 인원)**: 현재 3명(Maria·Abe·Brute) **유지**로 확정, 103-3 으로 내림. 코드·씬 변경 없음(문서 정책만).
 
 ## 캐릭터 자산 — 이 PC 기준 (2026-09-19)
 
@@ -39,8 +39,8 @@ STORY 세부(경위는 HISTORY grep): `StoryJobState.JobChosen` 이벤트로 `Re
 2. **실기 GUI 확인 몰아서** — "실기 확인 대기" 전부(아래 목록, GO 일과판 신규 포함). 사용자 몫.
    - **다른 PC로 이어받으면** `CharactersRealistic/`가 비어 있음 — mixamo.com에서 새로 받을 것(로그인은 사람 몫). 목록은 `SetupXxxCharacterImport.cs`의 `AnimMap`/`BodyFileName`.
    - Dungeon Abe/Brute **전신 구도 스크린샷은 아직 못 얻음**(카메라 클로즈업, 파편만 확인) — `PlaytestDungeonEnemiesGui.cs`의 `TeleportPos`/줌 더 조정하면 재시도 가능.
-3. **PLAN 104-1 ⑤·102-4** — `Assets/Art/*_candidates` 정리, 105 Q1 결정 대기.
-4. **PLAN 105 열린 질문(Q3′·Q-U3·Q-U4)** — 전부 사용자 결정 대기(Q1은 2026-09-19 "당분간 병행, godot 검증을 unity 착수 신호로 인정"으로 사실상 처리 — 101-2 서두 참고. Q-U2는 2026-09-18 해결·삭제됨. **Q4는 2026-09-21 "커밋" 확정 — 103-1로 내림**).
+3. **PLAN 104-1 ⑤·102-4** — `Assets/Art/*_candidates` 정리. **막던 105 Q1 이 2026-09-21 "Unity 먼저"로 확정돼 이제 안 막힌다** — 102-4 표의 판정(승격 2·뺄 것 2·단계교체 다수)대로 다음 세션에서 실행 가능. 삭제가 섞여 있어 씬 참조 grep·배치 모드 재확인 필수.
+4. **PLAN 105 열린 질문(Q-U1·Q-U3)** — 남은 둘만. Q-U1 은 사실상 처리(GO 먼저 끝내고 확장하는 경로 그대로 진행됨, 형식적으로만 열려 있음). Q-U3(Shader Graph 배선)만 진짜 열림 — 사람 GUI 필요. (Q1·Q3′·Q-U4 는 2026-09-21 결정 완료, Q-U2 는 2026-09-18 해결·삭제됨.)
 
 101-3(C·F·G)은 다섯 판 중 해당하는 GO·DUNGEON·STORY 셋 다 완전히 닫혔다 — 다음 세션이 새로 이어받을 101-3 잔여 작업은 없다.
 
