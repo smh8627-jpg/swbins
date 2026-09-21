@@ -964,11 +964,11 @@ Assets/Settings/
   플레이스홀더에 가깝다) — 교체가 필요하다는 결론 자체는 안 바뀐다.
 - **VRoid Studio 샘플 아바타**(`Assets/Art/CharactersVroid/
   AvatarSample_A.vrm`+`.glb`, saga-godot과 같은 파일을 미러링해 옴)는
-  애니메이션풍 캐릭터라 사실적 방향과는 안 맞지만, **지우지 않고 그대로
-  둔다** — gltFast로 `.glb`가 오류 없이 임포트된다는 기술 검증 결과
-  (엔진 메커니즘 사실)는 그래픽 스타일과 무관하게 여전히 유효하다.
-  실제 최종 캐릭터 에셋 소스(사실적 방향에 맞는 것)는 아래 "다음에 할
-  일"로 미룬다.
+  애니메이션풍 캐릭터라 사실적 방향과는 안 맞는다. 당초(이 문단을 쓴
+  시점)엔 "지우지 않고 그대로 둔다"였으나, gltFast 임포트 검증이라는
+  목적을 다한 뒤 **2026-09-21 삭제로 뒤집혔다**(102-4). 실제 최종
+  캐릭터 에셋 소스(사실적 방향에 맞는 것)는 아래 "다음에 할 일"로
+  미룬다.
 - 새 에셋 소스(사실적 방향에 맞는 것 — 예: 사실적 인체 스캔/사진측량
   기반 캐릭터, PBR 텍스처가 갖춰진 환경 킷 등)는 **아직 정하지 않았다**
   — 사용자가 "플랜만 수정"이라고 범위를 한정해, 이번엔 방향만 문서화
@@ -1132,7 +1132,7 @@ Slice 승인/재설계 결정.** 100단계에서 무조건 다음 콘텐츠로 �
 | `Shaders/Character/`(구 `CharacterShaders_candidates/`) SSS·AnisoHair·HairCards | MIT·MIT·CC0 | **완료(2026-09-21): 승격됨** | 코드 참조 0건(Shader Graph 배선 전이라 아직 아무 데도 안 물림 — Q-U3), grep 확인 후 `git mv`만으로 이동. 사실적 방향의 핵심, 배선만 남음 |
 | `Environment/PBR/`(구 `EnvironmentPBR_candidates/`) Poly Haven 5벌 + .mat | CC0 | **완료(2026-09-21): 승격됨** | `BuildEnvironmentPbrSample.cs`·`BuildTestCityScene.cs`·`BuildTestDungeonScene.cs`·`BuildTestStoryScene.cs`·`BuildTestVillageScene.cs` 5개 경로 상수 갱신, 4씬 재빌드 + `PlaytestHeadless`·`PlaytestDungeonHeadless`·`PlaytestRealmSlice`·`PlaytestStorySlice` 전부 재검증 OK(STORY는 아래 "발견하고 고친 오류" 참고) |
 | `CharactersRealistic/` (gitignore) | Mixamo Maria·Abe·Brute | 남김(로컬 전용) | ToS 상 재배포 금지, 커밋 안 함 |
-| `CharactersVroid/` AvatarSample_A | 애니풍 | **뺄 것(코드 참조 0건 확인됨, 삭제 승인 대기)** | 임포트 검증 끝, 66-2 와 불일치. `git rm`이 "돌이킬 수 없는 로컬 삭제"로 자동 승인 밖 — 다음 세션이 사용자 승인 받아 실행 |
+| `CharactersVroid/` AvatarSample_A | 애니풍 | **완료(2026-09-21): 삭제됨** | 임포트 검증 끝, 66-2 와 불일치. 코드·GUID 참조 0건(Assets·ProjectSettings 전부 확인) 확인 뒤 사용자 승인 받아 `git rm` |
 | `Characters/` Kenney blocky 4종 | CC0 로우폴리 | **판정 취소 — 아직 못 뺀다** | 2026-09-21 확인: `character-{a,b,c,d}.glb` 가 GO 플레이어·GO/FOREST/STORY 주민·STORY 잡졸·씬 4개에 **여전히 실사용 중**("44장 Player·Enemy 교체 완료" 전제가 틀렸다 — DUNGEON만 Mixamo 교체, 나머지 셋은 아직 Kenney). Q-U4(3명 유지 확정)로 봐도 이 넷을 곧 뗄 계획이 없다 |
 | `Buildings/`·`Dungeon/`·`Props/`·`Rocks/`·`Shrine/`·`Vegetation/` Kenney | CC0 | **단계 교체** — 씬에 남은 참조 grep 후 PBR 재질 모듈로 | 44장 Environment/Building 완료분과 겹치는 것부터, 아직 착수 전(콘텐츠 제작이 필요해 "정리"보다 큰 작업) |
 | `Audio/` Kenney·CC0_BGM | CC0 | 남김 | |

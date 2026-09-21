@@ -8208,3 +8208,11 @@ Q1·Q3′·Q-U4 결정 커밋 뒤 "이어해"를 다시 받았다. Q1이 "Unity 
 **검증**: 컴파일 오류 0. `PlaytestStorySlice.Run()` 3연속 OK("killed 10 grunts + boss ... save-load all verified, no errors") — 매 실행 뒤 `save_story.json`을 직접 열어 `partyActiveIndex:0`으로 깨끗하게 남는 것까지 확인(finally가 실제로 도는지 실기로 증명).
 
 `PLAN.md` 102-4 "발견한 오류" → "발견하고 고친 오류"로 갱신. `docs/PROJECT_STATE.md` "알려진 오류"·"테스트 상태"·"다음 작업" 갱신(최우선 항목 삭제, 104-1⑤가 다시 1번으로).
+
+## 2026-09-21 — `CharactersVroid/` 삭제 승인 받아 실행, 102-4 승격/삭제 항목 사실상 마감 ("사가 유니티 이어서" 세션, `PlaytestStorySlice` 버그 수정 다음)
+
+`git rm`이 샌드박스에서 "돌이킬 수 없는 로컬 삭제"로 자동 승인 밖이라 지난 세션이 넘긴 대로 AskUserQuestion으로 물었다. 사용자가 "다른 곳에서도 안 써? 그러면 지우고"라고 되물어, 지난 세션엔 안 했던 **GUID 참조 검사**까지 마쳤다(`AvatarSample_A.glb`/`.vrm`의 `.meta` guid 두 개를 `Assets/`·`ProjectSettings/` 전체에서 grep — 자기 자신의 `.meta` 말고는 0건). 참조 0건을 다시 확인해 준 뒤 `git rm -r Assets/Art/CharactersVroid Assets/Art/CharactersVroid.meta` 실행.
+
+배치 모드 컴파일 재확인(오류 0). `PLAN.md` 102-4 표를 "완료: 삭제됨"으로 갱신, 66-2장 근처의 옛 "지우지 않고 그대로 둔다" 문단(VRoid gltFast 임포트 검증 목적이 이미 끝난 뒤 남아 있던 결정)도 뒤집힌 걸로 정정 — 문서가 서로 모순되지 않게. `docs/PROJECT_STATE.md` "다음 작업" 1번에서 `CharactersVroid` 삭제 항목 제거.
+
+**102-4 남은 항목은 이제 Kenney `Buildings/`·`Dungeon/`·`Props/`·`Rocks/`·`Shrine/`·`Vegetation/` "단계 교체"뿐**(103장 에셋 파이프라인 규모의 콘텐츠 제작, 아직 미착수) — `Characters/`(Kenney) 는 GO/FOREST/STORY가 실사용 중이라 여전히 못 뺀다.

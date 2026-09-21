@@ -1,7 +1,7 @@
 # PROJECT_STATE — saga-unity (상태만, ≤15KB, 덮어쓴다)
 
 **규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다(2026-09-16 재편 전 본문 5,532줄은 그쪽 첫 절에 그대로 있다). 넘치면 `tools/precheck.sh` 가 막는다.
-마지막 갱신: 2026-09-21 (여덟 세션째, 이어서 — DUNGEON 5.6 → FOREST 5.6 → STORY 5-8 → 105 Q4·Q1·Q3′ 결정 → 102-4 승격 둘 실행 → **`PlaytestStorySlice` 버그 원인 찾고 고침**) — DUNGEON·FOREST·STORY 5-8 경위는 아래 표·HISTORY grep. **Q4·Q1·Q3′·Q-U4**: 전부 결정 완료(문서는 PLAN 103-1/103-3/105·SAGA-DESIGN §10 참고). **102-4**: `CharacterShaders_candidates/`→`Shaders/Character/`, `EnvironmentPBR_candidates/`→`Environment/PBR/` 승격 완료. **`PlaytestStorySlice`**: 세이브 왕복 검증이 `save_story.json`을 원상복구 안 해 `partyActiveIndex:2`가 눌어붙어 있던 게 원인 — GO와 같은 try/finally 패턴으로 고치고 3연속 OK 재확인(아래 "알려진 오류" 참고).
+마지막 갱신: 2026-09-21 (아홉 세션째, 이어서 — DUNGEON 5.6 → FOREST 5.6 → STORY 5-8 → 105 Q4·Q1·Q3′ 결정 → 102-4 승격 둘 실행 → `PlaytestStorySlice` 버그 원인 찾고 고침 → **`CharactersVroid/` 삭제**) — 경위는 아래 표·HISTORY grep. **Q4·Q1·Q3′·Q-U4**: 전부 결정 완료(PLAN 103-1/103-3/105·SAGA-DESIGN §10). **102-4**: `Shaders/Character/`·`Environment/PBR/` 승격, `CharactersVroid/`(참조 0건, 사용자 승인) 삭제 완료 — 남은 건 Kenney `Characters/`·`Buildings/` 등 "단계 교체"뿐(미착수). **`PlaytestStorySlice`**: 세이브 왕복 검증이 `save_story.json` 원상복구를 안 해 `partyActiveIndex:2`가 눌어붙었던 게 원인 — GO와 같은 try/finally로 고치고 3연속 OK.
 
 ## 캐릭터 자산 — 이 PC 기준 (2026-09-19)
 
@@ -35,7 +35,7 @@ STORY 세부(경위는 HISTORY grep): `StoryJobState.JobChosen` 이벤트로 `Re
 
 ## 다음 작업 (우선순위, 상세는 PLAN 해당 장 · 경위는 HISTORY 날짜 grep)
 
-1. **PLAN 104-1 ⑤·102-4 마무리** — 승격 둘(Shaders/Character·Environment/PBR)은 완료. 남은 건: `CharactersVroid/` 삭제(코드 참조 0건 확인됨, `git rm`이 자동 승인 밖이라 사용자 승인 받아 실행) · `Buildings/`·`Dungeon/`·`Props/`·`Rocks/`·`Shrine/`·`Vegetation/` Kenney "단계 교체"(콘텐츠 제작 필요, 아직 미착수) · `Characters/` Kenney는 **아직 못 뺀다**(GO 플레이어·GO/FOREST/STORY 주민·STORY 잡졸이 실사용 중, "44장 완료" 전제가 틀렸었다 — 102-4 표 참고).
+1. **PLAN 104-1 ⑤·102-4 마무리** — 승격 둘(Shaders/Character·Environment/PBR)·`CharactersVroid/` 삭제까지 완료. 남은 건: `Buildings/`·`Dungeon/`·`Props/`·`Rocks/`·`Shrine/`·`Vegetation/` Kenney "단계 교체"(콘텐츠 제작 필요, 아직 미착수 — 103장 에셋 파이프라인 규모의 작업) · `Characters/` Kenney는 **아직 못 뺀다**(GO 플레이어·GO/FOREST/STORY 주민·STORY 잡졸이 실사용 중, "44장 완료" 전제가 틀렸었다 — 102-4 표 참고).
 2. **PLAN 101-2 이어서** — 사실상 다 닫힘, 남은 건 GO⑤(모바일 빌드 뒤)·STORY5-2(보류)뿐.
 3. **실기 GUI 확인 몰아서** — "실기 확인 대기" 전부(아래 목록). 사용자 몫. 다른 PC로 이어받으면 `CharactersRealistic/`가 비어 있음 — mixamo.com에서 새로 받을 것(목록은 `SetupXxxCharacterImport.cs`).
 4. **PLAN 105 열린 질문(Q-U1·Q-U3)** — 남은 둘만, 둘 다 사람 몫(Q-U1 형식만 열림, Q-U3 Shader Graph는 사람 GUI 필요). (Q1·Q3′·Q4·Q-U4 는 2026-09-21 결정 완료.)
