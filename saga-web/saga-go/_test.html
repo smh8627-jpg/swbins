@@ -1049,7 +1049,9 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         return { ev: found, ki: s.ki };
       }
       var justR = run(true), walkR = run(false);
-      return justR.ev && justR.ev.dmg === 0 && justR.ev.just === true && justR.ki === 30 &&
+      /* 인연 결(⑥ bond.js)의 기 배율(kiPct)이 세이브 상태에 따라 얹힌다 — 그 배율을 곱한 값이 기대치다 */
+      var kiWant = 30 * (1 + DG.core.effect('kiPct') / 100);
+      return justR.ev && justR.ev.dmg === 0 && justR.ev.just === true && Math.abs(justR.ki - kiWant) < 1e-6 &&
         walkR.ev && walkR.ev.dmg > 0 && walkR.ev.just === false && walkR.ki === 0 &&
         ('저스트: 무피해·기+' + justR.ki + ' · 창 밖(그냥 걷기): ' + walkR.ev.dmg + '피해·기+' + walkR.ki);
     });

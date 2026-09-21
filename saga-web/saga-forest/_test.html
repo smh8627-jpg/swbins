@@ -3548,16 +3548,20 @@ window.DG_NO_TUNE = true;
     t('꽃 — 곁에 다른 꽃이 있어야 교배로 핀다', function () {
       var s = V.state(), T = V.TILE;
       var raw = V.raw();
-      /* 꽃이 하나도 없는 풀밭을 찾아 둘을 나란히 심는다 */
+      /* 꽃이 하나도 없는 풀밭을 찾아 둘을 나란히 심는다. 교배는 "곁에 꽃(kind flower)이 있나"만 본다 —
+         정령·힌트가 격자를 채운 뒤로는 사물이 하나도 없는 자리가 없어서(예전 기준), 곁에 다른 *꽃*만 없으면 된다.
+         판정은 자리 해시라(markHybrids) 둘 중 하나가 해시 0.45 를 넘는 자리를 고른다 */
       var spot = null, tx, ty;
       for (ty = 3; ty < V.H - 3 && !spot; ty++) {
         for (tx = 3; tx < V.W - 3; tx++) {
           if (V.tileAt(tx, ty) !== 'grass' || V.tileAt(tx + 1, ty) !== 'grass') { continue; }
           var x0 = tx * T + T * 0.5, y0 = ty * T + T * 0.5;
           var busy = raw.props.filter(function (p) {
-            return Math.hypot(p.x - x0, p.y - y0) < T * 3;
+            return p.kind === 'flower' && Math.hypot(p.x - x0, p.y - y0) < T * 3;
           }).length;
-          if (!busy) { spot = { tx: tx, ty: ty }; break; }
+          var lucky = C.hash2(Math.round(x0), Math.round(y0)) > 0.45 ||
+            C.hash2(Math.round(x0 + T), Math.round(y0)) > 0.45;
+          if (!busy && lucky) { spot = { tx: tx, ty: ty }; break; }
         }
       }
       if (!spot) { return false; }

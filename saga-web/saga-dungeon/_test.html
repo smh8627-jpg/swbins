@@ -4754,7 +4754,8 @@ window.requestAnimationFrame = function () { return 0; };
       var tiles = MM._smallWorldTiles(T, s, h);
       var hasTown = tiles.some(function (tl) { return tl.color === '#5a4a30'; });
       var inBounds = tiles.every(function (tl) {
-        return tl.x > -tl.w * 2 && tl.x < s + tl.w * 2 && tl.y > -tl.h * 2 && tl.y < h + tl.h * 2;
+        /* 칸 하나 바깥까지 더 넣는 것이 설계(smallWorldTiles 의 -1/+1 청크 + MARGIN)라 화면 밖으로 2.3칸까지 나올 수 있다 — 3칸까지 본다 */
+        return tl.x > -tl.w * 3 && tl.x < s + tl.w * 3 && tl.y > -tl.h * 3 && tl.y < h + tl.h * 3;
       });
       T._reset('moru');
       return tiles.length > 0 && hasTown && inBounds &&
@@ -5128,6 +5129,8 @@ window.requestAnimationFrame = function () { return 0; };
       /* 순수 함수 시험 — T(three) 없이도 돈다. rawTex()(실제 텍스처 요청)는
          3D init() 뒤에만 의미가 있어 여기선 안 건드리고, "어느 (floor,roomIdx)를
          당길지" 예측만 본다(§28-4 Phase 4). */
+      /* d() 는 마을이 켜져 있으면 마을의 방 크기를 쓴다 — 앞 시험이 마을을 켜 둔 채면 문 자리가 어긋난다 */
+      if (DG.town && DG.town.active()) { DG.town.leave(); }
       var run = { floor: 3, roomIdx: 2, corridors: [
         { dir: 'E', lane: 34, laneAt: 100, extra: 200, kind: 'forage' },
         { dir: 'E', lane: 34, laneAt: 300, extra: 200, kind: 'stair' },
