@@ -8294,3 +8294,12 @@ PLAN.md 102-4 표·103-3 Blender 항목을 "미설치"→"설치 완료" 로 갱
 **검증**: `tools/unity-batch.sh`로 컴파일(오류 0, `-quit` 포함) → `Saga.EditorTools.PlaytestDungeonFloorProgression.Run`·`PlaytestDungeonHeadless.Run`을 `-quit` 없이(스스로 Exit하는 `PlaytestXxx` 관례, CLAUDE.md/PROJECT_STATE "알려진 오류" 참고 — 처음에 `-quit`을 같이 줘서 씬만 열고 조용히 끝나는 걸 한 번 겪었다) 각각 3연속 OK. `FloorProgression`은 12번 방 전환·층 4까지만 도니 34층 마모 문턱은 이번 헤드리스로는 안 지나간다 — 실제 톤 변화는 사람이 34층·67층까지 내려가 봐야 확인됨(PROJECT_STATE "실기 확인 대기"에 추가). `FieldAmbush`·`Shortcut`·`Town2`·`Towns34`는 방 셸 재질 경로만 건드린 변경이라 재검증 생략(문·적 스폰 로직 무관).
 
 `PLAN.md` 103-1 "변형 배가 대상" 표에서 DUNGEON 방 셸을 완료로 표시(REALM 성벽 3단만 남음), `docs/PROJECT_STATE.md`(다음 작업·테스트 상태·실기 확인 대기·완료 요약 DUNGEON 행) 갱신.
+## 2026-09-22 — REALM 성벽 3단 (PLAN.md 103-1 "변형 배가" 마지막 항목, "이어해" 세션, DUNGEON 방 셸 다음)
+
+DUNGEON 방 셸 마모 3단을 끝낸 직후 "이어해"로 이어받아 103-1 백로그의 마지막 항목 REALM 성벽 3단을 처리했다. `RealmCityBuilder.cs`를 읽어 보니 성 디오라마 담장·망루가 `record.Wall`(축성 명령으로 `def.BaseWall`~`def.BaseWall*2`까지 오르는 실제 방어 수치, `RealmCityState.CapOf("wall", def)`)과 완전히 무관하게 항상 같은 크기였다 — 실제로 방어에 투자해도 눈에 안 보였다. DUNGEON 마모 3단과 같은 원칙(새 지오메트리 없이 크기·개수 조합만 늘린다)으로 좁혔다.
+
+`WallTier(int wall, RealmCityDef def)`(비율 1.33/1.67 문턱으로 삼등분 — DUNGEON `RoomWearTier`와 같은 삼등분 관례)를 추가하고, `BuildWallAndTowers(int wallTier)`가 담장 높이(1.6→2.1→2.6)·두께(0.5→0.65→0.8)·망루 스케일(1→1.25→1.55)을 티어로 배율화했다. 모서리 망루 넷을 공용 `SpawnTower()` 헬퍼로 뽑아 2단부터 망루 위에 지붕 갓(Keep과 같은 얇은 Cylinder)을 얹고, 3단부터 벽 중앙 보조 망루 셋(북·동·서)과 남문 양옆 문루 한 쌍을 추가로 배치한다 — 전부 기존 Cube/Cylinder 재사용, 새 에셋 없음. `Rebuild()`가 `RealmCityData.Get()`으로 `def`를 같이 가져와 매번 티어를 다시 계산한다.
+
+**검증**: `tools/unity-batch.sh` 컴파일(오류 0) → `Saga.EditorTools.PlaytestRealmSlice.Run` 3연속 OK. 다만 이 스위트의 "wall" 명령은 딱 한 번만 돌아 tier0(기본)만 지나간다는 걸 깨닫고, 임시 검증 스크립트(`_TempVerifyWallTiers.cs`, 커밋 안 하고 확인 뒤 바로 삭제)로 `record.Wall`을 직접 tier0/1/2 경계값(baseWall·×1.5·×2)으로 올려 `Rebuild()`를 세 번 호출 — 예외 없이 자식 개수가 15→19(+4 지붕 갓)→29(+5 망루+5 지붕 갓, 계산과 정확히 일치)로 늘어나는 것까지 확인했다. tier1·tier2 실제 실루엣은 사람이 여러 달 축성 명령을 반복해 봐야 확인됨(PROJECT_STATE "실기 확인 대기" 추가).
+
+`PLAN.md` 103-1 "변형 배가 대상" 표에서 REALM 성벽을 완료로 표시 — 나무·바위·건물 모듈(GO)·DUNGEON 방 셸·REALM 성벽까지 전부 끝나 이 백로그가 닫혔다. `docs/PROJECT_STATE.md`(다음 작업·테스트 상태·실기 확인 대기·완료 요약 REALM 행, 103-1 종료 표시) 갱신, 크기 한도(15360B) 맞추려 GO 행 등 오래된 날짜 태그 몇 곳도 같이 정리했다.
