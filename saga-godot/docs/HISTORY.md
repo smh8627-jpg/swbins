@@ -7916,3 +7916,12 @@ PROJECT_STATE.md` 참고. 요약:
 - 헤드리스 실측: `test_room.gd` 임시 훅으로 (1) 직접 호출로 노드·`amount`·`mesh` 정상 확인 (2) 1000회 굴림 중 5개가 실제로 전설로 나와 전부 `LegendaryGlow` 자식이 붙는 것 확인. 둘 다 확인 후 훅 제거.
 - `godot_regress.sh` 다섯 판 통과·md5 완전 불변(대표 씬 부팅 5초 안엔 전설이 안 걸림), `.import`/`project.godot` 잡음 없음.
 - **실제 화면에서 파티클 밀도·속도·색이 괜찮은지는 전적으로 실기 확인 필요** — 목록에 추가.
+
+## 동행 실루엣 — GO·DUNGEON (2026-09-21, 같은 세션, "커밋 푸시 이어해" — 사용자에게 행동 AI라 새로 짜도 될지 직접 확인받음)
+
+- 101-3 G 마지막 조각 "인물 등용 시 부대 뒤를 따르는 동행 실루엣(GO·DUNGEON)". 장식 추가와 달리 **행동 로직**(추적 이동)이라 AskUserQuestion으로 직접 허가받고 진행.
+- `saga_core/world/companion_follow.gd` 신설(Node3D, CollisionShape 없음 — 플레이어를 밀거나 막을 수 없는 순수 시각 표시). `set_count(n)`이 등용 인원 수만큼 캡슐 실루엣(unshaded+반투명 어두운 색)을 만들거나 지운다. `_process()`가 매 프레임 리더 뒤 1.4m×순번, 좌우 0.9m 부채꼴 오프셋으로 `move_toward` — 벌어지지 않게 리더보다 빠른 3.2m/s.
+- GO `test_village.gd`는 `PartyState.power_changed`, DUNGEON `test_room.gd`는 `DungeonPartyState.party_changed`를 듣고 `set_count(members.size())`만 부른다(이 스크립트는 "누가 등용됐는가"를 몰라도 됨). 세이브 로드로 이미 채워진 `members`를 초기 호출에서 바로 읽어(신호를 놓쳐도 무방) 로드 직후에도 개수가 맞다.
+- 헤드리스 실측: 둘 다 임시 훅으로 등용 1~2명 → `get_child_count()` 일치 확인, 60틱(2초) 시뮬레이션 뒤 위치가 공식 그대로(`d0=1.40`·`d1=2.94`) 수렴 확인. 둘 다 확인 후 훅 제거.
+- `godot_regress.sh` 다섯 판 통과·md5 완전 불변(대표 씬은 등용 없이 부팅), `.import`/`project.godot` 잡음 없음.
+- **실제 화면에서 리더 꼬임(급회전 시 겹침)·터레인 높이 차 위화감은 실기 확인 필요** — 목록에 추가. 새 스크립트 3개(`number_format.gd`·`camera_near_fade.gd`·`companion_follow.gd`)의 `.uid`가 이번에야 처음 생겨 같이 커밋한다(이전 세션들도 이 파일들에 헤드리스 editor pass를 이미 돌렸어야 했는데 빠져 있었다).

@@ -2,6 +2,7 @@ extends Node3D
 
 const ChoicePrompt := preload("res://games/saga_go/ui/choice_prompt.gd")
 const Perks := preload("res://games/saga_go/data/perks.gd")
+const CompanionFollow := preload("res://saga_core/world/companion_follow.gd")
 
 ## VERTICAL_SLICE.md 12단계 루프의 마지막 단계 "다시 켜서 이어진다" —
 ## 씬이 다 만들어진 뒤(자식들의 _ready가 먼저 도는 Godot 기본 순서 그대로
@@ -35,6 +36,13 @@ func _ready() -> void:
 	PartyState.power_changed.connect(func(_atk: float, _def: float) -> void: _refresh_goal_board())
 	PartyState.level_up.connect(_on_party_level_up)
 	_refresh_goal_board()
+
+	## 101-3 G "동행 실루엣" — 등용 인원 수만큼 Player 뒤를 따르는 실루엣.
+	var companions := CompanionFollow.new()
+	add_child(companions)
+	companions.setup(get_tree().get_first_node_in_group("player"))
+	companions.set_count(PartyState.members.size())
+	PartyState.power_changed.connect(func(_atk: float, _def: float) -> void: companions.set_count(PartyState.members.size()))
 
 
 ## saga_core/ui/goal_board.gd는 QuestState·CodexState·PartyState를 모른다

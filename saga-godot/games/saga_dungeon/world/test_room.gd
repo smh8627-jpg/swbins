@@ -27,6 +27,7 @@ const Characters := preload("res://saga_core/data/characters.gd")
 ## 표준 A/B(목표판·세션 카드, PLAN.md 101-4 공통 순서 1번) — GO
 ## test_village.gd·save_button.gd와 같은 경계.
 const SessionCard := preload("res://saga_core/ui/session_card.gd")
+const CompanionFollow := preload("res://saga_core/world/companion_follow.gd")
 
 const ROOM_GLB := "res://assets/dungeon/room-small.glb"
 const GATE_GLB := "res://assets/dungeon/gate.glb"
@@ -189,6 +190,14 @@ func _ready() -> void:
 	DungeonHordeState.horde_changed.connect(_refresh_goal_board)
 	DungeonSigilState.sigil_changed.connect(_refresh_goal_board)
 	_refresh_goal_board()
+
+	## 101-3 G "동행 실루엣" — GO test_village.gd와 같은 배선(등용 인원 수만큼
+	## Player 뒤를 따르는 실루엣, 전투·충돌 없음).
+	var companions := CompanionFollow.new()
+	add_child(companions)
+	companions.setup(get_tree().get_first_node_in_group("player"))
+	companions.set_count(DungeonPartyState.members.size())
+	DungeonPartyState.party_changed.connect(func() -> void: companions.set_count(DungeonPartyState.members.size()))
 
 
 ## saga_core/ui/goal_board.gd는 DungeonSaveState·DungeonHordeState·
