@@ -43,7 +43,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0.1, 0)
 [node name="StoryHUD" parent="." instance=ExtResource("7")]
 
 [node name="PortalToCave" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.4, 0, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0, 0)
 script = ExtResource("8")
 target_scene = "res://games/saga_story/world/CaveHuntGround.tscn"
 arrival_x_m = 57.0

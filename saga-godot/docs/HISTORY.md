@@ -7989,3 +7989,11 @@ PROJECT_STATE.md` 참고. 요약:
 - 원인: `%APPDATA%/Godot/app_userdata/SAGA/save_dungeon.json`에 예전 테스트에서 남은 결사 사망 기록(`fallen`)이 있어 `dungeon_hardcore_state.gd` 설계대로(주석에 이미 명시돼 있었음: "스러진 순간 화면을 통째로 멈춘다") `test_room.gd`가 씬 트리를 통째로 pause시켰다 — 이 때문에 `_physics_process` 전체가 멈춰 `SpringArm3D.get_hit_length()`가 초기값 0.0에서 한 번도 안 갱신됐고(GO의 8.0 대비), 조이스틱 이동도 안 먹혔던 것.
 - **코드 결함이 전혀 아니다** — GO의 09-22 앞선 항목("무너진 기둥")과 같은 결의 오진단(둘 다 옛 개발용 세이브 파일 잔재). 코드 수정 없음.
 - 저장 파일은 설계대로 자동 삭제 안 함 — 사용자가 `save_dungeon.json`을 직접 지워야 DUNGEON 실기를 다시 진행할 수 있다(PROJECT_STATE에 남김).
+
+## FOREST 실기 1차 통과 + STORY 스폰-귀환문 겹침 버그 발견·수정 (2026-09-22, 같은 세션, "이어서")
+
+- Godot 4.7.2 windowed exe로 FOREST(TestVillageForest.tscn) 실기: 스크린샷+키보드 이동(D키, 포커스 전후 확인)으로 이동·카메라(pitch62°/spring14, 탑다운 설계 그대로) 정상 확인. 목표판 "🎯 주민 부탁 0/6 · ⏱ 골드 +0·채집 +0"과 별개의 좌상단 누적 카운터("채집물 0개 · 골드 0")가 둘 다 정상 표시(겹침·잘림 없음).
+- STORY(TestField.tscn) 실기 스크린샷에서 **플레이어 캐릭터가 화면에 안 보임** 발견 — 코드로 좌표 대조: 플레이어 스폰이 모든 사냥터 씬에서 `x=2`(캡슐 반경 0.6, 즉 1.4~2.6)로 고정인데, "돌아가는 문"(`story_portal.gd`, box size 1.4×2.6×1.6) 노드가 전부 `x=1.4`(박스 x범위 0.7~2.1)로 배치돼 있어 스폰 지점이 문 박스 안에 완전히 파묻힘(x·y·z 세 축 다 겹침) — 카메라에서 문 뒤에 가려 캐릭터가 안 보이는 것이었다.
+- 9개 사냥터 씬을 전수 grep: 시작 씬 `SinyaField`(귀환문 없음)만 빼고 `TestField`·`CaveHuntGround`·`ForestHuntGround`·`GangneungjinField`·`GisanchaeField`·`GorgeHuntGround`·`HeodoField`·`NamjeongseongField` 8곳 전부 "돌아가는 문"이 x=1.4로 같은 패턴 — 복붙 배치 실수로 판단.
+- 8개 파일 모두 그 문의 x를 4.0으로 옮김(박스 0.7 반폭 기준 스폰과 0.7m 여유). 헤드리스 8씬 전부 오류 0, `godot_regress.sh` 다섯 대표 씬 md5 그대로·issues=0, `.import`/`project.godot` 잡음 없음.
+- **실기 자동화 중 사고**: 이 PC에서 동시에 돌던 다른 Claude Code 세션(saga-unity, Unity 에디터+VS Code)이 포커스를 가져가 `keybd_event`(D키)가 Unity 에디터로 샌 것을 `GetForegroundWindow()`로 사후 확인 — Godot 프로세스 자체는 안 죽고 정상(메모리로 확인). REALM 실기는 이 위험 때문에 이번 세션엔 착수 안 함, 다음 세션은 다른 세션과 안 겹치는 시점을 고르거나 특정 HWND에 `PostMessage`로 보내는 더 안전한 방식을 검토할 것.

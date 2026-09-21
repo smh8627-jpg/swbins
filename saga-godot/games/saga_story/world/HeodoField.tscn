@@ -80,7 +80,7 @@ arrival_x_m = 3.0
 label_text = "허창 들판으로"
 
 [node name="PortalToSinya" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.4, 0, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0, 0)
 script = ExtResource("9")
 target_scene = "res://games/saga_story/world/SinyaField.tscn"
 arrival_x_m = 21.0
