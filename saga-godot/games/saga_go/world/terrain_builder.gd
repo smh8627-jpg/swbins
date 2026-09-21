@@ -90,11 +90,20 @@ func _build() -> void:
 			_add_tile_quads(st, center, half, own_color, col00, col10, col01, col11)
 
 	var mesh := st.commit()
-	## PLAN 102-5 경량판 — 단색 정점 칠 위에 값 노이즈로 얼룩을 얹는다
-	## (saga_core/shaders/ground_noise.gdshader 참고. 103 tilegen 타일이
-	## 생기면 진짜 트라이플레이너로 교체).
+	## PLAN 102-5 실물판 — ground_noise.gdshader(경량 노이즈 얼룩)에서
+	## 103 tilegen 잔디·흙·돌 3장을 쓰는 terrain_triplanar.gdshader로
+	## 교체(정점색·지형 판정은 그대로, 셰이더만 바뀐다).
 	var mat := ShaderMaterial.new()
-	mat.shader = load("res://saga_core/shaders/ground_noise.gdshader")
+	mat.shader = load("res://saga_core/shaders/terrain_triplanar.gdshader")
+	mat.set_shader_parameter("grass_albedo", load("res://assets/generated/tiles/grass_512.png"))
+	mat.set_shader_parameter("grass_normal", load("res://assets/generated/tiles/grass_512_n.png"))
+	mat.set_shader_parameter("grass_rough", load("res://assets/generated/tiles/grass_512_r.png"))
+	mat.set_shader_parameter("dirt_albedo", load("res://assets/generated/tiles/dirt_512.png"))
+	mat.set_shader_parameter("dirt_normal", load("res://assets/generated/tiles/dirt_512_n.png"))
+	mat.set_shader_parameter("dirt_rough", load("res://assets/generated/tiles/dirt_512_r.png"))
+	mat.set_shader_parameter("stone_albedo", load("res://assets/generated/tiles/stone_512.png"))
+	mat.set_shader_parameter("stone_normal", load("res://assets/generated/tiles/stone_512_n.png"))
+	mat.set_shader_parameter("stone_rough", load("res://assets/generated/tiles/stone_512_r.png"))
 
 	var mi := MeshInstance3D.new()
 	mi.mesh = mesh

@@ -1,0 +1,88 @@
+shader_type spatial;
+render_mode cull_disabled, diffuse_burley;
+
+// PLAN 102-5 "바닥 한 색" 처방의 실물판 — ground_noise.gdshader가 남겨둔
+// 자리를 그대로 잇는다(정점색·지형 판정 로직은 그대로, 새로 안 짠다).
+// 103장 tilegen이 만든 잔디·흙·돌 3장(512, 각 albedo+normal+roughness)을
+// 노이즈로 자연스럽게 섞어 "밋밋한 단색 평면"에 표면 디테일을 얹는다.
+// terrain_builder.gd의 정점색(칸별 지형색, 산·강·길 구분)은 최종 곱으로
+// 그대로 남아 지형 구분은 이 셰이더로 조금도 안 바뀐다 — 순수 디테일
+// 추가. 지형 메시가 전부 위(+Y)만 보는 평평한 조각이라(terrain_builder.gd
+// _build() 참고, 옆면 없음) 실제로는 XZ 평면 투영이면 충분하지만, 이름과
+// 앞으로의 확장(경사면)을 대비해 삼축 투영으로 짠다.
+
+uniform sampler2D grass_albedo : source_color;
+uniform sampler2D grass_normal : hint_normal;
+uniform sampler2D grass_rough;
+uniform sampler2D dirt_albedo : source_color;
+uniform sampler2D dirt_normal : hint_normal;
+uniform sampler2D dirt_rough;
+uniform sampler2D stone_albedo : source_color;
+uniform sampler2D stone_normal : hint_normal;
+uniform sampler2D stone_rough;
+
+uniform float tile_scale : hint_range(0.05, 2.0) = 0.4; // 텍스처 반복 밀도(1/m)
+uniform float patch_scale : hint_range(0.02, 1.0) = 0.12; // 얼룩 크기
+
+varying vec3 world_pos;
+varying vec3 world_normal;
+
+float _hash(vec2 p) {
+	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+}
+
+float _value_noise(vec2 p) {
+	vec2 i = floor(p);
+	vec2 f = fract(p);
+	float a = _hash(i);
+	float b = _hash(i + vec2(1.0, 0.0));
+	float c = _hash(i + vec2(0.0, 1.0));
+	float d = _hash(i + vec2(1.0, 1.0));
+	vec2 u = f * f * (3.0 - 2.0 * f);
+	return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
+}
+
+void vertex() {
+	world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	world_normal = (MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz;
+}
+
+// 삼축(XY·YZ·XZ) 투영을 법선 가중으로 섞는다(표준 triplanar). 이 메시는
+// 늘 위를 보므로 실질적으로 XZ 항이 거의 전부를 차지한다.
+vec4 _triplanar(sampler2D tex, vec3 pos, vec3 n, float scale) {
+	vec3 w = abs(normalize(n));
+	w /= (w.x + w.y + w.z);
+	vec4 xy = texture(tex, pos.xy * scale);
+	vec4 yz = texture(tex, pos.zy * scale);
+	vec4 xz = texture(tex, pos.xz * scale);
+	return xz * w.y + yz * w.x + xy * w.z;
+}
+
+void fragment() {
+	vec3 grass_a = _triplanar(grass_albedo, world_pos, world_normal, tile_scale).rgb;
+	vec3 dirt_a = _triplanar(dirt_albedo, world_pos, world_normal, tile_scale).rgb;
+	vec3 stone_a = _triplanar(stone_albedo, world_pos, world_normal, tile_scale).rgb;
+	// 텍스처 색([0,1])을 탄젠트 공간 벡터([-1,1])로 되돌려야 가중 평균이
+	// 뜻이 있다 — [0,1] 그대로 블렌드하면 방향이 아니라 색을 섞는 꼴이 된다.
+	vec3 grass_n = _triplanar(grass_normal, world_pos, world_normal, tile_scale).rgb * 2.0 - 1.0;
+	vec3 dirt_n = _triplanar(dirt_normal, world_pos, world_normal, tile_scale).rgb * 2.0 - 1.0;
+	vec3 stone_n = _triplanar(stone_normal, world_pos, world_normal, tile_scale).rgb * 2.0 - 1.0;
+	float grass_r = _triplanar(grass_rough, world_pos, world_normal, tile_scale).r;
+	float dirt_r = _triplanar(dirt_rough, world_pos, world_normal, tile_scale).r;
+	float stone_r = _triplanar(stone_rough, world_pos, world_normal, tile_scale).r;
+
+	float n1 = _value_noise(world_pos.xz * patch_scale);
+	float n2 = _value_noise(world_pos.xz * patch_scale * 3.7 + vec2(11.0, 5.0));
+	float dirt_w = smoothstep(0.55, 0.75, n1) * 0.6;
+	float stone_w = smoothstep(0.6, 0.8, n2) * 0.5;
+	float grass_w = max(0.05, 1.0 - dirt_w - stone_w);
+	float wsum = grass_w + dirt_w + stone_w;
+
+	vec3 detail_albedo = (grass_a * grass_w + dirt_a * dirt_w + stone_a * stone_w) / wsum;
+	vec3 detail_normal = normalize(grass_n * grass_w + dirt_n * dirt_w + stone_n * stone_w);
+	float detail_rough = (grass_r * grass_w + dirt_r * dirt_w + stone_r * stone_w) / wsum;
+
+	ALBEDO = COLOR.rgb * detail_albedo;
+	NORMAL_MAP = detail_normal * 0.5 + 0.5;
+	ROUGHNESS = detail_rough;
+}

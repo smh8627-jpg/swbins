@@ -7925,3 +7925,13 @@ PROJECT_STATE.md` 참고. 요약:
 - 헤드리스 실측: 둘 다 임시 훅으로 등용 1~2명 → `get_child_count()` 일치 확인, 60틱(2초) 시뮬레이션 뒤 위치가 공식 그대로(`d0=1.40`·`d1=2.94`) 수렴 확인. 둘 다 확인 후 훅 제거.
 - `godot_regress.sh` 다섯 판 통과·md5 완전 불변(대표 씬은 등용 없이 부팅), `.import`/`project.godot` 잡음 없음.
 - **실제 화면에서 리더 꼬임(급회전 시 겹침)·터레인 높이 차 위화감은 실기 확인 필요** — 목록에 추가. 새 스크립트 3개(`number_format.gd`·`camera_near_fade.gd`·`companion_follow.gd`)의 `.uid`가 이번에야 처음 생겨 같이 커밋한다(이전 세션들도 이 파일들에 헤드리스 editor pass를 이미 돌렸어야 했는데 빠져 있었다).
+
+## GO 지형 트라이플레이너 (2026-09-21, 같은 세션, "이어해" — 승인된 결과 바꾸는 항목이라 직접 확인받음)
+
+- 102-5 "바닥 한 색" 마지막 처방. 사용자에게 "둘 다 승인된 실기 결과를 바꾸는 항목"이라 직접 물어 이걸로 골랐다.
+- 조사해 보니 걱정했던 것보다 훨씬 좁은 범위였다 — `terrain_builder.gd`는 이미 칸마다 다른 높이로 메시·충돌을 만들고 있었다(102-5 문서가 말하는 "평평한 충돌 바닥" 문제는 이미 없었음, `_build_collision()`이 처음부터 칸별 BoxShape3D). 그리고 `ground_noise.gdshader` 자체 주석에 "tilegen 타일이 생기면 이 셰이더는 걷어내고 진짜 terrain_triplanar.gdshader로 넘어간다"고 미리 적혀 있었다 — 딱 그 교체 하나만 하면 된다. 메시·충돌·정점색(지형 판정) 로직은 **한 줄도 안 건드렸다**.
+- `saga_core/shaders/terrain_triplanar.gdshader` 신설 — 103 tilegen 잔디·흙·돌 3장(albedo+normal+roughness)을 삼축 투영으로 샘플해 값 노이즈 2겹으로 자연스럽게 섞고, 그 결과에 **기존 정점색을 그대로 곱한다**(지형 색 구분은 조금도 안 바뀜, 순수 표면 디테일 추가). 노멀맵은 [0,1]→[-1,1]로 되돌려 가중 평균한 뒤 다시 [0,1]로 인코딩(단순 색 블렌드가 아니라 방향 블렌드가 되게).
+- `terrain_builder.gd::_build()`가 `ground_noise.gdshader` 대신 이 셰이더를 불러 9개 텍스처 파라미터를 설정. `ground_noise.gdshader`는 지우지 않고 남김(실기 확인 전 되돌릴 수 있게, 마이그레이션 규칙과 같은 이유).
+- 헤드리스 실측: `--headless --editor --quit`로 새 셰이더 파싱 확인(에러 없음), `test_village.gd` 임시 훅으로 `Terrain/Ground` 노드의 머티리얼이 새 셰이더+9개 텍스처 전부 정상 로드됐는지 확인 후 훅 제거. `godot_regress.sh` 다섯 판 통과(GO만 md5 변경, 나머지 넷은 이 파일을 안 써 완전 불변), `.import`/`project.godot` 잡음 없음.
+- **범위**: GO만(`test_map.gd` 기반). FOREST(`village_map.gd`)·STORY(`*_map.gd`)는 각자 다른 지형 스크립트를 쓰고 아직 `ground_noise.gdshader` 조차 안 걸려 있어(그레이드가 더 낮음) 이번 범위 밖 — 다음에 이어갈 후보로 남긴다.
+- **실제 화면에서 텍스처 반복 밀도(tile_scale 0.4)·얼룩 패턴이 괜찮은지, 산·강 경계에서 색과 텍스처가 잘 어울리는지는 전적으로 실기 확인 필요** — 목록에 추가. 승인된 GO 그래픽 톤을 바꾸는 항목이라 각별히 강조.
