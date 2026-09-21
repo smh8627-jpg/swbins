@@ -8303,3 +8303,16 @@ DUNGEON 방 셸 마모 3단을 끝낸 직후 "이어해"로 이어받아 103-1 �
 **검증**: `tools/unity-batch.sh` 컴파일(오류 0) → `Saga.EditorTools.PlaytestRealmSlice.Run` 3연속 OK. 다만 이 스위트의 "wall" 명령은 딱 한 번만 돌아 tier0(기본)만 지나간다는 걸 깨닫고, 임시 검증 스크립트(`_TempVerifyWallTiers.cs`, 커밋 안 하고 확인 뒤 바로 삭제)로 `record.Wall`을 직접 tier0/1/2 경계값(baseWall·×1.5·×2)으로 올려 `Rebuild()`를 세 번 호출 — 예외 없이 자식 개수가 15→19(+4 지붕 갓)→29(+5 망루+5 지붕 갓, 계산과 정확히 일치)로 늘어나는 것까지 확인했다. tier1·tier2 실제 실루엣은 사람이 여러 달 축성 명령을 반복해 봐야 확인됨(PROJECT_STATE "실기 확인 대기" 추가).
 
 `PLAN.md` 103-1 "변형 배가 대상" 표에서 REALM 성벽을 완료로 표시 — 나무·바위·건물 모듈(GO)·DUNGEON 방 셸·REALM 성벽까지 전부 끝나 이 백로그가 닫혔다. `docs/PROJECT_STATE.md`(다음 작업·테스트 상태·실기 확인 대기·완료 요약 REALM 행, 103-1 종료 표시) 갱신, 크기 한도(15360B) 맞추려 GO 행 등 오래된 날짜 태그 몇 곳도 같이 정리했다.
+## 2026-09-22 — 67~69장 Localization 잔여 채움 (REALM 전투 서술 92키 + FOREST 바이옴 4곳, "이어해" 세션, REALM 성벽 3단 다음)
+
+103-1 백로그가 전부 닫혀 PROJECT_STATE "다음 작업"을 다시 보니 넷 다 사람 손 대기였다 — 67~69장의 옛 메모 "미착수: FOREST 데이터 콘텐츠 번역, REALM 문답 36·서고·전투 서술, GO HiddenTreasure, DUNGEON 행상/구출 대사"를 실제로 다시 조사해 보기로 했다.
+
+먼저 넷을 하나씩 코드로 확인했다 — GO `HiddenTreasure.cs`의 `event.hidden_treasure`, DUNGEON `DungeonMerchant.cs`/`DungeonCaptive.cs`의 `merchant.*`/`captive.rescued_reward`, FOREST 가구 14종(`furniture.*`)·마감재 10종(`finish.*`)·집 등급(`home.grade*`)까지 **이미 전부 ko/en 키가 채워져 있었다** — 이 메모가 오래 갱신 안 된 낡은 기록이었을 뿐(GO/DUNGEON은 언제 채워졌는지도 불명, FOREST는 가구/마감재 슬라이스 자체에 처음부터 `Name => ForestLocalization.T(...)` 계산 프로퍼티로 박혀 있었다).
+
+실제로 비어 있던 건 둘. **REALM**: `RealmLocalization.T(key, fallback)` 호출 자체는 있는데 ko/en JSON에 그 `key`가 아예 없어(폴백 한국어만 계속 나옴) — 일기토(`duel.*`)·설전(`debate.*`)·전술 힌트(`war.tactic_*`)·승리 카드(`victory.*`)·5-2 1인 서사 카드 7종(`event.*`, 결투/논공행상/밀서/강론/재물/숙적/학사) 92개 키가 통째로 비어 있었다(코드에서 실제 쓰는 키와 `realm_ko.json` 키 집합을 `comm -23`으로 비교해 확정). **FOREST**: `ForestBiomeData.Zone.DisplayName`은 애초에 `T()` 호출조차 없이 필드 그대로 `ForestSessionTracker`/`ForestDeliveryCounter`에 노출돼 언어 설정과 무관하게 늘 한국어("어둑숲"·"바위 지대"·"버섯숲"·"꽃밭")가 나왔다.
+
+REALM 92키는 코드에서 쓰는 순서 그대로 ko(원문)·en(신규 번역) 두 파일에 같은 키 집합으로 추가(무력/지력/통솔→Might/Wisdom/Command 등 이미 자리잡은 용어 그대로 재사용). FOREST는 `Zone`에 `Key` 필드를 더하고 `DisplayName`을 `{ get => ForestLocalization.T("biome." + Key, _displayName); set => _displayName = value; }` 계산 프로퍼티로 바꿔(가구/마감재와 같은 결) 호출부 셋(`ForestSessionTracker.cs`·`ForestDeliveryCounter.cs`×2)은 손 안 대고 그대로 통하게 했다. 두 파일 다 CRLF·BOM 없음 유지(PowerShell `[IO.File]::WriteAllText` + `UTF8Encoding($false)`, python3가 이 PC엔 Windows Store 스텁이라 실제로 안 돈다는 걸 이번에 다시 확인 — 앞으로도 큰 파일 치환은 PowerShell로).
+
+**검증**: `tools/unity-batch.sh` 컴파일(오류 0) → Node `JSON.parse`로 두 파일 구문 확인 → `PlaytestRealmSlice`·`PlaytestForestHeadless` 각 3연속 OK. 코드 사용 키 집합과 ko.json 키 집합을 다시 `comm`으로 비교해 누락 0, ko/en 키 집합 완전 일치 확인. 추가로 임시 에디터 스크립트(`_TempVerifyLocalization.cs`, 커밋 안 하고 확인 뒤 삭제)로 언어를 "en"으로 바꿔 REALM 신규 키 6개가 실제로 영어를 반환하고 한글이 안 섞이는지, `[\uAC00-\uD7A3]` 정규식으로 직접 확인했다(bash `grep -P`의 유니코드 클래스가 이 환경에서 간헐적으로 오탐/오통과하는 걸 발견해 신뢰 안 하고 PowerShell로 재확인 — bash `grep -cP '[\x{AC00}-\x{D7A3}]'`가 473줄을 한글 포함으로 잘못 셌으나 실제로는 31줄뿐이었다, 기존 문제였던 idiom 퀴즈 답안 로마자 표기라 정상).
+
+`PLAN.md` 67~69장 "미착수" 줄을 재조사 결과로 다시 씀, `docs/PROJECT_STATE.md`(다음 작업·테스트 상태·완료 요약 FOREST/REALM 행) 갱신 — 겸사겸사 이미 닫힌 101-3 표(2026-09-18 기준, 5줄짜리 상세 표)를 한 줄 요약으로 접어 문서 크기 여유를 만들었다(≤15KB 제한, PLAN 101-3 세부 경위는 이 HISTORY 2026-09-18 절에 그대로 있다).

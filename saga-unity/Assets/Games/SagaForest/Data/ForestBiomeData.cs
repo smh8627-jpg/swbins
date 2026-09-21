@@ -15,7 +15,15 @@ namespace Saga.Forest.Data
     {
         public struct Zone
         {
-            public string DisplayName;
+            public string Key;
+            private string _displayName;
+            /// <summary>Localization — ForestHomeData.FurnitureItem.Name과 같은 결(T(key, fallback)).
+            /// PLAN.md 67~69장 "미착수: FOREST 데이터 콘텐츠 번역"(2026-09-22 마저 채움).</summary>
+            public string DisplayName
+            {
+                get => ForestLocalization.T("biome." + Key, _displayName);
+                set => _displayName = value;
+            }
             public Vector2 Center; // world XZ
             public float Radius;
             public float InnerRadius; // 이 반경 안은 100% Tint, Radius까지 흰색(1,1,1)으로 부드럽게 빠짐
@@ -25,13 +33,13 @@ namespace Saga.Forest.Data
         public static readonly Zone[] Zones =
         {
             // dokkaebi(숲도깨비) den과 일치 — 어둑숲: 어둡고 차가운 초록.
-            new Zone { DisplayName = "어둑숲", Center = new Vector2(-25f, -20f), Radius = 17f, InnerRadius = 6f, Tint = new Color(0.55f, 0.60f, 0.70f) },
+            new Zone { Key = "dark_forest", DisplayName = "어둑숲", Center = new Vector2(-25f, -20f), Radius = 17f, InnerRadius = 6f, Tint = new Color(0.55f, 0.60f, 0.70f) },
             // bawi(바위도깨비) den과 일치 — 바위 지대: 밝고 마른 황토빛.
-            new Zone { DisplayName = "바위 지대", Center = new Vector2(25f, 20f), Radius = 17f, InnerRadius = 6f, Tint = new Color(1.6f, 1.35f, 1.1f) },
+            new Zone { Key = "rocky", DisplayName = "바위 지대", Center = new Vector2(25f, 20f), Radius = 17f, InnerRadius = 6f, Tint = new Color(1.6f, 1.35f, 1.1f) },
             // beoseot(버섯정령) den과 일치 — 버섯숲: 축축한 보랏빛 갈색.
-            new Zone { DisplayName = "버섯숲", Center = new Vector2(-25f, 20f), Radius = 17f, InnerRadius = 6f, Tint = new Color(1.1f, 0.75f, 1.3f) },
+            new Zone { Key = "mushroom_forest", DisplayName = "버섯숲", Center = new Vector2(-25f, 20f), Radius = 17f, InnerRadius = 6f, Tint = new Color(1.1f, 0.75f, 1.3f) },
             // kkot(꽃정령) den과 일치 — 꽃밭: 밝고 따뜻한 연둣빛.
-            new Zone { DisplayName = "꽃밭", Center = new Vector2(25f, -20f), Radius = 17f, InnerRadius = 6f, Tint = new Color(1.7f, 1.3f, 1.6f) },
+            new Zone { Key = "flower_field", DisplayName = "꽃밭", Center = new Vector2(25f, -20f), Radius = 17f, InnerRadius = 6f, Tint = new Color(1.7f, 1.3f, 1.6f) },
         };
 
         /// <summary>(wx,wz) 지점의 정점색 배율. 흰색에서 시작해 각 존의 영향을 섞는다.</summary>

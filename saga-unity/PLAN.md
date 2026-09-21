@@ -1002,7 +1002,7 @@ Skill/UI/Environment 사운드 구조(Unity AudioSource + AudioMixer로
 - SFX 는 코드로 Master/SFX/BGM 볼륨을 곱하는 `XxxAudio.cs`(다섯 벌). AudioMixer 에셋은 사람이 GUI 로 노드를 이어야 해 배치 모드로 못 만든다 — 만들지 않는다.
 - BGM 은 판마다 CC0 상시 루프 1곡(`Assets/Art/Audio/CC0_BGM/`). 승리/패배처럼 들어야 갈리는 선곡은 사람 몫 — 먼저 묻지 않고 시작하지 않는다.
 - Localization: `XxxLocalization.T(key[, fallback])` + `Resources/Localization/xxx_<lang>.json`(ko·en, ja 없음). 키 누락은 키 자체를 돌려준다(빈 화면 대신 보이게). `settings.*` 공유 키는 다섯 벌 md5 일치, 게임별 키는 불일치 허용. **내부 식별자(문자열 값으로 매칭되는 상수)는 번역하지 않는다.** 씬에 구워 넣는 버튼은 `LocalizedButtonLabel`(폴링) 로만 언어 전환. en 은 세션 번역이라 사람 검수 전.
-- 미착수: FOREST 데이터 콘텐츠 번역, REALM 문답 36·서고·전투 서술, GO HiddenTreasure, DUNGEON 행상/구출 대사.
+- **완료(2026-09-22 재조사)**: 위 "미착수" 넷을 다시 확인해 보니 REALM 문답 36·서고·GO HiddenTreasure·DUNGEON 행상/구출·FOREST 가구 14/마감재 10 은 이미 키가 채워져 있었다(이 줄이 오래 안 갱신된 낡은 기록) — 실제로 비어 있던 건 REALM "전투 서술" 쪽(일기토·설전·전술·승리 카드·1인 서사 카드 7종, `RealmLocalization.T()` 호출은 있었지만 ko/en JSON에 키 자체가 없어 항상 한국어 폴백만 나왔다, 92개 추가)과 FOREST 바이옴 4곳 이름(애초에 `T()` 호출조차 없이 필드 그대로 노출, `ForestBiomeData.Zone.DisplayName`을 계산 프로퍼티로 바꿈)뿐이었다 — 둘 다 마저 채웠다.
 
 ---
 

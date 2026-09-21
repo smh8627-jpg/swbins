@@ -66,6 +66,10 @@
     { "key": "furniture.placer.pickup", "value": "Picked up {0} into storage." },
     { "key": "furniture.placer.empty_storage", "value": "No furniture in storage to place — buy some at the furniture shop first." },
     { "key": "furniture.placer.placed", "value": "Placed {0} — Home rating: {1} ({2} points, {3} furniture)" },
-    { "key": "action.save", "value": "Save" }
+    { "key": "action.save", "value": "Save" },
+    { "key": "biome.dark_forest", "value": "Gloomwood" },
+    { "key": "biome.rocky", "value": "Rocky Outcrop" },
+    { "key": "biome.mushroom_forest", "value": "Mushroom Grove" },
+    { "key": "biome.flower_field", "value": "Flower Field" }
   ]
 }

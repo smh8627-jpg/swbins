@@ -1,7 +1,7 @@
 # PROJECT_STATE — saga-unity (상태만, ≤15KB, 덮어쓴다)
 
 **규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다(2026-09-16 재편 전 본문 5,532줄은 그쪽 첫 절에 그대로 있다). 넘치면 `tools/precheck.sh` 가 막는다.
-마지막 갱신: 2026-09-22 (열두 세션째, 이어서 — DUNGEON 방 셸 마모 3단 → **REALM 성벽 3단**) — 경위는 HISTORY grep. 102-4는 전부 처리됐다(남은 건 `Characters/` Kenney, 실사용 중이라 못 뺀다). **103-1 "변형 배가"는 이제 전부 완료** — 다음 세션이 새로 이어받을 103-1 잔여 작업은 없다.
+마지막 갱신: 2026-09-22 (열두 세션째, 이어서 — DUNGEON 방 셸 마모 3단 → REALM 성벽 3단 → **67~69장 Localization 잔여 채움**) — 경위는 HISTORY grep. 102-4는 전부 처리됐다(남은 건 `Characters/` Kenney, 실사용 중이라 못 뺀다). **103-1 "변형 배가"는 전부 완료**. **67~69장 en 번역 미착수 목록도 이제 닫힘**(REALM 전투 서술 92키·FOREST 바이옴 4곳) — 다음 세션이 이어받을 잔여 없음.
 
 ## 캐릭터 자산 — 이 PC 기준 (2026-09-19)
 
@@ -13,25 +13,15 @@ Maria(플레이어)·Abe(잡졸)·Brute(두목) 셋만 mixamo.com 실자산 확�
 |---|---|---|---|---|---|
 | GO | `TestVillage` | 완료 — 도적의 습격(이동·촌장·상인·나그네·조우·전투·등용·EXP·장비·루트·저장 v13) | 동물 Group·나그네·은닉 보물·산신당·행운 돌탑·동굴 유물·채집 · 101-2 ④⑦③: 일과판·승급 3택·75초 토벌 · 101-2 ①⑥⑧: 봉수대(`BeaconTower`)·인연(`BondState`)·패배 비용·회수(`DropState`/`DropMarker`) · 101-2 ②: 사당 시련(`ShrineTrialState`/`ShrineTrialEncounter`, 파도 3·인장 조각) | Player·주요 Enemy·Environment·Building 전부 GLB/PBR, Props는 fence·fenceGate만(lantern·stall 보류), Rocks/Vegetation은 procgen 12+10벌 트라이플레이너로 교체(102-4) | 전부 붙음. **목표판/세션카드(101-2 A·B)**. **101-3 C·F·G 전부 완료** |
 | DUNGEON | `TestDungeon` | 완료 — 첫 방→무리·엘리트/보스·방 종류(우물·상자·성소·행상)·회피·강공격·필드(방 2+복도)·동행 | 마을 넷·층 진행·매복·구출·수수께끼·은닉 창고·빌드(회전베기)·도감·보석/영웅 상태 · **101-2 전부 완료(5.6, 2026-09-21로 마감)** | Player·잡졸(황건적)·미니보스/두목·Environment·Building · **103-1 방 셸 마모 3단(ProcRoom 층 깊이 자동)** | 전부 붙음(SFX 실클립 통일). **목표판/세션카드(101-2 A·B, 5.6에서 일일/주간 실값 배선)**. **101-3 C·F·G 전부 완료(2026-09-17)** |
-| FOREST | `TestVillageForest` | 완료(이동 전용 컨트롤러) — 마을·집·주민 | 벽지/장판·가구 자유 배치(1m 격자)·생물(Flee/Group)·과일나무·채집·좌판·밀어내기 전투 · **101-2 전부 완료(5.6, 2026-09-21로 마감)**: 마을 번들·채집 손맛·마을 평가·택배 사슬·축제(`ForestFestivalState`, 세배·꽃놀이·소원) | Environment 완료, 과일나무는 procgen 고정 씨앗(102-4) | 전부 붙음. **목표판/세션카드(A·B)**. 101-3 해당 없음 |
+| FOREST | `TestVillageForest` | 완료(이동 전용 컨트롤러) — 마을·집·주민 | 벽지/장판·가구 자유 배치(1m 격자)·생물(Flee/Group)·과일나무·채집·좌판·밀어내기 전투 · **101-2 전부 완료(5.6, 2026-09-21로 마감)**: 마을 번들·채집 손맛·마을 평가·택배 사슬·축제(`ForestFestivalState`, 세배·꽃놀이·소원) | Environment 완료, 과일나무는 procgen 고정 씨앗(102-4) | 전부 붙음. **목표판/세션카드(A·B)**. 101-3 해당 없음. **바이옴 4곳 en 번역(2026-09-22)** |
 | STORY | `TestField` | 완료 — 2.5D 횡스크롤(Z 고정)·잡졸 10·두목·사명 2·볼트·로프 | 척후병 NPC·사건·관계·선택(51장 완결)·전직(Lv.10, 무사/궁수/협객/방사) · 관문 대장(5-4, 주간 챔피언) · 비경(5-3, 노드 지도 5층) · **5-8(2026-09-21)** 동료 교대(`StoryPartyState`, 선봉/유격/호법 — MP 없는 서명 발동) — **101-2 STORY는 5-2(보류)만 남고 전부 소진** | 척후병 실제 모델 | 전부 붙음. **목표판/세션카드(101-2 A·B)**. **101-3 C·F·G 전부 완료(2026-09-18)** |
-| REALM | `TestCity` | 완료(경영형, 캐릭터 없음) — 명령·계략(유언비어·화계)·문답 36·서고·월드맵·전투·함락 편입 | **적국 55, 성 58**(세 사슬 닫힘) · 5-1 특성·야망 · 5-6 지형 전술 · 5-2 이벤트 체인 · 5-8 계승(허창 배치 승계+치안 하락, 기본 꺼짐) · 5-3 일기토·설전 · **5-5(2026-09-20)** 승리 조건·결과 카드(`RealmVictoryState` — 101-2 REALM 전부 완료, 5-4만 제외) | 도시 Environment/Building · **103-1 성벽 3단(2026-09-22, `record.Wall` 투자치로 자동)** | 전부 붙음. **목표판/세션카드(A·B)**. 101-3 해당 없음 |
+| REALM | `TestCity` | 완료(경영형, 캐릭터 없음) — 명령·계략(유언비어·화계)·문답 36·서고·월드맵·전투·함락 편입 | **적국 55, 성 58**(세 사슬 닫힘) · 5-1 특성·야망 · 5-6 지형 전술 · 5-2 이벤트 체인 · 5-8 계승(허창 배치 승계+치안 하락, 기본 꺼짐) · 5-3 일기토·설전 · **5-5(2026-09-20)** 승리 조건·결과 카드(`RealmVictoryState` — 101-2 REALM 전부 완료, 5-4만 제외) | 도시 Environment/Building · **103-1 성벽 3단(`record.Wall` 투자치로 자동)** | 전부 붙음. **목표판/세션카드(A·B)**. 101-3 해당 없음. **전투 서술 92키 en 번역(2026-09-22)** |
 
 렌더러: 66-1장 PC(Forward+, MSAA 4)/Mobile(Forward, MSAA 2) 이중 프로파일 + `FF16Volume_PC/Mobile.asset` + `DecalRendererFeature`(다섯 판 전부 적용). 아트 방향은 **사실적 PBR(FF16 톤)** — 66-2장·102장.
 DoF(105 Q-U5): PC 프로파일에만 `DepthOfField` 오버라이드 — `SessionCard.Show()`/`Hide()`가 토글.
 캐릭터 파이프라인: Mixamo(Maria·Abe·Brute) → `MixamoRigUtil.RigCharacter()` → Animator 8클립.
 
-## PLAN 101-3 — 다섯 판 적용 현황 (2026-09-18 기준, 이제 전부 닫힘)
-
-| 항목 | GO | DUNGEON | STORY | FOREST/REALM |
-|---|---|---|---|---|
-| C hitstop·shake·flash·팝·VFX | 완료 | 완료 | 완료 | 해당 없음 |
-| F 죽음(유품 마커) | 완료 | 완료 | **완료(2026-09-18, `StoryLootMarker`)** | 해당 없음 |
-| G 지형 반응(데칼) | 완료 | 완료 | **완료(2026-09-18, `StoryGroundDecal`)** | 해당 없음 |
-| G 성장 연출(레벨업 컷) | 완료 | 완료 | **완료(2026-09-18)** — `StoryCameraFollow.ZDistance` 상수→가변 필드, `PlayLevelUpCut()` | 해당 없음 |
-| G 장비 가시화 | 완료(등급 3단) | 완료(등급 3단) | **완료(2026-09-18)** — 등급 대신 "직업별 무기"(재해석, 사용자 확정) | 해당 없음 |
-
-STORY 세부(경위는 HISTORY grep): `StoryJobState.JobChosen` 이벤트로 `Restore()`도 무기 시각 갱신 배선, `StoryWeaponVisual`은 primitive 조합(검/활/표창/지팡이).
+PLAN 101-3(C hitstop류·F 유품 마커·G 데칼/레벨업 컷/장비 가시화)은 GO·DUNGEON·STORY 전부 2026-09-18 기준 완료, FOREST/REALM은 해당 없음 — 경위는 HISTORY grep.
 
 ## 다음 작업 (우선순위, 상세는 PLAN 해당 장 · 경위는 HISTORY 날짜 grep)
 
@@ -40,9 +30,7 @@ STORY 세부(경위는 HISTORY grep): `StoryJobState.JobChosen` 이벤트로 `Re
 3. **실기 GUI 확인 몰아서** — "실기 확인 대기" 전부(아래 목록). 사용자 몫. 다른 PC로 이어받으면 `CharactersRealistic/`가 비어 있음 — mixamo.com에서 새로 받을 것(목록은 `SetupXxxCharacterImport.cs`).
 4. **PLAN 105 열린 질문(Q-U1·Q-U3)** — 남은 둘만, 둘 다 사람 몫(Q-U1 형식만 열림, Q-U3 Shader Graph는 사람 GUI 필요). (Q1·Q3′·Q4·Q-U4 는 2026-09-21 결정 완료.)
 
-101-3(C·F·G)은 다섯 판 중 해당하는 GO·DUNGEON·STORY 셋 다 완전히 닫혔다 — 다음 세션이 새로 이어받을 101-3 잔여 작업은 없다.
-
-103-1 "변형 배가"는 REALM 성벽까지 전부 완료됐다 — 이 백로그는 닫힘.
+닫힌 백로그(다음 세션이 새로 이어받을 잔여 없음): 101-3(C·F·G, GO·DUNGEON·STORY), 103-1 변형 배가(나무·바위·건물 모듈·DUNGEON 방 셸·REALM 성벽), 67~69장 en 번역(REALM 전투 서술 92키·FOREST 바이옴 4곳).
 
 ## 알려진 오류
 
@@ -64,13 +52,13 @@ STORY 세부(경위는 HISTORY grep): `StoryJobState.JobChosen` 이벤트로 `Re
 
 | 검증 | 결과 |
 |---|---|
-| `-batchmode -nographics -quit` 컴파일 | exit 0, 오류 0(103-1 DUNGEON 방 셸 마모 3단·REALM 성벽 3단 추가 뒤 재확인) |
+| `-batchmode -nographics -quit` 컴파일 | exit 0, 오류 0(103-1 DUNGEON/REALM·67~69 Localization 추가 뒤 재확인) |
 | `PlaytestHeadless`(GO) | 3연속 OK(2026-09-21, 마을집 곁채·굴뚝 배치 조합 뒤 재확인), 미변경 |
-| `PlaytestDungeonHeadless`·`FloorProgression` | **3연속 OK씩 재확인(2026-09-22, `DungeonRoomBuilder.SetWearTier()` 배선 뒤)** — `FieldAmbush`·`Shortcut`·`Town2`·`Towns34`는 방 셸 재질 경로만 건드린 변경이라(문·적 스폰 로직 무관) 미재검증, 회귀 위험 낮음 |
-| `PlaytestForestHeadless`·`Creatures`·`Finish`·`Furniture`·`HouseTransition` | **전부 재검증 OK**(2026-09-21, 과일나무 procgen 교체 뒤 재확인, Headless 3연속) |
+| `PlaytestDungeonHeadless`·`FloorProgression` | 3연속 OK씩 재확인(`DungeonRoomBuilder.SetWearTier()` 배선 뒤) |
+| `PlaytestForestHeadless`·`Creatures`·`Finish`·`Furniture`·`HouseTransition` | Headless **3연속 OK 재확인(2026-09-22, biome.DisplayName 계산 프로퍼티화 뒤)**, 나머지 넷 미변경 |
 | `PlaytestOverworldMap`(GO) | 이전 세션 1회 재검증 OK, 미변경 |
 | `PlaytestStorySlice` | **3연속 OK(2026-09-21, 세이브 왕복 복원 버그 고친 뒤 재확인)** — 위 "알려진 오류" 참고, 실행 후 `save_story.json`도 깨끗한 상태로 확인 |
-| `PlaytestRealmSlice` | **3연속 OK 재확인(2026-09-22, `RealmCityBuilder.WallTier()` 배선 뒤)** — orders(10)의 "wall" 1회론 tier0만 지나가, 임시 스크립트(커밋 안 함)로 tier1·tier2까지 예외 없음 확인(child 15→19→29). 5-5 승리 조건·세이브 round-trip은 2026-09-20에 이미 검증 |
+| `PlaytestRealmSlice` | 3연속 OK 재확인(`RealmCityBuilder.WallTier()`·REALM Localization 92키 추가 뒤 둘 다) — 임시 스크립트(커밋 안 함)로 tier1·tier2·en 키 92개 실제 반환값까지 확인 |
 | GUI 실제 Play 확인 | GO 라이팅 톤·Maria idle/run/attack·**Dungeon Abe/Brute(`PlaytestDungeonEnemiesGui.cs`, 파편적 확인)**. 나머지 미확인 |
 
 ## 실기 확인 대기 (항목명만 — 경위는 HISTORY grep)
