@@ -93,6 +93,7 @@ window.DG_NO_TUNE = true;
 <script src="js/spirit.js"></script>
 <script src="js/grid.js"></script>
 <script src="js/parcel.js"></script>
+<script src="js/festival.js"></script>
 <script src="js/town.js"></script>
 <script src="js/folk.js"></script>
 <script src="js/animal.js"></script>
@@ -4788,6 +4789,184 @@ window.DG_NO_TUNE = true;
         out = !cart0 && locked && cart1 && cart2 && !own29 && own30 && rover0 && roverBefore && roverOpen && P.grade() === 3;
       } finally { undo(); }
       return out && '등급 견습 → 수레(10) → 우주복(30) → 로버(60)';
+    });
+
+    /* ── 축제 하루(PLAN §5.6) ─────────────────────────────── */
+
+    /** 행사를 강제로 켜고(어드민 "때" 탭과 같은 손잡이), 끝나면 세이브·재고·가방·금·날짜·손잡이를 되돌린다 */
+    function festKeep(evKey, phase) {
+      var s = V.state(), pl = V.raw().player;
+      var snap = JSON.stringify({ fest: s.fest || null, bow: s.bow || null, bag: s.bag || {}, gold: core_gold(), day: s.day,
+        stock: DG.home.state().stock || {}, hearts: s.hearts || null, wish: s.wish || null });
+      var px = pl.x, py = pl.y;
+      DG.core.setTune('time.event', evKey);
+      if (phase) { DG.core.setTune('time.phase', phase); }
+      s.fest = undefined; s.bow = {};
+      V.buildProps();
+      return function () {
+        var k = JSON.parse(snap);
+        DG.core.setTune('time.event', null); DG.core.setTune('time.phase', null);
+        s.fest = k.fest || undefined; s.bow = k.bow || undefined; s.bag = k.bag; DG.core.save.player.gold = k.gold; s.day = k.day;
+        DG.home.state().stock = k.stock; s.hearts = k.hearts || undefined; s.wish = k.wish || undefined;
+        pl.x = px; pl.y = py;
+        DG.town._setStar(undefined);
+        V.buildProps();
+      };
+    }
+    function festProp(kind) { return V.raw().props.filter(function (p) { return p.kind === kind; })[0]; }
+    function festStock(key) { return DG.home.stockCount(key); }
+    function festGold() { return DG.core.save.player.gold; }
+
+    t('축제 — 행사 여덟 모두 놀이가 있고(종류·목표·상금·가구), 목표판 첫 줄이 되고, 가구는 전방에 안 나온다', function () {
+      var F = DG.festival, VDd = DG.villageData, kinds = {}, ok = true, i, why = '';
+      VDd.EVENTS.forEach(function (e) {
+        var p = e.play, f = p && VDd.furn(p.furn);
+        if (!p || !p.kind || !(p.n > 0) || !(p.gold > 0) || !f || f.fest !== e.key) { ok = false; why += ' ' + e.key; return; }
+        kinds[p.kind] = 1;
+        var task = VDd.eventTaskOf(e);
+        if (!task || task.kind !== 'fest' || task.n !== p.n) { ok = false; why += ' task:' + e.key; }
+      });
+      var shopHas = false;
+      for (i = 0; i < 40; i++) {
+        var s = V.state(), d0 = s.day; s.day = d0 + i;
+        if (DG.home.shopToday().some(function (f) { return f.fest; })) { shopHas = true; }
+        s.day = d0;
+      }
+      var props = ['festboard', 'festfire', 'festrope', 'festpot', 'festlantern'];
+      var propsOk = props.every(function (k) { return !!VDd.PROPS[k] && DG.villageView3d.scatterOf(k) !== null; });
+      return ok && Object.keys(kinds).length === 8 && VDd.EVENTS.length === 8 && !shopHas && propsOk && !!F &&
+        ('놀이 8 종류 · 가구 8 · 소품 5 3D 표 · 전방 40일 진열에 행사 가구 0' + why);
+    });
+
+    t('축제 — 설날 세배 돌기: 주민 3명에게 세배하면 완성, 금·가구가 들고 한 해에 한 번뿐이다', function () {
+      var undo = festKeep('seollal'), out = false, F = DG.festival;
+      try {
+        var res = V.raw().residents, g0 = festGold(), i, last = null;
+        for (i = 0; i < 3; i++) { last = V.talk(res[i]); }
+        var done = F.isDone('seollal'), stock = festStock('fest_seollal');
+        var ph = F.rec('seollal').year === new Date().getFullYear();
+        var g1 = festGold();
+        var again = F.complete(F.today());                       // 두 번 끝낼 수 없다
+        out = res.length >= 3 && done && stock === 1 && ph && /완성/.test(last.text) && g1 > g0 + 600 && again === null && F.counter() === 3;
+      } finally { undo(); }
+      return out && '세배 3 → 🪙 600 + 세뱃돈 + 복조리 · 두 번째 완성은 null';
+    });
+
+    t('축제 — 대보름 달집태우기: 밤·잣 5알을 태우면 완성, 없으면 못 태우고, 끝나면 달집이 걷힌다', function () {
+      var undo = festKeep('daeborum'), out = false, F = DG.festival;
+      try {
+        var fire = festProp('festfire'), board = festProp('festboard');
+        var s = V.state(); s.bag = {};
+        var no = F.interact(fire);
+        s.bag.pine = 5;
+        var i, r;
+        for (i = 0; i < 5; i++) { r = F.interact(festProp('festfire')); }
+        out = !!fire && !!board && no.kind === 'no' && F.isDone('daeborum') && !s.bag.pine && festStock('fest_daeborum') === 1 &&
+          !festProp('festfire') && !!festProp('festboard') && /완성/.test(r.text);
+      } finally { undo(); }
+      return out && '달집·안내판 섬 → 밤·잣 5 소모 → 완성 → 달집만 걷힘';
+    });
+
+    t('축제 — 삼짇날 꽃놀이: 안내판에서 시작해 60초 안에 꽃 8송이, 시간이 지나면 처음부터, 시작 전 꽃은 안 센다', function () {
+      var undo = festKeep('samjin'), out = false, F = DG.festival, C = DG.core, flower = { cat: 'flower', key: 'azalea' };
+      try {
+        C.emit('village:gather', { item: flower, n: 3 });          // 시작 전 — 안 센다
+        var before = F.counter();
+        var start = F.interact(festProp('festboard'));
+        C.emit('village:gather', { item: { cat: 'fish' }, n: 5 });  // 꽃이 아니다
+        C.emit('village:gather', { item: flower, n: 3 });
+        var mid = F.counter();
+        F.tick(61);                                                // 시간 초과
+        var expired = F.counter() === 0 && !F.rec('samjin').on;
+        C.emit('village:gather', { item: flower, n: 8 });          // 라운드가 없으니 안 센다
+        var notOn = !F.isDone('samjin');
+        F.interact(festProp('festboard'));                         // 다시 시작
+        C.emit('village:gather', { item: flower, n: 5 });
+        C.emit('village:gather', { item: flower, n: 3 });
+        out = before === 0 && /시작/.test(start.text) && mid === 3 && expired && notOn && F.isDone('samjin') && festStock('fest_samjin') === 1;
+      } finally { undo(); }
+      return out && '시작 전·꽃 아닌 것·라운드 밖은 안 센다 · 61초 → 초기화 · 5+3 → 완성';
+    });
+
+    t('축제 — 단오 창포못 낚시: 물고기 5마리(놓친 건 안 센다)면 완성', function () {
+      var undo = festKeep('dano'), out = false, F = DG.festival, C = DG.core;
+      try {
+        var i;
+        for (i = 0; i < 4; i++) { C.emit('village:fish', { state: 'catch' }); }
+        C.emit('village:fish', { state: 'miss' }); C.emit('village:fish', { state: 'cast' });
+        var mid = F.counter(), notYet = !F.isDone('dano');
+        C.emit('village:fish', { state: 'catch' });
+        out = mid === 4 && notYet && F.isDone('dano') && festStock('fest_dano') === 1;
+      } finally { undo(); }
+      return out && '4 → (놓침·던짐 무시) → 5 → 완성';
+    });
+
+    t('축제 — 칠석 별에 소원: 소원을 빌면 완성, 내일 하루만 채집이 후하다', function () {
+      var undo = festKeep('chilseok'), out = false, F = DG.festival, T = DG.town, s = V.state();
+      try {
+        T._setStar({ slot: 1, t: 0.5, x: 0.4, y: 0.2 });
+        var boost0 = F.gatherBoost();
+        var r = T.wish();
+        var done = F.isDone('chilseok'), day = s.day;
+        var b0 = F.gatherBoost();                                  // 오늘은 아니다
+        s.day = day + 1; var b1 = F.gatherBoost();                 // 내일
+        s.day = day + 2; var b2 = F.gatherBoost();                 // 모레는 끝
+        s.day = day;
+        out = !boost0 && r.kind === 'wish' && done && !b0 && b1 && !b2 && festStock('fest_chilseok') === 1;
+      } finally { undo(); }
+      return out && '소원 → 완성 · 채집 후함은 내일 하루만';
+    });
+
+    t('축제 — 백중 등롱 밤 산책: 낮엔 못 밝히고 저녁·밤에 셋을 밝히면 완성, 밝힌 등롱은 사라진다', function () {
+      var undo = festKeep('baekjung', 'day'), out = false, F = DG.festival, C = DG.core;
+      try {
+        var day = F.interact(festProp('festlantern'));
+        C.setTune('time.phase', 'night');
+        var i, r, n0 = V.raw().props.filter(function (p) { return p.kind === 'festlantern'; }).length;
+        var first = F.interact(festProp('festlantern'));
+        var n1 = V.raw().props.filter(function (p) { return p.kind === 'festlantern'; }).length;
+        F.interact(festProp('festlantern'));
+        r = F.interact(festProp('festlantern'));
+        out = day.kind === 'no' && n0 === 3 && first.kind === 'gold' && n1 === 2 && F.isDone('baekjung') && /완성/.test(r.text) &&
+          !festProp('festlantern') && festStock('fest_baekjung') === 1;
+      } finally { undo(); }
+      return out && '낮 거절 → 밤 3개(3→2→…) → 완성 → 등롱 0';
+    });
+
+    t('축제 — 한가위 줄다리기: 10초 안에 30번, 시간이 지나면 처음부터', function () {
+      var undo = festKeep('chuseok'), out = false, F = DG.festival;
+      try {
+        var i, rope = festProp('festrope');
+        for (i = 0; i < 29; i++) { F.interact(rope); }
+        var mid = F.counter();
+        F.tick(11);                                                // 10초를 넘겼다
+        var reset = F.counter() === 0;
+        for (i = 0; i < 29; i++) { F.interact(rope); }
+        F.tick(4);                                                 // 4초 — 아직 안 끝났다
+        var stillOn = F.counter() === 29;
+        var r = F.interact(rope);
+        out = mid === 29 && reset && stillOn && F.isDone('chuseok') && /완성/.test(r.text) && festStock('fest_chuseok') === 1;
+      } finally { undo(); }
+      return out && '29 → 11초 → 0 → 29 → 4초 → 30 완성';
+    });
+
+    t('축제 — 동지 팥죽 나눔: 밤·잣 3알로 쑤고 주민 3명에게 한 그릇씩(하트 +2 — 이미 최대면 그대로, 같은 사람은 한 번)', function () {
+      var undo = festKeep('dongji'), out = false, F = DG.festival, s = V.state();
+      try {
+        s.bag = {};
+        var pot = festProp('festpot'), res = V.raw().residents;
+        var no = F.interact(pot);
+        s.bag.pine = 3;
+        var cook = F.interact(pot), left = s.bag.pine;
+        var h0 = V.heartOf(res[0].id);
+        var r0 = V.talk(res[0]);
+        var h1 = V.heartOf(res[0].id);
+        var dup = V.talk(res[0]);                                  // 같은 사람은 다시 안 받는다 — 평소 대화
+        var r1 = V.talk(res[1]), r2 = V.talk(res[2]);
+        out = res.length >= 3 && no.kind === 'no' && cook.kind === 'gold' && left === 0 && /🍲/.test(r0.text) && (h1 > h0 || h0 >= 10) &&
+          !/팥죽/.test(dup.text || '') && F.isDone('dongji') && /완성/.test(r2.text) && festStock('fest_dongji') === 1 && !festProp('festpot');
+      } finally { undo(); }
+      return out && '재료 없음 거절 → 쑤기(3알) → 셋에게 나눔 → 완성';
     });
 
     t('주민 — 두 사람이 번갈아 말한다', function () {

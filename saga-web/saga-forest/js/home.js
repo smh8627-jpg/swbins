@@ -89,7 +89,7 @@
    * 날짜 해시로 고른다 — 그러니 오늘 것은 오늘만이고, 같은 날이면 늘 같다.
    */
   function shopToday() {
-    var all = VD().FURNITURE, day = V().state().day;
+    var all = VD().FURNITURE.filter(function (f) { return !f.fest; }), day = V().state().day;   // 행사 가구는 안 판다(PLAN §5.6)
     var n = SHOP_N + (V().shopLevel ? V().shopLevel().add : 0);
     var out = [], used = {};
     for (var i = 0; i < n * 4 && out.length < n; i++) {

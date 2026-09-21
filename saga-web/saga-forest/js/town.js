@@ -131,7 +131,8 @@
     if (ph !== 'night' && ph !== 'dawn') { return null; }
     if (weather().key !== 'clear') { return null; }
     var slot = starSlot(n);
-    if (core.hash2(slot, slot % 883 + 3) > 0.5) { return null; }
+    var chil = VD().eventOf();
+    if (core.hash2(slot, slot % 883 + 3) > 0.5 && !(chil && chil.key === 'chilseok')) { return null; }   // 칠석 밤엔 별이 늘 흐른다(PLAN §5.6)
     var off = n - slot * STAR_SLOT - STAR_AT;
     if (off < 0 || off > STAR_MS) { return null; }
     return { slot: slot, t: off / STAR_MS,
@@ -158,6 +159,7 @@
     w.n += 1;
     core.gainFeat(2, '소원');
     core.log('🌠 흐르는 별에 소원을 빌었다 (' + w.n + '/' + WISH_MAX + ')', 'good');
+    core.emit('village:wish', { n: w.n });
     core.emit('changed');
     core.persist();
     return { kind: 'wish', text: '🌠 소원을 빌었다 — 답례는 내일 옵니다 (' +

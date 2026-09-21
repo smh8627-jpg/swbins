@@ -125,6 +125,12 @@
        없을 때 손을 쓰면 하나 받는다(반복 가능, village.js pickupParcel()) */
     courierPost: { name: '택배 접수대', emoji: '📦', gather: null, reset: 0, hint: '소포를 고른다' },
     /* 택배 사슬(PLAN §5.7) — 폐허의 옛 우체통(배달 목적지). 손을 쓰면 폐허행 소포를 넣는다 */
+    /* 축제 하루(PLAN §5.6) — festival.js 가 행사날에만 마을에 세운다 */
+    festboard:   { name: '행사 안내판', emoji: '🎏', gather: null, reset: 0, hint: '읽는다' },
+    festfire:    { name: '달집',        emoji: '🔥', gather: null, reset: 0, hint: '부럼을 태운다' },
+    festrope:    { name: '줄다리기 줄', emoji: '🪢', gather: null, reset: 0, hint: '당긴다' },
+    festpot:     { name: '팥죽 솥',     emoji: '🍲', gather: null, reset: 0, hint: '쑨다' },
+    festlantern: { name: '등롱',        emoji: '🏮', gather: null, reset: 0, hint: '밝힌다' },
     oldpost: { name: '옛 우체통', emoji: '📮', gather: null, reset: 0, hint: '소포를 넣는다' },
     /* 폐허 확장(PLAN 46-2절, 2026-09-11) — §45가 냈던 "과거" 목적지를
        아치 하나뿐이던 폐허(ruinSpot)에 실제로 채웠다. ruinTower는 진짜
@@ -363,6 +369,21 @@
       desc: '팥죽을 쑤는 날. 열매 값이 오르고 눈이 잦습니다.' }
   ];
 
+  /* ── 축제 하루(PLAN §5.6) — 행사마다 그날의 놀이 하나. festival.js 가 판정한다 ────────
+   * kind: bow 세배 · burn 달집 · flowers 꽃놀이(sec 초 안에) · fish 낚시 · wish 소원 · lantern 등롱 · rope 줄다리기(sec 초 안에) · porridge 팥죽(cost 알)
+   * n: 목표 수. gold: 완성 상금. furn: 완성 가구(FURNITURE 의 fest 항목 — 전방에서는 안 판다) */
+  var FEST_PLAY = {
+    seollal:  { kind: 'bow',      name: '세배 돌기',    how: '주민 3명에게 세배를 드립니다',                  n: 3,  gold: 600, furn: 'fest_seollal' },
+    daeborum: { kind: 'burn',     name: '달집태우기',   how: '달집(모닥불)에 밤·잣 5알을 태웁니다',            n: 5,  gold: 500, furn: 'fest_daeborum' },
+    samjin:   { kind: 'flowers',  name: '꽃놀이',       how: '안내판에서 시작 — 60초 안에 꽃 8송이',          n: 8,  gold: 500, furn: 'fest_samjin', sec: 60 },
+    dano:     { kind: 'fish',     name: '창포못 낚시',  how: '오늘 물고기 5마리를 낚습니다',                  n: 5,  gold: 500, furn: 'fest_dano' },
+    chilseok: { kind: 'wish',     name: '별에 소원',    how: '별똥별에 소원을 빕니다 — 내일 채집이 후해집니다', n: 1,  gold: 400, furn: 'fest_chilseok' },
+    baekjung: { kind: 'lantern',  name: '등롱 밤 산책', how: '저녁·밤에 마을의 등롱 셋을 밝힙니다',           n: 3,  gold: 500, furn: 'fest_baekjung' },
+    chuseok:  { kind: 'rope',     name: '줄다리기',     how: '줄을 10초 안에 30번 당깁니다',                  n: 30, gold: 700, furn: 'fest_chuseok', sec: 10 },
+    dongji:   { kind: 'porridge', name: '팥죽 나눔',    how: '솥에 밤·잣 3알로 팥죽을 쑤어 주민 3명에게 나눕니다', n: 3, gold: 600, furn: 'fest_dongji', cost: 3 }
+  };
+  EVENTS.forEach(function (e) { if (FEST_PLAY[e.key]) { e.play = FEST_PLAY[e.key]; } });
+
   /* ── 오늘의 일과판 (PLAN §5.1, 표준 A·H) ──────────────────────
    * "채집·주민·탐험" 세 축에서 하루 하나씩, 날짜 해시로 뽑는다(`weatherOf`와
    * 같은 결 — 세이브에 안 남고 순수 함수로만 정해진다. `village.js`가 이 결과에
@@ -412,6 +433,8 @@
   /** 행사일의 고정 과제(있으면) — 셋째(탐험) 줄을 대신한다 */
   function eventTaskOf(ev) {
     if (!ev) { return null; }
+    /* 축제 하루(PLAN §5.6) — 행사날 목표판 첫 줄은 그날의 놀이다. 진행은 festival.js 가 센다(kind 'fest') */
+    if (ev.play) { return { key: 'ev_' + ev.key, kind: 'fest', name: ev.name + ' — ' + ev.play.name, n: ev.play.n, reward: 150 }; }
     if (ev.task) { return ev.task; }
     if (ev.up && ev.up.cat) {
       var nm = CAT_NAME[ev.up.cat] || ev.up.cat;
@@ -543,7 +566,8 @@
     anbang: { name: '안방', color: '#c98a4a' },
     sarang: { name: '사랑방', color: '#7a6a9a' },
     buok:   { name: '부엌', color: '#a85a3c' },
-    ddeul:  { name: '뜰',   color: '#5a9a5a' }
+    ddeul:  { name: '뜰',   color: '#5a9a5a' },
+    jange:  { name: '잔치', color: '#d0455a' }        // 행사 가구(PLAN §5.6) — 놀이를 끝내야 받는다
   };
 
   var FURNITURE = [
@@ -563,7 +587,16 @@
     { key: 'dokja',     name: '도자기',   price: 2600, set: 'anbang', form: 'vase' },
     { key: 'badukpan',  name: '바둑판',   price: 3000, set: 'sarang', form: 'table' },
     { key: 'byeongpung', name: '병풍',    price: 3600, set: 'sarang', form: 'screen' },
-    { key: 'geomungo',  name: '거문고',   price: 5200, set: 'sarang', form: 'gayageum' }
+    { key: 'geomungo',  name: '거문고',   price: 5200, set: 'sarang', form: 'gayageum' },
+    /* 행사 가구 8(PLAN §5.6) — 행사 놀이를 끝내면 집 재고에 든다. fest 가 있으면 전방 진열·떨어지는 가구에서 빠진다 */
+    { key: 'fest_seollal',   name: '복조리',     price: 1500, set: 'jange', form: 'vase',    fest: 'seollal' },
+    { key: 'fest_daeborum',  name: '달집 화로',  price: 1500, set: 'jange', form: 'brazier', fest: 'daeborum' },
+    { key: 'fest_samjin',    name: '꽃전 소반',  price: 1500, set: 'jange', form: 'table',   fest: 'samjin' },
+    { key: 'fest_dano',      name: '창포 화분',  price: 1500, set: 'jange', form: 'plant',   fest: 'dano' },
+    { key: 'fest_chilseok',  name: '오작교 족자', price: 1500, set: 'jange', form: 'scroll',  fest: 'chilseok' },
+    { key: 'fest_baekjung',  name: '연등',       price: 1500, set: 'jange', form: 'lamp',    fest: 'baekjung' },
+    { key: 'fest_chuseok',   name: '송편 상',    price: 1500, set: 'jange', form: 'table',   fest: 'chuseok' },
+    { key: 'fest_dongji',    name: '팥죽 화로',  price: 1500, set: 'jange', form: 'brazier', fest: 'dongji' }
   ];
 
   var FURN = {};

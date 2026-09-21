@@ -594,7 +594,7 @@
         var hd = core.hash2(tx * 53 + s.day % 991, ty * 29 + (s.day * 7) % 877);
         var x = tx * TILE + TILE * 0.5, y = ty * TILE + TILE * 0.5;
         var pid = 'p' + tx + '_' + ty;
-        if (t === 'grass') {
+        if (t === 'grass' && !(global.DG.festival && global.DG.festival.blocked(tx, ty))) {
           if (h > 0.93) { props.push({ id: pid, kind: 'tree', x: x, y: y }); }
           else if (h > 0.90) { props.push({ id: pid, kind: 'pine', x: x, y: y }); }
           else if (h > 0.875) { props.push({ id: pid, kind: 'rock', x: x, y: y }); }
@@ -699,6 +699,8 @@
     if (SPI) { Array.prototype.push.apply(props, SPI.marks()); }
     /* 발견 밀도 격자(PLAN §5.5 ①) — 20타일 칸마다 상자·쪽지 병·채집터·야영 하나. 짐승 무리는 buildAnimals() 몫 */
     if (GRD) { Array.prototype.push.apply(props, GRD.marks()); }
+    /* 축제 하루(PLAN §5.6) — 행사날에만 서는 안내판·놀이 소품 */
+    if (global.DG.festival) { Array.prototype.push.apply(props, global.DG.festival.marks()); }
 
     /* 다리(2026-09-09) — 마을 도로와 같은 줄(BRIDGE_TY)에 실제로 건널 수 있는
        자리가 생겼으니, `Bridge.glb`(2026-08-30부터 등록만 되고 안 쓰이던 것)를
@@ -1322,6 +1324,7 @@
     if (kind === 'donate') { return s.donateTotal || 0; }
     if (kind === 'weed') { return s.weedPulled || 0; }
     if (kind === 'deliver') { return (s.delivery && s.delivery.n) || 0; }
+    if (kind === 'fest') { return global.DG.festival ? global.DG.festival.counter() : 0; }   // 행사날 놀이(PLAN §5.6)
     return 0;
   }
 
@@ -1599,6 +1602,7 @@
     if (global.DG.bug) { global.DG.bug.update(dt); }
     if (global.DG.spirit && !indoors) { global.DG.spirit.tick(dt); }   // 숨죽임 수수께끼(PLAN §5.5)
     if (global.DG.parcel) { global.DG.parcel.tick(dt); }                // 깨지기 소포(PLAN §5.7)
+    if (global.DG.festival) { global.DG.festival.tick(dt); }            // 꽃놀이·줄다리기 시간(PLAN §5.6)
     /* 주민의 거동과 잡담은 folk.js 가 맡는다.
        **멀리 걷지는 않는다** — 제 자리 둘레만 돈다. 멀리 가면 부탁을 들어주려고
        사람을 찾아 헤매게 된다 */
@@ -1867,6 +1871,7 @@
     }
     if (prop.kind === 'spiritmark') { return global.DG.spirit ? global.DG.spirit.interact(prop) : null; }
     if (prop.grid !== undefined) { return global.DG.grid ? global.DG.grid.interact(prop) : null; }
+    if (prop.fest) { return global.DG.festival ? global.DG.festival.interact(prop) : null; }
     if (prop.kind === 'weed') { return pullWeed(prop); }
     if (prop.kind === 'home') { return enterHome(); }
     if (prop.kind === 'cave') { return enterCave(); }
@@ -1915,7 +1920,8 @@
     if (!got) { return null; }
     var streak = bumpGatherStreak();
     var bonus = streak > 0 && streak % 3 === 0;         // 리듬 보너스 — 3연속마다
-    var n = 1 + (Math.random() < 0.25 ? 1 : 0) + (bonus ? 1 : 0);
+    var n = 1 + (Math.random() < 0.25 ? 1 : 0) + (bonus ? 1 : 0) +
+            (global.DG.festival && global.DG.festival.gatherBoost() && Math.random() < 0.5 ? 1 : 0);   // 칠석 소원의 답례(PLAN §5.6)
     bagAdd(got, n);
     if (def.reset) { st().used[prop.id] = st().day; }
     core.gainFeat(1, '채집');
@@ -2024,7 +2030,7 @@
       if (s.shakeFurn >= SHAKE_FURN_MAX || !global.DG.home) { return null; }
       s.shakeFurn += 1;
       s.used[prop.id] = s.day;
-      var all = VD.FURNITURE;
+      var all = VD.FURNITURE.filter(function (x) { return !x.fest; });     // 행사 가구는 놀이로만(PLAN §5.6)
       var f = all[Math.floor(Math.random() * all.length)];
       global.DG.home.stockAdd(f.key, 1);
       core.gainFeat(2, '채집');
@@ -2173,9 +2179,15 @@
         core.log('🧧 ' + res.ref.name + ' 에게 세배했다 — 세뱃돈 🪙 +' + core.fmt(money), 'good');
         core.emit('changed');
         core.persist();
+        var bowDone = global.DG.festival ? global.DG.festival.onBow() : null;      // 세배 돌기(PLAN §5.6)
         return { kind: 'bow', name: res.ref.name,
-                 text: '새해 복 많이 받으시오. 🧧 🪙 +' + core.fmt(money) };
+                 text: '새해 복 많이 받으시오. 🧧 🪙 +' + core.fmt(money) + (bowDone ? ' · ' + bowDone : '') };
       }
+    }
+    /* 동지 팥죽 나눔(PLAN §5.6) — 쑨 팥죽이 남았으면 말 건 주민에게 한 그릇 */
+    if (global.DG.festival) {
+      var soup = global.DG.festival.share(res);
+      if (soup) { return soup; }
     }
 
     /* 떠날 뜻을 비친 사람 — 붙잡는 것이 다른 무엇보다 먼저다.
