@@ -8284,3 +8284,13 @@ PLAN.md 102-4 표·103-3 Blender 항목을 "미설치"→"설치 완료" 로 갱
 `PLAN.md` 103-1 "변형 배가 대상" 줄에 나무·바위·건물 모듈 완료 표시(DUNGEON 방 셸·REALM 성벽은 미착수로 남김), `docs/ASSET_GUIDE.md`·`docs/PROJECT_STATE.md`(테스트 상태·실기 확인 대기) 갱신. 사용자가 "현재 작업 완료 후 내일 이어서 하자"고 해서 DUNGEON/REALM 쪽은 오늘 안 건드리고 여기서 마무리한다.
 
 `PLAN.md` 102-4 표를 세 줄로 다시 씀(Buildings/Dungeon/Shrine=완료, Props=완료+보류 구분, Rocks/Vegetation=procgen 몫). `docs/PROJECT_STATE.md` "완료 요약" GO 행의 "Props 전부 GLB/PBR" 과장 정정, 실기 확인 대기·테스트 상태·다음 작업 갱신.
+
+## 2026-09-22 — DUNGEON 방 셸 티어별 마모 3단 (PLAN.md 103-1 "변형 배가", "이어해" 세션, GO 건물 모듈 다음)
+
+전날 세션이 GO 건물 모듈을 끝내고 "내일 이어서 하자"로 마무리했던 103-1 백로그 중 다음 항목 — DUNGEON 방 셸(4 → 티어별 마모 3단)을 이어받았다. `DungeonRoomBuilder.cs`를 읽어 보니 `DungeonFloorRunner`(절차적 층 진행, 층2~100)가 `ProcRoom` 게임오브젝트 하나를 클리어마다 콘텐츠만 갈아치우며 계속 재사용하고, 방 지오메트리·재질은 100층을 내려가도 한 번도 안 바뀌었다 — Room1~4(고정 층1)와 똑같은 톤이었다. GO 건물 모듈과 같은 원칙(새 지오메트리 없이 조합/톤만 늘린다)을 그대로 따르기로 했다.
+
+`EnvironmentMaterial.MakeTiled()`에 `wearTier`(0/1/2) 매개변수를 추가해 `_BaseColor`를 단계별로 어둡게(흰색→갈색조→짙은 폐허조) 밀고 `_Smoothness`도 같이 눌러(`BuildEnvironmentPbrSample.cs`가 구운 MetallicSmoothness 알파를 그대로 통과시키던 걸 스케일만 곱해 매끈함을 죽인다) 벗겨지고 거칠어진 느낌을 낸다. `DungeonRoomBuilder`에 `wearTier` 필드 + `SetWearTier(int)`(지오메트리는 그대로 두고 바닥·벽·천장·문 아치 재질 인스턴스만 새로 굽는다, `RefreshEnvironmentMaterials()`) 추가, `BuildFloor()`/`BuildWalls()`/`BuildCeiling()`/`BuildGateArch()`의 기존 `MakeTiled()` 호출에도 `wearTier`를 그대로 실어 처음 지을 때부터 반영되게 했다. `DungeonFormulas.cs`에 순수 함수 `RoomWearTier(int floor)`(34/67층 문턱으로 3등분 — 웹판에 대응 공식이 없어 이 트랙에서 새로 정함) 추가. `DungeonFloorRunner`는 같은 GameObject의 `DungeonRoomBuilder`를 캐시해 `Awake`·`Descend`·`JumpToFloor`(층이 바뀌는 세 지점 전부)에서 `SetWearTier(RoomWearTier(_floor))`를 부른다. Room1~4는 `wearTier` 미배정(기본값 0)이라 항상 깨끗한 톤 그대로 — 회귀 없음.
+
+**검증**: `tools/unity-batch.sh`로 컴파일(오류 0, `-quit` 포함) → `Saga.EditorTools.PlaytestDungeonFloorProgression.Run`·`PlaytestDungeonHeadless.Run`을 `-quit` 없이(스스로 Exit하는 `PlaytestXxx` 관례, CLAUDE.md/PROJECT_STATE "알려진 오류" 참고 — 처음에 `-quit`을 같이 줘서 씬만 열고 조용히 끝나는 걸 한 번 겪었다) 각각 3연속 OK. `FloorProgression`은 12번 방 전환·층 4까지만 도니 34층 마모 문턱은 이번 헤드리스로는 안 지나간다 — 실제 톤 변화는 사람이 34층·67층까지 내려가 봐야 확인됨(PROJECT_STATE "실기 확인 대기"에 추가). `FieldAmbush`·`Shortcut`·`Town2`·`Towns34`는 방 셸 재질 경로만 건드린 변경이라 재검증 생략(문·적 스폰 로직 무관).
+
+`PLAN.md` 103-1 "변형 배가 대상" 표에서 DUNGEON 방 셸을 완료로 표시(REALM 성벽 3단만 남음), `docs/PROJECT_STATE.md`(다음 작업·테스트 상태·실기 확인 대기·완료 요약 DUNGEON 행) 갱신.

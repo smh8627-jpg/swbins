@@ -48,6 +48,13 @@ namespace Saga.Dungeon.World
     /// 추가(모루골=Room1이 중심, 위성 마을이 사방으로 뻗는 별형 구조를
     /// 이으려면 X축 벽에도 문이 필요했다). 아치도 그 방향엔 Y축 90도
     /// 회전이 필요해 `BuildGateArch()`에 `rotate90` 매개변수를 더했다.
+    ///
+    /// "방 셸 — 티어별 마모 3단" 슬라이스(2026-09-22) — PLAN.md 103-1 변형
+    /// 배가 대상. `DungeonFloorRunner`가 층2~100까지 갈아치우며 재사용하는
+    /// `ProcRoom` 하나가 몇 층을 내려가든 항상 같은 톤이던 걸, 새 지오메트리
+    /// 없이 재질 톤·거칠기만 3단으로 눌러 깊을수록 낡아 보이게 했다
+    /// (`EnvironmentMaterial.MakeTiled(..., wearTier)`, `SetWearTier()`).
+    /// Room1~4(고정 층1)는 항상 tier 0.
     /// </summary>
     public class DungeonRoomBuilder : MonoBehaviour
     {
@@ -85,6 +92,11 @@ namespace Saga.Dungeon.World
         [SerializeField] private Material wallMaterial;
         private bool UsePbrEnvironment => floorMaterial != null && wallMaterial != null;
 
+        // PLAN.md 103-1 "DUNGEON 방 셸 — 티어별 마모 3단"(2026-09-22) — 0=깨끗·
+        // 1=때탄·2=폐허. `DungeonFloorRunner`가 층이 깊어질 때 `SetWearTier()`로
+        // 갈아 끼운다(재질 인스턴스만 새로 굽는다 — 지오메트리는 그대로).
+        [SerializeField] private int wearTier = 0;
+
         private void Awake()
         {
             // 이미 저장된 씬을 실제 Play로 열면 Awake가 다시 불려 Build()를
@@ -103,6 +115,50 @@ namespace Saga.Dungeon.World
             BuildRoomVisualModel();
             BuildDecor();
             MarkStatic();
+        }
+
+        /// <summary>PLAN.md 103-1 "DUNGEON 방 셸 — 티어별 마모 3단" —
+        /// `DungeonFloorRunner`가 층을 내려갈 때마다 부른다. 지오메트리는 이미
+        /// 지어져 있으니 바닥·벽·천장·문 아치의 재질 인스턴스만 새로 굽는다
+        /// (PBR 경로 전용 — Kenney 셸/primitive 색상 경로는 마모 개념이 없다).</summary>
+        public void SetWearTier(int tier)
+        {
+            tier = Mathf.Clamp(tier, 0, 2);
+            if (tier == wearTier) return;
+            wearTier = tier;
+            if (UsePbrEnvironment) RefreshEnvironmentMaterials();
+        }
+
+        private void RefreshEnvironmentMaterials()
+        {
+            var floor = transform.Find("Floor");
+            if (floor != null)
+            {
+                floor.GetComponent<MeshRenderer>().sharedMaterial =
+                    EnvironmentMaterial.MakeTiled(floorMaterial, RoomWidth, RoomDepth, wearTier);
+            }
+
+            var ceiling = transform.Find("Ceiling");
+            if (ceiling != null)
+            {
+                ceiling.GetComponent<MeshRenderer>().sharedMaterial =
+                    EnvironmentMaterial.MakeTiled(wallMaterial, RoomWidth, RoomDepth, wearTier);
+            }
+
+            foreach (Transform child in transform)
+            {
+                if (child.name.EndsWith("_Gate"))
+                {
+                    var archMat = EnvironmentMaterial.MakeTiled(wallMaterial, GateModelWidth, GateModelWidth, wearTier);
+                    foreach (var r in child.GetComponentsInChildren<Renderer>()) r.sharedMaterial = archMat;
+                }
+                else if (child.name.StartsWith("Wall_"))
+                {
+                    var size = child.localScale;
+                    child.GetComponent<MeshRenderer>().sharedMaterial =
+                        EnvironmentMaterial.MakeTiled(wallMaterial, Mathf.Max(size.x, size.z), size.y, wearTier);
+                }
+            }
         }
 
         /// <summary>"방 셸 GLB" — room-small.glb를 균일 배율(`RoomScale`)로
@@ -138,7 +194,7 @@ namespace Saga.Dungeon.World
             ceiling.transform.localPosition = new Vector3(0f, WallHeight, 0f);
             ceiling.transform.localScale = new Vector3(RoomWidth, 1f, RoomDepth);
             ceiling.GetComponent<MeshRenderer>().sharedMaterial =
-                EnvironmentMaterial.MakeTiled(wallMaterial, RoomWidth, RoomDepth);
+                EnvironmentMaterial.MakeTiled(wallMaterial, RoomWidth, RoomDepth, wearTier);
             Object.DestroyImmediate(ceiling.GetComponent<Collider>());
         }
 
@@ -176,7 +232,7 @@ namespace Saga.Dungeon.World
             floor.transform.localPosition = new Vector3(0f, -0.5f, 0f);
             floor.transform.localScale = new Vector3(RoomWidth, 1f, RoomDepth);
             var renderer = floor.GetComponent<MeshRenderer>();
-            if (UsePbrEnvironment) renderer.sharedMaterial = EnvironmentMaterial.MakeTiled(floorMaterial, RoomWidth, RoomDepth);
+            if (UsePbrEnvironment) renderer.sharedMaterial = EnvironmentMaterial.MakeTiled(floorMaterial, RoomWidth, RoomDepth, wearTier);
             else if (roomModel != null) renderer.enabled = false; // 셸이 보여줄 자리 — 콜라이더만 남김.
             else renderer.sharedMaterial = MakeMaterial(Colors().floor);
         }
@@ -382,7 +438,7 @@ namespace Saga.Dungeon.World
             // 텍스처는 아니지만, 최소한 밋밋한 단색 아치보다는 낫다.
             if (UsePbrEnvironment)
             {
-                var archMat = EnvironmentMaterial.MakeTiled(wallMaterial, GateModelWidth, GateModelWidth);
+                var archMat = EnvironmentMaterial.MakeTiled(wallMaterial, GateModelWidth, GateModelWidth, wearTier);
                 foreach (var r in gate.GetComponentsInChildren<Renderer>())
                 {
                     r.sharedMaterial = archMat;
@@ -398,7 +454,7 @@ namespace Saga.Dungeon.World
             wall.transform.localPosition = pos;
             wall.transform.localScale = size;
             var renderer = wall.GetComponent<MeshRenderer>();
-            if (UsePbrEnvironment) renderer.sharedMaterial = EnvironmentMaterial.MakeTiled(wallMaterial, Mathf.Max(size.x, size.z), size.y);
+            if (UsePbrEnvironment) renderer.sharedMaterial = EnvironmentMaterial.MakeTiled(wallMaterial, Mathf.Max(size.x, size.z), size.y, wearTier);
             else if (roomModel != null) renderer.enabled = false; // 셸이 보여줄 자리 — 콜라이더만 남김(문 갈라짐 후 재생성분도 포함).
             else renderer.sharedMaterial = MakeMaterial(color);
         }

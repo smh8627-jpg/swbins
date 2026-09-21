@@ -105,6 +105,13 @@ namespace Saga.Dungeon.Data
         /// floor 인자로 그대로 넣는다(최소 1층 취급).</summary>
         public static int HordeTier(int wave) => Math.Max(1, wave / 8);
 
+        /// <summary>PLAN.md 103-1 "DUNGEON 방 셸 — 티어별 마모 3단"(2026-09-22) —
+        /// 새 지오메트리 없이 `ProcRoom`(층2~100이 갈아치우며 재사용하는 방 하나,
+        /// `DungeonFloorRunner`) 재질 톤만 층이 깊을수록 낡아 보이게 3등분한다.
+        /// 100층 스트레스 테스트 범위(`SimulateDungeonFloors.cs`)를 그대로 삼등분 —
+        /// 웹판에 대응하는 공식이 없어 이 트랙에서 새로 정한 값.</summary>
+        public static int RoomWearTier(int floor) => floor < 34 ? 0 : floor < 67 ? 1 : 2;
+
         public static string KindDisplayName(string kind) => kind switch
         {
             "fight" => "잡졸 무리",

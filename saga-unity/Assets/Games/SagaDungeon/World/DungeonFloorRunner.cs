@@ -25,6 +25,12 @@ namespace Saga.Dungeon.World
     /// 난수는 이 파일 안에서만 쓰는 시드 고정 `System.Random`(프로젝트 관례인
     /// 20260824 시드 재사용)이라 `Editor/SimulateDungeonFloors.cs`가 씬 없이도
     /// 같은 순서를 재현해 100층까지 미리 검증할 수 있다.
+    ///
+    /// "방 셸 — 티어별 마모 3단" 슬라이스(2026-09-22, PLAN.md 103-1) — 방
+    /// 하나를 계속 재사용하다 보니 100층을 내려가도 톤이 안 변해 밋밋했다.
+    /// `_floor`가 바뀔 때마다(`Awake`/`Descend`/`JumpToFloor`)
+    /// `DungeonRoomBuilder.SetWearTier(DungeonFormulas.RoomWearTier(_floor))`를
+    /// 불러 재질만 다시 굽는다 — 새 지오메트리 없음.
     /// </summary>
     public class DungeonFloorRunner : MonoBehaviour
     {
@@ -67,6 +73,7 @@ namespace Saga.Dungeon.World
         private Transform _contentRoot;
         private Transform _player;
         private CharacterController _playerController;
+        private DungeonRoomBuilder _roomBuilder; // "방 셸 — 티어별 마모 3단" — 같은 GameObject에 붙어 있다(BuildTestDungeonScene.cs).
 
         // `PlaytestDungeonFloorProgression.cs`(신규 검증 도구)가 실제로 잡아낸 결함 —
         // 방을 갈아치운 뒤에도 플레이어를 문 표지 자리(z=8~9)에 그대로 둬서, 다음 방이
@@ -108,6 +115,9 @@ namespace Saga.Dungeon.World
             contentGo.transform.SetParent(transform, false);
             _contentRoot = contentGo.transform;
 
+            _roomBuilder = GetComponent<DungeonRoomBuilder>();
+            UpdateWearTier();
+
             _roomTotal = DungeonFormulas.RoomsFor(_floor);
             BuildRoomContent("fight"); // dungeon.js buildFloor() — 층의 첫 방은 항상 전투방.
         }
@@ -131,8 +141,14 @@ namespace Saga.Dungeon.World
             _floor = floor;
             _roomIndex = 0;
             _roomTotal = DungeonFormulas.RoomsFor(_floor);
+            UpdateWearTier();
             BuildRoomContent("fight");
         }
+
+        /// <summary>"방 셸 — 티어별 마모 3단" — `_roomBuilder`가 없는 PC(에셋
+        /// 미확보로 PBR 재질을 못 찾아 primitive 색상 경로로 빠진 경우)에도
+        /// `SetWearTier()`가 안전하게 아무 일도 안 하니 그냥 부른다.</summary>
+        private void UpdateWearTier() => _roomBuilder?.SetWearTier(DungeonFormulas.RoomWearTier(_floor));
 
         private void Update()
         {
@@ -246,6 +262,7 @@ namespace Saga.Dungeon.World
             _floor++;
             _roomIndex = 0;
             _roomTotal = DungeonFormulas.RoomsFor(_floor);
+            UpdateWearTier();
 
             string msg = $"🪜 제{_floor}층으로 내려간다";
             if (sigilBonus > 0) msg += $"\n📜 부적 층 클리어 — 금 {sigilBonus} 추가 획득";
