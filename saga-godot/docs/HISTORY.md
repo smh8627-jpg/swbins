@@ -7840,3 +7840,21 @@ PROJECT_STATE.md` 참고. 요약:
 - `godot_regress.sh` 재실행 — 다섯 대표 씬 md5 완전 불변(전투는 유저 입력으로만 시작돼 부팅 5초 안엔 안 걸림), `.import`/`project.godot` 잡음 없음.
 - `PLAN.md` 101-2 GO⑥ 결정 문단을 새 결론으로 갱신(날짜 세션기록이 아니라 "결정이 바뀌었을 때"에 해당).
 - 실기 확인 목록에 "도적 두목 부위 파괴 스태거 3회 체감" 추가.
+
+## GO 나무 바람 흔들림 (2026-09-21, 같은 세션, "사가고돗 리스트 처음부터 이어해")
+
+- "실기 완료로 치고 다른 거 이어 진행" 지시로 saga-godot 102 그래픽 개편의 §8 대기를 풀었다. 조사해보니 env_pc.tres/env_mobile.tres 실제 값이 PLAN.md 문서 표와 이미 달라(누가 손으로 튜닝해 둔 뒤 문서 미갱신) 그 표대로 덮어쓰면 회귀 위험이 있어, 순수 추가만 가능한 항목을 사용자에게 다시 물어 골랐다: 바람 흔들림 셰이더(나무 수관만).
+- `saga_core/shaders/wind_sway.gdshaderinc`(PLAN 102-5 수식 그대로: `vertex.x += sin(TIME*1.2+world.x*0.3)*0.08*uv.y`)와 `vegetation_wind.gdshader` 신설.
+- Quaternius 나무 GLB(2026-09-20 교체)는 트렁크+캐노피가 표면 1장으로 이미 합쳐져 있었다(옛 Kenney 2표면 전제였던 헤더 주석은 낡음) — 그래서 "수관만" 흔드는 걸 UV.y 가중으로 해결(밑동 UV.y≈0 → 거의 안 흔들림).
+- 원본 StandardMaterial3D 값(알베도 텍스처·알파 시저·러프니스·스페큘러)을 하드코딩 않고 `vegetation_builder.gd::_apply_wind_shader()`가 그 재질에서 직접 읽어 셰이더로 그대로 옮긴다 — 겉모습이 안 바뀌게. GO 마을(CommonTree_1)·폐허(DeadTree_1) 나무 2종에 연결.
+- 헤드리스 실측: `test_village.gd`에 `SAGA_MESH_DEBUG` 임시 훅으로 두 나무의 표면 재질을 찍어 ShaderMaterial 전환·값 일치(scissor 0.2/0.0, roughness 1.0, specular 0.5) 확인, 셰이더 컴파일 오류 없음 확인 후 훅 제거.
+- `--headless --editor --quit` 1회로 신규 셰이더 `.uid` 생성, `godot_regress.sh` 통과(GO md5는 새 리소스 로드 로그가 늘어 예전과 다르지만 3회 내부 일관), `.import`/`project.godot` 잡음 없음.
+
+## GO 발밑 그림자 데칼 (2026-09-21, 같은 세션, "커밋 푸시 이어해")
+
+- 102-4 "캐릭터 발밑 접지 그림자(blob decal)"를 순수 추가로 골랐다. 새 이미지 파일을 안 받고 `saga_core/world/blob_shadow.gd`가 런타임에 64x64 원형 그라디언트(중심 검정→가장자리 투명, 제곱 감쇠)를 한 번만 만들어 `ImageTexture`로 캐시한다.
+- `make_decal()`이 `Decal` 노드를 만들어 반환 — `normal_fade 0.4`로 다리 같은 수직 면엔 안 붙고 바닥(위를 보는 면)에만 붙게 했다(안 그러면 캐릭터 다리에도 그림자가 칠해짐).
+- GO `player.gd::_ready()`에 연결(Player 하나만, 다른 NPC·적·DUNGEON/FOREST/STORY 플레이어는 범위 밖 — 결과 보고 확장할지 결정).
+- 헤드리스 실측: `test_village.gd`에 `SAGA_SHADOW_DEBUG` 임시 훅으로 Player 밑에 `BlobShadow` 노드가 정확한 position(0,0.15,0)·size(1.1,0.4,1.1)·normal_fade(0.4)·텍스처 유무를 확인 후 훅 제거.
+- GDScript `preload()`는 verbose 로그에 "Loading resource" 줄을 안 남긴다는 걸 이번에 알았다(cel_shader_apply.gd 도 마찬가지) — 로그에 안 보인다고 안 실렸다는 뜻이 아니다, 실제 동작 확인은 이 debug 훅처럼 직접 찍어야 한다.
+- `--headless --editor --quit` 1회로 `.uid` 생성, `godot_regress.sh` 통과, `.import`/`project.godot` 잡음 없음.

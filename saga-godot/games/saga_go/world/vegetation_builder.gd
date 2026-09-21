@@ -62,6 +62,11 @@ const ROCK_LARGE_SCALE := 0.299  # Rock_Medium_1 실측고 2.260 → 0.675/2.260
 const ROCK_SMALL_SCALE := 0.352  # Rock_Medium_2 실측고 1.899 → 0.669/1.899
 const CROP_GLB := "res://assets/vegetation/crops_wheatStageB.glb"
 
+## PLAN.md 102-5 "초목·지형·애니" — 나무 수관 흔들림(2026-09-21, 순수
+## 추가). 원본 StandardMaterial3D 값을 그대로 복사해 셰이더로 바꿔치기
+## 하므로(_apply_wind_shader) 겉모습은 그대로고 정점만 흔들린다.
+const WIND_SHADER := preload("res://saga_core/shaders/vegetation_wind.gdshader")
+
 ## 2026-09-20 — 103-5 잔디꽃 22종 스냅 완비분 중 첫 실사용. 평지("." 타일)에
 ## 성긴 지면 장식 하나만 얹는다(순수 시각, 충돌 없음 — FOREST forest_biome_
 ## scatter.gd DENSITY 방식과 같은 결). 옛 참조 크기가 없어(신규 장식) 실측
@@ -97,6 +102,25 @@ static func _hash(gx: int, gy: int, salt: int) -> float:
 	return float(h & 0x7fffffff) / float(0x7fffffff)
 
 
+## 원본 StandardMaterial3D 의 텍스처·알파 시저·러프니스·스페큘러 값을
+## 그대로 읽어 wind_sway 셰이더 쪽으로 옮긴다 — 하드코딩하지 않아 원본
+## 에셋이 나중에 바뀌어도 이 값들이 따로 안 어긋난다. transparency 가
+## ALPHA_SCISSOR 가 아니면(DeadTree 처럼 opaque) 컷아웃을 걸지 않는다.
+func _apply_wind_shader(mesh: Mesh, surface_idx: int) -> void:
+	var orig := mesh.surface_get_material(surface_idx)
+	if not (orig is BaseMaterial3D):
+		return
+	var bm := orig as BaseMaterial3D
+	var mat := ShaderMaterial.new()
+	mat.shader = WIND_SHADER
+	mat.set_shader_parameter("albedo_texture", bm.albedo_texture)
+	var scissor := bm.alpha_scissor_threshold if bm.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR else 0.0
+	mat.set_shader_parameter("alpha_scissor_threshold", scissor)
+	mat.set_shader_parameter("roughness_value", bm.roughness)
+	mat.set_shader_parameter("specular_value", bm.metallic_specular)
+	mesh.surface_set_material(surface_idx, mat)
+
+
 func _scatter_trees() -> void:
 	var ground: float = TerrainBuilder.LEGEND["T"].height
 	var positions: Array[Vector3] = []
@@ -122,6 +146,7 @@ func _scatter_trees() -> void:
 	var tree_mesh := GLBUtils.extract_mesh(REGION_TREE_GLB.get(region_id, REGION_TREE_GLB["village"]))
 	if tree_mesh == null:
 		return
+	_apply_wind_shader(tree_mesh, 0)
 	var region_tree_scale: float = REGION_TREE_SCALE.get(region_id, REGION_TREE_SCALE["village"])
 
 	var mm := MultiMesh.new()
