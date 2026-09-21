@@ -373,6 +373,7 @@
     global.DG.codex.tick();             // 지나가며 본 것에 도장을 찍는다
     if (global.DG.beacon) { global.DG.beacon.tick(dt); }   // 봉수대 3초 홀드(§5①)
     if (global.DG.stela) { global.DG.stela.tick(dt); }     // 15m 안 비석을 저절로 발견(§5⑤)
+    if (global.DG.drop) { global.DG.drop.tick(dt); }       // 흩어진 짐을 걷는다(§5⑧)
     if (global.DG.bond) { global.DG.bond.tick(); }         // 함께 걸은 거리로 인연이 쌓인다(§5⑥)
     if (!global.DG_NO_DRAW) {
       world.draw();

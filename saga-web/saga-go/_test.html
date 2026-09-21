@@ -109,6 +109,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/beacon.js"></script>
 <script src="js/shrine.js"></script>
 <script src="js/stela.js"></script>
+<script src="js/drop.js"></script>
 <script src="js/event.js"></script>
 <script src="js/codex.js"></script>
 <script src="js/ambient.js"></script>
@@ -6384,12 +6385,12 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
     /** 사당 진단이 쓰는 세이브 조각을 통째로 되돌리는 틀 */
     function shrineKeep() {
       var keep = JSON.stringify({ shrines: C.save.shrines || null, items: C.save.items || null, daily: C.save.daily || null,
-        beacons: C.save.beacons || null, gold: C.save.player.gold, feat: C.save.player.feat, x: C.save.player.pos.x, y: C.save.player.pos.y });
+        beacons: C.save.beacons || null, drops: C.save.drops || null, gold: C.save.player.gold, feat: C.save.player.feat, x: C.save.player.pos.x, y: C.save.player.pos.y });
       var spawnUids = DG.world.spawns.map(function (q) { return q.uid; });
       return function () {
         var k = JSON.parse(keep);
         C.save.shrines = k.shrines || undefined; C.save.items = k.items || undefined; C.save.daily = k.daily || undefined;
-        C.save.beacons = k.beacons || undefined;
+        C.save.beacons = k.beacons || undefined; C.save.drops = k.drops || undefined;
         C.save.player.gold = k.gold; C.save.player.feat = k.feat; C.save.player.pos.x = k.x; C.save.player.pos.y = k.y;
         DG.world.spawns.slice().forEach(function (q) { if (spawnUids.indexOf(q.uid) < 0) { DG.world.removeSpawn(q.uid); } });
       };
@@ -7078,6 +7079,157 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       B.rec(id); B.lvFor(100, 2); B.lvOf(id); B.mulOf(id); B.line(id, 2); B.pairs(); B.kiPct(); B.bonus(); B.partnersOf(id); B.progressOf(id);
       HR.stats(id); HR.breakdown(id);
       return before === JSON.stringify(C.save) && '세이브 그대로';
+    });
+
+    /* ── 패배 비용(PLAN §5 ⑧, 2026-09-21) — 졌을 때 금의 15%(상한 300)가 그 자리에 떨어진 짐으로 남고,
+     * 10분 안에 150m 안에서 이기면 되찾는다. 손으로 진 판에만 붙는다. 아직 실기 확인 전. */
+
+    /** 짐 진단이 쓰는 세이브 조각을 통째로 되돌리는 틀 */
+    function dropKeep() {
+      var keys = ['drops', 'raid', 'party', 'daily', 'shrines', 'items'];
+      var snap = {}; keys.forEach(function (k) { snap[k] = C.save[k] === undefined ? undefined : JSON.stringify(C.save[k]); });
+      var pl = JSON.parse(JSON.stringify(C.save.player)), px = C.save.player.pos.x, py = C.save.player.pos.y;
+      return function () {
+        keys.forEach(function (k) { C.save[k] = snap[k] === undefined ? undefined : JSON.parse(snap[k]); });
+        Object.keys(pl).forEach(function (k) { if (k !== 'pos') { C.save.player[k] = pl[k]; } });
+        C.save.player.pos.x = px; C.save.player.pos.y = py;
+        ['drop.pct', 'drop.cap', 'drop.minutes', 'drop.radiusM'].forEach(function (k) { C.setTune(k, null); });
+        DG.drop._resetForTest();
+      };
+    }
+
+    t('패배 — 금의 15%(상한 300)가 그 자리에 떨어진 짐으로 남는다', function () {
+      var D = DG.drop, undo = dropKeep(), out = false;
+      try {
+        C.save.drops = undefined; C.save.player.gold = 1000;
+        var a = D.lose(), g1 = C.save.player.gold, l1 = D.list().length;
+        C.save.drops = undefined; C.save.player.gold = 5000;
+        var b = D.lose(), g2 = C.save.player.gold;
+        C.save.drops = undefined; C.save.player.gold = 0;
+        var z = D.lose(), l3 = D.list().length;
+        C.save.player.gold = 4;
+        var y = D.lose();                                         // 4 의 15% 는 0 — 잃을 것이 없다
+        out = !!a && a.gold === 150 && g1 === 850 && l1 === 1 && !!b && b.gold === 300 && g2 === 4700 &&
+          z === null && l3 === 0 && y === null && C.save.player.gold === 4;
+      } finally { undo(); }
+      return out && '1000→150(남은 850) · 5000→상한 300 · 금 0·4 는 잃을 것 없음';
+    });
+
+    t('패배 — 10분 안에 그 근처에서 이기면 돌아온다', function () {
+      var D = DG.drop, undo = dropKeep(), out = false;
+      try {
+        C.save.drops = undefined; C.save.player.gold = 1000;
+        var t0 = Date.now();
+        D.lose(t0);
+        var back = D.win(t0 + 1000);                              // 짐이 제자리이니 돌아온다
+        var g1 = C.save.player.gold, l1 = D.list(t0 + 1000).length;
+        var again = D.win(t0 + 2000);                             // 이미 되찾았으니 두 번은 없다
+        // 멀리서 이기면 못 되찾는다
+        C.save.player.gold = 1000; C.save.drops = undefined; D.lose(t0);
+        var px = C.save.player.pos.x;
+        C.save.player.pos.x = px + 500;                           // 500m 밖
+        var far = D.win(t0 + 3000), lf = D.list(t0 + 3000).length;
+        C.save.player.pos.x = px + 100;                           // 100m 안(반경 150)
+        var near = D.win(t0 + 4000);
+        out = !!back && back.gold === 150 && g1 === 1000 && l1 === 0 && again === null && far === null && lf === 1 &&
+          !!near && near.gold === 150 && C.save.player.gold === 1000 && D.list(t0 + 4000).length === 0;
+      } finally { undo(); }
+      return out && '제자리 승리 → 1000 으로 · 두 번은 없음 · 500m 밖은 못 되찾고 100m 안은 됨';
+    });
+
+    t('패배 — 10분이 지나면 흩어지고, 그 뒤 이겨도 돌아오지 않는다', function () {
+      var D = DG.drop, undo = dropKeep(), out = false;
+      try {
+        C.save.drops = undefined; C.save.player.gold = 1000;
+        var t0 = Date.now() - 11 * 60 * 1000;
+        D.lose(t0);
+        var inside = D.list(t0 + 9 * 60 * 1000).length, outside = D.list(t0 + 10 * 60 * 1000 + 1).length;
+        var r = D.win();                                          // 지금(11분 뒤) 이겨도
+        out = inside === 1 && outside === 0 && r === null && C.save.player.gold === 850 &&
+          (C.save.drops || []).length === 0;                      // 흩어진 것은 걷혀 있다
+        // 손잡이: 남는 시간 20분이면 11분 뒤에도 산다
+        C.setTune('drop.minutes', 20);
+        C.save.drops = [{ lat: 1, lng: 1, gold: 5, at: Date.now() - 11 * 60 * 1000 }];
+        out = out && D.list().length === 1;
+      } finally { undo(); }
+      return out && '9분엔 있고 10분 1ms 엔 없음 · 흩어진 짐은 안 돌아옴 · drop.minutes=20 이면 11분 뒤에도 남음';
+    });
+
+    t('패배 — 동시에 셋까지, 넷째면 가장 오래된 것이 먼저 흩어지고, 손잡이 0 이면 벌칙이 없다', function () {
+      var D = DG.drop, undo = dropKeep(), out = false;
+      try {
+        C.save.drops = undefined; C.save.player.gold = 1000;
+        var t0 = Date.now();
+        var golds = [];
+        for (var i = 0; i < 4; i++) { golds.push(D.lose(t0 + i * 1000).gold); }
+        var ls = D.list(t0 + 5000), have = ls.map(function (d) { return d.gold; });
+        var capped = ls.length === D.MAX_DROPS && have.indexOf(golds[0]) < 0 && have.join() === golds.slice(1).join();
+        // 상한 손잡이
+        C.save.drops = undefined; C.save.player.gold = 10000;
+        C.setTune('drop.cap', 50);
+        var lowCap = D.lose(t0).gold === 50;
+        // 비율 0 = 벌칙 없음
+        C.save.drops = undefined; C.save.player.gold = 1000; C.setTune('drop.pct', 0);
+        var off = D.lose(t0);
+        out = capped && lowCap && off === null && C.save.player.gold === 1000 && !(C.save.drops || []).length;
+      } finally { undo(); }
+      return out && '넷을 잃으면 셋(첫째가 흩어짐) · drop.cap=50 → 50 · drop.pct=0 → 벌칙 없음';
+    });
+
+    t('패배 — 토벌은 손으로 진 판에만 짐이 떨어지고, 이기면 근처 짐이 돌아온다(즉시 판정은 안 잃는다)', function () {
+      var R = DG.raid, D = DG.drop, undo = dropKeep(), out = false;
+      try {
+        var f = DG.world.fortsNear()[0], fr = f && findRaid(f);
+        if (!fr) { return false; }
+        if (!C.save.party.length) {
+          var h0 = DG.data.heroes[0];
+          C.save.dex.heroes[h0.id] = { count: 1, firstAt: Date.now() }; C.save.party = [h0.id];
+        }
+        var twin = function (tag, hp) { return Object.assign({}, fr.raid, { key: fr.raid.key + tag, hp: hp }); };
+        C.save.raid = { pass: 9, day: R.state().day, won: 0, tried: {} };
+        C.save.drops = undefined; C.save.player.gold = 1000;
+        var auto = R.fight(twin('a', 1e12));                      // 즉시 판정(인자 없음) — 지지만 잃는 것 없음
+        var g0 = C.save.player.gold;
+        var live = R.fight(twin('b', 1e12), { live: true, dealt: 0, folded: [] });   // 손으로 진 판
+        var g1 = C.save.player.gold;
+        var win = R.fight(twin('c', 1), { live: true, dealt: 1, folded: [] });        // 손으로 이긴 판
+        out = auto.ok && auto.win === false && !auto.drop && g0 === 1000 &&
+          live.win === false && !!live.drop && live.drop.gold === 150 && g1 === 850 &&
+          win.win === true && !!win.recovered && win.recovered.gold === 150 && D.list().length === 0;
+      } finally { undo(); }
+      return out && '즉시 판정 패배는 그대로(1000) · 손으로 진 판 1000→850(짐 150) · 손으로 이기면 짐이 돌아옴';
+    });
+
+    t('패배 — 사당에서 지면 짐이 떨어지고, 근처 사당을 깨면 돌아온다', function () {
+      var SH = DG.shrine, D = DG.drop, undo = dropKeep(), out = false;
+      try {
+        C.save.shrines = {}; C.save.drops = undefined; C.save.player.gold = 1000;
+        var lost = SH.settleFail(SH.list()[20]);
+        var g1 = C.save.player.gold;
+        var won = SH.settleClear(SH.list()[21]);
+        out = !!lost.drop && lost.drop.gold === 150 && g1 === 850 &&
+          !!won.recovered && won.recovered.gold === 150 && C.save.player.gold === 850 + 150 + SH.REWARD.gold &&
+          D.list().length === 0;
+      } finally { undo(); }
+      return out && '사당 실패 → 짐 150 · 사당 클리어 → 짐이 돌아옴(금 850+150+보상)';
+    });
+
+    t('패배 — 카드 문구·미니맵 마커·값을 내는 함수는 세이브를 안 건드린다', function () {
+      var D = DG.drop, undo = dropKeep(), out = false;
+      try {
+        var line = D.cardLine({ gold: 150, ms: 600000 });
+        var okCard = line.indexOf('150') >= 0 && line.indexOf('10분') >= 0 &&
+          /도감·인물·인연·비석/.test(line) && D.cardLine(null) === '' && D.backLine(null) === '' &&
+          D.backLine({ gold: 150 }).indexOf('150') >= 0;
+        C.save.drops = undefined; C.save.player.gold = 1000; D.lose();
+        var ms = D.markers();
+        var blips = DG.minimap.blips(C.save.player.pos, 180, Date.now()).filter(function (b) { return b.t === 'drop'; });
+        var okMap = ms.length === 1 && ms[0].gold === 150 && blips.length === 1;
+        var before = JSON.stringify(C.save);
+        D.list(); D.markers(); D.cardLine({ gold: 1, ms: 60000 }); D.pct(); D.cap(); D.lifeMs(); D.radiusM();
+        out = okCard && okMap && before === JSON.stringify(C.save);
+      } finally { undo(); }
+      return out && '카드: 금액·10분·"도감·인물·인연·비석은 그대로" · 미니맵에 짐 1 · 살피기 세이브 불변';
     });
 
     /* ── VRoid 몸 변형 (vroid-variant.js, 2026-09-20) — 인물 전원에게 VRoid 몸을 나눠 입히고 색만 바꾼다 ─────────── */

@@ -51,7 +51,8 @@
     beacon:      { c: '#ff9d3d', r: 3.2 },
     'beacon-lit': { c: '#ff5a1e', r: 3.6 },
     shrine:      { c: '#f0d878', r: 3.0 },
-    stele:       { c: '#d9d2c0', r: 2.2 }
+    stele:       { c: '#d9d2c0', r: 2.2 },
+    drop:        { c: '#ffb36b', r: 3.4 }
   };
 
   var node = null, canvas = null, ctx = null;
@@ -223,6 +224,13 @@
     if (STM && STM.foundNear) {
       var fl = STM.foundNear(600);
       for (i = 0; i < fl.length; i++) { put('stele', fl[i].x, fl[i].y, '', false); }
+    }
+
+    /* 떨어진 짐(PLAN §5 ⑧) — 10분 안에 되찾을 것이라 테두리에도 붙여 방향을 알린다 */
+    var DRP = global.DG.drop;
+    if (DRP && DRP.markers) {
+      var dl = DRP.markers();
+      for (i = 0; i < dl.length; i++) { put('drop', dl[i].x, dl[i].y, '🎒 ' + dl[i].gold, true); }
     }
 
     return out;

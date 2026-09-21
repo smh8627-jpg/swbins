@@ -144,9 +144,10 @@
 
     if (!win) {
       core.log('⚔️ ' + raid.hero.name + ' 을(를) 꺾지 못했다 (남은 기세 ' + Math.max(0, hp) + ')', 'bad');
+      var lost = (opts && opts.live && global.DG.drop) ? global.DG.drop.lose() : null;   // 패배 비용(⑧) — 손으로 진 판만
       core.emit('changed');
       core.persist();
-      return { ok: true, win: false, rounds: rounds, left: Math.max(0, hp), raid: raid };
+      return { ok: true, win: false, rounds: rounds, left: Math.max(0, hp), raid: raid, drop: lost };
     }
 
     /* 이겼다 — 원작처럼 **잡을 기회**가 주어진다 (등급이 높을수록 어렵다).
@@ -161,6 +162,7 @@
     core.save.player.gold += gold;
     s.won = (s.won || 0) + 1;
     if (global.DG.bond) { global.DG.bond.onRaidWin(); }       // 인연(⑥) — 파티 모두 승수 +1
+    var back = global.DG.drop ? global.DG.drop.win() : null;  // 떨어진 짐 회수(⑧)
 
     var joined = null;
     if (caught) { joined = global.DG.encounter.gainHero(raid.hero); }
@@ -171,7 +173,8 @@
     return {
       ok: true, win: true, rounds: rounds, raid: raid,
       caught: caught, chance: chance,
-      reward: { feat: feat, gold: gold, exp: exp, joined: joined }
+      reward: { feat: feat, gold: gold, exp: exp, joined: joined },
+      recovered: back
     };
   }
 

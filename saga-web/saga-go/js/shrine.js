@@ -255,9 +255,11 @@
       (sealed ? ' · 🏵️ 인장 하나로 합쳐졌다' : '') +
       (spawn ? ' · ' + spawn.ref.name + ' 이(가) 곁에 섰다' : ''), 'good');
     core.emit('toast', '⛩️ 시련 통과' + (spawn ? ' — ' + spawn.ref.name : ''));
+    var back = global.DG.drop ? global.DG.drop.win() : null;   // 떨어진 짐 회수(⑧)
     core.emit('changed');
     core.persist();
-    return { ok: true, reward: REWARD, shard: shard, sealed: sealed, spawn: spawn, hero: hero, clears: st.clears };
+    return { ok: true, reward: REWARD, shard: shard, sealed: sealed, spawn: spawn, hero: hero, clears: st.clears,
+      recovered: back };
   }
 
   /** 졌다 — 사료 2 와 10분 봉쇄. 한 번만 부를 것 */
@@ -268,9 +270,10 @@
     var lost = B ? B.take('feed', FAIL_FEED) : 0;
     core.log('⛩️ ' + s.name + ' 시련에서 밀려났다' + (lost ? ' — 🍖 사료 ' + lost + ' 을 잃었다' : '') +
       ' · 10분 뒤 다시', 'bad');
+    var dropped = global.DG.drop ? global.DG.drop.lose() : null;   // 패배 비용(⑧) — 사당은 늘 손으로 치른다
     core.emit('changed');
     core.persist();
-    return { ok: false, lost: lost, lockMs: LOCK_MS };
+    return { ok: false, lost: lost, lockMs: LOCK_MS, drop: dropped };
   }
 
   /* ── 화면 ─────────────────────────────────────────────── */
@@ -388,6 +391,7 @@
           (res.spawn
             ? '<div class="enc-reward">🙋 ' + res.spawn.ref.name + ' 이(가) 곁에 섰다 — 가까이 가 말을 걸어 보자</div>'
             : '') +
+          (global.DG.drop ? global.DG.drop.backLine(res.recovered) : '') +
           '<button class="btn primary wide" data-act="ok">좋다</button>' +
         '</div>';
     } else {
@@ -398,6 +402,7 @@
           '<p class="quote">돌문이 다시 닫힌다.</p>' +
           '<div class="enc-reward">' + (res.lost ? '🍖 사료 ' + res.lost + ' 을 잃었다 · ' : '') +
             '이 사당은 10분간 닫힌다</div>' +
+          (global.DG.drop ? global.DG.drop.cardLine(res.drop) : '') +
           '<button class="btn primary wide" data-act="ok">물러난다</button>' +
         '</div>';
     }

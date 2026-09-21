@@ -269,10 +269,11 @@
       var exp0 = core.gainExp(Math.round(rg.rank.feat / 4));
       core.log('🏴 ' + rg.station.name + ' — ' + rg.boss.name +
         ' 을(를) 물리치지 못했다 (남은 기세 ' + Math.max(0, hp) + ')', 'bad');
+      var lost = (opts && opts.live && global.DG.drop) ? global.DG.drop.lose() : null;   // 패배 비용(⑧) — 손으로 진 판만
       core.emit('changed');
       core.persist();
       return { ok: true, win: false, rounds: rounds, left: Math.max(0, hp),
-        rogue: rg, reward: { exp: exp0 } };
+        rogue: rg, reward: { exp: exp0 }, drop: lost };
     }
 
     /* 이겼다 — 역참이 풀리고, 두고 간 암영 하나가 남는다 */
@@ -291,12 +292,13 @@
 
     core.log('🏴 ' + rg.station.name + ' 탈환! ' + rg.rank.name + ' ' + rg.boss.name +
       ' 을(를) 물렸다 · 🪙 +' + gold + ' · 🌑 ' + rg.dark.name + ' 이(가) 남았다', 'good');
+    var back = global.DG.drop ? global.DG.drop.win() : null;   // 떨어진 짐 회수(⑧)
     core.emit('changed');
     core.persist();
     return {
       ok: true, win: true, rounds: rounds, rogue: rg,
       dark: rg.dark, darkCount: left,
-      reward: { feat: feat, gold: gold, exp: exp }
+      reward: { feat: feat, gold: gold, exp: exp }, recovered: back
     };
   }
 
@@ -533,6 +535,7 @@
           '<p class="quote">"다음에 오시오. 그때는 길을 비켜 드릴지도."</p>' +
           '<div class="enc-reward">남은 기세 ' + core.fmt(res.left) +
             ' · 경험치 +' + res.reward.exp + '</div>' +
+          (global.DG.drop ? global.DG.drop.cardLine(res.drop) : '') +
           perfLine(p) +
           '<button class="btn ghost wide" data-act="ok">확인</button>' +
         '</div>';
@@ -548,6 +551,7 @@
         '<p class="quote">적도가 물러가며 <b>' + pet.name + '</b> 을(를) 두고 갔다 — 검게 물들어 있다.</p>' +
         '<div class="enc-reward">공적 +' + res.reward.feat + ' · 금 +' + res.reward.gold +
           ' · 경험치 +' + res.reward.exp + '</div>' +
+        (global.DG.drop ? global.DG.drop.backLine(res.recovered) : '') +
         perfLine(p) +
         '<div class="enc-reward">🌑 암영 ' + res.darkCount + '마리 안고 있습니다 · ✨ 단사 ' +
           core.fmt(have) + ' / ' + c.dust + ' 필요</div>' +

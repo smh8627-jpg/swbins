@@ -231,15 +231,17 @@
       p.fortTaken = (p.fortTaken || 0) + 1;
       if (global.DG.quest) { global.DG.quest.progress('fort', 1); }
       core.log('🏯 ' + fort.name + ' 점령! (' + info.factionName + ' 수비대를 물렸다)', 'good');
+      var back = global.DG.drop ? global.DG.drop.win() : null;   // 떨어진 짐 회수(⑧)
       core.emit('changed');
       return { ok: true, win: true, rounds: rounds, info: info,
-        reward: { feat: feat, exp: exp, fame: fame } };
+        reward: { feat: feat, exp: exp, fame: fame }, recovered: back };
     }
     rec.cool = Date.now() + COOL_MS;
     var exp2 = core.gainExp(Math.round(info.tier.feat / 4));
     core.log('🏯 ' + fort.name + ' 공략 실패 — ' + info.factionName + ' 수비대가 버텼다', 'bad');
+    var lost = (opts && opts.live && global.DG.drop) ? global.DG.drop.lose() : null;   // 패배 비용(⑧) — 손으로 진 판만
     core.emit('changed');
-    return { ok: true, win: false, rounds: rounds, info: info, reward: { exp: exp2 } };
+    return { ok: true, win: false, rounds: rounds, info: info, reward: { exp: exp2 }, drop: lost };
   }
 
   /* ── 매 프레임 ────────────────────────────────────────── */
@@ -360,6 +362,12 @@
     bind();
   }
 
+  /** 패배 비용(⑧) — 졌으면 떨어뜨린 짐, 이겼으면 되찾은 짐 한 줄 */
+  function dropLine(res) {
+    var D = global.DG.drop;
+    return D ? (res.win ? D.backLine(res.recovered) : D.cardLine(res.drop)) : '';
+  }
+
   function renderResult(res, p) {
     var el = host();
     if (!el) { return; }
@@ -378,7 +386,7 @@
         (res.win
           ? '공적 +' + res.reward.feat + ' · 경험치 +' + res.reward.exp + ' · 명성 +' + res.reward.fame
           : '경험치 +' + res.reward.exp + ' · 수비가 ' + leftLabel(COOL_MS) + ' 경계합니다') +
-      '</div>' + perfLine(p) +
+      '</div>' + dropLine(res) + perfLine(p) +
       '<button class="btn primary wide" data-act="ok">확인</button>';
     bind();
   }
@@ -406,7 +414,7 @@
             ' · 경험치 +' + res.reward.exp +
             (res.caught ? '' : ' · 등용 실패(' + Math.round(res.chance * 100) + '%)')
           : '남은 기세 ' + core.fmt(res.left) + ' · 격문 한 장을 썼다') +
-      '</div>' + perfLine(p) +
+      '</div>' + dropLine(res) + perfLine(p) +
       '<button class="btn primary wide" data-act="ok">확인</button>';
     bind();
   }
