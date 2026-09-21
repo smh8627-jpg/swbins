@@ -211,6 +211,10 @@ namespace Saga.EditorTools
                 AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Props/stall-red.glb"),
                 AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Props/fence.glb"),
                 AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Props/fence-gate.glb"));
+            // 102-4(2026-09-21) "단계 교체" — 울타리만 BuildLandmarks()의 다리
+            // 널판과 같은 woodMaterial을 씌운다(lantern·stall은 보류, PropsBuilder.cs 참고).
+            var woodMat = AssetDatabase.LoadAssetAtPath<Material>(VillageWoodMatPath);
+            if (woodMat != null) SetPrivateField(builder, "woodMaterial", woodMat);
             builder.Build();
         }
 

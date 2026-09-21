@@ -1,7 +1,7 @@
 # PROJECT_STATE — saga-unity (상태만, ≤15KB, 덮어쓴다)
 
 **규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다(2026-09-16 재편 전 본문 5,532줄은 그쪽 첫 절에 그대로 있다). 넘치면 `tools/precheck.sh` 가 막는다.
-마지막 갱신: 2026-09-21 (아홉 세션째, 이어서 — DUNGEON 5.6 → FOREST 5.6 → STORY 5-8 → 105 Q4·Q1·Q3′ 결정 → 102-4 승격 둘 실행 → `PlaytestStorySlice` 버그 원인 찾고 고침 → **`CharactersVroid/` 삭제**) — 경위는 아래 표·HISTORY grep. **Q4·Q1·Q3′·Q-U4**: 전부 결정 완료(PLAN 103-1/103-3/105·SAGA-DESIGN §10). **102-4**: `Shaders/Character/`·`Environment/PBR/` 승격, `CharactersVroid/`(참조 0건, 사용자 승인) 삭제 완료 — 남은 건 Kenney `Characters/`·`Buildings/` 등 "단계 교체"뿐(미착수). **`PlaytestStorySlice`**: 세이브 왕복 검증이 `save_story.json` 원상복구를 안 해 `partyActiveIndex:2`가 눌어붙었던 게 원인 — GO와 같은 try/finally로 고치고 3연속 OK.
+마지막 갱신: 2026-09-21 (열 세션째, 이어서 — DUNGEON 5.6 → FOREST 5.6 → STORY 5-8 → 105 결정들 → 102-4 승격·삭제 → `PlaytestStorySlice` 버그 수정 → **102-4 Props 재질 교체**) — 경위는 아래 표·HISTORY grep. **102-4 재조사(2026-09-21)로 처음 확인**: `Buildings/`·`Dungeon/`·`Shrine/` Kenney는 이미 전부 PBR 재질이었다("완료 요약" 표 "44장 완료"가 이 뜻). 진짜 남은 건 `Props/`(fence·fenceGate만 이번에 PBR 처리, lantern·stall은 재질 혼재라 보류)와 `Rocks/`·`Vegetation/`(procgen.py 몫, 미착수)뿐 — `Characters/`(Kenney)는 여전히 GO/FOREST/STORY 실사용 중이라 못 뺀다.
 
 ## 캐릭터 자산 — 이 PC 기준 (2026-09-19)
 
@@ -11,7 +11,7 @@ Maria(플레이어)·Abe(잡졸)·Brute(두목) 셋만 mixamo.com 실자산 확�
 
 | 게임 | 씬 | Vertical Slice(Phase 1~8) | 51장 콘텐츠 확장 | 44장 에셋 교체 | 공통(66-2 라이팅·67~69 사운드/설정/Localization) |
 |---|---|---|---|---|---|
-| GO | `TestVillage` | 완료 — 도적의 습격(이동·촌장·상인·나그네·조우·전투·등용·EXP·장비·루트·저장 v13) | 동물 Group·나그네·은닉 보물·산신당·행운 돌탑·동굴 유물·채집 · **101-2 ④⑦③(2026-09-19)**: 일과판·승급 3택·75초 토벌 · **101-2 ①⑥⑧(2026-09-20)**: 봉수대(`BeaconTower`)·인연(`BondState`)·패배 비용·회수(`DropState`/`DropMarker`) · **101-2 ②(2026-09-20)**: 사당 시련(`ShrineTrialState`/`ShrineTrialEncounter`, 파도 3·인장 조각) | Player·주요 Enemy·Environment·Building·Props 전부 GLB/PBR | 전부 붙음. **목표판/세션카드(101-2 A·B)**. **101-3 C·F·G 전부 완료(2026-09-17)** |
+| GO | `TestVillage` | 완료 — 도적의 습격(이동·촌장·상인·나그네·조우·전투·등용·EXP·장비·루트·저장 v13) | 동물 Group·나그네·은닉 보물·산신당·행운 돌탑·동굴 유물·채집 · **101-2 ④⑦③(2026-09-19)**: 일과판·승급 3택·75초 토벌 · **101-2 ①⑥⑧(2026-09-20)**: 봉수대(`BeaconTower`)·인연(`BondState`)·패배 비용·회수(`DropState`/`DropMarker`) · **101-2 ②(2026-09-20)**: 사당 시련(`ShrineTrialState`/`ShrineTrialEncounter`, 파도 3·인장 조각) | Player·주요 Enemy·Environment·Building 전부 GLB/PBR, Props는 fence·fenceGate만(102-4, lantern·stall은 보류) | 전부 붙음. **목표판/세션카드(101-2 A·B)**. **101-3 C·F·G 전부 완료(2026-09-17)** |
 | DUNGEON | `TestDungeon` | 완료 — 첫 방→무리·엘리트/보스·방 종류(우물·상자·성소·행상)·회피·강공격·필드(방 2+복도)·동행 | 마을 넷·층 진행·매복·구출·수수께끼·은닉 창고·빌드(회전베기)·도감·보석/영웅 상태 · **101-2 전부 완료(5.6, 2026-09-21로 마감)** | Player·잡졸(황건적)·미니보스/두목·Environment·Building | 전부 붙음(SFX 실클립 통일). **목표판/세션카드(101-2 A·B, 5.6에서 일일/주간 실값 배선)**. **101-3 C·F·G 전부 완료(2026-09-17)** |
 | FOREST | `TestVillageForest` | 완료(이동 전용 컨트롤러) — 마을·집·주민 | 벽지/장판·가구 자유 배치(1m 격자)·생물(Flee/Group)·과일나무·채집·좌판·밀어내기 전투 · **101-2 전부 완료(5.6, 2026-09-21로 마감)**: 마을 번들·채집 손맛·마을 평가·택배 사슬·축제(`ForestFestivalState`, 세배·꽃놀이·소원) | Environment 완료 | 전부 붙음. **목표판/세션카드(A·B)**. 101-3 해당 없음 |
 | STORY | `TestField` | 완료 — 2.5D 횡스크롤(Z 고정)·잡졸 10·두목·사명 2·볼트·로프 | 척후병 NPC·사건·관계·선택(51장 완결)·전직(Lv.10, 무사/궁수/협객/방사) · 관문 대장(5-4, 주간 챔피언) · 비경(5-3, 노드 지도 5층) · **5-8(2026-09-21)** 동료 교대(`StoryPartyState`, 선봉/유격/호법 — MP 없는 서명 발동) — **101-2 STORY는 5-2(보류)만 남고 전부 소진** | 척후병 실제 모델 | 전부 붙음. **목표판/세션카드(101-2 A·B)**. **101-3 C·F·G 전부 완료(2026-09-18)** |
@@ -35,7 +35,7 @@ STORY 세부(경위는 HISTORY grep): `StoryJobState.JobChosen` 이벤트로 `Re
 
 ## 다음 작업 (우선순위, 상세는 PLAN 해당 장 · 경위는 HISTORY 날짜 grep)
 
-1. **PLAN 104-1 ⑤·102-4 마무리** — 승격 둘(Shaders/Character·Environment/PBR)·`CharactersVroid/` 삭제까지 완료. 남은 건: `Buildings/`·`Dungeon/`·`Props/`·`Rocks/`·`Shrine/`·`Vegetation/` Kenney "단계 교체"(콘텐츠 제작 필요, 아직 미착수 — 103장 에셋 파이프라인 규모의 작업) · `Characters/` Kenney는 **아직 못 뺀다**(GO 플레이어·GO/FOREST/STORY 주민·STORY 잡졸이 실사용 중, "44장 완료" 전제가 틀렸었다 — 102-4 표 참고).
+1. **PLAN 104-1 ⑤·102-4 마무리** — Shaders/Character·Environment/PBR 승격, `CharactersVroid/` 삭제, `Props/`(fence·fenceGate) PBR 교체까지 완료. 남은 건: `Rocks/`·`Vegetation/`(`procgen.py`, 103장 에셋 생성 작업, 미착수) · `Props/`의 lantern·stall-red(재질 혼재라 보류, 실기 확인 후 재판단) · `Characters/` Kenney는 **아직 못 뺀다**(GO 플레이어·GO/FOREST/STORY 주민·STORY 잡졸이 실사용 중).
 2. **PLAN 101-2 이어서** — 사실상 다 닫힘, 남은 건 GO⑤(모바일 빌드 뒤)·STORY5-2(보류)뿐.
 3. **실기 GUI 확인 몰아서** — "실기 확인 대기" 전부(아래 목록). 사용자 몫. 다른 PC로 이어받으면 `CharactersRealistic/`가 비어 있음 — mixamo.com에서 새로 받을 것(목록은 `SetupXxxCharacterImport.cs`).
 4. **PLAN 105 열린 질문(Q-U1·Q-U3)** — 남은 둘만, 둘 다 사람 몫(Q-U1 형식만 열림, Q-U3 Shader Graph는 사람 GUI 필요). (Q1·Q3′·Q4·Q-U4 는 2026-09-21 결정 완료.)
@@ -63,7 +63,7 @@ STORY 세부(경위는 HISTORY grep): `StoryJobState.JobChosen` 이벤트로 `Re
 | 검증 | 결과 |
 |---|---|
 | `-batchmode -nographics -quit` 컴파일 | exit 0, 오류 0(DUNGEON `DungeonDailyTaskState`·FOREST `ForestFestivalState`/`ForestWishStone` 추가 뒤 재확인) |
-| `PlaytestHeadless`(GO) | 이전 세션(2026-09-20) 3연속 OK, 이번 세션엔 안 건드림 |
+| `PlaytestHeadless`(GO) | **3연속 OK(2026-09-21, Props 목재 PBR 뒤 재확인)** |
 | `PlaytestDungeonHeadless`·`FloorProgression`·`FieldAmbush`·`Shortcut`·`Town2`·`Towns34` | **전부 재검증 OK**(2026-09-21, 5.6 뒤 — goal board 세 줄 체크 그대로 통과, 공유 경로(`Die()`·`Descend()`·`EndRun()`) 변경이라 하위까지 확인) |
 | `PlaytestForestHeadless`·`Creatures`·`Finish`·`Furniture`·`HouseTransition` | **전부 재검증 OK**(2026-09-21, 5.6 뒤 — 신규 `CheckFestival()`이 `ForceDayForTest()`로 세배·꽃놀이·소원·D-day 문구까지 확인, 씬 재빌드 뒤 하위도 회귀 없음) |
 | `PlaytestOverworldMap`(GO) | 이전 세션 1회 재검증 OK, 미변경 |
@@ -73,7 +73,7 @@ STORY 세부(경위는 HISTORY grep): `StoryJobState.JobChosen` 이벤트로 `Re
 
 ## 실기 확인 대기 (항목명만 — 경위는 HISTORY grep)
 
-- GO: 조우·전투·등용 손맛, 상점·퀘스트 대사 3단계, 은닉 보물·산신당·돌탑·유물, 채집, 목표판/세션카드, hitstop 체감, 유품 마커·무기 소켓·지형 데칼(101-3 F·G), 일과판·승급 3택 UI, 75초 토벌 손맛(101-2 ③), 봉수대 점등·목표판 전환·인연 등급 토스트·패배 시 짐 드롭/회수(101-2 ①⑥⑧), **사당 시련 입구·파도 3 전투감·인장 조각/이정표 보상·실패 잠금(101-2 ②, 2026-09-20 신규, 첫 실기 확인)**
+- GO: 조우·전투·등용 손맛, 상점·퀘스트 대사 3단계, 은닉 보물·산신당·돌탑·유물, 채집, 목표판/세션카드, hitstop 체감, 유품 마커·무기 소켓·지형 데칼(101-3 F·G), 일과판·승급 3택 UI, 75초 토벌 손맛(101-2 ③), 봉수대 점등·목표판 전환·인연 등급 토스트·패배 시 짐 드롭/회수(101-2 ①⑥⑧), 사당 시련 입구·파도 3 전투감·인장 조각/이정표 보상·실패 잠금(101-2 ②), **논밭 울타리 목재 PBR 톤(102-4, 2026-09-21 신규, fence.glb에 dark_wooden_planks 씌운 결과)**
 - DUNGEON: 카메라 각도, 아홉 슬라이스, 목표판/세션카드, hitstop·타격VFX·레벨업줌·무기소켓·지형데칼 체감(101-3 전체), 축복·유품·부적 던전·월드 보스·난입 체감(101-2 5.1~5.5), 전자창/동력장갑 모양·기계화 정찰병(5층부터) 체감(5.7), **일일 풀 3택·도장·주간 보상 토스트(5.6, 신규)**
 - FOREST: 벽지/장판, 가구 배치, 생물·과일나무·좌판, 목표판/세션카드, 마을 번들(5.3), 채집 손맛(5.8①), 마을 평가판 별점(5.8②), 접수대·우체통 4·소포 3종·사슬 보너스 체감(5.7), **세배·꽃놀이·소원돌·목표판 D-day 문구 체감(5.6, 신규 — 실제 달력이 1·8·15일이어야 그날 행사를 볼 수 있다)**
 - STORY: 두목 크기·타격감, 사건·관계·선택 흐름, 전직 팝업, 목표판/세션카드, hitstop/shake/flash/popup/타격 VFX 체감, 유품 마커·지형 데칼·레벨업 줌·직업별 무기(101-3 F·G), 관문 대장 승격 연출·방패 파괴 체감(5-4), 비경 노드 지도·축복 카드·아레나 순간이동(5-3), **선봉/유격/호법 교대 버튼·서명 손맛·HUD 교대 쿨다운 줄(5-8, 신규, 첫 실기 확인)**

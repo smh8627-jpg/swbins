@@ -28,6 +28,13 @@ namespace Saga.Go.World
         [SerializeField] private GameObject fenceModel;     // fence.glb, 실측 0.075×0.38×1(비중앙 피벗)
         [SerializeField] private GameObject fenceGateModel; // fence-gate.glb, 실측 0.519×0.55×1
 
+        // 102-4(2026-09-21) "단계 교체" — 울타리는 LandmarksBuilder.cs의 다리
+        // 널판(fence.glb와 같은 나무 널판 성질)과 같은 이유로 woodMaterial을
+        // 그대로 씌운다. lantern·stall은 금속·천 등 재질이 섞인 단일 아틀라스
+        // 텍스처라(Kenney Fantasy Town Kit) 목재 한 장으로 덮으면 색이
+        // 지워질 위험이 있어 이번엔 손대지 않는다(실기 확인 후 판단).
+        [SerializeField] private Material woodMaterial;
+
         public void Init(GameObject lantern, GameObject stall, GameObject fence, GameObject fenceGate)
         {
             lanternModel = lantern;
@@ -167,6 +174,14 @@ namespace Saga.Go.World
                 panel.transform.localScale = Vector3.one * FenceScale;
                 // 장식용 — 소·플레이어 모두 지나갈 수 있게 콜라이더를 안 둔다
                 // (일부만 두른 줄이라 실제로 막으면 오히려 걸린 것처럼 보인다).
+                if (woodMaterial != null)
+                {
+                    // fence.glb 실측 0.075×0.38×1 × FenceScale(2) → 높이 0.76·길이 2m
+                    // (아래 CreateBox 폴백 size와 같은 값) — 보이는 면이 세로 널판이라
+                    // LandmarksBuilder.BuildBridge()의 (width, plankLength)와 달리
+                    // (높이, 길이)를 태일 축으로 쓴다.
+                    ApplyPbrToRenderers(panel, EnvironmentMaterial.MakeTiled(woodMaterial, 0.76f, FenceScale));
+                }
             }
             else
             {
@@ -207,6 +222,16 @@ namespace Saga.Go.World
             var mat = new Material(Shader.Find("Universal Render Pipeline/Lit")) { name = "Prop (generated)" };
             mat.color = color;
             return mat;
+        }
+
+        /// <summary>LandmarksBuilder.ApplyPbrToRenderers()와 같은 결(GLB 하나에
+        /// 서브메시 렌더러가 여럿일 수 있어 전부에 같은 재질을 씌운다).</summary>
+        private static void ApplyPbrToRenderers(GameObject root, Material mat)
+        {
+            foreach (var renderer in root.GetComponentsInChildren<MeshRenderer>(true))
+            {
+                renderer.sharedMaterial = mat;
+            }
         }
     }
 }

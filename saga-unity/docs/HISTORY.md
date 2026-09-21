@@ -8216,3 +8216,19 @@ Q1·Q3′·Q-U4 결정 커밋 뒤 "이어해"를 다시 받았다. Q1이 "Unity 
 배치 모드 컴파일 재확인(오류 0). `PLAN.md` 102-4 표를 "완료: 삭제됨"으로 갱신, 66-2장 근처의 옛 "지우지 않고 그대로 둔다" 문단(VRoid gltFast 임포트 검증 목적이 이미 끝난 뒤 남아 있던 결정)도 뒤집힌 걸로 정정 — 문서가 서로 모순되지 않게. `docs/PROJECT_STATE.md` "다음 작업" 1번에서 `CharactersVroid` 삭제 항목 제거.
 
 **102-4 남은 항목은 이제 Kenney `Buildings/`·`Dungeon/`·`Props/`·`Rocks/`·`Shrine/`·`Vegetation/` "단계 교체"뿐**(103장 에셋 파이프라인 규모의 콘텐츠 제작, 아직 미착수) — `Characters/`(Kenney) 는 GO/FOREST/STORY가 실사용 중이라 여전히 못 뺀다.
+
+## 2026-09-21 — 102-4 "단계 교체" 재조사: Buildings/Dungeon/Shrine는 이미 끝나 있었고, 진짜 남은 건 Props뿐 ("사가 유니티 이어서" 세션, `CharactersVroid` 삭제 다음)
+
+`CharactersVroid` 삭제 뒤 "이어해"를 다시 받았지만, 남은 유일한 미해결 항목이 Kenney `Buildings/`·`Dungeon/`·`Props/`·`Rocks/`·`Shrine/`·`Vegetation/` "단계 교체"(102-4)뿐이었다 — 이게 `procgen.py`/`kitbash.py` 규모의 에셋 생성 작업인지, 단순 재질 교체인지 불확실해 AskUserQuestion으로 범위를 물었다. 사용자가 "Props·Shrine·Dungeon gate만 진행(추천)"을 골랐다.
+
+**재조사 결과 — 102-4 표가 틀렸었다**: `Buildings/`(wall-block·roof-gable)·`Dungeon/`(gate.glb 아치·바닥·벽)·`Shrine/`(altar-stone)은 **이미 전부** `EnvironmentMaterial.MakeTiled()`로 실제 PBR(Poly Haven) 재질이 씌워져 있었다 — `LandmarksBuilder.cs`(`ApplyPbrToRenderers`+`stoneMaterial`/`woodMaterial`)·`DungeonRoomBuilder.cs`(`BuildGateArch`) 코드를 직접 읽어 확인. `docs/PROJECT_STATE.md` "완료 요약" 표의 "44장 완료"가 정확히 이 뜻이었다 — 102-4 표를 쓸 때 이 사실을 몰라서 "단계 교체 미착수"로 잘못 적어 뒀던 것.
+
+**진짜 안 된 건 `PropsBuilder.cs`(lantern·stall-red·fence·fence-gate) 뿐**이었다 — 코드에 PBR 관련 호출이 전혀 없었다(순수 원본 Kenney 텍스처). 이 안에서도 재질별로 나눴다: fence·fence-gate는 LandmarksBuilder의 다리 널판(`BuildBridge()`)과 성질이 같은 단순 나무 널판이라 안전하게 `woodMaterial`을 씌웠다. lantern·stall-red는 금속·천 등 재질이 뒤섞인 단일 Kenney 아틀라스 텍스처라(공식 색이 "빨강" stall인데 나무 재질로 덮으면 색이 지워질 위험) 헤드리스로는 실제 결과를 못 보니 **보류**했다 — 3장 "실기 확인이 필요한 시각 판단은 사용자 몫" 원칙.
+
+`Rocks/`·`Vegetation/`은 애초에 "PBR 재질 교체"가 아니라 `procgen.py`(노이즈 변형+트라이플레이너)로 **새 지오메트리를 만드는** 103장 작업이라 이번 스코프 밖(Blender 설치 확인부터 필요, 결과물은 사용자가 직접 봐야 한다) — 102-4 표에 이 구분을 명시해 다음 세션이 다시 헷갈리지 않게 했다.
+
+**구현**: `PropsBuilder.cs`에 `[SerializeField] private Material woodMaterial`과 `ApplyPbrToRenderers()`(LandmarksBuilder와 같은 결) 추가, `SpawnFencePanel()`이 `EnvironmentMaterial.MakeTiled(woodMaterial, 0.76f, FenceScale)`을 씌운다(보이는 면이 세로 널판이라 높이·길이를 타일 축으로 — `BuildBridge()`의 가로·길이 축과 다른 이유를 주석에 남김). `BuildTestVillageScene.cs`의 `BuildProps()`가 승격된 `Environment/PBR/dark_wooden_planks_URPLit.mat`을 `SetPrivateField`로 주입.
+
+**검증**: 배치 컴파일 오류 0 → `BuildTestVillageScene.Build()` 재빌드(재질 못 찾는 경고 없음) → `PlaytestHeadless` 3연속 OK.
+
+`PLAN.md` 102-4 표를 세 줄로 다시 씀(Buildings/Dungeon/Shrine=완료, Props=완료+보류 구분, Rocks/Vegetation=procgen 몫). `docs/PROJECT_STATE.md` "완료 요약" GO 행의 "Props 전부 GLB/PBR" 과장 정정, 실기 확인 대기·테스트 상태·다음 작업 갱신.
