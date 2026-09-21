@@ -7900,3 +7900,10 @@ PROJECT_STATE.md` 참고. 요약:
 - 헤드리스 실측: GO `test_village.gd`에 `SAGA_FADE_DEBUG` 훅으로 `meshes=3`(VRoid) 확인 + 8m→투명도 0.0, 0.5m→0.667(공식 그대로) 확인. DUNGEON `test_room.gd`에도 같은 훅으로 `meshes=3` 확인. 둘 다 확인 후 훅 제거.
 - **주의**: `transparency`가 실제로 화면에서 자연스럽게 흐려지는지(디더링 방식이 cel_toon 커스텀 셰이더와 잘 맞는지)는 헤드리스로 확인 불가 — 실기 확인 목록에 추가.
 - `godot_regress.sh` 다섯 판 전부 통과·md5 완전 불변, `.import`/`project.godot` 잡음 없음.
+
+## 노획물 등급 색 외곽선 (2026-09-21, 같은 세션, "커밋 푸시 이어해")
+
+- cel_outline.gdshader 자체 주석에 "101-3 G(무기 등급 색 외곽선)가 이 셰이더를 그대로 재사용하며 outline_color만 등급별로 바꿔 쓸 예정"이라고 미리 적혀 있던 걸 실행 — §8-1 재override 계속.
+- `loot_pickup.gd::spawn_at()`의 무기 GLB·장비 박스 메시(둘 다 `it.tier`로 등급이 있는 자리만, 금·단약·룬 등 고정색 드롭은 범위 밖)에 `_outline_material(tier)`로 `next_pass` 배선. cel_toon `hit_flash`(`cel_shader_apply.gd`)와는 완전히 별개 경로(그쪽은 텍스처 있는 재질만 골라 건너뛴다) — 무기 GLB는 공유 Mesh 리소스를 안 건드리게 재질을 `duplicate()`한 뒤에만 next_pass를 얹었다.
+- 헤드리스 실측: `test_room.gd`에 임시 훅으로 loot 12개(장비만) 스폰 → `ok=12`(전부 next_pass 있음) 확인, 나머지 부수 드롭(금·단약·룬·주문서, 17개)은 의도대로 외곽선 없음. 훅 제거.
+- `godot_regress.sh` 다섯 판 전부 통과(md5는 이전 세션 병합(`a815eb42`)이 남긴 리소스 재임포트 로그 차이로 다섯 판 다 값이 바뀌었지만 각자 3회 내부 일관, 09-20 이후 반복 확인된 정상 패턴) · `.import`/`project.godot` 잡음 없음.

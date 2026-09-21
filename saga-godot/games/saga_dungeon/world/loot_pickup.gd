@@ -43,6 +43,7 @@ extends RefCounted
 
 const Toast := preload("res://saga_core/ui/toast.gd")
 const GLBUtils := preload("res://games/saga_go/world/glb_utils.gd")
+const OUTLINE_SHADER := preload("res://saga_core/shaders/cel_outline.gdshader")
 
 ## 2026-09-20 — 101-3 G "성장 가시화". 무기 노획물은 등급색 박스 대신
 ## KayKit 무기 GLB(103-3 킷배싱, ASSET_GUIDE 해당 날짜)를 쓴다. dungeon_
@@ -126,6 +127,17 @@ static func spawn_mat_at(parent: Node, pos: Vector3, floor_num: int) -> void:
 	_spawn_mat(parent, pos, floor_num)
 
 
+## 101-3 G "등급 색 외곽선" — cel_outline.gdshader(102-3)의 outline_color만
+## 등급 색으로 바꿔 그대로 재사용한다(주석에 적힌 예정대로). Player·NPC의
+## next_pass 배선(cel_shader_apply.gd)과는 별개 경로 — 노획물은 텍스처가
+## 없는 단색 재질이라 그쪽 함수가 아예 건너뛴다.
+static func _outline_material(tier: Dictionary) -> ShaderMaterial:
+	var outline := ShaderMaterial.new()
+	outline.shader = OUTLINE_SHADER
+	outline.set_shader_parameter("outline_color", Color(String(tier.color)))
+	return outline
+
+
 ## PLAN 101-2 DUNGEON ⑥(월드 보스, 2026-09-17) — `legendary_mult`(기본
 ## 1.0)는 DungeonItems.roll()로 그대로 넘어간다(웹 5.4 "전설 확률×3").
 static func spawn_at(parent: Node, pos: Vector3, ilvl: int, is_boss: bool = false, is_elite: bool = false, legendary_mult: float = 1.0) -> void:
@@ -151,6 +163,13 @@ static func spawn_at(parent: Node, pos: Vector3, ilvl: int, is_boss: bool = fals
 			## 원본은 손에 쥐는 자세(Y축이 날 방향)라 눕혀서(X축 90도) 바닥에
 			## 뜬 노획물처럼 보이게 한다 — 다른 노획물과 같은 "hover" 자리.
 			mi.transform = Transform3D(Basis(Vector3.RIGHT, PI * 0.5).scaled(Vector3.ONE * s), Vector3(0, 0.4, 0))
+			## 101-3 G — GLB 자체에 이미 구운 등급색(tint-glb) 재질을 그대로 두고
+			## 복제본에만 외곽선을 next_pass로 얹는다(공유 Mesh 리소스는 안 건드림).
+			var base_mat := mi.get_active_material(0)
+			if base_mat != null:
+				var outlined := base_mat.duplicate() as Material
+				outlined.next_pass = _outline_material(tier)
+				mi.set_surface_override_material(0, outlined)
 	if mi.mesh == null:
 		var mesh := BoxMesh.new()
 		mesh.size = Vector3(0.5, 0.5, 0.5)
@@ -162,6 +181,7 @@ static func spawn_at(parent: Node, pos: Vector3, ilvl: int, is_boss: bool = fals
 		## 있어(tint-glb) 이 material_override가 필요 없다.
 		mat.albedo_color = Color(String(tier.color))
 		mat.metallic = 0.4
+		mat.next_pass = _outline_material(tier) # 101-3 G
 		mi.material_override = mat
 	area.add_child(mi)
 
