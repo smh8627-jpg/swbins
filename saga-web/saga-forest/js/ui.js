@@ -1320,6 +1320,8 @@
   var MAP_PROP_ICON = {
     shop: '🏪', home: '🏠', mail: '📮', tailor: '🧵', board: '🪧',
     museum: '🏛️', pole: '🚩',
+    /* 나그네 야영(§5.5 ①)·폐허 옛 우체통(§5.7)·행사 안내판(§5.6) — 찾아가야 하는 자리라 지도에 표시한다 */
+    gridcamp: '⛺', oldpost: '📪', festboard: '🎏',
     /* 다리(2026-09-09) — buildProps() 가 세우는 프롭(kind:'bridge')이
        하나뿐이라 hamlet/cave 처럼 따로 Spot() 을 부를 필요 없이 이 표
        한 줄로 끝난다 */
@@ -1387,6 +1389,25 @@
     /* 폐허(2026-09-10, 퓨전 방향) — 위 넷과 같은 요령으로 마크 하나 더 */
     var ruin = V.ruinSpot();
     if (ruin) { marks.push({ x: ruin.tx * TILE, y: ruin.ty * TILE, icon: '🏚️' }); }
+    /* 우주기지(§5.7 택배 목적지) — 처음부터 지도에 있는 고정 마을이다 */
+    var sbase = V.spaceBaseSpot();
+    if (sbase) { marks.push({ x: sbase.tx * TILE, y: sbase.ty * TILE, icon: '🚀' }); }
+    /* 소포를 들고 있으면 가야 할 곳에 📦 (§5.7) */
+    var PCm = global.DG.parcel, pst = PCm ? PCm.status() : null;
+    if (pst && pst.carrying) {
+      var pd = PCm.dests().filter(function (q) { return q.key === pst.dest; })[0];
+      if (pd) {
+        svg += '<circle cx="' + ((pd.tx + 0.5) * TILE) + '" cy="' + ((pd.ty + 0.5) * TILE) + '" r="' + (TILE * 2.2) +
+          '" fill="none" stroke="#e6a23c" stroke-width="' + (TILE * 0.25) + '" stroke-dasharray="' + (TILE * 0.7) + ' ' + (TILE * 0.5) + '"/>';
+        marks.push({ x: (pd.tx + 0.5) * TILE, y: (pd.ty + 0.5) * TILE - TILE * 2.6, icon: '📦' });
+      }
+    }
+    /* 나그네가 일러 준 정령의 터(§5.5 ①) — 금빛 원 안 어딘가에 있다 */
+    var GRm = global.DG.grid, hn = GRm ? GRm.hint() : null;
+    if (hn) {
+      svg += '<circle cx="' + hn.x + '" cy="' + hn.y + '" r="' + hn.r + '" fill="rgba(255,215,90,.22)" stroke="#ffd75a" stroke-width="' +
+        (TILE * 0.25) + '"/>';
+    }
 
     var fontSize = TILE * 1.1;
     for (i = 0; i < marks.length; i++) {
@@ -1408,7 +1429,8 @@
       '<small class="muted">' +
       '🔴 지금 내 자리 · 🏠 집 · 📮 편지함 · 🏪 전방 · 🧵 침선방 · 🪧 게시판 · ' +
       '🏛️ 사고(史庫) · 🚩 마을기 · 🌊 호수 · 💦 폭포 · 🏘️ 작은 마을 · 🏕️ 두 번째 캠프 · ' +
-      '🌉 다리(강을 건너는 유일한 자리) · 🕳️ 동굴 · 🏚️ 폐허' +
+      '🌉 다리(강을 건너는 유일한 자리) · 🕳️ 동굴 · 🏚️ 폐허 · 🚀 우주기지 · ⛺ 나그네 야영(정령의 터 힌트를 판다) · ' +
+      '📪 옛 우체통 · 🎏 행사 안내판 · 금빛 원 = 일러 준 정령의 터 · 점선 원 + 📦 = 소포를 가져갈 곳' +
       '</small><br><small class="muted">' +
       '땅빛은 실제 걸어본 굽은 마을을 그대로 위에서 펼친 것입니다 — ' +
       '풀빛·모래·물·바이옴(풀밭/그늘숲/버섯/돌밭)의 진짜 모양이 여기서만 한눈에 보입니다.' +

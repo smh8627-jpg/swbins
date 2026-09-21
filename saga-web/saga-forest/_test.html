@@ -4969,6 +4969,19 @@ window.DG_NO_TUNE = true;
       return out && '재료 없음 거절 → 쑤기(3알) → 셋에게 나눔 → 완성';
     });
 
+    t('전체지도 — 우주기지·야영·소포 목적지(점선 원)·정령 힌트(금빛 원)가 지도 시트에 그려진다', function () {
+      var s = V.state(), d0 = JSON.stringify(s.delivery || null), g0 = JSON.stringify(s.grid || null), out = false, html = '';
+      try {
+        s.delivery = { carrying: false, n: 0 }; DG.parcel.take('plain', 'ruin');
+        s.grid = { opened: {}, hint: { i: 3 } };
+        DG.ui.openSheet('map');
+        html = document.getElementById('sheet-body').innerHTML;
+        out = html.indexOf('🚀') >= 0 && html.indexOf('⛺') >= 0 && html.indexOf('stroke-dasharray') >= 0 && html.indexOf('rgba(255,215,90') >= 0;
+        DG.ui.closeSheet();
+      } finally { s.delivery = JSON.parse(d0) || undefined; s.grid = JSON.parse(g0) || undefined; DG.grid._resetForTest(); }
+      return out && '🚀 우주기지 · ⛺ 야영 · 점선 원(소포) · 금빛 원(힌트)';
+    });
+
     t('주민 — 두 사람이 번갈아 말한다', function () {
       DG.folk._reset();
       var res = V.raw().residents;
