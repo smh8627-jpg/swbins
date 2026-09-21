@@ -8231,4 +8231,10 @@ Q1·Q3′·Q-U4 결정 커밋 뒤 "이어해"를 다시 받았다. Q1이 "Unity 
 
 **검증**: 배치 컴파일 오류 0 → `BuildTestVillageScene.Build()` 재빌드(재질 못 찾는 경고 없음) → `PlaytestHeadless` 3연속 OK.
 
+## 2026-09-21 — `Rocks/`·`Vegetation/` procgen 착수 전 Blender 확인, 없어서 사용자에게 설치 요청 ("사가 유니티 이어해" 세션, 102-4 Props 재질 교체 다음)
+
+`PROJECT_STATE.md` "다음 작업" 1순위(104-1⑤·102-4 마무리)의 마지막 남은 항목인 `Rocks/`·`Vegetation/` procgen 교체를 이어받으려 했으나, PLAN 103-3이 전제한 "Blender 설치 확인부터"가 이 PC에서 막혔다 — `Get-Command blender`·`Program Files`·`Program Files (x86)` 전부 없음 확인.
+
+우회 옵션(`tools/asset-forge/procgen.py`는 이미 trimesh 기반이라 rock/stele/fence/wall은 Blender 없이도 생성 가능, tree kind만 추가하면 됨)을 사용자에게 제시했으나 **"Blender 설치를 먼저 요청" 선택** — PLAN이 세운 전제를 임의로 낮추지 않고 그대로 보류. 코드 변경 없음, `docs/PROJECT_STATE.md` 다음 작업 1번 줄에 이 경위만 짧게 남김. 다음 세션은 Blender 설치 여부부터 다시 확인.
+
 `PLAN.md` 102-4 표를 세 줄로 다시 씀(Buildings/Dungeon/Shrine=완료, Props=완료+보류 구분, Rocks/Vegetation=procgen 몫). `docs/PROJECT_STATE.md` "완료 요약" GO 행의 "Props 전부 GLB/PBR" 과장 정정, 실기 확인 대기·테스트 상태·다음 작업 갱신.

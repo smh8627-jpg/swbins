@@ -35,7 +35,7 @@ STORY 세부(경위는 HISTORY grep): `StoryJobState.JobChosen` 이벤트로 `Re
 
 ## 다음 작업 (우선순위, 상세는 PLAN 해당 장 · 경위는 HISTORY 날짜 grep)
 
-1. **PLAN 104-1 ⑤·102-4 마무리** — Shaders/Character·Environment/PBR 승격, `CharactersVroid/` 삭제, `Props/`(fence·fenceGate) PBR 교체까지 완료. 남은 건: `Rocks/`·`Vegetation/`(`procgen.py`, 103장 에셋 생성 작업, 미착수) · `Props/`의 lantern·stall-red(재질 혼재라 보류, 실기 확인 후 재판단) · `Characters/` Kenney는 **아직 못 뺀다**(GO 플레이어·GO/FOREST/STORY 주민·STORY 잡졸이 실사용 중).
+1. **PLAN 104-1 ⑤·102-4 마무리** — Shaders/Character·Environment/PBR 승격, `CharactersVroid/` 삭제, `Props/`(fence·fenceGate) PBR 교체까지 완료. 남은 건: `Rocks/`·`Vegetation/`(`procgen.py`, 103장 에셋 생성 작업) — **2026-09-21 확인: 이 PC엔 Blender 없음, 사용자에게 설치 요청함, 설치 전엔 착수 보류** · `Props/`의 lantern·stall-red(재질 혼재라 보류, 실기 확인 후 재판단) · `Characters/` Kenney는 **아직 못 뺀다**(GO 플레이어·GO/FOREST/STORY 주민·STORY 잡졸이 실사용 중).
 2. **PLAN 101-2 이어서** — 사실상 다 닫힘, 남은 건 GO⑤(모바일 빌드 뒤)·STORY5-2(보류)뿐.
 3. **실기 GUI 확인 몰아서** — "실기 확인 대기" 전부(아래 목록). 사용자 몫. 다른 PC로 이어받으면 `CharactersRealistic/`가 비어 있음 — mixamo.com에서 새로 받을 것(목록은 `SetupXxxCharacterImport.cs`).
 4. **PLAN 105 열린 질문(Q-U1·Q-U3)** — 남은 둘만, 둘 다 사람 몫(Q-U1 형식만 열림, Q-U3 Shader Graph는 사람 GUI 필요). (Q1·Q3′·Q4·Q-U4 는 2026-09-21 결정 완료.)
