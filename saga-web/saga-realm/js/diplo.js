@@ -107,8 +107,9 @@
   /**
    * 사자의 말발 — 지력이 반, 우호가 반.
    * 국력 차도 본다: 약한 쪽이 청하면 쉽고, 강한 쪽이 청하면 상대가 겁을 낸다.
+   * @param mul 설전(PLAN §5-3)이 낸 배율 — 마지막에 곱한다. 없으면 1(AI 도 안 넘긴다)
    */
-  function envoyChance(kind, fromForce, toForce, envoyId, gold) {
+  function envoyChance(kind, fromForce, toForce, envoyId, gold, mul) {
     var R = global.DG.rtk;
     var off = global.DG.off;
     var wis = envoyId ? off.stats(envoyId).wisdom : 50;
@@ -119,6 +120,7 @@
     var p = base + wis / 320 + rel / 260 + edge + (gold || 0) / 12000;
     /* 공동의 적 — 둘 다 맞닿아 있는 큰 세력이 있으면 손을 잡는다 */
     if (kind === 'ally' && commonEnemy(fromForce, toForce)) { p += 0.15; }
+    if (mul != null && mul !== 1) { p *= mul; }
     return core.clamp(p, 0.03, 0.95);
   }
 
@@ -147,8 +149,9 @@
   /**
    * 외교를 건다. 사자는 그 달의 명령을 쓴다.
    * @param kind 'ally' | 'truce' | 'tribute'
+   * @param mul 설전 배율(없으면 1) — 조공은 확률이 없어 무시한다
    */
-  function envoy(kind, toForce, envoyId, gold) {
+  function envoy(kind, toForce, envoyId, gold, mul) {
     var R = global.DG.rtk;
     var off = global.DG.off;
     var r = off.rec(envoyId);
@@ -173,7 +176,7 @@
       return { ok: true, done: true, relation: relation(fromForce, toForce), up: up };
     }
 
-    var p = envoyChance(kind, fromForce, toForce, envoyId, gold);
+    var p = envoyChance(kind, fromForce, toForce, envoyId, gold, mul);
     var kor = kind === 'ally' ? '동맹' : '화친';
     if (Math.random() > p) {
       addRelation(fromForce, toForce, 2);

@@ -36,6 +36,10 @@
   var LAND_ICON = { plain: '🌾', hill: '⛰️', river: '🌊', mount: '🏔️' };
   var liveRepStub = null;
   var liveBase = null;
+  /* 일기토 손 싸움(PLAN §5-3) — 한 수를 기다리는 중이면 step 이 담긴다 / 설전 카드 진행(사절·등용 앞의 세 문답) */
+  var duelStep = null;
+  var debCur = null;
+  var DEBATE_TIP = '설전 — 세 문답의 정답 수로 성공률이 ×0.8 ~ ×1.3 이 된다';
 
   function $(id) { return document.getElementById(id); }
 
@@ -538,6 +542,26 @@
       return;
     }
     if (a === 'ask-no') { askCb = null; closeEnc(); return; }
+    if (a === 'duel-pick' || a === 'duel-go') {
+      var ds = duelStep; duelStep = null;
+      if (ds) { ds(a === 'duel-pick' ? g('data-pick') : undefined); }
+      return;
+    }
+    if (a === 'deb-answer') {
+      if (debCur && !debCur.last) {
+        debCur.last = global.DG.quiz.debateAnswer(debCur.qs[debCur.i], parseInt(g('data-i'), 10));
+        if (debCur.last && debCur.last.ok) { debCur.ok++; }
+        renderDebate();
+      }
+      return;
+    }
+    if (a === 'deb-next') { if (debCur) { debCur.i++; debCur.last = null; renderDebate(); } return; }
+    if (a === 'deb-quit') { debCur = null; closeEnc(); return; }
+    if (a === 'deb-go' || a === 'deb-skip') {
+      var dd = debCur; debCur = null; closeEnc();
+      if (dd) { dd.done(a === 'deb-go' ? global.DG.quiz.debateMul(dd.ok) : 1); }
+      return;
+    }
     if (a === 'open-city') { openCity(g('data-city')); return; }
 
     if (a === 'sel-order') { pickOrder = g('data-key'); renderSheet(); return; }
@@ -557,9 +581,17 @@
       var hs = off().setHeir(R().state().me, g('data-id'));
       toast(hs.ok ? (hs.heir ? '🎌 후계로 지정했다' : '🎌 지정을 풀었다 — 자동으로 정한다') : hs.why);
     } else if (a === 'hire-one') {
-      var hr = R().tryHire(openCityId, g('data-by'), g('data-id'));
-      toast(hr.ok ? hr.text : hr.why);
-      if (hr.ok) { off().rec(g('data-by')).done = true; }
+      var hBy = g('data-by'), hId = g('data-id'), hCity = openCityId;
+      startDebate({
+        title: '설전 — ' + off().find(hBy).name + ' → ' + off().find(hId).name, by: hBy,
+        done: function (mul) {
+          var hr = R().tryHire(hCity, hBy, hId, mul);
+          toast(hr.ok ? hr.text : hr.why);
+          if (hr.ok) { off().rec(hBy).done = true; }
+          afterAct();
+        }
+      });
+      return;
     } else if (a === 'move-officer') {
       var mv = global.DG.war.moveOfficer(g('data-id'), g('data-to'));
       toast(mv.ok ? '🚶 옮겼습니다' : mv.why);
@@ -615,9 +647,20 @@
       doTrade(openCityId, g('data-dir'));
       return;
     } else if (a === 'envoy') {
-      var er = global.DG.diplo.envoy(g('data-kind'), g('data-to'), g('data-by'),
-        g('data-kind') === 'tribute' ? 600 : 200);
-      toast(er.ok ? (er.done ? '🤝 이루어졌습니다' : er.text) : er.why);
+      var eKind = g('data-kind'), eTo = g('data-to'), eBy = g('data-by'), eGold = eKind === 'tribute' ? 600 : 200;
+      var runEnvoy = function (mul) {
+        var er = global.DG.diplo.envoy(eKind, eTo, eBy, eGold, mul);
+        toast(er.ok ? (er.done ? '🤝 이루어졌습니다' : er.text) : er.why);
+        afterAct();
+      };
+      if (eKind === 'tribute') { runEnvoy(); return; }
+      /* 문답을 다 풀고 나서야 "금이 모자랍니다" 를 듣지 않도록 미리 본다 */
+      var eRec = off().rec(eBy), eForce = R().force(eRec.force);
+      if (!eForce || eRec.done || eRec.hurt || eForce.gold < eGold + 100) {
+        runEnvoy(); return;                       // diplo.envoy 가 이유를 말해 준다
+      }
+      startDebate({ title: '설전 — ' + off().find(eBy).name + ' → ' + R().forceName(eTo), by: eBy, done: runEnvoy });
+      return;
     } else if (a === 'q-start') {
       quizCur = { p: global.DG.quiz.draw(g('data-cat') || null), result: null };
       if (!quizCur.p) { quizCur = null; toast('낼 문제가 없습니다'); }
@@ -631,6 +674,12 @@
       quizCur = null;
     } else { return; }
 
+    core.persist();
+    renderTop(); renderMap(); renderSheet();
+  }
+
+  /** act() 꼬리와 같은 뒷정리 — 카드 콜백(설전 끝)이 부른다 */
+  function afterAct() {
     core.persist();
     renderTop(); renderMap(); renderSheet();
   }
@@ -809,6 +858,87 @@
     return '<div class="bduel">' + pt(oa, 30) + '<b>' + esc(oa.name) + '</b>' +
       '<span>⚔️</span><b>' + esc(od.name) + '</b>' + pt(od, 30) + '</div>';
   }
+  /** 일기토 손 싸움 카드(PLAN §5-3) — 한 수씩 고르고, 승부가 나면 결과를 보여 준 뒤 전황으로 넘어간다.
+   *  판정은 war.js duelBout() 이 한다. 여기는 그 결과를 그릴 뿐이다 */
+  function showDuelCard(view, step) {
+    duelStep = step;
+    var oa = off().find(view.a), od = off().find(view.d), S = view.stances, i, k, key;
+    var html = '<h3 style="margin:0 0 6px;font-size:18px">🤺 일기토' +
+      (view.done ? ' — 승부가 났다' : ' — ' + (view.bouts.length + 1) + '번째 수') + '</h3>' +
+      '<div class="bduel">' + pt(oa, 30) + '<b>' + esc(oa.name) + '</b><span>⚔️</span><b>' + esc(od.name) + '</b>' + pt(od, 30) + '</div>' +
+      '<div class="bhud">' + bar(esc(oa.name), view.ah, 100) + bar(esc(od.name), view.dh, 100) + '</div>';
+    if (view.bouts.length) {
+      html += '<div class="enc-hist">';
+      for (i = 0; i < view.bouts.length; i++) {
+        var b = view.bouts[i], mine = 0;
+        for (k = 0; k < b.rounds.length; k++) { if (b.rounds[k] === 'a') { mine++; } }
+        html += (i ? '<br>' : '') + (i + 1) + '수 — ' + S[b.pick].emoji + ' ' + S[b.pick].name + ' 대 ' + S[b.foe].emoji + ' ' + S[b.foe].name +
+          ' · ' + (b.res === 'win' ? '✅ 이겼다' : (b.res === 'tie' ? '➖ 비겼다' : '❌ 졌다')) + ' ×' + b.mul.toFixed(1) +
+          ' <span class="muted">(' + mine + ' : ' + (b.rounds.length - mine) + ')</span>';
+      }
+      html += '</div>';
+    }
+    if (view.done) {
+      var res = view.result, won = res.winner === view.a;
+      html += '<div class="qresult ' + (won ? 'good' : 'bad') + '">' + (won ? '🏆 ' : '💢 ') + esc(res.text) +
+        (res.hurt ? ' — ' + esc(off().find(res.loser).name) + ' 이(가) 다쳤다' : '') + '</div>' +
+        '<button class="btn primary wide" data-act="duel-go">▶ 전황으로</button>';
+    } else {
+      if (view.habit) {
+        html += '<div class="enc-hist">' + S[view.habit].emoji + ' 적은 방금 이긴 <b>' + esc(S[view.habit].name) + '</b> 을(를) 되풀이할 낌새다.</div>';
+      }
+      html += '<div class="qchoices">';
+      for (key in S) {
+        if (!Object.prototype.hasOwnProperty.call(S, key)) { continue; }
+        html += '<button class="qchoice" data-act="duel-pick" data-pick="' + key + '"><b>' + S[key].emoji + '</b> ' +
+          esc(S[key].name) + ' <small class="muted">— ' + esc(S[key].desc) + '</small></button>';
+      }
+      html += '</div><small class="muted">베기 &gt; 찌르기 &gt; 막기 &gt; 베기. 이기면 내가 칠 확률 ×1.3, 지면 ×0.8 — 한 수가 네 합을 다스린다.</small>' +
+        '<div class="camp-acts" style="margin-top:6px"><button class="btn tiny ghost" data-act="duel-pick" data-pick="auto">🎲 남은 합은 맡긴다</button></div>';
+    }
+    showEnc(html);
+  }
+
+  /** 설전(PLAN §5-3) — 사절·등용 앞의 세 문답. 정답 수가 성공률 배율이 된다. opt = { title, by, done(mul) } */
+  function startDebate(opt) {
+    var qs = global.DG.quiz.debateDraw(off().stats(opt.by).wisdom);
+    if (!qs.length) { opt.done(1); return; }
+    debCur = { title: opt.title, qs: qs, i: 0, ok: 0, last: null, done: opt.done };
+    renderDebate();
+  }
+
+  function renderDebate() {
+    var d = debCur, Q = global.DG.quiz, QD = global.DG.quizData;
+    if (!d) { return; }
+    var html = '<h3 style="margin:0 0 4px;font-size:17px">🗣️ ' + esc(d.title) + '</h3>';
+    if (d.i >= d.qs.length) {
+      var mul = Q.debateMul(d.ok);
+      html += '<div class="qresult ' + (mul >= 1 ? 'good' : 'bad') + '">정답 ' + d.ok + ' / ' + d.qs.length + ' — 성공률 ×' + mul + '</div>' +
+        '<div class="camp-acts"><button class="btn primary" data-act="deb-go">📜 청한다</button>' +
+        '<button class="btn ghost" data-act="deb-quit">그만</button></div>';
+    } else {
+      var p = d.qs[d.i], cat = QD.catOf(p.cat), j;
+      html += '<small class="muted">제 ' + (d.i + 1) + ' / ' + d.qs.length + ' 문 · 맞힌 ' + d.ok + ' · ' + esc(DEBATE_TIP) + '</small>' +
+        '<div class="qbox"><div class="qb-head"><b style="color:' + cat.color + '">' + cat.emoji + ' ' + esc(cat.name) + '</b>' +
+        '<span class="muted">' + p.lvName + '</span></div><p class="qq">' + esc(p.q) + '</p>';
+      if (!d.last) {
+        html += '<div class="qchoices">';
+        for (j = 0; j < p.choices.length; j++) {
+          html += '<button class="qchoice" data-act="deb-answer" data-i="' + j + '"><b>' + (j + 1) + '</b> ' + esc(p.choices[j]) + '</button>';
+        }
+        html += '</div>';
+        if (d.i === 0) { html += '<button class="btn tiny ghost" data-act="deb-skip">설전 없이 청한다 (×1)</button> '; }
+        html += '<button class="btn tiny ghost" data-act="deb-quit">그만</button>';
+      } else {
+        html += '<div class="qresult ' + (d.last.ok ? 'good' : 'bad') + '">' + (d.last.ok ? '✅ 정답 ' : '❌ 오답 ') +
+          '<b>' + esc(d.last.answerText) + '</b></div><p class="qwhy">' + esc(d.last.why) + '</p>' +
+          '<button class="btn primary wide" data-act="deb-next">' + (d.i + 1 >= d.qs.length ? '결과 ▶' : '다음 문 ▶') + '</button>';
+      }
+      html += '</div>';
+    }
+    showEnc(html);
+  }
+
   function battleHudHtml(rep) {
     var af = FD.force(rep.force), df = FD.force(rep.defForce);
     return '<div class="bhud" id="bhud">' +
@@ -843,6 +973,7 @@
     liveTactic = null;
     var res = global.DG.war.marchInteractive(fromId, toId, lead, t, {
       formation: marchForm || undefined,
+      onDuel: showDuelCard,
       onIntro: function (lines, repStub) {
         var html = (global.DG.battle3d ? '<canvas id="battle3d"></canvas>' : '') +
           '<h3 style="margin:0 0 6px;font-size:18px">⚔️ 전황 (진행 중)' +
@@ -1346,7 +1477,7 @@
             traitNames(pool[m].id) + '</small></span>' +
           (caller
             ? '<button class="btn tiny primary" data-act="hire-one" data-by="' + caller.id +
-              '" data-id="' + pool[m].id + '">등용</button>'
+              '" data-id="' + pool[m].id + '" title="' + DEBATE_TIP + '">🗣️ 등용</button>'
             : '<span class="muted">쓸 장수 없음</span>') +
           '</div>';
       }
@@ -1725,9 +1856,9 @@
         html += '<div class="bagtools">' +
           (truce ? '' :
             '<button class="btn tiny" data-act="envoy" data-kind="truce" data-to="' + f.id +
-            '" data-by="' + by.id + '">화친 ' + Math.round(D.envoyChance('truce', me, f.id, by.id, 200) * 100) + '%</button>') +
+            '" data-by="' + by.id + '" title="' + DEBATE_TIP + '">🗣️ 화친 ' + Math.round(D.envoyChance('truce', me, f.id, by.id, 200) * 100) + '%</button>') +
           '<button class="btn tiny" data-act="envoy" data-kind="ally" data-to="' + f.id +
-            '" data-by="' + by.id + '">동맹 ' + Math.round(D.envoyChance('ally', me, f.id, by.id, 200) * 100) + '%</button>' +
+            '" data-by="' + by.id + '" title="' + DEBATE_TIP + '">🗣️ 동맹 ' + Math.round(D.envoyChance('ally', me, f.id, by.id, 200) * 100) + '%</button>' +
           '<button class="btn tiny ghost" data-act="envoy" data-kind="tribute" data-to="' + f.id +
             '" data-by="' + by.id + '">🎁 조공 600</button>' +
           '</div>';

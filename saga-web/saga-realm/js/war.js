@@ -316,33 +316,98 @@
    * 무력 차가 크면 아무도 안 나온다 — 뻔한 싸움은 일기토가 아니다.
    */
   function duel(aId, dId) {
+    var st = duelBegin(aId, dId);
+    if (!st) { return null; }
+    while (duelAlive(st)) { duelRound(st, null); }
+    return duelEnd(st);
+  }
+
+  /* 일기토를 세 토막으로 쪼갠 것 — duel() 은 이 셋을 선택 없이 이어 부를 뿐이라
+     난수를 쓰는 순서까지 예전과 같다. 플레이어가 직접 칠 때(PLAN §5-3)는 합 사이에
+     duelBout() 이 끼어들어 **판정 식은 그대로 두고 칠 확률에 배율만** 곱한다. */
+  var DUEL_ROUNDS = 12;
+
+  /** 일기토가 성립하는가 — 성립하면 진행 상태를, 아니면 null */
+  function duelBegin(aId, dId) {
     var off = global.DG.off;
     /* 특성(PLAN §5-1) — 용맹은 무력이 조금 더 먹히고, 호전·신중·온화는 일기토가 벌어질 확률을 바꾼다 */
     var am = off.stats(aId).might * off.traitMul(aId, 'duelMight'), dm = off.stats(dId).might * off.traitMul(dId, 'duelMight');
     if (Math.abs(am - dm) > DUEL_GAP) { return null; }
     if (Math.random() > Math.min(0.9, 0.35 * off.traitMul(aId, 'duelRate') * off.traitMul(dId, 'duelRate'))) { return null; }
+    return { a: aId, d: dId, am: am, dm: dm, ah: 100, dh: 100, n: 0, rounds: [], hits: [], bouts: [], foeHabit: null };
+  }
 
-    var rounds = [], hits = [], ah = 100, dh = 100, n = 0;
-    while (ah > 0 && dh > 0 && n < 12) {
-      n++;
-      var hit = am / (am + dm);
-      if (Math.random() < hit) { dh -= 8 + Math.round(am / 12); rounds.push('a'); }
-      else { ah -= 8 + Math.round(dm / 12); rounds.push('d'); }
-      /* 실시간 재생용 — 판정과 무관한 기록일 뿐이다(battle3d.js 참고).
-         매 합 끝의 체력을 남겨 두면 화면이 순간이동 없이 깎이는 걸 보여줄 수 있다 */
-      hits.push({ who: rounds[rounds.length - 1], ah: Math.max(0, ah), dh: Math.max(0, dh) });
-    }
+  function duelAlive(st) { return st.ah > 0 && st.dh > 0 && st.n < DUEL_ROUNDS; }
+
+  /** 한 합. hitA 를 주면 그 확률로 a 가 친다(없으면 무력비 그대로 — 예전 식) */
+  function duelRound(st, hitA) {
+    st.n++;
+    var hit = hitA == null ? st.am / (st.am + st.dm) : hitA;
+    if (Math.random() < hit) { st.dh -= 8 + Math.round(st.am / 12); st.rounds.push('a'); }
+    else { st.ah -= 8 + Math.round(st.dm / 12); st.rounds.push('d'); }
+    /* 실시간 재생용 — 판정과 무관한 기록일 뿐이다(battle3d.js 참고).
+       매 합 끝의 체력을 남겨 두면 화면이 순간이동 없이 깎이는 걸 보여줄 수 있다 */
+    var who = st.rounds[st.rounds.length - 1];
+    st.hits.push({ who: who, ah: Math.max(0, st.ah), dh: Math.max(0, st.dh) });
+    return who;
+  }
+
+  /** 끝맺음 — 승자·부상·요약 글을 낸다 */
+  function duelEnd(st) {
+    var off = global.DG.off, aId = st.a, dId = st.d, ah = st.ah, dh = st.dh, n = st.n;
     var winner = dh <= 0 ? aId : (ah <= 0 ? dId : (ah >= dh ? aId : dId));
     var loser = winner === aId ? dId : aId;
     /* 크게 진 쪽만 다친다. 비긴 판에서 다치면 일기토를 걸 까닭이 없어진다 */
     var decisive = (winner === aId ? dh : ah) <= 0;
     var hurt = decisive && Math.random() < 0.5;
     if (hurt) { off.rec(loser).hurt = 1 + Math.floor(Math.random() * 2); }
-    return {
-      winner: winner, loser: loser, rounds: n, decisive: decisive, hurt: hurt, hits: hits,
+    var out = {
+      winner: winner, loser: loser, rounds: n, decisive: decisive, hurt: hurt, hits: st.hits,
       text: off.find(winner).name + ' 이(가) ' + off.find(loser).name + ' 을(를) ' +
         n + '합 만에 ' + (decisive ? '꺾었다' : '밀어냈다')
     };
+    if (st.bouts.length) { out.bouts = st.bouts; }         // 손으로 친 판만 — 화면이 되짚어 보여 준다
+    return out;
+  }
+
+  /* 베기 > 찌르기 > 막기 > 베기 — 손으로 칠 때의 세 수 */
+  var STANCES = {
+    slash:  { key: 'slash',  name: '베기',   emoji: '⚔️', beats: 'thrust', desc: '찌르기를 흘리며 벤다' },
+    thrust: { key: 'thrust', name: '찌르기', emoji: '🗡️', beats: 'guard',  desc: '막기를 뚫는다' },
+    guard:  { key: 'guard',  name: '막기',   emoji: '🛡️', beats: 'slash',  desc: '베기를 받아넘긴다' }
+  };
+  var STANCE_KEYS = ['slash', 'thrust', 'guard'];
+  var BOUT_ROUNDS = 4;                                      // 한 수가 다스리는 합 수(4×3 = 열두 합)
+  var BOUT_MUL = { win: 1.3, tie: 1.0, lose: 0.8 };         // 이기면 내가 칠 확률 ×1.3, 지면 ×0.8
+
+  /** 적의 수 — 지난 교전에서 이긴 수를 되풀이하는 버릇(6할)이 있다. 그 밖엔 고르게 */
+  function foeStance(st) {
+    if (st.foeHabit && Math.random() < 0.6) { return st.foeHabit; }
+    return STANCE_KEYS[Math.floor(Math.random() * STANCE_KEYS.length)];
+  }
+
+  /**
+   * 플레이어(늘 a 쪽 — 치는 쪽)가 수 하나를 골라 네 합을 친다.
+   * 상대 수와 견줘 이기면 ×1.3·비기면 ×1.0·지면 ×0.8 이 a 가 칠 확률에 곱해진다.
+   * @returns { pick, foe, res:'win'|'tie'|'lose', mul, rounds:['a'|'d',…], ah, dh } · 못 치면 null
+   */
+  function duelBout(st, pick) {
+    if (!STANCES[pick] || !duelAlive(st)) { return null; }
+    var foe = foeStance(st);
+    var res = pick === foe ? 'tie' : (STANCES[pick].beats === foe ? 'win' : 'lose');
+    var mul = BOUT_MUL[res];
+    var hitA = core.clamp(st.am / (st.am + st.dm) * mul, 0.05, 0.95);
+    var got = [], k;
+    for (k = 0; k < BOUT_ROUNDS && duelAlive(st); k++) { got.push(duelRound(st, hitA)); }
+    st.foeHabit = res === 'lose' ? foe : null;              // 적이 이긴 수만 버릇으로 남는다
+    var b = { pick: pick, foe: foe, res: res, mul: mul, rounds: got, ah: Math.max(0, st.ah), dh: Math.max(0, st.dh) };
+    st.bouts.push(b);
+    return b;
+  }
+
+  /** 남은 합을 맡긴다(배율 없이) — 손으로 치다 그만둘 때 */
+  function duelAuto(st) {
+    while (duelAlive(st)) { duelRound(st, null); }
   }
 
   /* ── 출진 ─────────────────────────────────────────────── */
@@ -526,7 +591,31 @@
       log.push(s);
       if (hooks.onLog) { hooks.onLog(s); }
     };
-    var intro = fightIntro(atk, def, wallRef, toId2, land, false, lines);
+    /* 일기토 — 화면이 손으로 치겠다고(hooks.onDuel) 했고 판이 서면 먼저 그 카드부터 띄운다(PLAN §5-3).
+       끝나면 그 결과(preDuel)를 들고 전황으로 들어간다. 안 서거나 훅이 없으면 예전 그대로 fightIntro 가 굴린다 */
+    var aTop0 = topBy(atk.officers, 'might'), dTop0 = topBy(def.officers, 'might');
+    var duelSt = (hooks.onDuel && aTop0 && dTop0) ? duelBegin(aTop0, dTop0) : null;
+    if (!duelSt) { begin(hooks.onDuel && aTop0 && dTop0 ? null : undefined); }
+    else { duelPrompt(); }
+    return { ok: true, pending: true };
+
+    function duelView(done, result) {
+      return { a: duelSt.a, d: duelSt.d, ah: Math.max(0, duelSt.ah), dh: Math.max(0, duelSt.dh), n: duelSt.n,
+        bouts: duelSt.bouts.slice(), habit: duelSt.foeHabit, stances: STANCES, done: !!done, result: result || null };
+    }
+    function duelPrompt() {
+      hooks.onDuel(duelView(false), function (pick) {
+        if (pick === 'auto') { duelAuto(duelSt); }
+        else if (!duelBout(duelSt, pick)) { duelPrompt(); return; }
+        if (duelAlive(duelSt)) { duelPrompt(); return; }
+        var res = duelEnd(duelSt);
+        hooks.onDuel(duelView(true, res), function () { begin(res); });
+      });
+    }
+
+    /* 몸통은 들여쓰기를 그대로 둔 채 감쌌다(diff 를 작게) */
+    function begin(preDuel) {
+    var intro = fightIntro(atk, def, wallRef, toId2, land, false, lines, preDuel);
     var water = intro.water, sortie = intro.sortie, du = intro.du;
     var leadA = intro.leadA, leadD = intro.leadD;
     var startWall = wallRef.wall;
@@ -595,8 +684,7 @@
         tactic: tacticFor(land.key, atk.officers, atk.tacticUsed) }, step);
     }
     else { step(null); }
-
-    return { ok: true, pending: true };
+    }
   }
 
   /**
@@ -638,7 +726,7 @@
    * 전 형세는 정공법과 똑같아야 하기 때문이다.
    * @param dry 가늠(forecast)이면 true — 일기토를 굴리지 않는다(장수가 진짜로 다친다)
    */
-  function fightIntro(atk, def, wallRef, toId, land, dry, lines) {
+  function fightIntro(atk, def, wallRef, toId, land, dry, lines, preDuel) {
     var off = global.DG.off;
     var water = !!atk.water;
     if (water) { def.water = true; }
@@ -664,7 +752,9 @@
     var du = null;
     var aTop = topBy(atk.officers, 'might'), dTop = topBy(def.officers, 'might');
     if (aTop && dTop && !dry) {
-      du = duel(aTop, dTop);
+      /* preDuel 이 있으면 marchInteractive 가 플레이어와 손으로 친 판이다 — 여기선 굴리지 않고 그대로 쓴다.
+         undefined 면 예전처럼 굴린다(null 은 "이미 굴렸는데 안 걸렸다") */
+      du = preDuel !== undefined ? preDuel : duel(aTop, dTop);
       if (du) {
         /* 2026-09-10 — battle3d.js 가 실제 장수 모델 둘을 세우려면 이 싸움의
            '공격 쪽 장수'·'수비 쪽 장수'가 누구인지 알아야 한다. hits[].who
@@ -678,6 +768,7 @@
         loseSide.morale *= 0.92;
         off.gainExp(du.winner, off.EXP.duel);
         off.noteDuel(du.winner, du.loser);
+        if (off.rec(du.winner).force === global.DG.rtk.state().me) { global.DG.rtk.bumpStat('duelWins'); }
         if (du.hurt) {
           /* 다친 장수는 그 싸움에서 빠진다 */
           var li = loseSide.officers.indexOf(du.loser);
@@ -1618,6 +1709,8 @@
     ROUNDS: ROUNDS, ROUT: ROUT, DUEL_GAP: DUEL_GAP, SHIP_CREW: SHIP_CREW,
     CAMP_DECAY: CAMP_DECAY, CAMP_QUIT: CAMP_QUIT, CAMP_MIN: CAMP_MIN,
     armyPower: armyPower, topBy: topBy, duel: duel, fireRoll: fireRoll,
+    duelBegin: duelBegin, duelAlive: duelAlive, duelRound: duelRound, duelEnd: duelEnd, duelBout: duelBout, duelAuto: duelAuto,
+    STANCES: STANCES, BOUT_ROUNDS: BOUT_ROUNDS, BOUT_MUL: BOUT_MUL,
     FORMATIONS: FORMATIONS, formationOf: formationOf, TACTICS: TACTICS, tacticFor: tacticFor, stepRound: stepRound,
     HISTORY_BRANCHES: HISTORY_BRANCHES, checkHistoryBranch: checkHistoryBranch,
     reinforce: reinforce, reliefOf: reliefOf, forecast: forecast,

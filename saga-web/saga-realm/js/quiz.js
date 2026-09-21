@@ -220,6 +220,50 @@
     };
   }
 
+  /* ── 설전(舌戰) — 사절·등용 앞에서 치르는 세 문답 (PLAN §5-3) ─────────
+   * 학당 문답과 **같은 문제 은행**을 쓰되 보상·연속 정답·서고 기록은 건드리지 않는다
+   * (설전으로 공적·금·승리 조건이 쌓이면 학당과 이중 계산이다). 오답노트만 함께 쓴다 —
+   * 설전에서 틀린 문제도 학당의 오답노트에 오른다. 이 판 안에서만 도니 경영·문답 봉인 취지(§2-1)와 부딪치지 않는다. */
+  var DEBATE_MUL = [0.8, 0.95, 1.1, 1.3];       // 정답 수 0~3 → 성공률에 곱하는 배율
+  var DEBATE_LV = [[1, 1, 2], [1, 2, 2], [2, 2, 3], [2, 3, 3]];   // 지력 구간별 세 문제의 등급
+
+  /** 지력에 맞는 난도로 세 문제 — 같은 문제가 겹치지 않는다 */
+  function debateDraw(wisdom) {
+    var band = wisdom < 50 ? 0 : (wisdom < 70 ? 1 : (wisdom < 85 ? 2 : 3));
+    var want = DEBATE_LV[band], out = [], used = {}, i, j;
+    for (i = 0; i < want.length; i++) {
+      var pool = [];
+      for (j = 0; j < QD.BANK.length; j++) {
+        if (lvOf(QD.BANK[j]) === want[i] && !used[QD.BANK[j].id]) { pool.push(QD.BANK[j]); }
+      }
+      if (!pool.length) {                        // 그 등급이 바닥났으면 아무 안 쓴 문제로
+        for (j = 0; j < QD.BANK.length; j++) { if (!used[QD.BANK[j].id]) { pool.push(QD.BANK[j]); } }
+      }
+      if (!pool.length) { break; }
+      var ref = core.pick(pool);
+      used[ref.id] = 1;
+      out.push(present(ref));
+    }
+    return out;
+  }
+
+  /** 설전 한 문제 채점 — 기록은 오답노트뿐이다(맞히면 그 문제의 오답 한 번을 지운다) */
+  function debateAnswer(p, choiceIdx) {
+    var ref = QD.byId(p.id);
+    if (!ref) { return null; }
+    var st = qstate();
+    var ok = p.order[choiceIdx] === ref.a;
+    if (ok) { if (st.wrongs[ref.id]) { clearWrong(ref.id, false); } }
+    else { st.wrongs[ref.id] = (st.wrongs[ref.id] || 0) + 1; }
+    core.persist();
+    return { ok: ok, why: ref.why, answerText: ref.c[ref.a] };
+  }
+
+  /** 정답 수 → 성공률 배율 (0.8 / 0.95 / 1.1 / 1.3) */
+  function debateMul(correct) {
+    return DEBATE_MUL[core.clamp(Math.round(correct || 0), 0, DEBATE_MUL.length - 1)];
+  }
+
   function shortQ(q) {
     return q.length > 26 ? q.slice(0, 25) + '…' : q;
   }
@@ -275,6 +319,7 @@
   global.DG.quiz = {
     draw: draw, drawReview: drawReview, drawWrong: drawWrong, answer: answer,
     wrongList: wrongList, clearWrong: clearWrong,
+    debateDraw: debateDraw, debateAnswer: debateAnswer, debateMul: debateMul, DEBATE_MUL: DEBATE_MUL,
     progress: progress, learnedList: learnedList,
     state: qstate
   };
