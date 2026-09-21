@@ -63,8 +63,8 @@ namespace Saga.EditorTools
         // (BuildEnvironmentPbrSample.cs)을 room-small.glb/corridor.glb 셸
         // 대신 실제로 씬에 물린다. 후보 폴더가 없으면(다른 PC에 아직 안
         // 받아 둔 경우) null로 남아 기존 셸/색상 경로로 조용히 폴백한다.
-        private const string DungeonFloorMatPath = "Assets/Art/EnvironmentPBR_candidates/cobblestone_floor_01_URPLit.mat";
-        private const string DungeonWallMatPath = "Assets/Art/EnvironmentPBR_candidates/castle_wall_slates_URPLit.mat";
+        private const string DungeonFloorMatPath = "Assets/Art/Environment/PBR/cobblestone_floor_01_URPLit.mat";
+        private const string DungeonWallMatPath = "Assets/Art/Environment/PBR/castle_wall_slates_URPLit.mat";
 
         // 2026-09-14 "사운드" 실클립 전환 — SfxPlayer.cs 클래스 주석 참고.
         // 다섯 판 공유 원본 트리(Assets/Art/Audio) 재사용(hit/death)과

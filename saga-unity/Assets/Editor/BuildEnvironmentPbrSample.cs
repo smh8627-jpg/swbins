@@ -7,7 +7,7 @@ namespace Saga.EditorTools
     /// <summary>
     /// PLAN.md 66-2장 "다음에 할 일" ② — 환경 PBR 텍스처 킷 조사. Poly Haven
     /// (CC0, Quixel Megascans급 포토스캔 재질)에서 받은 샘플 두 벌
-    /// (Assets/Art/EnvironmentPBR_candidates/)이 URP Lit에 실제로 물리는지
+    /// (Assets/Art/Environment/PBR/)이 URP Lit에 실제로 물리는지
     /// 확인하는 프로토타입 머티리얼을 코드로 만든다. 아직 게임 씬에는 안
     /// 쓴다 — 66-2장 "적용 순서" ③(순차 교체) 단계에서 실제 지형/건물에
     /// 붙인다.
@@ -22,11 +22,11 @@ namespace Saga.EditorTools
     /// </summary>
     public static class BuildEnvironmentPbrSample
     {
-        private const string CobblestoneDir = "Assets/Art/EnvironmentPBR_candidates/PolyHaven_CobblestoneFloor01/";
-        private const string CastleWallDir = "Assets/Art/EnvironmentPBR_candidates/PolyHaven_CastleWallSlates/";
-        private const string GrassPathDir = "Assets/Art/EnvironmentPBR_candidates/PolyHaven_GrassPath2/";
-        private const string LeafyGrassDir = "Assets/Art/EnvironmentPBR_candidates/PolyHaven_LeafyGrass/";
-        private const string DarkWoodenPlanksDir = "Assets/Art/EnvironmentPBR_candidates/PolyHaven_DarkWoodenPlanks/";
+        private const string CobblestoneDir = "Assets/Art/Environment/PBR/PolyHaven_CobblestoneFloor01/";
+        private const string CastleWallDir = "Assets/Art/Environment/PBR/PolyHaven_CastleWallSlates/";
+        private const string GrassPathDir = "Assets/Art/Environment/PBR/PolyHaven_GrassPath2/";
+        private const string LeafyGrassDir = "Assets/Art/Environment/PBR/PolyHaven_LeafyGrass/";
+        private const string DarkWoodenPlanksDir = "Assets/Art/Environment/PBR/PolyHaven_DarkWoodenPlanks/";
 
         [MenuItem("Saga/Build Environment PBR Sample Materials")]
         public static void Build()
@@ -69,7 +69,7 @@ namespace Saga.EditorTools
                 mat.SetFloat("_Smoothness", 1f);
             }
 
-            var path = $"Assets/Art/EnvironmentPBR_candidates/{baseName}_URPLit.mat";
+            var path = $"Assets/Art/Environment/PBR/{baseName}_URPLit.mat";
             var existing = AssetDatabase.LoadAssetAtPath<Material>(path);
             if (existing != null)
             {

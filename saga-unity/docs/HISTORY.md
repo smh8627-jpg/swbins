@@ -8180,3 +8180,17 @@ Q4(생성 에셋 커밋) 정리 뒤 "이어해"를 다시 받았지만 101-2가 
 **부수 확인**: Q1 이 풀리면서 104-1⑤·102-4(`Assets/Art/*_candidates` 정리)를 막던 게이트도 같이 풀렸다 — 다음 세션이 바로 손댈 수 있는 첫 실코드 작업으로 `docs/PROJECT_STATE.md` "다음 작업" 3번에 적어 뒀다(삭제가 섞여 있어 씬 참조 grep·배치 모드 재확인 필수라고 명시). 105 는 이제 Q-U1(사실상 처리, 형식만 열림)·Q-U3(Shader Graph, 사람 GUI 필요) 둘만 진짜 남았다.
 
 `PLAN.md`(saga-unity 105·103-3)·`SAGA-DESIGN.md`(§10-Q1·Q3)·`saga-godot/PLAN.md`(105 Q1)·`docs/PROJECT_STATE.md` 갱신. 코드·씬 변경 없음(문서 정책만)이라 배치 모드·헤드리스 재검증 생략.
+
+## 2026-09-21 — 105 Q1이 풀려 102-4 승격 실행, `PlaytestStorySlice` 회귀 없는 기존 버그 발견 ("사가 유니티 이어해" 세션, Q1·Q3′·Q-U4 결정 다음)
+
+Q1·Q3′·Q-U4 결정 커밋 뒤 "이어해"를 다시 받았다. Q1이 "Unity 먼저"로 뒤집히며 104-1⑤·102-4(`Assets/Art/*_candidates` 정리)를 막던 게이트가 풀려 이걸 이어받았다.
+
+**참조 조사**: `CharacterShaders_candidates/`는 코드 참조 0건(Shader Graph 배선 전 — Q-U3), `EnvironmentPBR_candidates/`는 5개 Editor 스크립트(`BuildEnvironmentPbrSample.cs`·`BuildTestCityScene.cs`·`BuildTestDungeonScene.cs`·`BuildTestStoryScene.cs`·`BuildTestVillageScene.cs`)에 경로 상수로 박혀 있었다. `CharactersVroid/`는 참조 0건. `Characters/`(Kenney character-{a,b,c,d}.glb)는 **13개 파일에서 여전히 실사용 중**(GO 플레이어, GO/FOREST/STORY 주민, STORY 잡졸, 씬 4개) — 102-4 표의 "44장 Player·Enemy 교체 완료 확인 후"라는 전제가 틀렸다는 걸 이번에 처음 확인했다(DUNGEON만 Mixamo로 갔고 나머지 셋은 아직 Kenney). 이 폴더는 못 뺐다.
+
+**실행**: `CharacterShaders_candidates/`→`Assets/Art/Shaders/Character/`, `EnvironmentPBR_candidates/`→`Assets/Art/Environment/PBR/` 둘 다 `git mv`(파일+.meta 같이 이동, GUID 보존). Environment 쪽은 5개 스크립트의 경로 상수를 새 위치로 갱신. `CharactersVroid/`(참조 0건, 삭제 후보)는 `git rm`이 샌드박스 "돌이킬 수 없는 로컬 삭제" 분류에 걸려 자동 승인 밖이라 이번엔 손 안 대고 다음 세션에 사용자 승인 받아 처리하도록 넘겼다.
+
+**검증**: `tools/unity-batch.sh`로 4씬(`BuildTestVillageScene`·`BuildTestDungeonScene`·`BuildTestStoryScene`·`BuildTestCityScene`) 전부 재빌드(경로 상수 안 맞으면 재질이 null이 돼 조용히 구색만 바뀌므로 씬을 실제로 다시 지어야 확인된다) — 로그에 재질 누락 경고 없음, `git diff`도 정상. `PlaytestHeadless`(GO)·`PlaytestDungeonHeadless`·`PlaytestRealmSlice` 재검증 전부 OK.
+
+**`PlaytestStorySlice`가 `KillEnemies` 단계에서 FAIL**(잡졸 #0 처치에 유품 마커 안 생김) — `docs/PROJECT_STATE.md`가 같은 날 STORY 5-8 뒤 "OK"로 적어 둔 것과 모순돼, 내 변경이 원인인지 의심해 `git stash`로 이 세션 코드 변경을 통째로 걷어내고 HEAD 상태에서 씬을 다시 지어 같은 테스트를 두 번 돌렸다 — **똑같이 FAIL**. 즉 이 세션이 만든 회귀가 아니라 이미 커밋된 코드에 있던 버그(혹은 이 PC의 Unity 6000.3.24f1 환경 차이)를 우연히 이번에 처음 마주친 것이다. 원인은 조사하지 않았다(스코프 밖) — `docs/PROJECT_STATE.md` "알려진 오류"·"테스트 상태"에 FAIL로 정정해 다음 세션 최우선으로 넘겼다.
+
+`PLAN.md` 102-4 표 갱신(승격 완료 표기, `Characters/` 판정 취소 이유 명시, STORY 버그 발견 각주). `docs/PROJECT_STATE.md` 갱신("다음 작업" 1번에 버그 조사 앞세움, 102-4 항목 정리). 배치 모드 4파일 부작용(`ProjectSettings/ShaderGraphSettings.asset` 포함)은 매번 원복 확인.

@@ -118,8 +118,8 @@ namespace Saga.EditorTools
         // 들판(GroundColor #6faf55와 톤이 맞는 leafy_grass), 발판은 나무
         // 색조(PlatColor)와 맞는 dark_wooden_planks — 둘 다 66-2장 ⑥이
         // 받아 두고 "아직 어느 씬에도 안 물렸다"던 후보를 처음 실전 배치.
-        private const string StoryGroundMatPath = "Assets/Art/EnvironmentPBR_candidates/leafy_grass_URPLit.mat";
-        private const string StoryPlatformMatPath = "Assets/Art/EnvironmentPBR_candidates/dark_wooden_planks_URPLit.mat";
+        private const string StoryGroundMatPath = "Assets/Art/Environment/PBR/leafy_grass_URPLit.mat";
+        private const string StoryPlatformMatPath = "Assets/Art/Environment/PBR/dark_wooden_planks_URPLit.mat";
 
         private static void BuildTerrain()
         {

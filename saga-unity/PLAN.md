@@ -1123,17 +1123,21 @@ Slice 승인/재설계 결정.** 100단계에서 무조건 다음 콘텐츠로 �
 - heightmap 메시: `TerrainBuilder`(GO) 의 4×4 서브쿼드 정점 블렌딩 유지. 높이 데이터 규격(`float[w*h]` + 셀 크기)은 saga-godot 과 **파일 포맷만 공유**, 코드는 공유하지 않는다.
 - VRoid: `UniVRM + MToon10` 은 애니풍 셰이더라 66-2 와 상충 — 이 트랙에선 초상·컷신에도 쓰지 않는다(105장 Q3′ 결정 전까지 파일만 보존).
 
-## 102-4. `Assets/Art` 판정 표(삭제는 105장 결정 뒤 — 지금은 표만)
+## 102-4. `Assets/Art` 판정 표
+
+**105 Q1 이 2026-09-21 "Unity 먼저"로 확정되며 게이트가 풀려 실행 시작.** 2026-09-21 세션에서 승격 둘(코드 참조 없음/문자열 경로뿐이라 안전) 실행·검증 완료. 나머지는 아직 표만(실행은 각자 조건 충족 확인 뒤).
 
 | 폴더 | 내용 | 판정 | 이유 |
 |---|---|---|---|
-| `CharacterShaders_candidates/` SSS·AnisoHair·HairCards | MIT·MIT·CC0 | **남김→`Art/Shaders/Character/` 로 승격** | 사실적 방향의 핵심. Shader Graph 배선만 남음 |
-| `EnvironmentPBR_candidates/` Poly Haven 5벌 + .mat | CC0 | **남김→`Art/Environment/PBR/` 승격** | 이미 44장 교체에 쓰임 |
+| `Shaders/Character/`(구 `CharacterShaders_candidates/`) SSS·AnisoHair·HairCards | MIT·MIT·CC0 | **완료(2026-09-21): 승격됨** | 코드 참조 0건(Shader Graph 배선 전이라 아직 아무 데도 안 물림 — Q-U3), grep 확인 후 `git mv`만으로 이동. 사실적 방향의 핵심, 배선만 남음 |
+| `Environment/PBR/`(구 `EnvironmentPBR_candidates/`) Poly Haven 5벌 + .mat | CC0 | **완료(2026-09-21): 승격됨** | `BuildEnvironmentPbrSample.cs`·`BuildTestCityScene.cs`·`BuildTestDungeonScene.cs`·`BuildTestStoryScene.cs`·`BuildTestVillageScene.cs` 5개 경로 상수 갱신, 4씬 재빌드 + `PlaytestHeadless`·`PlaytestDungeonHeadless`·`PlaytestRealmSlice` 전부 재검증 OK(STORY는 아래 "발견한 오류" 참고) |
 | `CharactersRealistic/` (gitignore) | Mixamo Maria·Abe·Brute | 남김(로컬 전용) | ToS 상 재배포 금지, 커밋 안 함 |
-| `CharactersVroid/` AvatarSample_A | 애니풍 | **보류→뺄 것** | 임포트 검증 끝, 66-2 와 불일치 |
-| `Characters/` Kenney blocky 4종 | CC0 로우폴리 | **뺄 것**(44장 Player·Enemy 교체 완료 확인 후) | 플레이스홀더 |
-| `Buildings/`·`Dungeon/`·`Props/`·`Rocks/`·`Shrine/`·`Vegetation/` Kenney | CC0 | **단계 교체** — 씬에 남은 참조 grep 후 PBR 재질 모듈로 | 44장 Environment/Building 완료분과 겹치는 것부터 |
+| `CharactersVroid/` AvatarSample_A | 애니풍 | **뺄 것(코드 참조 0건 확인됨, 삭제 승인 대기)** | 임포트 검증 끝, 66-2 와 불일치. `git rm`이 "돌이킬 수 없는 로컬 삭제"로 자동 승인 밖 — 다음 세션이 사용자 승인 받아 실행 |
+| `Characters/` Kenney blocky 4종 | CC0 로우폴리 | **판정 취소 — 아직 못 뺀다** | 2026-09-21 확인: `character-{a,b,c,d}.glb` 가 GO 플레이어·GO/FOREST/STORY 주민·STORY 잡졸·씬 4개에 **여전히 실사용 중**("44장 Player·Enemy 교체 완료" 전제가 틀렸다 — DUNGEON만 Mixamo 교체, 나머지 셋은 아직 Kenney). Q-U4(3명 유지 확정)로 봐도 이 넷을 곧 뗄 계획이 없다 |
+| `Buildings/`·`Dungeon/`·`Props/`·`Rocks/`·`Shrine/`·`Vegetation/` Kenney | CC0 | **단계 교체** — 씬에 남은 참조 grep 후 PBR 재질 모듈로 | 44장 Environment/Building 완료분과 겹치는 것부터, 아직 착수 전(콘텐츠 제작이 필요해 "정리"보다 큰 작업) |
 | `Audio/` Kenney·CC0_BGM | CC0 | 남김 | |
+
+**발견한 오류(2026-09-21, 이 승격 작업 중 우연히 드러남 — 내가 만든 회귀 아님, 커밋 전 `git stash`로 HEAD 상태에서도 재현 확인)**: `PlaytestStorySlice`가 `KillEnemies` 단계에서 매번 FAIL — "잡졸 #0 처치에 유품 마커가 안 생김"(`StoryLootMarker.SpawnCount` 불변). `docs/PROJECT_STATE.md`·`HISTORY.md`가 같은 날 "OK"로 적어 둔 것과 모순 — 원인 미조사(이 세션 스코프 밖), 다음 세션이 먼저 봐야 한다.
 
 ## 102-5. §6.4 "허접 10가지" 해당 여부
 스타일 혼재 **해당**(Kenney 잔존·VRoid) · 후처리 **일부**(LUT·SSAO·SSS 없음) · 그림자 계단 **해당**(Mobile Cascade 1, blob 없음) · 바닥 한 색 **해당**(`VertexColorLit` 정점색 지형) · 하늘·안개 **GO 외 해당** · 스케일 **해당**(Kenney 1.0 vs Mixamo 1.75 혼재) · 애니 끊김 **해당**(Animator 전이 exitTime 0.9, 블렌드 없음) · 타격 반응 **해당**(101-1 C) · UI 폰트·패널 **일부**(`RealmUiKit`·`EncounterUiKit` 둘, 통일 안 됨) · 카메라 클리핑 **해당**(`CameraRig` 충돌 당김 없음 — `CinemachineDeoccluder` 로).
