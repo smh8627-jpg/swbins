@@ -1515,6 +1515,22 @@
        조건(잡초·꽃·심은 나무·집·사고)을 공개한다. */
     var bt = stt.beauty, sh = V.shopLevel();
     var warn = global.DG.town.beautyWarning ? global.DG.town.beautyWarning() : null;
+    /* 숲의 정령(PLAN §5.5 ②) — 도감. 바이옴별로 묶어 보이고, 다음 씨앗 보상 한 줄 */
+    if (global.DG.spirit) {
+      var spi = global.DG.spirit.summary(), spHtml = '';
+      Object.keys(spi.byBiome).forEach(function (bk) {
+        var bb = spi.byBiome[bk];
+        spHtml += '<div class="stat-row"><span>' + esc(bb.name) + '</span><b>✨ ' + bb.found + ' / ' + bb.total + '</b></div>';
+      });
+      html += '<div class="sec"><h4>숲의 정령</h4><div class="card">' +
+        '<div class="stat-row"><span>만난 정령</span><b>' + spi.found + ' / ' + spi.total + '</b></div>' +
+        '<div class="stat-row"><span>🌱 씨앗</span><b>' + spi.seeds + '개' +
+          (spi.next ? ' (다음 보상 ' + spi.next.at + '개)' : ' (모두 모았다)') + '</b></div>' +
+        spHtml +
+        '<small class="muted">숲 고리에 ✨ 정령의 터가 숨어 있습니다. 가까이 가서 손을 쓰면 무엇을 해야 하는지 알려 줍니다.</small>' +
+        '</div></div>';
+    }
+
     html += '<div class="sec"><h4>마을 평가</h4><div class="card">' +
       '<div class="stat-row"><span>' + esc(bt.grade) + '</span><b>' +
         '★'.repeat(bt.stars) + '☆'.repeat(5 - bt.stars) + ' · ' + bt.score + '점</b></div>' +

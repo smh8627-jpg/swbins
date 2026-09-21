@@ -304,6 +304,8 @@
        반딧불이 정원은 덤불(밤엔 fireflyBoost 파티클이 위에 얹힌다). 조개 길은 소품이
        아니라 땅(`village.js` tileAt 의 모래)이다 */
     stele: 'rock:moss', fireflyplot: 'bush',
+    /* 숲의 정령(PLAN §5.5) — 안 푼 터는 횃불(밤에 눈에 띄게), 푼 터는 꽃 한 송이 자국 */
+    spiritmark: 'lantern', spiritdone: 'flower',
     /* 다리(2026-09-09) — asset3d.js 에 진작 등록만 되어 있던 'bridge' 를
        처음 쓴다(village.js 의 새 BRIDGE_TY 크로싱) */
     bridge: 'bridge',
@@ -375,7 +377,7 @@
     /* 다리(2026-09-09) — 정규화라 원본 비례는 모른다. 난간 높이쯤(well·lantern
        사이) 눈대중으로 잡았다 */
     bridge: 1.4,
-    stele: 1.3, fireflyplot: 0.9,
+    stele: 1.3, fireflyplot: 0.9, spiritmark: 1.5, spiritdone: 0.5,
     deer: 1.1, fox: 0.55, wolf: 0.95,
     rabbit: 0.3, squirrel: 0.25, duck: 0.35, bird: 0.2,
     /* 개구리·뱀 — 토끼·다람쥐보다도 작게, 땅에 붙어 다니는 쪽이라 낮게 잡았다 */

@@ -452,6 +452,26 @@
     shellPath = path;
   }
 
+  /** 숲 고리에 사물(정령의 터 따위)을 새로 세워도 되는 자리인가 — 마을 안·캠프·동굴·폐허·
+   *  우주기지·물·다리와, 그 둘레 두 칸 안은 아니다. 공사(terrain.js)와 무관한 **자연 지형** 기준이라
+   *  세이브와 상관없이 늘 같은 답이다 */
+  function ringSpotOk(tx, ty) {
+    var dx, dy;
+    /* 숲 채집 노드('gn…')는 바이옴 칸 한가운데에 선다 — 그 둘레 세 칸은 피한다(노드를 지우지 않는다) */
+    var gx = Math.floor(tx / BIOME_CELL) * BIOME_CELL + Math.floor(BIOME_CELL / 2);
+    var gy = Math.floor(ty / BIOME_CELL) * BIOME_CELL + Math.floor(BIOME_CELL / 2);
+    if (Math.abs(tx - gx) <= 3 && Math.abs(ty - gy) <= 3) { return false; }
+    for (dy = -2; dy <= 2; dy += 2) {
+      for (dx = -2; dx <= 2; dx += 2) {
+        var x = tx + dx, y = ty + dy;
+        if (x >= -1 && y >= -1 && x <= W && y <= H) { return false; }
+        if (inHamlet(x, y) || inHamlet2(x, y) || inCave(x, y) || inRuin(x, y) || inSpaceBase(x, y)) { return false; }
+        if (inLake(x, y) || inRiver(x, y) || inBridge(x, y)) { return false; }
+      }
+    }
+    return true;
+  }
+
   function tileAt(tx, ty) {
     var t = tileBase(tx, ty);
     if (shellPath && GRASS_FAMILY[t] && shellPath[tx + ',' + ty]) {
@@ -648,6 +668,7 @@
        실제로 뺀 것을 안 하면 `focus()`·`auto.js`가 새로 생긴 수천 그루를 진짜
        채집 대상으로 삼아 하루 벌이가 몇 배로 뛴다 — 자가진단으로 잡았다 */
     var m = forestMargin();
+    var SPI = global.DG.spirit;
     for (ty = -m; ty < H + m; ty++) {
       for (tx = -m; tx < W + m; tx++) {
         if (tx >= 0 && ty >= 0 && tx < W && ty < H) { continue; }   // 마을 안은 위에서 이미 채웠다
@@ -657,6 +678,7 @@
         if (inRuin(tx, ty)) { continue; }                           // 폐허 자리도 비워 둔다
         if (inSpaceBase(tx, ty)) { continue; }                      // 우주기지 자리도 비워 둔다
         if (!GRASS_FAMILY[tileAt(tx, ty)]) { continue; }            // 공사로 딴 걸 깔았으면 스킵
+        if (SPI && SPI.blocked(tx, ty)) { continue; }               // 정령의 터 둘레는 비워 둔다(PLAN §5.5)
         var fh = core.hash2(tx * 31 + s.seed % 613 + 2000, ty * 17 + s.seed % 419 + 2000);
         var fx = tx * TILE + TILE * 0.5, fy = ty * TILE + TILE * 0.5;
         var fid = 'f' + tx + '_' + ty;
@@ -670,6 +692,10 @@
         }
       }
     }
+
+    /* 숲의 정령 60(PLAN §5.5 ②) — 터 표지는 고리 사물이 다 선 뒤에 얹는다(둘레 두 칸은 위에서 비웠다).
+       푼 터는 deco(손이 안 닿는 자국), 안 푼 터는 손이 닿아 수수께끼가 시작된다 */
+    if (SPI) { Array.prototype.push.apply(props, SPI.marks()); }
 
     /* 다리(2026-09-09) — 마을 도로와 같은 줄(BRIDGE_TY)에 실제로 건널 수 있는
        자리가 생겼으니, `Bridge.glb`(2026-08-30부터 등록만 되고 안 쓰이던 것)를
@@ -1518,6 +1544,7 @@
     if (indoors) { return; }
 
     if (global.DG.bug) { global.DG.bug.update(dt); }
+    if (global.DG.spirit && !indoors) { global.DG.spirit.tick(dt); }   // 숨죽임 수수께끼(PLAN §5.5)
     /* 주민의 거동과 잡담은 folk.js 가 맡는다.
        **멀리 걷지는 않는다** — 제 자리 둘레만 돈다. 멀리 가면 부탁을 들어주려고
        사람을 찾아 헤매게 된다 */
@@ -1784,6 +1811,7 @@
     if (prop.kind === 'fireflyplot') {
       return { kind: 'empty', text: '✨ 낮에는 그저 풀밭이지만, 밤이 되면 반딧불이가 모여든다고 합니다' };
     }
+    if (prop.kind === 'spiritmark') { return global.DG.spirit ? global.DG.spirit.interact(prop) : null; }
     if (prop.kind === 'weed') { return pullWeed(prop); }
     if (prop.kind === 'home') { return enterHome(); }
     if (prop.kind === 'cave') { return enterCave(); }
@@ -2300,7 +2328,7 @@
     W: W, H: H, TILE: TILE, REACH: REACH,
     init: init, update: update, bindKeys: bindKeys, walkTo: walkTo, setJoy: setJoy,
     keymap: keymap, beginRemap: beginRemap, remapping: function () { return remapping; },
-    tileAt: tileAt, walkable: walkable,
+    tileAt: tileAt, walkable: walkable, ringSpotOk: ringSpotOk,
     _shellPath: function () { return shellPath; },
     focus: focus, interact: interact, spent: spent,
     talk: talk, requestOf: requestOf, friendOf: friendOf, talkNpc: talkNpc,
