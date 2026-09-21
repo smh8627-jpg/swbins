@@ -7907,3 +7907,12 @@ PROJECT_STATE.md` 참고. 요약:
 - `loot_pickup.gd::spawn_at()`의 무기 GLB·장비 박스 메시(둘 다 `it.tier`로 등급이 있는 자리만, 금·단약·룬 등 고정색 드롭은 범위 밖)에 `_outline_material(tier)`로 `next_pass` 배선. cel_toon `hit_flash`(`cel_shader_apply.gd`)와는 완전히 별개 경로(그쪽은 텍스처 있는 재질만 골라 건너뛴다) — 무기 GLB는 공유 Mesh 리소스를 안 건드리게 재질을 `duplicate()`한 뒤에만 next_pass를 얹었다.
 - 헤드리스 실측: `test_room.gd`에 임시 훅으로 loot 12개(장비만) 스폰 → `ok=12`(전부 next_pass 있음) 확인, 나머지 부수 드롭(금·단약·룬·주문서, 17개)은 의도대로 외곽선 없음. 훅 제거.
 - `godot_regress.sh` 다섯 판 전부 통과(md5는 이전 세션 병합(`a815eb42`)이 남긴 리소스 재임포트 로그 차이로 다섯 판 다 값이 바뀌었지만 각자 3회 내부 일관, 09-20 이후 반복 확인된 정상 패턴) · `.import`/`project.godot` 잡음 없음.
+
+## 전설 등급 잔광 파티클 (2026-09-21, 같은 세션, "이어해" — 사용자에게 새로 지어도 될지 직접 확인받음)
+
+- 101-3 G "이펙트(전설 = 잔광 파티클 1)" — 이 저장소 최초의 파티클이라(참고할 선례 없음, 헤드리스로 실제 화상은 확인 불가) AskUserQuestion으로 새로 지어도 될지 직접 물어 허가받고 진행.
+- GPUParticles3D 대신 CPUParticles3D를 골랐다 — 헤드리스 더미 렌더러가 컴퓨트 셰이더를 지원하는지 불확실해 리스크를 낮췄다(CPU 시뮬레이션이라 안전).
+- `loot_pickup.gd::_spawn_legendary_glow()` 신설: 작은 SphereMesh(unshaded+emission) 파티클 10개, 위로 살짝 떠오르는 궤적(중력을 양수로), 등급색(#c7a76c) 틴트. `spawn_at()`에서 `it.tier == LEGENDARY_TIER_KEY(4)`일 때만 노획물에 붙인다(잡졸·정예 드롭까지 번지면 "색만 보고 줍는다" 반사신경이 흐려져서 전설 하나로 한정).
+- 헤드리스 실측: `test_room.gd` 임시 훅으로 (1) 직접 호출로 노드·`amount`·`mesh` 정상 확인 (2) 1000회 굴림 중 5개가 실제로 전설로 나와 전부 `LegendaryGlow` 자식이 붙는 것 확인. 둘 다 확인 후 훅 제거.
+- `godot_regress.sh` 다섯 판 통과·md5 완전 불변(대표 씬 부팅 5초 안엔 전설이 안 걸림), `.import`/`project.godot` 잡음 없음.
+- **실제 화면에서 파티클 밀도·속도·색이 괜찮은지는 전적으로 실기 확인 필요** — 목록에 추가.

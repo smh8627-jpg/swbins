@@ -44,6 +44,7 @@ extends RefCounted
 const Toast := preload("res://saga_core/ui/toast.gd")
 const GLBUtils := preload("res://games/saga_go/world/glb_utils.gd")
 const OUTLINE_SHADER := preload("res://saga_core/shaders/cel_outline.gdshader")
+const LEGENDARY_TIER_KEY := 4 # DungeonItems.TIERS[4] == "전설"
 
 ## 2026-09-20 — 101-3 G "성장 가시화". 무기 노획물은 등급색 박스 대신
 ## KayKit 무기 GLB(103-3 킷배싱, ASSET_GUIDE 해당 날짜)를 쓴다. dungeon_
@@ -138,6 +139,47 @@ static func _outline_material(tier: Dictionary) -> ShaderMaterial:
 	return outline
 
 
+## 101-3 G "이펙트(전설 = 잔광 파티클 1)" — 이 저장소 최초의 파티클(다른
+## 자리에 참고할 선례가 없어 값은 직접 정함, 실기로 밀도·속도 확인 필요).
+## GPUParticles3D는 헤드리스 더미 렌더러의 컴퓨트 셰이더 지원이 불확실해
+## 리스크를 낮추려 CPUParticles3D로 짠다(CPU 시뮬레이션이라 헤드리스에서도
+## 안전). 전설 등급 노획물 하나에만 붙는다(잡졸·정예 드롭까지 번지면
+## "색만 보고 줍는다"는 반사신경이 흐려진다).
+static func _spawn_legendary_glow(area: Node3D, tier: Dictionary) -> void:
+	var glow_mesh := SphereMesh.new()
+	glow_mesh.radius = 0.035
+	glow_mesh.height = 0.07
+	var glow_mat := StandardMaterial3D.new()
+	glow_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	glow_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	glow_mat.vertex_color_use_as_albedo = true
+	glow_mat.emission_enabled = true
+	glow_mat.emission = Color(String(tier.color))
+	glow_mat.emission_energy_multiplier = 1.5
+	glow_mesh.surface_set_material(0, glow_mat)
+
+	var p := CPUParticles3D.new()
+	p.name = "LegendaryGlow"
+	p.position = Vector3(0, 0.5, 0)
+	p.mesh = glow_mesh
+	p.amount = 10
+	p.lifetime = 1.4
+	p.preprocess = 1.4 # 처음 보일 때부터 이미 도는 것처럼(빈 채로 시작 안 함)
+	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+	p.emission_sphere_radius = 0.12
+	p.direction = Vector3(0, 1, 0)
+	p.spread = 20.0
+	p.gravity = Vector3(0, 0.15, 0) # 아래로 안 떨어지고 위로 살짝 떠오르는 "잔광"
+	p.initial_velocity_min = 0.1
+	p.initial_velocity_max = 0.25
+	p.scale_amount_min = 0.5
+	p.scale_amount_max = 1.0
+	var glow_color := Color(String(tier.color))
+	glow_color.a = 0.85
+	p.color = glow_color
+	area.add_child(p)
+
+
 ## PLAN 101-2 DUNGEON ⑥(월드 보스, 2026-09-17) — `legendary_mult`(기본
 ## 1.0)는 DungeonItems.roll()로 그대로 넘어간다(웹 5.4 "전설 확률×3").
 static func spawn_at(parent: Node, pos: Vector3, ilvl: int, is_boss: bool = false, is_elite: bool = false, legendary_mult: float = 1.0) -> void:
@@ -184,6 +226,8 @@ static func spawn_at(parent: Node, pos: Vector3, ilvl: int, is_boss: bool = fals
 		mat.next_pass = _outline_material(tier) # 101-3 G
 		mi.material_override = mat
 	area.add_child(mi)
+	if it.tier == LEGENDARY_TIER_KEY:
+		_spawn_legendary_glow(area, tier)
 
 	var cs := CollisionShape3D.new()
 	var shape := SphereShape3D.new()
