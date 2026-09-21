@@ -15,22 +15,22 @@
 
 **공통(saga_core)**: `data/characters.gd`(인물 105, id 불변)·`data/pets.gd`(신수 11) · `ui/toast.gd`·`ui/virtual_joystick.gd`·`ui/goal_board.gd`+`ui/session_card.gd`(101-4, 목표판 3줄·마무리 카드, 다섯 판 전부 붙음)·`ui/duel_hud.gd` · `combat_feel.gd`(101-3, 다섯 판 끝, 09-20㉒ 타격음 배선, 09-21 UI 사운드(`ui()`) 신설+`session_card.gd` "닫기" 배선) · `world/world_curve_material.gd`+`shaders/curved_*`(FOREST 구면) · `world/density_report.gd`(104-5, 발견 밀도, FOREST는 반경 10m) · `shaders/cel_toon.gdshader`+`cel_shader_apply.gd`(66-2/102-3, hit_flash+아웃라인 next_pass 자동) · `world/glb_utils.gd::fit_height()`(102-1, 여전히 미호출). 렌더러 Forward+/Mobile 이중(66-1, `env_pc.tres`·`env_mobile.tres`, 102-2 값).
 
-## 현재 작업 — 중단 지점(09-21, 다음 세션 이어서)
+## 현재 작업 — 중단 지점(09-21 저녁, 다음 세션 이어서)
 
-- 103 신설·Quaternius 68/68 스냅·KayKit 무기 5등급 전부 완료.
-- **09-20⑳~㉒**: Test 씬 배선 → GO 카메라 버그(결함 아님) → 타격음 배선.
-- **09-21 §8-1 자체 확장(허가받음)**: UI 사운드·부위 파괴 재해석·나무 바람·발밑 그림자·ReflectionProbe·9-slice 패널·숫자 콤마·카메라 페이드·DUNGEON 외곽선+파티클·동행 실루엣·GO 지형 트라이플레이너(승인 결과 변경). 헤드리스 실측 무오류(HISTORY 09-21).
+- 103 신설·Quaternius 68/68 스냅·KayKit 무기 5등급·§8-1 자체 확장(UI 사운드~GO 지형 트라이플레이너) 전부 완료, 헤드리스 무오류.
+- **102 그래픽 개편 스크린샷 확인 착수 중 GO/FOREST/DUNGEON 공통 idle 애니메이션 버그 발견**(팔이 벌어진 채 정지). 원인 추정·재현 방법은 HISTORY 09-21 참고.
 
 ## 다음 작업 (우선순위)
 
-1. **사용자 실기 확인**(아래).
-2. **102 그래픽 개편** — 사람 몫.
-3. **STORY VRoid·Mixamo 애니** — 사람 몫.
-4. **103 procgen 소품 씬 배치** — 실기 확인 뒤.
+1. **mixamo_retarget.gd 팔 보정 버그 수정**(HISTORY 09-21 원인 추정) — GO·FOREST·DUNGEON 공통.
+2. **GO 스폰이 "무너진 기둥" 랜드마크에 파묻히는 문제 확인**(HISTORY 09-21).
+3. **사용자 실기 확인**(아래).
+4. **102 그래픽 개편 나머지**(LightmapGI Q-b 등) — 애니 고친 뒤.
+5. **103 procgen 소품 씬 배치** — 실기 확인 뒤.
 
 ## 알려진 오류
 
-- 없음. GO 스폰 카메라는 버그 아님(HISTORY 09-20㉑).
+- **GO/FOREST/DUNGEON idle 포즈 고정 버그**(mixamo_retarget.gd 보정 문제로 추정, HISTORY 09-21). GO 스폰 카메라는 버그 아님(HISTORY 09-20㉑).
 
 ## 테스트 상태
 
