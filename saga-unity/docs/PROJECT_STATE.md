@@ -1,7 +1,9 @@
 # PROJECT_STATE — saga-unity (상태만, ≤15KB, 덮어쓴다)
 
 **규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다(2026-09-16 재편 전 본문 5,532줄은 그쪽 첫 절에 그대로 있다). 넘치면 `tools/precheck.sh` 가 막는다.
-마지막 갱신: 2026-09-22 (열두 세션째, 이어서 — DUNGEON 방 셸 마모 3단 → REALM 성벽 3단 → **67~69장 Localization 잔여 채움**) — 경위는 HISTORY grep. 102-4는 전부 처리됐다(남은 건 `Characters/` Kenney, 실사용 중이라 못 뺀다). **103-1 "변형 배가"는 전부 완료**. **67~69장 en 번역 미착수 목록도 이제 닫힘**(REALM 전투 서술 92키·FOREST 바이옴 4곳) — 다음 세션이 이어받을 잔여 없음.
+마지막 갱신: 2026-09-22 (열세 세션째, 이어서 — DUNGEON 방 셸 마모 3단 → REALM 성벽 3단 → 67~69장 Localization 잔여 채움 → **"직접 실기해" GUI 스크린샷 시도, 환경 문제로 미완**) — 경위는 HISTORY grep. 102-4는 전부 처리됐다(남은 건 `Characters/` Kenney, 실사용 중이라 못 뺀다). 103-1·67~69장 잔여는 전부 닫힘.
+
+**중요 — 이 세션의 GUI 스크린샷 실기 확인은 실패**: `-batchmode` 없이 띄우면(스크린샷엔 실제 렌더링 필요) "Administrator Privileges Detected" 대화상자가 뜨고, 닫아도(SendKeys) **같은 대화상자를 띄운 새 Unity.exe가 1.5~2초마다 재생성되며 폭주**한다(`taskkill /T`로 잡음, 경위는 HISTORY grep "폭주"). `-batchmode`(+`-nographics` 뺌)면 대화상자는 안 뜨지만 `ScreenCapture`가 파일을 하나도 안 남긴다 — **이 환경에 Unity GUI 스크린샷 방법이 아직 없다.** 다음 세션은 이 절부터 읽을 것, SendKeys 자동 닫기 재시도 금지(같은 폭주 재현).
 
 ## 캐릭터 자산 — 이 PC 기준 (2026-09-19)
 
@@ -27,7 +29,7 @@ PLAN 101-3(C hitstop류·F 유품 마커·G 데칼/레벨업 컷/장비 가시�
 
 1. **PLAN 104-1 ⑤·102-4 마무리** — 거의 다 끝남(Rocks/Vegetation procgen 교체 GO+FOREST 둘 다, 2026-09-21). 남은 건: `Props/`의 lantern·stall-red(재질 혼재라 보류, 실기 확인 후 재판단) · `Characters/` Kenney는 **아직 못 뺀다**(GO 플레이어·GO/FOREST/STORY 주민·STORY 잡졸이 실사용 중).
 2. **PLAN 101-2 이어서** — 사실상 다 닫힘, 남은 건 GO⑤(모바일 빌드 뒤)·STORY5-2(보류)뿐.
-3. **실기 GUI 확인 몰아서** — "실기 확인 대기" 전부(아래 목록). 사용자 몫. 다른 PC로 이어받으면 `CharactersRealistic/`가 비어 있음 — mixamo.com에서 새로 받을 것(목록은 `SetupXxxCharacterImport.cs`).
+3. **실기 GUI 확인 몰아서** — "실기 확인 대기" 전부(아래 목록). 위 "중요" 절 때문에 스크린샷은 못 가려 새 도구 셋(`PlaytestGoLandmarksGui.cs`·`PlaytestDungeonWearTiersGui.cs`·`PlaytestRealmWallTiersGui.cs`, 컴파일만 확인)을 사용자 몫으로 남겼다 — Unity Hub에서 `Saga/Playtest ... (GUI Screenshot)` 메뉴로 돌리면 됨. 다른 PC는 `CharactersRealistic/`가 비어 있음 — mixamo.com에서 새로 받을 것(목록은 `SetupXxxCharacterImport.cs`).
 4. **PLAN 105 열린 질문(Q-U1·Q-U3)** — 남은 둘만, 둘 다 사람 몫(Q-U1 형식만 열림, Q-U3 Shader Graph는 사람 GUI 필요). (Q1·Q3′·Q4·Q-U4 는 2026-09-21 결정 완료.)
 
 닫힌 백로그(다음 세션이 새로 이어받을 잔여 없음): 101-3(C·F·G, GO·DUNGEON·STORY), 103-1 변형 배가(나무·바위·건물 모듈·DUNGEON 방 셸·REALM 성벽), 67~69장 en 번역(REALM 전투 서술 92키·FOREST 바이옴 4곳).

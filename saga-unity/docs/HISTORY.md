@@ -8316,3 +8316,18 @@ REALM 92키는 코드에서 쓰는 순서 그대로 ko(원문)·en(신규 번역
 **검증**: `tools/unity-batch.sh` 컴파일(오류 0) → Node `JSON.parse`로 두 파일 구문 확인 → `PlaytestRealmSlice`·`PlaytestForestHeadless` 각 3연속 OK. 코드 사용 키 집합과 ko.json 키 집합을 다시 `comm`으로 비교해 누락 0, ko/en 키 집합 완전 일치 확인. 추가로 임시 에디터 스크립트(`_TempVerifyLocalization.cs`, 커밋 안 하고 확인 뒤 삭제)로 언어를 "en"으로 바꿔 REALM 신규 키 6개가 실제로 영어를 반환하고 한글이 안 섞이는지, `[\uAC00-\uD7A3]` 정규식으로 직접 확인했다(bash `grep -P`의 유니코드 클래스가 이 환경에서 간헐적으로 오탐/오통과하는 걸 발견해 신뢰 안 하고 PowerShell로 재확인 — bash `grep -cP '[\x{AC00}-\x{D7A3}]'`가 473줄을 한글 포함으로 잘못 셌으나 실제로는 31줄뿐이었다, 기존 문제였던 idiom 퀴즈 답안 로마자 표기라 정상).
 
 `PLAN.md` 67~69장 "미착수" 줄을 재조사 결과로 다시 씀, `docs/PROJECT_STATE.md`(다음 작업·테스트 상태·완료 요약 FOREST/REALM 행) 갱신 — 겸사겸사 이미 닫힌 101-3 표(2026-09-18 기준, 5줄짜리 상세 표)를 한 줄 요약으로 접어 문서 크기 여유를 만들었다(≤15KB 제한, PLAN 101-3 세부 경위는 이 HISTORY 2026-09-18 절에 그대로 있다).
+## 2026-09-22 — "직접 실기해" GUI 스크린샷 시도, 환경 문제로 미완 (REALM 성벽 3단·DUNGEON 방 셸 다음, "이어해" 세션)
+
+사용자가 "직접 실기해"로 실기 GUI 확인을 명시적으로 요청해(루트/폴더 CLAUDE.md의 "명시적으로 요청할 때만 스크린샷" 조건 충족), 이번 세션 신규 3건(GO 마을집 곁채·굴뚝, DUNGEON 방 셸 마모 3단, REALM 성벽 3단) + GO 전체를 확인 범위로 골랐다.
+
+**도구 셋 신설** — `PlaytestDungeonEnemiesGui.cs`(2026-09-19)와 같은 결로 씬을 열고 텔레포트→대기→`ScreenCapture.CaptureScreenshot()`→다음 지점 순으로 도는 1회성 GUI 스크린샷 도구를 세 개 만들었다: `PlaytestGoLandmarksGui.cs`(집 둘+명소 넷), `PlaytestDungeonWearTiersGui.cs`(`DungeonFloorRunner.JumpToFloor(2/40/70)`로 마모 0/1/2단 강제), `PlaytestRealmWallTiersGui.cs`(`record.Wall`을 `def.BaseWall`×1/1.5/2로 강제해 성벽 0/1/2단). GO 도구는 **1차 시도에서 좌표 계산 실수**를 실제로 겪었다 — `TestMapData.TileSize=48`(칸 하나가 48유닛)인데 격자 좌표를 2~4칸만 어긋나게 넣어 "남쪽으로 물러난 자리"를 계산해 96~192유닛이나 떨어졌고, 마을집도 `WorldPos(gx,0)`으로 잘못 짐작했다(실제론 `WorldPos(gx,3)`, `LandmarksBuilder.BuildVillage()` 확인). 씬에 이미 지어진 명소 GameObject를 이름으로 찾아 `targetPos - playerForward*8`로 다시 짜서 고쳤다(격자 계산 자체를 안 쓰는 방식) — 로그의 pre-shot 좌표가 지점마다 다르게 나오는 것까지 확인해 계산 자체는 옳다는 걸 검증했다.
+
+**환경 문제로 스크린샷 자체는 못 얻었다** — 셋 다 컴파일만 확인, 실행 결과는:
+1. `-batchmode` 없이(스크린샷엔 실제 렌더링 필요, `-nographics`도 안 됨) `-executeMethod`로 GO 도구를 처음 돌렸을 때는 정상 완료돼 스크린샷 5장을 얻었다(당시엔 위 좌표 버그가 있어 다 허허벌판만 찍혔지만, 프로세스 실행 자체는 성공).
+2. 좌표를 고친 뒤 같은 방식으로 재실행하니 매번 **"Administrator Privileges Detected" 대화상자**가 뜨고 멈췄다(이 셸이 관리자 권한이라 추정). `MainWindowTitle`로 직접 확인.
+3. `-batchmode`(+`-nographics`만 뺌)로 돌리면 대화상자 없이 끝까지 도는데(로그에 "shot N" 메시지까지 다 찍힘) **`ScreenCapture.CaptureScreenshot()`가 파일을 하나도 안 남긴다** — 배치 모드엔 실제 렌더 백버퍼가 없어서로 추정.
+4. PowerShell `[Microsoft.VisualBasic.Interaction]::AppActivate` + `SendKeys::SendWait("{ENTER}")`로 그 대화상자를 자동으로 닫는 워처를 만들어 봤다 — **닫을 때마다 같은 대화상자를 띄운 새 Unity.exe 프로세스가 1.5~2초 간격으로 계속 재생성되는 걸 실제로 겪었다**(6회 연속 새 PID 확인). 방치했으면 `find /` 10시간 CPU 사고(루트 CLAUDE.md)와 같은 급의 자원 폭주가 될 뻔했다 — `taskkill /F /IM Unity.exe /T`로 프로세스 트리째 잡아 즉시 중단, 재확인 두 번으로 재발 없음 확인. `SendFeedback`으로 이 환경 문제를 별도로 남겼다.
+
+**결론**: 이 환경(관리자 권한 셸)에서 Unity 비-배치 GUI 실행은 안전하지 않고, 배치 모드는 스크린샷이 안 나온다 — 지금은 방법이 없다. 세 도구는 로직(텔레포트 좌표·티어 강제)까지는 검증됐으니 코드로는 커밋하고, 실제 스크린샷은 사람이 Unity Hub로 직접 열어(관리자 권한 아닌 일반 세션) `Saga/Playtest ... (GUI Screenshot)` 메뉴로 돌리는 몫으로 남긴다. GO 전체 실기 확인(전투·손맛·대사 등)은 애초에 스크린샷으로 못 가리는 항목이 대부분이라 이번 시도 여부와 무관하게 사람 몫.
+
+`docs/PROJECT_STATE.md` 최상단에 "중요" 경고 절 신설(다음 세션이 같은 폭주를 재현하지 않도록), "다음 작업" 3번에 새 도구 셋 안내 추가. `Packages/`·`ProjectSettings/` 4파일은 배치 모드 아닌 직접 호출로 오염된 걸 `git checkout --`으로 원복.
