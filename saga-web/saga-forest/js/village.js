@@ -814,7 +814,9 @@
       props.push({ id: 'spaceHouse', kind: 'spaceHouse', x: sbx - TILE * 2.5, y: sby - TILE * 0.3, deco: true });
       props.push({ id: 'spaceDome', kind: 'spaceDome', x: sbx + TILE * 2.6, y: sby - TILE * 0.7, deco: true });
       props.push({ id: 'spaceSolar', kind: 'solarPanel', x: sbx - TILE * 0.9, y: sby - TILE * 1.7, deco: true });
-      props.push({ id: 'spaceRover', kind: 'rover', x: sbx + TILE * 1.8, y: sby + TILE * 1.8, deco: true });
+      /* 배달 등급 60건 이상이면 탐사차에 앉아 볼 수 있다(PLAN §5.7 "탑승" 암시) */
+      props.push({ id: 'spaceRover', kind: 'rover', x: sbx + TILE * 1.8, y: sby + TILE * 1.8,
+                   deco: !(global.DG.parcel && global.DG.parcel.grade() >= 3) });
       props.push({ id: 'spaceMech', kind: 'mech', x: sbx - TILE * 2.2, y: sby + TILE * 1.7, deco: true });
     }
 
@@ -822,6 +824,14 @@
        kind라 mail.js의 편지·이사 상태를 건드리지 않는다 — village.js
        자체 상태(st().delivery)만 쓴다 */
     props.push({ id: 'courierPost', kind: 'courierPost', x: (cx + 3) * TILE + 20, y: (cy + 1) * TILE + 46 });
+    /* 택배 사슬(PLAN §5.7) — 폐허의 옛 우체통(폐허행 소포를 넣는 곳)과, 배달 10건부터 내 집 앞에 서는 수레 */
+    var rsp = ruinSpot();
+    if (rsp) {
+      props.push({ id: 'oldpost', kind: 'oldpost', x: rsp.tx * TILE + TILE * 0.5 - TILE * 1.9, y: rsp.ty * TILE + TILE * 0.5 + TILE * 0.9 });
+    }
+    if (global.DG.parcel && global.DG.parcel.grade() >= 1) {
+      props.push({ id: 'deliveryCart', kind: 'cart', x: (cx + 3) * TILE + 20 + TILE * 1.4, y: (cy - 1) * TILE + 20 + TILE * 0.9, deco: true });
+    }
 
     /* 숲 고리 real 채집 자원(PLAN 18절 "채집" · PLAN 40절 PHASE 4 "Gathering") —
        위 숲 고리 사물은 전부 deco:true(장식)라 채집이 안 된다(PHASE 3 몫은
@@ -1183,6 +1193,11 @@
     if (hr0.lastTalk !== s.day) { hr0.lastTalk = s.day; bumpHeart(npc.id, 1); }
     /* 배달원(PLAN 45절, 2026-09-11)은 QUESTS 표가 없는 유일한 NPC라 아래
        일반 흐름(한 번뿐인 부탁)을 안 타고 여기서 갈라진다 — talkCourier() 참고 */
+    /* 택배 사슬(PLAN §5.7) — 소포가 이 사람(상인·나그네)에게 가는 것이면 부탁 대신 배달을 받는다 */
+    if (npc.kind !== 'courier' && global.DG.parcel && s.delivery && s.delivery.carrying) {
+      var dr = global.DG.parcel.deliverToNpc(npc, def.name);
+      if (dr) { bumpHeart(npc.id, 2); return dr; }
+    }
     if (npc.kind === 'courier') { return talkCourier(); }
     var q = VD.QUESTS[npc.kind];
     if (!q) { return { kind: 'talk', name: def.name, text: npcLine(npc, def) }; }
@@ -1221,6 +1236,13 @@
           ? npcLine({ id: 'npc_courier' }, def)
           : '아직 소포가 없구먼 — 마을 택배 접수대에서 받아 오게' };
     }
+    /* 택배 사슬(PLAN §5.7) — 소포 종류·거리·사슬 보상은 parcel.js 가 계산한다. 이 아래는 그 파일이 없을 때의 옛 흐름 */
+    var PC = global.DG.parcel;
+    if (PC) {
+      var pr = PC.deliver('space', def.name);
+      if (pr && pr.kind === 'quest') { bumpHeart('npc_courier', 2); }
+      return pr;
+    }
     s.delivery.carrying = false;
     s.delivery.n = (s.delivery.n || 0) + 1;
     core.save.player.gold += DELIVERY_REWARD;
@@ -1239,11 +1261,19 @@
   /** 택배 접수대(마을 안, courierPost) — 소포가 없을 때만 하나 내준다.
    *  이미 들고 있으면 배달원에게 먼저 갖다 주라고 한다 — 한 번에 하나씩,
    *  무제한 반복 */
-  function pickupParcel() {
+  function pickupParcel(kind, dest) {
     var s = st();
     if (!s.delivery) { s.delivery = { carrying: false, n: 0 }; }
     if (s.delivery.carrying) {
-      return { kind: 'no', text: '이미 소포를 갖고 있습니다 — 배달원에게 먼저 가져다 주세요' };
+      return { kind: 'no', text: '이미 소포를 갖고 있습니다 — 먼저 가져다 주세요' };
+    }
+    /* 택배 사슬(PLAN §5.7) — 접수대는 소포 셋(보통·깨지기·시간제한) 중 하나를 고르는 시트를 연다.
+       종류를 넘기면 그 소포를 곧바로 받는다(시트의 버튼·진단) */
+    var PC = global.DG.parcel;
+    if (PC) {
+      if (kind) { return PC.take(kind, dest); }
+      core.emit('village:open', 'parcel');
+      return { kind: 'open', text: '택배 접수대', place: 'parcel' };
     }
     s.delivery.carrying = true;
     core.emit('changed');
@@ -1568,6 +1598,7 @@
 
     if (global.DG.bug) { global.DG.bug.update(dt); }
     if (global.DG.spirit && !indoors) { global.DG.spirit.tick(dt); }   // 숨죽임 수수께끼(PLAN §5.5)
+    if (global.DG.parcel) { global.DG.parcel.tick(dt); }                // 깨지기 소포(PLAN §5.7)
     /* 주민의 거동과 잡담은 folk.js 가 맡는다.
        **멀리 걷지는 않는다** — 제 자리 둘레만 돈다. 멀리 가면 부탁을 들어주려고
        사람을 찾아 헤매게 된다 */
@@ -1840,6 +1871,16 @@
     if (prop.kind === 'home') { return enterHome(); }
     if (prop.kind === 'cave') { return enterCave(); }
     if (prop.kind === 'courierPost') { return pickupParcel(); }
+    if (prop.kind === 'oldpost') {
+      var PCO = global.DG.parcel, s0 = st().delivery;
+      if (!PCO || !s0 || !s0.carrying) {
+        return { kind: 'no', text: '📮 낡은 우체통 — 폐허행 소포를 넣는 곳입니다(접수대에서 받아 오세요)' };
+      }
+      return PCO.deliver('ruin', '옛 우체통');
+    }
+    if (prop.kind === 'rover') {
+      return { kind: 'empty', text: '🚙 탐사차에 앉아 봤다 — 지평선 너머까지 달릴 수 있을 것 같다(언젠가)' };
+    }
     if (!def.gather) {
       if (prop.kind === 'museum') {
         core.emit('village:open', 'museum');

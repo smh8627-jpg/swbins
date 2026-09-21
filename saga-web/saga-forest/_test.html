@@ -92,6 +92,7 @@ window.DG_NO_TUNE = true;
 <script src="js/museum.js"></script>
 <script src="js/spirit.js"></script>
 <script src="js/grid.js"></script>
+<script src="js/parcel.js"></script>
 <script src="js/town.js"></script>
 <script src="js/folk.js"></script>
 <script src="js/animal.js"></script>
@@ -4592,7 +4593,8 @@ window.DG_NO_TUNE = true;
       var before = V.talkNpc(courier);                   // 아직 소포가 없다 — 안내만
 
       V.raw().player.x = post.x; V.raw().player.y = post.y;
-      var pickup1 = V.interact();                         // 받는다
+      var sheet = V.interact();                           // 접수대는 3택 시트를 연다(PLAN §5.7)
+      var pickup1 = V.pickupParcel('plain', 'space');     // 시트의 버튼 — 보통 소포·우주기지행
       var again = V.interact();                            // 들고 있으니 또 못 받는다
 
       V.raw().player.x = courier.x; V.raw().player.y = courier.y;
@@ -4601,7 +4603,7 @@ window.DG_NO_TUNE = true;
       var g1 = C.save.player.gold;
 
       V.raw().player.x = post.x; V.raw().player.y = post.y;
-      var pickup2 = V.interact();                          // 무제한 — 곧바로 한 번 더 받는다
+      var pickup2 = V.pickupParcel('plain', 'space');      // 무제한 — 곧바로 한 번 더 받는다
       V.raw().player.x = courier.x; V.raw().player.y = courier.y;
       var deliver2 = V.talkNpc(courier);                   // 두 번째 배달도 완료
       var g2 = C.save.player.gold;
@@ -4609,11 +4611,183 @@ window.DG_NO_TUNE = true;
       var state = V.deliveryState();
       V.raw().player.x = savedX; V.raw().player.y = savedY;
       s.delivery = saved;
-      return before.kind === 'talk' && pickup1.kind === 'talk' && again.kind === 'no' &&
-        deliver1.kind === 'quest' && g1 === g0 + 220 &&
-        pickup2.kind === 'talk' && deliver2.kind === 'quest' && g2 === g1 + 220 &&
+      var q1 = DG.parcel.quote('plain', 'space', { chain: 1 }), q2 = DG.parcel.quote('plain', 'space', { chain: 2 });
+      return before.kind === 'talk' && sheet.kind === 'open' && sheet.place === 'parcel' &&
+        pickup1.kind === 'talk' && again.kind === 'no' &&
+        deliver1.kind === 'quest' && g1 === g0 + q1 && q1 > 220 &&
+        pickup2.kind === 'talk' && deliver2.kind === 'quest' && g2 === g1 + q2 &&
         !state.carrying && state.n === 2 &&
-        ('안내 → 수령 → (거절) → 배달 🪙+220 → 재수령 → 배달 🪙+220 (누적 ' + state.n + '건)');
+        ('안내 → 시트 → 수령 → (거절) → 배달 🪙+' + q1 + '(220+거리) → 재수령 → 배달 🪙+' + q2 + ' (누적 ' + state.n + '건)');
+    });
+
+    /* ── 택배 사슬(PLAN §5.7) ─────────────────────────────── */
+
+    /** 택배 진단이 건드리는 것(s.delivery·금·옷장·플레이어·걸음)을 되돌리는 틀 */
+    function parcelKeep() {
+      var s = V.state(), pl = V.raw().player, sn0 = V.sneaking();
+      var snap = JSON.stringify({ d: s.delivery || null, gold: core_gold(), wear: s.wear || null });
+      var px = pl.x, py = pl.y, walking0 = pl.walking;
+      return function () {
+        var k = JSON.parse(snap);
+        s.delivery = k.d || undefined; DG.core.save.player.gold = k.gold; s.wear = k.wear || undefined;
+        pl.x = px; pl.y = py; pl.walking = walking0;
+        if (V.sneaking() !== sn0) { V.toggleSneak(); }
+        DG.parcel._resetForTest();
+        V.buildProps(); V.buildNpcs();
+      };
+    }
+    function parcelGive(kind, dest, opt) {
+      var s = V.state();
+      s.delivery = { carrying: false, n: (opt && opt.n) || 0, chain: (opt && opt.chain) || 0 };
+      return DG.parcel.take(kind, dest);
+    }
+
+    t('택배 — 카드 셋은 종류가 다 다르고(안전·깨지기·시간제한) 목적지도 겹치지 않고, 새로고침해도 같다', function () {
+      var undo = parcelKeep(), out = false, P = DG.parcel;
+      try {
+        V.state().delivery = { carrying: false, n: 3, chain: 0 };
+        var a = P.offers(), b = P.offers(), D = P.dests();
+        var kinds = a.map(function (o) { return o.kind; }).join(), dd = {};
+        a.forEach(function (o) { dd[o.dest] = 1; });
+        var safeBeaten = a.every(function (o) {
+          return o.kind === 'plain' || o.reward > P.quote('plain', o.dest, { chain: 1 });   // 위험을 지면 같은 곳 보통 소포보다 후하다
+        });
+        out = a.length === 3 && kinds === 'plain,fragile,timed' && JSON.stringify(a) === JSON.stringify(b) &&
+          (D.length < 3 || Object.keys(dd).length === 3) && a.every(function (o) { return o.reward > 0; }) && safeBeaten &&
+          a.filter(function (o) { return o.kind === 'timed'; })[0].limit > 0;
+      } finally { undo(); }
+      return out && ('목적지 ' + P.dests().map(function (d) { return d.name + '(' + d.dist + '칸)'; }).join(' · '));
+    });
+
+    t('택배 — 값: 멀수록 크고, 깨지면 절반·늦으면 ×0.7, 연속 3배달부터 ×1.5', function () {
+      var P = DG.parcel, D = P.dests(), far = D[0], near = D[0], i;
+      D.forEach(function (d) { if (d.dist > far.dist) { far = d; } if (d.dist < near.dist) { near = d; } });
+      var qp = P.quote('plain', far.key, { chain: 1 }), qn = P.quote('plain', near.key, { chain: 1 });
+      var qf = P.quote('fragile', far.key, { chain: 1 }), qfb = P.quote('fragile', far.key, { broken: true, chain: 1 });
+      var qt = P.quote('timed', far.key, { chain: 1 }), qtl = P.quote('timed', far.key, { late: true, chain: 1 });
+      var c2 = P.quote('plain', far.key, { chain: 2 }), c3 = P.quote('plain', far.key, { chain: 3 });
+      return (far.dist === near.dist || qp > qn) && qf > qp && qfb < qp && qt > qp && qtl < qp && c2 === qp && c3 === Math.round(qp * P.CHAIN_MUL) &&
+        P.quote('plain', 'nowhere', {}) === 0 &&
+        ('기본 ' + P.BASE + '+' + P.PER_TILE + '/칸 · 깨짐 ' + qfb + ' < 보통 ' + qp + ' < 시간 ' + qt + ' < 깨지기 ' + qf + ' · 사슬 ' + c3);
+    });
+
+    t('택배 — 깨지기 소포: 그냥 걸은 지 2초가 넘으면 깨지고(보상 절반·사슬 끊김), 살금살금 걸으면 안 깨진다', function () {
+      var undo = parcelKeep(), out = false, P = DG.parcel, pl = V.raw().player, dest = P.dests()[0].key;
+      try {
+        parcelGive('fragile', dest, { chain: 2 });
+        pl.walking = true;
+        if (!V.sneaking()) { V.toggleSneak(); }
+        P.tick(10);                                              // 살금살금이면 아무리 걸어도 안 깨진다
+        var safe = !V.state().delivery.broken;
+        V.toggleSneak();                                         // 이제 그냥 걷는다
+        P.tick(1.5);
+        var still = !V.state().delivery.broken;
+        P.tick(1);
+        var broke = V.state().delivery.broken === true;
+        var g0 = DG.core.save.player.gold, r = P.deliver(dest, '시험');
+        var paid = DG.core.save.player.gold - g0;
+        var d = V.state().delivery;
+        out = safe && still && broke && r.kind === 'quest' && paid === P.quote('fragile', dest, { broken: true, chain: 0 }) &&
+          d.chain === 0 && d.carrying === false && d.n === 1;
+        // 깨지지 않게 배달하면 ×1.6 + 사슬이 이어진다
+        parcelGive('fragile', dest, { chain: 0 });
+        var g1 = DG.core.save.player.gold; P.deliver(dest, '시험');
+        out = out && DG.core.save.player.gold - g1 === P.quote('fragile', dest, { chain: 1 }) && V.state().delivery.chain === 1;
+      } finally { undo(); }
+      return out && '10초 살금 → 무사 · 그냥 1.5초 → 무사 · 2.5초 → 깨짐(절반) · 무사히 도착하면 ×1.6';
+    });
+
+    t('택배 — 시간제한 소포: 시한 안이면 ×1.5, 넘기면 ×0.7 이고 사슬이 끊긴다', function () {
+      var undo = parcelKeep(), out = false, P = DG.parcel, dest = P.dests()[0].key, lim = P.limitSec(P.dests()[0].dist);
+      try {
+        parcelGive('timed', dest, { chain: 1 });
+        V.state().delivery.since = Date.now() - (lim - 5) * 1000;
+        var g0 = DG.core.save.player.gold; P.deliver(dest, '시험');
+        var onTime = DG.core.save.player.gold - g0, ch1 = V.state().delivery.chain;
+        parcelGive('timed', dest, { chain: 1 });
+        V.state().delivery.since = Date.now() - (lim + 5) * 1000;
+        var g1 = DG.core.save.player.gold; P.deliver(dest, '시험');
+        var late = DG.core.save.player.gold - g1, ch2 = V.state().delivery.chain;
+        out = onTime === P.quote('timed', dest, { chain: 2 }) && ch1 === 2 && late === P.quote('timed', dest, { late: true, chain: 0 }) && ch2 === 0 && lim > 30;
+      } finally { undo(); }
+      return out && ('시한 ' + lim + '초 · 제때 🪙 ×1.5 · 늦으면 ×0.7 · 사슬 끊김');
+    });
+
+    t('택배 — 연속 3배달부터 ×1.5, 엉뚱한 곳에 가져가면 안 받고 소포도 그대로다', function () {
+      var undo = parcelKeep(), out = false, P = DG.parcel, D = P.dests(), dest = D[0].key, other = D[D.length - 1].key;
+      try {
+        var got = [], i;
+        for (i = 0; i < 4; i++) {
+          parcelGive('plain', dest, { chain: i ? V.state().delivery.chain : 0, n: i ? V.state().delivery.n : 0 });
+          if (i === 2 && D.length > 1) {
+            var wrong = P.deliver(other, '시험');                // 다른 목적지 사람 — 거절
+            if (wrong.kind !== 'no' || !V.state().delivery.carrying) { throw new Error('wrong dest accepted'); }
+          }
+          var g0 = DG.core.save.player.gold; P.deliver(dest, '시험'); got.push(DG.core.save.player.gold - g0);
+        }
+        var base = P.quote('plain', dest, { chain: 1 });
+        out = got[0] === base && got[1] === base && got[2] === Math.round(base * P.CHAIN_MUL) && got[3] === got[2] && V.state().delivery.chain === 4;
+      } finally { undo(); }
+      return out && ('보상 ' + got.join(' → ') + ' (3건째부터 ×' + P.CHAIN_MUL + ')');
+    });
+
+    t('택배 — 폐허 옛 우체통·작은 마을 상인·외딴집 나그네에게도 배달되고, 그 사람의 부탁 흐름은 안 깨진다', function () {
+      var undo = parcelKeep(), out = false, P = DG.parcel, hits = [], D = P.dests(), byKey = {};
+      D.forEach(function (d) { byKey[d.key] = d; });
+      try {
+        V.buildProps(); V.buildNpcs();
+        var post = V.raw().props.filter(function (p) { return p.kind === 'oldpost'; })[0];
+        var npcs = V.raw().npcs;
+        if (byKey.ruin) {
+          parcelGive('plain', 'ruin');
+          var pl = V.raw().player; pl.x = post.x; pl.y = post.y;
+          var r = V.interact();
+          hits.push('폐허:' + (r && r.kind));
+          out = !!post && r && r.kind === 'quest' && !V.state().delivery.carrying;
+        } else { out = true; }
+        ['hamlet', 'hamlet2'].forEach(function (k) {
+          if (!byKey[k]) { return; }
+          var npc = npcs.filter(function (n) { return n.kind === ({ hamlet: 'merchant', hamlet2: 'wanderer' })[k]; })[0];
+          parcelGive('plain', k);
+          var pl2 = V.raw().player; pl2.x = npc.x; pl2.y = npc.y;
+          var r2 = V.talkNpc(npc);
+          hits.push(k + ':' + r2.kind);
+          out = out && r2.kind === 'quest' && !V.state().delivery.carrying;
+        });
+        // 소포가 없으면(또는 다른 행이면) 상인은 평소처럼 부탁·대화를 한다
+        var merchant = npcs.filter(function (n) { return n.kind === 'merchant'; })[0];
+        if (merchant) {
+          V.state().delivery = { carrying: false, n: 0 };
+          var plain = V.talkNpc(merchant);
+          out = out && plain.kind !== 'no' && plain.text.indexOf('소포') < 0;
+        }
+      } finally { undo(); }
+      return out && ('배달 성공 ' + hits.join(' · '));
+    });
+
+    t('택배 — 등급: 10건 수레가 서고, 30건에 우주복이 옷장에 들고(그 전엔 🔒), 60건에 탐사차에 앉을 수 있다', function () {
+      var undo = parcelKeep(), out = false, P = DG.parcel, W = DG.wear, dest = P.dests()[0].key;
+      function deliverAt(n) { parcelGive('plain', dest, { n: n }); P.deliver(dest, '시험'); }
+      try {
+        var cart0 = V.raw().props.some(function (p) { return p.id === 'deliveryCart'; });
+        var locked = !W.owned('coat', 'spacesuit') && W.buy('coat', 'spacesuit').kind === 'no' && /🔒/.test(W.buy('coat', 'spacesuit').text);
+        deliverAt(8);
+        var cart1 = V.raw().props.some(function (p) { return p.id === 'deliveryCart'; }) === false;     // 9건 — 아직
+        deliverAt(9);
+        var cart2 = V.raw().props.some(function (p) { return p.id === 'deliveryCart' && p.deco === true; });   // 10건
+        deliverAt(28);
+        var own29 = W.owned('coat', 'spacesuit');
+        deliverAt(29);
+        var own30 = W.owned('coat', 'spacesuit') && W.set('coat', 'spacesuit').kind === 'wear' && W.applyLook({}).armor === 'plate' && /spacesuit/.test(W.sig());
+        var rover0 = V.raw().props.filter(function (p) { return p.kind === 'rover'; }).every(function (p) { return p.deco === true; });
+        deliverAt(58);
+        var roverBefore = V.raw().props.filter(function (p) { return p.kind === 'rover'; }).every(function (p) { return p.deco === true; });
+        deliverAt(59);
+        var rv = V.raw().props.filter(function (p) { return p.kind === 'rover'; });
+        var roverOpen = rv.length === 0 || rv.every(function (p) { return p.deco === false; });
+        out = !cart0 && locked && cart1 && cart2 && !own29 && own30 && rover0 && roverBefore && roverOpen && P.grade() === 3;
+      } finally { undo(); }
+      return out && '등급 견습 → 수레(10) → 우주복(30) → 로버(60)';
     });
 
     t('주민 — 두 사람이 번갈아 말한다', function () {
