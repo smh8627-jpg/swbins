@@ -8259,4 +8259,16 @@ PLAN.md 102-4 표·103-3 Blender 항목을 "미설치"→"설치 완료" 로 갱
 
 `PLAN.md` 102-4 표 갱신(완료), 103-3 Blender 항목은 실제로는 이 작업에 안 씀(trimesh만으로 충분) — 다음에 헤어카드·리토폴로지 등 진짜 메시 편집이 필요할 때 쓸 것. `docs/ASSET_GUIDE.md`·`docs/PROJECT_STATE.md`(완료 요약·다음 작업·실기 확인 대기·테스트 상태) 갱신. 실제 화면에서 트라이플레이너 이음매·디테일 강도가 어떻게 보이는지는 사람 확인 몫 — FOREST 확장 여부도 그 확인 뒤 판단.
 
+## 2026-09-21 — FOREST 과일나무도 procgen 교체 (PLAN.md 102-4, "이어해" 세션, GO procgen 다음)
+
+사용자에게 "더 이어갈 게 있으면 FOREST도 확장할지, 여기서 멈출지" 물었더니 **"FOREST 과일나무도 procgen으로 확장"**을 골랐다(플레이어 인지 일관성은 단일 모양 고정 또는 크기 통일로 보완하라는 조건과 함께).
+
+`ForestFruitTree.cs`는 순수 장식이 아니라 **과일 채집 상호작용 오브젝트**(`Update()`가 플레이어 거리 체크 → `ForestState.AddFruit()`)라 GO의 12종 변종 풀을 그대로 옮기면 "이게 흔들 수 있는 나무"라는 플레이어 인지가 흐려질 위험이 있다고 판단, **씨앗 하나(`Assets/Art/Generated/SagaGo/tree_s1_01.glb`) 고정**만 썼다(변종 풀 아님). 재질은 GO용으로 이미 지어 둔 `TriplanarDetail_Bark.mat`을 그대로 재사용(새로 안 지음, GO/FOREST 공유). `ForestFruitTree.TreeScale`을 옛 Kenney 배율(4.5, tree_oak.glb 실측 0.64×1.23×0.74 기준)에서 procgen의 "실제 미터" 치수에 맞는 1.0으로 내렸다 — FOREST가 GO와 세계 축척이 달라도(1.8m vs 3.4m) 예전에 tree_oak×4.5를 그대로 재사용했던 전례와 같은 판단(BuildTestVillageForestScene.cs 주석).
+
+`BuildTestVillageForestScene.cs`의 `LoadModels()`·`BuildFruitTree()`에 `treeMaterial` 로딩·주입 추가(`SetPrivateField` 패턴 그대로), `ForestFruitTree.cs`에 `treeMaterial` 필드 + `BuildVisual()`이 인스턴스화 뒤 `MeshRenderer.sharedMaterial`을 갈아 끼우는 로직 추가.
+
+**검증**: `tools/unity-batch.sh` 컴파일(오류 0) → `BuildTestVillageForestScene.Build`(재질 못 찾음 경고 없음) → `PlaytestForestHeadless` 3연속 OK → `PlaytestForestCreatures`·`Finish`·`Furniture`·`HouseTransition` 재검증(전부 회귀 없음, `ForestFruitTree`를 직접 안 건드리는 스위트들이지만 씬 재빌드가 걸려 있어 확인). `ProjectSettings/`·`Packages/` 배치 모드 부작용은 스크립트가 자동 원복.
+
+`PLAN.md` 102-4 표를 "GO+FOREST"로 갱신, `docs/ASSET_GUIDE.md`·`docs/PROJECT_STATE.md`(완료 요약 FOREST 행·다음 작업·테스트 상태·실기 확인 대기) 갱신. 이제 saga-unity 쪽 102-4는 Props lantern·stall-red(보류)·Characters Kenney(못 뺌) 둘만 남았다 — 둘 다 사람 손을 기다린다.
+
 `PLAN.md` 102-4 표를 세 줄로 다시 씀(Buildings/Dungeon/Shrine=완료, Props=완료+보류 구분, Rocks/Vegetation=procgen 몫). `docs/PROJECT_STATE.md` "완료 요약" GO 행의 "Props 전부 GLB/PBR" 과장 정정, 실기 확인 대기·테스트 상태·다음 작업 갱신.

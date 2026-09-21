@@ -14,18 +14,27 @@ namespace Saga.Forest.World
     /// 것과 같은 짧은 쿨다운(2초)만 얹었다 — 문서의 "무제한"은 그대로
     /// 지킨다(재시도 횟수 제한이 없다는 뜻일 뿐, 속도 제한과는 별개).
     ///
-    /// GO `VegetationBuilder.cs`가 이미 검증한 tree_oak.glb ×4.5 스케일을
-    /// 그대로 재사용(2절 "나무 한 그루가 타일 하나에 딱 들어맞는다").
+    /// GO `VegetationBuilder.cs`가 이미 검증한 나무 GLB를 그대로
+    /// 재사용(2절 "나무 한 그루가 타일 하나에 딱 들어맞는다"). 2026-09-21
+    /// PLAN.md 102-4 — Kenney tree_oak.glb 대신 GO의 procgen 나무 하나
+    /// (`Assets/Art/Generated/SagaGo/tree_s1_01.glb`, 씨앗 고정 — 과일나무는
+    /// "흔들 수 있는 나무"라는 인지가 걸려 있어 모양을 안 흔든다)를 쓴다.
+    /// procgen 메시는 UV가 없어 `Saga/VertexColorTriplanarLit` 재질을
+    /// 갈아 끼운다(정점색 바탕 + 트라이플레이너 바크 디테일).
     /// </summary>
     public class ForestFruitTree : MonoBehaviour
     {
-        private const float TreeScale = 4.5f; // GO VegetationBuilder.cs와 같은 값(tree_oak.glb 실측 기준).
+        // procgen 나무는 이미 "실제 미터" 치수로 나와(GO VegetationBuilder.cs의
+        // GeneratedTreeScale과 같은 이유) 예전 Kenney tree_oak.glb ×4.5보다
+        // 훨씬 작은 배율이면 된다.
+        private const float TreeScale = 1.0f;
         private const float GatherRadius = 2.5f;
         private const float GatherCooldownSec = 2f;
         private static string FruitName => ForestLocalization.T("fruit.name", "산딸기");
         private const float ToastSec = 3f;
 
-        [SerializeField] private GameObject treeModel; // BuildTestVillageForestScene.cs가 tree_oak.glb를 채운다.
+        [SerializeField] private GameObject treeModel; // BuildTestVillageForestScene.cs가 procgen 나무 GLB를 채운다.
+        [SerializeField] private Material treeMaterial; // BuildTestVillageForestScene.cs가 TriplanarDetail_Bark.mat을 채운다.
         [SerializeField] private AudioClip[] gatherClips; // BuildTestVillageForestScene.cs가 채운다 — 101-2 5.8① 라운드로빈.
 
         private float _cooldownLeft;
@@ -47,6 +56,13 @@ namespace Saga.Forest.World
                 var inst = Object.Instantiate(treeModel, transform, false);
                 inst.name = "Visual";
                 inst.transform.localScale = Vector3.one * TreeScale;
+                if (treeMaterial != null)
+                {
+                    foreach (var renderer in inst.GetComponentsInChildren<MeshRenderer>(true))
+                    {
+                        renderer.sharedMaterial = treeMaterial;
+                    }
+                }
                 return;
             }
 

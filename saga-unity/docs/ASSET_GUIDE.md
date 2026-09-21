@@ -572,3 +572,18 @@ Build` → `BuildTestVillageScene.Build`(재질 못 찾음 경고 없음) →
 `PlaytestHeadless`(GO) 3연속 OK. 실제 화면 톤(트라이플레이너 이음매·
 바크/바위 디테일 강도)은 사람 확인 몫 — `docs/PROJECT_STATE.md` "실기
 확인 대기"에 추가.
+
+## 2026-09-21 — FOREST 과일나무도 procgen으로 (102-4 이어서)
+
+`ForestFruitTree.cs`(과일 채집 상호작용 오브젝트)의 `tree_oak.glb`를
+GO와 같은 procgen 나무로 바꿨다 — 단, GO의 12종 변종 풀과 달리 **씨앗
+하나(`tree_s1_01.glb`) 고정**만 쓴다: 이 나무는 "흔들면 과일이 나온다"는
+플레이어 인지가 걸린 게임플레이 오브젝트라 모양을 들쭉날쭉하게 두면
+그 인지가 흐려질 위험이 있다는 사용자 판단. 재질은 GO가 이미 지어 둔
+`TriplanarDetail_Bark.mat`을 그대로 재사용(새로 안 지음). `TreeScale`을
+옛 Kenney 배율(4.5, tree_oak.glb 실측 기준)에서 procgen의 "실제 미터"
+치수에 맞는 1.0으로 내렸다.
+
+검증: 컴파일(오류 0) → `BuildTestVillageForestScene.Build`(재질 못 찾음
+경고 없음) → `PlaytestForestHeadless` 3연속 OK + `Creatures`·`Finish`·
+`Furniture`·`HouseTransition` 재검증(회귀 없음).

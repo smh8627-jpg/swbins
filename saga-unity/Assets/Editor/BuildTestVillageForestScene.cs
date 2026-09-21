@@ -28,7 +28,15 @@ namespace Saga.EditorTools
 
         // GO가 이미 검증해 둔 나무 GLB·캐릭터 GLB를 그대로 재사용
         // (VERTICAL_SLICE_FOREST.md 2절 "새 자산을 안 구하고 GO가 검증해
-        // 둔 나무 GLB를 재사용할 수 있다").
+        // 둔 나무 GLB를 재사용할 수 있다"). 2026-09-21 PLAN.md 102-4 —
+        // Kenney tree_oak.glb 대신 GO가 쓰는 procgen 나무 풀(Assets/Art/
+        // Generated/SagaGo/) 중 하나를 고정으로 쓴다(변종 풀이 아니라
+        // 씨앗 하나만 — 과일나무는 "흔들 수 있는 나무"라는 플레이어
+        // 인지가 걸려 있어 모양을 흔들면 안 된다, GO의 장식 숲과 다른
+        // 이유). 스케일도 GO와 같은 procgen 튜닝(GeneratedTreeScale=1.0,
+        // ForestFruitTree.TreeScale)을 그대로 맞춘다 — FOREST가 GO와
+        // 세계 축척이 달라도(1.8m vs 3.4m) 예전 tree_oak×4.5 그대로
+        // 재사용했던 전례와 같은 판단.
         // 101-2 5.8① "채집 손맛 — 효과음 3종 라운드로빈"(ForestGatherFeel.cs) —
         // 새 에셋 없이 이미 임포트된 Kenney Interface Sounds 3종을 돌려쓴다.
         private static readonly string[] GatherClipPaths =
@@ -38,7 +46,8 @@ namespace Saga.EditorTools
             "Assets/Art/Audio/Kenney_InterfaceSounds/confirmation_003.ogg",
         };
 
-        private const string TreeGlbPath = "Assets/Art/Vegetation/tree_oak.glb";
+        private const string TreeGlbPath = "Assets/Art/Generated/SagaGo/tree_s1_01.glb";
+        private const string TreeMaterialPath = "Assets/Art/Generated/SagaGo/TriplanarDetail_Bark.mat";
         private const string VillagerGlbPath = "Assets/Art/Characters/character-b.glb";
         private const string PlayerGlbPath = "Assets/Art/Characters/character-a.glb";
 
@@ -99,14 +108,22 @@ namespace Saga.EditorTools
             Debug.Log($"[BuildTestVillageForestScene] saved to {ScenePath} — ground childCount={groundGo.transform.childCount}");
         }
 
+        private static Material _treeMaterial;
+
         private static void LoadModels()
         {
             _treeGlb = AssetDatabase.LoadAssetAtPath<GameObject>(TreeGlbPath);
+            _treeMaterial = AssetDatabase.LoadAssetAtPath<Material>(TreeMaterialPath);
             _villagerGlb = AssetDatabase.LoadAssetAtPath<GameObject>(VillagerGlbPath);
             _playerGlb = AssetDatabase.LoadAssetAtPath<GameObject>(PlayerGlbPath);
             if (_treeGlb == null || _villagerGlb == null || _playerGlb == null)
             {
-                Debug.LogWarning("[BuildTestVillageForestScene] tree_oak.glb/character-b.glb/character-a.glb 중 일부를 못 찾음 — primitive 폴백으로 대체됨.");
+                Debug.LogWarning("[BuildTestVillageForestScene] tree_s1_01.glb/character-b.glb/character-a.glb 중 일부를 못 찾음 — primitive 폴백으로 대체됨.");
+            }
+            if (_treeMaterial == null)
+            {
+                Debug.LogWarning("[BuildTestVillageForestScene] TriplanarDetail_Bark.mat 을 못 찾음 — " +
+                    "Saga/Build Vegetation Triplanar Materials 를 먼저 실행할 것.");
             }
         }
 
@@ -162,6 +179,7 @@ namespace Saga.EditorTools
             go.transform.position = FruitTreeSpawn;
             var tree = go.AddComponent<ForestFruitTree>();
             SetPrivateField(tree, "treeModel", _treeGlb);
+            SetPrivateField(tree, "treeMaterial", _treeMaterial);
             SetPrivateField(tree, "gatherClips", LoadGatherClips());
         }
 
