@@ -8237,4 +8237,10 @@ Q1·Q3′·Q-U4 결정 커밋 뒤 "이어해"를 다시 받았다. Q1이 "Unity 
 
 우회 옵션(`tools/asset-forge/procgen.py`는 이미 trimesh 기반이라 rock/stele/fence/wall은 Blender 없이도 생성 가능, tree kind만 추가하면 됨)을 사용자에게 제시했으나 **"Blender 설치를 먼저 요청" 선택** — PLAN이 세운 전제를 임의로 낮추지 않고 그대로 보류. 코드 변경 없음, `docs/PROJECT_STATE.md` 다음 작업 1번 줄에 이 경위만 짧게 남김. 다음 세션은 Blender 설치 여부부터 다시 확인.
 
+## 2026-09-21 — Blender 설치(winget), Rocks/Vegetation procgen 착수 가능 ("사가 유니티 이어해" 세션, Blender 없음 보고 다음)
+
+사용자가 "설치 직접해줘"로 요청, `winget install --id BlenderFoundation.Blender -e`로 설치 성공(5.2.1 LTS, `C:\Program Files\Blender Foundation\Blender 5.2\blender.exe`). `blender -b --version` 배치 모드 정상 확인.
+
+PLAN.md 102-4 표·103-3 Blender 항목을 "미설치"→"설치 완료" 로 갱신(경로·버전 기록), `docs/PROJECT_STATE.md` 다음 작업 1번 줄도 "착수 가능"으로 수정. 실제 `Rocks/`·`Vegetation/` procgen 작업(procgen.py tree kind 추가, PBR 트라이플레이너 재질, VegetationBuilder.cs 배선)은 이번 세션엔 아직 안 함 — 다음 세션이 이어받는다.
+
 `PLAN.md` 102-4 표를 세 줄로 다시 씀(Buildings/Dungeon/Shrine=완료, Props=완료+보류 구분, Rocks/Vegetation=procgen 몫). `docs/PROJECT_STATE.md` "완료 요약" GO 행의 "Props 전부 GLB/PBR" 과장 정정, 실기 확인 대기·테스트 상태·다음 작업 갱신.

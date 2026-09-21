@@ -1136,7 +1136,7 @@ Slice 승인/재설계 결정.** 100단계에서 무조건 다음 콘텐츠로 �
 | `Characters/` Kenney blocky 4종 | CC0 로우폴리 | **판정 취소 — 아직 못 뺀다** | 2026-09-21 확인: `character-{a,b,c,d}.glb` 가 GO 플레이어·GO/FOREST/STORY 주민·STORY 잡졸·씬 4개에 **여전히 실사용 중**("44장 Player·Enemy 교체 완료" 전제가 틀렸다 — DUNGEON만 Mixamo 교체, 나머지 셋은 아직 Kenney). Q-U4(3명 유지 확정)로 봐도 이 넷을 곧 뗄 계획이 없다 |
 | `Buildings/`·`Dungeon/`·`Shrine/` Kenney | CC0 | **완료** — `EnvironmentMaterial.MakeTiled()`로 실제 PBR(Poly Haven) 씌워짐 | `LandmarksBuilder.cs`(wall-block·roof-gable·gate-rock·altar-stone·planks)·`DungeonRoomBuilder.cs`(gateModel 아치)에 이미 있었다 — "완료 요약" 표의 "44장 완료"가 이 뜻. 102-4 재조사(2026-09-21)로 처음 확인 |
 | `Props/` Kenney(fence·fence-gate) | CC0 | **완료(2026-09-21)**: 승격된 `Environment/PBR/dark_wooden_planks_URPLit.mat`을 `PropsBuilder.SpawnFencePanel()`에 씌움(`LandmarksBuilder.BuildBridge()`와 같은 결) | lantern·stall-red는 **보류** — 금속·천 등 재질이 섞인 단일 아틀라스라 목재 하나로 덮으면 색이 지워질 위험, 실기 확인 전엔 안 건드림. `docs/PROJECT_STATE.md` 완료 요약의 "Props 전부 GLB/PBR"는 과장이었다 — 정정함 |
-| `Rocks/`·`Vegetation/` Kenney | CC0 | **단계 교체(미착수)** — `procgen.py`(노이즈 변형+PBR 트라이플레이너)로 새 지오메트리를 만드는 103장 작업, 단순 재질 교체가 아니다 | `VegetationBuilder.cs` 주석 "그대로 인스턴스화" — Blender 설치 확인부터 필요, 결과물은 사용자가 직접 봐야 판단 가능 |
+| `Rocks/`·`Vegetation/` Kenney | CC0 | **단계 교체(미착수, Blender 설치 완료 2026-09-21 — 착수 가능)** — `procgen.py`(노이즈 변형+PBR 트라이플레이너)로 새 지오메트리를 만드는 103장 작업, 단순 재질 교체가 아니다 | `VegetationBuilder.cs` 주석 "그대로 인스턴스화" — 결과물은 사용자가 직접 봐야 판단 가능 |
 | `Audio/` Kenney·CC0_BGM | CC0 | 남김 | |
 
 **발견하고 고친 오류(2026-09-21)**: `PlaytestStorySlice`가 `KillEnemies` 단계에서 매번 FAIL(잡졸 #0 처치에 유품 마커 안 생김) — 이 승격 작업 중 우연히 드러났다(`git stash`로 HEAD에서도 재현해 회귀 아님을 확인). 원인은 `PlaytestStorySlice.cs`의 `SaveLoad` phase가 세이브 왕복 검증차 `StoryPartyState.Restore(2)`(호법, 공격 배율 0.9)로 바꾼 뒤 실제 `persistentDataPath/save_story.json`을 덮어쓰고 원상복구를 안 한 것 — 다음 실행마다 `GameBootstrap.Start()`가 이 오염된 파일을 이어받아 "잡졸 한 방 처치" 전제(공격력 마진)가 깨져 있었다. GO `PlaytestHeadless.cs`의 try/finally 원상복구 패턴을 그대로 옮겨 고쳤다. 103-3 과 무관한 별개 버그지만 이 승격 검증 중에 나온 것이라 여기 같이 적는다.
@@ -1165,7 +1165,7 @@ Slice 승인/재설계 결정.** 100단계에서 무조건 다음 콘텐츠로 �
 ## 103-3. 사람이 여는 도구(§7.3) — 이 트랙 조건
 - **Mixamo**: 표준. 새 캐릭터는 body FBX(For Unity) + 필요한 클립. 재배포 금지라 `CharactersRealistic/` 로컬 전용, 분리 메시 산출물도 그 안 `Generated/`.
 - **결정(2026-09-21, 사용자, 구 105 Q-U4)**: 실제 Mixamo 모델은 **현재 3명(Maria·Abe·Brute) 유지**, 늘리지 않는다. 나머지 인물은 이 3 베이스 + 장비 소켓 변형(101-3 G)으로 간다.
-- **Blender**(미설치): 설치되면 헤어 마스크·리토폴로지·헤어카드 분리(⑪이 막힌 지점)·데시메이트를 `blender -b -P` 배치로 세션이 자동화 가능.
+- **Blender**(설치 완료, 2026-09-21, winget `BlenderFoundation.Blender` 5.2.1 LTS, `C:\Program Files\Blender Foundation\Blender 5.2\blender.exe`): 헤어 마스크·리토폴로지·헤어카드 분리(⑪이 막힌 지점)·데시메이트를 `blender -b -P` 배치로 세션이 자동화 가능. 다른 PC는 새로 설치해야 한다.
 - **VRoid**: 이 트랙에선 쓰지 않는다(102-3).
 - AI 3D(§7.4)로 만든 소품은 Blender 데시메이트 + 102-2 Preset 을 거친 뒤에만 `Generated/` 로.
 
