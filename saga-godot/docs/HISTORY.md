@@ -7840,3 +7840,12 @@ PROJECT_STATE.md` 참고. 요약:
 - `godot_regress.sh` 재실행 — 다섯 대표 씬 md5 완전 불변(전투는 유저 입력으로만 시작돼 부팅 5초 안엔 안 걸림), `.import`/`project.godot` 잡음 없음.
 - `PLAN.md` 101-2 GO⑥ 결정 문단을 새 결론으로 갱신(날짜 세션기록이 아니라 "결정이 바뀌었을 때"에 해당).
 - 실기 확인 목록에 "도적 두목 부위 파괴 스태거 3회 체감" 추가.
+
+## GO 나무 바람 흔들림 (2026-09-21, 같은 세션, "사가고돗 리스트 처음부터 이어해")
+
+- "실기 완료로 치고 다른 거 이어 진행" 지시로 saga-godot 102 그래픽 개편의 §8 대기를 풀었다. 조사해보니 env_pc.tres/env_mobile.tres 실제 값이 PLAN.md 문서 표와 이미 달라(누가 손으로 튜닝해 둔 뒤 문서 미갱신) 그 표대로 덮어쓰면 회귀 위험이 있어, 순수 추가만 가능한 항목을 사용자에게 다시 물어 골랐다: 바람 흔들림 셰이더(나무 수관만).
+- `saga_core/shaders/wind_sway.gdshaderinc`(PLAN 102-5 수식 그대로: `vertex.x += sin(TIME*1.2+world.x*0.3)*0.08*uv.y`)와 `vegetation_wind.gdshader` 신설.
+- Quaternius 나무 GLB(2026-09-20 교체)는 트렁크+캐노피가 표면 1장으로 이미 합쳐져 있었다(옛 Kenney 2표면 전제였던 헤더 주석은 낡음) — 그래서 "수관만" 흔드는 걸 UV.y 가중으로 해결(밑동 UV.y≈0 → 거의 안 흔들림).
+- 원본 StandardMaterial3D 값(알베도 텍스처·알파 시저·러프니스·스페큘러)을 하드코딩 않고 `vegetation_builder.gd::_apply_wind_shader()`가 그 재질에서 직접 읽어 셰이더로 그대로 옮긴다 — 겉모습이 안 바뀌게. GO 마을(CommonTree_1)·폐허(DeadTree_1) 나무 2종에 연결.
+- 헤드리스 실측: `test_village.gd`에 `SAGA_MESH_DEBUG` 임시 훅으로 두 나무의 표면 재질을 찍어 ShaderMaterial 전환·값 일치(scissor 0.2/0.0, roughness 1.0, specular 0.5) 확인, 셰이더 컴파일 오류 없음 확인 후 훅 제거.
+- `--headless --editor --quit` 1회로 신규 셰이더 `.uid` 생성, `godot_regress.sh` 통과(GO md5는 새 리소스 로드 로그가 늘어 예전과 다르지만 3회 내부 일관), `.import`/`project.godot` 잡음 없음.
