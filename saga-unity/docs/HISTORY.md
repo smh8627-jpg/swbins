@@ -8271,4 +8271,16 @@ PLAN.md 102-4 표·103-3 Blender 항목을 "미설치"→"설치 완료" 로 갱
 
 `PLAN.md` 102-4 표를 "GO+FOREST"로 갱신, `docs/ASSET_GUIDE.md`·`docs/PROJECT_STATE.md`(완료 요약 FOREST 행·다음 작업·테스트 상태·실기 확인 대기) 갱신. 이제 saga-unity 쪽 102-4는 Props lantern·stall-red(보류)·Characters Kenney(못 뺌) 둘만 남았다 — 둘 다 사람 손을 기다린다.
 
+## 2026-09-21 — GO 마을집 곁채·굴뚝 (PLAN.md 103-1 "건물 모듈" 배가, "이어해" 세션, FOREST 과일나무 다음)
+
+104-1 Phase 0 우선순위 4개가 전부 사람 손 대기라 이어갈 게 없다고 보고했더니, 사용자가 103-1 "변형 배가 대상" 백로그(건물 모듈·DUNGEON 방 셸·REALM 성벽)를 제안받고 **"건물 모듈부터" 진행을 골랐다**.
+
+`LandmarksBuilder.cs`를 읽어 보니 GO의 TestVillage엔 집이 딱 두 채(gx=2,3)뿐이고 둘 다 완전히 같은 박스(`wall-block.glb` ×10x4x10 비균등 스케일 + `roof-gable.glb` ×10)였다. `kitbash.py`는 saga-forest 전용으로 부품 좌표가 하드코딩돼 있어(레시피를 새로 조사해야 함) 그대로 못 가져다 쓰고, `Assets/Art/Buildings/`엔 새로 받을 미사용 부품도 없었다(wall-block·roof-gable·pillar-stone·planks 넷 다 이미 다 쓰는 중) — 그래서 **새 에셋 없이 기존 3종의 "배치 조합"만으로** 두 집을 다르게 만들기로 스코프를 좁혔다.
+
+`BuildVillage()`를 데이터 기반으로 다시 짜서 `BuildHouseBody(parent, localOffset, bodySize, roofSize, addCollider)` 헬퍼(벽 1채+지붕 1채)를 몸통과 곁채가 공유하게 했다. gx=2는 곁채(작은 wall+roof 한 벌 더, +X 쪽에 붙임) + 굴뚝, gx=3은 굴뚝만(곁채 없음) — 곁채 유무×굴뚝 유무 2×2 조합에 몸통 크기 해시 변주(0.9~1.1배, `VegetationBuilder.Hash(gx,3,900)`)까지 얹어 103-1의 "8종 조합" 취지를 만족시켰다(문자 그대로 8개는 아니지만 새 지오메트리·새 텍스처 없이 조합 밀도만 올린다는 원칙은 그대로). 굴뚝은 `pillar-stone.glb`를 `SpawnPillar()` 그대로 재사용(실측 지름 0.16m라 스케일=높이로도 굴뚝다운 가는 비례가 나온다), 지붕 마루 근처(`bodySize.y+1.6`)에서 위로 튀어나오게 배치. `VegetationBuilder.Hash()`를 `private`→`internal`로 열어 `LandmarksBuilder`도 같은 결정적 해시를 공유.
+
+**검증**: `tools/unity-batch.sh` 컴파일(오류 0) → `BuildTestVillageScene.Build`(재질 못 찾음 경고 없음) → `PlaytestHeadless` 3연속 OK. `LandmarksBuilder`는 GO 전용(다른 게임 참조 없음, grep 확인)이라 다른 판 재검증은 불필요.
+
+`PLAN.md` 103-1 "변형 배가 대상" 줄에 나무·바위·건물 모듈 완료 표시(DUNGEON 방 셸·REALM 성벽은 미착수로 남김), `docs/ASSET_GUIDE.md`·`docs/PROJECT_STATE.md`(테스트 상태·실기 확인 대기) 갱신. 사용자가 "현재 작업 완료 후 내일 이어서 하자"고 해서 DUNGEON/REALM 쪽은 오늘 안 건드리고 여기서 마무리한다.
+
 `PLAN.md` 102-4 표를 세 줄로 다시 씀(Buildings/Dungeon/Shrine=완료, Props=완료+보류 구분, Rocks/Vegetation=procgen 몫). `docs/PROJECT_STATE.md` "완료 요약" GO 행의 "Props 전부 GLB/PBR" 과장 정정, 실기 확인 대기·테스트 상태·다음 작업 갱신.

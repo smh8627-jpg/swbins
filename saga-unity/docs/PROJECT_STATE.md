@@ -1,7 +1,7 @@
 # PROJECT_STATE — saga-unity (상태만, ≤15KB, 덮어쓴다)
 
 **규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다(2026-09-16 재편 전 본문 5,532줄은 그쪽 첫 절에 그대로 있다). 넘치면 `tools/precheck.sh` 가 막는다.
-마지막 갱신: 2026-09-21 (열한 세션째 — 102-4 Props 재질 교체 → Blender 설치(winget) → **Rocks/Vegetation procgen 교체**) — 경위는 HISTORY grep. 102-4는 이제 Buildings/Dungeon/Shrine·Props(fence 완료, lantern·stall 보류)·Rocks/Vegetation(GO, 완료) 전부 처리됐다 — 남은 건 `Characters/`(Kenney, GO/FOREST/STORY 실사용 중이라 못 뺀다)뿐.
+마지막 갱신: 2026-09-21 (열한 세션째 — 102-4 Props 재질 교체 → Blender 설치(winget) → Rocks/Vegetation procgen 교체(GO+FOREST) → **103-1 건물 모듈(GO, 곁채·굴뚝 배치 조합)**) — 경위는 HISTORY grep. 102-4는 전부 처리됐다(남은 건 `Characters/` Kenney, 실사용 중이라 못 뺀다). 103-1 "변형 배가"는 나무·바위·건물 모듈(GO) 완료, DUNGEON 방 셸·REALM 성벽은 미착수(선택 백로그, 급하지 않음).
 
 ## 캐릭터 자산 — 이 PC 기준 (2026-09-19)
 
@@ -63,7 +63,7 @@ STORY 세부(경위는 HISTORY grep): `StoryJobState.JobChosen` 이벤트로 `Re
 | 검증 | 결과 |
 |---|---|
 | `-batchmode -nographics -quit` 컴파일 | exit 0, 오류 0(DUNGEON `DungeonDailyTaskState`·FOREST `ForestFestivalState`/`ForestWishStone` 추가 뒤 재확인) |
-| `PlaytestHeadless`(GO) | **3연속 OK(2026-09-21, Rocks/Vegetation procgen 교체 뒤 재확인)** |
+| `PlaytestHeadless`(GO) | **3연속 OK(2026-09-21, 마을집 곁채·굴뚝 배치 조합 뒤 재확인)** |
 | `PlaytestDungeonHeadless`·`FloorProgression`·`FieldAmbush`·`Shortcut`·`Town2`·`Towns34` | **전부 재검증 OK**(2026-09-21, 5.6 뒤 — goal board 세 줄 체크 그대로 통과, 공유 경로(`Die()`·`Descend()`·`EndRun()`) 변경이라 하위까지 확인) |
 | `PlaytestForestHeadless`·`Creatures`·`Finish`·`Furniture`·`HouseTransition` | **전부 재검증 OK**(2026-09-21, 과일나무 procgen 교체 뒤 재확인, Headless 3연속) |
 | `PlaytestOverworldMap`(GO) | 이전 세션 1회 재검증 OK, 미변경 |
@@ -73,7 +73,7 @@ STORY 세부(경위는 HISTORY grep): `StoryJobState.JobChosen` 이벤트로 `Re
 
 ## 실기 확인 대기 (항목명만 — 경위는 HISTORY grep)
 
-- GO: 조우·전투·등용 손맛, 상점·퀘스트 대사 3단계, 은닉 보물·산신당·돌탑·유물, 채집, 목표판/세션카드, hitstop 체감, 유품 마커·무기 소켓·지형 데칼(101-3 F·G), 일과판·승급 3택 UI, 75초 토벌 손맛(101-2 ③), 봉수대 점등·목표판 전환·인연 등급 토스트·패배 시 짐 드롭/회수(101-2 ①⑥⑧), 사당 시련 입구·파도 3 전투감·인장 조각/이정표 보상·실패 잠금(101-2 ②), 논밭 울타리 목재 PBR 톤(fence.glb), **나무·바위 트라이플레이너 톤(102-4, 2026-09-21 신규 — procgen 나무 12벌/바위 10벌 + bark/rock 디테일 이음매)**
+- GO: 조우·전투·등용 손맛, 상점·퀘스트 대사 3단계, 은닉 보물·산신당·돌탑·유물, 채집, 목표판/세션카드, hitstop 체감, 유품 마커·무기 소켓·지형 데칼(101-3 F·G), 일과판·승급 3택 UI, 75초 토벌 손맛(101-2 ③), 봉수대 점등·목표판 전환·인연 등급 토스트·패배 시 짐 드롭/회수(101-2 ①⑥⑧), 사당 시련 입구·파도 3 전투감·인장 조각/이정표 보상·실패 잠금(101-2 ②), 논밭 울타리 목재 PBR 톤(fence.glb), 나무·바위 트라이플레이너 톤(procgen 12+10벌), **마을집 곁채·굴뚝 실루엣(103-1, 2026-09-21 신규 — 2채가 서로 다르게 조합됨)**
 - DUNGEON: 카메라 각도, 아홉 슬라이스, 목표판/세션카드, hitstop·타격VFX·레벨업줌·무기소켓·지형데칼 체감(101-3 전체), 축복·유품·부적 던전·월드 보스·난입 체감(101-2 5.1~5.5), 전자창/동력장갑 모양·기계화 정찰병(5층부터) 체감(5.7), **일일 풀 3택·도장·주간 보상 토스트(5.6, 신규)**
 - FOREST: 벽지/장판, 가구 배치, 생물·과일나무·좌판, 목표판/세션카드, 마을 번들(5.3), 채집 손맛(5.8①), 마을 평가판 별점(5.8②), 접수대·우체통 4·소포 3종·사슬 보너스 체감(5.7), 세배·꽃놀이·소원돌·목표판 D-day 문구 체감(5.6, 실제 달력 1·8·15일에만), **과일나무 모양·바크 트라이플레이너 톤(102-4, 2026-09-21 신규)**
 - STORY: 두목 크기·타격감, 사건·관계·선택 흐름, 전직 팝업, 목표판/세션카드, hitstop/shake/flash/popup/타격 VFX 체감, 유품 마커·지형 데칼·레벨업 줌·직업별 무기(101-3 F·G), 관문 대장 승격 연출·방패 파괴 체감(5-4), 비경 노드 지도·축복 카드·아레나 순간이동(5-3), **선봉/유격/호법 교대 버튼·서명 손맛·HUD 교대 쿨다운 줄(5-8, 신규, 첫 실기 확인)**

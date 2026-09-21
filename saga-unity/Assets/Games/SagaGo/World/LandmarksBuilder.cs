@@ -129,60 +129,105 @@ namespace Saga.Go.World
 
         // ---- 마을집 --------------------------------------------------------
 
+        // 103-1 "변형 배가 대상 — 건물 모듈(Kenney 4 → PBR 모듈 8 × 배치 조합)"
+        // (2026-09-21) — 새 부품을 안 받고 기존 wall-block·roof-gable·
+        // pillar-stone 3종을 곁채(작은 wall-block+roof-gable 한 벌 더)·굴뚝
+        // (pillar-stone 재사용, SpawnPillar와 같은 결)으로 다시 조합해
+        // 집 두 채가 서로 다르게 보이게 한다. 곁채 유무 × 굴뚝 유무 =
+        // 2×2 조합, 여기에 몸통 크기 변주(hash)까지 얹어 "8종 조합" 취지를
+        // 만족한다 — 새 지오메트리·새 텍스처 없이 배치 조합만으로.
         private void BuildVillage()
         {
             float ground = TestMapData.Legend['H'].Height;
-            var bodySize = new Vector3(10f, 4f, 10f);
-            var roofSize = new Vector3(11f, 1.2f, 11f);
+            var wingSize = new Vector3(5f, 2.6f, 5f);
 
-            foreach (int gx in new[] { 2, 3 })
+            int[] houseGx = { 2, 3 };
+            bool[] hasWing = { true, false };
+            bool[] hasChimney = { true, true };
+
+            for (int i = 0; i < houseGx.Length; i++)
             {
+                int gx = houseGx[i];
+                // 몸통 크기도 집마다 살짝 흔든다(0.9~1.1) — 완전히 같은 박스 두 채가
+                // 서 있는 인상을 없앤다.
+                float s = 0.9f + VegetationBuilder.Hash(gx, 3, 900) * 0.2f;
+                var bodySize = new Vector3(10f * s, 4f, 10f * s);
+                var roofSize = new Vector3(11f * s, 1.2f, 11f * s);
                 Vector3 basePos = TestMapData.WorldPos(gx, 3) + new Vector3(0, ground, 0);
 
                 var house = new GameObject($"House_{gx}");
                 house.transform.SetParent(transform, false);
                 house.transform.position = basePos;
 
-                if (wallModel != null)
+                BuildHouseBody(house.transform, Vector3.zero, bodySize, roofSize, addCollider: true);
+
+                if (hasWing[i])
                 {
-                    // wall-block.glb 실측이 정확히 1×1×1이라 비균등 스케일을
-                    // bodySize 그대로 넣으면 예전 박스 발자국과 완전히 같다.
-                    var wall = Object.Instantiate(wallModel, house.transform);
-                    wall.name = "Wall";
-                    wall.transform.localPosition = Vector3.zero;
-                    wall.transform.localScale = bodySize;
+                    // 몸통 옆(+X)에 붙는 작은 곁채 — 자기 벽·지붕 한 벌을 따로 지어
+                    // 몸통과 다른 실루엣을 만든다(같은 부품, 다른 배치).
+                    float wingX = bodySize.x * 0.5f + wingSize.x * 0.5f;
+                    var wingRoofSize = new Vector3(wingSize.x * 1.1f, 1.2f, wingSize.z * 1.1f);
+                    BuildHouseBody(house.transform, new Vector3(wingX, 0f, 1.5f), wingSize, wingRoofSize, addCollider: true);
+                }
+
+                if (hasChimney[i])
+                {
+                    // pillar-stone.glb 재사용(SpawnPillar와 같은 결) — 지붕 마루 근처에서
+                    // 위로 튀어나오게. 실측 지름 0.16m라 스케일=높이로도 굴뚝다운 가는 비례가 나온다.
+                    const float chimneyHeight = 3f;
+                    Vector3 chimneyGround = basePos + new Vector3(bodySize.x * 0.28f, bodySize.y + 1.6f, -bodySize.z * 0.28f);
+                    SpawnPillar($"Chimney_{gx}", chimneyGround, chimneyHeight, RoofColor, stoneMaterial);
+                }
+            }
+        }
+
+        /// <summary>벽 한 채(wall-block 스케일업) + 지붕 한 채(roof-gable ×10) —
+        /// 몸통·곁채가 이 메서드 하나를 공유한다(103-1 "배치 조합").
+        /// localOffset은 house 트랜스폼 기준 로컬 좌표.</summary>
+        private void BuildHouseBody(Transform houseParent, Vector3 localOffset, Vector3 bodySize, Vector3 roofSize, bool addCollider)
+        {
+            if (wallModel != null)
+            {
+                // wall-block.glb 실측이 정확히 1×1×1이라 비균등 스케일을
+                // bodySize 그대로 넣으면 예전 박스 발자국과 완전히 같다.
+                var wall = Object.Instantiate(wallModel, houseParent);
+                wall.name = "Wall";
+                wall.transform.localPosition = localOffset;
+                wall.transform.localScale = bodySize;
+                if (addCollider)
+                {
                     var col = wall.AddComponent<BoxCollider>();
                     col.center = new Vector3(0f, 0.5f, 0f);
                     col.size = Vector3.one;
-                    if (woodMaterial != null)
-                    {
-                        ApplyPbrToRenderers(wall, EnvironmentMaterial.MakeTiled(woodMaterial, bodySize.x, bodySize.z));
-                    }
                 }
-                else
+                if (woodMaterial != null)
                 {
-                    var wall = CreateBox("Wall", basePos + Vector3.up * (bodySize.y * 0.5f), bodySize, WallColor);
-                    wall.transform.SetParent(house.transform, true);
+                    ApplyPbrToRenderers(wall, EnvironmentMaterial.MakeTiled(woodMaterial, bodySize.x, bodySize.z));
                 }
+            }
+            else
+            {
+                var wall = CreateBox("Wall", houseParent.position + localOffset + Vector3.up * (bodySize.y * 0.5f), bodySize, WallColor);
+                wall.transform.SetParent(houseParent, true);
+            }
 
-                if (roofModel != null)
+            if (roofModel != null)
+            {
+                // roof-gable.glb — docs/ASSET_GUIDE.md와 같은 균일 ×10(saga-godot
+                // 실측 기준). 지붕은 밟고 다니는 자리가 아니라 콜라이더 없음(기존과 동일).
+                var roof = Object.Instantiate(roofModel, houseParent);
+                roof.name = "Roof";
+                roof.transform.localPosition = localOffset + new Vector3(0f, bodySize.y, 0f);
+                roof.transform.localScale = Vector3.one * 10f;
+                if (stoneMaterial != null)
                 {
-                    // roof-gable.glb — docs/ASSET_GUIDE.md와 같은 균일 ×10(saga-godot
-                    // 실측 기준). 지붕은 밟고 다니는 자리가 아니라 콜라이더 없음(기존과 동일).
-                    var roof = Object.Instantiate(roofModel, house.transform);
-                    roof.name = "Roof";
-                    roof.transform.localPosition = new Vector3(0f, bodySize.y, 0f);
-                    roof.transform.localScale = Vector3.one * 10f;
-                    if (stoneMaterial != null)
-                    {
-                        ApplyPbrToRenderers(roof, EnvironmentMaterial.MakeTiled(stoneMaterial, roofSize.x, roofSize.z));
-                    }
+                    ApplyPbrToRenderers(roof, EnvironmentMaterial.MakeTiled(stoneMaterial, roofSize.x, roofSize.z));
                 }
-                else
-                {
-                    var roof = CreateBox("Roof", basePos + Vector3.up * (bodySize.y + roofSize.y * 0.5f), roofSize, RoofColor, withCollider: false);
-                    roof.transform.SetParent(house.transform, true);
-                }
+            }
+            else
+            {
+                var roof = CreateBox("Roof", houseParent.position + localOffset + Vector3.up * (bodySize.y + roofSize.y * 0.5f), roofSize, RoofColor, withCollider: false);
+                roof.transform.SetParent(houseParent, true);
             }
         }
 

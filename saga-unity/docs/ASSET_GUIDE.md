@@ -587,3 +587,18 @@ GO와 같은 procgen 나무로 바꿨다 — 단, GO의 12종 변종 풀과 달�
 검증: 컴파일(오류 0) → `BuildTestVillageForestScene.Build`(재질 못 찾음
 경고 없음) → `PlaytestForestHeadless` 3연속 OK + `Creatures`·`Finish`·
 `Furniture`·`HouseTransition` 재검증(회귀 없음).
+
+## 2026-09-21 — GO 마을집 곁채·굴뚝 (103-1 "건물 모듈" 배가, 새 부품 없이)
+
+`LandmarksBuilder.BuildVillage()`가 두 집(gx=2,3)을 똑같은 박스 하나씩으로
+짓던 걸, 기존 `wall-block.glb`·`roof-gable.glb`·`pillar-stone.glb` 3종을
+재조합해 서로 다르게 만들었다 — 새 Kenney 부품을 더 안 받고 "배치 조합"만
+바꿨다(103-1 문구 그대로). 몸통 크기도 집마다 해시로 0.9~1.1배 흔들고,
+한 집(gx=2)에는 곁채(작은 wall+roof 한 벌 더, `BuildHouseBody()` 재사용)를
+붙이고, 두 집 다 굴뚝(`pillar-stone.glb` 재사용, `SpawnPillar()`와 같은
+호출)을 얹었다. `VegetationBuilder.Hash()`를 `internal`로 열어
+`LandmarksBuilder`도 같은 결정적 해시를 쓴다.
+
+검증: 컴파일(오류 0) → `BuildTestVillageScene.Build`(재질 못 찾음 경고
+없음) → `PlaytestHeadless` 3연속 OK. 실루엣이 실제로 어떻게 보이는지는
+사람 확인 몫.

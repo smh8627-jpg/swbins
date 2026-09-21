@@ -101,7 +101,9 @@ namespace Saga.Go.World
         /// vegetation_builder.gd _hash()와 같은 공식(Math.random을 쓰지
         /// 않는다 — 무작위면 다시 켤 때마다 숲이 바뀐다).
         /// </summary>
-        private static float Hash(int gx, int gy, int salt)
+        /// <summary>internal — LandmarksBuilder.BuildVillage()도 같은 결정적
+        /// 해시로 집 크기를 흔든다(103-1 "배치 조합", 2026-09-21).</summary>
+        internal static float Hash(int gx, int gy, int salt)
         {
             unchecked
             {
