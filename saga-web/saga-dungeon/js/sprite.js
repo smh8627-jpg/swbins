@@ -867,7 +867,32 @@
     pk_bulbasaur: 'quad', pk_charmander: 'quad', pk_squirtle: 'turtle', pk_magikarp: 'fish',
     pk_pikachu: 'quad', pk_eevee: 'quad', pk_slowbro: 'quad', pk_gengar: 'ogre',
     pk_snorlax: 'quad', pk_lapras: 'turtle', pk_alakazam: 'ogre', pk_dragonite: 'dragon',
-    pk_charizard: 'dragon', pk_gyarados: 'dragon', pk_mewtwo: 'ogre', pk_mew: 'quad'
+    pk_charizard: 'dragon', pk_gyarados: 'dragon', pk_mewtwo: 'ogre', pk_mew: 'quad',
+
+    /* REG 확장분 64종(2026-09-22, 펫 이미지 공백 처리) — 여긴 원래 form 이
+       없어 전부 기본값(quad, 평범한 네발짐승)으로 뭉뚱그려 보였다(물고기도
+       예외 없이 네발짐승 모양이었다). 물고기는 fish, 공룡은 dragon, 나머지
+       뭍짐승은 quad/horse 로 갈랐다. */
+    pt_fox: 'quad', pt_dolphin: 'fish', pt_shark: 'fish', pt_whale: 'fish',
+    pt_manta_ray: 'fish', pt_fish_1: 'fish', pt_fish_2: 'fish', pt_fish_3: 'fish',
+    pt_stag: 'quad', pt_white_horse: 'horse', pt_horse: 'horse', pt_llama: 'quad',
+    pt_pig: 'quad', pt_pug: 'quad', pt_sheep: 'quad', pt_horse_farm: 'horse',
+    pt_cow_farm: 'quad', pt_zebra: 'quad', pt_cow: 'quad', pt_donkey: 'quad',
+    pt_alpaca: 'quad', pt_bull: 'quad',
+    pt_anglerfish: 'fish', pt_apatosaurus: 'dragon', pt_armored_catfish: 'fish',
+    pt_betta: 'fish', pt_black_lion_fish: 'fish', pt_blobfish: 'fish',
+    pt_blue_goldfish: 'fish', pt_blue_tang: 'fish', pt_butterfly_fish: 'fish',
+    pt_cardinal_fish: 'fish', pt_clownfish: 'fish', pt_coral_grouper: 'fish',
+    pt_cowfish: 'fish', pt_flatfish: 'fish', pt_flower_horn: 'fish',
+    pt_goblin_shark: 'fish', pt_goldfish: 'fish', pt_humphead: 'fish',
+    pt_koi_2: 'fish', pt_lionfish: 'fish', pt_mandarin_fish: 'fish',
+    pt_moorish_idol: 'fish', pt_parasaurolophus: 'dragon', pt_parrot_fish: 'fish',
+    pt_piranha: 'fish', pt_puffer: 'fish', pt_red_snapper: 'fish',
+    pt_royal_gramma: 'fish', pt_shark_2: 'fish', pt_stegosaurus: 'dragon',
+    pt_sunfish: 'fish', pt_swordfish: 'fish', pt_t_rex: 'dragon',
+    pt_tang: 'fish', pt_tetra: 'fish', pt_triceratops: 'dragon',
+    pt_tuna: 'fish', pt_turbot: 'fish', pt_velociraptor: 'dragon',
+    pt_worm: 'fish', pt_yellow_tang: 'fish', pt_zebra_clown_fish: 'fish'
   };
 
   var BEAST_COLOR = {
@@ -882,7 +907,29 @@
     pk_bulbasaur: '#6aa84f', pk_charmander: '#e06c3a', pk_squirtle: '#5a9ad9', pk_magikarp: '#e0703a',
     pk_pikachu: '#e8c93a', pk_eevee: '#b98a5a', pk_slowbro: '#e8a0b0', pk_gengar: '#6a4a8c',
     pk_snorlax: '#4a6a7a', pk_lapras: '#7ab0d9', pk_alakazam: '#d9a83a', pk_dragonite: '#e8b45a',
-    pk_charizard: '#e06c3a', pk_gyarados: '#4a7ad9', pk_mewtwo: '#d9c8e8', pk_mew: '#f0a8c0'
+    pk_charizard: '#e06c3a', pk_gyarados: '#4a7ad9', pk_mewtwo: '#d9c8e8', pk_mew: '#f0a8c0',
+
+    /* REG 확장분 64종(2026-09-22, 펫 이미지 공백 처리) — 위 BEAST_FORM 과 짝 */
+    pt_fox: '#c9743a', pt_dolphin: '#7a96a8', pt_shark: '#7a828c', pt_whale: '#465562',
+    pt_manta_ray: '#39434c', pt_fish_1: '#a88a4a', pt_fish_2: '#b6c0c9', pt_fish_3: '#584d43',
+    pt_stag: '#ab7c4c', pt_white_horse: '#eceef2', pt_horse: '#8a6a49', pt_llama: '#d9c8a8',
+    pt_pig: '#e8a9a9', pt_pug: '#c9a868', pt_sheep: '#e9e1d1', pt_horse_farm: '#7a5a3a',
+    pt_cow_farm: '#2c2c2e', pt_zebra: '#2c2c2e', pt_cow: '#4a3a2a', pt_donkey: '#8a8078',
+    pt_alpaca: '#d9c298', pt_bull: '#5a3a2a',
+    pt_anglerfish: '#463530', pt_apatosaurus: '#6c8c6c', pt_armored_catfish: '#5a5040',
+    pt_betta: '#c9394a', pt_black_lion_fish: '#2a2228', pt_blobfish: '#d9a8a0',
+    pt_blue_goldfish: '#3a6ac9', pt_blue_tang: '#2a6ad9', pt_butterfly_fish: '#e8c93a',
+    pt_cardinal_fish: '#c9453a', pt_clownfish: '#e8783a', pt_coral_grouper: '#c9503a',
+    pt_cowfish: '#d9c93a', pt_flatfish: '#a88a5a', pt_flower_horn: '#d9455a',
+    pt_goblin_shark: '#b8888a', pt_goldfish: '#e8983a', pt_humphead: '#3a8a8a',
+    pt_koi_2: '#d9783a', pt_lionfish: '#c9453a', pt_mandarin_fish: '#e87a3a',
+    pt_moorish_idol: '#2a2a30', pt_parasaurolophus: '#8a9a5a', pt_parrot_fish: '#3a9a7a',
+    pt_piranha: '#8a9aa0', pt_puffer: '#c9a868', pt_red_snapper: '#c9453a',
+    pt_royal_gramma: '#8a3ac9', pt_shark_2: '#6a7a88', pt_stegosaurus: '#5a7a4a',
+    pt_sunfish: '#a8b0b8', pt_swordfish: '#2a4a68', pt_t_rex: '#8a4a3a',
+    pt_tang: '#4a5ac9', pt_tetra: '#8aa8c9', pt_triceratops: '#7a6a5a',
+    pt_tuna: '#3a5068', pt_turbot: '#8a7a5a', pt_velociraptor: '#6a7a4a',
+    pt_worm: '#b8785a', pt_yellow_tang: '#e8c93a', pt_zebra_clown_fish: '#e8783a'
   };
 
   /**
@@ -894,7 +941,9 @@
     pt_boar: 'tusk', pt_gumiho: 'ninetail', pt_haetae: 'mane', pt_bulgasari: 'mane',
     pt_bear: 'crescent', pt_sapsal: 'shaggy', pt_monkey: 'bareface',
     pk_pikachu: 'spot', pk_eevee: 'shaggy', pk_bulbasaur: 'patch', pk_snorlax: 'patch',
-    pk_alakazam: 'mane', pk_gyarados: 'stripe', pk_mewtwo: 'mane'
+    pk_alakazam: 'mane', pk_gyarados: 'stripe', pk_mewtwo: 'mane',
+    /* REG 확장분(2026-09-22) — 무늬는 quad/horse 형태에서만 그려진다 */
+    pt_zebra: 'stripe', pt_zebra_clown_fish: 'stripe', pt_cow_farm: 'patch', pt_stag: 'spot'
   };
 
   function beastPatternOf(pet) { return (pet && BEAST_PATTERN[pet.id]) || ''; }
