@@ -618,6 +618,7 @@
     var intro = fightIntro(atk, def, wallRef, toId2, land, false, lines, preDuel);
     var water = intro.water, sortie = intro.sortie, du = intro.du;
     var leadA = intro.leadA, leadD = intro.leadD;
+    var formA = intro.formA, formD = intro.formD;
     var startWall = wallRef.wall;
     var frames = [], r = 0;
 
@@ -625,7 +626,7 @@
       hooks.onIntro(log.slice(), {
         to: toId2, water: water, force: atk.force, defForce: def.force,
         atkStart: atk.start, defStart: def.start, duel: du, wallFrom: startWall,
-        leadA: leadA, leadD: leadD, land: land.key
+        leadA: leadA, leadD: leadD, formA: formA, formD: formD, land: land.key
       });
     }
 
@@ -647,7 +648,7 @@
         lossA: atk.start - atk.troops, lossD: def.start - def.troops,
         atkStart: atk.start, defStart: def.start,
         wallFrom: startWall, wallTo: wallRef.wall, sortie: sortie, water: water,
-        leadA: leadA, leadD: leadD,
+        leadA: leadA, leadD: leadD, formA: formA, formD: formD,
         frames: frames
       };
       var full = finishMarch(setup, report);
@@ -790,7 +791,11 @@
        aTop/dTop 은 이미 정해져 있던 값이라(위), 합을 주고받지 않아도 그
        이름표만 그대로 넘긴다 — `battle3d.js`가 이걸로 "지휘관 둘이 서 있는"
        실제 캐릭터를 세운다(공격·피격 동작 없이 idle로만, 새 판정 아님) */
-    return { water: water, sortie: sortie, du: du, leadA: aTop, leadD: dTop };
+    /* formA/formD — 2026-09-22, PLAN §6 "무리 병종 기둥"의 첫 조각. af/df 는
+       바로 위에서 이미 구했다(로그 문구용) — 새로 굴리지 않고 그 key 만
+       battle3d.js 로 넘겨 무리 배치 모양(쐐기·활·원)을 고르게 한다 */
+    return { water: water, sortie: sortie, du: du, leadA: aTop, leadD: dTop,
+      formA: af && af.key, formD: df && df.key };
   }
 
   /**
@@ -899,6 +904,7 @@
     var intro = fightIntro(atk, def, wallRef, toId, land, dry, lines);
     var water = intro.water, sortie = intro.sortie, du = intro.du;
     var leadA = intro.leadA, leadD = intro.leadD;
+    var formA = intro.formA, formD = intro.formD;
 
     var startWall = wallRef.wall;
     var r, won = false, routed = false;
@@ -927,7 +933,7 @@
       lossA: atk.start - atk.troops, lossD: def.start - def.troops,
       atkStart: atk.start, defStart: def.start,
       wallFrom: startWall, wallTo: wallRef.wall, sortie: sortie, water: water,
-      leadA: leadA, leadD: leadD,
+      leadA: leadA, leadD: leadD, formA: formA, formD: formD,
       /* 실시간 재생용(battle3d.js) — 판정과 무관, dry(가늠)면 안 쓰이니 그대로 둬도 된다 */
       frames: frames
     };
