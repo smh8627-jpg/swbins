@@ -8099,3 +8099,8 @@ PROJECT_STATE.md` 참고. 요약:
 - 도주 보상 공식(`gold_amount(floor,5.0)×0.30`) 직접 계산과 일치(25×0.3=7.5→8, 반올림 포함) — 클램프·반올림 오차 없음.
 - 확인 후 훅 제거(`git diff` 원복 확인), `godot_regress.sh` md5 동일.
 - DUNGEON에서 세이브(`save_dungeon.json`)와 무관한 autoload 로직(부적·난입·월드 보스)은 이걸로 전부 확인 끝 — 남은 건 살아있는 적 노드가 필요한 부분(원소 시너지 등)과 라이브 플레이어 인스턴스가 필요한 사망/재도전류(결사 얼림 해제 후 실기 몫)뿐.
+
+## GO 승급 3택(Perks.roll_three()) 헤드리스 실측 (2026-09-22, 같은 세션, "더 해")
+
+- `test_village.gd`에 임시 `SAGA_PERK_DEBUG` 훅: 빈 손으로 100회 굴려도 매번 정확히 3장·축(공/수/보) 겹침 없이 셋 다·id 중복 없음(bad_count/bad_axis/bad_dup 전부 0). 공격 축 4개를 이미 다 가지면 그 축만 빠지고 정확히 2장(수비·지원)만 나옴. 12개 전부 가지면 빈 배열.
+- 확인 후 훅 제거(`git diff` 원복 확인), `godot_regress.sh` md5 동일.
