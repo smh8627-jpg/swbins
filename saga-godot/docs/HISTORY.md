@@ -8025,3 +8025,10 @@ PROJECT_STATE.md` 참고. 요약:
 - REALM "AI 되받아침·멸망 판정": `_enemy_attack()`을 읽어 확인 — 승패 계산(`RealmWar.fight()`)은 그대로 굴리되 `cities[target_id].force`는 어디서도 안 바뀜(성 소유권 이전 코드 없음), 문서 주석("AI가 이겨도 성을 뺏지 않는다")과 실제 코드가 일치. 버그 아님, 의도된 슬라이스 경계.
 - **위 판단을 뒤집는 발견** — "36달 화친"·"문답 200"을 이전 세션은 "실기 시간이 김"이라 사람 몫으로 미뤘는데, 실제로는 사람이 36달을 플레이할 필요 없이 **헤드리스로 즉시 검증 가능**했다. `realm_city.gd` `_ready()`에 임시 `SAGA_VICTORY_DEBUG` 훅을 넣어: (1) `quiz.correct`를 199→200으로 바꿔 `check_result()` 호출 — 199에선 빈 문자열, 200에서 정확히 `win_culture`. (2) 모든 세력 `diplomacy[fid].truce_months=100`으로 맞추고 `next_month()`를 35회→36회 호출 — 35회째 `streak=35`·result 빈 문자열, 36회째 정확히 `streak=36`·`win_diplomacy`. 오프바이원 없음, 두 문턱 다 정확. 확인 후 훅·함수 전부 제거(`git diff`로 원복 확인 — 코드 변경 없음).
 - REALM 실기 대기 목록에서 "문답 260"·"승리 조건(문화/외교 임계값)"은 이걸로 로직 검증 끝. 남은 건 결과 카드 문구·목표판 갱신 체감 같은 화면 확인뿐(사람 몫 유지). 계승(월 0.6% 확률)은 여전히 저확률이라 자동화로도 오래 걸려 사람 몫 그대로 둠.
+
+## REALM 계승 효과(_succeed_lord()) 헤드리스 실측 (2026-09-22, 새 세션, "이어서")
+
+- "계승은 확률이 낮아 사람 몫"이라 미뤄뒀던 걸 다시 봄 — `_tick_succession()`은 월 0.6% RNG 판정이라 실기로 오래 걸리지만, 판정을 통과한 뒤 효과만 적용하는 `_succeed_lord()`는 RNG 없이 바로 호출 가능해 헤드리스로 재현했다(RNG 판정 자체는 코드가 짧아 읽는 걸로 충분, 효과 쪽만 실측).
+- `realm_city.gd`에 임시 `SAGA_SUCCESSION_DEBUG` 훅: `RealmTraits.has_trait()`로 로스터 후보 셋(야심 1·충직 1·평범 1)을 실제 `characters.gd` id에서 찾아 로스터에 얹고, `heir_id`를 평범 쪽으로 지정한 뒤 `year=200 month=11`에서 `_succeed_lord()` 직접 호출.
+- 결과: 새 군주(지정한 후계) 충성 100 · 야심 인물 50→25(-25, `SUCCESSION_AMBITIOUS_LOYAL_HIT`) · 충직 인물 50→50(0, 히트 면제) 전부 문서 수치와 일치. `_succession_shock_until`은 야심 인물에게만 `{month:2, year:201}`로 걸림(11월+3달 = 다음 해 2월, 해 넘어가는 산수까지 정확) — 충직·평범 인물은 창이 안 걸림. 오차 없음, 버그 아님.
+- 확인 후 훅·함수 전부 제거(`git diff`로 원복 확인 — 코드 변경 없음), `godot_regress.sh` md5 동일.
