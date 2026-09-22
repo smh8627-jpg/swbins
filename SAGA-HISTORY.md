@@ -4867,3 +4867,17 @@ saga-go 정본을 다른 네 판에도 동일 반영, 가드돼 있어 그 판�
   옛 상대경로 인용은 **일부러 안 고쳤다** — 그 시점의 기록이라 사실을
   바꾸는 셈이 되고, 5천 줄을 훑어야 하는 큰 손질이라 실익이 적다.
   앞으로 이 파일에 새로 적을 때만 `saga-web/` 접두를 쓸 것.
+
+### 2026-09-23 — tools/asset-audit 신설 + 압축 GLB 디코더 누락 33건 수정
+
+- `tools/asset-audit/audit.py`(읽기 전용, 세 트랙) 첫 실행에서 🔴decoder 33건.
+  사가국지 22·사가스토리 3·사가고 1(`chengde_temple.glb`)은 Meshopt 압축인데 세 판의
+  `three.iife.js`(md5 `58b7…`)에 **MeshoptDecoder 자체가 없었고** 로더도 안 물렸다 →
+  GLTFLoader 가 조용히 실패, 절차 대체 그림으로 보였을 것. 사가의숲 7개는 Draco(단독판 불가).
+- 수정: 세 판 번들을 사가의숲·사가블로 번들(`7dc9…`, 같은 r169 + MeshoptDecoder)로 교체,
+  go `asset3d.js`·`prop3d.js`, story·realm `asset3d.js` 로더에 `setMeshoptDecoder` 한 줄.
+  사가의숲 Draco 7개는 `gltf-transform meshopt --level high` 로 재압축(노드·재질·애니·스킨 수 동일 확인).
+  sw.js VERSION 네 판 올림. 재점검 decoder 0.
+- **실기 확인 전**: 사가국지 몬스터(SlimeEnemy·해골 넷·외계인)·사가고 옛 사원·사가의숲 우주기지가
+  이제 GLB 로 서는지. `_test.html` 은 이 세션에서 안 돌렸다(번들 교체라 씨앗 진단이 흔들리는지도 같이 볼 것).
+- 남은 🟡: heavy 34(chengde_temple 40MB·184만 삼각형, 4096px 텍스처, UAL1_Standard 7.3MB), license 2.

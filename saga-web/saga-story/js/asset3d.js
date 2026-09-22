@@ -151,10 +151,14 @@
   /* ── 여기서부터 three 가 필요하다 ─────────────────────── */
 
   var loaderInst = null;
+  /* 압축(EXT_meshopt_compression) GLB 는 디코더 없이 조용히 실패한다 — 사가의숲 asset3d.js 와 같은 요령(2026-09-23 tools/asset-audit 가 찾음) */
   function gltfLoader() {
     var t = three();
     if (!t || !t.GLTFLoader) { return null; }
-    if (!loaderInst) { loaderInst = new t.GLTFLoader(); }
+    if (!loaderInst) {
+      loaderInst = new t.GLTFLoader();
+      if (t.MeshoptDecoder) { loaderInst.setMeshoptDecoder(t.MeshoptDecoder); }
+    }
     return loaderInst;
   }
 

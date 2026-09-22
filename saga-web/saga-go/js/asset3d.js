@@ -575,10 +575,14 @@
   /* 몇 벌을 세웠고 몇 벌이 GLB 로 갈아 끼워졌나 — 진단·데모가 값으로 본다 */
   var built = 0, swapped = 0, broke = '';
 
+  /* 압축(EXT_meshopt_compression) GLB 는 디코더 없이 조용히 실패한다 — 사가의숲 asset3d.js 와 같은 요령(2026-09-23 tools/asset-audit 가 찾음) */
   function loader() {
     var t = three();
     if (!t || !t.GLTFLoader) { return null; }
-    if (!loader.it) { loader.it = new t.GLTFLoader(); }
+    if (!loader.it) {
+      loader.it = new t.GLTFLoader();
+      if (t.MeshoptDecoder) { loader.it.setMeshoptDecoder(t.MeshoptDecoder); }
+    }
     return loader.it;
   }
 

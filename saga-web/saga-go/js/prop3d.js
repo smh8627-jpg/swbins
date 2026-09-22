@@ -350,10 +350,14 @@
   var cache = {};        // { url: {state, parts:[{geometry, material}]} }
   var pending = 0, arrived = 0, refreshTimer = null;
 
+  /* 압축(EXT_meshopt_compression) GLB 는 디코더 없이 조용히 실패한다 — 사가의숲 asset3d.js 와 같은 요령(2026-09-23 tools/asset-audit 가 찾음) */
   function loader() {
     var t = three();
     if (!t || !t.GLTFLoader) { return null; }
-    if (!loader.it) { loader.it = new t.GLTFLoader(); }
+    if (!loader.it) {
+      loader.it = new t.GLTFLoader();
+      if (t.MeshoptDecoder) { loader.it.setMeshoptDecoder(t.MeshoptDecoder); }
+    }
     return loader.it;
   }
 
