@@ -27,12 +27,12 @@ PLAN 101-3(C hitstop류·F 유품 마커·G 데칼/레벨업 컷/장비 가시�
 
 ## 다음 작업 (우선순위, 상세는 PLAN 해당 장 · 경위는 HISTORY 날짜 grep)
 
-1. **PLAN 104-1 ⑤·102-4 마무리** — 거의 다 끝남(Rocks/Vegetation procgen 교체 GO+FOREST 둘 다, 2026-09-21). 남은 건: `Props/`의 lantern·stall-red(재질 혼재라 보류, 실기 확인 후 재판단) · `Characters/` Kenney는 **아직 못 뺀다**(GO 플레이어·GO/FOREST/STORY 주민·STORY 잡졸이 실사용 중).
-2. **PLAN 101-2 이어서** — 사실상 다 닫힘, 남은 건 GO⑤(모바일 빌드 뒤)·STORY5-2(보류)뿐.
-3. **실기 GUI 확인 몰아서** — "실기 확인 대기" 전부(아래 목록). 위 "중요" 절 때문에 스크린샷은 못 가려 새 도구 셋(`PlaytestGoLandmarksGui.cs`·`PlaytestDungeonWearTiersGui.cs`·`PlaytestRealmWallTiersGui.cs`, 컴파일만 확인)을 사용자 몫으로 남겼다 — Unity Hub에서 `Saga/Playtest ... (GUI Screenshot)` 메뉴로 돌리면 됨. 다른 PC는 `CharactersRealistic/`가 비어 있음 — mixamo.com에서 새로 받을 것(목록은 `SetupXxxCharacterImport.cs`).
-4. **PLAN 105 열린 질문** — Q-U1은 2026-09-22 닫힘(101-2로 내림). 남은 건 Q-U3(Shader Graph, 사람 GUI 필요)뿐.
+1. **실기 확인 몰아서** — 여러 세션째 쌓여만 있다(아래 "실기 확인 대기" 목록). 코드로 더 진행할 항목이 바닥나 지금 가장 큰 병목. 스크린샷은 위 "중요" 절 때문에 못 가림 — 사람이 Unity Hub에서 직접 Play 하거나 `Saga/Playtest ... (GUI Screenshot)` 메뉴로. 다른 PC는 `CharactersRealistic/`가 비어 있음(mixamo.com, 목록은 `SetupXxxCharacterImport.cs`).
+2. **PLAN 102-5 남은 넷 — 매번 사용자 결정 필요**(카메라 클리핑·애니 재조사·SSAO·LUT 5장은 완료): Screen Space Shadows(새 feature, GUID 위험 커 보류)·바닥 한 색(`VertexColorLit` 지형)·스케일 혼재(Kenney 1.0 vs Mixamo 1.75)·UI 폰트·패널 통일(`RealmUiKit`·`EncounterUiKit`).
+3. **101-2·104-1 잔여(전부 보류)** — GO⑤(모바일 빌드 뒤)·STORY5-2 · `Props/` lantern·stall-red(실기 확인 후) · `Characters/` Kenney는 아직 못 뺀다(실사용 중).
+4. **105 Q-U3** — Shader Graph SSS·헤어카드, 사람 GUI 필요.
 
-닫힌 백로그(다음 세션이 새로 이어받을 잔여 없음): 101-3(C·F·G, GO·DUNGEON·STORY), 103-1 변형 배가(나무·바위·건물 모듈·DUNGEON 방 셸·REALM 성벽), 67~69장 en 번역(REALM 전투 서술 92키·FOREST 바이옴 4곳).
+닫힌 백로그: 101-3, 103-1 변형 배가, 67~69 en 번역, 105 Q-U1, 102-5(클리핑·애니·SSAO·LUT).
 
 ## 알려진 오류
 

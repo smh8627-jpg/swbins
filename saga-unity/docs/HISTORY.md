@@ -8391,3 +8391,7 @@ SSAO 튜닝 뒤 남은 §102-5 항목은 전부 새 결정이나 큰 작업이 �
 **검증**: 배치 컴파일(exit 0) → `BuildGameToneLuts.Build()` 실행(5개 PNG+5개 프로필 저장 확인, 로그 "saved 5 LUTs + 5 tone volume profiles") → 생성된 `ToneVolume_go.asset` YAML 직접 열어 `active: 1`·`m_OverrideState: 1`·텍스처 참조 정상 확인, `LUT_go.png.meta`에서 `sRGBTexture: 0` 확인 → GameObject 구성이 바뀌어 다섯 씬 전부 재빌드(경고 없음 — 프로필 찾기 성공) → GO·DUNGEON·FOREST·STORY·REALM **다섯 판 전부 Playtest 3연속 OK** 재확인.
 
 수치만으로 짠 색감이라 실제로 의도한 톤이 나오는지는 사람이 봐야 한다 — `PROJECT_STATE.md` "실기 확인 대기" 공통 줄에 추가. `PLAN.md` 102-1(암묵적으로 이미 있던 방향 수치화는 없음, 102-2 Color Adjustments 행·102-5 "후처리" 항목만 갱신), 커밋.
+
+## 2026-09-22 — PROJECT_STATE "다음 작업" 갱신 (새 세션 인계 대비, LUT 다음)
+
+사용자가 "새로운 세션에서 이어해"라고 해 다음 세션이 문서만 보고도 정확히 이어받을 수 있는지 점검했다 — "다음 작업" 우선순위 1~4가 여러 세션 전(104-1 ⑤·101-2·GUI 스크린샷 도구 안내·Q-U1) 기준으로 낡아 있었다(그새 카메라 클리핑·애니 재조사·SSAO·LUT 5장이 102-5에서 끝났는데 반영이 안 됨). 실제 현재 우선순위로 다시 썼다: ①실기 확인 몰아서(코드로 더 갈 데가 없어 지금 가장 큰 병목) ②102-5 남은 넷(Screen Space Shadows·바닥 한 색·스케일 혼재·UI 폰트 통일, 전부 매번 사용자에게 물어 진행해 온 결) ③101-2·104-1 잔여(전부 보류) ④105 Q-U3. 코드·기능 변경은 없음.
