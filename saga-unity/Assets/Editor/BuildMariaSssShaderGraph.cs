@@ -110,7 +110,14 @@ namespace Saga.EditorTools
                 {
                     ["Mask"] = 1f,
                     ["Power"] = 2f,
-                    ["Intensity"] = 0.6f,
+                    // 105 Q-U3 최종 튜닝(2026-09-23, 직접 GUI로 검증) — 0.6(최초)·2.5·6은
+                    // 전부 실제 화면에서 거의 안 보였다. Intensity=20·Colour=순빨강(5,0,0)
+                    // 디버그값으로 파이프라인 자체(Mask·Dot Product·GetMainLightDir 체인)는
+                    // 정상 작동함을 먼저 확정한 뒤(`02a/02b_face_closeup_*.png`에서 역광
+                    // 구도 턱선·목선에 뚜렷한 글로우 확인), 웜톤 프로덕션 Colour(최대 채널
+                    // 1.0, 디버그 순빨강의 1/5 세기)에 맞춰 15로 올려 코·턱선에 은은한
+                    // 웜톤 하이라이트가 보이는 지점을 찾았다.
+                    ["Intensity"] = 15f,
                     ["normal influence"] = 0.5f,
                     ["Colour"] = new Vector4(1f, 0.55f, 0.45f, 1f),
                 };

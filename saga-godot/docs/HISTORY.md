@@ -8180,3 +8180,28 @@ PROJECT_STATE.md` 참고. 요약:
 - windowed exe 실측(`ReviewCamera`·`Player` 카메라 `current` 임시 조작, `Weather.force("clear")`·`Season.force("summer")`·`TimeOfDay.force(false)` 임시 추가로 맑은 날 통일 — 스크린샷 뒤 전부 원복, `git diff` 빈 것 확인)으로 GO TestVillage 현재 SDFGI on 톤도 확인: 과다노출·색 튐 없이 기존 승인 톤 그대로.
 - 참고로 스폰 지점(-48,-24)이 "무너진 기둥" 랜드마크(`landmarks_builder.gd`, MapScrapEvent grid 4,4)와 거의 겹쳐 기본 카메라가 그 구조물에 파묻히는 09-21 HISTORY 기록의 버그가 여전히 재현됨(별도 버그, 이번 결정과 무관 — 다음에 스폰/랜드마크 간격 조정 시 참고).
 - 결론: PC `env_pc.tres::sdfgi_enabled=true` **그대로 유지**, LightmapGI 도입 폐기. PLAN 102-2 표·105 Q-b 갱신, PROJECT_STATE "다음 작업"에서 Q-b 제거. 코드/리소스 변경 없음(임시 실측 변경은 전부 원복) — regress 재확인 md5 이전과 동일.
+
+## Mixamo·VRoid 자동화 재조사 — "자동화 불가" 오기 정정 (2026-09-23, 같은 세션, "Mixamo는 자동화 툴이 있을꺼야")
+
+- 사용자가 105 Q-d "자동화 불가"에 의문 제기. 웹 조사 전에 저장소 안부터 grep 했어야 했는데 놓침 — 실제로 2026-09-21 밤 세션에서 이미 루트 `tools/mixamo_automation/`(Playwright `connectOverCDP`, 전용 Chrome 프로필)을 구축해 idle 클립까지 검증해 뒀었다(HISTORY 09-21 "Mixamo 백그라운드 자동화 도구 구축"). PROJECT_STATE·PLAN 105 Q-d가 그 뒤로도 "자동화 불가"로 안 고쳐진 채 남아 있던 게 오기.
+- 오늘 재확인: 자동화 전용 Chrome 프로필(`%LOCALAPPDATA%/swbins-mixamo-automation-profile`)로 CDP 포트 9222 재기동 성공, 로그인 세션 유지 확인, `node fetch.mjs --query "Walking" --list` 정상 응답. **나머지 7클립(walk~pickup)은 품질 문제 보고가 없어 재검증 보류**(README 방침 그대로) — 지금 새로 받을 필요 없음.
+- VRoid 쪽은 무료 대체 파이프라인(CharacterGen — 로컬 GPU 요구사항 불명확한 연구 코드, 결과물이 VRoid 정품과 스타일 불일치 위험) 검토 후 기각. 유료(Tripo3D)는 사용자가 제외 지시. VRoid Studio 조형은 계속 사람 몫.
+- Downloads `새 폴더`에 `model.vroid`(export 전 원본, 7.4M) 발견 — 어느 캐릭터용인지 아직 불명, export(사람 몫) 전엔 반입 불가. `dungeon_hero_01.vrm`·`saga_forest_avatar_01.vrm`은 이미 반입된 것과 동일 파일.
+- PLAN 105 Q-d·PROJECT_STATE "다음 작업" 문구 정정. 코드 변경 없음(문서·조사만), regress 불필요.
+
+## Quaternius 씬 배치 5단계 착수 — GO 마을 정원길 (2026-09-23, 같은 세션, "Quaternius 씬 배치 스코프 지금 정하기")
+
+- PLAN 105 Q-d 남은 "씬 배치" 판단 몫 중 하나를 닫았다. 09-20⑮에서 "정원길 후보로 쓸 만함"으로만 점찍어 두고 안 물렸던 `Pebble_Square_1`·`RockPath_Square_Wide`(go_village 팔레트 스냅)를 GO `vegetation_builder.gd::_scatter_village_path()` 신설로 village 지역 "." 칸에만 배치.
+- salt 950번대로 `_scatter_clutter()`(600번대)와 자리 안 겹치게, 밀도는 clutter(1/6)보다 성기게 1/12(가끔 놓인 디딤돌 느낌). 순수 시각(충돌 없음), material_override 없이 원본 스냅 텍스처 그대로.
+- 실측(trimesh, python.exe 직접 경로+`PYTHONIOENCODING=utf-8`): RockPath_Square_Wide 2.05×0.18×1.99m·Pebble_Square_1 0.43×0.13×0.44m — 둘 다 이미 사람 스케일이라 별도 배율 역산 불필요(scale=1.0), 나무/바위 때와 다른 점.
+- 검증: 다른 세션 스크래치패드에 남아있던 Godot 4.7.2 재사용(`config/features` "4.7" 일치 확인) — `godot_regress.sh` 다섯 씬 REGRESS OK(GO만 md5 변경), `git diff -- project.godot '*.import'` 빈 것 확인.
+- **범위 의도적으로 좁힘**: "정원길" 한 용도만 닫았다. 남은 바위 22종·잔디꽃 대부분·FOREST 바이옴 다양화 등은 각자 다른 판단(FOREST vertex-color 제약, 중복 여부 등)이 더 필요해 이번엔 손 안 댐 — PROJECT_STATE "다음 작업"에 남겨 둠.
+- 실기 확인 대기 목록에 추가(전날 "전체 승인"은 이 배치 전 상태였으므로 재확인 필요).
+
+## Quaternius 씬 배치 5단계 — coast 몫 추가 (2026-09-23, 같은 세션, "이어해")
+
+- village 정원길에 이어 coast(포구) 몫도 닫았다. **발견**: coast 지도(REGIONS.coast)엔 "." 칸이 아예 없어(전부 ^·~·D·B) `REGION_CLUTTER_GLB["coast"]`(Clover_1) 설정이 애초에 죽어 있었다 — 실행되지만 대상 칸이 없어 아무것도 안 그려진 상태.
+- 대신 모래밭("D")에 `_scatter_coast_pebbles()` 신설 — Pebble_Round_1~3(go_coast 스냅, 09-20⑮ "해변에 더 맞게 고쳐졌다" 무난 판정) 1/10 밀도, salt 960번대. 순수 시각.
+- **실행 경로 확인**: `region2_coast.gd::_ready()`가 `_build_harbor()`를 즉시 호출 → `CoastVegetation` 노드를 region_id="coast"로 그 자리에서 생성·`_ready()` 실행 — TestVillage.tscn 단일 씬 로드만으로 coast 분기까지 headless 테스트에 포함된다(지연 로드 아님, 코드로 확인).
+- `godot_regress.sh` REGRESS OK(GO만 md5 변경, issues=0 — GLB 로드 정상 확인), `.import`/`project.godot` 잡음 없음.
+- 실기 확인 대기에 이미 있던 항목과 합침(정원길과 같은 절).

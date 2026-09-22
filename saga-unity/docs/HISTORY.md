@@ -8566,3 +8566,31 @@ Defender 예약 검사 마지막 실행은 전날 저녁이고 지금은 안 돌
 **다음 세션**: yaw=180 코드는 그대로 남아 있다. 재부팅 없이는 GUI 확인이 절대 안 풀린다는 게 이번에 실증됐으니, 다음엔 재부팅부터 확인하고 시작할 것.
 
 코드 변경 없음(진단만). `PROJECT_STATE.md` 갱신.
+
+## 2026-09-23 — 재부팅 뒤 GUI hang 완전 해소, 던전 얼굴(yaw=180)·SSS 얼굴 클로즈업 둘 다 확보 (새 세션 "사가유니티 이어해", GUI hang 확정 다음)
+
+새 세션 시작 시 `Get-CimInstance Win32_OperatingSystem | LastBootUpTime`로 uptime을 확인하니 3분 — 전 세션이 권한 재부팅이 이미 되어 있었다. 지난 세션 결론("재부팅 없이는 절대 안 풀린다")대로 바로 GUI 런치를 시도.
+
+`ShotDir`(두 `Playtest*Gui.cs`, 이전 세션 UUID `989ab3f5-...`)를 이번 세션 scratchpad 경로(`9a55a781-...`)로 갱신 후:
+- `PlaytestDungeonEnemiesGui.Run` — 180초 타임아웃 걸고 `Start-Process`+`WaitForExit`로 실행, **exit 0, hang 없음**. `10_dungeon_bossgroup.png`에서 yaw=180이 실제로 먹혀 Maria가 카메라를 정면으로 마주 보고 뒤로 Abe·Brute가 보임 — 던전 카메라 얼굴 확인 완료.
+- `PlaytestCharacterRealisticGui.Run` — 마찬가지로 **exit 0, hang 없음**. `02_face_closeup.png` 확보. 다만 스크린샷상 피부가 여전히 그늘진 회갈색에 가까워 SSS 글로우가 뚜렷이 안 보임 — 정적 이미지로는 Fresnel 기반 글로우 판단이 애매해 최종 판단은 사용자 실제 화면 확인으로 넘김(105 Q-U3 값은 임의 근사치).
+
+두 런치 모두 **한 번에** 성공해 전 세션 7연속 hang이 코드 문제가 아니라 GUI 모드 자체의 일시적 상태(재부팅으로 해소)였다는 진단이 맞았음을 실증했다.
+
+배치/GUI 실행이 늘 그렇듯 `ProjectSettings/ProjectVersion.txt`·`Packages/manifest.json`·`packages-lock.json`이 6000.3.24f1로 자동 상향됐길래 커밋 전 `git checkout`으로 원복(설치 에디터가 6000.3.24f1이라도 프로젝트 고정 버전은 그대로 유지).
+
+코드 변경: `ShotDir` 경로 두 곳(세션마다 반복될 변경). `PROJECT_STATE.md` 갱신.
+
+## 2026-09-23 — SSS 글로우 "직접 검증해봐" 지시로 파이프라인 생사 확인부터 최종 튜닝까지 (같은 대화 계속, 던전 얼굴·SSS 캡처 다음)
+
+101-2·104-1 잔여가 전부 게이트로 막혀 있어 다음 작업을 물었더니 사용자가 "직접 검증해봐"를 선택 — SSS 글로우 판단을 사용자에게 미루지 말고 직접 결론을 내라는 뜻으로 받아들였다.
+
+`02_face_closeup.png`(튜닝값 Intensity=0.6)를 다시 봐도 피부가 그늘진 회갈색일 뿐 글로우가 안 보였다. 먼저 ambient 두 단계(0.42/0.6) 비교 캡처(`02a`/`02b_face_closeup_*.png`)로 나눠 봤지만 **둘 다 아무 글로우도 없었다** — "ambient가 너무 높아 글로우가 묻힌다"는 기존 결론과 달리, 애초에 아무것도 안 보이는 수준이었다.
+
+값 문제인지 배선 자체가 죽은 건지 구분하려고 `BuildMariaSssShaderGraph.cs`의 override를 극단값(Intensity=20, Colour=순빨강 (5,0,0,1))으로 바꿔 셰이더를 재빌드(`Saga/Build Maria SSS Shader Graph (Reflection)`, 배치모드)하고 다시 캡처했더니 **처음엔 얼굴·몸통 전체가 네온 시안으로 찍혔다** — `PlaytestCharacterRealisticGui.cs` 기존 주석이 경고하던 "SSS Shader Graph 미컴파일 시 네온 시안" 함정 그 자체였다. 원인은 그래프를 방금 재빌드해서 이 GUI 프로세스가 그 변형을 처음 컴파일하는 상황이라 기존 idle 정착 대기 300프레임(캐시된 셰이더 기준)으로 부족했던 것 — 900으로 늘려 재실행하니 **턱선·목선·가슴골에 뚜렷한 빨간 글로우**가 나타나 `Mask`·`Dot Product`·`GetMainLightDir` 체인(FakeSSS 서브그래프)이 처음부터 정상 작동 중이었음을 확정했다(`02a/02b_face_closeup_*.png`, 이번엔 진짜 극단값 결과).
+
+배선이 살아있음을 확정한 뒤 프로덕션 웜톤 Colour(최대 채널 1.0, 디버그 순빨강의 1/5 세기)에 맞춰 Intensity를 2.5→6→15로 세 차례 재빌드+재캡처하며 올렸다. 2.5·6은 여전히 안 보였고 **15에서 코·턱선에 은은한 웜톤 하이라이트**가 육안으로 확인됐다(과하지 않은 수준, 게임 내 배경 아트 방향 "사실적 PBR"에 맞음). 최종값으로 확정 후 idle 정착 대기를 300으로 되돌리고(그래프를 안 건드리는 평소 실행 기준) 한 번 더 재확인 — 네온 시안 재발 없이 정상.
+
+Unity GUI 런치는 이번 절에서만 6회(디버그 극단값 1·튜닝 2.5/6/15 각 1·최종 확인 1), 배치 모드(Build+Verify)는 4회 — 전부 exit 0, hang 없음(재부팅 효과가 이 세션 내내 유지됨을 재확인). 배치/GUI 실행 뒤 `ProjectSettings/ProjectVersion.txt`·`Packages/manifest.json`·`packages-lock.json`이 또 24f1로 자동 상향돼 커밋 전 원복.
+
+코드 변경: `BuildMariaSssShaderGraph.cs`(Intensity 0.6→15 최종), `PlaytestCharacterRealisticGui.cs`(ambient 저/고 비교 캡처 2단 추가, idle 대기 300 유지 + 재빌드 직후 예외 주석). `PROJECT_STATE.md` 갱신.
