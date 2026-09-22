@@ -8112,3 +8112,11 @@ PROJECT_STATE.md` 참고. 요약:
 - 같은 씬에 임시 `SAGA_SYNERGY_DEBUG` 훅으로 `melee_attack.gd::_check_elem_synergy()` 직접 호출(가짜 적 노드 3개: 반경 안 `near`·반경 밖 `far`·처치 대상 `dead`): 은사 미보유 시 확산 없음, 은사는 있어도 결 한쪽만 있으면 확산 없음, 결 둘 다 있어도 대상이 안 죽었으면 확산 없음, 조건 다 맞으면 `near`만 `SYN_DAMAGE`(14) 감소·`far`는 그대로 — 5개 단언 전부 통과.
 - 확인 후 두 훅 모두 `git checkout`으로 원복(`git diff` 깨끗), `godot_regress.sh` 다섯 판 재실행 REGRESS OK·`.import`/`project.godot` 잡음 없음.
 - "살아있는 적/라이브 플레이어 인스턴스가 필요해 보류"였던 DUNGEON 마지막 두 항목도 test_room.gd 안에서 가짜 노드로 헤드리스 검증 가능함을 확인 — 자동화 후보 완전 소진, 남은 건 다섯 판 전부 손맛·화면 체감(사람 몫)뿐.
+
+## FOREST 관계 하트 아이콘 배선 (2026-09-22, 같은 세션, "실기 손맛은 괜찮아" → "다음 이어갈 작업 이어해줘")
+
+- 자동화 후보 소진(결사 얼림 해제 세션 뒤)에서 사용자가 실기 확인은 괜찮다며 다음 작업을 요청 → §8-1을 다시 확인받고, 씬을 안 물린 103장 산출물 두 후보(FOREST 하트 아이콘 / procgen 소품) 중 사용자가 "FOREST 관계 하트 아이콘 배선"을 골랐다.
+- 09-20 `spritegen.py`가 만들어 뒀지만 어디서도 안 쓰이던 `icon_heart_filled`/`icon_heart_empty`(64px)를 `villager_builder.gd`에 배선. 5판 39곳이 공유하는 `choice_prompt.gd`는 안 건드리고, `_open_interact_menu()`가 돌려받은 `CanvasLayer`에 형제 자식으로 하트 10개 `HBoxContainer`(`_add_heart_row()` 신설)를 얹는 방식 — 선택지를 고르면 기존 `queue_free()` 한 번으로 같이 정리된다. 메뉴 제목의 "(♥%d)" 숫자는 뺐다(아이콘이 대체).
+- `villager_builder.gd`에 임시 `SAGA_HEART_DEBUG` 훅: 하트 0/5/10 세 경계에서 `_add_heart_row()`가 항상 10개 노드를 만들고 filled/empty 개수가 정확히 나뉘는지 확인(0→0/10, 5→5/5, 10→10/0) — 전부 통과, 훅 제거.
+- 헤드리스 임포트 오류 0, `godot_regress.sh` 다섯 판 REGRESS OK(FOREST만 md5 변경, 나머지 넷 불변), `.import`/`project.godot` 잡음 없음.
+- **씬엔 물렸지만 화면 배치(겹침·크기)는 실기 확인 몫으로 남음** — PROJECT_STATE FOREST 실기 대기에 추가.

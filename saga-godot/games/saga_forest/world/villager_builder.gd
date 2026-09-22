@@ -30,6 +30,13 @@ const GLBUtils := preload("res://games/saga_go/world/glb_utils.gd")
 const WorldCurveMaterial := preload("res://saga_core/world/world_curve_material.gd")
 const Toast := preload("res://saga_core/ui/toast.gd")
 const ChoicePrompt := preload("res://games/saga_go/ui/choice_prompt.gd")
+## PLAN 103-1 spritegen.py 산출물(09-20, 그동안 어디서도 안 쓰였다) — 관계
+## 메뉴 제목의 "(♥%d)" 숫자 대신 실제 하트 한 줄로 보여준다. ChoicePrompt
+## 자체(5판 39곳 공유)는 안 건드리고, 그 패널 바로 위에 별도 줄을 하나
+## 더 얹는 방식(같은 CanvasLayer의 형제 자식이라 선택지를 고르면 같이
+## `queue_free()` 된다 — 새 정리 로직 불필요).
+const HEART_ICON_FILLED := preload("res://assets/generated/sprites/icon_heart_filled.png")
+const HEART_ICON_EMPTY := preload("res://assets/generated/sprites/icon_heart_empty.png")
 
 const NPC_CHAR_SCALE := 0.625  # GO npc_builder.gd와 같은 값(105 Q-h 결정, 1.7m 표준)
 const TALK_RADIUS := 5.0
@@ -341,7 +348,33 @@ func _open_interact_menu(v: Dictionary) -> void:
 	## test_room.gd의 은사 선택지·npc_builder.gd의 사명 제안과 같은
 	## layer_box 우회(ChoicePrompt.build() 호출 전에 만든 콜백이 그 결과를
 	## 미리 참조할 수 없어서다).
-	layer_box["layer"] = ChoicePrompt.build(self, "%s (♥%d)" % [v.name, ForestSaveState.heart(v.id)], choices)
+	var layer: CanvasLayer = ChoicePrompt.build(self, v.name, choices)
+	layer_box["layer"] = layer
+	_add_heart_row(layer, ForestSaveState.heart(v.id))
+
+
+## choice_prompt.gd 패널(anchor 0.5×0.5, offset_top -120)의 바로 위 한 줄에
+## 하트 10개(채움/빔)를 그린다 — 패널 내부에 끼워 넣지 않는 건 그 스크립트가
+## 5판 39곳에서 같은 모양(제목+버튼 목록)만 가정하고 있어, 새 줄 하나 때문에
+## 공유 코드를 건드리고 싶지 않아서다.
+func _add_heart_row(layer: CanvasLayer, heart: int) -> void:
+	var row := HBoxContainer.new()
+	row.anchor_left = 0.5
+	row.anchor_right = 0.5
+	row.anchor_top = 0.5
+	row.anchor_bottom = 0.5
+	row.offset_left = -90.0
+	row.offset_right = 90.0
+	row.offset_top = -146.0
+	row.offset_bottom = -124.0
+	row.add_theme_constant_override("separation", 2)
+	layer.add_child(row)
+	for i in range(10):
+		var t := TextureRect.new()
+		t.texture = HEART_ICON_FILLED if i < heart else HEART_ICON_EMPTY
+		t.custom_minimum_size = Vector2(16.0, 16.0)
+		t.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		row.add_child(t)
 
 
 func _buy_tool(v: Dictionary, tool: Dictionary, layer_box: Dictionary) -> void:
