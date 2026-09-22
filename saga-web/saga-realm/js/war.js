@@ -271,6 +271,22 @@
   }
 
   /**
+   * 병종 3분류(보병/기병/수군) 비율 — PLAN §6 "무리 병종 기둥"의 나머지 조각.
+   * 이 판은 병종 비율을 데이터로 갖고 있지 않아(2026-09-22 세션이 보류해 둔 그대로),
+   * **실재하는 값**(수전 여부·장수 무력 평균)에서 규칙으로 짓는다(2026-09-23 사용자 확인,
+   * "임의 규칙으로 진행"). 판정(armyPower 등)에는 전혀 안 쓴다 — battle3d.js 가 무리
+   * 깃발을 보·기·수로 섞어 그리는 데만 쓰는 화면용 값이다.
+   */
+  function troopMixOf(army) {
+    if (army.water) { return { inf: 0.15, cav: 0, navy: 0.85 }; }
+    var off = global.DG.off, i, sum = 0, n = army.officers.length;
+    for (i = 0; i < n; i++) { sum += off.stats(army.officers[i]).might; }
+    var avgMight = n ? sum / n : 50;
+    var cav = core.clamp((avgMight - 45) / 130, 0.1, 0.4);
+    return { inf: 1 - cav, cav: cav, navy: 0 };
+  }
+
+  /**
    * 화공(火攻) — 물 위에서는 불이 곧 승부다.
    * 부대에서 지력이 가장 높은 사람이 건다. 성공하면 상대 배가 타고 병사가 물에 빠진다.
    * **가늠(dry)에서도 굴린다** — 여기서 빼면 AI 가 보는 승산과 실제가 어긋난다
@@ -619,6 +635,7 @@
     var water = intro.water, sortie = intro.sortie, du = intro.du;
     var leadA = intro.leadA, leadD = intro.leadD;
     var formA = intro.formA, formD = intro.formD;
+    var mixA = intro.mixA, mixD = intro.mixD;
     var startWall = wallRef.wall;
     var frames = [], r = 0;
 
@@ -626,7 +643,8 @@
       hooks.onIntro(log.slice(), {
         to: toId2, water: water, force: atk.force, defForce: def.force,
         atkStart: atk.start, defStart: def.start, duel: du, wallFrom: startWall,
-        leadA: leadA, leadD: leadD, formA: formA, formD: formD, land: land.key
+        leadA: leadA, leadD: leadD, formA: formA, formD: formD,
+        mixA: mixA, mixD: mixD, land: land.key
       });
     }
 
@@ -649,6 +667,7 @@
         atkStart: atk.start, defStart: def.start,
         wallFrom: startWall, wallTo: wallRef.wall, sortie: sortie, water: water,
         leadA: leadA, leadD: leadD, formA: formA, formD: formD,
+        mixA: mixA, mixD: mixD,
         frames: frames
       };
       var full = finishMarch(setup, report);
@@ -795,7 +814,8 @@
        바로 위에서 이미 구했다(로그 문구용) — 새로 굴리지 않고 그 key 만
        battle3d.js 로 넘겨 무리 배치 모양(쐐기·활·원)을 고르게 한다 */
     return { water: water, sortie: sortie, du: du, leadA: aTop, leadD: dTop,
-      formA: af && af.key, formD: df && df.key };
+      formA: af && af.key, formD: df && df.key,
+      mixA: troopMixOf(atk), mixD: troopMixOf(def) };
   }
 
   /**
@@ -905,6 +925,7 @@
     var water = intro.water, sortie = intro.sortie, du = intro.du;
     var leadA = intro.leadA, leadD = intro.leadD;
     var formA = intro.formA, formD = intro.formD;
+    var mixA = intro.mixA, mixD = intro.mixD;
 
     var startWall = wallRef.wall;
     var r, won = false, routed = false;
@@ -934,6 +955,7 @@
       atkStart: atk.start, defStart: def.start,
       wallFrom: startWall, wallTo: wallRef.wall, sortie: sortie, water: water,
       leadA: leadA, leadD: leadD, formA: formA, formD: formD,
+      mixA: mixA, mixD: mixD,
       /* 실시간 재생용(battle3d.js) — 판정과 무관, dry(가늠)면 안 쓰이니 그대로 둬도 된다 */
       frames: frames
     };
@@ -1714,7 +1736,7 @@
   global.DG.war = {
     ROUNDS: ROUNDS, ROUT: ROUT, DUEL_GAP: DUEL_GAP, SHIP_CREW: SHIP_CREW,
     CAMP_DECAY: CAMP_DECAY, CAMP_QUIT: CAMP_QUIT, CAMP_MIN: CAMP_MIN,
-    armyPower: armyPower, topBy: topBy, duel: duel, fireRoll: fireRoll,
+    armyPower: armyPower, troopMixOf: troopMixOf, topBy: topBy, duel: duel, fireRoll: fireRoll,
     duelBegin: duelBegin, duelAlive: duelAlive, duelRound: duelRound, duelEnd: duelEnd, duelBout: duelBout, duelAuto: duelAuto,
     STANCES: STANCES, BOUT_ROUNDS: BOUT_ROUNDS, BOUT_MUL: BOUT_MUL,
     FORMATIONS: FORMATIONS, formationOf: formationOf, TACTICS: TACTICS, tacticFor: tacticFor, stepRound: stepRound,
