@@ -8104,3 +8104,11 @@ PROJECT_STATE.md` 참고. 요약:
 
 - `test_village.gd`에 임시 `SAGA_PERK_DEBUG` 훅: 빈 손으로 100회 굴려도 매번 정확히 3장·축(공/수/보) 겹침 없이 셋 다·id 중복 없음(bad_count/bad_axis/bad_dup 전부 0). 공격 축 4개를 이미 다 가지면 그 축만 빠지고 정확히 2장(수비·지원)만 나옴. 12개 전부 가지면 빈 배열.
 - 확인 후 훅 제거(`git diff` 원복 확인), `godot_regress.sh` md5 동일.
+
+## DUNGEON 결사 얼림 해제 + 유품·원소 시너지 확산 헤드리스 실측 (2026-09-22, 새 세션, "사가고돗 이어 하기")
+
+- 자동화 후보 소진 상태에서 사용자에게 다음 작업 확인 → "DUNGEON save 삭제 후 재개" 선택. `%APPDATA%/Godot/app_userdata/SAGA/save_dungeon.json`(지난 결사 사망으로 얼려 있던 저장, `save.json`은 별개라 안 건드림) 삭제.
+- `TestRoom.tscn`에 임시 `SAGA_GRAVE_DEBUG` 훅: 지갑 1000→`take_damage(99999)`로 사망 → 지갑 800(20% 손실)·장착 무기/부적 해제·`DungeonGraveState.grave`에 금 200+원래 장비 보존·hp 풀피 부활·`dungeon_grave_marker` 마커 스폰 5개 단언 전부 통과. `claim()` 호출 → 지갑 1000 복원·장비 재장착·grave 빈 값 3개 단언 통과.
+- 같은 씬에 임시 `SAGA_SYNERGY_DEBUG` 훅으로 `melee_attack.gd::_check_elem_synergy()` 직접 호출(가짜 적 노드 3개: 반경 안 `near`·반경 밖 `far`·처치 대상 `dead`): 은사 미보유 시 확산 없음, 은사는 있어도 결 한쪽만 있으면 확산 없음, 결 둘 다 있어도 대상이 안 죽었으면 확산 없음, 조건 다 맞으면 `near`만 `SYN_DAMAGE`(14) 감소·`far`는 그대로 — 5개 단언 전부 통과.
+- 확인 후 두 훅 모두 `git checkout`으로 원복(`git diff` 깨끗), `godot_regress.sh` 다섯 판 재실행 REGRESS OK·`.import`/`project.godot` 잡음 없음.
+- "살아있는 적/라이브 플레이어 인스턴스가 필요해 보류"였던 DUNGEON 마지막 두 항목도 test_room.gd 안에서 가짜 노드로 헤드리스 검증 가능함을 확인 — 자동화 후보 완전 소진, 남은 건 다섯 판 전부 손맛·화면 체감(사람 몫)뿐.
