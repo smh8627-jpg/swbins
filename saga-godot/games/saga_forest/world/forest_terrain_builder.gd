@@ -70,7 +70,11 @@ func _build_ground() -> void:
 			st.set_color(col); st.add_vertex(p11)
 
 	var mesh := st.commit()
-	var mat := WorldCurveMaterial.vertex_color_material(CURVE_AMOUNT)
+	## PLAN 102-5 "바닥 한 색" 처방(2026-09-22) — GO에 먼저 물린
+	## terrain_triplanar를 곡률과 합친 변종으로 FOREST에도. 정점색(지형
+	## 종류·바이옴 tint)·구면 투영 로직은 한 줄도 안 바꿨다, 머티리얼만
+	## 교체.
+	var mat := WorldCurveMaterial.triplanar_material(CURVE_AMOUNT)
 
 	var mi := MeshInstance3D.new()
 	mi.mesh = mesh

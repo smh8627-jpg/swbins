@@ -18,6 +18,7 @@ extends RefCounted
 
 const VERTEX_COLOR_SHADER := preload("res://saga_core/shaders/curved_vertex_color.gdshader")
 const TEXTURED_SHADER := preload("res://saga_core/shaders/curved_textured.gdshader")
+const TRIPLANAR_SHADER := preload("res://saga_core/shaders/curved_triplanar.gdshader")
 
 const GLOBAL_PARAM_NAME := "saga_world_curve_center"
 
@@ -56,4 +57,25 @@ static func textured_material(texture_path: String, curve_amount: float, roughne
 	mat.set_shader_parameter("albedo_texture", load(texture_path))
 	mat.set_shader_parameter("curve_amount", curve_amount)
 	mat.set_shader_parameter("roughness_value", roughness_value)
+	return mat
+
+
+## PLAN 102-5 "바닥 한 색" 처방(GO terrain_triplanar.gdshader)을 곡률
+## 지형에 쓰는 자리 — 103장 tilegen 잔디·흙·돌 3장(공용, 게임마다 새로
+## 안 만든다)을 고정으로 물린다. 호출부는 정점색(지형 종류별 tint)만
+## 책임진다.
+static func triplanar_material(curve_amount: float) -> ShaderMaterial:
+	ensure_global_registered()
+	var mat := ShaderMaterial.new()
+	mat.shader = TRIPLANAR_SHADER
+	mat.set_shader_parameter("curve_amount", curve_amount)
+	mat.set_shader_parameter("grass_albedo", load("res://assets/generated/tiles/grass_512.png"))
+	mat.set_shader_parameter("grass_normal", load("res://assets/generated/tiles/grass_512_n.png"))
+	mat.set_shader_parameter("grass_rough", load("res://assets/generated/tiles/grass_512_r.png"))
+	mat.set_shader_parameter("dirt_albedo", load("res://assets/generated/tiles/dirt_512.png"))
+	mat.set_shader_parameter("dirt_normal", load("res://assets/generated/tiles/dirt_512_n.png"))
+	mat.set_shader_parameter("dirt_rough", load("res://assets/generated/tiles/dirt_512_r.png"))
+	mat.set_shader_parameter("stone_albedo", load("res://assets/generated/tiles/stone_512.png"))
+	mat.set_shader_parameter("stone_normal", load("res://assets/generated/tiles/stone_512_n.png"))
+	mat.set_shader_parameter("stone_rough", load("res://assets/generated/tiles/stone_512_r.png"))
 	return mat

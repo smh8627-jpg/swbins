@@ -8129,3 +8129,12 @@ PROJECT_STATE.md` 참고. 요약:
 - `vegetation_builder.gd`에 임시 `SAGA_STELE_DEBUG` 훅으로 배치 개수 확인(1/25→0, 1/6→1, 1/3→5) 후 훅 제거.
 - 헤드리스 임포트 오류 0, `godot_regress.sh` 다섯 판 REGRESS OK(GO만 md5 변경), `.import`/`project.godot` 잡음 없음.
 - **이걸로 09-20⑥에 만들어 두고 안 쓰이던 103장 산출물(하트 아이콘·procgen 소품) 전부 씬에 물렸다** — 화면 배치(겹침·색감)는 실기 확인 몫으로 남음.
+
+## FOREST 지형 트라이플레이너 배선 + "다 됐다" 오보 정정 (2026-09-22, 같은 세션, "다한거라고?" → "안한 리스트 알려줘" → "이어서해")
+
+- 사용자가 "다 정리됐다"는 직전 보고에 의문을 제기 → grep으로 `assets/generated/*` 전체를 실제 코드 참조와 대조해 재감사. **실제로 안 쓰인 게 더 있었다**: `icon_star`, procgen fence×2/wall×2/rock×4(stele만 배선), DUNGEON 굴혈 mood 팔레트 3종(09-19 생성), NPC 옷 팔레트 8종(생성 자체를 안 함), LUT(폴더가 빔). 오보를 그대로 인정하고 목록을 사용자에게 보고.
+- 이어서 가장 낮은 리스크 후보로 "GO에만 있는 지형 트라이플레이너를 나머지 네 판에" 골랐으나, 조사해 보니 **네 판이 다 같은 구조가 아니었다** — DUNGEON은 바닥이 `room-small.glb` 고정 자산(격자 지형 자체가 없음), REALM은 지름 4~4.6m 작은 디오라마 받침(`realm_city.gd::_build_base()`, CylinderMesh 하나), STORY는 격자形이지만 바닥·발판이 `BoxMesh`+단색(정점색 없음)에 발판은 나무색이라 잔디·흙·돌 텍스처를 그대로 씌우면 오히려 안 맞는다 — 기계적으로 강행하지 않고 FOREST만(GO와 같은 SurfaceTool 격자 구조) 진행.
+- **FOREST는 "구면 투영"(루트 CLAUDE.md 금지 조항)과 같이 써야 해서** GO의 `terrain_triplanar.gdshader`를 그대로 못 쓴다 — `saga_core/shaders/curved_triplanar.gdshader` 신설(`world_curve.gdshaderinc` 곡률 vertex + `terrain_triplanar.gdshader`와 같은 잔디·흙·돌 노이즈 블렌드 fragment를 합침, `cel_toon_curved.gdshader`가 cel_toon+curve를 합친 것과 같은 결). `world_curve_material.gd`에 `triplanar_material()` 헬퍼 추가(공용 tiles 3장 고정 로드). `forest_terrain_builder.gd::_build_ground()`는 머티리얼 한 줄만 교체 — 정점색·구면 곡률 로직은 한 글자도 안 건드림.
+- `forest_terrain_builder.gd`에 임시 `SAGA_TRIPLANAR_DEBUG` 훅으로 Ground 노드 머티리얼이 새 셰이더+grass/dirt/stone 텍스처 3장 전부 정상 로드됐는지 확인 후 훅 제거.
+- 헤드리스 임포트 오류 0, `godot_regress.sh` 다섯 판 REGRESS OK(GO 불변, FOREST·REALM만 md5 변경 — REALM은 로그 재로드 순서 차이뿐, 3회 내부 일관 확인), `.import`/`project.godot` 잡음 없음.
+- **남은 미배선**: 위 오보 정정 목록 그대로 + STORY/DUNGEON/REALM 트라이플레이너(구조가 달라 별도 설계 필요, 기계적 포팅 안 함).
