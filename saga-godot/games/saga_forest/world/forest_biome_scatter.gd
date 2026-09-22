@@ -74,18 +74,19 @@ func _spawn(x: int, y: int) -> void:
 		"mush":
 			_spawn_mushroom(pos, _hash(x, y, 4) * TAU)
 		"rocky":
-			## 2026-09-20 — Kenney rock_smallA 대신 Quaternius Rock_Medium_1
-			## (vertex_color로 덮어 칠하니 원본 gltf 그대로, forest_vegetation_
-			## builder.gd 나무와 같은 이유). 옛 최종 크기(0.191×0.6≈0.115m)에
-			## 맞춰 스케일만 역산(2.260 실측고 기준 0.6→0.0508).
+			## 2026-09-20 — Kenney rock_smallA 대신 Quaternius Rock_Medium_1.
+			## 옛 최종 크기(0.191×0.6≈0.115m)에 맞춰 스케일만 역산(2.260 실측고
+			## 기준 0.6→0.0508). 이 gltf엔 COLOR_0이 없어 vertex_color_material
+			## (정점색×tint)로는 흰 바위가 됐다(09-23 발견) — 버섯과 같이 원본
+			## 텍스처를 곡률째 그린다.
 			var mesh: Mesh = GLBUtils.extract_mesh("res://assets/rocks/Rock_Medium_1.gltf")
 			if mesh != null:
 				var mi := MeshInstance3D.new()
 				mi.mesh = mesh
 				mi.scale = Vector3.ONE * 0.0508
 				mi.position = pos
-				mi.material_override = WorldCurveMaterial.vertex_color_material(
-					CURVE_AMOUNT, 0.95, Color(1, 1, 1))
+				mi.material_override = WorldCurveMaterial.textured_material(
+					"res://assets/rocks/Rocks_Diffuse.png", CURVE_AMOUNT, 0.95)
 				add_child(mi)
 
 

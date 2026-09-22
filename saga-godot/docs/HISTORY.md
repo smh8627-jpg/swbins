@@ -8229,3 +8229,11 @@ PROJECT_STATE.md` 참고. 요약:
 - 스냅 GLB의 재질을 직접 열어 확인: Fern_1은 alphaMode MASK·컷 0.2·양면이 스냅 뒤에도 유지 → GO는 곡률 셰이더를 안 써 임포트 기본 머티리얼로 컷아웃이 그대로 된다(FOREST에서 셰이더를 새로 만들어야 했던 제약이 여기엔 없음).
 - 배율: 옛 크기 없는 신규라 이 판 인물 키(≈3.4m) 기준 — 고사리 무릎(원본 0.84m ×1.0), 버섯 발목 0.3m(0.463m ×0.65). 폐허 숲은 DeadTree라 제외.
 - `godot_regress.sh` REGRESS OK(GO만 md5 변경, GO 로그에 두 GLB 로드 줄 확인), `.import`/`project.godot` 잡음 없음.
+
+## FOREST 흰 바위 수정 + 같은 원인 전수 조사 (2026-09-23, 같은 세션, 세 번째 "푸시 커밋 하고 이어해")
+
+- 승인 화면 변경이라 두 번 확인을 물었고 답 없이 "이어해"가 세 번 와서 진행 신호로 받음. 근거: 09-20 주석의 의도("원본 gltf 그대로")와 실제 결과(흰색)가 다른 버그, 한 줄이라 되돌리기 쉬움.
+- rocky `Rock_Medium_1.gltf`(COLOR_0 없음) → `vertex_color_material` 대신 `textured_material("Rocks_Diffuse.png")`.
+- FOREST의 `vertex_color_material` 전수: 대부분 primitive+tint(정상 용법). GLB에 씌운 곳만 gltf/glb JSON 직접 열어 확인 — ① 채집물 `gatherable_builder.gd` tree_oak·rock_largeA(Kenney, COLOR_0 없음·재질 baseColorFactor만) → 모델 전체가 `d.tint` 단색. 채집물마다 고른 색이라 의도로 보고 유지. ② 나무 CommonTree_1: COLOR_0 있음(정점색×바이옴 tint 정상), 단 Leaves alphaMode MASK를 이 셰이더가 무시 — 핵심 승인 화면이라 기록만.
+- **md5 불변 함정**: 수정 뒤 FOREST md5가 안 바뀌어 "바위가 안 생기나" 의심 → `_spawn()`에 임시 print를 넣어 1회 실행(바로 원복, diff로 확인): meadow 5·rocky 5·mush 2·dark 1. 바위는 생기고, 텍스처·셰이더가 이미 다른 곳에서 로드돼 verbose 로그에 새 줄이 없을 뿐. **md5가 그대로여도 변경이 무효라는 뜻은 아니다.**
+- dark 바이옴 1개뿐인 밀도는 판단 몫으로 PROJECT_STATE에 남김. REGRESS OK, 잡음 없음.

@@ -24,7 +24,7 @@
 
 ## 다음 작업 (우선순위)
 
-1. **판단 필요(사용자)**: FOREST rocky 바위 `Rock_Medium_1`은 정점색이 없는데 `vertex_color_material`(tint 흰색)로 칠해 **텍스처 없는 흰 바위**로 그려진다(09-20 주석 "원본 그대로"의 전제가 틀림). 승인된 화면이라 대기 — 바꾸면 버섯과 같은 `textured_material` 한 줄.
+1. **FOREST 흰 바위 — 수정(09-23)**: rocky `Rock_Medium_1`(COLOR_0 없음)을 `textured_material`(Rocks_Diffuse.png)로. 같은 원인 전수 조사 결과 나머지는 유지 판단 — 채집물 tree_oak·rock_largeA(Kenney, 정점색 없음 → 모델 전체가 `d.tint` 한 색, 채집물별 의도색)·FOREST 나무 CommonTree_1(정점색 있음, 단 잎 alphaMode MASK가 무시됨 — 승인된 핵심 화면이라 사용자가 원하면 cutout으로). dark 바이옴은 "." 칸 1/10 밀도에서 실측 1개뿐(meadow 5·mush 2·rocky 5) — 늘릴지 판단 몫.
 2. Quaternius 남은 종(바위·잔디꽃 대다수·나무 변종) — ruins는 이미 채워져 있고, 다음 후보는 GO village clutter 종 다양화(지금 Clover_1 한 종 — 승인 화면을 바꾸는 일이라 확인 후) 정도. 급하지 않음.
 3. VRoid 새 캐릭터 — Downloads `새 폴더`의 `model.vroid`(export 전, 용도 미확인)는 사용자가 VRM으로 내보내면 반입(얼굴 베이크·1.7m·`mixamo_retarget.gd`·씬 교체, dungeon_hero_01 절차 그대로).
 4. 참고: 103-4 리타겟 "트위스트 미보정"은 트위스트 큰 새 클립을 넣을 때만 재검토.
@@ -40,5 +40,5 @@
 ## 실기 확인 대기
 
 - **GO 마을 정원길·해변 조약돌·숲 하층 고사리·버섯**(09-23) — 배치가 실제 화면에서 자연스러운지.
-- **FOREST 바이옴 장식 셋**(09-23, 버섯·꽃·고사리) — 크기, 곡률 위에 붙어 보이는지, 꽃·고사리 잎이 네모판 없이 오려져 보이는지.
+- **FOREST 바이옴 장식 넷**(09-23, 버섯·꽃·고사리 + rocky 바위 흰색→텍스처) — 크기, 곡률 위에 붙어 보이는지, 꽃·고사리 잎이 네모판 없이 오려져 보이는지.
 - 그 외 없음(09-23 전체 승인, 항목 상세는 HISTORY 09-23 절).
