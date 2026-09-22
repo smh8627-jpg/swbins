@@ -8197,3 +8197,11 @@ PROJECT_STATE.md` 참고. 요약:
 - 검증: 다른 세션 스크래치패드에 남아있던 Godot 4.7.2 재사용(`config/features` "4.7" 일치 확인) — `godot_regress.sh` 다섯 씬 REGRESS OK(GO만 md5 변경), `git diff -- project.godot '*.import'` 빈 것 확인.
 - **범위 의도적으로 좁힘**: "정원길" 한 용도만 닫았다. 남은 바위 22종·잔디꽃 대부분·FOREST 바이옴 다양화 등은 각자 다른 판단(FOREST vertex-color 제약, 중복 여부 등)이 더 필요해 이번엔 손 안 댐 — PROJECT_STATE "다음 작업"에 남겨 둠.
 - 실기 확인 대기 목록에 추가(전날 "전체 승인"은 이 배치 전 상태였으므로 재확인 필요).
+
+## Quaternius 씬 배치 5단계 — coast 몫 추가 (2026-09-23, 같은 세션, "이어해")
+
+- village 정원길에 이어 coast(포구) 몫도 닫았다. **발견**: coast 지도(REGIONS.coast)엔 "." 칸이 아예 없어(전부 ^·~·D·B) `REGION_CLUTTER_GLB["coast"]`(Clover_1) 설정이 애초에 죽어 있었다 — 실행되지만 대상 칸이 없어 아무것도 안 그려진 상태.
+- 대신 모래밭("D")에 `_scatter_coast_pebbles()` 신설 — Pebble_Round_1~3(go_coast 스냅, 09-20⑮ "해변에 더 맞게 고쳐졌다" 무난 판정) 1/10 밀도, salt 960번대. 순수 시각.
+- **실행 경로 확인**: `region2_coast.gd::_ready()`가 `_build_harbor()`를 즉시 호출 → `CoastVegetation` 노드를 region_id="coast"로 그 자리에서 생성·`_ready()` 실행 — TestVillage.tscn 단일 씬 로드만으로 coast 분기까지 headless 테스트에 포함된다(지연 로드 아님, 코드로 확인).
+- `godot_regress.sh` REGRESS OK(GO만 md5 변경, issues=0 — GLB 로드 정상 확인), `.import`/`project.godot` 잡음 없음.
+- 실기 확인 대기에 이미 있던 항목과 합침(정원길과 같은 절).

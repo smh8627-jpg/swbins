@@ -29,7 +29,7 @@
 
 ## 다음 작업 (우선순위)
 
-1. **씬 배치(5단계) 착수(09-23)** — 사용자가 "지금 정하기"로 스코프 결정 위임. GO village에 `_scatter_village_path()` 신설(`vegetation_builder.gd`) — Pebble_Square_1·RockPath_Square_Wide(go_village 스냅, 09-20⑮ "정원길 후보로 쓸 만함" 판정)를 "." 칸 1/12 밀도로 순수 시각 장식(충돌 없음), clutter와 salt 안 겹침(950번대). 둘 다 실측(trimesh) 이미 사람 스케일이라 배율 역산 불필요. `godot_regress.sh` REGRESS OK(GO만 md5 변경), `.import`/`project.godot` 잡음 없음. **나머지 66종(바위 22·잔디꽃 22 대부분·나무 변종들)은 여전히 미배치** — 이번엔 "정원길" 한 용도만 닫았고, 다른 용도(FOREST 바이옴 다양화 등)는 다음에 이어갈 몫.
+1. **씬 배치(5단계) 착수(09-23)** — 사용자가 "지금 정하기"로 스코프 결정 위임. GO `vegetation_builder.gd`에 두 용도 신설: ① village "." 칸 `_scatter_village_path()`(Pebble_Square_1·RockPath_Square_Wide, 1/12 밀도). ② coast "D"(모래) 칸 `_scatter_coast_pebbles()`(Pebble_Round_1~3, 1/10 밀도) — coast는 "." 칸이 아예 없어(REGIONS.coast 확인) REGION_CLUTTER_GLB["coast"] 설정이 죽어 있던 걸 발견, 모래밭으로 대체. 전부 순수 시각 장식(충돌 없음), 실측(trimesh) 이미 사람 스케일이라 배율 역산 불필요. `godot_regress.sh` REGRESS OK(GO만 md5 변경, coast 분기도 `Region2Coast._ready()`가 TestVillage 로드시 바로 지어 headless 테스트에 포함됨 확인), `.import`/`project.godot` 잡음 없음. **나머지(바위 대다수·잔디꽃 대다수·나무 변종)는 여전히 미배치** — ruins는 이미 wall_fence/rubble로 채워져 있어 이번 범위 밖, FOREST는 vertex-color 제약(105 Q-b)으로 별도 판단 필요.
 2. 105 Q-d — **정정(09-23)**: Mixamo 애니 다운로드는 로그인만 사람 몫, 검색·선택·다운로드는 이미 자동(루트 `tools/mixamo_automation/`, 09-23 재확인 — Chrome CDP 프로필 로그인 유지·검색 정상). VRoid 조형(주역 몇 명)만 여전히 사람 몫(무료 대체 파이프라인 없음, 09-23 조사). 새 클립이 필요하거나 새 VRoid 캐릭터(Downloads에 `model.vroid` 미확인 파일 있음, 용도 확인 대기)가 생기면 그때 착수.
 3. 위 세 항목(icon_star·NPC 옷 팔레트·STORY 트라이플레이너)은 **판단 완료, 재작업 후보 아님** — 새 근거(예: 군중 NPC 기능 신설)가 생기면 그때 재검토.
 4. 참고: 103-4 Mixamo 리타겟의 "트위스트(팔 축 비틀림) 미보정"은 지금 클립(idle~pickup)엔 안 드러나 **필요시에만** — 트위스트가 큰 새 클립을 넣을 때 재검토(`docs/HISTORY.md` 09-23 ㉒ 절 참고).
@@ -44,5 +44,5 @@
 
 ## 실기 확인 대기
 
-- **GO 마을 정원길**(`_scatter_village_path`, 09-23 신설) — Pebble_Square_1·RockPath_Square_Wide 배치가 실제 화면에서 자연스러운지.
+- **GO 마을 정원길·해변 조약돌**(`_scatter_village_path`·`_scatter_coast_pebbles`, 09-23 신설) — 배치가 실제 화면에서 자연스러운지.
 - 그 외 없음 — 2026-09-23 사용자가 전체 대기 목록(GO·DUNGEON·FOREST·STORY·REALM·공통)을 실기로 확인, "괜찮음". 항목별 상세는 `docs/HISTORY.md` 09-23 절에 보존.

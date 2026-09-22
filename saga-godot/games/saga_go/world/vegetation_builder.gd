@@ -135,6 +135,19 @@ const VILLAGE_PATH_GLB := [
 ]
 const VILLAGE_PATH_DENSITY := 12  # "." 칸 1/12
 
+## 같은 105 Q-d 5단계, 해변(coast) 몫. coast 지도엔 "." 칸이 아예 없다
+## (전부 ^·~·D·B — REGION_CLUTTER_GLB["coast"]가 있어도 실제론 죽은
+## 설정이었다, 확인함) — 대신 모래밭("D")에 조약돌을 흩뿌린다. 09-20⑮에서
+## "Pebble_Round×go_coast는 스냅 후 갈색 모래톤이 돼 해변에 더 맞게
+## 고쳐졌다"로 이미 무난 판정. 실측(trimesh) Pebble_Round_1 0.50×0.10×0.37m
+## — 사람 스케일이라 배율 역산 불필요.
+const COAST_PEBBLE_GLB := [
+	"res://assets/generated/variants/Pebble_Round_1__go_coast.glb",
+	"res://assets/generated/variants/Pebble_Round_2__go_coast.glb",
+	"res://assets/generated/variants/Pebble_Round_3__go_coast.glb",
+]
+const COAST_PEBBLE_DENSITY := 10  # "D" 칸 1/10
+
 var region_id := "village"
 
 
@@ -144,6 +157,7 @@ func _ready() -> void:
 	_scatter_crops()
 	_scatter_clutter()
 	_scatter_village_path()
+	_scatter_coast_pebbles()
 	_scatter_ruins_debris()
 	_scatter_ruins_rubble()
 	_scatter_ruins_wall_fence()
@@ -421,6 +435,41 @@ func _scatter_village_path() -> void:
 		if mesh == null:
 			continue
 		add_child(_build_rock_multimesh(mesh, xforms, "VillagePath%d" % i))
+
+
+## village 정원길과 같은 취지, coast 몫(salt 960번대) — "D"(모래) 칸을
+## 스캔해 조약돌 3종을 섞어 흩뿌린다. 순수 시각(충돌 없음).
+func _scatter_coast_pebbles() -> void:
+	if region_id != "coast":
+		return
+	var ground: float = TerrainBuilder.LEGEND["D"].height
+	var xf_by_variant: Array[Array] = []
+	for i in COAST_PEBBLE_GLB.size():
+		var arr: Array[Transform3D] = []
+		xf_by_variant.append(arr)
+	var rows := TestMap.rows_of(region_id)
+	for y in rows.size():
+		var row: String = rows[y]
+		for x in row.length():
+			if row[x] != "D":
+				continue
+			if _hash(x, y, 960) >= 1.0 / float(COAST_PEBBLE_DENSITY):
+				continue
+			var jx := (_hash(x, y, 961) - 0.5) * TestMap.TILE_SIZE * 0.7
+			var jz := (_hash(x, y, 962) - 0.5) * TestMap.TILE_SIZE * 0.7
+			var pos := TestMap.world_pos(x, y, region_id) + Vector3(jx, ground, jz)
+			var yaw := _hash(x, y, 963) * TAU
+			var variant := int(_hash(x, y, 964) * COAST_PEBBLE_GLB.size()) % COAST_PEBBLE_GLB.size()
+			(xf_by_variant[variant] as Array[Transform3D]).append(Transform3D(Basis(Vector3.UP, yaw), pos))
+
+	for i in COAST_PEBBLE_GLB.size():
+		var xforms: Array[Transform3D] = xf_by_variant[i]
+		if xforms.is_empty():
+			continue
+		var mesh := GLBUtils.extract_mesh(COAST_PEBBLE_GLB[i])
+		if mesh == null:
+			continue
+		add_child(_build_rock_multimesh(mesh, xforms, "CoastPebble%d" % i))
 
 
 ## clutter와 달리 "." 평지가 아니라 폐허 바닥("R")을 스캔한다 — ruins
