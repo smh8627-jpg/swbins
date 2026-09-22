@@ -171,6 +171,7 @@
   var LEVELUP_DUR = 2.0;      // 레벨업 배너(PLAN 35절)가 뜬 채 머무는 시간
   var QUESTDONE_DUR = 2.0;    // 사명 완료 배너(PLAN 35절)가 뜬 채 머무는 시간
   var ITEMPOP_DUR = 0.9;      // 아이템 획득 팝업(PLAN 35절)이 위로 뜨며 사라지는 시간
+  var TIER4_GHOST_INT = 0.09; // 전직 4차 상시 잔상(§6 "성장 가시화") — 이 터울마다 하나씩
   /* 회피(PLAN 12절 → §5-5 "대시로 재정의") — 스킬(mp·띠 자리)과는 별개로 늘 쓸
      수 있는 방어 동작이다. 하데스·데드셀식 대시처럼 **짧고 자주** 쓰게
      PLAN §5-5 수치로 맞췄다(예전엔 3.0s/0.35s 로 훨씬 무거웠다 — 회피가
@@ -2019,6 +2020,20 @@
           core.emit('toast', '💬 ' + a.name + ': "' + lineA + '"');
           core.log('💬 ' + a.name + ': "' + lineA + '" / ' + b.name + ': "' + lineB + '"', 'info');
         }
+      }
+    }
+
+    /* 전직 4차 상시 잔상(§6 "성장 가시화") — §5-7 dash 잔상과 **같은 fx('ghost')
+       를 그대로 재사용한다**(새 그림 없음, 화면 층 `side-view.js`가 2D·3D
+       양쪽에 이미 그리는 오버레이라 여기선 fx만 심으면 된다). 걷거나 뛰는
+       동안만(p.vx·p.onGround) 터울을 두고 심어 "따라오는 잔상"으로 보이게
+       하고, 가만히 서 있을 땐 안 심는다(정지 중 겹쳐 보이면 잔상이 아니라 얼룩이다). */
+    var J2 = global.DG.job, jobCur = J2 && J2.cur ? J2.cur() : null;
+    if (jobCur && jobCur.tier >= 4 && p.vx && p.onGround) {
+      p.tier4GhostT = (p.tier4GhostT || 0) - dt;
+      if (p.tier4GhostT <= 0) {
+        p.tier4GhostT = TIER4_GHOST_INT;
+        fx.push({ t: 'ghost', x: p.x + P_W / 2, y: p.y + P_H, life: 0.22 });
       }
     }
 
