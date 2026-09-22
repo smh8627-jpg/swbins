@@ -51,7 +51,14 @@ namespace Saga.Story.Player
         private float _boltCooldownLeft;
         private float _braceCooldownLeft;
         private float _footprintCooldown;
-        private float _buffUntilTime; // Time.time 기준 — 기합(氣合) 지속시간, StoryCombat.BraceSeconds
+        // 강화 칸 하나 — 웹판 `side.js` p.buff처럼 기합·직업 강화 무예(철갑·응안·급소·부적)가
+        // 같은 칸을 쓰고, 나중에 건 것이 앞의 것을 덮는다(곱해 쌓지 않는다).
+        private float _buffUntilTime; // Time.time 기준
+        private float _buffAtk = 1f;
+        private float _buffSpeed = 1f;
+        private float _buffRegen = 1f;
+        private readonly System.Collections.Generic.Dictionary<string, float> _skillCooldownLeft =
+            new System.Collections.Generic.Dictionary<string, float>();
         private StoryRope _ropeArea;
         private bool _onRope;
 
@@ -66,7 +73,7 @@ namespace Saga.Story.Player
         /// "동료 교대"(2026-09-21) — 활성 역할의 공격 배율(웹판 "인물의
         /// 몸" 재해석)도 곱한다.</summary>
         private float CurrentAtk => (StoryCombat.StartAtk + StoryJobState.AtkBonus + StoryLabyrinthState.MemoryAtkBonus)
-            * (BuffActive ? StoryCombat.BraceAtkMul : 1f) * StoryLabyrinthState.AtkMul * StoryPartyState.AtkMultiplier;
+            * (BuffActive ? _buffAtk : 1f) * StoryLabyrinthState.AtkMul * StoryPartyState.AtkMultiplier;
 
         private void Awake()
         {
@@ -81,7 +88,8 @@ namespace Saga.Story.Player
             _sweepCooldownLeft = Mathf.Max(0f, _sweepCooldownLeft - dt);
             _boltCooldownLeft = Mathf.Max(0f, _boltCooldownLeft - dt);
             _braceCooldownLeft = Mathf.Max(0f, _braceCooldownLeft - dt);
-            StoryCombat.TickMpRegen(dt);
+            TickSkillCooldowns(dt);
+            StoryCombat.TickMpRegen(dt, BuffActive ? _buffRegen : 1f);
             StoryPartyState.TickCooldown(dt); // 101-2 5-8 "동료 교대".
             CheckRope();
 
@@ -109,6 +117,144 @@ namespace Saga.Story.Player
             if (WantsSweep()) TrySweep();
             if (WantsBolt()) TryBolt();
             if (WantsBrace()) TryBrace();
+            for (int i = 0; i < StorySkillState.SlotCount; i++)
+            {
+                if (WantsJobSkill(i)) TriggerJobSkill(i);
+            }
+        }
+
+        /// <summary>모바일 무예 칸 버튼(`StorySkillSlotButton`)·숫자키 5~8이 부른다 —
+        /// 칸이 비었으면(아직 안 찍음) 조용히 무시.</summary>
+        public void TriggerJobSkill(int slot)
+        {
+            var sk = StorySkillState.SlotSkill(slot);
+            if (sk != null) TryCastJobSkill(sk);
+        }
+
+        /// <summary>무예 칸 버튼이 쿨다운을 어둡게 그리려고 읽는다.</summary>
+        public float JobSkillCooldownLeft(string key) =>
+            key != null && _skillCooldownLeft.TryGetValue(key, out var left) ? left : 0f;
+
+        private void TickSkillCooldowns(float dt)
+        {
+            if (_skillCooldownLeft.Count == 0) return;
+            var keys = new System.Collections.Generic.List<string>(_skillCooldownLeft.Keys);
+            foreach (var k in keys) _skillCooldownLeft[k] = Mathf.Max(0f, _skillCooldownLeft[k] - dt);
+        }
+
+        /// <summary>PLAN.md 101-2 5-2 1단계 — 1차 직업 무예 하나를 쓴다. 웹판 `side.js`
+        /// castBody()의 effect 갈래를 이 트랙 채널로 옮겼다(heal·guard·invuln은
+        /// `StorySkillData` 클래스 주석대로 빠짐). 레벨 0이면 못 쓴다(웹판 원작 그대로).</summary>
+        private bool TryCastJobSkill(StorySkillData.Skill sk)
+        {
+            if (StorySkillState.LevelOf(sk.Key) <= 0) return false;
+            if (JobSkillCooldownLeft(sk.Key) > 0f) return false;
+            if (!StoryCombat.TrySpendMp(sk.Cost)) return false;
+            _skillCooldownLeft[sk.Key] = sk.Cooldown * StoryLabyrinthState.CooldownMul;
+
+            float mul = StorySkillState.MulOf(sk);
+            switch (sk.Effect)
+            {
+                case StorySkillData.Effect.Melee: CastMelee(mul, sk.Hits); break;
+                case StorySkillData.Effect.Aoe: CastAoe(mul, sk.RadiusM); break;
+                case StorySkillData.Effect.Bolt: SpawnShot(mul, true, StoryCombat.BoltSpeed, StoryCombat.BoltLife, 1f, new Color(0.35f, 0.65f, 0.95f)); break;
+                case StorySkillData.Effect.Arrow: SpawnShot(mul, false, ArrowSpeed, StoryCombat.BoltLife, 1f, ArrowColor); break;
+                case StorySkillData.Effect.Volley:
+                    for (int j = 0; j < sk.Shots; j++)
+                    {
+                        // 웹판: 높이를 0.16 P_H씩 달리하고 속도를 34px/s씩 올려 한 줄로 안 겹치게.
+                        SpawnShot(mul, false, (600f + j * 34f) * FieldMapData.ScaleMPerPx, 1.1f, 0.7f + 0.3f * j, ArrowColor);
+                    }
+                    break;
+                case StorySkillData.Effect.Dash: CastDash(mul, sk.DistM, sk.Backward); break;
+                case StorySkillData.Effect.Buff: SetBuff(sk.BuffSec, sk.BuffAtk, sk.BuffSpeed, sk.BuffRegen); break;
+            }
+            if (sk.Effect != StorySkillData.Effect.Buff) PlayAttackAnim();
+            return true;
+        }
+
+        private const float ArrowSpeed = 640f * FieldMapData.ScaleMPerPx; // side.js arrow spd 640px/s
+        private static readonly Color ArrowColor = new Color(0.85f, 0.75f, 0.45f);
+
+        private void CastMelee(float mul, int hits)
+        {
+            bool hitAny = false, anyCrit = false;
+            foreach (var enemy in StoryEnemy.All)
+            {
+                if (enemy == null || enemy.IsDead) continue;
+                float dx = enemy.transform.position.x - transform.position.x;
+                if (Mathf.Abs(dx) > AttackRange) continue;
+                if (Mathf.Abs(dx) > 0.3f && !Mathf.Approximately(Mathf.Sign(dx), _facing)) continue;
+                for (int h = 0; h < hits && !enemy.IsDead; h++)
+                {
+                    var (dmg, crit) = StoryCombat.RollDamage(CurrentAtk, mul);
+                    enemy.TakeDamage(dmg, crit);
+                    if (crit) StoryCombat.TriggerHitstop(this);
+                    hitAny = true;
+                    anyCrit |= crit;
+                }
+            }
+            ApplyHitFeedback(hitAny, anyCrit);
+        }
+
+        private void CastAoe(float mul, float radius)
+        {
+            bool hitAny = false, anyCrit = false;
+            Vector2 origin = new Vector2(transform.position.x, transform.position.y);
+            foreach (var enemy in StoryEnemy.All)
+            {
+                if (enemy == null || enemy.IsDead) continue;
+                Vector2 pos = new Vector2(enemy.transform.position.x, enemy.transform.position.y);
+                if (Vector2.Distance(origin, pos) > radius) continue;
+                var (dmg, crit) = StoryCombat.RollDamage(CurrentAtk, mul);
+                enemy.TakeDamage(dmg, crit);
+                if (crit) StoryCombat.TriggerHitstop(this);
+                hitAny = true;
+                anyCrit |= crit;
+            }
+            ApplyHitFeedback(hitAny, anyCrit);
+        }
+
+        private void SpawnShot(float mul, bool pierce, float speed, float life, float height, Color color)
+        {
+            var go = new GameObject("StoryBolt");
+            go.transform.position = transform.position + new Vector3(_facing * 0.6f, height, 0f);
+            go.AddComponent<StoryBolt>().Configure(_facing, CurrentAtk, mul, animator, pierce, speed, life, color);
+        }
+
+        /// <summary>웹판 dash — 밀고 나간 뒤 지나간 자리(가로 구간, 발 높이 차 60px≈1.2m 안)의
+        /// 적을 벤다. 벽은 CharacterController.Move()가 막는다(웹판 clamp 대신).</summary>
+        private void CastDash(float mul, float dist, bool backward)
+        {
+            float fromX = transform.position.x;
+            float dir = backward ? -_facing : _facing;
+            _onRope = false;
+            _controller.Move(new Vector3(dir * dist, 0f, 0f));
+            float toX = transform.position.x;
+            float lo = Mathf.Min(fromX, toX) - 0.3f, hi = Mathf.Max(fromX, toX) + 0.3f;
+            float footY = transform.position.y;
+
+            bool hitAny = false, anyCrit = false;
+            foreach (var enemy in StoryEnemy.All)
+            {
+                if (enemy == null || enemy.IsDead) continue;
+                var p = enemy.transform.position;
+                if (p.x < lo || p.x > hi || Mathf.Abs(p.y - footY) > 1.2f) continue;
+                var (dmg, crit) = StoryCombat.RollDamage(CurrentAtk, mul);
+                enemy.TakeDamage(dmg, crit);
+                if (crit) StoryCombat.TriggerHitstop(this);
+                hitAny = true;
+                anyCrit |= crit;
+            }
+            ApplyHitFeedback(hitAny, anyCrit);
+        }
+
+        private void SetBuff(float sec, float atk, float speed, float regen)
+        {
+            _buffUntilTime = Time.time + sec;
+            _buffAtk = atk;
+            _buffSpeed = speed;
+            _buffRegen = regen;
         }
 
         /// <summary>모바일 "공격" 버튼(OnClick)이 부른다 — 쿨다운 확인은
@@ -243,7 +389,7 @@ namespace Saga.Story.Player
             if (_braceCooldownLeft > 0f) return;
             if (!free && !StoryCombat.TrySpendMp(StoryCombat.BraceCost)) return;
             _braceCooldownLeft = StoryCombat.BraceCooldown * StoryLabyrinthState.CooldownMul;
-            _buffUntilTime = Time.time + StoryCombat.BraceSeconds;
+            SetBuff(StoryCombat.BraceSeconds, StoryCombat.BraceAtkMul, StoryCombat.BraceSpeedMul, 1f);
         }
 
         private void Walk(float dt)
@@ -264,7 +410,7 @@ namespace Saga.Story.Player
                 }
             }
 
-            float runSpeed = RunSpeed * (BuffActive ? StoryCombat.BraceSpeedMul : 1f) * StoryLabyrinthState.MoveSpeedMul;
+            float runSpeed = RunSpeed * (BuffActive ? _buffSpeed : 1f) * StoryLabyrinthState.MoveSpeedMul;
             var move = new Vector3(axis * runSpeed, _verticalVelocity, 0f);
             _controller.Move(move * dt);
 
@@ -406,6 +552,21 @@ namespace Saga.Story.Player
         {
             var kb = Keyboard.current;
             return kb != null && kb.digit4Key.wasPressedThisFrame;
+        }
+
+        // 직업 무예 칸 넷 — 공통 무예(1~4) 바로 다음 숫자 5~8.
+        private bool WantsJobSkill(int slot)
+        {
+            var kb = Keyboard.current;
+            if (kb == null) return false;
+            switch (slot)
+            {
+                case 0: return kb.digit5Key.wasPressedThisFrame;
+                case 1: return kb.digit6Key.wasPressedThisFrame;
+                case 2: return kb.digit7Key.wasPressedThisFrame;
+                case 3: return kb.digit8Key.wasPressedThisFrame;
+                default: return false;
+            }
         }
     }
 }

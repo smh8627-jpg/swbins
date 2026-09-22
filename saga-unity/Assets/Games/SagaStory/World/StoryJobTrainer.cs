@@ -70,6 +70,9 @@ namespace Saga.Story.World
             }
 
             DialogueLabel.Instance?.Show($"{TrainerName} — {StatusText()}", LineShowSec);
+            // PLAN.md 101-2 5-2 1단계 — 전직을 마친 뒤엔 무예 점수 패널을 연다(웹판 전직관이
+            // 무예 탭으로 이어지는 것과 같은 자리). 남은 점수가 없으면 안 연다(매번 뜨면 성가시다).
+            if (StoryJobState.HasJob && StorySkillState.SpLeft > 0) StorySkillPanelUi.Instance?.Show();
         }
 
         private static string TrainerName => StoryLocalization.T("npc.trainer_name", "전직관");
@@ -101,6 +104,7 @@ namespace Saga.Story.World
                         DialogueLabel.Instance?.Show(string.Format(
                             StoryLocalization.T("npc.trainer_chosen", "{0} — {1}로 전직! 공격+{2}{3}"),
                             TrainerName, name, Mathf.RoundToInt(info.Atk), mpPart), LineShowSec);
+                        StorySkillPanelUi.Instance?.Show();
                     }
                     else
                     {

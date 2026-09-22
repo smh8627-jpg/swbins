@@ -19,36 +19,52 @@ namespace Saga.Story.World
         private float _atk;
         private float _mul;
         private float _timer;
+        private float _speed = StoryCombat.BoltSpeed;
+        private float _life = StoryCombat.BoltLife;
         private Animator _shooterAnimator;
         private readonly HashSet<StoryEnemy> _alreadyHit = new HashSet<StoryEnemy>();
 
+        /// <summary>false면 첫 적 하나만 맞히고 사라진다 — 웹판 arrow·volley(`side.js`
+        /// castBody의 pierce:false). 5-2 1단계 직업 무예(`StorySkillData`)가 쓴다.</summary>
+        public bool Pierce { get; private set; } = true;
+
         public void Configure(float dir, float atk, float mul, Animator shooterAnimator)
+        {
+            Configure(dir, atk, mul, shooterAnimator, true, StoryCombat.BoltSpeed, StoryCombat.BoltLife,
+                new Color(0.35f, 0.65f, 0.95f)); // data-job.js bolt emoji 💠 — 청백색
+        }
+
+        public void Configure(float dir, float atk, float mul, Animator shooterAnimator,
+            bool pierce, float speed, float life, Color color)
         {
             _dir = dir;
             _atk = atk;
             _mul = mul;
             _shooterAnimator = shooterAnimator;
+            Pierce = pierce;
+            _speed = speed;
+            _life = life;
 
             var visual = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             visual.name = "Visual";
             visual.transform.SetParent(transform, false);
-            visual.transform.localScale = Vector3.one * 0.35f;
+            visual.transform.localScale = pierce ? Vector3.one * 0.35f : new Vector3(0.45f, 0.12f, 0.12f);
             Destroy(visual.GetComponent<Collider>());
             var mat = new Material(Shader.Find("Universal Render Pipeline/Lit")) { name = "StoryBolt (generated)" };
-            mat.color = new Color(0.35f, 0.65f, 0.95f); // data-job.js bolt emoji 💠 — 청백색
+            mat.color = color;
             visual.GetComponent<MeshRenderer>().sharedMaterial = mat;
         }
 
         private void Update()
         {
             _timer += Time.deltaTime;
-            if (_timer > StoryCombat.BoltLife)
+            if (_timer > _life)
             {
                 Destroy(gameObject);
                 return;
             }
 
-            transform.position += new Vector3(_dir * StoryCombat.BoltSpeed * Time.deltaTime, 0f, 0f);
+            transform.position += new Vector3(_dir * _speed * Time.deltaTime, 0f, 0f);
 
             foreach (var enemy in StoryEnemy.All)
             {
@@ -63,6 +79,11 @@ namespace Saga.Story.World
                     crit ? StoryCombat.CritShakeMag : StoryCombat.HitShakeMag,
                     crit ? StoryCombat.CritShakeSec : StoryCombat.HitShakeSec);
                 StoryCombat.ApplyHitFreeze(this, _shooterAnimator);
+                if (!Pierce)
+                {
+                    Destroy(gameObject);
+                    return;
+                }
             }
         }
     }

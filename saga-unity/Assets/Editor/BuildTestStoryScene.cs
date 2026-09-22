@@ -65,6 +65,7 @@ namespace Saga.EditorTools
             BuildDialogueLabel();
             BuildChoiceUi();
             BuildJobChoiceUi();
+            BuildSkillPanelUi();
             BuildLabyrinthUi();
             BuildDebugOverlay();
             BuildSaveButton();
@@ -555,6 +556,15 @@ namespace Saga.EditorTools
             ui.Build();
         }
 
+        /// <summary>PLAN.md 101-2 STORY 5-2 1단계 — 무예 점수 패널(`StorySkillPanelUi`,
+        /// StoryJobChoiceUi와 같은 자기-빌드 컴포넌트).</summary>
+        private static void BuildSkillPanelUi()
+        {
+            var go = new GameObject("StorySkillPanelUI");
+            var ui = go.AddComponent<StorySkillPanelUi>();
+            ui.Build();
+        }
+
         private static Button BuildChoiceButton(Transform parent, Vector2 anchoredPos, out Text label)
         {
             var go = new GameObject("Option", typeof(RectTransform));
@@ -642,10 +652,8 @@ namespace Saga.EditorTools
             img.color = new Color(1f, 1f, 1f, 0.18f);
             var button = btnGo.AddComponent<Button>();
             button.targetGraphic = img;
-            button.onClick.AddListener(() =>
-            {
-                Saga.Story.Data.StorySaveState.Save();
-            });
+            var saver = btnGo.AddComponent<StorySaveButton>();
+            UnityEditor.Events.UnityEventTools.AddPersistentListener(button.onClick, saver.Save);
 
             var textGo = new GameObject("Text", typeof(RectTransform));
             textGo.transform.SetParent(btnGo.transform, false);
@@ -729,9 +737,64 @@ namespace Saga.EditorTools
             // PLAN.md 101-2 5-8 "동료 교대"(2026-09-21) — 무예 셋(y=380) 위
             // 한 줄(y=580)에 역할 셋. 웹판 "버튼 1개(초상 탭)" 대신 이 트랙엔
             // 초상이 없어 역할마다 버튼을 두는 쪽으로 재해석(더 명확하다).
-            BuildActionButton(canvasGo.transform, new Vector2(-100f, 580f), "호법", new Color(0.55f, 0.35f, 0.65f, 0.55f), () => controller.TriggerPartySwap(2), "action.party_guardian");
-            BuildActionButton(canvasGo.transform, new Vector2(-280f, 580f), "유격", new Color(0.35f, 0.55f, 0.6f, 0.55f), () => controller.TriggerPartySwap(1), "action.party_skirmisher");
-            BuildActionButton(canvasGo.transform, new Vector2(-460f, 580f), "선봉", new Color(0.65f, 0.35f, 0.35f, 0.55f), () => controller.TriggerPartySwap(0), "action.party_vanguard");
+            BuildPartySwapButton(canvasGo.transform, new Vector2(-100f, 580f), "호법", new Color(0.55f, 0.35f, 0.65f, 0.55f), controller, 2, "action.party_guardian");
+            BuildPartySwapButton(canvasGo.transform, new Vector2(-280f, 580f), "유격", new Color(0.35f, 0.55f, 0.6f, 0.55f), controller, 1, "action.party_skirmisher");
+            BuildPartySwapButton(canvasGo.transform, new Vector2(-460f, 580f), "선봉", new Color(0.65f, 0.35f, 0.35f, 0.55f), controller, 0, "action.party_vanguard");
+
+            // PLAN.md 101-2 5-2 1단계(2026-09-23) — 직업 무예 칸 넷(y=780, 오른쪽부터 칸 0~3)
+            // 과 무예 점수 패널을 여는 "무예" 버튼(y=980). 칸 글자는 찍은 무예에 따라
+            // 바뀌어 StorySkillSlotButton이 그린다(LocalizedButtonLabel 대신).
+            for (int i = 0; i < StorySkillState.SlotCount; i++)
+            {
+                BuildSkillSlotButton(canvasGo.transform, new Vector2(-100f - 180f * i, 780f), i, controller);
+            }
+            var panel = Object.FindFirstObjectByType<StorySkillPanelUi>();
+            if (panel != null)
+            {
+                BuildActionButton(canvasGo.transform, new Vector2(-100f, 980f), "무예", new Color(0.3f, 0.3f, 0.3f, 0.55f),
+                    panel.Toggle, "action.skill_panel");
+            }
+        }
+
+        private static void BuildPartySwapButton(Transform parent, Vector2 offset, string label, Color color,
+            StoryPlayerController controller, int index, string locKey)
+        {
+            var button = BuildActionButtonBase(parent, offset, label, color, locKey);
+            UnityEditor.Events.UnityEventTools.AddIntPersistentListener(button.onClick, controller.TriggerPartySwap, index);
+        }
+
+        private static void BuildSkillSlotButton(Transform parent, Vector2 offset, int slot, StoryPlayerController controller)
+        {
+            var go = new GameObject($"SkillSlot_{slot}", typeof(RectTransform));
+            go.transform.SetParent(parent, false);
+            var rect = (RectTransform)go.transform;
+            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(1f, 0f);
+            rect.anchoredPosition = offset;
+            rect.sizeDelta = new Vector2(160f, 160f);
+
+            var color = new Color(0.45f, 0.3f, 0.6f, 0.55f);
+            var img = go.AddComponent<Image>();
+            img.color = color;
+            var button = go.AddComponent<Button>();
+            button.targetGraphic = img;
+
+            var textGo = new GameObject("Text", typeof(RectTransform));
+            textGo.transform.SetParent(go.transform, false);
+            var textRect = (RectTransform)textGo.transform;
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+            var text = textGo.AddComponent<Text>();
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 28;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = Color.white;
+            text.text = "—";
+
+            var slotButton = go.AddComponent<StorySkillSlotButton>();
+            slotButton.Init(slot, controller, text, img, color);
+            UnityEditor.Events.UnityEventTools.AddPersistentListener(button.onClick, slotButton.Click);
         }
 
         private static HoldButton BuildHoldButton(Transform parent, Vector2 anchorFromBottomLeft, Vector2 offset, string label, Color color)
@@ -766,7 +829,19 @@ namespace Saga.EditorTools
             return hold;
         }
 
+        /// <summary>2026-09-23 — 예전엔 `onClick.AddListener`로 걸었는데 그건 런타임 전용
+        /// 리스너라 씬 저장 때 안 남는다: 저장된 TestField.unity의 버튼 onClick이 **전부 비어**
+        /// 있어 실제 플레이에서 모바일 버튼이 전부 먹통이었다(헤드리스 진단은 핸들러를 직접
+        /// 불러 못 잡음 — 이제 `PlaytestStorySlice.CheckButtonWiring()`이 진짜 onClick을 누른다).
+        /// 영속 리스너(`UnityEventTools`)로 건다 — 대상이 UnityEngine.Object의 메서드여야 해서
+        /// 람다 대신 메서드 그룹만 받는다.</summary>
         private static void BuildActionButton(Transform parent, Vector2 offset, string label, Color color, UnityEngine.Events.UnityAction onClick, string locKey)
+        {
+            var button = BuildActionButtonBase(parent, offset, label, color, locKey);
+            UnityEditor.Events.UnityEventTools.AddPersistentListener(button.onClick, onClick);
+        }
+
+        private static Button BuildActionButtonBase(Transform parent, Vector2 offset, string label, Color color, string locKey)
         {
             var go = new GameObject("ActionButton_" + label, typeof(RectTransform));
             go.transform.SetParent(parent, false);
@@ -781,7 +856,6 @@ namespace Saga.EditorTools
             img.color = color;
             var button = go.AddComponent<Button>();
             button.targetGraphic = img;
-            button.onClick.AddListener(onClick);
 
             var textGo = new GameObject("Text", typeof(RectTransform));
             textGo.transform.SetParent(go.transform, false);
@@ -799,6 +873,7 @@ namespace Saga.EditorTools
 
             var localized = go.AddComponent<LocalizedButtonLabel>();
             localized.Init(locKey, label);
+            return button;
         }
 
         private static void BuildBootstrap()

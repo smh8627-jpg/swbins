@@ -8594,3 +8594,17 @@ Defender 예약 검사 마지막 실행은 전날 저녁이고 지금은 안 돌
 Unity GUI 런치는 이번 절에서만 6회(디버그 극단값 1·튜닝 2.5/6/15 각 1·최종 확인 1), 배치 모드(Build+Verify)는 4회 — 전부 exit 0, hang 없음(재부팅 효과가 이 세션 내내 유지됨을 재확인). 배치/GUI 실행 뒤 `ProjectSettings/ProjectVersion.txt`·`Packages/manifest.json`·`packages-lock.json`이 또 24f1로 자동 상향돼 커밋 전 원복.
 
 코드 변경: `BuildMariaSssShaderGraph.cs`(Intensity 0.6→15 최종), `PlaytestCharacterRealisticGui.cs`(ambient 저/고 비교 캡처 2단 추가, idle 대기 300 유지 + 재빌드 직후 예외 주석). `PROJECT_STATE.md` 갱신.
+
+## 2026-09-23 — STORY 5-2 1단계(직업 무예+SP) + 모바일 버튼 먹통 버그 발견·STORY 수정 (새 세션 "사가유니티 이어해", Opus 5.5)
+
+남은 작업이 전부 게이트에 걸린 것처럼 보였는데, STORY 5-2의 보류 사유("웹·godot 둘 다 미확정")가 낡았음을 확인 — 웹 `saga-web/saga-story/PLAN.md` §5-2는 2026-09-19에 이미 구현됐다(웹 실기 확인은 아직). 진짜 걸림돌은 이 트랙에 무예 96·SP·조작 띠가 없다는 구조 차이(공통 무예 넷뿐, `StoryJobTrainer` 주석이 SP를 "범위 밖"으로 명시). 사용자에게 작게 재해석/무예 트리부터/보류 셋 중 물어 **"무예 트리부터"**. godot도 5-2는 "웹 결과 보고 결정"으로 보류 중.
+
+**1단계 구현**: 웹 `data-job.js` 1차 직업 무예 24개 중 heal 둘(생기결·치유)을 뺀 22개를 `StorySkillData`로(원문 상수 그대로, px→m만). 체력 축이 없어(플레이어 피격 없음) 철갑 guard·은신보/축지 invuln도 뺐고, 부적 regen은 기력 회복 배율로 옮김(`StoryCombat.TickMpRegen` 인자 추가). 퇴보사는 웹 코드가 앞으로 밀지만 이름·설명대로 뒤로 밀었다(웹 쪽 불일치로 보임). `StorySkillState`: SP=(레벨−1)×2(웹 5-2 뒤 현재값 — 2단계에서 다시 안 바꾸려고), 레벨 0 무예는 못 씀, 배율=기본+레벨당×(lv−1), 무예 칸 4는 웹처럼 자동(찍은 것 표 순서). 강화는 웹 `p.buff`처럼 한 칸 — 기합과 직업 강화가 서로 덮는다(`_buffAtk/_buffSpeed/_buffRegen`). 시전 7갈래(근접 여러 타·범위·관통·화살·연사·돌진·강화), `StoryBolt`에 비관통 모드. 세이브는 `skillKeys`/`skillLevels` 나란한 배열(버전 안 올림, 옛 세이브는 null→빈 상태). UI는 `StorySkillPanelUi`(K·모바일 "무예"·전직 직후·전직관 재방문 시 남은 점수 있으면) + 무예 칸 버튼 `StorySkillSlotButton`(5~8, 이름·쿨다운 폴링). 현지화 ko/en 53키씩.
+
+**버그 발견 — 모바일 버튼 전부 먹통**: 무예 칸 버튼을 붙이다 `BuildActionButton`이 `onClick.AddListener`(런타임 전용 리스너)를 쓰는 걸 보고 씬 파일을 확인 — 다섯 씬 전부 영속 리스너 0개(TestField 102·TestVillage 154·TestCity 153·TestDungeon 92·TestVillageForest 47개 onClick 전부 `m_Calls: []`). 런타임에 다시 거는 코드도 없다. 스스로 UI를 짓는 컴포넌트(`StoryJobChoiceUi`·`StorySettingsPanel`·`StoryLabyrinthMapUi` 포기 버튼)도 에디터 `Build()`에서 걸어 같은 상태 — 실제 플레이에서 전직 팝업 버튼도 먹통이었다는 뜻. 헤드리스 진단은 핸들러를 리플렉션으로 직접 불러 한 번도 못 잡았고, PC GUI 확인은 키보드라 안 드러났다. 먼저 진짜 `Button.onClick.Invoke()`를 누르는 `CheckButtonWiring()`을 넣고 **옛 씬에서 실패함을 확인**(공격 버튼을 눌러도 공격 안 나감)한 뒤 고쳤다: 빌더 버튼은 `UnityEventTools.AddPersistentListener`(교대는 `AddIntPersistentListener`, 저장은 정적 메서드라 새 `StorySaveButton` 컴포넌트), 자기-빌드 UI는 버튼을 `[SerializeField]`로 두고 `Awake()`에서 건다. 재빌드 뒤 TestField 영속 리스너 14개.
+
+진단 첫 실행이 KillEnemies에서 실패 — `CheckButtonWiring()`이 시작 자리에서 진짜 공격 버튼을 눌러 옆 잡졸을 베어 "잡졸 10" 전제를 깼다. 적에게서 10m 떨어진 곳으로 옮겨 누르고 같은 틱에 되돌려 해결. 이후 `PlaytestStorySlice` **3연속 OK**(버튼 배선·직업 무예 7갈래 시전·SP 거절 사유 셋·자동 칸·패널 줄·무예 세이브 왕복·옛 형식 로드). 무예 패널은 "+" onClick 중 그 버튼을 `DestroyImmediate`하지 않게 줄 구성이 같으면 글자만 고친다 — `StoryLabyrinthMapUi`는 같은 위험이 남아 있어 PROJECT_STATE에 미해결로 적음.
+
+**남은 것**: GO·DUNGEON·FOREST·REALM 버튼 배선(다음 세션 1순위, Phase 0), 5-2 2단계 유파 세트. 사용자가 "현재 작업 다하고 새로운 세션에서 이어 할게"로 마무리 지시.
+
+코드: `StorySkillData`·`StorySkillState`·`StorySkillPanelUi`·`StorySkillSlotButton`·`StorySaveButton`(신규), `StoryPlayerController`·`StoryBolt`·`StoryCombat`·`StorySaveState`·`StoryHud`·`StoryJobTrainer`·`StoryJobChoiceUi`·`StorySettingsPanel`·`StoryLabyrinthMapUi`·`BuildTestStoryScene`·`PlaytestStorySlice`, `TestField.unity` 재빌드, 현지화 두 파일. 문서: PLAN 101-2 STORY 행, `PROJECT_STATE.md`(덮어씀), `HOW_TO_PLAYTEST.md`(5~8·K).

@@ -20,9 +20,33 @@ namespace Saga.Story.UI
         [SerializeField] private GameObject _panel;
         [SerializeField] private Text _titleLabel;
         [SerializeField] private Text _closeLabel;
+        // 2026-09-23 — Build()(에디터 전용)에서 onClick.AddListener로 건 리스너는 런타임
+        // 전용이라 씬 저장 때 안 남는다: 저장된 TestField.unity의 버튼 onClick이 전부 비어
+        // 있었다(실제 플레이에서 전직 버튼이 먹통). 버튼 참조만 직렬화해 두고 Awake()에서 건다.
+        [SerializeField] private Button[] _jobButtons;
+        [SerializeField] private Button _closeButton;
         private System.Action<string> _onChosen;
 
         public bool IsShowing => _panel != null && _panel.activeSelf;
+
+        private void Awake()
+        {
+            Instance = this;
+            WireButtons();
+        }
+
+        private void WireButtons()
+        {
+            if (_jobButtons != null)
+            {
+                for (int i = 0; i < _jobButtons.Length && i < StoryCombat.JobOrder.Length; i++)
+                {
+                    string key = StoryCombat.JobOrder[i];
+                    if (_jobButtons[i] != null) _jobButtons[i].onClick.AddListener(() => Choose(key));
+                }
+            }
+            if (_closeButton != null) _closeButton.onClick.AddListener(() => _panel.SetActive(false));
+        }
 
         public void Build()
         {
@@ -38,18 +62,18 @@ namespace Saga.Story.UI
             _titleLabel = NewText(_panel.transform, "", new Vector2(0.5f, 1f),
                 new Vector2(0f, -60f), new Vector2(600f, 100f), 28);
 
+            _jobButtons = new Button[StoryCombat.JobOrder.Length];
             float y = -220f;
-            foreach (var jobKey in StoryCombat.JobOrder)
+            for (int i = 0; i < StoryCombat.JobOrder.Length; i++)
             {
-                string capturedKey = jobKey;
-                NewButton(_panel.transform, JobLabel(capturedKey), new Vector2(0.5f, 1f),
-                    new Vector2(0f, y), new Vector2(520f, 80f), () => Choose(capturedKey));
+                _jobButtons[i] = NewButton(_panel.transform, JobLabel(StoryCombat.JobOrder[i]), new Vector2(0.5f, 1f),
+                    new Vector2(0f, y), new Vector2(520f, 80f));
                 y -= 100f;
             }
 
-            var closeButton = NewButton(_panel.transform, StoryLocalization.T("settings.close"),
-                new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(300f, 70f), () => _panel.SetActive(false));
-            _closeLabel = closeButton.GetComponentInChildren<Text>();
+            _closeButton = NewButton(_panel.transform, StoryLocalization.T("settings.close"),
+                new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(300f, 70f));
+            _closeLabel = _closeButton.GetComponentInChildren<Text>();
         }
 
         private static string JobLabel(string jobKey)
@@ -124,7 +148,7 @@ namespace Saga.Story.UI
             return text;
         }
 
-        private static Button NewButton(Transform parent, string label, Vector2 anchor, Vector2 pos, Vector2 size, UnityEngine.Events.UnityAction onClick)
+        private static Button NewButton(Transform parent, string label, Vector2 anchor, Vector2 pos, Vector2 size)
         {
             var go = new GameObject($"Btn_{label}", typeof(RectTransform));
             go.transform.SetParent(parent, false);
@@ -139,7 +163,6 @@ namespace Saga.Story.UI
             img.color = new Color(1f, 1f, 1f, 0.18f);
             var button = go.AddComponent<Button>();
             button.targetGraphic = img;
-            button.onClick.AddListener(onClick);
 
             NewText(go.transform, label, new Vector2(0.5f, 0.5f), Vector2.zero, size, 26);
 

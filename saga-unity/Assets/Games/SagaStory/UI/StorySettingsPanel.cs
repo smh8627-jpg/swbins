@@ -37,15 +37,38 @@ namespace Saga.Story.UI
         [SerializeField] private Text _languageValueLabel;
         [SerializeField] private Text _bgmNameLabel;
         [SerializeField] private Text _bgmValueLabel;
+        // 2026-09-23 — Build()(에디터 전용)의 onClick.AddListener는 씬 저장 때 안 남아 실제
+        // 플레이에선 설정 버튼이 전부 먹통이었다(StoryJobChoiceUi와 같은 발견). 버튼만
+        // 직렬화하고 Awake()에서 건다. _rowButtons 순서 = RowHandlers() 순서.
+        [SerializeField] private Button _toggleButton;
+        [SerializeField] private Button _closeButton;
+        [SerializeField] private Button[] _rowButtons;
+
+        private void Awake()
+        {
+            if (_toggleButton != null) _toggleButton.onClick.AddListener(TogglePanel);
+            if (_closeButton != null) _closeButton.onClick.AddListener(() => _panel.SetActive(false));
+            var handlers = RowHandlers();
+            if (_rowButtons == null) return;
+            for (int i = 0; i < _rowButtons.Length && i < handlers.Length; i++)
+            {
+                if (_rowButtons[i] != null) _rowButtons[i].onClick.AddListener(handlers[i]);
+            }
+        }
+
+        private UnityEngine.Events.UnityAction[] RowHandlers() => new UnityEngine.Events.UnityAction[]
+        {
+            ChooseSfx, ChooseVibration, ChooseUiScale, ChooseGraphicsQuality, ChooseLanguage, ChooseBgm,
+        };
 
         public void Build()
         {
             var canvas = NewCanvas("StorySettingsUI");
             canvas.transform.SetParent(transform, false);
 
-            var toggleButton = NewButton(canvas.transform, StoryLocalization.T("settings.title"),
-                new Vector2(1f, 1f), new Vector2(-30f, -130f), new Vector2(160f, 80f), TogglePanel);
-            _toggleLabel = toggleButton.GetComponentInChildren<Text>();
+            _toggleButton = NewButton(canvas.transform, StoryLocalization.T("settings.title"),
+                new Vector2(1f, 1f), new Vector2(-30f, -130f), new Vector2(160f, 80f));
+            _toggleLabel = _toggleButton.GetComponentInChildren<Text>();
 
             _panel = NewPanel(canvas.transform, new Vector2(0.5f, 0.5f), new Vector2(680f, 820f),
                 new Color(0f, 0f, 0f, 0.8f));
@@ -54,27 +77,29 @@ namespace Saga.Story.UI
             _titleLabel = NewText(_panel.transform, StoryLocalization.T("settings.title"),
                 new Vector2(0.5f, 1f), new Vector2(0f, -60f), new Vector2(500f, 60f), 32);
 
-            (_sfxNameLabel, _sfxValueLabel) = MakeRow(-160f, "settings.sfx", ChooseSfx);
-            (_vibrationNameLabel, _vibrationValueLabel) = MakeRow(-260f, "settings.vibration", ChooseVibration);
-            (_uiScaleNameLabel, _uiScaleValueLabel) = MakeRow(-360f, "settings.ui_scale", ChooseUiScale);
-            (_qualityNameLabel, _qualityValueLabel) = MakeRow(-460f, "settings.graphics_quality", ChooseGraphicsQuality);
-            (_languageNameLabel, _languageValueLabel) = MakeRow(-560f, "settings.language", ChooseLanguage);
-            (_bgmNameLabel, _bgmValueLabel) = MakeRow(-660f, "settings.bgm", ChooseBgm);
+            _rowButtons = new Button[6];
+            (_sfxNameLabel, _sfxValueLabel) = MakeRow(-160f, "settings.sfx", 0);
+            (_vibrationNameLabel, _vibrationValueLabel) = MakeRow(-260f, "settings.vibration", 1);
+            (_uiScaleNameLabel, _uiScaleValueLabel) = MakeRow(-360f, "settings.ui_scale", 2);
+            (_qualityNameLabel, _qualityValueLabel) = MakeRow(-460f, "settings.graphics_quality", 3);
+            (_languageNameLabel, _languageValueLabel) = MakeRow(-560f, "settings.language", 4);
+            (_bgmNameLabel, _bgmValueLabel) = MakeRow(-660f, "settings.bgm", 5);
 
-            var closeButton = NewButton(_panel.transform, StoryLocalization.T("settings.close"),
-                new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(300f, 70f), () => _panel.SetActive(false));
-            _closeLabel = closeButton.GetComponentInChildren<Text>();
+            _closeButton = NewButton(_panel.transform, StoryLocalization.T("settings.close"),
+                new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(300f, 70f));
+            _closeLabel = _closeButton.GetComponentInChildren<Text>();
 
             Refresh();
         }
 
-        private (Text name, Text value) MakeRow(float y, string nameKey, UnityEngine.Events.UnityAction onClick)
+        private (Text name, Text value) MakeRow(float y, string nameKey, int rowIndex)
         {
             var name = NewText(_panel.transform, StoryLocalization.T(nameKey), new Vector2(0f, 1f),
                 new Vector2(60f, y), new Vector2(260f, 70f), 26);
             name.alignment = TextAnchor.MiddleLeft;
             var button = NewButton(_panel.transform, "", new Vector2(1f, 1f), new Vector2(-60f, y),
-                new Vector2(260f, 70f), onClick);
+                new Vector2(260f, 70f));
+            _rowButtons[rowIndex] = button;
             return (name, button.GetComponentInChildren<Text>());
         }
 
@@ -158,7 +183,7 @@ namespace Saga.Story.UI
             return text;
         }
 
-        private static Button NewButton(Transform parent, string label, Vector2 anchor, Vector2 pos, Vector2 size, UnityEngine.Events.UnityAction onClick)
+        private static Button NewButton(Transform parent, string label, Vector2 anchor, Vector2 pos, Vector2 size)
         {
             var go = new GameObject($"Btn_{label}", typeof(RectTransform));
             go.transform.SetParent(parent, false);
@@ -173,7 +198,6 @@ namespace Saga.Story.UI
             img.color = new Color(1f, 1f, 1f, 0.18f);
             var button = go.AddComponent<Button>();
             button.targetGraphic = img;
-            button.onClick.AddListener(onClick);
 
             NewText(go.transform, label, new Vector2(0.5f, 0.5f), Vector2.zero, size, 26);
 

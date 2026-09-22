@@ -91,8 +91,10 @@ namespace Saga.Story.Data
         public static float Mp { get; private set; } = MpMax;
 
         /// <summary>101-2 5-3 "비경" — `StoryLabyrinthState.MpRegenMul`은
-        /// 회차 밖에선 항상 1이라 평소엔 원문 그대로 돈다.</summary>
-        public static void TickMpRegen(float dt) => Mp = Mathf.Min(MpMaxCurrent, Mp + MpRegenPerSec * StoryLabyrinthState.MpRegenMul * dt);
+        /// 회차 밖에선 항상 1이라 평소엔 원문 그대로 돈다. <paramref name="buffRegenMul"/>은
+        /// 강화 무예(방사 부적, `StorySkillData`)의 기력 회복 배율 — 강화가 없으면 1.</summary>
+        public static void TickMpRegen(float dt, float buffRegenMul = 1f) =>
+            Mp = Mathf.Min(MpMaxCurrent, Mp + MpRegenPerSec * StoryLabyrinthState.MpRegenMul * buffRegenMul * dt);
 
         public static bool TrySpendMp(float cost)
         {

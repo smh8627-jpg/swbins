@@ -45,6 +45,12 @@ namespace Saga.Story.UI
                          (bossDone ? StoryLocalization.T("hud.done") : "") +
                          $"\n{mp}";
 
+            // PLAN.md 101-2 5-2 1단계 — 전직 뒤에만 남은 무예 점수(웹판 무예 탭 머리글과 같은 값).
+            if (StoryJobState.HasJob)
+            {
+                label.text += "\n" + string.Format(StoryLocalization.T("hud.sp", "📜 무예 점수 {0} (K)"), StorySkillState.SpLeft);
+            }
+
             // PLAN.md 101-2 5-4 "관문 대장" — 챔피언전이 진행 중일 때만 카운트다운을 얹는다(DUNGEON PlayerHud와 같은 결).
             var champion = StoryEnemy.ActiveChampion;
             if (champion != null)

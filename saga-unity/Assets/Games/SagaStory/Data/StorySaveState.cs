@@ -72,6 +72,12 @@ namespace Saga.Story.Data
             // 버전을 안 올린다. 없는 필드는 0(선봉)으로 채워져 옛 세이브도
             // "선두 1인" 기본값과 같아 무해하다(웹판 "없으면 선두 1인").
             public int partyActiveIndex;
+            // 101-2 5-2 1단계 "직업 무예·SP"(2026-09-23) — championWeek와 같은 이유로 버전을
+            // 안 올린다. JsonUtility가 Dictionary를 못 써서 나란한 두 배열로 담는다. 옛
+            // 세이브엔 둘 다 없어 null로 들어오고 `StorySkillState.Restore()`가 빈 상태로
+            // 시작한다(웹판도 SP 자체는 파생값이라 안 담는다 — 찍은 레벨만 담는 것도 같다).
+            public string[] skillKeys;
+            public int[] skillLevels;
         }
 
         public static bool Save()
@@ -80,6 +86,7 @@ namespace Saga.Story.Data
             if (player == null) return false;
 
             var events = new List<string>(StoryWorldEventState.TriggeredIds);
+            StorySkillState.Snapshot(out var skillKeys, out var skillLevels);
             var data = new SaveData
             {
                 version = SaveVersion,
@@ -96,6 +103,8 @@ namespace Saga.Story.Data
                 memoryShards = StoryLabyrinthState.MemoryShards,
                 memoryTier = StoryLabyrinthState.MemoryTier,
                 partyActiveIndex = StoryPartyState.ActiveIndex,
+                skillKeys = skillKeys,
+                skillLevels = skillLevels,
             };
 
             try
@@ -133,6 +142,7 @@ namespace Saga.Story.Data
             _championWeek = data.championWeek;
             StoryLabyrinthState.Restore(data.memoryShards, data.memoryTier);
             StoryPartyState.Restore(data.partyActiveIndex);
+            StorySkillState.Restore(data.skillKeys, data.skillLevels);
 
             Transform player = FindPlayer();
             if (player != null && data.playerPos != null && data.playerPos.Length == 3)

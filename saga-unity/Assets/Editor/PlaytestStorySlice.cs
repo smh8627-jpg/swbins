@@ -171,6 +171,8 @@ namespace Saga.EditorTools
                     // 남긴 save_story.json 무시).
                     StoryLabyrinthState.ResetForTest();
                     StoryLabyrinthState.Restore(0, 0);
+                    StorySkillState.Restore(null, null); // 101-2 5-2 1단계 — 위와 같은 이유.
+                    if (!CheckButtonWiring()) { Fail(); return; }
                     if (!CheckSettingsPanel()) { Fail(); return; }
                     if (!CheckPlayerHudLocalization()) { Fail(); return; }
                     if (!CheckActionButtonLocalization()) { Fail(); return; }
@@ -879,6 +881,7 @@ namespace Saga.EditorTools
                         Fail();
                         return;
                     }
+                    if (!CheckJobSkills()) { Fail(); return; }
 
                     Vector3 posBeforeSave = new Vector3(7.5f, 0.1f, 0f);
                     TeleportPlayer(posBeforeSave);
@@ -927,6 +930,8 @@ namespace Saga.EditorTools
                     {
                         StoryPartyState.Restore(2);
                         int partyIndexBeforeSave = StoryPartyState.ActiveIndex;
+                        // 101-2 5-2 1단계 — 무예 레벨도 왕복 확인(버전 안 올림).
+                        StorySkillState.Restore(new[] { "w_cut", "w_rush" }, new[] { 3, 2 });
                         if (!StorySaveState.Save())
                         {
                             Debug.LogError("[PlaytestStorySlice] StorySaveState.Save() 실패");
@@ -942,6 +947,7 @@ namespace Saga.EditorTools
                         StorySaveState.ResetChampionForTest();
                         StoryLabyrinthState.Restore(0, 0);
                         StoryPartyState.Restore(0);
+                        StorySkillState.Restore(null, null);
                         TeleportPlayer(new Vector3(0f, 0.1f, 0f));
                         if (!StorySaveState.TryLoad())
                         {
@@ -1003,6 +1009,38 @@ namespace Saga.EditorTools
                             Fail();
                             return;
                         }
+                        if (StorySkillState.LevelOf("w_cut") != 3 || StorySkillState.LevelOf("w_rush") != 2 || StorySkillState.SpSpent != 5)
+                        {
+                            Debug.LogError($"[PlaytestStorySlice] 로드 후 무예 레벨 불일치 — w_cut={StorySkillState.LevelOf("w_cut")}(기대=3) w_rush={StorySkillState.LevelOf("w_rush")}(기대=2) spent={StorySkillState.SpSpent}(기대=5)");
+                            Fail();
+                            return;
+                        }
+
+                        // PLAN.md 104-3 "구버전 로드 단계" — 무예 필드가 없는 옛 세이브(5-2 전 형식)를
+                        // 흉내 내 두 배열을 지운 JSON으로 다시 불러 본다: 무예는 빈 상태, 나머지는 그대로.
+                        string savedJson = System.IO.File.ReadAllText(storySavePath);
+                        string oldFormatJson = System.Text.RegularExpressions.Regex.Replace(savedJson,
+                            ",\"skillKeys\":\\[[^\\]]*\\],\"skillLevels\":\\[[^\\]]*\\]", "");
+                        if (oldFormatJson == savedJson || oldFormatJson.Contains("skill"))
+                        {
+                            Debug.LogError($"[PlaytestStorySlice] 옛 형식 흉내 JSON을 못 만듦(정규식 불일치) — {savedJson}");
+                            Fail();
+                            return;
+                        }
+                        System.IO.File.WriteAllText(storySavePath, oldFormatJson);
+                        if (!StorySaveState.TryLoad())
+                        {
+                            Debug.LogError("[PlaytestStorySlice] 무예 필드 없는 옛 세이브 TryLoad() 실패");
+                            Fail();
+                            return;
+                        }
+                        if (StorySkillState.SpSpent != 0 || StoryJobState.Job != jobBeforeSave || StoryJobState.Level != levelBeforeSave)
+                        {
+                            Debug.LogError($"[PlaytestStorySlice] 옛 세이브 로드 후 상태 이상 — spent={StorySkillState.SpSpent}(기대=0) job={StoryJobState.Job}(기대={jobBeforeSave}) level={StoryJobState.Level}");
+                            Fail();
+                            return;
+                        }
+                        Debug.Log("[PlaytestStorySlice] skill save round-trip + old-format load OK");
                     }
                     finally
                     {
@@ -1493,6 +1531,289 @@ namespace Saga.EditorTools
                 return false;
             }
             Debug.Log($"[PlaytestStorySlice] weapon visual OK - 전직(warrior) 후 검 모양 생김(부품 {root.childCount}개)");
+            return true;
+        }
+
+        /// <summary>2026-09-23 발견 — 에디터 빌드가 `onClick.AddListener`(런타임 전용)로 건
+        /// 리스너는 씬 저장 때 안 남아, 저장된 씬의 버튼이 전부 먹통이었다. 지금까지의 진단은
+        /// 핸들러를 리플렉션으로 직접 불러 이걸 못 잡았다 — 여기선 **진짜 `Button.onClick`**을
+        /// 눌러 본다. 상태를 바꾸는 버튼(교대·저장·무예 칸)은 영속 리스너 수만 본다.</summary>
+        private static bool CheckButtonWiring()
+        {
+            // (a) 공격 버튼 — 눌러서 실제로 공격 쿨다운이 걸리는지.
+            var attackButton = GameObject.Find("ActionButton_공격")?.GetComponent<Button>();
+            if (attackButton == null) { Debug.LogError("[PlaytestStorySlice] ActionButton_공격 Button 없음"); return false; }
+            // 시작 자리 옆 잡졸을 진짜로 베어 KillEnemies의 "잡졸 10" 전제를 깨뜨린 적이 있어
+            // (실제로 겪음) 모든 적에게서 멀리 옮겨 누르고 같은 틱 안에 되돌린다.
+            Vector3 startPos = _player.position;
+            float minEnemyX = float.MaxValue;
+            foreach (var e in StoryEnemy.All) minEnemyX = Mathf.Min(minEnemyX, e.transform.position.x);
+            TeleportPlayer(new Vector3(minEnemyX - 10f, startPos.y, 0f));
+            SetPrivate(_storyController, "_attackCooldownLeft", 0f);
+            attackButton.onClick.Invoke();
+            TeleportPlayer(startPos);
+            if ((float)GetPrivate(_storyController, "_attackCooldownLeft") <= 0f)
+            {
+                Debug.LogError("[PlaytestStorySlice] 공격 버튼 onClick을 눌러도 공격이 안 나감(리스너가 씬에 안 남음)");
+                return false;
+            }
+            SetPrivate(_storyController, "_attackCooldownLeft", 0f);
+
+            // (b) 씬 빌더가 건 나머지 버튼 — 영속 리스너가 실제로 저장됐는지.
+            string[] persistentNames =
+            {
+                "ActionButton_점프", "ActionButton_횡소", "ActionButton_기탄", "ActionButton_기합",
+                "ActionButton_선봉", "ActionButton_유격", "ActionButton_호법", "ActionButton_무예", "SaveButton",
+                "SkillSlot_0", "SkillSlot_1", "SkillSlot_2", "SkillSlot_3",
+            };
+            foreach (var name in persistentNames)
+            {
+                var b = GameObject.Find(name)?.GetComponent<Button>();
+                if (b == null || b.onClick.GetPersistentEventCount() < 1)
+                {
+                    Debug.LogError($"[PlaytestStorySlice] {name} 버튼이 없거나 영속 onClick 리스너가 없음");
+                    return false;
+                }
+            }
+
+            // (c) 스스로 UI를 짓는 컴포넌트 — Awake()가 건 리스너로 실제로 열고 닫히는지.
+            var settings = Object.FindFirstObjectByType<StorySettingsPanel>();
+            var settingsToggle = settings != null ? (Button)GetPrivate(settings, "_toggleButton") : null;
+            var settingsClose = settings != null ? (Button)GetPrivate(settings, "_closeButton") : null;
+            var settingsPanel = settings != null ? (GameObject)GetPrivate(settings, "_panel") : null;
+            if (settingsToggle == null || settingsClose == null || settingsPanel == null)
+            {
+                Debug.LogError("[PlaytestStorySlice] StorySettingsPanel 버튼 참조가 씬에 안 남음");
+                return false;
+            }
+            settingsToggle.onClick.Invoke();
+            bool openedBySettingsButton = settingsPanel.activeSelf;
+            settingsClose.onClick.Invoke();
+            if (!openedBySettingsButton || settingsPanel.activeSelf)
+            {
+                Debug.LogError($"[PlaytestStorySlice] 설정 버튼 onClick으로 안 열리거나 안 닫힘 — opened={openedBySettingsButton} stillOpen={settingsPanel.activeSelf}");
+                return false;
+            }
+
+            var jobUi = Object.FindFirstObjectByType<StoryJobChoiceUi>();
+            var jobButtons = jobUi != null ? (Button[])GetPrivate(jobUi, "_jobButtons") : null;
+            if (jobButtons == null || jobButtons.Length != StoryCombat.JobOrder.Length)
+            {
+                Debug.LogError("[PlaytestStorySlice] StoryJobChoiceUi 직업 버튼 참조가 씬에 안 남음");
+                return false;
+            }
+            string chosen = null;
+            jobUi.Show("버튼 배선 확인", k => chosen = k);
+            jobButtons[1].onClick.Invoke();
+            if (chosen != StoryCombat.JobOrder[1] || jobUi.IsShowing)
+            {
+                Debug.LogError($"[PlaytestStorySlice] 전직 버튼 onClick이 콜백을 안 부르거나 안 닫힘 — chosen={chosen} showing={jobUi.IsShowing}");
+                return false;
+            }
+
+            var skillUi = StorySkillPanelUi.Instance;
+            var skillClose = skillUi != null ? (Button)GetPrivate(skillUi, "_closeButton") : null;
+            if (skillClose == null)
+            {
+                Debug.LogError("[PlaytestStorySlice] StorySkillPanelUi(또는 닫기 버튼 참조)가 씬에 없음");
+                return false;
+            }
+            GameObject.Find("ActionButton_무예").GetComponent<Button>().onClick.Invoke();
+            bool openedBySkillButton = skillUi.IsShowing;
+            skillClose.onClick.Invoke();
+            if (!openedBySkillButton || skillUi.IsShowing)
+            {
+                Debug.LogError($"[PlaytestStorySlice] 무예 버튼 onClick으로 안 열리거나 닫기 버튼으로 안 닫힘 — opened={openedBySkillButton} stillOpen={skillUi.IsShowing}");
+                return false;
+            }
+
+            var labyUi = StoryLabyrinthMapUi.Instance;
+            var abandon = labyUi != null ? (Button)GetPrivate(labyUi, "_abandonButton") : null;
+            var mapPanel = labyUi != null ? (GameObject)GetPrivate(labyUi, "_mapPanel") : null;
+            if (abandon == null || mapPanel == null)
+            {
+                Debug.LogError("[PlaytestStorySlice] StoryLabyrinthMapUi 포기 버튼 참조가 씬에 안 남음");
+                return false;
+            }
+            mapPanel.SetActive(true);
+            abandon.onClick.Invoke(); // 회차 밖이라 AbandonRun()은 no-op, Close()만 탄다.
+            if (mapPanel.activeSelf)
+            {
+                Debug.LogError("[PlaytestStorySlice] 비경 포기 버튼 onClick으로 지도가 안 닫힘");
+                return false;
+            }
+
+            Debug.Log("[PlaytestStorySlice] button wiring OK - real onClick fired for attack/settings/job/skill/labyrinth, persistent listeners saved for the rest");
+            return true;
+        }
+
+        /// <summary>PLAN.md 101-2 STORY 5-2 1단계(2026-09-23) — 직업 무예·SP. 무사로 막
+        /// 전직한 직후 부른다: (a) 데이터 무결성, (b) SP 파생값·찍기·거절 사유, (c) 자동 무예 칸,
+        /// (d) 효과 일곱 갈래(근접·범위·돌진·강화·관통·화살·연사, 퇴보사 후퇴) 실제 시전,
+        /// (e) 쿨다운·기력 부족 거절, (f) 무예 패널 줄·찍기 버튼 경로.</summary>
+        private static bool CheckJobSkills()
+        {
+            // (a)
+            var seen = new System.Collections.Generic.HashSet<string>();
+            foreach (var sk in StorySkillData.All)
+            {
+                if (!seen.Add(sk.Key)) { Debug.LogError($"[PlaytestStorySlice] 무예 키 중복 {sk.Key}"); return false; }
+                if (!StoryCombat.JobsTier1.ContainsKey(sk.Job)) { Debug.LogError($"[PlaytestStorySlice] 무예 {sk.Key} 직업 {sk.Job} 없음"); return false; }
+            }
+            foreach (var job in StoryCombat.JobOrder)
+            {
+                int n = StorySkillData.OfJob(job).Count;
+                if (n < 5) { Debug.LogError($"[PlaytestStorySlice] {job} 무예 {n}개(기대 ≥5)"); return false; }
+            }
+
+            // (b)
+            StorySkillState.Restore(null, null);
+            int expectTotal = (StoryJobState.Level - 1) * StorySkillState.SpPerLevel;
+            if (StorySkillState.SpTotal != expectTotal || StorySkillState.SpLeft != expectTotal || expectTotal < 12)
+            {
+                Debug.LogError($"[PlaytestStorySlice] SP 파생값 이상 — total={StorySkillState.SpTotal} left={StorySkillState.SpLeft}(기대={expectTotal}, ≥12)");
+                return false;
+            }
+            if (StorySkillState.SlotSkill(0) != null) { Debug.LogError("[PlaytestStorySlice] 안 찍었는데 무예 칸 0이 참"); return false; }
+            if (StorySkillState.CanRaise("a_shot") != "skill.why_other_job") { Debug.LogError($"[PlaytestStorySlice] 남의 직업 무예 거절 사유 이상 — {StorySkillState.CanRaise("a_shot")}"); return false; }
+            if (!StorySkillState.Raise("w_cut") || StorySkillState.LevelOf("w_cut") != 1 || StorySkillState.SpLeft != expectTotal - 1)
+            {
+                Debug.LogError($"[PlaytestStorySlice] 참격 찍기 이상 — lv={StorySkillState.LevelOf("w_cut")} left={StorySkillState.SpLeft}");
+                return false;
+            }
+            var wCut = StorySkillData.Get("w_cut");
+            StorySkillState.Raise("w_cut");
+            StorySkillState.Raise("w_cut");
+            if (!Mathf.Approximately(StorySkillState.MulOf(wCut), wCut.MulBase + 2 * wCut.MulPerLevel))
+            {
+                Debug.LogError($"[PlaytestStorySlice] 참격 Lv.3 배율 이상 — {StorySkillState.MulOf(wCut)}(기대={wCut.MulBase + 2 * wCut.MulPerLevel})");
+                return false;
+            }
+            StorySkillState.Restore(new[] { "w_cut" }, new[] { 10 });
+            if (StorySkillState.CanRaise("w_cut") != "skill.why_maxed") { Debug.LogError($"[PlaytestStorySlice] 만렙 거절 사유 이상 — {StorySkillState.CanRaise("w_cut")}"); return false; }
+            // 점수를 딱 다 쓴 상태 — 무예 하나 상한이 10이라 여러 무예에 나눠 채운다(w_rush는 남겨 둠).
+            string[] fillKeys = { "w_cut", "w_whirl", "w_iron", "w_edge" };
+            var fillLevels = new int[fillKeys.Length];
+            int remaining = expectTotal;
+            for (int i = 0; i < fillKeys.Length && remaining > 0; i++) { fillLevels[i] = Mathf.Min(10, remaining); remaining -= fillLevels[i]; }
+            StorySkillState.Restore(fillKeys, fillLevels);
+            if (remaining > 0 || StorySkillState.SpLeft != 0 || StorySkillState.CanRaise("w_rush") != "skill.why_no_sp")
+            {
+                Debug.LogError($"[PlaytestStorySlice] 점수 없음 거절 사유 이상 — left={StorySkillState.SpLeft} why={StorySkillState.CanRaise("w_rush")}");
+                return false;
+            }
+
+            // (c) 표 순서 자동 배치 — 무사 다섯 중 앞 넷(참격·선풍·돌진·철갑), 파공검은 칸 밖.
+            StorySkillState.Restore(new[] { "w_edge", "w_iron", "w_rush", "w_whirl", "w_cut" }, new[] { 1, 1, 1, 1, 1 });
+            string[] expectSlots = { "w_cut", "w_whirl", "w_rush", "w_iron" };
+            for (int i = 0; i < expectSlots.Length; i++)
+            {
+                var s = StorySkillState.SlotSkill(i);
+                if (s == null || s.Key != expectSlots[i]) { Debug.LogError($"[PlaytestStorySlice] 무예 칸 {i}={s?.Key}(기대={expectSlots[i]})"); return false; }
+            }
+
+            // (d) 실제 시전 — facing은 이 테스트 내내 +1(오른쪽).
+            var castMethod = typeof(StoryPlayerController).GetMethod("TryCastJobSkill", BindingFlags.NonPublic | BindingFlags.Instance);
+            var cds = (System.Collections.Generic.Dictionary<string, float>)GetPrivate(_storyController, "_skillCooldownLeft");
+
+            TeleportPlayer(new Vector3(5f, 0.1f, 0f));
+            var meleeDummy = SpawnDummyEnemy(new Vector3(6f, 0.1f, 0f));
+            StoryCombat.RestoreMp(StoryCombat.MpMax);
+            _storyController.TriggerJobSkill(0); // 참격
+            if (!meleeDummy.IsDead || !Mathf.Approximately(StoryCombat.Mp, StoryCombat.MpMax - wCut.Cost) || _storyController.JobSkillCooldownLeft("w_cut") <= 0f)
+            {
+                Debug.LogError($"[PlaytestStorySlice] 참격(근접) 시전 이상 — dead={meleeDummy.IsDead} mp={StoryCombat.Mp} cd={_storyController.JobSkillCooldownLeft("w_cut")}");
+                return false;
+            }
+            float mpAfterFirst = StoryCombat.Mp;
+            _storyController.TriggerJobSkill(0); // 쿨다운 중 — 기력이 안 빠져야 한다.
+            if (!Mathf.Approximately(StoryCombat.Mp, mpAfterFirst)) { Debug.LogError("[PlaytestStorySlice] 참격 쿨다운 중인데 또 나감"); return false; }
+
+            var aoeDummy = SpawnDummyEnemy(new Vector3(3.5f, 0.1f, 0f)); // 등 뒤 1.5m — 범위는 앞뒤를 안 가린다.
+            StoryCombat.RestoreMp(StoryCombat.MpMax);
+            _storyController.TriggerJobSkill(1); // 선풍
+            if (!aoeDummy.IsDead) { Debug.LogError("[PlaytestStorySlice] 선풍(범위) 뒤에도 등 뒤 더미가 안 죽음"); return false; }
+
+            float xBeforeDash = _player.position.x;
+            var dashDummy = SpawnDummyEnemy(new Vector3(7f, 0.1f, 0f));
+            StoryCombat.RestoreMp(StoryCombat.MpMax);
+            _storyController.TriggerJobSkill(2); // 돌진
+            float dashed = _player.position.x - xBeforeDash;
+            if (dashed < 2f || !dashDummy.IsDead)
+            {
+                Debug.LogError($"[PlaytestStorySlice] 돌진 이상 — 이동={dashed:0.00}m(기대≈{StorySkillData.Get("w_rush").DistM:0.00}) dead={dashDummy.IsDead}");
+                return false;
+            }
+
+            StoryCombat.RestoreMp(StoryCombat.MpMax);
+            _storyController.TriggerJobSkill(3); // 철갑
+            var buffAtk = (float)GetPrivate(_storyController, "_buffAtk");
+            var buffUntil = (float)GetPrivate(_storyController, "_buffUntilTime");
+            if (!Mathf.Approximately(buffAtk, 1.2f) || buffUntil < Time.time + 8.5f)
+            {
+                Debug.LogError($"[PlaytestStorySlice] 철갑(강화) 이상 — atk={buffAtk}(기대=1.2) until={buffUntil}(now={Time.time})");
+                return false;
+            }
+
+            int boltsBefore = Object.FindObjectsByType<StoryBolt>(FindObjectsSortMode.None).Length;
+            StoryCombat.RestoreMp(StoryCombat.MpMax);
+            castMethod.Invoke(_storyController, new object[] { StorySkillData.Get("w_edge") }); // 칸 밖이어도 레벨 1이면 나간다.
+            var boltsNow = Object.FindObjectsByType<StoryBolt>(FindObjectsSortMode.None);
+            if (boltsNow.Length != boltsBefore + 1) { Debug.LogError($"[PlaytestStorySlice] 파공검(관통) 투사체 수 {boltsNow.Length - boltsBefore}(기대=1)"); return false; }
+
+            // 궁수 무예 — 상태만 궁수 레벨로 채워 투사체 모양(관통 여부·발 수)과 후퇴를 본다.
+            StorySkillState.Restore(new[] { "a_shot", "a_double", "a_retreat" }, new[] { 1, 1, 1 });
+            cds.Clear();
+            int piercingBefore = 0, nonPiercingBefore = 0;
+            foreach (var b in Object.FindObjectsByType<StoryBolt>(FindObjectsSortMode.None)) { if (b.Pierce) piercingBefore++; else nonPiercingBefore++; }
+            StoryCombat.RestoreMp(StoryCombat.MpMax);
+            castMethod.Invoke(_storyController, new object[] { StorySkillData.Get("a_shot") });
+            castMethod.Invoke(_storyController, new object[] { StorySkillData.Get("a_double") });
+            int nonPiercingNow = 0;
+            foreach (var b in Object.FindObjectsByType<StoryBolt>(FindObjectsSortMode.None)) { if (!b.Pierce) nonPiercingNow++; }
+            if (nonPiercingNow - nonPiercingBefore != 1 + StorySkillData.Get("a_double").Shots)
+            {
+                Debug.LogError($"[PlaytestStorySlice] 사격+연사 비관통 투사체 {nonPiercingNow - nonPiercingBefore}(기대={1 + StorySkillData.Get("a_double").Shots})");
+                return false;
+            }
+            float xBeforeRetreat = _player.position.x;
+            StoryCombat.RestoreMp(StoryCombat.MpMax);
+            castMethod.Invoke(_storyController, new object[] { StorySkillData.Get("a_retreat") });
+            if (_player.position.x - xBeforeRetreat > -1f)
+            {
+                Debug.LogError($"[PlaytestStorySlice] 퇴보사가 뒤로 안 밀림 — Δx={_player.position.x - xBeforeRetreat:0.00}");
+                return false;
+            }
+
+            // (e) 기력 부족 — 못 쓰고 쿨다운도 안 걸린다. 레벨 0 무예도 못 쓴다.
+            cds.Clear();
+            StoryCombat.RestoreMp(0f);
+            bool castWithoutMp = (bool)castMethod.Invoke(_storyController, new object[] { StorySkillData.Get("a_shot") });
+            StoryCombat.RestoreMp(StoryCombat.MpMax);
+            bool castLevelZero = (bool)castMethod.Invoke(_storyController, new object[] { StorySkillData.Get("a_eye") });
+            if (castWithoutMp || _storyController.JobSkillCooldownLeft("a_shot") > 0f || castLevelZero)
+            {
+                Debug.LogError($"[PlaytestStorySlice] 거절 이상 — 기력0 시전={castWithoutMp} 레벨0 시전={castLevelZero}");
+                return false;
+            }
+
+            // (f) 무예 패널 — 무사 줄 수, 찍기 버튼 경로(ClickRaise = 줄 버튼 onClick).
+            StorySkillState.Restore(null, null);
+            var panel = StorySkillPanelUi.Instance;
+            panel.Show();
+            int expectRows = StorySkillData.OfJob("warrior").Count;
+            if (panel.RowCount != expectRows) { Debug.LogError($"[PlaytestStorySlice] 무예 패널 줄 {panel.RowCount}(기대={expectRows})"); panel.Hide(); return false; }
+            panel.ClickRaise("w_rush");
+            if (StorySkillState.LevelOf("w_rush") != 1 || panel.RowCount != expectRows)
+            {
+                Debug.LogError($"[PlaytestStorySlice] 패널 찍기 뒤 레벨={StorySkillState.LevelOf("w_rush")}(기대=1) 줄={panel.RowCount}(다시 그려도 {expectRows}줄이어야 함 — DestroyImmediate)");
+                panel.Hide();
+                return false;
+            }
+            panel.Hide();
+            cds.Clear();
+            SetPrivate(_storyController, "_buffUntilTime", 0f);
+            Debug.Log("[PlaytestStorySlice] job skills OK - SP derive/raise/refusals, auto slots, melee/aoe/dash/buff/bolt/arrow/volley/retreat cast, cooldown+mp refusals, panel rows");
             return true;
         }
 

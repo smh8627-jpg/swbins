@@ -28,7 +28,16 @@ namespace Saga.Story.UI
         // null로 남는 함정이 있다 — StoryChoiceUi/StoryCameraFollow처럼
         // Awake()에서도 채워 실제 게임 경로에서 확실히 살아 있게 한다
         // (필드 자체는 [SerializeField]라 씬 재로드에도 참조가 남는다).
-        private void Awake() => Instance = this;
+        // 2026-09-23 — Build()(에디터 전용)에서 건 onClick 리스너는 씬 저장 때 안 남는다
+        // (StoryJobChoiceUi와 같은 발견). 노드·축복 버튼은 런타임에 새로 지어 괜찮고, Build()가
+        // 짓는 "포기" 버튼 하나만 참조를 직렬화해 Awake()에서 건다.
+        [SerializeField] private Button _abandonButton;
+
+        private void Awake()
+        {
+            Instance = this;
+            if (_abandonButton != null) _abandonButton.onClick.AddListener(AbandonAndClose);
+        }
 
         public void Build()
         {
@@ -50,8 +59,8 @@ namespace Saga.Story.UI
             nodeRect.sizeDelta = new Vector2(820f, 900f);
             _nodeButtonRoot = nodeRootGo.transform;
 
-            NewButton(_mapPanel.transform, StoryLocalization.T("labyrinth.abandon_button", "포기하고 나간다"),
-                new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(400f, 70f), AbandonAndClose);
+            _abandonButton = NewButton(_mapPanel.transform, StoryLocalization.T("labyrinth.abandon_button", "포기하고 나간다"),
+                new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(400f, 70f), null);
 
             _mapPanel.SetActive(false);
 
@@ -260,7 +269,7 @@ namespace Saga.Story.UI
             img.color = new Color(1f, 1f, 1f, 0.18f);
             var button = go.AddComponent<Button>();
             button.targetGraphic = img;
-            button.onClick.AddListener(onClick);
+            if (onClick != null) button.onClick.AddListener(onClick);
 
             NewText(go.transform, label, new Vector2(0.5f, 0.5f), Vector2.zero, size, 24);
 
