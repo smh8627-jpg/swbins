@@ -108,7 +108,10 @@ namespace Saga.EditorTools
             {
                 case 0: // idle 정착 대기 — 첫 프레임들은 셰이더 변형이 아직 컴파일 중이라
                         // 엉뚱한 색(예: SSS Shader Graph 미컴파일 시 네온 시안)으로 찍힐 수
-                        // 있어(2026-09-13·2026-09-22 실제로 겪음) 넉넉히 기다린다.
+                        // 있어(2026-09-13·2026-09-22 실제로 겪음) 넉넉히 기다린다. **주의**:
+                        // `BuildMariaSssShaderGraph.Build()`로 그래프를 방금 재빌드한 직후엔
+                        // 300으로도 부족해 네온 시안이 찍힌 적 있다(2026-09-23, 900으로
+                        // 임시로 늘려 확인) — 그래프를 안 건드린 평소엔 300이면 충분.
                     if (_frame >= 300)
                     {
                         // 이 스테이지 안에서 캡처만 하고 카메라는 절대 안 건드린다 —
@@ -142,20 +145,32 @@ namespace Saga.EditorTools
                                 cam.transform.LookAt(head.position + Vector3.up * 0.02f);
 
                                 // 씬의 기본 Directional Light(Euler 40,30,0)는 원래 뒤통수 샷용이라
-                                // 얼굴 쪽에서 보면 역광(실루엣)이 된다 — Ambient를 보통 수준보다
-                                // 살짝만 올려 피부톤이 보이게 하되(과하면 Fresnel 기반 SSS 글로우
-                                // 자체가 묻힌다, 2026-09-23 실제로 겪음) 완전히 뭉개지진 않게 한다.
-                                RenderSettings.ambientLight = new Color(0.6f, 0.58f, 0.55f);
+                                // 얼굴 쪽에서 보면 역광이 된다 — 이 카메라 배치가 FakeSSS(뒤에서 오는
+                                // 빛을 얇은 부위 너머로 투과시켜 보여주는 기법)에 맞는 역광 구도다.
+                                // 105 Q-U3 글로우 판정을 사용자 대신 직접 해봄(2026-09-23, 다섯 번째
+                                // 교체) — ambient 두 단계(낮음→높음)로 비교 캡처해 실제로 코·턱선에
+                                // 웜톤 하이라이트가 보임을 확인, `BuildMariaSssShaderGraph.cs`의
+                                // Intensity를 0.6→15로 올려 최종 확정(경위는 그 파일 주석).
+                                RenderSettings.ambientLight = new Color(0.42f, 0.4f, 0.38f);
                             }
                         }
                         _stage = 2;
                         _frame = 0;
                     }
                     break;
-                case 2: // 얼굴 클로즈업 카메라 정착 대기 후 캡처만(카메라 복원은 다음 stage)
+                case 2: // 저 ambient 캡처 후 고 ambient로 전환(비교용, 캡처 없음)
                     if (_frame >= 20)
                     {
-                        ScreenCapture.CaptureScreenshot(ShotDir + "02_face_closeup.png");
+                        ScreenCapture.CaptureScreenshot(ShotDir + "02a_face_closeup_lowamb.png");
+                        RenderSettings.ambientLight = new Color(0.6f, 0.58f, 0.55f);
+                        _stage = 7;
+                        _frame = 0;
+                    }
+                    break;
+                case 7: // 고 ambient 정착 대기 후 캡처(카메라 복원은 다음 stage)
+                    if (_frame >= 20)
+                    {
+                        ScreenCapture.CaptureScreenshot(ShotDir + "02b_face_closeup_highamb.png");
                         _stage = 3;
                         _frame = 0;
                     }

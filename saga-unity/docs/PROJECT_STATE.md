@@ -1,13 +1,7 @@
 # PROJECT_STATE — saga-unity (상태만, ≤15KB, 덮어쓴다)
 
 **규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다(2026-09-16 재편 전 본문 5,532줄은 그쪽 첫 절에 그대로 있다). 넘치면 `tools/precheck.sh` 가 막는다.
-마지막 갱신: 2026-09-23 (스물네 세션째 — 재부팅 뒤 **GUI hang 완전 해소**, 던전 얼굴(yaw=180)·SSS 글로우 얼굴 클로즈업 둘 다 GUI로 확보). 102-5·102-4·103-1·67~69 잔여는 닫힘(Kenney `Characters/`만 실사용 중이라 못 뺌).
-
-**GUI hang — 재부팅으로 해소 확인(2026-09-23)**: 지난 세션 "재부팅 없이는 절대 안 풀린다" 결론대로 이번 세션 시작 시 재부팅(07:42)이 이미 되어 있었음(uptime 3분으로 확인). 던전 yaw=180·SSS 얼굴 클로즈업 두 GUI 런치 모두 **한 번에** 정상 종료(exit 0, hang 없음) — 전 세션 7연속 hang의 원인이 GUI 모드 노후 상태였다는 진단이 맞았다는 뜻. `ShotDir`(두 `Playtest*Gui.cs`)는 이번 세션 scratchpad 경로로 갱신해 커밋(다음 세션도 매번 갱신 필요).
-
-**던전 얼굴(yaw=180) — GUI 확인 완료(2026-09-23)**: `10_dungeon_bossgroup.png`에서 Maria가 카메라를 정면으로 마주 보고 뒤로 Abe·Brute도 보임 — yaw=180 계산이 맞았다.
-
-**SSS 글로우 — 얼굴 클로즈업 확보, 최종 판단은 여전히 사용자 몫(2026-09-23)**: `02_face_closeup.png` 캡처 성공(Bloom 볼륨 임시 추가 + ambient 상향). 스크린샷 상으로는 피부가 여전히 그늘진 톤(회갈색)에 가까워 글로우가 뚜렷이 도드라지진 않음 — 정적 이미지로는 Fresnel 기반 SSS 효과 판단이 어려워 **실제 게임 화면에서 육안 확인 권장**(수치는 임의 근사치라 튜닝 필요할 수 있음, 105 Q-U3).
+마지막 갱신: 2026-09-23 (스물네 세션째 — 재부팅 뒤 **GUI hang 완전 해소**(7연속 hang은 GUI 모드 노후 상태였을 뿐, 재부팅 후 두 GUI 런치 다 한 번에 성공), **던전 얼굴(yaw=180) 확인 완료**(`10_dungeon_bossgroup.png`, Maria 정면+Abe·Brute), **SSS 글로우(105 Q-U3) 파이프라인·튜닝 직접 확정**(경위는 HISTORY grep — 극단 디버그값으로 배선 생사 확인 후 Intensity 0.6→15, 코·턱선 하이라이트 육안 재확인). 102-5·102-4·103-1·67~69 잔여는 닫힘(Kenney `Characters/`만 실사용 중이라 못 뺌). `ShotDir`(두 `Playtest*Gui.cs`)는 이번 세션 scratchpad 경로로 갱신 커밋(다음 세션도 매번 갱신 필요).
 
 ## 캐릭터 자산 — 이 PC 기준 (2026-09-19)
 
@@ -31,13 +25,12 @@ PLAN 101-3(C hitstop류·F 유품 마커·G 데칼/레벨업 컷/장비 가시�
 
 ## 다음 작업 (우선순위, 상세는 PLAN 해당 장 · 경위는 HISTORY 날짜 grep)
 
-1. **SSS 글로우 최종 판단** — `02_face_closeup.png` 확보됐지만 임의 근사치 수치라 실제 게임 화면(Bloom 있는 씬)에서 사용자 육안 확인·필요시 튜닝 대기.
-2. **101-2·104-1 잔여(보류)** — GO⑤(모바일 빌드 뒤)·STORY5-2·`Props/` lantern·stall-red·`Characters/` Kenney(실사용 중).
-3. 헤어카드 — 분리 헤어 메시 생기면 같은 기법 재사용 가능, 그 전엔 대상 없음.
+1. **101-2·104-1 잔여(보류)** — GO⑤(모바일 빌드 뒤)·STORY5-2·`Props/` lantern·stall-red·`Characters/` Kenney(실사용 중).
+2. 헤어카드 — 분리 헤어 메시 생기면 같은 기법 재사용 가능, 그 전엔 대상 없음.
 
 `ShotDir`(두 `Playtest*Gui.cs`)는 세션 scratchpad 경로라 새 세션마다 고쳐야 함. 다른 PC는 `CharactersRealistic/`·`Generated/` gitignore라 `SetupXxxCharacterImport.cs`→SSS Build 재실행 필요.
 
-닫힌 백로그: 101-3, 103-1 변형 배가, 67~69 en 번역, 105 Q-U1·**Q-U3**, **102-5**, **던전 카메라 회전(yaw=180 포함)**, **GUI hang.**
+닫힌 백로그: 101-3, 103-1 변형 배가, 67~69 en 번역, 105 Q-U1·**Q-U3(2026-09-23 Intensity=15로 최종 확정)**, **102-5**, **던전 카메라 회전(yaw=180 포함)**, **GUI hang.**
 
 ## 알려진 오류
 
@@ -56,6 +49,8 @@ PLAN 101-3(C hitstop류·F 유품 마커·G 데칼/레벨업 컷/장비 가시�
 - 헤드리스가 `SaveState.Save()`를 부르면 `persistentDataPath` 파일이 실제로 남는다 — `GameBootstrap.Start()`가 매번 `TryLoad()`하므로 원본 상태로 안 되돌리면 다음 실행이 오염된다(2026-09-19 GO).
 - Shader Graph internal API는 리플렉션으로 우회 가능(2026-09-22, 패턴은 `BuildMariaSssShaderGraph.cs`) — 매번 `ShaderUtil.ShaderHasError`로 검증 필수.
 - **`ScreenCapture.CaptureScreenshot()`는 호출 시점이 아니라 프레임 렌더 후 찍힘**(2026-09-23) — 같은 tick에서 캡처 다음에 카메라/조명을 바꾸면 그 나중 상태가 찍힌다. `Playtest*Gui.cs`는 "세팅"과 "캡처"를 별도 tick으로 분리할 것.
+- **`BuildMariaSssShaderGraph.Build()`로 그래프를 방금 재빌드한 직후엔 셰이더 변형 컴파일이 평소보다 오래 걸려 `PlaytestCharacterRealisticGui`의 idle 정착 대기 300프레임으로도 네온 시안(미컴파일 색)이 찍힌다**(2026-09-23) — 그래프를 안 건드린 일반 실행은 300으로 충분(캐시됨). 그래프를 막 바꾼 직후에만 임시로 늘려서(900 정도) 한 번 확인.
+- **Shader Graph 값 튜닝은 "안 보임"과 "배선이 죽음"을 구분해야 한다**(2026-09-23) — `Colour`/`Intensity`처럼 은은한 프로덕션 값은 정상 작동 중이어도 육안으로 거의 안 보일 수 있다. 판단이 안 서면 값을 극단으로(예: 순색+고배율) 잠깐 올려 배선 자체의 생사부터 확인한 뒤, 확인되면 프로덕션 색 세기에 비례해 실제 값을 역산한다(디버그 순빨강 채널 5.0 대비 프로덕션 웜톤 채널 1.0이면 Intensity도 그 비율만큼 다시 올려야 같은 임팩트가 남).
 
 ## 테스트 상태 (2026-09-22, 배치 모드, Unity 6000.3.24f1)
 
@@ -66,8 +61,8 @@ PLAN 101-3(C hitstop류·F 유품 마커·G 데칼/레벨업 컷/장비 가시�
 | `PlaytestHeadless`(GO)·`PlaytestDungeonHeadless`·`PlaytestForestHeadless`·`PlaytestStorySlice`·`PlaytestRealmSlice` | **다섯 판 전부 3연속 OK(2026-09-22, 102-5 전 항목 반영 뒤 재확인, 두 차례)** |
 | `PlaytestForestCreatures`·`Finish`·`Furniture`·`HouseTransition` | 미변경 |
 | `PlaytestOverworldMap`(GO) | 이전 세션 1회 재검증 OK, 미변경 |
-| GUI 실제 Play 확인 | GO 라이팅 톤·Maria idle/run/attack·Dungeon 카메라 회전 고침(뒷모습·yaw=180 정면 둘 다 확인, 2026-09-23). SSS 글로우 얼굴 클로즈업은 캡처만, 최종 판단은 사용자 몫 |
-| `BuildMariaSssShaderGraph.Build`+`Verify` | exit 0, `ShaderHasError=False`(2026-09-22) |
+| GUI 실제 Play 확인 | GO 라이팅 톤·Maria idle/run/attack·Dungeon 카메라 회전 고침(뒷모습·yaw=180 정면 둘 다 확인). **SSS 글로우 코·턱선 하이라이트 육안 확인 완료(2026-09-23, Intensity=15)** |
+| `BuildMariaSssShaderGraph.Build`+`Verify` | exit 0, `ShaderHasError=False`(2026-09-23, Intensity=15 최종값 기준 재확인) |
 
 ## 실기 확인 대기 (항목명만 — 경위는 HISTORY grep)
 
@@ -76,4 +71,4 @@ PLAN 101-3(C hitstop류·F 유품 마커·G 데칼/레벨업 컷/장비 가시�
 - FOREST: 벽지/장판, 가구 배치, 생물·과일나무·좌판, 목표판/세션카드, 마을 번들(5.3), 채집 손맛(5.8①), 마을 평가판 별점(5.8②), 접수대·우체통 4·소포 3종·사슬 보너스 체감(5.7), 세배·꽃놀이·소원돌·목표판 D-day 문구 체감(5.6, 실제 달력 1·8·15일에만), 과일나무 모양·바크 트라이플레이너 톤(102-4), 마을 잔디 디테일 톤(102-5, 2026-09-22 신규)
 - STORY: 두목 크기·타격감, 사건·관계·선택 흐름, 전직 팝업, 목표판/세션카드, hitstop/shake/flash/popup/타격 VFX 체감, 유품 마커·지형 데칼·레벨업 줌·직업별 무기(101-3 F·G), 관문 대장 승격 연출·방패 파괴 체감(5-4), 비경 노드 지도·축복 카드·아레나 순간이동(5-3), 선봉/유격/호법 교대 버튼·서명 손맛·HUD 교대 쿨다운 줄(5-8)
 - REALM: 월드맵, 적국 사슬 체감, 패널 여덟 조작, 목표판/세션카드, 공격·계략 고르기, 특성·야망(5-1), 전술 토글(5-6), 서사 카드 7종(5-2), 계승 토글(5-8, 기본 꺼짐), 일기토·설전(5-3), 승리 결과 카드·목표판 셋째 줄·"다음 달" 게이트(5-5, 정복 55성/문화 정답 30), 성벽 단계별 실루엣(103-1, 축성 명령 여러 달 반복해 2·3단 넘겨야 확인), 오빗 카메라 건물 클리핑 pull-in 체감(102-5, 2026-09-22 신규)
-- 공통: BGM 음량, 설정 패널 6줄, SessionCard DoF 체감, 접지 blob 그림자(102-2, `QualitySettings`="Mobile"이어야 보임, **2026-09-22부터 적·NPC도 포함**), 게임별 LUT 톤 5장 체감(102-1-2, 수치만으로 짠 거라 실제 눈으로 판단 필요), Screen Space Shadows 체감(102-5, PC 프로파일만), **Maria 피부 SSS 글로우(105 Q-U3, 2026-09-22 신규 — 값은 임의 근사치, 실제로 보고 튜닝 필요할 수 있음)**
+- 공통: BGM 음량, 설정 패널 6줄, SessionCard DoF 체감, 접지 blob 그림자(102-2, `QualitySettings`="Mobile"이어야 보임, **2026-09-22부터 적·NPC도 포함**), 게임별 LUT 톤 5장 체감(102-1-2, 수치만으로 짠 거라 실제 눈으로 판단 필요), Screen Space Shadows 체감(102-5, PC 프로파일만)

@@ -8580,3 +8580,17 @@ Defender 예약 검사 마지막 실행은 전날 저녁이고 지금은 안 돌
 배치/GUI 실행이 늘 그렇듯 `ProjectSettings/ProjectVersion.txt`·`Packages/manifest.json`·`packages-lock.json`이 6000.3.24f1로 자동 상향됐길래 커밋 전 `git checkout`으로 원복(설치 에디터가 6000.3.24f1이라도 프로젝트 고정 버전은 그대로 유지).
 
 코드 변경: `ShotDir` 경로 두 곳(세션마다 반복될 변경). `PROJECT_STATE.md` 갱신.
+
+## 2026-09-23 — SSS 글로우 "직접 검증해봐" 지시로 파이프라인 생사 확인부터 최종 튜닝까지 (같은 대화 계속, 던전 얼굴·SSS 캡처 다음)
+
+101-2·104-1 잔여가 전부 게이트로 막혀 있어 다음 작업을 물었더니 사용자가 "직접 검증해봐"를 선택 — SSS 글로우 판단을 사용자에게 미루지 말고 직접 결론을 내라는 뜻으로 받아들였다.
+
+`02_face_closeup.png`(튜닝값 Intensity=0.6)를 다시 봐도 피부가 그늘진 회갈색일 뿐 글로우가 안 보였다. 먼저 ambient 두 단계(0.42/0.6) 비교 캡처(`02a`/`02b_face_closeup_*.png`)로 나눠 봤지만 **둘 다 아무 글로우도 없었다** — "ambient가 너무 높아 글로우가 묻힌다"는 기존 결론과 달리, 애초에 아무것도 안 보이는 수준이었다.
+
+값 문제인지 배선 자체가 죽은 건지 구분하려고 `BuildMariaSssShaderGraph.cs`의 override를 극단값(Intensity=20, Colour=순빨강 (5,0,0,1))으로 바꿔 셰이더를 재빌드(`Saga/Build Maria SSS Shader Graph (Reflection)`, 배치모드)하고 다시 캡처했더니 **처음엔 얼굴·몸통 전체가 네온 시안으로 찍혔다** — `PlaytestCharacterRealisticGui.cs` 기존 주석이 경고하던 "SSS Shader Graph 미컴파일 시 네온 시안" 함정 그 자체였다. 원인은 그래프를 방금 재빌드해서 이 GUI 프로세스가 그 변형을 처음 컴파일하는 상황이라 기존 idle 정착 대기 300프레임(캐시된 셰이더 기준)으로 부족했던 것 — 900으로 늘려 재실행하니 **턱선·목선·가슴골에 뚜렷한 빨간 글로우**가 나타나 `Mask`·`Dot Product`·`GetMainLightDir` 체인(FakeSSS 서브그래프)이 처음부터 정상 작동 중이었음을 확정했다(`02a/02b_face_closeup_*.png`, 이번엔 진짜 극단값 결과).
+
+배선이 살아있음을 확정한 뒤 프로덕션 웜톤 Colour(최대 채널 1.0, 디버그 순빨강의 1/5 세기)에 맞춰 Intensity를 2.5→6→15로 세 차례 재빌드+재캡처하며 올렸다. 2.5·6은 여전히 안 보였고 **15에서 코·턱선에 은은한 웜톤 하이라이트**가 육안으로 확인됐다(과하지 않은 수준, 게임 내 배경 아트 방향 "사실적 PBR"에 맞음). 최종값으로 확정 후 idle 정착 대기를 300으로 되돌리고(그래프를 안 건드리는 평소 실행 기준) 한 번 더 재확인 — 네온 시안 재발 없이 정상.
+
+Unity GUI 런치는 이번 절에서만 6회(디버그 극단값 1·튜닝 2.5/6/15 각 1·최종 확인 1), 배치 모드(Build+Verify)는 4회 — 전부 exit 0, hang 없음(재부팅 효과가 이 세션 내내 유지됨을 재확인). 배치/GUI 실행 뒤 `ProjectSettings/ProjectVersion.txt`·`Packages/manifest.json`·`packages-lock.json`이 또 24f1로 자동 상향돼 커밋 전 원복.
+
+코드 변경: `BuildMariaSssShaderGraph.cs`(Intensity 0.6→15 최종), `PlaytestCharacterRealisticGui.cs`(ambient 저/고 비교 캡처 2단 추가, idle 대기 300 유지 + 재빌드 직후 예외 주석). `PROJECT_STATE.md` 갱신.
