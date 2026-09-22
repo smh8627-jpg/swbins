@@ -8120,3 +8120,12 @@ PROJECT_STATE.md` 참고. 요약:
 - `villager_builder.gd`에 임시 `SAGA_HEART_DEBUG` 훅: 하트 0/5/10 세 경계에서 `_add_heart_row()`가 항상 10개 노드를 만들고 filled/empty 개수가 정확히 나뉘는지 확인(0→0/10, 5→5/5, 10→10/0) — 전부 통과, 훅 제거.
 - 헤드리스 임포트 오류 0, `godot_regress.sh` 다섯 판 REGRESS OK(FOREST만 md5 변경, 나머지 넷 불변), `.import`/`project.godot` 잡음 없음.
 - **씬엔 물렸지만 화면 배치(겹침·크기)는 실기 확인 몫으로 남음** — PROJECT_STATE FOREST 실기 대기에 추가.
+
+## GO 폐허 비석(procgen stele) 배선 (2026-09-22, 같은 세션, "다 진행해")
+
+- 하트 아이콘 배선 뒤 남은 마지막 미배선 103 산출물(procgen 소품)도 이어서 진행 — "포구·폐허 빈 칸 채우기"(103-3 표)가 원래 의도였지만 그 문제는 09-20⑤에서 이미 다른 방식(순수 발견 primitive)으로 풀려 있어, 대신 stele(비석·1.6m)를 "폐허" 테마에 맞는 순수 시각 장식으로 골랐다.
+- `vegetation_builder.gd::_scatter_ruins_debris()` 신설 — clutter(`.` 평지)와 달리 폐허 지도엔 `.` 타일이 아예 없어(전부 R·T·^, `test_map.gd` REGIONS.ruins 확인) 폐허 바닥 `R` 칸을 스캔. `stele_s1_01`/`stele_s2_02` 두 씨앗을 섞고(회색 StandardMaterial3D 오버라이드), 충돌은 안 붙임(rock·clutter와 같은 결). make_stele()이 실제 미터로 지어(기본 1.6m) 102-1 "사람 1.7m" 세계에 그대로 맞아 나무·바위 때와 달리 스케일 역산이 필요 없었다.
+- 밀도 튜닝을 실측으로 함: 폐허 바닥(R) 21칸뿐이라 clutter의 1/6 비율은 헤드리스로 세어 보니 1개만 나옴(표본이 작아 기대값 언저리에서도 쉽게 빔) → 1/3로 올려 5개로 확정.
+- `vegetation_builder.gd`에 임시 `SAGA_STELE_DEBUG` 훅으로 배치 개수 확인(1/25→0, 1/6→1, 1/3→5) 후 훅 제거.
+- 헤드리스 임포트 오류 0, `godot_regress.sh` 다섯 판 REGRESS OK(GO만 md5 변경), `.import`/`project.godot` 잡음 없음.
+- **이걸로 09-20⑥에 만들어 두고 안 쓰이던 103장 산출물(하트 아이콘·procgen 소품) 전부 씬에 물렸다** — 화면 배치(겹침·색감)는 실기 확인 몫으로 남음.

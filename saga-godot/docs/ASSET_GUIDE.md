@@ -605,3 +605,13 @@ Test 씬에 적용해줘"로 명시 override — 지금까지 "확보·스냅만
   스택시켜 되돌린 순정 코드에서도 똑같이 재현돼 사전 존재 버그로 확인**
   — 카메라 스폰 초기화 순서 문제로 추정, 별도 조사 필요. PROJECT_STATE
   "알려진 오류"에 남긴다.
+
+## 2026-09-22 — procgen 비석(stele)을 GO 폐허에 실제 배선(§8-1 재override)
+
+09-20⑥ `procgen.py`가 만들어 두고 씬엔 한 번도 안 물렸던 `stele_s1_01`/
+`stele_s2_02`(1.6m, 실제 미터 — 별도 스케일 역산 불필요)를
+`vegetation_builder.gd::_scatter_ruins_debris()`로 GO 폐허(ruins) 지역
+폐허 바닥("R") 칸에만 순수 시각 장식으로 흩뿌렸다(충돌 없음, rock·
+clutter와 같은 결). 폐허 지도가 7×7이라 "R" 칸이 21개뿐 — clutter와
+같은 1/6 밀도로는 실측 1개만 나와 1/3로 올려 5개로 확정. 헤드리스
+회귀 REGRESS OK, `.import`/`project.godot` 잡음 없음.

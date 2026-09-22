@@ -83,6 +83,19 @@ const REGION_CLUTTER_SCALE := {
 }
 const CLUTTER_DENSITY := 6  # 평지 칸 6개 중 1개꼴에만 놓는다(FOREST DENSITY=10과 같은 결)
 
+## PLAN 103-3 "포구·폐허 빈 칸 채우기" — procgen.py 비석(stele, 2026-09-20⑥
+## 신설, 그동안 씬에 안 물렸다)을 폐허(ruins)에만 순수 시각 장식으로
+## 흩뿌린다. 나무·바위와 달리 별도 스케일 역산이 필요 없다 — make_stele()이
+## 이미 실제 미터(기본 높이 1.6m)로 지어 102-1 "사람 1.7m" 세계에 그대로
+## 맞는다. 두 씨앗(s1·s2)을 섞어 전부 똑같은 비석으로 안 보이게 한다.
+const STELE_GLB_A := "res://assets/generated/props/stele_s1_01.glb"
+const STELE_GLB_B := "res://assets/generated/props/stele_s2_02.glb"
+const STELE_COLOR := Color(0.55, 0.53, 0.5)  # rock 회색과 같은 톤(102-1 팔레트 확정 전 임시)
+## 폐허 바닥(R)은 지역 전체에 21칸뿐(7×7 지도, 실측)이라 clutter 1/6
+## 비율로는(실측: 헤드리스로 직접 세어 봄) 겨우 1개만 나온다 — 표본이
+## 작아 기대값 언저리에서도 쉽게 빈다. 1/3로 올려 실측 5개로 확인.
+const RUINS_DEBRIS_DENSITY := 3
+
 var region_id := "village"
 
 
@@ -91,6 +104,7 @@ func _ready() -> void:
 	_scatter_rocks()
 	_scatter_crops()
 	_scatter_clutter()
+	_scatter_ruins_debris()
 
 
 ## 정수 좌표 + salt에서 결정적으로 0~1 값을 뽑는다. core.hash2와 같은 정신 —
@@ -328,3 +342,55 @@ func _scatter_clutter() -> void:
 	for i in positions.size():
 		var basis := Basis(Vector3.UP, yaws[i]).scaled(Vector3.ONE * s)
 		mm.set_instance_transform(i, Transform3D(basis, positions[i]))
+
+
+## clutter와 달리 "." 평지가 아니라 폐허 바닥("R")을 스캔한다 — ruins
+## 지도(test_map.gd REGIONS.ruins)엔 "." 타일이 아예 없다(전부 R·T·^뿐,
+## 확인함). 충돌은 안 붙인다(rock·clutter와 같은 결 — 순수 시각).
+func _scatter_ruins_debris() -> void:
+	if region_id != "ruins":
+		return
+	var ground: float = TerrainBuilder.LEGEND["R"].height
+	var positions: Array[Vector3] = []
+	var yaws: Array[float] = []
+	var use_b: Array[bool] = []
+	var rows := TestMap.rows_of(region_id)
+	for y in rows.size():
+		var row: String = rows[y]
+		for x in row.length():
+			if row[x] != "R":
+				continue
+			if _hash(x, y, 700) >= 1.0 / float(RUINS_DEBRIS_DENSITY):
+				continue
+			var jx := (_hash(x, y, 701) - 0.5) * TestMap.TILE_SIZE * 0.6
+			var jz := (_hash(x, y, 702) - 0.5) * TestMap.TILE_SIZE * 0.6
+			positions.append(TestMap.world_pos(x, y, region_id) + Vector3(jx, ground, jz))
+			yaws.append(_hash(x, y, 703) * TAU)
+			use_b.append(_hash(x, y, 704) > 0.5)
+
+	if positions.is_empty():
+		return
+
+	var mesh_a := GLBUtils.extract_mesh(STELE_GLB_A)
+	var mesh_b := GLBUtils.extract_mesh(STELE_GLB_B)
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = STELE_COLOR
+
+	var xf_a: Array[Transform3D] = []
+	var xf_b: Array[Transform3D] = []
+	for i in positions.size():
+		var basis := Basis(Vector3.UP, yaws[i])
+		var xf := Transform3D(basis, positions[i])
+		if use_b[i]:
+			xf_b.append(xf)
+		else:
+			xf_a.append(xf)
+
+	if mesh_a != null and not xf_a.is_empty():
+		var mmi_a := _build_rock_multimesh(mesh_a, xf_a, "RuinsDebrisA")
+		mmi_a.material_override = mat
+		add_child(mmi_a)
+	if mesh_b != null and not xf_b.is_empty():
+		var mmi_b := _build_rock_multimesh(mesh_b, xf_b, "RuinsDebrisB")
+		mmi_b.material_override = mat
+		add_child(mmi_b)
