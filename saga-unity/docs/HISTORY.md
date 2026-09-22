@@ -8349,3 +8349,9 @@ Q-U1을 닫은 뒤에도 PROJECT_STATE "다음 작업"이 전부 사람 대기�
 **검증**: `tools/unity-batch.sh` 배치 컴파일(exit 0, 4파일 원복) → `PlaytestHeadless`(GO) 3연속 OK → `PlaytestDungeonHeadless` 3연속 OK → `PlaytestDungeonFloorProgression` 1회 OK(카메라 로직과 무관한 층 진행이라 3연속까지는 안 함). 셋 다 로그에 새 오류 없음, 회귀 없음.
 
 `PLAN.md` 102-5 표의 "카메라 클리핑" 칸을 "해당"에서 "GO·DUNGEON 완료(2026-09-22)"로, `docs/PROJECT_STATE.md`(헤더·테스트 표·GO/DUNGEON 실기 확인 대기 줄에 "카메라 벽 클리핑 pull-in 체감" 추가, 문서 크기 여유 위해 오래된 날짜 태그 몇 곳 축약) 갱신 후 커밋.
+
+## 2026-09-22 — PLAN 102-5 "애니 끊김" 재조사, 이미 해소됨 (카메라 클리핑 다음, "이어해" 세션)
+
+카메라 클리핑을 끝낸 뒤 다음 §102-5 항목으로 "애니 끊김(Animator 전이 exitTime 0.9, 블렌드 없음)"을 보려고 실제 Animator 설정을 찾아봤다 — `Assets/Animators/Maria.controller`(GO·DUNGEON·FOREST·STORY 플레이어 전부 공유)·`Abe.controller`·`Brute.controller`(DUNGEON 잡졸/두목, GO `BanditEncounter`의 foe도 재사용) YAML을 직접 열어 보니 전이마다 `m_TransitionDuration`이 0.1~0.15초로 이미 다 채워져 있었다(코드 쪽도 `SetupAbeCharacterImport.cs`·`SetupBruteCharacterImport.cs`·`BuildTestCharacterRealisticScene.cs`의 `AddReturnToIdle()`(exitTime 0.9·duration 0.15)·`AddAnyStateTrigger()`(duration 0.1)·`AddParamTransition()`(duration 0.15)와 일치). 게임 코드에서 `Animator.Play()`/`CrossFade()`를 직접 호출하는 곳도 없어(전부 `SetTrigger`/`SetFloat`) 선언된 duration이 그대로 적용된다.
+
+즉 이 감사 문구는 102장 초안(66-2/102-3 결정, 2026-09-13 무렵) 당시 상태를 적은 것이고, 그 뒤 44장 Mixamo 캐릭터 교체(2026-09-16~19)가 블렌드 전이까지 같이 넣었는데 102-5 표는 안 고쳐진 채로 남아 있었다 — 67~69장 Localization "미착수" 낡은 메모(이 HISTORY 앞선 2026-09-22 절)와 같은 종류의 낡은 기록. 코드 변경은 없음(이미 돼 있는 걸 확인만 함), `PLAN.md` 102-5 표 문구만 재조사 결과로 고치고 `docs/PROJECT_STATE.md` 헤더 갱신 후 커밋.

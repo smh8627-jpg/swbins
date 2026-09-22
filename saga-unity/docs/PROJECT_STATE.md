@@ -1,7 +1,7 @@
 # PROJECT_STATE — saga-unity (상태만, ≤15KB, 덮어쓴다)
 
 **규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다(2026-09-16 재편 전 본문 5,532줄은 그쪽 첫 절에 그대로 있다). 넘치면 `tools/precheck.sh` 가 막는다.
-마지막 갱신: 2026-09-22 (열다섯 세션째, 이어서 — GUI 스크린샷 시도(환경 문제 미완) → Q-U1 형식 정리 → **GO·DUNGEON `CameraRig` 벽 클리핑 raycast pull-in(102-5, 사용자 선택)**) — 경위는 HISTORY grep. 102-4는 전부 처리됐다(남은 건 `Characters/` Kenney, 실사용 중이라 못 뺀다). 103-1·67~69장 잔여는 전부 닫힘.
+마지막 갱신: 2026-09-22 (열여섯 세션째, 이어서 — Q-U1 형식 정리 → GO·DUNGEON `CameraRig` 벽 클리핑 → **102-5 "애니 끊김" 재조사, 이미 해소된 채 표만 낡아 있었음(코드 변경 없음)**) — 경위는 HISTORY grep. 102-4는 전부 처리됐다(남은 건 `Characters/` Kenney, 실사용 중이라 못 뺀다). 103-1·67~69장 잔여는 전부 닫힘.
 
 **중요 — GUI 스크린샷은 이 환경에 아직 방법이 없다**: `-batchmode` 없이 띄우면 관리자 권한 대화상자가 SendKeys로 닫아도 1.5~2초마다 재생성되며 폭주(`taskkill /T`로 잡음), `-batchmode`(+`-nographics` 뺌)면 대화상자는 안 뜨지만 `ScreenCapture`가 파일을 안 남긴다. 다음 세션은 이 절부터, SendKeys 자동 닫기 재시도 금지(경위는 HISTORY grep "폭주").
 
