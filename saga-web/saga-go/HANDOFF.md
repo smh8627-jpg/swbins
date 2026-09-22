@@ -3548,3 +3548,26 @@ id 해시로 받는다(배정 코드는 이미 있었고 기본 꺼짐이었을 
 ## 2026-09-22 — 진단 실패 정리: 저스트 회피 시험은 인연(⑥) 기 배율 때문에 세이브 상태를 탔다
 
 jsdom 559/561 ×3(남은 둘은 `Request is not defined` — jsdom 한계). `토벌 — 저스트 회피` 시험이 기 +30 을 못박았는데 실제로는 ⑥ 인연 결의 `kiPct`(`rogue-action.js` `kiMul`)가 곱해져 33 이 됐다 — 시험을 `30 × (1 + core.effect('kiPct')/100)` 기대치로 고침(코드 변경 없음). ⑥ 커밋 뒤부터 있던 시험 결함이다.
+
+## 2026-09-22 — 실기 확인: 체크리스트 19항목 전부 통과
+
+사용자가 실기기로 공통 5(캐릭터 이동 방향·사가블로 로딩 프레임·사가국지 인물 뒷모습·사가고 자동전투·목표판 숨김)·국지5·스토리4·사가고3·숲1·블로1 를 확인, 전부 정상. 실기 확인 대기였던 항목들 해소. 남은 것: 사용자 결정 3건(사가고 ⑧ 재도전 완화·일과 풀 `shrine` 켤지·2D Phase 4 코드 그림 제거) + 그래픽 작업(국지 Phase 4 톤매핑·병종 기둥, 스토리 Phase 5, 숲 마감 불꽃 파티클·현대 목적지 에셋) + VRoid 캐릭터 추가.
+
+## 2026-09-22 (이어서) — 2D Phase 4: portrait()·portraitCard()·human()·beast() 되돌림 코드 그림 삭제
+
+실기 확인 19항목 전부 통과 뒤 남은 사용자 결정 3건 중 2D Phase 4 를 사용자가 "포함하여 완전 새로 설계"로 골랐다. 들여다보니 `human()`/`beast()`(약 1100줄, 전용 헬퍼 `storyFace`·`limb`·`hand`·`foot`·`headgear`·`weapon`·`leg2`·`eye` 포함)는 죽은 코드가 아니라 세 자리에서 실제로 쓰이고 있었다 — ① 도깨비(ogre) 펫이 `beast()` 안에서 `human()`을 몸통으로 그대로 썼다(전용 그림 없음) ② 지도 스탬프 `bake()`가 Kenney 그림이 아직 안 실린 첫 프레임만 이걸로 메웠다 ③ 초상 `portrait()`/`portraitCard()`가 3D(portrait3d)가 준비 안 됐거나 그 인물을 못 구웠을 때 최종 대체로 썼다.
+
+조사해 보니 ①은 이미 해소돼 있었다 — `BEAST_FORM_FILES.ogre = ['Orc','Demon','BlueDemon']`가 2026-09-11에 구워져 `assets/sprites2d/beast_{Orc,Demon,BlueDemon}.png` 로 이미 존재한다(README·ASSET_LICENSES.md 기록). 배경 생물(`animal.js`, deer·wolf·magpie·carp·ox 다섯)도 `BG_BEAST_FILE` 로 전부 채워져 있었다(2026-09-20 Phase 3). 즉 `beastImgOf()`/`humanImg()`는 실제로 쓰는 모든 대상에 대해 **항상** 유효한 이미지를 돌려준다 — 절차적 그림이 진짜로 필요한 순간은 "그림 파일이 아직 로드 중인 찰나"뿐이었다(관련 옛 주석 "그림이 없거나(ogre 형태)"·"배경 생물은 절차적 그림 그대로 둔다"는 둘 다 2026-09-11/20 이후로 낡아 있었다 — 이번에 고쳤다).
+
+**한 일**:
+- `bake()`(지도 스탬프): 이미지 미로드 시 절차적 그림 대신 `loadingMark()`(작은 머리원+몸통타원 자리표시, 새 함수) — 로컬 PNG 라 대개 한두 프레임 안에 실리고, `stamp()`의 `imgReady` 검사가 곧바로 다시 굽는다.
+- `portrait()`/`portraitCard()`: hero/pet 분기를 `humanImg(humanIndexOf(ref))`/`beastImgOf(ref)` 로 그리도록 바꿈(기존 `storyize()` 종이·선화 후처리는 그대로 걸린다 — 그림 종류 상관없이 도는 공통 필터라 안 건드렸다). 실리기 전엔 `loadingMark()`.
+- `human()`·`beast()`·전용 헬퍼 8개 삭제(node 스크립트로 두 구간 251-898/1003-1444 줄 삭제, CRLF 유지). export 목록에서 `human`·`beast` 제거. `lookOf()`는 안 지웠다 — `_expansion/battle-view.js`·`_test.html`이 여전히 부른다(그림엔 더는 안 쓰이지만 다른 소비자가 있어 범위 밖으로 남김).
+- 낡은 주석 셋 정리(파일 머리말, ogre "그림 없음", 배경 생물 "절차적 그림 그대로").
+- `sw.js` VERSION `go-v5.47.0`→`go-v5.48.0`(precheck 경고).
+
+**진단**: jsdom 559/561(변경 전과 동일 카운트, 남은 둘은 `Request is not defined` — jsdom 한계, 이 변경과 무관). `node -c` 통과. precheck 통과(Godot 문서 이번엔 안 막았다).
+
+**실기 확인 필요**: 도감·상세 화면 초상이 Kenney 그림으로 잘 보이는지(전엔 절차적 인물 그림), 지도 위 걷는 사람·짐승 첫 등장 때 자리표시가 눈에 띄게 어색하지 않은지, 3D(portrait3d) 실패 시 대체 그림.
+
+**남은 것**: 나머지 네 판(사가블로·사가의숲·사가스토리·사가국지)은 Phase 4 미착수(사용자가 사가고만 콕 집어 결정한 것 — 다른 판은 각자 상황이 달라 손 안 댐). VRoid 캐릭터 추가.

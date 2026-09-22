@@ -2,8 +2,10 @@
  * 패배 비용과 회수 — 떨어진 짐 (PLAN §5 ⑧)
  * ---------------------------------------------------------------
  * 토벌·성채·도적전·사당에서 **손으로 치르다** 지면 소지 금의 15%(상한 300)가 그 자리에
- * '떨어진 짐'으로 남는다(위경도). 10분 안에 그 자리 150m 안에서 넷 중 무엇이든 이기면
+ * '떨어진 짐'으로 남는다(위경도). 10분 안에 그 자리 400m 안에서 넷 중 무엇이든 이기면
  * 되찾고, 아니면 흩어진다. 동시에 3개까지 — 넷째가 생기면 가장 오래된 것이 먼저 흩어진다.
+ * (2026-09-22: 진 대상 자체는 10분 쿨다운이 짐 수명과 같아 곧바로 되찾을 수 없다 —
+ * 반경을 150→400m 로 넓혀 근처 다른 것으로 회수할 여지를 늘렸다, 사용자 결정.)
  * 죽어도 남는 것: 도감·인물·인연·비석·승급 특성(잃는 건 금뿐이다).
  *
  * 손잡이(`_admin.html`): `drop.pct`(0 이면 벌칙이 꺼진다) · `drop.cap` · `drop.minutes` ·
@@ -27,7 +29,7 @@
   function pct() { return core.clamp(core.tuned('drop.pct', 0.15), 0, 1); }
   function cap() { return Math.max(0, Math.round(core.tuned('drop.cap', 300))); }
   function lifeMs() { return Math.max(1, core.tuned('drop.minutes', 10)) * 60 * 1000; }
-  function radiusM() { return Math.max(10, core.tuned('drop.radiusM', 150)); }
+  function radiusM() { return Math.max(10, core.tuned('drop.radiusM', 400)); }
 
   function raw() { return core.save.drops || []; }
 
