@@ -8138,3 +8138,10 @@ PROJECT_STATE.md` 참고. 요약:
 - `forest_terrain_builder.gd`에 임시 `SAGA_TRIPLANAR_DEBUG` 훅으로 Ground 노드 머티리얼이 새 셰이더+grass/dirt/stone 텍스처 3장 전부 정상 로드됐는지 확인 후 훅 제거.
 - 헤드리스 임포트 오류 0, `godot_regress.sh` 다섯 판 REGRESS OK(GO 불변, FOREST·REALM만 md5 변경 — REALM은 로그 재로드 순서 차이뿐, 3회 내부 일관 확인), `.import`/`project.godot` 잡음 없음.
 - **남은 미배선**: 위 오보 정정 목록 그대로 + STORY/DUNGEON/REALM 트라이플레이너(구조가 달라 별도 설계 필요, 기계적 포팅 안 함).
+
+## DUNGEON 굴혈 mood 3종 배선 + 문 아치 렌더 버그 발견·수정 (2026-09-23, 같은 세션 이어서, "이어서해")
+
+- FOREST 트라이플레이너 다음으로 "안 한 목록" 중 DUNGEON 굴혈 mood(09-19 `palette.py`가 room-small·gate·corridor 전부 3결(dirt/limestone/lava)로 스냅해 둔 채 미사용)를 골랐다. `test_room.gd`에 `ROOM_MOODS`(순환)·`MOOD_ROOM_GLB`/`MOOD_GATE_GLB`/`MOOD_CORRIDOR_GLB`(mood→variant glb 경로) 신설, `_spawn_room_mesh`/`_spawn_gate`/`_spawn_corridor` 세 함수가 `room_index`를 받아 `_mood_for_room(i) = ROOM_MOODS[i%3]`으로 고른 경로를 로드하게 바꿨다. 어느 방이 무슨 mood여야 한다는 원작 근거가 없어 방 순서 3색 순환으로 결정(결정적, 회귀 md5 안정).
+- 임시 `SAGA_MOOD_DEBUG` 훅으로 방마다 실제 로드된 mesh.resource_path를 찍어 dirt→limestone→lava→dirt… 순환 확인 — 1차 시도에선 노드 이름(`RoomMesh` 등) 기반 필터를 썼다가 헛다리(Godot가 동일 이름 재사용 시 두 번째부터 `@ClassName@N` 익명 이름을 붙이는 기존 동작 — 09-23 이전부터 있던 동작, 원본 코드로 재현해 확인, 내 변경과 무관)를 잡을 뻔함 → 타입(`is MeshInstance3D`) 기반으로 바꿔 정확히 확인.
+- **그 과정에서 발견**: gate 관련 mesh가 전혀 안 찍힘 → `_spawn_gate()`를 보니 `mi.mesh = mesh` 대입 자체가 없었다. `git log -S`/`git show`로 원인 추적 — 2026-09-12 "여러 방 연결" 리팩터(커밋 `1ea68c57`, `at_north` 인자 추가)가 그 줄을 빠뜨렸다(그 전 커밋엔 있었다). 그날부터 지금까지 문 아치가 한 번도 렌더된 적 없는 빈 MeshInstance3D였다는 뜻 — mood 작업과 무관한 순수 기존 버그라 별도로 `mi.mesh = mesh` 한 줄 추가. 게임플레이(벽 틈)는 안 막혀 있어 안 걸리고 지나간 것으로 보인다.
+- 훅 제거 후 재확인(13개 gate mesh 전부 정상 로드), `godot_regress.sh` 다섯 판 REGRESS OK(DUNGEON만 md5 변경), `.import`/`project.godot` 잡음 없음.

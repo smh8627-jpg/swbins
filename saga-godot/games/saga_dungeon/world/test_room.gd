@@ -33,6 +33,32 @@ const ROOM_GLB := "res://assets/dungeon/room-small.glb"
 const GATE_GLB := "res://assets/dungeon/gate.glb"
 const CORRIDOR_GLB := "res://assets/dungeon/corridor.glb"
 
+## PLAN 103-3 "굴혈 mood 3(흙·석회·용암)" — 09-19 `palette.py`가 room-small·
+## gate·corridor 셋 다 세 결로 스냅해 뒀는데(ASSET_GUIDE 해당 날짜) 그동안
+## 방이 전부 원본(`ROOM_GLB` 등) 한 가지로만 세워졌다. 방마다 정해진 서사적
+## 규칙은 없어(어느 방이 "용암"이어야 한다는 근거가 원작에 없다) 방 순서를
+## 3색으로 그냥 순환시킨다 — 결정적이라 헤드리스 회귀 md5는 그대로 안정.
+const ROOM_MOODS := ["dirt", "limestone", "lava"]
+const MOOD_ROOM_GLB := {
+	"dirt": "res://assets/generated/variants/room-small__dungeon_dirt.glb",
+	"limestone": "res://assets/generated/variants/room-small__dungeon_limestone.glb",
+	"lava": "res://assets/generated/variants/room-small__dungeon_lava.glb",
+}
+const MOOD_GATE_GLB := {
+	"dirt": "res://assets/generated/variants/gate__dungeon_dirt.glb",
+	"limestone": "res://assets/generated/variants/gate__dungeon_limestone.glb",
+	"lava": "res://assets/generated/variants/gate__dungeon_lava.glb",
+}
+const MOOD_CORRIDOR_GLB := {
+	"dirt": "res://assets/generated/variants/corridor__dungeon_dirt.glb",
+	"limestone": "res://assets/generated/variants/corridor__dungeon_limestone.glb",
+	"lava": "res://assets/generated/variants/corridor__dungeon_lava.glb",
+}
+
+
+func _mood_for_room(room_index: int) -> String:
+	return ROOM_MOODS[room_index % ROOM_MOODS.size()]
+
 ## "제외" 목록 7번(보스층) — data-dungeon.js `isBossFloor(floor) =
 ## floor % 3 === 0`을 그대로 옮긴다(이 슬라이스에서 방=층 취급, 각 방의
 ## floor_num은 i+1). **2026-09-14, 51장 확장(GO/STORY/REALM이 각자
@@ -104,13 +130,13 @@ func _ready() -> void:
 	for i in range(ROOM_COUNT):
 		var origin_z := -float(i) * ROOM_SPACING
 		_room_origin_z.append(origin_z)
-		_spawn_room_mesh(origin_z)
+		_spawn_room_mesh(origin_z, i)
 		_spawn_walls(origin_z, i > 0)
 		_spawn_torch(origin_z)
-		_spawn_gate(origin_z, true) # 북쪽(출구) 문은 방마다
+		_spawn_gate(origin_z, true, i) # 북쪽(출구) 문은 방마다
 		if i > 0:
-			_spawn_gate(origin_z, false) # 남쪽(입구) 문 — 복도 쪽에서 보이는 면
-			_spawn_corridor(origin_z + ROOM_SPACING, origin_z)
+			_spawn_gate(origin_z, false, i) # 남쪽(입구) 문 — 복도 쪽에서 보이는 면
+			_spawn_corridor(origin_z + ROOM_SPACING, origin_z, i)
 		_spawn_exit_trigger(origin_z, i)
 		_exit_used.append(false)
 
@@ -222,8 +248,9 @@ func _refresh_goal_board() -> void:
 	board.set_goals(now, session, "—")
 
 
-func _spawn_room_mesh(origin_z: float) -> void:
-	var mesh := GLBUtils.extract_mesh(ROOM_GLB)
+func _spawn_room_mesh(origin_z: float, room_index: int) -> void:
+	var glb: String = MOOD_ROOM_GLB.get(_mood_for_room(room_index), ROOM_GLB)
+	var mesh := GLBUtils.extract_mesh(glb)
 	if mesh == null:
 		return
 	var mi := MeshInstance3D.new()
@@ -303,12 +330,19 @@ func _wall(size: Vector3, pos: Vector3) -> void:
 
 ## at_north=true면 그 방의 출구(북쪽, -z), false면 입구(남쪽, +z) — 같은
 ## gate.glb를 방향만 반대로 놓는다(아치는 앞뒤가 대칭이라 뒤집을 필요 없음).
-func _spawn_gate(origin_z: float, at_north: bool) -> void:
-	var mesh := GLBUtils.extract_mesh(GATE_GLB)
+func _spawn_gate(origin_z: float, at_north: bool, room_index: int) -> void:
+	var glb: String = MOOD_GATE_GLB.get(_mood_for_room(room_index), GATE_GLB)
+	var mesh := GLBUtils.extract_mesh(glb)
 	if mesh == null:
 		return
 	var mi := MeshInstance3D.new()
 	mi.name = "ExitGate" if at_north else "EntranceGate"
+	## 2026-09-23 발견 — 2026-09-12 "여러 방 연결" 리팩터(1ea68c57, at_north
+	## 인자 추가)가 `mi.mesh = mesh`를 빠뜨렸다(git blame으로 확인, 그 전엔
+	## 있었다). 그날부터 지금까지 문 아치가 실제로는 한 번도 렌더된 적 없는
+	## 빈 MeshInstance3D였다는 뜻 — mood 배선과 무관한 기존 버그라 별도로
+	## 고친다.
+	mi.mesh = mesh
 	var z_off: float = -ROOM_HALF.z if at_north else ROOM_HALF.z
 	mi.position = Vector3(0, 0, origin_z + z_off)
 	add_child(mi)
@@ -317,9 +351,10 @@ func _spawn_gate(origin_z: float, at_north: bool) -> void:
 ## from_z(앞 방의 출구 쪽, 더 큰 z)에서 to_z(다음 방의 입구, 더 작은 z)
 ## 까지 corridor.glb 타일을 이어 붙인다 + 옆벽·바닥 충돌(GLB 자체엔 충돌이
 ## 없다 — room-small.glb·gate.glb와 같은 이유).
-func _spawn_corridor(from_z: float, to_z: float) -> void:
+func _spawn_corridor(from_z: float, to_z: float, room_index: int) -> void:
 	var start_z: float = from_z - ROOM_HALF.z # 앞 방 북쪽 벽
-	var mesh := GLBUtils.extract_mesh(CORRIDOR_GLB)
+	var glb: String = MOOD_CORRIDOR_GLB.get(_mood_for_room(room_index), CORRIDOR_GLB)
+	var mesh := GLBUtils.extract_mesh(glb)
 	for i in range(CORRIDOR_TILES_PER_GAP):
 		var tile_center_z: float = start_z - CORRIDOR_TILE_LEN * (i + 0.5)
 		if mesh != null:
