@@ -8005,3 +8005,9 @@ PROJECT_STATE.md` 참고. 요약:
 - `realm_city.gd`(디오라마, 정상 렌더)와 `realm_worldmap.gd`가 같은 `WorldCurveMaterial` 셰이더를 쓰는데 왜 하나만 안 보이나 대조하다, `assets/environment/env_pc.tres`의 안개(`fog_density=0.012`)가 원인임을 확인 — 도보 스케일(수십 m)엔 적당하지만 월드맵 카메라~성 거리(WORLD_SCALE=14, radius 120~420)에선 `exp(-density*거리)`가 4~24%까지 떨어져 화면이 거의 안개색 하나로 덮인다(실기에서 확대해 보니 아주 흐릿하게 형체가 비침 — 완전한 블랙아웃이 아니라 안개 혼합인 것과 일치).
 - `realm_worldmap.gd`에 `_apply_fog_override()` 추가: 지도를 보여줄 때만 `env_pc.tres`를 `duplicate()`한 사본의 `fog_enabled=false`로 바꿔 WorldEnvironment에 꽂고, 나갈 때 원본으로 되돌린다 — 공유 리소스 `env_pc.tres` 자체는 안 건드림(다섯 판이 같이 씀). 헤드리스 에러 0, `godot_regress.sh` 통과, 실기로 재확인 — 카키색 바닥+붉은 적성 마커 전부 보임.
 - 도중 다른 세션(saga-unity)으로 `keybd_event`가 한 번 샌 사고 이후로는 매 입력 전 `GetForegroundWindow()`로 대상 창 확인 후에만 클릭/입력 보냄 — 이후 문제 없었음.
+
+## REALM 월드맵 드래그·줌·탭 실기 확인 (2026-09-22, 같은 세션, "이어해")
+
+- 안개 수정 뒤 windowed exe로 재확인: 마우스 드래그(좌클릭+이동)로 궤도 카메라 yaw 회전 확인(마커 배치가 화면 안에서 상대적으로 이동), 휠 스크롤로 줌인(반경 축소, 마커가 커짐) 확인.
+- 적성 마커 하나를 탭 → 상단에 "시상 (아직 우리 성이 아닙니다)" 토스트 확인 — `realm_worldmap.gd::_on_marker_input()`의 미정복 성 판정(이름+토스트, current_city는 안 바뀜) 그대로 작동.
+- REALM 월드맵 관련 실기 항목(렌더·드래그·줌·탭)은 이걸로 일단락. 남은 REALM 항목은 문답·승리조건·인물 특성 등 시간이 걸리는 시스템 위주(PROJECT_STATE 참고).
