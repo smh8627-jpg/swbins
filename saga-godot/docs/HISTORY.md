@@ -8172,3 +8172,11 @@ PROJECT_STATE.md` 참고. 요약:
 - **icon_star**: 배선 후보를 찾다가 이미 배선된 두 자리를 다시 읽었다. `test_room.gd::_on_exit_entered()`(축복 3택 카드) 주석: "카드 위 축 아이콘·희귀도를 라벨 텍스트로 근사 — **새 UI를 안 만든다**". `loot_pickup.gd::_spawn_legendary_glow()` 주석: 전설만 파티클 하나, "잡졸·정예 드롭까지 번지면 **색만 보고 줍는다는 반사신경이 흐려진다**"며 의도적으로 최소화. 둘 다 "아이콘 추가 안 함"이 사고가 아니라 결정이라 그 결정을 뒤집을 근거 없이 icon_star를 끼워 넣지 않는다.
 - **NPC 옷 팔레트 8종**: character-a~d.glb를 trimesh로 열어 확인 — 몸 전체(머리·팔·다리·몸통)가 재질 하나(`texture-a`~`texture-d`, 1024×1024 아틀라스 공유)뿐이라 피부·옷이 재질로 안 갈린다. `palette.py`의 snap-glb/tint-glb는 **재질 단위**(`_material_matches`, VRoid의 `_CLOTH`/`_SKIN` 접미사 전제)로만 골라 물들이므로 그대로 쓰면 얼굴·피부까지 같이 물든다 — 픽셀 영역(옷 vs 피부) 마스킹은 새 툴이 필요하다는 뜻. 게다가 지금 GO/FOREST가 쓰는 이 네 캐릭터는 전부 이름 있는 개별 NPC(촌장=b·어부=b 재사용·상인=c·도적=d)라 "군중 옷 다양화"를 쓸 자리 자체가 없다(103-3 표가 "REALM 무장 실루엣"을 소비처로 짐작했지만 실제로 REALM 3D 몬스터 실루엣은 이 캐릭터들과 무관한 별개 코드였다). 기술 난이도 + 소비처 부재 둘 다라 보류.
 - 셋 다 코드 변경 없음(조사·문서화만) — 헤드리스 재검증 불필요.
+
+## 105 Q-b(SDFGI vs LightmapGI) 종결 — PC는 SDFGI 유지 (2026-09-23, 같은 세션, "Q-b GUI 비교 지금 진행")
+
+- Godot 4.7 stable(win64, console 별도 실행파일 없음 — 4.7부터 한 exe가 겸함)을 스크래치패드에 받고 `godot_regress.sh` 통과 확인 뒤 착수.
+- `terrain_builder.gd`·`vegetation_builder.gd`가 지형·초목을 **매 세션 `_ready()`에서 절차적으로 새로 짓는다**(102-5) — LightmapGI는 고정된 정적 메시·UV2에 한 번 구운 텍스처를 재사용하는 방식이라 이 구조와 근본적으로 안 맞는다(세션마다 재베이크해야 하고, 그러면 모바일에 오히려 부담 — "구워서 GI 비용을 아낀다"는 애초 취지와 반대). 코드 조사만으로 결론이 났다.
+- windowed exe 실측(`ReviewCamera`·`Player` 카메라 `current` 임시 조작, `Weather.force("clear")`·`Season.force("summer")`·`TimeOfDay.force(false)` 임시 추가로 맑은 날 통일 — 스크린샷 뒤 전부 원복, `git diff` 빈 것 확인)으로 GO TestVillage 현재 SDFGI on 톤도 확인: 과다노출·색 튐 없이 기존 승인 톤 그대로.
+- 참고로 스폰 지점(-48,-24)이 "무너진 기둥" 랜드마크(`landmarks_builder.gd`, MapScrapEvent grid 4,4)와 거의 겹쳐 기본 카메라가 그 구조물에 파묻히는 09-21 HISTORY 기록의 버그가 여전히 재현됨(별도 버그, 이번 결정과 무관 — 다음에 스폰/랜드마크 간격 조정 시 참고).
+- 결론: PC `env_pc.tres::sdfgi_enabled=true` **그대로 유지**, LightmapGI 도입 폐기. PLAN 102-2 표·105 Q-b 갱신, PROJECT_STATE "다음 작업"에서 Q-b 제거. 코드/리소스 변경 없음(임시 실측 변경은 전부 원복) — regress 재확인 md5 이전과 동일.

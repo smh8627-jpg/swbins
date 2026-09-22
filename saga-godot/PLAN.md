@@ -2784,7 +2784,7 @@ Combat Core 생성
 | `tonemap_exposure` | 1.0 | 1.0 | 1.0 |
 | `ssao_enabled` / `ssao_radius` / `ssao_intensity` | on / 기본 | on / **1.0** / **2.0** | off |
 | `ssil_enabled` | on | on(데스크톱만) | off |
-| `sdfgi_enabled` | on | **off → `LightmapGI` 베이크로 대체**(105장 Q) | off |
+| `sdfgi_enabled` | on | **on 유지**(105장 Q-b 종결, 2026-09-23 — LightmapGI 폐기) | off |
 | `ssr_enabled` | on(56) | **off**(66-2 "물은 단순화" — SSR 필요 없음) | off |
 | `glow_enabled` / `glow_intensity` / `glow_bloom` / `glow_hdr_threshold` | on / 0.6 / 0.05 / 기본 | on / 0.6 / **0.0** / **1.0** | on / 0.5 / 0.0 / 1.0 |
 | `adjustment_enabled` / `contrast` / `saturation` / `color_correction` | off | **on / 1.05 / 1.10 / LUT 1장**(판별 `assets/generated/lut_<판>.png`) | 같음 |
@@ -2917,7 +2917,7 @@ assets/generated/
 # 105. 열린 질문 (사용자 결정 — 답이 나오면 해당 장에 내려보내고 여기서 지운다)
 
 - **Q1 완성판 트랙 — 결정(2026-09-21): Unity 먼저 집중으로 뒤집힘**(SAGA-DESIGN §10-Q1, 2026-09-20 "Godot 먼저" 결정을 사용자가 하루 만에 다시 뒤집었다). 이 트랙의 팔레트·procgen·tilegen·sfxgen·spritegen 파이프라인 우위는 그대로 유효하지만, 그래픽·에셋 신규 투자 우선순위는 Unity 쪽으로 넘어갔다. 이 트랙 병행 개발은 유지, 진행 중인 작업은 그대로 존중.
-- **Q-b SDFGI vs LightmapGI**: PC 프로파일에서 SDFGI 를 끄고 LightmapGI 베이크로 두 프로파일 톤을 맞출 것인가(102-2 제안), PC 만 SDFGI 유지할 것인가. 승인판 그래픽 톤을 바꾸는 일이라 실기 확인 몰아서 하기 전엔 착수 안 함. **여전히 열림** — 헤드리스로는 렌더 결과를 볼 수 없어 이 세션에서 대신 결정하지 않았다.
+- **Q-b SDFGI vs LightmapGI — 종결(2026-09-23, PC는 SDFGI 유지)**: `terrain_builder.gd`·`vegetation_builder.gd`가 지형·초목을 매 세션 `_ready()`에서 절차적으로 새로 짓는다(102-5) — LightmapGI 베이크는 고정된 정적 메시·UV2에 텍스처를 구워 재사용하는 방식이라, 세션마다 바뀌는 절차적 지형엔 구조적으로 안 맞는다(매번 다시 구워야 해 모바일에 오히려 부담, 애초에 GI를 "구워서" 아끼려던 취지와 반대). windowed exe 실측(TestVillage, 맑음·여름 강제)으로 현재 SDFGI 톤도 확인 — 과다노출·색 튐 없이 기존 승인 톤 그대로. PC는 SDFGI on 유지로 확정, LightmapGI 방향은 폐기.
 - **Q-d 사람 몫 셋 — Quaternius 부분 해결(2026-09-20)**: 사람이 무료 Standard 버전을 직접 받아 나무·덤불 22종을 `assets/vegetation/`에 확보(임포트 검증 완료, ASSET_GUIDE 해당 날짜 참고). **Mixamo 애니 다운로드·VRoid 조형(주역 몇 명)은 여전히 열려 있음** — 자동화 불가, 사람 몫. Quaternius도 바위·잔디·꽃 등 나머지 46종은 아직 안 받음(필요해지면 같은 zip에서 추가 가능).
 
 ---
