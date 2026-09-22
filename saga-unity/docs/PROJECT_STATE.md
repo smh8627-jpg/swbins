@@ -1,13 +1,13 @@
 # PROJECT_STATE — saga-unity (상태만, ≤15KB, 덮어쓴다)
 
 **규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다(2026-09-16 재편 전 본문 5,532줄은 그쪽 첫 절에 그대로 있다). 넘치면 `tools/precheck.sh` 가 막는다.
-마지막 갱신: 2026-09-22 (스무 세션째, 이어서 — **102-5 전부 닫힘**. 바닥 한 색(FOREST만 진짜 단색, 디테일 오버레이+leafy_grass AO로 완료)·Screen Space Shadows(`BuildScreenSpaceShadowsFeature.cs`, PC_Renderer.asset에만)·스케일/UI 폰트(재조사 결과 이미 처리돼 있어 코드 변경 없음)에 이어, 그림자 계단(적·NPC — `CharacterVisual.EnsureBlobShadow()`를 GO/DUNGEON/FOREST/STORY 네 `Spawn()`/`SpawnFallbackCapsule()`+리깅 분기 셋에 배선)·카메라 클리핑(REALM `RealmOrbitCamera.ResolveCollisionZoom()`)까지 마쳤다. 다섯 판 배치 컴파일+헤드리스 3연속 재확인 전부 통과. 이어서 GUI 스크린샷 환경 문제의 **진짜 원인을 찾음**(아래 "중요" 절) — 코드 변경 없음, 사용자 결정 대기) — 경위는 HISTORY grep. 102-4는 전부 처리됐다(남은 건 `Characters/` Kenney, 실사용 중이라 못 뺀다). 103-1·67~69장 잔여는 전부 닫힘.
+마지막 갱신: 2026-09-22 (스물한 세션째, 새 세션 "사가유니티 이어 하기" — 지난 세션이 남긴 **UAC 재활성화 여부**를 먼저 물었고, 사용자가 이미 켜고 재부팅까지 마친 상태였다. `PlaytestDungeonEnemiesGui` 재검증으로 GUI 스크린샷 대화상자 문제 **해결 확인**(아래 "해결됨" 절) — 코드 변경 없음, 순수 검증). 102-5는 지난 세션에 전부 닫힘(바닥 한 색·Screen Space Shadows·스케일/UI 폰트 재조사·그림자 계단·REALM 카메라 클리핑). 102-4는 전부 처리됐다(남은 건 `Characters/` Kenney, 실사용 중이라 못 뺀다). 103-1·67~69장 잔여는 전부 닫힘.
 
-**중요 — GUI 스크린샷 진짜 원인 확인(2026-09-22)**: 이 PC는 **UAC가 통째로 꺼져 있다**(`EnableLUA=0`). UAC 꺼지면 관리자 계정엔 분할(일반권한) 토큰이 안 생겨 모든 프로세스가 항상 완전 관리자 권한 — `explorer.exe` 경유·`runas /trustlevel:0x20000` 둘 다 이번 세션에 직접 시도해 안 통함 확인(대화상자 그대로 뜸, 즉시 `taskkill //F //IM Unity.exe //T`로 정리, 폭주 없음 — SendKeys 자동 닫기는 여전히 금지). 유일한 해법은 `EnableLUA=1`+재부팅인데 PC 전체 영향이라 사용자 결정 없이 안 건드림 — **다음 세션 시작 시 먼저 물어본다.** `-batchmode`는 대화상자는 안 뜨지만 `ScreenCapture`가 파일을 안 남기는 것도 여전함.
+**해결됨 — GUI 스크린샷 대화상자 문제(2026-09-22, 새 세션)**: 사용자가 UAC를 켜고(`EnableLUA=1`) 재부팅 완료(`LastBootUpTime` 확인). `PlaytestDungeonEnemiesGui`를 두 번 재실행해 관리자 대화상자 없이 매번 exit 0으로 자체 종료 확인 — 1차는 66-2장 ⑩의 "셰이더 캐시 콜드 → 시안 평면 실루엣" 증상 그대로 재현(예상된 별개 함정), 2차 재실행에서 Abe(잡졸)·Maria 갑옷 디테일까지 정상 렌더링 확인(스크린샷은 근접 구도, 전신 구도는 아직). GUI 자동 확인 도구를 다시 쓸 수 있다. 두 실행 모두 `ProjectSettings/`·`Packages/` 4파일 부작용 발생 → `git checkout --`으로 원복 확인.
 
 ## 캐릭터 자산 — 이 PC 기준 (2026-09-19)
 
-Maria(플레이어)·Abe(잡졸)·Brute(두목) 셋만 mixamo.com 실자산 확보(`Assets/Art/CharactersRealistic/`, `.gitignore`로 로컬 전용 — **PC마다 새로 받아야 함**, 목록은 `SetupXxxCharacterImport.cs`). GUI 육안 확인: Maria idle/run/attack 정상. Abe/Brute는 Dungeon 배치 확인, **전신 구도 스크린샷은 아직 못 얻음**(`PlaytestDungeonEnemiesGui.cs`). 경위는 HISTORY.md grep.
+Maria(플레이어)·Abe(잡졸)·Brute(두목) 셋만 mixamo.com 실자산 확보(`Assets/Art/CharactersRealistic/`, `.gitignore`로 로컬 전용 — **PC마다 새로 받아야 함**, 목록은 `SetupXxxCharacterImport.cs`). GUI 육안 확인: Maria idle/run/attack 정상, Abe 근접 구도(갑옷·디테일 정상, 2026-09-22 UAC 재활성화 후 재검증). Brute·**전신 구도 스크린샷은 아직 못 얻음**(`PlaytestDungeonEnemiesGui.cs`). 경위는 HISTORY.md grep.
 
 ## 완료 요약 — 다섯 게임 × 진척
 
@@ -27,7 +27,7 @@ PLAN 101-3(C hitstop류·F 유품 마커·G 데칼/레벨업 컷/장비 가시�
 
 ## 다음 작업 (우선순위, 상세는 PLAN 해당 장 · 경위는 HISTORY 날짜 grep)
 
-1. **다음 세션 시작 시 먼저 물어볼 것 — UAC 재활성화**(위 "중요" 절, 원하면 재부팅 뒤 GUI 도구 가능성). 아니면 실기 확인은 계속 사람이 직접(아래 목록, 여러 세션째 쌓임 — 102-5가 코드로는 끝나서 지금 유일한 병목). 다른 PC는 `CharactersRealistic/` 비어 있음(mixamo.com, `SetupXxxCharacterImport.cs`).
+1. UAC 재활성화로 GUI 자동 확인 도구가 다시 쓸 수 있게 됐다(위 "해결됨" 절). 필요하면 각 판 `PlaytestXxxGui`류로 추가 캡처 가능(Brute·전신 구도 등). 그 외 대부분은 여전히 사람이 손맛으로 직접 판단해야 하는 항목이라 실기 확인은 계속 사람이 직접(아래 목록, 여러 세션째 쌓임 — 102-5가 코드로는 끝나서 지금 유일한 병목). 다른 PC는 `CharactersRealistic/` 비어 있음(mixamo.com, `SetupXxxCharacterImport.cs`).
 2. **101-2·104-1 잔여(전부 보류)** — GO⑤(모바일 빌드 뒤)·STORY5-2 · `Props/` lantern·stall-red(실기 확인 후) · `Characters/` Kenney는 아직 못 뺀다(실사용 중).
 3. **105 Q-U3** — Shader Graph SSS·헤어카드, 사람 GUI 필요.
 

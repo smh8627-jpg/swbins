@@ -8435,3 +8435,15 @@ SSAO 튜닝 뒤 남은 §102-5 항목은 전부 새 결정이나 큰 작업이 �
 **결론**: 이 환경(스크립트/셸)에서는 Unity GUI 실행이 구조적으로 항상 관리자 경고를 만난다 — 유일한 해법은 `EnableLUA=1`로 되돌리고 재부팅하는 것뿐인데, 이건 이 PC 전체 보안 정책에 영향을 주고 재부팅까지 필요한 시스템 변경이라 사용자 확인 없이 진행하지 않았다. 사용자에게 물어보니 "새로운 세션에서 이어 하자"로 마무리 — 다음 세션 시작 시 UAC 재활성화 여부를 먼저 물어보도록 `PROJECT_STATE.md` "중요" 절에 원인·시도 내역·다음 행동을 정리해 남겼다.
 
 코드 변경 없음(순수 진단). `docs/PROJECT_STATE.md` "중요" 절·"다음 작업" 1번만 갱신, 커밋.
+
+## 2026-09-22 — GUI 스크린샷 대화상자 문제 해결 확인 (새 세션 "사가유니티 이어 하기")
+
+지난 세션이 `PROJECT_STATE.md`에 남긴 대로 세션 시작 시 UAC 재활성화 여부를 먼저 물었다. 사용자가 "UAC 켜고 재부팅 후 진행"을 골랐는데, 레지스트리(`reg query .../Policies\System /v EnableLUA` → `0x1`)와 `(Get-CimInstance Win32_OperatingSystem).LastBootUpTime`(오늘 21:22)을 확인해 보니 **이미 켜고 재부팅까지 마친 상태**였다 — 이 세션에서 직접 레지스트리를 건드리거나 재부팅을 실행하지 않았다.
+
+`PlaytestDungeonEnemiesGui`(Menu → `-executeMethod Saga.EditorTools.PlaytestDungeonEnemiesGui.Run`, `-batchmode` 없이)를 두 번 재실행해 검증:
+1. **1차**: 관리자 대화상자 없이 exit 0으로 자체 종료(대화상자 폭주 재현 없음 — 문제 해결 1차 확인). 단, 캡처된 스크린샷(`10_dungeon_bossgroup.png`)이 시안색 평면 실루엣이었다 — 이건 새 문제가 아니라 66-2장 ⑩·2026-09-19 세션에 이미 기록된 "셰이더 캐시 콜드" 증상(프로젝트를 갓 연 첫 실행이라 셰이더 변형이 안 쌓여 있었음, 180프레임 대기로도 이 PC에선 부족).
+2. **2차**(캐시가 쌓인 뒤 재실행): 같은 스크린샷 경로에 정상 렌더링 — Maria(플레이어, 갑옷 디테일)와 근접한 잡졸(Abe로 추정, 앞쪽 웅크린 자세)이 돌바닥·벽 텍스처와 함께 또렷하게 찍혔다. 완전한 전신 구도는 아직 아니지만(카메라 각도·거리상 Abe 하반신 일부만), 2026-09-19 세션이 "아직 못 얻음"으로 남긴 것보다는 진전 — Brute는 이번 프레임엔 화면 밖.
+
+두 실행 모두 `ProjectSettings/ProjectVersion.txt`·`EditorSettings.asset`·`Packages/manifest.json`·`packages-lock.json` 4파일이 조용히 고쳐진 것을 `git checkout --`으로 원복(기존 함정 재확인, `tools/unity-batch.sh`는 배치 전용이라 이번엔 안 씀).
+
+코드 변경 없음(순수 검증). `docs/PROJECT_STATE.md` "해결됨" 절·캐릭터 자산 절·"다음 작업" 1번 갱신, 커밋 예정.
