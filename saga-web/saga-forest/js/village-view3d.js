@@ -913,6 +913,78 @@
     if (col) { col.needsUpdate = true; }
   }
 
+  /** 백중 불꽃(PLAN §5.6) — 등롱 셋을 다 밝히면(`festival.js` `complete()`가
+   *  이미 쏘는 `village:fest` 를 그대로 듣는다, §5.8① 낚시 줌과 같은 결로
+   *  festival.js 는 안 건드림) 하늘에 불꽃 세 발이 터진다. 새 GLB·이미지
+   *  없이 반딧불이와 같은 Points 파티클을 한 발짜리 폭죽으로 돌려 쓴다 —
+   *  다만 반딧불이(떠다님)와 달리 위로 쏘아 올렸다가 중력으로 퍼지며
+   *  꺼지는 "터짐" 한 번뿐이라 슬롯을 셋(동시에 세 발) 미리 지어 둔다. */
+  var FIREWORK_N = 40, FIREWORK_LIFE = 1.1, FIREWORK_GRAV = 2.4;
+  var FIREWORK_COLORS = [[1, 0.55, 0.25], [1, 0.88, 0.35], [0.55, 0.82, 1], [1, 0.42, 0.6]];
+  var fireworkBursts = [];   // { pts, t(연소 남은 시간, -1=꺼짐), queued(터지기까지 남은 시간, -1=대기 없음) }
+  function buildFireworkBurst(t) {
+    var geo = new t.BufferGeometry();
+    geo.setAttribute('position', new t.BufferAttribute(new Float32Array(FIREWORK_N * 3), 3));
+    geo.setAttribute('color', new t.BufferAttribute(new Float32Array(FIREWORK_N * 3), 3));
+    var matOpts = { size: 0.22, transparent: true, opacity: 0, vertexColors: true, depthWrite: false, blending: t.AdditiveBlending };
+    var tex = fireflyGlow(t);
+    if (tex) { matOpts.map = tex; }
+    var pts = new t.Points(geo, new t.PointsMaterial(matOpts));
+    pts.visible = false;
+    pts.userData.vel = new Float32Array(FIREWORK_N * 3);
+    scene.add(pts);
+    return pts;
+  }
+  /** 3발 슬롯을 처음 쓸 때 짓는다(init() 을 거치지 않는 자가진단 등에서도
+   *  scene 이 있으면 안전하게 늦게 지을 수 있게, buildWeatherFX 와 달리
+   *  지연 생성으로 뒀다) */
+  function ensureFireworkBursts(t) {
+    while (fireworkBursts.length < 3) { fireworkBursts.push({ pts: buildFireworkBurst(t), t: -1, queued: -1 }); }
+  }
+  function fireBurst(b) {
+    var pos = b.pts.geometry.attributes.position.array, col = b.pts.geometry.attributes.color.array, vel = b.pts.userData.vel;
+    var c = FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)];
+    var y = 5 + Math.random() * 1.5, i, a, sp;
+    for (i = 0; i < FIREWORK_N; i++) {
+      a = Math.random() * Math.PI * 2; sp = 1.8 + Math.random() * 2.2;
+      pos[i * 3] = (Math.random() - 0.5) * 3; pos[i * 3 + 1] = y; pos[i * 3 + 2] = (Math.random() - 0.5) * 3;
+      vel[i * 3] = Math.cos(a) * sp; vel[i * 3 + 1] = (Math.random() - 0.15) * 2.2; vel[i * 3 + 2] = Math.sin(a) * sp;
+      col[i * 3] = c[0]; col[i * 3 + 1] = c[1]; col[i * 3 + 2] = c[2];
+    }
+    b.pts.geometry.attributes.position.needsUpdate = true;
+    b.pts.geometry.attributes.color.needsUpdate = true;
+    b.pts.material.opacity = 1;
+    b.pts.visible = true;
+    b.t = FIREWORK_LIFE;
+  }
+  /** `village:fest`(백중 완성) 리스너가 부른다 — 세 발을 살짝 시차를 두고 예약 */
+  function triggerFirework() {
+    if (!scene || !three()) { return; }
+    ensureFireworkBursts(three());
+    fireworkBursts[0].queued = 0; fireworkBursts[1].queued = 0.55; fireworkBursts[2].queued = 1.15;
+  }
+  function stepFirework(dt) {
+    for (var i = 0; i < fireworkBursts.length; i++) {
+      var b = fireworkBursts[i];
+      if (b.queued >= 0) {
+        b.queued -= dt;
+        if (b.queued <= 0) { b.queued = -1; fireBurst(b); }
+        continue;
+      }
+      if (b.t < 0) { continue; }
+      b.t -= dt;
+      var pos = b.pts.geometry.attributes.position.array, vel = b.pts.userData.vel;
+      for (var j = 0; j < FIREWORK_N; j++) {
+        pos[j * 3] += vel[j * 3] * dt;
+        pos[j * 3 + 1] += vel[j * 3 + 1] * dt; vel[j * 3 + 1] -= FIREWORK_GRAV * dt;
+        pos[j * 3 + 2] += vel[j * 3 + 2] * dt;
+      }
+      b.pts.geometry.attributes.position.needsUpdate = true;
+      b.pts.material.opacity = Math.max(0, b.t / FIREWORK_LIFE);
+      if (b.t <= 0) { b.pts.visible = false; b.t = -1; }
+    }
+  }
+
   /** 물결 반짝임 점(PLAN 12절) 창고 — 자리는 `syncTerrain()`이 물 칸을 세우는
    *  김에 채워 준다(`waterRipplePos`). 칸 수 상한은 `terrainCap`처럼 초기화
    *  때 한 번만 정한다 */
@@ -985,6 +1057,7 @@
         floatStep(WEATHER_FX.fireflyBoost, true);
       }
     }
+    stepFirework(dt);
   }
 
   /** three 자체가 없거나(파일 못 받음) WebGL 컨텍스트를 못 만들면 false */
@@ -1150,6 +1223,10 @@
        한 번만 부르므로 중복 구독 걱정이 없다. */
     C().on('village:fish', function (e) {
       if (e && e.state === 'catch') { triggerFishZoom(); }
+    });
+    /* 백중 불꽃(§5.6) — festival.js complete() 가 이미 쏘는 이벤트, 새로 안 건드림 */
+    C().on('village:fest', function (e) {
+      if (e && e.kind === 'lantern') { triggerFirework(); }
     });
     /* 땅이 바뀌었다(공사·조개 길) — `syncTerrain()` 은 인물이 안 움직이면 지면을 다시 안
        세우므로, 제자리에서 땅만 바뀌면 다음 걸음까지 옛 땅이 보인다. 캐시 키를 비운다 */
