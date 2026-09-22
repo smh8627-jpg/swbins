@@ -689,6 +689,136 @@
     simyeon: ['tb_heukju']
   };
 
+  /* ── 대진(大秦) 지역 수비 무장 (2026-09-22, 열두째 확장) — 앞 열하나와
+     같은 결. era 는 전부 '대진(가상)' — 실존 인물이 아니다. faction 은
+     지키는 성 이름 그대로. */
+  var DAQIN_OFFICERS = [
+    { id: 'dj_yuri',      name: '유리', hanja: '琉璃', era: '대진(가상)', faction: '조지',
+      rarity: 3, trait: 'wisdom', emoji: '🏺', quote: '여기서 나는 유리그릇은 장안까지 가도 안 깨집니다.',
+      stats: { might: 40, wisdom: 78, command: 60 } },
+    { id: 'dj_hopak',     name: '호박', hanja: '琥珀', era: '대진(가상)', faction: '조지',
+      rarity: 3, trait: 'command', emoji: '⚔️', quote: '장사꾼도 칼을 찰 줄 알아야 이 길을 지나갑니다.',
+      stats: { might: 70, wisdom: 50, command: 76 } },
+    { id: 'dj_seohae',    name: '서해', hanja: '西海', era: '대진(가상)', faction: '안식',
+      rarity: 4, trait: 'wisdom', emoji: '🌊', quote: '바다가 이렇게 넓은 줄은 이 끝에 와서야 알았습니다.',
+      stats: { might: 42, wisdom: 84, command: 66 } },
+    { id: 'dj_seoncheok', name: '선척', hanja: '船隻', era: '대진(가상)', faction: '안식',
+      rarity: 3, trait: 'command', emoji: '⛵', quote: '바람이 사나우면 두 해도 걸립니다 — 함부로 배를 내지 않습니다.',
+      stats: { might: 56, wisdom: 60, command: 80 } },
+    { id: 'dj_gapju',     name: '갑주', hanja: '甲胄', era: '대진(가상)', faction: '려건',
+      rarity: 4, trait: 'might', emoji: '🛡️', quote: '먼 서쪽에서 갑옷째 흘러들어 온 자들이라 들었습니다.',
+      stats: { might: 86, wisdom: 44, command: 70 } },
+    { id: 'dj_doseo',     name: '도서', hanja: '島嶼', era: '대진(가상)', faction: '택산',
+      rarity: 3, trait: 'wisdom', emoji: '🏝️', quote: '치소가 바다 한가운데 있으니, 여긴 성이 아니라 배와 같습니다.',
+      stats: { might: 38, wisdom: 76, command: 58 } },
+    { id: 'dj_gijang',    name: '기장', hanja: '記帳', era: '대진(가상)', faction: '사복',
+      rarity: 3, trait: 'virtue', emoji: '📜', quote: '오간 물건은 다 장부에 남습니다 — 셈은 거짓말을 안 합니다.',
+      stats: { might: 34, wisdom: 74, command: 56 } },
+    { id: 'dj_haean',     name: '해안', hanja: '海岸', era: '대진(가상)', faction: '차란',
+      rarity: 3, trait: 'might', emoji: '⚓', quote: '해안 평야를 지키는 데엔 배도 병사만큼 요긴합니다.',
+      stats: { might: 72, wisdom: 46, command: 64 } },
+    { id: 'dj_hwanggeum', name: '황금', hanja: '黃金', era: '대진(가상)', faction: '대진',
+      rarity: 4, trait: 'command', emoji: '👑', quote: '감영이 못 밟은 땅에 그대가 먼저 서게 될 겁니다.',
+      stats: { might: 68, wisdom: 62, command: 90 } }
+  ];
+
+  /** 성 id → 그 성의 수비 무장 id 목록 (rtk.js seedNeutral() 이 쓴다) */
+  var DAQIN_GARRISON = {
+    tiaozhi: ['dj_yuri', 'dj_hopak'],
+    anxi: ['dj_seohae', 'dj_seoncheok'],
+    lijian: ['dj_gapju'],
+    zesan: ['dj_doseo'],
+    sifu: ['dj_gijang'],
+    qielan: ['dj_haean'],
+    daqin: ['dj_hwanggeum']
+  };
+
+  /* ── 선비(鮮卑) 지역 수비 무장 (2026-09-22, 열셋째 확장) — 앞 열둘과
+     같은 결. era 는 전부 '선비(가상)' — 실존 인물이 아니다. faction 은
+     지키는 성 이름 그대로. */
+  var XIANBEI_OFFICERS = [
+    { id: 'xb_gyeon',    name: '견마', hanja: '犬馬', era: '선비(가상)', faction: '고류',
+      rarity: 3, trait: 'might', emoji: '🐎', quote: '말이 지치지 않으니 여기서부턴 걸음이 배로 빨라집니다.',
+      stats: { might: 80, wisdom: 40, command: 66 } },
+    { id: 'xb_bonghwa',  name: '봉화', hanja: '烽火', era: '선비(가상)', faction: '고류',
+      rarity: 3, trait: 'wisdom', emoji: '🔥', quote: '연기 한 줄기로 삼백 리 너머까지 소식을 보냅니다.',
+      stats: { might: 44, wisdom: 76, command: 62 } },
+    { id: 'xb_daein',    name: '대인', hanja: '大人', era: '선비(가상)', faction: '탄한산',
+      rarity: 4, trait: 'command', emoji: '👑', quote: '동서 두 부의 부족장이 다 이 왕정 아래 모입니다.',
+      stats: { might: 74, wisdom: 58, command: 88 } },
+    { id: 'xb_gaseul',   name: '가슬', hanja: '歠仇', era: '선비(가상)', faction: '탄한산',
+      rarity: 3, trait: 'wisdom', emoji: '💧', quote: '왕정 곁을 흐르는 물줄기 이름을 딴 사람입니다.',
+      stats: { might: 40, wisdom: 74, command: 60 } },
+    { id: 'xb_hoja',     name: '호각', hanja: '胡角', era: '선비(가상)', faction: '선비산',
+      rarity: 3, trait: 'might', emoji: '🏹', quote: '이름을 딴 산에서 나고 자랐으니 물러설 자리가 없습니다.',
+      stats: { might: 78, wisdom: 42, command: 64 } },
+    { id: 'xb_honin',    name: '혼인', hanja: '婚姻', era: '선비(가상)', faction: '요락수',
+      rarity: 3, trait: 'virtue', emoji: '💞', quote: '해마다 이 강가에서 짝을 짓습니다 — 전쟁도 그날만은 쉽니다.',
+      stats: { might: 38, wisdom: 70, command: 56 } },
+    { id: 'xb_eoryang',  name: '어량', hanja: '漁梁', era: '선비(가상)', faction: '요락수',
+      rarity: 3, trait: 'wisdom', emoji: '🐟', quote: '강이 주는 것을 나누는 법부터 배웁니다.',
+      stats: { might: 36, wisdom: 72, command: 58 } },
+    { id: 'xb_hondo',    name: '혼도', hanja: '魂導', era: '선비(가상)', faction: '적산',
+      rarity: 3, trait: 'wisdom', emoji: '⛰️', quote: '여기서 넋을 돌려보내지 않으면 산 자가 앓습니다.',
+      stats: { might: 42, wisdom: 78, command: 60 } },
+    { id: 'xb_yong',     name: '용맹', hanja: '龍猛', era: '선비(가상)', faction: '용성',
+      rarity: 4, trait: 'might', emoji: '🐉', quote: '흉노가 하늘에 빌던 자리, 이젠 우리가 지킵니다.',
+      stats: { might: 84, wisdom: 46, command: 74 } }
+  ];
+
+  /** 성 id → 그 성의 수비 무장 id 목록 (rtk.js seedNeutral() 이 쓴다) */
+  var XIANBEI_GARRISON = {
+    goryu: ['xb_gyeon', 'xb_bonghwa'],
+    tanhansan: ['xb_daein', 'xb_gaseul'],
+    seonbisan: ['xb_hoja'],
+    yorak: ['xb_honin', 'xb_eoryang'],
+    jeoksan: ['xb_hondo'],
+    yongseong: ['xb_yong']
+  };
+
+  /* ── 남해(南海) 지역 수비 무장 (2026-09-22, 열넷째 확장) — 앞 열셋과
+     같은 결. era 는 전부 '남해(가상)' — 실존 인물이 아니다. faction 은
+     지키는 성 이름 그대로. */
+  var NANHAI_OFFICERS = [
+    { id: 'nh_jinju',    name: '진주', hanja: '眞珠', era: '남해(가상)', faction: '주애',
+      rarity: 3, trait: 'wisdom', emoji: '🦪', quote: '바다가 캐 주는 것은 진주만이 아닙니다.',
+      stats: { might: 40, wisdom: 76, command: 60 } },
+    { id: 'nh_yeombun',  name: '염분', hanja: '鹽分', era: '남해(가상)', faction: '주애',
+      rarity: 3, trait: 'might', emoji: '🌊', quote: '짠물을 마셔 가며 지킨 섬입니다.',
+      stats: { might: 74, wisdom: 44, command: 64 } },
+    { id: 'nh_daemo',    name: '대모', hanja: '玳瑁', era: '남해(가상)', faction: '담이',
+      rarity: 3, trait: 'wisdom', emoji: '🐢', quote: '거북 등딱지가 이 섬 저자의 값나가는 물건입니다.',
+      stats: { might: 38, wisdom: 74, command: 58 } },
+    { id: 'nh_wion',     name: '위선', hanja: '衛船', era: '남해(가상)', faction: '이주',
+      rarity: 4, trait: 'command', emoji: '⛵', quote: '군사를 싣고 왔으니, 다시 배를 낼 일도 있을 겁니다.',
+      stats: { might: 68, wisdom: 56, command: 82 } },
+    { id: 'nh_torak',    name: '토착', hanja: '土着', era: '남해(가상)', faction: '이주',
+      rarity: 3, trait: 'might', emoji: '🏹', quote: '이 섬에서 나고 자란 사람이 이 섬을 제일 잘 압니다.',
+      stats: { might: 76, wisdom: 42, command: 62 } },
+    { id: 'nh_migyeon',  name: '미견', hanja: '未見', era: '남해(가상)', faction: '단주',
+      rarity: 4, trait: 'wisdom', emoji: '🌫️', quote: '위온도 이 섬만은 끝내 보지 못했다고 들었습니다.',
+      stats: { might: 44, wisdom: 82, command: 68 } },
+    { id: 'nh_sasin',    name: '사신', hanja: '使臣', era: '남해(가상)', faction: '부남',
+      rarity: 3, trait: 'virtue', emoji: '📜', quote: '먼 나라와도 예로써 오간 기록이 있습니다.',
+      stats: { might: 42, wisdom: 78, command: 64 } },
+    { id: 'nh_metong',   name: '메콩', hanja: '湄公', era: '남해(가상)', faction: '부남',
+      rarity: 3, trait: 'wisdom', emoji: '🌾', quote: '강물이 기름진 들을 매년 새로 부려 놓습니다.',
+      stats: { might: 40, wisdom: 76, command: 62 } },
+    { id: 'nh_bandoja',  name: '반도자', hanja: '半島者', era: '남해(가상)', faction: '돈손',
+      rarity: 3, trait: 'might', emoji: '⚓', quote: '반도 저자를 지나는 배는 다 여기 들릅니다.',
+      stats: { might: 72, wisdom: 48, command: 66 } }
+  ];
+
+  /** 성 id → 그 성의 수비 무장 id 목록 (rtk.js seedNeutral() 이 쓴다) */
+  var NANHAI_GARRISON = {
+    zhuya: ['nh_jinju', 'nh_yeombun'],
+    daner: ['nh_daemo'],
+    yizhou: ['nh_wion', 'nh_torak'],
+    danzhou: ['nh_migyeon'],
+    funan: ['nh_sasin', 'nh_metong'],
+    dunsun: ['nh_bandoja']
+  };
+
   /* ── 시나리오 ───────────────────────────────────────────
    * 표를 하나 더 두면 시나리오가 하나 는다. 그 밖에 고칠 곳이 없다.
    *
@@ -1065,6 +1195,9 @@
     FUTURE_OFFICERS: FUTURE_OFFICERS, FUTURE_GARRISON: FUTURE_GARRISON,
     RUIN_OFFICERS: RUIN_OFFICERS, RUIN_GARRISON: RUIN_GARRISON,
     TOMB_OFFICERS: TOMB_OFFICERS, TOMB_GARRISON: TOMB_GARRISON,
+    DAQIN_OFFICERS: DAQIN_OFFICERS, DAQIN_GARRISON: DAQIN_GARRISON,
+    XIANBEI_OFFICERS: XIANBEI_OFFICERS, XIANBEI_GARRISON: XIANBEI_GARRISON,
+    NANHAI_OFFICERS: NANHAI_OFFICERS, NANHAI_GARRISON: NANHAI_GARRISON,
     SCENARIOS: SCENARIOS, scenario: scenario, use: use,
     current: function () { return current; },
     find: function (id) { return byId[id] || null; },

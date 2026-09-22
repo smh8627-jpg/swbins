@@ -98,6 +98,21 @@
     for (var tt2 = 0; tt2 < tb.length; tt2++) {
       if (!data.find(tb[tt2].id)) { data.heroes.push(tb[tt2]); }
     }
+    /* 대진 지역 수비 무장(2026-09-22, 열두째 확장) — 같은 방식으로 얹는다 */
+    var dj = FD.DAQIN_OFFICERS || [];
+    for (var dd = 0; dd < dj.length; dd++) {
+      if (!data.find(dj[dd].id)) { data.heroes.push(dj[dd]); }
+    }
+    /* 선비 지역 수비 무장(2026-09-22, 열셋째 확장) — 같은 방식으로 얹는다 */
+    var xb = FD.XIANBEI_OFFICERS || [];
+    for (var xxb = 0; xxb < xb.length; xxb++) {
+      if (!data.find(xb[xxb].id)) { data.heroes.push(xb[xxb]); }
+    }
+    /* 남해 지역 수비 무장(2026-09-22, 열넷째 확장) — 같은 방식으로 얹는다 */
+    var nh = FD.NANHAI_OFFICERS || [];
+    for (var nnh = 0; nnh < nh.length; nnh++) {
+      if (!data.find(nh[nnh].id)) { data.heroes.push(nh[nnh]); }
+    }
     merged = true;
     return data.heroes.length;
   }

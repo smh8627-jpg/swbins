@@ -54,6 +54,9 @@
   var rebuildSeq = 0;
   var curCityId = null, curSig = '';
   var spin = 0;
+  var npcs = [];    // 걸어다니는 주민(2026-09-22) — build() 마다 새로 심고 tick() 이 오간다
+  var workers = [];  // 제자리에서 훈련·일하는 주민(2026-09-22, 이어서) — 명령과는 안 엮는다(판정 없음),
+                      // "성 안이 비어 보인다"는 지적에 우물·횃불처럼 **늘 있는 살림**으로 둔다
   var sheetEl = null;   // active() 가 매 프레임 부르므로 요소 자체는 캐시(감사, 2026-09-08)
 
   function available() { return !!three() && !failed; }
@@ -137,6 +140,97 @@
     });
   }
 
+  /** 걸어다니는 주민 2~3명 — "성 안에 아무것도 없어 심심하다"(2026-09-22 사용자 지적).
+   *  `asset3d.buildHero()`는 실존 인물이 아닌 임의 id도 그 id 해시로 몸·옷을 하나 골라
+   *  세운다(장수 아바타와 같은 경로) — 그 몸이 이미 갖춘 걷기 몸짓(mixer)을 `asset3d.step()`
+   *  으로 튼다. 판정은 없다 — 두 점 사이를 왕복할 뿐이다. */
+  function spawnVillagers(seq, h, cityId) {
+    npcs = [];
+    var count = clamp(Math.round(h / 5), 2, 3);
+    var i;
+    for (i = 0; i < count; i++) {
+      var a1 = (i / count) * Math.PI * 2 + 0.5;
+      var a2 = a1 + Math.PI * (0.55 + (i % 2) * 0.2);
+      var r = h * (0.75 + (i % 2) * 0.35);
+      var npc = {
+        model: null,
+        from: { x: Math.cos(a1) * r, z: Math.sin(a1) * r },
+        to: { x: Math.cos(a2) * r * 0.75, z: Math.sin(a2) * r * 0.75 },
+        dur: 8 + i * 2.5,
+        t0: Date.now() / 1000 + i * 1.7
+      };
+      npcs.push(npc);
+      (function (n) {
+        asset3d().buildHero({ id: 'npc_' + cityId + '_' + i }, null, function (g) {
+          if (seq !== rebuildSeq || !g || !dyn) { return; }
+          g.scale.setScalar(0.85);
+          g.position.set(n.from.x, 0, n.from.z);
+          dyn.add(g);
+          addShadow(n.from.x, n.from.z, 0.5);
+          n.model = g;
+        });
+      })(npc);
+    }
+  }
+
+  /** 걸어다니는 주민을 한 프레임 옮긴다 — 두 점 사이를 왕복(핑퐁), 걷는 방향으로 돈다 */
+  function tickNpcs(now) {
+    var i, n, el, cyc, frac, dx, dz;
+    for (i = 0; i < npcs.length; i++) {
+      n = npcs[i];
+      if (!n.model) { continue; }
+      el = Math.max(0, now - n.t0);
+      cyc = (el % (n.dur * 2)) / n.dur;               // 0~2
+      frac = cyc <= 1 ? cyc : (2 - cyc);               // 왕복(핑퐁) 0→1→0
+      n.model.position.set(
+        n.from.x + (n.to.x - n.from.x) * frac, 0,
+        n.from.z + (n.to.z - n.from.z) * frac
+      );
+      dx = n.to.x - n.from.x; dz = n.to.z - n.from.z;
+      if (cyc > 1) { dx = -dx; dz = -dz; }
+      if (dx || dz) { n.model.rotation.y = Math.atan2(dx, dz); }
+      asset3d().step(n.model, { anim: 'walk', t: now });
+    }
+  }
+
+  /** 제자리에서 훈련·일하는 주민 둘 — "건설·훈련 모션도 있으면 좋겠다"(2026-09-22
+   *  사용자 요청). 어느 명령을 썼는지는 안 읽는다(그런 상태 칸이 세이브에 아직
+   *  없다) — 대신 우물·횃불처럼 **늘 있는 살림**으로 둔다. `attack`·`interaction`
+   *  은 원샷 클립(`asset3d.js` ONE_SHOT)이라 `every`초마다 `force:true`로 다시
+   *  틀어야 반복 동작처럼 보인다(한 번 튼 뒤 마지막 자세로 굳는 게 기본이다). */
+  function spawnWorkers(seq, h, cityId) {
+    workers = [];
+    var specs = [
+      { id: cityId + '_train', anim: 'attack', x: h * 0.75, z: -h * 0.7, every: 1.7 },
+      { id: cityId + '_work', anim: 'interaction', x: -h * 1.15, z: h * 0.3, every: 2.2 }
+    ];
+    specs.forEach(function (sp) {
+      var w = { model: null, anim: sp.anim, every: sp.every, next: 0 };
+      workers.push(w);
+      asset3d().buildHero({ id: 'npc_' + sp.id }, null, function (g) {
+        if (seq !== rebuildSeq || !g || !dyn) { return; }
+        g.scale.setScalar(0.85);
+        g.position.set(sp.x, 0, sp.z);
+        g.rotation.y = Math.atan2(-sp.x, -sp.z);   // 성 가운데 쪽을 보고 선다
+        dyn.add(g);
+        addShadow(sp.x, sp.z, 0.5);
+        w.model = g;
+      });
+    });
+  }
+
+  /** 훈련·일하는 주민을 한 프레임 다룬다 — 원샷 동작을 `every`초마다 다시 튼다 */
+  function tickWorkers(now) {
+    var i, w;
+    for (i = 0; i < workers.length; i++) {
+      w = workers[i];
+      if (!w.model) { continue; }
+      var force = now >= w.next;
+      if (force) { w.next = now + w.every; }
+      asset3d().step(w.model, { anim: w.anim, t: now, force: force });
+    }
+  }
+
   /** 성 하나를 통째로 다시 짓는다 — 숫자를 그대로 세운다 */
   function build(cityId) {
     var t = three();
@@ -211,6 +305,9 @@
     if ((c.sec || 0) >= 80) {
       addProp('torch', cityId + ':torchC', h * 1.0, h * 0.2, h * 0.32, 0, seq);
     }
+
+    spawnVillagers(seq, h, cityId);
+    spawnWorkers(seq, h, cityId);
   }
 
   function sig(cityId) {
@@ -250,6 +347,8 @@
     var dist = TIER_H.t3 * 2.6;
     camera.position.set(Math.sin(spin) * dist, TIER_H.t3 * 1.5, Math.cos(spin) * dist);
     camera.lookAt(0, TIER_H.t2 * 0.4, 0);
+    tickNpcs(Date.now() / 1000);
+    tickWorkers(Date.now() / 1000);
     renderer.render(scene, camera);
     requestAnimationFrame(tick);
   }
