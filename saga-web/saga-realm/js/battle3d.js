@@ -229,16 +229,55 @@
    *  라운드가 부딪힐 때마다(`roundPulse`) 이 그룹째로 살짝 앞으로 밀었다
    *  당겨 "부딪힌다"는 걸 보여줄 수 있게(2026-09-10, 병력 무리도 실시간
    *  액션처럼 느껴지게 해 달라는 이어지는 요청) */
-  function cluster(n, cx, cz, color) {
+  /** 진형(war.js FORMATIONS)에 따라 무리 배치 모양을 바꾼다(2026-09-22, PLAN §6
+   *  "무리 병종 기둥"의 첫 조각) — `war.js`의 `fightIntro()`가 이미 골라 둔
+   *  진형 key(`rep.formA`/`formD`)만 읽는다, 새 판정은 없다. **병종 3분류
+   *  (보·기·수)는 이 판에 실제 병종 비율 데이터가 없어 보류했다** — 지어낸
+   *  숫자로 나누느니 진형(실재 데이터)만으로 배치 모양을 바꿨다. 진형이
+   *  없거나(구원 등) 모르는 값이면 예전 grid 그대로(안전한 기본값). */
+  function clusterLayout(n, formKey) {
+    var i, pts = [];
+    if (formKey === 'chukyi') {             // 추행진 — 앞이 뾰족한 쐐기꼴
+      var row = 0, idx = 0, rowLen;
+      while (idx < n) {
+        rowLen = Math.min(row + 1, n - idx);
+        for (i = 0; i < rowLen; i++) { pts.push({ x: (i - (rowLen - 1) / 2) * 0.55, z: row * 0.4 }); idx++; }
+        row++;
+      }
+      return pts;
+    }
+    if (formKey === 'hakik') {              // 학익진 — 학이 날개를 편 듯 넓은 활
+      for (i = 0; i < n; i++) {
+        var a = n <= 1 ? 0 : (i / (n - 1) - 0.5) * Math.PI * 0.85;
+        pts.push({ x: Math.sin(a) * (0.5 + n * 0.11), z: -Math.cos(a) * 0.4 });
+      }
+      return pts;
+    }
+    if (formKey === 'bangwon') {            // 방원진 — 둥글게 다진 원
+      for (i = 0; i < n; i++) {
+        var a2 = (i / n) * Math.PI * 2, r = 0.35 + n * 0.05;
+        pts.push({ x: Math.cos(a2) * r, z: Math.sin(a2) * r });
+      }
+      return pts;
+    }
+    var cols = Math.min(5, Math.max(1, n));  // 예전 grid(기본값, 진형이 없을 때)
+    for (i = 0; i < n; i++) {
+      var rr = Math.floor(i / cols), cc = i % cols;
+      pts.push({ x: (cc - (cols - 1) / 2) * 0.55, z: -rr * 0.55 });
+    }
+    return pts;
+  }
+
+  function cluster(n, cx, cz, color, formKey) {
     var t = three();
-    var i, cols = Math.min(5, Math.max(1, n));
+    var i;
     var g = new t.Group();
     var prevGroup = curGroup;
     curGroup = g;
+    var pts = clusterLayout(n, formKey);
     for (i = 0; i < n; i++) {
-      var row = Math.floor(i / cols), col = i % cols;
-      var x = (col - (cols - 1) / 2) * 0.55 + (Math.random() - 0.5) * 0.12;
-      var z = -row * 0.55 + (Math.random() - 0.5) * 0.12;
+      var x = pts[i].x + (Math.random() - 0.5) * 0.12;
+      var z = pts[i].z + (Math.random() - 0.5) * 0.12;
       var b = banner(color, false);
       b.position.set(x, 0, z);
       g.add(b);
@@ -402,8 +441,8 @@
     var atkN = clamp(Math.round((atkStart / 1200) * atkSurvive), 1, 14);
     var defN = clamp(Math.round((defStart / 1200) * defSurvive), 1, 14);
 
-    atkGroupRef = cluster(atkN, 0, 4.2, forceColor(rep.force));
-    defGroupRef = cluster(defN, 0, -3.0, forceColor(rep.defForce));
+    atkGroupRef = cluster(atkN, 0, 4.2, forceColor(rep.force), rep.formA);
+    defGroupRef = cluster(defN, 0, -3.0, forceColor(rep.defForce), rep.formD);
     if (state.roundTick) { roundPulse = 1; }
 
     /* 일기토 — 2026-09-10 부터는 깃발이 아니라 `duelActors`(setupDuel() 이
