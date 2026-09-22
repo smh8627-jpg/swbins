@@ -289,6 +289,37 @@
     return true;
   }
 
+  /* ── 캔 것으로 만들기(data-side.js RECIPES) ─────────────── */
+
+  /** 모자란 재료 — { kind: 모자란 개수 }, 다 있으면 빈 객체 */
+  function craftLack(key) {
+    var r = global.DG.sideData.recipe(key), S = global.DG.side;
+    if (!r || !S) { return null; }
+    var mats = S.state().mats || {}, lack = {}, k;
+    for (k in r.need) {
+      if (r.need.hasOwnProperty(k) && (mats[k] || 0) < r.need[k]) { lack[k] = r.need[k] - (mats[k] || 0); }
+    }
+    return lack;
+  }
+
+  /** 재료를 덜고 탕약·주문서를 준다 — 모자라면 아무것도 안 덜린다 */
+  function craft(key) {
+    var r = global.DG.sideData.recipe(key), lack = craftLack(key);
+    if (!r || !lack) { return false; }
+    if (Object.keys(lack).length) { core.emit('toast', '🧺 캔 것이 모자랍니다'); return false; }
+    var s = global.DG.side.state(), k;
+    for (k in r.need) { if (r.need.hasOwnProperty(k)) { s.mats[k] -= r.need[k]; } }
+    if (r.give.potion) { s.potions += r.give.potion; }
+    if (r.give.scroll) { addScroll(r.give.scroll, 1); }
+    sfx('coin');
+    core.log('🧺 ' + r.name + ' 을(를) 만들었다', 'good');
+    core.emit('toast', '🧺 ' + r.name + ' 완성');
+    core.emit('side:craft', { key: key });
+    core.emit('changed');
+    core.persist();
+    return true;
+  }
+
   /** 판다 — 끼고 있는 것은 못 판다 */
   function sell(uid) {
     var it = byUid(uid), d = defOf(it);
@@ -343,6 +374,7 @@
     bonus: bonus, cut: cut,
     scrollCount: scrollCount, addScroll: addScroll, apply: apply,
     shopList: shopList, buyGear: buyGear, buyScroll: buyScroll, buyPotion: buyPotion, sell: sell,
+    craftLack: craftLack, craft: craft,
     rollDrop: rollDrop, priceMul: priceMul, MERCHANT_DISCOUNT: MERCHANT_DISCOUNT
   };
 })(window);

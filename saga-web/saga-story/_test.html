@@ -2916,6 +2916,30 @@ window.DG_NO_TUNE = true;
       return g.alive && '다시 돋음';
     });
 
+    t('캔 것으로 만들기 — 모자라면 안 덜리고, 차면 재료를 덜고 탕약·주문서를 준다', function () {
+      var G = DG.gear, s = S.state(), keep = JSON.stringify(s.mats), pot = s.potions, sc0 = G.scrollCount('def100');
+      var bad = SD.RECIPES.filter(function (r) {
+        var k, ok = !!(r.give.potion || DG.gearData.scroll(r.give.scroll));
+        for (k in r.need) { if (r.need.hasOwnProperty(k) && !SD.GATHERS[k]) { ok = false; } }
+        return !ok;
+      });
+      try {
+        s.mats = { herb: 2 };
+        var refused = !G.craft('potion2') && s.mats.herb === 2 && s.potions === pot &&
+          G.craftLack('potion2').herb === 1;
+        s.mats = { herb: 4, ore: 5 };
+        var made = G.craft('potion2') && s.mats.herb === 1 && s.potions === pot + 2 &&
+          G.craft('def100') && s.mats.ore === 0 && G.scrollCount('def100') === sc0 + 1;
+        DG.ui.openSheet('shop');
+        var shown = document.getElementById('sheet-body').innerHTML.split('data-act="sh-craft"').length - 1;
+        DG.ui.closeSheet();
+        return bad.length === 0 && refused && made && shown === SD.RECIPES.length &&
+          ('레시피 ' + SD.RECIPES.length + ' · 들꽃 3 → 탕약 +2 · 이끼 광물 5 → 방어 주문서');
+      } finally {
+        s.mats = JSON.parse(keep); s.potions = pot; C.save.scrolls.def100 = sc0;
+      }
+    });
+
     t('희귀 몬스터가 이따금 등장하고, 잡졸보다 훨씬 세다', function () {
       if (S.active()) { S.leave(); }
       var found = null, tries = 0, run;

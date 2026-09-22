@@ -274,6 +274,8 @@
         global.DG.gear.buyScroll(b.getAttribute('data-key'));
       } else if (act === 'sh-potion') {
         global.DG.gear.buyPotion(parseInt(b.getAttribute('data-n'), 10) || 1);
+      } else if (act === 'sh-craft') {
+        global.DG.gear.craft(b.getAttribute('data-key'));
       } else { return; }
       core.persist(); renderSheet(); renderTop(); renderCamp();
     }
@@ -1174,7 +1176,7 @@
         html += '<div class="stat-row"><span>' + gi.emoji + ' ' + esc(gi.name) + '</span>' +
           '<b>×' + mats[got[i]] + '</b></div>';
       }
-      html += '</div>';
+      html += '<small class="muted">🏪 저자 아래 "캔 것으로 만들기"에서 탕약·주문서로 바꿉니다.</small></div>';
     }
     html += '</div>';
     return html;
@@ -1353,6 +1355,24 @@
           '<button class="btn tiny ' + (gold >= s.price ? 'primary' : 'ghost') + '"' +
           ' data-act="sh-scroll" data-key="' + s.key + '">🪙 ' + core.fmt(s.price) + '</button>' +
         '</div></div>';
+    }
+    html += '</div>';
+    /* 캔 것으로 만들기(data-side.js RECIPES) — 금 대신 사냥터에서 주운 것으로 */
+    var SD = global.DG.sideData, mats = global.DG.side.state().mats || {};
+    html += '<div class="sec"><h4>🧺 캔 것으로 만들기 <small class="muted">— 사냥터에서 주운 꽃·열매·광물</small></h4>';
+    for (i = 0; i < SD.RECIPES.length; i++) {
+      var r = SD.RECIPES[i], can = !Object.keys(G.craftLack(r.key)).length, parts = [], k;
+      for (k in r.need) {
+        if (r.need.hasOwnProperty(k)) {
+          parts.push(SD.GATHERS[k].emoji + ' ' + (mats[k] || 0) + '/' + r.need[k]);
+        }
+      }
+      var out = r.give.potion ? '🧪 탕약 ×' + r.give.potion : '📜 ' + GD.scroll(r.give.scroll).name;
+      html += '<div class="card"><div class="stat-row">' +
+        '<span><b>' + esc(r.name) + '</b> <small class="muted">→ ' + esc(out) + '</small></span>' +
+        '<span class="muted">' + parts.join(' · ') + '</span></div>' +
+        '<button class="btn tiny ' + (can ? 'primary' : 'ghost') + '"' +
+          ' data-act="sh-craft" data-key="' + r.key + '">만든다</button></div>';
     }
     html += '</div>';
     html += '<small class="muted">파는 값은 산 값의 3할입니다. 끼고 있는 것은 못 팝니다.</small>';

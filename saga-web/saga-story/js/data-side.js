@@ -198,6 +198,26 @@
   };
 
   /**
+   * 캔 것으로 만들기(원 지시서 잔여 "채집→제작 연결", 2026-09-23) — 🏪 저자
+   * 화면 아래에 붙는다. `need` 는 `GATHERS` 종류별 개수, `give` 는 탕약 개수
+   * (`potion`) 또는 주문서 하나(`scroll`: `data-gear.js` SCROLLS 의 key).
+   * 값은 저자 값의 대략 절반 어치 — 한 사냥터를 두어 번 돌면(자리 3~4, 45초에
+   * 다시 돋는다) 하나 만들 만큼이라, 금 대신 **걸어 다닌 품**으로 사는 길이다.
+   * 장비는 안 만든다(가방 칸·등급 체계를 건드리게 된다).
+   */
+  var RECIPES = [
+    { key: 'potion2', name: '달인 탕약',     need: { herb: 3 },             give: { potion: 2 } },
+    { key: 'potion4', name: '열매 탕약',     need: { berry: 3, herb: 1 },   give: { potion: 4 } },
+    { key: 'def100',  name: '광물 판 부적',  need: { ore: 5 },              give: { scroll: 'def100' } },
+    { key: 'atk100',  name: '벼린 돌 부적',  need: { ore: 4, cinder: 3 },   give: { scroll: 'atk100' } },
+    { key: 'hp60',    name: '열매 기운 부적', need: { berry: 4, cinder: 4 }, give: { scroll: 'hp60' } }
+  ];
+  function recipe(key) {
+    for (var i = 0; i < RECIPES.length; i++) { if (RECIPES[i].key === key) { return RECIPES[i]; } }
+    return null;
+  }
+
+  /**
    * 마을 사람 대화(PLAN 16절) — `town:true` 사냥터의 `npcs`([x, key])가
    * 가리키는 자리다. 이름은 인물이 아니라 **직책**이라 이름 정책(가명·오마주)에
    * 걸리지 않는다. `lines` 는 매번 아무거나 하나 뽑아 보여준다 — 순서를
@@ -266,6 +286,7 @@
   global.DG = global.DG || {};
   global.DG.sideData = {
     STAGES: STAGES, SKILLS: SKILLS, DROPS: DROPS, GATHERS: GATHERS, NPC_TALK: NPC_TALK,
+    RECIPES: RECIPES, recipe: recipe,
     NPC_CHAT: NPC_CHAT, RANGED_WEAPON: RANGED_WEAPON,
     stage: stage, rangedOf: rangedOf
   };
