@@ -148,7 +148,10 @@
           (FD.LINYI_GARRISON && FD.LINYI_GARRISON[d.id]) ||
           (FD.FUTURE_GARRISON && FD.FUTURE_GARRISON[d.id]) ||
           (FD.RUIN_GARRISON && FD.RUIN_GARRISON[d.id]) ||
-          (FD.TOMB_GARRISON && FD.TOMB_GARRISON[d.id]) || [];
+          (FD.TOMB_GARRISON && FD.TOMB_GARRISON[d.id]) ||
+          (FD.DAQIN_GARRISON && FD.DAQIN_GARRISON[d.id]) ||
+          (FD.XIANBEI_GARRISON && FD.XIANBEI_GARRISON[d.id]) ||
+          (FD.NANHAI_GARRISON && FD.NANHAI_GARRISON[d.id]) || [];
         var gov = null;
         for (var j = 0; j < ids.length; j++) {
           var r = off.placeAt(ids[j], d.id, null);
@@ -341,7 +344,10 @@
         (FD.LINYI_GARRISON && FD.LINYI_GARRISON[d.id]) ||
         (FD.FUTURE_GARRISON && FD.FUTURE_GARRISON[d.id]) ||
         (FD.RUIN_GARRISON && FD.RUIN_GARRISON[d.id]) ||
-        (FD.TOMB_GARRISON && FD.TOMB_GARRISON[d.id]) || [];
+        (FD.TOMB_GARRISON && FD.TOMB_GARRISON[d.id]) ||
+        (FD.DAQIN_GARRISON && FD.DAQIN_GARRISON[d.id]) ||
+        (FD.XIANBEI_GARRISON && FD.XIANBEI_GARRISON[d.id]) ||
+        (FD.NANHAI_GARRISON && FD.NANHAI_GARRISON[d.id]) || [];
       var gov = null;
       for (var j = 0; j < ids.length; j++) {
         /* 다른 세력의 명부에 든 사람(④ 의 양평 수령 등)은 제자리에 둔다 */

@@ -74,7 +74,32 @@
        무장은 사람이 아니라 되살아난 해골 병사다(data-force.js
        TOMB_OFFICERS, 실제 CC0/CC-BY 해골 3D 모델 — 균열·폐허와도 다른
        셋째 팩, KayKit Skeletons) */
-    my: '묘역'
+    my: '묘역',
+    /* 2026-09-22 확장(열두째) — 대진(大秦, 로마 제국). 구자(서역) 너머,
+       실제 후한서·위략에 나오는 감영(甘英)의 서역 사행 경로(구자→조지→
+       안식) 와 안식(파르티아)에 조공했다는 대진 속국 이름(택산·려건·
+       사복·차란)을 그대로 썼다. 안식→려건 사이는 감영이 실제로 뱃사람에게
+       막혀 못 건넌 "서해"(페르시아만) — **양쪽 다 river** 라 배가 있어야
+       건넌다(물길). 다른 지역과 같은 원칙(주인 없음·성 이름은 실제 지명,
+       지키는 무장만 가명). */
+    dj: '대진',
+    /* 2026-09-22 확장(열셋째) — 선비(鮮卑) 초원. 막북(진양 관문) 더
+       북쪽, 안문 너머. 후한서 오환선비열전에 실제로 나오는 지명(단석괴
+       왕정이 있던 탄한산·이름의 유래인 선비산·혼인 모임이 열리던
+       요락수·혼이 돌아간다는 적산)과, 선비가 흉노 땅을 그대로 차지했다는
+       기록에 따라 흉노의 옛 제천 자리 용성(龍城)을 더했다 — 유목 사회라
+       성곽 목록 자체가 사료에 없어 다른 지역보다 지명 밀도가 성기다. 같은
+       원칙(주인 없음·인물은 가명, 지명만 실제). */
+    xb: '선비',
+    /* 2026-09-22 확장(열넷째) — 남해(南海) 섬나라. 두 관문에서 들어간다 —
+       합포(교주)에서 바다 건너 주애·담이(한이 한때 다스린 실제 하이난
+       군현) 로, 일남 남쪽 구속(임읍)에서 육로로 부남·돈손(메콩 하류·
+       말레이 반도의 실제 옛 나라)으로. 이주·단주는 삼국지 오서에 실제로
+       나오는 손권의 230년 원정 목적지(위온·제갈직, 이주만 닿고 단주는
+       못 찾았다) — 단주를 이 판의 랜드마크로 삼아 "역사가 못 이룬 것을
+       이 판에서 이룬다"는 결을 대진(택산 계열)과 같이 가져간다. 같은
+       원칙(주인 없음·인물은 가명, 지명만 실제). */
+    nh: '남해'
   };
 
   var CITIES = [
@@ -454,7 +479,76 @@
       desc: '주인 없는 뼈가 자리마다 놓여 있다. 이름은 다 잊혔다.' },
     { id: 'simyeon',   name: '심연', hanja: '深淵', prov: 'my', x: 218, y: 148, land: 'hill',
       agri: 75, comm: 85, wall: 2200, pop: 26000, garrison: 4400,
-      desc: '지도 위 가장 남쪽 이름. 내려다보면 끝이 안 보인다.' }
+      desc: '지도 위 가장 남쪽 이름. 내려다보면 끝이 안 보인다.' },
+
+    /* ── 대진(大秦) (2026-09-22 확장, 열두째, 주인 없음 — 앞 열하나와 같은
+       결) ── 구자(서역) 너머, 감영의 실제 사행길. 안식→려건은 물길(둘 다
+       river) — 감영이 실제로 못 건넌 "서해"다. */
+    { id: 'tiaozhi', name: '조지', hanja: '條支', prov: 'dj', x: -70,  y: 20, land: 'plain',
+      agri: 180, comm: 220, wall: 3400, pop: 65000, garrison: 9000,
+      desc: '감영이 안식으로 가는 길에 실제로 거쳐 갔다는 나라.' },
+    { id: 'anxi',    name: '안식', hanja: '安息', prov: 'dj', x: -84,  y: 16, land: 'river',
+      agri: 200, comm: 260, wall: 4200, pop: 110000, garrison: 13000,
+      desc: '파르티아. 감영이 여기서 배를 타려다 뱃사람의 말에 걸음을 멈췄다는 실화가 전한다.' },
+    { id: 'lijian',  name: '려건', hanja: '驪靬', prov: 'dj', x: -98,  y: 10, land: 'river',
+      agri: 140, comm: 180, wall: 3000, pop: 42000, garrison: 7500,
+      desc: '로마 군단이 흘러들어 세웠다는 설이 도는 성.' },
+    { id: 'zesan',   name: '택산', hanja: '澤散', prov: 'dj', x: -104, y: 24, land: 'hill',
+      agri: 120, comm: 200, wall: 2800, pop: 38000, garrison: 7000,
+      desc: '치소가 바다 한가운데 있다고 기록된 나라.' },
+    { id: 'sifu',    name: '사복', hanja: '汜復', prov: 'dj', x: -112, y: 6,  land: 'plain',
+      agri: 130, comm: 150, wall: 2600, pop: 34000, garrison: 6200,
+      desc: '대진에 조공했다는 작은 나라. 기록이 짧다.' },
+    { id: 'qielan',  name: '차란', hanja: '且蘭', prov: 'dj', x: -110, y: 18, land: 'plain',
+      agri: 150, comm: 170, wall: 2900, pop: 40000, garrison: 6800,
+      desc: '대진의 속국. 해안 평야에 자리했다고 전한다.' },
+    { id: 'daqin',   name: '대진', hanja: '大秦', prov: 'dj', x: -120, y: 12, land: 'plain', landmark: true,
+      agri: 260, comm: 320, wall: 5000, pop: 150000, garrison: 16000,
+      desc: '감영도 끝내 닿지 못한 나라의 도성 — 이 판에서는 마침내 닿는다.' },
+
+    /* ── 선비(鮮卑) (2026-09-22 확장, 열셋째, 주인 없음 — 앞 열둘과 같은
+       결) ── 막북(안문) 더 북쪽. 유목 사회라 성곽 사료가 성기다 — 후한서
+       오환선비열전에 실제로 나오는 지명만 썼다. */
+    { id: 'goryu',     name: '고류',   hanja: '高柳', prov: 'xb', x: 55, y: -20, land: 'plain',
+      agri: 140, comm: 110, wall: 2800, pop: 36000, garrison: 6000,
+      desc: '안문 북쪽 변경의 실제 한나라 현. 선비 땅으로 가는 마지막 문.' },
+    { id: 'tanhansan', name: '탄한산', hanja: '彈汗山', prov: 'xb', x: 48, y: -30, land: 'hill', landmark: true,
+      agri: 90,  comm: 120, wall: 2400, pop: 44000, garrison: 7200,
+      desc: '선비 대인의 왕정이 있었다는 산.' },
+    { id: 'seonbisan', name: '선비산', hanja: '鮮卑山', prov: 'xb', x: 65, y: -32, land: 'mount',
+      agri: 60,  comm: 70,  wall: 2000, pop: 26000, garrison: 4800,
+      desc: '선비라는 이름이 유래했다는 산.' },
+    { id: 'yorak',     name: '요락수', hanja: '饒樂水', prov: 'xb', x: 75, y: -22, land: 'river',
+      agri: 100, comm: 90,  wall: 2200, pop: 30000, garrison: 5200,
+      desc: '해마다 짝을 짓는 모임이 열렸다는 강가.' },
+    { id: 'jeoksan',   name: '적산',   hanja: '赤山', prov: 'xb', x: 40, y: -40, land: 'mount',
+      agri: 50,  comm: 60,  wall: 1800, pop: 20000, garrison: 4000,
+      desc: '죽은 자의 넋이 돌아간다고 믿었던 산.' },
+    { id: 'yongseong', name: '용성',   hanja: '龍城', prov: 'xb', x: 30, y: -25, land: 'plain',
+      agri: 110, comm: 130, wall: 2600, pop: 32000, garrison: 5600,
+      desc: '흉노가 하늘에 제사하던 옛 땅. 선비가 그 땅마저 차지했다.' },
+
+    /* ── 남해(南海) (2026-09-22 확장, 열넷째, 주인 없음 — 앞 열셋과 같은
+       결) ── 두 관문 — 합포(교주)에서 바다 건너(둘 다 river), 구속(임읍)
+       에서 육로로. 이주·단주는 손권이 230년 실제로 보낸 원정의 목적지다. */
+    { id: 'zhuya',   name: '주애', hanja: '朱崖', prov: 'nh', x: 50, y: 108, land: 'river',
+      agri: 180, comm: 200, wall: 3400, pop: 60000, garrison: 8500,
+      desc: '한이 한때 다스렸던 실제 군. 바다 건너 섬이다.' },
+    { id: 'daner',   name: '담이', hanja: '儋耳', prov: 'nh', x: 42, y: 118, land: 'hill',
+      agri: 120, comm: 110, wall: 2600, pop: 36000, garrison: 6000,
+      desc: '주애와 나란한 옛 군. 진주와 대모가 난다.' },
+    { id: 'yizhou',  name: '이주', hanja: '夷洲', prov: 'nh', x: 64, y: 108, land: 'river',
+      agri: 150, comm: 170, wall: 3000, pop: 52000, garrison: 7500,
+      desc: '손권이 위온·제갈직을 보내 군사를 데려온 실제 섬(230년).' },
+    { id: 'danzhou', name: '단주', hanja: '亶洲', prov: 'nh', x: 72, y: 100, land: 'river', landmark: true,
+      agri: 110, comm: 140, wall: 2400, pop: 30000, garrison: 5000,
+      desc: '이주와 함께 노렸지만 위온도 끝내 닿지 못했다는 섬 — 이 판에서는 마침내 닿는다.' },
+    { id: 'funan',   name: '부남', hanja: '扶南', prov: 'nh', x: 18, y: 122, land: 'plain',
+      agri: 220, comm: 210, wall: 3600, pop: 70000, garrison: 9000,
+      desc: '메콩 하류의 실제 고대 왕국. 사신이 오간 기록이 남아 있다.' },
+    { id: 'dunsun',  name: '돈손', hanja: '頓遜', prov: 'nh', x: 10, y: 130, land: 'hill',
+      agri: 100, comm: 160, wall: 2200, pop: 34000, garrison: 5600,
+      desc: '말레이 반도의 실제 옛 나라. 남해 뱃길의 저자다.' }
   ];
 
   /* 인접 — 한쪽만 적는다. link() 가 양쪽에 넣는다.
@@ -573,7 +667,27 @@
     ['chimgwan', 'jinhon'],
     ['honro', 'yugol'],
     ['jinhon', 'simyeon'],
-    ['yugol', 'simyeon']
+    ['yugol', 'simyeon'],
+
+    /* ── 대진(大秦) — 구자(서역) 너머 ─────────────────── */
+    ['kucha', 'tiaozhi'],
+    ['tiaozhi', 'anxi'],
+    ['anxi', 'lijian'],
+    ['lijian', 'zesan'], ['lijian', 'sifu'], ['lijian', 'qielan'],
+    ['sifu', 'daqin'],
+
+    /* ── 선비(鮮卑) — 막북(안문) 더 북쪽 ──────────────── */
+    ['yanmen', 'goryu'],
+    ['goryu', 'tanhansan'], ['goryu', 'yongseong'],
+    ['tanhansan', 'jeoksan'], ['tanhansan', 'seonbisan'],
+    ['seonbisan', 'yorak'],
+
+    /* ── 남해(南海) — 합포(교주) 바다 건너 + 구속(임읍) 육로 ── */
+    ['hepu', 'zhuya'],
+    ['zhuya', 'daner'], ['zhuya', 'yizhou'],
+    ['yizhou', 'danzhou'],
+    ['quzu', 'funan'],
+    ['funan', 'dunsun']
   ];
 
   var byId = {};

@@ -168,7 +168,10 @@
    * 파내려, 나머지 물길(내륙 강)은 예전 그대로 얇은 파란 길(addRoad)로 남는다. */
   var STRAITS = [
     ['gimhae', 'tsushima'], ['tsushima', 'iki'], ['iki', 'chikushi'],
-    ['chikushi', 'izumo'], ['hepu', 'jiaozhi']
+    ['chikushi', 'izumo'], ['hepu', 'jiaozhi'],
+    /* 2026-09-22 — 대진(안식↔려건, 감영이 실제로 못 건넌 "서해")·
+       남해(합포↔주애 경주해협, 주애↔이주 대만해협) 세 구간을 더했다 */
+    ['anxi', 'lijian'], ['hepu', 'zhuya'], ['zhuya', 'yizhou']
   ];
   var STRAIT_HALF_WIDTH = 30;      // 해협 폭의 절반(세계 단위) — 이 안쪽이 바다
   var STRAIT_DEPTH = 22;           // 해협 바닥이 SEA_LEVEL 아래로 파이는 깊이
@@ -305,6 +308,10 @@
   var floaters = [];           // 재해 그림문자 — 천천히 위아래로 떠다닌다
   var rebuildSeq = 0;          // 늦게 도착한 옛 build() 콜백을 거른다(dyn 몫만 — statGrp 은
                                 // 한 번 짓고 나면 다시 안 지으니 이 검사가 필요 없다)
+  var fx = null;                // `dyn`과 별도 그룹(2026-09-22) — 출진 행군 등 짧은 연출.
+                                 // `core.on('changed')`(무장 등용 등 판정마다 울린다)가 `dyn`을
+                                 // 통째로 다시 지어도 이 그룹은 안 건드려 연출이 안 끊긴다
+  var marches = [];             // showMarch() 로 띄운, 지금 이동 중인 행군 연출들
 
   var yaw = 0, pitch = 0.85, dist = 260;
   var targetYaw = 0, targetPitch = 0.85, targetDist = 260;
@@ -408,6 +415,8 @@
     scene.add(dyn);
     statGrp = new t.Group();
     scene.add(statGrp);
+    fx = new t.Group();
+    scene.add(fx);
 
     fitCameraToMap();
     yaw = targetYaw; pitch = targetPitch; dist = targetDist;
@@ -648,6 +657,30 @@
     g.add(cloth);
     return g;
   }
+
+  /** 출진할 때 성에서 성으로 짧게 행군하는 모습(2026-09-22, "보는 재미" 요청) —
+   *  war.js 는 이미 결과를 다 정한 뒤다(판정 없음). `dyn`(판정마다 통째로
+   *  다시 짓는 그룹)이 아니라 `fx`에 얹어, 행군 도중 다른 성의 등용·거래 같은
+   *  무관한 판정이 지도를 다시 지어도 이 연출은 안 끊긴다. `ms` 뒤 저절로
+   *  사라진다 — 부르는 쪽(`ui-rtk.js`)이 그 시간만큼 전투 화면을 늦게 연다. */
+  function showMarch(fromId, toId, ms, color) {
+    var t = three();
+    if (!ready || !fx || !t) { return; }
+    var a = cityData().find(fromId), b = cityData().find(toId);
+    if (!a || !b) { return; }
+    var ax = worldX(a.x), az = worldZ(a.y), bx = worldX(b.x), bz = worldZ(b.y);
+    var grp = new t.Group(), n = 3, i;
+    for (i = 0; i < n; i++) {
+      var bnr = banner(color || '#d8dee0');
+      bnr.position.set((i - (n - 1) / 2) * 1.3, 0, 0);
+      grp.add(bnr);
+    }
+    grp.rotation.y = Math.atan2(bx - ax, bz - az);
+    grp.position.set(ax, elevAt(ax, az), az);
+    fx.add(grp);
+    marches.push({ grp: grp, ax: ax, az: az, bx: bx, bz: bz, t0: now(), dur: Math.max(200, ms || 1100) });
+  }
+  function now() { return (global.performance && global.performance.now) ? global.performance.now() : Date.now(); }
 
   function bannerCluster(n, cx, cz, color) {
     var i, cols = Math.min(4, Math.max(1, n));
@@ -1148,6 +1181,15 @@
       var fl = floaters[j];
       fl.mesh.position.y = fl.baseY + Math.sin(t / 450 + fl.seed) * fl.amp;
     }
+    for (var m = marches.length - 1; m >= 0; m--) {
+      var mm = marches[m];
+      /* tick(now) 의 매개변수 now 가 모듈 함수 now() 를 가린다(같은 단위 —
+         rAF 타임스탬프도 performance.now() 기준이라 매개변수를 그대로 쓴다) */
+      var frac = Math.min(1, (t - mm.t0) / mm.dur);
+      var mx = mm.ax + (mm.bx - mm.ax) * frac, mz = mm.az + (mm.bz - mm.az) * frac;
+      mm.grp.position.set(mx, elevAt(mx, mz), mz);
+      if (frac >= 1) { fx.remove(mm.grp); marches.splice(m, 1); }
+    }
 
     renderer.render(scene, camera);
     requestAnimationFrame(tick);
@@ -1160,6 +1202,7 @@
     init: init,
     toggle: toggle,
     rebuild: rebuild,
+    showMarch: showMarch,
     panBy: panBy,
     panTo: panTo,
     /* SAGA-DESIGN §7-2 "3D 진단 공백" — three 없이도 도는 순수 함수라 _test.html 이 부른다 */

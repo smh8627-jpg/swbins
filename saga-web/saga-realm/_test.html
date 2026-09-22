@@ -232,12 +232,14 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       /* 2026-09-10 — data.js 쪽 인물 수는 다른 세션(HEROES 가명화 후속)이 같은
          시각에 늘리고 있어(현재 삼국지22·한국사26·일본사20·세계사37 = 105)
          고정 매직넘버로 두면 그쪽이 또 늘 때마다 이 진단이 헛되이 깨진다.
-         그래서 이 판이 보탠 무장(FD.OFFICERS + 확장 지역 8곳)만 id로 골라내
-         "보탠 개수"를 세고, 나머지(=data.js 쪽)는 거꾸로 계산한다 — data.js
-         를 안 건드리고 늘었다는 것만 확인하면 되는 테스트라 이걸로 충분하다 */
+         그래서 이 판이 보탠 무장(FD.OFFICERS + 확장 지역, 2026-09-22 현재
+         열한 곳)만 id로 골라내 "보탠 개수"를 세고, 나머지(=data.js 쪽)는
+         거꾸로 계산한다 — data.js 를 안 건드리고 늘었다는 것만 확인하면
+         되는 테스트라 이걸로 충분하다 */
       var added = FD.OFFICERS.concat(
         FD.KOREA_OFFICERS, FD.JAPAN_OFFICERS, FD.JIAOZHOU_OFFICERS, FD.XIYU_OFFICERS,
-        FD.NANZHONG_OFFICERS, FD.TIANZHU_OFFICERS, FD.MOBEI_OFFICERS, FD.LINYI_OFFICERS);
+        FD.NANZHONG_OFFICERS, FD.TIANZHU_OFFICERS, FD.MOBEI_OFFICERS, FD.LINYI_OFFICERS,
+        FD.DAQIN_OFFICERS, FD.XIANBEI_OFFICERS, FD.NANHAI_OFFICERS);
       var addedIds = {};
       added.forEach(function (o) { addedIds[o.id] = true; });
       var dataHeroBase = off.all().filter(function (h) { return !addedIds[h.id]; }).length;
@@ -258,11 +260,11 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 
     /* ── 판 세우기 ───────────────────────────────────── */
 
-    t('194년 판이 선다 — 서른 성에 주인이 다 있다(여덟 확장 지역 쉰여섯은 주인 없이 시작)', function () {
+    t('194년 판이 선다 — 서른 성에 주인이 다 있다(확장 지역은 주인 없이 시작)', function () {
       var st = fresh('cao');
       var keys = Object.keys(st.cities);
-      /* 한국·일본·교주·서역·남중·천축·막북·임읍 지역(garrison 필드가 있는 성)은
-         처음부터 일부러 주인이 없다 — 정복 대상이다. 그 쉰여섯을 빼고서
+      /* 확장 지역(garrison 필드가 있는 성 — 역사 열한 곳 + 균열·폐허·묘역)은
+         처음부터 일부러 주인이 없다 — 정복 대상이다. 그것들을 빼고서
          나머지가 다 주인 있는지만 잰다 */
       var noOwner = keys.filter(function (k) {
         return !st.cities[k].force && !CD.find(k).garrison;
@@ -277,24 +279,21 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       fresh('cao');
       var free = off.all().filter(function (h) { return h.stats && !off.rec(h.id).force; });
       var nonThree = free.filter(function (h) { return h.era !== '삼국지'; }).length;
-      /* 여덟 확장 지역 수비 무장 72인도 force:null 이라 이 정의로는 재야에
-         든다. data.js 쪽 비삼국지 인물 수는 다른 세션이 같이 늘리고 있어
-         고정 매직넘버를 안 쓴다(위 "무장 명부는…" 테스트와 같은 이유) —
-         "이 판이 보탠 비삼국지 무장 72인이 전부 재야에 잡히는지"만 확인한다.
-         (2026-09-10 — 이 수치는 원래 남중까지도 반영이 안 돼 있었다(84),
-         남중 이후 node·chrome이 없어 직접 못 돌려 본 채 남아 있던 것도
-         이번에 같이 바로잡았다) */
-      var addedNonThree = FD.KOREA_OFFICERS.concat(
+      /* 역사 확장 지역(2026-09-22 현재 열한 곳) 수비 무장도 force:null 이라
+         이 정의로는 재야에 든다. data.js 쪽 비삼국지 인물 수는 다른 세션이
+         같이 늘리고 있어 고정 매직넘버를 안 쓴다(위 "무장 명부는…" 테스트와
+         같은 이유) — "이 판이 보탠 비삼국지 무장이 전부 재야에 잡히는지"만
+         확인한다 */
+      var addedGroups = FD.KOREA_OFFICERS.concat(
         FD.JAPAN_OFFICERS, FD.JIAOZHOU_OFFICERS, FD.XIYU_OFFICERS,
-        FD.NANZHONG_OFFICERS, FD.TIANZHU_OFFICERS, FD.MOBEI_OFFICERS, FD.LINYI_OFFICERS).length;
+        FD.NANZHONG_OFFICERS, FD.TIANZHU_OFFICERS, FD.MOBEI_OFFICERS, FD.LINYI_OFFICERS,
+        FD.DAQIN_OFFICERS, FD.XIANBEI_OFFICERS, FD.NANHAI_OFFICERS);
+      var addedNonThree = addedGroups.length;
       var freeIds = {};
       free.forEach(function (h) { freeIds[h.id] = true; });
-      var addedFreeOk = FD.KOREA_OFFICERS.concat(
-        FD.JAPAN_OFFICERS, FD.JIAOZHOU_OFFICERS, FD.XIYU_OFFICERS,
-        FD.NANZHONG_OFFICERS, FD.TIANZHU_OFFICERS, FD.MOBEI_OFFICERS, FD.LINYI_OFFICERS)
-        .every(function (o) { return freeIds[o.id]; });
+      var addedFreeOk = addedGroups.every(function (o) { return freeIds[o.id]; });
       return addedFreeOk && nonThree >= addedNonThree &&
-        ('재야 ' + free.length + ' (여덟 확장 지역 ' + addedNonThree + '인 전원 포함, 비삼국지 계 ' +
+        ('재야 ' + free.length + ' (확장 지역 ' + addedNonThree + '인 전원 포함, 비삼국지 계 ' +
          nonThree + ' + 삼국지 재야 ' + (free.length - nonThree) + ')');
     });
 

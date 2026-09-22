@@ -119,8 +119,12 @@
   /* 2026-09-10 — 균열(아홉째 확장) 이 일본 동쪽(x 최대 158) 너머로 더
      뻗어(x 최대 205) w 를 225→270 으로 다시 넓혔다. y 는 그대로다.
      2026-09-11 — 폐허(열째 확장) 가 균열 너머로 더 뻗어(x 최대 236)
-     w 를 270→300 으로 다시 넓혔다. */
-  var MAP_VB = { x: -60, y: -30, w: 300, h: 180 };
+     w 를 270→300 으로 다시 넓혔다.
+     2026-09-22 — 대진(열두째 확장) 이 서역 서쪽으로 x 최소 -120 까지
+     뻗어 x·w 를 -60/300 → -140/380 으로(오른쪽 240 은 그대로 유지),
+     선비(열셋째)가 막북 북쪽으로 y 최소 -40 까지 뻗어 y·h 를
+     -30/180 → -55/205 로(아래쪽 150 은 그대로 유지) 다시 넓혔다. */
+  var MAP_VB = { x: -140, y: -55, w: 380, h: 205 };
   var MAP_ZOOM_MAX = 6;
   var mapCx = MAP_VB.x + MAP_VB.w / 2, mapCy = MAP_VB.y + MAP_VB.h / 2, mapZoom = 1;
   var MAP_PAN_SPEED = 0.022;   // 조이스틱을 완전히 기울였을 때 프레임당 이동(뷰포트 폭의 비율)
@@ -731,10 +735,20 @@
         ({ wisdom: '지력', might: '무력', command: '통솔' })[tac.stat] + ' ' + tac.req + '+, 한 번)</span>' : '');
   }
 
+  /** 출진 전 잠깐 — 성에서 성으로 행군하는 모습(2026-09-22, "보는 재미" 요청:
+   *  "전투를 나가는 장수하고 병사들도"). 3D 국토 지도가 떠 있을 때만 보인다
+   *  (`realm3d.available()`) — 안 떠 있으면 그냥 즉시 전투로 넘어간다(예전 그대로). */
+  var MARCH_OUT_MS = 900;
   function runMarch(fromId, toId, lead, t) {
     if (!(t > 0)) { return; }
     for (var i = 0; i < lead.length; i++) { off().rec(lead[i]).done = true; }
-    showBattleLive(fromId, toId, lead, t);
+    var R3 = global.DG.realm3d;
+    if (R3 && R3.available() && R3.active()) {
+      R3.showMarch(fromId, toId, MARCH_OUT_MS, forceColor(R().me()));
+      global.setTimeout(function () { showBattleLive(fromId, toId, lead, t); }, MARCH_OUT_MS);
+    } else {
+      showBattleLive(fromId, toId, lead, t);
+    }
   }
 
   /** 원정 — 인접하지 않은 먼 성으로 병력을 보낸다. `doMarch()` 와 같은 꼴이지만
@@ -1150,7 +1164,11 @@
        기존 120·-30 높이 안에 다 들어와 손 안 댔다. 임읍(여덟째, 2026-09-10)만
        y:118~134 로 아래로 더 뻗어 **높이를 150→180 으로 다시 넓혔다** —
        x/y 값 자체는 CD.CITIES 데이터가 그대로 쥐고 있어 여기 말고 고칠 곳이 없다.
-     전체 범위 자체(MAP_VB, 위 "지도 이동·확대" 절)는 여기 -60/-30/225/180 과
+       2026-09-22 — 대진(열두째)·선비(열셋째)·남해(열넷째) 세 지역을 한
+       세션에 같이 넣으면서 x 최소 -120(대진 대진 도성)·y 최소 -40(선비
+       적산) 까지 뻗었다 — MAP_VB 와 함께 x:-140~240·y:-55~150 으로
+       다시 넓혔다(위 "지도 이동·확대" 절 주석 참고).
+     전체 범위 자체(MAP_VB, 위 "지도 이동·확대" 절)는 여기 -140/-55/380/205 와
      반드시 같아야 한다 — 보이는 창(viewBox)은 mapViewBox() 가 이동·확대
      상태에 따라 그 범위 **안의 일부**를 계산해 낸다(2026-09-10) */
     s += '<svg class="rmap" viewBox="' + mapViewBox() + '" preserveAspectRatio="xMidYMid meet">';
