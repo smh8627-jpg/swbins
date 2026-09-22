@@ -8064,3 +8064,9 @@ PROJECT_STATE.md` 참고. 요약:
 - 기억 조각(`memory_fragments`/`memory_tier`): 비용(`(tier+1)*3`) 1 모자라면 `can_upgrade_memory()` false, 딱 맞으면 true → `upgrade_memory()` 성공(tier 0→1, 조각 소진, `memory_hp_mult()` 1.02 — 공식 1+2%×tier와 일치). tier를 `MEMORY_TIER_MAX`(10)로 두면 조각이 9999여도 업그레이드 불가, `hp_mult`는 1.2로 상한. 전부 정확, 버그 없음.
 - 확인 후 훅 제거(`git diff` 원복 확인), `godot_regress.sh` 재확인.
 - DUNGEON의 원소 시너지(`melee_attack.gd::_check_elem_synergy()`)는 살아있는 적 노드가 필요해 코드 읽기로만 확인 — "처치 시에만·둘 다 낀 결이 이번 타격에 있어야·해당 은사 보유"가 정확히 구현돼 있음, 버그 안 보임. GO `duel_rules.gd::win_chance()`(mine/(mine+foe), 0.12~0.88 클램프)·`shrine_trial.gd`의 하루 3회(실제 벽시계 날짜, 게이트 통과해야만 소모)도 코드로 확인 끝, 이상 없음.
+
+## GO 도적전 짐 드랍·회수(DropState) 헤드리스 실측 (2026-09-22, 새 세션, "이어서")
+
+- `test_village.gd`에 임시 `SAGA_DROP_DEBUG` 훅: 15% 상한 미만(50경험치→7.5)·상한 걸림(200경험치→15.0 cap) 둘 다 정확. 동시 3개 초과 시 가장 오래된 게 밀려나 회수 불가(4번째 드랍 후 keys=[ev_b,ev_c,ev_d], ev_a 회수 시 0) 확인.
+- 10분(600초) 경계: 정확히 600초 지난 것도 아직 회수됨(`age <= RECOVER_SEC`, 포함 비교), 601초는 0 — 오프바이원 없음.
+- 확인 후 훅 제거(`git diff` 원복 확인), `godot_regress.sh` 재확인.
