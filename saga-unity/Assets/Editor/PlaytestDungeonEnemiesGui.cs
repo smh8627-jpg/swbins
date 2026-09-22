@@ -3,6 +3,7 @@ using System.Reflection;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using Saga.Dungeon.Data;
 using Saga.Dungeon.Player;
 using Saga.Dungeon.World;
 
@@ -104,6 +105,21 @@ namespace Saga.EditorTools
                 Debug.LogError("[PlaytestDungeonEnemiesGui] Player not found");
                 return;
             }
+
+            // 확인용 텔레포트 지점이 적 무리 바로 옆이라(의도적) 스크린샷을 찍기
+            // 전에 두들겨 맞아 쓰러지면(HeroState.Died) 화면이 세션카드로 덮인다
+            // (2026-09-22·2026-09-23 실제로 겪음) — HeroState.Invulnerable은
+            // PlayerController.Update()가 매 프레임 _invulnTimeLeft 기준으로
+            // 덮어써서(대시 무적 전용 필드) 한 번 켜 봐야 곧바로 꺼진다(경쟁
+            // 상태로 실패 확인). 대신 적 AI(DungeonEnemy.Update)를 통째로
+            // 꺼서 공격 자체가 안 나가게 한다 — 무적 틴트(하늘색)로 피부색이
+            // 가려지는 부작용도 없다. 세이브 안 하고 Play 종료 즉시 프로세스가
+            // 죽으니 원복 불필요.
+            foreach (var enemy in Object.FindObjectsByType<DungeonEnemy>(FindObjectsSortMode.None))
+            {
+                enemy.enabled = false;
+            }
+            HeroState.FullHeal();
             // DungeonFloorRunner가 문 표지 구역 근접을 감지해 방을 새로 진행시키며
             // RepositionPlayerToEntry()로 위치를 되돌린다 — 스크린샷용 텔레포트가
             // 그 트리거 반경에 걸려 조용히 스폰으로 되돌아갔다(실제로 겪음). 확인
