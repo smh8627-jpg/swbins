@@ -8032,3 +8032,10 @@ PROJECT_STATE.md` 참고. 요약:
 - `realm_city.gd`에 임시 `SAGA_SUCCESSION_DEBUG` 훅: `RealmTraits.has_trait()`로 로스터 후보 셋(야심 1·충직 1·평범 1)을 실제 `characters.gd` id에서 찾아 로스터에 얹고, `heir_id`를 평범 쪽으로 지정한 뒤 `year=200 month=11`에서 `_succeed_lord()` 직접 호출.
 - 결과: 새 군주(지정한 후계) 충성 100 · 야심 인물 50→25(-25, `SUCCESSION_AMBITIOUS_LOYAL_HIT`) · 충직 인물 50→50(0, 히트 면제) 전부 문서 수치와 일치. `_succession_shock_until`은 야심 인물에게만 `{month:2, year:201}`로 걸림(11월+3달 = 다음 해 2월, 해 넘어가는 산수까지 정확) — 충직·평범 인물은 창이 안 걸림. 오차 없음, 버그 아님.
 - 확인 후 훅·함수 전부 제거(`git diff`로 원복 확인 — 코드 변경 없음), `godot_regress.sh` md5 동일.
+
+## REALM 이벤트 체인 동시 상한·체인 예약 헤드리스 실측 (2026-09-22, 같은 세션, "실기 내 손으로 할 테니 이어해")
+
+- 사용자가 손맛류 실기는 직접 하겠다고 해, 나머지 로직·렌더링류 자동화를 계속함.
+- `realm_city.gd`에 임시 `SAGA_EVENTS_DEBUG` 훅: 특성 5종(탐욕·청렴·호전·학구·교활) 보유 인물을 `characters.gd`에서 찾아 로스터에 얹고 `next_month()` 300회 호출 — `active_events.size()`가 매달 `MAX_CONCURRENT`(2)를 절대 안 넘음(14달째 2에 도달한 뒤 300달째까지 그대로 유지, 새 이벤트가 안 더 걸림 — 문서의 "동시 2개 문턱"과 정확히 일치).
+- `resolve_event()`로 "뇌물 소문"의 "눈감아준다(유틸)" 선택 강제 실행 → `chain_months=4` 후속(`greedy_bribe_2`)이 정확히 4달 뒤로 예약됨(1월→5월, 해 안 넘음 케이스). `ready_events()`가 예약 즉시(도래 전)는 빼고, 4달 지난 뒤에만 포함 — 오차 없음.
+- 확인 후 훅·함수 제거(`git diff` 원복 확인), `godot_regress.sh` 재확인.
