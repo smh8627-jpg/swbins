@@ -8180,3 +8180,11 @@ PROJECT_STATE.md` 참고. 요약:
 - windowed exe 실측(`ReviewCamera`·`Player` 카메라 `current` 임시 조작, `Weather.force("clear")`·`Season.force("summer")`·`TimeOfDay.force(false)` 임시 추가로 맑은 날 통일 — 스크린샷 뒤 전부 원복, `git diff` 빈 것 확인)으로 GO TestVillage 현재 SDFGI on 톤도 확인: 과다노출·색 튐 없이 기존 승인 톤 그대로.
 - 참고로 스폰 지점(-48,-24)이 "무너진 기둥" 랜드마크(`landmarks_builder.gd`, MapScrapEvent grid 4,4)와 거의 겹쳐 기본 카메라가 그 구조물에 파묻히는 09-21 HISTORY 기록의 버그가 여전히 재현됨(별도 버그, 이번 결정과 무관 — 다음에 스폰/랜드마크 간격 조정 시 참고).
 - 결론: PC `env_pc.tres::sdfgi_enabled=true` **그대로 유지**, LightmapGI 도입 폐기. PLAN 102-2 표·105 Q-b 갱신, PROJECT_STATE "다음 작업"에서 Q-b 제거. 코드/리소스 변경 없음(임시 실측 변경은 전부 원복) — regress 재확인 md5 이전과 동일.
+
+## Mixamo·VRoid 자동화 재조사 — "자동화 불가" 오기 정정 (2026-09-23, 같은 세션, "Mixamo는 자동화 툴이 있을꺼야")
+
+- 사용자가 105 Q-d "자동화 불가"에 의문 제기. 웹 조사 전에 저장소 안부터 grep 했어야 했는데 놓침 — 실제로 2026-09-21 밤 세션에서 이미 루트 `tools/mixamo_automation/`(Playwright `connectOverCDP`, 전용 Chrome 프로필)을 구축해 idle 클립까지 검증해 뒀었다(HISTORY 09-21 "Mixamo 백그라운드 자동화 도구 구축"). PROJECT_STATE·PLAN 105 Q-d가 그 뒤로도 "자동화 불가"로 안 고쳐진 채 남아 있던 게 오기.
+- 오늘 재확인: 자동화 전용 Chrome 프로필(`%LOCALAPPDATA%/swbins-mixamo-automation-profile`)로 CDP 포트 9222 재기동 성공, 로그인 세션 유지 확인, `node fetch.mjs --query "Walking" --list` 정상 응답. **나머지 7클립(walk~pickup)은 품질 문제 보고가 없어 재검증 보류**(README 방침 그대로) — 지금 새로 받을 필요 없음.
+- VRoid 쪽은 무료 대체 파이프라인(CharacterGen — 로컬 GPU 요구사항 불명확한 연구 코드, 결과물이 VRoid 정품과 스타일 불일치 위험) 검토 후 기각. 유료(Tripo3D)는 사용자가 제외 지시. VRoid Studio 조형은 계속 사람 몫.
+- Downloads `새 폴더`에 `model.vroid`(export 전 원본, 7.4M) 발견 — 어느 캐릭터용인지 아직 불명, export(사람 몫) 전엔 반입 불가. `dungeon_hero_01.vrm`·`saga_forest_avatar_01.vrm`은 이미 반입된 것과 동일 파일.
+- PLAN 105 Q-d·PROJECT_STATE "다음 작업" 문구 정정. 코드 변경 없음(문서·조사만), regress 불필요.
