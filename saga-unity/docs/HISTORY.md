@@ -8423,3 +8423,15 @@ SSAO 튜닝 뒤 남은 §102-5 항목은 전부 새 결정이나 큰 작업이 �
 **검증**: 배치 컴파일(exit 0) → GO·DUNGEON·FOREST·STORY·REALM **다섯 판 전부 Playtest 3연속 OK**(exception/NullReference 없음 grep으로 재확인) → `git diff --stat -- ProjectSettings/ Packages/` 빈 결과.
 
 `PLAN.md` 102-5 절의 "그림자 계단"·"카메라 클리핑" 행을 "전부 완료"로 갱신, 102-5 전체를 닫힌 것으로 표시. `PROJECT_STATE.md` "다음 작업"에서 102-5 항목 자체를 지우고(실기 확인 대기만 남김) "실기 확인 대기" REALM·공통 줄에 새 체크 항목 추가. 두 커밋으로 나눠 커밋(바닥색/SSS/재조사 먼저, 그림자계단/카메라 나중).
+
+## 2026-09-22 — GUI 스크린샷 환경 문제 진짜 원인 확인: UAC 통째로 꺼짐 (102-5 마감 다음, "실기 직접확인해" → "새로운 세션에서 이어 하자")
+
+102-5를 다 마친 뒤 사용자가 "실기 직접확인해"로 다시 GUI 스크린샷을 요청했다. 이전 세션이 겪은 "Administrator Privileges Detected" 대화상자 폭주(SendKeys 자동 닫기가 원인)를 반복하지 않기 위해, 금지된 방법(SendKeys 재시도) 대신 **다른 접근을 먼저 검증**했다.
+
+1. `explorer.exe`로 Unity를 재실행하면 엘리베이션된 셸의 토큰을 안 물려받을 거라 기대하고 시도 — `Start-Process explorer.exe -ArgumentList <bat>` 로 Unity를 띄웠으나 **대화상자가 그대로 다시 떴다**(`MainWindowTitle`로 확인). 이번엔 SendKeys로 닫으려 하지 않고 **`taskkill //F //IM Unity.exe //T` 한 번**으로 즉시 정리 — 폭주 재현 없음, 잔여 프로세스도 없음 확인.
+2. 왜 `explorer.exe`도 이미 엘리베이션돼 있는지 원인을 캐봤다. `[Security.Principal.WindowsPrincipal]::IsInRole(Administrator)` → 이 셸이 관리자 권한인 건 이미 알던 사실이지만, 계정 SID(`S-1-5-21-...-1001`)를 확인해 **진짜 빌트인 Administrator(-500)가 아니라 평범한 관리자-그룹 계정**임을 확인 — 그렇다면 UAC 분할 토큰이 정상 작동해야 하는데 안 됐다는 뜻.
+3. `reg query HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System /v EnableLUA` → **`0x0`**. UAC 자체가 이 PC에서 완전히 꺼져 있었다 — UAC가 꺼지면 관리자-그룹 계정에 "일반 권한" 필터링된 토큰이 애초에 생성되지 않아, `explorer.exe` 경유든 `runas /trustlevel:0x20000`(권한을 명시적으로 낮춰 실행하는 옵션, 이론상 통해야 하는데 이 역시 UAC 자체가 꺼져 있으면 토큰 필터링 메커니즘이 없어 무효)든 **어떤 프로세스 실행 트릭으로도 비-엘리베이션 컨텍스트를 만들 수 없다** — Windows가 그 토큰을 아예 안 만들기 때문. `-batchmode`는 이 대화상자 자체가 안 뜨지만(GUI 렌더링을 안 해서로 추정) `ScreenCapture.CaptureScreenshot()`이 파일을 안 남기는 기존 함정은 그대로.
+
+**결론**: 이 환경(스크립트/셸)에서는 Unity GUI 실행이 구조적으로 항상 관리자 경고를 만난다 — 유일한 해법은 `EnableLUA=1`로 되돌리고 재부팅하는 것뿐인데, 이건 이 PC 전체 보안 정책에 영향을 주고 재부팅까지 필요한 시스템 변경이라 사용자 확인 없이 진행하지 않았다. 사용자에게 물어보니 "새로운 세션에서 이어 하자"로 마무리 — 다음 세션 시작 시 UAC 재활성화 여부를 먼저 물어보도록 `PROJECT_STATE.md` "중요" 절에 원인·시도 내역·다음 행동을 정리해 남겼다.
+
+코드 변경 없음(순수 진단). `docs/PROJECT_STATE.md` "중요" 절·"다음 작업" 1번만 갱신, 커밋.

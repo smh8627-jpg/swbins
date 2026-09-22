@@ -1,9 +1,9 @@
 # PROJECT_STATE — saga-unity (상태만, ≤15KB, 덮어쓴다)
 
 **규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다(2026-09-16 재편 전 본문 5,532줄은 그쪽 첫 절에 그대로 있다). 넘치면 `tools/precheck.sh` 가 막는다.
-마지막 갱신: 2026-09-22 (스무 세션째, 이어서 — **102-5 전부 닫힘**. 바닥 한 색(FOREST만 진짜 단색, 디테일 오버레이+leafy_grass AO로 완료)·Screen Space Shadows(`BuildScreenSpaceShadowsFeature.cs`, PC_Renderer.asset에만)·스케일/UI 폰트(재조사 결과 이미 처리돼 있어 코드 변경 없음)에 이어, 그림자 계단(적·NPC — `CharacterVisual.EnsureBlobShadow()`를 GO/DUNGEON/FOREST/STORY 네 `Spawn()`/`SpawnFallbackCapsule()`+리깅 분기 셋에 배선)·카메라 클리핑(REALM `RealmOrbitCamera.ResolveCollisionZoom()`)까지 마쳤다. 다섯 판 배치 컴파일+헤드리스 3연속 재확인 전부 통과) — 경위는 HISTORY grep. 102-4는 전부 처리됐다(남은 건 `Characters/` Kenney, 실사용 중이라 못 뺀다). 103-1·67~69장 잔여는 전부 닫힘.
+마지막 갱신: 2026-09-22 (스무 세션째, 이어서 — **102-5 전부 닫힘**. 바닥 한 색(FOREST만 진짜 단색, 디테일 오버레이+leafy_grass AO로 완료)·Screen Space Shadows(`BuildScreenSpaceShadowsFeature.cs`, PC_Renderer.asset에만)·스케일/UI 폰트(재조사 결과 이미 처리돼 있어 코드 변경 없음)에 이어, 그림자 계단(적·NPC — `CharacterVisual.EnsureBlobShadow()`를 GO/DUNGEON/FOREST/STORY 네 `Spawn()`/`SpawnFallbackCapsule()`+리깅 분기 셋에 배선)·카메라 클리핑(REALM `RealmOrbitCamera.ResolveCollisionZoom()`)까지 마쳤다. 다섯 판 배치 컴파일+헤드리스 3연속 재확인 전부 통과. 이어서 GUI 스크린샷 환경 문제의 **진짜 원인을 찾음**(아래 "중요" 절) — 코드 변경 없음, 사용자 결정 대기) — 경위는 HISTORY grep. 102-4는 전부 처리됐다(남은 건 `Characters/` Kenney, 실사용 중이라 못 뺀다). 103-1·67~69장 잔여는 전부 닫힘.
 
-**중요 — GUI 스크린샷은 이 환경에 아직 방법이 없다**: `-batchmode` 없이 띄우면 관리자 권한 대화상자가 SendKeys로 닫아도 1.5~2초마다 재생성되며 폭주(`taskkill /T`로 잡음), `-batchmode`(+`-nographics` 뺌)면 대화상자는 안 뜨지만 `ScreenCapture`가 파일을 안 남긴다. 다음 세션은 이 절부터, SendKeys 자동 닫기 재시도 금지(경위는 HISTORY grep "폭주").
+**중요 — GUI 스크린샷 진짜 원인 확인(2026-09-22)**: 이 PC는 **UAC가 통째로 꺼져 있다**(`EnableLUA=0`). UAC 꺼지면 관리자 계정엔 분할(일반권한) 토큰이 안 생겨 모든 프로세스가 항상 완전 관리자 권한 — `explorer.exe` 경유·`runas /trustlevel:0x20000` 둘 다 이번 세션에 직접 시도해 안 통함 확인(대화상자 그대로 뜸, 즉시 `taskkill //F //IM Unity.exe //T`로 정리, 폭주 없음 — SendKeys 자동 닫기는 여전히 금지). 유일한 해법은 `EnableLUA=1`+재부팅인데 PC 전체 영향이라 사용자 결정 없이 안 건드림 — **다음 세션 시작 시 먼저 물어본다.** `-batchmode`는 대화상자는 안 뜨지만 `ScreenCapture`가 파일을 안 남기는 것도 여전함.
 
 ## 캐릭터 자산 — 이 PC 기준 (2026-09-19)
 
@@ -27,7 +27,7 @@ PLAN 101-3(C hitstop류·F 유품 마커·G 데칼/레벨업 컷/장비 가시�
 
 ## 다음 작업 (우선순위, 상세는 PLAN 해당 장 · 경위는 HISTORY 날짜 grep)
 
-1. **실기 확인 몰아서** — 여러 세션째 쌓여만 있다(아래 "실기 확인 대기" 목록). **102-5가 전부 코드로는 끝나서 지금 이게 유일한 남은 큰 병목**. 스크린샷은 위 "중요" 절 때문에 못 가림 — 사람이 Unity Hub에서 직접 Play 하거나 `Saga/Playtest ... (GUI Screenshot)` 메뉴로. 다른 PC는 `CharactersRealistic/`가 비어 있음(mixamo.com, 목록은 `SetupXxxCharacterImport.cs`).
+1. **다음 세션 시작 시 먼저 물어볼 것 — UAC 재활성화**(위 "중요" 절, 원하면 재부팅 뒤 GUI 도구 가능성). 아니면 실기 확인은 계속 사람이 직접(아래 목록, 여러 세션째 쌓임 — 102-5가 코드로는 끝나서 지금 유일한 병목). 다른 PC는 `CharactersRealistic/` 비어 있음(mixamo.com, `SetupXxxCharacterImport.cs`).
 2. **101-2·104-1 잔여(전부 보류)** — GO⑤(모바일 빌드 뒤)·STORY5-2 · `Props/` lantern·stall-red(실기 확인 후) · `Characters/` Kenney는 아직 못 뺀다(실사용 중).
 3. **105 Q-U3** — Shader Graph SSS·헤어카드, 사람 GUI 필요.
 
