@@ -8076,3 +8076,11 @@ PROJECT_STATE.md` 참고. 요약:
 - `forest_village.gd`에 임시 `SAGA_FOREST_META_DEBUG` 훅: `gain_affinity()` 하루 상한(+4)을 3+3+5로 나눠 걸어 3/1/0으로 정확히 끊김(합 4) 확인, `affinity_day`를 지난 날짜로 돌려 리셋 유도하니 다음 "날"엔 다시 3 그대로 적용됨(누적 heart 4→7) — 날짜 경계 정확.
 - 마을 번들(`check_bundle_complete`, `BUNDLE_THRESHOLD=5`): 기증 6회 중 정확히 5번째에만 true, 6번째는 이미 잠겨 false. 나머지 다섯 갈래도 채우니 `bundles_done_count()`가 정확히 6(= `DONATE_CATS.size()`)에 도달 — "6개 완성" 조건 경계도 정확.
 - 확인 후 훅 제거(`git diff` 원복 확인), `godot_regress.sh` 재확인.
+
+## DUNGEON 부적(DungeonSigilState) 헤드리스 실측 — 결사 얼림과 무관하게 확인 (2026-09-22, 같은 세션, "이어서해")
+
+- 부적 시스템(`dungeon_sigil_state.gd`)은 순수 autoload라 살아있는 적 노드 없이도 통째로 검증 가능함을 확인 — `test_room.gd`에 임시 `SAGA_SIGIL_DEBUG` 훅을 넣되 `DungeonSaveState.try_load()`(실제 `save_dungeon.json`) 앞에서 분기해 그 세이브는 아예 안 건드림.
+- `roll_mods(id)` 결정성(같은 id→같은 변형자, 2~3개), `add_sigil()` 티어 클램프(0→1, 99→10), 배율 공식(`enemy_stat_mult` 1+0.35×tier, `gold_mult` 1+0.25×tier×(치보 있으면 ×1.5)) 전부 정확.
+- 상한(20) 밀림의 까다로운 경계 둘 다 확인: 활성 부적(index 0)이 밀려나는 경우 `active_index`가 0→-1로 정확히 비활성화됨, 안 밀려나는 활성 부적(index 5)은 5→4로 같은 항목을 계속 가리킴(`sigils[4].id`가 그대로) — `active_index -= 1` 한 줄로 두 경우 다 맞는 우아한 처리, 버그 없음.
+- 확인 후 훅 제거(`git diff` 원복 확인), `godot_regress.sh` md5 동일 — 세이브 파일도 안 건드렸음을 재확인.
+- "결사 얼림"은 실기(라이브 플레이어 인스턴스가 필요한 사망/재도전 등) 몫이지, 이런 autoload 순수 로직 검증과는 무관하다는 걸 이번에 확인 — 앞으로도 DUNGEON의 이런 자리는 계속 자동화로 볼 수 있다.
