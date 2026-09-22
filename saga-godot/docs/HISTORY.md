@@ -8213,3 +8213,12 @@ PROJECT_STATE.md` 참고. 요약:
 - **발견(미수정, 사용자 판단 대기)**: rocky 바이옴 `Rock_Medium_1.gltf`도 COLOR_0이 없는데 `vertex_color_material`(tint 1,1,1)로 칠해져 Godot 기본 COLOR=흰색 → 텍스처 없는 흰 바위. 09-20 주석의 "원본 gltf 그대로"는 정점색이 있다는 틀린 전제. 09-23 전체 실기 승인에 포함된 화면이라 임의로 안 바꿈.
 - 09-22 세션이 셰이더만 커밋하고 빠뜨린 `curved_triplanar.gdshader.uid`도 같이 커밋(다른 .uid는 전부 추적 중).
 - `godot_regress.sh` REGRESS OK(FOREST만 md5 변경), `.import`/`project.godot` 잡음 없음.
+
+## FOREST meadow·dark 바이옴 — 알파 컷 셰이더 신설 (2026-09-23, 같은 세션, "푸시 커밋 하고 이어해")
+
+- 직전 항목에서 보류한 meadow(primitive 구)·dark(상자)를 `Flower_3_Group`·`Fern_1`로 교체. 막혔던 이유(곡률 셰이더에 알파 컷 없음)는 **기존 `curved_textured.gdshader`를 고치지 않고** `curved_textured_cutout.gdshader`(cull_disabled + ALPHA_SCISSOR_THRESHOLD)를 새로 둬 해결 — 기존 불투명 사용처의 파이프라인은 그대로. `WorldCurveMaterial.cutout_material(texture, …)` 추가(경로가 아니라 텍스처 리소스를 받음).
+- gltf 직접 확인: Fern_1 표면 1(Leaves.png, 컷 0.2, 양면)·Flower_3_Group 표면 2(Leaves.png·Flowers.png). 그래서 `_spawn_cutout()`은 원본 재질에서 **표면별로** albedo_texture·alpha_scissor_threshold를 꺼내 `set_surface_override_material()`로 입힌다(공유 Mesh 자체는 안 바꿈 — GO `_apply_wind_shader`와 달리).
+- 배율: 옛 높이÷실측고 — meadow 0.28/2.055=×0.136, dark 0.4/0.840=×0.476. 회전은 격자 해시(salt 5·6). 인자명 `scale`은 Node3D 속성을 가려 경고가 나므로 `s`.
+- `--headless --editor --quit` 1회로 새 셰이더 `.uid` 생성(같이 커밋). `godot_regress.sh` REGRESS OK — FOREST md5 변경은 예상대로, **REALM md5도 바뀜**: 내 변경만 stash로 빼고 REALM을 다시 떠 diff하니 차이는 새 셰이더 preload 로그 2줄뿐(REALM도 공용 `world_curve_material.gd`를 싣는다), 빼면 이전 md5 4d3bc5c1 그대로. 정상.
+- PROJECT_STATE 15,134B(상한 근접)→11,251B로 압축(세부는 이 파일에 이미 있음).
+- 흰 바위(rocky `Rock_Medium_1`)는 여전히 사용자 판단 대기로 안 건드림.

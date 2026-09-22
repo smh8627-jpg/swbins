@@ -68,24 +68,9 @@ func _spawn(x: int, y: int) -> void:
 
 	match String(biome.key):
 		"meadow":
-			var mi := MeshInstance3D.new()
-			var s := SphereMesh.new()
-			s.radius = 0.14
-			s.height = 0.28
-			mi.mesh = s
-			mi.position = pos + Vector3(0, 0.14, 0)
-			mi.material_override = WorldCurveMaterial.vertex_color_material(
-				CURVE_AMOUNT, 0.6, Color(0.95, 0.75, 0.55))
-			add_child(mi)
+			_spawn_cutout(FLOWER_GLB, pos, FLOWER_SCALE, _hash(x, y, 5) * TAU)
 		"dark":
-			var mi := MeshInstance3D.new()
-			var b := BoxMesh.new()
-			b.size = Vector3(0.5, 0.4, 0.5)
-			mi.mesh = b
-			mi.position = pos + Vector3(0, 0.2, 0)
-			mi.material_override = WorldCurveMaterial.vertex_color_material(
-				CURVE_AMOUNT, 0.9, Color(0.1, 0.18, 0.11))
-			add_child(mi)
+			_spawn_cutout(FERN_GLB, pos, FERN_SCALE, _hash(x, y, 6) * TAU)
 		"mush":
 			_spawn_mushroom(pos, _hash(x, y, 4) * TAU)
 		"rocky":
@@ -111,6 +96,34 @@ func _spawn(x: int, y: int) -> void:
 const MUSHROOM_GLB := "res://assets/vegetation/Mushroom_Common.gltf"
 const MUSHROOM_TEX := "res://assets/vegetation/Mushrooms.png"
 const MUSHROOM_SCALE := 0.691
+
+## meadow(옛 primitive 구 0.28m)·dark(옛 상자 0.4m) 자리. 둘 다 gltf
+## alphaMode MASK(잎·꽃 카드)라 curved_textured_cutout(양면+알파 컷)으로
+## 그리고, 표면마다 텍스처가 달라(Flower_3_Group: 잎·꽃 2장) 원본 재질에서
+## 표면별로 텍스처·컷 값을 꺼내 surface override로 입힌다(공유 Mesh는 안
+## 건드린다). 배율은 옛 높이 ÷ 실측고(trimesh).
+const FLOWER_GLB := "res://assets/vegetation/Flower_3_Group.gltf"
+const FLOWER_SCALE := 0.136  # 0.28 / 2.055
+const FERN_GLB := "res://assets/vegetation/Fern_1.gltf"
+const FERN_SCALE := 0.476    # 0.4 / 0.840
+
+func _spawn_cutout(glb: String, pos: Vector3, s: float, yaw: float) -> void:
+	var mesh: Mesh = GLBUtils.extract_mesh(glb)
+	if mesh == null:
+		return
+	var mi := MeshInstance3D.new()
+	mi.mesh = mesh
+	mi.scale = Vector3.ONE * s
+	mi.rotation.y = yaw
+	mi.position = pos
+	for i in mesh.get_surface_count():
+		var orig := mesh.surface_get_material(i) as BaseMaterial3D
+		if orig == null:
+			continue
+		mi.set_surface_override_material(i, WorldCurveMaterial.cutout_material(
+			orig.albedo_texture, CURVE_AMOUNT, 0.9, orig.alpha_scissor_threshold))
+	add_child(mi)
+
 
 func _spawn_mushroom(pos: Vector3, yaw: float) -> void:
 	var mesh: Mesh = GLBUtils.extract_mesh(MUSHROOM_GLB)

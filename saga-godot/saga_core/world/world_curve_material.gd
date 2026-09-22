@@ -19,6 +19,7 @@ extends RefCounted
 const VERTEX_COLOR_SHADER := preload("res://saga_core/shaders/curved_vertex_color.gdshader")
 const TEXTURED_SHADER := preload("res://saga_core/shaders/curved_textured.gdshader")
 const TRIPLANAR_SHADER := preload("res://saga_core/shaders/curved_triplanar.gdshader")
+const CUTOUT_SHADER := preload("res://saga_core/shaders/curved_textured_cutout.gdshader")
 
 const GLOBAL_PARAM_NAME := "saga_world_curve_center"
 
@@ -57,6 +58,21 @@ static func textured_material(texture_path: String, curve_amount: float, roughne
 	mat.set_shader_parameter("albedo_texture", load(texture_path))
 	mat.set_shader_parameter("curve_amount", curve_amount)
 	mat.set_shader_parameter("roughness_value", roughness_value)
+	return mat
+
+
+## 알파 컷아웃 양면(잎·꽃 카드). textured_material과 달리 텍스처를 경로가
+## 아니라 리소스로 받는다 — 표면마다 텍스처가 다른 gltf(Flower_3_Group:
+## 잎·꽃 2장)는 호출부가 원본 재질에서 표면별로 꺼내 넘긴다.
+static func cutout_material(texture: Texture2D, curve_amount: float,
+		roughness_value: float = 0.9, alpha_cutoff: float = 0.2) -> ShaderMaterial:
+	ensure_global_registered()
+	var mat := ShaderMaterial.new()
+	mat.shader = CUTOUT_SHADER
+	mat.set_shader_parameter("albedo_texture", texture)
+	mat.set_shader_parameter("curve_amount", curve_amount)
+	mat.set_shader_parameter("roughness_value", roughness_value)
+	mat.set_shader_parameter("alpha_cutoff", alpha_cutoff)
 	return mat
 
 

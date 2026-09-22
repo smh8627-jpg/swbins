@@ -17,22 +17,17 @@
 
 ## 현재 작업 — 중단 지점(09-23, 다음 세션 이어서)
 
-- **09-22 요약(상세 HISTORY)**: REALM 안개 버그 수정 · 다섯 판 헤드리스 로직 자동화 · DUNGEON save 삭제로 결사 얼림 해제 · FOREST 하트 아이콘·GO 폐허 비석·FOREST 트라이플레이너 배선. "미배선 103 다 됐다" 오보를 사용자 질문으로 정정.
-- **09-23**: DUNGEON 굴혈 mood 3종 배선(방 순서 3색 순환) 중 **기존 버그 발견·수정** — `_spawn_gate()`가 09-12 리팩터(1ea68c57) 이후 `mi.mesh=mesh` 누락, 문 아치 렌더 안 됨(mood와 무관).
-- **09-23(이어서)**: procgen rock/fence/wall 배선 — `vegetation_builder.gd::_scatter_ruins_rubble()`(R 바닥, rock 4종 1/4, 정점색 유지) · `_scatter_ruins_wall_fence()`(^ 테두리, wall/fence 4종 1/3, Rock_Medium과 섞음). GO만 md5 변경, REGRESS OK.
-- **09-23(실기 확인)**: 사용자가 "실기손맛 괜찮아"로 이전까지 쌓인 실기 확인 대기 목록 **전체**를 승인(다섯 판+공통 전부). STORY·REALM VS 승인 게이트도 이걸로 기록. 상세 항목 목록은 HISTORY 09-23 절에 보존, 이 절엔 더는 안 남김.
-- **09-23(판단 마무리, "남은 거 다해")**: 남은 미배선 셋(icon_star·NPC 옷 팔레트·STORY 트라이플레이너)을 조사 — 셋 다 "그냥 배선"이 아니라 **판단이 먼저 필요했다**. 결론은 아래 세 줄, 상세 근거는 HISTORY 09-23 절.
-- **STORY 트라이플레이너 — 종결(안 함)**: STORY는 GO/FOREST와 달리 애초에 **2.5D 옆면 플랫포머**(들판/발판/사다리 전부 원색 primitive, `story_terrain_builder.gd` 헤더에 명시)라 위에서 내려다보는 3D 걷기 지형용 트라이플레이너가 구조적으로 안 맞는다 — 단색이라 "지금 당장 못 씌운다"가 아니라 **이 판 장르 자체가 다른 문제**. 더 조사할 것 없음.
-- **icon_star — 보류(용도 미정으로 남김)**: 이미 배선된 두 자리(DUNGEON 축복 카드 희귀도, DUNGEON 노획물 등급)를 확인해 보니 **둘 다 "새 아이콘 UI를 일부러 안 만든다"는 기존 결정이 코드 주석에 박혀 있었다**(카드는 텍스트 태그로, 노획물은 색+파티클로 대체 — "반사신경이 흐려진다"는 이유). 이 판단을 뒤집을 만한 근거가 없어 icon_star를 억지로 아무 데나 붙이지 않는다.
-- **NPC 옷 팔레트 8종 — 보류(기술+설계 둘 다 막힘)**: character-a~d.glb 는 몸 전체가 재질 하나(공유 텍스처 아틀라스, 옷과 피부가 분리된 재질이 아님) — 기존 snap-glb/tint-glb 는 **재질 단위**로만 작동해 그대로 쓰면 피부색까지 같이 물든다. 게다가 현재 GO/FOREST의 이 캐릭터들은 전부 **이름 있는 개별 NPC**(촌장·상인·어부·도적)라 옷을 다양화할 "이름 없는 군중 NPC" 자리 자체가 이 저장소에 아직 없다 — 있지도 않은 소비처를 위해 픽셀 마스킹 신규 툴까지 짓는 건 과잉이라 보류.
-- **09-23(이어서, "Q-b GUI 비교 지금 진행") — 105 Q-b 종결**: `terrain_builder.gd`·`vegetation_builder.gd`가 매 세션 `_ready()`에서 지형·초목을 절차적으로 새로 지어(102-5), LightmapGI가 요구하는 "고정 메시에 한 번 구워 재사용" 전제가 구조적으로 안 맞는다(세션마다 재베이크는 모바일에 오히려 부담 — GI를 구워서 아끼려던 취지와 반대). windowed exe로 TestVillage 실측(맑음·여름 강제, SDFGI on)까지 확인 — 과다노출·색 튐 없이 기존 승인 톤 그대로. PC `sdfgi_enabled=on` 유지로 확정, LightmapGI 방향 폐기(PLAN 102-2·105 Q-b).
+- **09-22~23 요약(상세 HISTORY 해당 날짜)**: REALM 안개·DUNGEON 문 아치 렌더 누락 버그 수정 · 굴혈 mood 3종 · GO 폐허 비석·rock·wall/fence 배선 · FOREST 하트 아이콘·트라이플레이너 · 사용자가 09-23 "실기손맛 괜찮아"로 그때까지의 실기 대기 **전체 승인**(STORY·REALM VS 게이트 포함).
+- **판단 종결(재작업 후보 아님, 근거 HISTORY 09-23)**: STORY 트라이플레이너(2.5D 옆면 플랫포머라 장르상 불필요) · icon_star(아이콘 UI를 일부러 안 만든다는 기존 결정) · NPC 옷 팔레트(재질 하나짜리 GLB + 군중 NPC 소비처 없음) · 105 Q-b(절차 지형이라 LightmapGI 부적합, PC SDFGI 유지).
+- **105 Q-d 정정(09-23)**: Mixamo는 로그인만 사람 몫, 검색·다운로드는 루트 `tools/mixamo_automation/`(09-21 구축)로 이미 자동. VRoid 조형만 사람 몫(무료 대체 파이프라인 없음).
+- **Quaternius 씬 배치 5단계(09-23 진행 중)**: GO `vegetation_builder.gd` — village "." 칸 `_scatter_village_path()`(Pebble_Square_1·RockPath_Square_Wide 1/12) · coast "D" 칸 `_scatter_coast_pebbles()`(Pebble_Round_1~3 1/10, coast엔 "." 칸이 없어 `REGION_CLUTTER_GLB["coast"]`가 죽은 설정이었음). FOREST `forest_biome_scatter.gd` — primitive 셋 전부 교체: mush→`Mushroom_Common`(`textured_material`), meadow→`Flower_3_Group`·dark→`Fern_1`(신설 `curved_textured_cutout.gdshader`+`WorldCurveMaterial.cutout_material()`, 양면+알파 컷, 표면별 원본 텍스처). 배율은 전부 옛 높이÷trimesh 실측고.
 
 ## 다음 작업 (우선순위)
 
-1. **씬 배치(5단계) 착수(09-23)** — 사용자가 "지금 정하기"로 스코프 결정 위임. GO `vegetation_builder.gd`에 두 용도 신설: ① village "." 칸 `_scatter_village_path()`(Pebble_Square_1·RockPath_Square_Wide, 1/12 밀도). ② coast "D"(모래) 칸 `_scatter_coast_pebbles()`(Pebble_Round_1~3, 1/10 밀도) — coast는 "." 칸이 아예 없어(REGIONS.coast 확인) REGION_CLUTTER_GLB["coast"] 설정이 죽어 있던 걸 발견, 모래밭으로 대체. 전부 순수 시각 장식(충돌 없음), 실측(trimesh) 이미 사람 스케일이라 배율 역산 불필요. `godot_regress.sh` REGRESS OK(GO만 md5 변경, coast 분기도 `Region2Coast._ready()`가 TestVillage 로드시 바로 지어 headless 테스트에 포함됨 확인), `.import`/`project.godot` 잡음 없음. ③ FOREST `forest_biome_scatter.gd` mush 바이옴 primitive 버섯(원기둥+구)을 Quaternius `Mushroom_Common`으로 교체 — 정점색 없는 불투명 텍스처라 `textured_material`(곡률+텍스처)로 그림, 옛 높이 0.32m 맞춰 ×0.691. **남은 것**: FOREST meadow(구)·dark(상자) primitive는 대응 후보(Flower_3_Group·Fern_1)가 알파 마스크인데 곡률 셰이더 둘 다 알파 컷아웃이 없어 보류(셰이더에 alpha scissor 추가가 먼저). **판단 필요(사용자)**: FOREST rocky 바위 `Rock_Medium_1`은 정점색이 없는데 `vertex_color_material`(tint 흰색)로 칠해 실제로는 **텍스처 없는 흰 바위**로 그려지고 있다(09-20 주석 "원본 그대로"의 전제가 틀림) — 승인된 화면이라 바꿀지 확인 대기, 바꾸면 버섯과 같은 `textured_material` 한 줄.
-2. 105 Q-d — **정정(09-23)**: Mixamo 애니 다운로드는 로그인만 사람 몫, 검색·선택·다운로드는 이미 자동(루트 `tools/mixamo_automation/`, 09-23 재확인 — Chrome CDP 프로필 로그인 유지·검색 정상). VRoid 조형(주역 몇 명)만 여전히 사람 몫(무료 대체 파이프라인 없음, 09-23 조사). 새 클립이 필요하거나 새 VRoid 캐릭터(Downloads에 `model.vroid` 미확인 파일 있음, 용도 확인 대기)가 생기면 그때 착수.
-3. 위 세 항목(icon_star·NPC 옷 팔레트·STORY 트라이플레이너)은 **판단 완료, 재작업 후보 아님** — 새 근거(예: 군중 NPC 기능 신설)가 생기면 그때 재검토.
-4. 참고: 103-4 Mixamo 리타겟의 "트위스트(팔 축 비틀림) 미보정"은 지금 클립(idle~pickup)엔 안 드러나 **필요시에만** — 트위스트가 큰 새 클립을 넣을 때 재검토(`docs/HISTORY.md` 09-23 ㉒ 절 참고).
+1. **판단 필요(사용자)**: FOREST rocky 바위 `Rock_Medium_1`은 정점색이 없는데 `vertex_color_material`(tint 흰색)로 칠해 **텍스처 없는 흰 바위**로 그려진다(09-20 주석 "원본 그대로"의 전제가 틀림). 승인된 화면이라 대기 — 바꾸면 버섯과 같은 `textured_material` 한 줄.
+2. Quaternius 남은 종(바위·잔디꽃 대다수·나무 변종) — ruins는 이미 채워져 있고, 다음 후보는 GO village clutter 종 다양화(지금 Clover_1 한 종) 정도. 급하지 않음.
+3. VRoid 새 캐릭터 — Downloads `새 폴더`의 `model.vroid`(export 전, 용도 미확인)는 사용자가 VRM으로 내보내면 반입(얼굴 베이크·1.7m·`mixamo_retarget.gd`·씬 교체, dungeon_hero_01 절차 그대로).
+4. 참고: 103-4 리타겟 "트위스트 미보정"은 트위스트 큰 새 클립을 넣을 때만 재검토.
 
 ## 알려진 오류
 
@@ -44,6 +39,6 @@
 
 ## 실기 확인 대기
 
-- **GO 마을 정원길·해변 조약돌**(`_scatter_village_path`·`_scatter_coast_pebbles`, 09-23 신설) — 배치가 실제 화면에서 자연스러운지.
-- **FOREST 버섯 바이옴**(09-23, primitive→Mushroom_Common) — 크기·곡률 위에 붙어 보이는지.
-- 그 외 없음 — 2026-09-23 사용자가 전체 대기 목록(GO·DUNGEON·FOREST·STORY·REALM·공통)을 실기로 확인, "괜찮음". 항목별 상세는 `docs/HISTORY.md` 09-23 절에 보존.
+- **GO 마을 정원길·해변 조약돌**(09-23) — 배치가 실제 화면에서 자연스러운지.
+- **FOREST 바이옴 장식 셋**(09-23, 버섯·꽃·고사리) — 크기, 곡률 위에 붙어 보이는지, 꽃·고사리 잎이 네모판 없이 오려져 보이는지.
+- 그 외 없음(09-23 전체 승인, 항목 상세는 HISTORY 09-23 절).
