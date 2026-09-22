@@ -287,8 +287,14 @@
     return amount;
   }
 
+  /* 경험치 곡선(2026-09-23, 사가스토리 사본만) — Lv.25 까지는 예전 그대로 1.28배씩,
+     그 뒤로는 1.04배씩만 는다. 1.28배를 끝까지 두면 Lv.25→45 가 호로곡 정예 8.4만 마리,
+     Lv.70 은 누적 44억이라 3·4차 전직(Lv.45·70)과 다섯째·여섯째 사냥터에 아무도 못 닿았다.
+     처치 경험치는 적 수준에 1차로만 느는데(6+lv*4) 곡선은 지수라 벌어지기만 했다. */
+  var EXP_KNEE = 25, EXP_LATE = 1.04;
   function expNeed(level) {
-    return Math.round(50 * Math.pow(1.28, level - 1));
+    if (level <= EXP_KNEE) { return Math.round(50 * Math.pow(1.28, level - 1)); }
+    return Math.round(50 * Math.pow(1.28, EXP_KNEE - 1) * Math.pow(EXP_LATE, level - EXP_KNEE));
   }
 
   /* ── 효과 합산 ────────────────────────────────────────── */

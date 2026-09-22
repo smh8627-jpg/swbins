@@ -187,6 +187,7 @@
         if (g.stage && g.stage !== info.stage) { continue; }
         rec(d.key).n += 1;
       } else if (g.type === 'boss' && info.boss) {
+        if (g.stage && g.stage !== info.stage) { continue; }   // 그 사냥터의 보스만(2026-09-23)
         rec(d.key).n += 1;
       }
     }

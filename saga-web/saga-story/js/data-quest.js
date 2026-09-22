@@ -87,6 +87,43 @@
       desc: '무예 레벨의 합이 스물에 이르도록 익혀라.',
       reward: { exp: 3000, gold: 8000, scroll: 'atk10' } },
 
+    /* 호로곡·낙양 옛터·검각 암굴(2026-09-23) — Lv.18 뒤로 사명이 끊겨 있었다.
+       사냥터마다 "베기 → 보스" 두 걸음, 경험치는 그 레벨 한두 칸 어치(core.expNeed) */
+    { key: 'q_gorge', name: '호로곡의 불길', need: 25, repeat: false,
+      goal: { type: 'kill', n: 120, stage: 'gorge' },
+      desc: '호로곡의 정예 백스물.',
+      reward: { exp: 25000, gold: 15000, scroll: 'atk60' } },
+
+    { key: 'q_cinder', name: '그은 돌을 모은다', need: 25, repeat: false,
+      goal: { type: 'gather', n: 20, kind: 'cinder' },
+      desc: '불길에 그은 돌 스물. 저자에서 부적으로 벼릴 수 있다.',
+      reward: { exp: 12000, gold: 8000, potion: 15 } },
+
+    { key: 'q_gorge_boss', name: '골짜기의 주인', need: 30, repeat: false,
+      goal: { type: 'boss', n: 1, stage: 'gorge' },
+      desc: '호로곡 끝을 지키는 대장군을 베어라.',
+      reward: { exp: 35000, gold: 20000, scroll: 'atk10' } },
+
+    { key: 'q_ruin', name: '옛 도읍의 잿더미', need: 45, repeat: false,
+      goal: { type: 'kill', n: 150, stage: 'ruin' },
+      desc: '낙양 옛터의 적 백쉰.',
+      reward: { exp: 60000, gold: 40000, scroll: 'def60' } },
+
+    { key: 'q_ruin_boss', name: '폐도의 흉장', need: 50, repeat: false,
+      goal: { type: 'boss', n: 1, stage: 'ruin' },
+      desc: '잿더미 속 흉장을 베어라.',
+      reward: { exp: 90000, gold: 60000, scroll: 'atk10' } },
+
+    { key: 'q_deep', name: '검각 깊이', need: 70, repeat: false,
+      goal: { type: 'kill', n: 180, stage: 'deepcave' },
+      desc: '검각 암굴의 적 백여든.',
+      reward: { exp: 140000, gold: 100000, scroll: 'hp10' } },
+
+    { key: 'q_deep_boss', name: '암굴의 귀장', need: 75, repeat: false,
+      goal: { type: 'boss', n: 1, stage: 'deepcave' },
+      desc: '가장 깊은 굴의 귀장을 베어라.',
+      reward: { exp: 200000, gold: 150000, scroll: 'atk10' } },
+
     /* 되받는 셋 — 바친 뒤 다시 받는다 */
     { key: 'r_hunt', name: '토벌령(討伐令)', need: 3, repeat: true,
       goal: { type: 'kill', n: 30 },

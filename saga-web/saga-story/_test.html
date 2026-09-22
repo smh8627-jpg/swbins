@@ -1608,6 +1608,44 @@ window.DG_NO_TUNE = true;
       return f === 1 && r === 2 && ('들판 사명 ' + f + ' · 아무 데나 사명 ' + r);
     });
 
+    t('보스 사명은 제 사냥터의 보스만 센다 (다섯째·여섯째 사냥터 사명)', function () {
+      clearQuests();
+      C.save.player.level = 80;
+      Q.take('q_ruin_boss');                   // 낙양 옛터 보스만
+      Q.take('r_boss');                        // 어디 보스든
+      Q._onKill({ boss: true, stage: 'gorge' });
+      Q._onKill({ boss: false, stage: 'ruin' });
+      Q._onKill({ boss: true, stage: 'ruin' });
+      var a = Q.progress('q_ruin_boss'), b = Q.progress('r_boss');
+      var QD = DG.questData, keys = ['q_gorge', 'q_cinder', 'q_gorge_boss', 'q_ruin', 'q_ruin_boss', 'q_deep', 'q_deep_boss'];
+      var bad = keys.filter(function (k) {
+        var d = QD.find(k);
+        if (!d || d.key !== k) { return true; }
+        if (d.goal.stage && !SD.STAGES.some(function (x) { return x.key === d.goal.stage && x.need <= d.need; })) { return true; }
+        if (d.reward.scroll && !DG.gearData.scroll(d.reward.scroll)) { return true; }
+        return d.goal.kind && !SD.GATHERS[d.goal.kind];
+      });
+      clearQuests();
+      C.save.player.level = 1;
+      return a === 1 && b === 2 && bad.length === 0 &&
+        ('옛터 보스 사명 ' + a + ' · 아무 보스 사명 ' + b + ' · 새 사명 ' + keys.length + '개 사냥터·보상 키 유효');
+    });
+
+    t('경험치 곡선 — Lv.25 까지는 그대로, 그 뒤는 3·4차 전직에 닿을 만큼 완만하다', function () {
+      /* 1.28배를 끝까지 두면 Lv.25→45 가 호로곡 정예 8.4만 마리, Lv.70 누적 44억이었다 */
+      var old = function (l) { return Math.round(50 * Math.pow(1.28, l - 1)); };
+      var same = true, l;
+      for (l = 1; l <= 25; l++) { if (C.expNeed(l) !== old(l)) { same = false; } }
+      var sum = function (a, b) { var t = 0; for (var k = a; k < b; k++) { t += C.expNeed(k); } return t; };
+      var kill = function (lv) { return 6 + lv * 4; };   // side.js 처치 경험치(보스·희귀 배율 없이)
+      var k45 = Math.round(sum(25, 45) / kill(SD.stage('gorge').enemyLv));
+      var k70 = Math.round(sum(45, 70) / kill(SD.stage('ruin').enemyLv));
+      var mono = true;
+      for (l = 2; l <= 90; l++) { if (C.expNeed(l) <= C.expNeed(l - 1)) { mono = false; } }
+      return same && mono && k45 < 8000 && k70 < 20000 &&
+        ('Lv.25 필요 ' + C.fmt(C.expNeed(25)) + ' · 25→45 호로곡 ' + C.fmt(k45) + '마리 · 45→70 옛터 ' + C.fmt(k70) + '마리');
+    });
+
     t('보는 사명(장비·무예·금)은 세지 않고 지금 값을 본다', function () {
       clearQuests();
       unlearn();
