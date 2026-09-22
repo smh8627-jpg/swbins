@@ -23,6 +23,14 @@ namespace Saga.Dungeon.Player
         private const float MaxPitchDeg = 75f;
         private const float DragThresholdPx = 10f;
 
+        // PLAN.md 102-5 "카메라 클리핑" 폴리시(2026-09-22) — Cinemachine 없이(위
+        // 클래스 주석 참고) 수동 raycast pull-in만 추가한다. 원점을 정확히
+        // 캐릭터 위치에 두면 Player 자신의 CharacterController를 맞힐 수 있어
+        // CameraSkin만큼 카메라 방향으로 나가서 캐스팅을 시작한다(자기 몸
+        // 오검출 방지 — 흔한 3인칭 카메라 관례).
+        private const float CameraSkin = 0.6f;
+        private const float CameraCollisionBuffer = 0.2f;
+
         [SerializeField] private Camera cam;
 
         private float _zoom = 6f;
@@ -201,7 +209,26 @@ namespace Saga.Dungeon.Player
                 _shakeTimer -= Time.deltaTime;
                 shakeOffset = Random.insideUnitSphere * _shakeMagnitude;
             }
-            cam.transform.localPosition = new Vector3(0f, 0f, -_zoom) + shakeOffset;
+            float clippedZoom = ResolveCollisionZoom(_zoom);
+            cam.transform.localPosition = new Vector3(0f, 0f, -clippedZoom) + shakeOffset;
+        }
+
+        /// <summary>벽에 카메라가 파고들지 않도록 원하는 줌 거리 안에서
+        /// raycast로 막힌 지점을 찾으면 그만큼 당긴다(102-5 "카메라 클리핑").
+        /// 막힌 게 없으면 원래 _zoom 그대로 돌려준다 — 이 메서드는 _zoom
+        /// 자체는 바꾸지 않아 장애물을 벗어나면 바로 원래 거리로 복귀한다.</summary>
+        private float ResolveCollisionZoom(float desiredZoom)
+        {
+            if (desiredZoom <= CameraSkin) return desiredZoom;
+            Vector3 origin = transform.position;
+            Vector3 dir = transform.TransformDirection(Vector3.back);
+            Vector3 castStart = origin + dir * CameraSkin;
+            float castDistance = desiredZoom - CameraSkin;
+            if (Physics.Raycast(castStart, dir, out RaycastHit hit, castDistance, ~0, QueryTriggerInteraction.Ignore))
+            {
+                return Mathf.Max(CameraSkin, CameraSkin + hit.distance - CameraCollisionBuffer);
+            }
+            return desiredZoom;
         }
     }
 }

@@ -8331,3 +8331,21 @@ REALM 92키는 코드에서 쓰는 순서 그대로 ko(원문)·en(신규 번역
 **결론**: 이 환경(관리자 권한 셸)에서 Unity 비-배치 GUI 실행은 안전하지 않고, 배치 모드는 스크린샷이 안 나온다 — 지금은 방법이 없다. 세 도구는 로직(텔레포트 좌표·티어 강제)까지는 검증됐으니 코드로는 커밋하고, 실제 스크린샷은 사람이 Unity Hub로 직접 열어(관리자 권한 아닌 일반 세션) `Saga/Playtest ... (GUI Screenshot)` 메뉴로 돌리는 몫으로 남긴다. GO 전체 실기 확인(전투·손맛·대사 등)은 애초에 스크린샷으로 못 가리는 항목이 대부분이라 이번 시도 여부와 무관하게 사람 몫.
 
 `docs/PROJECT_STATE.md` 최상단에 "중요" 경고 절 신설(다음 세션이 같은 폭주를 재현하지 않도록), "다음 작업" 3번에 새 도구 셋 안내 추가. `Packages/`·`ProjectSettings/` 4파일은 배치 모드 아닌 직접 호출로 오염된 걸 `git checkout --`으로 원복.
+## 2026-09-22 — PLAN 105 Q-U1 형식 정리 + 배치 컴파일 재확인 ("이어해" 세션, GUI 스크린샷 시도 다음)
+
+전 세션이 GUI 스크린샷 실기 확인 시도로 끝나 이번 세션은 PROJECT_STATE "다음 작업" 4개를 다시 훑었다 — 104-1⑤·101-2·실기 GUI 확인은 전부 사람 실기/결정 대기였고, 105 Q-U1만 "사실상 처리됨, 형식만 남음"으로 적혀 있어 실제로 닫았다: 101-2 표 서두("결정" 문단들)에 Q-U1 처리 사실을 한 문단으로 내리고 105 열린 질문에서 지웠다(FINAL RULE "답이 나오면 해당 장으로 내리고 여기서 지운다" 그대로).
+코드 변경이 없었던 걸 확인하는 차원에서 `tools/unity-batch.sh`로 배치 컴파일을 한 번 더 돌려 exit 0·오류 0 재확인(4파일 자동 원복도 확인). `docs/PROJECT_STATE.md` 갱신(다음 작업 4번·헤더·테스트 표 문구) 후 커밋.
+
+## 2026-09-22 — GO·DUNGEON 카메라 벽 클리핑 raycast pull-in (102-5, "이어해" 세션, Q-U1 정리 다음)
+
+Q-U1을 닫은 뒤에도 PROJECT_STATE "다음 작업"이 전부 사람 대기라 사용자에게 직접 물었다 — PLAN 102-5 "§6.4 허접 10가지 해당 여부" 감사표에 아직 안 고친 폴리시 항목(카메라 클리핑·애니 전이 블렌드·UI 폰트 통일 등) 중 뭘 먼저 할지. **사용자가 "카메라 클리핑부터"를 골랐다**(AskUserQuestion).
+
+이 트랙은 Cinemachine 패키지 자체를 안 받았고(`CameraRig.cs` 클래스 주석, 101-3 G 성장 연출도 수동 코루틴으로 대신함) 카메라를 전부 수동 스크립트로 다뤄 왔다 — 102-5 표의 "CinemachineDeoccluder로" 제안은 이 트랙 아키텍처와 안 맞아 그대로 안 따르고, 같은 결(패키지 추가 없이 수동 raycast)로 짰다. GO`Player/CameraRig.cs`·DUNGEON`Player/CameraRig.cs` 둘 다 오빗 카메라(마우스 드래그 회전+휠 줌)라 대상으로 삼았다 — FOREST `CameraRig.cs`는 클래스 주석에 이미 "벽 충돌은 이번 슬라이스에 없음, 마을에 파고들 구조물이 집 하나뿐이라 범위 밖"이라고 명시적으로 스코프 밖에 남겨 둔 결정이 있어 손 안 댔고, REALM 오빗(`RealmOrbitCamera.cs`)도 이번엔 스코프 밖(사용자 선택 문구가 "GO·DUNGEON"으로 좁혀 물었다).
+
+**구현**: `ApplyZoom()`이 카메라 로컬 z를 `-_zoom`으로 그냥 박던 걸 `ResolveCollisionZoom(_zoom)`을 거치게 바꿨다 — rig 위치에서 카메라 방향(`transform.TransformDirection(Vector3.back)`)으로 raycast, 막히면 그 지점 바로 앞(`CameraCollisionBuffer=0.2f`)까지 당기고 막힌 게 없으면 원래 `_zoom` 그대로 돌려준다(그래서 장애물을 벗어나면 바로 원래 거리로 복귀 — `_zoom` 자체는 안 바꾼다). rig 원점이 Player의 CharacterController 캡슐 중심(1.7m, `BuildTestVillageScene.BuildPlayer()` 주석)이라 원점에서 그대로 캐스팅하면 자기 몸을 맞힐 수 있어, `CameraSkin=0.6f`만큼 카메라 방향으로 미리 나간 지점에서 캐스팅을 시작하는 흔한 3인칭 카메라 관례를 그대로 썼다(레이어 분리 대신 — 이 프로젝트는 `TagManager.asset` 확인 결과 커스텀 레이어가 없고 전부 Default라 레이어로 자기 자신을 거르는 방법은 새 레이어 정의가 필요해 더 무거웠다). DUNGEON은 기존 `Shake()`(hitstop 카메라 흔들림)와 합성 — 클리핑 당김 뒤에 흔들림 오프셋을 더한다.
+
+던전 벽(`DungeonRoomBuilder.SpawnWall()`)은 `GameObject.CreatePrimitive(PrimitiveType.Cube)`라 기본 BoxCollider가 이미 있어 별도 콜라이더 추가 없이 그대로 레이캐스트에 잡힌다 — GO 랜드마크(`LandmarksBuilder`)도 마찬가지로 확인.
+
+**검증**: `tools/unity-batch.sh` 배치 컴파일(exit 0, 4파일 원복) → `PlaytestHeadless`(GO) 3연속 OK → `PlaytestDungeonHeadless` 3연속 OK → `PlaytestDungeonFloorProgression` 1회 OK(카메라 로직과 무관한 층 진행이라 3연속까지는 안 함). 셋 다 로그에 새 오류 없음, 회귀 없음.
+
+`PLAN.md` 102-5 표의 "카메라 클리핑" 칸을 "해당"에서 "GO·DUNGEON 완료(2026-09-22)"로, `docs/PROJECT_STATE.md`(헤더·테스트 표·GO/DUNGEON 실기 확인 대기 줄에 "카메라 벽 클리핑 pull-in 체감" 추가, 문서 크기 여유 위해 오래된 날짜 태그 몇 곳 축약) 갱신 후 커밋.
