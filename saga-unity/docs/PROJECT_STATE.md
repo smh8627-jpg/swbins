@@ -1,7 +1,7 @@
 # PROJECT_STATE — saga-unity (상태만, ≤15KB, 덮어쓴다)
 
 **규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다(2026-09-16 재편 전 본문 5,532줄은 그쪽 첫 절에 그대로 있다). 넘치면 `tools/precheck.sh` 가 막는다.
-마지막 갱신: 2026-09-22 (열여덟 세션째, 이어서 — `BlobShadow` 신설 → **PC SSAO 값 튜닝(102-2, `PC_Renderer.asset` Radius 0.5·Intensity 1.5·Downsample on)** — 102-5 남은 항목(LUT·Screen Space Shadows·바닥 한 색·스케일 혼재·UI 폰트 통일)은 사람 판단/더 큰 작업 필요해 다음 방향 확인 대기) — 경위는 HISTORY grep. 102-4는 전부 처리됐다(남은 건 `Characters/` Kenney, 실사용 중이라 못 뺀다). 103-1·67~69장 잔여는 전부 닫힘.
+마지막 갱신: 2026-09-22 (열아홉 세션째, 이어서 — PC SSAO 값 튜닝 → **게임별 LUT 5장 신설(102-1-2, `BuildGameToneLuts.cs`가 코드로 굽고 `ToneVolume_<game>.asset`로 다섯 씬에 배선 — 마을 따뜻/차가움·굴혈 청록·들판 황금시각·필드 고대비·성 저채도)** — 남은 102-5는 Screen Space Shadows(보류)·바닥 한 색·스케일 혼재·UI 폰트 통일뿐, 전부 사람 판단/큰 작업 필요) — 경위는 HISTORY grep. 102-4는 전부 처리됐다(남은 건 `Characters/` Kenney, 실사용 중이라 못 뺀다). 103-1·67~69장 잔여는 전부 닫힘.
 
 **중요 — GUI 스크린샷은 이 환경에 아직 방법이 없다**: `-batchmode` 없이 띄우면 관리자 권한 대화상자가 SendKeys로 닫아도 1.5~2초마다 재생성되며 폭주(`taskkill /T`로 잡음), `-batchmode`(+`-nographics` 뺌)면 대화상자는 안 뜨지만 `ScreenCapture`가 파일을 안 남긴다. 다음 세션은 이 절부터, SendKeys 자동 닫기 재시도 금지(경위는 HISTORY grep "폭주").
 
@@ -54,14 +54,11 @@ PLAN 101-3(C hitstop류·F 유품 마커·G 데칼/레벨업 컷/장비 가시�
 
 | 검증 | 결과 |
 |---|---|
-| `-batchmode -nographics -quit` 컴파일 | exit 0, 오류 0(`BlobShadow` 신설+4씬 배선 뒤 재확인) |
-| 4씬 재빌드(`BuildTestVillageScene`·`BuildTestDungeonScene`·`BuildTestVillageForestScene`·`BuildTestStoryScene`) | 전부 exit 0(Player에 `BlobShadow` 추가) |
-| `PlaytestHeadless`(GO) | 3연속 OK(2026-09-22, `BlobShadow` 배선 뒤 재확인) |
-| `PlaytestDungeonHeadless` | 3연속 OK(2026-09-22, 같은 재확인) |
-| `PlaytestForestHeadless`·`Creatures`·`Finish`·`Furniture`·`HouseTransition` | `PlaytestForestHeadless` 3연속 OK 재확인(2026-09-22, `BlobShadow` 배선 뒤), 나머지 넷 미변경 |
+| `-batchmode -nographics -quit` 컴파일 | exit 0, 오류 0(`BuildGameToneLuts` 신설+5씬 배선 뒤 재확인) |
+| 5씬 재빌드(`BuildTestVillageScene`·`BuildTestDungeonScene`·`BuildTestVillageForestScene`·`BuildTestStoryScene`·`BuildTestCityScene`) | 전부 exit 0(ToneVolume 추가, 프로필 참조 정상 로드 확인) |
+| `PlaytestHeadless`(GO)·`PlaytestDungeonHeadless`·`PlaytestForestHeadless`·`PlaytestStorySlice`·`PlaytestRealmSlice` | **다섯 판 전부 3연속 OK(2026-09-22, LUT 배선 뒤 재확인)** |
+| `PlaytestForestCreatures`·`Finish`·`Furniture`·`HouseTransition` | 미변경 |
 | `PlaytestOverworldMap`(GO) | 이전 세션 1회 재검증 OK, 미변경 |
-| `PlaytestStorySlice` | 3연속 OK(2026-09-22, `BlobShadow` 배선 뒤 재확인) — 실행 후 `save_story.json`도 깨끗한 상태로 확인 |
-| `PlaytestRealmSlice` | 3연속 OK 재확인(`RealmCityBuilder.WallTier()`·REALM Localization 92키 추가 뒤 둘 다) — 임시 스크립트(커밋 안 함)로 tier1·tier2·en 키 92개 실제 반환값까지 확인 |
 | GUI 실제 Play 확인 | GO 라이팅 톤·Maria idle/run/attack·**Dungeon Abe/Brute(`PlaytestDungeonEnemiesGui.cs`, 파편적 확인)**. 나머지 미확인 |
 
 ## 실기 확인 대기 (항목명만 — 경위는 HISTORY grep)
@@ -71,4 +68,4 @@ PLAN 101-3(C hitstop류·F 유품 마커·G 데칼/레벨업 컷/장비 가시�
 - FOREST: 벽지/장판, 가구 배치, 생물·과일나무·좌판, 목표판/세션카드, 마을 번들(5.3), 채집 손맛(5.8①), 마을 평가판 별점(5.8②), 접수대·우체통 4·소포 3종·사슬 보너스 체감(5.7), 세배·꽃놀이·소원돌·목표판 D-day 문구 체감(5.6, 실제 달력 1·8·15일에만), 과일나무 모양·바크 트라이플레이너 톤(102-4)
 - STORY: 두목 크기·타격감, 사건·관계·선택 흐름, 전직 팝업, 목표판/세션카드, hitstop/shake/flash/popup/타격 VFX 체감, 유품 마커·지형 데칼·레벨업 줌·직업별 무기(101-3 F·G), 관문 대장 승격 연출·방패 파괴 체감(5-4), 비경 노드 지도·축복 카드·아레나 순간이동(5-3), 선봉/유격/호법 교대 버튼·서명 손맛·HUD 교대 쿨다운 줄(5-8)
 - REALM: 월드맵, 적국 사슬 체감, 패널 여덟 조작, 목표판/세션카드, 공격·계략 고르기, 특성·야망(5-1), 전술 토글(5-6), 서사 카드 7종(5-2), 계승 토글(5-8, 기본 꺼짐), 일기토·설전(5-3), 승리 결과 카드·목표판 셋째 줄·"다음 달" 게이트(5-5, 정복 55성/문화 정답 30), 성벽 단계별 실루엣(103-1, 축성 명령 여러 달 반복해 2·3단 넘겨야 확인)
-- 공통: BGM 음량, 설정 패널 6줄, Volume 프로파일 톤 일치, SessionCard DoF 체감, **접지 blob 그림자(102-2, 2026-09-22 신규 — 에디터 기본 품질 레벨이 "PC"면 안 보임, `QualitySettings`를 "Mobile"로 돌리거나 모바일 빌드에서 확인)**
+- 공통: BGM 음량, 설정 패널 6줄, SessionCard DoF 체감, 접지 blob 그림자(102-2, 에디터 기본 품질 레벨이 "PC"면 안 보임, `QualitySettings`를 "Mobile"로 돌리거나 모바일 빌드에서 확인), **게임별 LUT 톤 5장 체감(102-1-2, 2026-09-22 신규 — 마을 따뜻/차가움·굴혈 청록·들판 황금시각·필드 고대비·성 저채도가 의도한 방향인지, 수치만으로 짠 거라 실제 눈으로 봐야 판단 가능)**

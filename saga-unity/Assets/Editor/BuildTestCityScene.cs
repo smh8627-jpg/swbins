@@ -59,6 +59,7 @@ namespace Saga.EditorTools
             var worldMapGo = BuildWorldMap();
             var mapCameraRig = BuildWorldMapCamera();
             BuildPostProcessingVolume();
+            BuildToneVolume();
             BuildEventSystem();
             BuildHudAndCommands();
             BuildGoalBoardUi();
@@ -198,6 +199,28 @@ namespace Saga.EditorTools
             platform.pcProfile = pcProfile;
             platform.mobileProfile = mobileProfile;
             volume.sharedProfile = pcProfile; // .profile은 씬에 저장 안 되는 런타임 복사본용(Volume.cs 참고)
+        }
+
+        /// <summary>PLAN.md 102-1-2 "판별 색보정 LUT" — 성 톤(저채도). 공유
+        /// GlobalVolume 위에 우선순위 더 높은 두 번째 Volume 으로 겹쳐
+        /// 낀다(`BuildGameToneLuts.cs`, ColorLookup만 담아 다른 값은 안
+        /// 건드림). PC·Mobile 둘 다 적용(102-2 표).</summary>
+        private static void BuildToneVolume()
+        {
+            var toneProfile = AssetDatabase.LoadAssetAtPath<UnityEngine.Rendering.VolumeProfile>(
+                BuildGameToneLuts.RealmProfilePath);
+            if (toneProfile == null)
+            {
+                Debug.LogWarning("[BuildTestCityScene] " + BuildGameToneLuts.RealmProfilePath +
+                                  " 를 못 찾음 — Saga > Build Game Tone LUTs 를 먼저 돌릴 것.");
+                return;
+            }
+            var go = new GameObject("ToneVolume");
+            var volume = go.AddComponent<UnityEngine.Rendering.Volume>();
+            volume.isGlobal = true;
+            volume.weight = 1f;
+            volume.priority = 1f;
+            volume.sharedProfile = toneProfile;
         }
 
         private static void BuildMapViewSwitcher(GameObject dioramaRoot, GameObject dioramaCameraRig,

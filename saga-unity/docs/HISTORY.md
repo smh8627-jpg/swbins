@@ -8377,3 +8377,17 @@ blob 그림자 다음으로 102-5 "후처리 일부(LUT·SSAO·SSS 없음)"를 �
 LUT는 102-1-2가 요구하는 게임별 32³ 텍스처 5장(마을=따뜻/그림자 차갑게, 굴혈=청록, 들판=황금시각, STORY=고대비, REALM=저채도)이 색감 방향 자체를 정하는 일이라 사람 판단이 필요해 보류. Screen Space Shadows는 새 Renderer Feature를 처음부터 추가해야 해(SSAO처럼 템플릿이 미리 안 깔아 줌) YAML을 손으로 빚기엔 GUID 등 오류 위험이 커 이번엔 손 안 댔다. 남은 102-5 항목(바닥 한 색·스케일 혼재·UI 폰트 통일)도 전부 시각적 판단이나 더 큰 리팩터가 필요해, 다음엔 뭘 볼지 사용자에게 물어보기로 했다.
 
 `PLAN.md` 102-2 SSAO 행·102-5 "후처리" 항목 갱신, `docs/PROJECT_STATE.md` 갱신 후 커밋.
+
+## 2026-09-22 — 게임별 LUT 톤 5장 신설 (PLAN 102-1-2, SSAO 튜닝 다음, "이어해" 세션)
+
+SSAO 튜닝 뒤 남은 §102-5 항목은 전부 새 결정이나 큰 작업이 필요해 사용자에게 다시 물었다 — "LUT 색감 5장"을 골랐다. 102-1-2는 이미 게임별 톤 방향을 정해 뒀다(마을=따뜻/그림자 차갑게, 굴혈=청록, 들판=황금시각, 필드(STORY)=고대비, 성(REALM)=저채도) — 정확한 수치까지는 없어 방향만 보고 직접 정했다.
+
+**아키텍처 문제**: FF16Volume_PC/Mobile(102-2)은 다섯 판이 같이 쓰는 공유 자산 2개뿐이라 게임별 LUT를 못 넣는다. `Assets/Editor/BuildGameToneLuts.cs`를 신설해 별도 경로로 풀었다 — 게임마다 (a) 32³ LUT PNG(`Assets/Settings/LUT_<game>.png`, `PC_RPAsset`·`Mobile_RPAsset`의 `m_ColorGradingLutSize: 32`와 반드시 일치)를 코드로 굽고(에셋 없이, procgen 관례), (b) 그 LUT 하나만 담은 전용 `ToneVolume_<game>.asset`(ColorLookup 오버라이드만, ColorAdjustments 등 다른 값은 없음)을 만든다. 각 게임 씬(`BuildTestVillageScene.cs` 등 5개)의 기존 `BuildPostProcessingVolume()`(공유 GlobalVolume) 바로 다음에 `BuildToneVolume()`을 새로 추가해 우선순위(priority=1) 더 높은 두 번째 Volume으로 이 프로필을 겹쳐 낀다 — 공유 프로필 값은 안 건드리고 ColorLookup만 얹히는 구조.
+
+**LUT 텍스처 포맷 함정**: URP `ColorLookup.ValidateLUT()`는 텍스처가 `sRGB 포맷이 아니어야` 유효하다고 판정한다(`GraphicsFormatUtility.IsSRGBFormat`) — PNG를 그냥 임포트하면 기본이 sRGB 컬러 텍스처라 무효 판정난다. `TextureImporter.sRGBTexture = false`로 강제하고 `Uncompressed`·`npotScale None`·`mipmapEnabled false`로 맞췄다(에디터 프리뷰가 아니라 실제 그레이딩 값이라 압축·밉맵으로 뭉개지면 안 됨).
+
+**그레이딩 함수**(전부 순수 C# 픽셀 함수, 32×32×32 격자를 훑어 직접 계산 — 외부 그레이딩 툴 없이): GO는 루마 기반 셰도우/하이라이트 틴트 보간(cool→warm), DUNGEON은 청록 틴트+대비 1.12배, FOREST는 골드 틴트 단일, STORY는 대비 1.35배(틴트 없음), REALM은 루마로 55% 탈채도+살짝 차가운 틴트.
+
+**검증**: 배치 컴파일(exit 0) → `BuildGameToneLuts.Build()` 실행(5개 PNG+5개 프로필 저장 확인, 로그 "saved 5 LUTs + 5 tone volume profiles") → 생성된 `ToneVolume_go.asset` YAML 직접 열어 `active: 1`·`m_OverrideState: 1`·텍스처 참조 정상 확인, `LUT_go.png.meta`에서 `sRGBTexture: 0` 확인 → GameObject 구성이 바뀌어 다섯 씬 전부 재빌드(경고 없음 — 프로필 찾기 성공) → GO·DUNGEON·FOREST·STORY·REALM **다섯 판 전부 Playtest 3연속 OK** 재확인.
+
+수치만으로 짠 색감이라 실제로 의도한 톤이 나오는지는 사람이 봐야 한다 — `PROJECT_STATE.md` "실기 확인 대기" 공통 줄에 추가. `PLAN.md` 102-1(암묵적으로 이미 있던 방향 수치화는 없음, 102-2 Color Adjustments 행·102-5 "후처리" 항목만 갱신), 커밋.
