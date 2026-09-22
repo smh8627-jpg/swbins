@@ -142,14 +142,18 @@ namespace Saga.EditorTools
             }
 
             // WallHeight=4m 천장(DungeonRoomBuilder) 안쪽으로 카메라가 뜨는 걸
-            // 막으려고 줌·피치를 최솟값으로 낮춘다(기본 zoom=6·pitch=55°면
-            // 카메라 높이가 약 5.9m로 천장을 뚫고 들어간다 — 실제로 겪음).
+            // 막으려고 줌·피치를 게임 정상 범위(MinZoom=3·MinPitchDeg=30)보다도
+            // 낮춘다 — reflection이라 클램프를 안 거친다. 105 Q-U3 피부 확인용
+            // 이번 샷만: 탑다운(pitch=30)에서는 갑옷에 가려 피부가 거의 안 보여
+            // (2026-09-23 실제로 겪음, 카메라 높이 3*sin30=1.5m라 천장 여유는
+            // 충분) 더 수평(pitch=15, 높이 3*sin15≈0.78m — 천장·바닥 다 안전)
+            // 으로 낮춰 골반·허벅지 노출부를 옆에서 보이게 한다.
             var rig = playerGo.GetComponentInChildren<CameraRig>();
             if (rig != null)
             {
                 var t = typeof(CameraRig);
                 t.GetField("_zoom", BindingFlags.NonPublic | BindingFlags.Instance)?.SetValue(rig, 3f);
-                t.GetField("_pitchDeg", BindingFlags.NonPublic | BindingFlags.Instance)?.SetValue(rig, 30f);
+                t.GetField("_pitchDeg", BindingFlags.NonPublic | BindingFlags.Instance)?.SetValue(rig, 15f);
             }
 
             // 던전 본연의 어두운 무드 조명이라 Abe/Brute 실루엣만 겨우 보였다

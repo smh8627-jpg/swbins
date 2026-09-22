@@ -8504,3 +8504,15 @@ GUI로 재검증하려 했으나 이 세션의 5·6·7번째 Unity GUI launch에
 세 번의 GUI/배치 실행 모두 4~6개 설정 파일이 조용히 고쳐진 걸 `git checkout --`으로 원복(기존 패턴 그대로, `tools/unity-batch.sh`가 배치 실행분은 자동 처리).
 
 코드 변경: `PlaytestDungeonEnemiesGui.cs`(무적 플래그 방식 폐기 → 적 `DungeonEnemy.enabled=false` 방식으로 교체, `using Saga.Dungeon.Data;` 추가). `PROJECT_STATE.md` 갱신.
+
+## 2026-09-23 — 던전 GUI 즉사 문제 해결, 카메라 구도가 피부 확인엔 안 맞음을 확인 (같은 세션 "이어해" 계속)
+
+적 `DungeonEnemy.enabled=false` 수정을 커밋한 뒤 곧바로 재검증했다. 첫 재시도는 launch 5~7번째 구간이라 hang이 다시 남(taskkill로 정리, `git checkout --`로 4파일 원복). 문서 작업으로 몇 분 텀을 두고 재시도하니 이번엔 정상 진행 — package version bump(`com.unity.cloud.gltfast` 6.9.0→6.14.1)가 걸려 있어 평소보다 느린 전체 재임포트를 거쳤지만 hang 없이 exit 0으로 끝났다.
+
+스크린샷 확인 결과: HP 30/30 유지, "가까운 적 없음" — 적 비활성화 수정이 제대로 작동해 더 이상 즉사하지 않는다. 하지만 카메라가 여전히 탑다운(디아블로류, `CameraRig` 기본 pitch=55°를 확인용으로 30°까지 낮춘 상태)이라 Maria가 갑옷에 완전히 가려 피부가 거의 안 보였다 — pitch를 게임 정상 최소(30°)보다도 더 낮춰(15°, reflection으로 클램프 우회, 천장·바닥 여유는 계산으로 확인) 재실행했으나 여전히 위에서 내려다보는 각도라 결과는 비슷했다. 즉 이 씬의 카메라 구도 자체가 피부 확인이라는 목적에 안 맞는다는 결론 — `TestCharacterRealistic`(근접 측면 샷)처럼 스크린샷 전용의 별도 카메라(허벅지 높이·근접 고정)를 새로 만들지 않는 한, 기존 게임플레이 카메라를 아무리 조정해도 한계가 있다.
+
+이번 실행에서도 6개 설정 파일이 조용히 고쳐진 걸 `git checkout --`으로 원복(패턴 재확인).
+
+**결론**: GUI hang은 launch 횟수가 쌓이면 걸리다가 시간을 두면 다시 멀쩡해지는 패턴을 보였다(정확한 임계치는 미확인, 재부팅 없이도 해소됨 — 지난 세션의 "재부팅해야 풀린다"는 결론과 다르다, 단순 launch 간격 문제일 가능성). SSS 글로우 자체는 이번에도 육안 판정을 못 냈다 — 코드·셰이더 검증(ShaderHasError=False)은 끝났고 남은 건 순수히 "보기 좋은가"의 미적 판단인데, 그걸 볼 방법(스크린샷 전용 카메라 신설, 또는 사용자 실기 확인)이 아직 없다.
+
+코드 변경: `PlaytestDungeonEnemiesGui.cs`(카메라 pitch 30°→15°, 주석 갱신). `PROJECT_STATE.md` 갱신.
