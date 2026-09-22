@@ -8222,3 +8222,10 @@ PROJECT_STATE.md` 참고. 요약:
 - `--headless --editor --quit` 1회로 새 셰이더 `.uid` 생성(같이 커밋). `godot_regress.sh` REGRESS OK — FOREST md5 변경은 예상대로, **REALM md5도 바뀜**: 내 변경만 stash로 빼고 REALM을 다시 떠 diff하니 차이는 새 셰이더 preload 로그 2줄뿐(REALM도 공용 `world_curve_material.gd`를 싣는다), 빼면 이전 md5 4d3bc5c1 그대로. 정상.
 - PROJECT_STATE 15,134B(상한 근접)→11,251B로 압축(세부는 이 파일에 이미 있음).
 - 흰 바위(rocky `Rock_Medium_1`)는 여전히 사용자 판단 대기로 안 건드림.
+
+## GO 마을 숲 하층 식생 — 고사리·버섯 (2026-09-23, 같은 세션, "푸시 커밋 하고 이어해")
+
+- 승인 화면을 바꾸지 않는 **순수 추가**로 골랐다(흰 바위·clutter 종 교체는 기존 화면 변경이라 대기). GO `vegetation_builder.gd::_scatter_understory()` — village "T" 칸(35칸)에 `Fern_1__go_village`(칸당 1/2)·`Mushroom_Common__go_village`(1/4), salt 980·990번대, 충돌 없음(줄기 충돌은 `_scatter_trees` 몫).
+- 스냅 GLB의 재질을 직접 열어 확인: Fern_1은 alphaMode MASK·컷 0.2·양면이 스냅 뒤에도 유지 → GO는 곡률 셰이더를 안 써 임포트 기본 머티리얼로 컷아웃이 그대로 된다(FOREST에서 셰이더를 새로 만들어야 했던 제약이 여기엔 없음).
+- 배율: 옛 크기 없는 신규라 이 판 인물 키(≈3.4m) 기준 — 고사리 무릎(원본 0.84m ×1.0), 버섯 발목 0.3m(0.463m ×0.65). 폐허 숲은 DeadTree라 제외.
+- `godot_regress.sh` REGRESS OK(GO만 md5 변경, GO 로그에 두 GLB 로드 줄 확인), `.import`/`project.godot` 잡음 없음.

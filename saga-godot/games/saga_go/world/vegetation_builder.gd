@@ -148,6 +148,18 @@ const COAST_PEBBLE_GLB := [
 ]
 const COAST_PEBBLE_DENSITY := 10  # "D" 칸 1/10
 
+## 같은 5단계, 마을 숲("T") 하층 식생 — 나무 밑이 맨바닥이던 자리에 고사리·
+## 버섯(go_village 스냅, alphaMode MASK/불투명 그대로 임포트돼 GO 기본
+## 머티리얼로 컷아웃이 된다 — FOREST 곡률 셰이더 같은 제약이 없다)을 얹는다.
+## 폐허 숲은 DeadTree라 고사리가 어울리지 않아 village만. 순수 시각(충돌 없음 —
+## 나무 줄기 충돌은 _scatter_trees가 이미 가진다). 배율: 이 판 인물 키(≈3.4m,
+## glb_utils.gd fit_height 주석) 기준 고사리는 무릎(원본 0.84m 그대로 ×1.0),
+## 버섯은 clutter와 같은 발목 0.3m(실측 0.463m → ×0.65).
+const UNDERSTORY := [
+	{"glb": "res://assets/generated/variants/Fern_1__go_village.glb", "scale": 1.0, "chance": 0.5},
+	{"glb": "res://assets/generated/variants/Mushroom_Common__go_village.glb", "scale": 0.65, "chance": 0.25},
+]
+
 var region_id := "village"
 
 
@@ -158,6 +170,7 @@ func _ready() -> void:
 	_scatter_clutter()
 	_scatter_village_path()
 	_scatter_coast_pebbles()
+	_scatter_understory()
 	_scatter_ruins_debris()
 	_scatter_ruins_rubble()
 	_scatter_ruins_wall_fence()
@@ -470,6 +483,37 @@ func _scatter_coast_pebbles() -> void:
 		if mesh == null:
 			continue
 		add_child(_build_rock_multimesh(mesh, xforms, "CoastPebble%d" % i))
+
+
+## "T" 칸마다 UNDERSTORY 종별로 chance 확률(salt 980+종 번호×10)로 하나씩.
+func _scatter_understory() -> void:
+	if region_id != "village":
+		return
+	var ground: float = TerrainBuilder.LEGEND["T"].height
+	var rows := TestMap.rows_of(region_id)
+	for k in UNDERSTORY.size():
+		var spec: Dictionary = UNDERSTORY[k]
+		var salt := 980 + k * 10
+		var s: float = spec.scale
+		var xforms: Array[Transform3D] = []
+		for y in rows.size():
+			var row: String = rows[y]
+			for x in row.length():
+				if row[x] != "T":
+					continue
+				if _hash(x, y, salt) >= float(spec.chance):
+					continue
+				var jx := (_hash(x, y, salt + 1) - 0.5) * TestMap.TILE_SIZE * 0.8
+				var jz := (_hash(x, y, salt + 2) - 0.5) * TestMap.TILE_SIZE * 0.8
+				var pos := TestMap.world_pos(x, y, region_id) + Vector3(jx, ground, jz)
+				var basis := Basis(Vector3.UP, _hash(x, y, salt + 3) * TAU).scaled(Vector3.ONE * s)
+				xforms.append(Transform3D(basis, pos))
+		if xforms.is_empty():
+			continue
+		var mesh := GLBUtils.extract_mesh(spec.glb)
+		if mesh == null:
+			continue
+		add_child(_build_rock_multimesh(mesh, xforms, "Understory%d" % k))
 
 
 ## clutter와 달리 "." 평지가 아니라 폐허 바닥("R")을 스캔한다 — ruins
