@@ -67,7 +67,10 @@
     { name: '왜장', emoji: '🗾', kind: 'human', color: '#7a3a3a', look: { weapon: 'sword', helm: 'gapju', armor: 'plate', cape: true }, tier: 3 },
     { name: '위군 도독', emoji: '🎖️', kind: 'human', color: '#31609f', look: { weapon: 'sword', helm: 'crown', armor: 'plate', cape: true }, tier: 3 },
     { name: '관문 수호장', emoji: '🏯', kind: 'human', color: '#5a5a6a', look: { weapon: 'halberd', helm: 'gapju', armor: 'plate', cape: true, beard: true }, tier: 4 },
-    { name: '적국 대장군', emoji: '🐉', kind: 'human', color: '#7a2a3a', look: { weapon: 'halberd', helm: 'plume', armor: 'plate', cape: true }, tier: 4 }
+    { name: '적국 대장군', emoji: '🐉', kind: 'human', color: '#7a2a3a', look: { weapon: 'halberd', helm: 'plume', armor: 'plate', cape: true }, tier: 4 },
+    /* 사가스토리 다섯째·여섯째 사냥터(낙양 옛터·검각 암굴) 보스 — 있는 칸만 쓴다(새 필드 없음) */
+    { name: '폐도 흉장', emoji: '🔥', kind: 'human', color: '#4a3a32', look: { weapon: 'axe', helm: 'plume', armor: 'plate', cape: true, beard: true }, tier: 4 },
+    { name: '암굴 귀장', emoji: '👻', kind: 'human', color: '#3a3456', look: { weapon: 'spear', helm: 'gapju', armor: 'plate', cape: true }, tier: 4 }
   ];
 
   function tierOf(stage) {

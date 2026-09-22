@@ -2081,7 +2081,7 @@ window.DG_NO_TUNE = true;
 
     /* ── 넷째 사냥터 (2026-08-26) ───────────────────────── */
 
-    t('사냥터 넷이 레벨 순으로 계단을 이룬다', function () {
+    t('사냥터 여섯이 레벨 순으로 계단을 이룬다', function () {
       /* 넷째(호로곡)를 넣은 까닭이 이 계단이다 — 3차 전직이 Lv.45 인데 마지막
          사냥터가 Lv.12 에 열려 있어, 무예를 스물 얹어 놓고 쓸 데가 없었다. */
       /* 오버월드 마을(town:true)은 사냥터가 아니라 문턱 계단에서 뺀다 —
@@ -2093,7 +2093,8 @@ window.DG_NO_TUNE = true;
       for (i = 1; i < need.length; i++) {
         if (need[i] <= need[i - 1] || lvs[i] <= lvs[i - 1]) { up = false; }
       }
-      return combat.length === 4 && up &&
+      /* 2026-09-23 — 다섯째·여섯째(낙양 옛터 Lv.45·검각 암굴 Lv.70)로 여섯 */
+      return combat.length === 6 && up &&
         ('문턱 ' + need.join('→') + ' · 적 Lv.' + lvs.join('→'));
     });
 
@@ -2112,15 +2113,16 @@ window.DG_NO_TUNE = true;
         ('굴혈 tier ' + t3 + ' → 호로곡 tier ' + t4 + ' · 적 ' + pool.length + '종 · 보스 ' + boss.name);
     });
 
-    t('마을·사냥터 사슬이 신야성부터 호로곡까지 끊기지 않는다', function () {
+    t('마을·사냥터 사슬이 신야성부터 검각 암굴까지 끊기지 않는다', function () {
       /* 문 사슬이 한 군데라도 끊기면 그 뒤는 영영 못 간다 — 지도에는 있는데
          걸어갈 길이 없는 꼴이다. 오버월드(2026-09-02)로 마을 다섯이 사냥터
          사이에 끼어들었으니, 처음부터 끝까지 한 칸씩 걸어 사슬 전체를 본다. */
       var CHAIN = ['sinya', 'heodo', 'field', 'gangneungjin', 'forest',
-                   'namjeongseong', 'cave', 'gisanchae', 'gorge'];
+                   'namjeongseong', 'cave', 'gisanchae', 'gorge',
+                   'ruin', 'deepcave'];
       if (S.active()) { S.leave(); }
       unlearn();
-      C.save.player.level = 46;
+      C.save.player.level = 71;   // 여섯째(검각 암굴)가 Lv.70 에 열린다
       var ok = true, log = [], i;
       for (i = 0; i < CHAIN.length - 1; i++) {
         S.state().stage = CHAIN[i];
@@ -2146,6 +2148,34 @@ window.DG_NO_TUNE = true;
         S.leave();
       }
       return ok && log.join(' · ');
+    });
+
+    t('낙양 옛터·검각 암굴 — 3차·4차 전직 레벨에 열리고, 정예가 호로곡보다 단단하다', function () {
+      /* 원 지시서 잔여 "폐허·동굴 지역"(2026-09-23). 문턱은 전직 레벨(45·70)과 같고,
+         적 수준은 한 걸음씩(26 → 30 → 34)만 오른다 — 레벨 문턱만큼 올리면 1.22^(lv-1)
+         때문에 아무도 못 잡는다. 보스는 저마다 정해진 이름이 BOSSES 에 있어야 한다
+         (없으면 bossByName 이 첫 보스로 떨어져 황건 두목이 나온다). */
+      var ED = DG.enemyData, JD = DG.jobData;
+      var g = SD.stage('gorge'), r = SD.stage('ruin'), d = SD.stage('deepcave');
+      var t3 = JD.JOBS.filter(function (j) { return j.tier === 3; })[0].need;
+      var t4 = JD.JOBS.filter(function (j) { return j.tier === 4; })[0].need;
+      var bossOk = [r, d].every(function (x) {
+        var b = ED.bossByName(x.boss.name);
+        return b.name === x.boss.name && b.tier === 4 && !SD.rangedOf(b);
+      });
+      var hp = function (x) { return Math.round(18 * Math.pow(1.22, x.enemyLv - 1)); };
+      var rise = hp(g) < hp(r) && hp(r) < hp(d) && hp(d) / hp(g) < 6;
+      C.save.player.level = t3 - 1;
+      var lockR = !S.unlocked('ruin');
+      C.save.player.level = t3;
+      var openR = S.unlocked('ruin') && !S.unlocked('deepcave');
+      C.save.player.level = t4;
+      var openD = S.unlocked('deepcave');
+      C.save.player.level = 1;
+      var tier = ED.tierOf(r.enemyLv) === 4 && ED.tierOf(d.enemyLv) === 4;
+      return r.need === t3 && d.need === t4 && bossOk && rise && lockR && openR && openD && tier &&
+        ('옛터 Lv.' + r.need + ' · 암굴 Lv.' + d.need + ' · 정예 체력 ' + C.fmt(hp(g)) + ' → ' +
+         C.fmt(hp(r)) + ' → ' + C.fmt(hp(d)) + ' · 보스 ' + r.boss.name + '·' + d.boss.name);
     });
 
     t('모든 사냥터의 mood 는 화면이 아는 이름이다', function () {
