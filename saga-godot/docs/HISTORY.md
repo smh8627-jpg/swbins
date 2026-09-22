@@ -8051,3 +8051,9 @@ PROJECT_STATE.md` 참고. 요약:
 - `story_combat.gd`를 직접 세어봄: `QUESTS`(본편 사명) 13개(q_first~q_master) · `REPEAT_QUESTS` 7개(r_hunt·r_boss·r_purse·r_forage·r_talk 반복 5 + d_hunt·d_gather 일일 2) — 합쳐서 문서가 늘 말해온 "20/20"(웹판 `data-quest.js` 20개 전부)과 정확히 일치.
 - 다만 `PROJECT_STATE.md`의 "반복/일일 6"은 오기였다 — HISTORY 09-13 기록을 보면 r_purse를 뺐다 도로 넣은 경위가 있어(그땐 6개), 그 이후 7개가 된 걸 문서에 안 옮겼던 것. 게임 코드 버그 아님, 문서만 정정.
 - 장비 tier2~4·고유(UNIQUES)·주문서, 원거리 적(`story_enemy_shot.gd`)도 그레핑으로 실재 확인 — 전부 있음, 빠진 것 없음.
+
+## REALM 인물 야망 진행·보상·좌절 문턱 헤드리스 실측 (2026-09-22, 같은 세션, "이어서")
+
+- 임시 `SAGA_AMBITION_DEBUG` 훅으로 `officer_ambition`을 직접 얹어 `_tick_ambitions()` 실측: gold 4999→목표(5000) 미달(prog=4999·done=false·fail=1), 5000→달성(done=true·fail 0으로 리셋·충성 50→70(+20)·`officer_growth.bonus.wisdom`+2) — 문서 수치와 정확히 일치.
+- 좌절 문턱(`fail_months > AMBITION_FRUSTRATE_MONTHS`, 12): 목표 안 채운 채 12번 틱까지는 충성 그대로(50), 13번째에만 -3(47) — 경계값 오차 없음.
+- 확인 후 훅 제거(`git diff` 원복 확인), `godot_regress.sh` md5 동일.
