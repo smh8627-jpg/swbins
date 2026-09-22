@@ -1,7 +1,7 @@
 # PROJECT_STATE — saga-unity (상태만, ≤15KB, 덮어쓴다)
 
 **규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다(2026-09-16 재편 전 본문 5,532줄은 그쪽 첫 절에 그대로 있다). 넘치면 `tools/precheck.sh` 가 막는다.
-마지막 갱신: 2026-09-22 (열일곱 세션째, 이어서 — GO·DUNGEON `CameraRig` 벽 클리핑 → 102-5 "애니 끊김" 재조사(해소돼 있었음) → **`SagaCore/BlobShadow.cs` 신설, GO·DUNGEON·FOREST·STORY Player에 배선(102-2 Shadows, Mobile 품질 레벨에서만 켜짐)**) — 경위는 HISTORY grep. 102-4는 전부 처리됐다(남은 건 `Characters/` Kenney, 실사용 중이라 못 뺀다). 103-1·67~69장 잔여는 전부 닫힘.
+마지막 갱신: 2026-09-22 (열여덟 세션째, 이어서 — `BlobShadow` 신설 → **PC SSAO 값 튜닝(102-2, `PC_Renderer.asset` Radius 0.5·Intensity 1.5·Downsample on)** — 102-5 남은 항목(LUT·Screen Space Shadows·바닥 한 색·스케일 혼재·UI 폰트 통일)은 사람 판단/더 큰 작업 필요해 다음 방향 확인 대기) — 경위는 HISTORY grep. 102-4는 전부 처리됐다(남은 건 `Characters/` Kenney, 실사용 중이라 못 뺀다). 103-1·67~69장 잔여는 전부 닫힘.
 
 **중요 — GUI 스크린샷은 이 환경에 아직 방법이 없다**: `-batchmode` 없이 띄우면 관리자 권한 대화상자가 SendKeys로 닫아도 1.5~2초마다 재생성되며 폭주(`taskkill /T`로 잡음), `-batchmode`(+`-nographics` 뺌)면 대화상자는 안 뜨지만 `ScreenCapture`가 파일을 안 남긴다. 다음 세션은 이 절부터, SendKeys 자동 닫기 재시도 금지(경위는 HISTORY grep "폭주").
 

@@ -8367,3 +8367,13 @@ GO(`BuildTestVillageScene.cs`)·DUNGEON(`BuildTestDungeonScene.cs`)·FOREST(`Bui
 **검증**: 배치 컴파일(exit 0) → GameObject 구성이 바뀌어(`104-2` 규칙대로) 4씬 전부 재빌드(`Build TestVillage/TestDungeon/TestVillageForest/TestField Scene`, 전부 exit 0 — 씬 파일 diff가 커 보이는 건 Unity 절차적 재빌드가 매번 fileID를 다시 매기는 거라 늘 그렇다, 새삼스러운 일 아님) → `PlaytestHeadless`(GO)·`PlaytestDungeonHeadless`·`PlaytestForestHeadless`·`PlaytestStorySlice` 전부 3연속 OK. 에디터 기본 품질 레벨이 "PC"라 지금은 안 보인다 — 실제로 켜진 모습은 `QualitySettings`를 "Mobile"로 돌리거나 모바일 빌드에서 사용자가 확인해야 한다(PROJECT_STATE "실기 확인 대기" 공통 줄에 추가).
 
 `PLAN.md` 102-2 Shadows 행·102-5 "그림자 계단" 행 완료 표시(Player만, 적/NPC는 미착수라고 명시), `docs/PROJECT_STATE.md` 갱신 후 커밋. 중간에 saga-godot 세션이 자기 `PROJECT_STATE.md`를 상한 넘게 또 키워 공유 precheck가 두 번째로 막혔다 — 지난번과 같은 방식(내용 손실 없이 문구만 압축)으로 사용자 확인 없이 트림하고 진행(이전 세션에 "추천"으로 이미 승인받은 대응).
+
+## 2026-09-22 — PC SSAO 값 튜닝 (PLAN 102-2, blob 그림자 다음, "이어해" 세션)
+
+blob 그림자 다음으로 102-5 "후처리 일부(LUT·SSAO·SSS 없음)"를 봤다 — `BuildFF16VolumeProfiles.cs`엔 LUT(ColorLookup)·Screen Space Shadows 관련 코드가 전혀 없어 정말 미착수였지만, SSAO는 확인해보니 `PC_Renderer.asset`에 Unity 공식 URP 템플릿이 기본으로 넣어 준 `ScreenSpaceAmbientOcclusion` Renderer Feature가 이미 `m_Active: 1`로 켜져 있었다 — 102-2 표의 "템플릿 기본(PC)" 칸이 정확히 이 뜻이었다. 다만 값은 템플릿 기본값(Radius 0.3·Intensity 0.4·Downsample 꺼짐) 그대로였고, 표의 "추가·변경" 칸엔 이미 목표 수치(반경 0.5·강도 1.5·다운샘플)가 적혀 있어 — 새 결정이 필요 없는, 이미 승인된 숫자를 넣기만 하면 되는 항목이었다.
+
+`Assets/Settings/PC_Renderer.asset`을 직접 열어 `m_Settings` 아래 `Radius: 0.3→0.5`·`Intensity: 0.4→1.5`·`Downsample: 0→1` 세 필드만 고쳤다(코드가 아니라 값 자체 — Mobile은 SSAO 자체가 없어 안 건드림). 배치 모드로 프로젝트를 한 번 로드해(도메인 리로드가 직렬화 자산도 파싱한다) 오류 0 확인, `PlaytestHeadless`(GO) 1회 OK로 사이드이펙트 없음 재확인.
+
+LUT는 102-1-2가 요구하는 게임별 32³ 텍스처 5장(마을=따뜻/그림자 차갑게, 굴혈=청록, 들판=황금시각, STORY=고대비, REALM=저채도)이 색감 방향 자체를 정하는 일이라 사람 판단이 필요해 보류. Screen Space Shadows는 새 Renderer Feature를 처음부터 추가해야 해(SSAO처럼 템플릿이 미리 안 깔아 줌) YAML을 손으로 빚기엔 GUID 등 오류 위험이 커 이번엔 손 안 댔다. 남은 102-5 항목(바닥 한 색·스케일 혼재·UI 폰트 통일)도 전부 시각적 판단이나 더 큰 리팩터가 필요해, 다음엔 뭘 볼지 사용자에게 물어보기로 했다.
+
+`PLAN.md` 102-2 SSAO 행·102-5 "후처리" 항목 갱신, `docs/PROJECT_STATE.md` 갱신 후 커밋.
