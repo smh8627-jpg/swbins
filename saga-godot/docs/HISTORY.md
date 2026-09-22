@@ -8145,3 +8145,11 @@ PROJECT_STATE.md` 참고. 요약:
 - 임시 `SAGA_MOOD_DEBUG` 훅으로 방마다 실제 로드된 mesh.resource_path를 찍어 dirt→limestone→lava→dirt… 순환 확인 — 1차 시도에선 노드 이름(`RoomMesh` 등) 기반 필터를 썼다가 헛다리(Godot가 동일 이름 재사용 시 두 번째부터 `@ClassName@N` 익명 이름을 붙이는 기존 동작 — 09-23 이전부터 있던 동작, 원본 코드로 재현해 확인, 내 변경과 무관)를 잡을 뻔함 → 타입(`is MeshInstance3D`) 기반으로 바꿔 정확히 확인.
 - **그 과정에서 발견**: gate 관련 mesh가 전혀 안 찍힘 → `_spawn_gate()`를 보니 `mi.mesh = mesh` 대입 자체가 없었다. `git log -S`/`git show`로 원인 추적 — 2026-09-12 "여러 방 연결" 리팩터(커밋 `1ea68c57`, `at_north` 인자 추가)가 그 줄을 빠뜨렸다(그 전 커밋엔 있었다). 그날부터 지금까지 문 아치가 한 번도 렌더된 적 없는 빈 MeshInstance3D였다는 뜻 — mood 작업과 무관한 순수 기존 버그라 별도로 `mi.mesh = mesh` 한 줄 추가. 게임플레이(벽 틈)는 안 막혀 있어 안 걸리고 지나간 것으로 보인다.
 - 훅 제거 후 재확인(13개 gate mesh 전부 정상 로드), `godot_regress.sh` 다섯 판 REGRESS OK(DUNGEON만 md5 변경), `.import`/`project.godot` 잡음 없음.
+
+## GO procgen rock/fence/wall 배선 (2026-09-23, 같은 세션, "이어해")
+
+- DUNGEON 굴혈 mood 배선 다음으로 PROJECT_STATE 우선순위 2번(미배선 icon_star·fence/wall/rock·NPC옷팔레트) 중 stele와 같은 결로 곧장 이어 붙일 수 있는 procgen rock/fence/wall을 골랐다. 103-3 표 지정 용도("포구·폐허 빈 칸 채우기") 그대로, stele(비석, R 바닥)와 자리가 안 겹치게 둘로 나눴다.
+- `vegetation_builder.gd::_scatter_ruins_rubble()` 신설 — R 바닥에 procgen rock 4종(노이즈 바위, make_rock이 정점색을 이미 구워 넣어 material_override 안 씀)을 stele보다 성긴 1/4 밀도로. `_scatter_ruins_wall_fence()` 신설 — `_scatter_rocks()`가 이미 세우는 산(^) 테두리 Rock_Medium과 같은 칸에 procgen wall/fence 4종(정점색 없어 flat material_override 필요)을 1/3 밀도로 섞어 "폐허를 둘러싼 담이 무너져 바위처럼 나뒹군다"는 그림.
+- 둘 다 `_scatter_ruins_debris()`와 같은 골격(region_id=="ruins" 가드, 격자 스캔+해시 지터, variant별 Array[Transform3D] 버킷 → `_build_rock_multimesh()` 재사용, 새 salt 720대·740대로 기존 함수들과 겹치지 않게).
+- 헤드리스 3프레임 확인 오류 0, `godot_regress.sh` 다섯 판 REGRESS OK(GO만 md5 변경, 나머지 넷 불변), `.import`/`project.godot` 잡음 없음.
+- **남은 미배선**: `icon_star`(용도 미정) · NPC 옷 팔레트 8종(생성 자체를 안 함) · STORY 트라이플레이너(별도 판단 필요).
