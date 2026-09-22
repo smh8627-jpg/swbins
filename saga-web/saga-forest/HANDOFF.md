@@ -1819,3 +1819,19 @@ jsdom 355/356 ×3(남은 하나는 캔버스 그림 — 깃발 그림, jsdom 한
 **실기 확인 필요**: 마을의 주민·나·NPC가 이미지로 잘 보이는지(전엔 절차적 그림), 도감 hero 초상. 펫 초상은 원래도 디스크 초상 위주라 변한 게 없다.
 
 **남은 것**: 사가스토리·사가국지는 Phase 4 미착수.
+
+## 2026-09-23 — PLAN §5.6 백중 잔여: 불꽃 파티클
+
+"사가웹 이어해" → 다섯 판을 훑어 남은 안전한 코드 작업을 찾다가, §5.6 "구현 결정" 절에 "④ 백중 '불꽃 + 등롱 사진' → 등롱 셋 밝히기만 했고 불꽃 파티클·사진은 안 했다"로 남아 있던 항목을 발견했다. 사진(카메라 연출)은 손이 크지만, 불꽃 파티클은 이미 있는 반딧불이 Points 파티클(`village-view3d.js` `WEATHER_FX.firefly`)과 같은 요령으로 새 자산 없이 붙일 수 있어 그쪽만 이었다.
+
+**한 일**(`village-view3d.js`만):
+- `buildFireworkBurst(t)`·`fireBurst(b)`·`triggerFirework()`·`stepFirework(dt)` 신설 — 발마다 독립된 `Points`(40점, 반딧불이와 같은 가산 블렌딩·발광 텍스처 재사용) 하나를 짓고, 위로 쏘아 올린 뒤 중력(`FIREWORK_GRAV`)으로 퍼지며 1.1초에 걸쳐 꺼진다. 색은 4가지 중 발마다 하나(주황·금·하늘색·분홍).
+- `ensureFireworkBursts()`로 슬롯 3개를 **트리거될 때만** 늦게 짓는다(백중이 아닌 회차에서는 GPU 자원을 안 쓴다) — `WEATHER_FX`(init에서 미리 다 짓는다)와 다른 결이지만, 상시로 도는 날씨와 달리 연 1회뿐인 행사라 지연 생성이 맞다고 판단.
+- `festival.js`는 **안 건드렸다** — `complete()`가 모든 행사 완성 때 이미 쏘는 `core.emit('village:fest', {key, kind})`(백중은 `kind:'lantern'`, `data-village.js` `FEST_PLAY.baekjung.kind`)를 §5.8① 낚시 줌인과 같은 결로 그대로 듣는다(`init()`에 `C().on('village:fest', ...)` 한 줄 추가).
+- `syncWeatherFX(dt)` 끝에 `stepFirework(dt)` 한 줄 — 기존 날씨 파티클 스텝과 같은 자리.
+
+**검증**: `node -c` 통과. 새 식별자(`FIREWORK_*`·`fireworkBursts`·`buildFireworkBurst`·`fireBurst`·`triggerFirework`·`stepFirework`) 중복 없음을 grep으로 확인. 이 파일은 WebGL이 있어야 돌아 `_test.html`이 애초에 손 안 대는 화면이라(다른 판 3D 뷰와 같은 사정) jsdom 회귀 대상이 아니다 — `village:fest`의 `kind` 값이 실제로 `'lantern'`인지는 `festival.js`·`data-village.js` 코드 대조로 확인. precheck 통과, `sw.js` `village-v0.89.0`→`village-v0.90.0`.
+
+**실기 확인 필요**: 불꽃이 실제로 하늘에서 터지는지(밝기·크기·타이밍), 등롱 완성 직후 카메라가 어디를 보고 있어도 불꽃이 눈에 띄는지(인물 머리 위 y=5~6.5 고정이라 줌·각도에 따라 화면 밖일 수 있다), 세 발이 겹쳐 과하지 않은지.
+
+**남은 것**: 백중 "산책 사진"(카메라·저장 연출)은 그대로 미착수. §6 그래픽 통일 나머지(팔레트 스냅·변형 배가 등)는 python(`palette.py`) 환경이 필요해 이 세션엔 손 못 댐.

@@ -288,13 +288,22 @@
    *  캐시해 재사용한다 — 그러면 `.clear()`가 참조만 끊어도 GPU 에는
    *  아무것도 안 남는다(감사, 2026-09-08) */
   var bannerPoleGeo = null, bannerPoleMat = null, bannerClothGeo = null, bannerClothMats = {};
-  function banner(color, tipped) {
+  var cavAccentGeo = null, cavAccentMat = null, navyAccentGeo = null, navyAccentMat = null;
+  /** @param kind 'cav'|'navy'|falsy(보병, 장식 없음) — PLAN §6 "무리 병종 기둥"
+   *  나머지 조각(2026-09-23). war.js `troopMixOf()`가 비율만 정하고, 여기선
+   *  깃발 밑에 작은 장식(기병=말 몸통 상자, 수군=뱃전 상자)만 얹어 가른다 —
+   *  기존 깃발 지오메트리·자리(clusterLayout)는 그대로, 새 메시 하나만 더한다 */
+  function banner(color, tipped, kind) {
     var t = three();
     var TN = global.DG.toon3d;
     if (!bannerPoleGeo) {
       bannerPoleGeo = new t.CylinderGeometry(0.035, 0.035, 1.5, 5);
       bannerPoleMat = TN ? TN.lambertLike({ color: 0x6b5533 }) : new t.MeshLambertMaterial({ color: 0x6b5533 });
       bannerClothGeo = new t.BoxGeometry(0.46, 0.62, 0.03);
+      cavAccentGeo = new t.BoxGeometry(0.34, 0.22, 0.16);
+      cavAccentMat = TN ? TN.lambertLike({ color: 0x5a4028 }) : new t.MeshLambertMaterial({ color: 0x5a4028 });
+      navyAccentGeo = new t.BoxGeometry(0.5, 0.08, 0.22);
+      navyAccentMat = TN ? TN.lambertLike({ color: 0x3f7fae }) : new t.MeshLambertMaterial({ color: 0x3f7fae });
     }
     var g = new t.Group();
     var pole = new t.Mesh(bannerPoleGeo, bannerPoleMat);
@@ -306,6 +315,15 @@
     var cloth = new t.Mesh(bannerClothGeo, clothMat);
     cloth.position.set(0.26, 1.16, 0);
     g.add(cloth);
+    if (kind === 'cav') {
+      var horse = new t.Mesh(cavAccentGeo, cavAccentMat);
+      horse.position.set(0, 0.11, 0.22);
+      g.add(horse);
+    } else if (kind === 'navy') {
+      var hull = new t.Mesh(navyAccentGeo, navyAccentMat);
+      hull.position.set(0, 0.04, 0.24);
+      g.add(hull);
+    }
     if (tipped) { g.rotation.z = 1.15; g.position.y = 0.05; }
     return g;
   }
@@ -354,17 +372,35 @@
     return pts;
   }
 
-  function cluster(n, cx, cz, color, formKey) {
+  /** mix({inf,cav,navy} 비율) → 깃발 n개 각각의 병종 배열. 자리는 이미
+   *  clusterLayout 이 정했으니 여기선 순서만 섞어(화면 표식이라 씨앗 불필요)
+   *  같은 병종이 한쪽에 뭉치지 않게 한다(2026-09-23, PLAN §6). */
+  function troopTypes(n, mix) {
+    var navyN = Math.min(n, Math.round(n * (mix.navy || 0)));
+    var cavN = Math.min(n - navyN, Math.round(n * (mix.cav || 0)));
+    var arr = [], i;
+    for (i = 0; i < navyN; i++) { arr.push('navy'); }
+    for (i = 0; i < cavN; i++) { arr.push('cav'); }
+    while (arr.length < n) { arr.push('inf'); }
+    for (i = arr.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+    }
+    return arr;
+  }
+
+  function cluster(n, cx, cz, color, formKey, mix) {
     var t = three();
     var i;
     var g = new t.Group();
     var prevGroup = curGroup;
     curGroup = g;
     var pts = clusterLayout(n, formKey);
+    var types = mix ? troopTypes(n, mix) : null;
     for (i = 0; i < n; i++) {
       var x = pts[i].x + (Math.random() - 0.5) * 0.12;
       var z = pts[i].z + (Math.random() - 0.5) * 0.12;
-      var b = banner(color, false);
+      var b = banner(color, false, types && types[i]);
       b.position.set(x, 0, z);
       g.add(b);
       addShadow(x, z, 0.22);
@@ -536,8 +572,8 @@
     var atkN = clamp(Math.round((atkStart / 1200) * atkSurvive), 1, 14);
     var defN = clamp(Math.round((defStart / 1200) * defSurvive), 1, 14);
 
-    atkGroupRef = cluster(atkN, 0, 4.2, forceColor(rep.force), rep.formA);
-    defGroupRef = cluster(defN, 0, -3.0, forceColor(rep.defForce), rep.formD);
+    atkGroupRef = cluster(atkN, 0, 4.2, forceColor(rep.force), rep.formA, rep.mixA);
+    defGroupRef = cluster(defN, 0, -3.0, forceColor(rep.defForce), rep.formD, rep.mixD);
     if (state.roundTick) { roundPulse = 1; }
 
     /* 일기토 — 2026-09-10 부터는 깃발이 아니라 `duelActors`(setupDuel() 이
