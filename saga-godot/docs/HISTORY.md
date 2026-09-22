@@ -8070,3 +8070,9 @@ PROJECT_STATE.md` 참고. 요약:
 - `test_village.gd`에 임시 `SAGA_DROP_DEBUG` 훅: 15% 상한 미만(50경험치→7.5)·상한 걸림(200경험치→15.0 cap) 둘 다 정확. 동시 3개 초과 시 가장 오래된 게 밀려나 회수 불가(4번째 드랍 후 keys=[ev_b,ev_c,ev_d], ev_a 회수 시 0) 확인.
 - 10분(600초) 경계: 정확히 600초 지난 것도 아직 회수됨(`age <= RECOVER_SEC`, 포함 비교), 601초는 0 — 오프바이원 없음.
 - 확인 후 훅 제거(`git diff` 원복 확인), `godot_regress.sh` 재확인.
+
+## FOREST 관계 하트 하루 상한·마을 번들 문턱 헤드리스 실측 (2026-09-22, 같은 세션, "이어서")
+
+- `forest_village.gd`에 임시 `SAGA_FOREST_META_DEBUG` 훅: `gain_affinity()` 하루 상한(+4)을 3+3+5로 나눠 걸어 3/1/0으로 정확히 끊김(합 4) 확인, `affinity_day`를 지난 날짜로 돌려 리셋 유도하니 다음 "날"엔 다시 3 그대로 적용됨(누적 heart 4→7) — 날짜 경계 정확.
+- 마을 번들(`check_bundle_complete`, `BUNDLE_THRESHOLD=5`): 기증 6회 중 정확히 5번째에만 true, 6번째는 이미 잠겨 false. 나머지 다섯 갈래도 채우니 `bundles_done_count()`가 정확히 6(= `DONATE_CATS.size()`)에 도달 — "6개 완성" 조건 경계도 정확.
+- 확인 후 훅 제거(`git diff` 원복 확인), `godot_regress.sh` 재확인.
