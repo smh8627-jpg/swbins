@@ -8516,3 +8516,15 @@ GUI로 재검증하려 했으나 이 세션의 5·6·7번째 Unity GUI launch에
 **결론**: GUI hang은 launch 횟수가 쌓이면 걸리다가 시간을 두면 다시 멀쩡해지는 패턴을 보였다(정확한 임계치는 미확인, 재부팅 없이도 해소됨 — 지난 세션의 "재부팅해야 풀린다"는 결론과 다르다, 단순 launch 간격 문제일 가능성). SSS 글로우 자체는 이번에도 육안 판정을 못 냈다 — 코드·셰이더 검증(ShaderHasError=False)은 끝났고 남은 건 순수히 "보기 좋은가"의 미적 판단인데, 그걸 볼 방법(스크린샷 전용 카메라 신설, 또는 사용자 실기 확인)이 아직 없다.
 
 코드 변경: `PlaytestDungeonEnemiesGui.cs`(카메라 pitch 30°→15°, 주석 갱신). `PROJECT_STATE.md` 갱신.
+
+## 2026-09-23 — 던전 카메라 회전이 실제로 안 먹던 원인 찾음, 하지만 launch 9회째부터 GUI가 아예 시작을 못 함 (같은 세션 "이어서 해")
+
+지난 두 번의 pitch 조정(30°→15°)이 스크린샷에 아무 변화도 없었던 게 이상해서 `CameraRig.cs`를 다시 읽었다 — `Update()`는 매 프레임 `ApplyZoom()`만 다시 부르고(줌만 `cam.transform.localPosition`에 반영), 실제 회전(`transform.localRotation`)은 `Awake()`와 드래그 입력 전용 `Rotate()`에서만 쓰인다. 헤드리스 툴은 드래그를 안 하니 `_pitchDeg` **필드**를 reflection으로 아무리 바꿔도 화면엔 `Awake()` 시점 기본값(55°)이 그대로 남아 있었던 것 — 두 번의 "pitch 낮춤" 시도가 전부 무효였던 이유가 이거였다.
+
+고침: `rig.transform.localRotation = Quaternion.Euler(0f, 0f, 0f)`로 직접 덮어쓴다(pitch=0, 완전 수평). `CameraRig` 피벗(GO)이 플레이어 기준 로컬 (0, 0.9, 0) — `BuildTestDungeonScene.BuildPlayer()`의 CharacterController center와 같은 높이(허리)라, pitch=0이면 허리 높이에서 정면(플레이어가 보는 방향)을 보는 구도가 된다. zoom도 게임 정상 최소(3)보다 가깝게(2) 당겼다. 배치 모드 컴파일로 문법 확인(exit 0, 오류 없음).
+
+GUI로 실제 확인하려 했으나 이 세션의 9번째 Unity launch(배치 컴파일 포함 전체 누적 횟수)부터 시작 로그 첫 줄("Library Redirect Path: Library/") 직후 75초 넘게 아무것도 안 나오고 멈췄다 — 이번엔 패키지 등록·라이선싱 근처도 못 가고 더 일찍 걸렸다. `taskkill //F //IM Unity.exe //T`로 정리(설정 파일 드리프트 없음 — 그만큼 일찍 죽었다는 뜻). 직전 세션 구간에서 관찰한 "launch 5~7회째 hang, 8회째는 시간 두면 정상"이라는 패턴과 달리 이번엔 문서 작업으로 몇 분을 들인 뒤인데도 곧바로 걸렸다 — **단순 시간 간격이 아니라 launch 누적 총량 자체가 원인**일 가능성이 커 보인다(정확한 메커니즘은 여전히 미확인, 재부팅하면 풀리는지는 다음 세션이 확인).
+
+이 세션은 GUI/배치 launch를 12회 가까이 썼다 — 다음 세션은 launch를 아껴서(특히 세션 앞부분에 몰아) 이 고침을 실제로 확인해야 한다.
+
+코드 변경: `PlaytestDungeonEnemiesGui.cs`(카메라 회전을 `transform.localRotation` 직접 설정으로 교체, zoom 2로 조정, 주석 갱신). `PROJECT_STATE.md` 갱신.
