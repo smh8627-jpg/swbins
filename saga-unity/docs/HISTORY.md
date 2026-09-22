@@ -8566,3 +8566,17 @@ Defender 예약 검사 마지막 실행은 전날 저녁이고 지금은 안 돌
 **다음 세션**: yaw=180 코드는 그대로 남아 있다. 재부팅 없이는 GUI 확인이 절대 안 풀린다는 게 이번에 실증됐으니, 다음엔 재부팅부터 확인하고 시작할 것.
 
 코드 변경 없음(진단만). `PROJECT_STATE.md` 갱신.
+
+## 2026-09-23 — 재부팅 뒤 GUI hang 완전 해소, 던전 얼굴(yaw=180)·SSS 얼굴 클로즈업 둘 다 확보 (새 세션 "사가유니티 이어해", GUI hang 확정 다음)
+
+새 세션 시작 시 `Get-CimInstance Win32_OperatingSystem | LastBootUpTime`로 uptime을 확인하니 3분 — 전 세션이 권한 재부팅이 이미 되어 있었다. 지난 세션 결론("재부팅 없이는 절대 안 풀린다")대로 바로 GUI 런치를 시도.
+
+`ShotDir`(두 `Playtest*Gui.cs`, 이전 세션 UUID `989ab3f5-...`)를 이번 세션 scratchpad 경로(`9a55a781-...`)로 갱신 후:
+- `PlaytestDungeonEnemiesGui.Run` — 180초 타임아웃 걸고 `Start-Process`+`WaitForExit`로 실행, **exit 0, hang 없음**. `10_dungeon_bossgroup.png`에서 yaw=180이 실제로 먹혀 Maria가 카메라를 정면으로 마주 보고 뒤로 Abe·Brute가 보임 — 던전 카메라 얼굴 확인 완료.
+- `PlaytestCharacterRealisticGui.Run` — 마찬가지로 **exit 0, hang 없음**. `02_face_closeup.png` 확보. 다만 스크린샷상 피부가 여전히 그늘진 회갈색에 가까워 SSS 글로우가 뚜렷이 안 보임 — 정적 이미지로는 Fresnel 기반 글로우 판단이 애매해 최종 판단은 사용자 실제 화면 확인으로 넘김(105 Q-U3 값은 임의 근사치).
+
+두 런치 모두 **한 번에** 성공해 전 세션 7연속 hang이 코드 문제가 아니라 GUI 모드 자체의 일시적 상태(재부팅으로 해소)였다는 진단이 맞았음을 실증했다.
+
+배치/GUI 실행이 늘 그렇듯 `ProjectSettings/ProjectVersion.txt`·`Packages/manifest.json`·`packages-lock.json`이 6000.3.24f1로 자동 상향됐길래 커밋 전 `git checkout`으로 원복(설치 에디터가 6000.3.24f1이라도 프로젝트 고정 버전은 그대로 유지).
+
+코드 변경: `ShotDir` 경로 두 곳(세션마다 반복될 변경). `PROJECT_STATE.md` 갱신.

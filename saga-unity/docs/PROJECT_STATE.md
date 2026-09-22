@@ -1,11 +1,13 @@
 # PROJECT_STATE — saga-unity (상태만, ≤15KB, 덮어쓴다)
 
 **규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다(2026-09-16 재편 전 본문 5,532줄은 그쪽 첫 절에 그대로 있다). 넘치면 `tools/precheck.sh` 가 막는다.
-마지막 갱신: 2026-09-23 (스물세 세션째 — **던전 카메라 회전 고침 GUI로 확인 완료**, SSS 글로우는 판단 보류). 102-5·102-4·103-1·67~69 잔여는 닫힘(Kenney `Characters/`만 실사용 중이라 못 뺌).
+마지막 갱신: 2026-09-23 (스물네 세션째 — 재부팅 뒤 **GUI hang 완전 해소**, 던전 얼굴(yaw=180)·SSS 글로우 얼굴 클로즈업 둘 다 GUI로 확보). 102-5·102-4·103-1·67~69 잔여는 닫힘(Kenney `Characters/`만 실사용 중이라 못 뺌).
 
-**던전 카메라 회전 고침 — GUI로 확인 완료(2026-09-23)**: 지난 세션 고침(pitch=0 덮어쓰기)이 실제로 먹힘 — 탑다운 아닌 정상 어깨너머 시점(뒷모습) 확인. 재부팅(06:37) 직후 첫 launch는 멈췄으나 재시도 1번으로 정상화, 이후 9회 연속 정상. **그런데 얼굴이 보이게 yaw=180(`CameraRig.cs` 소스로 계산)으로 바꾼 뒤엔 총 7연속 hang** — "한 번 재시도하면 풀린다"는 초반 결론이 후반엔 안 맞음. **`-executeMethod` 없이 프로젝트만 여는 순수 GUI 오픈도 같은 지점(라이선싱 직후~패키지 등록)에서 똑같이 멈춤** — 우리 스크립트와 무관한 이 PC Unity 에디터 GUI 모드 자체 문제로 확정. 배치모드는 이 세션 내내 멀쩡, GUI 모드만 안 됨. yaw=180 코드는 배치 컴파일만 통과, **GUI로 못 봄 — 재부팅 필요, 재시도로 안 풀림**.
+**GUI hang — 재부팅으로 해소 확인(2026-09-23)**: 지난 세션 "재부팅 없이는 절대 안 풀린다" 결론대로 이번 세션 시작 시 재부팅(07:42)이 이미 되어 있었음(uptime 3분으로 확인). 던전 yaw=180·SSS 얼굴 클로즈업 두 GUI 런치 모두 **한 번에** 정상 종료(exit 0, hang 없음) — 전 세션 7연속 hang의 원인이 GUI 모드 노후 상태였다는 진단이 맞았다는 뜻. `ShotDir`(두 `Playtest*Gui.cs`)는 이번 세션 scratchpad 경로로 갱신해 커밋(다음 세션도 매번 갱신 필요).
 
-**SSS 글로우 — 판단 보류(2026-09-23)**: 골반·허벅지 클로즈업은 실은 **회색 스판덱스 의상**이었음(피부 아님, `maria_diffuse.png` 대조). 세계축 가정 카메라는 빗나가 Humanoid `Head` 본의 실제 `forward`로 교체(`PlaytestCharacterRealisticGui.cs`). `ScreenCapture.CaptureScreenshot()`가 호출 시점 아니라 프레임 렌더 후에 찍힌다는 함정도 발견(아래 "알려진 오류" 참고) — idle 포즈 얼굴 클로즈업 확보(`02_face_closeup.png`). 조명 단순해 보통 밝기론 피부가 칙칙, ambient 과하게 올려야 살구색 드러남 — **글로우 판단은 Bloom 있는 실제 게임 씬에서**.
+**던전 얼굴(yaw=180) — GUI 확인 완료(2026-09-23)**: `10_dungeon_bossgroup.png`에서 Maria가 카메라를 정면으로 마주 보고 뒤로 Abe·Brute도 보임 — yaw=180 계산이 맞았다.
+
+**SSS 글로우 — 얼굴 클로즈업 확보, 최종 판단은 여전히 사용자 몫(2026-09-23)**: `02_face_closeup.png` 캡처 성공(Bloom 볼륨 임시 추가 + ambient 상향). 스크린샷 상으로는 피부가 여전히 그늘진 톤(회갈색)에 가까워 글로우가 뚜렷이 도드라지진 않음 — 정적 이미지로는 Fresnel 기반 SSS 효과 판단이 어려워 **실제 게임 화면에서 육안 확인 권장**(수치는 임의 근사치라 튜닝 필요할 수 있음, 105 Q-U3).
 
 ## 캐릭터 자산 — 이 PC 기준 (2026-09-19)
 
@@ -29,12 +31,13 @@ PLAN 101-3(C hitstop류·F 유품 마커·G 데칼/레벨업 컷/장비 가시�
 
 ## 다음 작업 (우선순위, 상세는 PLAN 해당 장 · 경위는 HISTORY 날짜 grep)
 
-1. **던전 얼굴(yaw=180) GUI 확인**(코드 됨, hang으로 미확인) + **SSS 글로우 확인** — 위 참고, launch 아껴서. 1순위.
-2. GUI 모드 자체가 안 뜸(배치는 정상) — 재부팅 필수. `ShotDir`(두 `Playtest*Gui.cs`)는 세션 scratchpad 경로라 새 세션마다 고쳐야 함. 다른 PC는 `CharactersRealistic/`·`Generated/` gitignore라 `SetupXxxCharacterImport.cs`→SSS Build 재실행 필요.
-3. **101-2·104-1 잔여(보류)** — GO⑤(모바일 빌드 뒤)·STORY5-2·`Props/` lantern·stall-red·`Characters/` Kenney(실사용 중).
-4. 헤어카드 — 분리 헤어 메시 생기면 같은 기법 재사용 가능, 그 전엔 대상 없음.
+1. **SSS 글로우 최종 판단** — `02_face_closeup.png` 확보됐지만 임의 근사치 수치라 실제 게임 화면(Bloom 있는 씬)에서 사용자 육안 확인·필요시 튜닝 대기.
+2. **101-2·104-1 잔여(보류)** — GO⑤(모바일 빌드 뒤)·STORY5-2·`Props/` lantern·stall-red·`Characters/` Kenney(실사용 중).
+3. 헤어카드 — 분리 헤어 메시 생기면 같은 기법 재사용 가능, 그 전엔 대상 없음.
 
-닫힌 백로그: 101-3, 103-1 변형 배가, 67~69 en 번역, 105 Q-U1·**Q-U3**, **102-5.**
+`ShotDir`(두 `Playtest*Gui.cs`)는 세션 scratchpad 경로라 새 세션마다 고쳐야 함. 다른 PC는 `CharactersRealistic/`·`Generated/` gitignore라 `SetupXxxCharacterImport.cs`→SSS Build 재실행 필요.
+
+닫힌 백로그: 101-3, 103-1 변형 배가, 67~69 en 번역, 105 Q-U1·**Q-U3**, **102-5**, **던전 카메라 회전(yaw=180 포함)**, **GUI hang.**
 
 ## 알려진 오류
 
@@ -63,7 +66,7 @@ PLAN 101-3(C hitstop류·F 유품 마커·G 데칼/레벨업 컷/장비 가시�
 | `PlaytestHeadless`(GO)·`PlaytestDungeonHeadless`·`PlaytestForestHeadless`·`PlaytestStorySlice`·`PlaytestRealmSlice` | **다섯 판 전부 3연속 OK(2026-09-22, 102-5 전 항목 반영 뒤 재확인, 두 차례)** |
 | `PlaytestForestCreatures`·`Finish`·`Furniture`·`HouseTransition` | 미변경 |
 | `PlaytestOverworldMap`(GO) | 이전 세션 1회 재검증 OK, 미변경 |
-| GUI 실제 Play 확인 | GO 라이팅 톤·Maria idle/run/attack·Dungeon 카메라 회전 고침(뒷모습, 2026-09-23). 얼굴 각도·SSS 글로우는 hang으로 미확인 |
+| GUI 실제 Play 확인 | GO 라이팅 톤·Maria idle/run/attack·Dungeon 카메라 회전 고침(뒷모습·yaw=180 정면 둘 다 확인, 2026-09-23). SSS 글로우 얼굴 클로즈업은 캡처만, 최종 판단은 사용자 몫 |
 | `BuildMariaSssShaderGraph.Build`+`Verify` | exit 0, `ShaderHasError=False`(2026-09-22) |
 
 ## 실기 확인 대기 (항목명만 — 경위는 HISTORY grep)

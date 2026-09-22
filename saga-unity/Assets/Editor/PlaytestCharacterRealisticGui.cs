@@ -19,7 +19,7 @@ namespace Saga.EditorTools
     {
         private const string ScenePath = "Assets/Scenes/TestCharacterRealistic.unity";
         public const string ShotDir =
-            "C:/Users/user/AppData/Local/Temp/claude/C--swbins/989ab3f5-ffb5-4c41-9f89-6857e1657467/scratchpad/unity_screens/";
+            "C:/Users/user/AppData/Local/Temp/claude/C--swbins/9a55a781-4a58-4c0b-9d1b-4a2ec609d4c9/scratchpad/unity_screens/";
 
         private static bool _origEnterPlayModeOptionsEnabled;
         private static EnterPlayModeOptions _origEnterPlayModeOptions;
