@@ -21,7 +21,7 @@ namespace Saga.EditorTools
     {
         private const string ScenePath = "Assets/Scenes/TestDungeon.unity";
         public const string ShotDir =
-            "C:/Users/user/AppData/Local/Temp/claude/C--swbins/26eb5289-b330-4562-8ce4-1630217d4eea/scratchpad/unity_screens/";
+            "C:/Users/user/AppData/Local/Temp/claude/C--swbins/989ab3f5-ffb5-4c41-9f89-6857e1657467/scratchpad/unity_screens/";
 
         private static readonly Vector3 TeleportPos = new Vector3(8.5f, 0.1f, -1.5f);
 
@@ -154,13 +154,22 @@ namespace Saga.EditorTools
             // 최소(MinZoom=3)보다 가깝게(2) 당겨 더 크게 보이게 한다 —
             // WallHeight=4m 천장은 pitch=0·zoom=2면 카메라 높이=피벗 높이
             // 그대로(0.9m)라 여유 충분.
+            // 105 Q-U3 글로우 확인용(2026-09-23 이어서) — yaw=0(pitch=0)은
+            // `CameraRig.ApplyZoom()`이 카메라를 rig 로컬 (0,0,-zoom)에 두는
+            // 구조상 플레이어 "뒤"에서 정면(=플레이어가 보는 방향, 등짝)을
+            // 보게 된다(실제로 겪음, 지난 실행들의 스크린샷이 전부 뒷모습).
+            // yaw=180을 주면 rig 회전이 뒤집혀 카메라가 플레이어 "앞"(+월드
+            // 기준 반대쪽)으로 이동해 플레이어를 돌아보게 되므로 얼굴이
+            // 보인다 — `CameraRig.cs` 소스를 직접 읽고 계산한 값(세계축을
+            // 추측하지 않음).
             var rig = playerGo.GetComponentInChildren<CameraRig>();
             if (rig != null)
             {
                 var t = typeof(CameraRig);
                 t.GetField("_zoom", BindingFlags.NonPublic | BindingFlags.Instance)?.SetValue(rig, 2f);
                 t.GetField("_pitchDeg", BindingFlags.NonPublic | BindingFlags.Instance)?.SetValue(rig, 0f);
-                rig.transform.localRotation = Quaternion.Euler(0f, 0f, 0f);
+                t.GetField("_yawDeg", BindingFlags.NonPublic | BindingFlags.Instance)?.SetValue(rig, 180f);
+                rig.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
             }
 
             // 던전 본연의 어두운 무드 조명이라 Abe/Brute 실루엣만 겨우 보였다

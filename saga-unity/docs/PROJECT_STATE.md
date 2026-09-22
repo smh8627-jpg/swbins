@@ -1,13 +1,15 @@
 # PROJECT_STATE — saga-unity (상태만, ≤15KB, 덮어쓴다)
 
 **규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다(2026-09-16 재편 전 본문 5,532줄은 그쪽 첫 절에 그대로 있다). 넘치면 `tools/precheck.sh` 가 막는다.
-마지막 갱신: 2026-09-23 (스물두 세션째 — **SSS 글로우 GUI 확인 재시도** 계속). 102-5·102-4·103-1·67~69 잔여는 닫힘(Kenney `Characters/`만 실사용 중이라 못 뺌).
+마지막 갱신: 2026-09-23 (스물세 세션째 — **던전 카메라 회전 고침 GUI로 확인 완료**, SSS 글로우는 판단 보류). 102-5·102-4·103-1·67~69 잔여는 닫힘(Kenney `Characters/`만 실사용 중이라 못 뺌).
 
-**SSS 글로우 — 코드는 다 고쳤지만 이 세션엔 환경이 GUI를 더 못 버팀(2026-09-23)**: 리그확인 씬(`PlaytestCharacterRealisticGui`)은 성공하지만 블룸이 없어 글로우가 원래 안 띔. 던전 씬(`PlaytestDungeonEnemiesGui`)은 텔레포트 즉사를 **적 `DungeonEnemy.enabled=false`** 로 고쳐 해결(체력 30/30 유지 확인)했으나 카메라가 여전히 탑다운이었다 — 원인: `_pitchDeg` **필드만** reflection으로 바꿔선 화면에 반영 안 됨(`CameraRig.Update()`는 줌만 재적용, 회전은 `Awake()`/드래그 전용 `Rotate()`에서만 씀). **고침**: `rig.transform.localRotation`을 pitch=0으로 직접 덮어씀(피벗이 로컬 y=0.9=허리 높이라 수평이면 그 높이 정면 구도), zoom도 2로 당김 — 배치 컴파일은 통과했지만 **GUI 확인은 못 함**: 9번째 launch부터 시작 직후 바로 멈춤(taskkill 정리). "5~7회째 hang, 8회째 시간 두면 풀림"이던 게 9회째는 즉시 걸려 **launch 누적 자체가 원인**으로 보임(시간 간격만으론 부족할 수 있음). **다음 세션 1순위**: 회전 고침은 코드상 맞다고 판단(피벗 높이 계산 확인함)하지만 **GUI로 한 번도 못 봄** — 세션 초반 1~2회로 아껴서 확인.
+**던전 카메라 회전 고침 — GUI로 확인 완료(2026-09-23)**: 지난 세션 고침(pitch=0 덮어쓰기)이 실제로 먹힘 — 탑다운 아닌 정상 어깨너머 시점(뒷모습) 확인. 재부팅(06:37) 직후 첫 launch는 멈췄으나 재시도 1번으로 정상화, 이후 9회 연속 정상. **그런데 얼굴이 보이게 yaw=180(`CameraRig.cs` 소스로 계산)으로 바꾼 뒤엔 총 7연속 hang** — "한 번 재시도하면 풀린다"는 초반 결론이 후반엔 안 맞음. **`-executeMethod` 없이 프로젝트만 여는 순수 GUI 오픈도 같은 지점(라이선싱 직후~패키지 등록)에서 똑같이 멈춤** — 우리 스크립트와 무관한 이 PC Unity 에디터 GUI 모드 자체 문제로 확정. 배치모드는 이 세션 내내 멀쩡, GUI 모드만 안 됨. yaw=180 코드는 배치 컴파일만 통과, **GUI로 못 봄 — 재부팅 필요, 재시도로 안 풀림**.
+
+**SSS 글로우 — 판단 보류(2026-09-23)**: 골반·허벅지 클로즈업은 실은 **회색 스판덱스 의상**이었음(피부 아님, `maria_diffuse.png` 대조). 세계축 가정 카메라는 빗나가 Humanoid `Head` 본의 실제 `forward`로 교체(`PlaytestCharacterRealisticGui.cs`). `ScreenCapture.CaptureScreenshot()`가 호출 시점 아니라 프레임 렌더 후에 찍힌다는 함정도 발견(아래 "알려진 오류" 참고) — idle 포즈 얼굴 클로즈업 확보(`02_face_closeup.png`). 조명 단순해 보통 밝기론 피부가 칙칙, ambient 과하게 올려야 살구색 드러남 — **글로우 판단은 Bloom 있는 실제 게임 씬에서**.
 
 ## 캐릭터 자산 — 이 PC 기준 (2026-09-19)
 
-Maria(플레이어)·Abe(잡졸)·Brute(두목) 셋만 mixamo.com 실자산 확보(`Assets/Art/CharactersRealistic/`, gitignore — **PC마다 새로 받아야 함**, 목록은 `SetupXxxCharacterImport.cs`). GUI 확인: Maria idle/run/attack 정상, Abe 근접 구도(2026-09-22 재검증). Brute·**전신 구도는 아직**(`PlaytestDungeonEnemiesGui.cs`). 경위는 HISTORY.md grep.
+Maria(플레이어)·Abe(잡졸)·Brute(두목) 셋만 mixamo.com 실자산 확보(`Assets/Art/CharactersRealistic/`, gitignore — **PC마다 새로 받아야 함**, 목록은 `SetupXxxCharacterImport.cs`). GUI 확인: Maria idle/run/attack/얼굴 클로즈업 정상, Abe 근접 구도. Brute 전신 구도는 아직. 경위는 HISTORY.md grep.
 
 ## 완료 요약 — 다섯 게임 × 진척
 
@@ -27,8 +29,8 @@ PLAN 101-3(C hitstop류·F 유품 마커·G 데칼/레벨업 컷/장비 가시�
 
 ## 다음 작업 (우선순위, 상세는 PLAN 해당 장 · 경위는 HISTORY 날짜 grep)
 
-1. **Maria 피부 SSS 글로우 화면 확인**(계속) — 위 절 참고. 다음 세션 1순위.
-2. GUI hang은 launch 누적으로 재현(위 절 참고) — 세션당 launch 아껴 쓸 것. `ShotDir` 상수(두 `Playtest*Gui.cs`)는 세션 scratchpad 경로라 새 세션마다 고쳐야 함. 다른 PC는 `CharactersRealistic/`·`Generated/` 둘 다 gitignore라 `SetupXxxCharacterImport.cs`→SSS Build 순 재실행 필요.
+1. **던전 얼굴(yaw=180) GUI 확인**(코드 됨, hang으로 미확인) + **SSS 글로우 확인** — 위 참고, launch 아껴서. 1순위.
+2. GUI 모드 자체가 안 뜸(배치는 정상) — 재부팅 필수. `ShotDir`(두 `Playtest*Gui.cs`)는 세션 scratchpad 경로라 새 세션마다 고쳐야 함. 다른 PC는 `CharactersRealistic/`·`Generated/` gitignore라 `SetupXxxCharacterImport.cs`→SSS Build 재실행 필요.
 3. **101-2·104-1 잔여(보류)** — GO⑤(모바일 빌드 뒤)·STORY5-2·`Props/` lantern·stall-red·`Characters/` Kenney(실사용 중).
 4. 헤어카드 — 분리 헤어 메시 생기면 같은 기법 재사용 가능, 그 전엔 대상 없음.
 
@@ -36,7 +38,7 @@ PLAN 101-3(C hitstop류·F 유품 마커·G 데칼/레벨업 컷/장비 가시�
 
 ## 알려진 오류
 
-- **원인 찾고 고침(2026-09-21)**: `PlaytestStorySlice`의 세이브 왕복 검증(`SaveLoad` phase)이 `StoryPartyState.Restore(2)`로 바꾼 뒤 `StorySaveState.Save()`로 실제 `persistentDataPath/save_story.json`을 덮어쓰고는 원상복구를 안 했다 — 이 세션이 이 파일을 열어 보니 `partyActiveIndex:2`(호법, 공격 배율 0.9)가 그대로 박혀 있었고, `GameBootstrap.Start()`가 부팅마다 이걸 이어받아 `KillEnemies` 단계의 "잡졸 한 방 처치" 전제(공격력 마진)가 깨져 있었다. GO `PlaytestHeadless.cs`의 try/finally 원상복구 패턴을 그대로 옮겨 고쳤다(`PlaytestStorySlice.cs` SaveLoad phase) — 3연속 OK 재확인, 실행 후 저장 파일도 `partyActiveIndex:0`으로 깨끗하게 남는 것까지 확인. 아래는 그 외 컴파일·헤드리스 기준 함정, 이미 고침.
+- `PlaytestStorySlice` SaveLoad phase가 세이브 왕복 검증 중 `save_story.json`을 덮어쓰고 원상복구 안 하던 버그는 GO `PlaytestHeadless.cs`의 try/finally 패턴으로 고침(2026-09-21, 3연속 OK 확인). 아래는 그 외 컴파일·헤드리스 함정, 이미 고침.
 - **자기 UI를 스스로 짓는 싱글턴은 `Instance`를 `Build()`(에디터 전용)뿐 아니라 `Awake()`에도 채울 것** — `StoryLabyrinthMapUi`가 `StoryJobChoiceUi`와 같은 함정(도메인 리로드 후 null)을 반복할 뻔함. `Awake() => Instance = this;` 잊지 말 것.
 - **`Destroy()`로 자식을 지우고 같은 프레임에 다시 그리면 안 지워진 채 쌓인다** — `StoryLabyrinthMapUi.ClearChildren()`(`DestroyImmediate`로 고침), `StoryEnemy.IsDead`와 같은 결.
 - **함정(오류 아님)**: Unity 6000.3.24f1 > 프로젝트 6000.3.23f1 → 배치 모드가 ProjectSettings/Packages 4파일을 조용히 고친다. `tools/unity-batch.sh --`로 부르면 자동 원복.
@@ -50,6 +52,7 @@ PLAN 101-3(C hitstop류·F 유품 마커·G 데칼/레벨업 컷/장비 가시�
 - DUNGEON `DungeonFloorRunner`는 문 근접 시 `RepositionPlayerToEntry()`로 되돌린다 — 확인용 텔레포트는 `floorRunner.enabled=false` 먼저. `CameraRig` 기본값(zoom=6·pitch=55°)은 벽(4m) 위로 뜸 — 확인용은 `_zoom`≤3·`_pitchDeg`≤30.
 - 헤드리스가 `SaveState.Save()`를 부르면 `persistentDataPath` 파일이 실제로 남는다 — `GameBootstrap.Start()`가 매번 `TryLoad()`하므로 원본 상태로 안 되돌리면 다음 실행이 오염된다(2026-09-19 GO).
 - Shader Graph internal API는 리플렉션으로 우회 가능(2026-09-22, 패턴은 `BuildMariaSssShaderGraph.cs`) — 매번 `ShaderUtil.ShaderHasError`로 검증 필수.
+- **`ScreenCapture.CaptureScreenshot()`는 호출 시점이 아니라 프레임 렌더 후 찍힘**(2026-09-23) — 같은 tick에서 캡처 다음에 카메라/조명을 바꾸면 그 나중 상태가 찍힌다. `Playtest*Gui.cs`는 "세팅"과 "캡처"를 별도 tick으로 분리할 것.
 
 ## 테스트 상태 (2026-09-22, 배치 모드, Unity 6000.3.24f1)
 
@@ -60,13 +63,13 @@ PLAN 101-3(C hitstop류·F 유품 마커·G 데칼/레벨업 컷/장비 가시�
 | `PlaytestHeadless`(GO)·`PlaytestDungeonHeadless`·`PlaytestForestHeadless`·`PlaytestStorySlice`·`PlaytestRealmSlice` | **다섯 판 전부 3연속 OK(2026-09-22, 102-5 전 항목 반영 뒤 재확인, 두 차례)** |
 | `PlaytestForestCreatures`·`Finish`·`Furniture`·`HouseTransition` | 미변경 |
 | `PlaytestOverworldMap`(GO) | 이전 세션 1회 재검증 OK, 미변경 |
-| GUI 실제 Play 확인 | GO 라이팅 톤·Maria idle/run/attack·Dungeon Abe(파편적). **SSS 글로우는 hang으로 못 봄**. 나머지 미확인 |
+| GUI 실제 Play 확인 | GO 라이팅 톤·Maria idle/run/attack·Dungeon 카메라 회전 고침(뒷모습, 2026-09-23). 얼굴 각도·SSS 글로우는 hang으로 미확인 |
 | `BuildMariaSssShaderGraph.Build`+`Verify` | exit 0, `ShaderHasError=False`(2026-09-22) |
 
 ## 실기 확인 대기 (항목명만 — 경위는 HISTORY grep)
 
 - GO: 조우·전투·등용 손맛, 상점·퀘스트 대사 3단계, 은닉 보물·산신당·돌탑·유물, 채집, 목표판/세션카드, hitstop 체감, 유품 마커·무기 소켓·지형 데칼(101-3 F·G), 일과판·승급 3택 UI, 75초 토벌 손맛(101-2 ③), 봉수대 점등·목표판 전환·인연 등급 토스트·패배 시 짐 드롭/회수(101-2 ①⑥⑧), 사당 시련 입구·파도 3 전투감·인장 조각/이정표 보상·실패 잠금(101-2 ②), 논밭 울타리 목재 PBR 톤(fence.glb), 나무·바위 트라이플레이너 톤(procgen 12+10벌), 마을집 곁채·굴뚝 실루엣(103-1), 카메라 벽 클리핑 pull-in 체감(102-5)
-- DUNGEON: 카메라 각도, 아홉 슬라이스, 목표판/세션카드, hitstop·타격VFX·레벨업줌·무기소켓·지형데칼 체감(101-3 전체), 축복·유품·부적 던전·월드 보스·난입 체감(101-2 5.1~5.5), 전자창/동력장갑 모양·기계화 정찰병(5층부터) 체감(5.7), 일일 풀 3택·도장·주간 보상 토스트(5.6), ProcRoom 방 셸 마모 톤 3단(103-1, 34층·67층 문턱), 카메라 벽 클리핑 pull-in 체감(102-5)
+- DUNGEON: 카메라 손맛, 아홉 슬라이스, 목표판/세션카드, hitstop·타격VFX·레벨업줌·무기소켓·지형데칼 체감(101-3 전체), 축복·유품·부적 던전·월드 보스·난입 체감(101-2 5.1~5.5), 전자창/동력장갑 모양·기계화 정찰병(5층부터) 체감(5.7), 일일 풀 3택·도장·주간 보상 토스트(5.6), ProcRoom 방 셸 마모 톤 3단(103-1, 34층·67층 문턱), 카메라 벽 클리핑 pull-in 체감(102-5)
 - FOREST: 벽지/장판, 가구 배치, 생물·과일나무·좌판, 목표판/세션카드, 마을 번들(5.3), 채집 손맛(5.8①), 마을 평가판 별점(5.8②), 접수대·우체통 4·소포 3종·사슬 보너스 체감(5.7), 세배·꽃놀이·소원돌·목표판 D-day 문구 체감(5.6, 실제 달력 1·8·15일에만), 과일나무 모양·바크 트라이플레이너 톤(102-4), 마을 잔디 디테일 톤(102-5, 2026-09-22 신규)
 - STORY: 두목 크기·타격감, 사건·관계·선택 흐름, 전직 팝업, 목표판/세션카드, hitstop/shake/flash/popup/타격 VFX 체감, 유품 마커·지형 데칼·레벨업 줌·직업별 무기(101-3 F·G), 관문 대장 승격 연출·방패 파괴 체감(5-4), 비경 노드 지도·축복 카드·아레나 순간이동(5-3), 선봉/유격/호법 교대 버튼·서명 손맛·HUD 교대 쿨다운 줄(5-8)
 - REALM: 월드맵, 적국 사슬 체감, 패널 여덟 조작, 목표판/세션카드, 공격·계략 고르기, 특성·야망(5-1), 전술 토글(5-6), 서사 카드 7종(5-2), 계승 토글(5-8, 기본 꺼짐), 일기토·설전(5-3), 승리 결과 카드·목표판 셋째 줄·"다음 달" 게이트(5-5, 정복 55성/문화 정답 30), 성벽 단계별 실루엣(103-1, 축성 명령 여러 달 반복해 2·3단 넘겨야 확인), 오빗 카메라 건물 클리핑 pull-in 체감(102-5, 2026-09-22 신규)

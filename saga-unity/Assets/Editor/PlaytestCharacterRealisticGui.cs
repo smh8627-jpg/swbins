@@ -2,6 +2,8 @@ using System.IO;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 
 namespace Saga.EditorTools
 {
@@ -17,12 +19,15 @@ namespace Saga.EditorTools
     {
         private const string ScenePath = "Assets/Scenes/TestCharacterRealistic.unity";
         public const string ShotDir =
-            "C:/Users/user/AppData/Local/Temp/claude/C--swbins/26eb5289-b330-4562-8ce4-1630217d4eea/scratchpad/unity_screens/";
+            "C:/Users/user/AppData/Local/Temp/claude/C--swbins/989ab3f5-ffb5-4c41-9f89-6857e1657467/scratchpad/unity_screens/";
 
         private static bool _origEnterPlayModeOptionsEnabled;
         private static EnterPlayModeOptions _origEnterPlayModeOptions;
         private static int _frame;
         private static int _stage;
+        private static Vector3 _origCamPos;
+        private static Quaternion _origCamRot;
+        private static Color _origAmbient;
 
         [MenuItem("Saga/Playtest TestCharacterRealistic (GUI Screenshot)")]
         public static void Run()
@@ -36,10 +41,45 @@ namespace Saga.EditorTools
                 EnterPlayModeOptions.DisableDomainReload | EnterPlayModeOptions.DisableSceneReload;
 
             EditorSceneManager.OpenScene(ScenePath);
+            SetupBloomVolume();
+            var cam = Camera.main;
+            if (cam != null)
+            {
+                _origCamPos = cam.transform.position;
+                _origCamRot = cam.transform.rotation;
+            }
+            _origAmbient = RenderSettings.ambientLight;
             _frame = 0;
             _stage = 0;
             EditorApplication.playModeStateChanged += OnStateChanged;
             EditorApplication.isPlaying = true;
+        }
+
+        // 이 씬은 리그 확인용이라 Volume이 원래 없다(BuildTestCharacterRealisticScene
+        // 주석 참고) — SSS 글로우는 Emission이 Bloom을 거쳐야 눈에 띄는데 Bloom을
+        // 태울 Volume 자체가 없어 105 Q-U3 확인이 안 됐다(2026-09-23 PROJECT_STATE
+        // 기록). 씬엔 저장하지 않고 Play 중에만 임시로 추가한다(FF16Volume_PC.asset과
+        // 같은 값 — threshold 0.9, scatter 0.6 — intensity만 확인용으로 살짝 올림).
+        private static void SetupBloomVolume()
+        {
+            var volumeGo = new GameObject("TempBloomVolume");
+            var volume = volumeGo.AddComponent<Volume>();
+            volume.isGlobal = true;
+            volume.priority = 100f;
+            var profile = ScriptableObject.CreateInstance<VolumeProfile>();
+            var bloom = profile.Add<Bloom>(true);
+            bloom.threshold.Override(0.9f);
+            bloom.intensity.Override(0.6f);
+            bloom.scatter.Override(0.6f);
+            bloom.tint.Override(new Color(1f, 0.95f, 0.85f));
+            volume.sharedProfile = profile;
+
+            var cam = Camera.main;
+            if (cam != null)
+            {
+                var camData = cam.GetUniversalAdditionalCameraData();
+                camData.renderPostProcessing = true;
+            }
         }
 
         private static void OnStateChanged(PlayModeStateChange state)
@@ -71,57 +111,95 @@ namespace Saga.EditorTools
                         // 있어(2026-09-13·2026-09-22 실제로 겪음) 넉넉히 기다린다.
                     if (_frame >= 300)
                     {
+                        // 이 스테이지 안에서 캡처만 하고 카메라는 절대 안 건드린다 —
+                        // `ScreenCapture.CaptureScreenshot()`는 호출 시점이 아니라 그 프레임이
+                        // 실제로 렌더된 뒤(=같은 Update 안에서 나중에 실행되는 코드까지 반영된
+                        // 상태) 찍힌다는 걸 실제로 겪었다(2026-09-23) — 같은 tick에서 캡처 직후
+                        // 카메라를 옮기면 그 프레임 자체가 옮긴 위치로 찍힌다. 그래서 카메라를
+                        // 옮기는 코드는 반드시 "캡처 다음 stage"로 분리한다.
                         ScreenCapture.CaptureScreenshot(ShotDir + "01_idle.png");
-                        if (animator != null)
-                        {
-                            animator.SetFloat("Speed", 1f);
-                        }
                         _stage = 1;
                         _frame = 0;
                     }
                     break;
-                case 1: // run 정착 대기
-                    if (_frame >= 60)
+                case 1: // 105 Q-U3 글로우 확인용 얼굴 클로즈업 카메라 셋업(캡처 없음, 2026-09-23
+                        // 세 번째 교체) — 골반·허벅지는 실제론 grey 스판덱스 의상 서브메시였다
+                        // (maria_diffuse.png 아틀라스엔 그 자리가 살구색 피부로 그려져 있어
+                        // UV/서브메시가 옷임을 확인, 실제로 겪음). 세계축(+Z)을 얼굴 방향으로
+                        // 가정한 1차 시도도 캐릭터가 프레임 밖으로 빗나갔다 — Humanoid Head
+                        // 본의 실제 `forward`를 그대로 써서 그 앞에 카메라를 둔다. attack
+                        // 애니메이션 도중(스윙 자세)에 잡으면 머리가 크게 숙여진 프레임을 잡을
+                        // 때가 있어(재현 불안정) idle 정착 직후의 안정된 포즈에서 잡는다.
+                    if (_frame >= 1)
                     {
-                        ScreenCapture.CaptureScreenshot(ShotDir + "02_run.png");
-                        if (animator != null)
+                        var cam = Camera.main;
+                        if (cam != null && animator != null)
                         {
-                            animator.SetFloat("Speed", 0f);
-                            animator.SetTrigger("Attack");
+                            var head = animator.GetBoneTransform(HumanBodyBones.Head);
+                            if (head != null)
+                            {
+                                cam.transform.position = head.position + head.forward * 0.7f + Vector3.up * 0.05f;
+                                cam.transform.LookAt(head.position + Vector3.up * 0.02f);
+
+                                // 씬의 기본 Directional Light(Euler 40,30,0)는 원래 뒤통수 샷용이라
+                                // 얼굴 쪽에서 보면 역광(실루엣)이 된다 — Ambient를 보통 수준보다
+                                // 살짝만 올려 피부톤이 보이게 하되(과하면 Fresnel 기반 SSS 글로우
+                                // 자체가 묻힌다, 2026-09-23 실제로 겪음) 완전히 뭉개지진 않게 한다.
+                                RenderSettings.ambientLight = new Color(0.6f, 0.58f, 0.55f);
+                            }
                         }
                         _stage = 2;
                         _frame = 0;
                     }
                     break;
-                case 2: // attack 클립 중간 지점
+                case 2: // 얼굴 클로즈업 카메라 정착 대기 후 캡처만(카메라 복원은 다음 stage)
                     if (_frame >= 20)
                     {
-                        ScreenCapture.CaptureScreenshot(ShotDir + "03_attack.png");
-                        if (animator != null)
-                        {
-                            animator.SetFloat("Speed", 0f);
-                        }
-                        var cam = Camera.main;
-                        if (cam != null)
-                        {
-                            // 피부(SSS) 노출이 큰 골반·허벅지 부위 클로즈업 —
-                            // 105 Q-U3 글로우 확인용(2026-09-22 신규).
-                            cam.transform.position = new Vector3(0.5f, 0.95f, -1.1f);
-                            cam.transform.rotation = Quaternion.Euler(5f, -20f, 0f);
-                        }
+                        ScreenCapture.CaptureScreenshot(ShotDir + "02_face_closeup.png");
                         _stage = 3;
                         _frame = 0;
                     }
                     break;
-                case 3: // 클로즈업 정착 대기
-                    if (_frame >= 20)
+                case 3: // 카메라·Ambient 원복 + run 시작(캡처 없음)
+                    if (_frame >= 1)
                     {
-                        ScreenCapture.CaptureScreenshot(ShotDir + "04_skin_closeup.png");
+                        var cam = Camera.main;
+                        if (cam != null)
+                        {
+                            cam.transform.position = _origCamPos;
+                            cam.transform.rotation = _origCamRot;
+                        }
+                        RenderSettings.ambientLight = _origAmbient;
+                        if (animator != null)
+                        {
+                            animator.SetFloat("Speed", 1f);
+                        }
                         _stage = 4;
                         _frame = 0;
                     }
                     break;
-                case 4: // 캡처 파일 쓰기 여유 후 종료
+                case 4: // run 정착 대기
+                    if (_frame >= 60)
+                    {
+                        ScreenCapture.CaptureScreenshot(ShotDir + "03_run.png");
+                        if (animator != null)
+                        {
+                            animator.SetFloat("Speed", 0f);
+                            animator.SetTrigger("Attack");
+                        }
+                        _stage = 5;
+                        _frame = 0;
+                    }
+                    break;
+                case 5: // attack 클립 중간 지점
+                    if (_frame >= 20)
+                    {
+                        ScreenCapture.CaptureScreenshot(ShotDir + "04_attack.png");
+                        _stage = 6;
+                        _frame = 0;
+                    }
+                    break;
+                case 6: // 캡처 파일 쓰기 여유 후 종료
                     if (_frame >= 20)
                     {
                         EditorApplication.update -= Tick;
