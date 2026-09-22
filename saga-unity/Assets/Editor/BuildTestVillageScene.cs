@@ -634,6 +634,7 @@ namespace Saga.EditorTools
             SetPrivateField(pc, "inputActions", inputActions);
 
             playerGo.AddComponent<WeaponVisual>(); // PLAN.md 101-3 G "장비 가시화".
+            playerGo.AddComponent<BlobShadow>(); // PLAN.md 102-2 "Shadows" — Mobile만 켜진다.
 
             return (playerGo, cameraRig);
         }

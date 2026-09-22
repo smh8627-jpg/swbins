@@ -8355,3 +8355,15 @@ Q-U1을 닫은 뒤에도 PROJECT_STATE "다음 작업"이 전부 사람 대기�
 카메라 클리핑을 끝낸 뒤 다음 §102-5 항목으로 "애니 끊김(Animator 전이 exitTime 0.9, 블렌드 없음)"을 보려고 실제 Animator 설정을 찾아봤다 — `Assets/Animators/Maria.controller`(GO·DUNGEON·FOREST·STORY 플레이어 전부 공유)·`Abe.controller`·`Brute.controller`(DUNGEON 잡졸/두목, GO `BanditEncounter`의 foe도 재사용) YAML을 직접 열어 보니 전이마다 `m_TransitionDuration`이 0.1~0.15초로 이미 다 채워져 있었다(코드 쪽도 `SetupAbeCharacterImport.cs`·`SetupBruteCharacterImport.cs`·`BuildTestCharacterRealisticScene.cs`의 `AddReturnToIdle()`(exitTime 0.9·duration 0.15)·`AddAnyStateTrigger()`(duration 0.1)·`AddParamTransition()`(duration 0.15)와 일치). 게임 코드에서 `Animator.Play()`/`CrossFade()`를 직접 호출하는 곳도 없어(전부 `SetTrigger`/`SetFloat`) 선언된 duration이 그대로 적용된다.
 
 즉 이 감사 문구는 102장 초안(66-2/102-3 결정, 2026-09-13 무렵) 당시 상태를 적은 것이고, 그 뒤 44장 Mixamo 캐릭터 교체(2026-09-16~19)가 블렌드 전이까지 같이 넣었는데 102-5 표는 안 고쳐진 채로 남아 있었다 — 67~69장 Localization "미착수" 낡은 메모(이 HISTORY 앞선 2026-09-22 절)와 같은 종류의 낡은 기록. 코드 변경은 없음(이미 돼 있는 걸 확인만 함), `PLAN.md` 102-5 표 문구만 재조사 결과로 고치고 `docs/PROJECT_STATE.md` 헤더 갱신 후 커밋.
+
+## 2026-09-22 — 접지 blob 그림자 신설 (PLAN 102-2 Shadows, "이어해" 세션, 102-5 애니 재조사 다음)
+
+102-5 "애니 끊김"이 이미 해소돼 있던 걸 확인한 뒤 그다음 항목 "그림자 계단(Mobile Cascade 1, blob 없음)"을 보니 — 이건 102-2 "Volume 프로파일" 표에 이미 "Shadows: 유지 + 접지 blob 그림자 프리팹(모바일 캐릭터)"으로 미리 계획돼 있던 것(체크 표시 "○"/"blob")이었다. 즉 새 스코프 결정이 필요한 항목이 아니라 이미 승인된 계획을 실행만 하면 되는 항목이라 사용자에게 다시 묻지 않고 바로 짰다.
+
+`Assets/SagaCore/BlobShadow.cs` 신설 — 이 트랙 첫 런타임 플랫폼 분기(`SessionCard`의 DoF는 "Mobile 프로파일엔 그 Volume 오버라이드 자체가 없다"는 콘텐츠 부재 트릭을 쓰지만, 그림자는 오브젝트 자체라 그 수가 안 통해 `QualitySettings.names[GetQualityLevel()] == "Mobile"`로 직접 판별). 텍스처는 에셋 없이 64×64 흑백 원형 그라디언트를 코드로 구워 공유 텍스처·머티리얼로 캐릭터 전부가 재사용(procgen 관례 그대로). 매 프레임 `Physics.Raycast`로 발밑 바닥을 찾아 위치를 맞춘다(GO/DUNGEON/FOREST/STORY 바닥·벽이 전부 기본 콜라이더 있는 프리미티브라 그대로 잡힌다, 카메라 클리핑 작업 때 이미 확인한 것과 같은 전제).
+
+GO(`BuildTestVillageScene.cs`)·DUNGEON(`BuildTestDungeonScene.cs`)·FOREST(`BuildTestVillageForestScene.cs`)·STORY(`BuildTestStoryScene.cs`) 네 `BuildPlayer()`에 각각 `playerGo.AddComponent<BlobShadow>()` 한 줄만 추가(다들 이미 `using Saga.Core;` 갖고 있어 새 참조 불필요). REALM은 캐릭터가 없어 대상 아님.
+
+**검증**: 배치 컴파일(exit 0) → GameObject 구성이 바뀌어(`104-2` 규칙대로) 4씬 전부 재빌드(`Build TestVillage/TestDungeon/TestVillageForest/TestField Scene`, 전부 exit 0 — 씬 파일 diff가 커 보이는 건 Unity 절차적 재빌드가 매번 fileID를 다시 매기는 거라 늘 그렇다, 새삼스러운 일 아님) → `PlaytestHeadless`(GO)·`PlaytestDungeonHeadless`·`PlaytestForestHeadless`·`PlaytestStorySlice` 전부 3연속 OK. 에디터 기본 품질 레벨이 "PC"라 지금은 안 보인다 — 실제로 켜진 모습은 `QualitySettings`를 "Mobile"로 돌리거나 모바일 빌드에서 사용자가 확인해야 한다(PROJECT_STATE "실기 확인 대기" 공통 줄에 추가).
+
+`PLAN.md` 102-2 Shadows 행·102-5 "그림자 계단" 행 완료 표시(Player만, 적/NPC는 미착수라고 명시), `docs/PROJECT_STATE.md` 갱신 후 커밋. 중간에 saga-godot 세션이 자기 `PROJECT_STATE.md`를 상한 넘게 또 키워 공유 precheck가 두 번째로 막혔다 — 지난번과 같은 방식(내용 손실 없이 문구만 압축)으로 사용자 확인 없이 트림하고 진행(이전 세션에 "추천"으로 이미 승인받은 대응).

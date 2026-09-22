@@ -1107,6 +1107,7 @@ namespace Saga.EditorTools
 
             var combat = playerGo.AddComponent<PlayerCombat>();
             playerGo.AddComponent<WeaponVisual>(); // PLAN.md 101-3 G "장비 가시화".
+            playerGo.AddComponent<BlobShadow>(); // PLAN.md 102-2 "Shadows" — Mobile만 켜진다.
 
             return (playerGo, combat, pc);
         }
