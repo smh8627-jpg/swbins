@@ -8395,3 +8395,19 @@ SSAO 튜닝 뒤 남은 §102-5 항목은 전부 새 결정이나 큰 작업이 �
 ## 2026-09-22 — PROJECT_STATE "다음 작업" 갱신 (새 세션 인계 대비, LUT 다음)
 
 사용자가 "새로운 세션에서 이어해"라고 해 다음 세션이 문서만 보고도 정확히 이어받을 수 있는지 점검했다 — "다음 작업" 우선순위 1~4가 여러 세션 전(104-1 ⑤·101-2·GUI 스크린샷 도구 안내·Q-U1) 기준으로 낡아 있었다(그새 카메라 클리핑·애니 재조사·SSAO·LUT 5장이 102-5에서 끝났는데 반영이 안 됨). 실제 현재 우선순위로 다시 썼다: ①실기 확인 몰아서(코드로 더 갈 데가 없어 지금 가장 큰 병목) ②102-5 남은 넷(Screen Space Shadows·바닥 한 색·스케일 혼재·UI 폰트 통일, 전부 매번 사용자에게 물어 진행해 온 결) ③101-2·104-1 잔여(전부 보류) ④105 Q-U3. 코드·기능 변경은 없음.
+
+## 2026-09-22 — 102-5 남은 넷 이어감: 바닥 한 색·Screen Space Shadows 완료, 스케일·UI 폰트는 재조사로 닫힘 ("이어해" → "전체 다해")
+
+지난 세션이 "다음 작업"에 적어 둔 102-5 남은 넷(Screen Space Shadows·바닥 한 색·스케일 혼재·UI 폰트 통일) 중 사용자에게 뭘 먼저 볼지 물었더니 "바닥 한 색 정리"를 고르고, 실기 확인 대기 목록·105 Q-U3는 이번엔 안 건드리기로 했다가, 곧이어 "전체 다해"로 넷 전부를 이어가라고 했다.
+
+**바닥 한 색**: 게임별 지형 빌더를 다시 훑어보니 GO(`TerrainBuilder.cs`, 이미 디테일 텍스처 오버레이 있음)·DUNGEON·REALM(`EnvironmentMaterial.MakeTiled`로 실제 PBR 타일드 재질)·STORY(`leafy_grass`/`dark_wooden_planks` PBR mat)는 전부 이미 해당 없었다 — 진짜 "정점색 하나로만 칠한" 건 FOREST(`ForestGroundBuilder`→`ForestWorldCurve.shader`, 디테일 텍스처 개념 자체가 없었다)뿐이었다. `ForestWorldCurve.shader`에 GO `VertexColorLit`과 같은 결의 `_DetailTex`/`_DetailTiling`/`_DetailStrength`(기본값 흰 텍스처·Strength 0이라 이 셰이더를 같이 쓰는 나무·NPC엔 영향 없음)를 추가하고 월드 XZ(`positionWS.xz`)로 직접 샘플(별도 UV 채널 불필요 — 곡률이 Y만 건드리므로). `ForestGroundBuilder.cs`에 `detailTexture`/`detailTiling`/`detailStrength` 필드 추가, `BuildTestVillageForestScene.cs`의 `BuildGround()`가 Poly Haven `leafy_grass_ao_1k.jpg`(GO가 cobblestone AO를 쓴 것과 같은 "그레이스케일 AO 곱" 패턴)를 리플렉션으로 채운다. 씬을 한 번 재빌드해 필드를 실제로 저장(`TestVillageForest.unity` 갱신)한 뒤 헤드리스 3연속 OK 확인.
+
+**Screen Space Shadows**: `DecalRendererFeature`를 코드로 배선했던 `BuildDecalRendererFeature.cs`(SerializedObject로 `m_RendererFeatures`/`m_RendererFeaturesMap` 직접 채움)를 그대로 참고해 `BuildScreenSpaceShadowsFeature.cs`를 신설했다. 다른 점 하나 — URP 내장 `ScreenSpaceShadows` 클래스는 `internal`이라(Decal은 `public`) 우리 어셈블리에서 타입 이름으로 직접 못 쓴다. `Type.GetType("UnityEngine.Rendering.Universal.ScreenSpaceShadows, Unity.RenderPipelines.Universal.Runtime")` 리플렉션 + `ScriptableObject.CreateInstance(Type)`로 우회(접근 제한자를 안 가림) — 몇 세션째 "GUID 위험 커 보류"로 미뤄 온 항목이었지만, 실제로 해 보니 Decal과 완전히 같은 패턴이라 위험은 리플렉션 한 줄로 끝났다. `m_Shader` 필드는 비워 둬도 되는데, 그 클래스의 `LoadMaterial()`이 null이면 `Shader.Find("Hidden/Universal Render Pipeline/ScreenSpaceShadows")`로 스스로 채우기 때문(패키지 Shaders 폴더에 실제로 있음, 직접 확인). PC_Renderer.asset에만 걸었다 — 처음엔 Decal처럼 Mobile에도 걸었다가, 102-2 원안("모바일 성능 목표로 Cascade 1 유지 + BlobShadow로 접지만 보완")과 상충한다고 판단해 Mobile_Renderer.asset은 `git checkout`으로 되돌렸다(화면 전체 블릿 패스를 추가로 태우는 무거운 기법이라).
+
+**스케일 혼재 재조사**: `CharacterVisual.cs`(GO)와 `BanditEncounter.cs`를 다시 읽어 보니, 높이는 이미 통일돼 있었다 — Kenney 캐릭터는 `CharacterVisual.Spawn(..., HumanHeight=3.4)`로, 리깅된 Mixamo(Abe·Brute)는 `riggedVisualScale`(실측 높이 기준 계산값, `BuildTestVillageScene.cs` 등이 채워 넘김)로 스케일하는데 목표 높이가 같다. PLAN이 "Kenney 1.0 vs Mixamo 1.75"라고 적어 둔 건 임포트 스케일 값 얘기였지 실제 화면 크기 얘기가 아니었다. 남은 차이는 순수 비례(Kenney 블로키 체형 vs Mixamo 사실적 체형)뿐인데, 이건 103-3 결정("실제 Mixamo 모델은 3명만 유지, 늘리지 않는다")과 정면으로 부딪힌다 — Kenney를 리메시하거나 Mixamo를 더 사는 것 둘 다 이번 세션 범위(그리고 기존 결정) 밖이라 코드로 더 손댈 게 없다고 결론.
+
+**UI 폰트·패널 재조사**: `RealmUiKit.cs`·GO `EncounterUiKit.cs`·FOREST `EncounterUiKit.cs` 셋을 실제로 나란히 읽어 보니 폰트(`Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf")`)·버튼 색(`1,1,1,0.18`)·버튼 텍스트 크기(26)·막대 색까지 바이트 단위로 이미 동일했다(다섯 벌 복사 원칙대로 파일만 갈라져 있을 뿐, 주석에도 "GO를 그대로 복사"라고 적혀 있었다). PLAN이 "통일 안 됨"으로 오래 들고 있었던 건 실제 divergence가 아니라 갱신 누락으로 보인다 — 더 손댈 코드가 없다고 결론.
+
+**검증**: 컴파일(exit 0, 두 차례) → FOREST 씬 재빌드(경고 없음) → GO·DUNGEON·FOREST·STORY·REALM **다섯 판 전부 Playtest 3연속 OK**(Screen Space Shadows 추가 뒤 기준) → `git diff --stat -- ProjectSettings/ Packages/` 빈 결과(설치 버전 부작용 없음) 확인.
+
+`PLAN.md` 102-5 절 전면 갱신(바닥 한 색·SSS 완료, 스케일·UI 폰트는 재조사 결과 기록), `PROJECT_STATE.md` "다음 작업"·"테스트 상태"·"실기 확인 대기" 갱신 후 커밋 예정.

@@ -153,10 +153,29 @@ namespace Saga.EditorTools
             skyFogGo.AddComponent<ForestSkyFogBuilder>().Build();
         }
 
+        // PLAN 102-5 "바닥 한 색" — GO BuildTestVillageScene.BuildTerrain()과
+        // 같은 결(간단한 디테일 오버레이만, 전면 스플랫팅은 범위 밖). 마을
+        // 잔디와 톤이 맞는 Poly Haven leafy_grass의 AO 맵을 그대로 재사용.
+        private const string ForestDetailTexPath =
+            "Assets/Art/Environment/PBR/PolyHaven_LeafyGrass/leafy_grass_ao_1k.jpg";
+
         private static GameObject BuildGround()
         {
             var go = new GameObject("Ground");
-            go.AddComponent<ForestGroundBuilder>();
+            var builder = go.AddComponent<ForestGroundBuilder>();
+
+            var detailTex = AssetDatabase.LoadAssetAtPath<Texture2D>(ForestDetailTexPath);
+            if (detailTex != null)
+            {
+                SetPrivateField(builder, "detailTexture", detailTex);
+            }
+            else
+            {
+                Debug.LogWarning($"[BuildTestVillageForestScene] {ForestDetailTexPath} 를 못 찾음 — 지형이 예전처럼 정점색만으로 칠해짐.");
+            }
+            // ForestGroundBuilder.Awake()는 Play 모드에서만 자동으로 돈다(원래
+            // 이 함수가 여기서 Build()를 직접 부르지 않던 것과 같은 결) —
+            // 필드만 채워 두면 Play 시작 때 이 값 그대로 굽는다.
             return go;
         }
 

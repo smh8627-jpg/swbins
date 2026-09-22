@@ -31,6 +31,14 @@ namespace Saga.Forest.World
 
         [SerializeField] private Material groundMaterialOverride;
 
+        // PLAN 102-5 "바닥 한 색" — GO TerrainBuilder.cs와 같은 결의 디테일
+        // 오버레이. 런타임 스크립트라 AssetDatabase를 못 써 편집기 빌드
+        // 스크립트(BuildTestVillageForestScene.BuildGround)가 채워 준다 —
+        // 비어 있으면 셰이더 기본값(흰 텍스처, Strength 0)이라 씬이 안 깨진다.
+        [SerializeField] private Texture2D detailTexture;
+        [SerializeField] private float detailTiling = 4f;
+        [SerializeField] private float detailStrength = 0.5f;
+
         private void Awake()
         {
             Build();
@@ -85,9 +93,21 @@ namespace Saga.Forest.World
             GetComponent<MeshFilter>().sharedMesh = mesh;
 
             var mr = GetComponent<MeshRenderer>();
-            mr.sharedMaterial = groundMaterialOverride != null
-                ? groundMaterialOverride
-                : new Material(Shader.Find("Saga/ForestWorldCurve")) { name = "ForestGround (generated)" };
+            if (groundMaterialOverride != null)
+            {
+                mr.sharedMaterial = groundMaterialOverride;
+            }
+            else
+            {
+                var mat = new Material(Shader.Find("Saga/ForestWorldCurve")) { name = "ForestGround (generated)" };
+                if (detailTexture != null)
+                {
+                    mat.SetTexture("_DetailTex", detailTexture);
+                    mat.SetFloat("_DetailTiling", detailTiling);
+                    mat.SetFloat("_DetailStrength", detailStrength);
+                }
+                mr.sharedMaterial = mat;
+            }
 
             var col = gameObject.AddComponent<MeshCollider>();
             col.sharedMesh = mesh;

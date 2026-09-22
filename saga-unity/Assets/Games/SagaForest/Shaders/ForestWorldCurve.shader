@@ -24,10 +24,20 @@ Shader "Saga/ForestWorldCurve"
     // 값을 채운다(`Data/ForestBiomeData.cs`의 바이옴 틴트) — 정점색이 없는
     // 메시(창조물 primitive 등)는 Unity가 기본값 (1,1,1,1)을 채워 기존
     // 결과와 동일하다.
+    //
+    // 디테일 오버레이(2026-09-22, PLAN 102-5 "바닥 한 색") — GO
+    // `VertexColorLit.shader`와 같은 결의 그레이스케일 곱 텍스처를
+    // 월드 XZ로 직접 샘플한다(별도 UV 채널 없이 — 땅은 곡률만 Y에서
+    // 빼므로 XZ는 그대로 세계 좌표). 기본값 흰 텍스처·Strength 0이라
+    // `ForestGroundBuilder`가 명시로 채우지 않는 한(나무·NPC 등 이
+    // 셰이더의 다른 쓰임) 기존 결과와 동일하다.
     Properties
     {
         _BaseColor("Base Color", Color) = (0.35, 0.55, 0.25, 1)
         _CurveAmount("Curve Amount", Float) = 0.004
+        _DetailTex ("Detail (grayscale multiply)", 2D) = "white" {}
+        _DetailTiling ("Detail Tiling (world units per repeat)", Float) = 4
+        _DetailStrength ("Detail Strength", Range(0,1)) = 0
     }
     SubShader
     {
@@ -52,6 +62,9 @@ Shader "Saga/ForestWorldCurve"
             half4 _BaseColor;
             float _CurveAmount;
             float3 _SagaWorldCurveCenter;
+            TEXTURE2D(_DetailTex); SAMPLER(sampler_DetailTex);
+            float _DetailTiling;
+            float _DetailStrength;
 
             struct Attributes
             {
@@ -99,7 +112,8 @@ Shader "Saga/ForestWorldCurve"
                 half ndotl = saturate(dot(normalWS, mainLight.direction));
                 half3 shadowed = mainLight.color * (ndotl * mainLight.shadowAttenuation);
                 half3 ambient = SampleSH(normalWS);
-                half3 albedo = _BaseColor.rgb * IN.color.rgb;
+                half detail = SAMPLE_TEXTURE2D(_DetailTex, sampler_DetailTex, IN.positionWS.xz / _DetailTiling).r;
+                half3 albedo = _BaseColor.rgb * IN.color.rgb * lerp(1.0h, detail, _DetailStrength);
                 half3 lit = albedo * (shadowed + ambient);
                 lit = MixFog(lit, IN.fogCoord);
                 return half4(lit, _BaseColor.a);
