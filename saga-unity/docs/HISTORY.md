@@ -8490,3 +8490,41 @@ UAC 재활성화/GUI 대화상자 문제 해결 확인 뒤, 사용자가 GUI가 
 **결론**: GUI hang(패키지 등록/라이선싱 단계 CPU~0 멈춤) 문제는 이 세션에서 재현되지 않았다 — 지난 세션이 겪은 건 일회성이었을 가능성이 높다. 다만 SSS 글로우가 "잘 나오는지"는 여전히 실제로 못 봤다 — 다음 세션은 블룸 있는 씬에서 플레이어가 안 죽는 안전한 지점(또는 무적 플래그)으로 텔레포트를 고쳐 재시도해야 한다.
 
 코드 변경: `PlaytestCharacterRealisticGui.cs`(`ShotDir` 경로 갱신, 대기 120→300프레임, `04_skin_closeup` 스테이지 신설), `PlaytestDungeonEnemiesGui.cs`(`ShotDir` 경로 갱신만). `PROJECT_STATE.md` 갱신.
+
+## 2026-09-23 — SSS 글로우 확인 계속, GUI hang이 "반복 launch 부하"로 재현됨 (같은 세션 "이어해")
+
+전날 세션이 남긴 대로 사용자가 "이어해"를 요청 — SSS 글로우 확인을 계속했다.
+
+`PlaytestDungeonEnemiesGui`의 텔레포트 지점(적 무리 옆)이 스크린샷 전에 플레이어를 쓰러뜨리는 문제를 고치려 `HeroState.Invulnerable = true`를 Teleport()에 추가했으나, 실제로는 효과가 없었다 — `PlayerController.Update()`가 매 프레임 `_invulnTimeLeft`(대시 전용 무적 타이머) 기준으로 `HeroState.Invulnerable`을 덮어쓰기 때문에(경쟁 상태), 한 번 켠 값이 바로 다음 프레임에 꺼진다. 게다가 이 필드를 강제로 켜는 우회(리플렉션으로 `_invulnTimeLeft` 큰 값 주입)는 대시 무적 시 하늘색 틴트(`CharacterVisual.Tint`)가 씌워져 피부색 확인 자체를 방해하므로 그 방법도 부적합했다. 대신 **적 `DungeonEnemy` 컴포넌트를 통째로 `enabled=false`** 하는 쪽으로 고쳤다(공격 자체가 안 나감, 틴트 부작용 없음). 배치 컴파일로 확인(exit 0, 오류 없음).
+
+GUI로 재검증하려 했으나 이 세션의 5·6·7번째 Unity GUI launch에서 hang이 다시 나타났다 — 이번엔 라이선싱 성공 직후("Licensing::Client] Successfully resolved entitlement details") 다음 로그 줄(패키지 등록 진입)이 60초 넘게 안 나와 멈춘 것을 확인, `taskkill //F //IM Unity.exe //T`로 정리했다(두 번). 같은 세션의 1~4번째 launch(`PlaytestCharacterRealisticGui` 2회·`PlaytestDungeonEnemiesGui` 1회·배치 컴파일 확인 1회)는 전부 멀쩡했던 것과 대조된다 — 지난 세션 결론("일회성")은 틀렸고, **한 세션에서 GUI/배치를 짧은 간격으로 여러 번 반복 실행하면 뒤로 갈수록 hang 확률이 오른다**는 가설이 더 설득력 있다(정확한 임계치·원인은 미확인).
+
+`PlaytestCharacterRealisticGui`는 이번엔 문제없이 두 번 실행됐다 — 1차 스크린샷(idle·run)에서 피부가 **네온 시안**으로 찍힌 걸 발견했는데, 이는 SSS 버그가 아니라 66-2장 ⑩에 이미 기록된 "셰이더 캐시 콜드" 함정의 새로운 증상(이전엔 "플랫한 색"만 알려져 있었는데 커스텀 Shader Graph는 네온 시안 디폴트를 보인다는 걸 이번에 확인)이었다 — 대기 프레임을 120→300으로 늘리고 재실행하니 사라졌다. 다만 이 씬(`BuildTestCharacterRealisticScene`)은 의도적으로 포스트프로세싱 없는 순수 리그 확인용이라(클래스 주석에 명시) 정상 톤이어도 SSS 글로우 자체가 육안으로 안 띄었다 — 블룸이 있는 실제 게임 씬(Dungeon)에서 봐야 진짜 판단이 가능한데, 그쪽은 위 hang 때문에 이번에도 결론을 못 냈다.
+
+세 번의 GUI/배치 실행 모두 4~6개 설정 파일이 조용히 고쳐진 걸 `git checkout --`으로 원복(기존 패턴 그대로, `tools/unity-batch.sh`가 배치 실행분은 자동 처리).
+
+코드 변경: `PlaytestDungeonEnemiesGui.cs`(무적 플래그 방식 폐기 → 적 `DungeonEnemy.enabled=false` 방식으로 교체, `using Saga.Dungeon.Data;` 추가). `PROJECT_STATE.md` 갱신.
+
+## 2026-09-23 — 던전 GUI 즉사 문제 해결, 카메라 구도가 피부 확인엔 안 맞음을 확인 (같은 세션 "이어해" 계속)
+
+적 `DungeonEnemy.enabled=false` 수정을 커밋한 뒤 곧바로 재검증했다. 첫 재시도는 launch 5~7번째 구간이라 hang이 다시 남(taskkill로 정리, `git checkout --`로 4파일 원복). 문서 작업으로 몇 분 텀을 두고 재시도하니 이번엔 정상 진행 — package version bump(`com.unity.cloud.gltfast` 6.9.0→6.14.1)가 걸려 있어 평소보다 느린 전체 재임포트를 거쳤지만 hang 없이 exit 0으로 끝났다.
+
+스크린샷 확인 결과: HP 30/30 유지, "가까운 적 없음" — 적 비활성화 수정이 제대로 작동해 더 이상 즉사하지 않는다. 하지만 카메라가 여전히 탑다운(디아블로류, `CameraRig` 기본 pitch=55°를 확인용으로 30°까지 낮춘 상태)이라 Maria가 갑옷에 완전히 가려 피부가 거의 안 보였다 — pitch를 게임 정상 최소(30°)보다도 더 낮춰(15°, reflection으로 클램프 우회, 천장·바닥 여유는 계산으로 확인) 재실행했으나 여전히 위에서 내려다보는 각도라 결과는 비슷했다. 즉 이 씬의 카메라 구도 자체가 피부 확인이라는 목적에 안 맞는다는 결론 — `TestCharacterRealistic`(근접 측면 샷)처럼 스크린샷 전용의 별도 카메라(허벅지 높이·근접 고정)를 새로 만들지 않는 한, 기존 게임플레이 카메라를 아무리 조정해도 한계가 있다.
+
+이번 실행에서도 6개 설정 파일이 조용히 고쳐진 걸 `git checkout --`으로 원복(패턴 재확인).
+
+**결론**: GUI hang은 launch 횟수가 쌓이면 걸리다가 시간을 두면 다시 멀쩡해지는 패턴을 보였다(정확한 임계치는 미확인, 재부팅 없이도 해소됨 — 지난 세션의 "재부팅해야 풀린다"는 결론과 다르다, 단순 launch 간격 문제일 가능성). SSS 글로우 자체는 이번에도 육안 판정을 못 냈다 — 코드·셰이더 검증(ShaderHasError=False)은 끝났고 남은 건 순수히 "보기 좋은가"의 미적 판단인데, 그걸 볼 방법(스크린샷 전용 카메라 신설, 또는 사용자 실기 확인)이 아직 없다.
+
+코드 변경: `PlaytestDungeonEnemiesGui.cs`(카메라 pitch 30°→15°, 주석 갱신). `PROJECT_STATE.md` 갱신.
+
+## 2026-09-23 — 던전 카메라 회전이 실제로 안 먹던 원인 찾음, 하지만 launch 9회째부터 GUI가 아예 시작을 못 함 (같은 세션 "이어서 해")
+
+지난 두 번의 pitch 조정(30°→15°)이 스크린샷에 아무 변화도 없었던 게 이상해서 `CameraRig.cs`를 다시 읽었다 — `Update()`는 매 프레임 `ApplyZoom()`만 다시 부르고(줌만 `cam.transform.localPosition`에 반영), 실제 회전(`transform.localRotation`)은 `Awake()`와 드래그 입력 전용 `Rotate()`에서만 쓰인다. 헤드리스 툴은 드래그를 안 하니 `_pitchDeg` **필드**를 reflection으로 아무리 바꿔도 화면엔 `Awake()` 시점 기본값(55°)이 그대로 남아 있었던 것 — 두 번의 "pitch 낮춤" 시도가 전부 무효였던 이유가 이거였다.
+
+고침: `rig.transform.localRotation = Quaternion.Euler(0f, 0f, 0f)`로 직접 덮어쓴다(pitch=0, 완전 수평). `CameraRig` 피벗(GO)이 플레이어 기준 로컬 (0, 0.9, 0) — `BuildTestDungeonScene.BuildPlayer()`의 CharacterController center와 같은 높이(허리)라, pitch=0이면 허리 높이에서 정면(플레이어가 보는 방향)을 보는 구도가 된다. zoom도 게임 정상 최소(3)보다 가깝게(2) 당겼다. 배치 모드 컴파일로 문법 확인(exit 0, 오류 없음).
+
+GUI로 실제 확인하려 했으나 이 세션의 9번째 Unity launch(배치 컴파일 포함 전체 누적 횟수)부터 시작 로그 첫 줄("Library Redirect Path: Library/") 직후 75초 넘게 아무것도 안 나오고 멈췄다 — 이번엔 패키지 등록·라이선싱 근처도 못 가고 더 일찍 걸렸다. `taskkill //F //IM Unity.exe //T`로 정리(설정 파일 드리프트 없음 — 그만큼 일찍 죽었다는 뜻). 직전 세션 구간에서 관찰한 "launch 5~7회째 hang, 8회째는 시간 두면 정상"이라는 패턴과 달리 이번엔 문서 작업으로 몇 분을 들인 뒤인데도 곧바로 걸렸다 — **단순 시간 간격이 아니라 launch 누적 총량 자체가 원인**일 가능성이 커 보인다(정확한 메커니즘은 여전히 미확인, 재부팅하면 풀리는지는 다음 세션이 확인).
+
+이 세션은 GUI/배치 launch를 12회 가까이 썼다 — 다음 세션은 launch를 아껴서(특히 세션 앞부분에 몰아) 이 고침을 실제로 확인해야 한다.
+
+코드 변경: `PlaytestDungeonEnemiesGui.cs`(카메라 회전을 `transform.localRotation` 직접 설정으로 교체, zoom 2로 조정, 주석 갱신). `PROJECT_STATE.md` 갱신.

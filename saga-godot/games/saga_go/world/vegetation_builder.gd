@@ -96,6 +96,31 @@ const STELE_COLOR := Color(0.55, 0.53, 0.5)  # rock 회색과 같은 톤(102-1 �
 ## 작아 기대값 언저리에서도 쉽게 빈다. 1/3로 올려 실측 5개로 확인.
 const RUINS_DEBRIS_DENSITY := 3
 
+## 2026-09-23 — HISTORY 09-22 재감사에서 나온 "실제로 안 쓰인" procgen
+## 산출물 중 rock(노이즈 바위)·fence/wall(울타리·돌담) 마저 배선한다
+## (stele만 먼저 됐던 이유는 없음, 그냥 순서 문제). 103-3 표의 지정
+## 용도 그대로 "폐허 빈 칸 채우기" — stele(비석, 순수 발견 primitive와
+## 안 겹치는 R 칸)와 구별되는 두 자리에 놓는다:
+## ① rock — R 바닥에 stele와 같이 흩어지는 저상 잔해(돌무더기, 비석보다
+##    낮고 넓어 한눈에 구별된다). ② wall/fence — 산(^) 테두리에 "무너진
+##    담장·울타리"로, 이미 있는 Rock_Medium(_scatter_rocks)과 섞여 서서
+##    "폐허를 둘러싼 담이 무너져 바위처럼 나뒹군다"는 그림을 만든다.
+const RUBBLE_ROCK_GLB := [
+	"res://assets/generated/props/rock_s1_01.glb",
+	"res://assets/generated/props/rock_s2_02.glb",
+	"res://assets/generated/props/rock_s3_03.glb",
+	"res://assets/generated/props/rock_s4_04.glb",
+]
+const RUBBLE_DENSITY := 4  # R 칸 1/4 — stele(1/3)보다 성기게, 화면이 안 빽빽하게
+const WALL_FENCE_GLB := [
+	"res://assets/generated/props/wall_s1_01.glb",
+	"res://assets/generated/props/wall_s2_02.glb",
+	"res://assets/generated/props/fence_s1_01.glb",
+	"res://assets/generated/props/fence_s2_02.glb",
+]
+const WALL_FENCE_DENSITY := 3  # ^ 테두리 1/3
+const RUBBLE_COLOR := Color(0.4, 0.37, 0.34)
+
 var region_id := "village"
 
 
@@ -105,6 +130,8 @@ func _ready() -> void:
 	_scatter_crops()
 	_scatter_clutter()
 	_scatter_ruins_debris()
+	_scatter_ruins_rubble()
+	_scatter_ruins_wall_fence()
 
 
 ## 정수 좌표 + salt에서 결정적으로 0~1 값을 뽑는다. core.hash2와 같은 정신 —
@@ -394,3 +421,83 @@ func _scatter_ruins_debris() -> void:
 		var mmi_b := _build_rock_multimesh(mesh_b, xf_b, "RuinsDebrisB")
 		mmi_b.material_override = mat
 		add_child(mmi_b)
+
+
+## procgen.py make_rock() — 이코사구 노이즈 바위, 씨앗마다 정점색을 이미
+## 구워 넣었다(_concat_colored, 103-1 헤더 참고) — stele·wall/fence와
+## 달리 material_override를 씌우지 않는다(씌우면 그 정점색 변주가
+## 사라진다). stele와 같은 R 바닥에 놓이지만 더 낮고(반지름 0.5 안팎)
+## 넓어 비석과 한눈에 구별된다 — "무너진 건물 잔해 위에 뒹구는 돌무더기".
+func _scatter_ruins_rubble() -> void:
+	if region_id != "ruins":
+		return
+	var ground: float = TerrainBuilder.LEGEND["R"].height
+	var xf_by_variant: Array[Array] = []
+	for i in RUBBLE_ROCK_GLB.size():
+		var arr: Array[Transform3D] = []
+		xf_by_variant.append(arr)
+	var rows := TestMap.rows_of(region_id)
+	for y in rows.size():
+		var row: String = rows[y]
+		for x in row.length():
+			if row[x] != "R":
+				continue
+			if _hash(x, y, 720) >= 1.0 / float(RUBBLE_DENSITY):
+				continue
+			var jx := (_hash(x, y, 721) - 0.5) * TestMap.TILE_SIZE * 0.65
+			var jz := (_hash(x, y, 722) - 0.5) * TestMap.TILE_SIZE * 0.65
+			var pos := TestMap.world_pos(x, y, region_id) + Vector3(jx, ground, jz)
+			var yaw := _hash(x, y, 723) * TAU
+			var variant := int(_hash(x, y, 724) * RUBBLE_ROCK_GLB.size()) % RUBBLE_ROCK_GLB.size()
+			(xf_by_variant[variant] as Array[Transform3D]).append(Transform3D(Basis(Vector3.UP, yaw), pos))
+
+	for i in RUBBLE_ROCK_GLB.size():
+		var xforms: Array[Transform3D] = xf_by_variant[i]
+		if xforms.is_empty():
+			continue
+		var mesh := GLBUtils.extract_mesh(RUBBLE_ROCK_GLB[i])
+		if mesh == null:
+			continue
+		add_child(_build_rock_multimesh(mesh, xforms, "RuinsRubble%d" % i))
+
+
+## procgen.py make_wall()/make_fence() — 담장·울타리 한 칸씩(103-1 헤더
+## 참고), 정점색 없이 임포트되니 stele처럼 flat material_override가
+## 필요하다. _scatter_rocks()가 이미 세우는 Rock_Medium과 같은 "^"
+## 테두리 칸에 섞어 놓아 "폐허를 둘러싼 담이 무너져 바위 사이에 뒹군다"는
+## 그림을 만든다 — stele·rubble(R 바닥)과는 자리가 겹치지 않는다.
+func _scatter_ruins_wall_fence() -> void:
+	if region_id != "ruins":
+		return
+	var ground: float = TerrainBuilder.LEGEND["^"].height
+	var xf_by_variant: Array[Array] = []
+	for i in WALL_FENCE_GLB.size():
+		var arr: Array[Transform3D] = []
+		xf_by_variant.append(arr)
+	var rows := TestMap.rows_of(region_id)
+	for y in rows.size():
+		var row: String = rows[y]
+		for x in row.length():
+			if row[x] != "^":
+				continue
+			if _hash(x, y, 740) >= 1.0 / float(WALL_FENCE_DENSITY):
+				continue
+			var jx := (_hash(x, y, 741) - 0.5) * TestMap.TILE_SIZE * 0.5
+			var jz := (_hash(x, y, 742) - 0.5) * TestMap.TILE_SIZE * 0.5
+			var pos := TestMap.world_pos(x, y, region_id) + Vector3(jx, ground, jz)
+			var yaw := _hash(x, y, 743) * TAU
+			var variant := int(_hash(x, y, 744) * WALL_FENCE_GLB.size()) % WALL_FENCE_GLB.size()
+			(xf_by_variant[variant] as Array[Transform3D]).append(Transform3D(Basis(Vector3.UP, yaw), pos))
+
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = RUBBLE_COLOR
+	for i in WALL_FENCE_GLB.size():
+		var xforms: Array[Transform3D] = xf_by_variant[i]
+		if xforms.is_empty():
+			continue
+		var mesh := GLBUtils.extract_mesh(WALL_FENCE_GLB[i])
+		if mesh == null:
+			continue
+		var mmi := _build_rock_multimesh(mesh, xforms, "RuinsWallFence%d" % i)
+		mmi.material_override = mat
+		add_child(mmi)

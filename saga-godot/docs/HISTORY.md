@@ -8145,3 +8145,30 @@ PROJECT_STATE.md` 참고. 요약:
 - 임시 `SAGA_MOOD_DEBUG` 훅으로 방마다 실제 로드된 mesh.resource_path를 찍어 dirt→limestone→lava→dirt… 순환 확인 — 1차 시도에선 노드 이름(`RoomMesh` 등) 기반 필터를 썼다가 헛다리(Godot가 동일 이름 재사용 시 두 번째부터 `@ClassName@N` 익명 이름을 붙이는 기존 동작 — 09-23 이전부터 있던 동작, 원본 코드로 재현해 확인, 내 변경과 무관)를 잡을 뻔함 → 타입(`is MeshInstance3D`) 기반으로 바꿔 정확히 확인.
 - **그 과정에서 발견**: gate 관련 mesh가 전혀 안 찍힘 → `_spawn_gate()`를 보니 `mi.mesh = mesh` 대입 자체가 없었다. `git log -S`/`git show`로 원인 추적 — 2026-09-12 "여러 방 연결" 리팩터(커밋 `1ea68c57`, `at_north` 인자 추가)가 그 줄을 빠뜨렸다(그 전 커밋엔 있었다). 그날부터 지금까지 문 아치가 한 번도 렌더된 적 없는 빈 MeshInstance3D였다는 뜻 — mood 작업과 무관한 순수 기존 버그라 별도로 `mi.mesh = mesh` 한 줄 추가. 게임플레이(벽 틈)는 안 막혀 있어 안 걸리고 지나간 것으로 보인다.
 - 훅 제거 후 재확인(13개 gate mesh 전부 정상 로드), `godot_regress.sh` 다섯 판 REGRESS OK(DUNGEON만 md5 변경), `.import`/`project.godot` 잡음 없음.
+
+## GO procgen rock/fence/wall 배선 (2026-09-23, 같은 세션, "이어해")
+
+- DUNGEON 굴혈 mood 배선 다음으로 PROJECT_STATE 우선순위 2번(미배선 icon_star·fence/wall/rock·NPC옷팔레트) 중 stele와 같은 결로 곧장 이어 붙일 수 있는 procgen rock/fence/wall을 골랐다. 103-3 표 지정 용도("포구·폐허 빈 칸 채우기") 그대로, stele(비석, R 바닥)와 자리가 안 겹치게 둘로 나눴다.
+- `vegetation_builder.gd::_scatter_ruins_rubble()` 신설 — R 바닥에 procgen rock 4종(노이즈 바위, make_rock이 정점색을 이미 구워 넣어 material_override 안 씀)을 stele보다 성긴 1/4 밀도로. `_scatter_ruins_wall_fence()` 신설 — `_scatter_rocks()`가 이미 세우는 산(^) 테두리 Rock_Medium과 같은 칸에 procgen wall/fence 4종(정점색 없어 flat material_override 필요)을 1/3 밀도로 섞어 "폐허를 둘러싼 담이 무너져 바위처럼 나뒹군다"는 그림.
+- 둘 다 `_scatter_ruins_debris()`와 같은 골격(region_id=="ruins" 가드, 격자 스캔+해시 지터, variant별 Array[Transform3D] 버킷 → `_build_rock_multimesh()` 재사용, 새 salt 720대·740대로 기존 함수들과 겹치지 않게).
+- 헤드리스 3프레임 확인 오류 0, `godot_regress.sh` 다섯 판 REGRESS OK(GO만 md5 변경, 나머지 넷 불변), `.import`/`project.godot` 잡음 없음.
+- **남은 미배선**: `icon_star`(용도 미정) · NPC 옷 팔레트 8종(생성 자체를 안 함) · STORY 트라이플레이너(별도 판단 필요).
+
+## 실기 확인 대기 목록 전체 승인 (2026-09-23, "실기손맛 괜찮아" → "전체 대기 목록 다" → "남은 거 다해")
+
+- 09-23 GO procgen rock/fence/wall 배선 보고 뒤 사용자가 "실기손맛 괜찮아"라고 확인. 어디까지 확인됐는지 물으니(AskUserQuestion) "전체 대기 목록 다"를 선택 — PROJECT_STATE에 09-11~09-22 사이 쌓여 있던 실기 확인 대기 목록 전부(GO·DUNGEON·FOREST·STORY·REALM·공통) 승인으로 처리한다. STORY·REALM은 이걸로 VS 승인 게이트를 처음 기록(둘 다 2026-09-23).
+- 승인 처리 전 PROJECT_STATE에 있던 항목 원문(참고용 보존):
+  - GO: 1.7m 재튜닝·건물/나무/바위 팔레트 색감(마을/포구/폐허)·새 랜드마크 21개 외형·포구 전체(어부·갈매기·게·표류물·조각배·고래뼈·닻·그물더미·조개무지)·폐허(지형·갈림길·유물·전장 잔해 4종·비석 5개·"결사" 설득 3라운드)·마을 모퉁이 표식 4종·신수 11 조우·역참·사진 모드·소문·목표판·마무리 카드·승급 3택 카드·도적전 짐 드랍/회수·사당 시련·봉수대·손맛(hitstop/흔들림/플래시/숫자 팝)·도적 두목 부위 파괴·나무 바람 흔들림·발밑 그림자·물 반사·지형 트라이플레이너.
+  - DUNGEON: 전용 VRoid 얼굴/1.7m/8애니·방마다 횃불·굴혈 mood 3색·방 종류 5·엘리트 8·갑주 부위 6 UI·무예 45종 손맛·축복 3택 카드·원소 시너지 확산 타격감·유품 사망 카드·손맛 5요소·부적 던전·난입·월드 보스·목표판·세션 카드.
+  - FOREST: VRoid 아바타·1.7m·바이옴별 몬스터·집 증축·꽃 교배 경제·벽지/장판·세션 카드·관계 하트·마을 번들·채집/낚시 숫자 팝·발견 격자 랜드마크 11개·나무 색조·트라이플레이너 톤.
+  - STORY: NPC_TALK 밀도·칭호 라벨·원거리 적/업적/상점/사명 화면·목표판·세션 카드·손맛 5요소(무예 18곳)·이동 손맛(대시/코요테/버퍼)·직업 정체성·관문 대장·비경(문 선택지·축복 3택·영구 강화)·발밑 그림자.
+  - REALM: 월드맵 렌더/드래그/줌/탭·목표판·"다음 달" 요약 카드·승리 결과 카드·인물 특성/야망 배지·일기토/설전·이벤트 체인 카드·계승.
+  - 공통: WorldEnvironment·셀셰이더 톤·Forward+/Mobile 실기기·UI 사운드·지갑 숫자 콤마·카메라 근접 페이드·전설 잔광 파티클·동행 실루엣.
+- 이어서 사용자가 "남은 거 다해" — PROJECT_STATE 다음 작업 목록(icon_star·NPC 옷 팔레트 8종·STORY 트라이플레이너 판단)을 이번 세션에 계속 진행.
+
+## 남은 미배선 셋(icon_star·NPC 옷 팔레트·STORY 트라이플레이너) 조사·판단 종결 (2026-09-23, 같은 세션, "남은 거 다해")
+
+- **STORY 트라이플레이너**: `story_terrain_builder.gd` 헤더를 다시 읽어 보니 애초에 "2.5D"라 명시돼 있다 — 들판·발판·사다리 전부 `BoxMesh`+단색 `StandardMaterial3D`(플랫폼 게임 결, 위에서 보는 GO/FOREST 3D 걷기 지형과 다른 장르). 정점색이 없어서가 아니라 **이 판이 트라이플레이너가 필요한 종류의 지형이 아니다** — 종결, 재작업 후보에서 뺀다.
+- **icon_star**: 배선 후보를 찾다가 이미 배선된 두 자리를 다시 읽었다. `test_room.gd::_on_exit_entered()`(축복 3택 카드) 주석: "카드 위 축 아이콘·희귀도를 라벨 텍스트로 근사 — **새 UI를 안 만든다**". `loot_pickup.gd::_spawn_legendary_glow()` 주석: 전설만 파티클 하나, "잡졸·정예 드롭까지 번지면 **색만 보고 줍는다는 반사신경이 흐려진다**"며 의도적으로 최소화. 둘 다 "아이콘 추가 안 함"이 사고가 아니라 결정이라 그 결정을 뒤집을 근거 없이 icon_star를 끼워 넣지 않는다.
+- **NPC 옷 팔레트 8종**: character-a~d.glb를 trimesh로 열어 확인 — 몸 전체(머리·팔·다리·몸통)가 재질 하나(`texture-a`~`texture-d`, 1024×1024 아틀라스 공유)뿐이라 피부·옷이 재질로 안 갈린다. `palette.py`의 snap-glb/tint-glb는 **재질 단위**(`_material_matches`, VRoid의 `_CLOTH`/`_SKIN` 접미사 전제)로만 골라 물들이므로 그대로 쓰면 얼굴·피부까지 같이 물든다 — 픽셀 영역(옷 vs 피부) 마스킹은 새 툴이 필요하다는 뜻. 게다가 지금 GO/FOREST가 쓰는 이 네 캐릭터는 전부 이름 있는 개별 NPC(촌장=b·어부=b 재사용·상인=c·도적=d)라 "군중 옷 다양화"를 쓸 자리 자체가 없다(103-3 표가 "REALM 무장 실루엣"을 소비처로 짐작했지만 실제로 REALM 3D 몬스터 실루엣은 이 캐릭터들과 무관한 별개 코드였다). 기술 난이도 + 소비처 부재 둘 다라 보류.
+- 셋 다 코드 변경 없음(조사·문서화만) — 헤드리스 재검증 불필요.

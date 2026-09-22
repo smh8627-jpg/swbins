@@ -1,9 +1,9 @@
 # PROJECT_STATE — saga-unity (상태만, ≤15KB, 덮어쓴다)
 
 **규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다(2026-09-16 재편 전 본문 5,532줄은 그쪽 첫 절에 그대로 있다). 넘치면 `tools/precheck.sh` 가 막는다.
-마지막 갱신: 2026-09-22 (스물두 세션째 — "사가유니티 이어 하기"로 시작, 막힌 항목뿐이라 사용자에게 물어 **SSS 글로우 GUI 확인 재시도**를 골랐다). 102-5·102-4·103-1·67~69 잔여는 닫힘(Kenney `Characters/`만 실사용 중이라 못 뺌).
+마지막 갱신: 2026-09-23 (스물두 세션째 — **SSS 글로우 GUI 확인 재시도** 계속). 102-5·102-4·103-1·67~69 잔여는 닫힘(Kenney `Characters/`만 실사용 중이라 못 뺌).
 
-**GUI hang 문제 해소, SSS 글로우는 여전히 결론 못 냄(2026-09-22)**: GUI 3회(`PlaytestCharacterRealisticGui` 2회·`PlaytestDungeonEnemiesGui` 1회) 전부 hang 없이 exit 0 — 지난 세션 "패키지 등록 단계 CPU~0 멈춤"은 재현 안 됨, 일회성으로 보임. `PlaytestCharacterRealisticGui`(대기 120→**300프레임**, 피부 클로즈업 스테이지 신설) 1차는 피부가 **네온 시안**으로 찍힘(SSS 셰이더 변형 미컴파일 — 기존 "셰이더 캐시 콜드" 함정과 같은 결, 새 버그 아님), 2차(대기 늘린 뒤)는 정상 톤이지만 **이 씬은 원래 블룸이 없는 순수 리그 확인용이라 글로우가 눈에 안 띔**(의도된 설계). 블룸 있는 `PlaytestDungeonEnemiesGui`로 재확인 시도했으나 텔레포트 직후 적 무리에 바로 쓰러져 HUD·전투결과 UI만 찍힘 — 판단 불가. **다음 세션 1순위**: 블룸 씬에서 안 죽는 안전한 지점/무적 처리로 재시도 — 튜닝 여부는 실제로 보고 사용자가 판단.
+**SSS 글로우 — 코드는 다 고쳤지만 이 세션엔 환경이 GUI를 더 못 버팀(2026-09-23)**: 리그확인 씬(`PlaytestCharacterRealisticGui`)은 성공하지만 블룸이 없어 글로우가 원래 안 띔. 던전 씬(`PlaytestDungeonEnemiesGui`)은 텔레포트 즉사를 **적 `DungeonEnemy.enabled=false`** 로 고쳐 해결(체력 30/30 유지 확인)했으나 카메라가 여전히 탑다운이었다 — 원인: `_pitchDeg` **필드만** reflection으로 바꿔선 화면에 반영 안 됨(`CameraRig.Update()`는 줌만 재적용, 회전은 `Awake()`/드래그 전용 `Rotate()`에서만 씀). **고침**: `rig.transform.localRotation`을 pitch=0으로 직접 덮어씀(피벗이 로컬 y=0.9=허리 높이라 수평이면 그 높이 정면 구도), zoom도 2로 당김 — 배치 컴파일은 통과했지만 **GUI 확인은 못 함**: 9번째 launch부터 시작 직후 바로 멈춤(taskkill 정리). "5~7회째 hang, 8회째 시간 두면 풀림"이던 게 9회째는 즉시 걸려 **launch 누적 자체가 원인**으로 보임(시간 간격만으론 부족할 수 있음). **다음 세션 1순위**: 회전 고침은 코드상 맞다고 판단(피벗 높이 계산 확인함)하지만 **GUI로 한 번도 못 봄** — 세션 초반 1~2회로 아껴서 확인.
 
 ## 캐릭터 자산 — 이 PC 기준 (2026-09-19)
 
@@ -27,8 +27,8 @@ PLAN 101-3(C hitstop류·F 유품 마커·G 데칼/레벨업 컷/장비 가시�
 
 ## 다음 작업 (우선순위, 상세는 PLAN 해당 장 · 경위는 HISTORY 날짜 grep)
 
-1. **Maria 피부 SSS 글로우 화면 확인**(계속) — hang 문제는 해소, 이번엔 블룸 있는 씬에서 못 봄(위 "SSS 글로우 시각 확인" 절 참고). 다음 세션 1순위.
-2. GUI 자동 확인 도구는 이제 안정적으로 재사용 가능(hang 재현 없음, 3회 연속 exit 0). `ShotDir` 상수(`PlaytestCharacterRealisticGui.cs`·`PlaytestDungeonEnemiesGui.cs`)는 세션 scratchpad 경로라 새 세션마다 고쳐야 함. 나머지 실기 확인은 계속 사람이 직접(아래 목록). 다른 PC는 `CharactersRealistic/`·`Generated/` 둘 다 gitignore라 `SetupXxxCharacterImport.cs`→SSS Build 순 재실행 필요.
+1. **Maria 피부 SSS 글로우 화면 확인**(계속) — 위 절 참고. 다음 세션 1순위.
+2. GUI hang은 launch 누적으로 재현(위 절 참고) — 세션당 launch 아껴 쓸 것. `ShotDir` 상수(두 `Playtest*Gui.cs`)는 세션 scratchpad 경로라 새 세션마다 고쳐야 함. 다른 PC는 `CharactersRealistic/`·`Generated/` 둘 다 gitignore라 `SetupXxxCharacterImport.cs`→SSS Build 순 재실행 필요.
 3. **101-2·104-1 잔여(보류)** — GO⑤(모바일 빌드 뒤)·STORY5-2·`Props/` lantern·stall-red·`Characters/` Kenney(실사용 중).
 4. 헤어카드 — 분리 헤어 메시 생기면 같은 기법 재사용 가능, 그 전엔 대상 없음.
 

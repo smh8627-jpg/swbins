@@ -3,6 +3,7 @@ using System.Reflection;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using Saga.Dungeon.Data;
 using Saga.Dungeon.Player;
 using Saga.Dungeon.World;
 
@@ -104,6 +105,21 @@ namespace Saga.EditorTools
                 Debug.LogError("[PlaytestDungeonEnemiesGui] Player not found");
                 return;
             }
+
+            // 확인용 텔레포트 지점이 적 무리 바로 옆이라(의도적) 스크린샷을 찍기
+            // 전에 두들겨 맞아 쓰러지면(HeroState.Died) 화면이 세션카드로 덮인다
+            // (2026-09-22·2026-09-23 실제로 겪음) — HeroState.Invulnerable은
+            // PlayerController.Update()가 매 프레임 _invulnTimeLeft 기준으로
+            // 덮어써서(대시 무적 전용 필드) 한 번 켜 봐야 곧바로 꺼진다(경쟁
+            // 상태로 실패 확인). 대신 적 AI(DungeonEnemy.Update)를 통째로
+            // 꺼서 공격 자체가 안 나가게 한다 — 무적 틴트(하늘색)로 피부색이
+            // 가려지는 부작용도 없다. 세이브 안 하고 Play 종료 즉시 프로세스가
+            // 죽으니 원복 불필요.
+            foreach (var enemy in Object.FindObjectsByType<DungeonEnemy>(FindObjectsSortMode.None))
+            {
+                enemy.enabled = false;
+            }
+            HeroState.FullHeal();
             // DungeonFloorRunner가 문 표지 구역 근접을 감지해 방을 새로 진행시키며
             // RepositionPlayerToEntry()로 위치를 되돌린다 — 스크린샷용 텔레포트가
             // 그 트리거 반경에 걸려 조용히 스폰으로 되돌아갔다(실제로 겪음). 확인
@@ -125,15 +141,26 @@ namespace Saga.EditorTools
                 controller.enabled = true;
             }
 
-            // WallHeight=4m 천장(DungeonRoomBuilder) 안쪽으로 카메라가 뜨는 걸
-            // 막으려고 줌·피치를 최솟값으로 낮춘다(기본 zoom=6·pitch=55°면
-            // 카메라 높이가 약 5.9m로 천장을 뚫고 들어간다 — 실제로 겪음).
+            // 105 Q-U3 피부 확인용(2026-09-23) — `_pitchDeg` 필드만 reflection으로
+            // 바꿔서는 화면이 안 바뀌었다(실제로 겪음): `CameraRig.Update()`는
+            // 매 프레임 `ApplyZoom()`만 다시 불러 줌(카메라 localPosition)만
+            // 반영하고, 회전은 `Awake()`·`Rotate()`(드래그 입력 전용)에서만
+            // `transform.localRotation`에 쓰인다 — 헤드리스엔 드래그가 없어
+            // 필드를 아무리 바꿔도 실제 회전(기본 pitch=55°, 탑다운)이 안 먹혔다.
+            // 그래서 회전은 rig의 `transform.localRotation`을 직접 덮어쓴다.
+            // 피벗(`CameraRig` GO)이 플레이어 기준 로컬 (0, 0.9, 0) — 허리
+            // 높이라(`BuildTestDungeonScene.BuildPlayer()`) pitch=0(완전 수평)
+            // 이면 그 높이에서 정면으로 보는 구도가 된다. 줌도 게임 정상
+            // 최소(MinZoom=3)보다 가깝게(2) 당겨 더 크게 보이게 한다 —
+            // WallHeight=4m 천장은 pitch=0·zoom=2면 카메라 높이=피벗 높이
+            // 그대로(0.9m)라 여유 충분.
             var rig = playerGo.GetComponentInChildren<CameraRig>();
             if (rig != null)
             {
                 var t = typeof(CameraRig);
-                t.GetField("_zoom", BindingFlags.NonPublic | BindingFlags.Instance)?.SetValue(rig, 3f);
-                t.GetField("_pitchDeg", BindingFlags.NonPublic | BindingFlags.Instance)?.SetValue(rig, 30f);
+                t.GetField("_zoom", BindingFlags.NonPublic | BindingFlags.Instance)?.SetValue(rig, 2f);
+                t.GetField("_pitchDeg", BindingFlags.NonPublic | BindingFlags.Instance)?.SetValue(rig, 0f);
+                rig.transform.localRotation = Quaternion.Euler(0f, 0f, 0f);
             }
 
             // 던전 본연의 어두운 무드 조명이라 Abe/Brute 실루엣만 겨우 보였다
