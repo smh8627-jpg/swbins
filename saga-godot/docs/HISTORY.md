@@ -7997,3 +7997,11 @@ PROJECT_STATE.md` 참고. 요약:
 - 9개 사냥터 씬을 전수 grep: 시작 씬 `SinyaField`(귀환문 없음)만 빼고 `TestField`·`CaveHuntGround`·`ForestHuntGround`·`GangneungjinField`·`GisanchaeField`·`GorgeHuntGround`·`HeodoField`·`NamjeongseongField` 8곳 전부 "돌아가는 문"이 x=1.4로 같은 패턴 — 복붙 배치 실수로 판단.
 - 8개 파일 모두 그 문의 x를 4.0으로 옮김(박스 0.7 반폭 기준 스폰과 0.7m 여유). 헤드리스 8씬 전부 오류 0, `godot_regress.sh` 다섯 대표 씬 md5 그대로·issues=0, `.import`/`project.godot` 잡음 없음.
 - **실기 자동화 중 사고**: 이 PC에서 동시에 돌던 다른 Claude Code 세션(saga-unity, Unity 에디터+VS Code)이 포커스를 가져가 `keybd_event`(D키)가 Unity 에디터로 샌 것을 `GetForegroundWindow()`로 사후 확인 — Godot 프로세스 자체는 안 죽고 정상(메모리로 확인). REALM 실기는 이 위험 때문에 이번 세션엔 착수 안 함, 다음 세션은 다른 세션과 안 겹치는 시점을 고르거나 특정 HWND에 `PostMessage`로 보내는 더 안전한 방식을 검토할 것.
+
+## REALM 월드맵 안개 버그 발견·수정 (2026-09-22, 같은 세션, "이어서")
+
+- 실기(windowed exe, 마우스 클릭)로 새 게임 194 시나리오 선택→"지도" 버튼까지 확인. 시나리오 선택은 정상(HUD 골드 3200 등 데이터 일치)이지만 "지도"(월드맵) 화면이 완전히 균일한 회색으로 아무것도 안 보임 — "지도" 버튼을 다시 눌러 디오라마로 되돌아오는 것으로 토글 자체는 정상 동작함을 먼저 확인(클릭 오류 아님).
+- 헤드리스(더미 렌더러라 값만 확인)로 `RealmSaveState.start_scenario("194")`+`viewing_map=true`를 직접 호출해 카메라 위치·look_at·마커 개수(107)를 찍어 봄 — 전부 정상 수치. 로직/좌표는 문제가 아니었다.
+- `realm_city.gd`(디오라마, 정상 렌더)와 `realm_worldmap.gd`가 같은 `WorldCurveMaterial` 셰이더를 쓰는데 왜 하나만 안 보이나 대조하다, `assets/environment/env_pc.tres`의 안개(`fog_density=0.012`)가 원인임을 확인 — 도보 스케일(수십 m)엔 적당하지만 월드맵 카메라~성 거리(WORLD_SCALE=14, radius 120~420)에선 `exp(-density*거리)`가 4~24%까지 떨어져 화면이 거의 안개색 하나로 덮인다(실기에서 확대해 보니 아주 흐릿하게 형체가 비침 — 완전한 블랙아웃이 아니라 안개 혼합인 것과 일치).
+- `realm_worldmap.gd`에 `_apply_fog_override()` 추가: 지도를 보여줄 때만 `env_pc.tres`를 `duplicate()`한 사본의 `fog_enabled=false`로 바꿔 WorldEnvironment에 꽂고, 나갈 때 원본으로 되돌린다 — 공유 리소스 `env_pc.tres` 자체는 안 건드림(다섯 판이 같이 씀). 헤드리스 에러 0, `godot_regress.sh` 통과, 실기로 재확인 — 카키색 바닥+붉은 적성 마커 전부 보임.
+- 도중 다른 세션(saga-unity)으로 `keybd_event`가 한 번 샌 사고 이후로는 매 입력 전 `GetForegroundWindow()`로 대상 창 확인 후에만 클릭/입력 보냄 — 이후 문제 없었음.

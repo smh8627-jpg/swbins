@@ -110,11 +110,37 @@ var _markers_built := false  # RealmSaveState.scenario_ready가 false인 동안 
 ## `RealmCities.CITIES`는 여전히 194의 세 곳으로 고정된 상수라 이걸로
 ## 도는 한 시나리오 200의 낙양·장안 등은 우호 마커를 못 받는다. 실제
 ## "지금 우리 성이 뭔가"의 출처는 언제나 `RealmSaveState.cities`다.
+var _world_env: WorldEnvironment
+var _env_original: Environment
+var _env_no_fog: Environment
+
+
 func _ready() -> void:
 	get_viewport().physics_object_picking = true
 	_build_ground()
+	_world_env = get_parent().get_node("WorldEnvironment")
+	_env_original = _world_env.environment
 	if RealmSaveState.scenario_ready:
 		_build_all_markers()
+
+
+## **실기로 발견(2026-09-22)** — env_pc.tres의 안개(fog_density 0.012)는
+## 걸어다니는 인간 스케일(수십 m)에 맞춘 값이라, 월드맵 카메라~성 거리
+## (수백 단위, WORLD_SCALE=14)에서는 `exp(-density*distance)`가 거의 0이
+## 돼 화면 전체가 안개색으로 덮인다 — 성표·바닥이 다 계산대로 자리해
+## 있어도(좌표·마커 개수 다 정상) 안개에 먹혀 안 보였다. 지도를 보는
+## 동안만 안개 끈 사본으로 바꾸고, 나갈 때 원래 환경(디오라마용)으로
+## 되돌린다 — env_pc.tres 원본은 손 안 댄다(다섯 판이 같이 쓰는 리소스).
+func _apply_fog_override(showing_map: bool) -> void:
+	if _world_env == null or _env_original == null:
+		return
+	if showing_map:
+		if _env_no_fog == null:
+			_env_no_fog = _env_original.duplicate()
+			_env_no_fog.fog_enabled = false
+		_world_env.environment = _env_no_fog
+	else:
+		_world_env.environment = _env_original
 
 
 ## **2026-09-14 추가 — 새 게임 시나리오 고르기와 짝을 이룬다.**
@@ -152,6 +178,7 @@ func _process(_delta: float) -> void:
 	visible = RealmSaveState.viewing_map
 	if visible != _last_visible:
 		_last_visible = visible
+		_apply_fog_override(visible)
 		for city_id: String in _areas:
 			(_areas[city_id] as Area3D).input_ray_pickable = visible
 	if not visible:
