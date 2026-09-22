@@ -109,6 +109,15 @@
      무너지는 게 매 합 부딪히는 것보다 드물고 큰 사건이라서) */
   var lastWallN = null, wallShake = 0;
   var timers = [];   // playback() 이 건 setTimeout id들 — 새 전황이 오면 다 지운다
+  /* 성벽 파편·불탄 자리(2026-09-23, PLAN §6 "전투 디오라마" 남은 항목) — `fx`는
+     `dyn`과 별개 그룹이다. `dyn`은 합마다(`liveDyn`) 또는 새 전황마다(`buildBase`)
+     통째로 비워지는데, 파편은 튀는 도중(수백 ms) 그 사이에 지워지면 뚝 끊겨
+     보인다 — 그래서 tick()이 직접 수명을 관리하는 별도 그룹에 둔다. 불탄 자리는
+     반대로 **오래 남아야** 자연스러워(성벽이 그 합 이후로도 계속 깨져 있으니)
+     `buildBase()`가 새 전황을 지을 때만 지운다. `debris` 배열 항목은
+     {mesh, vx,vy,vz, life, matOwn} — matOwn 재질은 파편마다 새로 만든다(드문
+     사건이라 GPU 걱정 없음, `banner()`처럼 흔한 자리와는 다르다). */
+  var fx = null, debris = [];
 
   function available() { return !!three() && !failed; }
 
@@ -142,6 +151,9 @@
     scene.add(dyn);
     liveDyn = new t.Group();
     dyn.add(liveDyn);
+    fx = new t.Group();
+    scene.add(fx);
+    debris = [];
     curGroup = dyn;
 
     ready = true;
@@ -171,6 +183,80 @@
     m.position.set(x, 0.015, z);
     m.scale.setScalar(Math.max(0.35, r));
     curGroup.add(m);
+  }
+
+  var scorchGeo = null, scorchMat = null;
+  /** 불탄 자리 — 성벽 한 칸이 무너진 그 자리 바닥에 남는 어두운 자국(영구,
+   *  `buildBase()`가 새 전황을 지을 때만 지운다). 재질·지오는 `addShadow`와
+   *  같은 요령으로 하나만 만들어 재사용한다(색·모양이 항상 같아서 캐시해도 된다) */
+  function spawnScorch(x, z) {
+    var t = three();
+    if (!t || !fx) { return; }
+    if (!scorchGeo) {
+      scorchGeo = new t.CircleGeometry(1, 12);
+      scorchMat = new t.MeshBasicMaterial({ color: 0x211c14, transparent: true, opacity: 0.4, depthWrite: false });
+    }
+    var m = new t.Mesh(scorchGeo, scorchMat);
+    m.rotation.x = -Math.PI / 2;
+    m.position.set(x, 0.017, z);
+    m.scale.setScalar(0.8 + Math.random() * 0.3);
+    fx.add(m);
+  }
+
+  var debrisGeo = null;
+  /** 성벽 파편 — 무너지는 순간 돌 조각이 튀었다 떨어지며 사라진다(PLAN §6
+   *  "성벽 붕괴 파편 파티클(≤40)"). 판정과 무관한 연출뿐이고, `tick()`이
+   *  중력·수명을 관리해 다 떨어지면 스스로 지운다. 조각마다 재질을 새로
+   *  만드는 건(캐시 안 함) 파편 자체가 드문 사건(전투당 성벽 최대 6칸)이라
+   *  `banner()`처럼 매 프레임 도는 자리와 달리 GPU 누적 걱정이 없어서다 */
+  function spawnDebris(x, z) {
+    var t = three();
+    if (!t || !fx) { return; }
+    if (!debrisGeo) { debrisGeo = new t.BoxGeometry(0.12, 0.12, 0.12); }
+    var n = 8, i;
+    for (i = 0; i < n; i++) {
+      if (debris.length >= 40) { break; }
+      var mat = new t.MeshBasicMaterial({ color: 0x8a8378, transparent: true, opacity: 1 });
+      var m = new t.Mesh(debrisGeo, mat);
+      var ang = Math.random() * Math.PI * 2;
+      var spd = 0.8 + Math.random() * 1.6;
+      m.position.set(x, 0.3 + Math.random() * 0.4, z);
+      m.scale.setScalar(0.6 + Math.random() * 0.8);
+      fx.add(m);
+      debris.push({
+        mesh: m,
+        vx: Math.cos(ang) * spd, vz: Math.sin(ang) * spd, vy: 2.2 + Math.random() * 1.4,
+        life: 1
+      });
+    }
+  }
+
+  /** 파편 물리·수명 — tick() 이 매 프레임 부른다(중력 낙하 + 바닥 도달 후 빠르게
+   *  바랜다). 순수 연출, dt 는 초 단위로 넉넉히(60fps 가정) 어림잡는다 */
+  function stepDebris() {
+    if (!debris.length) { return; }
+    var dt = 1 / 60, i, d;
+    for (i = debris.length - 1; i >= 0; i--) {
+      d = debris[i];
+      d.vy -= 9.8 * dt;
+      d.mesh.position.x += d.vx * dt;
+      d.mesh.position.z += d.vz * dt;
+      d.mesh.position.y += d.vy * dt;
+      d.mesh.rotation.x += d.vx * dt * 2;
+      d.mesh.rotation.z += d.vz * dt * 2;
+      if (d.mesh.position.y <= 0.06) {
+        d.mesh.position.y = 0.06;
+        d.life -= dt * 3.2;              // 바닥에 닿으면 빠르게 바래 사라진다
+      } else {
+        d.life -= dt * 0.6;
+      }
+      d.mesh.material.opacity = Math.max(0, d.life);
+      if (d.life <= 0) {
+        fx.remove(d.mesh);
+        d.mesh.material.dispose();
+        debris.splice(i, 1);
+      }
+    }
   }
 
   /** kind 별 소품 하나 — asset3d 캐시 덕에 같은 kind 를 여러 번(합마다 성벽을
@@ -302,6 +388,8 @@
     curGroup = dyn;
     atkGroupRef = null; defGroupRef = null; roundPulse = 0;
     lastWallN = null; wallShake = 0;
+    if (fx) { fx.clear(); }
+    debris = [];
     var c = R().city(rep.to);
     if (!c) { return null; }
     var tier = tierOf(c.maxWall);
@@ -427,6 +515,13 @@
         wallShake = 1;
         var SFX = global.DG.sfx;
         if (SFX) { SFX.play('wall_break'); }
+        var brokenRing = ring(6, h * 0.7, 0), bi;
+        for (bi = wallN; bi < lastWallN; bi++) {
+          if (brokenRing[bi]) {
+            spawnDebris(brokenRing[bi][0], brokenRing[bi][1] - 6.5);
+            spawnScorch(brokenRing[bi][0], brokenRing[bi][1] - 6.5);
+          }
+        }
       }
       lastWallN = wallN;
       ring(6, h * 0.7, 0).slice(0, wallN).forEach(function (p, i) {
@@ -650,6 +745,7 @@
       camera.position.x += (Math.random() - 0.5) * wallShake * 0.5;
       camera.position.y += (Math.random() - 0.5) * wallShake * 0.3;
     }
+    stepDebris();
 
     flashA *= 0.82; flashD *= 0.82;
     if (flashA < 0.01) { flashA = 0; }
