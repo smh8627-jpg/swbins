@@ -986,7 +986,7 @@ Assets/Settings/
 ## ①~⑪ 캐릭터·환경 파이프라인 — 전부 완료 (2026-09-13), 기록은 `docs/HISTORY.md`
 
 라이팅/후처리 셋업(`BuildFF16VolumeProfiles.cs`) · Poly Haven PBR 5벌(채널 팩킹은 `BuildMetallicSmoothnessMap()` 으로 표준 URP Lit 유지) · 캐릭터 셰이더 3벌 반입(MIT·MIT·CC0, `CharacterShaders_candidates/`) · Mixamo Maria 반입+Humanoid 리깅(`MixamoRigUtil.RigCharacter()` 가 `ExtractTextures()` 포함) · Animator 8클립 · 피부 서브메시 분리 근사(`BuildMariaSkinSplit.cs`).
-**남은 결정 사항**: 헤어카드·진짜 SSS 는 Shader Graph 노드 배선이 코드로 불가 → 사람 GUI 몫. DoF 는 대화 연출 토글이 생긴 뒤에만. Mixamo 산출물은 `Assets/Art/CharactersRealistic/`(gitignore) 밖으로 내지 않는다. 자세한 경위는 `docs/HISTORY.md` "PLAN.md 66-2장" 절.
+**남은 결정 사항**: 헤어카드(분리된 헤어 메시 필요, 아직 없음)는 사람 GUI 몫으로 남음. **SSS는 2026-09-22 리플렉션 기법으로 해결**(Q-U3 참고 — "코드로 불가"가 뒤집힘). DoF 는 대화 연출 토글이 생긴 뒤에만. Mixamo 산출물은 `Assets/Art/CharactersRealistic/`(gitignore) 밖으로 내지 않는다. 자세한 경위는 `docs/HISTORY.md` "PLAN.md 66-2장" 절.
 
 ---
 
@@ -1120,7 +1120,7 @@ Slice 승인/재설계 결정.** 100단계에서 무조건 다음 콘텐츠로 �
 전부 `BuildFF16VolumeProfiles.cs` 확장 + `PC_Renderer.asset` Feature 추가로 코드에서 짓는다(Shader Graph 배선과 달리 코드 가능).
 
 ## 102-3. 캐릭터·재질 파이프라인
-- 캐릭터: **Mixamo Humanoid(FBX)** 표준 유지, `MixamoRigUtil` 1벌. 피부는 `BuildMariaSkinSplit` 근사 → Shader Graph SSS 배선(사람 몫) 뒤 교체. 헤어카드 이방성(`AnisoHair_cathyhlshih`, MIT) 은 헤어 메시가 분리된 캐릭터에만.
+- 캐릭터: **Mixamo Humanoid(FBX)** 표준 유지, `MixamoRigUtil` 1벌. 피부는 `BuildMariaSkinSplit` 근사(BaseColor/Smoothness 웜톤) 위에 **`FakeSSS.shadersubgraph`를 Emission에 배선한 `MariaSkin.shadergraph`**(2026-09-22, `BuildMariaSssShaderGraph.cs` 리플렉션 조립, Q-U3 참고)를 겹쳐 실제 wrap-lighting 글로우를 더한다. 헤어카드 이방성(`AnisoHair_cathyhlshih`, MIT) 은 헤어 메시가 분리된 캐릭터에만(아직 분리된 헤어 메시 없음 — 미착수).
 - 환경: Poly Haven CC0 PBR(`EnvironmentPBR_candidates` 5벌 → 승격) + `BuildMetallicSmoothnessMap()` 채널 팩킹 유지. **트라이플레이너 셰이더 1개**(heightmap 메시용, Shader Graph 없이 HLSL — `VertexColorLit.shader` 옆) 로 잔디·흙·돌 3타일 블렌드.
 - heightmap 메시: `TerrainBuilder`(GO) 의 4×4 서브쿼드 정점 블렌딩 유지. 높이 데이터 규격(`float[w*h]` + 셀 크기)은 saga-godot 과 **파일 포맷만 공유**, 코드는 공유하지 않는다.
 - VRoid: `UniVRM + MToon10` 은 애니풍 셰이더라 66-2 와 상충 — 이 트랙에선 초상·컷신에도 쓰지 않는다(105장 Q3′ 결정 전까지 파일만 보존).
@@ -1131,7 +1131,7 @@ Slice 승인/재설계 결정.** 100단계에서 무조건 다음 콘텐츠로 �
 
 | 폴더 | 내용 | 판정 | 이유 |
 |---|---|---|---|
-| `Shaders/Character/`(구 `CharacterShaders_candidates/`) SSS·AnisoHair·HairCards | MIT·MIT·CC0 | **완료(2026-09-21): 승격됨** | 코드 참조 0건(Shader Graph 배선 전이라 아직 아무 데도 안 물림 — Q-U3), grep 확인 후 `git mv`만으로 이동. 사실적 방향의 핵심, 배선만 남음 |
+| `Shaders/Character/`(구 `CharacterShaders_candidates/`) SSS·AnisoHair·HairCards | MIT·MIT·CC0 | **완료(2026-09-21): 승격, SSS는 2026-09-22 배선까지 완료** | grep 확인 후 `git mv`만으로 이동. **SSS(`FakeSSS.shadersubgraph`)는 이제 `MariaSkin.shadergraph`에서 실제로 참조됨**(Q-U3). AnisoHair·HairCards는 여전히 코드 참조 0건(분리된 헤어 메시 없음) |
 | `Environment/PBR/`(구 `EnvironmentPBR_candidates/`) Poly Haven 5벌 + .mat | CC0 | **완료(2026-09-21): 승격됨** | `BuildEnvironmentPbrSample.cs`·`BuildTestCityScene.cs`·`BuildTestDungeonScene.cs`·`BuildTestStoryScene.cs`·`BuildTestVillageScene.cs` 5개 경로 상수 갱신, 4씬 재빌드 + `PlaytestHeadless`·`PlaytestDungeonHeadless`·`PlaytestRealmSlice`·`PlaytestStorySlice` 전부 재검증 OK(STORY는 아래 "발견하고 고친 오류" 참고) |
 | `CharactersRealistic/` (gitignore) | Mixamo Maria·Abe·Brute | 남김(로컬 전용) | ToS 상 재배포 금지, 커밋 안 함 |
 | `CharactersVroid/` AvatarSample_A | 애니풍 | **완료(2026-09-21): 삭제됨** | 임포트 검증 끝, 66-2 와 불일치. 코드·GUID 참조 0건(Assets·ProjectSettings 전부 확인) 확인 뒤 사용자 승인 받아 `git rm` |
@@ -1198,7 +1198,7 @@ Slice 승인/재설계 결정.** 100단계에서 무조건 다음 콘텐츠로 �
 
 # 105. 열린 질문 (사용자 결정, 답이 나오면 해당 장으로 내리고 여기서 지운다)
 
-- **Q-U3 Shader Graph 배선 일정**: SSS·헤어카드 노드 연결(사람 GUI) 을 언제 할지. 그때까지 피부는 근사 유지.
+(현재 없음 — Q-U3는 SSS 배선 완료로 101·102-3·102-4로 내림. 헤어카드는 분리된 헤어 메시가 아직 없어 질문 자체가 성립하지 않는다, 101 "남은 결정 사항" 참고)
 
 ---
 

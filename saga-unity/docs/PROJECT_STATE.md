@@ -1,13 +1,15 @@
 # PROJECT_STATE — saga-unity (상태만, ≤15KB, 덮어쓴다)
 
 **규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다(2026-09-16 재편 전 본문 5,532줄은 그쪽 첫 절에 그대로 있다). 넘치면 `tools/precheck.sh` 가 막는다.
-마지막 갱신: 2026-09-22 (스물한 세션째, 새 세션 "사가유니티 이어 하기" — 지난 세션이 남긴 **UAC 재활성화 여부**를 먼저 물었고, 사용자가 이미 켜고 재부팅까지 마친 상태였다. `PlaytestDungeonEnemiesGui` 재검증으로 GUI 스크린샷 대화상자 문제 **해결 확인**(아래 "해결됨" 절) — 코드 변경 없음, 순수 검증). 102-5는 지난 세션에 전부 닫힘(바닥 한 색·Screen Space Shadows·스케일/UI 폰트 재조사·그림자 계단·REALM 카메라 클리핑). 102-4는 전부 처리됐다(남은 건 `Characters/` Kenney, 실사용 중이라 못 뺀다). 103-1·67~69장 잔여는 전부 닫힘.
+마지막 갱신: 2026-09-22 (스물한 세션째 — UAC 재활성화 확인 → GUI 대화상자 문제 해결 확인 → **105 Q-U3(SSS 배선) 리플렉션으로 해결**, "코드로 불가" 전제 뒤집힘, PLAN 101·102-3·102-4·105 갱신). 102-5·102-4·103-1·67~69 잔여는 닫힘(Kenney `Characters/`만 실사용 중이라 못 뺌).
 
-**해결됨 — GUI 스크린샷 대화상자 문제(2026-09-22, 새 세션)**: 사용자가 UAC를 켜고(`EnableLUA=1`) 재부팅 완료(`LastBootUpTime` 확인). `PlaytestDungeonEnemiesGui`를 두 번 재실행해 관리자 대화상자 없이 매번 exit 0으로 자체 종료 확인 — 1차는 66-2장 ⑩의 "셰이더 캐시 콜드 → 시안 평면 실루엣" 증상 그대로 재현(예상된 별개 함정), 2차 재실행에서 Abe(잡졸)·Maria 갑옷 디테일까지 정상 렌더링 확인(스크린샷은 근접 구도, 전신 구도는 아직). GUI 자동 확인 도구를 다시 쓸 수 있다. 두 실행 모두 `ProjectSettings/`·`Packages/` 4파일 부작용 발생 → `git checkout --`으로 원복 확인.
+**해결됨 — GUI 대화상자(2026-09-22)**: UAC 켜고 재부팅 완료. `PlaytestDungeonEnemiesGui` exit 0 확인, Abe·Maria 근접 구도 렌더링 정상. **단 이후 GUI 2회는 다른 증상(패키지 등록/라이선싱 단계 CPU~0 멈춤)으로 걸림** — taskkill로 정리, 코드 문제 아님, 재현되면 기록.
+
+**SSS 배선 성공(105 Q-U3, 2026-09-22)**: Shader Graph 핵심 타입(`GraphData`·`SubGraphNode`·`BlockFields`·`UniversalTarget`)이 전부 `internal` → 리플렉션(`Type.GetType`+`Activator.CreateInstance`+`MethodInfo.Invoke`)으로 내부 조립 루틴(`NewGraphAction.Action`)을 재현해 우회. `FakeSSS.shadersubgraph`를 `SubGraphNode`로 붙여(asset 세터가 슬롯 자동 생성) URP Lit Emission에 연결·저장. 테스트 그래프로 검증(`ShaderHasError=False`) 후 `MariaSkin.shadergraph` 제작 → `BuildMariaSkinSplit.cs`가 사용(기존 웜톤 유지, Emission에 글로우 가산). GO 헤드리스 3연속 OK. **GUI 시각 확인은 hang 때문에 못 함 — 다음 세션 1순위**. 도구: `BuildTestSssShaderGraph.cs`·`BuildMariaSssShaderGraph.cs`(`Saga/Build Maria SSS Shader Graph (Reflection)`+`Verify`). 헤어카드는 분리 메시 없어 대상 없음(105장에서 지움).
 
 ## 캐릭터 자산 — 이 PC 기준 (2026-09-19)
 
-Maria(플레이어)·Abe(잡졸)·Brute(두목) 셋만 mixamo.com 실자산 확보(`Assets/Art/CharactersRealistic/`, `.gitignore`로 로컬 전용 — **PC마다 새로 받아야 함**, 목록은 `SetupXxxCharacterImport.cs`). GUI 육안 확인: Maria idle/run/attack 정상, Abe 근접 구도(갑옷·디테일 정상, 2026-09-22 UAC 재활성화 후 재검증). Brute·**전신 구도 스크린샷은 아직 못 얻음**(`PlaytestDungeonEnemiesGui.cs`). 경위는 HISTORY.md grep.
+Maria(플레이어)·Abe(잡졸)·Brute(두목) 셋만 mixamo.com 실자산 확보(`Assets/Art/CharactersRealistic/`, gitignore — **PC마다 새로 받아야 함**, 목록은 `SetupXxxCharacterImport.cs`). GUI 확인: Maria idle/run/attack 정상, Abe 근접 구도(2026-09-22 재검증). Brute·**전신 구도는 아직**(`PlaytestDungeonEnemiesGui.cs`). 경위는 HISTORY.md grep.
 
 ## 완료 요약 — 다섯 게임 × 진척
 
@@ -27,11 +29,12 @@ PLAN 101-3(C hitstop류·F 유품 마커·G 데칼/레벨업 컷/장비 가시�
 
 ## 다음 작업 (우선순위, 상세는 PLAN 해당 장 · 경위는 HISTORY 날짜 grep)
 
-1. UAC 재활성화로 GUI 자동 확인 도구가 다시 쓸 수 있게 됐다(위 "해결됨" 절). 필요하면 각 판 `PlaytestXxxGui`류로 추가 캡처 가능(Brute·전신 구도 등). 그 외 대부분은 여전히 사람이 손맛으로 직접 판단해야 하는 항목이라 실기 확인은 계속 사람이 직접(아래 목록, 여러 세션째 쌓임 — 102-5가 코드로는 끝나서 지금 유일한 병목). 다른 PC는 `CharactersRealistic/` 비어 있음(mixamo.com, `SetupXxxCharacterImport.cs`).
-2. **101-2·104-1 잔여(전부 보류)** — GO⑤(모바일 빌드 뒤)·STORY5-2 · `Props/` lantern·stall-red(실기 확인 후) · `Characters/` Kenney는 아직 못 뺀다(실사용 중).
-3. **105 Q-U3** — Shader Graph SSS·헤어카드, 사람 GUI 필요.
+1. **Maria 피부 SSS 글로우 화면 확인**(신규) — 코드·셰이더 검증 끝, GUI hang으로 못 봄. 다음 세션 1순위.
+2. GUI 자동 확인 도구 재사용 가능(단 새 hang 주의). 나머지 실기 확인은 계속 사람이 직접(아래 목록). 다른 PC는 `CharactersRealistic/`·`Generated/` 둘 다 gitignore라 `SetupXxxCharacterImport.cs`→SSS Build 순 재실행 필요.
+3. **101-2·104-1 잔여(보류)** — GO⑤(모바일 빌드 뒤)·STORY5-2·`Props/` lantern·stall-red·`Characters/` Kenney(실사용 중).
+4. 헤어카드 — 분리 헤어 메시 생기면 같은 기법 재사용 가능, 그 전엔 대상 없음.
 
-닫힌 백로그: 101-3, 103-1 변형 배가, 67~69 en 번역, 105 Q-U1, **102-5(클리핑·애니·SSAO·LUT·바닥·SSS·스케일·UI폰트·그림자 계단 — 전부).**
+닫힌 백로그: 101-3, 103-1 변형 배가, 67~69 en 번역, 105 Q-U1·**Q-U3**, **102-5.**
 
 ## 알려진 오류
 
@@ -48,6 +51,7 @@ PLAN 101-3(C hitstop류·F 유품 마커·G 데칼/레벨업 컷/장비 가시�
 - REALM 새 성은 `RealmEnemyCity.cs`·`RealmCityData.cs` 둘 다(후자 누락 시 `AbsorbCity()` 조용히 실패).
 - DUNGEON `DungeonFloorRunner`는 문 근접 시 `RepositionPlayerToEntry()`로 되돌린다 — 확인용 텔레포트는 `floorRunner.enabled=false` 먼저. `CameraRig` 기본값(zoom=6·pitch=55°)은 벽(4m) 위로 뜸 — 확인용은 `_zoom`≤3·`_pitchDeg`≤30.
 - 헤드리스가 `SaveState.Save()`를 부르면 `persistentDataPath` 파일이 실제로 남는다 — `GameBootstrap.Start()`가 매번 `TryLoad()`하므로 원본 상태로 안 되돌리면 다음 실행이 오염된다(2026-09-19 GO).
+- Shader Graph internal API는 리플렉션으로 우회 가능(2026-09-22, 패턴은 `BuildMariaSssShaderGraph.cs`) — 매번 `ShaderUtil.ShaderHasError`로 검증 필수.
 
 ## 테스트 상태 (2026-09-22, 배치 모드, Unity 6000.3.24f1)
 
@@ -58,7 +62,8 @@ PLAN 101-3(C hitstop류·F 유품 마커·G 데칼/레벨업 컷/장비 가시�
 | `PlaytestHeadless`(GO)·`PlaytestDungeonHeadless`·`PlaytestForestHeadless`·`PlaytestStorySlice`·`PlaytestRealmSlice` | **다섯 판 전부 3연속 OK(2026-09-22, 102-5 전 항목 반영 뒤 재확인, 두 차례)** |
 | `PlaytestForestCreatures`·`Finish`·`Furniture`·`HouseTransition` | 미변경 |
 | `PlaytestOverworldMap`(GO) | 이전 세션 1회 재검증 OK, 미변경 |
-| GUI 실제 Play 확인 | GO 라이팅 톤·Maria idle/run/attack·**Dungeon Abe/Brute(`PlaytestDungeonEnemiesGui.cs`, 파편적 확인)**. 나머지 미확인 |
+| GUI 실제 Play 확인 | GO 라이팅 톤·Maria idle/run/attack·Dungeon Abe(파편적). **SSS 글로우는 hang으로 못 봄**. 나머지 미확인 |
+| `BuildMariaSssShaderGraph.Build`+`Verify` | exit 0, `ShaderHasError=False`(2026-09-22) |
 
 ## 실기 확인 대기 (항목명만 — 경위는 HISTORY grep)
 
@@ -67,4 +72,4 @@ PLAN 101-3(C hitstop류·F 유품 마커·G 데칼/레벨업 컷/장비 가시�
 - FOREST: 벽지/장판, 가구 배치, 생물·과일나무·좌판, 목표판/세션카드, 마을 번들(5.3), 채집 손맛(5.8①), 마을 평가판 별점(5.8②), 접수대·우체통 4·소포 3종·사슬 보너스 체감(5.7), 세배·꽃놀이·소원돌·목표판 D-day 문구 체감(5.6, 실제 달력 1·8·15일에만), 과일나무 모양·바크 트라이플레이너 톤(102-4), 마을 잔디 디테일 톤(102-5, 2026-09-22 신규)
 - STORY: 두목 크기·타격감, 사건·관계·선택 흐름, 전직 팝업, 목표판/세션카드, hitstop/shake/flash/popup/타격 VFX 체감, 유품 마커·지형 데칼·레벨업 줌·직업별 무기(101-3 F·G), 관문 대장 승격 연출·방패 파괴 체감(5-4), 비경 노드 지도·축복 카드·아레나 순간이동(5-3), 선봉/유격/호법 교대 버튼·서명 손맛·HUD 교대 쿨다운 줄(5-8)
 - REALM: 월드맵, 적국 사슬 체감, 패널 여덟 조작, 목표판/세션카드, 공격·계략 고르기, 특성·야망(5-1), 전술 토글(5-6), 서사 카드 7종(5-2), 계승 토글(5-8, 기본 꺼짐), 일기토·설전(5-3), 승리 결과 카드·목표판 셋째 줄·"다음 달" 게이트(5-5, 정복 55성/문화 정답 30), 성벽 단계별 실루엣(103-1, 축성 명령 여러 달 반복해 2·3단 넘겨야 확인), 오빗 카메라 건물 클리핑 pull-in 체감(102-5, 2026-09-22 신규)
-- 공통: BGM 음량, 설정 패널 6줄, SessionCard DoF 체감, 접지 blob 그림자(102-2, `QualitySettings`="Mobile"이어야 보임, **2026-09-22부터 적·NPC도 포함**), 게임별 LUT 톤 5장 체감(102-1-2, 수치만으로 짠 거라 실제 눈으로 판단 필요), Screen Space Shadows 체감(102-5, PC 프로파일만)
+- 공통: BGM 음량, 설정 패널 6줄, SessionCard DoF 체감, 접지 blob 그림자(102-2, `QualitySettings`="Mobile"이어야 보임, **2026-09-22부터 적·NPC도 포함**), 게임별 LUT 톤 5장 체감(102-1-2, 수치만으로 짠 거라 실제 눈으로 판단 필요), Screen Space Shadows 체감(102-5, PC 프로파일만), **Maria 피부 SSS 글로우(105 Q-U3, 2026-09-22 신규 — 값은 임의 근사치, 실제로 보고 튜닝 필요할 수 있음)**

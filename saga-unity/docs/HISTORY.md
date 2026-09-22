@@ -8447,3 +8447,30 @@ SSAO 튜닝 뒤 남은 §102-5 항목은 전부 새 결정이나 큰 작업이 �
 두 실행 모두 `ProjectSettings/ProjectVersion.txt`·`EditorSettings.asset`·`Packages/manifest.json`·`packages-lock.json` 4파일이 조용히 고쳐진 것을 `git checkout --`으로 원복(기존 함정 재확인, `tools/unity-batch.sh`는 배치 전용이라 이번엔 안 씀).
 
 코드 변경 없음(순수 검증). `docs/PROJECT_STATE.md` "해결됨" 절·캐릭터 자산 절·"다음 작업" 1번 갱신, 커밋 예정.
+
+## 2026-09-22 — 105 Q-U3(SSS 배선) 리플렉션으로 해결 (같은 세션 "사가유니티 이어 하기" 계속)
+
+UAC 재활성화/GUI 대화상자 문제 해결 확인 뒤, 사용자가 GUI가 다시 되니 이어서 뭘 할지 묻자 "105 Q-U3 착수"를 골랐다. 하지만 PLAN 101·102-3을 다시 읽어 보니 Q-U3(Shader Graph SSS·헤어카드 노드 배선)는 애초에 "Shader Graph는 코드로 조립할 공식 API가 없어(AnimatorController와 달리) → 사람 GUI 몫"이라고 못 박혀 있었다(66-2장 ⑤ 결정, `BuildMariaSkinSplit.cs` 주석에도 같은 내용) — 잘못된 선택지를 준 것을 사용자에게 사과하고 다시 물었다.
+
+사용자는 "백그라운드나 포그라운드로 해줘", "플레이라이트 같은걸로", "직접 해줘"로 — 데스크톱 GUI 자동화(마우스/키보드 제어)를 써서라도 직접 해보라고 지시. 이 환경엔 Playwright류 데스크톱 자동화 도구가 없음을 ToolSearch로 확인했지만, 대안으로 **"Shader Graph 노드 자체를 코드(리플렉션)로 조립하는 게 실제로 가능한가"**를 먼저 조사하기로 했다.
+
+**조사 결과**: `GraphData`·`SubGraphNode`·`Target`·`BlockFields`·`CategoryData`·`MaterialSlot`·`BlockNode`·`FileUtilities` 등 Shader Graph 핵심 타입이 전부 `internal`(URP 자기 어셈블리 `Unity.RenderPipelines.Universal.Editor`엔 `[InternalsVisibleTo]`가 있지만 우리 어셈블리엔 없음, `Editor/AssemblyInfo.cs` grep으로 확인) — 그러나 `internal` 타입도 `Type.GetType("정규화이름, 어셈블리")` + `Activator.CreateInstance`/`MethodInfo.Invoke`/제네릭은 `MakeGenericMethod`로 완전히 우회 가능함을 확인(2026-09-22 앞서 확인한 URP `ScreenSpaceShadows` 리플렉션 트릭과 같은 결, 다만 이번엔 메서드 호출·제네릭·필드 세팅까지 훨씬 깊게 씀). 실제 "Create > Shader Graph > URP > Lit Shader Graph" 메뉴가 쓰는 내부 루틴을 소스에서 그대로 찾아 재현 가능함을 확인:
+- `GraphUtil.CreateNewGraphWithOutputs` → `NewGraphAction.Action`(`Editor/Data/Util/GraphUtil.cs:120`)이 실제 조립 순서: `new GraphData()` → `AddContexts()` → `InitializeOutputs(targets, blockDescriptors)` → `AddCategory(CategoryData.DefaultCategory())` → `FileUtilities.WriteShaderGraphToDisk(path, graph)`.
+- `SubGraphNode.asset` 세터(공개 프로퍼티)가 내부적으로 `UpdateSlots()`를 호출해 서브그래프의 입력/출력 슬롯을 자동 생성 — 손으로 슬롯을 안 만들어도 됨. 출력 슬롯 id는 서브그래프 자체의 `SubGraphOutputNode` 슬롯 id를 그대로 물려받는다(FakeSSS는 `id=1`, "Color", Vector4) — `.shadersubgraph`가 MultiJson(여러 JSON 오브젝트 연결) 포맷임을 직접 읽어 확인.
+- `FakeSSS.shadersubgraph`의 공개 인터페이스: 입력 6개(normal influence·Power·Intensity·Colour·ThicknessMap·Mask, 전부 Vector1/Vector4/Texture2D), 출력 1개(Color, Vector4).
+
+**구현**(`BuildTestSssShaderGraph.cs`로 먼저 검증 → `BuildMariaSssShaderGraph.cs`로 실제 산출물):
+1. `UniversalTarget`+`UniversalLitSubTarget`(둘 다 public 클래스, 리플렉션 불필요)로 URP Lit 타깃 구성, `BlockFields.VertexDescription/SurfaceDescription`의 9개 필드(Position·Normal·Tangent·BaseColor·NormalTS·Metallic·Smoothness·Emission·Occlusion)를 리플렉션으로 읽어 블록 배열 구성.
+2. `GraphData` 인스턴스 생성 → `AddContexts()` → `InitializeOutputs(targets, blocks)` → `AddCategory(CategoryData.DefaultCategory())`.
+3. `SubGraphNode` 생성 → `asset` = `AssetDatabase.LoadAssetAtPath<ScriptableObject>(FakeSSS 경로)`(제네릭을 `ScriptableObject`로 잡아 internal `SubGraphAsset` 타입 자체를 몰라도 되게 함) → `graph.AddNode(node, true)`.
+4. `GetInputSlots<MaterialSlot>()`로 입력 슬롯을 순회해 `RawDisplayName()`으로 매칭 후 기본값 튜닝(Mask=1 — 기본값 0이면 효과가 죽는다, Power=2, Intensity=0.6, normal influence=0.5, Colour=웜톤 (1, 0.55, 0.45, 1)) — `Vector1MaterialSlot.value`/`Vector4MaterialSlot.value`를 직접 세팅.
+5. `FindSlot<MaterialSlot>(1)`로 SubGraphNode 출력 슬롯, `GetNodes<BlockNode>()`로 Emission `BlockNode`(descriptor.name=="Emission")를 찾아 `FindSlot<MaterialSlot>(0)`로 그 입력 슬롯, `graph.Connect(outputRef, emissionRef)`로 연결(BaseColor/Smoothness는 일부러 비워 둬 `BuildMariaSkinSplit.cs`의 기존 `_BaseColor`/`_Smoothness` 오버라이드가 URP Lit 관례상 그대로 먹게 함 — 대체가 아니라 Emission에 얹는 가산 방식).
+6. `FileUtilities.WriteShaderGraphToDisk(path, graph)` + `AssetDatabase.Refresh()`.
+
+**검증**(전부 배치 모드, GUI 불필요): `BuildTestSssShaderGraph.Build`가 예외 없이 끝까지 돌고 `Test_SSS_Graph.shadergraph`(gitignore 폴더) 생성 확인 → `ShaderUtil.ShaderHasError(shader)==False, GetShaderMessageCount==0`(`Verify` 메뉴 신설, 첫 시도는 `GetShaderActiveSubshaderIndex` 오타로 컴파일 에러, 바로 고침). 검증 성공 뒤 같은 기법으로 `BuildMariaSssShaderGraph.cs`(실제 산출물, `MariaSkin.shadergraph`) 작성 → 역시 `ShaderHasError=False`. `BuildMariaSkinSplit.cs`를 고쳐 `skinMat.shader`를 이 셰이더로 교체(못 찾으면 기존 URP Lit 근사로 폴백하는 경고 로그 추가, 다른 PC 대비). `BuildMariaSkinSplit.Build` 재실행해 실제 스킨 머티리얼 재생성(경고 없이 통과 — SSS 셰이더가 적용됐다는 뜻) → GO `PlaytestHeadless` 3연속 OK로 회귀 없음 확인.
+
+**GUI 시각 확인은 실패**: `PlaytestDungeonEnemiesGui`를 두 번 더 실행했는데, 이번엔 이전 세션의 "관리자 대화상자" 증상이 아니라 **Unity 에디터 시작 단계(패키지 등록/라이선싱 초기화)에서 CPU 사용량이 거의 0인 채 멈춤**(1차 10분, 2차 6분 대기 후 각각 `taskkill //F //IM Unity.exe //T`로 정리) — 로그가 "Library Redirect Path: Library/"나 "[Package Manager] Done registering packages" 직후에서 멈춰 있어, `-executeMethod`나 우리 코드가 도달하기도 전이었다. 원인 불명(반복 실행 부하일 가능성) — 코드·셰이더 자체의 문제가 아님은 확실(비-GUI 검증 전부 통과). `ProjectSettings/`·`Packages/` 4파일은 매번 `git checkout --`으로 원복.
+
+**PLAN.md 갱신**: 101장 "남은 결정 사항"(SSS 해결·헤어카드는 분리 메시 없어 미착수로 재분류), 102-3(캐릭터 파이프라인 서술 갱신), 102-4(SSS 판정 표 갱신), 105장(Q-U3 삭제, "열린 질문 없음"으로). `docs/PROJECT_STATE.md`도 전면 갱신(≤15KB 유지를 위해 여러 차례 압축).
+
+새 파일 4개(`BuildTestSssShaderGraph.cs`·`.meta`·`BuildMariaSssShaderGraph.cs`·`.meta`), 수정 1개(`BuildMariaSkinSplit.cs`). `Assets/Art/CharactersRealistic/Generated/*.shadergraph`는 gitignore라 커밋 대상 아님.

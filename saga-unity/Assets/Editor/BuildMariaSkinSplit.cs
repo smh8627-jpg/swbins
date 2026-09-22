@@ -80,11 +80,24 @@ namespace Saga.EditorTools
             AssetDatabase.CreateAsset(splitMesh, SplitMeshPath);
 
             var skinMat = new Material(sourceMat) { name = "MariaSkin" };
-            // 진짜 SSS가 아니라 값싼 근사 — 살짝 따뜻하게 데우고 광택을 낮춰
-            // 밀랍 같은 느낌을 줄인다(66-2장 스펙 "밀랍 같은 느낌을 피한다"
-            // 참고, 진짜 wrap-lighting은 커스텀 포워드 패스가 필요해 다음 과제).
+            // 웜톤 근사(45장 "가장 싼 근사")는 그대로 유지 — 밀랍 느낌을 줄인다.
             skinMat.SetColor("_BaseColor", new Color(1f, 0.93f, 0.87f));
             skinMat.SetFloat("_Smoothness", 0.35f);
+            // 105 Q-U3(2026-09-22, 리플렉션 기반) — FakeSSS.shadersubgraph를
+            // 실제로 Shader Graph에 배선한 MariaSkin.shadergraph가 있으면
+            // 그 셰이더로 교체해 Emission에 진짜 wrap-lighting 글로우를 더한다.
+            // 없으면(다른 PC 등) 기존 sourceMat 셰이더 그대로 — 실패 없이 폴백.
+            var sssShader = AssetDatabase.LoadAssetAtPath<Shader>(BuildMariaSssShaderGraph.OutputPath);
+            if (sssShader != null)
+            {
+                skinMat.shader = sssShader;
+                skinMat.SetColor("_BaseColor", new Color(1f, 0.93f, 0.87f));
+                skinMat.SetFloat("_Smoothness", 0.35f);
+            }
+            else
+            {
+                Debug.LogWarning($"[BuildMariaSkinSplit] {BuildMariaSssShaderGraph.OutputPath} 없음 — 기존 URP Lit 근사 셰이더로 폴백(Saga/Build Maria SSS Shader Graph 먼저 실행)");
+            }
             SaveMaterial(skinMat, SkinMatPath);
 
             var restMat = new Material(sourceMat) { name = "MariaRest" };
