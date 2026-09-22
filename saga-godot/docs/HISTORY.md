@@ -8045,3 +8045,9 @@ PROJECT_STATE.md` 참고. 요약:
 - 일기토(`realm_war.gd` `duel_beats()`) 순환(베기>막기·막기>찌르기·찌르기>베기)은 코드 읽기로 확인 — 3수 완전 순환, 계산 없이도 자명해 헤드리스 없이 확인 끝.
 - 설전(`debate_result()`)은 임시 `SAGA_DEBATE_DEBUG` 훅으로 확인: `debate_draw()`가 낸 실제 문제 3개에서 정답 위치를 역산해 정답 수 0·1·2·3을 각각 강제로 만들어 `debate_result()` 호출 — `{0:0.8, 1:0.95, 2:1.1, 3:1.3}` 문서 표와 정확히 일치. 확인 후 훅 제거, `godot_regress.sh` 재확인.
 - REALM 실기 대기 목록에서 "일기토·설전"의 로직(배율 매핑)은 이걸로 검증 끝. 남은 건 3합 손맛·설전 난이도 체감뿐(사람 몫).
+
+## STORY 사명 데이터 재확인 — 문서 오기 정정 (2026-09-22, 같은 세션, "이어해")
+
+- `story_combat.gd`를 직접 세어봄: `QUESTS`(본편 사명) 13개(q_first~q_master) · `REPEAT_QUESTS` 7개(r_hunt·r_boss·r_purse·r_forage·r_talk 반복 5 + d_hunt·d_gather 일일 2) — 합쳐서 문서가 늘 말해온 "20/20"(웹판 `data-quest.js` 20개 전부)과 정확히 일치.
+- 다만 `PROJECT_STATE.md`의 "반복/일일 6"은 오기였다 — HISTORY 09-13 기록을 보면 r_purse를 뺐다 도로 넣은 경위가 있어(그땐 6개), 그 이후 7개가 된 걸 문서에 안 옮겼던 것. 게임 코드 버그 아님, 문서만 정정.
+- 장비 tier2~4·고유(UNIQUES)·주문서, 원거리 적(`story_enemy_shot.gd`)도 그레핑으로 실재 확인 — 전부 있음, 빠진 것 없음.
