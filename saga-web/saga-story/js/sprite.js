@@ -1,10 +1,18 @@
 /**
- * 스프라이트 — 코드로 그리는 캐릭터 / 몬스터
+ * 스프라이트 — 사람·적 그림(옆면 뷰·초상)과 펫 초상
  * ---------------------------------------------------------------
- * 이미지 파일 없이 캔버스 도형으로 형상을 만든다. 벡터라서 2.5D 원근에 맞춰
- * 확대·축소해도 깨지지 않고, 관절 각도로 걷는 동작을 만들 수 있다.
+ * 사람과 적은 실제 그림(Kenney `human_*`·베이크한 `mon_*`, 적은 전부 tier 만
+ * 있어 generic 'beast' 한 장으로 덮인다)을 쓴다 — 절차적 human()/beast() 는
+ * 2026-09-22 Phase 4 에서 지도·초상 두 경로 다 걷어 냈다.
  *
- *   human(ctx, o)     사람 — 머리·몸통·팔·다리·투구·무기. 걸음 위상으로 팔다리가 흔들린다
+ * **펫만 예외** — `human()`/`beast()`(과 전용 헬퍼)를 그대로 남겼다. 105종 중
+ * 원래 7종만 초상이 구워져 있고(assets/portraits/pet), REG 확장분 나머지는
+ * 실제 3D 굽기가 대부분 실패한다(2026-09-22 재확인, `bake-portraits --kind=pet`
+ * 210 회 중 14 회만 성공). 2D 대체 그림도 없어 `portrait()`/`portraitCard()`
+ * 의 펫 갈래는 절차적 `beast()` 가 유일한 표시 수단이다 — 사가블로와 같은
+ * 상황이라 같은 결정(사용자, 펫만 유지)을 그대로 따랐다.
+ *
+ *   human(ctx, o)     사람 — 머리·몸통·팔·다리·투구·무기(펫 초상에서만 부른다)
  *   beast(ctx, o)     짐승 — 네발 / 조류 / 용 / 거북 / 물고기 / 두꺼비
  *
  * 외형 파라미터는 인물마다 일일이 적지 않는다. 기질(무/지/덕)·세력·등급에서
@@ -1395,6 +1403,23 @@
   }
   function monReady(ref) { var k = monKeyOf(ref); if (!k) { return false; } var im = monImg(k); return !!(im.complete && im.naturalWidth); }
 
+  /** 그림이 아직 안 실린 순간에만 잠깐 보이는 자리표시(머리 원 + 몸통 타원) —
+   *  human() 절차적 그림을 대신한다(2026-09-22 Phase 4). 옆면 뷰의 사람·적은
+   *  Kenney 열넷 / mon-manifest.js(적은 전부 tier 만 있어 generic 'beast' 한
+   *  장으로 덮인다)가 늘 있어 이 자리는 로컬 PNG 를 기다리는 찰나뿐이다. */
+  function loadingMark(ctx, footX, footY, H, color) {
+    ctx.save();
+    ctx.globalAlpha = 0.55;
+    ctx.fillStyle = color || '#8a8578';
+    ctx.beginPath();
+    ctx.ellipse(footX, footY - H * 0.86, H * 0.17, H * 0.17, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(footX, footY - H * 0.42, H * 0.22, H * 0.40, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
   /** 캐시에 한 컷을 굽는다 */
   function bake(kind, ref, sc, pb, o) {
     var base = kind === 'human' ? 40 : 30;
@@ -1410,12 +1435,6 @@
     var c = cv.getContext('2d');
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    var phase = pb === PHASES ? 0 : (pb + 0.5) * (TAU / PHASES);
-    var walking = pb !== PHASES;
-    var common = {
-      x: footX, y: footY, s: sc, facing: 1, phase: phase,
-      walking: walking, noBounce: true, t: 0
-    };
     var himg = kind === 'human' ? humanImg(humanIndexOf(o.ref)) : null;
     var useImg = !!(himg && himg.complete && himg.naturalWidth);
     if (kind === 'human') {
@@ -1424,10 +1443,7 @@
         c.imageSmoothingEnabled = false;
         c.drawImage(himg, footX - hdw / 2, footY - hdh, hdw, hdh);
       } else {
-        /* 그림이 아직 안 실렸으면(첫 프레임) 옛 절차적 그림으로 우선 채운다 — 빈 캔버스가 캐시에 박제되지 않게 */
-        common.color = o.color; common.look = o.look; common.skin = o.skin;
-        common.rarity = o.rarity || (o.ref && o.ref.rarity) || 0;
-        human(c, common);
+        loadingMark(c, footX, footY, H, o.color);
       }
     } else {
       var mk = monKeyOf(o.ref), mim = mk ? monImg(mk) : null;
@@ -1437,9 +1453,7 @@
         c.drawImage(mim, frame * cell, 0, cell, cell, footX - sq / 2, footY - sq * 0.97, sq, sq);
         useImg = true;
       } else {
-        common.form = o.form; common.color = o.color; common.divine = o.divine;
-        common.ref = o.ref;                      // 무늬는 ref 에서 뽑는다
-        beast(c, common);
+        loadingMark(c, footX, footY, H, o.color);
       }
     }
     /* 메이플풍은 여기서 한 번 훑는다 — 지도 위 스탬프는 어두운 배경에 서므로
@@ -1652,11 +1666,14 @@
 
     if (kind === 'hero') {
       var f = global.DG.data.faction(ref.faction);
-      human(c, {
-        x: size * 0.5, y: size * 0.94, s: size / 46, facing: 1,
-        phase: 0, walking: false, color: f.color, look: lookOf(ref),
-        rarity: ref.rarity, t: 0
-      });
+      var himg2 = humanImg(humanIndexOf(ref));
+      if (himg2.complete && himg2.naturalWidth) {
+        c.imageSmoothingEnabled = false;
+        var hw2 = size * 0.78;
+        c.drawImage(himg2, size * 0.5 - hw2 / 2, size * 0.94 - hw2, hw2, hw2);
+      } else {
+        loadingMark(c, size * 0.5, size * 0.94, size * 0.8, f.color);
+      }
     } else if (kind === 'pet') {
       beast(c, {
         x: size * 0.5, y: size * 0.9, s: size / 40, facing: 1,
@@ -1720,10 +1737,14 @@
 
     var fig = c;
     if (isHero) {
-      human(fig, {
-        x: w * 0.5, y: h * 0.93, s: h / 56, facing: 1, phase: 0, walking: false,
-        color: fac.color, look: lookOf(ref), rarity: ref.rarity, t: 0
-      });
+      var himg3 = humanImg(humanIndexOf(ref));
+      if (himg3.complete && himg3.naturalWidth) {
+        fig.imageSmoothingEnabled = false;
+        var hw3 = h * 0.62;
+        fig.drawImage(himg3, w * 0.5 - hw3 / 2, h * 0.93 - hw3, hw3, hw3);
+      } else {
+        loadingMark(fig, w * 0.5, h * 0.93, h * 0.6, fac.color);
+      }
     } else {
       /* 짐승은 가로로 긴 형태(용·물고기)가 있어 폭 기준으로 맞춘다 (bake 상자 = 2.3H) */
       beast(fig, {
