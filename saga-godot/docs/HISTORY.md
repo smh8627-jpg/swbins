@@ -8188,3 +8188,12 @@ PROJECT_STATE.md` 참고. 요약:
 - VRoid 쪽은 무료 대체 파이프라인(CharacterGen — 로컬 GPU 요구사항 불명확한 연구 코드, 결과물이 VRoid 정품과 스타일 불일치 위험) 검토 후 기각. 유료(Tripo3D)는 사용자가 제외 지시. VRoid Studio 조형은 계속 사람 몫.
 - Downloads `새 폴더`에 `model.vroid`(export 전 원본, 7.4M) 발견 — 어느 캐릭터용인지 아직 불명, export(사람 몫) 전엔 반입 불가. `dungeon_hero_01.vrm`·`saga_forest_avatar_01.vrm`은 이미 반입된 것과 동일 파일.
 - PLAN 105 Q-d·PROJECT_STATE "다음 작업" 문구 정정. 코드 변경 없음(문서·조사만), regress 불필요.
+
+## Quaternius 씬 배치 5단계 착수 — GO 마을 정원길 (2026-09-23, 같은 세션, "Quaternius 씬 배치 스코프 지금 정하기")
+
+- PLAN 105 Q-d 남은 "씬 배치" 판단 몫 중 하나를 닫았다. 09-20⑮에서 "정원길 후보로 쓸 만함"으로만 점찍어 두고 안 물렸던 `Pebble_Square_1`·`RockPath_Square_Wide`(go_village 팔레트 스냅)를 GO `vegetation_builder.gd::_scatter_village_path()` 신설로 village 지역 "." 칸에만 배치.
+- salt 950번대로 `_scatter_clutter()`(600번대)와 자리 안 겹치게, 밀도는 clutter(1/6)보다 성기게 1/12(가끔 놓인 디딤돌 느낌). 순수 시각(충돌 없음), material_override 없이 원본 스냅 텍스처 그대로.
+- 실측(trimesh, python.exe 직접 경로+`PYTHONIOENCODING=utf-8`): RockPath_Square_Wide 2.05×0.18×1.99m·Pebble_Square_1 0.43×0.13×0.44m — 둘 다 이미 사람 스케일이라 별도 배율 역산 불필요(scale=1.0), 나무/바위 때와 다른 점.
+- 검증: 다른 세션 스크래치패드에 남아있던 Godot 4.7.2 재사용(`config/features` "4.7" 일치 확인) — `godot_regress.sh` 다섯 씬 REGRESS OK(GO만 md5 변경), `git diff -- project.godot '*.import'` 빈 것 확인.
+- **범위 의도적으로 좁힘**: "정원길" 한 용도만 닫았다. 남은 바위 22종·잔디꽃 대부분·FOREST 바이옴 다양화 등은 각자 다른 판단(FOREST vertex-color 제약, 중복 여부 등)이 더 필요해 이번엔 손 안 댐 — PROJECT_STATE "다음 작업"에 남겨 둠.
+- 실기 확인 대기 목록에 추가(전날 "전체 승인"은 이 배치 전 상태였으므로 재확인 필요).

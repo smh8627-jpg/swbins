@@ -121,6 +121,20 @@ const WALL_FENCE_GLB := [
 const WALL_FENCE_DENSITY := 3  # ^ 테두리 1/3
 const RUBBLE_COLOR := Color(0.4, 0.37, 0.34)
 
+## PLAN 105 Q-d 5단계 — 09-20⑮에서 "마을 정원길 후보로 쓸 만함"으로만
+## 못박아 두고 안 물렸던 Pebble_Square_1·RockPath_Square_Wide(go_village
+## 스냅)를 마을(village)에만 순수 시각 장식으로 놓는다. clutter와 같은
+## "." 칸을 스캔하되 별도 salt(950번대)를 써 자리가 안 겹치고, 밀도는
+## clutter(1/6)보다 성기게(1/12) 해 "가끔 놓인 디딤돌" 느낌으로 남긴다
+## — 실측(trimesh) 결과 두 GLB 모두 이미 사람 스케일에 맞는 실제 크기라
+## (RockPath_Square_Wide 2.05×0.18×1.99m, Pebble_Square_1 0.43×0.13×0.44m)
+## 별도 배율 역산이 필요 없다(scale=1.0).
+const VILLAGE_PATH_GLB := [
+	"res://assets/generated/variants/RockPath_Square_Wide__go_village.glb",
+	"res://assets/generated/variants/Pebble_Square_1__go_village.glb",
+]
+const VILLAGE_PATH_DENSITY := 12  # "." 칸 1/12
+
 var region_id := "village"
 
 
@@ -129,6 +143,7 @@ func _ready() -> void:
 	_scatter_rocks()
 	_scatter_crops()
 	_scatter_clutter()
+	_scatter_village_path()
 	_scatter_ruins_debris()
 	_scatter_ruins_rubble()
 	_scatter_ruins_wall_fence()
@@ -369,6 +384,43 @@ func _scatter_clutter() -> void:
 	for i in positions.size():
 		var basis := Basis(Vector3.UP, yaws[i]).scaled(Vector3.ONE * s)
 		mm.set_instance_transform(i, Transform3D(basis, positions[i]))
+
+
+## _scatter_clutter()와 같은 "." 칸 스캔이지만 별도 salt(950번대)로
+## 자리가 안 겹치게 한다. village 지역에만 놓는다 — "정원길"은 마을
+## 맥락이라 coast·ruins엔 안 맞는다(ruins는 이미 wall_fence·rubble로
+## 다른 결의 바위 장식이 있다).
+func _scatter_village_path() -> void:
+	if region_id != "village":
+		return
+	var ground: float = TerrainBuilder.LEGEND["."].height
+	var xf_by_variant: Array[Array] = []
+	for i in VILLAGE_PATH_GLB.size():
+		var arr: Array[Transform3D] = []
+		xf_by_variant.append(arr)
+	var rows := TestMap.rows_of(region_id)
+	for y in rows.size():
+		var row: String = rows[y]
+		for x in row.length():
+			if row[x] != ".":
+				continue
+			if _hash(x, y, 950) >= 1.0 / float(VILLAGE_PATH_DENSITY):
+				continue
+			var jx := (_hash(x, y, 951) - 0.5) * TestMap.TILE_SIZE * 0.6
+			var jz := (_hash(x, y, 952) - 0.5) * TestMap.TILE_SIZE * 0.6
+			var pos := TestMap.world_pos(x, y, region_id) + Vector3(jx, ground, jz)
+			var yaw := _hash(x, y, 953) * TAU
+			var variant := int(_hash(x, y, 954) * VILLAGE_PATH_GLB.size()) % VILLAGE_PATH_GLB.size()
+			(xf_by_variant[variant] as Array[Transform3D]).append(Transform3D(Basis(Vector3.UP, yaw), pos))
+
+	for i in VILLAGE_PATH_GLB.size():
+		var xforms: Array[Transform3D] = xf_by_variant[i]
+		if xforms.is_empty():
+			continue
+		var mesh := GLBUtils.extract_mesh(VILLAGE_PATH_GLB[i])
+		if mesh == null:
+			continue
+		add_child(_build_rock_multimesh(mesh, xforms, "VillagePath%d" % i))
 
 
 ## clutter와 달리 "." 평지가 아니라 폐허 바닥("R")을 스캔한다 — ruins
