@@ -8474,3 +8474,19 @@ UAC 재활성화/GUI 대화상자 문제 해결 확인 뒤, 사용자가 GUI가 
 **PLAN.md 갱신**: 101장 "남은 결정 사항"(SSS 해결·헤어카드는 분리 메시 없어 미착수로 재분류), 102-3(캐릭터 파이프라인 서술 갱신), 102-4(SSS 판정 표 갱신), 105장(Q-U3 삭제, "열린 질문 없음"으로). `docs/PROJECT_STATE.md`도 전면 갱신(≤15KB 유지를 위해 여러 차례 압축).
 
 새 파일 4개(`BuildTestSssShaderGraph.cs`·`.meta`·`BuildMariaSssShaderGraph.cs`·`.meta`), 수정 1개(`BuildMariaSkinSplit.cs`). `Assets/Art/CharactersRealistic/Generated/*.shadergraph`는 gitignore라 커밋 대상 아님.
+
+## 2026-09-22 — GUI hang 재현 안 됨 확인, SSS 글로우 시각 확인은 여전히 미완 (새 세션 "사가유니티 이어 하기")
+
+세션 시작 시 절차대로 PLAN 목차·PROJECT_STATE를 훑었더니 남은 작업이 전부 막혀 있었다(GO⑤ 모바일 빌드 뒤, STORY5-2 웹/godot 미확정, Props lantern·stall-red 재질 위험으로 보류, Kenney Characters는 Q-U4로 유지 확정). 사용자에게 물어 "SSS 글로우 GUI 확인 재시도"를 골랐다.
+
+`PlaytestCharacterRealisticGui`(`ShotDir`를 이번 세션 scratchpad로 갱신)를 실행 — hang 없이 exit 0으로 정상 종료. 스크린샷(idle/run/attack)을 확인해 보니 idle·run에서 피부 서브메시가 **네온 시안**으로 찍혀 있었다 — MariaSkin.shadergraph(SSS)가 아직 셰이더 변형 컴파일 중일 때 캡처된 것으로 판단(기존 66-2장 ⑩ "셰이더 캐시 콜드" 함정과 같은 증상 — 이전엔 "플랫한 색"으로만 알려져 있었는데 이번엔 커스텀 Shader Graph가 미컴파일 상태에서 네온 시안 디폴트를 보인다는 새 사례). attack 샷(더 나중 프레임)은 정상 톤이라 가설을 뒷받침.
+
+대기 프레임을 120→300으로 늘리고, 피부 노출이 큰 골반·허벅지 부위 클로즈업 스테이지(`04_skin_closeup.png`)를 신설해 재실행 — 이번엔 idle/run/attack/closeup 전부 정상 톤(시안 없음), hang도 없음. 단 `BuildTestCharacterRealisticScene`은 의도적으로 포스트프로세싱(블룸) 없는 순수 리그 확인 씬이라(주석에 명시) 스킨의 SSS 글로우 자체가 육안으로 거의 안 띄었다 — 피부가 그냥 밝은 회색 매트 톤으로만 보임.
+
+블룸이 있는 실제 게임 씬에서 재확인하려고 `PlaytestDungeonEnemiesGui`(`ShotDir`도 이번 세션 경로로 갱신)를 실행 — hang 없이 exit 0. 하지만 텔레포트 지점(8.5, 0.1, -1.5)이 적 무리 바로 옆이라 스크린샷을 찍기 전에 플레이어가 두들겨 맞아 쓰러졌고("쓰러졌다가 정신을 차렸다"), 찍힌 화면은 HUD·전투결과 텍스트가 뒤덮은 탑다운 사망 화면이라 Maria 모습 자체가 거의 안 보였다(부가로 HUD 텍스트 두 겹이 겹쳐 보이는 것도 관찰됐는데, 게임 창 해상도가 자동화 캡처 시 비정상이라 그런 것일 수도 있어 실제 버그인지는 미확인 — 재현되면 별도 기록).
+
+세 번의 GUI 실행 모두 4~6개 설정 파일(`ProjectSettings/EditorSettings.asset`·`ProjectVersion.txt`·`Packages/manifest.json`·`packages-lock.json`·가끔 `Assets/Settings/Mobile_RPAsset.asset`)이 조용히 고쳐진 것을 매번 `git checkout --`으로 원복(기존 4파일 함정 + Mobile_RPAsset도 같은 결로 새로 확인).
+
+**결론**: GUI hang(패키지 등록/라이선싱 단계 CPU~0 멈춤) 문제는 이 세션에서 재현되지 않았다 — 지난 세션이 겪은 건 일회성이었을 가능성이 높다. 다만 SSS 글로우가 "잘 나오는지"는 여전히 실제로 못 봤다 — 다음 세션은 블룸 있는 씬에서 플레이어가 안 죽는 안전한 지점(또는 무적 플래그)으로 텔레포트를 고쳐 재시도해야 한다.
+
+코드 변경: `PlaytestCharacterRealisticGui.cs`(`ShotDir` 경로 갱신, 대기 120→300프레임, `04_skin_closeup` 스테이지 신설), `PlaytestDungeonEnemiesGui.cs`(`ShotDir` 경로 갱신만). `PROJECT_STATE.md` 갱신.

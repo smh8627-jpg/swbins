@@ -20,7 +20,7 @@ namespace Saga.EditorTools
     {
         private const string ScenePath = "Assets/Scenes/TestDungeon.unity";
         public const string ShotDir =
-            "C:/Users/user/AppData/Local/Temp/claude/C--swbins/2246eb41-d5fb-4243-bbd8-dce1f8c46879/scratchpad/unity_screens/";
+            "C:/Users/user/AppData/Local/Temp/claude/C--swbins/26eb5289-b330-4562-8ce4-1630217d4eea/scratchpad/unity_screens/";
 
         private static readonly Vector3 TeleportPos = new Vector3(8.5f, 0.1f, -1.5f);
 

@@ -17,7 +17,7 @@ namespace Saga.EditorTools
     {
         private const string ScenePath = "Assets/Scenes/TestCharacterRealistic.unity";
         public const string ShotDir =
-            "C:/Users/user/AppData/Local/Temp/claude/C--swbins/2246eb41-d5fb-4243-bbd8-dce1f8c46879/scratchpad/unity_screens/";
+            "C:/Users/user/AppData/Local/Temp/claude/C--swbins/26eb5289-b330-4562-8ce4-1630217d4eea/scratchpad/unity_screens/";
 
         private static bool _origEnterPlayModeOptionsEnabled;
         private static EnterPlayModeOptions _origEnterPlayModeOptions;
@@ -67,8 +67,9 @@ namespace Saga.EditorTools
             switch (_stage)
             {
                 case 0: // idle 정착 대기 — 첫 프레임들은 셰이더 변형이 아직 컴파일 중이라
-                        // 플랫한 색으로 찍힐 수 있어(2026-09-13 실제로 겪음) 넉넉히 기다린다.
-                    if (_frame >= 120)
+                        // 엉뚱한 색(예: SSS Shader Graph 미컴파일 시 네온 시안)으로 찍힐 수
+                        // 있어(2026-09-13·2026-09-22 실제로 겪음) 넉넉히 기다린다.
+                    if (_frame >= 300)
                     {
                         ScreenCapture.CaptureScreenshot(ShotDir + "01_idle.png");
                         if (animator != null)
@@ -96,11 +97,31 @@ namespace Saga.EditorTools
                     if (_frame >= 20)
                     {
                         ScreenCapture.CaptureScreenshot(ShotDir + "03_attack.png");
+                        if (animator != null)
+                        {
+                            animator.SetFloat("Speed", 0f);
+                        }
+                        var cam = Camera.main;
+                        if (cam != null)
+                        {
+                            // 피부(SSS) 노출이 큰 골반·허벅지 부위 클로즈업 —
+                            // 105 Q-U3 글로우 확인용(2026-09-22 신규).
+                            cam.transform.position = new Vector3(0.5f, 0.95f, -1.1f);
+                            cam.transform.rotation = Quaternion.Euler(5f, -20f, 0f);
+                        }
                         _stage = 3;
                         _frame = 0;
                     }
                     break;
-                case 3: // 캡처 파일 쓰기 여유 후 종료
+                case 3: // 클로즈업 정착 대기
+                    if (_frame >= 20)
+                    {
+                        ScreenCapture.CaptureScreenshot(ShotDir + "04_skin_closeup.png");
+                        _stage = 4;
+                        _frame = 0;
+                    }
+                    break;
+                case 4: // 캡처 파일 쓰기 여유 후 종료
                     if (_frame >= 20)
                     {
                         EditorApplication.update -= Tick;

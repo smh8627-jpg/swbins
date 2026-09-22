@@ -1,11 +1,9 @@
 # PROJECT_STATE — saga-unity (상태만, ≤15KB, 덮어쓴다)
 
 **규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다(2026-09-16 재편 전 본문 5,532줄은 그쪽 첫 절에 그대로 있다). 넘치면 `tools/precheck.sh` 가 막는다.
-마지막 갱신: 2026-09-22 (스물한 세션째 — UAC 재활성화 확인 → GUI 대화상자 문제 해결 확인 → **105 Q-U3(SSS 배선) 리플렉션으로 해결**, "코드로 불가" 전제 뒤집힘, PLAN 101·102-3·102-4·105 갱신). 102-5·102-4·103-1·67~69 잔여는 닫힘(Kenney `Characters/`만 실사용 중이라 못 뺌).
+마지막 갱신: 2026-09-22 (스물두 세션째 — "사가유니티 이어 하기"로 시작, 막힌 항목뿐이라 사용자에게 물어 **SSS 글로우 GUI 확인 재시도**를 골랐다). 102-5·102-4·103-1·67~69 잔여는 닫힘(Kenney `Characters/`만 실사용 중이라 못 뺌).
 
-**해결됨 — GUI 대화상자(2026-09-22)**: UAC 켜고 재부팅 완료. `PlaytestDungeonEnemiesGui` exit 0 확인, Abe·Maria 근접 구도 렌더링 정상. **단 이후 GUI 2회는 다른 증상(패키지 등록/라이선싱 단계 CPU~0 멈춤)으로 걸림** — taskkill로 정리, 코드 문제 아님, 재현되면 기록.
-
-**SSS 배선 성공(105 Q-U3, 2026-09-22)**: Shader Graph 핵심 타입(`GraphData`·`SubGraphNode`·`BlockFields`·`UniversalTarget`)이 전부 `internal` → 리플렉션(`Type.GetType`+`Activator.CreateInstance`+`MethodInfo.Invoke`)으로 내부 조립 루틴(`NewGraphAction.Action`)을 재현해 우회. `FakeSSS.shadersubgraph`를 `SubGraphNode`로 붙여(asset 세터가 슬롯 자동 생성) URP Lit Emission에 연결·저장. 테스트 그래프로 검증(`ShaderHasError=False`) 후 `MariaSkin.shadergraph` 제작 → `BuildMariaSkinSplit.cs`가 사용(기존 웜톤 유지, Emission에 글로우 가산). GO 헤드리스 3연속 OK. **GUI 시각 확인은 hang 때문에 못 함 — 다음 세션 1순위**. 도구: `BuildTestSssShaderGraph.cs`·`BuildMariaSssShaderGraph.cs`(`Saga/Build Maria SSS Shader Graph (Reflection)`+`Verify`). 헤어카드는 분리 메시 없어 대상 없음(105장에서 지움).
+**GUI hang 문제 해소, SSS 글로우는 여전히 결론 못 냄(2026-09-22)**: GUI 3회(`PlaytestCharacterRealisticGui` 2회·`PlaytestDungeonEnemiesGui` 1회) 전부 hang 없이 exit 0 — 지난 세션 "패키지 등록 단계 CPU~0 멈춤"은 재현 안 됨, 일회성으로 보임. `PlaytestCharacterRealisticGui`(대기 120→**300프레임**, 피부 클로즈업 스테이지 신설) 1차는 피부가 **네온 시안**으로 찍힘(SSS 셰이더 변형 미컴파일 — 기존 "셰이더 캐시 콜드" 함정과 같은 결, 새 버그 아님), 2차(대기 늘린 뒤)는 정상 톤이지만 **이 씬은 원래 블룸이 없는 순수 리그 확인용이라 글로우가 눈에 안 띔**(의도된 설계). 블룸 있는 `PlaytestDungeonEnemiesGui`로 재확인 시도했으나 텔레포트 직후 적 무리에 바로 쓰러져 HUD·전투결과 UI만 찍힘 — 판단 불가. **다음 세션 1순위**: 블룸 씬에서 안 죽는 안전한 지점/무적 처리로 재시도 — 튜닝 여부는 실제로 보고 사용자가 판단.
 
 ## 캐릭터 자산 — 이 PC 기준 (2026-09-19)
 
@@ -29,8 +27,8 @@ PLAN 101-3(C hitstop류·F 유품 마커·G 데칼/레벨업 컷/장비 가시�
 
 ## 다음 작업 (우선순위, 상세는 PLAN 해당 장 · 경위는 HISTORY 날짜 grep)
 
-1. **Maria 피부 SSS 글로우 화면 확인**(신규) — 코드·셰이더 검증 끝, GUI hang으로 못 봄. 다음 세션 1순위.
-2. GUI 자동 확인 도구 재사용 가능(단 새 hang 주의). 나머지 실기 확인은 계속 사람이 직접(아래 목록). 다른 PC는 `CharactersRealistic/`·`Generated/` 둘 다 gitignore라 `SetupXxxCharacterImport.cs`→SSS Build 순 재실행 필요.
+1. **Maria 피부 SSS 글로우 화면 확인**(계속) — hang 문제는 해소, 이번엔 블룸 있는 씬에서 못 봄(위 "SSS 글로우 시각 확인" 절 참고). 다음 세션 1순위.
+2. GUI 자동 확인 도구는 이제 안정적으로 재사용 가능(hang 재현 없음, 3회 연속 exit 0). `ShotDir` 상수(`PlaytestCharacterRealisticGui.cs`·`PlaytestDungeonEnemiesGui.cs`)는 세션 scratchpad 경로라 새 세션마다 고쳐야 함. 나머지 실기 확인은 계속 사람이 직접(아래 목록). 다른 PC는 `CharactersRealistic/`·`Generated/` 둘 다 gitignore라 `SetupXxxCharacterImport.cs`→SSS Build 순 재실행 필요.
 3. **101-2·104-1 잔여(보류)** — GO⑤(모바일 빌드 뒤)·STORY5-2·`Props/` lantern·stall-red·`Characters/` Kenney(실사용 중).
 4. 헤어카드 — 분리 헤어 메시 생기면 같은 기법 재사용 가능, 그 전엔 대상 없음.
 
