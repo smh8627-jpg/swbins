@@ -87,7 +87,7 @@ func _spawn(x: int, y: int) -> void:
 				CURVE_AMOUNT, 0.9, Color(0.1, 0.18, 0.11))
 			add_child(mi)
 		"mush":
-			_spawn_mushroom(pos)
+			_spawn_mushroom(pos, _hash(x, y, 4) * TAU)
 		"rocky":
 			## 2026-09-20 — Kenney rock_smallA 대신 Quaternius Rock_Medium_1
 			## (vertex_color로 덮어 칠하니 원본 gltf 그대로, forest_vegetation_
@@ -104,34 +104,25 @@ func _spawn(x: int, y: int) -> void:
 				add_child(mi)
 
 
-## GLB 킷에 어울리는 버섯 조각이 없어 primitive 둘(줄기+갓)로 짓는다 —
-## gatherable_builder.gd의 꽃(primitive 구)과 같은 "적당한 에셋이 없으면
-## primitive" 예외.
-func _spawn_mushroom(pos: Vector3) -> void:
-	var root := Node3D.new()
-	root.position = pos
-	add_child(root)
+## Quaternius Mushroom_Common(버섯 무리)은 정점색이 없고 불투명 텍스처
+## 한 장이라, vertex_color_material(정점색×tint — 정점색이 없으면 흰색)이
+## 아니라 textured_material로 원본 텍스처를 곡률째 그린다. 옛 primitive
+## 버섯 최종 높이(갓 꼭대기 0.32m)에 맞춰 실측고(0.463m)로 역산.
+const MUSHROOM_GLB := "res://assets/vegetation/Mushroom_Common.gltf"
+const MUSHROOM_TEX := "res://assets/vegetation/Mushrooms.png"
+const MUSHROOM_SCALE := 0.691
 
-	var stem := MeshInstance3D.new()
-	var stem_mesh := CylinderMesh.new()
-	stem_mesh.top_radius = 0.05
-	stem_mesh.bottom_radius = 0.06
-	stem_mesh.height = 0.22
-	stem.mesh = stem_mesh
-	stem.position = Vector3(0, 0.11, 0)
-	stem.material_override = WorldCurveMaterial.vertex_color_material(
-		CURVE_AMOUNT, 0.9, Color(0.9, 0.87, 0.78))
-	root.add_child(stem)
-
-	var cap := MeshInstance3D.new()
-	var cap_mesh := SphereMesh.new()
-	cap_mesh.radius = 0.16
-	cap_mesh.height = 0.16
-	cap.mesh = cap_mesh
-	cap.position = Vector3(0, 0.24, 0)
-	cap.material_override = WorldCurveMaterial.vertex_color_material(
-		CURVE_AMOUNT, 0.7, Color(0.75, 0.22, 0.2))
-	root.add_child(cap)
+func _spawn_mushroom(pos: Vector3, yaw: float) -> void:
+	var mesh: Mesh = GLBUtils.extract_mesh(MUSHROOM_GLB)
+	if mesh == null:
+		return
+	var mi := MeshInstance3D.new()
+	mi.mesh = mesh
+	mi.scale = Vector3.ONE * MUSHROOM_SCALE
+	mi.rotation.y = yaw
+	mi.position = pos
+	mi.material_override = WorldCurveMaterial.textured_material(MUSHROOM_TEX, CURVE_AMOUNT, 0.8)
+	add_child(mi)
 
 
 ## forest_vegetation_builder.gd `_hash(gx,gy,salt)`와 완전히 같은

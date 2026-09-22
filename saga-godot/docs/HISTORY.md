@@ -8205,3 +8205,11 @@ PROJECT_STATE.md` 참고. 요약:
 - **실행 경로 확인**: `region2_coast.gd::_ready()`가 `_build_harbor()`를 즉시 호출 → `CoastVegetation` 노드를 region_id="coast"로 그 자리에서 생성·`_ready()` 실행 — TestVillage.tscn 단일 씬 로드만으로 coast 분기까지 headless 테스트에 포함된다(지연 로드 아님, 코드로 확인).
 - `godot_regress.sh` REGRESS OK(GO만 md5 변경, issues=0 — GLB 로드 정상 확인), `.import`/`project.godot` 잡음 없음.
 - 실기 확인 대기에 이미 있던 항목과 합침(정원길과 같은 절).
+
+## Quaternius 씬 배치 5단계 — FOREST 버섯 (2026-09-23, 같은 세션, "푸시 커밋 하고 이어해")
+
+- `forest_biome_scatter.gd` mush 바이옴의 primitive 버섯(주석: "GLB 킷에 어울리는 버섯 조각이 없어")을 `Mushroom_Common.gltf`로 교체. gltf 직접 확인 결과 COLOR_0 없음·alphaMode 불투명·텍스처 1장(`Mushrooms.png`) → `vertex_color_material`이 아니라 기존 `textured_material`(curved_textured)로 곡률+원본 텍스처. 실측고 0.463m → 옛 갓 꼭대기 0.32m 맞춰 ×0.691, 회전은 격자 해시(salt 4).
+- **보류**: meadow(구)·dark(상자) 후보 Flower_3_Group·Fern_1은 alphaMode MASK — curved_textured/curved_vertex_color 둘 다 ALPHA_SCISSOR가 없어 잎 카드가 네모판으로 그려진다. 공용 셰이더 수정이 먼저라 이번 범위 밖.
+- **발견(미수정, 사용자 판단 대기)**: rocky 바이옴 `Rock_Medium_1.gltf`도 COLOR_0이 없는데 `vertex_color_material`(tint 1,1,1)로 칠해져 Godot 기본 COLOR=흰색 → 텍스처 없는 흰 바위. 09-20 주석의 "원본 gltf 그대로"는 정점색이 있다는 틀린 전제. 09-23 전체 실기 승인에 포함된 화면이라 임의로 안 바꿈.
+- 09-22 세션이 셰이더만 커밋하고 빠뜨린 `curved_triplanar.gdshader.uid`도 같이 커밋(다른 .uid는 전부 추적 중).
+- `godot_regress.sh` REGRESS OK(FOREST만 md5 변경), `.import`/`project.godot` 잡음 없음.
