@@ -22,6 +22,16 @@ namespace Saga.Realm.Player
         private const float MinPitchDeg = 25f;
         private const float MaxPitchDeg = 70f;
 
+        // PLAN.md 102-5 "카메라 클리핑"(2026-09-22) — SagaDungeon/SagaGo
+        // `Player/CameraRig.cs`의 `ResolveCollisionZoom()`과 같은 결(수동
+        // raycast pull-in, Cinemachine 없음). 이 리그는 캐릭터가 아니라 성
+        // 중심(원점)에 고정돼 있어 자기 몸을 오검출할 CharacterController가
+        // 없지만, 원점 자체가 건물 안에 들어앉을 수 있어 Skin은 그대로
+        // 작게 둔다(0으로 하면 원점이 벽 속일 때 레이가 시작부터 막혀
+        // hit.distance가 0이 되는 것을 방지).
+        private const float CameraSkin = 1f;
+        private const float CameraCollisionBuffer = 0.3f;
+
         [SerializeField] private Camera cam;
 
         private float _zoom = 16f;
@@ -68,7 +78,26 @@ namespace Saga.Realm.Player
         private void ApplyZoom()
         {
             if (cam == null) return;
-            cam.transform.localPosition = new Vector3(0f, 0f, -_zoom);
+            float clippedZoom = ResolveCollisionZoom(_zoom);
+            cam.transform.localPosition = new Vector3(0f, 0f, -clippedZoom);
+        }
+
+        /// <summary>벽에 카메라가 파고들지 않도록 원하는 줌 거리 안에서
+        /// raycast로 막힌 지점을 찾으면 그만큼 당긴다(102-5 "카메라 클리핑").
+        /// 막힌 게 없으면 원래 _zoom 그대로 돌려준다 — `CameraRig.
+        /// ResolveCollisionZoom()`과 완전히 같은 로직.</summary>
+        private float ResolveCollisionZoom(float desiredZoom)
+        {
+            if (desiredZoom <= CameraSkin) return desiredZoom;
+            Vector3 origin = transform.position;
+            Vector3 dir = transform.TransformDirection(Vector3.back);
+            Vector3 castStart = origin + dir * CameraSkin;
+            float castDistance = desiredZoom - CameraSkin;
+            if (Physics.Raycast(castStart, dir, out RaycastHit hit, castDistance, ~0, QueryTriggerInteraction.Ignore))
+            {
+                return Mathf.Max(CameraSkin, CameraSkin + hit.distance - CameraCollisionBuffer);
+            }
+            return desiredZoom;
         }
     }
 }

@@ -214,6 +214,7 @@ namespace Saga.Story.World
                 inst.transform.localRotation = Quaternion.identity;
                 _visualGo = inst;
                 _isRiggedVisual = true;
+                CharacterVisual.EnsureBlobShadow(transform); // PLAN 102-5 "그림자 계단" — Spawn()을 안 타는 리깅 분기는 직접 부른다.
             }
             else if (effectiveModel != null)
             {

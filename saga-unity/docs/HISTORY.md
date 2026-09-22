@@ -8411,3 +8411,15 @@ SSAO 튜닝 뒤 남은 §102-5 항목은 전부 새 결정이나 큰 작업이 �
 **검증**: 컴파일(exit 0, 두 차례) → FOREST 씬 재빌드(경고 없음) → GO·DUNGEON·FOREST·STORY·REALM **다섯 판 전부 Playtest 3연속 OK**(Screen Space Shadows 추가 뒤 기준) → `git diff --stat -- ProjectSettings/ Packages/` 빈 결과(설치 버전 부작용 없음) 확인.
 
 `PLAN.md` 102-5 절 전면 갱신(바닥 한 색·SSS 완료, 스케일·UI 폰트는 재조사 결과 기록), `PROJECT_STATE.md` "다음 작업"·"테스트 상태"·"실기 확인 대기" 갱신 후 커밋 예정.
+
+## 2026-09-22 — 102-5 전부 마감: 그림자 계단(적·NPC)·REALM 카메라 클리핑 ("이어서" 계속)
+
+바닥 한 색·Screen Space Shadows·스케일·UI 폰트를 마친 뒤 "이어서"로 계속해, 102-5의 마지막 두 항목(나머지 캐릭터 그림자 계단, REALM 카메라 오빗 클리핑)까지 마쳤다.
+
+**그림자 계단(적·NPC)**: `BlobShadow.cs`(`Assets/SagaCore/`, 다섯 판이 공유하는 유일한 조각 — Mobile 품질 레벨이 아니면 스스로 꺼진다)는 지금까지 각 게임 편집기 씬 빌드 스크립트가 `playerGo.AddComponent<BlobShadow>()`로 Player에만 붙였다. 적·NPC는 런타임에 스폰되니 편집기 스크립트로는 못 붙는다 — 대신 GO/DUNGEON/FOREST/STORY 네 `CharacterVisual.cs`(다섯 벌 복사 중 이 넷)에 `EnsureBlobShadow(Transform root)` 정적 헬퍼를 추가하고, Kenney 경로인 `Spawn()`·`SpawnFallbackCapsule()` 끝에서 부르게 했다. 다만 리깅된(Animator 포함, Abe/Brute) 캐릭터는 `CharacterVisual.Spawn()`을 안 타고 각 Enemy 클래스가 직접 `Instantiate`하는 별도 분기가 있다 — `grep -rln "GetComponent<Animator>() != null"`로 셋(`BanditEncounter.cs`(GO)·`DungeonEnemy.cs`·`StoryEnemy.cs`)을 찾아 그 분기 끝에도 `CharacterVisual.EnsureBlobShadow(transform);`를 직접 추가했다. FOREST/DUNGEON 주민·동행(`ForestVillager.cs`·`AllyFighter.cs` 등)은 리깅 분기가 없어 `Spawn()` 경로 하나로 이미 커버됨을 grep으로 확인.
+
+**REALM 카메라 클리핑**: `RealmOrbitCamera.cs`는 GO/DUNGEON의 드래그 오빗과 다르게(성 조망용 WASD 오빗, 성 중심 원점에 고정) 새로 짠 리그라 `CameraRig.ResolveCollisionZoom()`이 그대로 안 옮겨졌다. 완전히 같은 raycast pull-in 로직(원점에서 카메라 방향으로 `CameraSkin`만큼 나가 캐스팅, 막히면 그 지점까지 당김)을 이 리그의 `ApplyZoom()`에 추가 — 캐릭터가 없어 자기 몸 오검출 걱정은 없지만, 원점 자체가 건물 안일 때 레이가 시작부터 막히는 걸 방지하려 Skin은 그대로 뒀다(1m, MinZoom=8보다 작게).
+
+**검증**: 배치 컴파일(exit 0) → GO·DUNGEON·FOREST·STORY·REALM **다섯 판 전부 Playtest 3연속 OK**(exception/NullReference 없음 grep으로 재확인) → `git diff --stat -- ProjectSettings/ Packages/` 빈 결과.
+
+`PLAN.md` 102-5 절의 "그림자 계단"·"카메라 클리핑" 행을 "전부 완료"로 갱신, 102-5 전체를 닫힌 것으로 표시. `PROJECT_STATE.md` "다음 작업"에서 102-5 항목 자체를 지우고(실기 확인 대기만 남김) "실기 확인 대기" REALM·공통 줄에 새 체크 항목 추가. 두 커밋으로 나눠 커밋(바닥색/SSS/재조사 먼저, 그림자계단/카메라 나중).

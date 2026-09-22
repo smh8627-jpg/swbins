@@ -1,7 +1,7 @@
 # PROJECT_STATE — saga-unity (상태만, ≤15KB, 덮어쓴다)
 
 **규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다(2026-09-16 재편 전 본문 5,532줄은 그쪽 첫 절에 그대로 있다). 넘치면 `tools/precheck.sh` 가 막는다.
-마지막 갱신: 2026-09-22 (스무 세션째, 이어서 — 102-5 남은 넷을 이어감. **바닥 한 색**: GO·DUNGEON·STORY·REALM은 재조사 결과 이미 PBR 타일드/디테일 오버레이라 해당 없음, **FOREST만 진짜 단색**이라 `ForestWorldCurve.shader`에 디테일 오버레이 추가+leafy_grass AO 배선으로 완료. **Screen Space Shadows**: `BuildScreenSpaceShadowsFeature.cs` 신설(`BuildDecalRendererFeature.cs`와 같은 결, URP 내장 타입이 internal이라 리플렉션)로 PC_Renderer.asset에만 추가(Mobile은 성능 때문에 안 건다). **스케일 혼재·UI 폰트**는 재조사 결과 코드로는 이미 처리돼 있음(스케일은 높이만 통일 가능, 비례는 103-3 결정과 충돌해 범위 밖 / UI 폰트는 세 Kit이 이미 바이트 단위로 동일) — 둘 다 더 손댈 코드 없음. 다섯 판 배치 컴파일+헤드리스 3연속 재확인 전부 통과) — 경위는 HISTORY grep. 102-4는 전부 처리됐다(남은 건 `Characters/` Kenney, 실사용 중이라 못 뺀다). 103-1·67~69장 잔여는 전부 닫힘.
+마지막 갱신: 2026-09-22 (스무 세션째, 이어서 — **102-5 전부 닫힘**. 바닥 한 색(FOREST만 진짜 단색, 디테일 오버레이+leafy_grass AO로 완료)·Screen Space Shadows(`BuildScreenSpaceShadowsFeature.cs`, PC_Renderer.asset에만)·스케일/UI 폰트(재조사 결과 이미 처리돼 있어 코드 변경 없음)에 이어, 그림자 계단(적·NPC — `CharacterVisual.EnsureBlobShadow()`를 GO/DUNGEON/FOREST/STORY 네 `Spawn()`/`SpawnFallbackCapsule()`+리깅 분기 셋에 배선)·카메라 클리핑(REALM `RealmOrbitCamera.ResolveCollisionZoom()`)까지 마쳤다. 다섯 판 배치 컴파일+헤드리스 3연속 재확인 전부 통과) — 경위는 HISTORY grep. 102-4는 전부 처리됐다(남은 건 `Characters/` Kenney, 실사용 중이라 못 뺀다). 103-1·67~69장 잔여는 전부 닫힘.
 
 **중요 — GUI 스크린샷은 이 환경에 아직 방법이 없다**: `-batchmode` 없이 띄우면 관리자 권한 대화상자가 SendKeys로 닫아도 1.5~2초마다 재생성되며 폭주(`taskkill /T`로 잡음), `-batchmode`(+`-nographics` 뺌)면 대화상자는 안 뜨지만 `ScreenCapture`가 파일을 안 남긴다. 다음 세션은 이 절부터, SendKeys 자동 닫기 재시도 금지(경위는 HISTORY grep "폭주").
 
@@ -27,12 +27,11 @@ PLAN 101-3(C hitstop류·F 유품 마커·G 데칼/레벨업 컷/장비 가시�
 
 ## 다음 작업 (우선순위, 상세는 PLAN 해당 장 · 경위는 HISTORY 날짜 grep)
 
-1. **실기 확인 몰아서** — 여러 세션째 쌓여만 있다(아래 "실기 확인 대기" 목록). 코드로 더 진행할 항목이 바닥나 지금 가장 큰 병목. 스크린샷은 위 "중요" 절 때문에 못 가림 — 사람이 Unity Hub에서 직접 Play 하거나 `Saga/Playtest ... (GUI Screenshot)` 메뉴로. 다른 PC는 `CharactersRealistic/`가 비어 있음(mixamo.com, 목록은 `SetupXxxCharacterImport.cs`).
-2. **PLAN 102-5 — 2026-09-22로 사실상 마감**: 남은 건 나머지 캐릭터(적·NPC) 그림자 계단·REALM 카메라 오빗 클리핑뿐(둘 다 실기 확인 대기 쪽에 가깝다). 바닥 한 색·스케일·UI 폰트·Screen Space Shadows는 전부 이번 세션에 닫힘.
-3. **101-2·104-1 잔여(전부 보류)** — GO⑤(모바일 빌드 뒤)·STORY5-2 · `Props/` lantern·stall-red(실기 확인 후) · `Characters/` Kenney는 아직 못 뺀다(실사용 중).
-4. **105 Q-U3** — Shader Graph SSS·헤어카드, 사람 GUI 필요.
+1. **실기 확인 몰아서** — 여러 세션째 쌓여만 있다(아래 "실기 확인 대기" 목록). **102-5가 전부 코드로는 끝나서 지금 이게 유일한 남은 큰 병목**. 스크린샷은 위 "중요" 절 때문에 못 가림 — 사람이 Unity Hub에서 직접 Play 하거나 `Saga/Playtest ... (GUI Screenshot)` 메뉴로. 다른 PC는 `CharactersRealistic/`가 비어 있음(mixamo.com, 목록은 `SetupXxxCharacterImport.cs`).
+2. **101-2·104-1 잔여(전부 보류)** — GO⑤(모바일 빌드 뒤)·STORY5-2 · `Props/` lantern·stall-red(실기 확인 후) · `Characters/` Kenney는 아직 못 뺀다(실사용 중).
+3. **105 Q-U3** — Shader Graph SSS·헤어카드, 사람 GUI 필요.
 
-닫힌 백로그: 101-3, 103-1 변형 배가, 67~69 en 번역, 105 Q-U1, 102-5(클리핑·애니·SSAO·LUT).
+닫힌 백로그: 101-3, 103-1 변형 배가, 67~69 en 번역, 105 Q-U1, **102-5(클리핑·애니·SSAO·LUT·바닥·SSS·스케일·UI폰트·그림자 계단 — 전부).**
 
 ## 알려진 오류
 
@@ -54,9 +53,9 @@ PLAN 101-3(C hitstop류·F 유품 마커·G 데칼/레벨업 컷/장비 가시�
 
 | 검증 | 결과 |
 |---|---|
-| `-batchmode -nographics -quit` 컴파일 | exit 0, 오류 0(FOREST 디테일 오버레이+`BuildScreenSpaceShadowsFeature.cs` 신설 뒤 재확인) |
+| `-batchmode -nographics -quit` 컴파일 | exit 0, 오류 0(102-5 전 항목 반영 뒤 재확인 — FOREST 디테일·SSS feature·BlobShadow 배선·RealmOrbitCamera) |
 | `BuildTestVillageForestScene` 재빌드 | exit 0, 디테일 텍스처 로드 경고 없음 |
-| `PlaytestHeadless`(GO)·`PlaytestDungeonHeadless`·`PlaytestForestHeadless`·`PlaytestStorySlice`·`PlaytestRealmSlice` | **다섯 판 전부 3연속 OK(2026-09-22, 102-5 변경 뒤 재확인)** |
+| `PlaytestHeadless`(GO)·`PlaytestDungeonHeadless`·`PlaytestForestHeadless`·`PlaytestStorySlice`·`PlaytestRealmSlice` | **다섯 판 전부 3연속 OK(2026-09-22, 102-5 전 항목 반영 뒤 재확인, 두 차례)** |
 | `PlaytestForestCreatures`·`Finish`·`Furniture`·`HouseTransition` | 미변경 |
 | `PlaytestOverworldMap`(GO) | 이전 세션 1회 재검증 OK, 미변경 |
 | GUI 실제 Play 확인 | GO 라이팅 톤·Maria idle/run/attack·**Dungeon Abe/Brute(`PlaytestDungeonEnemiesGui.cs`, 파편적 확인)**. 나머지 미확인 |
@@ -67,5 +66,5 @@ PLAN 101-3(C hitstop류·F 유품 마커·G 데칼/레벨업 컷/장비 가시�
 - DUNGEON: 카메라 각도, 아홉 슬라이스, 목표판/세션카드, hitstop·타격VFX·레벨업줌·무기소켓·지형데칼 체감(101-3 전체), 축복·유품·부적 던전·월드 보스·난입 체감(101-2 5.1~5.5), 전자창/동력장갑 모양·기계화 정찰병(5층부터) 체감(5.7), 일일 풀 3택·도장·주간 보상 토스트(5.6), ProcRoom 방 셸 마모 톤 3단(103-1, 34층·67층 문턱), 카메라 벽 클리핑 pull-in 체감(102-5)
 - FOREST: 벽지/장판, 가구 배치, 생물·과일나무·좌판, 목표판/세션카드, 마을 번들(5.3), 채집 손맛(5.8①), 마을 평가판 별점(5.8②), 접수대·우체통 4·소포 3종·사슬 보너스 체감(5.7), 세배·꽃놀이·소원돌·목표판 D-day 문구 체감(5.6, 실제 달력 1·8·15일에만), 과일나무 모양·바크 트라이플레이너 톤(102-4), 마을 잔디 디테일 톤(102-5, 2026-09-22 신규)
 - STORY: 두목 크기·타격감, 사건·관계·선택 흐름, 전직 팝업, 목표판/세션카드, hitstop/shake/flash/popup/타격 VFX 체감, 유품 마커·지형 데칼·레벨업 줌·직업별 무기(101-3 F·G), 관문 대장 승격 연출·방패 파괴 체감(5-4), 비경 노드 지도·축복 카드·아레나 순간이동(5-3), 선봉/유격/호법 교대 버튼·서명 손맛·HUD 교대 쿨다운 줄(5-8)
-- REALM: 월드맵, 적국 사슬 체감, 패널 여덟 조작, 목표판/세션카드, 공격·계략 고르기, 특성·야망(5-1), 전술 토글(5-6), 서사 카드 7종(5-2), 계승 토글(5-8, 기본 꺼짐), 일기토·설전(5-3), 승리 결과 카드·목표판 셋째 줄·"다음 달" 게이트(5-5, 정복 55성/문화 정답 30), 성벽 단계별 실루엣(103-1, 축성 명령 여러 달 반복해 2·3단 넘겨야 확인)
-- 공통: BGM 음량, 설정 패널 6줄, SessionCard DoF 체감, 접지 blob 그림자(102-2, `QualitySettings`="Mobile"이어야 보임), 게임별 LUT 톤 5장 체감(102-1-2, 수치만으로 짠 거라 실제 눈으로 판단 필요), **Screen Space Shadows 체감(102-5, 2026-09-22 신규, PC 프로파일만)**
+- REALM: 월드맵, 적국 사슬 체감, 패널 여덟 조작, 목표판/세션카드, 공격·계략 고르기, 특성·야망(5-1), 전술 토글(5-6), 서사 카드 7종(5-2), 계승 토글(5-8, 기본 꺼짐), 일기토·설전(5-3), 승리 결과 카드·목표판 셋째 줄·"다음 달" 게이트(5-5, 정복 55성/문화 정답 30), 성벽 단계별 실루엣(103-1, 축성 명령 여러 달 반복해 2·3단 넘겨야 확인), 오빗 카메라 건물 클리핑 pull-in 체감(102-5, 2026-09-22 신규)
+- 공통: BGM 음량, 설정 패널 6줄, SessionCard DoF 체감, 접지 blob 그림자(102-2, `QualitySettings`="Mobile"이어야 보임, **2026-09-22부터 적·NPC도 포함**), 게임별 LUT 톤 5장 체감(102-1-2, 수치만으로 짠 거라 실제 눈으로 판단 필요), Screen Space Shadows 체감(102-5, PC 프로파일만)

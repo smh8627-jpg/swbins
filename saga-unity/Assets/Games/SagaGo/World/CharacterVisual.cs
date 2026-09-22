@@ -1,4 +1,5 @@
 using UnityEngine;
+using Saga.Core;
 
 namespace Saga.Go.World
 {
@@ -35,7 +36,22 @@ namespace Saga.Go.World
             inst.transform.localRotation = Quaternion.identity;
 
             if (tint != Color.white) Tint(inst, tint);
+            EnsureBlobShadow(parent);
             return inst.transform;
+        }
+
+        /// <summary>PLAN.md 102-5 "그림자 계단" — Player에 붙인 것(편집기
+        /// 빌드 스크립트의 `playerGo.AddComponent&lt;BlobShadow&gt;()`)과 같은
+        /// 보완을 적·NPC에도 준다. Mobile 품질 레벨이 아니면 `BlobShadow.
+        /// Awake()`가 스스로 꺼진다 — 여기선 무조건 붙여도 안전하다. 리깅된
+        /// 캐릭터(Animator 포함, Abe/Brute)는 이 클래스의 Spawn을 안 타므로
+        /// 호출부(BanditEncounter.cs 등)가 따로 부른다.</summary>
+        public static void EnsureBlobShadow(Transform root)
+        {
+            if (root.GetComponent<BlobShadow>() == null)
+            {
+                root.gameObject.AddComponent<BlobShadow>();
+            }
         }
 
         /// <summary>산적의 "강타 예고" 텔레그래프처럼 순간적으로 색을 덮어썼다
@@ -108,6 +124,7 @@ namespace Saga.Go.World
                 visual.GetComponent<MeshRenderer>().sharedMaterial = mat;
             }
             Debug.LogWarning($"[CharacterVisual] 캐릭터 GLB를 못 찾아 primitive capsule로 대체함 (parent={parent.name}).");
+            EnsureBlobShadow(parent);
             return visual.transform;
         }
     }

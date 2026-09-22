@@ -219,6 +219,7 @@ namespace Saga.Go.World
                 inst.transform.localRotation = Quaternion.identity;
                 _visual = inst.transform;
                 _restTint = Color.white;
+                CharacterVisual.EnsureBlobShadow(transform); // PLAN 102-5 "그림자 계단" — Spawn()을 안 타는 리깅 분기는 직접 부른다.
             }
             else
             {
