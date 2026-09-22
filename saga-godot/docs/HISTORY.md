@@ -8057,3 +8057,10 @@ PROJECT_STATE.md` 참고. 요약:
 - 임시 `SAGA_AMBITION_DEBUG` 훅으로 `officer_ambition`을 직접 얹어 `_tick_ambitions()` 실측: gold 4999→목표(5000) 미달(prog=4999·done=false·fail=1), 5000→달성(done=true·fail 0으로 리셋·충성 50→70(+20)·`officer_growth.bonus.wisdom`+2) — 문서 수치와 정확히 일치.
 - 좌절 문턱(`fail_months > AMBITION_FRUSTRATE_MONTHS`, 12): 목표 안 채운 채 12번 틱까지는 충성 그대로(50), 13번째에만 -3(47) — 경계값 오차 없음.
 - 확인 후 훅 제거(`git diff` 원복 확인), `godot_regress.sh` md5 동일.
+
+## STORY 관문 대장 주간 문턱·비경 기억 조각 강화 헤드리스 실측 (2026-09-22, 새 세션, "진행해")
+
+- `story_town.gd`에 임시 `SAGA_STORY_META_DEBUG` 훅: `weekly_champion_week["field"]`를 이번 주(`current_week()`)로 두면 `champion_available()`이 false, 지난 주로 두면 true — 주 경계 정확. `claim_champion()` 직후 즉시 false로 바뀌고 저장값이 정확히 현재 주로 찍힘.
+- 기억 조각(`memory_fragments`/`memory_tier`): 비용(`(tier+1)*3`) 1 모자라면 `can_upgrade_memory()` false, 딱 맞으면 true → `upgrade_memory()` 성공(tier 0→1, 조각 소진, `memory_hp_mult()` 1.02 — 공식 1+2%×tier와 일치). tier를 `MEMORY_TIER_MAX`(10)로 두면 조각이 9999여도 업그레이드 불가, `hp_mult`는 1.2로 상한. 전부 정확, 버그 없음.
+- 확인 후 훅 제거(`git diff` 원복 확인), `godot_regress.sh` 재확인.
+- DUNGEON의 원소 시너지(`melee_attack.gd::_check_elem_synergy()`)는 살아있는 적 노드가 필요해 코드 읽기로만 확인 — "처치 시에만·둘 다 낀 결이 이번 타격에 있어야·해당 은사 보유"가 정확히 구현돼 있음, 버그 안 보임. GO `duel_rules.gd::win_chance()`(mine/(mine+foe), 0.12~0.88 클램프)·`shrine_trial.gd`의 하루 3회(실제 벽시계 날짜, 게이트 통과해야만 소모)도 코드로 확인 끝, 이상 없음.
