@@ -4027,3 +4027,17 @@ jsdom 362/362 ×3(코드 변경 없음). ① `통로 결 안에서만 다음 방
 **검증**: `node -c js/sprite.js` 통과. `data.js`의 pt_/pk_ id 105개와 `BEAST_FORM`/`BEAST_COLOR` 키를 스크립트로 교차 확인 — 105/105 일치, 오타·중복 없음(`BEAST_PATTERN`은 원래도 선택 항목이라 일부만 있는 게 정상). jsdom 진단 러너(`resources.interceptors`)가 이 jsdom 버전(30.1.1)에서 서브리소스를 안 태워 `_test.html`을 못 돌렸다(문서 예제 그대로도 재현 — jsdom 자체 이슈로 보인다, 별도 조사 필요). 논리 변경이 없는 순수 데이터 표 추가라 위험은 낮다고 보지만 **실기 확인 필요**(도감·펫 상세에서 64종이 형태·색으로 구분되는지).
 
 **남은 것**: 3D 디스크 초상이 아예 없는 91종(사람 눈에 더 높은 완성도)은 여전히 보류 — 사가고 `beast_*.png`(27개) 재활용은 종 매칭이 부분적(돌고래·상어·여우·백마 등 10여 종만)이라 별도 판단이 필요, 착수 전 사용자 확인.
+
+## 2026-09-22 (이어서 4) — 91종 이미지 공백, 종이 겹치는 16장만 사가고 `beast_*.png` 로 채움
+
+"실기 확인은 몰아서 할 테니 91종 이미지 공백 계속 보자"는 요청. `saga-go/assets/sprites2d/beast_*.png`(27장, CC0 — Quaternius GLB 를 구운 것, `../saga-go/assets/ASSET_LICENSES.md`)와 이 판 펫 91종(디스크 초상·3D 굽기 둘 다 안 되는 종)을 이름으로 대조하니 **종이 실제로 맞는 자리가 16장**이었다(사가고는 형태별 여럿 중 해시로 아무거나 고르는 "배경 채움" 방식이라 이 판처럼 이름 있는 특정 종엔 그대로 못 쓴다).
+
+**한 일**:
+- `beast_Fox`·`Dolphin`·`Shark`·`Manta_ray`·`Stag`·`Horse_White`·`Horse`·`Donkey`·`Cow`·`Bull`·`Stegosaurus`·`Trex`·`Triceratops`·`Velociraptor`·`Koi`·`Alpaca`.png(16장, 96×96, 각 3~8KB) 를 `saga-go`에서 md5 동일하게 복사해 `assets/sprites2d/`에 추가.
+- `js/sprite.js`에 `PET_IMG`(펫 id → 파일 이름, 20개 — `pt_shark_2`→Shark, `pt_horse_farm`→Horse, `pt_cow_farm`→Cow, `pt_llama`→Alpaca 넷은 정확히 겹치는 파일이 없는 근연종이라 가장 가까운 그림을 같이 씀)·`petImgFile`/`petImgOf`(로딩 캐시, hero 쪽 `humanImg`와 같은 요령)를 추가.
+- `portrait()`·`portraitCard()`의 pet 갈래에서 `petImgOf(ref)`가 그림을 주면(로딩 완료) 그 그림을 그리고, 없으면(목록 밖 종·아직 로딩 중) 여태처럼 `beast()` 절차적 그림으로 되돌아간다 — hero 갈래의 `humanImg` 있음/없음 분기와 완전히 같은 모양.
+- `ASSET_LICENSES.md`에 출처·매칭 근거 절 추가.
+
+**알려진 한계**: `portrait()`/`portraitCard()`의 결과는 `cache`/`cardCache`에 **한 번 그려지면 그대로 굳는다**(hero 쪽 `humanImg`도 같은 구조 — 이 판이 원래부터 감수해 온 설계다). 16종 이미지가 첫 렌더 시점에 아직 로딩 중이면 그 세션 동안은 절차적 그림으로 남을 수 있다(새로고침하면 다시 시도). 별도 재시도 장치(hero 3D 초상의 `data-p3`/`sweep()`)는 이 경로엔 없음 — 필요하면 다음에.
+
+**검증**: `node -c js/sprite.js` 통과. `PET_IMG`의 id 20개 전부 `data.js`에 실재(스크립트 대조) 확인. 복사한 16장 md5 를 `saga-go` 원본과 대조해 동일 확인. `sw.js` `dungeon-v0.140.0`→`dungeon-v0.141.0`. **실기 확인은 사용자가 몰아서 할 예정** — 도감에서 16종이 그림으로 뜨는지, 나머지 75종(신수 11·포켓몬 16·안 맞는 물고기 등 48)은 여전히 절차적 그림인 게 맞는지.

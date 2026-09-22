@@ -950,6 +950,37 @@
   function beastFormOf(pet) { return (pet && BEAST_FORM[pet.id]) || 'quad'; }
   function beastColorOf(pet) { return (pet && BEAST_COLOR[pet.id]) || '#9a8f7a'; }
 
+  /* ── 펫 초상 — 3D 굽기가 안 되는 종 일부를 실제 그림으로(2026-09-22) ──────
+   * `assets/portraits/pet/`(14종)·3D 굽기 둘 다 안 되는 나머지 91종은 절차적
+   * `beast()` 뿐이었다(ASSET_LICENSES.md 같은 날 절). 그중 **종이 실제로 겹치는
+   * 16장**만 `saga-go/assets/sprites2d/beast_*.png`(CC0, md5 동일 복사)를 써서
+   * 실제 그림으로 바꾼다 — 사가고처럼 형태별 아무거나 고르지 않고, **이름이
+   * 맞는 자리에만** 못 박는다(펫은 익명 배경 채움이 아니라 특정 종이라서).
+   * 목록에 없거나(대다수 물고기·신수·포켓몬 오마주) 그림이 아직 안 실렸으면
+   * `false`/`null` — 부르는 쪽이 여태처럼 `beast()` 절차적 그림으로 그린다. */
+  var PET_IMG = {
+    pt_fox: 'Fox', pt_dolphin: 'Dolphin', pt_shark: 'Shark', pt_shark_2: 'Shark',
+    pt_manta_ray: 'Manta_ray', pt_stag: 'Stag', pt_white_horse: 'Horse_White',
+    pt_horse: 'Horse', pt_horse_farm: 'Horse', pt_donkey: 'Donkey',
+    pt_cow: 'Cow', pt_cow_farm: 'Cow', pt_bull: 'Bull',
+    pt_stegosaurus: 'Stegosaurus', pt_t_rex: 'Trex', pt_triceratops: 'Triceratops',
+    pt_velociraptor: 'Velociraptor', pt_koi_2: 'Koi', pt_alpaca: 'Alpaca', pt_llama: 'Alpaca'
+  };
+  var petImgCache = {};
+  function petImgFile(name) {
+    var src = 'assets/sprites2d/beast_' + name + '.png';
+    var im = petImgCache[src];
+    if (!im) { im = new Image(); im.src = src; petImgCache[src] = im; }
+    return im;
+  }
+  /** 다 실렸으면 <img>, 아니면(목록 밖 종·아직 로딩 중) null — 부르는 쪽이 `beast()` 로 되돌아간다 */
+  function petImgOf(pet) {
+    var name = pet && PET_IMG[pet.id];
+    if (!name) { return null; }
+    var im = petImgFile(name);
+    return (im.complete && im.naturalWidth) ? im : null;
+  }
+
   /**
    * @param o {x, y, s, facing, phase, walking, form, color, divine, t}
    */
@@ -1705,11 +1736,18 @@
         loadingMark(c, size * 0.5, size * 0.94, size * 0.8, f.color);
       }
     } else if (kind === 'pet') {
-      beast(c, {
-        x: size * 0.5, y: size * 0.9, s: size / 40, facing: 1,
-        phase: 0, walking: false, form: beastFormOf(ref),
-        color: beastColorOf(ref), divine: ref.kind === 'divine', ref: ref, t: 0
-      });
+      var pimg2 = petImgOf(ref);
+      if (pimg2) {
+        c.imageSmoothingEnabled = false;
+        var pw2 = size * 0.78;
+        c.drawImage(pimg2, size * 0.5 - pw2 / 2, size * 0.94 - pw2, pw2, pw2);
+      } else {
+        beast(c, {
+          x: size * 0.5, y: size * 0.9, s: size / 40, facing: 1,
+          phase: 0, walking: false, form: beastFormOf(ref),
+          color: beastColorOf(ref), divine: ref.kind === 'divine', ref: ref, t: 0
+        });
+      }
     }
     diabloize(cv, { rimK: 0.58 });
     cache[key] = cv.toDataURL();
@@ -1781,12 +1819,19 @@
         loadingMark(fig, w * 0.5, h * 0.93, h * 0.6, fac.color);
       }
     } else {
-      /* 짐승은 가로로 긴 형태(용·물고기)가 있어 폭 기준으로 맞춘다 (bake 상자 = 2.3H) */
-      beast(fig, {
-        x: w * 0.5, y: h * 0.80, s: h / 80, facing: 1, phase: 0, walking: false,
-        form: beastFormOf(ref), color: beastColorOf(ref),
-        divine: ref.kind === 'divine', ref: ref, t: 0
-      });
+      var pimg3 = petImgOf(ref);
+      if (pimg3) {
+        fig.imageSmoothingEnabled = false;
+        var pw3 = h * 0.62;
+        fig.drawImage(pimg3, w * 0.5 - pw3 / 2, h * 0.93 - pw3, pw3, pw3);
+      } else {
+        /* 짐승은 가로로 긴 형태(용·물고기)가 있어 폭 기준으로 맞춘다 (bake 상자 = 2.3H) */
+        beast(fig, {
+          x: w * 0.5, y: h * 0.80, s: h / 80, facing: 1, phase: 0, walking: false,
+          form: beastFormOf(ref), color: beastColorOf(ref),
+          divine: ref.kind === 'divine', ref: ref, t: 0
+        });
+      }
     }
     diabloize(figCv, { rimK: 0.5 });
     c.save();
