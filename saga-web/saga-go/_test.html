@@ -1049,7 +1049,9 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         return { ev: found, ki: s.ki };
       }
       var justR = run(true), walkR = run(false);
-      return justR.ev && justR.ev.dmg === 0 && justR.ev.just === true && justR.ki === 30 &&
+      /* 인연 결(⑥ bond.js)의 기 배율(kiPct)이 세이브 상태에 따라 얹힌다 — 그 배율을 곱한 값이 기대치다 */
+      var kiWant = 30 * (1 + DG.core.effect('kiPct') / 100);
+      return justR.ev && justR.ev.dmg === 0 && justR.ev.just === true && Math.abs(justR.ki - kiWant) < 1e-6 &&
         walkR.ev && walkR.ev.dmg > 0 && walkR.ev.just === false && walkR.ki === 0 &&
         ('저스트: 무피해·기+' + justR.ki + ' · 창 밖(그냥 걷기): ' + walkR.ev.dmg + '피해·기+' + walkR.ki);
     });
@@ -7082,7 +7084,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
     });
 
     /* ── 패배 비용(PLAN §5 ⑧, 2026-09-21) — 졌을 때 금의 15%(상한 300)가 그 자리에 떨어진 짐으로 남고,
-     * 10분 안에 150m 안에서 이기면 되찾는다. 손으로 진 판에만 붙는다. 아직 실기 확인 전. */
+     * 10분 안에 400m 안에서 이기면 되찾는다(2026-09-22: 150→400m, 실기 확인 반영). 손으로 진 판에만 붙는다. */
 
     /** 짐 진단이 쓰는 세이브 조각을 통째로 되돌리는 틀 */
     function dropKeep() {
@@ -7129,7 +7131,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         var px = C.save.player.pos.x;
         C.save.player.pos.x = px + 500;                           // 500m 밖
         var far = D.win(t0 + 3000), lf = D.list(t0 + 3000).length;
-        C.save.player.pos.x = px + 100;                           // 100m 안(반경 150)
+        C.save.player.pos.x = px + 100;                           // 100m 안(반경 400)
         var near = D.win(t0 + 4000);
         out = !!back && back.gold === 150 && g1 === 1000 && l1 === 0 && again === null && far === null && lf === 1 &&
           !!near && near.gold === 150 && C.save.player.gold === 1000 && D.list(t0 + 4000).length === 0;

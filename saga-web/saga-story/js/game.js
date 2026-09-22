@@ -123,6 +123,7 @@
       else if (k === 'arrowdown' || k === 's' || k === km.down) { S.setInput('down', true); }
       else if (k === ' ') { S.setInput('jump', true); }
       else if (k === 'q') { S.drink(); }
+      else if (k === 'e') { if (global.DG.party) { global.DG.party.cycle(); } }   // 동료 교대(§5-8)
       else if (k === 'shift') { if (!e.repeat) { S.holdStart(); } }   // §5-1 — 길게 누르면 고유 조작
       else if (k === 'm') { ui.toggleOverworldMap(); }
       else if (k >= '1' && k <= '8') { S.castSkill(parseInt(k, 10) - 1); }

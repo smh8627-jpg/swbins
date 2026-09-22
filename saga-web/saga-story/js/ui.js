@@ -208,8 +208,30 @@
         if (!global.DG.side.challengeGate(b.getAttribute('data-stage'))) {
           toast('🔒 지금은 도전할 수 없습니다 — 이번 주 완료했거나 오늘 이미 도전했습니다');
         }
+      } else if (act === 'rift-open') {
+        openSheet('rift');
+      } else if (act === 'rift-begin') {
+        global.DG.rift.begin();
+      } else if (act === 'rift-boon') {
+        global.DG.rift.pickBoon(b.getAttribute('data-key'));
+      } else if (act === 'rift-node') {
+        global.DG.rift.choose(parseInt(b.getAttribute('data-i'), 10) || 0);
+      } else if (act === 'rift-ev') {
+        global.DG.rift.pickEvent(b.getAttribute('data-key'));
+      } else if (act === 'rift-up-hp') {
+        global.DG.rift.buyHp();
+      } else if (act === 'rift-unlock') {
+        global.DG.rift.unlockBoon(b.getAttribute('data-key'));
+      } else if (act === 'rift-quit') {
+        riftQuitAsk = true; renderSheet();
+      } else if (act === 'rift-quit-no') {
+        riftQuitAsk = false; renderSheet();
+      } else if (act === 'rift-quit-yes') {
+        riftQuitAsk = false; global.DG.rift.abandon(); renderSheet();
       } else if (act === 's-leave') {
         global.DG.side.leave();
+      } else if (act === 's-swap') {
+        global.DG.party.swap(parseInt(b.getAttribute('data-i'), 10) || 0, false);
       } else if (act === 's-skill') {
         global.DG.side.castSkill(parseInt(b.getAttribute('data-i'), 10) || 0);
       } else if (act === 's-drink') {
@@ -314,6 +336,12 @@
     core.on('changed', function () { renderTop(); renderSheet(); renderCamp(); });
     core.on('dg:keyremap', function () { if (openTab === 'keys') { renderSheet(); } });
     core.on('side:end', openSessionCard);   // 세션 마무리 카드(§5-6)
+    /* 비경(§5-3) — 고를 차례(축복·지도·이벤트)가 오면 시트가 저절로 열리고, 싸움이 시작되면 닫힌다 */
+    core.on('rift:phase', function (r) {
+      if (!r) { if (openTab === 'rift') { renderSheet(); } return; }
+      if (r.phase === 'fight') { if (openTab === 'rift') { closeSheet(); } return; }
+      if (openTab !== 'rift') { openSheet('rift'); }
+    });
     core.on('dex:new', function (p) {
       var ent = data.find(p.id);
       if (ent) { toast('📖 도감 신규 등록 · ' + ent.name); }
@@ -331,7 +359,7 @@
   var SHEET_TITLE = {
     field: '🏃 사냥터', bag: '🎒 가방', job: '🥋 무예', shop: '🏪 저자',
     dex: '📖 도감', log: '📜 기록', keys: '⌨️ 키설정', settings: '⚙️ 설정',
-    achieve: '🏅 업적', sessionEnd: '🚪 이번 사냥 요약'
+    achieve: '🏅 업적', sessionEnd: '🚪 이번 사냥 요약', rift: '🌀 비경'
   };
 
   /** 업적(PLAN 33절) — 사명과 달리 한 번 이루면 다시 안 없어진다.
@@ -380,6 +408,11 @@
       '<div class="stat-row"><span>경험치</span><b>' + core.fmt(g.exp || 0) + '</b></div>' +
       '<div class="stat-row"><span>금</span><b>🪙 ' + core.fmt(g.gold || 0) + '</b></div>';
     if (g.gear) { html += '<div class="stat-row"><span>주운 장비</span><b>📦 ' + g.gear + '</b></div>'; }
+    if (g.rift) {
+      html += '<div class="stat-row"><span>🌀 비경</span><b>' +
+        (g.rift.clear ? '정복!' : (g.rift.floors + '층 통과')) + ' · 🧩 +' + g.rift.shards +
+        ' · 축복 ' + g.rift.boons + '</b></div>';
+    }
     if (g.feat) { html += '<div class="stat-row"><span>업적 진척</span><b>🏅 +' + g.feat + '</b></div>'; }
     html += '<div class="card on"><div class="stat-row"><span><b>다음에 할 것</b></span></div>' +
       '<div class="stat-row"><span>' + esc(g.next || '🏃 사냥터로 돌아가기') + '</span></div></div>';
@@ -465,6 +498,134 @@
     return h;
   }
 
+  /* ── 비경(§5-3) ─────────────────────────────────────────
+   * 시트 하나(rift)가 문 앞(기억 조각 강화·축복 풀)·축복 3택·노드 지도·이벤트를 다 그린다.
+   * 상태는 전부 rift.js(save.rift)에 있고 여기는 그리기만 한다. */
+  var riftQuitAsk = false;
+  var RIFT_AXIS = { atk: '⚔️ 공격', def: '🛡️ 방어', util: '🧭 유틸' };
+
+  function viewRiftEntry() {
+    var R = global.DG.rift;
+    if (!R) { return ''; }
+    var f = R.info();
+    return '<div class="sec"><h4>🌀 비경</h4><div class="card">' +
+      '<div class="stat-row"><span>5층 노드 지도 · 층마다 축복</span>' +
+        '<span class="muted">' + (f.pending ? (f.floor + 1) + '층 진행 중' : '정복 ' + f.clears + '회') + '</span></div>' +
+      (f.available.ok
+        ? '<button class="btn ' + (f.pending ? 'primary ' : '') + 'wide" data-act="rift-open">' +
+          (f.pending ? '🌀 갈림길 열기' : '🌀 비경 문으로') + '</button>'
+        : '<button class="btn ghost wide" disabled>🔒 ' + esc(f.available.reason) + '</button>') +
+      '</div></div>';
+  }
+
+  function riftBoonLine(key) {
+    var RD = global.DG.riftData, R = global.DG.rift, b = RD.boon(key);
+    return b ? esc(R.boonLabel(b)) : esc(key);
+  }
+
+  function viewRift() {
+    var R = global.DG.rift, RD = global.DG.riftData;
+    if (!R || !RD) { return '<div class="hint">비경 모듈을 찾을 수 없습니다</div>'; }
+    var f = R.info(), i, k, html = '';
+    if (!f.pending) { riftQuitAsk = false; }
+
+    html += '<div class="card"><div class="stat-row"><span>🧩 기억 조각</span><b>' + f.shards + '</b></div>' +
+      '<div class="stat-row"><span class="muted">' + f.variant.emoji + ' 이번 주 · ' + esc(f.variant.name) + '</span>' +
+        '<span class="muted">' + esc(f.variant.desc) + '</span></div></div>';
+
+    if (!f.pending) {
+      html += '<div class="hint">갈림길을 골라 5층을 내려갑니다. 층마다 <b>전투·정예·보물·휴식·이벤트</b> 중 하나를 고르고, ' +
+        '진입 직후와 정예를 쓰러뜨린 뒤 <b>축복</b> 3택이 나옵니다. 5층은 관문 수호장입니다. ' +
+        '쓰러지면 나가고 축복은 사라지지만, 받은 <b>기억 조각</b>은 남습니다.</div>';
+      html += '<div class="stat-row"><span>도전 / 정복 / 가장 깊이</span><b>' +
+        f.runs + ' / ' + f.clears + ' / ' + f.best + '층</b></div>';
+      html += f.available.ok
+        ? '<button class="btn primary wide" data-act="rift-begin">🌀 비경에 들어간다</button>'
+        : '<button class="btn ghost wide" disabled>🔒 ' + esc(f.available.reason) + '</button>';
+
+      html += '<div class="sec"><h4>기억 조각 강화</h4><div class="card">' +
+        '<div class="stat-row"><span>최대 체력 +' + Math.round(RD.MEM_HP_STEP * 100) + '% / 단 (' + f.memHp + '/' + RD.MEM_HP_MAX + '단)</span>' +
+        (f.memHp >= RD.MEM_HP_MAX
+          ? '<b>최고</b>'
+          : '<button class="btn tiny" data-act="rift-up-hp">🧩 ' + f.hpCost + ' 로 올린다</button>') +
+        '</div></div>';
+      var lockedAny = false;
+      for (i = 0; i < RD.BOONS.length; i++) {
+        var b = RD.BOONS[i];
+        if (!b.locked) { continue; }
+        lockedAny = true;
+        html += '<div class="card"><div class="stat-row"><span>' + RIFT_AXIS[b.axis] + ' · ' + riftBoonLine(b.key) + '</span>' +
+          (f.open[b.key]
+            ? '<span class="muted">열림</span>'
+            : '<button class="btn tiny ghost" data-act="rift-unlock" data-key="' + b.key + '">🧩 ' + RD.UNLOCK_COST + ' 로 연다</button>') +
+          '</div><small class="muted">' + esc(b.desc) + '</small></div>';
+      }
+      if (lockedAny) { html = html.replace('<div class="sec"><h4>기억 조각 강화</h4>', '<div class="sec"><h4>기억 조각 강화 · 축복 풀</h4>'); }
+      html += '</div>';
+      return html;
+    }
+
+    /* 진행 중 */
+    html += '<div class="stat-row"><span>지금</span><b>' + Math.min(f.floor + 1, RD.FLOORS) + '층 / ' + RD.FLOORS +
+      ' · 이번 판 🧩 +' + f.gained + '</b></div>';
+    if (f.boons.length) {
+      html += '<div class="card">';
+      for (i = 0; i < f.boons.length; i++) {
+        var bb = RD.boon(f.boons[i]);
+        html += '<div class="stat-row"><span>✨ ' + riftBoonLine(f.boons[i]) + '</span><small class="muted">' +
+          esc(bb ? bb.desc : '') + '</small></div>';
+      }
+      html += '</div>';
+    }
+
+    if (f.phase === 'boon' && f.offer) {
+      html += '<div class="sec"><h4>✨ 축복을 고르세요</h4>';
+      for (i = 0; i < f.offer.length; i++) {
+        var ob = RD.boon(f.offer[i]);
+        html += '<button class="btn wide" data-act="rift-boon" data-key="' + ob.key + '" style="text-align:left">' +
+          '<b>' + RIFT_AXIS[ob.axis] + ' · ' + riftBoonLine(ob.key) + '</b><br><small>' + esc(ob.desc) + '</small></button>';
+      }
+      html += '</div>';
+    } else if (f.phase === 'event' && f.ev) {
+      var ed = R.eventDef(f.ev.key);
+      html += '<div class="sec"><h4>' + ed.emoji + ' ' + esc(ed.name) + '</h4><div class="hint">' + esc(ed.text) + '</div>';
+      for (i = 0; i < ed.opts.length; i++) {
+        html += '<button class="btn wide" data-act="rift-ev" data-key="' + ed.opts[i].key + '" style="text-align:left">' +
+          '<b>' + esc(ed.opts[i].label) + '</b><br><small>' + esc(ed.opts[i].hint) + '</small></button>';
+      }
+      html += '</div>';
+    } else if (f.phase === 'fight') {
+      var c = f.cur || {};
+      html += '<div class="hint">⚔️ 싸우는 중 — ' + esc((RD.KINDS[c.kind] || {}).name || '') +
+        (c.kind === 'battle' ? ' (' + c.kills + '/' + c.goal + ')' : '') + '. 시트를 닫고 싸우세요.</div>';
+    }
+
+    /* 노드 지도 — 위가 5층 */
+    html += '<div class="sec"><h4>지도</h4>';
+    for (k = RD.FLOORS - 1; k >= 0; k--) {
+      var row = f.map[k], chosen = f.path[k];
+      html += '<div class="stat-row"><span class="muted">' + (k + 1) + '층</span><span>';
+      for (i = 0; i < row.length; i++) {
+        var kd = RD.KINDS[row[i].kind];
+        var here = (k === f.floor && f.phase === 'map');
+        var was = k < f.floor && chosen === i;
+        html += '<button class="btn tiny ' + (was ? 'primary' : 'ghost') + '"' +
+          (here ? ' data-act="rift-node" data-i="' + i + '" title="' + esc(kd.desc) + '"' : ' disabled') +
+          ' style="margin-left:4px' + (k < f.floor && !was ? ';opacity:.4' : '') + '">' +
+          kd.emoji + ' ' + esc(kd.name) + '</button>';
+      }
+      html += '</span></div>';
+    }
+    html += '</div>';
+
+    html += riftQuitAsk
+      ? '<div class="card"><div class="hint">정말 포기할까요? 축복과 층은 사라지고, 받은 기억 조각만 남습니다.</div>' +
+        '<button class="btn wide" data-act="rift-quit-yes">포기한다</button>' +
+        '<button class="btn ghost wide" data-act="rift-quit-no">계속한다</button></div>'
+      : '<button class="btn tiny ghost wide" data-act="rift-quit">🚪 비경을 포기하고 나간다</button>';
+    return html;
+  }
+
   function openSheet(name) {
     openTab = name;
     els['sheet-title'].textContent = SHEET_TITLE[name] || name;
@@ -500,6 +661,7 @@
           : openTab === 'keys' ? viewKeys()
           : openTab === 'settings' ? viewSettings()
           : openTab === 'achieve' ? viewAchieve()
+          : openTab === 'rift' ? viewRift()
           : openTab === 'sessionEnd' ? viewSessionEnd() : viewLog();
     els['sheet-body'].innerHTML = v;
   }
@@ -595,7 +757,9 @@
       var gi = e.ref.gateBoss ? S.gateInfo(e.ref.key) : null;
       return gi ? (gi.ready ? '1' : (gi.wonThisWeek ? 'w' : 'd')) : '-';
     }).join('');
+    var RF = global.DG.rift;
     var key = [core.save.player.level, st.kills, st.deaths, st.potions, st.bosses, bossFlags, gateFlags,
+               RF && RF.pending() ? 'r1' : 'r0',
                me && me.id, global.DG.auto.active(), global.DG.auto.status().doing].join('|');
     if (key === campKey) { els.camp.classList.add('show'); return; }
     campKey = key;
@@ -622,6 +786,10 @@
         html += '<button class="btn tiny ghost wide" data-act="s-gate" data-stage="' + e.ref.key + '">' +
           '🏯 ' + esc(gi2.name) + ' 도전</button>';
       }
+    }
+    if (RF && RF.available().ok) {
+      html += '<button class="btn tiny ghost wide" data-act="rift-open">🌀 비경' +
+        (RF.pending() ? ' — 진행 중' : '') + '</button>';
     }
     html += '<div class="camp-auto">' + sectionAuto() + '</div>';
     html += '<small class="muted">쓰러지면 그 판에서 주운 금의 <b>절반만</b> 남습니다. ' +
@@ -665,7 +833,8 @@
        나머지 무예는 auto.js 의 tickSkillsOnly 가 조건 맞춰 알아서 쓰므로,
        조작 띠에는 손이 쥐는 "공격"(쿨 가장 짧은 자리) 한 칸만 남긴다. */
     var atkI = st.attackIdx;
-    var key = st.skills.length + ':' + atkI;
+    var pty = st.party && st.party.list.length > 1 ? st.party : null;
+    var key = st.skills.length + ':' + atkI + ':' + (pty ? pty.list.map(function (m) { return m.id; }).join(',') : '');
     if (hudKey === null || hudKey !== key) {
       var html = '<div class="hud-card">' +
         '<div class="hud-hint" id="hud-hint"></div>' +
@@ -674,6 +843,13 @@
         sk = st.skills[atkI];
         html += '<button class="hud-sk" data-act="s-skill" data-i="' + atkI + '" title="' +
           esc(sk.name + ' — ' + sk.desc) + '"><b>' + sk.emoji + '</b><u></u></button>';
+      }
+      if (pty) {
+        for (i = 0; i < pty.list.length; i++) {
+          var pm = pty.list[i];
+          html += '<button class="hud-sk pty" data-act="s-swap" data-i="' + i + '" title="' +
+            esc(pm.name + ' — 서명 ' + pm.sig + ' (E: 다음 동료)') + '"><b>' + esc(pm.emoji) + '</b><u></u></button>';
+        }
       }
       html += '<button class="hud-sk potion" data-act="s-drink" title="탕약을 마신다 (Q)">' +
         '<b>🧪</b><small class="pn"></small></button>' +
@@ -691,6 +867,17 @@
       sk = st.skills[atkI];
       atkBtn.classList.toggle('ready', sk.ready);
       atkBtn.querySelector('u').style.height = (sk.cdMax ? (sk.cd / sk.cdMax * 100) : 0) + '%';
+    }
+    if (pty) {
+      var pbs = els.hud.querySelectorAll('.hud-sk.pty');
+      for (i = 0; i < pbs.length && i < pty.list.length; i++) {
+        var pmm = pty.list[i];
+        pbs[i].classList.toggle('active', pmm.active);
+        pbs[i].classList.toggle('dead', pmm.dead);
+        pbs[i].classList.toggle('ready', !pmm.active && !pmm.dead && pty.cd <= 0);
+        /* 어두운 덮개는 잃은 체력만큼 — 쿨다운 칸(u)과 같은 결 */
+        pbs[i].querySelector('u').style.height = (pmm.hpMax ? (1 - pmm.hp / pmm.hpMax) * 100 : 100) + '%';
+      }
     }
     var dodgeBtn = document.getElementById('hud-dodge');
     if (dodgeBtn && st.dodge) {
@@ -805,6 +992,7 @@
     }
     html += '</div>';
 
+    html += viewRiftEntry();
     html += sectionAuto();
     html += viewQuestSection();
 

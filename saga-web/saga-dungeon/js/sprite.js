@@ -1,10 +1,18 @@
 /**
- * 스프라이트 — 코드로 그리는 캐릭터 / 몬스터
+ * 스프라이트 — 사람·적 그림(던전 뷰·초상)과 펫 그림
  * ---------------------------------------------------------------
- * 이미지 파일 없이 캔버스 도형으로 형상을 만든다. 벡터라서 2.5D 원근에 맞춰
- * 확대·축소해도 깨지지 않고, 관절 각도로 걷는 동작을 만들 수 있다.
+ * 사람(NPC·동행·플레이어)과 적은 실제 그림(Kenney `human_*`·베이크한
+ * `mon_*`, `mon-manifest.js` 60종)을 쓴다 — 절차적 human()/beast() 는
+ * 2026-09-22 Phase 4 에서 지도·초상 두 경로 다 걷어 냈다.
  *
- *   human(ctx, o)     사람 — 머리·몸통·팔·다리·투구·무기. 걸음 위상으로 팔다리가 흔들린다
+ * **펫만 예외** — `human()`/`beast()`(과 전용 헬퍼)를 그대로 남겼다.
+ * 원래 14종만 초상이 구워져 있고(assets/portraits/pet), REG 확장분
+ * 91종은 실제 3D 굽기가 전부 실패한다(2026-09-22 재확인, `bake-portraits
+ * --kind=pet` 210 회 중 28 회만 성공 — 새 91종은 0). 2D 대체 그림도 없어
+ * `portrait()`/`portraitCard()` 의 펫 갈래는 절차적 `beast()` 가 **유일한
+ * 표시 수단**이다 — 사용자 결정으로 지우지 않는다.
+ *
+ *   human(ctx, o)     사람 — 머리·몸통·팔·다리·투구·무기(펫 초상의 도깨비류 합성에도 쓰인다)
  *   beast(ctx, o)     짐승 — 네발 / 조류 / 용 / 거북 / 물고기 / 두꺼비
  *
  * 외형 파라미터는 인물마다 일일이 적지 않는다. 기질(무/지/덕)·세력·등급에서
@@ -859,7 +867,32 @@
     pk_bulbasaur: 'quad', pk_charmander: 'quad', pk_squirtle: 'turtle', pk_magikarp: 'fish',
     pk_pikachu: 'quad', pk_eevee: 'quad', pk_slowbro: 'quad', pk_gengar: 'ogre',
     pk_snorlax: 'quad', pk_lapras: 'turtle', pk_alakazam: 'ogre', pk_dragonite: 'dragon',
-    pk_charizard: 'dragon', pk_gyarados: 'dragon', pk_mewtwo: 'ogre', pk_mew: 'quad'
+    pk_charizard: 'dragon', pk_gyarados: 'dragon', pk_mewtwo: 'ogre', pk_mew: 'quad',
+
+    /* REG 확장분 64종(2026-09-22, 펫 이미지 공백 처리) — 여긴 원래 form 이
+       없어 전부 기본값(quad, 평범한 네발짐승)으로 뭉뚱그려 보였다(물고기도
+       예외 없이 네발짐승 모양이었다). 물고기는 fish, 공룡은 dragon, 나머지
+       뭍짐승은 quad/horse 로 갈랐다. */
+    pt_fox: 'quad', pt_dolphin: 'fish', pt_shark: 'fish', pt_whale: 'fish',
+    pt_manta_ray: 'fish', pt_fish_1: 'fish', pt_fish_2: 'fish', pt_fish_3: 'fish',
+    pt_stag: 'quad', pt_white_horse: 'horse', pt_horse: 'horse', pt_llama: 'quad',
+    pt_pig: 'quad', pt_pug: 'quad', pt_sheep: 'quad', pt_horse_farm: 'horse',
+    pt_cow_farm: 'quad', pt_zebra: 'quad', pt_cow: 'quad', pt_donkey: 'quad',
+    pt_alpaca: 'quad', pt_bull: 'quad',
+    pt_anglerfish: 'fish', pt_apatosaurus: 'dragon', pt_armored_catfish: 'fish',
+    pt_betta: 'fish', pt_black_lion_fish: 'fish', pt_blobfish: 'fish',
+    pt_blue_goldfish: 'fish', pt_blue_tang: 'fish', pt_butterfly_fish: 'fish',
+    pt_cardinal_fish: 'fish', pt_clownfish: 'fish', pt_coral_grouper: 'fish',
+    pt_cowfish: 'fish', pt_flatfish: 'fish', pt_flower_horn: 'fish',
+    pt_goblin_shark: 'fish', pt_goldfish: 'fish', pt_humphead: 'fish',
+    pt_koi_2: 'fish', pt_lionfish: 'fish', pt_mandarin_fish: 'fish',
+    pt_moorish_idol: 'fish', pt_parasaurolophus: 'dragon', pt_parrot_fish: 'fish',
+    pt_piranha: 'fish', pt_puffer: 'fish', pt_red_snapper: 'fish',
+    pt_royal_gramma: 'fish', pt_shark_2: 'fish', pt_stegosaurus: 'dragon',
+    pt_sunfish: 'fish', pt_swordfish: 'fish', pt_t_rex: 'dragon',
+    pt_tang: 'fish', pt_tetra: 'fish', pt_triceratops: 'dragon',
+    pt_tuna: 'fish', pt_turbot: 'fish', pt_velociraptor: 'dragon',
+    pt_worm: 'fish', pt_yellow_tang: 'fish', pt_zebra_clown_fish: 'fish'
   };
 
   var BEAST_COLOR = {
@@ -874,7 +907,29 @@
     pk_bulbasaur: '#6aa84f', pk_charmander: '#e06c3a', pk_squirtle: '#5a9ad9', pk_magikarp: '#e0703a',
     pk_pikachu: '#e8c93a', pk_eevee: '#b98a5a', pk_slowbro: '#e8a0b0', pk_gengar: '#6a4a8c',
     pk_snorlax: '#4a6a7a', pk_lapras: '#7ab0d9', pk_alakazam: '#d9a83a', pk_dragonite: '#e8b45a',
-    pk_charizard: '#e06c3a', pk_gyarados: '#4a7ad9', pk_mewtwo: '#d9c8e8', pk_mew: '#f0a8c0'
+    pk_charizard: '#e06c3a', pk_gyarados: '#4a7ad9', pk_mewtwo: '#d9c8e8', pk_mew: '#f0a8c0',
+
+    /* REG 확장분 64종(2026-09-22, 펫 이미지 공백 처리) — 위 BEAST_FORM 과 짝 */
+    pt_fox: '#c9743a', pt_dolphin: '#7a96a8', pt_shark: '#7a828c', pt_whale: '#465562',
+    pt_manta_ray: '#39434c', pt_fish_1: '#a88a4a', pt_fish_2: '#b6c0c9', pt_fish_3: '#584d43',
+    pt_stag: '#ab7c4c', pt_white_horse: '#eceef2', pt_horse: '#8a6a49', pt_llama: '#d9c8a8',
+    pt_pig: '#e8a9a9', pt_pug: '#c9a868', pt_sheep: '#e9e1d1', pt_horse_farm: '#7a5a3a',
+    pt_cow_farm: '#2c2c2e', pt_zebra: '#2c2c2e', pt_cow: '#4a3a2a', pt_donkey: '#8a8078',
+    pt_alpaca: '#d9c298', pt_bull: '#5a3a2a',
+    pt_anglerfish: '#463530', pt_apatosaurus: '#6c8c6c', pt_armored_catfish: '#5a5040',
+    pt_betta: '#c9394a', pt_black_lion_fish: '#2a2228', pt_blobfish: '#d9a8a0',
+    pt_blue_goldfish: '#3a6ac9', pt_blue_tang: '#2a6ad9', pt_butterfly_fish: '#e8c93a',
+    pt_cardinal_fish: '#c9453a', pt_clownfish: '#e8783a', pt_coral_grouper: '#c9503a',
+    pt_cowfish: '#d9c93a', pt_flatfish: '#a88a5a', pt_flower_horn: '#d9455a',
+    pt_goblin_shark: '#b8888a', pt_goldfish: '#e8983a', pt_humphead: '#3a8a8a',
+    pt_koi_2: '#d9783a', pt_lionfish: '#c9453a', pt_mandarin_fish: '#e87a3a',
+    pt_moorish_idol: '#2a2a30', pt_parasaurolophus: '#8a9a5a', pt_parrot_fish: '#3a9a7a',
+    pt_piranha: '#8a9aa0', pt_puffer: '#c9a868', pt_red_snapper: '#c9453a',
+    pt_royal_gramma: '#8a3ac9', pt_shark_2: '#6a7a88', pt_stegosaurus: '#5a7a4a',
+    pt_sunfish: '#a8b0b8', pt_swordfish: '#2a4a68', pt_t_rex: '#8a4a3a',
+    pt_tang: '#4a5ac9', pt_tetra: '#8aa8c9', pt_triceratops: '#7a6a5a',
+    pt_tuna: '#3a5068', pt_turbot: '#8a7a5a', pt_velociraptor: '#6a7a4a',
+    pt_worm: '#b8785a', pt_yellow_tang: '#e8c93a', pt_zebra_clown_fish: '#e8783a'
   };
 
   /**
@@ -886,12 +941,45 @@
     pt_boar: 'tusk', pt_gumiho: 'ninetail', pt_haetae: 'mane', pt_bulgasari: 'mane',
     pt_bear: 'crescent', pt_sapsal: 'shaggy', pt_monkey: 'bareface',
     pk_pikachu: 'spot', pk_eevee: 'shaggy', pk_bulbasaur: 'patch', pk_snorlax: 'patch',
-    pk_alakazam: 'mane', pk_gyarados: 'stripe', pk_mewtwo: 'mane'
+    pk_alakazam: 'mane', pk_gyarados: 'stripe', pk_mewtwo: 'mane',
+    /* REG 확장분(2026-09-22) — 무늬는 quad/horse 형태에서만 그려진다 */
+    pt_zebra: 'stripe', pt_zebra_clown_fish: 'stripe', pt_cow_farm: 'patch', pt_stag: 'spot'
   };
 
   function beastPatternOf(pet) { return (pet && BEAST_PATTERN[pet.id]) || ''; }
   function beastFormOf(pet) { return (pet && BEAST_FORM[pet.id]) || 'quad'; }
   function beastColorOf(pet) { return (pet && BEAST_COLOR[pet.id]) || '#9a8f7a'; }
+
+  /* ── 펫 초상 — 3D 굽기가 안 되는 종 일부를 실제 그림으로(2026-09-22) ──────
+   * `assets/portraits/pet/`(14종)·3D 굽기 둘 다 안 되는 나머지 91종은 절차적
+   * `beast()` 뿐이었다(ASSET_LICENSES.md 같은 날 절). 그중 **종이 실제로 겹치는
+   * 16장**만 `saga-go/assets/sprites2d/beast_*.png`(CC0, md5 동일 복사)를 써서
+   * 실제 그림으로 바꾼다 — 사가고처럼 형태별 아무거나 고르지 않고, **이름이
+   * 맞는 자리에만** 못 박는다(펫은 익명 배경 채움이 아니라 특정 종이라서).
+   * 목록에 없거나(대다수 물고기·신수·포켓몬 오마주) 그림이 아직 안 실렸으면
+   * `false`/`null` — 부르는 쪽이 여태처럼 `beast()` 절차적 그림으로 그린다. */
+  var PET_IMG = {
+    pt_fox: 'Fox', pt_dolphin: 'Dolphin', pt_shark: 'Shark', pt_shark_2: 'Shark',
+    pt_manta_ray: 'Manta_ray', pt_stag: 'Stag', pt_white_horse: 'Horse_White',
+    pt_horse: 'Horse', pt_horse_farm: 'Horse', pt_donkey: 'Donkey',
+    pt_cow: 'Cow', pt_cow_farm: 'Cow', pt_bull: 'Bull',
+    pt_stegosaurus: 'Stegosaurus', pt_t_rex: 'Trex', pt_triceratops: 'Triceratops',
+    pt_velociraptor: 'Velociraptor', pt_koi_2: 'Koi', pt_alpaca: 'Alpaca', pt_llama: 'Alpaca'
+  };
+  var petImgCache = {};
+  function petImgFile(name) {
+    var src = 'assets/sprites2d/beast_' + name + '.png';
+    var im = petImgCache[src];
+    if (!im) { im = new Image(); im.src = src; petImgCache[src] = im; }
+    return im;
+  }
+  /** 다 실렸으면 <img>, 아니면(목록 밖 종·아직 로딩 중) null — 부르는 쪽이 `beast()` 로 되돌아간다 */
+  function petImgOf(pet) {
+    var name = pet && PET_IMG[pet.id];
+    if (!name) { return null; }
+    var im = petImgFile(name);
+    return (im.complete && im.naturalWidth) ? im : null;
+  }
 
   /**
    * @param o {x, y, s, facing, phase, walking, form, color, divine, t}
@@ -1405,6 +1493,24 @@
   }
   function monReady(ref) { var k = monKeyOf(ref); if (!k) { return false; } var im = monImg(k); return !!(im.complete && im.naturalWidth); }
 
+  /** 그림이 아직 안 실린 순간에만 잠깐 보이는 자리표시(머리 원 + 몸통 타원) —
+   *  human() 절차적 그림을 대신한다(2026-09-22 Phase 4). 2D 던전 뷰의 사람·적은
+   *  Kenney 열넷 / `mon-manifest.js` 60종이 늘 있어(비는 몸은 tier 만 있는 것도
+   *  generic 'beast' 시트로 덮는다) 이 자리는 로컬 PNG 를 기다리는 찰나뿐이다 —
+   *  실리면 stamp() 의 imgReady 재굽기가 곧바로 다시 굽는다 */
+  function loadingMark(ctx, footX, footY, H, color) {
+    ctx.save();
+    ctx.globalAlpha = 0.55;
+    ctx.fillStyle = color || '#8a8578';
+    ctx.beginPath();
+    ctx.ellipse(footX, footY - H * 0.86, H * 0.17, H * 0.17, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(footX, footY - H * 0.42, H * 0.22, H * 0.40, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
   /** 캐시에 한 컷을 굽는다 */
   function bake(kind, ref, sc, pb, o) {
     var base = kind === 'human' ? 40 : 30;
@@ -1420,12 +1526,6 @@
     var c = cv.getContext('2d');
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    var phase = pb === PHASES ? 0 : (pb + 0.5) * (TAU / PHASES);
-    var walking = pb !== PHASES;
-    var common = {
-      x: footX, y: footY, s: sc, facing: 1, phase: phase,
-      walking: walking, noBounce: true, t: 0
-    };
     var himg = kind === 'human' ? humanImg(humanIndexOf(o.ref)) : null;
     var useImg = !!(himg && himg.complete && himg.naturalWidth);   // 짐승은 아래에서 켠다
     if (kind === 'human') {
@@ -1434,10 +1534,7 @@
         c.imageSmoothingEnabled = false;
         c.drawImage(himg, footX - hdw / 2, footY - hdh, hdw, hdh);
       } else {
-        /* 그림이 아직 안 실렸으면(첫 프레임) 옛 절차적 그림으로 우선 채운다 — 빈 캔버스가 캐시에 박제되지 않게 */
-        common.color = o.color; common.look = o.look; common.skin = o.skin;
-        common.rarity = o.rarity || (o.ref && o.ref.rarity) || 0;
-        human(c, common);
+        loadingMark(c, footX, footY, H, o.color);
       }
     } else {
       var mk = monKeyOf(o.ref), mim = mk ? monImg(mk) : null;
@@ -1447,9 +1544,7 @@
         c.drawImage(mim, frame * cell, 0, cell, cell, footX - sq / 2, footY - sq * 0.97, sq, sq);
         useImg = true;
       } else {
-        common.form = o.form; common.color = o.color; common.divine = o.divine;
-        common.ref = o.ref;                      // 무늬는 ref 에서 뽑는다
-        beast(c, common);
+        loadingMark(c, footX, footY, H, o.color);
       }
     }
     /* 디아블로풍 — 무대 위 인물은 커 봐야 40~60px 이라 **거의 모든 픽셀이 테**다.
@@ -1632,17 +1727,27 @@
 
     if (kind === 'hero') {
       var f = global.DG.data.faction(ref.faction);
-      human(c, {
-        x: size * 0.5, y: size * 0.94, s: size / 46, facing: 1,
-        phase: 0, walking: false, color: f.color, look: lookOf(ref),
-        rarity: ref.rarity, t: 0
-      });
+      var himg2 = humanImg(humanIndexOf(ref));
+      if (himg2.complete && himg2.naturalWidth) {
+        c.imageSmoothingEnabled = false;
+        var hw2 = size * 0.78;
+        c.drawImage(himg2, size * 0.5 - hw2 / 2, size * 0.94 - hw2, hw2, hw2);
+      } else {
+        loadingMark(c, size * 0.5, size * 0.94, size * 0.8, f.color);
+      }
     } else if (kind === 'pet') {
-      beast(c, {
-        x: size * 0.5, y: size * 0.9, s: size / 40, facing: 1,
-        phase: 0, walking: false, form: beastFormOf(ref),
-        color: beastColorOf(ref), divine: ref.kind === 'divine', ref: ref, t: 0
-      });
+      var pimg2 = petImgOf(ref);
+      if (pimg2) {
+        c.imageSmoothingEnabled = false;
+        var pw2 = size * 0.78;
+        c.drawImage(pimg2, size * 0.5 - pw2 / 2, size * 0.94 - pw2, pw2, pw2);
+      } else {
+        beast(c, {
+          x: size * 0.5, y: size * 0.9, s: size / 40, facing: 1,
+          phase: 0, walking: false, form: beastFormOf(ref),
+          color: beastColorOf(ref), divine: ref.kind === 'divine', ref: ref, t: 0
+        });
+      }
     }
     diabloize(cv, { rimK: 0.58 });
     cache[key] = cv.toDataURL();
@@ -1705,17 +1810,28 @@
     var fig = figCv.getContext('2d');
     fig.setTransform(dpr, 0, 0, dpr, 0, 0);
     if (isHero) {
-      human(fig, {
-        x: w * 0.5, y: h * 0.93, s: h / 56, facing: 1, phase: 0, walking: false,
-        color: fac.color, look: lookOf(ref), rarity: ref.rarity, t: 0
-      });
+      var himg3 = humanImg(humanIndexOf(ref));
+      if (himg3.complete && himg3.naturalWidth) {
+        fig.imageSmoothingEnabled = false;
+        var hw3 = h * 0.62;
+        fig.drawImage(himg3, w * 0.5 - hw3 / 2, h * 0.93 - hw3, hw3, hw3);
+      } else {
+        loadingMark(fig, w * 0.5, h * 0.93, h * 0.6, fac.color);
+      }
     } else {
-      /* 짐승은 가로로 긴 형태(용·물고기)가 있어 폭 기준으로 맞춘다 (bake 상자 = 2.3H) */
-      beast(fig, {
-        x: w * 0.5, y: h * 0.80, s: h / 80, facing: 1, phase: 0, walking: false,
-        form: beastFormOf(ref), color: beastColorOf(ref),
-        divine: ref.kind === 'divine', ref: ref, t: 0
-      });
+      var pimg3 = petImgOf(ref);
+      if (pimg3) {
+        fig.imageSmoothingEnabled = false;
+        var pw3 = h * 0.62;
+        fig.drawImage(pimg3, w * 0.5 - pw3 / 2, h * 0.93 - pw3, pw3, pw3);
+      } else {
+        /* 짐승은 가로로 긴 형태(용·물고기)가 있어 폭 기준으로 맞춘다 (bake 상자 = 2.3H) */
+        beast(fig, {
+          x: w * 0.5, y: h * 0.80, s: h / 80, facing: 1, phase: 0, walking: false,
+          form: beastFormOf(ref), color: beastColorOf(ref),
+          divine: ref.kind === 'divine', ref: ref, t: 0
+        });
+      }
     }
     diabloize(figCv, { rimK: 0.5 });
     c.save();

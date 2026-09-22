@@ -1,16 +1,18 @@
 /**
- * 스프라이트 — 코드로 그리는 캐릭터 / 몬스터 / 건물
+ * 스프라이트 — 인물·짐승 그림(초상·지도 스탬프)과 건물 그림
  * ---------------------------------------------------------------
- * 이미지 파일 없이 캔버스 도형으로 형상을 만든다. 벡터라서 2.5D 원근에 맞춰
- * 확대·축소해도 깨지지 않고, 관절 각도로 걷는 동작을 만들 수 있다.
+ * 인물·짐승은 실제 그림(Kenney `assets/sprites2d/human_*`·베이크한 `beast_*`)을
+ * 쓴다 — 옛 캔버스 절차적 그림(human()/beast())은 2026-09-22 Phase 4 에서
+ * 지웠다(사용자 결정). 그림이 아직 안 실린 순간에만 `loadingMark()` 자리표시가
+ * 잠깐 보인다. `storyize()` 가 실사/그림 구분 없이 종이·선화 톤으로 훑어
+ * 인물·짐승·건물이 한 양식으로 보이게 한다.
  *
- *   human(ctx, o)     사람 — 머리·몸통·팔·다리·투구·무기. 걸음 위상으로 팔다리가 흔들린다
- *   beast(ctx, o)     짐승 — 네발 / 조류 / 용 / 거북 / 물고기 / 두꺼비
- *   building(ctx, o)  건물 — 한옥 기와 실루엣. 본편에서 부르는 곳은 없다(경영을 뺐다).
- *                     확장(js/_expansion)이 배경·장식으로 다시 쓸 수 있게 남겨 둔다
+ *   building(ctx, o)  건물 — 한옥 기와 실루엣. world.js 의 역참 마커가 진입점.
+ *                     `o.img` 가 있으면 절차적 도형 대신 구운 그림을 쓴다
  *
  * 외형 파라미터는 인물마다 일일이 적지 않는다. 기질(무/지/덕)·세력·등급에서
- * 규칙으로 뽑고, 특징이 뚜렷한 인물만 예외 표에 적는다(LOOKS).
+ * 규칙으로 뽑고, 특징이 뚜렷한 인물만 예외 표에 적는다(LOOKS) — `lookOf()` 는
+ * 지금도 남아 있지만(다른 판·확장에서 참고), 지도·초상 그림엔 더는 안 쓰인다.
  */
 (function (global) {
   'use strict';
@@ -248,654 +250,6 @@
    * @param o {x, y, s, facing, phase, walking, color, skin, look, t}
    *          (x, y) 는 발이 닿는 지점. s=1 이면 키 40px.
    */
-  function human(ctx, o) {
-    var H = 40 * (o.s || 1);
-    var look = o.look || {};
-    var col = o.color || '#5b6572';
-    var mid = shade(col, 0.12), dark = shade(col, -0.42), lite = shade(col, 0.3), deep = shade(col, -0.60);
-    var skin = o.skin || '#e8c9a4';
-    var skinDark = shade(skin, -0.20);
-    var metal = '#b9c2cf', metalDark = '#7d879a', metalLite = '#e2e8f0';
-    var cloth = '#f4efe4';                     // 동정 · 버선 같은 흰 천
-    var hair = '#241e1c';
-    var ph = o.phase || 0;
-    var walking = !!o.walking;
-    /* 너무 작게 그릴 때 잔 디테일은 생략한다 — 넣으면 오히려 지저분해진다 */
-    var fine = H >= 22;
-    var superFine = H >= 34;
-    var swing = walking ? Math.sin(ph) * 0.42 : 0;          // 라디안
-    var swingB = walking ? Math.sin(ph + Math.PI) * 0.42 : 0;
-    /* 정지 자세에서 다리를 살짝 벌린다 — 겹치면 다리가 한 개로 보인다 */
-    var stance = walking ? 0 : 0.15;
-    var P = PROPS_NORMAL;
-    var legLen = H * P.leg;
-    var armLen = H * P.arm;
-    var bounce = o.noBounce ? 0
-      : (walking ? Math.abs(Math.sin(ph)) * H * 0.035
-                 : Math.sin((o.t || 0) / 640) * H * 0.008);
-
-    var hipY = -H * P.hipY, shoY = -H * P.shoY, headR = H * P.headR, headY = -H * P.headY;
-    var lw = H * 0.085 * P.thick;
-    var robe = look.armor === 'robe' || look.armor === 'coat';
-
-    ctx.save();
-    ctx.translate(o.x, o.y - bounce);
-
-    /* 발밑 그림자 — 빌보드라도 이게 있으면 땅을 딛고 선 느낌이 난다 */
-    ctx.beginPath();
-    ctx.ellipse(0, bounce * 0.5, H * 0.19, H * 0.055, 0, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(0,0,0,0.22)';
-    ctx.fill();
-
-    if ((o.facing || 1) < 0) { ctx.scale(-1, 1); }
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-
-    /* ── 망토 (뒤) ── */
-    if (look.cape) {
-      var flap = walking ? Math.sin(ph) * H * 0.05 : Math.sin((o.t || 0) / 700) * H * 0.012;
-      ctx.beginPath();
-      ctx.moveTo(-H * 0.10, shoY);
-      ctx.quadraticCurveTo(-H * 0.36 - flap, -H * 0.34, -H * 0.22 - flap, -H * 0.02);
-      ctx.lineTo(H * 0.06, -H * 0.04);
-      ctx.quadraticCurveTo(H * 0.10, -H * 0.44, H * 0.06, shoY);
-      ctx.closePath();
-      var cg = ctx.createLinearGradient(-H * 0.3, shoY, H * 0.1, 0);
-      cg.addColorStop(0, deep); cg.addColorStop(1, dark);
-      ctx.fillStyle = cg; ctx.fill();
-      if (fine) {                                  // 주름 두 줄
-        ctx.strokeStyle = 'rgba(0,0,0,0.28)'; ctx.lineWidth = H * 0.012;
-        ctx.beginPath();
-        ctx.moveTo(-H * 0.16 - flap * 0.6, shoY + H * 0.06);
-        ctx.quadraticCurveTo(-H * 0.20, -H * 0.30, -H * 0.13, -H * 0.04);
-        ctx.moveTo(-H * 0.04, shoY + H * 0.08);
-        ctx.quadraticCurveTo(-H * 0.06, -H * 0.30, -H * 0.02, -H * 0.04);
-        ctx.stroke();
-      }
-    }
-
-    /* ── 뒤쪽 다리 · 팔 ── */
-    if (!look.skirt) {
-      var bLeg = swingB - stance;
-      limb(ctx, 0, hipY, bLeg, legLen, lw * 1.15, deep);
-      foot(ctx, Math.sin(bLeg) * legLen, hipY + Math.cos(bLeg) * legLen, H, '#23232a', cloth, fine);
-    }
-    var armB = swingB * 0.8 + 0.12;
-    limb(ctx, -H * 0.02, shoY, armB, armLen, lw * 0.9, robe ? shade(mid, -0.32) : deep);
-    if (fine) {
-      hand(ctx, -H * 0.02 + Math.sin(armB) * armLen, shoY + Math.cos(armB) * armLen, H * 0.045, skinDark);
-    }
-
-    /* ── 몸통 ── */
-    if (look.skirt) {
-      /* 치마 — 어깨에서 발까지 넓어진다 */
-      var sk = ctx.createLinearGradient(-H * 0.26, shoY, H * 0.26, 0);
-      sk.addColorStop(0, shade(mid, -0.18)); sk.addColorStop(0.55, mid); sk.addColorStop(1, shade(mid, -0.10));
-      ctx.beginPath();
-      ctx.moveTo(-H * 0.13, shoY);
-      ctx.lineTo(H * 0.13, shoY);
-      ctx.quadraticCurveTo(H * 0.22, -H * 0.20, H * 0.27, -H * 0.02);
-      ctx.lineTo(-H * 0.27, -H * 0.02);
-      ctx.quadraticCurveTo(-H * 0.22, -H * 0.20, -H * 0.13, shoY);
-      ctx.closePath();
-      ctx.fillStyle = sk; ctx.fill();
-      if (fine) {                                  // 치마 주름
-        ctx.strokeStyle = 'rgba(0,0,0,0.16)'; ctx.lineWidth = H * 0.011;
-        for (var sp = -1; sp <= 1; sp++) {
-          ctx.beginPath();
-          ctx.moveTo(sp * H * 0.09, -H * 0.42);
-          ctx.lineTo(sp * H * 0.15, -H * 0.03);
-          ctx.stroke();
-        }
-      }
-      /* 저고리 */
-      ctx.beginPath();
-      ctx.moveTo(-H * 0.16, shoY - H * 0.02);
-      ctx.lineTo(H * 0.16, shoY - H * 0.02);
-      ctx.quadraticCurveTo(H * 0.15, -H * 0.36, H * 0.13, -H * 0.30);
-      ctx.lineTo(-H * 0.13, -H * 0.30);
-      ctx.quadraticCurveTo(-H * 0.15, -H * 0.36, -H * 0.16, shoY - H * 0.02);
-      ctx.closePath();
-      ctx.fillStyle = lite; ctx.fill();
-      if (fine) {
-        /* 동정(흰 깃) + 고름 */
-        ctx.strokeStyle = cloth; ctx.lineWidth = H * 0.022;
-        ctx.beginPath();
-        ctx.moveTo(-H * 0.07, shoY - H * 0.01);
-        ctx.lineTo(H * 0.02, shoY + H * 0.10);
-        ctx.lineTo(H * 0.09, shoY - H * 0.01);
-        ctx.stroke();
-        ctx.strokeStyle = '#c94f6d'; ctx.lineWidth = H * 0.016;
-        ctx.beginPath();
-        ctx.moveTo(H * 0.03, shoY + H * 0.12);
-        ctx.quadraticCurveTo(H * 0.10, shoY + H * 0.18, H * 0.06, -H * 0.40);
-        ctx.stroke();
-      }
-      /* 버선 */
-      ctx.beginPath();
-      ctx.ellipse(-H * 0.06, -H * 0.01, H * 0.05, H * 0.026, 0, 0, Math.PI * 2);
-      ctx.ellipse(H * 0.06, -H * 0.01, H * 0.05, H * 0.026, 0, 0, Math.PI * 2);
-      ctx.fillStyle = cloth; ctx.fill();
-    } else {
-      /* 상체 */
-      var tg = ctx.createLinearGradient(-H * 0.15, shoY, H * 0.15, hipY);
-      tg.addColorStop(0, shade(mid, -0.22)); tg.addColorStop(0.45, mid); tg.addColorStop(1, shade(mid, 0.06));
-      ctx.beginPath();
-      if (robe) {                                  // 도포 — 아래로 퍼진다
-        ctx.moveTo(-H * 0.15, shoY);
-        ctx.lineTo(H * 0.15, shoY);
-        ctx.lineTo(H * 0.19, hipY + H * 0.02);
-        ctx.lineTo(-H * 0.19, hipY + H * 0.02);
-      } else {
-        ctx.moveTo(-H * 0.145, shoY);
-        ctx.lineTo(H * 0.145, shoY);
-        ctx.lineTo(H * 0.115, hipY + H * 0.02);
-        ctx.lineTo(-H * 0.115, hipY + H * 0.02);
-      }
-      ctx.closePath();
-      ctx.fillStyle = tg; ctx.fill();
-
-      if (look.armor === 'plate') {
-        /* 찰갑 — 작은 비늘을 세 줄 */
-        if (fine) {
-          ctx.fillStyle = metalDark;
-          for (var sr = 0; sr < 3; sr++) {
-            for (var sc2 = -2; sc2 <= 2; sc2++) {
-              ctx.beginPath();
-              ctx.ellipse(sc2 * H * 0.055 + (sr % 2 ? H * 0.027 : 0),
-                shoY + H * (0.11 + sr * 0.075), H * 0.026, H * 0.019, 0, 0, Math.PI * 2);
-              ctx.fill();
-            }
-          }
-        } else {
-          ctx.fillStyle = metalDark;
-          ctx.fillRect(-H * 0.13, shoY + H * 0.10, H * 0.26, H * 0.045);
-          ctx.fillRect(-H * 0.12, shoY + H * 0.19, H * 0.24, H * 0.045);
-        }
-        /* 흉갑 — 가슴 판 */
-        ctx.beginPath();
-        ctx.moveTo(-H * 0.10, shoY + H * 0.02);
-        ctx.quadraticCurveTo(0, shoY + H * 0.11, H * 0.10, shoY + H * 0.02);
-        ctx.lineTo(H * 0.08, shoY - H * 0.01);
-        ctx.lineTo(-H * 0.08, shoY - H * 0.01);
-        ctx.closePath();
-        ctx.fillStyle = metal; ctx.fill();
-        /* 어깨 보호대 (리벳까지) */
-        var shp = [H * 0.155, -H * 0.155];
-        for (var si = 0; si < 2; si++) {
-          ctx.beginPath();
-          ctx.ellipse(shp[si], shoY + H * 0.055, H * 0.072, H * 0.046, 0, 0, Math.PI * 2);
-          /* 세력색을 섞는다 — 전부 금속색이면 48명이 다 같은 어깨가 된다 */
-          var sg2 = ctx.createLinearGradient(shp[si], shoY + H * 0.005, shp[si], shoY + H * 0.10);
-          sg2.addColorStop(0, shade(col, 0.34)); sg2.addColorStop(1, shade(col, -0.34));
-          ctx.fillStyle = sg2; ctx.fill();
-          ctx.strokeStyle = metalDark; ctx.lineWidth = H * 0.013; ctx.stroke();
-          if (superFine) {
-            ctx.beginPath();
-            ctx.arc(shp[si], shoY + H * 0.055, H * 0.013, 0, Math.PI * 2);
-            ctx.fillStyle = '#5d6577'; ctx.fill();
-          }
-        }
-        /* 허리띠 + 술 */
-        ctx.fillStyle = '#3a2f28';
-        ctx.fillRect(-H * 0.12, hipY - H * 0.08, H * 0.24, H * 0.055);
-        ctx.fillStyle = '#c9a24a';
-        ctx.fillRect(-H * 0.03, hipY - H * 0.085, H * 0.06, H * 0.065);
-        if (fine) {
-          ctx.strokeStyle = '#c04b45'; ctx.lineWidth = H * 0.014;
-          ctx.beginPath();
-          ctx.moveTo(H * 0.07, hipY - H * 0.03);
-          ctx.lineTo(H * 0.09, hipY + H * 0.09);
-          ctx.stroke();
-        }
-      } else if (robe) {
-        /* 넓은 소매 (도포) */
-        ctx.beginPath();
-        ctx.moveTo(H * 0.13, shoY + H * 0.02);
-        ctx.quadraticCurveTo(H * 0.26, shoY + H * 0.12, H * 0.20, shoY + H * 0.26);
-        ctx.lineTo(H * 0.10, shoY + H * 0.20);
-        ctx.closePath();
-        ctx.fillStyle = shade(mid, -0.10); ctx.fill();
-        /* 옷깃 — 흰 동정을 겹쳐 X 자로 */
-        ctx.beginPath();
-        ctx.moveTo(0, shoY);
-        ctx.lineTo(H * 0.075, shoY + H * 0.15);
-        ctx.lineTo(0, hipY + H * 0.02);
-        ctx.lineTo(-H * 0.075, shoY + H * 0.15);
-        ctx.closePath();
-        ctx.fillStyle = lite; ctx.fill();
-        if (fine) {
-          ctx.strokeStyle = cloth; ctx.lineWidth = H * 0.02;
-          ctx.beginPath();
-          ctx.moveTo(-H * 0.075, shoY);
-          ctx.lineTo(H * 0.015, shoY + H * 0.13);
-          ctx.lineTo(H * 0.085, shoY - H * 0.005);
-          ctx.stroke();
-        }
-        /* 허리띠 + 늘어진 끈 */
-        ctx.fillStyle = dark;
-        ctx.fillRect(-H * 0.15, hipY - H * 0.07, H * 0.30, H * 0.05);
-        if (fine) {
-          ctx.strokeStyle = dark; ctx.lineWidth = H * 0.014;
-          ctx.beginPath();
-          ctx.moveTo(H * 0.05, hipY - H * 0.02);
-          ctx.quadraticCurveTo(H * 0.09, hipY + H * 0.06, H * 0.05, hipY + H * 0.14);
-          ctx.stroke();
-        }
-      } else {
-        /* 가죽 — 조끼와 어깨 끈 */
-        ctx.fillStyle = shade('#7a5334', -0.1);
-        ctx.beginPath();
-        ctx.moveTo(-H * 0.14, shoY + H * 0.02);
-        ctx.lineTo(-H * 0.06, shoY + H * 0.02);
-        ctx.lineTo(-H * 0.08, hipY);
-        ctx.lineTo(-H * 0.14, hipY);
-        ctx.closePath();
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(90,60,38,0.85)'; ctx.lineWidth = H * 0.014;
-        ctx.beginPath();
-        ctx.moveTo(-H * 0.12, shoY + H * 0.04);
-        ctx.lineTo(H * 0.10, shoY + H * 0.20);
-        ctx.stroke();
-        ctx.fillStyle = '#3a2f28';
-        ctx.fillRect(-H * 0.12, hipY - H * 0.06, H * 0.24, H * 0.05);
-      }
-    }
-
-    /* ── 앞쪽 다리 ── */
-    if (!look.skirt) {
-      var fLeg = swing + stance;
-      limb(ctx, 0, hipY, fLeg, legLen, lw * 1.15, col, 'rgba(0,0,0,0.34)');
-      foot(ctx, Math.sin(fLeg) * legLen, hipY + Math.cos(fLeg) * legLen, H, '#2b2b33', cloth, fine);
-    }
-
-    /* ── 앞쪽 팔 + 손 + 무기 ── */
-    var armA = swing * 0.85 - 0.15;
-    var hx = H * 0.02 + Math.sin(armA) * armLen;
-    var hy = shoY + Math.cos(armA) * armLen;
-    limb(ctx, H * 0.02, shoY, armA, H * 0.34, lw * 0.9,
-      look.armor === 'plate' ? metalDark : (robe ? lite : shade(col, 0.16)), 'rgba(0,0,0,0.34)');
-    weapon(ctx, look.weapon, hx, hy, H, metal, metalDark, col, dark);
-    if (fine) { hand(ctx, hx, hy, H * 0.05, skin); }
-
-    /* ── 목 · 머리 ── */
-    ctx.beginPath();
-    ctx.moveTo(0, shoY);
-    ctx.lineTo(0, headY + headR * 0.6);
-    ctx.strokeStyle = skinDark;
-    ctx.lineWidth = H * 0.055;
-    ctx.stroke();
-
-    /* 머리 */
-    ctx.beginPath();
-    ctx.arc(0, headY, headR, 0, Math.PI * 2);
-    var hg = ctx.createRadialGradient(headR * 0.35, headY - headR * 0.3, headR * 0.2,
-                                      0, headY, headR * 1.25);
-    hg.addColorStop(0, shade(skin, 0.22)); hg.addColorStop(1, shade(skin, -0.06));
-    ctx.fillStyle = hg; ctx.fill();
-
-    /* 머리카락 — 투구를 쓰면 감춰진다 */
-    var bare = !look.helm || look.helm === 'none' || look.helm === 'hairpin' ||
-               look.helm === 'braid' || look.helm === 'topknot';
-    if (bare) {
-      ctx.beginPath();
-      ctx.arc(0, headY - headR * 0.10, headR * 1.0, Math.PI * 1.08, Math.PI * 1.98);
-      ctx.lineTo(-headR * 0.70, headY + headR * 0.22);
-      ctx.quadraticCurveTo(-headR * 1.02, headY - headR * 0.30, -headR * 0.92, headY - headR * 0.55);
-      ctx.closePath();
-      ctx.fillStyle = hair; ctx.fill();
-      if (fine) {                                 // 상투 — 뒤통수 위로 묶은 머리
-        ctx.beginPath();
-        ctx.arc(-headR * 0.10, headY - headR * 1.06, headR * 0.26, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-
-    /* 얼굴 */
-    if (fine) {
-      storyFace(ctx, headY, headR, look);
-    } else {
-      ctx.fillStyle = 'rgba(30,25,25,0.75)';
-      ctx.beginPath();
-      ctx.arc(headR * 0.42, headY - headR * 0.12, Math.max(0.6, headR * 0.13), 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    if (look.eyepatch || look.glasses) {
-      ctx.save();
-    }
-    if (look.eyepatch) {
-      ctx.fillStyle = '#1b1b22';
-      ctx.beginPath();
-      ctx.ellipse(headR * 0.06, headY - headR * 0.10, headR * 0.26, headR * 0.22, 0.1, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = H * 0.026;
-      ctx.beginPath();
-      ctx.moveTo(-headR, headY - headR * 0.25);
-      ctx.lineTo(headR * 0.9, headY - headR * 0.05);
-      ctx.stroke();
-    }
-    if (look.glasses) {
-      ctx.strokeStyle = 'rgba(245,245,245,0.9)'; ctx.lineWidth = H * 0.016;
-      ctx.beginPath();
-      ctx.arc(headR * 0.50, headY - headR * 0.08, headR * 0.30, 0, Math.PI * 2);
-      ctx.arc(headR * 0.02, headY - headR * 0.08, headR * 0.26, 0, Math.PI * 2);
-      ctx.moveTo(headR * 0.28, headY - headR * 0.10);
-      ctx.lineTo(headR * 0.20, headY - headR * 0.10);
-      ctx.stroke();
-    }
-    if (look.eyepatch || look.glasses) { ctx.restore(); }
-    if (look.beard) {
-      /* 수염 */
-      ctx.beginPath();
-      ctx.moveTo(-headR * 0.40, headY + headR * 0.80);
-      ctx.quadraticCurveTo(-headR * 0.18, headY + headR * (0.80 + 0.86),
-                           0, headY + headR * (0.80 + 1.08));
-      ctx.quadraticCurveTo(headR * 0.28, headY + headR * (0.76 + 0.80),
-                           headR * 0.46, headY + headR * 0.76);
-      ctx.quadraticCurveTo(0, headY + headR * (0.80 + 0.32), -headR * 0.40, headY + headR * 0.80);
-      ctx.fillStyle = 'rgba(96,76,56,0.95)';
-      ctx.fill();
-      if (superFine) {                              // 콧수염 — 입 위에만 아주 얇게
-        ctx.beginPath();
-        ctx.moveTo(headR * 0.22, headY + headR * 0.34);
-        ctx.quadraticCurveTo(headR * 0.44, headY + headR * 0.30, headR * 0.58, headY + headR * 0.42);
-        ctx.strokeStyle = 'rgba(74,62,52,0.9)'; ctx.lineWidth = headR * 0.09;
-        ctx.stroke();
-      }
-    }
-
-    /* ── 투구 · 모자 ── */
-    headgear(ctx, look.helm, headY, headR, H, col, mid, dark, metal, metalDark, skin);
-
-    /* ★5 인물은 윤곽에 옅은 금빛이 돈다. */
-    if (o.rarity >= 5 && fine) {
-      ctx.strokeStyle = 'rgba(240,190,90,0.5)';
-      ctx.lineWidth = H * 0.014;
-      ctx.beginPath();
-      ctx.arc(0, headY, headR * 1.04, Math.PI * 1.15, Math.PI * 1.95);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(-H * 0.145, shoY + H * 0.01);
-      ctx.lineTo(-H * 0.115, hipY + H * 0.02);
-      ctx.stroke();
-    }
-
-    ctx.restore();
-  }
-
-  /* ── 그림책풍 얼굴 ────────────────────────────────────────
-   * 정면을 보고 웃는다. 3/4 각도로 그리면 눈이 한쪽에 몰려 있고 흰자·눈동자가
-   * 아주 작아서, 그 상태로 storyize() 를 통과하면 이목구비가 계단·선에 먹혀
-   * 얼굴이 뭉갠 자국처럼 남는다(실제로 그랬다). 그래서 이 양식은 **크고 단순한
-   * 정면 이목구비**로 그린다. 굵기·크기는 후처리 뒤에도 남을 만큼(머리 반지름의
-   * 15% 이상) 잡는다.
-   */
-  var STORY_INK = '#4a3a2c';
-
-  function storyFace(ctx, headY, headR, look) {
-    /* 이목구비를 조금 내려 잡는다 — 투구·관모의 테가 이마를 덮으므로, 원래
-       위치(눈이 머리 중심보다 위)에 두면 눈·눈썹이 테와 겹쳐 뭉갠 자국이 된다. */
-    var ex = headR * 0.31, ey = headY + headR * 0.06;
-    var er = Math.max(0.9, headR * 0.16);
-
-    /* 눈 — 꽉 찬 타원 하나로. 흰자를 두면 이 크기에서는 회색 점으로 보인다 */
-    ctx.fillStyle = STORY_INK;
-    ctx.beginPath();
-    ctx.ellipse(-ex, ey, er * 0.86, er, 0, 0, Math.PI * 2);
-    ctx.ellipse(ex, ey, er * 0.86, er, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    /* 눈썹 — 기질(brow)에 따라 기울기만 바꾼다 */
-    var tilt = look.brow === 'sharp' ? -0.28 : (look.brow === 'soft' ? 0.16 : -0.06);
-    ctx.strokeStyle = STORY_INK;
-    ctx.lineWidth = Math.max(0.8, headR * 0.11);
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(-ex - headR * 0.18, ey - headR * 0.26 - tilt * headR * 0.6);
-    ctx.lineTo(-ex + headR * 0.16, ey - headR * 0.30 + tilt * headR * 0.6);
-    ctx.moveTo(ex - headR * 0.16, ey - headR * 0.30 + tilt * headR * 0.6);
-    ctx.lineTo(ex + headR * 0.18, ey - headR * 0.26 - tilt * headR * 0.6);
-    ctx.stroke();
-
-    /* 입 — 수염이 있으면 입은 수염이 가리므로 그리지 않는다 */
-    if (!look.beard) {
-      ctx.lineWidth = Math.max(0.7, headR * 0.09);
-      ctx.beginPath();
-      ctx.arc(0, headY + headR * 0.36, headR * 0.22, Math.PI * 0.18, Math.PI * 0.82);
-      ctx.stroke();
-    }
-  }
-
-  /**
-   * 팔·다리 하나 — (ox,oy) 관절에서 angle 방향으로 len.
-   * outline 을 주면 굵은 어두운 선을 먼저 깔아 실루엣을 띄운다
-   * (앞팔·앞다리가 몸통과 같은 색일 때 묻히지 않게).
-   */
-  function limb(ctx, ox, oy, angle, len, w, color, outline) {
-    var ex = ox + Math.sin(angle) * len, ey = oy + Math.cos(angle) * len;
-    if (outline) {
-      ctx.beginPath();
-      ctx.moveTo(ox, oy); ctx.lineTo(ex, ey);
-      ctx.strokeStyle = outline; ctx.lineWidth = w * 1.38;
-      ctx.stroke();
-    }
-    ctx.beginPath();
-    ctx.moveTo(ox, oy);
-    ctx.lineTo(ex, ey);
-    ctx.strokeStyle = color;
-    ctx.lineWidth = w;
-    ctx.stroke();
-  }
-
-  /** 손 — 무기를 쥔 자리에 하나 얹으면 팔이 끊긴 느낌이 사라진다 */
-  function hand(ctx, x, y, r, color) {
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.fillStyle = color;
-    ctx.fill();
-  }
-
-  /** 신발 — 앞코가 살짝 들린 짚신 / 버선 */
-  function foot(ctx, x, y, H, color, sockColor, fine) {
-    ctx.beginPath();
-    ctx.ellipse(x, y, H * 0.062, H * 0.030, 0, 0, Math.PI * 2);
-    ctx.fillStyle = color; ctx.fill();
-    if (fine) {
-      ctx.beginPath();
-      ctx.ellipse(x + H * 0.03, y - H * 0.012, H * 0.022, H * 0.012, 0, 0, Math.PI * 2);
-      ctx.fillStyle = sockColor; ctx.fill();
-    }
-  }
-
-  function headgear(ctx, kind, headY, headR, H, col, mid, dark, metal, metalDark, skin) {
-    var topY = headY - headR;
-    if (kind === 'helmet' || kind === 'gapju' || kind === 'plume') {
-      ctx.beginPath();
-      ctx.arc(0, headY - headR * 0.15, headR * 1.12, Math.PI, Math.PI * 2);
-      ctx.fillStyle = metalDark; ctx.fill();
-      ctx.beginPath();
-      ctx.rect(-headR * 1.15, headY - headR * 0.2, headR * 2.3, headR * 0.22);
-      ctx.fillStyle = metal; ctx.fill();
-      if (kind === 'gapju') {           // 조선 갑주 — 위로 솟은 장식
-        ctx.beginPath();
-        ctx.moveTo(0, topY - headR * 0.9);
-        ctx.lineTo(headR * 0.2, topY - headR * 0.1);
-        ctx.lineTo(-headR * 0.2, topY - headR * 0.1);
-        ctx.closePath();
-        ctx.fillStyle = '#d9b23c'; ctx.fill();
-      } else if (kind === 'plume') {    // 여포 — 꿩깃
-        ctx.beginPath();
-        ctx.moveTo(0, topY - headR * 0.2);
-        ctx.quadraticCurveTo(headR * 1.4, topY - headR * 1.9, headR * 0.3, topY - headR * 2.1);
-        ctx.quadraticCurveTo(headR * 0.5, topY - headR * 1.0, 0, topY - headR * 0.2);
-        ctx.fillStyle = '#e2574a'; ctx.fill();
-      } else {
-        ctx.beginPath();
-        ctx.arc(0, topY - headR * 0.1, headR * 0.2, 0, Math.PI * 2);
-        ctx.fillStyle = '#d9b23c'; ctx.fill();
-      }
-    } else if (kind === 'crown') {
-      ctx.beginPath();
-      ctx.moveTo(-headR * 1.05, headY - headR * 0.35);
-      ctx.lineTo(headR * 1.05, headY - headR * 0.35);
-      ctx.lineTo(headR * 1.05, topY - headR * 0.35);
-      ctx.lineTo(headR * 0.5, topY + headR * 0.05);
-      ctx.lineTo(0, topY - headR * 0.5);
-      ctx.lineTo(-headR * 0.5, topY + headR * 0.05);
-      ctx.lineTo(-headR * 1.05, topY - headR * 0.35);
-      ctx.closePath();
-      ctx.fillStyle = '#e0b93f'; ctx.fill();
-      ctx.strokeStyle = '#9c7a1c'; ctx.lineWidth = H * 0.012; ctx.stroke();
-    } else if (kind === 'gat') {          // 갓
-      ctx.beginPath();
-      ctx.ellipse(0, headY - headR * 0.55, headR * 1.75, headR * 0.3, 0, 0, Math.PI * 2);
-      ctx.fillStyle = '#2c2c33'; ctx.fill();
-      ctx.beginPath();
-      ctx.rect(-headR * 0.62, topY - headR * 0.62, headR * 1.24, headR * 0.75);
-      ctx.fill();
-    } else if (kind === 'scholar') {      // 문관 관모
-      /* 아래 판은 머리에 물리게 — 정수리에 얹히면 좌우 밑으로 배경이 비쳐 떠 보인다 */
-      ctx.beginPath();
-      ctx.rect(-headR * 0.93, topY - headR * 0.34, headR * 1.86, headR * 0.56);
-      ctx.fillStyle = '#2f3240'; ctx.fill();
-      ctx.beginPath();
-      ctx.rect(-headR * 0.46, topY - headR * 0.80, headR * 0.92, headR * 0.48);
-      ctx.fill();
-    } else if (kind === 'monk') {         // 승려 — 민머리 + 염주
-      /* 얼굴 살색에서 살짝만 밝게 — 고정 살색을 쓰면 얼굴과 톤이 어긋나 빵모자처럼 보인다 */
-      ctx.beginPath();
-      ctx.arc(0, headY - headR * 0.1, headR * 1.02, Math.PI, Math.PI * 2);
-      ctx.fillStyle = skin ? shade(skin, 0.22) : 'rgba(230,196,159,0.9)';
-      ctx.fill();
-      if (skin) {                         // 정수리 경계에 옅은 음영 — 두피가 둥글어 보인다
-        ctx.strokeStyle = 'rgba(120,86,64,0.28)';
-        ctx.lineWidth = Math.max(0.5, headR * 0.06);
-        ctx.stroke();
-      }
-    } else if (kind === 'hairpin') {      // 여성 — 쪽머리 + 비녀
-      ctx.beginPath();
-      ctx.arc(-headR * 0.75, headY + headR * 0.1, headR * 0.5, 0, Math.PI * 2);
-      ctx.fillStyle = '#2a2228'; ctx.fill();
-      ctx.beginPath();
-      ctx.arc(0, headY - headR * 0.25, headR * 1.05, Math.PI, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = '#d9b23c'; ctx.lineWidth = H * 0.016;
-      ctx.beginPath();
-      ctx.moveTo(-headR * 1.3, headY + headR * 0.05);
-      ctx.lineTo(-headR * 0.2, headY - headR * 0.1);
-      ctx.stroke();
-    } else if (kind === 'braid') {        // 단발·댕기
-      ctx.beginPath();
-      ctx.arc(0, headY - headR * 0.2, headR * 1.06, Math.PI, Math.PI * 2);
-      ctx.fillStyle = '#2a2228'; ctx.fill();
-      ctx.beginPath();                    // 댕기
-      ctx.moveTo(-headR * 0.9, headY);
-      ctx.quadraticCurveTo(-headR * 1.2, headY + headR * 1.6, -headR * 0.5, headY + headR * 1.8);
-      ctx.strokeStyle = '#2a2228'; ctx.lineWidth = H * 0.03; ctx.stroke();
-    } else {                              // 상투
-      ctx.beginPath();
-      ctx.arc(0, headY - headR * 0.25, headR * 1.02, Math.PI, Math.PI * 2);
-      ctx.fillStyle = '#2a2228'; ctx.fill();
-      ctx.beginPath();
-      ctx.arc(0, topY - headR * 0.18, headR * 0.24, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
-
-  function weapon(ctx, kind, hx, hy, H, metal, metalDark, col, dark) {
-    if (!kind || kind === 'none') { return; }
-    ctx.save();
-    ctx.translate(hx, hy);
-    if (kind === 'spear' || kind === 'guandao' || kind === 'halberd') {
-      ctx.strokeStyle = '#8a6a44'; ctx.lineWidth = H * 0.032;
-      ctx.beginPath();
-      ctx.moveTo(0, H * 0.16);
-      ctx.lineTo(0, -H * 0.78);
-      ctx.stroke();
-      ctx.beginPath();
-      if (kind === 'guandao') {          // 청룡언월도 — 넓은 날
-        ctx.moveTo(0, -H * 0.78);
-        ctx.quadraticCurveTo(H * 0.26, -H * 0.72, H * 0.16, -H * 0.48);
-        ctx.quadraticCurveTo(H * 0.06, -H * 0.56, 0, -H * 0.52);
-      } else if (kind === 'halberd') {   // 방천화극 — 양날
-        ctx.moveTo(0, -H * 0.92); ctx.lineTo(H * 0.05, -H * 0.74);
-        ctx.lineTo(-H * 0.05, -H * 0.74); ctx.closePath();
-        ctx.moveTo(0, -H * 0.72); ctx.lineTo(H * 0.19, -H * 0.66);
-        ctx.lineTo(0, -H * 0.58);
-        ctx.moveTo(0, -H * 0.72); ctx.lineTo(-H * 0.19, -H * 0.66);
-        ctx.lineTo(0, -H * 0.58);
-      } else {                            // 창
-        ctx.moveTo(0, -H * 0.96); ctx.lineTo(H * 0.055, -H * 0.76);
-        ctx.lineTo(-H * 0.055, -H * 0.76); ctx.closePath();
-      }
-      ctx.fillStyle = metal; ctx.fill();
-    } else if (kind === 'sword') {
-      ctx.strokeStyle = metal; ctx.lineWidth = H * 0.038;
-      ctx.beginPath();
-      ctx.moveTo(0, H * 0.02);
-      ctx.lineTo(H * 0.10, -H * 0.42);
-      ctx.stroke();
-      ctx.strokeStyle = '#d9b23c'; ctx.lineWidth = H * 0.022;
-      ctx.beginPath();
-      ctx.moveTo(-H * 0.05, H * 0.03);
-      ctx.lineTo(H * 0.06, -H * 0.02);
-      ctx.stroke();
-    } else if (kind === 'axe') {
-      ctx.strokeStyle = '#8a6a44'; ctx.lineWidth = H * 0.032;
-      ctx.beginPath();
-      ctx.moveTo(0, H * 0.12); ctx.lineTo(H * 0.02, -H * 0.52); ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(H * 0.02, -H * 0.52);
-      ctx.quadraticCurveTo(H * 0.26, -H * 0.46, H * 0.14, -H * 0.26);
-      ctx.quadraticCurveTo(H * 0.06, -H * 0.34, H * 0.02, -H * 0.32);
-      ctx.fillStyle = metal; ctx.fill();
-    } else if (kind === 'club') {
-      ctx.strokeStyle = '#7a5a34'; ctx.lineWidth = H * 0.05;
-      ctx.beginPath();
-      ctx.moveTo(0, H * 0.10); ctx.lineTo(H * 0.06, -H * 0.44); ctx.stroke();
-      ctx.beginPath();
-      ctx.arc(H * 0.07, -H * 0.50, H * 0.10, 0, Math.PI * 2);
-      ctx.fillStyle = '#6b4f2c'; ctx.fill();
-    } else if (kind === 'bow') {
-      ctx.strokeStyle = '#8a6a44'; ctx.lineWidth = H * 0.028;
-      ctx.beginPath();
-      ctx.arc(0, -H * 0.16, H * 0.30, -Math.PI * 0.55, Math.PI * 0.55);
-      ctx.stroke();
-      ctx.strokeStyle = 'rgba(240,240,240,0.6)'; ctx.lineWidth = H * 0.012;
-      ctx.beginPath();
-      ctx.moveTo(Math.cos(-Math.PI * 0.55) * H * 0.30, -H * 0.16 + Math.sin(-Math.PI * 0.55) * H * 0.30);
-      ctx.lineTo(Math.cos(Math.PI * 0.55) * H * 0.30, -H * 0.16 + Math.sin(Math.PI * 0.55) * H * 0.30);
-      ctx.stroke();
-    } else if (kind === 'fan') {
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.arc(0, 0, H * 0.24, -Math.PI * 0.95, -Math.PI * 0.3);
-      ctx.closePath();
-      ctx.fillStyle = '#e8e3d4'; ctx.fill();
-      ctx.strokeStyle = '#9a8f76'; ctx.lineWidth = H * 0.012; ctx.stroke();
-    } else if (kind === 'scroll') {
-      ctx.beginPath();
-      ctx.rect(-H * 0.03, -H * 0.20, H * 0.13, H * 0.24);
-      ctx.fillStyle = '#e8e3d4'; ctx.fill();
-      ctx.strokeStyle = '#a8a08c'; ctx.lineWidth = H * 0.012; ctx.stroke();
-    } else if (kind === 'brush') {
-      ctx.strokeStyle = '#8a6a44'; ctx.lineWidth = H * 0.022;
-      ctx.beginPath();
-      ctx.moveTo(0, H * 0.04); ctx.lineTo(H * 0.05, -H * 0.24); ctx.stroke();
-      ctx.beginPath();
-      ctx.arc(H * 0.055, -H * 0.27, H * 0.032, 0, Math.PI * 2);
-      ctx.fillStyle = '#2f2f38'; ctx.fill();
-    } else if (kind === 'staff') {
-      ctx.strokeStyle = '#8a6a44'; ctx.lineWidth = H * 0.030;
-      ctx.beginPath();
-      ctx.moveTo(0, H * 0.16); ctx.lineTo(H * 0.02, -H * 0.62); ctx.stroke();
-      ctx.beginPath();
-      ctx.arc(H * 0.02, -H * 0.66, H * 0.055, 0, Math.PI * 2);
-      ctx.fillStyle = '#7fd8c8'; ctx.fill();
-    }
-    ctx.restore();
-  }
 
   /* ── 짐승 ─────────────────────────────────────────────── */
 
@@ -947,8 +301,8 @@
    * 실제 CC0 GLB(asset3d.js의 pet:form:* 와 같은 목록)를 구워 얻은 PNG로
    * 바꾼다. 형태(form)별 파일 목록에서 `oneOf`(asset3d.js:337)와 **같은
    * 해시**로 하나를 고른다 — 그래야 같은 펫이 도감 3D 초상과 지도 스탬프에서
-   * 같은 개체로 보인다. 배경 생물(animal.js, id 없음)은 대상이 아니다 —
-   * 그쪽은 원래 결대로 절차적 그림 그대로 둔다(캔버스 자체가 그 용도다).
+   * 같은 개체로 보인다. 배경 생물(animal.js, id `an_*`)도 2026-09-20 Phase 3 에서
+   * `BG_BEAST_FILE`(아래)로 마저 채워 지금은 짐승 전부가 실제 그림을 쓴다.
    *
    * ogre 형태(도깨비·그늘귀·만권·의조)는 2026-09-11 첫 배치 굽기에선 셋
    * (Orc·Demon·BlueDemon, 큰 임베디드 .gltf)이 헤드리스 크롬에서 로더
@@ -991,457 +345,14 @@
   }
 
   function beastPatternOf(pet) { return (pet && BEAST_PATTERN[pet.id]) || ''; }
-  /* 도감에 없는 짐승도 그린다 — 들·강의 **배경 생물**(`animal.js`)은 잡는 대상이
-     아니라서 도감에 자리가 없다. 그런 것은 제 형태·색을 직접 들고 온다.
-     도감 펫에는 `form`·`color` 가 없으므로 여태 그림은 한 획도 안 바뀐다 */
+  /* 도감에 없는 짐승(`animal.js`, 잡는 대상이 아니라 도감에 자리가 없다)은
+     `form`·`color` 를 제가 직접 들고 온다 — 도감 펫엔 그 필드가 없다 */
   function beastFormOf(pet) { return (pet && (pet.form || BEAST_FORM[pet.id])) || 'quad'; }
   function beastColorOf(pet) { return (pet && (pet.color || BEAST_COLOR[pet.id])) || '#9a8f7a'; }
 
   /**
    * @param o {x, y, s, facing, phase, walking, form, color, divine, t}
    */
-  function beast(ctx, o) {
-    var H = 30 * (o.s || 1);
-    var col = o.color || '#9a8f7a';
-    var dark = shade(col, -0.4), lite = shade(col, 0.3);
-    var ph = o.phase || 0;
-    var walking = !!o.walking;
-    var sw = walking ? Math.sin(ph) * 0.42 : 0;
-    var swB = walking ? Math.sin(ph + Math.PI) * 0.42 : 0;
-    var bounce = o.noBounce ? 0
-      : (walking ? Math.abs(Math.sin(ph * 2)) * H * 0.05
-                 : Math.sin((o.t || 0) / 700) * H * 0.02);
-    var form = o.form || 'quad';
-    var pat = o.pattern || (o.ref ? beastPatternOf(o.ref) : '');
-    var fine = H >= 18;
-    var outline = 'rgba(0,0,0,0.32)';
-
-    ctx.save();
-    ctx.translate(o.x, o.y - bounce);
-
-    /* 발밑 그림자 */
-    ctx.beginPath();
-    ctx.ellipse(0, bounce * 0.5, H * 0.34, H * 0.075, 0, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(0,0,0,0.20)';
-    ctx.fill();
-
-    if ((o.facing || 1) < 0) { ctx.scale(-1, 1); }
-    ctx.lineCap = 'round';
-
-    if (o.divine) {   // 신수 — 옅은 기운 + 테두리 빛
-      ctx.beginPath();
-      ctx.ellipse(0, -H * 0.5, H * 0.9, H * 0.75, 0, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(180,220,255,0.10)';
-      ctx.fill();
-      ctx.beginPath();
-      ctx.ellipse(0, -H * 0.5, H * 0.82, H * 0.68, 0, 0, Math.PI * 2);
-      ctx.strokeStyle = 'rgba(200,230,255,0.16)'; ctx.lineWidth = H * 0.03;
-      ctx.stroke();
-    }
-
-    if (form === 'bird') {
-      // 다리
-      ctx.strokeStyle = '#c9a24a'; ctx.lineWidth = H * 0.05;
-      ctx.beginPath();
-      ctx.moveTo(-H * 0.04, -H * 0.28); ctx.lineTo(-H * 0.06, 0);
-      ctx.moveTo(H * 0.06, -H * 0.28); ctx.lineTo(H * 0.08, 0);
-      ctx.stroke();
-      // 몸통
-      ctx.beginPath();
-      ctx.ellipse(0, -H * 0.52, H * 0.30, H * 0.26, -0.2, 0, Math.PI * 2);
-      ctx.fillStyle = col; ctx.fill();
-      // 날개
-      ctx.beginPath();
-      ctx.moveTo(-H * 0.05, -H * 0.60);
-      ctx.quadraticCurveTo(-H * 0.42, -H * 0.52 + (walking ? Math.sin(ph * 2) * H * 0.10 : 0), -H * 0.20, -H * 0.34);
-      ctx.quadraticCurveTo(-H * 0.06, -H * 0.40, -H * 0.05, -H * 0.60);
-      ctx.fillStyle = dark; ctx.fill();
-      // 꼬리 — 세 갈래 깃
-      for (var tf = 0; tf < 3; tf++) {
-        ctx.beginPath();
-        ctx.moveTo(-H * 0.26, -H * 0.56 + tf * H * 0.02);
-        ctx.lineTo(-H * (0.58 + tf * 0.05), -H * (0.50 - tf * 0.06));
-        ctx.lineTo(-H * 0.26, -H * (0.46 - tf * 0.02));
-        ctx.closePath();
-        ctx.fillStyle = tf === 1 ? shade(col, -0.55) : dark;
-        ctx.fill();
-      }
-      if (fine) {                                  // 날개 깃 선
-        ctx.strokeStyle = 'rgba(0,0,0,0.22)'; ctx.lineWidth = H * 0.014;
-        for (var wf = 0; wf < 3; wf++) {
-          ctx.beginPath();
-          ctx.moveTo(-H * (0.10 + wf * 0.08), -H * 0.56);
-          ctx.lineTo(-H * (0.16 + wf * 0.08), -H * 0.40);
-          ctx.stroke();
-        }
-      }
-      // 머리·부리
-      ctx.beginPath();
-      ctx.arc(H * 0.24, -H * 0.74, H * 0.13, 0, Math.PI * 2);
-      ctx.fillStyle = lite; ctx.fill();
-      ctx.beginPath();
-      ctx.moveTo(H * 0.34, -H * 0.76);
-      ctx.lineTo(H * 0.52, -H * 0.72);
-      ctx.lineTo(H * 0.34, -H * 0.68);
-      ctx.closePath();
-      ctx.fillStyle = '#e0b93f'; ctx.fill();
-      if (fine) {                                  // 벼슬
-        ctx.fillStyle = shade(col, -0.35);
-        ctx.beginPath();
-        ctx.moveTo(H * 0.18, -H * 0.85);
-        ctx.quadraticCurveTo(H * 0.24, -H * 1.00, H * 0.32, -H * 0.84);
-        ctx.closePath(); ctx.fill();
-      }
-      eye(ctx, H * 0.28, -H * 0.77, H * 0.026);
-    } else if (form === 'dragon' || form === 'serpent') {
-      // 굽이치는 몸통
-      var wave = walking ? Math.sin(ph) * H * 0.10 : Math.sin((o.t || 0) / 500) * H * 0.05;
-      ctx.beginPath();
-      ctx.moveTo(-H * 0.62, -H * 0.22);
-      ctx.quadraticCurveTo(-H * 0.24, -H * 0.62 + wave, H * 0.06, -H * 0.40);
-      ctx.quadraticCurveTo(H * 0.32, -H * 0.22 - wave, H * 0.42, -H * 0.60);
-      ctx.strokeStyle = outline; ctx.lineWidth = H * 0.24; ctx.stroke();
-      ctx.strokeStyle = col; ctx.lineWidth = H * 0.20; ctx.stroke();
-      ctx.strokeStyle = lite; ctx.lineWidth = H * 0.07;
-      ctx.stroke();
-      /* 등지느러미 — 몸 위로 톱니 */
-      if (fine) {
-        ctx.fillStyle = '#e0c060';
-        var fpts = [[-H * 0.42, -H * 0.50], [-H * 0.16, -H * 0.66], [H * 0.10, -H * 0.56]];
-        for (var fi = 0; fi < fpts.length; fi++) {
-          ctx.beginPath();
-          ctx.moveTo(fpts[fi][0] - H * 0.06, fpts[fi][1]);
-          ctx.lineTo(fpts[fi][0], fpts[fi][1] - H * 0.16);
-          ctx.lineTo(fpts[fi][0] + H * 0.06, fpts[fi][1]);
-          ctx.closePath(); ctx.fill();
-        }
-        /* 비늘 — 몸통에 작은 호선 */
-        ctx.strokeStyle = 'rgba(0,0,0,0.18)'; ctx.lineWidth = H * 0.015;
-        for (var sc3 = 0; sc3 < 4; sc3++) {
-          ctx.beginPath();
-          ctx.arc(-H * 0.34 + sc3 * H * 0.20, -H * 0.40, H * 0.06, Math.PI * 0.15, Math.PI * 0.85);
-          ctx.stroke();
-        }
-        /* 꼬리 지느러미 */
-        ctx.beginPath();
-        ctx.moveTo(-H * 0.62, -H * 0.22);
-        ctx.lineTo(-H * 0.84, -H * 0.36);
-        ctx.lineTo(-H * 0.78, -H * 0.10);
-        ctx.closePath();
-        ctx.fillStyle = lite; ctx.fill();
-        /* 발톱 하나 (앞발) */
-        ctx.strokeStyle = '#e8e0c8'; ctx.lineWidth = H * 0.026;
-        ctx.beginPath();
-        ctx.moveTo(H * 0.04, -H * 0.30); ctx.lineTo(H * 0.10, -H * 0.14);
-        ctx.moveTo(H * 0.04, -H * 0.30); ctx.lineTo(-H * 0.02, -H * 0.14);
-        ctx.stroke();
-      }
-      // 머리
-      ctx.beginPath();
-      ctx.ellipse(H * 0.46, -H * 0.68, H * 0.17, H * 0.12, -0.4, 0, Math.PI * 2);
-      ctx.fillStyle = col; ctx.fill();
-      ctx.strokeStyle = outline; ctx.lineWidth = H * 0.018; ctx.stroke();
-      /* 갈기 — 머리 뒤로 흐른다 */
-      if (fine) {
-        ctx.strokeStyle = '#e0c060'; ctx.lineWidth = H * 0.028;
-        ctx.beginPath();
-        ctx.moveTo(H * 0.34, -H * 0.74);
-        ctx.quadraticCurveTo(H * 0.20, -H * 0.86, H * 0.10, -H * 0.70);
-        ctx.stroke();
-      }
-      // 뿔·수염
-      ctx.strokeStyle = '#e0c060'; ctx.lineWidth = H * 0.035;
-      ctx.beginPath();
-      ctx.moveTo(H * 0.40, -H * 0.78); ctx.lineTo(H * 0.30, -H * 0.98);
-      ctx.moveTo(H * 0.50, -H * 0.78); ctx.lineTo(H * 0.52, -H * 0.99);
-      ctx.stroke();
-      if (fine) {                             // 입가 수염
-        ctx.strokeStyle = 'rgba(230,220,180,0.9)'; ctx.lineWidth = H * 0.018;
-        ctx.beginPath();
-        ctx.moveTo(H * 0.60, -H * 0.64);
-        ctx.quadraticCurveTo(H * 0.76, -H * 0.60, H * 0.74, -H * 0.44);
-        ctx.stroke();
-      }
-      eye(ctx, H * 0.50, -H * 0.70, H * 0.028);
-    } else if (form === 'turtle') {
-      ctx.strokeStyle = '#3f4a52'; ctx.lineWidth = H * 0.06;
-      ctx.beginPath();
-      ctx.moveTo(-H * 0.22, -H * 0.16); ctx.lineTo(-H * 0.26, 0);
-      ctx.moveTo(H * 0.20, -H * 0.16); ctx.lineTo(H * 0.24, 0);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.ellipse(0, -H * 0.34, H * 0.42, H * 0.28, 0, Math.PI, Math.PI * 2);
-      ctx.fillStyle = col; ctx.fill();
-      ctx.strokeStyle = dark; ctx.lineWidth = H * 0.03;
-      ctx.beginPath();
-      ctx.moveTo(-H * 0.2, -H * 0.36); ctx.lineTo(-H * 0.1, -H * 0.54);
-      ctx.moveTo(H * 0.2, -H * 0.36); ctx.lineTo(H * 0.1, -H * 0.54);
-      ctx.stroke();
-      if (fine) {                                  // 등껍질 칸
-        ctx.strokeStyle = 'rgba(0,0,0,0.28)'; ctx.lineWidth = H * 0.016;
-        for (var tg2 = -1; tg2 <= 1; tg2++) {
-          ctx.beginPath();
-          ctx.moveTo(tg2 * H * 0.16, -H * 0.34);
-          ctx.lineTo(tg2 * H * 0.20, -H * 0.60);
-          ctx.stroke();
-        }
-        ctx.beginPath();
-        ctx.ellipse(0, -H * 0.34, H * 0.24, H * 0.16, 0, Math.PI, Math.PI * 2);
-        ctx.stroke();
-      }
-      ctx.beginPath();
-      ctx.ellipse(H * 0.46, -H * 0.30, H * 0.14, H * 0.10, 0, 0, Math.PI * 2);
-      ctx.fillStyle = lite; ctx.fill();
-      eye(ctx, H * 0.52, -H * 0.32, H * 0.024);
-    } else if (form === 'fish') {
-      ctx.beginPath();
-      ctx.ellipse(0, -H * 0.46, H * 0.34, H * 0.20, 0, 0, Math.PI * 2);
-      ctx.fillStyle = col; ctx.fill();
-      ctx.beginPath();
-      ctx.moveTo(-H * 0.30, -H * 0.46);
-      ctx.lineTo(-H * 0.58, -H * 0.30);
-      ctx.lineTo(-H * 0.58, -H * 0.62);
-      ctx.closePath();
-      ctx.fillStyle = dark; ctx.fill();
-      ctx.beginPath();
-      ctx.moveTo(-H * 0.04, -H * 0.64);
-      ctx.lineTo(H * 0.10, -H * 0.86);
-      ctx.lineTo(H * 0.16, -H * 0.60);
-      ctx.closePath();
-      ctx.fillStyle = lite; ctx.fill();
-      if (fine) {
-        ctx.strokeStyle = 'rgba(0,0,0,0.18)'; ctx.lineWidth = H * 0.014;
-        for (var fs = 0; fs < 3; fs++) {
-          ctx.beginPath();
-          ctx.arc(-H * 0.14 + fs * H * 0.14, -H * 0.46, H * 0.09, Math.PI * 1.6, Math.PI * 2.4);
-          ctx.stroke();
-        }
-        ctx.beginPath();                           // 배지느러미
-        ctx.moveTo(-H * 0.04, -H * 0.28);
-        ctx.lineTo(H * 0.06, -H * 0.12);
-        ctx.lineTo(H * 0.14, -H * 0.32);
-        ctx.closePath();
-        ctx.fillStyle = lite; ctx.fill();
-      }
-      eye(ctx, H * 0.22, -H * 0.50, H * 0.026);
-    } else if (form === 'toad') {
-      ctx.beginPath();
-      ctx.ellipse(0, -H * 0.24, H * 0.40, H * 0.24, 0, Math.PI, Math.PI * 2);
-      ctx.fillStyle = col; ctx.fill();
-      ctx.beginPath();
-      ctx.ellipse(H * 0.22, -H * 0.40, H * 0.20, H * 0.15, 0, 0, Math.PI * 2);
-      ctx.fillStyle = lite; ctx.fill();
-      eye(ctx, H * 0.30, -H * 0.46, H * 0.03);
-      if (fine) {                                  // 등 돌기
-        ctx.fillStyle = shade(col, -0.30);
-        for (var tb = -2; tb <= 1; tb++) {
-          ctx.beginPath();
-          ctx.arc(tb * H * 0.14, -H * (0.30 + (tb % 2 ? 0.06 : 0.0)), H * 0.035, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
-      ctx.strokeStyle = dark; ctx.lineWidth = H * 0.05;
-      ctx.beginPath();
-      ctx.moveTo(-H * 0.28, -H * 0.12); ctx.lineTo(-H * 0.36, 0);
-      ctx.moveTo(H * 0.28, -H * 0.12); ctx.lineTo(H * 0.36, 0);
-      ctx.stroke();
-    } else if (form === 'ogre') {
-      // 도깨비 — 사람 형태에 뿔과 방망이
-      human(ctx, {
-        x: 0, y: 0, s: (o.s || 1) * 0.95, facing: 1, phase: ph, walking: walking,
-        color: col, skin: '#c96a5a', t: o.t,
-        look: { weapon: 'club', helm: 'none', armor: 'leather' }
-      });
-      var hy = -40 * (o.s || 1) * 0.95 * 0.90, hr = 40 * (o.s || 1) * 0.95 * 0.115;
-      ctx.strokeStyle = '#e8e0c8'; ctx.lineWidth = hr * 0.34;
-      ctx.beginPath();
-      ctx.moveTo(-hr * 0.6, hy - hr * 0.9); ctx.lineTo(-hr * 0.9, hy - hr * 1.9);
-      ctx.moveTo(hr * 0.6, hy - hr * 0.9); ctx.lineTo(hr * 0.9, hy - hr * 1.9);
-      ctx.stroke();
-    } else {
-      // 네발 (개·호랑이·곰·말 …)
-      var horse = form === 'horse';
-      var bodyY = horse ? -H * 0.62 : -H * 0.48;
-      var legLen = horse ? H * 0.62 : H * 0.48;
-      // 뒷다리
-      ctx.strokeStyle = dark; ctx.lineWidth = H * 0.095;
-      leg2(ctx, -H * 0.22, bodyY, swB, legLen);
-      leg2(ctx, H * 0.20, bodyY, sw, legLen);
-      // 몸통 — 등은 진하고 배는 밝게
-      ctx.beginPath();
-      ctx.ellipse(0, bodyY, H * 0.40, H * 0.22, 0, 0, Math.PI * 2);
-      var bgg = ctx.createLinearGradient(0, bodyY - H * 0.22, 0, bodyY + H * 0.22);
-      bgg.addColorStop(0, shade(col, 0.10));
-      bgg.addColorStop(0.55, col);
-      bgg.addColorStop(1, shade(col, -0.26));
-      ctx.fillStyle = bgg; ctx.fill();
-      if (fine) {                                  // 배 — 밝은 부분
-        ctx.beginPath();
-        ctx.ellipse(H * 0.02, bodyY + H * 0.10, H * 0.28, H * 0.09, 0, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(255,255,255,0.16)'; ctx.fill();
-      }
-      // 앞다리
-      ctx.strokeStyle = col; ctx.lineWidth = H * 0.095;
-      leg2(ctx, -H * 0.16, bodyY, sw, legLen);
-      leg2(ctx, H * 0.26, bodyY, swB, legLen);
-      if (fine) {                                  // 발 — 다리 끝을 어둡게
-        ctx.fillStyle = 'rgba(30,26,24,0.55)';
-        var feet = [[-H * 0.22, swB], [H * 0.20, sw], [-H * 0.16, sw], [H * 0.26, swB]];
-        for (var pi = 0; pi < feet.length; pi++) {
-          ctx.beginPath();
-          ctx.ellipse(feet[pi][0] + Math.sin(feet[pi][1]) * legLen * 0.42,
-            bodyY + legLen * 0.98, H * 0.055, H * 0.03, 0, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
-      // 꼬리
-      ctx.strokeStyle = dark; ctx.lineWidth = H * 0.055;
-      ctx.beginPath();
-      ctx.moveTo(-H * 0.38, bodyY - H * 0.04);
-      ctx.quadraticCurveTo(-H * 0.62, bodyY - H * 0.18, -H * 0.56, bodyY - H * 0.34);
-      ctx.stroke();
-      // 목·머리
-      ctx.strokeStyle = col; ctx.lineWidth = H * 0.16;
-      ctx.beginPath();
-      ctx.moveTo(H * 0.30, bodyY - H * 0.06);
-      ctx.lineTo(H * 0.44, bodyY - H * 0.26);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.ellipse(H * 0.50, bodyY - H * 0.32, H * 0.16, H * 0.12, -0.3, 0, Math.PI * 2);
-      ctx.fillStyle = lite; ctx.fill();
-      // 귀 (안쪽까지)
-      ctx.beginPath();
-      ctx.moveTo(H * 0.44, bodyY - H * 0.42);
-      ctx.lineTo(H * 0.40, bodyY - H * 0.58);
-      ctx.lineTo(H * 0.54, bodyY - H * 0.46);
-      ctx.closePath();
-      ctx.fillStyle = col; ctx.fill();
-      if (fine) {
-        ctx.beginPath();
-        ctx.moveTo(H * 0.45, bodyY - H * 0.45);
-        ctx.lineTo(H * 0.43, bodyY - H * 0.54);
-        ctx.lineTo(H * 0.50, bodyY - H * 0.47);
-        ctx.closePath();
-        ctx.fillStyle = 'rgba(200,120,120,0.55)'; ctx.fill();
-      }
-      eye(ctx, H * 0.54, bodyY - H * 0.34, H * 0.026);
-      if (fine) {                                  // 코 · 입
-        ctx.beginPath();
-        ctx.ellipse(H * 0.64, bodyY - H * 0.30, H * 0.035, H * 0.026, 0, 0, Math.PI * 2);
-        ctx.fillStyle = '#3a2f2c'; ctx.fill();
-        ctx.strokeStyle = 'rgba(50,40,38,0.7)'; ctx.lineWidth = H * 0.016;
-        ctx.beginPath();
-        ctx.moveTo(H * 0.60, bodyY - H * 0.24);
-        ctx.lineTo(H * 0.50, bodyY - H * 0.22);
-        ctx.stroke();
-      }
-      if (horse) {   // 갈기
-        ctx.strokeStyle = dark; ctx.lineWidth = H * 0.05;
-        ctx.beginPath();
-        ctx.moveTo(H * 0.28, bodyY - H * 0.14);
-        ctx.lineTo(H * 0.44, bodyY - H * 0.44);
-        ctx.stroke();
-      }
-
-      /* ── 무늬 — 같은 네발이라도 이걸로 누군지 알아본다 ── */
-      if (pat === 'stripe' && fine) {
-        ctx.strokeStyle = 'rgba(40,32,28,0.55)'; ctx.lineWidth = H * 0.03;
-        for (var st2 = -2; st2 <= 2; st2++) {
-          ctx.beginPath();
-          ctx.moveTo(st2 * H * 0.13, bodyY - H * 0.20);
-          ctx.lineTo(st2 * H * 0.13 + H * 0.03, bodyY - H * 0.02);
-          ctx.stroke();
-        }
-      } else if (pat === 'patch' && fine) {
-        ctx.fillStyle = 'rgba(35,32,36,0.88)';
-        ctx.beginPath();                              // 눈 주변
-        ctx.ellipse(H * 0.50, bodyY - H * 0.36, H * 0.075, H * 0.058, -0.3, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();                              // 귀
-        ctx.moveTo(H * 0.44, bodyY - H * 0.42);
-        ctx.lineTo(H * 0.40, bodyY - H * 0.58);
-        ctx.lineTo(H * 0.54, bodyY - H * 0.46);
-        ctx.closePath(); ctx.fill();
-        ctx.beginPath();                              // 어깨
-        ctx.ellipse(H * 0.10, bodyY + H * 0.02, H * 0.16, H * 0.14, 0, 0, Math.PI * 2);
-        ctx.fill();
-      } else if (pat === 'spot' && fine) {
-        ctx.fillStyle = 'rgba(255,250,240,0.62)';
-        for (var sp2 = 0; sp2 < 5; sp2++) {
-          ctx.beginPath();
-          ctx.arc(-H * 0.20 + sp2 * H * 0.11, bodyY - H * (sp2 % 2 ? 0.10 : 0.02), H * 0.028, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      } else if (pat === 'tusk' && fine) {
-        ctx.strokeStyle = '#efe7d2'; ctx.lineWidth = H * 0.026;
-        ctx.beginPath();
-        ctx.moveTo(H * 0.60, bodyY - H * 0.24);
-        ctx.quadraticCurveTo(H * 0.68, bodyY - H * 0.32, H * 0.62, bodyY - H * 0.42);
-        ctx.stroke();
-        ctx.strokeStyle = shade(col, -0.5); ctx.lineWidth = H * 0.03;   // 등 갈기
-        for (var tk = -1; tk <= 1; tk++) {
-          ctx.beginPath();
-          ctx.moveTo(tk * H * 0.12, bodyY - H * 0.22);
-          ctx.lineTo(tk * H * 0.12, bodyY - H * 0.34);
-          ctx.stroke();
-        }
-      } else if (pat === 'ninetail') {
-        ctx.strokeStyle = lite; ctx.lineWidth = H * 0.045;
-        for (var nt = 0; nt < 4; nt++) {
-          var sp3 = -0.30 - nt * 0.16;
-          ctx.beginPath();
-          ctx.moveTo(-H * 0.36, bodyY - H * 0.02);
-          ctx.quadraticCurveTo(-H * (0.62 + nt * 0.05), bodyY + H * sp3,
-            -H * (0.48 + nt * 0.10), bodyY + H * (sp3 - 0.16));
-          ctx.stroke();
-        }
-      } else if (pat === 'mane' && fine) {
-        ctx.fillStyle = shade(col, -0.32);
-        ctx.beginPath();
-        ctx.ellipse(H * 0.42, bodyY - H * 0.30, H * 0.24, H * 0.22, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.ellipse(H * 0.50, bodyY - H * 0.32, H * 0.16, H * 0.12, -0.3, 0, Math.PI * 2);
-        ctx.fillStyle = lite; ctx.fill();
-        eye(ctx, H * 0.54, bodyY - H * 0.34, H * 0.026);
-      } else if (pat === 'crescent' && fine) {
-        ctx.beginPath();
-        ctx.arc(H * 0.18, bodyY + H * 0.02, H * 0.13, Math.PI * 1.15, Math.PI * 1.85);
-        ctx.strokeStyle = 'rgba(255,250,240,0.72)'; ctx.lineWidth = H * 0.04;
-        ctx.stroke();
-      } else if (pat === 'shaggy' && fine) {
-        ctx.strokeStyle = shade(col, -0.22); ctx.lineWidth = H * 0.022;
-        for (var sh2 = -3; sh2 <= 3; sh2++) {
-          ctx.beginPath();
-          ctx.moveTo(sh2 * H * 0.10, bodyY + H * 0.14);
-          ctx.lineTo(sh2 * H * 0.10 - H * 0.03, bodyY + H * 0.26);
-          ctx.stroke();
-        }
-      } else if (pat === 'bareface' && fine) {
-        ctx.beginPath();
-        ctx.ellipse(H * 0.54, bodyY - H * 0.31, H * 0.10, H * 0.085, -0.3, 0, Math.PI * 2);
-        ctx.fillStyle = '#e8b89a'; ctx.fill();
-        eye(ctx, H * 0.56, bodyY - H * 0.34, H * 0.024);
-      }
-    }
-    ctx.restore();
-  }
-
-  function leg2(ctx, ox, oy, angle, len) {
-    ctx.beginPath();
-    ctx.moveTo(ox, oy);
-    ctx.lineTo(ox + Math.sin(angle) * len * 0.35, oy + len);
-    ctx.stroke();
-  }
-
-  /** 짐승 눈 — 25종이 전부 이 함수를 쓴다. */
-  function eye(ctx, x, y, r) {
-    r = Math.max(0.6, r);
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(25,22,22,0.85)';
-    ctx.fill();
-  }
 
   /* ── 건물 ─────────────────────────────────────────────── */
 
@@ -1784,6 +695,23 @@
     return (h % HUMAN_SPRITE_N) + 1;
   }
 
+  /** 그림이 아직 안 실린 순간에만 잠깐 보이는 자리표시(머리 원 + 몸통 타원) —
+   *  human()/beast() 절차적 그림을 대신한다(2026-09-22 Phase 4, 되돌림 그림 제거).
+   *  로컬 PNG 라 대개 한두 프레임 안에 실리고, 실리면 stamp() 의 imgReady
+   *  검사가 이 컷을 곧바로 다시 굽는다(캐시에 박제되지 않는다) */
+  function loadingMark(ctx, footX, footY, H, color) {
+    ctx.save();
+    ctx.globalAlpha = 0.55;
+    ctx.fillStyle = color || '#8a8578';
+    ctx.beginPath();
+    ctx.ellipse(footX, footY - H * 0.86, H * 0.17, H * 0.17, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(footX, footY - H * 0.42, H * 0.22, H * 0.40, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
   /** 캐시에 한 컷을 굽는다 */
   function bake(kind, ref, sc, pb, o) {
     var base = kind === 'human' ? 40 : 30;
@@ -1799,12 +727,6 @@
     var c = cv.getContext('2d');
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    var phase = pb === PHASES ? 0 : (pb + 0.5) * (TAU / PHASES);
-    var walking = pb !== PHASES;
-    var common = {
-      x: footX, y: footY, s: sc, facing: 1, phase: phase,
-      walking: walking, noBounce: true, t: 0
-    };
     var useImg = false;
     if (kind === 'human') {
       var himg = humanImg(humanIndexOf(o.ref));
@@ -1814,11 +736,7 @@
         c.imageSmoothingEnabled = false;
         c.drawImage(himg, footX - hdw / 2, footY - hdh, hdw, hdh);
       } else {
-        /* 그림이 아직 안 실렸으면(첫 프레임) 옛 절차적 그림으로 우선 채운다 —
-           그러지 않으면 빈 캔버스가 그대로 캐시에 박제된다 */
-        common.color = o.color; common.look = o.look; common.skin = o.skin;
-        common.rarity = o.rarity || (o.ref && o.ref.rarity) || 0;
-        human(c, common);
+        loadingMark(c, footX, footY, H, o.color);
       }
     } else {
       var bimg = beastImgOf(o.ref);
@@ -1828,11 +746,7 @@
         c.imageSmoothingEnabled = false;
         c.drawImage(bimg, footX - bdw / 2, footY - bdh, bdw, bdh);
       } else {
-        /* 그림이 없거나(ogre 형태) 아직 안 실렸으면(첫 프레임) 절차적 그림 —
-           humanImg 와 같은 결의 폴백(2201행 주석 참고) */
-        common.form = o.form; common.color = o.color; common.divine = o.divine;
-        common.ref = o.ref;                    // 무늬는 ref 에서 뽑는다
-        beast(c, common);
+        loadingMark(c, footX, footY, H, o.color);
       }
     }
     /* 여기서 한 번 훑는다 — 지도 위 스탬프는 어두운 배경에 서므로
@@ -2038,17 +952,23 @@
 
     if (kind === 'hero') {
       var f = global.DG.data.faction(ref.faction);
-      human(c, {
-        x: size * 0.5, y: size * 0.94, s: size / 46, facing: 1,
-        phase: 0, walking: false, color: f.color, look: lookOf(ref),
-        rarity: ref.rarity, t: 0
-      });
+      var himg4 = humanImg(humanIndexOf(ref));
+      if (himg4.complete && himg4.naturalWidth) {
+        c.imageSmoothingEnabled = false;
+        var hw4 = size * 0.78;
+        c.drawImage(himg4, size * 0.5 - hw4 / 2, size * 0.94 - hw4, hw4, hw4);
+      } else {
+        loadingMark(c, size * 0.5, size * 0.94, size * 0.8, f.color);
+      }
     } else if (kind === 'pet') {
-      beast(c, {
-        x: size * 0.5, y: size * 0.9, s: size / 40, facing: 1,
-        phase: 0, walking: false, form: beastFormOf(ref),
-        color: beastColorOf(ref), divine: ref.kind === 'divine', ref: ref, t: 0
-      });
+      var bimg4 = beastImgOf(ref);
+      if (bimg4 && bimg4.complete && bimg4.naturalWidth) {
+        c.imageSmoothingEnabled = false;
+        var bw4 = size * 0.9;
+        c.drawImage(bimg4, size * 0.5 - bw4 / 2, size * 0.9 - bw4, bw4, bw4);
+      } else {
+        loadingMark(c, size * 0.5, size * 0.9, size * 0.8, beastColorOf(ref));
+      }
     } else if (kind === 'building') {
       building(c, { x: size * 0.5, y: size * 0.95, s: size / 58, form: ref.key, color: ref.color, t: 0 });
     }
@@ -2130,17 +1050,24 @@
     var fig = figCv.getContext('2d');
     fig.setTransform(dpr, 0, 0, dpr, 0, 0);
     if (isHero) {
-      human(fig, {
-        x: w * 0.5, y: h * 0.93, s: h / 56, facing: 1, phase: 0, walking: false,
-        color: fac.color, look: lookOf(ref), rarity: ref.rarity, t: 0
-      });
+      var himg5 = humanImg(humanIndexOf(ref));
+      if (himg5.complete && himg5.naturalWidth) {
+        fig.imageSmoothingEnabled = false;
+        var hw5 = h * 0.62;
+        fig.drawImage(himg5, w * 0.5 - hw5 / 2, h * 0.93 - hw5, hw5, hw5);
+      } else {
+        loadingMark(fig, w * 0.5, h * 0.93, h * 0.6, fac.color);
+      }
     } else {
-      /* 짐승은 가로로 긴 형태(용·물고기)가 있어 폭 기준으로 맞춘다 (bake 상자 = 2.3H) */
-      beast(fig, {
-        x: w * 0.5, y: h * 0.80, s: h / 80, facing: 1, phase: 0, walking: false,
-        form: beastFormOf(ref), color: beastColorOf(ref),
-        divine: ref.kind === 'divine', ref: ref, t: 0
-      });
+      /* 짐승은 가로로 긴 형태(용·물고기)가 있어 이미지 상자를 넉넉히 잡는다 */
+      var bimg5 = beastImgOf(ref);
+      if (bimg5 && bimg5.complete && bimg5.naturalWidth) {
+        fig.imageSmoothingEnabled = false;
+        var bw5 = h * 0.75;
+        fig.drawImage(bimg5, w * 0.5 - bw5 / 2, h * 0.80 - bw5, bw5, bw5);
+      } else {
+        loadingMark(fig, w * 0.5, h * 0.80, h * 0.6, ref.kind === 'divine' ? '#8a5cc0' : '#5f7a4a');
+      }
     }
     storyize(figCv);
     c.save();
@@ -2162,7 +1089,7 @@
 
   global.DG = global.DG || {};
   global.DG.sprite = {
-    human: human, beast: beast, building: building, buildingImg: buildingImg,
+    building: building, buildingImg: buildingImg,
     portraitCard: portraitCard,
     stamp: stamp, stampStats: stampStats,
     lookOf: lookOf, idSeed: idSeed, beastFormOf: beastFormOf, beastColorOf: beastColorOf,

@@ -159,6 +159,7 @@
 
     /* 탕약 · 후퇴 */
     if (on('potion') && st2.hp / st2.hpMax < 0.35) {
+      if (st2.party && global.DG.party.autoSwap()) { doing = '🔄 동료로 교대'; return; }
       if (S.drink()) { doing = '🧪 탕약을 마셨다'; return; }
       if (st2.hp / st2.hpMax < 0.18) {
         doing = '🚪 체력이 낮아 나온다';

@@ -146,6 +146,7 @@
 - **세이브**: `save.dungeon.grave = null | {floor, gold, items:[…], at}` 신설(`freshSave`, mergeDeep). 장비 객체는 `item.js` 의 직렬화 그대로(가방과 같은 모양).
 - **진단 문안**: "유품 — 죽으면 노획물이 그 층 유품으로 남고 가방엔 안 들어온다" · "유품 — 그 층에 다시 닿으면 표식이 서고 밟으면 금 100%·장비 3점까지 돌아온다" · "유품 — 회수 전에 다시 죽으면 옛 유품은 사라지고 새 것만 남는다" · "유품 — 결사에서는 유품이 안 생긴다".
 - **범위**: `dungeon.js`(die 경로·buildFloor 표식), `ui.js`(사망 카드), `core.js`. **우선순위 2**. 충돌: 없음. `run` 비저장 규칙 유지(유품은 메타).
+- **구현(2026-09-18)**: 코드분 완료 — `graveOf`·`openGrave`·`toggleGraveItem`·`claimGrave`(`dungeon.js`). 상세는 `HANDOFF.md` "PLAN §5.2 유품(遺品) 구현" 절. (2026-09-22 확인: 이 표시가 빠져 있어 한동안 미착수로 잘못 보였다 — 절 번호 재편 때 누락.)
 
 ### 5.3 부적(符籍) 던전 — 나이트메어 티어와 변형자
 - **참고**: 디아블로 4 나이트메어 던전, PoE 맵 변형자. **표준**: F·G·H.
@@ -156,6 +157,7 @@
 - **세이브**: `save.gear.mats.sigil = [{id, tier, mods:[…]}]`, `save.dungeon.nmBest` 신설. 마이그레이션 없음(mergeDeep).
 - **진단 문안**: "부적 — 변형자는 부적 id 로 결정적이다(같은 부적 두 번 굴려 같음)" · "부적 — 티어 T 적 HP 가 1+0.35T 배다" · "부적 — 75초 변형자는 시간이 다 되면 방을 실패로 끝낸다" · "부적 — 클리어하면 티어 T+1 부적이 60% 로 나온다(1000회 ±3%)".
 - **범위**: `data-dungeon.js`(MODS 표), `dungeon.js`(enter 옵션·enemyHp/Dmg 배율·타이머), `item.js`(mats), `ui.js`. **우선순위 3**. 충돌: 난도 회차 고정 규칙 유지(부적 회차도 회차 안에서 티어 고정). 방 단위 구조 유지.
+- **구현(2026-09-18)**: 코드분 완료 — `run.nightmare`(tier·mods)·`nmHasMod`·`nmMul`·`dieNightmare`(`dungeon.js`). 상세는 `HANDOFF.md` "PLAN §5.3 부적(符籍) 던전 구현" 절. (2026-09-22 확인: 표시 누락으로 미착수로 잘못 보였다.)
 
 ### 5.4 월드 보스 시간표 — 실시간 75초 전투
 - **참고**: 디아블로 4 월드 보스, 몬스터헌터 나우(75초·부위 파괴·저스트 회피). **표준**: H·E·C.
@@ -166,6 +168,7 @@
 - **세이브**: `save.world = {bossSlot, bossDone:{slot:true}}`, `save.dex.worldBoss = {id:true}` 신설.
 - **진단 문안**: "월드 보스 — 슬롯이 같으면 마을·자리가 같다(Date 고정)" · "월드 보스 — 부위를 깨면 그 패턴이 안 나온다" · "월드 보스 — 75초가 지나면 전투가 끝나고 보상이 30% 다" · "월드 보스 — 같은 슬롯은 두 번 보상하지 않는다". `Date.now` 를 진단에서 고정(사가고 `weather.force` 결).
 - **범위**: `dungeon.js`(필드 보스 스폰·부위·타이머), `town.js`(예고 표식), `dungeon3d.js`(부위 게이지는 DOM), `ui.js`, `core.js`. **우선순위 4**. 충돌: 없음. 시각 의존 축이므로 진단 고정 필수(§9).
+- **구현(2026-09-18)**: 코드분 완료 — `save.dungeon.world`(slot·bossDone)·`save.dex.worldBoss`(`dungeon.js`). 상세는 `HANDOFF.md` "PLAN §5.4 월드 보스 구현" 절. (2026-09-22 확인: 표시 누락으로 미착수로 잘못 보였다.)
 
 ### 5.5 난입(亂入) — 15분 생존 파도
 - **참고**: 뱀파이어 서바이버, 하데스(레벨업 3택). **표준**: C·D·G.
@@ -176,6 +179,7 @@
 - **세이브**: `save.dungeon.horde = {best(초), runs}`.
 - **진단 문안**: "난입 — 파도 N 의 적 수는 6+2N 이고 40 을 넘지 않는다" · "난입 — 레벨업 3택이 서로 다른 축이다" · "난입 — 15분이 되면 생존 종료 보상이 붙는다".
 - **범위**: `dungeon.js`(horde 모드 진입·파도 타이머), `town.js`(표식), `ui.js`. **우선순위 5**(5.1 뒤). 충돌: 없음 — 자동 순회는 난입을 안 탄다.
+- **구현(2026-09-18)**: 코드분 완료 — `run.horde`(hordeWave·hordeLevel·hordeT)·`dieHorde`(`dungeon.js`). 상세는 `HANDOFF.md` "PLAN §5.5 난입(亂入) 구현" 절. (2026-09-22 확인: 표시 누락으로 미착수로 잘못 보였다.)
 
 ### 5.6 목표판·세션 카드·일일/주간
 - **참고**: 포켓몬GO 리서치, 원신 일일 위탁, 메이플 주간 보스. **표준**: A·B·H.
@@ -197,6 +201,7 @@
 - **세이브**: 없음(dex.heroes 는 id 키). **단 `data.js` 는 다섯 판 공통 사본** — 인물 30 추가는 다섯 벌 md5 일치가 조건(§10-Q1). 이 판만 먼저 하려면 `data-hero-ext.js` 로 이 판 전용 확장 파일을 두고 나중에 `data.js` 로 합친다(권장).
 - **진단 문안**: "퓨전 — 인물 이름 30 이 실명 블랙리스트에 없다" · "퓨전 — 135 인물 전원 sigOf 가 null 이 아니다" · "퓨전 — 시대 층 decor 가 스폰 95 간격을 지킨다" · "퓨전 — lance_e 밑감이 무장을 열고 gauntlet 이 도독을 연다".
 - **범위**: `data-hero-ext.js`(신설)·`data-hero-skill.js`·`data-item.js`·`data-enemy.js`·`town.js`(decor)·`asset3d.js`·`dungeon3d.js`·`ui.js`. **우선순위 6**. 충돌: 이름 정책(가명·블랙리스트 검사 필수), 다섯 벌 복사(전용 확장 파일로 회피), "코드로 그리지 말고 에셋으로"(소품은 CC0 조합).
+- **구현(2026-09-18)**: 네 갈래 전부 코드분 완료 — ① 인물 30(`data-hero-ext.js`) ② 미래 무기 룩 `lance_e`·`gauntlet`(`data-item.js`·`dungeon3d.js`) ③ 시대 층 소품 5종(`field3d.js` `ERA_LAYER`/`eraLayerSlots`, `t_factory`/`t_solar`/`t_tower`/`t_pylon`/`t_hologram` — biome 5개, town.js 의 decor 목록이 아니라 필드 청크 자리다) ④ 기계화 변종 10종(`data-enemy.js`, 강철랑·동합귀·철갑해 등, `resist.emp` + 금속 팔레트). 상세는 `HANDOFF.md` "PLAN §5.7 시대 퓨전 구현" 절. (2026-09-22 확인: 표시 누락으로 ③④가 미착수로 잘못 보여, 같은 기능을 town.js/dungeon3d.js 에 중복 코드분했다가 발견 즉시 되돌렸다 — 커밋 전이라 실 피해 없음.)
 
 ### 5.8 손맛 2차·성장 가시화 — 표준 C·G 완성
 - **참고**: 몬헌 나우, 하데스, 데드셀. **표준**: C·G.

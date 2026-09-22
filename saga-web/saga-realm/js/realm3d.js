@@ -1131,6 +1131,13 @@
       pivotZ + Math.cos(pitch) * Math.cos(yaw) * dist
     );
     camera.lookAt(pivotX, pivotY + 6, pivotZ);
+    /* 안개는 카메라 거리를 따라간다 — 260~900 으로 고정해 두면 멀리 물러날 때
+       (dist 최대 900) 중심(피벗)까지가 이미 안개 끝이라 지도 전체가 뿌옇다.
+       바닥값은 예전 값이라 가까이서 볼 때는 그대로다 */
+    if (scene.fog) {
+      scene.fog.near = Math.max(260, dist * 1.15);
+      scene.fog.far = Math.max(900, dist * 3.4);
+    }
 
     var t = now || 0;
     for (var i = 0; i < pulseRings.length; i++) {
