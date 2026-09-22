@@ -54,7 +54,9 @@
   var rebuildSeq = 0;
   var curCityId = null, curSig = '';
   var spin = 0;
-  var npcs = [];   // 걸어다니는 주민(2026-09-22) — build() 마다 새로 심고 tick() 이 오간다
+  var npcs = [];    // 걸어다니는 주민(2026-09-22) — build() 마다 새로 심고 tick() 이 오간다
+  var workers = [];  // 제자리에서 훈련·일하는 주민(2026-09-22, 이어서) — 명령과는 안 엮는다(판정 없음),
+                      // "성 안이 비어 보인다"는 지적에 우물·횃불처럼 **늘 있는 살림**으로 둔다
   var sheetEl = null;   // active() 가 매 프레임 부르므로 요소 자체는 캐시(감사, 2026-09-08)
 
   function available() { return !!three() && !failed; }
@@ -191,6 +193,44 @@
     }
   }
 
+  /** 제자리에서 훈련·일하는 주민 둘 — "건설·훈련 모션도 있으면 좋겠다"(2026-09-22
+   *  사용자 요청). 어느 명령을 썼는지는 안 읽는다(그런 상태 칸이 세이브에 아직
+   *  없다) — 대신 우물·횃불처럼 **늘 있는 살림**으로 둔다. `attack`·`interaction`
+   *  은 원샷 클립(`asset3d.js` ONE_SHOT)이라 `every`초마다 `force:true`로 다시
+   *  틀어야 반복 동작처럼 보인다(한 번 튼 뒤 마지막 자세로 굳는 게 기본이다). */
+  function spawnWorkers(seq, h, cityId) {
+    workers = [];
+    var specs = [
+      { id: cityId + '_train', anim: 'attack', x: h * 0.75, z: -h * 0.7, every: 1.7 },
+      { id: cityId + '_work', anim: 'interaction', x: -h * 1.15, z: h * 0.3, every: 2.2 }
+    ];
+    specs.forEach(function (sp) {
+      var w = { model: null, anim: sp.anim, every: sp.every, next: 0 };
+      workers.push(w);
+      asset3d().buildHero({ id: 'npc_' + sp.id }, null, function (g) {
+        if (seq !== rebuildSeq || !g || !dyn) { return; }
+        g.scale.setScalar(0.85);
+        g.position.set(sp.x, 0, sp.z);
+        g.rotation.y = Math.atan2(-sp.x, -sp.z);   // 성 가운데 쪽을 보고 선다
+        dyn.add(g);
+        addShadow(sp.x, sp.z, 0.5);
+        w.model = g;
+      });
+    });
+  }
+
+  /** 훈련·일하는 주민을 한 프레임 다룬다 — 원샷 동작을 `every`초마다 다시 튼다 */
+  function tickWorkers(now) {
+    var i, w;
+    for (i = 0; i < workers.length; i++) {
+      w = workers[i];
+      if (!w.model) { continue; }
+      var force = now >= w.next;
+      if (force) { w.next = now + w.every; }
+      asset3d().step(w.model, { anim: w.anim, t: now, force: force });
+    }
+  }
+
   /** 성 하나를 통째로 다시 짓는다 — 숫자를 그대로 세운다 */
   function build(cityId) {
     var t = three();
@@ -267,6 +307,7 @@
     }
 
     spawnVillagers(seq, h, cityId);
+    spawnWorkers(seq, h, cityId);
   }
 
   function sig(cityId) {
@@ -307,6 +348,7 @@
     camera.position.set(Math.sin(spin) * dist, TIER_H.t3 * 1.5, Math.cos(spin) * dist);
     camera.lookAt(0, TIER_H.t2 * 0.4, 0);
     tickNpcs(Date.now() / 1000);
+    tickWorkers(Date.now() / 1000);
     renderer.render(scene, camera);
     requestAnimationFrame(tick);
   }
