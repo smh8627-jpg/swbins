@@ -4962,3 +4962,5 @@ saga-go 정본을 다른 네 판에도 동일 반영, 가드돼 있어 그 판�
   열려 있어 새 파일만 쓰는 실행으로 한정(기존 씬·.import 변화 없음 확인). 실행 파일은 그 세션 scratch 의 4.7.2 콘솔판.
 - Unity `saga-unity/Assets/Editor/BuildFromLayout.cs`(메뉴 + `-executeMethod`): 다른 세션이 saga-unity 를 고치는 중이라 **Unity 는 안 열었다** —
   scratch csproj 로 Unity 6000.3.24f1 DLL 을 참조해 컴파일만 확인(오류·경고 0). **Unity 에서 실제 조립은 확인 전.**
+- (같은 날 뒤) 다른 세션이 saga-unity 를 배치 모드(PlaytestStorySlice)로 돌린 로그에서 프로젝트 전체 컴파일 `Tundra build success`·`error CS` 0 을 확인 —
+  `BuildFromLayout.cs` 가 실제 Unity 6000.3.24f1 에서도 컴파일된다. 조립 실행은 여전히 확인 전(그 세션이 Unity 를 쓰는 중이라 안 돌림).

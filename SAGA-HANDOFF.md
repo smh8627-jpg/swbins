@@ -371,7 +371,7 @@ PC 묶음   tools/saga-pc/build-all.bat  →  saga-pc/dist/ (다섯 html + index
 - **다섯 판 공용 에셋 통합 관리 엔진(장기)** — 사용자가 명시적으로 확정한 목표. 범위·형태·순서 미정 — 착수 전
   반드시 사용자와 맞춘다. `SAGA-DESIGN.md` §7.2 `tools/asset-forge/` 제안과 겹치므로 그쪽을 출발점으로.
   2026-09-23 `tools/asset-audit/` 가 트랙을 넘는 사본(29묶음, 대부분 Godot·Unity 공용 Kenney)을 보고서로 낸다 — 통합 후보 목록으로 쓸 것.
-- **Unity 씬 조립 실제 실행** — `saga-unity/Assets/Editor/BuildFromLayout.cs`(메뉴 Saga > Layout)는 DLL 컴파일만 확인했다.
+- **Unity 씬 조립 실제 실행** — `saga-unity/Assets/Editor/BuildFromLayout.cs`(메뉴 Saga > Layout)는 실제 Unity 컴파일까지 통과했다(2026-09-23, 다른 세션 배치 로그 `Tundra build success`·CS 오류 0). 조립 실행은 확인 전.
   다른 세션이 saga-unity 를 안 고칠 때 한 번 돌려 볼 것(`tools/scene-layout/README.md`).
 - **사가고 `tower_ruin.glb`(역참) 아이콘 굽기** — 여섯 번 넘게 실패해 절차 그림 그대로.
   재시도 방법은 `saga-web/saga-go/tools/bake-icons/README.md`.
