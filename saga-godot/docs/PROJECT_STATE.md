@@ -27,7 +27,7 @@
 1. **FOREST 흰 바위 — 수정(09-23)**: rocky `Rock_Medium_1`(COLOR_0 없음)을 `textured_material`(Rocks_Diffuse.png)로. 같은 원인 전수 조사 결과 나머지는 유지 판단 — 채집물 tree_oak·rock_largeA(Kenney, 정점색 없음 → 모델 전체가 `d.tint` 한 색, 채집물별 의도색)·FOREST 나무 CommonTree_1(정점색 있음, 단 잎 alphaMode MASK가 무시됨 — 승인된 핵심 화면이라 사용자가 원하면 cutout으로).
 2. **FOREST 나무 잎 네모판 — 수정(09-23)**: CommonTree_1 잎 텍스처 76% 투명·잎 정점 100% 투명 픽셀 위(실측)인데 알파가 무시돼 네모판으로 그려지던 것을, 색(정점색×바이옴 tint)은 그대로 두고 알파만 원본 텍스처에서 빌리는 `curved_vertex_color_cutout.gdshader`로. 바이옴마다 메시 복제+표면별 머티리얼(MultiMesh는 표면별 머티리얼 불가). Quaternius 남은 종은 급하지 않음.
 3. **FOREST 옷 염색·덧옷 — 수정(09-23, GLB override 전수 감사에서 발견)**: `forest_wear_visual.gd`가 VRoid 교체(09-19) 뒤에도 옛 Kenney `texture-a.png` 재질을 플레이어 전 메시에 `material_override` → 염색하면 툰·얼굴 베이크·외곽선 소실(해제해도 안 돌아옴). 이제 `_CLOTH` 표면(Tops·Bottoms·Shoes)의 cel_toon `albedo_tint`만 곱색, 덧옷은 `Visual` 자식·1.7m 기준 크기. **세이브 기본값이 dye "none"이라 기본 상태에서도 매번 실행됐다** — 09-19 이후 FOREST 플레이어는 늘 Kenney 텍스처로 덮여 툰·얼굴 베이크가 한 번도 안 보였다(옛 코드 로그의 texture-a.png 로드로 확인). 임시 훅으로 켜기·끄기 검증.
-4. VRoid 새 캐릭터 — Downloads `새 폴더`의 `model.vroid`(export 전, 용도 미확인)는 사용자가 VRM으로 내보내면 반입(얼굴 베이크·1.7m·`mixamo_retarget.gd`·씬 교체, dungeon_hero_01 절차 그대로).
+4. VRoid 새 캐릭터 — **대기 중인 조형 없음**. Downloads `새 폴더`의 `model.vroid`는 이미 FOREST에 적용된 `saga_forest_avatar_01`의 VRoid Studio 원본 프로젝트(09-20 HISTORY에서 썸네일로 확인 — 09-23 "용도 미확인"은 오기). 새 주역이 필요하면 사람이 조형.
 5. 참고: 103-4 리타겟 "트위스트 미보정"은 트위스트 큰 새 클립을 넣을 때만 재검토.
 
 ## 알려진 오류
