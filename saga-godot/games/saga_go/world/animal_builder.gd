@@ -137,8 +137,8 @@ func _build_magpie_body() -> MeshInstance3D:
 func _spawn_carps() -> void:
 	## 강바닥(-1.0) 위, 수면(-0.45, terrain_builder.gd _build_water 참고)
 	## 보다 살짝 아래서 헤엄친다 — 물 밖으로 튀어나와 보이지 않게.
-	var bed: float = TerrainBuilder.LEGEND["~"].height
-	var swim_y := bed + TerrainBuilder.WATER_HEIGHT_ABOVE_BED * 0.5
+	## 2026-09-23 강바닥을 -3.0 으로 팠다 — 수면 기준으로 예전과 같은 깊이(-0.725)에 둔다.
+	var swim_y := TerrainBuilder.WATER_LEVEL - TerrainBuilder.WATER_HEIGHT_ABOVE_BED * 0.5
 	var home_pos := TestMap.world_pos(CARP_HOME.x, CARP_HOME.y) + Vector3(0, swim_y, 0)
 	for i in CARP_COUNT:
 		var body := _build_carp_body()

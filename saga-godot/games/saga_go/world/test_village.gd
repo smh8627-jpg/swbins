@@ -26,6 +26,9 @@ func _ready() -> void:
 	_remove_resolved_events()
 	if OS.get_environment("SAGA_DENSITY_REPORT") != "":
 		_print_density_report()
+	## 원신식 이동(go_player.gd) 자동 점검 — 측정할 때만 붙인다.
+	if OS.get_environment("SAGA_TRAVERSAL_PROBE") != "":
+		add_child(load("res://tools/probe_traversal.gd").new())
 
 	## PLAN.md 101-4 GO ①후보 "일과판" — 로드가 끝난 뒤(위와 같은 이유,
 	## 세션 델타의 기준점이 로드 전 값이면 안 된다) 세션을 연다.

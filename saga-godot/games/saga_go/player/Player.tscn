@@ -1,6 +1,6 @@
 [gd_scene load_steps=6 format=3]
 
-[ext_resource type="Script" path="res://games/saga_go/player/player.gd" id="1"]
+[ext_resource type="Script" path="res://games/saga_go/player/go_player.gd" id="1"]
 [ext_resource type="Script" path="res://games/saga_go/player/camera_rig.gd" id="2"]
 [ext_resource type="PackedScene" path="res://assets/characters_vroid/AvatarSample_A.glb" id="3"]
 [ext_resource type="Script" path="res://games/saga_go/player/anim_library_loader.gd" id="4"]

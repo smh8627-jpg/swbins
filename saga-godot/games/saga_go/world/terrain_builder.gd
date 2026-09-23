@@ -1,25 +1,40 @@
 extends Node3D
 
 ## VERTICAL_SLICE.md 27절 — TestMap의 글자 지도를 읽어 색칠한 바닥을 세운다.
-## 칸마다 MeshInstance3D를 만들지 않는다 — 종류별 MultiMesh 하나에 자리만
-## 채운다(사가의숲 웹판 village-view3d.js의 InstancedMesh 원칙과 같다).
+## 칸마다 MeshInstance3D를 만들지 않는다 — 지역 전체를 메시 한 장으로 합친다
+## (사가의숲 웹판 village-view3d.js의 InstancedMesh 원칙과 같다).
 ##
-## 2026-09-16, GO "진짜 두 번째 지역" — 지금까지 이 파일은 TestMap.ROWS
-## (마을) 하나만 알았다. `region_id`(export, 기본 "village")를 추가해
-## test_map.gd REGIONS 어떤 지역이든 그릴 수 있게 넓혔다 — 기본값이 그대로
-## "village"라 TestVillage.tscn의 기존 TerrainBuilder 노드는 아무 것도
-## 안 바꿔도 이전과 완전히 같은 지형을 그린다(헤드리스 회귀 md5로 확인).
+## 2026-09-16, GO "진짜 두 번째 지역" — `region_id`(export, 기본 "village")로
+## test_map.gd REGIONS 어떤 지역이든 그린다.
+##
+## 2026-09-23, 원신 기준 이동(점프·등반·활공·수영, go_player.gd) 첫 단계 —
+## 옛 지형은 산이 2.5m 판 + 투명 6m 벽, 강은 통째로 막힌 벽이라 오를 것도
+## 헤엄칠 것도 없었다. 이렇게 바꿨다:
+##   · 산(^) 칸은 10~30m 고원 + 가운데 봉우리(노이즈), 이웃보다 높은 변마다
+##     수직 절벽 옆면을 메시에 넣는다(트라이플레이너가 경사면을 돌로 칠한다).
+##     지도 테두리 산은 더 높게(22~30m) — 분지를 둘러싼 산맥처럼.
+##   · 강(~) 바닥을 -1.0 → -3.0 으로 파서 수면(WATER_LEVEL -0.45, 예전과
+##     같은 높이) 아래 2.5m 물이 생긴다. 물은 막지 않고 헤엄친다.
+##   · 충돌은 칸마다 상자 대신 **보이는 메시 그대로**(trimesh) — 102-5
+##     "충돌 바닥도 같은 메시에서" 처방. 다리 널판만 예전 상자 그대로.
+##   · 지도 밖으로 활공·등반해 나가지 않게 테두리에 보이지 않는 벽(충돌
+##     레이어 2 — 카메라 SpringArm·등반 판정은 레이어 1만 보므로 안 걸린다).
+##   · 수면마다 Area3D(레이어 WATER_LAYER, 그룹 "water") — go_player.gd 가
+##     여기 들어가면 헤엄친다. 수면 높이는 메타 "surface_y".
+## `walkable` 값은 그대로 둔다(스폰·발견 밀도 판정용 — 산·강에 사건을 두지
+## 않는다는 뜻이지 못 간다는 뜻이 아니게 됐다).
 
 const TestMap := preload("res://games/saga_go/data/test_map.gd")
 
 @export var region_id := "village"
 
 ## height — 사가의숲 웹판 village-view3d.js가 "물은 12cm 낮춘다"고 한 것과
-## 같은 원칙. 산은 두드러지고 강은 패어 보이게, 나머지는 거의 평면에 가깝게.
+## 같은 원칙. 산(^)의 height 는 이제 "안쪽 산 최저값"이고 실제 높이는
+## tile_base_height() 가 칸마다 정한다.
 const LEGEND := {
-	"^": {"name": "mountain", "color": Color(0.55, 0.53, 0.5), "walkable": false, "height": 2.5},
+	"^": {"name": "mountain", "color": Color(0.55, 0.53, 0.5), "walkable": false, "height": 10.0},
 	"T": {"name": "forest", "color": Color(0.16, 0.32, 0.14), "walkable": true, "height": 0.15},
-	"~": {"name": "river", "color": Color(0.3, 0.26, 0.18), "walkable": false, "height": -1.0},
+	"~": {"name": "river", "color": Color(0.3, 0.26, 0.18), "walkable": false, "height": -3.0},
 	"=": {"name": "path", "color": Color(0.62, 0.5, 0.32), "walkable": true, "height": 0.05},
 	"H": {"name": "village", "color": Color(0.78, 0.68, 0.42), "walkable": true, "height": 0.1},
 	"F": {"name": "farmland", "color": Color(0.55, 0.58, 0.22), "walkable": true, "height": 0.05},
@@ -34,40 +49,117 @@ const LEGEND := {
 	"D": {"name": "sand", "color": Color(0.76, 0.68, 0.5), "walkable": true, "height": 0.05},
 }
 
+## 수면 높이. 예전 식(강바닥 -1.0 + WATER_HEIGHT_ABOVE_BED 0.55)과 같은 값을
+## 상수로 못박았다 — 바닥을 파도 물 높이는 그대로다.
+const WATER_LEVEL := -0.45
+## 다리(B) 칸 아래 수면 계산용으로만 남는다(-1.0 + 0.55 = WATER_LEVEL).
 const WATER_HEIGHT_ABOVE_BED := 0.55
 
 ## 다리 널판이 강바닥 위로 뜨는 높이. landmarks_builder.gd의 다리도
 ## 이 상수를 그대로 가져다 쓴다 — 두 파일이 각자 값을 정하면 어긋난다.
 const BRIDGE_CLEARANCE := 2.0
 
-## 산·강을 막는 벽의 높이(둘 다 walkable=false — 다리로만 강을 건넌다).
-const BLOCK_HEIGHT := 6.0
+## 산 높이(m). 2m 계단으로 끊어 이웃 산끼리도 절벽 단이 생기게 한다.
+const MOUNTAIN_INNER_MIN := 10.0
+const MOUNTAIN_INNER_MAX := 18.0
+const MOUNTAIN_EDGE_MIN := 22.0
+const MOUNTAIN_EDGE_MAX := 30.0
+const MOUNTAIN_STEP := 2.0
+## 고원 가운데 봉우리 높이 — 칸 가장자리로 갈수록 0(절벽 테두리는 평평).
+const MOUNTAIN_PEAK_AMP := 9.0
+const PEAK_FALLOFF := 0.38
 
-## 칸 하나를 몇 조각으로 쪼개 경계 쪽만 색을 섞을지. 4는 saga-go 웹판
-## terrainTexture()의 서브셀 블렌딩(SUB=4)과 같은 값 — 이미 검증된 감으로
-## 맞췄다. 칸 중심(거리 0.5)에서 이 값(EDGE_BLEND_MARGIN)만큼 안쪽은 섞지
-## 않고 제 색 그대로 두고, 가장자리로 갈수록만 이웃과 번진다.
-const SUB := 4
+## 지도 테두리 밖 절벽이 떠 보이지 않게 내려 긋는 깊이.
+const OUTER_SKIRT_Y := -8.0
+## 보이지 않는 경계벽 높이·두께. 테두리 산 꼭대기(최대 30+9m)보다 넉넉히.
+const BORDER_WALL_HEIGHT := 120.0
+const BORDER_WALL_THICK := 4.0
+
+## 충돌 레이어(비트 값). 1 = 지형·건물(기본), 2 = 경계벽, 4 = 물.
+const BORDER_LAYER := 2
+const WATER_LAYER := 4
+
+## 칸 하나를 몇 조각으로 쪼갤지. 봉우리 굴곡 때문에 4 → 8(6m 간격)로 늘렸다.
+## 경계 색 섞기(EDGE_BLEND_MARGIN)는 u,v 비율로 계산해 조각 수와 무관하다.
+const SUB := 8
 const EDGE_BLEND_MARGIN := 0.34
+
+const CLIFF_COLOR := Color(0.5, 0.48, 0.45)
+
+static var _noise: FastNoiseLite = null
 
 func _ready() -> void:
 	_build()
 	_build_water()
 	_build_collision()
+	_build_border()
+
+# ---------------------------------------------------------------- 높이 API
+
+## 칸의 기준 높이. 산은 씨앗 해시로 2m 계단, 나머지는 LEGEND 값.
+static func tile_base_height(region: String, x: int, y: int) -> float:
+	var ch := TestMap.tile_at(x, y, region)
+	if ch != "^":
+		return LEGEND[ch].height if LEGEND.has(ch) else 0.0
+	var s := TestMap.size(region)
+	var edge := x == 0 or y == 0 or x == s.x - 1 or y == s.y - 1
+	var lo := MOUNTAIN_EDGE_MIN if edge else MOUNTAIN_INNER_MIN
+	var hi := MOUNTAIN_EDGE_MAX if edge else MOUNTAIN_INNER_MAX
+	var steps := int((hi - lo) / MOUNTAIN_STEP)
+	var k := int(_hash(x, y, 901) * float(steps + 1)) % (steps + 1)
+	return lo + float(k) * MOUNTAIN_STEP
+
+## 칸 안 (u,v)(0~1) 자리의 실제 지면 높이. 산만 봉우리가 솟는다.
+static func vertex_height(region: String, x: int, y: int, u: float, v: float) -> float:
+	var base := tile_base_height(region, x, y)
+	if TestMap.tile_at(x, y, region) != "^":
+		return base
+	var d: float = min(min(u, 1.0 - u), min(v, 1.0 - v))
+	var f := smoothstep(0.0, PEAK_FALLOFF, d)
+	var ts := TestMap.tile_size_of(region)
+	var n := _peak_noise().get_noise_2d((x + u) * ts, (y + v) * ts) * 0.5 + 0.5
+	return base + MOUNTAIN_PEAK_AMP * n * f
+
+## 월드 좌표의 지면 높이(바위·소품을 산 위에 앉힐 때).
+static func height_at(region: String, world: Vector3) -> float:
+	var g := _grid_of(region, world)
+	return vertex_height(region, int(g.x), int(g.y), g.z, g.w)
+
+## 월드 → (칸 x, 칸 y, u, v). world_pos() 의 역함수.
+static func _grid_of(region: String, world: Vector3) -> Vector4:
+	var s := TestMap.size(region)
+	var ts := TestMap.tile_size_of(region)
+	var local := world - TestMap.origin_of(region)
+	var gx := local.x / ts + s.x * 0.5 + 0.5
+	var gy := local.z / ts + s.y * 0.5 + 0.5
+	var ix := clampi(int(floor(gx)), 0, s.x - 1)
+	var iy := clampi(int(floor(gy)), 0, s.y - 1)
+	return Vector4(ix, iy, clampf(gx - ix, 0.0, 1.0), clampf(gy - iy, 0.0, 1.0))
+
+static func _peak_noise() -> FastNoiseLite:
+	if _noise == null:
+		_noise = FastNoiseLite.new()
+		_noise.seed = 20260923
+		_noise.frequency = 0.035
+		_noise.fractal_octaves = 3
+	return _noise
+
+## vegetation_builder.gd _hash() 와 같은 식(칸 좌표 결정적 해시).
+static func _hash(gx: int, gy: int, salt: int) -> float:
+	var h := (gx * 374761393) ^ (gy * 668265263) ^ (salt * 2246822519)
+	h = (h ^ (h >> 13)) * 1274126177
+	h = h ^ (h >> 16)
+	return float(h & 0x7fffffff) / float(0x7fffffff)
+
+# ---------------------------------------------------------------- 메시
 
 ## 칸마다 딱 잘린 단색 사각형을 따로 그리면 경계가 바둑판처럼 갈라져 보인다
-## (2026-09-11, 사용자 실기 확인 지적 — saga-go 웹판이 2026-09-08에 같은
-## 문제를 hash2 폴백에서 겪었던 것과 같은 종류). 칸마다 별도 메시를 쓰는 대신
-## **한 장의 메시로 합쳐 모서리 쪽 색만 이웃 칸과 섞는다.** 처음엔 칸 전체를
-## 네 모서리 사이로 통짜 보간했더니 이 지도의 칸(48m)이 작고 이웃 수가
-## 다양해(특히 마을 근처) 칸 중심까지 뭉개져 밋밋한 흙빛 하나로 보였다 —
-## 그래서 칸을 SUB개로 더 쪼개(_add_tile_quads), 중심 쪽 EDGE_BLEND_MARGIN
-## 안쪽은 제 색 그대로 두고 가장자리 쪽만 이웃과 번지게 고쳤다. 높이는 안
-## 섞는다 — 산·강은 여전히 벽처럼 뚝 끊겨야 막힌 지형임이 드러난다(충돌은
-## 이미 칸마다 따로라 시각과 무관, `_build_collision()` 참고).
+## (2026-09-11, 사용자 실기 확인 지적). **한 장의 메시로 합쳐 모서리 쪽 색만
+## 이웃 칸과 섞는다** — 칸을 SUB개로 쪼개 중심 쪽 EDGE_BLEND_MARGIN 안쪽은
+## 제 색 그대로, 가장자리 쪽만 이웃과 번진다. 높이는 안 섞는다 — 높이가 다른
+## 이웃과의 경계엔 _add_cliffs() 가 수직 옆면을 세운다.
 func _build() -> void:
 	var rows := TestMap.rows_of(region_id)
-	var half := TestMap.tile_size_of(region_id) * 0.5
 
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -79,20 +171,17 @@ func _build() -> void:
 			if not LEGEND.has(ch):
 				push_warning("terrain_builder: 모르는 지형 글자 '%s'" % ch)
 				continue
-			var info: Dictionary = LEGEND[ch]
-			var center := TestMap.world_pos(x, y, region_id) + Vector3(0, info.height, 0)
-			var own_color: Color = info.color
+			var own_color: Color = LEGEND[ch].color
 			var col00 := _corner_color(rows, x, y)
 			var col10 := _corner_color(rows, x + 1, y)
 			var col01 := _corner_color(rows, x, y + 1)
 			var col11 := _corner_color(rows, x + 1, y + 1)
-
-			_add_tile_quads(st, center, half, own_color, col00, col10, col01, col11)
+			_add_tile_quads(st, x, y, own_color, col00, col10, col01, col11)
+			_add_cliffs(st, x, y)
 
 	var mesh := st.commit()
-	## PLAN 102-5 실물판 — ground_noise.gdshader(경량 노이즈 얼룩)에서
-	## 103 tilegen 잔디·흙·돌 3장을 쓰는 terrain_triplanar.gdshader로
-	## 교체(정점색·지형 판정은 그대로, 셰이더만 바뀐다).
+	## PLAN 102-5 실물판 — 103 tilegen 잔디·흙·돌 3장을 쓰는
+	## terrain_triplanar.gdshader(정점색·지형 판정은 그대로, 경사면은 돌).
 	var mat := ShaderMaterial.new()
 	mat.shader = load("res://saga_core/shaders/terrain_triplanar.gdshader")
 	mat.set_shader_parameter("grass_albedo", load("res://assets/generated/tiles/grass_512.png"))
@@ -111,11 +200,14 @@ func _build() -> void:
 	mi.material_override = mat
 	add_child(mi)
 
-## 칸 하나를 SUB×SUB 조각으로 나눠 그린다. (u,v)는 칸 안의 상대 위치
-## (0=한쪽 끝, 1=반대쪽 끝) — `_tile_vertex_color()`가 이 값으로 "제 색 그대로"
-## vs "이웃과 섞은 색"을 가른다.
-func _add_tile_quads(st: SurfaceTool, center: Vector3, half: float, own: Color,
+## 칸 하나를 SUB×SUB 조각으로 나눠 그린다. (u,v)는 칸 안의 상대 위치.
+## 법선은 높이 함수의 차분으로 직접 구한다(generate_normals 를 쓰면 절벽
+## 테두리 정점까지 뭉개져 가장자리 음영이 번진다).
+func _add_tile_quads(st: SurfaceTool, x: int, y: int, own: Color,
 		col00: Color, col10: Color, col01: Color, col11: Color) -> void:
+	var center := TestMap.world_pos(x, y, region_id)
+	var half := TestMap.tile_size_of(region_id) * 0.5
+	var grid := _height_grid(x, y)
 	for j in SUB:
 		var v0 := float(j) / SUB
 		var v1 := float(j + 1) / SUB
@@ -123,32 +215,93 @@ func _add_tile_quads(st: SurfaceTool, center: Vector3, half: float, own: Color,
 			var u0 := float(i) / SUB
 			var u1 := float(i + 1) / SUB
 
-			var p00 := center + Vector3(lerp(-half, half, u0), 0, lerp(-half, half, v0))
-			var p10 := center + Vector3(lerp(-half, half, u1), 0, lerp(-half, half, v0))
-			var p01 := center + Vector3(lerp(-half, half, u0), 0, lerp(-half, half, v1))
-			var p11 := center + Vector3(lerp(-half, half, u1), 0, lerp(-half, half, v1))
+			var p00 := _grid_point(center, half, grid, i, j)
+			var p10 := _grid_point(center, half, grid, i + 1, j)
+			var p01 := _grid_point(center, half, grid, i, j + 1)
+			var p11 := _grid_point(center, half, grid, i + 1, j + 1)
 
 			var cc00 := _tile_vertex_color(own, col00, col10, col01, col11, u0, v0)
 			var cc10 := _tile_vertex_color(own, col00, col10, col01, col11, u1, v0)
 			var cc01 := _tile_vertex_color(own, col00, col10, col01, col11, u0, v1)
 			var cc11 := _tile_vertex_color(own, col00, col10, col01, col11, u1, v1)
 
-			# 위(+Y)에서 봤을 때 앞면이 되는 감김 방향 — 00,11,10 / 00,01,11
-			# (오른손 좌표계에서 외적이 +Y로 나오는 순서).
-			st.set_normal(Vector3.UP)
-			st.set_color(cc00); st.add_vertex(p00)
-			st.set_color(cc11); st.add_vertex(p11)
-			st.set_color(cc10); st.add_vertex(p10)
+			var n00 := _grid_normal(grid, i, j)
+			var n10 := _grid_normal(grid, i + 1, j)
+			var n01 := _grid_normal(grid, i, j + 1)
+			var n11 := _grid_normal(grid, i + 1, j + 1)
 
-			st.set_normal(Vector3.UP)
-			st.set_color(cc00); st.add_vertex(p00)
-			st.set_color(cc01); st.add_vertex(p01)
-			st.set_color(cc11); st.add_vertex(p11)
+			# 위(+Y)에서 봤을 때 앞면이 되는 감김 방향 — 00,11,10 / 00,01,11.
+			st.set_normal(n00); st.set_color(cc00); st.add_vertex(p00)
+			st.set_normal(n11); st.set_color(cc11); st.add_vertex(p11)
+			st.set_normal(n10); st.set_color(cc10); st.add_vertex(p10)
+
+			st.set_normal(n00); st.set_color(cc00); st.add_vertex(p00)
+			st.set_normal(n01); st.set_color(cc01); st.add_vertex(p01)
+			st.set_normal(n11); st.set_color(cc11); st.add_vertex(p11)
+
+## 칸 하나의 높이를 (SUB+3)² 격자로 한 번만 구한다 — 바깥 한 줄(halo)은
+## 법선 차분용(가장자리 밖은 봉우리 굴곡이 0 이라 기준 높이가 나온다).
+func _height_grid(x: int, y: int) -> PackedFloat32Array:
+	var n := SUB + 3
+	var grid := PackedFloat32Array()
+	grid.resize(n * n)
+	for j in n:
+		for i in n:
+			grid[j * n + i] = vertex_height(region_id, x, y, float(i - 1) / SUB, float(j - 1) / SUB)
+	return grid
+
+func _grid_h(grid: PackedFloat32Array, i: int, j: int) -> float:
+	return grid[(j + 1) * (SUB + 3) + (i + 1)]
+
+func _grid_point(center: Vector3, half: float, grid: PackedFloat32Array, i: int, j: int) -> Vector3:
+	var u := float(i) / SUB
+	var v := float(j) / SUB
+	return center + Vector3(lerp(-half, half, u), _grid_h(grid, i, j), lerp(-half, half, v))
+
+func _grid_normal(grid: PackedFloat32Array, i: int, j: int) -> Vector3:
+	var step := TestMap.tile_size_of(region_id) / SUB
+	var hx := _grid_h(grid, i + 1, j) - _grid_h(grid, i - 1, j)
+	var hz := _grid_h(grid, i, j + 1) - _grid_h(grid, i, j - 1)
+	return Vector3(-hx, 2.0 * step, -hz).normalized()
+
+## 이 칸이 이웃보다 높은 변마다 수직 옆면을 세운다(절벽·강둑). 봉우리
+## 굴곡은 가장자리에서 0 이라 변의 높이는 늘 기준 높이 — 옆면은 사각형 한
+## 장이면 틈 없이 맞는다. 지도 밖으로는 OUTER_SKIRT_Y 까지 내려 긋는다.
+func _add_cliffs(st: SurfaceTool, x: int, y: int) -> void:
+	var s := TestMap.size(region_id)
+	var center := TestMap.world_pos(x, y, region_id)
+	var half := TestMap.tile_size_of(region_id) * 0.5
+	var top := tile_base_height(region_id, x, y)
+	# (이웃 dx, dy, 변 시작 로컬, 변 끝 로컬, 바깥 법선)
+	var edges := [
+		[1, 0, Vector3(half, 0, -half), Vector3(half, 0, half), Vector3.RIGHT],
+		[-1, 0, Vector3(-half, 0, half), Vector3(-half, 0, -half), Vector3.LEFT],
+		[0, 1, Vector3(half, 0, half), Vector3(-half, 0, half), Vector3.BACK],
+		[0, -1, Vector3(-half, 0, -half), Vector3(half, 0, -half), Vector3.FORWARD],
+	]
+	for e in edges:
+		var nx: int = x + e[0]
+		var ny: int = y + e[1]
+		var outside := nx < 0 or ny < 0 or nx >= s.x or ny >= s.y
+		var bottom := OUTER_SKIRT_Y if outside else tile_base_height(region_id, nx, ny)
+		if top - bottom < 0.05:
+			continue
+		var a: Vector3 = center + e[2]
+		var b: Vector3 = center + e[3]
+		var n: Vector3 = e[4]
+		var a_top := a + Vector3(0, top, 0)
+		var b_top := b + Vector3(0, top, 0)
+		var a_bot := a + Vector3(0, bottom, 0)
+		var b_bot := b + Vector3(0, bottom, 0)
+		st.set_normal(n); st.set_color(CLIFF_COLOR); st.add_vertex(a_top)
+		st.set_normal(n); st.set_color(CLIFF_COLOR); st.add_vertex(b_bot)
+		st.set_normal(n); st.set_color(CLIFF_COLOR); st.add_vertex(b_top)
+		st.set_normal(n); st.set_color(CLIFF_COLOR); st.add_vertex(a_top)
+		st.set_normal(n); st.set_color(CLIFF_COLOR); st.add_vertex(a_bot)
+		st.set_normal(n); st.set_color(CLIFF_COLOR); st.add_vertex(b_bot)
 
 ## (u,v) 자리의 실제 정점 색. 네 모서리 사이를 이중선형보간한 "이웃과 섞은
-## 색"과 "제 색"을 가장자리까지 남은 거리(d)로 섞는다 — d가
-## EDGE_BLEND_MARGIN보다 크면(칸 중심 쪽) 100% 제 색, 0이면(칸 끝) 100%
-## 이웃-평균색.
+## 색"과 "제 색"을 가장자리까지 남은 거리(d)로 섞는다.
 func _tile_vertex_color(own: Color, c00: Color, c10: Color, c01: Color, c11: Color,
 		u: float, v: float) -> Color:
 	var corner_blend := c00.lerp(c10, u).lerp(c01.lerp(c11, u), v)
@@ -156,8 +309,7 @@ func _tile_vertex_color(own: Color, c00: Color, c10: Color, c01: Color, c11: Col
 	var t: float = clamp((EDGE_BLEND_MARGIN - d) / EDGE_BLEND_MARGIN, 0.0, 1.0)
 	return own.lerp(corner_blend, t)
 
-## 격자 교차점(cx, cy)에 맞닿은 칸(최대 4개, 가장자리는 그보다 적음)의 색을
-## 평균낸다. 칸 (x,y)의 네 모서리는 교차점 (x,y)·(x+1,y)·(x,y+1)·(x+1,y+1)이다.
+## 격자 교차점(cx, cy)에 맞닿은 칸(최대 4개)의 색을 평균낸다.
 func _corner_color(rows: Array, cx: int, cy: int) -> Color:
 	var total := Color(0, 0, 0, 0)
 	var n := 0
@@ -179,8 +331,10 @@ func _corner_color(rows: Array, cx: int, cy: int) -> Color:
 		return Color(0, 0, 0)
 	return total / float(n)
 
-## 강 바닥(river) 타일 위에 반투명 파란 수면을 한 겹 더 얹는다. 다리(B) 밑도
-## 강이므로 같이 덮는다 — 다리는 landmarks_builder.gd가 그 위에 널판을 놓는다.
+# ---------------------------------------------------------------- 물
+
+## 강(~)·다리 밑(B) 칸 위에 반투명 수면을 한 겹 얹고, 같은 자리에 헤엄
+## 판정용 Area3D 를 둔다(다리 밑은 널판이 칸 전체를 덮어 실제론 못 들어간다).
 func _build_water() -> void:
 	var rows := TestMap.rows_of(region_id)
 	var tile_size := TestMap.tile_size_of(region_id)
@@ -191,8 +345,7 @@ func _build_water() -> void:
 			var ch: String = row[x]
 			if ch != "~" and ch != "B":
 				continue
-			var bed_height: float = LEGEND[ch].height
-			positions.append(TestMap.world_pos(x, y, region_id) + Vector3(0, bed_height + WATER_HEIGHT_ABOVE_BED, 0))
+			positions.append(TestMap.world_pos(x, y, region_id) + Vector3(0, WATER_LEVEL, 0))
 
 	if positions.is_empty():
 		return
@@ -218,39 +371,83 @@ func _build_water() -> void:
 	for i in positions.size():
 		mm.set_instance_transform(i, Transform3D(Basis(), positions[i]))
 
-## 타일마다 실제 충돌체를 놓는다 — 하나짜리 평평한 바닥 대신, 산·강은 막힌
-## 벽으로, 다리는 널판 높이에서, 나머지는 제 타일 높이에서 딛는다.
-## (전에는 완전 평면 바닥 하나뿐이라 산이 허공에 뜬 것처럼 보였다.)
+	var area := Area3D.new()
+	area.name = "WaterVolume"
+	area.collision_layer = WATER_LAYER
+	area.collision_mask = 0
+	area.monitoring = false
+	area.add_to_group("water")
+	area.set_meta("surface_y", WATER_LEVEL)
+	add_child(area)
+	var depth := WATER_LEVEL - LEGEND["~"].height
+	for p in positions:
+		var cs := CollisionShape3D.new()
+		var box := BoxShape3D.new()
+		box.size = Vector3(tile_size, depth, tile_size)
+		cs.shape = box
+		cs.position = p - Vector3(0, depth * 0.5, 0)
+		area.add_child(cs)
+
+# ---------------------------------------------------------------- 충돌
+
+## 보이는 지면 메시 그대로 trimesh 충돌을 만든다 — 절벽을 오르고 봉우리를
+## 걷는 자리가 그림과 1:1 이다. 감김 방향에 기대지 않게 양면 충돌.
+## 다리 널판은 메시에 없으니 예전 상자를 그대로 둔다.
 func _build_collision() -> void:
-	var rows := TestMap.rows_of(region_id)
-	var tile_size := TestMap.tile_size_of(region_id)
 	var body := StaticBody3D.new()
 	body.name = "TerrainCollision"
 	add_child(body)
 
+	var ground := get_node_or_null("Ground") as MeshInstance3D
+	if ground != null and ground.mesh != null:
+		var shape := ground.mesh.create_trimesh_shape() as ConcavePolygonShape3D
+		shape.backface_collision = true
+		var cs := CollisionShape3D.new()
+		cs.name = "GroundShape"
+		cs.shape = shape
+		body.add_child(cs)
+
+	var rows := TestMap.rows_of(region_id)
+	var tile_size := TestMap.tile_size_of(region_id)
 	for y in rows.size():
 		var row: String = rows[y]
 		for x in row.length():
-			var ch: String = row[x]
-			if not LEGEND.has(ch):
+			if row[x] != "B":
 				continue
-			var info: Dictionary = LEGEND[ch]
-			var pos := TestMap.world_pos(x, y, region_id)
-			var cs := CollisionShape3D.new()
+			var bridge_top: float = LEGEND["B"].height + BRIDGE_CLEARANCE
 			var box := BoxShape3D.new()
+			box.size = Vector3(tile_size, 0.6, tile_size)
+			var bcs := CollisionShape3D.new()
+			bcs.shape = box
+			bcs.position = TestMap.world_pos(x, y, region_id) + Vector3(0, bridge_top, 0)
+			body.add_child(bcs)
 
-			if ch == "^" or ch == "~":
-				box.size = Vector3(tile_size, BLOCK_HEIGHT, tile_size)
-				cs.shape = box
-				cs.position = pos + Vector3(0, info.height, 0)
-			elif ch == "B":
-				var bridge_top: float = info.height + BRIDGE_CLEARANCE
-				box.size = Vector3(tile_size, 0.6, tile_size)
-				cs.shape = box
-				cs.position = pos + Vector3(0, bridge_top, 0)
-			else:
-				box.size = Vector3(tile_size, 1.0, tile_size)
-				cs.shape = box
-				cs.position = pos + Vector3(0, info.height - 0.5, 0)
-
-			body.add_child(cs)
+## 지도 네 변 바깥에 보이지 않는 벽(BORDER_LAYER). 플레이어만 이 레이어를
+## 본다(go_player.gd) — 카메라·등반 판정·다른 몸체는 레이어 1만 본다.
+func _build_border() -> void:
+	var s := TestMap.size(region_id)
+	var ts := TestMap.tile_size_of(region_id)
+	var origin := TestMap.origin_of(region_id)
+	var w := s.x * ts
+	var d := s.y * ts
+	var body := StaticBody3D.new()
+	body.name = "BorderWalls"
+	body.collision_layer = BORDER_LAYER
+	body.collision_mask = 0
+	add_child(body)
+	## world_pos(0,0) 이 칸 중심이라 지도 사각형 중심은 원점에서 반 칸 어긋난다.
+	var mid := origin + Vector3(-ts * 0.5, BORDER_WALL_HEIGHT * 0.5 - 10.0, -ts * 0.5)
+	var t := BORDER_WALL_THICK
+	var specs := [
+		[Vector3(w + t * 2, BORDER_WALL_HEIGHT, t), Vector3(0, 0, -d * 0.5 - t * 0.5)],
+		[Vector3(w + t * 2, BORDER_WALL_HEIGHT, t), Vector3(0, 0, d * 0.5 + t * 0.5)],
+		[Vector3(t, BORDER_WALL_HEIGHT, d), Vector3(-w * 0.5 - t * 0.5, 0, 0)],
+		[Vector3(t, BORDER_WALL_HEIGHT, d), Vector3(w * 0.5 + t * 0.5, 0, 0)],
+	]
+	for sp in specs:
+		var box := BoxShape3D.new()
+		box.size = sp[0]
+		var cs := CollisionShape3D.new()
+		cs.shape = box
+		cs.position = mid + sp[1]
+		body.add_child(cs)

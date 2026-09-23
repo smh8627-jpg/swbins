@@ -431,7 +431,6 @@ func _scatter_crops() -> void:
 
 
 func _scatter_rocks() -> void:
-	var ground: float = TerrainBuilder.LEGEND["^"].height
 	var positions: Array[Vector3] = []
 	var use_large: Array[bool] = []
 	var yaws: Array[float] = []
@@ -444,7 +443,10 @@ func _scatter_rocks() -> void:
 			for i in ROCKS_PER_MOUNTAIN_TILE:
 				var jx := (_hash(x, y, i * 3 + 500) - 0.5) * TestMap.TILE_SIZE * 0.6
 				var jz := (_hash(x, y, i * 3 + 501) - 0.5) * TestMap.TILE_SIZE * 0.6
-				positions.append(TestMap.world_pos(x, y, region_id) + Vector3(jx, ground, jz))
+				## 2026-09-23 산이 10~30m 고원+봉우리가 됐다 — 그 자리 지면 높이에 앉힌다.
+				var rp := TestMap.world_pos(x, y, region_id) + Vector3(jx, 0, jz)
+				rp.y = TerrainBuilder.height_at(region_id, rp)
+				positions.append(rp)
 				use_large.append(_hash(x, y, i * 3 + 502) > 0.5)
 				yaws.append(_hash(x, y, i * 3 + 503) * TAU)
 
@@ -806,7 +808,6 @@ func _scatter_ruins_rubble() -> void:
 func _scatter_ruins_wall_fence() -> void:
 	if region_id != "ruins":
 		return
-	var ground: float = TerrainBuilder.LEGEND["^"].height
 	var xf_by_variant: Array[Array] = []
 	for i in WALL_FENCE_GLB.size():
 		var arr: Array[Transform3D] = []
@@ -821,7 +822,8 @@ func _scatter_ruins_wall_fence() -> void:
 				continue
 			var jx := (_hash(x, y, 741) - 0.5) * TestMap.TILE_SIZE * 0.5
 			var jz := (_hash(x, y, 742) - 0.5) * TestMap.TILE_SIZE * 0.5
-			var pos := TestMap.world_pos(x, y, region_id) + Vector3(jx, ground, jz)
+			var pos := TestMap.world_pos(x, y, region_id) + Vector3(jx, 0, jz)
+			pos.y = TerrainBuilder.height_at(region_id, pos)
 			var yaw := _hash(x, y, 743) * TAU
 			var variant := int(_hash(x, y, 744) * WALL_FENCE_GLB.size()) % WALL_FENCE_GLB.size()
 			(xf_by_variant[variant] as Array[Transform3D]).append(Transform3D(Basis(Vector3.UP, yaw), pos))

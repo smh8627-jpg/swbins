@@ -75,6 +75,11 @@ void fragment() {
 	float n2 = _value_noise(world_pos.xz * patch_scale * 3.7 + vec2(11.0, 5.0));
 	float dirt_w = smoothstep(0.55, 0.75, n1) * 0.6;
 	float stone_w = smoothstep(0.6, 0.8, n2) * 0.5;
+	// 2026-09-23 GO 절벽·봉우리(terrain_builder.gd) — 경사가 급할수록 돌.
+	// 평지(법선 y=1)는 slope 0 이라 예전 화면 그대로다.
+	float slope = 1.0 - clamp(normalize(world_normal).y, 0.0, 1.0);
+	stone_w = max(stone_w, smoothstep(0.25, 0.6, slope));
+	dirt_w *= 1.0 - smoothstep(0.25, 0.6, slope);
 	float grass_w = max(0.05, 1.0 - dirt_w - stone_w);
 	float wsum = grass_w + dirt_w + stone_w;
 
