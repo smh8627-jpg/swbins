@@ -227,7 +227,21 @@
     pk_bulbasaur: 'quad', pk_charmander: 'quad', pk_squirtle: 'turtle', pk_magikarp: 'fish',
     pk_pikachu: 'quad', pk_eevee: 'quad', pk_slowbro: 'quad', pk_gengar: 'ogre',
     pk_snorlax: 'quad', pk_lapras: 'turtle', pk_alakazam: 'ogre', pk_dragonite: 'dragon',
-    pk_charizard: 'dragon', pk_gyarados: 'dragon', pk_mewtwo: 'ogre', pk_mew: 'quad'
+    pk_charizard: 'dragon', pk_gyarados: 'dragon', pk_mewtwo: 'ogre', pk_mew: 'quad',
+    /* 2026-09-23 — "펫 100개"(2026-09-07) 로 늘어난 64종이 이 표에 없어 전부 `quad`(네발)로 그려졌다.
+       물고기·말·공룡만 제 형태로(여덟 형태 그대로 — 진단 "짐승 여덟 형태"). 여우·양·지렁이 등은 네발 기본값 */
+    pt_dolphin: 'fish', pt_shark: 'fish', pt_whale: 'fish', pt_manta_ray: 'fish', pt_fish_1: 'fish',
+    pt_fish_2: 'fish', pt_fish_3: 'fish', pt_anglerfish: 'fish', pt_armored_catfish: 'fish', pt_betta: 'fish',
+    pt_black_lion_fish: 'fish', pt_blobfish: 'fish', pt_blue_goldfish: 'fish', pt_blue_tang: 'fish',
+    pt_butterfly_fish: 'fish', pt_cardinal_fish: 'fish', pt_clownfish: 'fish', pt_coral_grouper: 'fish',
+    pt_cowfish: 'fish', pt_flatfish: 'fish', pt_flower_horn: 'fish', pt_goblin_shark: 'fish', pt_goldfish: 'fish',
+    pt_humphead: 'fish', pt_koi_2: 'fish', pt_lionfish: 'fish', pt_mandarin_fish: 'fish', pt_moorish_idol: 'fish',
+    pt_parrot_fish: 'fish', pt_piranha: 'fish', pt_puffer: 'fish', pt_red_snapper: 'fish', pt_royal_gramma: 'fish',
+    pt_shark_2: 'fish', pt_sunfish: 'fish', pt_swordfish: 'fish', pt_tang: 'fish', pt_tetra: 'fish', pt_tuna: 'fish',
+    pt_turbot: 'fish', pt_yellow_tang: 'fish', pt_zebra_clown_fish: 'fish',
+    pt_horse: 'horse', pt_white_horse: 'horse', pt_horse_farm: 'horse', pt_zebra: 'horse', pt_donkey: 'horse',
+    pt_t_rex: 'dragon', pt_triceratops: 'dragon', pt_stegosaurus: 'dragon', pt_velociraptor: 'dragon',
+    pt_apatosaurus: 'dragon', pt_parasaurolophus: 'dragon'
   };
 
   var BEAST_COLOR = {

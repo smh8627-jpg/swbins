@@ -1006,3 +1006,17 @@ PLAN.md 양쪽에 "캠프 소품이 미착수"로 적힌 옛 기록이 있었는
 `assets/models/people/anime/avatar_*.glb` 넷은 `tools/glb-compress/vrm-slim.mjs` 로 **가공한 파일**이다 —
 표정 모프 타깃(54~57개)을 떼고 같은 재질 프리미티브를 합쳤다(정점·뼈·재질·텍스처는 그대로, 용량 25MB → 11MB,
 캐릭터당 드로우콜 90~135 → 14~19). 다섯 판 복사본은 같은 파일(md5 동일)이다.
+
+
+## 도감 펫 초상 105종 — 사가블로·사가고에서 복사 (2026-09-24)
+
+여태 펫 105종이 늑대·사슴·여우 셋을 돌려 입던 것을 고치려고 **그대로 복사**했다(재가공 없음). `js/asset3d.js` `pet:pt_*` 로 등록.
+실제 동물은 사가블로(출처 `saga-web/saga-dungeon/assets/ASSET_LICENSES.md` "도감(펫) 초상"·"펫 — poly.pizza 동물 번들 셋"·"펫 2차분"),
+신수·포켓몬 오마주 대역은 사가고(출처 `saga-web/saga-go/assets/ASSET_LICENSES.md`, 사용자 결정 "사가고처럼 대역 입히기"). 전부 Quaternius 계열 CC0.
+
+| 폴더 | 파일 |
+|---|---|
+| `models/animals/` | `Tiger.glb`·`Bear.glb`·`Panda.glb`·`Monkey.glb`·`Boar.glb`·`Owl.glb`·`Cat.glb`·`Crane.glb`·`Koi.glb`·`Husky.glb`·`ShibaInu.glb`·`Mesh_Crow.gltf`·`Mesh_Crow.bin`·`Tex_Crow.webp` |
+| `models/animals_extra/` | `Alpaca.glb`·`Bull.glb`·`Cow.glb`·`Cow_Farm.glb`·`Dolphin.glb`·`Donkey.glb`·`Fish1.glb`·`Fish2.glb`·`Fish3.glb`·`Fox.glb`·`Horse.glb`·`Horse_Farm.glb`·`Llama.glb`·`MantaRay.glb`·`Pig.glb`·`Pug.glb`·`Shark.glb`·`Sheep.glb`·`Stag.glb`·`Whale.glb`·`White_Horse.glb`·`Zebra.glb` |
+| `models/animals_extra2/` | `Anglerfish.glb`·`Apatosaurus.glb`·`Armored_Catfish.glb`·`Betta.glb`·`Black_Lion_Fish.glb`·`Blobfish.glb`·`Blue_Goldfish.glb`·`Blue_Tang.glb`·`Butterfly_Fish.glb`·`Cardinal_Fish.glb`·`Clownfish.glb`·`Coral_Grouper.glb`·`Cowfish.glb`·`Flatfish.glb`·`Flower_Horn.glb`·`Goblin_Shark.glb`·`Goldfish.glb`·`Humphead.glb`·`Koi.glb`·`Lionfish.glb`·`Mandarin_Fish.glb`·`Moorish_Idol.glb`·`Parasaurolophus.glb`·`Parrot_Fish.glb`·`Piranha.glb`·`Puffer.glb`·`Red_Snapper.glb`·`Royal_Gramma.glb`·`Shark.glb`·`Stegosaurus.glb`·`Sunfish.glb`·`Swordfish.glb`·`T_Rex.glb`·`Tang.glb`·`Tetra.glb`·`Triceratops.glb`·`Tuna.glb`·`Turbot.glb`·`Velociraptor.glb`·`Worm.glb`·`Yellow_Tang.glb`·`Zebra_Clown_Fish.glb` |
+| `models/standin/` | `Birb.glb`·`Demon.gltf`·`Orc.gltf`·`Pigeon.glb`·`Snake_angry.glb` (사가고에서) |

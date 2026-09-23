@@ -146,6 +146,17 @@ window.DG_NO_TUNE = true;
         'THREE + GLTFLoader';
     });
 
+    t('asset3d — 펫 105종 전부 제 모델(또는 사가고와 같은 대역), 늑대·사슴·여우 돌려 입기 아님', function () {
+      /* 2026-09-24 — 여태 105종이 늑대·사슴·여우 셋을 id 해시로 돌려 입어 고래도 범도 여우였다(펫 초상 모음) */
+      var A3 = DG.asset3d, D = DG.data;
+      A3.restore();
+      var miss = D.pets.filter(function (p) { var h = A3.lookup('pet', p); return !h || h.key !== 'pet:' + p.id; }).map(function (p) { return p.id; });
+      var want = { pt_whale: /animals_extra\/Whale\.glb$/, pt_tiger: /animals\/Tiger\.glb$/, pt_haetae: /animals_extra\/Donkey\.glb$/, pt_dokkaebi: /standin\/Orc\.gltf$/ };
+      var bad = Object.keys(want).filter(function (id) { var h = A3.lookup('pet', D.find(id)); return !h || !want[id].test(h.url); });
+      if (miss.length || bad.length) { return false; }
+      return '펫 ' + D.pets.length + '종 전부 제 키 · 고래=Whale·범=Tiger·해태=당나귀 대역·도깨비=오크 대역';
+    });
+
     t('asset3d 표는 임의 키로도 순수 함수로 검사할 수 있다 (렌더러 없이)', function () {
       var A3 = DG.asset3d;
       var before = Object.keys(A3.REG()).length;
