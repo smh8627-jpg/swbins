@@ -8237,3 +8237,12 @@ PROJECT_STATE.md` 참고. 요약:
 - FOREST의 `vertex_color_material` 전수: 대부분 primitive+tint(정상 용법). GLB에 씌운 곳만 gltf/glb JSON 직접 열어 확인 — ① 채집물 `gatherable_builder.gd` tree_oak·rock_largeA(Kenney, COLOR_0 없음·재질 baseColorFactor만) → 모델 전체가 `d.tint` 단색. 채집물마다 고른 색이라 의도로 보고 유지. ② 나무 CommonTree_1: COLOR_0 있음(정점색×바이옴 tint 정상), 단 Leaves alphaMode MASK를 이 셰이더가 무시 — 핵심 승인 화면이라 기록만.
 - **md5 불변 함정**: 수정 뒤 FOREST md5가 안 바뀌어 "바위가 안 생기나" 의심 → `_spawn()`에 임시 print를 넣어 1회 실행(바로 원복, diff로 확인): meadow 5·rocky 5·mush 2·dark 1. 바위는 생기고, 텍스처·셰이더가 이미 다른 곳에서 로드돼 verbose 로그에 새 줄이 없을 뿐. **md5가 그대로여도 변경이 무효라는 뜻은 아니다.**
 - dark 바이옴 1개뿐인 밀도는 판단 몫으로 PROJECT_STATE에 남김. REGRESS OK, 잡음 없음.
+
+## GO 마을 평지 들꽃 + FOREST 바이옴 밀도 균형 (2026-09-23, 같은 세션, 네 번째 "푸시 커밋 하고 이어해")
+
+- 남은 판단 셋 중 FOREST 나무 잎(핵심 승인 화면 변경)만 대기로 두고, 기존 모습을 유지하는 보강 둘을 진행.
+- **실제 개수부터 셌다**: Godot `-s` 스크립트로 vegetation_builder `_hash()`를 그대로 불러 계산(파이썬 재현과 일치 확인) — 마을 "." 10칸·"T" 35칸, clutter 2·정원길 2·고사리 13·버섯 13. **GO 칸은 48m**라 clutter(칸 6개에 0.3m 하나)는 마을 전체에 2개뿐, 사실상 안 보인다.
+- 그래서 종 교체 대신 `_scatter_wildflowers()` 신설: "." 칸당 4개, Clover_2·Grass_Common_Short·Flower_3_Single·Flower_4_Single을 해시로 섞음(salt 1000+i×5). 크기 풀·클로버 0.3m·꽃 0.45m ÷ 실측고. 기존 Clover_1 clutter는 그대로.
+- **ASSET_GUIDE 09-20 정정**: "Grass_Common_Short 텍스처는 대부분 투명" — 원본 `Grass.png`는 알파 0 픽셀이 0%(완전 불투명), gltf alphaMode도 불투명. 풀잎은 모델링된 지오메트리가 좁은 색 띠(UV u 0.18~0.21)만 샘플링하는 구조라 알파가 애초에 필요 없다.
+- FOREST `forest_biome_scatter.gd`: 배치 가능 칸 실측 dark 20·mush 18·meadow 35·rocky 42 → `BIOME_DENSITY {"dark":4,"mush":4}`(같은 salt 1 문턱만 넓혀 기존 자리 유지·추가만). 결과 meadow 5·dark 3·mush 5·rocky 5.
+- `godot_regress.sh` REGRESS OK(GO·FOREST md5 변경), `.import`/`project.godot` 잡음 없음.

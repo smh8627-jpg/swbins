@@ -20,12 +20,12 @@
 - **09-22~23 요약(상세 HISTORY 해당 날짜)**: REALM 안개·DUNGEON 문 아치 렌더 누락 버그 수정 · 굴혈 mood 3종 · GO 폐허 비석·rock·wall/fence 배선 · FOREST 하트 아이콘·트라이플레이너 · 사용자가 09-23 "실기손맛 괜찮아"로 그때까지의 실기 대기 **전체 승인**(STORY·REALM VS 게이트 포함).
 - **판단 종결(재작업 후보 아님, 근거 HISTORY 09-23)**: STORY 트라이플레이너(2.5D 옆면 플랫포머라 장르상 불필요) · icon_star(아이콘 UI를 일부러 안 만든다는 기존 결정) · NPC 옷 팔레트(재질 하나짜리 GLB + 군중 NPC 소비처 없음) · 105 Q-b(절차 지형이라 LightmapGI 부적합, PC SDFGI 유지).
 - **105 Q-d 정정(09-23)**: Mixamo는 로그인만 사람 몫, 검색·다운로드는 루트 `tools/mixamo_automation/`(09-21 구축)로 이미 자동. VRoid 조형만 사람 몫(무료 대체 파이프라인 없음).
-- **Quaternius 씬 배치 5단계(09-23 진행 중)**: GO `vegetation_builder.gd` — village "." 칸 `_scatter_village_path()`(Pebble_Square_1·RockPath_Square_Wide 1/12) · coast "D" 칸 `_scatter_coast_pebbles()`(Pebble_Round_1~3 1/10, coast엔 "." 칸이 없어 `REGION_CLUTTER_GLB["coast"]`가 죽은 설정이었음). FOREST `forest_biome_scatter.gd` — primitive 셋 전부 교체: mush→`Mushroom_Common`(`textured_material`), meadow→`Flower_3_Group`·dark→`Fern_1`(신설 `curved_textured_cutout.gdshader`+`WorldCurveMaterial.cutout_material()`, 양면+알파 컷, 표면별 원본 텍스처). GO village "T" 칸 하층 식생 `_scatter_understory()`(Fern_1 1/2·Mushroom_Common 1/4, 순수 추가). 배율은 전부 옛 높이÷trimesh 실측고(옛 크기가 없는 신규는 인물 ≈3.4m 기준).
+- **Quaternius 씬 배치 5단계(09-23 진행 중)**: GO `vegetation_builder.gd` — village "." 칸 `_scatter_village_path()`(Pebble_Square_1·RockPath_Square_Wide 1/12) · coast "D" 칸 `_scatter_coast_pebbles()`(Pebble_Round_1~3 1/10, coast엔 "." 칸이 없어 `REGION_CLUTTER_GLB["coast"]`가 죽은 설정이었음). FOREST `forest_biome_scatter.gd` — primitive 셋 전부 교체: mush→`Mushroom_Common`(`textured_material`), meadow→`Flower_3_Group`·dark→`Fern_1`(신설 `curved_textured_cutout.gdshader`+`WorldCurveMaterial.cutout_material()`, 양면+알파 컷, 표면별 원본 텍스처). GO village "T" 칸 하층 식생 `_scatter_understory()`(Fern_1·Mushroom_Common, 실측 13·13개) · "." 칸 들꽃 `_scatter_wildflowers()`(칸당 4, Clover_2·Grass_Common_Short·Flower_3/4_Single — 칸이 48m라 기존 clutter는 마을 전체 2개뿐이었음). FOREST dark·mush 바이옴 밀도 1/10→1/4(바이옴별 5·3·5·5개로 균형, 기존 자리 유지). 배율은 전부 옛 높이÷trimesh 실측고(옛 크기가 없는 신규는 인물 ≈3.4m 기준).
 
 ## 다음 작업 (우선순위)
 
-1. **FOREST 흰 바위 — 수정(09-23)**: rocky `Rock_Medium_1`(COLOR_0 없음)을 `textured_material`(Rocks_Diffuse.png)로. 같은 원인 전수 조사 결과 나머지는 유지 판단 — 채집물 tree_oak·rock_largeA(Kenney, 정점색 없음 → 모델 전체가 `d.tint` 한 색, 채집물별 의도색)·FOREST 나무 CommonTree_1(정점색 있음, 단 잎 alphaMode MASK가 무시됨 — 승인된 핵심 화면이라 사용자가 원하면 cutout으로). dark 바이옴은 "." 칸 1/10 밀도에서 실측 1개뿐(meadow 5·mush 2·rocky 5) — 늘릴지 판단 몫.
-2. Quaternius 남은 종(바위·잔디꽃 대다수·나무 변종) — ruins는 이미 채워져 있고, 다음 후보는 GO village clutter 종 다양화(지금 Clover_1 한 종 — 승인 화면을 바꾸는 일이라 확인 후) 정도. 급하지 않음.
+1. **FOREST 흰 바위 — 수정(09-23)**: rocky `Rock_Medium_1`(COLOR_0 없음)을 `textured_material`(Rocks_Diffuse.png)로. 같은 원인 전수 조사 결과 나머지는 유지 판단 — 채집물 tree_oak·rock_largeA(Kenney, 정점색 없음 → 모델 전체가 `d.tint` 한 색, 채집물별 의도색)·FOREST 나무 CommonTree_1(정점색 있음, 단 잎 alphaMode MASK가 무시됨 — 승인된 핵심 화면이라 사용자가 원하면 cutout으로).
+2. **판단 필요(사용자)**: FOREST 나무 CommonTree_1 잎의 alphaMode MASK가 `vertex_color_material`에서 무시됨 — `cutout_material`로 바꾸면 잎 모양이 달라지는 핵심 승인 화면 변경이라 대기. Quaternius 남은 종은 급하지 않음.
 3. VRoid 새 캐릭터 — Downloads `새 폴더`의 `model.vroid`(export 전, 용도 미확인)는 사용자가 VRM으로 내보내면 반입(얼굴 베이크·1.7m·`mixamo_retarget.gd`·씬 교체, dungeon_hero_01 절차 그대로).
 4. 참고: 103-4 리타겟 "트위스트 미보정"은 트위스트 큰 새 클립을 넣을 때만 재검토.
 
@@ -39,6 +39,6 @@
 
 ## 실기 확인 대기
 
-- **GO 마을 정원길·해변 조약돌·숲 하층 고사리·버섯**(09-23) — 배치가 실제 화면에서 자연스러운지.
-- **FOREST 바이옴 장식 넷**(09-23, 버섯·꽃·고사리 + rocky 바위 흰색→텍스처) — 크기, 곡률 위에 붙어 보이는지, 꽃·고사리 잎이 네모판 없이 오려져 보이는지.
+- **GO 마을 정원길·해변 조약돌·숲 하층 고사리·버섯·평지 들꽃**(09-23) — 배치가 실제 화면에서 자연스러운지.
+- **FOREST 바이옴 장식 넷**(09-23, 버섯·꽃·고사리 + rocky 바위 흰색→텍스처, dark·mush 밀도↑) — 크기, 곡률 위에 붙어 보이는지, 꽃·고사리 잎이 네모판 없이 오려져 보이는지.
 - 그 외 없음(09-23 전체 승인, 항목 상세는 HISTORY 09-23 절).

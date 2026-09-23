@@ -22,6 +22,10 @@ const WorldCurveMaterial := preload("res://saga_core/world/world_curve_material.
 
 const CURVE_AMOUNT := 0.004
 const DENSITY := 10  # 풀밭 칸 10개 중 1개꼴(해시 문턱)에만 놓는다
+## 배치 가능 칸이 적은 바이옴(실측 dark 20·mush 18 vs meadow 35·rocky 42)은
+## 1/10이면 1~2개뿐이라, 바이옴마다 ≈5개가 보이게 문턱만 넓힌다. 같은
+## 해시(salt 1)의 문턱을 올리는 것이라 기존 자리는 그대로 남고 추가만 된다.
+const BIOME_DENSITY := {"dark": 4, "mush": 4}
 const CLEAR_RADIUS := 2  # 이 격자 거리 안(주민·채집물·집 등)엔 안 놓는다
 
 ## 상호작용하는 고정 자리 — villager_builder.gd VILLAGERS·gatherable_builder.gd
@@ -47,7 +51,8 @@ func _ready() -> void:
 				continue
 			if _too_close(Vector2i(x, y)):
 				continue
-			if _hash(x, y, 1) >= 1.0 / float(DENSITY):
+			var density: int = BIOME_DENSITY.get(String(ForestBiome.biome_at(x, y).key), DENSITY)
+			if _hash(x, y, 1) >= 1.0 / float(density):
 				continue
 			_spawn(x, y)
 

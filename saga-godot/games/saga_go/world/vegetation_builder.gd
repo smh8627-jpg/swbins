@@ -160,6 +160,18 @@ const UNDERSTORY := [
 	{"glb": "res://assets/generated/variants/Mushroom_Common__go_village.glb", "scale": 0.65, "chance": 0.25},
 ]
 
+## 같은 5단계, 마을 평지 들꽃. 이 판 칸은 48m라 clutter(칸 6개에 하나)는
+## 마을 "." 10칸 전체에 실측 2개뿐 — 거의 안 보인다. 밀 이랑(칸당 6)처럼
+## 칸마다 여러 개를 까는 층을 따로 둔다(기존 Clover_1 clutter는 그대로).
+## 종은 해시로 섞고, 크기는 풀·클로버 발목 0.3m·꽃 정강이 0.45m ÷ 실측고.
+const WILDFLOWERS := [
+	{"glb": "res://assets/generated/variants/Clover_2__go_village.glb", "scale": 0.237},           # 1.264m
+	{"glb": "res://assets/generated/variants/Grass_Common_Short__go_village.glb", "scale": 0.225}, # 1.334m
+	{"glb": "res://assets/generated/variants/Flower_3_Single__go_village.glb", "scale": 0.218},    # 2.068m
+	{"glb": "res://assets/generated/variants/Flower_4_Single__go_village.glb", "scale": 0.186},    # 2.419m
+]
+const WILDFLOWERS_PER_TILE := 4
+
 var region_id := "village"
 
 
@@ -171,6 +183,7 @@ func _ready() -> void:
 	_scatter_village_path()
 	_scatter_coast_pebbles()
 	_scatter_understory()
+	_scatter_wildflowers()
 	_scatter_ruins_debris()
 	_scatter_ruins_rubble()
 	_scatter_ruins_wall_fence()
@@ -514,6 +527,42 @@ func _scatter_understory() -> void:
 		if mesh == null:
 			continue
 		add_child(_build_rock_multimesh(mesh, xforms, "Understory%d" % k))
+
+
+## "." 칸마다 WILDFLOWERS_PER_TILE개, 종은 해시로 고른다(salt 1000번대 +
+## 개체 번호×5). 종별 MultiMesh 하나씩. 순수 시각(충돌 없음).
+func _scatter_wildflowers() -> void:
+	if region_id != "village":
+		return
+	var ground: float = TerrainBuilder.LEGEND["."].height
+	var xf_by_kind: Array[Array] = []
+	for k in WILDFLOWERS.size():
+		var arr: Array[Transform3D] = []
+		xf_by_kind.append(arr)
+	var rows := TestMap.rows_of(region_id)
+	for y in rows.size():
+		var row: String = rows[y]
+		for x in row.length():
+			if row[x] != ".":
+				continue
+			for i in WILDFLOWERS_PER_TILE:
+				var salt := 1000 + i * 5
+				var kind := int(_hash(x, y, salt) * WILDFLOWERS.size()) % WILDFLOWERS.size()
+				var jx := (_hash(x, y, salt + 1) - 0.5) * TestMap.TILE_SIZE * 0.85
+				var jz := (_hash(x, y, salt + 2) - 0.5) * TestMap.TILE_SIZE * 0.85
+				var pos := TestMap.world_pos(x, y, region_id) + Vector3(jx, ground, jz)
+				var s: float = WILDFLOWERS[kind].scale
+				var basis := Basis(Vector3.UP, _hash(x, y, salt + 3) * TAU).scaled(Vector3.ONE * s)
+				(xf_by_kind[kind] as Array[Transform3D]).append(Transform3D(basis, pos))
+
+	for k in WILDFLOWERS.size():
+		var xforms: Array[Transform3D] = xf_by_kind[k]
+		if xforms.is_empty():
+			continue
+		var mesh := GLBUtils.extract_mesh(WILDFLOWERS[k].glb)
+		if mesh == null:
+			continue
+		add_child(_build_rock_multimesh(mesh, xforms, "Wildflowers%d" % k))
 
 
 ## clutter와 달리 "." 평지가 아니라 폐허 바닥("R")을 스캔한다 — ruins
