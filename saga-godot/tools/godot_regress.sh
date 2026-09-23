@@ -41,6 +41,25 @@ for idx in "${!names[@]}"; do
   fi
 done
 
+## 재질 감사 — 원본 재질을 덮으며 텍스처·알파를 잃는 사고(흰 바위·네모판 잎·
+## 엉뚱한 텍스처)는 에러 없이 "다르게 그려질" 뿐이라 위 md5·오류 grep이 못 잡는다.
+## saga_core/world/material_audit.gd, 호스트 tools/material_audit_host.tscn.
+echo "== 재질 감사 (material_audit)"
+for idx in "${!names[@]}"; do
+  name="${names[$idx]}"
+  scene="${scenes[$idx]}"
+  log="$LOGDIR/${name}_audit.log"
+  "$GODOT" --headless --path "$PROJECT" res://tools/material_audit_host.tscn -- "res://$scene" >"$log" 2>&1
+  done_line=$(grep -o "MATERIAL_AUDIT_DONE issues=-\?[0-9]*" "$log" | tail -1)
+  if [ "$done_line" = "MATERIAL_AUDIT_DONE issues=0" ]; then
+    echo "ok   $name audit issues=0"
+  else
+    echo "FAIL $name audit ${done_line:-(결과 줄 없음)} — $log"
+    grep "^MATERIAL_AUDIT " "$log" | head -5 | cut -c1-200
+    fail=1
+  fi
+done
+
 echo "== .import/project.godot 잡음 (104-3)"
 diff_out=$(git diff --stat -- project.godot '*.import')
 if [ -n "$diff_out" ]; then

@@ -2900,7 +2900,7 @@ assets/generated/
 # 104. 안정화·검증 (2026-09-16 신설 — Phase 0)
 
 - **절차**: Godot exe 확보·헤드리스 임포트·실행·`.import`/`project.godot` 잡음 되돌림·GUI 확인·PID 종료는 폴더 `CLAUDE.md` 가 정본이다. 여기서 반복하지 않는다.
-- **회귀 스크립트(신설, 저장소 `tools/godot_regress.sh`)**: 다섯 대표 씬(`TestVillage`·`TestRoom`·`TestVillageForest`·`SinyaField`·`TestCity`) 을 `--headless --quit-after 5 --verbose` 로 각 3회 돌려 로그 md5 동일 + error/warn 0 을 한 줄로 출력. 세션 끝에 이것과 `git diff -- project.godot '*.import'` 빈 것을 확인한 뒤 HISTORY 항목을 쓴다.
+- **회귀 스크립트(신설, 저장소 `tools/godot_regress.sh`)**: 다섯 대표 씬(`TestVillage`·`TestRoom`·`TestVillageForest`·`SinyaField`·`TestCity`) 을 `--headless --quit-after 5 --verbose` 로 각 3회 돌려 로그 md5 동일 + error/warn 0 을 한 줄로 출력. **재질 감사**(2026-09-23 추가, `saga_core/world/material_audit.gd`·호스트 `tools/material_audit_host.tscn`)도 다섯 씬 각 1회 — 텍스처 있는 원본을 덮으며 ① 텍스처·정점색 둘 다 잃음(flat-tint) ② 알파 컷 무시(alpha-dropped) ③ 원본과 다른 텍스처(foreign-texture, 얼굴 베이크 예외)를 0건이어야 통과(에러 없이 "다르게 그려질" 뿐이라 md5로는 못 잡는 부류). 세션 끝에 이것과 `git diff -- project.godot '*.import'` 빈 것을 확인한 뒤 HISTORY 항목을 쓴다.
 - **세이브 버전**: 다섯 `*_save_state.gd` 전부 `version` 필드와 마이그레이션 함수가 있는지 점검(PLAN 28장·97단계). 없는 판은 Phase 0 에서 추가. 헤드리스 검증 항목: 구버전 파일 로드 → 기본값 채움 → 재저장 왕복.
 - **문서 크기 상한**: `PLAN.md` ≤100KB · `docs/PROJECT_STATE.md` ≤15KB · `CLAUDE.md` ≤6KB. 루트 `tools/precheck.sh` 가 잰다. `docs/HISTORY.md` 는 상한 없음(grep 전용).
 - **실기 확인 대기**: 목록은 `docs/PROJECT_STATE.md` "실기 확인 대기" 가 정본(항목명만). 사용자가 몰아서 보고, 결과는 HISTORY 날짜 항목으로. 확인 전엔 같은 판에 새 큰 시스템을 얹지 않는다(SAGA-DESIGN §8-1).

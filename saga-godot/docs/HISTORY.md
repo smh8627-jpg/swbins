@@ -8264,3 +8264,12 @@ PROJECT_STATE.md` 참고. 요약:
 ## model.vroid "용도 미확인" 오기 정정 (2026-09-23, 같은 세션)
 
 - 이 날짜 앞 항목("Mixamo·VRoid 자동화 재조사")에 `model.vroid`를 "어느 캐릭터용인지 불명, export 전엔 반입 불가"로 적었으나 **오기**: 09-20 "DUNGEON·STORY VRoid 교체 문서 반영 + model.vroid 정체 확인" 항목이 이미 zip 구조·썸네일로 **FOREST `saga_forest_avatar_01`의 VRoid Studio 원본 프로젝트**임을 확인해 뒀다. 같은 날 메모리에 "웹 검색 전에 저장소(HISTORY)부터 grep"을 남겨 놓고 또 grep을 건너뛴 것. PROJECT_STATE 다음 작업 4번 정정 — 대기 중인 새 VRoid 조형 없음.
+
+## 재질 감사를 회귀 통과 조건에 추가 (2026-09-23, 같은 세션, "푸시 커밋 하고 이어해")
+
+- 오늘 고친 세 버그(흰 바위·네모판 잎·Kenney 텍스처로 덮인 VRoid)는 전부 에러 없이 "다르게 그려질" 뿐이라 로그 md5·오류 grep 회귀가 원리상 못 잡았다(FOREST 플레이어는 09-19부터 한 달 가까이). 같은 부류를 일반 규칙으로 막는 장치를 넣음.
+- `saga_core/world/material_audit.gd::audit(root)` — 메시에 박힌 임포트 원본 재질(`surface_get_material`)이 **텍스처 있는 BaseMaterial3D**일 때만, 실제 적용 재질(MeshInstance `get_active_material`, MultiMesh `material_override`)과 비교: ① flat-tint(텍스처를 안 쓰는데 정점색도 없음) ② alpha-dropped(원본 알파 컷인데 덮은 재질이 ALPHA를 안 씀 — ShaderMaterial은 셰이더 코드에 "ALPHA" 포함 여부) ③ foreign-texture(albedo_texture 경로가 원본과 다름, `_Face_Baked` 예외). primitive·단색 GLB(baseColorFactor만)의 tint는 의도라 안 봄.
+- 호스트 `tools/material_audit_host.tscn` — `-s`는 오토로드 미등록으로 씬 스크립트 컴파일 실패라, 일반 씬 실행으로 대상 씬을 자식(current_scene 지정)으로 싣고 10프레임 뒤 감사, `MATERIAL_AUDIT_DONE issues=N`. 감사 코드 런타임 오류로 quit 못 하던 일(첫 실행 때 실제로 멈춤 → PID로 종료)을 막는 60초 타이머.
+- 첫 실행 함정: `surface_get_format()`은 ArrayMesh 전용(Mesh엔 없음) → 타입 추론 실패. 오탐 1종: VRoid 얼굴 베이크가 데칼 표면을 **완전 투명(alpha 0, 텍스처 없음)으로 일부러 숨긴 것** → 제외 규칙.
+- **검증**: 현재 다섯 씬 0건. 778e4c47(오늘 수정 전) 버전 FOREST 파일 셋으로 잠시 되돌려 돌리니 39건 — flat-tint 5(rocky 바위)·alpha-dropped 8(나무 4바이옴×2표면)+13(플레이어)·foreign-texture 13(플레이어) — 세 부류 모두 검출, 원복 확인.
+- `godot_regress.sh`에 "재질 감사" 단계 추가(씬마다 1회, 결과 줄이 issues=0이 아니면 FAIL + 앞 5건 출력). PLAN 104장 회귀 정의 갱신.

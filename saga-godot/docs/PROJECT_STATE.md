@@ -36,7 +36,7 @@
 
 ## 테스트 상태
 
-- 헤드리스 오류 0 · `godot_regress.sh` 통과.
+- 헤드리스 오류 0 · `godot_regress.sh` 통과(09-23부터 재질 감사 포함 — 다섯 씬 flat-tint·alpha-dropped·foreign-texture 0건. 수정 전 FOREST로 되돌려 세 부류 39건 검출 확인).
 
 ## 실기 확인 대기
 
