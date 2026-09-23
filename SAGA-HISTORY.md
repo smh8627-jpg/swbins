@@ -4964,3 +4964,43 @@ saga-go 정본을 다른 네 판에도 동일 반영, 가드돼 있어 그 판�
   scratch csproj 로 Unity 6000.3.24f1 DLL 을 참조해 컴파일만 확인(오류·경고 0). **Unity 에서 실제 조립은 확인 전.**
 - (같은 날 뒤) 다른 세션이 saga-unity 를 배치 모드(PlaytestStorySlice)로 돌린 로그에서 프로젝트 전체 컴파일 `Tundra build success`·`error CS` 0 을 확인 —
   `BuildFromLayout.cs` 가 실제 Unity 6000.3.24f1 에서도 컴파일된다. 조립 실행은 여전히 확인 전(그 세션이 Unity 를 쓰는 중이라 안 돌림).
+
+### 2026-09-23 — 게임 제작 도구 ⑤ 도구 허브(`saga-web/tools/`)
+
+- `saga-web/tools/index.html`+`run-tools.bat`: 콘텐츠 편집기(:8799)·맵 편집기(:8800) 두 서버를 각각 새 창으로 띄우고
+  허브 페이지에서 켜짐/꺼짐과 열기 링크를 보여 준다. 새 판 생성기·scene-layout 은 서버가 아니라 명령줄이라 안내 카드만.
+- `tools/README.md` 에 위치 한 줄 추가. 커밋 `8e493492`.
+
+### 2026-09-23 — 게임 제작 도구 ⑥ 콘텐츠 편집기 OBJ→GLB(`saga-web/tools/content-editor/obj2glb.js`)
+
+- 3D 자산 업로드가 OBJ(+MTL·텍스처)도 받아 GLB 로 바꿔 넣는다. `obj2gltf`(cesium 통짜 의존)를 안 쓰고 의존성 없는
+  변환기를 새로 짰다 — 사각형 이상 면·음수 색인·재질별 분리·텍스처 내장·법선 없으면 스무딩.
+  `server.js` 에 `POST /api/upload-obj/<판>`, `editor.html` 에 여러 파일 한 번에 고르기.
+- 시험(scratch, 포트 18799): 코드로 만든 큐브(MTL+PNG)를 변환해 gltf-transform 으로 재확인(재질 2·텍스처 1·크기 정확),
+  같은 입력 바이트 동일, 거절 여덟 가지(범위 밖 색인·OBJ 아님·MTL 단독 등) 확인. 실제 게임 파일은 안 건드림.
+  화면에서 여러 파일 올리기·three.js 미리보기는 실사용 확인 전(헤드리스 스크린샷 금지). 압축은 별도로 `tools/glb-compress/` 를 돌려야 한다.
+  커밋 `eeba7550`.
+
+### 2026-09-23 — 게임 제작 도구 ⑦ 맵 편집기를 어댑터 구조로 넓힘(사가국지 성 지도·사가스토리 사냥터)
+
+- `saga-web/tools/map-editor/`: `adapters/land.js`(사가고, 옛 코드 그대로)·`city.js`(`data-city.js` 성 135의 `x`/`y`/`land`+`LINKS`)·
+  `side.js`(`data-side.js` 사냥터 11곳의 발판·줄·문·사람·채집·폭) 세 어댑터 + 화면 셋(`map.html`·`city.html`·`side.html`, 위 줄에서 오간다).
+  검사는 그 판 게임 데이터를 vm 으로 실행해 실제로 보고(`land.validate()` 등), 없으면 `_test.html` 진단과 같은 조건을 어댑터가 본다.
+  성 지도는 없는 길·끊긴 성·낙양 미도달·지도 범위 밖을 막고, 사냥터는 줄<발판·문 없음·폭 밖·모르는 갈래를 막는다.
+- **동작 변경**: 안 바꾸고 저장하면 이제 파일을 아예 안 쓴다(전엔 사가고 land.js 를 매번 다시 써 sw.js 를 올렸다).
+  옛 `/api/lands`·`evalLand` 내보내기는 유지해 `tools/scene-layout/` 배치표가 바이트까지 그대로 나온다.
+- **못 넣은 판**: 사가의숲(마을·숲·강이 세이브 씨앗으로 절차 생성, 고칠 고정 데이터가 없음) · 사가블로(던전은 층마다 새로 생성,
+  마을 좌표는 `town.js` 로직 안에서 배율·지터로 다시 계산돼 편집기 자리와 어긋남).
+- 시험(scratch, SAGA_WEB_ROOT): 사가고 재구성·검사가 옛 코드와 바이트 동일, 세 어댑터 무변경 저장 바이트 동일, 거절 경로 전부,
+  백엔드 42항목·HTTP 18항목·jsdom 화면 20항목(세 번 동일) 통과. 실제 판 파일 md5 불변. 실사용 확인 전. 커밋 `0bb39d61`.
+
+### 2026-09-23 — 게임 제작 도구 ⑧ Godot 글자 지도 조립 씬 걷기(`saga-godot/games/saga_go/layout/LayoutWalk.tscn`)
+
+- `tools/scene-layout/`(④)가 만든 보기용 생성 씬을 실제로 걸을 수 있는 씬으로 배선. 생성 씬을 자식으로 품는 래퍼에
+  기존 GO `Player.tscn`·`MobileHUD.tscn` 을 재사용하고, 바닥 충돌·물 칸 막기(다리만 열림, 산은 안 막음)·명소 13곳
+  발견 판정+이름표+토스트를 붙였다. 발견은 이 씬 안에서만 세고 GO 도감·세이브엔 안 넣는다(명소 id가 도감 43칸 밖이라
+  넣으면 TestVillage 세이브·총계가 어긋난다).
+- `tools/build_from_layout.gd` 가 바닥에 지형 종류, 루트에 칸 크기를 남기도록 수정 — 그 값을 LayoutWalk 가 읽는다.
+- 자동 걷기 점검(`tools/probe_layout_walk.gd`, `SAGA_LAYOUT_PROBE=1`) 3회: 바닥·강가 차단·다리로 건넘·명소 13/13(거리 판정 정상)
+  전부 fails=0·로그 md5 동일. `.import`·`project.godot` 변화 없음, 다른 세션이 고치던 파일은 안 건드림.
+  창 모드 실기 확인·씬 선택 메뉴 진입점은 남음. 커밋 `7220c798`(+문서 `86a2a733`).

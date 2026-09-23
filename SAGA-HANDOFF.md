@@ -373,6 +373,8 @@ PC 묶음   tools/saga-pc/build-all.bat  →  saga-pc/dist/ (다섯 html + index
   2026-09-23 `tools/asset-audit/` 가 트랙을 넘는 사본(29묶음, 대부분 Godot·Unity 공용 Kenney)을 보고서로 낸다 — 통합 후보 목록으로 쓸 것.
 - **Unity 씬 조립 실제 실행** — `saga-unity/Assets/Editor/BuildFromLayout.cs`(메뉴 Saga > Layout)는 실제 Unity 컴파일까지 통과했다(2026-09-23, 다른 세션 배치 로그 `Tundra build success`·CS 오류 0). 조립 실행은 확인 전.
   다른 세션이 saga-unity 를 안 고칠 때 한 번 돌려 볼 것(`tools/scene-layout/README.md`).
+- **Godot LayoutWalk 실기 확인** — 글자 지도 조립 씬을 걷는 래퍼 `saga-godot/games/saga_go/layout/LayoutWalk.tscn`(2026-09-23, 자동 걷기 점검 3회 통과). 창 모드로 실제 걸어 보기·명소 이름표 렌더는 확인 전(`saga-godot/docs/PROJECT_STATE.md` 실기 확인 대기).
+- **게임 제작 도구 넷 실사용 확인** — 콘텐츠 편집기(OBJ→GLB 포함)·맵 편집기(사가고·사가국지·사가스토리)·새 판 생성기·scene-layout 은 전부 scratch 시험만 마쳤다(2026-09-23). 위치는 `tools/README.md`. 사용자가 직접 켜서 확인 전.
 - **사가고 `tower_ruin.glb`(역참) 아이콘 굽기** — 여섯 번 넘게 실패해 절차 그림 그대로.
   재시도 방법은 `saga-web/saga-go/tools/bake-icons/README.md`.
 - **절차적 인물·펫 다섯째 나라** — 한국·일본·중국(구주)·서역(2026-09-23) 완료(`saga-go/js/region-*.js`·`genchar*.js`). 다음 나라는 사용자가 정한다.
