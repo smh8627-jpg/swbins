@@ -408,8 +408,8 @@
    *  실제 CC0 건물 GLB 스냅샷(assets/models/buildings/*.glb, asset3d.js의
    *  fort:t1/t2·station 표와 같은 파일). `o.img`에 로드된 Image를 넘기면
    *  절차적 도형 대신 이 그림을 쓴다 — world.js가 등급(fort tier)·종류에
-   *  맞는 그림을 골라 넘긴다. 역참은 tower_ruin 이 굽히지 않아 옛 여관 모델
-   *  (Inn.glb)을 구워 쓴다(2026-09-20, `_bake_one.html?...&fit=0.7`). `o.img`를
+   *  맞는 그림을 골라 넘긴다. 역참은 3D 와 같은 tower_ruin 을 구워 쓴다(2026-09-23, `_bake_one.html?...&fit=1.1`
+   *  — 그전엔 굽기가 멎어 옛 여관 모델 Inn.glb 그림을 썼다, `building_Inn.png` 은 되돌림 자리로 남김). `o.img`를
    *  안 넘기거나 아직 안 실렸으면 여기 그대로 절차적 그림으로 떨어진다. */
   var buildingImgCache = {};
   function buildingImg(name) {

@@ -3626,3 +3626,7 @@ VRoid 인물이 unlit(`MeshBasicMaterial`) 그대로라 **명암 없이 평면**
 - 러너를 `tools/bake-icons/bake-beasts.mjs` 로 저장소에 둠(키는 sprite.js 표에서 뽑음, 다시 구워 바이트 같음 확인). README·`ASSET_LICENSES.md` 새 절.
 - 진단: "제 모델 펫은 지도 그림도 그 모델" 1 추가 → 567/569(실패 둘은 기존 jsdom `Request` 한계). `sw.js` go-v5.58.0.
 - **남은 것**: 몸 전체가 들어오니 예전(얼굴 클로즈업)보다 지도에서 작게 보일 수 있다 — 특히 장룡·고래 같은 긴 몸. 실기 확인 전(작으면 `sprite.js` 짐승 그림 상자 `H * 1.5` 를 키울 자리).
+
+## 2026-09-23 (이어서 6) — 역참 지도 마커 `tower_ruin` 굽기 풀림
+
+SAGA-HANDOFF 열린 항목 "tower_ruin.glb(역참) 아이콘 굽기 — 여섯 번 넘게 실패". (이어서 5)의 러너 방식(잡마다 새로 연 페이지)으로 `_bake_one.html?key=tower_ruin&group=building&fit=1.1` 을 열자 첫 시도에 구워졌다(원인은 여전히 모름 — 예전 막힘이 간헐적이었다는 기록과 맞음, meshopt 는 아니고 webp 텍스처 모델). fit 0.7 은 작고 1.4 는 위가 잘려 1.1. `world.js` `drawStation` 이 `building_Inn.png`(옛 여관, 되돌림 자리로 남김) 대신 `building_tower_ruin.png` — 3D 역참과 같은 모델. README·`ASSET_LICENSES.md`·sprite.js 주석 갱신, SAGA-HANDOFF 열린 항목에서 지움. 진단 567/569 그대로. `sw.js` go-v5.59.0. 실기 확인 전(폐허 탑은 여관보다 어둡고 회색이라 지도에서 덜 띌 수 있다 — 위에 등롱·깃발은 그대로 뜬다).

@@ -1347,7 +1347,7 @@ VRoid Studio 공식 CC0 샘플 AvatarSample_A/B/C(github.com/madjin/vrm-samples,
 | `beast_{Shark,Dolphin,Manta_ray}.png` | 〃 | Quaternius `fish_pack` |
 | `beast_{Orc,Demon,BlueDemon}.png` | `Orc.gltf`·`Demon.gltf`·`BlueDemon.gltf`(오우거 형태 절) | Quaternius `Ultimate Monsters` |
 
-같은 도구로 구운 **성채 지도 마커**도 같은 결이다 — `building_Watchtower.png`(성채 1등급)·`building_Tower.png`·`building_PointyTower.png`(2등급) ← `models/buildings/` 같은 이름 GLB(위 건물 표, CC0), `building_tower_round.png`(3등급) ← `models/buildings/realistic/tower_round.glb`(Poly Haven `modular_fort_01`, CC0), `building_Inn.png` ← `Inn.glb`(역참 줄 참고).
+같은 도구로 구운 **성채 지도 마커**도 같은 결이다 — `building_Watchtower.png`(성채 1등급)·`building_Tower.png`·`building_PointyTower.png`(2등급) ← `models/buildings/` 같은 이름 GLB(위 건물 표, CC0), `building_tower_round.png`(3등급) ← `models/buildings/realistic/tower_round.glb`(Poly Haven `modular_fort_01`, CC0), `building_Inn.png` ← `Inn.glb`(역참 줄 참고). 2026-09-23 부터 역참 지도 마커는 `building_tower_ruin.png` ← `models/buildings/realistic/tower_ruin.glb`(위 역참 줄의 실사 스캔, CC0) — `building_Inn.png` 은 되돌림 자리로 남김.
 
 2026-09-23 `tools/asset-audit` 이 "출처 문서에 이름이 없다"로 잡아 채웠다(그림은 09-06~07 에 들어왔다).
 
