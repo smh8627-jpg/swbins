@@ -191,13 +191,38 @@
     var mix = core && core.tuned ? core.tuned('world3d.gearOutline', 0.75) : 0.75;
     if (!hex || !(rank > 1) || !(mix > 0)) { return OUTLINE_COLOR; }
     var c = parseInt(String(hex).replace('#', ''), 16);
-    if (isNaN(c)) { return OUTLINE_COLOR; }
-    var m = Math.min(1, mix), out = 0, sh;
+    return isNaN(c) ? OUTLINE_COLOR : mixHex(OUTLINE_COLOR, c, mix);
+  }
+
+  /** 0xRRGGBB 두 색을 m(0~1) 만큼 섞는다 — 외곽선 등급 색·전직 차수 옷 색(`side-view3d.js`)이 같이 쓴다 */
+  function mixHex(a, b, m) {
+    m = Math.max(0, Math.min(1, m || 0));
+    var out = 0, sh;
     for (sh = 16; sh >= 0; sh -= 8) {
-      var a = (OUTLINE_COLOR >> sh) & 255, b = (c >> sh) & 255;
-      out |= (Math.round(a + (b - a) * m) & 255) << sh;
+      var x = (a >> sh) & 255, y = (b >> sh) & 255;
+      out |= (Math.round(x + (y - x) * m) & 255) << sh;
     }
     return out;
+  }
+
+  /**
+   * 전직 차수 → 주인공 옷 빛깔(PLAN §6 성장 가시화, 2026-09-23) — 세력 색에 갈래 색(`jobData.BRANCH_TINT`)을
+   * 차수 × `world3d.jobTint`(기본 0.12, 상한 0.6) 만큼 섞는다. 무명(0차)은 세력 색 그대로. `key` 가 바뀌면(전직·교대)
+   * `side-view3d.js` draw() 가 주인공 몸을 다시 세운다 — 물들임은 조립할 때 한 번 굽기 때문이다(asset3d applyTint 캐시).
+   * three 없이 도는 순수 계산이라 진단이 바로 잰다
+   */
+  function jobLook(baseCss, jobKey) {
+    var J = global.DG && global.DG.job, JD = global.DG && global.DG.jobData, core = global.DG && global.DG.core;
+    var hx = function (c) { var n = parseInt(String(c || '').replace('#', ''), 16); return isNaN(n) ? 0 : n; };
+    var base = baseCss ? hx(baseCss) : 0xffffff, j = JD ? JD.job(jobKey) : null;   // 세력 색이 없으면 흰 바탕에 섞는다
+    var tier = j ? (j.tier || 0) : 0, root = J && J.rootOf ? J.rootOf(jobKey) : null;
+    var branch = root && JD.BRANCH_TINT ? hx(JD.BRANCH_TINT[root]) : 0;
+    var k = core && core.tuned ? core.tuned('world3d.jobTint', 0.12) : 0.12;
+    var m = branch ? Math.min(0.6, tier * k) : 0;
+    var color = m > 0 ? mixHex(base, branch, m) : base;
+    /* css — actorShell 에 넘길 빛깔. 세력 색도 갈래 색도 없으면 undefined(예전처럼 도형 기본색·GLB 안 물들임) */
+    var css = (baseCss || m > 0) ? '#' + ('00000' + color.toString(16)).slice(-6) : undefined;
+    return { tier: tier, root: root || 'none', color: color, css: css, key: (root || 'none') + tier + ':' + (css || '-') };
   }
 
   function recolorOutlines(root, color) {
@@ -219,7 +244,7 @@
   global.DG.toon3d = {
     ramp: ramp, lambertLike: lambertLike, toonify: toonify, TOON_ON: TOON_ON,
     outline: outline, OUTLINE_ON: OUTLINE_ON, outlineMaterial: outlineMaterial,
-    gradeTint: gradeTint, recolorOutlines: recolorOutlines, OUTLINE_COLOR: OUTLINE_COLOR,
+    gradeTint: gradeTint, recolorOutlines: recolorOutlines, OUTLINE_COLOR: OUTLINE_COLOR, mixHex: mixHex, jobLook: jobLook,
     OUTLINE_K: OUTLINE_K, OUTLINE_MIN_PART: 0.12
   };
 })(window);

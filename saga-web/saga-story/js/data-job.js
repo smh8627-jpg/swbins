@@ -491,13 +491,19 @@
       desc: '다음 화살·마탄·비 3발에 화(지속)·빙(둔화)·전(사슬) 속성' }
   };
 
+  /**
+   * 갈래 빛깔(PLAN §6 성장 가시화 "전직 1~4차마다 몸 색", 2026-09-23) — 주인공 GLB 옷 물들임(세력 색)에
+   * 차수 × `world3d.jobTint`(기본 0.12) 만큼 섞는다. 4차면 48% 가 갈래 색이다. 보이는 색뿐 — 판정·세이브 무관
+   */
+  var BRANCH_TINT = { warrior: '#b8412f', archer: '#4f8f3f', rogue: '#5b4a8c', mage: '#2f6fb0' };
+
   function mentorsOf(rootKey) { return MENTORS[rootKey] || []; }
   function signatureOf(rootKey) { return SIGNATURES[rootKey] || null; }
 
   global.DG = global.DG || {};
   global.DG.jobData = {
     JOBS: JOBS, SKILLS: SKILLS, SCHOOLS: SCHOOLS, SP_PER_LEVEL: SP_PER_LEVEL,
-    MENTORS: MENTORS, SIGNATURES: SIGNATURES,
+    MENTORS: MENTORS, SIGNATURES: SIGNATURES, BRANCH_TINT: BRANCH_TINT,
     SIGNATURE_COST: SIGNATURE_COST, SIGNATURE_COOL: SIGNATURE_COOL, SIGNATURE_HOLD: SIGNATURE_HOLD,
     job: job, skill: skill, skillsOf: skillsOf, nextJobs: nextJobs, schoolDef: schoolDef,
     mentorsOf: mentorsOf, signatureOf: signatureOf

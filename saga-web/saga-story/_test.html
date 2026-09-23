@@ -4252,6 +4252,23 @@ window.DG_NO_TUNE = true;
         cols.map(function (c) { return '#' + ('00000' + c.toString(16)).slice(-6); }).join(' ');
     });
 
+    t('전직 차수 → 주인공 옷 빛깔(§6 성장 가시화) — 무명은 세력 색 그대로, 차수 × 0.12 만큼 갈래 색, 전직하면 몸을 다시 세우는 key 가 바뀐다', function () {
+      var TN = DG.toon3d, JD = DG.jobData, bad = [];
+      if (!TN.jobLook || !TN.mixHex || !JD.BRANCH_TINT) { throw new Error('toon3d.jobLook / mixHex / BRANCH_TINT 없음'); }
+      var base = '#aa3333', b = 0xaa3333, L = TN.jobLook;
+      var none = L(base, 'none'), w1 = L(base, 'warrior'), w4 = L(base, 'warlord'), m4 = L(base, 'ascendant'), bare = L(undefined, 'none');
+      var br = function (r) { return parseInt(JD.BRANCH_TINT[r].slice(1), 16); };
+      if (none.color !== b || none.tier !== 0) { bad.push('무명'); }
+      if (w1.color !== TN.mixHex(b, br('warrior'), 0.12) || w1.root !== 'warrior') { bad.push('1차'); }
+      if (w4.color !== TN.mixHex(b, br('warrior'), 0.48) || w4.tier !== 4) { bad.push('4차'); }
+      if (m4.color === w4.color) { bad.push('갈래 색 같음'); }
+      if ([none.key, w1.key, w4.key].filter(function (k, i, a) { return a.indexOf(k) === i; }).length !== 3) { bad.push('key 안 바뀜'); }
+      if (bare.css !== undefined) { bad.push('세력 색 없음=' + bare.css); }
+      if (Object.keys(JD.BRANCH_TINT).some(function (r) { return !JD.nextJobs('none').some(function (j) { return j.key === r; }); })) { bad.push('갈래 키'); }
+      if (bad.length) { throw new Error('실패: ' + bad.join(', ')); }
+      return '무명 ' + none.css + ' → 무사 ' + w1.css + ' → 전신 ' + w4.css + ' · 천존 ' + m4.css;
+    });
+
     t('런타임 에러 없음', function () {
       return errors.length === 0 || ('에러 ' + errors.length + '건: ' + errors.join(' | ')) === '';
     });

@@ -825,15 +825,18 @@
     dirLight.position.set(focusX + 260, 460, 360);
     dirLight.target.position.set(focusX, 0, 0);
 
-    /* 동료 교대(§5-8) — 나와 있는 인물이 바뀌면 지난 몸을 치우고 새로 세운다 */
-    if (playerMesh && playerMeshId !== S.meRef().id) {
+    /* 동료 교대(§5-8) — 나와 있는 인물이 바뀌면 지난 몸을 치우고 새로 세운다.
+       전직으로 옷 빛깔(toon3d jobLook)이 바뀌어도 같다 */
+    var meRef = S.meRef();
+    var TNl = global.DG.toon3d, fColor = (global.DG.data.faction(meRef.faction) || {}).color;
+    var look = TNl && TNl.jobLook ? TNl.jobLook(fColor, global.DG.core.save.job) : { css: fColor, key: '' };
+    var meKey = meRef.id + '|' + look.key;
+    if (playerMesh && playerMeshId !== meKey) {
       actorGroup.remove(playerMesh); disposeDeep(playerMesh); playerMesh = null;
     }
     if (!playerMesh) {
-      var meRef = S.meRef();
-      playerMesh = actorShell(Tc, 'human',
-        (global.DG.data.faction(meRef.faction) || {}).color, false, meRef.id, false);
-      playerMeshId = meRef.id;
+      playerMesh = actorShell(Tc, 'human', look.css, false, meRef.id, false);
+      playerMeshId = meKey;
       actorGroup.add(playerMesh);
     }
     place(playerMesh, p.x + S.P_W / 2, stg.floor - (p.y + S.P_H), p.facing);
