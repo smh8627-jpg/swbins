@@ -135,6 +135,7 @@ namespace Saga.EditorTools
                 CheckBanditLootMarker();
                 CheckBondProgress(); // CheckBanditLootMarker 뒤 — "산적"이 실제로 등용된 뒤라야 BondState에 등록돼 있다.
                 CheckWeaponVisual();
+                CheckPropsMaterials();
                 CheckRaidBoss();
                 CheckShrineTrial();
                 // 반드시 마지막 — DailyTaskState 진단이 SaveState.TryLoad()로
@@ -972,6 +973,69 @@ namespace Saga.EditorTools
                 return;
             }
             Debug.Log($"[PlaytestHeadless] weapon visual OK - 무기 교체 시 칼날 길이 {lengthBefore:F2}→{lengthAfter:F2}(등급 갱신 반영)");
+        }
+
+        /// <summary>PLAN.md 102-4(2026-09-23) "Props 재질 분리" — `BuildPropsMaterialSplit.cs`
+        /// 산출물이 씬에 실제로 걸렸는지 확인한다: lantern은 재질 이름·금속 속성만(텍스처는
+        /// 원본 그대로라 색 검증은 의미 없다 — 애초에 나무 성분이 없어 안 바뀐다), stall은
+        /// 서브메시 둘(양쪽 다 삼각형 있음)·재질 둘(이름으로 구분)·**서로 다른 텍스처**(둘 다
+        /// `_BaseMap`이 같으면 분리가 실패해 둘 다 원본 그대로 남은 것 — "색이 지워질 위험"과
+        /// 정반대로 "안 갈렸다"는 회귀를 잡는다).</summary>
+        private static void CheckPropsMaterials()
+        {
+            var lantern = GameObject.Find("Lantern_House2");
+            var stall = GameObject.Find("MarketStall");
+            if (lantern == null || stall == null)
+            {
+                Debug.LogError($"[PlaytestHeadless] props 재질 검증용 오브젝트를 못 찾음 — lantern={lantern != null} stall={stall != null}");
+                _hadError = true;
+                return;
+            }
+
+            var lanternMat = lantern.GetComponent<MeshRenderer>().sharedMaterial;
+            if (lanternMat == null || lanternMat.name != "LanternMetal" ||
+                !lanternMat.HasProperty("metallicFactor") || lanternMat.GetFloat("metallicFactor") < 0.5f)
+            {
+                Debug.LogError($"[PlaytestHeadless] lantern 재질 이상 — {lanternMat?.name} metallicFactor={(lanternMat != null && lanternMat.HasProperty("metallicFactor") ? lanternMat.GetFloat("metallicFactor").ToString("F2") : "?")}(기대 LanternMetal/≥0.5)");
+                _hadError = true;
+                return;
+            }
+
+            var stallFilter = stall.GetComponent<MeshFilter>();
+            var stallRenderer = stall.GetComponent<MeshRenderer>();
+            var mesh = stallFilter.sharedMesh;
+            if (mesh.subMeshCount != 2 || stallRenderer.sharedMaterials.Length != 2 ||
+                stallRenderer.sharedMaterials[0].name != "StallRedWood" || stallRenderer.sharedMaterials[1].name != "StallRedCanopy")
+            {
+                Debug.LogError($"[PlaytestHeadless] stall 재질 분리 이상 — 서브메시={mesh.subMeshCount} 재질=[{string.Join(",", System.Array.ConvertAll(stallRenderer.sharedMaterials, m => m?.name))}]");
+                _hadError = true;
+                return;
+            }
+            if (mesh.GetTriangles(0).Length == 0 || mesh.GetTriangles(1).Length == 0)
+            {
+                Debug.LogError($"[PlaytestHeadless] stall 서브메시 한쪽이 비어있음 — wood={mesh.GetTriangles(0).Length / 3}tri canopy={mesh.GetTriangles(1).Length / 3}tri");
+                _hadError = true;
+                return;
+            }
+            // wood는 URP/Lit(dark_wooden_planks 템플릿, `_BaseMap`), canopy는 glTFast의
+            // glTF PBR Shader Graph(`baseColorTexture`) — 두 재질이 셰이더 자체가 다르다.
+            var woodTex = GetBaseTexture(stallRenderer.sharedMaterials[0]);
+            var canopyTex = GetBaseTexture(stallRenderer.sharedMaterials[1]);
+            if (woodTex == null || canopyTex == null || woodTex == canopyTex)
+            {
+                Debug.LogError($"[PlaytestHeadless] stall 텍스처가 안 갈림 — wood={woodTex?.name} canopy={canopyTex?.name}(erasure 의심)");
+                _hadError = true;
+                return;
+            }
+            Debug.Log($"[PlaytestHeadless] props materials OK - lantern metallicFactor={lanternMat.GetFloat("metallicFactor"):F2}, stall wood {mesh.GetTriangles(0).Length / 3}tri(tex={woodTex.name})/canopy {mesh.GetTriangles(1).Length / 3}tri(tex={canopyTex.name}) 분리 유지");
+        }
+
+        private static Texture GetBaseTexture(Material m)
+        {
+            if (m == null) return null;
+            if (m.HasProperty("_BaseMap")) return m.GetTexture("_BaseMap");
+            if (m.HasProperty("baseColorTexture")) return m.GetTexture("baseColorTexture");
+            return null;
         }
 
         /// <summary>PLAN.md 101-2 ③ "75초 토벌"(2026-09-19) — `RareWolfEncounter`에

@@ -8658,3 +8658,17 @@ PROJECT_STATE 다음 작업이 "STORY 101-2 전부 완료 / 나머지 보류"뿐
 새 `StoryOutfitTint`(플레이어, `JobChosen` 구독 — `Restore()`도 이 이벤트를 쏴 로드 시에도 맞는다), `BuildTestStoryScene`이 붙이고 TestField 재빌드. 진단 `CheckOutfitTint`: 무명 0 → 무사 0.12 → 장군 0.24 → 전신 0.48 → 명왕 0.48(보라), 첫 옷 슬롯 색 = Lerp(원래 색, 갈래 색, 비율), Maria 피부 슬롯 1 제외, 무명 되돌림. 첫 실행부터 **3연속 OK**. 실기 확인 전(4차 48%가 과한지·사실적 톤과 어울리는지는 사람 눈 몫 — GUI 스크린샷은 안 찍었다).
 
 코드: `StoryOutfitTint`(신규)·`BuildTestStoryScene`·`PlaytestStorySlice`, `TestField.unity` 재빌드. 문서: PLAN 101-3 G 행, `PROJECT_STATE.md`, `HOW_TO_PLAYTEST.md`.
+
+## 2026-09-23 — GO Props(lantern·stall-red) 재질 마무리 + 정적 배칭 회귀 발견·수정 (같은 날 새 세션 "사가유니티 이어해", 위험 감수 재도전 선택)
+
+PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 잔여가 전부 모바일 빌드·야외 GPS·실사용 중 자산처럼 사람/실기 몫) 사용자에게 다음 방향을 물어 **"Props(lantern·stall-red) 위험 감수하고 시도"**를 골랐다(2026-09-21 보류 사유: "금속·천 등 재질이 섞인 단일 아틀라스라 목재 한 장으로 덮으면 색이 지워질 위험").
+
+**실제로 뜯어보니 절반은 근거가 없었다.** 두 GLB의 삼각형별 UV를 직접 샘플해(Python으로 glTF 바이너리 파싱 + colormap.png 픽셀 조회) 확인: **lantern은 158개 삼각형 전부가 청회색 금속 톤**(HSV h≈0.63~0.67) — 나무 성분이 아예 없어 "섞였다"는 전제 자체가 틀렸다. 쪼갤 게 없으니 원본 텍스처는 그대로 두고 광택만 살리기로 했는데, 첫 시도에서 `_Metallic`·`_Smoothness`로 `SetFloat`했지만 조용히 무시됐다(HasProperty 검사가 막았다) — 원인은 glTFast가 GLB에 물리는 셰이더가 URP/Lit이 아니라 glTF PBR Shader Graph라 속성 이름이 `metallicFactor`·`roughnessFactor`(glTF 스펙 그대로)였다. 헤드리스 진단이 이 실수를 그대로 잡아 바로 고쳤다.
+
+**stall-red는 실제로 섞여 있었다** — 270개 중 나무 다리·틀 142개(h≈0.05)·빨강 차양 128개(h≈0.98, wraparound)로 뚜렷이 갈린다. `BuildMariaSkinSplit.cs`(66-2장, 삼각형 UV 중심점의 텍스처 색으로 서브메시를 나누는 기법)를 그대로 재사용해 메시를 둘로 쪼개고, 다리엔 울타리와 같은 `dark_wooden_planks_URPLit`(타일링), 차양은 원본 재질을 색 안 바꾸고 복제만 해서 씌웠다.
+
+**진짜 회귀를 하나 발견했다**: 첫 헤드리스 검증에서 stall의 `MeshFilter.sharedMesh.subMeshCount`가 실행마다 다르게 나왔다(5, 그다음 49) — `PropsBuilder.MarkStatic()`이 모든 자식을 무조건 정적 배칭 대상(`isStatic=true`)으로 표시하는데, Unity의 정적 배칭이 서브메시(=재질)가 둘 이상인 렌더러를 다른 정적 렌더러와 결합 메시로 묶어치기하면서 `sharedMesh`가 원래와 다른 공유 메시로 바뀌는 것이었다(런타임에 서브메시별 재질 매핑을 코드로 더는 신뢰할 수 없다 — 실제 렌더링에도 영향 있을 수 있는 진짜 함정). 서브메시가 둘 이상인 오브젝트는 정적 배칭에서 빼는 것으로 고쳤다(작은 오브젝트 하나의 배칭 이득보다 정확성이 우선).
+
+**구현**: 새 `BuildPropsMaterialSplit.cs`(`Assets/Art/Props/Generated/` 산출물 4개 — `LanternMetal.mat`·`StallRed_Split.asset`·`StallRedWood.mat`·`StallRedCanopy.mat`, 103-1 규칙대로 커밋). `PropsBuilder.InitMaterialSplit()`(null이면 원본 GLB로 폴백), `SpawnLantern()`·`BuildMarketStall()`이 각각 적용. `BuildTestVillageScene.BuildProps()`가 새 자산 넷을 로드해 넘긴다. `MarkStatic()`은 서브메시>1인 오브젝트를 건너뛴다. 새 헤드리스 진단 `PlaytestHeadless.CheckPropsMaterials()`: lantern 재질 이름·`metallicFactor`≥0.5, stall 서브메시 2·재질 이름 둘·양쪽 다 삼각형 있음·**서로 다른 텍스처**(`_BaseMap`/`baseColorTexture` 둘 다 확인 — 셰이더가 서로 다르다) 확인. TestVillage 재빌드 뒤 **3연속 OK**(마지막 1회는 프로세스 종료가 걸려 exit 124였지만 로그 내용 자체는 OK — 이 PC의 반복 launch 부하로 이미 여러 번 겪은 것과 같은 패턴, 코드 문제 아님). 작업 중 Unity가 라이선싱 오류로 두 번, 좀비 `Unity.exe`(이전 백그라운드 실행 잔여)로 한 번 실패해 각각 재시도·`taskkill //F //IM Unity.exe`로 정리했다.
+
+코드: `BuildPropsMaterialSplit`(신규)·`PropsBuilder`·`BuildTestVillageScene`·`PlaytestHeadless`, `TestVillage.unity` 재빌드, `Assets/Art/Props/Generated/*`(신규 4파일), `colormap.png.meta`(ForceReadable). 문서: PLAN 102-4 Props 행, `PROJECT_STATE.md`.

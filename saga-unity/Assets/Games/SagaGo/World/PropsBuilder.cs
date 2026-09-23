@@ -30,10 +30,18 @@ namespace Saga.Go.World
 
         // 102-4(2026-09-21) "단계 교체" — 울타리는 LandmarksBuilder.cs의 다리
         // 널판(fence.glb와 같은 나무 널판 성질)과 같은 이유로 woodMaterial을
-        // 그대로 씌운다. lantern·stall은 금속·천 등 재질이 섞인 단일 아틀라스
-        // 텍스처라(Kenney Fantasy Town Kit) 목재 한 장으로 덮으면 색이
-        // 지워질 위험이 있어 이번엔 손대지 않는다(실기 확인 후 판단).
+        // 그대로 씌운다.
         [SerializeField] private Material woodMaterial;
+
+        // 102-4(2026-09-23, `BuildPropsMaterialSplit.cs`) — lantern·stall은 실제로 뜯어보니
+        // "재질이 섞여 위험"하지 않았다: lantern은 158개 삼각형 전부 금속 톤(나무 성분 0)이라
+        // 원본 텍스처는 그대로 두고 금속 속성만 올린 재질을, stall은 나무 다리(약 130개)·빨강
+        // 차양(약 140개)으로 뚜렷이 갈려 서브메시 둘로 쪼갠 메시+재질 쌍을 쓴다(둘 다 없으면
+        // 예전처럼 원본 GLB 그대로 — 폴백 안전).
+        [SerializeField] private Material lanternMetalMaterial;
+        [SerializeField] private Mesh stallSplitMesh;
+        [SerializeField] private Material stallWoodMaterial;
+        [SerializeField] private Material stallCanopyMaterial;
 
         public void Init(GameObject lantern, GameObject stall, GameObject fence, GameObject fenceGate)
         {
@@ -41,6 +49,16 @@ namespace Saga.Go.World
             stallModel = stall;
             fenceModel = fence;
             fenceGateModel = fenceGate;
+        }
+
+        /// <summary>102-4(2026-09-23) — 위 넷을 한 번에 채운다(BuildTestVillageScene.cs 전용,
+        /// 없어도(null) 무해 — 예전처럼 원본 GLB 재질 그대로 쓴다).</summary>
+        public void InitMaterialSplit(Material lanternMetal, Mesh stallSplit, Material stallWood, Material stallCanopy)
+        {
+            lanternMetalMaterial = lanternMetal;
+            stallSplitMesh = stallSplit;
+            stallWoodMaterial = stallWood;
+            stallCanopyMaterial = stallCanopy;
         }
 
         private void Awake()
@@ -62,11 +80,21 @@ namespace Saga.Go.World
         }
 
         /// <summary>PLAN.md 76장 Mobile Performance Pass — 소품은 절대 안
-        /// 움직이니 정적 배칭·오클루전 컬링 대상으로 표시한다.</summary>
+        /// 움직이니 정적 배칭·오클루전 컬링 대상으로 표시한다.
+        ///
+        /// **예외(2026-09-23)** — 서브메시가 둘 이상인 오브젝트(재질을 분리한 stall)는
+        /// 뺀다. Unity 정적 배칭은 같은 재질을 쓰는 여러 정적 렌더러를 하나의 결합
+        /// 메시로 합치는데, 서브메시가 여럿인(=재질도 여럿인) 렌더러가 섞이면 결합
+        /// 뒤 `MeshFilter.sharedMesh`가 원래와 다른 공유 메시로 바뀌어 서브메시 수가
+        /// 실행마다 달라진다(실측: 5·49 등, 헤드리스 검증 중 발견) — 서브메시별
+        /// 재질 매핑을 코드가 더는 신뢰 못 하게 되므로, 작은 오브젝트 하나의 배칭
+        /// 이득을 포기하는 편이 싸다.</summary>
         private void MarkStatic()
         {
             foreach (Transform t in GetComponentsInChildren<Transform>(true))
             {
+                var filter = t.GetComponent<MeshFilter>();
+                if (filter != null && filter.sharedMesh != null && filter.sharedMesh.subMeshCount > 1) continue;
                 t.gameObject.isStatic = true;
             }
         }
@@ -92,6 +120,11 @@ namespace Saga.Go.World
                 var lantern = Object.Instantiate(lanternModel, transform);
                 lantern.name = name;
                 lantern.transform.position = pos;
+
+                if (lanternMetalMaterial != null)
+                {
+                    ApplyPbrToRenderers(lantern, lanternMetalMaterial);
+                }
 
                 var col = lantern.AddComponent<BoxCollider>();
                 col.center = new Vector3(0f, 0.778f, 0f);
@@ -126,6 +159,19 @@ namespace Saga.Go.World
                 stall.name = "MarketStall";
                 stall.transform.position = pos;
                 stall.transform.localScale = Vector3.one * StallScale;
+
+                // 102-4(2026-09-23) — 나무 다리/틀 서브메시엔 실제 PBR 목재, 빨강 차양
+                // 서브메시는 원본 색 그대로(BuildPropsMaterialSplit.cs 참고).
+                if (stallSplitMesh != null && stallWoodMaterial != null && stallCanopyMaterial != null)
+                {
+                    var filter = stall.GetComponent<MeshFilter>();
+                    var stallRenderer = stall.GetComponent<MeshRenderer>();
+                    if (filter != null && stallRenderer != null)
+                    {
+                        filter.sharedMesh = stallSplitMesh;
+                        stallRenderer.sharedMaterials = new[] { stallWoodMaterial, stallCanopyMaterial };
+                    }
+                }
 
                 var col = stall.AddComponent<BoxCollider>();
                 col.center = new Vector3(0f, 0.6185f, 0f);

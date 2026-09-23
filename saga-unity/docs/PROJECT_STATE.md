@@ -1,7 +1,7 @@
 # PROJECT_STATE — saga-unity (상태만, ≤15KB, 덮어쓴다)
 
 **규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다(2026-09-16 재편 전 본문 5,532줄은 그쪽 첫 절에 그대로 있다). 넘치면 `tools/precheck.sh` 가 막는다.
-마지막 갱신: 2026-09-23 (스물아홉 세션째 — **STORY 전직 차수 옷 빛깔**(101-3 G, 웹판 jobLook 이식, `StoryOutfitTint`)). 같은 날 앞 세션: **5-2 3단계**(3·4차 전직 Lv.20/25·무예 44·칸 고정·차수 탭 — 5-2 전부 완료), 5-2 2단계(2차 전직 Lv.15·유파 세트), 모바일 버튼 먹통 다섯 판 수정(`SagaCore/ButtonWiring.cs`), 5-2 1단계, GUI hang 해소, SSS Intensity 15(경위 HISTORY grep).
+마지막 갱신: 2026-09-23 (서른 세션째 — **GO Props 재질 마무리**: lantern 금속 속성화 + stall 나무/차양 재질 분리(102-4 보류 항목 닫음), `PropsBuilder.MarkStatic()` 정적 배칭 회귀 발견·수정). 같은 날 앞 세션: **전직 차수 옷 빛깔**(101-3 G, 웹판 jobLook 이식, `StoryOutfitTint`), **5-2 3단계**(3·4차 전직 Lv.20/25·무예 44·칸 고정·차수 탭 — 5-2 전부 완료), 5-2 2단계(2차 전직 Lv.15·유파 세트), 모바일 버튼 먹통 다섯 판 수정(`SagaCore/ButtonWiring.cs`), 5-2 1단계, GUI hang 해소, SSS Intensity 15(경위 HISTORY grep).
 
 ## 캐릭터 자산 — 이 PC 기준 (2026-09-19)
 
@@ -22,7 +22,7 @@ Maria(플레이어)·Abe(잡졸)·Brute(두목) 셋만 mixamo.com 실자산 확�
 ## 다음 작업 (우선순위, 상세는 PLAN 해당 장 · 경위는 HISTORY 날짜 grep)
 
 1. **STORY 101-2 전부 완료** — 남은 건 실기 확인(아래 대기 목록). 판수 체감(Lv.15→20 약 11판, 20→25 약 28판)이 무거우면 `StoryCombat.JobPromoteLevel3/4`만 고치면 된다.
-2. **101-2·104-1 잔여(보류)** — GO⑤(모바일 빌드 뒤)·`Props/` lantern·stall-red·`Characters/` Kenney(실사용 중). 헤어카드는 분리 헤어 메시 생기면.
+2. **101-2·104-1 잔여(보류)** — GO⑤(모바일 빌드 뒤)·`Characters/` Kenney(실사용 중). 헤어카드는 분리 헤어 메시 생기면. (`Props/` lantern·stall-red는 2026-09-23 완료 — 아래 표에서 뺌)
 
 `ShotDir`(두 `Playtest*Gui.cs`)는 세션 scratchpad 경로라 GUI 스크린샷 때마다 고쳐야 함. 다른 PC는 `CharactersRealistic/`·`Generated/` gitignore라 `SetupXxxCharacterImport.cs`→SSS Build 재실행 필요.
 

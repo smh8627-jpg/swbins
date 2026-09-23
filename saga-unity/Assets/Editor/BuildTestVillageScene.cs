@@ -239,10 +239,17 @@ namespace Saga.EditorTools
                 AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Props/stall-red.glb"),
                 AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Props/fence.glb"),
                 AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Props/fence-gate.glb"));
-            // 102-4(2026-09-21) "단계 교체" — 울타리만 BuildLandmarks()의 다리
-            // 널판과 같은 woodMaterial을 씌운다(lantern·stall은 보류, PropsBuilder.cs 참고).
+            // 102-4(2026-09-21) "단계 교체" — 울타리는 BuildLandmarks()의 다리
+            // 널판과 같은 woodMaterial을 씌운다.
             var woodMat = AssetDatabase.LoadAssetAtPath<Material>(VillageWoodMatPath);
             if (woodMat != null) SetPrivateField(builder, "woodMaterial", woodMat);
+            // 102-4(2026-09-23) — lantern·stall 재질 분리(BuildPropsMaterialSplit.cs 산출물,
+            // 없으면(다른 PC에서 아직 안 돌렸으면) null이라 PropsBuilder가 원본 GLB로 폴백한다.
+            builder.InitMaterialSplit(
+                AssetDatabase.LoadAssetAtPath<Material>(BuildPropsMaterialSplit.LanternMetalMatPath),
+                AssetDatabase.LoadAssetAtPath<Mesh>(BuildPropsMaterialSplit.StallSplitMeshPath),
+                AssetDatabase.LoadAssetAtPath<Material>(BuildPropsMaterialSplit.StallWoodMatPath),
+                AssetDatabase.LoadAssetAtPath<Material>(BuildPropsMaterialSplit.StallCanopyMatPath));
             builder.Build();
         }
 
