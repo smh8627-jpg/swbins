@@ -422,7 +422,6 @@ const checklist = [
   `tools/asset-audit/audit.py 의 WEB_GAMES 에 ${folder}`,
   `saga-web/tools/content-editor/server.js 의 GAMES 에 ${folder}(도감을 여섯 벌 함께 고치려면)`,
   `C:\\swbins2\\services.json 허브 카드(별개 저장소)`,
-  `saga-web/saga-pc/build-all.bat 단독판 묶음(원하면)`,
   `icons/ 는 사가의숲 것을 임시로 복사했다 — 이 판 아이콘으로 바꿀 것`,
 ];
 
