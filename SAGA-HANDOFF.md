@@ -377,7 +377,7 @@ PC 묶음   각 폴더 build-pc.bat → dist/<게임>.html (다섯 판 공용 �
   2026-09-23 `tools/asset-audit/` 가 트랙을 넘는 사본(29묶음, 대부분 Godot·Unity 공용 Kenney)을 보고서로 낸다 — 통합 후보 목록으로 쓸 것.
 - **Unity 씬 조립 헤드리스는 완료, 창 모드 확인 전** — `BuildFromLayout.BuildFromArgs` 를 배치 모드로 실제 돌려 `Assets/Scenes/Generated/HebeiLayout.unity` 조립까지 확인했다(2026-09-23, 바닥 441·물건 161·명소 13·없는 에셋 0·오류 0). 에디터로 열어 실제로 보는 것은 확인 전.
 - **Godot LayoutWalk 실기 확인** — 글자 지도 조립 씬을 걷는 래퍼 `saga-godot/games/saga_go/layout/LayoutWalk.tscn`(2026-09-23, 자동 걷기 점검 3회 통과). 창 모드로 실제 걸어 보기·명소 이름표 렌더는 확인 전(`saga-godot/docs/PROJECT_STATE.md` 실기 확인 대기).
-- **게임 제작 도구 다섯(+register.mjs) 실사용 확인** — 콘텐츠 편집기(OBJ→GLB 포함)·맵 편집기(사가고·사가국지·사가스토리)·새 판 생성기(register.mjs 포함)·scene-layout·도구 허브는 전부 scratch 시험만 마쳤다(2026-09-23). 위치는 `tools/README.md`. 사용자가 직접 켜서 확인 전.
+- **게임 제작 도구 실사용 확인** — 콘텐츠 편집기(OBJ→GLB·**대사·퀘스트** story.html)·맵 편집기(사가고·사가국지·사가스토리·**3D 배치** scene.html)·**▶ 실행 창**·새 판 생성기(register.mjs 포함)·scene-layout·도구 허브는 전부 scratch·jsdom 시험만 마쳤다(2026-09-23). 3D 배치의 실제 그림·마우스 기즈모, 실행 창 안 게임·`?at` 시작 자리는 브라우저에서 확인 전. 위치는 `tools/README.md`.
 - **사가고 `tower_ruin.glb`(역참) 아이콘 굽기** — 여섯 번 넘게 실패해 절차 그림 그대로.
   재시도 방법은 `saga-web/saga-go/tools/bake-icons/README.md`.
 - **절차적 인물·펫 다섯째 나라** — 한국·일본·중국(구주)·서역(2026-09-23) 완료(`saga-go/js/region-*.js`·`genchar*.js`). 다음 나라는 사용자가 정한다.

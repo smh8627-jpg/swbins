@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>saga-web 대사·퀘스트 편집기</title>
+<style>
+  :root { --bg: #1e1f22; --panel: #26272b; --panel2: #2d2f34; --line: #3a3c42; --text: #e6e6e6; --sub: #9a9ea6;
+          --accent: #5b8cff; --accent2: #3f6bd8; --ok: #5ec26a; --bad: #e0605a; --warn: #e0a53a; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { background: var(--bg); color: var(--text); font: 13px/1.5 -apple-system, "Segoe UI", "Malgun Gothic", sans-serif; display: flex; flex-direction: column; overflow: hidden; }
+  #top { display: flex; gap: 8px; align-items: center; padding: 8px 14px; background: var(--panel2); border-bottom: 1px solid var(--line); flex: none; }
+  #top h1 { font-size: 14px; margin: 0; color: #cfd6ff; }
+  #top a.back { color: var(--sub); text-decoration: none; padding: 4px 9px; border: 1px solid var(--line); border-radius: 5px; }
+  #top a.back:hover { color: var(--text); border-color: var(--accent); }
+  #top .sp { flex: 1; }
+  select, button, input, textarea { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 5px; padding: 5px 9px; font: inherit; }
+  button { cursor: pointer; } button:hover { border-color: var(--accent); } button:disabled { opacity: .4; cursor: default; }
+  button.primary { background: var(--accent2); border-color: var(--accent2); color: #fff; }
+  button.mini { padding: 1px 7px; font-size: 11.5px; }
+  #main { flex: 1; display: flex; min-height: 0; }
+  #left { width: 290px; flex: none; background: var(--panel); border-right: 1px solid var(--line); display: flex; flex-direction: column; }
+  #left .tools { padding: 8px; display: flex; gap: 4px; flex-wrap: wrap; border-bottom: 1px solid var(--line); }
+  #left .tools input { flex: 1; min-width: 0; }
+  #items { flex: 1; overflow: auto; padding: 4px; }
+  .it { display: grid; grid-template-columns: 28px 1fr auto; gap: 6px; align-items: baseline; padding: 4px 6px; border-radius: 4px; cursor: pointer; border: 1px solid transparent; }
+  .it:hover { background: var(--panel2); } .it.sel { background: #34405e; border-color: var(--accent); }
+  .it .no { color: var(--sub); font: 11px Consolas, monospace; text-align: right; }
+  .it .lb { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .it .bd { font-size: 10.5px; color: var(--sub); white-space: nowrap; }
+  .it.new .lb::after { content: ' 새'; color: var(--ok); font-size: 10.5px; }
+  .it.chg .no { color: var(--warn); }
+  #form { flex: 1; overflow: auto; padding: 16px 22px; min-width: 0; }
+  #right { width: 380px; flex: none; background: var(--panel); border-left: 1px solid var(--line); overflow: auto; padding: 10px 12px; }
+  h3 { font-size: 12px; color: var(--sub); margin: 12px 0 6px; font-weight: 600; }
+  .muted { color: var(--sub); font-size: 11.5px; } .ok { color: var(--ok); } .bad { color: var(--bad); } .warn { color: var(--warn); }
+  .f { display: grid; grid-template-columns: 120px 1fr auto; gap: 6px; align-items: start; margin: 5px 0; }
+  .f > label { color: var(--sub); font-size: 12px; padding-top: 6px; overflow: hidden; text-overflow: ellipsis; }
+  .f input[type=text], .f input[type=number], .f textarea, .f select { width: 100%; }
+  .f textarea { min-height: 38px; resize: vertical; font-family: inherit; }
+  .grp { border: 1px solid var(--line); border-radius: 7px; padding: 6px 10px 8px; margin: 6px 0; background: rgba(255,255,255,0.015); }
+  .grp > .gh { display: flex; gap: 6px; align-items: center; color: #cfd6ff; font-size: 12px; margin-bottom: 2px; }
+  .row { display: flex; gap: 5px; align-items: center; margin: 3px 0; }
+  .row > input[type=text], .row > textarea { flex: 1; min-width: 0; }
+  .row select { max-width: 150px; }
+  .tok { font: 11px Consolas, monospace; padding: 0 5px; margin-right: 3px; }
+  pre.raw { background: #17181b; border: 1px solid var(--line); border-radius: 5px; padding: 6px 8px; font: 11.5px/1.45 Consolas, "D2Coding", monospace; white-space: pre-wrap; max-height: 220px; overflow: auto; color: #b9c1cc; margin: 4px 0; }
+  .lock { color: var(--sub); font-size: 11px; }
+  /* 미리보기 */
+  .pv { background: #17181b; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+  .pv .ttl { font-weight: 600; color: #e9edf7; margin-bottom: 6px; }
+  .bub { display: flex; gap: 8px; margin: 6px 0; align-items: flex-start; }
+  .bub .who { flex: none; min-width: 64px; font-size: 11.5px; color: var(--sub); text-align: right; padding-top: 5px; }
+  .bub .say { background: #2b3040; border-radius: 10px; padding: 5px 10px; max-width: 280px; }
+  .bub.me { flex-direction: row-reverse; } .bub.me .who { text-align: left; } .bub.me .say { background: #3a3320; }
+  .bub .say b.t { color: #ffd479; font-weight: 400; }
+  .chip { display: inline-block; font-size: 11px; padding: 0 7px; border-radius: 9px; background: #2d3444; margin: 2px 3px 0 0; }
+  .opt { padding: 4px 8px; border-radius: 6px; background: #252a36; margin: 3px 0; } .opt.right { background: #23402b; border: 1px solid #3f8a52; }
+  #report div, #log div { font-size: 12px; padding: 2px 0; border-bottom: 1px solid #2b2d31; }
+  #empty { color: var(--sub); padding: 40px; text-align: center; }
+</style>
+</head>
+<body>
+<div id="top">
+  <h1>대사·퀘스트 편집기</h1>
+  <a class="back" href="/" title="콘텐츠 편집기(인물·펫·3D 자산·판별 표)">← 콘텐츠 편집기</a>
+  <select id="tblSel" title="고칠 표"></select>
+  <span class="muted" id="meta"></span>
+  <span class="sp"></span>
+  <span id="playMount" style="display:flex;gap:4px"></span>
+  <span id="badge" class="muted"></span>
+  <button id="bUndo" title="Ctrl+Z">되돌리기</button>
+  <button id="bRedo" title="Ctrl+Y">다시</button>
+  <button id="bReload" title="파일에서 다시 읽기(고친 것 버림)">다시 읽기</button>
+  <button class="primary" id="bSave" title="Ctrl+S">저장</button>
+</div>
+<div id="main">
+  <div id="left">
+    <div class="tools">
+      <input id="q" placeholder="찾기 — 이름·id·대사">
+      <button id="bAdd" title="새 항목(끝에 붙는다)">＋ 새 항목</button>
+      <button id="bDup" title="고른 것을 본떠 새 항목">본뜨기</button>
+      <button id="bDel" title="새로 만든 것만(id 있는 표) · 잡담·대화 같은 표는 무엇이든">지우기</button>
+    </div>
+    <div id="items"></div>
+  </div>
+  <div id="form"><div id="empty">왼쪽에서 항목을 고른다.</div></div>
+  <div id="right">
+    <h3>미리보기 — 게임에서 이렇게 읽힌다(표지는 보기 값으로)</h3>
+    <div id="preview" class="pv"><span class="muted">항목을 고른다.</span></div>
+    <h3>검사 — 오류는 저장을 막는다</h3>
+    <div id="report"><span class="muted">—</span></div>
+    <h3>기록</h3>
+    <div id="log"></div>
+  </div>
+</div>
+<script>
+'use strict';
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const clone = (x) => JSON.parse(JSON.stringify(x));
+const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+const isRaw = (v) => v && typeof v === 'object' && !Array.isArray(v) && typeof v.$raw === 'string';
+const LONG = ['desc', 'line', 'quote', 'text', 'q', 'why', 'say', 'msg'];
+const SAMPLE = { '{town}': '신야성', '{season}': '봄', '{phase}': '아침', '{other}': '이웃 김씨', '{event}': '단옷날', '{hello}': '좋은 날이오' };
+const GROUP = { quest: '퀘스트', talk: '대사', quiz: '문답' };
+function log(t, ok) { const d = document.createElement('div'); d.className = ok ? 'ok' : 'bad'; d.textContent = (ok ? '✓ ' : '✗ ') + t; $('#log').prepend(d); }
+
+let tables = [], T = null, base = null, val = null, sel = null, undoS = [], redoS = [], dirty = false, checkTimer = null, lastRep = null;
+
+/* ── 불러오기 ─────────────────────────────────────── */
+async function boot() {
+  tables = (await (await fetch('/api/story/list')).json()).items || [];
+  const groups = {};
+  tables.forEach((t) => (groups[t.group] = groups[t.group] || []).push(t));
+  $('#tblSel').innerHTML = Object.entries(groups).map(([g, list]) => '<optgroup label="' + esc(GROUP[g] || g) + '">' +
+    list.map((t) => '<option value="' + esc(t.id) + '"' + (t.error ? ' disabled' : '') + '>' + esc(t.game + ' · ' + t.label + (t.count !== null ? ' (' + t.count + ')' : ' — 못 읽음')) + '</option>').join('') + '</optgroup>').join('');
+  const want = new URLSearchParams(location.search).get('t') || (tables.find((t) => !t.error) || {}).id;
+  if (want) { $('#tblSel').value = want; await open(want); }
+}
+async function open(id) {
+  const r = await (await fetch('/api/story/read?id=' + encodeURIComponent(id))).json();
+  if (r.error) { log(r.error, false); return; }
+  T = r; base = clone(r.value); val = clone(r.value); sel = null; undoS = []; redoS = []; dirty = false;
+  $('#meta').textContent = r.game + '/js/' + r.file + ' · var ' + r.v + (r.exempt ? ' · 실명 가드 예외(역사 문답)' : '');
+  history.replaceState(null, '', '?t=' + encodeURIComponent(id));
+  renderList(); renderForm(); renderPreview(); updateBadge(); scheduleCheck();
+  const first = keys()[0]; if (first !== undefined) pick(first);
+}
+const isArr = () => Array.isArray(val);
+const keys = () => (isArr() ? val.map((_, i) => i) : Object.keys(val));
+const itemOf = (k) => val[k];
+const baseHas = (k) => {
+  if (!isArr()) return Object.prototype.hasOwnProperty.call(base, k);
+  if (T.idKey) { const v = val[k]; return !!(v && base.some((b) => b[T.idKey] === v[T.idKey])); }
+  return k < base.length;
+};
+const baseOf = (k) => (!isArr() ? base[k] : T.idKey ? base.find((b) => b[T.idKey] === (val[k] || {})[T.idKey]) : base[k]);
+
+/* ── 목록 ─────────────────────────────────────────── */
+function labelOf(v, k) {
+  if (typeof v === 'string') return v;
+  if (Array.isArray(v)) return v.map((x) => (Array.isArray(x) ? x[2] : x)).filter((x) => typeof x === 'string')[0] || '';
+  if (v && typeof v === 'object') return (v.emoji ? v.emoji + ' ' : '') + (v.name || v.title || v.q || v.label || v.day || v.line || v.key || v.id || k);
+  return String(v);
+}
+function badgeOf(v, k) {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return isArr() ? '' : k;
+  if (v.need !== undefined) return 'Lv.' + v.need + ' · ' + (v.goal ? v.goal.type + ' ' + v.goal.n : '');
+  if (v.req) return v.req.t + ' ' + (v.req.n !== undefined ? v.req.n : v.req.lo + '~' + v.req.hi) + (v.req.tag ? ' ' + v.req.tag : '') + (v.req.room ? ' ' + v.req.room : '');
+  if (v.kind && v.n !== undefined) return v.kind + ' ' + v.n;
+  if (v.cat) return v.cat + ' · lv' + v.lv;
+  if (v.when) return v.when + ' · w' + v.w;
+  return isArr() ? (v.key || v.id || '') : k;
+}
+function textOf(v) { return JSON.stringify(v, (kk, x) => (isRaw(x) ? x.$texts.map((y) => y.v).join(' ') : x)); }
+function renderList() {
+  const q = $('#q').value.trim().toLowerCase();
+  const ks = keys().filter((k) => !q || (String(k) + ' ' + textOf(itemOf(k))).toLowerCase().indexOf(q) >= 0);
+  $('#items').innerHTML = ks.map((k, n) => {
+    const v = itemOf(k), fresh = !baseHas(k), chg = !fresh && !same(v, baseOf(k));
+    return '<div class="it' + (same(k, sel) ? ' sel' : '') + (fresh ? ' new' : '') + (chg ? ' chg' : '') + '" data-k="' + esc(k) + '">' +
+      '<span class="no">' + (isArr() ? (T.ordered ? (k + 1) + '→' : k + 1) : '') + (chg ? '●' : '') + '</span>' +
+      '<span class="lb">' + esc(labelOf(v, k)) + '</span><span class="bd">' + esc(badgeOf(v, k)) + '</span></div>';
+  }).join('') || '<div class="muted" style="padding:10px">없음</div>';
+  document.querySelectorAll('#items .it').forEach((d) => { d.onclick = () => pick(isArr() ? +d.dataset.k : d.dataset.k); });
+  $('#bAdd').disabled = !T.add; $('#bDup').disabled = !T.add || sel === null;
+  $('#bDel').disabled = sel === null || !(T.del || !baseHas(sel));
+}
+function pick(k) { sel = k; renderList(); renderForm(); renderPreview(); }
+
+/* ── 고치기 ───────────────────────────────────────── */
+function snapshot() { undoS.push(JSON.stringify(val)); if (undoS.length > 300) undoS.shift(); redoS = []; }
+function touched(structural) {
+  dirty = true; updateBadge(); scheduleCheck(); renderPreview();
+  renderList();
+  if (structural) renderForm();
+}
+function getAt(obj, path) { return path.reduce((o, p) => (o == null ? o : o[p]), obj); }
+function setAt(obj, path, v) {
+  const last = path[path.length - 1], parent = getAt(obj, path.slice(0, -1));
+  if (v === undefined) { if (Array.isArray(parent)) parent.splice(last, 1); else delete parent[last]; }
+  else parent[last] = v;
+}
+const pat = (path) => path.map((p) => (typeof p === 'number' ? '*' : p)).join('.');
+/* 표 경로 — 배열 자리는 * 로('where.*'), 다만 [누가, 감정, 말] 같은 작은 배열의 칸 번호는 그대로('lines.*.0') */
+function enumFor(path) {
+  const tail = path.map((p, i) => (typeof p === 'number' && i < path.length - 1 ? '*' : p)).join('.');
+  return T.enums[pat(path)] || T.enums[tail] || null;
+}
+function isLocked(path) {
+  if (path.length !== 1 || !baseHas(sel)) return false;
+  return T.lock.indexOf(path[0]) >= 0 || (T.idKey && path[0] === T.idKey);
+}
+
+function renderForm() {
+  const box = $('#form');
+  if (sel === null || itemOf(sel) === undefined) { box.innerHTML = '<div id="empty">왼쪽에서 항목을 고른다.</div>'; return; }
+  box.innerHTML = '';
+  const head = document.createElement('div');
+  head.className = 'grp';
+  const fresh = !baseHas(sel);
+  head.innerHTML = '<div class="gh">' + esc(T.label) + ' — ' + (isArr() ? '#' + (sel + 1) : '키 <b>' + esc(sel) + '</b>') + (fresh ? ' <span class="ok">새 항목</span>' : '') + '</div>' +
+    '<div class="muted">' + (T.idKey ? 'id 칸 <b>' + esc(T.idKey) + '</b> 는 세이브가 쥐므로 있던 항목에선 잠겨 있다. ' : '') + (T.lock.length ? '잠금: ' + esc(T.lock.join(', ')) + '. ' : '') +
+    (T.tokens.length ? '표지 ' + esc(T.tokens.join(' ')) + ' 는 게임이 그때 값으로 채운다(한 줄에 하나씩만 — 둘째는 안 채워진다).' : '') + '</div>';
+  if (!isArr() && fresh) {
+    const r = document.createElement('div'); r.className = 'f';
+    r.innerHTML = '<label>키(새 항목)</label><input type="text" value="' + esc(sel) + '"><span></span>';
+    r.querySelector('input').onchange = (e) => renameKey(sel, e.target.value.trim());
+    head.appendChild(r);
+  }
+  box.appendChild(head);
+  const root = document.createElement('div');
+  field(root, [sel], null);
+  box.appendChild(root);
+}
+function renameKey(from, to) {
+  if (!to || to === from || Object.prototype.hasOwnProperty.call(val, to)) { log('키 ' + to + ' 는 못 쓴다(비었거나 이미 있다)', false); renderForm(); return; }
+  snapshot();
+  const next = {}; for (const [k, v] of Object.entries(val)) next[k === from ? to : k] = v;
+  val = next; sel = to; touched(true);
+}
+
+/* 값 하나를 그 모양에 맞는 칸으로 그린다 — path 는 val 기준(첫 칸이 항목 키) */
+function field(box, path, label) {
+  const v = getAt(val, path), rel = path.slice(1), en = enumFor(rel);
+  if (isRaw(v)) return rawField(box, path, label);
+  if (Array.isArray(v)) return arrField(box, path, label);
+  if (v && typeof v === 'object') return objField(box, path, label);
+  const row = document.createElement('div'); row.className = 'f';
+  const lab = document.createElement('label'); lab.textContent = label === null ? '' : label; lab.title = rel.join('.');
+  row.appendChild(lab);
+  let inp;
+  const locked = isLocked(rel);
+  if (en) {
+    inp = document.createElement('select');
+    inp.innerHTML = en.map((o) => '<option value="' + esc(o) + '">' + (o === '' ? '(없음 — 칸 빼기)' : esc(o)) + '</option>').join('');
+    if (en.indexOf(v) < 0) inp.innerHTML += '<option value="' + esc(v) + '">' + esc(v) + ' ⚠ 목록에 없음</option>';
+    inp.value = String(v);
+    inp.onchange = () => { snapshot(); const o = inp.value; const nv = o === '' ? undefined : typeof v === 'number' ? +o : o; setAt(val, path, nv); touched(nv === undefined); };
+  } else if (typeof v === 'boolean') {
+    inp = document.createElement('input'); inp.type = 'checkbox'; inp.checked = v;
+    inp.onchange = () => { snapshot(); setAt(val, path, inp.checked); touched(false); };
+  } else if (typeof v === 'number') {
+    inp = document.createElement('input'); inp.type = 'number'; inp.value = v; inp.step = 'any';
+    inp.onchange = () => { if (inp.value === '' || !isFinite(+inp.value)) { inp.value = getAt(val, path); return; } snapshot(); setAt(val, path, +inp.value); touched(false); };
+  } else {
+    const long = String(v).length > 34 || LONG.indexOf(String(rel[rel.length - 1])) >= 0;
+    inp = document.createElement(long ? 'textarea' : 'input');
+    if (!long) inp.type = 'text';
+    inp.value = v == null ? '' : v;
+    let pushed = false;
+    inp.addEventListener('focus', () => { pushed = false; });
+    inp.addEventListener('input', () => { if (!pushed) { snapshot(); pushed = true; } setAt(val, path, inp.value); touched(false); });
+  }
+  if (locked) { inp.disabled = true; inp.title = '잠김 — 세이브·코드가 이 값을 쥔다'; }
+  row.appendChild(inp);
+  const tail = document.createElement('span');
+  if (typeof v === 'string' && T.tokens.length && !en) {
+    T.tokens.forEach((t) => {
+      const b = document.createElement('button'); b.className = 'mini tok'; b.textContent = t; b.title = '커서 자리에 넣기';
+      b.onclick = () => { const s = inp.selectionStart != null ? inp.selectionStart : inp.value.length; snapshot(); inp.value = inp.value.slice(0, s) + t + inp.value.slice(inp.selectionEnd != null ? inp.selectionEnd : s); setAt(val, path, inp.value); touched(false); inp.focus(); };
+      tail.appendChild(b);
+    });
+  }
+  if (optional(rel)) tail.appendChild(delBtn(path));
+  row.appendChild(tail);
+  box.appendChild(row);
+}
+/* 이 칸이 opt(더할 수 있는 칸)에 있으면 뺄 수 있다 */
+function optional(rel) { return rel.length && Object.prototype.hasOwnProperty.call(T.opt, pat(rel)); }
+function delBtn(path) {
+  const b = document.createElement('button'); b.className = 'mini'; b.textContent = '×'; b.title = '이 칸 빼기';
+  b.onclick = () => { snapshot(); setAt(val, path, undefined); touched(true); };
+  return b;
+}
+function objField(box, path, label) {
+  const v = getAt(val, path), rel = path.slice(1);
+  const g = document.createElement(rel.length ? 'div' : 'div');
+  if (rel.length) { g.className = 'grp'; g.innerHTML = '<div class="gh">' + esc(label) + (optional(rel) ? '' : '') + '</div>'; }
+  Object.keys(v).forEach((k) => field(g, path.concat([k]), k));
+  /* 더할 수 있는 칸 — opt 에서 이 그릇 바로 밑의 것 */
+  const here = pat(rel), adds = Object.keys(T.opt).filter((p) => {
+    const parts = p.split('.'), par = parts.slice(0, -1).join('.');
+    return par === here && !(parts[parts.length - 1] in v);
+  });
+  if (adds.length) {
+    const r = document.createElement('div'); r.className = 'row';
+    r.innerHTML = '<span class="muted">칸 더하기:</span>';
+    adds.forEach((p) => {
+      const k = p.split('.').pop(), b = document.createElement('button'); b.className = 'mini'; b.textContent = '+ ' + k;
+      b.onclick = () => { snapshot(); v[k] = clone(T.opt[p]); touched(true); };
+      r.appendChild(b);
+    });
+    g.appendChild(r);
+  }
+  box.appendChild(g);
+}
+function arrField(box, path, label) {
+  const v = getAt(val, path), rel = path.slice(1);
+  const tp = T.tuple[pat(rel.concat(['*']))] || (rel.length === 0 ? T.tuple[''] : null);
+  const g = document.createElement('div'); g.className = 'grp';
+  g.innerHTML = '<div class="gh">' + esc(label === null ? (tp ? tp.join(' · ') : '줄') : label) + ' <span class="muted">(' + v.length + ')</span></div>';
+  const prim = v.every((x) => typeof x === 'string' || typeof x === 'number');
+  const tupleRows = tp && rel.length > 0;           // 이 배열의 자리마다 [누가, 감정, 말] 같은 작은 배열
+  /* 코드(raw)가 든 배열은 모양을 못 바꾼다 — 더하기·빼기·순서 바꾸기 없음(코드를 새로 못 만들고, 옮기면 되읽기가 어긋난다) */
+  const hasRaw = JSON.stringify(v).indexOf('"$raw"') >= 0;
+  v.forEach((x, i) => {
+    const p = path.concat([i]);
+    if (tupleRows && Array.isArray(x)) {
+      const r = document.createElement('div'); r.className = 'row';
+      x.forEach((cell, j) => {
+        const en = enumFor(rel.concat([i, j]));
+        let inp;
+        if (en) {
+          inp = document.createElement('select');
+          inp.innerHTML = en.map((o) => '<option value="' + esc(o) + '">' + esc(o) + '</option>').join('') + (en.indexOf(cell) < 0 ? '<option value="' + esc(cell) + '">' + esc(cell) + ' ⚠</option>' : '');
+          inp.value = cell; inp.title = tp[j] || '';
+          inp.onchange = () => { snapshot(); x[j] = inp.value; touched(false); };
+        } else {
+          inp = document.createElement('input'); inp.type = 'text'; inp.value = cell; inp.placeholder = tp[j] || '';
+          let pushed = false;
+          inp.addEventListener('focus', () => { pushed = false; });
+          inp.addEventListener('input', () => { if (!pushed) { snapshot(); pushed = true; } x[j] = inp.value; touched(false); });
+        }
+        r.appendChild(inp);
+      });
+      r.appendChild(moveBtns(path, i, v.length));
+      g.appendChild(r);
+    } else if (prim && tp && rel.length === 0) {
+      field(g, p, tp[i] || (i + 1) + '');
+    } else if (typeof x === 'string' || typeof x === 'number' || typeof x === 'boolean') {
+      const holder = document.createElement('div'); field(holder, p, (i + 1) + '');
+      const row = holder.firstChild;
+      if (row && row.lastChild) row.lastChild.appendChild(moveBtns(path, i, v.length));
+      g.appendChild(row);
+    } else {
+      const holder = document.createElement('div');
+      field(holder, p, (label || '') + ' ' + (i + 1));
+      const gh = holder.querySelector('.gh');
+      if (gh && !isRaw(x) && !hasRaw) gh.appendChild(moveBtns(path, i, v.length));
+      g.appendChild(holder);
+    }
+  });
+  if (!hasRaw && !(tp && rel.length === 0)) {
+    const b = document.createElement('button'); b.className = 'mini'; b.textContent = '+ 더하기';
+    b.onclick = () => {
+      snapshot();
+      const last = v[v.length - 1];
+      v.push(last === undefined ? '' : Array.isArray(last) ? last.map((c, j) => (enumFor(rel.concat([v.length, j])) ? c : '')) : typeof last === 'object' ? clone(last) : typeof last === 'number' ? last : '');
+      touched(true);
+    };
+    g.appendChild(b);
+  }
+  box.appendChild(g);
+}
+function moveBtns(path, i, n) {
+  const s = document.createElement('span');
+  const mk = (t, title, fn, dis) => { const b = document.createElement('button'); b.className = 'mini'; b.textContent = t; b.title = title; b.disabled = dis; b.onclick = fn; s.appendChild(b); };
+  const arr = getAt(val, path);
+  mk('↑', '위로', () => { snapshot(); [arr[i - 1], arr[i]] = [arr[i], arr[i - 1]]; touched(true); }, i === 0);
+  mk('↓', '아래로', () => { snapshot(); [arr[i + 1], arr[i]] = [arr[i], arr[i + 1]]; touched(true); }, i === n - 1);
+  mk('×', '빼기', () => { snapshot(); arr.splice(i, 1); touched(true); }, n <= 1);
+  return s;
+}
+function rawField(box, path, label) {
+  const v = getAt(val, path);
+  const g = document.createElement('div'); g.className = 'grp';
+  g.innerHTML = '<div class="gh">' + esc(label || '') + ' <span class="lock">코드 — 모양은 못 고친다, 안의 글만</span></div>';
+  const det = document.createElement('details');
+  det.innerHTML = '<summary class="muted">코드 보기</summary><pre class="raw">' + esc(v.$raw) + '</pre>';
+  g.appendChild(det);
+  v.$texts.forEach((t, i) => {
+    const r = document.createElement('div'); r.className = 'f';
+    r.innerHTML = '<label>코드 속 ' + esc(t.key) + '</label>';
+    const inp = document.createElement('textarea'); inp.value = t.v;
+    let pushed = false;
+    inp.addEventListener('focus', () => { pushed = false; });
+    inp.addEventListener('input', () => { if (!pushed) { snapshot(); pushed = true; } t.v = inp.value; touched(false); });
+    r.appendChild(inp); r.appendChild(document.createElement('span'));
+    g.appendChild(r);
+  });
+  if (!v.$texts.length) g.appendChild(Object.assign(document.createElement('div'), { className: 'muted', textContent: '고칠 글이 없다' }));
+  box.appendChild(g);
+}
+
+/* ── 더하기·본뜨기·지우기 ─────────────────────────── */
+function freshId(baseId) {
+  const ids = new Set(isArr() ? val.map((x) => x && x[T.idKey]) : Object.keys(val));
+  let id = String(baseId || 'new').replace(/[^a-z0-9_]/g, '_').replace(/^[^a-z]/, 'n'), n = 2;
+  if (!ids.has(id)) return id;
+  while (ids.has(id + n)) n++;
+  return id + n;
+}
+function addItem(from) {
+  if (!T.add) return;
+  snapshot();
+  let item = from !== undefined ? clone(from) : T.template !== null ? clone(T.template) : clone(isArr() ? val[val.length - 1] : val[Object.keys(val)[0]]);
+  if (isArr()) {
+    if (T.idKey && item && typeof item === 'object') item[T.idKey] = freshId(item[T.idKey]);
+    val.push(item); sel = val.length - 1;
+  } else {
+    const k = freshId(from !== undefined ? sel : 'new'); val[k] = item; sel = k;
+  }
+  touched(true);
+}
+function delItem() {
+  if (sel === null || !(T.del || !baseHas(sel))) return;
+  snapshot();
+  if (isArr()) { val.splice(sel, 1); sel = val.length ? Math.min(sel, val.length - 1) : null; }
+  else { delete val[sel]; sel = Object.keys(val)[0] || null; }
+  touched(true);
+}
+function undo() { if (!undoS.length) return; redoS.push(JSON.stringify(val)); val = JSON.parse(undoS.pop()); fixSel(); touched(true); }
+function redo() { if (!redoS.length) return; undoS.push(JSON.stringify(val)); val = JSON.parse(redoS.pop()); fixSel(); touched(true); }
+function fixSel() { if (sel !== null && itemOf(sel) === undefined) sel = keys()[0] !== undefined ? keys()[0] : null; }
+
+/* ── 미리보기 ─────────────────────────────────────── */
+function fill(s) {
+  let out = esc(s);
+  Object.keys(SAMPLE).forEach((t) => { out = out.replace(esc(t), '<b class="t">' + esc(SAMPLE[t]) + '</b>'); });  // 게임처럼 첫 번째만
+  return out;
+}
+const bub = (who, say, me) => '<div class="bub' + (me ? ' me' : '') + '"><span class="who">' + who + '</span><span class="say">' + say + '</span></div>';
+function renderPreview() {
+  const box = $('#preview');
+  if (sel === null || itemOf(sel) === undefined) { box.innerHTML = '<span class="muted">항목을 고른다.</span>'; return; }
+  const v = itemOf(sel), P = T.preview;
+  let h = '';
+  if (P === 'quest') {
+    const goal = v.goal || v.req || (v.kind ? { kind: v.kind, n: v.n } : null);
+    h = '<div class="ttl">' + esc((v.emoji ? v.emoji + ' ' : '') + v.name) + (v.need !== undefined ? ' <span class="chip">Lv.' + v.need + '</span>' : '') + (v.repeat ? ' <span class="chip">되받기</span>' : '') + '</div>' +
+      (v.desc ? '<div>' + esc(v.desc) + '</div>' : '') +
+      (goal ? '<div style="margin-top:6px"><span class="muted">목표</span> ' + Object.entries(goal).map(([k, x]) => '<span class="chip">' + esc(k) + ' ' + esc(x) + '</span>').join('') + '</div>' : '') +
+      (v.reward ? '<div><span class="muted">보상</span> ' + Object.entries(v.reward).map(([k, x]) => '<span class="chip">' + esc(k) + ' ' + esc(x) + '</span>').join('') + '</div>' : '');
+    if (T.ordered && isArr()) h += '<div class="muted" style="margin-top:6px">차례: ' + (sel + 1) + '번째 — 앞 것을 끝내야 나온다</div>';
+  } else if (P === 'npcLines') {
+    h = '<div class="ttl">' + esc((v.emoji || '') + ' ' + v.name) + (v.shop ? ' <span class="chip">🏪 저자 단추</span>' : '') + '</div><div class="muted">말을 걸 때마다 아무거나 하나</div>' +
+      (v.lines || []).map((l) => bub(esc(v.name), fill(l))).join('');
+  } else if (P === 'scene') {
+    const names = T.ctx.names || {}, em = T.ctx.emotes || {};
+    h = '<div class="ttl">' + esc(v.title) + '</div><div class="muted">이 사냥터에 처음 들 때 한 번</div>' + (v.lines || []).map((l) =>
+      bub(esc(l[0] === 'me' ? '나(앞 인물)' : (names[l[0]] || l[0])) + (em[l[1]] && em[l[1]].mark ? ' ' + em[l[1]].mark : ''), fill(l[2] || ''), l[0] === 'me')).join('');
+  } else if (P === 'pair' || P === 'alternate') {
+    h = '<div class="muted">둘이 번갈아(누가 말하든 읽히게)</div>' + (Array.isArray(v) ? v : [v]).map((l, i) => bub(i % 2 ? 'B' : 'A', fill(l), i % 2 === 1)).join('');
+  } else if (P === 'alternate1') {
+    h = '<div class="muted">행삿날 — 표 전체가 한 대화</div>' + val.map((l, i) => bub(i % 2 ? 'B' : 'A', fill(l), i % 2 === 1)).join('');
+  } else if (P === 'npcLine') {
+    h = '<div class="ttl">' + esc(v.emoji + ' ' + v.name) + ' <span class="chip">' + esc(v.sheet) + ' 시트</span></div>' + bub(esc(v.name), fill(v.line || ''));
+  } else if (P === 'dayNight') {
+    h = '<div class="ttl">' + esc(sel) + '</div>' + ['day', 'night', 'rain'].map((t) => bub({ day: '☀️ 낮', night: '🌙 밤', rain: '🌧️ 비·눈' }[t], v[t] ? fill(v[t]) : '<span class="muted">(없음 — 낮 말)</span>')).join('');
+  } else if (P === 'event') {
+    h = '<div class="ttl">' + esc(v.emoji + ' ' + v.name) + ' <span class="chip">' + esc(v.when) + '</span><span class="chip">w ' + esc(v.w) + '</span></div>' +
+      '<div class="muted">' + esc((v.where || []).join(' · ')) + '</div>' + (v.quote ? bub('', fill(v.quote)) : '') +
+      (v.choices || []).map((c) => '<div class="opt"><b>' + esc(c.label) + '</b>' + (isRaw(c.out) ? c.out.$texts.map((t) => '<div class="muted">→ ' + esc(t.v) + '</div>').join('') : '') + '</div>').join('');
+  } else if (P === 'quiz') {
+    h = '<div class="ttl">' + esc(v.q) + '</div><div class="muted">' + esc(v.cat) + ' · lv' + esc(v.lv) + '</div>' +
+      (v.c || []).map((c, i) => '<div class="opt' + (i === v.a ? ' right' : '') + '">' + (i + 1) + '. ' + esc(c) + (i === v.a ? ' ✓' : '') + '</div>').join('') +
+      (v.why ? '<div style="margin-top:6px" class="muted">' + esc(v.why) + '</div>' : '');
+  } else {
+    h = '<pre class="raw">' + esc(JSON.stringify(v, (k, x) => (isRaw(x) ? '(코드)' : x), 2)) + '</pre>';
+  }
+  box.innerHTML = h;
+}
+
+/* ── 검사·저장 ────────────────────────────────────── */
+function updateBadge() { $('#badge').textContent = dirty ? '● 고침' : ''; $('#badge').className = dirty ? 'warn' : 'muted'; }
+function scheduleCheck() {
+  clearTimeout(checkTimer);
+  checkTimer = setTimeout(async () => {
+    const r = await (await fetch('/api/story/check', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: T.id, value: val }) })).json();
+    showReport(r);
+  }, 350);
+}
+function showReport(r) {
+  lastRep = r;
+  const E = r.errors || (r.error ? [r.error] : []), W = r.warns || [];
+  $('#report').innerHTML = (E.length ? E.map((t) => '<div class="bad">✗ ' + esc(t) + '</div>').join('') : '<div class="ok">✓ 오류 없음' + (r.changed ? ' · 파일에서 바뀔 자리 ' + r.edits : ' · 파일과 같다') + '</div>') +
+    W.map((t) => '<div class="warn">! ' + esc(t) + '</div>').join('');
+}
+async function save() {
+  if (!T) return;
+  const r = await (await fetch('/api/story/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: T.id, value: val, hash: T.hash }) })).json();
+  showReport(r);
+  if (r.error) { log(r.error, false); return; }
+  T.hash = r.hash; base = clone(val); dirty = false; updateBadge(); renderList(); renderForm();
+  log(T.game + '/js/' + T.file + ' ' + T.v + (r.unchanged ? ' — 바뀐 것 없음(안 씀)' : ' 저장 — 고친 자리 ' + r.edits + (r.sw && r.sw.version ? ' · sw.js ' + r.sw.version : '')), true);
+  if (!r.unchanged && window.SagaPlay) SagaPlay.reloadIfOpen();
+}
+
+/* ── 묶기 ─────────────────────────────────────────── */
+$('#tblSel').onchange = () => { if (dirty && !confirm('저장 안 한 고침을 버릴까?')) { $('#tblSel').value = T.id; return; } open($('#tblSel').value); };
+$('#q').oninput = renderList;
+$('#bAdd').onclick = () => addItem();
+$('#bDup').onclick = () => { if (sel !== null) addItem(itemOf(sel)); };
+$('#bDel').onclick = delItem;
+$('#bUndo').onclick = undo; $('#bRedo').onclick = redo;
+$('#bSave').onclick = save;
+$('#bReload').onclick = () => { if (!dirty || confirm('저장 안 한 고침을 버릴까?')) open(T.id); };
+addEventListener('keydown', (e) => {
+  const ctl = e.ctrlKey || e.metaKey, tag = (e.target && e.target.tagName) || '';
+  if (ctl && (e.key === 's' || e.key === 'S')) { e.preventDefault(); save(); return; }
+  if (tag === 'INPUT' || tag === 'TEXTAREA') return;       // 글 칸 안의 Ctrl+Z 는 그 칸 몫
+  if (ctl && (e.key === 'z' || e.key === 'Z')) { e.preventDefault(); if (e.shiftKey) redo(); else undo(); }
+  if (ctl && (e.key === 'y' || e.key === 'Y')) { e.preventDefault(); redo(); }
+});
+addEventListener('beforeunload', (e) => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+/* 시험용 손잡이 */
+window.SagaStory = { state: () => ({ T, val, sel, dirty, undo: undoS.length, rep: lastRep }), open, pick, addItem, delItem, undo, redo, save, setAt: (path, v) => { snapshot(); setAt(val, path, v); touched(true); } };
+boot();
+</script>
+<script src="/play-panel.js"></script>
+<script>SagaPlay.mount(document.getElementById('playMount'), () => (T ? T.game : null));</script>
+</body>
+</html>

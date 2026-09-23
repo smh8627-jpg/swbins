@@ -22,12 +22,14 @@ const realname = require('./realname');
 const tables = require('./tables');
 const swbump = require('./swbump');
 const obj2glb = require('./obj2glb');
+const story = require('./story');       // 대사·퀘스트 편집기(story.html)
 const gameserve = require('../lib/gameserve'); // /play/<판>/ — 편집기 안 "▶ 실행" 창
 
-const ROOT = path.join(__dirname, '..', '..'); // saga-web/
+// saga-web/ — 시험할 땐 SAGA_WEB_ROOT 로 복사본을 가리킨다(맵 편집기와 같다)
+const ROOT = process.env.SAGA_WEB_ROOT ? path.resolve(process.env.SAGA_WEB_ROOT) : path.join(__dirname, '..', '..');
 const GAMES = ['saga-go', 'saga-dungeon', 'saga-forest', 'saga-story', 'saga-realm'];
 const CANONICAL = 'saga-go';
-const PORT = 8799;
+const PORT = +process.env.SAGA_EDITOR_PORT || 8799;
 
 function dataJsPath(game) {
   return path.join(ROOT, game, 'js', 'data.js');
@@ -495,6 +497,22 @@ const server = http.createServer((req, res) => {
     }
     if (req.method === 'POST' && u.pathname === '/api/delete') {
       return readBody(req).then((body) => sendJson(res, 200, handleDelete(body.kind, body.id)));
+    }
+    if (req.method === 'GET' && u.pathname === '/story.html') {
+      res.writeHead(200, { 'Content-Type': MIME['.html'], 'Cache-Control': 'no-store' });
+      return res.end(fs.readFileSync(path.join(__dirname, 'story.html')));
+    }
+    if (req.method === 'GET' && u.pathname === '/api/story/list') {
+      return sendJson(res, 200, { items: story.list(ROOT) });
+    }
+    if (req.method === 'GET' && u.pathname === '/api/story/read') {
+      return sendJson(res, 200, story.read(ROOT, u.searchParams.get('id')));
+    }
+    if (req.method === 'POST' && u.pathname === '/api/story/check') {
+      return readBody(req).then((body) => sendJson(res, 200, story.check(ROOT, body)));
+    }
+    if (req.method === 'POST' && u.pathname === '/api/story/save') {
+      return readBody(req).then((body) => sendJson(res, 200, story.save(ROOT, body, (g) => swbump.bump(gameRoot(g), g))));
     }
     if (req.method === 'GET' && u.pathname === '/preview3d.html') {
       const body = fs.readFileSync(path.join(__dirname, 'preview3d.html'));
