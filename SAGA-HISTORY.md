@@ -4952,3 +4952,13 @@ saga-go 정본을 다른 네 판에도 동일 반영, 가드돼 있어 그 판�
 - 시험: 안 바꾸고 다시 쓰면 바이트 동일, 다리 없애면 길 덩어리 2, 줄 길이·모르는 글자·땅 밖 명소를 게임 코드가 잡음,
   서버 띄워 해시 충돌·지도 오류·명소 실명 세 거절 경로 확인(시험 뒤 land.js·sw.js md5 불변), 지도 +1줄·명소 +1 을 다시 실행해 그대로 읽힘.
   **실사용 확인 전**.
+
+### 2026-09-23 — 게임 제작 도구 ④ 글자 지도 → Godot/Unity 씬 조립(`tools/scene-layout/`)
+
+- `layout.mjs`: land.js(맵 편집기의 evalLand 재사용) + 트랙별 `kinds.json` → 씨앗 고정 배치표 saga-layout/1(바이트 동일 재현 확인).
+  처음엔 명소 칸에 지형 물건까지 겹쳐 깔려 `@cave 3` 처럼 이름표가 틀렸다 → 명소 칸은 명소 물건만.
+- Godot `saga-godot/tools/build_from_layout.gd`(SceneTree 스크립트): 헤드리스로 `games/_generated/hebei_layout.tscn` 조립 —
+  바닥 441·물건 400·명소 13·없는 에셋 0. 그 씬을 헤드리스로 세 번 열어 error/warn 0·로그 md5 동일. 다른 세션의 Godot 에디터가
+  열려 있어 새 파일만 쓰는 실행으로 한정(기존 씬·.import 변화 없음 확인). 실행 파일은 그 세션 scratch 의 4.7.2 콘솔판.
+- Unity `saga-unity/Assets/Editor/BuildFromLayout.cs`(메뉴 + `-executeMethod`): 다른 세션이 saga-unity 를 고치는 중이라 **Unity 는 안 열었다** —
+  scratch csproj 로 Unity 6000.3.24f1 DLL 을 참조해 컴파일만 확인(오류·경고 0). **Unity 에서 실제 조립은 확인 전.**

@@ -1,0 +1,20 @@
+{
+  "_doc": "tools/scene-layout/layout.mjs 가 읽는 Unity 트랙 '지형 → 에셋' 표. 경로는 Assets/ 기준으로 실제 있는 파일만(glTFast 가 GLB 를 프리팹으로 들인다).",
+  "cell": 4,
+  "groundColors": { "grass": "#8fbf6a", "forest": "#4f8a4a", "mount": "#8b7d6b", "water": "#4f86c6", "road": "#cdb784", "town": "#b98a64", "farm": "#b8a84a" },
+  "kinds": {
+    "forest": { "per": 1.4, "jitter": 0.4, "scale": [0.85, 1.25], "assets": ["Assets/Art/Vegetation/tree_oak.glb"] },
+    "mount": { "per": 1.0, "jitter": 0.35, "scale": [1.2, 2.0], "assets": ["Assets/Art/Rocks/rock_largeA.glb", "Assets/Art/Rocks/rock_smallA.glb"] },
+    "town": { "per": 0.25, "jitter": 0.2, "scale": [1, 1], "assets": ["Assets/Art/Buildings/wall-block.glb", "Assets/Art/Buildings/pillar-stone.glb"] },
+    "road": { "per": 0.08, "jitter": 0.3, "scale": [1, 1], "assets": ["Assets/Art/Props/lantern.glb"] },
+    "grass": { "per": 0 }, "farm": { "per": 0 }, "water": { "per": 0 }
+  },
+  "marks": {
+    "bridge": { "asset": "Assets/Art/Buildings/planks.glb", "scale": [2.5, 2.5] },
+    "cave": { "asset": "Assets/Art/Rocks/rock_largeA.glb", "scale": [2.6, 2.6] },
+    "waterfall": { "asset": "Assets/Art/Rocks/rock_largeA.glb", "scale": [2.0, 2.0] },
+    "shrine": { "asset": "Assets/Art/Buildings/pillar-stone.glb", "scale": [1.4, 1.4] },
+    "ruin": { "assets": ["Assets/Art/Buildings/pillar-stone.glb", "Assets/Art/Buildings/wall-block.glb"], "per": 2, "jitter": 0.3, "scale": [0.9, 1.3] },
+    "temple": { "asset": "Assets/Art/Buildings/roof-gable.glb", "scale": [2, 2] }
+  }
+}
