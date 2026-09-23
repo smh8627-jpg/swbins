@@ -716,12 +716,13 @@
    *  (모듈 미로딩) 예전처럼 정적 풀로 그냥 간다 — 구조를 건드리지 않는다.
    *  **2026-09-11 — 셋째 나라(중국, region-cn.js)가 붙어 27개 대표점이
    *  됐다.** 나라 수가 늘어도 이 "그냥 다 합쳐 최근접" 방식은 그대로
-   *  안전하다(위 규슈 오류가 나라별 평균 중심 비교에서만 나던 문제였다). */
+   *  안전하다(위 규슈 오류가 나라별 평균 중심 비교에서만 나던 문제였다).
+   *  **2026-09-23 — 넷째(서역, region-xy.js)가 붙어 36개.** 같은 방식 그대로. */
   function genRegionAt(x, y) {
-    var RK = global.DG.regionKr, RJ = global.DG.regionJp, RC = global.DG.regionCn;
-    if (!RK && !RJ && !RC) { return null; }
+    var RK = global.DG.regionKr, RJ = global.DG.regionJp, RC = global.DG.regionCn, RX = global.DG.regionXy;
+    if (!RK && !RJ && !RC && !RX) { return null; }
     var ll = worldToLatLng(x, y);
-    var all = (RK ? RK.REGIONS : []).concat(RJ ? RJ.REGIONS : []).concat(RC ? RC.REGIONS : []);
+    var all = (RK ? RK.REGIONS : []).concat(RJ ? RJ.REGIONS : []).concat(RC ? RC.REGIONS : []).concat(RX ? RX.REGIONS : []);
     var cosLat = Math.cos(ll.lat * Math.PI / 180);
     var best = null, bestD = Infinity;
     for (var i = 0; i < all.length; i++) {
@@ -738,6 +739,7 @@
     if (!region) { return null; }
     if (region.country === 'jp') { return global.DG.gencharJp || null; }
     if (region.country === 'cn') { return global.DG.gencharCn || null; }
+    if (region.country === 'xy') { return global.DG.gencharXy || null; }
     return global.DG.genchar || null;
   }
 

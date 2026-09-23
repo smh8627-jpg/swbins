@@ -2,7 +2,7 @@
  * 사당(祠堂) 시련 — 3분 방 (PLAN §5 ②)
  * ---------------------------------------------------------------
  * 걷다가 만나는 사건은 30초짜리다. 5분 세션의 몸통이 될 **짧고 끝이 있는 도전**.
- * 권역(한 9·일 9·중 9 = 27 대표점)마다 옛 사당 셋이 좌표 해시로 자리잡는다 —
+ * 권역(한 9·일 9·중 9·서역 9 = 36 대표점)마다 옛 사당 셋이 좌표 해시로 자리잡는다 —
  * 봉수대(`beacon.js`)와 같은 결정성이다(위경도로만 갖고, 그때그때 월드 좌표로).
  *
  * 숨은 자리다. 보이는 때는 셋뿐 — ① 120m 안으로 다가섰을 때 ② 그 권역 봉수대에
@@ -52,12 +52,12 @@
   function h01(a, b) { return Math.min(0.999999, core.hash2(a, b) * 2); }
 
   function allRegions() {
-    var RK = global.DG.regionKr, RJ = global.DG.regionJp, RC = global.DG.regionCn;
-    return (RK ? RK.REGIONS : []).concat(RJ ? RJ.REGIONS : []).concat(RC ? RC.REGIONS : []);
+    var RK = global.DG.regionKr, RJ = global.DG.regionJp, RC = global.DG.regionCn, RX = global.DG.regionXy;
+    return (RK ? RK.REGIONS : []).concat(RJ ? RJ.REGIONS : []).concat(RC ? RC.REGIONS : []).concat(RX ? RX.REGIONS : []);
   }
 
   var _list = null;
-  /** 81 사당 — 대표점에서 350~1400m 를 해시로 밀어 고정한 lat/lng. 한 번 계산해 캐싱 */
+  /** 108 사당(서역 27 은 2026-09-23) — 대표점에서 350~1400m 를 해시로 밀어 고정한 lat/lng. 한 번 계산해 캐싱 */
   function list() {
     if (_list) { return _list; }
     _list = [];
@@ -221,6 +221,7 @@
   function gencharOf(region) {
     if (region.country === 'jp') { return global.DG.gencharJp || null; }
     if (region.country === 'cn') { return global.DG.gencharCn || null; }
+    if (region.country === 'xy') { return global.DG.gencharXy || null; }
     return global.DG.genchar || null;
   }
 

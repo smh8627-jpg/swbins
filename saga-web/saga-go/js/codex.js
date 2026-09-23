@@ -74,7 +74,7 @@
           .map(function (e) { return { id: e.id, name: e.record, hint: e.name }; });
       } },
     /* 명소(PLAN §5 ①) — 봉수대. beacon.js 가 유일한 소유자다(다른 갈래처럼
-       "있는 것을 읽어 와 같이 센다"). 27개뿐이라 다른 갈래보다 훨씬 작다 */
+       "있는 것을 읽어 와 같이 센다"). 36개뿐이라 다른 갈래보다 훨씬 작다 */
     { key: 'landmark', name: '명소', emoji: '🗼',
       list: function () {
         var B = global.DG.beacon;
@@ -83,7 +83,7 @@
           return { id: b.key, name: b.name + ' 봉수대', hint: b.region.name + ' 권역' };
         });
       } },
-    /* 비문(PLAN §5 ⑤) — 비석 순례. 권역 27 줄, 그 권역의 첫 비석을 찾으면 도장이 찍히고
+    /* 비문(PLAN §5 ⑤) — 비석 순례. 권역 36 줄, 그 권역의 첫 비석을 찾으면 도장이 찍히고
        힌트는 n/10(열 개 = 초대장). stela.js 가 유일한 소유자다 */
     { key: 'stele', name: '비문', emoji: '🪦',
       list: function () {

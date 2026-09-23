@@ -68,6 +68,8 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/genchar-jp.js"></script>
 <script src="js/region-cn.js"></script>
 <script src="js/genchar-cn.js"></script>
+<script src="js/region-xy.js"></script>
+<script src="js/genchar-xy.js"></script>
 <script src="js/sprite.js"></script>
 <script src="js/core.js"></script>
 <script src="js/perf.js"></script>
@@ -6171,6 +6173,60 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         (h.id + ' · ' + p.id + ' 모두 find()로 되살아남');
     });
 
+    /* ── 서역 권역(region-xy·genchar-xy) — 넷째 나라, 2026-09-23 ──
+     * 중국 권역 네 항목과 같은 결. 사용자가 고른 방향("중국 서역·실크로드"). */
+
+    t('서역 권역(region-xy) — 대표 도시 다섯 곳이 각각 맞는 권역으로 잡히고, 넷 병합에서도 제 나라로 잡힌다', function () {
+      var RX = DG.regionXy, RK = DG.regionKr, RJ = DG.regionJp, RC = DG.regionCn;
+      if (!RX || !RK || !RJ || !RC) { return false; }
+      var cases = [['둔황', 40.14, 94.68, '돈황'], ['투르판', 42.94, 89.18, '차사'], ['호탄', 37.12, 79.92, '우전'],
+        ['카슈가르', 39.47, 75.98, '소륵'], ['사마르칸트', 39.65, 66.97, '강거']];
+      var all = RK.REGIONS.concat(RJ.REGIONS, RC.REGIONS, RX.REGIONS);
+      function nearest(lat, lng) {
+        var cosLat = Math.cos(lat * Math.PI / 180), best = null, bestD = Infinity;
+        all.forEach(function (r) {
+          var dLat = lat - r.center.lat, dLng = (lng - r.center.lng) * cosLat, d = dLat * dLat + dLng * dLng;
+          if (d < bestD) { bestD = d; best = r; }
+        });
+        return best;
+      }
+      var miss = cases.filter(function (c) {
+        var r = RX.regionOf(c[1], c[2]), n = nearest(c[1], c[2]);
+        return !r || r.name !== c[3] || n.country !== 'xy';
+      });
+      var xian = nearest(34.27, 108.95), seoul = nearest(37.57, 126.98);
+      var codes = all.map(function (r) { return r.code; });
+      var dupCode = codes.filter(function (c, i) { return codes.indexOf(c) !== i; });
+      return miss.length === 0 && xian.country === 'cn' && seoul.country === 'kr' && dupCode.length === 0 &&
+        all.length === 36 &&
+        (cases.map(function (c) { return c[0] + '→' + c[3]; }).join(' · ') + ' · 시안·서울은 제 나라 · 대표점 36 코드 겹침 0');
+    });
+
+    t('절차적 인물(genchar-xy) — 결정적이고, 도감(105명)에 안 섞이며, 다른 세 나라와 id 가 안 겹치고, data.find/bio 로 되살아난다', function () {
+      var GX = DG.gencharXy;
+      if (!GX) { return false; }
+      var before = DG.data.heroes.length;
+      var a = GX.hero('qiuci', 2, 777), b = GX.hero('qiuci', 2, 777), c = GX.hero('qiuci', 2, 500777);
+      var p = GX.pet('yutian', 1, 555);   // c 는 먼 번호 — 이웃 번호는 해시 하위 비트만 달라 이름이 겹칠 수 있다(네 생성기 공통, 게임은 난수 번호)
+      var same = a.name === b.name && a.hanja === b.hanja && JSON.stringify(a.stats) === JSON.stringify(b.stats) && a.name !== c.name;
+      var cross = GX.find('cn_yizhou_2_1') === null && GX.find('kr_gyeonggi_2_1') === null &&
+        DG.gencharCn.find(a.id) === null && DG.genchar.find(a.id) === null && DG.gencharJp.find(a.id) === null;
+      var found = DG.data.find(a.id), foundPet = DG.data.find(p.id);
+      var back = !!found && found.name === a.name && found.era === '서역' && DG.data.bio(a.id) === a._bio &&
+        !!foundPet && foundPet.name === p.name;
+      /* 모든 권역·등급에서 이름이 성 + 두 음절로 서고(막는 짝 BLOCK 없이), 능력치가 5~100 안이다 */
+      var shape = DG.regionXy.REGIONS.every(function (r) {
+        for (var k = 1; k <= 5; k++) {
+          var h = GX.hero(r.code, k, k * 31);
+          if (!h || !/^\S+ \S\S$/.test(h.name) || h._region !== r.code || (GX.BLOCK || []).indexOf(h.name.split(' ')[1]) >= 0) { return false; }
+          if (['might', 'wisdom', 'command'].some(function (s) { return !(h.stats[s] >= 5 && h.stats[s] <= 100); })) { return false; }
+        }
+        return true;
+      });
+      return same && cross && back && shape && DG.data.heroes.length === before && before === 105 &&
+        (a.name + '(' + a.hanja + ', ' + a.faction + ') · ' + p.name + ' · 도감 ' + before + ' 그대로 · id 교차 없음');
+    });
+
     t('가명 정책 — BIOS·PETS·quote에 실제 역사 인물의 실명이 없다', function () {
       /* 2026-09-10 발견된 구멍(SAGA-HANDOFF 참고): name/hanja만 가명으로 바꾸고
          BIOS·PETS의 name/desc·HEROES의 quote에는 실명·실제 사건명이 그대로
@@ -6315,21 +6371,21 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
     });
 
     /* ── 봉수대(PLAN §5①, 2026-09-19) ──────────────────────
-     * 오르면 지도가 열린다 — 권역(27 대표점)마다 하나, 좌표 해시로 자리를
+     * 오르면 지도가 열린다 — 권역(36 대표점, 서역 9 는 2026-09-23)마다 하나, 좌표 해시로 자리를
      * 고정하고, 3초 홀드로 확정 보상 + 반경 1.5km 역참·성채를 미리 드러낸다
      * (48절 "가 보기 전까지 안 뜬다"의 예외). 아직 실기(헤드리스) 확인 전.
      */
-    t('봉수대 — 권역마다 하나(27개), 좌표 해시로 늘 같은 자리', function () {
+    t('봉수대 — 권역마다 하나(36개), 좌표 해시로 늘 같은 자리', function () {
       var BC = DG.beacon;
       if (!BC) { return false; }
       var a = BC.list();
       BC._resetForTest();
       var b = BC.list();
-      var same = a.length === 27 && b.length === 27;
+      var same = a.length === 36 && b.length === 36;
       for (var i = 0; i < a.length && same; i++) {
         if (a[i].key !== b[i].key || a[i].lat !== b[i].lat || a[i].lng !== b[i].lng) { same = false; }
       }
-      return same && ('27개 · 캐시를 지워도 같은 자리(' + a[0].name + ' ' +
+      return same && ('36개 · 캐시를 지워도 같은 자리(' + a[0].name + ' ' +
         a[0].lat.toFixed(4) + ',' + a[0].lng.toFixed(4) + ')');
     });
 
@@ -6380,7 +6436,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
     });
 
     /* ── 사당 시련(PLAN §5 ②, 2026-09-21) ────────────────────
-     * 권역마다 사당 셋(81)을 좌표 해시로 고정하고, 파도 셋·전체 3분 예산·하루 셋·
+     * 권역마다 사당 셋(108)을 좌표 해시로 고정하고, 파도 셋·전체 3분 예산·하루 셋·
      * 패배 비용(사료 2 + 10분 봉쇄)·그 권역 인물 조우를 순수 층(list·entry·advance·
      * settle*)으로 굴린다. 화면·전투 엔진(rogue-action)은 안 연다. 아직 실기 확인 전.
      */
@@ -6398,7 +6454,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       };
     }
 
-    t('사당 — 권역마다 셋(81개), 좌표 해시로 늘 같은 자리', function () {
+    t('사당 — 권역마다 셋(108개), 좌표 해시로 늘 같은 자리', function () {
       var SH = DG.shrine;
       if (!SH) { return false; }
       var a = SH.list().map(function (q) { return q.key + '|' + q.lat.toFixed(6) + '|' + q.lng.toFixed(6); });
@@ -6410,8 +6466,8 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         var d = Math.hypot((q.lat - q.region.center.lat) * mPerLat, (q.lng - q.region.center.lng) * mPerLng);
         return d >= 349 && d <= 1401;
       });
-      return a.length === 81 && Object.keys(uniq).length === 81 && a.join() === b.join() && inBand &&
-        ('81개 · 키 겹침 0 · 캐시를 지워도 같은 자리 · 대표점에서 350~1400m(' + SH.list()[0].name + ')');
+      return a.length === 108 && Object.keys(uniq).length === 108 && a.join() === b.join() && inBand &&
+        ('108개 · 키 겹침 0 · 캐시를 지워도 같은 자리 · 대표점에서 350~1400m(' + SH.list()[0].name + ')');
     });
 
     t('사당 — 숨은 자리: 멀면 안 보이고, 120m 안·봉수대로 열린 반경·깬 자리는 보인다', function () {
@@ -6864,7 +6920,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       return out && why;
     });
 
-    t('비석 — 도감 "비문": 권역 27 줄, 첫 비석을 찾으면 그 줄이 보이고 힌트는 n/10', function () {
+    t('비석 — 도감 "비문": 권역 36 줄, 첫 비석을 찾으면 그 줄이 보이고 힌트는 n/10', function () {
       var S = DG.stela, X = DG.codex, undo = stelaKeep(), out = false, why = '';
       try {
         C.save.stelae = undefined; C.save.codex = undefined;
@@ -6873,7 +6929,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         var reg = S.regionOfLatLng(s.lat, s.lng);
         S.discover(s);
         var t1 = X.tally('stele'), row = t1.rows.filter(function (r) { return r.id === reg.code; })[0];
-        out = t0.total === 27 && t0.seen === 0 && t1.seen === 1 && row.seen === true && row.hint === '1/10';
+        out = t0.total === 36 && t0.seen === 0 && t1.seen === 1 && row.seen === true && row.hint === '1/10';
         why = '분모 ' + t0.total + ' · 찾은 뒤 ' + row.name + ' ' + row.hint;
       } finally { undo(); }
       return out && why;

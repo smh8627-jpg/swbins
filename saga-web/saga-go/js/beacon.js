@@ -1,7 +1,7 @@
 /**
  * 봉수대(烽燧臺) — 오르면 지도가 열린다 (PLAN §5 ①)
  * ---------------------------------------------------------------
- * 권역(한 9·일 9·중 9 = 27 대표점, `region-kr.js`·`region-jp.js`·`region-cn.js`)
+ * 권역(한 9·일 9·중 9·서역 9 = 36 대표점, `region-kr.js`·`region-jp.js`·`region-cn.js`·`region-xy.js`)
  * 마다 하나. 대표점에서 **좌표 해시로 300~800m 밀어** 자리를 고정한다 — 역참
  * (`world.js`의 `h01`)과 같은 결정성이다. 늘 세계 좌표(lat/lng)로만 자리를
  * 잡고, 그때그때 `world.latLngToWorld()`로 지금 원점(origin) 기준 월드 좌표를
@@ -33,12 +33,12 @@
   function h01(a, b) { return Math.min(0.999999, core.hash2(a, b) * 2); }
 
   function allRegions() {
-    var RK = global.DG.regionKr, RJ = global.DG.regionJp, RC = global.DG.regionCn;
-    return (RK ? RK.REGIONS : []).concat(RJ ? RJ.REGIONS : []).concat(RC ? RC.REGIONS : []);
+    var RK = global.DG.regionKr, RJ = global.DG.regionJp, RC = global.DG.regionCn, RX = global.DG.regionXy;
+    return (RK ? RK.REGIONS : []).concat(RJ ? RJ.REGIONS : []).concat(RC ? RC.REGIONS : []).concat(RX ? RX.REGIONS : []);
   }
 
   var _list = null;
-  /** 27 봉수대 — 대표점에서 해시로 밀어 정한 고정 lat/lng. 한 번 계산해 캐싱한다
+  /** 36 봉수대(서역 9 는 2026-09-23) — 대표점에서 해시로 밀어 정한 고정 lat/lng. 한 번 계산해 캐싱한다
    *  (REGIONS 는 정적 데이터라 세션 중 안 바뀐다) */
   function list() {
     if (_list) { return _list; }
@@ -75,7 +75,7 @@
   }
   function lit(key) { return !!book()[key]; }
 
-  /** 지금 위치에서 가장 가까운 봉수대(27개뿐이라 선형 탐색으로 충분) */
+  /** 지금 위치에서 가장 가까운 봉수대(36개뿐이라 선형 탐색으로 충분) */
   function nearest() {
     var pos = core.save.player.pos;
     var ls = list(), best = null, bestD = Infinity;
@@ -121,7 +121,7 @@
     }
   }
 
-  /** 27개 다 올렸는지 — 칭호 '봉화사' */
+  /** 전부 다 올렸는지(권역 수만큼) — 칭호 '봉화사' */
   var TITLE_KEY = 'beaconMaster';
   function allLit() {
     var ls = list();
@@ -148,7 +148,7 @@
     if (justCompleted && !(core.save.player.titles && core.save.player.titles[TITLE_KEY])) {
       core.save.player.titles = core.save.player.titles || {};
       core.save.player.titles[TITLE_KEY] = true;
-      core.log('🏅 27개 봉수대를 모두 밝혔다 — 칭호 "봉화사"', 'good');
+      core.log('🏅 ' + list().length + '개 봉수대를 모두 밝혔다 — 칭호 "봉화사"', 'good');
       core.emit('toast', '🏅 칭호 획득 — 봉화사');
     }
     core.emit('changed');

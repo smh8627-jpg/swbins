@@ -6,7 +6,7 @@
  * 사건 빈도를 올리지 않고도 "걷는 이유"를 채우는, 판정에 한 줄도 안 닿는 수집이다 —
  * 발견 보상은 丹 3·공적 5 뿐이다.
  *
- * 권역(한 9·일 9·중 9 = 27 대표점 — 가장 가까운 대표점이 그 비석의 권역)마다 비석
+ * 권역(한 9·일 9·중 9·서역 9 = 36 대표점 — 가장 가까운 대표점이 그 비석의 권역)마다 비석
  * **열 개를 모으면 그 권역의 인물이 초대장**(천거장 `letter.js` 의 `st:<권역>` 등급 — 행낭에
  * 넣고 걸으면 봉이 떨어진다, genchar ★4)으로 온다. 행낭이 가득이면 받을 몫이 남고 다음에
  * 다시 시도한다.
@@ -38,8 +38,8 @@
   function h01(a, b) { return Math.min(0.999999, core.hash2(a, b) * 2); }
 
   function allRegions() {
-    var RK = global.DG.regionKr, RJ = global.DG.regionJp, RC = global.DG.regionCn;
-    return (RK ? RK.REGIONS : []).concat(RJ ? RJ.REGIONS : []).concat(RC ? RC.REGIONS : []);
+    var RK = global.DG.regionKr, RJ = global.DG.regionJp, RC = global.DG.regionCn, RX = global.DG.regionXy;
+    return (RK ? RK.REGIONS : []).concat(RJ ? RJ.REGIONS : []).concat(RC ? RC.REGIONS : []).concat(RX ? RX.REGIONS : []);
   }
 
   /** 가장 가까운 대표점 = 이 자리의 권역(world.js `genRegionAt` 과 같은 방식) */
@@ -255,7 +255,7 @@
     return out;
   }
 
-  /** 도감 '비문' 갈래 — 권역 27 줄, 힌트는 n/10 (분모는 늘 27 권역) */
+  /** 도감 '비문' 갈래 — 권역 36 줄, 힌트는 n/10 (분모는 늘 권역 수) */
   function regionList() {
     var cs = regionCounts();
     return allRegions().map(function (r) {

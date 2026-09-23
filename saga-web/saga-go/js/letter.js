@@ -157,7 +157,8 @@
     if (g.region) {
       /* 비문 초대장 — 그 권역 인물(genchar ★4). 열 때마다 다른 사람이 오도록 연 횟수를 섞는다 */
       var GC = g.region.country === 'jp' ? global.DG.gencharJp
-        : (g.region.country === 'cn' ? global.DG.gencharCn : global.DG.genchar);
+        : (g.region.country === 'cn' ? global.DG.gencharCn
+        : (g.region.country === 'xy' ? global.DG.gencharXy : global.DG.genchar));
       var idx = (state().opened + 1) * 131 + g.region.code.charCodeAt(0);
       var gh = GC ? GC.hero(g.region.code, 4, idx) : null;
       if (gh) { return gh; }
