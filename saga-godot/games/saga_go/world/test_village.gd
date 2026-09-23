@@ -69,6 +69,8 @@ func _ready() -> void:
 		add_child(load("res://tools/probe_traversal.gd").new())
 	if OS.get_environment("SAGA_COMBAT_PROBE") != "":
 		add_child(load("res://tools/probe_field_combat.gd").new())
+	if OS.get_environment("SAGA_ELEMENT_PROBE") != "":
+		add_child(load("res://tools/probe_elements.gd").new())
 	if OS.get_environment("SAGA_TREASURE_PROBE") != "":
 		add_child(load("res://tools/probe_treasure.gd").new())
 

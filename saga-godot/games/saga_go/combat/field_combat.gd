@@ -15,6 +15,8 @@ extends Node
 ## 정해진다(106장 ⑩, PartyState.char_atk/char_def) — 옛 부대 전투력(PartyState.atk)은 사건 결투만 쓴다.
 ## 106장 ⑫: 기본 공격·스킬·폭발 피해에 그 인물 특성 레벨 배율(PartyState.talent_mul), 운명의 자리 여섯 효과
 ## (1 스킬 쿨 -20% · 2 반응 피해 +15% · 3/5 특성 +3 · 4 체력 +20% · 6 폭발 뒤 10초 공격 +25%).
+## 106장 ⑭: 원소 일곱(풍·빙·암·초 추가)과 반응(elements.gd), 명단 전체 보호막(결정·암 폭발 — 받는 피해를 먼저 막고
+## 원소 효과도 막는다), 쇄빙(얼어 있는 적을 강공격·낙하로).
 
 const Elements := preload("res://games/saga_go/combat/elements.gd")
 const Characters := preload("res://saga_core/data/characters.gd")
@@ -59,11 +61,45 @@ const WATER_SKILL_HEAL := 0.08
 const WATER_BURST := {"mul": 1.6, "sec": 8.0, "tick": 1.0, "heal": 0.05}
 const THUNDER_SKILL := {"reach": 8.0, "targets": 3, "mul": 1.0}
 const THUNDER_BURST := {"mul": 1.2, "sec": 6.0, "tick": 0.6, "bolt": 0.7, "reach": 9.0}
+## 106장 ⑭ — 새 원소 넷.
+##   풍 스킬: 둘레 5m ×1.0 + 끌어당김          풍 폭발: 둘레 7m ×1.0 + 6초 소용돌이(0.5초마다 5m ×0.3, 가운데로 당김)
+##   빙 스킬: 앞 부채꼴 6m ×1.2                빙 폭발: 둘레 7m ×1.4 + 6초 눈보라(0.5초마다 인물 둘레 4.5m ×0.3)
+##   암 스킬: 앞 2.5m 바위 기둥 둘레 3m ×1.3    암 폭발: 둘레 7m ×2.0 + 보호막(지금 인물 최대 체력 30%, 15초)
+##   초 스킬: 둘레 4m ×1.0                     초 폭발: 둘레 7m ×1.2 + 8초 가시덤불(1초마다 5m ×0.35)
+const WIND_SKILL := {"reach": 5.0, "mul": 1.0, "pull": 8.0}
+const WIND_BURST := {"mul": 1.0, "sec": 6.0, "tick": 0.5, "radius": 5.0, "bolt": 0.3, "pull": 4.0}
+const ICE_SKILL := {"reach": 6.0, "dot": 0.2, "mul": 1.2}
+const ICE_BURST := {"mul": 1.4, "sec": 6.0, "tick": 0.5, "radius": 4.5, "bolt": 0.3}
+const ROCK_SKILL := {"ahead": 2.5, "radius": 3.0, "mul": 1.3}
+const ROCK_BURST := {"mul": 2.0, "shield": 0.3}
+const GRASS_SKILL := {"radius": 4.0, "mul": 1.0}
+const GRASS_BURST := {"mul": 1.2, "sec": 8.0, "tick": 1.0, "radius": 5.0, "bolt": 0.35}
+
+## 106장 ⑭ 반응 수치(표는 elements.gd 머리말).
+const FREEZE_SEC := 2.5
+const SUPERCONDUCT_RADIUS := 3.0
+const SUPERCONDUCT_MUL := 0.5
+const PHYS_VULN_SEC := 8.0
+const PHYS_VULN_MUL := 1.4
+const SWIRL_RADIUS := 4.0
+const SWIRL_MUL := 0.6
+const CRYSTAL_SHIELD := 0.2
+const SHIELD_SEC := 15.0
+const BLOOM_DELAY := 1.5
+const BLOOM_RADIUS := 3.0
+const BLOOM_MUL := 1.5
+const BURNING := {"ticks": 8, "every": 0.5, "mul": 0.2}
+const QUICKEN_SEC := 8.0
 
 ## 원소 공명 — 명단(2명 이상)에 같은 원소가 둘 이상이면.
 const RESONANCE_FIRE_ATK := 1.25
 const RESONANCE_WATER_HP := 1.25
 const RESONANCE_THUNDER_ENERGY := 1.5
+## 106장 ⑭ — 풍 스태미나 소모 -15% · 빙 부착·빙결된 적에게 +15% · 암 보호막 있는 동안 +15% · 초 반응 피해 +20%.
+const RESONANCE_WIND_STAMINA := 0.85
+const RESONANCE_ICE_DMG := 1.15
+const RESONANCE_ROCK_DMG := 1.15
+const RESONANCE_GRASS_REACTION := 1.2
 
 const SWITCH_CD := 1.0
 const ROSTER_MAX := 4
@@ -113,6 +149,11 @@ var _burn_t := 0.0
 var _burn_amount := 0.0
 var _effects: Array = [] # 폭발이 남기는 효과 {kind, center, left, tick, t, base}
 var _c6_left: Dictionary = {} # 운명의 자리 6 — 인물 id → 남은 초
+## 106장 ⑭ 명단 전체 보호막(결정·암 폭발). 원소는 표시용.
+var shield_hp := 0.0
+var shield_element := ""
+var _shield_t := 0.0
+var _heavy := false # 지금 치는 게 강공격·낙하인가(쇄빙)
 var _hud: Control = null
 var _hp_bar: ProgressBar = null
 var _status_label: Label = null
@@ -241,6 +282,8 @@ func _power_mul(id: String) -> float:
 			mul = 0.9 + 0.05 * float(h.get("rarity", 2))
 	if resonance() == "fire":
 		mul *= RESONANCE_FIRE_ATK
+	elif resonance() == "rock" and shield_hp > 0.0:
+		mul *= RESONANCE_ROCK_DMG
 	return mul
 
 func switch_to(index: int, forced := false) -> bool:
@@ -313,6 +356,11 @@ func _physics_process(delta: float) -> void:
 		_skill_cd[k] = maxf(_skill_cd[k] - delta, 0.0)
 	for k in _c6_left.keys():
 		_c6_left[k] = maxf(_c6_left[k] - delta, 0.0)
+	if _shield_t > 0.0:
+		_shield_t -= delta
+		if _shield_t <= 0.0:
+			shield_hp = 0.0
+	_player.set("stamina_cost_mul", RESONANCE_WIND_STAMINA if resonance() == "wind" else 1.0)
 	if _combo_link <= 0.0:
 		_combo = 0
 	if _charge_armed:
@@ -366,7 +414,9 @@ func charged_attack() -> bool:
 	_aim_at_nearest()
 	_player.call("play_action", "attack", 0.5, 0.0)
 	_ring_fx(_player.global_position + _player.call("facing") * 1.2, 1.8, Color(0.95, 0.95, 0.85), 0.3)
+	_heavy = true
 	var hits := _hit_front(CHARGE_REACH, -0.2, _normal_atk() * CHARGE_MUL, "")
+	_heavy = false
 	if hits > 0:
 		_gain_energy(ENERGY_PER_HIT * hits)
 	return true
@@ -380,10 +430,12 @@ func plunge_land(fell_m: float) -> int:
 	if rig:
 		rig.call("shake", 0.14, 0.3)
 	var hits := 0
+	_heavy = true
 	for e in _enemies_near(center, PLUNGE_RADIUS):
 		var to_e: Vector3 = (e as Node3D).global_position - center
 		_deal(e, _normal_atk() * mul, "", to_e)
 		hits += 1
+	_heavy = false
 	if hits > 0:
 		_gain_energy(ENERGY_PER_HIT * hits)
 	return hits
@@ -418,6 +470,31 @@ func skill() -> bool:
 			for e in targets:
 				_bolt(e, atk * THUNDER_SKILL.mul)
 			hits = targets.size()
+		"wind":
+			var c := _player.global_position
+			_ring_fx(c, WIND_SKILL.reach, Elements.color_of(el), 0.45)
+			for e in _enemies_near(c, WIND_SKILL.reach):
+				var to_e: Vector3 = (e as Node3D).global_position - c
+				_deal(e, atk * WIND_SKILL.mul, el, to_e)
+				e.call("knockback", -to_e, WIND_SKILL.pull)
+				hits += 1
+		"ice":
+			_aim_at_nearest()
+			var fwd_i: Vector3 = _player.call("facing")
+			_ring_fx(_player.global_position + fwd_i * 3.0, 3.0, Elements.color_of(el), 0.35)
+			hits = _hit_front(ICE_SKILL.reach, ICE_SKILL.dot, atk * ICE_SKILL.mul, el)
+		"rock":
+			_aim_at_nearest()
+			var at: Vector3 = _player.global_position + (_player.call("facing") as Vector3) * ROCK_SKILL.ahead
+			_ring_fx(at, ROCK_SKILL.radius, Elements.color_of(el), 0.5)
+			for e in _enemies_near(at, ROCK_SKILL.radius):
+				_deal(e, atk * ROCK_SKILL.mul, el, (e as Node3D).global_position - at)
+				hits += 1
+		"grass":
+			_ring_fx(_player.global_position, GRASS_SKILL.radius, Elements.color_of(el), 0.45)
+			for e in _enemies_near(_player.global_position, GRASS_SKILL.radius):
+				_deal(e, atk * GRASS_SKILL.mul, el, (e as Node3D).global_position - _player.global_position)
+				hits += 1
 	_gain_energy(ENERGY_PER_SKILL_HIT * hits)
 	## 106장 ⑥ 원소 석등(treasure_chest.gd) — 스킬을 쓴 자리 둘레 4m 석등을 밝힌다(원소마다 같게).
 	get_tree().call_group("element_receiver", "receive_element", _player.global_position, SKILL_RADIUS, el)
@@ -441,6 +518,10 @@ func burst() -> bool:
 	match el:
 		"water": mul = WATER_BURST.mul
 		"thunder": mul = THUNDER_BURST.mul
+		"wind": mul = WIND_BURST.mul
+		"ice": mul = ICE_BURST.mul
+		"rock": mul = ROCK_BURST.mul
+		"grass": mul = GRASS_BURST.mul
 	for e in _enemies_near(center, BURST_RADIUS):
 		_deal(e, atk * mul, el, (e as Node3D).global_position - center)
 	match el:
@@ -450,6 +531,14 @@ func burst() -> bool:
 			_effects.append({"kind": "water_heal", "center": center, "left": WATER_BURST.sec, "tick": WATER_BURST.tick, "t": WATER_BURST.tick, "base": atk})
 		"thunder":
 			_effects.append({"kind": "thunder_bolts", "center": center, "left": THUNDER_BURST.sec, "tick": THUNDER_BURST.tick, "t": THUNDER_BURST.tick, "base": atk})
+		"wind":
+			_effects.append({"kind": "wind_vortex", "center": center, "left": WIND_BURST.sec, "tick": WIND_BURST.tick, "t": WIND_BURST.tick, "base": atk})
+		"ice":
+			_effects.append({"kind": "ice_storm", "center": center, "left": ICE_BURST.sec, "tick": ICE_BURST.tick, "t": ICE_BURST.tick, "base": atk})
+		"rock":
+			grant_shield(max_hp * ROCK_BURST.shield, "rock")
+		"grass":
+			_effects.append({"kind": "grass_thorns", "center": center, "left": GRASS_BURST.sec, "tick": GRASS_BURST.tick, "t": GRASS_BURST.tick, "base": atk})
 	get_tree().call_group("element_receiver", "receive_element", center, BURST_RADIUS, el)
 	return true
 
@@ -471,6 +560,28 @@ func _tick_effects(delta: float) -> void:
 			"thunder_bolts":
 				for e in _nearest(_player.global_position, THUNDER_BURST.reach, 1):
 					_bolt(e, fx.base * THUNDER_BURST.bolt)
+			"wind_vortex":
+				_ring_fx(fx.center, WIND_BURST.radius, Elements.color_of("wind"), 0.3)
+				for e in _enemies_near(fx.center, WIND_BURST.radius):
+					var to_e: Vector3 = (e as Node3D).global_position - fx.center
+					_deal(e, fx.base * WIND_BURST.bolt, "wind", to_e)
+					e.call("knockback", -to_e, WIND_BURST.pull)
+			"ice_storm":
+				var pc := _player.global_position
+				_ring_fx(pc, ICE_BURST.radius, Elements.color_of("ice"), 0.3)
+				for e in _enemies_near(pc, ICE_BURST.radius):
+					_deal(e, fx.base * ICE_BURST.bolt, "ice", (e as Node3D).global_position - pc)
+			"grass_thorns":
+				_ring_fx(fx.center, GRASS_BURST.radius, Elements.color_of("grass"), 0.3)
+				for e in _enemies_near(fx.center, GRASS_BURST.radius):
+					_deal(e, fx.base * GRASS_BURST.bolt, "grass", (e as Node3D).global_position - fx.center)
+			"bloom_seed":
+				## 개화 씨앗이 터짐 — 원소 없는 반응 피해(방패엔 초로 친다).
+				var info: Dictionary = Elements.REACTION_INFO["bloom"]
+				_ring_fx(fx.center, BLOOM_RADIUS, info.color, 0.4)
+				for e in _enemies_near(fx.center, BLOOM_RADIUS):
+					var push: Vector3 = (e as Node3D).global_position - fx.center
+					e.call("apply_damage", fx.base * BLOOM_MUL * _reaction_mul(), true, push, "grass")
 	_effects = _effects.filter(func(fx: Dictionary) -> bool: return fx.left > 0.0)
 
 func _hit_front(reach: float, arc_dot: float, amount: float, element: String) -> int:
@@ -547,15 +658,33 @@ func _deal(enemy: Node, base: float, element: String, dir: Vector3) -> float:
 			if rig:
 				rig.call("shake", 0.12, 0.25)
 		return dealt
+	var amount := base
+	## 초전도가 남은 적 — 물리 피해 ×1.4. 빙 공명 — 빙이 붙었거나 얼어 있는 적에게 +15%.
+	if element == "" and float(enemy.get("phys_vuln_t")) > 0.0:
+		amount *= PHYS_VULN_MUL
+	if resonance() == "ice" and (enemy.get("aura") == "ice" or enemy.call("is_frozen")):
+		amount *= RESONANCE_ICE_DMG
+	## 쇄빙 — 얼어 있는 적을 강공격·낙하로 치면 크게 들어가고 풀린다.
+	if _heavy and enemy.call("is_frozen"):
+		var sh: Dictionary = Elements.REACTION_INFO["shatter"]
+		amount *= float(sh.mul) * _reaction_mul()
+		last_reaction = "shatter"
+		_reaction_text(enemy as Node3D, sh.name, sh.color)
+		enemy.call("unfreeze")
+		return enemy.call("apply_damage", amount, true, dir)
+	## 촉진이 남은 적 — 뇌는 활성, 초는 발산(×1.25).
+	var bonus := ""
+	if float(enemy.get("quicken_t")) > 0.0 and (element == "thunder" or element == "grass"):
+		bonus = "aggravate" if element == "thunder" else "spread"
+		var bi: Dictionary = Elements.REACTION_INFO[bonus]
+		amount *= float(bi.mul) * _reaction_mul()
+		_reaction_text(enemy as Node3D, bi.name, bi.color)
 	var aura: String = enemy.get("aura")
 	var reaction := Elements.reaction_of(aura, element)
-	last_reaction = reaction
-	var amount := base
+	last_reaction = reaction if reaction != "" else bonus
 	if reaction != "":
 		var info: Dictionary = Elements.REACTION_INFO[reaction]
-		amount *= float(info.mul)
-		if PartyState.constellation(active_id()) >= 2:
-			amount *= Growth.C2_REACTION_MUL
+		amount *= float(info.mul) * _reaction_mul()
 		_reaction_text(enemy as Node3D, info.name, info.color)
 		enemy.call("set_aura", "")
 		match reaction:
@@ -572,9 +701,52 @@ func _deal(enemy: Node, base: float, element: String, dir: Vector3) -> float:
 				for other in _enemies_near((enemy as Node3D).global_position, ELECTRO_SPREAD):
 					if other != enemy and other.get("aura") == "water":
 						other.call("add_dot", 4, 0.5, base * 0.3)
-	elif element != "":
+			"frozen":
+				enemy.call("freeze", FREEZE_SEC)
+			"superconduct":
+				var sc_center: Vector3 = (enemy as Node3D).global_position
+				_ring_fx(sc_center, SUPERCONDUCT_RADIUS, info.color, 0.35)
+				for other in _enemies_near(sc_center, SUPERCONDUCT_RADIUS):
+					other.set("phys_vuln_t", PHYS_VULN_SEC)
+					if other != enemy:
+						other.call("apply_damage", base * SUPERCONDUCT_MUL, false, (other as Node3D).global_position - sc_center, "ice")
+			"swirl":
+				## 확산 — 둘레 적에게 빨아올린 원소를 옮겨 붙이고 그 원소로 조금 친다(옮겨 붙은 원소로 또 반응은 안 한다).
+				var sw_center: Vector3 = (enemy as Node3D).global_position
+				_ring_fx(sw_center, SWIRL_RADIUS, Elements.color_of(aura), 0.4)
+				for other in _enemies_near(sw_center, SWIRL_RADIUS):
+					if other == enemy:
+						continue
+					if not other.call("is_shielded") and other.get("aura") == "":
+						other.call("set_aura", aura)
+					other.call("apply_damage", base * SWIRL_MUL, false, (other as Node3D).global_position - sw_center, aura)
+			"crystallize":
+				grant_shield(max_hp * CRYSTAL_SHIELD, aura)
+			"bloom":
+				_effects.append({"kind": "bloom_seed", "center": (enemy as Node3D).global_position, "left": BLOOM_DELAY, "tick": BLOOM_DELAY, "t": BLOOM_DELAY, "base": base})
+			"burning":
+				enemy.call("add_dot", BURNING.ticks, BURNING.every, base * BURNING.mul)
+			"quicken":
+				enemy.set("quicken_t", QUICKEN_SEC)
+	elif Elements.attaches(element):
 		enemy.call("set_aura", element)
-	return enemy.call("apply_damage", amount, reaction != "", dir)
+	return enemy.call("apply_damage", amount, reaction != "" or bonus != "", dir)
+
+## 반응 피해 배율 — 초 공명 +20% · 운명의 자리 2 +15%.
+func _reaction_mul() -> float:
+	var m := 1.0
+	if resonance() == "grass":
+		m *= RESONANCE_GRASS_REACTION
+	if PartyState.constellation(active_id()) >= 2:
+		m *= Growth.C2_REACTION_MUL
+	return m
+
+## 명단 전체 보호막 — 더 큰 쪽으로 갈고 시간은 새로.
+func grant_shield(amount: float, element: String) -> void:
+	shield_hp = maxf(shield_hp, amount)
+	shield_element = element
+	_shield_t = SHIELD_SEC
+	_ring_fx(_player.global_position, 1.3, Elements.color_of(element), 0.5)
 
 func take_damage(amount: float, source: Node) -> void:
 	if hp <= 0.0 or _duel_open():
@@ -583,6 +755,15 @@ func take_damage(amount: float, source: Node) -> void:
 		return
 	var d := PartyState.char_def(active_id())
 	var dmg := amount * (1.0 - d / (d + 120.0))
+	## 보호막이 먼저 받는다 — 다 막으면 원소 효과(화상·젖음·감전)도 안 든다.
+	if shield_hp > 0.0:
+		var absorbed := minf(shield_hp, dmg)
+		shield_hp -= absorbed
+		dmg -= absorbed
+		if dmg <= 0.0:
+			_reaction_text(_player, "막음", Elements.color_of(shield_element))
+			_refresh_hud()
+			return
 	hp = maxf(hp - dmg, 0.0)
 	_since_hurt = 0.0
 	CombatFeel.hit(_player.get_node("Visual"), dmg, false)
@@ -621,6 +802,7 @@ func _down() -> void:
 			return
 	_player.call("respawn_safe")
 	revive_all()
+	shield_hp = 0.0
 	energy = 0.0
 	Toast.show(_player, "쓰러졌다 — 정신을 차려 보니 안전한 곳이다", 3.0)
 
@@ -855,6 +1037,8 @@ func _refresh_hud() -> void:
 	var el_now := active_element()
 	var res := resonance()
 	var res_text := " · 공명 %s" % Elements.name_of(res) if res != "" else ""
+	if shield_hp > 0.0:
+		res_text += " · 보호막 %d" % int(shield_hp)
 	_status_label.text = "%s HP %d/%d%s" % [display_name(active_id()), int(hp), int(max_hp), res_text]
 	if _skill_orb:
 		_skill_orb.color = Elements.color_of(el_now)

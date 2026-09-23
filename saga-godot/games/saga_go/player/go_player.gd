@@ -78,6 +78,8 @@ var mode := Mode.GROUND
 var stamina := STAMINA_MAX
 ## 106장 ⑪ — 신상에 별조각을 바칠수록 늘어난다(star_shards.gd 가 앉힌다). STAMINA_MAX 는 처음 값.
 var stamina_max := STAMINA_MAX
+## 106장 ⑭ 풍 공명 — field_combat 이 매 프레임 앉힌다(스태미나 소모 배율).
+var stamina_cost_mul := 1.0
 
 var _exhausted := false
 var _regen_wait := 0.0
@@ -517,6 +519,7 @@ func _play_anim(anim_name: String) -> void:
 func _spend(amount: float) -> void:
 	if amount <= 0.0:
 		return
+	amount *= stamina_cost_mul
 	_consuming = true
 	stamina = maxf(stamina - amount, 0.0)
 	_regen_wait = STAMINA_REGEN_DELAY

@@ -8473,3 +8473,14 @@ PROJECT_STATE.md` 참고. 요약:
 - **버그 고침(⑧부터)**: `choice_prompt` 창은 한 번 지어 숨겨 두는데 숨은 창도 그룹 `ui_modal` 에 남아(마을 시작부터 9개) `camera_rig._modal_open()` 이 늘 참 → PC 마우스 시점 커서가 한 번도 안 갇혔을 것. 보이는 것만 세게 고침(시야도 같게). 헤드리스는 커서를 안 가둬 여태 점검에 안 걸렸다 — 시야 점검 ①에 회귀 항목.
 - 점검 8항목 3회 md5 동일 fails=0(입력·숨은 창 · 켜기 · 상자/지점/적 수 · 흔적 · 연 상자 빠짐 · 석등 3 · 창 열면 꺼짐 · 떼면 걷힘). 창 모드 화면 밖 Forward+·Mobile 셰이더 오류 0(⑨ 미니맵 원형 셰이더도 같이 그려져 0). 다른 GO 점검 일곱 fails=0, REGRESS OK.
 - 실기 확인 전: 잿빛 세기·물결, 빛 크기(가까우면 46px), 흔적 점이 산비탈에서 읽히는지, 마우스 시점이 이제 실제로 갇히는지.
+
+## GO 원신 기준 ⑭ 원소 7·반응 — 풍·빙·암·초, 반응 13 (2026-09-24, 새 세션, "사가고돗 이어해")
+
+- PROJECT_STATE 1순위. 원소 3 전제 자리를 먼저 뽑음: elements.gd(목록·반응·방패 상성) · field_combat(원소별 스킬·폭발·공명·_deal) · field_enemy(원소 괴물 3) · growth(결정 3) · 석등(원소 목록 고정 — 그대로 둠) · 점검 셋.
+- `elements.gd` 다시 씀(API 그대로 + `attaches()`·NO_AURA·SWIRLABLE, 반응 표 13). 동료 원소 해시 % 3 → % 7 이라 옛 동료 원소가 바뀜(세이브엔 원소 없음). 전투 점검의 `_hero_of(el)` 은 원소로 찾으니 그대로 통과.
+- `field_enemy.gd`: `frozen_t`(AI 건너뛰고 멈춤·부착 점 얼음색)·`phys_vuln_t`·`quicken_t`, `freeze/unfreeze/is_frozen`.
+- `field_combat.gd`: 새 원소 넷 스킬·폭발(+여운 셋), `_deal` 반응 처리(쇄빙은 `_heavy` — 강공격·낙하 동안만 참), `_reaction_mul()`(초 공명·운명의 자리 2 를 한곳에), 명단 보호막 `shield_hp`·`grant_shield()`(take_damage 가 먼저 깎음), 공명 넷. `go_player.stamina_cost_mul`(풍 공명, `_spend` 가 곱함).
+- `growth.gd` 풍·빙·암·초 결정 — 진귀·화려 상자에만. 다음 = 그 원소 괴물 넷(드롭·방패 상성).
+- 점검 `tools/probe_elements.gd` 11항목 3회 md5 동일 fails=0(첫 판에 전부 통과). 다른 GO 점검 여덟 fails=0, REGRESS OK.
+- 파이썬 치환 스크립트를 bash heredoc 에 넣었더니 따옴표 짝 오류로 bash 가 거부 — 긴 치환은 스크래치패드에 Write 로 .py 를 쓰고 `py` 로 돌림.
+- 실기 확인 전: 반응 글자가 겹쳐 읽히는지, 빙결·보호막 표시, 새 원소 넷 모양, 바뀐 동료 원소.

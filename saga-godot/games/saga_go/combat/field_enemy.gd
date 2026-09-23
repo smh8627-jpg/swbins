@@ -53,6 +53,11 @@ var aura_t := 0.0
 var ai := AI.IDLE
 ## 원소 방패 — 원소 없는 적은 0.
 var element := ""
+## PLAN 106장 ⑭ 반응이 남기는 상태(초). 빙결 = 멈춤, 초전도 = 물리 피해 ×1.4(field_combat 이 곱함),
+## 촉진 = 뇌·초 피해 ×1.25(활성·발산, field_combat 이 곱함).
+var frozen_t := 0.0
+var phys_vuln_t := 0.0
+var quicken_t := 0.0
 var shield := 0.0
 var max_shield := 0.0
 
@@ -108,6 +113,13 @@ func _physics_process(delta: float) -> void:
 		return
 	_tick_status(delta)
 	if ai == AI.DEAD:
+		return
+	if frozen_t > 0.0:
+		## 빙결 — 제자리에 멈춘다(예고 중이었으면 끊김). 중력만.
+		velocity.x = 0.0
+		velocity.z = 0.0
+		velocity.y = -1.0 if is_on_floor() else velocity.y - GRAVITY * delta
+		move_and_slide()
 		return
 	var player := get_tree().get_first_node_in_group("player") as Node3D
 	var to_player := Vector3.ZERO
@@ -251,6 +263,21 @@ func set_aura(element: String) -> void:
 	aura_t = Elements.AURA_SEC if element != "" else 0.0
 	_refresh_aura()
 
+## 빙결(106장 ⑭). 예고를 끊고 멈춘다 — 풀리면 잠깐 쉬었다가 다시 쫓는다.
+func freeze(sec: float) -> void:
+	frozen_t = maxf(frozen_t, sec)
+	_set_tell(false)
+	ai = AI.RECOVER
+	_t = maxf(_t, 0.4)
+	_refresh_aura()
+
+func unfreeze() -> void:
+	frozen_t = 0.0
+	_refresh_aura()
+
+func is_frozen() -> bool:
+	return frozen_t > 0.0
+
 func add_dot(ticks: int, every: float, amount: float) -> void:
 	_dots.append({"left": ticks, "every": every, "t": every, "amount": amount})
 
@@ -258,6 +285,12 @@ func is_dead() -> bool:
 	return ai == AI.DEAD
 
 func _tick_status(delta: float) -> void:
+	phys_vuln_t = maxf(phys_vuln_t - delta, 0.0)
+	quicken_t = maxf(quicken_t - delta, 0.0)
+	if frozen_t > 0.0:
+		frozen_t -= delta
+		if frozen_t <= 0.0:
+			unfreeze()
 	if aura_t > 0.0:
 		aura_t -= delta
 		if aura_t <= 0.0:
@@ -280,6 +313,9 @@ func _die() -> void:
 	_t = RESPAWN_SEC
 	_set_tell(false)
 	aura = ""
+	frozen_t = 0.0
+	phys_vuln_t = 0.0
+	quicken_t = 0.0
 	_dots.clear()
 	visible = false
 	collision_layer = 0
@@ -422,10 +458,12 @@ func _refresh_bar() -> void:
 func _refresh_aura() -> void:
 	if _aura_dot == null:
 		return
-	_aura_dot.visible = aura != ""
-	if aura != "":
+	## 빙결 중엔 얼음색(부착은 이미 반응으로 지워졌다).
+	var shown := "ice" if frozen_t > 0.0 else aura
+	_aura_dot.visible = shown != ""
+	if shown != "":
 		var mat := StandardMaterial3D.new()
 		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		mat.albedo_color = Elements.color_of(aura)
+		mat.albedo_color = Elements.color_of(shown)
 		mat.no_depth_test = true
 		_aura_dot.material_override = mat

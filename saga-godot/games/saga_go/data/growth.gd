@@ -26,6 +26,10 @@ const ITEMS := {
 	"crystal_fire": {"name": "화 결정"},
 	"crystal_water": {"name": "수 결정"},
 	"crystal_thunder": {"name": "뇌 결정"},
+	"crystal_wind": {"name": "풍 결정"},
+	"crystal_ice": {"name": "빙 결정"},
+	"crystal_rock": {"name": "암 결정"},
+	"crystal_grass": {"name": "초 결정"},
 	"wolf_fang": {"name": "늑대 송곳니"},
 	"bandit_badge": {"name": "도적 휘장"},
 	"talent_1": {"name": "무예 쪽지"},
@@ -54,12 +58,13 @@ const KILL_DROPS := {
 	"thunder_cat": {"mora": 90, "crystal_thunder": 1, "book_s": 1, "talent_1": 1},
 }
 
-## 보물 상자 등급마다(treasure_chest.open). 진귀·화려의 결정 "any" 는 주인공 원소(화)로.
+## 보물 상자 등급마다(treasure_chest.open). 진귀·화려는 원소 일곱 결정을 다(106장 ⑭ — 풍·빙·암·초 결정은
+## 아직 이것뿐이다. 그 원소를 쓰는 괴물이 생기면 KILL_DROPS 에 더한다).
 const CHEST_LOOT := {
 	"common": {"mora": 300, "book_s": 1, "talent_1": 1},
 	"exquisite": {"mora": 800, "book_s": 3, "talent_1": 2},
-	"precious": {"mora": 1500, "book_m": 2, "crystal_fire": 1, "crystal_water": 1, "crystal_thunder": 1, "talent_2": 2, "fate_knot": 1},
-	"luxurious": {"mora": 3000, "book_m": 3, "book_l": 1, "crystal_fire": 2, "crystal_water": 2, "crystal_thunder": 2, "talent_2": 3, "talent_3": 1, "fate_knot": 2},
+	"precious": {"mora": 1500, "book_m": 2, "crystal_fire": 1, "crystal_water": 1, "crystal_thunder": 1, "crystal_wind": 1, "crystal_ice": 1, "crystal_rock": 1, "crystal_grass": 1, "talent_2": 2, "fate_knot": 1},
+	"luxurious": {"mora": 3000, "book_m": 3, "book_l": 1, "crystal_fire": 2, "crystal_water": 2, "crystal_thunder": 2, "crystal_wind": 2, "crystal_ice": 2, "crystal_rock": 2, "crystal_grass": 2, "talent_2": 3, "talent_3": 1, "fate_knot": 2},
 }
 
 ## ---------------------------------------------------------------- 특성·운명의 자리(106장 ⑫)
