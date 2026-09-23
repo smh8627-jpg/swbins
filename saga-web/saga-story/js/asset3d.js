@@ -167,10 +167,16 @@
    * 거의 새까맣게 보인다. 빛깔만 남기고 Lambert 로 바꾼다(다른 판에서 실제로
    * 겪은 문제, 같은 고침).
    */
-  function delam(root) {
+  /* 외곽선(2026-09-23) — 배우 GLB(사람·짐승)만. 사가블로 `isActorAsset()` 과 같은 판별 */
+  function isActorAsset(url) {
+    return typeof url === 'string' && /\/models\/(people|animals|monsters)\//.test(url);
+  }
+
+  function delam(root, url) {
     var t = three();
     var TN = global.DG.toon3d;
     var toon = !!(TN && TN.TOON_ON());
+    var wantOutline = toon && !!(TN.OUTLINE_ON && TN.OUTLINE_ON()) && isActorAsset(url);
     root.traverse(function (o) {
       if (!o.isMesh || !o.material) { return; }
       var one = Array.isArray(o.material) ? o.material : [o.material];
@@ -193,6 +199,21 @@
     root.traverse(function (o) {
       if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; }
     });
+    if (wantOutline) {
+      /* 한 모델 안에서는 **가장 큰 부품 반지름 기준 한 폭**으로 — 부품마다 제 반지름으로 재면
+         머리카락·얼굴이 몸보다 가늘어 들쭉날쭉하다. 그 12% 보다 작은 부품(눈·이빨)은 안 두른다
+         (검은 점이 된다). traverse 도중 자식을 더하지 않으려고 모아서 붙인다 */
+      var ms = [], maxR = 0;
+      root.traverse(function (o) {
+        if (!o.isMesh || (o.material && o.material.transparent)) { return; }
+        if (!o.geometry.boundingSphere) { o.geometry.computeBoundingSphere(); }
+        var r = o.geometry.boundingSphere ? o.geometry.boundingSphere.radius : 0;
+        ms.push({ m: o, r: r });
+        if (r > maxR) { maxR = r; }
+      });
+      var w = maxR * TN.OUTLINE_K;
+      ms.forEach(function (x) { if (x.r >= maxR * TN.OUTLINE_MIN_PART) { TN.outline(x.m, w); } });
+    }
   }
 
   var cache = {};   // url → { state: 'load'|'ok'|'fail', gltf, waiting: [cb] }
@@ -216,7 +237,7 @@
     ld.load(url, function (gltf) {
       c.state = 'ok';
       c.gltf = gltf;
-      delam(gltf.scene);
+      delam(gltf.scene, url);
       c.clips = gltf.animations || [];
       flush(c, c);
     }, undefined, function () {

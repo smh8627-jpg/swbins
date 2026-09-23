@@ -10,10 +10,13 @@
  *                   켜져 있으면 같은 옵션 객체로 MeshToonMaterial 을 만든다
  *   toonify(m)      이미 만든 재질(Standard/Physical 등)을 툰으로 바꿔 낸다
  *
- * **외곽선은 이번 손질에서 뺐다** — `side-view3d.js`는 하늘·바닥·소품·배우가
- * 전부 낱개 `new Mesh(...)` 호출이라(공용 캐시 함수가 없다) 태그할 choke
- * point 가 없다. 화면 확인이 안 되는 세션에서 소품마다 외곽선을 개별로
- * 잘못 붙일 위험을 무릅쓰지 않았다 — PLAN §6 후속 과제로 남긴다.
+ *   outline(mesh)   뒤집힌 헐 외곽선 메시를 원본과 **같은 부모**에 얹는다(SkinnedMesh 는
+ *                   뼈대를 같이 쓴다). 사가블로 `toon3d.js` 에서 그대로 옮겼다.
+ *
+ * **외곽선은 배우(사람·짐승 GLB)만 받는다**(2026-09-23) — `side-view3d.js`의 하늘·바닥·
+ * 소품은 낱개 `new Mesh(...)` 라 태그할 자리가 없어, 사가블로처럼 `asset3d.js` `delam()`
+ * 이 **GLB 폴더(people/animals)로 걸러** 부른다(`isActorAsset()`). 나무·바위·건물 GLB 는
+ * 호출 자체가 안 온다. `world3d.outline`(기본 1) 손잡이로 끈다.
  *
  * three 가 없으면(자가진단) 아무 것도 안 한다 — 판정에는 한 줄도 안 닿는다.
  */
@@ -71,6 +74,115 @@
     });
   }
 
+  /** 외곽선 손잡이 — 0 이면 툰 재질은 그대로 두고 테두리만 뺀다 */
+  function OUTLINE_ON() {
+    var core = global.DG && global.DG.core;
+    return core && core.tuned ? (core.tuned('world3d.outline', 1) ? true : false) : true;
+  }
+
+  var OUTLINE_COLOR = 0x14120f;   // 사가블로와 같은 색
+  /* 외곽선 재질 — 폭별로 캐싱, 스키닝 유무로 셰이더가 갈린다(법선 방향으로 밀어 자세와 무관하게 같은 두께) */
+  var matPool = {};
+  function outlineMaterial(width, skinned) {
+    var t = three();
+    var key = (skinned ? 's' : 'p') + ':' + width.toFixed(4);
+    if (matPool[key]) { return matPool[key]; }
+    var vert = [
+      '#include <common>',
+      '#include <skinning_pars_vertex>',
+      'uniform float outlineWidth;',
+      'attribute vec3 outlineNormal;',
+      'void main() {',
+      '  vec3 objectNormal = outlineNormal;',   // beginnormal_vertex 대신 — 같은 자리 꼭짓점끼리 평균 낸 법선
+      '  #include <skinbase_vertex>',
+      '  #include <skinnormal_vertex>',
+      '  #include <begin_vertex>',
+      '  #include <skinning_vertex>',
+      '  transformed += normalize(objectNormal) * outlineWidth;',
+      '  #include <project_vertex>',
+      '}'
+    ].join('\n');
+    var frag = [
+      'uniform vec3 outlineColor;',
+      'void main() { gl_FragColor = vec4(outlineColor, 1.0); }'
+    ].join('\n');
+    var m = new t.ShaderMaterial({
+      uniforms: { outlineWidth: { value: width }, outlineColor: { value: new t.Color(OUTLINE_COLOR) } },
+      vertexShader: vert, fragmentShader: frag, side: t.BackSide
+    });
+    matPool[key] = m;
+    return m;
+  }
+
+  /**
+   * 외곽선용 매끈한 법선 — 로우폴리 GLB 는 면마다 꼭짓점을 따로 두어(각진 음영) 법선이
+   * 면을 따라 갈린다. 그대로 밀면 면끼리 벌어져 외곽선이 톱니·점선처럼 끊긴다(짐승에서
+   * 스크린샷으로 확인, 2026-09-23). 같은 자리의 꼭짓점 법선을 평균 내 따로 싣는다 —
+   * 원본 `normal` 은 안 건드리므로 본 몸의 음영은 그대로다
+   */
+  function smoothOutlineNormals(geo) {
+    var t = three();
+    if (geo.attributes.outlineNormal) { return; }
+    var pos = geo.attributes.position, nor = geo.attributes.normal;
+    if (!pos || !nor) { return; }
+    var n = pos.count, acc = {}, keys = new Array(n), i, k, a;
+    for (i = 0; i < n; i++) {
+      k = Math.round(pos.getX(i) * 1e4) + ',' + Math.round(pos.getY(i) * 1e4) + ',' + Math.round(pos.getZ(i) * 1e4);
+      keys[i] = k;
+      a = acc[k] || (acc[k] = [0, 0, 0]);
+      a[0] += nor.getX(i); a[1] += nor.getY(i); a[2] += nor.getZ(i);
+    }
+    var out = new Float32Array(n * 3);
+    for (i = 0; i < n; i++) {
+      a = acc[keys[i]];
+      var l = Math.sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2]) || 1;
+      out[i * 3] = a[0] / l; out[i * 3 + 1] = a[1] / l; out[i * 3 + 2] = a[2] / l;
+    }
+    geo.setAttribute('outlineNormal', new t.BufferAttribute(out, 3));
+  }
+
+  /** 원본 메시 곁에 외곽선 메시를 하나 얹는다. 이미 얹었으면 다시 안 만든다.
+   *  `width` 를 주면 그 폭(기하 단위)으로 — 한 모델의 부품끼리 같은 두께로 맞출 때
+   *  (`asset3d.js` delam 이 가장 큰 부품 반지름 × OUTLINE_K 를 넘긴다).
+   *  **절대 최소폭을 두지 않는다** — 짐승 GLB 는 기하가 반지름 0.03 으로 작고 뼈대가 900~2000배
+   *  키워, 사가블로식 최소 0.006 이 반지름의 20% 가 되어 새까맣게 두꺼웠다(2026-09-23 CDP 실측) */
+  function outline(mesh, width) {
+    var t = three();
+    if (!t || !mesh || !mesh.isMesh || !mesh.geometry || !mesh.parent) { return null; }
+    if (mesh.userData && mesh.userData._toonOutline) { return mesh.userData._toonOutline; }
+    if (/_outline$/.test(mesh.name || '')) { return null; }
+    if (!mesh.geometry.boundingSphere) { mesh.geometry.computeBoundingSphere(); }
+    var r = (mesh.geometry.boundingSphere && mesh.geometry.boundingSphere.radius) || 0.3;
+    if (!(width > 0)) { width = r * OUTLINE_K; }
+    var skinned = !!mesh.isSkinnedMesh;
+    smoothOutlineNormals(mesh.geometry);
+    if (!mesh.geometry.attributes.outlineNormal) { return null; }
+    var mat = outlineMaterial(width, skinned);
+    var out;
+    if (skinned) {
+      out = new t.SkinnedMesh(mesh.geometry, mat);
+      out.bind(mesh.skeleton, mesh.bindMatrix);
+    } else {
+      out = new t.Mesh(mesh.geometry, mat);
+    }
+    out.position.copy(mesh.position);
+    out.quaternion.copy(mesh.quaternion);
+    out.scale.copy(mesh.scale);
+    out.castShadow = false;
+    out.receiveShadow = false;
+    out.renderOrder = (mesh.renderOrder || 0) - 1;
+    out.name = (mesh.name || 'mesh') + '_outline';
+    mesh.parent.add(out);
+    mesh.userData = mesh.userData || {};
+    mesh.userData._toonOutline = out;
+    return out;
+  }
+  var OUTLINE_K = 0.015;    // 바운딩구 반지름의 1.5% — 사가블로(3%)의 절반. 이 판 배우는 화면 키 40px 안팎이라 3% 면 몸이 검게 묻힌다(스크린샷 확인)
+
   global.DG = global.DG || {};
-  global.DG.toon3d = { ramp: ramp, lambertLike: lambertLike, toonify: toonify, TOON_ON: TOON_ON };
+  global.DG.toon3d = {
+    ramp: ramp, lambertLike: lambertLike, toonify: toonify, TOON_ON: TOON_ON,
+    outline: outline, OUTLINE_ON: OUTLINE_ON, outlineMaterial: outlineMaterial,
+    OUTLINE_K: OUTLINE_K, OUTLINE_MIN_PART: 0.12
+  };
 })(window);
