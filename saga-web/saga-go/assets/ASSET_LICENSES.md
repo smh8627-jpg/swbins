@@ -1350,3 +1350,16 @@ VRoid Studio 공식 CC0 샘플 AvatarSample_A/B/C(github.com/madjin/vrm-samples,
 같은 도구로 구운 **성채 지도 마커**도 같은 결이다 — `building_Watchtower.png`(성채 1등급)·`building_Tower.png`·`building_PointyTower.png`(2등급) ← `models/buildings/` 같은 이름 GLB(위 건물 표, CC0), `building_tower_round.png`(3등급) ← `models/buildings/realistic/tower_round.glb`(Poly Haven `modular_fort_01`, CC0), `building_Inn.png` ← `Inn.glb`(역참 줄 참고).
 
 2026-09-23 `tools/asset-audit` 이 "출처 문서에 이름이 없다"로 잡아 채웠다(그림은 09-06~07 에 들어왔다).
+
+
+## 도감 펫 종마다 제 모델 — 사가블로에서 옮김 (2026-09-23)
+
+도감 펫 64종이 형태 표에 없어 네발 모델 열 벌 중 하나를 id 해시로 입던 것(고래가 사슴 등)을 고치려고, 사가블로가 받아 둔 모델을 **그대로 복사**했다(재가공 없음, 파일은 사가블로와 같다). 출처·경위는 `saga-web/saga-dungeon/assets/ASSET_LICENSES.md` "도감(펫) 초상"·"펫 — poly.pizza 동물 번들 셋"·"펫 2차분" 절. `js/asset3d.js` `DEFAULTS` 에 `pet:pt_*` 로 등록.
+
+| 폴더 | 파일 | 원출처 |
+|---|---|---|
+| `models/animals/` | `Tiger.glb`·`Bear.glb`·`Panda.glb`·`Monkey.glb`·`Boar.glb`·`Owl.glb`·`Cat.glb`·`Crane.glb` | Quaternius 계열 CC0(사가블로 "도감(펫) 초상" 절) |
+| `models/animals_extra/` | `Cow_Farm.glb`·`Fish1.glb`·`Fish2.glb`·`Fish3.glb`·`Horse_Farm.glb`·`Llama.glb`·`Pig.glb`·`Pug.glb`·`Sheep.glb`·`Whale.glb`·`Zebra.glb` | poly.pizza Farm Animal Pack·Animated Fish Bundle(Quaternius, CC0) |
+| `models/animals_extra2/` | `Anglerfish.glb`·`Apatosaurus.glb`·`Armored_Catfish.glb`·`Betta.glb`·`Black_Lion_Fish.glb`·`Blobfish.glb`·`Blue_Goldfish.glb`·`Blue_Tang.glb`·`Butterfly_Fish.glb`·`Cardinal_Fish.glb`·`Clownfish.glb`·`Coral_Grouper.glb`·`Cowfish.glb`·`Flatfish.glb`·`Flower_Horn.glb`·`Goblin_Shark.glb`·`Goldfish.glb`·`Humphead.glb`·`Koi.glb`·`Lionfish.glb`·`Mandarin_Fish.glb`·`Moorish_Idol.glb`·`Parasaurolophus.glb`·`Parrot_Fish.glb`·`Piranha.glb`·`Puffer.glb`·`Red_Snapper.glb`·`Royal_Gramma.glb`·`Shark.glb`·`Sunfish.glb`·`Swordfish.glb`·`Tang.glb`·`Tetra.glb`·`Tuna.glb`·`Turbot.glb`·`Worm.glb`·`Yellow_Tang.glb`·`Zebra_Clown_Fish.glb` | poly.pizza Animated Fish Bundle(대형)·Animated Dinosaur Bundle(Quaternius, CC0) |
+
+> © **Quaternius**, CC0 (Public Domain). 저작자 표시 불필요. 공룡 넷(Stegosaurus·Triceratops·Velociraptor·T_Rex)은 이 판 `animals/` 에 이미 있어 안 옮겼다.

@@ -153,8 +153,10 @@
       '  #include <skinbase_vertex>',
       '  #include <skinnormal_vertex>',
       '  #include <begin_vertex>',
+      /* 스키닝 **전**(지오메트리 공간)에 민다 — 폭을 지오메트리 반지름으로 쟀으니 같은 공간이어야 한다. 스키닝 뒤(메시 지역 공간)에
+         밀면 뼈·역바인드 행렬이 배율을 품은 GLB(양자화 Koi 등)에서 공간 배율이 달라 외곽선이 몸의 몇 배로 부푼다(2026-09-23 잉어 초상) */
+      '  transformed += normalize(outlineNormal) * outlineWidth;',
       '  #include <skinning_vertex>',
-      '  transformed += normalize(objectNormal) * outlineWidth;',
       '  #include <project_vertex>',
       '}'
     ].join('\n');

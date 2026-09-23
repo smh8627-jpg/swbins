@@ -2336,6 +2336,20 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ('용 ' + dragons.length + '마리만 갈린다 · 나머지 ' + others.length + '마리는 그대로');
     });
 
+    t('에셋 — 실제 동물 펫은 종마다 제 모델(네발 열 벌 돌려 입기 아님), 신수·오마주만 형태 표로', function () {
+      /* 2026-09-23 — 64종이 형태 표에 없어 `quad` 로 떨어져 고래가 사슴·흰동가리가 소를 입었다(펫 초상 다시 굽다 발견) */
+      AS.clear(); AS.restore();
+      var want = { pt_whale: 'Whale.glb', pt_tiger: 'Tiger.glb', pt_clownfish: 'Clownfish.glb', pt_bull: 'Bull.glb', pt_t_rex: 'Trex.glb', pt_koi_2: 'animals_extra2/Koi.glb' };
+      var bad = Object.keys(want).filter(function (id) { var u = AS.urlOf('pet', D.find(id)) || ''; return u.slice(-want[id].length) !== want[id]; });
+      var own = D.pets.filter(function (p) { return !!AS.REG['pet:' + p.id]; }).length;
+      var rest = D.pets.filter(function (p) { return !AS.REG['pet:' + p.id]; });
+      var restOk = rest.every(function (p) { return /^pk_/.test(p.id) || p.id === 'pt_magpie' || (p.rarity || 0) >= 4 || /^pt_(haetae|gumiho|dokkaebi|bulgasari|jeoktoma|jeolyeong|samjogo|cheongryong|baekho|jujak|hyeonmu)$/.test(p.id); });
+      var fishForm = DG.sprite.beastFormOf(D.find('pt_whale')) === 'fish' && DG.sprite.beastFormOf(D.find('pt_zebra')) === 'horse' && DG.sprite.beastFormOf(D.find('pt_t_rex')) === 'dragon';
+      AS.clear();
+      return bad.length === 0 && own === 77 && restOk && fishForm &&
+        ('제 모델 ' + own + '종 · 나머지 ' + rest.length + '종은 신수·오마주·까치 · 고래 fish·얼룩말 horse·폭군용 dragon');
+    });
+
     t('에셋 — 손잡이를 내리면 표가 있어도 도형으로 간다', function () {
       AS.clear();
       var guan = D.find('sg_guanyu');

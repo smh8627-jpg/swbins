@@ -73,6 +73,57 @@
     return { fov: fov, dist: dist, look: look, aspect: aspect, yaw: yaw, pitch: 0.06 };
   }
 
+  /**
+   * 펫은 **실제 몸 상자**로 맞춘다(2026-09-23) — 배우는 키 1 로 눕는데(`asset3d.fit`) 납작하고 긴 물고기·황새치·공룡은
+   * 네발 고정 구도(span 1.5·look 0.28)를 한참 넘어 얼굴·눈만 크게 찍혔다(펫 초상 모음). 자세를 굴린 뒤 스킨이 반영된
+   * 상자를 재서, 바라보는 높이는 네발과 같은 비율(바닥 + 키의 28%)로 두고 위 끝·가로가 다 들어오게 물러난다.
+   * 네발은 이 계산으로도 예전과 거의 같은 거리다. 손잡이 `portrait3d.petFit`(0 이면 예전 고정 구도)
+   */
+  function PET_FIT() {
+    var c = global.DG && global.DG.core;
+    return c && c.tuned ? (c.tuned('portrait3d.petFit', 1) ? true : false) : true;
+  }
+  /** 자세가 반영된 몸 상자(월드) — 외곽선 사본은 뺀다 */
+  function bodyBox(t, node) {
+    node.updateMatrixWorld(true);
+    var box = new t.Box3(), one = new t.Box3();
+    node.traverseVisible(function (o) {
+      if (!o.isMesh || !o.geometry || /_outline$/.test(o.name || '')) { return; }
+      if (o.isSkinnedMesh && o.computeBoundingBox) {
+        if (o.skeleton) { o.skeleton.update(); }
+        o.computeBoundingBox();   // 뼈 자세가 반영된 메시 지역 상자
+        one.copy(o.boundingBox);
+      } else {
+        if (!o.geometry.boundingBox) { o.geometry.computeBoundingBox(); }
+        one.copy(o.geometry.boundingBox);
+      }
+      box.union(one.applyMatrix4(o.matrixWorld));
+    });
+    return box;
+  }
+  /** 물고기는 긴 축이 옆으로 오게 — 네발과 같은 yaw(0.95)면 3/4 정면이라 얼굴·눈만 보였다. 모델마다 앞 방향 축이 달라 상자로 가른다 */
+  function petYaw(node, ref, yaw) {
+    var t = three(), S = global.DG && global.DG.sprite;
+    if (!t || !PET_FIT() || !S || !S.beastFormOf || S.beastFormOf(ref) !== 'fish') { return yaw; }
+    node.rotation.set(0, 0, 0);
+    var box = bodyBox(t, node);
+    if (box.isEmpty()) { return yaw; }
+    var sz = box.getSize(new t.Vector3());
+    return sz.z >= sz.x ? 1.3 : 1.3 - Math.PI / 2;
+  }
+  function petFrame(plan, node) {
+    var t = three();
+    if (!t || !node || !PET_FIT()) { return plan; }
+    var box = bodyBox(t, node);
+    if (box.isEmpty()) { return plan; }
+    var sz = box.getSize(new t.Vector3()), mid = box.getCenter(new t.Vector3());
+    if (!(sz.y > 0)) { return plan; }
+    var look = box.min.y + sz.y * 0.28;
+    var needV = Math.max((box.max.y - look) * 2, sz.x / plan.aspect) * 1.12;
+    var dist = (needV / 2) / Math.tan(plan.fov * Math.PI / 360) + sz.z / 2;
+    return { fov: plan.fov, dist: dist, look: look, aspect: plan.aspect, yaw: plan.yaw, pitch: plan.pitch, cx: mid.x, cz: mid.z };
+  }
+
   /* ── 여기서부터 three 가 필요하다 ─────────────────────── */
 
   var renderer = null, scene = null, camera = null, rig = null, failed = false;
@@ -206,18 +257,21 @@
     rig.add(node);
     node.position.set(0, 0, 0);
     node.scale.setScalar(1);
-    node.rotation.set(0, plan.yaw, 0);
+    node.rotation.set(0, kind === 'pet' ? petYaw(node, ref, plan.yaw) : plan.yaw, 0);
 
     /* 쉬는 자세를 한 번 굴려 준다 — 안 그러면 T 자로 굳은 채 찍힌다 */
     var A = global.DG.asset3d;
     try {
       if (A && A.step) { A.step(node, { t: 0, walking: false }); A.step(node, { t: 0.45, walking: false }); }
     } catch (e) { /* 자세를 못 잡아도 그림은 나온다 */ }
+    if (kind === 'pet') { plan = petFrame(plan, node); }
 
     camera.fov = plan.fov;
     camera.aspect = plan.aspect;
-    camera.position.set(0, plan.look + plan.dist * Math.sin(plan.pitch), plan.dist);
-    camera.lookAt(0, plan.look, 0);
+    camera.far = Math.max(40, plan.dist * 3);   // 긴 몸(공룡·고래)은 petFrame 이 멀리 물러나 고정 far 를 넘어 빈 카드가 됐다
+    var cx = plan.cx || 0, cz = plan.cz || 0;
+    camera.position.set(cx, plan.look + plan.dist * Math.sin(plan.pitch), cz + plan.dist);
+    camera.lookAt(cx, plan.look, cz);
     camera.updateProjectionMatrix();
 
     renderer.setSize(pw, ph, false);
