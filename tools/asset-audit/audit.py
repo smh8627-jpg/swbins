@@ -259,14 +259,36 @@ def expand_doc(doc):
 
 # ---------- 점검 ----------
 
-def audit(sel, game, want_md5=True):
+def changed_paths():
+    """작업 트리에서 바뀐(수정·새로 add·추적 안 됨) 경로 — `--quick` 이 이것만 본다."""
+    out = set()
+    raw = git('status', '--porcelain=v1', '-z', '--untracked-files=all', '--',
+              'saga-web', 'saga-godot/assets', 'saga-unity/Assets')
+    items = raw.split('\0')
+    i = 0
+    while i < len(items):
+        e = items[i]
+        if len(e) > 3:
+            out.add(e[3:])
+            if e[0] in 'RC':  # 이름 바꿈은 다음 칸이 옛 이름
+                i += 1
+        i += 1
+    return out
+
+
+def audit(sel, game, want_md5=True, quick=None):
+    """quick=바뀐 경로 집합이면 그 파일만 🔴(public·decoder·gitsize) 위주로 빠르게 본다(커밋 훅용)."""
     t0 = time.time()
+    if quick is not None:
+        want_md5 = False
     tracked = {}
     for line in git('ls-files', '-s', '-z').split('\0'):
         if '\t' in line:
             tracked[line.split('\t', 1)[1]] = True
     # 점검할 에셋 폴더로만 좁힌다(저장소 전체면 30초 넘게 걸린다)
     dirs = [rel(t['asset_dir']) for t in tracks(sel, game) if os.path.isdir(t['asset_dir'])]
+    if quick is not None:  # 빠른 모드는 바뀐 에셋 경로만 넘긴다(폴더 전체면 30초)
+        dirs = sorted(c for c in quick if os.path.splitext(c)[1].lower() in ASSET_EXT and os.path.exists(os.path.join(ROOT, c)))
     ignored_but_tracked = set(git('ls-files', '-ci', '--exclude-standard', '--', *dirs).splitlines()) if dirs else set()
 
     files, issues = [], []
@@ -280,7 +302,15 @@ def audit(sel, game, want_md5=True):
         if not os.path.isdir(t['asset_dir']):
             continue
         tid, kind = t['id'], t['kind']
-        code = load_code_text(t)
+        focus = None
+        if quick is not None:
+            base_rel = rel(os.path.dirname(t['asset_dir'])) + '/'
+            mine = {c for c in quick if c.startswith(base_rel)}
+            if not mine:
+                continue
+            # 판 js 가 바뀌었으면 디코더 배선이 빠졌을 수 있다 → 그 판 GLB 를 전부 본다
+            focus = None if kind == 'web' and any(c.startswith(base_rel + 'js/') for c in mine) else mine
+        code = load_code_text(t) if quick is None else ''
         words = set(re.findall(r'\w+', code))  # id 접두어 대조용 — 정규식으로 코드 전체를 매번 훑으면 80초가 넘는다
         doc = expand_doc('\n'.join(read(p) for p in t['docs']).lower())
         # 문서의 `tile_*.png` 같은 와일드카드 표기도 출처 표기로 친다
@@ -304,6 +334,9 @@ def audit(sel, game, want_md5=True):
         for p in all_paths:
             ext = os.path.splitext(p)[1].lower()
             rp = rel(p)
+            if quick is not None and ((focus is not None and rp not in focus) or
+                                      (focus is None and ext not in ('.glb', '.vrm'))):
+                continue
             # 짝 점검
             if kind == 'unity' and ext == '.meta':
                 tgt = p[:-5]
@@ -354,6 +387,9 @@ def audit(sel, game, want_md5=True):
                     issue('gitsize', rp, f'{size / 2**20:.0f}MB — GitHub 는 100MB 초과 파일을 거부한다', tid)
                 elif size > 50 << 20:
                     issue('gitsize', rp, f'{size / 2**20:.0f}MB — GitHub 50MB 경고선', tid)
+            if quick is not None:
+                files.append(rec)
+                continue
             # 참조 흔적
             base = os.path.basename(p)
             stem = os.path.splitext(base)[0]
@@ -486,16 +522,26 @@ def main():
     ap.add_argument('--game', choices=WEB_GAMES)
     ap.add_argument('--no-md5', action='store_true', help='사본 찾기를 건너뛰어 빠르게')
     ap.add_argument('--strict', action='store_true', help='🔴 가 있으면 종료 코드 1')
+    ap.add_argument('--quick', action='store_true',
+                    help='git 작업 트리에서 바뀐 에셋만 🔴 위주로(보고서 안 씀, precheck 용 — 🔴 면 종료 코드 1)')
     ap.add_argument('--out', default=OUT)
     a = ap.parse_args()
     sel = set(a.track or (['web'] if a.game else ['web', 'godot', 'unity']))
+    sys.stdout.reconfigure(encoding='utf-8')
+    if a.quick:
+        ch = changed_paths()
+        r = audit(sel, a.game, quick=ch)
+        red = [i for i in r['issues'] if i['sev'] == 3]
+        print(f"에셋 빠른 점검: 바뀐 경로 {len(ch)} · 본 에셋 {len(r['files'])} · 🔴 {len(red)} ({r['seconds']}s)")
+        for i in red:
+            print(f"  🔴 [{i['kind']}] {i['path']} — {i['msg']}")
+        sys.exit(1 if red else 0)
     r = audit(sel, a.game, want_md5=not a.no_md5)
     os.makedirs(a.out, exist_ok=True)
     with open(os.path.join(a.out, 'report.json'), 'w', encoding='utf-8') as f:
         json.dump(r, f, ensure_ascii=False)
     with open(os.path.join(a.out, 'report.html'), 'w', encoding='utf-8') as f:
         f.write(HTML.replace('__DATA__', json.dumps(r, ensure_ascii=False).replace('</', '<\\/')))
-    sys.stdout.reconfigure(encoding='utf-8')
     print(summary(r))
     print(f"\n보고서: {rel(os.path.join(a.out, 'report.html'))}")
     if a.strict and any(i['sev'] == 3 for i in r['issues']):

@@ -4920,3 +4920,10 @@ saga-go 정본을 다른 네 판에도 동일 반영, 가드돼 있어 그 판�
 - 도구 보강: `.gltf` 텍스트와 GLB `images[].uri` 외부 참조를 읽는다, 저장소 `tools/` 스크립트도 참조 출처, `tools/asset-audit/keep.txt`(일부러 남기는 접두어+이유).
   반대 방향 구멍도 막음 — 사가블로 `.glb-compress-manifest.json` 이 GLB 이름을 전부 담고 있어 안 쓰는 모델도 "참조됨"으로 보였을 수 있었다(점 파일 제외).
 - 속도: id 접두어 대조를 파일마다 정규식으로 코드 전체를 훑던 것(83초) → 단어 집합, `git ls-files -ci` 를 에셋 폴더로 좁힘(31초→수 초).
+
+### 2026-09-23 — 커밋 게이트: 에셋 🔴 빠른 점검 추가 + js 구문 검사 5분→수 초
+
+- `tools/asset-audit/audit.py --quick`: git 작업 트리에서 바뀐 에셋만(판 js 가 바뀌면 그 판 GLB 전부) public·decoder·gitsize 를 본다(~2초).
+  `tools/precheck.sh` 에 연결 — 오늘 고친 디코더 누락이 다시 생기면 커밋이 막힌다(사가고 로더 한 줄을 일부러 지워 🔴 2건·종료 1 확인 후 되돌림).
+- 구문 검사: 파일마다 `node --check` 를 띄우면 윈도우에서 파일당 ~0.9초(234개 ≈3.5분). `tools/hooks/syntax-check.js` 가 node 한 번에
+  vm.Script 로 파싱하고 걸린 파일만 `node --check` 로 재판정 → 4.5초, 판정은 예전과 같다(깨진 파일 잡힘, ESM·셔뱅 통과 확인). precheck 전체 ~5분→76초.
