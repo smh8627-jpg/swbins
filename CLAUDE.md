@@ -18,7 +18,7 @@
 | 사가스토리 | `saga-web/saga-story` | 8794 | 메이플스토리 | `yeoksa-side/save/<프로필>` |
 | 사가국지 | `saga-web/saga-realm` | 8795 | 코에이 삼국지 | `saga-realm/save/<프로필>` |
 
-`saga-web/saga-pc` 는 다섯을 파일 하나씩으로 묶는 빌드(`build-all.bat`).
+판별 `build-pc.bat` 가 파일 하나(`dist/<게임>.html`)로 묶는다(공용 묶음 도구는 제거).
 
 - 세이브 키·앱 id 는 폴더 이름과 **다르다**. 맞추려고 바꾸면 진행이 사라진다.
 - `data.js`·`sprite.js`·`core.js`·`hero.js` 는 다섯 벌 복사본이다. 합치자고 제안하지 않는다.

@@ -218,8 +218,7 @@ PASS 수가 아니다** — 헤드리스로 3회 돌려 정말 전부 통과하�
 배포 확인 같은 명령을 https://smh8627-jpg.github.io/swbins/<폴더>/_test.html 로.
           로컬과 수치가 같아야 한다. 회사망에서는 curl 이 github.io 인증서 검증에
           실패하니 크롬으로 본다(github.com 은 된다). 푸시 뒤 1~3분 걸린다
-PC 묶음   tools/saga-pc/build-all.bat  →  saga-pc/dist/ (다섯 html + index.html 런처)
-          게임별로는 각 폴더 build-pc.bat
+PC 묶음   각 폴더 build-pc.bat → dist/<게임>.html (다섯 판 공용 묶음 도구는 2026-09-08 제거)
 ```
 
 - **진단의 무작위는 씨앗으로 고정돼 있다**(mulberry32, 씨앗 20260824).

@@ -87,8 +87,7 @@ _demo.html       →  스크린샷용 데모 상태 (#boss · #hunt · #camp · 
 build-pc.bat  →  dist/<게임이름>.html (한 파일) · play.bat · 사용법.txt
 ```
 
-css·js 를 전부 한 파일에 녹여 넣으므로 서버도 파이썬도 필요 없다. 다섯 판을 한 번에
-묶으려면 `tools/saga-pc/build-all.bat` — `saga-pc/dist/` 에 다섯 html + 런처(index.html)가 나온다.
+css·js 를 전부 한 파일에 녹여 넣으므로 서버도 파이썬도 필요 없다.
 
 ## 자가진단
 
