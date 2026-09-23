@@ -1619,3 +1619,7 @@ Phase 2 셋째. 군주도 나이를 먹고 65세부터 별세하며, 후계가 �
 
 VRoid 장수가 unlit(`MeshBasicMaterial`) 그대로라 명암 없이 평면이었다(`delam()` 은 Standard/Physical 만 본다). `asset3d.js` GLB 받는 자리에서 다섯 벌 공용 `vroidVariant.shade()` 를 먼저(툰 + 얼굴 그림자 + 림). `toon3d.js` 에 `applyRimLight`(밝기 비례)·`cloneMat`·`skyBackground`. `battle3d.js` `ownAllMat`(맞으면 번쩍이는 사본)을 `cloneMat` 으로 — 기본 `clone()` 이 셰이더를 떨궜다. 국토 지도·전투 디오라마·성 안 세 화면의 단색 하늘을 세로 그라디언트로(아래 35% 는 안개색 그대로, 손잡이 `world3d.skyGrad`). 외곽선·톤매핑은 이번 범위(1·2번) 밖이라 그대로 — 이 판만 외곽선이 없다. 상세·원리는 `saga-forest/HANDOFF.md` 같은 날 "원신급 다시" 절, 공통 함정은 `SAGA-HANDOFF.md` 함정 표.
 진단 jsdom 234/234(새 3: shade·림·하늘). `sw.js` realm-v1.50.0. **실기 확인**: 지도 궤도 카메라를 눕혔을 때 하늘 위쪽 색, 일기토 VRoid 얼굴 경계.
+
+## 2026-09-23 (이어서) — 스크린샷으로 다듬기: VRoid 전용 외곽선·피부 색조·초상 Neutral 0.8·인물 초상 다시 굽기
+
+헤드리스 스크린샷으로 확인하며 고쳤다. 판 외곽선이 VRoid 의 알파 컷 머리·옷과 얼굴 부품에서 검은 덩어리를 만들어 `vroid-variant.js`(다섯 벌) 전용 외곽선(알파 존중·색 외곽선·피부·옷·머리만)으로 바꾸고 VRoid 메시는 판 외곽선이 건너뛴다. 얼굴 그늘 살구빛·그림자 맵 안 받음, 피부 색조. `portrait3d.js` 톤매핑 ACES 1.3 → Neutral 0.8, 인물 초상 전부 다시 구움(`tools/bake-portraits --kind=hero`). `applyTint` 는 외곽선 재질을 건너뛰고 `cloneMat` 으로(사가스토리·사가국지는 VRoid 면 옷만 물들임 — 예전엔 몸 전체가 세력 색 단색이었다). 사가국지는 VRoid 레시피의 `anim: 몸 파일` 을 빼 초상·일기토 T자세를 고쳤고(자체 몸짓 길), 초상 `settle` 이 `actions` 를 먼저 보며, VRoid 엔 투구를 안 씌운다. 상세·스크린샷 경위는 `saga-forest/HANDOFF.md` 같은 날 "(이어서) 스크린샷 찍으면서 다듬어줘" 절.

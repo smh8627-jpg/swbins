@@ -97,11 +97,13 @@
   var PEOPLE_ANIME = 'assets/models/people/anime/';
   var HERO_RECIPES_ANIME = ['a', 'b', 'c'].map(function (n) {
     var f = PEOPLE_ANIME + 'avatar_sample_' + n + '.glb';
-    return { key: 'anime_avatar_' + n, body: f, anim: f };
+    /* 2026-09-23 — anim 을 몸 파일 자신으로 두면 자체 몸짓(anim-own) 길을 건너뛰고 클립 없는 몸 파일에서 몸짓을 찾아
+       mixer 가 안 생겼다 → 초상·일기토의 VRoid 장수가 전부 T자세(스크린샷). 사가고처럼 anim 을 뺀다 */
+    return { key: 'anime_avatar_' + n, body: f };
   }).concat([
     (function () {
       var f = PEOPLE_ANIME + 'avatar_custom_01.glb';
-      return { key: 'anime_avatar_custom01', body: f, anim: f };
+      return { key: 'anime_avatar_custom01', body: f };
     })()
   ]);
   /** 2026-09-20 — VRoid 몸이면 인물 id 로 머리·옷·눈 색을 바꾼다(vroid-variant.js, 다섯 판 공용). 다른 몸엔 안 건다 */
@@ -453,13 +455,23 @@
   function applyTint(model, hex) {
     var t = three();
     if (!hex || !t) { return model; }
-    var tc = new t.Color(hex);
+    var tc = new t.Color(hex), TNc = global.DG.toon3d;
+    /* 2026-09-23 — VRoid 몸이면 **옷(_CLOTH)에만** 세력 색을 입힌다. 예전엔 피부·얼굴·눈·머리까지 통째로 곱해
+       초상 얼굴이 세력 색으로 어둡게 물들었다(스크린샷). 외곽선(ShaderMaterial)은 건너뛰고, 복제는 cloneMat 으로 —
+       기본 clone() 은 얼굴 그림자·림 셰이더를 떨군다 */
+    var vroid = false;
+    model.traverse(function (o) {
+      var m0 = o.isMesh && o.material && (Array.isArray(o.material) ? o.material[0] : o.material);
+      if (m0 && /_CLOTH|_SKIN|_HAIR/.test(m0.name || '')) { vroid = true; }
+    });
     model.traverse(function (o) {
       if (!o.isMesh || !o.material) { return; }
       var src = Array.isArray(o.material) ? o.material[0] : o.material;
+      if (!src || !src.color || src.isShaderMaterial) { return; }
+      if (vroid && !/_CLOTH/.test(src.name || '')) { return; }
       var key = (src.uuid || '') + '|' + hex;
       if (!tintCache[key]) {
-        var m = src.clone();
+        var m = TNc && TNc.cloneMat ? TNc.cloneMat(src) : src.clone();
         m.color = new t.Color(src.color ? src.color.getHex() : 0xffffff).multiply(tc);
         tintCache[key] = m;
       }
@@ -593,7 +605,10 @@
     }
 
     var hKey = HELM_ALIAS[look.helm] || look.helm;
-    if (hKey && hKey !== 'none' && REG['gear:' + hKey]) {
+    /* 2026-09-23 — VRoid(애니) 몸엔 투구를 안 씌운다: QRPG 머리에 맞춘 투구가 애니 머리 위에선 얼굴까지 덮는
+       회색·빨강 상자로 떴다(초상 스크린샷). 애니 인물은 머리 모양·색이 곧 얼굴이다 */
+    var vroidBody = !!(body.userData && body.userData.vrmFront);
+    if (!vroidBody && hKey && hKey !== 'none' && REG['gear:' + hKey]) {
       jobs++;
       acquire(REG['gear:' + hKey], function (c) {
         if (c && c.gltf) {

@@ -45,11 +45,7 @@
     return core && core.tuned ? (core.tuned('world3d.toon', 1) ? true : false) : true;
   }
 
-  /** 림 라이트 손잡이 — 외곽선(OUTLINE_ON)과 같은 결로 툰이 꺼지면 같이
-   *  꺼진다. 외곽선과 달리 지오메트리를 안 늘리고 프래그먼트 셰이더 한
-   *  줄만 더하는 값싼 효과라 배우뿐 아니라 땅·소품에도 그대로 건다
-   *  (§6.1 외곽선 주석의 "격자 전체가 테두리로 뒤덮일 위험"은 여기 안
-   *  걸린다 — 드로우콜·메시 수가 그대로다) */
+  /** 림 라이트 손잡이 — 툰이 꺼지면 같이 꺼진다 */
   function RIM_ON() {
     var core = global.DG && global.DG.core;
     if (!TOON_ON()) { return false; }
@@ -57,39 +53,49 @@
   }
 
   /**
-   * 프레넬 림 라이트 — `onBeforeCompile`로 셰이더에 한 항만 더한다(지오메트리
-   * 불변). 원신류 셀셰이딩의 "가장자리가 빛을 받아 번지는" 인상을 셰이더
-   * 만으로 흉내내는 자리 — 새 에셋·드로우콜 없이 값싸다. 표준 청크
-   * (`common`·`worldpos_vertex`·`dithering_fragment`)에만 기대므로
-   * MeshToonMaterial 전 계열에서 성립한다(vViewPosition 같이 조건부로만
-   * 선언되는 varying 은 안 쓴다 — 직접 varying 을 새로 선언해 충돌을 피했다).
-   * 렌더된 결과(번지는 두께·색이 과하지 않은지)는 셰이더라 화면 없이는
-   * 확인 못 한다 — 실기 확인 대기(HANDOFF.md 2026-09-19).
+   * 프레넬 림 라이트 — 2026-09-19 에 이 판에서 처음 넣었고(땅·소품·배우 전부, 따뜻한 흰빛을 **더하기**),
+   * 2026-09-23 스크린샷으로 보고 다섯 판 규격으로 바꿨다: (1) **배우(사람·짐승)에만** 건다 — 땅·건물에 거니
+   * 먼 지면이 스치는 각도라 지평선이 연두 띠로 뜨고, 역광에 선 먼 집이 뿌옇게 떴다. `toonify`·`lambertLike`
+   * 는 더 이상 자동으로 안 건다(VRoid 는 `vroidVariant.shade`, 짐승은 `asset3d.js` 가 부른다). (2) 더하기가
+   * 아니라 **그 자리 밝기에 비례**해 밝힌다 — 어두운 곳에서 가장자리가 형광처럼 뜨지 않게. 안개·톤매핑 전
+   * (`opaque_fragment` 뒤), 스키닝된 `objectNormal`. 이미 다른 셰이더 덧대기가 있는 재질은 건너뛴다.
    */
   function applyRimLight(mat) {
     var t = three();
-    if (!t || !mat || !RIM_ON() || mat.userData.rimApplied) { return mat; }
+    if (!t || !mat || !RIM_ON() || (mat.userData && mat.userData.rimApplied)) { return mat; }
+    if (!mat.isMeshToonMaterial && !mat.isMeshLambertMaterial) { return mat; }
+    if (Object.prototype.hasOwnProperty.call(mat, 'onBeforeCompile')) { return mat; }
+    mat.userData = mat.userData || {};
     mat.userData.rimApplied = true;
     mat.onBeforeCompile = function (shader) {
-      shader.uniforms.rimColor = { value: new t.Color(0xfff4d6) };
-      shader.uniforms.rimPower = { value: 2.2 };
-      shader.uniforms.rimIntensity = { value: 0.35 };
+      shader.uniforms.rimColor = { value: new t.Color(0xfff0d8) };
+      shader.uniforms.rimPower = { value: 2.4 };
+      shader.uniforms.rimIntensity = { value: 0.9 };
       shader.vertexShader = shader.vertexShader.replace(
         '#include <common>',
-        '#include <common>\nvarying vec3 vRimNormalW;\nvarying vec3 vRimViewW;'
+        '#include <common>\nvarying vec3 vRimN;\nvarying vec3 vRimV;'
       ).replace(
         '#include <worldpos_vertex>',
-        '#include <worldpos_vertex>\nvRimNormalW = normalize( mat3( modelMatrix ) * normal );\nvRimViewW = normalize( cameraPosition - ( modelMatrix * vec4( transformed, 1.0 ) ).xyz );'
+        '#include <worldpos_vertex>\nvRimN = normalize( normalMatrix * objectNormal );\nvRimV = normalize( -mvPosition.xyz );'
       );
       shader.fragmentShader = shader.fragmentShader.replace(
         '#include <common>',
-        '#include <common>\nuniform vec3 rimColor;\nuniform float rimPower;\nuniform float rimIntensity;\nvarying vec3 vRimNormalW;\nvarying vec3 vRimViewW;'
+        '#include <common>\nuniform vec3 rimColor;\nuniform float rimPower;\nuniform float rimIntensity;\nvarying vec3 vRimN;\nvarying vec3 vRimV;'
       ).replace(
-        '#include <dithering_fragment>',
-        'float rimFresnel = pow( 1.0 - clamp( dot( normalize( vRimNormalW ), normalize( vRimViewW ) ), 0.0, 1.0 ), rimPower );\ngl_FragColor.rgb += rimColor * rimIntensity * rimFresnel;\n#include <dithering_fragment>'
+        '#include <opaque_fragment>',
+        '#include <opaque_fragment>\nfloat rimF = pow( 1.0 - clamp( abs( dot( normalize( vRimN ), normalize( vRimV ) ) ), 0.0, 1.0 ), rimPower );\ngl_FragColor.rgb += gl_FragColor.rgb * rimColor * ( rimIntensity * rimF );'
       );
     };
     return mat;
+  }
+
+  /** 배우 하나(root) 안의 툰·Lambert 재질 전부에 림 — `asset3d.js` 가 외곽선을 두르는 자리(사람·짐승)에서 같이 부른다 */
+  function rimActor(root) {
+    if (!root || !root.traverse) { return; }
+    root.traverse(function (o) {
+      if (!o.isMesh || !o.material || /_outline$/.test(o.name || '')) { return; }
+      (Array.isArray(o.material) ? o.material : [o.material]).forEach(applyRimLight);
+    });
   }
 
   /** 기존 재질 하나를 3단 툰 재질로 — 빛깔·맵·투명만 옮긴다(PBR 값은 버린다) */
@@ -97,8 +103,8 @@
     var t = three();
     if (!t || !src) { return src; }
     if (Array.isArray(src)) { return src.map(toonify); }
-    if (src.isMeshToonMaterial) { return applyRimLight(src); }
-    return applyRimLight(new t.MeshToonMaterial({
+    if (src.isMeshToonMaterial) { return src; }
+    return new t.MeshToonMaterial({
       color: src.color ? src.color.clone() : new t.Color(0xffffff),
       map: src.map || null,
       vertexColors: !!src.vertexColors,
@@ -107,7 +113,7 @@
       alphaTest: src.alphaTest || 0,
       side: src.side === undefined ? t.FrontSide : src.side,
       gradientMap: ramp()
-    }));
+    });
   }
 
   /** `new MeshLambertMaterial(opts)` 자리를 그대로 대신한다 — opts 는 손 안 댄다 */
@@ -118,7 +124,7 @@
     var o = {}, k;
     for (k in opts) { if (Object.prototype.hasOwnProperty.call(opts, k)) { o[k] = opts[k]; } }
     o.gradientMap = ramp();
-    return applyRimLight(new t.MeshToonMaterial(o));
+    return new t.MeshToonMaterial(o);
   }
 
   var OUTLINE_COLOR = 0x211a14;
@@ -247,6 +253,6 @@
 
   global.DG = global.DG || {};
   global.DG.toon3d = { ramp: ramp, toonify: toonify, lambertLike: lambertLike, TOON_ON: TOON_ON,
-    addOutline: addOutline, OUTLINE_ON: OUTLINE_ON, RIM_ON: RIM_ON, applyRimLight: applyRimLight,
+    addOutline: addOutline, OUTLINE_ON: OUTLINE_ON, RIM_ON: RIM_ON, applyRimLight: applyRimLight, rimActor: rimActor,
     outlineMaterial: outlineMaterial, OUTLINE_K: OUTLINE_K, OUTLINE_MIN_PART: OUTLINE_MIN_PART };
 })(window);

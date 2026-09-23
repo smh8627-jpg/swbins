@@ -302,13 +302,19 @@
   function applyTint(model, hex) {
     var t = three();
     if (!hex) { return model; }
-    var tc = new t.Color(hex);
+    var tc = new t.Color(hex), TNc = global.DG.toon3d;
+    /* 2026-09-23 — VRoid 몸이면 **옷(_CLOTH)에만** 세력 색을 입힌다. 예전엔 피부·얼굴·눈·머리까지 통째로 곱해
+       초상·주인공이 파랑·초록 단색으로 물들었다(스크린샷). 외곽선(ShaderMaterial)도 건너뛰고, 복제는
+       cloneMat 으로 — 기본 clone() 은 얼굴 그림자·림 셰이더를 떨군다 */
+    var vroid = false;
+    model.traverse(function (o) { if (o.isMesh && o.material && /_CLOTH|_SKIN|_HAIR/.test(o.material.name || '')) { vroid = true; } });
     model.traverse(function (o) {
-      if (!o.isMesh || !o.material) { return; }
+      if (!o.isMesh || !o.material || Array.isArray(o.material) || !o.material.color || o.material.isShaderMaterial) { return; }
       var src = o.material;
+      if (vroid && !/_CLOTH/.test(src.name || '')) { return; }
       var key = (src.uuid || '') + '|' + hex;
       if (!tintCache[key]) {
-        var m = src.clone();
+        var m = TNc && TNc.cloneMat ? TNc.cloneMat(src) : src.clone();
         m.color = new t.Color(src.color ? src.color.getHex() : 0xffffff).multiply(tc);
         tintCache[key] = m;
       }

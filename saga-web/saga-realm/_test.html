@@ -3740,6 +3740,24 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       var hair2 = a.p['F00_000_Hair_00_HAIR_01'].material, iris2 = a.p['F00_000_00_EyeIris_00_EYE'].material;
       var variantOk = hair2 !== hair && hair2.name === hair.name && iris2 !== iris &&
         (!toon || (iris2.onBeforeCompile === iris.onBeforeCompile && !!iris2.userData.vroidFace));
+      /* VRoid 전용 외곽선(스크린샷으로 짠 것): 피부·옷·머리만(눈·입 부품 제외), VRoid 메시는 전부 판 외곽선을 건너뛰게 표시,
+         몸 피부엔 피부 색조, 얼굴 피부엔 얼굴 그림자 + 피부 색조, 눈동자엔 곱하기 색조 */
+      var lines = [], flagged = true;
+      a.root.traverse(function (o) {
+        if (!o.isMesh) { return; }
+        if (/_outline$/.test(o.name || '')) { lines.push(o); } else if (!(o.userData && o.userData._toonOutline)) { flagged = false; }
+      });
+      var sh2 = { uniforms: TH.UniformsUtils.clone(TH.ShaderLib.toon.uniforms),
+        vertexShader: TH.ShaderLib.toon.vertexShader, fragmentShader: TH.ShaderLib.toon.fragmentShader };
+      if (iris.onBeforeCompile) { iris.onBeforeCompile(sh2); }
+      var sh3 = { uniforms: TH.UniformsUtils.clone(TH.ShaderLib.toon.uniforms),
+        vertexShader: TH.ShaderLib.toon.vertexShader, fragmentShader: TH.ShaderLib.toon.fragmentShader };
+      if (body.onBeforeCompile) { body.onBeforeCompile(sh3); }
+      var lineOk = !toon || (lines.length === 3 && flagged && lines[0].material.isShaderMaterial && lines[0].material.side === TH.BackSide &&
+        lines[0].material.uniforms.lineWidth.value > 0 && lines.every(function (l) { return l.userData._toonOutline === true; }));
+      var skinOk = !toon || (body.userData.vroidSkin === true && sh3.fragmentShader.indexOf('vsWarm') > 0 &&
+        sh.fragmentShader.indexOf('vsWarm') > 0 && sh.fragmentShader.indexOf('#undef USE_SHADOWMAP') > 0 &&
+        sh2.fragmentShader.indexOf('mix( vfsShadeTint, vec3( 1.0 ), vfsLitG )') > 0 && sh2.fragmentShader.indexOf('vsWarm') < 0);
       /* 손잡이 끔 → 얼굴도 보통 툰, VRoid 가 아닌 몸은 손 안 댄다 */
       C.setTune({ 'world3d.faceShade': 0 });
       var b = avatar(); V.shade(b.root, URL);
@@ -3747,9 +3765,9 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       var knobOk = !b.p['F00_000_00_Face_00_SKIN'].material.userData.vroidFace;
       var c = avatar(), other = V.shade(c.root, 'assets/models/people/qrpg/knight.glb');
       var otherOk = other === 0 && c.p['F00_000_00_Face_00_SKIN'].material.isMeshBasicMaterial;
-      return n === 5 && typeOk && face.name === 'F00_000_00_Face_00_SKIN' && frameOk && faceOk && variantOk && knobOk && otherOk &&
+      return n === 5 && typeOk && face.name === 'F00_000_00_Face_00_SKIN' && frameOk && faceOk && variantOk && knobOk && otherOk && lineOk && skinOk &&
         ('재질 5 → ' + (toon ? '툰' : 'Lambert') + '(이름 유지) · 얼굴 틀: 머리뼈 1·정면 -Z·반폭 ' + fr.half.toFixed(3) +
-         ' · 얼굴·눈에만 얼굴 그림자 · 색 변형 먹음(얼굴 셰이더 따라감) · 손잡이 끄면 없음 · 다른 몸 안 건드림');
+         ' · 얼굴·눈에만 얼굴 그림자 · 색 변형 먹음(얼굴 셰이더 따라감) · 손잡이 끄면 없음 · 다른 몸 안 건드림 · VRoid 외곽선 ' + lines.length + '(피부·옷·머리) · 피부 색조');
     });
 
     t('toon3d — 림 라이트(밝기 비례)가 툰 템플릿 자리에 다 꽂히고, cloneMat 사본도 달고 간다, 손잡이 끄면 없음', function () {

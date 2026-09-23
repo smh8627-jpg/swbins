@@ -253,11 +253,12 @@
     '#endif'
   ].join('\n');
   var FACE_FRAG_DECL = [
-    'uniform float vfsSoft;', 'varying float vVfsX;', 'varying vec3 vVfsFwd;', 'varying vec3 vVfsRight;'
+    'uniform float vfsSoft;', 'uniform vec3 vfsShadeTint;', 'varying float vVfsX;', 'varying vec3 vVfsFwd;', 'varying vec3 vVfsRight;'
   ].join('\n');
   /* 빛의 수평 성분을 (앞 f, 옆 s) 로 재고, 얼굴 가로 좌표 x(-1~1)에서 x·sign(s) + f > 0 이면 밝다.
      밝으면 법선 = 빛 방향(램프 끝 칸), 그늘이면 빛과 직교(램프 가운데 칸) — 얼굴은 가장 어두운 칸에 안 떨어진다 */
   var FACE_FRAG_MAIN = [
+    'float vfsLitG = 1.0;',
     '#if NUM_DIR_LIGHTS > 0',
     '{',
     '  vec3 vfsL = directionalLights[ 0 ].direction;',
@@ -271,9 +272,41 @@
     '  vec3 vfsP = cross( vfsL, vfsR );',
     '  if ( dot( vfsP, vfsP ) < 0.0001 ) { vfsP = cross( vfsL, vfsF ); }',
     '  normal = normalize( vfsL * vfsLit + normalize( vfsP ) * ( 1.0 - vfsLit ) );',
+    '  vfsLitG = vfsLit;',
     '}',
     '#endif'
   ].join('\n');
+  /* 그늘 쪽 살빛을 따뜻하게(원신 얼굴 그늘은 회색이 아니라 살구빛) — 하늘빛 반사광이 그늘을 푸르죽죽하게 만든다(스크린샷 확인) */
+  var FACE_FRAG_TINT = 'gl_FragColor.rgb *= mix( vfsShadeTint, vec3( 1.0 ), vfsLitG );';
+  /* 피부(얼굴·몸)는 한 걸음 더 — 어둡고 풀빛 반사광이 도는 장면(사가의숲 마을, 스크린샷)에서 곱하기 색조만으론
+     얼굴·손이 회녹색으로 병색이 돌았다. **밝기만 장면에서 받고 색조는 피부 본래 색 × 따뜻한 그늘색**으로 75% 당긴다.
+     VFS_LIT 은 얼굴이면 얼굴 그림자 값, 몸(목·손)이면 밝기 비율로 가른다 */
+  function skinFrag(litExpr) {
+    return [
+      '{',
+      '  float vsR = dot( gl_FragColor.rgb, vec3( 0.299, 0.587, 0.114 ) ) / max( dot( diffuseColor.rgb, vec3( 0.299, 0.587, 0.114 ) ), 1e-3 );',
+      '  vec3 vsWarm = diffuseColor.rgb * vsR * mix( vfsShadeTint, vec3( 1.0 ), ' + litExpr + ' );',
+      '  gl_FragColor.rgb = mix( gl_FragColor.rgb, vsWarm, 0.75 );',
+      '}'
+    ].join('\n');
+  }
+  var BODY_SKIN_RE = /Body_\d+_SKIN/;
+  var SHADE_TINT = [1.16, 0.95, 0.90];
+
+  /** 몸 피부(목·팔·손) — 얼굴 그림자는 없고 피부 색조만(위 skinFrag, 그늘은 밝기 비율로) */
+  function skinShadeMaterial(mat) {
+    if (!mat || (mat.userData && mat.userData.vroidSkin)) { return false; }
+    mat.userData = mat.userData || {};
+    mat.userData.vroidSkin = true;
+    var tint = { value: new global.THREE.Vector3(SHADE_TINT[0], SHADE_TINT[1], SHADE_TINT[2]) };
+    chainCompile(mat, 'vroidSkin', function (shader) {
+      shader.uniforms.vfsShadeTint = tint;
+      shader.fragmentShader = shader.fragmentShader
+        .replace('#include <common>', '#include <common>\nuniform vec3 vfsShadeTint;')
+        .replace('#include <opaque_fragment>', '#include <opaque_fragment>\n' + skinFrag('smoothstep( 0.55, 0.9, vsR )'));
+    });
+    return true;
+  }
 
   function faceShadeMaterial(mat, fr, bone) {
     if (!mat || (mat.userData && mat.userData.vroidFace)) { return false; }
@@ -281,8 +314,10 @@
     mat.userData.vroidFace = { bone: bone };
     var U = {
       vfsBone: { value: bone }, vfsCenter: { value: fr.center.clone() }, vfsFwd: { value: fr.fwd.clone() },
-      vfsRight: { value: fr.right.clone() }, vfsHalf: { value: fr.half }, vfsSoft: { value: 0.05 }
+      vfsRight: { value: fr.right.clone() }, vfsHalf: { value: fr.half }, vfsSoft: { value: 0.05 },
+      vfsShadeTint: { value: new global.THREE.Vector3(SHADE_TINT[0], SHADE_TINT[1], SHADE_TINT[2]) }
     };
+    var tintGlsl = SKIN_RE.test(mat.name || '') ? skinFrag('vfsLitG') : FACE_FRAG_TINT;
     chainCompile(mat, 'vroidFace', function (shader) {
       for (var k in U) { if (Object.prototype.hasOwnProperty.call(U, k)) { shader.uniforms[k] = U[k]; } }
       shader.vertexShader = shader.vertexShader
@@ -290,9 +325,110 @@
         .replace('#include <skinning_vertex>', '#include <skinning_vertex>\n' + FACE_VERT_MAIN);
       shader.fragmentShader = shader.fragmentShader
         .replace('#include <common>', '#include <common>\n' + FACE_FRAG_DECL)
-        .replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\n' + FACE_FRAG_MAIN);
+        .replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\n' + FACE_FRAG_MAIN)
+        .replace('#include <opaque_fragment>', '#include <opaque_fragment>\n' + tintGlsl)
+        /* 얼굴은 그림자 맵을 안 받는다 — 머리카락이 드리운 그림자가 눈가에 들쭉날쭉한 조각으로 찍혔다(스크린샷). 얼굴 명암은 위 얼굴 그림자만 */
+        .replace('#include <lights_fragment_begin>', '#undef USE_SHADOWMAP\n#include <lights_fragment_begin>');
     });
     return true;
+  }
+
+  /* ── VRoid 전용 외곽선(2026-09-23, 스크린샷으로 확인해 새로 짰다) ─────────────────────────────
+   * 판마다의 외곽선(뒤집힌 헐)을 VRoid 에 그대로 두르니 머리 뒤·입·턱 밑·다리 뒤에 검은 덩어리가 생겼다:
+   *   ① 머리카락·옷은 **알파로 잘라낸 판(MASK)** 인데 외곽선은 알파를 몰라 잘린 판 윤곽 그대로 검게 그렸다(치마 없는 옷이 검은 망토로)
+   *   ② 얼굴 부품(입 안·눈)은 얼굴 전체와 정점 버퍼를 나눠 써 경계구가 얼굴만 해 두꺼운 외곽선이 피부를 뚫고 나왔다
+   * 그래서 VRoid 는 여기서 따로 두른다: 피부(얼굴·몸)·옷·머리만, **텍스처 알파로 잘라 내고**, 색은 검정이 아니라
+   * **그 자리 텍스처 색을 어둡게**(원신식 색 외곽선), 폭은 가까이서 몸 키의 약 0.2% 이고 멀어지면 최대 4배까지만 굵어진다.
+   * 두른 메시엔 `userData._toonOutline = true` 를 달아 판 외곽선(`outline`·`addOutline`)이 건너뛰게 한다.
+   * 손잡이: 판의 `world3d.outline`(끄면 같이 꺼짐), 폭 배수 `world3d.vroidLine`(기본 1). */
+  var LINE_RE = /_SKIN|_CLOTH|_HAIR/;
+  var linePool = {};
+  function vroidLineMaterial(t, src, width) {
+    var key = (src.uuid || '') + ':' + width.toFixed(5);
+    if (linePool[key]) { return linePool[key]; }
+    var map = src.map || null;
+    if (map && map.updateMatrix) { map.updateMatrix(); }
+    var U = t.UniformsUtils.merge([t.UniformsLib.fog, {
+      lineWidth: { value: width }, lineMap: { value: map }, lineUv: { value: map ? map.matrix : new t.Matrix3() },
+      lineColor: { value: src.color ? src.color.clone() : new t.Color(0xffffff) }, lineDark: { value: 0.28 },
+      lineCut: { value: src.alphaTest > 0 ? src.alphaTest : 0.5 }
+    }]);
+    U.lineMap.value = map;   // merge 는 텍스처를 복제하지 않지만 확실히 원본을 물린다
+    var m = new t.ShaderMaterial({
+      uniforms: U,
+      defines: map ? { LINE_MAP: '' } : {},
+      vertexShader: [
+        '#include <common>', '#include <skinning_pars_vertex>', '#include <fog_pars_vertex>',
+        'uniform float lineWidth;', 'uniform mat3 lineUv;', 'varying vec2 vLineUv;',
+        'void main() {',
+        '  vLineUv = ( lineUv * vec3( uv, 1.0 ) ).xy;',
+        '  #include <beginnormal_vertex>', '  #include <skinbase_vertex>', '  #include <skinnormal_vertex>',
+        '  #include <begin_vertex>', '  #include <skinning_vertex>',
+        /* 멀어질수록 굵게(몸 키 두 배 거리까지는 그대로, 최대 4배) — 가까이선 가늘고 멀리선 안 사라지게 */
+        '  float lineScale = length( modelViewMatrix[ 1 ].xyz );',
+        '  float lineDist = -( modelViewMatrix * vec4( transformed, 1.0 ) ).z;',
+        '  float lineK = clamp( lineDist / max( lineScale * 3.2, 1e-4 ), 1.0, 4.0 );',
+        '  transformed += normalize( objectNormal ) * lineWidth * lineK;',
+        '  #include <project_vertex>', '  #include <fog_vertex>',
+        '}'
+      ].join('\n'),
+      fragmentShader: [
+        '#include <common>', '#include <fog_pars_fragment>',
+        'uniform sampler2D lineMap;', 'uniform vec3 lineColor;', 'uniform float lineDark;', 'uniform float lineCut;',
+        'varying vec2 vLineUv;',
+        'void main() {',
+        '  vec4 lineTex = vec4( 1.0 );',
+        '#ifdef LINE_MAP',
+        '  lineTex = texture2D( lineMap, vLineUv );',
+        '  if ( lineTex.a < lineCut ) discard;',
+        '#endif',
+        '  gl_FragColor = vec4( lineTex.rgb * lineColor * lineDark, 1.0 );',
+        '  #include <tonemapping_fragment>', '  #include <colorspace_fragment>', '  #include <fog_fragment>',
+        '}'
+      ].join('\n'),
+      side: t.BackSide,
+      fog: true
+    });
+    linePool[key] = m;
+    return m;
+  }
+
+  function lineOn() {
+    var TN = global.DG && global.DG.toon3d, core = global.DG && global.DG.core;
+    if (TN && TN.OUTLINE_ON && !TN.OUTLINE_ON()) { return false; }
+    if (TN && TN.TOON_ON && !TN.TOON_ON()) { return false; }
+    return core && core.tuned ? core.tuned('world3d.vroidLine', 1) > 0 : true;
+  }
+
+  /** @returns 두른 메시 수. 폭 = 몸 키(bind 공간) × 0.0022 × 손잡이 배수, 얼굴 피부는 0.6 배(턱선만 가늘게) */
+  function vroidOutline(t, root) {
+    var targets = [], box = new t.Box3(), ok = false;
+    root.traverse(function (o) {
+      if (!o.isMesh || !o.material || !o.geometry || !o.parent) { return; }
+      o.userData = o.userData || {};
+      o.userData._toonOutline = true;      // VRoid 메시는 전부 판 외곽선을 건너뛴다(입·눈 부품 포함) — lineOn 이 꺼져 있어도 단다
+      var m0 = Array.isArray(o.material) ? o.material[0] : o.material;
+      var nm = (m0 && m0.name) || '';
+      if (!LINE_RE.test(nm) || m0.transparent) { return; }
+      targets.push({ o: o, m: m0, face: SKIN_RE.test(nm) });
+      if (!o.geometry.boundingBox) { o.geometry.computeBoundingBox(); }
+      box.union(o.geometry.boundingBox); ok = true;
+    });
+    if (!ok || !lineOn()) { return 0; }
+    var core = global.DG && global.DG.core, mul = core && core.tuned ? core.tuned('world3d.vroidLine', 1) : 1;
+    var base = (box.max.y - box.min.y) * 0.0022 * mul;
+    targets.forEach(function (x) {
+      var o = x.o, dup, mat = vroidLineMaterial(t, x.m, base * (x.face ? 0.6 : 1));
+      if (o.isSkinnedMesh) { dup = new t.SkinnedMesh(o.geometry, mat); dup.bind(o.skeleton, o.bindMatrix); }
+      else { dup = new t.Mesh(o.geometry, mat); }
+      dup.position.copy(o.position); dup.quaternion.copy(o.quaternion); dup.scale.copy(o.scale);
+      dup.castShadow = false; dup.receiveShadow = false; dup.frustumCulled = o.frustumCulled;
+      dup.renderOrder = (o.renderOrder || 0) - 1;
+      dup.name = (o.name || 'vroid') + '_outline';
+      dup.userData._toonOutline = true;
+      o.parent.add(dup);
+    });
+    return targets.length;
   }
 
   /** @returns 바꾼 재질 수. VRoid 가 아니거나 three·toon3d 가 없으면 0(자가진단에서도 안전) */
@@ -317,6 +453,7 @@
         nm.depthWrite = m.depthWrite;     // 속눈썹·눈썹(BLEND)은 GLTFLoader 가 깊이쓰기를 꺼 둔다
         if (toon && TN.applyRimLight) { TN.applyRimLight(nm); }
         if (toon && FACE_RE.test(m.name || '')) { faces.push({ mesh: o, mat: nm }); }
+        if (toon && BODY_SKIN_RE.test(m.name || '') && faceShadeOn()) { skinShadeMaterial(nm); }
         n++;
         return nm;
       });
@@ -331,6 +468,7 @@
         });
       }
     }
+    if (n) { vroidOutline(t, root); }
     return n;
   }
 

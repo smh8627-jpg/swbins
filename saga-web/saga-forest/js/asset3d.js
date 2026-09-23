@@ -1021,7 +1021,7 @@
           model.userData.actions = oa;
           model.userData.clipMap = mapClips(oc.map(function (a) { return a.name; }));
           model.userData.ownAnim = true;
-          if (global.DG.toon3d) { global.DG.toon3d.addOutline(model); }
+          if (global.DG.toon3d) { global.DG.toon3d.addOutline(model); global.DG.toon3d.rimActor && global.DG.toon3d.rimActor(model); }
           cb(model);
           return;
         }
@@ -1052,7 +1052,7 @@
       }
       /* 외곽선(PLAN §6.1 "배우만 골라 붙이는 절충안") — 사람(주민·NPC)은
          전부 이 kind='hero' 길을 타므로 여기 한 곳에만 걸면 된다 */
-      if (global.DG.toon3d) { global.DG.toon3d.addOutline(model); }
+      if (global.DG.toon3d) { global.DG.toon3d.addOutline(model); global.DG.toon3d.rimActor && global.DG.toon3d.rimActor(model); }
       cb(model);
     }
   }
@@ -1089,7 +1089,7 @@
       }
       /* 외곽선 — 배우 중 사람이 아닌 나머지(짐승)만 여기서 건다. 나무·바위·
          건물 등 나머지 kind 는 그대로 둔다(§6.1 "땅·소품은 안 건다") */
-      if (kind === 'animal' && global.DG.toon3d) { global.DG.toon3d.addOutline(wrapped); }
+      if (kind === 'animal' && global.DG.toon3d) { global.DG.toon3d.addOutline(wrapped); global.DG.toon3d.rimActor && global.DG.toon3d.rimActor(wrapped); }
       cb(wrapped);
     });
   }

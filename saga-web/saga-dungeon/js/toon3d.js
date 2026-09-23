@@ -128,7 +128,6 @@
       opacity: src.opacity === undefined ? 1 : src.opacity,
       alphaTest: src.alphaTest || 0,
       side: src.side === undefined ? t.FrontSide : src.side,
-      skinning: !!src.skinning,
       /* 몬스터 눈빛·정예 고리(`emissive`)를 옮기려면 부르는 쪽에서 따로 얹는다
          — MeshToonMaterial 도 emissive 를 받으므로 이 함수 밖에서 세팅 가능 */
       gradientMap: ramp()

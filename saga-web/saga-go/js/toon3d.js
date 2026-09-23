@@ -121,8 +121,7 @@
       opacity: src.opacity === undefined ? 1 : src.opacity,
       alphaTest: src.alphaTest || 0,
       side: src.side === undefined ? t.FrontSide : src.side,
-      gradientMap: ramp(),
-      skinning: !!src.skinning
+      gradientMap: ramp()
     });
     return out;
   }

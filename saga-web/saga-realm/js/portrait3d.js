@@ -112,8 +112,8 @@
       renderer = new t.WebGLRenderer({ canvas: cv, antialias: true, alpha: true });
       renderer.setClearColor(0x000000, 0);
       renderer.setPixelRatio(1);
-      if (t.ACESFilmicToneMapping) { renderer.toneMapping = t.ACESFilmicToneMapping; }
-      renderer.toneMappingExposure = 1.3;
+      if (t.NeutralToneMapping) { renderer.toneMapping = t.NeutralToneMapping; }   // 2026-09-23 ACES→Neutral: ACES 는 VRoid 살색을 회백색으로 탈색시켰다(스크린샷)
+      renderer.toneMappingExposure = 0.8;   // 조명(반구 2.3·주광 1.9·보조 둘)이 세서 Neutral 1.0 이면 피부가 하얗게 날아간다
       if (t.SRGBColorSpace) { renderer.outputColorSpace = t.SRGBColorSpace; }
       scene = new t.Scene();
       camera = new t.PerspectiveCamera(26, 1, 0.01, 40);
@@ -189,7 +189,18 @@
   /** 쉬는 자세로 한 번 굴린다 — `mapClips` 가 없으니 이름에 idle 이 있는
    *  클립을 직접 찾고, 없으면 첫 클립을 그냥 쓴다 */
   function settle(node) {
-    if (!node || !node.userData || !node.userData.mixer || !node.userData.clips) { return; }
+    if (!node || !node.userData || !node.userData.mixer) { return; }
+    /* 2026-09-23 — VRoid 자체 몸짓(`anim-own`) 길은 `clips` 없이 `actions`·`clipMap` 만 싣는다. 여기가 `clips` 만 봐서
+       초상이 전부 **T자세**로 구워졌다(스크린샷). 사가스토리·사가의숲 settle 과 같은 길을 먼저 탄다 */
+    var U = node.userData;
+    if (U.actions) {
+      var cm = U.clipMap || {}, nm = cm.idle || cm.walk || Object.keys(U.actions)[0], act = nm && U.actions[nm];
+      if (act) {
+        try { act.reset().play(); U.mixer.update(0.45); } catch (e) { /* 자세를 못 잡아도 그림은 나온다 */ }
+        return;
+      }
+    }
+    if (!node.userData.clips) { return; }
     var clips = node.userData.clips;
     var pick = null, i;
     for (i = 0; i < clips.length; i++) {

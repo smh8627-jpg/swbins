@@ -4075,3 +4075,7 @@ PLAN §7.2 에 "'암흑'은 시야 감소를 실제로 안 구현했다 — 아�
 
 VRoid 인물이 unlit(`MeshBasicMaterial`) 그대로라 명암 없이 평면이었다. `asset3d.js` GLB 받는 자리에서 다섯 벌 공용 `vroidVariant.shade()` 를 먼저(툰 + 얼굴 그림자 + 림), 배우 GLB(`isActorAsset`)의 툰 재질에도 `toon3d.applyRimLight`(밝기 비례 — 어두운 던전에선 거의 안 보인다). 맞으면 번쩍이는 사본 `ownAllMat`·유령 보라 사본·가림 반투명 사본(`dungeon3d.js`) 세 자리를 `toon3d.cloneMat` 으로 — three 기본 `clone()` 은 `onBeforeCompile` 을 떨궈 맞는 순간 림·얼굴 그림자·풀 바람(가림 사본)이 사라졌다. 하늘 그라디언트는 뺐다(배경이 피격 붉은빛으로 매 프레임 바뀌고 던전 안은 거의 검다). 상세·원리는 `saga-forest/HANDOFF.md` 같은 날 "원신급 다시" 절, 공통 함정은 `SAGA-HANDOFF.md` 함정 표(clone 이 셰이더를 떨굼·스킨 메시 배율 외곽선).
 진단 jsdom 365/367 ×2 동일(새 2), 실패 2 는 HEAD 와 같은 전체 지도 캔버스 한계. `sw.js` dungeon-v0.146.0. **실기 확인**: 몬스터·짐승 테두리 빛이 과하지 않은지, 인물 얼굴 경계.
+
+## 2026-09-23 (이어서) — 스크린샷으로 다듬기: VRoid 전용 외곽선·피부 색조·초상 Neutral 0.8·인물 초상 다시 굽기
+
+헤드리스 스크린샷으로 확인하며 고쳤다. 판 외곽선이 VRoid 의 알파 컷 머리·옷과 얼굴 부품에서 검은 덩어리를 만들어 `vroid-variant.js`(다섯 벌) 전용 외곽선(알파 존중·색 외곽선·피부·옷·머리만)으로 바꾸고 VRoid 메시는 판 외곽선이 건너뛴다. 얼굴 그늘 살구빛·그림자 맵 안 받음, 피부 색조. `portrait3d.js` 톤매핑 ACES 1.3 → Neutral 0.8, 인물 초상 전부 다시 구움(`tools/bake-portraits --kind=hero`). `applyTint` 는 외곽선 재질을 건너뛰고 `cloneMat` 으로(사가스토리·사가국지는 VRoid 면 옷만 물들임 — 예전엔 몸 전체가 세력 색 단색이었다). 사가국지는 VRoid 레시피의 `anim: 몸 파일` 을 빼 초상·일기토 T자세를 고쳤고(자체 몸짓 길), 초상 `settle` 이 `actions` 를 먼저 보며, VRoid 엔 투구를 안 씌운다. 상세·스크린샷 경위는 `saga-forest/HANDOFF.md` 같은 날 "(이어서) 스크린샷 찍으면서 다듬어줘" 절.

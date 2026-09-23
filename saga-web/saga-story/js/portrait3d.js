@@ -141,8 +141,8 @@
       renderer = new t.WebGLRenderer({ canvas: cv, antialias: true, alpha: true });
       renderer.setClearColor(0x000000, 0);
       renderer.setPixelRatio(1);
-      if (t.ACESFilmicToneMapping) { renderer.toneMapping = t.ACESFilmicToneMapping; }
-      renderer.toneMappingExposure = 1.3;
+      if (t.NeutralToneMapping) { renderer.toneMapping = t.NeutralToneMapping; }   // 2026-09-23 ACES→Neutral: ACES 는 VRoid 살색을 회백색으로 탈색시켰다(스크린샷)
+      renderer.toneMappingExposure = 0.8;   // 조명(반구 2.3·주광 1.9·보조 둘)이 세서 Neutral 1.0 이면 피부가 하얗게 날아간다
       if (t.SRGBColorSpace) { renderer.outputColorSpace = t.SRGBColorSpace; }
       scene = new t.Scene();
       camera = new t.PerspectiveCamera(26, 1, 0.01, 40);

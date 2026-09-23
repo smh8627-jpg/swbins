@@ -1161,7 +1161,10 @@
     renderer.setPixelRatio(Math.min(global.devicePixelRatio || 1, q.dpr));
     /* 실사 텍스처(사람 Mixamo·나무껍질 등)가 톤매핑 없이 밋밋하게 뜨는 것을 막는다.
        색공간도 sRGB 로 맞춘다 — 안 맞으면 텍스처가 흐리게(감마 안 먹은 채로) 뜬다 */
-    if (t.ACESFilmicToneMapping) { renderer.toneMapping = t.ACESFilmicToneMapping; }
+    /* 2026-09-23 — ACES → Neutral(SAGA-DESIGN §6.1, 다른 판 post3d 와 같은 곡선). ACES 는 VRoid 인물 살색을
+       회백색으로 탈색시키고 채도를 눌렀다(같은 장면 두 곡선 스크린샷 비교) */
+    if (t.NeutralToneMapping) { renderer.toneMapping = t.NeutralToneMapping; }
+    else if (t.ACESFilmicToneMapping) { renderer.toneMapping = t.ACESFilmicToneMapping; }
     renderer.toneMappingExposure = 1.0;
     if (t.SRGBColorSpace) { renderer.outputColorSpace = t.SRGBColorSpace; }
     renderer.shadowMap.enabled = q.shadow;

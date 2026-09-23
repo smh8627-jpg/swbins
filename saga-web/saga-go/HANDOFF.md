@@ -3588,3 +3588,7 @@ jsdom 559/561 ×3(남은 둘은 `Request is not defined` — jsdom 한계). `토
 
 VRoid 인물이 unlit(`MeshBasicMaterial`) 그대로라 **명암 없이 평면**이었다(`delam()` 은 Standard/Physical 만 본다). `asset3d.js` GLB 받는 자리에서 다섯 벌 공용 `vroidVariant.shade()` 를 먼저 태워 툰 + 얼굴 그림자(머리뼈 기준 두 톤) + 림으로 바꾼다 — 외곽선은 그 뒤 `delam()` 이 예전처럼 두른다. `toon3d.js` 에 `applyRimLight`(밝기 비례, 손잡이 `world3d.rim`)·`cloneMat`. 하늘은 `sky3d.js` 가 이미 있어 안 건드림. 상세·원리는 `saga-forest/HANDOFF.md` 같은 날 "원신급 다시" 절, 공통 함정은 `SAGA-HANDOFF.md` 함정 표(clone 이 셰이더를 떨굼·스킨 메시 배율 외곽선).
 진단 jsdom 556/565 ×2 동일(새 2: shade·림), 실패 9 는 HEAD 와 같은 목록(Request 없음·캔버스 스텁). `sw.js` go-v5.53.0. **실기 확인**: 인물이 빛을 받게 돼 전보다 어두워 보일 수 있다, 얼굴 경계·림 세기. 끄는 손잡이 `world3d.faceShade`·`world3d.rim`.
+
+## 2026-09-23 (이어서) — 스크린샷으로 다듬기: VRoid 전용 외곽선·피부 색조·초상 Neutral 0.8·인물 초상 다시 굽기
+
+헤드리스 스크린샷으로 확인하며 고쳤다. 판 외곽선이 VRoid 의 알파 컷 머리·옷과 얼굴 부품에서 검은 덩어리를 만들어 `vroid-variant.js`(다섯 벌) 전용 외곽선(알파 존중·색 외곽선·피부·옷·머리만)으로 바꾸고 VRoid 메시는 판 외곽선이 건너뛴다. 얼굴 그늘 살구빛·그림자 맵 안 받음, 피부 색조. `portrait3d.js` 톤매핑 ACES 1.3 → Neutral 0.8, 인물 초상 전부 다시 구움(`tools/bake-portraits --kind=hero`). `applyTint` 는 외곽선 재질을 건너뛰고 `cloneMat` 으로(사가스토리·사가국지는 VRoid 면 옷만 물들임 — 예전엔 몸 전체가 세력 색 단색이었다). 사가국지는 VRoid 레시피의 `anim: 몸 파일` 을 빼 초상·일기토 T자세를 고쳤고(자체 몸짓 길), 초상 `settle` 이 `actions` 를 먼저 보며, VRoid 엔 투구를 안 씌운다. 상세·스크린샷 경위는 `saga-forest/HANDOFF.md` 같은 날 "(이어서) 스크린샷 찍으면서 다듬어줘" 절.

@@ -1305,9 +1305,11 @@
     model.traverse(function (o) {
       if (!o.isMesh || !o.material) { return; }
       var src = Array.isArray(o.material) ? o.material[0] : o.material;
+      if (!src || src.isShaderMaterial) { return; }   // 외곽선 재질은 물들이지 않는다(2026-09-23)
       var key = (src.uuid || '') + '|' + hex;
       if (!tintCache[key]) {
-        var m = src.clone();
+        var TNc = global.DG.toon3d;
+        var m = TNc && TNc.cloneMat ? TNc.cloneMat(src) : src.clone();   // 림 셰이더까지 옮긴다
         m.color = new t.Color(src.color ? src.color.getHex() : 0xffffff).multiply(tc);
         tintCache[key] = m;
       }
