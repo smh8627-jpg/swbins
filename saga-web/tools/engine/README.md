@@ -13,11 +13,12 @@
 | `runtime/combat.js` | 전투 스타일 넷 + 스킬 9갈래 + 적 옵션(원거리·원소 방패·기세·광폭·도망·노획물) |
 | `runtime/systems.js` | saga-godot 범용 시스템(아래 표) — 컴포넌트·행동·이벤트를 표에 등록 |
 | `runtime/basics.js` | 기본기 — 스위치(레버)·발판 스위치·문·파티클·아이템(가방 I)·컷신 카메라·효과·배경음악 바꾸기. 지형 언덕 높이(`terrainH`)는 sim.js 에 |
+| `runtime/genres.js` | 장르 — 장비(등급·접사·소켓·보석·룬워드·세트, G)·꾸미기(가구 배치, H)·영지 경영·전쟁(턴·출진·화친)·무작위 던전 |
 | `runtime/view.js` | three.js 그리기 공용(환경·도형·모델 키 맞추기·몸짓·툰/외곽선) |
-| `runtime/play.js` · `play-combat.js` · `play-systems.js` · `play-basics.js` | 실행기 — 입력·시점·HUD·소리·터치 / 전투 화면 / 시스템 화면·저장 / 파티클·배경음악(파일 없이 짓는 곡 일곱, N)·컷신 띠·가방 단추 |
+| `runtime/play.js` · `play-combat.js` · `play-systems.js` · `play-basics.js` | 실행기 — 입력·시점·HUD·소리·터치 / 전투 화면 / 시스템 화면·저장 / 파티클·배경음악(파일 없이 짓는 곡 일곱, N)·컷신 띠·가방 단추 / `play-genres.js` 둥근 세상·영지 깃발·턴 시계 |
 | `editor/` | 편집기(3D 화면·기즈모·개체 목록·속성 칸·에셋 서랍·설정·▶ 실행·📦 내보내기) |
 | `server.js` | 저장(검사·실명 가드·md5 충돌) · 다섯 판 GLB 라이브러리 목록 · 모델 올리기 · 내보내기 |
-| `templates/` | 예제 틀 일곱 — `make-templates.mjs` 로 짓는다(JSON 을 직접 고치지 말고 여기를 고쳐 다시 돌린다) |
+| `templates/` | 예제 틀 아홉 — `make-templates.mjs` 로 짓는다(JSON 을 직접 고치지 말고 여기를 고쳐 다시 돌린다) |
 | `test/run.mjs` · `test/dom.mjs` | 진단(아래) |
 
 ## 데이터 모양(project.json)
@@ -27,8 +28,10 @@
   vars:{ 이름: 처음 값 }, hud:[{var,label,style:'hearts'?}], goals:[3줄, {변수}],
   combat:{ style:'simple|genshin|zelda|ff', atk, hpMax, potionHeal, mpMax, mpRegen, skillCd, party:[…], skills:[…] },
   world:{ clock:'off|game|real', dayMin, start, seasonDays, weather:'auto|…', season:'auto|…' },
-  graphics:{ toon, outline }, feel:false?, level:{ expVar, lvVar, base, atk, hpVar, hp }, quests:[…],
+  graphics:{ toon, outline, curve }, feel:false?, level:{ expVar, lvVar, base, atk, hpVar, hp }, quests:[…],
   items:[{ icon, name, var, desc, useVar, useAmt }],   // 가방 — 개수는 변수에
+  gear:{ bases:[{id,name,slot,atk,guard,sockets}], sets:[{name,pieces,b2,b3}], runewords:[{name,runes,slot,bonus}] },
+  furniture:[{ icon, name, var, shape|model, color, w, h, d }], realm:{ turnSec, goldVar },
 
   scenes:[{ id, name, env:{sky,fog,light,gravity,music,ground:{size,color,hills:{height,size,flat,seed}}}, camera:{mode:'first|follow|top|side|fixed', dist, height, yaw, switch},
             entities:[{ id, name, tag, pos, rot(도), scale, off, hidden, once,
@@ -57,7 +60,7 @@
 
 ## 기본기(장치·효과)
 
-컴포넌트 `lever`(F 로 켜고 끔 → 변수 0/1)·`plate`(몸이 올라가 있는 동안 1)·`door`(변수가 값이면 dx·dy·dz 만큼 열림)·`particles`(불·연기·반짝이·분수·마법·낙엽·거품) · 행동 `give`·`take`(아이템)·`camera`(컷신 — 그동안 필드 멈춤, 다음 행동은 끝난 뒤)·`effect`(퍼짐·폭발·반짝·치유·연기·불꽃놀이)·`music`. 실행 중 **I** 가방 · **N** 음악 끄기. 예제는 틀 "언덕 마을 퍼즐"(`hills`).
+컴포넌트 `lever`(F 로 켜고 끔 → 변수 0/1)·`plate`(몸이 올라가 있는 동안 1)·`door`(변수가 값이면 dx·dy·dz 만큼 열림)·`particles`(불·연기·반짝이·분수·마법·낙엽·거품) · 행동 `give`·`take`(아이템)·`camera`(컷신 — 그동안 필드 멈춤, 다음 행동은 끝난 뒤)·`effect`(퍼짐·폭발·반짝·치유·연기·불꽃놀이)·`music`. 실행 중 **I** 가방 · **N** 음악 끄기 · **G** 장비 · **H** 꾸미기. 예제는 틀 "언덕 마을 퍼즐"(`hills`).
 
 ## saga-godot 시스템 → 엔진
 
@@ -75,7 +78,12 @@
 | DUNGEON·STORY 무예(bolt·nova·whirl·dash·heal·buff·chain·curse·summon)·MP·포션 벨트 | `combat.skills`(Z X C R)·`mpMax/mpRegen`·H 포션 |
 | `cel_toon.gdshader`(툰+외곽선)·camera_near_fade·photo_mode | `graphics.toon/outline` · 가리는 것 반투명 · P 사진 모드 |
 
-**안 옮긴 것**(장르 자체이거나 판 콘텐츠): 사가국지 경영·전쟁·외교·계승 · 사가블로 룬워드/소켓/세트 장비 체계·부적 던전 · 사가의숲 구면 투영·가구 배치 · 사가고 인물 설득 3라운드의 판 전용 수치 · 인물 105명 도감·VRoid 몸. 필요하면 컴포넌트·행동으로 하나씩 더한다(`addComp`·`addDo`).
+| 사가블로 `item.js`·`data-gem.js`·`data-set.js`(장비 셋·등급 접사·소켓은 못 뺌·보석은 부위마다·부문어는 순서·세트 2/3점 누적) | `genres.js` gear — 변수 `gear:<밑감>[:등급]` 을 더하면 굴려서 가방에, `gem:<원소>`·`rune:<글자>` 는 개수 변수, **G** 창 |
+| 사가블로 던전 | 컴포넌트 `dungeon`(씨앗·방 수·적 원본·상자·출구) — 들어갈 때 방·복도를 짓는다, 세이브는 같은 씨앗으로 |
+| 사가의숲 가구 배치 · 구면 투영 | 컴포넌트 `room` + `furniture` 표(**H**, 1m 칸·돌리기·치우기, 저장) · `graphics.curve`(그림만 휨) |
+| 사가국지 경영·전쟁·외교 | 컴포넌트 `town`(주인·수입·병력·성벽) — 턴 수입·적 성장·약한 곳 공격, 개발·징병·성벽·출진(자동 전투)·화친, 이벤트 `townTaken`·`townLost`·`turn` |
+
+**안 옮긴 것**(판 콘텐츠): 사가국지 계승·인물 능력치 · 사가고 인물 설득 3라운드의 판 전용 수치(범용 `quiz` 는 있다) · 인물 105명 도감·VRoid 몸. 필요하면 컴포넌트·행동으로 하나씩 더한다(`addComp`·`addDo`).
 
 ## 내보내기
 

@@ -10,7 +10,7 @@
  * 시점(장면 camera.mode): first 1인칭 · follow 3인칭 · top 쿼터뷰 · side 옆(2.5D) · fixed 고정.
  *   camera.switch 가 false 가 아니면 V 로 1인칭 → 3인칭 → 쿼터뷰를 돈다(옆·고정 장면은 안 돈다).
  *   1인칭은 화면을 누르면 마우스가 잠겨 시선이 된다(Esc 로 풀림).
- * 조작(공통): 방향키/WASD · Space 점프 · F(또는 E) 말 걸기·살피기 · 마우스 끌기 카메라 · 휠 거리 · R 다시 하기 · I 가방 · N 음악
+ * 조작(공통): 방향키/WASD · Space 점프 · F(또는 E) 말 걸기·살피기 · 마우스 끌기 카메라 · 휠 거리 · R 다시 하기 · I 가방 · N 음악 · G 장비 · H 꾸미기
  *   전투 스타일별 키는 화면 왼쪽 아래에 뜬다(play-combat.js KEYS).
  */
 (function (root) {
@@ -101,6 +101,7 @@
     var CB = root.SagaPlayCombat ? root.SagaPlayCombat.create({ sim: sim, S: S, style: style, project: project, scene3: scene3, cam: cam, canvas: canvas, hud: hudRoot, objs: function () { return objs; }, sfx: sfx }) : null;
     var SY = root.SagaPlaySystems ? root.SagaPlaySystems.create({ sim: sim, S: S, project: project, scene3: scene3, cam: cam, canvas: canvas, hud: hudRoot, objs: function () { return objs; },
       persist: !!opt.persist, feel: project.feel !== false }) : null;
+    var GN = root.SagaPlayGenres ? root.SagaPlayGenres.create({ sim: sim, S: S, project: project, hud: hudRoot, objs: function () { return objs; } }) : null;
     var BA = root.SagaPlayBasics ? root.SagaPlayBasics.create({ sim: sim, S: S, project: project, scene3: scene3, cam: cam, canvas: canvas, hud: hudRoot, objs: function () { return objs; } }) : null;
 
     function sceneViews() {
@@ -422,6 +423,7 @@
       if (CB) { CB.sync(dt); }
       if (SY) { SY.sync(dt, envNow, view); }
       if (BA) { BA.sync(dt); }
+      if (GN) { GN.sync(dt); }
       placeCamera(1 - Math.exp(-10 * dt));
       hud();
       R.render(scene3, cam);
@@ -436,6 +438,7 @@
         listeners.forEach(function (l) { l[0].removeEventListener(l[1], l[2], l[3]); });
         if (doc.pointerLockElement === canvas) { doc.exitPointerLock(); }
         if (BA) { BA.stop(); }
+        if (GN) { GN.stop(); }
         R.dispose();
       }
     };

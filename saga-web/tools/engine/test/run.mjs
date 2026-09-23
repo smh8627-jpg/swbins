@@ -18,6 +18,7 @@ const SIM = require(path.join(ROOT, 'runtime/sim.js'));
 const COMBAT = require(path.join(ROOT, 'runtime/combat.js'));
 const SYS = require(path.join(ROOT, 'runtime/systems.js'));
 require(path.join(ROOT, 'runtime/basics.js'));
+require(path.join(ROOT, 'runtime/genres.js'));
 
 let pass = 0, fail = 0;
 const fails = [];
@@ -516,6 +517,136 @@ t('기본기: 컷신·효과·음악', () => {
   ok('음악: 장면에 들어가면 장면 기본으로', s.state.music == null);
 });
 
+/* ════════════════════════════════════════════════════════════════════
+   5c) 장르(genres.js) — 장비·꾸미기·영지·던전
+   ════════════════════════════════════════════════════════════════════ */
+const GEARP = { bases: [{ id: 'sword', name: '철검', slot: 'weapon', atk: 0.1, sockets: 2 }, { id: 'mail', name: '사슬옷', slot: 'armor', guard: 0.1, sockets: 2 }, { id: 'ring', name: '옥가락지', slot: 'charm', sockets: 0 }],
+  sets: [{ name: '청룡', pieces: 'sword,mail,ring', b2: 'atk 0.1', b3: 'speed 0.1' }], runewords: [{ name: '해달', runes: '해,달', slot: 'weapon', bonus: 'atk 0.3' }] };
+const near = (a, b) => Math.abs(a - b) < 1e-9;
+t('장르: 장비 굴림·장착·배율', () => {
+  const s = SIM.create(P([], { gear: GEARP, vars: { gold: 0 } })), g = s.system('gear');
+  s.state.vars['gear:sword:희귀'] = 2;
+  run(s, 1 / 60);
+  const G = g.state();
+  ok('장비: 변수가 장비가 된다', G.bag.length === 2 && !('gear:sword:희귀' in s.state.vars));
+  ok('장비: 희귀는 접사 3~4', G.bag.every((it) => it.grade === '희귀' && it.aff.length >= 3 && it.aff.length <= 4 && it.slot === 'weapon'));
+  const it = G.bag[0], want = 1 + 0.1 + it.aff.filter((a) => a[0] === 'atk').reduce((n, a) => n + a[1], 0);
+  g.equip(it);
+  ok('장비: 장착하면 공격 배율', near(s.state.mods.atk, want), s.state.mods.atk + ' vs ' + want);
+  g.equip(G.bag[0]);
+  ok('장비: 같은 부위를 끼면 먼저 것은 가방으로', G.bag.length === 1 && G.bag[0] === it);
+  g.unequip('weapon');
+  ok('장비: 벗으면 배율이 제자리', near(s.state.mods.atk, 1) && near(s.state.mods.speed, 1) && near(s.state.mods.dmgTaken, 1));
+  g.salvage(G.bag[0]);
+  ok('장비: 분해하면 돈', s.state.vars.gold > 0 && G.bag.length === 1);
+  const a = SIM.create(P([], { gear: GEARP })), b = SIM.create(P([], { gear: GEARP }));
+  [a, b].forEach((x) => { x.state.vars['gear:mail'] = 5; run(x, 1 / 60); });
+  ok('장비: 굴림 결정성', JSON.stringify(a.system('gear').state()) === JSON.stringify(b.system('gear').state()));
+  run(s, 1 / 60, { keys: { KeyG: true } });
+  ok('장비: G 로 창', s.state.menu && s.state.menu.kind === 'gear' && s.state.menu.items.length >= 4);
+});
+t('장르: 소켓·보석·룬워드·세트', () => {
+  const s = SIM.create(P([], { gear: GEARP, vars: { 'rune:해': 2, 'rune:달': 2, 'gem:불': 1, 'gem:물': 1 } })), g = s.system('gear');
+  s.state.vars['gear:sword:보통'] = 2; s.state.vars['gear:mail:보통'] = 1;
+  run(s, 1 / 60);
+  const G = g.state(), sw = G.bag.filter((x) => x.base === 'sword'), ml = G.bag.find((x) => x.base === 'mail');
+  ok('소켓: 보통은 최대 소켓', sw[0].sockets === 2 && ml.sockets === 2);
+  g.socket(sw[0], 'rune:해'); g.socket(sw[0], 'rune:달');
+  ok('룬워드: 순서가 맞으면 완성', g.word(sw[0]) && g.word(sw[0]).name === '해달' && /해달/.test(g.label(sw[0])));
+  g.socket(sw[1], 'rune:달'); g.socket(sw[1], 'rune:해');
+  ok('룬워드: 순서가 틀리면 안 된다', !g.word(sw[1]));
+  ok('소켓: 가진 만큼만 박는다', s.state.vars['rune:해'] === 0 && !g.socket(ml, 'rune:해'));
+  ok('소켓: 다 차면 더 못 박는다', !g.socket(sw[0], 'gem:불'));
+  g.equip(sw[0]);
+  ok('룬워드: 효과(공격 +30% + 밑감 10%)', near(s.state.mods.atk, 1 + 0.1 + 0.3), s.state.mods.atk);
+  g.socket(ml, 'gem:불'); g.socket(ml, 'gem:물');
+  g.equip(ml);
+  ok('보석: 갑주에 박으면 받는 피해 감소(불 3% + 물 5% + 밑감 10%)', near(s.state.mods.dmgTaken, 1 - 0.18), s.state.mods.dmgTaken);
+  const s2 = SIM.create(P([], { gear: GEARP })), g2 = s2.system('gear');
+  ['sword', 'mail', 'ring'].forEach((k) => { s2.state.vars['gear:' + k + ':세트'] = 1; });
+  run(s2, 1 / 60);
+  g2.state().bag.slice().forEach((x) => g2.equip(x));
+  const aff = (k) => ['weapon', 'armor', 'charm'].reduce((n, sl) => n + g2.state().eq[sl].aff.filter((a) => a[0] === k).reduce((m, a) => m + a[1], 0), 0);
+  ok('세트: 세 점이면 2점·3점 효과가 다 붙는다', g2.state().eq.weapon.set === '청룡' && near(s2.state.mods.speed, 1 + 0.1 + aff('speed')) && near(s2.state.mods.atk, 1 + 0.1 + 0.1 + aff('atk')), s2.state.mods.speed);
+  const sv = s2.save(), s3 = SIM.create(P([], { gear: GEARP }));
+  s3.load(JSON.parse(JSON.stringify(sv)));
+  ok('장비: 세이브·불러오기', s3.system('gear').state().eq.charm && near(s3.state.mods.speed, s2.state.mods.speed));
+  s3.system('gear').unequip('charm');
+  ok('장비: 불러온 뒤 벗어도 배율이 맞다(2점만 남음)', near(s3.state.mods.speed, 1 + aff('speed') - g2.state().eq.charm.aff.filter((a) => a[0] === 'speed').reduce((m, a) => m + a[1], 0)));
+  const p4 = P([ent({ id: 'z', body: { type: 'trigger', size: [2, 2, 2] }, events: [{ when: { on: 'touch', a: 'player', b: 'self' }, once: true, do: [{ do: 'gear', base: 'ring', grade: '전설' }] }] })], { gear: GEARP });
+  const s4 = SIM.create(p4); const fx = run(s4, 0.1);
+  ok('장비: 행동 "장비 주기" · 전설 알림', s4.system('gear').state().bag[0].grade === '전설' && fx.some((f) => f.type === 'pop'));
+});
+t('장르: 꾸미기', () => {
+  const furn = [{ icon: '🪑', name: '의자', var: 'chair', w: 0.8, h: 1, d: 0.8 }];
+  const p = P([ent({ id: 'room', pos: [0, 0, -3], scale: [8, 0.1, 8], comps: { room: { name: '내 방' } } })], { furniture: furn, vars: { chair: 2 } });
+  p.scenes[0].entities[0].pos = [0, 0.2, 0]; p.scenes[0].entities[0].rot = [0, 180, 0];
+  const s = SIM.create(p), H = s.system('housing');
+  run(s, 0.5);
+  run(s, 1 / 60, { keys: { KeyH: true } });
+  ok('꾸미기: H 로 창', s.state.menu && s.state.menu.kind === 'housing');
+  s.state.menu = null;
+  ok('꾸미기: 놓기', H.place('chair') && s.state.vars.chair === 1 && s.state.ents.some((e) => e.alive && String(e.id).startsWith('furn~')));
+  ok('꾸미기: 같은 칸엔 못 놓는다', !H.place('chair'));
+  const placed = H.placed()[0], rot0 = placed.rot;
+  ok('꾸미기: 1m 칸·방 바닥 위', Number.isInteger(placed.pos[0]) && Number.isInteger(placed.pos[2]) && placed.pos[1] > 0);
+  H.turn();
+  ok('꾸미기: 돌리기', H.placed()[0].rot === (rot0 + 90) % 360);
+  s.enterScene('main');
+  ok('꾸미기: 장면에 다시 들어와도 남는다', s.state.ents.filter((e) => e.alive && String(e.id).startsWith('furn~')).length === 1);
+  s.state.player.p = placed.pos.slice(); s.state.player.p[2] += 1;
+  ok('꾸미기: 치우기', H.takeBack() && s.state.vars.chair === 2 && !s.state.ents.some((e) => e.alive && String(e.id).startsWith('furn~')));
+  s.state.player.p = [20, 0, 20];
+  ok('꾸미기: 방 밖엔 못 놓는다', !H.place('chair'));
+});
+t('장르: 영지 경영·전쟁', () => {
+  const T0 = (id, pos, town) => ent({ id, pos, scale: [3, 2.5, 3], comps: { town } });
+  const p = P([T0('home', [0, 0, -4], { name: '내 성', owner: 'player', income: 15, troops: 60, wall: 1 }), T0('foe', [30, 0, 0], { name: '적 성', owner: 'enemy', troops: 10, wall: 1, grow: 2 }),
+    T0('vil', [-30, 0, 0], { name: '마을', owner: 'neutral', troops: 5 })], { realm: { turnSec: 3 }, vars: { gold: 0, towns: 0, turn: 0, got: 0 } },
+    { events: [{ when: { on: 'townTaken', name: '적 성' }, do: [{ do: 'add', var: 'got', value: 1 }] }] });
+  const s = SIM.create(p), R = s.system('realm');
+  run(s, 0.1);
+  ok('영지: 처음 내 영지 수', s.state.vars.towns === 1);
+  run(s, 3);
+  ok('영지: 턴마다 수입·적 병력 증가', s.state.vars.gold === 15 && s.state.vars.turn === 1 && R.state(byId(s, 'foe')).troops === 12);
+  run(s, 1 / 60, { act: true });
+  ok('영지: F 로 다스림 창(출진 둘)', s.state.menu && s.state.menu.kind === 'realm' && s.state.menu.items.filter((i) => /출진/.test(i.label)).length === 2);
+  s.state.menu = null;
+  R.march(byId(s, 'home'), byId(s, 'foe'));
+  run(s, 1 / 60);
+  ok('영지: 출진해서 빼앗는다 · 이벤트', R.state(byId(s, 'foe')).owner === 'player' && s.state.vars.towns === 2 && s.state.vars.got === 1);
+  const p2 = P([T0('home', [0, 0, -4], { owner: 'player', troops: 5, wall: 1 }), T0('foe', [30, 0, 0], { owner: 'enemy', troops: 200, grow: 0 })], { realm: { turnSec: 3 }, vars: { lost: 0 } },
+    { events: [{ when: { on: 'townLost' }, do: [{ do: 'add', var: 'lost', value: 1 }] }] });
+  const s2 = SIM.create(p2); run(s2, 3.1);
+  ok('영지: 적이 약한 내 영지를 친다', s2.system('realm').state(byId(s2, 'home')).owner === 'enemy' && s2.state.vars.lost === 1 && s2.state.vars.towns === 0);
+  const s3 = SIM.create(p2); run(s3, 0.1);
+  s3.system('realm').state(byId(s3, 'foe')).peace = 5; run(s3, 3.1);
+  ok('영지: 화친 중엔 안 친다', s3.system('realm').state(byId(s3, 'home')).owner === 'player');
+});
+t('장르: 무작위 던전', () => {
+  const mk = (seed) => P([ent({ id: 'dg', look: { shape: 'none' }, body: { type: 'none' }, comps: { dungeon: { seed, rooms: 6, foes: 2, from: 'gob', chest: 1 } } }),
+    ent({ id: 'gob', off: true, look: { shape: 'capsule' }, body: { type: 'dynamic', size: [0.8, 1.8, 0.8] }, comps: { health: { hp: 2 } } })]);
+  const s = SIM.create(mk(7)), info = s.system('dungeon').info();
+  const walls = s.state.ents.filter((e) => e.alive && String(e.id).startsWith('dwall~'));
+  ok('던전: 방·벽이 생긴다', info && info.rooms >= 4 && walls.length === info.walls && walls.length > 20, JSON.stringify(info));
+  ok('던전: 플레이어는 첫 방', s.state.player.p[0] === info.first[0] && s.state.player.p[2] === info.first[2]);
+  const pb = s.box(s.state.player);
+  ok('던전: 플레이어가 벽에 안 묻힌다', !walls.some((w) => { const b = s.box(w); return pb.x0 < b.x1 && pb.x1 > b.x0 && pb.z0 < b.z1 && pb.z1 > b.z0; }));
+  ok('던전: 적(방마다)·출구', s.state.ents.filter((e) => e.alive && String(e.id).startsWith('gob~')).length === 2 * (info.rooms - 1) && s.state.ents.some((e) => e.alive && String(e.id).startsWith('dexit~')));
+  ok('던전: 씨앗이 같으면 같은 던전', SIM.create(mk(7)).snapshot() === s.snapshot());
+  ok('던전: 씨앗이 다르면 다른 던전', SIM.create(mk(8)).snapshot() !== s.snapshot());
+  const r = SIM.create(mk(0)), sv = r.save(), r2 = SIM.create(mk(0));
+  r2.load(JSON.parse(JSON.stringify(sv)));
+  ok('던전: 씨앗 0 도 불러오면 같은 던전', r2.system('dungeon').info().seed === r.system('dungeon').info().seed);
+  run(s, 2);
+  ok('던전: 돌려도 멀쩡(떨어지지 않음)', s.state.player.p[1] > -1 && !s.state.over);
+});
+t('장르: 실명 가드가 장비·가구·컴포넌트 글자를 본다', () => {
+  const p = P([ent({ id: 'sh', comps: { shop: { name: '상점 이름표', items: ['물건줄|1|x|1'] } } })], { gear: GEARP, furniture: [{ name: '가구 이름', var: 'f' }] });
+  const d = SIM.displayTexts(p);
+  ok('표시 글자: 장비·세트·룬워드·가구·컴포넌트 칸', ['철검', '청룡', '해달', '가구 이름', '상점 이름표', '물건줄|1|x|1'].every((x) => d.includes(x)) && !d.some((x) => /^#[0-9a-f]{6}$/i.test(x)));
+});
+
 t('틀 언덕 마을 퍼즐: 끝까지 풀기', () => {
   const p = JSON.parse(fs.readFileSync(path.join(ROOT, 'templates', 'hills.json'), 'utf8'));
   const s = SIM.create(p), S = s.state;
@@ -591,7 +722,7 @@ async function serverTests() {
     ok('서버: 에셋 밖 폴더 막음', g.status === 403);
     g = await fetch(base + '/runtime/three.iife.js');
     ok('서버: three 번들', g.status === 200);
-    for (const f of ['play.html', 'sim.js', 'combat.js', 'systems.js', 'basics.js', 'view.js', 'play.js', 'play-combat.js', 'play-systems.js', 'play-basics.js']) {
+    for (const f of ['play.html', 'sim.js', 'combat.js', 'systems.js', 'basics.js', 'genres.js', 'view.js', 'play.js', 'play-combat.js', 'play-systems.js', 'play-basics.js', 'play-genres.js']) {
       g = await fetch(base + '/runtime/' + f); ok('서버: 실행기 ' + f, g.status === 200);
     }
     g = await fetch(base + '/'); ok('서버: 편집기', g.status === 200 && (await g.text()).includes('editor.js'));
@@ -612,7 +743,7 @@ async function serverTests() {
     const out = path.join(tmp, 'dist', 't-adventure');
     const html = fs.readFileSync(path.join(out, 'index.html'), 'utf8');
     ok('내보내기: index.html 에 프로젝트', html.includes('window.SAGA_PROJECT=') && html.includes('<script src="systems.js">') && !html.includes('<!--SAGA-PROJECT-->'));
-    ok('내보내기: 실행 파일', ['three.iife.js', 'sim.js', 'combat.js', 'systems.js', 'basics.js', 'view.js', 'play.js', 'play-combat.js', 'play-systems.js', 'play-basics.js', 'CREDITS.txt'].every((f) => fs.existsSync(path.join(out, f))));
+    ok('내보내기: 실행 파일', ['three.iife.js', 'sim.js', 'combat.js', 'systems.js', 'basics.js', 'genres.js', 'view.js', 'play.js', 'play-combat.js', 'play-systems.js', 'play-basics.js', 'play-genres.js', 'CREDITS.txt'].every((f) => fs.existsSync(path.join(out, f))));
     ok('내보내기: 라이브러리 모델 복사', fs.existsSync(path.join(out, 'assets/lib/saga-go/models/people/quaternius_rpg/Warrior.glb')));
     ok('내보내기: 올린 모델 복사', fs.existsSync(path.join(out, 'assets/proj/my_rock.glb')));
     /* 내보낸 판의 프로젝트가 그대로 돈다 */

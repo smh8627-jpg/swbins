@@ -240,7 +240,7 @@ seq = 0;
       { icon: '🗝', name: '사당 열쇠', var: 'key', desc: '제단을 깨운다' }],
     scenes: [{ id: 'hill', name: '바람 언덕 마을', env: env({ sky: '#a8d8ff', fog: 120, ground: HILLS, music: 'field' }), camera: { mode: 'follow', dist: 9, height: 4.5 },
       entities: [
-        player({ pos: [0, 0, 7], look: { shape: 'model', model: CHAR + 'Ranger.glb', fit: 1.8 } }, { glide: true, climb: true }),
+        player({ pos: [0, 0, 7], rot: [0, 180, 0], look: { shape: 'model', model: CHAR + 'Ranger.glb', fit: 1.8 } }, { glide: true, climb: true }),
         npc('할머니', [-3, 0, 4], ['언덕 너머에 레버 하나, 반대쪽에 발판 하나가 있단다.', '둘 다 켜면 사당 문이 열리지.', '배고프면 I 로 가방을 열어 사과를 먹으렴.'], { look: { shape: 'model', model: CHAR + 'Cleric.glb', fit: 1.7, label: '할머니' } }),
         E({ name: '모닥불', pos: [3.5, 0, 3], look: { shape: 'cylinder', color: '#5d4037' }, scale: [0.9, 0.2, 0.9], body: { type: 'solid' }, comps: { particles: { kind: 'fire', rate: 45, size: 1 } } }),
         E({ name: '모닥불 연기', pos: [3.5, 1.2, 3], look: { shape: 'none' }, body: { type: 'none' }, comps: { particles: { kind: 'smoke', rate: 6, size: 0.8 } } }),
@@ -279,6 +279,90 @@ seq = 0;
   T.hills.scenes[0].entities.forEach((e) => {
     const h = SIMR.terrainH(HILLS, e.pos[0], e.pos[2]);
     if (h > 0) { e.pos = [e.pos[0], Math.round((e.pos[1] + h) * 1000) / 1000, e.pos[2]]; }
+  });
+}
+
+/* ── 8) 무작위 던전(장비·룬워드·세트) ─────────────────────────────── */
+seq = 0;
+T.dungeon = base('dungeon', '무작위 던전', '들어갈 때마다 바뀌는 던전 세 층을 돌파한다. 적이 떨군 장비를 G 로 입고, 룬을 순서대로 박아 부문어를, 청룡 세 점으로 세트를 맞춘다.', {
+  start: 'camp', vars: { hp: 10, mp: 40, exp: 0, gold: 30, lv: 1, potion: 2, depth: 0 },
+  hud: [{ var: 'hp', label: '체력', style: 'hearts' }, { var: 'gold', label: '금' }, { var: 'depth', label: '층' }, { var: 'lv', label: '레벨' }],
+  goals: ['던전 {depth}/3 층', 'G 장비 — 룬 "해-달" 순서로 박으면 부문어', '청룡 세 점 = 세트'],
+  combat: { style: 'simple', atk: 2, hpMax: 12, potionHeal: 4, mpMax: 40, mpRegen: 3, skills: [
+    { kind: 'bolt', name: '기탄', power: 2, cd: 0.6, mp: 3 }, { kind: 'whirl', name: '회오리', power: 2, cd: 5, mp: 10 }] },
+  level: { expVar: 'exp', lvVar: 'lv', base: 30, atk: 0.12, hpVar: 'hp', hp: 1 },
+  gear: {
+    bases: [{ id: 'sword', name: '철검', slot: 'weapon', atk: 0.1, sockets: 2 }, { id: 'axe', name: '도끼', slot: 'weapon', atk: 0.16, sockets: 1 },
+      { id: 'mail', name: '사슬옷', slot: 'armor', guard: 0.08, sockets: 2 }, { id: 'robe', name: '비단옷', slot: 'armor', guard: 0.04, sockets: 3 },
+      { id: 'jade', name: '옥패', slot: 'charm', sockets: 1 }],
+    sets: [{ name: '청룡', pieces: 'axe,robe,jade', b2: 'atk 0.1, speed 0.05', b3: 'guard 0.1, gold 0.3' }],
+    runewords: [{ name: '해달', runes: '해,달', slot: 'weapon', bonus: 'atk 0.3' }, { name: '별빛', runes: '달,별,해', slot: 'armor', bonus: 'guard 0.15, speed 0.08' }]
+  },
+  scenes: [
+    { id: 'camp', name: '던전 앞 야영지', env: env({ sky: '#6b7a99', fog: 70, light: 0.85, ground: { size: 40, color: '#5b6b4a' }, music: 'calm' }), camera: { mode: 'follow', dist: 9, height: 5 },
+      entities: [
+        player({ pos: [0, 0, 6], look: { shape: 'model', model: CHAR + 'Rogue.glb', fit: 1.8 } }, { sprint: true }),
+        npc('대장장이', [-4, 0, 0], ['G 로 장비 창을 연다. 소켓에 한 번 박은 건 못 뺀다.', '룬 "해" 다음 "달" — 무기에 이 순서로 박으면 부문어가 된다.', '청룡(도끼·비단옷·옥패) 세 점을 모으면 세트 힘이 난다.'],
+          { look: { shape: 'model', model: CHAR + 'Warrior.glb', fit: 1.8, label: '대장장이' } }),
+        E({ name: '보석상', pos: [4, 0, 0], look: { shape: 'capsule', color: '#f4a261', label: '보석상' }, body: { type: 'solid', size: [0.8, 1.8, 0.8] },
+          comps: { shop: { name: '보석상', currency: 'gold', items: ['룬 해|15|rune:해|1', '룬 달|15|rune:달|1', '룬 별|25|rune:별|1', '불 보석|20|gem:불|1', '물 보석|20|gem:물|1', '포션|10|potion|1', '철검|30|gear:sword|1'] } } }),
+        E({ name: '모닥불', pos: [0, 0, 1.5], look: { shape: 'cylinder', color: '#4e342e' }, scale: [0.9, 0.2, 0.9], body: { type: 'solid' }, comps: { particles: { kind: 'fire', rate: 40 } } }),
+        E({ name: '던전 입구', pos: [0, 0, -12], look: { shape: 'torus', color: '#9b5de5', glow: true, label: '던전' }, scale: [2.4, 2.4, 2.4], body: { type: 'trigger', size: [0.8, 1, 0.4] },
+          comps: { spin: { speed: 40 }, portal: { scene: 'deep', at: '' } } }),
+        tree([-10, 0, -6]), tree([11, 0, -4], 1.2), tree([-8, 0, 10], 0.9)
+      ], events: [loseOnHp] },
+    { id: 'deep', name: '어둠 굴', env: env({ sky: '#141018', fog: 45, light: 0.6, ground: { size: 70, color: '#3b342c' }, music: 'cave' }), camera: { mode: 'top', dist: 12, height: 14, yaw: 20 },
+      entities: [
+        player({ pos: [0, 0, 0], look: { shape: 'model', model: CHAR + 'Rogue.glb', fit: 1.8 } }, { sprint: true }),
+        E({ name: '던전', pos: [0, 0, 0], look: { shape: 'none' }, body: { type: 'none' }, comps: { dungeon: { seed: 0, rooms: 7, cell: 2, grid: 28, wall: '#4a4238', height: 3, from: 'gob', foes: 2, chest: 0.35, exit: 'portal', scene: 'deep' } } }),
+        foe('도깨비', [0, 0, 0], { hp: 6, atk: 1, def: 0, aggro: 9, move: 2.3, exp: 8, gold: 3,
+          drops: ['철검|0.12|gear:sword|1|마법', '사슬옷|0.1|gear:mail|1|마법', '도끼|0.07|gear:axe:세트|1|세트', '비단옷|0.07|gear:robe:세트|1|세트', '옥패|0.07|gear:jade:세트|1|세트',
+            '룬 해|0.15|rune:해|1|보통', '룬 달|0.15|rune:달|1|보통', '룬 별|0.08|rune:별|1|마법', '불 보석|0.08|gem:불|1|마법', '금화|0.4|gold|5|보통'] },
+          { shape: 'capsule', color: '#7a5c8a' }, { id: 'gob', off: true })
+      ],
+      events: [
+        { when: { on: 'start' }, do: [{ do: 'add', var: 'depth', value: 1 }, { do: 'toast', text: '{depth}층 — 출구(보라 고리)를 찾아라', sec: 2.5 }] },
+        { when: { on: 'var', var: 'depth', op: '>=', value: '4' }, do: [{ do: 'effect', kind: 'firework', at: 'player' }, { do: 'win', text: '세 층을 돌파했다!' }] },
+        loseOnHp, { when: { on: 'levelUp' }, do: [{ do: 'perk', title: '레벨 업 — 특성 하나' }] }
+      ] }
+  ]
+});
+
+/* ── 9) 영지와 집(영지 전쟁·꾸미기·둥근 세상) ─────────────────────── */
+seq = 0;
+{
+  const castle = (id, name, pos, town, color) => E({ id, name, pos, look: { shape: 'model', model: BLD + 'House_2.glb', fit: 5, label: name }, body: { type: 'solid', size: [4, 5, 4] }, comps: { town: Object.assign({ name }, town) } });
+  T.realm = base('realm', '영지와 집', '둥근 들판의 다섯 영지를 모두 차지한다. 턴마다 수입으로 개발·징병·성벽, 출진해서 빼앗고, 적이 강하면 화친. 번 돈으로 가구를 사 집을 꾸민다(H).', {
+    start: 'land', vars: { gold: 60, towns: 0, turn: 0, chair: 0, table: 0, lamp: 0, plant: 0, hp: 5 },
+    hud: [{ var: 'gold', label: '돈' }, { var: 'towns', label: '영지' }],
+    goals: ['영지 {towns}/5', 'F 성 다스리기 · 출진', 'H 집 꾸미기'],
+    combat: { style: 'simple' },
+    graphics: { curve: 0.003 },
+    realm: { turnSec: 20 },
+    furniture: [{ icon: '🪑', name: '의자', var: 'chair', shape: 'box', color: '#b08968', w: 0.7, h: 0.9, d: 0.7 },
+      { icon: '🟫', name: '탁자', var: 'table', shape: 'box', color: '#8d6e63', w: 1.6, h: 0.8, d: 1 },
+      { icon: '🏮', name: '등', var: 'lamp', shape: 'cylinder', color: '#ffd166', w: 0.4, h: 1.6, d: 0.4 },
+      { icon: '🪴', name: '화분', var: 'plant', model: NAT + 'Bush_1.glb', w: 0.8, h: 0.9, d: 0.8 }],
+    scenes: [{ id: 'land', name: '둥근 들판', env: env({ sky: '#bde0fe', fog: 140, ground: { size: 130, color: '#8cc084' }, music: 'town' }), camera: { mode: 'follow', dist: 11, height: 6 },
+      entities: [
+        player({ pos: [0, 0, 10], rot: [0, 180, 0], look: { shape: 'model', model: CHAR + 'Monk.glb', fit: 1.8 } }, { sprint: true, speed: 8 }),
+        castle('home', '본성', [0, 0, 0], { owner: 'player', income: 15, troops: 50, wall: 2 }),
+        castle('east', '동쪽 성채', [42, 0, -20], { owner: 'enemy', income: 12, troops: 70, wall: 2, grow: 6 }),
+        castle('north', '북쪽 요새', [-10, 0, -50], { owner: 'enemy', income: 14, troops: 90, wall: 3, grow: 8 }),
+        castle('mill', '물레방아 마을', [-36, 0, -12], { owner: 'neutral', income: 10, troops: 20, wall: 1, grow: 2 }),
+        castle('ford', '나루 마을', [24, 0, 26], { owner: 'neutral', income: 8, troops: 15, wall: 1, grow: 2 }),
+        E({ name: '내 집 바닥', pos: [-14, 0, 14], look: { shape: 'box', color: '#d7ccc8', label: '내 집' }, scale: [8, 0.1, 8], body: { type: 'solid' }, comps: { room: { name: '내 집' } } }),
+        E({ name: '가구점', pos: [-8, 0, 20], look: { shape: 'capsule', color: '#e76f51', label: '가구점' }, body: { type: 'solid', size: [0.8, 1.8, 0.8] },
+          comps: { shop: { name: '가구점', currency: 'gold', items: ['의자|10|chair|1', '탁자|18|table|1', '등|14|lamp|1', '화분|8|plant|1'] } } }),
+        npc('책사', [4, 0, 8], ['턴마다 내 영지에서 돈이 들어온다(위 가운데 시계).', '성 앞에서 F — 개발로 수입을, 징병으로 병력을, 성벽으로 방어를 올린다.', '적 성채가 너무 강하면 돈을 주고 화친해 시간을 벌어라.', '중립 마을부터 차지하면 수입이 는다.'],
+          { look: { shape: 'model', model: CHAR + 'Wizard.glb', fit: 1.8, label: '책사' } }),
+        tree([14, 0, 4], 1.2), tree([-22, 0, -2]), tree([30, 0, -40], 1.3), tree([-30, 0, 30]), tree([10, 0, -30], 1.1), tree([-50, 0, -30], 1.2), tree([50, 0, 10])
+      ],
+      events: [
+        { when: { on: 'var', var: 'towns', op: '>=', value: '5' }, do: [{ do: 'effect', kind: 'firework', at: 'player' }, { do: 'win', text: '들판을 하나로 모았다!' }] },
+        { when: { on: 'townLost' }, if: [{ var: 'towns', op: '<=', value: 0 }], do: [{ do: 'lose', text: '모든 영지를 잃었다…' }] },
+        { when: { on: 'townTaken' }, do: [{ do: 'effect', kind: 'firework', at: 'other' }] }
+      ] }]
   });
 }
 

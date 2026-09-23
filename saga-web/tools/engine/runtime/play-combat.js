@@ -139,7 +139,9 @@
     function pop(text, color) {
       var d = el('div', 'pop', L, text);
       d.style.color = color || '#fff';
-      pops.push({ el: d, t: 1.4 });
+      /* 같은 때 뜬 것끼리 겹치지 않게 한 줄씩 아래로 */
+      var row = pops.filter(function (p) { return p.t > 1.0; }).length;
+      pops.push({ el: d, t: 1.4, row: row });
     }
     function burst(at, r, color, big) {
       var m = new T.Mesh(new T.SphereGeometry(1, 24, 16), new T.MeshBasicMaterial({ color: new T.Color(color || '#ffffff'), transparent: true, opacity: 0.45, depthWrite: false }));
@@ -266,7 +268,7 @@
         p.t -= dt;
         if (p.t <= 0) { p.el.remove(); return false; }
         p.el.style.opacity = Math.min(1, p.t * 2);
-        p.el.style.top = (30 - (1.4 - p.t) * 4) + '%';
+        p.el.style.top = (30 + (p.row || 0) * 5 - (1.4 - p.t) * 4) + '%';
         return true;
       });
       orbs(S.shots || [], shotMeshes, '#ffffff');

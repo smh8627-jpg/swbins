@@ -24,6 +24,7 @@ const SIM = require('./runtime/sim.js');
 require('./runtime/combat.js');   // 전투 스타일을 SIM 에 등록(검사가 스타일 이름을 안다)
 require('./runtime/systems.js');  // 시스템 컴포넌트·행동을 SIM 표에 등록(검사·편집기 칸)
 require('./runtime/basics.js');   // 기본기(스위치·문·파티클·아이템·컷신·효과·음악)
+require('./runtime/genres.js');   // 장르(장비·꾸미기·영지·던전)
 const realname = require('../content-editor/realname');
 
 const HERE = __dirname;
@@ -36,7 +37,7 @@ const PORT = +process.env.SAGA_ENGINE_PORT || 8801;
 const GAMES = ['saga-go', 'saga-forest', 'saga-story', 'saga-realm', 'saga-dungeon'];
 const LIB_DIRS = ['models', 'textures', 'audio'];
 const THREE_SRC = ['saga-forest', 'saga-go', 'saga-story', 'saga-realm', 'saga-dungeon'].map((g) => path.join(WEB, g, 'js', 'vendor', 'three.iife.js'));
-const RUNTIME_FILES = ['play.html', 'sim.js', 'combat.js', 'systems.js', 'basics.js', 'view.js', 'play.js', 'play-combat.js', 'play-systems.js', 'play-basics.js'];
+const RUNTIME_FILES = ['play.html', 'sim.js', 'combat.js', 'systems.js', 'basics.js', 'genres.js', 'view.js', 'play.js', 'play-combat.js', 'play-systems.js', 'play-basics.js', 'play-genres.js'];
 const MAX_UPLOAD = 30 * 1024 * 1024;
 
 const MIME = {

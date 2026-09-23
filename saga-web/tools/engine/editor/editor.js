@@ -464,6 +464,12 @@
     { n: '⛲ 분수', e: { name: '분수', look: { shape: 'cylinder', color: '#b0bec5' }, scale: [2, 0.5, 2], body: { type: 'solid' }, comps: { particles: { kind: 'fountain', rate: 60 } } } },
     { n: '✨ 반짝이', e: { name: '반짝이', look: { shape: 'none' }, body: { type: 'none' }, comps: { particles: { kind: 'sparkle', rate: 12 } } } },
     { n: '🍂 낙엽', e: { name: '낙엽', look: { shape: 'none' }, body: { type: 'none' }, comps: { particles: { kind: 'leaves', rate: 6 } } } },
+    { cap: '장르(사가국지·사가블로·사가의숲)' },
+    { n: '🏯 영지(내 것)', e: { name: '내 성', look: { shape: 'box', color: '#8d99ae', label: '내 성' }, scale: [3, 2.5, 3], body: { type: 'solid' }, comps: { town: { owner: 'player', income: 15, troops: 40, wall: 1 } } } },
+    { n: '🏯 영지(적)', e: { name: '적 성', look: { shape: 'box', color: '#6d4c41', label: '적 성' }, scale: [3, 2.5, 3], body: { type: 'solid' }, comps: { town: { owner: 'enemy', income: 10, troops: 60, wall: 2, grow: 6 } } } },
+    { n: '🏯 영지(중립)', e: { name: '마을', look: { shape: 'box', color: '#bcaaa4', label: '마을' }, scale: [2.5, 2, 2.5], body: { type: 'solid' }, comps: { town: { owner: 'neutral', troops: 20 } } } },
+    { n: '🏠 꾸미기 방', e: { name: '내 방 바닥', look: { shape: 'box', color: '#d7ccc8' }, scale: [8, 0.1, 8], body: { type: 'solid' }, comps: { room: { name: '내 방' } } } },
+    { n: '🗺 무작위 던전', e: { name: '던전', look: { shape: 'none', label: '던전' }, body: { type: 'none' }, comps: { dungeon: { rooms: 7, foes: 2, chest: 0.4 } } } },
     { n: '🎬 컷신 표시점', e: { name: '컷신 자리', tag: 'cine', look: { shape: 'none' }, body: { type: 'trigger', size: [3, 2, 3] },
       events: [{ when: { on: 'touch', a: 'player', b: 'self' }, once: true, do: [{ do: 'camera', target: 'self', sec: 2.5, dist: 7, height: 3, bars: true }, { do: 'say', name: '', text: '여기서 무슨 일이 있었던 걸까…' }] }] } }
   ];
@@ -977,7 +983,9 @@
   $('#b-settings').onclick = function () {
     var d = SIM.clone({ title: proj.title, desc: proj.desc || '', vars: proj.vars || {}, hud: proj.hud || [], goals: proj.goals || ['', '', ''],
       combat: proj.combat || { style: 'simple' }, world: proj.world || { clock: 'off' }, graphics: proj.graphics || {}, feel: proj.feel !== false,
-      level: proj.level || null, quests: proj.quests || [], items: proj.items || [] });
+      level: proj.level || null, quests: proj.quests || [], items: proj.items || [], furniture: proj.furniture || [],
+      gear: proj.gear || {}, realm: proj.realm || {} });
+    d.gear.bases = d.gear.bases || []; d.gear.sets = d.gear.sets || []; d.gear.runewords = d.gear.runewords || [];
     d.combat.party = d.combat.party || []; d.combat.skills = d.combat.skills || [];
     while (d.goals.length < 3) { d.goals.push(''); }
     var varRows = h('tbody'), hudRows = h('tbody');
@@ -1033,7 +1041,8 @@
       .concat(sec('그래픽·손맛'), [
         row('셀 셰이딩', h('label', {}, [chkIn(G.toon, function (v) { G.toon = v; }), ' 툰(3단 명암)'])),
         row('외곽선', h('label', {}, [chkIn(G.outline, function (v) { G.outline = v; }), ' 검은 테두리'])),
-        row('손맛', h('label', {}, [chkIn(d.feel, function (v) { d.feel = v; }), ' 히트스톱·피격 플래시']))
+        row('손맛', h('label', {}, [chkIn(d.feel, function (v) { d.feel = v; }), ' 히트스톱·피격 플래시'])),
+        row('둥근 세상', numIn(G.curve || 0, function (v) { G.curve = v; }, 0.001), '멀수록 땅이 아래로 굽는다(사가의숲 식). 0 끔 · 0.002 살짝 · 0.005 크게 — 그림만 휘고 규칙은 평평')
       ])
       .concat(sec('레벨', '경험치 변수가 차면 레벨 변수가 오르고 공격 배율·체력이 는다(파티 스타일은 파티 칸 레벨을 따로 쓴다).'), [
         row('켜기', chkIn(lvOn, function (v) { lvOn = v; })),
@@ -1048,6 +1057,21 @@
         tableEd(d.items, [['icon', '아이콘(이모지)'], ['name', '이름'], ['var', '변수', 'var'], ['desc', '설명'], ['useVar', '쓰면 바뀔 변수', 'var'], ['useAmt', '양', 'n']],
           { icon: '🍎', name: '사과', var: 'apple', desc: '체력을 조금 채운다', useVar: 'hp', useAmt: 1 })
       ])
+      .concat(sec('장비(사가블로 식)', '실행 중 G. 변수 "gear:<밑감 id>[:등급]" 을 더하면(줍기·상점·노획물·행동 "장비 주기") 접사를 굴려 가방에. 보석은 변수 gem:불·물·얼음·번개·바람, 룬은 rune:<글자>. 부위 weapon 무기 · armor 갑주 · charm 부적.'), [
+        tableEd(d.gear.bases, [['id', 'id'], ['name', '이름'], ['slot', '부위', 'sel:weapon|armor|charm'], ['atk', '공격(0.1=10%)', 'n'], ['guard', '받는 피해 감소', 'n'], ['sockets', '소켓 최대', 'n']],
+          { id: 'sword', name: '철검', slot: 'weapon', atk: 0.1, guard: 0, sockets: 2 }),
+        h('div', { class: 'hint', text: '세트 — 밑감 id 를 쉼표로(부위가 겹치지 않게). 효과는 "atk 0.1, speed 0.05" 식(atk·guard·speed·exp·gold·stamina). 2점·3점 누적.' }),
+        tableEd(d.gear.sets, [['name', '세트 이름'], ['pieces', '밑감(쉼표)'], ['b2', '2점 효과'], ['b3', '3점 효과']], { name: '새 세트', pieces: '', b2: 'atk 0.1', b3: 'guard 0.1' }),
+        h('div', { class: 'hint', text: '룬워드(부문어) — 소켓을 다 채운 룬 글자가 이 순서와 같으면 이름이 붙고 효과가 난다.' }),
+        tableEd(d.gear.runewords, [['name', '이름'], ['runes', '룬 순서(쉼표)'], ['slot', '부위', 'sel:|weapon|armor|charm'], ['bonus', '효과']], { name: '새 부문어', runes: '해,달', slot: 'weapon', bonus: 'atk 0.25' })
+      ])
+      .concat(sec('가구(꾸미기)', '"꾸미기 방" 컴포넌트가 있는 개체 안에서 H. 개수는 변수(상점·줍기로 얻는다). 모델을 비우면 도형.'), [
+        tableEd(d.furniture, [['icon', '아이콘'], ['name', '이름'], ['var', '변수', 'var'], ['shape', '도형', 'sel:box|cylinder|sphere|cone'], ['color', '색', 'color'], ['model', '모델(lib:…)'], ['w', '폭', 'n'], ['h', '높이', 'n'], ['d', '깊이', 'n']],
+          { icon: '🪑', name: '의자', var: 'chair', shape: 'box', color: '#c8a27a', model: '', w: 0.8, h: 1, d: 0.8 })
+      ])
+      .concat(sec('영지(사가국지 식)', '"영지" 컴포넌트를 개체에 붙인다. 턴마다 내 영지 수입이 돈 변수로, 적 영지는 병력이 늘고 약한 내 영지를 친다. 변수 towns(내 영지 수)·turn.'), [
+        numRow('턴 길이(초)', d.realm, 'turnSec', 30), row('돈 변수', txtIn(d.realm.goldVar || 'gold', function (v) { d.realm.goldVar = v; }))
+      ])
       .concat([h('div', { class: 'foot' }, [h('button', { text: '취소', onclick: closeModal }), h('button', { class: 'primary', text: '적용', onclick: function () {
         edit(function () {
           proj.title = ti.value; proj.desc = d.desc = de.value; proj.vars = d.vars; proj.hud = d.hud;
@@ -1056,7 +1080,8 @@
           Object.keys(cb).forEach(function (k) { if (cb[k] === undefined || cb[k] === '') { delete cb[k]; } });
           proj.combat = cb;
           if (W.clock && W.clock !== 'off') { proj.world = W; } else { delete proj.world; }
-          if (G.toon || G.outline) { proj.graphics = G; } else { delete proj.graphics; }
+          if (!G.curve) { delete G.curve; }
+          if (G.toon || G.outline || G.curve) { proj.graphics = G; } else { delete proj.graphics; }
           if (d.feel) { delete proj.feel; } else { proj.feel = false; }
           if (lvOn) { proj.level = lv; } else { delete proj.level; }
           d.quests.forEach(function (q) { if (q.value !== '' && isFinite(+q.value)) { q.value = +q.value; } });
@@ -1064,6 +1089,12 @@
           d.items = d.items.filter(function (it) { return it && it.var; });
           d.items.forEach(function (it) { if (!(it.var in proj.vars)) { proj.vars[it.var] = 0; } });
           if (d.items.length) { proj.items = d.items; } else { delete proj.items; }
+          d.furniture = d.furniture.filter(function (f) { return f && f.var; });
+          d.furniture.forEach(function (f) { if (!(f.var in proj.vars)) { proj.vars[f.var] = 0; } if (!f.model) { delete f.model; } });
+          if (d.furniture.length) { proj.furniture = d.furniture; } else { delete proj.furniture; }
+          ['bases', 'sets', 'runewords'].forEach(function (k) { d.gear[k] = d.gear[k].filter(function (x) { return x && (x.id || x.name); }); if (!d.gear[k].length) { delete d.gear[k]; } });
+          if (d.gear.bases) { proj.gear = d.gear; if (!('gold' in proj.vars)) { proj.vars.gold = 0; } } else { delete proj.gear; }
+          if (d.realm.turnSec || (d.realm.goldVar && d.realm.goldVar !== 'gold')) { proj.realm = d.realm; } else { delete proj.realm; }
           /* 스타일이 쓰는 변수는 저절로 만든다 */
           ['hp', 'exp', 'gold'].forEach(function (k) { if (cb.style !== 'simple' && !(k in proj.vars)) { proj.vars[k] = k === 'hp' ? 6 : 0; } });
           if (cb.skills && !('mp' in proj.vars)) { proj.vars.mp = cb.mpMax || 50; }

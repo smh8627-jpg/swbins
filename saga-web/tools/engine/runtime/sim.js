@@ -247,15 +247,29 @@
     ((p.combat || {}).party || []).forEach(function (m) { out.push((m && m.name) || ''); });
     (p.hud || []).forEach(function (h) { out.push(h.label || ''); });
     (p.items || []).forEach(function (it) { if (it && typeof it === 'object') { out.push(it.name || '', it.desc || ''); } else { out.push(String(it || '')); } });
+    (p.furniture || []).forEach(function (it) { out.push((it && it.name) || ''); });
+    var gr = p.gear || {};
+    (gr.bases || []).forEach(function (b) { out.push((b && b.name) || ''); });
+    (gr.sets || []).forEach(function (b) { out.push((b && b.name) || ''); });
+    (gr.runewords || []).forEach(function (b) { out.push((b && b.name) || ''); });
+    (p.quests || []).forEach(function (q) { out.push((q && q.name) || '', (q && q.desc) || ''); });
+    /* 표의 글자 칸(s·lines) — 컴포넌트·행동을 새로 붙여도 여기서 저절로 본다 */
+    function fields(tbl, name, obj) {
+      var d = tbl[name]; if (!d || !obj) { return; }
+      for (var k in d.f) {
+        var t = d.f[k][0], v = obj[k];
+        if (t === 's' && typeof v === 'string' && !/^#[0-9a-f]{3,8}$/i.test(v)) { out.push(v); }
+        if (t === 'lines' && Array.isArray(v)) { out = out.concat(v.map(String)); }
+      }
+    }
     (p.scenes || []).forEach(function (s) {
       out.push(s.name || '');
-      function evs(list) { (list || []).forEach(function (ev) { (ev.do || []).forEach(function (a) { out.push(a.text || '', a.name || ''); }); }); }
+      function evs(list) { (list || []).forEach(function (ev) { (ev.do || []).forEach(function (a) { out.push(a.text || '', a.name || ''); fields(DO, a.do, a); }); }); }
       evs(s.events);
       (s.entities || []).forEach(function (e) {
         out.push(e.name || '', (e.look && e.look.label) || '');
         var c = e.comps || {};
-        if (c.talk) { out.push(c.talk.name || ''); out = out.concat(c.talk.lines || []); }
-        if (c.goal) { out.push(c.goal.text || ''); }
+        for (var ck in c) { fields(COMP, ck, c[ck]); }
         evs(e.events);
       });
     });
@@ -715,7 +729,7 @@
       });
       if (npc || fired) { return; }
       /* 3) 공격 */
-      var dmg = num(c.attack, 0);
+      var dmg = num(c.attack, 0) * (S.mods.atk || 1);
       if (dmg <= 0 || plugs.some(function (g) { return g.sysName === 'combat'; })) { return; }
       pl.act = 0.25;
       fx({ type: 'swing' });

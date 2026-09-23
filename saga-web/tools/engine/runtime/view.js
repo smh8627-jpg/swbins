@@ -18,8 +18,8 @@
   var T = root.THREE;
   var base = { lib: '/lib/', proj: '' };
   /* 그래픽 방식(프로젝트 graphics) — toon: 셀 셰이딩(3단 명암) · outline: 뒷면 외곽선 · 둘 다 saga-godot cel_toon 을 흉내 */
-  var gstyle = { toon: false, outline: false };
-  function setStyle(o) { gstyle.toon = !!(o && o.toon); gstyle.outline = !!(o && o.outline); }
+  var gstyle = { toon: false, outline: false, curve: 0 };
+  function setStyle(o) { gstyle.toon = !!(o && o.toon); gstyle.outline = !!(o && o.outline); gstyle.curve = +(o && o.curve) || 0; }
   var gradTex = null;
   function gradient() {
     if (gradTex) { return gradTex; }
@@ -98,8 +98,9 @@
       ground.userData.ground = true;
       g.add(ground);
       /* 언덕(env.ground.hills) — 규칙과 같은 높이 함수로 판을 휜다. 비탈은 흙빛, 높은 곳은 밝게 */
+      /* 둥근 세상(graphics.curve)은 정점마다 휘므로 평평한 땅도 촘촘한 판이어야 같이 굽는다 */
       var hl = e.ground.hills, SIM = root.SagaSim;
-      if (hl && +hl.height > 0 && SIM && SIM.terrainH) {
+      if (((hl && +hl.height > 0) || gstyle.curve > 0) && SIM && SIM.terrainH) {
         var seg = Math.min(160, Math.max(24, Math.round(size / 0.75)));
         var pg = new T.PlaneGeometry(size, size, seg, seg);
         pg.rotateX(-Math.PI / 2);
@@ -108,7 +109,7 @@
         pg.computeVertexNormals();
         var nrm = pg.attributes.normal, base = new T.Color(e.ground.color || '#7fb069'), dirt = new T.Color('#8a7355'), cc = new T.Color();
         for (vi = 0; vi < pa.count; vi++) {
-          var slope = 1 - nrm.getY(vi), hk = Math.min(1, pa.getY(vi) / (+hl.height || 1));
+          var slope = 1 - nrm.getY(vi), hk = Math.min(1, pa.getY(vi) / ((hl && +hl.height) || 1));
           cc.copy(base).lerp(dirt, Math.min(1, Math.max(0, (slope - 0.12) * 3))).multiplyScalar(0.92 + hk * 0.18);
           cols[vi * 3] = cc.r; cols[vi * 3 + 1] = cc.g; cols[vi * 3 + 2] = cc.b;
         }
