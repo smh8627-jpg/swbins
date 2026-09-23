@@ -1,0 +1,22 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://games/saga_go/layout/layout_walk.gd" id="1"]
+[ext_resource type="PackedScene" path="res://games/_generated/hebei_layout.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://games/saga_go/player/Player.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://games/saga_go/ui/MobileHUD.tscn" id="4"]
+[ext_resource type="Environment" path="res://assets/environment/env_pc.tres" id="5"]
+[ext_resource type="Script" path="res://games/saga_go/world/environment_profile.gd" id="6"]
+
+[node name="LayoutWalk" type="Node3D"]
+script = ExtResource("1")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = ExtResource("5")
+script = ExtResource("6")
+
+[node name="Layout" parent="." instance=ExtResource("2")]
+
+[node name="Player" parent="." instance=ExtResource("3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+
+[node name="MobileHUD" parent="." instance=ExtResource("4")]

@@ -25,4 +25,17 @@ node tools/scene-layout/layout.mjs --kinds saga-unity/tools/layout/kinds.json --
   `jitter`·`scale`. 경로는 그 트랙에 **실제 있는 파일만** — 없는 경로는 조립 때 건너뛰고 이름을 찍는다.
 - 조립 스크립트는 **새 씬 하나만** 쓴다(Unity 는 바닥 재질 `Assets/Art/Generated/Layout/Ground_*.mat` 도). 기존 씬·임포트 설정은 안 건드린다.
   Unity 는 z 를 뒤집는다(+z 북쪽).
-- 게임 판정·NPC 배선은 하지 않는다 — 보기용 조명·카메라와 명소 표식까지만. 실제 게임 씬에 쓰려면 그 트랙 PLAN 규칙(§8-1)대로 따로 배선한다.
+- 조립 씬 자체엔 게임 판정·NPC 배선을 넣지 않는다 — 보기용 조명·카메라와 명소 표식까지만(다시 조립하면 덮이니까). 배선은 트랙마다 **그 씬을 인스턴스로 품는 래퍼**가 한다.
+  바닥 판엔 메타 `kind`, 루트엔 `layout_cell` 이 남아 래퍼가 읽는다. Godot 은 다시 조립할 때마다 노드 `unique_id` 가 새로 뽑혀 씬 파일 diff 가 크게 난다(내용은 같다).
+
+## Godot — 걸어 다니는 래퍼 `games/saga_go/layout/LayoutWalk.tscn`
+
+```
+"$GODOT" --path saga-godot res://games/saga_go/layout/LayoutWalk.tscn                                   # 걸어 보기
+SAGA_LAYOUT_PROBE=1 "$GODOT" --headless --path saga-godot res://games/saga_go/layout/LayoutWalk.tscn   # 자동 걷기 점검
+```
+
+- `hebei_layout.tscn` + GO 의 `Player.tscn`(걷기·카메라) + `MobileHUD.tscn`(조이스틱·토스트). `layout_walk.gd` 가 실행 시점에
+  바닥 충돌·가장자리 벽·**물 칸 막기**(다리 놓인 칸만 열림, 산은 걷는다)·명소마다 발견 판정(Area3D)·이름표(Label3D, 숨은 명소는 찾은 뒤)를 붙인다.
+- 발견은 이 씬 안에서만 센다(`📍 명소 n/13`) — GO 도감(`CodexState`)·세이브엔 안 넣고 HUD 저장 버튼도 뗀다. 나무·바위는 부딪히지 않는다.
+- 점검(`tools/probe_layout_walk.gd`)은 바닥에 서기 · 강가에서 막힘 · 다리로 건넘 · 데려가기 전엔 다 안 찾아짐 · 명소 13/13 · 숨은 이름표 여섯 가지를 보고 `LAYOUT_PROBE_DONE fails=0 …` 을 찍는다.

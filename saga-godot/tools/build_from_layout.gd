@@ -5,7 +5,7 @@ extends SceneTree
 ##       res://tools/layout/out/hebei.json res://games/_generated/hebei_layout.tscn
 ##
 ## 바닥은 칸마다 PlaneMesh(지형 색), 물건은 에셋 PackedScene 을 인스턴스로(씬 파일엔 경로만 남는다),
-## 명소는 Marker3D(메타 place_name·hidden). 보기용 조명·카메라를 같이 둔다. 없는 에셋은 건너뛰고 이름을 찍는다.
+## 명소는 Marker3D(메타 place_name·hidden), 바닥 판은 메타 kind. 보기용 조명·카메라를 같이 둔다. 없는 에셋은 건너뛰고 이름을 찍는다.
 
 func _init() -> void:
 	var args := OS.get_cmdline_user_args()
@@ -29,6 +29,7 @@ func _init() -> void:
 	root.name = "Layout_" + str(data["region"])
 	root.set_meta("layout_source", str(data["source"]))
 	root.set_meta("layout_seed", int(data["seed"]))
+	root.set_meta("layout_cell", float(data["cell"]))
 	var cell := float(data["cell"])
 
 	# 바닥 — 지형마다 재질 하나, 칸마다 판 하나
@@ -52,6 +53,7 @@ func _init() -> void:
 		mi.material_override = mats[k]
 		mi.position = Vector3(float(g["x"]), 0.0, float(g["z"]))
 		mi.name = "g_%s_%s" % [str(int(g["tx"])), str(int(g["ty"]))]
+		mi.set_meta("kind", k)  # 걸어 다니는 래퍼(games/saga_go/layout/layout_walk.gd)가 물 칸을 막을 때 읽는다
 		ground.add_child(mi)
 		mi.owner = root
 
