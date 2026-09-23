@@ -41,6 +41,9 @@
   .modelrow.selected .tag { background: rgba(255,255,255,.2); color: #fff; }
   .modelrow .tag.editable { color: var(--ok); }
   .modelrow .tag.complex { color: var(--warn); }
+  #t_text { width: 100%; min-height: 360px; font: 12px/1.5 Consolas, "D2Coding", monospace; tab-size: 2; }
+  .tnote { color: var(--sub); font-size: 11.5px; margin: 4px 0 10px; }
+  .tnote.warn { color: var(--warn); }
   #previewFrame {
     width: 100%; height: 320px; border: 1px solid var(--line); border-radius: 8px; background: #22262c;
   }
@@ -119,6 +122,7 @@
     <h1>saga-web 콘텐츠 에디터</h1>
     <button id="modeContent" class="tabbtn">콘텐츠(인물·펫)</button>
     <button id="modeModels" class="tabbtn">3D 자산</button>
+    <button id="modeTables" class="tabbtn">판별 표(data-*.js)</button>
     <select id="gameSelect" hidden></select>
     <input type="file" id="uploadInput" accept=".fbx,.glb,.gltf,.webp,.png,.jpg,.jpeg" hidden>
     <button id="btnUpload" hidden>업로드(FBX·GLB·이미지)</button>
@@ -141,7 +145,10 @@ const API = '';
 let content = null;   // { heroes, pets, bios, eras, petGroups }
 let selected = null;  // { kind: 'hero'|'pet', id, isNew }
 let dirty = false;
-let mode = 'content'; // 'content' | 'models'
+let mode = 'content'; // 'content' | 'models' | 'tables'
+let tablesList = null;     // [{game,file,name,count}]
+let tableCache = {};       // 'game|file|name' → {entries, exempt}
+let tableSel = null;       // {game,file,name,index}
 const GAMES = ['saga-go', 'saga-dungeon', 'saga-forest', 'saga-story', 'saga-realm'];
 let modelsGame = 'saga-dungeon';
 let modelsData = null;   // { entries, files }
@@ -196,11 +203,13 @@ function matchesSearch(item, q) {
 }
 
 function renderTree() {
+  if (mode === 'tables') return renderTablesTree();
   if (mode === 'models') return renderModelsTree();
   return renderContentTree();
 }
 
 function renderInspector() {
+  if (mode === 'tables') return renderTablesInspector();
   if (mode === 'models') return renderModelsInspector();
   return renderContentInspector();
 }
@@ -598,14 +607,109 @@ async function uploadFile(file) {
   renderModelsInspector();
 }
 
+/* ── 판별 표 ─────────────────────────────────────────────
+   각 판 js/data-*.js 의 `var NAME = [ {…} ]` 배열을 항목 하나씩 원문 그대로 고친다.
+   서버가 구문·동시 수정·실명을 확인하고 그 구간만 바꿔 쓴다(그 판 한 벌, sw.js VERSION 자동 올림). */
+async function loadTables() {
+  const r = await fetch(API + '/api/tables');
+  tablesList = (await r.json()).tables || [];
+}
+
+async function loadTable(game, file, name, force) {
+  const k = game + '|' + file + '|' + name;
+  if (!tableCache[k] || force) {
+    const r = await fetch(API + '/api/table?game=' + encodeURIComponent(game) + '&file=' + encodeURIComponent(file) + '&name=' + encodeURIComponent(name));
+    tableCache[k] = await r.json();
+  }
+  return tableCache[k];
+}
+
+function renderTablesTree() {
+  treeScroll.innerHTML = '';
+  if (!tablesList) { treeScroll.textContent = '불러오는 중…'; loadTables().then(renderTablesTree); return; }
+  const q = el('#searchInput').value.trim().toLowerCase();
+  GAMES.forEach((game) => {
+    const mine = tablesList.filter((t) => t.game === game);
+    if (!mine.length) return;
+    const root = document.createElement('div');
+    root.className = 'root-node';
+    const head = document.createElement('div');
+    head.className = 'root-label';
+    head.innerHTML = '<span>▾ ' + game + ' (' + mine.length + '표)</span>';
+    const body = document.createElement('div');
+    head.onclick = () => { body.style.display = body.style.display === 'none' ? '' : 'none'; };
+    root.appendChild(head);
+    mine.forEach((t) => {
+      const k = game + '|' + t.file + '|' + t.name;
+      const cached = tableCache[k];
+      const entries = cached && cached.entries ? cached.entries.filter((e) => !q || (e.text || '').toLowerCase().includes(q)) : null;
+      if (q && cached && !entries.length) return;
+      const g = document.createElement('div');
+      g.className = 'group-label';
+      g.textContent = (cached ? '▾ ' : '▸ ') + t.file.replace(/\.js$/, '') + ' · ' + t.name + ' (' + t.count + ')';
+      const gb = document.createElement('div');
+      g.onclick = async () => { await loadTable(game, t.file, t.name); renderTablesTree(); };
+      body.appendChild(g);
+      (entries || []).forEach((e) => {
+        const leaf = document.createElement('div');
+        leaf.className = 'leaf';
+        if (tableSel && tableSel.game === game && tableSel.file === t.file && tableSel.name === t.name && tableSel.index === e.index) leaf.classList.add('selected');
+        leaf.innerHTML = '<span>' + escapeHtml(e.label || e.id || ('#' + e.index)) + '</span><span class="lid">' + escapeHtml(e.id || ('#' + e.index)) + '</span>';
+        leaf.onclick = () => {
+          if (dirty && !confirm('저장하지 않은 변경사항이 있습니다. 버리고 이동할까요?')) return;
+          tableSel = { game, file: t.file, name: t.name, index: e.index };
+          dirty = false; renderTablesTree(); renderTablesInspector();
+        };
+        gb.appendChild(leaf);
+      });
+      body.appendChild(gb);
+    });
+    root.appendChild(body);
+    treeScroll.appendChild(root);
+  });
+}
+
+function renderTablesInspector() {
+  if (!tableSel) {
+    inspector.className = 'empty';
+    inspector.textContent = '왼쪽에서 판 → 표를 펼쳐 항목을 고르세요. 그 판 한 벌만 고칩니다(data.js 다섯 벌 도감은 "콘텐츠" 탭).';
+    return;
+  }
+  const t = tableCache[tableSel.game + '|' + tableSel.file + '|' + tableSel.name];
+  const e = t && t.entries[tableSel.index];
+  if (!e) { inspector.className = 'empty'; inspector.textContent = '항목을 못 찾음 — 새로고침'; return; }
+  inspector.className = '';
+  let html = '<h2>' + escapeHtml(tableSel.game + ' / ' + tableSel.file + ' / ' + tableSel.name + '[' + e.index + ']') + '</h2>';
+  html += '<div class="tnote">원문 그대로 고칩니다. 키·id 는 세이브·진단이 물고 있을 수 있어 바꾸지 않는 편이 안전합니다. ' +
+    '저장하면 서버가 ① 그새 바뀌지 않았는지 ② 항목·파일 구문 ③ 실명을 확인한 뒤 이 구간만 바꿔 쓰고, 이 판 sw.js VERSION 을 올립니다.</div>';
+  if (t.exempt) html += '<div class="tnote warn">이 파일은 실명 가드 예외(역사 퀴즈)입니다.</div>';
+  html += '<textarea id="t_text" spellcheck="false">' + escapeHtml(e.text) + '</textarea>';
+  html += '<div id="insp-actions"><button class="primary" id="btnTSave">저장</button><button id="btnTRevert">되돌리기</button></div>';
+  inspector.innerHTML = html;
+  el('#t_text').oninput = () => { dirty = true; };
+  el('#btnTRevert').onclick = () => { dirty = false; renderTablesInspector(); };
+  el('#btnTSave').onclick = async () => {
+    const body = { ...tableSel, oldText: e.text, newText: el('#t_text').value };
+    const r = await fetch(API + '/api/table/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const out = await r.json();
+    const label = tableSel.game + '/' + tableSel.file + ' ' + tableSel.name + '[' + e.index + ']';
+    if (out.error) { log(label + ' — ' + out.error, false); alert(out.error); return; }
+    log(label + ' 저장' + (out.sw && out.sw.version ? ' · sw.js ' + out.sw.version + (out.sw.already ? '(이미 올림)' : '') : ''), true);
+    dirty = false;
+    await loadTable(tableSel.game, tableSel.file, tableSel.name, true);
+    renderTablesTree(); renderTablesInspector();
+  };
+}
+
 function setMode(next) {
   mode = next;
   el('#modeContent').classList.toggle('active', mode === 'content');
   el('#modeModels').classList.toggle('active', mode === 'models');
+  el('#modeTables').classList.toggle('active', mode === 'tables');
   el('#gameSelect').hidden = mode !== 'models';
   el('#btnUpload').hidden = mode !== 'models';
-  el('#syncBadge').hidden = mode === 'models';
-  el('#searchInput').placeholder = mode === 'models' ? '키·파일명으로 찾기' : '이름·id로 찾기';
+  el('#syncBadge').hidden = mode !== 'content';
+  el('#searchInput').placeholder = mode === 'models' ? '키·파일명으로 찾기' : mode === 'tables' ? '펼친 표 안에서 글자로 찾기' : '이름·id로 찾기';
   if (mode === 'models' && !modelsData) loadModels();
   renderTree();
   renderInspector();
@@ -613,6 +717,7 @@ function setMode(next) {
 
 el('#modeContent').onclick = () => setMode('content');
 el('#modeModels').onclick = () => setMode('models');
+el('#modeTables').onclick = () => setMode('tables');
 el('#gameSelect').innerHTML = GAMES.map((g) => '<option value="' + g + '"' + (g === modelsGame ? ' selected' : '') + '>' + g + '</option>').join('');
 el('#gameSelect').onchange = async (e) => {
   modelsGame = e.target.value;
@@ -630,6 +735,7 @@ el('#uploadInput').onchange = async (e) => {
 };
 
 el('#btnRefresh').onclick = async () => {
+  if (mode === 'tables') { tablesList = null; tableCache = {}; tableSel = null; dirty = false; renderTree(); renderInspector(); return; }
   if (mode === 'models') { await loadModels(); renderInspector(); return; }
   await loadContent(); await loadStatus(); renderInspector();
 };

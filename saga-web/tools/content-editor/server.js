@@ -18,6 +18,9 @@ const path = require('path');
 const crypto = require('crypto');
 const fmt = require('./datajs-format');
 const a3d = require('./asset3d-format');
+const realname = require('./realname');
+const tables = require('./tables');
+const swbump = require('./swbump');
 
 const ROOT = path.join(__dirname, '..', '..'); // saga-web/
 const GAMES = ['saga-go', 'saga-dungeon', 'saga-forest', 'saga-story', 'saga-realm'];
@@ -187,7 +190,7 @@ function applyAcrossGames({ oldText, newText, anchorText }) {
       next = text.slice(0, idx) + newText + text.slice(idx + oldText.length);
     }
     fs.writeFileSync(p, next, 'utf8');
-    results[game] = { ok: true };
+    results[game] = { ok: true, sw: swbump.bump(gameRoot(game), game) };
   });
   return results;
 }
@@ -330,6 +333,8 @@ function sendJson(res, code, obj) {
 
 function handleHeroSave(body) {
   const fields = body.fields;
+  const g = realname.guard('인물 ' + fields.id, fields.name, fields.hanja, fields.quote, fields.faction);
+  if (g) return { error: g };
   const isNew = !!body.isNew;
   const canonicalText = readGame(CANONICAL);
   const p = fmt.parseArray(canonicalText, 'HEROES');
@@ -346,6 +351,8 @@ function handleHeroSave(body) {
 
 function handlePetSave(body) {
   const fields = body.fields;
+  const g = realname.guard('펫 ' + fields.id, fields.name, fields.desc);
+  if (g) return { error: g };
   const isNew = !!body.isNew;
   const canonicalText = readGame(CANONICAL);
   const p = fmt.parseArray(canonicalText, 'PETS');
@@ -363,6 +370,8 @@ function handlePetSave(body) {
 function handleBioSave(body) {
   const id = body.id;
   const text = body.text || '';
+  const g = realname.guard('열전 ' + id, text);
+  if (g) return { error: g };
   const canonicalText = readGame(CANONICAL);
   const p = fmt.parseObjectOfStrings(canonicalText, 'BIOS');
   const existing = p.entries.find((e) => e.key === id);
@@ -455,6 +464,15 @@ const server = http.createServer((req, res) => {
     }
     if (req.method === 'POST' && u.pathname === '/api/bio/save') {
       return readBody(req).then((body) => sendJson(res, 200, handleBioSave(body)));
+    }
+    if (req.method === 'GET' && u.pathname === '/api/tables') {
+      return sendJson(res, 200, { tables: tables.list(ROOT, GAMES) });
+    }
+    if (req.method === 'GET' && u.pathname === '/api/table') {
+      return sendJson(res, 200, tables.read(ROOT, GAMES, u.searchParams.get('game'), u.searchParams.get('file'), u.searchParams.get('name')));
+    }
+    if (req.method === 'POST' && u.pathname === '/api/table/save') {
+      return readBody(req).then((body) => sendJson(res, 200, tables.save(ROOT, GAMES, body, (g) => swbump.bump(gameRoot(g), g))));
     }
     if (req.method === 'POST' && u.pathname === '/api/delete') {
       return readBody(req).then((body) => sendJson(res, 200, handleDelete(body.kind, body.id)));
