@@ -8283,3 +8283,21 @@ PROJECT_STATE.md` 참고. 요약:
 - 프로브(`-s`, GLBUtils 직접): 병합 결과 나무 표면 2·크기 4.31×7.26×4.58, 꽃 2.068·2.419m — 코드 배율 주석의 trimesh 실측고(잎·꽃 포함 전체)와 일치하므로 배율은 그대로가 맞다.
 - `godot_regress.sh` REGRESS OK — **다섯 씬 md5 전부 불변**(읽는 파일이 같고 병합은 로그를 안 남김, 09-23 흰 바위 항목의 "md5 불변 ≠ 무효" 그대로). 재질 감사 0, `.import`/`project.godot` 잡음 없음.
 - 나무 변종(CommonTree_2~5 등) 섞기는 이 버그가 먼저라 보류 — 사용자가 잎 달린 마을 숲을 먼저 봐야 변종 판단이 의미 있다.
+
+## 글자 지도 조립 씬을 걸어 다니게 — LayoutWalk 래퍼 (2026-09-23, 새 세션, "게임툴 이어 해줘")
+
+- `tools/scene-layout/`(같은 날 앞서 신설)가 만든 `games/_generated/hebei_layout.tscn`은 보기용(조명·카메라만)이었다. 걸어 다니는 게임 씬으로 배선.
+- `games/saga_go/layout/LayoutWalk.tscn`+`layout_walk.gd` — 생성 씬을 자식으로 인스턴스해 품는 래퍼. 생성 씬 자체는 재조립 때 덮이니 게임 코드를 넣지 않고, 기존 GO `Player.tscn`(걷기·카메라)·`MobileHUD.tscn`을 그대로 재사용.
+  붙이는 것: 바닥 충돌+가장자리 벽 · 물 칸 막기(다리 칸만 열림, TestVillage "강은 못 걷는다"와 같은 규칙, 단 **산은 안 막음** — 굴·폭포 명소가 산 칸 안이라) · 명소 13곳 발견 판정(`landmarks_builder`의 Area3D+"player" 그룹 방식 재사용)+Label3D 이름표(숨은 넷은 찾은 뒤 표시)+토스트.
+  **발견은 이 씬 안에서만 센다** — GO 도감(`CodexState`)엔 안 넣음(명소 id가 도감 43칸에 없어 도장 찍으면 TestVillage 세이브·도감 총계가 어긋난다).
+- `tools/build_from_layout.gd`: 바닥 판에 지형 종류(`kind`), 루트에 칸 크기(`layout_cell`)를 남기도록 수정 — LayoutWalk가 읽는다. `hebei_layout.tscn` 재조립(바닥 441·물건 400·명소 13·없는 에셋 0, Godot이 매번 새 `unique_id`를 뽑아 diff는 크지만 내용은 같음).
+- 점검 `tools/probe_layout_walk.gd`(`SAGA_LAYOUT_PROBE=1`)로 자동 걷기 3회: 바닥 y=0.00 · 강가 남진 z=25.6에서 막힘 · 다리로 z=32.0까지 건넘 · 명소 13/13(거리 판정 정상, 데려가기 전 3곳만) · fails=0·로그 md5 동일. `--quit-after 5 --verbose` 3회도 error/warn 0·md5 동일. `.import`·`project.godot` 변화 없음, 다른 세션이 고치던 파일(`vegetation_builder.gd` 등)은 안 건드림.
+- 못 한 것: 실제 창 모드로 걷기·한글 이름표 렌더 확인(실기 확인 전), 씬 선택 메뉴 진입점(지금은 씬 경로 인자로 직접 열기), 나무·바위 충돌(배치표에 충돌 모양 없음).
+
+## Quaternius 나무 변종 5종 섞기 — GO 마을·폐허 (2026-09-23, 새 세션, "사가고돗 이어해")
+
+- 직전 항목(메시 누락 버그 수정)으로 잎이 붙자 원래 다음 작업이던 "나무 변종 섞기"가 다시 안전해졌다(합치기가 노드 수와 무관하게 동작하므로) — 미뤄뒀던 걸 이어서 진행.
+- `REGION_TREE_GLB`/`REGION_TREE_SCALE`(종 1개짜리)를 `REGION_TREE_VARIANTS`(종 배열, glb+scale)로 교체. village는 CommonTree_1~5, ruins는 DeadTree_1~5(둘 다 스냅 완비, ASSET_GUIDE 09-20). 전부 같은 목표 높이 5.52m로 역산(trimesh 정밀 실측: CommonTree_2 7.643m→×0.7222 … DeadTree_5 16.437m→×0.3358, 기존 CommonTree_1 0.759·DeadTree_1 0.581과 같은 산식) — 숲 실루엣·트렁크 충돌 체감은 그대로, 모양만 다양해짐. 침엽수(Pine)·거목(TwistedTree)은 계열이 달라 이번엔 안 섞음.
+- `_scatter_trees()` 재구성: 트렁크 충돌(종 무관, `scales[i]`만 사용)은 그대로 한 번에, 시각은 종별 `MultiMeshInstance3D`로 나눔(`_scatter_wildflowers`와 같은 패턴 — MultiMesh 하나엔 Mesh 하나만 얹을 수 있어서). 타일마다 해시로 종 선택(salt 300대, 기존 0·1·100·200과 안 겹침).
+- 다섯 CommonTree 스냅 전부 노드 2개(줄기+잎)·다섯 DeadTree 전부 노드 1개로 사전 확인(glb JSON 직접 파싱) — glb_utils 병합 경로가 둘 다 올바르게 처리.
+- `godot_regress.sh` REGRESS OK — GO만 md5 변경(나머지 넷 불변), 재질 감사 0, `.import`/`project.godot` 잡음 없음.
