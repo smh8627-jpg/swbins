@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>saga-web 맵 편집기 — 성 지도</title>
+<link rel="stylesheet" href="common.css">
+<style>
+  #center { padding: 0; align-items: stretch; justify-content: stretch; overflow: hidden; }
+  #map { width: 100%; height: 100%; background: #1a2230; user-select: none; }
+  #map .city { cursor: pointer; }
+  #map text { font: 2.3px "Malgun Gothic", sans-serif; fill: #e8e8e8; pointer-events: none; paint-order: stroke; stroke: #1a2230; stroke-width: .6px; }
+  #map .dim { opacity: .22; }
+  .nb { display: flex; justify-content: space-between; align-items: center; padding: 1px 0; }
+  .nb button { padding: 0 6px; font-size: 11px; }
+</style>
+</head>
+<body>
+<div id="top">
+  <h1>맵 편집기</h1>
+  <nav><a href="map.html">글자 지도</a><a class="cur" href="city.html">성 지도</a><a href="side.html">사냥터</a></nav>
+  <select id="gameSel"></select>
+  <span class="muted" id="meta"></span>
+  <span class="sp"></span>
+  <span id="badge" class="muted">검사 중…</span>
+  <button id="btnUndo" title="Ctrl+Z">되돌리기</button>
+  <button id="btnReload">다시 읽기</button>
+  <button class="primary" id="btnSave">저장</button>
+</div>
+<div id="main">
+  <div id="left">
+    <h3>도구</h3>
+    <div class="row"><button id="tMove" class="on">옮기기</button><button id="tLink">길 잇기·끊기</button><button id="tLand">지형 칠하기</button></div>
+    <div class="muted" id="toolHelp"></div>
+    <h3>지형 — 칠하기 도구가 쓸 것</h3>
+    <div id="palette"></div>
+    <h3>주(州) 골라 보기</h3>
+    <select id="provSel" style="width:100%"></select>
+    <h3>성 찾기</h3>
+    <input id="find" placeholder="이름 또는 id" style="width:100%">
+    <h3>보기</h3>
+    <div class="row"><button id="zoomIn">확대</button><button id="zoomOut">축소</button><button id="zoomAll">전체</button></div>
+    <div class="row"><label><input type="checkbox" id="showNames" checked> 이름</label></div>
+    <div class="muted">빈 곳을 끌면 지도가 움직이고, 휠로 확대한다. 파란 점선은 물길(양쪽 다 강) — 배가 있어야 건넌다.<br>
+      성 이름·설명·내정 값은 여기서 고치지 않는다(콘텐츠 편집기 판별 표).</div>
+  </div>
+  <div id="center"><svg id="map"></svg></div>
+  <div id="right">
+    <h3>검사 — 게임 데이터(DG.cityData) 그대로</h3>
+    <div id="report"></div>
+    <h3>고른 성</h3>
+    <div id="sel" class="muted">성을 누르면 여기 뜬다</div>
+    <h3>기록</h3>
+    <div id="log"></div>
+  </div>
+</div>
+<script>
+'use strict';
+const LAND_COLOR = { plain: '#c9b45a', hill: '#8fbf6a', river: '#4f86c6', mount: '#8b7d6b' };
+const $ = (s) => document.querySelector(s);
+const NS = 'http://www.w3.org/2000/svg';
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const pairKey = (a, b) => (a < b ? a + '|' + b : b + '|' + a);
+let items = [], M = null, cities = [], links = [], hash = '', tool = 'move', curLand = 'plain', sel = null, linkFrom = null;
+let undo = [], dirty = false, vb = null, full = null, prov = '';
+const svg = $('#map');
+
+function log(t, ok) { const d = document.createElement('div'); d.className = ok ? 'ok' : 'bad'; d.textContent = (ok ? '✓ ' : '✗ ') + t; $('#log').prepend(d); }
+
+async function load() {
+  const r = await fetch('/api/city/list'); items = (await r.json()).items || [];
+  $('#gameSel').innerHTML = items.map((m, i) => '<option value="' + i + '">' + esc(m.game + ' · ' + m.name) + '</option>').join('');
+  if (!items.length) { $('#meta').textContent = 'js/data-city.js 가 있는 판이 없다'; return; }
+  pick(0);
+}
+function pick(i) {
+  M = items[i]; cities = M.cities.map((c) => ({ ...c })); links = M.links.map((l) => l.slice()); hash = M.hash;
+  undo = []; dirty = false; sel = null; linkFrom = null;
+  const b = M.report.box;
+  if (b) full = { x: b.x, y: b.y, w: b.w, h: b.h };
+  else {
+    const xs = cities.map((c) => c.x), ys = cities.map((c) => c.y);
+    full = { x: Math.min(...xs) - 10, y: Math.min(...ys) - 10, w: Math.max(...xs) - Math.min(...xs) + 20, h: Math.max(...ys) - Math.min(...ys) + 20 };
+  }
+  vb = { ...full };
+  $('#provSel').innerHTML = '<option value="">전부</option>' + Object.entries(M.provinces).map(([k, n]) => '<option value="' + esc(k) + '">' + esc(n) + '</option>').join('');
+  renderPalette(); draw(); showSel(); showReport(M.report);
+}
+function renderPalette() {
+  $('#palette').innerHTML = M.lands.map((l) =>
+    '<div class="pal' + (l.key === curLand ? ' sel' : '') + '" data-k="' + esc(l.key) + '"><span class="sw" style="background:' + (LAND_COLOR[l.key] || '#777') + '"></span><span><b>' + esc(l.name) + '</b> ' + esc(l.key) + '</span></div>').join('');
+  document.querySelectorAll('.pal').forEach((d) => { d.onclick = () => { curLand = d.dataset.k; renderPalette(); }; });
+}
+const byId = () => { const o = {}; cities.forEach((c) => { o[c.id] = c; }); return o; };
+function el(tag, attrs) { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; }
+
+function draw() {
+  svg.setAttribute('viewBox', vb.x + ' ' + vb.y + ' ' + vb.w + ' ' + vb.h);
+  svg.innerHTML = '';
+  svg.appendChild(el('rect', { x: full.x, y: full.y, width: full.w, height: full.h, fill: 'none', stroke: '#3a4a66', 'stroke-width': .4, 'stroke-dasharray': '2 2' }));
+  const B = byId(), s = vb.w / 380;
+  const gl = el('g', {}); svg.appendChild(gl);
+  for (const l of links) {
+    const a = B[l[0]], b = B[l[1]]; if (!a || !b) continue;
+    const water = a.land === 'river' && b.land === 'river';
+    const dim = prov && a.prov !== prov && b.prov !== prov;
+    const hot = sel && (l[0] === sel || l[1] === sel);
+    gl.appendChild(el('line', { x1: a.x, y1: a.y, x2: b.x, y2: b.y, stroke: hot ? '#ffdf5a' : water ? '#6fa8ff' : '#8c93a3',
+      'stroke-width': (hot ? .7 : .45) * Math.max(s, .35), 'stroke-dasharray': water ? '1.4 .9' : '', class: dim ? 'dim' : '' }));
+  }
+  const show = $('#showNames').checked;
+  for (const c of cities) {
+    const g = el('g', { class: 'city' + (prov && c.prov !== prov ? ' dim' : ''), 'data-id': c.id });
+    const r = 1.5 * Math.max(s, .35);
+    if (c.landmark) g.appendChild(el('circle', { cx: c.x, cy: c.y, r: r * 1.7, fill: 'none', stroke: '#e0a53a', 'stroke-width': r * .3 }));
+    g.appendChild(el('circle', { cx: c.x, cy: c.y, r, fill: LAND_COLOR[c.land] || '#777',
+      stroke: c.id === sel ? '#ffdf5a' : c.id === linkFrom ? '#ff6ad5' : '#111', 'stroke-width': (c.id === sel || c.id === linkFrom) ? r * .5 : r * .25 }));
+    if (show) { const t = el('text', { x: c.x + r * 1.3, y: c.y + r * .6 }); t.style.fontSize = (2.3 * Math.max(s, .35)) + 'px'; t.textContent = c.name; g.appendChild(t); }
+    svg.appendChild(g);
+  }
+  $('#meta').textContent = '성 ' + cities.length + ' · 길 ' + links.length + (dirty ? ' · 저장 안 됨' : '');
+  $('#toolHelp').textContent = tool === 'move' ? '성을 끌어 옮긴다(정수 칸에 붙는다). 누르면 고른다.'
+    : tool === 'link' ? (linkFrom ? '이을 둘째 성을 누른다(이미 이어졌으면 끊는다). Esc 로 취소.' : '첫째 성을 누른다.')
+    : '누르는 성의 지형을 왼쪽에서 고른 것으로 바꾼다.';
+}
+
+function svgPt(e) { const p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; return p.matrixTransform(svg.getScreenCTM().inverse()); }
+let drag = null, pan = null;
+svg.onmousedown = (e) => {
+  const g = e.target.closest && e.target.closest('.city');
+  if (!g) { pan = { x: e.clientX, y: e.clientY, vb: { ...vb } }; return; }
+  const id = g.dataset.id, c = byId()[id];
+  if (tool === 'move') { sel = id; push(); drag = { id, moved: false }; draw(); showSel(); return; }
+  if (tool === 'land') { if (c.land !== curLand) { push(); c.land = curLand; changed(); } sel = id; showSel(); return; }
+  if (tool === 'link') {
+    if (!linkFrom) { linkFrom = id; draw(); return; }
+    if (linkFrom !== id) toggleLink(linkFrom, id);
+    linkFrom = null; draw();
+  }
+};
+addEventListener('mousemove', (e) => {
+  if (drag) {
+    const p = svgPt(e), c = byId()[drag.id], x = Math.round(p.x), y = Math.round(p.y);
+    if (c.x !== x || c.y !== y) { c.x = x; c.y = y; drag.moved = true; dirty = true; draw(); showSel(); }
+  } else if (pan) {
+    const r = svg.getBoundingClientRect(), k = Math.max(vb.w / r.width, vb.h / r.height);
+    vb.x = pan.vb.x - (e.clientX - pan.x) * k; vb.y = pan.vb.y - (e.clientY - pan.y) * k; draw();
+  }
+});
+addEventListener('mouseup', () => {
+  if (drag) { if (drag.moved) changed(); else undo.pop(); drag = null; }
+  pan = null;
+});
+svg.addEventListener('wheel', (e) => { e.preventDefault(); zoom(e.deltaY < 0 ? 0.8 : 1.25, svgPt(e)); }, { passive: false });
+function zoom(f, at) {
+  at = at || { x: vb.x + vb.w / 2, y: vb.y + vb.h / 2 };
+  const w = Math.min(full.w * 1.5, Math.max(20, vb.w * f)), h = w * vb.h / vb.w;
+  vb = { x: at.x - (at.x - vb.x) * (w / vb.w), y: at.y - (at.y - vb.y) * (h / vb.h), w, h }; draw();
+}
+function toggleLink(a, b) {
+  push();
+  const k = pairKey(a, b), i = links.findIndex((l) => pairKey(l[0], l[1]) === k);
+  const B = byId();
+  if (i >= 0) { links.splice(i, 1); log('길 끊음: ' + B[a].name + ' — ' + B[b].name, true); }
+  else { links.push([a, b]); log('길 이음: ' + B[a].name + ' — ' + B[b].name, true); }
+  changed();
+}
+
+function showSel() {
+  const B = byId(), c = sel && B[sel];
+  if (!c) { $('#sel').innerHTML = '<span class="muted">성을 누르면 여기 뜬다</span>'; return; }
+  const nb = links.filter((l) => l[0] === c.id || l[1] === c.id).map((l) => (l[0] === c.id ? l[1] : l[0]));
+  $('#sel').innerHTML = '<div class="kv"><span>이름</span><b>' + esc(c.name) + ' <span class="muted">' + esc(c.id) + ' · ' + esc(M.provinces[c.prov] || c.prov) + (c.landmark ? ' · 랜드마크' : '') + '</span></b>' +
+    '<span>x</span><input id="sx" type="number" value="' + c.x + '"><span>y</span><input id="sy" type="number" value="' + c.y + '">' +
+    '<span>지형</span><select id="sl">' + M.lands.map((l) => '<option value="' + l.key + '"' + (l.key === c.land ? ' selected' : '') + '>' + esc(l.name) + '</option>').join('') + '</select></div>' +
+    '<h3>이어진 성 ' + nb.length + '</h3>' + nb.map((id) => '<div class="nb"><span>' + esc(B[id] ? B[id].name : id) + ' <span class="muted">' + esc(id) + '</span></span><button data-cut="' + esc(id) + '">끊기</button></div>').join('');
+  const num = (v) => { const n = Number(v); return isFinite(n) ? n : null; };
+  $('#sx').onchange = (e) => { const n = num(e.target.value); if (n == null) return; push(); c.x = n; changed(); };
+  $('#sy').onchange = (e) => { const n = num(e.target.value); if (n == null) return; push(); c.y = n; changed(); };
+  $('#sl').onchange = (e) => { push(); c.land = e.target.value; changed(); };
+  document.querySelectorAll('[data-cut]').forEach((b) => { b.onclick = () => toggleLink(c.id, b.dataset.cut); });
+}
+
+function push() { undo.push({ cities: cities.map((c) => ({ ...c })), links: links.map((l) => l.slice()) }); if (undo.length > 200) undo.shift(); }
+let tmr = 0;
+function changed() { dirty = true; draw(); showSel(); clearTimeout(tmr); tmr = setTimeout(runCheck, 250); }
+const body = () => ({ game: M.game, id: M.id, cities: cities.map((c) => ({ id: c.id, x: c.x, y: c.y, land: c.land })), links });
+async function runCheck() {
+  const r = await fetch('/api/city/check', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body()) });
+  showReport(await r.json());
+}
+function showReport(rep) {
+  if (rep.error) { $('#report').innerHTML = '<div class="bad">' + esc(rep.error) + '</div>'; $('#badge').className = 'bad'; $('#badge').textContent = '검사 실패'; return; }
+  const errs = rep.errors || [], warns = rep.warns || [];
+  let h = errs.length ? '<div class="bad">오류 ' + errs.length + ' — 저장이 막힌다<br>' + errs.slice(0, 12).map(esc).join('<br>') + '</div>' : '<div class="ok">검사 통과 — 다 이어져 있다</div>';
+  if (warns.length) h += '<div class="warn">' + warns.slice(0, 8).map(esc).join('<br>') + '</div>';
+  h += '<div class="muted">' + Object.entries(rep.tally || {}).map(([k, v]) => esc(k) + ' ' + v).join(' · ') + '</div>';
+  $('#report').innerHTML = h;
+  $('#badge').className = errs.length ? 'bad' : warns.length ? 'warn' : 'ok';
+  $('#badge').textContent = errs.length ? '오류 ' + errs.length : warns.length ? '경고 ' + warns.length : '성함';
+}
+
+function setTool(t) { tool = t; linkFrom = null; ['Move', 'Link', 'Land'].forEach((n) => $('#t' + n).classList.toggle('on', t === n.toLowerCase())); draw(); }
+$('#tMove').onclick = () => setTool('move'); $('#tLink').onclick = () => setTool('link'); $('#tLand').onclick = () => setTool('land');
+$('#provSel').onchange = (e) => { prov = e.target.value; draw(); };
+$('#showNames').onchange = draw;
+$('#zoomIn').onclick = () => zoom(0.7); $('#zoomOut').onclick = () => zoom(1.4); $('#zoomAll').onclick = () => { vb = { ...full }; draw(); };
+$('#find').onchange = (e) => {
+  const q = e.target.value.trim(); if (!q) return;
+  const c = cities.find((x) => x.name === q || x.id === q) || cities.find((x) => x.name.indexOf(q) >= 0 || x.id.indexOf(q) >= 0);
+  if (!c) { log('못 찾음: ' + q, false); return; }
+  sel = c.id; const w = Math.min(vb.w, 60), h = w * vb.h / vb.w; vb = { x: c.x - w / 2, y: c.y - h / 2, w, h }; draw(); showSel();
+};
+function doUndo() { const s = undo.pop(); if (!s) return; cities = s.cities; links = s.links; changed(); }
+$('#btnUndo').onclick = doUndo;
+addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && e.target.tagName !== 'INPUT') { e.preventDefault(); doUndo(); }
+  if (e.key === 'Escape') { linkFrom = null; draw(); }
+});
+$('#btnReload').onclick = async () => { if (dirty && !confirm('저장 안 한 변경을 버릴까요?')) return; const i = +$('#gameSel').value; await load(); $('#gameSel').value = i; pick(i); };
+$('#gameSel').onchange = (e) => { if (dirty && !confirm('저장 안 한 변경을 버릴까요?')) { e.target.value = items.indexOf(M); return; } pick(+e.target.value); };
+$('#btnSave').onclick = async () => {
+  const r = await fetch('/api/city/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body(), hash }) });
+  const out = await r.json();
+  if (out.error) { log(out.error, false); if (out.report) showReport(out.report); alert(out.error); return; }
+  hash = out.hash; dirty = false; draw(); showReport(out.report);
+  log(M.game + '/js/data-city.js ' + (out.unchanged ? '바뀐 것 없음(안 씀)' : '저장') + (out.sw && out.sw.version ? ' · sw.js ' + out.sw.version : ''), true);
+};
+addEventListener('beforeunload', (e) => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+load();
+</script>
+</body>
+</html>
