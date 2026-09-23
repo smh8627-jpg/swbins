@@ -193,9 +193,21 @@ const COAST_PEBBLE_DENSITY := 10  # "D" 칸 1/10
 ## 나무 줄기 충돌은 _scatter_trees가 이미 가진다). 배율: 이 판 인물 키(≈3.4m,
 ## glb_utils.gd fit_height 주석) 기준 고사리는 무릎(원본 0.84m 그대로 ×1.0),
 ## 버섯은 clutter와 같은 발목 0.3m(실측 0.463m → ×0.65).
+##
+## 2026-09-23 — 남은 잔디·꽃 8종 중 숲 하층에 어울리는 셋을 더 얹었다.
+## Grass_Common/Wispy_Tall(둘 다 alphaMode OPAQUE, 컷아웃 불필요)은 고사리와
+## 같은 "무릎" 범주로 목표 0.84m. Mushroom_Laetiporus(선반버섯류, 실측
+## 0.767m 낮고 넓적)는 Mushroom_Common과 같은 "발목" 0.3m — 종류가 다른
+## 버섯 둘이 섞이게. chance는 기존 둘(0.5·0.25)보다 낮게 잡아(잔디 0.3,
+## 버섯 0.15) 하층이 갑자기 빽빽해지지 않게 했다. 나머지 5종
+## (Plant_1/1_Big/7/7_Big·Flower_4_Group)은 실측 1~2.5m로 이 층("발목~
+## 무릎")보다 커서 관목급 새 배치가 필요해 안 건드림(PROJECT_STATE).
 const UNDERSTORY := [
 	{"glb": "res://assets/generated/variants/Fern_1__go_village.glb", "scale": 1.0, "chance": 0.5},
 	{"glb": "res://assets/generated/variants/Mushroom_Common__go_village.glb", "scale": 0.65, "chance": 0.25},
+	{"glb": "res://assets/generated/variants/Grass_Common_Tall__go_village.glb", "scale": 0.448551, "chance": 0.3},
+	{"glb": "res://assets/generated/variants/Grass_Wispy_Tall__go_village.glb", "scale": 0.502452, "chance": 0.3},
+	{"glb": "res://assets/generated/variants/Mushroom_Laetiporus__go_village.glb", "scale": 0.391156, "chance": 0.15},
 ]
 
 ## 같은 5단계, 마을 평지 들꽃. 이 판 칸은 48m라 clutter(칸 6개에 하나)는

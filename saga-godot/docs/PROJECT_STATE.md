@@ -20,14 +20,14 @@
 - **09-22~23 요약(상세 HISTORY 해당 날짜)**: REALM 안개·DUNGEON 문 아치 렌더 누락 버그 수정 · 굴혈 mood 3종 · GO 폐허 비석·rock·wall/fence 배선 · FOREST 하트 아이콘·트라이플레이너 · 사용자가 09-23 "실기손맛 괜찮아"로 그때까지의 실기 대기 **전체 승인**(STORY·REALM VS 게이트 포함).
 - **판단 종결(재작업 후보 아님, 근거 HISTORY 09-23)**: STORY 트라이플레이너(2.5D 옆면 플랫포머라 장르상 불필요) · icon_star(아이콘 UI를 일부러 안 만든다는 기존 결정) · NPC 옷 팔레트(재질 하나짜리 GLB + 군중 NPC 소비처 없음) · 105 Q-b(절차 지형이라 LightmapGI 부적합, PC SDFGI 유지).
 - **105 Q-d 정정(09-23)**: Mixamo는 로그인만 사람 몫, 검색·다운로드는 루트 `tools/mixamo_automation/`(09-21 구축)로 이미 자동. VRoid 조형만 사람 몫(무료 대체 파이프라인 없음).
-- **Quaternius 씬 배치 5단계(09-23, 상세 전부 HISTORY 09-23 여러 절)**: GO 정원길·해변 조약돌·숲 하층 고사리·버섯·평지 들꽃 신설. FOREST 바이옴 primitive→GLB 3종 교체(신설 컷아웃 셰이더 둘)+밀도 균형. **버그 수정**: FOREST 흰 바위·나무 잎 네모판·09-19부터 VRoid 위에 Kenney 텍스처가 덮이던 것(모두 "원본 재질을 override로 잃음" 부류, `material_audit.gd` 신설로 회귀 방지) · GO 스냅 GLB 일부가 노드 둘로 쪼개져 나무 잎·들꽃 꽃송이가 안 그려지던 것(`extract_mesh` 병합으로 수정). 이어서 **다양화**: GO 나무 village CommonTree_1~5·ruins DeadTree_1~5 섞기(목표 높이 5.52m로 통일), 정원길·조약돌에 남은 바위 15종 추가. 들꽃에 Petal 5종 추가(목표 높이 0.45m로 역산).
+- **Quaternius 씬 배치 5단계(09-23, 상세 전부 HISTORY 09-23 여러 절)**: GO 정원길·해변 조약돌·숲 하층 고사리·버섯·평지 들꽃 신설. FOREST 바이옴 primitive→GLB 3종 교체(신설 컷아웃 셰이더 둘)+밀도 균형. **버그 수정**: FOREST 흰 바위·나무 잎 네모판·09-19부터 VRoid 위에 Kenney 텍스처가 덮이던 것(모두 "원본 재질을 override로 잃음" 부류, `material_audit.gd` 신설로 회귀 방지) · GO 스냅 GLB 일부가 노드 둘로 쪼개져 나무 잎·들꽃 꽃송이가 안 그려지던 것(`extract_mesh` 병합으로 수정). 이어서 **다양화**: GO 나무 village CommonTree_1~5·ruins DeadTree_1~5 섞기(목표 높이 5.52m로 통일), 정원길·조약돌에 남은 바위 15종 추가. 들꽃에 Petal 5종 추가(목표 높이 0.45m로 역산). 숲 하층에 잔디 2종·선반버섯 추가(chance 낮춰 밀도 완만하게).
 - Downloads `model.vroid`는 FOREST 아바타의 VRoid Studio 원본 프로젝트(09-20 확인) — 대기 중인 새 VRoid 조형 없음.
 - **글자 지도 조립 씬 걷기 래퍼**(09-23, 새 세션): `games/saga_go/layout/LayoutWalk.tscn` — `tools/scene-layout/`의 생성 씬(보기용)에 바닥 충돌·물 막기(산은 안 막음)·명소 13 발견 판정+이름표를 붙였다. 발견은 이 씬 안에서만 세고 GO 도감·세이브엔 안 넣는다(명소 id가 도감 43칸 밖). 자동 걷기 점검(`SAGA_LAYOUT_PROBE=1`) 3회 fails=0. 실기(창 모드) 확인 전.
 
 ## 다음 작업 (우선순위)
 
 1. **사용자 실기 확인 결과 대기** — 아래 "실기 확인 대기" 6건. 특히 FOREST 플레이어(처음으로 원래 VRoid 모습). 결과에 문제가 있으면 그것부터.
-2. Quaternius 남은 종(잔디·꽃 8종 — Plant_1/1_Big/7/7_Big·Flower_4_Group·Grass_Common/Wispy_Tall·Mushroom_Laetiporus) — 급하지 않음. 실측고 1~2.5m로 들꽃(발목~정강이) 범주보다 커서 관목·수풀급 새 배치 판단 필요. 나무·바위·Petal 들꽃은 위에서 마쳤다.
+2. Quaternius 남은 종(잔디·꽃 5종 — Plant_1/1_Big/7/7_Big·Flower_4_Group) — 급하지 않음. 실측고 1~2.5m로 어느 기존 범주에도 안 맞아(들꽃보다 크고 숲 하층 무릎 범주도 넘음) 새 "관목" 배치가 필요 — 위치·밀도부터 사람 판단. 나무·바위·꽃·숲 하층 잔디는 위에서 다 마쳤다.
 3. 참고: 103-4 리타겟 "트위스트 미보정"은 트위스트 큰 새 클립을 넣을 때만 재검토. Mixamo 새 클립은 루트 `tools/mixamo_automation/`(로그인만 사람).
 
 ## 알려진 오류

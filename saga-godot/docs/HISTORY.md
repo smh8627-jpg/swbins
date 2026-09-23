@@ -8314,3 +8314,11 @@ PROJECT_STATE.md` 참고. 요약:
 - 105 Q-d 남은 잔디·꽃 13종 중 크기가 기존 `WILDFLOWERS`("꽃" 범주, 목표 높이 0.45m) 취지에 맞는 Petal_1~5만 골라 추가. 정원길·조약돌 때와 같은 패턴 — `WILDFLOWERS_PER_TILE`(칸당 4 고정)이라 총량은 그대로고 섞이는 종만 늘어난다. trimesh 정밀 실측으로 배율 역산(0.244~0.289m→×1.56~2.37).
 - 나머지 8종(Plant_1/1_Big/7/7_Big·Flower_4_Group·Grass_Common/Wispy_Tall·Mushroom_Laetiporus)은 실측고 1~2.5m로 "발목~정강이" 들꽃 범주보다 커서(관목·수풀 급) 새 배치 판단이 필요해 이번엔 안 건드림 — PROJECT_STATE에 남김.
 - `godot_regress.sh` REGRESS OK — GO만 md5 변경, 재질 감사 0, 잡음 없음.
+
+## GO 숲 하층에 잔디 2종·선반버섯 추가 — 남은 잔디·꽃 8종 중 3종 마저 (2026-09-23, 새 세션, "사가고돗 이어해")
+
+- 105 Q-d 남은 8종(관목급, 실측 1~2.5m) 중 기존 `UNDERSTORY`("무릎~발목" 범주) 크기에 맞는 셋만 추가: Grass_Common_Tall·Grass_Wispy_Tall(고사리와 같은 무릎 0.84m, 둘 다 alphaMode OPAQUE라 컷아웃 불필요)·Mushroom_Laetiporus(선반버섯류, Mushroom_Common과 같은 발목 0.3m — 버섯 두 종류가 섞이게). trimesh 정밀 실측으로 배율 역산.
+- chance는 기존 둘(0.5·0.25)보다 낮게(잔디 0.3, 버섯 0.15) — 이 층은 UNDERSTORY_PER_TILE 같은 고정 총량이 아니라 종별 독립 확률이라, 종을 늘리면 실제 밀도가 늘어난다(WILDFLOWERS·바위류와 다른 점, 그래서 낮춰 잡음).
+- salt 대역(1000·1010·1020)이 WILDFLOWERS(1000·1005·1010·1015)와 겹치지만 UNDERSTORY는 "T" 칸·WILDFLOWERS는 "." 칸이라 실제 겹침 없음(기존 코드도 같은 관례).
+- 남은 5종(Plant_1/1_Big/7/7_Big·Flower_4_Group, 실측 1~2.5m)은 여전히 "관목" 새 배치 판단이 필요해 보류.
+- `godot_regress.sh` REGRESS OK — GO만 md5 변경, 재질 감사 0, 잡음 없음.
