@@ -163,6 +163,31 @@
   }
 
   /**
+   * 세트 등급(PLAN §6 성장 가시화 "장비 4단마다 외곽선 색", 2026-09-23) — 열 부위 중
+   * **절반(SET_HALF 칸) 이상이 도달한 가장 높은 등급**. 빈 칸·요구 수준 미달(bonus() 가 안 세는 것)은
+   * 0 으로 친다 → 무기 하나만 좋아서는 안 바뀌고, 한 단을 절반쯤 갈아입어야 넘어간다.
+   * 등급 이름·색은 `gearData.grade`(RARITY)와 같다. 값·세이브에는 안 닿는다 — 보이는 테두리뿐이다
+   */
+  var SET_HALF = 5;
+  function setGrade() {
+    var e = equipped(), ranks = [], k;
+    for (k in e) {
+      if (!Object.prototype.hasOwnProperty.call(e, k)) { continue; }
+      var d = defOf(e[k]);
+      if (!d || core.save.player.level < d.need) { continue; }
+      ranks.push(GD.grade(d).rank);
+    }
+    ranks.sort(function (a, b) { return b - a; });
+    var r = ranks.length >= SET_HALF ? ranks[SET_HALF - 1] : 1;
+    var g = GD.grade(null);                     // 기본(1) 이름·색
+    if (r > 1) {
+      var R = global.DG.data && global.DG.data.rarity && global.DG.data.rarity[r];
+      g = { rank: r, name: R ? R.name : '', color: R ? R.color : g.color, label: R ? R.label : '' };
+    }
+    return g;
+  }
+
+  /**
    * 방어 → 덜 맞는 비율. 방어가 아무리 높아도 **6할까지만** 막는다
    * (넘게 두면 후반에 아무것도 안 아파진다).
    */
@@ -371,7 +396,7 @@
     state: st, make: make, put: put, drop: drop, inv: inv, bagLeft: bagLeft,
     byUid: byUid, defOf: defOf, statsOf: statsOf, nameOf: nameOf, isUnique: isUnique,
     equip: equip, unequip: unequip, equipped: equipped, isEquipped: isEquipped,
-    bonus: bonus, cut: cut,
+    bonus: bonus, cut: cut, setGrade: setGrade, SET_HALF: SET_HALF,
     scrollCount: scrollCount, addScroll: addScroll, apply: apply,
     shopList: shopList, buyGear: buyGear, buyScroll: buyScroll, buyPotion: buyPotion, sell: sell,
     craftLack: craftLack, craft: craft,

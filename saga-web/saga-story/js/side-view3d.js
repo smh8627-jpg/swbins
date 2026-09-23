@@ -707,6 +707,8 @@
       shell.userData.anim = null;
       var A = global.DG.asset3d;
       shell.userData.flashMats = A && A.ownAllMat ? A.ownAllMat(model) : null;
+      shell.userData.glb = true;
+      shell.userData.olColor = null;   // 새 몸 — 외곽선 색(gearOutline)을 다시 입힌다
     }
     var A = global.DG.asset3d;
     if (A) {
@@ -714,6 +716,21 @@
       else { A.buildHero(seed, heightPx, hexOf(color), swapActorIn); }
     }
     return shell;
+  }
+
+  /**
+   * 장비 세트 등급 → 주인공 외곽선 색(PLAN §6 성장 가시화, 2026-09-23). 열 부위 중 절반이
+   * 상급·희귀·영웅·전설에 닿으면 테두리가 그 등급 색으로 물든다(`gear.setGrade`). 도형(캡슐)엔
+   * 외곽선이 없어 GLB 가 도착한 뒤에만, 색이 바뀐 프레임에만 재질을 갈아 끼운다
+   */
+  function applyGearOutline(shell) {
+    var TN = global.DG.toon3d, G = global.DG.gear;
+    if (!shell.userData.glb || !TN || !TN.recolorOutlines || !G || !G.setGrade) { return; }
+    var g = G.setGrade();
+    var col = TN.gradeTint(g.color, g.rank);
+    if (shell.userData.olColor === col) { return; }
+    TN.recolorOutlines(shell, col);
+    shell.userData.olColor = col;
   }
 
   function place(mesh, x, yFloorOffset, facing) {
@@ -821,6 +838,7 @@
     }
     place(playerMesh, p.x + S.P_W / 2, stg.floor - (p.y + S.P_H), p.facing);
     tintHurt(playerMesh, p.hurt || 0);
+    applyGearOutline(playerMesh);
     var walking = !!p.vx && p.onGround;
     /* 북돋움(buff, PLAN §12)이 걸린 동안은 실제로 더 빠르게 걷는데(side.js의
        mul) 몸짓은 그대로 walk였다 — buffOn()과 같은 조건을 여기서 그대로

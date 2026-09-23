@@ -4215,6 +4215,43 @@ window.DG_NO_TUNE = true;
       return 'Lv.1·5·12·20 → ' + [1, 2, 3, 4].map(function (r) { return R[r].name; }).join('·') + ' · 고유 → ' + R[5].name;
     });
 
+    t('장비 세트 등급 → 외곽선 색(§6 성장 가시화) — 열 부위 중 절반이 닿은 등급, 요구 Lv 미달은 안 셈, 색은 등급마다 다르다', function () {
+      var G = DG.gear, GD = DG.gearData, TN = DG.toon3d, R = DG.data.rarity, bad = [];
+      if (!G.setGrade || !TN || !TN.gradeTint) { throw new Error('gear.setGrade / toon3d.gradeTint 없음'); }
+      var g = G.state(), keepInv = g.inv, keepEq = g.equip, keepUid = g.uid, keepLv = C.save.player.level, res = {};
+      try {
+        g.inv = []; g.equip = {};
+        C.save.player.level = 30;
+        function wear(key) { var it = G.make(key); G.put(it); G.equip(it.uid); }
+        function tier(need) { var seen = {}; return GD.GEAR.filter(function (d) { if (d.need !== need || seen[d.slot]) { return false; } seen[d.slot] = 1; return true; }); }
+        var t2 = tier(5), t4 = tier(20);
+        res.empty = G.setGrade().rank;
+        t2.slice(0, G.SET_HALF - 1).forEach(function (d) { wear(d.key); });
+        res.four = G.setGrade().rank;
+        wear(t2[G.SET_HALF - 1].key);
+        res.half = G.setGrade().rank;
+        wear('u_sword');                                  // 무기 하나만 전설 — 다섯째는 여전히 상급
+        res.oneLegend = G.setGrade().rank;
+        t4.slice(0, G.SET_HALF).forEach(function (d) { wear(d.key); });
+        res.hero = G.setGrade().rank;
+        C.save.player.level = 10;                         // Lv.20 물건은 bonus() 처럼 안 센다
+        res.under = G.setGrade().rank;
+      } finally { g.inv = keepInv; g.equip = keepEq; g.uid = keepUid; C.save.player.level = keepLv; }
+      if (res.empty !== 1) { bad.push('빈 칸=' + res.empty); }
+      if (res.four !== 1) { bad.push('넷=' + res.four); }
+      if (res.half !== 2) { bad.push('다섯=' + res.half); }
+      if (res.oneLegend !== 2) { bad.push('무기 전설=' + res.oneLegend); }
+      if (res.hero !== 4) { bad.push('영웅 다섯=' + res.hero); }
+      if (res.under !== 1) { bad.push('Lv 미달=' + res.under); }
+      var base = TN.OUTLINE_COLOR, cols = [2, 3, 4, 5].map(function (r) { return TN.gradeTint(R[r].color, r); });
+      if (TN.gradeTint(R[1].color, 1) !== base) { bad.push('기본 색≠검정'); }
+      if (cols.some(function (c) { return c === base; })) { bad.push('등급 색=검정'); }
+      if (cols.filter(function (c, i) { return cols.indexOf(c) === i; }).length !== 4) { bad.push('등급 색 겹침'); }
+      if (bad.length) { throw new Error('실패: ' + bad.join(', ')); }
+      return '빈·넷 기본 → 다섯 상급 · 무기만 전설이어도 상급 · 영웅 다섯 → 영웅 · Lv 미달 안 셈 · 색 ' +
+        cols.map(function (c) { return '#' + ('00000' + c.toString(16)).slice(-6); }).join(' ');
+    });
+
     t('런타임 에러 없음', function () {
       return errors.length === 0 || ('에러 ' + errors.length + '건: ' + errors.join(' | ')) === '';
     });
