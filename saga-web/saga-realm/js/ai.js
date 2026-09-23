@@ -78,7 +78,7 @@
     var hC = Object.keys(core.save.dex.heroes).length;
     var pC = Object.keys(core.save.dex.pets).length;
     var lines = [
-      '칭호 Lv.' + p.level + ' · 금 ' + core.fmt(p.gold) + ' · 명성 ' + core.fmt(p.fame) +
+      (global.DG.account && global.DG.account.realmBit ? global.DG.account.realmBit(core.save) : '') + ' · 금 ' + core.fmt(p.gold) + ' · 명성 ' + core.fmt(p.fame) +
         ' · 공적 ' + core.fmt(p.feat) + ' · 이동 ' + core.fmt(p.distance) + 'm',
       '동행: ' + (party || '없음'),
       '도감: 인물 ' + hC + '/' + global.DG.data.heroes.length +

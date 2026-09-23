@@ -140,6 +140,18 @@
     return o.cur;
   }
 
+  /** 이 판의 진행 한 조각 — 플레이어 레벨은 이 판에서 안 오른다(경험치는 무장만 받는다,
+   *  2026-09-23 점검). 그래서 늘 "Lv.1" 이던 자리를 지금 몇 년 몇 월·가진 성 수로 바꾼다 */
+  function realmBit(s) {
+    var r = s && s.rtk;
+    if (!r || !r.started) { return '시작 전'; }
+    var mine = 0, k;
+    for (k in (r.cities || {})) {
+      if (Object.prototype.hasOwnProperty.call(r.cities, k) && r.me && r.cities[k].force === r.me) { mine++; }
+    }
+    return r.year + '년 ' + r.month + '월 · 성 ' + mine;
+  }
+
   /** 그 프로필의 진행이 얼마나 되나 (전환 화면에 한 줄로 보여 준다) */
   function summaryOf(id) {
     try {
@@ -147,7 +159,7 @@
       if (!raw) { return '새 판'; }
       var s = JSON.parse(raw);
       var p = s.player || {};
-      var bits = ['Lv.' + (p.level || 1)];
+      var bits = [realmBit(s)];
       var hero = s.dex && s.dex.heroes ? Object.keys(s.dex.heroes).length : 0;
       if (hero) { bits.push('인물 ' + hero); }
       if (s.quiz && s.quiz.learned) {
@@ -309,7 +321,7 @@
       var s = JSON.parse(localStorage.getItem(LEGACY));
       var p = s.player || {};
       var hero = s.dex && s.dex.heroes ? Object.keys(s.dex.heroes).length : 0;
-      return 'Lv.' + (p.level || 1) + ' · 인물 ' + hero + ' · 공적 ' + (p.featTotal || 0);
+      return realmBit(s) + ' · 인물 ' + hero + ' · 공적 ' + (p.featTotal || 0);
     } catch (e) {
       return '이전 진행';
     }
@@ -417,7 +429,7 @@
   global.DG = global.DG || {};
   global.DG.account = {
     GAME_NAME: GAME_NAME, MAX: MAX,
-    list: list, current: current, keyOf: keyOf, summaryOf: summaryOf,
+    list: list, current: current, keyOf: keyOf, summaryOf: summaryOf, realmBit: realmBit,
     hasLegacy: hasLegacy, create: create, use: use, rename: rename, remove: remove,
     gate: gate, showSignup: showSignup, showSwitch: showSwitch, showTitle: showTitle,
     injectButton: injectButton,
