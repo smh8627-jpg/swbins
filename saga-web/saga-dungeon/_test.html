@@ -1456,6 +1456,17 @@ window.requestAnimationFrame = function () { return 0; };
       return C.save.party[0];
     }
 
+    t('장비 요구 레벨은 인물 최고 레벨을 넘지 않는다 (깊은 층 전설도 언젠가 입는다)', function () {
+      var cap = DG.hero.MAX_LV, worst = 0, f, t;
+      for (f = 1; f <= 120; f += 7) {
+        for (t = 0; t <= 4; t++) {
+          var g = IT.roll(f + 1, { tier: t, unid: false });
+          worst = Math.max(worst, IT.reqLevel(g));
+        }
+      }
+      return worst <= cap && worst >= cap - 2 && ('120층까지 가장 높은 요구 ' + worst + ' / 최고 레벨 ' + cap);
+    });
+
     t('원소 — 보석은 부위마다 다른 것을 준다 (무기 피해 · 갑주 저항 · 부적 능력치)', function () {
       var G = DG.gemData, bad = [], i;
       for (i = 0; i < G.GEMS.length; i++) {

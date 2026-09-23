@@ -620,7 +620,10 @@
     if (!b) { return 1; }
     var slotMul = NO_DUR_SLOT[b.slot] ? 0.55 : 1;
     var n = Math.round(((it.ilvl || 1) * 0.62 + it.tier * 3) * slotMul);
-    return Math.max(1, n);
+    /* 인물 최고 레벨(hero.js MAX_LV)로 묶는다(2026-09-23) — 층엔 끝이 없어 30층 전설부터
+       요구가 31+ 로 나와, Lv.30 이 끝인 인물이 영영 못 입는 물건이 쌓였다 */
+    var cap = (global.DG.hero && global.DG.hero.MAX_LV) || 30;
+    return core.clamp(n, 1, cap);
   }
 
   /** 이 인물이 입을 수 있나 */
