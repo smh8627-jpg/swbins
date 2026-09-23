@@ -634,6 +634,28 @@ window.requestAnimationFrame = function () { return 0; };
       return ended && '시간 초과 → 회차 종료';
     });
 
+    t('부적 — 암흑 변형자는 시야 반경 밖 적을 미니맵에서 지우고 화면을 어둡게 덮는다 (§5.3)', function () {
+      /* 예전엔 아이콘만 뜨고 아무 일도 없었다(PLAN §7.2) */
+      var r1 = IT.addSigil(2);
+      DN.enterNightmare(r1.sigil.id);
+      var raw = DN.raw(), p = raw.player, R = DN.NM_DARK_R;
+      raw.nightmare.mods = ['speed'];
+      var e0 = raw.room.enemies.filter(function (e) { return e.hp > 0; });
+      if (e0.length < 1) { DN.leave(); return false; }
+      e0[0].x = p.x + R * 0.5; e0[0].y = p.y;            // 안쪽
+      if (e0[1]) { e0[1].x = p.x + R * 2; e0[1].y = p.y; }  // 바깥
+      var enemyDots = function () { return DG.minimap.blips(raw).filter(function (b) { return /enemy|elite|boss/.test(b.t); }).length; };
+      var litN = enemyDots(), lit0 = DN.darkSight();
+      raw.nightmare.mods = ['dark'];
+      var darkN = enemyDots(), dark0 = DN.darkSight();
+      var aliveN = e0.length;
+      if (DG.dungeonView && DG.dungeonView.renderHud) { DG.dungeonView.renderHud(); }
+      var el = document.getElementById('dg-dark');
+      DN.leave();
+      return lit0 === 0 && dark0 === R && litN === aliveN && darkN < litN && darkN >= 1 &&
+        ('반경 ' + R + ' · 적 점 ' + litN + ' → ' + darkN + (el ? ' · 덧씌우기 자리 있음' : ''));
+    });
+
     t('부적 — 클리어하면 티어 T+1 부적이 60% 문턱으로 나온다 (§5.3)', function () {
       var origRandom = Math.random;
       try {

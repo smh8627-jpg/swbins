@@ -881,6 +881,11 @@
   var NM_ROOM_TIMER = 75;         // 'timer' 변형자일 때 방마다 이만큼(초)
 
   function nmHasMod(key) { return !!(run && run.nightmare && run.nightmare.mods.indexOf(key) >= 0); }
+  /* 부적 '암흑' 변형자(§5.3) — 예전엔 아이콘만 뜨고 아무 일도 없었다(PLAN §7.2, 2026-09-23 닫음).
+     시야 반경(방 논리 좌표, 방은 560×360) 밖의 적은 미니맵 점에서 빠지고(minimap.js),
+     화면은 가장자리가 어두운 덧씌우기로 덮인다(dungeon-view.js #dg-dark). 3D 안개·판정은 안 건드린다 */
+  var NM_DARK_R = 150;
+  function darkSight() { return nmHasMod('dark') ? NM_DARK_R : 0; }
   /** 적 배율 — 1 + 0.35×T (§5.3 수치표, 진단이 이 형태를 그대로 잰다) */
   function nmMul() { return (run && run.nightmare) ? 1 + 0.35 * run.nightmare.tier : 1; }
   /** 보상 배율 — 티어분(1+0.25×T) × 변형자 '풍요'(있으면 1.5) */
@@ -4041,6 +4046,7 @@
 
   global.DG = global.DG || {};
   global.DG.dungeon = {
+    NM_DARK_R: NM_DARK_R, darkSight: darkSight,
     ELITES: ELITES, eliteOf: eliteOf, eliteChance: eliteChance, enemyName: enemyName,
     MODES: MODES, modeOf: modeOf, modesOpen: modesOpen, mode: mode, setMode: setMode,
     resistOf: resistOf, RESIST_CAP: RESIST_CAP,

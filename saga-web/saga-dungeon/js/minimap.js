@@ -112,9 +112,13 @@
       out.push({ t: kind, nx: n.nx, ny: n.ny });
     }
 
+    /* 부적 '암흑'(§5.3) — 시야 반경 밖의 적은 점을 안 찍는다 */
+    var darkR = (run.nightmare && run.nightmare.mods && run.nightmare.mods.indexOf('dark') >= 0 && run.player)
+      ? ((global.DG.dungeon && global.DG.dungeon.NM_DARK_R) || 150) : 0;
     for (i = 0; i < room.enemies.length; i++) {
       var e = room.enemies[i];
       if (e.hp <= 0) { continue; }
+      if (darkR && Math.hypot(e.x - run.player.x, e.y - run.player.y) > darkR) { continue; }
       put(e.boss ? 'boss' : (e.elite ? 'elite' : 'enemy'), e.x, e.y);
     }
     if (room.chest && !room.chest.taken) { put('poi', room.chest.x, room.chest.y); }

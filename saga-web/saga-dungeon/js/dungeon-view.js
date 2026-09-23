@@ -123,7 +123,7 @@
     host.innerHTML =
       '<div class="dg-wrap">' +
         '<div id="dg-hud"></div>' +
-        '<div class="dg-stage"><canvas id="dg3d"></canvas><canvas id="dg-canvas"></canvas>' +
+        '<div class="dg-stage"><canvas id="dg3d"></canvas><canvas id="dg-canvas"></canvas><div id="dg-dark"></div>' +
           '<div id="d2-foe"></div>' +
           '<div id="dg-choice"></div>' +
           '<div id="dg-joy"><div id="dg-joy-knob"></div></div>' +
@@ -627,9 +627,16 @@
   /* ── HUD (상단) ──────────────────────────────────────── */
 
   var hudKey = '';
+  /** 부적 '암흑'(§5.3) — 화면 가장자리를 어둡게 덮는다. 두 캔버스 바로 뒤(.dg-stage 안)의
+   *  DOM 덧씌우기라 2D·3D 어느 쪽이든 같고, HUD(z 6)·조작판(z 20)은 그 위에 남는다 */
+  function setDark(on) {
+    var el = document.getElementById('dg-dark');
+    if (el) { el.classList.toggle('show', !!on); }
+  }
   function renderHud() {
-    if (!shown) { return; }
+    if (!shown) { setDark(false); return; }
     var st = d().status();
+    setDark(!!(st.active && st.nightmare && st.nightmare.mods && st.nightmare.mods.indexOf('dark') >= 0));
     if (!st.active) { return; }
     /* 마을은 층도 방도 노획도 없다 — "여기가 어디인가" 만 말한다 */
     if (st.town) {

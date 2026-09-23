@@ -1360,3 +1360,9 @@ body.town-open .dg-tip {
   padding: 0 14px; pointer-events: none;
   text-shadow: 0 1px 3px rgba(0,0,0,.9);
 }
+
+/* 부적 '암흑' 변형자(§5.3, dungeon-view.js setDark) — 가운데(나)만 트이고 가장자리는 어둡다.
+   .dg-stage 안 두 캔버스 바로 뒤에 있어 그 위에 그려지고, 누르기는 통과시킨다 */
+#dg-dark { position: absolute; inset: 0; pointer-events: none; display: none;
+  background: radial-gradient(circle at 50% 52%, rgba(0,0,0,0) 18vmin, rgba(0,0,0,.55) 34vmin, rgba(0,0,0,.88) 60vmin); }
+#dg-dark.show { display: block; }
