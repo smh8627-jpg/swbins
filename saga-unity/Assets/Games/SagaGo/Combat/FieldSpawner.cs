@@ -4,7 +4,7 @@ using Saga.Go.Data;
 namespace Saga.Go.Combat
 {
     /// <summary>
-    /// PLAN.md 107-1 "무대 전환 없음" — 들판 적 무리 여섯 곳을 Play 시작 때 세운다(편집기에선 모델만 받아 둔다 —
+    /// PLAN.md 107-1 "무대 전환 없음" — 들판 적 무리 여섯 곳 + 107 ⑤ 원소 쓰는 적 무리 셋을 Play 시작 때 세운다(편집기에선 모델만 받아 둔다 —
     /// 적은 체력·상태를 가진 런타임 존재라 씬에 굳히지 않는다). 자리는 사건 칸(마을·상인·촌장·도적·
     /// 희귀 늑대·채집·산신당·사당 시련·봉수대·돌탑·유물·보물)을 피한 숲·공터, 마을 스폰에서 두 칸 넘게.
     /// </summary>
@@ -19,6 +19,9 @@ namespace Saga.Go.Combat
 
         private static readonly FieldEnemy.Kind B = FieldEnemy.Kind.Bandit;
         private static readonly FieldEnemy.Kind S = FieldEnemy.Kind.Skeleton;
+        private static readonly FieldEnemy.Kind F = FieldEnemy.Kind.EmberImp;
+        private static readonly FieldEnemy.Kind W = FieldEnemy.Kind.DrownedGhost;
+        private static readonly FieldEnemy.Kind T = FieldEnemy.Kind.StormWraith;
 
         private static readonly Group[] Groups =
         {
@@ -28,6 +31,10 @@ namespace Saga.Go.Combat
             new Group { Id = "south_glade_w", Gx = 1.6f, Gy = 7.0f, Members = new[] { B, B, S } },
             new Group { Id = "south_glade_e", Gx = 5.0f, Gy = 7.1f, Members = new[] { S, S } },
             new Group { Id = "farm_edge",    Gx = 1.6f, Gy = 9.0f, Members = new[] { B, B } },
+            // 107 ⑤ 원소 쓰는 적 — 무리 셋 여덟(보물 상자·역참·사건 칸을 비켜 섰다)
+            new Group { Id = "spirit_grove", Gx = 5.5f, Gy = 2.2f, Members = new[] { W, W } },
+            new Group { Id = "spirit_west",  Gx = 0.2f, Gy = 4.0f, Members = new[] { T, T, W } },
+            new Group { Id = "spirit_farm",  Gx = 5.3f, Gy = 9.0f, Members = new[] { F, F, T } },
         };
 
         public const float GroupSpread = 4.5f;
@@ -58,6 +65,7 @@ namespace Saga.Go.Combat
                     float a = i * Mathf.PI * 2f / g.Members.Length + g.Gx;
                     Vector3 home = center + new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * GroupSpread;
                     var kind = g.Members[i];
+                    // 원소 쓰는 적은 해골 모델에 원소 빛깔을 입힌다("원소 깃든 망자", 사실적 PBR 트랙이라 코드 도형 대신)
                     FieldEnemy.Spawn(kind, home, kind == FieldEnemy.Kind.Bandit ? banditModel : skeletonModel, g.Id, transform);
                 }
             }

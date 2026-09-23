@@ -11,11 +11,14 @@ namespace Saga.Go.Combat
     /// 집에서 45m 끌려 나오면 귀가하며 회복, 쓰러지면 90초 뒤 다시 선다. 물리 충돌체는 없다 —
     /// 카메라 벽 pull-in(`CameraRig`, 모든 레이어 raycast)이 적 몸에 걸리지 않게 하려고, 대신 서로·
     /// 플레이어와 거리를 코드로 벌린다. 피해 판정도 물리 쿼리 없이 <see cref="All"/> 을 거리로 훑는다.
+    /// 107 ⑤ "원소 쓰는 적"(불도깨비·물귀신·번개귀)은 원소 방패를 두르고 나온다 — 방패가 있는 동안엔 체력 대신
+    /// 방패만 깎이고(같은 원소 면역·물리 ×0.4·상성 ×2.5, 반응·부착 없음) 깨지면 2초 비틀거린 뒤 보통 적이 된다.
+    /// 덤벼 맞히면 원소에 따라 화상·젖음·감전(`FieldCombat.ApplyFoeStatus`).
     /// </summary>
     public class FieldEnemy : MonoBehaviour
     {
-        public enum Kind { Bandit, Skeleton }
-        public enum State { Wander, Chase, Telegraph, Recover, Return, Dead }
+        public enum Kind { Bandit, Skeleton, EmberImp, DrownedGhost, StormWraith }
+        public enum State { Wander, Chase, Telegraph, Recover, Return, Dead, Stagger }
 
         public const float DetectRadius = 24f;
         public const float GiveUpRadius = 32f;
@@ -55,6 +58,12 @@ namespace Saga.Go.Combat
         public float AuraLeft { get; private set; }
         public bool Charged => _chargedLeft > 0f;
         public string GroupId { get; private set; }
+        /// <summary>원소 쓰는 적의 원소(보통 적은 Physical).</summary>
+        public GoElement Element { get; private set; }
+        public float ShieldMax { get; private set; }
+        public float ShieldHp { get; private set; }
+        public bool Shielded => ShieldHp > 0f;
+        public bool IsElemental => Element != GoElement.Physical;
 
         private Transform _visual;
         private Animator _animator;
@@ -73,6 +82,11 @@ namespace Saga.Go.Combat
         private Renderer _auraDot;
         private LineRenderer _warnRing;
         private MaterialPropertyBlock _block;
+        private Transform _shieldFill;
+        private GameObject _shieldBar;
+        private GameObject _shieldBubble;
+        private Transform _orbit;
+        private Light _elementLight;
 
         public static FieldEnemy Spawn(Kind kind, Vector3 home, GameObject model, string groupId, Transform parent)
         {
@@ -96,18 +110,32 @@ namespace Saga.Go.Combat
                     DisplayName = GoLocalization.T("field.foe.bandit", "산적");
                     MaxHp = 320f; Atk = 26f; ExpReward = 15;
                     break;
+                case Kind.EmberImp:
+                    DisplayName = GoLocalization.T("field.foe.imp", "불도깨비");
+                    MaxHp = 260f; Atk = 24f; ExpReward = 20; Element = GoElement.Pyro; ShieldMax = 150f;
+                    break;
+                case Kind.DrownedGhost:
+                    DisplayName = GoLocalization.T("field.foe.ghost", "물귀신");
+                    MaxHp = 300f; Atk = 22f; ExpReward = 20; Element = GoElement.Hydro; ShieldMax = 180f;
+                    break;
+                case Kind.StormWraith:
+                    DisplayName = GoLocalization.T("field.foe.wraith", "번개귀");
+                    MaxHp = 230f; Atk = 28f; ExpReward = 20; Element = GoElement.Electro; ShieldMax = 130f;
+                    break;
                 default:
                     DisplayName = GoLocalization.T("field.foe.skeleton", "해골 병사");
                     MaxHp = 220f; Atk = 20f; ExpReward = 10;
                     break;
             }
             Hp = MaxHp;
+            ShieldHp = ShieldMax;
             transform.position = Grounded(Home);
             _wanderTarget = Home;
             _timer = UnityEngine.Random.Range(0.5f, 3f);
             BuildVisual();
             BuildHeadUi();
             BuildWarnRing();
+            if (IsElemental) BuildElementFx();
         }
 
         private void OnEnable() { if (!_all.Contains(this)) _all.Add(this); }
@@ -124,18 +152,91 @@ namespace Saga.Go.Combat
                 inst.transform.localPosition = Vector3.zero;
                 inst.transform.localRotation = Quaternion.identity;
                 float h = MeasureHeight(inst);
-                float target = kind == Kind.Skeleton ? BodyHeight * 1.05f : BodyHeight;
-                if (h > 0.01f) inst.transform.localScale = Vector3.one * (target / h);
+                if (h > 0.01f) inst.transform.localScale = Vector3.one * (BodyHeight * HeightFactor() / h);
                 _animator = inst.GetComponentInChildren<Animator>();
                 if (_animator != null) _animator.applyRootMotion = false;
                 _visual = inst.transform;
-                if (kind == Kind.Skeleton) CharacterVisual.Tint(inst, new Color(0.88f, 0.9f, 0.96f));
+                if (BaseTint(out Color tint)) CharacterVisual.Tint(inst, tint);
             }
             else
             {
                 _visual = CharacterVisual.SpawnFallbackCapsule(transform,
-                    kind == Kind.Bandit ? new Color(0.5f, 0.2f, 0.15f) : new Color(0.85f, 0.85f, 0.8f));
+                    kind == Kind.Bandit ? new Color(0.5f, 0.2f, 0.15f) : BaseTint(out Color t) ? t : new Color(0.85f, 0.85f, 0.8f));
             }
+        }
+
+        private float HeightFactor()
+        {
+            switch (kind)
+            {
+                case Kind.Skeleton: return 1.05f;
+                case Kind.EmberImp: return 0.85f;
+                case Kind.DrownedGhost: return 1.15f;
+                default: return 1f;
+            }
+        }
+
+        /// <summary>몸에 늘 입히는 빛깔 — 해골은 바랜 흰빛, 원소 쓰는 적은 원소 빛(산적은 없음).</summary>
+        private bool BaseTint(out Color c)
+        {
+            if (kind == Kind.Skeleton) { c = new Color(0.88f, 0.9f, 0.96f); return true; }
+            if (IsElemental) { c = Color.Lerp(new Color(0.35f, 0.33f, 0.32f), GoElements.ColorOf(Element), 0.75f); return true; }
+            c = Color.white;
+            return false;
+        }
+
+        /// <summary>107 ⑤ — 방패 거품(반투명)·몸 둘레를 도는 원소 구슬 셋·원소 빛. 몸(`_visual`) 밖에 붙여 빛깔 입히기와 섞이지 않게.</summary>
+        private void BuildElementFx()
+        {
+            Color c = GoElements.ColorOf(Element);
+            float h = BodyHeight * HeightFactor();
+            _shieldBubble = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            _shieldBubble.name = "ShieldBubble";
+            Destroy(_shieldBubble.GetComponent<Collider>());
+            _shieldBubble.transform.SetParent(transform, false);
+            _shieldBubble.transform.localPosition = new Vector3(0f, h * 0.5f, 0f);
+            _shieldBubble.transform.localScale = new Vector3(2.8f, h * 1.15f, 2.8f);
+            var bubbleMat = new Material(Shader.Find("Sprites/Default")) { name = "ShieldBubble (generated)" };
+            bubbleMat.color = new Color(c.r, c.g, c.b, 0.22f);
+            var br = _shieldBubble.GetComponent<MeshRenderer>();
+            br.sharedMaterial = bubbleMat;
+            br.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            br.receiveShadows = false;
+
+            _orbit = new GameObject("ElementOrbit").transform;
+            _orbit.SetParent(transform, false);
+            _orbit.localPosition = new Vector3(0f, h * 0.6f, 0f);
+            var orbMat = new Material(Shader.Find("Universal Render Pipeline/Lit")) { name = "ElementOrb (generated)" };
+            orbMat.color = c;
+            orbMat.EnableKeyword("_EMISSION");
+            orbMat.SetColor("_EmissionColor", c * 2.5f);
+            for (int i = 0; i < 3; i++)
+            {
+                var orb = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                orb.name = "Orb";
+                Destroy(orb.GetComponent<Collider>());
+                orb.transform.SetParent(_orbit, false);
+                float a = i * Mathf.PI * 2f / 3f;
+                orb.transform.localPosition = new Vector3(Mathf.Cos(a) * 1.6f, (i - 1) * 0.35f, Mathf.Sin(a) * 1.6f);
+                orb.transform.localScale = Vector3.one * 0.35f;
+                orb.GetComponent<MeshRenderer>().sharedMaterial = orbMat;
+            }
+            var lightGo = new GameObject("ElementLight");
+            lightGo.transform.SetParent(_orbit, false);
+            _elementLight = lightGo.AddComponent<Light>();
+            _elementLight.type = LightType.Point;
+            _elementLight.color = c;
+            _elementLight.range = 7f;
+            _elementLight.intensity = 1.6f;
+            RefreshElementFx();
+        }
+
+        private void RefreshElementFx()
+        {
+            if (!IsElemental || _orbit == null) return;
+            _shieldBubble.SetActive(Alive && Shielded);
+            _orbit.gameObject.SetActive(Alive);
+            _elementLight.intensity = Shielded ? 1.6f : 0.7f;
         }
 
         private static float MeasureHeight(GameObject go)
@@ -169,6 +270,21 @@ namespace Saga.Go.Combat
             _hpFill = fillPivot;
             _auraDot = NewQuad(_headUi, "AuraDot", new Vector3(-1.3f, 0f, 0f), new Vector3(0.3f, 0.3f, 1f), Color.clear).GetComponent<Renderer>();
             _auraDot.enabled = false;
+            if (IsElemental) _nameText.color = Color.Lerp(Color.white, GoElements.ColorOf(Element), 0.6f);
+            if (ShieldMax > 0f)
+            {
+                // 방패 막대 — 체력 막대 바로 위, 원소 빛깔
+                _shieldBar = new GameObject("ShieldBar");
+                _shieldBar.transform.SetParent(_headUi, false);
+                _shieldBar.transform.localPosition = new Vector3(0f, 0.2f, 0f);
+                NewQuad(_shieldBar.transform, "ShieldBack", new Vector3(0f, 0f, 0.01f), new Vector3(2.0f, 0.14f, 1f), new Color(0f, 0f, 0f, 0.6f));
+                var sp = new GameObject("ShieldFillPivot").transform;
+                sp.SetParent(_shieldBar.transform, false);
+                sp.localPosition = new Vector3(-0.97f, 0f, 0f);
+                NewQuad(sp, "ShieldFill", new Vector3(0.5f, 0f, 0f), Vector3.one, GoElements.ColorOf(Element));
+                sp.localScale = new Vector3(1.94f, 0.1f, 1f);
+                _shieldFill = sp;
+            }
         }
 
         private static TextMesh NewText(Transform parent, string text, Vector3 local, float size, Color color)
@@ -304,10 +420,18 @@ namespace Saga.Go.Combat
                     if (_timer <= 0f) CurrentState = playerOk && distPlayer < GiveUpRadius ? State.Chase : State.Return;
                     break;
 
+                case State.Stagger:
+                    SetMoveAnim(0f);
+                    _timer -= dt;
+                    if (_timer <= 0f) CurrentState = playerOk && distPlayer < GiveUpRadius ? State.Chase : State.Return;
+                    break;
+
                 case State.Return:
                     if (MoveToward(Home, ReturnSpeed, dt, 1f))
                     {
                         Hp = MaxHp;
+                        ShieldHp = ShieldMax;
+                        RefreshElementFx();
                         CurrentState = State.Wander;
                         _timer = 1f;
                     }
@@ -368,6 +492,7 @@ namespace Saga.Go.Combat
         {
             reaction = GoReaction.None;
             if (!Alive) return 0f;
+            if (Shielded) return HitShield(amount, element);
 
             if (element != GoElement.Physical)
             {
@@ -425,6 +550,44 @@ namespace Saga.Go.Combat
             return dealt;
         }
 
+        /// <summary>원소 방패에 한 번 — 체력은 안 깎이고 반응·부착도 없다. 방패에 들어간 양을 돌려준다.</summary>
+        private float HitShield(float amount, GoElement element)
+        {
+            float mul = GoElements.ShieldMul(Element, element);
+            Vector3 textPos = transform.position + Vector3.up * (BodyHeight + 0.8f);
+            Aggro();
+            if (mul <= 0f)
+            {
+                FieldDamageText.Spawn(textPos, GoLocalization.T("field.immune", "면역"), new Color(0.7f, 0.7f, 0.72f), 1f);
+                return 0f;
+            }
+            float dmg = amount * mul;
+            float dealt = Mathf.Min(ShieldHp, dmg);
+            ShieldHp -= dmg;
+            FieldDamageText.Spawn(textPos, Mathf.RoundToInt(dmg).ToString(), GoElements.ColorOf(Element), mul > 1f ? 1.25f : 0.85f);
+            if (mul > 1f)
+                FieldDamageText.Spawn(textPos + Vector3.up * 1f, GoLocalization.T("field.counter", "상성!"), GoElements.ColorOf(element), 1.1f);
+            if (ShieldHp <= 0f) BreakShield();
+            RefreshHeadUi();
+            return dealt;
+        }
+
+        /// <summary>방패가 깨짐 — 하던 예고를 끊고 2초 비틀거린다. 그 뒤로는 보통 적(부착·반응 받음).</summary>
+        private void BreakShield()
+        {
+            ShieldHp = 0f;
+            _alertText.gameObject.SetActive(false);
+            _warnRing.enabled = false;
+            TintVisual(Color.white, false);
+            CurrentState = State.Stagger;
+            _timer = GoElements.ShieldBreakStaggerSec;
+            if (_animator != null) _animator.SetTrigger("Hit");
+            FieldDamageText.Spawn(transform.position + Vector3.up * (BodyHeight + 2f),
+                GoLocalization.T("field.shield_break", "방패 깨짐!"), GoElements.ColorOf(Element), 1.4f);
+            FieldRingFx.Spawn(transform.position, 4f, GoElements.ColorOf(Element), 0.5f);
+            RefreshElementFx();
+        }
+
         private void StartCharged(float atk)
         {
             _chargedLeft = GoElements.ChargedSec;
@@ -440,6 +603,16 @@ namespace Saga.Go.Combat
         private float ApplyDamage(float amount, Color color, float size)
         {
             if (!Alive || amount <= 0f) return 0f;
+            if (Shielded)
+            {
+                // 옆 적의 과부하 광역처럼 원소 없는 몫 — 방패가 받는다(배율 1)
+                float sd = Mathf.Min(ShieldHp, amount);
+                ShieldHp -= amount;
+                FieldDamageText.Spawn(transform.position + Vector3.up * (BodyHeight + 0.8f), Mathf.RoundToInt(amount).ToString(), GoElements.ColorOf(Element), size * 0.85f);
+                if (ShieldHp <= 0f) BreakShield();
+                RefreshHeadUi();
+                return sd;
+            }
             float dealt = Mathf.Min(Hp, amount);
             Hp -= amount;
             FieldDamageText.Spawn(transform.position + Vector3.up * (BodyHeight + 0.8f),
@@ -469,6 +642,7 @@ namespace Saga.Go.Combat
             TintVisual(Color.white, false);
             if (_animator != null) _animator.SetTrigger("Death");
             _headUi.gameObject.SetActive(false);
+            RefreshElementFx();
             PlayerStats.AddExp(ExpReward);
             Killed?.Invoke(this);
             Invoke(nameof(HideBody), 2.5f);
@@ -483,12 +657,14 @@ namespace Saga.Go.Combat
         {
             CancelInvoke(nameof(HideBody));
             Hp = MaxHp;
+            ShieldHp = ShieldMax;
             transform.position = Grounded(Home);
             CurrentState = State.Wander;
             _timer = 1f;
             if (_visual != null) _visual.gameObject.SetActive(true);
             if (_animator != null) { _animator.Rebind(); _animator.Update(0f); }
             _headUi.gameObject.SetActive(true);
+            RefreshElementFx();
             RefreshHeadUi();
         }
 
@@ -520,6 +696,14 @@ namespace Saga.Go.Combat
             Home = _spawnHome;
             Revive();
             ClearAuraForTest();
+        }
+
+        /// <summary>진단용 — 방패를 곧장 맞춘다(0 이면 깨진 채, 비틀거림 없이).</summary>
+        public void SetShieldForTest(float value)
+        {
+            ShieldHp = Mathf.Clamp(value, 0f, ShieldMax);
+            RefreshElementFx();
+            RefreshHeadUi();
         }
 
         /// <summary>진단용 — 원소 부착을 지운다.</summary>
@@ -593,14 +777,15 @@ namespace Saga.Go.Combat
         private void TintVisual(Color c, bool on)
         {
             if (_visual == null) return;
+            bool hasBase = BaseTint(out Color baseTint);
             if (on)
             {
-                CharacterVisual.Tint(_visual.gameObject, kind == Kind.Skeleton ? c * new Color(0.88f, 0.9f, 0.96f) : c);
+                CharacterVisual.Tint(_visual.gameObject, hasBase ? c * baseTint : c);
                 _tinted = true;
             }
             else if (_tinted)
             {
-                if (kind == Kind.Skeleton) CharacterVisual.Tint(_visual.gameObject, new Color(0.88f, 0.9f, 0.96f));
+                if (hasBase) CharacterVisual.Tint(_visual.gameObject, baseTint);
                 else CharacterVisual.ClearTint(_visual.gameObject);
                 _tinted = false;
             }
@@ -627,6 +812,11 @@ namespace Saga.Go.Combat
             if (_hpFill == null) return;
             float r = MaxHp > 0f ? Mathf.Clamp01(Hp / MaxHp) : 0f;
             _hpFill.localScale = new Vector3(1.94f * r, 0.16f, 1f);
+            if (_shieldBar != null)
+            {
+                _shieldBar.SetActive(Shielded);
+                _shieldFill.localScale = new Vector3(1.94f * Mathf.Clamp01(ShieldHp / ShieldMax), 0.1f, 1f);
+            }
             bool aura = AuraLeft > 0f && Aura != GoElement.Physical;
             _auraDot.enabled = aura;
             if (aura)
@@ -639,6 +829,7 @@ namespace Saga.Go.Combat
 
         private void LateUpdate()
         {
+            if (_orbit != null && _orbit.gameObject.activeSelf) _orbit.Rotate(0f, 90f * Time.deltaTime, 0f, Space.Self);
             var cam = Camera.main;
             if (cam != null && _headUi != null)
             {

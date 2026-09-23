@@ -140,6 +140,7 @@ namespace Saga.EditorTools
                 CheckShrineTrial();
                 // PLAN.md 107-1 들판 전투 — 일일 과제(세이브 되돌림) 앞, 다른 진단 뒤(처치 경험치가 첫 레벨업이 되지 않게).
                 if (!PlaytestGoFieldCombat.Run("PlaytestHeadless")) _hadError = true;
+                if (!PlaytestGoElementalFoe.Run("PlaytestHeadless")) _hadError = true; // PLAN.md 107-5 원소 쓰는 적
                 if (!PlaytestGoTraversal.Run("PlaytestHeadless")) _hadError = true; // PLAN.md 107 ② 이동
                 if (!PlaytestGoWorldMap.Run("PlaytestHeadless")) _hadError = true; // PLAN.md 107-3 지역 지도(세이브 되돌림 포함)
                 if (!PlaytestGoTreasure.Run("PlaytestHeadless")) _hadError = true; // PLAN.md 107-4 보물 상자(세이브·상자 기록 되돌림 포함)

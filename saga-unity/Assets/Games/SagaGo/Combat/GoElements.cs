@@ -22,6 +22,30 @@ namespace Saga.Go.Combat
         public const float ChargedTickAtkMul = 0.3f;
         public const float ChargedSpreadRadius = 4f;
 
+        // ---- 107 ⑤ 원소 쓰는 적 — 원소 방패·덤벼 맞힐 때 상태 ----
+        public const float ShieldPhysicalMul = 0.4f;
+        public const float ShieldCounterMul = 2.5f;
+        public const float ShieldBreakStaggerSec = 2f;
+        public const int BurnTicks = 3;
+        public const float BurnTickSec = 1f;
+        public const float BurnMul = 0.2f;        // 그 타격 피해의 비율, 한 번마다
+        public const float WetStaminaLoss = 25f;
+        public const float ShockEnergyLoss = 25f;
+
+        /// <summary>상성 — 수가 화를, 뇌가 수를, 화가 뇌를 누른다.</summary>
+        public static bool Counters(GoElement attacker, GoElement shield) =>
+            (attacker == GoElement.Hydro && shield == GoElement.Pyro) ||
+            (attacker == GoElement.Electro && shield == GoElement.Hydro) ||
+            (attacker == GoElement.Pyro && shield == GoElement.Electro);
+
+        /// <summary>원소 방패에 들어가는 배율 — 같은 원소 0(면역) · 물리 0.4 · 상성 2.5 · 나머지 1.</summary>
+        public static float ShieldMul(GoElement shield, GoElement incoming)
+        {
+            if (incoming == GoElement.Physical) return ShieldPhysicalMul;
+            if (incoming == shield) return 0f;
+            return Counters(incoming, shield) ? ShieldCounterMul : 1f;
+        }
+
         /// <summary>주인공의 원소 — 동료는 <see cref="ForMember"/>.</summary>
         public const GoElement HeroElement = GoElement.Pyro;
 

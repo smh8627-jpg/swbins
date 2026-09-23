@@ -78,6 +78,12 @@ namespace Saga.Go.Combat
         private float _attackCd;
         private float _sinceHit = 999f;
 
+        // 107 ⑤ — 불도깨비에게 맞은 화상(맞은 인물에게 남은 틱)
+        public int BurnTicksLeft { get; private set; }
+        private float _burnTimer;
+        private float _burnDmg;
+        private Member _burnTarget;
+
         public float Atk => (PartyState.Atk + PlayerStats.AtkBonus + Inventory.AtkBonus) * PerkState.AtkMultiplier * BondState.AtkMultiplier;
         public float Def => (PartyState.Def + PlayerStats.DefBonus + Inventory.DefBonus) * PerkState.DefMultiplier * BondState.DefMultiplier;
 
@@ -167,6 +173,7 @@ namespace Saga.Go.Combat
             if (InvulnLeft > 0f) InvulnLeft -= dt;
             if (SwapCooldown > 0f) SwapCooldown -= dt;
             foreach (var m in _party) if (m.SkillCd > 0f) m.SkillCd = Mathf.Max(0f, m.SkillCd - dt);
+            TickBurn(dt);
             _sinceHit += dt;
             if (_sinceHit >= RegenDelaySec)
             {
@@ -300,7 +307,50 @@ namespace Saga.Go.Combat
             FieldDamageText.Spawn(transform.position + Vector3.up * 4f, Mathf.RoundToInt(dmg).ToString(), new Color(1f, 0.3f, 0.25f));
             if (player != null && player.Animator != null) player.Animator.SetTrigger("Hit");
             if (m.Down) OnMemberDown();
+            else if (from != null && from.IsElemental) ApplyFoeStatus(from.Element, dmg);
             return true;
+        }
+
+        /// <summary>107 ⑤ 원소 쓰는 적에게 맞았을 때 — 화 = 화상(그 피해 ×0.2 세 번, 1초 간격, 이것만으론 안 쓰러짐) ·
+        /// 수 = 젖음(스태미나 -25) · 뇌 = 감전(나선 인물 기력 -25).</summary>
+        public void ApplyFoeStatus(GoElement el, float strikeDmg)
+        {
+            var m = Active;
+            if (m == null || m.Down) return;
+            Vector3 textPos = transform.position + Vector3.up * 5f;
+            switch (el)
+            {
+                case GoElement.Pyro:
+                    _burnTarget = m;
+                    BurnTicksLeft = GoElements.BurnTicks;
+                    _burnTimer = GoElements.BurnTickSec;
+                    _burnDmg = strikeDmg * GoElements.BurnMul;
+                    FieldDamageText.Spawn(textPos, GoLocalization.T("field.st.burn", "화상"), GoElements.ColorOf(el), 1f);
+                    break;
+                case GoElement.Hydro:
+                    GoStamina.Use(GoElements.WetStaminaLoss);
+                    FieldDamageText.Spawn(textPos, GoLocalization.T("field.st.wet", "젖음 — 스태미나 -25"), GoElements.ColorOf(el), 1f);
+                    break;
+                case GoElement.Electro:
+                    m.Energy = Mathf.Max(0f, m.Energy - GoElements.ShockEnergyLoss);
+                    FieldDamageText.Spawn(textPos, GoLocalization.T("field.st.shock", "감전 — 기력 -25"), GoElements.ColorOf(el), 1f);
+                    break;
+            }
+        }
+
+        private void TickBurn(float dt)
+        {
+            if (BurnTicksLeft <= 0) return;
+            if (_burnTarget == null || _burnTarget.Down) { BurnTicksLeft = 0; return; }
+            _burnTimer -= dt;
+            while (_burnTimer <= 0f && BurnTicksLeft > 0)
+            {
+                _burnTimer += GoElements.BurnTickSec;
+                BurnTicksLeft--;
+                float before = _burnTarget.Hp;
+                _burnTarget.Hp = Mathf.Max(Mathf.Min(1f, before), before - _burnDmg); // 화상만으로는 안 쓰러진다
+                FieldDamageText.Spawn(transform.position + Vector3.up * 4f, Mathf.RoundToInt(before - _burnTarget.Hp).ToString(), GoElements.ColorOf(GoElement.Pyro), 0.8f);
+            }
         }
 
         private void OnMemberDown()
@@ -324,6 +374,7 @@ namespace Saga.Go.Combat
         public void WipeAndReturn()
         {
             foreach (var m in _party) { m.Hp = m.MaxHp; m.SkillCd = 0f; }
+            BurnTicksLeft = 0;
             ActiveIndex = 0;
             ApplyLook();
             foreach (var e in FieldEnemy.All) e.ForceReturn();
@@ -389,6 +440,7 @@ namespace Saga.Go.Combat
             InvulnLeft = 0f;
             SwapCooldown = 0f;
             _sinceHit = 999f;
+            BurnTicksLeft = 0;
             ApplyLook();
         }
     }
