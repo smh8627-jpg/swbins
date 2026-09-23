@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>saga-web 맵 편집기</title>
+<style>
+  :root {
+    --bg: #1e1f22; --panel: #26272b; --panel2: #2d2f34; --line: #3a3c42;
+    --text: #e6e6e6; --sub: #9a9ea6; --accent: #5b8cff; --ok: #5ec26a; --bad: #e0605a; --warn: #e0a53a;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { background: var(--bg); color: var(--text); font: 13px/1.5 -apple-system, "Segoe UI", "Malgun Gothic", sans-serif; display: flex; flex-direction: column; }
+  #top { display: flex; gap: 10px; align-items: center; padding: 8px 14px; background: var(--panel2); border-bottom: 1px solid var(--line); }
+  #top h1 { font-size: 14px; margin: 0; color: #cfd6ff; }
+  #top .sp { flex: 1; }
+  select, button, input { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 5px; padding: 5px 10px; font: inherit; }
+  button { cursor: pointer; } button:hover { border-color: var(--accent); }
+  button.primary { background: #3f6bd8; border-color: #3f6bd8; color: #fff; }
+  button.on { border-color: var(--accent); background: #34405e; }
+  #main { flex: 1; display: flex; min-height: 0; }
+  #left { width: 250px; background: var(--panel); border-right: 1px solid var(--line); overflow: auto; padding: 10px; }
+  #center { flex: 1; overflow: auto; display: flex; align-items: flex-start; justify-content: center; padding: 16px; }
+  #right { width: 330px; background: var(--panel); border-left: 1px solid var(--line); overflow: auto; padding: 10px; }
+  h3 { font-size: 12px; color: var(--sub); margin: 12px 0 6px; font-weight: 600; }
+  .pal { display: flex; align-items: center; gap: 8px; padding: 4px 6px; border-radius: 5px; cursor: pointer; border: 1px solid transparent; }
+  .pal:hover { background: var(--panel2); } .pal.sel { border-color: var(--accent); background: #34405e; }
+  .sw { width: 22px; height: 22px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font: 700 12px Consolas, monospace; color: #111; }
+  .pl { display: grid; grid-template-columns: 1fr 44px 44px 22px; gap: 4px; align-items: center; padding: 3px 4px; border-radius: 4px; cursor: pointer; }
+  .pl.sel { background: #34405e; } .pl input { width: 100%; padding: 2px 4px; }
+  .muted { color: var(--sub); font-size: 11.5px; }
+  .ok { color: var(--ok); } .bad { color: var(--bad); } .warn { color: var(--warn); }
+  #grid { image-rendering: pixelated; cursor: crosshair; border: 1px solid var(--line); }
+  #log div { font-size: 12px; padding: 2px 0; border-bottom: 1px solid #2b2d31; }
+  .row { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0; }
+</style>
+</head>
+<body>
+<div id="top">
+  <h1>맵 편집기</h1>
+  <select id="landSel"></select>
+  <span class="muted" id="meta"></span>
+  <span class="sp"></span>
+  <span id="badge" class="muted">검사 중…</span>
+  <button id="btnUndo" title="Ctrl+Z">되돌리기</button>
+  <button id="btnReload">다시 읽기</button>
+  <button class="primary" id="btnSave">저장</button>
+</div>
+<div id="main">
+  <div id="left">
+    <h3>도구</h3>
+    <div class="row"><button id="tPaint" class="on">칠하기</button><button id="tFill">채우기</button><button id="tPick">스포이트</button><button id="tPlace">명소 옮기기</button></div>
+    <h3>범례(칠할 글자) — 이 땅 legend 그대로</h3>
+    <div id="palette"></div>
+    <h3>크기</h3>
+    <div class="row"><button id="addCol">오른쪽 +1열</button><button id="delCol">−1열</button></div>
+    <div class="row"><button id="addRow">아래 +1줄</button><button id="delRow">−1줄</button></div>
+    <div class="muted">왼쪽·위로는 늘리지 않는다 — 격자 원점(ox·oy)과 명소 좌표가 한꺼번에 밀리기 때문이다.</div>
+  </div>
+  <div id="center"><canvas id="grid"></canvas></div>
+  <div id="right">
+    <h3>검사 — 게임 코드(validate·roadIslands·tally) 그대로</h3>
+    <div id="report"></div>
+    <h3>명소(places) — 고르고 "명소 옮기기"로 칸을 누른다</h3>
+    <div id="places"></div>
+    <div class="row"><button id="addPlace">명소 추가</button></div>
+    <h3>기록</h3>
+    <div id="log"></div>
+  </div>
+</div>
+<script>
+'use strict';
+const KIND_COLOR = { grass: '#8fbf6a', forest: '#3f7d45', mount: '#8b7d6b', water: '#4f86c6', road: '#d9c38c', town: '#c9785a', farm: '#c2b24a' };
+const $ = (s) => document.querySelector(s);
+let lands = [], L = null, map = [], places = [], hash = '', cur = '.', tool = 'paint', selPlace = -1, undo = [], dirty = false, CELL = 26;
+const cv = $('#grid'), cx = cv.getContext('2d');
+
+function log(t, ok) { const d = document.createElement('div'); d.className = ok ? 'ok' : 'bad'; d.textContent = (ok ? '✓ ' : '✗ ') + t; $('#log').prepend(d); }
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+async function load() {
+  const r = await fetch('/api/lands'); lands = (await r.json()).lands || [];
+  $('#landSel').innerHTML = lands.map((l, i) => '<option value="' + i + '">' + esc(l.game + ' · ' + l.name + ' (' + l.id + ')') + '</option>').join('');
+  if (!lands.length) { $('#meta').textContent = 'js/land.js 가 있는 판이 없다'; return; }
+  pick(0);
+}
+function pick(i) {
+  L = lands[i]; map = L.map.slice(); places = L.places.map((p) => ({ ...p })); hash = L.hash; undo = []; dirty = false; selPlace = -1;
+  renderPalette(); renderPlaces(); draw(); showReport(L.report);
+}
+function renderPalette() {
+  $('#palette').innerHTML = Object.entries(L.legend).map(([ch, e]) =>
+    '<div class="pal' + (ch === cur ? ' sel' : '') + '" data-ch="' + esc(ch) + '"><span class="sw" style="background:' + (KIND_COLOR[e.kind] || '#777') + '">' + (e.mark ? esc(ch) : '') + '</span>' +
+    '<span><b>' + esc(ch) + '</b> ' + esc(e.kind) + (e.mark ? ' · <span class="warn">' + esc(e.mark) + '</span>' : '') + '</span></div>').join('');
+  document.querySelectorAll('.pal').forEach((d) => { d.onclick = () => { cur = d.dataset.ch; renderPalette(); }; });
+}
+function renderPlaces() {
+  $('#places').innerHTML = places.map((p, i) =>
+    '<div class="pl' + (i === selPlace ? ' sel' : '') + '" data-i="' + i + '"><input data-k="name" value="' + esc(p.name) + '" title="' + esc(p.id) + '">' +
+    '<input data-k="tx" type="number" value="' + p.tx + '"><input data-k="ty" type="number" value="' + p.ty + '">' +
+    '<input data-k="hidden" type="checkbox" title="숨은 곳"' + (p.hidden ? ' checked' : '') + '></div>').join('');
+  document.querySelectorAll('.pl').forEach((row) => {
+    const i = +row.dataset.i;
+    row.onclick = (e) => { if (e.target.tagName !== 'INPUT') { selPlace = i; renderPlaces(); draw(); } };
+    row.querySelectorAll('input').forEach((inp) => {
+      inp.onfocus = () => { selPlace = i; draw(); };
+      inp.onchange = () => {
+        push(); const k = inp.dataset.k;
+        places[i][k] = k === 'hidden' ? inp.checked : (k === 'name' ? inp.value : parseInt(inp.value, 10) || 0);
+        if (k === 'hidden' && !inp.checked) delete places[i].hidden;
+        changed();
+      };
+    });
+  });
+}
+function draw() {
+  const w = map[0].length, h = map.length;
+  cv.width = w * CELL; cv.height = h * CELL;
+  cx.font = '700 ' + Math.floor(CELL * 0.5) + 'px Consolas, monospace'; cx.textAlign = 'center'; cx.textBaseline = 'middle';
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const ch = map[y][x], e = L.legend[ch];
+    cx.fillStyle = e ? (KIND_COLOR[e.kind] || '#777') : '#f0f';
+    cx.fillRect(x * CELL, y * CELL, CELL, CELL);
+    if (!e || e.mark) { cx.fillStyle = '#111'; cx.fillText(ch, x * CELL + CELL / 2, y * CELL + CELL / 2 + 1); }
+  }
+  cx.strokeStyle = 'rgba(0,0,0,.18)';
+  for (let x = 0; x <= w; x++) { cx.beginPath(); cx.moveTo(x * CELL + .5, 0); cx.lineTo(x * CELL + .5, h * CELL); cx.stroke(); }
+  for (let y = 0; y <= h; y++) { cx.beginPath(); cx.moveTo(0, y * CELL + .5); cx.lineTo(w * CELL, y * CELL + .5); cx.stroke(); }
+  // 격자 (0,0) 표시 — 게임 시작 자리
+  const x0 = -L.ox, y0 = -L.oy;
+  cx.strokeStyle = '#fff'; cx.lineWidth = 2; cx.strokeRect(x0 * CELL + 2, y0 * CELL + 2, CELL - 4, CELL - 4); cx.lineWidth = 1;
+  places.forEach((p, i) => {
+    const px = (p.tx - L.ox) * CELL + CELL / 2, py = (p.ty - L.oy) * CELL + CELL / 2;
+    cx.fillStyle = i === selPlace ? '#ffdf5a' : (p.hidden ? '#b06cff' : '#fff');
+    cx.beginPath(); cx.arc(px, py, CELL * 0.22, 0, Math.PI * 2); cx.fill();
+    cx.strokeStyle = '#111'; cx.stroke();
+  });
+  $('#meta').textContent = w + '×' + h + '칸 · ' + (w * 48) + '×' + (h * 48) + 'm · 격자 ' + L.ox + ',' + L.oy + '..' + (L.ox + w - 1) + ',' + (L.oy + h - 1) + (dirty ? ' · 저장 안 됨' : '');
+}
+function push() { undo.push({ map: map.slice(), places: places.map((p) => ({ ...p })) }); if (undo.length > 200) undo.shift(); }
+function setCell(x, y, ch) { if (map[y][x] === ch) return false; map[y] = map[y].slice(0, x) + ch + map[y].slice(x + 1); return true; }
+function fill(x, y, ch) {
+  const from = map[y][x]; if (from === ch) return;
+  const st = [[x, y]];
+  while (st.length) {
+    const [a, b] = st.pop();
+    if (b < 0 || b >= map.length || a < 0 || a >= map[b].length || map[b][a] !== from) continue;
+    setCell(a, b, ch); st.push([a + 1, b], [a - 1, b], [a, b + 1], [a, b - 1]);
+  }
+}
+let painting = false;
+function cellAt(e) { const r = cv.getBoundingClientRect(); return [Math.floor((e.clientX - r.left) / CELL), Math.floor((e.clientY - r.top) / CELL)]; }
+cv.onmousedown = (e) => {
+  const [x, y] = cellAt(e); if (y < 0 || y >= map.length || x < 0 || x >= map[0].length) return;
+  if (tool === 'pick') { cur = map[y][x]; renderPalette(); return; }
+  if (tool === 'place') { if (selPlace < 0) { log('명소를 먼저 고르세요', false); return; } push(); places[selPlace].tx = x + L.ox; places[selPlace].ty = y + L.oy; renderPlaces(); changed(); return; }
+  push();
+  if (tool === 'fill') { fill(x, y, cur); changed(); return; }
+  painting = true; if (setCell(x, y, cur)) changed(true);
+};
+cv.onmousemove = (e) => { if (!painting) return; const [x, y] = cellAt(e); if (map[y] && x >= 0 && x < map[y].length && setCell(x, y, cur)) changed(true); };
+addEventListener('mouseup', () => { if (painting) { painting = false; changed(); } });
+
+let tmr = 0;
+function changed(fast) {
+  dirty = true; draw();
+  if (fast) return;
+  clearTimeout(tmr); tmr = setTimeout(runCheck, 250);
+}
+async function runCheck() {
+  const r = await fetch('/api/check', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ game: L.game, id: L.id, map, places }) });
+  showReport(await r.json());
+}
+function showReport(rep) {
+  if (rep.error) { $('#report').innerHTML = '<div class="bad">' + esc(rep.error) + '</div>'; $('#badge').className = 'bad'; $('#badge').textContent = '검사 실패'; return; }
+  const errs = rep.errors || [];
+  const t = rep.tally || {};
+  let h = errs.length ? '<div class="bad">오류 ' + errs.length + ' — 저장이 막힌다<br>' + errs.slice(0, 12).map(esc).join('<br>') + '</div>' : '<div class="ok">validate() 통과</div>';
+  h += '<div class="' + (rep.islands === 1 ? 'ok' : 'warn') + '">길 덩어리 ' + rep.islands + (rep.islands === 1 ? ' — 하나로 이어짐' : ' — 끊겼다(게임 진단 "길이 하나로 이어진다"가 실패한다)') + '</div>';
+  h += '<div class="muted">' + Object.entries(t).map(([k, v]) => esc(k) + ' ' + v).join(' · ') + '</div>';
+  $('#report').innerHTML = h;
+  $('#badge').className = errs.length ? 'bad' : rep.islands === 1 ? 'ok' : 'warn';
+  $('#badge').textContent = errs.length ? '오류 ' + errs.length : rep.islands === 1 ? '성함' : '길 끊김';
+}
+
+function setTool(t) { tool = t; ['Paint', 'Fill', 'Pick', 'Place'].forEach((n) => $('#t' + n).classList.toggle('on', t === n.toLowerCase())); }
+$('#tPaint').onclick = () => setTool('paint'); $('#tFill').onclick = () => setTool('fill');
+$('#tPick').onclick = () => setTool('pick'); $('#tPlace').onclick = () => setTool('place');
+$('#addCol').onclick = () => { push(); map = map.map((r) => r + r[r.length - 1]); changed(); };
+$('#delCol').onclick = () => { if (map[0].length < 2) return; push(); map = map.map((r) => r.slice(0, -1)); changed(); };
+$('#addRow').onclick = () => { push(); map.push(map[map.length - 1]); changed(); };
+$('#delRow').onclick = () => { if (map.length < 2) return; push(); map.pop(); changed(); };
+$('#addPlace').onclick = () => {
+  const id = prompt('새 명소 id(영문 소문자, 한번 정하면 바꾸지 않는다)'); if (!id || !/^[a-z][a-z0-9_]*$/.test(id)) return;
+  if (places.some((p) => p.id === id)) { alert('이미 있는 id'); return; }
+  push(); places.push({ id, name: id, tx: 0, ty: 0 }); selPlace = places.length - 1; renderPlaces(); changed(); setTool('place');
+};
+function doUndo() { const s = undo.pop(); if (!s) return; map = s.map; places = s.places; renderPlaces(); changed(); }
+$('#btnUndo').onclick = doUndo;
+addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); doUndo(); } });
+$('#btnReload').onclick = async () => { if (dirty && !confirm('저장 안 한 변경을 버릴까요?')) return; const i = +$('#landSel').value; await load(); $('#landSel').value = i; pick(i); };
+$('#landSel').onchange = (e) => { if (dirty && !confirm('저장 안 한 변경을 버릴까요?')) { e.target.value = lands.indexOf(L); return; } pick(+e.target.value); };
+$('#btnSave').onclick = async () => {
+  const r = await fetch('/api/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ game: L.game, id: L.id, map, places, hash }) });
+  const out = await r.json();
+  if (out.error) { log(out.error, false); if (out.report) showReport(out.report); alert(out.error); return; }
+  hash = out.hash; dirty = false; draw(); showReport(out.report);
+  log(L.game + '/js/land.js 저장' + (out.sw && out.sw.version ? ' · sw.js ' + out.sw.version : '') + (out.report.islands !== 1 ? ' (길 끊김 경고)' : ''), true);
+};
+addEventListener('beforeunload', (e) => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+load();
+</script>
+</body>
+</html>
