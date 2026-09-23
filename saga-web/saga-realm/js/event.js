@@ -743,6 +743,156 @@
   }
 
   global.DG = global.DG || {};
+  /* ── 퓨전 사연(§5-9, 2026-09-24) — 균열·폐허·묘역이 이웃한 성에서 생기는 일 ─────
+   * 이계(異界) 세 지역(`data-city.js` prov fu·pf·my)과 **맞닿은 우리 성**(또는 그 안의 성)에서만 뜬다.
+   * 사람 짝(관계 표)이 아니라 **땅**이 부르는 사연이라 ctx.a 는 그 성에서 가장 지혜로운 우리 사람이다.
+   * 둘째 단은 한 번 더 골라 매듭짓는다 — 이계 수비 무장을 거둘 수도 있다(hire, 이질이라 충성이 낮다).
+   */
+  function CD() { return global.DG.cityData; }
+  var FUSION_PROV = { fu: '균열', pf: '폐허', my: '묘역' };
+  /** F 의 성 중 이계 prov 에 있거나 그 곁에 붙은 성 — 없으면 null. 결정적으로 하나를 고른다 */
+  function fusionCity(F, prov) {
+    var mine = R().citiesOf(F), hits = [], i, j;
+    for (i = 0; i < mine.length; i++) {
+      var d = CD().find(mine[i]);
+      if (!d) { continue; }
+      var near = d.prov === prov;
+      for (j = 0; !near && d.adj && j < d.adj.length; j++) {
+        var nd = CD().find(d.adj[j]);
+        if (nd && nd.prov === prov) { near = true; }
+      }
+      if (near) { hits.push(mine[i]); }
+    }
+    if (!hits.length) { return null; }
+    return hits[hashOf(F + '|' + prov + '|' + R().state().turn) % hits.length];
+  }
+  function fusionCtx(F, prov) {
+    var c = fusionCity(F, prov);
+    if (!c) { return null; }
+    var w = wisest(c, F);
+    return w ? { a: w.id, city: c } : null;
+  }
+  function cname(id) { var d = CD().find(id); return d ? d.name : id; }
+  /** 거둘 수 있는 이계 무장 하나(두목은 빼고) — 없으면 null */
+  function freeAlien(list) {
+    for (var i = 0; list && i < list.length; i++) {
+      if (!list[i].boss && isFree(list[i].id)) { return list[i].id; }
+    }
+    return null;
+  }
+
+  /* 1. 균열의 울림 → 균열의 문 */
+  add({
+    id: 'rift_echo', name: '균열의 울림', emoji: '🌌',
+    find: function (F) { return fusionCtx(F, 'fu'); },
+    text: function (c) { return cname(c.city) + ' 하늘에 가는 금이 갔다. 밤마다 쇳소리가 울리고, 별이 거꾸로 흐른다.'; },
+    choices: [
+      { k: 'atk', label: '정찰대를 보낸다', hint: '금 300 · 60% 로 이계의 쇠붙이(금 +700) · 뒤에 균열의 문', cost: 300,
+        go: function (c, F, step) {
+          if (roll(F, 're:' + step) < 0.6) { gold(F, 700); return { text: '정찰대가 이계의 쇠붙이를 한 짐 지고 돌아왔다', next: ['rift_gate', 4] }; }
+          adjust(c.city, 'troops', -400, 0, 999999); return { text: '정찰대 몇이 금 너머로 사라졌다' };
+        } },
+      { k: 'def', label: '성벽을 돋운다', hint: '값은 없다 · 치안 +6',
+        go: function (c) { adjust(c.city, 'sec', 6, 0, 100); return { text: '성벽에 부적을 붙이고 망루를 늘렸다' }; } },
+      { k: 'util', label: '학자에게 살피게 한다', hint: '그 사람 경험 +50 · 기술 +10 · 뒤에 균열의 문',
+        go: function (c) { exp(c.a, 50); adjust(c.city, 'tech', 10, 0, 999); return { text: nm(c.a) + ' 이(가) 균열의 결을 받아 적었다', next: ['rift_gate', 5] }; } }
+    ]
+  });
+  add({
+    id: 'rift_gate', name: '균열의 문', emoji: '🌀', chain: true,
+    valid: function (c, F) { return R().city(c.city) && R().city(c.city).force === F ? c : null; },
+    text: function (c) { return cname(c.city) + ' 곁의 금이 문만큼 벌어졌다. 그 너머에서 누군가 이쪽을 본다.'; },
+    choices: [
+      { k: 'atk', label: '문 너머의 장수를 부른다', hint: '이계 무장 하나가 합류(충성 낮다) · 없으면 금 +400',
+        go: function (c, F) {
+          var id = freeAlien(FD.FUTURE_OFFICERS);
+          if (id) { hire(id, c.city, F, -5); return { text: nm(id) + ' 이(가) 문을 넘어와 무릎을 꿇었다' }; }
+          gold(F, 400); return { text: '문 너머엔 빈 갑옷뿐이었다 — 녹여 팔았다' };
+        } },
+      { k: 'def', label: '문을 봉한다', hint: '값은 없다 · 치안 +10',
+        go: function (c) { adjust(c.city, 'sec', 10, 0, 100); return { text: '금을 흙과 부적으로 메웠다' }; } },
+      { k: 'util', label: '이계와 셈을 튼다', hint: '금 +800 · 치안 -5',
+        go: function (c, F) { gold(F, 800); adjust(c.city, 'sec', -5, 0, 100); return { text: '문 너머 상인과 기묘한 흥정이 오갔다' }; } }
+    ]
+  });
+
+  /* 2. 폐허의 역병 → 역병의 근원 */
+  add({
+    id: 'plague_mist', name: '폐허의 역병', emoji: '🌫️',
+    find: function (F) { return fusionCtx(F, 'pf'); },
+    text: function (c) { return '폐허 쪽에서 잿빛 안개가 ' + cname(c.city) + ' 로 흘러든다. 사람들이 기침을 하고 우물이 탁해졌다.'; },
+    choices: [
+      { k: 'atk', label: '안개를 불살라 걷는다', hint: '금 400 · 치안 +5 · 상업 -5', cost: 400,
+        go: function (c) { adjust(c.city, 'sec', 5, 0, 100); adjust(c.city, 'comm', -5, 0, 9999); return { text: '성 밖에 불을 놓아 안개를 태웠다' }; } },
+      { k: 'def', label: '성문을 닫는다', hint: '값은 없다 · 상업 -8 · 뒤에 역병의 근원',
+        go: function (c) { adjust(c.city, 'comm', -8, 0, 9999); return { text: '성문을 닫고 안개가 걷히길 기다린다', next: ['plague_cure', 3] }; } },
+      { k: 'util', label: '약초꾼을 모은다', hint: '그 사람 경험 +40 · 뒤에 역병의 근원',
+        go: function (c) { exp(c.a, 40); return { text: nm(c.a) + ' 이(가) 약초꾼을 모아 탕약을 끓였다', next: ['plague_cure', 4] }; } }
+    ]
+  });
+  add({
+    id: 'plague_cure', name: '역병의 근원', emoji: '🧪', chain: true,
+    valid: function (c, F) { return R().city(c.city) && R().city(c.city).force === F ? c : null; },
+    text: function (c) { return '역병의 근원이 폐허 깊은 곳의 썩은 샘이라는 말이 돈다. ' + cname(c.city) + ' 사람들이 답을 기다린다.'; },
+    choices: [
+      { k: 'atk', label: '토벌대를 보낸다', hint: '병 -800 · 폐허 무장 하나를 거둔다(없으면 금 +600)',
+        go: function (c, F) {
+          adjust(c.city, 'troops', -800, 0, 999999);
+          var id = freeAlien(FD.RUIN_OFFICERS);
+          if (id) { hire(id, c.city, F, -5); return { text: '샘을 메우자 ' + nm(id) + ' 이(가) 정신이 들어 우리 편에 섰다' }; }
+          gold(F, 600); return { text: '샘을 메우고 폐허의 보화를 거둬 왔다' };
+        } },
+      { k: 'def', label: '안개가 걷히길 기다린다', hint: '값은 없다 · 인구가 조금 준다',
+        go: function (c) { var r = R().city(c.city); if (r) { r.pop = Math.max(1000, Math.round(r.pop * 0.95)); } return { text: '역병이 한 철을 휩쓸고 지나갔다' }; } },
+      { k: 'util', label: '치료법을 널리 알린다', hint: '그 성 무장 전원 충성 +5 · 치안 +6',
+        go: function (c, F) {
+          OFF().atCity(c.city, F).forEach(function (o) { loyal(o.id, 5); });
+          adjust(c.city, 'sec', 6, 0, 100);
+          return { text: '치료법을 새긴 비석이 성문 앞에 섰다' };
+        } }
+    ]
+  });
+
+  /* 3. 묘역의 종소리 → 망자의 맹세 */
+  add({
+    id: 'tomb_bell', name: '묘역의 종소리', emoji: '🔔',
+    find: function (F) { return fusionCtx(F, 'my'); },
+    text: function (c) { return '밤마다 ' + cname(c.city) + ' 땅 밑에서 종이 울린다. 백골 병사가 성 밖을 서성인다는 소문이다.'; },
+    choices: [
+      { k: 'atk', label: '진혼제를 올린다', hint: '금 300 · 치안 +8 · 뒤에 망자의 맹세', cost: 300,
+        go: function (c) { adjust(c.city, 'sec', 8, 0, 100); return { text: '향이 사흘 밤낮으로 타올랐다', next: ['tomb_oath', 4] }; } },
+      { k: 'def', label: '성문을 걸어 잠근다', hint: '값은 없다 · 훈련 +5 · 치안 -3',
+        go: function (c) { adjust(c.city, 'train', 5, 0, 100); adjust(c.city, 'sec', -3, 0, 100); return { text: '병사들이 밤새 창을 쥐고 성벽을 지켰다' }; } },
+      { k: 'util', label: '무당에게 묻는다', hint: '그 사람 경험 +30 · 50% 로 무덤의 재물(금 +400)',
+        go: function (c, F, step) {
+          exp(c.a, 30);
+          if (roll(F, 'tb:' + step) < 0.5) { gold(F, 400); return { text: '무당이 가리킨 곳에서 옛 무덤의 재물이 나왔다' }; }
+          return { text: '무당은 "아직 때가 아니다" 라고만 했다' };
+        } }
+    ]
+  });
+  add({
+    id: 'tomb_oath', name: '망자의 맹세', emoji: '💀', chain: true,
+    valid: function (c, F) { return R().city(c.city) && R().city(c.city).force === F ? c : null; },
+    text: function (c) { return '진혼제 뒤, ' + cname(c.city) + ' 성문 앞에 백골 장수 하나가 서서 맹세를 청한다.'; },
+    choices: [
+      { k: 'atk', label: '망자 장수를 거둔다', hint: '묘역 무장 하나가 합류(충성 낮다) · 없으면 훈련 +10',
+        go: function (c, F) {
+          var id = freeAlien(FD.TOMB_OFFICERS);
+          if (id) { hire(id, c.city, F, -5); return { text: nm(id) + ' 이(가) 뼈마디를 울리며 맹세했다' }; }
+          adjust(c.city, 'train', 10, 0, 100); return { text: '장수는 사라지고 그 기세만 병사들에게 남았다' };
+        } },
+      { k: 'def', label: '편히 잠들게 한다', hint: '값은 없다 · 치안 +10 · 그 성 무장 충성 +3',
+        go: function (c, F) {
+          adjust(c.city, 'sec', 10, 0, 100);
+          OFF().atCity(c.city, F).forEach(function (o) { loyal(o.id, 3); });
+          return { text: '장수가 고개를 숙이고 땅으로 돌아갔다' };
+        } },
+      { k: 'util', label: '무덤의 보물을 청한다', hint: '금 +900 · 치안 -6',
+        go: function (c, F) { gold(F, 900); adjust(c.city, 'sec', -6, 0, 100); return { text: '장수가 옛 왕의 보물을 내주고 어둠으로 걸어갔다' }; } }
+    ]
+  });
+
   global.DG.event = {
     DEFS: DEFS, ORDER: ORDER, CHANCE: CHANCE, MAX_ACTIVE: MAX_ACTIVE, COOL: COOL, MAX_STEP: MAX_STEP,
     relLv: relLv, relAdd: relAdd, kindOf: kindOf, pairsOf: pairsOf,

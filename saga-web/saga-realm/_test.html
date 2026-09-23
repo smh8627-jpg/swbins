@@ -2206,7 +2206,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         if (n !== 30) { bad.push(sc.id + '년 성 ' + n + '곳'); }
         line.push(sc.id + ' 세력 ' + sc.forces.length + (extra ? '(+확장 ' + extra + ')' : ''));
       }
-      return bad.length === 0 && FD.SCENARIOS.length === 6 && (line.join(' · '));
+      return bad.length === 0 && FD.SCENARIOS.length === 9 && (line.join(' · '));
     });
 
     t('시나리오를 고르면 그 해, 그 판에서 시작한다', function () {
@@ -2244,6 +2244,59 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       var r194 = (R.setup('cao'), D.alliedWith('cao', 'bei'));
       return allied && !cantHit.ok && cantHit.why.indexOf('맹약') >= 0 && !r194 &&
         ('손·유 동맹 — "' + cantHit.why + '" · 194년에는 맹약이 없다');
+    });
+
+    t('시나리오 ⑦⑧ — 폐허·묘역 깃발로 시작하면 일곱 성·아홉 무장, 생존 승리가 열린다', function () {
+      R.setup('pye', 'ruin');
+      var pc = R.citiesOf('pye').length, pn = off.ofForce('pye').length, ps = R.victoryKinds().indexOf('survival') >= 0;
+      var alienLow = off.baseLoyal('sg_guanyu', 'pye') < off.baseLoyal('sg_guanyu', 'cao');
+      R.setup('myo', 'tomb');
+      var mc = R.citiesOf('myo').length, mn = off.ofForce('myo').length, ms = R.victoryKinds().indexOf('survival') >= 0;
+      R.setup('cao');
+      var none = R.victoryKinds().indexOf('survival') < 0;
+      return pc === 7 && pn === 9 && ps && mc === 7 && mn === 9 && ms && none && alienLow &&
+        ('폐왕 ' + pc + '성 ' + pn + '명 · 명계 ' + mc + '성 ' + mn + '명 · 생존 승리 · 사람은 이질');
+    });
+
+    t('시나리오 ⑨ 삼계 균열 — 이계 셋이 다 서고 폐왕·명계는 동맹, 누구로든 잡을 수 있다', function () {
+      R.setup('cao', 'triad');
+      var live = R.liveForces();
+      var three = ['gyun', 'pye', 'myo'].every(function (f) { return live.indexOf(f) >= 0 && R.citiesOf(f).length === 7; });
+      var ally = D.alliedWith('pye', 'myo'), china = R.citiesOf('cao').length > 0;
+      var sc = FD.scenario('triad'), anyPick = !sc.playable;
+      R.setup('myo', 'triad');
+      var asMyo = R.state().me === 'myo' && R.citiesOf('myo').length === 7;
+      R.setup('cao');
+      return three && ally && china && anyPick && asMyo && ('세력 ' + live.length + ' · 이계 셋 · 폐왕↔명계 동맹 · 명계로도 시작');
+    });
+
+    t('퓨전 사연 — 폐허 곁 성에서 역병이 뜨고, 성문을 닫으면 석 달 뒤 "역병의 근원" 이 이어진다', function () {
+      var E = DG.event;
+      R.setup('pye', 'ruin');
+      var st = R.state(), ctx = E.DEFS.plague_mist.find('pye');
+      var cn = E.DEFS.plague_mist.find('cao');                  // 중원은 폐허와 안 붙었다
+      var r1 = E.resolve({ id: 'plague_mist', step: 1, ctx: { a: ctx.a, b: '', city: ctx.city, force: 'pye' } }, 'def');
+      var queued = st.events.active.some(function (a) { return a.id === 'plague_cure' && a.force === 'pye'; });
+      st.events.pending = null;
+      st.turn += 3;
+      E.tick();
+      var v = E.view();
+      var g0 = R.force('pye').gold, r2 = E.choose('atk'), g1 = R.force('pye').gold;
+      R.setup('cao');
+      return !!ctx && !cn && r1.ok && queued && v && v.id === 'plague_cure' && r2.ok && g1 === g0 + 600 &&
+        ('역병 → 문 닫음 → 근원(토벌, 거둘 무장이 없어 금 +600)');
+    });
+
+    t('퓨전 사연 — 망자의 맹세로 묘역 무장을 거둔다(이질이라 충성이 낮다)', function () {
+      var E = DG.event;
+      R.setup('cao');
+      var city = R.citiesOf('cao')[0], ch = E.DEFS.tomb_oath.choices.filter(function (c) { return c.k === 'atk'; })[0];
+      var free = FD.TOMB_OFFICERS.filter(function (o) { return !o.boss && off.rec(o.id) && !off.rec(o.id).force; })[0];
+      var res = ch.go({ a: '', b: '', city: city }, 'cao');
+      var r = free ? off.rec(free.id) : null;
+      var ok = !!free && r.force === 'cao' && r.city === city && r.loyal < off.baseLoyal('sg_xunyu', 'cao');
+      R.setup('cao');
+      return ok && /맹세/.test(res.text) && (free.name + ' 합류 · 충성 ' + r.loyal);
     });
 
     t('시나리오는 세이브에 남아 되살아난다', function () {
@@ -2481,7 +2534,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       return ok && ('칸이 없어도 0/5 · 기준 성 3');
     });
 
-    t('이정표 — 화면: 상단 한 줄·시나리오 여섯 장·카드는 다른 카드가 닫힌 뒤에 뜬다', function () {
+    t('이정표 — 화면: 상단 한 줄·시나리오 카드 전부·카드는 다른 카드가 닫힌 뒤에 뜬다', function () {
       /* 앞 항목이 이정표 카드를 줄 세워 뒀을 수 있다 — 대기열을 비우고 시작 */
       var guard = 0;
       while (document.getElementById('encounter').classList.contains('show') && guard++ < 20) { DG.ui.closeEnc(); }
@@ -2502,16 +2555,16 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       /* 다른 카드가 떠 있는 동안 이정표가 나오면 줄을 선다 */
       DG.ui.showScenPick();
       C.emit('rtk:milestone', [{ idx: 0, name: '세 성', desc: '성 세 곳을 쥔다', gold: 500, found: [], relic: null }]);
-      var stillPick = document.querySelectorAll('#encounter [data-act="pick-scen"]').length === 6;
+      var stillPick = document.querySelectorAll('#encounter [data-act="pick-scen"]').length === FD.SCENARIOS.length;
       DG.ui.closeEnc();
       var shown = document.getElementById('encounter').textContent;
       var card = shown.indexOf('🚩') >= 0 && shown.indexOf('세 성') >= 0 && shown.indexOf('+500') >= 0;
       DG.ui.closeEnc();
       var gone = document.getElementById('encounter').innerHTML === '';
       R.setup('cao'); FD.use('194');
-      return goalTxt.indexOf('🚩') >= 0 && goalTxt.indexOf('1/5') >= 0 && cards === 6 && stars === 6 &&
+      return goalTxt.indexOf('🚩') >= 0 && goalTxt.indexOf('1/5') >= 0 && cards === FD.SCENARIOS.length && stars === FD.SCENARIOS.length &&
         blankFlags === 1 && chaosFlags === 13 && hidden && stillPick && card && gone &&
-        ('상단 "' + goalTxt.replace(/\s+/g, ' ').trim() + '" · 판 6 · 백지 깃발 1 · 무작위 깃발 13');
+        ('상단 "' + goalTxt.replace(/\s+/g, ' ').trim() + '" · 판 ' + cards + ' · 백지 깃발 1 · 무작위 깃발 13');
     });
 
     /* ── 승리 조건 다중 + 결과 카드 (PLAN §5-5) ─────────── */
@@ -2836,7 +2889,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         !!enc.querySelector('[data-act="back-scen"]');
       DG.ui.closeEnc();
       R.setup('cao'); FD.use('194');
-      return scen === 6 && chal.length === 1 && cardTxt.indexOf('이번 주 도전') >= 0 && flags === 13 && title.indexOf('이번 주 도전') >= 0 &&
+      return scen === FD.SCENARIOS.length && chal.length === 1 && cardTxt.indexOf('이번 주 도전') >= 0 && flags === 13 && title.indexOf('이번 주 도전') >= 0 &&
         started && card && ('판 ' + scen + '장 + 도전 1장 · 깃발 ' + flags + ' · 60달 결과 카드(공유 코드)');
     });
 
@@ -3078,7 +3131,11 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         var nb = neighbourForce();
         put('sg_machao', 'cao', c); put('rf_hansui', nb, R.citiesOf(nb)[0]);
       },
-      sworn_sorrow: function (c) { put('sg_liubei', 'cao', c); off.rec('sg_guanyu').dead = true; }
+      sworn_sorrow: function (c) { put('sg_liubei', 'cao', c); off.rec('sg_guanyu').dead = true; },
+      /* 퓨전 사연(§5-9) — 이계 prov 의 성을 쥐면 그 성에서 뜬다 */
+      rift_echo: function () { R.city('jongmal').force = 'cao'; put('sg_xunyu', 'cao', 'jongmal'); },
+      plague_mist: function () { R.city('pyedo').force = 'cao'; put('sg_xunyu', 'cao', 'pyedo'); },
+      tomb_bell: function () { R.city('myomun').force = 'cao'; put('sg_xunyu', 'cao', 'myomun'); }
     };
     function foeFire(c) { return { id: 'foe_clash', step: 1, ctx: { a: 'rf_lijue', b: 'rf_guosi', city: c, force: 'cao' } }; }
 
@@ -3104,7 +3161,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ('짝 ' + all.length + '쌍(손으로 ' + RD.PAIRS.length + ' + 지역 ' + auto + ') · 결 ' + Object.keys(kinds).length + '/4 · 결정적');
     });
 
-    t('사연 표 — 열두 사연 + 체인 넷, 모두 세 갈래(공세·신중·수단, 중복 0)이고 신중은 값이 안 든다', function () {
+    t('사연 표 — 열다섯 사연 + 체인 일곱(퓨전 셋·둘째 단 셋 포함), 모두 세 갈래(공세·신중·수단, 중복 0)이고 신중은 값이 안 든다', function () {
       var chains = Object.keys(E.DEFS).filter(function (k) { return E.DEFS[k].chain; });
       var bad = [];
       Object.keys(E.DEFS).forEach(function (k) {
@@ -3114,10 +3171,10 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         if (!d.chain && typeof d.find !== 'function') { bad.push(k + ':find'); }
         if (d.chain && typeof d.valid !== 'function') { bad.push(k + ':valid'); }
       });
-      return E.ORDER.length === 12 && chains.length === 4 && bad.length === 0 && ('사연 ' + E.ORDER.length + ' + 체인 ' + chains.length + ' · 갈래 3' + (bad.length ? ' 문제 ' + bad.join(',') : ''));
+      return E.ORDER.length === 15 && chains.length === 7 && bad.length === 0 && ('사연 ' + E.ORDER.length + ' + 체인 ' + chains.length + ' · 갈래 3' + (bad.length ? ' 문제 ' + bad.join(',') : ''));
     });
 
-    t('사연 — 조건이 맞으면 열두 사연이 각각 후보로 잡힌다(ctx 에 사람이 든다)', function () {
+    t('사연 — 조건이 맞으면 열다섯 사연이 각각 후보로 잡힌다(ctx 에 사람이 든다)', function () {
       var miss = [], n = 0;
       E.ORDER.forEach(function (id) {
         evFresh();
@@ -3126,7 +3183,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         if (!ctx || !ctx.a) { miss.push(id); } else { n++; }
       });
       evDone();
-      return miss.length === 0 && ('열두 사연 후보 ' + n + '/12' + (miss.length ? ' 실패 ' + miss.join(',') : ''));
+      return miss.length === 0 && ('사연 후보 ' + n + '/' + E.ORDER.length + (miss.length ? ' 실패 ' + miss.join(',') : ''));
     });
 
     t('사연 — 세 갈래가 각자 다른 결과를 낸다(원수 갈등: 벌·갈라놓기·술자리), 금이 모자라면 거절', function () {

@@ -883,12 +883,13 @@
 
   function victoryOn(kind) { return core.tuned('rtk.victory.' + kind, 1) !== 0; }
 
-  /** 이 판에서 겨룰 수 있는 승리 조건 — 생존은 균열의 왕 판만, 꺼 둔 것은 뺀다 */
+  /** 이 판에서 겨룰 수 있는 승리 조건 — 생존은 이계로 시작하는 판만(균열·폐허·묘역), 꺼 둔 것은 뺀다 */
   function victoryKinds() {
     var st = state(), out = [], i;
     for (i = 0; i < VICTORY_KINDS.length; i++) {
       var k = VICTORY_KINDS[i];
-      if (k === 'survival' && st.scen !== 'rift') { continue; }
+      /* 생존은 이계로 시작하는 판(균열·폐허·묘역, 시나리오 표의 survival)만 */
+      if (k === 'survival' && !FD.scenario(st.scen).survival) { continue; }
       if (victoryOn(k)) { out.push(k); }
     }
     return out;

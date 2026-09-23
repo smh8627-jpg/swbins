@@ -1038,6 +1038,23 @@
                  'fu_yugwi', 'fu_hwanryeong', 'fu_janhon'] }
   ]);
 
+  /* ── 시나리오 ⑦⑧⑨ — 폐허·묘역, 그리고 셋이 한꺼번에 (PLAN §5-9, 2026-09-24) ─────
+   * 균열의 왕(⑤)과 같은 결: 194년 표에 이계 깃발을 꽂는다. 이계 무장은 era 가 달라
+   * 사람을 거둬도 이질(alien)이라 충성이 낮게 끌린다. 폐허·묘역은 생존 승리를 겨룬다.
+   * 셋째(삼계 균열)는 이계 셋이 다 선다 — 폐왕·명계는 죽음을 나눈 사이라 동맹으로 시작한다.
+   */
+  var PYE = { id: 'pye', name: '폐왕', color: '#8fa05a', creed: 'aggressive', start: true,
+    alien: '폐허(가상)', troops: 'garrison', lord: 'ru_geohae',
+    cities: ['pyedo', 'janjae', 'oyeom', 'hoegok', 'chimmuk', 'yeokbyeong', 'janhyang'],
+    officers: ['ru_busaeng', 'ru_gogol', 'ru_mangdok', 'ru_sanaek', 'ru_sayeong', 'ru_seogun', 'ru_wadok', 'ru_doksi'] };
+  var MYO = { id: 'myo', name: '명계', color: '#8a96b8', creed: 'turtle', start: true,
+    alien: '묘역(가상)', troops: 'garrison', lord: 'tb_baekgi',
+    cities: ['myomun', 'baekgol', 'chimgwan', 'honro', 'jinhon', 'yugol', 'simyeon'],
+    officers: ['tb_ganghae', 'tb_gojeon', 'tb_amseup', 'tb_jamhon', 'tb_saryeong', 'tb_heukju', 'tb_japgol', 'tb_jongja'] };
+  var FORCES_RUIN = FORCES_194.concat([PYE]);
+  var FORCES_TOMB = FORCES_194.concat([MYO]);
+  var FORCES_TRIAD = FORCES_RIFT.concat([PYE, MYO]);
+
   var SCENARIOS = [
     { id: '194', year: 194, name: '군웅할거', hanja: '群雄割據', stars: 1,
       desc: '열세 깃발이 한꺼번에 섰다. 누구를 잡아도 갈 길이 멀다.',
@@ -1053,7 +1070,16 @@
       forces: FORCES_BLANK, pacts: [], playable: ['gwan'] },
     { id: 'rift', year: 194, name: '균열의 왕', hanja: '龜裂之王', stars: 3,
       desc: '바다 너머 균열의 일곱 성과 괴물 아홉. 사람을 거두려 해도 이질이라 마음이 안 붙는다.',
-      forces: FORCES_RIFT, pacts: [], playable: ['gyun'] },
+      forces: FORCES_RIFT, pacts: [], playable: ['gyun'], survival: true },
+    { id: 'ruin', year: 194, name: '폐허의 역병', hanja: '廢墟疫病', stars: 3,
+      desc: '무너진 문명의 일곱 성, 되살아난 주검과 오염된 짐승 아홉. 잿빛 안개를 몰고 산 자의 땅으로 내려간다.',
+      forces: FORCES_RUIN, pacts: [], playable: ['pye'], survival: true },
+    { id: 'tomb', year: 194, name: '묘역의 진혼', hanja: '墓域鎭魂', stars: 3,
+      desc: '땅 밑 무덤의 일곱 성, 백골 병사 아홉. 성문은 굳고 맹세는 오래간다 — 버티며 천하를 기다린다.',
+      forces: FORCES_TOMB, pacts: [], playable: ['myo'], survival: true },
+    { id: 'triad', year: 194, name: '삼계 균열', hanja: '三界龜裂', stars: 4,
+      desc: '균열·폐허·묘역이 한꺼번에 열렸다. 열세 깃발과 이계 셋 — 사람으로도, 이계로도 잡을 수 있다.',
+      forces: FORCES_TRIAD, pacts: [['pye', 'myo', 'ally', 24]] },
     { id: 'chaos', year: 194, name: '군웅 무작위', hanja: '群雄亂數', stars: 2,
       desc: '같은 열세 깃발, 다른 지도. 성 배치를 주사위가 섞는다 — 판마다 처음 보는 천하다.',
       forces: FORCES_194, pacts: [], shuffle: true }
@@ -1208,6 +1234,21 @@
       { name: '반도 상륙',    desc: '한국 지역의 성 하나를 빼앗는다',      cond: { c: 'prov', prov: 'kr', any: true }, gold: 1200 },
       { name: '중원 진입',    desc: '중국 땅의 성 하나를 빼앗는다',        cond: { c: 'core', n: 1 },    gold: 1600, reveal: 1 },
       { name: '균열의 왕좌',  desc: '성 열다섯 곳 이상으로 세력 3위 안에 든다', cond: { c: 'rank', n: 3, min: 15 }, gold: 2000, relic: true }
+    ],
+    /* ⑦⑧(§5-9) — 이계 땅을 거쳐 산 자의 땅으로 내려가는 사다리 */
+    ruin: [
+      { name: '폐허 너머',    desc: '균열 지역의 성 하나를 빼앗는다',      cond: { c: 'prov', prov: 'fu', any: true }, gold: 600 },
+      { name: '균열 평정',    desc: '균열 일곱 성을 모두 쥔다',            cond: { c: 'prov', prov: 'fu', all: true }, gold: 900, reveal: 1 },
+      { name: '열도 상륙',    desc: '일본 지역의 성 하나를 빼앗는다',      cond: { c: 'prov', prov: 'jp', any: true }, gold: 1200 },
+      { name: '중원 진입',    desc: '중국 땅의 성 하나를 빼앗는다',        cond: { c: 'core', n: 1 },    gold: 1600, reveal: 1 },
+      { name: '역병의 왕좌',  desc: '성 열다섯 곳 이상으로 세력 3위 안에 든다', cond: { c: 'rank', n: 3, min: 15 }, gold: 2000, relic: true }
+    ],
+    tomb: [
+      { name: '땅 위로',      desc: '폐허 지역의 성 하나를 빼앗는다',      cond: { c: 'prov', prov: 'pf', any: true }, gold: 600 },
+      { name: '폐허 평정',    desc: '폐허 일곱 성을 모두 쥔다',            cond: { c: 'prov', prov: 'pf', all: true }, gold: 900, reveal: 1 },
+      { name: '균열 너머',    desc: '균열 지역의 성 하나를 빼앗는다',      cond: { c: 'prov', prov: 'fu', any: true }, gold: 1200 },
+      { name: '산 자의 땅',   desc: '일본 지역의 성 하나를 빼앗는다',      cond: { c: 'prov', prov: 'jp', any: true }, gold: 1600, reveal: 1 },
+      { name: '진혼의 왕좌',  desc: '성 열다섯 곳 이상으로 세력 3위 안에 든다', cond: { c: 'rank', n: 3, min: 15 }, gold: 2000, relic: true }
     ]
   };
 
