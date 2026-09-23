@@ -185,12 +185,32 @@ namespace Saga.Story.Data
 
         /// <summary>PLAN.md 101-2 5-2 2단계 — 2차 전직 레벨. 웹판은 Lv.25인데 이 트랙은
         /// 사냥터가 하나라(2026-09-23 계산: Lv.10→25 비경 약 300판) 사용자 결정으로 **Lv.15**로
-        /// 낮췄다(비경 적 경험치 레벨 비례와 함께, Lv.10→15 비경 약 4판). 3·4차를 들일 때도
-        /// 같은 비율로 낮춘다.</summary>
+        /// 낮췄다(비경 적 경험치 레벨 비례와 함께, Lv.10→15 비경 약 4판). 3·4차는 아래
+        /// <see cref="JobPromoteLevel3"/> 주석(비율 대신 판수로 맞춤).</summary>
         public const int JobPromoteLevel = 15;
 
         /// <summary>웹판 `job.js canJoin()` — 2차는 아랫자리 무예 하나를 이만큼 익혀야 오른다.</summary>
         public const int JobPromoteSkillLevel = 5;
+
+        /// <summary>PLAN.md 101-2 5-2 3단계(2026-09-23) — 3·4차 전직 레벨. 웹판은 Lv.45/70이다.
+        /// "2차와 같은 비율(25→15, ×0.6)"로 낮추면 Lv.27/42인데, 경험치 필요량이 1.28^lv로 느는 데
+        /// 비해 비경 경험치는 lv에 1차식이라 Lv.15→27이 비경 약 60판, 27→42는 1,500판을 넘는다 —
+        /// 비율이 아니라 **판수**를 맞춰 5레벨 간격으로 둔다(Lv.10→15 약 5판, 15→20 약 11판,
+        /// 20→25 약 28판 — 자리가 높을수록 무거워지는 웹판 결은 그대로).</summary>
+        public const int JobPromoteLevel3 = 20;
+        public const int JobPromoteLevel4 = 25;
+
+        /// <summary>웹판 canJoin() 원문 — 3차는 아랫자리 무예 하나를 8, 4차는 10(만렙).</summary>
+        public const int JobPromoteSkillLevel3 = 8;
+        public const int JobPromoteSkillLevel4 = 10;
+
+        /// <summary>그 차수로 오르는 레벨(1차는 <see cref="JobChangeLevel"/>).</summary>
+        public static int PromoteLevelFor(int tier) =>
+            tier >= 4 ? JobPromoteLevel4 : tier == 3 ? JobPromoteLevel3 : tier == 2 ? JobPromoteLevel : JobChangeLevel;
+
+        /// <summary>그 차수로 오를 때 아랫자리 무예 하나에 요구하는 레벨(1차는 0).</summary>
+        public static int PromoteSkillLevelFor(int tier) =>
+            tier >= 4 ? JobPromoteSkillLevel4 : tier == 3 ? JobPromoteSkillLevel3 : tier == 2 ? JobPromoteSkillLevel : 0;
 
         public struct JobInfo
         {
@@ -222,10 +242,39 @@ namespace Saga.Story.Data
                 ["sage"] = new JobInfo { Name = "도사(道士)", Hp = 45f, Atk = 9f, Mp = 90f, Tier = 2, From = "mage" },
             };
 
+        /// <summary>3차 넷 — data-job.js JOBS tier:3 grow 그대로(2026-09-23, 5-2 3단계).</summary>
+        public static readonly System.Collections.Generic.Dictionary<string, JobInfo> JobsTier3 =
+            new System.Collections.Generic.Dictionary<string, JobInfo>
+            {
+                ["marshal"] = new JobInfo { Name = "원수(元帥)", Hp = 190f, Atk = 13f, Mp = 0f, Tier = 3, From = "general" },
+                ["flier"] = new JobInfo { Name = "비장(飛將)", Hp = 70f, Atk = 26f, Mp = 0f, Tier = 3, From = "sniper" },
+                ["wraith"] = new JobInfo { Name = "귀영(鬼影)", Hp = 95f, Atk = 20f, Mp = 0f, Tier = 3, From = "assassin" },
+                ["immortal"] = new JobInfo { Name = "진인(眞人)", Hp = 80f, Atk = 17f, Mp = 160f, Tier = 3, From = "sage" },
+            };
+
+        /// <summary>4차 넷 — data-job.js JOBS tier:4 grow 그대로(범용 칭호, 실존 인물 아님).</summary>
+        public static readonly System.Collections.Generic.Dictionary<string, JobInfo> JobsTier4 =
+            new System.Collections.Generic.Dictionary<string, JobInfo>
+            {
+                ["warlord"] = new JobInfo { Name = "전신(戰神)", Hp = 300f, Atk = 20f, Mp = 0f, Tier = 4, From = "marshal" },
+                ["falcon"] = new JobInfo { Name = "궁성(弓聖)", Hp = 115f, Atk = 39f, Mp = 0f, Tier = 4, From = "flier" },
+                ["reaper"] = new JobInfo { Name = "명왕(冥王)", Hp = 155f, Atk = 30f, Mp = 0f, Tier = 4, From = "wraith" },
+                ["ascendant"] = new JobInfo { Name = "천존(天尊)", Hp = 130f, Atk = 26f, Mp = 260f, Tier = 4, From = "immortal" },
+            };
+
+        /// <summary>윗자리 표(2~4차) — 다음 자리 찾기가 훑는다.</summary>
+        public static readonly System.Collections.Generic.Dictionary<string, JobInfo>[] UpperJobTables = { JobsTier2, JobsTier3, JobsTier4 };
+
         public static bool TryGetJob(string key, out JobInfo info)
         {
             if (key != null && JobsTier1.TryGetValue(key, out info)) return true;
-            if (key != null && JobsTier2.TryGetValue(key, out info)) return true;
+            if (key != null)
+            {
+                foreach (var table in UpperJobTables)
+                {
+                    if (table.TryGetValue(key, out info)) return true;
+                }
+            }
             info = default;
             return false;
         }

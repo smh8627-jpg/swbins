@@ -883,6 +883,7 @@ namespace Saga.EditorTools
                     }
                     if (!CheckJobSkills()) { Fail(); return; }
                     if (!CheckPromotionAndSchools()) { Fail(); return; }
+                    if (!CheckUpperTiersAndPins()) { Fail(); return; }
 
                     Vector3 posBeforeSave = new Vector3(7.5f, 0.1f, 0f);
                     TeleportPlayer(posBeforeSave);
@@ -932,7 +933,7 @@ namespace Saga.EditorTools
                         StoryPartyState.Restore(2);
                         int partyIndexBeforeSave = StoryPartyState.ActiveIndex;
                         // 101-2 5-2 1단계 — 무예 레벨도 왕복 확인(버전 안 올림).
-                        StorySkillState.Restore(new[] { "w_cut", "w_rush" }, new[] { 3, 2 });
+                        StorySkillState.Restore(new[] { "w_cut", "w_rush" }, new[] { 3, 2 }, new[] { "w_rush" }); // 5-2 3단계 칸 고정도 왕복
                         if (!StorySaveState.Save())
                         {
                             Debug.LogError("[PlaytestStorySlice] StorySaveState.Save() 실패");
@@ -1010,9 +1011,10 @@ namespace Saga.EditorTools
                             Fail();
                             return;
                         }
-                        if (StorySkillState.LevelOf("w_cut") != 3 || StorySkillState.LevelOf("w_rush") != 2 || StorySkillState.SpSpent != 5)
+                        if (StorySkillState.LevelOf("w_cut") != 3 || StorySkillState.LevelOf("w_rush") != 2 || StorySkillState.SpSpent != 5 ||
+                            StorySkillState.PinIndex("w_rush") != 0 || StorySkillState.SlotSkill(0)?.Key != "w_rush")
                         {
-                            Debug.LogError($"[PlaytestStorySlice] 로드 후 무예 레벨 불일치 — w_cut={StorySkillState.LevelOf("w_cut")}(기대=3) w_rush={StorySkillState.LevelOf("w_rush")}(기대=2) spent={StorySkillState.SpSpent}(기대=5)");
+                            Debug.LogError($"[PlaytestStorySlice] 로드 후 무예 레벨/칸 고정 불일치 — w_cut={StorySkillState.LevelOf("w_cut")}(기대=3) w_rush={StorySkillState.LevelOf("w_rush")}(기대=2) spent={StorySkillState.SpSpent}(기대=5) 돌진 고정={StorySkillState.PinIndex("w_rush")}(기대 0) 칸0={StorySkillState.SlotSkill(0)?.Key}");
                             Fail();
                             return;
                         }
@@ -1021,7 +1023,7 @@ namespace Saga.EditorTools
                         // 흉내 내 두 배열을 지운 JSON으로 다시 불러 본다: 무예는 빈 상태, 나머지는 그대로.
                         string savedJson = System.IO.File.ReadAllText(storySavePath);
                         string oldFormatJson = System.Text.RegularExpressions.Regex.Replace(savedJson,
-                            ",\"skillKeys\":\\[[^\\]]*\\],\"skillLevels\":\\[[^\\]]*\\]", "");
+                            ",\"skillKeys\":\\[[^\\]]*\\],\"skillLevels\":\\[[^\\]]*\\](,\"skillPins\":\\[[^\\]]*\\])?", "");
                         if (oldFormatJson == savedJson || oldFormatJson.Contains("skill"))
                         {
                             Debug.LogError($"[PlaytestStorySlice] 옛 형식 흉내 JSON을 못 만듦(정규식 불일치) — {savedJson}");
@@ -1035,7 +1037,7 @@ namespace Saga.EditorTools
                             Fail();
                             return;
                         }
-                        if (StorySkillState.SpSpent != 0 || StoryJobState.Job != jobBeforeSave || StoryJobState.Level != levelBeforeSave)
+                        if (StorySkillState.SpSpent != 0 || StorySkillState.PinCount != 0 || StoryJobState.Job != jobBeforeSave || StoryJobState.Level != levelBeforeSave)
                         {
                             Debug.LogError($"[PlaytestStorySlice] 옛 세이브 로드 후 상태 이상 — spent={StorySkillState.SpSpent}(기대=0) job={StoryJobState.Job}(기대={jobBeforeSave}) level={StoryJobState.Level}");
                             Fail();
@@ -1863,7 +1865,7 @@ namespace Saga.EditorTools
             StorySkillPanelUi.Instance?.Hide();
             float expectAtk = StoryCombat.JobsTier1["warrior"].Atk + StoryCombat.JobsTier2["general"].Atk;
             if (StoryJobState.Job != "general" || StoryJobState.Tier != 2 || StoryJobState.Root != "warrior" ||
-                !Mathf.Approximately(StoryJobState.AtkBonus, expectAtk) || StoryJobState.NextJob != null || choice.IsShowing)
+                !Mathf.Approximately(StoryJobState.AtkBonus, expectAtk) || StoryJobState.NextJob != "marshal" || choice.IsShowing)
             {
                 Debug.LogError($"{T} 2차 전직 뒤 상태 이상 — job={StoryJobState.Job} tier={StoryJobState.Tier} root={StoryJobState.Root} atk+={StoryJobState.AtkBonus}(기대={expectAtk}) next={StoryJobState.NextJob} ui={choice.IsShowing}");
                 return false;
@@ -1951,15 +1953,20 @@ namespace Saga.EditorTools
             if (!front.IsDead || behind.IsDead) { Debug.LogError($"{T} 전우 판정 이상 — 앞 더미 죽음={front.IsDead} 뒤 더미 죽음={behind.IsDead}"); return false; }
             if (!behind.IsDead) Object.Destroy(behind.gameObject);
 
-            // (g) 패널 줄 = 사슬(1차+2차) 무예 수.
+            // (g) 패널 — 3단계(차수 탭)부터 한 번에 한 차수만: 열면 지금 자리(2차) 탭, 1차 탭으로 바꾸면 무사 줄.
             StoryJobState.Restore(level, exp, "general");
             StorySkillState.Restore(null, null);
             var panel = StorySkillPanelUi.Instance;
             panel.Show();
-            int expectRows = StorySkillData.OfJob("warrior").Count + StorySkillData.OfJob("general").Count;
-            bool rowsOk = panel.RowCount == expectRows;
+            int rows2 = panel.RowCount, tab2 = panel.CurrentTab, tabs = panel.TabCount;
+            panel.SelectTab(1);
+            int rows1 = panel.RowCount;
             panel.Hide();
-            if (!rowsOk) { Debug.LogError($"{T} 장군 무예 패널 줄 {panel.RowCount}(기대={expectRows})"); return false; }
+            if (tab2 != 2 || tabs != 2 || rows2 != StorySkillData.OfJob("general").Count || rows1 != StorySkillData.OfJob("warrior").Count)
+            {
+                Debug.LogError($"{T} 장군 무예 패널 — 탭 {tabs}개·연 탭 {tab2}(기대 2/2) 2차 줄 {rows2}(기대={StorySkillData.OfJob("general").Count}) 1차 줄 {rows1}(기대={StorySkillData.OfJob("warrior").Count})");
+                return false;
+            }
 
             // (h) 비경 경험치 식(lv=1은 옛 고정값과 같다)·체력 배율·모르는 직업 키.
             if (StoryCombat.EnemyExp(1, false) != StoryCombat.GruntExp || StoryCombat.EnemyExp(1, true) != StoryCombat.BossExp ||
@@ -1983,6 +1990,202 @@ namespace Saga.EditorTools
             cds.Clear();
             SetPrivate(_storyController, "_buffUntilTime", 0f);
             Debug.Log("[PlaytestStorySlice] promotion + schools OK - 2차 전직(진짜 버튼)·선행·칸 배치·세트 5종(피해/지속/발수/재사용/반경)·전우·패널·비경 식");
+            return true;
+        }
+
+        /// <summary>PLAN.md 101-2 STORY 5-2 3단계(2026-09-23) — 3·4차 전직과 무예 칸 고정. 장군 상태로
+        /// CheckPromotionAndSchools를 마친 직후 부른다:
+        /// (a) 3차 막힘 사유(Lv.20·2차 무예 8)와 사유 숫자 → 진짜 버튼으로 원수(grow 세 자리 합),
+        /// (b) 4차 막힘 사유(Lv.25·3차 무예 10) → 진짜 버튼으로 전신, 더 오를 자리 없음, 무기는 뿌리(검),
+        /// (c) 자동 배치만이면 4차 무예 넷(유파 전부 다름, 세트 0) — 3단계 칸 고정을 넣은 이유,
+        /// (d) 칸 고정: 패널 "칸" 버튼 경로로 안 익힌 무예 거절·다섯째 거절·풀기 당김·고정 하나 + 자동 짝,
+        /// (e) 정(正) 4세트(1~4차 고정) → 파멸격 피해 ×1.35가 실제 시전에, 보(步) 4세트 → 명계보
+        ///     급소 확정 + 재사용 ×0.8, 무사 질(疾)은 무예 셋뿐이라 4세트 불가,
+        /// (f) 패널 탭 넷·지금 자리 탭·칸 줄 글자, (g) 3·4차 무예 선행이 사슬 안에 있는지.
+        /// 끝나면 전신 상태(레벨은 원래대로)로 남겨 뒤의 세이브 왕복이 4차 키와 칸 고정을 확인하게 한다.</summary>
+        private static bool CheckUpperTiersAndPins()
+        {
+            const string T = "[PlaytestStorySlice]";
+            int level = StoryJobState.Level;
+            float exp = StoryJobState.Exp;
+            var trainer = Object.FindFirstObjectByType<StoryJobTrainer>();
+            var choice = StoryChoiceUi.Instance;
+            var yes = choice != null ? GetPrivate(choice, "optionAButton") as Button : null;
+            if (StoryJobState.Job != "general" || trainer == null || yes == null)
+            {
+                Debug.LogError($"{T} 3·4차 검사 전제 이상 — job={StoryJobState.Job}(기대 general) 전직관={trainer != null} 버튼={yes != null}");
+                return false;
+            }
+
+            // (a) 3차 — 원수.
+            StoryJobState.Restore(StoryCombat.JobPromoteLevel3 - 1, 0f, "general");
+            StorySkillState.Restore(new[] { "w_cut", "g_smash" }, new[] { 5, StoryCombat.JobPromoteSkillLevel3 });
+            if (StoryJobState.PromoteBlock() != "job.why_level" || StoryJobState.PromoteLevelNeeded != 20 || StoryJobState.NextJob != "marshal")
+            {
+                Debug.LogError($"{T} 장군 Lv.19 사유={StoryJobState.PromoteBlock()} 요구 Lv={StoryJobState.PromoteLevelNeeded}(기대 why_level/20) next={StoryJobState.NextJob}");
+                return false;
+            }
+            StoryJobState.Restore(StoryCombat.JobPromoteLevel3, 0f, "general");
+            StorySkillState.Restore(new[] { "w_cut", "g_smash" }, new[] { 10, StoryCombat.JobPromoteSkillLevel3 - 1 });
+            if (StoryJobState.PromoteBlock() != "job.why_skill" || StoryJobState.PromoteSkillLevelNeeded != 8)
+            {
+                // 1차 무예(참격 10)는 안 센다 — 웹판 canJoin()도 바로 아랫자리(장군) 무예만 본다.
+                Debug.LogError($"{T} 패왕격 7인데 사유={StoryJobState.PromoteBlock()} 요구={StoryJobState.PromoteSkillLevelNeeded}(기대 why_skill/8)");
+                return false;
+            }
+            StorySkillState.Restore(new[] { "w_cut", "g_smash" }, new[] { 5, StoryCombat.JobPromoteSkillLevel3 });
+            trainer.ShowPromote();
+            if (!choice.IsShowing) { Debug.LogError($"{T} 3차 ShowPromote()가 선택 UI를 안 띄움"); return false; }
+            yes.onClick.Invoke();
+            StorySkillPanelUi.Instance?.Hide();
+            float atk3 = StoryCombat.JobsTier1["warrior"].Atk + StoryCombat.JobsTier2["general"].Atk + StoryCombat.JobsTier3["marshal"].Atk;
+            if (StoryJobState.Job != "marshal" || StoryJobState.Tier != 3 || StoryJobState.Root != "warrior" ||
+                !Mathf.Approximately(StoryJobState.AtkBonus, atk3) || StoryJobState.NextJob != "warlord")
+            {
+                Debug.LogError($"{T} 3차 전직 뒤 — job={StoryJobState.Job} tier={StoryJobState.Tier} root={StoryJobState.Root} atk+={StoryJobState.AtkBonus}(기대={atk3}) next={StoryJobState.NextJob}");
+                return false;
+            }
+
+            // (b) 4차 — 전신(3차 무예 하나를 10, 만렙).
+            StoryJobState.Restore(StoryCombat.JobPromoteLevel4 - 1, 0f, "marshal");
+            StorySkillState.Restore(new[] { "w_cut", "g_smash", "n_heaven" }, new[] { 5, 5, 10 });
+            if (StoryJobState.PromoteBlock() != "job.why_level" || StoryJobState.PromoteLevelNeeded != 25)
+            {
+                Debug.LogError($"{T} 원수 Lv.24 사유={StoryJobState.PromoteBlock()} 요구 Lv={StoryJobState.PromoteLevelNeeded}(기대 why_level/25)");
+                return false;
+            }
+            StoryJobState.Restore(StoryCombat.JobPromoteLevel4, 0f, "marshal");
+            StorySkillState.Restore(new[] { "w_cut", "g_smash", "n_heaven" }, new[] { 5, 5, 9 });
+            if (StoryJobState.PromoteBlock() != "job.why_skill" || StoryJobState.PromoteSkillLevelNeeded != 10)
+            {
+                Debug.LogError($"{T} 천붕격 9인데 사유={StoryJobState.PromoteBlock()} 요구={StoryJobState.PromoteSkillLevelNeeded}(기대 why_skill/10)");
+                return false;
+            }
+            StorySkillState.Restore(new[] { "w_cut", "g_smash", "n_heaven" }, new[] { 5, 5, 10 });
+            trainer.ShowPromote();
+            if (!choice.IsShowing) { Debug.LogError($"{T} 4차 ShowPromote()가 선택 UI를 안 띄움"); return false; }
+            yes.onClick.Invoke();
+            StorySkillPanelUi.Instance?.Hide();
+            float atk4 = atk3 + StoryCombat.JobsTier4["warlord"].Atk;
+            var weapon = Object.FindFirstObjectByType<StoryWeaponVisual>();
+            if (StoryJobState.Job != "warlord" || StoryJobState.Tier != 4 || StoryJobState.Root != "warrior" ||
+                !Mathf.Approximately(StoryJobState.AtkBonus, atk4) || StoryJobState.NextJob != null ||
+                StoryJobState.PromoteBlock() != "job.why_no_next" || weapon == null || weapon.CurrentWeaponRoot == null || weapon.CurrentWeaponRoot.childCount < 2)
+            {
+                Debug.LogError($"{T} 4차 전직 뒤 — job={StoryJobState.Job} tier={StoryJobState.Tier} root={StoryJobState.Root} atk+={StoryJobState.AtkBonus}(기대={atk4}) next={StoryJobState.NextJob} why={StoryJobState.PromoteBlock()} 검={weapon != null && weapon.CurrentWeaponRoot != null && weapon.CurrentWeaponRoot.childCount >= 2}");
+                return false;
+            }
+
+            // (c) 자동 배치만이면 4차 무예 넷이 칸을 다 차지해 세트가 하나도 안 켜진다.
+            string[] learned = { "w_cut", "w_whirl", "w_rush", "w_edge", "g_smash", "g_roar", "g_edge",
+                "n_heaven", "n_quake", "n_charge", "n_edge", "o_ruin", "o_tremor", "o_smite", "o_edge" };
+            int[] lvls = { 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 1, 1, 1, 1 };
+            StorySkillState.Restore(learned, lvls);
+            string[] autoSlots = { "o_ruin", "o_tremor", "o_smite", "o_edge" };
+            for (int i = 0; i < autoSlots.Length; i++)
+            {
+                var s = StorySkillState.SlotSkill(i);
+                if (s == null || s.Key != autoSlots[i]) { Debug.LogError($"{T} 전신 자동 칸 {i}={s?.Key}(기대={autoSlots[i]})"); return false; }
+            }
+            if (StorySkillState.SchoolTier("w_jung") != 0 || StorySkillState.SchoolTier("w_pa") != 0)
+            {
+                Debug.LogError($"{T} 자동 배치에서 세트가 켜짐 — 정={StorySkillState.SchoolTier("w_jung")} 파={StorySkillState.SchoolTier("w_pa")}");
+                return false;
+            }
+
+            // (d) 칸 고정 — 패널 "칸" 버튼과 같은 경로(ClickPin).
+            var panel = StorySkillPanelUi.Instance;
+            panel.Show();
+            panel.ClickPin("w_iron"); // 안 익힘
+            if (StorySkillState.PinCount != 0) { Debug.LogError($"{T} 안 익힌 철갑이 고정됨"); panel.Hide(); return false; }
+            panel.ClickPin("w_cut");
+            // 참격 하나만 고정 → 칸0=참격, 남은 칸은 자동(4차부터, 같은 유파 파멸격이 먼저).
+            string[] onePin = { "w_cut", "o_ruin", "o_tremor", "o_smite" };
+            for (int i = 0; i < onePin.Length; i++)
+            {
+                var s = StorySkillState.SlotSkill(i);
+                if (s == null || s.Key != onePin[i]) { Debug.LogError($"{T} 고정 하나 뒤 칸 {i}={s?.Key}(기대={onePin[i]})"); panel.Hide(); return false; }
+            }
+            if (StorySkillState.SchoolTier("w_jung") != 2) { Debug.LogError($"{T} 참격 고정으로 정 2세트가 안 켜짐({StorySkillState.SchoolTier("w_jung")})"); panel.Hide(); return false; }
+            panel.ClickPin("g_smash");
+            panel.ClickPin("n_heaven");
+            panel.ClickPin("o_ruin");
+            panel.ClickPin("o_edge"); // 다섯째 — 거절
+            if (StorySkillState.PinCount != 4 || StorySkillState.PinIndex("o_edge") >= 0 || StorySkillState.SchoolTier("w_jung") != 4)
+            {
+                Debug.LogError($"{T} 고정 넷 — 수={StorySkillState.PinCount}(기대 4) 파천검 고정={StorySkillState.PinIndex("o_edge")}(기대 -1) 정 세트={StorySkillState.SchoolTier("w_jung")}(기대 4)");
+                panel.Hide();
+                return false;
+            }
+            string slotsText = panel.SlotsText;
+            if (!slotsText.Contains(StoryLocalization.T("skill.o_ruin", "파멸격").Split('(')[0]) || panel.TabCount != 4 || panel.CurrentTab != 4 || panel.RowCount != StorySkillData.OfJob("warlord").Count)
+            {
+                Debug.LogError($"{T} 전신 패널 — 칸 줄=\"{slotsText}\" 탭 {panel.TabCount}(기대 4) 연 탭 {panel.CurrentTab}(기대 4) 줄 {panel.RowCount}(기대={StorySkillData.OfJob("warlord").Count})");
+                panel.Hide();
+                return false;
+            }
+            panel.ClickPin("g_smash"); // 풀기 — 뒤의 고정이 당겨진다
+            if (StorySkillState.PinIndex("n_heaven") != 1 || StorySkillState.PinIndex("o_ruin") != 2 || StorySkillState.PinCount != 3)
+            {
+                Debug.LogError($"{T} 고정 풀기 뒤 당김 — 천붕격={StorySkillState.PinIndex("n_heaven")}(기대 1) 파멸격={StorySkillState.PinIndex("o_ruin")}(기대 2)");
+                panel.Hide();
+                return false;
+            }
+            panel.Hide();
+
+            // (e) 4세트가 실제 시전에 실린다.
+            var castMethod = typeof(StoryPlayerController).GetMethod("TryCastJobSkill", BindingFlags.NonPublic | BindingFlags.Instance);
+            var cds = (System.Collections.Generic.Dictionary<string, float>)GetPrivate(_storyController, "_skillCooldownLeft");
+            StorySkillState.Restore(learned, lvls, new[] { "w_cut", "g_smash", "n_heaven", "o_ruin" });
+            cds.Clear();
+            TeleportPlayer(new Vector3(5f, 0.1f, 0f));
+            StoryCombat.RestoreMp(StoryCombat.MpMaxCurrent);
+            _storyController.TriggerJobSkill(3); // 칸3 = 파멸격
+            var ruin = StorySkillData.Get("o_ruin");
+            if (_storyController.LastCast.key != "o_ruin" || !Mathf.Approximately(_storyController.LastCast.mul, StorySkillState.MulOf(ruin) * 1.35f))
+            {
+                Debug.LogError($"{T} 정 4세트 — key={_storyController.LastCast.key} mul={_storyController.LastCast.mul}(기대={StorySkillState.MulOf(ruin) * 1.35f})");
+                return false;
+            }
+            int jilCount = 0;
+            foreach (var sk in StorySkillData.All) if (sk.School == "w_jil") jilCount++;
+            if (jilCount != 3) { Debug.LogError($"{T} 무사 질(疾) 무예 {jilCount}개(기대 3 — 2차가 없어 4세트 불가, 웹판 그대로)"); return false; }
+
+            StoryJobState.Restore(StoryCombat.JobPromoteLevel4, 0f, "reaper");
+            StorySkillState.Restore(new[] { "r_step", "x_shadow", "v_void", "d_veil" }, new[] { 5, 5, 5, 1 },
+                new[] { "r_step", "x_shadow", "v_void", "d_veil" });
+            cds.Clear();
+            TeleportPlayer(new Vector3(5f, 0.1f, 0f));
+            StoryCombat.RestoreMp(StoryCombat.MpMaxCurrent);
+            bool veilOk = (bool)castMethod.Invoke(_storyController, new object[] { StorySkillData.Get("d_veil") });
+            var veil = _storyController.LastCast;
+            if (!veilOk || veil.key != "d_veil" || !veil.critForce || !Mathf.Approximately(veil.cooldown, 8f * 0.8f * StoryLabyrinthState.CooldownMul))
+            {
+                Debug.LogError($"{T} 보 4세트 명계보 — ok={veilOk} 급소확정={veil.critForce}(기대 true) 재사용={veil.cooldown}(기대={8f * 0.8f})");
+                return false;
+            }
+
+            // (g) 3·4차 무예 — 선행이 자기 사슬의 아랫자리 무예인지, 차수 4 무예는 자리 넷 모두에.
+            foreach (var sk in StorySkillData.All)
+            {
+                if (sk.Tier < 3) continue;
+                var pre = StorySkillData.Get(sk.Need);
+                if (pre == null || pre.Tier >= sk.Tier || StoryJobState.RootOf(pre.Job) != StoryJobState.RootOf(sk.Job))
+                {
+                    Debug.LogError($"{T} {sk.Key}(차수 {sk.Tier}) 선행 {sk.Need}가 없거나 사슬 밖/같은 차수");
+                    return false;
+                }
+            }
+            foreach (var key in StoryCombat.JobsTier4.Keys)
+            {
+                if (StorySkillData.OfJob(key).Count < 5) { Debug.LogError($"{T} 4차 {key} 무예 {StorySkillData.OfJob(key).Count}개(기대 ≥5)"); return false; }
+            }
+
+            StoryJobState.Restore(level, exp, "warlord");
+            StorySkillState.Restore(null, null);
+            cds.Clear();
+            SetPrivate(_storyController, "_buffUntilTime", 0f);
+            Debug.Log("[PlaytestStorySlice] upper tiers + pins OK - 3·4차 전직(진짜 버튼·Lv.20/25·무예 8/10)·자동 칸 세트 0·칸 고정(거절/당김/자동 짝)·정 4세트·보 4세트 급소확정·차수 탭");
             return true;
         }
 

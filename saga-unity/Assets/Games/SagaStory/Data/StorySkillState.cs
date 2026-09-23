@@ -11,8 +11,14 @@ namespace Saga.Story.Data
     /// 레벨 0인 무예는 못 쓴다, 힘 = 기본 + 레벨당×(lv−1). 레벨당 점수는 웹판 현재값 2
     /// (§5-2가 3→2로 낮춘 뒤의 값 — 유파 2단계를 얹을 때 다시 안 바꾸려고 처음부터 맞춘다).
     ///
-    /// 무예 칸(<see cref="SlotCount"/>개)은 웹판 조작 띠처럼 **사람이 안 고르고 자동으로**
-    /// 채운다 — <see cref="SlotSkills"/>(윗자리부터 + 같은 유파 짝 먼저).
+    /// 무예 칸(<see cref="SlotCount"/>개)은 웹판 조작 띠처럼 기본은 **자동으로** 채운다 —
+    /// <see cref="SlotSkills"/>(윗자리부터 + 같은 유파 짝 먼저).
+    ///
+    /// **3단계(2026-09-23) — 칸 고정**: 4차까지 오르면 윗자리 무예만으로 칸 넷이 전부 다른
+    /// 유파로 차 자동 배치로는 세트가 아예 안 켜진다(웹판은 띠가 8칸이라 덜 막힌다). 그래서
+    /// 사람이 무예를 **칸에 고정**(<see cref="TogglePin"/>)할 수 있게 했다 — 고정한 것이 고정한
+    /// 순서대로 앞 칸을 차지하고, 남은 칸은 예전 자동 배치가 채운다(고정한 무예와 같은 유파가
+    /// 먼저 오므로 짝 하나만 고정해도 세트가 이어진다). 아무것도 안 고정하면 예전과 똑같다.
     /// </summary>
     public static class StorySkillState
     {
@@ -20,6 +26,9 @@ namespace Saga.Story.Data
         public const int SlotCount = 4;
 
         private static readonly Dictionary<string, int> Levels = new Dictionary<string, int>();
+
+        /// <summary>칸에 고정한 무예(고정한 순서 = 칸 순서, 최대 <see cref="SlotCount"/>).</summary>
+        private static readonly List<string> Pins = new List<string>();
 
         /// <summary>무예 레벨이 바뀔 때(찍기·로드) — 패널·무예 칸 버튼이 다시 그린다.</summary>
         public static event Action Changed;
@@ -72,7 +81,33 @@ namespace Saga.Story.Data
             return slot < list.Count ? list[slot] : null;
         }
 
-        /// <summary>무예 칸 넷의 자동 배치. 웹판 bar()처럼 **윗자리 무예부터**(같은 자리 안에선
+        /// <summary>그 무예를 고정한 칸 번호(0부터), 안 고정했으면 -1.</summary>
+        public static int PinIndex(string key) => key != null ? Pins.IndexOf(key) : -1;
+
+        public static int PinCount => Pins.Count;
+
+        /// <summary>칸 고정을 켜고 끈다. 못 하면 이유(현지화 키) — 안 익힌 무예·칸이 다 찼을 때.
+        /// 풀면 뒤의 고정이 한 칸씩 당겨진다.</summary>
+        public static string TogglePin(string key)
+        {
+            int at = PinIndex(key);
+            if (at >= 0)
+            {
+                Pins.RemoveAt(at);
+                Changed?.Invoke();
+                return null;
+            }
+            var sk = StorySkillData.Get(key);
+            if (sk == null) return "skill.why_unknown";
+            if (!StoryJobState.HasJob || !StoryJobState.InChain(sk.Job) || LevelOf(key) <= 0) return "skill.why_pin_unlearned";
+            if (Pins.Count >= SlotCount) return "skill.why_pin_full";
+            Pins.Add(key);
+            Changed?.Invoke();
+            return null;
+        }
+
+        /// <summary>무예 칸 넷. 먼저 **고정한 무예**(지금 자리 사슬에 들고 익힌 것만, 고정 순서),
+        /// 남은 칸은 자동 배치 — 웹판 bar()처럼 **윗자리 무예부터**(같은 자리 안에선
         /// 표 순서) 찍은 것만 놓는다. **재해석(2026-09-23)**: 웹판 띠는 8칸이라 윗자리부터 놓기만
         /// 해도 같은 유파가 자연히 모이지만, 이 트랙은 4칸이라 표 순서만 따르면 2차 무예의 짝(같은
         /// 유파 1차)이 칸 밖으로 밀리기 쉽다 — 남은 자리엔 **이미 놓인 무예와 유파가 같은 것**을
@@ -86,6 +121,11 @@ namespace Saga.Story.Data
             foreach (var sk in StorySkillData.All)
             {
                 if (StoryJobState.InChain(sk.Job) && LevelOf(sk.Key) > 0) learned.Add(sk);
+            }
+            foreach (var key in Pins)
+            {
+                var sk = StorySkillData.Get(key);
+                if (sk != null && learned.Contains(sk) && picked.Count < SlotCount) picked.Add(sk);
             }
             for (int tier = StoryJobState.Tier; tier >= 1 && picked.Count < SlotCount; tier--)
             {
@@ -164,11 +204,22 @@ namespace Saga.Story.Data
             levels = l.ToArray();
         }
 
+        public static string[] SnapshotPins() => Pins.ToArray();
+
         /// <summary>세이브 로드·테스트 초기화. 모르는 키(데이터에서 빠진 무예)와 상한 초과는
-        /// 조용히 거른다 — 옛 세이브엔 두 배열이 아예 없어(null) 빈 상태로 시작한다.</summary>
-        public static void Restore(string[] keys, int[] levels)
+        /// 조용히 거른다 — 옛 세이브엔 두 배열이 아예 없어(null) 빈 상태로 시작한다. 칸 고정
+        /// (<paramref name="pins"/>)도 같이 갈아 끼운다(없으면 고정 없음 = 자동 배치만).</summary>
+        public static void Restore(string[] keys, int[] levels, string[] pins = null)
         {
             Levels.Clear();
+            Pins.Clear();
+            if (pins != null)
+            {
+                foreach (var key in pins)
+                {
+                    if (StorySkillData.Get(key) != null && !Pins.Contains(key) && Pins.Count < SlotCount) Pins.Add(key);
+                }
+            }
             if (keys != null && levels != null)
             {
                 int n = Mathf.Min(keys.Length, levels.Length);

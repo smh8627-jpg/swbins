@@ -26,6 +26,11 @@ namespace Saga.Story.Data
     /// (그림자밟기·축지술 invuln)은 1차처럼 빼고 설명도 실제 효과에 맞췄다. 2차 무예는 같은
     /// 유파 1차 무예 5가 먼저다(<see cref="Skill.Need"/>). 새 효과는 `rain`(전우·천뢰) 하나.
     /// 유파 세트 표는 <see cref="Schools"/>(웹판 `SCHOOLS` 24행 그대로).
+    ///
+    /// **3단계(2026-09-23)** — 3·4차 여덟 자리의 무예 48개 중 회복 넷(불사결·재생결·회춘·환생)을
+    /// 뺀 44개를 같은 규칙으로 옮겼다(무적 넷은 invuln만 빼고 돌진은 그대로, 답공사·익보사는
+    /// 퇴보사처럼 후퇴). 막연한 북돋움 설명엔 실제 효과를 괄호로 붙였다. 새 효과는 없다.
+    /// 무사 질(疾)은 2차 무예가 없어 최대 3개라 4세트가 안 되는 것도 웹판 그대로다.
     /// </summary>
     public static class StorySkillData
     {
@@ -213,6 +218,112 @@ namespace Saga.Story.Data
                 Cost = 36, Cooldown = 8f, Effect = Effect.Dash, MulBase = 2.0f, MulPerLevel = 0.17f, DistM = 280 * Px, Need = "m_step", NeedLv = 5 },
             new Skill { Key = "p_orb", Job = "sage", School = "m_tan", Name = "연환탄(連環彈)", Desc = "구슬 넷이 고리처럼 잇는다 — 마탄 5",
                 Cost = 34, Cooldown = 5f, Effect = Effect.Volley, MulBase = 1.5f, MulPerLevel = 0.12f, Shots = 4, Need = "m_orb", NeedLv = 5 },
+
+            // ── 3차(2026-09-23, 5-2 3단계) — data-job.js tier 3 그대로(불사결·회춘 heal 제외, 허공답보·이형보 invuln 뺌) ──
+            // 원수(元帥)
+            new Skill { Key = "n_heaven", Job = "marshal", School = "w_jung", Name = "천붕격(天崩擊)", Desc = "앞을 세 번 내리찍는다 — 패왕격 5",
+                Cost = 58, Cooldown = 11f, Effect = Effect.Melee, MulBase = 4.6f, MulPerLevel = 0.42f, Hits = 3, Need = "g_smash", NeedLv = 5 },
+            new Skill { Key = "n_quake", Job = "marshal", School = "w_pae", Name = "진각(震脚)", Desc = "땅을 밟아 사방을 흔든다 — 함성 5",
+                Cost = 52, Cooldown = 12f, Effect = Effect.Aoe, MulBase = 3.6f, MulPerLevel = 0.32f, RadiusM = 264 * Px, Need = "g_roar", NeedLv = 5 },
+            new Skill { Key = "n_charge", Job = "marshal", School = "w_jil", Name = "철기돌격(鐵騎突擊)", Desc = "한달음에 가르며 벤다 — 돌진 5",
+                Cost = 48, Cooldown = 9f, Effect = Effect.Dash, MulBase = 3.2f, MulPerLevel = 0.28f, DistM = 330 * Px, Need = "w_rush", NeedLv = 5 },
+            new Skill { Key = "n_banner", Job = "marshal", School = "w_su", Name = "대장기(大將旗)", Desc = "13초간 삼군이 따른다(공격 +55% · 기력이 빨리 찬다) — 철벽 5",
+                Cost = 56, Cooldown = 24f, Effect = Effect.Buff, BuffSec = 13f, BuffAtk = 1.55f, BuffRegen = 1.8f, Need = "g_wall", NeedLv = 5 },
+            new Skill { Key = "n_edge", Job = "marshal", School = "w_pa", Name = "천단검(天斷劍)", Desc = "장수의 기백이 검 끝에 실린다 — 벽공검 5",
+                Cost = 44, Cooldown = 9f, Effect = Effect.Bolt, MulBase = 4.0f, MulPerLevel = 0.35f, Need = "g_edge", NeedLv = 5 },
+
+            // 비장(飛將)
+            new Skill { Key = "f_storm", Job = "flier", School = "a_u", Name = "시우(矢雨)", Desc = "앞쪽 하늘을 화살로 덮는다 — 전우 5",
+                Cost = 60, Cooldown = 12f, Effect = Effect.Rain, MulBase = 4.2f, MulPerLevel = 0.38f, Need = "s_rain", NeedLv = 5 },
+            new Skill { Key = "f_pierce", Job = "flier", School = "a_gwan", Name = "파천시(破天矢)", Desc = "한 발이 줄지어 선 것을 다 꿴다 — 일점사 5",
+                Cost = 54, Cooldown = 9f, Effect = Effect.Bolt, MulBase = 6.4f, MulPerLevel = 0.55f, Need = "s_snipe", NeedLv = 5 },
+            new Skill { Key = "f_volley", Job = "flier", School = "a_yeon", Name = "만시(萬矢)", Desc = "화살 여덟을 한 손으로 놓는다 — 분시 5",
+                Cost = 50, Cooldown = 7f, Effect = Effect.Volley, MulBase = 1.9f, MulPerLevel = 0.16f, Shots = 8, Need = "s_split", NeedLv = 5 },
+            new Skill { Key = "f_focus", Job = "flier", School = "a_an", Name = "정심(定心)", Desc = "12초간 공격 +75% — 응안 5",
+                Cost = 46, Cooldown = 22f, Effect = Effect.Buff, BuffSec = 12f, BuffAtk = 1.75f, BuffSpeed = 1.15f, Need = "a_eye", NeedLv = 5 },
+            new Skill { Key = "f_retreat", Job = "flier", School = "a_toe", Name = "답공사(踏空射)", Desc = "허공을 딛듯 물러나며 꿰뚫는다 — 활보사 5",
+                Cost = 46, Cooldown = 8f, Effect = Effect.Dash, MulBase = 3.5f, MulPerLevel = 0.3f, DistM = 300 * Px, Backward = true, Need = "s_retreat", NeedLv = 5 },
+            new Skill { Key = "f_burst", Job = "flier", School = "a_hwan", Name = "천환시(天環矢)", Desc = "하늘 전체가 고리로 뒤덮인다 — 광환시 5",
+                Cost = 46, Cooldown = 7f, Effect = Effect.Aoe, MulBase = 3.6f, MulPerLevel = 0.31f, RadiusM = 175 * Px, Need = "s_burst", NeedLv = 5 },
+
+            // 귀영(鬼影)
+            new Skill { Key = "v_blur", Job = "wraith", School = "r_cham", Name = "잔영(殘影)", Desc = "몸이 남기 전에 여섯 번 긋는다 — 난무 5",
+                Cost = 52, Cooldown = 8f, Effect = Effect.Melee, MulBase = 2.2f, MulPerLevel = 0.19f, Hits = 6, Need = "x_storm", NeedLv = 5 },
+            new Skill { Key = "v_petal", Job = "wraith", School = "r_hwa", Name = "낙화(落花)", Desc = "표창 일곱이 꽃잎처럼 진다 — 만천화우 5",
+                Cost = 54, Cooldown = 9f, Effect = Effect.Volley, MulBase = 1.8f, MulPerLevel = 0.15f, Shots = 7, Need = "x_fan", NeedLv = 5 },
+            new Skill { Key = "v_void", Job = "wraith", School = "r_bo", Name = "허공답보(虛空踏步)", Desc = "허공을 밟고 건너간다 — 그림자밟기 5",
+                Cost = 44, Cooldown = 7f, Effect = Effect.Dash, MulBase = 3.0f, MulPerLevel = 0.26f, DistM = 360 * Px, Need = "x_shadow", NeedLv = 5 },
+            new Skill { Key = "v_mark", Job = "wraith", School = "r_hon", Name = "사혼(死魂)", Desc = "10초간 공격 +95% — 급소 5",
+                Cost = 48, Cooldown = 20f, Effect = Effect.Buff, BuffSec = 10f, BuffAtk = 1.95f, Need = "r_vital", NeedLv = 5 },
+            new Skill { Key = "v_whirl", Job = "wraith", School = "r_pung", Name = "광풍각(狂風脚)", Desc = "미친 듯이 휘돌아 찬다 — 질풍각 5",
+                Cost = 46, Cooldown = 7f, Effect = Effect.Aoe, MulBase = 3.6f, MulPerLevel = 0.31f, RadiusM = 175 * Px, Need = "x_whirl", NeedLv = 5 },
+            new Skill { Key = "v_dart", Job = "wraith", School = "r_pyo", Name = "귀표(鬼鏢)", Desc = "귀신 들린 듯 파고든다 — 암습표 5",
+                Cost = 44, Cooldown = 9f, Effect = Effect.Bolt, MulBase = 4.0f, MulPerLevel = 0.35f, Need = "x_dart", NeedLv = 5 },
+
+            // 진인(眞人)
+            new Skill { Key = "i_meteor", Job = "immortal", School = "m_seong", Name = "유성(流星)", Desc = "앞쪽에 별을 떨군다 — 천뢰 5",
+                Cost = 64, Cooldown = 12f, Effect = Effect.Rain, MulBase = 4.8f, MulPerLevel = 0.42f, Need = "p_beam", NeedLv = 5 },
+            new Skill { Key = "i_abyss", Job = "immortal", School = "m_jin", Name = "천붕지열(天崩地裂)", Desc = "하늘이 무너지고 땅이 갈라진다 — 지진 5",
+                Cost = 68, Cooldown = 14f, Effect = Effect.Aoe, MulBase = 5.0f, MulPerLevel = 0.44f, RadiusM = 300 * Px, Need = "p_quake", NeedLv = 5 },
+            new Skill { Key = "i_tao", Job = "immortal", School = "m_bu", Name = "태극(太極)", Desc = "14초간 음양이 돈다(공격 +50% · 기력이 샘솟는다) — 호신부 5",
+                Cost = 58, Cooldown = 22f, Effect = Effect.Buff, BuffSec = 14f, BuffAtk = 1.5f, BuffRegen = 4.0f, Need = "p_ward", NeedLv = 5 },
+            new Skill { Key = "i_step", Job = "immortal", School = "m_chuk", Name = "이형보(移形步)", Desc = "형체를 옮기듯 건너간다 — 축지술 5",
+                Cost = 48, Cooldown = 9f, Effect = Effect.Dash, MulBase = 3.0f, MulPerLevel = 0.26f, DistM = 340 * Px, Need = "p_step", NeedLv = 5 },
+            new Skill { Key = "i_orb", Job = "immortal", School = "m_tan", Name = "유성탄(流星彈)", Desc = "별 여섯이 한 손에서 쏟아진다 — 연환탄 5",
+                Cost = 50, Cooldown = 7f, Effect = Effect.Volley, MulBase = 1.9f, MulPerLevel = 0.16f, Shots = 6, Need = "p_orb", NeedLv = 5 },
+
+            // ── 4차 — data-job.js tier 4 그대로(재생결·환생 heal 제외, 명계보·신행보 invuln 뺌) ──
+            // 전신(戰神)
+            new Skill { Key = "o_ruin", Job = "warlord", School = "w_jung", Name = "파멸격(破滅擊)", Desc = "앞을 네 번 내리찍어 부순다 — 천붕격 5",
+                Cost = 62, Cooldown = 12f, Effect = Effect.Melee, MulBase = 6.2f, MulPerLevel = 0.57f, Hits = 4, Need = "n_heaven", NeedLv = 5 },
+            new Skill { Key = "o_tremor", Job = "warlord", School = "w_pae", Name = "지열(地裂)", Desc = "땅이 갈라지도록 흔든다 — 진각 5",
+                Cost = 58, Cooldown = 14f, Effect = Effect.Aoe, MulBase = 4.9f, MulPerLevel = 0.44f, RadiusM = 340 * Px, Need = "n_quake", NeedLv = 5 },
+            new Skill { Key = "o_smite", Job = "warlord", School = "w_jil", Name = "벽력돌(霹靂突)", Desc = "번개처럼 꿰뚫고 지나간다 — 철기돌격 5",
+                Cost = 54, Cooldown = 10f, Effect = Effect.Dash, MulBase = 4.5f, MulPerLevel = 0.4f, DistM = 410 * Px, Need = "n_charge", NeedLv = 5 },
+            new Skill { Key = "o_conquer", Job = "warlord", School = "w_su", Name = "패천기(覇天旗)", Desc = "15초간 온 전장을 호령한다(공격 +80% · 기력이 빨리 찬다) — 대장기 5",
+                Cost = 62, Cooldown = 26f, Effect = Effect.Buff, BuffSec = 15f, BuffAtk = 1.8f, BuffRegen = 2.4f, Need = "n_banner", NeedLv = 5 },
+            new Skill { Key = "o_edge", Job = "warlord", School = "w_pa", Name = "파천검(破天劍)", Desc = "전신의 검기가 하늘까지 닿는다 — 천단검 5",
+                Cost = 58, Cooldown = 11f, Effect = Effect.Bolt, MulBase = 5.6f, MulPerLevel = 0.5f, Need = "n_edge", NeedLv = 5 },
+
+            // 궁성(弓聖)
+            new Skill { Key = "h_tempest", Job = "falcon", School = "a_u", Name = "천사우(天射雨)", Desc = "하늘 전체가 화살비로 뒤덮인다 — 시우 5",
+                Cost = 66, Cooldown = 13f, Effect = Effect.Rain, MulBase = 5.6f, MulPerLevel = 0.5f, Need = "f_storm", NeedLv = 5 },
+            new Skill { Key = "h_ray", Job = "falcon", School = "a_gwan", Name = "광시(光矢)", Desc = "빛살 하나가 모든 것을 꿰뚫는다 — 파천시 5",
+                Cost = 60, Cooldown = 10f, Effect = Effect.Bolt, MulBase = 8.4f, MulPerLevel = 0.7f, Need = "f_pierce", NeedLv = 5 },
+            new Skill { Key = "h_swarm", Job = "falcon", School = "a_yeon", Name = "십이시(十二矢)", Desc = "화살 열둘이 한 손에서 갈라진다 — 만시 5",
+                Cost = 56, Cooldown = 8f, Effect = Effect.Volley, MulBase = 2.4f, MulPerLevel = 0.2f, Shots = 12, Need = "f_volley", NeedLv = 5 },
+            new Skill { Key = "h_zenith", Job = "falcon", School = "a_an", Name = "궁천합(弓天合)", Desc = "14초간 활이 하늘과 하나가 된다(공격 +100%) — 정심 5",
+                Cost = 52, Cooldown = 24f, Effect = Effect.Buff, BuffSec = 14f, BuffAtk = 2.0f, BuffSpeed = 1.2f, Need = "f_focus", NeedLv = 5 },
+            new Skill { Key = "h_retreat", Job = "falcon", School = "a_toe", Name = "익보사(翼步射)", Desc = "날개 돋친 듯 물러나며 하늘을 꿴다 — 답공사 5",
+                Cost = 58, Cooldown = 9f, Effect = Effect.Dash, MulBase = 5.0f, MulPerLevel = 0.44f, DistM = 360 * Px, Backward = true, Need = "f_retreat", NeedLv = 5 },
+            new Skill { Key = "h_burst", Job = "falcon", School = "a_hwan", Name = "극환시(極環矢)", Desc = "고리 끝에 하늘이 걸린다 — 천환시 5",
+                Cost = 58, Cooldown = 8f, Effect = Effect.Aoe, MulBase = 5.2f, MulPerLevel = 0.44f, RadiusM = 210 * Px, Need = "f_burst", NeedLv = 5 },
+
+            // 명왕(冥王)
+            new Skill { Key = "d_carve", Job = "reaper", School = "r_cham", Name = "팔도(八刀)", Desc = "여덟 번 긋고 나서야 멈춘다 — 잔영 5",
+                Cost = 60, Cooldown = 9f, Effect = Effect.Melee, MulBase = 3.0f, MulPerLevel = 0.26f, Hits = 8, Need = "v_blur", NeedLv = 5 },
+            new Skill { Key = "d_bloom", Job = "reaper", School = "r_hwa", Name = "구화만개(九花滿開)", Desc = "표창 아홉이 지지 않고 흩날린다 — 낙화 5",
+                Cost = 62, Cooldown = 10f, Effect = Effect.Volley, MulBase = 2.2f, MulPerLevel = 0.18f, Shots = 9, Need = "v_petal", NeedLv = 5 },
+            new Skill { Key = "d_veil", Job = "reaper", School = "r_bo", Name = "명계보(冥界步)", Desc = "저승 문턱을 밟고 되돌아온다 — 허공답보 5",
+                Cost = 50, Cooldown = 8f, Effect = Effect.Dash, MulBase = 3.8f, MulPerLevel = 0.32f, DistM = 420 * Px, Need = "v_void", NeedLv = 5 },
+            new Skill { Key = "d_curse", Job = "reaper", School = "r_hon", Name = "명왕부(冥王符)", Desc = "12초간 죽음의 기운을 두른다(공격 +130%) — 사혼 5",
+                Cost = 56, Cooldown = 22f, Effect = Effect.Buff, BuffSec = 12f, BuffAtk = 2.3f, Need = "v_mark", NeedLv = 5 },
+            new Skill { Key = "d_whirl", Job = "reaper", School = "r_pung", Name = "절명풍(絶命風)", Desc = "휘도는 바람이 목숨을 끊는다 — 광풍각 5",
+                Cost = 58, Cooldown = 8f, Effect = Effect.Aoe, MulBase = 5.2f, MulPerLevel = 0.44f, RadiusM = 210 * Px, Need = "v_whirl", NeedLv = 5 },
+            new Skill { Key = "d_dart", Job = "reaper", School = "r_pyo", Name = "명표(冥鏢)", Desc = "저승의 기운이 표창 끝에 실린다 — 귀표 5",
+                Cost = 58, Cooldown = 11f, Effect = Effect.Bolt, MulBase = 5.6f, MulPerLevel = 0.5f, Need = "v_dart", NeedLv = 5 },
+
+            // 천존(天尊)
+            new Skill { Key = "z_starfall", Job = "ascendant", School = "m_seong", Name = "낙성우(落星雨)", Desc = "별들이 통째로 떨어진다 — 유성 5",
+                Cost = 70, Cooldown = 13f, Effect = Effect.Rain, MulBase = 6.5f, MulPerLevel = 0.56f, Need = "i_meteor", NeedLv = 5 },
+            new Skill { Key = "z_collapse", Job = "ascendant", School = "m_jin", Name = "건곤붕(乾坤崩)", Desc = "하늘과 땅이 함께 무너진다 — 천붕지열 5",
+                Cost = 74, Cooldown = 15f, Effect = Effect.Aoe, MulBase = 6.8f, MulPerLevel = 0.58f, RadiusM = 330 * Px, Need = "i_abyss", NeedLv = 5 },
+            new Skill { Key = "z_eternity", Job = "ascendant", School = "m_bu", Name = "무극(無極)", Desc = "16초간 하늘과 땅을 몸에 두른다(공격 +65% · 기력이 샘솟는다) — 태극 5",
+                Cost = 64, Cooldown = 24f, Effect = Effect.Buff, BuffSec = 16f, BuffAtk = 1.65f, BuffRegen = 4.8f, Need = "i_tao", NeedLv = 5 },
+            new Skill { Key = "z_step", Job = "ascendant", School = "m_chuk", Name = "신행보(神行步)", Desc = "신선의 걸음으로 세상을 건넌다 — 이형보 5",
+                Cost = 62, Cooldown = 10f, Effect = Effect.Dash, MulBase = 4.2f, MulPerLevel = 0.36f, DistM = 400 * Px, Need = "i_step", NeedLv = 5 },
+            new Skill { Key = "z_orb", Job = "ascendant", School = "m_tan", Name = "성라탄(星羅彈)", Desc = "별자리 여덟이 한꺼번에 쏟아진다 — 유성탄 5",
+                Cost = 56, Cooldown = 8f, Effect = Effect.Volley, MulBase = 2.4f, MulPerLevel = 0.2f, Shots = 8, Need = "i_orb", NeedLv = 5 },
         };
 
         private static Dictionary<string, Skill> _byKey;
@@ -227,7 +338,7 @@ namespace Saga.Story.Data
             return key != null && _byKey.TryGetValue(key, out var skill) ? skill : null;
         }
 
-        /// <summary>지금 자리 사슬(1차+2차)의 무예, 표 순서 — 웹판 skillsOf(). 무예 패널 줄 순서.</summary>
+        /// <summary>지금 자리 사슬(1차~지금 자리)의 무예, 표 순서 — 웹판 skillsOf(). 무예 패널 줄 순서.</summary>
         public static List<Skill> OfChain()
         {
             var list = new List<Skill>();

@@ -155,12 +155,12 @@ namespace Saga.Story.World
             {
                 string name = StoryLocalization.T($"job.{StoryJobState.Job}", StoryJobState.JobDisplayName);
                 string done = string.Format(StoryLocalization.T("npc.trainer_status_done", "🎖️ {0} Lv.{1}"), name, StoryJobState.Level);
-                // 2차 전직이 남았으면 무엇이 모자란지 붙인다(웹판 canJoin() 사유).
+                // 윗자리(2~4차)가 남았으면 무엇이 모자란지 붙인다(웹판 canJoin() 사유).
                 string why = StoryJobState.PromoteBlock();
                 if (why == "job.why_level")
-                    return done + " · " + string.Format(StoryLocalization.T("job.why_level", "윗자리는 Lv.{0}부터"), StoryCombat.JobPromoteLevel);
+                    return done + " · " + string.Format(StoryLocalization.T("job.why_level", "윗자리는 Lv.{0}부터"), StoryJobState.PromoteLevelNeeded);
                 if (why == "job.why_skill")
-                    return done + " · " + string.Format(StoryLocalization.T("job.why_skill", "윗자리는 무예 하나를 {0} 이상 익혀야 한다"), StoryCombat.JobPromoteSkillLevel);
+                    return done + " · " + string.Format(StoryLocalization.T("job.why_skill", "윗자리는 무예 하나를 {0} 이상 익혀야 한다"), StoryJobState.PromoteSkillLevelNeeded);
                 return done;
             }
             if (StoryJobState.Level < StoryCombat.JobChangeLevel)

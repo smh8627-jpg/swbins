@@ -8634,3 +8634,17 @@ PROJECT_STATE 1순위가 5-2 2단계(유파 세트)였는데, 조사해 보니 *
 진단 `CheckPromotionAndSchools()`: 막힘 사유 둘 → 전직관 ShowPromote → **선택 UI 첫 버튼 진짜 onClick**으로 장군(tier 2·뿌리 warrior·atk 2+7·손에 검) → 선행 거절/허용 → 칸 [패왕격·벽공검·참격·파공검](짝 우선) · 정/파 2세트 · 세트 보정 다섯(정 피해 ×1.15가 실제 시전 mul에, 수 철벽 지속 11×1.15, 연 분시 4+1발=투사체 5개, 보 그림자밟기 재사용 6×0.8·2세트엔 급소확정 없음, 진 지진 반경 ×1.15) · 세트 없으면 보정 없음 · 전우는 앞 더미만 · 장군 패널 9줄 · `EnemyExp` lv1=10/150(옛 고정값), lv15=66/990 · 체력 배율>1 · 모르는 직업 키→무명. 기존 `CheckJobSkills` (a)의 "무예 직업은 1차 표에" 검사는 `TryGetJob`으로 바꾸고 유파·선행 무결성을 더함. TestField 재빌드 뒤 `PlaytestStorySlice` **첫 실행부터 3연속 OK**. 4세트는 칸 4·2차까지라 아직 켜질 수 없다(표·코드는 들어가 있음). 실기(손맛·Lv.10→15 판수 체감)는 사용자 확인 전.
 
 코드: `StoryCombat`·`StoryJobState`·`StorySkillData`·`StorySkillState`·`StoryPlayerController`·`StoryWeaponVisual`·`StoryJobTrainer`·`StorySkillPanelUi`·`StoryLabyrinthRunner`·`PlaytestStorySlice`, 현지화 두 파일, `TestField.unity` 재빌드. 문서: PLAN 101-2 STORY 행(결정 셋), `PROJECT_STATE.md`, `HOW_TO_PLAYTEST.md`.
+
+## 2026-09-23 — STORY 5-2 3단계: 3·4차 전직(Lv.20/25) + 무예 44 + 무예 칸 고정·차수 탭 (같은 날 새 세션 "사가유니티 이어해", Opus 5.5)
+
+PROJECT_STATE 1순위가 "STORY 3·4차 전직(판단 대기)"였다 — 판단 질문(레벨·칸 자동/수동)에 답 없이 "이어해"라 기본안으로 진행했다(메모리 "판단 질문에 답 없이 이어해 = 진행 신호").
+
+**레벨 — "같은 비율"을 따르지 않았다**: PLAN엔 "3·4차도 같은 비율로 낮춘다"고 적혀 있었지만, 2차 비율(25→15, ×0.6)이면 Lv.27/42다. 비경 한 판 경험치 ≈ `(6+4·lv)×18`(보스 15 + 전투·정예 약 3), 필요량 `50×1.28^(lv−1)`로 node 계산하니 15→27 약 60판, 27→42 약 1,543판 — 지수 곡선이라 비율로는 못 닿는다. 판수로 맞춰 **Lv.20/25**(10→15 약 5판, 15→20 약 11판, 20→25 약 28판, 자리가 높을수록 무거워지는 결은 유지). 무예 조건은 웹 canJoin() 원문 그대로(3차: 2차 무예 하나 8, 4차: 3차 무예 하나 10). 실기에서 판수가 체감상 어떤지는 확인 전.
+
+**칸 — 자동만으론 4차에서 세트가 죽는다**: 기존 자동 배치(윗자리부터)는 4차 무예 넷을 찍으면 그 넷(유파 전부 다름)으로 칸이 차 세트 0 — 진단 (c)에 그대로 박아 두었다. 그래서 **사람이 고정**을 더했다: 고정한 것이 고정 순서대로 앞 칸, 남은 칸은 예전 자동 배치(이미 놓인 것과 같은 유파 먼저)라 하나만 고정해도 짝이 붙는다. 아무것도 안 고정하면 예전과 똑같아 1·2단계 진단이 그대로 통과. 세이브 `skillPins`(버전 안 올림, 옛 세이브 null → 고정 없음). 4세트는 1~4차 무예가 모두 있는 유파만(무사 질·궁수 안·협객 혼은 2차가 없어 최대 3, 웹판 그대로).
+
+**구현**: `StoryCombat.JobsTier3/JobsTier4`(grow 원문)·`UpperJobTables`·`TryGetJob` 네 표·`JobPromoteLevel3/4`·`JobPromoteSkillLevel3/4`·`PromoteLevelFor/PromoteSkillLevelFor`. `StoryJobState.NextJob`이 2~4차 표를 훑고 `NextTier`·`PromoteLevelNeeded`·`PromoteSkillLevelNeeded`, `PromoteBlock()`이 차수별 조건. 전직관 상태 줄 숫자도 차수별. `StorySkillData`에 3·4차 무예 44(회복 넷 불사결·재생결·회춘·환생 제외, 무적 넷은 invuln만 빼고 돌진 유지, 답공사·익보사 후퇴, 막연한 북돋움 설명 여섯엔 실제 효과를 괄호로). `StorySkillState.TogglePin/PinIndex/PinCount/SnapshotPins`, `Restore(keys, levels, pins)`. `StorySkillPanelUi`: 사슬이 최대 23줄이라 **차수 탭**(런타임에 짓는다 — 씬 재빌드 불필요, `EnsureChrome()`이 옛 씬의 줄 영역도 옮김), 줄마다 "칸" 버튼, 탭 아래 칸 넷 줄. 현지화 ko/en 102키씩(직업 8·UI 6·무예 88).
+
+**진단** `CheckUpperTiersAndPins()`: 3차 막힘(Lv.19·패왕격 7 — 참격 10은 안 센다)→진짜 버튼 원수(atk 2+7+13), 4차 막힘(Lv.24·천붕격 9)→전신(더 오를 자리 없음·손에 검), 자동만이면 전신 칸 [파멸격·지열·벽력돌·파천검]·세트 0, 패널 "칸" 경로로 안 익힌 철갑 거절·참격 하나 고정 → [참격·파멸격·지열·벽력돌] 정 2세트·넷 고정 → 정 4세트·다섯째 거절·칸 줄 글자·탭 4·줄 5·풀기 당김, 정 4세트 파멸격 피해 ×1.35가 실제 시전에, 명왕 보 4세트 명계보 급소 확정+재사용 8×0.8, 질 무예 3개, 3·4차 선행이 같은 뿌리 아랫자리. 기존 검사 둘 고침: 2차 뒤 `NextJob`은 이제 null이 아니라 marshal, 장군 패널은 9줄 대신 탭(2차 4줄·1차 5줄). 세이브 왕복에 칸 고정 추가, 옛 형식 정규식에 `skillPins` 선택 그룹. 첫 실행은 위 `NextJob` 기대 하나로 실패(의도된 변경) → 고친 뒤 **3연속 OK**. 씬 재빌드 없음.
+
+코드: `StoryCombat`·`StoryJobState`·`StorySkillData`·`StorySkillState`·`StorySaveState`·`StorySkillPanelUi`·`StoryJobTrainer`·`PlaytestStorySlice`, 현지화 두 파일. 문서: PLAN 101-2 STORY 행(3단계 결정), `PROJECT_STATE.md`, `HOW_TO_PLAYTEST.md`. 작업 중 `sed -i`가 CRLF 파일을 LF로 바꿔 `git checkout` 후 Edit로 다시 했다.

@@ -101,36 +101,47 @@ namespace Saga.Story.Data
             return sum;
         }
 
-        /// <summary>지금 자리에서 오를 2차 자리(없으면 null) — 웹판 nextJobs()는 갈래마다 하나.</summary>
+        /// <summary>지금 자리에서 오를 윗자리(2~4차, 없으면 null) — 웹판 nextJobs()는 갈래마다 하나.</summary>
         public static string NextJob
         {
             get
             {
-                foreach (var kv in StoryCombat.JobsTier2)
+                if (!HasJob) return null;
+                foreach (var table in StoryCombat.UpperJobTables)
                 {
-                    if (kv.Value.From == Job) return kv.Key;
+                    foreach (var kv in table)
+                    {
+                        if (kv.Value.From == Job) return kv.Key;
+                    }
                 }
                 return null;
             }
         }
 
-        /// <summary>2차 전직을 못 하는 이유(현지화 키), 되면 null — 웹판 canJoin() 순서
-        /// (자리 → 레벨 → 아랫자리 무예 하나를 <see cref="StoryCombat.JobPromoteSkillLevel"/> 이상).</summary>
+        /// <summary>다음 자리 차수(없으면 0) — 요구 레벨·무예 레벨을 고른다.</summary>
+        public static int NextTier => NextJob != null ? Tier + 1 : 0;
+
+        /// <summary>다음 자리로 오르는 레벨·아랫자리 무예 레벨(상태 줄 사유가 쓴다).</summary>
+        public static int PromoteLevelNeeded => StoryCombat.PromoteLevelFor(NextTier);
+        public static int PromoteSkillLevelNeeded => StoryCombat.PromoteSkillLevelFor(NextTier);
+
+        /// <summary>윗자리 전직을 못 하는 이유(현지화 키), 되면 null — 웹판 canJoin() 순서
+        /// (자리 → 레벨 → 아랫자리 무예 하나를 2차 5·3차 8·4차 10 이상).</summary>
         public static string PromoteBlock()
         {
             if (NextJob == null) return "job.why_no_next";
-            if (Level < StoryCombat.JobPromoteLevel) return "job.why_level";
+            if (Level < PromoteLevelNeeded) return "job.why_level";
             int best = 0;
             foreach (var sk in StorySkillData.All)
             {
                 if (sk.Job == Job) best = Mathf.Max(best, StorySkillState.LevelOf(sk.Key));
             }
-            return best < StoryCombat.JobPromoteSkillLevel ? "job.why_skill" : null;
+            return best < PromoteSkillLevelNeeded ? "job.why_skill" : null;
         }
 
         public static bool CanPromote => PromoteBlock() == null;
 
-        /// <summary>2차 전직 — 무예 레벨은 그대로 두고(웹판 join()도 skills를 안 건드린다)
+        /// <summary>윗자리 전직(2~4차) — 무예 레벨은 그대로 두고(웹판 join()도 skills를 안 건드린다)
         /// 자리만 올린다. `JobChosen`을 쏴 무기·HUD가 다시 그린다.</summary>
         public static bool Promote()
         {

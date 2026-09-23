@@ -10,6 +10,12 @@ namespace Saga.Story.UI
     /// 무예 탭(`saga-web/saga-story/js/ui.js`)의 "이름 · 레벨 · 설명 · +" 줄을 옮겼다.
     /// `StoryJobChoiceUi`와 같은 결로 자기 UI를 스스로 짓되, 줄은 직업이 정해진 뒤에야
     /// 알 수 있어 열 때마다 다시 그린다. 여는 길: K키 · 모바일 "무예" 버튼 · 전직관(전직 뒤).
+    ///
+    /// **3단계(2026-09-23)** — 4차까지 오르면 사슬 무예가 최대 23줄이라 한 화면에 안 들어간다.
+    /// 웹판 무예 탭의 차수 소제목을 **차수 탭**(1차~지금 자리)으로 바꿔 한 번에 한 차수(≤6줄)만
+    /// 보이고, 열면 지금 자리 탭부터 연다. 줄마다 "칸" 버튼으로 무예 칸 고정을 켜고 끈다
+    /// (`StorySkillState.TogglePin`), 탭 아래 한 줄에 지금 칸 넷을 보여 준다.
+    /// 탭·칸 줄은 줄 버튼처럼 런타임에 짓는다(씬 저장 때 onClick이 안 남는 함정을 피한다).
     /// </summary>
     public class StorySkillPanelUi : MonoBehaviour
     {
@@ -43,7 +49,7 @@ namespace Saga.Story.UI
             var canvas = NewCanvas("StorySkillPanelUI");
             canvas.transform.SetParent(transform, false);
 
-            // 2026-09-23 — 2차 전직으로 줄이 최대 11개(1차 6 + 2차 5)라 패널을 세로로 키웠다.
+            // 2026-09-23 — 줄 영역은 EnsureChrome()이 탭·칸 줄 아래로 다시 잡는다(차수 탭, 3단계).
             _panel = NewPanel(canvas.transform, new Vector2(0.5f, 0.5f), new Vector2(900f, 1600f),
                 new Color(0f, 0f, 0f, 0.88f));
             _panel.SetActive(false);
@@ -81,8 +87,28 @@ namespace Saga.Story.UI
             if (_panel == null) return;
             _panel.SetActive(true);
             _statusLabel.text = "";
+            _tab = Mathf.Max(1, StoryJobState.Tier);
             Redraw();
         }
+
+        /// <summary>차수 탭 버튼 onClick과 같은 경로 — PlaytestStorySlice가 부른다.</summary>
+        public void SelectTab(int tier)
+        {
+            _tab = Mathf.Clamp(tier, 1, Mathf.Max(1, StoryJobState.Tier));
+            _statusLabel.text = "";
+            Redraw();
+        }
+
+        /// <summary>줄의 "칸" 버튼 onClick과 같은 경로 — PlaytestStorySlice가 부른다.</summary>
+        public void ClickPin(string key)
+        {
+            string why = StorySkillState.TogglePin(key); // Changed → OnChanged → Redraw
+            _statusLabel.text = why != null ? StoryLocalization.T(why) : "";
+        }
+
+        public int CurrentTab => _tab;
+        public int TabCount => _tabButtons.Count;
+        public string SlotsText => _slotsLabel != null ? _slotsLabel.text : "";
 
         public void Hide()
         {
@@ -114,9 +140,12 @@ namespace Saga.Story.UI
         {
             if (_closeLabel != null) _closeLabel.text = StoryLocalization.T("settings.close");
 
+            EnsureChrome();
             if (!StoryJobState.HasJob)
             {
                 ClearRows();
+                ClearTabs();
+                _slotsLabel.text = "";
                 _rowJob = null;
                 _titleLabel.text = StoryLocalization.T("skill.panel_title_nojob", "무예");
                 _statusLabel.text = string.Format(StoryLocalization.T("skill.panel_nojob", "전직(Lv.{0}) 뒤에 직업 무예를 익힌다"),
@@ -128,18 +157,27 @@ namespace Saga.Story.UI
             _titleLabel.text = string.Format(StoryLocalization.T("skill.panel_title", "{0} 무예 — 남은 점수 {1}"),
                 jobName, StorySkillState.SpLeft);
 
-            // 줄 구성(직업)이 그대로면 글자만 고친다 — "+" 버튼 onClick 한가운데서 그 버튼을
-            // 지우면 이벤트 시스템이 이미 파괴된 버튼을 계속 붙든다. 2차면 1차 무예도 같이(사슬).
-            var skills = StorySkillData.OfChain();
-            if (_rowJob == StoryJobState.Job && _rowLabels.Count == skills.Count && RowCount == skills.Count)
+            _tab = Mathf.Clamp(_tab, 1, StoryJobState.Tier);
+            RedrawTabs();
+            _slotsLabel.text = SlotsLine();
+
+            // 줄 구성(직업·탭)이 그대로면 글자만 고친다 — "+"·"칸" 버튼 onClick 한가운데서 그
+            // 버튼을 지우면 이벤트 시스템이 이미 파괴된 버튼을 계속 붙든다.
+            var skills = StorySkillData.OfChain().FindAll(sk => sk.Tier == _tab);
+            if (_rowJob == StoryJobState.Job && _rowTier == _tab && _rowLabels.Count == skills.Count && RowCount == skills.Count)
             {
-                for (int i = 0; i < skills.Count; i++) _rowLabels[i].text = RowText(skills[i]);
+                for (int i = 0; i < skills.Count; i++)
+                {
+                    _rowLabels[i].text = RowText(skills[i]);
+                    _pinLabels[i].text = PinText(skills[i]);
+                }
                 return;
             }
 
             ClearRows();
             _rowJob = StoryJobState.Job;
-            float step = Mathf.Min(130f, RowsHeight / Mathf.Max(1, skills.Count));
+            _rowTier = _tab;
+            float step = Mathf.Min(150f, RowsHeight / Mathf.Max(1, skills.Count));
             float y = 0f;
             foreach (var sk in skills)
             {
@@ -148,10 +186,102 @@ namespace Saga.Story.UI
             }
         }
 
-        private const float RowsHeight = 1260f;
+        // 제목(-40)·상태(-120)·탭(-195)·칸 줄(-265) 아래부터 닫기 버튼 위까지.
+        private const float RowsTop = -320f;
+        private const float RowsHeight = 1140f;
 
         private string _rowJob;
+        private int _rowTier;
+        private int _tab = 1;
         private readonly System.Collections.Generic.List<Text> _rowLabels = new System.Collections.Generic.List<Text>();
+        private readonly System.Collections.Generic.List<Text> _pinLabels = new System.Collections.Generic.List<Text>();
+        private readonly System.Collections.Generic.List<Button> _tabButtons = new System.Collections.Generic.List<Button>();
+        private Transform _tabsRoot;
+        private Text _slotsLabel;
+
+        /// <summary>탭 줄·칸 줄을 (없으면) 짓고 줄 영역을 그 아래로 내린다 — 옛 씬(3단계 전
+        /// Build)도 재빌드 없이 맞는다.</summary>
+        private void EnsureChrome()
+        {
+            if (_tabsRoot == null)
+            {
+                var go = new GameObject("Tabs", typeof(RectTransform));
+                go.transform.SetParent(_panel.transform, false);
+                var r = (RectTransform)go.transform;
+                r.anchorMin = r.anchorMax = r.pivot = new Vector2(0.5f, 1f);
+                r.anchoredPosition = new Vector2(0f, -195f);
+                r.sizeDelta = new Vector2(840f, 64f);
+                _tabsRoot = go.transform;
+            }
+            if (_slotsLabel == null)
+            {
+                _slotsLabel = NewText(_panel.transform, "", new Vector2(0.5f, 1f), new Vector2(0f, -265f), new Vector2(840f, 50f), 22);
+            }
+            if (_rows is RectTransform rows)
+            {
+                rows.anchoredPosition = new Vector2(0f, RowsTop);
+                rows.sizeDelta = new Vector2(840f, RowsHeight);
+            }
+        }
+
+        /// <summary>차수 탭 1~지금 자리. 자리가 바뀔 때만 다시 짓고, 평소엔 고른 탭 색만 바꾼다
+        /// (탭 onClick 한가운데서 그 탭을 지우지 않게).</summary>
+        private void RedrawTabs()
+        {
+            int tiers = StoryJobState.Tier;
+            if (_tabButtons.Count != tiers)
+            {
+                ClearTabs();
+                const float w = 190f, gap = 20f;
+                float x0 = -(tiers - 1) * (w + gap) * 0.5f;
+                for (int t = 1; t <= tiers; t++)
+                {
+                    int captured = t;
+                    var b = NewButton(_tabsRoot, string.Format(StoryLocalization.T("skill.tab", "{0}차"), t),
+                        new Vector2(0.5f, 0.5f), new Vector2(x0 + (t - 1) * (w + gap), 0f), new Vector2(w, 60f),
+                        () => SelectTab(captured));
+                    _tabButtons.Add(b);
+                }
+            }
+            for (int i = 0; i < _tabButtons.Count; i++)
+            {
+                var img = _tabButtons[i].targetGraphic as Image;
+                if (img != null) img.color = i + 1 == _tab ? new Color(0.95f, 0.8f, 0.4f, 0.55f) : new Color(1f, 1f, 1f, 0.18f);
+                var label = _tabButtons[i].GetComponentInChildren<Text>();
+                if (label != null) label.text = string.Format(StoryLocalization.T("skill.tab", "{0}차"), i + 1);
+            }
+        }
+
+        private void ClearTabs()
+        {
+            _tabButtons.Clear();
+            if (_tabsRoot == null) return;
+            for (int i = _tabsRoot.childCount - 1; i >= 0; i--) DestroyImmediate(_tabsRoot.GetChild(i).gameObject);
+        }
+
+        /// <summary>"칸: 파멸격 · 천붕격 · — · —" — 지금 칸 넷(고정+자동).</summary>
+        private static string SlotsLine()
+        {
+            var parts = new string[StorySkillState.SlotCount];
+            for (int i = 0; i < parts.Length; i++)
+            {
+                var sk = StorySkillState.SlotSkill(i);
+                if (sk == null) { parts[i] = "—"; continue; }
+                string name = StoryLocalization.T($"skill.{sk.Key}", sk.Name);
+                int paren = name.IndexOf('(');
+                parts[i] = paren > 0 ? name.Substring(0, paren) : name;
+            }
+            return string.Format(StoryLocalization.T("skill.slots_line", "칸: {0}"), string.Join(" · ", parts));
+        }
+
+        /// <summary>"칸"(안 고정) / "칸2"(두 번째 칸에 고정).</summary>
+        private static string PinText(StorySkillData.Skill sk)
+        {
+            int at = StorySkillState.PinIndex(sk.Key);
+            return at >= 0
+                ? string.Format(StoryLocalization.T("skill.pin_on", "칸{0}"), at + 1)
+                : StoryLocalization.T("skill.pin", "칸");
+        }
 
         /// <summary>5-2 2단계 — 줄 앞에 [유파], 칸에서 세트가 켜졌으면 "·2세트"(웹판 무예 탭의
         /// 유파 소제목·세트 색을 글자로), 선행 무예가 모자라면 끝에 "(참격 5 먼저)".</summary>
@@ -188,10 +318,13 @@ namespace Saga.Story.UI
             rect.sizeDelta = new Vector2(840f, height);
 
             var label = NewText(row.transform, RowText(sk), new Vector2(0f, 0.5f),
-                new Vector2(10f, 0f), new Vector2(680f, height - 4f), height >= 110f ? 24 : 20);
+                new Vector2(10f, 0f), new Vector2(580f, height - 4f), height >= 110f ? 24 : 20);
             label.alignment = TextAnchor.MiddleLeft;
 
             string captured = sk.Key;
+            var pin = NewButton(row.transform, PinText(sk), new Vector2(1f, 0.5f), new Vector2(-130f, 0f), new Vector2(110f, height - 10f),
+                () => ClickPin(captured));
+            _pinLabels.Add(pin.GetComponentInChildren<Text>());
             NewButton(row.transform, "+", new Vector2(1f, 0.5f), new Vector2(-10f, 0f), new Vector2(110f, height - 10f),
                 () => ClickRaise(captured));
             return label;
@@ -202,6 +335,7 @@ namespace Saga.Story.UI
         private void ClearRows()
         {
             _rowLabels.Clear();
+            _pinLabels.Clear();
             if (_rows == null) return;
             for (int i = _rows.childCount - 1; i >= 0; i--) DestroyImmediate(_rows.GetChild(i).gameObject);
         }

@@ -78,6 +78,9 @@ namespace Saga.Story.Data
             // 시작한다(웹판도 SP 자체는 파생값이라 안 담는다 — 찍은 레벨만 담는 것도 같다).
             public string[] skillKeys;
             public int[] skillLevels;
+            // 5-2 3단계(2026-09-23) "칸 고정" — 같은 이유로 버전 안 올림. 옛 세이브는 null →
+            // 고정 없음(자동 배치만, 예전과 같다).
+            public string[] skillPins;
         }
 
         public static bool Save()
@@ -105,6 +108,7 @@ namespace Saga.Story.Data
                 partyActiveIndex = StoryPartyState.ActiveIndex,
                 skillKeys = skillKeys,
                 skillLevels = skillLevels,
+                skillPins = StorySkillState.SnapshotPins(),
             };
 
             try
@@ -142,7 +146,7 @@ namespace Saga.Story.Data
             _championWeek = data.championWeek;
             StoryLabyrinthState.Restore(data.memoryShards, data.memoryTier);
             StoryPartyState.Restore(data.partyActiveIndex);
-            StorySkillState.Restore(data.skillKeys, data.skillLevels);
+            StorySkillState.Restore(data.skillKeys, data.skillLevels, data.skillPins);
 
             Transform player = FindPlayer();
             if (player != null && data.playerPos != null && data.playerPos.Length == 3)
