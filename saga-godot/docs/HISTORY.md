@@ -8385,3 +8385,13 @@ PROJECT_STATE.md` 참고. 요약:
 - `probe_traversal.gd` 14항목 fails=0(고개 둘 걸어서 넘기 + 세이브 이전 추가).
 - 실기 확인 전: 고개 두 곳이 길로 읽히는지, 마을에서 포구·폐허 쪽 산이 보이는 풍경.
 - 참고: 이 시각 PC 가 몹시 느려(Defender 가 다른 세션의 대량 webp/glb 를 검사 중으로 보임) 헤드리스 한 판이 6~9분 걸렸다 — 같은 시각 코드 안 바뀐 DUNGEON 도 10초→2분+ 라 환경 탓. 로딩 시간은 한가한 때 다시 잴 것.
+
+## GO 원신 기준 ⑥ 보물 상자 — 등급 4 × 잠금 3, 세 지역 16개 (2026-09-23, 새 세션, "사가고돗 이어해")
+
+- PROJECT_STATE "106장 다음 후보" 1번(상자 등급)을 골랐다(사람 몫 Mixamo·VRoid 는 대기 그대로). PLAN 106 표에 ⑥ 줄 추가.
+- `games/saga_go/world/treasure_chest.gd`(상자 하나: 코드로 그린 궤짝+반원 뚜껑+등급색 띠, 셀 셰이더는 creature_builder `_add` 재사용 · 봉인 고리 · 원소 석등+원소 글자 Label3D · 다가가면 열림 → 뚜껑 트윈·반짝이·`CombatFeel.pickup` → 2.5초 뒤 사라짐) · `treasure_spawner.gd`(표 16줄, 연 상자 거르기, 열 때 "보물 N/16" 토스트). 잠금: camp = 반경 12m 안 들판 적(home 기준) 한꺼번에 전멸(90초 부활이라 몰아서 잡아야) · torch = 석등마다 원소, 원소 스킬(K 반경 4m)·폭발(Q 7m)이 `call_group("element_receiver")` 로 밝힘, 20초 뒤 꺼짐. 마을 화려 석등은 화·수·뇌 셋이라 동료 원소가 갖춰져야, 폐허 진귀 석등은 화 셋(주인공 혼자).
+- `field_combat.gd` 스킬·폭발에 call_group 한 줄씩, `test_village.gd` 에 스포너(FieldSpawner 뒤 — camp 가 적 home 을 봄)·점검 훅. 세이브는 EventState `chest_<id>` 로 — 스키마·SAVE_VERSION 그대로.
+- 첫 점검 실패 둘: ① 소수 칸 좌표를 칸 안 오프셋으로 착각(world_pos 는 정수 = 칸 가운데라 1.6 → 칸 2) → 마을 서숲·폐허 북동 상자가 산 위(18.6m·26m)에 앉음, 좌표 고침 ② 봉인 회전 루프 트윈을 상자에 묶어 봉인을 지운 뒤 "Infinite loop detected" — 봉인 노드에 묶음.
+- `tools/probe_treasure.gd`(`SAGA_TREASURE_PROBE=1`) 9항목 3회 fails=0(다른 건 camp 프레임 번호뿐): 개수·등급·봉인 5 · 높이(정교 9m+) · 걸어서 열기→경험치·EventState · 무리 봉인→전멸→풀림 30 · 석등 규칙(먼 곳·다른 원소·만료) · 셋 켜면 풀림 · 실제 K 스킬이 석등 켬 · 다시 지으면 14개.
+- COMBAT·TRAVERSAL 점검 fails=0 그대로(TRAVERSAL 한 번 종료 시 "1 resources still in use" — verbose 재실행 0건, 09-23 ④ 절과 같은 종료 경합). `godot_regress.sh` REGRESS OK, 재질 감사 다섯 판 0.
+- 실기 확인 전: 상자 크기·등급색이 멀리서 구분되는지, 봉인 고리·석등 불꽃이 보이는지, 산 턱 상자가 절벽 아래에서 눈에 띄는지.

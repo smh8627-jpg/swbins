@@ -209,6 +209,8 @@ func skill() -> bool:
 		_deal(e, PartyState.atk * SKILL_MUL * _power_mul(id), el, to_e)
 		hits += 1
 	_gain_energy(ENERGY_PER_SKILL_HIT * hits)
+	## 106장 ⑥ 원소 석등(treasure_chest.gd) — 스킬 반경 안의 석등을 밝힌다.
+	get_tree().call_group("element_receiver", "receive_element", _player.global_position, SKILL_RADIUS, el)
 	return true
 
 func burst() -> bool:
@@ -224,6 +226,7 @@ func burst() -> bool:
 	for e in _enemies_near(_player.global_position, BURST_RADIUS):
 		var to_e: Vector3 = (e as Node3D).global_position - _player.global_position
 		_deal(e, PartyState.atk * BURST_MUL * _power_mul(active_id()), el, to_e)
+	get_tree().call_group("element_receiver", "receive_element", _player.global_position, BURST_RADIUS, el)
 	return true
 
 func _gain_energy(amount: float) -> void:

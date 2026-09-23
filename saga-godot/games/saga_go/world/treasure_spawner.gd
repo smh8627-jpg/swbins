@@ -1,0 +1,72 @@
+extends Node3D
+
+## PLAN 106장 ⑥ — 세 지역에 보물 상자 16개. 원신 들판처럼 "걷다 보면 눈에 띄는 것"
+## (평범) · "올라가야 닿는 것"(정교, 산 테두리 턱) · "무리를 쓸어야 풀리는 것"(적 무리 옆)
+## · "원소로 푸는 것"(석등)을 섞었다. 자리는 글자 지도 칸(소수 = 칸 안 위치) — 칸 가운데를
+## 쓰는 사건·발견 지점과 비껴 놓았다. test_village.gd 가 SaveState 로드와 FieldSpawner
+## 뒤에 붙인다(camp 잠금이 적의 home 을 봐야 하고, 연 상자는 로드된 EventState 로 거른다).
+
+const TestMap := preload("res://games/saga_go/data/test_map.gd")
+const TerrainBuilder := preload("res://games/saga_go/world/terrain_builder.gd")
+const TreasureChest := preload("res://games/saga_go/world/treasure_chest.gd")
+const Toast := preload("res://saga_core/ui/toast.gd")
+
+## [id, 지역, 칸(소수 — 반올림한 정수 칸 안, 가운데에서 소수만큼 비킴), 등급, 잠금, 석등 원소]
+const CHESTS := [
+	## 마을 11×11
+	["v_forest_w", "village", Vector2(1.2, 3.3), "common", "none", []],
+	["v_forest_e", "village", Vector2(9.4, 6.4), "common", "none", []],
+	["v_forest_s", "village", Vector2(1.7, 9.3), "common", "none", []],
+	["v_ridge_n", "village", Vector2(3.0, 2.38), "exquisite", "none", []],   # (3,2) 산 남쪽 턱, 10~18m
+	["v_ridge_river", "village", Vector2(7.0, 7.62), "exquisite", "none", []], # (7,8) 산 북쪽 턱 — 강을 헤엄쳐 건너 오른다
+	["v_camp_bandit", "village", Vector2(9.05, 5.05), "precious", "camp", []], # 들판 무리 (9,5) 도적 둘
+	["v_torch_ruin", "village", Vector2(7.0, 5.15), "luxurious", "torch", ["fire", "water", "thunder"]], # 동료 원소가 갖춰져야
+	## 포구 9×9
+	["c_sand_w", "coast", Vector2(1.4, 7.4), "common", "none", []],
+	["c_sand_e", "coast", Vector2(6.5, 4.3), "common", "none", []],
+	["c_ridge_s", "coast", Vector2(4.0, 7.62), "exquisite", "none", []],      # 남쪽 테두리 산 턱, 22~30m
+	["c_camp_wolf", "coast", Vector2(2.05, 6.05), "precious", "camp", []],    # 들판 무리 (2,6) 늑대 둘
+	## 폐허 7×7
+	["r_floor_sw", "ruins", Vector2(1.4, 5.4), "common", "none", []],
+	["r_floor_ne", "ruins", Vector2(4.7, 1.3), "common", "none", []],
+	["r_ridge_e", "ruins", Vector2(5.62, 3.0), "exquisite", "none", []],      # (6,3) 동쪽 테두리 산 턱
+	["r_torch_fire", "ruins", Vector2(3.0, 4.0), "precious", "torch", ["fire", "fire", "fire"]], # 주인공 혼자서도
+	["r_camp_bandit", "ruins", Vector2(2.05, 2.05), "luxurious", "camp", []], # 들판 무리 (2,2) 도적 셋
+]
+
+
+func _ready() -> void:
+	for row in CHESTS:
+		var id: String = row[0]
+		if EventState.is_resolved("chest_" + id):
+			continue
+		var region: String = row[1]
+		var g: Vector2 = row[2]
+		var pos := TestMap.world_pos(g.x, g.y, region)
+		pos.y = TerrainBuilder.height_at(region, pos) - 0.03
+		var c := TreasureChest.new()
+		c.name = "Chest_" + id
+		c.setup(id, row[3], row[4], region, pos, row[5])
+		## 상자 앞(+Z)이 지역 가운데를 보게 — 산 턱 상자가 절벽 쪽으로 등을 돌린다.
+		var center := TestMap.origin_of(region)
+		c.rotation.y = atan2(center.x - pos.x, center.z - pos.z)
+		c.opened.connect(_on_opened)
+		add_child(c)
+
+
+func _on_opened(chest: Node3D) -> void:
+	var g: Dictionary = TreasureChest.GRADES[chest.get("grade")]
+	Toast.show(self, "✦ %s — 경험치 +%d  (보물 %d/%d)" % [g.name, int(g.exp), opened_count(), total()], TreasureChest.TOAST_SEC)
+
+
+## 지금까지 연 상자 수(EventState 의 "chest_" 항목).
+static func opened_count() -> int:
+	var n := 0
+	for key in EventState.resolved:
+		if key.begins_with("chest_"):
+			n += 1
+	return n
+
+
+static func total() -> int:
+	return CHESTS.size()

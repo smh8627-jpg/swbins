@@ -30,11 +30,17 @@ func _ready() -> void:
 	var spawner := preload("res://games/saga_go/combat/field_spawner.gd").new()
 	spawner.name = "FieldSpawner"
 	add_child(spawner)
+	## PLAN 106장 ⑥ — 보물 상자(무리 잠금이 적의 home 을 보므로 FieldSpawner 뒤).
+	var chests := preload("res://games/saga_go/world/treasure_spawner.gd").new()
+	chests.name = "TreasureSpawner"
+	add_child(chests)
 	## 원신식 이동(go_player.gd) 자동 점검 — 측정할 때만 붙인다.
 	if OS.get_environment("SAGA_TRAVERSAL_PROBE") != "":
 		add_child(load("res://tools/probe_traversal.gd").new())
 	if OS.get_environment("SAGA_COMBAT_PROBE") != "":
 		add_child(load("res://tools/probe_field_combat.gd").new())
+	if OS.get_environment("SAGA_TREASURE_PROBE") != "":
+		add_child(load("res://tools/probe_treasure.gd").new())
 
 	## PLAN.md 101-4 GO ①후보 "일과판" — 로드가 끝난 뒤(위와 같은 이유,
 	## 세션 델타의 기준점이 로드 전 값이면 안 된다) 세션을 연다.
