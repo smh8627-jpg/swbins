@@ -8737,3 +8737,5 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
   - 설계 판단: 상자는 DUNGEON 관례대로 근접 판정(상호작용 키 없음). 벽력탄 개수 관리는 뺐다(퍼즐 도구로 먼저 검증). 쓰러뜨린 파수꾼은 기존처럼 다시 선다(열린 문·상자·벽만 저장).
 - **검증**: 컴파일 exit 0 · 씬 재빌드(능묘 방 5·복도 5·상자 3·문 2·벽 1·블록 1·파수꾼 6·능묘지기 1) · `PlaytestDungeonHeadless` 새 `CheckTemple`(진짜 씬 구성품을 순서대로 — 블록은 진짜 밀기 감지 한 번 + 즉시 밀기로 경계 막힘·발판) 첫 회부터 OK, 옆걸음 블렌드를 넣은 뒤 3회 더 OK(합계 4회, lockon·telegraph·temple 전부).
 - **미확인**: Maria.controller 를 같이 쓰는 GO `PlaytestHeadless`·STORY `PlaytestStorySlice` 는 두 번 다 **Unity 시작 단계**(컴파일 뒤 `Access token is unavailable` 다음)에서 멈춰 15분 제한에 걸렸다 — 진단 코드까지 못 감. 사이사이 던전 진단은 정상이라 환경(연속 실행 누적 hang, HISTORY 09-23 GUI hang 과 같은 모양 + VS Code 가 CPU 를 크게 씀)으로 본다. 컨트롤러 변경은 새 상태·파라미터 추가뿐(기본값 LockOn=false)이라 두 판 동작엔 영향이 없어야 하지만 재확인 전.
+
+- **재확인(같은 날)**: 시간을 두고 다시 돌리니 GO `PlaytestHeadless` OK · STORY `PlaytestStorySlice` OK — Maria.controller 옆걸음 블렌드 추가가 두 판을 안 깨뜨림. 앞의 두 번은 Unity 시작 hang(환경)이었다.

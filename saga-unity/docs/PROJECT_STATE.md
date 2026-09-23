@@ -21,7 +21,6 @@ Maria(플레이어)·Abe(잡졸)·Brute(두목) 셋만 mixamo.com 실자산 확�
 
 ## 다음 작업 (우선순위, 상세는 PLAN 해당 장 · 경위는 HISTORY 날짜 grep)
 
-0-a. **GO `PlaytestHeadless`·STORY `PlaytestStorySlice` 재확인** — Maria.controller(옆걸음 블렌드 추가) 뒤 두 번 다 Unity 시작 hang 으로 못 돌았다(HISTORY 2026-09-23 106-2 절).
 0. **PLAN 106장 FF·젤다 순서가 최우선**(2026-09-23 사용자 승인 — 무예·전직 같은 수치 확장은 멈춤). 순서 1·2 코드 완료 → 다음 **순서 3 연출(FF)**: Cinemachine·Timeline 도입 — 능묘지기 등장 컷, 상자 열기(지금은 뚜껑+아이템 떠오르기+토스트뿐), 능묘 도착 타이틀. Mixamo 클립이 더 필요하면 `tools/mixamo_automation`(자동화 전용 크롬 로그인은 사람 몫, 2026-09-23 한 번 풀렸다 다시 로그인됨).
 1. **STORY 101-2 전부 완료** — 남은 건 실기 확인(아래 대기 목록). 판수 체감(Lv.15→20 약 11판, 20→25 약 28판)이 무거우면 `StoryCombat.JobPromoteLevel3/4`만 고치면 된다.
 2. **101-2·104-1 잔여(보류)** — GO⑤(모바일 빌드 뒤)·`Characters/` Kenney(실사용 중). 헤어카드는 분리 헤어 메시 생기면. (`Props/` lantern·stall-red는 2026-09-23 완료 — 아래 표에서 뺌)
