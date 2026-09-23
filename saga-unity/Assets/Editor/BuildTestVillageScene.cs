@@ -618,6 +618,7 @@ namespace Saga.EditorTools
             controller.radius = 0.9f;
             controller.height = 3.4f;
             controller.center = new Vector3(0f, 1.7f, 0f);
+            controller.stepOffset = 1.1f; // 107 ② — 다리 널판(윗면 ≈1.0m)·낮은 턱은 걸어서 오른다(실측 약 0.6m)
 
             // 44장 "Player" 교체 — Maria(리깅+Animator)를 먼저 시도, 없으면
             // character-a → 그마저 없으면 primitive capsule 순으로 폴백
@@ -652,6 +653,7 @@ namespace Saga.EditorTools
             SetPrivateField(pc, "animator", playerAnimator);
             SetPrivateField(pc, "cameraRig", cameraRig);
             SetPrivateField(pc, "inputActions", inputActions);
+            SetPrivateField(pc, "traversal", true); // PLAN.md 107 ② 등반·활공·수영
 
             playerGo.AddComponent<WeaponVisual>(); // PLAN.md 101-3 G "장비 가시화".
             playerGo.AddComponent<BlobShadow>(); // PLAN.md 102-2 "Shadows" — Mobile만 켜진다.

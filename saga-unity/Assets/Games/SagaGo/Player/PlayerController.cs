@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using Saga.Go.Combat;
+using Saga.Go.Data;
 using Saga.Go.UI;
 using Saga.Go.World;
 
@@ -16,14 +17,46 @@ namespace Saga.Go.Player
     /// "Placeholder는 개발 초기 테스트용" — saga-godot도 처음엔 캡슐이었다
     /// 가 2026-09-11에 GLB로 바꿨다). 애니메이션 재생(idle/walk/sprint)은
     /// GLB가 들어온 뒤에 붙인다.
+    ///
+    /// **PLAN.md 107 ② "이동"(2026-09-24)** — 원신식 이동 상태 여섯: 지상·공중(점프 Space)·등반(가파른 면을
+    /// 향해 밀면 붙는다, 꼭대기에서 넘어오르기, Space 도약/아래+Space 놓기)·넘어오르기·활공(공중 발밑 4m+ 에서
+    /// Space)·수영(강 칸 수면 아래로 빠지면). 스태미나(`GoStamina`)를 달리기·회피와 같이 쓴다. 등반·활공·수영은
+    /// `traversal` 이 켜진 씬(TestVillage)만 — LayoutWalk 같은 다른 씬은 점프까지만.
     /// </summary>
     [RequireComponent(typeof(CharacterController))]
     public class PlayerController : MonoBehaviour
     {
+        public enum MoveMode { Ground, Air, Climb, Mantle, Glide, Swim }
+
         private const float WalkSpeed = 6f;
         private const float RunSpeed = 10f;
         private const float Gravity = 20f;
         private const float TurnRate = 12f; // Godot lerp_angle(from,to,weight)의 weight와 같은 순수 보간 계수(각도 단위 아님)
+
+        // PLAN.md 107 ② — GO 사람 키 3.4m(실측 약 1.85배) 기준. Godot 사가고 점프 1.4m → 2.4m.
+        public const float JumpVelocity = 9.8f;          // v²/2g = 2.4m
+        public const float ClimbSpeed = 3.2f;
+        public const float ClimbSideSpeed = 2.6f;
+        public const float ClimbStaminaPerSec = 6f;
+        public const float ClimbIdleStaminaPerSec = 1.5f;
+        public const float ClimbLeapCost = 15f;
+        public const float ClimbLeapHeight = 3f;
+        private const float ClimbLeapSec = 0.3f;
+        private const float ClimbProbeHeight = 1.7f;     // 가슴 높이
+        private const float KneeProbeHeight = 0.5f;
+        private const float ClimbReach = 1.6f;           // 반지름 0.9 + 0.7
+        private const float ClimbRegrabSec = 0.45f;
+        private const float MantleSec = 0.45f;
+        public const float GlideMinHeight = 4f;
+        public const float GlideSpeed = 10f;
+        public const float GlideFallSpeed = 3f;
+        public const float GlideStaminaPerSec = 5f;
+        public const float SwimDepth = 2.6f;             // 수면에서 발까지 — 머리가 다리 널판 밑을 지난다
+        public const float SwimSpeed = 4f;
+        public const float SwimFastSpeed = 7f;
+        public const float SwimStaminaPerSec = 2f;
+        public const float SwimFastStaminaPerSec = 12f;
+        private const float LastLandIntervalSec = 0.5f;
 
         [SerializeField] private Transform visual;
         [SerializeField] private CameraRig cameraRig;
@@ -34,6 +67,8 @@ namespace Saga.Go.Player
         // 폴백 등) 예전처럼 몸통 회전만 하고 애니메이션은 안 돈다 — 씬이 안 깨짐
         // (Saga.Dungeon.Player.PlayerController와 같은 결).
         [SerializeField] private Animator animator;
+        // PLAN.md 107 ② — 등반·활공·수영을 켤지(씬 빌더가 TestVillage 에만 켠다).
+        [SerializeField] private bool traversal;
 
         // PLAN.md 101-3 C hitstop(2026-09-17) — BanditEncounter/RareWolfEncounter가
         // 타격 순간 잠깐 멈추려고 읽는다(DUNGEON `PlayerCombat.cs`의 같은 이름
@@ -50,6 +85,7 @@ namespace Saga.Go.Player
         private CharacterController _controller;
         private InputAction _moveAction;
         private InputAction _sprintAction;
+        private InputAction _jumpAction;
         private float _verticalVelocity;
         private float _footprintCooldown;
 
@@ -57,7 +93,28 @@ namespace Saga.Go.Player
         private float _dashTimeLeft;
         private Vector3 _dashVelocity;
 
+        // PLAN.md 107 ② 이동 상태
+        public MoveMode Mode { get; private set; } = MoveMode.Ground;
+        public Vector3 LastLand { get; private set; }
+        public bool Traversal => traversal;
+        private bool _jumpQueued;
+        private Vector3 _wallNormal;
+        private float _leapLeft;
+        private float _regrabCooldown;
+        private Vector3 _mantleFrom, _mantleTo;
+        private float _mantleT;
+        private float _lastLandTimer;
+        private GameObject _wings;
+        private bool _hasClimbParam, _hasGlideParam, _hasSwimParam, _hasJumpParam, _hasClimbRate;
+
+        // 진단용 입력 대체 — raw.x=오른쪽, raw.y=앞(월드 +X/+Z 로 곧장, 카메라 무시). 등반 중엔 raw.y=위.
+        private bool _testInput;
+        private Vector2 _testRaw;
+        private bool _testSprint;
+
         public bool IsDashing => _dashTimeLeft > 0f;
+        /// <summary>들판 전투가 공격·회피를 받아 줄 수 있는 자세인가(땅을 딛고 있을 때만).</summary>
+        public bool OnFoot => Mode == MoveMode.Ground;
 
         /// <summary>PLAN.md 107-1 — `dir` 쪽으로 `seconds` 동안 `distance` 만큼 미끄러진다(입력 무시).
         /// Maria 면 구르기 클립(`Dodge` 트리거).</summary>
@@ -83,7 +140,7 @@ namespace Saga.Go.Player
         }
 
         /// <summary>현재 입력의 월드 방향(카메라 기준, 길이 ≤1) — 회피 방향용.</summary>
-        public Vector3 MoveIntent => WorldDirection(MovementInput());
+        public Vector3 MoveIntent => WorldDirection(RawInput());
 
         /// <summary>쓰러져 마을로 돌아갈 때 — CharacterController 는 꺼야 순간이동이 먹는다.</summary>
         public void Teleport(Vector3 pos)
@@ -93,11 +150,32 @@ namespace Saga.Go.Player
             _controller.enabled = true;
             _verticalVelocity = 0f;
             _dashTimeLeft = 0f;
+            _leapLeft = 0f;
+            Mode = HeightAboveGround() < 0.3f ? MoveMode.Ground : MoveMode.Air;
+            SetWings(false);
+        }
+
+        /// <summary>모바일 "점프" 버튼·진단이 부른다(다음 Step 에서 Space 와 같게 처리).</summary>
+        public void RequestJump() => _jumpQueued = true;
+
+        public void SetTestInput(Vector2 raw, bool sprint)
+        {
+            _testInput = true;
+            _testRaw = raw;
+            _testSprint = sprint;
+        }
+
+        public void ClearTestInput()
+        {
+            _testInput = false;
+            _testRaw = Vector2.zero;
+            _testSprint = false;
         }
 
         private void Awake()
         {
             _controller = GetComponent<CharacterController>();
+            LastLand = transform.position;
 
             if (inputActions != null)
             {
@@ -106,6 +184,7 @@ namespace Saga.Go.Player
                 {
                     _moveAction = map.FindAction("Move");
                     _sprintAction = map.FindAction("Sprint");
+                    _jumpAction = map.FindAction("Jump");
                     map.Enable();
                 }
             }
@@ -114,38 +193,89 @@ namespace Saga.Go.Player
             {
                 joystick = Object.FindFirstObjectByType<VirtualJoystick>();
             }
+
+            if (animator != null)
+            {
+                foreach (var p in animator.parameters)
+                {
+                    if (p.name == "Climb") _hasClimbParam = true;
+                    else if (p.name == "Glide") _hasGlideParam = true;
+                    else if (p.name == "Swim") _hasSwimParam = true;
+                    else if (p.name == "Jump") _hasJumpParam = true;
+                    else if (p.name == "ClimbRate") _hasClimbRate = true;
+                }
+            }
+            if (traversal) _wings = BuildWings();
         }
 
-        private void Update()
-        {
-            float dt = Time.deltaTime;
+        private void Update() => Step(Time.deltaTime);
 
-            if (_controller.isGrounded && _verticalVelocity < 0f)
-            {
-                _verticalVelocity = 0f;
-            }
-            _verticalVelocity -= Gravity * dt;
+        /// <summary>한 프레임 — 진단이 시간을 건너뛰려고 직접 부른다.</summary>
+        public void Step(float dt)
+        {
             GoStamina.Tick(dt);
+            if (_regrabCooldown > 0f) _regrabCooldown -= dt;
+
+            bool jumpPressed = _jumpQueued || (!_testInput && _jumpAction != null && _jumpAction.WasPressedThisFrame());
+            _jumpQueued = false;
+            Vector2 raw = RawInput();
+            Vector3 moveDir = WorldDirection(raw);
+            bool sprintHeld = _testInput ? _testSprint : (_sprintAction != null && _sprintAction.IsPressed());
 
             if (_dashTimeLeft > 0f)
             {
                 _dashTimeLeft -= dt;
+                _verticalVelocity -= Gravity * dt;
                 _controller.Move(new Vector3(_dashVelocity.x, _verticalVelocity, _dashVelocity.z) * dt);
                 return;
             }
 
-            Vector2 inputDir = MovementInput();
-            Vector3 moveDir = WorldDirection(inputDir);
+            switch (Mode)
+            {
+                case MoveMode.Climb: StepClimb(dt, raw, jumpPressed); break;
+                case MoveMode.Mantle: StepMantle(dt); break;
+                case MoveMode.Glide: StepGlide(dt, moveDir, jumpPressed); break;
+                case MoveMode.Swim: StepSwim(dt, moveDir, sprintHeld); break;
+                default: StepWalk(dt, moveDir, sprintHeld, jumpPressed); break;
+            }
+            SetWings(Mode == MoveMode.Glide);
+            SetModeParams();
+        }
 
-            // PLAN.md 107-1 — 달리기는 스태미나를 초당 8 쓴다(바닥나면 30까지 잠김).
-            bool running = _sprintAction != null && _sprintAction.IsPressed()
-                && moveDir.sqrMagnitude > 0.05f * 0.05f && GoStamina.Drain(GoStamina.SprintPerSec * dt);
+        // ---- 지상·공중 -----------------------------------------------------------
+
+        private void StepWalk(float dt, Vector3 moveDir, bool sprintHeld, bool jumpPressed)
+        {
+            bool grounded = _controller.isGrounded;
+            if (grounded && _verticalVelocity < 0f) _verticalVelocity = -2f; // 경사·턱에서 떨어지지 않게 살짝 누른다
+
+            if (jumpPressed)
+            {
+                if (grounded)
+                {
+                    _verticalVelocity = JumpVelocity;
+                    grounded = false;
+                    if (animator != null && _hasJumpParam) animator.SetTrigger("Jump");
+                }
+                else if (traversal && HeightAboveGround() >= GlideMinHeight && GoStamina.Value > 0f)
+                {
+                    Mode = MoveMode.Glide;
+                    _verticalVelocity = -GlideFallSpeed;
+                    return;
+                }
+            }
+            _verticalVelocity -= Gravity * dt;
+
+            bool moving = moveDir.sqrMagnitude > 0.05f * 0.05f;
+            // PLAN.md 107-1 — 달리기는 스태미나를 초당 8 쓴다(바닥나면 30까지 잠김). 공중에선 안 닳는다.
+            bool running = sprintHeld && moving && grounded && GoStamina.Drain(GoStamina.SprintPerSec * dt);
             float speed = running ? RunSpeed : WalkSpeed;
 
             Vector3 horizontal = moveDir * speed;
             _controller.Move(new Vector3(horizontal.x, _verticalVelocity, horizontal.z) * dt);
+            grounded = _controller.isGrounded;
+            Mode = grounded ? MoveMode.Ground : MoveMode.Air;
 
-            bool moving = moveDir.sqrMagnitude > 0.05f * 0.05f;
             if (moving && visual != null)
             {
                 float targetYaw = Mathf.Atan2(moveDir.x, moveDir.z) * Mathf.Rad2Deg;
@@ -153,7 +283,7 @@ namespace Saga.Go.Player
                 visual.rotation = Quaternion.Euler(0f, yaw, 0f);
             }
 
-            if (moving)
+            if (moving && grounded)
             {
                 // PLAN.md 101-3 G "지형 반응" — 걷는 동안 일정 간격으로 발자국.
                 _footprintCooldown -= dt;
@@ -171,6 +301,277 @@ namespace Saga.Go.Player
             {
                 animator.SetFloat("Speed", moving ? (running ? 1f : 0.5f) : 0f);
             }
+
+            if (!traversal) return;
+            if (moving && TryStartClimb(moveDir)) return;
+            if (TryStartSwim()) return;
+            if (grounded) RecordLastLand(dt);
+        }
+
+        // ---- 등반 --------------------------------------------------------------
+
+        /// <summary>가슴·무릎 높이에서 이동 방향으로 쏜 광선이 둘 다 가파른 면(법선 y&lt;0.5)에 닿으면 붙는다.
+        /// 캡슐·구 충돌체(사람·소품)와 `NoClimb` 는 안 잡는다.</summary>
+        private bool TryStartClimb(Vector3 dir)
+        {
+            if (_regrabCooldown > 0f || GoStamina.Value <= 0f) return false;
+            dir.y = 0f;
+            if (dir.sqrMagnitude < 0.0001f) return false;
+            dir.Normalize();
+            Vector3 p = transform.position;
+            if (!ProbeWall(p + Vector3.up * ClimbProbeHeight, dir, ClimbReach, out RaycastHit chest)) return false;
+            if (!ProbeWall(p + Vector3.up * KneeProbeHeight, dir, ClimbReach + 0.4f, out _)) return false;
+            Vector3 n = chest.normal; n.y = 0f;
+            if (n.sqrMagnitude < 0.0001f || Vector3.Dot(dir, -n.normalized) < 0.5f) return false;
+            _wallNormal = n.normalized;
+            Mode = MoveMode.Climb;
+            _verticalVelocity = 0f;
+            _leapLeft = 0f;
+            if (visual != null) visual.rotation = Quaternion.LookRotation(-_wallNormal);
+            return true;
+        }
+
+        private static bool ProbeWall(Vector3 origin, Vector3 dir, float dist, out RaycastHit hit)
+        {
+            if (!Physics.Raycast(origin, dir, out hit, dist, ~0, QueryTriggerInteraction.Ignore)) return false;
+            if (hit.normal.y >= 0.5f) return false;
+            var c = hit.collider;
+            if (c is CapsuleCollider || c is SphereCollider || c is CharacterController) return false;
+            if (c.GetComponentInParent<NoClimb>() != null) return false;
+            return true;
+        }
+
+        private void StepClimb(float dt, Vector2 raw, bool jumpPressed)
+        {
+            Vector3 p = transform.position;
+            Vector3 into = -_wallNormal;
+            if (!ProbeWall(p + Vector3.up * ClimbProbeHeight, into, ClimbReach + 0.6f, out RaycastHit hit))
+            {
+                // 가슴 높이에 벽이 없다 — 무릎엔 있으면 꼭대기 턱이라 넘어오르고, 없으면 벽이 끝나 떨어진다.
+                if (ProbeWall(p + Vector3.up * KneeProbeHeight, into, ClimbReach + 0.6f, out _) && BeginMantle(into)) return;
+                Drop(false);
+                return;
+            }
+            Vector3 n = hit.normal; n.y = 0f;
+            if (n.sqrMagnitude > 0.0001f) _wallNormal = n.normalized;
+            into = -_wallNormal;
+
+            if (jumpPressed)
+            {
+                if (raw.y < -0.5f) { Drop(true); return; }
+                if (_leapLeft <= 0f && GoStamina.Use(ClimbLeapCost)) _leapLeft = ClimbLeapSec;
+            }
+
+            bool moving = raw.sqrMagnitude > 0.05f * 0.05f;
+            float cost = (moving ? ClimbStaminaPerSec : ClimbIdleStaminaPerSec) * dt;
+            if (!GoStamina.Use(cost)) { Drop(false); return; }
+
+            Vector3 right = Vector3.Cross(Vector3.up, into);
+            Vector3 vel = Vector3.up * (raw.y * ClimbSpeed) + right * (raw.x * ClimbSideSpeed);
+            if (_leapLeft > 0f)
+            {
+                _leapLeft -= dt;
+                vel += Vector3.up * (ClimbLeapHeight / ClimbLeapSec);
+            }
+            float gap = hit.distance - (_controller.radius + 0.05f);
+            vel += into * Mathf.Clamp(gap / Mathf.Max(dt, 0.001f), -4f, 4f);
+            _controller.Move(vel * dt);
+            if (visual != null) visual.rotation = Quaternion.LookRotation(into);
+            if (animator != null)
+            {
+                animator.SetFloat("Speed", _hasClimbParam ? 0f : (moving ? 0.5f : 0f));
+                // 등반 클립은 멈추면 멈추고 내려가면 거꾸로(Maria.controller "Climb" 상태 속도 배수).
+                if (_hasClimbRate) animator.SetFloat("ClimbRate", _leapLeft > 0f ? 1.6f : moving ? (raw.y < -0.1f ? -1f : 1f) : 0f);
+            }
+
+            if (raw.y < -0.1f && _controller.isGrounded) Mode = MoveMode.Ground; // 내려와 땅에 닿음
+        }
+
+        /// <summary>등반을 놓는다. `pushOff` 면 벽에서 살짝 뛰어 떨어진다(아래+Space).</summary>
+        private void Drop(bool pushOff)
+        {
+            Mode = MoveMode.Air;
+            _regrabCooldown = ClimbRegrabSec;
+            _leapLeft = 0f;
+            _verticalVelocity = pushOff ? 3f : 0f;
+            if (pushOff) _controller.Move(_wallNormal * 1.2f);
+        }
+
+        /// <summary>꼭대기 턱 너머 딛을 자리를 찾아 넘어오른다. 못 찾으면 false.</summary>
+        private bool BeginMantle(Vector3 into)
+        {
+            Vector3 p = transform.position;
+            Vector3 scan = p + Vector3.up * (ClimbProbeHeight + 3.5f) + into * (_controller.radius + 1.4f);
+            if (!Physics.Raycast(scan, Vector3.down, out RaycastHit top, 6f, ~0, QueryTriggerInteraction.Ignore)) return false;
+            if (top.normal.y < 0.6f || top.point.y < p.y) return false;
+            _mantleFrom = p;
+            _mantleTo = top.point + Vector3.up * 0.05f;
+            _mantleT = 0f;
+            Mode = MoveMode.Mantle;
+            _controller.enabled = false;
+            return true;
+        }
+
+        private void StepMantle(float dt)
+        {
+            _mantleT += dt / MantleSec;
+            float t = Mathf.Clamp01(_mantleT);
+            // 먼저 올라서고(0~0.6) 그다음 앞으로(0.4~1) — 턱 모서리를 파고들지 않게.
+            float up = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t / 0.6f));
+            float fwd = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((t - 0.4f) / 0.6f));
+            Vector3 flatFrom = new Vector3(_mantleFrom.x, 0f, _mantleFrom.z);
+            Vector3 flatTo = new Vector3(_mantleTo.x, 0f, _mantleTo.z);
+            Vector3 flat = Vector3.Lerp(flatFrom, flatTo, fwd);
+            transform.position = new Vector3(flat.x, Mathf.Lerp(_mantleFrom.y, _mantleTo.y, up), flat.z);
+            if (t >= 1f)
+            {
+                _controller.enabled = true;
+                Mode = MoveMode.Ground;
+                _verticalVelocity = -2f;
+                _regrabCooldown = ClimbRegrabSec;
+            }
+        }
+
+        // ---- 활공 --------------------------------------------------------------
+
+        private void StepGlide(float dt, Vector3 moveDir, bool jumpPressed)
+        {
+            if (jumpPressed || !GoStamina.Use(GlideStaminaPerSec * dt))
+            {
+                Mode = MoveMode.Air;
+                _verticalVelocity = 0f;
+                return;
+            }
+            _verticalVelocity = -GlideFallSpeed;
+            Vector3 horizontal = moveDir * GlideSpeed;
+            _controller.Move(new Vector3(horizontal.x, _verticalVelocity, horizontal.z) * dt);
+            if (moveDir.sqrMagnitude > 0.0025f && visual != null)
+            {
+                float yaw = Mathf.LerpAngle(visual.eulerAngles.y, Mathf.Atan2(moveDir.x, moveDir.z) * Mathf.Rad2Deg, TurnRate * 0.5f * dt);
+                visual.rotation = Quaternion.Euler(0f, yaw, 0f);
+            }
+            if (animator != null) animator.SetFloat("Speed", 0f);
+
+            if (_controller.isGrounded) { Mode = MoveMode.Ground; _verticalVelocity = -2f; return; }
+            if (moveDir.sqrMagnitude > 0.0025f && TryStartClimb(moveDir)) return;
+            TryStartSwim();
+        }
+
+        // ---- 수영 --------------------------------------------------------------
+
+        private static bool OverWater(Vector3 p)
+        {
+            var (gx, gy) = TestMapData.WorldToGrid(p);
+            return TestMapData.IsWater(TestMapData.TileAt(gx, gy));
+        }
+
+        private bool TryStartSwim()
+        {
+            Vector3 p = transform.position;
+            if (!OverWater(p) || p.y > TestMapData.WaterSurfaceHeight - SwimDepth + 0.05f) return false;
+            Mode = MoveMode.Swim;
+            _verticalVelocity = 0f;
+            return true;
+        }
+
+        private void StepSwim(float dt, Vector3 moveDir, bool sprintHeld)
+        {
+            Vector3 p = transform.position;
+            if (!OverWater(p))
+            {
+                Mode = MoveMode.Air;
+                return;
+            }
+            bool moving = moveDir.sqrMagnitude > 0.05f * 0.05f;
+            bool fast = sprintHeld && moving;
+            float cost = (fast ? SwimFastStaminaPerSec : moving ? SwimStaminaPerSec : SwimStaminaPerSec * 0.5f) * dt;
+            if (!GoStamina.Use(cost) || GoStamina.Value <= 0f)
+            {
+                Drown();
+                return;
+            }
+            float targetY = TestMapData.WaterSurfaceHeight - SwimDepth;
+            float vy = Mathf.Clamp((targetY - p.y) / Mathf.Max(dt, 0.001f), -3f, 3f);
+            Vector3 horizontal = moveDir * (fast ? SwimFastSpeed : SwimSpeed);
+            _controller.Move(new Vector3(horizontal.x, vy, horizontal.z) * dt);
+            if (moving && visual != null)
+            {
+                float yaw = Mathf.LerpAngle(visual.eulerAngles.y, Mathf.Atan2(moveDir.x, moveDir.z) * Mathf.Rad2Deg, TurnRate * dt);
+                visual.rotation = Quaternion.Euler(0f, yaw, 0f);
+            }
+            if (animator != null) animator.SetFloat("Speed", moving ? 0.5f : 0f); // Swim 상태 1D 블렌드(0 물 위 대기·0.5 헤엄)
+            if (moving) TryStartClimb(moveDir); // 강둑·다리 기둥을 잡고 올라온다
+        }
+
+        /// <summary>물에서 기력이 다하면 마지막으로 딛었던 땅으로(잃는 것 없음).</summary>
+        private void Drown()
+        {
+            Teleport(LastLand);
+            GoStamina.ResetFull();
+            if (DialogueLabel.Instance != null)
+                DialogueLabel.Instance.Show(GoLocalization.T("move.drown", "기력이 다해 물가로 돌아왔다"), 2.5f);
+        }
+
+        private void RecordLastLand(float dt)
+        {
+            _lastLandTimer -= dt;
+            if (_lastLandTimer > 0f) return;
+            _lastLandTimer = LastLandIntervalSec;
+            if (!OverWater(transform.position)) LastLand = transform.position + Vector3.up * 0.1f;
+        }
+
+        // ---- 도움 --------------------------------------------------------------
+
+        public float HeightAboveGround()
+        {
+            Vector3 origin = transform.position + Vector3.up * 0.5f;
+            if (Physics.Raycast(origin, Vector3.down, out RaycastHit hit, 300f, ~0, QueryTriggerInteraction.Ignore))
+                return hit.distance - 0.5f;
+            return 300f;
+        }
+
+        private void SetModeParams()
+        {
+            if (animator == null) return;
+            if (_hasClimbParam) animator.SetBool("Climb", Mode == MoveMode.Climb);
+            if (_hasGlideParam) animator.SetBool("Glide", Mode == MoveMode.Glide);
+            if (_hasSwimParam) animator.SetBool("Swim", Mode == MoveMode.Swim);
+        }
+
+        /// <summary>활공 날개 — 코드로 그린 얇은 판 둘(원작 모양 아님). 활공 중에만 보인다.</summary>
+        private GameObject BuildWings()
+        {
+            Transform parent = visual != null ? visual : transform;
+            var root = new GameObject("GlideWings (generated)");
+            root.transform.SetParent(parent, false);
+            root.transform.localPosition = new Vector3(0f, 2.55f, -0.35f) / Mathf.Max(0.01f, parent.lossyScale.y);
+            root.transform.localScale = Vector3.one / Mathf.Max(0.01f, parent.lossyScale.y);
+            var mat = new Material(Shader.Find("Universal Render Pipeline/Lit")) { name = "GlideWings (generated)" };
+            mat.color = new Color(0.86f, 0.8f, 0.66f);
+            for (int side = -1; side <= 1; side += 2)
+            {
+                var wing = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                wing.name = side < 0 ? "WingL" : "WingR";
+                Destroy(wing.GetComponent<Collider>());
+                wing.transform.SetParent(root.transform, false);
+                wing.transform.localPosition = new Vector3(side * 1.55f, 0.25f, 0f);
+                wing.transform.localRotation = Quaternion.Euler(0f, 0f, side * -12f);
+                wing.transform.localScale = new Vector3(3f, 0.06f, 1.1f);
+                wing.GetComponent<MeshRenderer>().sharedMaterial = mat;
+            }
+            root.SetActive(false);
+            return root;
+        }
+
+        private void SetWings(bool on)
+        {
+            if (_wings != null && _wings.activeSelf != on) _wings.SetActive(on);
+        }
+
+        private Vector2 RawInput()
+        {
+            if (_testInput) return _testRaw;
+            return MovementInput();
         }
 
         /// <summary>조이스틱이 있고 밀렸으면 그걸 우선한다(모바일) — 아니면 Move 액션으로 되돈다.</summary>
@@ -183,10 +584,16 @@ namespace Saga.Go.Player
             return _moveAction != null ? _moveAction.ReadValue<Vector2>() : Vector2.zero;
         }
 
-        /// <summary>입력(x=오른쪽, y=앞)을 카메라가 보는 방향 기준 월드 벡터로 바꾼다.</summary>
+        /// <summary>입력(x=오른쪽, y=앞)을 카메라가 보는 방향 기준 월드 벡터로 바꾼다.
+        /// 진단 입력은 카메라를 무시하고 월드 +X/+Z 로 곧장.</summary>
         private Vector3 WorldDirection(Vector2 inputDir)
         {
             if (inputDir.sqrMagnitude < 0.001f) return Vector3.zero;
+            if (_testInput)
+            {
+                Vector3 t = new Vector3(inputDir.x, 0f, inputDir.y);
+                return t.sqrMagnitude > 1f ? t.normalized : t;
+            }
 
             Transform basis = cameraRig != null ? cameraRig.transform : transform;
             Vector3 forward = basis.forward; forward.y = 0f; forward.Normalize();

@@ -39,6 +39,24 @@ namespace Saga.Go.Combat
             return true;
         }
 
+        /// <summary>등반·활공·수영처럼 달리기 잠금과 무관하게 계속 쓰는 값. 바닥이면 false(남은 만큼은 깎는다).</summary>
+        public static bool Use(float amount)
+        {
+            if (Value <= 0f) return false;
+            Value = Mathf.Max(0f, Value - amount);
+            _sinceUse = 0f;
+            if (Value <= 0f) SprintLocked = true;
+            return true;
+        }
+
+        /// <summary>진단용 — 값을 곧장 맞춘다.</summary>
+        public static void SetForTest(float value)
+        {
+            Value = Mathf.Clamp(value, 0f, Max);
+            SprintLocked = Value <= 0f;
+            _sinceUse = 0f;
+        }
+
         /// <summary>`PlayerController.Update` 가 프레임마다 한 번 부른다.</summary>
         public static void Tick(float dt)
         {

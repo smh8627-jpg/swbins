@@ -275,7 +275,7 @@ namespace Saga.Go.Combat
             return true;
         }
 
-        private bool CanAct() => Active != null && !Active.Down && !DuelGate.Active;
+        private bool CanAct() => Active != null && !Active.Down && !DuelGate.Active && (player == null || player.OnFoot); // 107 ② 등반·활공·수영 중엔 못 싸운다
 
         // ---- 피격 --------------------------------------------------------------
 

@@ -85,7 +85,8 @@ namespace Saga.Go.World
                         continue;
                     }
 
-                    Vector3 center = TestMapData.WorldPos(x, y) + new Vector3(0, info.Height, 0);
+                    // PLAN.md 107 ② — 산은 칸마다 높이가 다른 고원, 강·다리 칸은 깊은 강바닥.
+                    Vector3 center = TestMapData.WorldPos(x, y) + new Vector3(0, TestMapData.GroundHeight(x, y), 0);
                     Color own = info.Color;
                     Color col00 = CornerColor(x, y);
                     Color col10 = CornerColor(x + 1, y);
@@ -93,6 +94,7 @@ namespace Saga.Go.World
                     Color col11 = CornerColor(x + 1, y + 1);
 
                     AddTileQuads(verts, colors, normals, uvs, tris, center, half, own, col00, col10, col01, col11);
+                    AddCliffSides(verts, colors, normals, uvs, tris, x, y, center, half, ch);
                 }
             }
 
@@ -164,6 +166,50 @@ namespace Saga.Go.World
             }
         }
 
+        private static readonly Color CliffRockColor = new Color(0.43f, 0.41f, 0.38f);
+        private static readonly Color CliffRockDark = new Color(0.27f, 0.26f, 0.25f);
+        private static readonly Color BankEarthColor = new Color(0.36f, 0.29f, 0.2f);
+        private static readonly Color BankEarthDark = new Color(0.2f, 0.17f, 0.13f);
+        private const float OutsideFloor = -10f;
+
+        /// <summary>PLAN.md 107 ② — 이웃 칸이 더 낮은 모서리마다 세로 옆면(절벽·강둑)을 세운다.
+        /// 예전엔 높이가 거의 같아 틈이 안 보였지만 산 12~38m·강바닥 -3.5m 가 되면 옆면 없이는 구멍이다.
+        /// 지도 밖 모서리는 -10m 까지 내린다. 산은 바위색, 그 밖은 흙색, 아래로 갈수록 어둡게.</summary>
+        private static void AddCliffSides(List<Vector3> verts, List<Color> colors, List<Vector3> normals, List<Vector2> uvs, List<int> tris,
+            int x, int y, Vector3 center, float half, char ch)
+        {
+            float h = center.y;
+            bool rock = ch == '^';
+            Color top = rock ? CliffRockColor : BankEarthColor;
+            Color bottom = rock ? CliffRockDark : BankEarthDark;
+            AddSide(x + 1, y, new Vector3(1, 0, 0), new Vector3(half, 0, -half), new Vector3(half, 0, half));
+            AddSide(x - 1, y, new Vector3(-1, 0, 0), new Vector3(-half, 0, half), new Vector3(-half, 0, -half));
+            AddSide(x, y + 1, new Vector3(0, 0, 1), new Vector3(half, 0, half), new Vector3(-half, 0, half));
+            AddSide(x, y - 1, new Vector3(0, 0, -1), new Vector3(-half, 0, -half), new Vector3(half, 0, -half));
+
+            void AddSide(int nx, int ny, Vector3 normal, Vector3 a, Vector3 b)
+            {
+                bool outside = nx < 0 || ny < 0 || ny >= TestMapData.RowCount || nx >= TestMapData.Rows[ny].Length;
+                float nh = outside ? OutsideFloor : TestMapData.GroundHeight(nx, ny);
+                if (nh >= h - 0.01f) return;
+                Vector3 pa = new Vector3(center.x + a.x, h, center.z + a.z);
+                Vector3 pb = new Vector3(center.x + b.x, h, center.z + b.z);
+                Vector3 qa = new Vector3(pa.x, nh, pa.z);
+                Vector3 qb = new Vector3(pb.x, nh, pb.z);
+                bool alongX = Mathf.Abs(normal.z) > 0.5f;
+                int i0 = verts.Count;
+                foreach (var p in new[] { qa, qb, pb, pa })
+                {
+                    verts.Add(p);
+                    normals.Add(normal);
+                    colors.Add(p.y >= h - 0.01f ? top : bottom);
+                    uvs.Add(new Vector2(alongX ? p.x : p.z, p.y));
+                }
+                tris.Add(i0 + 0); tris.Add(i0 + 1); tris.Add(i0 + 2);
+                tris.Add(i0 + 0); tris.Add(i0 + 2); tris.Add(i0 + 3);
+            }
+        }
+
         /// <summary>
         /// (u,v) 자리의 실제 정점 색. 네 모서리 사이를 이중선형보간한 "이웃과
         /// 섞은 색"과 "제 색"을, 가장자리까지 남은 거리(d)로 섞는다 — d가
@@ -217,7 +263,7 @@ namespace Saga.Go.World
                     char ch = row[x];
                     if (ch != '~' && ch != 'B') continue;
                     float bedHeight = TestMapData.Legend[ch].Height;
-                    positions.Add(TestMapData.WorldPos(x, y) + new Vector3(0, bedHeight + TestMapData.WaterHeightAboveBed, 0));
+                    positions.Add(TestMapData.WorldPos(x, y) + new Vector3(0, TestMapData.WaterSurfaceHeight, 0)); // 107 ② — 강·다리 칸 수면 높이 하나
                 }
             }
             if (positions.Count == 0) return;
@@ -276,21 +322,21 @@ namespace Saga.Go.World
                     Vector3 size;
                     Vector3 center;
 
-                    if (ch == '^' || ch == '~')
+                    // PLAN.md 107 ② — 칸마다 땅속 -10m 까지 꽉 찬 기둥. 기둥 옆면이 곧 절벽·강둑이라
+                    // 등반이 그 면을 잡는다(옛 산·강의 보이지 않는 벽은 없앴다).
+                    float top = TestMapData.GroundHeight(x, y);
+                    size = new Vector3(TestMapData.TileSize, top - OutsideFloor, TestMapData.TileSize);
+                    center = pos + new Vector3(0, (top + OutsideFloor) * 0.5f, 0);
+                    if (ch == 'B')
                     {
-                        size = new Vector3(TestMapData.TileSize, TestMapData.BlockHeight, TestMapData.TileSize);
-                        center = pos + new Vector3(0, info.Height, 0);
-                    }
-                    else if (ch == 'B')
-                    {
+                        // 다리 널판은 강바닥 기둥과 따로 — 널판 밑으로 헤엄쳐 지나갈 수 있다.
                         float bridgeTop = info.Height + TestMapData.BridgeClearance;
-                        size = new Vector3(TestMapData.TileSize, 0.6f, TestMapData.TileSize);
-                        center = pos + new Vector3(0, bridgeTop, 0);
-                    }
-                    else
-                    {
-                        size = new Vector3(TestMapData.TileSize, 1.0f, TestMapData.TileSize);
-                        center = pos + new Vector3(0, info.Height - 0.5f, 0);
+                        var plank = new GameObject($"Col_bridge_plank_{x}_{y}");
+                        plank.transform.SetParent(parent.transform, false);
+                        // 보이는 덱(LandmarksBuilder.BuildBridge, 폭 6m·윗면 ≈1.0m)에 맞춘다 — 예전엔 칸 전체 48m 판이라
+                        // 다리 옆 허공을 밟았고, 헤엄치면 머리가 판 밑에 걸렸다.
+                        plank.transform.position = pos + new Vector3(0, bridgeTop - 0.3f, 0);
+                        plank.AddComponent<BoxCollider>().size = new Vector3(7f, 0.6f, TestMapData.TileSize);
                     }
 
                     var tileGo = new GameObject($"Col_{info.Name}_{x}_{y}");
@@ -299,6 +345,32 @@ namespace Saga.Go.World
                     var box = tileGo.AddComponent<BoxCollider>();
                     box.size = size;
                 }
+            }
+            BuildBoundaryWalls(parent.transform);
+        }
+
+        /// <summary>PLAN.md 107 ② — 지도 네 변 바깥의 보이지 않는 높은 벽. 테두리 산(30~38m) 꼭대기에서
+        /// 밖으로 떨어지지 않게 하고, `NoClimb` 이라 기어오를 수도 없다.</summary>
+        private static void BuildBoundaryWalls(Transform parent)
+        {
+            float w = TestMapData.Cols * TestMapData.TileSize;
+            float d = TestMapData.RowCount * TestMapData.TileSize;
+            Vector3 c = (TestMapData.WorldPos(0, 0) + TestMapData.WorldPos(TestMapData.Cols - 1, TestMapData.RowCount - 1)) * 0.5f;
+            const float T = 4f;
+            float hgt = TestMapData.BoundaryWallHeight - OutsideFloor;
+            float cy = (TestMapData.BoundaryWallHeight + OutsideFloor) * 0.5f;
+            Wall("Boundary_E", new Vector3(c.x + w * 0.5f + T * 0.5f, cy, c.z), new Vector3(T, hgt, d + T * 2));
+            Wall("Boundary_W", new Vector3(c.x - w * 0.5f - T * 0.5f, cy, c.z), new Vector3(T, hgt, d + T * 2));
+            Wall("Boundary_N", new Vector3(c.x, cy, c.z + d * 0.5f + T * 0.5f), new Vector3(w + T * 2, hgt, T));
+            Wall("Boundary_S", new Vector3(c.x, cy, c.z - d * 0.5f - T * 0.5f), new Vector3(w + T * 2, hgt, T));
+
+            void Wall(string name, Vector3 pos, Vector3 size)
+            {
+                var go = new GameObject(name);
+                go.transform.SetParent(parent, false);
+                go.transform.position = pos;
+                go.AddComponent<BoxCollider>().size = size;
+                go.AddComponent<NoClimb>();
             }
         }
     }

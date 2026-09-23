@@ -564,7 +564,17 @@ namespace Saga.Go.Combat
 
         private void MoveBy(Vector3 delta)
         {
-            transform.position = Grounded(transform.position + delta);
+            Vector3 next = transform.position + delta;
+            if (!CanStandOn(next)) return; // 107 ② — 산 고원·강으로는 안 따라 들어온다
+            transform.position = Grounded(next);
+        }
+
+        /// <summary>들판 적이 설 수 있는 칸인가 — 산(고원·절벽)과 강·다리 칸은 아니다.</summary>
+        public static bool CanStandOn(Vector3 p)
+        {
+            var (gx, gy) = TestMapData.WorldToGrid(p);
+            char c = TestMapData.TileAt(gx, gy);
+            return c != '^' && !TestMapData.IsWater(c);
         }
 
         private void Face(Vector3 dir)

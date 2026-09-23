@@ -87,6 +87,38 @@ namespace Saga.Go.Data
         /// <summary>산·강을 막는 벽의 높이(둘 다 walkable=false — 다리로만 강을 건넌다).</summary>
         public const float BlockHeight = 6.0f;
 
+        // ---- PLAN.md 107 ② "이동" — 오를 수 있는 산·들어갈 수 있는 강 ----------------------
+        // 예전 산은 2.5m 평지 위 보이지 않는 6m 벽, 강은 투명 벽이었다. 이제 산은 칸마다 높이가 다른
+        // 절벽 고원(안쪽 12~22m, 지도 테두리 30~38m — 테두리 밖은 NoClimb 경계벽), 강은 수면 아래
+        // 3m 남짓 깊이라 헤엄친다. Legend 의 Height 는 옛 배치 코드(다리 널판 등)가 그대로 쓰므로 안 바꾸고,
+        // 실제로 보이고 딛는 높이는 GroundHeight() 로 따로 준다.
+        public const float RiverBedHeight = -3.5f;
+        /// <summary>예전 강바닥(-1) + 0.55 그대로 — 다리 널판(-1 + 2)과의 관계가 안 바뀐다.</summary>
+        public const float WaterSurfaceHeight = -0.45f;
+        public const float BoundaryWallHeight = 90f;
+
+        public static bool IsBorder(int gx, int gy) => gx <= 0 || gy <= 0 || gx >= Cols - 1 || gy >= RowCount - 1;
+
+        public static bool IsWater(char ch) => ch == '~' || ch == 'B';
+
+        /// <summary>산 칸 고원 높이 — 좌표 해시라 빌드마다 같다.</summary>
+        public static float MountainHeight(int gx, int gy)
+        {
+            uint h = (uint)(gx * 73856093) ^ (uint)(gy * 19349663) ^ 0x9E3779B9u;
+            h ^= h >> 13; h *= 0x5bd1e995; h ^= h >> 15;
+            float t = (h % 1000) / 999f;
+            return IsBorder(gx, gy) ? 30f + t * 8f : 12f + t * 10f;
+        }
+
+        /// <summary>보이고 딛는 땅 높이 — 산은 고원, 강·다리 칸은 강바닥, 나머지는 Legend 높이.</summary>
+        public static float GroundHeight(int gx, int gy)
+        {
+            char ch = TileAt(gx, gy);
+            if (ch == '^') return MountainHeight(gx, gy);
+            if (IsWater(ch)) return RiverBedHeight;
+            return Legend.TryGetValue(ch, out var info) ? info.Height : 0f;
+        }
+
         public static int Cols => Rows[0].Length;
         public static int RowCount => Rows.Length;
 

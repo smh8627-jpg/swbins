@@ -89,6 +89,7 @@ Claude)이 한 번 판단해야 한다 — Mixamo 검색 결과 자체가 매번
 | saga-unity | 능묘 파수꾼(`Skeletonzombie T Avelange`) idle·walk(inplace)·attack·hit·death | `Zombie Idle`·`Zombie Walking`·`Zombie Attack`·`Zombie Reaction Hit`·`Zombie Death` | `Zombie Standing Idle`·`Zombie Walking`·`Zombie Swipe Attack`·`Zombie Reaction Hit Flinches`·`Zombie Getting Hit And Falling Onto Back` | 2026-09-24 |
 | saga-unity | 동행 무사(`Paladin W/Prop J Nordstrom`) idle·walk/run(inplace)·attack | 각 match 와 같은 문구 | `Sword And Shield Idle`·`Sword And Shield Walk`·`Sword And Shield Run`·`Sword And Shield High Attack`(query `Sword And Shield Slash`) | 2026-09-24 |
 | saga-unity | 마을 사람 idle(`Peasant Girl`·`Peasant Man`) | `Idle` | `Happy Idle Variation 1` · `Weight Shift Idle` | 2026-09-24 |
+| saga-unity | Maria(`Maria W/Prop J J Ong`) 등반·활공·수영·물 위 대기·점프(GO 107-2) | `Climbing`(--inplace)·`Falling Idle`·`Swimming`·`Floating`·`Jump` | `Climbing Up A Wall`·`Mid-Air Falling Idle`·`Swimming Underwater`·`Floating`(파일은 Treading Water)·`Jump Up` | 2026-09-24 |
 
 나머지(walk/run/attack/hit/dodge/death/pickup)는 아직 이 도구로 다시 고른
 적 없음 — saga-unity `CharactersRealistic`에서 재사용해 온 기존 클립을

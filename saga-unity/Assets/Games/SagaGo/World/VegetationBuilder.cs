@@ -207,7 +207,7 @@ namespace Saga.Go.World
         /// </summary>
         private void BuildRocks()
         {
-            float ground = TestMapData.Legend['^'].Height;
+            // PLAN.md 107 ② — 산 칸은 이제 칸마다 높이가 다른 고원이라 높이는 칸마다 GroundHeight().
 
             var visualParent = new GameObject("Rocks");
             visualParent.transform.SetParent(transform, false);
@@ -231,7 +231,7 @@ namespace Saga.Go.World
                         float jz = (Hash(x, y, i * 3 + 501) - 0.5f) * TestMapData.TileSize * 0.6f;
                         float sizeVariant = 0.7f + Hash(x, y, i * 3 + 502) * 0.8f;
                         float yaw = Hash(x, y, i * 3 + 503) * 360f;
-                        Vector3 basePos = TestMapData.WorldPos(x, y) + new Vector3(jx, ground, jz);
+                        Vector3 basePos = TestMapData.WorldPos(x, y) + new Vector3(jx, TestMapData.GroundHeight(x, y), jz);
 
                         if (anyModel)
                         {

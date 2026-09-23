@@ -35,6 +35,7 @@ namespace Saga.Go.Combat
         public Button SkillButton { get; private set; }
         public Button BurstButton { get; private set; }
         public Button DodgeButton { get; private set; }
+        public Button JumpButton { get; private set; }
         public Button RosterButton(int i) => _rosterButtons[i];
         public string RosterText(int i) => _rosterTexts[i].text;
 
@@ -89,6 +90,9 @@ namespace Saga.Go.Combat
             _burstImage = BurstButton.GetComponent<Image>();
             DodgeButton = EncounterUiKit.NewButton(t, GoLocalization.T("field.btn.dodge", "회피"), new Vector2(1f, 0f), new Vector2(-260f, 250f), new Vector2(140f, 110f), null);
             DodgeButton.onClick.AddListener(OnDodge);
+            // PLAN.md 107 ② — 점프(공중에서 한 번 더 = 활공, 등반 중 = 도약).
+            JumpButton = EncounterUiKit.NewButton(t, GoLocalization.T("field.btn.jump", "점프"), new Vector2(1f, 0f), new Vector2(-450f, 60f), new Vector2(140f, 140f), null);
+            JumpButton.onClick.AddListener(OnJump);
         }
 
         private static Image Bar(Transform parent, Vector2 pos, Vector2 size, Color color, Vector2? anchor = null)
@@ -171,6 +175,11 @@ namespace Saga.Go.Combat
         private void OnSkill() => _combat.Skill();
         private void OnBurst() => _combat.Burst();
         private void OnDodge() => _combat.Dodge();
+        private void OnJump()
+        {
+            var pc = GetComponent<Saga.Go.Player.PlayerController>();
+            if (pc != null) pc.RequestJump();
+        }
         private void Swap0() => _combat.Swap(0);
         private void Swap1() => _combat.Swap(1);
         private void Swap2() => _combat.Swap(2);
