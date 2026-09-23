@@ -100,8 +100,10 @@ func _status_text() -> String:
 		for i in keys.size():
 			levels += "%d:%s(Lv%d) " % [i + 1, String(keys[i]), StorySaveState.skill_level(String(keys[i]))]
 		var sig_name: String = String(StoryCombat.SIGNATURE_NAME.get(StoryCombat.job_root(StorySaveState.job), ""))
-		var text := "🎖️ %s — SP %d/%d 남음 — %s— 회피(Shift) 길게 눌러 %s" % [
+		var mentor: Dictionary = StoryCombat.mentor_of(StorySaveState.job)
+		var text := "🎖️ %s — SP %d/%d 남음 — %s— 회피(Shift) 길게 눌러 %s\n👤 스승 %s — 사제 정 %d/%d" % [
 			name_, StorySaveState.sp_left(), StorySaveState.sp_total(), levels, sig_name,
+			String(mentor.name), StorySaveState.mentor_bond, StorySaveState.MENTOR_BOND_THRESHOLDS[-1],
 		]
 		var next_key := StoryCombat.job_next(StorySaveState.job)
 		if next_key != "":

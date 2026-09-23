@@ -198,6 +198,9 @@ func _die() -> void:
 		StorySaveState.add_boss_kill()
 	if is_champion:
 		StorySaveState.claim_champion(stage_key)
+	## PLAN 51장 STORY "관계" 축(사제 유대, story_save_state.gd 헤더 참고) —
+	## 잡졸 1·보스 8·관문 대장 20(보스이자 챔피언이라 둘 다 더함).
+	StorySaveState.add_mentor_bond((8 if is_boss else 1) + (12 if is_champion else 0))
 	var reward_mul: float = CHAMPION_EXP_MUL if is_champion else 1.0
 	StorySaveState.add_exp(roundi(StoryCombat.enemy_exp(is_boss, enemy_lv) * reward_mul))
 	var gold_mul: float = CHAMPION_GOLD_MUL if is_champion else 1.0

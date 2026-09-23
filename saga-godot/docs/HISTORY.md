@@ -8331,3 +8331,13 @@ PROJECT_STATE.md` 참고. 요약:
 - 순수 시각(충돌 없음 — 나무만 충돌을 갖는다는 기존 원칙 유지). salt 1030번대로 clutter(600)·village_path(950)·wildflowers(1000)와 분리, 자리 겹침은 이미 세 층이 같은 "." 칸을 나눠 쓰는 기존 관례와 같음.
 - 이걸로 **105 Q-d "씬 배치 5단계"가 완결** — Quaternius 68종(나무 22·바위 24·잔디꽃 22) 전부 어딘가에 배치됨. PLAN 105장에서 지울 수 있음(다음 세션 판단).
 - `godot_regress.sh` REGRESS OK — GO만 md5 변경, 재질 감사 0, 잡음 없음.
+
+## STORY "관계" 축 첫 걸음 — 사제 유대(mentor bond) 신설 (2026-09-23, 새 세션, "51장 관계축 설계부터")
+
+- 51장 재검토(사용자 확인 질문)로 다섯 판 전체 대조 — 진짜로 안 닿은 건 DUNGEON 무예 row1/row2 깊이와 STORY "관계" 축 둘뿐임을 확인. 사용자가 STORY부터 선택.
+- **재해석** — 웹판 saga-story엔 참고할 "관계" 설계가 없다(REALM의 관계축 재해석 때와 달리 원전 자체가 없음). 기존 `StoryCombat.mentor_of(job)`(101-2 ③, 전직 순간 대사 한 줄만 보여주는 순수 장식, (갈래,tier)마다 결정적으로 HEROES 105명 중 한 명)를 그대로 살려 — 스승이 tier마다 바뀌므로(시드에 tier가 들어감) "평생 한 스승"이 아니라 "매 단계 만나는 스승" 구조를 그대로 인정하고, 그 밑에서 사냥하며 쌓는 `mentor_bond`(잡졸 1·보스 8·관문 대장 +12)를 신설. 진급하면 스승이 바뀌므로 0으로 되돌아간다.
+- **101-2 ③의 "수치 보정 없음" 결정은 그대로 지킴**(조작·데미지엔 안 붙는다) — 대신 문턱(20·50·100) 토스트+마지막 문턱에 사례금 200(FOREST "10♥ 기념 사례금"과 같은 결). 트레이너 상태창(`_status_text()`)에 "스승 %s — 사제 정 %d/%d" 상시 표시.
+- `story_save_state.gd`: SAVE_VERSION 16→17(`mentor_bond` 필드, 기존 패턴대로 값 추가뿐 — 마이그레이션 변환 불필요). `choose_job()`·`advance_job()` 둘 다 리셋. `story_enemy.gd::_die()`에서 kill마다 적립.
+- **검증**: 임시 `_ready()` 훅(STORY_MENTOR_BOND_PROBE=1, 검증 후 원복 — FOREST wear-visual 때와 같은 방식)으로 SinyaField 정상 실행: v16→17 마이그레이션 통과, 문턱 3개(20·50·100) 정확히 그 값에서만 발동(19→20 경계 확인), 100 문턱에서 gold +200 정확, `advance_job` 성공 시 bond 0 리셋, save()/try_load() 왕복도 mentor_bond=0 그대로 보존. 프로브가 만든 `save_story.json`은 확인 후 삭제(원래 이 PC엔 STORY 세이브가 없었음).
+- `godot_regress.sh` REGRESS OK — STORY만 md5 변경(다른 네 판 무관), 재질 감사 0, `.import`/`project.godot` 잡음 없음.
+- 남은 51장 항목은 DUNGEON 무예 row1/row2(다음 세션 판단).

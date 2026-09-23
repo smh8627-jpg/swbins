@@ -16,7 +16,7 @@ const StoryLabyrinth := preload("res://games/saga_story/data/story_labyrinth.gd"
 const Toast := preload("res://saga_core/ui/toast.gd")
 
 const SAVE_PATH := "user://save_story.json"
-const SAVE_VERSION := 16  # 1→2: mats, 2→3: has_weapon, 3→4: equipped, 4→5: gold, 5→6: job(1차 전직), 6→7: skills(SP 투자), 7→8: scroll_bonus/scroll_left(주문서), 8→9: bosses/feat/achievements(업적), 9→10: quests_done(사명), 10→11: stage_kills(사냥터별 킬 수 사명), 11→12: visited_stages(q_explore1), 12→13: talks(q_talk1), 13→14: repeat_progress/daily_done_day(반복/일일 사명), 14→15: weekly_champion_week(관문 대장), 15→16: memory_fragments/memory_tier(비경)
+const SAVE_VERSION := 17  # 1→2: mats, 2→3: has_weapon, 3→4: equipped, 4→5: gold, 5→6: job(1차 전직), 6→7: skills(SP 투자), 7→8: scroll_bonus/scroll_left(주문서), 8→9: bosses/feat/achievements(업적), 9→10: quests_done(사명), 10→11: stage_kills(사냥터별 킬 수 사명), 11→12: visited_stages(q_explore1), 12→13: talks(q_talk1), 13→14: repeat_progress/daily_done_day(반복/일일 사명), 14→15: weekly_champion_week(관문 대장), 15→16: memory_fragments/memory_tier(비경), 16→17: mentor_bond(사제 유대, 51장 STORY "관계" 축 첫 걸음)
 
 var level := 1
 var exp := 0
@@ -468,6 +468,42 @@ func _pick_scrollable_armor_slot() -> String:
 	return candidates[randi() % candidates.size()]
 
 
+## **2026-09-23 추가 — PLAN 51장 STORY "관계" 축 첫 걸음(웹판에 참고할
+## 설계가 없어 새로 지음).** `StoryCombat.mentor_of(job)`가 (갈래,tier)
+## 마다 결정적으로 골라 주는 스승은 지금까지 전직 순간의 대사 한 줄뿐인
+## 순수 장식이었다 — 진급마다 스승이 바뀌므로(시드에 tier가 들어간다)
+## "평생 가는 한 사람"이 아니라 "매 단계 만나는 스승"으로 두고, 그 스승
+## 밑에서 사냥하며 쌓는 정을 잡졸/보스 처치로 채운다. 진급하면(스승이
+## 바뀌면) 0으로 되돌아간다 — 새 스승과 새로 쌓기 시작.
+## **101-2 STORY ③(직업 정체성)의 "수치 보정 없음" 결정은 그대로 지킨다**
+## (조작·데미지엔 안 붙는다) — 대신 정이 무르익으면(마지막 문턱) 사례금
+## 한 번만 준다, FOREST 관계 하트의 "10♥ 기념 사례금"과 같은 결.
+var mentor_bond := 0
+const MENTOR_BOND_THRESHOLDS := [20, 50, 100]
+const MENTOR_BOND_MAX_GOLD := 200
+
+
+func add_mentor_bond(amount: int) -> void:
+	if amount <= 0 or job == "none":
+		return
+	var before := mentor_bond
+	mentor_bond += amount
+	for t in MENTOR_BOND_THRESHOLDS:
+		if before < t and mentor_bond >= t:
+			_on_mentor_bond_milestone(t)
+
+
+func _on_mentor_bond_milestone(threshold: int) -> void:
+	var mentor: Dictionary = StoryCombat.mentor_of(job)
+	if threshold == MENTOR_BOND_THRESHOLDS[-1]:
+		add_gold(MENTOR_BOND_MAX_GOLD)
+		Toast.show(self, "🎓 %s와의 사제 정이 무르익었다 — \"%s\"\n(사례금 +%d)" % [
+			String(mentor.name), String(mentor.quote), MENTOR_BOND_MAX_GOLD,
+		], 3.5)
+	else:
+		Toast.show(self, "👤 %s와의 사제 정이 깊어진다." % String(mentor.name), 2.5)
+
+
 func can_change_job() -> bool:
 	return job == "none" and level >= StoryCombat.JOB_CHANGE_LEVEL
 
@@ -477,6 +513,7 @@ func choose_job(key: String) -> bool:
 	if not can_change_job() or not StoryCombat.JOBS_TIER1.has(key):
 		return false
 	job = key
+	mentor_bond = 0
 	return true
 
 
@@ -502,6 +539,7 @@ func advance_job(key: String) -> bool:
 	if not can_advance_job(key):
 		return false
 	job = key
+	mentor_bond = 0
 	return true
 
 
@@ -589,6 +627,7 @@ func save() -> bool:
 		"equipped": equipped,
 		"gold": gold,
 		"job": job,
+		"mentor_bond": mentor_bond,
 		"skills": skills,
 		"scroll_bonus": scroll_bonus,
 		"scroll_left": scroll_left,
@@ -642,6 +681,7 @@ func try_load() -> bool:
 	equipped = loaded_equipped if typeof(loaded_equipped) == TYPE_DICTIONARY else {}
 	gold = int(data.get("gold", 0))
 	job = String(data.get("job", "none"))
+	mentor_bond = int(data.get("mentor_bond", 0))
 	var loaded_skills: Variant = data.get("skills", {})
 	skills = loaded_skills if typeof(loaded_skills) == TYPE_DICTIONARY else {}
 	var loaded_scroll_bonus: Variant = data.get("scroll_bonus", {})
