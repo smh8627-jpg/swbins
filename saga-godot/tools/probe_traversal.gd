@@ -174,7 +174,7 @@ func _physics_process(_delta: float) -> void:
 			var a: Dictionary = SaveState.call("_migrate", {"version": 1, "player_pos": [8100.0, 0.5, 20.0]})
 			var b: Dictionary = SaveState.call("_migrate", {"version": 1, "player_pos": [10.0, 0.5, 8050.0]})
 			var c: Dictionary = SaveState.call("_migrate", {"version": 1, "player_pos": [-24.0, 0.1, -72.0]})
-			var ok: bool = is_equal_approx(float(a.player_pos[0]), 580.0) and is_equal_approx(float(b.player_pos[2]), 482.0) 				and is_equal_approx(float(c.player_pos[0]), -24.0) and int(a.version) == 2
+			var ok: bool = is_equal_approx(float(a.player_pos[0]), 580.0) and is_equal_approx(float(b.player_pos[2]), 482.0) 				and is_equal_approx(float(c.player_pos[0]), -24.0) and int(a.version) == int(SaveState.SAVE_VERSION)
 			_check("save_migrate", ok, "%s %s %s" % [str(a.player_pos), str(b.player_pos), str(c.player_pos)])
 			_next()
 		12:

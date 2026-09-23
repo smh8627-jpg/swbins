@@ -24,6 +24,12 @@ signal power_changed(atk: float, def: float)
 signal level_up(new_level: int)
 
 const Perks := preload("res://games/saga_go/data/perks.gd")
+const Growth := preload("res://games/saga_go/data/growth.gd")
+
+## PLAN 106장 ⑩ — 인물 육성(원신식 레벨·돌파). 들판 전투는 이제 인물마다 이 값을 쓴다
+## (char_atk·char_def). 위 atk/def(부대 전투력)는 옛 사건 결투·승급 3택이 그대로 쓴다.
+signal growth_changed(member_id: String)
+signal bag_changed()
 
 const BASE_ATK := 60.0
 const BASE_DEF := 35.0
@@ -44,6 +50,10 @@ var level: int = 0
 var atk: float = BASE_ATK
 var def: float = BASE_DEF
 var perks: Array[String] = []
+## id("self" = 주인공) → {"lv": int, "exp": float, "asc": int}. 없는 칸 = 레벨 1.
+var growth: Dictionary = {}
+## 아이템 id(growth.gd ITEMS) → 개수.
+var bag: Dictionary = {}
 
 var _session_start_exp: float = 0.0
 
@@ -89,10 +99,19 @@ func add_exp(amount: float) -> void:
 ## save_state.gd가 저장 파일을 불러온 뒤 여기로 넘긴다 — recruit()·add_exp()와
 ## 다르게 이미 정해진 값을 통째로 앉히고 수치만 다시 계산한다(신호는 한 번만,
 ## level_up 은 안 emit — 로드는 새 성장이 아니다).
-func restore(saved_members: Array[String], saved_exp: float = 0.0, saved_perks: Array[String] = []) -> void:
+func restore(saved_members: Array[String], saved_exp: float = 0.0, saved_perks: Array[String] = [],
+		saved_growth: Dictionary = {}, saved_bag: Dictionary = {}) -> void:
 	members = saved_members.duplicate()
 	exp = saved_exp
 	perks = saved_perks.duplicate()
+	growth.clear()
+	for id in saved_growth:
+		var g: Variant = saved_growth[id]
+		if typeof(g) == TYPE_DICTIONARY:
+			growth[str(id)] = {"lv": int(g.get("lv", 1)), "exp": float(g.get("exp", 0.0)), "asc": int(g.get("asc", 0))}
+	bag.clear()
+	for item in saved_bag:
+		bag[str(item)] = int(saved_bag[item])
 	_recompute()
 	power_changed.emit(atk, def)
 
@@ -116,17 +135,121 @@ func _support_bonus() -> float:
 	return bonus
 
 
-func _recompute() -> void:
-	level = int(exp / EXP_PER_LEVEL)
-	var atk_mul := 1.0
-	var def_mul := 1.0
+func _perk_mul(axis: String) -> float:
+	var mul := 1.0
 	for pid in perks:
 		var p: Dictionary = Perks.find(pid)
-		if p.is_empty():
-			continue
-		if p.axis == "attack":
-			atk_mul += float(p.mul)
-		elif p.axis == "defense":
-			def_mul += float(p.mul)
-	atk = (BASE_ATK + members.size() * ATK_PER_MEMBER + level * ATK_PER_LEVEL) * atk_mul
-	def = (BASE_DEF + members.size() * DEF_PER_MEMBER + level * DEF_PER_LEVEL) * def_mul
+		if not p.is_empty() and p.axis == axis:
+			mul += float(p.mul)
+	return mul
+
+func atk_mul() -> float:
+	return _perk_mul("attack")
+
+func def_mul() -> float:
+	return _perk_mul("defense")
+
+func _recompute() -> void:
+	level = int(exp / EXP_PER_LEVEL)
+	atk = (BASE_ATK + members.size() * ATK_PER_MEMBER + level * ATK_PER_LEVEL) * atk_mul()
+	def = (BASE_DEF + members.size() * DEF_PER_MEMBER + level * DEF_PER_LEVEL) * def_mul()
+
+# ---------------------------------------------------------------- 인물 육성(106장 ⑩)
+
+func growth_of(id: String) -> Dictionary:
+	if not growth.has(id):
+		growth[id] = {"lv": 1, "exp": 0.0, "asc": 0}
+	return growth[id]
+
+func char_level(id: String) -> int:
+	return int(growth_of(id).lv)
+
+func char_asc(id: String) -> int:
+	return int(growth_of(id).asc)
+
+func char_cap(id: String) -> int:
+	return Growth.cap_of(char_asc(id))
+
+## 들판 전투 공격·방어 — 레벨·돌파 배율 × 승급 특성. 희귀도·공명은 field_combat 이 곱한다.
+func char_atk(id: String) -> float:
+	var g := growth_of(id)
+	return Growth.BASE_ATK * Growth.stat_mul(int(g.lv), int(g.asc)) * atk_mul()
+
+func char_def(id: String) -> float:
+	var g := growth_of(id)
+	return Growth.BASE_DEF * Growth.stat_mul(int(g.lv), int(g.asc)) * def_mul()
+
+func count(item: String) -> int:
+	return int(bag.get(item, 0))
+
+func add_items(items: Dictionary) -> void:
+	for item in items:
+		bag[item] = count(item) + int(items[item])
+	bag_changed.emit()
+
+func has_items(items: Dictionary) -> bool:
+	for item in items:
+		if count(item) < int(items[item]):
+			return false
+	return true
+
+func spend_items(items: Dictionary) -> bool:
+	if not has_items(items):
+		return false
+	for item in items:
+		bag[item] = count(item) - int(items[item])
+	bag_changed.emit()
+	return true
+
+## 견문록 n 권을 id 에게 쓴다(권마다 냥도 든다). 상한에 닿으면 멈추고 남는 경험은 버린다(원신도 넘친 만큼은
+## 쓸모가 없다). 오른 레벨 수를 돌려준다(한 권도 못 썼으면 -1).
+func use_book(id: String, book: String, n: int = 1) -> int:
+	var g := growth_of(id)
+	var old_lv := int(g.lv)
+	var used := 0
+	for i in n:
+		if int(g.lv) >= char_cap(id) or count(book) <= 0:
+			break
+		var gain: int = Growth.ITEMS[book].exp
+		var cost := {"mora": int(ceil(gain * Growth.MORA_PER_EXP)), book: 1}
+		if not spend_items(cost):
+			break
+		used += 1
+		g.exp = float(g.exp) + gain
+		while int(g.lv) < char_cap(id) and float(g.exp) >= Growth.exp_to_next(int(g.lv)):
+			g.exp = float(g.exp) - Growth.exp_to_next(int(g.lv))
+			g.lv = int(g.lv) + 1
+		if int(g.lv) >= char_cap(id):
+			g.exp = 0.0
+	if used == 0:
+		return -1
+	growth_changed.emit(id)
+	power_changed.emit(atk, def)
+	return int(g.lv) - old_lv
+
+## 다음 레벨까지 — 작은 견문록부터 필요한 만큼. 오른 레벨 수(못 쓰면 -1).
+func level_up_once(id: String) -> int:
+	var start := char_level(id)
+	var any := false
+	for book in Growth.BOOKS:
+		while char_level(id) == start and char_level(id) < char_cap(id) and count(book) > 0:
+			if use_book(id, book, 1) < 0:
+				break
+			any = true
+		if char_level(id) > start:
+			break
+	return char_level(id) - start if any else -1
+
+func can_ascend(id: String) -> bool:
+	var g := growth_of(id)
+	return int(g.asc) < Growth.MAX_ASC and int(g.lv) >= char_cap(id) and has_items(Growth.ascend_cost(id, int(g.asc)))
+
+func ascend(id: String) -> bool:
+	if not can_ascend(id):
+		return false
+	var g := growth_of(id)
+	spend_items(Growth.ascend_cost(id, int(g.asc)))
+	g.asc = int(g.asc) + 1
+	growth_changed.emit(id)
+	power_changed.emit(atk, def)
+	return true

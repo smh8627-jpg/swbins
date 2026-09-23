@@ -164,7 +164,7 @@ func heal_at_statue() -> bool:
 		return false
 	var hurt := false
 	for rid in fc.call("roster"):
-		if float(fc.call("hp_of", rid)) < float(fc.get("max_hp")):
+		if float(fc.call("hp_of", rid)) < float(fc.call("max_hp_of", rid)):
 			hurt = true
 	if not hurt:
 		return false

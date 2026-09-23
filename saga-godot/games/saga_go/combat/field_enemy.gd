@@ -7,6 +7,7 @@ extends CharacterBody3D
 ## 여기는 몸·체력·AI·머리 위 표시만.
 
 const Elements := preload("res://games/saga_go/combat/elements.gd")
+const Growth := preload("res://games/saga_go/data/growth.gd")
 const VroidBody := preload("res://games/saga_go/world/vroid_body.gd")
 const CreatureBuilder := preload("res://games/saga_go/world/creature_builder.gd")
 
@@ -283,6 +284,11 @@ func _die() -> void:
 	visible = false
 	collision_layer = 0
 	PartyState.add_exp(def.exp)
+	## 106장 ⑩ — 육성 재료(냥·전리품·원소 결정·견문록). 정해진 양(growth.gd KILL_DROPS).
+	var loot: Dictionary = Growth.KILL_DROPS.get(kind, {})
+	if not loot.is_empty():
+		PartyState.add_items(loot)
+		CombatFeel.pickup(self, "냥 +%d" % int(loot.get("mora", 0)))
 	died.emit(self)
 
 func _revive() -> void:

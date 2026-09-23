@@ -11,7 +11,8 @@ extends Node
 ##   1~4              인물 교체 — 나 + 등용한 동료 앞 셋(쿨 1초). 인물마다 원소가 정해져 있다
 ## 체력·기력은 인물마다 따로(원신과 같다). 지금 인물이 쓰러지면 다음 인물로 저절로 바뀌고,
 ## 다 쓰러지면 마지막으로 딛은 땅에서 모두 가득 차서 일어난다. 명단에 같은 원소가 둘 이상이면
-## 원소 공명(화 공격 +25% · 수 최대 체력 +25% · 뇌 기력 +50%). 피해 수식은 PartyState.atk/def.
+## 원소 공명(화 공격 +25% · 수 최대 체력 +25% · 뇌 기력 +50%). 공격·방어·체력은 인물마다 레벨·돌파로
+## 정해진다(106장 ⑩, PartyState.char_atk/char_def) — 옛 부대 전투력(PartyState.atk)은 사건 결투만 쓴다.
 
 const Elements := preload("res://games/saga_go/combat/elements.gd")
 const Characters := preload("res://saga_core/data/characters.gd")
@@ -85,12 +86,13 @@ const SHOCK_ENERGY := 25.0
 var _hp: Dictionary = {}
 var _energy: Dictionary = {}
 var hp: float:
-	get: return float(_hp.get(active_id(), max_hp))
+	get: return hp_of(active_id())
 	set(v): _hp[active_id()] = v
 var energy: float:
 	get: return float(_energy.get(active_id(), 0.0))
 	set(v): _energy[active_id()] = v
-var max_hp := 1.0
+var max_hp: float:
+	get: return max_hp_of(active_id())
 var active := 0
 var last_reaction := ""
 
@@ -121,12 +123,7 @@ func _ready() -> void:
 	add_to_group("go_field_combat")
 	_player = get_parent() as CharacterBody3D
 	_ensure_actions()
-	_recompute_max_hp()
-	PartyState.power_changed.connect(func(_a: float, _d: float) -> void:
-		var old := max_hp
-		_recompute_max_hp()
-		_rescale_hp(old)
-		_refresh_hud())
+	PartyState.power_changed.connect(func(_a: float, _d: float) -> void: _refresh_hud())
 	_build_hud()
 	_refresh_hud()
 
@@ -191,7 +188,19 @@ func display_name(id: String) -> String:
 	return h.name if h != null else id
 
 func hp_of(id: String) -> float:
-	return float(_hp.get(id, max_hp))
+	var m := max_hp_of(id)
+	return minf(float(_hp.get(id, m)), m)
+
+## 인물 최대 체력 — 그 인물 방어(레벨·돌파) × 2 + 200, 수 공명 +25%.
+func max_hp_of(id: String) -> float:
+	var m := HP_BASE + PartyState.char_def(id) * HP_PER_DEF
+	if resonance() == "water":
+		m *= RESONANCE_WATER_HP
+	return m
+
+## 인물 공격 — 레벨·돌파(PartyState) × 희귀도·화 공명(_power_mul).
+func char_atk(id: String) -> float:
+	return PartyState.char_atk(id) * _power_mul(id)
 
 func energy_of(id: String) -> float:
 	return float(_energy.get(id, 0.0))
@@ -307,8 +316,9 @@ func _physics_process(delta: float) -> void:
 	if _since_hurt > REGEN_DELAY:
 		for id in roster():
 			var h := hp_of(id)
-			if h > 0.0 and h < max_hp:
-				_hp[id] = minf(h + max_hp * REGEN_PER_SEC * delta, max_hp)
+			var m := max_hp_of(id)
+			if h > 0.0 and h < m:
+				_hp[id] = minf(h + m * REGEN_PER_SEC * delta, m)
 	_tick_effects(delta)
 	_refresh_hud()
 
@@ -326,7 +336,7 @@ func attack() -> bool:
 	_attack_t = COMBO_SEC[step]
 	_aim_at_nearest()
 	_player.call("play_action", "attack", COMBO_SEC[step], 0.25)
-	var hits := _hit_front(ATTACK_REACH, ATTACK_ARC_DOT, PartyState.atk * COMBO_MUL[step] * _power_mul(active_id()), "")
+	var hits := _hit_front(ATTACK_REACH, ATTACK_ARC_DOT, char_atk(active_id()) * COMBO_MUL[step], "")
 	if hits > 0:
 		_gain_energy(ENERGY_PER_HIT * hits)
 	return true
@@ -341,7 +351,7 @@ func charged_attack() -> bool:
 	_aim_at_nearest()
 	_player.call("play_action", "attack", 0.5, 0.0)
 	_ring_fx(_player.global_position + _player.call("facing") * 1.2, 1.8, Color(0.95, 0.95, 0.85), 0.3)
-	var hits := _hit_front(CHARGE_REACH, -0.2, PartyState.atk * CHARGE_MUL * _power_mul(active_id()), "")
+	var hits := _hit_front(CHARGE_REACH, -0.2, char_atk(active_id()) * CHARGE_MUL, "")
 	if hits > 0:
 		_gain_energy(ENERGY_PER_HIT * hits)
 	return true
@@ -357,7 +367,7 @@ func plunge_land(fell_m: float) -> int:
 	var hits := 0
 	for e in _enemies_near(center, PLUNGE_RADIUS):
 		var to_e: Vector3 = (e as Node3D).global_position - center
-		_deal(e, PartyState.atk * mul * _power_mul(active_id()), "", to_e)
+		_deal(e, char_atk(active_id()) * mul, "", to_e)
 		hits += 1
 	if hits > 0:
 		_gain_energy(ENERGY_PER_HIT * hits)
@@ -369,7 +379,7 @@ func skill() -> bool:
 		return false
 	_skill_cd[id] = SKILL_CD
 	var el := active_element()
-	var atk := PartyState.atk * _power_mul(id)
+	var atk := char_atk(id)
 	_player.call("play_action", "attack", 0.4, 0.0)
 	var hits := 0
 	match el:
@@ -399,7 +409,7 @@ func burst() -> bool:
 		return false
 	energy = 0.0
 	var el := active_element()
-	var atk := PartyState.atk * _power_mul(active_id())
+	var atk := char_atk(active_id())
 	var center := _player.global_position
 	_player.call("play_action", "attack", 0.6, 0.0)
 	_ring_fx(center, BURST_RADIUS, Elements.color_of(el), 0.7)
@@ -463,7 +473,7 @@ func _heal_all(ratio: float) -> void:
 	for id in roster():
 		var h := hp_of(id)
 		if h > 0.0:
-			_hp[id] = minf(h + max_hp * ratio, max_hp)
+			_hp[id] = minf(h + max_hp_of(id) * ratio, max_hp_of(id))
 
 ## 명단 전원이 기력을 받는다 — 지금 인물은 다, 대기 인물은 ENERGY_OFF_FIELD 몫(원신과 같다). 뇌 공명 +50%.
 func _gain_energy(amount: float) -> void:
@@ -548,7 +558,8 @@ func take_damage(amount: float, source: Node) -> void:
 		return
 	if _player.call("is_invulnerable"):
 		return
-	var dmg := amount * (1.0 - PartyState.def / (PartyState.def + 120.0))
+	var d := PartyState.char_def(active_id())
+	var dmg := amount * (1.0 - d / (d + 120.0))
 	hp = maxf(hp - dmg, 0.0)
 	_since_hurt = 0.0
 	CombatFeel.hit(_player.get_node("Visual"), dmg, false)
@@ -589,17 +600,6 @@ func _down() -> void:
 	revive_all()
 	energy = 0.0
 	Toast.show(_player, "쓰러졌다 — 정신을 차려 보니 안전한 곳이다", 3.0)
-
-func _recompute_max_hp() -> void:
-	max_hp = HP_BASE + PartyState.def * HP_PER_DEF
-	if resonance() == "water":
-		max_hp *= RESONANCE_WATER_HP
-
-func _rescale_hp(old_max: float) -> void:
-	if old_max <= 0.0:
-		return
-	for id in _hp.keys():
-		_hp[id] = float(_hp[id]) / old_max * max_hp
 
 # ---------------------------------------------------------------- 연출
 
@@ -816,9 +816,6 @@ func _refresh_hud() -> void:
 	var sig := ",".join(r)
 	if sig != _roster_sig:
 		_roster_sig = sig
-		var old := max_hp
-		_recompute_max_hp()
-		_rescale_hp(old)
 		_rebuild_roster(r)
 	_hp_bar.max_value = max_hp
 	_hp_bar.value = hp
@@ -827,9 +824,9 @@ func _refresh_hud() -> void:
 		var el := Elements.element_of(r[i])
 		var mark := "▶ " if i == active else "   "
 		var down := " (쓰러짐)" if hp_of(r[i]) <= 0.0 else ""
-		(row.label as Label).text = "%s%d %s [%s]%s" % [mark, i + 1, display_name(r[i]), Elements.name_of(el), down]
+		(row.label as Label).text = "%s%d %s Lv.%d [%s]%s" % [mark, i + 1, display_name(r[i]), PartyState.char_level(r[i]), Elements.name_of(el), down]
 		var bar: ProgressBar = row.bar
-		bar.max_value = max_hp
+		bar.max_value = max_hp_of(r[i])
 		bar.value = hp_of(r[i])
 	var cd: float = _skill_cd.get(active_id(), 0.0)
 	var el_now := active_element()

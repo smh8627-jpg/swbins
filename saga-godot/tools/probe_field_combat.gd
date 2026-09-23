@@ -158,7 +158,7 @@ func _physics_process(_delta: float) -> void:
 				var hp0: float = _target.get("hp")
 				var ok: bool = _fc.call("charged_attack")
 				var dealt := hp0 - float(_target.get("hp"))
-				_check("charged", ok and dealt > PartyState.atk * 1.2 and _p.stamina <= _p.STAMINA_MAX - 19.0,
+				_check("charged", ok and dealt > float(_fc.call("char_atk", "self")) * 1.2 and _p.stamina <= _p.STAMINA_MAX - 19.0,
 					"ok=%s dealt=%.1f st=%.1f" % [ok, dealt, _p.stamina])
 				_next()
 		12: # ⑭ 낙하 공격 — 8m 위에서 내리꽂으면 땅에 닿을 때 둘레를 친다
@@ -173,7 +173,7 @@ func _physics_process(_delta: float) -> void:
 				_check("plunge_start", _p.call("start_plunge"), "mode=%d" % _p.mode)
 			if _frame > 2 and not _p.call("is_plunging"):
 				var dealt := _hp0 - float(_target.get("hp"))
-				_check("plunge_land", dealt > PartyState.atk * 1.4 and _p.mode == 0, "dealt=%.1f f=%d" % [dealt, _frame])
+				_check("plunge_land", dealt > float(_fc.call("char_atk", "self")) * 1.4 and _p.mode == 0, "dealt=%.1f f=%d" % [dealt, _frame])
 				_next()
 			elif _frame == 240:
 				_check("plunge_land", false, "timeout mode=%d y=%.1f" % [_p.mode, _p.global_position.y])
@@ -193,7 +193,7 @@ func _physics_process(_delta: float) -> void:
 				_fc.call("take_damage", 500.0, null)
 			var all_full := true
 			for id in _fc.call("roster"):
-				all_full = all_full and is_equal_approx(float(_fc.call("hp_of", id)), float(_fc.get("max_hp")))
+				all_full = all_full and is_equal_approx(float(_fc.call("hp_of", id)), float(_fc.call("max_hp_of", id)))
 			_check("per_char_hp", switched and blocked and all_full, "switched=%s blocked=%s all_full=%s" % [switched, blocked, all_full])
 			_next()
 		14: # ⑯ 원소 공명 — 화 둘이면 공격 +25%

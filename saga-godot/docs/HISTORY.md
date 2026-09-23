@@ -8433,3 +8433,13 @@ PROJECT_STATE.md` 참고. 요약:
 - 왼쪽 위 대화·부대·사명·도감·날씨 글자(MobileHUD.tscn)는 런타임에 미니맵 높이(202px)만큼 아래로.
 - `probe_world_map.gd` 10항목 3회 fails=0·출력 md5 동일. 전투·이동·보물 점검 fails=0, `godot_regress.sh` REGRESS OK. `.uid` 셋은 에디터 임포트로 만들고 되살아난 props `.import` 19개는 되돌림.
 - 실기 확인 전: 미니맵 크기·위치(글자와 겹침), 지도 색·구름이 원신 지도처럼 읽히는지, 신상·지점 모양, 지역 이름 띠, 마우스 시점에서 M 지도 → 커서가 바로 풀리는지.
+
+## GO 원신 기준 ⑩ 인물 육성 — 레벨·돌파·견문록·냥·재료, SAVE_VERSION 3 (2026-09-24, 새 세션, "사가고돗 이어해")
+
+- PROJECT_STATE 1순위("남은 격차" 첫 칸). 새 `data/growth.gd`(표만) · `ui/character_screen.gd`(C/B, layer 6, 열면 ui_modal+frozen) · `tools/probe_growth.gd`.
+- `party_state.gd`: `growth`(id→lv/exp/asc)·`bag`, `char_atk/char_def`(레벨·돌파 배율 × 승급 특성 — 특성 배율을 `atk_mul()/def_mul()` 로 뽑음), `use_book`·`level_up_once`·`can_ascend/ascend`, 신호 `growth_changed`·`bag_changed`. 옛 `atk/def`(부대 전투력)는 사건 결투용으로 그대로.
+- `field_combat.gd`: 공격 = `PartyState.char_atk(id) × _power_mul(id)`(희귀도·화 공명), `max_hp` 도 인물마다(getter, 200+방어×2, 수 공명) — 옛 `_recompute_max_hp/_rescale_hp` 지움. 명단에 "Lv.n".
+- 드롭: `field_enemy._die` 에 KILL_DROPS(정해진 양, 운 없음), `treasure_chest.open` 에 CHEST_LOOT. `waypoints.gd` 신상 회복 판정은 `max_hp_of(id)`.
+- `save_state.gd` SAVE_VERSION 3 — `char_growth`·`bag` 저장, 2→3 단계에서 부대 레벨 L 로 주인공·동료 Lv 1+2L(20 까지) 채움. `probe_traversal.gd` save_migrate 의 "version == 2" 를 SAVE_VERSION 과 비교로.
+- 점검: 육성 10항목 3회 md5 동일 fails=0(경험표·견문록 3권 → Lv.7·냥 9400 · 상한 20 멈춤 · 돌파 차감·상한 40 · 공격 60→104.7 · 늑대 송곳니 · 상자 견문록·냥 300 · v2→v3 · restore · 인물 화면 단추). 전투·이동·보물·지도 fails=0, REGRESS OK.
+- 실기 확인 전: 인물 화면 배치·글자 크기, 성장 속도(첫 돌파 냥 5천 = 늑대 약 125마리 또는 상자 몇 개), 레벨 오른 손맛.

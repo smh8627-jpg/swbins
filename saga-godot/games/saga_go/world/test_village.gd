@@ -44,6 +44,12 @@ func _ready() -> void:
 	world_map.bind_waypoints(waypoints)
 	if OS.get_environment("SAGA_MAP_PROBE") != "":
 		add_child(load("res://tools/probe_world_map.gd").new())
+	## PLAN 106장 ⑩ — 인물 화면(레벨·돌파·가방, C/B).
+	var chars := preload("res://games/saga_go/ui/character_screen.gd").new()
+	chars.name = "CharacterScreen"
+	add_child(chars)
+	if OS.get_environment("SAGA_GROWTH_PROBE") != "":
+		add_child(load("res://tools/probe_growth.gd").new())
 	## 원신식 이동(go_player.gd) 자동 점검 — 측정할 때만 붙인다.
 	if OS.get_environment("SAGA_TRAVERSAL_PROBE") != "":
 		add_child(load("res://tools/probe_traversal.gd").new())

@@ -10,7 +10,8 @@ extends Node
 ## project.godot [autoload]에 SaveState로 등록된 싱글턴.
 
 const SAVE_PATH := "user://save.json"
-const SAVE_VERSION := 2
+const SAVE_VERSION := 3
+const Growth := preload("res://games/saga_go/data/growth.gd")
 
 
 func save() -> bool:
@@ -23,6 +24,8 @@ func save() -> bool:
 		"party_members": PartyState.members,
 		"party_exp": PartyState.exp,
 		"party_perks": PartyState.perks,
+		"char_growth": PartyState.growth,
+		"bag": PartyState.bag,
 		"drops": DropState.drops,
 		"quest_active_id": QuestState.active_id,
 		"quest_active_name": QuestState.active_name,
@@ -65,7 +68,11 @@ func try_load() -> bool:
 	var perks: Array[String] = []
 	for pid in data.get("party_perks", []):
 		perks.append(str(pid))
-	PartyState.restore(members, float(data.get("party_exp", 0.0)), perks)
+	## char_growth·bag(106장 ⑩) — v3 부터. v2 이하는 _migrate_step 이 부대 레벨로 채워 온다.
+	var growth: Variant = data.get("char_growth", {})
+	var bag: Variant = data.get("bag", {})
+	PartyState.restore(members, float(data.get("party_exp", 0.0)), perks,
+		growth if typeof(growth) == TYPE_DICTIONARY else {}, bag if typeof(bag) == TYPE_DICTIONARY else {})
 
 	var pos: Array = data.get("player_pos", [])
 	var player := _find_player()
@@ -143,6 +150,18 @@ func _migrate_step(from_version: int, data: Dictionary) -> Variant:
 					p += Vector3(0.0, 0.0, 432.0 - 8000.0)
 				data["player_pos"] = [p.x, p.y, p.z]
 			data["version"] = 2
+			return data
+		2:
+			## 106장 ⑩(2026-09-24) — 인물 육성. 옛 부대 레벨(경험 100마다 1)만큼 인물을 미리 키워
+			## 둔다(주인공·등용한 동료 모두, 첫 상한 20 까지). 가방은 빈 채로 시작.
+			var party_level := int(float(data.get("party_exp", 0.0)) / 100.0)
+			var lv := Growth.seed_level(party_level)
+			var growth := {"self": {"lv": lv, "exp": 0.0, "asc": 0}}
+			for m in data.get("party_members", []):
+				growth[str(m)] = {"lv": lv, "exp": 0.0, "asc": 0}
+			data["char_growth"] = growth
+			data["bag"] = {}
+			data["version"] = 3
 			return data
 		_:
 			return null
