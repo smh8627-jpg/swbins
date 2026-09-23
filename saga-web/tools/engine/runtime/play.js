@@ -189,6 +189,7 @@
     /* 터치 — 왼쪽 막대, 오른쪽 단추(전투 스타일이면 공격·스킬 단추가 더 붙는다) */
     var touch = ('ontouchstart' in root) || (root.navigator && root.navigator.maxTouchPoints > 0);
     if (touch) {
+      hudRoot.classList.add('touch');
       var pad = el('div', 'tpad', hudRoot), knob = el('div', 'knob', pad);
       var tid = null, t0 = null;
       pad.addEventListener('pointerdown', function (e) { tid = e.pointerId; t0 = { x: e.clientX, y: e.clientY }; pad.setPointerCapture(e.pointerId); });

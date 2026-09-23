@@ -26,7 +26,8 @@
     '.sysl .quests{position:absolute;left:14px;top:52px;display:flex;flex-direction:column;gap:4px}',
     '.sysl .quests div{background:rgba(10,14,24,.65);color:#fff;padding:4px 10px;border-radius:6px;font-size:13px;border-left:3px solid #ffd166}',
     '.sysl .quests small{color:#aab;margin-left:6px}',
-    '.sysl .goals{position:absolute;right:14px;top:44px;background:rgba(10,14,24,.6);color:#fff;padding:6px 12px;border-radius:8px;font-size:13px;line-height:1.6;text-align:right}',
+    '.sysl .goals.low{top:44px}',
+    '.sysl .goals{position:absolute;right:14px;top:12px;background:rgba(10,14,24,.6);color:#fff;padding:6px 12px;border-radius:8px;font-size:13px;line-height:1.6;text-align:right}',
     '.sysl .clock{position:absolute;right:14px;top:12px;background:rgba(10,14,24,.6);color:#fff;padding:4px 10px;border-radius:8px;font-size:13px}',
     '.sysl .stam{position:absolute;width:44px;height:44px;transform:translate(-50%,-50%);display:none}',
     '.sysl .photo{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);background:rgba(0,0,0,.55);color:#fff;padding:5px 14px;border-radius:8px;font-size:13px;display:none}',
@@ -258,7 +259,7 @@
       if (q !== lastQ) { questsEl.innerHTML = q; lastQ = q; }
       var goals = (project.goals || []).filter(Boolean).map(function (l) { return esc(String(l).replace(/\{([^{}]+)\}/g, function (m, k) { return k in S.vars ? S.vars[k] : m; })); }).join('<br>');
       if (goals !== lastG) { goalsEl.innerHTML = goals; goalsEl.style.display = goals ? '' : 'none'; lastG = goals; }
-      goalsEl.style.top = S.world ? '44px' : '12px';
+      goalsEl.classList.toggle('low', !!S.world); /* 시계가 있으면 그 아래 — 좁은 화면 규칙(play.html)이 덮을 수 있게 클래스로 */
       menu();
       stamina();
       L.style.display = photo ? 'none' : '';

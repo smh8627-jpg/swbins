@@ -47,6 +47,20 @@
   #hud .view-tag.show { animation: sn 2.4s ease-out; }
   #hud .cross { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: 22px; opacity: 0; text-shadow: 0 0 3px #000; }
   #hud .cross.show { opacity: .8; }
+  /* 터치 — 키보드 안내는 숨기고, 스킬·쿨 표시는 조이스틱 위로, 가방 단추는 위로(오른쪽 아래는 터치 단추 자리) */
+  #hud.touch .cbl .keys, #hud.touch .gnl .keys { display: none; }
+  #hud.touch .cbl .skills { right: auto; left: 22px; bottom: 170px; gap: 8px; }
+  #hud.touch .cbl .sk { width: 50px; height: 50px; font-size: 12px; }
+  #hud.touch .cbl .skbar { right: auto; left: 14px; bottom: 232px; flex-wrap: wrap; max-width: 60vw; }
+  #hud.touch .bal .bag { bottom: auto; top: 96px; }
+  /* 좁은 화면 — 위쪽 줄이 넘치면 목표판을 그 아래로 */
+  @media (max-width: 600px) {
+    #hud .vars { right: 130px; gap: 6px; }
+    #hud .hv { font-size: 13px; padding: 4px 9px; }
+    #hud .sysl .goals { top: 92px; font-size: 11px; padding: 4px 8px; max-width: 55vw; }
+    #hud .cbl .party div { min-width: 118px; font-size: 12px; }
+    #hud.touch .bal .bag { top: 140px; }
+  }
   #hud .err { position: absolute; left: 16px; top: 16px; right: 16px; background: #401820; color: #fff; padding: 14px; border-radius: 10px; pointer-events: auto; }
 </style>
 </head>
