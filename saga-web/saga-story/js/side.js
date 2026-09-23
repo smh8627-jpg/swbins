@@ -1485,6 +1485,24 @@
 
   /* ── 매 프레임 ────────────────────────────────────────── */
 
+  /** 보스 패턴(§5-9)이 바깥에 부탁하는 일 — 판정 모듈은 이것만 안다 */
+  var bpA = null;
+  function bpApi() {
+    if (!bpA) {
+      bpA = {
+        fx: fx,
+        hurt: function (n) { hurtMe(n); },
+        spawn: function (x) { spawnEnemy(x); },
+        sfx: sfx,
+        toast: function (m) { core.emit('toast', m); },
+        rand: Math.random,
+        hpMax: function () { return run ? run.hpMax : 100; }
+      };
+    }
+    bpA.p = run.player; bpA.stg = run.stage;
+    return bpA;
+  }
+
   function update(dt) {
     if (!run) { return; }
     dt = Math.min(dt, 0.05);
@@ -1758,6 +1776,13 @@
             fx.push({ t: 'warn', x: e.x + e.w / 2, y: e.y, life: 0.9 });
           }
         }
+      }
+      /* 사냥터 보스 패턴전(§5-9, boss-pattern.js) — 체력 구간마다 늘어나는 장판·지진·휩쓸기.
+         관문 대장은 아래 제 패턴이 있어 안 탄다 */
+      var BPm = global.DG.bossPattern;
+      if (e.boss && !e.gate && BPm && BPm.on()) {
+        BPm.step(e, dt, bpApi(), near);
+        if (!run) { return; }
       }
       /* 관문 대장(§5-4) 패턴 2·3 — 범위 표시 후 내려찍기 · 소환 2. 달려들기와
          겹치지 않게 e.charge<=0 일 때만 새로 문다(둘이 같이 터지면 정신없다) */

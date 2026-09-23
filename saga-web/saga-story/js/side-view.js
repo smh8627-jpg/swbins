@@ -1049,6 +1049,38 @@
         ctx.strokeStyle = 'rgba(255,120,70,' + (0.4 + zk * 0.5) + ')';
         ctx.lineWidth = 2.5;
         ctx.stroke();
+        if (f.rock) {
+          /* 낙석(§5-9) — 떨어질 자리 위로 그림자 기둥이 내려온다 */
+          ctx.fillStyle = 'rgba(60,40,30,' + (0.10 + zk * 0.25) + ')';
+          ctx.fillRect(x - f.r * 0.5, 0, f.r, f.y);
+        }
+      } else if (f.t === 'quakewarn') {
+        /* 지진(§5-9) — 바닥 전체가 떨린다. 점프하거나 발판 위로 */
+        var qk = 1 - Math.max(0, f.life), qa = 0.18 + qk * 0.4 + Math.sin(Date.now() / 60) * 0.08;
+        ctx.fillStyle = 'rgba(255,90,40,' + qa + ')';
+        ctx.fillRect(0, f.y - 10, W, 16);
+        ctx.font = '900 20px system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = 'rgba(255,240,200,' + (0.6 + qk * 0.4) + ')';
+        ctx.fillText('⬆ 점프! 땅이 흔들린다', W / 2, f.y - 30);
+        ctx.textAlign = 'left';
+      } else if (f.t === 'sweepwarn') {
+        /* 휩쓸기(§5-9) — 화면이 붉게 물들고 초록 안전지대만 남는다 */
+        var wk = 1 - Math.max(0, f.life);
+        var sl = x - f.w / 2;
+        ctx.fillStyle = 'rgba(200,30,30,' + (0.14 + wk * 0.22) + ')';
+        ctx.fillRect(0, 0, Math.max(0, sl), H);
+        ctx.fillRect(sl + f.w, 0, Math.max(0, W - sl - f.w), H);
+        ctx.fillStyle = 'rgba(80,230,120,' + (0.18 + wk * 0.2) + ')';
+        ctx.fillRect(sl, 0, f.w, H);
+        ctx.strokeStyle = 'rgba(120,255,160,.9)';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(sl + 1.5, 1.5, f.w - 3, H - 3);
+        ctx.font = '900 18px system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#eaffef';
+        ctx.fillText('안전', x, f.y - 70);
+        ctx.textAlign = 'left';
       } else if (f.t === 'pop') {
         /* 보스는 목숨을 0.9로 길게 잡는데(잡졸은 0.5) 이 반지름 식은 0.5부터
            줄어든다고만 가정해 뒀었다 — 보스 pop 이 갓 생겨 0.9~0.5 사이인

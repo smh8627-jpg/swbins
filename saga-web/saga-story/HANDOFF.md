@@ -821,3 +821,11 @@ SAGA-DESIGN §11 Phase 4 의 "사가스토리 펫 이미지 공백(보류)" — 
 - `isActorAsset` 이 `animals_extra`·`animals_extra2`·`standin` 도 배우로 — 전엔 정규식이 `animals/` 만 맞아 사가블로 "펫 100개" 모델들이 외곽선·림 없이 구워졌다.
 - **SAGA-DESIGN §11 Phase 4 마무리**: 펫 초상용으로 남겨 두던 `human`·`limb`·`hand`·`foot`·`headgear`·`weapon`·`beast`·`leg2`·`eye`·`beastPatternOf`·`BEAST_PATTERN`(약 1100줄) 삭제, 두 펫 갈래는 `loadingMark` 자리표시(사가의숲과 같은 결). 호출부 0 은 `sprite.js` 밖(진단·데모·어드민 포함) grep 으로 확인.
 - 구미호는 원래대로 여우. `critter:*` 26줄·`PET_MAP` +26. 펫 초상 210장 다시 구움(210/210). (이어서 5)의 진단을 "105종 전부·대역·옆면 뷰 키 그대로·함수 없음" 으로 고침 → 226/227(실패 하나는 기존 jsdom 한계). `sw.js` side-v0.82.0.
+
+## 2026-09-24 — 메이플식 보스 패턴전(PLAN §5-9)
+
+- 계기: 사용자가 네 판 추천안을 다 골랐다(이 판이 첫째). 사냥터 보스는 돌진 하나뿐이었다.
+- 새 `js/boss-pattern.js` — 체력 66%·33% 단계, 내려찍기·낙석 → +지진·부하 → +휩쓸기(안전지대)·광폭. 판정은 `step(e, dt, api)` 하나라 가짜 api 로 진단한다. `side.js` 적 루프에 `e.boss && !e.gate` 훅 한 줄 + `bpApi()`.
+- 예고 그림(`side-view.js` drawFx): 낙석 그림자 기둥 · 지진 바닥 띠 · 휩쓸기 붉은 화면 + 초록 안전 기둥. 덧그림이라 3D 바탕에서도 그대로.
+- 패턴이 걸리면 돌진 쿨(`chargeCd`)을 미뤄 둘이 겹치지 않게. 옛 진단 "보스는 뜸을 들이다 달려든다" 그대로 통과.
+- 진단 7 → jsdom 233/234 세 번 동일(실패 하나는 기존 getBoundingClientRect 한계). `sw.js` side-v0.83.0. **실기 확인 대기**.
