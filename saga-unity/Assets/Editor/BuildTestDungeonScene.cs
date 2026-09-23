@@ -306,6 +306,9 @@ namespace Saga.EditorTools
 
         // Build() 시작에 한 번만 로드해 각 Build* 메서드가 나눠 쓴다.
         private static GameObject _characterA, _characterB, _characterC, _characterD;
+        // PLAN.md 106-4 "캐릭터 통일" — `SetupNpcCharacterImports` 가 구운 사실 모델. 없으면 각 자리의 예전 모델.
+        private static GameObject _skeleton, _paladin, _peasantMan, _peasantGirl;
+        private static int _villagerCount;
         private static GameObject _corridorGlb, _gateGlb, _roomGlb;
         private static Material _dungeonFloorMat, _dungeonWallMat;
 
@@ -330,7 +333,7 @@ namespace Saga.EditorTools
             BuildCorridorAndRoom4();
             BuildCorridorAndProcRoom();
             BuildDungeonTemple.Build(_corridorGlb, _gateGlb, _roomGlb, _dungeonFloorMat, _dungeonWallMat,
-                _characterC, _characterD, RoomDoorWidth); // PLAN.md 106-2 "잊힌 능묘".
+                _characterC, _skeleton != null ? _skeleton : _characterD, RoomDoorWidth); // PLAN.md 106-2 "잊힌 능묘"(파수꾼 = 106-4 해골).
             var (playerGo, playerCombat, playerController) = BuildPlayer();
             BuildAlly();
             BuildPostProcessingVolume();
@@ -364,6 +367,15 @@ namespace Saga.EditorTools
         private static void LoadCharacterModels()
         {
             _characterA = AssetDatabase.LoadAssetAtPath<GameObject>(CharacterAPath);
+            _skeleton = AssetDatabase.LoadAssetAtPath<GameObject>(SetupNpcCharacterImports.PrefabPath("Skeleton"));
+            _paladin = AssetDatabase.LoadAssetAtPath<GameObject>(SetupNpcCharacterImports.PrefabPath("Paladin"));
+            _peasantMan = AssetDatabase.LoadAssetAtPath<GameObject>(SetupNpcCharacterImports.PrefabPath("PeasantMan"));
+            _peasantGirl = AssetDatabase.LoadAssetAtPath<GameObject>(SetupNpcCharacterImports.PrefabPath("PeasantGirl"));
+            _villagerCount = 0;
+            if (_skeleton == null || _paladin == null || _peasantMan == null || _peasantGirl == null)
+            {
+                Debug.LogWarning("[BuildTestDungeonScene] 106-4 사실 모델 일부 없음(Saga/Setup NPC Character Imports) — 그 자리는 예전 모델");
+            }
             _characterB = AssetDatabase.LoadAssetAtPath<GameObject>(CharacterBPath);
             _characterC = AssetDatabase.LoadAssetAtPath<GameObject>(BruteAnimatedPrefabPath)
                 ?? AssetDatabase.LoadAssetAtPath<GameObject>(CharacterCPath);
@@ -482,6 +494,7 @@ namespace Saga.EditorTools
             var merchantGo = new GameObject("TownMerchant");
             merchantGo.transform.position = Town2Center + new Vector3(3f, 0f, 0f);
             var merchant = merchantGo.AddComponent<DungeonMerchant>();
+            SetPrivateField(merchant, "modelPrefab", _peasantMan); // PLAN.md 106-4
             // roomId="town2" — 이 id로 등록되는 적이 아예 없어 CountAliveInRoom이
             // 항상 0이다(DungeonMerchant.cs Update() 참고) — "방을 다 잡아야
             // 연다"는 조건 자체가 평화로운 마을엔 안 맞아 자연히 항상 열려 있다.
@@ -529,6 +542,7 @@ namespace Saga.EditorTools
             var merchantGo = new GameObject("Town3Merchant");
             merchantGo.transform.position = Town3Center + new Vector3(6f, 0f, 0f);
             var merchant = merchantGo.AddComponent<DungeonMerchant>();
+            SetPrivateField(merchant, "modelPrefab", _peasantMan); // PLAN.md 106-4
             SetPrivateField(merchant, "roomId", "town3");
             // gem_jade(4) — 광맥(Room3 Vein) 확정 드랍 말고는 지금까지 어떤
             // 행상도 안 팔던 재고. 가장 싼 보석 티어라 위성 마을 초입에 맞다.
@@ -565,6 +579,7 @@ namespace Saga.EditorTools
             var merchantGo = new GameObject("Town4Merchant");
             merchantGo.transform.position = Town4Center + new Vector3(-6f, 0f, 0f);
             var merchant = merchantGo.AddComponent<DungeonMerchant>();
+            SetPrivateField(merchant, "modelPrefab", _peasantMan); // PLAN.md 106-4
             SetPrivateField(merchant, "roomId", "town4");
             // wp_glaive(26) — 원래 Room10(층2 행상) 재고였는데 "절차적 층
             // 진행" 전환으로 Room10 자체가 없어져 이 아이템을 살 자리가
@@ -716,6 +731,9 @@ namespace Saga.EditorTools
         {
             var go = new GameObject("Villager");
             go.transform.position = pos;
+            // PLAN.md 106-4 — 마을 사람은 남녀를 번갈아, 방향도 조금씩 다르게.
+            var real = (_villagerCount++ % 2 == 0) ? _peasantMan : _peasantGirl;
+            if (NpcIdle.SpawnRigged(real, go.transform, "Idle", yawDeg: 40f * _villagerCount) != null) return;
             if (_characterB != null) CharacterVisual.Spawn(_characterB, go.transform, 1.7f, tint);
             else CharacterVisual.SpawnFallbackCapsule(go.transform, 1.7f, tint);
         }
@@ -804,6 +822,7 @@ namespace Saga.EditorTools
             var merchantGo = new GameObject("Merchant");
             merchantGo.transform.position = Room2Center + new Vector3(3f, 0f, -3f);
             var merchant = merchantGo.AddComponent<DungeonMerchant>();
+            SetPrivateField(merchant, "modelPrefab", _peasantMan); // PLAN.md 106-4
             SetPrivateField(merchant, "roomId", "room2");
         }
 
@@ -854,6 +873,7 @@ namespace Saga.EditorTools
             var merchantGo = new GameObject("GemMerchant");
             merchantGo.transform.position = Room3Center + new Vector3(-8f, 0f, 4f);
             var merchant = merchantGo.AddComponent<DungeonMerchant>();
+            SetPrivateField(merchant, "modelPrefab", _peasantMan); // PLAN.md 106-4
             SetPrivateField(merchant, "roomId", "room3");
             SetPrivateField(merchant, "sellGemId", "gem_sapphire");
             SetPrivateField(merchant, "price", 50); // wp_saber(45)보다 비싸게 — 무기를 대체하지 않고 그 위에 더해지는 능력치라서
@@ -986,6 +1006,8 @@ namespace Saga.EditorTools
 
             var runner = procRoomGo.AddComponent<DungeonFloorRunner>();
             SetPrivateField(runner, "gruntModel", _characterD);
+            SetPrivateField(runner, "merchantModel", _peasantMan); // PLAN.md 106-4
+            SetPrivateField(runner, "captiveModel", _peasantGirl);
             SetPrivateField(runner, "eliteModel", _characterC);
         }
 
@@ -996,6 +1018,7 @@ namespace Saga.EditorTools
             var captiveGo = new GameObject("Captive");
             captiveGo.transform.position = CaptiveSpawn;
             var captive = captiveGo.AddComponent<DungeonCaptive>();
+            SetPrivateField(captive, "modelPrefab", _peasantGirl); // PLAN.md 106-4
             SetPrivateField(captive, "roomId", "room4");
 
             for (int i = 0; i < CaptiveGuardSpawns.Length; i++)
@@ -1181,7 +1204,7 @@ namespace Saga.EditorTools
             var go = new GameObject("Ally");
             go.transform.position = PlayerSpawn + new Vector3(1.5f, 0f, 0f);
             var ally = go.AddComponent<AllyFighter>();
-            SetPrivateField(ally, "modelPrefab", _characterB);
+            SetPrivateField(ally, "modelPrefab", _paladin != null ? _paladin : _characterB); // PLAN.md 106-4 — 검방 든 기사.
         }
 
         /// <summary>PLAN.md 66-2장(파이널 판타지 최신작 기준) "다음에 할 일"

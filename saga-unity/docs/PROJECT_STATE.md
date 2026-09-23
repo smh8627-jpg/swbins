@@ -1,11 +1,11 @@
 # PROJECT_STATE — saga-unity (상태만, ≤15KB, 덮어쓴다)
 
 **규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다(2026-09-16 재편 전 본문 5,532줄은 그쪽 첫 절에 그대로 있다). 넘치면 `tools/precheck.sh` 가 막는다.
-마지막 갱신: 2026-09-23 (서른네 세션째 — **PLAN 106장 FF·젤다 순서 1·2·3 코드 완료**: ① DUNGEON 락온·적 예고·완벽 회피 반격 + Maria 옆걸음 블렌드 ② 젤다식 던전 "잊힌 능묘"(방 5·작은 열쇠·블록·벽력탄·보스 열쇠·능묘지기, `TempleState` 세이브 v9) ③ **Cinemachine 3.1.7 + Timeline 컷 셋**(능묘 도착 지역명 카드·상자 클로즈업·능묘지기 등장 이름표/포효, 레터박스·HUD 끔·아무 키로 넘김, `DungeonCutscenes`). 헤드리스 통과, 창 모드 실기 확인은 전. 경위는 HISTORY 날짜 grep).
+마지막 갱신: 2026-09-24 (서른다섯 세션째 — **PLAN 106장 FF·젤다 순서 1~3 코드 완료 + 4 DUNGEON 완료**: ① 락온·예고·반격 ② 젤다식 던전 "잊힌 능묘" ③ Cinemachine·Timeline 컷 셋 ④ **NPC 사실 모델**(동행 Paladin·마을 사람 Peasant 남녀·포로 무릎 꿇기→기쁨·행상·능묘 해골 파수꾼, `SetupNpcCharacterImports`). 헤드리스 통과, 창 모드 실기 확인은 전. 경위는 HISTORY 날짜 grep).
 
 ## 캐릭터 자산 — 이 PC 기준 (2026-09-19)
 
-Maria(플레이어)·Abe(잡졸)·Brute(두목) 셋만 mixamo.com 실자산 확보(`Assets/Art/CharactersRealistic/`, gitignore — **PC마다 새로 받아야 함**, 목록은 `SetupXxxCharacterImport.cs`). GUI 확인: Maria idle/run/attack/얼굴 클로즈업 정상, Abe 근접 구도. Brute 전신 구도는 아직.
+Maria(플레이어)·Abe(잡졸)·Brute(두목) + **2026-09-24 Skeleton·Paladin·PeasantMan·PeasantGirl**(`Assets/Art/CharactersRealistic/`, gitignore — **PC마다 새로 받아야 함**: 앞 셋은 `SetupXxxCharacterImport.cs`, 뒤 넷은 도구 README 레시피 + `Saga/Setup NPC Character Imports`). GUI 확인: Maria idle/run/attack/얼굴 클로즈업 정상, Abe 근접 구도. Brute 전신 구도·새 넷은 아직.
 
 ## 완료 요약 — 다섯 게임 × 진척
 
@@ -21,7 +21,7 @@ Maria(플레이어)·Abe(잡졸)·Brute(두목) 셋만 mixamo.com 실자산 확�
 
 ## 다음 작업 (우선순위, 상세는 PLAN 해당 장 · 경위는 HISTORY 날짜 grep)
 
-0. **PLAN 106장 FF·젤다 순서가 최우선**(2026-09-23 사용자 승인 — 무예·전직 같은 수치 확장은 멈춤). 순서 1·2·3 코드 완료 → 다음 **순서 4 캐릭터 통일**: NPC·적 Kenney 블록 → Mixamo 사실 모델(이름 정책 유지, 파수꾼·능묘지기·잡졸부터). Mixamo 클립·모델은 `tools/mixamo_automation`(자동화 전용 크롬 로그인만 사람 몫). 컷(106-3)은 GO·STORY 두목 등장으로 옮길 수 있게 `DungeonCutscenes` 결을 판별 복사(코드 공유 없음).
+0. **PLAN 106장 FF·젤다 순서가 최우선**(무예·전직 같은 수치 확장은 멈춤). 순서 4는 DUNGEON 완료(106-4 끝 "남은 것": 능묘지기 전용 모델 여부·층 두목 변형·다른 판 NPC) → 다음 **순서 5 탐험**: 점프·기어오르기·높은 곳 랜드마크(DUNGEON). Mixamo 는 `tools/mixamo_automation`(`--character`·`--tpose`·`--inplace`, 로그인만 사람 몫).
 1. **STORY 101-2 전부 완료** — 남은 건 실기 확인(아래 대기 목록). 판수 체감(Lv.15→20 약 11판, 20→25 약 28판)이 무거우면 `StoryCombat.JobPromoteLevel3/4`만 고치면 된다.
 2. **101-2·104-1 잔여(보류)** — GO⑤(모바일 빌드 뒤)·`Characters/` Kenney(실사용 중). 헤어카드는 분리 헤어 메시 생기면. (`Props/` lantern·stall-red는 2026-09-23 완료 — 아래 표에서 뺌)
 
@@ -54,7 +54,7 @@ Maria(플레이어)·Abe(잡졸)·Brute(두목) 셋만 mixamo.com 실자산 확�
 | 씬 넷 재빌드(Village·Dungeon·VillageForest·City) | exit 0, 영속 리스너 0 → 32·17·10·39(= onClick 전부, 2026-09-23) |
 | `BuildTestStoryScene` 재빌드 | exit 0(2026-09-23, `StoryOutfitTint` 추가로 재빌드) |
 | `PlaytestStorySlice` | **3연속 OK(2026-09-23, 옷 빛깔 뒤)** — 새 `CheckOutfitTint`(무명 0→1차 0.12→2차 0.24→4차 0.48·갈래 색·Maria 피부 슬롯 제외·되돌림). 앞 세션분: `CheckUpperTiersAndPins`(3·4차 진짜 버튼·막힘 사유·자동 칸 세트 0·칸 고정 거절/당김/자동 짝·정 4세트·보 4세트 급소 확정·차수 탭·칸 고정 세이브 왕복). 앞 세션분: `CheckPromotionAndSchools`(2차 전직 진짜 버튼·선행·칸 배치·세트 5종·전우·패널·비경 식) 포함. 앞 세션분: 새 `CheckButtonWiring`(진짜 onClick)·`CheckJobSkills`·무예 세이브 왕복·옛 형식 로드 포함. 고치기 전 씬에선 `CheckButtonWiring`이 실패함을 먼저 확인 |
-| `PlaytestDungeonHeadless` | **3연속 OK(2026-09-23, 106-3 뒤)** — `CheckTemple`(능묘 한 바퀴 + 컷: 도착 카드·HUD 0·파수꾼 멈춤·상자 카메라 자리·컷 중 벽력탄 막힘·등장 이름표·한 번만·5회) + `cut camera live/back`(6프레임째 브레인 활성=`CutCam_BossClose`·실제 카메라 0.00m·포효, 8프레임째 `PlayerView` 복귀). 앞 분: `CheckLockOn`·`CheckEnemyTelegraph`. 같은 씬 `FloorProgression`·`Shortcut` OK |
+| `PlaytestDungeonHeadless` | **3연속 OK(2026-09-24, 106-4 뒤)** — 새 `CheckNpcModels`(동행·마을 사람 3·포로 Kneel·행상 5·해골 6 Humanoid) + `CheckTemple`(능묘 + 106-3 컷) + `cut camera live/back`. 앞 분: `CheckLockOn`·`CheckEnemyTelegraph`. 같은 씬 `FloorProgression` OK |
 | GO·DUNGEON·FOREST·REALM 헤드리스 | **4연속 OK(2026-09-23)** — 새 `CheckButtonWiring`(`ButtonWiringCheck`: 죽은 버튼·없는 메서드 + 진짜 onClick 설정/명령). 고치기 전 씬에선 GO 32/51 먹통으로 실패 확인. STORY는 비경 지도 수정 뒤 3연속 OK |
 | GUI 실제 Play | GO 라이팅 톤·Maria idle/run/attack·Dungeon 카메라(뒷모습·yaw=180)·SSS 코·턱선 하이라이트(Intensity=15) |
 | `BuildMariaSssShaderGraph.Build`+`Verify` | exit 0, `ShaderHasError=False`(2026-09-23) |
@@ -62,7 +62,7 @@ Maria(플레이어)·Abe(잡졸)·Brute(두목) 셋만 mixamo.com 실자산 확�
 ## 실기 확인 대기 (항목명만 — 경위는 HISTORY grep)
 
 - GO: 조우·전투·등용 손맛, 상점·퀘스트 대사, 은닉 보물·산신당·돌탑·유물, 채집, 목표판/세션카드, hitstop, 유품 마커·무기 소켓·지형 데칼, 일과판·승급 3택, 75초 토벌, 봉수대·인연·짐 드롭/회수, 사당 시련, 울타리 목재 톤, 나무·바위 트라이플레이너 톤, 마을집 실루엣, 카메라 벽 pull-in, **폰에서 설정·승급 3택·저장 버튼이 눌리는지(2026-09-23 고침)**
-- DUNGEON: **컷 셋(능묘 도착 4.5s·상자 2.6s·능묘지기 등장 5.2s) 길이·레터박스·"아무 키로 넘김"·상자 카메라가 벽에 안 박히는지·손떨림 세기**, **잊힌 능묘 한 바퀴(Room2 서쪽 — 블록 밀기 감각·벽력탄 2초 심지·능묘지기 3~4사이클이 적당한지·HUD 열쇠 줄)·락온 옆걸음 발 미끄럼(블렌드 속도 1.4)**, **락온(Q·Tab·"주목")·락온 카메라 추적이 어지럽지 않은지·적 예고 고리 0.5s가 읽히는지·완벽 회피 반격 손맛·락온 이동 4.5m/s(2026-09-23)**, 카메라 손맛, 아홉 슬라이스, 목표판/세션카드, 101-3 전체 체감, 축복·유품·부적 던전·월드 보스·난입, 전자창/동력장갑·기계화 정찰병, 일일 풀·도장·주간 보상, 방 셸 마모 3단, 카메라 벽 pull-in, **폰에서 공격·강공격·회전베기·회피·저장·설정·축복 버튼(2026-09-23 고침)**
+- DUNGEON: **사실 모델 NPC(동행 기사 걷기↔달리기 발 미끄럼·마을 사람·포로 무릎→기쁨·행상 서는 자리·해골 파수꾼 크기/칠)**, **컷 셋(능묘 도착 4.5s·상자 2.6s·능묘지기 등장 5.2s) 길이·레터박스·"아무 키로 넘김"·상자 카메라가 벽에 안 박히는지·손떨림 세기**, **잊힌 능묘 한 바퀴(Room2 서쪽 — 블록 밀기 감각·벽력탄 2초 심지·능묘지기 3~4사이클이 적당한지·HUD 열쇠 줄)·락온 옆걸음 발 미끄럼(블렌드 속도 1.4)**, **락온(Q·Tab·"주목")·락온 카메라 추적이 어지럽지 않은지·적 예고 고리 0.5s가 읽히는지·완벽 회피 반격 손맛·락온 이동 4.5m/s(2026-09-23)**, 카메라 손맛, 아홉 슬라이스, 목표판/세션카드, 101-3 전체 체감, 축복·유품·부적 던전·월드 보스·난입, 전자창/동력장갑·기계화 정찰병, 일일 풀·도장·주간 보상, 방 셸 마모 3단, 카메라 벽 pull-in, **폰에서 공격·강공격·회전베기·회피·저장·설정·축복 버튼(2026-09-23 고침)**
 - FOREST: 벽지/장판, 가구 배치, 생물·과일나무·좌판, 목표판/세션카드, 번들, 채집 손맛, 평가 별점, 택배 사슬, 축제(달력 1·8·15일), 과일나무·바크 톤, 잔디 디테일 톤, **폰에서 저장·설정·밀어내기 버튼(2026-09-23 고침)**
 - STORY: 두목 크기·타격감, 사건·관계·선택, 전직 팝업, 목표판/세션카드, 타격 체감, 유품·데칼·레벨업 줌·직업별 무기, 관문 대장, 비경 지도·축복·아레나, 교대 버튼·서명, **무예 패널(K·"무예" 버튼·전직관)·무예 칸 넷·직업 무예 22 손맛(돌진·퇴보사 이동 거리, 연사 발 간격, 부적 기력 회복)·모바일 버튼 전체가 실제로 눌리는지(2026-09-23 고침)·비경 노드 버튼 연속 탭**, **2차 전직(Lv.15, 전직관 2택)·2차 무예 19 손맛·유파 세트 체감(패널 "[유파·2세트]")·전우/천뢰 범위·Lv.10→15 비경 약 4판이 적당한지**, **3·4차 전직(Lv.20/25)·3·4차 무예 44 손맛(팔도 8연타·십이시 발 간격)·무예 패널 차수 탭·"칸" 고정 조작·4세트 체감·15→20/20→25 판수·전직 차수 옷 빛깔(4차 48%가 과하거나 약하지 않은지)**
 - REALM: 월드맵, 적국 사슬, 패널 여덟, 목표판/세션카드, 공격·계략, 특성·야망, 전술 토글, 서사 카드, 계승 토글, 일기토·설전, 승리 결과 카드, 성벽 실루엣, 오빗 카메라 pull-in, **폰에서 버튼 전부(명령·성·계략·공격·다음달·패널 닫기, 2026-09-23 고침)**

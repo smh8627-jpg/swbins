@@ -1213,7 +1213,7 @@ Slice 승인/재설계 결정.** 100단계에서 무조건 다음 콘텐츠로 �
 | 1 | 전투 손맛(젤다) | 락온(주목)·적 공격 예고·락온 옆걸음/백스텝·완벽 회피 반격 | 완료(옆걸음 블렌드 포함, 실기 확인 전) |
 | 2 | 젤다식 던전 하나 | 작은 열쇠→잠긴 문, 스위치·블록 퍼즐, 던전 도구 1(갈고리 또는 폭탄)→그 도구로 여는 길, 보스 열쇠→보스방 | 코드 완료(106-2, 도구=벽력탄, 실기 확인 전) |
 | 3 | 연출(FF) | Cinemachine·Timeline 도입 — 보스 등장 컷·상자 열기·지역 도착 타이틀 | 코드 완료(106-3, 실기 확인 전) |
-| 4 | 캐릭터 통일 | NPC·적 Kenney 블록 → Mixamo 사실 모델(이름 정책 유지) | 대기 |
+| 4 | 캐릭터 통일 | NPC·적 Kenney 블록 → Mixamo 사실 모델(이름 정책 유지) | DUNGEON 코드 완료(106-4, 실기 확인 전) |
 | 5 | 탐험 | 점프·기어오르기·높은 곳 랜드마크 | 대기 |
 | 6 | FF 확장 | 동료 파티 전투·소환수 대형 연출 | 대기 |
 
@@ -1272,6 +1272,24 @@ Slice 승인/재설계 결정.** 100단계에서 무조건 다음 콘텐츠로 �
 - **Timeline 애셋**: `Assets/Games/SagaDungeon/Cinematics/Timelines/Temple_*.playable` — `BuildDungeonCinematics`(씬 빌더가 플레이어·HUD 뒤에 부름)가 만든다. 있으면 트랙만 비우고 다시 채워 GUID 를 지킨다. 사용자 트랙 둘: `CutsceneDollyTrack`(가상 카메라 직선 달리, 스플라인 대신) · `CutsceneTitleTrack`(제목 카드 앞뒤 0.45s 페이드, 번역 키 `cut.*`).
 - 진단: `CheckTemple` 에 컷 검사(도착 컷·HUD 0·적 멈춤·2s 지역명 카드·넘기면 HUD 복귀 → 상자 카메라 자리 → 컷 중 벽력탄 막힘 → 보스방 밖 안 틂/첫 발 틂·3s 이름표·다시 안 틂 → 능묘 한 바퀴 컷 5회) + `StartCutCameraProbe`(3프레임째 등장 컷 3s) → `CheckCutCameraLive`(6프레임째 브레인 활성=`CutCam_BossClose`·실제 카메라 위치·포효 신호) → `CheckCutCameraBack`(8프레임째 `PlayerView` 복귀). `CinemachineBrain.ManualUpdate()` 는 ManualUpdate 모드가 아니면 오류를 남기므로 프레임을 넘겨 본다.
 - 다음에 옮길 곳: GO·STORY 두목 등장, DUNGEON 층 두목·월드 보스 — 같은 `DungeonCutscenes` 결을 판마다 복사(판 사이 코드 공유 없음 원칙).
+
+## 106-4. 캐릭터 통일 — DUNGEON (순서 4)
+
+적(잡졸 Abe·두목 Brute)은 44장에서 이미 사실 모델이었다. 남은 Kenney 블록·캡슐 자리를 Mixamo 로 바꿨다.
+
+| 자리 | 전 | 후(Mixamo 캐릭터) | 동작 |
+|---|---|---|---|
+| 동행 무사(`AllyFighter`) | character-b 청색 칠, 애니 없음 | Paladin W/Prop(검방) | 서기·걷기(2.6m/s, 가까울 때)·달리기(6m/s, 멀 때)·공격 트리거, 컷 동안 멈춤 |
+| 마을 사람(Town2~4) | character-b | Peasant Man / Girl 번갈아 | 대기(시작 위상 흩음, `NpcIdle`) |
+| 포로(구출방, 층 진행 포로 포함) | 캡슐 | Peasant Girl | 무릎 꿇은 대기 → 풀려나면 플레이어를 보고 기쁜 대기 |
+| 행상(씬 5 + 층 진행) | 초록 상자뿐 | 좌판 + 뒤에 Peasant Man | 대기 |
+| 능묘 파수꾼 6 | Abe 회청색 | Skeletonzombie(해골, 옅은 칠) | Abe 와 같은 5상태 |
+
+- **받기**: `tools/mixamo_automation` 에 `--character`(현재 캐릭터 바꾸기)·`--tpose`(몸체)·`--inplace`(걷기·달리기 제자리) 추가. 레시피는 그 README 표. 원본은 gitignore(`CharactersRealistic/`) — **PC 마다 받고 `Saga/Setup NPC Character Imports` 한 번**.
+- **굽기**: `SetupNpcCharacterImports`(표 하나로 넷, Abe 스크립트를 더 복사하지 않음) → `Assets/Animators/<이름>.controller`(커밋) + `<이름>Animated.prefab`(로컬). 규칙은 Abe 와 같은 `Speed`·`Attack/Hit/Death`, 추가 대기(`Kneel`)는 상태 이름으로 튼다. 프리팹이 없으면 씬 빌더가 예전 모델로 폴백.
+- 런타임 포로·행상은 `DungeonEnemy.SetSpawnContext` 와 같은 결(비활성 → `SetModel` → 활성).
+- 진단: `CheckNpcModels`(동행·마을 사람 3·포로 Kneel·행상 5·해골 6 이 Humanoid). 이 PC 에 프리팹이 없으면 건너뛴다.
+- 남은 것: 능묘지기(Brute 1.5배)를 따로 뽑을지, 층 두목·엘리트 변형, GO·STORY·FOREST NPC(판별 복사).
 
 ---
 

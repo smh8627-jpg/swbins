@@ -39,6 +39,8 @@ namespace Saga.Dungeon.World
 
         [SerializeField] private GameObject gruntModel;   // character-d
         [SerializeField] private GameObject eliteModel;   // character-c (엘리트/미니보스/두목 공용)
+        [SerializeField] private GameObject merchantModel; // PLAN.md 106-4 — Peasant Man(없으면 좌판만)
+        [SerializeField] private GameObject captiveModel;  // PLAN.md 106-4 — Peasant Girl(없으면 캡슐)
 
         private static readonly Vector3[] GruntOffsets =
         {
@@ -425,10 +427,13 @@ namespace Saga.Dungeon.World
         private void SpawnMerchant()
         {
             var go = new GameObject("Merchant");
+            go.SetActive(false); // Awake 전에 모델을 넣는다(DungeonEnemy.SetSpawnContext 와 같은 결).
             go.transform.SetParent(_contentRoot, false);
             go.transform.localPosition = PoiAnchor;
             var merchant = go.AddComponent<DungeonMerchant>();
             merchant.Configure(RoomId, "wp_saber", null, 45);
+            merchant.SetModel(merchantModel);
+            go.SetActive(true);
         }
 
         private void SpawnPuzzle()
@@ -442,10 +447,13 @@ namespace Saga.Dungeon.World
         private void SpawnCaptive()
         {
             var go = new GameObject("Captive");
+            go.SetActive(false);
             go.transform.SetParent(_contentRoot, false);
             go.transform.localPosition = SoloOffset;
             var captive = go.AddComponent<DungeonCaptive>();
             captive.SetRoomId(RoomId);
+            captive.SetModel(captiveModel);
+            go.SetActive(true);
 
             foreach (var offset in EscortOffsets) SpawnGrunt(SoloOffset + offset);
         }

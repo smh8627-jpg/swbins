@@ -41,6 +41,12 @@ namespace Saga.Dungeon.World
         // 채워져 있으면 sellItemId 대신 이 보석을 판다(Room3 전용, 위 클래스 주석 참고).
         [SerializeField] private string sellGemId;
 
+        // PLAN.md 106-4 — 좌판 뒤에 서는 사실 모델 행상(Peasant Man). 없으면 좌판만.
+        [SerializeField] private GameObject modelPrefab;
+
+        /// <summary>`Configure` 와 같은 제약 — 비활성 GameObject 에 붙이고 부른 뒤 활성화한다.</summary>
+        public void SetModel(GameObject newModelPrefab) => modelPrefab = newModelPrefab;
+
         /// <summary>"DUNGEON 오픈월드 확장 — 절차적 층 진행" 슬라이스 —
         /// `DungeonFloorRunner`가 런타임에 즉석으로 만든 행상에 값을 채우는
         /// 정식 API. Awake가 아직 안 돈 상태에서만 의미가 있다.</summary>
@@ -77,6 +83,14 @@ namespace Saga.Dungeon.World
             visual.GetComponent<MeshRenderer>().sharedMaterial = mat;
 
             Object.Destroy(visual.GetComponent<Collider>());
+
+            if (modelPrefab != null)
+            {
+                var keeper = new GameObject("Keeper").transform;
+                keeper.SetParent(transform, false);
+                keeper.localPosition = new Vector3(0f, 0f, -0.75f); // 좌판 뒤, 앞(+z)을 본다.
+                NpcIdle.SpawnRigged(modelPrefab, keeper, "Idle");
+            }
         }
 
         private void Update()

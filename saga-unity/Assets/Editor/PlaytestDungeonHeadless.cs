@@ -126,6 +126,7 @@ namespace Saga.EditorTools
                 CheckGraveMarker(); // SessionCard를 띄우므로 CheckGoalBoardAndSessionCard 뒤(그 체크가 "시작부터 숨김" 전제를 이미 다 씀).
                 CheckGroundDecal();
                 CheckHorde(); // PLAN.md 101-2 5.5 — CheckGraveMarker가 이미 HeroState.Hp를 0으로 만들어 둬 이 체크 맨 앞에서 FullHeal()로 되돌린다.
+                CheckNpcModels(); // PLAN.md 106-4 — 씬을 안 바꾸는 검사라 앞쪽 아무 데나.
                 CheckLockOn(); // PLAN.md 106-1 — 더미 처치가 레벨업을 부를 수 있어 CheckLevelUpCut 뒤.
                 CheckEnemyTelegraph();
                 CheckTemple(); // PLAN.md 106-2 — 플레이어를 순간이동시키므로 맨 끝(finally 에서 되돌린다).
@@ -1545,6 +1546,70 @@ namespace Saga.EditorTools
                 HeroState.FullHeal();
                 ResetDodge(controller);
             }
+        }
+
+        /// <summary>PLAN.md 106-4 "캐릭터 통일" — 동행·마을 사람·포로·행상·능묘 파수꾼이 사실 모델(Humanoid
+        /// Animator)로 섰는지. 사실 모델 원본은 PC 마다 받는 gitignore 자산이라, 이 PC 에 구운 프리팹이
+        /// 없으면 검사를 건너뛴다(폴백 모델이 정상 동작).</summary>
+        private static void CheckNpcModels()
+        {
+            const string T = "[PlaytestDungeonHeadless] npc models";
+            string[] names = { "Skeleton", "Paladin", "PeasantMan", "PeasantGirl" };
+            foreach (var n in names)
+            {
+                if (AssetDatabase.LoadAssetAtPath<GameObject>(SetupNpcCharacterImports.PrefabPath(n)) == null)
+                {
+                    Debug.Log($"{T} skip - {n} 프리팹 없음(Saga/Setup NPC Character Imports 전)");
+                    return;
+                }
+            }
+            bool Human(Animator a) => a != null && a.isHuman && a.runtimeAnimatorController != null;
+            string fail = null;
+
+            var ally = Object.FindFirstObjectByType<AllyFighter>();
+            if (ally == null || !Human(ally.Animator)) fail = $"동행이 사실 모델이 아님 animator={ally?.Animator}";
+
+            int villagers = 0;
+            foreach (var idle in Object.FindObjectsByType<NpcIdle>(FindObjectsSortMode.None))
+            {
+                if (idle.gameObject.name != "Villager") continue;
+                villagers++;
+                if (fail == null && !Human(idle.GetComponentInChildren<Animator>())) fail = $"마을 사람 {idle.transform.position} 애니메이터 없음";
+            }
+            if (fail == null && villagers < 3) fail = $"사실 모델 마을 사람 {villagers} < 3";
+
+            foreach (var c in Object.FindObjectsByType<DungeonCaptive>(FindObjectsSortMode.None))
+            {
+                var idle = c.GetComponent<NpcIdle>();
+                var a = c.GetComponentInChildren<Animator>();
+                if (fail == null && (idle == null || !Human(a) || (!c.IsFreed && idle.StateName != "Kneel")
+                    || !a.HasState(0, Animator.StringToHash("Kneel"))))
+                    fail = $"포로가 무릎 꿇은 사실 모델이 아님 idle={idle?.StateName}";
+            }
+            int keepers = 0;
+            foreach (var m in Object.FindObjectsByType<DungeonMerchant>(FindObjectsSortMode.None))
+            {
+                var keeper = m.transform.Find("Keeper");
+                if (keeper != null && Human(keeper.GetComponentInChildren<Animator>())) keepers++;
+            }
+            if (fail == null && keepers < 5) fail = $"행상 사람 {keepers} < 5";
+
+            int skeletons = 0;
+            foreach (var e in DungeonEnemy.Active)
+            {
+                if (e == null || !e.RoomId.StartsWith("temple_") || e.IsBombArmored) continue;
+                var a = e.Animator;
+                if (Human(a) && a.avatar != null && a.avatar.name.StartsWith("Skeleton")) skeletons++;
+            }
+            if (fail == null && skeletons < 6) fail = $"해골 파수꾼 {skeletons} < 6";
+
+            if (fail != null)
+            {
+                Debug.LogError($"{T} — {fail}");
+                _hadError = true;
+                return;
+            }
+            Debug.Log($"{T} OK - 동행(Paladin)·마을 사람 {villagers}·포로(Kneel)·행상 {keepers}·해골 파수꾼 {skeletons} 전부 Humanoid");
         }
 
         /// <summary>켜진 HUD 캔버스 수 — 컷 레터박스와 토스트(DialogueLabel)는 뺀다(`DungeonCutscenes.HideHud` 와 같은 기준).</summary>

@@ -24,6 +24,8 @@ namespace Saga.Dungeon.World
         private const float ToastSec = 4f;
 
         [SerializeField] private string roomId = "room1";
+        // PLAN.md 106-4 — 사실 모델(Peasant Girl, 무릎 꿇은 대기 → 풀려나면 기쁜 대기). 없으면 예전 캡슐.
+        [SerializeField] private GameObject modelPrefab;
 
         private static readonly Color CaptiveColor = new Color(0.75f, 0.72f, 0.6f); // 지친 인영 — 옅은 살구빛
 
@@ -35,6 +37,11 @@ namespace Saga.Dungeon.World
         /// 정식 API. Awake가 아직 안 돈 상태에서만 의미가 있다.</summary>
         public void SetRoomId(string newRoomId) => roomId = newRoomId;
 
+        /// <summary>`SetRoomId` 와 같은 제약 — 비활성 GameObject 에 붙이고 부른 뒤 활성화한다.</summary>
+        public void SetModel(GameObject newModelPrefab) => modelPrefab = newModelPrefab;
+
+        public bool IsFreed => _freed;
+
         private void Awake()
         {
             if (transform.childCount == 0) BuildVisual();
@@ -44,6 +51,8 @@ namespace Saga.Dungeon.World
 
         private void BuildVisual()
         {
+            if (NpcIdle.SpawnRigged(modelPrefab, transform, "Kneel") != null) return;
+
             var visual = GameObject.CreatePrimitive(PrimitiveType.Capsule);
             visual.name = "Visual";
             visual.transform.SetParent(transform, false);
@@ -64,6 +73,14 @@ namespace Saga.Dungeon.World
             if (Vector3.Distance(transform.position, _player.position) > TriggerRadius) return;
 
             _freed = true;
+            var idle = GetComponent<NpcIdle>();
+            if (idle != null)
+            {
+                idle.SetState("Idle"); // 일어나 기뻐한다.
+                Vector3 look = _player.position - transform.position;
+                look.y = 0f;
+                if (look.sqrMagnitude > 0.01f) transform.rotation = Quaternion.LookRotation(look);
+            }
             int levelBefore = HeroState.Level;
             HeroState.AddExp(RewardExp);
             HeroState.AddGold(RewardGold);

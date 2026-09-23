@@ -8758,3 +8758,12 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - `Assets/Art/Generated/SagaGo/` 에 `tools/asset-forge/procgen.py` 로 구운 집·탑·등롱·우물·장터·허수아비·풀·갈대 19벌(부품마다 glTF 재질 색 — glTFast 기본 임포트로 색이 난다) + `.meta`. `tools/layout/kinds.json` `deco` 10종 전부.
 - 확인: 시험 deco 로 `HebeiLayout.unity` 를 잠깐 다시 조립 → `LAYOUT_WALK_PROBE_DONE fails=0 … deco_solids=2 deco_block=ok(deco:house_161)`, 되돌린 원래 씬도 fails=0 `deco_solids=0`.
   10종 배치표 조립 물건 171·없는 에셋 0, glTFast 경고 0. `ProjectSettings/`·`Packages/` 변화 없음, `Ground_*.mat` 재기록은 되돌렸다.
+
+## 2026-09-24 — PLAN 106-4 캐릭터 통일(DUNGEON): 동행·마을 사람·포로·행상·능묘 파수꾼 → Mixamo 사실 모델 (같은 대화 "사가 유니티 이어해", Opus 5.5)
+
+- **현황 파악**: 적(잡졸 Abe·두목 Brute)은 44장에서 이미 사실 모델. 남은 자리 = 동행(character-b 청색·애니 없이 미끄러짐)·마을 사람(character-b)·포로(캡슐)·행상(초록 상자뿐)·능묘 파수꾼(Abe 회청색 — 모든 적이 두 모델뿐이라 단조로움).
+- **도구**(`tools/mixamo_automation/fetch.mjs`, 별도 커밋): `--character "<카드 이름>"`(Characters 탭 → 카드 → 확인 모달 USE THIS CHARACTER, 오른쪽 패널 이름으로 확인)·`--tpose`(오른쪽 DOWNLOAD → 모달 기본 FBX Binary·T-pose)·`--inplace`(겉모양 라벨이 체크박스를 덮어 `check()` 30초 타임아웃 → DOM click). 자동화 크롬 로그인은 살아 있었다(사람 몫 없음). 받은 것: Skeletonzombie T Avelange(몸체+5), Paladin W/Prop J Nordstrom(몸체+4), Peasant Man(몸체+대기), Peasant Girl(몸체+대기+무릎 꿇기). 레시피는 README 표.
+- **함정**: 작업 중 다른 세션의 `git pull --rebase --autostash` 가 미커밋 fetch.mjs 를 잠깐 치웠다 되돌려, 그 틈의 `--tpose` 두 번이 "사용법" 오류로 끝났다(reflog 로 확인). 도구 수정은 곧바로 커밋. 또 `saga-unity` 에서 `grep -r .` 는 Library 까지 훑어 2분 넘게 걸림 — 경로를 좁힐 것.
+- **Unity**: `SetupNpcCharacterImports.cs`(표 하나로 넷 — 몸체 Humanoid + `이름@클립` → 컨트롤러 `Assets/Animators/<이름>.controller`(커밋) → `<이름>Animated.prefab`(로컬), applyRootMotion 끔). `NpcIdle`(대기 위상 흩기·추가 대기 상태 이름으로 Play·`SpawnRigged`). `AllyFighter` 리깅 분기(Speed 0/0.5/1 — 가까우면 걷기 2.6m/s·멀면 달리기 6m/s, 공격 트리거, 컷 동안 멈춤). `DungeonCaptive`(Kneel → 풀려나면 플레이어를 보고 Idle)·`DungeonMerchant`(좌판 뒤 Keeper) 모델 슬롯 + `SetModel`, `DungeonFloorRunner` 는 비활성 → SetModel → 활성. 씬 빌더: 마을 사람 남녀 번갈아·동행 Paladin·행상 5·포로·능묘 파수꾼 = 해골(옅은 칠 0.88/0.9/0.96). 프리팹이 없으면 전부 예전 모델로 폴백.
+- **검증**: 컴파일 exit 0 · `SetupAll` 4/4(아바타 전부 Humanoid valid) · 씬 재빌드 exit 0 · `PlaytestDungeonHeadless` **3연속 OK**(새 `CheckNpcModels`: 동행·마을 사람 3·포로 Kneel·행상 5·해골 파수꾼 6 Humanoid + 능묘·컷 검사 그대로) · `PlaytestDungeonFloorProgression` OK. GUI 실기 확인은 전.
+- 씬 재빌드마다 Timeline 3개의 서브애셋 fileID 가 새로 매겨져 diff 가 생긴다(GUID 는 유지) — 동작엔 영향 없음.

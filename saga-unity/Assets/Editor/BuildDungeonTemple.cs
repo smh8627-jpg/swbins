@@ -23,6 +23,7 @@ namespace Saga.EditorTools
         public static readonly Vector3 BossRoomCenter = new Vector3(-30f, 0f, 90f);
 
         private static readonly Color WardenTint = new Color(0.5f, 0.55f, 0.62f);
+        private static readonly Color SkeletonTint = new Color(0.88f, 0.9f, 0.96f);
         private static readonly Color GuardianTint = new Color(0.36f, 0.36f, 0.44f);
 
         private static GameObject _corridorGlb, _gateGlb, _roomGlb, _guardianModel, _wardenModel;
@@ -215,7 +216,9 @@ namespace Saga.EditorTools
             SetField(e, "rewardGold", 10);
             SetField(e, "rewardItemId", "wp_saber");
             SetField(e, "displayName", "능묘 파수꾼");
-            SetField(e, "bodyColor", WardenTint);
+            // 106-4 해골 파수꾼은 뼈 색이 살도록 옅게만 칠한다(Abe 폴백은 예전 회청색).
+            bool skeleton = _wardenModel != null && _wardenModel.name.StartsWith("Skeleton");
+            SetField(e, "bodyColor", skeleton ? SkeletonTint : WardenTint);
             SetField(e, "modelPrefab", _wardenModel);
         }
 

@@ -1,4 +1,5 @@
 using UnityEngine;
+using Saga.Dungeon.Cinematics;
 
 namespace Saga.Dungeon.World
 {
@@ -21,6 +22,7 @@ namespace Saga.Dungeon.World
     {
         private const float FollowDistance = 3f;
         private const float FollowSpeed = 6f; // PlayerController.WalkSpeed와 같음 — 플레이어를 놓치지 않게
+        private const float WalkFollowSpeed = 2.6f; // PLAN.md 106-4 — 가까울 땐 걷기 클립 보폭에 맞춘다
 
         private const float EngageRadius = 8f; // DungeonEnemy.AggroRadius 기본값과 같음 — 이 거리 안 적을 알아서 맞선다
         private const float AttackRange = 2.3f;
@@ -42,6 +44,9 @@ namespace Saga.Dungeon.World
 
         private Transform _player;
         private float _attackCooldown;
+        private Animator _animator; // PLAN.md 106-4 — 사실 모델(Paladin)일 때만. Speed 0/0.5/1 + Attack 트리거.
+
+        public Animator Animator => _animator;
 
         private void Awake()
         {
@@ -52,6 +57,15 @@ namespace Saga.Dungeon.World
 
         private void BuildVisual()
         {
+            if (modelPrefab != null && modelPrefab.GetComponent<Animator>() != null)
+            {
+                // 리깅 모델은 실제 크기 그대로, 청색 칠도 안 한다(갑주 텍스처가 이미 있다).
+                var inst = Instantiate(modelPrefab, transform, false);
+                inst.name = "Visual";
+                _animator = inst.GetComponent<Animator>();
+                CharacterVisual.EnsureBlobShadow(transform);
+                return;
+            }
             if (modelPrefab != null)
             {
                 CharacterVisual.Spawn(modelPrefab, transform, TargetHeight, BodyColor);
@@ -65,6 +79,11 @@ namespace Saga.Dungeon.World
         private void Update()
         {
             if (_player == null) return;
+            if (DungeonCutscenes.Playing)
+            {
+                SetSpeed(0f); // PLAN.md 106-3 — 컷 동안은 동행도 선다.
+                return;
+            }
             if (_attackCooldown > 0f) _attackCooldown -= Time.deltaTime;
 
             var target = DungeonEnemy.FindNearest(transform.position, EngageRadius);
@@ -79,13 +98,16 @@ namespace Saga.Dungeon.World
                     {
                         _attackCooldown = AttackInterval;
                         target.TakeDamage(HitDamage);
+                        if (_animator != null) _animator.SetTrigger("Attack");
                     }
+                    SetSpeed(0f);
                 }
                 else
                 {
                     Vector3 dir = target.transform.position - transform.position;
                     dir.y = 0f;
                     transform.position += dir.normalized * ChaseSpeed * Time.deltaTime;
+                    SetSpeed(1f);
                 }
                 return; // 싸우는 동안엔 플레이어를 안 쫓는다.
             }
@@ -98,11 +120,22 @@ namespace Saga.Dungeon.World
             Vector3 toPlayer = _player.position - transform.position;
             toPlayer.y = 0f;
             float dist = toPlayer.magnitude;
-            if (dist <= FollowDistance) return;
+            if (dist <= FollowDistance)
+            {
+                SetSpeed(0f);
+                return;
+            }
+            bool far = dist > FollowDistance * 2f;
+            SetSpeed(far ? 1f : 0.5f); // 멀면 달리고 가까우면 걷는다(걷기 클립에 맞춰 속도도 낮춘다).
 
             Vector3 dir = toPlayer.normalized;
-            transform.position += dir * FollowSpeed * Time.deltaTime;
+            transform.position += dir * (far ? FollowSpeed : WalkFollowSpeed) * Time.deltaTime;
             FaceTowards(_player.position);
+        }
+
+        private void SetSpeed(float value)
+        {
+            if (_animator != null) _animator.SetFloat("Speed", value, 0.1f, Time.deltaTime);
         }
 
         private void FaceTowards(Vector3 worldPos)
