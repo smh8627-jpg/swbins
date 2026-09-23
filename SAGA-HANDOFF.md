@@ -95,6 +95,8 @@
 | saga-godot | `saga-godot/PLAN.md` | `saga-godot/docs/PROJECT_STATE.md` | `saga-godot/docs/HISTORY.md` |
 | saga-unity | `saga-unity/PLAN.md` | `saga-unity/docs/PROJECT_STATE.md` | `saga-unity/docs/HISTORY.md` |
 
+**도구**(편집기·생성기·점검·에셋 파이프라인)는 `tools/README.md` 한 장에 위치가 모여 있다.
+
 옛 한눈에 표(판마다 8KB 짜리 이력 행)와 2026-08~09 세션 기록 89절은 `SAGA-HISTORY.md` ① 에 그대로 있다.
 
 ## 다섯 게임 — 완전히 별개인 프로젝트
@@ -368,6 +370,9 @@ PC 묶음   tools/saga-pc/build-all.bat  →  saga-pc/dist/ (다섯 html + index
 - **2D 모드 캐릭터를 실제 에셋으로** — SAGA-DESIGN §11 이 정본. 초상 미리 굽기(Phase 1)는 다섯 판 완료, 사가스토리·사가블로 옆면·던전 뷰 사람(Phase 2)은 완료(Kenney 열넷, 사가블로는 diabloize 유지). 짐승은 사가블로·사가스토리 적이 3D 몸 시트로 완료(Phase 3 일부). 남은 것: 사가고 지도 건물·깃발·배경 생물, 코드 그림 삭제(Phase 4).
 - **다섯 판 공용 에셋 통합 관리 엔진(장기)** — 사용자가 명시적으로 확정한 목표. 범위·형태·순서 미정 — 착수 전
   반드시 사용자와 맞춘다. `SAGA-DESIGN.md` §7.2 `tools/asset-forge/` 제안과 겹치므로 그쪽을 출발점으로.
+  2026-09-23 `tools/asset-audit/` 가 트랙을 넘는 사본(29묶음, 대부분 Godot·Unity 공용 Kenney)을 보고서로 낸다 — 통합 후보 목록으로 쓸 것.
+- **Unity 씬 조립 실제 실행** — `saga-unity/Assets/Editor/BuildFromLayout.cs`(메뉴 Saga > Layout)는 DLL 컴파일만 확인했다.
+  다른 세션이 saga-unity 를 안 고칠 때 한 번 돌려 볼 것(`tools/scene-layout/README.md`).
 - **사가고 `tower_ruin.glb`(역참) 아이콘 굽기** — 여섯 번 넘게 실패해 절차 그림 그대로.
   재시도 방법은 `saga-web/saga-go/tools/bake-icons/README.md`.
 - **절차적 인물·펫 셋째 나라** — 한국·일본 완료(`region-kr/jp.js`·`genchar*.js`). 다음 나라는 사용자가 정한다.
