@@ -58,6 +58,13 @@ func _ready() -> void:
 	_player = get_tree().get_first_node_in_group("player")
 	apply_stamina()
 
+## 아직 안 주운 별조각 자리(원소 시야 106장 ⑬ 이 짚는다).
+func remaining_positions() -> Array[Vector3]:
+	var out: Array[Vector3] = []
+	for id in _nodes:
+		out.append((_nodes[id] as Node3D).global_position)
+	return out
+
 static func total() -> int:
 	return SHARDS.size()
 

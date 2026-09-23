@@ -58,6 +58,12 @@ func _ready() -> void:
 		add_child(load("res://tools/probe_growth.gd").new())
 	if OS.get_environment("SAGA_TALENT_PROBE") != "":
 		add_child(load("res://tools/probe_talent.gd").new())
+	## PLAN 106장 ⑬ — 원소 시야(휠 누르기·V 누르고 있기).
+	var sight := preload("res://games/saga_go/world/elemental_sight.gd").new()
+	sight.name = "ElementalSight"
+	add_child(sight)
+	if OS.get_environment("SAGA_SIGHT_PROBE") != "":
+		add_child(load("res://tools/probe_elemental_sight.gd").new())
 	## 원신식 이동(go_player.gd) 자동 점검 — 측정할 때만 붙인다.
 	if OS.get_environment("SAGA_TRAVERSAL_PROBE") != "":
 		add_child(load("res://tools/probe_traversal.gd").new())

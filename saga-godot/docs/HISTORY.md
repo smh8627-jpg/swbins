@@ -8464,3 +8464,12 @@ PROJECT_STATE.md` 참고. 요약:
 - 점검 `tools/probe_talent.gd` 10항목 3회 md5 동일 fails=0(표 · 돌파 0 상한 1 · 돌파 2 올리기·차감·멈춤 · 기본 공격 ×1.8 · 1 자리 쿨 4.8 · 3/4/5 자리 · 6 자리 폭발 버프 · restore 옛 칸 기본값 · 불도깨비 쪽지 · 화면 단추). 전투·육성·별조각·이동·보물·지도 fails=0, REGRESS OK.
 - 파이썬 치환 `"\n"` 이 heredoc 에서 또 실제 줄바꿈이 됐다(character_screen) — Edit 로 바로잡음. GDScript 에 `\n` 이 드는 줄은 Edit 툴로.
 - 실기 확인 전: 인물 화면 세로 길이(스크롤 생김), 특성 단추 글자 길이, 매듭 17개가 모자라지 않은지.
+
+## GO 원신 기준 ⑬ 원소 시야 + 마우스 시점 커서 버그 고침 (2026-09-24, 새 세션, "사가고돗 이어해")
+
+- PROJECT_STATE 1순위. 새 `world/elemental_sight.gd`(CanvasLayer -1, 잿빛 막 인라인 셰이더 + 그 위 2D 빛·흔적 점) · `tools/probe_elemental_sight.gd`. `test_village.gd` 에 인물 화면 뒤로.
+- 짚는 것: 상자(`treasure_chest.unlit_torches()` 새로 — 봉인 중 꺼진 석등) · 별조각(`star_shards.remaining_positions()` 새로) · 안 켠 지점(`Waypoints.is_active`) · 들판 적. 흔적 = 80m 안 가장 가까운 상자·별조각, 점 높이는 `TerrainBuilder.height_at`.
+- 빛을 3D 로 안 그린 까닭: 화면 잿빛 막이 3D 전부를 덮어 빛까지 잿빛이 된다 → `unproject_position` 으로 막 위에 2D.
+- **버그 고침(⑧부터)**: `choice_prompt` 창은 한 번 지어 숨겨 두는데 숨은 창도 그룹 `ui_modal` 에 남아(마을 시작부터 9개) `camera_rig._modal_open()` 이 늘 참 → PC 마우스 시점 커서가 한 번도 안 갇혔을 것. 보이는 것만 세게 고침(시야도 같게). 헤드리스는 커서를 안 가둬 여태 점검에 안 걸렸다 — 시야 점검 ①에 회귀 항목.
+- 점검 8항목 3회 md5 동일 fails=0(입력·숨은 창 · 켜기 · 상자/지점/적 수 · 흔적 · 연 상자 빠짐 · 석등 3 · 창 열면 꺼짐 · 떼면 걷힘). 창 모드 화면 밖 Forward+·Mobile 셰이더 오류 0(⑨ 미니맵 원형 셰이더도 같이 그려져 0). 다른 GO 점검 일곱 fails=0, REGRESS OK.
+- 실기 확인 전: 잿빛 세기·물결, 빛 크기(가까우면 46px), 흔적 점이 산비탈에서 읽히는지, 마우스 시점이 이제 실제로 갇히는지.

@@ -196,6 +196,17 @@ func receive_element(pos: Vector3, radius: float, element: String) -> void:
 		unseal()
 
 
+## 원소 시야(106장 ⑬)가 짚는 아직 꺼진 석등 [{pos, element}] — 봉인이 남아 있을 때만.
+func unlit_torches() -> Array:
+	var out: Array = []
+	if not sealed or is_open:
+		return out
+	for t in _torches:
+		if t.lit_t <= 0.0:
+			out.append({"pos": (t.node as Node3D).global_position, "element": t.element})
+	return out
+
+
 func lit_count() -> int:
 	var n := 0
 	for t in _torches:

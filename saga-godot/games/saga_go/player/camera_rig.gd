@@ -77,8 +77,13 @@ func _look_active() -> bool:
 
 func _modal_open() -> bool:
 	var tree := get_tree()
-	if tree.get_nodes_in_group("ui_modal").size() > 0 or tree.get_nodes_in_group("duel_active").size() > 0:
+	if tree.get_nodes_in_group("duel_active").size() > 0:
 		return true
+	## 선택지 창(choice_prompt)은 한 번 지어 두고 숨겼다 보였다 한다 — 숨은 창도 그룹에 남아 있어서
+	## 보이는 것만 센다(안 그러면 마을에 사건이 하나만 있어도 커서가 한 번도 안 갇힌다).
+	for n in tree.get_nodes_in_group("ui_modal"):
+		if n.get("visible") != false:
+			return true
 	return bool(get_parent().get("frozen"))
 
 func _update_capture() -> void:
