@@ -4101,3 +4101,7 @@ VRoid 인물이 unlit(`MeshBasicMaterial`) 그대로라 명암 없이 평면이�
 - **펫 구도**: 사가고와 같은 `petFrame`·`petYaw`(물고기 옆모습)·camera far = max(400, dist × 3)(장룡·두꺼비·고래가 빈 카드였다). 손잡이 `portrait3d.petFit`.
 - 진단 369/369. `sw.js` dungeon-v0.150.0.
 - **남은 것**: 몬스터 스프라이트(`mon_<몸>.webp` 60종)는 아직 외곽선 끈 채 구운 그대로(`--sprites=monsters`). 긴 몸은 작게 선다. 실기 확인 전.
+
+## 2026-09-23 (이어서 5) — 몬스터 스프라이트 60종 외곽선 켜고 다시 굽기
+
+사용자 "이어 해줘". 위 절 남은 것 — `mon_<몸>.webp` 60종은 짐승 외곽선 파편 때문에 `--tune=world3d.outline:0` 로 끄고 구워 왔다. 외곽선 폭(이어서 3)·스키닝 순서(이어서 4)를 고쳤으니 `node tools/bake-portraits/bake.mjs saga-dungeon --sprites=monsters` 로 켜고 다시 구움(60/60, `mon-manifest.js` 내용 그대로). 스크래치에서 예전·새 시트를 나란히 보고, 전 칸의 검은 픽셀 비율 증가를 숫자로 훑어 파편 없음을 확인 — 증가 상위(거미 +0.45)는 검은 몸·가는 다리에 외곽선이 붙어 굵어진 것. 굽기 도구 사용법 줄에서 외곽선 끄기 안내를 뺐다. `sw.js` dungeon-v0.151.0. 실기 확인 전.
