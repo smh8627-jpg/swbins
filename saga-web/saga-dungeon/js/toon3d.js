@@ -146,9 +146,10 @@
       '#include <uv_pars_vertex>',
       '#include <skinning_pars_vertex>',
       'uniform float outlineWidth;',
+      'attribute vec3 outlineNormal;',
       'void main() {',
       '  #include <uv_vertex>',
-      '  #include <beginnormal_vertex>',
+      '  vec3 objectNormal = outlineNormal;',   // beginnormal_vertex 대신 — 같은 자리 꼭짓점끼리 평균 낸 법선
       '  #include <skinbase_vertex>',
       '  #include <skinnormal_vertex>',
       '  #include <begin_vertex>',
@@ -171,22 +172,52 @@
       },
       vertexShader: vert,
       fragmentShader: frag,
-      side: t.BackSide,
-      skinning: !!skinned
+      side: t.BackSide   // (옛 `skinning` 속성은 r169 에 없다 — 재질마다 경고만 냈다. 스키닝은 SkinnedMesh 가 알아서 켠다)
     });
     matPool[key] = m;
     return m;
   }
 
-  /** 원본 메시 곁에 외곽선 메시를 하나 얹는다. 이미 얹었으면 다시 안 만든다 */
-  function outline(mesh) {
+  /**
+   * 외곽선용 매끈한 법선(사가스토리에서 옮김, 2026-09-23) — 로우폴리 GLB 는 면마다 꼭짓점을 따로 두어(각진 음영) 법선이
+   * 면을 따라 갈린다. 그대로 밀면 면끼리 벌어져 외곽선이 톱니·끊긴 붓질이 된다(늑대 펫 초상 스크린샷). 같은 자리의
+   * 꼭짓점 법선을 평균 내 `outlineNormal` 로 따로 싣는다 — 원본 `normal` 은 안 건드려 본 몸 음영은 그대로다
+   */
+  function smoothOutlineNormals(geo) {
+    var t = three();
+    if (geo.attributes.outlineNormal) { return; }
+    if (!geo.attributes.normal && geo.attributes.position) { geo.computeVertexNormals(); }
+    var pos = geo.attributes.position, nor = geo.attributes.normal;
+    if (!pos || !nor) { return; }
+    var n = pos.count, acc = {}, keys = new Array(n), i, k, a;
+    for (i = 0; i < n; i++) {
+      k = Math.round(pos.getX(i) * 1e4) + ',' + Math.round(pos.getY(i) * 1e4) + ',' + Math.round(pos.getZ(i) * 1e4);
+      keys[i] = k;
+      a = acc[k] || (acc[k] = [0, 0, 0]);
+      a[0] += nor.getX(i); a[1] += nor.getY(i); a[2] += nor.getZ(i);
+    }
+    var out = new Float32Array(n * 3);
+    for (i = 0; i < n; i++) {
+      a = acc[keys[i]];
+      var l = Math.sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2]) || 1;
+      out[i * 3] = a[0] / l; out[i * 3 + 1] = a[1] / l; out[i * 3 + 2] = a[2] / l;
+    }
+    geo.setAttribute('outlineNormal', new t.BufferAttribute(out, 3));
+  }
+  /** 원본 메시 곁에 외곽선 메시를 하나 얹는다. 이미 얹었으면 다시 안 만든다.
+   *  `width` 를 주면 그 폭(지오메트리 단위) — GLB 는 `asset3d.js` delam 이 **모델 안 가장 큰 부품 반지름 × 2%** 한 폭을 넘긴다.
+   *  안 주면 예전 규칙(제 반지름 × 3%, 최소 0.006) — 도형 조립 배우(`actor3d`)용. 2026-09-23: 동물 GLB 는 부품 반지름이
+   *  0.002~0.03(뼈·메시 배율 100 으로 키움)이라 최소 0.006 이 부품의 20~300% 가 되어 몸 둘레에 검은 파편이 번졌다(펫 초상 스크린샷) */
+  function outline(mesh, width) {
     var t = three();
     if (!t || !mesh || !mesh.isMesh || !mesh.geometry || !mesh.parent) { return null; }
     if (mesh.userData && mesh.userData._toonOutline) { return mesh.userData._toonOutline; }
     if (!mesh.geometry.boundingSphere) { mesh.geometry.computeBoundingSphere(); }
     var r = (mesh.geometry.boundingSphere && mesh.geometry.boundingSphere.radius) || 0.3;
-    var width = Math.max(0.006, r * 0.03);
+    if (!(width > 0)) { width = Math.max(0.006, r * 0.03); }
     var skinned = !!mesh.isSkinnedMesh;
+    smoothOutlineNormals(mesh.geometry);
+    if (!mesh.geometry.attributes.outlineNormal) { return null; }
     var mat = outlineMaterial(width, skinned);
     var out;
     if (skinned) {

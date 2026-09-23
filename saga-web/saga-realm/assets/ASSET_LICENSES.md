@@ -175,6 +175,7 @@ tree/main/projects/tomb-chaser-2`, 네온웨이브 일본 탑 콘셉트 팩 — 
 | **받은 경위** | GitHub API로 `projects/tomb-chaser-2/` 목록을 확인(TempleBase·Column·Wall·Roof 등 모듈형 절 부품 다수)한 뒤 필요한 둘만 `raw.githubusercontent.com`으로 받았다 |
 | **원본 텍스처 문제** | 이 팩은 네온 콘셉트라 원본 색이 보라·시안·분홍이었다(색 샘플로 실측, 화면 확인이 아니라 텍스처 픽셀값 직접 조회) — 그대로 못 써 아래 팔레트로 스냅했다 |
 | **조립·팔레트** | `tools/asset-forge/kitbash.py` `city_t2_asian`(기둥 4+지붕 1층)·`city_t3_asian`(그 위에 작은 2층을 더 얹음) 레시피 → `palette.py`에 새 팔레트 `realm_asian_tower`(나무·기와 톤 8색) 추가 → `snap-glb`로 물들임 |
+| **다시 칠함(2026-09-23)** | `tools/asset-forge/retex_glb.py` — snap 결과가 기둥 회색·판재 검정+빨간 줄·지붕 민 회색이었고 원본 사이버 팩 광고판(`CyberAd`)이 붙어 있어, 밝기 결만 남기고 기둥 붉은 옻칠(Wood01)·판재 나무색(Wood02)·지붕 남회색(Roof)으로, `CyberAd` 는 알파 0 으로 숨김(1등급 BellStructure 색에 맞춤). 명령은 `saga-web/saga-realm/HANDOFF.md` 같은 날 절 |
 | **최종 파일** | `assets/generated/buildings/city_t2_asian.glb`(911KB)·`city_t3_asian.glb`(936KB) — `js/asset3d.js`의 `asset3d.asianTower`(기본 켬) 손잡이로 1등급과 함께 켜지고 꺼진다 |
 | **확인 방법** | 부품 배치(회전·간격)와 팔레트 스냅 전후는 오프라인 렌더(trimesh+matplotlib 3뷰 실루엣, `palette.py preview`)로 확인 — 게임 화면·헤드리스 크롬은 이번 세션에 안 띄웠다(스크린샷은 명시적 요청 시에만). **실기 확인 전** — 실제 성 위에서 크기·거리감이 적당한지는 사용자 확인 대상 |
 

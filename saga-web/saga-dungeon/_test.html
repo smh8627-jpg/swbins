@@ -5683,6 +5683,23 @@ window.requestAnimationFrame = function () { return 0; };
       return ok && twice && ('머리·옷·눈 변형 · 피부·얼굴·원본 재질 그대로 · 같은 인물 같은 재질 · 두 번 입혀도 원본 기준');
     });
 
+    t('toon3d — 외곽선: 폭을 주면 그 폭(최소 0.006 안 걸림), 매끈한 외곽선 법선, 옛 skinning 속성 없음', function () {
+      /* 2026-09-23 — 동물 GLB 는 부품 반지름이 0.002~0.03 이라 예전 최소폭 0.006 이 부품의 20~300% 가 되어 몸 둘레에 검은 파편이
+         번졌다(펫 초상 스크린샷). delam 은 이제 모델 안 가장 큰 부품 × 2% 한 폭을 넘기고, 면마다 갈린 법선은 평균 내 민다 */
+      var TN = DG.toon3d, TH = window.THREE;
+      function mesh(r) { var g = new TH.Group(), m = new TH.Mesh(new TH.BoxGeometry(r, r, r), new TH.MeshToonMaterial()); g.add(m); return m; }
+      var tiny = mesh(0.004), o1 = TN.outline(tiny, 0.0005);
+      var prim = mesh(0.004), o2 = TN.outline(prim);   // 폭 없음 = 도형 조립 배우용 예전 규칙
+      var w1 = o1 && o1.material.uniforms.outlineWidth.value, w2 = o2 && o2.material.uniforms.outlineWidth.value;
+      var on = tiny.geometry.attributes.outlineNormal, n0 = on ? [on.getX(0), on.getY(0), on.getZ(0)] : [0, 0, 0];
+      var diag = Math.abs(Math.abs(n0[0]) - Math.abs(n0[1])) < 1e-3 && Math.abs(Math.abs(n0[1]) - Math.abs(n0[2])) < 1e-3;   // 상자 모서리 = 세 면 평균
+      var vs = o1 ? o1.material.vertexShader : '';
+      return !!o1 && Math.abs(w1 - 0.0005) < 1e-9 && Math.abs(w2 - 0.006) < 1e-9 && !!on && diag &&
+        vs.indexOf('objectNormal = outlineNormal') > 0 && vs.indexOf('beginnormal_vertex') < 0 &&
+        !Object.prototype.hasOwnProperty.call(o1.material, 'skinning') &&
+        ('준 폭 ' + w1 + ' 그대로 · 폭 없으면 예전 ' + w2 + ' · 모서리 법선 평균 · 셰이더가 outlineNormal 을 씀');
+    });
+
     t('vroid-variant — 머리카락 하이라이트 띠(천사 고리): _HAIR 재질에만, 툰 템플릿 자리에 꽂히고 림과 함께 산다, 손잡이 끄면 없음', function () {
       /* 2026-09-23 "원신급" — 화면 기준 법선의 위쪽 성분이 일정 범위인 곳(머리를 가로로 두르는 띠)에 밝기 비례 광택.
          렌더 결과는 스크래치 확인 페이지 스크린샷으로 맞췄다 — 여기선 셰이더가 제자리에 꽂히는지·손잡이만 본다 */

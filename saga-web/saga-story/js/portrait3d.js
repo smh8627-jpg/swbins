@@ -91,14 +91,17 @@
     var c = global.DG && global.DG.core;
     return c && c.tuned ? (c.tuned('portrait3d.bust', 1) ? true : false) : true;
   }
-  function camPlan(w, h) {
+  /* 펫(네발짐승)은 몸통이 옆으로 길어 더 물러나 낮은 곳을 옆모습에 가깝게 본다 — 사가고·사가블로·사가의숲 camPlan 과 같은 값(폭만 조금 넓게).
+     2026-09-23 전엔 이 판만 펫 구도가 없어 사람 구도로 구워 소 초상 여섯 장이 몸통 한가운데만 크게 찍혀 있었다(스크린샷) */
+  function camPlan(w, h, kind) {
+    var isPet = kind === 'pet';
     var aspect = w / Math.max(1, h);
-    var span = BUST() ? 0.37 : 0.62;
+    var span = isPet ? 1.7 : (BUST() ? 0.37 : 0.62);   // 펫 1.7 — 1.5 면 이 판 여우 머리가 잘렸다
     var fov = 26;
     var dist = (span / 2) / Math.tan(fov * Math.PI / 360);
     if (aspect < 1) { dist = dist / Math.max(0.55, aspect); }
-    var look = BUST() ? 0.86 : 0.78;
-    return { fov: fov, dist: dist, look: look, aspect: aspect, yaw: 0.42, pitch: 0.06 };
+    var look = isPet ? 0.28 : (BUST() ? 0.86 : 0.78);
+    return { fov: fov, dist: dist, look: look, aspect: aspect, yaw: isPet ? 0.95 : 0.42, pitch: 0.06 };
   }
 
   /* ── 여기서부터 three 가 필요하다 ─────────────────────── */
@@ -236,7 +239,7 @@
   function bake(kind, ref, w, h, node) {
     if (!boot() || !node) { return null; }
 
-    var plan = camPlan(w, h);
+    var plan = camPlan(w, h, kind);
     var dpr = Math.min(global.devicePixelRatio || 1, 2);
     var pw = Math.max(16, Math.round(w * dpr)), ph = Math.max(16, Math.round(h * dpr));
 

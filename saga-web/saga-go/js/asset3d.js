@@ -803,8 +803,21 @@
         });
       });
       o.material = Array.isArray(o.material) ? out : out[0];
-      if (toon && wantOutline) { TN.outline(o); }
     });
+    /* 외곽선 — 모델 안에서는 **가장 큰 부품 반지름 × 2% 한 폭**, 그 12% 보다 작은 부품(눈·이빨·발굽)은 안 두른다(사가스토리 delam 과 같다).
+       예전엔 부품마다 제 반지름 × 3%(최소 0.006)라 반지름 0.002~0.03 인 동물 GLB 에서 외곽선이 부품보다 두꺼워 검은 파편이 번졌다(2026-09-23).
+       VRoid 는 vroid-variant 가 이미 둘러 `_toonOutline` 로 건너뛴다. traverse 도중 자식을 더하지 않으려고 모아서 붙인다 */
+    if (toon && wantOutline) {
+      var olMs = [], olMax = 0;
+      root.traverse(function (o) {
+        if (!o.isMesh || !o.geometry || (o.userData && o.userData._toonOutline) || /_outline$/.test(o.name || '')) { return; }
+        if (!o.geometry.boundingSphere) { o.geometry.computeBoundingSphere(); }
+        var r = o.geometry.boundingSphere ? o.geometry.boundingSphere.radius : 0;
+        olMs.push({ m: o, r: r });
+        if (r > olMax) { olMax = r; }
+      });
+      olMs.forEach(function (x) { if (olMax > 0 && x.r >= olMax * 0.12) { TN.outline(x.m, olMax * 0.02); } });
+    }
   }
 
   function acquire(url, done) {
