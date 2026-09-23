@@ -8648,3 +8648,13 @@ PROJECT_STATE 1순위가 "STORY 3·4차 전직(판단 대기)"였다 — 판단 
 **진단** `CheckUpperTiersAndPins()`: 3차 막힘(Lv.19·패왕격 7 — 참격 10은 안 센다)→진짜 버튼 원수(atk 2+7+13), 4차 막힘(Lv.24·천붕격 9)→전신(더 오를 자리 없음·손에 검), 자동만이면 전신 칸 [파멸격·지열·벽력돌·파천검]·세트 0, 패널 "칸" 경로로 안 익힌 철갑 거절·참격 하나 고정 → [참격·파멸격·지열·벽력돌] 정 2세트·넷 고정 → 정 4세트·다섯째 거절·칸 줄 글자·탭 4·줄 5·풀기 당김, 정 4세트 파멸격 피해 ×1.35가 실제 시전에, 명왕 보 4세트 명계보 급소 확정+재사용 8×0.8, 질 무예 3개, 3·4차 선행이 같은 뿌리 아랫자리. 기존 검사 둘 고침: 2차 뒤 `NextJob`은 이제 null이 아니라 marshal, 장군 패널은 9줄 대신 탭(2차 4줄·1차 5줄). 세이브 왕복에 칸 고정 추가, 옛 형식 정규식에 `skillPins` 선택 그룹. 첫 실행은 위 `NextJob` 기대 하나로 실패(의도된 변경) → 고친 뒤 **3연속 OK**. 씬 재빌드 없음.
 
 코드: `StoryCombat`·`StoryJobState`·`StorySkillData`·`StorySkillState`·`StorySaveState`·`StorySkillPanelUi`·`StoryJobTrainer`·`PlaytestStorySlice`, 현지화 두 파일. 문서: PLAN 101-2 STORY 행(3단계 결정), `PROJECT_STATE.md`, `HOW_TO_PLAYTEST.md`. 작업 중 `sed -i`가 CRLF 파일을 LF로 바꿔 `git checkout` 후 Edit로 다시 했다.
+
+## 2026-09-23 — STORY 전직 차수 옷 빛깔(101-3 G, 웹판 jobLook 이식) (같은 날 새 세션 "사가유니티 이어해", Opus 5.5)
+
+PROJECT_STATE 다음 작업이 "STORY 101-2 전부 완료 / 나머지 보류"뿐이라, 같은 날 웹 saga-story에 들어간 `f9c07449`(전직 차수마다 주인공 옷 빛깔, PLAN §6 성장 가시화)를 이 트랙으로 옮겼다. 이 트랙의 무기(`StoryWeaponVisual`)는 갈래 뿌리로만 갈려 2~4차가 눈으로 구분되지 않았는데, 바로 앞 세션에서 4차까지 생겨 그 빈자리가 커졌다.
+
+**식은 웹판 그대로**: 원래 색에 갈래 색(BRANCH_TINT #b8412f·#4f8f3f·#5b4a8c·#2f6fb0)을 차수×0.12(상한 0.6) 섞는다. **재해석**: 웹판은 툰 몸 전체의 세력 색을 물들이지만 이 트랙 Maria는 사실적 PBR이라 피부까지 물들이면 병색이 된다 — `BuildMariaSkinSplit`이 이미 나눈 서브메시 중 이름에 "Skin"이 든 재질은 건너뛰고 나머지 슬롯의 `_BaseColor`(텍스처에 곱해지는 값이라 무늬는 남는다)만 바꾼다. `MariaRest.mat`은 다른 판 씬도 공유해서 재질을 안 고치고 슬롯별 `MaterialPropertyBlock`으로 건다. 손의 무기(`Weapon (generated)` 밑)는 제외. 무명으로 돌아가면 블록을 비워 원래 색.
+
+새 `StoryOutfitTint`(플레이어, `JobChosen` 구독 — `Restore()`도 이 이벤트를 쏴 로드 시에도 맞는다), `BuildTestStoryScene`이 붙이고 TestField 재빌드. 진단 `CheckOutfitTint`: 무명 0 → 무사 0.12 → 장군 0.24 → 전신 0.48 → 명왕 0.48(보라), 첫 옷 슬롯 색 = Lerp(원래 색, 갈래 색, 비율), Maria 피부 슬롯 1 제외, 무명 되돌림. 첫 실행부터 **3연속 OK**. 실기 확인 전(4차 48%가 과한지·사실적 톤과 어울리는지는 사람 눈 몫 — GUI 스크린샷은 안 찍었다).
+
+코드: `StoryOutfitTint`(신규)·`BuildTestStoryScene`·`PlaytestStorySlice`, `TestField.unity` 재빌드. 문서: PLAN 101-3 G 행, `PROJECT_STATE.md`, `HOW_TO_PLAYTEST.md`.

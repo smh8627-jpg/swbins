@@ -884,6 +884,7 @@ namespace Saga.EditorTools
                     if (!CheckJobSkills()) { Fail(); return; }
                     if (!CheckPromotionAndSchools()) { Fail(); return; }
                     if (!CheckUpperTiersAndPins()) { Fail(); return; }
+                    if (!CheckOutfitTint()) { Fail(); return; }
 
                     Vector3 posBeforeSave = new Vector3(7.5f, 0.1f, 0f);
                     TeleportPlayer(posBeforeSave);
@@ -2186,6 +2187,50 @@ namespace Saga.EditorTools
             cds.Clear();
             SetPrivate(_storyController, "_buffUntilTime", 0f);
             Debug.Log("[PlaytestStorySlice] upper tiers + pins OK - 3·4차 전직(진짜 버튼·Lv.20/25·무예 8/10)·자동 칸 세트 0·칸 고정(거절/당김/자동 짝)·정 4세트·보 4세트 급소확정·차수 탭");
+            return true;
+        }
+
+        /// <summary>PLAN.md 101-3 G(2026-09-23, 웹판 jobLook 이식) — 전직 차수마다 옷 빛깔. 무명 0 →
+        /// 1차 0.12 → 2차 0.24 → 4차 0.48, 갈래가 바뀌면 색도 바뀌고, 첫 옷 슬롯 색 = 원래 색과 갈래 색의
+        /// 섞임, 피부 재질이 있으면 건너뛴다(Maria), 무명으로 돌리면 원래 색. 끝나면 전신 상태로 되돌린다.</summary>
+        private static bool CheckOutfitTint()
+        {
+            const string T = "[PlaytestStorySlice]";
+            var tint = Object.FindFirstObjectByType<StoryOutfitTint>();
+            if (tint == null) { Debug.LogError($"{T} 플레이어에 StoryOutfitTint가 없음(씬 재빌드 필요?)"); return false; }
+            int level = StoryJobState.Level;
+            float exp = StoryJobState.Exp;
+            string job = StoryJobState.Job;
+
+            StoryJobState.Restore(level, exp, StoryJobState.NoJob);
+            var original = tint.FirstTintedColor();
+            if (tint.CurrentMix != 0f || original == null) { Debug.LogError($"{T} 무명 옷 — mix={tint.CurrentMix}(기대 0) 옷 슬롯={original != null}"); return false; }
+
+            (string key, int tier, string root)[] steps = { ("warrior", 1, "warrior"), ("general", 2, "warrior"), ("warlord", 4, "warrior"), ("reaper", 4, "rogue") };
+            foreach (var (key, tier, root) in steps)
+            {
+                StoryJobState.Restore(level, exp, key); // JobChosen → Refresh
+                float mix = Mathf.Min(StoryOutfitTint.TintMax, tier * StoryOutfitTint.TintPerTier);
+                var expect = Color.Lerp(original.Value, StoryOutfitTint.BranchColor(root), mix);
+                var got = tint.FirstTintedColor();
+                if (!Mathf.Approximately(tint.CurrentMix, mix) || tint.TintedSlots < 1 || got == null ||
+                    Mathf.Abs(got.Value.r - expect.r) > 0.002f || Mathf.Abs(got.Value.g - expect.g) > 0.002f || Mathf.Abs(got.Value.b - expect.b) > 0.002f)
+                {
+                    Debug.LogError($"{T} {key} 옷 — mix={tint.CurrentMix}(기대 {mix}) 옷 슬롯={tint.TintedSlots} 색={got}(기대 {expect})");
+                    return false;
+                }
+            }
+            bool hasSkin = false;
+            foreach (var r in _storyController.Visual.GetComponentsInChildren<Renderer>(true))
+                foreach (var m in r.sharedMaterials)
+                    if (m != null && m.name.IndexOf("Skin", System.StringComparison.OrdinalIgnoreCase) >= 0) hasSkin = true;
+            if (hasSkin && tint.SkippedSkinSlots < 1) { Debug.LogError($"{T} 피부 재질이 있는데 건너뛴 슬롯 0 — 피부까지 물듦"); return false; }
+
+            StoryJobState.Restore(level, exp, StoryJobState.NoJob);
+            var back = tint.FirstTintedColor();
+            StoryJobState.Restore(level, exp, job);
+            if (back == null || back.Value != original.Value) { Debug.LogError($"{T} 무명으로 돌려도 옷 색이 안 돌아옴 — {back}(기대 {original})"); return false; }
+            Debug.Log($"[PlaytestStorySlice] outfit tint OK - 무명 0·1차 0.12·2차 0.24·4차 0.48, 갈래 색, 피부 {tint.SkippedSkinSlots}슬롯 제외(Maria={hasSkin}), 되돌림");
             return true;
         }
 

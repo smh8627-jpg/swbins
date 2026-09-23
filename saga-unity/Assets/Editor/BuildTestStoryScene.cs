@@ -313,6 +313,7 @@ namespace Saga.EditorTools
             SetPrivateField(storyController, "visual", visual);
             SetPrivateField(storyController, "animator", playerAnimator);
             playerGo.AddComponent<StoryWeaponVisual>(); // PLAN.md 101-3 G "장비 가시화".
+            playerGo.AddComponent<StoryOutfitTint>(); // 101-3 G — 전직 차수마다 옷 빛깔(웹판 jobLook, 2026-09-23).
             playerGo.AddComponent<BlobShadow>(); // PLAN.md 102-2 "Shadows" — Mobile만 켜진다.
 
             return (playerGo, storyController);
