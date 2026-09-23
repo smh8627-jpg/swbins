@@ -20,6 +20,7 @@ const VERTEX_COLOR_SHADER := preload("res://saga_core/shaders/curved_vertex_colo
 const TEXTURED_SHADER := preload("res://saga_core/shaders/curved_textured.gdshader")
 const TRIPLANAR_SHADER := preload("res://saga_core/shaders/curved_triplanar.gdshader")
 const CUTOUT_SHADER := preload("res://saga_core/shaders/curved_textured_cutout.gdshader")
+const VERTEX_COLOR_CUTOUT_SHADER := preload("res://saga_core/shaders/curved_vertex_color_cutout.gdshader")
 
 const GLOBAL_PARAM_NAME := "saga_world_curve_center"
 
@@ -72,6 +73,21 @@ static func cutout_material(texture: Texture2D, curve_amount: float,
 	mat.set_shader_parameter("albedo_texture", texture)
 	mat.set_shader_parameter("curve_amount", curve_amount)
 	mat.set_shader_parameter("roughness_value", roughness_value)
+	mat.set_shader_parameter("alpha_cutoff", alpha_cutoff)
+	return mat
+
+
+## vertex_color_material과 같은 색(정점색 × tint)에 원본 텍스처의 알파로만
+## 오려낸다 — 색감은 그대로 두고 잎 카드의 네모판만 없앨 때.
+static func vertex_color_cutout_material(curve_amount: float, roughness_value: float,
+		tint_color: Color, alpha_texture: Texture2D, alpha_cutoff: float = 0.2) -> ShaderMaterial:
+	ensure_global_registered()
+	var mat := ShaderMaterial.new()
+	mat.shader = VERTEX_COLOR_CUTOUT_SHADER
+	mat.set_shader_parameter("curve_amount", curve_amount)
+	mat.set_shader_parameter("roughness_value", roughness_value)
+	mat.set_shader_parameter("tint_color", tint_color)
+	mat.set_shader_parameter("alpha_texture", alpha_texture)
 	mat.set_shader_parameter("alpha_cutoff", alpha_cutoff)
 	return mat
 

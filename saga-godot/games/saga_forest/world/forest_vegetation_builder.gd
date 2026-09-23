@@ -57,6 +57,24 @@ static func _hash(gx: int, gy: int, salt: int) -> float:
 	return float(h & 0x7fffffff) / float(0x7fffffff)
 
 
+## CommonTree_1 잎은 alphaMode MASK 카드(텍스처 76% 투명, 잎 정점 전부 투명
+## 픽셀 위 — 09-23 실측)인데, 예전엔 material_override(vertex_color_material)
+## 하나로 덮어 알파가 무시돼 잎이 네모판으로 그려졌다. 색(정점색 × 바이옴
+## tint)은 승인된 그대로 두고 원본 텍스처 알파로만 오려낸다. MultiMesh는 표면별
+## 머티리얼을 따로 못 받으므로(material_override뿐) 바이옴마다 메시를 복제해
+## 표면(줄기·잎)마다 머티리얼을 박는다 — 원본 공유 Mesh는 안 건드린다.
+func _biome_tree_mesh(src: Mesh, tint: Color) -> Mesh:
+	var mesh := src.duplicate() as Mesh
+	for i in mesh.get_surface_count():
+		var orig := src.surface_get_material(i) as BaseMaterial3D
+		if orig == null or orig.albedo_texture == null:
+			mesh.surface_set_material(i, WorldCurveMaterial.vertex_color_material(CURVE_AMOUNT, 0.95, tint))
+			continue
+		mesh.surface_set_material(i, WorldCurveMaterial.vertex_color_cutout_material(
+			CURVE_AMOUNT, 0.95, tint, orig.albedo_texture, orig.alpha_scissor_threshold))
+	return mesh
+
+
 func _scatter_trees() -> void:
 	var ground := 0.0
 	## 바이옴 키(meadow/dark/mush/rocky)별로 자리를 따로 모은다 — 각각
@@ -107,14 +125,12 @@ func _scatter_trees() -> void:
 
 		var mm := MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
-		mm.mesh = tree_mesh
+		mm.mesh = _biome_tree_mesh(tree_mesh, BIOME_TREE_TINT[key])
 		mm.instance_count = positions.size()
 
 		var mmi := MultiMeshInstance3D.new()
 		mmi.multimesh = mm
 		mmi.name = "Trees_%s" % key
-		mmi.material_override = WorldCurveMaterial.vertex_color_material(
-			CURVE_AMOUNT, 0.95, BIOME_TREE_TINT[key])
 		add_child(mmi)
 
 		for i in positions.size():

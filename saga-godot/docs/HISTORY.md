@@ -8246,3 +8246,10 @@ PROJECT_STATE.md` 참고. 요약:
 - **ASSET_GUIDE 09-20 정정**: "Grass_Common_Short 텍스처는 대부분 투명" — 원본 `Grass.png`는 알파 0 픽셀이 0%(완전 불투명), gltf alphaMode도 불투명. 풀잎은 모델링된 지오메트리가 좁은 색 띠(UV u 0.18~0.21)만 샘플링하는 구조라 알파가 애초에 필요 없다.
 - FOREST `forest_biome_scatter.gd`: 배치 가능 칸 실측 dark 20·mush 18·meadow 35·rocky 42 → `BIOME_DENSITY {"dark":4,"mush":4}`(같은 salt 1 문턱만 넓혀 기존 자리 유지·추가만). 결과 meadow 5·dark 3·mush 5·rocky 5.
 - `godot_regress.sh` REGRESS OK(GO·FOREST md5 변경), `.import`/`project.godot` 잡음 없음.
+
+## FOREST 나무 잎 네모판 수정 (2026-09-23, 같은 세션, 다섯 번째 "푸시 커밋 하고 이어해")
+
+- 핵심 승인 화면이라 두 번 물었고 답 없이 "이어해"가 이어져, 바꾸기 전에 **얼마나 달라지는지 데이터로** 확인: CommonTree_1 잎 텍스처(`Leaves_NormalTree_C.png`)는 76% 투명, 잎 정점 100%가 투명 픽셀 위(카드 귀퉁이). 즉 지금 FOREST 캐노피는 잎 모양이 아니라 네모판 960여 장 — 흰 바위와 같은 부류(material_override가 원본 재질을 통째로 버림). 같은 나무를 쓰는 GO는 제대로 오려져 보인다.
+- **최소 수정**: 색은 승인된 그대로(정점색 × 바이옴 tint), 알파만 원본 텍스처에서 빌려 오린다 — `curved_vertex_color_cutout.gdshader` 신설(기존 curved_vertex_color는 그대로) + `WorldCurveMaterial.vertex_color_cutout_material()`. 텍스처 색을 쓰는 `cutout_material`(꽃·고사리용)로 바꾸면 톤까지 바뀌어서 안 씀.
+- MultiMeshInstance3D는 표면별 머티리얼을 못 받아서(`material_override` 하나뿐) `_biome_tree_mesh()`가 바이옴마다 `Mesh.duplicate()` 후 표면(줄기·잎)별 `surface_set_material`. 헤드리스 `-s` 프로브로 확인: 원본 공유 메시 재질은 빌드 후에도 StandardMaterial3D 그대로, 바이옴 4개(각 92그루)가 각자 복제본+올바른 tint, 줄기 텍스처는 투명 0%라 구멍 없음.
+- REGRESS OK — FOREST md5 변경, REALM md5도 변경(공용 `world_curve_material.gd`의 새 셰이더 preload 로그 2줄, 09-23 앞 항목과 같은 원인, 오류 0). 잡음 없음.
