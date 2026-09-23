@@ -8403,3 +8403,14 @@ PROJECT_STATE.md` 참고. 요약:
 - `assets/generated/props/` 에 `tools/asset-forge/procgen.py` 로 구운 집·탑·등롱·우물·장터·허수아비·풀·갈대 19벌(부품마다 재질 색) + `.import`. `tools/layout/kinds.json` `deco` 10종 전부.
 - 확인: 시험 deco(집·장터)로 `_generated/hebei_layout.tscn` 을 잠깐 다시 조립 → `LAYOUT_PROBE_DONE fails=0 … deco_solids=2 deco_block=ok(z=-2.1<0.0)`, 되돌린 원래 씬도 fails=0 `deco_solids=0`.
   10종 배치표 조립 물건 410·없는 에셋 0. `--import` 가 다시 쓴 기존 `.import` 26개(`generator_parameters` 지움)·줄바꿈 1000여 개는 되돌렸다.
+
+## GO 원신 기준 ⑦ 원소 쓰는 적 — 원소 방패·원소 공격, 퓨전 괴물 셋 (2026-09-23~24, 같은 세션, 두 번째 "사가고돗 이어해")
+
+- PROJECT_STATE "106장 다음 후보"에서 원소 쓰는 적을 골랐다(인물 육성은 PartyState·세이브를 건드려 더 크다). PLAN 106 표에 ⑦ 줄.
+- `field_enemy.gd` KINDS 에 불도깨비(화, 방패 150)·물거북(수, 180)·번개살쾡이(뇌, 130) — creature_builder goblin/turtle/beast 를 원소색으로, `_fit` 으로 키 맞춤. 방패가 있으면 `apply_damage` 가 체력 대신 방패를 깎고(새 인자 incoming_element, 모르는 피해는 물리), 깨지면 RECOVER 2초 비틀거림. 귀가·부활 때 방패 다시 참. 체력 막대 위 원소색 방패 막대.
+- `elements.gd` `shield_mul()`: 같은 원소 0(면역) · 물리 0.4 · 상성(수>화·뇌>수·화>뇌) 2.5 · 그 밖 1.0. `field_combat.gd _deal()` 은 방패 중이면 반응·부착 없이 방패만, "면역"/"약점!"/"방패 깨짐" 글자·카메라 흔들림.
+- 원소 공격: 맞으면 화상(피해 ×0.2 1초마다 3번, 화상만으로는 체력 1 아래로 안 감)·젖음(스태미나 -25)·감전(기력 -25). `take_damage(amount, source)` 가 source 의 element 를 본다.
+- 무리 3곳 8마리(`field_spawner.gd`): 포구 (6,5) 물거북 2+불도깨비, 폐허 (4,3) 번개살쾡이 2, (5,5) 불도깨비 2+번개살쾡이. 마을은 사건 칸이 빽빽해(2칸 규칙) 안 넣음. 보물 상자 무리 잠금 반경 12m 와 안 겹침(보물 점검 camp=2 그대로).
+- `probe_field_combat.gd` 10→13항목(적 21, 방패 규칙·깨진 뒤 부착·원소 공격 셋) 3회 fails=0 — 앞쪽 kill_exp·take_hit 수치는 실시간 기반이라 판마다 다르고 새 항목은 3회 같음. 보물·이동 점검 fails=0, `godot_regress.sh` 다섯 판 md5 3회 동일·잡음 0, 재질 감사 0.
+- PC 가 또 느려(점검+회귀 한 벌 40분+) 백그라운드로 돌렸다.
+- 실기 확인 전: 괴물 셋 크기·색이 원소로 읽히는지, 방패 막대가 보이는지, 방패 수치(물리로만 깨려면 불도깨비 기본 공격 약 15대)가 답답하지 않은지.

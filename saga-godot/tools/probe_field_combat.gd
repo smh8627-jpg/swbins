@@ -6,7 +6,9 @@ extends Node
 ##
 ## ① 반응 표 ② 적 무리 수 ③ 기본 공격으로 늑대를 잡으면 경험치 ④ 증발 ×1.5
 ## ⑤ 과부하 광역 ⑥ 감전 지속 ⑦ 가만히 서 있으면 적에게 맞는다 ⑧ 회피 중 무적
-## ⑨ 쓰러지면 안전한 곳에서 체력 가득 ⑩ 인물 교체 명단. 저장은 안 한다.
+## ⑨ 쓰러지면 안전한 곳에서 체력 가득 ⑩ 인물 교체 명단 ⑪ 원소 방패(106장 ⑦): 같은 원소 면역·
+## 물리 0.4·상성 ×2.5·깨지면 비틀거림·그 뒤 체력·부착 ⑫ 원소 적에게 맞으면 화상·젖음·감전.
+## 저장은 안 한다.
 
 const Elements := preload("res://games/saga_go/combat/elements.gd")
 const TestMap := preload("res://games/saga_go/data/test_map.gd")
@@ -37,7 +39,7 @@ func _physics_process(_delta: float) -> void:
 				and Elements.reaction_of("fire", "fire") == "" and Elements.reaction_of("", "fire") == ""
 			_check("reaction_table", ok, "")
 			var n := get_tree().get_nodes_in_group("field_enemy").size()
-			_check("spawn_count", n == 13, "n=%d" % n)
+			_check("spawn_count", n == 21, "n=%d" % n)
 			_next()
 		1: # ③ 마을 서쪽 늑대 무리 한 마리 앞에 서서 기본 공격 연타
 			if _frame == 1:
@@ -115,9 +117,43 @@ func _physics_process(_delta: float) -> void:
 			var want := 1 + mini(3, uniq.size())
 			_check("roster", r.size() == want and r[0] == "self", "size=%d want=%d" % [r.size(), want])
 			_next()
-		9:
+		9: # ⑪ 원소 방패 — 포구 불도깨비(방패 150)
+			var e := _enemy_kind("fire_imp")
+			var hp0: float = e.get("hp")
+			var immune: float = _fc.call("_deal", e, 50.0, "fire", Vector3.FORWARD)
+			var phys: float = _fc.call("_deal", e, 50.0, "", Vector3.FORWARD)
+			var counter: float = _fc.call("_deal", e, 50.0, "water", Vector3.FORWARD)
+			var still: bool = e.call("is_shielded")
+			_fc.call("_deal", e, 50.0, "water", Vector3.FORWARD)
+			var broke: bool = not e.call("is_shielded") and int(e.get("ai")) == 4 # AI.RECOVER
+			var hp_kept: bool = is_equal_approx(float(e.get("hp")), hp0)
+			_check("shield_rules", immune == 0.0 and is_equal_approx(phys, 20.0) and is_equal_approx(counter, 125.0) and still and broke and hp_kept,
+				"immune=%.1f phys=%.1f counter=%.1f still=%s broke=%s hp_kept=%s" % [immune, phys, counter, still, broke, hp_kept])
+			_fc.call("_deal", e, 20.0, "fire", Vector3.FORWARD)
+			_check("after_break", is_equal_approx(float(e.get("hp")), hp0 - 20.0) and e.get("aura") == "fire", "hp %.1f→%.1f aura=%s" % [hp0, float(e.get("hp")), e.get("aura")])
+			_next()
+		10: # ⑫ 원소 공격 효과
+			_fc.set("hp", _fc.get("max_hp"))
+			_p.stamina = _p.STAMINA_MAX
+			_fc.call("take_damage", 10.0, _enemy_kind("water_turtle"))
+			var soaked: bool = _p.stamina <= _p.STAMINA_MAX - 24.0
+			_fc.call("take_damage", 10.0, _enemy_kind("fire_imp"))
+			var burning: bool = int(_fc.get("_burn_left")) == 3
+			_fc.set("energy", 50.0)
+			_fc.call("take_damage", 10.0, _enemy_kind("thunder_cat"))
+			var shocked: bool = is_equal_approx(float(_fc.get("energy")), 25.0)
+			_fc.call("take_damage", 10.0, _enemy_kind("wolf"))
+			_check("elemental_hits", soaked and burning and shocked, "stamina=%.1f burn=%d energy=%.1f" % [_p.stamina, int(_fc.get("_burn_left")), float(_fc.get("energy"))])
+			_next()
+		11:
 			print("COMBAT_PROBE_DONE fails=%d" % _fails)
 			get_tree().quit()
+
+func _enemy_kind(kind: String) -> Node:
+	for e in get_tree().get_nodes_in_group("field_enemy"):
+		if e.get("kind") == kind and not e.call("is_dead"):
+			return e
+	return null
 
 func _enemy_near(pos: Vector3) -> Node:
 	var best: Node = null

@@ -43,6 +43,15 @@ const REGEN_PER_SEC := 0.05 # 최대 체력 비율
 const OVERLOAD_RADIUS := 4.0
 const ELECTRO_SPREAD := 3.0
 
+## PLAN 106장 ⑦ — 원소 쓰는 적에게 맞았을 때 덧붙는 효과.
+##   화 → 화상: 1초마다 맞은 피해 ×BURN_MUL, BURN_TICKS 번
+##   수 → 젖음: 스태미나 -SOAK_STAMINA
+##   뇌 → 감전: 폭발 기력 -SHOCK_ENERGY
+const BURN_TICKS := 3
+const BURN_MUL := 0.2
+const SOAK_STAMINA := 25.0
+const SHOCK_ENERGY := 25.0
+
 var hp := 1.0
 var max_hp := 1.0
 var energy := 0.0
@@ -56,6 +65,9 @@ var _attack_t := 0.0
 var _skill_cd: Dictionary = {}
 var _switch_cd := 0.0
 var _since_hurt := 99.0
+var _burn_left := 0
+var _burn_t := 0.0
+var _burn_amount := 0.0
 var _hud: Control = null
 var _hp_bar: ProgressBar = null
 var _energy_bar: ProgressBar = null
@@ -163,6 +175,13 @@ func _physics_process(delta: float) -> void:
 	if _combo_link <= 0.0:
 		_combo = 0
 	_since_hurt += delta
+	if _burn_left > 0 and hp > 0.0:
+		_burn_t -= delta
+		if _burn_t <= 0.0:
+			_burn_t = 1.0
+			_burn_left -= 1
+			hp = maxf(hp - _burn_amount, 1.0) # 화상만으로는 쓰러지지 않는다
+			_since_hurt = 0.0
 	if _since_hurt > REGEN_DELAY and hp < max_hp:
 		hp = minf(hp + max_hp * REGEN_PER_SEC * delta, max_hp)
 	_refresh_hud()
@@ -258,6 +277,22 @@ func _enemies_near(pos: Vector3, radius: float) -> Array:
 
 ## 한 번의 타격. 원소가 있으면 적의 부착 원소와 반응을 본다. 실제 준 피해를 돌려준다.
 func _deal(enemy: Node, base: float, element: String, dir: Vector3) -> float:
+	## 원소 방패가 있으면 반응·부착 없이 방패만 깎는다(106장 ⑦).
+	if enemy.call("is_shielded"):
+		last_reaction = ""
+		var shield_el: String = enemy.get("element")
+		var mul := Elements.shield_mul(shield_el, element)
+		var dealt: float = enemy.call("apply_damage", base, false, dir, element)
+		if mul == 0.0:
+			_reaction_text(enemy as Node3D, "면역", Color(0.75, 0.75, 0.75))
+		elif mul > 1.0:
+			_reaction_text(enemy as Node3D, "약점!", Elements.color_of(element))
+		if not enemy.call("is_shielded"):
+			_reaction_text(enemy as Node3D, "방패 깨짐", Elements.color_of(shield_el))
+			var rig := get_tree().get_first_node_in_group("camera_rig")
+			if rig:
+				rig.call("shake", 0.12, 0.25)
+		return dealt
 	var aura: String = enemy.get("aura")
 	var reaction := Elements.reaction_of(aura, element)
 	last_reaction = reaction
@@ -285,7 +320,7 @@ func _deal(enemy: Node, base: float, element: String, dir: Vector3) -> float:
 		enemy.call("set_aura", element)
 	return enemy.call("apply_damage", amount, reaction != "", dir)
 
-func take_damage(amount: float, _source: Node) -> void:
+func take_damage(amount: float, source: Node) -> void:
 	if hp <= 0.0 or _duel_open():
 		return
 	if _player.call("is_invulnerable"):
@@ -297,13 +332,30 @@ func take_damage(amount: float, _source: Node) -> void:
 	_player.call("play_action", "hit", 0.3, 0.0)
 	if hp <= 0.0:
 		_down()
+	elif source != null and source.get("element") != null:
+		_elemental_hit(String(source.get("element")), dmg)
 	_refresh_hud()
+
+func _elemental_hit(el: String, dmg: float) -> void:
+	match el:
+		"fire":
+			_burn_left = BURN_TICKS
+			_burn_t = 1.0
+			_burn_amount = dmg * BURN_MUL
+			_reaction_text(_player, "화상", Elements.color_of(el))
+		"water":
+			_player.set("stamina", maxf(float(_player.get("stamina")) - SOAK_STAMINA, 0.0))
+			_reaction_text(_player, "젖음", Elements.color_of(el))
+		"thunder":
+			energy = maxf(energy - SHOCK_ENERGY, 0.0)
+			_reaction_text(_player, "감전", Elements.color_of(el))
 
 ## 쓰러짐 — 원신처럼 잃는 것 없이, 마지막으로 딛은 땅에서 다시 일어난다.
 func _down() -> void:
 	_player.call("respawn_safe")
 	hp = max_hp
 	energy = 0.0
+	_burn_left = 0
 	Toast.show(_player, "쓰러졌다 — 정신을 차려 보니 안전한 곳이다", 3.0)
 
 func _recompute_max_hp() -> void:

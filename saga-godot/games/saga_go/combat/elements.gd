@@ -34,6 +34,21 @@ const REACTION_INFO := {
 	"electro": {"name": "감전", "mul": 1.0, "color": Color(0.7, 0.6, 1.0)},
 }
 
+## PLAN 106장 ⑦ — 원소 방패 상성. 방패 원소 → 그 방패를 빨리 깨는 원소(수>화, 뇌>수, 화>뇌).
+## 같은 원소는 방패를 못 긁고(면역), 원소 없는 기본 공격은 SHIELD_PHYSICAL 만큼만.
+const SHIELD_COUNTER := {"fire": "water", "water": "thunder", "thunder": "fire"}
+const SHIELD_COUNTER_MUL := 2.5
+const SHIELD_PHYSICAL := 0.4
+
+static func shield_mul(shield_element: String, incoming: String) -> float:
+	if incoming == "":
+		return SHIELD_PHYSICAL
+	if incoming == shield_element:
+		return 0.0
+	if SHIELD_COUNTER.get(shield_element, "") == incoming:
+		return SHIELD_COUNTER_MUL
+	return 1.0
+
 static func color_of(element: String) -> Color:
 	return INFO[element].color if INFO.has(element) else Color.WHITE
 

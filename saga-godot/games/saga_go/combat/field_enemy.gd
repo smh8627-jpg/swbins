@@ -17,6 +17,18 @@ const KINDS := {
 		"reach": 1.8, "tell": 0.7, "cd": 1.6, "exp": 10.0},
 	"bandit": {"name": "떠돌이 도적", "hp": 320.0, "atk": 18.0, "speed": 4.2, "aggro": 12.0,
 		"reach": 2.0, "tell": 0.9, "cd": 2.0, "exp": 14.0},
+	## PLAN 106장 ⑦ — 원소 쓰는 적(퓨전 괴물). 원소 방패(shield)가 있는 동안 체력은 안 깎이고
+	## 방패만 깎인다(상성은 elements.gd shield_mul). 깨지면 BREAK_STAGGER 초 비틀거리고 그 뒤론
+	## 보통 적처럼 원소가 붙고 반응도 난다. 덤벼 맞히면 원소 효과(field_combat.gd take_damage).
+	"fire_imp": {"name": "불도깨비", "hp": 260.0, "atk": 16.0, "speed": 4.6, "aggro": 13.0,
+		"reach": 2.0, "tell": 0.8, "cd": 1.8, "exp": 20.0, "element": "fire", "shield": 150.0,
+		"shape": "goblin", "height": 1.5, "colors": [Color(0.85, 0.28, 0.18), Color(0.35, 0.18, 0.14), Color(1.0, 0.85, 0.3)]},
+	"water_turtle": {"name": "물거북", "hp": 300.0, "atk": 15.0, "speed": 3.6, "aggro": 12.0,
+		"reach": 2.0, "tell": 0.9, "cd": 2.0, "exp": 20.0, "element": "water", "shield": 180.0,
+		"shape": "turtle", "height": 1.0, "colors": [Color(0.2, 0.42, 0.62), Color(0.35, 0.62, 0.72), Color(0.85, 0.95, 1.0)]},
+	"thunder_cat": {"name": "번개살쾡이", "hp": 230.0, "atk": 17.0, "speed": 6.0, "aggro": 15.0,
+		"reach": 1.8, "tell": 0.65, "cd": 1.5, "exp": 20.0, "element": "thunder", "shield": 130.0,
+		"shape": "beast", "height": 1.05, "colors": [Color(0.42, 0.3, 0.6), Color(0.78, 0.65, 1.0), Color(1.0, 0.95, 0.45)]},
 }
 
 const GRAVITY := 20.0
@@ -25,6 +37,8 @@ const LEASH := 26.0
 const RESPAWN_SEC := 90.0
 const LUNGE_SPEED := 9.0
 const LUNGE_SEC := 0.18
+## 원소 방패가 깨지면 이만큼 멈춰 선다(원신 방패 깨기의 보상 틈).
+const BREAK_STAGGER := 2.0
 
 enum AI { IDLE, CHASE, WINDUP, LUNGE, RECOVER, RETURN, DEAD }
 
@@ -36,6 +50,10 @@ var max_hp := 1.0
 var aura := ""
 var aura_t := 0.0
 var ai := AI.IDLE
+## 원소 방패 — 원소 없는 적은 0.
+var element := ""
+var shield := 0.0
+var max_shield := 0.0
 
 var _t := 0.0
 var _wander_target := Vector3.ZERO
@@ -44,6 +62,8 @@ var _dots: Array = [] # [{left, every, t, amount}]
 var _visual: Node3D = null
 var _visual_scale := 1.0
 var _bar_fill: MeshInstance3D = null
+var _shield_fill: MeshInstance3D = null
+var _shield_bg: MeshInstance3D = null
 var _aura_dot: MeshInstance3D = null
 var _tell_label: Label3D = null
 var _anim: AnimationPlayer = null
@@ -56,6 +76,9 @@ func setup(kind_id: String, home_pos: Vector3, seed_value: int) -> void:
 	_rng.seed = seed_value
 	max_hp = def.hp
 	hp = max_hp
+	element = def.get("element", "")
+	max_shield = def.get("shield", 0.0)
+	shield = max_shield
 
 func _ready() -> void:
 	add_to_group("field_enemy")
@@ -135,6 +158,7 @@ func _physics_process(delta: float) -> void:
 			to_h.y = 0.0
 			if to_h.length() < 1.0:
 				hp = max_hp
+				shield = max_shield
 				_refresh_bar()
 				ai = AI.IDLE
 				_pick_wander()
@@ -180,10 +204,22 @@ func _pick_wander() -> void:
 
 # ---------------------------------------------------------------- 피해·상태
 
-## field_combat.gd 가 부른다. 실제 깎인 양을 돌려준다.
-func apply_damage(amount: float, crit: bool, from_dir: Vector3 = Vector3.ZERO) -> float:
+## field_combat.gd 가 부른다. 실제 깎인 양(방패가 있으면 방패 쪽)을 돌려준다.
+## incoming_element 는 방패 상성에만 쓴다(과부하 튐·감전 지속처럼 원소를 모르는 피해는 "" = 물리).
+func apply_damage(amount: float, crit: bool, from_dir: Vector3 = Vector3.ZERO, incoming_element: String = "") -> float:
 	if ai == AI.DEAD:
 		return 0.0
+	if shield > 0.0:
+		var dealt := amount * Elements.shield_mul(element, incoming_element)
+		shield = maxf(shield - dealt, 0.0)
+		if dealt > 0.0:
+			CombatFeel.hit(_visual, dealt, false)
+		if ai == AI.IDLE or ai == AI.RETURN:
+			ai = AI.CHASE
+		if shield <= 0.0:
+			_break_shield(from_dir)
+		_refresh_bar()
+		return dealt
 	hp -= amount
 	CombatFeel.hit(_visual, amount, crit)
 	if from_dir.length() > 0.01:
@@ -194,6 +230,17 @@ func apply_damage(amount: float, crit: bool, from_dir: Vector3 = Vector3.ZERO) -
 	if hp <= 0.0:
 		_die()
 	return amount
+
+func is_shielded() -> bool:
+	return shield > 0.0
+
+func _break_shield(from_dir: Vector3) -> void:
+	shield = 0.0
+	_set_tell(false)
+	ai = AI.RECOVER
+	_t = BREAK_STAGGER
+	if from_dir.length() > 0.01:
+		_knock = from_dir.normalized() * 6.0
 
 func knockback(dir: Vector3, force: float) -> void:
 	_knock = Vector3(dir.x, 0, dir.z).normalized() * force
@@ -241,6 +288,7 @@ func _die() -> void:
 func _revive() -> void:
 	global_position = home
 	hp = max_hp
+	shield = max_shield
 	visible = true
 	collision_layer = 1
 	ai = AI.IDLE
@@ -279,6 +327,9 @@ func _build_visual() -> Node3D:
 	if kind == "bandit":
 		v = VroidBody.build(String(name), 2, Color(0.55, 0.28, 0.25))
 		_anim = v.get_node_or_null("AnimationPlayer") as AnimationPlayer
+	elif def.has("shape"):
+		v = CreatureBuilder.build(def.shape, def.colors)
+		CreatureBuilder._fit(v, def.shape, def.height)
 	else:
 		v = CreatureBuilder.build("beast", [Color(0.42, 0.4, 0.38), Color(0.62, 0.6, 0.56), Color(0.95, 0.8, 0.25)])
 		v.scale = Vector3.ONE * 0.9
@@ -287,7 +338,7 @@ func _build_visual() -> Node3D:
 
 ## 머리 위: 이름표 · 체력 막대 · 붙은 원소 점 · 공격 예고 "!".
 func _build_overhead() -> void:
-	var top := 2.15 if kind == "bandit" else 1.45
+	var top := 2.15 if kind == "bandit" else (float(def.height) + 0.45 if def.has("height") else 1.45)
 	var label := Label3D.new()
 	label.text = def.name
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
@@ -304,6 +355,15 @@ func _build_overhead() -> void:
 	_bar_fill = _bar_quad(Color(0.9, 0.25, 0.2), Vector2(1.0, 0.07))
 	_bar_fill.position = Vector3(0, top, 0.001)
 	add_child(_bar_fill)
+	## 원소 방패 막대 — 체력 막대 바로 위, 방패 원소 색.
+	if max_shield > 0.0:
+		_shield_bg = _bar_quad(Color(0.1, 0.08, 0.08, 0.8), Vector2(1.0, 0.08))
+		_shield_bg.position = Vector3(0, top + 0.11, 0)
+		add_child(_shield_bg)
+		_shield_fill = _bar_quad(Elements.color_of(element), Vector2(1.0, 0.055))
+		_shield_fill.position = Vector3(0, top + 0.11, 0.001)
+		add_child(_shield_fill)
+		label.position.y += 0.1
 
 	_aura_dot = MeshInstance3D.new()
 	var sphere := SphereMesh.new()
@@ -347,6 +407,11 @@ func _refresh_bar() -> void:
 		return
 	var r := clampf(hp / max_hp, 0.0, 1.0)
 	(_bar_fill.mesh as QuadMesh).size = Vector2(maxf(r, 0.001), 0.07)
+	if _shield_fill:
+		var s := clampf(shield / max_shield, 0.0, 1.0)
+		_shield_fill.visible = s > 0.0
+		_shield_bg.visible = s > 0.0
+		(_shield_fill.mesh as QuadMesh).size = Vector2(maxf(s, 0.001), 0.055)
 
 func _refresh_aura() -> void:
 	if _aura_dot == null:

@@ -15,6 +15,10 @@ const CAMPS := [
 	["village", Vector2i(8, 9), ["wolf", "wolf", "bandit"]],
 	["coast", Vector2i(2, 6), ["wolf", "wolf"]],
 	["ruins", Vector2i(2, 2), ["bandit", "bandit", "bandit"]],
+	## PLAN 106장 ⑦ — 원소 쓰는 적. 상자 무리 잠금(반경 12m)과 칸이 겹치지 않는 자리.
+	["coast", Vector2i(6, 5), ["water_turtle", "water_turtle", "fire_imp"]],
+	["ruins", Vector2i(4, 3), ["thunder_cat", "thunder_cat"]],
+	["ruins", Vector2i(5, 5), ["fire_imp", "fire_imp", "thunder_cat"]],
 ]
 const SPREAD := 5.0
 
