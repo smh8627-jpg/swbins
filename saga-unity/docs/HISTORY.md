@@ -8767,3 +8767,11 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - **Unity**: `SetupNpcCharacterImports.cs`(표 하나로 넷 — 몸체 Humanoid + `이름@클립` → 컨트롤러 `Assets/Animators/<이름>.controller`(커밋) → `<이름>Animated.prefab`(로컬), applyRootMotion 끔). `NpcIdle`(대기 위상 흩기·추가 대기 상태 이름으로 Play·`SpawnRigged`). `AllyFighter` 리깅 분기(Speed 0/0.5/1 — 가까우면 걷기 2.6m/s·멀면 달리기 6m/s, 공격 트리거, 컷 동안 멈춤). `DungeonCaptive`(Kneel → 풀려나면 플레이어를 보고 Idle)·`DungeonMerchant`(좌판 뒤 Keeper) 모델 슬롯 + `SetModel`, `DungeonFloorRunner` 는 비활성 → SetModel → 활성. 씬 빌더: 마을 사람 남녀 번갈아·동행 Paladin·행상 5·포로·능묘 파수꾼 = 해골(옅은 칠 0.88/0.9/0.96). 프리팹이 없으면 전부 예전 모델로 폴백.
 - **검증**: 컴파일 exit 0 · `SetupAll` 4/4(아바타 전부 Humanoid valid) · 씬 재빌드 exit 0 · `PlaytestDungeonHeadless` **3연속 OK**(새 `CheckNpcModels`: 동행·마을 사람 3·포로 Kneel·행상 5·해골 파수꾼 6 Humanoid + 능묘·컷 검사 그대로) · `PlaytestDungeonFloorProgression` OK. GUI 실기 확인은 전.
 - 씬 재빌드마다 Timeline 3개의 서브애셋 fileID 가 새로 매겨져 diff 가 생긴다(GUID 는 유지) — 동작엔 영향 없음.
+
+## 2026-09-24 — PLAN 107장 신설(GO 원신 기준) + ① 들판 전투 (같은 대화 "사가유니티 이어해" 도중 사용자 요청, Opus 5.5)
+
+- **결정**: 106장 순서 5(DUNGEON 점프·등반)를 막 시작하려던 참에 사용자가 "사가고를 원신이 전투 시스템 맵형태가 완전 일치하게 요청했어" → AskUserQuestion 에서 **"유니티 사가고도 원신식, 지금 바로"**. PLAN 107장(① 들판 전투 ② 이동 ③ 지역 지도 ④ 상자 ⑤ 원소 적 ⑥ 동료 모델)을 적고 ①을 했다. 규칙 비율은 saga-godot PLAN 106장 ③ 을 따랐고(코드 공유 없음), GO 사람 키 3.4m 라 거리는 약 1.85배.
+- **새 파일** `Assets/Games/SagaGo/Combat/`: `GoElements`(화·수·뇌·반응 3·FNV 해시 원소) · `GoStamina`(공용 스태미나 100) · `DuelGate`(옛 결투 중 멈춤 — 세 사건 `Update` 첫 줄 `Report`, 프레임 도장이라 해제 호출 불필요) · `FieldEnemy`(배회→발견 24m→추격→예고 0.6s→판정 4.2m→쉼, 끌려 나옴 45m 귀가·회복, 90초 부활, 머리 위 이름·체력·원소 점, **물리 충돌체 없음** — `CameraRig` 벽 pull-in 이 모든 레이어를 raycast 해서) · `FieldCombat`(J 3타·E 스킬·Q 폭발·L/Ctrl 회피·1~4 교체, 인물별 체력·쿨·기력, 전멸 → 마을 스폰) · `FieldCombatHud`(런타임 생성, 런타임 리스너) · `FieldSpawner`(여섯 무리 15마리, Abe·Skeleton 프리팹 없으면 캡슐) · `FieldRingFx`·`FieldDamageText`.
+- **고친 파일**: GO `PlayerController`(달리기 스태미나·`Dash`·`FaceToward`·`MoveIntent`·`Teleport`) · 세 사건 `Update` 한 줄씩 · 씬 빌더 `BuildFieldCombat`.
+- **검증**: 컴파일·`BuildTestVillageScene` exit 0 · `PlaytestHeadless` **3연속 OK** — 새 `PlaytestGoFieldCombat`(반응 표·적 15·3타 배율/콤보 끊김·처치 경험치·Killed·증발 150·과부하 광역·감전 번짐/틱·스킬 부착/쿨/기력·폭발·발견→예고→피격·회피 무적·교체/쿨/쓰러짐 자동 교체·전멸 복귀 돈 그대로·DuelGate·진짜 onClick 공격/명단). 첫 실행 실패 하나는 진단 착오(폭발 4배가 적 체력보다 커서 깎인 양이 잘림).
+- 새 글자는 `GoLocalization.T(키, 한국어)` 폴백 — ko/en 표(다섯 벌 md5)는 아직 안 늘렸다. 실기 확인은 전.

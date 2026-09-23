@@ -71,6 +71,7 @@ namespace Saga.EditorTools
             BuildLuckyCairn();
             BuildBeaconTower();
             var (playerGo, cameraRig) = BuildPlayer();
+            BuildFieldCombat(playerGo);
             BuildReviewCamera();
             BuildPostProcessingVolume();
             BuildToneVolume();
@@ -303,6 +304,19 @@ namespace Saga.EditorTools
             var hitClip = AssetDatabase.LoadAssetAtPath<AudioClip>(HitClipPath);
             if (hitClip != null) SetPrivateField(encounter, "hitClip", hitClip);
             encounter.Build();
+        }
+
+        /// <summary>PLAN.md 107-1 "들판 전투" — 플레이어에 `FieldCombat`(HUD 는 Play 때 스스로 만든다),
+        /// 적 무리 여섯 곳을 세울 `FieldSpawner` 에 모델 둘(산적 Abe·해골 Skeleton, 없으면 캡슐)만 넘긴다.</summary>
+        private static void BuildFieldCombat(GameObject playerGo)
+        {
+            var combat = playerGo.AddComponent<Saga.Go.Combat.FieldCombat>();
+            SetPrivateField(combat, "player", playerGo.GetComponent<PlayerController>());
+
+            var spawnerGo = new GameObject("FieldSpawner");
+            var spawner = spawnerGo.AddComponent<Saga.Go.Combat.FieldSpawner>();
+            SetPrivateField(spawner, "banditModel", AssetDatabase.LoadAssetAtPath<GameObject>(AbeAnimatedPrefabPath));
+            SetPrivateField(spawner, "skeletonModel", AssetDatabase.LoadAssetAtPath<GameObject>(SetupNpcCharacterImports.PrefabPath("Skeleton")));
         }
 
         private static void BuildRareWolfEncounter()

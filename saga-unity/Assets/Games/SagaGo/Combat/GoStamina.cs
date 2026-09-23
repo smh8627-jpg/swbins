@@ -1,0 +1,60 @@
+using UnityEngine;
+
+namespace Saga.Go.Combat
+{
+    /// <summary>
+    /// PLAN.md 107-1 "회피"·107 ② "스태미나 100 공용" — 달리기·회피(지금)와 등반·활공·수영(②)이
+    /// 같이 쓰는 기력. 쓴 뒤 0.8초가 지나야 초당 25씩 차고, 바닥나면 30까지 달리기가 잠긴다.
+    /// </summary>
+    public static class GoStamina
+    {
+        public const float Max = 100f;
+        public const float RegenPerSec = 25f;
+        public const float RegenDelaySec = 0.8f;
+        public const float SprintPerSec = 8f;
+        public const float SprintUnlockAt = 30f;
+
+        public static float Value { get; private set; } = Max;
+        public static bool SprintLocked { get; private set; }
+
+        private static float _sinceUse = 999f;
+
+        /// <summary>한 번에 치르는 값(회피 등). 모자라면 안 쓰고 false.</summary>
+        public static bool TrySpend(float amount)
+        {
+            if (Value < amount) return false;
+            Value -= amount;
+            _sinceUse = 0f;
+            if (Value <= 0f) { Value = 0f; SprintLocked = true; }
+            return true;
+        }
+
+        /// <summary>계속 닳는 값(달리기). 잠겼거나 바닥나면 false.</summary>
+        public static bool Drain(float amount)
+        {
+            if (SprintLocked || Value <= 0f) return false;
+            Value = Mathf.Max(0f, Value - amount);
+            _sinceUse = 0f;
+            if (Value <= 0f) SprintLocked = true;
+            return true;
+        }
+
+        /// <summary>`PlayerController.Update` 가 프레임마다 한 번 부른다.</summary>
+        public static void Tick(float dt)
+        {
+            _sinceUse += dt;
+            if (_sinceUse >= RegenDelaySec && Value < Max)
+            {
+                Value = Mathf.Min(Max, Value + RegenPerSec * dt);
+            }
+            if (SprintLocked && Value >= SprintUnlockAt) SprintLocked = false;
+        }
+
+        public static void ResetFull()
+        {
+            Value = Max;
+            SprintLocked = false;
+            _sinceUse = 999f;
+        }
+    }
+}

@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Saga.Go.Combat;
 using Saga.Go.UI;
 using Saga.Go.World;
 
@@ -52,6 +53,48 @@ namespace Saga.Go.Player
         private float _verticalVelocity;
         private float _footprintCooldown;
 
+        // PLAN.md 107-1 "회피" — 들판 전투(`FieldCombat`)가 부르는 짧은 대시. 무적은 FieldCombat 몫.
+        private float _dashTimeLeft;
+        private Vector3 _dashVelocity;
+
+        public bool IsDashing => _dashTimeLeft > 0f;
+
+        /// <summary>PLAN.md 107-1 — `dir` 쪽으로 `seconds` 동안 `distance` 만큼 미끄러진다(입력 무시).
+        /// Maria 면 구르기 클립(`Dodge` 트리거).</summary>
+        public void Dash(Vector3 dir, float distance, float seconds)
+        {
+            dir.y = 0f;
+            if (dir.sqrMagnitude < 0.0001f) dir = visual != null ? visual.forward : transform.forward;
+            dir.Normalize();
+            _dashVelocity = dir * (distance / Mathf.Max(0.01f, seconds));
+            _dashTimeLeft = seconds;
+            if (visual != null) visual.rotation = Quaternion.LookRotation(dir);
+            if (animator != null) animator.SetTrigger("Dodge");
+        }
+
+        /// <summary>`FieldCombat` 이 공격 순간 몸을 대상 쪽으로 돌릴 때.</summary>
+        public void FaceToward(Vector3 worldPos)
+        {
+            if (visual == null) return;
+            Vector3 d = worldPos - transform.position;
+            d.y = 0f;
+            if (d.sqrMagnitude < 0.0001f) return;
+            visual.rotation = Quaternion.LookRotation(d);
+        }
+
+        /// <summary>현재 입력의 월드 방향(카메라 기준, 길이 ≤1) — 회피 방향용.</summary>
+        public Vector3 MoveIntent => WorldDirection(MovementInput());
+
+        /// <summary>쓰러져 마을로 돌아갈 때 — CharacterController 는 꺼야 순간이동이 먹는다.</summary>
+        public void Teleport(Vector3 pos)
+        {
+            _controller.enabled = false;
+            transform.position = pos;
+            _controller.enabled = true;
+            _verticalVelocity = 0f;
+            _dashTimeLeft = 0f;
+        }
+
         private void Awake()
         {
             _controller = GetComponent<CharacterController>();
@@ -82,11 +125,21 @@ namespace Saga.Go.Player
                 _verticalVelocity = 0f;
             }
             _verticalVelocity -= Gravity * dt;
+            GoStamina.Tick(dt);
+
+            if (_dashTimeLeft > 0f)
+            {
+                _dashTimeLeft -= dt;
+                _controller.Move(new Vector3(_dashVelocity.x, _verticalVelocity, _dashVelocity.z) * dt);
+                return;
+            }
 
             Vector2 inputDir = MovementInput();
             Vector3 moveDir = WorldDirection(inputDir);
 
-            bool running = _sprintAction != null && _sprintAction.IsPressed();
+            // PLAN.md 107-1 — 달리기는 스태미나를 초당 8 쓴다(바닥나면 30까지 잠김).
+            bool running = _sprintAction != null && _sprintAction.IsPressed()
+                && moveDir.sqrMagnitude > 0.05f * 0.05f && GoStamina.Drain(GoStamina.SprintPerSec * dt);
             float speed = running ? RunSpeed : WalkSpeed;
 
             Vector3 horizontal = moveDir * speed;

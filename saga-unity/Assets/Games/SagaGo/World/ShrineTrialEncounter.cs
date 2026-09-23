@@ -111,6 +111,7 @@ namespace Saga.Go.World
         private void Update()
         {
             float dt = Time.deltaTime;
+            Saga.Go.Combat.DuelGate.Report(_state == State.Fight); // PLAN.md 107-1 옛 결투 중엔 들판 전투가 멈춘다.
             switch (_state)
             {
                 case State.Idle:
