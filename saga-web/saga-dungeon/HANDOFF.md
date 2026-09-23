@@ -4130,3 +4130,12 @@ VRoid 인물이 unlit(`MeshBasicMaterial`) 그대로라 명암 없이 평면이�
 - 고침: 순수 함수 `rebaseCam(pos, look, oldAnc, newAnc)` — 앵커가 바뀐 프레임에 둘 다 (옛 − 새)만큼 옮긴다(높이는 그대로). `camAnc` 가 마지막 앵커를 기억. PLAN 처방이던 "look 0.3s lerp" 는 로컬 공간 lerp 라 쓸림을 오히려 만들어 안 씀.
 - 남은 것: 앵커 전환 때 들판 지형 자체가 바뀌어 보일 수 있다(`field3d` 씨앗이 앵커 기준 — HANDOFF §57 "다음 세션이 할 일" 1~4). 실기 확인 대기.
 - 진단 1(`_rebaseCam`, moru → galdae) → jsdom 371/371 세 번 동일. `sw.js` dungeon-v0.153.0.
+
+## 2026-09-24 (이어서 2) — 비결(秘訣, PLAN §5.9) — 디아3식 무예 변형 + 전리품 빛기둥
+
+- 계기: 사용자가 네 판 추천안을 다 골랐다(이 판은 "빌드 룬"). 소켓 룬(data-gem.js)이 이미 있어 이름을 **비결**로.
+- 새 `js/secret.js` — 다섯(분노·한기·확산·신속·흡혈), 무예 단수 1~5 에 하나씩. `modify(sk, key)` 는 무예를 복사해 바꾸는 순수 함수(원본 불변).
+- `dungeon.js` `castSkill` — 기력 ×·재냉각 ×·위력 ×(분신은 +1)·흡혈은 `addBuff('drainPct',12,3)`. `status().skills` 에 비결·바뀐 기력/재냉각. `dropItem` 보물 이상 낙하음(`drop3`·`uniq`).
+- `ui.js` 무예 나무 — 배운 무예 아래 비결 단추 다섯(잠금 🔒n). `dungeon-view.js` 칸 그림 옆에 비결 그림.
+- `dungeon3d.js` 빛기둥(명품+, fog:false). 곁다리 버그: 드롭 배우가 `'d'+i` 번호로 캐시돼 같은 자리 번호에 다른 물건이 떨어져도 첫 색 그대로였다 → `userData.ref` 로 다시 짓는다.
+- 진단 5 → jsdom 376/376 세 번 동일. `sw.js` dungeon-v0.154.0. **실기 확인 대기**.

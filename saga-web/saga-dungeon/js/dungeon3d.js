@@ -2791,10 +2791,14 @@
     for (i = 0; i < ds.length; i++) {
       var dp = ds[i];
       var da = actorOf('d' + i, 'drop', null);
-      if (!da.node.userData.built) {
+      /* 자리(i)는 같아도 떨어진 물건이 바뀌면 다시 짓는다 — 옛 색이 남던 것 */
+      if (!da.node.userData.built || da.node.userData.ref !== dp) {
         while (da.node.children.length) { da.node.remove(da.node.children[0]); }
         box(da.node, 0, 3, 0, 12, 6, 12, dropHex(dp), 'glow', false);
+        var bm = lootBeam(dp);
+        if (bm) { da.node.add(bm); }
         da.node.userData.built = true;
+        da.node.userData.ref = dp;
       }
       da.node.position.set(dp.x, 0, dp.y);
       da.node.rotation.y = frame * 0.02;
@@ -2944,6 +2948,26 @@
     renderer.render(scene, camera);
     lastPresentMs = nowMs() - presentT0;
     return true;
+  }
+
+  /**
+   * 전리품 빛기둥(§5.9) — 명품 이상은 떨어진 자리에서 등급색 기둥이 선다(디아블로3).
+   * 명품 옅고 짧게 · 보물 · 전설/고유 굵고 높게. 안개를 뚫게 fog:false.
+   */
+  function lootBeam(dp) {
+    var it = dp && dp.kind === 'item' ? dp.item : null;
+    var tier = it ? (it.tier || 0) : 0;
+    if (!it || (tier < 2 && !it.uniq)) { return null; }
+    var IT = global.DG.itemData || null, col = '#ffff64';
+    try { col = (IT && IT.TIERS && IT.TIERS[tier]) ? IT.TIERS[tier].color : (tier >= 4 ? '#c7a76c' : (tier === 3 ? '#00c000' : '#ffff64')); } catch (e) { /* 색은 없어도 선다 */ }
+    if (it.uniq) { col = '#f0a53a'; }
+    var big = tier >= 4 || !!it.uniq, h = big ? 260 : (tier === 3 ? 180 : 110);
+    var m = new T.Mesh(new T.CylinderGeometry(big ? 5 : 3.5, big ? 5 : 3.5, h, 10, 1, true),
+      new T.MeshBasicMaterial({ color: new T.Color(col), transparent: true, opacity: big ? 0.42 : 0.28,
+        depthWrite: false, fog: false, side: T.DoubleSide }));
+    m.position.y = h / 2;
+    m.renderOrder = 4;
+    return m;
   }
 
   function dropHex(dp) {

@@ -335,6 +335,11 @@
               : lr.reason === 'prereq' ? (lr.need.name + ' 을(를) 먼저 배웁니다')
               : '배울 수 없습니다');
         }
+      } else if (act === 'skill-secret') {
+        /* 비결(§5.9) — 같은 것을 다시 누르면 푼다 */
+        var sr = global.DG.secret.set(skillHero, b.getAttribute('data-key'), b.getAttribute('data-sec'));
+        if (!sr.ok) { toast(sr.reason === 'rank' ? sr.need + '단이 되어야 열린다' : '걸 수 없습니다'); }
+        else if (sr.key) { var sdd = global.DG.secret.byKey(sr.key); toast(sdd.emoji + ' 비결 「' + sdd.name + '」 — ' + sdd.desc); }
       } else if (act === 'skill-set') {
         if (skillSlotPick !== null) {
           global.DG.skill.setSlot(skillHero, skillSlotPick, b.getAttribute('data-key'));
@@ -1850,11 +1855,29 @@
             (skillSlotPick !== null && rank > 0 && sk.shape !== 'passive'
               ? '<button class="btn tiny" data-act="skill-set" data-key="' + sk.key +
                 '">' + KEYS[skillSlotPick] + ' 에 걸기</button>' : '') +
-          '</div></div>';
+          '</div>' + secretRow(skillHero, sk, rank) + '</div>';
       }
       html += '</div>';
     }
     return html;
+  }
+
+  /**
+   * 비결(§5.9, secret.js) 다섯 — 배운 무예 아래에 늘어놓는다. 단수가 모자란 것은 자물쇠.
+   * 디아블로3 의 룬 자리 — 이 판엔 소켓 룬이 따로 있어 이름을 '비결'로 했다.
+   */
+  function secretRow(hid, sk, rank) {
+    var SC = global.DG.secret;
+    if (!SC || !rank || sk.shape === 'passive') { return ''; }
+    var cur = SC.of(hid, sk.key), html = '<div class="gr-secret"><small class="muted">비결</small> ';
+    SC.SECRETS.forEach(function (s) {
+      var lock = rank < s.rank;
+      html += '<button class="btn tiny' + (cur === s.key ? ' primary' : '') + '" data-act="skill-secret"' +
+        ' data-key="' + sk.key + '" data-sec="' + s.key + '" title="' + esc(s.desc) + '"' + (lock ? ' disabled' : '') + '>' +
+        s.emoji + ' ' + s.name + (lock ? ' 🔒' + s.rank : '') + '</button>';
+    });
+    if (cur) { html += '<div class="muted" style="font-size:11px">' + esc(SC.byKey(cur).desc) + '</div>'; }
+    return html + '</div>';
   }
 
   /** 상시 무예는 % 로, 나머지는 배수로 읽힌다 */

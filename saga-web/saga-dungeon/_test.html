@@ -108,6 +108,7 @@ window.requestAnimationFrame = function () { return 0; };
 <script src="js/item.js"></script>
 <script src="js/hero.js"></script>
 <script src="js/skill.js"></script>
+<script src="js/secret.js"></script>
 <script src="js/dungeon.js"></script>
 <script src="js/town.js"></script>
 <script src="js/ssao3d.js"></script>
@@ -1411,6 +1412,94 @@ window.requestAnimationFrame = function () { return 0; };
       DN.leave();
       C.save.skills = {}; C.save.slots = {};
       return fired && hurt1 && hurt2 && (chainSk.name + ' — 둘 다 맞았다');
+    });
+
+    /* ── 비결(秘訣, §5.9, `secret.js`) — 디아블로3 룬 자리 ────────────── */
+
+    t('비결 — 다섯 가지, 무예 단수 1~5 마다 하나씩 열린다', function () {
+      var SC = DG.secret;
+      return SC.SECRETS.length === 5 && SC.unlocked(0).length === 0 && SC.unlocked(1).length === 1 &&
+        SC.unlocked(3).length === 3 && SC.unlocked(5).length === 5 &&
+        SC.SECRETS.map(function (s) { return s.emoji + s.name; }).join(' ');
+    });
+
+    t('비결 — 모양마다 맞게 바뀌고 원본 무예는 그대로다', function () {
+      var SC = DG.secret;
+      var bolt = { key: 't_b', shape: 'bolt', cost: 20, cd: 4, shots: 1, el: 'fire' };
+      var swing = { key: 't_s', shape: 'swing', cost: 10, cd: 2, r: 2.0 };
+      var chain = { key: 't_c', shape: 'chain', cost: 10, cd: 2, hops: 3 };
+      var buff = { key: 't_u', shape: 'buff', cost: 10, cd: 9, sec: 6, eff: 'atkPct' };
+      var sp = SC.modify(bolt, 'spread'), fr = SC.modify(bolt, 'frost'), fu = SC.modify(bolt, 'fury');
+      var ha = SC.modify(swing, 'haste'), sw = SC.modify(swing, 'spread'), ch = SC.modify(chain, 'spread');
+      var bf = SC.modify(buff, 'frost'), le = SC.modify(swing, 'leech'), none = SC.modify(bolt, null);
+      return sp.sk.shots === 3 && sp.dmg === 0.8 && fr.sk.el === 'cold' && fu.dmg === 1.45 && fu.cost === 1.4 &&
+        ha.cd === 0.5 && ha.dmg === 0.7 && Math.abs(sw.sk.r - 2.7) < 1e-9 && ch.sk.hops === 5 &&
+        Math.abs(bf.sk.sec - 8.4) < 1e-9 && !bf.sk.el && le.drain === 12 && none.dmg === 1 && none.sk === bolt &&
+        bolt.shots === 1 && bolt.el === 'fire' && swing.r === 2.0 &&
+        '확산 3발·연환 5·범위 ×1.35 · 한기 결 빙·버프 지속 ×1.4 · 원본 불변';
+    });
+
+    t('비결 — 단수가 모자라면 못 걸고, 같은 것을 다시 누르면 푼다', function () {
+      var SC = DG.secret, id = C.save.party[0], keep = JSON.stringify(C.save.skills || {});
+      var act = SK.treeOf(id).filter(function (x) { return x.shape !== 'passive'; })[0];
+      try {
+        C.save.skills = {}; C.save.skills[id] = {}; C.save.skills[id][act.key] = 2;
+        C.save.secrets = {};
+        var lock = SC.set(id, act.key, 'spread');           // 3단 필요
+        var ok = SC.set(id, act.key, 'frost');
+        var now = SC.of(id, act.key);
+        var off = SC.set(id, act.key, 'frost');
+        var after = SC.of(id, act.key);
+        SC.set(id, act.key, 'frost');
+        C.save.skills[id][act.key] = 1;                     // 환원 뒤 단수가 내려가면 없는 것으로
+        var demoted = SC.of(id, act.key);
+        return !lock.ok && lock.need === 3 && ok.ok && now === 'frost' && off.ok && after === null && demoted === null &&
+          (act.name + ' · 3단 비결 거절 · 한기 걸고 풂 · 단수 내리면 꺼짐');
+      } finally { C.save.skills = JSON.parse(keep); C.save.secrets = {}; }
+    });
+
+    t('비결 — 실제 시전: 신속은 재냉각 절반, 분노는 기력 ×1.4', function () {
+      var SC = DG.secret, id = C.save.party[0];
+      function cast(sec) {
+        C.save.skills = {}; C.save.slots = {}; C.save.secrets = {};
+        var act = SK.treeOf(id).filter(function (x) { return x.row === 0 && x.shape !== 'passive'; })[0];
+        SK.learn(id, act.key);
+        C.save.skills[id][act.key] = 5;
+        if (sec) { SC.set(id, act.key, sec); }
+        DN.enter({ floor: 4, mode: 'easy' });
+        var run = DN.raw();
+        run.mp = run.mpMax;
+        var before = run.mp;
+        var fired = DN.castSkill(0);
+        var r = { fired: fired, cost: before - run.mp, cd: run.player.cds[0], act: act, st: DN.status().skills[0] };
+        DN.leave();
+        return r;
+      }
+      try {
+        var base = cast(null), haste = cast('haste'), fury = cast('fury');
+        return base.fired && haste.fired && fury.fired &&
+          Math.abs(haste.cd - base.cd * 0.5) < 1e-6 && fury.cost === Math.round(base.act.cost * 1.4) &&
+          haste.st.secret === 'haste' && haste.st.secretEmoji === '⚡' && Math.abs(haste.st.cdMax - base.act.cd * 0.5) < 1e-6 &&
+          (base.act.name + ' · 재냉각 ' + base.cd + '→' + haste.cd + ' · 기력 ' + base.cost + '→' + fury.cost);
+      } finally { C.save.skills = {}; C.save.slots = {}; C.save.secrets = {}; }
+    });
+
+    t('비결 — 흡혈은 시전하면 3초 동안 흡수가 붙는다', function () {
+      var SC = DG.secret, id = C.save.party[0];
+      try {
+        C.save.skills = {}; C.save.slots = {}; C.save.secrets = {};
+        var act = SK.treeOf(id).filter(function (x) { return x.row === 0 && x.shape !== 'passive'; })[0];
+        SK.learn(id, act.key);
+        C.save.skills[id][act.key] = 5;
+        SC.set(id, act.key, 'leech');
+        DN.enter({ floor: 4, mode: 'easy' });
+        var run = DN.raw();
+        run.mp = run.mpMax;
+        DN.castSkill(0);
+        var b = run.buffs && run.buffs.drainPct;
+        DN.leave();
+        return !!b && b.v === 12 && b.t === 3 && '흡수 12% · 3초';
+      } finally { C.save.skills = {}; C.save.slots = {}; C.save.secrets = {}; }
     });
 
     t('무예 — 빈 칸은 눌러도 아무 일이 없다', function () {

@@ -859,10 +859,11 @@
       cdEl.style.height = pct + '%';
       cdEl.textContent = sk.cd > 0.05 ? Math.ceil(sk.cd) : '';
       /* 걸린 무예가 바뀔 수 있으니 그림·값도 매 틱 맞춘다 (선두를 바꾸면 손이 바뀐다) */
-      btns[i].querySelector('.dg-sk-e').textContent = sk.emoji;
+      /* 비결(§5.9)을 걸었으면 무예 그림 옆에 작게 — 손에 든 무예가 어떻게 바뀌었는지 */
+      btns[i].querySelector('.dg-sk-e').textContent = sk.emoji + (sk.secretEmoji || '');
       btns[i].querySelector('.dg-sk-cost').textContent = sk.empty ? '' : sk.cost;
       btns[i].title = sk.empty ? '무예를 걸어 두세요'
-        : (sk.name + ' ' + (sk.rank || 1) + '단 — ' + sk.desc);
+        : (sk.name + ' ' + (sk.rank || 1) + '단' + (sk.secret ? ' · 비결 ' + sk.secretEmoji : '') + ' — ' + sk.desc);
       btns[i].classList.toggle('empty', !!sk.empty);
       btns[i].classList.toggle('ready', sk.ready);
       btns[i].classList.toggle('nomana', !sk.empty && sk.cd <= 0 && !sk.ready);

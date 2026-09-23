@@ -3527,6 +3527,8 @@
     var b = (bias || 0) + mode().bias + Math.round((nmLootMul() - 1) * 40);
     var it = global.DG.item.roll(run.floor + 1, { bias: b });
     room.drops.push({ kind: 'item', item: it, x: jitter(x), y: jitter(y) });
+    /* 떨어지는 순간에 등급이 들린다(§5.9, 디아블로3 의 전설 낙하음) — 보물·전설만 */
+    if ((it.tier || 0) >= 3 || it.uniq) { sfx(it.tier >= 4 || it.uniq ? 'uniq' : 'drop3'); }
   }
 
   /**
@@ -3671,6 +3673,13 @@
     return skl.equipped(id);
   }
 
+  /** 선두가 이 무예에 걸어 둔 비결 — 없으면 그대로(배수 1) */
+  function secretMod(sk) {
+    var SC = global.DG.secret;
+    if (!SC || !sk) { return { sk: sk, dmg: 1, cost: 1, cd: 1, drain: 0, key: null }; }
+    return SC.modify(sk, SC.of(leadId(), sk.key));
+  }
+
   /** 무예의 위력 배수 — '집중·주술' 같은 상시가 여기 얹힌다 */
   function skillMul() { return 1 + boonVal('skillPct') / 100; }
 
@@ -3694,12 +3703,18 @@
     var sk = got.sk, rank = got.rank;
     var SDx = global.DG.skillData;
     var p = run.player;
-    if (p.cds[i] > 0 || run.mp < sk.cost || p.dash) { return false; }
-    run.mp -= sk.cost;
-    p.cds[i] = sk.cd;
+    /* 비결(§5.9, secret.js) — 무예 하나의 쓰임을 바꾼다(위력·기력·재냉각·결·범위·흡수) */
+    var mod = secretMod(sk);
+    var cost = Math.round(sk.cost * mod.cost);
+    if (p.cds[i] > 0 || run.mp < cost || p.dash) { return false; }
+    run.mp -= cost;
+    p.cds[i] = sk.cd * mod.cd;
     p.atkAnim = castPoseSecOf(sk);
     p.castAnim = !MELEE_SHAPES[sk.shape];
-    applyShapeSkill(sk, SDx.valueAt(sk, rank));
+    var sv = SDx.valueAt(sk, rank);
+    sv = sk.shape === 'summon' ? sv + (mod.summonAdd || 0) : sv * mod.dmg;
+    if (mod.drain) { addBuff('drainPct', mod.drain, mod.drainSec); }
+    applyShapeSkill(mod.sk, sv);
     core.emit('dungeon:skill', sk.key);
     return true;
   }
@@ -3986,12 +4001,13 @@
                       cost: 0, cd: 0, cdMax: 1, ready: false, empty: true });
         continue;
       }
-      var sk = got[i].sk;
+      var sk = got[i].sk, smod = secretMod(sk), scost = Math.round(sk.cost * smod.cost);
+      var sdef = smod.key && global.DG.secret ? global.DG.secret.byKey(smod.key) : null;
       skills.push({
         key: sk.key, name: sk.name, emoji: sk.emoji, desc: sk.desc,
-        rank: got[i].rank,
-        cost: sk.cost, cd: cd, cdMax: sk.cd,
-        ready: cd <= 0 && run.mp >= sk.cost
+        rank: got[i].rank, secret: smod.key, secretEmoji: sdef ? sdef.emoji : '',
+        cost: scost, cd: cd, cdMax: sk.cd * smod.cd,
+        ready: cd <= 0 && run.mp >= scost
       });
     }
     return {
@@ -4106,7 +4122,7 @@
     /** 마을 들판 방랑 상인(PLAN §60 후보 1) — town.js/ui.js가 독자 재고
      *  상태를 굴릴 때 쓴다. `run.merchantChoice`와는 별개다. */
     rollMerchantStock: rollMerchantStock,
-    castSkill: castSkill, refill: refill,
+    castSkill: castSkill, _secretMod: secretMod, refill: refill,
     heavyAttack: heavyAttack, doDodge: doDodge, castSetSkill: castSetSkill,
     castSigSkill: castSigSkill,
     boonVal: boonVal, boonEffect: boonEffect,
