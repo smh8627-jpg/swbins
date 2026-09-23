@@ -88,6 +88,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/vendor/three.iife.js"></script>
 <script src="js/vendor/RGBELoader.js"></script>
 <script src="js/land.js"></script>
+<script src="js/biome.js"></script>
 <script src="js/geo.js"></script>
 <script src="js/world.js"></script>
 <script src="js/npc.js"></script>
@@ -954,7 +955,10 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ids.forEach(function (id) { if (!C.save.dex.heroes[id]) { C.save.dex.heroes[id] = { count: 1, firstAt: 0 }; } });
         C.save.party = ids.slice();
         var c = null, cx, cy;
-        for (cy = 3; cy < 30 && !c; cy++) { for (cx = 3; cx < 30 && !c; cx++) { c = FC.campAt(cx, cy); } }
+        /* 게임과 같은 조건(지형·지역 바이옴)으로 찾는다 — 무리 꼴이 지역을 따른다(§5 ⑩) */
+        var terr = function (tx, ty) { return W.terrainAt(tx, ty); };
+        var bfn = DG.biome && DG.biome.on() ? DG.biome.biomeAt : null;
+        for (cy = 3; cy < 30 && !c; cy++) { for (cx = 3; cx < 30 && !c; cx++) { c = FC.campAt(cx, cy, terr, bfn); } }
         C.save.player.pos.x = c.x; C.save.player.pos.y = c.y;
         FC.tick(0.05);
         var S = FC.state();
@@ -973,6 +977,122 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         Object.keys(C.save).forEach(function (k) { delete C.save[k]; });
         Object.keys(snap).forEach(function (k) { C.save[k] = snap[k]; });
         FC._resetForTest();
+      }
+    });
+
+    /* ── 지역(地域) — 원신식 지역 지도 (`biome.js`, PLAN §5 ⑩) ────────── */
+    function bmFind(biome) {
+      var BM = DG.biome, best = null;
+      for (var j = -8; j <= 8; j++) {
+        for (var i = -8; i <= 8; i++) {
+          var c = BM.cellAt(i, j);
+          if (c.biome === biome && (!best || Math.hypot(c.x, c.y) < Math.hypot(best.x, best.y))) { best = c; }
+        }
+      }
+      return best;
+    }
+
+    t('지역 — 격자로 늘 같은 지역, 원점은 고향 들녘, 둘레엔 다섯 바이옴이 다 있다', function () {
+      var BM = DG.biome, kinds = {}, same = true;
+      for (var j = -4; j <= 4; j++) {
+        for (var i = -4; i <= 4; i++) {
+          var a = JSON.stringify(BM.cellAt(i, j));
+          if (a !== JSON.stringify(BM.cellAt(i, j))) { same = false; }
+          kinds[BM.cellAt(i, j).biome] = 1;
+        }
+      }
+      return same && BM.regionAt(0, 0).cell.biome === 'home' && BM.regionAt(0, 0).cell.name === '고향 들녘' &&
+        Object.keys(kinds).length === 6 && ('81칸 · 바이옴 ' + Object.keys(kinds).sort().join('·'));
+    });
+
+    t('지역 — 고향은 옛 지형 문턱 그대로(회귀 없음)', function () {
+      var BM = DG.biome, b = BM.bandOf(BM.BIOMES.home), c = BM.bandAt(0, 0);
+      function eq(x, y) { return Math.abs(x - y) < 1e-9; }
+      return eq(b.water, 0.1614) && eq(b.mount, 0.2106) && eq(b.forest, 0.2905) && eq(b.town, 0.3211) &&
+        c.water === b.water && c.town === b.town && !c.clear && '물·산·숲·마을 문턱이 옛 값과 같다';
+    });
+
+    t('지역 — 바이옴이 지형 비율을 바꾼다(협곡은 산이 많고 늪은 물이 많다)', function () {
+      var W = DG.world;
+      function share(cell, kind) {
+        var n = 0, hit = 0;
+        for (var dy = -240; dy <= 240; dy += 48) {
+          for (var dx = -240; dx <= 240; dx += 48) {
+            if (Math.hypot(dx, dy) < 60) { continue; }
+            n++;
+            if (W.terrainAt(Math.floor((cell.x + dx) / 48), Math.floor((cell.y + dy) / 48)) === kind) { hit++; }
+          }
+        }
+        return hit / n;
+      }
+      var cn = bmFind('canyon'), ms = bmFind('marsh'), pl = bmFind('plain');
+      var cm = share(cn, 'mount'), mw = share(ms, 'water'), pm = share(pl, 'mount');
+      return cm > 0.25 && mw > 0.18 && pm < cm &&
+        ('협곡 산 ' + Math.round(cm * 100) + '% · 늪 물 ' + Math.round(mw * 100) + '% · 벌판 산 ' + Math.round(pm * 100) + '%');
+    });
+
+    t('지역 — 경계에서 문턱이 이어진다(지역 사이에 선이 안 생긴다)', function () {
+      var BM = DG.biome, worst = 0, prev = null;
+      for (var x = 0; x <= 4000; x += 5) {
+        var b = BM.bandAt(x, 310);
+        if (prev) { worst = Math.max(worst, Math.abs(b.water - prev.water), Math.abs(b.mount - prev.mount)); }
+        prev = b;
+      }
+      return worst < 0.01 && ('4km 를 5m 씩 — 한 걸음 최대 변화 ' + worst.toFixed(4));
+    });
+
+    t('지역 — 랜드마크 둘레는 들로 비워 둔다(물 위에 탑이 안 선다)', function () {
+      var W = DG.world, bad = [];
+      ['plain', 'bamboo', 'canyon', 'marsh', 'ruins'].forEach(function (b) {
+        var c = bmFind(b);
+        if (W.terrainAt(Math.floor(c.x / 48), Math.floor(c.y / 48)) !== 'grass') { bad.push(b); }
+      });
+      return bad.length === 0 && '다섯 바이옴 탑 자리 전부 들';
+    });
+
+    t('지역 — 무리 꼴이 지역을 따른다(늪엔 물, 협곡엔 불)', function () {
+      var FC = DG.fieldCombat, BM = DG.biome;
+      function kindsIn(biome) {
+        var B = BM.BIOMES[biome], allow = { rex: 1, boar: 1 }, got = {}, bad = 0, n = 0;
+        B.themes.forEach(function (k) { FC.THEMES[k].forEach(function (f) { allow[f] = 1; }); });
+        B.elites.forEach(function (k) { FC.ELITES[k].forEach(function (f) { allow[f] = 1; }); });
+        for (var cy = -40; cy <= 40; cy++) {
+          for (var cx = -40; cx <= 40; cx++) {
+            var c = FC.campAt(cx, cy, null, BM.biomeAt);
+            if (!c || BM.regionAt(c.x, c.y).cell.biome !== biome) { continue; }
+            n++;
+            c.foes.forEach(function (f) { got[f.kind] = 1; if (!allow[f.kind]) { bad++; } });
+          }
+        }
+        return { n: n, bad: bad, got: got };
+      }
+      var m = kindsIn('marsh'), c = kindsIn('canyon');
+      return m.n > 5 && c.n > 5 && m.bad === 0 && c.bad === 0 && !!m.got.toad && !!c.got.imp &&
+        ('늪 무리 ' + m.n + '(두꺼비 있음) · 협곡 무리 ' + c.n + '(불도깨비 있음) · 어긋남 0');
+    });
+
+    t('지역 — 탑에 다가가면 발견·보상 한 번, 발견한 곳으로 순간이동(키보드 모드)', function () {
+      var BM = DG.biome, bak = JSON.stringify(C.save);
+      try {
+        BM._resetForTest();
+        var L = BM.landmarks(0, 0, 4000)[0];
+        var g0 = C.save.player.gold;
+        var no = BM.teleport(L.key);
+        C.save.player.pos.x = L.x + 5; C.save.player.pos.y = L.y;
+        BM.tick(0.3);
+        var got = BM.found(L.key) && C.save.regions[L.key] > 0 && C.save.player.gold > g0;
+        var g1 = C.save.player.gold, again = BM.discover(L.key);
+        C.save.player.pos.x = 0; C.save.player.pos.y = 0;
+        var ok = BM.teleport(L.key), p = C.save.player.pos;
+        var home = BM.waypoints()[0].key === '0_0' && BM.found('0_0');
+        return W.mode === 'keyboard' && !no && got && !again && C.save.player.gold === g1 && ok &&
+          Math.hypot(p.x - L.x, p.y - L.y) < 10 && home &&
+          (L.name + ' 발견 → 금 +' + (g1 - g0) + ' · 순간이동');
+      } finally {
+        var snap = JSON.parse(bak);
+        Object.keys(C.save).forEach(function (k) { delete C.save[k]; });
+        Object.keys(snap).forEach(function (k) { C.save[k] = snap[k]; });
+        BM._resetForTest();
       }
     });
 

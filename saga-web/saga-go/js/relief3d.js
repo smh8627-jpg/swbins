@@ -84,6 +84,9 @@
     if (lvCache.hasOwnProperty(ck)) { return lvCache[ck]; }
     var k = kindAt(gx, gy);
     var base = LEVEL.hasOwnProperty(k) ? LEVEL[k] : LEVEL.grass;
+    /* 지역(biome.js, §5 ⑩)이 기복 세기를 바꾼다 — 협곡은 험하고 늪은 평평하다 */
+    var BM = global.DG.biome;
+    var rel = BM && BM.on() ? BM.reliefAt((gx + 0.5) * GRID, (gy + 0.5) * GRID) : 1;
     if (k === 'mount') {
       var n = 0, dx, dy;
       for (dy = -1; dy <= 1; dy++) {
@@ -106,6 +109,7 @@
         core().noise2(gx * 37 + 511, gy * 53 + 507, 2) * 0.3;
       base += (jn * 2 - 1) * j;
     }
+    if (JITTER[k]) { base *= rel; }            // 사람이 만든 자리(마을·길·논밭)는 어느 지역이든 같은 높이
     /* 캐시가 무한히 자라지 않게 — 걸어서 지나온 격자는 다시 볼 일이 드물다 */
     if (lvCount > 4000) { lvCache = {}; lvCount = 0; }
     lvCache[ck] = base; lvCount++;

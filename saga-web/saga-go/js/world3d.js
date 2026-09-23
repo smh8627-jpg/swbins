@@ -1951,7 +1951,7 @@
     var A = global.DG.actor3d;
     var node = null, mesh = false;
     if (MESH_ON() && A && A.ready()) {
-      node = A.build(kind === 'building' ? (ref.key === 'wall' ? 'fort' : 'station') : kind, ref);
+      node = A.build(kind === 'building' ? (ref.key === 'wall' ? 'fort' : (ref.key === 'landmark' ? 'landmark' : 'station')) : kind, ref);
       mesh = !!node;
     }
     if (!node) {
@@ -2273,6 +2273,15 @@
       var sa = actorOf('st' + st.key, 'building',
         { key: 'stable', id: 'st_' + st.key, color: '#e8c15a' }, 128);
       placeActor(sa, st.x, st.y, h * 1.7 * farBoost(st.x, st.y), 0, false, 0, now);
+    }
+    /* 지역 랜드마크(biome.js, §5 ⑩) — 1.35km 안이면 선다(빛기둥은 biome.js 가 얹는다) */
+    var BMw = global.DG.biome;
+    var lms = BMw && BMw.on() ? BMw.landmarks(pos.x, pos.y, 1350) : [];
+    for (i = 0; i < lms.length; i++) {
+      var lm = lms[i];
+      var la = actorOf('lm' + lm.key, 'building',
+        { key: 'landmark', id: 'lm_' + lm.key, biome: lm.biome, color: BMw.BIOMES[lm.biome].color }, 128);
+      placeActor(la, lm.x, lm.y, h * 2.4 * farBoost(lm.x, lm.y), 0, false, 0, now);
     }
     var fts = W.fortsNear ? W.fortsNear() : [];
     for (i = 0; i < fts.length; i++) {

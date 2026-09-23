@@ -86,6 +86,7 @@
       '<small class="muted">지금까지 밟아 본 곳</small>' +
       '<button class="icon-btn ow-close" title="닫기 (M / Esc)">✕</button></div>' +
       '<canvas></canvas>' +
+      '<div class="ow-way"></div>' +
       '</div>';
     global.document.body.appendChild(node);
     canvas = node.querySelector('canvas');
@@ -147,6 +148,16 @@
       }
     }
 
+    /* 지역 랜드마크(biome.js, §5 ⑩) — 찾은 곳은 순간이동 지점(푸른 마름모), 3km 안의 못 찾은 곳은 금빛 */
+    var BMo = global.DG.biome;
+    if (BMo && BMo.on() && wl) {
+      var lmk = BMo.landmarks(pos.x, pos.y, 3000), i3;
+      for (i3 = 0; i3 < lmk.length; i3++) {
+        var lp = wl.worldToLatLng(lmk[i3].x, lmk[i3].y);
+        pois.push({ lat: lp.lat, lng: lp.lng, t: BMo.found(lmk[i3].key) ? 'waypoint' : 'landmark', name: lmk[i3].name });
+      }
+    }
+
     var pr = project(trail, cur, pois);
     var pad = 26;
     var side = Math.min(cw, ch) - pad * 2;
@@ -160,7 +171,9 @@
       fort: { c: '#c9a7ff', r: 2.6 },
       shrine: { c: '#f0d878', r: 2.8 },
       stele: { c: '#d9d2c0', r: 2.4 },
-      'stele-faint': { c: 'rgba(217,210,192,.28)', r: 2.2 }
+      'stele-faint': { c: 'rgba(217,210,192,.28)', r: 2.2 },
+      waypoint: { c: '#6fd3ff', r: 4.5 },
+      landmark: { c: 'rgba(255,211,107,.7)', r: 4 }
     };
 
     function px(pt) { return { x: ox + (pt.x + 1) / 2 * side, y: oy + (pt.y + 1) / 2 * side }; }
@@ -186,7 +199,7 @@
       sp = px(p);
       ctx.fillStyle = st.c;
       ctx.beginPath(); ctx.arc(sp.x, sp.y, st.r, 0, Math.PI * 2); ctx.fill();
-      if (p.t === 'beacon-lit' || p.t === 'beacon') {
+      if (p.t === 'beacon-lit' || p.t === 'beacon' || p.t === 'waypoint' || p.t === 'landmark') {
         ctx.font = '600 9px system-ui, sans-serif';
         ctx.fillStyle = 'rgba(255,255,255,.75)';
         ctx.textAlign = 'center';
@@ -214,10 +227,37 @@
     if (btn) { btn.classList.toggle('on', opened); }
   }
 
+  /** 순간이동 지점 단추 — 열 때마다 다시 그린다(발견이 늘었을 수 있다) */
+  function renderWay() {
+    var box = node && node.querySelector('.ow-way');
+    var BMo = global.DG.biome;
+    if (!box) { return; }
+    if (!BMo || !BMo.on()) { box.innerHTML = ''; return; }
+    var pos = core.save.player.pos, list = BMo.waypoints(), html = '', i;
+    var wl = W(), geo = wl && wl.mode !== 'keyboard';
+    list.forEach(function (p) { p.d = Math.hypot(p.x - pos.x, p.y - pos.y); });
+    list.sort(function (a, b) { return a.d - b.d; });
+    html += '<small class="muted">🌀 순간이동 지점' + (geo ? ' — 실제 위치로 걷는 중엔 쓸 수 없다' : '') + '</small><div class="ow-way-list">';
+    for (i = 0; i < list.length; i++) {
+      html += '<button class="btn sm" data-way="' + list[i].key + '"' + (geo ? ' disabled' : '') + '>' +
+        list[i].name + ' <em>' + (list[i].d < 1000 ? Math.round(list[i].d) + 'm' : (list[i].d / 1000).toFixed(1) + 'km') + '</em></button>';
+    }
+    box.innerHTML = html + '</div>';
+    var bs = box.querySelectorAll('[data-way]');
+    for (i = 0; i < bs.length; i++) {
+      (function (b) {
+        b.addEventListener('click', function () {
+          if (BMo.teleport(b.getAttribute('data-way'))) { close(); }
+        });
+      })(bs[i]);
+    }
+  }
+
   function open() {
     if (!node) { mount(); }
     opened = true;
     apply();
+    renderWay();
     draw();
   }
   function close() {

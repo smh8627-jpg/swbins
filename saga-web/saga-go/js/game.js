@@ -377,6 +377,7 @@
     if (global.DG.drop) { global.DG.drop.tick(dt); }       // 흩어진 짐을 걷는다(§5⑧)
     if (global.DG.bond) { global.DG.bond.tick(); }         // 함께 걸은 거리로 인연이 쌓인다(§5⑥)
     if (global.DG.fieldCombat) { global.DG.fieldCombat.tick(dt); }   // 들판 적 무리와 싸운다(§5⑨)
+    if (global.DG.biome) { global.DG.biome.tick(dt); }               // 지역 이름 띠·랜드마크 발견(§5⑩)
     if (!global.DG_NO_DRAW) {
       world.draw();
       global.DG.minimap.tick(dt);      // 미니맵은 매 프레임이 아니라 제 박자로 다시 그린다

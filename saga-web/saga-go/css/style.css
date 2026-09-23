@@ -1687,3 +1687,18 @@ body.fc-on #dock, body.fc-on #near { display: none !important; }
   #field-hud .fc-mem { width: 118px; }
   #field-hud .fc-party { top: calc(84px + var(--safe-t, 0px)); }
 }
+
+/* ── 지역(biome.js, PLAN §5 ⑩) — 이름 띠·순간이동 지점 ─────────── */
+#region-banner {
+  position: fixed; left: 50%; top: calc(22% + var(--safe-t)); transform: translate(-50%, -8px);
+  z-index: 26; pointer-events: none; text-align: center; opacity: 0; transition: opacity .5s, transform .5s;
+  padding: 10px 28px; color: #fff; text-shadow: 0 2px 6px rgba(0,0,0,.8);
+  background: linear-gradient(90deg, transparent, rgba(10,12,16,.55), transparent);
+  border-top: 1px solid var(--bc); border-bottom: 1px solid var(--bc);
+}
+#region-banner.show { opacity: 1; transform: translate(-50%, 0); }
+#region-banner b { display: block; font-size: 22px; letter-spacing: .12em; }
+#region-banner small { display: block; font-size: 12px; opacity: .85; margin-top: 2px; }
+#overworld-map .ow-way { margin-top: 8px; max-height: 120px; overflow-y: auto; }
+#overworld-map .ow-way-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+#overworld-map .ow-way-list .btn em { font-style: normal; opacity: .6; font-size: 11px; }

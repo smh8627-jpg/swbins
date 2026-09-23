@@ -534,12 +534,30 @@
    *  거의 안 남았다. **십자 다섯 칸**을 골랐다 — 옛 값의 절반 아래로
    *  줄면서도 마을 안팎에 길이 끊기지 않을 만큼은 남는다. */
   function nearTown(tx, ty) {
-    var pts = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]], i, h;
+    var pts = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]], i, h, b;
     for (i = 0; i < pts.length; i++) {
       h = terrainNoise(tx + pts[i][0], ty + pts[i][1]);
-      if (h >= TERRAIN_BAND.town[0] && h < TERRAIN_BAND.town[1]) { return true; }
+      b = bandFor(tx + pts[i][0], ty + pts[i][1]);
+      if (h >= b.forest && h < b.town) { return true; }
     }
     return false;
+  }
+
+  /** 2026-09-24 — 지역(biome.js, PLAN §5 ⑩)마다 노이즈 문턱이 다르다. 모듈이 없거나
+   *  꺼져 있으면 옛 문턱 그대로(고향 지역은 켜져 있어도 옛 비율과 같다) */
+  var LEGACY_BAND = { water: TERRAIN_BAND.water[1], mount: TERRAIN_BAND.mount[1],
+    forest: TERRAIN_BAND.forest[1], town: TERRAIN_BAND.town[1], clear: false };
+  var bandCache = {}, bandCount = 0;
+  function bandFor(tx, ty) {
+    var BM = global.DG.biome;
+    if (!BM || !BM.on()) { return LEGACY_BAND; }
+    /* 칸마다 한 번만 — 미니맵·기복·소품이 같은 칸을 수백 번 묻는다(아홉 지역 가중이 싸지 않다) */
+    var k = tx + ',' + ty, b = bandCache[k];
+    if (b) { return b; }
+    if (bandCount > 30000) { bandCache = {}; bandCount = 0; }
+    b = bandCache[k] = BM.bandAt((tx + 0.5) * 48, (ty + 0.5) * 48);
+    bandCount++;
+    return b;
   }
 
   /** 2026-09-04 — 마을 근처 길을 tx%7 과 ty%9 **둘 다** 세우니 십자로 겹쳐
@@ -600,13 +618,14 @@
       var real = G.terrainAt(tx, ty);
       if (real) { return real; }
     }
-    var h = terrainNoise(tx, ty);
+    var h = terrainNoise(tx, ty), band = bandFor(tx, ty);
+    if (band.clear) { return 'grass'; }          // 지역 랜드마크 둘레는 비운다(§5 ⑩)
     var road = roadIsVertical(tx, ty) ? (tx % 7 === 0) : (ty % 9 === 0);
     if (road && nearTown(tx, ty)) { return 'road'; }
-    if (h < TERRAIN_BAND.water[1]) { return 'water'; }
-    if (h < TERRAIN_BAND.mount[1]) { return 'mount'; }
-    if (h < TERRAIN_BAND.forest[1]) { return 'forest'; }
-    if (h < TERRAIN_BAND.town[1]) { return 'town'; }
+    if (h < band.water) { return 'water'; }
+    if (h < band.mount) { return 'mount'; }
+    if (h < band.forest) { return 'forest'; }
+    if (h < band.town) { return 'town'; }
     return 'grass';
   }
 
@@ -1542,6 +1561,16 @@
       })(fts[fi]);
     }
 
+    // 지역 랜드마크 (biome.js, §5 ⑩) — 2D 에선 탑 그림 + 이름
+    var BMd = global.DG.biome;
+    var lms = BMd && BMd.on() ? BMd.landmarks(pos.x, pos.y, 700) : [];
+    for (var li = 0; li < lms.length; li++) {
+      (function (lm) {
+        var u = (lm.x - pos.x) * sc, v = (lm.y - pos.y) * sc;
+        items.push({ v: v, draw: function () { drawLandmark(lm, u, v); } });
+      })(lms[li]);
+    }
+
     // 주민 (npc.js) — 스폰보다 먼저 담아도 v 정렬이 앞뒤를 잡아 준다
     var NP = global.DG.npc;
     var ppl = NP ? NP.live(pos) : [];
@@ -1837,6 +1866,15 @@
    * 그냥 거기 사는 것이다. 등급 고리도 이름표도 없이 그림자와 몸뚱이만 있다.
    * 날아오른 새는 위로 옮겨 그리고 그림자를 줄인다(2D 에서 높이를 읽는 유일한 단서다).
    */
+  function drawLandmark(lm, u, v) {
+    var p = project(u, v);
+    if (p.s < 0.2 || p.y < -160 || p.y > geom.H + 80) { return; }
+    var z = core.clamp(p.s, 0.5, 1.8), BMd = global.DG.biome;
+    global.DG.sprite.building(ctx, { img: global.DG.sprite.buildingImg('Watchtower'), x: p.x, y: p.y, s: z * 2.2 });
+    label(ctx, (BMd.found(lm.key) ? '🌀 ' : '🗼 ') + lm.name, p.x, p.y - 46 * z * 2.2 * 1.3 - 6,
+      BMd.BIOMES[lm.biome].color, 'center', z);
+  }
+
   /** 들판 적 — 도감 펫 그림을 빌리고 원소 빛깔 고리를 발밑에 두른다 */
   function drawFieldFoe(fo, u, v, now) {
     var p = project(u, v);

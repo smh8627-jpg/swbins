@@ -151,7 +151,7 @@
    * 격자 한 칸의 무리 — 없으면 null. 순수 함수(같은 칸은 늘 같은 답).
    * terr(tx,ty) 를 주면 물·마을·길 위에는 안 세운다(진단은 안 줘도 된다).
    */
-  function campAt(cx, cy, terr) {
+  function campAt(cx, cy, terr, bfn) {
     if (h3(cx, cy, 7) > CAMP_CHANCE()) { return null; }
     var x = (cx + 0.2 + 0.6 * h3(cx, cy, 11)) * CELL;
     var y = (cy + 0.2 + 0.6 * h3(cx, cy, 13)) * CELL;
@@ -161,10 +161,20 @@
       var k = terr(Math.floor(x / TILE), Math.floor(y / TILE));
       if (k === 'water' || k === 'town' || k === 'road') { return null; }
     }
+    /* 지역 바이옴(§5 ⑩)이 무리 꼴을 고른다 — 협곡엔 불, 늪엔 물 */
+    var B = bfn ? bfn(x, y) : null;
+    var th = B && B.themes ? B.themes : null, el = B && B.elites ? B.elites : null;
+    var bossP = B && B.boss !== undefined ? B.boss : 0.05;
     var r = h3(cx, cy, 17), list, kind = 'plain';
-    if (dist > 400 && r < 0.05) { list = ['rex', 'boar', 'boar']; kind = 'boss'; }
-    else if (r < 0.2) { list = ELITES[Math.floor(h3(cx, cy, 19) * ELITES.length) % ELITES.length]; kind = 'elite'; }
-    else { list = THEMES[Math.floor(h3(cx, cy, 23) * THEMES.length) % THEMES.length]; }
+    if (dist > 400 && r < bossP) { list = ['rex', 'boar', 'boar']; kind = 'boss'; }
+    else if (r < bossP + 0.15) {
+      list = el ? ELITES[el[Math.floor(h3(cx, cy, 19) * el.length) % el.length]]
+        : ELITES[Math.floor(h3(cx, cy, 19) * ELITES.length) % ELITES.length];
+      kind = 'elite';
+    } else {
+      list = th ? THEMES[th[Math.floor(h3(cx, cy, 23) * th.length) % th.length]]
+        : THEMES[Math.floor(h3(cx, cy, 23) * THEMES.length) % THEMES.length];
+    }
     var foes = [];
     for (var i = 0; i < list.length; i++) {
       var a = (i / list.length) * Math.PI * 2 + h3(cx, cy, 29) * 6.283;
@@ -265,7 +275,7 @@
    * 내 둘레 격자를 훑어 무리를 들이고, 멀어진(그리고 싸우지 않는) 무리는 치운다.
    * 치운 무리는 다시 오면 온전한 모습으로 선다(체력은 기억하지 않는다).
    */
-  function populate(S, px, py, terr, radius) {
+  function populate(S, px, py, terr, radius, bfn) {
     var R = radius || 200, far = R * 1.6;
     var c0x = Math.floor((px - R) / CELL), c1x = Math.floor((px + R) / CELL);
     var c0y = Math.floor((py - R) / CELL), c1y = Math.floor((py + R) / CELL);
@@ -273,7 +283,7 @@
       for (var cx = c0x; cx <= c1x; cx++) {
         var key = cx + '_' + cy;
         if (S.camps[key] || S.cleared[key]) { continue; }
-        var c = campAt(cx, cy, terr);
+        var c = campAt(cx, cy, terr, bfn);
         if (c && Math.hypot(c.x - px, c.y - py) <= R) { spawnCamp(S, c); }
       }
     }
@@ -708,7 +718,12 @@
     ensureState();
     var pos = core().save.player.pos;
     popAcc += dt; refAcc += dt;
-    if (popAcc > 0.5) { popAcc = 0; populate(S, pos.x, pos.y, terrFn(), K('activeR', 200)); respawnSweep(); }
+    if (popAcc > 0.5) {
+      popAcc = 0;
+      var BM = global.DG.biome;
+      populate(S, pos.x, pos.y, terrFn(), K('activeR', 200), BM && BM.on() ? BM.biomeAt : null);
+      respawnSweep();
+    }
     if (refAcc > 2) { refAcc = 0; refreshStats(); }
     var bl = blocked();
     step(S, dt, { px: pos.x, py: pos.y, blocked: bl });

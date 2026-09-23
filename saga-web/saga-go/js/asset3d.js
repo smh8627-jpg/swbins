@@ -398,7 +398,16 @@
     'fort:t1': BLD + 'Watchtower.glb',
     'fort:t2': [BLD + 'Tower.glb', BLD + 'PointyTower.glb'],
     'fort:t3': BLD_REAL + 'tower_round.glb',
-    'fort': BLD + 'Tower.glb'
+    'fort': BLD + 'Tower.glb',
+
+    /* 지역 랜드마크(biome.js, PLAN §5 ⑩) — 바이옴마다 다른 탑. 멀리서 "저기가
+       어느 땅이다"를 알아보게 성채보다 두 배쯤 크게 세운다(heightMul) */
+    'landmark:plain': BLD + 'Watchtower.glb',
+    'landmark:bamboo': BLD + 'PointyTower.glb',
+    'landmark:canyon': BLD + 'LargeTower.glb',
+    'landmark:marsh': BLD + 'Tower.glb',
+    'landmark:ruins': BLD + 'LargeSquareTowerBricks.glb',
+    'landmark': BLD + 'LargeTower.glb'
   };
 
   /** 되돌림 자리 — 실사로 갈아 끼우기 전 값. `register('station', STATION_STYLIZED)` ·
@@ -438,6 +447,7 @@
       return [r.tier ? 'fort:t' + r.tier : null, 'fort'].filter(Boolean);
     }
     if (kind === 'station') { return [kind]; }
+    if (kind === 'landmark') { return [r.biome ? 'landmark:' + r.biome : null, 'landmark'].filter(Boolean); }
     return kind ? [kind] : [];
   }
 
@@ -624,6 +634,7 @@
   function heightMul(kind, ref) {
     var C = core();
     if (kind === 'station') { return C.tuned('asset3d.stationScale', 1.73); }
+    if (kind === 'landmark') { return C.tuned('asset3d.landmarkScale', 5); }
     if (kind === 'fort') {
       var base = C.tuned('asset3d.fortScale', 2.64);
       var t = ref && ref.tier;
