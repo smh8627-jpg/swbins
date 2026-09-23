@@ -12,6 +12,8 @@
 | `saga-web/tools/new-game/` | 여섯 번째 웹 판 뼈대(바로 도는 최소 놀이·세이브·sw.js·진단 8항목·문서 3층) | `node new-game.mjs --folder saga-xxx --title .. --port ..` |
 | `tools/scene-layout/` | 글자 지도 → 배치표(JSON) → Godot `.tscn` / Unity `.unity` 조립(트랙별 스크립트) | README 의 두 단계 명령 |
 
+웹 편집기 둘(콘텐츠 편집기·맵 편집기)을 한 번에 켜고 상태를 보는 허브: `saga-web/tools/run-tools.bat` → `index.html`.
+
 ## 에셋 만들기·다듬기
 
 | 도구 | 하는 일 |

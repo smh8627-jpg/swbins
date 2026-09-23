@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>saga 게임 제작 도구</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font-family: -apple-system, "Malgun Gothic", sans-serif; max-width: 760px; margin: 40px auto; padding: 0 16px; line-height: 1.6; }
+  h1 { font-size: 1.3em; margin-bottom: 4px; }
+  p.sub { color: #777; margin-top: 0; }
+  .card { border: 1px solid #ccc; border-radius: 8px; padding: 14px 18px; margin: 14px 0; }
+  .card h2 { font-size: 1.05em; margin: 0 0 6px; }
+  .card p { margin: 4px 0; }
+  .card a.open { display: inline-block; margin-top: 6px; padding: 4px 12px; border: 1px solid #888; border-radius: 5px; text-decoration: none; color: inherit; }
+  .card a.open:hover { background: rgba(128,128,128,0.15); }
+  code, pre { font-family: Consolas, "D2Coding", monospace; }
+  pre { background: rgba(128,128,128,0.1); padding: 8px 10px; border-radius: 6px; overflow-x: auto; font-size: 0.85em; }
+  .status { font-size: 0.85em; color: #888; }
+  .off { color: #c33; }
+</style>
+</head>
+<body>
+<h1>saga 게임 제작 도구</h1>
+<p class="sub">로컬 전용. 게임 서버가 아니다 — 커밋·푸시는 하지 않는다.</p>
+
+<div class="card">
+  <h2>콘텐츠 편집기 <span class="status" id="st-8799">확인 중…</span></h2>
+  <p>도감(<code>data.js</code> HEROES·PETS·BIOS)을 다섯 판에 함께 반영, 판별 <code>data-*.js</code> 표 편집, 3D 자산 재할당·업로드, 실명 가드.</p>
+  <a class="open" href="http://127.0.0.1:8799/" target="_blank" rel="noopener">열기 → :8799</a>
+</div>
+
+<div class="card">
+  <h2>맵 편집기 <span class="status" id="st-8800">확인 중…</span></h2>
+  <p>판별 지도(글자 격자·좌표 표)를 칠하고 옮긴다. 검사는 그 판 게임 코드 그대로.</p>
+  <a class="open" href="http://127.0.0.1:8800/" target="_blank" rel="noopener">열기 → :8800</a>
+</div>
+
+<div class="card">
+  <h2>새 판 뼈대 생성기</h2>
+  <p>서버가 아니라 명령줄 도구다 — 바로 도는 최소 판을 하나 만든다.</p>
+  <pre>node saga-web/tools/new-game/new-game.mjs --folder saga-xxx --title .. --port .. [--dry]</pre>
+</div>
+
+<div class="card">
+  <h2>글자 지도 → 3D 씬 조립</h2>
+  <p>맵 편집기가 고친 <code>land.js</code> 를 Godot/Unity 씬으로 조립한다(<code>tools/scene-layout/</code>, 저장소 루트 기준). 자세한 두 단계 명령은 그 폴더 README.</p>
+</div>
+
+<script>
+// 두 서버가 지금 떠 있는지만 표시(실패해도 조용히 "꺼짐"으로 남긴다 — 콘솔 경고는 무시).
+function check(port, id) {
+  var el = document.getElementById(id);
+  fetch('http://127.0.0.1:' + port + '/', { mode: 'no-cors' })
+    .then(function () { el.textContent = '켜짐'; })
+    .catch(function () { el.textContent = '꺼짐 — run-tools.bat 으로 켜기'; el.className = 'status off'; });
+}
+check(8799, 'st-8799');
+check(8800, 'st-8800');
+</script>
+</body>
+</html>
