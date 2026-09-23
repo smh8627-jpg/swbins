@@ -1,6 +1,7 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Saga.Dungeon.Cinematics;
 
 namespace Saga.Dungeon.Player
 {
@@ -32,6 +33,11 @@ namespace Saga.Dungeon.Player
         private const float CameraCollisionBuffer = 0.2f;
 
         [SerializeField] private Camera cam;
+
+        // PLAN.md 106-3 — Cinemachine 도입 뒤엔 실제 카메라 대신 플레이 가상 카메라(PlayerView)를
+        // 움직인다(브레인이 실제 카메라를 거기 붙인다). 비워 두면 예전처럼 자식 카메라를 직접 움직인다
+        // (LayoutWalk 처럼 Cinemachine 이 없는 씬).
+        [SerializeField] private Transform view;
 
         private float _zoom = 6f;
         private float _pitchDeg = 55f; // GO(35°)보다 더 내려다본다 — 디아블로 감각.
@@ -80,6 +86,7 @@ namespace Saga.Dungeon.Player
         private void Awake()
         {
             if (cam == null) cam = GetComponentInChildren<Camera>();
+            if (view == null && cam != null) view = cam.transform;
             transform.localRotation = Quaternion.Euler(_pitchDeg, _yawDeg, 0f);
             _basePivot = transform.localPosition;
             _freePitchDeg = _pitchDeg;
@@ -198,6 +205,11 @@ namespace Saga.Dungeon.Player
 
         private void HandlePointer()
         {
+            if (DungeonCutscenes.Playing)
+            {
+                _dragging = false; // 컷을 넘기는 클릭·탭이 카메라 드래그로 이어지지 않게.
+                return;
+            }
             var mouse = Mouse.current;
             if (mouse != null)
             {
@@ -271,7 +283,7 @@ namespace Saga.Dungeon.Player
 
         private void ApplyZoom()
         {
-            if (cam == null) return;
+            if (view == null) return;
             Vector3 shakeOffset = Vector3.zero;
             if (_shakeTimer > 0f)
             {
@@ -279,7 +291,7 @@ namespace Saga.Dungeon.Player
                 shakeOffset = Random.insideUnitSphere * _shakeMagnitude;
             }
             float clippedZoom = ResolveCollisionZoom(_zoom);
-            cam.transform.localPosition = new Vector3(0f, 0f, -clippedZoom) + shakeOffset;
+            view.localPosition = new Vector3(0f, 0f, -clippedZoom) + shakeOffset;
         }
 
         /// <summary>벽에 카메라가 파고들지 않도록 원하는 줌 거리 안에서

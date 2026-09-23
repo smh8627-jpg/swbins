@@ -1212,7 +1212,7 @@ Slice 승인/재설계 결정.** 100단계에서 무조건 다음 콘텐츠로 �
 |---|---|---|---|
 | 1 | 전투 손맛(젤다) | 락온(주목)·적 공격 예고·락온 옆걸음/백스텝·완벽 회피 반격 | 완료(옆걸음 블렌드 포함, 실기 확인 전) |
 | 2 | 젤다식 던전 하나 | 작은 열쇠→잠긴 문, 스위치·블록 퍼즐, 던전 도구 1(갈고리 또는 폭탄)→그 도구로 여는 길, 보스 열쇠→보스방 | 코드 완료(106-2, 도구=벽력탄, 실기 확인 전) |
-| 3 | 연출(FF) | Cinemachine·Timeline 도입 — 보스 등장 컷·상자 열기·지역 도착 타이틀 | 대기 |
+| 3 | 연출(FF) | Cinemachine·Timeline 도입 — 보스 등장 컷·상자 열기·지역 도착 타이틀 | 코드 완료(106-3, 실기 확인 전) |
 | 4 | 캐릭터 통일 | NPC·적 Kenney 블록 → Mixamo 사실 모델(이름 정책 유지) | 대기 |
 | 5 | 탐험 | 점프·기어오르기·높은 곳 랜드마크 | 대기 |
 | 6 | FF 확장 | 동료 파티 전투·소환수 대형 연출 | 대기 |
@@ -1253,6 +1253,25 @@ Slice 승인/재설계 결정.** 100단계에서 무조건 다음 콘텐츠로 �
 - **저장**: `TempleState`(작은 열쇠 수 + 진행 플래그 9비트) → 세이브 v9 `templeKeys`·`templeFlags`. 문·벽·상자·블록·능묘지기는 `TempleState.Changed` 로 상태를 다시 입는다(열린 문은 계속 열려 있다). 쓰러뜨린 잡졸은 기존처럼 다시 선다.
 - **HUD**: 능묘에 한 번 들어간 뒤부터 "🗝 열쇠 n · 보스 열쇠 · 벽력탄" 줄.
 - 진단: `PlaytestDungeonHeadless.CheckTemple` — 열쇠 없는 문 막힘 → 시련 클리어 전 상자 숨김 → 열쇠 → 문 → 블록 벽 막힘/발판 → 벽력탄 → 금 간 벽 → 보스 열쇠 → 보스 문 → 갑주 15%/기절 150% → 정복 플래그.
+
+## 106-3. 연출 — Cinemachine·Timeline (순서 3)
+
+**패키지**: Cinemachine 3.1.7(+splines 2.9·settings-manager, 매니페스트에 이것만 더함). Timeline 1.8.13 은 원래 있었다. 101-3 G·102-5 에서 "Cinemachine 안 받음, 수동 코루틴"으로 미뤘던 것을 여기서 받는다 — 레벨업 줌 펀치·흔들림·벽 pull-in 은 `CameraRig` 그대로.
+
+**카메라 구조(하이브리드)**: `CameraRig` 는 실제 카메라 대신 플레이 가상 카메라 `PlayerView`(CinemachineCamera, 우선순위 10, 부품 없음 = 자기 트랜스폼 그대로)를 움직인다. 실제 카메라 `PlayerCamera` 에 `CinemachineBrain`. 컷 카메라는 우선순위 0 이라 Timeline `CinemachineTrack` 이 넘겨받을 때만 산다. 첫 샷 이즈 인·끝 샷 이즈 아웃이 플레이 카메라와의 블렌드. `view` 가 비면 예전처럼 자식 카메라를 직접 움직인다(Cinemachine 없는 씬).
+
+| 컷 | 트리거 | 길이 | 샷 | 제목 카드 |
+|---|---|---|---|---|
+| 능묘 도착 | 입구 홀 첫 발(`Visited`) | 4.5s | 남동쪽 위(7m)에서 내려오며 북쪽 잠긴 문 쪽으로(이즈 0.9/0.9) | 가운데 "잊힌 능묘 / 이름 잃은 왕이 잠든 곳" 0.7~3.9s. 목표 토스트는 컷 뒤 |
+| 상자 열기 | `TempleChest.Open()` 셋 다 | 2.6s | 상자 옆 2.4m·위 1.6m, 벽에 덜 막힌 쪽을 고르고 막히면 당긴다, 아이템 쪽으로 다가감(이즈 0.45/0.55). 플레이어는 상자를 본다 | 없음(획득 토스트 그대로) |
+| 능묘지기 등장 | 보스 문 열린 뒤 보스방 중심 8m, 한 번(`BossIntroSeen` 1<<9, 세이브 v9 `templeFlags` 그대로) | 5.2s | 넓은 샷 2.0s(문 앞 높은 데서 밀고 들어감) → 맞붙여 자른 발치 올려다보기 3.2s(손떨림 Handheld_normal_mild) | 왼쪽 아래 "잊힌 능묘의 갑주 파수 — 칼날을 튕긴다 / 능묘지기" 2.3~5.0s. 2.0s 에 포효(공격 클립, 판정 없음) |
+
+- **멈춤**: `Time.timeScale` 은 안 건드리고 `DungeonCutscenes.Playing` 을 본다 — 플레이어 이동·공격 셋·회피·벽력탄·락온, 적 AI(`Tick` 조기 반환, 예비동작도 그 자리에). hitstop 이 전역 시간을 안 건드리는 원칙(101-3)과 같은 결.
+- **화면**: 레터박스(위아래 11%, 0.2s), 컷 동안 HUD 캔버스 전부 끔(토스트 `DialogueUI` 만 남기고 레터박스 위에 뜬다), "건너뛰기 ▶ 아무 키 · 탭".
+- **넘기기**: 아무 키·클릭·탭(첫 0.35s 무시). 넘기면 이즈 없이 곧바로 플레이 카메라로 자른다. 컷이 돌 때 새 컷이 오면 앞 컷을 끝낸다.
+- **Timeline 애셋**: `Assets/Games/SagaDungeon/Cinematics/Timelines/Temple_*.playable` — `BuildDungeonCinematics`(씬 빌더가 플레이어·HUD 뒤에 부름)가 만든다. 있으면 트랙만 비우고 다시 채워 GUID 를 지킨다. 사용자 트랙 둘: `CutsceneDollyTrack`(가상 카메라 직선 달리, 스플라인 대신) · `CutsceneTitleTrack`(제목 카드 앞뒤 0.45s 페이드, 번역 키 `cut.*`).
+- 진단: `CheckTemple` 에 컷 검사(도착 컷·HUD 0·적 멈춤·2s 지역명 카드·넘기면 HUD 복귀 → 상자 카메라 자리 → 컷 중 벽력탄 막힘 → 보스방 밖 안 틂/첫 발 틂·3s 이름표·다시 안 틂 → 능묘 한 바퀴 컷 5회) + `StartCutCameraProbe`(3프레임째 등장 컷 3s) → `CheckCutCameraLive`(6프레임째 브레인 활성=`CutCam_BossClose`·실제 카메라 위치·포효 신호) → `CheckCutCameraBack`(8프레임째 `PlayerView` 복귀). `CinemachineBrain.ManualUpdate()` 는 ManualUpdate 모드가 아니면 오류를 남기므로 프레임을 넘겨 본다.
+- 다음에 옮길 곳: GO·STORY 두목 등장, DUNGEON 층 두목·월드 보스 — 같은 `DungeonCutscenes` 결을 판마다 복사(판 사이 코드 공유 없음 원칙).
 
 ---
 

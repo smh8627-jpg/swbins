@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Saga.Dungeon.Cinematics;
 using Saga.Dungeon.Data;
 using Saga.Dungeon.UI;
 using Saga.Dungeon.World;
@@ -209,6 +210,15 @@ namespace Saga.Dungeon.Player
             }
             _wasInvulnerable = invulnerableNow;
 
+            if (DungeonCutscenes.Playing)
+            {
+                // PLAN.md 106-3 — 컷 동안은 서 있기만(중력만). 회피 대시도 그 자리에서 멈춘다.
+                _moveIntent = Vector3.zero;
+                _controller.Move(new Vector3(0f, _verticalVelocity, 0f) * dt);
+                if (animator != null) animator.SetFloat("Speed", 0f);
+                return;
+            }
+
             var kb = Keyboard.current;
             if (kb != null && kb.leftCtrlKey.wasPressedThisFrame)
             {
@@ -337,7 +347,7 @@ namespace Saga.Dungeon.Player
         /// TriggerAttack()과 같은 결).</summary>
         public void TryDodge()
         {
-            if (_dodgeCooldownLeft > 0f || _dodgeTimeLeft > 0f) return;
+            if (_dodgeCooldownLeft > 0f || _dodgeTimeLeft > 0f || DungeonCutscenes.Playing) return;
 
             Vector3 dir = WorldDirection(MovementInput());
             if (dir.sqrMagnitude < 0.0001f)

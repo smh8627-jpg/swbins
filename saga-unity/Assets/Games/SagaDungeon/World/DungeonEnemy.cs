@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Saga.Dungeon.Audio;
+using Saga.Dungeon.Cinematics;
 using Saga.Dungeon.Data;
 using Saga.Dungeon.UI;
 
@@ -321,6 +322,12 @@ namespace Saga.Dungeon.World
         public void Tick(float dt)
         {
             if (_state == State.Dead || _player == null) return;
+            if (DungeonCutscenes.Playing)
+            {
+                // PLAN.md 106-3 — 컷 동안은 제자리(숨쉬기 idle 만). 예비동작도 그 자리에 멈춘다.
+                if (_state != State.Windup) _animator?.SetFloat("Speed", 0f);
+                return;
+            }
 
             if (_armorHintCooldown > 0f) _armorHintCooldown -= dt;
             if (_stunLeft > 0f)
@@ -395,6 +402,15 @@ namespace Saga.Dungeon.World
                     BeginWindup();
                 }
             }
+        }
+
+        /// <summary>PLAN.md 106-3 — 등장 컷에서 `DungeonCutscenes` 가 부른다. 플레이어를 보고
+        /// 공격 클립을 포효 대신 한 번 튼다(판정 없음 — 예비동작 상태로 들어가지 않는다).</summary>
+        public void PlayRoar()
+        {
+            if (_player != null) FacePlayer();
+            _animator?.SetTrigger("Attack");
+            SfxPlayer.PlayHeavyHit();
         }
 
         private void FacePlayer()

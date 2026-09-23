@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Saga.Dungeon.Cinematics;
 using Saga.Dungeon.World;
 
 namespace Saga.Dungeon.Player
@@ -68,6 +69,7 @@ namespace Saga.Dungeon.Player
         /// <summary>모바일 "주목" 버튼(영속 리스너)과 Q키가 부른다.</summary>
         public void Toggle()
         {
+            if (DungeonCutscenes.Playing) return;
             if (IsLocked) Release();
             else SetTarget(FindBest());
         }
@@ -75,6 +77,7 @@ namespace Saga.Dungeon.Player
         /// <summary>Tab — 락온 중이면 다음 대상, 아니면 새로 잡는다.</summary>
         public void SwitchTarget()
         {
+            if (DungeonCutscenes.Playing) return;
             if (!IsLocked)
             {
                 SetTarget(FindBest());

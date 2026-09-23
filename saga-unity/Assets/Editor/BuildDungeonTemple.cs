@@ -29,6 +29,9 @@ namespace Saga.EditorTools
         private static Material _floorMat, _wallMat, _woodMat, _metalMat;
         private static float _doorWidth;
 
+        /// <summary>마지막 `Build()` 가 만든 능묘지기 — `BuildDungeonCinematics` 가 등장 컷 포효에 쓴다.</summary>
+        public static DungeonEnemy LastGuardian { get; private set; }
+
         public static void Build(GameObject corridorGlb, GameObject gateGlb, GameObject roomGlb,
             Material floorMat, Material wallMat, GameObject guardianModel, GameObject wardenModel, float roomDoorWidth)
         {
@@ -116,7 +119,10 @@ namespace Saga.EditorTools
             var bossRoom = Room(root, "Temple_BossRoom", BossRoomCenter, new Vector3(7f, 0f, 7f));
             bossRoom.OpenSouthDoor(_doorWidth);
             Torch(bossRoom.transform, intensity: 1.6f);
-            Guardian(root, BossRoomCenter + new Vector3(0f, 0f, 4f));
+            LastGuardian = Guardian(root, BossRoomCenter + new Vector3(0f, 0f, 4f));
+            var introGo = new GameObject("TempleBossIntro"); // PLAN.md 106-3 — 보스방 첫 발에 등장 컷.
+            introGo.transform.SetParent(bossRoom.transform, false);
+            SetField(introGo.AddComponent<TempleBossIntro>(), "boss", LastGuardian);
 
             Debug.Log("[BuildDungeonTemple] 잊힌 능묘 — 방 5 · 복도 5 · 상자 3 · 문 2 · 금 간 벽 1 · 블록 1 · 파수꾼 6 · 능묘지기 1");
         }
@@ -213,7 +219,7 @@ namespace Saga.EditorTools
             SetField(e, "modelPrefab", _wardenModel);
         }
 
-        private static void Guardian(GameObject root, Vector3 pos)
+        private static DungeonEnemy Guardian(GameObject root, Vector3 pos)
         {
             var go = new GameObject("Enemy_TempleGuardian");
             go.transform.SetParent(root.transform, false);
@@ -237,6 +243,7 @@ namespace Saga.EditorTools
             SetField(e, "modelPrefab", _guardianModel);
             SetField(e, "bombArmored", true);
             SetField(e, "deathFlag", TempleFlag.BossDefeated);
+            return e;
         }
 
         private static void SetField(object target, string fieldName, object value)

@@ -1,6 +1,7 @@
 using System.Collections;
 using UnityEngine;
 using Saga.Dungeon.Audio;
+using Saga.Dungeon.Cinematics;
 using Saga.Dungeon.Data;
 using Saga.Dungeon.UI;
 
@@ -15,8 +16,8 @@ namespace Saga.Dungeon.World
 
     /// <summary>
     /// PLAN.md 106-2 "잊힌 능묘" 상자 — 조건(방의 적 전멸·진행 비트)이 맞으면 나타나고,
-    /// 가까이 가면 뚜껑이 열리며 얻은 것이 머리 위로 떠오른다(젤다 "아이템 획득"의 뼈대 —
-    /// 카메라 연출 본판은 106장 순서 3). 열림은 `openedFlag` 로 저장되고, 벽력탄·보스 열쇠는
+    /// 가까이 가면 뚜껑이 열리며 얻은 것이 머리 위로 떠오른다(젤다 "아이템 획득"). 여는 순간
+    /// 상자 컷(PLAN.md 106-3 — 옆으로 비껴 선 카메라가 아이템 쪽으로 다가간다)이 돈다. 열림은 `openedFlag` 로 저장되고, 벽력탄·보스 열쇠는
     /// 그 비트 자체가 "가지고 있다"는 뜻이다(`TempleState.HasBombs`·`HasBossKey`).
     /// DUNGEON 은 상호작용 키 없이 근접 판정이 관례라(`DungeonTrove`·`DungeonPuzzle`) 그대로 따른다.
     /// </summary>
@@ -179,6 +180,13 @@ namespace Saga.Dungeon.World
             SfxPlayer.PlayLevelUp();
             DialogueLabel.Instance?.Show(msg, ToastSec);
             StartCoroutine(OpenRoutine());
+            if (_player != null)
+            {
+                var pc = _player.GetComponent<Player.PlayerController>();
+                if (pc != null) pc.FaceToward(transform.position);
+                float itemHeight = _item != null ? _item.localPosition.y : 1f;
+                DungeonCutscenes.Instance?.PlayChest(transform.position, _player.position, itemHeight);
+            }
         }
 
         /// <summary>진행 비트가 이미 서 있으면(세이브 로드) 연출 없이 열린 모습으로.</summary>

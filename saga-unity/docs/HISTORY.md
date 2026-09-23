@@ -8739,3 +8739,14 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - **미확인**: Maria.controller 를 같이 쓰는 GO `PlaytestHeadless`·STORY `PlaytestStorySlice` 는 두 번 다 **Unity 시작 단계**(컴파일 뒤 `Access token is unavailable` 다음)에서 멈춰 15분 제한에 걸렸다 — 진단 코드까지 못 감. 사이사이 던전 진단은 정상이라 환경(연속 실행 누적 hang, HISTORY 09-23 GUI hang 과 같은 모양 + VS Code 가 CPU 를 크게 씀)으로 본다. 컨트롤러 변경은 새 상태·파라미터 추가뿐(기본값 LockOn=false)이라 두 판 동작엔 영향이 없어야 하지만 재확인 전.
 
 - **재확인(같은 날)**: 시간을 두고 다시 돌리니 GO `PlaytestHeadless` OK · STORY `PlaytestStorySlice` OK — Maria.controller 옆걸음 블렌드 추가가 두 판을 안 깨뜨림. 앞의 두 번은 Unity 시작 hang(환경)이었다.
+
+## 2026-09-23 — PLAN 106-3 연출(FF): Cinemachine 3.1.7 + Timeline 컷 셋(능묘 도착·상자·능묘지기 등장) (새 세션 "사가 유니티 이어해", Opus 5.5)
+
+- **패키지**: Cinemachine 3.1.7(latest, unity 2022.3+) 을 매니페스트에 추가. 첫 배치 실행이 같이 올린 gltfast 6.9.0→6.14.1·ProjectVersion 은 되돌리고, lock 에는 cinemachine·splines 2.9.0·settings-manager 2.1.1 항목만 손으로 넣어 **먼저 따로 커밋**(`unity-batch.sh` 가 Packages 를 HEAD 로 되돌리므로, 커밋 전이면 다음 배치에서 패키지가 빠진다).
+- **카메라 하이브리드**: `CameraRig` 는 `view`(플레이 가상 카메라 `PlayerView`, 부품 없는 CinemachineCamera·우선순위 10)를 움직이고 실제 카메라엔 `CinemachineBrain`. 레벨업 줌 펀치·흔들림·벽 pull-in 은 손대지 않음. `view` 가 비면 옛 동작(자식 카메라 직접).
+- **새 런타임**(`Assets/Games/SagaDungeon/Cinematics/`): `DungeonCutscenes`(컷 셋·멈춤 플래그 `Playing`·레터박스·HUD 캔버스 끄기·넘기기·보스 포효 신호·상자 카메라 자리 잡기), `CutsceneDolly`+`CutsceneDollyTrack/Clip`(직선 달리), `CutsceneTitleCard`+`CutsceneTitleTrack/Clip`(가운데 지역명·왼쪽 아래 보스 이름표, 번역 키 `cut.*` 5개 ko/en). `World/TempleBossIntro`(보스방 첫 발 트리거, `TempleFlag.BossIntroSeen` 1<<9 — 비트 끝에 붙여 세이브 호환). `DungeonEnemy.PlayRoar()`.
+- **멈춤 배선**: `PlayerController`(이동·회피)·`PlayerCombat`(평타·강공격·회전베기)·`PlayerBombs`·`PlayerLockOn`(토글·Tab)·`CameraRig`(드래그)·`DungeonEnemy.Tick` 이 `DungeonCutscenes.Playing` 을 본다. `Time.timeScale` 은 안 씀(hitstop 원칙과 같은 결, 적 idle 애니는 돈다).
+- **연결**: `TempleEntrance` → 도착 컷, 목표 토스트는 컷 뒤(`temple.enter` 문구에서 "— 잊힌 능묘 —" 머리 뺌 — 제목은 카드가 맡음). `TempleChest.Open()` → 플레이어가 상자를 보고 상자 컷.
+- **에디터**: `BuildDungeonCinematics.cs` 신규 — 씬 빌더가 플레이어·HUD 뒤에 부른다. Timeline 애셋 3개(`Cinematics/Timelines/Temple_*.playable`)는 있으면 트랙만 비우고 다시 채워 GUID 유지. 컷 가상 카메라 4(도착·상자·보스 넓은/가까운, 가까운 샷에 Handheld_normal_mild 손떨림). `BuildDungeonTemple` 은 `LastGuardian` 을 내보내고 보스방에 `TempleBossIntro` 를 둔다.
+- **함정**: `CinemachineBrain.ManualUpdate()` 는 ManualUpdate 모드가 아니면 `Debug.LogError` 를 남긴다 → 헤드리스 진단에서 강제 갱신 대신 **프레임을 넘겨** 확인(3프레임째 틀기·6프레임째 확인·8프레임째 복귀). 셸 heredoc 안의 `'`·`\\n` 이 훅을 거치며 깨져 python 편집 스크립트는 scratchpad 파일로 써서 돌렸다.
+- **검증**: 컴파일 exit 0 · `BuildTestDungeonScene` 재빌드 exit 0 · `PlaytestDungeonHeadless` **3연속 OK** — `CheckTemple` 컷 검사(도착 컷·HUD 0·파수꾼 멈춤·2s 지역명 카드·넘기면 HUD 복귀 → 상자 카메라 자리 → 컷 중 벽력탄 막힘 → 보스방 밖 안 틂/첫 발 틂·3s 이름표·다시 안 틂 → 컷 5회) + `cut camera live`(t≈3.2 브레인 활성=`CutCam_BossClose`, 실제 카메라 0.00m, 포효 신호) + `cut camera back`(`PlayerView` 복귀·HUD 16). 같은 씬 `PlaytestDungeonFloorProgression`·`PlaytestDungeonShortcut` OK. GUI 실기 확인은 전.

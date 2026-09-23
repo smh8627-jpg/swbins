@@ -1,10 +1,12 @@
 using System.Collections.Generic;
 using System.Reflection;
+using Unity.Cinemachine;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.UI;
 using Saga.Core;
+using Saga.Dungeon.Cinematics;
 using Saga.Dungeon.Data;
 using Saga.Dungeon.Player;
 using Saga.Dungeon.UI;
@@ -32,6 +34,10 @@ namespace Saga.EditorTools
         private const string ScenePath = "Assets/Scenes/TestDungeon.unity";
         private const int FramesToRun = 10;
         private const int WhirlCheckFrame = 3; // 씬 로드 직후 Awake 체인이 다 돈 뒤(여유 있게 잡음).
+        // PLAN.md 106-3 — 브레인은 LateUpdate 에서 실제 카메라를 옮기므로 컷 카메라는 프레임을 넘겨 본다.
+        private const int CutLiveCheckFrame = 6;
+        private const int CutBackCheckFrame = 8;
+        private static bool _cutProbeStarted;
 
         private static int _framesSeen;
         private static bool _hadError;
@@ -52,6 +58,7 @@ namespace Saga.EditorTools
             _framesSeen = 0;
             _hadError = false;
             _whirlChecked = false;
+            _cutProbeStarted = false;
             Application.logMessageReceived += OnLog;
             EditorApplication.playModeStateChanged += OnStateChanged;
             EditorApplication.isPlaying = true;
@@ -122,7 +129,10 @@ namespace Saga.EditorTools
                 CheckLockOn(); // PLAN.md 106-1 — 더미 처치가 레벨업을 부를 수 있어 CheckLevelUpCut 뒤.
                 CheckEnemyTelegraph();
                 CheckTemple(); // PLAN.md 106-2 — 플레이어를 순간이동시키므로 맨 끝(finally 에서 되돌린다).
+                StartCutCameraProbe(); // PLAN.md 106-3 — 6·8프레임째에 이어서 본다.
             }
+            if (_framesSeen == CutLiveCheckFrame) CheckCutCameraLive();
+            if (_framesSeen == CutBackCheckFrame) CheckCutCameraBack();
 
             if (_framesSeen >= FramesToRun)
             {
@@ -1340,16 +1350,19 @@ namespace Saga.EditorTools
             var wall = Object.FindFirstObjectByType<TempleCrackedWall>();
             var block = Object.FindFirstObjectByType<TemplePushBlock>();
             var entrance = Object.FindFirstObjectByType<TempleEntrance>();
+            var bossIntro = Object.FindFirstObjectByType<TempleBossIntro>();
+            var cuts = DungeonCutscenes.Instance;
             DungeonEnemy guardian = null;
             foreach (var e in DungeonEnemy.Active)
             {
                 if (e != null && e.IsBombArmored) guardian = e;
             }
             if (controller == null || bombs == null || keyChest == null || bombChest == null || bossKeyChest == null
-                || smallDoor == null || bossDoor == null || wall == null || block == null || entrance == null || guardian == null)
+                || smallDoor == null || bossDoor == null || wall == null || block == null || entrance == null || guardian == null
+                || bossIntro == null || cuts == null)
             {
                 Debug.LogError($"{T} — 능묘 구성품을 못 찾음(씬 재빌드 필요) bombs={bombs} key={keyChest} bomb={bombChest} bossKey={bossKeyChest} " +
-                               $"door={smallDoor}/{bossDoor} wall={wall} block={block} entrance={entrance} guardian={guardian}");
+                               $"door={smallDoor}/{bossDoor} wall={wall} block={block} entrance={entrance} guardian={guardian} bossIntro={bossIntro} cuts={cuts}");
                 _hadError = true;
                 return;
             }
@@ -1370,10 +1383,37 @@ namespace Saga.EditorTools
                 TempleState.Restore(0, 0);
                 HeroState.FullHeal();
                 ResetDodge(controller);
+                cuts.Skip();
+                int hudBefore = CountHudCanvases();
+                int playsBefore = cuts.PlayCount;
 
                 p.position = entrance.transform.position;
                 entrance.Tick();
                 if (!TempleState.Has(TempleFlag.Visited) || TempleState.HudLine().Length == 0) { Fail("입구에서 Visited·HUD 줄이 안 섬"); return; }
+
+                // PLAN.md 106-3 도착 컷 — 도는 동안 HUD 가 꺼지고 적이 멈추며, 지역명 카드가 뜨고, 넘기면 돌아온다.
+                if (!DungeonCutscenes.Playing || cuts.Current != CutsceneKind.Arrival) { Fail($"입구 첫 발에 도착 컷이 안 돎 current={cuts.Current}"); return; }
+                if (CountHudCanvases() != 0) { Fail($"컷 도중 HUD 캔버스가 {CountHudCanvases()}개 켜져 있음"); return; }
+                DungeonEnemy trialWarden = null;
+                foreach (var e in DungeonEnemy.Active)
+                {
+                    if (e != null && e.RoomId == "temple_trial") { trialWarden = e; break; }
+                }
+                if (trialWarden != null)
+                {
+                    p.position = trialWarden.transform.position + new Vector3(1.5f, 0f, 0f);
+                    trialWarden.Tick(0.5f);
+                    string st = GetPrivate(trialWarden, "_state").ToString();
+                    p.position = entrance.transform.position;
+                    if (st != "Idle") { Fail($"컷 도중인데 파수꾼이 움직임 state={st}"); return; }
+                }
+                cuts.Seek(2.0);
+                string wantTitle = DungeonLocalization.T("cut.temple_title");
+                if (cuts.TitleCard.ShownTitle != wantTitle || cuts.TitleCard.ShownAlpha < 0.9f)
+                { Fail($"도착 컷 2초에 지역명 카드가 안 보임 '{cuts.TitleCard.ShownTitle}' a={cuts.TitleCard.ShownAlpha:F2}"); return; }
+                cuts.Skip();
+                if (DungeonCutscenes.Playing || cuts.TitleCard.ShownAlpha > 0f || CountHudCanvases() != hudBefore)
+                { Fail($"도착 컷을 넘겼는데 안 돌아옴 playing={DungeonCutscenes.Playing} hud={CountHudCanvases()}/{hudBefore}"); return; }
 
                 bombs.TryPlaceBomb();
                 if (bombs.ActiveBomb != null) { Fail("벽력탄 없이 놓임"); return; }
@@ -1393,6 +1433,11 @@ namespace Saga.EditorTools
                 p.position = keyChest.transform.position + new Vector3(1f, 0f, 0f);
                 keyChest.Tick();
                 if (!keyChest.IsOpened || TempleState.SmallKeys != 1) { Fail($"시련 클리어 뒤 작은 열쇠 상자 revealed={keyChest.IsRevealed} opened={keyChest.IsOpened} keys={TempleState.SmallKeys}"); return; }
+                var chestCam = cuts.CameraOf(CutsceneKind.Chest).transform.position;
+                if (cuts.Current != CutsceneKind.Chest || chestCam.y < keyChest.transform.position.y + 0.8f
+                    || TempleVisuals.FlatDistance(chestCam, keyChest.transform.position) > 4f)
+                { Fail($"상자 컷 카메라 자리 틀림 current={cuts.Current} cam={chestCam} chest={keyChest.transform.position}"); return; }
+                cuts.Skip();
 
                 p.position = smallDoor.transform.position + new Vector3(0f, 0f, -1.5f);
                 smallDoor.Tick();
@@ -1428,6 +1473,9 @@ namespace Saga.EditorTools
                 p.position = bombChest.transform.position + new Vector3(1f, 0f, 0f);
                 bombChest.Tick();
                 if (!bombChest.IsOpened || !TempleState.HasBombs) { Fail("벽력탄 상자가 안 열림"); return; }
+                bombs.TryPlaceBomb();
+                if (cuts.Current != CutsceneKind.Chest || bombs.ActiveBomb != null) { Fail($"벽력탄 상자 컷 도중 벽력탄이 놓임(또는 컷 없음) current={cuts.Current}"); return; }
+                cuts.Skip();
 
                 // 금 간 벽 — 진짜로 놓은 뒤 벽 앞으로 옮겨 즉시 터뜨린다(심지 2초는 기다리지 않는다).
                 p.position = wall.transform.position + new Vector3(1.5f, 0f, 0f);
@@ -1446,12 +1494,30 @@ namespace Saga.EditorTools
                 p.position = bossKeyChest.transform.position + new Vector3(1.2f, 0f, 0f);
                 bossKeyChest.Tick();
                 if (!bossKeyChest.IsOpened || !TempleState.HasBossKey) { Fail("보스 열쇠 상자가 안 열림"); return; }
+                if (cuts.Current != CutsceneKind.Chest) { Fail("보스 열쇠 상자 컷이 안 돎"); return; }
+                cuts.Skip();
 
                 p.position = far;
                 bossDoor.Tick();
                 p.position = bossDoor.transform.position + new Vector3(0f, 0f, -1.5f);
                 bossDoor.Tick();
                 if (!bossDoor.IsOpened || TempleState.HasBossKey) { Fail("보스 열쇠로 보스 문이 안 열림(또는 열쇠가 안 소비됨)"); return; }
+
+                // PLAN.md 106-3 등장 컷 — 보스방 첫 발에 한 번, 보스 이름표, 다시 들어가면 안 튼다.
+                p.position = far;
+                bossIntro.Tick();
+                if (DungeonCutscenes.Playing) { Fail("보스방 밖인데 등장 컷이 돎"); return; }
+                p.position = bossIntro.transform.position + new Vector3(0f, 0f, -6f);
+                bossIntro.Tick();
+                if (cuts.Current != CutsceneKind.BossIntro || !TempleState.Has(TempleFlag.BossIntroSeen)) { Fail($"보스방 첫 발에 등장 컷이 안 돎 current={cuts.Current}"); return; }
+                cuts.Seek(3.0);
+                string wantBoss = DungeonLocalization.T("cut.guardian_title");
+                if (cuts.TitleCard.ShownTitle != wantBoss || cuts.TitleCard.ShownAlpha < 0.9f)
+                { Fail($"등장 컷 3초에 보스 이름표가 안 보임 '{cuts.TitleCard.ShownTitle}' a={cuts.TitleCard.ShownAlpha:F2}"); return; }
+                cuts.Skip();
+                bossIntro.Tick();
+                if (DungeonCutscenes.Playing) { Fail("등장 컷을 본 뒤 다시 들어갔는데 또 돎"); return; }
+                if (cuts.PlayCount - playsBefore != 5) { Fail($"능묘 한 바퀴 컷 수 {cuts.PlayCount - playsBefore} ≠ 5(도착·상자 셋·등장)"); return; }
 
                 SetPrivate(guardian, "_curHp", 480f);
                 guardian.TakeDamage(100f);
@@ -1467,16 +1533,95 @@ namespace Saga.EditorTools
                 guardian.TakeDamage(999999f);
                 if (!TempleState.Has(TempleFlag.BossDefeated)) { Fail("능묘지기를 쓰러뜨렸는데 정복 비트가 안 섬"); return; }
 
-                Debug.Log($"{T} OK - 입구·열쇠 없는 문·시련 상자·작은 열쇠·문·블록 감지/경계/발판·벽력탄·금 간 벽·자기 피해·보스 열쇠·보스 문·갑주 15%/기절 150%·정복");
+                Debug.Log($"{T} OK - 입구·열쇠 없는 문·시련 상자·작은 열쇠·문·블록 감지/경계/발판·벽력탄·금 간 벽·자기 피해·보스 열쇠·보스 문·갑주 15%/기절 150%·정복 " +
+                          "+ 106-3 컷(도착 카드·HUD 끔·적 멈춤·상자 카메라·컷 중 벽력탄 막힘·등장 이름표·한 번만·5회)");
             }
             finally
             {
+                cuts.Skip();
                 p.position = origPos;
                 SetPrivate(controller, "_moveIntent", Vector3.zero);
                 TempleState.Restore(origKeys, origFlags);
                 HeroState.FullHeal();
                 ResetDodge(controller);
             }
+        }
+
+        /// <summary>켜진 HUD 캔버스 수 — 컷 레터박스와 토스트(DialogueLabel)는 뺀다(`DungeonCutscenes.HideHud` 와 같은 기준).</summary>
+        private static int CountHudCanvases()
+        {
+            int n = 0;
+            foreach (var c in Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None))
+            {
+                if (!c.isRootCanvas || !c.enabled || c.renderMode != RenderMode.ScreenSpaceOverlay) continue;
+                if (c.gameObject.name == "CutsceneOverlay" || c.GetComponent<DialogueLabel>() != null) continue;
+                n++;
+            }
+            return n;
+        }
+
+        /// <summary>PLAN.md 106-3 — 등장 컷을 3초 자리로 틀어 두고, 6프레임째에 브레인이 실제 카메라를
+        /// 컷 가상 카메라로 옮겼는지(`CheckCutCameraLive`), 넘긴 뒤 8프레임째에 플레이 카메라로
+        /// 돌아왔는지(`CheckCutCameraBack`) 본다.</summary>
+        private static void StartCutCameraProbe()
+        {
+            var cuts = DungeonCutscenes.Instance;
+            DungeonEnemy guardian = null;
+            foreach (var e in DungeonEnemy.Active)
+            {
+                if (e != null && e.IsBombArmored) guardian = e;
+            }
+            if (cuts == null || guardian == null || !cuts.PlayBossIntro(guardian))
+            {
+                Debug.LogError($"[PlaytestDungeonHeadless] cut camera — 등장 컷을 못 틂 cuts={cuts} guardian={guardian}");
+                _hadError = true;
+                return;
+            }
+            cuts.Seek(3.0);
+            _cutProbeStarted = true;
+        }
+
+        private static void CheckCutCameraLive()
+        {
+            if (!_cutProbeStarted) return;
+            const string T = "[PlaytestDungeonHeadless] cut camera";
+            var cuts = DungeonCutscenes.Instance;
+            var close = cuts.CameraOf(CutsceneKind.BossIntro, close: true);
+            if (!DungeonCutscenes.Playing || cuts.Current != CutsceneKind.BossIntro)
+            {
+                Debug.LogError($"{T} — 등장 컷이 프레임을 넘기며 끊김 current={cuts.Current}");
+                _hadError = true;
+                return;
+            }
+            var live = cuts.Brain.ActiveVirtualCamera;
+            float gap = Vector3.Distance(cuts.Brain.OutputCamera.transform.position, close.transform.position);
+            double t = cuts.CurrentDirector.time;
+            cuts.Skip();
+            if (!ReferenceEquals(live, close) || gap > 1.2f || !cuts.RoarFired)
+            {
+                Debug.LogError($"{T} — 브레인이 컷 카메라로 안 옮김 live={live?.Name} gap={gap:F2} roar={cuts.RoarFired} t={t:F2}");
+                _hadError = true;
+                return;
+            }
+            Debug.Log($"{T} live OK - t={t:F2} 실제 카메라가 {close.name} 에({gap:F2}m)·포효 신호");
+        }
+
+        private static void CheckCutCameraBack()
+        {
+            if (!_cutProbeStarted) return;
+            const string T = "[PlaytestDungeonHeadless] cut camera";
+            var cuts = DungeonCutscenes.Instance;
+            var rig = Object.FindFirstObjectByType<CameraRig>();
+            var view = rig != null ? GetPrivate(rig, "view") as Transform : null;
+            var playerView = view != null ? view.GetComponent<CinemachineCamera>() : null;
+            var live = cuts.Brain.ActiveVirtualCamera;
+            if (DungeonCutscenes.Playing || playerView == null || !ReferenceEquals(live, playerView) || CountHudCanvases() == 0)
+            {
+                Debug.LogError($"{T} — 넘긴 뒤 플레이 카메라로 안 돌아옴 playing={DungeonCutscenes.Playing} live={live?.Name} view={playerView} hud={CountHudCanvases()}");
+                _hadError = true;
+                return;
+            }
+            Debug.Log($"{T} back OK - {playerView.name} 로 돌아옴·HUD {CountHudCanvases()}");
         }
 
         private static object GetPrivate(object target, string fieldName)

@@ -1,5 +1,6 @@
 using UnityEngine;
 using Saga.Dungeon.Audio;
+using Saga.Dungeon.Cinematics;
 using Saga.Dungeon.Data;
 using Saga.Dungeon.UI;
 
@@ -7,8 +8,8 @@ namespace Saga.Dungeon.World
 {
     /// <summary>
     /// PLAN.md 106-2 "잊힌 능묘" 입구 — 첫 발을 들이면 제목과 목표를 한 번 알리고
-    /// `TempleFlag.Visited` 를 세운다(HUD 열쇠 줄이 이때부터 보인다). 지역 도착 타이틀
-    /// 연출 본판은 106장 순서 3(Timeline).
+    /// `TempleFlag.Visited` 를 세운다(HUD 열쇠 줄이 이때부터 보인다). 제목은 도착 컷
+    /// (PLAN.md 106-3, Timeline — 지역명 카드)이 맡고, 목표 토스트는 컷이 끝난 뒤에 띄운다.
     /// </summary>
     public class TempleEntrance : MonoBehaviour
     {
@@ -30,8 +31,14 @@ namespace Saga.Dungeon.World
             if (TempleVisuals.FlatDistance(transform.position, _player.position) > EnterRadius) return;
             TempleState.Set(TempleFlag.Visited);
             SfxPlayer.PlayDiscovery();
+            var cuts = DungeonCutscenes.Instance;
+            if (cuts == null || !cuts.PlayArrival(ShowGoal)) ShowGoal();
+        }
+
+        private static void ShowGoal()
+        {
             DialogueLabel.Instance?.Show(DungeonLocalization.T("temple.enter",
-                "— 잊힌 능묘 —\n작은 열쇠로 길을 열고, 보스 열쇠로 능묘지기에게 닿아라"), 5f);
+                "작은 열쇠로 길을 열고, 보스 열쇠로 능묘지기에게 닿아라"), 5f);
         }
     }
 }

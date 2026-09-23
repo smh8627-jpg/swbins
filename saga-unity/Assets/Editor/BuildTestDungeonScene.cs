@@ -352,6 +352,7 @@ namespace Saga.EditorTools
             BuildBombButton(playerGo.GetComponent<PlayerBombs>());
             BuildMobileHud();
             BuildBlessingChoiceUi();
+            BuildDungeonCinematics.Build(playerGo, BuildDungeonTemple.LastGuardian); // PLAN.md 106-3 — 플레이어·HUD 뒤.
             BuildHordeArena();
             BuildBootstrap();
 
@@ -1089,6 +1090,15 @@ namespace Saga.EditorTools
             rigGo.transform.localPosition = new Vector3(0f, 0.9f, 0f);
             var cameraRig = rigGo.AddComponent<CameraRig>();
 
+            // PLAN.md 106-3 — CameraRig 는 이 플레이 가상 카메라를 움직이고, 실제 카메라는
+            // CinemachineBrain 이 여기(또는 Timeline 컷 카메라)에 붙인다.
+            var viewGo = new GameObject("PlayerView");
+            viewGo.transform.SetParent(rigGo.transform, false);
+            viewGo.transform.localPosition = new Vector3(0f, 0f, -6f);
+            var playerView = viewGo.AddComponent<Unity.Cinemachine.CinemachineCamera>();
+            playerView.Priority = 10;
+            SetPrivateField(cameraRig, "view", viewGo.transform);
+
             var camGo = new GameObject("PlayerCamera");
             camGo.transform.SetParent(rigGo.transform, false);
             var cam = camGo.AddComponent<Camera>();
@@ -1098,6 +1108,10 @@ namespace Saga.EditorTools
             camGo.AddComponent<AudioListener>();
             camGo.AddComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>()
                 .renderPostProcessing = true;
+            playerView.Lens = Unity.Cinemachine.LensSettings.FromCamera(cam);
+            var brain = camGo.AddComponent<Unity.Cinemachine.CinemachineBrain>();
+            brain.DefaultBlend = new Unity.Cinemachine.CinemachineBlendDefinition(
+                Unity.Cinemachine.CinemachineBlendDefinition.Styles.EaseInOut, 0.6f);
 
             var inputActions = AssetDatabase.LoadAssetAtPath<UnityEngine.InputSystem.InputActionAsset>(InputActionsPath);
             if (inputActions == null)
