@@ -19,6 +19,7 @@
   <span class="muted" id="meta"></span>
   <span class="sp"></span>
   <span id="playMount" style="display:flex;gap:4px"></span>
+  <button id="bPlayHere" title="F6 — 고른 것(없으면 화면 가운데) 앞에서 시작 · Alt+누르기 = 누른 자리">▶ 여기서</button>
   <span id="badge" class="muted">검사 중…</span>
   <button id="btnUndo" title="Ctrl+Z">되돌리기</button>
   <button id="btnRedo" title="Ctrl+Y">다시</button>
@@ -207,6 +208,7 @@ function hit(p) {
 let drag = null;
 cv.onmousedown = (e) => {
   const p = pt(e);
+  if (e.altKey) { e.preventDefault(); playHere(p); return; }
   if (tool !== 'sel') { add(tool, p); return; }
   const h = hit(p); sel = h;
   if (h) { push(); const o = D[h.k][h.i]; drag = { ...h, p0: p, x0: o.x, y0: o.y, moved: false }; }
@@ -336,6 +338,7 @@ addEventListener('keydown', (e) => {
   else if (ctl && (e.key === 'd' || e.key === 'D')) { e.preventDefault(); dup(); }
   else if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); del(); }
   else if (e.key === 'Escape') setTool('sel');
+  else if (e.key === 'F6') { e.preventDefault(); playHere(); }
   else if (e.key.indexOf('Arrow') === 0 && sel) {
     e.preventDefault(); const s = e.shiftKey ? 10 : 1;
     nudge(e.key === 'ArrowLeft' ? -s : e.key === 'ArrowRight' ? s : 0, e.key === 'ArrowUp' ? -s : e.key === 'ArrowDown' ? s : 0);
@@ -343,9 +346,24 @@ addEventListener('keydown', (e) => {
 });
 $('#btnReload').onclick = async () => { if (dirty && !confirm('저장 안 한 변경을 버릴까요?')) return; const i = +$('#townSel').value; await load(); $('#townSel').value = i; pick(i); };
 $('#townSel').onchange = (e) => { if (dirty && !confirm('저장 안 한 변경을 버릴까요?')) { e.target.value = items.indexOf(M); return; } pick(+e.target.value); };
+/* ▶ 여기서 — 실행 창을 이 마을 이 자리(BASE 좌표)에서 연다. 게임이 방 배율·마을 앵커를 곱해 세계 자리로 옮긴다.
+   고른 것 바로 위에 서면 말 걸기·표식이 곧장 걸려 한 발 앞(아래쪽)에 세운다. 없으면 화면 가운데 */
+function playHere(p) {
+  if (!M || !window.SagaPlay) return;
+  const B = M.base, lo = B.WALL + B.P_R;
+  if (!p && sel) {
+    const o = D[sel.k][sel.i];
+    if (o) { const t = sel.k === 'decor' ? DT[o.t] || {} : {}; p = { x: o.x, y: o.y + (sel.k === 'decor' ? (t.d ? t.d / 2 : t.r || t.sq || 10) + 20 : 30) }; }
+  }
+  if (!p) { const c = $('#center').getBoundingClientRect(), v = cv.getBoundingClientRect(); p = { x: (c.left + c.width / 2 - v.left - PAD) / K, y: (c.top + c.height / 2 - v.top - PAD) / K }; }
+  const at = { in: M.id, name: M.name, x: Math.max(lo, Math.min(B.W - lo, p.x)), y: Math.max(lo, Math.min(B.H - lo, p.y)) };
+  if (dirty) log('저장 안 한 배치는 실행 창에 안 나온다(게임은 파일을 읽는다) — Ctrl+S 먼저', false);
+  SagaPlay.open(M.game, at);
+}
+$('#bPlayHere').onclick = () => playHere();
 addEventListener('beforeunload', (e) => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
 /* 시험용 손잡이 */
-window.SagaTown = { state: () => ({ M, D, orig, sel, dirty, undo: undoS.length, auto }), pick, add, dup, del, nudge, doUndo, doRedo, save, select: (k, i) => { sel = { k, i }; draw(); showSel(); } };
+window.SagaTown = { state: () => ({ M, D, orig, sel, dirty, undo: undoS.length, auto }), pick, playHere, add, dup, del, nudge, doUndo, doRedo, save, select: (k, i) => { sel = { k, i }; draw(); showSel(); } };
 load();
 </script>
 <script src="/play-panel.js"></script>

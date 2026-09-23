@@ -19,6 +19,7 @@
   <span class="muted" id="meta"></span>
   <span class="sp"></span>
   <span id="playMount" style="display:flex;gap:4px"></span>
+  <button id="bPlayHere" title="F6 — 고른 것(없으면 화면 가운데) 곁에서 시작 · Alt+누르기 = 누른 자리">▶ 여기서</button>
   <span id="badge" class="muted">검사 중…</span>
   <button id="btnUndo" title="Ctrl+Z">되돌리기</button>
   <button id="btnReload">다시 읽기</button>
@@ -151,6 +152,7 @@ function hit(p) {
 let drag = null;
 cv.onmousedown = (e) => {
   const p = pt(e);
+  if (e.altKey) { e.preventDefault(); playHere(p); return; }
   if (tool !== 'sel') { add(tool, p); return; }
   const h = hit(p); sel = h ? { f: h.f, i: h.i } : null;
   if (h) { push(); drag = { ...h, p0: p, orig: D[h.f][h.i].slice(), moved: false }; }
@@ -244,6 +246,7 @@ addEventListener('keydown', (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !inField) { e.preventDefault(); doUndo(); }
   if ((e.key === 'Delete' || e.key === 'Backspace') && !inField) { e.preventDefault(); del(); }
   if (e.key === 'Escape') setTool('sel');
+  if (e.key === 'F6') { e.preventDefault(); playHere(); }
 });
 $('#btnReload').onclick = async () => { if (dirty && !confirm('저장 안 한 변경을 버릴까요?')) return; const i = +$('#stageSel').value; await load(); $('#stageSel').value = i; pick(i); };
 $('#stageSel').onchange = (e) => { if (dirty && !confirm('저장 안 한 변경을 버릴까요?')) { e.target.value = items.indexOf(M); return; } pick(+e.target.value); };
@@ -258,6 +261,21 @@ $('#btnSave').onclick = async () => {
   log(M.game + '/js/data-side.js ' + M.id + ' ' + (out.unchanged ? '바뀐 것 없음(안 씀)' : '저장') + (out.sw && out.sw.version ? ' · sw.js ' + out.sw.version : ''), true);
   if (!out.unchanged && window.SagaPlay) SagaPlay.reloadIfOpen();
 };
+/* ▶ 여기서 — 실행 창을 이 사냥터 이 자리에서 연다(y 는 발 자리 — 공중이면 떨어진다).
+   고른 것: 발판은 윗면 가운데, 줄은 위 끝, 문·사람·채집은 한 발 왼쪽 바닥. 없으면 화면 가운데 바닥 */
+function playHere(p) {
+  if (!M || !window.SagaPlay) return;
+  const F = M.floor, W = D.width;
+  if (!p && sel && D[sel.f][sel.i]) {
+    const r = D[sel.f][sel.i];
+    p = sel.f === 'plats' ? { x: r[0] + r[2] / 2, y: r[1] } : sel.f === 'ropes' ? { x: r[0], y: r[1] } : { x: r[0] - 40, y: F };
+  }
+  if (!p) { const c = $('#center').getBoundingClientRect(), v = cv.getBoundingClientRect(); p = { x: (c.left + c.width / 2 - v.left) / K, y: F }; }
+  const at = { in: M.id, name: M.name, x: Math.max(20, Math.min(W - 20, p.x)), y: Math.max(0, Math.min(F, p.y)) };
+  if (dirty) log('저장 안 한 배치는 실행 창에 안 나온다(게임은 파일을 읽는다) — 저장 먼저', false);
+  SagaPlay.open(M.game, at);
+}
+$('#bPlayHere').onclick = () => playHere();
 addEventListener('beforeunload', (e) => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
 load();
 </script>

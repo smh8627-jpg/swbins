@@ -9,7 +9,7 @@
  *   - 캐시 안 함(`no-store`) — 편집기가 저장하면 다음 새로고침에 곧바로 새 파일이 온다.
  *   - `/play/<판>/sw.js` 는 **스스로 등록을 푸는 빈 서비스워커**를 준다. 진짜 sw.js 는 파일을 오래 쥐고 있어
  *     고친 뒤에도 옛 화면이 뜬다. 판 파일은 안 건드린다.
- *   - `/play/<판>/index.html` 끝에 시작 자리 스크립트를 붙인다(`?at=x,y` — 판마다 다르다, START 표).
+ *   - `/play/<판>/index.html` 끝에 시작 자리 스크립트를 붙인다(`?at=x,y`·`?in=곳` — 판마다 다르다, START 표).
  *
  * 편집기 서버는 게임 서버와 **출처(포트)가 달라** localStorage 도 따로다 — 실행 창의 세이브는
  * 연습용이고, 실제 게임(8791~) 세이브와 섞이지 않는다.
@@ -40,32 +40,115 @@ const SW_STUB = [
   '',
 ].join('\n');
 
-/* 시작 자리 — 판마다 세이브 모양이 달라 여기 적는다. 없는 판은 `?at` 을 무시한다.
-   값은 `?at=x,y`(미터). 게임이 뜬 뒤 한 번 옮긴다(`_demo.html` 의 `#land` 와 같은 요령) */
+/* 시작 자리 — 판마다 세이브·지도 모양이 달라 여기 적는다. 없는 판은 `?at`·`?in` 을 무시한다.
+   `?at=x,y` 는 그 판 편집기 좌표, `?in=<곳>` 은 그 좌표가 속한 곳(사냥터·마을·성 id).
+   게임이 뜬 뒤 옮긴다(`_demo.html` 장면과 같은 요령 — 판 파일은 안 고친다).
+     ready()     게임이 옮길 수 있는 상태면 손잡이(c), 아니면 null(새 세이브의 세력·인물 고르기 등 — 기다린다)
+     off(c, A)   아직 목표 자리가 아니면 true
+     put(c, A)   목표 자리로 옮긴다
+   함수는 **브라우저에서** 돈다(toString 으로 붙인다) — 바깥 변수를 쓰지 말 것. */
 const START = {
+  /* 사가고 — 월드 미터(맵 편집기 3D 배치 좌표 그대로) */
   'saga-go': {
-    pos: 'return DG.core && DG.core.save && DG.core.save.player ? DG.core.save.player.pos : null;',
-    after: 'if (DG.world && DG.world.resize) { DG.world.resize(); }',
+    need: ['at'],
+    ready: function () { var s = DG.core && DG.core.save; return s && s.player && s.player.pos ? s.player.pos : null; },
+    off: function (p, A) { return Math.hypot(p.x - A.x, p.y - A.y) > 30; },
+    put: function (p, A) { p.x = A.x; p.y = A.y; if (DG.world && DG.world.resize) { DG.world.resize(); } },
+  },
+  /* 사가스토리 — 사냥터 key + 그 사냥터 픽셀(x, 발 y). 레벨이 모자란 곳은 기록 없이 들여보낸다
+     (연습용 세이브의 st().stage 를 안 바꾼다 — 게임의 비경 방 넣기와 같은 길) */
+  'saga-story': {
+    need: ['at', 'in'],
+    ready: function () { var S = DG.side; return S && S.raw && S.raw() && DG.sideData ? S : null; },
+    off: function (S, A) {
+      if (A.bad) { return false; }
+      var r = S.raw();
+      return r.stage.key !== A.in || Math.abs(r.player.x + S.P_W / 2 - A.x) > 60;
+    },
+    put: function (S, A) {
+      var r = S.raw();
+      if (r.stage.key !== A.in) {
+        var stg = null;
+        DG.sideData.STAGES.forEach(function (s) { if (s.key === A.in) { stg = s; } });
+        if (!stg) { A.bad = true; return; }
+        if (S.unlocked(A.in)) { S.enter(A.in); } else { S.enter(null, stg); }
+        r = S.raw();
+        if (!r || r.stage.key !== A.in) { return; }
+      }
+      var p = r.player;
+      p.x = A.x - S.P_W / 2; p.y = A.y - S.P_H;
+      p.vx = 0; p.vy = 0; p.climb = null; p.onGround = false;
+    },
+  },
+  /* 사가블로 — 손 마을 id + 그 마을 BASE 좌표(560×380 기준). 세계 좌표 = 앵커 + BASE × (방 크기 / BASE).
+     방 크기는 창 폭 따라 달라(데스크톱 배율) 게임 안에서 잰다. 들판·던전에 있으면 마을로 나올 때까지 기다린다 */
+  'saga-dungeon': {
+    need: ['at', 'in'],
+    consts: { file: 'js/town.js', re: /var\s+BASE_W\s*=\s*(\d+)\s*,\s*BASE_H\s*=\s*(\d+)/, keys: ['bw', 'bh'], dflt: [560, 380] },
+    ready: function () { var T = DG.town; return T && T.active && T.active() && T.raw && T.raw() ? T : null; },
+    off: function (T, A) {
+      var r = T.raw(), w = T.worldAnchors()[A.in];
+      if (!w) { return false; }
+      return Math.hypot(r.player.x - (w.x + A.x * r.roomW / A.bw), r.player.y - (w.y + A.y * r.roomH / A.bh)) > 40;
+    },
+    put: function (T, A) {
+      var r = T.raw(), w = T.worldAnchors()[A.in], p = r.player;
+      p.x = w.x + A.x * r.roomW / A.bw; p.y = w.y + A.y * r.roomH / A.bh;
+      p.dash = null;
+    },
+  },
+  /* 사가국지 — 성 id. 판이 선 뒤(새 세이브면 세력을 고른 뒤) 그 성 시트를 열고 3D 지도를 그리로 돌린다.
+     2D 지도 가운데는 게임이 밖에 안 내놓아 못 옮긴다. 세 번 돌려 두고 끝(3D 가 늦게 켜져도 따라가게) */
+  'saga-realm': {
+    need: ['in'],
+    ready: function () { var R = DG.rtk; return R && R.state && R.state().started && DG.ui && DG.ui.openCity && DG.cityData ? R : null; },
+    off: function (R, A) { return (A.k || 0) < 3; },
+    put: function (R, A) {
+      var d = DG.cityData.find(A.in);
+      A.k = d ? (A.k || 0) + 1 : 9;
+      if (!d) { return; }
+      if (A.k === 1) { DG.ui.openCity(A.in); }
+      if (DG.realm3d && DG.realm3d.panTo) { DG.realm3d.panTo(d.x, d.y, 20); }
+    },
   },
 };
 
+/* 판 파일에서 상수를 읽어 A 에 얹는다(사가블로 BASE 크기) — 못 읽으면 기본값 */
+function startConsts(game, root) {
+  const c = START[game] && START[game].consts, out = {};
+  if (!c) return out;
+  let m = null;
+  try { m = c.re.exec(fs.readFileSync(path.join(root, game, c.file), 'utf8')); } catch (e) { /* 기본값 */ }
+  c.keys.forEach((k, i) => { out[k] = m ? +m[i + 1] : c.dflt[i]; });
+  return out;
+}
+
 /* 세이브를 불러오거나 프로필을 고르면 자리가 되돌아갈 수 있어 **자리가 가만히 있을 때까지**
-   몇 번 더 본다(30m 넘게 벗어나 있으면 다시 옮긴다, 네 번 연속 제자리면 끝, 최대 15초) */
-function startScript(game) {
+   몇 번 더 본다(벗어나 있으면 다시 옮긴다, 네 번 연속 제자리면 끝, 옮길 수 있게 된 뒤 최대 15초).
+   옮길 수 있게 되기 전(세력·인물 고르기, 던전 안)은 2분까지 기다린다 */
+function startScript(game, root) {
   const S = START[game];
   if (!S) return '';
-  return '\n<script>/* 편집기 실행 창 — 시작 자리(?at=x,y). 판 파일이 아니라 편집기가 붙인 것 */\n' +
+  return '\n<script>/* 편집기 실행 창 — 시작 자리(?at=x,y · ?in=곳). 판 파일이 아니라 편집기가 붙인 것 */\n' +
     '(function () {\n' +
-    "  var m = /[?&]at=(-?[\\d.]+),(-?[\\d.]+)/.exec(location.search); if (!m) { return; }\n" +
-    '  var x = +m[1], y = +m[2], n = 0, still = 0;\n' +
-    '  function pos() { try { ' + S.pos + ' } catch (e) { return null; } }\n' +
+    "  var q = location.search, m = /[?&]at=(-?[\d.]+),(-?[\d.]+)/.exec(q), w = /[?&]in=([\w-]+)/.exec(q);\n" +
+    '  var A = ' + JSON.stringify(startConsts(game, root || '')) + ';\n' +
+    '  if (m) { A.x = +m[1]; A.y = +m[2]; } if (w) { A.in = w[1]; }\n' +
+    '  var need = ' + JSON.stringify(S.need) + ';\n' +
+    "  if (need.indexOf('at') >= 0 && !m || need.indexOf('in') >= 0 && !w) { return; }\n" +
+    '  var ready = ' + S.ready.toString() + ';\n' +
+    '  var off = ' + S.off.toString() + ';\n' +
+    '  var put = ' + S.put.toString() + ';\n' +
+    '  var n = 0, wait = 0, still = 0;\n' +
     '  function tick() {\n' +
-    '    var p = pos();\n' +
-    '    if (p) {\n' +
-    '      if (Math.hypot(p.x - x, p.y - y) > 30) { p.x = x; p.y = y; still = 0; try { ' + S.after + ' } catch (e) {} }\n' +
+    '    var c = null; try { c = ready(); } catch (e) { c = null; }\n' +
+    '    if (c) {\n' +
+    '      var o = false; try { o = off(c, A); } catch (e) { o = false; }\n' +
+    "      if (o) { still = 0; try { put(c, A); } catch (e) { if (window.console) { console.warn('[편집기 시작 자리]', e); } } }\n" +
     '      else if (++still >= 4) { return; }\n' +
-    '    }\n' +
-    '    if (++n < 60) { setTimeout(tick, 250); }\n' +
+    '      if (++n >= 60) { return; }\n' +
+    '    } else if (++wait >= 480) { return; }\n' +
+    '    setTimeout(tick, 250);\n' +
     '  }\n' +
     "  window.addEventListener('load', function () { setTimeout(tick, 400); });\n" +
     '})();\n</script>\n';
@@ -112,7 +195,7 @@ function handle(req, res, u, root, games, extra) {
   const type = MIME[path.extname(target).toLowerCase()] || 'application/octet-stream';
   let body = fs.readFileSync(target);
   if (kind === 'play' && rel === 'index.html') {
-    const s = startScript(game);
+    const s = startScript(game, root);
     if (s) {
       const html = body.toString('utf8');
       const at = html.lastIndexOf('</body>');
@@ -124,4 +207,4 @@ function handle(req, res, u, root, games, extra) {
   return true;
 }
 
-module.exports = { handle, MIME, START, SW_STUB, startScript };
+module.exports = { handle, MIME, START, SW_STUB, startScript, startConsts };

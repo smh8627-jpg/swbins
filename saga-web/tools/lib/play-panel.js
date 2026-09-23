@@ -1,7 +1,8 @@
 /**
  * 편집기 공용 "▶ 실행" 창 — 편집기 화면 오른쪽에 게임을 띄운다(편집기 서버의 `/play/<판>/`, gameserve.js).
  *
- *   SagaPlay.open(판, {x, y}?)   창을 열고 그 판을 띄운다. 자리를 주면 거기서 시작(`?at=`, 받는 판만)
+ *   SagaPlay.open(판, at?)       창을 열고 그 판을 띄운다. 자리를 주면 거기서 시작(받는 판만 — gameserve.js START)
+ *                                at = {x, y}(사가고 미터) · {in, x, y, name}(사가스토리 사냥터·사가블로 마을) · {in, name}(사가국지 성)
  *   SagaPlay.reloadIfOpen()      저장한 뒤 부른다 — 열려 있으면 새로 띄워 고친 것을 곧바로 본다
  *   SagaPlay.mount(el, getGame)  el 안에 [판 고르기][▶ 실행] 단추를 붙인다(판이 정해지지 않은 화면용)
  *
@@ -72,13 +73,21 @@
     });
   }
   function url() {
-    var q = cur.at ? '?at=' + Math.round(cur.at.x * 10) / 10 + ',' + Math.round(cur.at.y * 10) / 10 : '';
-    return '/play/' + cur.game + '/' + q;
+    var a = cur.at, q = [];
+    if (a && a.x != null) { q.push('at=' + Math.round(a.x * 10) / 10 + ',' + Math.round(a.y * 10) / 10); }
+    if (a && a.in) { q.push('in=' + encodeURIComponent(a.in)); }
+    return '/play/' + cur.game + '/' + (q.length ? '?' + q.join('&') : '');
+  }
+  function where(a) {
+    if (!a) { return ''; }
+    var s = a.in ? (a.name || a.in) : '';
+    if (a.x != null) { s += (s ? ' ' : '') + '(' + Math.round(a.x) + ', ' + Math.round(a.y) + ')'; }
+    return ' · 시작 ' + s;
   }
   function load() {
     if (!cur) { return; }
     var g = gameOf(cur.game);
-    document.getElementById('saga-play-name').textContent = g.name + ' · 연습용 세이브' + (cur.at ? ' · 시작 (' + Math.round(cur.at.x) + ', ' + Math.round(cur.at.y) + ')' : '');
+    document.getElementById('saga-play-name').textContent = g.name + ' · 연습용 세이브' + where(cur.at);
     frame.src = 'about:blank';
     setTimeout(function () { frame.src = url(); }, 30);
   }
