@@ -4123,3 +4123,10 @@ VRoid 인물이 unlit(`MeshBasicMaterial`) 그대로라 명암 없이 평면이�
 - `isActorAsset` 이 `animals_extra`·`animals_extra2`·`standin` 도 배우로 — 전엔 정규식이 `animals/` 만 맞아 사가블로 "펫 100개" 모델들이 외곽선·림 없이 구워졌다.
 - **SAGA-DESIGN §11 Phase 4 마무리**: 펫 초상용으로 남겨 두던 `human`·`limb`·`hand`·`foot`·`headgear`·`weapon`·`beast`·`leg2`·`eye`·`beastPatternOf`·`BEAST_PATTERN`(약 1100줄) 삭제, 두 펫 갈래는 `loadingMark` 자리표시(사가의숲과 같은 결). 호출부 0 은 `sprite.js` 밖(진단·데모·어드민 포함) grep 으로 확인.
 - 펫 초상 210장 다시 구움(210/210, 대역 27종 + 외곽선이 새로 붙은 extra 폴더 동물). 진단 1 추가(모델 키 105종·대역·배우 판정·함수 없음 — `_test.html` 은 디스크 목록을 안 실어 굽기 조건을 본다) → 370/370. `sw.js` dungeon-v0.152.0.
+
+## 2026-09-24 (이어서) — anchor 점프(PLAN §7.1-2): 앵커가 바뀐 프레임 카메라 휘청
+
+- 원인: 들판 한복판(`wild`)에서 `nearestTownId` 가 넘어가면 `town.raw().anchor` 가 다른 마을 것으로 바뀌고, `dungeon3d.js` `render()` 의 로컬 좌표(세계 − 앵커)가 한 프레임에 통째로 튄다. camPos·camLook 은 옛 로컬값에 남아 0.14 lerp 로 수천 유닛을 쓸고 갔다.
+- 고침: 순수 함수 `rebaseCam(pos, look, oldAnc, newAnc)` — 앵커가 바뀐 프레임에 둘 다 (옛 − 새)만큼 옮긴다(높이는 그대로). `camAnc` 가 마지막 앵커를 기억. PLAN 처방이던 "look 0.3s lerp" 는 로컬 공간 lerp 라 쓸림을 오히려 만들어 안 씀.
+- 남은 것: 앵커 전환 때 들판 지형 자체가 바뀌어 보일 수 있다(`field3d` 씨앗이 앵커 기준 — HANDOFF §57 "다음 세션이 할 일" 1~4). 실기 확인 대기.
+- 진단 1(`_rebaseCam`, moru → galdae) → jsdom 371/371 세 번 동일. `sw.js` dungeon-v0.153.0.

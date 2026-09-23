@@ -38,6 +38,7 @@
   var actors = {};                 // 배우 { key: {node, seen} }
   var frame = 0;
   var camPos = null, camLook = null;
+  var camAnc = null;               // camPos·camLook 이 기대는 앵커(바뀌면 rebaseCam 이 옮긴다)
   var roomKey = null;              // 지금 세워 둔 방 (바뀌면 벽을 다시 세운다)
   var fieldWinKey = null;          // 지금 세워 둔 들판 창 위치 (roomKey와 분리 — 아래 buildRoom 주석 참고)
   /** 가림 페이드(§56, 2026-09-06 실기기 제보 "큰 물체 때문에 안 보여") —
@@ -358,6 +359,24 @@
   /** 던전 쪽 camAim() dist 배수 — FOV_DEG(46°)에 맞춰 눈으로 잡은 값,
    *  건드리지 않는다(§28-5 되돌림 기록 참고). */
   var DUNGEON_DIST_MUL = 1.05;
+
+  /**
+   * 앵커가 바뀐 프레임에 카메라를 같은 **세계** 자리로 옮긴다 — 순수 함수다.
+   * 들판 한복판에서 `nearestTownId` 가 넘어가면 `run.anchor` 가 다른 마을
+   * 것으로 바뀌어 로컬 좌표(세계 − 앵커)가 한 프레임에 통째로 튄다. 그런데
+   * camPos·camLook 은 옛 로컬값에 남아 있어 0.14 lerp 가 수천 유닛을 몇 초에
+   * 걸쳐 쓸고 가며 화면이 휘청였다(PLAN §7.1-2 "anchor 점프"). 옛 앵커 −
+   * 새 앵커만큼 둘 다 밀어 주면 세계 기준으론 제자리라 lerp 가 평소대로 돈다.
+   * pos·look 은 {x,y,z}(Vector3 도 된다), 앵커는 {x,y}(y 가 3D 의 z). 옮겼으면 true.
+   */
+  function rebaseCam(pos, look, oldAnc, newAnc) {
+    if (!pos || !look || !oldAnc || !newAnc) { return false; }
+    var dx = oldAnc.x - newAnc.x, dz = oldAnc.y - newAnc.y;
+    if (!dx && !dz) { return false; }
+    pos.x += dx; pos.z += dz;
+    look.x += dx; look.z += dz;
+    return true;
+  }
 
   /**
    * 카메라가 어디에 서서 어디를 보나 — **순수 함수다.**
@@ -2882,6 +2901,8 @@
     var want = new T.Vector3(aim.pos.x, aim.pos.y, aim.pos.z);
     var look = new T.Vector3(aim.look.x, aim.look.y, aim.look.z);
     if (!camPos) { camPos = want.clone(); camLook = look.clone(); }
+    else { rebaseCam(camPos, camLook, camAnc, anc); }
+    camAnc = { x: anc.x, y: anc.y };
     camPos.lerp(want, 0.14);
     camLook.lerp(look, 0.14);
     camera.position.copy(camPos);
@@ -2958,6 +2979,8 @@
     available: available, active: active, wanted: wanted,
     /* 값을 내는 함수 — three 없이도 돈다(자가진단이 이것만 따로 본다) */
     camAim: camAim, userZoom: USERZOOM, lightPlan: lightPlan,
+    /** PLAN §7.1-2 — 앵커가 바뀐 프레임의 카메라 옮기기(순수 함수, 진단용) */
+    _rebaseCam: rebaseCam,
     /** PLAN 19절 — 그래픽 품질 AUTO. ms 평균 → 등급의 순수 매핑(진단용) */
     autoLevelFor: autoLevelFor, quality: effectiveLevel,
     /** 2026-09-07 — 켤 때 시작 등급을 고르는 기기 점수 매김(진단용, 순수 함수) */

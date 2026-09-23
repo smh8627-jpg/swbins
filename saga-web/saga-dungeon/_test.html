@@ -4139,6 +4139,22 @@ window.requestAnimationFrame = function () { return 0; };
         '카메라는 늘 같은 쪽에서 내려다본다';
     });
 
+    t('3D — 앵커가 바뀐 프레임에 카메라는 세계 기준 제자리 (PLAN §7.1-2)', function () {
+      /* 들판에서 가장 가까운 마을이 넘어가면 로컬 좌표가 통째로 튄다. 카메라를
+         옛 로컬값에 두면 lerp 가 수천 유닛을 쓸고 간다 — 옮긴 뒤 세계 좌표
+         (로컬 + 앵커)가 그대로여야 하고, 높이(y)는 손대지 않는다 */
+      var T = DG.town, ids = Object.keys(T.worldAnchors());
+      var a0 = T.anchorOf(ids[0]), a1 = T.anchorOf(ids[1]);
+      var pos = { x: 120, y: 300, z: 480 }, look = { x: 120, y: 20, z: 200 };
+      var wx = pos.x + a0.x, wz = pos.z + a0.y, lx = look.x + a0.x, lz = look.z + a0.y;
+      var moved = D3._rebaseCam(pos, look, a0, a1);
+      var same = D3._rebaseCam(pos, look, a1, { x: a1.x, y: a1.y });
+      var ok = moved && !same && pos.y === 300 && look.y === 20 &&
+        Math.abs(pos.x + a1.x - wx) < 1e-6 && Math.abs(pos.z + a1.y - wz) < 1e-6 &&
+        Math.abs(look.x + a1.x - lx) < 1e-6 && Math.abs(look.z + a1.y - lz) < 1e-6;
+      return ok && (ids[0] + ' → ' + ids[1] + ' 앵커 전환에도 카메라 세계 자리 그대로');
+    });
+
     t('3D — AUTO 품질은 프레임 시간이 나쁠수록 등급을 낮춘다', function () {
       /* PLAN 19절. autoLevelFor 는 순수 함수라 실제 프레임 없이도 잰다 */
       return D3.autoLevelFor(10) === 'high' && D3.autoLevelFor(25) === 'medium' &&
