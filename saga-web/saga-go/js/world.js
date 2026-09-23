@@ -1562,6 +1562,17 @@
       })(bts[bi2]);
     }
 
+    // 들판 적 무리 (field-combat.js, §5 ⑨)
+    var FCw = global.DG.fieldCombat;
+    var fcs = FCw ? FCw.live() : [];
+    for (var fci = 0; fci < fcs.length; fci++) {
+      (function (fo) {
+        if (fo.dead) { return; }
+        var u = (fo.x - pos.x) * sc, v = (fo.y - pos.y) * sc;
+        items.push({ v: v, draw: function () { drawFieldFoe(fo, u, v, now); } });
+      })(fcs[fci]);
+    }
+
     // 스폰
     for (var i = 0; i < spawns.length; i++) {
       (function (s) {
@@ -1826,6 +1837,24 @@
    * 그냥 거기 사는 것이다. 등급 고리도 이름표도 없이 그림자와 몸뚱이만 있다.
    * 날아오른 새는 위로 옮겨 그리고 그림자를 줄인다(2D 에서 높이를 읽는 유일한 단서다).
    */
+  /** 들판 적 — 도감 펫 그림을 빌리고 원소 빛깔 고리를 발밑에 두른다 */
+  function drawFieldFoe(fo, u, v, now) {
+    var p = project(u, v);
+    if (p.s < 0.25 || p.y < -80 || p.y > geom.H + 80) { return; }
+    var z = core.clamp(p.s, 0.5, 1.6);
+    var sp = global.DG.sprite, EL = global.DG.fieldCombat.EL;
+    ctx.beginPath();
+    ctx.ellipse(p.x, p.y, 12 * z * fo.h, 5 * z * fo.h, 0, 0, Math.PI * 2);
+    ctx.strokeStyle = fo.el ? EL[fo.el].color : '#d9534f';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    sp.stamp(ctx, {
+      kind: 'beast', ref: fo.ref,
+      x: p.x, y: p.y, s: z * 1.25 * fo.h, facing: 1, phase: fo.phase, walking: fo.moving,
+      color: sp.beastColorOf(fo.ref), form: sp.beastFormOf(fo.ref), t: now
+    });
+  }
+
   function drawBeast(bt, u, v, now) {
     var p = project(u, v);
     if (p.s < 0.25 || p.y < -80 || p.y > geom.H + 80) { return; }

@@ -125,6 +125,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/letter.js"></script>
 <script src="js/duel.js"></script>
 <script src="js/rogue-action.js"></script>
+<script src="js/field-combat.js"></script>
 <script src="js/rogue.js"></script>
 <script src="js/fort.js"></script>
 <script src="js/raid.js"></script>
@@ -759,6 +760,220 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       var p = Dl.perf(s);
       return s.left === 0 && p.timeUsed === 20 &&
         ('제한 20초 소진 · timeUsed ' + p.timeUsed);
+    });
+
+    /* ── 들판 전투(野戰) — 원신식 (`field-combat.js`, PLAN §5 ⑨) ──────────
+     * 판정 층만 굴린다(화면·세이브 없음). 편성은 도감에 없는 id 를 써서 능력치를
+     * 기본값(60·60·60 → 공격 60·체력 660·숙련 60)으로 고정한다. 원소는 손으로 박는다. */
+    function fcState(ids) { return DG.fieldCombat.create(ids || ['fc_a']); }
+    function fcFoe(S, kind, x, y) {
+      var key = 'test' + (S.uid + 1);
+      DG.fieldCombat.spawnCamp(S, { key: key, x: x, y: y, tier: 1, kind: 'plain', foes: [{ kind: kind, dx: 0, dy: 0 }] });
+      return S.foes[S.uid];
+    }
+    function fcEv(S, kind) { return DG.fieldCombat.drain(S).filter(function (e) { return !kind || e.t === kind; }); }
+
+    t('들판 전투 — 원소 반응 셋(증발·과부하·감전), 같은 원소·물리는 반응 없음', function () {
+      var R = DG.fieldCombat.react;
+      return R('water', 'fire').kind === 'vaporize' && R('fire', 'water').kind === 'vaporize' &&
+        R('elec', 'fire').kind === 'overload' && R('fire', 'elec').kind === 'overload' &&
+        R('water', 'elec').kind === 'charged' && R('elec', 'water').kind === 'charged' &&
+        R('fire', 'fire') === null && R('fire', null) === null && R(null, 'fire') === null &&
+        '반응 6쌍 · 같은 원소·물리·맨몸 0';
+    });
+
+    t('들판 전투 — 원소 방패: 같은 원소 면역·물리 0.4·상성 2.5(수>화·뇌>수·화>뇌)', function () {
+      var M = DG.fieldCombat.shieldMul;
+      return M('fire', 'fire') === 0 && M('fire', null) === 0.4 && M('fire', 'water') === 2.5 &&
+        M('water', 'elec') === 2.5 && M('elec', 'fire') === 2.5 && M('fire', 'elec') === 1 &&
+        '면역·물리·상성·보통 넷';
+    });
+
+    t('들판 전투 — 무리 자리는 격자 해시로 늘 같고, 시작점 60m 안엔 없다', function () {
+      var FC = DG.fieldCombat, n = 0, same = true, near = 0, cx, cy;
+      for (cy = -6; cy <= 6; cy++) {
+        for (cx = -6; cx <= 6; cx++) {
+          var a = FC.campAt(cx, cy), b = FC.campAt(cx, cy);
+          if (JSON.stringify(a) !== JSON.stringify(b)) { same = false; }
+          if (a) { n++; if (Math.hypot(a.x, a.y) < 60) { near++; } }
+        }
+      }
+      return same && n > 30 && near === 0 && FC.tierAt(0, 0) === 1 && FC.tierAt(2000, 0) === 3 &&
+        ('169칸 중 무리 ' + n + ' · 등급 2km=' + FC.tierAt(2000, 0));
+    });
+
+    t('들판 전투 — 기본 공격 3타 사슬 0.9·1.0·1.5', function () {
+      var FC = DG.fieldCombat, S = fcState(), f = fcFoe(S, 'bear', 2, 0), dm = [];
+      for (var i = 0; i < 3; i++) {
+        FC.attack(S, 0, 0);
+        fcEv(S, 'hit').forEach(function (e) { dm.push(e.dmg); });
+        FC.step(S, 0.6, { px: 0, py: 0, blocked: true });
+      }
+      return dm.join(',') === '54,60,90' && f.hp === f.hpMax - 204 && ('피해 ' + dm.join(' → '));
+    });
+
+    t('들판 전투 — 증발은 ×1.5(숙련 보정 포함), 반응 뒤 원소는 지워진다', function () {
+      var FC = DG.fieldCombat, S = fcState(), f = fcFoe(S, 'bear', 3, 0);
+      S.party[0].el = 'fire';
+      FC.skill(S, 0, 0);
+      var plain = fcEv(S, 'hit')[0].dmg;                       // 60×2.2 = 132, 불이 붙는다
+      var S2 = fcState(), g = fcFoe(S2, 'bear', 3, 0);
+      S2.party[0].el = 'fire'; g.aura = 'water'; g.auraT = 5;
+      FC.skill(S2, 0, 0);
+      var ev = fcEv(S2);
+      var hit = ev.filter(function (e) { return e.t === 'hit'; })[0];
+      return plain === 132 && f.aura === 'fire' && hit.react === 'vaporize' && hit.dmg === 238 && g.aura === null &&
+        ev.some(function (e) { return e.t === 'react' && e.kind === 'vaporize'; }) &&
+        ('맨 스킬 ' + plain + ' → 증발 ' + hit.dmg);
+    });
+
+    t('들판 전투 — 과부하는 4m 둘레 적까지 치고 밀어낸다', function () {
+      var FC = DG.fieldCombat, S = fcState(), a = fcFoe(S, 'bear', 10, 0), b = fcFoe(S, 'bear', 12, 0);
+      a.aura = 'elec'; a.auraT = 5;
+      var bx = b.x;
+      FC.hitFoe(S, a, S.party[0], 10, 'fire', 'test');
+      var od = Math.round(60 * 1.2 * 1.2);                       // 86
+      return b.hp === b.hpMax - od && a.hp === a.hpMax - 10 - od && b.x > bx + 2 &&
+        ('옆 적도 ' + od + ' · ' + (b.x - bx).toFixed(1) + 'm 밀림');
+    });
+
+    t('들판 전투 — 감전은 1초마다 세 번 깎는다', function () {
+      var FC = DG.fieldCombat, S = fcState(), f = fcFoe(S, 'bear', 10, 0);
+      f.aura = 'water'; f.auraT = 5;
+      FC.hitFoe(S, f, S.party[0], 1, 'elec', 'test');
+      fcEv(S);
+      var dots = 0;
+      for (var i = 0; i < 40; i++) { FC.step(S, 0.1, { px: 0, py: 0, blocked: true }); dots += fcEv(S, 'dot').length; }
+      var per = Math.round(60 * 0.45 * 1.2);
+      return dots === 3 && f.hp === f.hpMax - 1 - per * 3 && ('틱 ' + dots + ' × ' + per);
+    });
+
+    t('들판 전투 — 방패: 같은 원소 면역, 상성으로 깨면 2초 비틀거린다(방패 동안 체력은 그대로)', function () {
+      var FC = DG.fieldCombat, S = fcState(), f = fcFoe(S, 'ember', 30, 0), m = S.party[0];
+      var r1 = FC.hitFoe(S, f, m, 100, 'fire', 'test');
+      var r2 = FC.hitFoe(S, f, m, 100, null, 'test');
+      var hp0 = f.hp, sh = f.shield;
+      FC.hitFoe(S, f, m, 1000, 'water', 'test');
+      var broke = fcEv(S, 'break').length === 1 && f.shield === 0 && f.stun === 2 && f.hp === hp0;
+      for (var i = 0; i < 21; i++) { FC.step(S, 0.1, { px: 100, py: 0, blocked: false }); }
+      return r1.immune && r1.dmg === 0 && r2.dmg === 40 && sh === f.shieldMax - 40 && broke && f.stun <= 0 &&
+        ('방패 ' + f.shieldMax + ' · 물리 40 · 수 2.5배로 깨짐');
+    });
+
+    t('들판 전투 — 예고 끝에 사거리 안이면 맞고, 회피 무적이면 안 맞는다', function () {
+      function run(doDodge) {
+        var FC = DG.fieldCombat, S = fcState(), f = fcFoe(S, 'boar', 1.5, 0);
+        f.st = 'chase'; f.cd = 0;
+        var got = null;
+        for (var i = 0; i < 40 && !got; i++) {
+          if (doDodge && f.st === 'wind' && f.stT < 0.3 && S.iframe <= 0) { FC.dodge(S, 0, 1, 0, 0); }
+          FC.step(S, 0.05, { px: 0, py: 0, blocked: false });
+          fcEv(S).forEach(function (e) { if (e.t === 'hurt' || e.t === 'evade') { got = e.t; } });
+        }
+        return { got: got, hp: S.party[0].hp, max: S.party[0].hpMax };
+      }
+      var a = run(false), b = run(true);
+      return a.got === 'hurt' && a.hp < a.max && b.got === 'evade' && b.hp === b.max &&
+        ('안 피하면 -' + (a.max - a.hp) + ' · 회피하면 0');
+    });
+
+    t('들판 전투 — 교체 1초 쿨, 쓰러진 사람에게는 못 바꾼다', function () {
+      var FC = DG.fieldCombat, S = fcState(['fc_a', 'fc_b', 'fc_c']);
+      var a = FC.swap(S, 1).ok, b = FC.swap(S, 2).ok;
+      FC.step(S, 1.01, { px: 0, py: 0, blocked: true });
+      S.party[2].down = true;
+      var c = FC.swap(S, 2).ok, d = FC.swap(S, 0).ok;
+      return a && !b && !c && d && S.active === 0 && '교체 → 쿨 중 거절 → 쓰러진 자리 거절';
+    });
+
+    t('들판 전투 — 앞사람이 쓰러지면 저절로 교대, 전멸하면 30% 로 일어나고 무리는 돌아간다', function () {
+      var FC = DG.fieldCombat;
+      function strike(S) {
+        var f = fcFoe(S, 'bear', 1.5, 0);
+        f.st = 'chase'; f.cd = 0;
+        var ev = [];
+        for (var i = 0; i < 40; i++) {
+          FC.step(S, 0.05, { px: 0, py: 0, blocked: false });
+          ev = ev.concat(fcEv(S));
+          if (f.st === 'recover' || f.st === 'return') { break; }
+        }
+        return { ev: ev, f: f };
+      }
+      var S = fcState(['fc_a', 'fc_b']);
+      S.party[0].hp = 1;
+      var r = strike(S);
+      var swapped = S.active === 1 && S.party[0].down && r.ev.some(function (e) { return e.t === 'swap' && e.forced; });
+      var S2 = fcState(['fc_a']);
+      S2.party[0].hp = 1;
+      var r2 = strike(S2);
+      var m = S2.party[0];
+      return swapped && r2.ev.some(function (e) { return e.t === 'wipe'; }) && !m.down &&
+        m.hp === Math.round(m.hpMax * 0.3) && r2.f.st === 'return' && '교대 · 전멸 → 30% · 무리 귀환';
+    });
+
+    t('들판 전투 — 폭발은 기력 60 이 차야 나가고, 스킬이 기력을 채운다', function () {
+      var FC = DG.fieldCombat, S = fcState(['fc_a', 'fc_b']), m = S.party[0];
+      fcFoe(S, 'bear', 3, 0); fcFoe(S, 'bear', 3.5, 0.5);
+      var no = FC.burst(S, 0, 0).ok;
+      FC.skill(S, 0, 0);
+      var en = m.energy, other = S.party[1].energy;
+      m.energy = 60;
+      var yes = FC.burst(S, 0, 0);
+      return !no && en === 10 && other === 3 && yes.ok && yes.n === 2 && m.energy === 0 && S.iframe >= 1 &&
+        ('스킬 2마리 → 기력 ' + en + ' · 대기 +' + other + ' · 폭발 2마리');
+    });
+
+    t('들판 전투 — 스태미나: 회피 20씩, 모자라면 못 한다', function () {
+      var FC = DG.fieldCombat, S = fcState(), ok = 0;
+      for (var i = 0; i < 6; i++) { if (FC.dodge(S, 1, 0, 0, 0).ok) { ok++; } }
+      return ok === 5 && S.stamina === 0 && '다섯 번 뒤 바닥';
+    });
+
+    t('들판 전투 — 무리를 다 잡으면 치운 무리로 남아 다시 안 선다', function () {
+      var FC = DG.fieldCombat, S = fcState(), c = null, cx, cy;
+      for (cy = 2; cy < 20 && !c; cy++) { for (cx = 2; cx < 20 && !c; cx++) { c = FC.campAt(cx, cy); } }
+      FC.populate(S, c.x, c.y, null, 60);
+      var mine = FC.living(S).filter(function (f) { return f.camp === c.key; });
+      /* 정예면 첫 대는 방패가 받는다 — 두 번 친다 */
+      mine.forEach(function (f) { FC.hitFoe(S, f, S.party[0], 1e7, null, 'test'); FC.hitFoe(S, f, S.party[0], 1e7, null, 'test'); });
+      var ev = fcEv(S);
+      for (var i = 0; i < 20; i++) { FC.step(S, 0.1, { px: c.x, py: c.y, blocked: true }); }
+      FC.populate(S, c.x, c.y, null, 60);
+      var again = FC.living(S).filter(function (f) { return f.camp === c.key; }).length;
+      return mine.length === c.foes.length && S.cleared[c.key] === true && again === 0 &&
+        ev.filter(function (e) { return e.t === 'kill'; }).length === mine.length &&
+        ev.filter(function (e) { return e.t === 'clear'; }).length === 1 &&
+        ('무리 ' + c.key + ' ' + mine.length + '마리 토벌 → 다시 안 섬');
+    });
+
+    t('들판 전투 — 런타임: 무리를 잡으면 금·경험·치운 시각이 세이브에 남고, 교체하면 아바타가 바뀐다', function () {
+      var FC = DG.fieldCombat, bak = JSON.stringify(C.save);
+      try {
+        FC._resetForTest();
+        var ids = [D.heroes[0].id, D.heroes[1].id];
+        ids.forEach(function (id) { if (!C.save.dex.heroes[id]) { C.save.dex.heroes[id] = { count: 1, firstAt: 0 }; } });
+        C.save.party = ids.slice();
+        var c = null, cx, cy;
+        for (cy = 3; cy < 30 && !c; cy++) { for (cx = 3; cx < 30 && !c; cx++) { c = FC.campAt(cx, cy); } }
+        C.save.player.pos.x = c.x; C.save.player.pos.y = c.y;
+        FC.tick(0.05);
+        var S = FC.state();
+        var mine = FC.living(S).filter(function (f) { return f.camp === c.key; });
+        var gold0 = C.save.player.gold, exp0 = HR.info(ids[0]).exp + HR.info(ids[0]).lv * 1e6;
+        mine.forEach(function (f) { FC.hitFoe(S, f, S.party[0], 1e7, null, 'test'); FC.hitFoe(S, f, S.party[0], 1e7, null, 'test'); });
+        FC.tick(0.05);
+        var exp1 = HR.info(ids[0]).exp + HR.info(ids[0]).lv * 1e6;
+        var sw = FC.act('swap', 1).ok;
+        return mine.length > 0 && C.save.player.gold > gold0 && exp1 > exp0 &&
+          C.save.field.camps[c.key] > 0 && C.save.field.kills === mine.length && C.save.field.clears === 1 &&
+          sw && FC.leadId() === ids[1] &&
+          ('무리 ' + mine.length + '마리 → 금 +' + (C.save.player.gold - gold0) + ' · 교체 → ' + FC.leadId());
+      } finally {
+        var snap = JSON.parse(bak);
+        Object.keys(C.save).forEach(function (k) { delete C.save[k]; });
+        Object.keys(snap).forEach(function (k) { C.save[k] = snap[k]; });
+        FC._resetForTest();
+      }
     });
 
     /* ── 도적전(賊徒戰) — 사가블로식 실시간 위치 전투 (`rogue-action.js`) ──

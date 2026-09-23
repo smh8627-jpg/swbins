@@ -1936,6 +1936,15 @@
   }
 
   /** 배우 하나 — 있으면 쓰고 없으면 만든다 */
+  /** 같은 자리(key)에 다른 사람이 서야 하면 옛 배우를 치운다 — actorOf 는 key 로만 캐시한다 */
+  function dropActorIfNot(key, who) {
+    var a = actors[key];
+    if (!a || a.who === undefined || a.who === who) { return; }
+    actorGroup.remove(a.node);
+    actorGroup.remove(a.shadow);
+    delete actors[key];
+  }
+
   function actorOf(key, kind, ref, px) {
     var a = actors[key];
     if (a) { a.seen = frame; return a; }
@@ -2038,7 +2047,8 @@
    */
   function syncBuddies(pos, meAng, h, now) {
     var party = core.save.party || [];
-    var allyId = party[1];
+    var FCb = global.DG.fieldCombat, fcLead = FCb && FCb.leadId();
+    var allyId = fcLead && fcLead === party[1] ? party[0] : party[1];
     var petEquip = core.save.petEquip || {};
     var petId = party[0] ? petEquip[party[0]] : null;
     if (!allyId && !petId) { return; }
@@ -2054,7 +2064,9 @@
     if (allyId) {
       var allyRef = global.DG.data.find(allyId);
       if (allyRef) {
+        dropActorIfNot('ally', allyRef.id);
         var aa = actorOf('ally', 'hero', allyRef, 96);
+        aa.who = allyRef.id;
         var atx = duelFoe ? pos.x + sideX * 1.5 : pos.x + backX * 2.2 + sideX * 0.9;
         var aty = duelFoe ? pos.y + sideY * 1.5 : pos.y + backY * 2.2 + sideY * 0.9;
         var af = followPos(aa, atx, aty, duelFoe ? 0.12 : 0.06);
@@ -2115,10 +2127,14 @@
     var pos = core.save.player.pos;
 
     /* 나 — 동행 선두가 지도 위 내 모습이다(2D 화면과 같은 규칙) */
-    var lead = core.save.party && core.save.party[0];
+    /* 들판 전투(§5 ⑨)에서 교체하면 지도 위 내 모습도 그 사람으로 바뀐다 */
+    var FCd = global.DG.fieldCombat;
+    var lead = (FCd && FCd.leadId()) || (core.save.party && core.save.party[0]);
     var me = lead ? global.DG.data.find(lead) : null;
     var meRef = me || { id: '_me', name: '나', faction: '조선', rarity: 3, trait: 'virtue' };
+    dropActorIfNot('me', meRef.id);
     var meA = actorOf('me', 'hero', meRef, 96);
+    meA.who = meRef.id;
     var mot = W.motion;
     var h = ACTOR_H();
     var walking = mot.speed > 1.5;
@@ -2235,6 +2251,17 @@
         ba.node.rotation.y = bt.ang;
         ba.ang = bt.ang;
       }
+    }
+
+    /* 들판 적 무리(`field-combat.js`, §5 ⑨) — 쓰러지면 1초 동안 가라앉으며 줄어든다 */
+    var FC = global.DG.fieldCombat;
+    var fcs = FC ? FC.live() : [];
+    for (i = 0; i < fcs.length; i++) {
+      var fo = fcs[i];
+      var foa = actorOf('fc' + fo.uid, 'pet', fo.ref, 96);
+      var foh = h * fo.h * (fo.dead ? Math.max(0.05, 1 - fo.deadT) : 1);
+      placeActor(foa, fo.x, fo.y, foh, 0, fo.moving && !fo.dead, fo.phase, now);
+      if (foa.mesh) { foa.node.rotation.z = fo.stun ? Math.sin(now / 90) * 0.12 : 0; }
     }
 
     /* 역참 · 성채 */
@@ -2375,7 +2402,7 @@
   /** 나 또는 상대에게 몸짓을 하나 재생한다(공격·피격·회피) — `who` 는 'me'·'foe'.
    *  클립이 없는 몸(도형 배우, 아직 안 받은 GLB)이면 조용히 아무 일도 안 한다. */
   function playAnim(who, name, ms) {
-    var key = who === 'foe' ? 'duelfoe' : (who === 'ally' ? 'ally' : 'me');
+    var key = who === 'foe' ? 'duelfoe' : (who === 'ally' ? 'ally' : (actors[who] ? who : 'me'));
     var a = actors[key];
     if (!a) { return false; }
     a.animName = name;
@@ -2842,6 +2869,8 @@
     /** 등롱·사당 불꽃·연기 켬(PLAN 44절) — 손잡이로 잡는다 */
     flameOn: FLAME_ON, flameAmt: FLAME_AMT, smokeOn: SMOKE_ON,
     houseRects: houseRects,
+    /** 땅 높이(m) — 들판 전투가 예고 원·숫자를 땅에 붙일 때 쓴다 */
+    groundY: groundY,
     /** 지금 쓰는 시야각(도) — 진단·데모가 세로 화면 보정을 값으로 본다 */
     fov: function () { return camera ? camera.fov : FOV(); },
     forceTime: forceTime,

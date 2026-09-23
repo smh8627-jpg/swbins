@@ -1616,3 +1616,74 @@ body.tilted3:not(.r3d) #vignette {
 /* `.near-ico` 는 2px 테두리를 이미 갖고 있다 — 그림자를 덧대면 그 밑에 깔려 안 보인다.
    테두리 빛깔을 바꾸는 편이 확실하다 */
 .near-ico.dark { border-color: rgba(192,70,60,.75); background: #241a1c; }
+
+/* ── 들판 전투 HUD (field-combat.js, PLAN §5 ⑨) ───────────────
+   싸울 때만 뜬다(body.fc-on). 그동안 독·근처 대상 줄은 비켜 준다 */
+body.fc-on #dock, body.fc-on #near { display: none !important; }
+#field-hud { position: fixed; inset: 0; z-index: 30; pointer-events: none; display: none; }
+#field-hud.show { display: block; }
+#field-hud .fc-nums { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+#field-hud .fc-party {
+  position: absolute; right: 12px; top: calc(96px + var(--safe-t, 0px));
+  display: flex; flex-direction: column; gap: 6px; pointer-events: auto;
+}
+#field-hud .fc-mem {
+  display: flex; align-items: center; gap: 6px; width: 150px; padding: 4px 6px;
+  border-radius: 12px; border: 1px solid var(--glass-br); background: var(--glass);
+  color: var(--ink); cursor: pointer; text-align: left; opacity: .82;
+  -webkit-user-select: none; user-select: none; touch-action: none;
+}
+#field-hud .fc-mem.on { opacity: 1; border-color: var(--el); box-shadow: 0 0 0 2px var(--el) inset; }
+#field-hud .fc-mem.down { filter: grayscale(1); opacity: .45; }
+#field-hud .fc-face { width: 36px; height: 36px; border-radius: 50%; overflow: hidden; flex: none;
+  display: grid; place-items: center; background: rgba(0,0,0,.35); box-shadow: 0 0 0 2px var(--el); }
+#field-hud .fc-face img { width: 100%; height: 100%; object-fit: cover; }
+#field-hud .fc-meta { flex: 1; min-width: 0; }
+#field-hud .fc-meta small { display: block; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#field-hud .fc-hp, #field-hud .fc-en { display: block; height: 5px; margin-top: 3px; border-radius: 3px; background: rgba(255,255,255,.12); overflow: hidden; }
+#field-hud .fc-en { height: 3px; }
+#field-hud .fc-hp i { display: block; height: 100%; background: var(--good); }
+#field-hud .fc-en i { display: block; height: 100%; background: var(--el); }
+#field-hud .fc-acts {
+  position: absolute; right: 14px; bottom: calc(18px + var(--safe-b));
+  width: 190px; height: 190px; pointer-events: none;
+}
+#field-hud .fc-btn {
+  position: absolute; pointer-events: auto; cursor: pointer; overflow: hidden;
+  border-radius: 50%; border: 1px solid var(--glass-br); background: var(--glass);
+  color: var(--ink); display: grid; place-items: center; font-size: 12px; font-weight: 700;
+  -webkit-user-select: none; user-select: none; touch-action: none;
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+}
+#field-hud .fc-btn span { position: relative; z-index: 2; }
+#field-hud .fc-btn em { position: absolute; right: 8px; bottom: 5px; font-size: 9px; font-style: normal; opacity: .55; z-index: 2; }
+#field-hud .fc-btn:active { transform: scale(.94); }
+#field-hud .fc-atk { right: 0; bottom: 0; width: 84px; height: 84px; font-size: 30px; }
+#field-hud .fc-skill { right: 94px; bottom: 6px; width: 60px; height: 60px; box-shadow: 0 0 0 2px var(--el) inset; }
+#field-hud .fc-burst { right: 70px; bottom: 82px; width: 64px; height: 64px; box-shadow: 0 0 0 2px var(--el) inset; }
+#field-hud .fc-dodge { right: 4px; bottom: 96px; width: 54px; height: 54px; }
+#field-hud .fc-cd, #field-hud .fc-fill { position: absolute; left: 0; right: 0; bottom: 0; z-index: 1; }
+#field-hud .fc-cd { background: rgba(0,0,0,.55); }
+#field-hud .fc-fill { background: var(--el); opacity: .35; }
+#field-hud .fc-burst.ready { animation: fcPulse 1s ease-in-out infinite; }
+#field-hud .fc-burst.ready .fc-fill { opacity: .7; }
+@keyframes fcPulse { 50% { box-shadow: 0 0 0 2px var(--el) inset, 0 0 18px var(--el); } }
+#field-hud .fc-sta { position: absolute; right: 0; bottom: 160px; width: 110px; height: 6px; border-radius: 3px; background: rgba(255,255,255,.14); overflow: hidden; }
+#field-hud .fc-sta i { display: block; height: 100%; background: #f5d76e; }
+#field-hud .fc-bar { position: absolute; transform: translate(-50%, -100%); width: 86px; text-align: center; pointer-events: none; }
+#field-hud .fc-bar.boss { width: 150px; }
+#field-hud .fc-bar small { display: block; font-size: 10px; color: #fff; text-shadow: 0 1px 2px #000; white-space: nowrap; }
+#field-hud .fc-bhp, #field-hud .fc-bsh { display: block; height: 5px; margin-top: 2px; border-radius: 3px; background: rgba(0,0,0,.5); overflow: hidden; }
+#field-hud .fc-bhp i { display: block; height: 100%; background: #e5534b; }
+#field-hud .fc-bsh { height: 4px; }
+#field-hud .fc-bsh i { display: block; height: 100%; background: var(--el); }
+#field-hud .fc-num {
+  position: absolute; transform: translate(-50%, 0); font-weight: 800; white-space: nowrap;
+  text-shadow: 0 1px 0 #000, 0 0 4px rgba(0,0,0,.8); animation: fcNum .9s ease-out forwards;
+}
+#field-hud .fc-num.big { font-weight: 900; }
+@keyframes fcNum { 0% { opacity: 0; transform: translate(-50%, 6px) scale(.7); } 15% { opacity: 1; transform: translate(-50%, 0) scale(1.15); } 100% { opacity: 0; transform: translate(-50%, -42px) scale(1); } }
+@media (max-width: 520px) {
+  #field-hud .fc-mem { width: 118px; }
+  #field-hud .fc-party { top: calc(84px + var(--safe-t, 0px)); }
+}

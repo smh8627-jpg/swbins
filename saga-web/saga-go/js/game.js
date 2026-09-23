@@ -147,6 +147,7 @@
     ui.init();
     global.DG.minimap.init();          // 좌하단 미니맵 — 화면에만 쓰는 층이라 판정 뒤에 붙인다
     global.DG.overworld.init();        // 전체 지도(M키) — 마찬가지로 화면 층
+    if (global.DG.fieldCombat) { global.DG.fieldCombat.init(); }   // 들판 전투 키(J·E·Q·␣·1~4)
 
     if (fresh) {
       core.log('여정을 시작합니다. 걸으면 보급을 받고, 만나면 도감이 쌓입니다.', 'info');
@@ -375,6 +376,7 @@
     if (global.DG.stela) { global.DG.stela.tick(dt); }     // 15m 안 비석을 저절로 발견(§5⑤)
     if (global.DG.drop) { global.DG.drop.tick(dt); }       // 흩어진 짐을 걷는다(§5⑧)
     if (global.DG.bond) { global.DG.bond.tick(); }         // 함께 걸은 거리로 인연이 쌓인다(§5⑥)
+    if (global.DG.fieldCombat) { global.DG.fieldCombat.tick(dt); }   // 들판 적 무리와 싸운다(§5⑨)
     if (!global.DG_NO_DRAW) {
       world.draw();
       global.DG.minimap.tick(dt);      // 미니맵은 매 프레임이 아니라 제 박자로 다시 그린다
