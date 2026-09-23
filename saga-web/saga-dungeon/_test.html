@@ -5694,7 +5694,8 @@ window.requestAnimationFrame = function () { return 0; };
       var on = tiny.geometry.attributes.outlineNormal, n0 = on ? [on.getX(0), on.getY(0), on.getZ(0)] : [0, 0, 0];
       var diag = Math.abs(Math.abs(n0[0]) - Math.abs(n0[1])) < 1e-3 && Math.abs(Math.abs(n0[1]) - Math.abs(n0[2])) < 1e-3;   // 상자 모서리 = 세 면 평균
       var vs = o1 ? o1.material.vertexShader : '';
-      return !!o1 && Math.abs(w1 - 0.0005) < 1e-9 && Math.abs(w2 - 0.006) < 1e-9 && !!on && diag &&
+      /* 재질 캐시 키가 폭을 소수 넷째 자리로 반올림한다 — 앞 항목이 0.00602 로 만든 재질을 이어 받을 수 있어 그 반올림 안에서 본다 */
+      return !!o1 && Math.abs(w1 - 0.0005) < 6e-5 && Math.abs(w2 - 0.006) < 6e-5 && !!on && diag &&
         vs.indexOf('objectNormal = outlineNormal') > 0 && vs.indexOf('beginnormal_vertex') < 0 &&
         !Object.prototype.hasOwnProperty.call(o1.material, 'skinning') &&
         ('준 폭 ' + w1 + ' 그대로 · 폭 없으면 예전 ' + w2 + ' · 모서리 법선 평균 · 셰이더가 outlineNormal 을 씀');
