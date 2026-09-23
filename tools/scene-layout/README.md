@@ -23,6 +23,11 @@ node tools/scene-layout/layout.mjs --kinds saga-unity/tools/layout/kinds.json --
   지도가 `validate()` 를 못 넘으면 만들지 않는다. 명소 칸(`mark`)엔 명소 물건만 두고 지형 물건은 겹쳐 깔지 않는다.
 - **kinds.json**(`saga-godot/tools/layout/`·`saga-unity/tools/layout/`): 지형·명소마다 `assets`·`per`(한 칸 개수, 소수는 확률)·
   `jitter`·`scale`. 경로는 그 트랙에 **실제 있는 파일만** — 없는 경로는 조립 때 건너뛰고 이름을 찍는다.
+- **손으로 놓은 소품(`land.js` `deco`, 맵 편집기 "3D 배치")**: kinds.json 의 `deco` 표(종류 → `assets`·`h`·`scale`)로 `items[]` 에 `kind: "deco:<종류>"` 로 얹는다.
+  웹 좌표(월드 미터, 한 칸 48m)는 칸 비율대로 옮기고(웹 (24,24) = 칸 (0,0) 가운데 = 배치표 원점), 크기는 칸처럼 줄이지 않고 `h`(웹 기준 키)에 대한 비율만 곱한다(0.25~4).
+  돌림 `rot`(라디안)은 `rotY`(도)로. 해시 물건을 다 뽑은 뒤에 얹어 deco 가 늘어도 그 물건들은 바이트까지 그대로고, 에셋은 소품마다 따로 씨앗으로 고른다.
+  표에 없는 종류는 건너뛰고 `표에 없는 deco 종류` 로 찍는다 — 지금 Godot 은 등불·우물·장터·허수아비, Unity 는 풀·갈대·우물·허수아비가 없고, 집·탑은 두 트랙 다 모델이 없어 `wall-block`·`pillar-stone` 대역이다.
+  조립 씬에서 deco 는 **보기만** 한다(부딪히지 않는다 — 걷는 래퍼는 바닥·물 칸만 막는다).
 - 조립 스크립트는 **새 씬 하나만** 쓴다(Unity 는 바닥 재질 `Assets/Art/Generated/Layout/Ground_*.mat` 도). 기존 씬·임포트 설정은 안 건드린다.
   Unity 는 z 를 뒤집는다(+z 북쪽).
 - 조립 씬 자체엔 게임 판정·NPC 배선을 넣지 않는다 — 보기용 조명·카메라와 명소 표식까지만(다시 조립하면 덮이니까). 배선은 트랙마다 **그 씬을 인스턴스로 품는 래퍼**가 한다.

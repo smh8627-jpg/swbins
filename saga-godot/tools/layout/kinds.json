@@ -18,5 +18,14 @@
     "shrine": { "asset": "res://assets/buildings/pillar-stone.glb", "scale": [1.4, 1.4] },
     "ruin": { "assets": ["res://assets/buildings/pillar-stone.glb", "res://assets/buildings/wall-block.glb"], "per": 2, "jitter": 0.3, "rotate": true, "scale": [0.9, 1.3] },
     "temple": { "asset": "res://assets/buildings/roof-gable.glb", "scale": [2, 2] }
+  },
+  "_deco_doc": "land.js deco(맵 편집기 \"3D 배치\") 종류 → 에셋. h=웹 기준 키(m, 편집기 기본값) — 소품 키 h 가 이것의 몇 배냐로 scale(수 하나)을 곱한다. 표에 없는 종류는 건너뛰고 이름을 찍는다. 집·탑은 이 트랙에 모델이 없어 마을 칸 대역(wall-block·pillar-stone)을 쓴다.",
+  "deco": {
+    "tree": { "h": 9, "scale": 1, "assets": ["res://assets/vegetation/CommonTree_1.gltf", "res://assets/vegetation/CommonTree_2.gltf", "res://assets/vegetation/CommonTree_3.gltf"] },
+    "rock": { "h": 2, "scale": 1, "assets": ["res://assets/rocks/Rock_Medium_1.gltf", "res://assets/rocks/Rock_Medium_2.gltf", "res://assets/rocks/Rock_Medium_3.gltf"] },
+    "grass": { "h": 1, "scale": 1, "assets": ["res://assets/vegetation/Grass_Common_Short.gltf", "res://assets/vegetation/Grass_Wispy_Short.gltf", "res://assets/vegetation/Bush_Common.gltf"] },
+    "reed": { "h": 1.6, "scale": 1, "assets": ["res://assets/vegetation/Grass_Wispy_Tall.gltf", "res://assets/vegetation/Grass_Common_Tall.gltf"] },
+    "house": { "h": 5, "scale": 1.5, "assets": ["res://assets/buildings/wall-block.glb"] },
+    "tower": { "h": 18, "scale": 1.4, "assets": ["res://assets/buildings/pillar-stone.glb"] }
   }
 }

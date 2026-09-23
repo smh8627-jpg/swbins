@@ -8,6 +8,7 @@
  *        [--land saga-web/saga-go/js/land.js] [--region hebei] [--seed 20260824] [--out <파일>]
  *
  * 좌표: 격자 (tx,ty) 한 칸 = kinds.json 의 `cell` 미터. 격자 (0,0) 가운데가 원점, +x 동쪽, +z 남쪽(글자 그림에서 아래).
+ * 손으로 놓은 소품(land.js `deco`, 맵 편집기 "3D 배치")도 kinds.json 의 `deco` 표로 얹는다 — 웹 좌표(한 칸 48m)를 칸 비율대로 옮긴다.
  * 같은 씨앗·같은 입력이면 배치표가 바이트까지 같다(진단 씨앗 20260824 가 기본값).
  */
 import fs from 'node:fs';
@@ -76,6 +77,27 @@ for (let y = 0; y < R.map.length; y++) {
   }
 }
 
+/* 손으로 놓은 소품 — 해시 물건 위에 얹는다(웹 world3d.propPlan 과 같다). 해시 물건을 다 뽑은 **뒤**라 deco 가 늘어도 그 물건들은 바이트까지 그대로다.
+   웹 좌표는 월드 미터(한 칸 48m, 칸 (tx,ty) 가운데 = tx*48+24)라 배치표 칸(cell m)으로 비율대로 옮긴다.
+   크기는 칸처럼 줄이지 않는다 — 트랙 표의 기준 키 `h` 에 대한 비율만(키 18m 탑이 기준 7m 면 18/7배, 0.25~4 사이).
+   에셋 고르기는 소품마다 따로 씨앗을 써서, 소품 하나를 더하거나 빼도 다른 소품의 에셋이 안 바뀐다. */
+const WEB_GRID = 48;
+const DT = K.deco || {};
+const decoMissing = new Set();
+(R.deco || []).forEach((d, i) => {
+  if (!d || (L.DECO_T || []).indexOf(d.t) < 0 || !(d.h > 0)) return;   // 게임 decoAt 도 안 세우는 것
+  const spec = DT[d.t];
+  if (!spec || !spec.assets || !spec.assets.length) { decoMissing.add(d.t); return; }
+  const pr = mulberry32((seed ^ Math.imul(i + 1, 0x9E3779B1)) >>> 0);
+  const k = Math.min(4, Math.max(0.25, d.h / (spec.h > 0 ? spec.h : d.h)));
+  items.push({
+    asset: spec.assets[Math.floor(pr() * spec.assets.length)], kind: 'deco:' + d.t,
+    tx: Math.floor(d.x / WEB_GRID), ty: Math.floor(d.z / WEB_GRID),
+    x: r3((d.x - WEB_GRID / 2) / WEB_GRID * cell), y: 0, z: r3((d.z - WEB_GRID / 2) / WEB_GRID * cell),
+    rotY: r3((d.rot || 0) * 180 / Math.PI), scale: r3((spec.scale || 1) * k),
+  });
+});
+
 const out = {
   schema: 'saga-layout/1',
   source: path.relative(REPO, landPath).replace(/\\/g, '/'), region: R.id, name: R.name,
@@ -96,3 +118,4 @@ items.forEach((i) => { byKind[i.kind] = (byKind[i.kind] || 0) + 1; });
 console.log(`배치표 ${R.id} ${out.w}×${out.h}칸 · 한 칸 ${cell}m · 씨앗 ${seed} · 바닥 ${ground.length} · 물건 ${items.length} (` +
   Object.entries(byKind).map(([k, v]) => k + ' ' + v).join(', ') + ') · 명소 ' + out.places.length + (outPath ? ' → ' + outPath : ''));
 if (missing.size) console.log('표에 없는 지형(바닥만 깐다): ' + [...missing].join(', '));
+if (decoMissing.size) console.log('표에 없는 deco 종류(건너뜀 — 이 트랙에 맞는 에셋이 없다): ' + [...decoMissing].join(', '));
