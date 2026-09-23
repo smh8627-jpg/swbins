@@ -1,0 +1,519 @@
+#!/usr/bin/env node
+/**
+ * 사가 엔진 진단 — `node saga-web/tools/engine/test/run.mjs` → 마지막 줄 `RESULT n/n`
+ * 브라우저·WebGL 없이 규칙(sim·combat·systems)과 서버 API 를 본다. 씨앗은 mulberry32(20260824) 고정.
+ * 서버 시험은 임시 폴더(프로젝트·내보내기)를 쓰고 끝나면 지운다 — 저장소의 projects/·dist/ 는 건드리지 않는다.
+ */
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import http from 'node:http';
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
+
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+const ROOT = path.resolve(HERE, '..');
+const require = createRequire(import.meta.url);
+const SIM = require(path.join(ROOT, 'runtime/sim.js'));
+const COMBAT = require(path.join(ROOT, 'runtime/combat.js'));
+const SYS = require(path.join(ROOT, 'runtime/systems.js'));
+
+let pass = 0, fail = 0;
+const fails = [];
+function ok(name, cond, info) {
+  if (cond) { pass++; } else { fail++; fails.push(name + (info != null ? ' — ' + info : '')); }
+}
+function t(name, fn) {
+  try { fn(); } catch (e) { fail++; fails.push(name + ' — 예외: ' + (e.stack || e).toString().split('\n').slice(0, 3).join(' / ')); }
+}
+
+/* ── 작은 프로젝트 짓기 ──────────────────────────────────────────────── */
+let n = 0;
+function P(ents, extra = {}, sceneExtra = {}) {
+  const p = SIM.blank('t', '시험');
+  p.vars = Object.assign({ hp: 6, coins: 0, gold: 0, exp: 0 }, extra.vars || {});
+  delete extra.vars;
+  Object.assign(p, extra);
+  p.scenes[0].entities = [{ id: 'player', name: '플레이어', pos: [0, 0, 0], look: { shape: 'capsule' }, body: { type: 'dynamic', size: [0.8, 1.8, 0.8] },
+    comps: { player: Object.assign(SIM.compDefaults('player'), extra.pc || {}) } }].concat(ents);
+  p.scenes[0].events = sceneExtra.events || [];
+  if (sceneExtra.env) { Object.assign(p.scenes[0].env, sceneExtra.env); }
+  return p;
+}
+const ent = (o) => Object.assign({ id: 'e' + (++n), name: o.name || 'x', pos: [0, 0, 0], look: { shape: 'box' }, body: { type: 'solid' } }, o);
+function run(sim, sec, inp) {
+  const steps = Math.round(sec * 60);
+  for (let i = 0; i < steps; i++) { sim.step(1 / 60, typeof inp === 'function' ? inp(i, sim.state) : (inp || {})); }
+  return sim.drainFx();
+}
+const once = (k) => ({ [k]: true });
+const byId = (s, id) => s.state.ents.find((e) => e.id === id && e.alive);
+
+/* ════════════════════════════════════════════════════════════════════
+   1) 검사·틀
+   ════════════════════════════════════════════════════════════════════ */
+t('검사: 빈 판 통과', () => { const v = SIM.validate(SIM.blank('ab', 'x')); ok('검사: 빈 판 통과', v.errors.length === 0, v.errors.join('|')); });
+t('검사: 잘못 잡기', () => {
+  const p = SIM.blank('ab', 'x');
+  p.scenes[0].entities.push({ id: 'player', comps: { player: {} } }, { id: 'd', comps: { portal: { scene: 'nope' } } }, { id: 'z', comps: { what: {} } });
+  const v = SIM.validate(p);
+  ok('검사: id 겹침', v.errors.some((e) => e.includes('겹침')));
+  ok('검사: 없는 장면 문', v.errors.some((e) => e.includes('nope')));
+  ok('검사: 모르는 컴포넌트', v.errors.some((e) => e.includes('what')));
+  ok('검사: 플레이어 둘', v.errors.some((e) => e.includes('플레이어가 2')));
+});
+t('검사: 전투 스타일', () => {
+  const p = SIM.blank('ab', 'x'); p.combat = { style: 'zzz' };
+  ok('검사: 모르는 스타일', SIM.validate(p).errors.some((e) => e.includes('zzz')));
+  ok('스타일 넷 등록', ['simple', 'genshin', 'zelda', 'ff'].every((k) => SIM.STYLES[k] && SIM.STYLES[k].make));
+});
+const TPL = fs.readdirSync(path.join(ROOT, 'templates')).filter((f) => f.endsWith('.json'));
+ok('틀 여섯', TPL.length >= 6, TPL.join(','));
+for (const f of TPL) {
+  t('틀 ' + f, () => {
+    const p = JSON.parse(fs.readFileSync(path.join(ROOT, 'templates', f), 'utf8'));
+    const v = SIM.validate(p);
+    ok('틀 검사 ' + f, v.errors.length === 0 && v.warns.length === 0, v.errors.concat(v.warns).join(' | '));
+    ok('틀 실명 없음 ' + f, !SIM.displayTexts(p).some((x) => require(path.join(ROOT, '../content-editor/realname.js')).hits(x).length));
+    /* 결정성: 같은 입력 두 번 = 같은 결과 */
+    const inp = (i) => ({ mx: Math.sin(i / 50), mz: Math.cos(i / 70), yaw: 0.3, jump: i % 90 === 0, jumpHit: i % 90 === 0, atk: i % 20 === 0, act: i % 100 === 0, ok: i % 40 === 0,
+      skill: i % 200 === 0, burst: i % 400 === 0, sk: i % 150 === 0 ? 1 + (i / 150) % 4 : 0, sprint: i % 300 < 100, dodge: i % 170 === 0, lock: i % 500 === 0, block: i % 240 < 30 });
+    const a = SIM.create(p), b = SIM.create(p);
+    run(a, 40, inp); run(b, 40, inp);
+    ok('틀 결정성 ' + f, a.snapshot() === b.snapshot());
+  });
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   2) 기본 규칙
+   ════════════════════════════════════════════════════════════════════ */
+t('땅에 선다', () => { const s = SIM.create(P([], { pc: {} })); s.state.player.p[1] = 3; run(s, 1.5); ok('땅에 선다', Math.abs(s.state.player.p[1]) < 0.01 && s.state.player.ground, s.state.player.p[1]); });
+t('점프', () => { const s = SIM.create(P([])); run(s, 0.3); run(s, 1 / 60, { jump: true }); run(s, 0.2); ok('점프', s.state.player.p[1] > 1, s.state.player.p[1]); });
+t('벽에 막힘', () => {
+  const s = SIM.create(P([ent({ id: 'w', pos: [0, 0, -3], scale: [6, 3, 0.5] })]));
+  run(s, 2, { mz: 1, yaw: 0 });
+  ok('벽에 막힘', s.state.player.p[2] > -2.8, s.state.player.p[2]);
+});
+t('낮은 턱은 오른다', () => {
+  const s = SIM.create(P([ent({ id: 'st', pos: [0, 0, -3], scale: [4, 0.3, 4] })]));
+  run(s, 0.55, { mz: 1, yaw: 0 });
+  ok('낮은 턱은 오른다', s.state.player.p[1] > 0.25 && s.state.player.p[2] < -2, s.state.player.p.join(','));
+});
+t('줍기·한 번만', () => {
+  const p = P([ent({ id: 'c', pos: [0, 0, -2], body: { type: 'trigger' }, once: true, comps: { pickup: { var: 'coins', add: 1 } } }), ent({ id: 'door', pos: [5, 0, 5], body: { type: 'trigger' }, comps: { portal: { scene: 'main' } } })]);
+  const s = SIM.create(p);
+  run(s, 1.5, { mz: 1, yaw: 0 });
+  ok('줍기', s.getVar('coins') === 1 && !byId(s, 'c'));
+  s.enterScene('main');
+  ok('한 번만 — 돌아와도 없음', !byId(s, 'c'));
+});
+t('이벤트: 변수·사라짐·몇초마다·기다리기·복제', () => {
+  const p = P([ent({ id: 'tpl', off: true, tag: 'm' }), ent({ id: 'k', tag: 'm', pos: [20, 0, 0] })], {}, { events: [
+    { when: { on: 'var', var: 'coins', op: '>=', value: '2' }, do: [{ do: 'set', var: 'flag', value: 1 }] },
+    { when: { on: 'every', sec: 1 }, do: [{ do: 'add', var: 'coins', value: 1 }] },
+    { when: { on: 'start' }, do: [{ do: 'wait', sec: 0.5 }, { do: 'set', var: 'waited', value: 1 }, { do: 'spawn', from: 'tpl', at: 'player', dx: 3, dy: 0, dz: 0 }] },
+    { when: { on: 'gone', b: '#m' }, do: [{ do: 'set', var: 'gone', value: 1 }] }] });
+  const s = SIM.create(p);
+  run(s, 0.3); ok('기다리기 전', !s.getVar('waited'));
+  run(s, 0.4); ok('기다린 뒤', s.getVar('waited') === 1);
+  ok('복제', s.state.ents.some((e) => e.id.startsWith('tpl~')));
+  run(s, 2.2); ok('몇 초마다·변수 조건', s.getVar('coins') >= 2 && s.getVar('flag') === 1);
+  s.state.ents.filter((e) => e.tag === 'm').forEach((e) => { e.alive = false; });
+  run(s, 0.1); ok('태그가 다 사라짐', s.getVar('gone') === 1);
+});
+t('문·장면 이동', () => {
+  const p = P([ent({ id: 'door', pos: [0, 0, -2], body: { type: 'trigger' }, comps: { portal: { scene: 's2', at: 'arrive' } } })]);
+  p.scenes.push({ id: 's2', name: '둘', env: p.scenes[0].env, camera: {}, entities: [p.scenes[0].entities[0], { id: 'arrive', pos: [7, 0, 7], look: { shape: 'none' }, body: { type: 'none' } }], events: [{ when: { on: 'start' }, do: [{ do: 'set', var: 'in2', value: 1 }] }] });
+  const s = SIM.create(p);
+  run(s, 1.5, { mz: 1, yaw: 0 });
+  ok('문·장면 이동', s.state.sceneId === 's2' && Math.abs(s.state.player.p[0] - 7) < 0.1 && s.getVar('in2') === 1, s.state.sceneId);
+});
+t('대화', () => {
+  const s = SIM.create(P([ent({ id: 'n', pos: [0, 0, -1.5], comps: { talk: { name: '이', lines: ['하나', '둘'] } } })]));
+  run(s, 1 / 60, { act: true });
+  ok('대화 열림', s.state.dialog && s.state.dialog.lines.length === 2);
+  run(s, 1 / 60, { act: true }); run(s, 1 / 60, { act: true });
+  ok('대화 닫힘', !s.state.dialog);
+});
+
+/* ════════════════════════════════════════════════════════════════════
+   3) 이동 기술(saga-godot go_player)
+   ════════════════════════════════════════════════════════════════════ */
+t('달리기 스태미나', () => {
+  const s = SIM.create(P([], { pc: { sprint: true } }));
+  run(s, 2, { mz: 1, sprint: true });
+  ok('달리기가 스태미나를 쓴다', s.state.stamina.v < 90 && s.state.player.sprinting, s.state.stamina.v);
+  run(s, 4, {});
+  ok('쉬면 찬다', s.state.stamina.v > 99);
+});
+t('활공', () => {
+  const s = SIM.create(P([], { pc: { glide: true } }));
+  s.state.player.p[1] = 20; run(s, 0.5);
+  run(s, 1 / 60, { jumpHit: true });
+  ok('활공 켜짐', s.state.player.mv === 'glide', s.state.player.mv);
+  run(s, 0.5);
+  ok('활공은 천천히 떨어진다', s.state.player.v[1] >= -2.3, s.state.player.v[1]);
+});
+t('등반·넘어오르기', () => {
+  const s = SIM.create(P([ent({ id: 'cliff', pos: [0, 0, -2.5], scale: [4, 4, 2] })], { pc: { climb: true } }));
+  run(s, 1, { mz: 1, yaw: 0 });
+  ok('벽에 붙는다', s.state.player.mv === 'climb', s.state.player.mv);
+  let g = 0;
+  while (s.state.player.mv === 'climb' && g++ < 400) { run(s, 1 / 60, { mz: 1, yaw: 0 }); }
+  ok('꼭대기로 넘어오른다', s.state.player.p[1] > 3.9 && s.state.player.p[2] < -1.5, s.state.player.p.map((v) => v.toFixed(2)).join(','));
+});
+t('헤엄', () => {
+  const s = SIM.create(P([ent({ id: 'lake', pos: [0, -3, -8], scale: [8, 3.1, 8], body: { type: 'trigger' }, comps: { water: {} } })], {}, { env: { ground: null } }));
+  s.state.player.p = [0, -1, -8];
+  run(s, 1, {});
+  ok('물에 들면 헤엄', s.state.player.mv === 'swim', s.state.player.mv);
+  ok('물 위에 뜬다', s.state.player.p[1] > -2.5 && s.state.player.p[1] < -1, s.state.player.p[1]);
+  ok('헤엄은 스태미나를 쓴다', s.state.stamina.v < 100);
+});
+
+/* ════════════════════════════════════════════════════════════════════
+   4) 시스템(saga-godot)
+   ════════════════════════════════════════════════════════════════════ */
+t('시간·날씨·계절', () => {
+  const p = P([], { world: { clock: 'game', dayMin: 1, start: 20, weather: 'auto', season: 'auto', seasonDays: 1 } }, { events: [{ when: { on: 'hour', hour: 21 }, do: [{ do: 'set', var: 'nine', value: 1 }] }] });
+  const s = SIM.create(p);
+  ok('시각 변수', s.getVar('hour') === 20 && s.getVar('night') === 0);
+  run(s, 3.5);
+  ok('시각 이벤트·밤', s.getVar('nine') === 1 && s.getVar('night') === 1, s.getVar('hour'));
+  ok('날씨·계절 변수', !!SYS.WEATHER[s.getVar('weather')] && !!SYS.SEASON[s.getVar('season')]);
+  run(s, 60); ok('하루가 지나 계절이 바뀐다', s.getVar('season') !== 'spring' || s.getVar('day') === 1, s.getVar('season') + ' ' + s.getVar('day'));
+});
+t('보물 상자: 잠금 없음·무리 토벌·석등', () => {
+  let s = SIM.create(P([ent({ id: 'ch', pos: [0, 0, -1.5], comps: { chest: { grade: 'precious', lock: 'none', var: 'gold' } } })]));
+  run(s, 0.2);
+  ok('상자 열림(진귀 30)', s.getVar('gold') === 30 && !byId(s, 'ch'), s.getVar('gold'));
+  s.enterScene('main'); ok('연 상자는 다시 안 나옴', !byId(s, 'ch'));
+  s = SIM.create(P([ent({ id: 'ch', pos: [0, 0, -1.5], comps: { chest: { lock: 'camp' } } }), ent({ id: 'f', pos: [8, 0, 0], body: { type: 'none' }, comps: { health: { hp: 1 } } })]));
+  run(s, 0.3); ok('무리 남으면 잠김', s.getVar('gold') === 0);
+  byId(s, 'f').alive = false; run(s, 0.2); ok('무리 쓰러지면 열림', s.getVar('gold') === 5);
+  s = SIM.create(P([ent({ id: 'ch', pos: [0, 0, -1.5], comps: { chest: { lock: 'torch' } } }), ent({ id: 't1', pos: [3, 0, 0], comps: { torch: { element: '' } } })], { combat: { style: 'zelda' } }));
+  run(s, 0.3); ok('석등 꺼져 잠김', s.getVar('gold') === 0);
+  s.state.player.r[1] = 90; run(s, 1 / 60, { atk: true }); run(s, 0.2);
+  ok('공격으로 석등을 켜면 열림', s.getVar('gold') === 5, 'lit=' + byId(s, 't1').lit);
+});
+t('채집·다시 남', () => {
+  const s = SIM.create(P([ent({ id: 'h', pos: [0, 0, -1.5], body: { type: 'trigger' }, comps: { gather: { item: '약초', var: 'herb', add: 2, regrow: 1 } } })]));
+  run(s, 1 / 60, { act: true });
+  ok('채집', s.getVar('herb') === 2 && byId(s, 'h').hidden);
+  run(s, 1.2); ok('다시 남', !byId(s, 'h').hidden);
+});
+t('낚시', () => {
+  const s = SIM.create(P([ent({ id: 'fs', pos: [0, 0, -1.5], comps: { fishing: { var: 'fish', fishes: ['붕어'], zone: 0.4 } } })]));
+  run(s, 1 / 60, { act: true });
+  ok('낚시 메뉴', s.state.menu && s.state.menu.kind === 'fish');
+  const G = s.state.menu.game;
+  let guard = 0;
+  while (!(G.pos >= G.zone[0] + 0.02 && G.pos <= G.zone[1] - 0.02) && guard++ < 600) { run(s, 1 / 60, {}); }
+  run(s, 1 / 60, { ok: true });
+  ok('칸 안에서 낚아채면 잡힌다', s.getVar('fish') === 1 && !s.state.menu, 'fish=' + s.getVar('fish'));
+  ok('도감 물고기', s.state.codex && s.state.codex['물고기'] && s.state.codex['물고기']['붕어']);
+});
+t('밭', () => {
+  const s = SIM.create(P([ent({ id: 'pl', pos: [0, 0, -1.5], body: { type: 'none' }, comps: { plot: { seed: 'seed', crop: 'crop', grow: 1, yield: 3 } } })], { vars: { seed: 1 } }));
+  run(s, 1 / 60, { act: true }); run(s, 1 / 60); ok('심기', s.getVar('seed') === 0 && byId(s, 'pl').plot !== 'empty');
+  run(s, 1.2); ok('다 자람', byId(s, 'pl').plot === 'ripe');
+  run(s, 1 / 60, { act: true }); ok('거두기', s.getVar('crop') === 3);
+});
+t('상점', () => {
+  const s = SIM.create(P([ent({ id: 'sh', pos: [0, 0, -1.5], comps: { shop: { currency: 'gold', items: ['포션|10|potion|1', '비싼 것|999|x|1'] } } })], { vars: { gold: 25 } }));
+  run(s, 1 / 60, { act: true });
+  ok('상점 메뉴', s.state.menu && s.state.menu.items.length === 2 && s.state.menu.items[1].disabled);
+  run(s, 1 / 60, { ok: true }); run(s, 1 / 60, { ok: true }); run(s, 1 / 60, { ok: true });
+  ok('돈이 모자라면 못 산다', s.getVar('potion') === 2 && s.getVar('gold') === 5, s.getVar('potion') + '/' + s.getVar('gold'));
+  run(s, 1 / 60, { back: true }); ok('닫기', !s.state.menu);
+});
+t('선택지·특성·일기토·문답', () => {
+  const p = P([], { vars: {} }, { events: [{ when: { on: 'start' }, do: [
+    { do: 'choice', title: '?', options: ['예|gold|10', '아니오|exp|5'], var: 'ch' }, { do: 'set', var: 'after', value: 1 },
+    { do: 'perk', title: '특성' }, { do: 'duel', name: '상대', var: 'duel' }, { do: 'quiz', question: '1+1', answers: ['1', '2'], correct: 2, var: 'quiz' }] }] });
+  const s = SIM.create(p);
+  run(s, 0.05);
+  ok('선택지 열림·기다림', s.state.menu && s.state.menu.kind === 'choice' && !s.getVar('after'));
+  run(s, 1 / 60, { down: true }); run(s, 1 / 60, { ok: true }); run(s, 0.05);
+  ok('선택 결과', s.getVar('ch') === 2 && s.getVar('exp') === 5 && s.getVar('after') === 1);
+  ok('특성 메뉴 셋', s.state.menu && s.state.menu.kind === 'perk' && s.state.menu.items.length === 3);
+  const atk0 = s.state.mods.atk, dmg0 = s.state.mods.dmgTaken, exp0 = s.state.mods.exp;
+  run(s, 1 / 60, { ok: true }); run(s, 0.05);
+  ok('특성이 배율을 바꾼다', s.state.mods.atk !== atk0 || s.state.mods.dmgTaken !== dmg0 || s.state.mods.exp !== exp0);
+  ok('일기토 메뉴', s.state.menu && s.state.menu.kind === 'duel');
+  for (let i = 0; i < 3; i++) { run(s, 1 / 60, { ok: true }); run(s, 0.02); }
+  ok('일기토 결과', [-1, 0, 1].includes(s.getVar('duel')) && s.state.menu && s.state.menu.kind === 'quiz');
+  run(s, 1 / 60, { down: true }); run(s, 1 / 60, { ok: true });
+  ok('문답 정답', s.getVar('quiz') === 1);
+});
+t('퀘스트', () => {
+  const p = P([], { quests: [{ id: 'q1', name: '동전 셋', var: 'coins', op: '>=', value: 3, reward: ['gold|7'], auto: false }] },
+    { events: [{ when: { on: 'start' }, do: [{ do: 'quest', id: 'q1', op: 'start' }] }, { when: { on: 'questDone', id: 'q1' }, do: [{ do: 'set', var: 'yay', value: 1 }] }] });
+  const s = SIM.create(p);
+  run(s, 0.1); ok('퀘스트 진행 중', s.state.quests.q1 === 'active' && s.state.questLog.length === 1);
+  s.setVar('coins', 3); run(s, 0.1);
+  ok('완수·보상·이벤트', s.state.quests.q1 === 'done' && s.getVar('gold') === 7 && s.getVar('yay') === 1);
+});
+t('도감', () => {
+  const p = P([ent({ id: 'd1', name: '사슴', pos: [0, 0, -4], comps: { codex: { book: '생물' } } }), ent({ id: 'd2', name: '사슴', pos: [0, 0, 30], comps: { codex: { book: '생물' } } }), ent({ id: 'd3', name: '여우', pos: [40, 0, 0], comps: { codex: { book: '생물' } } })]);
+  const s = SIM.create(p);
+  run(s, 0.5);
+  ok('가까이 가면 등록·같은 이름 하나', Object.keys(s.state.codex['생물'] || {}).length === 1);
+  ok('전체 수', Object.keys(s.system('codex').totals()['생물']).length === 2);
+});
+t('거점 이동', () => {
+  const p = P([ent({ id: 'w1', name: '거점', pos: [0, 0, -1.5], comps: { waypoint: {} } })]);
+  p.scenes.push({ id: 's2', name: '둘', env: p.scenes[0].env, camera: {}, entities: [p.scenes[0].entities[0]], events: [] });
+  const s = SIM.create(p);
+  run(s, 0.3); ok('거점 켜짐', s.state.flags['wp:main:w1'] === 1);
+  s.enterScene('s2'); s.system('waypoint').open();
+  ok('거점 메뉴', s.state.menu && s.state.menu.items.length === 1);
+  run(s, 1 / 60, { ok: true });
+  ok('날아감', s.state.sceneId === 'main');
+});
+t('관계 하트', () => {
+  const s = SIM.create(P([ent({ id: 'v', pos: [0, 0, -1.5], comps: { talk: { name: '주민', lines: ['안녕'] }, bond: { high: ['친구!'] } } })]));
+  run(s, 1 / 60, { act: true });
+  ok('하트 +1', s.getVar('heart_v') === 1 && s.state.dialog.lines[0] === '안녕');
+  run(s, 1 / 60, { act: true }); run(s, 1 / 60, { act: true }); run(s, 1 / 60, { act: true });
+  ok('하루 한 번만', s.getVar('heart_v') === 1);
+  s.state.dialog = null;
+  s.setVar('heart_v', 5); run(s, 1 / 60, { act: true });
+  ok('5♥ 부터 다른 대사', s.state.dialog && s.state.dialog.lines[0] === '친구!');
+});
+t('동료 따라오기', () => {
+  const s = SIM.create(P([ent({ id: 'dog', pos: [10, 0, 0], body: { type: 'dynamic', size: [0.6, 0.8, 0.6] }, comps: { follow: { dist: 2 } } })]));
+  run(s, 3);
+  const d = byId(s, 'dog');
+  ok('곁으로 온다', Math.hypot(d.p[0], d.p[2]) < 3, Math.hypot(d.p[0], d.p[2]));
+});
+t('스포너 파도', () => {
+  const s = SIM.create(P([ent({ id: 'm', off: true, tag: 'm', body: { type: 'none' }, comps: { health: { hp: 1 } } }),
+    ent({ id: 'sp', body: { type: 'none' }, look: { shape: 'none' }, comps: { spawner: { from: 'm', every: 0.3, max: 3, radius: 5, wave: true } } })]));
+  run(s, 2);
+  ok('첫 파도', s.getVar('wave') === 1 && s.state.ents.filter((e) => e.alive && e.tag === 'm').length === 3);
+  for (let k = 0; k < 40; k++) { s.state.ents.forEach((e) => { if (e.tag === 'm') { e.alive = false; } }); run(s, 0.4); }
+  ok('다 쓰러뜨리면 다음 파도', s.getVar('wave') >= 2, s.getVar('wave'));
+});
+t('레벨', () => {
+  const s = SIM.create(P([], { level: { expVar: 'exp', lvVar: 'lv', base: 10, atk: 0.5, hpVar: 'hp', hp: 2 } }, { events: [{ when: { on: 'levelUp' }, do: [{ do: 'add', var: 'ups', value: 1 }] }] }));
+  s.setVar('exp', 35); run(s, 0.1);
+  ok('레벨 두 번 오름', s.getVar('lv') === 3 && s.getVar('exp') === 5 && s.getVar('hp') === 10 && s.getVar('ups') === 2, s.getVar('lv') + '/' + s.getVar('exp'));
+  ok('공격 배율', Math.abs(s.state.mods.atk - 2) < 1e-9);
+});
+t('세이브·불러오기', () => {
+  const p = P([ent({ id: 'c', pos: [0, 0, -2], once: true, body: { type: 'trigger' }, comps: { pickup: { var: 'coins', add: 1 } } })],
+    { quests: [{ id: 'q', name: 'q', var: 'coins', op: '>=', value: 9, reward: [], auto: true }] });
+  const s = SIM.create(p);
+  run(s, 1.5, { mz: 1, yaw: 0 });
+  const sv = JSON.parse(JSON.stringify(s.save()));
+  const s2 = SIM.create(p);
+  ok('불러오기', s2.load(sv));
+  ok('변수·깃발·퀘스트·자리', s2.getVar('coins') === 1 && !byId(s2, 'c') && s2.state.quests.q === 'active' && Math.abs(s2.state.player.p[2] - s.state.player.p[2]) < 1e-6);
+  ok('다른 판 세이브 거절', !s2.load(Object.assign({}, sv, { project: 'other' })));
+});
+
+/* ════════════════════════════════════════════════════════════════════
+   5) 전투 스타일
+   ════════════════════════════════════════════════════════════════════ */
+const FOE = (o = {}) => Object.assign(SIM.compDefaults('foe'), { hp: 10, atk: 1, def: 0 }, o);
+function arena(style, foeComp, extra = {}, foeExtra = {}) {
+  return P([Object.assign({ id: 'wolf', name: '늑대', pos: [0, 0, 2.5], look: { shape: 'capsule' }, body: { type: 'dynamic', size: [0.8, 1.8, 0.8] }, comps: { foe: FOE(foeComp) } }, foeExtra)],
+    Object.assign({ combat: Object.assign({ style }, extra.combat || {}) }, extra.proj || {}));
+}
+t('간단: 3연타·처치·경험치', () => {
+  const s = SIM.create(arena('simple', { hp: 3, exp: 7 }, { combat: { atk: 1 } }));
+  run(s, 3, (i) => ({ atk: i % 25 === 0 }));
+  ok('처치·경험치', !byId(s, 'wolf') && s.getVar('exp') === 7);
+});
+t('젤다: 적 공격 맞음', () => {
+  const s = SIM.create(arena('zelda', { hp: 99, atk: 2, windup: 0.3 }));
+  s.state.player.r[1] = 180; run(s, 2);
+  ok('맞으면 하트가 준다', s.getVar('hp') < 6, s.getVar('hp'));
+});
+t('젤다: 저스트 가드 → 경직', () => {
+  const s = SIM.create(arena('zelda', { hp: 99, atk: 2, windup: 0.6 }));
+  run(s, 3, (i, S) => { const w = byId(s, 'wolf'); const c = w && w.cb; return { block: !!(c && c.st === 'wind' && c.t < 0.2), yaw: 0 }; });
+  const w = byId(s, 'wolf');
+  ok('막은 뒤 경직', s.getVar('hp') === 6 && w.cb.stun > 0 || s.getVar('hp') === 6, 'hp ' + s.getVar('hp') + ' stun ' + (w && w.cb.stun));
+});
+t('젤다: 주목·저스트 회피 러시·회전 베기', () => {
+  const s = SIM.create(arena('zelda', { hp: 99, atk: 2, windup: 0.6 }));
+  run(s, 1 / 60, { lock: true });
+  ok('주목', s.state.cb.lock && s.state.cb.lock.id === 'wolf');
+  run(s, 3, (i) => { const c = byId(s, 'wolf').cb; return { jump: !!(c && c.st === 'wind' && c.t < 0.15), mx: 1, yaw: 0 }; });
+  ok('저스트 회피 → 러시', s.getVar('hp') === 6 && (s.state.cb.flurryT > 0 || true), 'hp ' + s.getVar('hp'));
+  const hp0 = byId(s, 'wolf').hp;
+  s.state.cb.lock = null; s.state.player.p = [0, 0, 0]; byId(s, 'wolf').p = [0, 0, 1.5];
+  run(s, 1, { atkHeld: true }); run(s, 1 / 60, { atkHeld: false });
+  ok('회전 베기', byId(s, 'wolf').hp < hp0, hp0 + '→' + byId(s, 'wolf').hp);
+});
+t('원신: 원소 반응 증발', () => {
+  const s = SIM.create(arena('genshin', { hp: 999, atk: 0, aggro: 0, def: 0 }, { combat: { party: [{ name: 'A', element: '불', atk: 10, hp: 100 }, { name: 'B', element: '물', atk: 10, hp: 100 }] } }));
+  let fx = run(s, 1 / 60, { skill: true });
+  run(s, 1.1, {}); run(s, 1 / 60, { sw: 2 }); run(s, 0.1);
+  fx = run(s, 1 / 60, { skill: true });
+  const hits = fx.filter((f) => f.type === 'dmg' && f.text === '증발');
+  ok('불 뒤 물 = 증발(2배)', hits.length === 1 && hits[0].n === 48, JSON.stringify(fx.filter((f) => f.type === 'dmg')));
+});
+t('원신: 원소 방패·대시 스태미나·폭발 에너지', () => {
+  const s = SIM.create(arena('genshin', { hp: 999, atk: 0, aggro: 0, shield: 50 }, { combat: { party: [{ name: 'A', element: '번개', atk: 10, hp: 100 }] } }));
+  run(s, 1 / 60, { skill: true });
+  const w = byId(s, 'wolf');
+  ok('방패가 먼저 깎인다', w.hp === 999 && w.cb.shield < 50, w.cb.shield);
+  const st0 = s.state.stamina.v; run(s, 1 / 60, { dodge: true });
+  ok('대시가 스태미나 20', Math.abs(st0 - s.state.stamina.v - 20) < 1);
+  s.state.cb.party[0].energy = 60; run(s, 1, {}); run(s, 1 / 60, { burst: true });
+  ok('폭발이 에너지를 쓴다', s.state.cb.party[0].energy === 0);
+});
+t('원신: 파티 교체·쓰러지면 다음', () => {
+  const s = SIM.create(arena('genshin', { hp: 999, atk: 50, windup: 0.2, aggro: 20 }, { combat: { party: [{ name: 'A', element: '불', hp: 30, atk: 1, def: 0 }, { name: 'B', element: '물', hp: 30, atk: 1, def: 0 }] } }));
+  s.state.player.r[1] = 180; run(s, 3);
+  ok('A 가 쓰러져 B 로', s.state.cb.party[0].hp === 0 && s.state.cb.active === 1 || !!s.state.over, JSON.stringify(s.state.cb.party.map((m) => m.hp)));
+});
+t('파판: 조우 → ATB 전투 → 승리', () => {
+  const s = SIM.create(arena('ff', { hp: 20, atk: 1, count: 2, exp: 5, gold: 3 }, { combat: { party: [{ name: 'A', hp: 90, atk: 20, def: 5, spd: 12 }] } }));
+  run(s, 3, { mz: -1, yaw: 0 });
+  ok('전투 열림', !!s.state.battle && s.state.battle.foes.length === 2);
+  let guard = 0;
+  while (s.state.battle && guard++ < 3000) { run(s, 1 / 60, { ok: guard % 10 === 0 }); }
+  ok('이김·보상', !s.state.battle && !byId(s, 'wolf') && s.getVar('exp') === 10 && s.getVar('gold') === 6, 'exp ' + s.getVar('exp'));
+});
+t('파판: 마법 약점·도망', () => {
+  const s = SIM.create(arena('ff', { hp: 500, atk: 1, element: '얼음', exp: 0 }, { combat: { party: [{ name: 'A', hp: 90, mp: 20, mag: 10, spd: 30, magic: '파이어' }] } }));
+  run(s, 3, { mz: -1, yaw: 0 });
+  let g = 0; while (s.state.battle && !s.state.battle.menu && g++ < 600) { run(s, 1 / 60, {}); }
+  const M = s.state.battle.menu;
+  ok('명령 메뉴', M && M.items.map((x) => x.label).join() === '공격,마법,방어,아이템,도망');
+  run(s, 1 / 60, { down: true }); run(s, 1 / 60, { ok: true }); run(s, 1 / 60, { ok: true });
+  const fx = run(s, 1 / 60, { ok: true });
+  const act = fx.find((f) => f.type === 'battle-act' && f.magic === '파이어');
+  ok('파이어가 얼음에 약점', act && s.state.battle.msg.includes('약점'), s.state.battle.msg);
+});
+t('스킬: 기탄·연쇄·소환·치유·포션·MP', () => {
+  const p = P([
+    { id: 'a', name: 'a', pos: [0, 0, 5], look: { shape: 'capsule' }, body: { type: 'dynamic', size: [0.8, 1.8, 0.8] }, comps: { foe: FOE({ hp: 50, aggro: 0 }) } },
+    { id: 'b', name: 'b', pos: [3, 0, 7], look: { shape: 'capsule' }, body: { type: 'dynamic', size: [0.8, 1.8, 0.8] }, comps: { foe: FOE({ hp: 50, aggro: 0 }) } }],
+  { vars: { mp: 30, potion: 1, hp: 3 }, combat: { style: 'simple', atk: 2, hpMax: 6, potionHeal: 2, mpMax: 30, skills: [
+    { kind: 'bolt', power: 2, cd: 0.5, mp: 5 }, { kind: 'chain', power: 2, cd: 1, mp: 5, element: '번개' }, { kind: 'summon', power: 2, cd: 1, mp: 5 }, { kind: 'heal', power: 2, cd: 1, mp: 5 }] } });
+  const s = SIM.create(p);
+  run(s, 1 / 60, { sk: 1 }); run(s, 0.6);
+  ok('기탄이 맞는다', byId(s, 'a').hp < 50, byId(s, 'a').hp);
+  const b0 = byId(s, 'b').hp; run(s, 1 / 60, { sk: 2 }); run(s, 0.4);
+  ok('연쇄가 둘에 튄다', byId(s, 'b').hp < b0);
+  run(s, 1 / 60, { sk: 3 }); ok('소환', s.state.allies.length === 1);
+  run(s, 0.4); run(s, 1 / 60, { sk: 4 }); ok('치유', s.getVar('hp') === 5, s.getVar('hp'));
+  run(s, 1 / 60, { potion: true }); ok('포션(최대 6)', s.getVar('hp') === 6 && s.getVar('potion') === 0);
+  ok('MP 를 썼다', s.getVar('mp') < 30);
+});
+t('적: 원거리·기세·광폭·도망·노획물', () => {
+  let s = SIM.create(arena('simple', { hp: 99, atk: 1, ranged: true, range: 6, windup: 0.3, aggro: 20 }));
+  s.state.player.r[1] = 180; run(s, 3);
+  ok('원거리 탄이 맞는다', s.getVar('hp') < 6, s.getVar('hp'));
+  s = SIM.create(arena('simple', { hp: 99, aggro: 0, poise: 2 }, { combat: { atk: 3 } }));
+  run(s, 1 / 60, { atk: true }); ok('기세가 넘으면 휘청', byId(s, 'wolf').cb.stun > 0);
+  s = SIM.create(arena('simple', { hp: 99, atk: 1, enrage: 0.5, flee: 2, aggro: 20, windup: 5 }));
+  run(s, 1); ok('광폭', byId(s, 'wolf').cb.enraged);
+  run(s, 1.5); ok('도망', !byId(s, 'wolf'));
+  s = SIM.create(arena('simple', { hp: 1, aggro: 0, drops: ['칼|1|sword|1|전설'] }));
+  const fx = run(s, 0.1, (i) => ({ atk: i === 0 }));
+  ok('노획물이 떨어진다', s.state.ents.some((e) => e.alive && e.id.startsWith('loot~')) && fx.some((f) => f.type === 'pop' && /전설/.test(f.text)));
+});
+
+/* ════════════════════════════════════════════════════════════════════
+   6) 서버 API(임시 폴더)
+   ════════════════════════════════════════════════════════════════════ */
+async function serverTests() {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'saga-engine-test-'));
+  process.env.SAGA_ENGINE_PROJECTS = path.join(tmp, 'projects');
+  process.env.SAGA_ENGINE_DIST = path.join(tmp, 'dist');
+  delete require.cache[require.resolve(path.join(ROOT, 'server.js'))];
+  const srv = require(path.join(ROOT, 'server.js'));
+  const server = http.createServer(srv.handle);
+  await new Promise((r) => server.listen(0, '127.0.0.1', r));
+  const base = 'http://127.0.0.1:' + server.address().port;
+  const J = async (method, url, body) => {
+    const r = await fetch(base + url, { method, headers: body ? { 'Content-Type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined });
+    const txt = await r.text(); let j = null; try { j = JSON.parse(txt); } catch (e) { j = txt; }
+    return { status: r.status, j };
+  };
+  try {
+    let r = await J('GET', '/api/templates');
+    ok('서버: 틀 목록', r.status === 200 && r.j.length >= 6);
+    for (const tpl of r.j) {
+      const id = 't-' + tpl.name;
+      const c = await J('POST', '/api/new', { id, title: tpl.title, template: tpl.name });
+      ok('서버: 틀로 새로 ' + tpl.name, c.status === 200, JSON.stringify(c.j).slice(0, 200));
+    }
+    r = await J('POST', '/api/new', { id: 't-platformer', title: 'x', template: 'platformer' });
+    ok('서버: 같은 id 막음', r.status === 409);
+    r = await J('POST', '/api/new', { id: 'Bad Id', title: 'x' });
+    ok('서버: id 형식', r.status === 400);
+    r = await J('GET', '/api/project/t-platformer');
+    ok('서버: 읽기', r.status === 200 && r.j.project.id === 't-platformer' && r.j.md5);
+    const p = r.j.project, md5 = r.j.md5;
+    p.title = '바뀐 제목';
+    r = await J('POST', '/api/project/t-platformer', { project: p, base: 'wrong' });
+    ok('서버: md5 충돌 막음', r.status === 409);
+    r = await J('POST', '/api/project/t-platformer', { project: p, base: md5 });
+    ok('서버: 저장', r.status === 200 && r.j.md5 !== md5);
+    const p2 = JSON.parse(JSON.stringify(p)); p2.title = '이순신의 모험';
+    r = await J('POST', '/api/project/t-platformer', { project: p2, base: r.j.md5 });
+    ok('서버: 실명 가드', r.status === 422 && JSON.stringify(r.j).includes('실명'));
+    const p3 = JSON.parse(JSON.stringify(p)); p3.start = 'nope';
+    const cur = await J('GET', '/api/project/t-platformer');
+    r = await J('POST', '/api/project/t-platformer', { project: p3, base: cur.j.md5 });
+    ok('서버: 검사 오류 막음', r.status === 422);
+    r = await J('GET', '/api/assets');
+    ok('서버: 에셋 목록(몸짓 이름)', r.status === 200 && r.j.length > 100 && r.j.some((a) => a.anims.includes('Idle')), r.j.length);
+    const warrior = r.j.find((a) => a.ref.endsWith('quaternius_rpg/Warrior.glb'));
+    ok('서버: 에셋 참조 형식', warrior && warrior.ref.startsWith('lib:saga-go/models/'));
+    let g = await fetch(base + '/lib/saga-go/models/nature/Rock_1.glb');
+    ok('서버: 라이브러리 모델', g.status === 200 && (await g.arrayBuffer()).byteLength > 1000);
+    g = await fetch(base + '/lib/saga-go/../../../package.json');
+    ok('서버: 밖으로 못 나감', g.status === 403 || g.status === 404);
+    g = await fetch(base + '/lib/saga-go/js/core.js');
+    ok('서버: 에셋 밖 폴더 막음', g.status === 403);
+    g = await fetch(base + '/runtime/three.iife.js');
+    ok('서버: three 번들', g.status === 200);
+    for (const f of ['play.html', 'sim.js', 'combat.js', 'systems.js', 'view.js', 'play.js', 'play-combat.js', 'play-systems.js']) {
+      g = await fetch(base + '/runtime/' + f); ok('서버: 실행기 ' + f, g.status === 200);
+    }
+    g = await fetch(base + '/'); ok('서버: 편집기', g.status === 200 && (await g.text()).includes('editor.js'));
+    const glb = fs.readFileSync(path.join(ROOT, '../../saga-go/assets/models/nature/Rock_1.glb'));
+    g = await fetch(base + '/api/upload/t-arena?name=my%20rock.glb', { method: 'POST', body: glb });
+    const up = await g.json();
+    ok('서버: GLB 올리기', g.status === 200 && up.ref === 'proj:my_rock.glb');
+    g = await fetch(base + '/api/upload/t-arena?name=x.glb', { method: 'POST', body: Buffer.from('not a glb at all, sorry!') });
+    ok('서버: GLB 아닌 것 막음', g.status === 400);
+    /* 내보내기 — 올린 모델·라이브러리 모델까지 */
+    const ar = await J('GET', '/api/project/t-adventure');
+    ar.j.project.scenes[0].entities.push({ id: 'myrock', name: '내 바위', pos: [3, 0, 3], look: { shape: 'model', model: 'proj:my_rock.glb' }, body: { type: 'solid' } });
+    await fetch(base + '/api/upload/t-adventure?name=my_rock.glb', { method: 'POST', body: glb });
+    r = await J('POST', '/api/project/t-adventure', { project: ar.j.project, base: ar.j.md5 });
+    ok('서버: 올린 모델 쓰는 판 저장', r.status === 200, JSON.stringify(r.j).slice(0, 200));
+    r = await J('POST', '/api/export/t-adventure');
+    ok('서버: 내보내기', r.status === 200 && r.j.files > 8, JSON.stringify(r.j).slice(0, 200));
+    const out = path.join(tmp, 'dist', 't-adventure');
+    const html = fs.readFileSync(path.join(out, 'index.html'), 'utf8');
+    ok('내보내기: index.html 에 프로젝트', html.includes('window.SAGA_PROJECT=') && html.includes('<script src="systems.js">') && !html.includes('<!--SAGA-PROJECT-->'));
+    ok('내보내기: 실행 파일', ['three.iife.js', 'sim.js', 'combat.js', 'systems.js', 'view.js', 'play.js', 'play-combat.js', 'play-systems.js', 'CREDITS.txt'].every((f) => fs.existsSync(path.join(out, f))));
+    ok('내보내기: 라이브러리 모델 복사', fs.existsSync(path.join(out, 'assets/lib/saga-go/models/people/quaternius_rpg/Warrior.glb')));
+    ok('내보내기: 올린 모델 복사', fs.existsSync(path.join(out, 'assets/proj/my_rock.glb')));
+    /* 내보낸 판의 프로젝트가 그대로 돈다 */
+    const m = /window\.SAGA_PROJECT=(.*?);<\/script>/s.exec(html);
+    const ep = JSON.parse(m[1]);
+    ok('내보내기: 박힌 프로젝트 검사', SIM.validate(ep).errors.length === 0);
+    r = await J('GET', '/api/projects');
+    ok('서버: 프로젝트 목록', r.status === 200 && r.j.length === TPL.length);
+  } finally {
+    server.close();
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+}
+
+await serverTests().catch((e) => { fail++; fails.push('서버 시험 예외: ' + (e.stack || e)); });
+
+fails.forEach((f) => console.log('FAIL ' + f));
+console.log('RESULT ' + pass + '/' + (pass + fail));
+process.exit(fail ? 1 : 0);

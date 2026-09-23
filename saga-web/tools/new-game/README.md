@@ -8,7 +8,7 @@ node saga-web/tools/new-game/new-game.mjs --folder saga-arena --title 사가아�
 ```
 
 - `--dry` 는 만들 파일 목록만 보여 준다. `--out <폴더>` 는 시험용(다른 곳에 만들어 보기).
-- **막는 것**: 이미 있는 폴더 · 다른 판 `run.bat` 의 포트(편집기 8799·맵 편집기 8800 포함) · 다른 판 `core.js` 의 `SAVE_BASE` ·
+- **막는 것**: 이미 있는 폴더 · 다른 판 `run.bat` 의 포트(편집기 8799·맵 편집기 8800·사가 엔진 8801 포함) · 다른 판 `core.js` 의 `SAVE_BASE` ·
   `manifest.json` id · `saga-소문자` 가 아닌 폴더 이름.
 - **만드는 것**: `index.html`·`css/style.css`·`js/core.js`(세이브 스키마 v1·migrate·프로필·mulberry32)·`js/game.js`
   (들판을 걸으며 도감 인물을 만나 등용하는 최소 놀이, 방향키/WASD·터치 끌기)·`sw.js`(네트워크 먼저+no-store)·`manifest.json`·

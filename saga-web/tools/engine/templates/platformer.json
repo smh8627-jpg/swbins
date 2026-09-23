@@ -1,0 +1,938 @@
+{
+  "format": "saga-engine",
+  "version": 1,
+  "id": "platformer",
+  "title": "3D 점프 수집",
+  "desc": "발판을 뛰어 동전 10개를 모으고 깃발로. 움직이는 발판·점프대·활공·등반.",
+  "start": "main",
+  "vars": {
+    "coins": 0,
+    "hp": 3
+  },
+  "hud": [
+    {
+      "var": "hp",
+      "label": "체력",
+      "style": "hearts"
+    },
+    {
+      "var": "coins",
+      "label": "동전"
+    }
+  ],
+  "goals": [
+    "동전 {coins}/10",
+    "끝의 깃발까지",
+    ""
+  ],
+  "combat": {
+    "style": "simple"
+  },
+  "scenes": [
+    {
+      "id": "main",
+      "name": "하늘 정원",
+      "env": {
+        "sky": "#aee1ff",
+        "fog": 110,
+        "light": 1,
+        "ground": {
+          "size": 40,
+          "color": "#8bc34a"
+        },
+        "gravity": 22
+      },
+      "camera": {
+        "mode": "follow",
+        "dist": 10,
+        "height": 5
+      },
+      "entities": [
+        {
+          "id": "player",
+          "pos": [
+            0,
+            0,
+            8
+          ],
+          "rot": [
+            0,
+            180,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ],
+          "name": "플레이어",
+          "look": {
+            "shape": "capsule",
+            "color": "#3b82f6"
+          },
+          "body": {
+            "type": "dynamic",
+            "size": [
+              0.8,
+              1.8,
+              0.8
+            ]
+          },
+          "comps": {
+            "player": {
+              "mode": "jump",
+              "speed": 6,
+              "jump": 8,
+              "attack": 1,
+              "range": 1.8,
+              "glide": true,
+              "climb": true
+            }
+          }
+        },
+        {
+          "id": "e1",
+          "pos": [
+            0,
+            1,
+            0
+          ],
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            4,
+            0.5,
+            4
+          ],
+          "name": "발판1",
+          "look": {
+            "shape": "box",
+            "color": "#a47551"
+          },
+          "body": {
+            "type": "solid"
+          }
+        },
+        {
+          "id": "e2",
+          "pos": [
+            0,
+            2.2,
+            -6
+          ],
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            3,
+            0.5,
+            3
+          ],
+          "name": "발판2",
+          "look": {
+            "shape": "box",
+            "color": "#a47551"
+          },
+          "body": {
+            "type": "solid"
+          }
+        },
+        {
+          "id": "e3",
+          "pos": [
+            -5,
+            3,
+            -10
+          ],
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            3,
+            0.4,
+            3
+          ],
+          "name": "움직이는 발판",
+          "look": {
+            "shape": "box",
+            "color": "#e9c46a"
+          },
+          "body": {
+            "type": "solid"
+          },
+          "comps": {
+            "patrol": {
+              "dx": 10,
+              "dy": 0,
+              "dz": 0,
+              "speed": 2.5
+            }
+          }
+        },
+        {
+          "id": "e4",
+          "pos": [
+            6,
+            5,
+            -16
+          ],
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            4,
+            0.5,
+            4
+          ],
+          "name": "높은 발판",
+          "look": {
+            "shape": "box",
+            "color": "#a47551"
+          },
+          "body": {
+            "type": "solid"
+          }
+        },
+        {
+          "id": "e5",
+          "pos": [
+            -8,
+            0,
+            -18
+          ],
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            4,
+            7,
+            4
+          ],
+          "name": "절벽",
+          "look": {
+            "shape": "box",
+            "color": "#8d99ae"
+          },
+          "body": {
+            "type": "solid"
+          }
+        },
+        {
+          "id": "e6",
+          "pos": [
+            6,
+            0,
+            -10
+          ],
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1.6,
+            0.3,
+            1.6
+          ],
+          "name": "점프대",
+          "look": {
+            "shape": "cylinder",
+            "color": "#06d6a0",
+            "glow": true
+          },
+          "body": {
+            "type": "trigger",
+            "size": [
+              1,
+              2,
+              1
+            ]
+          },
+          "comps": {
+            "launch": {
+              "power": 17
+            }
+          }
+        },
+        {
+          "id": "e7",
+          "pos": [
+            0,
+            1.9,
+            0
+          ],
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.6,
+            0.12,
+            0.6
+          ],
+          "name": "동전",
+          "tag": "coin",
+          "look": {
+            "shape": "cylinder",
+            "color": "#ffd166",
+            "glow": true
+          },
+          "body": {
+            "type": "trigger",
+            "size": [
+              1.4,
+              6,
+              1.4
+            ],
+            "off": [
+              0,
+              -2,
+              0
+            ]
+          },
+          "comps": {
+            "spin": {
+              "speed": 180
+            },
+            "pickup": {
+              "var": "coins",
+              "add": 1,
+              "sound": "coin"
+            }
+          }
+        },
+        {
+          "id": "e8",
+          "pos": [
+            0,
+            3.1,
+            -6
+          ],
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.6,
+            0.12,
+            0.6
+          ],
+          "name": "동전",
+          "tag": "coin",
+          "look": {
+            "shape": "cylinder",
+            "color": "#ffd166",
+            "glow": true
+          },
+          "body": {
+            "type": "trigger",
+            "size": [
+              1.4,
+              6,
+              1.4
+            ],
+            "off": [
+              0,
+              -2,
+              0
+            ]
+          },
+          "comps": {
+            "spin": {
+              "speed": 180
+            },
+            "pickup": {
+              "var": "coins",
+              "add": 1,
+              "sound": "coin"
+            }
+          }
+        },
+        {
+          "id": "e9",
+          "pos": [
+            -5,
+            4,
+            -10
+          ],
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.6,
+            0.12,
+            0.6
+          ],
+          "name": "동전",
+          "tag": "coin",
+          "look": {
+            "shape": "cylinder",
+            "color": "#ffd166",
+            "glow": true
+          },
+          "body": {
+            "type": "trigger",
+            "size": [
+              1.4,
+              6,
+              1.4
+            ],
+            "off": [
+              0,
+              -2,
+              0
+            ]
+          },
+          "comps": {
+            "spin": {
+              "speed": 180
+            },
+            "pickup": {
+              "var": "coins",
+              "add": 1,
+              "sound": "coin"
+            }
+          }
+        },
+        {
+          "id": "e10",
+          "pos": [
+            0,
+            4,
+            -10
+          ],
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.6,
+            0.12,
+            0.6
+          ],
+          "name": "동전",
+          "tag": "coin",
+          "look": {
+            "shape": "cylinder",
+            "color": "#ffd166",
+            "glow": true
+          },
+          "body": {
+            "type": "trigger",
+            "size": [
+              1.4,
+              6,
+              1.4
+            ],
+            "off": [
+              0,
+              -2,
+              0
+            ]
+          },
+          "comps": {
+            "spin": {
+              "speed": 180
+            },
+            "pickup": {
+              "var": "coins",
+              "add": 1,
+              "sound": "coin"
+            }
+          }
+        },
+        {
+          "id": "e11",
+          "pos": [
+            6,
+            5.9,
+            -16
+          ],
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.6,
+            0.12,
+            0.6
+          ],
+          "name": "동전",
+          "tag": "coin",
+          "look": {
+            "shape": "cylinder",
+            "color": "#ffd166",
+            "glow": true
+          },
+          "body": {
+            "type": "trigger",
+            "size": [
+              1.4,
+              6,
+              1.4
+            ],
+            "off": [
+              0,
+              -2,
+              0
+            ]
+          },
+          "comps": {
+            "spin": {
+              "speed": 180
+            },
+            "pickup": {
+              "var": "coins",
+              "add": 1,
+              "sound": "coin"
+            }
+          }
+        },
+        {
+          "id": "e12",
+          "pos": [
+            -8,
+            7.6,
+            -18
+          ],
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.6,
+            0.12,
+            0.6
+          ],
+          "name": "동전",
+          "tag": "coin",
+          "look": {
+            "shape": "cylinder",
+            "color": "#ffd166",
+            "glow": true
+          },
+          "body": {
+            "type": "trigger",
+            "size": [
+              1.4,
+              6,
+              1.4
+            ],
+            "off": [
+              0,
+              -2,
+              0
+            ]
+          },
+          "comps": {
+            "spin": {
+              "speed": 180
+            },
+            "pickup": {
+              "var": "coins",
+              "add": 1,
+              "sound": "coin"
+            }
+          }
+        },
+        {
+          "id": "e13",
+          "pos": [
+            3,
+            0.6,
+            3
+          ],
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.6,
+            0.12,
+            0.6
+          ],
+          "name": "동전",
+          "tag": "coin",
+          "look": {
+            "shape": "cylinder",
+            "color": "#ffd166",
+            "glow": true
+          },
+          "body": {
+            "type": "trigger",
+            "size": [
+              1.4,
+              6,
+              1.4
+            ],
+            "off": [
+              0,
+              -2,
+              0
+            ]
+          },
+          "comps": {
+            "spin": {
+              "speed": 180
+            },
+            "pickup": {
+              "var": "coins",
+              "add": 1,
+              "sound": "coin"
+            }
+          }
+        },
+        {
+          "id": "e14",
+          "pos": [
+            -3,
+            0.6,
+            3
+          ],
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.6,
+            0.12,
+            0.6
+          ],
+          "name": "동전",
+          "tag": "coin",
+          "look": {
+            "shape": "cylinder",
+            "color": "#ffd166",
+            "glow": true
+          },
+          "body": {
+            "type": "trigger",
+            "size": [
+              1.4,
+              6,
+              1.4
+            ],
+            "off": [
+              0,
+              -2,
+              0
+            ]
+          },
+          "comps": {
+            "spin": {
+              "speed": 180
+            },
+            "pickup": {
+              "var": "coins",
+              "add": 1,
+              "sound": "coin"
+            }
+          }
+        },
+        {
+          "id": "e15",
+          "pos": [
+            10,
+            0.6,
+            -2
+          ],
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.6,
+            0.12,
+            0.6
+          ],
+          "name": "동전",
+          "tag": "coin",
+          "look": {
+            "shape": "cylinder",
+            "color": "#ffd166",
+            "glow": true
+          },
+          "body": {
+            "type": "trigger",
+            "size": [
+              1.4,
+              6,
+              1.4
+            ],
+            "off": [
+              0,
+              -2,
+              0
+            ]
+          },
+          "comps": {
+            "spin": {
+              "speed": 180
+            },
+            "pickup": {
+              "var": "coins",
+              "add": 1,
+              "sound": "coin"
+            }
+          }
+        },
+        {
+          "id": "e16",
+          "pos": [
+            -10,
+            0.6,
+            -2
+          ],
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.6,
+            0.12,
+            0.6
+          ],
+          "name": "동전",
+          "tag": "coin",
+          "look": {
+            "shape": "cylinder",
+            "color": "#ffd166",
+            "glow": true
+          },
+          "body": {
+            "type": "trigger",
+            "size": [
+              1.4,
+              6,
+              1.4
+            ],
+            "off": [
+              0,
+              -2,
+              0
+            ]
+          },
+          "comps": {
+            "spin": {
+              "speed": 180
+            },
+            "pickup": {
+              "var": "coins",
+              "add": 1,
+              "sound": "coin"
+            }
+          }
+        },
+        {
+          "id": "e17",
+          "pos": [
+            3,
+            0,
+            -3
+          ],
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.8,
+            0.8,
+            0.8
+          ],
+          "name": "가시",
+          "tag": "spike",
+          "look": {
+            "shape": "cone",
+            "color": "#6c757d"
+          },
+          "body": {
+            "type": "solid"
+          },
+          "comps": {
+            "hurt": {
+              "var": "hp",
+              "amount": 1
+            }
+          }
+        },
+        {
+          "id": "goal",
+          "pos": [
+            0,
+            0,
+            -22
+          ],
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.2,
+            3,
+            0.2
+          ],
+          "name": "결승점",
+          "look": {
+            "shape": "cylinder",
+            "color": "#ffffff",
+            "glow": true,
+            "label": "결승"
+          },
+          "body": {
+            "type": "trigger",
+            "size": [
+              8,
+              1,
+              8
+            ]
+          },
+          "comps": {
+            "goal": {
+              "text": "동전을 모아 결승!"
+            }
+          },
+          "hidden": true
+        },
+        {
+          "id": "e18",
+          "pos": [
+            12,
+            0,
+            8
+          ],
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ],
+          "name": "나무",
+          "look": {
+            "shape": "model",
+            "model": "lib:saga-go/models/nature/CommonTree_1.glb",
+            "fit": 5
+          },
+          "body": {
+            "type": "solid",
+            "size": [
+              0.8,
+              5,
+              0.8
+            ]
+          }
+        },
+        {
+          "id": "e19",
+          "pos": [
+            -12,
+            0,
+            6
+          ],
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1.2,
+            1.2,
+            1.2
+          ],
+          "name": "나무",
+          "look": {
+            "shape": "model",
+            "model": "lib:saga-go/models/nature/CommonTree_1.glb",
+            "fit": 5
+          },
+          "body": {
+            "type": "solid",
+            "size": [
+              0.8,
+              5,
+              0.8
+            ]
+          }
+        }
+      ],
+      "events": [
+        {
+          "when": {
+            "on": "var",
+            "var": "hp",
+            "op": "<=",
+            "value": "0"
+          },
+          "do": [
+            {
+              "do": "lose",
+              "text": "쓰러졌다…"
+            }
+          ]
+        },
+        {
+          "when": {
+            "on": "var",
+            "var": "coins",
+            "op": ">=",
+            "value": "10"
+          },
+          "do": [
+            {
+              "do": "toast",
+              "text": "동전을 다 모았다! 결승점이 나타났다",
+              "sec": 3
+            },
+            {
+              "do": "show",
+              "target": "goal"
+            },
+            {
+              "do": "sound",
+              "name": "win"
+            }
+          ]
+        },
+        {
+          "when": {
+            "on": "fall"
+          },
+          "do": [
+            {
+              "do": "add",
+              "var": "hp",
+              "value": -1
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

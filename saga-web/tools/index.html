@@ -39,6 +39,13 @@
 </div>
 
 <div class="card">
+  <h2>사가 엔진 <span class="status" id="st-8801">확인 중…</span></h2>
+  <p><b>코드 없이 3D 게임을 만든다.</b> 장면·개체·컴포넌트·이벤트(언제→조건→행동)를 칸으로 짜면 게임이 된다. 다섯 판의 GLB 모델을 그대로 쓰고, 한 폴더로 내보낸다.
+     전투 스타일 넷(간단·원신식·젤다식·파판식)·시점 다섯(1인칭·3인칭·쿼터뷰·옆·고정)·saga-godot 시스템(시간·날씨·상자·채집·낚시·퀘스트·도감·거점·스킬 …). 예제 틀 여섯.</p>
+  <a class="open" href="http://127.0.0.1:8801/" target="_blank" rel="noopener">열기 → :8801</a>
+</div>
+
+<div class="card">
   <h2>새 판 뼈대 생성기</h2>
   <p>서버가 아니라 명령줄 도구다 — 바로 도는 최소 판을 하나 만든다.</p>
   <pre>node saga-web/tools/new-game/new-game.mjs --folder saga-xxx --title .. --port .. [--dry]</pre>
@@ -59,6 +66,7 @@ function check(port, id) {
 }
 check(8799, 'st-8799');
 check(8800, 'st-8800');
+check(8801, 'st-8801');
 </script>
 </body>
 </html>

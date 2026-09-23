@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>사가 엔진</title>
+<link rel="stylesheet" href="/editor/editor.css">
+</head>
+<body>
+<header id="top">
+  <b class="logo">사가 엔진</b>
+  <button id="b-projects" title="프로젝트 열기·새로 만들기">📁 <span id="proj-title">…</span></button>
+  <span class="sep"></span>
+  <label>장면 <select id="scene-sel"></select></label>
+  <button id="b-scene-add" title="장면 추가">＋</button>
+  <button id="b-scene-dup" title="이 장면 복제">⎘</button>
+  <button id="b-scene-del" title="이 장면 지우기">🗑</button>
+  <span class="sep"></span>
+  <span class="seg" id="modes">
+    <button data-mode="move" class="on" title="이동 (W)">↔ 이동</button><button data-mode="rot" title="회전 (E)">⟳ 회전</button><button data-mode="scale" title="크기 (R)">⤢ 크기</button>
+  </span>
+  <label title="격자에 맞추기 (G)"><input type="checkbox" id="snap" checked> 격자 <select id="snap-step"><option>0.25</option><option selected>0.5</option><option>1</option><option>2</option></select></label>
+  <label title="몸(충돌 상자) 보기"><input type="checkbox" id="show-bodies"> 몸</label>
+  <span class="sep"></span>
+  <button id="b-undo" title="되돌리기 (Ctrl+Z)">↶</button><button id="b-redo" title="다시 (Ctrl+Y)">↷</button>
+  <span class="grow"></span>
+  <span id="status"></span>
+  <button id="b-issues" title="검사 결과">✓ 0</button>
+  <button id="b-settings" title="제목·시작 장면·변수·HUD">⚙ 설정</button>
+  <button id="b-save" class="primary" title="저장 (Ctrl+S)">💾 저장</button>
+  <button id="b-play" class="play" title="처음부터 실행 (F5)">▶ 실행</button>
+  <button id="b-play-here" class="play" title="이 장면·고른 개체 자리에서 실행 (F6)">▶ 여기서</button>
+  <button id="b-export" title="dist/ 에 바로 도는 폴더로 내보내기">📦 내보내기</button>
+</header>
+
+<aside id="left">
+  <section>
+    <h3>추가</h3>
+    <div class="grid2" id="presets"></div>
+  </section>
+  <section class="fill">
+    <h3>개체 <small id="ent-count"></small></h3>
+    <input id="ent-filter" placeholder="이름·태그·id 찾기">
+    <ul id="ents"></ul>
+  </section>
+</aside>
+
+<main id="view">
+  <canvas id="cv" tabindex="0"></canvas>
+  <div id="view-hint">오른쪽 끌기 돌리기 · 가운데(또는 Shift+오른쪽) 끌기 옮기기 · 휠 거리 · 클릭 고르기 · F 가운데로 · Ctrl+D 복제 · Del 지우기</div>
+</main>
+
+<aside id="right"><div id="insp"></div></aside>
+
+<footer id="bottom">
+  <div class="tabs">
+    <button data-tab="assets" class="on">에셋</button><button data-tab="issues">검사</button><button data-tab="help">도움말</button>
+    <span class="grow"></span>
+    <span id="asset-tools">
+      <input id="asset-q" placeholder="모델 찾기 (예: tree, warrior)">
+      <select id="asset-cat"><option value="">모든 갈래</option></select>
+      <label title="몸짓(애니메이션) 있는 것만"><input type="checkbox" id="asset-anim"> 몸짓</label>
+      <label class="upload">＋ GLB 올리기<input type="file" id="asset-up" accept=".glb" hidden></label>
+    </span>
+  </div>
+  <div class="pane on" id="pane-assets"><div id="assets"></div></div>
+  <div class="pane" id="pane-issues"><div id="issues"></div></div>
+  <div class="pane" id="pane-help"><div id="help"></div></div>
+</footer>
+
+<div id="modal" hidden><div class="box" id="modal-box"></div></div>
+<div id="playwrap" hidden>
+  <div class="bar"><b>▶ 실행 중</b> — 저장 안 한 것도 그대로 돈다. 편집기로 돌아가기: Esc 또는 <button id="b-play-close">닫기</button></div>
+  <iframe id="playframe" title="실행 창"></iframe>
+</div>
+
+<script src="/runtime/three.iife.js"></script>
+<script src="/runtime/sim.js"></script>
+<script src="/runtime/combat.js"></script>
+<script src="/runtime/systems.js"></script>
+<script src="/runtime/view.js"></script>
+<script src="/editor/editor.js"></script>
+</body>
+</html>
