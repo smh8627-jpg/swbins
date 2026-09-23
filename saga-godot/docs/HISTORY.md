@@ -8308,3 +8308,9 @@ PROJECT_STATE.md` 참고. 요약:
 - 추가 전 trimesh로 전부 재실측(0.28~2.09m 사방) — 기존 두 종과 같은 이미 사람 스케일이라 별도 배율 역산 불필요(scale=1.0 그대로).
 - 남는 건 잔디·꽃 계열(Petal 5·Plant 4·Grass_Tall 2·Mushroom_Laetiporus·Flower_4_Group, 13종) — 급하지 않음, PROJECT_STATE에 남김.
 - `godot_regress.sh` REGRESS OK — GO만 md5 변경, 재질 감사 0, 잡음 없음.
+
+## Quaternius 들꽃에 Petal 5종 추가 — GO 마을 (2026-09-23, 새 세션, "사가고돗 이어해")
+
+- 105 Q-d 남은 잔디·꽃 13종 중 크기가 기존 `WILDFLOWERS`("꽃" 범주, 목표 높이 0.45m) 취지에 맞는 Petal_1~5만 골라 추가. 정원길·조약돌 때와 같은 패턴 — `WILDFLOWERS_PER_TILE`(칸당 4 고정)이라 총량은 그대로고 섞이는 종만 늘어난다. trimesh 정밀 실측으로 배율 역산(0.244~0.289m→×1.56~2.37).
+- 나머지 8종(Plant_1/1_Big/7/7_Big·Flower_4_Group·Grass_Common/Wispy_Tall·Mushroom_Laetiporus)은 실측고 1~2.5m로 "발목~정강이" 들꽃 범주보다 커서(관목·수풀 급) 새 배치 판단이 필요해 이번엔 안 건드림 — PROJECT_STATE에 남김.
+- `godot_regress.sh` REGRESS OK — GO만 md5 변경, 재질 감사 0, 잡음 없음.

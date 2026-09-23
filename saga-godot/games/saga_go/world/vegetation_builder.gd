@@ -202,11 +202,24 @@ const UNDERSTORY := [
 ## 마을 "." 10칸 전체에 실측 2개뿐 — 거의 안 보인다. 밀 이랑(칸당 6)처럼
 ## 칸마다 여러 개를 까는 층을 따로 둔다(기존 Clover_1 clutter는 그대로).
 ## 종은 해시로 섞고, 크기는 풀·클로버 발목 0.3m·꽃 정강이 0.45m ÷ 실측고.
+##
+## 2026-09-23 — 남은 잔디·꽃 13종(ASSET_GUIDE 09-20) 중 "Petal"(꽃송이
+## 뭉치) 5종을 마저 얹었다 — Flower_3/4_Single과 같은 "꽃" 범주라 같은
+## 목표 높이 0.45m로 역산, `WILDFLOWERS_PER_TILE`이 칸당 고정(4)이라
+## 정원길·조약돌 때처럼 총량은 그대로고 섞이는 종만 늘어난다. 남은
+## Plant_1/1_Big/7/7_Big·Flower_4_Group·Grass_Common/Wispy_Tall·
+## Mushroom_Laetiporus(8종)은 크기(1~2.5m)가 이 층 취지(발목~정강이)와
+## 안 맞아 새 배치 판단이 필요해 이번엔 안 건드림(PROJECT_STATE에 남김).
 const WILDFLOWERS := [
 	{"glb": "res://assets/generated/variants/Clover_2__go_village.glb", "scale": 0.237},           # 1.264m
 	{"glb": "res://assets/generated/variants/Grass_Common_Short__go_village.glb", "scale": 0.225}, # 1.334m
 	{"glb": "res://assets/generated/variants/Flower_3_Single__go_village.glb", "scale": 0.218},    # 2.068m
 	{"glb": "res://assets/generated/variants/Flower_4_Single__go_village.glb", "scale": 0.186},    # 2.419m
+	{"glb": "res://assets/generated/variants/Petal_1__go_village.glb", "scale": 1.846735},
+	{"glb": "res://assets/generated/variants/Petal_2__go_village.glb", "scale": 1.906289},
+	{"glb": "res://assets/generated/variants/Petal_3__go_village.glb", "scale": 2.374858},
+	{"glb": "res://assets/generated/variants/Petal_4__go_village.glb", "scale": 1.785315},
+	{"glb": "res://assets/generated/variants/Petal_5__go_village.glb", "scale": 1.558324},
 ]
 const WILDFLOWERS_PER_TILE := 4
 
