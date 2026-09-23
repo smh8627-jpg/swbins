@@ -66,6 +66,10 @@ const OUT_OF_WORLD_Y := -15.0
 const DODGE_COST := 15.0
 const DODGE_SEC := 0.3
 const DODGE_SPEED := 16.0
+## 106장 ⑧ 낙하 공격 — 발밑이 이만큼 이상 비었을 때(점프 꼭대기·활공 중) 공격을 누르면
+## 곧장 내리꽂고, 땅에 닿는 순간 field_combat.plunge_land(떨어진 높이) 가 둘레를 친다.
+const PLUNGE_SPEED := 26.0
+const PLUNGE_MIN_CLEARANCE := 2.5
 
 const BORDER_LAYER := TerrainBuilder.BORDER_LAYER
 const WATER_LAYER := TerrainBuilder.WATER_LAYER
@@ -95,6 +99,8 @@ var _dodge_dir := Vector3.FORWARD
 var _last_move_dir := Vector3.ZERO
 var _action_t := 0.0
 var _action_move := 1.0
+var _plunge := false
+var _plunge_from_y := 0.0
 var combat: Node = null
 
 var _glider: MeshInstance3D = null
@@ -113,6 +119,8 @@ func _ready() -> void:
 	combat = FieldCombat.new()
 	combat.name = "FieldCombat"
 	add_child(combat)
+	if camera_rig:
+		camera_rig.set("mouse_look", true) # 106장 ⑧ 원신 PC 시점
 
 func _physics_process(delta: float) -> void:
 	if frozen or dash_speed > 0.0:
@@ -163,6 +171,10 @@ func _tick_ground(delta: float, move_dir: Vector3) -> void:
 		velocity.y = -1.0 if is_on_floor() else velocity.y - GRAVITY * delta
 		move_and_slide()
 		return
+	## 106장 ⑧ — 원신처럼 Shift 를 누르는 순간 한 번 대시(회피와 같은 무적·스태미나),
+	## 계속 누르고 있으면 그대로 달리기.
+	if Input.is_action_just_pressed("run") and start_dodge():
+		return
 	var running := Input.is_action_pressed("run") and not _exhausted and stamina > 0.0 and move_dir.length() > 0.05
 	var speed := (RUN_SPEED if running else WALK_SPEED) * speed_mult
 	if _action_t > 0.0:
@@ -206,6 +218,9 @@ func _tick_ground(delta: float, move_dir: Vector3) -> void:
 func _tick_air(delta: float, move_dir: Vector3) -> void:
 	if _in_deep_water():
 		_set_mode(Mode.SWIM)
+		return
+	if _plunge:
+		_tick_plunge()
 		return
 	## 발 떼고 코요테 시간 안에 누른 점프는 땅 점프로 친다.
 	if _jump_buffer > 0.0 and _coyote > 0.0:
@@ -371,6 +386,8 @@ func _set_mode(m: Mode) -> void:
 		_glider.visible = m == Mode.GLIDE
 	if m == Mode.GROUND:
 		_coyote = COYOTE_SEC
+	if m != Mode.AIR:
+		_plunge = false
 
 ## 벽 앞에서: 낮은 턱이면 넘어오르고, 높으면 매달린다(땅에선 잠깐 밀어야).
 func _try_wall(move_dir: Vector3, delta: float, grounded: bool) -> bool:
@@ -439,6 +456,31 @@ func start_dodge() -> bool:
 	_face(_dodge_dir, 1.0)
 	play_action("dodge", DODGE_SEC, 1.0)
 	return true
+
+func can_plunge() -> bool:
+	return not _plunge and (mode == Mode.AIR or mode == Mode.GLIDE) and _clearance() >= PLUNGE_MIN_CLEARANCE
+
+func start_plunge() -> bool:
+	if not can_plunge():
+		return false
+	_set_mode(Mode.AIR)
+	_plunge = true
+	_plunge_from_y = global_position.y
+	velocity = Vector3(0.0, -PLUNGE_SPEED, 0.0)
+	play_action("attack", 0.8, 0.0)
+	return true
+
+func is_plunging() -> bool:
+	return _plunge
+
+func _tick_plunge() -> void:
+	velocity = Vector3(0.0, -PLUNGE_SPEED, 0.0)
+	move_and_slide()
+	if is_on_floor():
+		var fell := _plunge_from_y - global_position.y
+		_set_mode(Mode.GROUND)
+		if combat:
+			combat.call("plunge_land", fell)
 
 func is_invulnerable() -> bool:
 	return _dodge_t > 0.0

@@ -8,6 +8,7 @@ extends RefCounted
 ## lines: Array of String — 이번 세션에 쌓인 것을 한 줄씩.
 static func show(parent: Node, title_text: String, lines: Array) -> CanvasLayer:
 	var layer := CanvasLayer.new()
+	layer.add_to_group("ui_modal") # GO 마우스 시점이 커서를 풀어 준다(다른 판엔 영향 없음)
 	parent.add_child(layer)
 
 	var panel := PanelContainer.new()

@@ -8,6 +8,8 @@ extends RefCounted
 ## choices: Array of {"label": String, "cb": Callable}
 static func build(parent: Node, title_text: String, choices: Array) -> CanvasLayer:
 	var layer := CanvasLayer.new()
+	## 106장 ⑧ — 창이 열려 있는 동안 GO 마우스 시점이 커서를 풀어 준다(camera_rig.gd).
+	layer.add_to_group("ui_modal")
 	parent.add_child(layer)
 
 	var panel := PanelContainer.new()

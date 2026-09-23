@@ -8,10 +8,12 @@ extends Node
 ## ⑤ 과부하 광역 ⑥ 감전 지속 ⑦ 가만히 서 있으면 적에게 맞는다 ⑧ 회피 중 무적
 ## ⑨ 쓰러지면 안전한 곳에서 체력 가득 ⑩ 인물 교체 명단 ⑪ 원소 방패(106장 ⑦): 같은 원소 면역·
 ## 물리 0.4·상성 ×2.5·깨지면 비틀거림·그 뒤 체력·부착 ⑫ 원소 적에게 맞으면 화상·젖음·감전.
-## 저장은 안 한다.
+## 106장 ⑧: ⑬ 강공격 ⑭ 낙하 공격 ⑮ 인물마다 체력·쓰러지면 교체 ⑯ 원소 공명 ⑰ 원소별 스킬 모양·
+## 대기 인물 기력 ⑱ 폭발이 남기는 효과. 명단을 잠깐 바꿨다가 되돌린다. 저장은 안 한다.
 
 const Elements := preload("res://games/saga_go/combat/elements.gd")
 const TestMap := preload("res://games/saga_go/data/test_map.gd")
+const Characters := preload("res://saga_core/data/characters.gd")
 
 var _p: CharacterBody3D
 var _fc: Node
@@ -21,6 +23,7 @@ var _fails := 0
 var _target: Node = null
 var _exp0 := 0.0
 var _hp0 := 0.0
+var _members0: Array[String] = []
 
 func _ready() -> void:
 	Weather.force("clear")
@@ -145,7 +148,113 @@ func _physics_process(_delta: float) -> void:
 			_fc.call("take_damage", 10.0, _enemy_kind("wolf"))
 			_check("elemental_hits", soaked and burning and shocked, "stamina=%.1f burn=%d energy=%.1f" % [_p.stamina, int(_fc.get("_burn_left")), float(_fc.get("energy"))])
 			_next()
-		11:
+		11: # ⑬ 강공격(106장 ⑧) — 앞쪽 넓게, 스태미나 20
+			if _frame == 1:
+				_fc.set("hp", _fc.get("max_hp"))
+				_target = _enemy_kind("bandit")
+				_place_facing(_target)
+				_p.stamina = _p.STAMINA_MAX
+			if _frame == 5:
+				var hp0: float = _target.get("hp")
+				var ok: bool = _fc.call("charged_attack")
+				var dealt := hp0 - float(_target.get("hp"))
+				_check("charged", ok and dealt > PartyState.atk * 1.2 and _p.stamina <= _p.STAMINA_MAX - 19.0,
+					"ok=%s dealt=%.1f st=%.1f" % [ok, dealt, _p.stamina])
+				_next()
+		12: # ⑭ 낙하 공격 — 8m 위에서 내리꽂으면 땅에 닿을 때 둘레를 친다
+			if _frame == 1:
+				_target = _enemy_kind("bandit")
+				_hp0 = _target.get("hp")
+				var ep: Vector3 = (_target as Node3D).global_position
+				_p.global_position = ep + Vector3(0.8, 8.0, 0.0)
+				_p.velocity = Vector3.ZERO
+				_p.call("_set_mode", 1) # Mode.AIR
+			if _frame == 2:
+				_check("plunge_start", _p.call("start_plunge"), "mode=%d" % _p.mode)
+			if _frame > 2 and not _p.call("is_plunging"):
+				var dealt := _hp0 - float(_target.get("hp"))
+				_check("plunge_land", dealt > PartyState.atk * 1.4 and _p.mode == 0, "dealt=%.1f f=%d" % [dealt, _frame])
+				_next()
+			elif _frame == 240:
+				_check("plunge_land", false, "timeout mode=%d y=%.1f" % [_p.mode, _p.global_position.y])
+				_next()
+		13: # ⑮ 인물마다 체력 — 지금 인물이 쓰러지면 다음 인물로, 다 쓰러지면 모두 가득
+			_members0 = PartyState.members.duplicate()
+			PartyState.members.assign([_hero_of("water"), _hero_of("thunder")])
+			_fc.set("active", 0)
+			_fc.call("revive_all")
+			_fc.set("hp", 1.0)
+			_fc.call("take_damage", 500.0, null)
+			var switched := int(_fc.get("active")) == 1 and float(_fc.call("hp_of", "self")) <= 0.0 \
+				and is_equal_approx(float(_fc.get("hp")), float(_fc.get("max_hp")))
+			var blocked: bool = not _fc.call("switch_to", 0, true) # 쓰러진 인물로는 못 바꾼다
+			for i in 2:
+				_fc.set("hp", 1.0)
+				_fc.call("take_damage", 500.0, null)
+			var all_full := true
+			for id in _fc.call("roster"):
+				all_full = all_full and is_equal_approx(float(_fc.call("hp_of", id)), float(_fc.get("max_hp")))
+			_check("per_char_hp", switched and blocked and all_full, "switched=%s blocked=%s all_full=%s" % [switched, blocked, all_full])
+			_next()
+		14: # ⑯ 원소 공명 — 화 둘이면 공격 +25%
+			PartyState.members.assign([_hero_of("fire")])
+			var mul_fire: float = _fc.call("_power_mul", "self")
+			PartyState.members.assign([_hero_of("water")])
+			var mul_none: float = _fc.call("_power_mul", "self")
+			_check("resonance", _fc.call("resonance") == "" and is_equal_approx(mul_none, 1.0) and is_equal_approx(mul_fire, 1.25),
+				"fire=%.2f none=%.2f" % [mul_fire, mul_none])
+			_next()
+		15: # ⑰ 원소마다 스킬 모양 — 수: 모두 회복 · 뇌: 가까운 적 셋에 낙뢰 · 기력은 대기 인물도 60%
+			PartyState.members.assign([_hero_of("water"), _hero_of("thunder")])
+			_fc.call("revive_all")
+			_fc.set("_energy", {})
+			_fc.set("_skill_cd", {})
+			_fc.set("active", 1) # 수
+			var half: float = float(_fc.get("max_hp")) * 0.5
+			var hp_dict: Dictionary = _fc.get("_hp")
+			hp_dict["self"] = half
+			_fc.call("skill")
+			var healed: bool = float(_fc.call("hp_of", "self")) > half + 1.0
+			## 앞 단계에서 적들이 쫓아다녀 제자리에 없을 수 있다 — 방패 없는 적 셋을 불러 세운다.
+			var pack := _plain_enemies(3)
+			var stand: Vector3 = _p.global_position
+			for i in pack.size():
+				(pack[i] as Node3D).global_position = stand + Vector3(2.0 * (i - 1), 0.0, -2.5)
+			_fc.set("active", 2) # 뇌
+			_fc.set("_energy", {})
+			var hp_before: Array = []
+			for e in pack:
+				hp_before.append(float(e.get("hp")))
+			_fc.call("skill")
+			var hit := 0
+			for i in pack.size():
+				if float(pack[i].get("hp")) < hp_before[i] or pack[i].call("is_dead"):
+					hit += 1
+			var want := mini(3, pack.size())
+			var e_now: float = _fc.call("energy_of", _hero_of("thunder"))
+			var e_off: float = _fc.call("energy_of", "self")
+			_check("kits", healed and hit == want and e_now > 0.0 and is_equal_approx(e_off, e_now * 0.6),
+				"healed=%s hit=%d/%d energy now=%.1f off=%.1f" % [healed, hit, want, e_now, e_off])
+			_next()
+		16: # ⑱ 폭발이 남기는 효과 — 화 폭발 뒤 불 고리가 계속 친다
+			if _frame == 1:
+				PartyState.members.assign([_hero_of("thunder")])
+				_fc.set("active", 0) # 나 = 화
+				_fc.set("energy", 100.0)
+				_target = _plain_enemies(1)[0]
+				(_target as Node3D).global_position = _p.global_position + Vector3(0.0, 0.0, -1.6)
+				_p.call("face_toward", (_target as Node3D).global_position)
+				_target.set("hp", 5000.0) # 폭발 한 방에 쓰러지면 여운을 못 본다
+				_fc.call("burst")
+				_hp0 = _target.get("hp")
+			if _frame == 70:
+				var fx: Array = _fc.get("_effects")
+				_check("burst_linger", float(_target.get("hp")) < _hp0 and fx.size() == 1, "hp %.1f→%.1f fx=%d" % [_hp0, float(_target.get("hp")), fx.size()])
+				PartyState.members.assign(_members0)
+				_fc.set("active", 0)
+				_fc.call("revive_all")
+				_next()
+		17:
 			print("COMBAT_PROBE_DONE fails=%d" % _fails)
 			get_tree().quit()
 
@@ -154,6 +263,27 @@ func _enemy_kind(kind: String) -> Node:
 		if e.get("kind") == kind and not e.call("is_dead"):
 			return e
 	return null
+
+## 원소가 el 인 도감 인물 하나(Elements.element_of 는 id 해시라 고정).
+func _hero_of(el: String) -> String:
+	for h in Characters.HEROES:
+		if Elements.element_of(h.id) == el:
+			return h.id
+	return ""
+
+func _plain_enemies(n: int) -> Array:
+	var out: Array = []
+	for e in get_tree().get_nodes_in_group("field_enemy"):
+		if out.size() < n and not e.call("is_dead") and not e.call("is_shielded"):
+			out.append(e)
+	return out
+
+func _alive_near(pos: Vector3, radius: float) -> Array:
+	var out: Array = []
+	for e in get_tree().get_nodes_in_group("field_enemy"):
+		if not e.call("is_dead") and ((e as Node3D).global_position - pos).length() <= radius:
+			out.append(e)
+	return out
 
 func _enemy_near(pos: Vector3) -> Node:
 	var best: Node = null

@@ -56,7 +56,8 @@ func _physics_process(_delta: float) -> void:
 				Input.action_release("run")
 				Input.action_release("move_right")
 				var st: float = _p.stamina
-				_check("sprint_cost", st < 90.0 and st > 60.0, "st=%.1f" % st)
+				## 106장 ⑧ — Shift 를 누르는 순간 대시(15)가 먼저 나가고 그 뒤 달리기(8/s).
+				_check("sprint_cost", st < 90.0 and st > 50.0, "st=%.1f" % st)
 			if _frame == 480:
 				_check("regen", _p.stamina >= 99.9, "st=%.1f" % _p.stamina)
 				_next()

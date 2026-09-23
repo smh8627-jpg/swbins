@@ -32,6 +32,16 @@ var _drag_confirmed := false
 var _shake_amp_m := 0.0
 var _shake_until_msec := 0
 
+## PLAN 106장 ⑧ — 원신 PC 시점. 마우스를 창에 가둬 두고 움직이기만 하면 돈다(끌 필요
+## 없음). Alt 를 누르는 동안·Esc 로 푼 뒤·선택지 창(그룹 "ui_modal")·옛 결투
+## ("duel_active")·사진 모드(frozen)가 열린 동안엔 커서를 풀어 준다. Esc 로 풀었으면
+## 화면을 한 번 누를 때 다시 가둔다. go_player.gd 만 켠다 — 이 씬을 빌려 쓰는 곳
+## (REALM 초상 등)은 옛 끌기 그대로. 터치 화면·헤드리스에선 안 켜진다.
+const LOOK_SPEED := 0.0032
+const LOOK_UP_PITCH := 8.0
+var mouse_look := false
+var _look_released := false
+
 func _ready() -> void:
 	spring_arm.spring_length = DEFAULT_ZOOM
 	rotation_degrees.x = -35.0
@@ -42,6 +52,8 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
+	if mouse_look:
+		_update_capture()
 	if Time.get_ticks_msec() < _shake_until_msec:
 		position = Vector3(
 			randf_range(-_shake_amp_m, _shake_amp_m),
@@ -60,7 +72,27 @@ func shake(amp_m: float, dur_sec: float) -> void:
 	_shake_until_msec = maxi(_shake_until_msec, until)
 	_shake_amp_m = maxf(_shake_amp_m, amp_m)
 
+func _look_active() -> bool:
+	return mouse_look and DisplayServer.get_name() != "headless" and not DisplayServer.is_touchscreen_available()
+
+func _modal_open() -> bool:
+	var tree := get_tree()
+	if tree.get_nodes_in_group("ui_modal").size() > 0 or tree.get_nodes_in_group("duel_active").size() > 0:
+		return true
+	return bool(get_parent().get("frozen"))
+
+func _update_capture() -> void:
+	if not _look_active():
+		return
+	var want := not _look_released and not Input.is_key_pressed(KEY_ALT) and not _modal_open() 		and get_window().has_focus()
+	var m := Input.MOUSE_MODE_CAPTURED if want else Input.MOUSE_MODE_VISIBLE
+	if Input.mouse_mode != m:
+		Input.mouse_mode = m
+
 func _unhandled_input(event: InputEvent) -> void:
+	if _look_active():
+		_look_input(event)
+		return
 	if event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
 		if mb.button_index == MOUSE_BUTTON_LEFT:
@@ -94,6 +126,23 @@ func _apply_drag(relative: Vector2, pos: Vector2) -> void:
 	rotate_y(-relative.x * ROTATE_SPEED)
 	var pitch: float = clamp(rotation_degrees.x - relative.y * ROTATE_SPEED * 57.3, -MAX_PITCH, -MIN_PITCH)
 	rotation_degrees.x = pitch
+
+func _look_input(event: InputEvent) -> void:
+	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+		var rel := (event as InputEventMouseMotion).relative
+		rotate_y(-rel.x * LOOK_SPEED)
+		rotation_degrees.x = clamp(rotation_degrees.x - rel.y * LOOK_SPEED * 57.3, -MAX_PITCH, LOOK_UP_PITCH)
+	elif event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		if mb.pressed and mb.button_index == MOUSE_BUTTON_WHEEL_UP:
+			_zoom(-ZOOM_STEP)
+		elif mb.pressed and mb.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			_zoom(ZOOM_STEP)
+		elif mb.pressed and _look_released:
+			_look_released = false
+			get_viewport().set_input_as_handled()
+	elif event is InputEventKey and (event as InputEventKey).pressed and (event as InputEventKey).keycode == KEY_ESCAPE:
+		_look_released = true
 
 func _zoom(delta: float) -> void:
 	spring_arm.spring_length = clamp(spring_arm.spring_length + delta, MIN_ZOOM, MAX_ZOOM)
