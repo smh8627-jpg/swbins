@@ -334,6 +334,29 @@
     turtle: ['Snake', 'Snake_angry'],
     ogre: ['Orc', 'Demon', 'BlueDemon']
   };
+  /* 도감 펫 중 **제 모델이 있는 종**(asset3d.js `pet:pt_*`, 2026-09-23)은 형태 해시가 아니라 그 모델을 구운 그림을 쓴다 —
+     3D 초상과 지도 스탬프가 같은 동물이어야 한다(예전엔 고래가 초상은 사슴·지도도 사슴). `_x2` 는 animals_extra2 쪽 같은 이름 모델 */
+  var PET_BEAST_FILE = {
+    pt_alpaca: 'Alpaca', pt_anglerfish: 'Anglerfish', pt_apatosaurus: 'Apatosaurus',
+    pt_armored_catfish: 'Armored_Catfish', pt_bear: 'Bear', pt_betta: 'Betta',
+    pt_black_lion_fish: 'Black_Lion_Fish', pt_blobfish: 'Blobfish', pt_blue_goldfish: 'Blue_Goldfish',
+    pt_blue_tang: 'Blue_Tang', pt_boar: 'Boar', pt_bull: 'Bull', pt_butterfly_fish: 'Butterfly_Fish',
+    pt_cardinal_fish: 'Cardinal_Fish', pt_carp: 'Koi', pt_cat: 'Cat', pt_clownfish: 'Clownfish',
+    pt_coral_grouper: 'Coral_Grouper', pt_cow: 'Cow', pt_cow_farm: 'Cow_Farm', pt_cowfish: 'Cowfish',
+    pt_crane: 'Crane', pt_deer: 'Deer', pt_dolphin: 'Dolphin', pt_donkey: 'Donkey', pt_fish_1: 'Fish1',
+    pt_fish_2: 'Fish2', pt_fish_3: 'Fish3', pt_flatfish: 'Flatfish', pt_flower_horn: 'Flower_Horn', pt_fox: 'Fox',
+    pt_goblin_shark: 'Goblin_Shark', pt_goldfish: 'Goldfish', pt_horse: 'Horse', pt_horse_farm: 'Horse_Farm',
+    pt_humphead: 'Humphead', pt_jindo: 'ShibaInu', pt_koi_2: 'Koi_x2', pt_lionfish: 'Lionfish', pt_llama: 'Llama',
+    pt_mandarin_fish: 'Mandarin_Fish', pt_manta_ray: 'Manta_ray', pt_monkey: 'Monkey',
+    pt_moorish_idol: 'Moorish_Idol', pt_owl: 'Owl', pt_panda: 'Panda', pt_parasaurolophus: 'Parasaurolophus',
+    pt_parrot_fish: 'Parrot_Fish', pt_pig: 'Pig', pt_piranha: 'Piranha', pt_puffer: 'Puffer', pt_pug: 'Pug',
+    pt_red_snapper: 'Red_Snapper', pt_royal_gramma: 'Royal_Gramma', pt_sapsal: 'Husky', pt_shark: 'Shark',
+    pt_shark_2: 'Shark_x2', pt_sheep: 'Sheep', pt_stag: 'Stag', pt_stegosaurus: 'Stegosaurus',
+    pt_sunfish: 'Sunfish', pt_swordfish: 'Swordfish', pt_t_rex: 'Trex', pt_tang: 'Tang', pt_tetra: 'Tetra',
+    pt_tiger: 'Tiger', pt_toad: 'Frog', pt_triceratops: 'Triceratops', pt_tuna: 'Tuna', pt_turbot: 'Turbot',
+    pt_velociraptor: 'Velociraptor', pt_whale: 'Whale', pt_white_horse: 'Horse_White', pt_worm: 'Worm',
+    pt_yellow_tang: 'Yellow_Tang', pt_zebra: 'Zebra', pt_zebra_clown_fish: 'Zebra_Clown_Fish'
+  };
   var beastImgCache = {};
   function beastImgFile(name) {
     var src = 'assets/sprites2d/beast_' + name + '.png';
@@ -351,6 +374,7 @@
     if (!pet || !pet.id) { return null; }
     if (BG_BEAST_FILE[pet.id]) { return beastImgFile(BG_BEAST_FILE[pet.id]); }
     if (!/^(pt_|pk_)/.test(pet.id)) { return null; }
+    if (PET_BEAST_FILE[pet.id]) { return beastImgFile(PET_BEAST_FILE[pet.id]); }
     var list = BEAST_FORM_FILES[beastFormOf(pet)];
     if (!list) { return null; }
     var s = String(pet.id || pet.name || ''), h = 0, i;

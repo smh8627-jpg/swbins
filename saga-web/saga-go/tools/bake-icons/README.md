@@ -55,3 +55,14 @@ tower_round)은 결국 구웠다** — `js/sprite.js`의 `BEAST_FORM_FILES.ogre`
 (`../../assets/models/buildings/realistic/tower_ruin.glb`를 URL 인코딩한
 값)으로 격리 재시도부터 몇 번 더 해 볼 것 — 그래도 안 되면 사용자의
 실제 GPU 브라우저(헤드리스 아님)로 열어 보는 쪽으로 넘겨야 한다.
+
+
+## 짐승 다시 굽기 — `bake-beasts.mjs` + `view=pet` (2026-09-23)
+
+짐승은 이제 이 스크립트로 굽는다: saga-go 폴더에서 `node tools/bake-icons/bake-beasts.mjs [키,키...]`(키를 안 주면 전부 85개).
+`js/sprite.js` 의 `PET_BEAST_FILE`·`BEAST_FORM_FILES`·`BG_BEAST_FILE` 에서 키를 모아 `_bake_one.html?view=pet` 을 **한 개씩 새로 연
+페이지**로 굽고 `assets/sprites2d/beast_<키>.png` 에 바로 쓴다(서버·헤드리스 크롬을 제가 띄우고 제 것만 끈다).
+
+`view=pet` 구도 — 쉬는(idle) 클립 첫 자세 → 긴 축을 옆으로(yaw 1.1, 물고기 형태 키는 1.4) → 스킨 반영 상자 여덟 모서리를
+화면에 투영해 정사각 직교 프레임에 몸 전체·발이 바닥. 예전 기본 구도(`fit` 1.6·정면 42°)는 얼굴만 크게 위아래가 잘렸다
+(사슴 다리, 장룡은 막대). `_bake_one.html` 은 meshopt 디코더도 붙인다(사가블로에서 옮긴 펫 모델). 건물은 예전 구도 그대로.

@@ -2350,6 +2350,24 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ('제 모델 ' + own + '종 · 나머지 ' + rest.length + '종은 신수·오마주·까치 · 고래 fish·얼룩말 horse·폭군용 dragon');
     });
 
+    t('에셋 — 제 모델이 있는 펫은 지도 스탬프 그림도 그 모델(초상과 같은 동물)', function () {
+      /* 2026-09-23 — 지도 스탬프(sprite.beastImgOf)는 형태 해시로 네발 열 벌 중 하나를 골라 초상과 동물이 달랐다 */
+      AS.clear(); AS.restore();
+      var bad = [], n = 0;
+      D.pets.forEach(function (p) {
+        var u = AS.REG['pet:' + p.id];
+        if (!u) { return; }
+        n++;
+        var base = u.split('/').pop().replace(/\.(glb|gltf)$/, '');
+        var key = (/animals_extra2\//.test(u) && /^(Koi|Shark)$/.test(base)) ? base + '_x2' : base;
+        var im = DG.sprite.beastImgOf(p);
+        if (!im || im.src.indexOf('assets/sprites2d/beast_' + key + '.png') < 0) { bad.push(p.id); }
+      });
+      AS.clear();
+      if (bad.length || n !== 77) { return false; }
+      return '펫 ' + n + '종 초상 모델 = 지도 그림';
+    });
+
     t('에셋 — 손잡이를 내리면 표가 있어도 도형으로 간다', function () {
       AS.clear();
       var guan = D.find('sg_guanyu');
