@@ -4936,3 +4936,11 @@ saga-go 정본을 다른 네 판에도 동일 반영, 가드돼 있어 그 판�
   인물·펫·열전 저장에도 건다. **sw.js VERSION 자동 올림**(`swbump.js`, 판마다 서버 실행당 한 번).
 - 시험: scratch 복사본에서 정상 저장·구문 오류·실명·동시 수정 충돌 네 경로 확인(바뀐 줄만 diff), 서버 잠깐 띄워 읽기 API 확인 후 PID 로만 종료.
   실제 게임 파일은 이 시험에서 안 바뀌었다. **실사용 확인 전**(사용자가 `run-editor.bat` 으로).
+
+### 2026-09-23 — 게임 제작 도구 ② 새 판 뼈대 생성기(`saga-web/tools/new-game/`)
+
+- `new-game.mjs --folder --title --port [--three]`: 바로 도는 최소 판(들판 걷기+도감 인물 등용, 세이브 v1·migrate·프로필·씨앗 난수,
+  sw.js·manifest·run.bat·_test.html 8항목·문서 3층)을 만든다. 포트·SAVE_BASE·manifest id 겹침과 폴더 형식을 막고, 등록할 곳은 체크리스트로만 남긴다.
+- 시험(scratch): 겹침 세 경우 거절 확인, 생성물 구문 통과, `_test.html` 을 node 최소 DOM 흉내로 세 번 돌려 `RESULT 8/8`·세 번 한 줄도 안 다름·
+  진단 뒤 남는 localStorage 키 없음. 처음엔 프로필 id(시각)가 출력에 찍혀 매번 달랐고, 진단 이름의 `<프로필>` 이 HTML 태그로 먹혀 안 보였다 — 둘 다 고침.
+  저장소에 실제 새 판은 만들지 않았다.
