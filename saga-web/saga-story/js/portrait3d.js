@@ -67,11 +67,34 @@
    *  CC0 모델이 없다(다섯 판 통틀어 있는 개는 셰퍼드형 셋(늑대·시바·허스키)
    *  뿐, 소형견 없음) — 억지로 셋 중 하나를 물리면 오히려 "발바리인데
    *  중형견 몸"으로 더 어긋나 보이므로, 2D 그림 그대로 둔다. */
+  /* 2026-09-23 — 실제 동물 펫 전부로 넓힘(asset3d `critter:*`, 사가블로 모델 복사). 신수·포켓몬 오마주는 여전히 없다 */
   var PET_MAP = {
-    pt_deer: 'critter:deer', pt_stag: 'critter:deer',
-    pt_gumiho: 'critter:fox', pt_fox: 'critter:fox',
-    pt_cow: 'critter:cow', pt_cow_farm: 'critter:cow', pt_bull: 'critter:cow',
-    pt_jindo: 'critter:shiba', pt_sapsal: 'critter:husky'
+    pt_alpaca: 'critter:alpaca', pt_anglerfish: 'critter:anglerfish', pt_apatosaurus: 'critter:apatosaurus',
+    pt_armored_catfish: 'critter:armored_catfish', pt_bear: 'critter:bear', pt_betta: 'critter:betta',
+    pt_black_lion_fish: 'critter:black_lion_fish', pt_blobfish: 'critter:blobfish',
+    pt_blue_goldfish: 'critter:blue_goldfish', pt_blue_tang: 'critter:blue_tang', pt_boar: 'critter:boar',
+    pt_bull: 'critter:bull', pt_butterfly_fish: 'critter:butterfly_fish', pt_cardinal_fish: 'critter:cardinal_fish',
+    pt_carp: 'critter:carp', pt_cat: 'critter:cat', pt_clownfish: 'critter:clownfish',
+    pt_coral_grouper: 'critter:coral_grouper', pt_cow: 'critter:cow', pt_cow_farm: 'critter:cow_farm',
+    pt_cowfish: 'critter:cowfish', pt_crane: 'critter:crane', pt_deer: 'critter:deer',
+    pt_dolphin: 'critter:dolphin', pt_donkey: 'critter:donkey', pt_fish_1: 'critter:fish_1',
+    pt_fish_2: 'critter:fish_2', pt_fish_3: 'critter:fish_3', pt_flatfish: 'critter:flatfish',
+    pt_flower_horn: 'critter:flower_horn', pt_fox: 'critter:fox', pt_goblin_shark: 'critter:goblin_shark',
+    pt_goldfish: 'critter:goldfish', pt_gumiho: 'critter:fox', pt_horse: 'critter:horse',
+    pt_horse_farm: 'critter:horse_farm', pt_humphead: 'critter:humphead', pt_jindo: 'critter:shiba',
+    pt_koi_2: 'critter:koi_2', pt_lionfish: 'critter:lionfish', pt_llama: 'critter:llama',
+    pt_magpie: 'critter:magpie', pt_mandarin_fish: 'critter:mandarin_fish', pt_manta_ray: 'critter:manta_ray',
+    pt_monkey: 'critter:monkey', pt_moorish_idol: 'critter:moorish_idol', pt_owl: 'critter:owl',
+    pt_panda: 'critter:panda', pt_parasaurolophus: 'critter:parasaurolophus', pt_parrot_fish: 'critter:parrot_fish',
+    pt_pig: 'critter:pig', pt_piranha: 'critter:piranha', pt_puffer: 'critter:puffer', pt_pug: 'critter:pug',
+    pt_red_snapper: 'critter:red_snapper', pt_royal_gramma: 'critter:royal_gramma', pt_sapsal: 'critter:husky',
+    pt_shark: 'critter:shark', pt_shark_2: 'critter:shark_2', pt_sheep: 'critter:sheep', pt_stag: 'critter:stag',
+    pt_stegosaurus: 'critter:stegosaurus', pt_sunfish: 'critter:sunfish', pt_swordfish: 'critter:swordfish',
+    pt_t_rex: 'critter:t_rex', pt_tang: 'critter:tang', pt_tetra: 'critter:tetra', pt_tiger: 'critter:tiger',
+    pt_toad: 'critter:toad', pt_triceratops: 'critter:triceratops', pt_tuna: 'critter:tuna',
+    pt_turbot: 'critter:turbot', pt_velociraptor: 'critter:velociraptor', pt_whale: 'critter:whale',
+    pt_white_horse: 'critter:white_horse', pt_worm: 'critter:worm', pt_yellow_tang: 'critter:yellow_tang',
+    pt_zebra: 'critter:zebra', pt_zebra_clown_fish: 'critter:zebra_clown_fish'
   };
   function petKeyOf(id) { return PET_MAP[id] || null; }
 
@@ -102,6 +125,57 @@
     if (aspect < 1) { dist = dist / Math.max(0.55, aspect); }
     var look = isPet ? 0.28 : (BUST() ? 0.86 : 0.78);
     return { fov: fov, dist: dist, look: look, aspect: aspect, yaw: isPet ? 0.95 : 0.42, pitch: 0.06 };
+  }
+
+  /**
+   * 펫은 **실제 몸 상자**로 맞춘다(2026-09-23) — 배우는 키 1 로 눕는데(`asset3d.fit`) 납작하고 긴 물고기·황새치·공룡은
+   * 네발 고정 구도(span 1.5·look 0.28)를 한참 넘어 얼굴·눈만 크게 찍혔다(펫 초상 모음). 자세를 굴린 뒤 스킨이 반영된
+   * 상자를 재서, 바라보는 높이는 네발과 같은 비율(바닥 + 키의 28%)로 두고 위 끝·가로가 다 들어오게 물러난다.
+   * 네발은 이 계산으로도 예전과 거의 같은 거리다. 손잡이 `portrait3d.petFit`(0 이면 예전 고정 구도)
+   */
+  function PET_FIT() {
+    var c = global.DG && global.DG.core;
+    return c && c.tuned ? (c.tuned('portrait3d.petFit', 1) ? true : false) : true;
+  }
+  /** 자세가 반영된 몸 상자(월드) — 외곽선 사본은 뺀다 */
+  function bodyBox(t, node) {
+    node.updateMatrixWorld(true);
+    var box = new t.Box3(), one = new t.Box3();
+    node.traverseVisible(function (o) {
+      if (!o.isMesh || !o.geometry || /_outline$/.test(o.name || '')) { return; }
+      if (o.isSkinnedMesh && o.computeBoundingBox) {
+        if (o.skeleton) { o.skeleton.update(); }
+        o.computeBoundingBox();   // 뼈 자세가 반영된 메시 지역 상자
+        one.copy(o.boundingBox);
+      } else {
+        if (!o.geometry.boundingBox) { o.geometry.computeBoundingBox(); }
+        one.copy(o.geometry.boundingBox);
+      }
+      box.union(one.applyMatrix4(o.matrixWorld));
+    });
+    return box;
+  }
+  /** 물고기는 긴 축이 옆으로 오게 — 네발과 같은 yaw(0.95)면 3/4 정면이라 얼굴·눈만 보였다. 모델마다 앞 방향 축이 달라 상자로 가른다 */
+  function petYaw(node, ref, yaw) {
+    var t = three(), S = global.DG && global.DG.sprite;
+    if (!t || !PET_FIT() || !S || !S.beastFormOf || S.beastFormOf(ref) !== 'fish') { return yaw; }
+    node.rotation.set(0, 0, 0);
+    var box = bodyBox(t, node);
+    if (box.isEmpty()) { return yaw; }
+    var sz = box.getSize(new t.Vector3());
+    return sz.z >= sz.x ? 1.3 : 1.3 - Math.PI / 2;
+  }
+  function petFrame(plan, node) {
+    var t = three();
+    if (!t || !node || !PET_FIT()) { return plan; }
+    var box = bodyBox(t, node);
+    if (box.isEmpty()) { return plan; }
+    var sz = box.getSize(new t.Vector3()), mid = box.getCenter(new t.Vector3());
+    if (!(sz.y > 0)) { return plan; }
+    var look = box.min.y + sz.y * 0.28;
+    var needV = Math.max((box.max.y - look) * 2, sz.x / plan.aspect) * 1.12;
+    var dist = (needV / 2) / Math.tan(plan.fov * Math.PI / 360) + sz.z / 2;
+    return { fov: plan.fov, dist: dist, look: look, aspect: plan.aspect, yaw: plan.yaw, pitch: plan.pitch, cx: mid.x, cz: mid.z };
   }
 
   /* ── 여기서부터 three 가 필요하다 ─────────────────────── */
@@ -247,14 +321,17 @@
     rig.add(node);
     node.position.set(0, 0, 0);
     node.scale.setScalar(1);
-    node.rotation.set(0, plan.yaw, 0);
+    node.rotation.set(0, kind === 'pet' ? petYaw(node, ref, plan.yaw) : plan.yaw, 0);
 
     settle(node);
+    if (kind === 'pet') { plan = petFrame(plan, node); }
 
     camera.fov = plan.fov;
     camera.aspect = plan.aspect;
-    camera.position.set(0, plan.look + plan.dist * Math.sin(plan.pitch), plan.dist);
-    camera.lookAt(0, plan.look, 0);
+    camera.far = Math.max(40, plan.dist * 3);   // 긴 몸(공룡·고래)은 petFrame 이 멀리 물러나 고정 far 를 넘어 빈 카드가 된다(사가블로에서 겪음)
+    var cx = plan.cx || 0, cz = plan.cz || 0;
+    camera.position.set(cx, plan.look + plan.dist * Math.sin(plan.pitch), cz + plan.dist);
+    camera.lookAt(cx, plan.look, cz);
     camera.updateProjectionMatrix();
 
     renderer.setSize(pw, ph, false);

@@ -27,6 +27,8 @@
   var NAT = 'assets/models/nature/';
   var PEOPLE = 'assets/models/people/regular/';
   var ANIMALS = 'assets/models/animals/';
+  var ANIMALS_EXTRA = 'assets/models/animals_extra/';   // 2026-09-23 사가블로에서 복사(펫 초상)
+  var ANIMALS_EXTRA2 = 'assets/models/animals_extra2/';
   var BUILDINGS = 'assets/models/buildings/';
   var PROPS = 'assets/models/props/';
   var ANIM_SRC = 'assets/models/anim/UAL1_Standard.glb';
@@ -113,6 +115,83 @@
        그래서 여기 'critter:wolf' 는 따로 안 둔다(portrait3d.js 참고) */
     'critter:shiba': ANIMALS + 'ShibaInu.glb',
     'critter:husky': ANIMALS + 'Husky.glb',
+    /* 도감 초상 3D화 — **실제 동물 펫 전부**(2026-09-23). 사가블로가 받아 둔 Quaternius CC0(범·곰·물고기·공룡 등)를
+       `animals/`·`animals_extra/`·`animals_extra2/` 에 그대로 복사하고 키만 붙였다(출처는 사가블로 `ASSET_LICENSES.md`). 위 다섯 키
+       (사슴·여우·소·시바·허스키)는 옆면 뷰가 부르므로 그대로 두고, 큰사슴·황소·젖소는 이제 제 모델이 있어 옮겼다(portrait3d PET_MAP).
+       발바리도 이제 Pug 가 있다(예전 "소형견 CC0 없음" 판단은 이걸로 풀림). 신수·포켓몬 오마주는 여전히 뺀다 */
+    'critter:tiger': ANIMALS + 'Tiger.glb',
+    'critter:bear': ANIMALS + 'Bear.glb',
+    'critter:magpie': ANIMALS + 'Mesh_Crow.gltf',
+    'critter:crane': ANIMALS + 'Crane.glb',
+    'critter:toad': ANIMALS + 'Frog.glb',
+    'critter:carp': ANIMALS + 'Koi.glb',
+    'critter:panda': ANIMALS + 'Panda.glb',
+    'critter:monkey': ANIMALS + 'Monkey.glb',
+    'critter:boar': ANIMALS + 'Boar.glb',
+    'critter:owl': ANIMALS + 'Owl.glb',
+    'critter:cat': ANIMALS + 'Cat.glb',
+    'critter:llama': ANIMALS_EXTRA + 'Llama.glb',
+    'critter:pig': ANIMALS_EXTRA + 'Pig.glb',
+    'critter:pug': ANIMALS_EXTRA + 'Pug.glb',
+    'critter:sheep': ANIMALS_EXTRA + 'Sheep.glb',
+    'critter:horse_farm': ANIMALS_EXTRA + 'Horse_Farm.glb',
+    'critter:cow_farm': ANIMALS_EXTRA + 'Cow_Farm.glb',
+    'critter:zebra': ANIMALS_EXTRA + 'Zebra.glb',
+    'critter:donkey': ANIMALS_EXTRA + 'Donkey.glb',
+    'critter:alpaca': ANIMALS_EXTRA + 'Alpaca.glb',
+    'critter:bull': ANIMALS_EXTRA + 'Bull.glb',
+    'critter:stag': ANIMALS_EXTRA + 'Stag.glb',
+    'critter:white_horse': ANIMALS_EXTRA + 'White_Horse.glb',
+    'critter:horse': ANIMALS_EXTRA + 'Horse.glb',
+    'critter:fish_1': ANIMALS_EXTRA + 'Fish1.glb',
+    'critter:fish_2': ANIMALS_EXTRA + 'Fish2.glb',
+    'critter:fish_3': ANIMALS_EXTRA + 'Fish3.glb',
+    'critter:dolphin': ANIMALS_EXTRA + 'Dolphin.glb',
+    'critter:shark': ANIMALS_EXTRA + 'Shark.glb',
+    'critter:whale': ANIMALS_EXTRA + 'Whale.glb',
+    'critter:manta_ray': ANIMALS_EXTRA + 'MantaRay.glb',
+    'critter:anglerfish': ANIMALS_EXTRA2 + 'Anglerfish.glb',
+    'critter:apatosaurus': ANIMALS_EXTRA2 + 'Apatosaurus.glb',
+    'critter:armored_catfish': ANIMALS_EXTRA2 + 'Armored_Catfish.glb',
+    'critter:betta': ANIMALS_EXTRA2 + 'Betta.glb',
+    'critter:black_lion_fish': ANIMALS_EXTRA2 + 'Black_Lion_Fish.glb',
+    'critter:blobfish': ANIMALS_EXTRA2 + 'Blobfish.glb',
+    'critter:blue_goldfish': ANIMALS_EXTRA2 + 'Blue_Goldfish.glb',
+    'critter:blue_tang': ANIMALS_EXTRA2 + 'Blue_Tang.glb',
+    'critter:butterfly_fish': ANIMALS_EXTRA2 + 'Butterfly_Fish.glb',
+    'critter:cardinal_fish': ANIMALS_EXTRA2 + 'Cardinal_Fish.glb',
+    'critter:clownfish': ANIMALS_EXTRA2 + 'Clownfish.glb',
+    'critter:coral_grouper': ANIMALS_EXTRA2 + 'Coral_Grouper.glb',
+    'critter:cowfish': ANIMALS_EXTRA2 + 'Cowfish.glb',
+    'critter:flatfish': ANIMALS_EXTRA2 + 'Flatfish.glb',
+    'critter:flower_horn': ANIMALS_EXTRA2 + 'Flower_Horn.glb',
+    'critter:goblin_shark': ANIMALS_EXTRA2 + 'Goblin_Shark.glb',
+    'critter:goldfish': ANIMALS_EXTRA2 + 'Goldfish.glb',
+    'critter:humphead': ANIMALS_EXTRA2 + 'Humphead.glb',
+    'critter:koi_2': ANIMALS_EXTRA2 + 'Koi.glb',
+    'critter:lionfish': ANIMALS_EXTRA2 + 'Lionfish.glb',
+    'critter:mandarin_fish': ANIMALS_EXTRA2 + 'Mandarin_Fish.glb',
+    'critter:moorish_idol': ANIMALS_EXTRA2 + 'Moorish_Idol.glb',
+    'critter:parasaurolophus': ANIMALS_EXTRA2 + 'Parasaurolophus.glb',
+    'critter:parrot_fish': ANIMALS_EXTRA2 + 'Parrot_Fish.glb',
+    'critter:piranha': ANIMALS_EXTRA2 + 'Piranha.glb',
+    'critter:puffer': ANIMALS_EXTRA2 + 'Puffer.glb',
+    'critter:red_snapper': ANIMALS_EXTRA2 + 'Red_Snapper.glb',
+    'critter:royal_gramma': ANIMALS_EXTRA2 + 'Royal_Gramma.glb',
+    'critter:shark_2': ANIMALS_EXTRA2 + 'Shark.glb',
+    'critter:stegosaurus': ANIMALS_EXTRA2 + 'Stegosaurus.glb',
+    'critter:sunfish': ANIMALS_EXTRA2 + 'Sunfish.glb',
+    'critter:swordfish': ANIMALS_EXTRA2 + 'Swordfish.glb',
+    'critter:t_rex': ANIMALS_EXTRA2 + 'T_Rex.glb',
+    'critter:tang': ANIMALS_EXTRA2 + 'Tang.glb',
+    'critter:tetra': ANIMALS_EXTRA2 + 'Tetra.glb',
+    'critter:triceratops': ANIMALS_EXTRA2 + 'Triceratops.glb',
+    'critter:tuna': ANIMALS_EXTRA2 + 'Tuna.glb',
+    'critter:turbot': ANIMALS_EXTRA2 + 'Turbot.glb',
+    'critter:velociraptor': ANIMALS_EXTRA2 + 'Velociraptor.glb',
+    'critter:worm': ANIMALS_EXTRA2 + 'Worm.glb',
+    'critter:yellow_tang': ANIMALS_EXTRA2 + 'Yellow_Tang.glb',
+    'critter:zebra_clown_fish': ANIMALS_EXTRA2 + 'Zebra_Clown_Fish.glb',
     /* 랜덤 이벤트(PLAN 11절, 2026-09-09) — saga-dungeon 이 이미 받아 둔 KayKit
        상자를 그대로 재사용한다 */
     'chest': PROPS + 'Chest.glb'

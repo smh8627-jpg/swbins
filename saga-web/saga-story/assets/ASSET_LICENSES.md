@@ -295,3 +295,15 @@ VRoid Studio 공식 CC0 샘플 AvatarSample_A/B/C(github.com/madjin/vrm-samples,
 옆모습 걷기 시트로 구운 파생물이다. **원본 모델의 라이선스가 그대로 따른다** — 출처·표시 문구는
 `saga-dungeon/assets/ASSET_LICENSES.md` 의 "몬스터 2D 시트"·"짐승 형 몬스터 다양화"·"도감(펫) 초상 실사화" 절과 같다.
 이 판 3D 뷰가 쓰는 `Wolf.glb`·`Cow.glb` 와는 별개로, 코끼리·멧돼지는 이 판에 GLB 가 없고 그림만 들어온다.
+
+
+## 도감 펫 초상 — 실제 동물 전부, 사가블로에서 복사 (2026-09-23)
+
+사가블로가 받아 둔 모델을 **그대로 복사**했다(재가공 없음). 출처·경위는 `saga-web/saga-dungeon/assets/ASSET_LICENSES.md`
+"도감(펫) 초상"·"펫 — poly.pizza 동물 번들 셋"·"펫 2차분" 절. `js/asset3d.js` `critter:*` 로 등록, `js/portrait3d.js` `PET_MAP` 이 고른다.
+
+| 폴더 | 파일 | 원출처 |
+|---|---|---|
+| `models/animals/` | `Tiger.glb`·`Bear.glb`·`Panda.glb`·`Monkey.glb`·`Boar.glb`·`Owl.glb`·`Cat.glb`·`Crane.glb`·`Koi.glb`·`Frog.glb`·`Mesh_Crow.gltf`·`Mesh_Crow.bin`·`Tex_Crow.webp` | Quaternius 계열 CC0 · 까마귀(`Mesh_Crow`)는 사가블로 문서의 표기를 따른다 |
+| `models/animals_extra/` | `Alpaca.glb`·`Bull.glb`·`Cow.glb`·`Cow_Farm.glb`·`Dolphin.glb`·`Donkey.glb`·`Fish1.glb`·`Fish2.glb`·`Fish3.glb`·`Fox.glb`·`Horse.glb`·`Horse_Farm.glb`·`Llama.glb`·`MantaRay.glb`·`Pig.glb`·`Pug.glb`·`Shark.glb`·`Sheep.glb`·`Stag.glb`·`Whale.glb`·`White_Horse.glb`·`Zebra.glb` | poly.pizza 동물 번들 셋(Quaternius, CC0) |
+| `models/animals_extra2/` | `Anglerfish.glb`·`Apatosaurus.glb`·`Armored_Catfish.glb`·`Betta.glb`·`Black_Lion_Fish.glb`·`Blobfish.glb`·`Blue_Goldfish.glb`·`Blue_Tang.glb`·`Butterfly_Fish.glb`·`Cardinal_Fish.glb`·`Clownfish.glb`·`Coral_Grouper.glb`·`Cowfish.glb`·`Flatfish.glb`·`Flower_Horn.glb`·`Goblin_Shark.glb`·`Goldfish.glb`·`Humphead.glb`·`Koi.glb`·`Lionfish.glb`·`Mandarin_Fish.glb`·`Moorish_Idol.glb`·`Parasaurolophus.glb`·`Parrot_Fish.glb`·`Piranha.glb`·`Puffer.glb`·`Red_Snapper.glb`·`Royal_Gramma.glb`·`Shark.glb`·`Stegosaurus.glb`·`Sunfish.glb`·`Swordfish.glb`·`T_Rex.glb`·`Tang.glb`·`Tetra.glb`·`Triceratops.glb`·`Tuna.glb`·`Turbot.glb`·`Velociraptor.glb`·`Worm.glb`·`Yellow_Tang.glb`·`Zebra_Clown_Fish.glb` | poly.pizza 물고기 대형·공룡 번들(Quaternius, CC0) |

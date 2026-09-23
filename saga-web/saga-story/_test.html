@@ -4284,6 +4284,19 @@ window.DG_NO_TUNE = true;
       return on && others && 'anime 경로만 켜짐';
     });
 
+    t('초상 — 실제 동물 펫은 전부 3D 로 굽는다(사가블로 모델 복사), 신수·포켓몬 오마주만 빠진다', function () {
+      /* 2026-09-23 — 예전엔 PET_MAP 9종(사슴·여우·소·개과)뿐이라 나머지는 코드 그림 초상이었다 */
+      var P3 = DG.portrait3d, D = DG.data, REG = DG.asset3d.REG();   // 이 판은 REG 가 함수
+      var yes = D.pets.filter(function (p) { return P3.supports('pet', p); });
+      var no = D.pets.filter(function (p) { return !P3.supports('pet', p); });
+      var myth = /^pt_(haetae|dokkaebi|bulgasari|jeoktoma|jeolyeong|samjogo|cheongryong|baekho|jujak|hyeonmu)$/;
+      var noOk = no.every(function (p) { return /^pk_/.test(p.id) || myth.test(p.id); });
+      var keyOk = ['critter:tiger', 'critter:whale', 'critter:pug', 'critter:stag', 'critter:t_rex'].every(function (k) { return !!REG[k]; });
+      var sideOk = ['critter:deer', 'critter:fox'].every(function (k) { return /animals\/(Deer|Fox)\.glb$/.test(REG[k]); });   // 옆면 뷰가 부르는 키는 그대로
+      if (yes.length !== 79 || !noOk || !keyOk || !sideOk) { return false; }
+      return '3D 초상 ' + yes.length + '종 · 빠진 ' + no.length + '종은 신수·오마주 · 옆면 뷰 키 그대로';
+    });
+
     t('초상 자리표시(SAGA-DESIGN §11 Phase 0) — 3D 로 갈아 끼울 자리는 코드 스프라이트 대신 자리표시로 시작하고, 굽기를 포기하면 옛 그림으로 되돌리며, 갈아 끼워지지 않을 자리는 옛 그림 그대로다', function () {
       var P3 = DG.portrait3d, D = DG.data, S = DG.sprite;
       if (!P3 || !P3.holder || !P3.willSwap || !P3._fail) { throw new Error('portrait3d 내보내기 없음: ' + (P3 ? Object.keys(P3).join(',') : 'P3 없음')); }
