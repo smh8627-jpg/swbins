@@ -29,6 +29,7 @@
   var ANIMALS = 'assets/models/animals/';
   var ANIMALS_EXTRA = 'assets/models/animals_extra/';   // 2026-09-23 사가블로에서 복사(펫 초상)
   var ANIMALS_EXTRA2 = 'assets/models/animals_extra2/';
+  var STANDIN = 'assets/models/standin/';   // 신수·오마주 대역 — 사가고에서 복사(2026-09-23)
   var BUILDINGS = 'assets/models/buildings/';
   var PROPS = 'assets/models/props/';
   var ANIM_SRC = 'assets/models/anim/UAL1_Standard.glb';
@@ -192,6 +193,35 @@
     'critter:worm': ANIMALS_EXTRA2 + 'Worm.glb',
     'critter:yellow_tang': ANIMALS_EXTRA2 + 'Yellow_Tang.glb',
     'critter:zebra_clown_fish': ANIMALS_EXTRA2 + 'Zebra_Clown_Fish.glb',
+    /* 신수·포켓몬 오마주 대역(2026-09-23, 사용자 "사가고처럼 대역 입히기") — CC0 로 있을 리 없는 창작물이라 예전엔 뺐다.
+       사가고가 형태별 풀에서 id 해시로 고른 것과 **같은 모델**을 입힌다(해태=당나귀·청룡=스테고사우루스 등, 세 판이 같은 대역).
+       이 판에 없던 여섯(Birb·Pigeon·Snake 둘·Orc·Demon)만 사가고에서 `standin/` 으로 복사, 나머지는 이미 있는 같은 종 모델 */
+    'critter:samjogo': STANDIN + 'Birb.glb',
+    'critter:haetae': ANIMALS_EXTRA + 'Donkey.glb',
+    'critter:cheongryong': ANIMALS_EXTRA2 + 'Stegosaurus.glb',
+    'critter:baekho': ANIMALS + 'Husky.glb',
+    'critter:jujak': STANDIN + 'Pigeon.glb',
+    'critter:hyeonmu': STANDIN + 'Snake.glb',
+    'critter:dokkaebi': STANDIN + 'Orc.gltf',
+    'critter:bulgasari': ANIMALS_EXTRA + 'Donkey.glb',
+    'critter:jeoktoma': ANIMALS_EXTRA + 'White_Horse.glb',
+    'critter:jeolyeong': ANIMALS_EXTRA + 'White_Horse.glb',
+    'critter:pk_bulbasaur': ANIMALS_EXTRA + 'Stag.glb',
+    'critter:pk_charmander': ANIMALS + 'Wolf.glb',
+    'critter:pk_squirtle': STANDIN + 'Snake_angry.glb',
+    'critter:pk_magikarp': ANIMALS_EXTRA + 'Dolphin.glb',
+    'critter:pk_pikachu': ANIMALS_EXTRA + 'Alpaca.glb',
+    'critter:pk_eevee': ANIMALS_EXTRA + 'Fox.glb',
+    'critter:pk_slowbro': ANIMALS + 'ShibaInu.glb',
+    'critter:pk_gengar': STANDIN + 'Demon.gltf',
+    'critter:pk_snorlax': ANIMALS + 'Husky.glb',
+    'critter:pk_lapras': STANDIN + 'Snake_angry.glb',
+    'critter:pk_alakazam': STANDIN + 'Demon.gltf',
+    'critter:pk_dragonite': ANIMALS_EXTRA2 + 'Velociraptor.glb',
+    'critter:pk_charizard': ANIMALS_EXTRA2 + 'T_Rex.glb',
+    'critter:pk_gyarados': ANIMALS_EXTRA2 + 'Stegosaurus.glb',
+    'critter:pk_mewtwo': STANDIN + 'Orc.gltf',
+    'critter:pk_mew': ANIMALS_EXTRA + 'Alpaca.glb',
     /* 랜덤 이벤트(PLAN 11절, 2026-09-09) — saga-dungeon 이 이미 받아 둔 KayKit
        상자를 그대로 재사용한다 */
     'chest': PROPS + 'Chest.glb'
@@ -247,8 +277,9 @@
    * 겪은 문제, 같은 고침).
    */
   /* 외곽선(2026-09-23) — 배우 GLB(사람·짐승)만. 사가블로 `isActorAsset()` 과 같은 판별 */
+  /* 2026-09-23 — animals_extra·animals_extra2(사가블로 "펫 100개" 모델)·standin(신수·오마주 대역)도 배우. 전엔 `animals/` 만 맞아 그 펫들이 외곽선·림 없이 구워졌다 */
   function isActorAsset(url) {
-    return typeof url === 'string' && /\/models\/(people|animals|monsters)\//.test(url);
+    return typeof url === 'string' && /\/models\/(people|animals|animals_extra2?|standin|monsters)\//.test(url);
   }
 
   function delam(root, url) {

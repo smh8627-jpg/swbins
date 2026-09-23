@@ -4284,17 +4284,17 @@ window.DG_NO_TUNE = true;
       return on && others && 'anime 경로만 켜짐';
     });
 
-    t('초상 — 실제 동물 펫은 전부 3D 로 굽는다(사가블로 모델 복사), 신수·포켓몬 오마주만 빠진다', function () {
-      /* 2026-09-23 — 예전엔 PET_MAP 9종(사슴·여우·소·개과)뿐이라 나머지는 코드 그림 초상이었다 */
-      var P3 = DG.portrait3d, D = DG.data, REG = DG.asset3d.REG();   // 이 판은 REG 가 함수
-      var yes = D.pets.filter(function (p) { return P3.supports('pet', p); });
+    t('초상 — 펫 105종 전부 3D 로 굽는다: 실제 동물은 제 모델, 신수·포켓몬 오마주는 사가고와 같은 대역', function () {
+      /* 2026-09-23 — 예전엔 PET_MAP 9종뿐이라 나머지는 코드 그림 초상이었고, 그래서 human()/beast() 를 펫용으로 남겨 뒀다(이제 삭제) */
+      var P3 = DG.portrait3d, D = DG.data, REG = DG.asset3d.REG(), S = DG.sprite;   // 이 판은 REG 가 함수
       var no = D.pets.filter(function (p) { return !P3.supports('pet', p); });
-      var myth = /^pt_(haetae|dokkaebi|bulgasari|jeoktoma|jeolyeong|samjogo|cheongryong|baekho|jujak|hyeonmu)$/;
-      var noOk = no.every(function (p) { return /^pk_/.test(p.id) || myth.test(p.id); });
       var keyOk = ['critter:tiger', 'critter:whale', 'critter:pug', 'critter:stag', 'critter:t_rex'].every(function (k) { return !!REG[k]; });
+      var stand = { haetae: /Donkey\.glb$/, cheongryong: /Stegosaurus\.glb$/, dokkaebi: /standin\/Orc\.gltf$/, pk_charizard: /T_Rex\.glb$/ };
+      var standOk = Object.keys(stand).every(function (k) { return stand[k].test(REG['critter:' + k] || ''); });
       var sideOk = ['critter:deer', 'critter:fox'].every(function (k) { return /animals\/(Deer|Fox)\.glb$/.test(REG[k]); });   // 옆면 뷰가 부르는 키는 그대로
-      if (yes.length !== 79 || !noOk || !keyOk || !sideOk) { return false; }
-      return '3D 초상 ' + yes.length + '종 · 빠진 ' + no.length + '종은 신수·오마주 · 옆면 뷰 키 그대로';
+      var gone = !S.human && !S.beast && !S.beastPatternOf;
+      if (no.length || !keyOk || !standOk || !sideOk || !gone) { return false; }
+      return '3D 초상 ' + D.pets.length + '종 전부 · 대역(해태=당나귀·청룡=스테고·도깨비=오크) · 옆면 뷰 키 그대로 · 코드 그림 함수 없음';
     });
 
     t('초상 자리표시(SAGA-DESIGN §11 Phase 0) — 3D 로 갈아 끼울 자리는 코드 스프라이트 대신 자리표시로 시작하고, 굽기를 포기하면 옛 그림으로 되돌리며, 갈아 끼워지지 않을 자리는 옛 그림 그대로다', function () {

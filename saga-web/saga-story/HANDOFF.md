@@ -812,3 +812,12 @@ SAGA-DESIGN §11 Phase 4 의 "사가스토리 펫 이미지 공백(보류)" — 
 - 사가고·사가블로의 `petFrame`·`petYaw`·`bodyBox`·`PET_FIT`(손잡이 `portrait3d.petFit`)와 camera far = max(40, dist × 3) 이식, `sprite.js` BEAST_FORM 에 물고기·말·공룡 줄(사가고와 같은 줄, 물고기 옆모습용).
 - 펫 초상 158장 구움(79종, 못 구움 26종 = 신수·오마주). 모음 그림으로 빈 카드·파편 없음 확인. 진단 1 추가 → 226/227(실패 하나는 기존 jsdom 한계). `sw.js` side-v0.81.0.
 - **남은 것**: 신수·오마주 26종을 어떻게 할지(사가고처럼 형태별 대신 모델을 입힐지) — 사용자 결정. 그게 정해져야 `human()`/`beast()` 펫 경로를 지울 수 있다(Phase 4 마무리).
+
+## 2026-09-24 — 신수·오마주 대역으로 펫 초상 105종 전부, 코드 그림 함수 삭제(Phase 4 마무리)
+
+사용자 "응 진행해줘"(Phase 4 범위 짚기) → 신수·오마주를 어떻게 할지 물어 **"사가고처럼 대역 입히기"** 로 정함.
+
+- 대역: 사가고가 형태별 풀에서 id 해시로 고르는 것과 **같은 모델**(해태=당나귀·청룡=스테고사우루스·도깨비=오크 등, 세 판이 같은 대역). 이 판에 이미 있는 같은 종 모델을 쓰고, 없던 여섯(Birb·Pigeon·Snake 둘·Orc·Demon, 3.2MB)만 사가고에서 `assets/models/standin/` 으로 복사(`ASSET_LICENSES.md` 새 절).
+- `isActorAsset` 이 `animals_extra`·`animals_extra2`·`standin` 도 배우로 — 전엔 정규식이 `animals/` 만 맞아 사가블로 "펫 100개" 모델들이 외곽선·림 없이 구워졌다.
+- **SAGA-DESIGN §11 Phase 4 마무리**: 펫 초상용으로 남겨 두던 `human`·`limb`·`hand`·`foot`·`headgear`·`weapon`·`beast`·`leg2`·`eye`·`beastPatternOf`·`BEAST_PATTERN`(약 1100줄) 삭제, 두 펫 갈래는 `loadingMark` 자리표시(사가의숲과 같은 결). 호출부 0 은 `sprite.js` 밖(진단·데모·어드민 포함) grep 으로 확인.
+- 구미호는 원래대로 여우. `critter:*` 26줄·`PET_MAP` +26. 펫 초상 210장 다시 구움(210/210). (이어서 5)의 진단을 "105종 전부·대역·옆면 뷰 키 그대로·함수 없음" 으로 고침 → 226/227(실패 하나는 기존 jsdom 한계). `sw.js` side-v0.82.0.

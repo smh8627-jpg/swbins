@@ -4114,3 +4114,12 @@ VRoid 인물이 unlit(`MeshBasicMaterial`) 그대로라 명암 없이 평면이�
 - 자동 장식(`addHandTownDensity`)은 편집기 서버가 `placePoints`·`hash2` 원문을 vm 에서 돌려 같은 자리를 보여 준다 — 게임을 vm 에서 돌린 결과와 갈대나루·자작재·소금벌 자동 장식·사람 퍼뜨림 12명이 같음(모루골은 vm 에 들판 모듈이 없어 대조 못 함, 계산 경로는 같음).
 - 알게 된 것: 마을 안 건물은 몸을 막지 않는다(충돌 코드 없음, 3D 모양만). 편집기 몫이 아니라 설계 결정이라 손대지 않았다.
 - 이번엔 `town.js` 를 안 고쳤다(편집기만). 실제 배치 변경은 사용자가 편집기로 한다 — 저장하면 `_test.html` 진단을 한 번 돌릴 것.
+
+## 2026-09-24 — 신수·오마주 대역으로 펫 초상 105종 전부, 코드 그림 함수 삭제(Phase 4 마무리)
+
+사용자 "응 진행해줘"(Phase 4 범위 짚기) → 신수·오마주를 어떻게 할지 물어 **"사가고처럼 대역 입히기"** 로 정함.
+
+- 대역: 사가고가 형태별 풀에서 id 해시로 고르는 것과 **같은 모델**(해태=당나귀·청룡=스테고사우루스·도깨비=오크 등, 세 판이 같은 대역). 이 판에 이미 있는 같은 종 모델을 쓰고, 없던 여섯(Birb·Pigeon·Snake 둘·Orc·Demon, 3.2MB)만 사가고에서 `assets/models/standin/` 으로 복사(`ASSET_LICENSES.md` 새 절).
+- `isActorAsset` 이 `animals_extra`·`animals_extra2`·`standin` 도 배우로 — 전엔 정규식이 `animals/` 만 맞아 사가블로 "펫 100개" 모델들이 외곽선·림 없이 구워졌다.
+- **SAGA-DESIGN §11 Phase 4 마무리**: 펫 초상용으로 남겨 두던 `human`·`limb`·`hand`·`foot`·`headgear`·`weapon`·`beast`·`leg2`·`eye`·`beastPatternOf`·`BEAST_PATTERN`(약 1100줄) 삭제, 두 펫 갈래는 `loadingMark` 자리표시(사가의숲과 같은 결). 호출부 0 은 `sprite.js` 밖(진단·데모·어드민 포함) grep 으로 확인.
+- 펫 초상 210장 다시 구움(210/210, 대역 27종 + 외곽선이 새로 붙은 extra 폴더 동물). 진단 1 추가(모델 키 105종·대역·배우 판정·함수 없음 — `_test.html` 은 디스크 목록을 안 실어 굽기 조건을 본다) → 370/370. `sw.js` dungeon-v0.152.0.

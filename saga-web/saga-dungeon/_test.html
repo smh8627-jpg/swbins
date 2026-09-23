@@ -5385,6 +5385,18 @@ window.requestAnimationFrame = function () { return 0; };
 
     /* ── 그래픽 통일 Phase 6 — 외곽선은 배우만 (PLAN §6.1-3, 2026-09-18) ── */
 
+    t('초상 — 펫 105종 전부 3D 로 굽힌다(신수·오마주는 사가고와 같은 대역), 펫용 코드 그림 함수는 지웠다', function () {
+      /* 2026-09-23 — PET_ASSET 표가 14종에서 안 늘어 나머지가 굽히지 않던 것을 autoPetKey 로 풀고, 신수·오마주는 대역을 입혔다 */
+      /* _test.html 은 디스크 초상 목록(manifest.js)을 안 싣는다 — 굽기가 되는 조건(모든 펫에 모델 키)을 본다. 실제 굽기 210/210 은 bake-portraits 로 확인 */
+      var D = DG.data, S = DG.sprite, A3 = DG.asset3d, R = A3.DEFAULTS;
+      var miss = D.pets.filter(function (p) { return !R['pet:' + String(p.id).replace(/^pt_/, '')]; }).map(function (p) { return p.id; });
+      var stand = /standin\/Orc\.gltf$/.test(R['pet:dokkaebi'] || '') && /T_Rex\.glb$/.test(R['pet:pk_charizard'] || '');
+      var actor = A3.isActorAsset('assets/models/animals_extra2/Tuna.glb') && A3.isActorAsset('assets/models/standin/Snake.glb');
+      var gone = !S.human && !S.beast && !S.beastPatternOf;
+      if (miss.length || !stand || !actor || !gone) { return false; }
+      return '모델 키 ' + D.pets.length + '종 전부 · 대역(도깨비=오크·pk_charizard=티렉스) · animals_extra·standin 도 배우 · 코드 그림 함수 없음';
+    });
+
     t('외곽선 — isActorAsset이 사람·짐승·몬스터 GLB만 배우로 가른다 (PLAN §6.1-3)', function () {
       var A3 = DG.asset3d;
       if (!A3 || typeof A3.isActorAsset !== 'function') { return false; }

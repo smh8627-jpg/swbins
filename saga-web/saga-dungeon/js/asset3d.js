@@ -47,6 +47,7 @@
   var ANIMALS = 'assets/models/animals/';
   var ANIMALS_EXTRA = 'assets/models/animals_extra/';
   var ANIMALS_EXTRA2 = 'assets/models/animals_extra2/';
+  var STANDIN = 'assets/models/standin/';   // 신수·오마주 대역 — 사가고에서 복사(2026-09-23)
   var PROPS = 'assets/models/props/';
   var BLD = 'assets/models/buildings/';
   var BLD_REAL = 'assets/models/buildings/realistic/';
@@ -698,6 +699,36 @@
     'pet:worm': ANIMALS_EXTRA2 + 'Worm.glb',
     'pet:yellow_tang': ANIMALS_EXTRA2 + 'Yellow_Tang.glb',
     'pet:zebra_clown_fish': ANIMALS_EXTRA2 + 'Zebra_Clown_Fish.glb',
+    /* 신수·포켓몬 오마주 대역(2026-09-23, 사용자 "사가고처럼 대역 입히기") — CC0 로 있을 리 없는 창작물이라 예전엔 뺐다.
+       사가고가 형태별 풀에서 id 해시로 고른 것과 **같은 모델**을 입힌다(해태=당나귀·청룡=스테고사우루스 등, 세 판이 같은 대역).
+       이 판에 없던 여섯(Birb·Pigeon·Snake 둘·Orc·Demon)만 사가고에서 `standin/` 으로 복사, 나머지는 이미 있는 같은 종 모델 */
+    'pet:samjogo': STANDIN + 'Birb.glb',
+    'pet:haetae': ANIMALS_EXTRA + 'Donkey.glb',
+    'pet:cheongryong': ANIMALS_EXTRA2 + 'Stegosaurus.glb',
+    'pet:baekho': ANIMALS + 'Husky.glb',
+    'pet:jujak': STANDIN + 'Pigeon.glb',
+    'pet:hyeonmu': STANDIN + 'Snake.glb',
+    'pet:gumiho': ANIMALS + 'ShibaInu.glb',
+    'pet:dokkaebi': STANDIN + 'Orc.gltf',
+    'pet:bulgasari': ANIMALS_EXTRA + 'Donkey.glb',
+    'pet:jeoktoma': ANIMALS_EXTRA + 'White_Horse.glb',
+    'pet:jeolyeong': ANIMALS_EXTRA + 'White_Horse.glb',
+    'pet:pk_bulbasaur': ANIMALS_EXTRA + 'Stag.glb',
+    'pet:pk_charmander': ANIMALS + 'Wolf.glb',
+    'pet:pk_squirtle': STANDIN + 'Snake_angry.glb',
+    'pet:pk_magikarp': ANIMALS_EXTRA + 'Dolphin.glb',
+    'pet:pk_pikachu': ANIMALS_EXTRA + 'Alpaca.glb',
+    'pet:pk_eevee': ANIMALS_EXTRA + 'Fox.glb',
+    'pet:pk_slowbro': ANIMALS + 'ShibaInu.glb',
+    'pet:pk_gengar': STANDIN + 'Demon.gltf',
+    'pet:pk_snorlax': ANIMALS + 'Husky.glb',
+    'pet:pk_lapras': STANDIN + 'Snake_angry.glb',
+    'pet:pk_alakazam': STANDIN + 'Demon.gltf',
+    'pet:pk_dragonite': ANIMALS_EXTRA2 + 'Velociraptor.glb',
+    'pet:pk_charizard': ANIMALS_EXTRA2 + 'T_Rex.glb',
+    'pet:pk_gyarados': ANIMALS_EXTRA2 + 'Stegosaurus.glb',
+    'pet:pk_mewtwo': STANDIN + 'Orc.gltf',
+    'pet:pk_mew': ANIMALS_EXTRA + 'Alpaca.glb',
     /* 2026-09-04(이어서) — 사용자가 "사가고처럼 실사화"를 요청 → 사람은
        막다른 길(Mixamo 재배포 금지, 위 delam 주석 참고)이라 자연물만
        Poly Haven CC0 사진측량 스캔으로 갈아 끼웠다(`island_tree_02`,
@@ -1124,8 +1155,9 @@
      NATURE·PROPS·BLD·DUN·WPN·GEAR 는 전부 빠진다(의도, 방 경계·무기에
      테두리가 생기는 위험을 피한다 — 화면 확인 없이 짠 이번 손질에서도
      그 위험만은 여전히 안 무릅쓴다). */
+  /* 2026-09-23 — animals_extra·animals_extra2(사가블로 "펫 100개" 모델)·standin(신수·오마주 대역)도 배우. 전엔 `animals/` 만 맞아 그 펫들이 외곽선·림 없이 구워졌다 */
   function isActorAsset(url) {
-    return typeof url === 'string' && /\/models\/(people|animals|monsters)\//.test(url);
+    return typeof url === 'string' && /\/models\/(people|animals|animals_extra2?|standin|monsters)\//.test(url);
   }
 
   /* 2026-09-19 — PLAN §6.1-5가 나중으로 미룬 "풀 바람 셰이더"(sway3d.js).

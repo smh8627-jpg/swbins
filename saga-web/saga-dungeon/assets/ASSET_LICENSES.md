@@ -1859,3 +1859,10 @@ VRoid Studio 공식 CC0 샘플 AvatarSample_A/B/C(github.com/madjin/vrm-samples,
 
 `js/dungeon3d.js` 의 `HDRI_SRC` 가 PBR 재질 반사·거칠기용 `scene.environment` 로만 쓴다(배경 하늘은 안 바꾼다).
 2026-09-23 `tools/asset-audit` 이 이 판 문서에만 빠진 것을 잡아 채웠다.
+
+
+## 신수·포켓몬 오마주 대역 모델 — 사가고에서 복사 (2026-09-23)
+
+`models/standin/` — `Birb.glb`·`Pigeon.glb`·`Snake.glb`·`Snake_angry.glb`·`Orc.gltf`·`Demon.gltf`. 사가고 `assets/models/animals/` 의 같은 파일을
+**그대로 복사**했다(출처·경위는 `saga-web/saga-go/assets/ASSET_LICENSES.md` — Quaternius CC0: 새 둘은 animals pack, 뱀 둘은 easy_enemies_pack,
+Orc·Demon 은 Ultimate Monsters). 사용자 결정("사가고처럼 대역 입히기")으로 신수·오마주 도감 초상에 사가고와 같은 대역을 입히는 데만 쓴다.

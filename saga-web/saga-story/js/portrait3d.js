@@ -94,7 +94,17 @@
     pt_toad: 'critter:toad', pt_triceratops: 'critter:triceratops', pt_tuna: 'critter:tuna',
     pt_turbot: 'critter:turbot', pt_velociraptor: 'critter:velociraptor', pt_whale: 'critter:whale',
     pt_white_horse: 'critter:white_horse', pt_worm: 'critter:worm', pt_yellow_tang: 'critter:yellow_tang',
-    pt_zebra: 'critter:zebra', pt_zebra_clown_fish: 'critter:zebra_clown_fish'
+    pt_zebra: 'critter:zebra', pt_zebra_clown_fish: 'critter:zebra_clown_fish',
+    /* 신수·오마주 대역(asset3d 참고) */
+    pt_samjogo: 'critter:samjogo', pt_haetae: 'critter:haetae', pt_cheongryong: 'critter:cheongryong',
+    pt_baekho: 'critter:baekho', pt_jujak: 'critter:jujak', pt_hyeonmu: 'critter:hyeonmu',
+    pt_dokkaebi: 'critter:dokkaebi', pt_bulgasari: 'critter:bulgasari', pt_jeoktoma: 'critter:jeoktoma',
+    pt_jeolyeong: 'critter:jeolyeong', pk_bulbasaur: 'critter:pk_bulbasaur', pk_charmander: 'critter:pk_charmander',
+    pk_squirtle: 'critter:pk_squirtle', pk_magikarp: 'critter:pk_magikarp', pk_pikachu: 'critter:pk_pikachu',
+    pk_eevee: 'critter:pk_eevee', pk_slowbro: 'critter:pk_slowbro', pk_gengar: 'critter:pk_gengar',
+    pk_snorlax: 'critter:pk_snorlax', pk_lapras: 'critter:pk_lapras', pk_alakazam: 'critter:pk_alakazam',
+    pk_dragonite: 'critter:pk_dragonite', pk_charizard: 'critter:pk_charizard', pk_gyarados: 'critter:pk_gyarados',
+    pk_mewtwo: 'critter:pk_mewtwo', pk_mew: 'critter:pk_mew'
   };
   function petKeyOf(id) { return PET_MAP[id] || null; }
 
