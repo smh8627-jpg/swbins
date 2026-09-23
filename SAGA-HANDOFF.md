@@ -370,10 +370,9 @@ PC 묶음   각 폴더 build-pc.bat → dist/<게임>.html (다섯 판 공용 �
 - **다섯 판 공용 에셋 통합 관리 엔진(장기)** — 사용자가 명시적으로 확정한 목표. 범위·형태·순서 미정 — 착수 전
   반드시 사용자와 맞춘다. `SAGA-DESIGN.md` §7.2 `tools/asset-forge/` 제안과 겹치므로 그쪽을 출발점으로.
   2026-09-23 `tools/asset-audit/` 가 트랙을 넘는 사본(29묶음, 대부분 Godot·Unity 공용 Kenney)을 보고서로 낸다 — 통합 후보 목록으로 쓸 것.
-- **Unity 씬 조립 실제 실행** — `saga-unity/Assets/Editor/BuildFromLayout.cs`(메뉴 Saga > Layout)는 실제 Unity 컴파일까지 통과했다(2026-09-23, 다른 세션 배치 로그 `Tundra build success`·CS 오류 0). 조립 실행은 확인 전.
-  다른 세션이 saga-unity 를 안 고칠 때 한 번 돌려 볼 것(`tools/scene-layout/README.md`).
+- **Unity 씬 조립 헤드리스는 완료, 창 모드 확인 전** — `BuildFromLayout.BuildFromArgs` 를 배치 모드로 실제 돌려 `Assets/Scenes/Generated/HebeiLayout.unity` 조립까지 확인했다(2026-09-23, 바닥 441·물건 161·명소 13·없는 에셋 0·오류 0). 에디터로 열어 실제로 보는 것은 확인 전.
 - **Godot LayoutWalk 실기 확인** — 글자 지도 조립 씬을 걷는 래퍼 `saga-godot/games/saga_go/layout/LayoutWalk.tscn`(2026-09-23, 자동 걷기 점검 3회 통과). 창 모드로 실제 걸어 보기·명소 이름표 렌더는 확인 전(`saga-godot/docs/PROJECT_STATE.md` 실기 확인 대기).
-- **게임 제작 도구 넷 실사용 확인** — 콘텐츠 편집기(OBJ→GLB 포함)·맵 편집기(사가고·사가국지·사가스토리)·새 판 생성기·scene-layout 은 전부 scratch 시험만 마쳤다(2026-09-23). 위치는 `tools/README.md`. 사용자가 직접 켜서 확인 전.
+- **게임 제작 도구 다섯(+register.mjs) 실사용 확인** — 콘텐츠 편집기(OBJ→GLB 포함)·맵 편집기(사가고·사가국지·사가스토리)·새 판 생성기(register.mjs 포함)·scene-layout·도구 허브는 전부 scratch 시험만 마쳤다(2026-09-23). 위치는 `tools/README.md`. 사용자가 직접 켜서 확인 전.
 - **사가고 `tower_ruin.glb`(역참) 아이콘 굽기** — 여섯 번 넘게 실패해 절차 그림 그대로.
   재시도 방법은 `saga-web/saga-go/tools/bake-icons/README.md`.
 - **절차적 인물·펫 다섯째 나라** — 한국·일본·중국(구주)·서역(2026-09-23) 완료(`saga-go/js/region-*.js`·`genchar*.js`). 다음 나라는 사용자가 정한다.
