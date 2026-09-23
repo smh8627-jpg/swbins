@@ -32,6 +32,7 @@
   var renderer = null, scene = null, camera = null, ready = false;
   var W = 0, H = 0;
   var lastMood = null, worldGroup = null, actorGroup = null, dirLight = null, ambLight = null;
+  var pendingMesh = null, pendingMeshId = null, pendingT = 0;   // 전직으로 새로 조립 중인 주인공 몸(도착 전엔 옛 몸이 선다)
   var playerMesh = null, playerMeshId = null, enemyPool = [], npcPool = [], gatherPool = [], critterPool = [], chestMesh = null;
   var deadMeshes = {};   // run.dying 의 uid → 배우. 인덱스가 아니라 uid로 붙드므로
                           // 죽는 도중에 다른 적이 그 자리를 이어받지 않는다(side.js kill() 참고)
@@ -832,7 +833,20 @@
     var look = TNl && TNl.jobLook ? TNl.jobLook(fColor, global.DG.core.save.job) : { css: fColor, key: '' };
     var meKey = meRef.id + '|' + look.key;
     if (playerMesh && playerMeshId !== meKey) {
-      actorGroup.remove(playerMesh); disposeDeep(playerMesh); playerMesh = null;
+      if (playerMesh.userData.glb && playerMeshId.indexOf(meRef.id + '|') === 0) {
+        /* 같은 인물의 전직(빛깔만 바뀜) — 새 몸은 화면 밖에서 조립하고, GLB 가 도착하면(못 받으면 4초 뒤)
+           그때 바꿔 낀다. 바로 치우면 캡슐이 한 번 비쳤다(2026-09-23 HANDOFF "이어서 6" 흠) */
+        if (pendingMesh && pendingMeshId !== meKey) { disposeDeep(pendingMesh); pendingMesh = null; }
+        if (!pendingMesh) { pendingMesh = actorShell(Tc, 'human', look.css, false, meRef.id, false); pendingMeshId = meKey; pendingT = now; }
+        if (pendingMesh.userData.glb || now - pendingT > 4) {
+          actorGroup.remove(playerMesh); disposeDeep(playerMesh);
+          playerMesh = pendingMesh; playerMeshId = meKey; actorGroup.add(playerMesh);
+          pendingMesh = null;
+        }
+      } else {
+        actorGroup.remove(playerMesh); disposeDeep(playerMesh); playerMesh = null;
+        if (pendingMesh) { disposeDeep(pendingMesh); pendingMesh = null; }
+      }
     }
     if (!playerMesh) {
       playerMesh = actorShell(Tc, 'human', look.css, false, meRef.id, false);
