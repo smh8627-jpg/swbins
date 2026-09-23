@@ -20,17 +20,14 @@
 - **09-22~23 요약(상세 HISTORY 해당 날짜)**: REALM 안개·DUNGEON 문 아치 렌더 누락 버그 수정 · 굴혈 mood 3종 · GO 폐허 비석·rock·wall/fence 배선 · FOREST 하트 아이콘·트라이플레이너 · 사용자가 09-23 "실기손맛 괜찮아"로 그때까지의 실기 대기 **전체 승인**(STORY·REALM VS 게이트 포함).
 - **판단 종결(재작업 후보 아님, 근거 HISTORY 09-23)**: STORY 트라이플레이너(2.5D 옆면 플랫포머라 장르상 불필요) · icon_star(아이콘 UI를 일부러 안 만든다는 기존 결정) · NPC 옷 팔레트(재질 하나짜리 GLB + 군중 NPC 소비처 없음) · 105 Q-b(절차 지형이라 LightmapGI 부적합, PC SDFGI 유지).
 - **105 Q-d 정정(09-23)**: Mixamo는 로그인만 사람 몫, 검색·다운로드는 루트 `tools/mixamo_automation/`(09-21 구축)로 이미 자동. VRoid 조형만 사람 몫(무료 대체 파이프라인 없음).
-- **Quaternius 씬 배치 5단계(09-23 진행 중)**: GO `vegetation_builder.gd` — village "." 칸 `_scatter_village_path()`(Pebble_Square_1·RockPath_Square_Wide 1/12) · coast "D" 칸 `_scatter_coast_pebbles()`(Pebble_Round_1~3 1/10, coast엔 "." 칸이 없어 `REGION_CLUTTER_GLB["coast"]`가 죽은 설정이었음). FOREST `forest_biome_scatter.gd` — primitive 셋 전부 교체: mush→`Mushroom_Common`(`textured_material`), meadow→`Flower_3_Group`·dark→`Fern_1`(신설 `curved_textured_cutout.gdshader`+`WorldCurveMaterial.cutout_material()`, 양면+알파 컷, 표면별 원본 텍스처). GO village "T" 칸 하층 식생 `_scatter_understory()`(Fern_1·Mushroom_Common, 실측 13·13개) · "." 칸 들꽃 `_scatter_wildflowers()`(칸당 4, Clover_2·Grass_Common_Short·Flower_3/4_Single — 칸이 48m라 기존 clutter는 마을 전체 2개뿐이었음). FOREST dark·mush 바이옴 밀도 1/10→1/4(바이옴별 5·3·5·5개로 균형, 기존 자리 유지). 배율은 전부 옛 높이÷trimesh 실측고(옛 크기가 없는 신규는 인물 ≈3.4m 기준).
-- **09-23 재질 버그 3건 수정(전부 "원본 재질을 override로 덮어 잃음" 부류, 상세 HISTORY 09-23)**: FOREST rocky 흰 바위(정점색 없는 gltf에 vertex_color_material → `textured_material`) · FOREST 나무 잎 네모판(알파 무시 → `curved_vertex_color_cutout.gdshader`, 색은 그대로) · **FOREST 플레이어가 09-19 VRoid 교체 이후 늘 Kenney `texture-a.png`로 덮여 있던 것**(`forest_wear_visual.gd` 염색, 세이브 기본값 dye "none"이라 매번 실행 → 이제 `_CLOTH` 표면 cel_toon tint만, 덧옷은 `Visual` 자식·1.7m 기준). 재발 방지로 `saga_core/world/material_audit.gd`를 `godot_regress.sh` 통과 조건에 추가.
-- **09-23 GO 메시 누락 버그 수정(상세 HISTORY 09-23 마지막 항목)**: 스냅 GLB 일부가 MeshInstance 둘(줄기+잎·꽃대+꽃송이)로 쪼개져 있는데 `GLBUtils.extract_mesh()`가 첫 하나만 써서 **09-20 이후 GO 마을 나무는 잎 없이 줄기만**, 들꽃 Flower_3/4_Single은 꽃대만 그려졌다 → 여럿이면 표면을 합친다(`_merge_mesh_instances`), 바람 셰이더도 표면 전부. 영향은 GO 세 GLB뿐(전수 확인).
-- **09-23 GO 나무 변종 5종 섞기(직전 항목 뒤 재개, 상세 HISTORY 09-23 마지막 항목)**: `REGION_TREE_GLB`/`REGION_TREE_SCALE`(종 1개)를 `REGION_TREE_VARIANTS`(종 배열)로 — village CommonTree_1~5·ruins DeadTree_1~5, 전부 같은 목표 높이 5.52m로 역산(trimesh 정밀 실측). 트렁크 충돌은 종 무관(`scales[i]`만 사용)이라 그대로, 시각만 종별 `MultiMeshInstance3D`로 분리(wildflower와 같은 패턴).
+- **Quaternius 씬 배치 5단계(09-23, 상세 전부 HISTORY 09-23 여러 절)**: GO 정원길·해변 조약돌·숲 하층 고사리·버섯·평지 들꽃 신설. FOREST 바이옴 primitive→GLB 3종 교체(신설 컷아웃 셰이더 둘)+밀도 균형. **버그 수정**: FOREST 흰 바위·나무 잎 네모판·09-19부터 VRoid 위에 Kenney 텍스처가 덮이던 것(모두 "원본 재질을 override로 잃음" 부류, `material_audit.gd` 신설로 회귀 방지) · GO 스냅 GLB 일부가 노드 둘로 쪼개져 나무 잎·들꽃 꽃송이가 안 그려지던 것(`extract_mesh` 병합으로 수정). 이어서 **다양화**: GO 나무 village CommonTree_1~5·ruins DeadTree_1~5 섞기(목표 높이 5.52m로 통일), 정원길·조약돌에 남은 바위 15종 추가.
 - Downloads `model.vroid`는 FOREST 아바타의 VRoid Studio 원본 프로젝트(09-20 확인) — 대기 중인 새 VRoid 조형 없음.
 - **글자 지도 조립 씬 걷기 래퍼**(09-23, 새 세션): `games/saga_go/layout/LayoutWalk.tscn` — `tools/scene-layout/`의 생성 씬(보기용)에 바닥 충돌·물 막기(산은 안 막음)·명소 13 발견 판정+이름표를 붙였다. 발견은 이 씬 안에서만 세고 GO 도감·세이브엔 안 넣는다(명소 id가 도감 43칸 밖). 자동 걷기 점검(`SAGA_LAYOUT_PROBE=1`) 3회 fails=0. 실기(창 모드) 확인 전.
 
 ## 다음 작업 (우선순위)
 
 1. **사용자 실기 확인 결과 대기** — 아래 "실기 확인 대기" 6건. 특히 FOREST 플레이어(처음으로 원래 VRoid 모습). 결과에 문제가 있으면 그것부터.
-2. Quaternius 남은 종(바위·잔디꽃 일부) — 급하지 않음. 나무 변종은 위에서 마쳤다(village·ruins만 — coast는 "T" 칸이 없어 나무 없음). 새로 까는 장식은 GO 칸이 48m라 칸당 여러 개여야 보인다(09-23 실측).
+2. Quaternius 남은 종(잔디·꽃 13종 — Petal 5·Plant 4·Grass_Tall 2·Mushroom_Laetiporus·Flower_4_Group) — 급하지 않음. 나무·바위(산책로·조약돌)는 위에서 마쳤다(coast는 "T" 칸이 없어 나무 없음). 새로 까는 장식은 GO 칸이 48m라 칸당 여러 개여야 보인다(09-23 실측).
 3. 참고: 103-4 리타겟 "트위스트 미보정"은 트위스트 큰 새 클립을 넣을 때만 재검토. Mixamo 새 클립은 루트 `tools/mixamo_automation/`(로그인만 사람).
 
 ## 알려진 오류
@@ -45,6 +42,7 @@
 
 - **GO 마을 나무에 처음으로 잎이 달림 + 들꽃 꽃송이**(09-23 — 09-20 이후 줄기만 보였던 것. 캐노피가 너무 빽빽하거나 시야를 가리지 않는지, 잎이 살랑이는지 + 나무 모양 5종 섞임(village 참나무류, ruins 고사목 5종))
 - **GO 마을 정원길·해변 조약돌·숲 하층 고사리·버섯·평지 들꽃**(09-23) — 배치가 실제 화면에서 자연스러운지.
+- **GO 정원길·조약돌 종 다양화**(09-23) — 위 항목과 같은 화면, 종만 늘었다(별도 확인 불필요, 참고만).
 - **FOREST 플레이어 외형**(09-23 — 09-19 이후 처음으로 VRoid 원래 텍스처·툰·얼굴 베이크가 보인다. 옷 염색은 옷에만, 덧옷은 등에 붙어 같이 도는지)
 - **FOREST 나무 잎**(09-23, 네모판→잎 모양 — 캐노피가 성겨 보이는지, 색감이 그대로인지)
 - **FOREST 바이옴 장식 넷**(09-23, 버섯·꽃·고사리 + rocky 바위 흰색→텍스처, dark·mush 밀도↑) — 크기, 곡률 위에 붙어 보이는지, 꽃·고사리 잎이 네모판 없이 오려져 보이는지.

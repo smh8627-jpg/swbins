@@ -146,9 +146,27 @@ const RUBBLE_COLOR := Color(0.4, 0.37, 0.34)
 ## — 실측(trimesh) 결과 두 GLB 모두 이미 사람 스케일에 맞는 실제 크기라
 ## (RockPath_Square_Wide 2.05×0.18×1.99m, Pebble_Square_1 0.43×0.13×0.44m)
 ## 별도 배율 역산이 필요 없다(scale=1.0).
+##
+## 2026-09-23 — 105 Q-d 남은 바위 종(24종 전부 스냅 완비, ASSET_GUIDE 09-20)
+## 중 "산책로" 계열(Pebble_Square·RockPath_*)을 마저 다 얹었다. 전부
+## trimesh 재확인(0.28~2.09m 사방, 이미 같은 사람 스케일) — scale=1.0
+## 그대로, 코드 변경 없이 배열만 늘렸다(선택 로직이 배열 크기에 안 묶임).
 const VILLAGE_PATH_GLB := [
 	"res://assets/generated/variants/RockPath_Square_Wide__go_village.glb",
 	"res://assets/generated/variants/Pebble_Square_1__go_village.glb",
+	"res://assets/generated/variants/Pebble_Square_2__go_village.glb",
+	"res://assets/generated/variants/Pebble_Square_3__go_village.glb",
+	"res://assets/generated/variants/Pebble_Square_4__go_village.glb",
+	"res://assets/generated/variants/Pebble_Square_5__go_village.glb",
+	"res://assets/generated/variants/Pebble_Square_6__go_village.glb",
+	"res://assets/generated/variants/RockPath_Round_Small_1__go_village.glb",
+	"res://assets/generated/variants/RockPath_Round_Small_2__go_village.glb",
+	"res://assets/generated/variants/RockPath_Round_Small_3__go_village.glb",
+	"res://assets/generated/variants/RockPath_Round_Thin__go_village.glb",
+	"res://assets/generated/variants/RockPath_Square_Small_1__go_village.glb",
+	"res://assets/generated/variants/RockPath_Square_Small_2__go_village.glb",
+	"res://assets/generated/variants/RockPath_Square_Small_3__go_village.glb",
+	"res://assets/generated/variants/RockPath_Square_Thin__go_village.glb",
 ]
 const VILLAGE_PATH_DENSITY := 12  # "." 칸 1/12
 
@@ -157,11 +175,14 @@ const VILLAGE_PATH_DENSITY := 12  # "." 칸 1/12
 ## 설정이었다, 확인함) — 대신 모래밭("D")에 조약돌을 흩뿌린다. 09-20⑮에서
 ## "Pebble_Round×go_coast는 스냅 후 갈색 모래톤이 돼 해변에 더 맞게
 ## 고쳐졌다"로 이미 무난 판정. 실측(trimesh) Pebble_Round_1 0.50×0.10×0.37m
-## — 사람 스케일이라 배율 역산 불필요.
+## — 사람 스케일이라 배율 역산 불필요. 2026-09-23 — 나머지 두 종(4·5)도
+## 마저 얹음(0.41×0.10×0.45m·0.42×0.10×0.35m, 같은 스케일).
 const COAST_PEBBLE_GLB := [
 	"res://assets/generated/variants/Pebble_Round_1__go_coast.glb",
 	"res://assets/generated/variants/Pebble_Round_2__go_coast.glb",
 	"res://assets/generated/variants/Pebble_Round_3__go_coast.glb",
+	"res://assets/generated/variants/Pebble_Round_4__go_coast.glb",
+	"res://assets/generated/variants/Pebble_Round_5__go_coast.glb",
 ]
 const COAST_PEBBLE_DENSITY := 10  # "D" 칸 1/10
 

@@ -8301,3 +8301,10 @@ PROJECT_STATE.md` 참고. 요약:
 - `_scatter_trees()` 재구성: 트렁크 충돌(종 무관, `scales[i]`만 사용)은 그대로 한 번에, 시각은 종별 `MultiMeshInstance3D`로 나눔(`_scatter_wildflowers`와 같은 패턴 — MultiMesh 하나엔 Mesh 하나만 얹을 수 있어서). 타일마다 해시로 종 선택(salt 300대, 기존 0·1·100·200과 안 겹침).
 - 다섯 CommonTree 스냅 전부 노드 2개(줄기+잎)·다섯 DeadTree 전부 노드 1개로 사전 확인(glb JSON 직접 파싱) — glb_utils 병합 경로가 둘 다 올바르게 처리.
 - `godot_regress.sh` REGRESS OK — GO만 md5 변경(나머지 넷 불변), 재질 감사 0, `.import`/`project.godot` 잡음 없음.
+
+## Quaternius 산책로·조약돌 남은 바위 종 마저 배치 — GO village·coast (2026-09-23, 새 세션, "사가고돗 이어해")
+
+- 105 Q-d 5단계 남은 항목 중 "바위" 계열을 닫았다. `VILLAGE_PATH_GLB`(정원길)에 09-20 24종 스냅 중 안 쓰던 Pebble_Square_2~6·RockPath_Round_Small_1~3+Thin·RockPath_Square_Small_1~3+Thin(13종)을, `COAST_PEBBLE_GLB`(해변 조약돌)에 Pebble_Round_4~5(2종)를 추가 — 코드(선택 로직)는 그대로, 배열만 늘렸다(둘 다 배열 크기로 나누는 해시 선택이라 자동 반영).
+- 추가 전 trimesh로 전부 재실측(0.28~2.09m 사방) — 기존 두 종과 같은 이미 사람 스케일이라 별도 배율 역산 불필요(scale=1.0 그대로).
+- 남는 건 잔디·꽃 계열(Petal 5·Plant 4·Grass_Tall 2·Mushroom_Laetiporus·Flower_4_Group, 13종) — 급하지 않음, PROJECT_STATE에 남김.
+- `godot_regress.sh` REGRESS OK — GO만 md5 변경, 재질 감사 0, 잡음 없음.
