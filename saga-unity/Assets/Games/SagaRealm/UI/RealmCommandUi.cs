@@ -260,7 +260,7 @@ namespace Saga.Realm.UI
             _attackButtonsRoot = root.transform;
 
             RealmUiKit.NewButton(_attackPanel.transform, RealmLocalization.T("settings.close"), new Vector2(0.5f, 0f), new Vector2(0f, 30f),
-                new Vector2(300f, 70f), () => _attackPanel.SetActive(false));
+                new Vector2(300f, 70f), CloseAttackPanel);
         }
 
         /// <summary>PLAN.md 101-2 5-3 "일기토" — 강제 진행형 모달(닫기 버튼
@@ -278,12 +278,12 @@ namespace Saga.Realm.UI
             _duelRoundText = RealmUiKit.NewText(_duelPanel.transform, "", new Vector2(0.5f, 1f), new Vector2(0f, -140f),
                 new Vector2(560f, 50f), 24);
 
-            RealmUiKit.NewButton(_duelPanel.transform, RealmDuelState.MoveName("slash"), new Vector2(0.5f, 1f), new Vector2(0f, -230f),
-                new Vector2(460f, 80f), () => ChooseDuelMove("slash"));
-            RealmUiKit.NewButton(_duelPanel.transform, RealmDuelState.MoveName("stab"), new Vector2(0.5f, 1f), new Vector2(0f, -320f),
-                new Vector2(460f, 80f), () => ChooseDuelMove("stab"));
-            RealmUiKit.NewButton(_duelPanel.transform, RealmDuelState.MoveName("guard"), new Vector2(0.5f, 1f), new Vector2(0f, -410f),
-                new Vector2(460f, 80f), () => ChooseDuelMove("guard"));
+            Saga.Core.ButtonWiring.Wire(RealmUiKit.NewButton(_duelPanel.transform, RealmDuelState.MoveName("slash"), new Vector2(0.5f, 1f), new Vector2(0f, -230f),
+                new Vector2(460f, 80f), null), ChooseDuelMove, "slash");
+            Saga.Core.ButtonWiring.Wire(RealmUiKit.NewButton(_duelPanel.transform, RealmDuelState.MoveName("stab"), new Vector2(0.5f, 1f), new Vector2(0f, -320f),
+                new Vector2(460f, 80f), null), ChooseDuelMove, "stab");
+            Saga.Core.ButtonWiring.Wire(RealmUiKit.NewButton(_duelPanel.transform, RealmDuelState.MoveName("guard"), new Vector2(0.5f, 1f), new Vector2(0f, -410f),
+                new Vector2(460f, 80f), null), ChooseDuelMove, "guard");
         }
 
         /// <summary>PLAN.md 101-2 5-3 "설전" — 등용에만 거는 3문 카드
@@ -353,12 +353,14 @@ namespace Saga.Realm.UI
                 int row = i % 5;
                 float x = col == 0 ? -230f : 230f;
                 float y = -150f - row * 100f;
-                RealmUiKit.NewButton(_orderPanel.transform, label, new Vector2(0.5f, 1f), new Vector2(x, y),
-                    new Vector2(420f, 84f), () => ChooseOrder(key));
+                var orderButton = RealmUiKit.NewButton(_orderPanel.transform, label, new Vector2(0.5f, 1f), new Vector2(x, y),
+                    new Vector2(420f, 84f), null);
+                // 영속 리스너(인자 string) — 람다는 씬 저장 때 사라진다(SagaCore/ButtonWiring.cs).
+                Saga.Core.ButtonWiring.Wire(orderButton, ChooseOrder, key);
             }
 
             RealmUiKit.NewButton(_orderPanel.transform, RealmLocalization.T("settings.close"), new Vector2(0.5f, 0f), new Vector2(0f, 40f),
-                new Vector2(300f, 70f), () => _orderPanel.SetActive(false));
+                new Vector2(300f, 70f), CloseOrderPanel);
         }
 
         /// <summary>함락한 성(REALM 다음 조각 (2))이 늘면 목록도 늘어야
@@ -383,7 +385,7 @@ namespace Saga.Realm.UI
             _cityButtonsRoot = root.transform;
 
             RealmUiKit.NewButton(_cityPanel.transform, RealmLocalization.T("settings.close"), new Vector2(0.5f, 0f), new Vector2(0f, 30f),
-                new Vector2(300f, 70f), () => _cityPanel.SetActive(false));
+                new Vector2(300f, 70f), CloseCityPanel);
         }
 
         private void RefreshCityPanel()
@@ -430,7 +432,7 @@ namespace Saga.Realm.UI
             _plotButtonsRoot = root.transform;
 
             RealmUiKit.NewButton(_plotPanel.transform, RealmLocalization.T("settings.close"), new Vector2(0.5f, 0f), new Vector2(0f, 40f),
-                new Vector2(300f, 70f), () => _plotPanel.SetActive(false));
+                new Vector2(300f, 70f), ClosePlotPanel);
         }
 
         /// <summary>51장 16차 확장의 "알려진 틈" 후속(2026-09-18) — 목표가
@@ -507,7 +509,7 @@ namespace Saga.Realm.UI
             _quizButtonsRoot = root.transform;
 
             RealmUiKit.NewButton(_quizPanel.transform, RealmLocalization.T("settings.close"), new Vector2(0.5f, 1f), new Vector2(0f, -740f),
-                new Vector2(300f, 70f), () => _quizPanel.SetActive(false));
+                new Vector2(300f, 70f), CloseQuizPanel);
         }
 
         /// <summary>새 문제를 뽑아 화면을 다시 채운다 — 열 때·정답을
@@ -562,6 +564,15 @@ namespace Saga.Realm.UI
         /// confirm/error 재생 (`RealmAudio.cs` 클래스 주석 참고).</summary>
         private void PlayOutcomeSfx(bool ok) => RealmAudio.PlaySfx(ok ? confirmClip : errorClip);
 
+        // 닫기 버튼 영속 리스너용(람다 불가 — SagaCore/ButtonWiring.cs, 2026-09-23 먹통 버그).
+        private void CloseAttackPanel() => _attackPanel.SetActive(false);
+        private void CloseOrderPanel() => _orderPanel.SetActive(false);
+        private void CloseCityPanel() => _cityPanel.SetActive(false);
+        private void ClosePlotPanel() => _plotPanel.SetActive(false);
+        private void CloseQuizPanel() => _quizPanel.SetActive(false);
+        private void CloseArchivePanel() => _archivePanel.SetActive(false);
+        private void CloseSettingsPanel() => _settingsPanel.SetActive(false);
+
         private void CloseAllPanels()
         {
             _orderPanel.SetActive(false);
@@ -597,7 +608,7 @@ namespace Saga.Realm.UI
             _archiveButtonsRoot = root.transform;
 
             RealmUiKit.NewButton(_archivePanel.transform, RealmLocalization.T("settings.close"), new Vector2(0.5f, 1f), new Vector2(0f, -740f),
-                new Vector2(300f, 70f), () => _archivePanel.SetActive(false));
+                new Vector2(300f, 70f), CloseArchivePanel);
         }
 
         private void RefreshArchivePanel()
@@ -654,7 +665,7 @@ namespace Saga.Realm.UI
             (_settingsSuccessionNameLabel, _settingsSuccessionLabel) = MakeSettingsRow(-760f, "settings.succession", ChooseSuccession);
 
             var closeButton = RealmUiKit.NewButton(_settingsPanel.transform, RealmLocalization.T("settings.close"),
-                new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(300f, 70f), () => _settingsPanel.SetActive(false));
+                new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(300f, 70f), CloseSettingsPanel);
             _settingsCloseLabel = closeButton.GetComponentInChildren<Text>();
 
             RefreshSettingsPanel();

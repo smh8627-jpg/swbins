@@ -1506,12 +1506,12 @@ namespace Saga.EditorTools
 
         private static void BuildSaveButton()
         {
-            BuildActionButton("SaveUI", "SaveButton", new Vector2(1f, 1f), new Vector2(-30f, -30f),
-                new Vector2(160f, 80f), new Color(1f, 1f, 1f, 0.18f), "저장", 26, () =>
-                {
-                    bool ok = SaveState.Save();
-                    DialogueLabel.Instance?.Show(ok ? "저장했다." : "저장 실패 — 플레이어를 못 찾았다.", 3f);
-                }, "action.save");
+            // 2026-09-23 — 예전 람다 리스너는 씬 저장 때 사라져 폰에서 먹통이었다.
+            // 영속 리스너는 UnityEngine.Object 메서드만 되니 DungeonSaveButton이 받는다.
+            var button = BuildActionButton("SaveUI", "SaveButton", new Vector2(1f, 1f), new Vector2(-30f, -30f),
+                new Vector2(160f, 80f), new Color(1f, 1f, 1f, 0.18f), "저장", 26, null, "action.save");
+            var saver = button.gameObject.AddComponent<DungeonSaveButton>();
+            ButtonWiring.Wire(button, saver.Save);
         }
 
         /// <summary>PLAN.md 67~69장 "접근성" — 효과음·진동·UI 크기·그래픽
@@ -1586,7 +1586,7 @@ namespace Saga.EditorTools
         /// 지적, PLAN.md 33장 규칙 6·7 "동일한 코드를 복사하지 않는다"). anchor는
         /// anchorMin=anchorMax=pivot으로 쓰인다 — 다섯 버튼 전부 고정점 앵커라
         /// 늘어나는 앵커는 없다.</summary>
-        private static void BuildActionButton(string canvasName, string buttonName, Vector2 anchor,
+        private static Button BuildActionButton(string canvasName, string buttonName, Vector2 anchor,
             Vector2 anchoredPosition, Vector2 size, Color color, string label, int fontSize,
             UnityEngine.Events.UnityAction onClick, string locKey)
         {
@@ -1611,7 +1611,9 @@ namespace Saga.EditorTools
             img.color = color;
             var button = btnGo.AddComponent<Button>();
             button.targetGraphic = img;
-            button.onClick.AddListener(onClick);
+            // 2026-09-23 — onClick.AddListener는 런타임 전용이라 씬 저장 때 사라졌다(모바일
+            // 버튼 전부 먹통). 영속 리스너로 건다 — SagaCore/ButtonWiring.cs.
+            ButtonWiring.Wire(button, onClick);
 
             var textGo = new GameObject("Text", typeof(RectTransform));
             textGo.transform.SetParent(btnGo.transform, false);
@@ -1629,6 +1631,7 @@ namespace Saga.EditorTools
 
             var localized = btnGo.AddComponent<LocalizedButtonLabel>();
             localized.Init(locKey, label);
+            return button;
         }
 
         private static void BuildMobileHud()

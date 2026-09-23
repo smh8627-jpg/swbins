@@ -200,6 +200,7 @@ namespace Saga.EditorTools
                         return;
                     }
                     if (!CheckSettingsPanel()) { Fail(); return; }
+                    if (!CheckButtonWiring()) { Fail(); return; }
                     if (!CheckRealmHudLocalization()) { Fail(); return; }
                     if (!CheckCommandUiPanelsWork()) { Fail(); return; }
                     if (!CheckGoalBoardAndSessionCard()) { Fail(); return; }
@@ -2363,5 +2364,27 @@ namespace Saga.EditorTools
             Debug.Log("[PlaytestRealmSlice] realm hud localization OK");
             return true;
         }
+
+        /// <summary>2026-09-23 "모바일 버튼 먹통" 회귀 — 씬의 버튼 전부에 리스너가 있는지 +
+        /// 명령·설정 버튼을 진짜 onClick으로 열고 닫아 본다(ButtonWiringCheck.cs 주석 참고).</summary>
+        private static bool CheckButtonWiring()
+        {
+            const string Tag = "PlaytestRealmSlice";
+            bool ok = ButtonWiringCheck.CheckNoDeadButtons(Tag);
+            var ui = Object.FindFirstObjectByType<RealmCommandUi>();
+            var root = ui != null ? ui.transform : null;
+            var orderPanel = ui != null ? GetPrivateField<GameObject>(ui, "_orderPanel") : null;
+            var settingsPanel = ui != null ? GetPrivateField<GameObject>(ui, "_settingsPanel") : null;
+            ok &= ButtonWiringCheck.PressOpensAndCloses(Tag, "명령 버튼",
+                ButtonWiringCheck.FindByLabel(root, RealmLocalization.T("command.orders")),
+                orderPanel != null ? ButtonWiringCheck.FindByLabel(orderPanel.transform, RealmLocalization.T("settings.close")) : null,
+                orderPanel);
+            ok &= ButtonWiringCheck.PressOpensAndCloses(Tag, "설정 버튼",
+                ButtonWiringCheck.FindByLabel(root, RealmLocalization.T("settings.title")),
+                settingsPanel != null ? ButtonWiringCheck.FindByLabel(settingsPanel.transform, RealmLocalization.T("settings.close")) : null,
+                settingsPanel);
+            return ok;
+        }
+
     }
 }

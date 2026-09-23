@@ -59,7 +59,7 @@ namespace Saga.Forest.UI
             (_bgmNameLabel, _bgmValueLabel) = MakeRow(-660f, "settings.bgm", ChooseBgm);
 
             var closeButton = EncounterUiKit.NewButton(_panel.transform, ForestLocalization.T("settings.close"),
-                new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(300f, 70f), () => _panel.SetActive(false));
+                new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(300f, 70f), ClosePanel);
             _closeLabel = closeButton.GetComponentInChildren<Text>();
 
             Refresh();
@@ -83,6 +83,8 @@ namespace Saga.Forest.UI
         private void ChooseBgm() { ForestSettingsState.BgmOn = !ForestSettingsState.BgmOn; Refresh(); }
 
         private void TogglePanel() => _panel.SetActive(!_panel.activeSelf);
+        // 영속 리스너는 람다를 못 건다(SagaCore/ButtonWiring.cs) — 이름 있는 메서드로.
+        private void ClosePanel() => _panel.SetActive(false);
 
         private void Refresh()
         {

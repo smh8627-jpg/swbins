@@ -42,9 +42,10 @@ namespace Saga.Dungeon.UI
             float y = -190f;
             for (int i = 0; i < _cardButtons.Length; i++)
             {
-                int captured = i;
                 _cardButtons[i] = NewButton(_panel.transform, "", new Vector2(0.5f, 1f),
-                    new Vector2(0f, y), new Vector2(600f, 140f), () => ChooseIndex(captured));
+                    new Vector2(0f, y), new Vector2(600f, 140f), null);
+                // 영속 리스너(인자 int) — 람다는 씬 저장 때 사라진다(SagaCore/ButtonWiring.cs).
+                Saga.Core.ButtonWiring.Wire(_cardButtons[i], ChooseIndex, i);
                 _cardLabels[i] = _cardButtons[i].GetComponentInChildren<Text>();
                 y -= 170f;
             }
@@ -151,7 +152,8 @@ namespace Saga.Dungeon.UI
             img.color = new Color(1f, 1f, 1f, 0.18f);
             var button = go.AddComponent<Button>();
             button.targetGraphic = img;
-            button.onClick.AddListener(onClick);
+            // 에디터 빌드면 영속 리스너, Play 중이면 런타임 리스너 — SagaCore/ButtonWiring.cs(2026-09-23 먹통 버그).
+            Saga.Core.ButtonWiring.Wire(button, onClick);
 
             NewText(go.transform, label, new Vector2(0.5f, 0.5f), Vector2.zero, size, 26);
 

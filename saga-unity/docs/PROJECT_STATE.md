@@ -1,7 +1,7 @@
 # PROJECT_STATE — saga-unity (상태만, ≤15KB, 덮어쓴다)
 
 **규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다(2026-09-16 재편 전 본문 5,532줄은 그쪽 첫 절에 그대로 있다). 넘치면 `tools/precheck.sh` 가 막는다.
-마지막 갱신: 2026-09-23 (스물다섯 세션째 — **STORY 5-2 1단계(직업 무예+SP) 완료**, **모바일 버튼 먹통 버그 발견 — STORY만 고침**). 같은 날 앞 세션: GUI hang 재부팅으로 해소, 던전 얼굴(yaw=180) 확인, SSS 글로우 Intensity 0.6→15 확정(경위 HISTORY grep).
+마지막 갱신: 2026-09-23 (스물여섯 세션째 — **모바일 버튼 먹통 네 판(GO·DUNGEON·FOREST·REALM) 수정 완료** — 공용 `SagaCore/ButtonWiring.cs`, 비경 지도 onClick 중 파괴도 해소). 같은 날 앞 세션: STORY 5-2 1단계·STORY 버튼 수정, GUI hang 재부팅 해소, SSS Intensity 15(경위 HISTORY grep).
 
 ## 캐릭터 자산 — 이 PC 기준 (2026-09-19)
 
@@ -21,20 +21,18 @@ Maria(플레이어)·Abe(잡졸)·Brute(두목) 셋만 mixamo.com 실자산 확�
 
 ## 다음 작업 (우선순위, 상세는 PLAN 해당 장 · 경위는 HISTORY 날짜 grep)
 
-1. **모바일 버튼 먹통 — GO·DUNGEON·FOREST·REALM 고치기**(Phase 0 안정화, 1순위). 씬 빌더가 `onClick.AddListener`(런타임 전용)로 건 리스너는 씬 저장 때 안 남는다 — 2026-09-23 조사 때 다섯 씬 전부 영속 리스너 0개(`grep -c "m_MethodName: [A-Za-z]" Assets/Scenes/*.unity`). 키보드는 되니 PC GUI 확인에선 안 드러났다. STORY 해법 그대로: 빌더가 거는 버튼은 `UnityEventTools.AddPersistentListener`(람다 불가 → 메서드 그룹·`AddIntPersistentListener`·정적 메서드는 대상 컴포넌트 하나 — `StorySaveButton`), 스스로 짓는 UI는 버튼을 `[SerializeField]`로 두고 `Awake()`에서 건다. 진단은 **진짜 `Button.onClick.Invoke()`**로(`PlaytestStorySlice.CheckButtonWiring()` 참고, 누르면 상태가 바뀌는 버튼은 `GetPersistentEventCount()`).
-2. **STORY 5-2 2단계 — 유파 세트**: 무예 칸 조합 2/4 → 배율·범위·지속·발수·돌진 급소 보정(웹 `job.js schoolBonus()`·`data-job.js SCHOOLS` 재해석, `School` 태그는 이미 옮겨 둠). 웹 5-2는 칸 8·"무엇을 띠에 놓나"가 빌드라 **칸 자동 배치를 사람이 고르는 쪽으로 바꿀지**부터 정할 것(웹도 지금은 자동).
-3. **101-2·104-1 잔여(보류)** — GO⑤(모바일 빌드 뒤)·`Props/` lantern·stall-red·`Characters/` Kenney(실사용 중). 헤어카드는 분리 헤어 메시 생기면.
+1. **STORY 5-2 2단계 — 유파 세트**: 무예 칸 조합 2/4 → 배율·범위·지속·발수·돌진 급소 보정(웹 `job.js schoolBonus()`·`data-job.js SCHOOLS` 재해석, `School` 태그는 이미 옮겨 둠). 웹 5-2는 칸 8·"무엇을 띠에 놓나"가 빌드라 **칸 자동 배치를 사람이 고르는 쪽으로 바꿀지**부터 정할 것(웹도 지금은 자동).
+2. **101-2·104-1 잔여(보류)** — GO⑤(모바일 빌드 뒤)·`Props/` lantern·stall-red·`Characters/` Kenney(실사용 중). 헤어카드는 분리 헤어 메시 생기면.
 
 `ShotDir`(두 `Playtest*Gui.cs`)는 세션 scratchpad 경로라 GUI 스크린샷 때마다 고쳐야 함. 다른 PC는 `CharactersRealistic/`·`Generated/` gitignore라 `SetupXxxCharacterImport.cs`→SSS Build 재실행 필요.
 
-닫힌 백로그: 101-3, 103-1 변형 배가, 67~69 en 번역, 105 Q-U1·Q-U3, 102-5, 던전 카메라 회전, GUI hang.
+닫힌 백로그: 모바일 버튼 먹통(다섯 판), 101-3, 103-1 변형 배가, 67~69 en 번역, 105 Q-U1·Q-U3, 102-5, 던전 카메라 회전, GUI hang.
 
 ## 알려진 오류
 
-- **(미해결, GO·DUNGEON·FOREST·REALM) 모바일 버튼 전부 먹통** — 위 "다음 작업" 1. STORY는 2026-09-23 고침.
-- **(미해결, 작음) `StoryLabyrinthMapUi`가 노드·축복 버튼 onClick 한가운데서 그 버튼을 `DestroyImmediate`** — 버튼이 살아난 지금 실제 탭에서 이벤트 시스템이 파괴된 버튼을 붙들 수 있다. `StorySkillPanelUi`처럼 줄 구성이 같으면 글자만 고치거나 다음 프레임에 다시 그리기.
-- **씬 빌더(에디터)에서 건 `onClick.AddListener`는 저장 안 된다** — 위 해법. 스스로 짓는 싱글턴은 `Instance`·리스너 둘 다 `Awake()`에서.
-- **`Destroy()`로 자식을 지우고 같은 프레임에 다시 그리면 쌓인다** — `DestroyImmediate`(단 위 onClick 중 파괴 주의).
+- **씬 빌더(에디터)에서 건 `onClick.AddListener`는 저장 안 된다** — 새 버튼은 `Saga.Core.ButtonWiring.Wire(button, 메서드)`(에디터면 영속·Play면 런타임, 인자 하나는 string/int 오버로드). 람다 불가(경고 남김) → 이름 있는 메서드로. 정적 메서드는 대상 컴포넌트 하나(`XxxSaveButton`). STORY는 `[SerializeField]`+`Awake()` 방식(둘 다 유효). 진단은 `Editor/ButtonWiringCheck.cs`(씬 전체 죽은 버튼 + 진짜 onClick).
+- 영속 리스너 메서드 이름을 바꾸면 **씬 재빌드** 필요 — 안 하면 먹통(`ButtonWiringCheck`가 대상 메서드 존재까지 보니 진단이 잡는다).
+- **`Destroy()`로 자식을 지우고 같은 프레임에 다시 그리면 쌓인다** — onClick 중이면 `DestroyImmediate` 말고 떼어 내고(`SetParent(null)`)·끄고 `Destroy`(`StoryLabyrinthMapUi.ClearChildren`).
 - **함정**: Unity 6000.3.24f1 > 프로젝트 6000.3.23f1 → 배치/GUI 실행이 ProjectSettings/Packages를 조용히 고친다. `tools/unity-batch.sh --`로 부르면 자동 원복(GUI 실행은 수동 `git checkout`).
 - `Animator.GetBoneTransform()`은 `isHuman`으로 먼저 거를 것.
 - 정적 상태의 `Restore()`가 관련 이벤트(`JobChosen`·`EquipmentChanged`·`StorySkillState.Changed`)를 쏴야 시각·UI가 안 낡는다.
@@ -51,18 +49,19 @@ Maria(플레이어)·Abe(잡졸)·Brute(두목) 셋만 mixamo.com 실자산 확�
 
 | 검증 | 결과 |
 |---|---|
-| `-batchmode -nographics -quit` 컴파일 | exit 0, 오류 0(2026-09-23, 5-2 1단계·버튼 배선 수정 뒤) |
+| `-batchmode -nographics -quit` 컴파일 | exit 0, 오류 0(2026-09-23, 네 판 버튼 배선 수정 뒤) |
+| 씬 넷 재빌드(Village·Dungeon·VillageForest·City) | exit 0, 영속 리스너 0 → 32·17·10·39(= onClick 전부, 2026-09-23) |
 | `BuildTestStoryScene` 재빌드 | exit 0, TestField 영속 리스너 0 → 14(2026-09-23) |
 | `PlaytestStorySlice` | **3연속 OK(2026-09-23)** — 새 `CheckButtonWiring`(진짜 onClick)·`CheckJobSkills`·무예 세이브 왕복·옛 형식 로드 포함. 고치기 전 씬에선 `CheckButtonWiring`이 실패함을 먼저 확인 |
-| GO·DUNGEON·FOREST·REALM 헤드리스 | 2026-09-22 3연속 OK 이후 미변경(버튼 배선은 아직 검사 안 함) |
+| GO·DUNGEON·FOREST·REALM 헤드리스 | **4연속 OK(2026-09-23)** — 새 `CheckButtonWiring`(`ButtonWiringCheck`: 죽은 버튼·없는 메서드 + 진짜 onClick 설정/명령). 고치기 전 씬에선 GO 32/51 먹통으로 실패 확인. STORY는 비경 지도 수정 뒤 3연속 OK |
 | GUI 실제 Play | GO 라이팅 톤·Maria idle/run/attack·Dungeon 카메라(뒷모습·yaw=180)·SSS 코·턱선 하이라이트(Intensity=15) |
 | `BuildMariaSssShaderGraph.Build`+`Verify` | exit 0, `ShaderHasError=False`(2026-09-23) |
 
 ## 실기 확인 대기 (항목명만 — 경위는 HISTORY grep)
 
-- GO: 조우·전투·등용 손맛, 상점·퀘스트 대사, 은닉 보물·산신당·돌탑·유물, 채집, 목표판/세션카드, hitstop, 유품 마커·무기 소켓·지형 데칼, 일과판·승급 3택, 75초 토벌, 봉수대·인연·짐 드롭/회수, 사당 시련, 울타리 목재 톤, 나무·바위 트라이플레이너 톤, 마을집 실루엣, 카메라 벽 pull-in
-- DUNGEON: 카메라 손맛, 아홉 슬라이스, 목표판/세션카드, 101-3 전체 체감, 축복·유품·부적 던전·월드 보스·난입, 전자창/동력장갑·기계화 정찰병, 일일 풀·도장·주간 보상, 방 셸 마모 3단, 카메라 벽 pull-in
-- FOREST: 벽지/장판, 가구 배치, 생물·과일나무·좌판, 목표판/세션카드, 번들, 채집 손맛, 평가 별점, 택배 사슬, 축제(달력 1·8·15일), 과일나무·바크 톤, 잔디 디테일 톤
-- STORY: 두목 크기·타격감, 사건·관계·선택, 전직 팝업, 목표판/세션카드, 타격 체감, 유품·데칼·레벨업 줌·직업별 무기, 관문 대장, 비경 지도·축복·아레나, 교대 버튼·서명, **무예 패널(K·"무예" 버튼·전직관)·무예 칸 넷·직업 무예 22 손맛(돌진·퇴보사 이동 거리, 연사 발 간격, 부적 기력 회복)·모바일 버튼 전체가 실제로 눌리는지(2026-09-23 고침)**
-- REALM: 월드맵, 적국 사슬, 패널 여덟, 목표판/세션카드, 공격·계략, 특성·야망, 전술 토글, 서사 카드, 계승 토글, 일기토·설전, 승리 결과 카드, 성벽 실루엣, 오빗 카메라 pull-in
+- GO: 조우·전투·등용 손맛, 상점·퀘스트 대사, 은닉 보물·산신당·돌탑·유물, 채집, 목표판/세션카드, hitstop, 유품 마커·무기 소켓·지형 데칼, 일과판·승급 3택, 75초 토벌, 봉수대·인연·짐 드롭/회수, 사당 시련, 울타리 목재 톤, 나무·바위 트라이플레이너 톤, 마을집 실루엣, 카메라 벽 pull-in, **폰에서 설정·승급 3택·저장 버튼이 눌리는지(2026-09-23 고침)**
+- DUNGEON: 카메라 손맛, 아홉 슬라이스, 목표판/세션카드, 101-3 전체 체감, 축복·유품·부적 던전·월드 보스·난입, 전자창/동력장갑·기계화 정찰병, 일일 풀·도장·주간 보상, 방 셸 마모 3단, 카메라 벽 pull-in, **폰에서 공격·강공격·회전베기·회피·저장·설정·축복 버튼(2026-09-23 고침)**
+- FOREST: 벽지/장판, 가구 배치, 생물·과일나무·좌판, 목표판/세션카드, 번들, 채집 손맛, 평가 별점, 택배 사슬, 축제(달력 1·8·15일), 과일나무·바크 톤, 잔디 디테일 톤, **폰에서 저장·설정·밀어내기 버튼(2026-09-23 고침)**
+- STORY: 두목 크기·타격감, 사건·관계·선택, 전직 팝업, 목표판/세션카드, 타격 체감, 유품·데칼·레벨업 줌·직업별 무기, 관문 대장, 비경 지도·축복·아레나, 교대 버튼·서명, **무예 패널(K·"무예" 버튼·전직관)·무예 칸 넷·직업 무예 22 손맛(돌진·퇴보사 이동 거리, 연사 발 간격, 부적 기력 회복)·모바일 버튼 전체가 실제로 눌리는지(2026-09-23 고침)·비경 노드 버튼 연속 탭**
+- REALM: 월드맵, 적국 사슬, 패널 여덟, 목표판/세션카드, 공격·계략, 특성·야망, 전술 토글, 서사 카드, 계승 토글, 일기토·설전, 승리 결과 카드, 성벽 실루엣, 오빗 카메라 pull-in, **폰에서 버튼 전부(명령·성·계략·공격·다음달·패널 닫기, 2026-09-23 고침)**
 - 공통: BGM 음량, 설정 패널 6줄, SessionCard DoF, 접지 blob 그림자(Mobile 품질), LUT 톤 5장, Screen Space Shadows, Maria 피부 SSS

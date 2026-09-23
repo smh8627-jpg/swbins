@@ -8608,3 +8608,17 @@ Unity GUI 런치는 이번 절에서만 6회(디버그 극단값 1·튜닝 2.5/6
 **남은 것**: GO·DUNGEON·FOREST·REALM 버튼 배선(다음 세션 1순위, Phase 0), 5-2 2단계 유파 세트. 사용자가 "현재 작업 다하고 새로운 세션에서 이어 할게"로 마무리 지시.
 
 코드: `StorySkillData`·`StorySkillState`·`StorySkillPanelUi`·`StorySkillSlotButton`·`StorySaveButton`(신규), `StoryPlayerController`·`StoryBolt`·`StoryCombat`·`StorySaveState`·`StoryHud`·`StoryJobTrainer`·`StoryJobChoiceUi`·`StorySettingsPanel`·`StoryLabyrinthMapUi`·`BuildTestStoryScene`·`PlaytestStorySlice`, `TestField.unity` 재빌드, 현지화 두 파일. 문서: PLAN 101-2 STORY 행, `PROJECT_STATE.md`(덮어씀), `HOW_TO_PLAYTEST.md`(5~8·K).
+
+## 2026-09-23 — 모바일 버튼 먹통 GO·DUNGEON·FOREST·REALM 수정 + 비경 지도 onClick 중 파괴 해소 (새 세션 "사가 유니티 이어해", Opus 5.5)
+
+PROJECT_STATE 다음 작업 1순위(Phase 0 안정화). STORY 때처럼 판마다 버튼을 `[SerializeField]`+`Awake()`로 옮기면 REALM `RealmCommandUi`만 버튼 32개라, **공용 도우미 `SagaCore/ButtonWiring.cs`** 하나를 두고 네 판 UI kit(`EncounterUiKit` GO·FOREST, `RealmUiKit`, DUNGEON `BlessingChoiceUi`·`DungeonSettingsPanel`의 `NewButton`)과 씬 빌더 버튼이 전부 이걸 거치게 했다: 에디터에서 지을 때(`!Application.isPlaying`)는 `UnityEventTools.AddPersistentListener`(인자 하나는 string/int 오버로드), Play 중에 지을 때(열 때마다 다시 짓는 목록)는 그냥 `AddListener`. 영속 대상이 못 되는 람다(이름이 `<`로 시작하거나 대상이 UnityEngine.Object가 아님)가 에디터 빌드에서 오면 경고를 남긴다 — 이번 재빌드 넷 모두 경고 0. 람다는 이름 있는 메서드로 바꿨다: 설정 닫기(`ClosePanel`)·REALM 패널 닫기 7개(`CloseXxxPanel`)·명령 10(`Wire(btn, ChooseOrder, key)`)·일기토 셋·승급/축복 카드(`Wire(btn, ChooseIndex, i)`)·GO 전투 버튼(`DoAct`, string). 정적 `SaveState.Save()`는 영속 대상이 못 돼 `GoSaveButton`·`DungeonSaveButton`·`ForestSaveButton`(STORY `StorySaveButton`과 같은 결). REALM 저장은 원래 `RealmCommandUi.ExecuteSave` 메서드라 그대로.
+
+조사 중 알게 된 것: GO 전투 사건 셋(`BanditEncounter`·`RareWolfEncounter`·`ShrineTrialEncounter`)은 원래부터 `Awake()`에서 자식을 지우고 UI를 통째로 다시 지어(2026-09-12 NRE 수정) 런타임 리스너가 살아 있었다 — GO 조우·전투 버튼은 폰에서도 됐을 것이다. 먹통은 설정·승급 3택·저장이었다. 에디터 때 지은 옛 캔버스는 비활성 고아로 남는다(원래 주석대로 감수) — 이제 그쪽에도 영속 리스너가 붙어 "죽은 버튼" 검사에 안 걸린다.
+
+진단: 공용 `Assets/Editor/ButtonWiringCheck.cs` — Play 중 씬의 **모든** Button(비활성 포함)에서 영속+런타임 리스너가 0인 것을 찾는다(런타임 수는 공개 API가 없어 `UnityEventBase.m_Calls.m_RuntimeCalls` 리플렉션, 이름이 바뀌면 검사 자체가 실패로 알림) + 설정(REALM은 명령도) 버튼을 **진짜 `onClick.Invoke()`**로 열고 닫는다. 네 판 Playtest에 `CheckButtonWiring()`으로 넣음. **고치기 전 씬에서 먼저 실패 확인**: GO 버튼 51개 중 32개 먹통, 설정 버튼 opened=False. 재빌드 뒤 영속 리스너 TestVillage 0→32 · TestDungeon 0→17 · TestVillageForest 0→10 · TestCity 0→39(= 씬의 onClick 수 전부).
+
+STORY 미해결(작음)도 닫음: `StoryLabyrinthMapUi.ClearChildren()`이 노드 버튼 onClick → 즉시 끝나는 노드 → `ShowFloor()` 경로에서 **지금 눌린 버튼을 `DestroyImmediate`**하던 것 — 떼어 내고(`SetParent(null)`)·끄고 `Destroy`로 프레임 끝에 파괴(같은 프레임 재그리기 때 쌓이는 원래 문제도 그대로 피함).
+
+코드: `SagaCore/ButtonWiring.cs`·`Editor/ButtonWiringCheck.cs`·`GoSaveButton`·`DungeonSaveButton`·`ForestSaveButton`(신규), 네 kit·`GoSettingsPanel`·`PerkChoiceUi`·GO 전투 사건 셋·`ForestSettingsPanel`·`DungeonSettingsPanel`·`BlessingChoiceUi`·`RealmCommandUi`·빌더 셋(Village·Dungeon·VillageForest)·Playtest 넷·`StoryLabyrinthMapUi`, 씬 넷 재빌드.
+
+검증: 네 씬 재빌드 exit 0(ButtonWiring 경고 0). `PlaytestHeadless`·`PlaytestDungeonHeadless`·`PlaytestForestHeadless`·`PlaytestRealmSlice` **4연속 OK**(1회차 도중 검사에 "영속 대상 메서드가 지금 코드에 있는가"를 더함 — 2~4회차가 강화판), 진짜 onClick으로 설정(REALM 명령도) 열고 닫힘. 비경 지도 수정 뒤 `PlaytestStorySlice` 3연속 OK. 실기(폰 탭)는 사용자 확인 전.

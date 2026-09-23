@@ -111,6 +111,7 @@ namespace Saga.EditorTools
                 CheckWhirl();
                 CheckDebugHud();
                 CheckSettingsPanel();
+                CheckButtonWiring();
                 CheckPlayerHudLocalization();
                 CheckActionButtonLocalization();
                 CheckGoalBoardAndSessionCard();
@@ -1104,5 +1105,23 @@ namespace Saga.EditorTools
             var field = target.GetType().GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance);
             field?.SetValue(target, value);
         }
+
+        /// <summary>2026-09-23 "모바일 버튼 먹통" 회귀 — 씬의 버튼 전부에 리스너가 있는지 +
+        /// 설정 버튼을 진짜 onClick으로 열고 닫아 본다(ButtonWiringCheck.cs 주석 참고).</summary>
+        private static void CheckButtonWiring()
+        {
+            const string Tag = "PlaytestDungeonHeadless";
+            bool ok = ButtonWiringCheck.CheckNoDeadButtons(Tag);
+            var settings = Object.FindFirstObjectByType<DungeonSettingsPanel>();
+            var root = settings != null ? settings.transform : null;
+            var panel = settings != null
+                ? typeof(DungeonSettingsPanel).GetField("_panel", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(settings) as GameObject
+                : null;
+            ok &= ButtonWiringCheck.PressOpensAndCloses(Tag, "설정 버튼",
+                ButtonWiringCheck.FindByLabel(root, DungeonLocalization.T("settings.title")),
+                ButtonWiringCheck.FindByLabel(root, DungeonLocalization.T("settings.close")), panel);
+            if (!ok) _hadError = true;
+        }
+
     }
 }

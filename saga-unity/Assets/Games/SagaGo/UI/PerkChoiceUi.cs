@@ -43,9 +43,10 @@ namespace Saga.Go.UI
             float y = -190f;
             for (int i = 0; i < _cardButtons.Length; i++)
             {
-                int captured = i;
                 _cardButtons[i] = EncounterUiKit.NewButton(_panel.transform, "", new Vector2(0.5f, 1f),
-                    new Vector2(0f, y), new Vector2(600f, 140f), () => ChooseIndex(captured));
+                    new Vector2(0f, y), new Vector2(600f, 140f), null);
+                // 영속 리스너(인자 int) — 람다는 씬 저장 때 사라진다(SagaCore/ButtonWiring.cs).
+                Saga.Core.ButtonWiring.Wire(_cardButtons[i], ChooseIndex, i);
                 _cardLabels[i] = _cardButtons[i].GetComponentInChildren<Text>();
                 y -= 170f;
             }

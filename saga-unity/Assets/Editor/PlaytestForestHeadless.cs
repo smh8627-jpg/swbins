@@ -83,6 +83,7 @@ namespace Saga.EditorTools
             {
                 CheckDebugHud();
                 CheckSettingsPanel();
+                CheckButtonWiring();
                 CheckActionButtonLocalization();
                 CheckGoalBoardAndSessionCard();
                 CheckMuseum();
@@ -817,5 +818,23 @@ namespace Saga.EditorTools
             ForestFestivalState.ForceDayForTest(null);
             Debug.Log("[PlaytestForestHeadless] festival OK - 세배·꽃놀이·소원 완료 1회·같은 날 중복 거절·소원 배율·목표판 D-day 문구까지 확인");
         }
+
+        /// <summary>2026-09-23 "모바일 버튼 먹통" 회귀 — 씬의 버튼 전부에 리스너가 있는지 +
+        /// 설정 버튼을 진짜 onClick으로 열고 닫아 본다(ButtonWiringCheck.cs 주석 참고).</summary>
+        private static void CheckButtonWiring()
+        {
+            const string Tag = "PlaytestForestHeadless";
+            bool ok = ButtonWiringCheck.CheckNoDeadButtons(Tag);
+            var settings = Object.FindFirstObjectByType<ForestSettingsPanel>();
+            var root = settings != null ? settings.transform : null;
+            var panel = settings != null
+                ? typeof(ForestSettingsPanel).GetField("_panel", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(settings) as GameObject
+                : null;
+            ok &= ButtonWiringCheck.PressOpensAndCloses(Tag, "설정 버튼",
+                ButtonWiringCheck.FindByLabel(root, ForestLocalization.T("settings.title")),
+                ButtonWiringCheck.FindByLabel(root, ForestLocalization.T("settings.close")), panel);
+            if (!ok) _hadError = true;
+        }
+
     }
 }

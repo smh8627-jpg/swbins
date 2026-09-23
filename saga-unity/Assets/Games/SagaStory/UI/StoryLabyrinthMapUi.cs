@@ -197,10 +197,19 @@ namespace Saga.Story.UI
         /// (`StoryEnemy.IsDead` 클래스 주석과 같은 함정) 같은 프레임 안에
         /// 은사/노드 화면을 연달아 다시 그리면(예: 정예 처치 직후 바로
         /// 다음 진입) 이전 버튼이 안 지워진 채 새 버튼 위에 쌓인다 —
-        /// `DestroyImmediate`로 그 자리에서 확실히 지운다.</summary>
+        /// 그 자리에서 부모에서 떼어 내고 끈다(childCount·화면에서 바로 빠짐).
+        /// 2026-09-23 — 예전엔 `DestroyImmediate`였는데, 버튼이 실제로 눌리게 된 뒤로는
+        /// 노드 버튼 onClick → 즉시 끝나는 노드 → `ShowFloor()`가 **지금 눌린 그 버튼**을
+        /// onClick 한가운데서 파괴했다. 실제 파괴는 `Destroy`로 프레임 끝에 미룬다.</summary>
         private static void ClearChildren(Transform root)
         {
-            for (int i = root.childCount - 1; i >= 0; i--) DestroyImmediate(root.GetChild(i).gameObject);
+            for (int i = root.childCount - 1; i >= 0; i--)
+            {
+                var child = root.GetChild(i).gameObject;
+                child.SetActive(false);
+                child.transform.SetParent(null, false);
+                if (Application.isPlaying) Destroy(child); else DestroyImmediate(child); // 에디터 모드는 Destroy 불가
+            }
         }
 
         // StoryJobChoiceUi.cs와 같은 넷(캔버스/패널/텍스트/버튼) — 이 판에

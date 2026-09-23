@@ -75,7 +75,8 @@ namespace Saga.Realm.UI
             img.color = new Color(1f, 1f, 1f, 0.18f);
             var button = go.AddComponent<Button>();
             button.targetGraphic = img;
-            button.onClick.AddListener(onClick);
+            // 에디터 빌드면 영속 리스너, Play 중이면 런타임 리스너 — SagaCore/ButtonWiring.cs(2026-09-23 먹통 버그).
+            Saga.Core.ButtonWiring.Wire(button, onClick);
 
             NewText(go.transform, label, new Vector2(0.5f, 0.5f), Vector2.zero, size, 26);
 
