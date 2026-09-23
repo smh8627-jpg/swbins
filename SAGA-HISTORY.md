@@ -5004,3 +5004,15 @@ saga-go 정본을 다른 네 판에도 동일 반영, 가드돼 있어 그 판�
 - 자동 걷기 점검(`tools/probe_layout_walk.gd`, `SAGA_LAYOUT_PROBE=1`) 3회: 바닥·강가 차단·다리로 건넘·명소 13/13(거리 판정 정상)
   전부 fails=0·로그 md5 동일. `.import`·`project.godot` 변화 없음, 다른 세션이 고치던 파일은 안 건드림.
   창 모드 실기 확인·씬 선택 메뉴 진입점은 남음. 커밋 `7220c798`(+문서 `86a2a733`).
+
+### 2026-09-23 — 게임 제작 도구 ⑨ new-game 자동 등록(`register.mjs`)
+
+- 새 판 뼈대(②)의 "손으로 등록할 곳" 체크리스트를 훑다가 기계적인 네 곳(CLAUDE.md 표·precheck·asset-audit·
+  content-editor GAMES)은 자동화할 수 있어 `saga-web/tools/new-game/register.mjs` 신설.
+  이미 등록된 판은 그 파일을 안 건드려 다시 돌려도 안전(멱등). swbins2 허브·icons·PLAN §1 은 여전히 손으로.
+- 부수 발견: ②가 만든 체크리스트에 09-08 에 이미 지운 `saga-web/saga-pc/build-all.bat`(다섯 판 묶음)이
+  남아 있었다 — 루트 CLAUDE.md·SAGA-HANDOFF.md·네 판 README 의 같은 죽은 참조도 함께 정리(판별 `build-pc.bat`
+  단독 빌드는 살아있어 그건 남김). 커밋 `0e4539f6`·`e9aaf273`.
+- 시험(scratch, 진짜 네 파일 복사본): `saga-arena` 새로 추가 시 각 파일 diff 한 줄만 늘어남을 node 버퍼
+  비교로 바이트 단위 확인, 재실행 멱등, 이미 있는 `saga-go` 로 돌려도 안 바뀜, 결과 node/bash/python 구문 통과.
+  CRLF 파일이라 처음에 줄바꿈 정규식이 안 맞아 고침. 실제 저장소 파일은 손대지 않았다. 커밋 `f0d7f706`.
