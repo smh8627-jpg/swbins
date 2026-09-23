@@ -158,15 +158,25 @@ CC0 후보를 구해 채택했다.
 로 기본 켜짐, `_admin.html` 균형 손잡이 탭에서 0으로 내리면 서양풍으로
 되돌아간다(코드를 걷어낼 필요가 없다).
 
-**2·3등급 확장은 보류.** 같은 팩의 `Portal.glb`·`MainAltar.glb`를 2·3등급
-후보로 점찍어 뒀었으나, 실제로 썸네일을 받아 확인해 보니 **탑이 아니었다**
-— `Portal.glb`는 방 안에 놓는 3단 병풍(폴딩 스크린)+깔개, `MainAltar.glb`는
-낮고 넓은 제단 상자다. 둘 다 실내 소품이라 성벽 위에 세울 탑으로는 안 맞아
-채택하지 않았다. 2·3등급은 당분간 기존 서양풍 탑(`Tower.glb`/`PointyTower.glb`/
-`LargeTower.glb`/`LargeSquareTowerBricks.glb`)을 그대로 쓴다 — 이 팩에서 더
-받으려면 `Column.glb`·`BuildingBase.glb`·`RoomRoof.glb` 등 다른 조각을 조합해야
-하는데, 이 저장소는 GLB를 조합 없이 한 파일 그대로 쓰는 방침이라 우선순위를
-낮게 둔다.
+**2·3등급 킷배싱 완료(2026-09-23).** `Portal.glb`·`MainAltar.glb`(같은
+"lunar-year" 팩)는 여전히 탑이 아니라 제외했고, `Column.glb`·`RoomRoof.glb`
+등 그 팩의 나머지 조각도 시험 조립해 보니(오프라인 3뷰 실루엣 비교,
+`tools/asset-forge/preview_scene.py` 요령 — 화면·헤드리스와 무관) 방 하나
+분량의 큰 부품이라 탑 스케일에 안 맞았다. 대신 **같은 저장소의 다른
+프로젝트 "tomb-chaser-2"**(`github.com/ToxSam/cc0-models-Polygonal-Mind/
+tree/main/projects/tomb-chaser-2`, 네온웨이브 일본 탑 콘셉트 팩 — 같은
+저장소라 License.md 가 그대로 적용되는 CC0)에서 기둥·지붕 둘만 받았다.
+
+| 항목 | |
+|---|---|
+| **원본 파일** | `models/buildings/asian_parts/TempleColumn_Art.glb`·`TempleRoof01Corner_Art.glb` |
+| **만든 이** | Polygonal Mind ("tomb-chaser-2" 팩) |
+| **라이선스** | CC0 1.0 Universal(위 BellStructure 와 같은 저장소·같은 License.md) |
+| **받은 경위** | GitHub API로 `projects/tomb-chaser-2/` 목록을 확인(TempleBase·Column·Wall·Roof 등 모듈형 절 부품 다수)한 뒤 필요한 둘만 `raw.githubusercontent.com`으로 받았다 |
+| **원본 텍스처 문제** | 이 팩은 네온 콘셉트라 원본 색이 보라·시안·분홍이었다(색 샘플로 실측, 화면 확인이 아니라 텍스처 픽셀값 직접 조회) — 그대로 못 써 아래 팔레트로 스냅했다 |
+| **조립·팔레트** | `tools/asset-forge/kitbash.py` `city_t2_asian`(기둥 4+지붕 1층)·`city_t3_asian`(그 위에 작은 2층을 더 얹음) 레시피 → `palette.py`에 새 팔레트 `realm_asian_tower`(나무·기와 톤 8색) 추가 → `snap-glb`로 물들임 |
+| **최종 파일** | `assets/generated/buildings/city_t2_asian.glb`(911KB)·`city_t3_asian.glb`(936KB) — `js/asset3d.js`의 `asset3d.asianTower`(기본 켬) 손잡이로 1등급과 함께 켜지고 꺼진다 |
+| **확인 방법** | 부품 배치(회전·간격)와 팔레트 스냅 전후는 오프라인 렌더(trimesh+matplotlib 3뷰 실루엣, `palette.py preview`)로 확인 — 게임 화면·헤드리스 크롬은 이번 세션에 안 띄웠다(스크린샷은 명시적 요청 시에만). **실기 확인 전** — 실제 성 위에서 크기·거리감이 적당한지는 사용자 확인 대상 |
 
 ## MPFB2 실사 몸 20종 — 초상 외형 다양화 (2026-09-10, `saga-go`에서 복사)
 

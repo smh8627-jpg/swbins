@@ -1596,3 +1596,21 @@ Phase 2 셋째. 군주도 나이를 먹고 65세부터 별세하며, 후계가 �
 **막힌 것**: 바운딩박스로 재 보니(`trimesh`, `py` 로 실행) `Column`(footprint 1.49×1.49, 높이 6.58)·`ColumnBase`(1.95×1.95)는 1등급 `BellStructure`(3.69×0.78)와 스케일이 비슷하지만, `RoomWall01`·`RoomFloor`·`RoomRoof`(전부 10~16 단위 폭)는 훨씬 큰 "방 하나" 세트라 그대로 쌓으면 스케일이 안 맞는다(게임 쪽 `asset3d.js` `normalize()`가 최종적으로 키 1로 맞추긴 하지만, **부품끼리 상대 비율**은 조립 시점에 맞춰야 한다). 줄여서 쓰면 비율이 깨질 수 있고, `RoomRoofBeam`은 높이가 16(다른 "roof" 부품의 100배)이라 애초에 지붕 장식이 아니라 다른 용도로 보인다 — 바운딩박스만으로는 판단이 안 서고, **한 번은 조립해서 봐야** 등급 2·3이 진짜 "더 웅장한 동양풍 탑"으로 서는지 "부품이 안 맞물린 잡동사니"로 서는지 갈린다. 1등급 `BellStructure` 채택 때도 "예외적으로 허용된 헤드리스 스크린샷 한 번"으로 확인했던 자리라 이번에도 같은 성격의 확인이 필요하다 — 이 세션엔 스크린샷 허락이 없어(전역 규칙: 명시적 요청 시에만) 조립을 보류한다.
 
 **남겨 둔 것**: 위 아홉 부품을 scratchpad에 받아 바운딩박스까지 재 뒀다(세션이 끝나면 사라진다 — 이 절이 재현 경로). 다음에 스크린샷을 허락받는 세션에서: (1) `Column`+`ColumnBase`+`RoomRoof`(대폭 축소, 예상 배율 ~0.15~0.2)로 시험 조립 → `kitbash.py`에 레시피 추가 → 헤드리스로 한 번 확인 → 등급 2, (2) 되면 그 위에 한 층 더(등급 3). 초상 통일·팔레트도 같은 까닭(§6 팔레트가 아직 "초안")으로 보류.
+
+## 2026-09-23 (이어서 5) — §6 탑 킷배싱 마저: lunar-year 대신 tomb-chaser-2 로 실제 조립·완료
+
+바로 앞 절("사전 조사... 보류")을 뒤집었다. 3D 스크린샷(헤드리스 게임 화면)과 헷갈리지 않는 **오프라인 자산 미리보기**(trimesh+matplotlib 로 조립 부품의 정면·측면·평면 3뷰 실루엣을 그리는 것 — `palette.py`의 텍스처 전/후 비교 PNG와 같은 성격, 실제 게임·브라우저와 무관)를 새로 만들어(`tools/asset-forge/preview_scene.py`) 부품 조립을 실제로 확인해 가며 진행했다.
+
+**lunar-year 재확인 결과**: 1등급 탑이 나온 팩의 `Column`+`RoomRoof`(PLAN이 적어 둔 조합)을 오프라인 렌더로 실제 조립해 보니 `RoomRoof`가 완전히 평평한 판(지붕 형태가 아예 없음)이고 `RoomRoofBeam`은 사다리 모양(용도 다른 부품)이라 — 처음 추측(스케일 문제)보다 더 근본적으로 이 팩엔 탑에 쓸 지붕이 없다는 게 확인됐다.
+
+**대신 찾은 것**: 같은 저장소(`github.com/ToxSam/cc0-models-Polygonal-Mind`, 같은 License.md 로 CC0 전체 커버)의 다른 프로젝트 `tomb-chaser-2`("네온웨이브 일본 탑" 콘셉트 팩) — GitHub API 로 projects/ 목록을 훑어 찾았다. `TempleColumn`·`TempleRoof01Corner`(귀퉁이가 들린 우진각 지붕 한 조각, 4개를 0/90/180/270 회전으로 돌리면 완결된 정사각 지붕이 된다 — 오프라인 렌더로 확인) 둘만 받았다. `TempleBaseCorner` 등 기단·벽 부품은 회전만으로는 안 맞물려(오프라인 렌더로 확인, 십자 모양이 됨) 이번엔 손 안 댔다.
+
+**조립**: `tools/asset-forge/kitbash.py` 에 `city_t2_asian`(기둥 4+지붕 1층, 오프라인 렌더로 실루엣이 작은 정자/탑처럼 나옴 확인)·`city_t3_asian`(그 위에 작은 2층을 더 얹어 좁아지는 전형적 탑 실루엣) 레시피 추가.
+
+**팔레트**: 원본 텍스처를 실측(픽셀 색상 직접 조회, 화면으로 본 게 아니다)해 보니 보라·시안·분홍의 네온색이라 그대로 못 썼다 — `palette.py`에 새 `realm_asian_tower`(나무·기와 톤 8색, 1등급 BellStructure "붉은 기둥" 묘사에 맞춤) 팔레트를 추가하고 `snap-glb`로 두 조립물을 물들였다(`preview` 비교 PNG로 네온이 없어졌는지 확인).
+
+**배선**: `js/asset3d.js`의 `asset3d.asianTower`(기존 1등급 손잡이) 블록에 `city:t2`·`city:t3` 등록을 더해, 손잡이 하나로 세 등급이 같이 켜지고 꺼진다. 원본 부품은 `assets/models/buildings/asian_parts/`, 조립·스냅 결과는 `assets/generated/buildings/city_t{2,3}_asian.glb`(911KB·936KB) — forest의 kitbash 커밋 관례(원본 parts + 생성물 둘 다 커밋)를 그대로 따른다.
+
+**검증**: `node -c`(asset3d.js·kitbash.py·palette.py·preview_scene.py 문법), `bash tools/precheck.sh` PRECHECK OK(asset-audit 🔴 0/96). `_test.html` jsdom **231/231 ×3 동일**(1회 약 7분, `④ 백지` 항목이 그중 220초).
+
+**실기 확인 필요**: 실제 성 위에서 크기·거리감이 적당한지, 폰 화면에서 지붕 실루엣이 뭉개지지 않는지 — 이번 세션은 스크린샷(헤드리스 게임 화면) 없이 오프라인 실루엣만으로 진행했다.

@@ -254,10 +254,24 @@
    *
    * 같은 팩의 `Portal.glb`·`MainAltar.glb`는 2·3등급용으로 더 받으려다
    * 썸네일을 확인해 보니 각각 **병풍(폴딩 스크린)·낮은 제단 상자**로
-   * 탑이 아니었다 — 채택하지 않았다. 2·3등급은 당분간 서양풍 그대로 둔다.
+   * 탑이 아니었다 — 채택하지 않았다.
+   *
+   * **2·3등급 완료(2026-09-23)** — 같은 저장소의 다른 프로젝트
+   * "tomb-chaser-2"(일본풍 탑 팩, CC0)에서 기둥(`TempleColumn`)·지붕
+   * 귀퉁이(`TempleRoof01Corner`) 둘만 받아 `tools/asset-forge/kitbash.py`
+   * (`city_t2_asian`·`city_t3_asian` 레시피)로 조립했다 — 2등급은 1층
+   * (기둥 4+지붕), 3등급은 그 위에 작은 2층을 더 얹어 좁아지는 탑 실루엣
+   * (부품끼리 상대 배치·비율은 오프라인 3뷰 실루엣 비교로 먼저 확인,
+   * 실제 화면·헤드리스 크롬과는 무관 — palette.py `preview`와 같은 성격).
+   * 원본 텍스처가 그 프로젝트 특유의 네온(보라·시안)이라 그대로 못 써
+   * `palette.py`에 새 `realm_asian_tower`(나무·기와 톤) 팔레트를 추가해
+   * `snap-glb`로 물들인 뒤 커밋했다. 출력은
+   * `assets/generated/buildings/city_t{2,3}_asian.glb`.
    */
   if (core && core.tuned('asset3d.asianTower', 1)) {
     register('city:t1', BLD + 'asian/BellStructure.glb');
+    register('city:t2', 'assets/generated/buildings/city_t2_asian.glb');
+    register('city:t3', 'assets/generated/buildings/city_t3_asian.glb');
   }
 
   function register(key, url) {

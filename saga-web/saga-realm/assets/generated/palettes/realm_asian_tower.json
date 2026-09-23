@@ -1,0 +1,126 @@
+{
+  "name": "realm_asian_tower",
+  "roles": 8,
+  "colors": [
+    {
+      "role": "wood",
+      "band": "base",
+      "hex": "#8c5c33"
+    },
+    {
+      "role": "wood",
+      "band": "light",
+      "hex": "#b4957a"
+    },
+    {
+      "role": "wood",
+      "band": "dark",
+      "hex": "#5b3c21"
+    },
+    {
+      "role": "wood_dark",
+      "band": "base",
+      "hex": "#57361f"
+    },
+    {
+      "role": "wood_dark",
+      "band": "light",
+      "hex": "#927c6d"
+    },
+    {
+      "role": "wood_dark",
+      "band": "dark",
+      "hex": "#382314"
+    },
+    {
+      "role": "roof_red",
+      "band": "base",
+      "hex": "#8c261f"
+    },
+    {
+      "role": "roof_red",
+      "band": "light",
+      "hex": "#b4726d"
+    },
+    {
+      "role": "roof_red",
+      "band": "dark",
+      "hex": "#5b1914"
+    },
+    {
+      "role": "roof_dark",
+      "band": "base",
+      "hex": "#291f1c"
+    },
+    {
+      "role": "roof_dark",
+      "band": "light",
+      "hex": "#746d6b"
+    },
+    {
+      "role": "roof_dark",
+      "band": "dark",
+      "hex": "#1b1412"
+    },
+    {
+      "role": "stone",
+      "band": "base",
+      "hex": "#8c8780"
+    },
+    {
+      "role": "stone",
+      "band": "light",
+      "hex": "#b4b1ac"
+    },
+    {
+      "role": "stone",
+      "band": "dark",
+      "hex": "#5b5853"
+    },
+    {
+      "role": "gold",
+      "band": "base",
+      "hex": "#b89442"
+    },
+    {
+      "role": "gold",
+      "band": "light",
+      "hex": "#d1b984"
+    },
+    {
+      "role": "gold",
+      "band": "dark",
+      "hex": "#77602b"
+    },
+    {
+      "role": "plaster",
+      "band": "base",
+      "hex": "#d1c2a3"
+    },
+    {
+      "role": "plaster",
+      "band": "light",
+      "hex": "#e1d7c3"
+    },
+    {
+      "role": "plaster",
+      "band": "dark",
+      "hex": "#887e6a"
+    },
+    {
+      "role": "ink",
+      "band": "base",
+      "hex": "#1a1717"
+    },
+    {
+      "role": "ink",
+      "band": "light",
+      "hex": "#6a6868"
+    },
+    {
+      "role": "ink",
+      "band": "dark",
+      "hex": "#110f0f"
+    }
+  ]
+}

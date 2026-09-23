@@ -130,6 +130,48 @@ RECIPES = {
         {"file": "roof-gable-accent.glb", "pos": (0, 1, 0)},
         {"file": "chimney.glb", "pos": (0, 1, 0)},
     ],
+
+    # 2026-09-23 — saga-realm §6 "탑 킷배싱"(성채 2·3등급 동양풍). 1등급
+    # `city:t1`(BellStructure.glb, 2026-09-10 채택)과 같은 CC0 저장소
+    # (github.com/ToxSam/cc0-models-Polygonal-Mind)의 다른 프로젝트
+    # "tomb-chaser-2"(일본풍 탑 팩)에서 기둥·지붕만 받아 왔다 — 그 팩의
+    # 벽·기단 조각(TempleBaseCorner 등)은 회전만으로는 안 맞물려(직접
+    # 조립해 오프라인 3뷰 실루엣으로 확인, 2026-09-23) 이번엔 기둥+지붕만
+    # 쓴다. 지붕(TempleRoof01Corner)은 네 개를 0/90/180/270 으로 돌리면
+    # 완결된 정사각 우진각 지붕(네 귀퉁이가 들린 처마)이 된다 — 이것도
+    # 오프라인 실루엣으로 먼저 확인했다(부품끼리 상대 배치·비율 확인일
+    # 뿐, 실제 화면·헤드리스 크롬과는 무관 — palette.py preview 와 같은
+    # 성격). 2등급은 1층(기둥 4+지붕), 3등급은 2층(작은 2층을 얹어 전형적
+    # 탑 실루엣의 좁아지는 모양) — 등급마다 다른 형태라야 하는 PLAN §6
+    # 조건을 충족한다("등급 3 × 지역 스타일" 표의 동양풍 칸).
+    "city_t2_asian": [
+        {"file": "TempleColumn_Art.glb", "pos": (2.8, 0, 2.8)},
+        {"file": "TempleColumn_Art.glb", "pos": (-2.8, 0, 2.8)},
+        {"file": "TempleColumn_Art.glb", "pos": (2.8, 0, -2.8)},
+        {"file": "TempleColumn_Art.glb", "pos": (-2.8, 0, -2.8)},
+        {"file": "TempleRoof01Corner_Art.glb", "pos": (0, 7, 0), "rot": 0},
+        {"file": "TempleRoof01Corner_Art.glb", "pos": (0, 7, 0), "rot": 90},
+        {"file": "TempleRoof01Corner_Art.glb", "pos": (0, 7, 0), "rot": 180},
+        {"file": "TempleRoof01Corner_Art.glb", "pos": (0, 7, 0), "rot": 270},
+    ],
+    "city_t3_asian": [
+        {"file": "TempleColumn_Art.glb", "pos": (2.8, 0, 2.8)},
+        {"file": "TempleColumn_Art.glb", "pos": (-2.8, 0, 2.8)},
+        {"file": "TempleColumn_Art.glb", "pos": (2.8, 0, -2.8)},
+        {"file": "TempleColumn_Art.glb", "pos": (-2.8, 0, -2.8)},
+        {"file": "TempleRoof01Corner_Art.glb", "pos": (0, 7, 0), "rot": 0},
+        {"file": "TempleRoof01Corner_Art.glb", "pos": (0, 7, 0), "rot": 90},
+        {"file": "TempleRoof01Corner_Art.glb", "pos": (0, 7, 0), "rot": 180},
+        {"file": "TempleRoof01Corner_Art.glb", "pos": (0, 7, 0), "rot": 270},
+        {"file": "TempleColumn_Art.glb", "pos": (1.9, 9.0, 1.9), "scale": 0.65},
+        {"file": "TempleColumn_Art.glb", "pos": (-1.9, 9.0, 1.9), "scale": 0.65},
+        {"file": "TempleColumn_Art.glb", "pos": (1.9, 9.0, -1.9), "scale": 0.65},
+        {"file": "TempleColumn_Art.glb", "pos": (-1.9, 9.0, -1.9), "scale": 0.65},
+        {"file": "TempleRoof01Corner_Art.glb", "pos": (0, 13.55, 0), "rot": 0, "scale": 0.7},
+        {"file": "TempleRoof01Corner_Art.glb", "pos": (0, 13.55, 0), "rot": 90, "scale": 0.7},
+        {"file": "TempleRoof01Corner_Art.glb", "pos": (0, 13.55, 0), "rot": 180, "scale": 0.7},
+        {"file": "TempleRoof01Corner_Art.glb", "pos": (0, 13.55, 0), "rot": 270, "scale": 0.7},
+    ],
 }
 
 
