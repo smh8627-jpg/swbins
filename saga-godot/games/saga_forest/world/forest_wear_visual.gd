@@ -13,8 +13,15 @@ extends Node3D
 ## 건드린다(player.gd 자체는 GO/FOREST가 공유하는 범용 컴포넌트라
 ## FOREST 전용 로직을 거기 넣지 않는다).
 
-const GLBUtils := preload("res://games/saga_go/world/glb_utils.gd")
-const PLAYER_TEXTURE := "res://assets/characters/Textures/texture-a.png"
+## 2026-09-23 — 플레이어가 09-19에 VRoid(saga_forest_avatar_01)로 바뀐 뒤에도
+## 여기는 옛 Kenney 방식(모든 메시에 texture-a.png 재질 하나를 material_override)
+## 그대로라, 염색하면 VRoid에 엉뚱한 아틀라스가 입혀지고 cel_toon·얼굴 베이크·
+## 외곽선이 통째로 사라졌다(빼도 흰 tint로 다시 덮어 안 돌아왔다). 이제는
+## cel_shader_apply.gd가 표면마다 박아 둔 cel_toon의 albedo_tint에 곱색만
+## 얹는다 — VRoid는 옷이 재질 단위로 나뉘어 있어(이름 끝 "_CLOTH": Tops·
+## Bottoms·Shoes) 피부·머리·얼굴은 안 물들이고 옷만 물들인다.
+const CLOTH_KEY := "_CLOTH"
+const BASE_TINT_META := &"dye_base_tint"
 
 var _player: Node3D = null
 var _cape: MeshInstance3D = null
@@ -47,25 +54,39 @@ func _apply_dye(dye: String) -> void:
 	var tint := Color(1, 1, 1)
 	if String(it.get("c", "")) != "":
 		tint = Color(String(it.c))
-	var mat := StandardMaterial3D.new()
-	mat.albedo_texture = load(PLAYER_TEXTURE)
-	mat.albedo_color = tint
 	for mi: MeshInstance3D in GLBUtils.find_all_mesh_instances(_player):
-		mi.material_override = mat
+		if mi.mesh == null or mi.name == "WearCape":
+			continue
+		for i in mi.mesh.get_surface_count():
+			var orig := mi.mesh.surface_get_material(i)
+			if orig == null or not (CLOTH_KEY in orig.resource_name):
+				continue
+			var mat := mi.get_surface_override_material(i) as ShaderMaterial
+			if mat == null:
+				continue
+			## 표면마다 cel_shader_apply가 새로 만든 재질이라 공유되지 않는다 —
+			## 제자리에서 고쳐도 된다. 원래 tint는 처음 한 번만 기억해 둔다.
+			if not mat.has_meta(BASE_TINT_META):
+				mat.set_meta(BASE_TINT_META, mat.get_shader_parameter("albedo_tint"))
+			var base: Color = mat.get_meta(BASE_TINT_META)
+			mat.set_shader_parameter("albedo_tint", base * tint)
 
 
+## 덧옷은 회전하는 Visual(VRoid, ×1.0344)의 자식으로 붙여 캐릭터가 도는 대로
+## 등판이 따라온다(예전엔 루트에 붙어 안 돌았다). 크기·자리는 1.7m 사람
+## 기준(어깨 ≈1.4m 아래로 무릎 위까지) — 모델이 +Z를 보므로(player.gd
+## target_yaw = atan2(x, z)) 등은 -Z. 미세조정은 실기 확인 때.
 func _build_cape(player: Node3D) -> MeshInstance3D:
 	var mi := MeshInstance3D.new()
 	mi.name = "WearCape"
 	var box := BoxMesh.new()
-	box.size = Vector3(0.9, 1.3, 0.08)
+	box.size = Vector3(0.42, 0.72, 0.03)
 	mi.mesh = box
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = Color(0.35, 0.28, 0.5)
 	mi.material_override = mat
-	## 등 쪽 — 정확한 앞/뒤 미세조정은 실기 확인 때 눈으로 본다(프로토타입
-	## 수준, 루트 CLAUDE.md "실기 확인은 몰아서" 방침 그대로).
-	mi.position = Vector3(0, 1.5, 0.4)
+	mi.position = Vector3(0, 1.0, -0.14)
 	mi.visible = false
-	player.add_child(mi)
+	var visual: Node3D = player.get_node_or_null("Visual")
+	(visual if visual != null else player).add_child(mi)
 	return mi
