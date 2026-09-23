@@ -8,6 +8,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const CHAR = 'lib:saga-go/models/people/quaternius_rpg/';
@@ -222,6 +223,64 @@ T.arena = base('arena', '파도 생존', '쿼터뷰에서 스킬(Z X C R)로 끝
     events: [loseOnHp, { when: { on: 'var', var: 'wave', op: '>=', value: '11' }, do: [{ do: 'win', text: '10파도를 버텼다!' }] },
       { when: { on: 'levelUp' }, do: [{ do: 'perk', title: '레벨 업 — 특성 하나' }] }] }]
 });
+
+/* ── 7) 언덕 마을 퍼즐(기본기) ───────────────────────────────────── */
+seq = 0;
+{
+  const HILLS = { size: 90, color: '#86b86a', hills: { height: 7, size: 16, flat: 15, seed: 3 } };
+  const stone = '#9a9489';
+  const apple = (pos) => E({ name: '사과', tag: 'apple', pos, look: { shape: 'sphere', color: '#e63946', glow: true }, scale: [0.45, 0.45, 0.45],
+    body: { type: 'trigger', size: [2.4, 4, 2.4], off: [0, -1, 0] }, comps: { bob: { amp: 0.15, speed: 2 }, pickup: { var: 'apple', add: 1, sound: 'coin' } } });
+  T.hills = base('hills', '언덕 마을 퍼즐', '언덕을 넘어 레버와 발판 스위치로 사당 문을 열고, 꼭대기 열쇠로 제단을 깨운다. 모닥불·분수·낙엽·가방(I)·컷신·배경음악(N).', {
+    start: 'hill', vars: { hp: 5, apple: 0, key: 0, lever1: 0, plate1: 0, gate: 0 },
+    hud: [{ var: 'hp', label: '체력', style: 'hearts' }],
+    goals: ['레버와 발판 스위치로 사당 문 열기', '언덕 꼭대기 열쇠 {key}/1', 'I 가방 · N 음악 끄기'],
+    combat: { style: 'simple', hpMax: 5 },
+    items: [{ icon: '🍎', name: '사과', var: 'apple', desc: '먹으면 체력 +1', useVar: 'hp', useAmt: 1 },
+      { icon: '🗝', name: '사당 열쇠', var: 'key', desc: '제단을 깨운다' }],
+    scenes: [{ id: 'hill', name: '바람 언덕 마을', env: env({ sky: '#a8d8ff', fog: 120, ground: HILLS, music: 'field' }), camera: { mode: 'follow', dist: 9, height: 4.5 },
+      entities: [
+        player({ pos: [0, 0, 7], look: { shape: 'model', model: CHAR + 'Ranger.glb', fit: 1.8 } }, { glide: true, climb: true }),
+        npc('할머니', [-3, 0, 4], ['언덕 너머에 레버 하나, 반대쪽에 발판 하나가 있단다.', '둘 다 켜면 사당 문이 열리지.', '배고프면 I 로 가방을 열어 사과를 먹으렴.'], { look: { shape: 'model', model: CHAR + 'Cleric.glb', fit: 1.7, label: '할머니' } }),
+        E({ name: '모닥불', pos: [3.5, 0, 3], look: { shape: 'cylinder', color: '#5d4037' }, scale: [0.9, 0.2, 0.9], body: { type: 'solid' }, comps: { particles: { kind: 'fire', rate: 45, size: 1 } } }),
+        E({ name: '모닥불 연기', pos: [3.5, 1.2, 3], look: { shape: 'none' }, body: { type: 'none' }, comps: { particles: { kind: 'smoke', rate: 6, size: 0.8 } } }),
+        E({ name: '분수', pos: [-6, 0, -1], look: { shape: 'cylinder', color: '#b0bec5' }, scale: [2.4, 0.5, 2.4], body: { type: 'solid' }, comps: { particles: { kind: 'fountain', rate: 70 } } }),
+        /* 사당 — 가운데 평지 북쪽, 앞벽 가운데가 문 */
+        box('사당 앞벽', [-3.5, 0, -5], [4, 3.2, 0.5], stone), box('사당 앞벽', [3.5, 0, -5], [4, 3.2, 0.5], stone),
+        box('사당 뒷벽', [0, 0, -13], [11, 3.2, 0.5], stone), box('사당 옆벽', [-5.5, 0, -9], [0.5, 3.2, 8], stone), box('사당 옆벽', [5.5, 0, -9], [0.5, 3.2, 8], stone),
+        E({ id: 'gate', name: '사당 문', pos: [0, 0, -5], look: { shape: 'box', color: '#6b4f3a' }, scale: [3, 3, 0.4], body: { type: 'solid' }, comps: { door: { var: 'gate', value: '1', dy: 3.4, speed: 2 } } }),
+        E({ id: 'altar', name: '제단', pos: [0, 0, -10], look: { shape: 'cylinder', color: '#d8d0c0', label: '제단' }, scale: [1.4, 1, 1.4], body: { type: 'solid' },
+          events: [{ when: { on: 'act', b: 'self' }, if: [{ var: 'key', op: '>=', value: 1 }], do: [{ do: 'take', item: 'key', n: 1 }, { do: 'effect', kind: 'firework', at: 'self' }, { do: 'music', name: 'town' },
+            { do: 'camera', target: 'self', sec: 2, dist: 6, height: 3 }, { do: 'win', text: '제단이 깨어났다!' }] },
+            { when: { on: 'act', b: 'self' }, if: [{ var: 'key', op: '<', value: 1 }], do: [{ do: 'toast', text: '열쇠 구멍이 있다… 언덕 꼭대기에 열쇠가 있다고 했다', sec: 3 }] }] }),
+        E({ name: '제단 빛', pos: [0, 1, -10], look: { shape: 'none' }, body: { type: 'none' }, comps: { particles: { kind: 'magic', rate: 10 } } }),
+        /* 퍼즐 — 동쪽 언덕 레버 · 서쪽 언덕 발판 */
+        E({ id: 'lever', name: '레버', pos: [16, 0, -8], look: { shape: 'cylinder', color: '#b08968', label: '레버' }, scale: [0.3, 1.2, 0.3], body: { type: 'solid' }, comps: { lever: { var: 'lever1', once: true } } }),
+        E({ id: 'plate', name: '발판 스위치', pos: [-16, 0, -6], look: { shape: 'box', color: '#5c6b7a', label: '발판' }, scale: [1.6, 0.15, 1.6], body: { type: 'solid' }, comps: { plate: { var: 'plate1', stay: true, who: 'player' } } }),
+        /* 언덕 꼭대기 열쇠 */
+        E({ id: 'key', name: '사당 열쇠', pos: [15, 0, 34], look: { shape: 'torus', color: '#ffd166', glow: true }, scale: [0.6, 0.6, 0.6], body: { type: 'trigger', size: [2.4, 4, 2.4], off: [0, -1, 0] },
+          comps: { spin: { speed: 120 }, particles: { kind: 'sparkle', rate: 14 } },
+          events: [{ when: { on: 'touch', a: 'player', b: 'self' }, once: true, do: [{ do: 'give', item: 'key', n: 1 }, { do: 'effect', kind: 'sparkle', at: 'self' }, { do: 'destroy', target: 'self' }] }] }),
+        apple([9, 0, 12]), apple([-12, 0, 14]), apple([-20, 0, -18]),
+        tree([12, 0, 6], 1.1), tree([-11, 0, 9]), tree([22, 0, -16], 1.2), tree([-24, 0, 4], 0.9), tree([8, 0, -22]), tree([-8, 0, -24], 1.1),
+        E({ name: '낙엽', pos: [0, 0, 0], look: { shape: 'none' }, body: { type: 'none' }, comps: { particles: { kind: 'leaves', rate: 5, size: 1 } } })
+      ],
+      events: [
+        { when: { on: 'var', var: 'lever1', op: '>=', value: '1' }, if: [{ var: 'plate1', op: '>=', value: 1 }], do: [{ do: 'set', var: 'gate', value: 1 }] },
+        { when: { on: 'var', var: 'plate1', op: '>=', value: '1' }, if: [{ var: 'lever1', op: '>=', value: 1 }], do: [{ do: 'set', var: 'gate', value: 1 }] },
+        { when: { on: 'var', var: 'gate', op: '>=', value: '1' }, do: [{ do: 'camera', target: 'gate', sec: 2.5, dist: 8, height: 3.5 }, { do: 'say', name: '', text: '쿠웅… 사당 문이 열렸다!' }] },
+        { when: { on: 'var', var: 'lever1', op: '>=', value: '1' }, if: [{ var: 'plate1', op: '<', value: 1 }], do: [{ do: 'toast', text: '어디선가 철컥 — 하나 남았다', sec: 2.5 }] },
+        { when: { on: 'var', var: 'plate1', op: '>=', value: '1' }, if: [{ var: 'lever1', op: '<', value: 1 }], do: [{ do: 'toast', text: '발판이 가라앉았다 — 하나 남았다', sec: 2.5 }] },
+        loseOnHp
+      ] }]
+  });
+  /* 언덕 위 개체는 땅높이에 맞춰 둔다(편집기에서도 묻혀 보이지 않게) */
+  const SIMR = createRequire(import.meta.url)(path.join(HERE, '../runtime/sim.js'));
+  T.hills.scenes[0].entities.forEach((e) => {
+    const h = SIMR.terrainH(HILLS, e.pos[0], e.pos[2]);
+    if (h > 0) { e.pos = [e.pos[0], Math.round((e.pos[1] + h) * 1000) / 1000, e.pos[2]]; }
+  });
+}
 
 for (const [name, p] of Object.entries(T)) {
   fs.writeFileSync(path.join(HERE, name + '.json'), JSON.stringify(p, null, 2) + '\n');

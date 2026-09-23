@@ -10,7 +10,7 @@
  * 시점(장면 camera.mode): first 1인칭 · follow 3인칭 · top 쿼터뷰 · side 옆(2.5D) · fixed 고정.
  *   camera.switch 가 false 가 아니면 V 로 1인칭 → 3인칭 → 쿼터뷰를 돈다(옆·고정 장면은 안 돈다).
  *   1인칭은 화면을 누르면 마우스가 잠겨 시선이 된다(Esc 로 풀림).
- * 조작(공통): 방향키/WASD · Space 점프 · F(또는 E) 말 걸기·살피기 · 마우스 끌기 카메라 · 휠 거리 · R 다시 하기
+ * 조작(공통): 방향키/WASD · Space 점프 · F(또는 E) 말 걸기·살피기 · 마우스 끌기 카메라 · 휠 거리 · R 다시 하기 · I 가방 · N 음악
  *   전투 스타일별 키는 화면 왼쪽 아래에 뜬다(play-combat.js KEYS).
  */
 (function (root) {
@@ -101,6 +101,7 @@
     var CB = root.SagaPlayCombat ? root.SagaPlayCombat.create({ sim: sim, S: S, style: style, project: project, scene3: scene3, cam: cam, canvas: canvas, hud: hudRoot, objs: function () { return objs; }, sfx: sfx }) : null;
     var SY = root.SagaPlaySystems ? root.SagaPlaySystems.create({ sim: sim, S: S, project: project, scene3: scene3, cam: cam, canvas: canvas, hud: hudRoot, objs: function () { return objs; },
       persist: !!opt.persist, feel: project.feel !== false }) : null;
+    var BA = root.SagaPlayBasics ? root.SagaPlayBasics.create({ sim: sim, S: S, project: project, scene3: scene3, cam: cam, canvas: canvas, hud: hudRoot, objs: function () { return objs; } }) : null;
 
     function sceneViews() {
       var c = S.scene.camera || {};
@@ -134,6 +135,7 @@
       sceneName.textContent = S.scene.name || '';
       sceneName.classList.remove('show'); void sceneName.offsetWidth; sceneName.classList.add('show');
       if (CB) { CB.scene(); }
+      if (BA) { BA.onScene(); }
     }
     function restart() { if (SY) { SY.clearSave(); } sim.restart(); sim.drainFx(); buildScene(); if (SY) { SY.resetSession(); } }
 
@@ -147,6 +149,7 @@
         if (e.code === 'Space') { jumpBuf = 0.12; }
         if (e.code === 'KeyR' && S.over) { restart(); }
         if (SY && (e.code === 'KeyB' || e.code === 'KeyM')) { SY.keys(e.code); }
+        if (BA && e.code === 'KeyN') { BA.keys(e.code); }
         if (SY && e.code === 'KeyP' && !S.menu && !S.over) { SY.togglePhoto(); }
         if (SY && e.code === 'Enter' && SY.photo()) { SY.snapPhoto(R); }
         if (e.code === 'KeyV' && !S.battle) { var vs = sceneViews(); if (vs.length > 1) { setView(vs[(vs.indexOf(view) + 1) % vs.length]); } }
@@ -244,7 +247,7 @@
     function placeCamera(k) {
       var c = S.scene.camera || {}, pl = S.player;
       var p = pl ? pl.p : [0, 0, 0];
-      if (CB && CB.camera(want, tgt)) {
+      if ((BA && BA.camera(want, tgt)) || (CB && CB.camera(want, tgt))) {
         cam.position.lerp(want, k); cam.lookAt(tgt);
         if (envNow) { envNow.follow(tgt.x, tgt.y, tgt.z); }
         return;
@@ -338,6 +341,7 @@
     function handleFx() {
       sim.drainFx().forEach(function (f) {
         if (SY && SY.fx(f)) { return; }
+        if (BA && BA.fx(f)) { return; }
         if (CB && CB.fx(f)) { return; }
         if (f.type === 'sound') { sfx(f.name); } else if (f.type === 'shake') { shakeT = f.sec; shakePow = f.power; } else if (f.type === 'poof') { poof(f.at, f.small); } else if (f.type === 'scene') { buildScene(); }
       });
@@ -417,6 +421,7 @@
       updPoofs(dt);
       if (CB) { CB.sync(dt); }
       if (SY) { SY.sync(dt, envNow, view); }
+      if (BA) { BA.sync(dt); }
       placeCamera(1 - Math.exp(-10 * dt));
       hud();
       R.render(scene3, cam);
@@ -430,6 +435,7 @@
         stopped = true;
         listeners.forEach(function (l) { l[0].removeEventListener(l[1], l[2], l[3]); });
         if (doc.pointerLockElement === canvas) { doc.exitPointerLock(); }
+        if (BA) { BA.stop(); }
         R.dispose();
       }
     };

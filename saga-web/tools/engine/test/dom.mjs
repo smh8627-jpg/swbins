@@ -106,12 +106,14 @@ try {
     addSel.value = 'foe'; addSel.dispatchEvent(new w.Event('change'));
     ok('편집기: 컴포넌트 붙이기', !!w.SagaEditor.project.scenes[0].entities.find((e) => e.id === last.id).comps.foe);
     /* 이벤트 추가 */
+    const evN = () => (w.SagaEditor.project.scenes[0].entities.find((e) => e.id === last.id).events || []).length;
+    const ev0 = evN();
     const evBtn = [...doc.querySelectorAll('#insp button')].find((b) => b.textContent === '＋ 이벤트');
     evBtn.click();
-    ok('편집기: 이벤트 추가', (w.SagaEditor.project.scenes[0].entities.find((e) => e.id === last.id).events || []).length === 1);
+    ok('편집기: 이벤트 추가', evN() === ev0 + 1);
     /* 되돌리기 */
     doc.querySelector('#b-undo').click();
-    ok('편집기: 되돌리기', !(w.SagaEditor.project.scenes[0].entities.find((e) => e.id === last.id).events || []).length);
+    ok('편집기: 되돌리기', evN() === ev0);
     /* 설정 창 열고 적용 */
     doc.querySelector('#b-settings').click();
     ok('편집기: 설정 창', !doc.querySelector('#modal').hidden && /전투 스타일/.test(doc.querySelector('#modal').textContent) && /시간·날씨·계절/.test(doc.querySelector('#modal').textContent), errors.slice(0, 2).join(' | '));

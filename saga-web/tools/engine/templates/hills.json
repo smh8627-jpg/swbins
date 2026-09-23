@@ -1,0 +1,1181 @@
+{
+  "format": "saga-engine",
+  "version": 1,
+  "id": "hills",
+  "title": "언덕 마을 퍼즐",
+  "desc": "언덕을 넘어 레버와 발판 스위치로 사당 문을 열고, 꼭대기 열쇠로 제단을 깨운다. 모닥불·분수·낙엽·가방(I)·컷신·배경음악(N).",
+  "start": "hill",
+  "vars": {
+    "hp": 5,
+    "apple": 0,
+    "key": 0,
+    "lever1": 0,
+    "plate1": 0,
+    "gate": 0
+  },
+  "hud": [
+    {
+      "var": "hp",
+      "label": "체력",
+      "style": "hearts"
+    }
+  ],
+  "goals": [
+    "레버와 발판 스위치로 사당 문 열기",
+    "언덕 꼭대기 열쇠 {key}/1",
+    "I 가방 · N 음악 끄기"
+  ],
+  "combat": {
+    "style": "simple",
+    "hpMax": 5
+  },
+  "items": [
+    {
+      "icon": "🍎",
+      "name": "사과",
+      "var": "apple",
+      "desc": "먹으면 체력 +1",
+      "useVar": "hp",
+      "useAmt": 1
+    },
+    {
+      "icon": "🗝",
+      "name": "사당 열쇠",
+      "var": "key",
+      "desc": "제단을 깨운다"
+    }
+  ],
+  "scenes": [
+    {
+      "id": "hill",
+      "name": "바람 언덕 마을",
+      "env": {
+        "sky": "#a8d8ff",
+        "fog": 120,
+        "light": 1,
+        "ground": {
+          "size": 90,
+          "color": "#86b86a",
+          "hills": {
+            "height": 7,
+            "size": 16,
+            "flat": 15,
+            "seed": 3
+          }
+        },
+        "gravity": 22,
+        "music": "field"
+      },
+      "camera": {
+        "mode": "follow",
+        "dist": 9,
+        "height": 4.5
+      },
+      "entities": [
+        {
+          "id": "player",
+          "pos": [
+            0,
+            0,
+            7
+          ],
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ],
+          "name": "플레이어",
+          "look": {
+            "shape": "model",
+            "model": "lib:saga-go/models/people/quaternius_rpg/Ranger.glb",
+            "fit": 1.8
+          },
+          "body": {
+            "type": "dynamic",
+            "size": [
+              0.8,
+              1.8,
+              0.8
+            ]
+          },
+          "comps": {
+            "player": {
+              "mode": "jump",
+              "speed": 6,
+              "jump": 8,
+              "attack": 1,
+              "range": 1.8,
+              "glide": true,
+              "climb": true
+            }
+          }
+        },
+        {
+          "id": "e1",
+          "pos": [
+            -3,
+            0,
+            4
+          ],
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ],
+          "name": "할머니",
+          "look": {
+            "shape": "model",
+            "model": "lib:saga-go/models/people/quaternius_rpg/Cleric.glb",
+            "fit": 1.7,
+            "label": "할머니"
+          },
+          "body": {
+            "type": "solid",
+            "size": [
+              0.8,
+              1.8,
+              0.8
+            ]
+          },
+          "comps": {
+            "talk": {
+              "name": "할머니",
+              "lines": [
+                "언덕 너머에 레버 하나, 반대쪽에 발판 하나가 있단다.",
+                "둘 다 켜면 사당 문이 열리지.",
+                "배고프면 I 로 가방을 열어 사과를 먹으렴."
+              ]
+            }
+          }
+        },
+        {
+          "id": "e2",
+          "pos": [
+            3.5,
+            0,
+            3
+          ],
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.9,
+            0.2,
+            0.9
+          ],
+          "name": "모닥불",
+          "look": {
+            "shape": "cylinder",
+            "color": "#5d4037"
+          },
+          "body": {
+            "type": "solid"
+          },
+          "comps": {
+            "particles": {
+              "kind": "fire",
+              "rate": 45,
+              "size": 1
+            }
+          }
+        },
+        {
+          "id": "e3",
+          "pos": [
+            3.5,
+            1.2,
+            3
+          ],
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ],
+          "name": "모닥불 연기",
+          "look": {
+            "shape": "none"
+          },
+          "body": {
+            "type": "none"
+          },
+          "comps": {
+            "particles": {
+              "kind": "smoke",
+              "rate": 6,
+              "size": 0.8
+            }
+          }
+        },
+        {
+          "id": "e4",
+          "pos": [
+            -6,
+            0,
+            -1
+          ],
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            2.4,
+            0.5,
+            2.4
+          ],
+          "name": "분수",
+          "look": {
+            "shape": "cylinder",
+            "color": "#b0bec5"
+          },
+          "body": {
+            "type": "solid"
+          },
+          "comps": {
+            "particles": {
+              "kind": "fountain",
+              "rate": 70
+            }
+          }
+        },
+        {
+          "id": "e5",
+          "pos": [
+            -3.5,
+            0,
+            -5
+          ],
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            4,
+            3.2,
+            0.5
+          ],
+          "name": "사당 앞벽",
+          "look": {
+            "shape": "box",
+            "color": "#9a9489"
+          },
+          "body": {
+            "type": "solid"
+          }
+        },
+        {
+          "id": "e6",
+          "pos": [
+            3.5,
+            0,
+            -5
+          ],
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            4,
+            3.2,
+            0.5
+          ],
+          "name": "사당 앞벽",
+          "look": {
+            "shape": "box",
+            "color": "#9a9489"
+          },
+          "body": {
+            "type": "solid"
+          }
+        },
+        {
+          "id": "e7",
+          "pos": [
+            0,
+            0,
+            -13
+          ],
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            11,
+            3.2,
+            0.5
+          ],
+          "name": "사당 뒷벽",
+          "look": {
+            "shape": "box",
+            "color": "#9a9489"
+          },
+          "body": {
+            "type": "solid"
+          }
+        },
+        {
+          "id": "e8",
+          "pos": [
+            -5.5,
+            0,
+            -9
+          ],
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.5,
+            3.2,
+            8
+          ],
+          "name": "사당 옆벽",
+          "look": {
+            "shape": "box",
+            "color": "#9a9489"
+          },
+          "body": {
+            "type": "solid"
+          }
+        },
+        {
+          "id": "e9",
+          "pos": [
+            5.5,
+            0,
+            -9
+          ],
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.5,
+            3.2,
+            8
+          ],
+          "name": "사당 옆벽",
+          "look": {
+            "shape": "box",
+            "color": "#9a9489"
+          },
+          "body": {
+            "type": "solid"
+          }
+        },
+        {
+          "id": "gate",
+          "pos": [
+            0,
+            0,
+            -5
+          ],
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            3,
+            3,
+            0.4
+          ],
+          "name": "사당 문",
+          "look": {
+            "shape": "box",
+            "color": "#6b4f3a"
+          },
+          "body": {
+            "type": "solid"
+          },
+          "comps": {
+            "door": {
+              "var": "gate",
+              "value": "1",
+              "dy": 3.4,
+              "speed": 2
+            }
+          }
+        },
+        {
+          "id": "altar",
+          "pos": [
+            0,
+            0,
+            -10
+          ],
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1.4,
+            1,
+            1.4
+          ],
+          "name": "제단",
+          "look": {
+            "shape": "cylinder",
+            "color": "#d8d0c0",
+            "label": "제단"
+          },
+          "body": {
+            "type": "solid"
+          },
+          "events": [
+            {
+              "when": {
+                "on": "act",
+                "b": "self"
+              },
+              "if": [
+                {
+                  "var": "key",
+                  "op": ">=",
+                  "value": 1
+                }
+              ],
+              "do": [
+                {
+                  "do": "take",
+                  "item": "key",
+                  "n": 1
+                },
+                {
+                  "do": "effect",
+                  "kind": "firework",
+                  "at": "self"
+                },
+                {
+                  "do": "music",
+                  "name": "town"
+                },
+                {
+                  "do": "camera",
+                  "target": "self",
+                  "sec": 2,
+                  "dist": 6,
+                  "height": 3
+                },
+                {
+                  "do": "win",
+                  "text": "제단이 깨어났다!"
+                }
+              ]
+            },
+            {
+              "when": {
+                "on": "act",
+                "b": "self"
+              },
+              "if": [
+                {
+                  "var": "key",
+                  "op": "<",
+                  "value": 1
+                }
+              ],
+              "do": [
+                {
+                  "do": "toast",
+                  "text": "열쇠 구멍이 있다… 언덕 꼭대기에 열쇠가 있다고 했다",
+                  "sec": 3
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "e10",
+          "pos": [
+            0,
+            1,
+            -10
+          ],
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ],
+          "name": "제단 빛",
+          "look": {
+            "shape": "none"
+          },
+          "body": {
+            "type": "none"
+          },
+          "comps": {
+            "particles": {
+              "kind": "magic",
+              "rate": 10
+            }
+          }
+        },
+        {
+          "id": "lever",
+          "pos": [
+            16,
+            0.865,
+            -8
+          ],
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.3,
+            1.2,
+            0.3
+          ],
+          "name": "레버",
+          "look": {
+            "shape": "cylinder",
+            "color": "#b08968",
+            "label": "레버"
+          },
+          "body": {
+            "type": "solid"
+          },
+          "comps": {
+            "lever": {
+              "var": "lever1",
+              "once": true
+            }
+          }
+        },
+        {
+          "id": "plate",
+          "pos": [
+            -16,
+            0.063,
+            -6
+          ],
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1.6,
+            0.15,
+            1.6
+          ],
+          "name": "발판 스위치",
+          "look": {
+            "shape": "box",
+            "color": "#5c6b7a",
+            "label": "발판"
+          },
+          "body": {
+            "type": "solid"
+          },
+          "comps": {
+            "plate": {
+              "var": "plate1",
+              "stay": true,
+              "who": "player"
+            }
+          }
+        },
+        {
+          "id": "key",
+          "pos": [
+            15,
+            5.964,
+            34
+          ],
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.6,
+            0.6,
+            0.6
+          ],
+          "name": "사당 열쇠",
+          "look": {
+            "shape": "torus",
+            "color": "#ffd166",
+            "glow": true
+          },
+          "body": {
+            "type": "trigger",
+            "size": [
+              2.4,
+              4,
+              2.4
+            ],
+            "off": [
+              0,
+              -1,
+              0
+            ]
+          },
+          "comps": {
+            "spin": {
+              "speed": 120
+            },
+            "particles": {
+              "kind": "sparkle",
+              "rate": 14
+            }
+          },
+          "events": [
+            {
+              "when": {
+                "on": "touch",
+                "a": "player",
+                "b": "self"
+              },
+              "once": true,
+              "do": [
+                {
+                  "do": "give",
+                  "item": "key",
+                  "n": 1
+                },
+                {
+                  "do": "effect",
+                  "kind": "sparkle",
+                  "at": "self"
+                },
+                {
+                  "do": "destroy",
+                  "target": "self"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "e11",
+          "pos": [
+            9,
+            0,
+            12
+          ],
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.45,
+            0.45,
+            0.45
+          ],
+          "name": "사과",
+          "tag": "apple",
+          "look": {
+            "shape": "sphere",
+            "color": "#e63946",
+            "glow": true
+          },
+          "body": {
+            "type": "trigger",
+            "size": [
+              2.4,
+              4,
+              2.4
+            ],
+            "off": [
+              0,
+              -1,
+              0
+            ]
+          },
+          "comps": {
+            "bob": {
+              "amp": 0.15,
+              "speed": 2
+            },
+            "pickup": {
+              "var": "apple",
+              "add": 1,
+              "sound": "coin"
+            }
+          }
+        },
+        {
+          "id": "e12",
+          "pos": [
+            -12,
+            0.576,
+            14
+          ],
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.45,
+            0.45,
+            0.45
+          ],
+          "name": "사과",
+          "tag": "apple",
+          "look": {
+            "shape": "sphere",
+            "color": "#e63946",
+            "glow": true
+          },
+          "body": {
+            "type": "trigger",
+            "size": [
+              2.4,
+              4,
+              2.4
+            ],
+            "off": [
+              0,
+              -1,
+              0
+            ]
+          },
+          "comps": {
+            "bob": {
+              "amp": 0.15,
+              "speed": 2
+            },
+            "pickup": {
+              "var": "apple",
+              "add": 1,
+              "sound": "coin"
+            }
+          }
+        },
+        {
+          "id": "e13",
+          "pos": [
+            -20,
+            1.76,
+            -18
+          ],
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.45,
+            0.45,
+            0.45
+          ],
+          "name": "사과",
+          "tag": "apple",
+          "look": {
+            "shape": "sphere",
+            "color": "#e63946",
+            "glow": true
+          },
+          "body": {
+            "type": "trigger",
+            "size": [
+              2.4,
+              4,
+              2.4
+            ],
+            "off": [
+              0,
+              -1,
+              0
+            ]
+          },
+          "comps": {
+            "bob": {
+              "amp": 0.15,
+              "speed": 2
+            },
+            "pickup": {
+              "var": "apple",
+              "add": 1,
+              "sound": "coin"
+            }
+          }
+        },
+        {
+          "id": "e14",
+          "pos": [
+            12,
+            0,
+            6
+          ],
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1.1,
+            1.1,
+            1.1
+          ],
+          "name": "나무",
+          "look": {
+            "shape": "model",
+            "model": "lib:saga-go/models/nature/CommonTree_1.glb",
+            "fit": 5
+          },
+          "body": {
+            "type": "solid",
+            "size": [
+              0.8,
+              5,
+              0.8
+            ]
+          }
+        },
+        {
+          "id": "e15",
+          "pos": [
+            -11,
+            0,
+            9
+          ],
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ],
+          "name": "나무",
+          "look": {
+            "shape": "model",
+            "model": "lib:saga-go/models/nature/CommonTree_1.glb",
+            "fit": 5
+          },
+          "body": {
+            "type": "solid",
+            "size": [
+              0.8,
+              5,
+              0.8
+            ]
+          }
+        },
+        {
+          "id": "e16",
+          "pos": [
+            22,
+            4.307,
+            -16
+          ],
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1.2,
+            1.2,
+            1.2
+          ],
+          "name": "나무",
+          "look": {
+            "shape": "model",
+            "model": "lib:saga-go/models/nature/CommonTree_1.glb",
+            "fit": 5
+          },
+          "body": {
+            "type": "solid",
+            "size": [
+              0.8,
+              5,
+              0.8
+            ]
+          }
+        },
+        {
+          "id": "e17",
+          "pos": [
+            -24,
+            1.742,
+            4
+          ],
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            0.9,
+            0.9,
+            0.9
+          ],
+          "name": "나무",
+          "look": {
+            "shape": "model",
+            "model": "lib:saga-go/models/nature/CommonTree_1.glb",
+            "fit": 5
+          },
+          "body": {
+            "type": "solid",
+            "size": [
+              0.8,
+              5,
+              0.8
+            ]
+          }
+        },
+        {
+          "id": "e18",
+          "pos": [
+            8,
+            2.079,
+            -22
+          ],
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ],
+          "name": "나무",
+          "look": {
+            "shape": "model",
+            "model": "lib:saga-go/models/nature/CommonTree_1.glb",
+            "fit": 5
+          },
+          "body": {
+            "type": "solid",
+            "size": [
+              0.8,
+              5,
+              0.8
+            ]
+          }
+        },
+        {
+          "id": "e19",
+          "pos": [
+            -8,
+            3.323,
+            -24
+          ],
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1.1,
+            1.1,
+            1.1
+          ],
+          "name": "나무",
+          "look": {
+            "shape": "model",
+            "model": "lib:saga-go/models/nature/CommonTree_1.glb",
+            "fit": 5
+          },
+          "body": {
+            "type": "solid",
+            "size": [
+              0.8,
+              5,
+              0.8
+            ]
+          }
+        },
+        {
+          "id": "e20",
+          "pos": [
+            0,
+            0,
+            0
+          ],
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ],
+          "name": "낙엽",
+          "look": {
+            "shape": "none"
+          },
+          "body": {
+            "type": "none"
+          },
+          "comps": {
+            "particles": {
+              "kind": "leaves",
+              "rate": 5,
+              "size": 1
+            }
+          }
+        }
+      ],
+      "events": [
+        {
+          "when": {
+            "on": "var",
+            "var": "lever1",
+            "op": ">=",
+            "value": "1"
+          },
+          "if": [
+            {
+              "var": "plate1",
+              "op": ">=",
+              "value": 1
+            }
+          ],
+          "do": [
+            {
+              "do": "set",
+              "var": "gate",
+              "value": 1
+            }
+          ]
+        },
+        {
+          "when": {
+            "on": "var",
+            "var": "plate1",
+            "op": ">=",
+            "value": "1"
+          },
+          "if": [
+            {
+              "var": "lever1",
+              "op": ">=",
+              "value": 1
+            }
+          ],
+          "do": [
+            {
+              "do": "set",
+              "var": "gate",
+              "value": 1
+            }
+          ]
+        },
+        {
+          "when": {
+            "on": "var",
+            "var": "gate",
+            "op": ">=",
+            "value": "1"
+          },
+          "do": [
+            {
+              "do": "camera",
+              "target": "gate",
+              "sec": 2.5,
+              "dist": 8,
+              "height": 3.5
+            },
+            {
+              "do": "say",
+              "name": "",
+              "text": "쿠웅… 사당 문이 열렸다!"
+            }
+          ]
+        },
+        {
+          "when": {
+            "on": "var",
+            "var": "lever1",
+            "op": ">=",
+            "value": "1"
+          },
+          "if": [
+            {
+              "var": "plate1",
+              "op": "<",
+              "value": 1
+            }
+          ],
+          "do": [
+            {
+              "do": "toast",
+              "text": "어디선가 철컥 — 하나 남았다",
+              "sec": 2.5
+            }
+          ]
+        },
+        {
+          "when": {
+            "on": "var",
+            "var": "plate1",
+            "op": ">=",
+            "value": "1"
+          },
+          "if": [
+            {
+              "var": "lever1",
+              "op": "<",
+              "value": 1
+            }
+          ],
+          "do": [
+            {
+              "do": "toast",
+              "text": "발판이 가라앉았다 — 하나 남았다",
+              "sec": 2.5
+            }
+          ]
+        },
+        {
+          "when": {
+            "on": "var",
+            "var": "hp",
+            "op": "<=",
+            "value": "0"
+          },
+          "do": [
+            {
+              "do": "lose",
+              "text": "쓰러졌다…"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

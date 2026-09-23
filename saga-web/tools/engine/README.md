@@ -12,11 +12,12 @@
 | `runtime/sim.js` | 규칙 핵심 — 장면·개체·몸(충돌)·컴포넌트·이벤트·변수·이동 기술·공용 메뉴·세이브. three 없이 돈다(node 진단) |
 | `runtime/combat.js` | 전투 스타일 넷 + 스킬 9갈래 + 적 옵션(원거리·원소 방패·기세·광폭·도망·노획물) |
 | `runtime/systems.js` | saga-godot 범용 시스템(아래 표) — 컴포넌트·행동·이벤트를 표에 등록 |
+| `runtime/basics.js` | 기본기 — 스위치(레버)·발판 스위치·문·파티클·아이템(가방 I)·컷신 카메라·효과·배경음악 바꾸기. 지형 언덕 높이(`terrainH`)는 sim.js 에 |
 | `runtime/view.js` | three.js 그리기 공용(환경·도형·모델 키 맞추기·몸짓·툰/외곽선) |
-| `runtime/play.js` · `play-combat.js` · `play-systems.js` | 실행기 — 입력·시점·HUD·소리·터치 / 전투 화면 / 시스템 화면·저장 |
+| `runtime/play.js` · `play-combat.js` · `play-systems.js` · `play-basics.js` | 실행기 — 입력·시점·HUD·소리·터치 / 전투 화면 / 시스템 화면·저장 / 파티클·배경음악(파일 없이 짓는 곡 일곱, N)·컷신 띠·가방 단추 |
 | `editor/` | 편집기(3D 화면·기즈모·개체 목록·속성 칸·에셋 서랍·설정·▶ 실행·📦 내보내기) |
 | `server.js` | 저장(검사·실명 가드·md5 충돌) · 다섯 판 GLB 라이브러리 목록 · 모델 올리기 · 내보내기 |
-| `templates/` | 예제 틀 여섯 — `make-templates.mjs` 로 짓는다(JSON 을 직접 고치지 말고 여기를 고쳐 다시 돌린다) |
+| `templates/` | 예제 틀 일곱 — `make-templates.mjs` 로 짓는다(JSON 을 직접 고치지 말고 여기를 고쳐 다시 돌린다) |
 | `test/run.mjs` · `test/dom.mjs` | 진단(아래) |
 
 ## 데이터 모양(project.json)
@@ -27,7 +28,9 @@
   combat:{ style:'simple|genshin|zelda|ff', atk, hpMax, potionHeal, mpMax, mpRegen, skillCd, party:[…], skills:[…] },
   world:{ clock:'off|game|real', dayMin, start, seasonDays, weather:'auto|…', season:'auto|…' },
   graphics:{ toon, outline }, feel:false?, level:{ expVar, lvVar, base, atk, hpVar, hp }, quests:[…],
-  scenes:[{ id, name, env:{sky,fog,light,gravity,ground:{size,color}}, camera:{mode:'first|follow|top|side|fixed', dist, height, yaw, switch},
+  items:[{ icon, name, var, desc, useVar, useAmt }],   // 가방 — 개수는 변수에
+
+  scenes:[{ id, name, env:{sky,fog,light,gravity,music,ground:{size,color,hills:{height,size,flat,seed}}}, camera:{mode:'first|follow|top|side|fixed', dist, height, yaw, switch},
             entities:[{ id, name, tag, pos, rot(도), scale, off, hidden, once,
                         look:{shape, color, glow, label, model:'lib:<판>/<assets 아래>'|'proj:<파일>', fit(키 m), yaw, anim},
                         body:{type:'none|solid|trigger|dynamic', size, off}, comps:{…}, events:[…] }],
@@ -36,6 +39,7 @@
 
 - 개체 `pos` 는 **발밑 가운데**, 1 = 1m. 몸(충돌)은 AABB — 개체 크기만 따르고 모델 겉모습(`look.fit`)과는 따로다.
 - 컴포넌트·행동·이벤트 칸의 목록과 설명은 코드 표가 정본이다: `sim.js` `COMP`·`WHEN`·`DO`, `systems.js`·`combat.js` 의 `addComp`·`addDo`·`addWhen`. 편집기 칸도 거기서 만든다.
+- 언덕(`ground.hills`)은 높이가 늘 0 이상이고 가운데 `flat` 반경은 평평하다. 개체 좌표는 절대값 — 편집기는 놓을 때·언덕을 바꿀 때 땅에 붙은 개체를 새 높이로 옮기고, 실행기는 묻힌 개체를 땅 위로 올린다.
 - 고르개(이벤트 대상): `player` · `self` · `other` · `#태그` · 개체 id · `any`.
 
 ## 전투 스타일
@@ -50,6 +54,10 @@
 ## 시점
 
 장면 `camera.mode`: 1인칭(화면 누르면 마우스 잠금) · 3인칭(끌어서 돌리기, 주목 중엔 적과 함께) · 쿼터뷰 · 옆(2.5D) · 고정. `switch` 가 false 가 아니면 실행 중 **V** 로 1인칭 → 3인칭 → 쿼터뷰.
+
+## 기본기(장치·효과)
+
+컴포넌트 `lever`(F 로 켜고 끔 → 변수 0/1)·`plate`(몸이 올라가 있는 동안 1)·`door`(변수가 값이면 dx·dy·dz 만큼 열림)·`particles`(불·연기·반짝이·분수·마법·낙엽·거품) · 행동 `give`·`take`(아이템)·`camera`(컷신 — 그동안 필드 멈춤, 다음 행동은 끝난 뒤)·`effect`(퍼짐·폭발·반짝·치유·연기·불꽃놀이)·`music`. 실행 중 **I** 가방 · **N** 음악 끄기. 예제는 틀 "언덕 마을 퍼즐"(`hills`).
 
 ## saga-godot 시스템 → 엔진
 

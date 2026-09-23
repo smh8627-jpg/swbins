@@ -17,6 +17,7 @@ const require = createRequire(import.meta.url);
 const SIM = require(path.join(ROOT, 'runtime/sim.js'));
 const COMBAT = require(path.join(ROOT, 'runtime/combat.js'));
 const SYS = require(path.join(ROOT, 'runtime/systems.js'));
+require(path.join(ROOT, 'runtime/basics.js'));
 
 let pass = 0, fail = 0;
 const fails = [];
@@ -421,6 +422,120 @@ t('적: 원거리·기세·광폭·도망·노획물', () => {
 });
 
 /* ════════════════════════════════════════════════════════════════════
+   5b) 기본기(basics.js) — 지형 언덕·스위치·발판·문·아이템·컷신·효과·음악
+   ════════════════════════════════════════════════════════════════════ */
+t('기본기: 지형 언덕', () => {
+  const hills = { height: 6, size: 14, flat: 3, seed: 5 };
+  const g = { size: 60, color: '#7fb069', hills };
+  let hx = 0, hz = 0, best = 0;
+  for (let x = -25; x <= 25; x++) { for (let z = -25; z <= 25; z++) { const v = SIM.terrainH(g, x, z); if (v > best) { best = v; hx = x; hz = z; } } }
+  ok('언덕: 솟은 곳이 있다', best > 1.5, best);
+  ok('언덕: 가운데 평지', SIM.terrainH(g, 0, 0) === 0 && SIM.terrainH(g, 1, 1) === 0);
+  ok('언덕: 땅 밖은 0', SIM.terrainH(g, 40, 0) === 0);
+  ok('언덕: 끄면 평평', SIM.terrainH({ size: 60 }, hx, hz) === 0);
+  const p = P([ent({ id: 'rock', pos: [hx, 0, hz] })], {}, { env: { ground: g } });
+  p.scenes[0].entities[0].pos = [hx, 20, hz];
+  const s = SIM.create(p);
+  ok('언덕: 묻힌 개체는 땅 위로', Math.abs(byId(s, 'rock').p[1] - best) < 1e-6);
+  const s2 = SIM.create(P([], {}, { env: { ground: g } }));
+  s2.state.player.p = [hx, 12, hz];
+  run(s2, 2);
+  ok('언덕: 플레이어가 언덕 위에 선다', Math.abs(s2.state.player.p[1] - best) < 0.05 && s2.state.player.ground, s2.state.player.p[1] + ' / ' + best);
+  run(s2, 0.1, { jump: true, jumpHit: true });
+  ok('언덕: 언덕에서 뛸 수 있다', s2.state.player.p[1] > best + 0.1);
+});
+t('기본기: 레버·문', () => {
+  const s = SIM.create(P([
+    ent({ id: 'lv', pos: [0, 0, -1.5], scale: [0.3, 1.1, 0.3], comps: { lever: { var: 'sw' } } }),
+    ent({ id: 'gate', pos: [0, 0, -8], scale: [3, 3, 0.4], comps: { door: { var: 'sw', value: '1', dy: 3, speed: 6 } } })
+  ], { vars: { sw: 0 } }));
+  run(s, 0.2, (i) => ({ act: i === 0 }));
+  ok('레버: F 로 켠다', s.state.vars.sw === 1);
+  run(s, 1);
+  ok('문: 변수가 1 이면 열린다(위로 3m)', Math.abs(byId(s, 'gate').p[1] - 3) < 1e-3, byId(s, 'gate').p[1]);
+  run(s, 0.2, (i) => ({ act: i === 0 }));
+  ok('레버: 다시 누르면 끈다', s.state.vars.sw === 0);
+  run(s, 1);
+  ok('문: 끄면 닫힌다', Math.abs(byId(s, 'gate').p[1]) < 1e-3);
+  const s2 = SIM.create(P([ent({ id: 'lv', pos: [0, 0, -1.5], comps: { lever: { var: 'sw', once: true } } })], { vars: { sw: 0 } }));
+  run(s2, 0.2, (i) => ({ act: i === 0 })); run(s2, 0.2, (i) => ({ act: i === 0 }));
+  ok('레버: 한 번만(once)', s2.state.vars.sw === 1);
+});
+t('기본기: 발판 스위치', () => {
+  const s = SIM.create(P([
+    ent({ id: 'pl8', pos: [0, 0, -4], scale: [1.4, 0.12, 1.4], comps: { plate: { var: 'pp' } } }),
+    ent({ id: 'crate', pos: [6, 0, -4], body: { type: 'dynamic' } })
+  ], { vars: { pp: 0 } }));
+  run(s, 0.5);
+  ok('발판: 처음엔 0', s.state.vars.pp === 0);
+  byId(s, 'crate').p = [0, 1, -4];
+  run(s, 0.5);
+  ok('발판: 상자가 올라가면 1', s.state.vars.pp === 1);
+  byId(s, 'crate').p = [6, 0, -4];
+  run(s, 0.3);
+  ok('발판: 내려오면 0', s.state.vars.pp === 0);
+  const s2 = SIM.create(P([ent({ id: 'pl8', pos: [0, 0, 0], scale: [1.4, 0.12, 1.4], comps: { plate: { var: 'pp', stay: true, who: 'player' } } })], { vars: { pp: 0 } }));
+  run(s2, 0.3);
+  s2.state.player.p = [8, 0, 8]; run(s2, 0.3);
+  ok('발판: 계속 켜짐(stay) · 플레이어만', s2.state.vars.pp === 1);
+});
+t('기본기: 아이템·가방', () => {
+  const items = [{ icon: '🍎', name: '사과', var: 'apple', desc: '체력 +2', useVar: 'hp', useAmt: 2 }, '🔑|열쇠|key|문을 연다'];
+  const p = P([ent({ id: 'tree', body: { type: 'trigger' }, pos: [0, 0, 0], events: [{ when: { on: 'touch', a: 'player', b: 'self' }, once: true, do: [{ do: 'give', item: 'apple', n: 3 }, { do: 'take', item: 'key', n: 5 }] }] })],
+    { vars: { hp: 2, apple: 0, key: 1 }, items });
+  ok('아이템: 검사 통과', SIM.validate(p).errors.length === 0, SIM.validate(p).errors.join('|'));
+  ok('아이템: 표시 글자에 이름·설명', SIM.displayTexts(p).includes('사과') && SIM.displayTexts(p).includes('체력 +2'));
+  ok('아이템: 줄·객체 둘 다 읽는다', SIM.parseItems(p).length === 2 && SIM.parseItems(p)[1].var === 'key');
+  const s = SIM.create(p);
+  run(s, 0.2);
+  ok('아이템: 주기', s.state.vars.apple === 3);
+  ok('아이템: 빼앗기는 0 아래로 안 간다', s.state.vars.key === 0);
+  run(s, 1 / 60, { keys: { KeyI: true } });
+  ok('가방: I 로 열린다(가진 것만)', s.state.menu && s.state.menu.kind === 'bag' && s.state.menu.items.length === 1 && /사과 ×3/.test(s.state.menu.items[0].label));
+  run(s, 1 / 60, { ok: true });
+  ok('가방: 고르면 쓴다', s.state.vars.apple === 2 && s.state.vars.hp === 4 && /사과를 썼다/.test(s.state.toast.text));
+  ok('가방: 목록이 바로 바뀐다', /×2/.test(s.state.menu.items[0].label));
+});
+t('기본기: 컷신·효과·음악', () => {
+  const s = SIM.create(P([
+    ent({ id: 'statue', pos: [10, 0, 0] }),
+    ent({ id: 'zone', pos: [0, 0, 0], body: { type: 'trigger', size: [2, 2, 2] }, events: [{ when: { on: 'touch', a: 'player', b: 'self' }, once: true,
+      do: [{ do: 'music', name: 'night' }, { do: 'effect', kind: 'explosion', at: 'statue' }, { do: 'camera', target: 'statue', sec: 1, dist: 5, height: 2 }, { do: 'add', var: 'coins', value: 1 }] }] })
+  ]));
+  const fx = run(s, 0.1);
+  ok('음악: 바꾸기', s.state.music === 'night');
+  ok('효과: fx 가 나간다(대상 자리)', fx.some((f) => f.type === 'effect' && f.kind === 'explosion' && f.at[0] === 10) && fx.some((f) => f.type === 'shake'));
+  ok('컷신: 켜진다', s.state.cine && s.state.cine.id === 'statue' && s.state.cine.dist === 5);
+  const x0 = s.state.player.p[0];
+  run(s, 0.5, { mx: 1 });
+  ok('컷신: 그동안 플레이어가 안 움직인다', Math.abs(s.state.player.p[0] - x0) < 1e-6);
+  ok('컷신: 다음 행동은 끝난 뒤', s.state.vars.coins === 0);
+  run(s, 0.7, { mx: 1 });
+  ok('컷신: 끝나면 다시 움직인다·다음 행동', !s.state.cine && s.state.player.p[0] > x0 && s.state.vars.coins === 1);
+  s.enterScene('main');
+  ok('음악: 장면에 들어가면 장면 기본으로', s.state.music == null);
+});
+
+t('틀 언덕 마을 퍼즐: 끝까지 풀기', () => {
+  const p = JSON.parse(fs.readFileSync(path.join(ROOT, 'templates', 'hills.json'), 'utf8'));
+  const s = SIM.create(p), S = s.state;
+  const go = (id, dz = 1.2) => { const e = byId(s, id); S.player.p = [e.p[0], e.p[1] + 0.5, e.p[2] + dz]; S.player.v = [0, 0, 0]; run(s, 0.4); };
+  const talk = () => run(s, 3, (i) => ({ act: i % 20 === 0 }));
+  go('altar', 1.6); run(s, 0.1, (i) => ({ act: i === 0 }));
+  ok('언덕 틀: 열쇠 없이 제단은 안내만', !S.over && /열쇠/.test(S.toast && S.toast.text));
+  go('lever', 1.2); run(s, 0.1, (i) => ({ act: i === 0 }));
+  ok('언덕 틀: 레버', S.vars.lever1 === 1 && S.vars.gate === 0);
+  go('plate', 0); run(s, 0.3);
+  ok('언덕 틀: 발판 → 문 변수', S.vars.plate1 === 1 && S.vars.gate === 1);
+  talk();
+  ok('언덕 틀: 컷신·말 뒤 문이 열려 있다', !S.cine && !S.dialog && byId(s, 'gate').p[1] > 3, byId(s, 'gate').p[1]);
+  go('key', 0); run(s, 0.3);
+  ok('언덕 틀: 꼭대기 열쇠를 얻는다', S.vars.key === 1 && !byId(s, 'key'));
+  go('altar', 1.6); run(s, 0.1, (i) => ({ act: i === 0 })); run(s, 2.5);
+  ok('언덕 틀: 제단 → 이김', S.over && S.over.win, JSON.stringify(S.over));
+});
+
+/* ════════════════════════════════════════════════════════════════════
    6) 서버 API(임시 폴더)
    ════════════════════════════════════════════════════════════════════ */
 async function serverTests() {
@@ -476,7 +591,7 @@ async function serverTests() {
     ok('서버: 에셋 밖 폴더 막음', g.status === 403);
     g = await fetch(base + '/runtime/three.iife.js');
     ok('서버: three 번들', g.status === 200);
-    for (const f of ['play.html', 'sim.js', 'combat.js', 'systems.js', 'view.js', 'play.js', 'play-combat.js', 'play-systems.js']) {
+    for (const f of ['play.html', 'sim.js', 'combat.js', 'systems.js', 'basics.js', 'view.js', 'play.js', 'play-combat.js', 'play-systems.js', 'play-basics.js']) {
       g = await fetch(base + '/runtime/' + f); ok('서버: 실행기 ' + f, g.status === 200);
     }
     g = await fetch(base + '/'); ok('서버: 편집기', g.status === 200 && (await g.text()).includes('editor.js'));
@@ -497,7 +612,7 @@ async function serverTests() {
     const out = path.join(tmp, 'dist', 't-adventure');
     const html = fs.readFileSync(path.join(out, 'index.html'), 'utf8');
     ok('내보내기: index.html 에 프로젝트', html.includes('window.SAGA_PROJECT=') && html.includes('<script src="systems.js">') && !html.includes('<!--SAGA-PROJECT-->'));
-    ok('내보내기: 실행 파일', ['three.iife.js', 'sim.js', 'combat.js', 'systems.js', 'view.js', 'play.js', 'play-combat.js', 'play-systems.js', 'CREDITS.txt'].every((f) => fs.existsSync(path.join(out, f))));
+    ok('내보내기: 실행 파일', ['three.iife.js', 'sim.js', 'combat.js', 'systems.js', 'basics.js', 'view.js', 'play.js', 'play-combat.js', 'play-systems.js', 'play-basics.js', 'CREDITS.txt'].every((f) => fs.existsSync(path.join(out, f))));
     ok('내보내기: 라이브러리 모델 복사', fs.existsSync(path.join(out, 'assets/lib/saga-go/models/people/quaternius_rpg/Warrior.glb')));
     ok('내보내기: 올린 모델 복사', fs.existsSync(path.join(out, 'assets/proj/my_rock.glb')));
     /* 내보낸 판의 프로젝트가 그대로 돈다 */

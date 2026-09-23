@@ -243,7 +243,7 @@
       html += M.items.map(function (it, i) {
         return '<div class="mi' + (i === M.cur ? ' cur' : '') + (it.disabled ? ' dis' : '') + '" data-i="' + i + '"><span>' + esc(it.label) + '</span><small>' + esc(it.sub || '') + '</small></div>';
       }).join('');
-      html += '<div class="hint">↑↓ 고르기 · Enter/Space/F 고르기' + (M.cancel === false ? '' : ' · X 닫기') + '</div>';
+      html += '<div class="hint">↑↓ 고르기 · Enter/Space/F 확인' + (M.cancel === false ? '' : ' · X 닫기') + '</div>';
       if (html !== lastMenu) { menuEl.innerHTML = html; lastMenu = html; }
     }
     menuEl.addEventListener('pointerdown', function (e) {

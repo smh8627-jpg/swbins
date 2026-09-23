@@ -97,6 +97,29 @@
       ground.receiveShadow = true;
       ground.userData.ground = true;
       g.add(ground);
+      /* 언덕(env.ground.hills) — 규칙과 같은 높이 함수로 판을 휜다. 비탈은 흙빛, 높은 곳은 밝게 */
+      var hl = e.ground.hills, SIM = root.SagaSim;
+      if (hl && +hl.height > 0 && SIM && SIM.terrainH) {
+        var seg = Math.min(160, Math.max(24, Math.round(size / 0.75)));
+        var pg = new T.PlaneGeometry(size, size, seg, seg);
+        pg.rotateX(-Math.PI / 2);
+        var pa = pg.attributes.position, cols = new Float32Array(pa.count * 3);
+        for (var vi = 0; vi < pa.count; vi++) { pa.setY(vi, SIM.terrainH(e.ground, pa.getX(vi), pa.getZ(vi))); }
+        pg.computeVertexNormals();
+        var nrm = pg.attributes.normal, base = new T.Color(e.ground.color || '#7fb069'), dirt = new T.Color('#8a7355'), cc = new T.Color();
+        for (vi = 0; vi < pa.count; vi++) {
+          var slope = 1 - nrm.getY(vi), hk = Math.min(1, pa.getY(vi) / (+hl.height || 1));
+          cc.copy(base).lerp(dirt, Math.min(1, Math.max(0, (slope - 0.12) * 3))).multiplyScalar(0.92 + hk * 0.18);
+          cols[vi * 3] = cc.r; cols[vi * 3 + 1] = cc.g; cols[vi * 3 + 2] = cc.b;
+        }
+        pg.setAttribute('color', new T.BufferAttribute(cols, 3));
+        var hills = new T.Mesh(pg, new T.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 1 }));
+        hills.receiveShadow = true; hills.castShadow = true;
+        hills.userData.ground = true;
+        ground.position.y = -0.52;
+        ground.add(hills); hills.position.y = 0.52;
+        ground.userData.hills = hills;
+      }
     }
     return {
       group: g, sun: sun, ground: ground, hemi: hemi,
@@ -117,7 +140,7 @@
           if (!sc3.fog) { sc3.fog = new T.Fog(sky, far * 0.35, far); }
           sc3.fog.color.copy(sky); sc3.fog.near = far * 0.35; sc3.fog.far = far;
         }
-        if (ground && tint) { ground.material.color.copy(groundCol).multiply(tint); }
+        if (ground && tint) { ground.material.color.copy(groundCol).multiply(tint); if (ground.userData.hills) { ground.userData.hills.material.color.setRGB(1, 1, 1).multiply(tint); } }
       },
       /* 그림자 상자를 따라다니게 */
       follow: function (x, y, z) {

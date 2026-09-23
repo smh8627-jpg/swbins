@@ -127,6 +127,32 @@
     '!=': function (a, b) { return a != b; }, '<': function (a, b) { return a < b; }, '<=': function (a, b) { return a <= b; } // eslint-disable-line eqeqeq
   };
 
+  /* ── 지형 언덕 — 장면 env.ground.hills {height, size, seed, flat}. 높이는 늘 0 이상(땅 상자 위로만 솟는다).
+     물리(sim)·땅 모양(view)·편집기 놓기가 같은 함수를 쓴다 */
+  function hash2(ix, iz, seed) {
+    var h = (Math.imul(ix, 374761393) + Math.imul(iz, 668265263) + Math.imul(seed, 1442695041)) | 0;
+    h = Math.imul(h ^ (h >>> 13), 1274126177); h ^= h >>> 16;
+    return (h >>> 0) / 4294967296;
+  }
+  function vnoise(x, z, seed) {
+    var ix = Math.floor(x), iz = Math.floor(z), fx = x - ix, fz = z - iz;
+    var u = fx * fx * (3 - 2 * fx), w = fz * fz * (3 - 2 * fz);
+    var a = hash2(ix, iz, seed), b = hash2(ix + 1, iz, seed), c = hash2(ix, iz + 1, seed), d = hash2(ix + 1, iz + 1, seed);
+    return (a + (b - a) * u) + ((c + (d - c) * u) - (a + (b - a) * u)) * w;
+  }
+  function terrainH(ground, x, z) {
+    var hl = ground && ground.hills;
+    if (!hl || !(num(hl.height, 0) > 0)) { return 0; }
+    var half = num(ground.size, 60) / 2;
+    if (Math.abs(x) > half || Math.abs(z) > half) { return 0; }
+    var sz = Math.max(2, num(hl.size, 18)), seed = num(hl.seed, 1) | 0;
+    var n = vnoise(x / sz, z / sz, seed) * 0.7 + vnoise(x / sz * 2.3 + 17, z / sz * 2.3 - 5, seed + 7) * 0.3;
+    n = Math.max(0, n - 0.3) / 0.7;
+    var flat = Math.max(0, num(hl.flat, 8)), d = Math.hypot(x, z), m = 1;
+    if (d < flat + sz * 0.6) { m = Math.max(0, (d - flat) / (sz * 0.6)); m = m * m * (3 - 2 * m); }
+    return num(hl.height, 0) * n * m;
+  }
+
   function compDefaults(name) {
     var d = {}, f = (COMP[name] || {}).f || {};
     for (var k in f) { d[k] = clone(f[k][1]); }
@@ -220,6 +246,7 @@
     var out = [p.title || '', p.desc || ''];
     ((p.combat || {}).party || []).forEach(function (m) { out.push((m && m.name) || ''); });
     (p.hud || []).forEach(function (h) { out.push(h.label || ''); });
+    (p.items || []).forEach(function (it) { if (it && typeof it === 'object') { out.push(it.name || '', it.desc || ''); } else { out.push(String(it || '')); } });
     (p.scenes || []).forEach(function (s) {
       out.push(s.name || '');
       function evs(list) { (list || []).forEach(function (ev) { (ev.do || []).forEach(function (a) { out.push(a.text || '', a.name || ''); }); }); }
@@ -298,6 +325,11 @@
         comps: comps, hp: comps.health ? num(comps.health.hp, 3) : 0, spd: 0, t: 0, inv: 0, hitT: 0, act: 0, events: d.events || [],
         mv: 'ground', coyote: 0, jumpT: 0, climbCd: 0, pushT: 0, climbT: 0
       };
+      var tsc = scn || (S && S.scene);
+      if (!comps.water && tsc && tsc.env) {
+        var th = terrainH(tsc.env.ground, e.p[0], e.p[2]);
+        if (e.p[1] < th) { e.p[1] = th; }
+      }
       e.home = e.p.slice();
       return e;
     }
@@ -370,6 +402,8 @@
       if (moveAxis(e, 2, e.v[2] * dt, solids)) { e.v[2] = 0; }
       e.ground = false; e.standOn = null;
       if (moveAxis(e, 1, e.v[1] * dt, solids)) { e.v[1] = 0; }
+      var th = terrainH(S.scene.env && S.scene.env.ground, e.p[0], e.p[2]);
+      if (th > 0 && e.p[1] < th) { e.p[1] = th; if (e.v[1] < 0) { e.v[1] = 0; } e.ground = true; }
       e.spd = Math.hypot(e.p[0] - x0, e.p[2] - z0) / Math.max(dt, 1e-6);
     }
 
@@ -971,7 +1005,7 @@
   var API = {
     FORMAT: FORMAT, VERSION: VERSION, SHAPES: SHAPES, BODIES: BODIES, COMP: COMP, WHEN: WHEN, DO: DO, OPS: OPS,
     STYLES: STYLES, addStyle: addStyle, SYSTEMS: SYSTEMS, addSystem: addSystem, addComp: addComp, addDo: addDo, addWhen: addWhen, create: create, validate: validate, displayTexts: displayTexts, blank: blank,
-    compDefaults: compDefaults, fieldDefaults: fieldDefaults, mulberry32: mulberry32, clone: clone
+    compDefaults: compDefaults, fieldDefaults: fieldDefaults, mulberry32: mulberry32, clone: clone, terrainH: terrainH
   };
   root.SagaSim = API;
   if (typeof module !== 'undefined' && module.exports) { module.exports = API; }

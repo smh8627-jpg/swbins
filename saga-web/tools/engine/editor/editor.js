@@ -390,8 +390,9 @@
   }
   /* 새 개체를 놓을 자리: 카메라가 보는 바닥 점(격자에 맞춤) */
   function dropPoint() {
-    var st = stepV();
-    return [snapV(orbit.tx, st), 0, snapV(orbit.tz, st)];
+    var st = stepV(), x = snapV(orbit.tx, st), z = snapV(orbit.tz, st);
+    var cs = scene(), sc = cs && cs.env ? cs.env.ground : null;
+    return [x, sc ? r3(SIM.terrainH(sc, x, z)) : 0, z];
   }
 
   function loop() {
@@ -454,7 +455,17 @@
     { n: '💬 하트 주민', e: { name: '주민', look: { shape: 'capsule', color: '#e76f51', label: '주민' }, body: { type: 'solid', size: [0.8, 1.8, 0.8] }, comps: { talk: { name: '주민', lines: ['안녕!'] }, bond: {} } } },
     { n: '🔥 거점(봉수대)', e: { name: '봉수대', look: { shape: 'cylinder', color: '#78909c', label: '봉수대' }, scale: [1.2, 3, 1.2], body: { type: 'solid' }, comps: { waypoint: {} } } },
     { n: '🐕 동료', e: { name: '동료', look: { shape: 'capsule', color: '#ffb703' }, scale: [0.7, 0.7, 0.7], body: { type: 'dynamic', size: [0.8, 1.8, 0.8] }, comps: { follow: {} } } },
-    { n: '🦌 도감 동물', e: { name: '사슴', look: { shape: 'model', model: 'lib:saga-go/models/animals/Deer.glb', fit: 1.7 }, body: { type: 'solid' }, comps: { codex: { book: '생물' } } } }
+    { n: '🦌 도감 동물', e: { name: '사슴', look: { shape: 'model', model: 'lib:saga-go/models/animals/Deer.glb', fit: 1.7 }, body: { type: 'solid' }, comps: { codex: { book: '생물' } } } },
+    { cap: '장치·효과(기본기)' },
+    { n: '🕹 레버', e: { name: '레버', look: { shape: 'cylinder', color: '#b08968', label: '레버' }, scale: [0.3, 1.1, 0.3], body: { type: 'solid' }, comps: { lever: { var: 'switch1' } } } },
+    { n: '⬛ 발판 스위치', e: { name: '발판 스위치', look: { shape: 'box', color: '#5c6b7a' }, scale: [1.4, 0.12, 1.4], body: { type: 'solid' }, comps: { plate: { var: 'plate1' } } } },
+    { n: '🚧 열리는 문', e: { name: '열리는 문', look: { shape: 'box', color: '#6b4f3a' }, scale: [3, 3, 0.4], body: { type: 'solid' }, comps: { door: { var: 'switch1', value: '1', dy: 3 } } } },
+    { n: '🔥 모닥불', e: { name: '모닥불', look: { shape: 'cylinder', color: '#5d4037' }, scale: [0.8, 0.2, 0.8], body: { type: 'solid' }, comps: { particles: { kind: 'fire', rate: 40 } } } },
+    { n: '⛲ 분수', e: { name: '분수', look: { shape: 'cylinder', color: '#b0bec5' }, scale: [2, 0.5, 2], body: { type: 'solid' }, comps: { particles: { kind: 'fountain', rate: 60 } } } },
+    { n: '✨ 반짝이', e: { name: '반짝이', look: { shape: 'none' }, body: { type: 'none' }, comps: { particles: { kind: 'sparkle', rate: 12 } } } },
+    { n: '🍂 낙엽', e: { name: '낙엽', look: { shape: 'none' }, body: { type: 'none' }, comps: { particles: { kind: 'leaves', rate: 6 } } } },
+    { n: '🎬 컷신 표시점', e: { name: '컷신 자리', tag: 'cine', look: { shape: 'none' }, body: { type: 'trigger', size: [3, 2, 3] },
+      events: [{ when: { on: 'touch', a: 'player', b: 'self' }, once: true, do: [{ do: 'camera', target: 'self', sec: 2.5, dist: 7, height: 3, bars: true }, { do: 'say', name: '', text: '여기서 무슨 일이 있었던 걸까…' }] }] } }
   ];
 
   function addEntity(tpl, fit) {
@@ -469,7 +480,7 @@
     var py = d.pos ? d.pos[1] : 0;
     edit(function () {
       d.id = newId(d.id || (d.tag || 'e'));
-      d.pos = [p[0], py, p[2]];
+      d.pos = [p[0], d.comps && d.comps.water ? py : r3(py + p[1]), p[2]];
       d.rot = d.rot || [0, 0, 0];
       d.scale = d.scale || [1, 1, 1];
       ents().push(d);
@@ -697,8 +708,30 @@
       row('중력', numIn(env.gravity == null ? 22 : env.gravity, function (v) { edit(function () { env.gravity = v; }); })),
       row('땅', h('div', { class: 'inl' }, [chkIn(!!env.ground, function (v) { edit(function () { env.ground = v ? { size: 60, color: '#7fb069' } : null; }); }),
         env.ground ? numIn(env.ground.size, function (v) { edit(function () { env.ground.size = v; }); }) : h('span', { text: '없음(발판만)' }),
-        env.ground ? h('input', { type: 'color', value: env.ground.color || '#7fb069', onchange: function () { var v = this.value; edit(function () { env.ground.color = v; }); } }) : null]), '땅 한 변 길이(m)·색')
+        env.ground ? h('input', { type: 'color', value: env.ground.color || '#7fb069', onchange: function () { var v = this.value; edit(function () { env.ground.color = v; }); } }) : null]), '땅 한 변 길이(m)·색'),
+      env.ground ? row('언덕', h('div', { class: 'inl' }, [
+        numIn((env.ground.hills || {}).height || 0, function (v) { setHills('height', v); }, 0.5),
+        numIn((env.ground.hills || {}).size || 18, function (v) { setHills('size', v); }),
+        numIn((env.ground.hills || {}).flat == null ? 8 : env.ground.hills.flat, function (v) { setHills('flat', v); }),
+        h('button', { text: '🎲', title: '다른 모양', onclick: function () { setHills('seed', ((env.ground.hills || {}).seed || 1) + 1); } })]),
+        '높이(m, 0 이면 평평) · 언덕 크기(m) · 가운데 평지 반경(m) · 🎲 모양 바꾸기. 땅에 붙어 있던 개체는 같이 오르내린다') : null,
+      row('배경음악', selIn(Object.keys(SIM.MUSIC || { none: '없음' }).map(function (k) { return [k, SIM.MUSIC[k]]; }), env.music || 'none', function (v) { edit(function () { if (v === 'none') { delete env.music; } else { env.music = v; } }); }),
+        '파일 없이 만드는 곡. 실행 중 N 으로 끄고 켠다. 행동 "배경음악 바꾸기"로 바꿀 수 있다')
     ]));
+    /* 언덕을 바꾸면 땅에 붙어 있던 개체(발밑이 옛 땅 높이 ±5cm)를 새 높이로 옮긴다 */
+    function setHills(k, v) {
+      edit(function () {
+        var g = env.ground, old = SIM.clone(g);
+        g.hills = g.hills || { height: 0, size: 18, flat: 8, seed: 1 };
+        g.hills[k] = v;
+        if (!(+g.hills.height > 0)) { delete g.hills; }
+        (sc.entities || []).forEach(function (e) {
+          if (!e.pos || (e.comps && e.comps.water)) { return; }
+          var was = SIM.terrainH(old, e.pos[0], e.pos[2]);
+          if (Math.abs(e.pos[1] - was) < 0.05) { e.pos[1] = r3(SIM.terrainH(g, e.pos[0], e.pos[2])); }
+        });
+      });
+    }
     var camRows = [row('방식', selIn([['first', '1인칭'], ['follow', '3인칭(뒤따라가기)'], ['top', '쿼터뷰(내려다보기)'], ['side', '옆에서(2.5D)'], ['fixed', '고정']], cm.mode || 'follow', function (v) { edit(function () { cm.mode = v; }); })),
       row('V 로 바꾸기', h('label', {}, [chkIn(cm.switch !== false, function (v) { edit(function () { if (v) { delete cm.switch; } else { cm.switch = false; } }); }), ' 실행 중 1인칭·3인칭·쿼터뷰 돌려 보기']), '옆·고정 장면은 안 바뀐다')];
     if (cm.mode === 'fixed') {
@@ -944,7 +977,7 @@
   $('#b-settings').onclick = function () {
     var d = SIM.clone({ title: proj.title, desc: proj.desc || '', vars: proj.vars || {}, hud: proj.hud || [], goals: proj.goals || ['', '', ''],
       combat: proj.combat || { style: 'simple' }, world: proj.world || { clock: 'off' }, graphics: proj.graphics || {}, feel: proj.feel !== false,
-      level: proj.level || null, quests: proj.quests || [] });
+      level: proj.level || null, quests: proj.quests || [], items: proj.items || [] });
     d.combat.party = d.combat.party || []; d.combat.skills = d.combat.skills || [];
     while (d.goals.length < 3) { d.goals.push(''); }
     var varRows = h('tbody'), hudRows = h('tbody');
@@ -1011,6 +1044,10 @@
         tableEd(d.quests, [['id', 'id'], ['name', '이름'], ['desc', '설명'], ['var', '목표 변수', 'var'], ['op', '비교', 'sel:>=|>|==|!=|<|<='], ['value', '값'], ['reward', '보상(gold|10, exp|5)', 'csv'], ['auto', '처음부터', 'b']],
           { id: 'q' + (d.quests.length + 1), name: '새 퀘스트', desc: '', var: 'coins', op: '>=', value: 5, reward: ['exp|10'], auto: true })
       ])
+      .concat(sec('아이템(가방)', '실행 중 I(또는 🎒 단추)로 가방을 연다. 개수는 변수에 담긴다(줍기·상점·행동 "아이템 주기"). "쓰면 바뀔 변수"를 채우면 가방에서 골라 쓴다(예: hp +2).'), [
+        tableEd(d.items, [['icon', '아이콘(이모지)'], ['name', '이름'], ['var', '변수', 'var'], ['desc', '설명'], ['useVar', '쓰면 바뀔 변수', 'var'], ['useAmt', '양', 'n']],
+          { icon: '🍎', name: '사과', var: 'apple', desc: '체력을 조금 채운다', useVar: 'hp', useAmt: 1 })
+      ])
       .concat([h('div', { class: 'foot' }, [h('button', { text: '취소', onclick: closeModal }), h('button', { class: 'primary', text: '적용', onclick: function () {
         edit(function () {
           proj.title = ti.value; proj.desc = d.desc = de.value; proj.vars = d.vars; proj.hud = d.hud;
@@ -1024,6 +1061,9 @@
           if (lvOn) { proj.level = lv; } else { delete proj.level; }
           d.quests.forEach(function (q) { if (q.value !== '' && isFinite(+q.value)) { q.value = +q.value; } });
           if (d.quests.length) { proj.quests = d.quests; } else { delete proj.quests; }
+          d.items = d.items.filter(function (it) { return it && it.var; });
+          d.items.forEach(function (it) { if (!(it.var in proj.vars)) { proj.vars[it.var] = 0; } });
+          if (d.items.length) { proj.items = d.items; } else { delete proj.items; }
           /* 스타일이 쓰는 변수는 저절로 만든다 */
           ['hp', 'exp', 'gold'].forEach(function (k) { if (cb.style !== 'simple' && !(k in proj.vars)) { proj.vars[k] = k === 'hp' ? 6 : 0; } });
           if (cb.skills && !('mp' in proj.vars)) { proj.vars.mp = cb.mpMax || 50; }
