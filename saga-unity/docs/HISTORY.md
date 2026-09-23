@@ -8672,3 +8672,16 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 **구현**: 새 `BuildPropsMaterialSplit.cs`(`Assets/Art/Props/Generated/` 산출물 4개 — `LanternMetal.mat`·`StallRed_Split.asset`·`StallRedWood.mat`·`StallRedCanopy.mat`, 103-1 규칙대로 커밋). `PropsBuilder.InitMaterialSplit()`(null이면 원본 GLB로 폴백), `SpawnLantern()`·`BuildMarketStall()`이 각각 적용. `BuildTestVillageScene.BuildProps()`가 새 자산 넷을 로드해 넘긴다. `MarkStatic()`은 서브메시>1인 오브젝트를 건너뛴다. 새 헤드리스 진단 `PlaytestHeadless.CheckPropsMaterials()`: lantern 재질 이름·`metallicFactor`≥0.5, stall 서브메시 2·재질 이름 둘·양쪽 다 삼각형 있음·**서로 다른 텍스처**(`_BaseMap`/`baseColorTexture` 둘 다 확인 — 셰이더가 서로 다르다) 확인. TestVillage 재빌드 뒤 **3연속 OK**(마지막 1회는 프로세스 종료가 걸려 exit 124였지만 로그 내용 자체는 OK — 이 PC의 반복 launch 부하로 이미 여러 번 겪은 것과 같은 패턴, 코드 문제 아님). 작업 중 Unity가 라이선싱 오류로 두 번, 좀비 `Unity.exe`(이전 백그라운드 실행 잔여)로 한 번 실패해 각각 재시도·`taskkill //F //IM Unity.exe`로 정리했다.
 
 코드: `BuildPropsMaterialSplit`(신규)·`PropsBuilder`·`BuildTestVillageScene`·`PlaytestHeadless`, `TestVillage.unity` 재빌드, `Assets/Art/Props/Generated/*`(신규 4파일), `colormap.png.meta`(ForceReadable). 문서: PLAN 102-4 Props 행, `PROJECT_STATE.md`.
+
+## 글자 지도 조립 씬을 Unity 배치 모드로 실제 조립(BuildFromLayout) — 2026-09-23, 새 세션, "게임툴 이어 해줘"
+
+- `tools/scene-layout/`(같은 날 신설, saga-godot 세션)가 만든 배치표 `tools/layout/out/hebei.json` 로
+  `Assets/Editor/BuildFromLayout.cs::BuildFromArgs` 를 처음 실제로 배치 모드에서 돌렸다(이전 시도는 다른 세션이
+  Unity 를 쓰는 중이라 컴파일 확인까지만 하고 멈춰 있었음).
+- `bash tools/unity-batch.sh -- Unity.exe(6000.3.24f1) -batchmode -nographics -quit -projectPath . -executeMethod
+  BuildFromLayout.BuildFromArgs -layout tools/layout/out/hebei.json -out Assets/Scenes/Generated/HebeiLayout.unity`.
+  결과: 바닥 441·물건 161·명소 13·없는 에셋 0, exit 0, 컴파일 오류·예외 0. 새 씬 하나+바닥 재질 7개만 생겼고
+  기존 씬·프리팹은 안 건드림. unity-batch.sh 가 설치 버전 부작용 4파일(ProjectVersion.txt 등) 원복 — diff 없음 확인.
+- 물건 개수(161)가 같은 배치표의 Godot 결과(400, saga-godot HISTORY 09-23 참고)보다 적은 건 트랙별
+  `tools/layout/kinds.json` 밀도(`per`) 설정 차이다 — 배치표만 공유하고 밀도는 트랙마다 따로 정하는 설계 그대로.
+- 커밋 `3b50b998`. 에디터로 열어 실제로 보는 것은 실기 확인 전(`../SAGA-HANDOFF.md` 열린 항목).
