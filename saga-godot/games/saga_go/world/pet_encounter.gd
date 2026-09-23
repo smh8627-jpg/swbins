@@ -25,6 +25,7 @@ extends Node3D
 
 const TestMap := preload("res://games/saga_go/data/test_map.gd")
 const TerrainBuilder := preload("res://games/saga_go/world/terrain_builder.gd")
+const CreatureBuilder := preload("res://games/saga_go/world/creature_builder.gd")
 const ChoicePrompt := preload("res://games/saga_go/ui/choice_prompt.gd")
 const Toast := preload("res://saga_core/ui/toast.gd")
 const Pets := preload("res://saga_core/data/pets.gd")
@@ -57,17 +58,8 @@ func _spawn_visual() -> void:
 	## 시각은 캡슐(다른 사건과 같은 이유 — 신수 전용 GLB가 없다). rarity
 	## 5(사신 전부)는 hero_encounter.gd와 같은 금빛, 정예감을 신수도
 	## 같은 규칙으로 준다(rarity 색 감각을 새로 안 만든다).
-	var mi := MeshInstance3D.new()
-	var mesh := CapsuleMesh.new()
-	mesh.radius = 0.7
-	mesh.height = 2.6
-	mi.mesh = mesh
-	mi.position = Vector3(0, 1.3, 0)
-	var mat := StandardMaterial3D.new()
-	var t: float = clampf((int(_pet.rarity) - 1) / 4.0, 0.0, 1.0)
-	mat.albedo_color = Color(0.75, 0.7, 0.55).lerp(Color(0.95, 0.78, 0.25), t)
-	mi.material_override = mat
-	add_child(mi)
+	## PLAN 106장 ④ — 캡슐 → 코드로 그린 신수(creature_builder.gd). 희귀할수록 크다.
+	add_child(CreatureBuilder.build_pet(pet_id, 1.2 + 0.2 * float(_pet.rarity)))
 
 func _spawn_area() -> void:
 	var area := Area3D.new()

@@ -15,6 +15,7 @@ extends "res://games/saga_go/player/player.gd"
 ## 있는 idle/walk 를 몸 기울기(_pose_pitch)와 재생 속도로 흉내 낸다.
 
 const Toast := preload("res://saga_core/ui/toast.gd")
+const FieldCombat := preload("res://games/saga_go/combat/field_combat.gd")
 const TerrainBuilder := preload("res://games/saga_go/world/terrain_builder.gd")
 
 enum Mode { GROUND, AIR, GLIDE, CLIMB, SWIM, MANTLE }
@@ -61,6 +62,11 @@ const CHEST := 0.9
 ## 절벽 치마(-8)보다 한참 아래로 떨어지면 마지막으로 딛은 땅으로 되돌린다.
 const OUT_OF_WORLD_Y := -15.0
 
+## PLAN 106장 ③ 들판 전투용 — 회피(L)는 짧은 미끄러짐 + 무적.
+const DODGE_COST := 15.0
+const DODGE_SEC := 0.3
+const DODGE_SPEED := 16.0
+
 const BORDER_LAYER := TerrainBuilder.BORDER_LAYER
 const WATER_LAYER := TerrainBuilder.WATER_LAYER
 
@@ -84,6 +90,12 @@ var _safe_t := 0.0
 var _yaw := 0.0
 var _pose_pitch := 0.0
 var _consuming := false
+var _dodge_t := 0.0
+var _dodge_dir := Vector3.FORWARD
+var _last_move_dir := Vector3.ZERO
+var _action_t := 0.0
+var _action_move := 1.0
+var combat: Node = null
 
 var _glider: MeshInstance3D = null
 var _ring: StaminaRing = null
@@ -98,6 +110,9 @@ func _ready() -> void:
 	visual.add_child(_glider)
 	_glider.visible = false
 	_build_hud()
+	combat = FieldCombat.new()
+	combat.name = "FieldCombat"
+	add_child(combat)
 
 func _physics_process(delta: float) -> void:
 	if frozen or dash_speed > 0.0:
@@ -117,8 +132,11 @@ func _physics_process(delta: float) -> void:
 	if Input.is_action_just_pressed("jump"):
 		_jump_buffer = JUMP_BUFFER_SEC
 
+	_action_t = maxf(_action_t - delta, 0.0)
 	var input_dir := _movement_input()
 	var move_dir := _world_direction(input_dir)
+	if move_dir.length() > 0.05:
+		_last_move_dir = move_dir.normalized()
 	_water_y = _water_surface()
 
 	match mode:
@@ -138,8 +156,18 @@ func _tick_ground(delta: float, move_dir: Vector3) -> void:
 	if _in_deep_water():
 		_set_mode(Mode.SWIM)
 		return
+	if _dodge_t > 0.0:
+		_dodge_t -= delta
+		velocity.x = _dodge_dir.x * DODGE_SPEED
+		velocity.z = _dodge_dir.z * DODGE_SPEED
+		velocity.y = -1.0 if is_on_floor() else velocity.y - GRAVITY * delta
+		move_and_slide()
+		return
 	var running := Input.is_action_pressed("run") and not _exhausted and stamina > 0.0 and move_dir.length() > 0.05
 	var speed := (RUN_SPEED if running else WALK_SPEED) * speed_mult
+	if _action_t > 0.0:
+		speed *= _action_move
+		running = false
 	velocity.x = move_dir.x * speed
 	velocity.z = move_dir.z * speed
 	if running:
@@ -385,12 +413,60 @@ func _start_mantle(top: Vector3) -> void:
 
 ## 물에 빠져 기력이 다하면 마지막으로 딛은 땅으로(원신의 익수 복귀).
 func _drown() -> void:
-	global_position = _last_safe + Vector3.UP * 0.3
-	velocity = Vector3.ZERO
+	respawn_safe()
 	stamina = STAMINA_MAX
 	_exhausted = false
-	_set_mode(Mode.GROUND)
 	Toast.show(self, "기력이 다해 물가로 떠밀려 왔다", 3.0)
+
+# ---------------------------------------------------------------- 전투 쪽 손잡이(field_combat.gd)
+
+func respawn_safe() -> void:
+	global_position = _last_safe + Vector3.UP * 0.3
+	velocity = Vector3.ZERO
+	_dodge_t = 0.0
+	_set_mode(Mode.GROUND)
+
+## 땅이나 공중(점프 중)일 때만 싸운다 — 등반·활공·수영 중엔 안 된다(원신과 같다).
+func can_act() -> bool:
+	return mode == Mode.GROUND or mode == Mode.AIR
+
+func start_dodge() -> bool:
+	if mode != Mode.GROUND or _dodge_t > 0.0 or stamina < DODGE_COST:
+		return false
+	_spend(DODGE_COST)
+	_dodge_t = DODGE_SEC
+	_dodge_dir = _last_move_dir if _movement_input().length() > 0.05 else _facing()
+	_face(_dodge_dir, 1.0)
+	play_action("dodge", DODGE_SEC, 1.0)
+	return true
+
+func is_invulnerable() -> bool:
+	return _dodge_t > 0.0
+
+func facing() -> Vector3:
+	return _facing()
+
+func face_toward(pos: Vector3) -> void:
+	var d := pos - global_position
+	d.y = 0.0
+	if d.length() > 0.01:
+		_face(d, 1.0)
+
+## 공격·피격 같은 한 번짜리 동작. dur 동안 걷기/서기 애니가 덮어쓰지 않고,
+## 이동 속도는 move_scale 배.
+func play_action(anim_name: String, dur: float, move_scale: float) -> void:
+	_action_t = dur
+	_action_move = move_scale
+	if _anim and _anim.has_animation(anim_name):
+		_anim.speed_scale = 1.0
+		_anim.play(anim_name)
+		_anim.seek(0.0, true)
+		_current_anim = anim_name
+
+func _play_anim(anim_name: String) -> void:
+	if _action_t > 0.0:
+		return
+	super._play_anim(anim_name)
 
 # ---------------------------------------------------------------- 스태미나
 

@@ -30,6 +30,19 @@ const CelShaderApply := preload("res://saga_core/shaders/cel_shader_apply.gd")
 ## 산적임을 옷 색만으로도 구별한다(docs/ASSET_GUIDE.md). 실측·스케일 근거는
 ## Player.tscn과 동일(2.7m 실측 → 1.25배).
 const BANDIT_GLB := "res://assets/characters/character-d.glb"
+const VroidBody := preload("res://games/saga_go/world/vroid_body.gd")
+const CreatureBuilder := preload("res://games/saga_go/world/creature_builder.gd")
+## PLAN 106장 ④ — 씬 노드 이름 → 겉모습(씬 파일은 안 고친다).
+const LOOK_BY_NODE := {
+	"BanditLeaderEncounter": "leader",
+	"WolfPackEvent": "wolf",
+	"EnemyScoutEvent": "scout",
+}
+const LOOK_CLOTH := {
+	"bandit": Color(0.55, 0.28, 0.25),
+	"leader": Color(0.35, 0.18, 0.2),
+	"scout": Color(0.45, 0.55, 0.7),
+}
 
 ## 2026-09-12 — 늑대 무리·정찰병은 사람이 아니다(늑대 무리는 짐승,
 ## 정찰병은 그냥 사람이지만 character-d를 또 쓰면 "산적이 사실 정찰병?"
@@ -148,8 +161,20 @@ func _spawn_visual() -> void:
 	position = TestMap.world_pos(grid.x, grid.y) + Vector3(0, ground, 0)
 
 	_base_color = visual_fallback_color
-	var scene: PackedScene = load(visual_glb_path) if visual_glb_path != "" else null
-	if scene != null:
+	## PLAN 106장 ④ — 사람은 VRoid 몸(무리마다 옷색 하나), 늑대는 코드로 그린 짐승.
+	## Kenney 블록·캡슐은 이제 둘 다 못 쓸 때만의 대비책이다.
+	var look: String = LOOK_BY_NODE.get(String(name), "bandit" if visual_glb_path == BANDIT_GLB else "")
+	var scene: PackedScene = load(visual_glb_path) if visual_glb_path != "" and look == "" else null
+	if look == "wolf":
+		_visual = CreatureBuilder.build("beast", [Color(0.42, 0.4, 0.38), Color(0.62, 0.6, 0.56), Color(0.95, 0.8, 0.25)])
+		_visual.scale = Vector3.ONE * 0.9
+		bandit_scale = 0.9
+		_using_glb = true
+	elif look != "":
+		_visual = VroidBody.build(String(name), 4 if look == "leader" else 2, LOOK_CLOTH[look])
+		bandit_scale = _visual.scale.x
+		_using_glb = true
+	elif scene != null:
 		_visual = scene.instantiate()
 		_visual.scale = Vector3.ONE * bandit_scale
 		_using_glb = true
@@ -172,7 +197,8 @@ func _spawn_visual() -> void:
 	## albedo_texture가 없어 CelShaderApply가 조용히 건너뛴다) — 이걸
 	## 붙여야 cel_toon 재질이 생기고, 그래야 combat_feel.gd 피격 플래시
 	## (hit_flash uniform)가 실제로 걸린다.
-	CelShaderApply.apply_to(_visual)
+	if not _visual.has_meta("cel_applied"):
+		CelShaderApply.apply_to(_visual)
 
 func _spawn_area() -> void:
 	_area = Area3D.new()
@@ -327,6 +353,8 @@ func _build_combat_ui() -> void:
 
 func _start_fight() -> void:
 	_state = State.FIGHT
+	## PLAN 106장 ③ — 결투 중엔 들판 전투(field_combat.gd)가 입력·피해를 안 받는다.
+	add_to_group("duel_active")
 	var foe_hp := maxf(1.0, roundf(foe_power * foe_hp_mul))
 	_duel = DuelRules.create(foe_hp, PartyState.atk, PartyState.def, time_sec, is_raid)
 	_pre_stagger_count = 0
@@ -440,6 +468,7 @@ func _finish_fight() -> void:
 
 func _enter_cooldown() -> void:
 	_state = State.COOLDOWN
+	remove_from_group("duel_active")
 	_cooldown_left = RETRY_COOLDOWN_SEC
 
 func _pulse_visual(scale_to: float) -> void:

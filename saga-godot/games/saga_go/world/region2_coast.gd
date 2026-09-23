@@ -135,6 +135,7 @@ const BEACH_DEBRIS_TRIGGER_RADIUS := 15.0
 const FISHER_ID := "npc_fisher"
 const FISHER_NAME := "늙은 어부"
 const FISHER_GLB := "res://assets/characters/character-b.glb"
+const VroidBody := preload("res://games/saga_go/world/vroid_body.gd")
 const FISHER_TALK_RADIUS := 14.0
 const FISHER_TALK_GAP_SEC := 45.0
 const FISHER_LINE := "그물은 무겁지만 바다는 정직하지."
@@ -421,7 +422,8 @@ func _build_fisherman() -> void:
 
 	var body := _build_fisher_body()
 	root.add_child(body)
-	CelShaderApply.apply_to(body)
+	if not body.has_meta("cel_applied"):
+		CelShaderApply.apply_to(body)
 
 	var area := Area3D.new()
 	area.name = "FisherTalk"
@@ -435,6 +437,9 @@ func _build_fisherman() -> void:
 
 
 func _build_fisher_body() -> Node3D:
+	## PLAN 106장 ④ — Kenney 블록 → VRoid 몸(바다색 옷).
+	if ResourceLoader.exists(VroidBody.BODIES[0].glb):
+		return VroidBody.build("coast_fisher", 2, Color(0.45, 0.6, 0.75))
 	var scene: PackedScene = load(FISHER_GLB)
 	if scene != null:
 		var inst := scene.instantiate()

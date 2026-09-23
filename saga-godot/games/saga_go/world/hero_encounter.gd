@@ -19,6 +19,7 @@ extends Node3D
 
 const TestMap := preload("res://games/saga_go/data/test_map.gd")
 const TerrainBuilder := preload("res://games/saga_go/world/terrain_builder.gd")
+const VroidBody := preload("res://games/saga_go/world/vroid_body.gd")
 const ChoicePrompt := preload("res://games/saga_go/ui/choice_prompt.gd")
 const Toast := preload("res://saga_core/ui/toast.gd")
 const Characters := preload("res://saga_core/data/characters.gd")
@@ -65,18 +66,8 @@ func _spawn_visual() -> void:
 	var ground: float = TerrainBuilder.LEGEND[ch].height
 	position = TestMap.world_pos(grid.x, grid.y, region_id) + Vector3(0, ground, 0)
 
-	var mi := MeshInstance3D.new()
-	var mesh := CapsuleMesh.new()
-	mesh.radius = 0.425
-	mesh.height = 1.6
-	mi.mesh = mesh
-	mi.position = Vector3(0, 0.8, 0)
-	var mat := StandardMaterial3D.new()
-	## rarity 5=금빛, 낮을수록 은빛 쪽으로 — data.js RARITY 색 감각을 흉내.
-	var t: float = clampf((int(_hero.rarity) - 1) / 4.0, 0.0, 1.0)
-	mat.albedo_color = Color(0.75, 0.7, 0.55).lerp(Color(0.95, 0.78, 0.25), t)
-	mi.material_override = mat
-	add_child(mi)
+	## PLAN 106장 ④ — 캡슐 → VRoid 몸(인물 id 로 머리·옷 색 고정, ★5 는 금 테두리).
+	add_child(VroidBody.build(hero_id, int(_hero.rarity)))
 
 func _spawn_area() -> void:
 	var area := Area3D.new()

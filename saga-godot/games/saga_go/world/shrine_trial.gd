@@ -187,6 +187,8 @@ func _build_combat_ui() -> void:
 
 func _start_wave(time_left: float) -> void:
 	_state = State.FIGHT
+	## PLAN 106장 ③ — 결투 중엔 들판 전투(field_combat.gd)가 입력·피해를 안 받는다.
+	add_to_group("duel_active")
 	var foe_hp := maxf(1.0, roundf(WAVE_POWERS[_wave_idx] * FOE_HP_MUL))
 	_duel = DuelRules.create(foe_hp, PartyState.atk, PartyState.def, time_left)
 	_combat_layer.show()
@@ -242,6 +244,7 @@ func _clear_trial() -> void:
 
 func _enter_cooldown(sec: float) -> void:
 	_state = State.COOLDOWN
+	remove_from_group("duel_active")
 	_cooldown_left = sec
 
 

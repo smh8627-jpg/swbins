@@ -11,6 +11,7 @@ const TerrainBuilder := preload("res://games/saga_go/world/terrain_builder.gd")
 const ChoicePrompt := preload("res://games/saga_go/ui/choice_prompt.gd")
 const Toast := preload("res://saga_core/ui/toast.gd")
 const CelShaderApply := preload("res://saga_core/shaders/cel_shader_apply.gd")
+const VroidBody := preload("res://games/saga_go/world/vroid_body.gd")
 
 const TALK_RADIUS := 14.0
 const TALK_GAP_SEC := 45.0
@@ -81,9 +82,10 @@ func _spawn(v: Dictionary) -> void:
 	root.position = TestMap.world_pos(v.grid.x, v.grid.y) + Vector3(0, ground, 0)
 	add_child(root)
 
-	var body := _build_body(v.glb)
+	var body := _build_body(v)
 	root.add_child(body)
-	CelShaderApply.apply_to(body)
+	if not body.has_meta("cel_applied"):
+		CelShaderApply.apply_to(body)
 
 	var area := Area3D.new()
 	area.name = "TalkArea"
@@ -102,8 +104,12 @@ func _spawn(v: Dictionary) -> void:
 ## GLB 캐릭터를 통째로 인스턴스한다(대화만 하는 주민이라 애니메이션은
 ## idle 그대로 둔다 — player.gd처럼 걷기 전환이 필요 없다). 못 받아 왔으면
 ## 예전 캡슐로 대체해 주민이 아예 안 보이는 것보단 낫게 한다.
-func _build_body(glb_path: String) -> Node3D:
-	var scene: PackedScene = load(glb_path)
+## PLAN 106장 ④ — Kenney 블록 → VRoid 몸(주민 id 로 머리·옷 색 고정). VRoid 를 못
+## 읽을 때만 예전 GLB·캡슐로.
+func _build_body(v: Dictionary) -> Node3D:
+	if ResourceLoader.exists(VroidBody.BODIES[0].glb):
+		return VroidBody.build(v.id, 2)
+	var scene: PackedScene = load(v.glb)
 	if scene != null:
 		var inst := scene.instantiate()
 		inst.scale = Vector3.ONE * NPC_CHAR_SCALE
