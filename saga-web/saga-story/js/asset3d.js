@@ -183,7 +183,12 @@
       var out = one.map(function (m) {
         if (!m || (!m.isMeshStandardMaterial && !m.isMeshPhysicalMaterial)) { return m; }
         /* 2026-09-17 — SAGA-DESIGN §6.1: 손잡이가 켜져 있으면 툰으로, 꺼지면 예전 Lambert */
-        if (toon) { return TN.toonify(m); }
+        if (toon) {
+          var tm = TN.toonify(m);
+          /* 2026-09-23 "원신급" 2단계 — 배우(사람·짐승)에만 밝기 비례 림 라이트(toon3d.applyRimLight) */
+          if (TN.applyRimLight && isActorAsset(url)) { TN.applyRimLight(tm); }
+          return tm;
+        }
         /* vertexColors 를 안 옮기면(정점빛깔로 색을 주고 baseColorFactor 는
            검게 비워 둔 옷감이 있다) 그 자리가 조명과 무관하게 통째로 새까맣게
            뜬다 — saga-realm 에서 먼저 잡은 원인(2026-09-03) */
@@ -237,6 +242,9 @@
     ld.load(url, function (gltf) {
       c.state = 'ok';
       c.gltf = gltf;
+      /* 2026-09-23 — VRoid(unlit → MeshBasic)는 delam 이 안 보는 재질이라 명암 없이 평면으로 떴다.
+         먼저 툰 + 원신식 얼굴 그림자로 바꾼다(다섯 판 공용 vroid-variant.js). 외곽선은 아래 delam 이 그대로 두른다 */
+      if (global.DG.vroidVariant && global.DG.vroidVariant.shade) { global.DG.vroidVariant.shade(gltf.scene, url); }
       delam(gltf.scene, url);
       c.clips = gltf.animations || [];
       flush(c, c);
@@ -627,7 +635,8 @@
     if (!root) { return out; }
     root.traverse(function (o) {
       if (!o.isMesh || !o.material) { return; }
-      var m = Array.isArray(o.material) ? o.material[0].clone() : o.material.clone();
+      var srcM = Array.isArray(o.material) ? o.material[0] : o.material, TNc = global.DG.toon3d;
+      var m = TNc && TNc.cloneMat ? TNc.cloneMat(srcM) : srcM.clone();   // 림·얼굴 셰이더까지 옮긴다(2026-09-23)
       o.material = m;
       if (m.emissive) { out.push(m); }
     });

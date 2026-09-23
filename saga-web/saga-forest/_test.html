@@ -274,6 +274,59 @@ window.DG_NO_TUNE = true;
       return ok && twice && ('머리·옷·눈 변형 · 피부·얼굴·원본 재질 그대로 · 같은 인물 같은 재질 · 두 번 입혀도 원본 기준');
     });
 
+    t('vroid-variant — shade: VRM 의 빛 안 받는 재질을 툰으로(이름 유지 → 색 변형이 먹는다), 얼굴에만 머리뼈 기준 얼굴 그림자', function () {
+      /* 2026-09-23 "원신급" — VRM(unlit → MeshBasic)이 네 판에서 명암 없이 평면으로 떴고, 사가의숲은 툰 재질에
+         이름이 안 옮겨져 색 변형이 한 칸도 안 먹었다. 실제 GLB 처럼 MeshBasic + 뼈대로 조립해 잰다 */
+      var V = DG.vroidVariant, TH = window.THREE, TN = DG.toon3d, C = DG.core;
+      function avatar() {
+        var root = new TH.Group();
+        var hips = new TH.Bone(); hips.name = 'J_Bip_C_Hips';
+        var head = new TH.Bone(); head.name = 'J_Bip_C_Head'; head.position.set(0, 1.4, 0); hips.add(head);
+        root.add(hips); root.updateMatrixWorld(true);
+        var skel = new TH.Skeleton([hips, head]), parts = {};
+        [['F00_000_00_Face_00_SKIN', 0, 1.5, -0.02, 0.16], ['F00_000_00_EyeWhite_00_EYE', 0, 1.52, -0.09, 0.02],
+         ['F00_000_00_EyeIris_00_EYE', 0, 1.52, -0.095, 0.015], ['F00_000_00_Body_00_SKIN', 0, 1.0, 0, 0.4],
+         ['F00_000_Hair_00_HAIR_01', 0, 1.6, 0.02, 0.2]].forEach(function (p) {
+          var g = new TH.BoxGeometry(p[4], p[4], p[4]); g.translate(p[1], p[2], p[3]);
+          var m = new TH.SkinnedMesh(g, new TH.MeshBasicMaterial({ name: p[0] }));
+          root.add(m); m.bind(skel); parts[p[0]] = m;
+        });
+        return { root: root, p: parts };
+      }
+      var URL = 'assets/models/people/anime/avatar_sample_a.glb';
+      var a = avatar(), n = V.shade(a.root, URL);
+      var face = a.p['F00_000_00_Face_00_SKIN'].material, iris = a.p['F00_000_00_EyeIris_00_EYE'].material;
+      var body = a.p['F00_000_00_Body_00_SKIN'].material, hair = a.p['F00_000_Hair_00_HAIR_01'].material;
+      var toon = !TN.TOON_ON || TN.TOON_ON();
+      var typeOk = toon ? (face.isMeshToonMaterial && body.isMeshToonMaterial) : (face.isMeshLambertMaterial && body.isMeshLambertMaterial);
+      var fr = V.faceFrame(TH, a.root);
+      var frameOk = !!fr && fr.bone === 1 && fr.fwd.z < -0.99 && Math.abs(fr.right.x) > 0.99 && fr.half > 0;
+      /* 얼굴 셰이더가 실제 three 툰 템플릿의 자리에 다 꽂히는지(자리를 못 찾으면 replace 가 조용히 아무 것도 안 한다) */
+      var sh = { uniforms: TH.UniformsUtils.clone(TH.ShaderLib.toon.uniforms),
+        vertexShader: TH.ShaderLib.toon.vertexShader, fragmentShader: TH.ShaderLib.toon.fragmentShader };
+      if (face.onBeforeCompile) { face.onBeforeCompile(sh); }
+      var faceOk = !toon || (!!face.userData.vroidFace && !!iris.userData.vroidFace && !body.userData.vroidFace && !hair.userData.vroidFace &&
+        sh.vertexShader.indexOf('getBoneMatrix( vfsBone )') > 0 && sh.fragmentShader.indexOf('directionalLights[ 0 ].direction') > 0 &&
+        sh.uniforms.vfsBone && sh.uniforms.vfsBone.value === 1 && face.customProgramCacheKey() !== body.customProgramCacheKey());
+      /* 색 변형: 이름이 남아 있어 머리·눈이 바뀌고, 복제된 눈 재질도 얼굴 셰이더를 그대로 달고 간다 */
+      var id = null, i;
+      for (i = 0; i < 400 && !id; i++) { var q = V.pick('s' + i); if (q.hair && q.eye) { id = 's' + i; } }
+      V.apply(a.root, id);
+      var hair2 = a.p['F00_000_Hair_00_HAIR_01'].material, iris2 = a.p['F00_000_00_EyeIris_00_EYE'].material;
+      var variantOk = hair2 !== hair && hair2.name === hair.name && iris2 !== iris &&
+        (!toon || (iris2.onBeforeCompile === iris.onBeforeCompile && !!iris2.userData.vroidFace));
+      /* 손잡이 끔 → 얼굴도 보통 툰, VRoid 가 아닌 몸은 손 안 댄다 */
+      C.setTune({ 'world3d.faceShade': 0 });
+      var b = avatar(); V.shade(b.root, URL);
+      C.setTune({ 'world3d.faceShade': null });
+      var knobOk = !b.p['F00_000_00_Face_00_SKIN'].material.userData.vroidFace;
+      var c = avatar(), other = V.shade(c.root, 'assets/models/people/qrpg/knight.glb');
+      var otherOk = other === 0 && c.p['F00_000_00_Face_00_SKIN'].material.isMeshBasicMaterial;
+      return n === 5 && typeOk && face.name === 'F00_000_00_Face_00_SKIN' && frameOk && faceOk && variantOk && knobOk && otherOk &&
+        ('재질 5 → ' + (toon ? '툰' : 'Lambert') + '(이름 유지) · 얼굴 틀: 머리뼈 1·정면 -Z·반폭 ' + fr.half.toFixed(3) +
+         ' · 얼굴·눈에만 얼굴 그림자 · 색 변형 먹음(얼굴 셰이더 따라감) · 손잡이 끄면 없음 · 다른 몸 안 건드림');
+    });
+
     t('vroid-variant — faceFront: VRM 몸(정면 -Z)만 반 바퀴 돌려 +Z 로 맞추고, 두 번 돌리지 않으며, 다른 몸은 안 건드린다', function () {
       /* GLB 를 직접 재 봤다 — 넷 다 VRM 0.x, 발끝이 발목보다 -Z(정면 -Z). 배우는 전부 +Z 가 앞이라는 가정으로 돌려 세우므로
          그대로면 뒷걸음질·등을 돌림·뒷모습 초상이 된다(2026-09-20 실기 보고) */
@@ -469,19 +522,22 @@ window.DG_NO_TUNE = true;
         '툰 꺼짐→외곽선도 꺼짐 · 외곽선만 꺼짐(툰은 켜짐) · 기본값(둘 다 켬)으로 복귀';
     });
 
-    t('toon3d.addOutline — 메시마다 살짝 부풀린 BackSide 복제를 같은 부모에 덧붙인다', function () {
+    t('toon3d.addOutline — 법선 방향으로 미는 BackSide 복제를 같은 부모에 덧붙인다(배율은 안 건드린다)', function () {
+      /* 2026-09-23 — 옛 "배율 1.045 부풀리기"는 SkinnedMesh 에서 스키닝 식에 상쇄돼 효과가 없었다.
+         폭은 모델에서 가장 큰 부품 반지름 × 비율, 매끈한 외곽선 법선을 따로 싣는다 */
       var TN = DG.toon3d;
       var geo = new THREE.BoxGeometry(1, 1, 1);
       var mat = new THREE.MeshToonMaterial({ color: 0xffffff });
       var mesh = new THREE.Mesh(geo, mat);
       var root = new THREE.Group();
       root.add(mesh);
-      TN.addOutline(root, 0.05);
+      var n = TN.addOutline(root, 0.05);
       var dup = root.children[root.children.length - 1];
-      return root.children.length === 2 && dup !== mesh &&
-        dup.material.side === THREE.BackSide && dup.material.color.getHex() !== mat.color.getHex() &&
-        Math.abs(dup.scale.x - 1.05) < 1e-9 &&
-        ('자식 1개 → 2개 · BackSide · 부풀린 배율 ' + dup.scale.x.toFixed(3));
+      var r = geo.boundingSphere.radius, w = dup.material.uniforms && dup.material.uniforms.outlineWidth.value;
+      return n === 1 && root.children.length === 2 && dup !== mesh &&
+        dup.material.side === THREE.BackSide && dup.scale.x === 1 && Math.abs(w - r * 0.05) < 1e-9 &&
+        !!geo.attributes.outlineNormal && TN.addOutline(root, 0.05) === 0 &&
+        ('자식 1개 → 2개 · BackSide · 배율 1 · 폭 ' + w.toFixed(4) + '(반지름×5%) · 두 번 불러도 한 번만');
     });
 
     t('toon3d.addOutline — 스킨 메시는 같은 skeleton 에 다시 물려 복제한다', function () {
@@ -496,8 +552,9 @@ window.DG_NO_TUNE = true;
       root.add(mesh);
       TN.addOutline(root, 0.05);
       var dup = root.children[root.children.length - 1];
-      return dup.isSkinnedMesh === true && dup.skeleton === skeleton &&
-        'SkinnedMesh 복제도 같은 skeleton 을 공유';
+      return dup.isSkinnedMesh === true && dup.skeleton === skeleton && dup.scale.x === 1 &&
+        dup.material.uniforms.outlineWidth.value > 0 &&
+        'SkinnedMesh 복제도 같은 skeleton 을 공유 · 두께는 배율이 아니라 셰이더 폭';
     });
 
     t('toon3d.addOutline — world3d.outline 을 끄면 아무 것도 안 붙인다', function () {

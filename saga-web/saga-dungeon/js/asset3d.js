@@ -1167,6 +1167,8 @@
         if (toon) {
           nm = TN.toonify(m);
           nm.side = t.DoubleSide;   // 이 판의 방침(위 주석) — 툰이어도 그대로 지킨다
+          /* 2026-09-23 "원신급" 2단계 — 배우(사람·짐승·몬스터)에만 밝기 비례 림 라이트(toon3d.applyRimLight) */
+          if (TN.applyRimLight && isActorAsset(url)) { TN.applyRimLight(nm); }
         } else {
           /* vertexColors 를 안 옮기면(정점빛깔로 색을 주고 baseColorFactor 는
              검게 비워 둔 옷감이 있다) 그 자리가 조명과 무관하게 통째로 새까맣게
@@ -1256,6 +1258,9 @@
           var waitN = c.waiting.length;
           inflight--;
           c.state = 'ok'; c.gltf = gltf;
+          /* 2026-09-23 — VRoid(unlit → MeshBasic)는 delam 이 안 보는 재질이라 명암 없이 평면으로 떴다.
+             먼저 툰 + 원신식 얼굴 그림자로 바꾼다(다섯 판 공용 vroid-variant.js). 외곽선은 아래 delam 이 그대로 두른다 */
+          if (global.DG.vroidVariant && global.DG.vroidVariant.shade) { global.DG.vroidVariant.shade(gltf.scene, url); }
           delam(gltf.scene, url);
           c.clips = gltf.animations || [];
           c.map = mapClips(c.clips.map(function (a) { return a.name; }));
@@ -1583,7 +1588,8 @@
     if (!root) { return out; }
     root.traverse(function (o) {
       if (!o.isMesh || !o.material) { return; }
-      var m = Array.isArray(o.material) ? o.material[0].clone() : o.material.clone();
+      var srcM = Array.isArray(o.material) ? o.material[0] : o.material, TNc = global.DG.toon3d;
+      var m = TNc && TNc.cloneMat ? TNc.cloneMat(srcM) : srcM.clone();   // 림·얼굴 셰이더까지 옮긴다(2026-09-23)
       o.material = m;
       if (m.emissive) { out.push(m); }
     });

@@ -1835,3 +1835,22 @@ jsdom 355/356 ×3(남은 하나는 캔버스 그림 — 깃발 그림, jsdom 한
 **실기 확인 필요**: 불꽃이 실제로 하늘에서 터지는지(밝기·크기·타이밍), 등롱 완성 직후 카메라가 어디를 보고 있어도 불꽃이 눈에 띄는지(인물 머리 위 y=5~6.5 고정이라 줌·각도에 따라 화면 밖일 수 있다), 세 발이 겹쳐 과하지 않은지.
 
 **남은 것**: 백중 "산책 사진"(카메라·저장 연출)은 그대로 미착수. §6 그래픽 통일 나머지(팔레트 스냅·변형 배가 등)는 python(`palette.py`) 환경이 필요해 이 세션엔 손 못 댐.
+
+## 2026-09-23 — "원신급" 다시: 다섯 판 VRoid 셀 셰이딩 + 원신식 얼굴 그림자 + 외곽선 고침
+
+사용자가 "원신급을 원했어" → 점검 결과 원신 느낌 작업(림·하늘·반딧불이·물비늘)이 이 판에서만 시험되고 다른 네 판엔 안 퍼졌고, VRoid 인물만 다섯 판에 퍼져 있었다. "1(얼굴 그림자), 2(림·하늘 이식) 순으로" 지시로 진행.
+
+**찾은 버그 셋(코드 확인)**
+- **네 판(사가고·사가블로·사가스토리·사가국지)의 VRoid 인물이 명암 없이 평면** — VRM 은 `KHR_materials_unlit` → `MeshBasicMaterial` 인데 `delam()` 은 Standard/Physical 만 본다. 밤에도 환하게 떴을 것.
+- **이 판의 VRoid 색 변형이 안 먹었다** — 옛 `toonifyAnime()` 이 툰 재질에 `name` 을 안 옮겨 `vroidVariant.apply()`(이름으로 머리·옷·눈을 고른다)가 헛돌았다. 기존 진단은 이름 붙은 Standard 재질로 재서 통과했다.
+- **이 판의 사람 외곽선이 안 보였다** — `addOutline` 의 `scale × 1.045` 는 SkinnedMesh 에서 스키닝 식에 상쇄된다(three `updateMatrixWorld`: attached 면 `bindMatrixInverse = matrixWorld⁻¹`). 짐승(비스킨)만 보였을 것.
+
+**고친 것**
+- `vroid-variant.js`(다섯 벌, md5 동일) `shade(root, url)` 신설: VRoid 재질 → 판의 `toon3d.toonify`(이름·depthWrite 유지, 림 있으면 림). 얼굴 메시(`_FACE`·`_EYE`·`Face_00_SKIN`)엔 **원신식 얼굴 그림자** — SDF 텍스처 없이 머리뼈 앞·옆 방향 × 주광(`directionalLights[0]`) 수평 성분으로 얼굴을 세로 경계 하나로 밝음/중간 두 톤으로 가른다(뒤광이어도 가장 어두운 칸엔 안 떨어짐). 셰이더가 `getBoneMatrix(머리뼈)` 를 직접 읽어 고개를 돌려도 따라간다. 얼굴 틀(가운데=눈 무게중심, 앞=머리뼈→눈 수평, 반폭=앞쪽 피부 옆거리×0.9)은 GLB 받을 때 한 번 bind 공간에서 잰다. 손잡이 `world3d.faceShade`(기본 1). `variantOf` 는 `carryShader` 로 셰이더를 복제본에 넘긴다.
+- 이 판 `asset3d.js` `toonifyAnime` → `shade` 위임. `toon3d.js` `addOutline` → 법선 방향 밀기 셰이더(사가스토리 방식, 매끈한 외곽선 법선·모델 최대 부품 반지름×2%·투명/작은 부품 제외·중복 방지), `applyRimLight` 내보냄.
+- 다섯 판 `asset3d.js` GLB 받는 자리에서 `shade()` 먼저. 네 판 `toon3d.js` 에 `applyRimLight`(**밝기 비례** — 이 판 것처럼 더하기가 아니라 그 자리 밝기에 곱해 어두운 곳에서 안 뜬다, `opaque_fragment` 뒤라 안개 전, 스키닝된 `objectNormal`) · `cloneMat`(onBeforeCompile 까지 복제). 사가블로·사가스토리는 배우 GLB(`isActorAsset`)에도 림. `ownAllMat`(사가스토리·사가블로·사가국지 전투)·사가블로 반투명 사본 다섯 자리를 `cloneMat` 으로 — 맞는 순간 림·얼굴 셰이더가 떨어지던 것.
+- 사가스토리·사가국지 `toon3d.skyBackground(hex)`: 단색 배경 → 세로 그라디언트 DataTexture(아래 35% 는 안개색 그대로, 위는 짙게). 손잡이 `world3d.skyGrad`. 사가블로는 배경이 피격 붉은빛으로 매 프레임 바뀌고 던전 안이 거의 검어 뺐다. 사가고는 `sky3d.js` 가 이미 있다.
+
+**진단(jsdom, 서버·크롬 없음, 두 번 동일, 실패 목록은 HEAD 와 같음 — 전부 기존 jsdom 한계)**: 이 판 350/357(새 1 + 외곽선 3 고쳐 씀). `shade` 진단은 실제 VRM 처럼 MeshBasic+뼈대로 조립해 재질 종류·이름 유지·얼굴 틀·셰이더 자리(three 툰 템플릿에 실제로 꽂히는지)·색 변형·손잡이·비VRoid 무시를 본다. `sw.js` village-v0.93.0.
+
+**실기 확인 필요(화면 못 봄)**: 얼굴 경계 위치·부드러움(`vfsSoft` 0.05)·반폭 0.9 가 실제 VRoid 얼굴에 맞는지, 눈썹·속눈썹(BLEND)이 얼굴과 같이 어두워지는 게 자연스러운지, 외곽선 두께 2%(VRoid 머리카락 알파 카드에 검은 판 테두리가 보이는지), 네 판 인물이 이제 빛을 받아 **전보다 어두워 보일 수 있다**(unlit→툰), 림 세기 0.9, 하늘 그라디언트 위쪽 색. GLSL 컴파일 자체도 WebGL 이 있어야 확인된다 — 실패하면 콘솔 `THREE.WebGLProgram` 오류, 손잡이 `world3d.faceShade`/`world3d.rim`/`world3d.skyGrad` 0 으로 끈다.

@@ -2194,7 +2194,8 @@
     var purple = new T.Color(0x9a7ad9);
     body.traverse(function (o) {
       if (!o.isMesh || !o.material) { return; }
-      var m = Array.isArray(o.material) ? o.material[0].clone() : o.material.clone();
+      var srcM = Array.isArray(o.material) ? o.material[0] : o.material, TNc = global.DG.toon3d;
+      var m = TNc && TNc.cloneMat ? TNc.cloneMat(srcM) : srcM.clone();   // 림·얼굴 셰이더까지 옮긴다(2026-09-23)
       m.transparent = true;
       m.opacity = 0.5;
       m.depthWrite = false;
@@ -2413,7 +2414,7 @@
         hitMesh[mesh.uuid] = true;
         if (!occFade[mesh.uuid]) {
           if (!mesh.userData.__fadeMat) {
-            var fm = mesh.material.clone();
+            var fm = (global.DG.toon3d && global.DG.toon3d.cloneMat) ? global.DG.toon3d.cloneMat(mesh.material) : mesh.material.clone();
             fm.transparent = true; fm.depthWrite = false; fm.opacity = 0.2;
             mesh.userData.__fadeMat = fm;
           }

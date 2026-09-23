@@ -815,6 +815,9 @@
     ld.load(url, function (gltf) {
       c.state = 'ok';
       c.gltf = gltf;
+      /* 2026-09-23 — VRoid(unlit → MeshBasic)는 delam 이 안 보는 재질이라 명암 없이 평면으로 떴다.
+         먼저 툰 + 원신식 얼굴 그림자로 바꾼다(다섯 판 공용 vroid-variant.js). 외곽선은 아래 delam 이 그대로 두른다 */
+      if (global.DG.vroidVariant && global.DG.vroidVariant.shade) { global.DG.vroidVariant.shade(gltf.scene, url); }
       delam(gltf.scene, url);
       c.clips = gltf.animations || [];
       c.map = mapClips(c.clips.map(function (a) { return a.name; }));

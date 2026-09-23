@@ -662,26 +662,12 @@
    *  이 이 프로젝트 다른 자리(외곽선 등)에서 "일부러 조명 무시" 용도로도
    *  쓰이기 때문 — 전역으로 바꾸면 그쪽까지 건드릴 위험이 있다. */
   function looksAnime(url) { return typeof url === 'string' && url.indexOf('/people/anime/') >= 0; }
-  function toonifyAnime(root) {
-    var t = three();
-    var TN = global.DG.toon3d;
-    if (!t || !TN) { return; }
-    var toon = TN.TOON_ON();
-    root.traverse(function (o) {
-      if (!o.isMesh || !o.material) { return; }
-      var one = Array.isArray(o.material) ? o.material : [o.material];
-      var out = one.map(function (m) {
-        if (!m || !m.isMeshBasicMaterial) { return m; }
-        if (toon) { return TN.toonify(m); }
-        return new t.MeshLambertMaterial({
-          color: m.color ? m.color.clone() : new t.Color(0xffffff),
-          map: m.map || null, vertexColors: !!m.vertexColors,
-          transparent: !!m.transparent, opacity: m.opacity,
-          alphaTest: m.alphaTest || 0, side: m.side
-        });
-      });
-      o.material = Array.isArray(o.material) ? out : out[0];
-    });
+  /* 2026-09-23 — 이 판 전용 몸통을 다섯 판 공용 `vroidVariant.shade()` 로 옮겼다: 옛 몸통은 새 재질에
+     이름을 안 옮겨 인물 색 변형(`vroid-variant.js` apply — 재질 이름으로 머리·옷·눈을 고른다)이 한 칸도
+     안 먹었다. 공용 쪽은 이름·깊이쓰기를 지키고 원신식 얼굴 그림자까지 건다(툰이 꺼지면 예전처럼 Lambert) */
+  function toonifyAnime(root, url) {
+    var V = global.DG.vroidVariant;
+    if (V && V.shade) { V.shade(root, url); }
   }
 
   function delam(root) {
@@ -732,7 +718,7 @@
       c.state = 'ok';
       c.gltf = gltf;
       if (looksRealistic(url)) { toonifyRealistic(gltf.scene); }
-      else if (looksAnime(url)) { toonifyAnime(gltf.scene); }
+      else if (looksAnime(url)) { toonifyAnime(gltf.scene, url); }
       else { delam(gltf.scene); }
       c.clips = gltf.animations || [];
       c.map = mapClips(c.clips.map(function (a) { return a.name; }));

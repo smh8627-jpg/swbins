@@ -511,7 +511,7 @@
     deadMeshes = {};
 
     var L = moodLight(stg.mood, stg.town);
-    scene.background = new Tc.Color(L.sky);
+    scene.background = (global.DG.toon3d && global.DG.toon3d.skyBackground) ? global.DG.toon3d.skyBackground(L.sky) : new Tc.Color(L.sky);   // 하늘 그라디언트(2026-09-23, 아래는 안개색 그대로)
     scene.fog = new Tc.Fog(L.sky, L.fog * 0.35, L.fog);
     ambLight.intensity = L.amb;
     dirLight.intensity = L.dir;

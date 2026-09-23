@@ -368,7 +368,7 @@
     renderer.setPixelRatio(Math.min(global.devicePixelRatio || 1, DPR()));
 
     scene = new t.Scene();
-    scene.background = new t.Color(0x9fd0e8);
+    scene.background = (global.DG.toon3d && global.DG.toon3d.skyBackground) ? global.DG.toon3d.skyBackground(0x9fd0e8) : new t.Color(0x9fd0e8);   // 하늘 그라디언트(2026-09-23, 아래는 안개색 그대로)
     scene.fog = new t.Fog(0x9fd0e8, 260, 900);
 
     camera = new t.PerspectiveCamera(FOV(), 1, 0.5, 2400);

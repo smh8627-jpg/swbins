@@ -52,6 +52,62 @@
     var core = global.DG && global.DG.core;
     return core && core.tuned ? (core.tuned('world3d.toon', 1) ? true : false) : true;
   }
+
+  /** 림 라이트 손잡이(2026-09-23, 사가의숲에서 옮김) — 툰이 꺼지면 같이 꺼진다 */
+  function RIM_ON() {
+    var core = global.DG && global.DG.core;
+    if (!TOON_ON()) { return false; }
+    return core && core.tuned ? (core.tuned('world3d.rim', 1) ? true : false) : true;
+  }
+
+  /**
+   * 프레넬 림 라이트("원신급" 요청 2단계, 2026-09-23) — 사가의숲 `toon3d.js` 에서 옮기되 한 가지를 바꿨다:
+   * 그쪽은 빛과 무관하게 따뜻한 흰빛을 **더해** 어두운 곳(던전·밤)에서도 가장자리가 형광처럼 뜰 수 있어,
+   * 여기서는 **그 자리의 밝기에 비례해** 가장자리를 밝힌다 — 어두우면 거의 안 보인다. 안개·톤매핑 전
+   * (`opaque_fragment` 바로 뒤)에 넣어 멀리 안개에 묻힌 인물 테두리가 안개색으로 번지지 않게 했다.
+   * 법선은 스키닝을 거친 `objectNormal` 을 쓴다(걷는 팔다리에도 맞는 테두리). **배우(사람·짐승)에만** 건다 —
+   * 땅에 걸면 낮은 카메라에서 먼 지면 전체가 스치는 각도라 지평선이 통째로 뿌옇게 뜬다.
+   * 이미 다른 셰이더 덧대기(`onBeforeCompile`)가 있는 재질은 건너뛴다(프로그램 캐시 키가 섞이지 않게).
+   * 렌더 결과(두께·세기)는 화면 없이는 못 본다 — 실기 확인 몫.
+   */
+  function applyRimLight(mat) {
+    var t = three();
+    if (!t || !mat || !RIM_ON() || (mat.userData && mat.userData.rimApplied)) { return mat; }
+    if (!mat.isMeshToonMaterial && !mat.isMeshLambertMaterial) { return mat; }
+    if (Object.prototype.hasOwnProperty.call(mat, 'onBeforeCompile')) { return mat; }
+    mat.userData = mat.userData || {};
+    mat.userData.rimApplied = true;
+    mat.onBeforeCompile = function (shader) {
+      shader.uniforms.rimColor = { value: new t.Color(0xfff0d8) };
+      shader.uniforms.rimPower = { value: 2.4 };
+      shader.uniforms.rimIntensity = { value: 0.9 };
+      shader.vertexShader = shader.vertexShader.replace(
+        '#include <common>',
+        '#include <common>\nvarying vec3 vRimN;\nvarying vec3 vRimV;'
+      ).replace(
+        '#include <worldpos_vertex>',
+        '#include <worldpos_vertex>\nvRimN = normalize( normalMatrix * objectNormal );\nvRimV = normalize( -mvPosition.xyz );'
+      );
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <common>',
+        '#include <common>\nuniform vec3 rimColor;\nuniform float rimPower;\nuniform float rimIntensity;\nvarying vec3 vRimN;\nvarying vec3 vRimV;'
+      ).replace(
+        '#include <opaque_fragment>',
+        '#include <opaque_fragment>\nfloat rimF = pow( 1.0 - clamp( abs( dot( normalize( vRimN ), normalize( vRimV ) ) ), 0.0, 1.0 ), rimPower );\ngl_FragColor.rgb += gl_FragColor.rgb * rimColor * ( rimIntensity * rimF );'
+      );
+    };
+    return mat;
+  }
+
+  /** 재질 사본 — three 의 `clone()` 은 `onBeforeCompile`(림·VRoid 얼굴 그림자 셰이더)을 안 옮겨 사본이 맨 툰으로
+   *  떨어진다(2026-09-23). 맞으면 번쩍이는 사본(`ownAllMat`)·반투명 사본 등 배우 재질을 떼어 올 때 이걸 쓴다 */
+  function cloneMat(src) {
+    var m = src.clone();
+    var own = Object.prototype.hasOwnProperty;
+    if (own.call(src, 'onBeforeCompile')) { m.onBeforeCompile = src.onBeforeCompile; }
+    if (own.call(src, 'customProgramCacheKey')) { m.customProgramCacheKey = src.customProgramCacheKey; }
+    return m;
+  }
   /** 외곽선 손잡이 — 0 이면 툰 재질은 그대로 두고 테두리만 뺀다 */
   function OUTLINE_ON() {
     var core = global.DG && global.DG.core;
@@ -156,7 +212,7 @@
   global.DG = global.DG || {};
   global.DG.toon3d = {
     ramp: ramp, toonify: toonify, outline: outline,
-    TOON_ON: TOON_ON, OUTLINE_ON: OUTLINE_ON,
+    TOON_ON: TOON_ON, RIM_ON: RIM_ON, applyRimLight: applyRimLight, cloneMat: cloneMat, OUTLINE_ON: OUTLINE_ON,
     outlineMaterial: outlineMaterial
   };
 })(window);

@@ -4070,3 +4070,8 @@ PLAN §7.2 에 "'암흑'은 시야 감소를 실제로 안 구현했다 — 아�
 바로 위 절 "곁가지"로 남겼던 것 — 사용자에게 문구/이벤트 중 무엇을 바꿀지 물었고 답 없이 "이어해"라 문구 쪽(인물 성장)에 맞췄다. `goals.js` 가 core `levelup`(플레이어 레벨, 이 판에선 표시 말고 쓰임 없음) 대신 `hero:levelup`(hero.js, 처치마다 awardParty 로 오른다)을 센다. 카운터 이름(`counts.levelup`)·세이브 모양은 그대로 — 이미 쌓인 값도 그대로 쓴다. 효과음(`sfx`)은 여전히 core `levelup` 에 물려 있다(바꾸지 않음).
 
 진단 1 추가(플레이어 레벨업은 안 세고 인물 레벨업은 센다). **jsdom 365/365 ×3 동일**. `sw.js` `dungeon-v0.144.0`→`dungeon-v0.145.0`.
+
+## 2026-09-23 — "원신급": VRoid 인물 셀 셰이딩 + 원신식 얼굴 그림자 + 배우 림, 피격 사본이 셰이더를 잃던 것
+
+VRoid 인물이 unlit(`MeshBasicMaterial`) 그대로라 명암 없이 평면이었다. `asset3d.js` GLB 받는 자리에서 다섯 벌 공용 `vroidVariant.shade()` 를 먼저(툰 + 얼굴 그림자 + 림), 배우 GLB(`isActorAsset`)의 툰 재질에도 `toon3d.applyRimLight`(밝기 비례 — 어두운 던전에선 거의 안 보인다). 맞으면 번쩍이는 사본 `ownAllMat`·유령 보라 사본·가림 반투명 사본(`dungeon3d.js`) 세 자리를 `toon3d.cloneMat` 으로 — three 기본 `clone()` 은 `onBeforeCompile` 을 떨궈 맞는 순간 림·얼굴 그림자·풀 바람(가림 사본)이 사라졌다. 하늘 그라디언트는 뺐다(배경이 피격 붉은빛으로 매 프레임 바뀌고 던전 안은 거의 검다). 상세·원리는 `saga-forest/HANDOFF.md` 같은 날 "원신급 다시" 절, 공통 함정은 `SAGA-HANDOFF.md` 함정 표(clone 이 셰이더를 떨굼·스킨 메시 배율 외곽선).
+진단 jsdom 365/367 ×2 동일(새 2), 실패 2 는 HEAD 와 같은 전체 지도 캔버스 한계. `sw.js` dungeon-v0.146.0. **실기 확인**: 몬스터·짐승 테두리 빛이 과하지 않은지, 인물 얼굴 경계.

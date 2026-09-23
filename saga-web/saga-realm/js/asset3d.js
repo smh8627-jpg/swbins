@@ -396,6 +396,9 @@
          라 실패해 mixer 를 한 번도 못 만들었다 — 사가블로 asset3d.js 의
          `acquire()`와 같은 줄을 그대로 가져왔다(그쪽은 이미 실전 검증됨) */
       c.clips = gltf.animations || [];
+      /* 2026-09-23 — VRoid(unlit → MeshBasic)는 delam 이 안 보는 재질이라 명암 없이 평면으로 떴다.
+         먼저 툰 + 원신식 얼굴 그림자로 바꾼다(다섯 판 공용 vroid-variant.js) */
+      if (global.DG.vroidVariant && global.DG.vroidVariant.shade) { global.DG.vroidVariant.shade(gltf.scene, url); }
       delam(gltf.scene);
       flush(c, c);
     }, undefined, function () {

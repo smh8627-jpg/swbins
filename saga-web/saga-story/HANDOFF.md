@@ -777,3 +777,8 @@ VRM 0.x 몸은 정면이 -Z 인데 배우는 +Z 가 앞이라는 가정으로 �
 ## 2026-09-23 (이어서 7) — 전직 순간 캡슐 깜빡임 없앰
 
 바로 앞 절에 남긴 흠. `side-view3d.js` draw(): 주인공 key 가 바뀌었는데 **같은 인물이고 지금 몸이 GLB** 면(= 전직으로 빛깔만 바뀜) 새 몸(`pendingMesh`)을 화면 밖에서 조립하고, GLB 가 도착하면(못 받으면 4초 뒤) 그때 옛 몸과 바꿔 낀다. 동료 교대(다른 인물)는 예전처럼 곧바로 치우고 새로 세운다. 진단은 three 없는 jsdom 이라 이 길을 못 탄다 — `node -c` 만. `sw.js` side-v0.75.0. 실기 확인 대기.
+
+## 2026-09-23 — "원신급": VRoid 셀 셰이딩 + 원신식 얼굴 그림자 + 배우 림 + 하늘 그라디언트
+
+VRoid 주인공·동료가 unlit(`MeshBasicMaterial`) 그대로라 명암 없이 평면이었다. `asset3d.js` GLB 받는 자리에서 다섯 벌 공용 `vroidVariant.shade()` 를 먼저(툰 + 얼굴 그림자 + 림), 배우 GLB 툰 재질에도 `toon3d.applyRimLight`(밝기 비례). `ownAllMat`(맞으면 번쩍이는 사본)을 `toon3d.cloneMat` 으로 — 기본 `clone()` 이 셰이더를 떨궈 **첫 피격부터** 림·얼굴 그림자가 사라졌다. `toon3d.skyBackground()`: 사냥터 단색 하늘 → 세로 그라디언트(아래 35% 는 안개색 그대로, 손잡이 `world3d.skyGrad`), `side-view3d.js` rebuildStage 한 자리. 상세·원리는 `saga-forest/HANDOFF.md` 같은 날 "원신급 다시" 절, 공통 함정은 `SAGA-HANDOFF.md` 함정 표(clone 이 셰이더를 떨굼·스킨 메시 배율 외곽선).
+진단 jsdom 221/225 ×2 동일(새 3: shade·림·하늘), 실패 4 는 HEAD 와 같은 목록. `sw.js` side-v0.76.0. **실기 확인**: 장비 등급 외곽선 색(`recolorOutlines`)과 림이 같이 있을 때 과하지 않은지, 굴·불 골짜기 하늘 위쪽이 너무 검지 않은지.

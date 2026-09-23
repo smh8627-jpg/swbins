@@ -432,7 +432,7 @@
     var h = TIER_H[tier];
     var ownerCol = forceColor(c.force);
 
-    scene.background = new t.Color(rep.water ? 0x8fc4e6 : 0xb9dcef);
+    scene.background = (global.DG.toon3d && global.DG.toon3d.skyBackground) ? global.DG.toon3d.skyBackground(rep.water ? 0x8fc4e6 : 0xb9dcef) : new t.Color(rep.water ? 0x8fc4e6 : 0xb9dcef);   // 하늘 그라디언트(2026-09-23)
     scene.fog = new t.Fog(rep.water ? 0x8fc4e6 : 0xb9dcef, 20, 70);
 
     var groundTN = global.DG.toon3d;
@@ -483,7 +483,8 @@
     if (!root) { return out; }
     root.traverse(function (o) {
       if (!o.isMesh || !o.material) { return; }
-      var m = Array.isArray(o.material) ? o.material[0].clone() : o.material.clone();
+      var srcM = Array.isArray(o.material) ? o.material[0] : o.material, TNc = global.DG.toon3d;
+      var m = TNc && TNc.cloneMat ? TNc.cloneMat(srcM) : srcM.clone();   // 림·얼굴 셰이더까지 옮긴다(2026-09-23)
       o.material = m;
       if (m.emissive) { out.push(m); }
     });

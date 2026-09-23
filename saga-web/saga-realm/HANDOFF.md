@@ -1614,3 +1614,8 @@ Phase 2 셋째. 군주도 나이를 먹고 65세부터 별세하며, 후계가 �
 **검증**: `node -c`(asset3d.js·kitbash.py·palette.py·preview_scene.py 문법), `bash tools/precheck.sh` PRECHECK OK(asset-audit 🔴 0/96). `_test.html` jsdom **231/231 ×3 동일**(1회 약 7분, `④ 백지` 항목이 그중 220초).
 
 **실기 확인 필요**: 실제 성 위에서 크기·거리감이 적당한지, 폰 화면에서 지붕 실루엣이 뭉개지지 않는지 — 이번 세션은 스크린샷(헤드리스 게임 화면) 없이 오프라인 실루엣만으로 진행했다.
+
+## 2026-09-23 — "원신급": VRoid 셀 셰이딩 + 원신식 얼굴 그림자 + 림 + 하늘 그라디언트, 전투 피격 사본이 셰이더를 잃던 것
+
+VRoid 장수가 unlit(`MeshBasicMaterial`) 그대로라 명암 없이 평면이었다(`delam()` 은 Standard/Physical 만 본다). `asset3d.js` GLB 받는 자리에서 다섯 벌 공용 `vroidVariant.shade()` 를 먼저(툰 + 얼굴 그림자 + 림). `toon3d.js` 에 `applyRimLight`(밝기 비례)·`cloneMat`·`skyBackground`. `battle3d.js` `ownAllMat`(맞으면 번쩍이는 사본)을 `cloneMat` 으로 — 기본 `clone()` 이 셰이더를 떨궜다. 국토 지도·전투 디오라마·성 안 세 화면의 단색 하늘을 세로 그라디언트로(아래 35% 는 안개색 그대로, 손잡이 `world3d.skyGrad`). 외곽선·톤매핑은 이번 범위(1·2번) 밖이라 그대로 — 이 판만 외곽선이 없다. 상세·원리는 `saga-forest/HANDOFF.md` 같은 날 "원신급 다시" 절, 공통 함정은 `SAGA-HANDOFF.md` 함정 표.
+진단 jsdom 234/234(새 3: shade·림·하늘). `sw.js` realm-v1.50.0. **실기 확인**: 지도 궤도 카메라를 눕혔을 때 하늘 위쪽 색, 일기토 VRoid 얼굴 경계.

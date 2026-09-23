@@ -121,13 +121,67 @@
     return applyRimLight(new t.MeshToonMaterial(o));
   }
 
-  var outlineMat = null;
-  function outlineMaterial() {
-    if (outlineMat) { return outlineMat; }
+  var OUTLINE_COLOR = 0x211a14;
+  var OUTLINE_K = 0.02;          // 모델에서 가장 큰 부품 반지름의 2% — 사가스토리 1.5%·사가블로 3% 사이(이 판은 3/4 부감으로 인물이 그 중간 크기)
+  var OUTLINE_MIN_PART = 0.12;   // 이보다 작은 부품(눈·이빨)은 안 두른다 — 검은 점이 된다
+  /* 2026-09-23 — 외곽선 재질을 "메시 배율 1.045 부풀리기"에서 **법선 방향 밀기 셰이더**로 바꿨다(사가스토리
+     toon3d.js 에서 옮김, 그쪽은 스크린샷으로 두께·끊김을 맞췄다). 옛 방식은 SkinnedMesh 에서 아무 효과가 없었다 —
+     three 의 기본 bindMode('attached')는 매 프레임 bindMatrixInverse = 메시 자신의 matrixWorld 역행렬이라
+     복제본에 준 scale 이 스키닝 식에서 그대로 상쇄된다. 그래서 VRoid·QRPG 사람의 외곽선은 원본과 한 치도 안
+     어긋나 뒷면에 가려 안 보였다(짐승처럼 스킨이 아닌 것만 보였다). 폭별로 캐싱, 스키닝은 three 가 define 으로 가른다 */
+  var matPool = {};
+  function outlineMaterial(width) {
     var t = three();
     if (!t) { return null; }
-    outlineMat = new t.MeshBasicMaterial({ color: 0x211a14, side: t.BackSide, toneMapped: false });
-    return outlineMat;
+    var key = width.toFixed(5);
+    if (matPool[key]) { return matPool[key]; }
+    var vert = [
+      '#include <common>',
+      '#include <skinning_pars_vertex>',
+      'uniform float outlineWidth;',
+      'attribute vec3 outlineNormal;',
+      'void main() {',
+      '  vec3 objectNormal = outlineNormal;',
+      '  #include <skinbase_vertex>',
+      '  #include <skinnormal_vertex>',
+      '  #include <begin_vertex>',
+      '  #include <skinning_vertex>',
+      '  transformed += normalize(objectNormal) * outlineWidth;',
+      '  #include <project_vertex>',
+      '}'
+    ].join('\n');
+    var frag = [
+      'uniform vec3 outlineColor;',
+      'void main() { gl_FragColor = vec4(outlineColor, 1.0); }'
+    ].join('\n');
+    matPool[key] = new t.ShaderMaterial({
+      uniforms: { outlineWidth: { value: width }, outlineColor: { value: new t.Color(OUTLINE_COLOR) } },
+      vertexShader: vert, fragmentShader: frag, side: t.BackSide
+    });
+    return matPool[key];
+  }
+
+  /** 외곽선용 매끈한 법선 — 로우폴리는 면마다 꼭짓점을 따로 둬 법선이 갈린다. 그대로 밀면 면끼리 벌어져
+   *  톱니·점선처럼 끊긴다. 같은 자리 꼭짓점 법선을 평균 내 따로 싣는다(원본 `normal` 은 그대로 — 몸 음영 불변) */
+  function smoothOutlineNormals(geo) {
+    var t = three();
+    if (geo.attributes.outlineNormal) { return; }
+    var pos = geo.attributes.position, nor = geo.attributes.normal;
+    if (!pos || !nor) { return; }
+    var n = pos.count, acc = {}, keys = new Array(n), i, k, a;
+    for (i = 0; i < n; i++) {
+      k = Math.round(pos.getX(i) * 1e4) + ',' + Math.round(pos.getY(i) * 1e4) + ',' + Math.round(pos.getZ(i) * 1e4);
+      keys[i] = k;
+      a = acc[k] || (acc[k] = [0, 0, 0]);
+      a[0] += nor.getX(i); a[1] += nor.getY(i); a[2] += nor.getZ(i);
+    }
+    var out = new Float32Array(n * 3);
+    for (i = 0; i < n; i++) {
+      a = acc[keys[i]];
+      var l = Math.sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2]) || 1;
+      out[i * 3] = a[0] / l; out[i * 3 + 1] = a[1] / l; out[i * 3 + 2] = a[2] / l;
+    }
+    geo.setAttribute('outlineNormal', new t.BufferAttribute(out, 3));
   }
 
   /** 외곽선 손잡이 — 배우(주민·짐승·NPC)에만 쓴다(PLAN §6.1). 땅 타일은
@@ -141,20 +195,34 @@
   }
 
   /**
-   * 뒤집힌 헐(inverted-hull) 외곽선 — SkinnedMesh 포함, 몸 하나(root) 안의
-   * Mesh/SkinnedMesh 마다 살짝 부풀린 뒷면 전용(BackSide) 복제를 같은
-   * 부모에 덧붙인다. 스킨 메시는 같은 skeleton 에 다시 물려(`bind()`)
-   * 걸을 때 몸과 같이 움직인다. 원본 메시는 손 안 댄다 — 지웠다 되돌릴
-   * 필요가 있으면 root 를 통째로 버리면 같이 사라진다(별도 목록 안 남긴다).
+   * 뒤집힌 헐(inverted-hull) 외곽선 — SkinnedMesh 포함, 몸 하나(root) 안의 메시마다 **법선 방향으로
+   * 민** 뒷면 전용(BackSide) 복제를 같은 부모에 덧붙인다. 스킨 메시는 같은 skeleton 에 다시 물려
+   * (`bind()`) 걸을 때 몸과 같이 움직인다. 원본 메시는 손 안 댄다 — root 를 버리면 같이 사라진다.
+   * `width` 는 **모델에서 가장 큰 부품 반지름에 대한 비율**(기본 OUTLINE_K) — 부품마다 제 반지름으로
+   * 재면 얼굴·머리카락이 몸보다 가늘어 들쭉날쭉하다. 투명 재질(속눈썹 등)·아주 작은 부품은 안 두른다.
    */
   function addOutline(root, width) {
     var t = three();
-    var mat = outlineMaterial();
-    if (!t || !mat || !OUTLINE_ON()) { return; }
-    var w = width || 0.045;
-    var targets = [];
-    root.traverse(function (o) { if (o.isMesh || o.isSkinnedMesh) { targets.push(o); } });
-    targets.forEach(function (o) {
+    if (!t || !root || !OUTLINE_ON()) { return 0; }
+    var targets = [], maxR = 0;
+    root.traverse(function (o) {
+      if (!o.isMesh || !o.geometry || !o.parent || /_outline$/.test(o.name || '')) { return; }
+      if (o.userData && o.userData._toonOutline) { return; }
+      var m0 = Array.isArray(o.material) ? o.material[0] : o.material;
+      if (m0 && m0.transparent) { return; }
+      if (!o.geometry.boundingSphere) { o.geometry.computeBoundingSphere(); }
+      var r = o.geometry.boundingSphere ? o.geometry.boundingSphere.radius : 0;
+      targets.push({ o: o, r: r });
+      if (r > maxR) { maxR = r; }
+    });
+    var w = maxR * (width > 0 ? width : OUTLINE_K);
+    if (!(w > 0)) { return 0; }
+    var mat = outlineMaterial(w), n = 0;
+    targets.forEach(function (x) {
+      var o = x.o;
+      if (x.r < maxR * OUTLINE_MIN_PART) { return; }
+      smoothOutlineNormals(o.geometry);
+      if (!o.geometry.attributes.outlineNormal) { return; }
       var dup;
       if (o.isSkinnedMesh) {
         dup = new t.SkinnedMesh(o.geometry, mat);
@@ -164,15 +232,21 @@
       }
       dup.position.copy(o.position);
       dup.quaternion.copy(o.quaternion);
-      dup.scale.copy(o.scale).multiplyScalar(1 + w);
+      dup.scale.copy(o.scale);
       dup.castShadow = false;
       dup.receiveShadow = false;
       dup.renderOrder = (o.renderOrder || 0) - 1;
+      dup.name = (o.name || 'mesh') + '_outline';
       o.parent.add(dup);
+      o.userData = o.userData || {};
+      o.userData._toonOutline = dup;
+      n++;
     });
+    return n;
   }
 
   global.DG = global.DG || {};
   global.DG.toon3d = { ramp: ramp, toonify: toonify, lambertLike: lambertLike, TOON_ON: TOON_ON,
-    addOutline: addOutline, OUTLINE_ON: OUTLINE_ON, RIM_ON: RIM_ON };
+    addOutline: addOutline, OUTLINE_ON: OUTLINE_ON, RIM_ON: RIM_ON, applyRimLight: applyRimLight,
+    outlineMaterial: outlineMaterial, OUTLINE_K: OUTLINE_K, OUTLINE_MIN_PART: OUTLINE_MIN_PART };
 })(window);
