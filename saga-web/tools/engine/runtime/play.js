@@ -352,7 +352,7 @@
         return '<span class="hv"><b>' + esc(x.label) + '</b> ' + esc(v) + '</span>';
       }).join('');
       if (h !== lastHud) { hudVars.innerHTML = h; lastHud = h; }
-      toastEl.textContent = S.toast ? S.toast.text : '';
+      if (S.toast) { toastEl.textContent = S.toast.text; } /* 사라지는 동안엔 글을 남겨 둔다(빈 알약이 안 보이게) */
       toastEl.classList.toggle('show', !!S.toast);
       if (S.dialog) {
         dlg.classList.add('show');
@@ -435,7 +435,8 @@
     };
   }
 
-  root.SagaPlay = { start: start, sfx: sfx, VIEWS: VIEW_NAME };
+  /* current: 지금 도는 판(sim·setView·stop) — 진단·브라우저 확인용 손잡이 */
+  root.SagaPlay = { start: start, sfx: sfx, VIEWS: VIEW_NAME, current: null };
 
   /* ── 스스로 켜기 ─────────────────────────────────────────────────────── */
   function boot() {
@@ -445,13 +446,13 @@
     if (root.SAGA_PROJECT) {
       if (root.SAGA_ASSETS) { V.setAssetBase(root.SAGA_ASSETS); }
       doc.title = root.SAGA_PROJECT.title || doc.title;
-      start(root.SAGA_PROJECT, { persist: true });
+      root.SagaPlay.current = start(root.SAGA_PROJECT, { persist: true });
     } else if (q.get('p')) {
       var id = q.get('p');
       V.setAssetBase({ lib: '/lib/', proj: '/projects/' + id + '/assets/' });
       root.fetch('/api/project/' + encodeURIComponent(id)).then(function (r) { return r.json(); }).then(function (j) {
         doc.title = j.project.title;
-        start(j.project, { scene: q.get('scene') || null, persist: true });
+        root.SagaPlay.current = start(j.project, { scene: q.get('scene') || null, persist: true });
       });
     } else if (q.get('embed')) {
       var game = null;
@@ -460,7 +461,7 @@
         if (m.type !== 'saga-play') { return; }
         if (game) { game.stop(); }
         V.setAssetBase(m.assets || {});
-        game = start(m.project, { scene: m.scene, at: m.at, onExit: function () { root.parent.postMessage({ type: 'saga-play-exit' }, '*'); } });
+        game = root.SagaPlay.current = start(m.project, { scene: m.scene, at: m.at, onExit: function () { root.parent.postMessage({ type: 'saga-play-exit' }, '*'); } });
         if (canvas.focus) { canvas.focus(); }
       });
       root.parent.postMessage({ type: 'saga-play-ready' }, '*');

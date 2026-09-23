@@ -2,7 +2,8 @@
 # 커밋 전 자동 점검 (SAGA-DESIGN.md §8-5·§9) — Git Bash 에서 `bash tools/precheck.sh [폴더...]`
 #   1) 웹 다섯 판 js 구문 (node -c, vendor 제외)
 #   2) 바뀐 에셋 🔴 점검(tools/asset-audit --quick)
-#   3) 문서 크기 상한 (CLAUDE.md 6KB · PLAN 70KB(사가블로 90KB) · PROJECT_STATE 15KB)
+#   3) 사가 엔진 진단(엔진을 고쳤을 때만)
+#   4) 문서 크기 상한 (CLAUDE.md 6KB · PLAN 70KB(사가블로 90KB) · PROJECT_STATE 15KB)
 # 서버·브라우저는 띄우지 않는다. _test.html 진단은 사용자가 실기 확인할 때 따로 돈다.
 set -u
 cd "$(dirname "$0")/.." || exit 1
@@ -42,6 +43,16 @@ if [ -n "$PY" ]; then
   PYTHONIOENCODING=utf-8 $PY tools/asset-audit/audit.py --quick || fail=1
 else
   echo "WARN 파이썬이 없어 에셋 빠른 점검을 건너뛴다"
+fi
+
+echo "== 사가 엔진 진단 (saga-web/tools/engine 을 고쳤을 때만 — node 규칙·틀·서버 API·내보내기, 약 2초)"
+if git status --porcelain -- saga-web/tools/engine 2>/dev/null | grep -q .; then
+  node tools/hooks/syntax-check.js saga-web/tools/engine/runtime saga-web/tools/engine/editor || fail=1
+  out=$(node saga-web/tools/engine/test/run.mjs 2>&1); rc=$?
+  echo "$out" | grep -E "^(FAIL|RESULT)"
+  [ $rc -eq 0 ] || fail=1
+else
+  echo "skip 엔진 변경 없음"
 fi
 
 echo "== 문서 크기"

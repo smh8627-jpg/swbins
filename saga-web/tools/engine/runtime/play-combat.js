@@ -29,14 +29,14 @@
     '.cbl{position:absolute;inset:0;pointer-events:none;overflow:hidden}',
     '.cbl .num{position:absolute;font-weight:800;font-size:20px;text-shadow:0 2px 3px #000,0 0 2px #000;transform:translate(-50%,-50%);white-space:nowrap}',
     '.cbl .num small{display:block;font-size:13px;text-align:center}',
-    '.cbl .fbar{position:absolute;width:64px;height:6px;background:rgba(0,0,0,.55);border-radius:3px;transform:translate(-50%,-50%)}',
+    '.cbl .fbar{position:absolute;z-index:0;width:64px;height:6px;background:rgba(0,0,0,.55);border-radius:3px;transform:translate(-50%,-50%)}',
     '.cbl .fbar i{position:absolute;left:0;top:0;bottom:0;background:#ff5d5d;border-radius:3px}',
     '.cbl .fbar b{position:absolute;right:-12px;top:-3px;width:10px;height:10px;border-radius:50%}',
     '.cbl .fbar.stun i{background:#ffd166}.cbl .fbar.frz i{background:#a8ecff}',
     '.cbl .reticle{position:absolute;width:44px;height:44px;border:3px solid #ffd166;border-radius:50%;transform:translate(-50%,-50%);display:none;box-shadow:0 0 8px #ffd166}',
     '.cbl .keys{position:absolute;left:14px;bottom:10px;font-size:12px;color:#fff;background:rgba(0,0,0,.4);padding:4px 10px;border-radius:6px;max-width:70vw}',
     '.cbl .pop{position:absolute;left:50%;top:30%;transform:translateX(-50%);font-size:24px;font-weight:800;text-shadow:0 2px 6px #000;white-space:nowrap}',
-    '.cbl .party{position:absolute;right:14px;top:30%;display:flex;flex-direction:column;gap:6px}',
+    '.cbl .party{position:absolute;right:14px;top:30%;z-index:2;display:flex;flex-direction:column;gap:6px}',
     '.cbl .party div{background:rgba(10,14,24,.7);padding:5px 10px;border-radius:8px;min-width:150px;color:#fff;font-size:13px;border-left:4px solid #888;opacity:.75}',
     '.cbl .party div.on{opacity:1;box-shadow:0 0 0 2px #ffd166}',
     '.cbl .party .hpb{height:4px;background:#333;border-radius:2px;margin-top:3px}.cbl .party .hpb i{display:block;height:100%;background:#52d39a;border-radius:2px}',
@@ -61,7 +61,7 @@
     '.cbl .ff .atb{height:7px;background:#222;border-radius:3px}.cbl .ff .atb i{display:block;height:100%;background:#7bdff2;border-radius:3px}.cbl .ff .atb i.full{background:#ffd166}',
     '.cbl .ff .mi{padding:3px 6px;border-radius:4px;cursor:pointer;display:flex;justify-content:space-between;gap:8px}',
     '.cbl .ff .mi.cur{background:rgba(255,255,255,.18)}.cbl .ff .mi.cur:before{content:"▶ "}.cbl .ff .mi.dis{opacity:.4}',
-    '.cbl .ff .msg{position:absolute;left:50%;top:14px;transform:translateX(-50%);background:rgba(12,20,60,.88);border:2px solid #c9d6ff;border-radius:8px;color:#fff;padding:6px 16px;white-space:nowrap}'
+    '.cbl .msg{z-index:3;position:absolute;left:50%;top:14px;transform:translateX(-50%);background:rgba(12,20,60,.88);border:2px solid #c9d6ff;border-radius:8px;color:#fff;padding:6px 16px;white-space:nowrap}'
   ].join('\n');
 
   function create(ctx) {
@@ -230,7 +230,9 @@
             var bar = bars[e.id];
             if (!bar) { bar = bars[e.id] = el('div', 'fbar', L); el('i', null, bar); el('b', null, bar); }
             var s = screen(e.p[0], e.p[1] + (e.body.size[1] * e.s[1]) + 0.5, e.p[2]);
-            bar.style.display = s.vis ? '' : 'none';
+            /* 멀리 있는 멀쩡한 적은 막대를 숨긴다 — 벽·집 너머로 막대만 둥둥 뜨지 않게 */
+            var pl = S.player, far = pl && Math.hypot(e.p[0] - pl.p[0], e.p[2] - pl.p[2]) > 16;
+            bar.style.display = s.vis && !(far && e.hp >= (c.max || 1)) ? '' : 'none';
             bar.style.left = s.x + 'px'; bar.style.top = s.y + 'px';
             bar.firstChild.style.width = Math.max(0, e.hp / (c.max || 1) * 100) + '%';
             bar.className = 'fbar' + (c.stun > 0 ? ' stun' : c.freeze > 0 ? ' frz' : '');

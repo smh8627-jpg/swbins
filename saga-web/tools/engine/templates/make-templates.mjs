@@ -90,7 +90,7 @@ T.adventure = base('adventure', '모험 RPG', '마을에서 부탁을 받고 동
         E({ name: '보물 상자', pos: [16, 0, -14], scale: [1, 0.7, 0.7], look: { shape: 'box', color: '#d6dde8' }, body: { type: 'solid' }, comps: { chest: { grade: 'exquisite', lock: 'camp', var: 'gold' } } }),
         foe('들개', [18, 0, -18], { hp: 3, atk: 1, def: 0, exp: 8, gold: 2 }, { shape: 'model', model: 'lib:saga-go/models/animals/Wolf.glb', fit: 1.1 }),
         foe('들개', [14, 0, -19], { hp: 3, atk: 1, def: 0, exp: 8, gold: 2 }, { shape: 'model', model: 'lib:saga-go/models/animals/Wolf.glb', fit: 1.1 }),
-        E({ id: 'wp_village', name: '마을 봉수대', pos: [0, 0, 12], scale: [1.2, 3, 1.2], look: { shape: 'cylinder', color: '#78909c', label: '봉수대' }, body: { type: 'solid' }, comps: { waypoint: { name: '마을' } } }),
+        E({ id: 'wp_village', name: '마을 봉수대', pos: [-6, 0, 9], scale: [1.2, 3, 1.2], look: { shape: 'cylinder', color: '#78909c', label: '봉수대' }, body: { type: 'solid' }, comps: { waypoint: { name: '마을' } } }),
         E({ name: '사슴', pos: [-20, 0, 12], look: { shape: 'model', model: 'lib:saga-go/models/animals/Deer.glb', fit: 1.7 }, body: { type: 'solid', size: [0.8, 1.7, 1.6] }, comps: { codex: { book: '생물', name: '사슴' } } }),
         E({ name: '여우', pos: [22, 0, 10], look: { shape: 'model', model: 'lib:saga-go/models/animals/Fox.glb', fit: 0.8 }, body: { type: 'solid', size: [0.6, 0.8, 1] }, comps: { codex: { book: '생물', name: '여우' }, patrol: { dx: 0, dy: 0, dz: 6, speed: 1.5 } } }),
         E({ name: '집', pos: [-10, 0, -2], look: { shape: 'model', model: BLD + 'House_1.glb', fit: 6 }, body: { type: 'solid', size: [5, 6, 5] } }),
@@ -142,7 +142,7 @@ T.genshin = base('genshin', '원신식 필드', '파티 넷을 바꿔 가며 원
       E({ name: '석등(물)', pos: [0, 0, -36], scale: [0.5, 1.4, 0.5], look: { shape: 'cylinder', color: '#9e9e9e' }, body: { type: 'solid' }, comps: { torch: { element: '물', sec: 20 } } }),
       E({ name: '화려한 상자', pos: [0, 0, -31], scale: [1.3, 0.9, 0.9], look: { shape: 'box', color: '#9a5ce0' }, body: { type: 'solid' }, comps: { chest: { grade: 'luxurious', lock: 'torch', var: 'gold' } } }),
       E({ name: '정교한 상자', pos: [20, 14.01, -6], scale: [1, 0.7, 0.7], look: { shape: 'box', color: '#d6dde8' }, body: { type: 'solid' }, comps: { chest: { grade: 'exquisite', lock: 'none', var: 'gold' } } }),
-      E({ name: '봉수대', pos: [0, 0, 16], scale: [1.2, 3, 1.2], look: { shape: 'cylinder', color: '#78909c', label: '순간이동 지점' }, body: { type: 'solid' }, comps: { waypoint: { name: '언덕 아래' } } }),
+      E({ name: '봉수대', pos: [6, 0, 13], scale: [1.2, 3, 1.2], look: { shape: 'cylinder', color: '#78909c', label: '순간이동 지점' }, body: { type: 'solid' }, comps: { waypoint: { name: '언덕 아래' } } }),
       tree([10, 0, 12], 1.3), tree([-10, 0, 14]), tree([30, 0, 20], 1.5), tree([-34, 0, -20], 1.2)
     ],
     events: [{ when: { on: 'gone', b: '#foe' }, once: true, do: [{ do: 'toast', text: '적을 모두 물리쳤다!', sec: 3 }, { do: 'perk', title: '새 힘 — 특성 하나' }] }] }]

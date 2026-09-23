@@ -14,6 +14,8 @@
 (function (root) {
   'use strict';
   var SIM = root.SagaSim || (typeof require === 'function' ? require('./sim.js') : null);
+  /* 조사 — 받침 있으면 a(은·이), 없으면 b(는·가). 한글이 아닌 끝 글자는 a */
+  function jo(w, a, b) { w = String(w); var c = w.charCodeAt(w.length - 1) - 0xAC00; return w + (c >= 0 && c < 11172 && c % 28 === 0 ? b : a); }
 
   var ELEM = { '불': '#ff6b3d', '물': '#3da5ff', '얼음': '#a8ecff', '번개': '#c07bff', '바람': '#5ee6b0' };
   /* 원소 반응 — 두 원소를 가나다 순으로 이은 열쇠 */
@@ -289,7 +291,7 @@
       if (d < num(f.aggro, 9) || c.seen > 0) {
         c.seen += dt;
         if (num(f.enrage, 0) > 0 && !c.enraged && c.seen >= num(f.enrage, 0)) { c.enraged = true; K.fx({ type: 'pop', text: (e.name || '적') + ' 광폭!', color: '#ff4d4d' }); K.fx({ type: 'sound', name: 'door' }); }
-        if (num(f.flee, 0) > 0 && c.seen >= num(f.flee, 0)) { K.fx({ type: 'pop', text: (e.name || '적') + ' 이(가) 달아났다', color: '#aaaaaa' }); K.fx({ type: 'poof', at: e.p.slice() }); e.alive = false; if (pc.lock === e) { pc.lock = null; } return; }
+        if (num(f.flee, 0) > 0 && c.seen >= num(f.flee, 0)) { K.fx({ type: 'pop', text: jo(e.name || '적', '이', '가') + ' 달아났다', color: '#aaaaaa' }); K.fx({ type: 'poof', at: e.p.slice() }); e.alive = false; if (pc.lock === e) { pc.lock = null; } return; }
       }
       var spMul = (c.enraged ? 1.3 : 1) * (c.slow > 0 ? 0.5 : 1);
       /* 원거리 적 — 예고 뒤 탄을 쏜다 */
@@ -621,7 +623,7 @@
         if (it.label === '공격') { M.stage = 'target'; M.side = 'foe'; M.pend = { cmd: 'attack' }; M.cur = 0; build(); return; }
         if (it.label === '마법') { M.stage = 'magic'; M.cur = 0; build(); return; }
         if (it.label === '아이템') { M.stage = 'item'; M.cur = 0; build(); return; }
-        if (it.label === '방어') { m.guard = true; B.menu = null; act('p', m, null, null, { text: m.name + ' 방어 자세' }); B.msg = m.name + ' 은(는) 몸을 지킨다'; return; }
+        if (it.label === '방어') { m.guard = true; B.menu = null; act('p', m, null, null, { text: m.name + ' 방어 자세' }); B.msg = jo(m.name, '은', '는') + ' 몸을 지킨다'; return; }
         if (it.label === '도망') {
           B.menu = null;
           if (rng() < 0.55) { B.phase = 'flee'; B.t = 1; B.msg = '도망쳤다!'; K.fx({ type: 'sound', name: 'jump' }); } else { m.atb = 0; B.msg = '도망칠 수 없었다!'; B.anim = 0.6; }
@@ -643,7 +645,7 @@
           var dmg = Math.max(1, Math.round(m.atk * 2 * varf() - tgt.def));
           var crit = rng() < 0.08; if (crit) { dmg *= 2; }
           hurt(tgt, dmg);
-          B.msg = m.name + ' 의 공격! ' + tgt.name + ' 에게 ' + dmg + (crit ? ' (치명!)' : '');
+          B.msg = m.name + '의 공격! ' + tgt.name + '에게 ' + dmg + (crit ? ' (치명!)' : '');
           act('p', m, 'f', tgt, { dmg: dmg, crit: crit });
           K.fx({ type: 'sound', name: 'hit' });
         } else if (p.cmd === 'magic') {
@@ -653,14 +655,14 @@
           var weak = tgt.element && WEAK[sp2.el] === tgt.element;
           var md = Math.max(1, Math.round(m.mag * sp2.pow * varf() * (weak ? 1.5 : 1) - tgt.def / 2));
           hurt(tgt, md);
-          B.msg = m.name + ' 의 ' + p.key + '! ' + tgt.name + ' 에게 ' + md + (weak ? ' (약점!)' : '');
+          B.msg = m.name + '의 ' + p.key + '! ' + tgt.name + '에게 ' + md + (weak ? ' (약점!)' : '');
           act('p', m, 'f', tgt, { dmg: md, el: sp2.el, magic: p.key });
           K.fx({ type: 'sound', name: 'door' });
         } else if (p.cmd === 'potion') {
           K.addVar(potVar, -1);
           var hv = Math.min(tgt.maxhp - tgt.hp, num(cfg.potionHeal, 50));
           tgt.hp += hv;
-          B.msg = tgt.name + ' 의 HP 가 ' + hv + ' 회복';
+          B.msg = tgt.name + '의 HP 가 ' + hv + ' 회복';
           act('p', m, 'p', tgt, { heal: hv });
           K.fx({ type: 'sound', name: 'coin' });
         }
@@ -672,7 +674,7 @@
       m.mp -= sp.mp;
       var list = sp.all ? alive(party) : [tgt], tot = 0;
       list.forEach(function (x) { var hv = Math.min(x.maxhp - x.hp, Math.round(m.mag * sp.heal * 4 * varf())); x.hp += hv; tot += hv; });
-      B.msg = m.name + ' 의 ' + key + '! ' + (sp.all ? '모두' : list[0].name) + ' 회복 ' + tot;
+      B.msg = m.name + '의 ' + key + '! ' + (sp.all ? '모두' : list[0].name) + ' 회복 ' + tot;
       act('p', m, 'p', sp.all ? null : tgt, { heal: tot, magic: key });
       K.fx({ type: 'sound', name: 'coin' });
     }
@@ -684,7 +686,7 @@
       var dmg = Math.max(1, Math.round(f.atk * 2 * varf() - t.def));
       if (t.guard) { dmg = Math.max(1, Math.round(dmg / 2)); }
       hurt(t, dmg);
-      B.msg = f.name + ' 의 공격! ' + t.name + ' 에게 ' + dmg + (t.guard ? ' (방어)' : '');
+      B.msg = f.name + '의 공격! ' + t.name + '에게 ' + dmg + (t.guard ? ' (방어)' : '');
       act('f', f, 'p', t, { dmg: dmg });
       K.fx({ type: 'sound', name: 'hit' }); K.fx({ type: 'shake', sec: 0.15, power: 0.2 });
       mirror();
@@ -749,7 +751,7 @@
       var ready = null;
       party.forEach(function (m) { if (m.hp > 0) { m.atb = Math.min(100, m.atb + (10 + m.spd) * dt * 3); if (m.atb >= 100 && !ready) { ready = ['p', m]; } } });
       B.foes.forEach(function (f) { if (f.hp > 0) { f.atb = Math.min(100, f.atb + (10 + f.spd) * dt * 3); if (f.atb >= 100 && !ready) { ready = ['f', f]; } } });
-      if (ready) { if (ready[0] === 'p') { openMenu(ready[1]); B.msg = ready[1].name + ' 의 차례'; } else { foeTurn(ready[1]); } }
+      if (ready) { if (ready[0] === 'p') { openMenu(ready[1]); B.msg = ready[1].name + '의 차례'; } else { foeTurn(ready[1]); } }
       return true;
     }
     function checkEnd() {

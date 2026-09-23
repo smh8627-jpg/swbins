@@ -33,7 +33,7 @@
     if (outlineMat) { return outlineMat; }
     outlineMat = new T.MeshBasicMaterial({ color: 0x1a1a22, side: T.BackSide });
     outlineMat.onBeforeCompile = function (sh) {
-      sh.vertexShader = sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  transformed += normalize(objectNormal) * 0.035;');
+      sh.vertexShader = sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  transformed += normalize(normal) * (0.035 / max(1e-4, (length(modelMatrix[0].xyz) + length(modelMatrix[1].xyz) + length(modelMatrix[2].xyz)) / 3.0));');
     };
     return outlineMat;
   }
@@ -164,8 +164,9 @@
     ctx.fillText(text, w / 2, cv.height / 2 + 2);
     var tex = new T.CanvasTexture(cv);
     if ('colorSpace' in tex) { tex.colorSpace = T.SRGBColorSpace; }
-    var sp = new T.Sprite(new T.SpriteMaterial({ map: tex, depthTest: false, transparent: true }));
-    var h = 0.42;
+    var sp = new T.Sprite(new T.SpriteMaterial({ map: tex, depthTest: false, transparent: true, sizeAttenuation: false }));
+    /* 화면 고정 크기 — 멀어도 안 작아지고 가까워도 화면을 덮지 않는다(1 = 시야 60도에서 화면 높이의 약 0.87) */
+    var h = 0.034;
     sp.scale.set(h * w / cv.height, h, 1);
     sp.userData.base = [h * w / cv.height, h];
     sp.renderOrder = 10;

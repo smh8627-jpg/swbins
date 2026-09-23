@@ -514,7 +514,14 @@
       var c = e.comps.spawner, a = K.rng() * Math.PI * 2, r = K.rng() * num(c.radius, 6);
       var src = (S.scene.entities || []).filter(function (d) { return d.id === c.from; })[0];
       if (!src) { return; }
-      var o = K.spawnDef(src, [e.p[0] + Math.cos(a) * r, e.p[1], e.p[2] + Math.sin(a) * r]);
+      var at = [e.p[0] + Math.cos(a) * r, e.p[1], e.p[2] + Math.sin(a) * r];
+      /* 플레이어 코앞(4m 안)에 생기면 바깥으로 민다 — 파도가 겹쳐 나와 바로 맞는 일 없게 */
+      var pl = S.player;
+      if (pl) {
+        var dx = at[0] - pl.p[0], dz = at[2] - pl.p[2], dd = Math.hypot(dx, dz);
+        if (dd < 4) { if (dd < 0.01) { dx = Math.cos(a); dz = Math.sin(a); dd = 1; } at[0] = pl.p[0] + dx / dd * 4; at[2] = pl.p[2] + dz / dd * 4; }
+      }
+      var o = K.spawnDef(src, at);
       o.def.off = false; o.spawnedBy = e;
       e.spMade++;
       K.fx({ type: 'poof', at: o.p.slice(), small: true });

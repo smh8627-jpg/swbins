@@ -82,15 +82,32 @@
     var startVars = JSON.parse(JSON.stringify(S.vars));
 
     /* ── 날씨 입자 ─────────────────────────────────────────────────── */
-    var rain = null;
+    var rain = null, flakeTex = null, DROP = [0.06, -0.55, 0.03];
+    function flake() {
+      if (flakeTex) { return flakeTex; }
+      var cv = doc.createElement('canvas'); cv.width = cv.height = 32;
+      var x = cv.getContext('2d');
+      if (x) { var gr = x.createRadialGradient(16, 16, 0, 16, 16, 16); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.5, 'rgba(255,255,255,0.8)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = gr; x.fillRect(0, 0, 32, 32); }
+      flakeTex = new T.CanvasTexture(cv);
+      return flakeTex;
+    }
     function particles(kind) {
       if (rain && rain.userData.kind === kind) { return; }
       if (rain) { scene3.remove(rain); rain.geometry.dispose(); rain.material.dispose(); rain = null; }
       if (kind !== 'rain' && kind !== 'snow') { return; }
-      var n = kind === 'rain' ? 1600 : 900, pos = new Float32Array(n * 3);
-      for (var i = 0; i < n; i++) { pos[i * 3] = (Math.random() - 0.5) * 50; pos[i * 3 + 1] = Math.random() * 25; pos[i * 3 + 2] = (Math.random() - 0.5) * 50; }
+      /* 비는 빗줄기(선 두 점씩, 살짝 기울게), 눈은 동그란 점 */
+      var isRain = kind === 'rain', n = isRain ? 1400 : 900, per = isRain ? 2 : 1, pos = new Float32Array(n * 3 * per);
+      for (var i = 0; i < n; i++) {
+        var x = (Math.random() - 0.5) * 50, y = Math.random() * 25, z = (Math.random() - 0.5) * 50, o = i * 3 * per;
+        pos[o] = x; pos[o + 1] = y; pos[o + 2] = z;
+        if (isRain) { pos[o + 3] = x + DROP[0]; pos[o + 4] = y + DROP[1]; pos[o + 5] = z + DROP[2]; }
+      }
       var g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(pos, 3));
-      rain = new T.Points(g, new T.PointsMaterial({ color: kind === 'rain' ? 0x9fc4ff : 0xffffff, size: kind === 'rain' ? 0.08 : 0.18, transparent: true, opacity: 0.8, depthWrite: false }));
+      if (isRain) {
+        rain = new T.LineSegments(g, new T.LineBasicMaterial({ color: 0xb8d2ff, transparent: true, opacity: 0.45, depthWrite: false }));
+      } else {
+        rain = new T.Points(g, new T.PointsMaterial({ color: 0xffffff, size: 0.16, map: flake(), alphaTest: 0.05, transparent: true, opacity: 0.9, depthWrite: false }));
+      }
       rain.userData.kind = kind; rain.frustumCulled = false;
       scene3.add(rain);
     }
@@ -119,10 +136,12 @@
       particles(W.weather);
       if (rain) {
         var p = rain.geometry.attributes.position.array, fall = rain.userData.kind === 'rain' ? 22 : 2.5, c = cam.position;
-        for (var i = 0; i < p.length; i += 3) {
+        var stride = rain.isLineSegments ? 6 : 3;
+        for (var i = 0; i < p.length; i += stride) {
           p[i + 1] -= fall * dt;
           if (rain.userData.kind === 'snow') { p[i] += Math.sin((p[i + 1] + i) * 0.5) * dt * 0.6; }
           if (p[i + 1] < c.y - 8) { p[i + 1] += 25; p[i] = c.x + (Math.random() - 0.5) * 50; p[i + 2] = c.z + (Math.random() - 0.5) * 50; }
+          if (stride === 6) { p[i + 3] = p[i] + DROP[0]; p[i + 4] = p[i + 1] + DROP[1]; p[i + 5] = p[i + 2] + DROP[2]; }
         }
         rain.geometry.attributes.position.needsUpdate = true;
       }
@@ -177,12 +196,15 @@
       faded.forEach(function (o) { ownMats(o).forEach(function (x) { x.m.material.opacity = x.op; x.m.material.transparent = x.tr; }); });
       faded = [];
       if (view !== 'follow' || !S.player) { return; }
-      var head = new T.Vector3(S.player.p[0], S.player.p[1] + 1.2, S.player.p[2]);
-      var dir = head.clone().sub(cam.position), d = dir.length();
-      ray.set(cam.position, dir.normalize()); ray.far = d - 0.5;
-      var objs = ctx.objs(), list = [];
+      var objs = ctx.objs(), list = [], hits = [], seen = {};
       for (var id in objs) { if (S.player && id !== S.player.id && objs[id].visible) { list.push(objs[id].userData.inner); } }
-      var hits = ray.intersectObjects(list, true), seen = {};
+      /* 머리만 보면 몸통을 가리는 낮은 기둥을 놓친다 — 발·허리·머리 세 점 */
+      [0.2, 0.9, 1.6].forEach(function (hy) {
+        var to = new T.Vector3(S.player.p[0], S.player.p[1] + hy, S.player.p[2]);
+        var dir = to.sub(cam.position), d = dir.length();
+        ray.set(cam.position, dir.normalize()); ray.far = Math.max(0.1, d - 0.5);
+        hits = hits.concat(ray.intersectObjects(list, true));
+      });
       hits.forEach(function (h) {
         var o = h.object; while (o && !o.userData.id) { o = o.parent; }
         if (!o || seen[o.userData.id]) { return; }
