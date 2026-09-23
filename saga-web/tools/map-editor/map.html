@@ -13,6 +13,7 @@
   <span class="muted" id="meta"></span>
   <span class="sp"></span>
   <span id="playMount" style="display:flex;gap:4px"></span>
+  <button id="bPlayHere" title="F6 — 고른 명소(없으면 화면 가운데) 칸에서 시작 · Alt+누르기 = 누른 칸">▶ 여기서</button>
   <span id="badge" class="muted">검사 중…</span>
   <button id="btnUndo" title="Ctrl+Z">되돌리기</button>
   <button id="btnReload">다시 읽기</button>
@@ -124,6 +125,7 @@ let painting = false;
 function cellAt(e) { const r = cv.getBoundingClientRect(); return [Math.floor((e.clientX - r.left) / CELL), Math.floor((e.clientY - r.top) / CELL)]; }
 cv.onmousedown = (e) => {
   const [x, y] = cellAt(e); if (y < 0 || y >= map.length || x < 0 || x >= map[0].length) return;
+  if (e.altKey) { e.preventDefault(); playHere(x, y); return; }
   if (tool === 'pick') { cur = map[y][x]; renderPalette(); return; }
   if (tool === 'place') { if (selPlace < 0) { log('명소를 먼저 고르세요', false); return; } push(); places[selPlace].tx = x + L.ox; places[selPlace].ty = y + L.oy; renderPlaces(); changed(); return; }
   push();
@@ -169,7 +171,26 @@ $('#addPlace').onclick = () => {
 };
 function doUndo() { const s = undo.pop(); if (!s) return; map = s.map; places = s.places; renderPlaces(); changed(); }
 $('#btnUndo').onclick = doUndo;
-addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); doUndo(); } });
+addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); doUndo(); }
+  if (e.key === 'F6') { e.preventDefault(); playHere(); }
+});
+/* ▶ 여기서 — 실행 창을 이 칸 한가운데(월드 미터 = 격자 × 48 + 24, land.js places 와 같은 셈)에서 연다.
+   x·y 는 화면 칸(0..w-1). 안 주면 고른 명소, 그것도 없으면 보이는 화면 가운데 칸 */
+function playHere(x, y) {
+  if (!L || !window.SagaPlay) return;
+  if (x == null && selPlace >= 0 && places[selPlace]) { x = places[selPlace].tx - L.ox; y = places[selPlace].ty - L.oy; }
+  if (x == null) {
+    const c = $('#center').getBoundingClientRect(), v = cv.getBoundingClientRect();
+    x = Math.floor((c.left + c.width / 2 - v.left) / CELL); y = Math.floor((c.top + c.height / 2 - v.top) / CELL);
+  }
+  x = Math.max(0, Math.min(map[0].length - 1, x)); y = Math.max(0, Math.min(map.length - 1, y));
+  const e = L.legend[map[y][x]];
+  if (e && (e.kind === 'water' || e.kind === 'mount') && !e.mark) log('물·산 칸에서 시작하면 갇힐 수 있다(' + (x + L.ox) + ',' + (y + L.oy) + ')', false);
+  if (dirty) log('저장 안 한 지도는 실행 창에 안 나온다(게임은 파일을 읽는다) — 저장 먼저', false);
+  SagaPlay.open(L.game, { x: (x + L.ox) * 48 + 24, y: (y + L.oy) * 48 + 24 });
+}
+$('#bPlayHere').onclick = () => playHere();
 $('#btnReload').onclick = async () => { if (dirty && !confirm('저장 안 한 변경을 버릴까요?')) return; const i = +$('#landSel').value; await load(); $('#landSel').value = i; pick(i); };
 $('#landSel').onchange = (e) => { if (dirty && !confirm('저장 안 한 변경을 버릴까요?')) { e.target.value = lands.indexOf(L); return; } pick(+e.target.value); };
 $('#btnSave').onclick = async () => {
