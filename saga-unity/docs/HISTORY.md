@@ -8685,3 +8685,28 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - 물건 개수(161)가 같은 배치표의 Godot 결과(400, saga-godot HISTORY 09-23 참고)보다 적은 건 트랙별
   `tools/layout/kinds.json` 밀도(`per`) 설정 차이다 — 배치표만 공유하고 밀도는 트랙마다 따로 정하는 설계 그대로.
 - 커밋 `3b50b998`. 에디터로 열어 실제로 보는 것은 실기 확인 전(`../SAGA-HANDOFF.md` 열린 항목).
+
+## Unity 걸어 다니는 래퍼 `LayoutWalk.unity` — Godot LayoutWalk.tscn 대응판 — 2026-09-23, 새 세션, "사가 유니티 이어해"
+
+- `BuildFromLayout.cs`가 생성 씬에 메타 컴포넌트(`Saga.Core.LayoutRoot`/`LayoutGroundTile`/`LayoutPlace`)를 남기게 하고,
+  새 `Assets/Games/SagaGo/Layout/LayoutWalk.cs`가 실행 시점에 `HebeiLayout.unity`를 additive 로드해 읽어
+  바닥 충돌·물 칸 막기(BoxCollider, 다리 있는 칸만 열림)·명소 발견(SphereCollider 트리거)·이름표(TextMesh+빌보드)를 붙인다.
+  `Assets/Editor/BuildLayoutWalkScene.cs`가 Player(GO PlayerController 재사용)·MobileHUD·토스트·명소 개수 UI를 조립한다.
+- **함정 ①**: 메타 세 클래스를 파일 하나(`LayoutMeta.cs`)에 몰아넣었더니 같은 배치 세션에서 `AddComponent`한 것 중
+  파일명과 이름이 안 맞는 클래스(`LayoutGroundTile`·`LayoutPlace`)가 씬에 정식 GUID 참조 대신 그 씬 파일에만
+  유효한 임시 로컬 참조로 저장돼, **다른 프로세스**(진단 실행)에서 읽으면 "referenced script is missing"로 깨졌다
+  (`LayoutRoot`는 어쩌다 정상 GUID로 저장돼 헷갈렸다). 파일명=클래스명 셋으로 쪼개 해결 — 이 프로젝트 SagaCore 관례(파일당 클래스 하나)를 어긴 대가.
+- **함정 ②**: `Assets/Scenes/Generated/*.unity`는 Build Settings에 없어 일반 `SceneManager.LoadScene`이 에디터 Play 모드에서도
+  못 찾는다 — `EditorSceneManager.LoadSceneInPlayMode(path, ...)`(에디터 전용, `#if UNITY_EDITOR`)로 바꿔 해결.
+- **함정 ③(가장 오래 걸림)**: 헤드리스 진단에서 순간이동한 자리의 명소 발견 트리거가 씬 시작 때 겹친 것 딱 하나
+  말고는 아무리 텔레포트해도 다시 안 잡혔다 — Rigidbody 유무·텔레포트를 여러 프레임에 나눠 걷듯이 옮기기·
+  `Physics.SyncTransforms()`를 다 시도해도 안 됐고, 원인은 **배치 모드(-nographics)는 실제 경과 시간이 거의 안 흘러
+  Update 마다 누적하는 자동 물리 스텝이 거의 안 돈다**는 것이었다. `Physics.simulationMode = SimulationMode.Script`로
+  바꾸고 텔레포트마다 `Physics.Simulate()`를 직접 부르니 13/13 전부 잡혔다.
+- 새 헤드리스 진단 `PlaytestLayoutWalkHeadless.cs`(`-quit` 안 씀, 다른 Playtest류와 같은 이유): 물 칸 20개 막힘·다리 칸 하나만
+  열림(씨앗 20260824 고정 좌표)·명소 13/13 발견·숨은 이름표 넷이 찾은 뒤에만 보임 — `LAYOUT_WALK_PROBE_DONE fails=0` 확인.
+  Godot `probe_layout_walk.gd`와 같은 결이지만 텔레포트 방식이라 물리 시뮬레이션 수동 제어가 이 트랙만의 함정으로 남는다(`tools/scene-layout/README.md`에 적음).
+- 코드: `Assets/SagaCore/LayoutRoot.cs`·`LayoutGroundTile.cs`·`LayoutPlace.cs`(신규)·`BuildFromLayout.cs`(메타 부착)·
+  `Assets/Games/SagaGo/Layout/LayoutWalk.cs`(신규)·`Assets/Editor/BuildLayoutWalkScene.cs`·`PlaytestLayoutWalkHeadless.cs`(신규),
+  `Assets/Scenes/LayoutWalk.unity`(신규)·`Assets/Scenes/Generated/HebeiLayout.unity`(메타 포함해 재조립). 문서: `tools/scene-layout/README.md`.
+  창 모드로 실제 걸어 보는 것은 실기 확인 전(Godot LayoutWalk와 같은 처지).

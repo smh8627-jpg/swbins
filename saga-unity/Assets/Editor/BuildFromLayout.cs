@@ -14,6 +14,7 @@ using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using Saga.Core;
 
 public static class BuildFromLayout
 {
@@ -71,6 +72,11 @@ public static class BuildFromLayout
 
         var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
         var root = new GameObject("Layout_" + L.region);
+        // 걸어 다니는 래퍼(Saga.Go.Layout.LayoutWalk)가 읽는 메타 — saga-godot의
+        // root.set_meta("layout_cell")과 같은 역할(§ tools/scene-layout/README.md).
+        var layoutRoot = root.AddComponent<LayoutRoot>();
+        layoutRoot.region = L.region;
+        layoutRoot.cell = L.cell;
 
         // 바닥 — 지형마다 재질 하나, 칸마다 판 하나(Plane 은 10×10 이라 cell/10 로 줄인다)
         var ground = new GameObject("Ground");
@@ -89,6 +95,7 @@ public static class BuildFromLayout
             p.transform.localPosition = new Vector3(g.x, 0f, -g.z);
             p.transform.localScale = new Vector3(L.cell / 10f, 1f, L.cell / 10f);
             p.GetComponent<MeshRenderer>().sharedMaterial = m;
+            p.AddComponent<LayoutGroundTile>().kind = g.kind; // 래퍼가 물 칸을 막을 때 읽는다.
         }
 
         // 물건 — 에셋 프리팹 인스턴스
@@ -122,6 +129,9 @@ public static class BuildFromLayout
             var mk = new GameObject(pl.id + (pl.hidden ? " (hidden)" : ""));
             mk.transform.SetParent(places.transform, false);
             mk.transform.localPosition = new Vector3(pl.x, 0f, -pl.z);
+            var place = mk.AddComponent<LayoutPlace>();
+            place.placeName = pl.name;
+            place.hidden = pl.hidden;
         }
 
         // 보기용 — 해와 위에서 내려다보는 카메라

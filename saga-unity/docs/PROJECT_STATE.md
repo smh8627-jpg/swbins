@@ -1,7 +1,7 @@
 # PROJECT_STATE — saga-unity (상태만, ≤15KB, 덮어쓴다)
 
 **규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다(2026-09-16 재편 전 본문 5,532줄은 그쪽 첫 절에 그대로 있다). 넘치면 `tools/precheck.sh` 가 막는다.
-마지막 갱신: 2026-09-23 (서른 세션째 — **GO Props 재질 마무리**: lantern 금속 속성화 + stall 나무/차양 재질 분리(102-4 보류 항목 닫음), `PropsBuilder.MarkStatic()` 정적 배칭 회귀 발견·수정). 같은 날 앞 세션: **전직 차수 옷 빛깔**(101-3 G, 웹판 jobLook 이식, `StoryOutfitTint`), **5-2 3단계**(3·4차 전직 Lv.20/25·무예 44·칸 고정·차수 탭 — 5-2 전부 완료), 5-2 2단계(2차 전직 Lv.15·유파 세트), 모바일 버튼 먹통 다섯 판 수정(`SagaCore/ButtonWiring.cs`), 5-2 1단계, GUI hang 해소, SSS Intensity 15(경위 HISTORY grep).
+마지막 갱신: 2026-09-23 (서른한 세션째 — **Unity 글자 지도 걸어 다니는 래퍼**(`LayoutWalk.unity`, Godot LayoutWalk.tscn 대응판): `BuildFromLayout`가 생성 씬에 메타(`Saga.Core.LayoutRoot/GroundTile/Place`) 부착, `LayoutWalk.cs`가 실행 시점에 읽어 물 칸 막기·명소 발견 배선, 헤드리스 진단 13/13 발견 확인 — 배치 모드는 수동 `Physics.simulationMode=Script`+`Physics.Simulate()` 없인 트리거가 씬 시작 겹침 한 번밖에 안 잡힌다는 함정 확인·해결(경위 HISTORY 이 날짜)). 창 모드 실기 확인은 전. 이 작업은 saga-unity PLAN 항목이 아니라 별도 "게임 제작 도구" 트랙 확장(루트 SAGA-HANDOFF.md). 같은 날 앞 세션: **GO Props 재질 마무리**(lantern 금속 속성화 + stall 나무/차양 재질 분리, 102-4 보류 항목 닫음, `PropsBuilder.MarkStatic()` 정적 배칭 회귀 발견·수정), **전직 차수 옷 빛깔**(101-3 G, 웹판 jobLook 이식, `StoryOutfitTint`), **5-2 3단계**(3·4차 전직 Lv.20/25·무예 44·칸 고정·차수 탭 — 5-2 전부 완료), 5-2 2단계(2차 전직 Lv.15·유파 세트), 모바일 버튼 먹통 다섯 판 수정(`SagaCore/ButtonWiring.cs`), 5-2 1단계, GUI hang 해소, SSS Intensity 15(경위 HISTORY grep).
 
 ## 캐릭터 자산 — 이 PC 기준 (2026-09-19)
 
