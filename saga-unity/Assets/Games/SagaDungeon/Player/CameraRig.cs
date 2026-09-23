@@ -61,17 +61,84 @@ namespace Saga.Dungeon.Player
         private const float LevelUpZoomOutSec = 0.3f;
         private Coroutine _levelUpRoutine;
 
+        // PLAN.md 106-1 "락온 카메라" — yaw 가 플레이어→대상 방향을 따라가고
+        // 피치를 낮춰 둘을 한 화면에 담는다. 피벗도 대상 쪽으로 조금 당긴다.
+        // 해제하면 락온 전 피치로 돌아간다(드래그하면 그 자리에서 양보).
+        private const float LockFollowRate = 6f;
+        private const float LockPitchDeg = 38f;
+        private const float LockPivotShare = 0.25f;
+        private const float LockPivotMaxM = 3f;
+
+        private Transform _lockTarget;
+        private float _freePitchDeg;
+        private bool _restoringPitch;
+        private Vector3 _basePivot;
+        private Vector3 _pivotOffset;
+
+        public Transform LockTarget => _lockTarget;
+
         private void Awake()
         {
             if (cam == null) cam = GetComponentInChildren<Camera>();
             transform.localRotation = Quaternion.Euler(_pitchDeg, _yawDeg, 0f);
+            _basePivot = transform.localPosition;
+            _freePitchDeg = _pitchDeg;
             ApplyZoom();
         }
 
         private void Update()
         {
             HandlePointer();
+            UpdateLockFollow(Time.deltaTime);
             ApplyZoom();
+        }
+
+        /// <summary>`PlayerLockOn`이 대상이 바뀔 때마다 부른다(null = 해제).</summary>
+        public void SetLockTarget(Transform target)
+        {
+            if (target != null && _lockTarget == null && !_restoringPitch) _freePitchDeg = _pitchDeg;
+            _restoringPitch = target == null && _lockTarget != null;
+            _lockTarget = target;
+        }
+
+        private void UpdateLockFollow(float dt)
+        {
+            float k = 1f - Mathf.Exp(-LockFollowRate * dt);
+            Vector3 wantOffset = Vector3.zero;
+            bool rotate = false;
+
+            if (_lockTarget != null)
+            {
+                Vector3 origin = transform.parent != null ? transform.parent.position : transform.position;
+                Vector3 to = _lockTarget.position - origin;
+                to.y = 0f;
+                if (to.sqrMagnitude > 0.01f)
+                {
+                    _yawDeg = Mathf.LerpAngle(_yawDeg, Mathf.Atan2(to.x, to.z) * Mathf.Rad2Deg, k);
+                    wantOffset = Vector3.ClampMagnitude(to * LockPivotShare, LockPivotMaxM);
+                }
+                _pitchDeg = Mathf.Lerp(_pitchDeg, LockPitchDeg, k);
+                rotate = true;
+            }
+            else if (_restoringPitch)
+            {
+                _pitchDeg = Mathf.Lerp(_pitchDeg, _freePitchDeg, k);
+                if (Mathf.Abs(_pitchDeg - _freePitchDeg) < 0.1f)
+                {
+                    _pitchDeg = _freePitchDeg;
+                    _restoringPitch = false;
+                }
+                rotate = true;
+            }
+
+            if (rotate) transform.localRotation = Quaternion.Euler(_pitchDeg, _yawDeg, 0f);
+
+            if (_pivotOffset.sqrMagnitude > 0.000001f || wantOffset.sqrMagnitude > 0f)
+            {
+                _pivotOffset = Vector3.Lerp(_pivotOffset, wantOffset, k);
+                if (wantOffset.sqrMagnitude == 0f && _pivotOffset.sqrMagnitude < 0.0001f) _pivotOffset = Vector3.zero;
+                transform.localPosition = _basePivot + _pivotOffset;
+            }
         }
 
         /// <summary>PlayerCombat.cs가 타격 성공 시 부른다 — magnitude는
@@ -185,11 +252,13 @@ namespace Saga.Dungeon.Player
 
         private void ApplyDrag(Vector2 relative, Vector2 pos)
         {
+            if (_lockTarget != null) return; // 락온 중엔 카메라가 대상을 따라간다.
             if (!_dragConfirmed)
             {
                 if (Vector2.Distance(pos, _dragStart) < DragThresholdPx) return;
                 _dragConfirmed = true;
             }
+            _restoringPitch = false;
             _yawDeg += relative.x * RotateSpeedDeg;
             _pitchDeg = Mathf.Clamp(_pitchDeg + relative.y * RotateSpeedDeg, MinPitchDeg, MaxPitchDeg);
             transform.localRotation = Quaternion.Euler(_pitchDeg, _yawDeg, 0f);

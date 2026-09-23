@@ -23,6 +23,10 @@ namespace Saga.EditorTools
             new("Stand To Roll", "dodge", false),
             new("Two Handed Sword Death", "death", false),
             new("Picking Up", "interaction", false),
+            // PLAN.md 106-1 락온 옆걸음(있을 때만 — BuildMariaLockOnStrafe.cs 가 블렌드를 짓는다).
+            new("Sword And Shield Left Strafe Walk", "strafe_left", true),
+            new("Sword And Shield Right Strafe Walk", "strafe_right", true),
+            new("Sword And Shield Backward Walk", "walk_back", true),
         };
 
         [MenuItem("Saga/Setup Mixamo Character Import")]

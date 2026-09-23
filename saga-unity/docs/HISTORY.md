@@ -8710,3 +8710,20 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
   `Assets/Games/SagaGo/Layout/LayoutWalk.cs`(신규)·`Assets/Editor/BuildLayoutWalkScene.cs`·`PlaytestLayoutWalkHeadless.cs`(신규),
   `Assets/Scenes/LayoutWalk.unity`(신규)·`Assets/Scenes/Generated/HebeiLayout.unity`(메타 포함해 재조립). 문서: `tools/scene-layout/README.md`.
   창 모드로 실제 걸어 보는 것은 실기 확인 전(Godot LayoutWalk와 같은 처지).
+
+## 2026-09-23 — FF·젤다 방향 점검 + PLAN 106장 신설 + DUNGEON 락온·적 공격 예고·완벽 회피 반격 (새 세션, Opus 5.5)
+
+- **요청**: "사가 유니티 개선이 제대로 되고 있는지 확인 해주고 추가할 사항 확인 해줘 파이널 판타지 같거나 젤다의 전설 같아야 해" → 점검 보고 → "순서대로 진행 해줘".
+- **점검 결론**: 기술 검증(컴파일 0·헤드리스 연속 OK)은 정상. 그러나 ① Unity 트랙 사용자 실기 승인 0건(Godot 은 있음), ② 최근 작업이 무예 44·3·4차 전직 같은 수치 이식에 몰림, ③ 사실 모델은 Maria·Abe·Brute 셋뿐이고 NPC 는 Kenney 블록(`Art/Characters/character-a~d.glb`). 코드 grep 결과 락온 0건·컷신/Timeline 0건·Cinemachine 미사용·3D 점프/등반 없음·젤다식 던전 구조 없음. 젤다 탑·신전은 GO 봉수대·사당 시련으로 이미 있음.
+- **결정**: PLAN 106장 — DUNGEON 대표 판, 순서 1 락온·예고·반격 → 2 젤다식 던전 → 3 Cinemachine·Timeline 연출 → 4 캐릭터 통일 → 5 점프·등반 → 6 파티·소환. 수치 확장은 멈춤.
+- **순서 1 구현**:
+  - `Player/PlayerLockOn.cs`(신규): Q 토글·Tab 다음 대상(카메라 정면 기준 시계 방향)·모바일 "주목" 버튼(`LockOnButton`, 회피 버튼 위). 후보 12m, 점수 거리×(2−정면 내적), 16m 밖·사망 시 자동 전환/해제. 표식 = 머리 위 역삼각 + 발밑 고리(`LineRenderer`·`Sprites/Default`).
+  - `CameraRig`: `SetLockTarget()` — yaw 추적(1−e^(−6dt))·피치 38°·피벗 25%(≤3m) 대상 쪽, 해제 시 락온 전 피치 복귀, 락온 중 드래그 무시.
+  - `PlayerController`: 락온 중 4.5m/s·대상 바라보기·`LockOn/MoveX/MoveY` 파라미터가 있으면 옆걸음 블렌드, 없으면 걷기 폴백. 락온 중 입력 없는 회피 = 백스텝. `TryDodge()`가 `HeroState.Invulnerable`을 즉시 올린다(같은 프레임 판정). 정적 `PerfectDodged` 이벤트.
+  - `DungeonEnemy`: `Update()`→`Tick(dt)`(진단이 시간 직접 주입). 사거리 도달 → 예비동작(잡졸 0.5s·두목급 0.7s, 절반 붉은빛 → 70%부터 경고색, 발밑 고리 0.3m→판정 반경 사거리×1.2) → 판정(반경 밖 헛손질·회피 무적이면 완벽 회피·그 밖 피해). 주기는 `attackInterval − 예비동작`(최소 0.3s)이라 가만히 서 있으면 예전과 같은 초당 피해. 강공격(과 반격 평타)은 두목급이 아닌 적의 예비동작을 끊고 주기 절반 뒤 재개. 피격 플래시가 경고색을 지우지 않게 `CurrentTint()`.
+  - `PlayerCombat`: 타격 대상 = 락온 대상(사거리 안) 우선, 타격 순간 몸을 대상 쪽으로. 완벽 회피 → 1.2s 반격 창, 다음 평타·강공격 한 번 2배("완벽 회피! — 지금 반격" 토스트).
+  - `Editor/BuildMariaLockOnStrafe.cs`(신규, 멱등): Maria.controller 에 `LockOn`·`MoveX`·`MoveY` + "Strafe" 2D 블렌드(가운데 Idle·앞 Walk·뒤/좌/우 검방 Mixamo 3클립, 상태 속도 1.4) + Idle/Walk/Run⇄Strafe 전이(전이 목록 맨 앞). 클립이 하나라도 없으면 컨트롤러를 안 건드린다. `MixamoRigUtil.RigAnimationClip()` 분리, `SetupMixamoCharacterImport` 매핑에 3클립 추가.
+  - 번역 `action.lockon`·`combat.perfect_dodge`(ko/en), `HOW_TO_PLAYTEST.md` 에 Q·Tab·예고/반격 설명.
+- **Mixamo**: 루트 `tools/mixamo_automation` 으로 "Sword And Shield Left/Right Strafe Walk"·"Sword And Shield Backward Walk" 후보 확인(`--query "Sword And Shield Walk" --list`). 다운로드는 **자동화 전용 프로필 로그인이 풀려**(페이지에 "Log in") 다운로드 대화상자의 Skin 선택자를 못 찾아 30초 시간 초과 — 로그인은 사람 몫이라 보류.
+- **검증**: 배치 컴파일 exit 0 · `BuildTestDungeonScene.Build` exit 0 · `PlaytestDungeonHeadless` 3연속 OK(새 `CheckLockOn`·`CheckEnemyTelegraph` — 다른 적은 잠깐 꺼 더미로만 후보를 좁힘) · 나머지 DUNGEON 헤드리스 여섯(층 진행 12방·필드 매복·지름길·마을2·마을3+4·지역 지도) 전부 OK — 적 공격이 예비동작 뒤로 밀려도 진행형 진단은 안 깨짐.
+- 창 모드 실기 확인은 전.

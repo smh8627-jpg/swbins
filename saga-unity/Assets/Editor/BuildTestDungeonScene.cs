@@ -346,6 +346,7 @@ namespace Saga.EditorTools
             BuildHeavyAttackButton(playerCombat);
             BuildWhirlButton(playerCombat);
             BuildDodgeButton(playerController);
+            BuildLockOnButton(playerGo.GetComponent<PlayerLockOn>());
             BuildMobileHud();
             BuildBlessingChoiceUi();
             BuildHordeArena();
@@ -1105,6 +1106,8 @@ namespace Saga.EditorTools
             SetPrivateField(pc, "animator", playerAnimator);
             SetPrivateField(pc, "cameraRig", cameraRig);
             SetPrivateField(pc, "inputActions", inputActions);
+            var lockOn = playerGo.AddComponent<PlayerLockOn>(); // PLAN.md 106-1 "락온".
+            SetPrivateField(pc, "lockOn", lockOn);
 
             var combat = playerGo.AddComponent<PlayerCombat>();
             playerGo.AddComponent<WeaponVisual>(); // PLAN.md 101-3 G "장비 가시화".
@@ -1578,6 +1581,15 @@ namespace Saga.EditorTools
             // AttackButton(-100, 폭160)의 왼쪽, 20px 간격
             BuildActionButton("DodgeUI", "DodgeButton", new Vector2(1f, 0f), new Vector2(-280f, 180f),
                 new Vector2(130f, 130f), new Color(0.15f, 0.45f, 0.6f, 0.55f), "회피", 26, controller.TryDodge, "action.dodge");
+        }
+
+        /// <summary>PLAN.md 106-1 "락온" — 회피 버튼 바로 위(20px 간격), 데스크톱은
+        /// Q(토글)·Tab(다음 대상)(PlayerLockOn.cs 참고).</summary>
+        private static void BuildLockOnButton(PlayerLockOn lockOn)
+        {
+            // DodgeButton(y=180, 높이130) 바로 위, 20px 간격
+            BuildActionButton("LockOnUI", "LockOnButton", new Vector2(1f, 0f), new Vector2(-280f, 330f),
+                new Vector2(130f, 130f), new Color(0.85f, 0.65f, 0.15f, 0.55f), "주목", 26, lockOn.Toggle, "action.lockon");
         }
 
         /// <summary>모바일 화면 버튼 하나(전체화면 캔버스+사각 배경+가운데 정렬

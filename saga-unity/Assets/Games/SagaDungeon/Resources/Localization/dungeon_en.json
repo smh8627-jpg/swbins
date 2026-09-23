@@ -61,6 +61,8 @@
     { "key": "action.heavy_attack", "value": "Heavy Attack" },
     { "key": "action.whirl", "value": "Whirl" },
     { "key": "action.dodge", "value": "Dodge" },
+    { "key": "action.lockon", "value": "Lock On" },
+    { "key": "combat.perfect_dodge", "value": "Perfect dodge! — counter now" },
     { "key": "blessing.title", "value": "Blessing! Pick one" },
     { "key": "blessing.reject", "value": "Decline — Gold by floor" },
     { "key": "grave.recovered", "value": "Recovered your grave — +{0} Gold" },

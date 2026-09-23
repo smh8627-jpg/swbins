@@ -68,30 +68,38 @@ namespace Saga.EditorTools
                     continue;
                 }
 
-                var importer = AssetImporter.GetAtPath(path) as ModelImporter;
-                if (importer == null)
+                if (RigAnimationClip(path, bodyAvatar, map.ClipName, map.Loop))
                 {
-                    continue;
+                    Debug.Log($"[{logTag}] rigged {Path.GetFileName(path)} -> clip '{map.ClipName}' (loop={map.Loop})");
                 }
-
-                importer.animationType = ModelImporterAnimationType.Human;
-                importer.avatarSetup = ModelImporterAvatarSetup.CopyFromOther;
-                importer.sourceAvatar = bodyAvatar;
-
-                var clips = importer.defaultClipAnimations;
-                if (clips.Length > 0)
-                {
-                    clips[0].name = map.ClipName;
-                    clips[0].loopTime = map.Loop;
-                    importer.clipAnimations = clips;
-                }
-
-                importer.SaveAndReimport();
-                Debug.Log($"[{logTag}] rigged {Path.GetFileName(path)} -> clip '{map.ClipName}' (loop={map.Loop})");
             }
 
             Debug.Log($"[{logTag}] done");
             return bodyAvatar;
+        }
+
+        /// <summary>애니메이션 FBX 하나를 몸 Avatar 에 "Copy From Other"로 물리고
+        /// 첫 클립 이름·반복을 정한다. 몸 전체를 다시 리깅하지 않고 클립만 더할 때
+        /// (`BuildMariaLockOnStrafe.cs`)도 쓴다.</summary>
+        public static bool RigAnimationClip(string path, Avatar bodyAvatar, string clipName, bool loop)
+        {
+            var importer = AssetImporter.GetAtPath(path) as ModelImporter;
+            if (importer == null) return false;
+
+            importer.animationType = ModelImporterAnimationType.Human;
+            importer.avatarSetup = ModelImporterAvatarSetup.CopyFromOther;
+            importer.sourceAvatar = bodyAvatar;
+
+            var clips = importer.defaultClipAnimations;
+            if (clips.Length > 0)
+            {
+                clips[0].name = clipName;
+                clips[0].loopTime = loop;
+                importer.clipAnimations = clips;
+            }
+
+            importer.SaveAndReimport();
+            return true;
         }
     }
 }

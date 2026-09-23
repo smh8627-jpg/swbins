@@ -129,9 +129,23 @@ namespace Saga.Dungeon.World
         /// 없다 — 호출부는 `?.` 로 그냥 넘어간다).</summary>
         public Animator Animator => _animator;
 
-        private enum State { Idle, Chase, Dead }
+        private enum State { Idle, Chase, Windup, Dead }
 
         private const float FlashSec = 0.08f; // "타격감 1차" 슬라이스 — enemy flash.
+
+        // PLAN.md 106-1 "적 공격 예고"(젤다 방향) — 사거리에 들면 곧바로 피해를
+        // 주던 것을 예비동작 → 판정 둘로 나눈다. 예비동작 동안 멈춰 서서 몸이
+        // 달아오르고 발밑 경고 고리가 판정 반경까지 커진다. 주기는 예비동작
+        // 시작부터 세어(`attackInterval - 예비동작`) 가만히 서 있으면 예전과
+        // 같은 초당 피해 — 읽고 피하는 쪽에만 보상이 간다.
+        private const float WindupSec = 0.5f;
+        private const float BossWindupSec = 0.7f;        // 두목급은 더 크게 휘두른다.
+        private const float StrikeReachMul = 1.2f;       // 판정 반경 = attackRange × 이 값.
+        private const float MinRecoverSec = 0.3f;        // 판정 뒤 다음 예비동작까지 최소 간격.
+        private const float InterruptCooldownMul = 0.5f; // 강공격에 끊기면 주기 절반 뒤 다시.
+        private const float WarnHotAt = 0.7f;            // 이 진행률부터 "지금 피하라" 붉은빛.
+        private static readonly Color WarnColor = new Color(1f, 0.22f, 0.08f);
+        private const int WarnRingSegments = 40;
 
         // 44장 "주요 Enemy" 교체 — Death 애니메이션이 재생될 시간을 준 뒤
         // Destroy한다(Player/PlayerCombat.cs의 즉시 회복과 달리 적은
@@ -145,6 +159,18 @@ namespace Saga.Dungeon.World
         private GameObject _visualGo;
         private Animator _animator;
         private Coroutine _flashRoutine;
+
+        private float _windupLeft;
+        private float _windupTotal;
+        private bool _warnHot;
+        private LineRenderer _warnRing;
+
+        /// <summary>PLAN.md 106-1 — 락온(`PlayerLockOn`)·진단이 본다.</summary>
+        public bool IsAlive => _state != State.Dead;
+        public bool IsBoss => isBoss;
+        public float VisualScale => visualScale;
+        public bool IsWindingUp => _state == State.Windup;
+        public float StrikeReach => attackRange * StrikeReachMul;
 
         /// <summary>"랜덤 이벤트" 슬라이스 — `DungeonAmbush.cs`처럼 런타임에
         /// 즉석으로 만든 개체에 값을 채우는 정식 API. 편집기 빌드 스크립트의
@@ -234,13 +260,17 @@ namespace Saga.Dungeon.World
             _visualGo = visual.gameObject;
         }
 
-        private void Update()
+        private void Update() => Tick(Time.deltaTime);
+
+        /// <summary>한 프레임 분량의 AI — `Update()`가 부르고, 헤드리스 진단은
+        /// 시간을 직접 넣어 예비동작·판정을 한 프레임 안에서 확인한다.</summary>
+        public void Tick(float dt)
         {
             if (_state == State.Dead || _player == null) return;
 
             if (isWorldBoss && _worldBossActive)
             {
-                _worldBossTimeLeft -= Time.deltaTime;
+                _worldBossTimeLeft -= dt;
                 if (_worldBossTimeLeft <= 0f)
                 {
                     Flee();
@@ -249,6 +279,12 @@ namespace Saga.Dungeon.World
             }
 
             float dist = Vector3.Distance(transform.position, _player.position);
+
+            if (_state == State.Windup)
+            {
+                TickWindup(dt, dist);
+                return;
+            }
 
             if (_state == State.Idle)
             {
@@ -277,7 +313,7 @@ namespace Saga.Dungeon.World
                 if (dir.sqrMagnitude > 0.0001f)
                 {
                     dir.Normalize();
-                    transform.position += dir * chaseSpeed * Time.deltaTime;
+                    transform.position += dir * chaseSpeed * dt;
                     transform.rotation = Quaternion.LookRotation(dir);
                 }
                 _animator?.SetFloat("Speed", 1f);
@@ -285,13 +321,98 @@ namespace Saga.Dungeon.World
             else
             {
                 _animator?.SetFloat("Speed", 0f);
-                _attackCooldown -= Time.deltaTime;
+                FacePlayer();
+                _attackCooldown -= dt;
                 if (_attackCooldown <= 0f)
                 {
-                    _attackCooldown = attackInterval;
-                    HeroState.TakeDamage(dmg);
-                    _animator?.SetTrigger("Attack");
+                    BeginWindup();
                 }
+            }
+        }
+
+        private void FacePlayer()
+        {
+            Vector3 dir = _player.position - transform.position;
+            dir.y = 0f;
+            if (dir.sqrMagnitude > 0.0001f) transform.rotation = Quaternion.LookRotation(dir.normalized);
+        }
+
+        /// <summary>PLAN.md 106-1 — 예비동작 시작. 공격 클립은 여기서 틀어
+        /// 휘두르는 동작이 판정 순간에 닿게 한다.</summary>
+        private void BeginWindup()
+        {
+            _state = State.Windup;
+            _windupTotal = isBoss ? BossWindupSec : WindupSec;
+            _windupLeft = _windupTotal;
+            _warnHot = false;
+            _animator?.SetTrigger("Attack");
+            if (_visualGo != null) CharacterVisual.Tint(_visualGo, Color.Lerp(bodyColor, WarnColor, 0.45f));
+            EnsureWarnRing();
+            _warnRing.enabled = true;
+            SetWarnRingRadius(0.3f);
+        }
+
+        private void TickWindup(float dt, float dist)
+        {
+            _windupLeft -= dt;
+            float progress = _windupTotal > 0f ? 1f - Mathf.Clamp01(_windupLeft / _windupTotal) : 1f;
+            if (!_warnHot && progress >= WarnHotAt)
+            {
+                _warnHot = true;
+                if (_visualGo != null) CharacterVisual.Tint(_visualGo, WarnColor);
+            }
+            SetWarnRingRadius(Mathf.Lerp(0.3f, StrikeReach, progress));
+            if (_windupLeft <= 0f) ResolveStrike(dist);
+        }
+
+        /// <summary>판정 — 반경 밖이면 헛손질, 회피 무적 중이면 완벽 회피(반격 창),
+        /// 그 밖엔 피해.</summary>
+        private void ResolveStrike(float dist)
+        {
+            EndWindup();
+            _attackCooldown = Mathf.Max(MinRecoverSec, attackInterval - _windupTotal);
+            if (dist > StrikeReach) return;
+            if (HeroState.Invulnerable)
+            {
+                Saga.Dungeon.Player.PlayerController.ReportDodgedStrike();
+                return;
+            }
+            HeroState.TakeDamage(dmg);
+        }
+
+        private void EndWindup()
+        {
+            if (_state == State.Windup) _state = State.Chase;
+            if (_warnRing != null) _warnRing.enabled = false;
+            if (_visualGo != null) CharacterVisual.Tint(_visualGo, bodyColor);
+        }
+
+        private void EnsureWarnRing()
+        {
+            if (_warnRing != null) return;
+            var go = new GameObject("WarnRing");
+            go.transform.SetParent(transform, false);
+            go.transform.localPosition = new Vector3(0f, 0.05f, 0f);
+            _warnRing = go.AddComponent<LineRenderer>();
+            _warnRing.useWorldSpace = false;
+            _warnRing.loop = true;
+            _warnRing.positionCount = WarnRingSegments;
+            _warnRing.widthMultiplier = 0.08f;
+            _warnRing.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            _warnRing.receiveShadows = false;
+            _warnRing.material = new Material(Shader.Find("Sprites/Default")) { name = "WarnRing (generated)" };
+            var c = new Color(WarnColor.r, WarnColor.g, WarnColor.b, 0.85f);
+            _warnRing.startColor = c;
+            _warnRing.endColor = c;
+        }
+
+        private void SetWarnRingRadius(float radius)
+        {
+            if (_warnRing == null) return;
+            for (int i = 0; i < WarnRingSegments; i++)
+            {
+                float a = i * Mathf.PI * 2f / WarnRingSegments;
+                _warnRing.SetPosition(i, new Vector3(Mathf.Cos(a) * radius, 0f, Mathf.Sin(a) * radius));
             }
         }
 
@@ -350,6 +471,13 @@ namespace Saga.Dungeon.World
 
             if (isWorldBoss) CheckWorldBossPartBreak(); // 죽는 타격도 문턱을 넘겼으면 완파 보너스까지 같이 정산.
 
+            // PLAN.md 106-1 "끊기" — 강공격은 두목급이 아닌 적의 예비동작을 끊는다.
+            if (heavy && !isBoss && _state == State.Windup && _curHp > 0f)
+            {
+                EndWindup();
+                _attackCooldown = attackInterval * InterruptCooldownMul;
+            }
+
             if (_curHp <= 0f)
             {
                 Die();
@@ -391,6 +519,7 @@ namespace Saga.Dungeon.World
         /// 없다(진짜로 못 잡은 것 — 축소 보상만 받고 자리를 뜬다).</summary>
         private void Flee()
         {
+            if (_warnRing != null) _warnRing.enabled = false;
             _state = State.Dead;
             _worldBossActive = false;
             if (ActiveWorldBoss == this) ActiveWorldBoss = null;
@@ -413,11 +542,20 @@ namespace Saga.Dungeon.World
             yield return new WaitForSeconds(FlashSec);
             // ClearTint()가 아니라 bodyColor로 되돌린다 — 두목·정예처럼
             // 원래부터 색이 있는 개체는 ClearTint()가 그 색까지 지워 버린다.
-            if (_visualGo != null) CharacterVisual.Tint(_visualGo, bodyColor);
+            if (_visualGo != null) CharacterVisual.Tint(_visualGo, CurrentTint());
+        }
+
+        /// <summary>피격 플래시가 끝난 뒤 돌아갈 색 — 예비동작 중이면 경고색을
+        /// 지켜야 "지금 피하라" 신호가 타격 한 번에 꺼지지 않는다.</summary>
+        private Color CurrentTint()
+        {
+            if (_state != State.Windup) return bodyColor;
+            return _warnHot ? WarnColor : Color.Lerp(bodyColor, WarnColor, 0.45f);
         }
 
         private void Die()
         {
+            if (_warnRing != null) _warnRing.enabled = false;
             _state = State.Dead;
             _worldBossActive = false;
             if (ActiveWorldBoss == this) ActiveWorldBoss = null;

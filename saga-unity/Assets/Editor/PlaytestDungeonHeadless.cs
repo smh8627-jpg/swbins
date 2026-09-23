@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Reflection;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -118,6 +119,8 @@ namespace Saga.EditorTools
                 CheckGraveMarker(); // SessionCard를 띄우므로 CheckGoalBoardAndSessionCard 뒤(그 체크가 "시작부터 숨김" 전제를 이미 다 씀).
                 CheckGroundDecal();
                 CheckHorde(); // PLAN.md 101-2 5.5 — CheckGraveMarker가 이미 HeroState.Hp를 0으로 만들어 둬 이 체크 맨 앞에서 FullHeal()로 되돌린다.
+                CheckLockOn(); // PLAN.md 106-1 — 더미 처치가 레벨업을 부를 수 있어 CheckLevelUpCut 뒤.
+                CheckEnemyTelegraph();
             }
 
             if (_framesSeen >= FramesToRun)
@@ -1092,6 +1095,222 @@ namespace Saga.EditorTools
             var enemy = go.AddComponent<DungeonEnemy>();
             if (isWorldBoss) SetPrivate(enemy, "isWorldBoss", true);
             return enemy;
+        }
+
+        /// <summary>PLAN.md 106-1 진단용 — 씬의 다른 적을 잠깐 꺼 후보를 더미로만 좁힌다.</summary>
+        private static List<DungeonEnemy> DisableOtherEnemies()
+        {
+            var list = new List<DungeonEnemy>(DungeonEnemy.Active);
+            foreach (var e in list)
+            {
+                if (e != null) e.gameObject.SetActive(false);
+            }
+            return list;
+        }
+
+        private static void RestoreEnemies(List<DungeonEnemy> list)
+        {
+            foreach (var e in list)
+            {
+                if (e != null) e.gameObject.SetActive(true);
+            }
+        }
+
+        private static void ResetDodge(PlayerController controller)
+        {
+            SetPrivate(controller, "_dodgeTimeLeft", 0f);
+            SetPrivate(controller, "_dodgeCooldownLeft", 0f);
+            SetPrivate(controller, "_invulnTimeLeft", 0f);
+            HeroState.Invulnerable = false;
+        }
+
+        /// <summary>PLAN.md 106-1 "락온" — 뒤의 더 가까운 적보다 카메라 정면의 적을
+        /// 먼저 잡는지, 카메라·표식이 따라오는지, Tab 전환·락온 백스텝·대상 사망 시
+        /// 자동 전환·해제를 진짜 메서드로 확인한다.</summary>
+        private static void CheckLockOn()
+        {
+            const string T = "[PlaytestDungeonHeadless] lockon";
+            var playerGo = GameObject.FindWithTag("Player");
+            var lockOn = playerGo != null ? playerGo.GetComponent<PlayerLockOn>() : null;
+            var controller = playerGo != null ? playerGo.GetComponent<PlayerController>() : null;
+            var rig = playerGo != null ? playerGo.GetComponentInChildren<CameraRig>() : null;
+            if (lockOn == null || controller == null || rig == null)
+            {
+                Debug.LogError($"{T} — Player 에 PlayerLockOn/PlayerController/CameraRig 가 없다(씬 재빌드 필요)");
+                _hadError = true;
+                return;
+            }
+
+            var others = DisableOtherEnemies();
+            DungeonEnemy front = null, back = null;
+            try
+            {
+                lockOn.Release();
+                Vector3 p = playerGo.transform.position;
+                Vector3 fwd = rig.transform.forward;
+                fwd.y = 0f;
+                fwd.Normalize();
+                back = SpawnDummyEnemy(p - fwd * 2.5f);  // 더 가깝지만 등 뒤.
+                front = SpawnDummyEnemy(p + fwd * 4f);
+
+                lockOn.Toggle();
+                if (lockOn.Target != front || rig.LockTarget != front.transform || !lockOn.MarkerVisible)
+                {
+                    Debug.LogError($"{T} — 정면 적을 못 잡음 target={lockOn.Target} camera={rig.LockTarget} marker={lockOn.MarkerVisible}");
+                    _hadError = true;
+                    return;
+                }
+
+                lockOn.SwitchTarget();
+                if (lockOn.Target != back)
+                {
+                    Debug.LogError($"{T} — Tab 전환이 다른 적으로 안 넘어감 target={lockOn.Target}");
+                    _hadError = true;
+                    return;
+                }
+
+                ResetDodge(controller);
+                controller.TryDodge();
+                var dodgeDir = (Vector3)GetPrivate(controller, "_dodgeDir");
+                Vector3 away = p - back.transform.position;
+                away.y = 0f;
+                away.Normalize();
+                if (Vector3.Dot(dodgeDir, away) < 0.95f || !HeroState.Invulnerable)
+                {
+                    Debug.LogError($"{T} — 락온 중 입력 없는 회피가 백스텝이 아님 dir={dodgeDir} away={away} invuln={HeroState.Invulnerable}");
+                    _hadError = true;
+                    return;
+                }
+
+                back.TakeDamage(999999f);
+                lockOn.Refresh();
+                if (lockOn.Target != front)
+                {
+                    Debug.LogError($"{T} — 대상이 죽은 뒤 남은 적으로 자동 전환 안 됨 target={lockOn.Target}");
+                    _hadError = true;
+                    return;
+                }
+
+                lockOn.Toggle();
+                if (lockOn.IsLocked || rig.LockTarget != null || lockOn.MarkerVisible)
+                {
+                    Debug.LogError($"{T} — 해제가 안 됨 locked={lockOn.IsLocked} camera={rig.LockTarget} marker={lockOn.MarkerVisible}");
+                    _hadError = true;
+                    return;
+                }
+                Debug.Log($"{T} OK - 정면 우선·카메라/표식·Tab 전환·백스텝·사망 시 자동 전환·해제");
+            }
+            finally
+            {
+                lockOn.Release();
+                ResetDodge(controller);
+                if (front != null) Object.Destroy(front.gameObject);
+                if (back != null) Object.Destroy(back.gameObject);
+                RestoreEnemies(others);
+            }
+        }
+
+        /// <summary>PLAN.md 106-1 "적 공격 예고" — `DungeonEnemy.Tick()`에 시간을 직접
+        /// 넣어 예비동작 중엔 안 맞고·판정에 맞고·반경 밖이면 헛손질·회피 무적이면
+        /// 완벽 회피(반격 창)·반격 평타 2배·강공격이 예비동작을 끊는지 확인한다.</summary>
+        private static void CheckEnemyTelegraph()
+        {
+            const string T = "[PlaytestDungeonHeadless] telegraph";
+            var playerGo = GameObject.FindWithTag("Player");
+            var controller = playerGo != null ? playerGo.GetComponent<PlayerController>() : null;
+            var combat = playerGo != null ? playerGo.GetComponent<PlayerCombat>() : null;
+            if (controller == null || combat == null)
+            {
+                Debug.LogError($"{T} — Player/PlayerController/PlayerCombat 없음");
+                _hadError = true;
+                return;
+            }
+
+            var others = DisableOtherEnemies();
+            DungeonEnemy e = null;
+            try
+            {
+                HeroState.FullHeal();
+                ResetDodge(controller);
+                SetPrivate(combat, "_counterUntil", -1f);
+                Vector3 p = playerGo.transform.position;
+                e = SpawnDummyEnemy(p + new Vector3(1.5f, 0f, 0f));
+                SetPrivate(e, "_curHp", 9999f);
+
+                e.Tick(0.016f); // Idle → Chase
+                e.Tick(0.016f); // 사거리 안 → 예비동작
+                int hp0 = HeroState.Hp;
+                bool started = e.IsWindingUp;
+                e.Tick(0.3f);
+                bool heldDuringWindup = e.IsWindingUp && HeroState.Hp == hp0;
+                e.Tick(0.25f);
+                bool hitOnStrike = !e.IsWindingUp && HeroState.Hp < hp0;
+                if (!started || !heldDuringWindup || !hitOnStrike)
+                {
+                    Debug.LogError($"{T} — 예비동작→판정 순서가 틀림 started={started} held={heldDuringWindup} hit={hitOnStrike} hp {hp0}→{HeroState.Hp}");
+                    _hadError = true;
+                    return;
+                }
+
+                SetPrivate(e, "_attackCooldown", 0f);
+                e.Tick(0.016f);
+                int hp1 = HeroState.Hp;
+                e.transform.position = p + new Vector3(6f, 0f, 0f);
+                e.Tick(0.6f);
+                if (e.IsWindingUp || HeroState.Hp != hp1)
+                {
+                    Debug.LogError($"{T} — 판정 반경 밖인데 맞음 hp {hp1}→{HeroState.Hp}");
+                    _hadError = true;
+                    return;
+                }
+
+                e.transform.position = p + new Vector3(1.5f, 0f, 0f);
+                SetPrivate(e, "_attackCooldown", 0f);
+                e.Tick(0.016f);
+                ResetDodge(controller);
+                controller.TryDodge();
+                e.Tick(0.6f);
+                if (HeroState.Hp != hp1 || !combat.CounterReady)
+                {
+                    Debug.LogError($"{T} — 회피 무적으로 흘렸는데 맞았거나 반격 창이 안 열림 hp {hp1}→{HeroState.Hp} counter={combat.CounterReady}");
+                    _hadError = true;
+                    return;
+                }
+
+                ResetDodge(controller);
+                SetPrivate(combat, "_cooldownLeft", 0f);
+                float before = (float)GetPrivate(e, "_curHp");
+                combat.TriggerAttack();
+                float dealt = before - (float)GetPrivate(e, "_curHp");
+                float want = HeroState.HitDamage * PlayerCombat.CounterDamageMul;
+                if (Mathf.Abs(dealt - want) > 0.01f || combat.CounterReady)
+                {
+                    Debug.LogError($"{T} — 반격 평타 피해가 {PlayerCombat.CounterDamageMul}배가 아님 dealt={dealt} want={want} counterLeft={combat.CounterReady}");
+                    _hadError = true;
+                    return;
+                }
+
+                SetPrivate(e, "_attackCooldown", 0f);
+                e.Tick(0.016f);
+                bool windingBeforeHeavy = e.IsWindingUp;
+                SetPrivate(combat, "_heavyCooldownLeft", 0f);
+                combat.TriggerHeavyAttack();
+                if (!windingBeforeHeavy || e.IsWindingUp)
+                {
+                    Debug.LogError($"{T} — 강공격이 잡졸 예비동작을 못 끊음 before={windingBeforeHeavy} after={e.IsWindingUp}");
+                    _hadError = true;
+                    return;
+                }
+                Debug.Log($"{T} OK - 예비동작 중 무피해·판정 피해·반경 밖 헛손질·완벽 회피 반격 창·반격 {PlayerCombat.CounterDamageMul}배·강공격 끊기");
+            }
+            finally
+            {
+                ResetDodge(controller);
+                SetPrivate(combat, "_counterUntil", -1f);
+                HeroState.FullHeal();
+                if (e != null) Object.Destroy(e.gameObject);
+                RestoreEnemies(others);
+            }
         }
 
         private static object GetPrivate(object target, string fieldName)

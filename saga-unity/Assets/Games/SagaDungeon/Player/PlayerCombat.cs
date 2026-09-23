@@ -65,22 +65,62 @@ namespace Saga.Dungeon.Player
         private const float HitstopSec = 0.07f;
         private const float HeavyHitstopSec = 0.12f;
 
+        // PLAN.md 106-1 "완벽 회피 → 반격" — 판정을 회피 무적으로 흘리면 이 시간
+        // 안의 다음 평타·강공격 한 번이 이 배율(전역 슬로모 없이, 101-3 원칙).
+        public const float CounterWindowSec = 1.2f;
+        public const float CounterDamageMul = 2f;
+
         private float _cooldownLeft;
         private float _heavyCooldownLeft;
         private float _whirlCooldownLeft;
+        private float _counterUntil = -1f;
         private PlayerController _controller;
+        private PlayerLockOn _lockOn;
         private CameraRig _cameraRig;
+
+        /// <summary>반격 창이 열려 있는가 — HUD·진단이 본다.</summary>
+        public bool CounterReady => Time.time <= _counterUntil;
 
         private void Awake()
         {
             HeroState.Died += OnDied;
+            PlayerController.PerfectDodged += OnPerfectDodged;
             _controller = GetComponent<PlayerController>();
+            _lockOn = GetComponent<PlayerLockOn>();
             _cameraRig = GetComponentInChildren<CameraRig>();
         }
 
         private void OnDestroy()
         {
             HeroState.Died -= OnDied;
+            PlayerController.PerfectDodged -= OnPerfectDodged;
+        }
+
+        private void OnPerfectDodged()
+        {
+            _counterUntil = Time.time + CounterWindowSec;
+            _cameraRig?.Shake(HitShakeMag, HitShakeSec);
+            DialogueLabel.Instance?.Show(DungeonLocalization.T("combat.perfect_dodge", "완벽 회피! — 지금 반격"), CounterWindowSec);
+        }
+
+        /// <summary>반격 창이 열려 있으면 소비하고 배율을 돌려준다.</summary>
+        private float ConsumeCounter()
+        {
+            if (!CounterReady) return 1f;
+            _counterUntil = -1f;
+            return CounterDamageMul;
+        }
+
+        /// <summary>PLAN.md 106-1 — 락온 대상이 사거리 안이면 그 적, 아니면
+        /// 예전처럼 가장 가까운 적.</summary>
+        private DungeonEnemy PickTarget(float range)
+        {
+            if (_lockOn != null && _lockOn.IsLocked)
+            {
+                var t = _lockOn.Target;
+                if (Vector3.Distance(transform.position, t.transform.position) <= range) return t;
+            }
+            return DungeonEnemy.FindNearest(transform.position, range);
         }
 
         private void Update()
@@ -118,12 +158,14 @@ namespace Saga.Dungeon.Player
         private void TryAttack()
         {
             if (_cooldownLeft > 0f) return;
-            var enemy = DungeonEnemy.FindNearest(transform.position, AttackRange);
+            var enemy = PickTarget(AttackRange);
             if (enemy == null) return;
 
             _cooldownLeft = AttackCooldown;
-            enemy.TakeDamage(HeroState.HitDamage);
-            _cameraRig?.Shake(HitShakeMag, HitShakeSec);
+            _controller.FaceToward(enemy.transform.position);
+            float mul = ConsumeCounter();
+            enemy.TakeDamage(HeroState.HitDamage * mul, heavy: mul > 1f);
+            _cameraRig?.Shake(mul > 1f ? HeavyShakeMag : HitShakeMag, mul > 1f ? HeavyShakeSec : HitShakeSec);
             SfxPlayer.PlayHit();
             _controller.Animator?.SetTrigger("Attack");
             StartCoroutine(ApplyHitstop(_controller.Animator, enemy.Animator, HitstopSec));
@@ -132,12 +174,13 @@ namespace Saga.Dungeon.Player
         private void TryHeavyAttack()
         {
             if (_heavyCooldownLeft > 0f || (_controller != null && _controller.IsDodging)) return;
-            var enemy = DungeonEnemy.FindNearest(transform.position, AttackRange * HeavyRangeMul);
+            var enemy = PickTarget(AttackRange * HeavyRangeMul);
             if (enemy == null) return;
 
             _heavyCooldownLeft = HeavyCooldown;
             _cooldownLeft = Mathf.Max(_cooldownLeft, HeavyRecoverSec);
-            enemy.TakeDamage(HeroState.HitDamage * HeavyDamageMul, heavy: true);
+            _controller.FaceToward(enemy.transform.position);
+            enemy.TakeDamage(HeroState.HitDamage * HeavyDamageMul * ConsumeCounter(), heavy: true);
             _cameraRig?.Shake(HeavyShakeMag, HeavyShakeSec);
             SfxPlayer.PlayHeavyHit();
             // Maria.controller엔 슬래시 클립이 하나뿐이라 강공격도 같은

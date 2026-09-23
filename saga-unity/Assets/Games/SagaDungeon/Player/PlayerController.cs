@@ -57,11 +57,28 @@ namespace Saga.Dungeon.Player
 
         private const float FootprintIntervalSec = 0.35f; // PLAN.md 101-3 G "지형 반응" — 발자국 간격.
 
+        // PLAN.md 106-1 "락온 중 이동" — 달리기 없이 대상을 보며 옆걸음.
+        private const float LockMoveSpeed = 4.5f;
+        private const float LockTurnRate = 14f;
+
         [SerializeField] private Transform visual;
         [SerializeField] private Animator animator;
         [SerializeField] private CameraRig cameraRig;
         [SerializeField] private InputActionAsset inputActions;
         [SerializeField] private VirtualJoystick joystick;
+        [SerializeField] private PlayerLockOn lockOn;
+
+        /// <summary>PLAN.md 106-1 "완벽 회피" — 적 판정 순간 회피 무적 중이었으면
+        /// `DungeonEnemy.ResolveStrike()`가 `ReportDodgedStrike()`로 쏜다.
+        /// `PlayerCombat`이 받아 반격 창을 연다.</summary>
+        public static event System.Action PerfectDodged;
+
+        public static void ReportDodgedStrike() => PerfectDodged?.Invoke();
+
+        // Maria.controller 에 락온 옆걸음 블렌드(`Editor/BuildMariaLockOnStrafe.cs`)가
+        // 들어가 있을 때만 true — 없으면 걷기 클립 폴백.
+        private bool _hasStrafeParams;
+        private bool _strafeFlag;
 
         private CharacterController _controller;
         private InputAction _moveAction;
@@ -110,8 +127,43 @@ namespace Saga.Dungeon.Player
             {
                 animator = GetComponentInChildren<Animator>();
             }
+            if (lockOn == null)
+            {
+                lockOn = GetComponent<PlayerLockOn>();
+            }
+            if (animator != null)
+            {
+                foreach (var p in animator.parameters)
+                {
+                    if (p.name == "LockOn") { _hasStrafeParams = true; break; }
+                }
+            }
 
             _dodgeTrail = BuildDodgeTrail();
+        }
+
+        /// <summary>`PlayerCombat`이 타격 순간 몸을 대상 쪽으로 돌릴 때 쓴다.</summary>
+        public void FaceToward(Vector3 worldPos)
+        {
+            if (visual == null) return;
+            Vector3 dir = worldPos - transform.position;
+            dir.y = 0f;
+            if (dir.sqrMagnitude < 0.0001f) return;
+            visual.rotation = Quaternion.Euler(0f, Mathf.Atan2(dir.x, dir.z) * Mathf.Rad2Deg, 0f);
+        }
+
+        private bool LockedOn => lockOn != null && lockOn.IsLocked;
+
+        private void SetStrafeFlag(bool on)
+        {
+            if (!_hasStrafeParams || animator == null || _strafeFlag == on) return;
+            _strafeFlag = on;
+            animator.SetBool("LockOn", on);
+            if (!on)
+            {
+                animator.SetFloat("MoveX", 0f);
+                animator.SetFloat("MoveY", 0f);
+            }
         }
 
         /// <summary>회피 잔상 — 회전 애니메이션과 달리 `visual`이 아니라
@@ -193,6 +245,13 @@ namespace Saga.Dungeon.Player
                 return; // 회피 중엔 일반 이동·회전 입력을 무시 — dungeon.js도 dodge 중엔 p.dirX/Y를 안 봄.
             }
 
+            if (LockedOn)
+            {
+                UpdateLockedMove(moveDir, dt);
+                return;
+            }
+            SetStrafeFlag(false);
+
             bool running = _sprintAction != null && _sprintAction.IsPressed();
             float speed = running ? RunSpeed : WalkSpeed;
 
@@ -226,6 +285,47 @@ namespace Saga.Dungeon.Player
             }
         }
 
+        /// <summary>PLAN.md 106-1 — 락온 중엔 몸이 늘 대상을 보고, 입력은
+        /// 카메라 기준(카메라가 대상 쪽을 따라가므로 위=다가가기·아래=물러서기·
+        /// 좌우=돌기)으로 옆걸음한다. 옆걸음 블렌드가 있으면 몸 기준 MoveX/MoveY 를 준다.</summary>
+        private void UpdateLockedMove(Vector3 moveDir, float dt)
+        {
+            Vector3 horizontal = moveDir * LockMoveSpeed;
+            _controller.Move(new Vector3(horizontal.x, _verticalVelocity, horizontal.z) * dt);
+
+            Vector3 toTarget = lockOn.Target.transform.position - transform.position;
+            toTarget.y = 0f;
+            if (visual != null && toTarget.sqrMagnitude > 0.0001f)
+            {
+                float targetYaw = Mathf.Atan2(toTarget.x, toTarget.z) * Mathf.Rad2Deg;
+                float yaw = Mathf.LerpAngle(visual.eulerAngles.y, targetYaw, LockTurnRate * dt);
+                visual.rotation = Quaternion.Euler(0f, yaw, 0f);
+            }
+
+            bool moving = moveDir.sqrMagnitude > 0.05f * 0.05f;
+            if (animator != null)
+            {
+                SetStrafeFlag(true);
+                animator.SetFloat("Speed", moving ? 0.5f : 0f);
+                if (_hasStrafeParams && visual != null)
+                {
+                    Vector3 local = moving ? moveDir.normalized : Vector3.zero;
+                    animator.SetFloat("MoveX", Vector3.Dot(local, visual.right), 0.1f, dt);
+                    animator.SetFloat("MoveY", Vector3.Dot(local, visual.forward), 0.1f, dt);
+                }
+            }
+
+            if (moving)
+            {
+                _footprintCooldown -= dt;
+                if (_footprintCooldown <= 0f)
+                {
+                    _footprintCooldown = FootprintIntervalSec;
+                    GroundDecal.Spawn(transform.position, GroundDecal.Kind.Footprint);
+                }
+            }
+        }
+
         /// <summary>회피 트리거 — 데스크톱은 Update()의 Left Ctrl, 모바일은
         /// 화면 "회피" 버튼(OnClick)이 직접 부른다(PlayerCombat.cs의
         /// TriggerAttack()과 같은 결).</summary>
@@ -236,15 +336,27 @@ namespace Saga.Dungeon.Player
             Vector3 dir = WorldDirection(MovementInput());
             if (dir.sqrMagnitude < 0.0001f)
             {
-                dir = visual != null ? visual.forward : transform.forward;
+                if (LockedOn)
+                {
+                    // PLAN.md 106-1 — 락온 중 입력 없이 회피하면 백스텝(대상 반대쪽).
+                    dir = transform.position - lockOn.Target.transform.position;
+                }
+                else
+                {
+                    dir = visual != null ? visual.forward : transform.forward;
+                }
             }
             dir.y = 0f;
+            if (dir.sqrMagnitude < 0.0001f) dir = transform.forward;
             dir.Normalize();
 
             _dodgeDir = dir;
             _dodgeTimeLeft = DodgeDurationSec;
             _dodgeCooldownLeft = DodgeCooldownSec;
             _invulnTimeLeft = DodgeInvulnSec;
+            // 같은 프레임에 판정하는 적(예비동작 끝)도 무적을 보게 바로 올린다 —
+            // Update()가 다음 프레임부터 _invulnTimeLeft 로 다시 계산한다.
+            HeroState.Invulnerable = true;
 
             animator?.SetTrigger("Dodge");
 
