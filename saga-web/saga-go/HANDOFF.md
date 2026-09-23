@@ -3616,3 +3616,10 @@ VRoid 인물이 unlit(`MeshBasicMaterial`) 그대로라 **명암 없이 평면**
 - **펫 구도**: `portrait3d.petFrame` — 자세 굴린 뒤 스킨 반영 몸 상자를 재 바라보는 높이(바닥 + 키 28%)·위 끝·가로가 다 들어오게 물러남(네발은 예전과 거의 같은 거리). 물고기 형태는 `petYaw` 로 긴 축이 옆(yaw 1.3)에 오게 — 네발 yaw 0.95 면 3/4 정면이라 얼굴·눈만 찍혔다. 긴 몸이 멀리 물러나 카메라 far(40)를 넘어 빈 카드가 되던 것 → far = max(40, dist × 3). 손잡이 `portrait3d.petFit`(0 이면 예전 고정 구도).
 - 펫 초상 210장 다시 구움(외곽선 켬, 실패 0). 진단: "종마다 제 모델" 1 추가 → 566/568(실패 둘은 기존 jsdom `Request` 한계). `sw.js` go-v5.57.0.
 - **남은 것**: 긴 몸(장룡·쥐가오리·황새치)은 카드에 작게 선다(상자 맞춤의 대가). 갑옷메기는 모델 자체가 거의 검다. 실기 확인 전.
+
+## 2026-09-23 — 손으로 놓은 소품 층(`land.js` `deco`) — 맵 편집기 "3D 배치"용
+
+- `land.js`: 땅 객체 `deco: []`(월드 미터 x·z, `t`·`h`·`rot`, 집·탑 `w`·`d`·`shade`) + `DECO_T` 10종 · `decoAt(tx,ty)`(칸 가운데 기준, `di` 번호 붙임) · `hasDeco` · 손잡이 `land.deco` · `validate()` 가 deco 도 본다.
+- `world3d.js`: `propPlan` 끝에서 `decoAt` 를 얹는다(모델·LOD·등불·`houseRects` 벽 — 벽은 `world.js` 가 마을 칸만 잰다). `syncProps` 는 소품 있는 먼 풀밭·길 칸도 세운다.
+- 배열이 비어 있어 화면은 그대로. 진단 "땅 — 손으로 놓은 소품(deco)…" 추가 → jsdom 569/569(세 번 동일). `sw.js` go-v5.58.0.
+- 채우는 법: `saga-web/tools/map-editor/` "3D 배치"(README). 실기 확인 전.

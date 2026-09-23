@@ -75,6 +75,7 @@
 |---|---|---|---|
 | 지도·스폰·시점 3모드·구역 이름 30 | `world.js` | 완료 | 지형 결정성 · 시점 순환 |
 | 실제 지형(OSM) / 손그림 땅 1km | `geo.js` / `land.js` | 완료 · 실기 미확인 | 지형(geo) 레이어 순서 · 땅 — 길이 하나로 이어진다 |
+| 손으로 놓은 소품(land.js `deco`) | `land.js` → `world3d.propPlan` | 층만 있음(빈 배열) · 맵 편집기 "3D 배치"가 채운다 | 땅 — 손으로 놓은 소품(deco) · 종류 10(DECO_T) · 집·탑·우물·장터 벽은 마을 칸만 · 손잡이 `land.deco` |
 | 3D 렌더·배우·소품·높낮이·물·하늘·SSAO·후처리 | `world3d.js` `actor3d.js` `prop3d.js` `relief3d.js` `water3d.js` `sky3d.js` `ssao3d.js` `post3d.js` | 완료 · 실기 미확인 다수 | 조명 · 사물 · 배우 · 땅 · 물 · 그늘 · 후처리 |
 | 에셋 창고(HERO_RECIPES 27벌·UAL1 몸짓 41) | `asset3d.js` | 완료 · MPFB 실사 5인 실화면 미확인 | 에셋 — 표/클립/키/빛깔 |
 | 등용(설득 3라운드)·포획(타이밍)·3D 무대 | `encounter.js` `encounter3d.js` | 완료 | 등용 성공 → 도감… · 조우 무대 |

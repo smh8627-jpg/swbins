@@ -129,6 +129,7 @@
     <span id="syncBadge">확인 중…</span>
     <div class="spacer"></div>
     <button id="btnRefresh">새로고침</button>
+    <span id="playMount" style="display:flex;gap:4px"></span>
   </div>
   <div id="main">
     <div id="tree">
@@ -164,6 +165,8 @@ function log(text, ok) {
   div.className = 'line ' + (ok ? 'ok' : 'bad');
   div.textContent = (ok ? '✓ ' : '✗ ') + text;
   resultLog.prepend(div);
+  // 파일을 고친 기록이면 열려 있는 "▶ 실행" 창을 새로 띄운다(고친 것을 곧바로 본다)
+  if (ok && window.SagaPlay && /저장|반영|업로드|바꿈|추가|삭제/.test(text)) SagaPlay.reloadIfOpen();
 }
 
 function logResults(action, results) {
@@ -777,5 +780,7 @@ el('#searchInput').addEventListener('input', renderTree);
   await loadStatus();
 })();
 </script>
+<script src="/play-panel.js"></script>
+<script>SagaPlay.mount(document.getElementById('playMount'), () => { const g = document.getElementById('gameSelect'); return g && !g.hidden && g.value ? g.value : null; });</script>
 </body>
 </html>

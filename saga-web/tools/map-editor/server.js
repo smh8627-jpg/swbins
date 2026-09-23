@@ -6,11 +6,16 @@
  *   land  글자 지도 — `js/land.js` map·places(사가고)                         → map.html
  *   city  성 지도   — `js/data-city.js` 성 x·y·land + LINKS(사가국지)         → city.html
  *   side  사냥터    — `js/data-side.js` STAGES 발판·줄·문·사람·채집(사가스토리) → side.html
+ *   deco  3D 배치   — `js/land.js` 땅의 deco(손으로 놓은 소품, 사가고)          → scene.html
  * 판 폴더에 그 파일이 있으면 저절로 목록에 뜬다.
  *
  * 어느 어댑터든 원칙은 같다: 검사는 고친 파일을 vm 에서 실행한 **게임 데이터 그대로** 로 하고,
  * 저장은 바뀐 구간만 바꿔 쓴다(안 바꾸면 바이트까지 같다).
  * 막는 것: 그새 파일이 바뀜(md5) · 파일 구문 오류 · 어댑터 검사 오류 · 표시 글자 실명. 저장하면 그 판 sw.js VERSION 을 한 번 올린다.
+ *
+ * 3D 배치 화면은 그 판의 게임 js(land·world3d·prop3d·relief3d …)를 **그대로 불러** 게임과 같은 계산으로 그린다 —
+ * 그래서 화면을 `/g/<판>/__scene.html` 에 얹어 게임과 같은 상대 경로를 쓰게 한다(../lib/gameserve.js).
+ * `/play/<판>/` 은 편집기 안 "▶ 실행" 창(연습용 세이브, 서비스워커 없음).
  */
 'use strict';
 
@@ -24,13 +29,23 @@ const swbump = require('../content-editor/swbump');
 const land = require('./adapters/land');
 const city = require('./adapters/city');
 const side = require('./adapters/side');
+const deco = require('./adapters/deco');
+const gameserve = require('../lib/gameserve');
 
 // saga-web/ — 시험할 땐 SAGA_WEB_ROOT 로 복사본을 가리킨다
 const ROOT = process.env.SAGA_WEB_ROOT ? path.resolve(process.env.SAGA_WEB_ROOT) : path.join(__dirname, '..', '..');
 const GAMES = ['saga-go', 'saga-dungeon', 'saga-forest', 'saga-story', 'saga-realm'];
-const PORT = 8800;
-const ADAPTERS = { land, city, side };
-const PAGES = ['map.html', 'city.html', 'side.html', 'common.css'];
+const PORT = +process.env.SAGA_EDITOR_PORT || 8800;   // 시험할 땐 다른 포트로
+const ADAPTERS = { land, city, side, deco };
+const PAGES = ['map.html', 'city.html', 'side.html', 'common.css', 'scene.js'];
+/* 3D 배치 화면은 판 경로 밑에 얹는다 — 게임 js·모델을 게임과 같은 상대 경로로 부르려고 */
+const SCENE_EXTRA = {};
+for (const g of GAMES) {
+  SCENE_EXTRA[g + '/__scene.html'] = (res) => {
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+    res.end(fs.readFileSync(path.join(__dirname, 'scene.html')));
+  };
+}
 
 const md5 = (t) => crypto.createHash('md5').update(t, 'utf8').digest('hex');
 const landPath = (g) => land.file(ROOT, g);
@@ -84,9 +99,16 @@ if (require.main === module) {
     try {
       const page = u.pathname === '/' ? 'map.html' : u.pathname.slice(1);
       if (req.method === 'GET' && PAGES.indexOf(page) >= 0) {
-        res.writeHead(200, { 'Content-Type': (page.endsWith('.css') ? 'text/css' : 'text/html') + '; charset=utf-8' });
+        const type = page.endsWith('.css') ? 'text/css' : page.endsWith('.js') ? 'text/javascript' : 'text/html';
+        res.writeHead(200, { 'Content-Type': type + '; charset=utf-8', 'Cache-Control': 'no-store' });
         return res.end(fs.readFileSync(path.join(__dirname, page)));
       }
+      if (req.method === 'GET' && u.pathname === '/scene.html') {
+        const first = GAMES.find((g) => fs.existsSync(deco.file(ROOT, g))) || GAMES[0];
+        res.writeHead(302, { Location: '/g/' + (u.searchParams.get('game') || first) + '/__scene.html' });
+        return res.end();
+      }
+      if (gameserve.handle(req, res, u, ROOT, GAMES, SCENE_EXTRA)) return;
       if (req.method === 'GET' && u.pathname === '/api/kinds') {
         return send(res, 200, { kinds: Object.values(ADAPTERS).map((A) => ({ kind: A.kind, label: A.label, page: A.page,
           games: GAMES.filter((g) => fs.existsSync(A.file(ROOT, g))) })) });

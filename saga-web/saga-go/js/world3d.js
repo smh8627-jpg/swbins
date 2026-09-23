@@ -1178,6 +1178,14 @@
        shrine·cave·ruin과 같은 결로 markAt 이 답할 때만 세운다 */
     else if (mk === 'temple') { out.push({ t: 'temple', x: 0, z: 0, h: 18 }); }
 
+    /* 손으로 **놓은** 것(`land.js` deco — 맵 편집기 "3D 배치"가 고친다). 제 자리·키·돌림 그대로
+       해시 소품 위에 얹는다. 이 계획을 거치므로 집·탑·우물·장터는 벽 충돌(`houseRects`)도
+       저절로 따라온다 — 다만 `world.js` 가 충돌을 재는 건 마을 칸뿐이다 */
+    if (authored && RG.decoAt) {
+      var dk = RG.decoAt(gx, gy);
+      for (i = 0; i < dk.length; i++) { out.push(dk[i]); }
+    }
+
     return out;
   }
 
@@ -1761,7 +1769,8 @@
         /* 풀·길의 잔 사물은 가까울 때만 세운다 — 반경 전체에 깔면 격자 백 개가
            한꺼번에 늘어나고, 멀리서는 어차피 한 픽셀이다 */
         var far = tileDist > R * 0.5;
-        if (far && !mk && (kind === 'grass' || kind === 'road')) { continue; }
+        if (far && !mk && (kind === 'grass' || kind === 'road') &&
+            !(RG3 && RG3.hasDeco && RG3.hasDeco(gx, gy))) { continue; }
         /* LOD(36절) 대(帶) — 이 칸이 나무·바위·풀을 세우는 종류(town 은 집·탑뿐이라
            뺀다)라면 문턱(LOD_NEAR) 안쪽인지를 키에 넣는다. 문턱을 건너면 칸이
            다시 지어지고, 그 안에서 `instProp` 이 진짜 모델과 도형을 맞바꾼다.

@@ -2514,6 +2514,25 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ('논 ' + farm.join('/') + ' · 다리 ' + bridge.join('/') + ' · 굴 ' + cave.join('/'));
     });
 
+    t('땅 — 손으로 놓은 소품(deco)이 제 칸에 서고 집은 벽이 된다', function () {
+      /* 맵 편집기 "3D 배치"가 쓰는 층. 잠깐 두 개 놓고 보고 **원래 배열로 되돌린다** */
+      var r = LD.region(), keep = r.deco, before = R3.propPlan('town', 0, 0).length;
+      var rb = R3.houseRects(0, 0).length, bad0 = LD.validate().length;
+      r.deco = [{ t: 'house', x: 10, z: 20, h: 5, w: 9, rot: 0.5 }, { t: 'tree', x: -100, z: -100, h: 8 },
+                { t: 'nope', x: 1, z: 1, h: 1 }];
+      var plan = R3.propPlan('town', 0, 0), last = plan[plan.length - 1];
+      var rects = R3.houseRects(0, 0).length, tree = LD.decoAt(-3, -3), bad = LD.validate();
+      C.setTune('land.deco', 0);
+      var offLen = R3.propPlan('town', 0, 0).length;
+      C.setTune('land.deco', null);                 // 남기지 않는다
+      r.deco = keep;
+      var back = R3.propPlan('town', 0, 0).length;
+      return bad0 === 0 && plan.length === before + 1 && last.t === 'house' && last.x === -14 && last.z === -4 &&
+        rects === rb + 1 && tree.length === 1 && tree[0].x === 20 && bad.length === 1 &&
+        offLen === before && back === before &&
+        ('마을 칸 소품 ' + before + '→' + plan.length + ' · 벽 ' + rb + '→' + rects + ' · 모르는 종류 1건 막음 · 손잡이 끄면 ' + offLen);
+    });
+
     t('땅 — 지도가 깔려 있어도 강물은 깐다', function () {
       /* 이 땅의 강은 **지도에 없는 물**이다. 지도가 있다고 빼면 강이 아예 안 보인다 */
       var br = LD.place('bridge');

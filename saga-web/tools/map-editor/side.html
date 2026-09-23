@@ -14,10 +14,11 @@
 <body>
 <div id="top">
   <h1>맵 편집기</h1>
-  <nav><a href="map.html">글자 지도</a><a href="city.html">성 지도</a><a class="cur" href="side.html">사냥터</a></nav>
+  <nav><a href="map.html">글자 지도</a><a href="city.html">성 지도</a><a class="cur" href="side.html">사냥터</a><a href="/scene.html">3D 배치</a></nav>
   <select id="stageSel"></select>
   <span class="muted" id="meta"></span>
   <span class="sp"></span>
+  <span id="playMount" style="display:flex;gap:4px"></span>
   <span id="badge" class="muted">검사 중…</span>
   <button id="btnUndo" title="Ctrl+Z">되돌리기</button>
   <button id="btnReload">다시 읽기</button>
@@ -255,9 +256,12 @@ $('#btnSave').onclick = async () => {
   items.forEach((m) => { if (m.game === M.game) m.hash = out.hash; });
   M.width = D.width; FIELDS.forEach((f) => { M[f] = D[f].map((x) => x.slice()); });
   log(M.game + '/js/data-side.js ' + M.id + ' ' + (out.unchanged ? '바뀐 것 없음(안 씀)' : '저장') + (out.sw && out.sw.version ? ' · sw.js ' + out.sw.version : ''), true);
+  if (!out.unchanged && window.SagaPlay) SagaPlay.reloadIfOpen();
 };
 addEventListener('beforeunload', (e) => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
 load();
 </script>
+<script src="/play-panel.js"></script>
+<script>SagaPlay.mount(document.getElementById('playMount'), () => (M ? M.game : null));</script>
 </body>
 </html>

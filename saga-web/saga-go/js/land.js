@@ -101,8 +101,17 @@
       { id: 'shrine', name: '무너진 사당', tx: -3, ty: -5, hidden: true },
       { id: 'ruin', name: '강 건너 폐허', tx: -8, ty: 8, hidden: true },
       { id: 'temple', name: '숲 속 옛 사원', tx: 7, ty: 9, hidden: true }
-    ]
+    ],
+    /* 손으로 놓은 소품 — 3D 배치 편집기(`saga-web/tools/map-editor/` 의 "3D 배치")가 고친다.
+       좌표는 **월드 미터**다(x 동쪽 · z 남쪽 — 게임의 `pos.x`·`pos.y` 와 같은 축).
+       해시가 세운 소품 **위에** 얹을 뿐 지우지 않는다. 종류는 `DECO_T`,
+       `h` 키(m) · `rot` 돌림(라디안) · 집·탑만 `w`·`d`(폭·깊이 m) */
+    deco: []
   };
+
+  /* 손으로 놓을 수 있는 소품 — `world3d` 의 `propPlan` 이 제 자리(x·z)에 세우는 것만.
+     사당·폐허·굴·폭포·사원은 표식(`mark`)이라 칸 한가운데에만 서므로 뺐다 */
+  var DECO_T = ['tree', 'rock', 'grass', 'reed', 'lamp', 'well', 'market', 'house', 'tower', 'scare'];
 
   var LANDS = { hebei: HEBEI };
   var current = HEBEI;
@@ -146,6 +155,37 @@
   function markAt(tx, ty) { var a = at(tx, ty); return a ? a.mark : null; }
   /** 이 격자를 이 땅이 맡고 있나 — 3D 는 여기를 보고 **지도 대신 제 지형**을 세운다 */
   function owns(tx, ty) { return !!at(tx, ty); }
+
+  /** 손으로 놓은 소품을 세울까 — 0 이면 해시 소품만 선다 */
+  function decoOn() { return core().tuned('land.deco', 1) ? true : false; }
+
+  /**
+   * 이 격자에 손으로 놓은 소품 — `propPlan` 이 쓰는 모양(격자 한가운데 기준 좌표)으로.
+   * `di` 는 `deco` 배열의 몇 번째인지(편집기가 고른 것을 되찾는다). 없으면 빈 배열.
+   */
+  function decoAt(tx, ty) {
+    var out = [], r = current, i, d, p;
+    if (!r || !r.deco || !r.deco.length || !decoOn() || !owns(tx, ty)) { return out; }
+    for (i = 0; i < r.deco.length; i++) {
+      d = r.deco[i];
+      if (!d || DECO_T.indexOf(d.t) < 0 || !(d.h > 0) ||
+          Math.floor(d.x / 48) !== tx || Math.floor(d.z / 48) !== ty) { continue; }
+      p = { t: d.t, x: d.x - (tx * 48 + 24), z: d.z - (ty * 48 + 24), h: d.h, di: i };
+      if (typeof d.rot === 'number') { p.rot = d.rot; }
+      if (d.t === 'house' || d.t === 'tower') {
+        /* 집·탑은 벽 충돌(`houseRects`)이 폭·깊이·돌림을 꼭 본다 — 빠지면 기본값 */
+        p.w = d.w > 0 ? d.w : 8;
+        p.d = d.d > 0 ? d.d : p.w * 0.85;
+        p.rot = p.rot || 0;
+        p.shade = typeof d.shade === 'number' ? d.shade : 0.5;
+        p.roof = d.t === 'house';
+      }
+      out.push(p);
+    }
+    return out;
+  }
+  /** 이 격자에 손으로 놓은 소품이 있나 — 먼 풀밭·길 칸도 세우게(`world3d.syncProps`) */
+  function hasDeco(tx, ty) { return decoAt(tx, ty).length > 0; }
 
   /** 이름난 자리의 **미터 좌표** (격자 한가운데) */
   function place(id) {
@@ -207,6 +247,18 @@
         bad.push('땅 밖 자리 ' + r.places[y].id);
       }
     }
+    var dl = r.deco || [], d;
+    for (y = 0; y < dl.length; y++) {
+      d = dl[y];
+      if (!d || DECO_T.indexOf(d.t) < 0) { bad.push('모르는 소품 ' + (d && d.t) + ' (deco ' + y + ')'); continue; }
+      if (!isFinite(d.x) || !isFinite(d.z) || !(d.h > 0 && d.h <= 80) ||
+          (d.rot !== undefined && !isFinite(d.rot)) ||
+          (d.w !== undefined && !(d.w > 0 && d.w <= 60)) || (d.d !== undefined && !(d.d > 0 && d.d <= 60))) {
+        bad.push('소품 값 이상 (deco ' + y + ' ' + d.t + ')');
+      } else if (!at(Math.floor(d.x / 48), Math.floor(d.z / 48))) {
+        bad.push('땅 밖 소품 (deco ' + y + ' ' + d.t + ')');
+      }
+    }
     return bad;
   }
 
@@ -255,6 +307,7 @@
       m: r.map[0].length * 48 + '×' + r.map.length * 48 + 'm',
       box: b.x0 + ',' + b.y0 + '..' + b.x1 + ',' + b.y1,
       places: r.places.length,
+      deco: (r.deco || []).length,
       tally: tally(r)
     };
   }
@@ -264,6 +317,7 @@
     LANDS: LANDS, use: use, region: region,
     on: on, at: at, terrainAt: terrainAt, markAt: markAt, owns: owns, urbanity: urbanity,
     bounds: bounds, place: place, places: places,
+    DECO_T: DECO_T, decoOn: decoOn, decoAt: decoAt, hasDeco: hasDeco,
     tally: tally, validate: validate, roadIslands: roadIslands, info: info
   };
 })(window);

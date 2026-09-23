@@ -22,6 +22,7 @@ const realname = require('./realname');
 const tables = require('./tables');
 const swbump = require('./swbump');
 const obj2glb = require('./obj2glb');
+const gameserve = require('../lib/gameserve'); // /play/<판>/ — 편집기 안 "▶ 실행" 창
 
 const ROOT = path.join(__dirname, '..', '..'); // saga-web/
 const GAMES = ['saga-go', 'saga-dungeon', 'saga-forest', 'saga-story', 'saga-realm'];
@@ -460,6 +461,7 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; cha
 const server = http.createServer((req, res) => {
   const u = new URL(req.url, 'http://localhost');
   try {
+    if (gameserve.handle(req, res, u, ROOT, GAMES)) return;
     if (req.method === 'GET' && (u.pathname === '/' || u.pathname === '/editor.html')) {
       const filePath = path.join(__dirname, 'editor.html');
       const body = fs.readFileSync(filePath);
