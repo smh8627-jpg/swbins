@@ -56,11 +56,89 @@ namespace Saga.Story.Data
             return true;
         }
 
-        public static float AtkBonus => HasJob ? StoryCombat.JobsTier1[Job].Atk : 0f;
-        public static float MpBonus => HasJob ? StoryCombat.JobsTier1[Job].Mp : 0f;
-        public static float HpBonus => HasJob ? StoryCombat.JobsTier1[Job].Hp : 0f;
+        // PLAN.md 101-2 5-2 2단계(2026-09-23) — 2차 자리. 웹판 `job.js` grow()처럼 자리 사슬
+        // (2차 → 1차)을 따라 grow를 **더한다**(2차는 1차 위에 얹힌다).
+        public static float AtkBonus => SumChain(i => i.Atk);
+        public static float MpBonus => SumChain(i => i.Mp);
+        public static float HpBonus => SumChain(i => i.Hp);
 
-        public static string JobDisplayName => HasJob ? StoryCombat.JobsTier1[Job].Name : "";
+        public static string JobDisplayName => StoryCombat.TryGetJob(Job, out var info) ? info.Name : "";
+
+        /// <summary>지금 자리의 차수(무명 0).</summary>
+        public static int Tier => StoryCombat.TryGetJob(Job, out var info) ? info.Tier : 0;
+
+        /// <summary>갈래 뿌리(1차 키) — 무기 모양·고유 조작처럼 2차에도 안 바뀌는 것들이 본다.</summary>
+        public static string Root => RootOf(Job);
+
+        public static string RootOf(string job)
+        {
+            string key = job;
+            while (StoryCombat.TryGetJob(key, out var info) && info.From != null) key = info.From;
+            return StoryCombat.JobsTier1.ContainsKey(key ?? "") ? key : NoJob;
+        }
+
+        /// <summary>`job`이 지금 자리 사슬(지금 자리 + 아랫자리들)에 드는가 — 웹판 skillsOf()의 판정.</summary>
+        public static bool InChain(string job)
+        {
+            string key = Job;
+            while (StoryCombat.TryGetJob(key, out var info))
+            {
+                if (key == job) return true;
+                key = info.From;
+            }
+            return false;
+        }
+
+        private static float SumChain(Func<StoryCombat.JobInfo, float> pick)
+        {
+            float sum = 0f;
+            string key = Job;
+            while (StoryCombat.TryGetJob(key, out var info))
+            {
+                sum += pick(info);
+                key = info.From;
+            }
+            return sum;
+        }
+
+        /// <summary>지금 자리에서 오를 2차 자리(없으면 null) — 웹판 nextJobs()는 갈래마다 하나.</summary>
+        public static string NextJob
+        {
+            get
+            {
+                foreach (var kv in StoryCombat.JobsTier2)
+                {
+                    if (kv.Value.From == Job) return kv.Key;
+                }
+                return null;
+            }
+        }
+
+        /// <summary>2차 전직을 못 하는 이유(현지화 키), 되면 null — 웹판 canJoin() 순서
+        /// (자리 → 레벨 → 아랫자리 무예 하나를 <see cref="StoryCombat.JobPromoteSkillLevel"/> 이상).</summary>
+        public static string PromoteBlock()
+        {
+            if (NextJob == null) return "job.why_no_next";
+            if (Level < StoryCombat.JobPromoteLevel) return "job.why_level";
+            int best = 0;
+            foreach (var sk in StorySkillData.All)
+            {
+                if (sk.Job == Job) best = Mathf.Max(best, StorySkillState.LevelOf(sk.Key));
+            }
+            return best < StoryCombat.JobPromoteSkillLevel ? "job.why_skill" : null;
+        }
+
+        public static bool CanPromote => PromoteBlock() == null;
+
+        /// <summary>2차 전직 — 무예 레벨은 그대로 두고(웹판 join()도 skills를 안 건드린다)
+        /// 자리만 올린다. `JobChosen`을 쏴 무기·HUD가 다시 그린다.</summary>
+        public static bool Promote()
+        {
+            if (!CanPromote) return false;
+            Job = NextJob;
+            JobChosen?.Invoke(Job);
+            return true;
+        }
 
         /// <summary>세이브 로드·(테스트의) 상태 초기화 둘 다 이 경로를 탄다
         /// — `JobChosen`도 같이 쏴서 `StoryWeaponVisual`이 그때그때 손의
@@ -71,7 +149,8 @@ namespace Saga.Story.Data
         {
             Level = Mathf.Max(1, level);
             Exp = Mathf.Max(0f, exp);
-            Job = string.IsNullOrEmpty(job) ? NoJob : job;
+            // 모르는 자리(데이터에서 빠진 키)는 무명으로 — 무예·무기가 없는 자리를 잡고 있지 않게.
+            Job = StoryCombat.TryGetJob(job, out _) ? job : NoJob;
             JobChosen?.Invoke(Job);
         }
     }

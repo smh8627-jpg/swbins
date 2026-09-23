@@ -882,6 +882,7 @@ namespace Saga.EditorTools
                         return;
                     }
                     if (!CheckJobSkills()) { Fail(); return; }
+                    if (!CheckPromotionAndSchools()) { Fail(); return; }
 
                     Vector3 posBeforeSave = new Vector3(7.5f, 0.1f, 0f);
                     TeleportPlayer(posBeforeSave);
@@ -1658,7 +1659,13 @@ namespace Saga.EditorTools
             foreach (var sk in StorySkillData.All)
             {
                 if (!seen.Add(sk.Key)) { Debug.LogError($"[PlaytestStorySlice] 무예 키 중복 {sk.Key}"); return false; }
-                if (!StoryCombat.JobsTier1.ContainsKey(sk.Job)) { Debug.LogError($"[PlaytestStorySlice] 무예 {sk.Key} 직업 {sk.Job} 없음"); return false; }
+                if (!StoryCombat.TryGetJob(sk.Job, out _)) { Debug.LogError($"[PlaytestStorySlice] 무예 {sk.Key} 직업 {sk.Job} 없음"); return false; }
+                if (StorySkillData.GetSchool(sk.School) == null) { Debug.LogError($"[PlaytestStorySlice] 무예 {sk.Key} 유파 {sk.School} 없음"); return false; }
+                if (sk.Need != null && (StorySkillData.Get(sk.Need) == null || StorySkillData.Get(sk.Need).School != sk.School))
+                {
+                    Debug.LogError($"[PlaytestStorySlice] 무예 {sk.Key} 선행 {sk.Need}가 없거나 유파가 다름");
+                    return false;
+                }
             }
             foreach (var job in StoryCombat.JobOrder)
             {
@@ -1814,6 +1821,188 @@ namespace Saga.EditorTools
             cds.Clear();
             SetPrivate(_storyController, "_buffUntilTime", 0f);
             Debug.Log("[PlaytestStorySlice] job skills OK - SP derive/raise/refusals, auto slots, melee/aoe/dash/buff/bolt/arrow/volley/retreat cast, cooldown+mp refusals, panel rows");
+            return true;
+        }
+
+        /// <summary>PLAN.md 101-2 STORY 5-2 2단계(2026-09-23) — 2차 전직·2차 무예·유파 세트. 무사로
+        /// 전직해 CheckJobSkills를 마친 직후 부른다(레벨은 앞 단계 GainExp로 Lv.15 이상):
+        /// (a) 전직 막힘 사유 둘(레벨·무예 5), (b) 전직관 ShowPromote → **진짜 선택 버튼 onClick**으로
+        /// 장군이 되고 grow가 사슬로 더해지며 무기는 뿌리(검) 그대로, (c) 2차 무예 선행 조건,
+        /// (d) 칸 자동 배치(윗자리부터 + 같은 유파 짝 먼저)·세트 판정, (e) 세트 보정 다섯
+        /// (피해·범위·강화 지속·발수·dash 재사용 대기)이 실제 시전 값에 실리는지, (f) rain(앞만 맞음),
+        /// (g) 패널 줄=사슬 무예 수, (h) 비경 경험치 식·체력 배율, 모르는 직업 키 로드.
+        /// 끝나면 장군 상태로 남겨 뒤의 세이브 왕복이 2차 키도 확인하게 한다.</summary>
+        private static bool CheckPromotionAndSchools()
+        {
+            const string T = "[PlaytestStorySlice]";
+            int level = StoryJobState.Level;
+            float exp = StoryJobState.Exp;
+            if (StoryJobState.Job != "warrior" || level < StoryCombat.JobPromoteLevel)
+            {
+                Debug.LogError($"{T} 2차 전직 검사 전제 이상 — job={StoryJobState.Job} level={level}(기대 ≥{StoryCombat.JobPromoteLevel})");
+                return false;
+            }
+
+            // (a)
+            StorySkillState.Restore(new[] { "w_cut" }, new[] { StoryCombat.JobPromoteSkillLevel - 1 });
+            if (StoryJobState.PromoteBlock() != "job.why_skill") { Debug.LogError($"{T} 무예 4인데 막힘 사유={StoryJobState.PromoteBlock()}(기대 job.why_skill)"); return false; }
+            StoryJobState.Restore(StoryCombat.JobPromoteLevel - 1, 0f, "warrior");
+            StorySkillState.Restore(new[] { "w_cut" }, new[] { StoryCombat.JobPromoteSkillLevel });
+            if (StoryJobState.PromoteBlock() != "job.why_level") { Debug.LogError($"{T} Lv.14인데 막힘 사유={StoryJobState.PromoteBlock()}(기대 job.why_level)"); return false; }
+            StoryJobState.Restore(level, exp, "warrior");
+            if (!StoryJobState.CanPromote || StoryJobState.NextJob != "general") { Debug.LogError($"{T} 조건 채웠는데 전직 불가 — why={StoryJobState.PromoteBlock()} next={StoryJobState.NextJob}"); return false; }
+
+            // (b) 진짜 버튼 — 전직관 → StoryChoiceUi 첫 버튼.
+            var trainer = Object.FindFirstObjectByType<StoryJobTrainer>();
+            var choice = StoryChoiceUi.Instance;
+            var yes = choice != null ? GetPrivate(choice, "optionAButton") as Button : null;
+            if (trainer == null || yes == null) { Debug.LogError($"{T} 전직관({trainer != null})·선택 UI 버튼({yes != null}) 없음"); return false; }
+            trainer.ShowPromote();
+            if (!choice.IsShowing) { Debug.LogError($"{T} ShowPromote()가 선택 UI를 안 띄움"); return false; }
+            yes.onClick.Invoke();
+            StorySkillPanelUi.Instance?.Hide();
+            float expectAtk = StoryCombat.JobsTier1["warrior"].Atk + StoryCombat.JobsTier2["general"].Atk;
+            if (StoryJobState.Job != "general" || StoryJobState.Tier != 2 || StoryJobState.Root != "warrior" ||
+                !Mathf.Approximately(StoryJobState.AtkBonus, expectAtk) || StoryJobState.NextJob != null || choice.IsShowing)
+            {
+                Debug.LogError($"{T} 2차 전직 뒤 상태 이상 — job={StoryJobState.Job} tier={StoryJobState.Tier} root={StoryJobState.Root} atk+={StoryJobState.AtkBonus}(기대={expectAtk}) next={StoryJobState.NextJob} ui={choice.IsShowing}");
+                return false;
+            }
+            var weapon = Object.FindFirstObjectByType<StoryWeaponVisual>();
+            if (weapon == null || weapon.CurrentWeaponRoot == null || weapon.CurrentWeaponRoot.childCount < 2)
+            {
+                Debug.LogError($"{T} 장군 전직 뒤 손에 검이 없음(뿌리 무기 유지 실패)");
+                return false;
+            }
+
+            // (c) 선행 조건 — 2차 무예는 같은 유파 1차 5가 먼저, 1차 무예도 계속 찍힌다.
+            StorySkillState.Restore(new[] { "w_cut" }, new[] { 4 });
+            if (StorySkillState.CanRaise("g_smash") != "skill.why_need") { Debug.LogError($"{T} 참격 4인데 패왕격 사유={StorySkillState.CanRaise("g_smash")}"); return false; }
+            StorySkillState.Restore(new[] { "w_cut" }, new[] { 5 });
+            if (StorySkillState.CanRaise("g_smash") != null || StorySkillState.CanRaise("w_whirl") != null || StorySkillState.CanRaise("s_rain") != "skill.why_other_job")
+            {
+                Debug.LogError($"{T} 장군 찍기 사유 이상 — 패왕격={StorySkillState.CanRaise("g_smash")} 선풍={StorySkillState.CanRaise("w_whirl")} 전우={StorySkillState.CanRaise("s_rain")}");
+                return false;
+            }
+
+            // (d) 자동 배치 — 2차 둘 먼저, 남은 두 칸은 그 짝(같은 유파 1차)이 표 순서보다 앞선다.
+            StorySkillState.Restore(
+                new[] { "w_cut", "w_whirl", "w_rush", "w_iron", "w_edge", "g_smash", "g_edge" },
+                new[] { 5, 1, 1, 1, 5, 1, 1 });
+            string[] expectSlots = { "g_smash", "g_edge", "w_cut", "w_edge" };
+            for (int i = 0; i < expectSlots.Length; i++)
+            {
+                var s = StorySkillState.SlotSkill(i);
+                if (s == null || s.Key != expectSlots[i]) { Debug.LogError($"{T} 장군 무예 칸 {i}={s?.Key}(기대={expectSlots[i]})"); return false; }
+            }
+            if (StorySkillState.SchoolTier("w_jung") != 2 || StorySkillState.SchoolTier("w_pa") != 2 || StorySkillState.SchoolTier("w_pae") != 0)
+            {
+                Debug.LogError($"{T} 세트 판정 이상 — 정={StorySkillState.SchoolTier("w_jung")} 파={StorySkillState.SchoolTier("w_pa")} 패={StorySkillState.SchoolTier("w_pae")}(기대 2/2/0)");
+                return false;
+            }
+
+            // (e) 세트 보정이 실제 시전에 실린다.
+            var castMethod = typeof(StoryPlayerController).GetMethod("TryCastJobSkill", BindingFlags.NonPublic | BindingFlags.Instance);
+            var cds = (System.Collections.Generic.Dictionary<string, float>)GetPrivate(_storyController, "_skillCooldownLeft");
+            cds.Clear();
+            TeleportPlayer(new Vector3(5f, 0.1f, 0f));
+            StoryCombat.RestoreMp(StoryCombat.MpMaxCurrent);
+            _storyController.TriggerJobSkill(0); // 패왕격(정 2세트 → 피해 ×1.15)
+            var smash = StorySkillData.Get("g_smash");
+            if (_storyController.LastCast.key != "g_smash" || !Mathf.Approximately(_storyController.LastCast.mul, StorySkillState.MulOf(smash) * 1.15f))
+            {
+                Debug.LogError($"{T} 정 2세트 피해 보정 안 실림 — key={_storyController.LastCast.key} mul={_storyController.LastCast.mul}(기대={StorySkillState.MulOf(smash) * 1.15f})");
+                return false;
+            }
+
+            if (!CastWithSet(castMethod, cds, "general", new[] { "w_iron", "g_wall" }, "g_wall", out var wall)) return false;
+            if (!Mathf.Approximately(wall.buffSec, 11f * 1.15f)) { Debug.LogError($"{T} 수 2세트 철벽 지속={wall.buffSec}(기대={11f * 1.15f})"); return false; }
+
+            int boltsBefore = Object.FindObjectsByType<StoryBolt>(FindObjectsSortMode.None).Length;
+            if (!CastWithSet(castMethod, cds, "sniper", new[] { "a_double", "s_split" }, "s_split", out var split)) return false;
+            int boltsAdded = Object.FindObjectsByType<StoryBolt>(FindObjectsSortMode.None).Length - boltsBefore;
+            if (split.shots != 5 || boltsAdded != 5) { Debug.LogError($"{T} 연 2세트 분시 발수={split.shots}/생긴 투사체={boltsAdded}(기대 5/5)"); return false; }
+
+            if (!CastWithSet(castMethod, cds, "assassin", new[] { "r_step", "x_shadow" }, "x_shadow", out var shadow)) return false;
+            if (!Mathf.Approximately(shadow.cooldown, 6f * 0.8f * StoryLabyrinthState.CooldownMul) || shadow.critForce)
+            {
+                Debug.LogError($"{T} 보 2세트 그림자밟기 재사용={shadow.cooldown}(기대={6f * 0.8f}) 급소확정={shadow.critForce}(2세트엔 false)");
+                return false;
+            }
+
+            if (!CastWithSet(castMethod, cds, "sage", new[] { "m_bolt", "p_quake" }, "p_quake", out var quake)) return false;
+            if (!Mathf.Approximately(quake.radius, StorySkillData.Get("p_quake").RadiusM * 1.15f)) { Debug.LogError($"{T} 진 2세트 지진 반경={quake.radius}"); return false; }
+
+            // 세트가 없으면 보정도 없다(1차 하나만).
+            StorySkillState.Restore(new[] { "m_bolt" }, new[] { 5 });
+            var none = StorySkillState.BonusOf(StorySkillData.Get("m_bolt"));
+            if (none.AoeMul != 1f || none.DmgMul != 1f || none.ShotsAdd != 0) { Debug.LogError($"{T} 세트 없는데 보정이 붙음"); return false; }
+
+            // (f) rain — 앞 띠만 맞고 등 뒤는 안 맞는다.
+            StoryJobState.Restore(level, exp, "sniper");
+            StorySkillState.Restore(new[] { "s_rain" }, new[] { 1 });
+            cds.Clear();
+            TeleportPlayer(new Vector3(5f, 0.1f, 0f));
+            SetPrivate(_storyController, "_facing", 1f);
+            var front = SpawnDummyEnemy(new Vector3(8f, 0.1f, 0f));
+            var behind = SpawnDummyEnemy(new Vector3(3f, 0.1f, 0f));
+            StoryCombat.RestoreMp(StoryCombat.MpMaxCurrent);
+            castMethod.Invoke(_storyController, new object[] { StorySkillData.Get("s_rain") });
+            if (!front.IsDead || behind.IsDead) { Debug.LogError($"{T} 전우 판정 이상 — 앞 더미 죽음={front.IsDead} 뒤 더미 죽음={behind.IsDead}"); return false; }
+            if (!behind.IsDead) Object.Destroy(behind.gameObject);
+
+            // (g) 패널 줄 = 사슬(1차+2차) 무예 수.
+            StoryJobState.Restore(level, exp, "general");
+            StorySkillState.Restore(null, null);
+            var panel = StorySkillPanelUi.Instance;
+            panel.Show();
+            int expectRows = StorySkillData.OfJob("warrior").Count + StorySkillData.OfJob("general").Count;
+            bool rowsOk = panel.RowCount == expectRows;
+            panel.Hide();
+            if (!rowsOk) { Debug.LogError($"{T} 장군 무예 패널 줄 {panel.RowCount}(기대={expectRows})"); return false; }
+
+            // (h) 비경 경험치 식(lv=1은 옛 고정값과 같다)·체력 배율·모르는 직업 키.
+            if (StoryCombat.EnemyExp(1, false) != StoryCombat.GruntExp || StoryCombat.EnemyExp(1, true) != StoryCombat.BossExp ||
+                StoryCombat.EnemyExp(15, false) != 66f || StoryCombat.EnemyExp(15, true) != 990f)
+            {
+                Debug.LogError($"{T} 적 경험치 식 이상 — lv1={StoryCombat.EnemyExp(1, false)}/{StoryCombat.EnemyExp(1, true)} lv15={StoryCombat.EnemyExp(15, false)}/{StoryCombat.EnemyExp(15, true)}");
+                return false;
+            }
+            float expectHpMul = (StoryCombat.StartAtk + StoryJobState.AtkBonus + StoryLabyrinthState.MemoryAtkBonus) / StoryCombat.StartAtk;
+            if (!Mathf.Approximately(StoryLabyrinthRunner.PlayerPowerHpMul(), expectHpMul) || expectHpMul <= 1f)
+            {
+                Debug.LogError($"{T} 비경 체력 배율={StoryLabyrinthRunner.PlayerPowerHpMul()}(기대={expectHpMul}, >1)");
+                return false;
+            }
+            StoryJobState.Restore(level, exp, "no_such_job");
+            bool unknownOk = StoryJobState.Job == StoryJobState.NoJob;
+            StoryJobState.Restore(level, exp, "general");
+            if (!unknownOk) { Debug.LogError($"{T} 모르는 직업 키가 무명으로 안 돌아감"); return false; }
+
+            StorySkillState.Restore(null, null);
+            cds.Clear();
+            SetPrivate(_storyController, "_buffUntilTime", 0f);
+            Debug.Log("[PlaytestStorySlice] promotion + schools OK - 2차 전직(진짜 버튼)·선행·칸 배치·세트 5종(피해/지속/발수/재사용/반경)·전우·패널·비경 식");
+            return true;
+        }
+
+        /// <summary>`job`으로 두고 `keys`(1차 5 + 2차 1)를 찍어 `cast`를 쏜 뒤 LastCast를 돌려준다.</summary>
+        private static bool CastWithSet(MethodInfo castMethod, System.Collections.Generic.Dictionary<string, float> cds,
+            string job, string[] keys, string cast,
+            out (string key, float mul, float radius, int shots, float buffSec, float cooldown, bool critForce) last)
+        {
+            StoryJobState.Restore(StoryJobState.Level, StoryJobState.Exp, job);
+            StorySkillState.Restore(keys, new[] { 5, 1 });
+            cds.Clear();
+            TeleportPlayer(new Vector3(5f, 0.1f, 0f));
+            StoryCombat.RestoreMp(StoryCombat.MpMaxCurrent);
+            bool ok = (bool)castMethod.Invoke(_storyController, new object[] { StorySkillData.Get(cast) });
+            last = _storyController.LastCast;
+            if (!ok || last.key != cast)
+            {
+                Debug.LogError($"[PlaytestStorySlice] {job} {cast} 시전 실패(ok={ok} last={last.key}) — 세트 {string.Join("+", keys)}");
+                return false;
+            }
             return true;
         }
 

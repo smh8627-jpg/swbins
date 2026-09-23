@@ -150,27 +150,62 @@ namespace Saga.Story.Player
             if (StorySkillState.LevelOf(sk.Key) <= 0) return false;
             if (JobSkillCooldownLeft(sk.Key) > 0f) return false;
             if (!StoryCombat.TrySpendMp(sk.Cost)) return false;
-            _skillCooldownLeft[sk.Key] = sk.Cooldown * StoryLabyrinthState.CooldownMul;
 
-            float mul = StorySkillState.MulOf(sk);
+            // 5-2 2단계 유파 세트 — 판정은 StorySkillState.BonusOf() 한 곳, 여기선 제자리에
+            // 곱하거나 더할 뿐(웹판 castSkill()의 `var sb = JB.schoolBonus(sk)`와 같은 결).
+            var sb = StorySkillState.BonusOf(sk);
+            float cooldown = sk.Cooldown * StoryLabyrinthState.CooldownMul * sb.CooldownMul;
+            _skillCooldownLeft[sk.Key] = cooldown;
+
+            float mul = StorySkillState.MulOf(sk) * sb.DmgMul;
+            int shots = sk.Shots + sb.ShotsAdd;
+            LastCast = (sk.Key, mul, sk.RadiusM * sb.AoeMul, shots, sk.BuffSec * sb.BuffMul, cooldown, sb.CritForce);
             switch (sk.Effect)
             {
                 case StorySkillData.Effect.Melee: CastMelee(mul, sk.Hits); break;
-                case StorySkillData.Effect.Aoe: CastAoe(mul, sk.RadiusM); break;
+                case StorySkillData.Effect.Aoe: CastAoe(mul, sk.RadiusM * sb.AoeMul); break;
                 case StorySkillData.Effect.Bolt: SpawnShot(mul, true, StoryCombat.BoltSpeed, StoryCombat.BoltLife, 1f, new Color(0.35f, 0.65f, 0.95f)); break;
                 case StorySkillData.Effect.Arrow: SpawnShot(mul, false, ArrowSpeed, StoryCombat.BoltLife, 1f, ArrowColor); break;
                 case StorySkillData.Effect.Volley:
-                    for (int j = 0; j < sk.Shots; j++)
+                    for (int j = 0; j < shots; j++)
                     {
                         // 웹판: 높이를 0.16 P_H씩 달리하고 속도를 34px/s씩 올려 한 줄로 안 겹치게.
-                        SpawnShot(mul, false, (600f + j * 34f) * FieldMapData.ScaleMPerPx, 1.1f, 0.7f + 0.3f * j, ArrowColor);
+                        // 발수가 5를 넘으면(만천화우+세트) 높이는 넷마다 되돌아온다.
+                        SpawnShot(mul, false, (600f + j * 34f) * FieldMapData.ScaleMPerPx, 1.1f, 0.7f + 0.3f * (j % 4), ArrowColor);
                     }
                     break;
-                case StorySkillData.Effect.Dash: CastDash(mul, sk.DistM, sk.Backward); break;
-                case StorySkillData.Effect.Buff: SetBuff(sk.BuffSec, sk.BuffAtk, sk.BuffSpeed, sk.BuffRegen); break;
+                case StorySkillData.Effect.Dash: CastDash(mul, sk.DistM, sk.Backward, sb.CritForce); break;
+                case StorySkillData.Effect.Buff: SetBuff(sk.BuffSec * sb.BuffMul, sk.BuffAtk, sk.BuffSpeed, sk.BuffRegen); break;
+                case StorySkillData.Effect.Rain: CastRain(mul); break;
             }
             if (sk.Effect != StorySkillData.Effect.Buff) PlayAttackAnim();
             return true;
+        }
+
+        /// <summary>진단용 — 마지막 직업 무예 시전에 실제로 쓰인 값(세트 보정 적용 뒤).</summary>
+        public (string key, float mul, float radius, int shots, float buffSec, float cooldown, bool critForce) LastCast { get; private set; }
+
+        /// <summary>웹판 rain — 바라보는 쪽 앞 넓은 띠(가로 340px+몸 폭, 위 220px~아래 80px)에
+        /// 쏟는다. 서 있는 높이와 상관없이 위아래로 넓다(2차 전우·천뢰, 2026-09-23).</summary>
+        private void CastRain(float mul)
+        {
+            const float Px = FieldMapData.ScaleMPerPx;
+            float x0 = transform.position.x, x1 = x0 + _facing * (340f + 34f) * Px;
+            float lo = Mathf.Min(x0, x1), hi = Mathf.Max(x0, x1);
+            float footY = transform.position.y;
+            bool hitAny = false, anyCrit = false;
+            foreach (var enemy in StoryEnemy.All)
+            {
+                if (enemy == null || enemy.IsDead) continue;
+                var p = enemy.transform.position;
+                if (p.x < lo || p.x > hi || p.y > footY + 220f * Px || p.y < footY - 80f * Px) continue;
+                var (dmg, crit) = StoryCombat.RollDamage(CurrentAtk, mul);
+                enemy.TakeDamage(dmg, crit);
+                if (crit) StoryCombat.TriggerHitstop(this);
+                hitAny = true;
+                anyCrit |= crit;
+            }
+            ApplyHitFeedback(hitAny, anyCrit);
         }
 
         private const float ArrowSpeed = 640f * FieldMapData.ScaleMPerPx; // side.js arrow spd 640px/s
@@ -224,7 +259,7 @@ namespace Saga.Story.Player
 
         /// <summary>웹판 dash — 밀고 나간 뒤 지나간 자리(가로 구간, 발 높이 차 60px≈1.2m 안)의
         /// 적을 벤다. 벽은 CharacterController.Move()가 막는다(웹판 clamp 대신).</summary>
-        private void CastDash(float mul, float dist, bool backward)
+        private void CastDash(float mul, float dist, bool backward, bool critForce = false)
         {
             float fromX = transform.position.x;
             float dir = backward ? -_facing : _facing;
@@ -240,7 +275,7 @@ namespace Saga.Story.Player
                 if (enemy == null || enemy.IsDead) continue;
                 var p = enemy.transform.position;
                 if (p.x < lo || p.x > hi || Mathf.Abs(p.y - footY) > 1.2f) continue;
-                var (dmg, crit) = StoryCombat.RollDamage(CurrentAtk, mul);
+                var (dmg, crit) = StoryCombat.RollDamage(CurrentAtk, mul, critForce); // 유파 dash 4세트 — 급소 확정
                 enemy.TakeDamage(dmg, crit);
                 if (crit) StoryCombat.TriggerHitstop(this);
                 hitAny = true;

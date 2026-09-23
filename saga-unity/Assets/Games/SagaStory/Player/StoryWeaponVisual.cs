@@ -74,7 +74,7 @@ namespace Saga.Story.Player
             root.SetParent(_socket, false);
             _weaponRoot = root;
 
-            switch (StoryJobState.Job)
+            switch (StoryJobState.Root) // 2차(장군 등)도 갈래 뿌리의 무기를 든다(2026-09-23)
             {
                 case "warrior": BuildSword(root); break;
                 case "archer": BuildBow(root); break;

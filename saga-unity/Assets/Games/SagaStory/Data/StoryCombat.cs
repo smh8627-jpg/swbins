@@ -112,9 +112,10 @@ namespace Saga.Story.Data
         /// <summary>side.js hit(): atk*(mul||1)*(0.88~1.12)*(crit?1.6:1).
         /// PLAN.md 101-2 STORY "5-3 비경" — `StoryLabyrinthState.CritRateBonus`는
         /// 회차 밖에선 항상 0이라 이 함수는 평소엔 원문 그대로 돈다.</summary>
-        public static (float dmg, bool crit) RollDamage(float atk, float mul = 1f)
+        /// `forceCrit` — 유파 dash 4세트 "급소 확정"(웹판 strike(e, mul, critForce), 5-2 2단계).
+        public static (float dmg, bool crit) RollDamage(float atk, float mul = 1f, bool forceCrit = false)
         {
-            bool crit = Random.value < CritRate + StoryLabyrinthState.CritRateBonus;
+            bool crit = forceCrit || Random.value < CritRate + StoryLabyrinthState.CritRateBonus;
             float variance = 0.88f + Random.value * 0.24f;
             float dmg = atk * mul * variance * (crit ? CritMul : 1f);
             return (dmg, crit);
@@ -170,11 +171,26 @@ namespace Saga.Story.Data
         public const float GruntExp = 10f;  // round((6+1*4)*1)
         public const float BossExp = 150f;  // round((6+1*4)*15)
 
+        /// <summary>side.js enemy exp 원문 `(6+lv*4)*(boss?15:1)` — PLAN.md 101-2 5-2 2단계
+        /// (2026-09-23 사용자 결정 "비경 적 레벨 비례"): 사냥터가 하나뿐인 이 트랙은 필드 적이
+        /// lv=1 고정(위 두 상수)이라 Lv.10→2차 전직에 비경 수백 판이 들었다 — 비경 적만 플레이어
+        /// 레벨을 lv로 받아 이 식을 쓴다(`StoryLabyrinthRunner`). lv=1이면 위 두 상수와 같다.</summary>
+        public static float EnemyExp(int lv, bool boss) => Mathf.Round((6f + Mathf.Max(1, lv) * 4f) * (boss ? 15f : 1f));
+
         /// <summary>1차 전직(Lv.10) 넷 — data-job.js JOBS tier:1 grow만
         /// 옮긴다(그 자리에서 새로 열리는 무예 넷씩, 총 16개는 범위 밖 —
         /// saga-godot 쪽도 이걸 첫 걸음으로 그은 경계와 같다). key,
         /// 표시이름, grow(hp/atk/mp).</summary>
         public const int JobChangeLevel = 10;
+
+        /// <summary>PLAN.md 101-2 5-2 2단계 — 2차 전직 레벨. 웹판은 Lv.25인데 이 트랙은
+        /// 사냥터가 하나라(2026-09-23 계산: Lv.10→25 비경 약 300판) 사용자 결정으로 **Lv.15**로
+        /// 낮췄다(비경 적 경험치 레벨 비례와 함께, Lv.10→15 비경 약 4판). 3·4차를 들일 때도
+        /// 같은 비율로 낮춘다.</summary>
+        public const int JobPromoteLevel = 15;
+
+        /// <summary>웹판 `job.js canJoin()` — 2차는 아랫자리 무예 하나를 이만큼 익혀야 오른다.</summary>
+        public const int JobPromoteSkillLevel = 5;
 
         public struct JobInfo
         {
@@ -182,16 +198,37 @@ namespace Saga.Story.Data
             public float Hp;
             public float Atk;
             public float Mp;
+            public int Tier;
+            /// <summary>아랫자리 키(1차는 null) — 웹판 JOBS `from`.</summary>
+            public string From;
         }
 
         public static readonly System.Collections.Generic.Dictionary<string, JobInfo> JobsTier1 =
             new System.Collections.Generic.Dictionary<string, JobInfo>
             {
-                ["warrior"] = new JobInfo { Name = "무사(武士)", Hp = 40f, Atk = 2f, Mp = 0f },
-                ["archer"] = new JobInfo { Name = "궁수(弓手)", Hp = 10f, Atk = 5f, Mp = 0f },
-                ["rogue"] = new JobInfo { Name = "협객(俠客)", Hp = 18f, Atk = 4f, Mp = 0f },
-                ["mage"] = new JobInfo { Name = "방사(方士)", Hp = 12f, Atk = 3f, Mp = 40f },
+                ["warrior"] = new JobInfo { Name = "무사(武士)", Hp = 40f, Atk = 2f, Mp = 0f, Tier = 1 },
+                ["archer"] = new JobInfo { Name = "궁수(弓手)", Hp = 10f, Atk = 5f, Mp = 0f, Tier = 1 },
+                ["rogue"] = new JobInfo { Name = "협객(俠客)", Hp = 18f, Atk = 4f, Mp = 0f, Tier = 1 },
+                ["mage"] = new JobInfo { Name = "방사(方士)", Hp = 12f, Atk = 3f, Mp = 40f, Tier = 1 },
             };
+
+        /// <summary>2차 넷 — data-job.js JOBS tier:2 grow 그대로(2026-09-23).</summary>
+        public static readonly System.Collections.Generic.Dictionary<string, JobInfo> JobsTier2 =
+            new System.Collections.Generic.Dictionary<string, JobInfo>
+            {
+                ["general"] = new JobInfo { Name = "장군(將軍)", Hp = 110f, Atk = 7f, Mp = 0f, Tier = 2, From = "warrior" },
+                ["sniper"] = new JobInfo { Name = "신궁(神弓)", Hp = 40f, Atk = 14f, Mp = 0f, Tier = 2, From = "archer" },
+                ["assassin"] = new JobInfo { Name = "자객(刺客)", Hp = 55f, Atk = 11f, Mp = 0f, Tier = 2, From = "rogue" },
+                ["sage"] = new JobInfo { Name = "도사(道士)", Hp = 45f, Atk = 9f, Mp = 90f, Tier = 2, From = "mage" },
+            };
+
+        public static bool TryGetJob(string key, out JobInfo info)
+        {
+            if (key != null && JobsTier1.TryGetValue(key, out info)) return true;
+            if (key != null && JobsTier2.TryGetValue(key, out info)) return true;
+            info = default;
+            return false;
+        }
 
         public static readonly string[] JobOrder = { "warrior", "archer", "rogue", "mage" };
     }

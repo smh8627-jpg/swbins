@@ -14,8 +14,8 @@ namespace Saga.Story.World
     /// 처음엔 grow만 옮기고 SP는 다음 걸음이었다, 같은 경계).
     ///
     /// `StoryNpc.cs`와 같은 트리거 규칙(반경+쿨다운, 다가가면 자동 반응).
-    /// 1차 전직(Lv.10, 무사·궁수·협객·방사 중 하나)만 옮긴다 — 2~4차 전직
-    /// 체인은 이 포트에 아직 없는 job 데이터가 더 필요해 범위 밖.
+    /// 1차 전직(Lv.10, 무사·궁수·협객·방사 중 하나) + 2차 전직(2026-09-23, PLAN.md 101-2
+    /// 5-2 2단계 — Lv.15 + 1차 무예 하나 5, <see cref="ShowPromote"/>). 3·4차는 아직 범위 밖.
     /// </summary>
     public class StoryJobTrainer : MonoBehaviour
     {
@@ -68,6 +68,11 @@ namespace Saga.Story.World
                 ShowChoice();
                 return;
             }
+            if (StoryJobState.CanPromote)
+            {
+                ShowPromote();
+                return;
+            }
 
             DialogueLabel.Instance?.Show($"{TrainerName} — {StatusText()}", LineShowSec);
             // PLAN.md 101-2 5-2 1단계 — 전직을 마친 뒤엔 무예 점수 패널을 연다(웹판 전직관이
@@ -113,12 +118,50 @@ namespace Saga.Story.World
                 });
         }
 
+        /// <summary>PLAN.md 101-2 5-2 2단계(2026-09-23) — 2차 전직. 웹판 nextJobs()는 갈래마다
+        /// 하나라 넷 중 고르는 화면(StoryJobChoiceUi) 대신 두 갈래 선택(StoryChoiceUi)으로 묻는다.
+        /// 공개 — PlaytestStorySlice가 트리거 없이 부른다.</summary>
+        public void ShowPromote()
+        {
+            string next = StoryJobState.NextJob;
+            if (next == null || !StoryCombat.TryGetJob(next, out var info)) return;
+            string name = StoryLocalization.T($"job.{next}", info.Name);
+            var ui = StoryChoiceUi.Instance;
+            if (ui == null)
+            {
+                DialogueLabel.Instance?.Show($"{TrainerName} — {StatusText()}", LineShowSec);
+                return;
+            }
+            ui.Show(
+                string.Format(StoryLocalization.T("npc.trainer_promote_prompt", "{0}(으)로 오를 수 있습니다 — 오르겠습니까?"), name),
+                StoryLocalization.T("npc.trainer_promote_yes", "오른다"),
+                StoryLocalization.T("npc.trainer_promote_no", "나중에"),
+                choice =>
+                {
+                    if (choice != 1 || !StoryJobState.Promote()) return;
+                    string mpPart = info.Mp > 0f
+                        ? string.Format(StoryLocalization.T("npc.trainer_chosen_mp_suffix", " 기력+{0}"), Mathf.RoundToInt(info.Mp))
+                        : "";
+                    DialogueLabel.Instance?.Show(string.Format(
+                        StoryLocalization.T("npc.trainer_chosen", "{0} — {1}로 전직! 공격+{2}{3}"),
+                        TrainerName, name, Mathf.RoundToInt(info.Atk), mpPart), LineShowSec);
+                    StorySkillPanelUi.Instance?.Show();
+                });
+        }
+
         private static string StatusText()
         {
             if (StoryJobState.HasJob)
             {
                 string name = StoryLocalization.T($"job.{StoryJobState.Job}", StoryJobState.JobDisplayName);
-                return string.Format(StoryLocalization.T("npc.trainer_status_done", "🎖️ {0} Lv.{1}"), name, StoryJobState.Level);
+                string done = string.Format(StoryLocalization.T("npc.trainer_status_done", "🎖️ {0} Lv.{1}"), name, StoryJobState.Level);
+                // 2차 전직이 남았으면 무엇이 모자란지 붙인다(웹판 canJoin() 사유).
+                string why = StoryJobState.PromoteBlock();
+                if (why == "job.why_level")
+                    return done + " · " + string.Format(StoryLocalization.T("job.why_level", "윗자리는 Lv.{0}부터"), StoryCombat.JobPromoteLevel);
+                if (why == "job.why_skill")
+                    return done + " · " + string.Format(StoryLocalization.T("job.why_skill", "윗자리는 무예 하나를 {0} 이상 익혀야 한다"), StoryCombat.JobPromoteSkillLevel);
+                return done;
             }
             if (StoryJobState.Level < StoryCombat.JobChangeLevel)
             {

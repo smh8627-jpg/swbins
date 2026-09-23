@@ -43,7 +43,8 @@ namespace Saga.Story.UI
             var canvas = NewCanvas("StorySkillPanelUI");
             canvas.transform.SetParent(transform, false);
 
-            _panel = NewPanel(canvas.transform, new Vector2(0.5f, 0.5f), new Vector2(900f, 1100f),
+            // 2026-09-23 — 2차 전직으로 줄이 최대 11개(1차 6 + 2차 5)라 패널을 세로로 키웠다.
+            _panel = NewPanel(canvas.transform, new Vector2(0.5f, 0.5f), new Vector2(900f, 1600f),
                 new Color(0f, 0f, 0f, 0.88f));
             _panel.SetActive(false);
 
@@ -55,7 +56,7 @@ namespace Saga.Story.UI
             var rect = (RectTransform)rowsGo.transform;
             rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 1f);
             rect.anchoredPosition = new Vector2(0f, -190f);
-            rect.sizeDelta = new Vector2(840f, 800f);
+            rect.sizeDelta = new Vector2(840f, RowsHeight);
             _rows = rowsGo.transform;
 
             _closeButton = NewButton(_panel.transform, StoryLocalization.T("settings.close"),
@@ -128,8 +129,8 @@ namespace Saga.Story.UI
                 jobName, StorySkillState.SpLeft);
 
             // 줄 구성(직업)이 그대로면 글자만 고친다 — "+" 버튼 onClick 한가운데서 그 버튼을
-            // 지우면 이벤트 시스템이 이미 파괴된 버튼을 계속 붙든다.
-            var skills = StorySkillData.OfJob(StoryJobState.Job);
+            // 지우면 이벤트 시스템이 이미 파괴된 버튼을 계속 붙든다. 2차면 1차 무예도 같이(사슬).
+            var skills = StorySkillData.OfChain();
             if (_rowJob == StoryJobState.Job && _rowLabels.Count == skills.Count && RowCount == skills.Count)
             {
                 for (int i = 0; i < skills.Count; i++) _rowLabels[i].text = RowText(skills[i]);
@@ -138,39 +139,60 @@ namespace Saga.Story.UI
 
             ClearRows();
             _rowJob = StoryJobState.Job;
+            float step = Mathf.Min(130f, RowsHeight / Mathf.Max(1, skills.Count));
             float y = 0f;
             foreach (var sk in skills)
             {
-                _rowLabels.Add(BuildRow(sk, y));
-                y -= 130f;
+                _rowLabels.Add(BuildRow(sk, y, step - 10f));
+                y -= step;
             }
         }
+
+        private const float RowsHeight = 1260f;
 
         private string _rowJob;
         private readonly System.Collections.Generic.List<Text> _rowLabels = new System.Collections.Generic.List<Text>();
 
+        /// <summary>5-2 2단계 — 줄 앞에 [유파], 칸에서 세트가 켜졌으면 "·2세트"(웹판 무예 탭의
+        /// 유파 소제목·세트 색을 글자로), 선행 무예가 모자라면 끝에 "(참격 5 먼저)".</summary>
         private static string RowText(StorySkillData.Skill sk)
         {
             string name = StoryLocalization.T($"skill.{sk.Key}", sk.Name);
             string desc = StoryLocalization.T($"skill.{sk.Key}.desc", sk.Desc);
-            return $"{name}  Lv.{StorySkillState.LevelOf(sk.Key)}/{sk.Max}\n{desc}";
+            var school = StorySkillData.GetSchool(sk.School);
+            string tag = "";
+            if (school != null)
+            {
+                int set = StorySkillState.SchoolTier(sk.School);
+                tag = set > 0
+                    ? string.Format(StoryLocalization.T("skill.school_set", "[{0}·{1}세트] "), school.Name, set)
+                    : $"[{school.Name}] ";
+            }
+            string need = "";
+            if (sk.Need != null && StorySkillState.LevelOf(sk.Need) < sk.NeedLv)
+            {
+                var pre = StorySkillData.Get(sk.Need);
+                need = string.Format(StoryLocalization.T("skill.need_suffix", " ({0} {1} 먼저)"),
+                    StoryLocalization.T($"skill.{sk.Need}", pre != null ? pre.Name : sk.Need), sk.NeedLv);
+            }
+            return $"{tag}{name}  Lv.{StorySkillState.LevelOf(sk.Key)}/{sk.Max}{need}\n{desc}";
         }
 
-        private Text BuildRow(StorySkillData.Skill sk, float y)
+        private Text BuildRow(StorySkillData.Skill sk, float y, float height)
         {
             var row = new GameObject($"Row_{sk.Key}", typeof(RectTransform));
             row.transform.SetParent(_rows, false);
             var rect = (RectTransform)row.transform;
             rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 1f);
             rect.anchoredPosition = new Vector2(0f, y);
-            rect.sizeDelta = new Vector2(840f, 120f);
+            rect.sizeDelta = new Vector2(840f, height);
 
             var label = NewText(row.transform, RowText(sk), new Vector2(0f, 0.5f),
-                new Vector2(10f, 0f), new Vector2(680f, 110f), 24);
+                new Vector2(10f, 0f), new Vector2(680f, height - 4f), height >= 110f ? 24 : 20);
             label.alignment = TextAnchor.MiddleLeft;
 
             string captured = sk.Key;
-            NewButton(row.transform, "+", new Vector2(1f, 0.5f), new Vector2(-10f, 0f), new Vector2(110f, 100f),
+            NewButton(row.transform, "+", new Vector2(1f, 0.5f), new Vector2(-10f, 0f), new Vector2(110f, height - 10f),
                 () => ClickRaise(captured));
             return label;
         }

@@ -245,7 +245,7 @@ namespace Saga.Story.World
                 }
 
                 go.SetActive(true); // 여기서 Awake() 실행 — _hp가 원본값으로 잡힌다.
-                enemy.ApplyLabyrinthHpMul(ExtraHpMulFor(type) * weeklyHpMul);
+                enemy.ApplyLabyrinthHpMul(ExtraHpMulFor(type) * weeklyHpMul * PlayerPowerHpMul());
                 _arenaEnemies.Add(enemy);
             }
 
@@ -258,6 +258,15 @@ namespace Saga.Story.World
             _nodeTimeLeft = baseLimit * StoryLabyrinthState.TimeLimitMul;
             _nodeActive = true;
         }
+
+        /// <summary>5-2 2단계(2026-09-23, 사용자 결정 "경험치만 키우기") — 웹판 적 체력
+        /// 18×1.22^(lv−1)을 그대로 쓰면 이 트랙은 플레이어 공격력이 레벨로 안 올라(웹판은
+        /// 장비·인물로 오른다) Lv.13 무렵부터 보스를 제한시간 안에 못 잡는다. 대신 **기본
+        /// 공격력이 시작값보다 늘어난 비율**(전직 grow·기억 조각 영구 강화)만큼만 적도
+        /// 단단해진다 — 잡는 데 걸리는 시간이 레벨과 상관없이 비슷하게 남는다. 회차 중
+        /// 축복·강화 버프·동료 교대 배율은 안 넣는다(그걸 고른 보람이 사라지므로).</summary>
+        public static float PlayerPowerHpMul() =>
+            (StoryCombat.StartAtk + StoryJobState.AtkBonus + StoryLabyrinthState.MemoryAtkBonus) / StoryCombat.StartAtk;
 
         private static float ExtraHpMulFor(StoryLabyrinthData.NodeType type) => type switch
         {
@@ -278,11 +287,14 @@ namespace Saga.Story.World
             // StoryEnemy.Die()는 isLabyrinthEnemy면 경험치를 자기가 안
             // 주므로(StoryEnemy.cs 클래스 주석) 여기서 노드 종류별 정확한
             // 총량을 한 번에 준다 — Combat은 잡졸 둘(StartCombatNode count=2).
+            // 5-2 2단계(2026-09-23, 사용자 결정) — 비경 적은 플레이어 레벨을 lv로 받는다
+            // (웹판 식 그대로, StoryCombat.EnemyExp 주석). lv=1이면 예전 고정값과 같다.
+            int lv = StoryJobState.Level;
             float exp = type switch
             {
-                StoryLabyrinthData.NodeType.Combat => StoryCombat.GruntExp * 2f,
-                StoryLabyrinthData.NodeType.Elite => StoryCombat.GruntExp * EliteExpMul,
-                StoryLabyrinthData.NodeType.Boss => StoryCombat.BossExp,
+                StoryLabyrinthData.NodeType.Combat => StoryCombat.EnemyExp(lv, false) * 2f,
+                StoryLabyrinthData.NodeType.Elite => StoryCombat.EnemyExp(lv, false) * EliteExpMul,
+                StoryLabyrinthData.NodeType.Boss => StoryCombat.EnemyExp(lv, true),
                 _ => 0f,
             };
             if (exp > 0f) StoryJobState.GainExp(exp);

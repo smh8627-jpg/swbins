@@ -12,8 +12,7 @@ namespace Saga.Story.Data
     /// (§5-2가 3→2로 낮춘 뒤의 값 — 유파 2단계를 얹을 때 다시 안 바꾸려고 처음부터 맞춘다).
     ///
     /// 무예 칸(<see cref="SlotCount"/>개)은 웹판 조작 띠처럼 **사람이 안 고르고 자동으로**
-    /// 채운다 — 이 직업 무예 중 찍은 것을 표 순서대로(웹판 "윗자리부터, 같은 자리 안에선 표
-    /// 순서" — 이 트랙은 아직 1차 자리뿐이라 표 순서만 남는다).
+    /// 채운다 — <see cref="SlotSkills"/>(윗자리부터 + 같은 유파 짝 먼저).
     /// </summary>
     public static class StorySkillState
     {
@@ -46,9 +45,11 @@ namespace Saga.Story.Data
         {
             var sk = StorySkillData.Get(key);
             if (sk == null) return "skill.why_unknown";
-            if (!StoryJobState.HasJob || sk.Job != StoryJobState.Job) return "skill.why_other_job";
+            // 2단계(2026-09-23) — 지금 자리 사슬(2차면 1차 무예도)의 무예면 찍을 수 있다(웹판 skillsOf()).
+            if (!StoryJobState.HasJob || !StoryJobState.InChain(sk.Job)) return "skill.why_other_job";
             if (LevelOf(key) >= sk.Max) return "skill.why_maxed";
             if (SpLeft <= 0) return "skill.why_no_sp";
+            if (sk.Need != null && LevelOf(sk.Need) < sk.NeedLv) return "skill.why_need";
             return null;
         }
 
@@ -66,15 +67,87 @@ namespace Saga.Story.Data
         /// <summary>무예 칸 i에 놓인 무예(비었으면 null).</summary>
         public static StorySkillData.Skill SlotSkill(int slot)
         {
-            if (slot < 0 || slot >= SlotCount || !StoryJobState.HasJob) return null;
-            int i = 0;
+            if (slot < 0 || slot >= SlotCount) return null;
+            var list = SlotSkills();
+            return slot < list.Count ? list[slot] : null;
+        }
+
+        /// <summary>무예 칸 넷의 자동 배치. 웹판 bar()처럼 **윗자리 무예부터**(같은 자리 안에선
+        /// 표 순서) 찍은 것만 놓는다. **재해석(2026-09-23)**: 웹판 띠는 8칸이라 윗자리부터 놓기만
+        /// 해도 같은 유파가 자연히 모이지만, 이 트랙은 4칸이라 표 순서만 따르면 2차 무예의 짝(같은
+        /// 유파 1차)이 칸 밖으로 밀리기 쉽다 — 남은 자리엔 **이미 놓인 무예와 유파가 같은 것**을
+        /// 먼저 놓아 세트를 이룬다. 사람이 고르지 않는 것은 웹판 그대로.</summary>
+        public static List<StorySkillData.Skill> SlotSkills()
+        {
+            var picked = new List<StorySkillData.Skill>();
+            if (!StoryJobState.HasJob) return picked;
+
+            var learned = new List<StorySkillData.Skill>();
             foreach (var sk in StorySkillData.All)
             {
-                if (sk.Job != StoryJobState.Job || LevelOf(sk.Key) <= 0) continue;
-                if (i == slot) return sk;
-                i++;
+                if (StoryJobState.InChain(sk.Job) && LevelOf(sk.Key) > 0) learned.Add(sk);
             }
-            return null;
+            for (int tier = StoryJobState.Tier; tier >= 1 && picked.Count < SlotCount; tier--)
+            {
+                // 이 자리 무예 중 — 먼저 이미 놓인 것과 유파가 같은 것, 그다음 표 순서.
+                for (int pass = 0; pass < 2 && picked.Count < SlotCount; pass++)
+                {
+                    foreach (var sk in learned)
+                    {
+                        if (picked.Count >= SlotCount) break;
+                        if (sk.Tier != tier || picked.Contains(sk)) continue;
+                        if (pass == 0 && !picked.Exists(p => p.School == sk.School)) continue;
+                        picked.Add(sk);
+                    }
+                }
+            }
+            return picked;
+        }
+
+        // ── 유파 세트(PLAN.md 101-2 5-2 2단계, 웹판 job.js schoolCounts·activeSchools·schoolBonus) ──
+
+        /// <summary>그 유파가 지금 칸에서 켠 세트(0·2·4) — 웹판 activeSchools().</summary>
+        public static int SchoolTier(string school)
+        {
+            if (school == null) return 0;
+            int n = 0;
+            foreach (var sk in SlotSkills()) if (sk.School == school) n++;
+            return n >= 4 ? 4 : n >= 2 ? 2 : 0;
+        }
+
+        public struct SchoolBonus
+        {
+            public float DmgMul, AoeMul, BuffMul, CooldownMul;
+            public int ShotsAdd;
+            public bool CritForce;
+            public static SchoolBonus None => new SchoolBonus { DmgMul = 1f, AoeMul = 1f, BuffMul = 1f, CooldownMul = 1f };
+        }
+
+        /// <summary>그 무예 하나가 지금 받는 세트 보정 — **판정은 여기 한 곳**(웹판 schoolBonus()).
+        /// 시전 쪽은 결과를 제자리(배율·반경·지속·발수·재사용 대기)에 곱하거나 더할 뿐이다.
+        /// **재해석 — dash**: 웹판 2세트는 회피(대시) 재사용 대기를 줄이는데 이 트랙엔 회피 동작이
+        /// 없어, 그 유파의 dash 무예 자신의 재사용 대기에 곱한다(4세트 "급소 확정"은 그대로).</summary>
+        public static SchoolBonus BonusOf(StorySkillData.Skill sk)
+        {
+            var b = SchoolBonus.None;
+            if (sk == null) return b;
+            int tier = SchoolTier(sk.School);
+            var def = StorySkillData.GetSchool(sk.School);
+            if (tier == 0 || def == null) return b;
+            float v = tier == 4 ? def.V4 : def.V2;
+            switch (def.Kind)
+            {
+                case StorySkillData.SchoolKind.Dmg: b.DmgMul = v; break;
+                case StorySkillData.SchoolKind.Aoe: b.AoeMul = v; break;
+                case StorySkillData.SchoolKind.Buff: b.BuffMul = v; break;
+                case StorySkillData.SchoolKind.Volley: b.ShotsAdd = Mathf.RoundToInt(v); break;
+                case StorySkillData.SchoolKind.Dash:
+                    b.CooldownMul = def.V2;
+                    b.CritForce = tier >= 4;
+                    break;
+                // Heal — 회복 무예가 이 트랙에 없어 적용할 자리가 없다.
+            }
+            return b;
         }
 
         public static void Snapshot(out string[] keys, out int[] levels)

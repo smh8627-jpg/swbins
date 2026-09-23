@@ -1,7 +1,7 @@
 # PROJECT_STATE — saga-unity (상태만, ≤15KB, 덮어쓴다)
 
 **규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다(2026-09-16 재편 전 본문 5,532줄은 그쪽 첫 절에 그대로 있다). 넘치면 `tools/precheck.sh` 가 막는다.
-마지막 갱신: 2026-09-23 (스물여섯 세션째 — **모바일 버튼 먹통 네 판(GO·DUNGEON·FOREST·REALM) 수정 완료** — 공용 `SagaCore/ButtonWiring.cs`, 비경 지도 onClick 중 파괴도 해소). 같은 날 앞 세션: STORY 5-2 1단계·STORY 버튼 수정, GUI hang 재부팅 해소, SSS Intensity 15(경위 HISTORY grep).
+마지막 갱신: 2026-09-23 (스물일곱 세션째 — **STORY 5-2 2단계 완료: 2차 전직(Lv.15)+2차 무예 19+유파 세트**, 비경 적 경험치 레벨 비례). 같은 날 앞 세션: 모바일 버튼 먹통 다섯 판 수정(`SagaCore/ButtonWiring.cs`), STORY 5-2 1단계, GUI hang 해소, SSS Intensity 15(경위 HISTORY grep).
 
 ## 캐릭터 자산 — 이 PC 기준 (2026-09-19)
 
@@ -14,14 +14,14 @@ Maria(플레이어)·Abe(잡졸)·Brute(두목) 셋만 mixamo.com 실자산 확�
 | GO | `TestVillage` | 완료 — 도적의 습격(이동·촌장·상인·나그네·조우·전투·등용·EXP·장비·루트·저장 v13) | 동물 Group·나그네·은닉 보물·산신당·행운 돌탑·동굴 유물·채집 · 101-2 ④⑦③: 일과판·승급 3택·75초 토벌 · ①⑥⑧: 봉수대·인연·패배 비용·회수 · ②: 사당 시련(파도 3·인장 조각) | Player·주요 Enemy·Environment·Building 전부 GLB/PBR, Props는 fence·fenceGate만(lantern·stall 보류), Rocks/Vegetation은 procgen 트라이플레이너(102-4) | 전부 붙음. 목표판/세션카드(A·B). 101-3 C·F·G 전부 완료 |
 | DUNGEON | `TestDungeon` | 완료 — 첫 방→무리·엘리트/보스·방 종류·회피·강공격·필드·동행 | 마을 넷·층 진행·매복·구출·수수께끼·은닉 창고·빌드·도감·보석/영웅 상태 · **101-2 전부 완료** | Player·잡졸·미니보스/두목·Environment·Building · 103-1 방 셸 마모 3단 | 전부 붙음. 목표판/세션카드. 101-3 C·F·G 전부 완료 |
 | FOREST | `TestVillageForest` | 완료(이동 전용) — 마을·집·주민 | 벽지/장판·가구 배치·생물·과일나무·채집·좌판·밀어내기 전투 · **101-2 전부 완료**(번들·채집 손맛·평가·택배 사슬·축제) | Environment 완료, 과일나무 procgen(102-4) | 전부 붙음. 목표판/세션카드. 101-3 해당 없음 |
-| STORY | `TestField` | 완료 — 2.5D 횡스크롤(Z 고정)·잡졸 10·두목·사명 2·볼트·로프 | 척후병 NPC·사건·관계·선택·전직(Lv.10) · 관문 대장(5-4) · 비경(5-3) · 동료 교대(5-8) · **5-2 1단계(2026-09-23)**: 1차 직업 무예 22(`StorySkillData`, 웹 24 중 heal 둘 제외)·SP 레벨당 2(`StorySkillState`, 파생값)·무예 패널(`StorySkillPanelUi`, K)·무예 칸 4 자동 배치(`StorySkillSlotButton`, 5~8)·세이브 두 배열(버전 안 올림) | 척후병 실제 모델 | 전부 붙음. 목표판/세션카드. 101-3 C·F·G 전부 완료 |
+| STORY | `TestField` | 완료 — 2.5D 횡스크롤(Z 고정)·잡졸 10·두목·사명 2·볼트·로프 | 척후병 NPC·사건·관계·선택·전직(Lv.10) · 관문 대장(5-4) · 비경(5-3) · 동료 교대(5-8) · **5-2 1단계(2026-09-23)**: 1차 직업 무예 22(`StorySkillData`, 웹 24 중 heal 둘 제외)·SP 레벨당 2(`StorySkillState`, 파생값)·무예 패널(`StorySkillPanelUi`, K)·무예 칸 4 자동 배치(`StorySkillSlotButton`, 5~8)·세이브 두 배열(버전 안 올림) · **5-2 2단계(2026-09-23)**: 2차 전직 넷(Lv.15+1차 무예 5, `StoryJobState.Promote`·전직관 `ShowPromote`)·2차 무예 19(rain 신설)·유파 세트 24행(`BonusOf`, 칸 자동 배치는 같은 유파 짝 먼저)·비경 적 경험치 레벨 비례/체력은 공격력 비율 | 척후병 실제 모델 | 전부 붙음. 목표판/세션카드. 101-3 C·F·G 전부 완료 |
 | REALM | `TestCity` | 완료(경영형) — 명령·계략·문답 36·서고·월드맵·전투·함락 편입 | 적국 55·성 58 · 5-1·5-6·5-2·5-8·5-3·5-5 — **101-2 REALM 전부 완료**(5-4 제외 확정) | 도시 Environment/Building · 103-1 성벽 3단 | 전부 붙음. 목표판/세션카드. 101-3 해당 없음 |
 
 렌더러: 66-1장 PC(Forward+, MSAA 4)/Mobile(Forward, MSAA 2) 이중 프로파일 + `FF16Volume_PC/Mobile.asset` + `DecalRendererFeature`. 아트 방향 **사실적 PBR(FF16 톤)** — 66-2장·102장. DoF(105 Q-U5)는 PC 프로파일만, `SessionCard`가 토글. 캐릭터: Mixamo → `MixamoRigUtil.RigCharacter()` → Animator 8클립. Maria 피부 SSS는 `BuildMariaSssShaderGraph.cs`(Intensity=15).
 
 ## 다음 작업 (우선순위, 상세는 PLAN 해당 장 · 경위는 HISTORY 날짜 grep)
 
-1. **STORY 5-2 2단계 — 유파 세트**: 무예 칸 조합 2/4 → 배율·범위·지속·발수·돌진 급소 보정(웹 `job.js schoolBonus()`·`data-job.js SCHOOLS` 재해석, `School` 태그는 이미 옮겨 둠). 웹 5-2는 칸 8·"무엇을 띠에 놓나"가 빌드라 **칸 자동 배치를 사람이 고르는 쪽으로 바꿀지**부터 정할 것(웹도 지금은 자동).
+1. **STORY 3·4차 전직(판단 대기)** — 칸 4라 유파 4세트는 3·4차 무예가 있어야 켜진다. 들인다면 웹 Lv.45/70을 2차와 같은 비율로 낮추고(PLAN 101-2 STORY 행), 무예 수가 늘면 **칸 자동 배치를 사람이 고르는 쪽으로 바꿀지**도 같이 정할 것.
 2. **101-2·104-1 잔여(보류)** — GO⑤(모바일 빌드 뒤)·`Props/` lantern·stall-red·`Characters/` Kenney(실사용 중). 헤어카드는 분리 헤어 메시 생기면.
 
 `ShotDir`(두 `Playtest*Gui.cs`)는 세션 scratchpad 경로라 GUI 스크린샷 때마다 고쳐야 함. 다른 PC는 `CharactersRealistic/`·`Generated/` gitignore라 `SetupXxxCharacterImport.cs`→SSS Build 재실행 필요.
@@ -52,7 +52,7 @@ Maria(플레이어)·Abe(잡졸)·Brute(두목) 셋만 mixamo.com 실자산 확�
 | `-batchmode -nographics -quit` 컴파일 | exit 0, 오류 0(2026-09-23, 네 판 버튼 배선 수정 뒤) |
 | 씬 넷 재빌드(Village·Dungeon·VillageForest·City) | exit 0, 영속 리스너 0 → 32·17·10·39(= onClick 전부, 2026-09-23) |
 | `BuildTestStoryScene` 재빌드 | exit 0, TestField 영속 리스너 0 → 14(2026-09-23) |
-| `PlaytestStorySlice` | **3연속 OK(2026-09-23)** — 새 `CheckButtonWiring`(진짜 onClick)·`CheckJobSkills`·무예 세이브 왕복·옛 형식 로드 포함. 고치기 전 씬에선 `CheckButtonWiring`이 실패함을 먼저 확인 |
+| `PlaytestStorySlice` | **3연속 OK(2026-09-23, 5-2 2단계 뒤)** — 새 `CheckPromotionAndSchools`(2차 전직 진짜 버튼·선행·칸 배치·세트 5종·전우·패널·비경 식) 포함. 앞 세션분: 새 `CheckButtonWiring`(진짜 onClick)·`CheckJobSkills`·무예 세이브 왕복·옛 형식 로드 포함. 고치기 전 씬에선 `CheckButtonWiring`이 실패함을 먼저 확인 |
 | GO·DUNGEON·FOREST·REALM 헤드리스 | **4연속 OK(2026-09-23)** — 새 `CheckButtonWiring`(`ButtonWiringCheck`: 죽은 버튼·없는 메서드 + 진짜 onClick 설정/명령). 고치기 전 씬에선 GO 32/51 먹통으로 실패 확인. STORY는 비경 지도 수정 뒤 3연속 OK |
 | GUI 실제 Play | GO 라이팅 톤·Maria idle/run/attack·Dungeon 카메라(뒷모습·yaw=180)·SSS 코·턱선 하이라이트(Intensity=15) |
 | `BuildMariaSssShaderGraph.Build`+`Verify` | exit 0, `ShaderHasError=False`(2026-09-23) |
@@ -62,6 +62,6 @@ Maria(플레이어)·Abe(잡졸)·Brute(두목) 셋만 mixamo.com 실자산 확�
 - GO: 조우·전투·등용 손맛, 상점·퀘스트 대사, 은닉 보물·산신당·돌탑·유물, 채집, 목표판/세션카드, hitstop, 유품 마커·무기 소켓·지형 데칼, 일과판·승급 3택, 75초 토벌, 봉수대·인연·짐 드롭/회수, 사당 시련, 울타리 목재 톤, 나무·바위 트라이플레이너 톤, 마을집 실루엣, 카메라 벽 pull-in, **폰에서 설정·승급 3택·저장 버튼이 눌리는지(2026-09-23 고침)**
 - DUNGEON: 카메라 손맛, 아홉 슬라이스, 목표판/세션카드, 101-3 전체 체감, 축복·유품·부적 던전·월드 보스·난입, 전자창/동력장갑·기계화 정찰병, 일일 풀·도장·주간 보상, 방 셸 마모 3단, 카메라 벽 pull-in, **폰에서 공격·강공격·회전베기·회피·저장·설정·축복 버튼(2026-09-23 고침)**
 - FOREST: 벽지/장판, 가구 배치, 생물·과일나무·좌판, 목표판/세션카드, 번들, 채집 손맛, 평가 별점, 택배 사슬, 축제(달력 1·8·15일), 과일나무·바크 톤, 잔디 디테일 톤, **폰에서 저장·설정·밀어내기 버튼(2026-09-23 고침)**
-- STORY: 두목 크기·타격감, 사건·관계·선택, 전직 팝업, 목표판/세션카드, 타격 체감, 유품·데칼·레벨업 줌·직업별 무기, 관문 대장, 비경 지도·축복·아레나, 교대 버튼·서명, **무예 패널(K·"무예" 버튼·전직관)·무예 칸 넷·직업 무예 22 손맛(돌진·퇴보사 이동 거리, 연사 발 간격, 부적 기력 회복)·모바일 버튼 전체가 실제로 눌리는지(2026-09-23 고침)·비경 노드 버튼 연속 탭**
+- STORY: 두목 크기·타격감, 사건·관계·선택, 전직 팝업, 목표판/세션카드, 타격 체감, 유품·데칼·레벨업 줌·직업별 무기, 관문 대장, 비경 지도·축복·아레나, 교대 버튼·서명, **무예 패널(K·"무예" 버튼·전직관)·무예 칸 넷·직업 무예 22 손맛(돌진·퇴보사 이동 거리, 연사 발 간격, 부적 기력 회복)·모바일 버튼 전체가 실제로 눌리는지(2026-09-23 고침)·비경 노드 버튼 연속 탭**, **2차 전직(Lv.15, 전직관 2택)·2차 무예 19 손맛·유파 세트 체감(패널 "[유파·2세트]")·전우/천뢰 범위·Lv.10→15 비경 약 4판이 적당한지**
 - REALM: 월드맵, 적국 사슬, 패널 여덟, 목표판/세션카드, 공격·계략, 특성·야망, 전술 토글, 서사 카드, 계승 토글, 일기토·설전, 승리 결과 카드, 성벽 실루엣, 오빗 카메라 pull-in, **폰에서 버튼 전부(명령·성·계략·공격·다음달·패널 닫기, 2026-09-23 고침)**
 - 공통: BGM 음량, 설정 패널 6줄, SessionCard DoF, 접지 blob 그림자(Mobile 품질), LUT 톤 5장, Screen Space Shadows, Maria 피부 SSS
