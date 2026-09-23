@@ -3861,6 +3861,20 @@ window.requestAnimationFrame = function () { return 0; };
         '상품→drop0 · 전설→drop4 · 고유→uniq';
     });
 
+    t('목표판 "인물 성장(레벨업)" 은 인물 레벨업을 센다 (플레이어 레벨업이 아니라)', function () {
+      var GL = DG.goals;
+      if (!GL) { return false; }
+      var c = GL._state().counts;
+      var before = c.levelup || 0;
+      C.emit('levelup', 2);
+      var afterCore = c.levelup || 0;
+      C.emit('hero:levelup', { id: 'x', lv: 2 });
+      var afterHero = c.levelup || 0;
+      c.levelup = before;
+      return afterCore === before && afterHero === before + 1 &&
+        ('플레이어 레벨업 ' + before + '→' + afterCore + ' · 인물 레벨업 ' + before + '→' + afterHero);
+    });
+
     t('이미 있는 이벤트에 물려 있다 (층·레벨업)', function () {
       var S = DG.sfx;
       S._clear();

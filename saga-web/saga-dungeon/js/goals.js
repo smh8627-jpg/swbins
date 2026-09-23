@@ -302,7 +302,9 @@
     core.on('town:mark', function (o) { if (o && o.roadMark) { bump('roadmark'); } });
     core.on('dungeon:room', function () { bump('room'); });
     core.on('dungeon:floor', function () { bump('floor'); });
-    core.on('levelup', function () { bump('levelup'); });
+    /* 목표 문구가 "인물 성장(레벨업)"이라 인물(hero.js) 레벨업을 센다(2026-09-23). 예전엔 core
+       'levelup'(플레이어 레벨 — 이 판에선 표시 말고 쓰임이 없다)을 세어 문구와 달랐다 */
+    core.on('hero:levelup', function () { bump('levelup'); });
     core.on('dungeon:end', function (e) {
       if (!e) { return; }
       if (e.reason === 'leave') { bump('clearLeave'); }
