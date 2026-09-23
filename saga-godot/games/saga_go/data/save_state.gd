@@ -10,7 +10,7 @@ extends Node
 ## project.godot [autoload]에 SaveState로 등록된 싱글턴.
 
 const SAVE_PATH := "user://save.json"
-const SAVE_VERSION := 1
+const SAVE_VERSION := 2
 
 
 func save() -> bool:
@@ -131,6 +131,19 @@ func _migrate(data: Dictionary) -> Variant:
 ## `1: data["new_field"] = ...; data["version"] = 2; return data`).
 func _migrate_step(from_version: int, data: Dictionary) -> Variant:
 	match from_version:
+		0, 1:
+			## 106장 ⑤(2026-09-23) — 포구·폐허 원점을 8000m 밖에서 마을 옆으로
+			## 옮겼다. 그 지역에 서서 저장한 좌표를 새 원점 기준으로 옮긴다.
+			var pos: Array = data.get("player_pos", [])
+			if pos.size() == 3:
+				var p := Vector3(float(pos[0]), float(pos[1]), float(pos[2]))
+				if p.x > 4000.0:
+					p += Vector3(480.0 - 8000.0, 0.0, 0.0)
+				elif p.z > 4000.0:
+					p += Vector3(0.0, 0.0, 432.0 - 8000.0)
+				data["player_pos"] = [p.x, p.y, p.z]
+			data["version"] = 2
+			return data
 		_:
 			return null
 

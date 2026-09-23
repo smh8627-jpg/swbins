@@ -285,6 +285,13 @@ func _add_cliffs(st: SurfaceTool, x: int, y: int) -> void:
 		var ny: int = y + e[1]
 		var outside := nx < 0 or ny < 0 or nx >= s.x or ny >= s.y
 		var bottom := OUTER_SKIRT_Y if outside else tile_base_height(region_id, nx, ny)
+		if outside:
+			## 106장 ⑤ — 변 너머가 붙어 있는 다른 지역이면 그 칸 높이까지만.
+			var probe: Vector3 = center + (e[4] as Vector3) * (half + 1.0)
+			var other := TestMap.region_at(probe)
+			if other != "" and other != region_id:
+				var og := TestMap.grid_at(other, probe)
+				bottom = tile_base_height(other, og.x, og.y)
 		if top - bottom < 0.05:
 			continue
 		var a: Vector3 = center + e[2]
@@ -427,30 +434,34 @@ func _build_collision() -> void:
 
 ## 지도 네 변 바깥에 보이지 않는 벽(BORDER_LAYER). 플레이어만 이 레이어를
 ## 본다(go_player.gd) — 카메라·등반 판정·다른 몸체는 레이어 1만 본다.
+## 106장 ⑤ — 칸 단위로 세우고, 변 너머가 붙어 있는 다른 지역이면 비운다
+## (그 지역 쪽 산 테두리가 자연 경계가 되고, 고개 칸으로 걸어서 넘어간다).
 func _build_border() -> void:
 	var s := TestMap.size(region_id)
-	var ts := TestMap.tile_size_of(region_id)
-	var origin := TestMap.origin_of(region_id)
-	var w := s.x * ts
-	var d := s.y * ts
+	var half := TestMap.tile_size_of(region_id) * 0.5
+	var t := BORDER_WALL_THICK
 	var body := StaticBody3D.new()
 	body.name = "BorderWalls"
 	body.collision_layer = BORDER_LAYER
 	body.collision_mask = 0
 	add_child(body)
-	## world_pos(0,0) 이 칸 중심이라 지도 사각형 중심은 원점에서 반 칸 어긋난다.
-	var mid := origin + Vector3(-ts * 0.5, BORDER_WALL_HEIGHT * 0.5 - 10.0, -ts * 0.5)
-	var t := BORDER_WALL_THICK
-	var specs := [
-		[Vector3(w + t * 2, BORDER_WALL_HEIGHT, t), Vector3(0, 0, -d * 0.5 - t * 0.5)],
-		[Vector3(w + t * 2, BORDER_WALL_HEIGHT, t), Vector3(0, 0, d * 0.5 + t * 0.5)],
-		[Vector3(t, BORDER_WALL_HEIGHT, d), Vector3(-w * 0.5 - t * 0.5, 0, 0)],
-		[Vector3(t, BORDER_WALL_HEIGHT, d), Vector3(w * 0.5 + t * 0.5, 0, 0)],
-	]
-	for sp in specs:
-		var box := BoxShape3D.new()
-		box.size = sp[0]
-		var cs := CollisionShape3D.new()
-		cs.shape = box
-		cs.position = mid + sp[1]
-		body.add_child(cs)
+	var dirs := [Vector3.RIGHT, Vector3.LEFT, Vector3.BACK, Vector3.FORWARD]
+	for y in s.y:
+		for x in s.x:
+			var center := TestMap.world_pos(x, y, region_id)
+			for n in dirs:
+				var nx: int = x + int(n.x)
+				var ny: int = y + int(n.z)
+				if nx >= 0 and ny >= 0 and nx < s.x and ny < s.y:
+					continue
+				var probe: Vector3 = center + n * (half + 1.0)
+				var other := TestMap.region_at(probe)
+				if other != "" and other != region_id:
+					continue
+				var box := BoxShape3D.new()
+				var along := half * 2.0 + t * 2.0
+				box.size = Vector3(t if n.x != 0 else along, BORDER_WALL_HEIGHT, along if n.x != 0 else t)
+				var cs := CollisionShape3D.new()
+				cs.shape = box
+				cs.position = center + n * (half + t * 0.5) + Vector3(0, BORDER_WALL_HEIGHT * 0.5 - 10.0, 0)
+				body.add_child(cs)

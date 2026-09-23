@@ -147,7 +147,36 @@ func _physics_process(_delta: float) -> void:
 				var border := TestMap.world_pos(0, 5).x - TestMap.TILE_SIZE * 0.5
 				_check("border", _p.global_position.x > border - 0.1, "x=%.2f border=%.1f" % [_p.global_position.x, border])
 				_next()
-		9:
+		9: # ⑩ 106장 ⑤ — 마을 동쪽 숲(10,6)에서 동쪽으로 걸으면 포구 모래밭(고개)으로 넘어간다
+			if _frame == 1:
+				var c := TestMap.world_pos(10, 6)
+				_teleport(Vector3(c.x + 14.0, 1.0, c.z))
+			if _frame == 20:
+				Input.action_press("move_right")
+			if _frame == 260:
+				Input.action_release("move_right")
+				var r := TestMap.region_at(_p.global_position)
+				_check("pass_coast", r == "coast", "region=%s %s" % [r, _pos()])
+				_next()
+		10: # ⑪ 마을 남쪽 길(5,10)에서 남쪽으로 걸으면 폐허 고개(3,0)로 넘어간다
+			if _frame == 1:
+				var c := TestMap.world_pos(5, 10)
+				_teleport(Vector3(c.x, 1.0, c.z + 12.0))
+			if _frame == 20:
+				Input.action_press("move_back")
+			if _frame == 260:
+				Input.action_release("move_back")
+				var r := TestMap.region_at(_p.global_position)
+				_check("pass_ruins", r == "ruins", "region=%s %s" % [r, _pos()])
+				_next()
+		11: # ⑫ 세이브 v1(옛 원점 8000m) 좌표 → 새 원점. 실제 세이브 파일은 안 건드린다.
+			var a: Dictionary = SaveState.call("_migrate", {"version": 1, "player_pos": [8100.0, 0.5, 20.0]})
+			var b: Dictionary = SaveState.call("_migrate", {"version": 1, "player_pos": [10.0, 0.5, 8050.0]})
+			var c: Dictionary = SaveState.call("_migrate", {"version": 1, "player_pos": [-24.0, 0.1, -72.0]})
+			var ok: bool = is_equal_approx(float(a.player_pos[0]), 580.0) and is_equal_approx(float(b.player_pos[2]), 482.0) 				and is_equal_approx(float(c.player_pos[0]), -24.0) and int(a.version) == 2
+			_check("save_migrate", ok, "%s %s %s" % [str(a.player_pos), str(b.player_pos), str(c.player_pos)])
+			_next()
+		12:
 			print("TRAVERSAL_PROBE_DONE fails=%d" % _fails)
 			get_tree().quit()
 

@@ -41,7 +41,7 @@ const PLANK_GLB := "res://assets/buildings/planks.glb"
 ## 파일이 그리는 지형과 이 파일이 세우는 실체가 같은 자리에 있어야 하니) —
 ## 마을 격자(11x11, TILE_SIZE 48 = 528m 사방)보다 훨씬 먼 좌표라 절대
 ## 마을 지형과 안 겹친다(FOREST INTERIOR_ORIGIN과 같은 발상).
-const REGION_ORIGIN := Vector3(8000.0, 0.0, 0.0)
+const REGION_ORIGIN := Vector3(480.0, 0.0, 0.0) # 106장 ⑤ 마을 동쪽에 붙임
 const COAST_REGION := "coast"
 
 ## landmarks_builder.gd _add_waystation()과 같은 격자·계산 — 이 파일이
