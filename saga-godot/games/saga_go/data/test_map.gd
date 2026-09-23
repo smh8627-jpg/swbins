@@ -71,13 +71,15 @@ const REGIONS := {
 			"^~~~~~~~^",
 			"^~~~B~~~^",
 			"^DDDDDDD^",
-			"^DDDDDDD^",
+			"DDDDDDDD^",
 			"^DDDDDDD^",
 			"^DDDDDDD^",
 			"^^^^^^^^^",
 		],
 		"tile_size": TILE_SIZE,
-		"origin": Vector3(8000.0, 0.0, 0.0),
+		## PLAN 106장 ⑤ — 마을 동쪽 변(x=240)에 서쪽 변을 붙였다. (0,5) 모래 한 칸이
+		## 마을 (10,6) 숲과 맞닿는 고개다(옛 원점 8000m, 순간이동으로만 오갔다).
+		"origin": Vector3(480.0, 0.0, 0.0),
 	},
 	## "ruins" — region3_ruins.gd 참고. 2026-09-16, GO 진짜 세 번째 지역
 	## (REGIONS 레지스트리 재설계의 실제 payoff — 새 항목 하나 + 새 파일
@@ -88,7 +90,7 @@ const REGIONS := {
 	## 아예 다른 축(Z)으로 멀리 둬 절대 안 겹친다.
 	"ruins": {
 		"rows": [
-			"^^^^^^^",
+			"^^^=^^^",
 			"^RRRRR^",
 			"^RTRTR^",
 			"^RRRRR^",
@@ -97,7 +99,9 @@ const REGIONS := {
 			"^^^^^^^",
 		],
 		"tile_size": TILE_SIZE,
-		"origin": Vector3(0.0, 0.0, 8000.0),
+		## PLAN 106장 ⑤ — 마을 남쪽 변(z=240)에 북쪽 변을 붙였다. (3,0) 길 한 칸이
+		## 마을 (5,10) 길과 이어지는 산 사이 고개다(옛 원점 z 8000m).
+		"origin": Vector3(0.0, 0.0, 432.0),
 	},
 }
 
@@ -105,6 +109,26 @@ const REGIONS := {
 ## 엉뚱한 자리의 에러 대신 여기서 곧바로 분명한 메시지로 걸리게 한다
 ## (2026-09-16, GO 진짜 두 번째 지역 재감사 — 지금은 호출부가 "village"·
 ## "coast" 둘뿐이라 실제 버그는 아니지만, 지역이 늘수록 오타 위험도 는다).
+## 월드 좌표가 어느 지역 격자 안인지(없으면 ""). 지역을 붙인 뒤(106장 ⑤)
+## 경계벽·절벽 옆면이 "옆 지역과 맞닿은 변"을 알아야 해서 생겼다.
+static func region_at(world: Vector3) -> String:
+	for id in REGIONS:
+		var s := size(id)
+		var ts: float = tile_size_of(id)
+		var local: Vector3 = world - origin_of(id)
+		var gx := local.x / ts + s.x * 0.5 + 0.5
+		var gy := local.z / ts + s.y * 0.5 + 0.5
+		if gx >= 0.0 and gy >= 0.0 and gx < s.x and gy < s.y:
+			return id
+	return ""
+
+## 월드 좌표 → 그 지역의 칸(region_at 이 돌려준 지역 기준).
+static func grid_at(region_id: String, world: Vector3) -> Vector2i:
+	var s := size(region_id)
+	var ts: float = tile_size_of(region_id)
+	var local: Vector3 = world - origin_of(region_id)
+	return Vector2i(int(floor(local.x / ts + s.x * 0.5 + 0.5)), int(floor(local.z / ts + s.y * 0.5 + 0.5)))
+
 static func _region(region_id: String) -> Dictionary:
 	if not REGIONS.has(region_id):
 		push_error("test_map.gd: 모르는 region_id '%s'" % region_id)

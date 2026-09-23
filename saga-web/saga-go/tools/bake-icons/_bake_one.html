@@ -24,6 +24,9 @@
   var url = params.get('url');
   var ICON = +params.get('px') || 96;
   var FIT = +params.get('fit') || 1.6;    // 넓은 건물은 0.9 안팎으로 줄여야 프레임에 다 든다(탑 기준 1.6)
+  /* view=pet (2026-09-23) — 지도 스탬프용 짐승: 쉬는 자세·긴 축을 옆으로(3/4)·몸 전체·발이 바닥. 예전 기본 구도는
+     정면에 위아래가 잘렸다(사슴 다리, 장룡은 막대). 정사각 직교 카메라를 상자 투영에 맞춘다 */
+  var VIEW = params.get('view') || '';
 
   var TIMEOUT_MS = 60000;
 
@@ -33,6 +36,34 @@
     log((r.ok ? 'OK ' : 'FAIL ') + group + '/' + key + (r.ok ? '' : (' — ' + r.error)));
     log('BAKE_ONE_DONE ' + (r.ok ? 1 : 0) + '/1');
     document.title = 'BAKE_ONE_DONE ' + (r.ok ? 1 : 0) + '/1';
+  }
+
+  function petFrame(root, gltf) {
+    var clips = gltf.animations || [], clip = null, i;
+    for (i = 0; i < clips.length && !clip; i++) { if (/idle/i.test(clips[i].name)) { clip = clips[i]; } }
+    if (!clip && clips.length) { clip = clips[0]; }
+    if (clip) { var mx = new T.AnimationMixer(root); mx.clipAction(clip).play(); mx.update(0.3); }
+    function box() {
+      root.updateMatrixWorld(true);
+      root.traverse(function (o) { if (o.isSkinnedMesh && o.skeleton) { o.skeleton.update(); } });
+      return new T.Box3().setFromObject(root, true);   // precise — 스킨 반영 정점
+    }
+    var s0 = box().getSize(new T.Vector3());
+    var yaw = +params.get('yaw') || 1.1;
+    root.rotation.y = s0.z >= s0.x ? yaw : yaw - Math.PI / 2;   // 모델마다 앞 축이 다르다 — 긴 축을 옆으로
+    var b = box();
+    var el = 12 * Math.PI / 180, cam = new T.OrthographicCamera(-1, 1, 1, -1, -100, 100);
+    cam.position.set(0, Math.sin(el), Math.cos(el)); cam.lookAt(0, 0, 0); cam.updateMatrixWorld(true);
+    var inv = cam.matrixWorldInverse, xs = [], ys = [], v = new T.Vector3(), k;
+    for (k = 0; k < 8; k++) {
+      v.set(k & 1 ? b.max.x : b.min.x, k & 2 ? b.max.y : b.min.y, k & 4 ? b.max.z : b.min.z).applyMatrix4(inv);
+      xs.push(v.x); ys.push(v.y);
+    }
+    var x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs), y0 = Math.min.apply(null, ys), y1 = Math.max.apply(null, ys);
+    var size = Math.max(x1 - x0, y1 - y0) * 1.06, mid = (x0 + x1) / 2, bot = y0 - size * 0.02;
+    cam.left = mid - size / 2; cam.right = mid + size / 2; cam.bottom = bot; cam.top = bot + size;
+    cam.updateProjectionMatrix();
+    return cam;
   }
 
   function fitAndFrame(root, camera, group) {
@@ -73,6 +104,8 @@
       finish({ ok: false, error: '시간 초과(' + TIMEOUT_MS + 'ms)' });
     }, TIMEOUT_MS);
     var loader = new T.GLTFLoader();
+    /* 2026-09-23 — 사가블로에서 옮겨 온 펫 모델은 meshopt 압축이다(게임 asset3d.js 와 같은 디코더) */
+    if (T.MeshoptDecoder) { loader.setMeshoptDecoder(T.MeshoptDecoder); }
     log('start ' + key + ' <- ' + url);
     loader.load(url, function (gltf) {
       if (done) { return; }
@@ -80,8 +113,9 @@
       try {
         var root = gltf.scene || gltf.scenes[0];
         scene.add(root);
-        fitAndFrame(root, camera, group);
-        renderer.render(scene, camera);
+        var cam = camera;
+        if (VIEW === 'pet') { cam = petFrame(root, gltf); } else { fitAndFrame(root, camera, group); }
+        renderer.render(scene, cam);
         var dataURL = renderer.domElement.toDataURL('image/png');
         finish({ ok: true, dataURL: dataURL });
       } catch (e) {

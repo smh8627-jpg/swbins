@@ -3617,6 +3617,20 @@ VRoid 인물이 unlit(`MeshBasicMaterial`) 그대로라 **명암 없이 평면**
 - 펫 초상 210장 다시 구움(외곽선 켬, 실패 0). 진단: "종마다 제 모델" 1 추가 → 566/568(실패 둘은 기존 jsdom `Request` 한계). `sw.js` go-v5.57.0.
 - **남은 것**: 긴 몸(장룡·쥐가오리·황새치)은 카드에 작게 선다(상자 맞춤의 대가). 갑옷메기는 모델 자체가 거의 검다. 실기 확인 전.
 
+## 2026-09-23 (이어서 5) — 지도 짐승 그림도 펫마다 제 모델, 옆 3/4 구도로 85장 다시 굽기
+
+사용자 "이어해줘". (이어서 4)로 3D 초상은 종마다 제 모델이 됐는데 지도 스탬프(`sprite.beastImgOf`)는 여전히 형태 해시로 네발 열 벌 중 하나를 골라 초상(고래)과 지도(사슴)가 달랐다.
+
+- `sprite.js` `PET_BEAST_FILE`(77줄, asset3d `pet:pt_*` 와 같은 모델) — 있으면 형태 해시보다 먼저. `_x2` 는 animals_extra2 의 같은 이름(Koi·Shark) 모델.
+- 기존 아이콘은 `_bake_one.html` 기본 구도(정면·fit 1.6)라 얼굴만 크게 위아래가 잘려 있었다(사슴 다리) → `view=pet` 새 구도(쉬는 자세·긴 축 옆으로·스킨 반영 상자 투영으로 정사각 직교 프레임에 몸 전체·발 바닥, 물고기 yaw 1.4). meshopt 디코더도 붙임. 기존 28 + 새 57 = 85장 굽고(85/85) 모음 그림으로 확인.
+- 러너를 `tools/bake-icons/bake-beasts.mjs` 로 저장소에 둠(키는 sprite.js 표에서 뽑음, 다시 구워 바이트 같음 확인). README·`ASSET_LICENSES.md` 새 절.
+- 진단: "제 모델 펫은 지도 그림도 그 모델" 1 추가 → 567/569(실패 둘은 기존 jsdom `Request` 한계). `sw.js` go-v5.58.0.
+- **남은 것**: 몸 전체가 들어오니 예전(얼굴 클로즈업)보다 지도에서 작게 보일 수 있다 — 특히 장룡·고래 같은 긴 몸. 실기 확인 전(작으면 `sprite.js` 짐승 그림 상자 `H * 1.5` 를 키울 자리).
+
+## 2026-09-23 (이어서 6) — 역참 지도 마커 `tower_ruin` 굽기 풀림
+
+SAGA-HANDOFF 열린 항목 "tower_ruin.glb(역참) 아이콘 굽기 — 여섯 번 넘게 실패". (이어서 5)의 러너 방식(잡마다 새로 연 페이지)으로 `_bake_one.html?key=tower_ruin&group=building&fit=1.1` 을 열자 첫 시도에 구워졌다(원인은 여전히 모름 — 예전 막힘이 간헐적이었다는 기록과 맞음, meshopt 는 아니고 webp 텍스처 모델). fit 0.7 은 작고 1.4 는 위가 잘려 1.1. `world.js` `drawStation` 이 `building_Inn.png`(옛 여관, 되돌림 자리로 남김) 대신 `building_tower_ruin.png` — 3D 역참과 같은 모델. README·`ASSET_LICENSES.md`·sprite.js 주석 갱신, SAGA-HANDOFF 열린 항목에서 지움. 진단 567/569 그대로. `sw.js` go-v5.59.0. 실기 확인 전(폐허 탑은 여관보다 어둡고 회색이라 지도에서 덜 띌 수 있다 — 위에 등롱·깃발은 그대로 뜬다).
+
 ## 2026-09-23 — 손으로 놓은 소품 층(`land.js` `deco`) — 맵 편집기 "3D 배치"용
 
 - `land.js`: 땅 객체 `deco: []`(월드 미터 x·z, `t`·`h`·`rot`, 집·탑 `w`·`d`·`shade`) + `DECO_T` 10종 · `decoAt(tx,ty)`(칸 가운데 기준, `di` 번호 붙임) · `hasDeco` · 손잡이 `land.deco` · `validate()` 가 deco 도 본다.

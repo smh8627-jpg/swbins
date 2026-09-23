@@ -3,7 +3,8 @@
  * `<게임>/assets/portraits/` 에 webp 파일로 둔다. 게임은 이 파일을 곧바로 <img> 로 쓴다.
  *
  *   node tools/bake-portraits/bake.mjs <게임폴더> [--kind=hero|pet] [--limit=N] [--only=id,id]
- *   node tools/bake-portraits/bake.mjs saga-dungeon --sprites=monsters --tune=world3d.outline:0   (적 짐승 몸 → 옆모습 걷기 시트 assets/sprites2d/mon_*.webp)
+ *   node tools/bake-portraits/bake.mjs saga-dungeon --sprites=monsters   (적 짐승 몸 → 옆모습 걷기 시트 assets/sprites2d/mon_*.webp)
+ *   (2026-09-23 까지는 짐승 외곽선이 검은 파편으로 번져 `--tune=world3d.outline:0` 로 끄고 구웠다 — 외곽선 폭·스키닝 순서를 고쳐 이제 켜고 굽는다)
  *   부가 옵션: --tune=키:값(굽는 동안 손잡이) --gl=d3d11(실제 GPU) --out=경로 --eval=파일.js(페이지 안에서 스크립트 실행)
  *
  * 그림은 **게임 자신의 `DG.portrait3d.warm()`** 이 굽는다 — 이 도구는 헤드리스 크롬(swiftshader)을
