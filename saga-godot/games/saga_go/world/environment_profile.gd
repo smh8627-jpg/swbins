@@ -9,8 +9,26 @@ const ENV_PC: Environment = preload("res://assets/environment/env_pc.tres")
 const ENV_MOBILE: Environment = preload("res://assets/environment/env_mobile.tres")
 
 
+## PLAN 106장 ② — GO 만 손그림 하늘(sky_toon.gdshader). 이 스크립트와 env_*.tres 는
+## 다섯 판이 같이 쓰므로(DUNGEON·FOREST·STORY·REALM 씬도 이 스크립트를 단다) 파일은
+## 그대로 두고, GO 씬(games/saga_go/ 아래)일 때만 복제본의 하늘을 갈아 끼운다(두
+## 프로파일 같은 값 — 66-1 "톤은 같게"). 안개 색 = 지평선 색(102-2 규칙).
+const SKY_HORIZON := Color(0.76, 0.88, 0.96)
+const TOON_SKY_SCENE_PREFIX := "res://games/saga_go/"
+
+
 func _ready() -> void:
-	if OS.has_feature("mobile") or OS.has_feature("web"):
-		environment = ENV_MOBILE
-	else:
-		environment = ENV_PC
+	var base := ENV_MOBILE if (OS.has_feature("mobile") or OS.has_feature("web")) else ENV_PC
+	var scene_path := owner.scene_file_path if owner != null else ""
+	if not scene_path.begins_with(TOON_SKY_SCENE_PREFIX):
+		environment = base
+		return
+	var env := base.duplicate() as Environment
+	var mat := ShaderMaterial.new()
+	mat.shader = load("res://saga_core/shaders/sky_toon.gdshader")
+	mat.set_shader_parameter("horizon_color", SKY_HORIZON)
+	var sky := Sky.new()
+	sky.sky_material = mat
+	env.sky = sky
+	env.fog_light_color = SKY_HORIZON
+	environment = env

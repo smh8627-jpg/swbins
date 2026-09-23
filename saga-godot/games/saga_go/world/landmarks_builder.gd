@@ -74,9 +74,10 @@ const WAYSTATION_ROOF_SCALE := Vector3(6, 6, 6)
 ## 프로토타입에서만"의 예외가 아니라, 강물 표면도 이미 같은 방식이었다.
 const WATERFALL_ROCK_GLB := "res://assets/rocks/rock_largeA.glb"
 const WATERFALL_ROCK_SCALE := Vector3(2.6, 5.0, 2.2)
-const WATERFALL_FACE_SIZE := Vector2(2.6, 4.0)
-const WATERFALL_POOL_SIZE := Vector2(3.2, 3.2)
-const WATERFALL_WATER_COLOR := Color(0.25, 0.45, 0.62, 0.72) # terrain_builder.gd WaterSurface와 같은 색
+## 2026-09-23 물줄기 폭·웅덩이 — 절벽 높이(tile_base_height)에 맞춰 커졌다.
+const WATERFALL_FALL_WIDTH := 7.0
+const WATERFALL_POOL_SIZE := Vector2(12.0, 9.0)
+const WATER_SHADER := preload("res://saga_core/shaders/water_toon.gdshader")
 
 
 ## 2026-09-12④ — CodexState "지역" 갈래(§26 "발견 도감") 발견 반경.
@@ -344,7 +345,8 @@ func _add_shrine() -> void:
 func _add_waterfall() -> void:
 	var ground: float = TerrainBuilder.LEGEND["W"].height
 	var base_pos := TestMap.world_pos(8, 3) + Vector3(0, ground, 0)
-	var rock_back_offset := Vector3(0, 0, -1.2) # 물줄기 뒤로 살짝 물러난 자리
+	## 2026-09-23 물줄기가 칸 북쪽 절벽으로 옮겨 가 바위도 그 발치 옆으로.
+	var rock_back_offset := Vector3(WATERFALL_FALL_WIDTH * 0.5 + 2.0, 0, -TestMap.TILE_SIZE * 0.5 + 1.8)
 	var rock_mesh := GLBUtils.extract_mesh(WATERFALL_ROCK_GLB)
 
 	if rock_mesh != null:
@@ -362,31 +364,40 @@ func _add_waterfall() -> void:
 	_solid(Vector3(WATERFALL_ROCK_SCALE.x, WATERFALL_ROCK_SCALE.y * 0.5, WATERFALL_ROCK_SCALE.z),
 		base_pos + rock_back_offset + Vector3(0, WATERFALL_ROCK_SCALE.y * 0.25, 0), self)
 
-	var water_mat := StandardMaterial3D.new()
-	water_mat.albedo_color = WATERFALL_WATER_COLOR
-	water_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	water_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	## PLAN 106장 ② — 산이 10~30m 절벽이 됐으니(terrain_builder.gd) 물줄기도
+	## 북쪽 산(8,2) 절벽 꼭대기에서 칸 북쪽 변을 따라 쏟아진다. 툰 물 셰이더의
+	## 폭포 모드(uv_flow)로 흘러내리는 줄을 그리고, 발치 웅덩이는 보통 물.
+	var tile := TestMap.TILE_SIZE
+	var cliff_top: float = TerrainBuilder.tile_base_height("village", 8, 2)
+	var fall_h: float = cliff_top - ground
+	var cliff_z: float = base_pos.z - tile * 0.5
 
+	var fall_mat := ShaderMaterial.new()
+	fall_mat.shader = WATER_SHADER
+	fall_mat.set_shader_parameter("uv_flow", 0.6)
 	var face_mi := MeshInstance3D.new()
 	face_mi.name = "WaterfallFace"
 	var face_mesh := PlaneMesh.new()
-	face_mesh.size = WATERFALL_FACE_SIZE
+	face_mesh.size = Vector2(WATERFALL_FALL_WIDTH, fall_h)
 	face_mi.mesh = face_mesh
-	face_mi.material_override = water_mat
+	face_mi.material_override = fall_mat
 	face_mi.rotation_degrees = Vector3(90, 0, 0)
-	face_mi.position = base_pos + Vector3(0, WATERFALL_FACE_SIZE.y * 0.5, -0.5)
+	face_mi.position = Vector3(base_pos.x, ground + fall_h * 0.5, cliff_z + 0.25)
 	add_child(face_mi)
 
+	var pool_mat := ShaderMaterial.new()
+	pool_mat.shader = WATER_SHADER
+	pool_mat.set_shader_parameter("flow", Vector2(0.0, 0.5))
 	var pool_mi := MeshInstance3D.new()
 	pool_mi.name = "WaterfallPool"
 	var pool_mesh := PlaneMesh.new()
 	pool_mesh.size = WATERFALL_POOL_SIZE
 	pool_mi.mesh = pool_mesh
-	pool_mi.material_override = water_mat
-	pool_mi.position = base_pos + Vector3(0, 0.05, 0.7)
+	pool_mi.material_override = pool_mat
+	pool_mi.position = Vector3(base_pos.x, ground + 0.05, cliff_z + WATERFALL_POOL_SIZE.y * 0.5)
 	add_child(pool_mi)
 
-	_add_discovery_area("waterfall", base_pos, self)
+	_add_discovery_area("waterfall", pool_mi.position, self)
 
 
 func _add_village() -> void:

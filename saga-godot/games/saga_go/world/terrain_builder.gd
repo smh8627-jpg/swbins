@@ -25,6 +25,7 @@ extends Node3D
 ## 않는다는 뜻이지 못 간다는 뜻이 아니게 됐다).
 
 const TestMap := preload("res://games/saga_go/data/test_map.gd")
+const WATER_SHADER := preload("res://saga_core/shaders/water_toon.gdshader")
 
 @export var region_id := "village"
 
@@ -352,10 +353,12 @@ func _build_water() -> void:
 
 	var quad := PlaneMesh.new()
 	quad.size = Vector2(tile_size, tile_size)
+	quad.subdivide_width = 7 # 잔물결(정점 흔들림)용
+	quad.subdivide_depth = 7
 
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.25, 0.45, 0.62, 0.75)
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	## PLAN 106장 ② — 반투명 단색 → 툰 물(깊이 두 단·물가 거품·흐르는 띠).
+	var mat := ShaderMaterial.new()
+	mat.shader = WATER_SHADER
 
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
