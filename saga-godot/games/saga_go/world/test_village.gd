@@ -34,6 +34,16 @@ func _ready() -> void:
 	var chests := preload("res://games/saga_go/world/treasure_spawner.gd").new()
 	chests.name = "TreasureSpawner"
 	add_child(chests)
+	## PLAN 106장 ⑨ — 순간이동 지점·신상 + 원신식 지도(미니맵·지도 화면 M·지역 이름).
+	var waypoints := preload("res://games/saga_go/world/waypoints.gd").new()
+	waypoints.name = "Waypoints"
+	add_child(waypoints)
+	var world_map := preload("res://games/saga_go/ui/world_map.gd").new()
+	world_map.name = "WorldMap"
+	add_child(world_map)
+	world_map.bind_waypoints(waypoints)
+	if OS.get_environment("SAGA_MAP_PROBE") != "":
+		add_child(load("res://tools/probe_world_map.gd").new())
 	## 원신식 이동(go_player.gd) 자동 점검 — 측정할 때만 붙인다.
 	if OS.get_environment("SAGA_TRAVERSAL_PROBE") != "":
 		add_child(load("res://tools/probe_traversal.gd").new())

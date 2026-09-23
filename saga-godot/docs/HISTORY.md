@@ -8424,3 +8424,12 @@ PROJECT_STATE.md` 참고. 요약:
 - `probe_field_combat.gd` 13→19항목(강공격·낙하 시작/착지·인물별 체력·공명·원소별 스킬+대기 기력 60%·폭발 여운) 3회+1 fails=0. 첫 판 실패는 점검 쪽 — 앞 단계에서 적이 쫓아와 제자리에 없어서, 방패 없는 적을 점검 자리로 불러 세우게 고침. 폭발 여운은 목표 체력 5000 으로(한 방에 쓰러지면 못 봄).
 - `probe_traversal.gd` sprint_cost 하한 60→50(대시 15 가 먼저 나감, 실측 63.8). 이동·보물 점검 fails=0. 이 PC 는 오늘 빨라 전투 점검 한 판 25초.
 - 실기 확인 전: 마우스 감도(0.0032)·위로 보기 각, Alt/Esc 커서 풀기가 자연스러운지, 강공격 0.4초 문턱, 낙하 공격 손맛, 오른쪽 명단·E/Q 원 위치.
+
+## GO 원신 기준 ⑨ 지도 원신 일치 — 미니맵·지도 화면·순간이동 지점·신상·지역 이름·탐험도 (2026-09-24, 같은 세션)
+
+- 새 파일 `games/saga_go/world/waypoints.gd`(지점 7 = 신상 3 + 4, 코드로 그린 돌기둥·마름모 보석 / 받침·석상·보석·후광, 5m 활성화 → EventState `wp_<id>`, 신상 6m 1초마다 `revive_all`, `teleport(id)`) · `games/saga_go/ui/world_map.gd`(CanvasLayer 5: 미니맵 ColorRect+원형 셰이더·MiniOverlay 그리기, 지도 화면 MapView 끌기·휠·고르기, 지역 이름 띠, 탐험도, 신상 전 구름). `test_village.gd` 에 보물 상자 뒤로 붙임.
+- 지도 그림은 한 번 굽는다: 세 지역 경계 합(960×864m) 1px=3m → 320×288, 지형 색은 terrain LEGEND, height_at 으로 북서 음영, 물가 어두운 줄. 신상 켤 때만 구름 다시 합성.
+- 첫 점검에서 잡은 것: ① LEGEND `~`·`W` 는 강바닥(갈색) 색이라 지도 강이 갈색 → 물빛 고정색 ② 헤드리스 더미 렌더러의 `ImageTexture.get_image()` 가 update 전 그림을 돌려줌 → 합성 그림을 `shown_image` 로 들고 점검이 그걸 읽음 ③ 안쪽 클래스에서 바깥 static 함수 호출 불가·`floor()` Variant 추론 → `_ang()`·`floorf`. 문법 오류 판은 씬이 안 떠 10분 제한까지 멈췄다 — 새 스크립트는 `--check-only --script` 로 먼저 훑음(자동 로드 이름 오류는 정상).
+- 왼쪽 위 대화·부대·사명·도감·날씨 글자(MobileHUD.tscn)는 런타임에 미니맵 높이(202px)만큼 아래로.
+- `probe_world_map.gd` 10항목 3회 fails=0·출력 md5 동일. 전투·이동·보물 점검 fails=0, `godot_regress.sh` REGRESS OK. `.uid` 셋은 에디터 임포트로 만들고 되살아난 props `.import` 19개는 되돌림.
+- 실기 확인 전: 미니맵 크기·위치(글자와 겹침), 지도 색·구름이 원신 지도처럼 읽히는지, 신상·지점 모양, 지역 이름 띠, 마우스 시점에서 M 지도 → 커서가 바로 풀리는지.
