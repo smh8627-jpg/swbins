@@ -21,14 +21,14 @@
 - **판단 종결(재작업 후보 아님, 근거 HISTORY 09-23)**: STORY 트라이플레이너(2.5D 옆면 플랫포머라 장르상 불필요) · icon_star(아이콘 UI를 일부러 안 만든다는 기존 결정) · NPC 옷 팔레트(재질 하나짜리 GLB + 군중 NPC 소비처 없음) · 105 Q-b(절차 지형이라 LightmapGI 부적합, PC SDFGI 유지).
 - **105 Q-d 정정(09-23)**: Mixamo는 로그인만 사람 몫, 검색·다운로드는 루트 `tools/mixamo_automation/`(09-21 구축)로 이미 자동. VRoid 조형만 사람 몫(무료 대체 파이프라인 없음).
 - **Quaternius 씬 배치 5단계(09-23 진행 중)**: GO `vegetation_builder.gd` — village "." 칸 `_scatter_village_path()`(Pebble_Square_1·RockPath_Square_Wide 1/12) · coast "D" 칸 `_scatter_coast_pebbles()`(Pebble_Round_1~3 1/10, coast엔 "." 칸이 없어 `REGION_CLUTTER_GLB["coast"]`가 죽은 설정이었음). FOREST `forest_biome_scatter.gd` — primitive 셋 전부 교체: mush→`Mushroom_Common`(`textured_material`), meadow→`Flower_3_Group`·dark→`Fern_1`(신설 `curved_textured_cutout.gdshader`+`WorldCurveMaterial.cutout_material()`, 양면+알파 컷, 표면별 원본 텍스처). GO village "T" 칸 하층 식생 `_scatter_understory()`(Fern_1·Mushroom_Common, 실측 13·13개) · "." 칸 들꽃 `_scatter_wildflowers()`(칸당 4, Clover_2·Grass_Common_Short·Flower_3/4_Single — 칸이 48m라 기존 clutter는 마을 전체 2개뿐이었음). FOREST dark·mush 바이옴 밀도 1/10→1/4(바이옴별 5·3·5·5개로 균형, 기존 자리 유지). 배율은 전부 옛 높이÷trimesh 실측고(옛 크기가 없는 신규는 인물 ≈3.4m 기준).
+- **09-23 재질 버그 3건 수정(전부 "원본 재질을 override로 덮어 잃음" 부류, 상세 HISTORY 09-23)**: FOREST rocky 흰 바위(정점색 없는 gltf에 vertex_color_material → `textured_material`) · FOREST 나무 잎 네모판(알파 무시 → `curved_vertex_color_cutout.gdshader`, 색은 그대로) · **FOREST 플레이어가 09-19 VRoid 교체 이후 늘 Kenney `texture-a.png`로 덮여 있던 것**(`forest_wear_visual.gd` 염색, 세이브 기본값 dye "none"이라 매번 실행 → 이제 `_CLOTH` 표면 cel_toon tint만, 덧옷은 `Visual` 자식·1.7m 기준). 재발 방지로 `saga_core/world/material_audit.gd`를 `godot_regress.sh` 통과 조건에 추가.
+- Downloads `model.vroid`는 FOREST 아바타의 VRoid Studio 원본 프로젝트(09-20 확인) — 대기 중인 새 VRoid 조형 없음.
 
 ## 다음 작업 (우선순위)
 
-1. **FOREST 흰 바위 — 수정(09-23)**: rocky `Rock_Medium_1`(COLOR_0 없음)을 `textured_material`(Rocks_Diffuse.png)로. 같은 원인 전수 조사 결과 나머지는 유지 판단 — 채집물 tree_oak·rock_largeA(Kenney, 정점색 없음 → 모델 전체가 `d.tint` 한 색, 채집물별 의도색)·FOREST 나무 CommonTree_1(정점색 있음, 단 잎 alphaMode MASK가 무시됨 — 승인된 핵심 화면이라 사용자가 원하면 cutout으로).
-2. **FOREST 나무 잎 네모판 — 수정(09-23)**: CommonTree_1 잎 텍스처 76% 투명·잎 정점 100% 투명 픽셀 위(실측)인데 알파가 무시돼 네모판으로 그려지던 것을, 색(정점색×바이옴 tint)은 그대로 두고 알파만 원본 텍스처에서 빌리는 `curved_vertex_color_cutout.gdshader`로. 바이옴마다 메시 복제+표면별 머티리얼(MultiMesh는 표면별 머티리얼 불가). Quaternius 남은 종은 급하지 않음.
-3. **FOREST 옷 염색·덧옷 — 수정(09-23, GLB override 전수 감사에서 발견)**: `forest_wear_visual.gd`가 VRoid 교체(09-19) 뒤에도 옛 Kenney `texture-a.png` 재질을 플레이어 전 메시에 `material_override` → 염색하면 툰·얼굴 베이크·외곽선 소실(해제해도 안 돌아옴). 이제 `_CLOTH` 표면(Tops·Bottoms·Shoes)의 cel_toon `albedo_tint`만 곱색, 덧옷은 `Visual` 자식·1.7m 기준 크기. **세이브 기본값이 dye "none"이라 기본 상태에서도 매번 실행됐다** — 09-19 이후 FOREST 플레이어는 늘 Kenney 텍스처로 덮여 툰·얼굴 베이크가 한 번도 안 보였다(옛 코드 로그의 texture-a.png 로드로 확인). 임시 훅으로 켜기·끄기 검증.
-4. VRoid 새 캐릭터 — **대기 중인 조형 없음**. Downloads `새 폴더`의 `model.vroid`는 이미 FOREST에 적용된 `saga_forest_avatar_01`의 VRoid Studio 원본 프로젝트(09-20 HISTORY에서 썸네일로 확인 — 09-23 "용도 미확인"은 오기). 새 주역이 필요하면 사람이 조형.
-5. 참고: 103-4 리타겟 "트위스트 미보정"은 트위스트 큰 새 클립을 넣을 때만 재검토.
+1. **사용자 실기 확인 결과 대기** — 아래 "실기 확인 대기" 5건. 특히 FOREST 플레이어(처음으로 원래 VRoid 모습). 결과에 문제가 있으면 그것부터.
+2. Quaternius 남은 종(바위·잔디꽃 일부·나무 변종) — 급하지 않음. 새로 까는 장식은 GO 칸이 48m라 칸당 여러 개여야 보인다(09-23 실측).
+3. 참고: 103-4 리타겟 "트위스트 미보정"은 트위스트 큰 새 클립을 넣을 때만 재검토. Mixamo 새 클립은 루트 `tools/mixamo_automation/`(로그인만 사람).
 
 ## 알려진 오류
 
