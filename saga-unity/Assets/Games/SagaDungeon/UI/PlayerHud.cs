@@ -51,6 +51,10 @@ namespace Saga.Dungeon.UI
                          $"{weapon} ({atk})  {floorLine}\n" +
                          $"{QuestState.ObjectiveText}"; // "퀘스트 시스템" 슬라이스
 
+            // PLAN.md 106-2 "잊힌 능묘" — 한 번 들어간 뒤부터 열쇠·도구 줄.
+            string temple = TempleState.HudLine();
+            if (temple.Length > 0) label.text += $"\n{temple}";
+
             // PLAN.md 101-2 5.4 "월드 보스" — 75초 두목전이 진행 중일 때만 카운트다운을 얹는다.
             var worldBoss = DungeonEnemy.ActiveWorldBoss;
             if (worldBoss != null)

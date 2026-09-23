@@ -64,7 +64,26 @@ namespace Saga.Dungeon.World
             ["황건 살수"] = "enemy.miniboss",
             ["황건적 두목"] = "enemy.boss",
             ["기계화 정찰병"] = "enemy.elite_fusion", // 101-2 5.7 "시대 퓨전" — 깊은 층 정예 변종.
+            ["능묘 파수꾼"] = "enemy.temple_warden", // PLAN.md 106-2 "잊힌 능묘" 잡졸.
+            ["능묘지기"] = "enemy.temple_guardian", // PLAN.md 106-2 "잊힌 능묘" 보스.
         };
+
+        // PLAN.md 106-2 "잊힌 능묘" 보스 — 갑주를 입은 동안 칼은 15%만 들어가고,
+        // 벽력탄에 맞으면 갑주가 벗겨져 4초 기절(그동안 150%). 젤다 보스의 "던전 도구로
+        // 약점을 연다" 문법. deathFlag 는 쓰러질 때 세울 능묘 진행 비트(세이브 로드 시
+        // 이미 서 있으면 이 개체는 나타나지 않는다).
+        [SerializeField] private bool bombArmored;
+        [SerializeField] private TempleFlag deathFlag = TempleFlag.None;
+        private const float ArmorDamageMul = 0.15f;
+        private const float StunnedDamageMul = 1.5f;
+        private const float BombStunSec = 4f;
+        private const float ArmorHintGapSec = 6f;
+        private static readonly Color StunColor = new Color(0.45f, 0.6f, 1f);
+        private float _stunLeft;
+        private float _armorHintCooldown;
+
+        public bool IsBombArmored => bombArmored;
+        public bool IsStunned => _stunLeft > 0f;
 
         private string LocalizedDisplayName =>
             DisplayNameKeys.TryGetValue(displayName, out var key) ? DungeonLocalization.T(key, displayName) : displayName;
@@ -222,6 +241,41 @@ namespace Saga.Dungeon.World
 
         private void OnEnable() => Active.Add(this);
 
+        private void Start()
+        {
+            if (deathFlag == TempleFlag.None) return;
+            TempleState.Changed += OnTempleChanged;
+            OnTempleChanged();
+        }
+
+        private void OnDestroy()
+        {
+            if (deathFlag != TempleFlag.None) TempleState.Changed -= OnTempleChanged;
+        }
+
+        /// <summary>PLAN.md 106-2 — 이미 쓰러뜨린 보스(세이브 로드)는 다시 서지 않는다.</summary>
+        private void OnTempleChanged()
+        {
+            if (_state != State.Dead && TempleState.Has(deathFlag)) gameObject.SetActive(false);
+        }
+
+        /// <summary>PLAN.md 106-2 벽력탄 폭발(`TempleBomb.Explode`)이 부른다. 갑주 보스면
+        /// 먼저 갑주를 벗겨 기절시킨 뒤(그래서 이 한 방부터 150%) 피해를 준다. 그 밖의 적은
+        /// 강공격처럼 예비동작을 끊는 한 방.</summary>
+        public void BombHit(float damage)
+        {
+            if (_state == State.Dead) return;
+            if (bombArmored && _stunLeft <= 0f)
+            {
+                EndWindup();
+                _stunLeft = BombStunSec;
+                if (_visualGo != null) CharacterVisual.Tint(_visualGo, StunColor);
+                _animator?.SetTrigger("Hit");
+                DialogueLabel.Instance?.Show(DungeonLocalization.T("temple.armor_broken", "💥 갑주가 벗겨졌다! — 지금이다"), 3f);
+            }
+            TakeDamage(damage, heavy: true);
+        }
+
         private void OnDisable()
         {
             Active.Remove(this);
@@ -267,6 +321,19 @@ namespace Saga.Dungeon.World
         public void Tick(float dt)
         {
             if (_state == State.Dead || _player == null) return;
+
+            if (_armorHintCooldown > 0f) _armorHintCooldown -= dt;
+            if (_stunLeft > 0f)
+            {
+                _stunLeft -= dt;
+                _animator?.SetFloat("Speed", 0f);
+                if (_stunLeft <= 0f)
+                {
+                    if (_visualGo != null) CharacterVisual.Tint(_visualGo, bodyColor);
+                    DialogueLabel.Instance?.Show(DungeonLocalization.T("temple.armor_back", "능묘지기가 갑주를 다시 여몄다"), 2.5f);
+                }
+                return;
+            }
 
             if (isWorldBoss && _worldBossActive)
             {
@@ -456,6 +523,22 @@ namespace Saga.Dungeon.World
         public void TakeDamage(float amount, bool heavy = false)
         {
             if (_state == State.Dead) return;
+            if (bombArmored)
+            {
+                if (_stunLeft > 0f)
+                {
+                    amount *= StunnedDamageMul;
+                }
+                else
+                {
+                    amount *= ArmorDamageMul;
+                    if (_armorHintCooldown <= 0f)
+                    {
+                        _armorHintCooldown = ArmorHintGapSec;
+                        DialogueLabel.Instance?.Show(DungeonLocalization.T("temple.armor_hint", "칼날이 튕겨 나간다 — 갑주를 먼저 벗겨야 한다"), 3f);
+                    }
+                }
+            }
             _curHp -= amount;
 
             Vector3 popupPos = transform.position + Vector3.up * (2f * visualScale);
@@ -549,6 +632,7 @@ namespace Saga.Dungeon.World
         /// 지켜야 "지금 피하라" 신호가 타격 한 번에 꺼지지 않는다.</summary>
         private Color CurrentTint()
         {
+            if (_stunLeft > 0f) return StunColor;
             if (_state != State.Windup) return bodyColor;
             return _warnHot ? WarnColor : Color.Lerp(bodyColor, WarnColor, 0.45f);
         }
@@ -580,6 +664,11 @@ namespace Saga.Dungeon.World
             if (gem != null) msg += string.Format(DungeonLocalization.T(socketed ? "enemy.gem_socketed" : "enemy.loot_plain",
                 socketed ? "\n{0}을(를) 주웠다 — 바로 세공했다." : "\n{0}을(를) 주웠다."), gem.Name);
             if (newlyDiscovered) msg += string.Format(DungeonLocalization.T("enemy.bestiary_new", "\n📖 도감에 처음 기록됨 — {0}"), LocalizedDisplayName);
+            if (deathFlag != TempleFlag.None)
+            {
+                TempleState.Set(deathFlag);
+                msg += DungeonLocalization.T("temple.cleared", "\n🏆 잊힌 능묘를 정복했다!");
+            }
             DialogueLabel.Instance?.Show(msg, ToastSec);
 
             // PLAN.md 101-3 F "죽음"(2026-09-17) — 보상은 이미 위에서 다

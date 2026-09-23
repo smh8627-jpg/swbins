@@ -80,6 +80,11 @@ namespace Saga.Dungeon.Player
         private bool _hasStrafeParams;
         private bool _strafeFlag;
 
+        // PLAN.md 106-2 "밀기 블록" — 이번 프레임 입력의 월드 방향(카메라 기준, 길이 ≤1).
+        // `TemplePushBlock`이 "블록 쪽으로 밀고 있는가"를 본다.
+        private Vector3 _moveIntent;
+        public Vector3 MoveIntent => _moveIntent;
+
         private CharacterController _controller;
         private InputAction _moveAction;
         private InputAction _sprintAction;
@@ -212,6 +217,7 @@ namespace Saga.Dungeon.Player
 
             Vector2 inputDir = MovementInput();
             Vector3 moveDir = WorldDirection(inputDir);
+            _moveIntent = moveDir;
 
             if (_dodgeTimeLeft > 0f)
             {

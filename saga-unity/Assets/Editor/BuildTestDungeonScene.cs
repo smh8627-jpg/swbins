@@ -329,6 +329,8 @@ namespace Saga.EditorTools
             BuildCorridorAndRoom3();
             BuildCorridorAndRoom4();
             BuildCorridorAndProcRoom();
+            BuildDungeonTemple.Build(_corridorGlb, _gateGlb, _roomGlb, _dungeonFloorMat, _dungeonWallMat,
+                _characterC, _characterD, RoomDoorWidth); // PLAN.md 106-2 "잊힌 능묘".
             var (playerGo, playerCombat, playerController) = BuildPlayer();
             BuildAlly();
             BuildPostProcessingVolume();
@@ -347,6 +349,7 @@ namespace Saga.EditorTools
             BuildWhirlButton(playerCombat);
             BuildDodgeButton(playerController);
             BuildLockOnButton(playerGo.GetComponent<PlayerLockOn>());
+            BuildBombButton(playerGo.GetComponent<PlayerBombs>());
             BuildMobileHud();
             BuildBlessingChoiceUi();
             BuildHordeArena();
@@ -765,6 +768,7 @@ namespace Saga.EditorTools
             room2Builder.Build();
             room2Builder.OpenSouthDoor(RoomDoorWidth);
             room2Builder.OpenNorthDoor(RoomDoorWidth); // "방 종류 마지막" — 복도2로 Room3와 잇는다.
+            room2Builder.OpenWestDoor(RoomDoorWidth); // PLAN.md 106-2 — "잊힌 능묘" 입구 복도.
 
             for (int i = 0; i < FieldEnemySpawns.Length; i++)
             {
@@ -1108,6 +1112,7 @@ namespace Saga.EditorTools
             SetPrivateField(pc, "inputActions", inputActions);
             var lockOn = playerGo.AddComponent<PlayerLockOn>(); // PLAN.md 106-1 "락온".
             SetPrivateField(pc, "lockOn", lockOn);
+            playerGo.AddComponent<PlayerBombs>(); // PLAN.md 106-2 "벽력탄".
 
             var combat = playerGo.AddComponent<PlayerCombat>();
             playerGo.AddComponent<WeaponVisual>(); // PLAN.md 101-3 G "장비 가시화".
@@ -1581,6 +1586,15 @@ namespace Saga.EditorTools
             // AttackButton(-100, 폭160)의 왼쪽, 20px 간격
             BuildActionButton("DodgeUI", "DodgeButton", new Vector2(1f, 0f), new Vector2(-280f, 180f),
                 new Vector2(130f, 130f), new Color(0.15f, 0.45f, 0.6f, 0.55f), "회피", 26, controller.TryDodge, "action.dodge");
+        }
+
+        /// <summary>PLAN.md 106-2 "벽력탄" — 주목 버튼 바로 위(20px 간격), 데스크톱은 R.
+        /// 벽력탄 상자를 열기 전엔 눌러도 "아직 없다" 토스트만(PlayerBombs.TryPlaceBomb).</summary>
+        private static void BuildBombButton(PlayerBombs bombs)
+        {
+            // LockOnButton(y=330, 높이130) 바로 위, 20px 간격
+            BuildActionButton("BombUI", "BombButton", new Vector2(1f, 0f), new Vector2(-280f, 480f),
+                new Vector2(130f, 130f), new Color(0.35f, 0.3f, 0.3f, 0.55f), "벽력탄", 24, bombs.TryPlaceBomb, "action.bomb");
         }
 
         /// <summary>PLAN.md 106-1 "락온" — 회피 버튼 바로 위(20px 간격), 데스크톱은

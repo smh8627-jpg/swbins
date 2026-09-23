@@ -30,7 +30,9 @@ namespace Saga.Dungeon.Data
         // GO의 v10과 같은 구조(날짜 문자열이 오늘의 일과 셋을 해시로 다시 뽑는 키).
         // v7 이하 세이브는 dailyDate가 null/빈 문자열로 채워지고 Restore가 빈
         // 상태로 둔다 — 다음 EnsureToday() 호출이 오늘 날짜로 새로 채운다.
-        private const int SaveVersion = 8;
+        // v9 — PLAN.md 106-2 "잊힌 능묘"(TempleState) 작은 열쇠 수 + 진행 비트. v8 이하
+        // 세이브는 두 필드가 0 으로 채워져 "아직 안 들어감"과 같은 뜻이 된다.
+        private const int SaveVersion = 9;
 
         private static string SavePath => Path.Combine(Application.persistentDataPath, "save_dungeon.json");
 
@@ -61,6 +63,8 @@ namespace Saga.Dungeon.Data
             public bool[] dailyDone;
             public bool dailyStampGranted;
             public int dailyStamps;
+            public int templeKeys; // v9 — TempleState.SmallKeys.
+            public int templeFlags; // v9 — (int)TempleState.Flags, 비트 순서는 TempleFlag 주석 참고.
         }
 
         public static bool Save()
@@ -91,6 +95,8 @@ namespace Saga.Dungeon.Data
                 dailyDone = DungeonDailyTaskState.SnapshotDone(),
                 dailyStampGranted = DungeonDailyTaskState.SnapshotDayStampGranted(),
                 dailyStamps = DungeonDailyTaskState.Stamps,
+                templeKeys = TempleState.SmallKeys,
+                templeFlags = (int)TempleState.Flags,
             };
 
             try
@@ -151,6 +157,10 @@ namespace Saga.Dungeon.Data
             if (data.version >= 8)
             {
                 DungeonDailyTaskState.Restore(data.dailyDate, data.dailyProgress, data.dailyDone, data.dailyStampGranted, data.dailyStamps);
+            }
+            if (data.version >= 9)
+            {
+                TempleState.Restore(data.templeKeys, data.templeFlags);
             }
 
             Transform player = FindPlayer();

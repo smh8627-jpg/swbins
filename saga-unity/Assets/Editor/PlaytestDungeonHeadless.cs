@@ -121,6 +121,7 @@ namespace Saga.EditorTools
                 CheckHorde(); // PLAN.md 101-2 5.5 — CheckGraveMarker가 이미 HeroState.Hp를 0으로 만들어 둬 이 체크 맨 앞에서 FullHeal()로 되돌린다.
                 CheckLockOn(); // PLAN.md 106-1 — 더미 처치가 레벨업을 부를 수 있어 CheckLevelUpCut 뒤.
                 CheckEnemyTelegraph();
+                CheckTemple(); // PLAN.md 106-2 — 플레이어를 순간이동시키므로 맨 끝(finally 에서 되돌린다).
             }
 
             if (_framesSeen >= FramesToRun)
@@ -1310,6 +1311,171 @@ namespace Saga.EditorTools
                 HeroState.FullHeal();
                 if (e != null) Object.Destroy(e.gameObject);
                 RestoreEnemies(others);
+            }
+        }
+
+        /// <summary>PLAN.md 106-2 "잊힌 능묘" — 씬에 지어진 진짜 상자·문·블록·벽·능묘지기를
+        /// 순서대로 밟는다: 입구 제목 → 벽력탄 없음 → 열쇠 없는 문 막힘 → 시련 클리어 전 상자
+        /// 숨김 → 작은 열쇠 → 문 → 블록(밀기 감지·경계 막힘·발판) → 벽력탄 → 금 간 벽(폭발·자기
+        /// 피해) → 보스 열쇠 → 보스 문 → 갑주 15%·기절 150% → 정복 비트.</summary>
+        private static void CheckTemple()
+        {
+            const string T = "[PlaytestDungeonHeadless] temple";
+            var playerGo = GameObject.FindWithTag("Player");
+            var controller = playerGo != null ? playerGo.GetComponent<PlayerController>() : null;
+            var bombs = playerGo != null ? playerGo.GetComponent<PlayerBombs>() : null;
+            TempleChest keyChest = null, bombChest = null, bossKeyChest = null;
+            foreach (var c in Object.FindObjectsByType<TempleChest>(FindObjectsSortMode.None))
+            {
+                if (c.Content == TempleChestContent.SmallKey) keyChest = c;
+                else if (c.Content == TempleChestContent.Bombs) bombChest = c;
+                else bossKeyChest = c;
+            }
+            TempleDoor smallDoor = null, bossDoor = null;
+            foreach (var d in Object.FindObjectsByType<TempleDoor>(FindObjectsSortMode.None))
+            {
+                if (d.Kind == TempleDoorKind.SmallKey) smallDoor = d;
+                else bossDoor = d;
+            }
+            var wall = Object.FindFirstObjectByType<TempleCrackedWall>();
+            var block = Object.FindFirstObjectByType<TemplePushBlock>();
+            var entrance = Object.FindFirstObjectByType<TempleEntrance>();
+            DungeonEnemy guardian = null;
+            foreach (var e in DungeonEnemy.Active)
+            {
+                if (e != null && e.IsBombArmored) guardian = e;
+            }
+            if (controller == null || bombs == null || keyChest == null || bombChest == null || bossKeyChest == null
+                || smallDoor == null || bossDoor == null || wall == null || block == null || entrance == null || guardian == null)
+            {
+                Debug.LogError($"{T} — 능묘 구성품을 못 찾음(씬 재빌드 필요) bombs={bombs} key={keyChest} bomb={bombChest} bossKey={bossKeyChest} " +
+                               $"door={smallDoor}/{bossDoor} wall={wall} block={block} entrance={entrance} guardian={guardian}");
+                _hadError = true;
+                return;
+            }
+
+            Transform p = playerGo.transform;
+            Vector3 origPos = p.position;
+            int origKeys = TempleState.SmallKeys;
+            int origFlags = (int)TempleState.Flags;
+            Vector3 far = origPos;
+            bool Fail(string msg)
+            {
+                Debug.LogError($"{T} — {msg}");
+                _hadError = true;
+                return false;
+            }
+            try
+            {
+                TempleState.Restore(0, 0);
+                HeroState.FullHeal();
+                ResetDodge(controller);
+
+                p.position = entrance.transform.position;
+                entrance.Tick();
+                if (!TempleState.Has(TempleFlag.Visited) || TempleState.HudLine().Length == 0) { Fail("입구에서 Visited·HUD 줄이 안 섬"); return; }
+
+                bombs.TryPlaceBomb();
+                if (bombs.ActiveBomb != null) { Fail("벽력탄 없이 놓임"); return; }
+
+                p.position = smallDoor.transform.position + new Vector3(0f, 0f, -1.5f);
+                smallDoor.Tick();
+                if (smallDoor.IsOpened) { Fail("열쇠 없이 잠긴 문이 열림"); return; }
+                p.position = far;
+                smallDoor.Tick();
+
+                keyChest.Tick();
+                if (keyChest.IsRevealed) { Fail("시련의 방 파수꾼이 살아 있는데 상자가 보임"); return; }
+                foreach (var e in new List<DungeonEnemy>(DungeonEnemy.Active))
+                {
+                    if (e != null && e.RoomId == "temple_trial") e.TakeDamage(999999f);
+                }
+                p.position = keyChest.transform.position + new Vector3(1f, 0f, 0f);
+                keyChest.Tick();
+                if (!keyChest.IsOpened || TempleState.SmallKeys != 1) { Fail($"시련 클리어 뒤 작은 열쇠 상자 revealed={keyChest.IsRevealed} opened={keyChest.IsOpened} keys={TempleState.SmallKeys}"); return; }
+
+                p.position = smallDoor.transform.position + new Vector3(0f, 0f, -1.5f);
+                smallDoor.Tick();
+                if (!smallDoor.IsOpened || TempleState.SmallKeys != 0 || !TempleState.Has(TempleFlag.SmallDoor)) { Fail($"작은 열쇠로 문이 안 열림 keys={TempleState.SmallKeys}"); return; }
+
+                // 블록 — 진짜 밀기 감지(서쪽 면에 붙어 동쪽으로 0.35초) 한 번, 나머지는 즉시 밀기.
+                p.position = far;
+                bombChest.Tick();
+                if (bombChest.IsRevealed) { Fail("발판 전인데 벽력탄 상자가 보임"); return; }
+                Vector3 blockWorld = block.transform.TransformPoint(block.BlockLocal);
+                p.position = new Vector3(blockWorld.x - 1.4f, origPos.y, blockWorld.z);
+                SetPrivate(controller, "_moveIntent", Vector3.right);
+                block.Tick(0.2f);
+                bool heldEarly = (bool)GetPrivate(block, "_sliding");
+                block.Tick(0.2f);
+                bool pushed = (bool)GetPrivate(block, "_sliding");
+                SetPrivate(controller, "_moveIntent", Vector3.zero);
+                if (heldEarly || !pushed) { Fail($"블록 밀기 감지 틀림 early={heldEarly} pushed={pushed}"); return; }
+                block.StopAllCoroutines();
+                SetPrivate(block, "_sliding", false);
+                var blockTf = block.transform.Find("Block");
+                blockTf.localPosition = new Vector3(-2f, blockTf.localPosition.y, -4f);
+                p.position = far;
+                bool z1 = block.TryPush(Vector3.back, instant: true);
+                bool z2 = block.TryPush(Vector3.back, instant: true);
+                bool z3 = block.TryPush(Vector3.back, instant: true); // -10 은 방 경계 밖.
+                if (!z1 || !z2 || z3) { Fail($"블록 경계 막힘 틀림 {z1}/{z2}/{z3} at {block.BlockLocal}"); return; }
+                block.TryPush(Vector3.forward, instant: true);
+                block.TryPush(Vector3.forward, instant: true);
+                for (int i = 0; i < 3; i++) block.TryPush(Vector3.right, instant: true);
+                if (!block.IsSolved || !TempleState.Has(TempleFlag.BlockSolved)) { Fail($"발판에 올렸는데 안 풀림 block={block.BlockLocal} plate={block.PlateLocal}"); return; }
+                bombChest.Tick();
+                p.position = bombChest.transform.position + new Vector3(1f, 0f, 0f);
+                bombChest.Tick();
+                if (!bombChest.IsOpened || !TempleState.HasBombs) { Fail("벽력탄 상자가 안 열림"); return; }
+
+                // 금 간 벽 — 진짜로 놓은 뒤 벽 앞으로 옮겨 즉시 터뜨린다(심지 2초는 기다리지 않는다).
+                p.position = wall.transform.position + new Vector3(1.5f, 0f, 0f);
+                HeroState.FullHeal();
+                int hpBefore = HeroState.Hp;
+                int explodeBefore = TempleBomb.ExplodeCount;
+                bombs.TryPlaceBomb();
+                var bomb = bombs.ActiveBomb;
+                if (bomb == null) { Fail("벽력탄을 가졌는데 안 놓임"); return; }
+                bomb.transform.position = wall.transform.position + new Vector3(0.9f, 0.25f, 0f);
+                bomb.Explode();
+                if (!wall.IsBroken || !TempleState.Has(TempleFlag.CrackedWall) || TempleBomb.ExplodeCount != explodeBefore + 1)
+                { Fail($"벽력탄으로 금 간 벽이 안 부서짐 broken={wall.IsBroken}"); return; }
+                if (HeroState.Hp >= hpBefore) { Fail($"폭발 반경 안인데 자기 피해 없음 hp {hpBefore}→{HeroState.Hp}"); return; }
+
+                p.position = bossKeyChest.transform.position + new Vector3(1.2f, 0f, 0f);
+                bossKeyChest.Tick();
+                if (!bossKeyChest.IsOpened || !TempleState.HasBossKey) { Fail("보스 열쇠 상자가 안 열림"); return; }
+
+                p.position = far;
+                bossDoor.Tick();
+                p.position = bossDoor.transform.position + new Vector3(0f, 0f, -1.5f);
+                bossDoor.Tick();
+                if (!bossDoor.IsOpened || TempleState.HasBossKey) { Fail("보스 열쇠로 보스 문이 안 열림(또는 열쇠가 안 소비됨)"); return; }
+
+                SetPrivate(guardian, "_curHp", 480f);
+                guardian.TakeDamage(100f);
+                float afterArmor = (float)GetPrivate(guardian, "_curHp");
+                guardian.BombHit(100f);
+                float afterBomb = (float)GetPrivate(guardian, "_curHp");
+                bool stunned = guardian.IsStunned;
+                guardian.TakeDamage(100f);
+                float afterStun = (float)GetPrivate(guardian, "_curHp");
+                if (Mathf.Abs(480f - afterArmor - 15f) > 0.01f || !stunned
+                    || Mathf.Abs(afterArmor - afterBomb - 150f) > 0.01f || Mathf.Abs(afterBomb - afterStun - 150f) > 0.01f)
+                { Fail($"갑주 배율 틀림 480→{afterArmor}(갑주)→{afterBomb}(폭발)→{afterStun}(기절) stunned={stunned}"); return; }
+                guardian.TakeDamage(999999f);
+                if (!TempleState.Has(TempleFlag.BossDefeated)) { Fail("능묘지기를 쓰러뜨렸는데 정복 비트가 안 섬"); return; }
+
+                Debug.Log($"{T} OK - 입구·열쇠 없는 문·시련 상자·작은 열쇠·문·블록 감지/경계/발판·벽력탄·금 간 벽·자기 피해·보스 열쇠·보스 문·갑주 15%/기절 150%·정복");
+            }
+            finally
+            {
+                p.position = origPos;
+                SetPrivate(controller, "_moveIntent", Vector3.zero);
+                TempleState.Restore(origKeys, origFlags);
+                HeroState.FullHeal();
+                ResetDodge(controller);
             }
         }
 
