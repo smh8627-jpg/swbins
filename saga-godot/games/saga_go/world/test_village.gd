@@ -42,6 +42,12 @@ func _ready() -> void:
 	world_map.name = "WorldMap"
 	add_child(world_map)
 	world_map.bind_waypoints(waypoints)
+	## PLAN 106장 ⑪ — 별조각(수집 구슬) + 신상 봉헌 → 스태미나 상한.
+	var shards := preload("res://games/saga_go/world/star_shards.gd").new()
+	shards.name = "StarShards"
+	add_child(shards)
+	if OS.get_environment("SAGA_SHARD_PROBE") != "":
+		add_child(load("res://tools/probe_star_shards.gd").new())
 	if OS.get_environment("SAGA_MAP_PROBE") != "":
 		add_child(load("res://tools/probe_world_map.gd").new())
 	## PLAN 106장 ⑩ — 인물 화면(레벨·돌파·가방, C/B).

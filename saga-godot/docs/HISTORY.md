@@ -8443,3 +8443,13 @@ PROJECT_STATE.md` 참고. 요약:
 - `save_state.gd` SAVE_VERSION 3 — `char_growth`·`bag` 저장, 2→3 단계에서 부대 레벨 L 로 주인공·동료 Lv 1+2L(20 까지) 채움. `probe_traversal.gd` save_migrate 의 "version == 2" 를 SAVE_VERSION 과 비교로.
 - 점검: 육성 10항목 3회 md5 동일 fails=0(경험표·견문록 3권 → Lv.7·냥 9400 · 상한 20 멈춤 · 돌파 차감·상한 40 · 공격 60→104.7 · 늑대 송곳니 · 상자 견문록·냥 300 · v2→v3 · restore · 인물 화면 단추). 전투·이동·보물·지도 fails=0, REGRESS OK.
 - 실기 확인 전: 인물 화면 배치·글자 크기, 성장 속도(첫 돌파 냥 5천 = 늑대 약 125마리 또는 상자 몇 개), 레벨 오른 손맛.
+
+## GO 원신 기준 ⑪ 수집 구슬(별조각)·신상 봉헌 → 스태미나 상한 (2026-09-24, 새 세션, "사가고돗 이어해")
+
+- PROJECT_STATE 1순위. 새 `world/star_shards.gd`(20개 표·코드로 그린 빛 구슬+빛무리·오르내림·회전, 줍기·자동 봉헌·신상 Lv 보상) · `tools/probe_star_shards.gd`. `test_village.gd` 에 지도 뒤로 — 로드 뒤라 여기 _ready 가 `go_player.stamina_max` 를 앉힌다(go_player._ready 는 로드 전).
+- `go_player.gd`: `stamina_max` 변수 — 회복 상한·익수 복귀·스태미나 고리 비율이 그걸 씀(STAMINA_MAX 는 처음 값 100, 점검들이 쓰는 이름 그대로).
+- 세이브 스키마 그대로(EventState `shard_`·`shardgive_`). 신상 봉헌은 어느 신상이든 합산(지역 원소 구분 없음 — 원소가 셋뿐이라).
+- `world_map.gd` 탐험도에 별조각, 지도 옆 칸에 "신상 Lv·별조각 a/20(바친 것)".
+- 점검 6항목 3회 md5 동일 fails=0(배치 · 줍기·탐험도 · 하나로는 Lv 0 · 둘째로 Lv.1·상한 108·냥 1000 · 108 까지 참 · 다시 지으면 18개·상한 유지). 전투·이동·보물·지도·육성 fails=0, REGRESS OK.
+- 파이썬 치환에서 `"\n"` 이 든 GDScript 줄은 raw 문자열로(일반 문자열은 heredoc 을 거치며 실제 줄바꿈으로 풀려 어긋났다).
+- 실기 확인 전: 별조각이 멀리서 보이는지(하늘색 빛무리), 산꼭대기 것까지 오를 만한지, 봉헌 토스트가 너무 길지 않은지.

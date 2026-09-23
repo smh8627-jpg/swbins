@@ -76,6 +76,8 @@ const WATER_LAYER := TerrainBuilder.WATER_LAYER
 
 var mode := Mode.GROUND
 var stamina := STAMINA_MAX
+## 106장 ⑪ — 신상에 별조각을 바칠수록 늘어난다(star_shards.gd 가 앉힌다). STAMINA_MAX 는 처음 값.
+var stamina_max := STAMINA_MAX
 
 var _exhausted := false
 var _regen_wait := 0.0
@@ -431,7 +433,7 @@ func _start_mantle(top: Vector3) -> void:
 ## 물에 빠져 기력이 다하면 마지막으로 딛은 땅으로(원신의 익수 복귀).
 func _drown() -> void:
 	respawn_safe()
-	stamina = STAMINA_MAX
+	stamina = stamina_max
 	_exhausted = false
 	Toast.show(self, "기력이 다해 물가로 떠밀려 왔다", 3.0)
 
@@ -525,11 +527,11 @@ func _tick_stamina(delta: float) -> void:
 	if not _consuming and (mode == Mode.GROUND or mode == Mode.MANTLE):
 		_regen_wait -= delta
 		if _regen_wait <= 0.0:
-			stamina = minf(stamina + STAMINA_REGEN * delta, STAMINA_MAX)
+			stamina = minf(stamina + STAMINA_REGEN * delta, stamina_max)
 	if _exhausted and stamina >= STAMINA_EXHAUST_RECOVER:
 		_exhausted = false
 	if _ring:
-		_ring.update_from(stamina / STAMINA_MAX, _exhausted, _consuming,
+		_ring.update_from(stamina / stamina_max, _exhausted, _consuming,
 			global_position + Vector3.UP * 1.3, delta)
 
 # ---------------------------------------------------------------- 판정

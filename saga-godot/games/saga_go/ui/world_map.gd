@@ -12,6 +12,7 @@ const TestMap := preload("res://games/saga_go/data/test_map.gd")
 const TerrainBuilder := preload("res://games/saga_go/world/terrain_builder.gd")
 const Waypoints := preload("res://games/saga_go/world/waypoints.gd")
 const TreasureSpawner := preload("res://games/saga_go/world/treasure_spawner.gd")
+const StarShards := preload("res://games/saga_go/world/star_shards.gd")
 
 const M_PER_PX := 3.0
 const MINI_SIZE := 190.0
@@ -196,7 +197,7 @@ func _px_to_world(px: Vector2) -> Vector3:
 
 # ---------------------------------------------------------------- 탐험도
 
-## 지역 탐험도(0~1) — 그 지역의 순간이동 지점 활성화 + 보물 상자 열기.
+## 지역 탐험도(0~1) — 그 지역의 순간이동 지점 활성화 + 보물 상자 열기 + 별조각 줍기(106장 ⑪).
 static func exploration(rid: String) -> float:
 	var total := 0
 	var done := 0
@@ -210,6 +211,10 @@ static func exploration(rid: String) -> float:
 			total += 1
 			if EventState.is_resolved("chest_" + String(row[0])):
 				done += 1
+	for row in StarShards.in_region(rid):
+		total += 1
+		if EventState.is_resolved("shard_" + String(row[0])):
+			done += 1
 	return float(done) / float(total) if total > 0 else 0.0
 
 # ---------------------------------------------------------------- 미니맵
@@ -463,7 +468,7 @@ func _build_screen() -> void:
 	side.offset_left = -260
 	side.offset_right = -20
 	side.offset_top = 20
-	side.offset_bottom = 230
+	side.offset_bottom = 290
 	_screen.add_child(side)
 	var box := VBoxContainer.new()
 	side.add_child(box)
@@ -516,6 +521,8 @@ func _refresh_screen() -> void:
 	var lines: Array[String] = []
 	for rid in REGION_NAMES:
 		lines.append("%s  %d%%" % [REGION_NAMES[rid], int(round(exploration(rid) * 100.0))])
+	lines.append("")
+	lines.append("신상 Lv.%d · 별조각 %d/%d (바친 것 %d)" % [StarShards.statue_level(), StarShards.collected(), StarShards.total(), StarShards.offered()])
 	_explore_label.text = "\n".join(lines)
 	if _selected == "":
 		_select_label.text = "순간이동 지점을 누르세요"
