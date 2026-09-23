@@ -1180,7 +1180,7 @@
 
     /* 손으로 **놓은** 것(`land.js` deco — 맵 편집기 "3D 배치"가 고친다). 제 자리·키·돌림 그대로
        해시 소품 위에 얹는다. 이 계획을 거치므로 집·탑·우물·장터는 벽 충돌(`houseRects`)도
-       저절로 따라온다 — 다만 `world.js` 가 충돌을 재는 건 마을 칸뿐이다 */
+       저절로 따라온다(마을 칸이 아닌 곳에 놓은 것도 — `houseRects` 가 그 칸의 deco 만 따로 본다) */
     if (authored && RG.decoAt) {
       var dk = RG.decoAt(gx, gy);
       for (i = 0; i < dk.length; i++) { out.push(dk[i]); }
@@ -1206,7 +1206,14 @@
    * 장터에 박힌 것을 실제로 찍어서 발견했다)를 없애는 데는 이 정도로 충분하다.
    */
   function houseRects(gx, gy) {
-    var plan = propPlan('town', gx, gy, false);
+    /* 해시로 벽이 되는 소품(집·탑·우물·장터)을 세우는 건 마을 칸뿐이다. 다른 칸은
+       손으로 놓은 것(`land.js` deco)만 — 여태는 칸 종류를 안 보고 늘 마을 계획을
+       뽑아서, 들판에서도 교전 상대가 **안 보이는 집**을 피해 밀려났고(`duelSpotBlocked`),
+       `world.js` 는 마을 칸만 재서 들판에 놓은 deco 집은 뚫고 지나갔다(2026-09-23) */
+    var Wd = global.DG.world, RG = global.DG.land;
+    var kind = Wd && Wd.terrainAt ? Wd.terrainAt(gx, gy) : 'town';
+    var plan = kind === 'town' ? propPlan('town', gx, gy, false)
+      : (RG && RG.decoAt ? RG.decoAt(gx, gy) : []);
     var ox = gx * GRID + GRID / 2, oz = gy * GRID + GRID / 2;
     var out = [], i;
     for (i = 0; i < plan.length; i++) {

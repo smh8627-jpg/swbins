@@ -312,14 +312,13 @@
     buildFoot(); buildSel();
   }
 
-  /* 벽 충돌 범위 — `houseRects` 와 같은 식. 마을 칸(world.js 가 충돌을 재는 곳)만 주황, 아니면 회색 */
+  /* 벽 충돌 범위 — `houseRects` 와 같은 식(마을 칸 밖에 놓은 것도 벽이다 — houseRects 가 그 칸 deco 를 본다) */
   function rectOf(d) {
     if (d.t === 'house' || d.t === 'tower') { return { w: d.w > 0 ? d.w : 8, d: d.d > 0 ? d.d : (d.w > 0 ? d.w : 8) * 0.85, rot: d.rot || 0 }; }
     if (d.t === 'well') { return { w: d.h * 1.6, d: d.h * 1.6, rot: 0 }; }
     if (d.t === 'market') { return { w: d.h * 2.8, d: d.h * 1.8, rot: d.rot || 0 }; }
     return null;
   }
-  function inTown(d) { var c = cellOf(d.x, d.z); return DG.land.terrainAt(c.gx, c.gy) === 'town'; }
   function buildFoot() {
     while (footGroup.children.length) { footGroup.remove(footGroup.children[0]); }
     deco.forEach(function (d) {
@@ -332,7 +331,7 @@
         var x = d.x + lx * c - lz * s, z = d.z + lx * s + lz * c;
         pts.push(new T.Vector3(x, groundY(x, z) + 0.35, z));
       });
-      var ln = new T.Line(new T.BufferGeometry().setFromPoints(pts), new T.LineBasicMaterial({ color: inTown(d) ? 0xff9a3c : 0x8a8a8a }));
+      var ln = new T.Line(new T.BufferGeometry().setFromPoints(pts), new T.LineBasicMaterial({ color: 0xff9a3c }));
       footGroup.add(ln);
     });
     footGroup.visible = $('#vFoot').checked;
@@ -755,7 +754,7 @@
         '<span>벽 밝기</span><input data-k="shade" type="range" min="0" max="1" step="0.05" value="' + (typeof d.shade === 'number' ? d.shade : 0.5) + '">' : '') +
       '</div><div class="muted" style="margin-top:6px">' +
       (hasWD ? '모델(GLB)은 키 h 로만 커진다. 폭·깊이는 벽 충돌과 모델이 안 왔을 때 상자 크기다.<br>' : '') +
-      (SOLID[d.t] ? (inTown(d) ? '마을 칸이라 사람이 부딪힌다(주황 선).' : '<span class="warn">마을 칸이 아니라 부딪히지 않는다(회색 선) — world.js 는 마을 칸에서만 벽을 잰다.</span>') : '') + '</div>';
+      (SOLID[d.t] ? '사람이 부딪힌다(주황 선).' : '') + '</div>';
     box.querySelectorAll('[data-k]').forEach(function (inp) {
       var ev = inp.type === 'range' ? 'input' : 'change';
       var pushed = false;
@@ -819,7 +818,6 @@
       if (mk) { out.push(nm + ' — 표식 칸(' + mk + ')이라 명소 모델과 겹칠 수 있다'); }
       var rc = rectOf(d);
       if (!rc) { return; }
-      if (!inTown(d)) { out.push(nm + ' — 마을 칸이 아니라 부딪히지 않는다'); return; }
       var A = { x: d.x, z: d.z, w: rc.w, d: rc.d, rot: rc.rot };
       /* 해시가 세운 집(놓은 것 빼고)과 겹치나 — 게임 houseRects 그대로 */
       var key = c.gx + ',' + c.gy;

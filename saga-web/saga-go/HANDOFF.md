@@ -3637,3 +3637,15 @@ SAGA-HANDOFF 열린 항목 "tower_ruin.glb(역참) 아이콘 굽기 — 여섯 �
 - `world3d.js`: `propPlan` 끝에서 `decoAt` 를 얹는다(모델·LOD·등불·`houseRects` 벽 — 벽은 `world.js` 가 마을 칸만 잰다). `syncProps` 는 소품 있는 먼 풀밭·길 칸도 세운다.
 - 배열이 비어 있어 화면은 그대로. 진단 "땅 — 손으로 놓은 소품(deco)…" 추가 → jsdom 569/569(세 번 동일). `sw.js` go-v5.58.0.
 - 채우는 법: `saga-web/tools/map-editor/` "3D 배치"(README). 실기 확인 전.
+
+## 2026-09-23 (이어서 7) — 마을 칸 밖 deco 집도 벽 · 들판의 안 보이는 집 없앰
+
+- `world3d.houseRects(gx,gy)` 가 칸 종류를 안 보고 늘 `propPlan('town', …)` 을 뽑았다. 그래서
+  ① `world.js` 는 마을 칸만 골라 불러 **마을 칸 밖에 놓은 deco 집·탑·우물·장터는 뚫고 지나갔고**,
+  ② 칸을 안 가리고 9칸을 부르는 `duelSpotBlocked` 는 들판에서도 **안 보이는 해시 집**을 피해 교전 상대를 밀어냈다.
+- 고침: `houseRects` 가 `DG.world.terrainAt` 로 칸을 보고, 마을이면 여태대로 마을 계획, 아니면 그 칸 `land.decoAt` 만.
+  `world.js solidRectsNear` 의 마을 칸 거름은 뺐다(들판 칸은 deco 가 없으면 빈 배열이라 값이 싸다).
+- 3D 배치 편집기(`tools/map-editor/scene.js`)의 "마을 칸이 아니라 부딪히지 않는다" 경고·회색 선을 걷었다(이제 늘 주황).
+- 진단 "땅 — 마을 칸 밖에 놓은 deco 집도 벽이고, 들판엔 안 보이는 집이 없다" 추가: 이웃까지 마을 아닌 풀밭 칸의 벽 0 → 집 놓으면 1,
+  스틱으로 동쪽으로 걸으면 집 앞(-4.8m)에서 멈춤. jsdom 563/571 세 번 동일 — 실패 8건은 HEAD 사본에서도 같은 목록(캔버스 흉내·`Request` 없음).
+- deco 배열은 아직 비어 있어 게임 화면·판정은 그대로(교전 상대 자리만 들판에서 덜 밀린다). `sw.js` go-v5.61.0. 실기 확인 전.

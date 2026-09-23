@@ -234,8 +234,7 @@
     var out = [], gx, gy, i, rs;
     for (gy = gy0 - 1; gy <= gy0 + 1; gy++) {
       for (gx = gx0 - 1; gx <= gx0 + 1; gx++) {
-        if (terrainAt(gx, gy) !== 'town') { continue; }
-        rs = W3.houseRects(gx, gy);
+        rs = W3.houseRects(gx, gy);          // 마을 칸 밖이면 손으로 놓은 집(deco)만 온다
         for (i = 0; i < rs.length; i++) { out.push(rs[i]); }
       }
     }

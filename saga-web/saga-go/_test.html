@@ -2551,6 +2551,37 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ('마을 칸 소품 ' + before + '→' + plan.length + ' · 벽 ' + rb + '→' + rects + ' · 모르는 종류 1건 막음 · 손잡이 끄면 ' + offLen);
     });
 
+    t('땅 — 마을 칸 밖에 놓은 deco 집도 벽이고, 들판엔 안 보이는 집이 없다', function () {
+      /* houseRects 가 칸 종류를 안 보고 늘 마을 계획을 뽑던 때는 들판 칸에도 가짜 집이 있었고
+         (교전 상대가 그걸 피해 밀려남), world.js 는 마을 칸만 재서 들판 deco 집을 뚫고 지나갔다 */
+      var r = LD.region(), keep = r.deco, b = LD.bounds(), gx, gy, cell = null, dx, dy, ok;
+      for (gy = b.y0 + 1; gy < b.y1 && !cell; gy++) {
+        for (gx = b.x0 + 1; gx < b.x1 && !cell; gx++) {
+          if (W.terrainAt(gx, gy) !== 'grass' || LD.markAt(gx, gy)) { continue; }
+          ok = true;
+          for (dy = -1; dy <= 1; dy++) { for (dx = -1; dx <= 1; dx++) { if (W.terrainAt(gx + dx, gy + dy) === 'town') { ok = false; } } }
+          if (ok) { cell = { gx: gx, gy: gy }; }
+        }
+      }
+      if (!cell) { return false; }
+      var cx = cell.gx * 48 + 24, cz = cell.gy * 48 + 24;
+      var r0 = R3.houseRects(cell.gx, cell.gy).length;
+      var p = C.save.player.pos, kx = p.x, ky = p.y, kd = C.save.player.distance;
+      function farStep() { p.x = cx + 48 * 30; p.y = cz; W.setStick(1, 0, false); W.update(0.01); }   // 벽 캐시(칸 단위)를 비운다
+      r.deco = [{ t: 'house', x: cx, z: cz, h: 5, w: 8, d: 8, rot: 0 }];
+      var rs = R3.houseRects(cell.gx, cell.gy).length;
+      farStep();
+      p.x = cx - 14; p.y = cz;
+      for (var i = 0; i < 60; i++) { W.update(0.05); }
+      var stopX = p.x - cx;
+      r.deco = keep;
+      farStep();
+      W.setStick(0, 0, false);
+      p.x = kx; p.y = ky; C.save.player.distance = kd;
+      return r0 === 0 && rs === 1 && stopX < -4.4 && stopX > -12 &&
+        ('들판 칸 ' + cell.gx + ',' + cell.gy + ' 벽 ' + r0 + '→' + rs + ' · 동쪽으로 걷다 집 앞 ' + stopX.toFixed(1) + 'm 에서 멈춤');
+    });
+
     t('땅 — 지도가 깔려 있어도 강물은 깐다', function () {
       /* 이 땅의 강은 **지도에 없는 물**이다. 지도가 있다고 빼면 강이 아예 안 보인다 */
       var br = LD.place('bridge');
