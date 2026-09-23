@@ -50,7 +50,8 @@ var level: int = 0
 var atk: float = BASE_ATK
 var def: float = BASE_DEF
 var perks: Array[String] = []
-## id("self" = 주인공) → {"lv": int, "exp": float, "asc": int}. 없는 칸 = 레벨 1.
+## id("self" = 주인공) → {"lv": int, "exp": float, "asc": int, "tn"/"ts"/"tb": 특성 레벨(106장 ⑫), "con": 운명의 자리}.
+## 없는 칸 = 레벨 1·특성 1·자리 0(⑫ 이전 v3 세이브도 그대로 읽힌다 — 필드를 더했을 뿐이라 SAVE_VERSION 그대로).
 var growth: Dictionary = {}
 ## 아이템 id(growth.gd ITEMS) → 개수.
 var bag: Dictionary = {}
@@ -108,7 +109,8 @@ func restore(saved_members: Array[String], saved_exp: float = 0.0, saved_perks: 
 	for id in saved_growth:
 		var g: Variant = saved_growth[id]
 		if typeof(g) == TYPE_DICTIONARY:
-			growth[str(id)] = {"lv": int(g.get("lv", 1)), "exp": float(g.get("exp", 0.0)), "asc": int(g.get("asc", 0))}
+			growth[str(id)] = {"lv": int(g.get("lv", 1)), "exp": float(g.get("exp", 0.0)), "asc": int(g.get("asc", 0)),
+				"tn": int(g.get("tn", 1)), "ts": int(g.get("ts", 1)), "tb": int(g.get("tb", 1)), "con": int(g.get("con", 0))}
 	bag.clear()
 	for item in saved_bag:
 		bag[str(item)] = int(saved_bag[item])
@@ -250,6 +252,56 @@ func ascend(id: String) -> bool:
 	var g := growth_of(id)
 	spend_items(Growth.ascend_cost(id, int(g.asc)))
 	g.asc = int(g.asc) + 1
+	growth_changed.emit(id)
+	power_changed.emit(atk, def)
+	return true
+
+# ---------------------------------------------------------------- 특성·운명의 자리(106장 ⑫)
+
+const _TALENT_KEY := {"normal": "tn", "skill": "ts", "burst": "tb"}
+
+## 올린 특성 레벨(1~10). 운명의 자리 보너스는 뺀 값.
+func talent_level(id: String, kind: String) -> int:
+	return int(growth_of(id).get(_TALENT_KEY[kind], 1))
+
+## 싸울 때 쓰는 특성 레벨 — 운명의 자리 3(스킬)·5(폭발)가 +3.
+func talent_effective(id: String, kind: String) -> int:
+	var lv := talent_level(id, kind)
+	if (kind == "skill" and constellation(id) >= 3) or (kind == "burst" and constellation(id) >= 5):
+		lv += Growth.TALENT_BONUS
+	return lv
+
+func talent_mul(id: String, kind: String) -> float:
+	return Growth.talent_mul(talent_effective(id, kind))
+
+func talent_cap(id: String) -> int:
+	return Growth.talent_cap(char_asc(id))
+
+func can_talent_up(id: String, kind: String) -> bool:
+	var lv := talent_level(id, kind)
+	return lv < talent_cap(id) and has_items(Growth.talent_cost(id, lv))
+
+func talent_up(id: String, kind: String) -> bool:
+	if not can_talent_up(id, kind):
+		return false
+	var lv := talent_level(id, kind)
+	spend_items(Growth.talent_cost(id, lv))
+	growth_of(id)[_TALENT_KEY[kind]] = lv + 1
+	growth_changed.emit(id)
+	power_changed.emit(atk, def)
+	return true
+
+func constellation(id: String) -> int:
+	return int(growth_of(id).get("con", 0))
+
+func can_unlock_constellation(id: String) -> bool:
+	return constellation(id) < Growth.CONSTELLATION_MAX and has_items(Growth.CONSTELLATION_COST)
+
+func unlock_constellation(id: String) -> bool:
+	if not can_unlock_constellation(id):
+		return false
+	spend_items(Growth.CONSTELLATION_COST)
+	growth_of(id)["con"] = constellation(id) + 1
 	growth_changed.emit(id)
 	power_changed.emit(atk, def)
 	return true

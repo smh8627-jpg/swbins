@@ -8453,3 +8453,14 @@ PROJECT_STATE.md` 참고. 요약:
 - 점검 6항목 3회 md5 동일 fails=0(배치 · 줍기·탐험도 · 하나로는 Lv 0 · 둘째로 Lv.1·상한 108·냥 1000 · 108 까지 참 · 다시 지으면 18개·상한 유지). 전투·이동·보물·지도·육성 fails=0, REGRESS OK.
 - 파이썬 치환에서 `"\n"` 이 든 GDScript 줄은 raw 문자열로(일반 문자열은 heredoc 을 거치며 실제 줄바꿈으로 풀려 어긋났다).
 - 실기 확인 전: 별조각이 멀리서 보이는지(하늘색 빛무리), 산꼭대기 것까지 오를 만한지, 봉헌 토스트가 너무 길지 않은지.
+
+## GO 원신 기준 ⑫ 특성 레벨·운명의 자리 — 육성 나머지 (2026-09-24, 새 세션, "사가고돗 이어해")
+
+- PROJECT_STATE 1순위. 재료 결정: 같은 인물 중복 등용 대신 **인연 매듭**(인물 가리지 않는 한 가지) — 인물 105 명마다 따로 두면 가방이 넘친다.
+- `growth.gd`: TALENTS·TALENT_CAP_BY_ASC(원신 계단)·TALENT_MUL(1~13)·TALENT_COST(냥 2500~14만, 무예 쪽지/교본/비전, 돌파 전리품) · 운명의 자리 6 효과 상수 · 드롭(원소 괴물 쪽지 1, 상자 등급별 쪽지·교본·비전·매듭).
+- `party_state.gd`: 성장 칸에 `tn/ts/tb/con`(없으면 1·0, restore 가 읽음 — SAVE_VERSION 3 그대로) · `talent_level/effective/mul/cap`·`talent_up` · `constellation`·`unlock_constellation`.
+- `field_combat.gd`: `_normal_atk()`(3타·강공격·낙하 × 기본 공격 특성) · 스킬·폭발(여운 포함) × 그 특성 · `skill_cd_of()`(1 자리) · 반응 ×1.15(2) · 체력 ×1.2(4) · 폭발 뒤 10초 ×1.25(`_c6_left`, 6). 수 스킬·폭발 회복량은 특성과 무관(피해만).
+- `star_shards.gd` 신상 Lv 보상에 매듭 1 · `character_screen.gd` 가운데를 ScrollContainer 로 싸고 특성 세 단추·자리 여섯 줄+"열기".
+- 점검 `tools/probe_talent.gd` 10항목 3회 md5 동일 fails=0(표 · 돌파 0 상한 1 · 돌파 2 올리기·차감·멈춤 · 기본 공격 ×1.8 · 1 자리 쿨 4.8 · 3/4/5 자리 · 6 자리 폭발 버프 · restore 옛 칸 기본값 · 불도깨비 쪽지 · 화면 단추). 전투·육성·별조각·이동·보물·지도 fails=0, REGRESS OK.
+- 파이썬 치환 `"\n"` 이 heredoc 에서 또 실제 줄바꿈이 됐다(character_screen) — Edit 로 바로잡음. GDScript 에 `\n` 이 드는 줄은 Edit 툴로.
+- 실기 확인 전: 인물 화면 세로 길이(스크롤 생김), 특성 단추 글자 길이, 매듭 17개가 모자라지 않은지.

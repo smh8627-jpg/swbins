@@ -19,7 +19,7 @@ const PICK_M := 1.6
 const OFFER_M := 6.0
 const PER_LEVEL := 2
 const STAMINA_PER_LEVEL := 8.0
-const LEVEL_REWARD := {"mora": 1000, "book_s": 2}
+const LEVEL_REWARD := {"mora": 1000, "book_s": 2, "fate_knot": 1} # 인연 매듭 — 운명의 자리(106장 ⑫)
 const COLOR := Color(0.55, 0.9, 1.0)
 
 ## [id, 지역, 칸(소수), 자리] — 자리: "peak" 산꼭대기 위 1.2m · "water" 수면 위 0.6m · "air" 땅에서 2.6m
@@ -186,7 +186,7 @@ func offer() -> int:
 	apply_stamina()
 	var msg := "신상에 별조각 %d개를 바쳤다 — 신상 Lv.%d" % [n, statue_level()]
 	if up > 0:
-		msg += " · 스태미나 상한 %d · 냥 %d·짧은 견문록 %d" % [int(_player.get("stamina_max")), LEVEL_REWARD.mora * up, LEVEL_REWARD.book_s * up]
+		msg += " · 스태미나 상한 %d · 냥 %d·짧은 견문록 %d·인연 매듭 %d" % [int(_player.get("stamina_max")), LEVEL_REWARD.mora * up, LEVEL_REWARD.book_s * up, LEVEL_REWARD.fate_knot * up]
 	Toast.show(self, msg, 3.5)
 	changed.emit()
 	return up

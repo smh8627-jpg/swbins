@@ -28,6 +28,10 @@ const ITEMS := {
 	"crystal_thunder": {"name": "뇌 결정"},
 	"wolf_fang": {"name": "늑대 송곳니"},
 	"bandit_badge": {"name": "도적 휘장"},
+	"talent_1": {"name": "무예 쪽지"},
+	"talent_2": {"name": "무예 교본"},
+	"talent_3": {"name": "무예 비전"},
+	"fate_knot": {"name": "인연 매듭"},
 }
 const BOOKS := ["book_s", "book_m", "book_l"]
 
@@ -45,18 +49,75 @@ const ASCEND_COST := [
 const KILL_DROPS := {
 	"wolf": {"mora": 40, "wolf_fang": 1},
 	"bandit": {"mora": 60, "bandit_badge": 1},
-	"fire_imp": {"mora": 90, "crystal_fire": 1, "book_s": 1},
-	"water_turtle": {"mora": 90, "crystal_water": 1, "book_s": 1},
-	"thunder_cat": {"mora": 90, "crystal_thunder": 1, "book_s": 1},
+	"fire_imp": {"mora": 90, "crystal_fire": 1, "book_s": 1, "talent_1": 1},
+	"water_turtle": {"mora": 90, "crystal_water": 1, "book_s": 1, "talent_1": 1},
+	"thunder_cat": {"mora": 90, "crystal_thunder": 1, "book_s": 1, "talent_1": 1},
 }
 
 ## 보물 상자 등급마다(treasure_chest.open). 진귀·화려의 결정 "any" 는 주인공 원소(화)로.
 const CHEST_LOOT := {
-	"common": {"mora": 300, "book_s": 1},
-	"exquisite": {"mora": 800, "book_s": 3},
-	"precious": {"mora": 1500, "book_m": 2, "crystal_fire": 1, "crystal_water": 1, "crystal_thunder": 1},
-	"luxurious": {"mora": 3000, "book_m": 3, "book_l": 1, "crystal_fire": 2, "crystal_water": 2, "crystal_thunder": 2},
+	"common": {"mora": 300, "book_s": 1, "talent_1": 1},
+	"exquisite": {"mora": 800, "book_s": 3, "talent_1": 2},
+	"precious": {"mora": 1500, "book_m": 2, "crystal_fire": 1, "crystal_water": 1, "crystal_thunder": 1, "talent_2": 2, "fate_knot": 1},
+	"luxurious": {"mora": 3000, "book_m": 3, "book_l": 1, "crystal_fire": 2, "crystal_water": 2, "crystal_thunder": 2, "talent_2": 3, "talent_3": 1, "fate_knot": 2},
 }
+
+## ---------------------------------------------------------------- 특성·운명의 자리(106장 ⑫)
+## 특성 셋 — 기본 공격(3타·강공격·낙하)·원소 스킬·원소 폭발. 레벨 1~10, 돌파 단계가 상한을 연다
+## (돌파 0~1 → 1 · 2 → 2 · 3 → 4 · 4 → 6 · 5 → 8 · 6 → 10, 원신과 같은 계단). 운명의 자리 3·5 가 스킬·폭발에
+## +3(최대 13). 레벨마다 그 특성 피해 배율 TALENT_MUL. 올리는 값: 냥 + 무예 책(쪽지 → 교본 → 비전) + 돌파 전리품.
+## 주간 보스 재료(원신 7→8 부터)는 주간 보스 갈래가 생길 때 붙인다.
+const TALENTS := ["normal", "skill", "burst"]
+const TALENT_NAMES := {"normal": "기본 공격", "skill": "원소 스킬", "burst": "원소 폭발"}
+const TALENT_MAX := 10
+const TALENT_BONUS := 3
+const TALENT_CAP_BY_ASC := [1, 1, 2, 4, 6, 8, 10]
+const TALENT_MUL := [1.0, 1.075, 1.15, 1.25, 1.325, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.125]
+## 레벨 n → n+1 에 드는 것(n = 1~9).
+const TALENT_COST := [
+	{"mora": 2500, "book": "talent_1", "books": 3, "common": 3},
+	{"mora": 3500, "book": "talent_2", "books": 2, "common": 4},
+	{"mora": 5000, "book": "talent_2", "books": 4, "common": 6},
+	{"mora": 6000, "book": "talent_2", "books": 6, "common": 8},
+	{"mora": 7500, "book": "talent_2", "books": 9, "common": 10},
+	{"mora": 24000, "book": "talent_3", "books": 4, "common": 12},
+	{"mora": 52000, "book": "talent_3", "books": 6, "common": 15},
+	{"mora": 90000, "book": "talent_3", "books": 12, "common": 18},
+	{"mora": 140000, "book": "talent_3", "books": 16, "common": 22},
+]
+
+## 운명의 자리 0~6 — 같은 인물을 두 번 등용하는 대신 인연 매듭 하나로 한 자리씩 연다(인물 가리지 않는 재료:
+## 진귀·화려 상자, 신상 Lv). 자리마다 효과가 정해져 있다(인물마다 다르게 짜는 건 인물 수가 105라 나중).
+const CONSTELLATION_MAX := 6
+const CONSTELLATION_COST := {"fate_knot": 1}
+const C1_SKILL_CD_MUL := 0.8
+const C2_REACTION_MUL := 1.15
+const C4_HP_MUL := 1.2
+const C6_BUFF_SEC := 10.0
+const C6_ATK_MUL := 1.25
+const CONSTELLATION_TEXT := [
+	"원소 스킬 재사용 대기 -20%",
+	"원소 반응 피해 +15%",
+	"원소 스킬 특성 +3",
+	"최대 체력 +20%",
+	"원소 폭발 특성 +3",
+	"원소 폭발 뒤 10초 공격 +25%",
+]
+
+static func talent_cap(asc: int) -> int:
+	return TALENT_CAP_BY_ASC[clampi(asc, 0, MAX_ASC)]
+
+static func talent_mul(level: int) -> float:
+	return TALENT_MUL[clampi(level, 1, TALENT_MUL.size()) - 1]
+
+## 특성 레벨 lv 에서 하나 올릴 때 드는 것 {item: 수}. 10 이면 빈 사전.
+static func talent_cost(member_id: String, lv: int) -> Dictionary:
+	if lv < 1 or lv >= TALENT_MAX:
+		return {}
+	var c: Dictionary = TALENT_COST[lv - 1]
+	var out := {"mora": c.mora, c.book: c.books}
+	out[common_of(member_id)] = c.common
+	return out
 
 static func cap_of(asc: int) -> int:
 	return LEVEL_CAPS[clampi(asc, 0, MAX_ASC)]

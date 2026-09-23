@@ -56,6 +56,8 @@ func _ready() -> void:
 	add_child(chars)
 	if OS.get_environment("SAGA_GROWTH_PROBE") != "":
 		add_child(load("res://tools/probe_growth.gd").new())
+	if OS.get_environment("SAGA_TALENT_PROBE") != "":
+		add_child(load("res://tools/probe_talent.gd").new())
 	## 원신식 이동(go_player.gd) 자동 점검 — 측정할 때만 붙인다.
 	if OS.get_environment("SAGA_TRAVERSAL_PROBE") != "":
 		add_child(load("res://tools/probe_traversal.gd").new())

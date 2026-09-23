@@ -13,10 +13,13 @@ extends Node
 ## 다 쓰러지면 마지막으로 딛은 땅에서 모두 가득 차서 일어난다. 명단에 같은 원소가 둘 이상이면
 ## 원소 공명(화 공격 +25% · 수 최대 체력 +25% · 뇌 기력 +50%). 공격·방어·체력은 인물마다 레벨·돌파로
 ## 정해진다(106장 ⑩, PartyState.char_atk/char_def) — 옛 부대 전투력(PartyState.atk)은 사건 결투만 쓴다.
+## 106장 ⑫: 기본 공격·스킬·폭발 피해에 그 인물 특성 레벨 배율(PartyState.talent_mul), 운명의 자리 여섯 효과
+## (1 스킬 쿨 -20% · 2 반응 피해 +15% · 3/5 특성 +3 · 4 체력 +20% · 6 폭발 뒤 10초 공격 +25%).
 
 const Elements := preload("res://games/saga_go/combat/elements.gd")
 const Characters := preload("res://saga_core/data/characters.gd")
 const Toast := preload("res://saga_core/ui/toast.gd")
+const Growth := preload("res://games/saga_go/data/growth.gd")
 
 const COMBO_MUL := [0.35, 0.4, 0.6]
 const COMBO_SEC := [0.32, 0.32, 0.45]
@@ -109,6 +112,7 @@ var _burn_left := 0
 var _burn_t := 0.0
 var _burn_amount := 0.0
 var _effects: Array = [] # 폭발이 남기는 효과 {kind, center, left, tick, t, base}
+var _c6_left: Dictionary = {} # 운명의 자리 6 — 인물 id → 남은 초
 var _hud: Control = null
 var _hp_bar: ProgressBar = null
 var _status_label: Label = null
@@ -196,11 +200,20 @@ func max_hp_of(id: String) -> float:
 	var m := HP_BASE + PartyState.char_def(id) * HP_PER_DEF
 	if resonance() == "water":
 		m *= RESONANCE_WATER_HP
+	if PartyState.constellation(id) >= 4:
+		m *= Growth.C4_HP_MUL
 	return m
 
-## 인물 공격 — 레벨·돌파(PartyState) × 희귀도·화 공명(_power_mul).
+## 인물 공격 — 레벨·돌파(PartyState) × 희귀도·화 공명(_power_mul) × 운명의 자리 6(폭발 뒤 10초).
 func char_atk(id: String) -> float:
-	return PartyState.char_atk(id) * _power_mul(id)
+	var a := PartyState.char_atk(id) * _power_mul(id)
+	if float(_c6_left.get(id, 0.0)) > 0.0:
+		a *= Growth.C6_ATK_MUL
+	return a
+
+## 이 인물 스킬 재사용 대기(운명의 자리 1 이면 -20%).
+func skill_cd_of(id: String) -> float:
+	return SKILL_CD * (Growth.C1_SKILL_CD_MUL if PartyState.constellation(id) >= 1 else 1.0)
 
 func energy_of(id: String) -> float:
 	return float(_energy.get(id, 0.0))
@@ -298,6 +311,8 @@ func _physics_process(delta: float) -> void:
 	_switch_cd = maxf(_switch_cd - delta, 0.0)
 	for k in _skill_cd.keys():
 		_skill_cd[k] = maxf(_skill_cd[k] - delta, 0.0)
+	for k in _c6_left.keys():
+		_c6_left[k] = maxf(_c6_left[k] - delta, 0.0)
 	if _combo_link <= 0.0:
 		_combo = 0
 	if _charge_armed:
@@ -336,7 +351,7 @@ func attack() -> bool:
 	_attack_t = COMBO_SEC[step]
 	_aim_at_nearest()
 	_player.call("play_action", "attack", COMBO_SEC[step], 0.25)
-	var hits := _hit_front(ATTACK_REACH, ATTACK_ARC_DOT, char_atk(active_id()) * COMBO_MUL[step], "")
+	var hits := _hit_front(ATTACK_REACH, ATTACK_ARC_DOT, _normal_atk() * COMBO_MUL[step], "")
 	if hits > 0:
 		_gain_energy(ENERGY_PER_HIT * hits)
 	return true
@@ -351,7 +366,7 @@ func charged_attack() -> bool:
 	_aim_at_nearest()
 	_player.call("play_action", "attack", 0.5, 0.0)
 	_ring_fx(_player.global_position + _player.call("facing") * 1.2, 1.8, Color(0.95, 0.95, 0.85), 0.3)
-	var hits := _hit_front(CHARGE_REACH, -0.2, char_atk(active_id()) * CHARGE_MUL, "")
+	var hits := _hit_front(CHARGE_REACH, -0.2, _normal_atk() * CHARGE_MUL, "")
 	if hits > 0:
 		_gain_energy(ENERGY_PER_HIT * hits)
 	return true
@@ -367,19 +382,23 @@ func plunge_land(fell_m: float) -> int:
 	var hits := 0
 	for e in _enemies_near(center, PLUNGE_RADIUS):
 		var to_e: Vector3 = (e as Node3D).global_position - center
-		_deal(e, char_atk(active_id()) * mul, "", to_e)
+		_deal(e, _normal_atk() * mul, "", to_e)
 		hits += 1
 	if hits > 0:
 		_gain_energy(ENERGY_PER_HIT * hits)
 	return hits
 
+## 기본 공격·강공격·낙하 공격 한 방의 바탕 — 지금 인물 공격 × 기본 공격 특성.
+func _normal_atk() -> float:
+	return char_atk(active_id()) * PartyState.talent_mul(active_id(), "normal")
+
 func skill() -> bool:
 	var id := active_id()
 	if _skill_cd.get(id, 0.0) > 0.0 or not _grounded_ok():
 		return false
-	_skill_cd[id] = SKILL_CD
+	_skill_cd[id] = skill_cd_of(id)
 	var el := active_element()
-	var atk := char_atk(id)
+	var atk := char_atk(id) * PartyState.talent_mul(id, "skill")
 	_player.call("play_action", "attack", 0.4, 0.0)
 	var hits := 0
 	match el:
@@ -409,7 +428,9 @@ func burst() -> bool:
 		return false
 	energy = 0.0
 	var el := active_element()
-	var atk := char_atk(active_id())
+	var atk := char_atk(active_id()) * PartyState.talent_mul(active_id(), "burst")
+	if PartyState.constellation(active_id()) >= 6:
+		_c6_left[active_id()] = Growth.C6_BUFF_SEC
 	var center := _player.global_position
 	_player.call("play_action", "attack", 0.6, 0.0)
 	_ring_fx(center, BURST_RADIUS, Elements.color_of(el), 0.7)
@@ -533,6 +554,8 @@ func _deal(enemy: Node, base: float, element: String, dir: Vector3) -> float:
 	if reaction != "":
 		var info: Dictionary = Elements.REACTION_INFO[reaction]
 		amount *= float(info.mul)
+		if PartyState.constellation(active_id()) >= 2:
+			amount *= Growth.C2_REACTION_MUL
 		_reaction_text(enemy as Node3D, info.name, info.color)
 		enemy.call("set_aura", "")
 		match reaction:
@@ -835,7 +858,7 @@ func _refresh_hud() -> void:
 	_status_label.text = "%s HP %d/%d%s" % [display_name(active_id()), int(hp), int(max_hp), res_text]
 	if _skill_orb:
 		_skill_orb.color = Elements.color_of(el_now)
-		_skill_orb.ratio = 1.0 - cd / SKILL_CD
+		_skill_orb.ratio = 1.0 - cd / skill_cd_of(active_id())
 		_skill_orb.glow = cd <= 0.0
 		_skill_orb.sub_text = "" if cd <= 0.0 else "%.1f" % cd
 		_skill_orb.queue_redraw()
