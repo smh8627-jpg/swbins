@@ -4912,3 +4912,11 @@ saga-go 정본을 다른 네 판에도 동일 반영, 가드돼 있어 그 판�
   걸린 폴더는 빠진 파일 이름 예시를 같이 낸다.
 - 실제 빈칸: 사가고 `sprites2d/beast_*.png` 32장·`building_*.png` 4장(이 판 CC0 모델을 `tools/bake-icons` 로 구운 파생물 — 원본 표 추가),
   사가블로 `hdri/alps_field_1k.hdr`(Poly Haven CC0, 다른 판 문서엔 있었다), Godot `ASSET_GUIDE.md` 에 Quaternius 파일 패턴 한 줄.
+
+### 2026-09-23 — asset-audit 미참조 79→0 (지운 파일 없음), 전체 점검 154초→66초
+
+- 79건을 폴더마다 코드로 재확인한 결과 **지울 것은 하나도 없었다**: 사가고 nonemo·EverFace 초상 조각(`portrait3d.js` 머리말 "지우지 않았다"),
+  사가의숲 `kenney_parts`(`tools/asset-forge/kitbash.py` 원재료), Godot 무기 텍스처(`.gltf` 가 참조), Unity CharactersRealistic(로컬 전용)·HairCards(제3자 팩).
+- 도구 보강: `.gltf` 텍스트와 GLB `images[].uri` 외부 참조를 읽는다, 저장소 `tools/` 스크립트도 참조 출처, `tools/asset-audit/keep.txt`(일부러 남기는 접두어+이유).
+  반대 방향 구멍도 막음 — 사가블로 `.glb-compress-manifest.json` 이 GLB 이름을 전부 담고 있어 안 쓰는 모델도 "참조됨"으로 보였을 수 있었다(점 파일 제외).
+- 속도: id 접두어 대조를 파일마다 정규식으로 코드 전체를 훑던 것(83초) → 단어 집합, `git ls-files -ci` 를 에셋 폴더로 좁힘(31초→수 초).

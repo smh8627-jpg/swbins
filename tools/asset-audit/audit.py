@@ -157,30 +157,78 @@ def tracks(sel, game):
             base = os.path.join(ROOT, 'saga-web', gm)
             out.append({'id': f'web:{gm}', 'kind': 'web', 'asset_dir': os.path.join(base, 'assets'),
                         'code_dirs': [base], 'code_skip': {'node_modules', 'dist', 'mobile', 'server', '_wip'},
-                        'code_ext': {'.js', '.html', '.json', '.css', '.mjs'},
+                        'code_ext': {'.js', '.html', '.json', '.css', '.mjs', '.gltf'},
                         'docs': [os.path.join(base, 'assets', 'ASSET_LICENSES.md'),
                                  os.path.join(base, 'assets', 'ASSET_CATALOG.md')]})
     if 'godot' in sel and not game:
         base = os.path.join(ROOT, 'saga-godot')
         out.append({'id': 'godot', 'kind': 'godot', 'asset_dir': os.path.join(base, 'assets'),
                     'code_dirs': [base], 'code_skip': {'builds', '_mixamo_src'},
-                    'code_ext': {'.tscn', '.tres', '.gd', '.gdshader', '.cfg', '.json', '.godot'},
+                    'code_ext': {'.tscn', '.tres', '.gd', '.gdshader', '.cfg', '.json', '.godot', '.gltf'},
                     'docs': [os.path.join(base, 'docs', 'ASSET_GUIDE.md')]})
     if 'unity' in sel and not game:
         base = os.path.join(ROOT, 'saga-unity')
         out.append({'id': 'unity', 'kind': 'unity', 'asset_dir': os.path.join(base, 'Assets'),
                     'code_dirs': [os.path.join(base, 'Assets')], 'code_skip': set(),
                     'code_ext': {'.cs', '.unity', '.prefab', '.asset', '.mat', '.controller', '.anim',
-                                 '.overrideController', '.json', '.shadergraph', '.shader', '.playable',
+                                 '.overrideController', '.json', '.gltf', '.shadergraph', '.shader', '.playable',
                                  '.lighting', '.mask', '.signal', '.spriteatlas', '.spriteatlasv2', '.mixer'},
                     'docs': [os.path.join(base, 'docs', 'ASSET_GUIDE.md')]})
     return out
 
 
+# 게임 밖 도구(킷배싱·굽기·압축)가 원재료로 읽는 에셋도 "쓰이는" 것으로 친다
+TOOL_DIRS = [os.path.join(ROOT, 'tools'), os.path.join(ROOT, 'saga-web', 'tools')] +             [os.path.join(ROOT, 'saga-web', g, 'tools') for g in WEB_GAMES]
+TOOL_EXT = {'.py', '.mjs', '.js', '.html', '.json', '.sh', '.gd'}
+TOOL_SKIP = {'node_modules', 'out', 'asset-audit', '__pycache__'}
+
+
+def load_keep():
+    """keep.txt — 코드엔 안 나오지만 일부러 남기는 경로 접두어와 이유(`접두어  # 이유`)."""
+    out = []
+    for line in read(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'keep.txt')).splitlines():
+        path, _, why = line.partition('#')
+        if path.strip():
+            out.append((path.strip().replace('\\', '/'), why.strip()))
+    return out
+
+
+def glb_uris(path):
+    """GLB JSON 청크의 외부 참조(`images[].uri`·`buffers[].uri`) — Kenney 킷처럼 텍스처를 안 박는 GLB 가 있다."""
+    try:
+        with open(path, 'rb') as f:
+            head = f.read(20)
+            if head[:4] != b'glTF':
+                return []
+            g = json.loads(f.read(struct.unpack('<I', head[12:16])[0]).decode('utf-8'))
+    except Exception:
+        return []
+    return [x['uri'] for k in ('images', 'buffers') for x in g.get(k, [])
+            if 'uri' in x and not x['uri'].startswith('data:')]
+
+
+_TOOL_TEXT = None
+
+
+def tool_text():
+    global _TOOL_TEXT
+    if _TOOL_TEXT is None:
+        _TOOL_TEXT = '\n'.join(read(p) for d in TOOL_DIRS for p in walk(d, skip=TOOL_SKIP)
+                               if os.path.splitext(p)[1].lower() in TOOL_EXT and os.path.getsize(p) < 8 << 20)
+    return _TOOL_TEXT
+
+
 def load_code_text(t):
     chunks = []
+    for p in walk(t['asset_dir'], skip={'node_modules', 'Library'}):
+        if p.lower().endswith('.glb'):
+            chunks.extend(glb_uris(p))
+    chunks.append(tool_text())
     for d in t['code_dirs']:
         for p in walk(d, skip=t['code_skip']):
+            # `.glb-compress-manifest.json` 같은 처리 기록은 파일 목록일 뿐 참조가 아니다
+            if os.path.basename(p).startswith('.'):
+                continue
             if os.path.splitext(p)[1].lower() in t['code_ext'] and os.path.getsize(p) < 64 << 20:
                 with open(p, 'rb') as f:
                     chunks.append(f.read().decode('utf-8', 'replace'))
@@ -217,9 +265,13 @@ def audit(sel, game, want_md5=True):
     for line in git('ls-files', '-s', '-z').split('\0'):
         if '\t' in line:
             tracked[line.split('\t', 1)[1]] = True
-    ignored_but_tracked = set(git('ls-files', '-ci', '--exclude-standard').splitlines())
+    # 점검할 에셋 폴더로만 좁힌다(저장소 전체면 30초 넘게 걸린다)
+    dirs = [rel(t['asset_dir']) for t in tracks(sel, game) if os.path.isdir(t['asset_dir'])]
+    ignored_but_tracked = set(git('ls-files', '-ci', '--exclude-standard', '--', *dirs).splitlines()) if dirs else set()
 
     files, issues = [], []
+    global KEEP
+    KEEP = load_keep()
 
     def issue(kind, path, msg, track):
         issues.append({'kind': kind, 'sev': SEV[kind], 'path': path, 'msg': msg, 'track': track})
@@ -229,6 +281,7 @@ def audit(sel, game, want_md5=True):
             continue
         tid, kind = t['id'], t['kind']
         code = load_code_text(t)
+        words = set(re.findall(r'\w+', code))  # id 접두어 대조용 — 정규식으로 코드 전체를 매번 훑으면 80초가 넘는다
         doc = expand_doc('\n'.join(read(p) for p in t['docs']).lower())
         # 문서의 `tile_*.png` 같은 와일드카드 표기도 출처 표기로 친다
         globs = [re.compile(r'(^|/)' + re.escape(g.strip('/').removeprefix('assets/')).replace(r'\*', '[^/]*') + r'(/|$)')
@@ -317,8 +370,13 @@ def audit(sel, game, want_md5=True):
                     parts = re.split(r'[._-]', stem)
                     for k in range(len(parts) - 1, 0, -1):
                         pre = stem[:len('_'.join(parts[:k]))]
-                        if len(pre) >= 4 and re.search(r'(?<![\w])' + re.escape(pre) + r'(?![\w])', code):
+                        if len(pre) >= 4 and (pre in words if re.fullmatch(r'\w+', pre) else
+                                              re.search(r'(?<![\w])' + re.escape(pre) + r'(?![\w])', code)):
                             ref = 'dyn'; break
+            if not ref:
+                why = next((w for k, w in KEEP if rp.startswith(k)), None)
+                if why is not None:
+                    ref = 'keep'; rec['keep'] = why
             rec['ref'] = ref
             if not ref:
                 issue('unref', rp, '코드·씬에 이름/GUID 흔적 없음(동적 경로면 무시)', tid)
@@ -409,7 +467,7 @@ let cur='issues',sortK=null,sortD=1;
 $('#tabs').innerHTML=tabs.map(([k,l])=>`<button data-k="${k}">${esc(l)}</button>`).join('');
 $('#tabs').onclick=e=>{if(e.target.dataset.k){cur=e.target.dataset.k;sortK=null;draw()}};$('#q').oninput=draw;
 function rows(){if(cur==='dups')return{h:['묶음','트랙 넘음','개수','하나 용량','낭비','경로'],r:R.dups.map(d=>[d.tracks.join(' '),d.cross_kind?'예':'',d.count,d.bytes,d.wasted,d.paths.join('\n')])};
-if(cur==='files')return{h:['트랙','경로','용량','git','참조','삼각형','텍스처px','애니'],r:R.files.map(f=>[f.track,f.path,f.bytes,f.git?'o':'',f.ref?'o':'',f.tris??'',f.maxpx||(f.w?Math.max(f.w,f.h):''),f.anims??''])};
+if(cur==='files')return{h:['트랙','경로','용량','git','참조','삼각형','텍스처px','애니'],r:R.files.map(f=>[f.track,f.path,f.bytes,f.git?'o':'',f.ref===true?'o':(f.ref||''),f.tris??'',f.maxpx||(f.w?Math.max(f.w,f.h):''),f.anims??''])};
 const L=cur.startsWith('k:')?R.issues.filter(i=>i.kind===cur.slice(2)):R.issues;return{h:['심각','종류','트랙','경로','내용'],r:L.map(i=>[i.sev,i.kind,i.track,i.path,i.msg])}}
 function cell(h,v){if(h==='심각')return`<td class="s${v}">${['','⚪','🟡','🔴'][v]}</td>`;if(/용량|낭비/.test(h))return`<td>${MB(v)}</td>`;
 return`<td class="${/경로/.test(h)?'p':''}">${esc(v).replace(/\n/g,'<br>')}</td>`}
