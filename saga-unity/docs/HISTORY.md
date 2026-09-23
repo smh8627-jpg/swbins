@@ -8789,3 +8789,11 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - 새 파일: `Data/GoWorldMap`(지역·역참·망루 표, `RegionAt`)·`Data/WorldMapState`(켠 역참·발 디딘 지역·밝힘, `Restore` 도 `Changed`) · `World/WaypointStone`·`World/Watchtower`·`World/WorldMapBuilder`(Play 때 세움, 씬 빌더는 돌 재질만) · `UI/WorldMapUi`(M·"지도" 버튼, 칸 색 텍스처·어둠·화살표·◆ 순간이동·지역 진입 이름). `TestMapData.HasPeak/PeakHeight/PeakBase` + `TerrainBuilder.BuildPeaks`(육각 뿔대, 볼록 MeshCollider). 세이브 v14(13→14 빈 기본값).
 - 함정: 지역 추적을 "지역이 바뀔 때만 Visit" 으로 짰더니 세이브 불러오기·상태 초기화 뒤 제자리 지역이 다시 안 적혔다 → 매 검사마다 Visit(이미 있으면 무시).
 - 검증: 컴파일·씬 재빌드 exit 0 · GO `PlaytestHeadless` 새 `PlaytestGoWorldMap` 포함 **3연속 OK**(첫 실행 실패는 위 함정) — 망루는 진단이 실제로 `Step` 으로 기어올라 꼭대기에서 밝힌다. 실기 확인은 전.
+
+## 2026-09-24 — PLAN 107-4 보물 상자: 등급 4 × 잠금 3, 열여섯 개 (새 대화 "사가유니티 이어해줘", Opus 5.5)
+
+- 규칙 비율은 saga-godot PLAN ⑥(등급 경험치 5·15·30·60, 평범 7·정교 4·진귀 3·화려 2, 무리 전멸·석등 20초)을 따랐고 거리만 1.85배(석등 둘레 11m). 돈 10·25·50·100냥은 이 트랙 경제(상인 25·길세 40)에 맞춘 값.
+- 새 파일: `Data/GoTreasure`(표·보상·자리 계산) · `World/TreasureChest`(다가가 열기·무리/석등 잠금·뚜껑·사슬·빛, `Tick(dt, 플레이어 자리)` 로 진단이 직접 돌림) · `World/ElementTorch`(원소 구슬·불). 고친 파일: `FieldCombat.ElementPulse`(스킬·폭발 원 이벤트 — 적 없어도 쏨) · `WorldMapBuilder`(상자 세움) · `WorldMapUi`(안내 줄 "보물 상자 n/16", `InfoText`).
+- 석등 원소 고르기: 지금 명단은 주인공(화) + 등용 동료가 사실상 "산적" 하나뿐이라, FNV 해시로 산적 = 수를 확인하고 둘째 석등 상자를 화·수·화로 했다(도적 사건 바로 남쪽 — 등용하면 풀 수 있게). 진단이 "석등 원소가 주인공+산적으로 풀리는지"를 본다.
+- 함정: 첫 실행에서 상자는 통과했는데 **이동·지도 진단이 깨졌다** — 두 진단이 (2,6) 고원 한가운데·봉우리 밑동 위에서 아래로 쏴 높이를 재는데 정교 상자가 바로 그 자리에 앉아 상자 뚜껑에 맞았다. 봉우리 2.2m·고원 (6,6)m 비켜 앉힘.
+- 검증: 컴파일 exit 0(씬 참조가 안 늘어 씬 재빌드 불필요) · GO `PlaytestHeadless` 새 `PlaytestGoTreasure` 포함 **3연속 OK**(이동 측정값 3회 동일). 실기 확인은 전. 새 글자 `chest.*`·`map.chests` 도 `GoLocalization.T` 폴백.

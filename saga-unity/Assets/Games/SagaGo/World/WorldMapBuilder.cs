@@ -5,7 +5,7 @@ using Saga.Go.UI;
 namespace Saga.Go.World
 {
     /// <summary>
-    /// PLAN.md 107-3 — Play 시작 때 순간이동 지점 다섯·옛 망루를 세우고 지도 화면(`WorldMapUi`)을 붙인다.
+    /// PLAN.md 107-3 — Play 시작 때 순간이동 지점 다섯·옛 망루·보물 상자 열여섯(107-4)을 세우고 지도 화면(`WorldMapUi`)을 붙인다.
     /// 씬 빌더는 돌 재질만 넘긴다(`FieldSpawner` 와 같은 결 — 상태를 가진 런타임 존재라 씬에 굳히지 않는다).
     /// </summary>
     public class WorldMapBuilder : MonoBehaviour
@@ -14,6 +14,7 @@ namespace Saga.Go.World
 
         public readonly List<WaypointStone> Stones = new List<WaypointStone>();
         public Watchtower Tower { get; private set; }
+        public readonly List<TreasureChest> Chests = new List<TreasureChest>();
 
         public static WorldMapBuilder Instance { get; private set; }
 
@@ -26,6 +27,10 @@ namespace Saga.Go.World
                 Stones.Add(WaypointStone.Spawn(w, transform, stoneMaterial));
             }
             Tower = Watchtower.Spawn(transform, stoneMaterial);
+            foreach (var c in Saga.Go.Data.GoTreasure.Chests) // 107-4 보물 상자
+            {
+                Chests.Add(TreasureChest.Spawn(c, transform, stoneMaterial));
+            }
             if (GetComponent<WorldMapUi>() == null) gameObject.AddComponent<WorldMapUi>();
         }
     }

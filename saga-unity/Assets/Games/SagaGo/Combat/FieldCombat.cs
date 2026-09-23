@@ -55,6 +55,9 @@ namespace Saga.Go.Combat
 
         public static FieldCombat Instance { get; private set; }
 
+        /// <summary>원소 스킬·폭발이 터진 원(가운데·반경·원소) — 적이 없어도 쏜다. 원소 석등(107-4)이 듣는다.</summary>
+        public static event System.Action<Vector3, float, GoElement> ElementPulse;
+
         [SerializeField] private PlayerController player;
 
         private readonly List<Member> _party = new List<Member>();
@@ -220,6 +223,7 @@ namespace Saga.Go.Combat
             int hits = AreaHit(center, SkillRadius, Atk * SkillMul, m.Element);
             if (hits > 0) m.Energy = Mathf.Min(BurstCost, m.Energy + EnergyPerSkillHit);
             FieldRingFx.Spawn(center, SkillRadius, GoElements.ColorOf(m.Element));
+            ElementPulse?.Invoke(center, SkillRadius, m.Element);
             if (player != null && player.Animator != null) player.Animator.SetTrigger("Attack");
             return hits;
         }
@@ -233,6 +237,7 @@ namespace Saga.Go.Combat
             int hits = AreaHit(transform.position, BurstRadius, Atk * BurstMul, m.Element);
             FieldRingFx.Spawn(transform.position, BurstRadius, GoElements.ColorOf(m.Element), 0.7f);
             FieldRingFx.Spawn(transform.position, BurstRadius * 0.6f, Color.white, 0.5f);
+            ElementPulse?.Invoke(transform.position, BurstRadius, m.Element);
             ToastLine(string.Format(GoLocalization.T("field.burst", "{0} — 원소 폭발!"), m.Name), 1.5f);
             if (player != null && player.Animator != null) player.Animator.SetTrigger("Attack");
             return hits;

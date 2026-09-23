@@ -40,6 +40,7 @@ namespace Saga.Go.UI
         public Button WaypointButton(int i) => _wpButtons[i];
         public string RegionLabel(int i) => _regionLabels[i].text;
         public string LastRegion => _lastRegion;
+        public string InfoText => _info.text;
         /// <summary>진단용 — 지도 텍스처에서 칸 가운데 색.</summary>
         public Color TileColorOnMap(int gx, int gy) => _tex.GetPixel(gx * TilePx + TilePx / 2, (TestMapData.RowCount - 1 - gy) * TilePx + TilePx / 2);
 
@@ -155,7 +156,8 @@ namespace Saga.Go.UI
             }
             _info.text = string.Format(GoLocalization.T("map.info", "푸른 ◆ 역참을 누르면 순간이동 · 켠 역참 {0}/{1}{2}"),
                 WorldMapState.ActiveCount, GoWorldMap.Waypoints.Length,
-                WorldMapState.Revealed ? "" : GoLocalization.T("map.hint", " · 옛 망루 꼭대기에 오르면 온 땅이 밝혀진다"));
+                WorldMapState.Revealed ? "" : GoLocalization.T("map.hint", " · 옛 망루 꼭대기에 오르면 온 땅이 밝혀진다"))
+                + string.Format(GoLocalization.T("map.chests", " · 보물 상자 {0}/{1}"), GoTreasure.OpenedCount, GoTreasure.Chests.Length);
         }
 
         private void PaintTexture()
