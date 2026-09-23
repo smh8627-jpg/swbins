@@ -94,6 +94,7 @@ window.DG_NO_TUNE = true;
 <script src="js/grid.js"></script>
 <script src="js/parcel.js"></script>
 <script src="js/festival.js"></script>
+<script src="js/visitor.js"></script>
 <script src="js/town.js"></script>
 <script src="js/folk.js"></script>
 <script src="js/animal.js"></script>
@@ -4341,6 +4342,105 @@ window.DG_NO_TUNE = true;
         if (!VD.NPCS[n.kind] || !V.walkable(n.x, n.y)) { bad = n; break; }
       }
       return !bad && list.length === 7 && '7명 다 통행 가능한 자리';
+    });
+
+    /* ── 떠돌이 방문객(§5.9, `visitor.js`) ───────────────────────────── */
+    function visDay(key) {
+      for (var d = 20000; d < 20400; d++) { if (DG.visitor.whoOn(d).key === key) { return d; } }
+      return null;
+    }
+    function visWith(key, fn) {
+      var s = V.state(), bak = JSON.stringify({ day: s.day, visit: s.visit, bag: s.bag, gold: C.save.player.gold }), Hm = DG.home;
+      var stock0 = JSON.stringify(Hm.state().stock || {});
+      try {
+        s.day = visDay(key); s.visit = null; DG.visitor._reset();
+        return fn(s);
+      } finally {
+        var b = JSON.parse(bak);
+        s.day = b.day; s.visit = b.visit; s.bag = b.bag; C.save.player.gold = b.gold;
+        Hm.state().stock = JSON.parse(stock0);
+        DG.visitor._reset(); V.buildProps();
+      }
+    }
+
+    t('방문객 — 날마다 한 명, 같은 날이면 같고 두 주면 여러 손님이 온다', function () {
+      var VI = DG.visitor, seen = {}, same = true;
+      for (var d = 20000; d < 20014; d++) {
+        seen[VI.whoOn(d).key] = 1;
+        if (VI.whoOn(d).key !== VI.whoOn(d).key) { same = false; }
+      }
+      return same && Object.keys(seen).length >= 4 && ['fox', 'sailor', 'wisp', 'angler', 'bugdoc', 'traveler'].every(visDay) &&
+        ('14일에 ' + Object.keys(seen).length + '명 · 여섯 다 오는 날이 있다');
+    });
+
+    t('방문객 — 광장에 걸을 수 있는 자리에 서고, 숲 NPC 일곱은 그대로다', function () {
+      V.buildNpcs();
+      var vis = V.raw().visitors, p = DG.visitor.spot();
+      return vis.length === 1 && V.walkable(p.x, p.y) && V.raw().npcs.length === 7 && !!vis[0].def &&
+        (vis[0].def.name + ' · NPC 7 + 방문객 1');
+    });
+
+    t('방문객 — 선원 날: 조각 다섯이 바깥 숲에 서로 떨어져 흩어진다', function () {
+      return visWith('sailor', function () {
+        var ps = DG.visitor.pieces(), ok = ps.length === 5, far = true, i, j;
+        for (i = 0; i < ps.length; i++) {
+          if (!V.ringSpotOk(ps[i].tx, ps[i].ty)) { ok = false; }
+          for (j = i + 1; j < ps.length; j++) { if (Math.hypot(ps[i].tx - ps[j].tx, ps[i].ty - ps[j].ty) <= 12) { far = false; } }
+        }
+        V.buildProps();
+        var props = V.raw().props.filter(function (p) { return p.kind === 'visitcompass'; });
+        return ok && far && props.length === 5 && ('조각 5 · 최소 간격 12타일 넘음');
+      });
+    });
+
+    t('방문객 — 조각을 다 모아 말 걸면 금·가구를 한 번 준다, 다시 말 걸면 인사만', function () {
+      return visWith('wisp', function () {
+        var VI = DG.visitor, npc = V.raw().visitors[0];
+        var first = VI.talk(npc);
+        V.buildProps();
+        V.raw().props.filter(function (p) { return p.visit !== undefined; }).forEach(function (p) { VI.pick(p); });
+        var left = V.raw().props.filter(function (p) { return p.visit !== undefined; }).length;
+        var g0 = C.save.player.gold, st0 = DG.home.state().stock.visit_wisp || 0;
+        var done = VI.talk(npc);
+        var g1 = C.save.player.gold, again = VI.talk(npc);
+        return first.kind === 'quest' && /쪽 숲/.test(first.text) && left === 0 && g1 === g0 + 1000 &&
+          (DG.home.state().stock.visit_wisp || 0) === st0 + 1 && again.kind === 'talk' && C.save.player.gold === g1 &&
+          '방향 안내 → 조각 5 → 🪙 1000 + 도깨비 등롱 · 두 번째는 인사';
+      });
+    });
+
+    t('방문객 — 가져오기: 모자라면 진행만, 채우면 가방에서 빼고 보상', function () {
+      return visWith('angler', function (s) {
+        var VI = DG.visitor, npc = V.raw().visitors[0], fish = VD.ITEMS.fish[0].key;
+        s.bag = {}; s.bag[fish] = 2;
+        var short = VI.talk(npc);
+        s.bag[fish] = 4;
+        var g0 = C.save.player.gold, ok = VI.talk(npc);
+        return short.kind === 'quest' && /2\/3/.test(short.text) && ok.kind === 'quest' && s.bag[fish] === 1 &&
+          C.save.player.gold === g0 + 700 && '2/3 → 넷 중 셋 가져감 · 🪙 700';
+      });
+    });
+
+    t('방문객 — 여우 화상: 첫 말은 제안, 둘째에 산다(금이 모자라면 안 산다)', function () {
+      return visWith('fox', function (s) {
+        var VI = DG.visitor, npc = V.raw().visitors[0], it = VI.foxItem(s.day), price = Math.round(it.price * VI.FOX_MUL);
+        C.save.player.gold = price - 1;
+        var offer = VI.talk(npc), poor = VI.talk(npc);
+        C.save.player.gold = price + 5;
+        var st0 = DG.home.state().stock[it.key] || 0, buy = VI.talk(npc);
+        return /한 번 더/.test(offer.text) && poor.kind === 'talk' && C.save.player.gold === 5 &&
+          (DG.home.state().stock[it.key] || 0) === st0 + 1 && buy.kind === 'quest' && !it.fest &&
+          ('「' + it.name + '」 🪙 ' + price + ' — 모자라면 거절, 있으면 창고로');
+      });
+    });
+
+    t('방문객 — 광장에 서면 focus 가 방문객을 잡고 interact 가 말을 건다', function () {
+      return visWith('bugdoc', function () {
+        var p = DG.visitor.spot(), raw = V.raw();
+        raw.player.x = p.x + 10; raw.player.y = p.y;
+        var f = V.focus(), r = V.interact();
+        return f && f.type === 'npc' && f.obj.visitor === 'bugdoc' && r && /곤충/.test(r.text) && '곤충 박사에게 말을 걸었다';
+      });
     });
 
     t('숲 NPC — margin 이 좁아 지형지물이 사라져도 죽지 않고 배열을 준다', function () {

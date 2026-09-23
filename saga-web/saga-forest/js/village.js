@@ -680,6 +680,7 @@
         if (!GRASS_FAMILY[tileAt(tx, ty)]) { continue; }            // 공사로 딴 걸 깔았으면 스킵
         if (SPI && SPI.blocked(tx, ty)) { continue; }               // 정령의 터 둘레는 비워 둔다(PLAN §5.5)
         if (GRD && GRD.blocked(tx, ty)) { continue; }               // 격자 만남 둘레도 비워 둔다(PLAN §5.5 ①)
+        if (global.DG.visitor && global.DG.visitor.blocked(tx, ty)) { continue; }   // 방문객 조각 자리(§5.9)
         var fh = core.hash2(tx * 31 + s.seed % 613 + 2000, ty * 17 + s.seed % 419 + 2000);
         var fx = tx * TILE + TILE * 0.5, fy = ty * TILE + TILE * 0.5;
         var fid = 'f' + tx + '_' + ty;
@@ -701,6 +702,8 @@
     if (GRD) { Array.prototype.push.apply(props, GRD.marks()); }
     /* 축제 하루(PLAN §5.6) — 행사날에만 서는 안내판·놀이 소품 */
     if (global.DG.festival) { Array.prototype.push.apply(props, global.DG.festival.marks()); }
+    /* 떠돌이 방문객(PLAN §5.9) — 선원·도깨비불 날엔 바깥 숲에 조각 다섯 */
+    if (global.DG.visitor) { Array.prototype.push.apply(props, global.DG.visitor.marks()); }
 
     /* 다리(2026-09-09) — 마을 도로와 같은 줄(BRIDGE_TY)에 실제로 건널 수 있는
        자리가 생겼으니, `Bridge.glb`(2026-08-30부터 등록만 되고 안 쓰이던 것)를
@@ -1686,6 +1689,12 @@
       d = Math.hypot(npcs[i].x - player.x, npcs[i].y - player.y);
       if (d < bd) { bd = d; best = { type: 'npc', obj: npcs[i], dist: d }; }
     }
+    /* 떠돌이 방문객(PLAN §5.9, visitor.js) — 숲 NPC 와 같은 자리(type 'npc')로 잡힌다. obj.visitor 로 가른다 */
+    var vis = global.DG.visitor ? global.DG.visitor.list() : [];
+    for (i = 0; i < vis.length; i++) {
+      d = Math.hypot(vis[i].x - player.x, vis[i].y - player.y);
+      if (d < bd) { bd = d; best = { type: 'npc', obj: vis[i], dist: d }; }
+    }
     return best;
   }
 
@@ -1847,7 +1856,7 @@
 
     if (f.type === 'bug') { return global.DG.bug.swing(f.obj); }
     if (f.type === 'resident') { return talk(f.obj); }
-    if (f.type === 'npc') { return talkNpc(f.obj); }
+    if (f.type === 'npc') { return f.obj.visitor ? global.DG.visitor.talk(f.obj) : talkNpc(f.obj); }
 
     var prop = f.obj, def = VD.PROPS[prop.kind];
     if (!def) { return null; }
@@ -1871,6 +1880,7 @@
     }
     if (prop.kind === 'spiritmark') { return global.DG.spirit ? global.DG.spirit.interact(prop) : null; }
     if (prop.grid !== undefined) { return global.DG.grid ? global.DG.grid.interact(prop) : null; }
+    if (prop.visit !== undefined) { return global.DG.visitor ? global.DG.visitor.pick(prop) : null; }   // 방문객 조각(§5.9)
     if (prop.fest) { return global.DG.festival ? global.DG.festival.interact(prop) : null; }
     if (prop.kind === 'weed') { return pullWeed(prop); }
     if (prop.kind === 'home') { return enterHome(); }
@@ -2447,7 +2457,8 @@
     /** 화면 전용 — 상태를 직접 읽는다 (쓰지는 말 것) */
     raw: function () {
       return { player: player, props: props, residents: residents,
-               animals: animals, npcs: npcs, fishing: fishing };
+               animals: animals, npcs: npcs, fishing: fishing,
+               visitors: global.DG.visitor ? global.DG.visitor.list() : [] };
     },
     /** 2026-09-09 — "클릭한 곳이 안 보인다"(사가블로와 같은 재신고). 화면이
      *  target 을 그릴 수 있게 읽기 전용으로 내준다. */

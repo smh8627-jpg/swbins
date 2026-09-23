@@ -1889,3 +1889,11 @@ jsdom 355/356 ×3(남은 하나는 캔버스 그림 — 깃발 그림, jsdom 한
 - 사가블로 실제 동물 모델(`animals/` 14파일·`animals_extra/` 22·`animals_extra2/` 42)과 사가고 신수·오마주 대역(`standin/` 5, Snake 는 이 판 `animals/` 에 같은 파일) 복사 — 약 13MB. `asset3d.js` `pet:pt_*` 105줄(사가스토리 `PET_MAP` 과 같은 짝, 구미호=여우), 형태 풀은 되돌림 자리로 남김. 들소는 이 판에 `animals/Cow.glb` 가 없어 `animals_extra/Cow.glb`.
 - 사가고·사가블로·사가스토리와 같은 `petFrame`·`petYaw`·`bodyBox`·`PET_FIT`·camera far 이식, `sprite.js` BEAST_FORM 물고기·말·공룡 줄.
 - 펫 초상 210장 다시 구움(210/210), 모음 그림으로 확인. 펫은 도감 초상에만 3D 로 쓰여 마을 화면은 안 바뀐다. 진단 1 추가 → 358/359(실패 하나는 기존 toDataURL jsdom 한계). `sw.js` village-v0.97.0. 실기 확인 전.
+
+## 2026-09-24 — 떠돌이 방문객(PLAN §5.9)
+
+- 계기: 사용자가 네 판 추천안을 다 골랐다(이 판은 "방문객·이벤트", "맵이 큰 것에 비해 NPC 가 없다"). 새 `js/visitor.js` — 여섯 손님(여우 화상·난파 선원·도깨비불·낚시 명인·곤충 박사·시간 여행자 K-7), 날짜 해시로 하루 한 명.
+- 숲 NPC 진단이 "일곱 명"·"애니메 아바타 표 = NPCS" 를 못박고 있어 NPC 목록·`VD.NPCS` 에 안 넣었다 → `raw().visitors` 따로, 화면·focus 는 NPC 와 같은 길(`n.def`·`f.obj.visitor`).
+- 함정 둘(진단이 잡음): ① 소품 세우기(`marks`)가 `rec()` 로 세이브에 `visit` 칸을 만들어 "살피기 세이브 불변"(정령 진단)이 깼다 → 읽기 전용 `peek()`. ② 조각이 정령의 터 둘레에 섰다 → 정령·격자 `blocked` 와 터 둘레를 피한다. 숲 고리 사물도 조각 칸을 비운다(`visitor.blocked`).
+- 3D `syncNpcs` 가 사라진 NPC 배우를 안 치웠다(방문객은 날마다 바뀐다) → 목록에 없는 배우는 장면에서 뺀다.
+- 진단 7 → jsdom 365/366 세 번 동일(실패 하나는 기존 toDataURL 한계). 진단이 실제 날짜의 손님에 따라 바깥 숲이 달라지므로(조각 날) 정령 진단을 조각 날에 돌려 확인했다. `sw.js` village-v0.98.0. **실기 확인 대기**.

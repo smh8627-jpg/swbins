@@ -282,7 +282,7 @@
     for (i = 0; i < bl.length; i++) { draws.push({ y: bl[i].y, t: 'bug', o: bl[i] }); }
     var al = raw.animals || [];
     for (i = 0; i < al.length; i++) { draws.push({ y: al[i].y, t: 'animal', o: al[i] }); }
-    var nl = raw.npcs || [];
+    var nl = (raw.npcs || []).concat(raw.visitors || []);   // 방문객(§5.9)도 NPC 와 같은 그림
     for (i = 0; i < nl.length; i++) { draws.push({ y: nl[i].y, t: 'npc', o: nl[i] }); }
     draws.push({ y: p.y, t: 'me', o: p });
     draws.sort(function (a, b) { return a.y - b.y; });
@@ -1575,7 +1575,7 @@
    */
   var NPC_TALK_DIST = 130;
   function drawNpc(n, f, now) {
-    var def = VD.NPCS[n.kind];
+    var def = n.def || VD.NPCS[n.kind];
     if (!def) { return; }
     var p = project(n.x, n.y);
     if (p.a < -A_MAX) { return; }

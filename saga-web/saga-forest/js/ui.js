@@ -756,7 +756,7 @@
       return;
     }
     if (f.type === 'npc') {
-      var ndef = VD.NPCS[f.obj.kind];
+      var ndef = f.obj.def || VD.NPCS[f.obj.kind];   // 방문객(§5.9)은 제 def 를 들고 온다
       var q = VD.QUESTS[f.obj.kind];
       var prog = q ? V.questProgress(f.obj.kind) : null;
       key = 'n|' + f.obj.id + '|' + (prog ? prog.done + '|' + prog.have : '');
