@@ -8322,3 +8322,12 @@ PROJECT_STATE.md` 참고. 요약:
 - salt 대역(1000·1010·1020)이 WILDFLOWERS(1000·1005·1010·1015)와 겹치지만 UNDERSTORY는 "T" 칸·WILDFLOWERS는 "." 칸이라 실제 겹침 없음(기존 코드도 같은 관례).
 - 남은 5종(Plant_1/1_Big/7/7_Big·Flower_4_Group, 실측 1~2.5m)은 여전히 "관목" 새 배치 판단이 필요해 보류.
 - `godot_regress.sh` REGRESS OK — GO만 md5 변경, 재질 감사 0, 잡음 없음.
+
+## GO 마을에 관목 5종 신설 — Quaternius 잔디·꽃 68종 씬 배치 5단계 완결 (2026-09-23, 새 세션, "사가고돗 이어해")
+
+- 105 Q-d 마지막 남은 5종(Plant_1/1_Big·Plant_7/7_Big·Flower_4_Group, 실측 1.0~2.5m)을 새 `SHRUBS`+`_scatter_shrubs()`로 배치 — WILDFLOWERS·UNDERSTORY 어느 기존 범주 크기에도 안 맞아 "관목"을 새로 뒀다.
+- WILDFLOWERS(칸마다 채움)와 달리 clutter처럼 "." 칸당 1개 상한을 확률(`SHRUB_CHANCE` 40%)로 놓는다 — 정원의 어쩌다 있는 landmark 느낌. `_hash` 파이썬 포팅(64비트 wrap 그대로 재현)으로 사전 계산: 마을 "." 10칸 중 4곳에 배치(kind 1·3·4×2) — 너무 성기지도 빽빽하지도 않음 확인.
+- 목표 높이는 종별로: Plant_1 허리 1.0m·Plant_1_Big 가슴 1.6m(더 큰 랜드마크)·Plant_7/7_Big 낮은 화단 0.4~0.45m·Flower_4_Group 꽃덤불 1.2m. Flower_4_Group은 09-20 확인대로 노드 2개(잎+꽃)라 `extract_mesh` 병합 경로를 그대로 탄다.
+- 순수 시각(충돌 없음 — 나무만 충돌을 갖는다는 기존 원칙 유지). salt 1030번대로 clutter(600)·village_path(950)·wildflowers(1000)와 분리, 자리 겹침은 이미 세 층이 같은 "." 칸을 나눠 쓰는 기존 관례와 같음.
+- 이걸로 **105 Q-d "씬 배치 5단계"가 완결** — Quaternius 68종(나무 22·바위 24·잔디꽃 22) 전부 어딘가에 배치됨. PLAN 105장에서 지울 수 있음(다음 세션 판단).
+- `godot_regress.sh` REGRESS OK — GO만 md5 변경, 재질 감사 0, 잡음 없음.

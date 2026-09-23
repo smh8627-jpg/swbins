@@ -218,10 +218,10 @@ const UNDERSTORY := [
 ## 2026-09-23 — 남은 잔디·꽃 13종(ASSET_GUIDE 09-20) 중 "Petal"(꽃송이
 ## 뭉치) 5종을 마저 얹었다 — Flower_3/4_Single과 같은 "꽃" 범주라 같은
 ## 목표 높이 0.45m로 역산, `WILDFLOWERS_PER_TILE`이 칸당 고정(4)이라
-## 정원길·조약돌 때처럼 총량은 그대로고 섞이는 종만 늘어난다. 남은
-## Plant_1/1_Big/7/7_Big·Flower_4_Group·Grass_Common/Wispy_Tall·
-## Mushroom_Laetiporus(8종)은 크기(1~2.5m)가 이 층 취지(발목~정강이)와
-## 안 맞아 새 배치 판단이 필요해 이번엔 안 건드림(PROJECT_STATE에 남김).
+## 정원길·조약돌 때처럼 총량은 그대로고 섞이는 종만 늘어난다. 나머지
+## 8종 중 Grass_Common/Wispy_Tall·Mushroom_Laetiporus 3종은 숲 하층
+## `UNDERSTORY`(무릎~발목 범주)로, Plant_1/1_Big/7/7_Big·Flower_4_Group
+## 5종은 아래 새 `SHRUBS`(관목 범주)로 나눠 마저 배치했다.
 const WILDFLOWERS := [
 	{"glb": "res://assets/generated/variants/Clover_2__go_village.glb", "scale": 0.237},           # 1.264m
 	{"glb": "res://assets/generated/variants/Grass_Common_Short__go_village.glb", "scale": 0.225}, # 1.334m
@@ -235,6 +235,27 @@ const WILDFLOWERS := [
 ]
 const WILDFLOWERS_PER_TILE := 4
 
+## 2026-09-23 — 105 Q-d 남은 잔디·꽃 마지막 5종. Plant_1/1_Big·Plant_7/
+## 7_Big·Flower_4_Group은 실측 1.0~2.5m로 들꽃(WILDFLOWERS)·숲 하층
+## (UNDERSTORY) 어느 범주에도 안 맞아 "관목" 새 범주를 둔다 — 마을
+## 정원의 어쩌다 있는 landmark 느낌으로, WILDFLOWERS처럼 칸마다 채우지
+## 않고 clutter처럼 "." 칸 하나에 하나(칸당 1개 상한)만 확률로 놓는다.
+## 목표 높이: Plant_1 허리 1.0m·Plant_1_Big 가슴 1.6m(더 큰 랜드마크
+## 느낌)·Plant_7/7_Big 낮고 넓은 화단 0.4~0.45m·Flower_4_Group 꽃덤불
+## 1.2m. `SHRUB_CHANCE`(칸당 40%)는 마을 "." 10칸 기준 대략 4그루꼴 —
+## clutter·wildflowers와 이미 같은 칸을 나눠 쓰지만(자리 겹침은 여러
+## 장식이 같이 있는 정원처럼 자연스러워 문제 삼지 않는다, 09-20 관례와
+## 같음), salt 대역(1030번대)만 분리했다. 순수 시각(충돌 없음 — 나무만
+## 충돌을 가진다는 기존 원칙 그대로).
+const SHRUBS := [
+	{"glb": "res://assets/generated/variants/Plant_1__go_village.glb", "scale": 0.986612},
+	{"glb": "res://assets/generated/variants/Plant_1_Big__go_village.glb", "scale": 0.681499},
+	{"glb": "res://assets/generated/variants/Plant_7__go_village.glb", "scale": 1.603111},
+	{"glb": "res://assets/generated/variants/Plant_7_Big__go_village.glb", "scale": 1.775620},
+	{"glb": "res://assets/generated/variants/Flower_4_Group__go_village.glb", "scale": 0.482554},
+]
+const SHRUB_CHANCE := 0.4  # "." 칸당 1개 상한, 40% 확률
+
 var region_id := "village"
 
 
@@ -247,6 +268,7 @@ func _ready() -> void:
 	_scatter_coast_pebbles()
 	_scatter_understory()
 	_scatter_wildflowers()
+	_scatter_shrubs()
 	_scatter_ruins_debris()
 	_scatter_ruins_rubble()
 	_scatter_ruins_wall_fence()
@@ -647,6 +669,43 @@ func _scatter_wildflowers() -> void:
 		if mesh == null:
 			continue
 		add_child(_build_rock_multimesh(mesh, xforms, "Wildflowers%d" % k))
+
+
+## "." 칸당 1개 상한(SHRUB_CHANCE 확률로 뽑힐지 먼저 정하고, 뽑히면 종을
+## 고른다) — WILDFLOWERS처럼 칸마다 채우지 않는다. salt 1030번대(clutter
+## 600·village_path 950·wildflowers 1000번대와 안 겹침).
+func _scatter_shrubs() -> void:
+	if region_id != "village":
+		return
+	var ground: float = TerrainBuilder.LEGEND["."].height
+	var xf_by_kind: Array[Array] = []
+	for k in SHRUBS.size():
+		var arr: Array[Transform3D] = []
+		xf_by_kind.append(arr)
+	var rows := TestMap.rows_of(region_id)
+	for y in rows.size():
+		var row: String = rows[y]
+		for x in row.length():
+			if row[x] != ".":
+				continue
+			if _hash(x, y, 1030) >= SHRUB_CHANCE:
+				continue
+			var kind := int(_hash(x, y, 1031) * SHRUBS.size()) % SHRUBS.size()
+			var jx := (_hash(x, y, 1032) - 0.5) * TestMap.TILE_SIZE * 0.6
+			var jz := (_hash(x, y, 1033) - 0.5) * TestMap.TILE_SIZE * 0.6
+			var pos := TestMap.world_pos(x, y, region_id) + Vector3(jx, ground, jz)
+			var s: float = SHRUBS[kind].scale
+			var basis := Basis(Vector3.UP, _hash(x, y, 1034) * TAU).scaled(Vector3.ONE * s)
+			(xf_by_kind[kind] as Array[Transform3D]).append(Transform3D(basis, pos))
+
+	for k in SHRUBS.size():
+		var xforms: Array[Transform3D] = xf_by_kind[k]
+		if xforms.is_empty():
+			continue
+		var mesh := GLBUtils.extract_mesh(SHRUBS[k].glb)
+		if mesh == null:
+			continue
+		add_child(_build_rock_multimesh(mesh, xforms, "Shrub%d" % k))
 
 
 ## clutter와 달리 "." 평지가 아니라 폐허 바닥("R")을 스캔한다 — ruins
