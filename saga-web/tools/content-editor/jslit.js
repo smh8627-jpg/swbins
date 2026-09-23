@@ -4,7 +4,7 @@
  * 판 js 의 `var NAME = [ … ]`·`var NAME = { … }` 를 읽어 **값마다 글자 자리(s·e)** 를 기억한 나무로 만든다.
  * 고칠 때는 바뀐 값의 자리만 새 글자로 바꾼다 — 주석·줄 맞춤·다른 값은 한 글자도 안 움직인다.
  * 모양이 바뀐 곳(키가 늘거나 준 객체, 길이가 바뀐 배열)만 그 그릇을 새로 쓴다(그 안의 주석은 사라진다 — 편집기가 알린다).
- * 맨 윗단 배열·객체는 항목(키·id) 단위로 더하고 빼서 다른 항목·항목 사이 주석은 그대로 둔다.
+ * 맨 윗단 배열·객체는 항목(키·id) 단위로 더하고 빼고 끼우고 옮겨서 다른 항목·항목 사이 주석은 그대로 둔다.
  *
  * 값으로 못 읽는 것(함수·다른 변수·식)은 `raw` 로 남긴다 — 그 안의 `text:`·`label:` 같은 **문자열만** 고칠 수 있다
  * (코드 속 대사). raw 자체는 못 고친다.
@@ -276,50 +276,108 @@ function diff(t, n, v, out) {
 }
 
 /**
- * 맨 윗단 그릇(var 의 값) 고치기 — 항목을 id(배열) · 키(객체)로 맞춰 더하고 빼고 고친다.
- * idKey 가 없는 배열은 자리 번호로 맞춘다(길이가 바뀌면 끝에서 더하고 뺀다).
- * @returns { text, edits, lost } — lost: 주석이 사라진 항목 이름들
+ * 맨 윗단 그릇(var 의 값) 고치기 — 항목을 id(배열) · 키(객체)로 맞춰 더하고 빼고 고치고, **끼우고 옮긴다**.
+ * idKey 가 없는 배열은 origin(새 자리마다 옛 자리 번호, 새 항목은 -1 — 편집기가 들고 다닌다)으로 맞추고,
+ * origin 이 없으면 차례대로 짐작한다.
+ *
+ * 옮기기는 "자리(slot)" 로 한다: 남은 옛 항목들의 글자 자리는 그대로 두고, 그 자리에 들어갈 항목 글자만 바꿔 넣는다.
+ * 그래서 항목 **사이** 주석(갈래 머리말 등)은 자리에 남고, 항목 **안** 주석은 항목을 따라간다.
+ * 새 항목은 새 차례에서 바로 앞에 오는 남은 항목 뒤에(없으면 맨 앞 남은 항목 앞에) 끼운다.
+ * @returns { text, edits, lost, moved } — lost: 주석이 사라진 항목 이름들, moved: 옮겨 쓴 자리 수
  */
-function patchTop(t, n, v, idKey) {
+function patchTop(t, n, v, idKey, origin) {
   const edits = [], eol = eolOf(t);
-  const sub = (label, fn) => { const a = []; fn(a); a.forEach((x) => { x.label = label; edits.push(x); }); };
-  if (n.t === 'obj') {
-    const oldKeys = n.props.map((p) => p.k), newKeys = Object.keys(v);
-    n.props.forEach((p, i) => {
-      if (!(p.k in v)) { edits.push(removeSpan(t, n, i, p.ks, p.v.e)); return; }
-      sub(p.k, (a) => diff(t, p.v, v[p.k], a));
+  const isObj = n.t === 'obj';
+  const olds = isObj ? n.props.map((p) => ({ s: p.ks, e: p.v.e, node: p.v, label: p.k }))
+    : n.items.map((it, i) => ({ s: it.s, e: it.e, node: it, label: '#' + i }));
+  const nk = isObj ? Object.keys(v) : null;
+  const N = isObj ? nk.length : v.length;
+  const newVal = (j) => (isObj ? v[nk[j]] : v[j]);
+  const ind = itemIndent(t, n);
+  const newText = (j) => (isObj ? keyStr(nk[j]) + ': ' + ser(v[nk[j]], ind, eol) : ser(v[j], ind, eol));
+
+  /* 짝짓기 — pairOf[옛 자리] = 새 자리(-1 = 지워짐) */
+  const pairOf = new Array(olds.length).fill(-1), used = new Array(N).fill(false);
+  const oldVals = isObj ? null : n.items.map(toValue);
+  const hasId = (x) => idKey && x && typeof x === 'object' && !Array.isArray(x) && x[idKey] !== undefined;
+  const okOrigin = !isObj && Array.isArray(origin) && origin.length === N &&
+    origin.every((o, j) => Number.isInteger(o) && o >= -1 && o < olds.length && (o < 0 || origin.indexOf(o) === j));
+  if (isObj) {
+    olds.forEach((o, i) => { const j = nk.indexOf(o.label); if (j >= 0) { pairOf[i] = j; used[j] = true; } });
+  } else if (idKey && oldVals.every(hasId) && v.every(hasId)) {
+    oldVals.forEach((x, i) => {
+      olds[i].label = String(x[idKey]);
+      const j = v.findIndex((y) => y[idKey] === x[idKey]);
+      if (j >= 0) { pairOf[i] = j; used[j] = true; }
     });
-    const add = newKeys.filter((k) => oldKeys.indexOf(k) < 0);
-    if (add.length) edits.push(appendSpan(t, n, add.map((k) => keyStr(k) + ': ' + ser(v[k], itemIndent(t, n), eol))));
+  } else if (okOrigin) {
+    origin.forEach((o, j) => { if (o >= 0) { pairOf[o] = j; used[j] = true; } });
   } else {
-    const oldVals = n.items.map(toValue);
-    const hasId = (x) => idKey && x && typeof x === 'object' && !Array.isArray(x) && x[idKey] !== undefined;
-    const pairOf = new Array(n.items.length).fill(-1), used = new Array(v.length).fill(false);
-    if (idKey && oldVals.every(hasId) && v.every(hasId)) {
-      /* id 로 맞춘다 */
-      oldVals.forEach((x, i) => { const j = v.findIndex((y) => y[idKey] === x[idKey]); if (j >= 0) { pairOf[i] = j; used[j] = true; } });
-    } else {
-      /* id 가 없으면 차례대로 맞추되, 지워진 항목은 건너뛴다(다음 옛 항목이 지금 새 항목과 같으면 이번 것은 지워진 것) */
-      /* 코드(raw)를 품은 항목은 그 코드 글자가 곧 신원이다 — 코드는 못 고치니 코드가 다르면 다른 항목이다 */
-      const rawSig = (x) => { const a = []; JSON.stringify(x, (k, y) => { if (isRawVal(y)) { a.push(y.$raw); } return y; }); return a.length ? a.join('\u0000') : null; };
-      const sim = (a, b) => same(a, b) || (rawSig(a) !== null && rawSig(a) === rawSig(b));
-      let j = 0;
-      for (let i = 0; i < oldVals.length; i++) {
-        if (j >= v.length) break;
-        if (!sim(oldVals[i], v[j]) && i + 1 < oldVals.length && sim(oldVals[i + 1], v[j])) continue;
-        if (rawSig(oldVals[i]) !== null && rawSig(oldVals[i]) !== rawSig(v[j])) continue;
-        pairOf[i] = j; used[j] = true; j++;
-      }
+    /* 차례대로 맞추되, 지워진 항목은 건너뛴다(다음 옛 항목이 지금 새 항목과 같으면 이번 것은 지워진 것) */
+    /* 코드(raw)를 품은 항목은 그 코드 글자가 곧 신원이다 — 코드는 못 고치니 코드가 다르면 다른 항목이다 */
+    const rawSig = (x) => { const a = []; JSON.stringify(x, (k, y) => { if (isRawVal(y)) { a.push(y.$raw); } return y; }); return a.length ? a.join('\u0000') : null; };
+    const sim = (a, b) => same(a, b) || (rawSig(a) !== null && rawSig(a) === rawSig(b));
+    let j = 0;
+    for (let i = 0; i < oldVals.length; i++) {
+      if (j >= v.length) break;
+      if (!sim(oldVals[i], v[j]) && i + 1 < oldVals.length && sim(oldVals[i + 1], v[j])) continue;
+      if (rawSig(oldVals[i]) !== null && rawSig(oldVals[i]) !== rawSig(v[j])) continue;
+      pairOf[i] = j; used[j] = true; j++;
     }
-    n.items.forEach((it, i) => {
-      if (pairOf[i] < 0) { edits.push(removeSpan(t, n, i, it.s, it.e)); return; }
-      sub(hasId(oldVals[i]) ? String(oldVals[i][idKey]) : '#' + i, (a) => diff(t, it, v[pairOf[i]], a));
-    });
-    /* 짝 없는 새 항목은 끝에 붙인다 — 가운데 끼우기·순서 바꾸기는 못 한다(되읽기 검사가 막는다) */
-    const add = v.filter((x, j) => !used[j]);
-    if (add.length) edits.push(appendSpan(t, n, add.map((x) => ser(x, itemIndent(t, n), eol))));
   }
-  return apply(t, edits);
+
+  const slots = olds.map((_, i) => i).filter((i) => pairOf[i] >= 0);         // 남는 옛 자리(옛 차례)
+  if (!slots.length) {
+    /* 남는 게 없다 — 옛 항목 전부를 새 항목들로 바꾼다 */
+    const add = [];
+    for (let j = 0; j < N; j++) add.push(newText(j));
+    if (!olds.length) { if (add.length) edits.push(appendSpan(t, n, add)); return apply(t, edits); }
+    const multi = /\n/.test(t.slice(n.s, n.e));
+    edits.push({ s: olds[0].s, e: olds[olds.length - 1].e, text: add.join(multi ? ',' + eol + ind : ', '), label: 'replace', lost: hasComment(t, olds[0].s, olds[olds.length - 1].e) });
+    return apply(t, edits);
+  }
+
+  /* 지우기 — 마지막 남는 항목 뒤의 것들은 한 번에(그 뒤 쉼표·주석째) */
+  const lastKept = slots[slots.length - 1];
+  olds.forEach((o, i) => { if (pairOf[i] < 0 && i < lastKept) edits.push(removeSpan(t, n, i, o.s, o.e)); });
+  if (lastKept < olds.length - 1) edits.push({ s: olds[lastKept].e, e: olds[olds.length - 1].e, text: '', label: 'remove' });
+
+  /* 자리 채우기 — k 번째 자리엔 새 차례로 k 번째인 남는 항목 */
+  const want = slots.map((i) => pairOf[i]).sort((a, b) => a - b);
+  const oldOfNew = {};
+  slots.forEach((i) => { oldOfNew[pairOf[i]] = i; });
+  let moved = 0;
+  slots.forEach((slot, k) => {
+    const j = want[k], src = oldOfNew[j], o = olds[src];
+    const a = [];
+    diff(t, o.node, newVal(j), a);
+    if (src === slot) { a.forEach((x) => { x.label = o.label; edits.push(x); }); return; }
+    moved++;
+    edits.push({ s: olds[slot].s, e: olds[slot].e, text: applyWithin(t, o.s, o.e, a), label: o.label, lost: a.some((x) => x.lost) });
+  });
+
+  /* 끼우기 — 새 차례에서 바로 앞 남는 항목이 놓인 자리 뒤에 */
+  const multi = /\n/.test(t.slice(n.s, n.e)), sep = multi ? ',' + eol + ind : ', ';
+  const slotOfNew = {};
+  want.forEach((j, k) => { slotOfNew[j] = slots[k]; });
+  const after = {}, before = [];
+  let prev = -1;
+  for (let j = 0; j < N; j++) {
+    if (used[j]) { prev = j; continue; }
+    if (prev < 0) before.push(newText(j));
+    else (after[slotOfNew[prev]] = after[slotOfNew[prev]] || []).push(newText(j));
+  }
+  if (before.length) edits.push({ s: olds[slots[0]].s, e: olds[slots[0]].s, text: before.map((x) => x + sep).join(''), label: 'add' });
+  Object.keys(after).forEach((i) => { const e = olds[i].e; edits.push({ s: e, e, text: after[i].map((x) => sep + x).join(''), label: 'add' }); });
+  const r = apply(t, edits);
+  r.moved = moved;
+  return r;
+}
+/** [s, e) 글자에 그 안의 고칠 자리들을 먹인 결과 */
+function applyWithin(t, s, e, a) {
+  let out = t.slice(s, e);
+  a.slice().sort((x, y) => y.s - x.s).forEach((x) => { out = out.slice(0, x.s - s) + x.text + out.slice(x.e - s); });
+  return out;
 }
 function itemIndent(t, n) {
   const first = n.t === 'obj' ? (n.props[0] && n.props[0].ks) : (n.items[0] && n.items[0].s);

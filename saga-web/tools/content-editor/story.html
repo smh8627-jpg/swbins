@@ -78,8 +78,10 @@
   <div id="left">
     <div class="tools">
       <input id="q" placeholder="찾기 — 이름·id·대사">
-      <button id="bAdd" title="새 항목(끝에 붙는다)">＋ 새 항목</button>
-      <button id="bDup" title="고른 것을 본떠 새 항목">본뜨기</button>
+      <button id="bAdd" title="새 항목 — 고른 것 바로 뒤에(안 골랐으면 끝에)">＋ 새 항목</button>
+      <button id="bDup" title="고른 것을 본떠 바로 뒤에">본뜨기</button>
+      <button id="bUp" title="고른 것을 위로(Alt+↑)">↑</button>
+      <button id="bDown" title="고른 것을 아래로(Alt+↓)">↓</button>
       <button id="bDel" title="새로 만든 것만(id 있는 표) · 잡담·대화 같은 표는 무엇이든">지우기</button>
     </div>
     <div id="items"></div>
@@ -106,7 +108,7 @@ const SAMPLE = { '{town}': '신야성', '{season}': '봄', '{phase}': '아침', 
 const GROUP = { quest: '퀘스트', talk: '대사', quiz: '문답' };
 function log(t, ok) { const d = document.createElement('div'); d.className = ok ? 'ok' : 'bad'; d.textContent = (ok ? '✓ ' : '✗ ') + t; $('#log').prepend(d); }
 
-let tables = [], T = null, base = null, val = null, sel = null, undoS = [], redoS = [], dirty = false, checkTimer = null, lastRep = null;
+let tables = [], T = null, base = null, val = null, orig = null, sel = null, undoS = [], redoS = [], dirty = false, checkTimer = null, lastRep = null;
 
 /* ── 불러오기 ─────────────────────────────────────── */
 async function boot() {
@@ -121,21 +123,22 @@ async function boot() {
 async function open(id) {
   const r = await (await fetch('/api/story/read?id=' + encodeURIComponent(id))).json();
   if (r.error) { log(r.error, false); return; }
-  T = r; base = clone(r.value); val = clone(r.value); sel = null; undoS = []; redoS = []; dirty = false;
+  T = r; base = clone(r.value); val = clone(r.value); resetOrig(); sel = null; undoS = []; redoS = []; dirty = false;
   $('#meta').textContent = r.game + '/js/' + r.file + ' · var ' + r.v + (r.exempt ? ' · 실명 가드 예외(역사 문답)' : '');
   history.replaceState(null, '', '?t=' + encodeURIComponent(id));
   renderList(); renderForm(); renderPreview(); updateBadge(); scheduleCheck();
   const first = keys()[0]; if (first !== undefined) pick(first);
 }
 const isArr = () => Array.isArray(val);
+const resetOrig = () => { orig = Array.isArray(val) ? val.map((_, i) => i) : null; };
 const keys = () => (isArr() ? val.map((_, i) => i) : Object.keys(val));
 const itemOf = (k) => val[k];
 const baseHas = (k) => {
   if (!isArr()) return Object.prototype.hasOwnProperty.call(base, k);
   if (T.idKey) { const v = val[k]; return !!(v && base.some((b) => b[T.idKey] === v[T.idKey])); }
-  return k < base.length;
+  return orig[k] >= 0;
 };
-const baseOf = (k) => (!isArr() ? base[k] : T.idKey ? base.find((b) => b[T.idKey] === (val[k] || {})[T.idKey]) : base[k]);
+const baseOf = (k) => (!isArr() ? base[k] : T.idKey ? base.find((b) => b[T.idKey] === (val[k] || {})[T.idKey]) : base[orig[k]]);
 
 /* ── 목록 ─────────────────────────────────────────── */
 function labelOf(v, k) {
@@ -166,11 +169,15 @@ function renderList() {
   document.querySelectorAll('#items .it').forEach((d) => { d.onclick = () => pick(isArr() ? +d.dataset.k : d.dataset.k); });
   $('#bAdd').disabled = !T.add; $('#bDup').disabled = !T.add || sel === null;
   $('#bDel').disabled = sel === null || !(T.del || !baseHas(sel));
+  const at = sel === null ? -1 : keys().indexOf(sel);
+  $('#bUp').disabled = T.fixed || at <= 0; $('#bDown').disabled = T.fixed || at < 0 || at >= keys().length - 1;
 }
 function pick(k) { sel = k; renderList(); renderForm(); renderPreview(); }
 
 /* ── 고치기 ───────────────────────────────────────── */
-function snapshot() { undoS.push(JSON.stringify(val)); if (undoS.length > 300) undoS.shift(); redoS = []; }
+const stateStr = () => JSON.stringify({ v: val, o: orig });
+function setState(s) { const x = JSON.parse(s); val = x.v; orig = x.o; }
+function snapshot() { undoS.push(stateStr()); if (undoS.length > 300) undoS.shift(); redoS = []; }
 function touched(structural) {
   dirty = true; updateBadge(); scheduleCheck(); renderPreview();
   renderList();
@@ -398,21 +405,38 @@ function addItem(from) {
   let item = from !== undefined ? clone(from) : T.template !== null ? clone(T.template) : clone(isArr() ? val[val.length - 1] : val[Object.keys(val)[0]]);
   if (isArr()) {
     if (T.idKey && item && typeof item === 'object') item[T.idKey] = freshId(item[T.idKey]);
-    val.push(item); sel = val.length - 1;
+    const at = sel === null ? val.length : sel + 1;
+    val.splice(at, 0, item); orig.splice(at, 0, -1); sel = at;
   } else {
-    const k = freshId(from !== undefined ? sel : 'new'); val[k] = item; sel = k;
+    const k = freshId(from !== undefined ? sel : 'new'), next = {};
+    for (const [kk, x] of Object.entries(val)) { next[kk] = x; if (kk === sel) next[k] = item; }
+    next[k] = item; val = next; sel = k;
+  }
+  touched(true);
+}
+/* 옮기기 — 배열은 자리, 객체는 키 차례(게임엔 뜻이 없지만 파일 읽기 좋게) */
+function moveItem(d) {
+  if (sel === null || T.fixed) return;
+  const ks = keys(), at = ks.indexOf(sel), to = at + d;
+  if (at < 0 || to < 0 || to >= ks.length) return;
+  snapshot();
+  if (isArr()) {
+    [val[at], val[to]] = [val[to], val[at]]; [orig[at], orig[to]] = [orig[to], orig[at]]; sel = to;
+  } else {
+    [ks[at], ks[to]] = [ks[to], ks[at]];
+    const next = {}; ks.forEach((k) => { next[k] = val[k]; }); val = next;
   }
   touched(true);
 }
 function delItem() {
   if (sel === null || !(T.del || !baseHas(sel))) return;
   snapshot();
-  if (isArr()) { val.splice(sel, 1); sel = val.length ? Math.min(sel, val.length - 1) : null; }
+  if (isArr()) { val.splice(sel, 1); orig.splice(sel, 1); sel = val.length ? Math.min(sel, val.length - 1) : null; }
   else { delete val[sel]; sel = Object.keys(val)[0] || null; }
   touched(true);
 }
-function undo() { if (!undoS.length) return; redoS.push(JSON.stringify(val)); val = JSON.parse(undoS.pop()); fixSel(); touched(true); }
-function redo() { if (!redoS.length) return; undoS.push(JSON.stringify(val)); val = JSON.parse(redoS.pop()); fixSel(); touched(true); }
+function undo() { if (!undoS.length) return; redoS.push(stateStr()); setState(undoS.pop()); fixSel(); touched(true); }
+function redo() { if (!redoS.length) return; undoS.push(stateStr()); setState(redoS.pop()); fixSel(); touched(true); }
 function fixSel() { if (sel !== null && itemOf(sel) === undefined) sel = keys()[0] !== undefined ? keys()[0] : null; }
 
 /* ── 미리보기 ─────────────────────────────────────── */
@@ -468,7 +492,7 @@ function updateBadge() { $('#badge').textContent = dirty ? '● 고침' : ''; $(
 function scheduleCheck() {
   clearTimeout(checkTimer);
   checkTimer = setTimeout(async () => {
-    const r = await (await fetch('/api/story/check', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: T.id, value: val }) })).json();
+    const r = await (await fetch('/api/story/check', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: T.id, value: val, origin: orig }) })).json();
     showReport(r);
   }, 350);
 }
@@ -480,10 +504,10 @@ function showReport(r) {
 }
 async function save() {
   if (!T) return;
-  const r = await (await fetch('/api/story/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: T.id, value: val, hash: T.hash }) })).json();
+  const r = await (await fetch('/api/story/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: T.id, value: val, origin: orig, hash: T.hash }) })).json();
   showReport(r);
   if (r.error) { log(r.error, false); return; }
-  T.hash = r.hash; base = clone(val); dirty = false; updateBadge(); renderList(); renderForm();
+  T.hash = r.hash; base = clone(val); resetOrig(); dirty = false; updateBadge(); renderList(); renderForm();
   log(T.game + '/js/' + T.file + ' ' + T.v + (r.unchanged ? ' — 바뀐 것 없음(안 씀)' : ' 저장 — 고친 자리 ' + r.edits + (r.sw && r.sw.version ? ' · sw.js ' + r.sw.version : '')), true);
   if (!r.unchanged && window.SagaPlay) SagaPlay.reloadIfOpen();
 }
@@ -494,19 +518,21 @@ $('#q').oninput = renderList;
 $('#bAdd').onclick = () => addItem();
 $('#bDup').onclick = () => { if (sel !== null) addItem(itemOf(sel)); };
 $('#bDel').onclick = delItem;
+$('#bUp').onclick = () => moveItem(-1); $('#bDown').onclick = () => moveItem(1);
 $('#bUndo').onclick = undo; $('#bRedo').onclick = redo;
 $('#bSave').onclick = save;
 $('#bReload').onclick = () => { if (!dirty || confirm('저장 안 한 고침을 버릴까?')) open(T.id); };
 addEventListener('keydown', (e) => {
   const ctl = e.ctrlKey || e.metaKey, tag = (e.target && e.target.tagName) || '';
   if (ctl && (e.key === 's' || e.key === 'S')) { e.preventDefault(); save(); return; }
+  if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown') && tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') { e.preventDefault(); moveItem(e.key === 'ArrowUp' ? -1 : 1); return; }
   if (tag === 'INPUT' || tag === 'TEXTAREA') return;       // 글 칸 안의 Ctrl+Z 는 그 칸 몫
   if (ctl && (e.key === 'z' || e.key === 'Z')) { e.preventDefault(); if (e.shiftKey) redo(); else undo(); }
   if (ctl && (e.key === 'y' || e.key === 'Y')) { e.preventDefault(); redo(); }
 });
 addEventListener('beforeunload', (e) => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
 /* 시험용 손잡이 */
-window.SagaStory = { state: () => ({ T, val, sel, dirty, undo: undoS.length, rep: lastRep }), open, pick, addItem, delItem, undo, redo, save, setAt: (path, v) => { snapshot(); setAt(val, path, v); touched(true); } };
+window.SagaStory = { state: () => ({ T, val, orig, sel, dirty, undo: undoS.length, rep: lastRep }), open, pick, addItem, delItem, moveItem, undo, redo, save, setAt: (path, v) => { snapshot(); setAt(val, path, v); touched(true); } };
 boot();
 </script>
 <script src="/play-panel.js"></script>

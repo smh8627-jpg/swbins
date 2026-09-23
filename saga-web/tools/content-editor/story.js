@@ -129,12 +129,12 @@ function adapters(root) {
     /* ── 사가블로 ── */
     ...['MAIN', 'EVENT'].map((V) => ({
       id: 'dungeon.' + V.toLowerCase(), game: 'saga-dungeon', file: 'data-quest.js', v: V, group: 'quest',
-      label: V === 'MAIN' ? '메인 퀘스트(차례대로)' : '구출 이벤트 단계', idKey: 'key', add: true, lock: ['key'], preview: 'quest', ordered: V === 'MAIN',
+      label: V === 'MAIN' ? '메인 퀘스트(차례대로)' : '구출 이벤트 단계', idKey: 'key', add: true, lock: ['key'], preview: 'quest', ordered: V === 'MAIN' ? 'mainIdx' : 'eventIdx',
       enums: () => ({ 'req.t': ['kill', 'discover', 'floor', 'rescue'], 'req.tag': ['', 'elite', 'boss'], 'req.room': [''].concat(keysOf(R('saga-dungeon', 'data-dungeon.js', 'ROOMS'), 'key')) }),
       opt: { 'req.tag': 'elite', 'req.room': 'trove', 'reward.feat': 10 },
       template: { key: (V === 'MAIN' ? 'm' : 'e') + 'new', name: '새 퀘스트', desc: '', req: { t: V === 'MAIN' ? 'floor' : 'rescue', n: 1 }, reward: { gold: 100, exp: 10 } },
       check(v, ctx, E, W) { dungeonReqCheck(v, this.enums(), E, W, false); } })),
-    { id: 'dungeon.region', game: 'saga-dungeon', file: 'data-quest.js', v: 'REGION', group: 'quest', label: '지역 퀘스트(지역 순서 그대로)', preview: 'plain',
+    { id: 'dungeon.region', game: 'saga-dungeon', file: 'data-quest.js', v: 'REGION', group: 'quest', label: '지역 퀘스트(지역 순서 그대로)', preview: 'plain', fixed: '지역',
       check(v, ctx, E, W) {
         const th = R('saga-dungeon', 'data-dungeon.js', 'THEMES') || [];
         need(v.length === th.length, '지역 수 ' + v.length + ' ≠ 테마 ' + th.length + '(자리 번호가 곧 지역이다)', E);
@@ -288,6 +288,19 @@ function lockCheck(A, oldV, newV, E) {
   }
 }
 
+/** 차례 — fixed 표는 못 옮기고, ordered 표는 옛 항목 자리가 바뀌면 경고(세이브가 자리 번호로 진행을 쥔다) */
+function orderCheck(A, oldV, newV, origin, E, W) {
+  if (!Array.isArray(oldV)) return;
+  let from;                                                             // 새 자리 → 옛 자리(-1 = 새 항목)
+  if (A.idKey) from = newV.map((x) => oldV.findIndex((o) => x && o[A.idKey] === x[A.idKey]));
+  else if (Array.isArray(origin) && origin.length === newV.length) from = origin;
+  else return;
+  const shifted = from.filter((o, j) => o >= 0 && o !== j).length;
+  const inserted = from.findIndex((o) => o < 0) >= 0 && from.some((o, j) => o < 0 && from.slice(j + 1).some((x) => x >= 0));
+  if (A.fixed && (shifted || inserted)) E.push('이 표는 자리 번호가 곧 뜻이다(' + A.fixed + ') — 옮기거나 가운데 끼우지 않는다');
+  else if (A.ordered && shifted) W.push('옛 항목 ' + shifted + '개의 차례가 바뀐다 — 세이브가 자리 번호(' + A.ordered + ')로 진행을 쥐어, 하던 세이브는 건너뛰거나 되풀이한다');
+}
+
 function list(root) {
   return adapters(root).map((A) => {
     let count = null, error = null;
@@ -305,7 +318,7 @@ function read(root, id) {
   if (!n) return { error: A.v + ' 를 못 찾음' };
   return {
     id: A.id, game: A.game, file: A.file, v: A.v, group: A.group, label: A.label, hash: md5(text),
-    value: J.toValue(n), idKey: A.idKey || null, lock: A.lock || [], add: !!A.add, del: !!A.del, ordered: !!A.ordered,
+    value: J.toValue(n), idKey: A.idKey || null, lock: A.lock || [], add: !!A.add, del: !!A.del, ordered: !!A.ordered, fixed: !!A.fixed,
     enums: A.enums ? A.enums() : {}, opt: A.opt || {}, tuple: A.tuple || {}, tokens: A.tokens || [], template: A.template === undefined ? null : A.template,
     preview: A.preview || 'plain', ctx: A.ctx ? A.ctx() : {}, exempt: realname.isExempt(A.game + '/js/' + A.file),
     textKeys: J.TEXT_KEYS,
@@ -323,14 +336,15 @@ function build(root, b) {
   const E = [], W = [];
   if (Array.isArray(oldV) !== Array.isArray(newV) || !newV || typeof newV !== 'object') return { errors: ['값 모양이 다르다(배열/객체)'], warns: [] };
   lockCheck(A, oldV, newV, E);
+  orderCheck(A, oldV, newV, b.origin, E, W);
   try { A.check(newV, {}, E, W); } catch (e) { E.push('검사 중 오류: ' + e.message); }
   let out = null;
   try {
-    out = J.patchTop(text, n, newV, A.idKey);
+    out = J.patchTop(text, n, newV, A.idKey, b.origin);
     new vm.Script(out.text, { filename: A.file });
     const back = J.toValue(J.parseVar(out.text, A.v));
     const norm = (x) => JSON.stringify(x, (k, y) => (J.isRawVal(y) ? { t: y.$texts.map((z) => z.v) } : y));
-    if (norm(back) !== norm(newV)) E.push('되읽기 불일치 — 이 모양의 고침(가운데 끼우기·순서 바꾸기 등)은 아직 못 한다. 끝에 더하는 것으로');
+    if (norm(back) !== norm(newV)) E.push('되읽기 불일치 — 고친 파일을 다시 읽은 값이 화면과 다르다(편집기 버그 — 이 고침은 저장 안 한다)');
     if (out.lost.length) W.push('통째로 새로 쓰는 자리 ' + out.lost.join(', ') + ' — 그 안의 주석이 사라진다');
   } catch (e) { E.push('고친 파일을 만들지 못함: ' + e.message); }
   /* 새로 들어온 글자만 실명 가드(역사 문답 파일은 예외) */
