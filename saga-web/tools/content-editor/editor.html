@@ -124,8 +124,8 @@
     <button id="modeModels" class="tabbtn">3D 자산</button>
     <button id="modeTables" class="tabbtn">판별 표(data-*.js)</button>
     <select id="gameSelect" hidden></select>
-    <input type="file" id="uploadInput" accept=".fbx,.glb,.gltf,.webp,.png,.jpg,.jpeg" hidden>
-    <button id="btnUpload" hidden>업로드(FBX·GLB·이미지)</button>
+    <input type="file" id="uploadInput" accept=".fbx,.obj,.mtl,.glb,.gltf,.webp,.png,.jpg,.jpeg" multiple hidden>
+    <button id="btnUpload" hidden title="OBJ 는 MTL·텍스처를 함께 골라 올리면 GLB 하나로 합쳐 넣는다">업로드(FBX·OBJ·GLB·이미지)</button>
     <span id="syncBadge">확인 중…</span>
     <div class="spacer"></div>
     <button id="btnRefresh">새로고침</button>
@@ -598,9 +598,28 @@ async function uploadFile(file) {
   const r = await fetch(API + '/api/upload/' + modelsGame + '?name=' + encodeURIComponent(file.name), {
     method: 'POST', body: buf,
   });
-  const out = await r.json();
+  await afterUpload(await r.json());
+}
+
+/* OBJ 는 MTL·텍스처와 함께 한 번에 보내 GLB 하나로 바꾼다(서버 obj2glb.js, 텍스처는 GLB 안에 들어감). */
+async function uploadObjBundle(files) {
+  const payload = { files: [] };
+  for (const f of files) {
+    const bytes = new Uint8Array(await f.arrayBuffer());
+    let bin = '';
+    for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    payload.files.push({ name: f.name, data: btoa(bin) });
+  }
+  const r = await fetch(API + '/api/upload-obj/' + modelsGame, { method: 'POST', body: JSON.stringify(payload) });
+  await afterUpload(await r.json());
+}
+
+async function afterUpload(out) {
   if (out.error) { alert(out.error); return; }
-  log('업로드: ' + modelsGame + ' / ' + out.path, true);
+  let msg = '업로드: ' + modelsGame + ' / ' + out.path;
+  if (out.stats) msg += ' (꼭짓점 ' + out.stats.vertices + '·삼각형 ' + out.stats.triangles + '·재질 ' + out.stats.materials + '·텍스처 ' + out.stats.textures + ')';
+  log(msg, true);
+  (out.warnings || []).forEach((w) => log('  경고: ' + w, false));
   await loadModels();
   modelsSelected = { type: 'file', path: out.path, fileType: out.type };
   renderModelsTree();
@@ -729,9 +748,20 @@ el('#gameSelect').onchange = async (e) => {
 
 el('#btnUpload').onclick = () => el('#uploadInput').click();
 el('#uploadInput').onchange = async (e) => {
-  const file = e.target.files[0];
+  const files = Array.from(e.target.files);
   e.target.value = '';
-  if (file) await uploadFile(file);
+  const ext = (f) => (f.name.match(/\.[^.]+$/) || [''])[0].toLowerCase();
+  const objs = files.filter((f) => ext(f) === '.obj');
+  if (objs.length > 1) { alert('OBJ 는 한 번에 하나씩 올린다(MTL·텍스처는 함께 골라도 됨)'); return; }
+  if (objs.length === 1) {
+    // OBJ 묶음: OBJ·MTL·이미지 전부 한 번에. 묶음 밖 파일(GLB·FBX)은 따로 올린다
+    const bundle = files.filter((f) => ['.obj', '.mtl', '.png', '.jpg', '.jpeg', '.webp'].includes(ext(f)));
+    await uploadObjBundle(bundle);
+    for (const f of files) if (!bundle.includes(f)) await uploadFile(f);
+    return;
+  }
+  if (files.some((f) => ext(f) === '.mtl')) { alert('MTL 은 OBJ 와 함께 골라 올린다'); return; }
+  for (const f of files) await uploadFile(f);
 };
 
 el('#btnRefresh').onclick = async () => {

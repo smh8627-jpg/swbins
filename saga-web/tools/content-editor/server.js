@@ -21,6 +21,7 @@ const a3d = require('./asset3d-format');
 const realname = require('./realname');
 const tables = require('./tables');
 const swbump = require('./swbump');
+const obj2glb = require('./obj2glb');
 
 const ROOT = path.join(__dirname, '..', '..'); // saga-web/
 const GAMES = ['saga-go', 'saga-dungeon', 'saga-forest', 'saga-story', 'saga-realm'];
@@ -279,9 +280,23 @@ function uniquePath(dir, fileName) {
   return candidate;
 }
 
+/** OBJ(+MTL·텍스처 묶음) → GLB 로 바꿔 assets/models/_uploaded/ 에 넣는다(obj2glb.js, 의존성 없음).
+ *  텍스처는 GLB 안에 들어가므로 따로 파일을 남기지 않는다. files: [{ name, buf }] */
+function handleObjUpload(game, files) {
+  if (GAMES.indexOf(game) === -1) return { error: '알 수 없는 판: ' + game };
+  const out = obj2glb.convert(files);
+  if (out.error) return { error: out.error };
+  const objFile = files.find((f) => path.extname(f.name).toLowerCase() === '.obj');
+  const dir = path.join(gameRoot(game), 'assets', 'models', '_uploaded');
+  fs.mkdirSync(dir, { recursive: true });
+  const finalName = uniquePath(dir, safeFileName(objFile.name).replace(/\.obj$/i, '.glb'));
+  fs.writeFileSync(path.join(dir, finalName), out.glb);
+  return { ok: true, path: 'assets/models/_uploaded/' + finalName, type: 'model', warnings: out.warnings, stats: out.stats };
+}
+
 /** FBX/OBJ·GLB/GLTF·이미지 업로드. FBX 는 fbx2gltf(로컬 node_modules, 저장소
- *  루트에 있으면)로 GLB 변환까지 해서 assets/models/_uploaded/ 에 넣는다.
- *  이미 있는 파일은 절대 덮어쓰지 않고 새 이름을 붙인다. */
+ *  루트에 있으면)로, OBJ 는 obj2glb.js 로 GLB 변환까지 해서 assets/models/_uploaded/ 에 넣는다
+ *  (MTL·텍스처까지 함께 올리려면 /api/upload-obj). 이미 있는 파일은 절대 덮어쓰지 않고 새 이름을 붙인다. */
 async function handleUpload(game, fileName, buffer) {
   if (GAMES.indexOf(game) === -1) return { error: '알 수 없는 판: ' + game };
   const ext = path.extname(fileName).toLowerCase();
@@ -322,7 +337,9 @@ async function handleUpload(game, fileName, buffer) {
     }
     return { ok: true, path: 'assets/models/_uploaded/' + finalName, type: 'model' };
   }
-  return { error: '지원하지 않는 확장자: ' + ext + ' (fbx·glb·gltf·webp·png·jpg만)' };
+  if (ext === '.obj') return handleObjUpload(game, [{ name: fileName, buf: buffer }]);
+  if (ext === '.mtl') return { error: 'MTL 은 혼자 못 올림 — OBJ·텍스처와 함께 골라 올린다' };
+  return { error: '지원하지 않는 확장자: ' + ext + ' (fbx·obj·glb·gltf·webp·png·jpg만)' };
 }
 
 function sendJson(res, code, obj) {
@@ -497,6 +514,19 @@ const server = http.createServer((req, res) => {
         const fileName = u.searchParams.get('name') || 'upload.bin';
         return readRawBody(req)
           .then((buf) => handleUpload(mUpload[1], fileName, buf))
+          .then((out) => sendJson(res, 200, out))
+          .catch((err) => sendJson(res, 400, { error: err.message }));
+      }
+      const mUploadObj = u.pathname.match(/^\/api\/upload-obj\/([a-z-]+)$/);
+      if (req.method === 'POST' && mUploadObj) {
+        // 몸: JSON { files: [{ name, data(base64) }] } — OBJ 하나 + MTL·텍스처
+        return readRawBody(req)
+          .then((buf) => {
+            let body;
+            try { body = JSON.parse(buf.toString('utf8')); } catch (e) { return { error: '요청 JSON 이 깨짐' }; }
+            const files = (Array.isArray(body.files) ? body.files : []).map((f) => ({ name: String(f.name || ''), buf: Buffer.from(String(f.data || ''), 'base64') }));
+            return handleObjUpload(mUploadObj[1], files);
+          })
           .then((out) => sendJson(res, 200, out))
           .catch((err) => sendJson(res, 400, { error: err.message }));
       }

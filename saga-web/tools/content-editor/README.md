@@ -56,13 +56,24 @@ run-editor.bat
   함) — 애초에 판마다 내용이 다르기 때문이다.
 - 파일 목록은 `assets/models/`뿐 아니라 `assets/textures/`도 훑는다. 순수
   이미지(webp/png/jpg)를 고르면 3D 뷰포트 대신 `<img>`로 바로 보여준다.
-- 상단 "업로드(FBX·GLB·이미지)" 버튼으로 로컬 파일을 추가할 수 있다.
+- 상단 "업로드(FBX·OBJ·GLB·이미지)" 버튼으로 로컬 파일을 추가할 수 있다(여러 개 한꺼번에 골라도 된다).
   GLB/GLTF·이미지는 그대로 `assets/models/_uploaded/`·
   `assets/textures/_uploaded/`에 들어가고, **FBX는 자동으로 GLB로
   변환**돼 들어간다(저장소 루트에 `npm install fbx2gltf`로 깐 로컬 변환
   도구를 그 자리에서 부른다 — 없으면 에러 메시지로 알려주고 멈춘다).
   이미 있는 이름은 절대 덮어쓰지 않고 `-2`, `-3`처럼 번호를 붙인다.
-  OBJ 변환은 아직 없다(필요하면 `obj2gltf` 패키지를 추가해야 한다).
+- **OBJ 는 자동으로 GLB 로 변환**된다(`obj2glb.js`, 의존성 없음 — `obj2gltf` 는 cesium 을 통째로 끌고 와 안 썼다).
+  OBJ 하나에 `.mtl`·텍스처(png/jpg/webp)를 **함께 골라** 올리면 GLB 하나로 합친다 — 텍스처는 GLB 안에 들어가고
+  따로 파일을 남기지 않는다(webp 는 `EXT_texture_webp`). MTL 의 `map_Kd` 경로는 파일 이름만 보고 짝을 찾는다.
+  - 읽는 것: `v`·`vt`·`vn`·`f`(삼각형·사각형·n각형, `v/vt/vn`·`v//vn`·음수 색인)·`usemtl`·`mtllib`, MTL 의 `Kd`·`d`/`Tr`·`map_Kd`.
+    재질마다 primitive 하나, 전체는 메시·노드 하나. `o`·`g`·`s`·선·점은 무시한다.
+  - `vn` 이 없으면 같은 위치끼리 면 법선을 모아 **부드러운** 법선을 만든다(각진 모양은 내보낼 때 법선을 넣어 둘 것).
+    `vt` 의 v 는 glTF 규약대로 뒤집는다. 금속성 0·거칠기 1 고정.
+  - MTL·텍스처가 없거나 모르는 재질이면 **경고만** 하고 회색/무텍스처로 넣는다(결과 줄에 "경고:" 로 찍힘).
+    크기가 1000 을 넘으면 cm/mm 단위일 수 있다고 경고한다(크기는 안 바꾼다).
+  - **거절**: OBJ 가 없거나 둘 이상 · 꼭짓점이나 면이 없음 · 숫자가 아닌 값 · 범위 밖 색인 · MTL 혼자.
+  - 압축(Meshopt·WebP)은 하지 않는다 — 게임에 쓸 거면 `tools/glb-compress/compress.mjs` 를 따로 돌린다.
+  - API: `POST /api/upload-obj/<판>` 몸 `{ files: [{ name, data(base64) }] }`. OBJ 하나만이면 기존 `/api/upload` 로도 된다.
 
 ## 안 하는 것
 
