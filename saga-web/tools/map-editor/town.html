@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>saga-web 맵 편집기 — 사가블로 마을</title>
+<link rel="stylesheet" href="common.css">
+<style>
+  #center { justify-content: flex-start; }
+  #room { border: 1px solid var(--line); display: block; cursor: default; }
+  .cnt { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; }
+  #left select { max-width: 150px; }
+</style>
+</head>
+<body>
+<div id="top">
+  <h1>맵 편집기</h1>
+  <nav><a href="map.html">글자 지도</a><a href="city.html">성 지도</a><a href="side.html">사냥터</a><a href="/scene.html">3D 배치</a><a class="cur" href="town.html">사가블로 마을</a></nav>
+  <select id="townSel"></select>
+  <span class="muted" id="meta"></span>
+  <span class="sp"></span>
+  <span id="playMount" style="display:flex;gap:4px"></span>
+  <span id="badge" class="muted">검사 중…</span>
+  <button id="btnUndo" title="Ctrl+Z">되돌리기</button>
+  <button id="btnRedo" title="Ctrl+Y">다시</button>
+  <button id="btnReload">다시 읽기</button>
+  <button class="primary" id="btnSave" title="Ctrl+S">저장</button>
+</div>
+<div id="main">
+  <div id="left">
+    <h3>도구</h3>
+    <div class="row"><button id="t_sel" class="on">고르기·끌기</button></div>
+    <div class="row"><button id="t_decor">장식 +</button><select id="decorType"></select></div>
+    <div class="row"><button id="t_npcs">사람 +</button><select id="npcKey"></select></div>
+    <div class="row"><button id="btnDup" title="Ctrl+D">본뜨기</button><button id="btnDel" title="Delete">지우기</button></div>
+    <div class="muted" id="toolHelp"></div>
+    <h3>보기</h3>
+    <div class="row"><button id="zoomIn">확대</button><button id="zoomOut">축소</button></div>
+    <div class="row"><label><input type="checkbox" id="snap" checked> 10 단위로 붙기</label></div>
+    <div class="row"><label><input type="checkbox" id="vSpawn" checked> 스폰 95(큰 건물 금지)</label></div>
+    <div class="row"><label><input type="checkbox" id="vTalk" checked> 대화 반경(사람끼리 80)</label></div>
+    <div class="row"><label><input type="checkbox" id="vClear"> 소품 간격 55</label></div>
+    <div class="row"><label><input type="checkbox" id="vSpread" checked> 게임에서 설 자리(퍼뜨림)</label></div>
+    <div class="muted">위에서 본 방 560×380(게임이 화면 크기에 맞춰 늘린다). 3D 모습은 ▶ 실행으로 본다.<br>
+      횃불은 벽을 따라 x 로만 끌린다(y 는 고른 것 칸에서). 굴혈 표식은 방에 안 서서 회색·못 끈다.<br>
+      방향키로 1, Shift+방향키로 10 씩 민다.<br>
+      점선 "자동" = 게임이 저절로 얹는 집·기둥(밀도 보강). 손 장식·사람·스폰에서 100 떨어진 곳에 놓여, 이것들을 옮기면 같이 움직인다
+      (서버가 게임 함수 placePoints·hash2 원문을 그대로 돌려 계산). 흐린 주황 원 = 게임이 사람을 방 바깥쪽으로 퍼뜨려 실제로 세우는 자리.</div>
+  </div>
+  <div id="center"><canvas id="room"></canvas></div>
+  <div id="right">
+    <h3>검사 — 게임·진단이 거는 규칙 그대로</h3>
+    <div id="report"></div>
+    <h3>고른 것</h3>
+    <div id="sel" class="muted">무엇이든 누르면 여기 뜬다</div>
+    <h3>기록</h3>
+    <div id="log"></div>
+  </div>
+</div>
+<script>
+'use strict';
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+/* 장식 모양 — 위에서 본 발판 크기(BASE 단위, 게임 3D 의 대략) · 기본값 */
+const DT = {
+  house:      { label: '집', emoji: '🏠', w: 60, d: 48, col: '#b99a74', def: { h: 130 } },
+  inn:        { label: '여관', emoji: '🍶', w: 72, d: 54, col: '#b98a64', def: { h: 130 } },
+  stable:     { label: '마방', emoji: '🐎', w: 72, d: 50, col: '#a08664', def: { h: 130 } },
+  mill:       { label: '방앗간', emoji: '🌾', w: 50, d: 50, col: '#c2a878', def: { h: 130 } },
+  blacksmith: { label: '대장간', emoji: '🔨', w: 64, d: 50, col: '#8a6a5a', def: { h: 140 } },
+  belltower:  { label: '종탑', emoji: '🔔', r: 22, col: '#9a9a90', def: { h: 110 } },
+  well:       { label: '우물', emoji: '💧', r: 14, col: '#6fa0c0', def: { h: 34 } },
+  pillar:     { label: '기둥', emoji: '', sq: 12, col: '#8a8a82', def: {} },
+  torch:      { label: '횃불', emoji: '🔥', r: 7, col: '#ffb040', def: { seed: 1 } },
+  crack:      { label: '균열', emoji: '', col: '#2a2420', def: { a: 1, len: 30 } },
+};
+const FIELD_LABEL = { t: '종류', x: 'x', y: 'y', h: '키 h', seed: '씨앗', a: '각도 a', len: '길이 len', key: '직군' };
+let items = [], M = null, D = null, orig = null, hash = '', tool = 'sel', sel = null, undoS = [], redoS = [], dirty = false, K = 1.6;
+let auto = [];   // 게임이 저절로 얹는 집·기둥(밀도 보강) — 서버가 게임 함수로 계산해 검사 결과에 싣는다
+const PAD = 24;
+const cv = $('#room'), cx = cv.getContext('2d');
+
+function log(t, ok) { const d = document.createElement('div'); d.className = ok ? 'ok' : 'bad'; d.textContent = (ok ? '✓ ' : '✗ ') + t; $('#log').prepend(d); }
+const clone = (x) => JSON.parse(JSON.stringify(x));
+
+async function load() {
+  const r = await fetch('/api/town/list'); items = (await r.json()).items || [];
+  $('#townSel').innerHTML = items.map((m, i) => '<option value="' + i + '">' + esc(m.game + ' · ' + m.name + ' (' + m.id + ')') + '</option>').join('');
+  if (!items.length) { $('#meta').textContent = '사가블로 js/town.js 를 못 읽었다'; return; }
+  $('#decorType').innerHTML = items[0].types.map((t) => '<option value="' + t + '">' + esc((DT[t] ? DT[t].emoji + ' ' + DT[t].label : t)) + '</option>').join('');
+  $('#npcKey').innerHTML = Object.entries(items[0].npcDefs).map(([k, v]) => '<option value="' + k + '">' + esc(v.emoji + ' ' + v.name) + '</option>').join('');
+  pick(0);
+}
+function pick(i) {
+  M = items[i];
+  D = { decor: clone(M.decor), npcs: clone(M.npcs), marks: clone(M.marks) };
+  orig = { decor: D.decor.map((_, j) => j), npcs: D.npcs.map((_, j) => j) };
+  hash = M.hash; undoS = []; redoS = []; dirty = false; sel = null; auto = (M.report && M.report.auto) || [];
+  draw(); showSel(); showReport(M.report);
+}
+
+/* ── 그리기 ─────────────────────────────────── */
+const X = (x) => PAD + x * K, Y = (y) => PAD + y * K;
+const isSel = (k, i) => sel && sel.k === k && sel.i === i;
+function circle(x, y, r, stroke, dash) {
+  cx.beginPath(); cx.arc(X(x), Y(y), r * K, 0, Math.PI * 2);
+  cx.setLineDash(dash || []); cx.strokeStyle = stroke; cx.stroke(); cx.setLineDash([]);
+}
+function draw() {
+  const B = M.base;
+  cv.width = Math.ceil(B.W * K + PAD * 2); cv.height = Math.ceil(B.H * K + PAD * 2);
+  cx.fillStyle = '#15171c'; cx.fillRect(0, 0, cv.width, cv.height);
+  cx.fillStyle = (M.theme && M.theme.wall) || '#5c4e3d'; cx.fillRect(X(0), Y(0), B.W * K, B.H * K);
+  cx.fillStyle = (M.theme && M.theme.floor) || '#3b322a'; cx.fillRect(X(B.WALL), Y(B.WALL), (B.W - 2 * B.WALL) * K, (B.H - 2 * B.WALL) * K);
+  // 통행 영역(벽 + 몸 반지름) · 100 눈금
+  const lo = B.WALL + B.P_R;
+  cx.setLineDash([2, 4]); cx.strokeStyle = 'rgba(255,255,255,.25)'; cx.strokeRect(X(lo), Y(lo), (B.W - 2 * lo) * K, (B.H - 2 * lo) * K); cx.setLineDash([]);
+  cx.fillStyle = 'rgba(255,255,255,.35)'; cx.font = '10px Consolas, monospace'; cx.textAlign = 'center';
+  for (let x = 0; x <= B.W; x += 100) cx.fillText(String(x), X(x), PAD - 8);
+  cx.textAlign = 'right'; for (let y = 0; y <= B.H; y += 100) cx.fillText(String(y), PAD - 4, Y(y) + 3);
+  // 스폰
+  const S = M.spawn;
+  if ($('#vSpawn').checked) { cx.fillStyle = 'rgba(255,80,80,.08)'; cx.beginPath(); cx.arc(X(S.x), Y(S.y), 95 * K, 0, Math.PI * 2); cx.fill(); circle(S.x, S.y, 95, 'rgba(255,110,110,.6)', [5, 4]); }
+  cx.strokeStyle = '#fff'; cx.lineWidth = 2; cx.beginPath(); cx.moveTo(X(S.x) - 7, Y(S.y)); cx.lineTo(X(S.x) + 7, Y(S.y)); cx.moveTo(X(S.x), Y(S.y) - 7); cx.lineTo(X(S.x), Y(S.y) + 7); cx.stroke(); cx.lineWidth = 1;
+  cx.fillStyle = '#fff'; cx.textAlign = 'left'; cx.font = '11px "Malgun Gothic", sans-serif'; cx.fillText('스폰', X(S.x) + 9, Y(S.y) - 6);
+  // 장식
+  D.decor.forEach((d, i) => {
+    const t = DT[d.t] || { col: '#f0f', emoji: '?' }, on = isSel('decor', i);
+    cx.fillStyle = on ? '#ffdf5a' : t.col; cx.strokeStyle = on ? '#fff' : 'rgba(0,0,0,.6)';
+    if (d.t === 'crack') {
+      const a = d.a || 0, L = (d.len || 30) / 2;
+      cx.lineWidth = on ? 4 : 3; cx.strokeStyle = on ? '#ffdf5a' : '#1a1512';
+      cx.beginPath(); cx.moveTo(X(d.x - Math.cos(a) * L), Y(d.y - Math.sin(a) * L)); cx.lineTo(X(d.x + Math.cos(a) * L), Y(d.y + Math.sin(a) * L)); cx.stroke(); cx.lineWidth = 1;
+    } else if (t.w) {
+      cx.fillRect(X(d.x - t.w / 2), Y(d.y - t.d / 2), t.w * K, t.d * K); cx.strokeRect(X(d.x - t.w / 2), Y(d.y - t.d / 2), t.w * K, t.d * K);
+    } else if (t.sq) {
+      cx.fillRect(X(d.x - t.sq / 2), Y(d.y - t.sq / 2), t.sq * K, t.sq * K);
+    } else {
+      cx.beginPath(); cx.arc(X(d.x), Y(d.y), (t.r || 8) * K, 0, Math.PI * 2); cx.fill(); cx.stroke();
+    }
+    if ($('#vClear').checked && d.t !== 'torch' && d.t !== 'crack') circle(d.x, d.y, 55, 'rgba(255,220,120,.35)', [2, 3]);
+    if (t.emoji) { cx.font = Math.round(13 * Math.min(1.4, K)) + 'px "Segoe UI Emoji", sans-serif'; cx.textAlign = 'center'; cx.fillText(t.emoji, X(d.x), Y(d.y) + 5); }
+  });
+  // 게임이 저절로 얹는 것(밀도 보강) — 점선, 못 고른다
+  auto.forEach((d) => {
+    const t = DT[d.t] || {};
+    cx.setLineDash([4, 3]); cx.strokeStyle = 'rgba(230,230,230,.7)';
+    if (t.w) cx.strokeRect(X(d.x - t.w / 2), Y(d.y - t.d / 2), t.w * K, t.d * K);
+    else { cx.beginPath(); cx.arc(X(d.x), Y(d.y), (t.sq || t.r || 8) * K * 0.7, 0, Math.PI * 2); cx.stroke(); }
+    cx.setLineDash([]);
+    cx.fillStyle = 'rgba(230,230,230,.8)'; cx.font = '10px "Malgun Gothic", sans-serif'; cx.textAlign = 'center';
+    cx.fillText('자동 ' + (t.label || d.t), X(d.x), Y(d.y) + 4);
+  });
+  // 표식
+  D.marks.forEach((m, i) => {
+    const off = m.key === 'gate', on = isSel('marks', i), px = X(m.x), py = Y(m.y), r = 11 * K;
+    cx.fillStyle = off ? 'rgba(160,160,160,.35)' : on ? '#ffdf5a' : '#9b6cff';
+    cx.beginPath(); cx.moveTo(px, py - r); cx.lineTo(px + r, py); cx.lineTo(px, py + r); cx.lineTo(px - r, py); cx.fill();
+    if (!off && $('#vTalk').checked) circle(m.x, m.y, 40, 'rgba(180,140,255,.45)', [3, 3]);
+    cx.fillStyle = off ? '#888' : '#e8dcff'; cx.font = '11px "Malgun Gothic", sans-serif'; cx.textAlign = 'center';
+    cx.fillText((m.name || m.key) + (off ? '(방 밖)' : ''), px, py - r - 4);
+  });
+  // 사람 — 게임은 방 가운데에서 바깥으로 최대 1.28배 퍼뜨린다(town.js handTownNpcSpread 와 같은 계산)
+  if ($('#vSpread').checked) D.npcs.forEach((n) => {
+    const s = spread(n.x, n.y);
+    if (Math.hypot(s.x - n.x, s.y - n.y) < 1) return;
+    cx.strokeStyle = 'rgba(255,170,110,.55)'; cx.setLineDash([2, 3]);
+    cx.beginPath(); cx.moveTo(X(n.x), Y(n.y)); cx.lineTo(X(s.x), Y(s.y)); cx.stroke(); cx.setLineDash([]);
+    circle(s.x, s.y, 13, 'rgba(255,170,110,.8)');
+  });
+  D.npcs.forEach((n, i) => {
+    const on = isSel('npcs', i), def = M.npcDefs[n.key] || { emoji: '?', name: n.key };
+    if ($('#vTalk').checked) circle(n.x, n.y, 40, 'rgba(255,170,110,.5)', [3, 3]);
+    cx.fillStyle = on ? '#ffdf5a' : '#ff9a5a'; cx.beginPath(); cx.arc(X(n.x), Y(n.y), 13 * K, 0, Math.PI * 2); cx.fill();
+    cx.font = Math.round(13 * Math.min(1.4, K)) + 'px "Segoe UI Emoji", sans-serif'; cx.textAlign = 'center'; cx.fillStyle = '#111';
+    cx.fillText(def.emoji, X(n.x), Y(n.y) + 5);
+    cx.fillStyle = '#ffe0c8'; cx.font = '11px "Malgun Gothic", sans-serif'; cx.fillText(def.name, X(n.x), Y(n.y) - 13 * K - 4);
+  });
+  $('#meta').textContent = M.name + ' · 장식 ' + D.decor.length + ' · 사람 ' + D.npcs.length + (dirty ? ' · 저장 안 됨' : '');
+  $('#toolHelp').textContent = tool === 'sel' ? '누르면 고르고, 끌면 옮긴다.' : tool === 'decor' ? ($('#decorType').selectedOptions[0] || {}).textContent + ' — 놓을 자리를 누른다.' : '사람 ' + $('#npcKey').value + ' — 설 자리를 누른다.';
+}
+
+/** 게임이 사람을 세우는 자리 — town.js handTownNpcSpread·handTownNpcObstacles 그대로(배율 1.28 부터 0.04 씩 내려 장식 55·표식 82 와 안 부딪히는 첫 배율) */
+function spread(x, y) {
+  const B = M.base, cxm = B.W / 2, cym = B.H / 2, lo = B.WALL + B.P_R + 20, hiX = B.W - lo, hiY = B.H - lo;
+  const obs = D.decor.concat(auto).map((d) => ({ x: d.x, y: d.y, clear: 55 }));
+  if (M.hasGate) D.marks.forEach((m) => { if (m.key !== 'gate') obs.push({ x: m.x, y: m.y, clear: 82 }); });
+  for (let f = 1.28; f > 1.0; f -= 0.04) {
+    const nx = Math.max(lo, Math.min(hiX, cxm + (x - cxm) * f)), ny = Math.max(lo, Math.min(hiY, cym + (y - cym) * f));
+    if (obs.every((o) => Math.hypot(nx - o.x, ny - o.y) >= o.clear)) return { x: nx, y: ny };
+  }
+  return { x, y };
+}
+
+/* ── 누르기·끌기 ─────────────────────────────── */
+function pt(e) { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left - PAD) / K, y: (e.clientY - r.top - PAD) / K }; }
+const snap = (v) => ($('#snap').checked ? Math.round(v / 10) * 10 : Math.round(v));
+function hit(p) {
+  const near = (o, r) => Math.hypot(p.x - o.x, p.y - o.y) <= r;
+  for (let i = D.npcs.length - 1; i >= 0; i--) if (near(D.npcs[i], 16)) return { k: 'npcs', i };
+  for (let i = D.marks.length - 1; i >= 0; i--) if (D.marks[i].key !== 'gate' && near(D.marks[i], 14)) return { k: 'marks', i };
+  for (let i = D.decor.length - 1; i >= 0; i--) {
+    const d = D.decor[i], t = DT[d.t] || {};
+    if (t.w ? Math.abs(p.x - d.x) <= t.w / 2 && Math.abs(p.y - d.y) <= t.d / 2 : near(d, Math.max(10, t.r || t.sq || (d.len || 20) / 2))) return { k: 'decor', i };
+  }
+  return null;
+}
+let drag = null;
+cv.onmousedown = (e) => {
+  const p = pt(e);
+  if (tool !== 'sel') { add(tool, p); return; }
+  const h = hit(p); sel = h;
+  if (h) { push(); const o = D[h.k][h.i]; drag = { ...h, p0: p, x0: o.x, y0: o.y, moved: false }; }
+  draw(); showSel();
+};
+addEventListener('mousemove', (e) => {
+  if (!drag) return;
+  const p = pt(e), o = D[drag.k][drag.i];
+  o.x = snap(drag.x0 + p.x - drag.p0.x);
+  if (!(drag.k === 'decor' && o.t === 'torch')) o.y = snap(drag.y0 + p.y - drag.p0.y);   // 횃불은 벽을 따라 x 로만
+  drag.moved = true; dirty = true; draw(); showSel();
+});
+addEventListener('mouseup', () => { if (drag) { if (drag.moved) changed(); else { undoS.pop(); } drag = null; } });
+function insertAt(k, item) {
+  const at = sel && sel.k === k ? sel.i + 1 : D[k].length;
+  D[k].splice(at, 0, item); orig[k].splice(at, 0, -1); sel = { k, i: at };
+}
+function add(kind, p) {
+  push();
+  if (kind === 'decor') {
+    const t = $('#decorType').value, def = (DT[t] && DT[t].def) || {};
+    const item = Object.assign({ t, x: snap(p.x), y: t === 'torch' ? M.base.WALL - 4 : snap(p.y) }, clone(def));
+    if (t === 'house' || t === 'inn' || t === 'stable' || t === 'mill') item.seed = Math.floor(Math.random() * 90) + 10;
+    insertAt('decor', item);
+  } else {
+    insertAt('npcs', { key: $('#npcKey').value, x: snap(p.x), y: snap(p.y) });
+  }
+  setTool('sel'); changed();
+}
+function dup() {
+  if (!sel || sel.k === 'marks') return;
+  push();
+  const c = clone(D[sel.k][sel.i]); c.x += 20; if (!(sel.k === 'decor' && c.t === 'torch')) c.y += 20; delete c.xRaw; delete c.yRaw;
+  insertAt(sel.k, c); changed();
+}
+function del() {
+  if (!sel || sel.k === 'marks') return;
+  push(); D[sel.k].splice(sel.i, 1); orig[sel.k].splice(sel.i, 1); sel = null; changed();
+}
+function nudge(dx, dy) {
+  if (!sel) return;
+  push(); const o = D[sel.k][sel.i]; o.x += dx; o.y += dy; changed();
+}
+
+/* ── 고른 것 ───────────────────────────────────── */
+function showSel() {
+  if (!sel || !D[sel.k][sel.i]) { $('#sel').innerHTML = '<span class="muted">무엇이든 누르면 여기 뜬다</span>' + counts(); return; }
+  const o = D[sel.k][sel.i];
+  const title = sel.k === 'decor' ? ((DT[o.t] || {}).label || o.t) + ' (장식 ' + (sel.i + 1) + ')' : sel.k === 'npcs' ? '사람 ' + (sel.i + 1) : '표식 ' + (o.name || o.key);
+  const fields = sel.k === 'decor' ? ['t', 'x', 'y'].concat(['h', 'seed', 'a', 'len'].filter((k) => o[k] !== undefined || (k === 'h' && M.buildings.indexOf(o.t) >= 0) || ((k === 'a' || k === 'len') && o.t === 'crack')))
+    : sel.k === 'npcs' ? ['key', 'x', 'y'] : ['x', 'y'];
+  let h = '<b>' + esc(title) + '</b><div class="kv" style="margin-top:4px">';
+  fields.forEach((k) => {
+    h += '<span>' + esc(FIELD_LABEL[k] || k) + (o[k + 'Raw'] ? ' <span class="muted" title="파일엔 식으로 적혀 있다 — 값을 바꾸면 숫자로 쓴다">(' + esc(o[k + 'Raw']) + ')</span>' : '') + '</span>';
+    if (k === 't') h += '<select data-k="t">' + M.types.map((t) => '<option value="' + t + '"' + (t === o.t ? ' selected' : '') + '>' + esc(DT[t] ? DT[t].label : t) + '</option>').join('') + '</select>';
+    else if (k === 'key') h += '<select data-k="key">' + Object.entries(M.npcDefs).map(([kk, v]) => '<option value="' + kk + '"' + (kk === o.key ? ' selected' : '') + '>' + esc(v.emoji + ' ' + v.name) + '</option>').join('') + '</select>';
+    else h += '<input data-k="' + k + '" type="number" step="' + (k === 'a' || k === 'seed' ? '0.1' : '1') + '" value="' + (o[k] === undefined ? '' : o[k]) + '">';
+  });
+  $('#sel').innerHTML = h + '</div>' + counts();
+  document.querySelectorAll('#sel [data-k]').forEach((inp) => {
+    inp.onchange = () => {
+      const k = inp.dataset.k; push();
+      if (inp.tagName === 'SELECT') o[k] = inp.value;
+      else if (inp.value === '') delete o[k];
+      else o[k] = k === 'a' || k === 'seed' ? parseFloat(inp.value) : parseInt(inp.value, 10);
+      changed();
+    };
+  });
+}
+function counts() {
+  const by = {}; D.decor.forEach((d) => { by[d.t] = (by[d.t] || 0) + 1; });
+  return '<h3>개수</h3><div class="cnt">' + Object.entries(by).map(([t, n]) => '<span>' + esc(DT[t] ? DT[t].label : t) + '</span><span>' + n + '</span>').join('') +
+    '<span>사람</span><span>' + D.npcs.length + '</span></div>';
+}
+
+/* ── 되돌리기·검사·저장 ─────────────────────────── */
+const stateStr = () => JSON.stringify({ D, orig });
+function push() { undoS.push(stateStr()); if (undoS.length > 200) undoS.shift(); redoS = []; }
+function setState(s) { const x = JSON.parse(s); D = x.D; orig = x.orig; }
+function doUndo() { const s = undoS.pop(); if (!s) return; redoS.push(stateStr()); setState(s); sel = null; changed(); }
+function doRedo() { const s = redoS.pop(); if (!s) return; undoS.push(stateStr()); setState(s); sel = null; changed(); }
+let tmr = 0;
+function changed() { dirty = true; draw(); showSel(); clearTimeout(tmr); tmr = setTimeout(runCheck, 250); }
+const body = () => ({ game: M.game, id: M.id, decor: D.decor, npcs: D.npcs, marks: D.marks, origin: orig });
+async function runCheck() {
+  const r = await fetch('/api/town/check', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body()) });
+  showReport(await r.json());
+}
+function showReport(rep) {
+  if (Array.isArray(rep.auto)) { auto = rep.auto; draw(); }
+  if (rep.error) { $('#report').innerHTML = '<div class="bad">' + esc(rep.error) + '</div>'; $('#badge').className = 'bad'; $('#badge').textContent = '검사 실패'; return; }
+  const errs = rep.errors || [], warns = rep.warns || [];
+  let h = errs.length ? '<div class="bad">오류 ' + errs.length + ' — 저장이 막힌다<br>' + errs.slice(0, 12).map(esc).join('<br>') + '</div>' : '<div class="ok">검사 통과</div>';
+  if (warns.length) h += '<div class="warn">' + warns.slice(0, 12).map(esc).join('<br>') + '</div>';
+  h += '<div class="muted">' + Object.entries(rep.tally || {}).map(([k, v]) => esc(k) + ' ' + v).join(' · ') + '</div>';
+  $('#report').innerHTML = h;
+  $('#badge').className = errs.length ? 'bad' : warns.length ? 'warn' : 'ok';
+  $('#badge').textContent = errs.length ? '오류 ' + errs.length : warns.length ? '경고 ' + warns.length : '성함';
+}
+async function save() {
+  const r = await fetch('/api/town/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body(), hash }) });
+  const out = await r.json();
+  if (out.error) { log(out.error, false); if (out.report) showReport(out.report); return; }
+  hash = out.hash; dirty = false; showReport(out.report);
+  items.forEach((m) => { if (m.game === M.game) m.hash = out.hash; });   // 네 마을이 한 파일
+  M.decor = clone(D.decor); M.npcs = clone(D.npcs); M.marks = clone(D.marks);
+  orig = { decor: D.decor.map((_, j) => j), npcs: D.npcs.map((_, j) => j) };
+  draw();
+  log(M.game + '/js/town.js ' + M.id + ' ' + (out.unchanged ? '바뀐 것 없음(안 씀)' : '저장') + (out.sw && out.sw.version ? ' · sw.js ' + out.sw.version : ''), true);
+  if (!out.unchanged && window.SagaPlay) SagaPlay.reloadIfOpen();
+}
+
+function setTool(t) { tool = t; ['sel', 'decor', 'npcs'].forEach((n) => $('#t_' + n).classList.toggle('on', t === n)); draw(); }
+['sel', 'decor', 'npcs'].forEach((n) => { $('#t_' + n).onclick = () => setTool(n); });
+$('#decorType').onchange = () => setTool('decor'); $('#npcKey').onchange = () => setTool('npcs');
+$('#btnDup').onclick = dup; $('#btnDel').onclick = del;
+['vSpawn', 'vTalk', 'vClear', 'vSpread'].forEach((id) => { $('#' + id).onchange = draw; });
+$('#zoomIn').onclick = () => { K = Math.min(3, K * 1.2); draw(); }; $('#zoomOut').onclick = () => { K = Math.max(0.6, K / 1.2); draw(); };
+$('#btnUndo').onclick = doUndo; $('#btnRedo').onclick = doRedo; $('#btnSave').onclick = save;
+addEventListener('keydown', (e) => {
+  const inField = e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT';
+  const ctl = e.ctrlKey || e.metaKey;
+  if (ctl && (e.key === 's' || e.key === 'S')) { e.preventDefault(); save(); return; }
+  if (inField) return;
+  if (ctl && (e.key === 'z' || e.key === 'Z')) { e.preventDefault(); if (e.shiftKey) doRedo(); else doUndo(); }
+  else if (ctl && (e.key === 'y' || e.key === 'Y')) { e.preventDefault(); doRedo(); }
+  else if (ctl && (e.key === 'd' || e.key === 'D')) { e.preventDefault(); dup(); }
+  else if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); del(); }
+  else if (e.key === 'Escape') setTool('sel');
+  else if (e.key.indexOf('Arrow') === 0 && sel) {
+    e.preventDefault(); const s = e.shiftKey ? 10 : 1;
+    nudge(e.key === 'ArrowLeft' ? -s : e.key === 'ArrowRight' ? s : 0, e.key === 'ArrowUp' ? -s : e.key === 'ArrowDown' ? s : 0);
+  }
+});
+$('#btnReload').onclick = async () => { if (dirty && !confirm('저장 안 한 변경을 버릴까요?')) return; const i = +$('#townSel').value; await load(); $('#townSel').value = i; pick(i); };
+$('#townSel').onchange = (e) => { if (dirty && !confirm('저장 안 한 변경을 버릴까요?')) { e.target.value = items.indexOf(M); return; } pick(+e.target.value); };
+addEventListener('beforeunload', (e) => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+/* 시험용 손잡이 */
+window.SagaTown = { state: () => ({ M, D, orig, sel, dirty, undo: undoS.length, auto }), pick, add, dup, del, nudge, doUndo, doRedo, save, select: (k, i) => { sel = { k, i }; draw(); showSel(); } };
+load();
+</script>
+<script src="/play-panel.js"></script>
+<script>SagaPlay.mount(document.getElementById('playMount'), () => (M ? M.game : null));</script>
+</body>
+</html>

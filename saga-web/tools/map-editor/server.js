@@ -7,6 +7,7 @@
  *   city  성 지도   — `js/data-city.js` 성 x·y·land + LINKS(사가국지)         → city.html
  *   side  사냥터    — `js/data-side.js` STAGES 발판·줄·문·사람·채집(사가스토리) → side.html
  *   deco  3D 배치   — `js/land.js` 땅의 deco(손으로 놓은 소품, 사가고)          → scene.html
+ *   town  마을      — `js/town.js` 손으로 지은 마을 넷의 장식·사람·표식(사가블로)  → town.html
  * 판 폴더에 그 파일이 있으면 저절로 목록에 뜬다.
  *
  * 어느 어댑터든 원칙은 같다: 검사는 고친 파일을 vm 에서 실행한 **게임 데이터 그대로** 로 하고,
@@ -30,14 +31,15 @@ const land = require('./adapters/land');
 const city = require('./adapters/city');
 const side = require('./adapters/side');
 const deco = require('./adapters/deco');
+const town = require('./adapters/town');
 const gameserve = require('../lib/gameserve');
 
 // saga-web/ — 시험할 땐 SAGA_WEB_ROOT 로 복사본을 가리킨다
 const ROOT = process.env.SAGA_WEB_ROOT ? path.resolve(process.env.SAGA_WEB_ROOT) : path.join(__dirname, '..', '..');
 const GAMES = ['saga-go', 'saga-dungeon', 'saga-forest', 'saga-story', 'saga-realm'];
 const PORT = +process.env.SAGA_EDITOR_PORT || 8800;   // 시험할 땐 다른 포트로
-const ADAPTERS = { land, city, side, deco };
-const PAGES = ['map.html', 'city.html', 'side.html', 'common.css', 'scene.js'];
+const ADAPTERS = { land, city, side, deco, town };
+const PAGES = ['map.html', 'city.html', 'side.html', 'town.html', 'common.css', 'scene.js'];
 /* 3D 배치 화면은 판 경로 밑에 얹는다 — 게임 js·모델을 게임과 같은 상대 경로로 부르려고 */
 const SCENE_EXTRA = {};
 for (const g of GAMES) {
@@ -111,7 +113,7 @@ if (require.main === module) {
       if (gameserve.handle(req, res, u, ROOT, GAMES, SCENE_EXTRA)) return;
       if (req.method === 'GET' && u.pathname === '/api/kinds') {
         return send(res, 200, { kinds: Object.values(ADAPTERS).map((A) => ({ kind: A.kind, label: A.label, page: A.page,
-          games: GAMES.filter((g) => fs.existsSync(A.file(ROOT, g))) })) });
+          games: GAMES.filter((g) => (A.has ? A.has(ROOT, g) : fs.existsSync(A.file(ROOT, g)))) })) });
       }
       // /api/<kind>/list · /api/<kind>/check · /api/<kind>/save  (옛 /api/lands·/api/check·/api/save 는 글자 지도)
       let m = /^\/api\/(\w+)\/(list|check|save)$/.exec(u.pathname);
@@ -127,7 +129,7 @@ if (require.main === module) {
     } catch (e) { fail(e); }
   }).listen(PORT, '127.0.0.1', () => {
     console.log('saga-web 맵 편집기: http://127.0.0.1:' + PORT + '/');
-    console.log('판 js 지도 데이터(land.js · data-city.js · data-side.js)를 직접 고칩니다. 게임 서버가 아닙니다. 끝나면 Ctrl+C.');
+    console.log('판 js 지도 데이터(land.js · data-city.js · data-side.js · 사가블로 town.js)를 직접 고칩니다. 게임 서버가 아닙니다. 끝나면 Ctrl+C.');
   });
 }
 

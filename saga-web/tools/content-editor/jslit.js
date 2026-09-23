@@ -213,9 +213,14 @@ const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
  * 고칠 자리 목록 — old 나무를 new 값으로 만들 [{ s, e, text, lost? }].
  * lost: 그릇을 통째로 새로 써서 안의 주석이 사라지는 자리(편집기에 알린다).
  */
-function diff(t, n, v, out) {
+function diff(t, n, v, out, opts) {
   const eol = eolOf(t);
   if (n.t === 'raw') {
+    /* 식 자리(y: WALL - 4 같은) — opts.rawToValue 면 글자·숫자 값으로 바꿔 쓸 수 있다(맵 편집기 마을). 코드(함수)를 딴 코드로는 늘 못 바꾼다 */
+    if (opts && opts.rawToValue && v !== undefined && (v === null || typeof v !== 'object')) {
+      out.push({ s: n.s, e: n.e, text: typeof v === 'string' ? jsStr(v) : String(v) });
+      return;
+    }
     if (!isRawVal(v) || v.$raw !== n.src) throw new Error('코드(raw) 자리는 못 고친다');
     const nt = v.$texts || [];
     if (nt.length !== n.texts.length) throw new Error('코드 속 대사 수가 다르다');
@@ -242,7 +247,7 @@ function diff(t, n, v, out) {
     if (ok.length !== nk.length || !nk.every((k, i) => ok[i] === k)) {
       /* 키가 뒤에 더해지기만 했으면 닫는 괄호 앞에 붙인다 — 그릇을 통째로 안 쓴다 */
       if (ok.length > nk.length && nk.every((k, i) => ok[i] === k)) {
-        n.props.forEach((p) => diff(t, p.v, v[p.k], out));
+        n.props.forEach((p) => diff(t, p.v, v[p.k], out, opts));
         const add = ok.slice(nk.length);
         const body = t.slice(n.s, n.e), multi = /\n/.test(body);
         const last = n.props.length ? n.props[n.props.length - 1].v.e : n.s + 1;
@@ -256,15 +261,15 @@ function diff(t, n, v, out) {
       }
       whole(); return;
     }
-    n.props.forEach((p) => diff(t, p.v, v[p.k], out));
+    n.props.forEach((p) => diff(t, p.v, v[p.k], out, opts));
     return;
   }
   if (n.t === 'arr') {
     if (!Array.isArray(v)) { whole(); return; }
-    if (v.length === n.items.length) { n.items.forEach((it, i) => diff(t, it, v[i], out)); return; }
+    if (v.length === n.items.length) { n.items.forEach((it, i) => diff(t, it, v[i], out, opts)); return; }
     /* 뒤에 더해지기만 했으면 마지막 값 뒤에 붙인다 */
     if (v.length > n.items.length && n.items.length) {
-      n.items.forEach((it, i) => diff(t, it, v[i], out));
+      n.items.forEach((it, i) => diff(t, it, v[i], out, opts));
       const lastN = n.items[n.items.length - 1], add = v.slice(n.items.length);
       const multi = /\n/.test(t.slice(n.s, n.e));
       const ind = lineIndent(t, lastN.s);
@@ -283,9 +288,10 @@ function diff(t, n, v, out) {
  * 옮기기는 "자리(slot)" 로 한다: 남은 옛 항목들의 글자 자리는 그대로 두고, 그 자리에 들어갈 항목 글자만 바꿔 넣는다.
  * 그래서 항목 **사이** 주석(갈래 머리말 등)은 자리에 남고, 항목 **안** 주석은 항목을 따라간다.
  * 새 항목은 새 차례에서 바로 앞에 오는 남은 항목 뒤에(없으면 맨 앞 남은 항목 앞에) 끼운다.
+ * opts.rawToValue — 식 자리를 글자·숫자 값으로 바꿔 쓰는 것을 허락한다(기본은 막는다 — 대사 편집기의 코드 속 대사 보호).
  * @returns { text, edits, lost, moved } — lost: 주석이 사라진 항목 이름들, moved: 옮겨 쓴 자리 수
  */
-function patchTop(t, n, v, idKey, origin) {
+function patchTop(t, n, v, idKey, origin, opts) {
   const edits = [], eol = eolOf(t);
   const isObj = n.t === 'obj';
   const olds = isObj ? n.props.map((p) => ({ s: p.ks, e: p.v.e, node: p.v, label: p.k }))
@@ -350,7 +356,7 @@ function patchTop(t, n, v, idKey, origin) {
   slots.forEach((slot, k) => {
     const j = want[k], src = oldOfNew[j], o = olds[src];
     const a = [];
-    diff(t, o.node, newVal(j), a);
+    diff(t, o.node, newVal(j), a, opts);
     if (src === slot) { a.forEach((x) => { x.label = o.label; edits.push(x); }); return; }
     moved++;
     edits.push({ s: olds[slot].s, e: olds[slot].e, text: applyWithin(t, o.s, o.e, a), label: o.label, lost: a.some((x) => x.lost) });

@@ -8,7 +8,7 @@
 | 도구 | 하는 일 | 여는 법 |
 |---|---|---|
 | `saga-web/tools/content-editor/` | 도감(`data.js` HEROES·PETS·BIOS)을 다섯 판에 함께 반영 · 판별 `data-*.js` 표 88개 항목 편집 · 3D 자산 재할당·업로드(OBJ+MTL+텍스처도 GLB 로 자동 변환) · 실명 가드 · sw.js 자동 올림 · ▶ 실행 창 · **대사·퀘스트 편집기**(`story.html` — 다섯 판 퀘스트·대사·문답 표 15개를 칸으로, 바뀐 값 자리만 저장) | `run-editor.bat` → :8799 |
-| `saga-web/tools/map-editor/` | 어댑터 구조 — 사가고 `land.js` 글자 지도(칠하기·명소 옮기기) · 사가국지 `data-city.js` 성 135(끌기·길 잇기/끊기·지형 칠하기) · 사가스토리 `data-side.js` 사냥터 11(발판·줄·문·사람·채집) · **3D 배치**(사가고 `land.js` `deco` — 게임 js 로 그린 3D 뷰포트·이동/회전/크기 기즈모·되돌리기). 검사는 그 판 게임 데이터·진단 그대로 · ▶ 실행 창 | `run-map-editor.bat` → :8800 |
+| `saga-web/tools/map-editor/` | 어댑터 구조 — 사가고 `land.js` 글자 지도(칠하기·명소 옮기기) · 사가국지 `data-city.js` 성 135(끌기·길 잇기/끊기·지형 칠하기) · 사가스토리 `data-side.js` 사냥터 11(발판·줄·문·사람·채집) · **3D 배치**(사가고 `land.js` `deco` — 게임 js 로 그린 3D 뷰포트·이동/회전/크기 기즈모·되돌리기) · **사가블로 마을**(`town.js` 손 마을 넷의 장식·사람·표식 — 끌기·자동 장식·게임에서 설 자리 겹쳐 보기). 검사는 그 판 게임 데이터·진단 그대로 · ▶ 실행 창 | `run-map-editor.bat` → :8800 |
 | `saga-web/tools/new-game/` | 여섯 번째 웹 판 뼈대(바로 도는 최소 놀이·세이브·sw.js·진단 8항목·문서 3층) + `register.mjs`(CLAUDE.md 표·precheck·asset-audit·content-editor GAMES 자동 등록, 멱등) | `node new-game.mjs --folder saga-xxx --title .. --port ..` |
 | `tools/scene-layout/` | 글자 지도 → 배치표(JSON) → Godot `.tscn`(걷기 래퍼 `LayoutWalk.tscn` 로 실제 이동·명소 판정까지) / Unity `.unity` 조립(트랙별 스크립트) | README 의 두 단계 명령 |
 
