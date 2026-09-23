@@ -375,8 +375,8 @@ PC 묶음   tools/saga-pc/build-all.bat  →  saga-pc/dist/ (다섯 html + index
   다른 세션이 saga-unity 를 안 고칠 때 한 번 돌려 볼 것(`tools/scene-layout/README.md`).
 - **사가고 `tower_ruin.glb`(역참) 아이콘 굽기** — 여섯 번 넘게 실패해 절차 그림 그대로.
   재시도 방법은 `saga-web/saga-go/tools/bake-icons/README.md`.
-- **절차적 인물·펫 셋째 나라** — 한국·일본 완료(`region-kr/jp.js`·`genchar*.js`). 다음 나라는 사용자가 정한다.
-- **사가국지 다음 확장 지역** — 어디로 갈지 사용자에게 먼저 묻는다(`saga-web/saga-realm/PLAN.md` §10).
+- **절차적 인물·펫 다섯째 나라** — 한국·일본·중국(구주)·서역(2026-09-23) 완료(`saga-go/js/region-*.js`·`genchar*.js`). 다음 나라는 사용자가 정한다.
+- **사가국지 다음 확장 지역** — 열다섯째 실크로드(+서역 보강)까지 완료(2026-09-23, 성 135). 그다음은 사용자에게 먼저 묻는다(`saga-web/saga-realm/PLAN.md` §10).
 - **손으로 놀아 보기** — 조작감·난이도·문답 보상 균형은 사람이 봐야 한다. 사가고·사가의숲은 `_admin.html`
   QA 프리셋으로 상황을 바로 만든다.
 - **잔여 에셋 흠** — 사가의숲 나무 폴리곤(무거워서 보류). 동물형 리깅 툴 라이선스 대안은 웹 검색 필요.

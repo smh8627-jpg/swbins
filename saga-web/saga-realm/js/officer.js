@@ -113,6 +113,11 @@
     for (var nnh = 0; nnh < nh.length; nnh++) {
       if (!data.find(nh[nnh].id)) { data.heroes.push(nh[nnh]); }
     }
+    /* 실크로드 지역 수비 무장(2026-09-23, 열다섯째 확장) — 같은 방식으로 얹는다 */
+    var sl = FD.SILK_OFFICERS || [];
+    for (var ssl = 0; ssl < sl.length; ssl++) {
+      if (!data.find(sl[ssl].id)) { data.heroes.push(sl[ssl]); }
+    }
     merged = true;
     return data.heroes.length;
   }

@@ -99,7 +99,16 @@
        못 찾았다) — 단주를 이 판의 랜드마크로 삼아 "역사가 못 이룬 것을
        이 판에서 이룬다"는 결을 대진(택산 계열)과 같이 가져간다. 같은
        원칙(주인 없음·인물은 가명, 지명만 실제). */
-    nh: '남해'
+    nh: '남해',
+    /* 2026-09-23 확장(열다섯째) — 실크로드. 서역(타림 분지) 바깥, 천산 북쪽
+       초원과 파미르 너머 오아시스. 사용자가 고른 방향("중국 서역·실크로드" —
+       사막·오아시스·서역 상인·유목 세력). 한서·후한서 서역전에 실제로 나오는
+       나라 이름을 그대로 썼다 — 천산 북쪽 유목국 오손(烏孫)·대완 북쪽의
+       강거(康居)·그 서북 초원 끝의 엄채(奄蔡), 파미르 너머 대월지의 왕정
+       감씨(監氏)와 다섯 흡후(翕侯) 중 둘인 휴밀(休密)·귀상(貴霜). 귀상이
+       랜드마크 — 흡후 하나가 일어나 제국이 된 땅. 대하·계빈은 천축(tz)에
+       이미 있어 겹치지 않게 뺐다. 같은 원칙(주인 없음·인물은 가명, 지명만 실제) */
+    sl: '실크로드'
   };
 
   var CITIES = [
@@ -284,6 +293,17 @@
     { id: 'dayuan',   name: '대완', hanja: '大宛', prov: 'xi', x: -58, y: 16, land: 'hill',
       agri: 180, comm: 200, wall: 3200, pop: 60000, garrison: 8000, landmark: true,
       desc: '한혈마(汗血馬)가 난다는 서쪽 끝의 나라.' },
+    /* 2026-09-23 서역 보강(열다섯째 확장과 함께) — 북도 관문 차사, 남도의 사차·정절.
+       우전(river) 곁이지만 둘 다 river 가 아니라 물길이 생기지 않는다 */
+    { id: 'cheshi',   name: '차사', hanja: '車師', prov: 'xi', x: -14, y: 6,  land: 'plain',
+      agri: 180, comm: 150, wall: 3200, pop: 50000, garrison: 8000,
+      desc: '두 물줄기 사이 벼랑 위의 교하성. 흉노와 한이 번갈아 빼앗던 북쪽 관문.' },
+    { id: 'shache',   name: '사차', hanja: '莎車', prov: 'xi', x: -44, y: 30, land: 'hill',
+      agri: 200, comm: 210, wall: 3600, pop: 80000, garrison: 10000,
+      desc: '파미르로 오르는 남쪽 길 입구. 한때 서역 여러 나라를 호령했다.' },
+    { id: 'jingjue',  name: '정절', hanja: '精絶', prov: 'xi', x: -28, y: 40, land: 'plain',
+      agri: 90,  comm: 120, wall: 2400, pop: 30000, garrison: 5500,
+      desc: '모래에 조금씩 묻혀 가는 남도의 작은 나라. 우물 하나가 나라의 목숨이다.' },
 
     /* ── 남중 (2026-09-09 확장, 주인 없음 — 앞 넷과 같은 결) ──
        강주(江州) 남쪽, 익주가 다스리기 벅차하던 산지·밀림 지대. 다른 점
@@ -528,6 +548,29 @@
       agri: 110, comm: 130, wall: 2600, pop: 32000, garrison: 5600,
       desc: '흉노가 하늘에 제사하던 옛 땅. 선비가 그 땅마저 차지했다.' },
 
+    /* ── 실크로드 (2026-09-23 확장, 열다섯째, 주인 없음 — 앞 열넷과 같은 결) ──
+       구자(서역)에서 천산을 넘어 북쪽 초원(오손→강거→엄채)으로, 대완·사차에서
+       파미르를 넘어 대월지(감씨·휴밀·귀상)로. 감씨↔조지(대진)가 이어져
+       서쪽이 고리가 된다. 물길 없음(river 없음) */
+    { id: 'wusun',      name: '오손', hanja: '烏孫', prov: 'sl', x: -40, y: -4, land: 'hill',
+      agri: 110, comm: 120, wall: 2600, pop: 60000, garrison: 9000,
+      desc: '천산 북쪽 초원의 유목 나라. 먼 동쪽에서 공주가 시집왔던 땅.' },
+    { id: 'kangju',     name: '강거', hanja: '康居', prov: 'sl', x: -68, y: 2,  land: 'plain',
+      agri: 140, comm: 230, wall: 3000, pop: 70000, garrison: 9500,
+      desc: '대완 북쪽 초원. 서역 상인이 여기서 낙타를 모아 동쪽으로 떠난다.' },
+    { id: 'yancai',     name: '엄채', hanja: '奄蔡', prov: 'sl', x: -84, y: -8, land: 'plain',
+      agri: 80,  comm: 90,  wall: 2000, pop: 36000, garrison: 7000,
+      desc: '끝없는 초원이 큰 호수에 닿는 곳. 활 쏘는 기마 유목민이 산다.' },
+    { id: 'jianshi',    name: '감씨', hanja: '監氏', prov: 'sl', x: -68, y: 30, land: 'plain',
+      agri: 220, comm: 240, wall: 3800, pop: 100000, garrison: 13000,
+      desc: '대월지의 왕정. 강 남쪽 옛 나라들을 거느렸다.' },
+    { id: 'xiumi',      name: '휴밀', hanja: '休密', prov: 'sl', x: -56, y: 40, land: 'mount',
+      agri: 70,  comm: 110, wall: 2800, pop: 28000, garrison: 6500,
+      desc: '월지 다섯 흡후 중 하나. 파미르 골짜기의 좁은 길목을 쥐었다.' },
+    { id: 'guishuang',  name: '귀상', hanja: '貴霜', prov: 'sl', x: -80, y: 40, land: 'hill', landmark: true,
+      agri: 230, comm: 300, wall: 4400, pop: 130000, garrison: 15000,
+      desc: '다섯 흡후 가운데 하나가 일어나 제국이 된 땅 — 동서의 신과 돈이 한데 섞인다.' },
+
     /* ── 남해(南海) (2026-09-22 확장, 열넷째, 주인 없음 — 앞 열셋과 같은
        결) ── 두 관문 — 합포(교주)에서 바다 건너(둘 다 river), 구속(임읍)
        에서 육로로. 이주·단주는 손권이 230년 실제로 보낸 원정의 목적지다. */
@@ -687,7 +730,17 @@
     ['zhuya', 'daner'], ['zhuya', 'yizhou'],
     ['yizhou', 'danzhou'],
     ['quzu', 'funan'],
-    ['funan', 'dunsun']
+    ['funan', 'dunsun'],
+
+    /* ── 서역 보강 + 실크로드 (2026-09-23) ───────────────── */
+    ['dunhuang', 'cheshi'], ['cheshi', 'yanqi'],
+    ['khotan', 'shache'], ['shache', 'kashgar'],
+    ['khotan', 'jingjue'], ['jingjue', 'loulan'],
+    ['kucha', 'wusun'], ['wusun', 'kangju'],
+    ['dayuan', 'kangju'], ['kangju', 'yancai'],
+    ['dayuan', 'jianshi'], ['shache', 'xiumi'],
+    ['jianshi', 'xiumi'], ['jianshi', 'guishuang'], ['xiumi', 'guishuang'],
+    ['jianshi', 'tiaozhi']
   ];
 
   var byId = {};

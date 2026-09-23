@@ -318,7 +318,17 @@
       stats: { might: 36, wisdom: 80, command: 60 } },
     { id: 'xiyu_cheonma', name: '천마', hanja: '天馬', era: '서역(가상)', faction: '대완',
       rarity: 4, trait: 'might', emoji: '🐎', quote: '한혈마는 하루에 천 리를 달립니다.',
-      stats: { might: 82, wisdom: 50, command: 70 } }
+      stats: { might: 82, wisdom: 50, command: 70 } },
+    /* 2026-09-23 서역 보강 — 차사·사차·정절 */
+    { id: 'xiyu_gyoha',   name: '교하', hanja: '交河', era: '서역(가상)', faction: '차사',
+      rarity: 3, trait: 'command', emoji: '🏯', quote: '두 물줄기 사이 벼랑 위 성이라, 올라오는 길은 하나뿐입니다.',
+      stats: { might: 72, wisdom: 54, command: 80 } },
+    { id: 'xiyu_chongryeong', name: '총령', hanja: '葱嶺', era: '서역(가상)', faction: '사차',
+      rarity: 4, trait: 'wisdom', emoji: '🏔️', quote: '파미르를 넘는 고갯길은 제 발로 하나하나 다 세어 두었습니다.',
+      stats: { might: 50, wisdom: 82, command: 72 } },
+    { id: 'xiyu_jeongcheon', name: '정천', hanja: '井泉', era: '서역(가상)', faction: '정절',
+      rarity: 3, trait: 'virtue', emoji: '💧', quote: '우물이 마르면 나라도 끝납니다 — 물부터 지킵니다.',
+      stats: { might: 38, wisdom: 74, command: 58 } }
   ];
 
   /** 성 id → 그 성의 수비 무장 id 목록 (rtk.js seedNeutral() 이 쓴다) */
@@ -329,7 +339,10 @@
     kucha: ['xiyu_gumo'],
     khotan: ['xiyu_ochi'],
     kashgar: ['xiyu_sarim', 'xiyu_banwol'],
-    dayuan: ['xiyu_cheonma']
+    dayuan: ['xiyu_cheonma'],
+    cheshi: ['xiyu_gyoha'],
+    shache: ['xiyu_chongryeong'],
+    jingjue: ['xiyu_jeongcheon']
   };
 
   /* ── 남중(南中) 지역 수비 무장 (2026-09-09, 다섯째 확장) — 앞 넷과 같은 결.
@@ -819,6 +832,49 @@
     dunsun: ['nh_bandoja']
   };
 
+  /* ── 실크로드 지역 수비 무장 (2026-09-23, 열다섯째 확장) — 앞 열넷과
+     같은 결. era 는 전부 '실크로드(가상)' — 실존 인물이 아니다. faction 은
+     지키는 성 이름 그대로. 이름은 그 땅의 물건·풍습에서 딴 가명이다. */
+  var SILK_OFFICERS = [
+    { id: 'sl_cheonsan', name: '천산', hanja: '天山', era: '실크로드(가상)', faction: '오손',
+      rarity: 4, trait: 'might', emoji: '🐎', quote: '초원의 말은 겨울에도 눈을 헤쳐 풀을 찾아냅니다.',
+      stats: { might: 84, wisdom: 44, command: 72 } },
+    { id: 'sl_hwachin',  name: '화친', hanja: '和親', era: '실크로드(가상)', faction: '오손',
+      rarity: 3, trait: 'virtue', emoji: '🎎', quote: '먼 동쪽에서 시집온 이가 가져온 비단을 아직 간직합니다.',
+      stats: { might: 36, wisdom: 76, command: 60 } },
+    { id: 'sl_nakta',    name: '낙타', hanja: '駱駝', era: '실크로드(가상)', faction: '강거',
+      rarity: 3, trait: 'wisdom', emoji: '🐫', quote: '낙타 한 마리 짐이면 장안 저자 한 칸을 채웁니다.',
+      stats: { might: 44, wisdom: 78, command: 62 } },
+    { id: 'sl_hosang',   name: '호상', hanja: '胡商', era: '실크로드(가상)', faction: '강거',
+      rarity: 3, trait: 'command', emoji: '⚖️', quote: '장사꾼끼리의 약속은 칼보다 무겁습니다.',
+      stats: { might: 58, wisdom: 66, command: 74 } },
+    { id: 'sl_daetaek',  name: '대택', hanja: '大澤', era: '실크로드(가상)', faction: '엄채',
+      rarity: 3, trait: 'might', emoji: '🏹', quote: '큰 호수까지 말을 달려도 초원은 끝나지 않습니다.',
+      stats: { might: 80, wisdom: 40, command: 66 } },
+    { id: 'sl_wangjeong', name: '왕정', hanja: '王庭', era: '실크로드(가상)', faction: '감씨',
+      rarity: 4, trait: 'command', emoji: '⛺', quote: '강 남쪽의 옛 나라들도 이제 이 천막 아래 조아립니다.',
+      stats: { might: 70, wisdom: 60, command: 86 } },
+    { id: 'sl_heupu',    name: '흡후', hanja: '翕侯', era: '실크로드(가상)', faction: '휴밀',
+      rarity: 3, trait: 'wisdom', emoji: '🏔️', quote: '다섯 흡후 가운데 가장 좁은 골짜기를 맡았습니다.',
+      stats: { might: 46, wisdom: 76, command: 64 } },
+    { id: 'sl_geumhwa',  name: '금화', hanja: '金貨', era: '실크로드(가상)', faction: '귀상',
+      rarity: 4, trait: 'command', emoji: '🪙', quote: '동전 한 닢에 동쪽 신과 서쪽 신이 함께 새겨집니다.',
+      stats: { might: 66, wisdom: 70, command: 90 } },
+    { id: 'sl_josang',   name: '조상', hanja: '彫像', era: '실크로드(가상)', faction: '귀상',
+      rarity: 4, trait: 'wisdom', emoji: '🗿', quote: '서쪽 조각가의 손으로 동쪽 성인의 얼굴을 빚습니다.',
+      stats: { might: 40, wisdom: 88, command: 64 } }
+  ];
+
+  /** 성 id → 그 성의 수비 무장 id 목록 (rtk.js seedNeutral() 이 쓴다) */
+  var SILK_GARRISON = {
+    wusun: ['sl_cheonsan', 'sl_hwachin'],
+    kangju: ['sl_nakta', 'sl_hosang'],
+    yancai: ['sl_daetaek'],
+    jianshi: ['sl_wangjeong'],
+    xiumi: ['sl_heupu'],
+    guishuang: ['sl_geumhwa', 'sl_josang']
+  };
+
   /* ── 시나리오 ───────────────────────────────────────────
    * 표를 하나 더 두면 시나리오가 하나 는다. 그 밖에 고칠 곳이 없다.
    *
@@ -1198,6 +1254,7 @@
     DAQIN_OFFICERS: DAQIN_OFFICERS, DAQIN_GARRISON: DAQIN_GARRISON,
     XIANBEI_OFFICERS: XIANBEI_OFFICERS, XIANBEI_GARRISON: XIANBEI_GARRISON,
     NANHAI_OFFICERS: NANHAI_OFFICERS, NANHAI_GARRISON: NANHAI_GARRISON,
+    SILK_OFFICERS: SILK_OFFICERS, SILK_GARRISON: SILK_GARRISON,
     SCENARIOS: SCENARIOS, scenario: scenario, use: use,
     current: function () { return current; },
     find: function (id) { return byId[id] || null; },

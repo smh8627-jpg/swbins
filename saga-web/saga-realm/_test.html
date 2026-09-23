@@ -239,7 +239,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       var added = FD.OFFICERS.concat(
         FD.KOREA_OFFICERS, FD.JAPAN_OFFICERS, FD.JIAOZHOU_OFFICERS, FD.XIYU_OFFICERS,
         FD.NANZHONG_OFFICERS, FD.TIANZHU_OFFICERS, FD.MOBEI_OFFICERS, FD.LINYI_OFFICERS,
-        FD.DAQIN_OFFICERS, FD.XIANBEI_OFFICERS, FD.NANHAI_OFFICERS);
+        FD.DAQIN_OFFICERS, FD.XIANBEI_OFFICERS, FD.NANHAI_OFFICERS, FD.SILK_OFFICERS);
       var addedIds = {};
       added.forEach(function (o) { addedIds[o.id] = true; });
       var dataHeroBase = off.all().filter(function (h) { return !addedIds[h.id]; }).length;
@@ -287,7 +287,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       var addedGroups = FD.KOREA_OFFICERS.concat(
         FD.JAPAN_OFFICERS, FD.JIAOZHOU_OFFICERS, FD.XIYU_OFFICERS,
         FD.NANZHONG_OFFICERS, FD.TIANZHU_OFFICERS, FD.MOBEI_OFFICERS, FD.LINYI_OFFICERS,
-        FD.DAQIN_OFFICERS, FD.XIANBEI_OFFICERS, FD.NANHAI_OFFICERS);
+        FD.DAQIN_OFFICERS, FD.XIANBEI_OFFICERS, FD.NANHAI_OFFICERS, FD.SILK_OFFICERS);
       var addedNonThree = addedGroups.length;
       var freeIds = {};
       free.forEach(function (h) { freeIds[h.id] = true; });
@@ -323,6 +323,33 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       }
       if (!target) { return false; }
       return ('그 성(' + target + ')에 ' + all + '명이 묻혀 있고 보이는 사람은 0');
+    });
+
+    t('열다섯째 확장 실크로드 + 서역 보강(2026-09-23) — 새 성 아홉이 낙양에서 닿고, 주인 없이 시작하며, 수비 무장이 제 성에 선다', function () {
+      var NEW = ['cheshi', 'shache', 'jingjue', 'wusun', 'kangju', 'yancai', 'jianshi', 'xiumi', 'guishuang'];
+      var st = fresh('cao'), bad = [];
+      var seen = { luoyang: true }, q = ['luoyang'];
+      while (q.length) { CD.find(q.shift()).adj.forEach(function (a) { if (!seen[a]) { seen[a] = true; q.push(a); } }); }
+      NEW.forEach(function (id) {
+        var d = CD.find(id), c = st.cities[id];
+        if (!d || !c) { bad.push(id + ' 없음'); return; }
+        if (!seen[id]) { bad.push(id + ' 못 닿음'); }
+        if (c.force) { bad.push(id + ' 주인=' + c.force); }
+        if (c.troops !== d.garrison) { bad.push(id + ' 병력'); }
+        if (d.adj.some(function (a) { return d.land === 'river' && CD.find(a).land === 'river'; })) { bad.push(id + ' 물길'); }
+        var g = (d.prov === 'sl' ? FD.SILK_GARRISON : FD.XIYU_GARRISON)[id] || [];
+        if (!g.length) { bad.push(id + ' 수비 무장 없음'); }
+        g.forEach(function (oid) {
+          var o = off.find(oid), r = off.rec(oid);
+          if (!o || o.faction !== d.name || !r || r.city !== id) { bad.push(oid + ' 자리'); }
+        });
+      });
+      var unreached = CD.CITIES.filter(function (d) { return !seen[d.id]; }).length;
+      if (unreached) { bad.push('못 닿는 성 ' + unreached); }
+      if (CD.provName('sl') !== '실크로드' || !CD.find('guishuang').landmark) { bad.push('지역 이름·랜드마크'); }
+      if (bad.length) { throw new Error('실패: ' + bad.join(', ')); }
+      return '성 ' + CD.CITIES.length + '곳 전부 낙양에서 닿음 · 새 아홉 주인 없음 · 수비 무장 ' +
+        (FD.SILK_OFFICERS.length + 3) + '명 제자리 · 귀상 랜드마크';
     });
 
     /* ── 내정 ────────────────────────────────────────── */

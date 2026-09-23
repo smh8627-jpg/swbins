@@ -67,7 +67,7 @@
 | 시나리오 6 — 194(13세력)/200(8)/208(6, 손·유 동맹) + ④ 백지·⑤ 균열의 왕·⑥ 군웅 무작위 `SCENARIOS` | `data-force.js` | ○ | 12 |
 | 관계·사연 체인 — 관계 표 44쌍(의형제·원수·사제·호적수) `data-relation.js`, 사연 12 + 체인 4 `event.js`(세 갈래 카드, 세력마다 달 18%), 역사 분기 6 | `data-relation.js` `event.js` `war.js` `ui-rtk.js` | △ | 10 |
 | 이정표 5단(시나리오마다) — 조건+보상 표 `milestonesFor`, 판정·지급 `rtk.checkMilestones`, 상단 한 줄·카드 | `data-force.js` `rtk.js` `ui-rtk.js` | △ | 8 |
-| 지도 — 성 126(중국 30 + 한국·일본·교주·서역·남중·천축·막북·임읍·균열·폐허·묘역 각 6~7 + 대진·선비·남해 각 6~7), `force:null` 정복 대상, 전부 낙양에서 BFS 로 도달 확인 | `data-city.js` | △ | 4 |
+| 지도 — 성 135(중국 30 + 한국·일본·교주·남중·천축·막북·임읍·균열·폐허·묘역 각 6~7 + 서역 10 + 대진·선비·남해·실크로드 각 6~7 — 서역 보강·실크로드는 2026-09-23), `force:null` 정복 대상, 전부 낙양에서 BFS 로 도달 확인 | `data-city.js` | △ | 4 |
 | AI — `runForce`: 아쉬운 것부터 명령, `tryWar`(forecast·spare·gather)·`trySupply`·`tryTrade`·`tryPromote`(충성 최저)·`tryPlot`·`tryEnvoy` | `rtk-ai.js` `ai.js` | ○ | 5 |
 | 학당 문답 — `BANK` 260(hist 50·world 30·idiom·proverb·sense·mz), 상금→금고, 학식→`revealFree` | `quiz.js` `data-quiz.js` | ○ | 2 |
 | 2D 지도 SVG — `MAP_VB`(-60 -30 300 180), 드래그·핀치·관성·조이스틱·키보드, 🏠 내 땅으로 | `ui-rtk.js` | △ | 4 |
