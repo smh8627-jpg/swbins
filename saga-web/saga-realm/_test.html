@@ -3699,6 +3699,39 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       return ok && twice && ('머리·옷·눈 변형 · 피부·얼굴·원본 재질 그대로 · 같은 인물 같은 재질 · 두 번 입혀도 원본 기준');
     });
 
+    t('vroid-variant — 머리카락 하이라이트 띠(천사 고리): _HAIR 재질에만, 툰 템플릿 자리에 꽂히고 림과 함께 산다, 손잡이 끄면 없음', function () {
+      /* 2026-09-23 "원신급" — 화면 기준 법선의 위쪽 성분이 일정 범위인 곳(머리를 가로로 두르는 띠)에 밝기 비례 광택.
+         렌더 결과는 스크래치 확인 페이지 스크린샷으로 맞췄다 — 여기선 셰이더가 제자리에 꽂히는지·손잡이만 본다 */
+      var V = DG.vroidVariant, TH = window.THREE, TN = DG.toon3d, C = DG.core;
+      var toon = !TN.TOON_ON || TN.TOON_ON();
+      if (!toon) { return '툰 꺼짐 — 하이라이트 없음(건너뜀)'; }
+      function rig() {
+        var root = new TH.Group(), hips = new TH.Bone(); hips.name = 'J_Bip_C_Hips';
+        root.add(hips); root.updateMatrixWorld(true);
+        var skel = new TH.Skeleton([hips]), out = { root: root };
+        [['hair', 'F00_000_Hair_00_HAIR_01'], ['body', 'F00_000_00_Body_00_SKIN']].forEach(function (p) {
+          var m = new TH.SkinnedMesh(new TH.BoxGeometry(0.2, 0.2, 0.2), new TH.MeshBasicMaterial({ name: p[1] }));
+          root.add(m); m.bind(skel); out[p[0]] = m;
+        });
+        return out;
+      }
+      var URL = 'assets/models/people/anime/avatar_sample_a.glb';
+      var a = rig(); V.shade(a.root, URL);
+      var hair = a.hair.material, body = a.body.material;
+      var sh = { uniforms: TH.UniformsUtils.clone(TH.ShaderLib.toon.uniforms),
+        vertexShader: TH.ShaderLib.toon.vertexShader, fragmentShader: TH.ShaderLib.toon.fragmentShader };
+      hair.onBeforeCompile(sh);
+      var inj = sh.fragmentShader.indexOf('float vhY = dot( vhN, vhUp )') > 0 && sh.fragmentShader.indexOf('uniform float vhGain') > 0 &&
+        sh.fragmentShader.indexOf('vViewPosition') > 0 && !!sh.uniforms.vhGain && sh.uniforms.vhGain.value > 0;
+      var rimKept = !(TN.RIM_ON && TN.RIM_ON()) || sh.fragmentShader.indexOf('rimColor') > 0;
+      var keyOk = hair.userData.vroidHair === true && hair.customProgramCacheKey().indexOf('vroidHair') >= 0 && !body.userData.vroidHair;
+      C.setTune({ 'world3d.hairHi': 0 });
+      var b = rig(); V.shade(b.root, URL);
+      C.setTune({ 'world3d.hairHi': null });
+      var offOk = !b.hair.material.userData.vroidHair;
+      return inj && rimKept && keyOk && offOk && '머리 재질에만 띠 셰이더 · 림과 함께 · 캐시 키 분리 · 손잡이 0 이면 없음';
+    });
+
     t('vroid-variant — shade: VRM 의 빛 안 받는 재질을 툰으로(이름 유지 → 색 변형이 먹는다), 얼굴에만 머리뼈 기준 얼굴 그림자', function () {
       /* 2026-09-23 "원신급" — VRM(unlit → MeshBasic)이 네 판에서 명암 없이 평면으로 떴고, 사가의숲은 툰 재질에
          이름이 안 옮겨져 색 변형이 한 칸도 안 먹었다. 실제 GLB 처럼 MeshBasic + 뼈대로 조립해 잰다 */
@@ -3788,6 +3821,33 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       C.setTune({ 'world3d.rim': null });
       return inj && carried && lost && !own.call(off, 'onBeforeCompile') &&
         '림 셰이더 세 자리 다 꽂힘 · cloneMat 사본도 셰이더 유지(기본 clone 은 떨굼) · 손잡이 끄면 없음';
+    });
+
+    t('toon3d — 톤매핑(Neutral)·빛 배수, 손잡이 끄면 예전 그대로 (2026-09-23 "원신급" 3단계)', function () {
+      var TN = DG.toon3d, TH = window.THREE, C = DG.core;
+      var r = TN.toneRenderer({ toneMapping: 0, toneMappingExposure: 1 });
+      var on = r.toneMapping === TH.NeutralToneMapping && r.toneMappingExposure === 1 && TN.lightGain() === 1.5;
+      C.setTune({ 'world3d.tone': 0 });
+      var r2 = TN.toneRenderer({ toneMapping: 0, toneMappingExposure: 1 });
+      var off = r2.toneMapping === 0 && TN.lightGain() === 1;
+      C.setTune({ 'world3d.tone': null });
+      return on && off && 'Neutral · 빛 ×1.5 · 손잡이 0 이면 톤매핑 없음·빛 ×1';
+    });
+
+    t('toon3d — 배우 외곽선: 화면 기준 한 폭(모델 크기·배율과 무관), 매끈한 법선, 이미 두른 것(VRoid) 건너뜀', function () {
+      /* 2026-09-23 — 지오메트리 단위로 밀면 Quaternius 몬스터(메시 배율 100 을 뼈가 되돌림)에서 외곽선이 몸의 몇십 배로
+         부풀어 초상이 통째로 검었다(스크린샷). 뷰 공간에서 시야 거리에 비례해 민다 */
+      var TN = DG.toon3d, TH = window.THREE;
+      function mesh(size) { var g = new TH.Group(), m = new TH.Mesh(new TH.BoxGeometry(size, size, size), new TH.MeshToonMaterial()); g.add(m); return m; }
+      var small = mesh(0.05), big = mesh(80), vroid = mesh(1);
+      vroid.userData._toonOutline = true;
+      var o1 = TN.outline(small), o2 = TN.outline(big, 123), o3 = TN.outline(vroid);
+      var w1 = o1 && o1.material.uniforms.outlineWidth.value, w2 = o2 && o2.material.uniforms.outlineWidth.value;
+      var vs = o1 ? o1.material.vertexShader : '';
+      return !!o1 && !!o2 && o3 === null && w1 === w2 && w1 > 0 && w1 < 0.01 && o1.material.side === TH.BackSide &&
+        vs.indexOf('max( -mvPosition.z, 0.0 )') > 0 && !!small.geometry.attributes.outlineNormal && o1.userData._toonOutline === true &&
+        TN.outline(small) === null &&
+        ('폭 ' + w1 + '(작은 상자·큰 상자 같음) · 뷰 공간 밀기 · VRoid·두 번째 호출 건너뜀');
     });
 
     t('toon3d.skyBackground — 아래는 안개색 그대로·위는 더 짙은 하늘, 색마다 한 장, 손잡이 끄면 예전 단색', function () {

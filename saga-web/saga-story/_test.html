@@ -3970,6 +3970,39 @@ window.DG_NO_TUNE = true;
       return ok && twice && ('머리·옷·눈 변형 · 피부·얼굴·원본 재질 그대로 · 같은 인물 같은 재질 · 두 번 입혀도 원본 기준');
     });
 
+    t('vroid-variant — 머리카락 하이라이트 띠(천사 고리): _HAIR 재질에만, 툰 템플릿 자리에 꽂히고 림과 함께 산다, 손잡이 끄면 없음', function () {
+      /* 2026-09-23 "원신급" — 화면 기준 법선의 위쪽 성분이 일정 범위인 곳(머리를 가로로 두르는 띠)에 밝기 비례 광택.
+         렌더 결과는 스크래치 확인 페이지 스크린샷으로 맞췄다 — 여기선 셰이더가 제자리에 꽂히는지·손잡이만 본다 */
+      var V = DG.vroidVariant, TH = window.THREE, TN = DG.toon3d, C = DG.core;
+      var toon = !TN.TOON_ON || TN.TOON_ON();
+      if (!toon) { return '툰 꺼짐 — 하이라이트 없음(건너뜀)'; }
+      function rig() {
+        var root = new TH.Group(), hips = new TH.Bone(); hips.name = 'J_Bip_C_Hips';
+        root.add(hips); root.updateMatrixWorld(true);
+        var skel = new TH.Skeleton([hips]), out = { root: root };
+        [['hair', 'F00_000_Hair_00_HAIR_01'], ['body', 'F00_000_00_Body_00_SKIN']].forEach(function (p) {
+          var m = new TH.SkinnedMesh(new TH.BoxGeometry(0.2, 0.2, 0.2), new TH.MeshBasicMaterial({ name: p[1] }));
+          root.add(m); m.bind(skel); out[p[0]] = m;
+        });
+        return out;
+      }
+      var URL = 'assets/models/people/anime/avatar_sample_a.glb';
+      var a = rig(); V.shade(a.root, URL);
+      var hair = a.hair.material, body = a.body.material;
+      var sh = { uniforms: TH.UniformsUtils.clone(TH.ShaderLib.toon.uniforms),
+        vertexShader: TH.ShaderLib.toon.vertexShader, fragmentShader: TH.ShaderLib.toon.fragmentShader };
+      hair.onBeforeCompile(sh);
+      var inj = sh.fragmentShader.indexOf('float vhY = dot( vhN, vhUp )') > 0 && sh.fragmentShader.indexOf('uniform float vhGain') > 0 &&
+        sh.fragmentShader.indexOf('vViewPosition') > 0 && !!sh.uniforms.vhGain && sh.uniforms.vhGain.value > 0;
+      var rimKept = !(TN.RIM_ON && TN.RIM_ON()) || sh.fragmentShader.indexOf('rimColor') > 0;
+      var keyOk = hair.userData.vroidHair === true && hair.customProgramCacheKey().indexOf('vroidHair') >= 0 && !body.userData.vroidHair;
+      C.setTune({ 'world3d.hairHi': 0 });
+      var b = rig(); V.shade(b.root, URL);
+      C.setTune({ 'world3d.hairHi': null });
+      var offOk = !b.hair.material.userData.vroidHair;
+      return inj && rimKept && keyOk && offOk && '머리 재질에만 띠 셰이더 · 림과 함께 · 캐시 키 분리 · 손잡이 0 이면 없음';
+    });
+
     t('vroid-variant — shade: VRM 의 빛 안 받는 재질을 툰으로(이름 유지 → 색 변형이 먹는다), 얼굴에만 머리뼈 기준 얼굴 그림자', function () {
       /* 2026-09-23 "원신급" — VRM(unlit → MeshBasic)이 네 판에서 명암 없이 평면으로 떴고, 사가의숲은 툰 재질에
          이름이 안 옮겨져 색 변형이 한 칸도 안 먹었다. 실제 GLB 처럼 MeshBasic + 뼈대로 조립해 잰다 */

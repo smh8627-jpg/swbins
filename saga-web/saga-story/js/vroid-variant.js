@@ -308,6 +308,46 @@
     return true;
   }
 
+  /* ── 머리카락 하이라이트 띠(2026-09-23, 원신식 "천사 고리") ─────────────────────────────────────
+   * 원신류 머리의 광택은 한 점(정반사)이 아니라 **머리를 가로로 도는 띠**다. 머리카락 결(탄젠트)이 없는 VRoid 카드로
+   * Kajiya-Kay 를 흉내 내는 대신, 화면 기준 법선의 **위쪽 성분(n·up)이 일정 범위**인 곳 = 머리 윗부분을 가로로 두르는 띠에
+   * 카메라를 마주 보는 만큼 광택을 얹는다. 시선에 붙어 다니므로 어느 쪽에서 봐도 정수리 아래에 고리가 선다.
+   * 밝기는 그 자리 밝기에 비례(밤·그늘에서 형광처럼 안 뜬다), 텍스처 결(밝기)로 띠 가장자리를 들쭉날쭉 끊는다.
+   * 손잡이 `world3d.hairHi`(세기 배수, 기본 1, 0 이면 끔). */
+  var HAIR_RE = /_HAIR/;
+  function hairHiOn() {
+    var core = global.DG && global.DG.core;
+    return core && core.tuned ? core.tuned('world3d.hairHi', 1) : 1;
+  }
+  function hairShadeMaterial(mat) {
+    if (!mat || (mat.userData && mat.userData.vroidHair)) { return false; }
+    var gain = hairHiOn();
+    if (!(gain > 0)) { return false; }
+    mat.userData = mat.userData || {};
+    mat.userData.vroidHair = true;
+    var U = { vhGain: { value: 0.7 * gain }, vhLo: { value: 0.34 }, vhHi: { value: 0.48 }, vhSoft: { value: 0.035 } };
+    chainCompile(mat, 'vroidHair', function (shader) {
+      for (var k in U) { if (Object.prototype.hasOwnProperty.call(U, k)) { shader.uniforms[k] = U[k]; } }
+      shader.fragmentShader = shader.fragmentShader
+        .replace('#include <common>', '#include <common>\nuniform float vhGain;\nuniform float vhLo;\nuniform float vhHi;\nuniform float vhSoft;')
+        .replace('#include <opaque_fragment>', '#include <opaque_fragment>\n' + [
+          '{',
+          '  vec3 vhN = normalize( normal );',
+          '  vec3 vhV = normalize( vViewPosition );',
+          '  vec3 vhUp = normalize( ( viewMatrix * vec4( 0.0, 1.0, 0.0, 0.0 ) ).xyz );',
+          '  float vhY = dot( vhN, vhUp );',
+          '  float vhT = dot( diffuseColor.rgb, vec3( 0.299, 0.587, 0.114 ) );',
+          '  float vhJ = ( vhT - 0.5 ) * 0.3;',
+          '  float vhB = smoothstep( vhLo + vhJ - vhSoft, vhLo + vhJ, vhY ) * ( 1.0 - smoothstep( vhHi + vhJ, vhHi + vhJ + vhSoft, vhY ) );',
+          '  vhB *= smoothstep( 0.15, 0.55, dot( vhN, vhV ) );',
+          '  float vhL = dot( gl_FragColor.rgb, vec3( 0.299, 0.587, 0.114 ) );',
+          '  gl_FragColor.rgb += ( gl_FragColor.rgb * 1.2 + vec3( vhL * 0.35 ) ) * vhB * vhGain;',
+          '}'
+        ].join('\n'));
+    });
+    return true;
+  }
+
   function faceShadeMaterial(mat, fr, bone) {
     if (!mat || (mat.userData && mat.userData.vroidFace)) { return false; }
     mat.userData = mat.userData || {};
@@ -454,6 +494,7 @@
         if (toon && TN.applyRimLight) { TN.applyRimLight(nm); }
         if (toon && FACE_RE.test(m.name || '')) { faces.push({ mesh: o, mat: nm }); }
         if (toon && BODY_SKIN_RE.test(m.name || '') && faceShadeOn()) { skinShadeMaterial(nm); }
+        if (toon && HAIR_RE.test(m.name || '')) { hairShadeMaterial(nm); }
         n++;
         return nm;
       });

@@ -56,14 +56,22 @@
   }
 
   /** 카메라를 어디에 두나 — **키 1 로 눕힌 모델** 기준의 순수 계산이다 */
-  function camPlan(w, h) {
+  /** 2026-09-23 "원신급" — 사람 초상은 **흉상**(가슴 위). 예전 구도(머리~허벅지)는 카드에서 얼굴이 작았다.
+   *  손잡이 `portrait3d.bust`(0 이면 예전 구도). 키 1 모델에서 0.65~1.07 쯤이 카드 세로에 들어온다 */
+  function BUST() {
+    var c = global.DG && global.DG.core;
+    return c && c.tuned ? (c.tuned('portrait3d.bust', 1) ? true : false) : true;
+  }
+  /** 몬스터 몸 장수(`ref.monster`)는 사람 비례가 아니라(머리가 몸 절반) 흉상·예전 구도 모두 뿔·몸통만 크게 잡혔다 — 전신 */
+  function camPlan(w, h, ref) {
     var aspect = w / Math.max(1, h);
-    var span = 0.62;
+    var beast = !!(ref && ref.monster);
+    var span = beast ? 1.1 : (BUST() ? 0.37 : 0.62);
     var fov = 26;
     var dist = (span / 2) / Math.tan(fov * Math.PI / 360);
     if (aspect < 1) { dist = dist / Math.max(0.55, aspect); }
-    var look = 0.78;
-    return { fov: fov, dist: dist, look: look, aspect: aspect, yaw: 0.42, pitch: 0.06 };
+    var look = beast ? 0.5 : (BUST() ? 0.86 : 0.78);
+    return { fov: fov, dist: dist, look: look, aspect: aspect, yaw: beast ? 0.55 : 0.42, pitch: 0.06 };
   }
 
   /* ── 여기서부터 three 가 필요하다 ─────────────────────── */
@@ -217,7 +225,7 @@
   function bake(kind, ref, w, h, node) {
     if (!boot() || !node) { return null; }
 
-    var plan = camPlan(w, h);
+    var plan = camPlan(w, h, ref);
     var dpr = Math.min(global.devicePixelRatio || 1, 2);
     var pw = Math.max(16, Math.round(w * dpr)), ph = Math.max(16, Math.round(h * dpr));
 

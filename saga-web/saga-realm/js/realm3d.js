@@ -366,6 +366,7 @@
       renderer = new t.WebGLRenderer({ canvas: canvas, antialias: true, alpha: false });
     } catch (e) { failed = true; return; }
     renderer.setPixelRatio(Math.min(global.devicePixelRatio || 1, DPR()));
+    if (global.DG.toon3d && global.DG.toon3d.toneRenderer) { global.DG.toon3d.toneRenderer(renderer); }   // Neutral 톤매핑(2026-09-23)
 
     scene = new t.Scene();
     scene.background = (global.DG.toon3d && global.DG.toon3d.skyBackground) ? global.DG.toon3d.skyBackground(0x9fd0e8) : new t.Color(0x9fd0e8);   // 하늘 그라디언트(2026-09-23, 아래는 안개색 그대로)
@@ -373,8 +374,9 @@
 
     camera = new t.PerspectiveCamera(FOV(), 1, 0.5, 2400);
 
-    scene.add(new t.HemisphereLight(0xffffff, 0x4a5a3a, 0.95));
-    var sun = new t.DirectionalLight(0xfff4e0, 1.0);
+    var TNg = global.DG.toon3d, LG = TNg && TNg.lightGain ? TNg.lightGain() : 1;   // 톤매핑을 켜면 빛을 올린다(toon3d.toneRenderer)
+    scene.add(new t.HemisphereLight(0xffffff, 0x4a5a3a, 0.95 * LG));
+    var sun = new t.DirectionalLight(0xfff4e0, 1.0 * LG);
     sun.position.set(-120, 200, 90);
     scene.add(sun);
 

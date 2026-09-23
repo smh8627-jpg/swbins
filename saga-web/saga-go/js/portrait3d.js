@@ -55,14 +55,20 @@
    * **더 물러나서(span 키움) 낮은 곳을 보고(look 낮춤) 옆모습에 가깝게(yaw 키움)**
    * 잡는다(사가블로 `portrait3d.js` camPlan 과 같은 판단, 2026-09-05 이식).
    */
+  /** 2026-09-23 "원신급" — 사람 초상은 **흉상**(가슴 위). 예전 구도(머리~허벅지)는 카드에서 얼굴이 작았다.
+   *  손잡이 `portrait3d.bust`(0 이면 예전 구도). 키 1 모델에서 0.65~1.07 쯤이 카드 세로에 들어온다 */
+  function BUST() {
+    var c = global.DG && global.DG.core;
+    return c && c.tuned ? (c.tuned('portrait3d.bust', 1) ? true : false) : true;
+  }
   function camPlan(w, h, kind) {
     var isPet = kind === 'pet';
     var aspect = w / Math.max(1, h);
-    var span = isPet ? 1.5 : 0.62;
+    var span = isPet ? 1.5 : (BUST() ? 0.37 : 0.62);
     var fov = 26;
     var dist = (span / 2) / Math.tan(fov * Math.PI / 360);
     if (aspect < 1) { dist = dist / Math.max(0.55, aspect); }
-    var look = isPet ? 0.28 : 0.78;
+    var look = isPet ? 0.28 : (BUST() ? 0.86 : 0.78);
     var yaw = isPet ? 0.95 : 0.42;
     return { fov: fov, dist: dist, look: look, aspect: aspect, yaw: yaw, pitch: 0.06 };
   }

@@ -359,6 +359,8 @@ PC 묶음   각 폴더 build-pc.bat → dist/<게임>.html (다섯 판 공용 �
 | 커밋에 남의 파일이 딸려 들어갔다 | `git add -A tools` 가 다른 도구의 크롬 프로필·덤프까지 쓸어담았다 | **손댄 폴더만 지정한다.** 딸려온 것은 `def6450`·`1641c0c` 에서 추적 해제 |
 | 림·얼굴 셰이더가 **맞는 순간부터 사라진다**, VRoid 색 변형이 **한 칸도 안 먹는다** (2026-09-23) | three 의 `material.clone()` 은 `onBeforeCompile` 을 안 옮긴다(맞으면 번쩍이는 사본 `ownAllMat` 이 맨 툰으로 떨어진다). 또 `toonify()` 가 새 재질에 `name` 을 안 옮겨, 재질 이름으로 머리·옷·눈을 고르는 `vroidVariant.apply()` 가 헛돌았다 — 진단은 이름 붙은 Standard 재질로만 재서 못 잡았다 | 배우 재질 사본은 `toon3d.cloneMat()`. VRoid 는 받자마자 `vroidVariant.shade()`(이름·깊이쓰기 유지). 진단은 **실제 GLB 와 같은 재질 종류**(VRM 은 `MeshBasicMaterial`)로 조립해 잰다 |
 | 사람 외곽선이 **안 보인다**(짐승만 보인다) (2026-09-23, 사가의숲) | 외곽선 복제 메시에 `scale × 1.045` 로 부풀렸는데, SkinnedMesh 의 기본 bindMode('attached')는 매 프레임 `bindMatrixInverse = 메시 matrixWorld 역행렬` 이라 **자기 배율이 스키닝 식에서 상쇄**된다 — 복제가 원본과 딱 겹쳐 뒷면에 가려졌다 | 외곽선은 **셰이더에서 법선 방향으로 민다**(`transformed += objectNormal * 폭`, 사가스토리·사가블로 방식). 배율로 두께를 내지 않는다 |
+| 킷배싱 건물이 **통째로 새까맣다**(텍스처·조명 무관) (2026-09-23, 사가국지 탑) | GLB 에 법선(NORMAL)이 없다. GLTFLoader 는 이때 `flatShading` 을 켜 주지만 `toonify` 가 만드는 `MeshToonMaterial` 은 r169 에서 `flatShading` 을 **안 받는다**(경고만) → 법선 0 | 받는 자리(`delam`)에서 `geometry.computeVertexNormals()`. 사가블로가 2026-09-04 에 먼저 밟았다. 저장소 GLB 40개가 법선이 없다(대부분 다른 경로로 그려져 무사) |
+| 몬스터 외곽선이 **화면을 통째로 덮는다** (2026-09-23, 사가국지 초상) | 외곽선 폭을 지오메트리 단위(부품 반지름 × K)로 줬다. Quaternius 몬스터는 메시 배율 100 을 뼈가 되돌리는 구조라 지오메트리 공간 오프셋이 몸의 몇십 배로 부푼다 | 뷰 공간에서 **시야 거리에 비례**해 민다(화면 기준 한 폭, 사가국지 `toon3d.outline`). 다른 판 짐승 외곽선 줄무늬(펫 굽기에 외곽선 끄는 이유)도 같은 뿌리일 수 있다 — 미확인 |
 
 ## 이어서 하면 좋은 것 (열린 것만 — 2026-09-16 재편)
 

@@ -179,6 +179,10 @@
     var wantOutline = toon && !!(TN.OUTLINE_ON && TN.OUTLINE_ON()) && isActorAsset(url);
     root.traverse(function (o) {
       if (!o.isMesh || !o.material) { return; }
+      /* 법선이 아예 없는 GLB(2026-09-23 예방 — 사가국지 킷배싱 탑이 이것으로 새까맸다): GLTFLoader 는 이때 flatShading 을 켜
+         주지만 toonify 가 만드는 MeshToonMaterial 은 flatShading 을 안 받아(r169) 법선 0 → 통째로 새까맣다.
+         사가블로 delam 이 2026-09-04 에 먼저 밟은 함정과 같은 처방 — 지오메트리에서 계산해 채운다 */
+      if (o.geometry && o.geometry.attributes.position && !o.geometry.attributes.normal) { o.geometry.computeVertexNormals(); }
       var one = Array.isArray(o.material) ? o.material : [o.material];
       var out = one.map(function (m) {
         if (!m || (!m.isMeshStandardMaterial && !m.isMeshPhysicalMaterial)) { return m; }

@@ -353,6 +353,10 @@
     var toon = !!(TN && TN.TOON_ON());
     root.traverse(function (o) {
       if (!o.isMesh || !o.material) { return; }
+      /* 법선이 아예 없는 GLB(2026-09-23 — 킷배싱 탑 city_t2·t3_asian, 스크린샷으로 확인): GLTFLoader 는 이때 flatShading 을 켜
+         주지만 toonify 가 만드는 MeshToonMaterial 은 flatShading 을 안 받아(r169) 법선 0 → 통째로 새까맣다.
+         사가블로 delam 이 2026-09-04 에 먼저 밟은 함정과 같은 처방 — 지오메트리에서 계산해 채운다 */
+      if (o.geometry && o.geometry.attributes.position && !o.geometry.attributes.normal) { o.geometry.computeVertexNormals(); }
       var one = Array.isArray(o.material) ? o.material : [o.material];
       var out = one.map(function (m) {
         if (!m || (!m.isMeshStandardMaterial && !m.isMeshPhysicalMaterial)) { return m; }
@@ -370,6 +374,25 @@
       });
       o.material = Array.isArray(o.material) ? out : out[0];
     });
+    /* 2026-09-23 — 외곽선: 스킨 메시가 있는 GLB(사람·짐승)만. 모델 안에서는 가장 큰 부품 반지름 기준 한 폭,
+       그 12% 보다 작은 부품(눈·이빨)은 안 두른다(검은 점). VRoid 는 vroid-variant 가 이미 둘러 `_toonOutline` 로 건너뛴다.
+       traverse 도중 자식을 더하지 않으려고 모아서 붙인다(사가스토리 delam 과 같다) */
+    if (toon && TN.OUTLINE_ON && TN.OUTLINE_ON() && TN.outline) {
+      var ms = [], maxR = 0, skinned = false;
+      root.traverse(function (o) {
+        if (!o.isMesh || !o.geometry || (o.userData && o.userData._toonOutline)) { return; }
+        if (o.isSkinnedMesh) { skinned = true; }
+        var mm = Array.isArray(o.material) ? o.material[0] : o.material;
+        if (!mm || mm.transparent) { return; }
+        if (!o.geometry.boundingSphere) { o.geometry.computeBoundingSphere(); }
+        var r = o.geometry.boundingSphere ? o.geometry.boundingSphere.radius : 0;
+        ms.push({ m: o, r: r });
+        if (r > maxR) { maxR = r; }
+      });
+      if (skinned && maxR > 0) {
+        ms.forEach(function (x) { if (x.r >= maxR * TN.OUTLINE_MIN_PART) { TN.outline(x.m, maxR * TN.OUTLINE_K); } });
+      }
+    }
   }
 
   var cache = {};   // url → { state: 'load'|'ok'|'fail', gltf, waiting: [cb] }
@@ -469,10 +492,14 @@
       var src = Array.isArray(o.material) ? o.material[0] : o.material;
       if (!src || !src.color || src.isShaderMaterial) { return; }
       if (vroid && !/_CLOTH/.test(src.name || '')) { return; }
-      var key = (src.uuid || '') + '|' + hex;
+      /* 2026-09-23 — 텍스처가 있는 **건물**(비스킨)은 세력 색을 절반만 섞는다. 통째로 곱하면 어두운 나무·기와 텍스처가
+         남색·검붉은 덩어리가 되어 결이 사라졌다(국토 지도 스크린샷, 동양풍 탑). 인물 옷은 그대로(초상과 같게) */
+      var soft = !!src.map && !o.isSkinnedMesh;
+      var key = (src.uuid || '') + '|' + hex + (soft ? '|s' : '');
       if (!tintCache[key]) {
         var m = TNc && TNc.cloneMat ? TNc.cloneMat(src) : src.clone();
-        m.color = new t.Color(src.color ? src.color.getHex() : 0xffffff).multiply(tc);
+        var tk = soft ? new t.Color(0xffffff).lerp(tc, (core && core.tuned ? core.tuned('asset3d.texTint', 0.5) : 0.5)) : tc;
+        m.color = new t.Color(src.color ? src.color.getHex() : 0xffffff).multiply(tk);
         tintCache[key] = m;
       }
       o.material = tintCache[key];
