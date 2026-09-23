@@ -4905,3 +4905,10 @@ saga-go 정본을 다른 네 판에도 동일 반영, 가드돼 있어 그 판�
 - 다섯 판 sw.js VERSION 올림. **실기 확인 전**: 인물 모션(네 판)·농부/순찰 옷 무늬·통나무 모양.
 - 남긴 것: 51~53k 삼각형(IslandTree_02·Stone_01·avatar_custom_01)은 한도 근처라 보류, 사가고 `vitruvian_v1`(9.8MB 스킨+애니)은
   스킨 메시 simplify 위험이 커 보류.
+
+### 2026-09-23 — 출처 문서 누락 5→0 (asset-audit 표기 해석 보강 + 실제 빈칸 세 곳)
+
+- 도구 오탐: 문서가 `texture-{a,b,c,d}.png`·`CommonTree_1~5`·`Bark_X(_Normal)` 로 적은 것을 못 읽었다 → `expand_doc()` 로 풀어 대조.
+  걸린 폴더는 빠진 파일 이름 예시를 같이 낸다.
+- 실제 빈칸: 사가고 `sprites2d/beast_*.png` 32장·`building_*.png` 4장(이 판 CC0 모델을 `tools/bake-icons` 로 구운 파생물 — 원본 표 추가),
+  사가블로 `hdri/alps_field_1k.hdr`(Poly Haven CC0, 다른 판 문서엔 있었다), Godot `ASSET_GUIDE.md` 에 Quaternius 파일 패턴 한 줄.

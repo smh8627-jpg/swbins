@@ -1332,3 +1332,21 @@ VRoid Studio 공식 CC0 샘플 AvatarSample_A/B/C(github.com/madjin/vrm-samples,
 `assets/models/people/anime/avatar_*.glb` 넷은 `tools/glb-compress/vrm-slim.mjs` 로 **가공한 파일**이다 —
 표정 모프 타깃(54~57개)을 떼고 같은 재질 프리미티브를 합쳤다(정점·뼈·재질·텍스처는 그대로, 용량 25MB → 11MB,
 캐릭터당 드로우콜 90~135 → 14~19). 다섯 판 복사본은 같은 파일(md5 동일)이다.
+
+## 짐승 2D 그림 (`assets/sprites2d/beast_*.png`, 32장) — 위 3D 모델을 구운 파생물
+
+`tools/bake-icons`(헤드리스 굽기)가 이 판 3D 모델을 그대로 찍어 만든 그림이다 — 새로 받은 바깥 에셋은 없다.
+**원본 모델의 라이선스(전부 CC0)가 그대로 따른다.** `js/sprite.js` 의 `beastImgOf()`·`BG_BEAST_FILE` 가 쓴다.
+
+| 그림 | 원본 모델 | 원본 묶음(이 문서 위 절) |
+|---|---|---|
+| `beast_{Deer,Wolf,Cow,Koi,Pigeon,Birb}.png` | `models/animals/` 같은 이름 | Quaternius 들짐승 다섯 종 + 까치 |
+| `beast_{Alpaca,Bull,Donkey,Fox,Husky,ShibaInu,Stag,Horse,Horse_White}.png` | 〃 | Quaternius `animals_pack` |
+| `beast_{Frog,Snake,Snake_angry}.png` | 〃 | Quaternius `easy_enemies_pack` |
+| `beast_{Trex,Triceratops,Stegosaurus,Velociraptor}.png` | 〃 | Quaternius `dinosaurs_pack` |
+| `beast_{Shark,Dolphin,Manta_ray}.png` | 〃 | Quaternius `fish_pack` |
+| `beast_{Orc,Demon,BlueDemon}.png` | `Orc.gltf`·`Demon.gltf`·`BlueDemon.gltf`(오우거 형태 절) | Quaternius `Ultimate Monsters` |
+
+같은 도구로 구운 **성채 지도 마커**도 같은 결이다 — `building_Watchtower.png`(성채 1등급)·`building_Tower.png`·`building_PointyTower.png`(2등급) ← `models/buildings/` 같은 이름 GLB(위 건물 표, CC0), `building_tower_round.png`(3등급) ← `models/buildings/realistic/tower_round.glb`(Poly Haven `modular_fort_01`, CC0), `building_Inn.png` ← `Inn.glb`(역참 줄 참고).
+
+2026-09-23 `tools/asset-audit` 이 "출처 문서에 이름이 없다"로 잡아 채웠다(그림은 09-06~07 에 들어왔다).

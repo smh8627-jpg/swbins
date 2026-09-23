@@ -615,3 +615,9 @@ Test 씬에 적용해줘"로 명시 override — 지금까지 "확보·스냅만
 clutter와 같은 결). 폐허 지도가 7×7이라 "R" 칸이 21개뿐 — clutter와
 같은 1/6 밀도로는 실측 1개만 나와 1/3로 올려 5개로 확정. 헤드리스
 회귀 REGRESS OK, `.import`/`project.godot` 잡음 없음.
+
+## 2026-09-23 — Quaternius Standard 팩 파일 대조 패턴 (`tools/asset-audit` 용)
+
+09-20 절들이 문장으로 적은 파일(`RockPath_Round_Small×3+Thin`·`Flower_3/4` 등)을 점검 도구가 이름으로 대조할 수 있게
+패턴으로 다시 적는다 — 출처는 위 "Quaternius Stylized Nature MegaKit(Standard, CC0)" 절 그대로다.
+`rocks/RockPath_*.gltf` · `rocks/Pebble_*.gltf` · `rocks/Rock_Medium_*.gltf` · `vegetation/Flower_*.gltf` · `vegetation/Grass_*.gltf`

@@ -1846,3 +1846,16 @@ VRoid Studio 공식 CC0 샘플 AvatarSample_A/B/C(github.com/madjin/vrm-samples,
 장당 3~8KB, 16장 합쳐 76KB. 도감 목록(`portrait()`)·상세화면(`portraitCard()`) 양쪽 다 `diabloize()` 후처리를 그대로
 건다(이 판 공통 화풍). 남은 75종(신수 11·포켓몬 16·안 맞는 물고기 등 48)은 여전히 절차적 그림 — 재도전하려면 이 절과
 `HANDOFF.md` 2026-09-22 절을 같이 본다.
+
+## Poly Haven — HDRI 환경광 (`assets/hdri/alps_field_1k.hdr`)
+
+| 항목 | |
+|---|---|
+| **만든 이** | Poly Haven (<https://polyhaven.com>) |
+| **라이선스** | **CC0 1.0 Universal** (퍼블릭 도메인 헌정) |
+| **저작자 표시** | 필요 없다. 그래도 적어 둔다 |
+| **재배포** | 허용된다 |
+| **받은 곳** | 사가의숲·사가고와 같은 파일(다섯 판 공용 CC0 자산 — 원본 <https://polyhaven.com/a/alps_field>, 1k `.hdr`) |
+
+`js/dungeon3d.js` 의 `HDRI_SRC` 가 PBR 재질 반사·거칠기용 `scene.environment` 로만 쓴다(배경 하늘은 안 바꾼다).
+2026-09-23 `tools/asset-audit` 이 이 판 문서에만 빠진 것을 잡아 채웠다.

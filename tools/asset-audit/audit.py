@@ -195,6 +195,20 @@ def read(p):
         return ''
 
 
+def expand_doc(doc):
+    """문서의 묶음 표기를 풀어 덧붙인다 — `texture-{a,b,c,d}.png` · `CommonTree_1~5` · `Bark_DeadTree(_Normal)`."""
+    extra = []
+    for m in re.finditer(r'([\w./-]*)\{([\w,-]+)\}([\w./-]*)', doc):
+        extra += [m.group(1) + x + m.group(3) for x in m.group(2).split(',')]
+    for m in re.finditer(r'([\w./-]*?_)(\d+)\s*[~–]\s*(\d+)\b', doc):
+        a, z = int(m.group(2)), int(m.group(3))
+        if 0 <= z - a <= 40:
+            extra += [m.group(1) + str(i) for i in range(a, z + 1)]
+    for m in re.finditer(r'([\w./-]+)\(([\w-]+)\)', doc):
+        extra += [m.group(1), m.group(1) + m.group(2)]
+    return doc + '\n' + ' '.join(extra)
+
+
 # ---------- 점검 ----------
 
 def audit(sel, game, want_md5=True):
@@ -215,7 +229,7 @@ def audit(sel, game, want_md5=True):
             continue
         tid, kind = t['id'], t['kind']
         code = load_code_text(t)
-        doc = '\n'.join(read(p) for p in t['docs']).lower()
+        doc = expand_doc('\n'.join(read(p) for p in t['docs']).lower())
         # 문서의 `tile_*.png` 같은 와일드카드 표기도 출처 표기로 친다
         globs = [re.compile(r'(^|/)' + re.escape(g.strip('/').removeprefix('assets/')).replace(r'\*', '[^/]*') + r'(/|$)')
                  for g in re.findall(r'`([^`\s]*\*[^`\s]*)`', doc)]
@@ -233,7 +247,7 @@ def audit(sel, game, want_md5=True):
         skip = {'Library', 'Temp', 'Logs', 'node_modules', '_wip'} if kind != 'web' else {'node_modules'}
         all_paths = list(walk(t['asset_dir'], skip=skip))
         pathset = set(all_paths)
-        lic_dirs = defaultdict(int)
+        lic_dirs = defaultdict(list)
         for p in all_paths:
             ext = os.path.splitext(p)[1].lower()
             rp = rel(p)
@@ -317,11 +331,12 @@ def audit(sel, game, want_md5=True):
             documented = (base.lower() in doc or stem.lower() in doc or any(n in doc for n in names)
                           or any(g.search(inner) for g in globs))
             if doc and not documented and not any(m in '/' + inner for m in SELF_MADE):
-                lic_dirs[os.path.dirname(rp)] += 1
+                lic_dirs[os.path.dirname(rp)].append(base)
             files.append(rec)
         if doc:
-            for d, n in sorted(lic_dirs.items()):
-                issue('license', d + '/', f'{n}개 파일 — 폴더·파일 이름이 출처 문서에 한 번도 안 나온다', tid)
+            for d, names in sorted(lic_dirs.items()):
+                eg = ', '.join(sorted(names)[:6]) + (' …' if len(names) > 6 else '')
+                issue('license', d + '/', f'{len(names)}개 파일 — 폴더·파일 이름이 출처 문서에 한 번도 안 나온다: {eg}', tid)
         elif any(f['track'] == tid for f in files):
             issue('license', rel(t['asset_dir']) + '/', '출처 문서가 없다: ' +
                   ', '.join(rel(p) for p in t['docs']), tid)

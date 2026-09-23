@@ -19,7 +19,7 @@ py -3 tools/asset-audit/audit.py --strict         # 🔴 가 있으면 종료 �
 | gitsize | 🔴/🟡 | git 에 올라간 파일 100MB 초과(GitHub 거부) / 50MB 초과 |
 | pair | 🟡 | Unity `.meta` 짝 없음·고아 `.meta`, Godot `.import` 짝 없음 |
 | heavy | 🟡 | 웹 GLB 5MB·삼각형 5만·텍스처 2048px 초과(폰 기준, `BUDGET`) |
-| license | 🟡 | 출처 문서(`ASSET_LICENSES.md`·`ASSET_CATALOG.md` / `docs/ASSET_GUIDE.md`)에 폴더·파일 이름이 안 나옴. `` `tile_*.png` `` 같은 와일드카드 표기도 인정. `generated/`·`portraits/`(우리 도구 산출물)는 뺀다 |
+| license | 🟡 | 출처 문서(`ASSET_LICENSES.md`·`ASSET_CATALOG.md` / `docs/ASSET_GUIDE.md`)에 폴더·파일 이름이 안 나옴. `` `tile_*.png` `` 와일드카드, `texture-{a,b}.png` 묶음, `CommonTree_1~5` 범위, `Bark_X(_Normal)` 선택 표기도 인정. 걸리면 빠진 파일 이름을 여섯 개까지 보여 준다. `generated/`·`portraits/`(우리 도구 산출물)는 뺀다 |
 | unref | ⚪ | 코드·씬·Unity GUID 어디에도 흔적 없음. `portraits/hero/` 폴더 경로나 `eu_alexander`(+`_c`) 같은 id 접두어가 코드에 있으면 동적 참조로 본다 |
 | dup | ⚪ | md5 같은 사본. 웹 다섯 벌 복사는 방침이라 정상 — **트랙을 넘는 사본**이 공용 에셋 통합 후보 |
 
