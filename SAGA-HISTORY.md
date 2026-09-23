@@ -4881,3 +4881,14 @@ saga-go 정본을 다른 네 판에도 동일 반영, 가드돼 있어 그 판�
 - **실기 확인 전**: 사가국지 몬스터(SlimeEnemy·해골 넷·외계인)·사가고 옛 사원·사가의숲 우주기지가
   이제 GLB 로 서는지. `_test.html` 은 이 세션에서 안 돌렸다(번들 교체라 씨앗 진단이 흔들리는지도 같이 볼 것).
 - 남은 🟡: heavy 34(chengde_temple 40MB·184만 삼각형, 4096px 텍스처, UAL1_Standard 7.3MB), license 2.
+
+### 2026-09-23 — 사가고 chengde_temple.glb 40.5MB → 4.0MB (tools/glb-compress/seam-simplify.mjs 신설)
+
+- 09-11 기록의 "재질 70개라 42MB 밑으로 안 준다"는 **오진**. 텍스처는 7MB뿐, 184만 삼각형이 그대로였다.
+  원인은 사진측량 UV 조각 — 정점이 UV 섬마다 갈라져(정점/삼각형 1.8배) simplify 가 seam 을 지키느라 멈춤
+  (`weld`→`simplify --error 0.01 --lock-border false` 로도 120만이 바닥).
+- `seam-simplify.mjs`: 같은 위치 정점을 하나로 본 색인으로 simplify → 꼭짓점마다 UV 둘레가 가장 짧은 원래 정점을
+  다시 붙임(새 정점 없음, UV·법선 원래 값). 함정: meshoptimizer JS `simplify()` 는 `[색인, 오차]` 를 돌려준다 —
+  두 번째를 개수로 잘랐다가 삼각형 88개가 됐다.
+- ratio 0.04·error 0.02 → `resize 512` → `meshopt high`: 8.3만 삼각형, 재질·노드 67 그대로, 경계 상자 차이 ≤0.2.
+  sw.js go-v5.50.0. **실기 확인 전**: 숲 속 옛 사원(tx7,ty9) 모양이 UV 번짐 없이 서는지.

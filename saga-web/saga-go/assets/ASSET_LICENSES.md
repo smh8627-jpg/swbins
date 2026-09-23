@@ -767,7 +767,8 @@ CC-BY/Standard, 이 저장소는 CC-BY를 이미 다 걷어낸 CC0 전용 정책
 | **받은 곳** | `GET /v3/models/{uid}/download` — 사용자가 이 세션에 새 Sketchfab 계정을 만들고 API 토큰을 줬다(토큰 자체는 저장소에 남기지 않는다, 대화에서만 오간 값) |
 | **원본 크기** | GLB 200.87MB, 283만 폴리곤·157만 버텍스, **재질(텍스처) 약 70개** — 기둥·문틀·지붕 기와 등 수천 개의 작은 조각이 저마다 제 텍스처를 따로 물고 있다(실제 건물처럼 부재가 다 나뉜 정교한 축소 모형이라 그렇다) |
 | **다듬기** | `@gltf-transform/cli optimize`(simplify ratio 0.02·error 0.03, join+palette, texture-compress webp·1024px) — 그런데 **여느 자산과 달리 42MB 밑으로 안 줄었다.** simplify 비율을 0.002까지, 텍스처를 256px까지 내려도 35MB가 바닥이었다 — 원인은 폴리곤이 아니라 **재질 수**다: `palette`는 무늬 없는 단색 재질끼리만 묶어 주는데, 이 모델은 재질 70개가 죄다 저마다의 사진 텍스처를 갖고 있어 병합이 안 먹힌다. 진짜로 합치려면 텍스처 아틀라스를 새로 굽는 Blender 작업이 필요한데, 이 저장소 파이프라인은 지금껏 Blender 없이 `gltf-transform` CLI만으로 다듬어 왔다(사람 캐릭터 절 참고) — 그 선을 넘지 않기로 하고 42.44MB에서 멈췄다 |
-| **파일** | `models/buildings/realistic/chengde_temple.glb`(42.44MB) |
+| **다시 다듬기(2026-09-23)** | 위 진단은 틀렸다 — 42MB 중 텍스처는 7MB뿐이고 나머지가 지오메트리였다(184만 삼각형이 그대로 남아 있었다). 막은 건 재질 수가 아니라 **사진측량 UV 조각**: 정점이 UV 섬마다 갈라져(정점/삼각형 1.8배) simplify 가 경계를 지키느라 멈췄다(`simplify --error 0.01 --lock-border false` 로도 120만이 바닥). `tools/glb-compress/seam-simplify.mjs`(같은 위치 정점을 하나로 보고 줄인 뒤 UV 둘레가 가장 짧은 원래 정점을 다시 붙임) ratio 0.04·error 0.02 → `resize 512` → `meshopt high`. **40.5MB → 4.0MB, 184만 → 8.3만 삼각형**, 재질·노드 67 그대로, 경계 상자 차이 0.2 단위 이하. 실기기 모양 확인 전 |
+| **파일** | `models/buildings/realistic/chengde_temple.glb`(4.0MB, 처음 받을 땐 42.44MB) |
 
 **다른 건물(집·탑·역참 등 500KB~1.3MB대)보다 30~80배 무겁다** — 그래서
 **마을에 반복해서 세우는 자리가 아니라, 손그린 땅(`land.js`)에 단 한
