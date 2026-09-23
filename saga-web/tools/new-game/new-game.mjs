@@ -417,12 +417,13 @@ addEventListener('error', function (e) { errors.push(e.message); });
 `;
 
 const checklist = [
-  `루트 CLAUDE.md "다섯 판" 표에 한 줄(게임·폴더 ${folder}·포트 ${port}·세이브 키 ${saveBase}/<프로필>)`,
-  `tools/precheck.sh 의 targets 기본값과 data.js md5 판 목록에 ${folder}`,
-  `tools/asset-audit/audit.py 의 WEB_GAMES 에 ${folder}`,
-  `saga-web/tools/content-editor/server.js 의 GAMES 에 ${folder}(도감을 여섯 벌 함께 고치려면)`,
-  `C:\\swbins2\\services.json 허브 카드(별개 저장소)`,
-  `icons/ 는 사가의숲 것을 임시로 복사했다 — 이 판 아이콘으로 바꿀 것`,
+  `아래 넷은 register.mjs 로 한 번에: node saga-web/tools/new-game/register.mjs --folder ${folder} --title ${title} --port ${port} --save-base ${saveBase} --origin "${origin}"`,
+  `  · 루트 CLAUDE.md "다섯 판" 표에 한 줄(게임·폴더 ${folder}·포트 ${port}·세이브 키 ${saveBase}/<프로필>)`,
+  `  · tools/precheck.sh 의 targets 기본값과 data.js md5 판 목록에 ${folder}`,
+  `  · tools/asset-audit/audit.py 의 WEB_GAMES 에 ${folder}`,
+  `  · saga-web/tools/content-editor/server.js 의 GAMES 에 ${folder}(도감을 여섯 벌 함께 고치려면)`,
+  `C:\\swbins2\\services.json 허브 카드(별개 저장소, register.mjs 안 건드림)`,
+  `icons/ 는 사가의숲 것을 임시로 복사했다 — 이 판 아이콘으로 바꿀 것(register.mjs 안 건드림)`,
 ];
 
 files['CLAUDE.md'] = `# ${folder} (${title})

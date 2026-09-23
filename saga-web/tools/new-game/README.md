@@ -17,5 +17,19 @@ node saga-web/tools/new-game/new-game.mjs --folder saga-arena --title 사가아�
 - **복사해 오는 것**: `js/data.js`(도감, saga-go 정본) · `js/errlog.js`(오류 기록 키만 새 판 것으로) · `icons/`(사가의숲 것, 임시) ·
   `--three` 면 `js/vendor/three.iife.js`(MeshoptDecoder 든 번들).
 - 다섯 판의 `core.js`·`account.js` 는 복사하지 않는다 — 판마다 얽힌 곳이 많아 떼어 오면 깨진다. 새 판은 자기 core 로 시작한다.
-- **다른 파일은 건드리지 않는다.** 끝에 "손으로 등록할 곳"(루트 CLAUDE.md 표·precheck·asset-audit·콘텐츠 편집기 GAMES·허브·단독판)을
+- **다른 파일은 건드리지 않는다.** 끝에 "손으로 등록할 곳"(루트 CLAUDE.md 표·precheck·asset-audit·콘텐츠 편집기 GAMES·허브·아이콘)을
   출력하고 새 판 `HANDOFF.md` 에 체크리스트로 남긴다.
+
+## 등록 — `register.mjs`
+
+새 판을 만든 뒤, 위 체크리스트 중 기계적인 네 곳(CLAUDE.md 표·precheck·asset-audit·콘텐츠 편집기 GAMES)을 한 번에 채운다:
+
+```
+node saga-web/tools/new-game/register.mjs --folder saga-xxx --title 사가무엇 --port 8796 \
+     --save-base saga-xxx/save --origin "원작 오마주 한 줄" [--dry]
+```
+
+- 이미 등록된 판(폴더 이름이 그 파일에 이미 있음)은 건드리지 않는다 — 다시 돌려도 안전하다(멱등).
+- **안 건드리는 것**(계속 손으로): `C:\swbins2\services.json` 허브 카드(별개 저장소) · `icons/` 를 이 판 것으로 바꾸기 ·
+  `PLAN.md` §1 정체성·원작 오마주 채우기.
+- `--dry` 는 바뀔 파일만 보여 준다(내용은 안 씀).
