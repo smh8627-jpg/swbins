@@ -7,10 +7,17 @@ extends RefCounted
 ## MultiMesh에 태운다(칸마다 노드를 만들지 않는다는 master.md 35장 원칙을
 ## GLB로 바꾼 뒤에도 그대로 지킨다).
 
-## glb_path가 가리키는 씬 안에서 첫 번째 MeshInstance3D를 찾아 그 Mesh를
-## 반환한다. 이 저장소가 받아 쓰는 Kenney CC0 소품(나무·바위·건물 조각)은
-## 전부 "루트 Node3D 하나 + MeshInstance3D 하나"짜리 단순 구조라 이걸로 충분하다
-## — 뼈대가 있는 캐릭터(assets/characters/*)에는 쓰지 않는다.
+## glb_path가 가리키는 씬의 메시를 Mesh 하나로 반환한다 — 뼈대가 있는
+## 캐릭터(assets/characters/*)에는 쓰지 않는다. MeshInstance3D가 하나뿐이면
+## (Kenney 소품·Quaternius 원본 gltf·바위 스냅본 등 대부분) 그 Mesh를 그대로
+## 돌려주고, 여럿이면 `_merge_mesh_instances()`로 표면을 합친다.
+##
+## 2026-09-23 — 예전엔 "첫 MeshInstance3D 하나"만 돌려줬다. 그런데 팔레트
+## 스냅(103-5 palette.py)을 거친 Quaternius GLB 일부는 원본 gltf의 한 메시·
+## 두 프리미티브(줄기+잎, 꽃대+꽃송이)가 **노드 둘로 쪼개져** 나온다 — 그래서
+## GO 마을 나무(CommonTree_1 스냅)는 09-20 교체 뒤로 잎 없이 줄기만, 들꽃
+## (Flower_3/4_Single 스냅)은 꽃송이 없이 꽃대만 그려졌다. 에러 없이 "덜
+## 그려질" 뿐이라 로그 회귀·재질 감사 어느 쪽도 못 잡았다.
 static func extract_mesh(glb_path: String) -> Mesh:
 	var scene: PackedScene = load(glb_path)
 	if scene == null:
@@ -29,19 +36,55 @@ static func extract_mesh(glb_path: String) -> Mesh:
 ## 그 "이미 로드된 것에서 뽑기" 절반을 맡는다.
 static func extract_mesh_from_scene(scene: PackedScene) -> Mesh:
 	var inst := scene.instantiate()
-	var mi := _find_mesh_instance(inst)
-	var mesh: Mesh = mi.mesh if mi != null else null
+	var mis: Array[MeshInstance3D] = []
+	for mi in find_all_mesh_instances(inst):
+		if mi.mesh != null:
+			mis.append(mi)
+	var mesh: Mesh = null
+	if mis.size() == 1:
+		mesh = mis[0].mesh
+	elif mis.size() > 1:
+		mesh = _merge_mesh_instances(inst, mis)
 	inst.queue_free()
 	return mesh
 
-static func _find_mesh_instance(node: Node) -> MeshInstance3D:
-	if node is MeshInstance3D:
-		return node
-	for c in node.get_children():
-		var found := _find_mesh_instance(c)
-		if found != null:
-			return found
-	return null
+## 여러 MeshInstance3D의 표면을 root 기준 transform을 입혀 ArrayMesh 하나로
+## 합친다(표면 순서 = 노드 순서, 재질은 원본 그대로). 트리 밖 노드라
+## global_transform 대신 `_relative_transform()`을 쓴다(fit_height 주석 참고).
+## 새 ArrayMesh라 호출 쪽이 표면 재질을 바꿔도(GO 나무 바람 셰이더) 임포트
+## 원본 메시는 안 건드린다.
+static func _merge_mesh_instances(root: Node, mis: Array[MeshInstance3D]) -> ArrayMesh:
+	var out := ArrayMesh.new()
+	for mi in mis:
+		var xf := _relative_transform(root, mi)
+		var nbasis := xf.basis.inverse().transposed()
+		var src: Mesh = mi.mesh
+		for s in src.get_surface_count():
+			var arrays := src.surface_get_arrays(s)
+			if not xf.is_equal_approx(Transform3D.IDENTITY):
+				var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+				for i in verts.size():
+					verts[i] = xf * verts[i]
+				arrays[Mesh.ARRAY_VERTEX] = verts
+				if arrays[Mesh.ARRAY_NORMAL] != null:
+					var norms: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
+					for i in norms.size():
+						norms[i] = (nbasis * norms[i]).normalized()
+					arrays[Mesh.ARRAY_NORMAL] = norms
+				if arrays[Mesh.ARRAY_TANGENT] != null:
+					var tans: PackedFloat32Array = arrays[Mesh.ARRAY_TANGENT]
+					for i in range(0, tans.size(), 4):
+						var t := (xf.basis * Vector3(tans[i], tans[i + 1], tans[i + 2])).normalized()
+						tans[i] = t.x
+						tans[i + 1] = t.y
+						tans[i + 2] = t.z
+					arrays[Mesh.ARRAY_TANGENT] = tans
+			var prim := Mesh.PRIMITIVE_TRIANGLES
+			if src is ArrayMesh:
+				prim = (src as ArrayMesh).surface_get_primitive_type(s)
+			out.add_surface_from_arrays(prim, arrays)
+			out.surface_set_material(out.get_surface_count() - 1, src.surface_get_material(s))
+	return out
 
 ## 뼈대 있는 캐릭터(assets/characters/*)는 몸통·팔·다리·머리가 각각
 ## 별도 MeshInstance3D다 — 산적 강타 예고처럼 "몸 전체를 한 색으로

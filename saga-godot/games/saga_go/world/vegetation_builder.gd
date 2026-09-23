@@ -242,7 +242,10 @@ func _scatter_trees() -> void:
 	var tree_mesh := GLBUtils.extract_mesh(REGION_TREE_GLB.get(region_id, REGION_TREE_GLB["village"]))
 	if tree_mesh == null:
 		return
-	_apply_wind_shader(tree_mesh, 0)
+	## 표면 전부(스냅 CommonTree는 줄기·잎 둘, DeadTree는 하나) — 예전엔
+	## "스냅본은 한 표면"으로 잘못 알고 0번(줄기)만 걸었다(glb_utils 09-23 주석).
+	for si in tree_mesh.get_surface_count():
+		_apply_wind_shader(tree_mesh, si)
 	var region_tree_scale: float = REGION_TREE_SCALE.get(region_id, REGION_TREE_SCALE["village"])
 
 	var mm := MultiMesh.new()

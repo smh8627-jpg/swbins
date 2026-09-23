@@ -8273,3 +8273,13 @@ PROJECT_STATE.md` 참고. 요약:
 - 첫 실행 함정: `surface_get_format()`은 ArrayMesh 전용(Mesh엔 없음) → 타입 추론 실패. 오탐 1종: VRoid 얼굴 베이크가 데칼 표면을 **완전 투명(alpha 0, 텍스처 없음)으로 일부러 숨긴 것** → 제외 규칙.
 - **검증**: 현재 다섯 씬 0건. 778e4c47(오늘 수정 전) 버전 FOREST 파일 셋으로 잠시 되돌려 돌리니 39건 — flat-tint 5(rocky 바위)·alpha-dropped 8(나무 4바이옴×2표면)+13(플레이어)·foreign-texture 13(플레이어) — 세 부류 모두 검출, 원복 확인.
 - `godot_regress.sh`에 "재질 감사" 단계 추가(씬마다 1회, 결과 줄이 issues=0이 아니면 FAIL + 앞 5건 출력). PLAN 104장 회귀 정의 갱신.
+
+## GO 마을 나무 잎·들꽃 꽃송이가 안 그려지던 버그 수정 (2026-09-23, 새 세션, "사가고돗 이어해")
+
+- 다음 작업 2번(Quaternius 나무 변종)을 보려고 스냅 GLB 구조를 열다 발견: palette.py 스냅을 거친 `CommonTree_1__go_village`·`Flower_3/4_Single__go_village`는 원본 gltf의 한 메시·두 프리미티브가 **MeshInstance3D 둘로 쪼개져** 나온다(줄기+잎, 꽃대+꽃송이). 그런데 `GLBUtils.extract_mesh()`는 첫 MeshInstance 하나만 돌려줘서 **09-20 Quaternius 교체 이후 GO 마을 나무는 잎 없이 줄기만**(6.7m 가지뿐), 09-23 들꽃 둘은 꽃대만 그려졌다. 09-23 "재질 감사" 항목의 "스냅본이 표면 1개" 판단도 틀렸음(`wind_sway.gdshaderinc` 주석도 같은 전제 → 정정).
+- 에러 없이 "덜 그려질" 뿐이라 md5·오류 grep·재질 감사 셋 다 원리상 못 잡는 부류(흰 바위·네모판 잎과 같은 결).
+- 수정: `extract_mesh_from_scene()` — MeshInstance가 하나면 예전과 똑같이 그 Mesh를 그대로, 여럿이면 `_merge_mesh_instances()`로 root 기준 transform(`_relative_transform`)을 입혀 새 ArrayMesh에 표면을 합친다(재질 원본 그대로). 안 쓰게 된 `_find_mesh_instance` 제거. GO `_scatter_trees()`의 바람 셰이더는 표면 0(줄기)만 → 표면 전부.
+- 영향 범위: 임시 계측으로 다섯 씬 실행 시 병합 대상은 GO 세 GLB뿐. 첫 5프레임에 안 나오는 경로(무기 노획물·STORY 다른 배경 등)는 코드에 적힌 GLB 경로 87개를 파이썬으로 전수 — 다중 노드는 위 셋 + 캐릭터 GLB(extract_mesh를 안 거침)뿐.
+- 프로브(`-s`, GLBUtils 직접): 병합 결과 나무 표면 2·크기 4.31×7.26×4.58, 꽃 2.068·2.419m — 코드 배율 주석의 trimesh 실측고(잎·꽃 포함 전체)와 일치하므로 배율은 그대로가 맞다.
+- `godot_regress.sh` REGRESS OK — **다섯 씬 md5 전부 불변**(읽는 파일이 같고 병합은 로그를 안 남김, 09-23 흰 바위 항목의 "md5 불변 ≠ 무효" 그대로). 재질 감사 0, `.import`/`project.godot` 잡음 없음.
+- 나무 변종(CommonTree_2~5 등) 섞기는 이 버그가 먼저라 보류 — 사용자가 잎 달린 마을 숲을 먼저 봐야 변종 판단이 의미 있다.
