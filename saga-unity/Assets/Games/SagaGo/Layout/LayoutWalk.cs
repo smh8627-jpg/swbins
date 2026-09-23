@@ -153,8 +153,48 @@ namespace Saga.Go.Layout
             AddBox(bodyGo, new Vector3(1f, 6f, size.y), new Vector3(lo.x - 0.5f, 3f, mid.y));
             AddBox(bodyGo, new Vector3(1f, 6f, size.y), new Vector3(hi.x + 0.5f, 3f, mid.y));
 
+            // 손으로 놓은 deco 중 웹 게임에서 벽인 것(집·탑·우물·장터 — 웹 world3d.houseRects 와 같은 넷)은
+            // 모델 경계로 막는다. 소품 자신에 BoxCollider 를 달아 돌림·크기를 그대로 따른다.
+            int solids = 0;
+            foreach (Transform pr in props)
+            {
+                if (IsSolidDeco(pr.name) && AddPropCollider(pr)) solids++;
+            }
+
             Colliders = bodyGo.AddComponent<LayoutColliderInfo>();
             Colliders.waterCells = water;
+            Colliders.decoSolids = solids;
+        }
+
+        /// <summary>배치표 items 의 kind "deco:&lt;종류&gt;" 로 붙은 이름(deco:house_161)</summary>
+        private static readonly string[] SolidDeco = { "deco:house_", "deco:tower_", "deco:well_", "deco:market_" };
+
+        private static bool IsSolidDeco(string n)
+        {
+            foreach (var s in SolidDeco) if (n.StartsWith(s)) return true;
+            return false;
+        }
+
+        private static bool AddPropCollider(Transform pr)
+        {
+            bool any = false;
+            var b = new Bounds();
+            foreach (var mf in pr.GetComponentsInChildren<MeshFilter>())
+            {
+                if (mf.sharedMesh == null) continue;
+                Bounds mb = mf.sharedMesh.bounds;
+                for (int i = 0; i < 8; i++)
+                {
+                    var c = new Vector3((i & 1) == 0 ? mb.min.x : mb.max.x, (i & 2) == 0 ? mb.min.y : mb.max.y, (i & 4) == 0 ? mb.min.z : mb.max.z);
+                    Vector3 p = pr.InverseTransformPoint(mf.transform.TransformPoint(c));
+                    if (!any) { b = new Bounds(p, Vector3.zero); any = true; } else b.Encapsulate(p);
+                }
+            }
+            if (!any) return false;
+            var box = pr.gameObject.AddComponent<BoxCollider>();
+            box.center = b.center;
+            box.size = b.size;
+            return true;
         }
 
         private static void AddBox(GameObject parent, Vector3 size, Vector3 localPos)
@@ -248,6 +288,7 @@ namespace Saga.Go.Layout
     public class LayoutColliderInfo : MonoBehaviour
     {
         public int waterCells;
+        public int decoSolids;
     }
 
     /// <summary>이름표가 항상 카메라를 보게(Godot Label3D 의 billboard 와 같은 역할).</summary>

@@ -156,6 +156,18 @@ namespace Saga.EditorTools
             bool bridgeHit = Physics.CheckBox(bridge, half, Quaternion.identity, ~0, QueryTriggerInteraction.Ignore);
             Check("water_block", blockedHit, $"pos={blocked}");
             Check("bridge_open", !bridgeHit, $"pos={bridge}");
+
+            // 벽이 되는 deco(집·탑·우물·장터) — 있으면 첫 것의 자리(바닥 위 1m)에 충돌체가 있어야 한다. 없으면 개수만.
+            _results.Add($"deco_solids={(info == null ? -1 : info.decoSolids)}");
+            var props = _walk.LayoutRootTransform.Find("Props");
+            Physics.SyncTransforms();
+            foreach (Transform pr in props)
+            {
+                if (pr.GetComponent<BoxCollider>() == null) continue;
+                bool hit = Physics.CheckBox(pr.position + Vector3.up, Vector3.one * 0.3f, Quaternion.identity, ~0, QueryTriggerInteraction.Ignore);
+                Check("deco_block", hit, pr.name);
+                break;
+            }
         }
 
         private static void CheckFinal()

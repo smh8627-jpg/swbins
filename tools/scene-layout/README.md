@@ -26,8 +26,25 @@ node tools/scene-layout/layout.mjs --kinds saga-unity/tools/layout/kinds.json --
 - **손으로 놓은 소품(`land.js` `deco`, 맵 편집기 "3D 배치")**: kinds.json 의 `deco` 표(종류 → `assets`·`h`·`scale`)로 `items[]` 에 `kind: "deco:<종류>"` 로 얹는다.
   웹 좌표(월드 미터, 한 칸 48m)는 칸 비율대로 옮기고(웹 (24,24) = 칸 (0,0) 가운데 = 배치표 원점), 크기는 칸처럼 줄이지 않고 `h`(웹 기준 키)에 대한 비율만 곱한다(0.25~4).
   돌림 `rot`(라디안)은 `rotY`(도)로. 해시 물건을 다 뽑은 뒤에 얹어 deco 가 늘어도 그 물건들은 바이트까지 그대로고, 에셋은 소품마다 따로 씨앗으로 고른다.
-  표에 없는 종류는 건너뛰고 `표에 없는 deco 종류` 로 찍는다 — 지금 Godot 은 등불·우물·장터·허수아비, Unity 는 풀·갈대·우물·허수아비가 없고, 집·탑은 두 트랙 다 모델이 없어 `wall-block`·`pillar-stone` 대역이다.
-  조립 씬에서 deco 는 **보기만** 한다(부딪히지 않는다 — 걷는 래퍼는 바닥·물 칸만 막는다).
+  표에 없는 종류는 건너뛰고 `표에 없는 deco 종류` 로 찍는다. 지금은 두 트랙 다 10종이 차 있다 — 나무·바위는 트랙 원래 에셋, 나머지 여덟
+  (집·탑·등롱·우물·장터·허수아비·풀·갈대)은 `tools/asset-forge/procgen.py` 가 웹 기본 치수로 구운 것(부품마다 재질 색, 아래 "에셋 굽기").
+  배치표는 한 칸이 4m 로 줄어 있어 건물 `scale` 을 1 보다 작게 둔다(집 0.6·탑 0.5 — 표에서 고친다).
+- **deco 벽**: 걷는 래퍼(Godot `layout_walk.gd`·Unity `LayoutWalk.cs`)가 웹 게임에서 벽인 넷(집·탑·우물·장터 — 웹 `world3d.houseRects` 와 같다)에
+  모델 경계 상자 충돌을 소품 자식으로 붙인다(돌림·크기를 따른다). 나무·바위·풀은 여전히 안 부딪힌다. 점검은 `deco_solids=n` 을 찍고, 있으면 `deco_block`
+  (Godot 은 북쪽에서 걸어가 막히는지, Unity 는 소품 자리 충돌체). 커밋된 hebei 는 deco 가 비어 `deco_solids=0`.
+
+### 에셋 굽기 — procgen.py 마을 소품
+
+```
+# 파이썬 + trimesh + scipy(convex_hull·fix_normals). 이 PC 엔 시스템 파이썬이 없어 Blender 5.2 번들 파이썬에 스크래치로 받아 썼다:
+#   "<Blender>/5.2/python/bin/python.exe" -m pip install --no-deps --target <scratch>/pylib trimesh scipy networkx
+PYTHONPATH=<scratch>/pylib "<Blender>/5.2/python/bin/python.exe" tools/asset-forge/procgen.py batch house --count 3 --out-dir saga-godot/assets/generated/props
+#   → house_s1_01.glb … (같은 씨앗이면 바이트까지 같다). Unity 는 --out-dir saga-unity/Assets/Art/Generated/SagaGo
+```
+
+- 종류와 벌 수(두 트랙 같은 파일): 집 3 · 탑 2 · 등롱 2 · 우물 2 · 장터 3 · 허수아비 2 · 풀 3 · 갈대 2.
+- 새 GLB 는 Godot `--headless --path saga-godot --import`(`.import` 생성) · Unity 배치 모드 한 번(`.meta` 생성)으로 들인다. 둘 다 기존 `.import`·`Ground_*.mat` 을
+  다시 써 놓으니(줄바꿈 또는 `generator_parameters` 지움) 커밋 전에 `git checkout` 으로 되돌리고 새 파일만 add 한다.
 - 조립 스크립트는 **새 씬 하나만** 쓴다(Unity 는 바닥 재질 `Assets/Art/Generated/Layout/Ground_*.mat` 도). 기존 씬·임포트 설정은 안 건드린다.
   Unity 는 z 를 뒤집는다(+z 북쪽).
 - 조립 씬 자체엔 게임 판정·NPC 배선을 넣지 않는다 — 보기용 조명·카메라와 명소 표식까지만(다시 조립하면 덮이니까). 배선은 트랙마다 **그 씬을 인스턴스로 품는 래퍼**가 한다.

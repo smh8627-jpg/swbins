@@ -8750,3 +8750,11 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - **에디터**: `BuildDungeonCinematics.cs` 신규 — 씬 빌더가 플레이어·HUD 뒤에 부른다. Timeline 애셋 3개(`Cinematics/Timelines/Temple_*.playable`)는 있으면 트랙만 비우고 다시 채워 GUID 유지. 컷 가상 카메라 4(도착·상자·보스 넓은/가까운, 가까운 샷에 Handheld_normal_mild 손떨림). `BuildDungeonTemple` 은 `LastGuardian` 을 내보내고 보스방에 `TempleBossIntro` 를 둔다.
 - **함정**: `CinemachineBrain.ManualUpdate()` 는 ManualUpdate 모드가 아니면 `Debug.LogError` 를 남긴다 → 헤드리스 진단에서 강제 갱신 대신 **프레임을 넘겨** 확인(3프레임째 틀기·6프레임째 확인·8프레임째 복귀). 셸 heredoc 안의 `'`·`\\n` 이 훅을 거치며 깨져 python 편집 스크립트는 scratchpad 파일로 써서 돌렸다.
 - **검증**: 컴파일 exit 0 · `BuildTestDungeonScene` 재빌드 exit 0 · `PlaytestDungeonHeadless` **3연속 OK** — `CheckTemple` 컷 검사(도착 컷·HUD 0·파수꾼 멈춤·2s 지역명 카드·넘기면 HUD 복귀 → 상자 카메라 자리 → 컷 중 벽력탄 막힘 → 보스방 밖 안 틂/첫 발 틂·3s 이름표·다시 안 틂 → 컷 5회) + `cut camera live`(t≈3.2 브레인 활성=`CutCam_BossClose`, 실제 카메라 0.00m, 포효 신호) + `cut camera back`(`PlayerView` 복귀·HUD 16). 같은 씬 `PlaytestDungeonFloorProgression`·`PlaytestDungeonShortcut` OK. GUI 실기 확인은 전.
+
+## 2026-09-24 — 배치표 deco 벽 + 마을 소품 GLB 19벌 (게임 제작 도구 이어서 — 공용 도구 쪽 세션)
+
+- `Assets/Games/SagaGo/Layout/LayoutWalk.cs`: 배치표 `Props` 중 `deco:house_/tower_/well_/market_`(웹 `houseRects` 와 같은 넷)에 메시 경계 `BoxCollider` 를 소품 자신에. `LayoutColliderInfo.decoSolids`.
+- `PlaytestLayoutWalkHeadless.cs`: `deco_solids=n`, 있으면 첫 소품 자리 `Physics.CheckBox` → `deco_block`.
+- `Assets/Art/Generated/SagaGo/` 에 `tools/asset-forge/procgen.py` 로 구운 집·탑·등롱·우물·장터·허수아비·풀·갈대 19벌(부품마다 glTF 재질 색 — glTFast 기본 임포트로 색이 난다) + `.meta`. `tools/layout/kinds.json` `deco` 10종 전부.
+- 확인: 시험 deco 로 `HebeiLayout.unity` 를 잠깐 다시 조립 → `LAYOUT_WALK_PROBE_DONE fails=0 … deco_solids=2 deco_block=ok(deco:house_161)`, 되돌린 원래 씬도 fails=0 `deco_solids=0`.
+  10종 배치표 조립 물건 171·없는 에셋 0, glTFast 경고 0. `ProjectSettings/`·`Packages/` 변화 없음, `Ground_*.mat` 재기록은 되돌렸다.

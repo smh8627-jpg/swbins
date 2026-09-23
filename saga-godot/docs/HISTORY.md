@@ -8395,3 +8395,11 @@ PROJECT_STATE.md` 참고. 요약:
 - `tools/probe_treasure.gd`(`SAGA_TREASURE_PROBE=1`) 9항목 3회 fails=0(다른 건 camp 프레임 번호뿐): 개수·등급·봉인 5 · 높이(정교 9m+) · 걸어서 열기→경험치·EventState · 무리 봉인→전멸→풀림 30 · 석등 규칙(먼 곳·다른 원소·만료) · 셋 켜면 풀림 · 실제 K 스킬이 석등 켬 · 다시 지으면 14개.
 - COMBAT·TRAVERSAL 점검 fails=0 그대로(TRAVERSAL 한 번 종료 시 "1 resources still in use" — verbose 재실행 0건, 09-23 ④ 절과 같은 종료 경합). `godot_regress.sh` REGRESS OK, 재질 감사 다섯 판 0.
 - 실기 확인 전: 상자 크기·등급색이 멀리서 구분되는지, 봉인 고리·석등 불꽃이 보이는지, 산 턱 상자가 절벽 아래에서 눈에 띄는지.
+
+## 배치표 deco 벽 + 마을 소품 GLB 19벌 (2026-09-24, 게임 제작 도구 이어서 — 공용 도구 쪽 세션)
+
+- `games/saga_go/layout/layout_walk.gd`: 배치표 `Props` 중 `deco_house_/tower_/well_/market_`(웹 `houseRects` 와 같은 넷)에 모델 경계 `BoxShape3D` StaticBody 를 소품 자식으로. `LayoutColliders` 메타 `deco_solids`.
+- `tools/probe_layout_walk.gd` ⑤: deco 벽이 있으면 첫 것을 북쪽에서 `move_back` 으로 걸어 막히는지(`deco_block`), 없으면 `deco_solids=0` 만.
+- `assets/generated/props/` 에 `tools/asset-forge/procgen.py` 로 구운 집·탑·등롱·우물·장터·허수아비·풀·갈대 19벌(부품마다 재질 색) + `.import`. `tools/layout/kinds.json` `deco` 10종 전부.
+- 확인: 시험 deco(집·장터)로 `_generated/hebei_layout.tscn` 을 잠깐 다시 조립 → `LAYOUT_PROBE_DONE fails=0 … deco_solids=2 deco_block=ok(z=-2.1<0.0)`, 되돌린 원래 씬도 fails=0 `deco_solids=0`.
+  10종 배치표 조립 물건 410·없는 에셋 0. `--import` 가 다시 쓴 기존 `.import` 26개(`generator_parameters` 지움)·줄바꿈 1000여 개는 되돌렸다.

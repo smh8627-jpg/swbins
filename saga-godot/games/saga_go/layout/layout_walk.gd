@@ -10,7 +10,8 @@ extends Node3D
 ##     과 이름표(Label3D). hidden 명소의 이름표는 찾기 전엔 안 보인다.
 ## 발견은 CodexState 에 넣지 않고 이 씬 안에서만 센다 — 명소 id(gate_n·temple…)가 GO 도감 43칸에 없고,
 ## 여기서 도장을 찍으면 TestVillage 세이브·도감 총계가 어긋난다. 같은 이유로 HUD 의 저장 버튼은 뗀다.
-## 물건(나무·바위)은 부딪히지 않는다 — 보기용 배치표라 충돌 모양이 없다.
+## 물건(나무·바위)은 부딪히지 않는다 — 보기용 배치표라 충돌 모양이 없다. 다만 손으로 놓은 deco 중 웹 게임에서
+## 벽인 것(집·탑·우물·장터 — 웹 world3d.houseRects 와 같은 넷)은 모델 경계 상자로 막는다(소품 자식이라 돌림·크기를 따른다).
 
 signal place_found(id: String, place_name: String)
 
@@ -19,6 +20,8 @@ const TOAST_SEC := 3.0
 const DISCOVER_RADIUS_CELLS := 0.9
 const WATER_WALL_HEIGHT := 4.0
 const LABEL_HEIGHT := 3.2
+## 배치표 items 의 kind "deco:<종류>" — 노드 이름에선 ':' 가 '_' 로 바뀐다(deco_house_400)
+const SOLID_DECO := ["deco_house_", "deco_tower_", "deco_well_", "deco_market_"]
 
 @onready var _layout: Node3D = $Layout
 @onready var _hud: CanvasLayer = $MobileHUD
@@ -104,6 +107,44 @@ func _build_colliders() -> void:
 	_box(body, Vector3(1.0, 6.0, size.y), Vector3(lo.x - 0.5, 3.0, mid.y))
 	_box(body, Vector3(1.0, 6.0, size.y), Vector3(hi.x + 0.5, 3.0, mid.y))
 	body.set_meta("water_cells", water)
+	var solids := 0
+	for pr in _layout.get_node("Props").get_children():
+		if pr is Node3D and _is_solid_deco(str(pr.name)) and _add_prop_body(pr):
+			solids += 1
+	body.set_meta("deco_solids", solids)
+
+
+func _is_solid_deco(n: String) -> bool:
+	for s in SOLID_DECO:
+		if n.begins_with(s):
+			return true
+	return false
+
+
+## 소품 안 메시들의 경계를 소품 좌표로 모아 상자 하나 — StaticBody3D 를 소품 자식으로 달아 돌림·크기를 그대로 따른다.
+func _add_prop_body(pr: Node3D) -> bool:
+	var inv := pr.global_transform.affine_inverse()
+	var box := AABB()
+	var first := true
+	for n in pr.find_children("*", "MeshInstance3D", true, false):
+		var mi := n as MeshInstance3D
+		if mi.mesh == null:
+			continue
+		var a: AABB = (inv * mi.global_transform) * mi.get_aabb()
+		box = a if first else box.merge(a)
+		first = false
+	if first:
+		return false
+	var sb := StaticBody3D.new()
+	sb.name = "DecoSolid"
+	var cs := CollisionShape3D.new()
+	var shape := BoxShape3D.new()
+	shape.size = box.size
+	cs.shape = shape
+	cs.position = box.get_center()
+	sb.add_child(cs)
+	pr.add_child(sb)
+	return true
 
 
 func _box(body: StaticBody3D, size: Vector3, pos: Vector3) -> void:

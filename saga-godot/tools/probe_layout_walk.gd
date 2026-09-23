@@ -4,7 +4,9 @@ extends Node
 ##   SAGA_LAYOUT_PROBE=1 "$GODOT" --headless --path saga-godot res://games/saga_go/layout/LayoutWalk.tscn
 ##
 ## ① 바닥에 선다 ② 강가에서 남쪽으로 걸으면 물 칸 앞에서 막힌다 ③ 옛 다리 칸으론 건넌다
-## ④ 명소마다 데려가 발견이 13/13, 숨은 이름표가 찾은 뒤 보인다. 끝에 LAYOUT_PROBE_DONE 한 줄을 찍고 끈다.
+## ④ 명소마다 데려가 발견이 13/13, 숨은 이름표가 찾은 뒤 보인다
+## ⑤ 벽이 되는 deco(집·탑·우물·장터)가 있으면 첫 것을 북쪽에서 향해 걸어 막히는지 본다(없으면 개수만 찍고 건너뛴다).
+## 끝에 LAYOUT_PROBE_DONE 한 줄을 찍고 끈다.
 ## 이동은 실제 입력(move_back 액션)으로 — 카메라 기본 방향(yaw 0)에서 "뒤"가 +z(남쪽)다.
 
 const WALK_FRAMES := 120  # 2초(60Hz) — 걷는 속도 6m/s 면 12m
@@ -16,6 +18,7 @@ var _step := 0
 var _marks: Array = []
 var _results: Array[String] = []
 var _fails := 0
+var _deco: Node3D = null
 
 
 func _ready() -> void:
@@ -66,9 +69,32 @@ func _physics_process(_delta: float) -> void:
 				_check("hidden_labels", hidden_ok, "")
 				var body := _walk.get_node("LayoutColliders")
 				_results.append("water_cells=%d" % int(body.get_meta("water_cells")))
-				print("LAYOUT_PROBE_DONE fails=%d %s" % [_fails, " ".join(_results)])
-				get_tree().quit(0 if _fails == 0 else 1)
-				_step = 99
+				_results.append("deco_solids=%d" % int(body.get_meta("deco_solids", 0)))
+				for pr in _walk.get_node("Layout/Props").get_children():
+					if pr.has_node("DecoSolid"):
+						_deco = pr
+						break
+				if _deco == null:
+					_finish()
+				else:
+					## 모양 상자 반지름(돌림을 생각해 대각선) + 2m 북쪽에서 남쪽(move_back)으로 걷는다
+					var sh := (_deco.get_node("DecoSolid").get_child(0) as CollisionShape3D).shape as BoxShape3D
+					var r := Vector2(sh.size.x, sh.size.z).length() * 0.5 * _deco.scale.x
+					_teleport(_deco.position + Vector3(0, 0.5, -(r + 2.0)))
+					Input.action_press("move_back")
+					_next()
+		4:
+			if _frame == WALK_FRAMES:
+				Input.action_release("move_back")
+				var z := _player.global_position.z
+				_check("deco_block", z < _deco.position.z, "%s z=%.1f<%.1f" % [_deco.name, z, _deco.position.z])
+				_finish()
+
+
+func _finish() -> void:
+	print("LAYOUT_PROBE_DONE fails=%d %s" % [_fails, " ".join(_results)])
+	get_tree().quit(0 if _fails == 0 else 1)
+	_step = 99
 
 
 func _teleport(p: Vector3) -> void:
