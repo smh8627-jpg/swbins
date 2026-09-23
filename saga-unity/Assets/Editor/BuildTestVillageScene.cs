@@ -72,6 +72,7 @@ namespace Saga.EditorTools
             BuildBeaconTower();
             var (playerGo, cameraRig) = BuildPlayer();
             BuildFieldCombat(playerGo);
+            BuildWorldMap();
             BuildReviewCamera();
             BuildPostProcessingVolume();
             BuildToneVolume();
@@ -317,6 +318,15 @@ namespace Saga.EditorTools
             var spawner = spawnerGo.AddComponent<Saga.Go.Combat.FieldSpawner>();
             SetPrivateField(spawner, "banditModel", AssetDatabase.LoadAssetAtPath<GameObject>(AbeAnimatedPrefabPath));
             SetPrivateField(spawner, "skeletonModel", AssetDatabase.LoadAssetAtPath<GameObject>(SetupNpcCharacterImports.PrefabPath("Skeleton")));
+        }
+
+        /// <summary>PLAN.md 107-3 "지역 지도" — 순간이동 지점·옛 망루·지도 화면은 Play 때 `WorldMapBuilder` 가 세운다.
+        /// 여기선 돌 재질만 넘긴다.</summary>
+        private static void BuildWorldMap()
+        {
+            var go = new GameObject("WorldMap");
+            var builder = go.AddComponent<WorldMapBuilder>();
+            SetPrivateField(builder, "stoneMaterial", AssetDatabase.LoadAssetAtPath<Material>(VillageStoneMatPath));
         }
 
         private static void BuildRareWolfEncounter()

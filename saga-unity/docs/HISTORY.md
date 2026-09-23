@@ -8783,3 +8783,9 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - **Mixamo**: 자동화 크롬 로그인 살아 있었다(사람 몫 없음). Maria 로 Climbing Up A Wall(--inplace)·Mid-Air Falling Idle·Swimming Underwater·Floating(파일 Treading Water)·Jump Up → README 레시피 표. 받은 뒤 전용 크롬 PID 만 종료. `BuildMariaTraversal`(루트 이동 자세에 굽기, `Climb`·`Glide`·`Swim`·`Jump`·`ClimbRate`, 수영은 `Speed` 1D 블렌드).
 - **함정**: 에디터 스크립트에서 `state.transitions = 새 배열`/`Where` 로 빼기만 하면 옛 `AnimatorStateTransition` 이 컨트롤러 안 고아 하위 애셋으로 남아 재실행마다 늘었다(45→73). `RemoveTransition` 으로 지워야 멱등 — 원본에서 두 번 돌려 전이 45·개체 62 동일 확인. `BuildMariaLockOnStrafe` 는 전이를 덧붙이기만 해서 해당 없음.
 - **검증**: 컴파일·씬 재빌드 exit 0 · GO `PlaytestHeadless` **3연속 OK**(새 `PlaytestGoTraversal` 측정값 3회 동일: 점프 2.30m · (2,6) 산 12.5m 3.9s·기력 20 · 전용 클립 파라미터 켜짐 · 활공 낙하 3.06/s·전진 10.20/s · 수영 y -3.05 = 목표) · `PlaytestDungeonHeadless` OK(Maria.controller 공유) · `PlaytestLayoutWalkHeadless` fails=0(GO PlayerController 공유). 실기 확인은 전.
+
+## 2026-09-24 — PLAN 107-3 지역 지도: 지역 7·역참 5·옛 망루·봉우리·M 지도 화면·세이브 v14 (같은 대화 "사가유니티 이어해", Opus 5.5)
+
+- 새 파일: `Data/GoWorldMap`(지역·역참·망루 표, `RegionAt`)·`Data/WorldMapState`(켠 역참·발 디딘 지역·밝힘, `Restore` 도 `Changed`) · `World/WaypointStone`·`World/Watchtower`·`World/WorldMapBuilder`(Play 때 세움, 씬 빌더는 돌 재질만) · `UI/WorldMapUi`(M·"지도" 버튼, 칸 색 텍스처·어둠·화살표·◆ 순간이동·지역 진입 이름). `TestMapData.HasPeak/PeakHeight/PeakBase` + `TerrainBuilder.BuildPeaks`(육각 뿔대, 볼록 MeshCollider). 세이브 v14(13→14 빈 기본값).
+- 함정: 지역 추적을 "지역이 바뀔 때만 Visit" 으로 짰더니 세이브 불러오기·상태 초기화 뒤 제자리 지역이 다시 안 적혔다 → 매 검사마다 Visit(이미 있으면 무시).
+- 검증: 컴파일·씬 재빌드 exit 0 · GO `PlaytestHeadless` 새 `PlaytestGoWorldMap` 포함 **3연속 OK**(첫 실행 실패는 위 함정) — 망루는 진단이 실제로 `Step` 으로 기어올라 꼭대기에서 밝힌다. 실기 확인은 전.

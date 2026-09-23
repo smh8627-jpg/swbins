@@ -43,6 +43,7 @@ namespace Saga.Go.World
             BuildGround();
             BuildWater();
             BuildCollision();
+            BuildPeaks();
             MarkStatic();
         }
 
@@ -347,6 +348,80 @@ namespace Saga.Go.World
                 }
             }
             BuildBoundaryWalls(parent.transform);
+        }
+
+        /// <summary>PLAN.md 107-3 — 봉우리(`TestMapData.HasPeak`)마다 육각 뿔대 하나. 옆면 기울기 법선 y≈0.38 이라
+        /// 등반이 잡고(가파름 문턱 0.5), 윗면은 넘어올라 설 수 있다. 땅과 같은 재질·정점색(바위).
+        /// 충돌은 봉우리마다 볼록 MeshCollider.</summary>
+        private void BuildPeaks()
+        {
+            var parent = new GameObject("Peaks");
+            parent.transform.SetParent(transform, false);
+            var mat = GetComponent<MeshRenderer>().sharedMaterial;
+            for (int y = 0; y < TestMapData.RowCount; y++)
+            {
+                for (int x = 0; x < TestMapData.Cols; x++)
+                {
+                    if (!TestMapData.HasPeak(x, y)) continue;
+                    Vector3 b = TestMapData.PeakBase(x, y);
+                    var mesh = BuildPeakMesh(b, TestMapData.PeakHeight(x, y), TestMapData.PeakBaseRadius, TestMapData.PeakTopRadius);
+                    var go = new GameObject($"Peak_{x}_{y}");
+                    go.transform.SetParent(parent.transform, false);
+                    go.AddComponent<MeshFilter>().sharedMesh = mesh;
+                    go.AddComponent<MeshRenderer>().sharedMaterial = mat;
+                    var col = go.AddComponent<MeshCollider>();
+                    col.sharedMesh = mesh;
+                    col.convex = true;
+                }
+            }
+        }
+
+        private static Mesh BuildPeakMesh(Vector3 basePos, float height, float rBase, float rTop)
+        {
+            const int Sides = 6;
+            var verts = new List<Vector3>();
+            var colors = new List<Color>();
+            var normals = new List<Vector3>();
+            var uvs = new List<Vector2>();
+            var tris = new List<int>();
+            float sink = 1.5f; // 고원 윗면 아래로 조금 묻어 틈이 안 보이게
+            for (int i = 0; i < Sides; i++)
+            {
+                float a0 = i * Mathf.PI * 2f / Sides, a1 = (i + 1) * Mathf.PI * 2f / Sides;
+                Vector3 d0 = new Vector3(Mathf.Cos(a0), 0f, Mathf.Sin(a0)), d1 = new Vector3(Mathf.Cos(a1), 0f, Mathf.Sin(a1));
+                Vector3 b0 = basePos + d0 * rBase + Vector3.down * sink, b1 = basePos + d1 * rBase + Vector3.down * sink;
+                Vector3 t0 = basePos + d0 * rTop + Vector3.up * height, t1 = basePos + d1 * rTop + Vector3.up * height;
+                Vector3 n = Vector3.Cross(t0 - b0, b1 - b0).normalized;
+                if (Vector3.Dot(n, (d0 + d1)) < 0f) n = -n;
+                int k = verts.Count;
+                foreach (var p in new[] { b0, b1, t1, t0 })
+                {
+                    verts.Add(p);
+                    normals.Add(n);
+                    colors.Add(p.y > basePos.y + height * 0.5f ? CliffRockColor : CliffRockDark);
+                    uvs.Add(new Vector2(p.x + p.z, p.y));
+                }
+                tris.Add(k); tris.Add(k + 1); tris.Add(k + 2);
+                tris.Add(k); tris.Add(k + 2); tris.Add(k + 3);
+            }
+            int c = verts.Count;
+            Vector3 top = basePos + Vector3.up * height;
+            verts.Add(top); normals.Add(Vector3.up); colors.Add(CliffRockColor); uvs.Add(new Vector2(top.x, top.z));
+            for (int i = 0; i <= Sides; i++)
+            {
+                float a = i * Mathf.PI * 2f / Sides;
+                Vector3 p = top + new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * rTop;
+                verts.Add(p); normals.Add(Vector3.up); colors.Add(CliffRockColor); uvs.Add(new Vector2(p.x, p.z));
+                if (i > 0) { tris.Add(c); tris.Add(c + i); tris.Add(c + i + 1); }
+            }
+            var mesh = new Mesh { name = "Peak" };
+            mesh.SetVertices(verts);
+            mesh.SetColors(colors);
+            mesh.SetNormals(normals);
+            mesh.SetUVs(0, uvs);
+            mesh.SetTriangles(tris, 0);
+            mesh.RecalculateBounds();
+            return mesh;
         }
 
         /// <summary>PLAN.md 107 ② — 지도 네 변 바깥의 보이지 않는 높은 벽. 테두리 산(30~38m) 꼭대기에서

@@ -14,7 +14,7 @@ namespace Saga.Go.Data
     /// </summary>
     public static class SaveState
     {
-        private const int SaveVersion = 13;
+        private const int SaveVersion = 14;
 
         private static string SavePath => Path.Combine(Application.persistentDataPath, "save.json");
 
@@ -74,6 +74,10 @@ namespace Saga.Go.Data
             public int shrineShards;
             public int shrineStamps;
             public long shrineLockUntilTicks;
+            // v14 — PLAN.md 107-3 지역 지도(순간이동 지점·발 디딘 지역·망루로 밝힌 지도).
+            public List<string> waypoints;
+            public List<string> regionsVisited;
+            public bool mapRevealed;
         }
 
         public static bool Save()
@@ -110,6 +114,9 @@ namespace Saga.Go.Data
                 shrineShards = ShrineTrialState.SnapshotShards(),
                 shrineStamps = ShrineTrialState.SnapshotStamps(),
                 shrineLockUntilTicks = ShrineTrialState.SnapshotLockUntilTicks(),
+                waypoints = WorldMapState.SnapshotWaypoints(),
+                regionsVisited = WorldMapState.SnapshotRegions(),
+                mapRevealed = WorldMapState.Revealed,
             };
 
             try
@@ -159,6 +166,7 @@ namespace Saga.Go.Data
             BondState.Restore(PartyState.MemberIds, data.bondWalkedM, data.bondWins);
             DropState.Restore(data.drops);
             ShrineTrialState.Restore(data.shrineDate, data.shrineDailyCount, data.shrineShards, data.shrineStamps, data.shrineLockUntilTicks);
+            WorldMapState.Restore(data.waypoints, data.regionsVisited, data.mapRevealed);
 
             Transform player = FindPlayer();
             if (player != null && data.playerPos != null && data.playerPos.Length == 3)
@@ -306,6 +314,15 @@ namespace Saga.Go.Data
                 data.shrineShards = 0;
                 data.shrineStamps = 0;
                 data.shrineLockUntilTicks = 0;
+                return data;
+            }
+            if (fromVersion == 13)
+            {
+                // v13엔 지역 지도 필드가 없었다 — 아직 아무 지점도 안 켜고 아무 데도 안 간 것과 같은 기본값.
+                data.version = 14;
+                data.waypoints = new List<string>();
+                data.regionsVisited = new List<string>();
+                data.mapRevealed = false;
                 return data;
             }
             return null;

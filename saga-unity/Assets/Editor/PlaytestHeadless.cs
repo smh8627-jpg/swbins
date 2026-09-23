@@ -141,6 +141,7 @@ namespace Saga.EditorTools
                 // PLAN.md 107-1 들판 전투 — 일일 과제(세이브 되돌림) 앞, 다른 진단 뒤(처치 경험치가 첫 레벨업이 되지 않게).
                 if (!PlaytestGoFieldCombat.Run("PlaytestHeadless")) _hadError = true;
                 if (!PlaytestGoTraversal.Run("PlaytestHeadless")) _hadError = true; // PLAN.md 107 ② 이동
+                if (!PlaytestGoWorldMap.Run("PlaytestHeadless")) _hadError = true; // PLAN.md 107-3 지역 지도(세이브 되돌림 포함)
                 // 반드시 마지막 — DailyTaskState 진단이 SaveState.TryLoad()로
                 // 세이브 파일을 v9 모양으로 잠깐 바꿔치기해 로드하는데, 이건
                 // 살아있는 PartyState/Inventory/GoldState 등을 그 v9 기본값으로

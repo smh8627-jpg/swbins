@@ -110,6 +110,35 @@ namespace Saga.Go.Data
             return IsBorder(gx, gy) ? 30f + t * 8f : 12f + t * 10f;
         }
 
+        // ---- PLAN.md 107-3 봉우리 — 네모 고원 위 뾰족한 바위(육각 뿔대, 기어오를 수 있는 가파름) ----
+        public const float PeakBaseRadius = 10f;
+        public const float PeakTopRadius = 5f;
+
+        private static float Hash01(int gx, int gy, uint salt)
+        {
+            uint h = (uint)(gx * 73856093) ^ (uint)(gy * 19349663) ^ salt;
+            h ^= h >> 13; h *= 0x5bd1e995; h ^= h >> 15;
+            return (h % 1000) / 999f;
+        }
+
+        /// <summary>이 산 칸에 봉우리가 있나 — 해시 절반쯤, 옛 망루 칸(4,6)은 뺀다.</summary>
+        public static bool HasPeak(int gx, int gy)
+        {
+            if (TileAt(gx, gy) != '^' || gx < 0 || gy < 0 || gx >= Cols || gy >= RowCount) return false;
+            if (gx == 4 && gy == 6) return false;
+            return Hash01(gx, gy, 0x51ED270Bu) > 0.5f;
+        }
+
+        public static float PeakHeight(int gx, int gy) => 12f + Hash01(gx, gy, 0x2545F491u) * 6f;
+
+        /// <summary>봉우리 밑동 가운데(고원 윗면 높이).</summary>
+        public static Vector3 PeakBase(int gx, int gy)
+        {
+            float jx = (Hash01(gx, gy, 0x68E31DA4u) - 0.5f) * 12f;
+            float jz = (Hash01(gx, gy, 0xB5297A4Du) - 0.5f) * 12f;
+            return WorldPos(gx, gy) + new Vector3(jx, MountainHeight(gx, gy), jz);
+        }
+
         /// <summary>보이고 딛는 땅 높이 — 산은 고원, 강·다리 칸은 강바닥, 나머지는 Legend 높이.</summary>
         public static float GroundHeight(int gx, int gy)
         {
