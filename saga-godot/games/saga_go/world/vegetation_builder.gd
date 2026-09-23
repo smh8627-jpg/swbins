@@ -35,14 +35,31 @@ const CROP_SCALE := 2.5
 ## 저폴리(작게 만들고 크게 스케일)와 원본 크기가 전혀 달라 지역마다 같은
 ## `TREE_SCALE` 하나를 못 쓴다 — 종별 실측(trimesh, ASSET_GUIDE 해당
 ## 날짜)에서 옛 tree_oak 최종 높이(1.226×4.5≈5.52m, 승인판 그대로 유지)에
-## 맞춰 역산한 배율을 `REGION_TREE_SCALE`로 따로 둔다.
-const REGION_TREE_GLB := {
-	"village": "res://assets/generated/variants/CommonTree_1__go_village.glb",
-	"ruins": "res://assets/generated/variants/DeadTree_1__go_ruins.glb",
-}
-const REGION_TREE_SCALE := {
-	"village": 0.759,  # CommonTree_1 실측고 7.265 → 5.52/7.265
-	"ruins": 0.581,    # DeadTree_1 실측고 9.495 → 5.52/9.495
+## 맞춰 역산한 배율을 종마다 둔다.
+##
+## 2026-09-23 — glb_utils 메시 누락 버그(HISTORY 09-23) 수정으로 CommonTree
+## 계열이 전부 잎째로 그려지게 된 김에, 지금까지 종 하나(CommonTree_1·
+## DeadTree_1)뿐이던 걸 같은 계열 5종(스냅 완비, ASSET_GUIDE 09-20)으로
+## 늘렸다 — 전부 같은 목표 높이(5.52m)로 역산해 숲 실루엣·트렁크 충돌
+## 체감은 그대로 두고 나무 모양만 다양해진다(트렁크 충돌 반지름·높이는
+## `scales[i]`만 쓰고 종별 배율과 무관 — 아래 `_scatter_trees` 참고).
+## 타일마다 해시로 종을 고른다. Pine·TwistedTree(스냅 완비)는 침엽수·
+## 거목이라 계열이 달라 이번엔 안 섞는다.
+const REGION_TREE_VARIANTS := {
+	"village": [
+		{"glb": "res://assets/generated/variants/CommonTree_1__go_village.glb", "scale": 0.759830},
+		{"glb": "res://assets/generated/variants/CommonTree_2__go_village.glb", "scale": 0.722230},
+		{"glb": "res://assets/generated/variants/CommonTree_3__go_village.glb", "scale": 0.585665},
+		{"glb": "res://assets/generated/variants/CommonTree_4__go_village.glb", "scale": 0.584846},
+		{"glb": "res://assets/generated/variants/CommonTree_5__go_village.glb", "scale": 0.787869},
+	],
+	"ruins": [
+		{"glb": "res://assets/generated/variants/DeadTree_1__go_ruins.glb", "scale": 0.581329},
+		{"glb": "res://assets/generated/variants/DeadTree_2__go_ruins.glb", "scale": 0.480492},
+		{"glb": "res://assets/generated/variants/DeadTree_3__go_ruins.glb", "scale": 0.415651},
+		{"glb": "res://assets/generated/variants/DeadTree_4__go_ruins.glb", "scale": 0.432230},
+		{"glb": "res://assets/generated/variants/DeadTree_5__go_ruins.glb", "scale": 0.335820},
+	],
 }
 ## 바위도 같은 이유로 Rock_Medium_1(큰)·Rock_Medium_2(작은, 모양만 다름)
 ## 로 교체 — Pebble·RockPath 계열은 103-3 스냅 때 이미 "산책로 장식" 용도로
@@ -219,9 +236,11 @@ func _apply_wind_shader(mesh: Mesh, surface_idx: int) -> void:
 
 func _scatter_trees() -> void:
 	var ground: float = TerrainBuilder.LEGEND["T"].height
+	var variants: Array = REGION_TREE_VARIANTS.get(region_id, REGION_TREE_VARIANTS["village"])
 	var positions: Array[Vector3] = []
 	var scales: Array[float] = []
 	var yaws: Array[float] = []
+	var species: Array[int] = []
 	var rows := TestMap.rows_of(region_id)
 	for y in rows.size():
 		var row: String = rows[y]
@@ -235,51 +254,67 @@ func _scatter_trees() -> void:
 				positions.append(TestMap.world_pos(x, y, region_id) + Vector3(jx, ground, jz))
 				scales.append(s)
 				yaws.append(_hash(x, y, i * 2 + 200) * TAU)
+				## 종 선택(salt 300대, 기존 0·1·100·200 대역과 안 겹침).
+				species.append(int(_hash(x, y, i * 2 + 300) * variants.size()) % variants.size())
 
 	if positions.is_empty():
 		return
-
-	var tree_mesh := GLBUtils.extract_mesh(REGION_TREE_GLB.get(region_id, REGION_TREE_GLB["village"]))
-	if tree_mesh == null:
-		return
-	## 표면 전부(스냅 CommonTree는 줄기·잎 둘, DeadTree는 하나) — 예전엔
-	## "스냅본은 한 표면"으로 잘못 알고 0번(줄기)만 걸었다(glb_utils 09-23 주석).
-	for si in tree_mesh.get_surface_count():
-		_apply_wind_shader(tree_mesh, si)
-	var region_tree_scale: float = REGION_TREE_SCALE.get(region_id, REGION_TREE_SCALE["village"])
-
-	var mm := MultiMesh.new()
-	mm.transform_format = MultiMesh.TRANSFORM_3D
-	mm.mesh = tree_mesh
-	mm.instance_count = positions.size()
-
-	var mmi := MultiMeshInstance3D.new()
-	mmi.multimesh = mm
-	mmi.name = "Trees"
-	add_child(mmi)
 
 	var trunks := StaticBody3D.new()
 	trunks.name = "TreeTrunkCollisions"
 	add_child(trunks)
 
+	## 잎(캐노피)까지 막지 않는다 — 줄기만 막아야 나무 사이를 지날 때
+	## 자연스럽다. GLB 몸통 폭보다 얇게 잡아(0.4·1.3 unscaled) 스치는
+	## 정도로는 안 걸리게 한다. 값은 GLB 실측 기반이 아니라 primitive
+	## 시절 충돌 크기를 그대로 유지한 것 — 걷는 느낌이 에셋 교체로
+	## 갑자기 바뀌지 않게 하려는 의도적 선택. `scales[i]`(0.7~1.3 잡음)만
+	## 쓰고 종별 배율(아래)과는 무관 — 종을 섞어도 충돌 체감은 그대로다.
 	for i in positions.size():
-		var s: float = scales[i] * region_tree_scale
-		var basis := Basis(Vector3.UP, yaws[i]).scaled(Vector3(s, s, s))
-		var base_pos: Vector3 = positions[i]
-		mm.set_instance_transform(i, Transform3D(basis, base_pos))
-
-		## 잎(캐노피)까지 막지 않는다 — 줄기만 막아야 나무 사이를 지날 때
-		## 자연스럽다. GLB 몸통 폭보다 얇게 잡아(0.4·1.3 unscaled)
-		## 스치는 정도로는 안 걸리게 한다. 값은 GLB 실측 기반이 아니라
-		## primitive 시절 충돌 크기를 그대로 유지한 것 — 걷는 느낌이
-		## 에셋 교체로 갑자기 바뀌지 않게 하려는 의도적 선택.
 		var cs := CollisionShape3D.new()
 		var shape := CylinderShape3D.new()
 		shape.radius = 0.4 * scales[i]
 		shape.height = 3.0 * scales[i]
 		cs.shape = shape
-		cs.position = base_pos + Vector3(0, 1.5 * scales[i], 0)
+		cs.position = positions[i] + Vector3(0, 1.5 * scales[i], 0)
 		trunks.add_child(cs)
+
+	## 시각은 종별로 나눠 그린다 — MultiMesh 하나엔 Mesh 하나만 얹을 수
+	## 있어(_scatter_wildflowers와 같은 패턴), 종 수만큼 MultiMeshInstance3D
+	## 를 만들고 해당 종 자리만 그 안에 담는다.
+	var xf_by_species: Array[Array] = []
+	for k in variants.size():
+		var arr: Array[Transform3D] = []
+		xf_by_species.append(arr)
+	for i in positions.size():
+		var region_tree_scale: float = variants[species[i]].scale
+		var s: float = scales[i] * region_tree_scale
+		var basis := Basis(Vector3.UP, yaws[i]).scaled(Vector3(s, s, s))
+		(xf_by_species[species[i]] as Array[Transform3D]).append(Transform3D(basis, positions[i]))
+
+	for k in variants.size():
+		var xforms: Array[Transform3D] = xf_by_species[k]
+		if xforms.is_empty():
+			continue
+		var tree_mesh := GLBUtils.extract_mesh(variants[k].glb)
+		if tree_mesh == null:
+			continue
+		## 표면 전부(스냅 CommonTree는 줄기·잎 둘, DeadTree는 하나) — 예전엔
+		## "스냅본은 한 표면"으로 잘못 알고 0번(줄기)만 걸었다(glb_utils 09-23 주석).
+		for si in tree_mesh.get_surface_count():
+			_apply_wind_shader(tree_mesh, si)
+
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.mesh = tree_mesh
+		mm.instance_count = xforms.size()
+		for i in xforms.size():
+			mm.set_instance_transform(i, xforms[i])
+
+		var mmi := MultiMeshInstance3D.new()
+		mmi.multimesh = mm
+		mmi.name = "Trees%d" % k
+		add_child(mmi)
 
 
 ## 밀은 나무처럼 줄기가 굵지 않아 충돌을 안 붙인다 — 숲의 캐노피처럼
