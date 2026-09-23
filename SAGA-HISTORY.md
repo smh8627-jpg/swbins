@@ -4892,3 +4892,16 @@ saga-go 정본을 다른 네 판에도 동일 반영, 가드돼 있어 그 판�
   두 번째를 개수로 잘랐다가 삼각형 88개가 됐다.
 - ratio 0.04·error 0.02 → `resize 512` → `meshopt high`: 8.3만 삼각형, 재질·노드 67 그대로, 경계 상자 차이 ≤0.2.
   sw.js go-v5.50.0. **실기 확인 전**: 숲 속 옛 사원(tx7,ty9) 모양이 UV 번짐 없이 서는지.
+
+### 2026-09-23 — 웹 heavy 34→17: UAL1 모션 압축본 통일 · 4K 옷 텍스처 2048 · 통나무 삼각형 80%↓
+
+- `models/anim/UAL1_Standard.glb`(클립 43): go·forest·realm·story 는 미압축 7.27MB, 사가블로만 glb-compress 본 1.85MB였다.
+  노드 이름·스킨 joints·클립 길이·채널 수(8385)가 같은 것을 확인하고 사가블로 본으로 네 판을 맞춤(다섯 벌 md5 f148d0b7).
+  네 판 모두 이제 MeshoptDecoder 가 물려 있어 가능(같은 날 앞 커밋).
+- `people/regular/T_Peasant_BaseColor.png`·`T_Ranger_BaseColor.png` 4096→2048(Pillow LANCZOS, 이름 그대로 — gltf 가 이름으로 참조).
+  같은 폴더 다른 옷·피부는 이미 2048. dungeon·forest·realm·story 네 벌 md5 같음.
+- `nature/realistic/Log_a·Log_b`(forest·dungeon): 사진측량형 seam 문제가 없는 모델이라 일반 `weld→simplify ratio 0.2 error 0.005→meshopt`.
+  10.2만→2.0만, 8.3만→1.7만, 경계 상자 동일, 텍스처 안 건드림. 사가블로 `.glb-compress-manifest.json` 크기 갱신(재실행 시 WebP 이중 손실 방지).
+- 다섯 판 sw.js VERSION 올림. **실기 확인 전**: 인물 모션(네 판)·농부/순찰 옷 무늬·통나무 모양.
+- 남긴 것: 51~53k 삼각형(IslandTree_02·Stone_01·avatar_custom_01)은 한도 근처라 보류, 사가고 `vitruvian_v1`(9.8MB 스킨+애니)은
+  스킨 메시 simplify 위험이 커 보류.
