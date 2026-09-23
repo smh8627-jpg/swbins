@@ -194,18 +194,48 @@ namespace Saga.Go.Player
                 joystick = Object.FindFirstObjectByType<VirtualJoystick>();
             }
 
-            if (animator != null)
-            {
-                foreach (var p in animator.parameters)
-                {
-                    if (p.name == "Climb") _hasClimbParam = true;
-                    else if (p.name == "Glide") _hasGlideParam = true;
-                    else if (p.name == "Swim") _hasSwimParam = true;
-                    else if (p.name == "Jump") _hasJumpParam = true;
-                    else if (p.name == "ClimbRate") _hasClimbRate = true;
-                }
-            }
+            CacheAnimatorParams();
             if (traversal) _wings = BuildWings();
+        }
+
+        private void CacheAnimatorParams()
+        {
+            _hasClimbParam = _hasGlideParam = _hasSwimParam = _hasJumpParam = _hasClimbRate = false;
+            if (animator == null) return;
+            foreach (var p in animator.parameters)
+            {
+                if (p.name == "Climb") _hasClimbParam = true;
+                else if (p.name == "Glide") _hasGlideParam = true;
+                else if (p.name == "Swim") _hasSwimParam = true;
+                else if (p.name == "Jump") _hasJumpParam = true;
+                else if (p.name == "ClimbRate") _hasClimbRate = true;
+            }
+        }
+
+        /// <summary>PLAN.md 107-6 "동료 모델" — 나선 인물의 몸으로 갈아 끼운다(`PartyBodies` 가 부른다).
+        /// 보던 방향을 넘기고, 옛 몸은 끄고, 활공 날개를 새 몸 등으로 옮긴다. Animator 파라미터 유무도 다시 센다.</summary>
+        public void SetBody(Transform newVisual, Animator newAnimator)
+        {
+            if (newVisual == null || newVisual == visual) return;
+            if (visual != null)
+            {
+                newVisual.rotation = visual.rotation;
+                visual.gameObject.SetActive(false);
+            }
+            newVisual.gameObject.SetActive(true);
+            visual = newVisual;
+            animator = newAnimator;
+            CacheAnimatorParams();
+            if (_wings != null) AttachWings(_wings.transform, visual);
+            SetModeParams();
+        }
+
+        private static void AttachWings(Transform root, Transform parent)
+        {
+            root.SetParent(parent, false);
+            root.localPosition = new Vector3(0f, 2.55f, -0.35f) / Mathf.Max(0.01f, parent.lossyScale.y);
+            root.localRotation = Quaternion.identity;
+            root.localScale = Vector3.one / Mathf.Max(0.01f, parent.lossyScale.y);
         }
 
         private void Update() => Step(Time.deltaTime);

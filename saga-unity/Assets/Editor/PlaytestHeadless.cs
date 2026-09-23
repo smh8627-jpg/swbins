@@ -144,6 +144,7 @@ namespace Saga.EditorTools
                 if (!PlaytestGoTraversal.Run("PlaytestHeadless")) _hadError = true; // PLAN.md 107 ② 이동
                 if (!PlaytestGoWorldMap.Run("PlaytestHeadless")) _hadError = true; // PLAN.md 107-3 지역 지도(세이브 되돌림 포함)
                 if (!PlaytestGoTreasure.Run("PlaytestHeadless")) _hadError = true; // PLAN.md 107-4 보물 상자(세이브·상자 기록 되돌림 포함)
+                if (!PlaytestGoPartyBodies.Run("PlaytestHeadless")) _hadError = true; // PLAN.md 107-6 동료 모델
                 // 반드시 마지막 — DailyTaskState 진단이 SaveState.TryLoad()로
                 // 세이브 파일을 v9 모양으로 잠깐 바꿔치기해 로드하는데, 이건
                 // 살아있는 PartyState/Inventory/GoldState 등을 그 v9 기본값으로

@@ -74,6 +74,7 @@ namespace Saga.Go.Combat
 
         public Vector3 SafePoint { get; set; }
 
+        private PartyBodies _bodies;
         private float _comboWindow;
         private float _attackCd;
         private float _sinceHit = 999f;
@@ -389,8 +390,10 @@ namespace Saga.Go.Combat
         private void ApplyLook()
         {
             if (player == null || player.Visual == null || Active == null) return;
-            // 주인공은 제 빛깔, 동료는 원소 빛을 옅게 입힌다(107 ⑥ 동료 모델 전까지).
-            if (ActiveIndex == 0) CharacterVisual.ClearTint(player.Visual.gameObject);
+            // 107 ⑥ — 나선 인물의 몸으로 바꾼다. 제 몸이 없는 동료(모델 없음)만 주인공 몸에 원소 빛을 옅게 입힌다.
+            if (_bodies == null) _bodies = player.GetComponent<PartyBodies>();
+            bool ownBody = _bodies != null && _bodies.Show(Active.Id);
+            if (ActiveIndex == 0 || ownBody) CharacterVisual.ClearTint(player.Visual.gameObject);
             else CharacterVisual.Tint(player.Visual.gameObject, Color.Lerp(Color.white, GoElements.ColorOf(Active.Element), 0.35f));
         }
 

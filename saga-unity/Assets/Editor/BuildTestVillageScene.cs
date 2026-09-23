@@ -318,6 +318,18 @@ namespace Saga.EditorTools
             var spawner = spawnerGo.AddComponent<Saga.Go.Combat.FieldSpawner>();
             SetPrivateField(spawner, "banditModel", AssetDatabase.LoadAssetAtPath<GameObject>(AbeAnimatedPrefabPath));
             SetPrivateField(spawner, "skeletonModel", AssetDatabase.LoadAssetAtPath<GameObject>(SetupNpcCharacterImports.PrefabPath("Skeleton")));
+
+            // PLAN.md 107-6 "동료 모델" — 교체하면 몸이 바뀐다(모델은 로컬 전용, 없으면 주인공 몸 + 원소 빛깔)
+            var bodies = playerGo.AddComponent<PartyBodies>();
+            SetPrivateField(bodies, "banditBody", AssetDatabase.LoadAssetAtPath<GameObject>(AbeAnimatedPrefabPath));
+            var extras = new System.Collections.Generic.List<GameObject>();
+            foreach (var n in new[] { "Paladin", "PeasantMan", "PeasantGirl" })
+            {
+                var go = AssetDatabase.LoadAssetAtPath<GameObject>(SetupNpcCharacterImports.PrefabPath(n));
+                if (go != null) extras.Add(go);
+            }
+            SetPrivateField(bodies, "extraBodies", extras.ToArray());
+            SetPrivateField(bodies, "bodyController", AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(MariaControllerPath));
         }
 
         /// <summary>PLAN.md 107-3 "지역 지도" — 순간이동 지점·옛 망루·지도 화면은 Play 때 `WorldMapBuilder` 가 세운다.

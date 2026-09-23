@@ -8804,3 +8804,10 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - **모양 결정**: Godot 은 괴물을 코드로 그렸지만 이 트랙은 사실적 PBR(66-2)이라, 이미 있는 Mixamo 해골 모델에 원소 빛깔 + 방패 거품 + 도는 구슬 + 빛을 붙인 "원소 깃든 망자" 로 했다. 그래서 이름도 몸에 맞게 물거북·번개살쾡이 대신 물귀신·번개귀(불도깨비는 그대로). 씬 참조가 안 늘어 씬 재빌드 불필요(`FieldSpawner` 의 해골 모델을 같이 씀).
 - 고친 파일: `GoElements`(상성·`ShieldMul`·상태 수치) · `FieldEnemy`(Kind 셋·`State.Stagger`·방패/막대/거품/구슬·`HitShield`·`BreakShield`·광역은 방패가 받음·귀가/부활 복구·`SetShieldForTest`) · `FieldCombat`(`ApplyFoeStatus`·화상 틱, 리셋·전멸 때 지움) · `FieldSpawner`(무리 셋). 새 진단 `Editor/PlaytestGoElementalFoe`(들판 전투 진단 바로 뒤).
 - 검증: 컴파일 exit 0 · GO `PlaytestHeadless` **3연속 OK**(첫 실행부터 통과, 들판 적 15 → 23, 이동·지도·상자 진단 그대로 통과). 실기 확인은 전. 새 글자 `field.foe.*`·`field.immune`·`field.counter`·`field.shield_break`·`field.st.*` 도 `GoLocalization.T` 폴백.
+
+## 2026-09-24 — PLAN 107-6 동료 모델: 교체하면 몸이 바뀐다 — 107장 여섯 갈래 코드 완료 (같은 대화 "사가유니티 이어해줘", Opus 5.5)
+
+- 새 파일 `Player/PartyBodies`(id → 몸: 산적 = Abe, 그 밖 = Paladin·PeasantMan·PeasantGirl FNV 해시, 첫 교체 때 한 벌 만들어 켜고 끔, Humanoid 면 Maria.controller 를 씌움) · 진단 `Editor/PlaytestGoPartyBodies`. 고친 파일: `PlayerController`(`SetBody`·`CacheAnimatorParams`·날개 옮기기) · `FieldCombat.ApplyLook`(몸 교체, 제 몸 없을 때만 원소 빛깔) · `BuildTestVillageScene`(모델·컨트롤러 배선) · 씬 재빌드.
+- 결정: 동료마다 전용 클립을 따로 받지 않고 Maria.controller 를 아바타 리타깃으로 같이 쓴다 — 등반·활공·수영까지 한 번에 되고 새 Mixamo 받기가 없다. 무기는 주인공 손에만(장비가 주인공 것이라).
+- 함정 피함: 새 몸의 충돌체를 `Destroy` 로 지우면 프레임 끝까지 남아 같은 프레임 진단(과 CharacterController)이 본다 → 새로 만든 인스턴스라 `DestroyImmediate`.
+- 검증: 씬 재빌드 exit 0 · GO `PlaytestHeadless` **3연속 OK**(산적 몸 키 3.40m · 걷기 Speed 0.50, 앞 진단 전부 그대로) · `PlaytestLayoutWalkHeadless` fails=0(GO PlayerController 공유). 실기 확인은 전.
