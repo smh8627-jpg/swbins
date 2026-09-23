@@ -115,6 +115,14 @@
         e.preventDefault();
         return;
       }
+      /* 첫 발 장면(story.js) 동안은 조작이 안 먹는다 — Space·Enter 다음 줄, Esc 건너뛰기 */
+      var ST = global.DG.story;
+      if (ST && ST.isOpen()) {
+        if (e.key === ' ' || e.key === 'Enter') { ST.next(); }
+        else if (e.key === 'Escape') { ST.skip(); }
+        e.preventDefault();
+        return;
+      }
       var km = keymap();
       var k = e.key.toLowerCase();
       if (k === 'arrowleft' || k === 'a' || k === km.left) { S.setInput('left', true); }
@@ -337,8 +345,11 @@
       dt *= 0.12;                                   // 아주 멎지는 않는다 — 느려질 뿐이다
     }
 
-    global.DG.auto.update(dt);
-    S.update(dt);
+    /* 첫 발 장면(story.js) 동안은 사냥이 멎는다 — 그림은 계속 그린다 */
+    if (!(global.DG.story && global.DG.story.isOpen())) {
+      global.DG.auto.update(dt);
+      S.update(dt);
+    }
     if (!global.DG_NO_DRAW) {
       /* camX 는 sideView.draw() 가 매 프레임 새로 잰다 — 3D 는 그 값을 그대로 받아
          쓰므로(_cam()) 반드시 뒤에 부른다. 그려지는 순서는(캔버스가 둘이라) 상관없다 */

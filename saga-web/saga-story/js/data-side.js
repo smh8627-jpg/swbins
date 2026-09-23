@@ -251,6 +251,55 @@
     { key: 'atk100',  name: '벼린 돌 부적',  need: { ore: 4, cinder: 3 },   give: { scroll: 'atk100' } },
     { key: 'hp60',    name: '열매 기운 부적', need: { berry: 4, cinder: 4 }, give: { scroll: 'hp60' } }
   ];
+  /**
+   * 첫 발 장면(원 지시서 잔여 "스토리 연출", 2026-09-23) — 그 사냥터에 **처음** 들어설 때
+   * 한 번만 띄운다(`story.js`). 한 줄 = [누가, 감정, 말].
+   *   누가  'me' = 앞에 세운 인물(초상은 ui.js 의 pt() 그대로) · 그 밖은 `NPC_TALK` 의 키(직책)
+   *   감정  `EMOTES` 의 키 — 초상 옆 표시와 흔들림 모양만 가른다
+   * 인물 실명은 안 쓴다(이름 정책) — 'me' 의 이름은 도감의 가명이 들어간다.
+   */
+  var EMOTES = {
+    calm:  { mark: '',   name: '담담' },
+    fire:  { mark: '🔥', name: '결의' },
+    shock: { mark: '❗', name: '놀람' },
+    worry: { mark: '💧', name: '불안' },
+    joy:   { mark: '✨', name: '기쁨' },
+    anger: { mark: '💢', name: '분노' }
+  };
+  var STORY = {
+    sinya: { title: '서막 — 신야성', lines: [
+      ['elder', 'worry', '난리가 길어지니 성 밖엔 도적 떼뿐이라네.'],
+      ['me', 'fire', '그럼 제가 길을 트겠습니다. 들판부터 가 보지요.'],
+      ['elder', 'joy', '허도를 지나면 허창 들판일세. 몸조심하게.']
+    ] },
+    field: { title: '허창 들판', lines: [
+      ['me', 'shock', '들판이 이렇게 어지러울 줄이야…'],
+      ['me', 'fire', '하나씩 베어 나가면 길이 보이겠지.']
+    ] },
+    forest: { title: '오림 숲', lines: [
+      ['wanderer', 'worry', '숲 그늘에선 발소리가 제 것만 들리지 않소.'],
+      ['me', 'calm', '그림자가 짙을수록 눈을 크게 뜨면 됩니다.']
+    ] },
+    cave: { title: '한중 굴혈', lines: [
+      ['guard', 'shock', '굴 안쪽에 위군 도독이 진을 쳤다는 소문이오!'],
+      ['me', 'anger', '굴을 비우고 나오겠습니다. 기다리시오.']
+    ] },
+    gorge: { title: '호로곡', lines: [
+      ['me', 'shock', '골짜기 전체가 타오른다…'],
+      ['healer', 'worry', '불길 속에 오래 서 있지 마시오. 탕약을 넉넉히.'],
+      ['me', 'fire', '이 불을 넘어야 다음 길이 열린다.']
+    ] },
+    ruin: { title: '낙양 옛터', lines: [
+      ['me', 'worry', '한때 도읍이던 곳이 잿더미가 되었구나.'],
+      ['wanderer', 'calm', '잿더미에도 주인은 있소. 흉장이 이곳을 쥐고 있다오.'],
+      ['me', 'anger', '그 주인부터 바꾸겠소.']
+    ] },
+    deepcave: { title: '검각 암굴', lines: [
+      ['me', 'shock', '빛이 닿지 않는 깊이다…'],
+      ['me', 'fire', '여기까지 왔다. 끝을 보고 나가겠다.']
+    ] }
+  };
+
   function recipe(key) {
     for (var i = 0; i < RECIPES.length; i++) { if (RECIPES[i].key === key) { return RECIPES[i]; } }
     return null;
@@ -325,7 +374,7 @@
   global.DG = global.DG || {};
   global.DG.sideData = {
     STAGES: STAGES, SKILLS: SKILLS, DROPS: DROPS, GATHERS: GATHERS, NPC_TALK: NPC_TALK,
-    RECIPES: RECIPES, recipe: recipe,
+    RECIPES: RECIPES, recipe: recipe, STORY: STORY, EMOTES: EMOTES,
     NPC_CHAT: NPC_CHAT, RANGED_WEAPON: RANGED_WEAPON,
     stage: stage, rangedOf: rangedOf
   };

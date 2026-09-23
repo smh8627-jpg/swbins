@@ -46,6 +46,7 @@ var SHELL = [
   './js/job.js',
   './js/quest.js',
   './js/rift.js',
+  './js/story.js',
   './js/party.js',
   './js/achieve.js',
   './js/sfx.js',

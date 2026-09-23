@@ -46,7 +46,7 @@
 <div id="report">진단 중…</div>
 
 <script>
-window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true;
+window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_STORY = true;   // 첫 발 장면은 제 진단에서만 켠다
 /* 어드민의 균형 손잡이를 읽지 않는다 — 손잡이를 잡아 둔 기기에서
    판정이 흔들리면 안 된다 (씨앗을 고정한 것과 같은 이유다) */
 window.DG_NO_TUNE = true;
@@ -93,6 +93,7 @@ window.DG_NO_TUNE = true;
 <script src="js/job.js"></script>
 <script src="js/quest.js"></script>
 <script src="js/rift.js"></script>
+<script src="js/story.js"></script>
 <script src="js/party.js"></script>
 <script src="js/achieve.js"></script>
 <script src="js/sfx.js"></script>
@@ -2982,6 +2983,55 @@ window.DG_NO_TUNE = true;
       run.player.x = 5;   // 자리에서 멀리 떨어뜨려 또 줍지 않게 한다
       S.update(0.05);
       return g.alive && '다시 돋음';
+    });
+
+    t('첫 발 장면 — 처음 들어서면 한 번 뜨고, 다 넘기면 다시 안 뜨며, 자동 순행 중엔 미룬다', function () {
+      var ST = DG.story, A = DG.auto, keep = JSON.stringify(S.state().story || {}), autoWas = A.active();
+      var wasKey = S.active() ? S.raw().stage.key : null, lvWas = C.save.player.level;   // 뒤 진단들이 사냥 중을 전제로 한다
+      var bad = [];
+      Object.keys(SD.STORY).forEach(function (k) {
+        if (!SD.STAGES.some(function (x) { return x.key === k; })) { bad.push(k + ' 사냥터'); }
+        SD.STORY[k].lines.forEach(function (ln) {
+          if (ln[0] !== 'me' && !SD.NPC_TALK[ln[0]]) { bad.push(k + ' ' + ln[0]); }
+          if (!SD.EMOTES[ln[1]]) { bad.push(k + ' ' + ln[1]); }
+          if (!ln[2]) { bad.push(k + ' 빈 말'); }
+        });
+      });
+      window.DG_NO_STORY = false;
+      try {
+        if (S.active()) { S.leave(); }
+        C.save.player.level = 99;
+        ST.reset();
+        A.setOn(true);
+        S.enter('field');
+        var deferred = !ST.isOpen();
+        S.leave();
+        A.setOn(false);
+        S.enter('field');
+        var opened = ST.isOpen() && ST.current().key === 'field';
+        var box = document.getElementById('storybox');
+        var drawn = !!box && box.innerHTML.indexOf('story-card') >= 0 && document.body.classList.contains('cine');
+        var n = SD.STORY.field.lines.length, steps = 0;
+        while (ST.isOpen() && steps < 20) { ST.next(); steps++; }
+        var closed = !ST.isOpen() && ST.seen('field') && !document.body.classList.contains('cine') && steps === n;
+        S.leave(); S.enter('field');
+        var once = !ST.isOpen();
+        S.leave();
+        S.enter('forest');
+        var skipOk = ST.isOpen() && (ST.skip(), !ST.isOpen() && ST.seen('forest'));
+        S.leave();
+        return bad.length === 0 && deferred && opened && drawn && closed && once && skipOk &&
+          ('장면 ' + Object.keys(SD.STORY).length + '곳 · 들판 ' + n + '줄 넘기고 닫힘 · 두 번째는 안 뜸 · 자동 중엔 미룸');
+      } finally {
+        window.DG_NO_STORY = true;
+        A.setOn(autoWas);
+        S.state().story = JSON.parse(keep);
+        if (ST.isOpen()) { ST.skip(); }
+        S.state().story = JSON.parse(keep);
+        if (S.active()) { S.leave(); }
+        C.save.player.level = lvWas;
+        if (wasKey) { S.enter(wasKey); }
+      }
     });
 
     t('캔 것으로 만들기 — 모자라면 안 덜리고, 차면 재료를 덜고 탕약·주문서를 준다', function () {

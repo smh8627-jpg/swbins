@@ -1162,3 +1162,52 @@ body.tilted3 #vignette {
   }
   .icon-btn:hover { background: var(--glass); }
 }
+
+/* 첫 발 장면(story.js·ui.js renderStoryBox) — 위아래 검은 띠 + 아래쪽 대사 카드.
+   화면 전체를 덮어 누르면 다음 줄로 넘어간다(조작 띠·터치 판 위) */
+body.cine::before, body.cine::after {
+  content: ''; position: fixed; left: 0; right: 0; height: 11vh; z-index: 39;
+  background: #000; pointer-events: none; animation: cine-in .35s ease-out both;
+}
+body.cine::before { top: 0; }
+body.cine::after { bottom: 0; }
+@keyframes cine-in { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+#storybox {
+  position: fixed; inset: 0; z-index: 40; display: none;
+  flex-direction: column; justify-content: flex-end; align-items: center;
+  padding: 0 16px calc(11vh + 12px + var(--safe-b)); cursor: pointer;
+}
+#storybox.show { display: flex; }
+.story-title {
+  position: fixed; top: calc(11vh + 10px + var(--safe-t)); left: 50%; transform: translateX(-50%);
+  font-size: 15px; letter-spacing: .12em; color: #f0e2c8; text-shadow: 0 1px 4px #000;
+  animation: story-fade .6s ease-out both;
+}
+.story-card {
+  display: flex; align-items: center; gap: 12px; width: min(560px, 100%);
+  padding: 12px 14px; border-radius: 18px;
+  background: var(--glass); border: 1px solid var(--glass-br);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); box-shadow: var(--shadow);
+  animation: story-fade .25s ease-out both;
+}
+.story-card.me { flex-direction: row-reverse; text-align: right; }
+.story-face { position: relative; flex: none; }
+.story-face .pt { width: 72px; height: 72px; border-radius: 14px; }
+.story-emoji { display: block; width: 72px; height: 72px; line-height: 72px; text-align: center; font-size: 44px; }
+.story-mark { position: absolute; top: -8px; right: -8px; font-style: normal; font-size: 22px; }
+.story-say { flex: 1; min-width: 0; }
+.story-say b { display: block; font-size: 13px; margin-bottom: 4px; color: #f0e2c8; }
+.story-say p { margin: 0 0 4px; font-size: 14px; line-height: 1.55; color: var(--ink); }
+.story-card .btn { flex: none; align-self: flex-start; }
+.story-card.emo-shock .story-face { animation: story-jolt .35s ease-out; }
+.story-card.emo-anger .story-face { animation: story-shake .4s ease-in-out; }
+.story-card.emo-joy .story-face { animation: story-hop .45s ease-out; }
+.story-card.emo-worry .story-face { animation: story-sink .6s ease-out; }
+@keyframes story-fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes story-jolt { 0% { transform: scale(1); } 30% { transform: scale(1.12); } 100% { transform: scale(1); } }
+@keyframes story-shake { 0%, 100% { transform: none; } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+@keyframes story-hop { 0%, 100% { transform: none; } 40% { transform: translateY(-8px); } }
+@keyframes story-sink { from { transform: translateY(-4px); } to { transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  body.cine::before, body.cine::after, .story-title, .story-card, .story-face { animation: none !important; }
+}

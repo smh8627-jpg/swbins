@@ -338,6 +338,7 @@
     core.on('changed', function () { renderTop(); renderSheet(); renderCamp(); });
     core.on('dg:keyremap', function () { if (openTab === 'keys') { renderSheet(); } });
     core.on('side:end', openSessionCard);   // 세션 마무리 카드(§5-6)
+    core.on('story:change', renderStoryBox);   // 첫 발 장면(story.js)
     /* 비경(§5-3) — 고를 차례(축복·지도·이벤트)가 오면 시트가 저절로 열리고, 싸움이 시작되면 닫힌다 */
     core.on('rift:phase', function (r) {
       if (!r) { if (openTab === 'rift') { renderSheet(); } return; }
@@ -936,6 +937,51 @@
         '</div></div>';
     }
     els.talkbox.classList.add('show');
+  }
+
+  /** 첫 발 장면(story.js) — 위아래 검은 띠(body.cine) + 초상·감정·대사 한 줄씩.
+   *  누르면 다음 줄, 마지막 줄에서 누르면 닫힌다. 건너뛰기는 이 장면만 닫는다 */
+  function storyHost() {
+    var el = $('storybox');
+    if (!el) {                       // 뼈대가 없는 곳(자가진단)에서도 동작하게
+      el = document.createElement('div');
+      el.id = 'storybox';
+      document.body.appendChild(el);
+      el.addEventListener('click', function (e) {
+        var ST = global.DG.story;
+        if (!ST) { return; }
+        var b = e.target.closest('[data-act]');
+        if (b && b.getAttribute('data-act') === 'story-skip') { ST.skip(); } else { ST.next(); }
+      });
+    }
+    return el;
+  }
+
+  function renderStoryBox() {
+    var ST = global.DG.story, el = storyHost();
+    var c = ST && ST.current();
+    document.body.classList.toggle('cine', !!c);
+    if (!c) { el.classList.remove('show'); el.innerHTML = ''; return; }
+    var SD = global.DG.sideData, ln = c.lines[c.i], who = ln[0];
+    var emo = SD.EMOTES[ln[1]] || SD.EMOTES.calm;
+    var face, name;
+    if (who === 'me') {
+      var me = global.DG.side.meRef();
+      face = pt('hero', me, 72); name = me.name;
+    } else {
+      var npc = SD.NPC_TALK[who] || { name: '?', emoji: '💬' };
+      face = '<span class="story-emoji">' + npc.emoji + '</span>'; name = npc.name;
+    }
+    el.innerHTML = '<div class="story-title">' + esc(c.title) + '</div>' +
+      '<div class="story-card emo-' + esc(ln[1] || 'calm') + (who === 'me' ? ' me' : '') + '">' +
+        '<div class="story-face">' + face +
+          (emo.mark ? '<i class="story-mark" title="' + esc(emo.name) + '">' + emo.mark + '</i>' : '') +
+        '</div>' +
+        '<div class="story-say"><b>' + esc(name) + '</b><p>' + esc(ln[2]) + '</p>' +
+          '<small class="muted">' + (c.i + 1) + ' / ' + c.lines.length + ' · 누르면 다음</small></div>' +
+        '<button class="btn tiny ghost" data-act="story-skip">건너뛰기</button>' +
+      '</div>';
+    el.classList.add('show');
   }
 
   /* ── 사냥터 시트 ──────────────────────────────────────── */
