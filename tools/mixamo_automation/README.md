@@ -61,6 +61,20 @@ node fetch.mjs --query "Idle" --match "Standing Idle" --out idle \
   --dest "C:\swbins\saga-unity\Assets\Art\CharactersRealistic" --skin "With Skin"
 ```
 
+### 캐릭터 바꾸기·몸체 받기·제자리 클립 (2026-09-24 추가)
+
+```bash
+# 현재 캐릭터를 바꾸고(카드 이름 정확히) T-pose 몸체를 받는다 — 리깅용 원본(saga-unity 는 이것을 몸체로 쓴다)
+node fetch.mjs --character "Paladin W/Prop J Nordstrom" --tpose --out Paladin --dest <경로>
+# 같은 캐릭터로 클립(스킨 없이). 걷기·달리기는 --inplace 로 Mixamo "In Place" 를 켠다
+node fetch.mjs --character "Paladin W/Prop J Nordstrom" --query "Sword And Shield Walk" \
+  --match "Sword And Shield Walk" --out "Paladin@Walking" --dest <경로> --inplace
+```
+
+- `--character` 는 Mixamo 계정의 "현재 캐릭터"를 바꾼다(다음 실행에도 남는다). 이미 그 캐릭터면 건너뛰니 **클립마다 붙여 부르는 게 안전**하다.
+- `--tpose` 는 오른쪽 패널 DOWNLOAD → 모달 기본값(FBX Binary · T-pose). 파일은 캐릭터 이름으로 내려온다(`Paladin WProp J Nordstrom.fbx`).
+- `--inplace` 는 "In Place" 설정이 없는 클립(제자리 동작)에 주면 실패로 끝난다.
+
 `--match`는 Mixamo 카드의 "Description:" 뒤 문구와 **정확히** 일치해야
 한다(같은 이름이 여러 개라 구분용). `--list`로 먼저 후보 인덱스·설명을
 확인하고, 미리보기가 "자연스러운지"는 결국 사람(또는 스크린샷을 보는
@@ -72,6 +86,9 @@ Claude)이 한 번 판단해야 한다 — Mixamo 검색 결과 자체가 매번
 | 프로젝트 | 용도 | query | match | 확인일 |
 |---|---|---|---|---|
 | saga-godot | GO/FOREST/DUNGEON 플레이어 idle | `Idle` | `Standing Idle` | 2026-09-21 |
+| saga-unity | 능묘 파수꾼(`Skeletonzombie T Avelange`) idle·walk(inplace)·attack·hit·death | `Zombie Idle`·`Zombie Walking`·`Zombie Attack`·`Zombie Reaction Hit`·`Zombie Death` | `Zombie Standing Idle`·`Zombie Walking`·`Zombie Swipe Attack`·`Zombie Reaction Hit Flinches`·`Zombie Getting Hit And Falling Onto Back` | 2026-09-24 |
+| saga-unity | 동행 무사(`Paladin W/Prop J Nordstrom`) idle·walk/run(inplace)·attack | 각 match 와 같은 문구 | `Sword And Shield Idle`·`Sword And Shield Walk`·`Sword And Shield Run`·`Sword And Shield High Attack`(query `Sword And Shield Slash`) | 2026-09-24 |
+| saga-unity | 마을 사람 idle(`Peasant Girl`·`Peasant Man`) | `Idle` | `Happy Idle Variation 1` · `Weight Shift Idle` | 2026-09-24 |
 
 나머지(walk/run/attack/hit/dodge/death/pickup)는 아직 이 도구로 다시 고른
 적 없음 — saga-unity `CharactersRealistic`에서 재사용해 온 기존 클립을
@@ -87,6 +104,8 @@ Claude)이 한 번 판단해야 한다 — Mixamo 검색 결과 자체가 매번
 - 클릭 자체는 성공해도 Mixamo 서버가 FBX를 인코딩하는 데 몇 초~수십 초
   걸린다("Preparing download…") — 타임아웃을 너무 짧게 잡지 않는다(현재
   60초).
+- "In Place" 체크박스는 겉모양 라벨이 덮고 있어 Playwright `check()` 가 30초 타임아웃으로 막힌다 — DOM `click()` 으로 켠다.
+- **같은 작업트리의 다른 세션이 `git pull --rebase --autostash` 를 돌리면** 이 폴더의 미커밋 수정이 잠깐 사라졌다 돌아온다 — 그 틈에 돌린 실행은 옛 코드로 돈다(2026-09-24 `--tpose` 가 "사용법" 오류로 끝난 원인). 고쳤으면 바로 커밋한다.
 - SPA(해시 라우팅)라 이전 실행이 열어둔 다운로드 모달이 리액트 상태에
   남아있을 수 있다 — 그래서 매 실행마다 `page.reload()`로 완전히 새로
   시작한다.

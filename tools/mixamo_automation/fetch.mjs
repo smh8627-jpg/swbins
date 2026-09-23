@@ -17,6 +17,8 @@
 //   node fetch.mjs --query "Idle" --list          # 검색 결과 설명 목록만 출력(다음에 --match 로 쓸 값 찾기용)
 //   node fetch.mjs --query "Idle" --match "Standing Idle" --out idle \
 //     --dest <프로젝트 애셋 경로> [--skin "With Skin"]   # 기본 Without Skin(뼈대만, 리타겟용)
+//   node fetch.mjs --character "Peasant Man" --tpose --out PeasantMan --dest <경로>   # 캐릭터 몸체(T-pose, 스킨 포함)
+//   ... --inplace   # 걷기·달리기처럼 앞으로 나가는 클립을 제자리로(Mixamo "In Place" 체크)
 //
 // --match 는 Mixamo 카드의 "Description:" 뒤 문구와 정확히 일치해야 한다(중복 방지).
 // 한 번 검증된 (query, match) 조합은 이 폴더 README.md 표에 기록해 다른 PC/세션에서 그대로 재사용한다.
@@ -40,8 +42,14 @@ const outName = arg('out');
 const destDir = arg('dest');
 const skinOption = arg('skin', 'Without Skin'); // saga-godot(리타겟용)는 뼈대만, saga-unity(실사 PBR)처럼 메시가 그대로 필요하면 "With Skin"
 const listOnly = hasFlag('list');
+// --character "<카드 이름 정확히>" — 애니메이션을 받기 전에 Mixamo 의 "현재 캐릭터"를 바꾼다
+// (Characters 탭 검색 → 카드 → 확인 모달 "USE THIS CHARACTER"). 이미 그 캐릭터면 건너뛴다.
+// 바뀐 선택은 계정에 남는다 — 다음 실행도 그 캐릭터로 받으니 캐릭터마다 이 옵션을 붙여 부른다.
+const characterName = arg('character');
+const tpose = hasFlag('tpose');     // 애니메이션 대신 현재 캐릭터 몸체(T-pose)를 받는다
+const inPlace = hasFlag('inplace'); // 클립 설정의 "In Place" 를 켠다(있는 클립만)
 
-if (!query) {
+if (!query && !tpose) {
   console.error('사용법: node fetch.mjs --query "Idle" [--match "Standing Idle" --out idle --dest <경로>] [--list]');
   process.exit(1);
 }
@@ -71,7 +79,7 @@ async function waitForNewFbx(sinceMs, timeoutMs = 60000) {
 
 const browser = await chromium.connectOverCDP(CDP_URL);
 const ctx = browser.contexts()[0];
-const page = ctx.pages()[0] ?? (await ctx.newPage());
+const page = ctx.pages().find((p) => p.url().includes('mixamo.com')) ?? ctx.pages()[0] ?? (await ctx.newPage());
 
 // connectOverCDP로 붙은 외부 Chrome은 Playwright가 다운로드 동작을 대신
 // 관리해주지 않는다 — 새 프로필의 기본값(저장 위치 매번 묻기)에 걸리면
@@ -83,6 +91,84 @@ await cdpSession.send('Browser.setDownloadBehavior', {
   downloadPath: downloadsDir,
   eventsEnabled: false,
 });
+
+// 오른쪽 패널의 현재 캐릭터 이름(대문자로 보인다) — 카드 목록이 아니라 DOWNLOAD 버튼이 있는 패널에서 찾는다.
+async function currentCharacter() {
+  return page.evaluate(() => {
+    const btn = Array.from(document.querySelectorAll('button')).find((b) => b.innerText.trim() === 'DOWNLOAD');
+    let panel = btn;
+    for (let i = 0; i < 6 && panel && panel.parentElement; i++) panel = panel.parentElement;
+    const lines = panel ? panel.innerText.split('\n').map((s) => s.trim()).filter(Boolean) : [];
+    return lines.find((s) => s === s.toUpperCase() && /[A-Z]/.test(s) && !['DOWNLOAD', 'AERO UPDATE', 'UPLOAD CHARACTER', 'FIND ANIMATIONS'].includes(s)) ?? '';
+  });
+}
+
+if (characterName) {
+  await page.goto(`https://www.mixamo.com/#/?page=1&query=${encodeURIComponent(characterName)}&type=Character`, { waitUntil: 'networkidle' });
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForSelector('.product.product-character', { timeout: 15000 });
+  await page.waitForTimeout(800);
+  const want = characterName.toUpperCase();
+  if ((await currentCharacter()) === want) {
+    console.log(`character: 이미 ${characterName}`);
+  } else {
+    const esc = characterName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const card = page.locator('.product.product-character').filter({ hasText: new RegExp(`^\\s*${esc}\\s*$`) }).first();
+    if ((await card.count()) === 0) {
+      console.error(`--character "${characterName}" 카드를 못 찾음(카드 이름과 정확히 같아야 한다)`);
+      await browser.close();
+      process.exit(1);
+    }
+    await card.click();
+    await page.waitForTimeout(1500);
+    const use = page.locator('.modal button:has-text("USE THIS CHARACTER")').first();
+    if ((await use.count()) > 0) await use.click();
+    let ok = false;
+    for (let i = 0; i < 60 && !ok; i++) {
+      await page.waitForTimeout(500);
+      ok = (await currentCharacter()) === want;
+    }
+    if (!ok) {
+      console.error(`캐릭터가 ${characterName} 로 안 바뀜(지금: ${await currentCharacter()})`);
+      await browser.close();
+      process.exit(1);
+    }
+    console.log(`character: ${characterName} 로 바꿈`);
+  }
+}
+
+async function saveDownload(sinceMs, timeoutMs = 60000) {
+  const fname = await waitForNewFbx(sinceMs, timeoutMs);
+  await browser.close();
+  if (!fname) {
+    console.error(`다운로드된 새 .fbx 를 못 찾음(${timeoutMs / 1000}초 대기 초과) — Downloads 폴더/모달 상태 확인 필요`);
+    process.exit(1);
+  }
+  mkdirSync(destDir, { recursive: true });
+  const dest = path.join(destDir, `${outName}.fbx`);
+  renameSync(path.join(downloadsDir, fname), dest);
+  console.log(`OK: ${fname} -> ${dest}`);
+}
+
+if (tpose) {
+  if (!outName || !destDir) {
+    console.error('--tpose 는 --out --dest 가 필요함');
+    await browser.close();
+    process.exit(1);
+  }
+  if (!characterName) {
+    await page.goto('https://www.mixamo.com/#/?page=1&type=Character', { waitUntil: 'networkidle' });
+  }
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForTimeout(800);
+  // 오른쪽 패널의 큰 DOWNLOAD → 모달(기본 FBX Binary · T-pose) → 모달 푸터 DOWNLOAD.
+  await page.locator('button.btn-block.btn-primary:has-text("DOWNLOAD")').first().click();
+  await page.waitForTimeout(1000);
+  const t = Date.now() - 1000;
+  await page.locator('.modal-footer button:has-text("Download")').first().click();
+  await saveDownload(t, 120000);
+  process.exit(0);
+}
 
 // SPA(리액트, 해시 라우팅)라 같은 탭에 대고 hash만 바꾸는 goto()는 실제
 // 리로드가 아니라서, 이전 실행이 열어둔 모달의 React 상태(isOpen)가 그대로
@@ -125,6 +211,24 @@ if (count === 0) {
 await target.click();
 await page.waitForTimeout(1200); // 3D 프리뷰 로드
 
+if (inPlace) {
+  const cb = page.locator('input[name="inplace"]').first();
+  if ((await cb.count()) === 0) {
+    console.error('--inplace: 이 클립엔 "In Place" 설정이 없다(제자리 동작이면 빼고 부른다)');
+    await browser.close();
+    process.exit(1);
+  }
+  // 겉모양 라벨이 체크박스를 덮어 check() 가 막힌다 — DOM click 으로 React onChange 를 태운다.
+  if (!(await cb.isChecked())) await cb.evaluate((el) => el.click());
+  await page.waitForTimeout(300);
+  if (!(await cb.isChecked())) {
+    console.error('--inplace: In Place 를 못 켬');
+    await browser.close();
+    process.exit(1);
+  }
+  await page.waitForTimeout(2500); // 설정을 바꾸면 Mixamo 가 클립을 다시 만든다
+}
+
 await page.locator('button:has-text("Download")').first().click();
 await page.waitForTimeout(600);
 
@@ -139,15 +243,4 @@ const clickTime = Date.now() - 1000; // 시계 오차 여유
 const modalDownloadBtn = page.locator('.modal-footer button:has-text("Download")').first();
 await modalDownloadBtn.click();
 
-const fname = await waitForNewFbx(clickTime);
-await browser.close();
-
-if (!fname) {
-  console.error('다운로드된 새 .fbx 를 못 찾음(60초 대기 초과) — Downloads 폴더/모달 상태 확인 필요');
-  process.exit(1);
-}
-
-mkdirSync(destDir, { recursive: true });
-const dest = path.join(destDir, `${outName}.fbx`);
-renameSync(path.join(downloadsDir, fname), dest);
-console.log(`OK: ${fname} -> ${dest}`);
+await saveDownload(clickTime);
