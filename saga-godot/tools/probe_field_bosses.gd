@@ -111,15 +111,20 @@ func _physics_process(_delta: float) -> void:
 					and get_tree().get_first_node_in_group("go_field_bosses").get_node_or_null("BossBloom_gale_roc") != null
 				_check("bloom", ok, "bloom=%s dead=%s t=%.0f" % [_fb.call("has_bloom", "gale_roc"), _boss.call("is_dead"), _boss.get("_t")])
 				_next()
-		6: # ⑦ 원기 모자람
+		6: # ⑦ 원기 모자람(꽃 곁에선 "보상" 단추가 보여야 — 숨긴 선택지 창이 ui_modal 에 남아 있어도)
+			if _frame == 1:
+				var home0: Vector3 = _fb.call("home_of", "gale_roc")
+				_p.global_position = home0 + Vector3(0.0, 0.4, 1.5)
+				_p.velocity = Vector3.ZERO
+				return
+			if _frame < 5:
+				return
 			PartyState.resin = 10
 			PartyState.resin_t = Domains.now()
-			var home: Vector3 = _fb.call("home_of", "gale_roc")
-			_p.global_position = home + Vector3(0.0, 0.4, 1.5)
-			_p.velocity = Vector3.ZERO
+			var btn := bool((_fb.get("_claim_btn") as Button).visible)
 			var near: String = _fb.call("near_bloom")
 			var got: bool = _fb.call("claim", "gale_roc")
-			_check("no_resin", near == "gale_roc" and not got and _fb.call("has_bloom", "gale_roc") and Domains.resin_now() == 10, "near=%s got=%s resin=%d" % [near, got, Domains.resin_now()])
+			_check("no_resin", btn and near == "gale_roc" and not got and _fb.call("has_bloom", "gale_roc") and Domains.resin_now() == 10, "btn=%s near=%s got=%s resin=%d" % [btn, near, got, Domains.resin_now()])
 			_next()
 		7: # ⑧ 원기 40 → 보상
 			if _frame == 1:

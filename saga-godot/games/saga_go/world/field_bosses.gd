@@ -133,8 +133,15 @@ func _physics_process(_delta: float) -> void:
 	if _player == null:
 		_player = get_tree().get_first_node_in_group("player")
 		return
-	_claim_btn.visible = near_bloom() != "" and get_tree().get_nodes_in_group("ui_modal").is_empty()
+	_claim_btn.visible = near_bloom() != "" and not _modal_open()
 	_refresh_hud()
+
+## 보이는 창이 떠 있는가(숨겨 둔 선택지 창은 그룹에 남아 있다 — camera_rig._modal_open 과 같게). 자기 자신은 뺀다.
+func _modal_open() -> bool:
+	for n in get_tree().get_nodes_in_group("ui_modal"):
+		if n != self and n.get("visible") != false:
+			return true
+	return false
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("go_domain"):

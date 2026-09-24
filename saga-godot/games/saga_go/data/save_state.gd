@@ -38,6 +38,7 @@ func save() -> bool:
 		"weekly": PartyState.weekly,
 		"wl_lowered": PartyState.wl_lowered,
 		"ar_paid": PartyState.ar_paid,
+		"story": PartyState.story,
 		"drops": DropState.drops,
 		"quest_active_id": QuestState.active_id,
 		"quest_active_name": QuestState.active_name,
@@ -108,6 +109,9 @@ func try_load() -> bool:
 	## wl_lowered·ar_paid(106장 ㉒) — 없으면 낮춤 없음·아직 안 셈.
 	PartyState.wl_lowered = bool(data.get("wl_lowered", false))
 	PartyState.ar_paid = int(data.get("ar_paid", -1))
+	## story(106장 ㉕) — 없으면 빈 사전(1장 1단계부터).
+	var sty: Variant = data.get("story", {})
+	PartyState.story = (sty as Dictionary).duplicate() if typeof(sty) == TYPE_DICTIONARY else {}
 
 	var pos: Array = data.get("player_pos", [])
 	var player := _find_player()

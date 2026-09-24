@@ -331,6 +331,16 @@ class MiniOverlay extends Control:
 			var bd := Vector2(bp.x - me.x, bp.z - me.z) * px_per_m
 			if bd.length() <= size.x * 0.5 - 10.0 and map.call("revealed", FieldBosses.FB.BOSSES[id].region):
 				map.draw_boss_icon(self, c + bd, 1.0)
+		## 106장 ㉕ 이야기 임무 목표 — 멀면 미니맵 가장자리에 붙인다(원신과 같다).
+		var story := get_tree().get_first_node_in_group("go_story")
+		if story:
+			var sp: Vector3 = story.call("target_pos")
+			if sp != Vector3.INF:
+				var sd := Vector2(sp.x - me.x, sp.z - me.z) * px_per_m
+				var lim := size.x * 0.5 - 10.0
+				if sd.length() > lim:
+					sd = sd.normalized() * lim
+				map.draw_story_icon(self, c + sd, 1.0)
 		## 인물 화살표.
 		var fa: float = _ang(map.facing_dir())
 		var tip := c + Vector2(cos(fa), sin(fa)) * 11.0
@@ -358,6 +368,12 @@ func draw_boss_icon(ci: CanvasItem, at: Vector2, s: float) -> void:
 	ci.draw_colored_polygon(PackedVector2Array([at + Vector2(6, -3) * s, at + Vector2(8, -12) * s, at + Vector2(2, -6) * s]), horn)
 	ci.draw_circle(at, 8.0 * s, Color(0.1, 0.04, 0.06, 0.9))
 	ci.draw_circle(at, 6.0 * s, Color(0.78, 0.22, 0.3))
+
+## 이야기 임무 목표 — 금빛 마름모.
+func draw_story_icon(ci: CanvasItem, at: Vector2, s: float) -> void:
+	var pts := PackedVector2Array([at + Vector2(0, -10) * s, at + Vector2(7, 0) * s, at + Vector2(0, 10) * s, at + Vector2(-7, 0) * s])
+	ci.draw_colored_polygon(pts, Color(1.0, 0.84, 0.35))
+	ci.draw_polyline(PackedVector2Array([pts[0], pts[1], pts[2], pts[3], pts[0]]), Color(0.25, 0.15, 0.02), 2.0)
 
 # ---------------------------------------------------------------- 지역 이름
 
@@ -460,6 +476,11 @@ class MapView extends Control:
 		for id in FieldBosses.FB.ORDER:
 			if map.call("revealed", FieldBosses.FB.BOSSES[id].region):
 				map.draw_boss_icon(self, offset + map.world_to_px(FieldBosses.home_of(id)) * zoom, 1.4)
+		var story := get_tree().get_first_node_in_group("go_story")
+		if story:
+			var sp: Vector3 = story.call("target_pos")
+			if sp != Vector3.INF:
+				map.draw_story_icon(self, offset + map.world_to_px(sp) * zoom, 1.4)
 		var me: Node3D = map.get("_player")
 		if me:
 			var at: Vector2 = offset + map.world_to_px(me.global_position) * zoom

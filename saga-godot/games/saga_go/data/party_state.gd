@@ -85,6 +85,9 @@ var weekly: Dictionary = {}
 ## 옛 세이브에 지난 등급 보상이 한꺼번에 쏟아지지 않게). 필드만 더해 SAVE_VERSION 3 그대로.
 var wl_lowered := false
 var ar_paid := -1
+## 106장 ㉕ 이야기 임무 — {"ch": 장 번호, "step": 단계 번호}(ch 가 장 수면 다 끝남). 빈 사전 = 처음(1장 1단계).
+## 필드만 더해 SAVE_VERSION 3 그대로. world/story_quest.gd 가 읽고 쓴다.
+var story: Dictionary = {}
 signal world_changed()
 
 var _session_start_exp: float = 0.0

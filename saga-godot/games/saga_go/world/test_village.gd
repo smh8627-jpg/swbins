@@ -87,6 +87,12 @@ func _ready() -> void:
 	var domains := preload("res://games/saga_go/world/domains.gd").new()
 	domains.name = "Domains"
 	add_child(domains)
+	## PLAN 106장 ㉕ — 이야기 임무(들판 보스·비경 신호에 붙으므로 그 뒤).
+	var story := preload("res://games/saga_go/world/story_quest.gd").new()
+	story.name = "StoryQuest"
+	add_child(story)
+	if OS.get_environment("SAGA_STORY_PROBE") != "":
+		add_child(load("res://tools/probe_story.gd").new())
 	if OS.get_environment("SAGA_DOMAIN_PROBE") != "":
 		add_child(load("res://tools/probe_domains.gd").new())
 	if OS.get_environment("SAGA_WEEKLY_PROBE") != "":
