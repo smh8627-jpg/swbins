@@ -3063,6 +3063,7 @@
        의 `present()` 와 같은 꼴이다. **두 길 다 톤매핑은 한 번 걸린다**
        (`post3d.js` 머리 참고) */
     var presentT0 = nowMs();
+    if (global.DG.fieldInstance && global.DG.fieldInstance.cull) { global.DG.fieldInstance.cull(camera, scene); }
     var P3 = global.DG.post3d;
     if (P3) {
       if (P3.draw(renderer, scene, camera, { alt: postAlt(L), weather: 'clear' })) {

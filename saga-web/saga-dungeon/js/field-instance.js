@@ -35,8 +35,11 @@
  *
  * `frustumCulled = false` 로 둔다 — 씬 하나에 흩어진 인스턴스 전체의 경계구를
  * three 버전에 따라 제대로 못 잡는 경우가 있어(개별 draw call 로 나눠 그리던
- * 옛 방식은 물체마다 컬링이 정확했다), 안전하게 끈다. 어차피 이 묶음은
- * `FIELD_R()`(등급별 반경)로 이미 좁혀진 범위라 잃는 것이 크지 않다.
+ * 옛 방식은 물체마다 컬링이 정확했다), 안전하게 끈다. 대신 **자리마다** 자른다
+ * (`cull()`, 2026-09-25): 덩이마다 행렬·경계구를 따로 적어 두고, 카메라가 움직일 때
+ * 시야(안개 끝 안)에 걸린 자리만 `instanceMatrix` 앞쪽에 채운다. 폰 점검에서 마을
+ * 첫 화면이 시야 밖 자연물 삼각형 138만을 그리고 있었다. 이 덩이들은 그림자를
+ * 안 드리운다(castShadow 끔) — 그림자 상자는 안 본다.
  */
 (function (global) {
   'use strict';
@@ -47,6 +50,76 @@
   var gen = 0;                  // build() 세대 — 방이 바뀌면 늘어난다. 옛 콜백은 무시한다
   var partsCache = {};           // url -> {ready:true, parts:[{geometry,material,matrix}], fit} | {ready:false, waiting:[]}
   var lastStats = { kinds: 0, meshes: 0, instances: 0, fallback: 0 };
+  var liveMeshes = [];           // 지금 세대의 덩이들 — cull() 이 자리마다 자른다
+  var cullStat = { all: 0, drawn: 0, runs: 0 };
+
+  /** 덩이에 자리별 원본 행렬·경계구(덩이 지역 좌표)를 적어 둔다 */
+  function keepForCull(mesh) {
+    var n = mesh.count, g = mesh.geometry;
+    if (!g.boundingSphere) { g.computeBoundingSphere(); }
+    var bs = g.boundingSphere, all = new Float32Array(mesh.instanceMatrix.array.subarray(0, n * 16));
+    var sph = new Float32Array(n * 4), m = new (three().Matrix4)(), c = bs.center.clone(), v = new (three().Vector3)();
+    for (var i = 0; i < n; i++) {
+      m.fromArray(all, i * 16);
+      v.copy(c).applyMatrix4(m);
+      sph[i * 4] = v.x; sph[i * 4 + 1] = v.y; sph[i * 4 + 2] = v.z;
+      sph[i * 4 + 3] = bs.radius * m.getMaxScaleOnAxis();
+    }
+    mesh.userData.fic = { all: all, sph: sph, n: n };
+    liveMeshes.push(mesh);
+  }
+
+  var cullFr = null, cullPV = null, cullLast = null, cullFog = -1;
+  function cull(camera, scene) {
+    var t = three();
+    if (!t || !camera || !liveMeshes.length) { return; }
+    if (!cullFr) { cullFr = new t.Frustum(); cullPV = new t.Matrix4(); cullLast = new t.Matrix4(); }
+    camera.updateMatrixWorld();
+    cullPV.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+    var fog = scene && scene.fog && scene.fog.isFog ? scene.fog.far : 0;
+    var fresh = false, k;
+    for (k = 0; k < liveMeshes.length; k++) { if (!liveMeshes[k].userData.ficDone) { fresh = true; break; } }
+    if (!fresh && cullPV.equals(cullLast) && fog === cullFog) { return; }
+    cullLast.copy(cullPV); cullFog = fog;
+    cullFr.setFromProjectionMatrix(cullPV);
+    var pl = cullFr.planes, cx = camera.position.x, cy = camera.position.y, cz = camera.position.z;
+    var all = 0, drawn = 0;
+    for (k = 0; k < liveMeshes.length; k++) {
+      var mesh = liveMeshes[k], U = mesh.userData.fic;
+      if (!mesh.parent) { continue; }                 // 방이 바뀌어 떨어져 나간 덩이
+      mesh.updateMatrixWorld();
+      var e = mesh.matrixWorld.elements, sc = mesh.matrixWorld.getMaxScaleOnAxis();
+      var arr = mesh.instanceMatrix.array, sp = U.sph, j = 0;
+      all += U.n;
+      for (var i = 0; i < U.n; i++) {
+        var lx = sp[i * 4], ly = sp[i * 4 + 1], lz = sp[i * 4 + 2], r = sp[i * 4 + 3] * sc;
+        var x = e[0] * lx + e[4] * ly + e[8] * lz + e[12];
+        var y = e[1] * lx + e[5] * ly + e[9] * lz + e[13];
+        var z = e[2] * lx + e[6] * ly + e[10] * lz + e[14];
+        var out = false;
+        for (var q = 0; q < 6; q++) {
+          var nn = pl[q].normal;
+          if (nn.x * x + nn.y * y + nn.z * z + pl[q].constant < -r) { out = true; break; }
+        }
+        if (out) { continue; }
+        if (fog) {
+          var dx = x - cx, dy = y - cy, dz = z - cz, lim = fog + r;
+          if (dx * dx + dy * dy + dz * dz > lim * lim) { continue; }
+        }
+        arr.set(U.all.subarray(i * 16, i * 16 + 16), j * 16);
+        j++;
+      }
+      mesh.count = j;
+      mesh.userData.ficDone = true;
+      if (j) {
+        var ia = mesh.instanceMatrix;
+        if (ia.clearUpdateRanges) { ia.clearUpdateRanges(); ia.addUpdateRange(0, j * 16); }
+        ia.needsUpdate = true;
+      }
+      drawn += j;
+    }
+    cullStat.all = all; cullStat.drawn = drawn; cullStat.runs++;
+  }
 
   function extractParts(scene) {
     var out = [];
@@ -162,6 +235,7 @@
       }
       mesh.instanceMatrix.needsUpdate = true;
       mesh.frustumCulled = false;
+      keepForCull(mesh);
       group.add(mesh);
       lastStats.meshes++; lastStats.instances += list.length; lastStats.fallback++;
     }
@@ -183,6 +257,7 @@
       }
       mesh.instanceMatrix.needsUpdate = true;
       mesh.frustumCulled = false;
+      keepForCull(mesh);
       root.add(mesh);
       lastStats.meshes++; lastStats.instances += items.length;
     }
@@ -244,6 +319,7 @@
     if (!items || !items.length) { return root; }
     var myGen = ++gen;
     lastStats = { kinds: 0, meshes: 0, instances: 0, fallback: 0 };
+    liveMeshes = [];
     var AS = global.DG.asset3d;
 
     var byKind = {}, i, it;
@@ -265,6 +341,8 @@
   global.DG.fieldInstance = {
     build: build,
     stats: function () { return lastStats; },
+    cull: cull,
+    cullStats: function () { return { all: cullStat.all, drawn: cullStat.drawn, runs: cullStat.runs }; },
     clear: function () { partsCache = {}; }
   };
 })(window);

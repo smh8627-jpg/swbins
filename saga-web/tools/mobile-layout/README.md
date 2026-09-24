@@ -10,6 +10,7 @@ node saga-web/tools/mobile-layout/probe.js saga-go --only=landscape --scene=main
   --eval=<식>             장면마다 그 식 값
   --list                  보이는 단추 목록(장면 짤 때)
   --json=<파일>           결과 전체
+  --perf                  장면마다 한 화면 부하 — GLB·배우·그리기 호출·삼각형·인스턴스(perf.js)
 ```
 
 마지막 줄 `MLAYOUT 합계 n건` — **0 이 기준**이다.
@@ -42,3 +43,4 @@ node saga-web/tools/mobile-layout/probe.js saga-go --only=landscape --scene=main
 - 폰 가로(844×390)는 **폭 규칙으론 데스크톱**이다. 세로로 선 독·목표판·초상이 키 390 을 넘친다 —
   `@media (max-height: 500px) and (min-width: 781px)` 로 따로 잡는다.
 - jsdom 은 레이아웃이 없어(모든 rect 0) 이 점검을 못 한다.
+- `--perf` 의 삼각형·호출은 헤드리스 등급 기준이다(실기 AUTO 등급과 다를 수 있다). 비교는 같은 명령 전후로. 흩어진 `InstancedMesh` 는 덩이째 컬링이 안 먹는다 — 세 판(사가고 `world3d.instCull`·사가국지 `statCull`·사가블로 `fieldInstance.cull`)은 자리마다 자른다.

@@ -4249,3 +4249,10 @@ VRoid 인물이 unlit(`MeshBasicMaterial`) 그대로라 명암 없이 평면이�
 - 흩어짐: `kill()` 직전 strike 가 밀침·넘친 피해를 남기고 `dieScatter` 가 방향 ±0.45rad(쓰러진 자리 해시 — 난수 0)·힘 0.7~2.4·회전. dungeon3d 가 날림 거리·높이·빙글에 씀.
 - UI 수치 줄 꼬리표 "앞 부채꼴"·"끌어당김". 손잡이 `dg.cone` `dg.pull` `dg.scatter`(0 = 옛 동작).
 - 진단 414/414 세 번 같음(새 3). `sw.js` dungeon-v0.167.0. **실기 확인 대기**(원뿔 방향이 폰 조작에서 자연스러운지·끌림 속도).
+
+## 2026-09-25 (폰 부하) — 들판 자연물 인스턴스 자리마다 자르기 (화질 그대로)
+- 모바일 배치 재점검(`saga-web/tools/mobile-layout/probe.js`) 다섯 판 두 방향 **0건** — 세 시대 사람·적 뒤에도 그대로.
+- 같은 도구에 `--perf`(새 `perf.js`) — 한 화면 GLB·배우·그리기 호출·삼각형·인스턴스를 숫자로. 헤드리스 등급 기준, 비교는 같은 명령 전후로.
+- 마을 첫 화면 렌더 삼각형 **236만 → 17만**. `field-instance.js` 덩이(`frustumCulled=false`)가 시야 밖 자연물(삼각형 138만, 시야 안 0)을 늘 그렸다.
+- 고침: 덩이마다 원본 행렬·지역 경계구(`userData.fic`)를 적고 `DG.fieldInstance.cull(camera, scene)`(dungeon3d present 직전)이 카메라가 움직일 때만 시야·안개 끝 안 자리를 채운다. 이 덩이들은 그림자를 안 드리워 그림자 상자는 안 본다. 카메라를 자연물 쪽으로 돌려 three `Frustum` 기준과 대조 12/122 = 12/122.
+- `DG.fieldInstance.cullStats()`. 진단 414/414(한 번). `sw.js` dungeon-v0.167.1. **실기 확인 대기**.

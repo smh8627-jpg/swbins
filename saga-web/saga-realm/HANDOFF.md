@@ -1750,3 +1750,12 @@ VRoid 장수가 unlit(`MeshBasicMaterial`) 그대로라 명암 없이 평면이�
 ` 을 한 번 더 걸어 `
 ` 이 됐다 — 바로 되돌림(덧붙일 글에만 바꿀 것).
 - 진단 jsdom 기준선 247/247 → 248/248 세 번 같음. `sw.js` realm-v1.61.0. **실기 확인 대기**(지도 재야·일기토·초상에서 옷).
+
+## 2026-09-25 (폰 부하) — 정적 소품 자리마다 자르기 · 탑 부품 합치기 (화질 그대로)
+- 모바일 배치 재점검(`saga-web/tools/mobile-layout/probe.js`) 다섯 판 두 방향 **0건** — 세 시대 사람·적 뒤에도 그대로.
+- 같은 도구에 `--perf`(새 `perf.js`) — 한 화면 GLB·배우·그리기 호출·삼각형·인스턴스를 숫자로. 헤드리스 등급 기준, 비교는 같은 명령 전후로.
+- 첫 화면 렌더 삼각형 **678만 → 127만**, 그리기 호출 **1060 → 630**.
+- ① `freezeStatic` 이 묶은 덩이 65개가 지도 끝에서 끝까지 흩어져 경계구 컬링이 늘 "보임"이었다(자리 10,688 중 시야 안 687). 자리 행렬·월드 구를 `userData.cull` 에 적고 `statCull()`(tick, render 직전)이 카메라가 움직였을 때만 시야·안개 끝 안 자리를 채운다. castShadow 덩이는 안 자른다(지금은 없음). `DG.realm3d.staticCullStats()`.
+- ② 동양풍 탑 `city_t2_asian`(20부품)·`city_t3_asian`(40부품) — 새 `tools/glb-compress/join-parts.mjs`(flatten→join→prune)로 재질 4개 = 프리미티브 4개. 모양·UV 그대로. kitbash 로 다시 구우면 이 도구를 한 번 더 걸 것.
+- 남은 호출 대부분은 VRoid 사람 몸(한 명당 부품 30여 개 + 외곽선) — `tools/asset-audit/CHARACTER_UNIQUENESS.md` 길과 같이 볼 일.
+- 진단 248/248(한 번). `sw.js` realm-v1.61.1. **실기 확인 대기**.

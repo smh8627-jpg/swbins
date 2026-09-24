@@ -1404,9 +1404,8 @@
   /* GLB 조각은 도형이 무거워 창고를 작게 잡는다 — 모양이 여럿이라 나눠 쓴다 */
   function GLB_CAP() { return core.tuned('world3d.glbCap', 260); }
 
-  var instKinds = {};      // 이름 → {mesh, free:[], n}
+  var instKinds = {};      // 이름 → {mesh, free:[], n, mat, live, sph, ...}
   var instOf = {};         // 격자 키 → [{name, slot}]
-  var ZERO = null;         // 안 쓰는 자리를 숨기는 행렬 (크기 0)
 
   function instBox(name, geoName, hex, opt, cast) {
     return instMake(name, unitGeo(geoName), pmat(hex, opt), cast);
@@ -1420,18 +1419,25 @@
     m.instanceMatrix.setUsage(T.DynamicDrawUsage);
     m.castShadow = !!cast;
     m.receiveShadow = false;
-    m.frustumCulled = false;          // 자리가 온 세상에 흩어져 있어 상자로 못 자른다
-    if (!ZERO) { ZERO = new T.Matrix4().makeScale(0, 0, 0); }
+    m.frustumCulled = false;          // 자리가 온 세상에 흩어져 있어 상자로 못 자른다 → instCull 이 자리마다 자른다
     var free = [], i;
-    for (i = cap - 1; i >= 0; i--) { m.setMatrixAt(i, ZERO); free.push(i); }
-    m.instanceMatrix.needsUpdate = true;
-    /* **쓴 만큼만 그린다.** 안 그러면 빈 자리 1600 개까지 매 프레임 그린다 —
-       도형이 원뿔·공이던 때는 그래도 견뎠는데, 진짜 나무(삼각형 2900)를 넣자
-       한 덩이가 460만 삼각형이 되어 화면이 통째로 멎었다. 실제로 밟았다.
-       자리는 0 부터 차례로 나가므로 **가장 높이 쓴 자리 + 1** 이면 충분하다 */
+    for (i = cap - 1; i >= 0; i--) { free.push(i); }
+    /* **보이는 것만 그린다.** 자리(slot)의 행렬은 `mat` 에 따로 적어 두고, 매 프레임
+       `instCull` 이 카메라·그림자 상자에 걸린 자리만 `instanceMatrix` 앞쪽에 채워
+       `count` 를 그 수로 둔다. 전에는 "가장 높이 쓴 자리 + 1" 까지 다 그려서, 격자가
+       사라져 크기 0 으로 숨긴 빈 자리와 등 뒤 소품까지 그렸다 — 폰 점검(2026-09-25)
+       에서 삼각형 743만 중 살아 있는 것 258만, 시야 안 7만이었다(수풀 한 포기 2.7만) */
+    if (!geo.boundingSphere) { geo.computeBoundingSphere(); }
+    var bs = geo.boundingSphere;
     m.count = 0;
     propGroup.add(m);
-    instKinds[name] = { mesh: m, free: free, n: 0, hi: 0 };
+    instKinds[name] = {
+      mesh: m, free: free, n: 0, hi: 0,
+      mat: new Float32Array(cap * 16),   // 자리마다 행렬
+      live: new Uint8Array(cap),         // 자리가 차 있나
+      sph: new Float32Array(cap * 4),    // 자리마다 월드 구(중심 xyz·반지름)
+      c0: bs.center.clone(), r0: bs.radius, dirty: true
+    };
     return instKinds[name];
   }
 
@@ -1451,9 +1457,13 @@
     _q.setFromEuler(new T.Euler(rx || 0, ry || 0, rz || 0));
     _s.set(sx, sy, sz);
     _m4.compose(_p, _q, _s);
-    K.mesh.setMatrixAt(slot, _m4);
-    K.mesh.instanceMatrix.needsUpdate = true;
-    if (slot + 1 > K.hi) { K.hi = slot + 1; K.mesh.count = K.hi; }
+    _m4.toArray(K.mat, slot * 16);
+    K.live[slot] = 1;
+    _p.copy(K.c0).applyMatrix4(_m4);
+    K.sph[slot * 4] = _p.x; K.sph[slot * 4 + 1] = _p.y; K.sph[slot * 4 + 2] = _p.z;
+    K.sph[slot * 4 + 3] = K.r0 * Math.max(Math.abs(sx), Math.abs(sy), Math.abs(sz));
+    K.dirty = true;
+    if (slot + 1 > K.hi) { K.hi = slot + 1; }
     K.n++;
     if (!instOf[key]) { instOf[key] = []; }
     instOf[key].push({ name: name, slot: slot });
@@ -1467,13 +1477,87 @@
     for (var i = 0; i < list.length; i++) {
       var K = instKinds[list[i].name];
       if (!K) { continue; }
-      K.mesh.setMatrixAt(list[i].slot, ZERO);
-      K.mesh.instanceMatrix.needsUpdate = true;
+      K.live[list[i].slot] = 0;
+      K.dirty = true;
       K.free.push(list[i].slot);
       K.n--;
     }
     delete instOf[key];
     return list.length;
+  }
+
+  /**
+   * 자리마다 자른다 — 카메라 시야(안개 끝 너머는 안개 색뿐이라 뺀다) 또는
+   * 그림자 상자에 걸린 자리만 `instanceMatrix` 앞쪽에 채운다. 화질은 그대로다:
+   * 빼는 것은 **화면에도 그림자에도 안 닿는 것**뿐이다. 그림자 상자는 해를 따라
+   * 움직이므로 렌더러가 할 계산(`shadow.updateMatrices`)을 한 번 먼저 한다.
+   * 카메라·해가 그대로고 자리도 안 바뀌었으면 아무것도 안 올린다(가만히 서 있을 때).
+   */
+  var cullCam = null, cullSun = null, cullPV = null, cullSV = null, cullLastPV = null, cullLastSV = null;
+  var cullStat = { live: 0, drawn: 0, frames: 0 };
+  function inFr(fr, x, y, z, r) {
+    var pl = fr.planes;
+    for (var i = 0; i < 6; i++) {
+      var n = pl[i].normal;
+      if (n.x * x + n.y * y + n.z * z + pl[i].constant < -r) { return false; }
+    }
+    return true;
+  }
+  function instCull() {
+    if (!camera || !propGroup) { return; }
+    if (!cullCam) {
+      cullCam = new T.Frustum(); cullSun = new T.Frustum();
+      cullPV = new T.Matrix4(); cullSV = new T.Matrix4();
+      cullLastPV = new T.Matrix4(); cullLastSV = new T.Matrix4();
+    }
+    camera.updateMatrixWorld();
+    cullPV.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+    cullCam.setFromProjectionMatrix(cullPV);
+    var shadowOn = !!(renderer.shadowMap.enabled && sun && sun.castShadow);
+    if (shadowOn) {
+      sun.updateMatrixWorld();
+      sun.target.updateMatrixWorld();
+      sun.shadow.updateMatrices(sun);
+      cullSV.copy(sun.shadow.matrix);
+      cullSun.copy(sun.shadow.getFrustum());
+    }
+    var moved = !cullPV.equals(cullLastPV) || (shadowOn && !cullSV.equals(cullLastSV));
+    cullLastPV.copy(cullPV); cullLastSV.copy(cullSV);
+    var fog = scene.fog && scene.fog.isFog ? scene.fog.far : 0;
+    var cx = camera.position.x, cy = camera.position.y, cz = camera.position.z;
+    propGroup.updateMatrixWorld();
+    var gw = propGroup.matrixWorld.elements;
+    var ox = gw[12], oy = gw[13], oz = gw[14];   // 소품 무리는 돌지도 늘지도 않는다(월드 미터) — 옮김만 본다
+    var live = 0, drawn = 0, k;
+    for (k in instKinds) {
+      if (!Object.prototype.hasOwnProperty.call(instKinds, k)) { continue; }
+      var K = instKinds[k];
+      live += K.n;
+      if (!K.dirty && !moved) { drawn += K.mesh.count; continue; }
+      var cast = shadowOn && K.mesh.castShadow;
+      var arr = K.mesh.instanceMatrix.array, sp = K.sph, j = 0, i;
+      for (i = 0; i < K.hi; i++) {
+        if (!K.live[i]) { continue; }
+        var x = sp[i * 4] + ox, y = sp[i * 4 + 1] + oy, z = sp[i * 4 + 2] + oz, r = sp[i * 4 + 3];
+        var see = inFr(cullCam, x, y, z, r);
+        if (see && fog) {
+          var dx = x - cx, dy = y - cy, dz = z - cz, lim = fog + r;
+          if (dx * dx + dy * dy + dz * dz > lim * lim) { see = false; }
+        }
+        if (!see && !(cast && inFr(cullSun, x, y, z, r))) { continue; }
+        arr.set(K.mat.subarray(i * 16, i * 16 + 16), j * 16);
+        j++;
+      }
+      K.mesh.count = j;
+      if (j) {
+        var im = K.mesh.instanceMatrix;
+        if (im.clearUpdateRanges) { im.clearUpdateRanges(); im.addUpdateRange(0, j * 16); }
+        im.needsUpdate = true;
+      }
+      K.dirty = false;
+      drawn += j;
+    }
+    cullStat.live = live; cullStat.drawn = drawn; cullStat.frames++;
   }
 
   /** 지금 몇 덩이에 몇 자리가 차 있나 — 진단·데모가 값으로 본다 */
@@ -2968,6 +3052,7 @@
       syncBeams(dt);
       syncClickMark(dt);
       syncCamera(W, dt);
+      instCull();
 
       present();
       return true;
@@ -3132,6 +3217,7 @@
     lum: lum, GRID: GRID,
     /** 인스턴스 덩이 현황 (PLAN 16절) — 진단·데모가 값으로 본다 */
     instStats: instStats,
+    instCullStats: function () { return { live: cullStat.live, drawn: cullStat.drawn, frames: cullStat.frames }; },
     /** 지면에 칠하는 땅 색 — 진단이 빠진 갈래가 없는지 본다 */
     LAND_COLOR: LAND_COLOR,
     /** 지금 조명 (데모·어드민이 들여다본다) */

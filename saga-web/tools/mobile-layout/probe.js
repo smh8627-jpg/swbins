@@ -12,6 +12,7 @@
  *   --wait=<초>                       첫 화면 기다림(기본 8)
  *   --eval=<식>                       장면마다 그 식 값을 찍는다(고칠 때)
  *   --rects=#a,.b                     장면마다 그 요소들의 사각형을 찍는다(고칠 때)
+ *   --perf                            장면마다 한 화면 부하(GLB·배우·그리기 호출·삼각형·인스턴스, perf.js)
  *
  * - 판 폴더를 자기 포트(빈 포트)에서 `tools/lib/gameserve.js` 로 서빙한다 — 서비스워커는 스스로 풀리는 빈 것,
  *   출처가 달라 **실제 세이브(8791~)와 안 섞인다.** 새 연습용 프로필로 들어간다.
@@ -27,6 +28,7 @@ const http = require('http');
 const { spawn, execFileSync } = require('child_process');
 const gameserve = require('../lib/gameserve.js');
 const measure = require('./measure.js');
+const perf = require('./perf.js');
 
 const ROOT = path.resolve(__dirname, '..', '..');
 const CHROME = process.env.CHROME || 'C:/Program Files/Google/Chrome/Application/chrome.exe';
@@ -172,6 +174,7 @@ async function runGame(game) {
       fmt(res).forEach(l => out.push('  ' + l));
       if (opt.list) { (await c.ev(LIST_JS)).forEach(l => out.push('      · ' + l)); }
       if (opt.eval) { out.push('      = ' + JSON.stringify(await c.ev(String(opt.eval)).catch(e => e.message))); }
+      if (opt.perf) { out.push('      ⚙ ' + await c.ev(`(${perf.toString()})()`).catch(e => e.message)); }
       if (opt.rects) {
         const R = await c.ev(`(function(){return ${JSON.stringify(String(opt.rects).split(','))}.map(function(q){var e=document.querySelector(q);if(!e)return q+' 없음';var r=e.getBoundingClientRect();return q+' '+Math.round(r.left)+','+Math.round(r.top)+' ~ '+Math.round(r.right)+','+Math.round(r.bottom)})})()`);
         R.forEach(l => out.push('      □ ' + l));
