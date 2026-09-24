@@ -4478,6 +4478,22 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       return '+6 ' + R[1].name + ' · +8 ' + R[2].name + ' · +9 ' + R[3].name + ' · +10 ' + R[4].name + ' · 보물 ' + ID.ITEMS.length + '종 전부 이름이 붙음';
     });
 
+    t('싸움터 땅(SAGA-DESIGN §12) — 성의 땅·주가 싸움터를 정한다: 늘 같고, 사막·균열 같은 주는 제 결, 물 싸움은 물빛', function () {
+      var CD = DG.cityData, kinds = {}, same = true, rim = true;
+      CD.CITIES.forEach(function (c) {
+        var a = CD.battleLook(c.id, false), b = CD.battleLook(c.id, false);
+        if (JSON.stringify(a) !== JSON.stringify(b)) { same = false; }
+        kinds[a.name] = 1;
+        a.props.forEach(function (p) { var r = Math.hypot(p.x, p.z); if (r < 8 || r > 10.5) { rim = false; } });
+      });
+      var xi = CD.CITIES.filter(function (c) { return c.prov === 'xi'; })[0], fu = CD.CITIES.filter(function (c) { return c.prov === 'fu'; })[0];
+      var mt = CD.CITIES.filter(function (c) { return c.land === 'mount' && !CD.PROV_LOOK[c.prov]; })[0];
+      var w = CD.battleLook(CD.CITIES[0].id, true);
+      return same && rim && Object.keys(kinds).length >= 8 && CD.battleLook(xi.id).name === '사막' && CD.battleLook(fu.id).prop === 'crystal' &&
+        CD.battleLook(mt.id).prop === 'peak' && w.ground === 0x5aa9d8 && !w.props.length &&
+        ('싸움터 ' + Object.keys(kinds).length + '결 · ' + Object.keys(kinds).join('·'));
+    });
+
     t('런타임 에러 없음', function () {
       return errors.length === 0 || ('에러 ' + errors.length + '건: ' + errors.join(' | ')) === '';
     });

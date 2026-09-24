@@ -416,6 +416,31 @@
   /** 한 번만 짓는 것 — 땅·성. 성벽·무리·일기토 깃발은 `renderLive()` 몫이다
    *  (합마다 다시 그려야 하므로).
    *  @returns {seq,h,maxWall} — renderLive() 에 그대로 넘긴다. 성이 없으면 null */
+  /* ── 싸움터 땅(SAGA-DESIGN §12 고정 특색 지역, 2026-09-24) ─────────────────
+   * 예전엔 바닥이 물(rep.water)이냐 아니냐 두 가지뿐이었다 — 기주 평야든 촉의 산성이든 같은 풀빛 원판.
+   * 이제 그 성의 땅(data-city `land`)과 주(`prov`)가 바닥빛·하늘·소품을 정한다. 무작위 없음 —
+   * 같은 성은 언제 싸워도 같은 싸움터다. 소품은 가장자리(반지름 8~10)에만 세워 무리·성과 안 겹친다.
+   * 표·순수 함수는 data-city.js `battleLook`(진단이 싣는 쪽), 여기는 그리기만. */
+  var PROP_COLOR = { grass: 0x9dbb62, mound: 0x9ab872, reed: 0x7fa65a, peak: 0x8a8f86, dune: 0xd4b77a,
+    crystal: 0xb89cff, rubble: 0x7a766c, grave: 0x9a9e94 };
+  function battleLook(cityId, water) { return global.DG.cityData.battleLook(cityId, water); }
+  function propMesh(t, P) {
+    var col = PROP_COLOR[P.kind] || 0x8a8a80, TN = global.DG.toon3d;
+    var mat = TN ? TN.lambertLike({ color: col }) : new t.MeshLambertMaterial({ color: col });
+    var geo;
+    if (P.kind === 'mound' || P.kind === 'dune') { geo = new t.SphereGeometry(1.1, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2); }
+    else if (P.kind === 'peak') { geo = new t.ConeGeometry(1.1, 2.6, 6); }
+    else if (P.kind === 'crystal') { geo = new t.OctahedronGeometry(0.8, 0); }
+    else if (P.kind === 'rubble') { geo = new t.BoxGeometry(1.2, 0.6, 0.9); }
+    else if (P.kind === 'grave') { geo = new t.BoxGeometry(0.6, 1.0, 0.18); }
+    else { geo = new t.ConeGeometry(0.35, 1.1, 5); }                  // grass·reed — 풀 포기
+    var m = new t.Mesh(geo, mat);
+    m.position.set(P.x, P.kind === 'peak' ? 1.3 : (P.kind === 'crystal' ? 0.9 : (P.kind === 'grave' ? 0.5 : (P.kind === 'rubble' ? 0.3 : 0))), P.z);
+    if (P.kind === 'dune') { m.scale.set(P.s * 1.6, P.s * 0.5, P.s); } else { m.scale.setScalar(P.s); }
+    m.rotation.y = P.x * 0.7;
+    return m;
+  }
+
   function buildBase(rep) {
     var t = three();
     dyn.clear();
@@ -434,17 +459,26 @@
     var h = TIER_H[tier];
     var ownerCol = forceColor(c.force);
 
-    scene.background = (global.DG.toon3d && global.DG.toon3d.skyBackground) ? global.DG.toon3d.skyBackground(rep.water ? 0x8fc4e6 : 0xb9dcef) : new t.Color(rep.water ? 0x8fc4e6 : 0xb9dcef);   // 하늘 그라디언트(2026-09-23)
-    scene.fog = new t.Fog(rep.water ? 0x8fc4e6 : 0xb9dcef, 20, 70);
+    var look = battleLook(rep.to, rep.water);   // 싸움터 땅(§12) — 성의 땅·주가 정한다
+    scene.background = (global.DG.toon3d && global.DG.toon3d.skyBackground) ? global.DG.toon3d.skyBackground(look.sky) : new t.Color(look.sky);   // 하늘 그라디언트(2026-09-23)
+    scene.fog = new t.Fog(look.sky, 20, 70);
 
     var groundTN = global.DG.toon3d;
     var ground = new t.Mesh(
       new t.CircleGeometry(11, 28),
-      groundTN ? groundTN.lambertLike({ color: rep.water ? 0x5aa9d8 : 0xcfe0a0 })
-        : new t.MeshLambertMaterial({ color: rep.water ? 0x5aa9d8 : 0xcfe0a0 })
+      groundTN ? groundTN.lambertLike({ color: look.ground })
+        : new t.MeshLambertMaterial({ color: look.ground })
     );
     ground.rotation.x = -Math.PI / 2;
     dyn.add(ground);
+    if (look.stream) {
+      /* 강가·해안 — 싸움터 앞쪽을 가로지르는 물줄기 */
+      var sw = new t.Mesh(new t.PlaneGeometry(22, 1.6),
+        groundTN ? groundTN.lambertLike({ color: 0x5aa9d8 }) : new t.MeshLambertMaterial({ color: 0x5aa9d8 }));
+      sw.rotation.x = -Math.PI / 2; sw.position.set(0, 0.02, 7.6);
+      dyn.add(sw);
+    }
+    look.props.forEach(function (P) { dyn.add(propMesh(t, P)); });
 
     asset3d().build('city:' + tier, { id: rep.to + ':battle', tint: ownerCol, flag: ownerCol }, function (g) {
       if (seq !== rebuildSeq || !g || !dyn) { return; }
@@ -804,5 +838,7 @@
   }
 
   global.DG = global.DG || {};
-  global.DG.battle3d = { available: available, render: render, beginLive: beginLive, showState: showState };
+  global.DG.battle3d = {
+    /** 싸움터 땅(§12) — 순수 함수, 진단이 값으로 본다 */
+    battleLook: battleLook, available: available, render: render, beginLive: beginLive, showState: showState };
 })(window);
