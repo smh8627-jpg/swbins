@@ -198,12 +198,15 @@
    * @param biome PLAN §60 "지역마다 특색" — 마을 필드에서만 넘긴다(아래
    *   biomeOf 참고). 안 넘기면(던전 방 전부) 예전과 100% 같다.
    */
-  function pickEnemyRef(floor, boss, biome) {
+  function pickEnemyRef(floor, boss, biome, regionKey) {
     var ed = global.DG.enemyData;
     if (!ed) { return { name: '적', kind: 'beast', form: 'quad', color: '#8a7a6a' }; }
-    var pool = ed.poolFor(floor, !!boss, biome);
+    /* 지역 명단(§5.13) — 들판 ctx.region 이 있으면 그 지역 몬스터만 */
+    var WM = global.DG.worldMap, rg = regionKey && WM ? WM.byKey(regionKey) : null;
+    var pool = ed.poolFor(floor, !!boss, biome, rg ? rg.roster : null);
     return core.pick(pool);
   }
+  function regionOf(ctx) { return (ctx && ctx.region) || null; }
 
   /** ctx.theme.biome(`town:forest` 등)에서 `town:` 접두를 뗀다 — 던전
    *  방(ctx 없음)이면 null, poolFor가 그대로 예전 동작으로 되돌아간다. */
@@ -2057,7 +2060,7 @@
         ok = true;
       }
       if (!ok) { remain -= packSize; continue; }   // 이번 팩은 자리를 못 찾았다 — 개수만 줄이고 다음 팩으로
-      var ref = pickEnemyRef(floor, false, biome), k, tries2, x, y, en;
+      var ref = pickEnemyRef(floor, false, biome, regionOf(ctx)), k, tries2, x, y, en;
       for (k = 0; k < packSize; k++) {
         tries2 = 6;
         while (tries2--) {
@@ -2115,7 +2118,7 @@
       ok = true;
     }
     if (!ok) { return; }
-    var guardRef = pickEnemyRef(floor, false, biomeOf(ctx));
+    var guardRef = pickEnemyRef(floor, false, biomeOf(ctx), regionOf(ctx));
     var guard = spawnEnemy(floor, false, { forceElite: true, x: x, y: y, ref: guardRef });
     guard.field = true;
     guard.treasureGuard = true;
@@ -2382,6 +2385,77 @@
       var stray = wbFindBoss(ctx.room);   // 창구가 끝났는데 아직 살아 있으면 정리
       if (stray) { wbFlee(stray, ctx); }
     }
+  }
+
+  /* ── 지역 우두머리(§5.13) — 디아블로의 고유 몬스터(Super Unique) 자리 ─────
+   * 지역마다 하나, 고정 자리(world-map bossSpot)에 선다. 1500 안으로 다가가면 호위 정예
+   * 셋과 함께 나오고, 쓰러뜨리면 전설 한 점·보물 둘·재료·금, 10분 뒤 다시 선다.
+   * 세기는 그 자리 위험도 + 4 층의 보스(체력 ×3). 세이브 save.dungeon.regionBoss[지역]. */
+  var RB_NEAR = 1500, RB_CD_MS = 10 * 60 * 1000, RB_HP_MUL = 3, RB_LV_ADD = 4, RB_GUARDS = 3;
+  function rbState() {
+    var d = dstate();
+    if (!d.regionBoss || typeof d.regionBoss !== 'object') { d.regionBoss = {}; }
+    return d.regionBoss;
+  }
+  function rbAlive(room, key) {
+    var es = room && room.enemies, i;
+    if (!es) { return null; }
+    for (i = 0; i < es.length; i++) { if (es[i].regionBoss === key && es[i].hp > 0) { return es[i]; } }
+    return null;
+  }
+  /** 지역 우두머리의 몸 — 명단 몬스터의 몸을 빌려 이름·색만 갈아 끼운다 */
+  function rbRef(rg) {
+    var ED = global.DG.enemyData, base = ED && ED.byName ? ED.byName(rg.boss.base) : null, r = {}, k;
+    if (base) { for (k in base) { if (Object.prototype.hasOwnProperty.call(base, k)) { r[k] = base[k]; } } }
+    else { r = { kind: 'beast', form: 'ogre' }; }
+    r.id = rg.boss.id; r.name = rg.boss.name; r.emoji = rg.boss.emoji; r.color = rg.boss.color;
+    delete r.biome;
+    return r;
+  }
+  /** @returns 새로 세운 우두머리(없으면 null) — town.update 가 매 틱 부른다 */
+  function stepRegionBoss(ctx, now) {
+    var WM = global.DG.worldMap;
+    if (!WM || !ctx || !ctx.town || !ctx.player || !ctx.room) { return null; }
+    var p = ctx.player, rg = WM.regionAt(p.x, p.y), spot = WM.bossSpot(rg.key);
+    if (!spot || Math.hypot(p.x - spot.x, p.y - spot.y) > RB_NEAR) { return null; }
+    if (rbAlive(ctx.room, rg.key)) { return null; }
+    var st = rbState()[rg.key], t = now === undefined ? Date.now() : now;
+    if (st && st.lastAt && t - st.lastAt < RB_CD_MS) { return null; }
+    var lv = WM.levelAt(spot.x, spot.y) + RB_LV_ADD;
+    var e = spawnEnemy(lv, true, { x: spot.x, y: spot.y, ref: rbRef(rg),
+      hp: Math.round(enemyHp(lv, true) * RB_HP_MUL), dmg: enemyDmg(lv, true) });
+    e.field = true; e.regionBoss = rg.key; e.rbLevel = lv;
+    ctx.room.enemies.push(e);
+    for (var gi = 0; gi < RB_GUARDS; gi++) {
+      var ga = gi / RB_GUARDS * Math.PI * 2;
+      var g = spawnEnemy(lv, false, { x: spot.x + Math.cos(ga) * 70, y: spot.y + Math.sin(ga) * 70,
+        ref: pickEnemyRef(lv, false, null, rg.key), forceElite: true });
+      g.field = true;
+      ctx.room.enemies.push(g);
+    }
+    core.log('☠️ 지역 우두머리 — ' + rg.boss.name + ' (' + rg.name + ') · 위험 ' + lv, 'info');
+    core.emit('toast', '☠️ ' + rg.boss.emoji + ' ' + rg.boss.name + ' — ' + rg.boss.desc);
+    return e;
+  }
+  /** 쓰러뜨렸다 — kill() 이 부른다(그때 run 은 마을 ctx) */
+  function grantRegionBossReward(e, room) {
+    var WM = global.DG.worldMap, rg = WM ? WM.byKey(e.regionBoss) : null;
+    if (!rg || !room) { return; }
+    var lv = e.rbLevel || 1, all = rbState(), st = all[rg.key] || (all[rg.key] = { kills: 0, firstAt: Date.now() });
+    var first = !st.kills;
+    st.kills += 1; st.lastAt = Date.now();
+    withRun({ floor: lv, boons: {}, room: room }, null, function () {
+      dropGold(room, e.x, e.y, 6);
+      dropItem(room, e.x, e.y, 45);
+      dropItem(room, e.x, e.y, 45);
+      dropMat(room, e.x, e.y, 30);
+    });
+    var IT = global.DG.item;
+    if (IT && IT.roll) { room.drops.push({ kind: 'item', item: IT.roll(lv + 1, { tier: 4 }), x: jitter(e.x), y: jitter(e.y) }); }
+    core.gainFeat(15 + lv, '지역 우두머리 토벌');
+    core.emit('regionboss:kill', { key: rg.key, first: first });
+    core.log('🏆 ' + rg.boss.name + ' 토벌' + (first ? ' — 첫 토벌!' : '') + ' · 전설 한 점', 'good');
+    core.emit('toast', '🏆 ' + rg.boss.name + (first ? ' 첫 토벌!' : ' 토벌!'));
   }
 
   function wbFlee(e, ctx) {
@@ -3473,6 +3547,7 @@
     /* 세계 보스(§5.4) — 위 일반 처치 보상(run.floor=0 이라 미미하다)과
        별개로, best 층 기준의 참가 보상을 따로 준다(아래 grantWorldBossReward). */
     if (e.worldBoss) { grantWorldBossReward(e, run.room, false); }
+    if (e.regionBoss) { grantRegionBossReward(e, run.room); }
     if (run.trial) { trialOnKill(e); }
   }
 
@@ -4272,6 +4347,10 @@
     spawnFieldMerchant: spawnFieldMerchant,
     fieldRoamerCount: fieldEnemyCount,
     stepFieldCombat: stepFieldCombat,
+    /** 지역 우두머리(§5.13) — town.update 가 부른다. now 는 자가진단이 시각을 붙들 때만 */
+    stepRegionBoss: stepRegionBoss, regionBossState: function () { return rbState(); },
+    RB_NEAR: RB_NEAR, RB_CD_MS: RB_CD_MS,
+    _grantRegionBossReward: grantRegionBossReward, _pickEnemyRef: pickEnemyRef,
     pickupField: pickupField,
     active: active, enter: enter, leave: leave, update: update,
     setInput: setInput, moveTo: moveTo,

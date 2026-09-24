@@ -1438,6 +1438,14 @@
    * 경계가 굽어 있어 선을 따라 걸으면 들락날락할 수 있다 — 새 지역에 1.2초
    * 머물러야 바뀐 것으로 친다(배너가 깜빡이지 않게). */
   var regionNow = null, regionPend = null, regionPendT = 0, REGION_HOLD = 1.2;
+  function fieldLevel() {
+    var WM = global.DG.worldMap;
+    return (WM && player) ? WM.levelAt(player.x, player.y) : 0;
+  }
+  function fieldRegionKey() {
+    var WM = global.DG.worldMap;
+    return (WM && player) ? WM.regionAt(player.x, player.y).key : null;
+  }
   function stepRegion(dt) {
     var WM = global.DG.worldMap;
     if (!WM || !player) { return; }
@@ -1448,8 +1456,9 @@
     regionPendT += dt;
     if (regionPendT < REGION_HOLD) { return; }
     regionNow = rg.key; regionPend = null; regionPendT = 0;
-    core.log(rg.emoji + ' ' + rg.name + '(' + rg.hanja + ') 에 들어섰다 — ' + rg.desc, 'info');
-    core.emit('toast', rg.emoji + ' ' + rg.name + '(' + rg.hanja + ') — ' + rg.desc);
+    var lvNow = WM.levelAt(player.x, player.y);
+    core.log(rg.emoji + ' ' + rg.name + '(' + rg.hanja + ') 에 들어섰다 — ' + rg.desc + ' · 위험 ' + lvNow, 'info');
+    core.emit('toast', rg.emoji + ' ' + rg.name + '(' + rg.hanja + ') · 위험 ' + lvNow + ' — ' + rg.desc);
     core.emit('region:enter', rg.key);
   }
 
@@ -1544,6 +1553,7 @@
     D().stepFieldCombat(dt, ctx, fx);
     D().pickupField(ctx, fx);
     D().stepWorldBoss(ctx, fx);   // 세계 보스(§5.4) — 예고·출현·75초 제한을 스스로 관리한다
+    if (D().stepRegionBoss) { D().stepRegionBoss(ctx); }   // 지역 우두머리(§5.13) — 고정 자리에 다가가면
     /* 체력이 0까지 떨어지면 던전과 완전히 같게 처리한다(hurtPlayer→die() 그대로) —
        dungeon:end 가 곧바로 town.enter({fromDungeon:true})를 다시 불러 굴혈 앞으로
        돌려보낸다. 마을은 안전지대 예외를 안 둔다(사용자 확정) — 대신 돌아온
@@ -1599,7 +1609,10 @@
          `theme.name`으로 되짚을 수도 있지만, 슬롯 배정(town.js 밖,
          dungeon.js stepWorldBoss)이 TOWNS 키를 직접 쓰므로 여기서 그대로 준다. */
       townId: CURRENT_TOWN,
-      floor: 0, startFloor: 0, roomIdx: undefined,
+      /* 지역 위험도(§5.13) — 들판 싸움의 층 노릇(적 세기·내 원소 피해·전리품·경험치).
+         중원은 0 이라 예전과 같다. region 은 지역 몬스터 명단 키 */
+      floor: fieldLevel(), startFloor: 0, roomIdx: undefined,
+      region: fieldRegionKey(),
       roomW: ROOM_W, roomH: ROOM_H, wall: WALL, pr: P_R,
       anchor: anchor, noRoom: wild,
       room: room, player: player, shots: fshots, foeShots: ffoeShots,
@@ -1633,6 +1646,8 @@
     }
     return {
       active: true, town: true, floor: 0, theme: currentTheme(),
+      /* 지역(§5.12~13) — HUD 가 "어디·얼마나 위험한가" 를 말한다 */
+      wild: !CURRENT_TOWN, regionKey: fieldRegionKey(), dangerLv: fieldLevel(),
       hp: Math.max(0, Math.round(fhp)), hpMax: fhpMax, mp: Math.round(fmp), mpMax: fmpMax,
       skills: skills, rally: false,
       room: 1, roomTotal: 1, cleared: true, kind: 'town',

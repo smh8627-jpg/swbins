@@ -528,7 +528,22 @@
       bigCtx.fillStyle = 'rgba(0,0,0,0.55)';
       bigCtx.fillRect(10, 10, Math.min(W - 20, 30 + (rgn.name.length + rgn.hanja.length + 2) * 15), 26);
       bigCtx.fillStyle = '#f0d9a0';
-      bigCtx.fillText(rgn.emoji + ' ' + rgn.name + '(' + rgn.hanja + ')', 18, 15);
+      bigCtx.fillText(rgn.emoji + ' ' + rgn.name + '(' + rgn.hanja + ') · 위험 ' + WMb.levelAt(p.x, p.y), 18, 15);
+      /* 지역 우두머리 자리(§5.13) — 늘 보인다(어디로 갈지가 보여야 한다). 쉬는 중이면 흐리게 */
+      var DGm = global.DG.dungeon, rbs = DGm && DGm.regionBossState ? DGm.regionBossState() : {};
+      bigCtx.font = '600 12px system-ui, sans-serif';
+      bigCtx.textBaseline = 'middle';
+      WMb.REGIONS.forEach(function (rr) {
+        var sp = WMb.bossSpot(rr.key);
+        if (!sp) { return; }
+        var q = toScreen(sp.x, sp.y);
+        if (q.x < -40 || q.y < -20 || q.x > W + 40 || q.y > H + 20) { return; }
+        var st = rbs[rr.key], resting = st && st.lastAt && Date.now() - st.lastAt < (DGm.RB_CD_MS || 600000);
+        bigCtx.globalAlpha = resting ? 0.45 : 1;
+        bigCtx.fillStyle = '#e06565';
+        bigCtx.fillText('☠️ ' + rr.boss.name + (st && st.kills ? ' ✓' : ''), q.x - 8, q.y);
+        bigCtx.globalAlpha = 1;
+      });
     }
     /* 마을 위치는 늘 보인다(존재 자체는 이미 아는 정보 — 옛 오버월드 창이
        고정 배치를 늘 보여 주던 것과 같은 생각) — 화면 밖이면 건너뛴다. */

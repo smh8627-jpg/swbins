@@ -72,8 +72,100 @@
       bias: { ruin: 2.4, rock: 1.6, altar: 1.5, forest: 0.15, water: 0.2, swamp: 0.3, road: 0.9 },
       props: ['t_hologram', 't_pylon'], rate: 0.17, ground: 0x4b4553, town: 'ruins' }
   ];
+  /* ── 지역 몬스터·위험도·우두머리(§5.13) ─────────────────────
+   * lvl: 지역 기본 위험도 — 들판 ctx.floor 가 된다(적 세기·내 원소 피해·전리품·경험치가 같이 탄다).
+   *      중원 0(예전 마을 들판과 같다), 가운데서 멀수록 3000 마다 +1(상한 30).
+   * roster: 이 지역에 나오는 몬스터(data-enemy.js 표시 이름). 단계(tier)가 위험도를 넘는 것은 안 나온다.
+   * boss: 지역 우두머리 — 고정 자리에 선다. base 는 몸(그림)을 빌려 올 몬스터. 이름은 전부 창작 */
+  var FOES = {
+    jungwon: { lvl: 0,
+      roster: ['황건적', '산적', '도적떼', '들개', '떠돌이 병졸', '멧돼지', '말벌떼', '애기버섯', '이끼괴물',
+               '왜구', '마적', '왕멧돼지', '왕말벌떼', '고목정', '거란 기병', '몽골 기병', '흑기병', '근위 기병'],
+      boss: { id: 'rb_jungwon', name: '벌판 흑기 대장', emoji: '🐴', base: '흑기병', color: '#2a2a3a',
+              desc: '중원 도적떼를 한데 거느린 검은 기병' } },
+    neon: { lvl: 3,
+      roster: ['들쥐떼', '강철랑', '동합귀', '역병쥐떼', '은신 첩자', '강철익수', '동력파룡', '그림자 자객',
+               '심야 첩자', '왜군 조총병', '강철판갑', '칠흑 자객', '연노 사수', '초강폭룡'],
+      boss: { id: 'rb_neon', name: '폐도시 폭주룡', emoji: '🏭', base: '초강폭룡', color: '#6a4a3a',
+              desc: '멈춘 공장을 둥지 삼은 강철 짐승' } },
+    saltmarsh: { lvl: 2,
+      roster: ['독사', '청개구리', '늪슬라임', '집게괴', '철갑해', '늪 왕슬라임', '괴이두꺼비', '묵늪슬라임',
+               '먹물 요괴', '흑사', '이무기', '독개구리', '심연늪슬라임', '심해 먹물귀', '수군 척후선',
+               '흑이무기', '왕독개구리', '수군 함대', '심연촉수귀'],
+      boss: { id: 'rb_saltmarsh', name: '개펄 촉수왕', emoji: '🐙', base: '심연촉수귀', color: '#2a4a5a',
+              desc: '물 빠진 갯벌 밑에서 올라온 촉수' } },
+    hellgate: { lvl: 6,
+      roster: ['풋귀', '해골졸개', '원혼', '해골무사', '원귀', '해골귀', '가시귀', '구천혼', '해골척후', '탐귀',
+               '해골법사', '악귀', '청귀', '해골대장', '백골귀왕', '탐욕귀왕', '철가시귀', '강시', '화염귀',
+               '해골대법사', '대청귀', '역병강시', '겁화귀'],
+      boss: { id: 'rb_hellgate', name: '균열 문지기 겁옥', emoji: '🔥', base: '겁화귀', color: '#8a1a10',
+              desc: '갈라진 땅을 지키는 불의 문지기' } },
+    solar: { lvl: 4,
+      roster: ['강철랑', '동합귀', '홍슬라임', '결정슬라임', '강철익수', '동력파룡', '회오리 정령', '폭풍 정령',
+               '강철판갑', '기계외안', '대가시슬라임', '폭풍거인', '초강폭룡'],
+      boss: { id: 'rb_solar', name: '태양로 폭주 거신', emoji: '🔆', base: '폭풍거인', color: '#c9a020',
+              desc: '과열된 태양로가 깨운 거인' } },
+    silkroad: { lvl: 3,
+      roster: ['들개', '독사', '오랑캐 궁수', '마적', '남만 코끼리병', '쾌조룡', '왕거미', '뿔공룡', '전상코끼리병',
+               '여진 궁수', '볏공룡', '판갑룡', '독왕거미', '왕뿔공룡', '삼각뿔룡', '장경룡', '폭룡'],
+      boss: { id: 'rb_silkroad', name: '모래바다 폭군', emoji: '🐫', base: '삼각뿔룡', color: '#b08a4a',
+              desc: '대상 길목을 끊어 놓은 뿔 달린 폭군' } },
+    heaven: { lvl: 5,
+      roster: ['원혼', '구천혼', '회오리 정령', '산도깨비', '요술사', '폭풍 정령', '왕도깨비', '대요술사',
+               '노산도깨비', '노왕도깨비', '기계외안', '강철촉수귀'],
+      boss: { id: 'rb_heaven', name: '타락한 천장', emoji: '☁️', base: '대요술사', color: '#8a8ad9',
+              desc: '하늘 사당을 버리고 칼을 든 옛 수호장' } },
+    snowfort: { lvl: 4,
+      roster: ['산적', '동굴슬라임', '홍슬라임', '산짐승 요괴', '산도깨비', '설인', '산야인', '산군', '외눈귀',
+               '위군 창병', '노산야인', '대설인', '빙하대설인', '설산군주', '백두산군', '거인', '철갑 중장병'],
+      boss: { id: 'rb_snowfort', name: '만년설 거한', emoji: '🏔️', base: '빙하대설인', color: '#c9d9e8',
+              desc: '산성 폐허를 차지한 눈의 거한' } },
+    scrap: { lvl: 6,
+      roster: ['강철랑', '동합귀', '철갑해', '가시슬라임', '강철익수', '동력파룡', '청동거목', '진흙귀신',
+               '강철판갑', '기계외안', '철가시귀', '왕진흙귀신', '심연진흙귀신', '태고진흙귀신', '초강폭룡', '강철촉수귀'],
+      boss: { id: 'rb_scrap', name: '고철 거신', emoji: '🤖', base: '강철촉수귀', color: '#5a626e',
+              desc: '쓰러진 기계를 모아 스스로 일어선 것' } }
+  };
+  var LEVEL_STEP = 3000, LEVEL_MAX = 30;
+
   var BY = {};
-  REGIONS.forEach(function (r, i) { r.idx = i; BY[r.key] = r; r.theme = 'region:' + r.key; });
+  REGIONS.forEach(function (r, i) {
+    r.idx = i; BY[r.key] = r; r.theme = 'region:' + r.key;
+    var f = FOES[r.key];
+    r.lvl = f.lvl; r.roster = f.roster; r.boss = f.boss;
+  });
+
+  /** 들판 위험도(= 그 자리 ctx.floor) — 지역 기본값 + 가운데서 멀어진 만큼 */
+  function levelAt(wx, wy) {
+    var r = regionAt(wx, wy);
+    if (r.key === 'jungwon') { return 0; }
+    var far = Math.max(0, Math.hypot(wx, wy) - CENTER_R);
+    return Math.min(LEVEL_MAX, r.lvl + Math.floor(far / LEVEL_STEP));
+  }
+
+  /**
+   * 지역 우두머리 자리 — 방위 한가운데 반지름 28000(중원은 8500), 그 자리가 딴 지역이거나
+   * 마을 발판에 너무 가까우면 반지름·각도를 정해진 순서로 조금씩 옮긴다(무작위 없음).
+   */
+  var spotCache = {};
+  function bossSpot(key) {
+    if (spotCache[key]) { return spotCache[key]; }
+    var R0 = BY[key], t = global.DG.town;
+    if (!R0) { return null; }
+    var si = SECTORS.indexOf(key), step = Math.PI * 2 / SECTORS.length;
+    var a0 = si < 0 ? Math.PI * 0.75 : si * step, r0 = si < 0 ? 8500 : 28000, k, best = null;
+    for (k = 0; k < 40; k++) {
+      var dr = (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 700, da = ((k >> 2) % 2 ? 1 : -1) * Math.floor(k / 4) * 0.05;
+      var x = Math.round(Math.cos(a0 + da) * (r0 + dr)), y = Math.round(Math.sin(a0 + da) * (r0 + dr));
+      if (regionAt(x, y) !== R0) { continue; }
+      if (t && t.nearestTownId && t.footprintDist(t.nearestTownId(x, y), x, y) < 2200) { continue; }
+      best = { x: x, y: y };
+      break;
+    }
+    if (!best) { best = { x: Math.round(Math.cos(a0) * r0), y: Math.round(Math.sin(a0) * r0) }; }
+    if (t && t.nearestTownId) { spotCache[key] = best; }   // 마을이 실린 뒤에만 붙든다
+    return best;
+  }
 
   /** 가운데 원(중원) 반지름 — 손으로 지은 넷(모루골·갈대나루·자작재·소금벌, 앵커 ±6400)이 다 들어간다 */
   var CENTER_R = 11500;
@@ -265,6 +357,7 @@
   global.DG.worldMap = {
     REGIONS: REGIONS, byKey: function (k) { return BY[k] || null; }, CENTER_R: CENTER_R, BOUND: BOUND,
     regionAt: regionAt, info: info, pieces: pieces, clutter: clutter, kindAt: kindAt,
+    levelAt: levelAt, bossSpot: bossSpot, LEVEL_STEP: LEVEL_STEP, LEVEL_MAX: LEVEL_MAX,
     bakeStep: bakeStep, bakeProgress: bakeProgress, bakeInBackground: bakeInBackground,
     /** 절차 생성 마을의 성격 — 그 앵커 자리 지역에서 받는다(town.js 가 부른다) */
     townBiomeAt: function (wx, wy) { return regionAt(wx, wy).town; },

@@ -264,6 +264,8 @@
 
   global.DG = global.DG || {};
   global.DG.enemyData = {
+    /** 표시 이름으로 찾기(§5.13 지역 우두머리가 몸을 빌린다) */
+    byName: function (n) { for (var i = 0; i < ENEMIES.length; i++) { if (ENEMIES[i].name === n) { return ENEMIES[i]; } } return null; },
     enemies: ENEMIES,
     bosses: BOSSES,
     tierOf: tierOf,
@@ -274,9 +276,21 @@
      *   태그된 몬스터가 하나도 안 남으면(그 biome에 어울리는 게 없으면)
      *   조용히 tier 전체 풀로 되돌아간다 — 자리가 텅 비는 일은 없다.
      */
-    poolFor: function (stage, boss, biome) {
+    poolFor: function (stage, boss, biome, roster) {
       var t = tierOf(stage);
       var src = boss ? BOSSES : ENEMIES;
+      /* 지역 명단(§5.13, world-map.js) — 이 위험도가 감당하는 단계(t 이하)만, 지금 단계는 세 몫.
+         명단에 맞는 게 하나도 없으면 아래 옛 규칙으로 */
+      if (roster && roster.length && !boss) {
+        var rp = [], ri, e;
+        for (ri = 0; ri < ENEMIES.length; ri++) {
+          e = ENEMIES[ri];
+          if (e.tier > t || roster.indexOf(e.name) < 0) { continue; }
+          rp.push(e);
+          if (e.tier === t) { rp.push(e, e); }
+        }
+        if (rp.length) { return rp; }
+      }
       var pool = src.filter(function (e) { return e.tier === t; });
       if (biome) {
         var biomePool = pool.filter(function (e) { return !e.biome || e.biome === biome; });

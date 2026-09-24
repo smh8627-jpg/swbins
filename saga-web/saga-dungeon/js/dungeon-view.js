@@ -641,11 +641,13 @@
     /* 마을은 층도 방도 노획도 없다 — "여기가 어디인가" 만 말한다 */
     if (st.town) {
       var wb = st.wb;
-      var kt = 'town|' + (st.best || 0) + '|' +
+      var kt = 'town|' + (st.best || 0) + '|' + (st.wild ? 1 : 0) + '|' + st.regionKey + '|' + st.dangerLv + '|' +
         (wb ? (wb.phase + '|' + wb.remain + '|' + (wb.hp || 0)) : '');
       if (kt === hudKey) { return; }
       hudKey = kt;
       var wbHtml = '';
+      /* 지역(§5.12~13) — 들판이면 지역 이름, 위험도(들판 층)가 0 보다 크면 같이 */
+      var WMh = global.DG.worldMap, rgH = WMh && st.regionKey ? WMh.byKey(st.regionKey) : null;
       /* 월드 보스(§5.4) — 예고 중엔 카운트다운만, 전투 중엔 이름·HP%·
          부위 3(무기🗡️·갑주🛡️·머리⛑️, 부서지면 아이콘이 빠진다)·남은 시간 */
       if (wb && wb.phase === 'notice') {
@@ -665,9 +667,10 @@
       }
       hud.innerHTML =
         '<div class="dg-row1">' +
-          '<b class="dg-floor">🏯 마을</b>' +
-          '<span class="dg-theme">' + st.theme.name + '</span>' +
-          '<span class="dg-room">최고 제' + (st.best || 0) + '층</span>' +
+          '<b class="dg-floor">' + (st.wild && rgH ? rgH.emoji + ' ' + rgH.name : '🏯 마을') + '</b>' +
+          '<span class="dg-theme">' + (st.wild ? '가까운 마을 ' : '') + st.theme.name + '</span>' +
+          '<span class="dg-room">' + (st.dangerLv ? '<b style="color:' + (st.dangerLv >= 10 ? 'var(--bad)' : '#f0a53a') + '">위험 ' + st.dangerLv + '</b> · ' : '') +
+            '최고 제' + (st.best || 0) + '층</span>' +
         '</div>' + wbHtml;
       setTip(true);
       return;

@@ -6437,6 +6437,75 @@ window.requestAnimationFrame = function () { return 0; };
       return bad === 0 && badRoad === 0 && roads > 0 && ('가장 가까운 마을 400점 일치 · 길 칸 ' + roads + ' 모두 길');
     });
 
+    /* ── 지역 몬스터·위험도·우두머리(§5.13) ─────────────────────────── */
+
+    t('지역 몬스터 — 명단 아홉의 이름이 다 표에 있고, 지역마다 1단계 몬스터가 있으며, 우두머리 몸도 있다', function () {
+      var WM = DG.worldMap, ED = DG.enemyData, miss = [], noT1 = [];
+      WM.REGIONS.forEach(function (r) {
+        var t1 = 0;
+        r.roster.forEach(function (n) { var e = ED.byName(n); if (!e) { miss.push(r.key + ':' + n); } else if (e.tier === 1) { t1++; } });
+        if (!t1) { noT1.push(r.key); }
+        if (!ED.byName(r.boss.base)) { miss.push(r.key + ':boss:' + r.boss.base); }
+      });
+      if (miss.length || noT1.length) { throw new Error('없음 ' + miss.join(',') + ' / 1단계 없음 ' + noT1.join(',')); }
+      return '명단 ' + WM.REGIONS.map(function (r) { return r.roster.length; }).join('·') + ' · 우두머리 몸 9';
+    });
+
+    t('지역 위험도 — 중원은 0(예전 들판과 같다), 멀수록 오르고, 상한 30, 모루골 들판 ctx.floor 도 0', function () {
+      var WM = DG.worldMap, T = DG.town;
+      var c0 = WM.levelAt(0, 0) === 0 && WM.levelAt(6400, 0) === 0 && WM.levelAt(0, -6400) === 0;
+      var near = WM.levelAt(15000, 0), far = WM.levelAt(45000, 0), hell = WM.levelAt(0, 45000);
+      var cap = true, i;
+      for (i = 0; i < 16; i++) { var a = i / 16 * 6.283; if (WM.levelAt(Math.cos(a) * 60000, Math.sin(a) * 60000) > WM.LEVEL_MAX) { cap = false; } }
+      T._reset('moru');
+      var moruFloor = T.raw ? (function () { var r = T.raw(); return r ? r.floor : 0; })() : 0;
+      return c0 && near >= 3 && far > near && hell >= far && cap && moruFloor === 0 &&
+        ('폐도시 ' + near + '→' + far + ' · 지옥 균열 ' + hell);
+    });
+
+    t('지역 몬스터 — 지역 명단 안에서만, 위험도가 감당하는 단계까지만 나온다', function () {
+      var WM = DG.worldMap, ED = DG.enemyData, bad = 0, n = 0, i;
+      ['hellgate', 'saltmarsh', 'scrap'].forEach(function (k) {
+        var rg = WM.byKey(k);
+        [0, 7, 14, 30].forEach(function (lv) {
+          for (i = 0; i < 12; i++) {
+            var e = DN._pickEnemyRef(lv, false, null, k); n++;
+            if (rg.roster.indexOf(e.name) < 0 || e.tier > ED.tierOf(lv)) { bad++; }
+          }
+        });
+      });
+      var old = DN._pickEnemyRef(0, false, null, null);
+      return bad === 0 && !!old && (n + '번 뽑아 명단·단계 밖 0');
+    });
+
+    t('지역 우두머리 — 자리는 제 지역·마을에서 떨어져 있고, 다가가면 호위 셋과 서며, 쓰러뜨리면 전설·10분 쉼', function () {
+      var WM = DG.worldMap, T = DG.town, keepD = JSON.stringify(C.save.dungeon || {});
+      try {
+        var spotsOk = WM.REGIONS.every(function (r) {
+          var s = WM.bossSpot(r.key);
+          return s && WM.regionAt(s.x, s.y) === r && T.footprintDist(T.nearestTownId(s.x, s.y), s.x, s.y) >= 2200;
+        });
+        var sp = WM.bossSpot('snowfort');
+        var room = { enemies: [], drops: [] };
+        var ctx = { town: true, floor: 0, player: { x: sp.x + 200, y: sp.y }, room: room };
+        C.save.dungeon.regionBoss = {};
+        var far = DN.stepRegionBoss({ town: true, player: { x: sp.x + 4000, y: sp.y }, room: { enemies: [], drops: [] } }, 1000) === null;
+        var b = DN.stepRegionBoss(ctx, 1000);
+        var guards = room.enemies.filter(function (e) { return !e.regionBoss && e.elite; }).length;
+        var again = DN.stepRegionBoss(ctx, 1000) === null;
+        DN._grantRegionBossReward(b, room);
+        b.hp = 0;
+        var st = DN.regionBossState().snowfort, t0 = st.lastAt;
+        var legend = room.drops.some(function (d) { return d.kind === 'item' && d.item.tier === 4; });
+        var rest = DN.stepRegionBoss(ctx, t0 + 1000) === null;
+        var back = DN.stepRegionBoss(ctx, t0 + DN.RB_CD_MS + 1);
+        var nm = WM.byKey('snowfort').boss.name;
+        return spotsOk && far && !!b && b.regionBoss === 'snowfort' && b.ref && b.ref.name === nm && guards === 3 &&
+          again && st.kills === 1 && legend && rest && !!back &&
+          (nm + ' · 위험 ' + b.rbLevel + ' · 호위 3 · 전설 · 10분 뒤 다시');
+      } finally { C.save.dungeon = JSON.parse(keepD); }
+    });
+
     t('런타임 에러 없음', function () {
       return errors.length === 0 || ('에러 ' + errors.length + '건: ' + errors.join(' | ')) === '';
     });
