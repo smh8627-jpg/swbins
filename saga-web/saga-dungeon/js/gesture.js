@@ -31,7 +31,12 @@
     pedlar:        { work: 'interaction', glyph: '💰', verb: '흥정' },
     scribe:        { work: 'interaction', glyph: '✍️', verb: '적음' },
     herald:        { work: 'interaction', glyph: '📢', verb: '방문' },
-    fieldmerchant: { work: 'interaction', glyph: '💰', verb: '흥정' }
+    fieldmerchant: { work: 'interaction', glyph: '💰', verb: '흥정' },
+    /* 세 시대 마을 손님(§5.20, town.js ERA_FOLK) */
+    courier:       { work: 'interaction', glyph: '📦', verb: '배달' },
+    officeworker:  { work: 'interaction', glyph: '📱', verb: '통화' },
+    timetraveler:  { work: 'interaction', glyph: '⌛', verb: '좌표' },
+    explorer:      { work: 'interaction', glyph: '📡', verb: '측정' }
   };
 
   /** 몸짓 갈래 — dur 초, slot 이 null 이면 그 사람 일(JOB.work) */

@@ -928,6 +928,12 @@
          달리 시트가 아니라 #encounter 카드로 재고를 고른다(아래
          openFieldMerchant). 대사도 sheet도 없어 일반 갈래로는 못 받는다. */
       if (o.key === 'fieldmerchant') { openFieldMerchant(o); return; }
+      /* 세 시대 손님(§5.20) — 볼일(시트) 없이 말만 한다. 대사는 닿을 때마다 돌아간다 */
+      if (!o.sheet) {
+        var ln = o.lines && o.lines.length ? o.lines[(o.talkN = ((o.talkN || 0) + 1)) % o.lines.length] : o.line;
+        toast(o.emoji + ' ' + o.name + ' — ' + ln);
+        return;
+      }
       toast(o.emoji + ' ' + o.name + ' — ' + o.line);
       openSheet(o.sheet);
     });

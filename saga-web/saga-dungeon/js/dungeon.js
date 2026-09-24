@@ -225,9 +225,32 @@
     /* 지역 명단(§5.13) — 들판 ctx.region 이 있으면 그 지역 몬스터만 */
     var WM = global.DG.worldMap, rg = regionKey && WM ? WM.byKey(regionKey) : null;
     var pool = ed.poolFor(floor, !!boss, biome, rg ? rg.roster : null);
+    /* 세 시대(§5.20 · SAGA-DESIGN §13) — 들판 잡졸의 몫(`dg.eraMix`, 기본 0.4)은 그 지역 시대가 **아닌** 쪽에서.
+       현대·미래는 제 몸 가진 시대 적(`eraPoolFor`), 과거는 중원 벌판 명단. 보스·던전 방은 그대로 */
+    var mix = rg && !boss && ed.eraPoolFor ? ERA_MIX() : 0;
+    if (mix > 0 && Math.random() < mix) {
+      var alt = eraAltPool(floor, rg, WM, ed);
+      if (alt.length) { return core.pick(alt); }
+    }
     return core.pick(pool);
   }
+  function ERA_MIX() { return Math.max(0, Math.min(1, core.tuned('dg.eraMix', 0.4))); }
+  /** 이 지역 시대가 아닌 쪽의 풀 — 지역 era 에 없는 과거·현대·미래(신화 지역은 셋 다) */
+  function eraAltPool(floor, rg, WM, ed) {
+    var home = rg.era || [], other = ['past', 'modern', 'future'].filter(function (e) { return home.indexOf(e) < 0; });
+    var alt = ed.eraPoolFor(floor, other);
+    if (other.indexOf('past') >= 0) {
+      var jw = WM.byKey('jungwon');
+      if (jw && jw.key !== rg.key) { alt = alt.concat(ed.poolFor(floor, false, null, jw.roster)); }
+    }
+    return alt;
+  }
   function regionOf(ctx) { return (ctx && ctx.region) || null; }
+  /** 진단용 — 이 지역 들판에서 시대 몫으로 뽑힐 수 있는 풀 */
+  function eraAltPoolFor(floor, regionKey) {
+    var ed = global.DG.enemyData, WM = global.DG.worldMap, rg = WM && WM.byKey(regionKey);
+    return ed && rg ? eraAltPool(floor, rg, WM, ed) : [];
+  }
 
   /** ctx.theme.biome(`town:forest` 등)에서 `town:` 접두를 뗀다 — 던전
    *  방(ctx 없음)이면 null, poolFor가 그대로 예전 동작으로 되돌아간다. */
@@ -4821,7 +4844,7 @@
     /** 지역 우두머리(§5.13) — town.update 가 부른다. now 는 자가진단이 시각을 붙들 때만 */
     stepRegionBoss: stepRegionBoss, regionBossState: function () { return rbState(); },
     RB_NEAR: RB_NEAR, RB_CD_MS: RB_CD_MS,
-    _grantRegionBossReward: grantRegionBossReward, _pickEnemyRef: pickEnemyRef,
+    _grantRegionBossReward: grantRegionBossReward, _pickEnemyRef: pickEnemyRef, _eraAltPoolFor: eraAltPoolFor,
     /** 명소 층(§5.15) */
     fixedFor: fixedFor, fixedState: function () { return fixedState(); },
     _makeFixedRoom: makeFixedRoom, _fixedDoors: fixedDoors, _grantFixedReward: grantFixedReward,

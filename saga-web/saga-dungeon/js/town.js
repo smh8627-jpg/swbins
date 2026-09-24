@@ -156,6 +156,53 @@
   };
 
   /**
+   * 세 시대 마을 손님(PLAN §5.20 · SAGA-DESIGN §13, 2026-09-25) — 마을마다 한 명, 볼일(시트) 없이 말만 한다.
+   * NPC_DEFS 에 안 넣는다(일곱 직군 표·몸짓 진단 그대로). 누가 서는지는 마을 id 해시(현대 둘·미래 둘 중 하나),
+   * 자리는 방을 지을 때 기존 NPC·소품·표식·스폰에서 ERA_FOLK_GAP 이상 떨어진 빈자리(`placePoints`) — 못 찾으면
+   * 그 마을은 손님 없이 넘어간다(억지로 겹치지 않는다). model 은 asset3d `folk:*`(제 몸·제 옷). 역할 이름뿐이라 실명 없음
+   */
+  var ERA_FOLK = {
+    courier: { name: '택배 기사', emoji: '📦', era: 'modern', model: 'folk:courier', color: '#6a7a4a', lines: [
+      '받는 분이 갑옷 차림이던데… 서명은 붓으로 하시더라고요.',
+      '굴혈 쪽 주소는 지도에 안 나와서 늘 헤매요.',
+      '들판에 폭주 청년들이 수레를 막아요. 가시는 길에 좀 혼내 주세요.',
+      '야장 어르신이 제 수레 바퀴를 공짜로 벼려 주셨어요.' ] },
+    officeworker: { name: '출장 온 회사원', emoji: '💼', era: 'modern', model: 'folk:officeworker', color: '#3a3a4a', lines: [
+      '회의가 저 굴혈 밑에서 잡혔다는데, 농담이겠죠?',
+      '여기 비단값이면 본사에서 칭찬받겠어요.',
+      '방역복 입은 사람들이 개펄 쪽을 뒤지고 다녀요. 뭘 찾는 걸까요.',
+      '신호가 한 칸도 안 잡혀요. 봉화라도 올려야 하나.' ] },
+    timetraveler: { name: '시간 여행자', emoji: '⌛', era: 'future', model: 'folk:timetraveler', color: '#5a8aa8', lines: [
+      '제가 온 해에는 이 마을이 유리 탑 숲이었어요.',
+      '경비 보행기가 제 뒤를 따라 넘어왔나 봐요. 미안해요.',
+      '여기 무예는 우리 시대 기록에도 전설로 남아 있어요.',
+      '지옥 균열은… 우리 때까지도 안 닫혀요. 조심하세요.' ] },
+    explorer: { name: '탐사 대원', emoji: '🧑‍🚀', era: 'future', model: 'folk:explorer', color: '#c9c9d0', lines: [
+      '과거 신호가 겹쳐 잡히는 좌표예요. 흥미롭네요.',
+      '정찰 드론이 길을 잃었어요. 보이면 떨어뜨려 주세요.',
+      '강철 거신은 옛 전장 쇳물로 만든 거래요. 무섭죠?',
+      '이 시대 햇빛은 약해서 충전이 더뎌요.' ] }
+  };
+  var ERA_FOLK_KEYS = ['courier', 'timetraveler', 'officeworker', 'explorer'];   // 현대·미래가 번갈아 오게
+  var ERA_FOLK_GAP = 100;
+  function ERA_FOLK_ON() { return !core.tuned || core.tuned('dg.eraFolk', 1) ? true : false; }
+  function eraFolkKeyOf(id) {
+    var h = 2166136261, i, s = String(id || '');
+    for (i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+    return ERA_FOLK_KEYS[(h >>> 0) % ERA_FOLK_KEYS.length];
+  }
+  /** 이 마을 손님이 설 자리(BASE 좌표) — 없으면 null. 결정적(마을 id 해시 소금) */
+  function eraFolkSpot(cfg) {
+    var avoid = [{ x: 195, y: 240 }], i, salt = 70001;
+    for (i = 0; i < cfg.npcs.length; i++) { avoid.push({ x: cfg.npcs[i].x, y: cfg.npcs[i].y }); }
+    for (i = 0; i < (cfg.decor || []).length; i++) { if (typeof cfg.decor[i].x === 'number') { avoid.push({ x: cfg.decor[i].x, y: cfg.decor[i].y }); } }
+    if (cfg.hasGate) { for (i = 0; i < MARKS.length; i++) { if (typeof MARKS[i].x === 'number') { avoid.push({ x: MARKS[i].x, y: MARKS[i].y }); } } }
+    for (i = 0; i < String(cfg.id).length; i++) { salt += String(cfg.id).charCodeAt(i) * (i + 7); }
+    var pts = placePoints(1, ERA_FOLK_GAP, avoid, salt);
+    return pts.length ? pts[0] : null;
+  }
+
+  /**
    * 표식 셋 — 사람이 아니라 **밟는 것**이다. 모루골에만 있다(원작에도 야영지가
    * 하나뿐이라 굴혈·역참·결사비도 하나씩이다).
    *   gate      굴혈 입구. 밟으면 제1층부터 (원작의 던전 입구 — 고르는 창이 없다)
@@ -1243,6 +1290,18 @@
         phase: core.hash2(i + 1, 7) * 6.28, facing: spot.x > 380 ? -1 : 1
       });
     }
+    /* 세 시대 손님(§5.20) — 위 직군과 달리 시트가 없다(ui.js 가 말만 띄운다) */
+    var efSpot = ERA_FOLK_ON() ? eraFolkSpot(cfg) : null;
+    if (efSpot) {
+      var efKey = eraFolkKeyOf(cfg.id), ef = ERA_FOLK[efKey];
+      p = scalePt(efSpot.x, efSpot.y);
+      room.npcs.push({
+        key: efKey, name: ef.name, emoji: ef.emoji, sheet: null, line: ef.lines[0], lines: ef.lines,
+        era: ef.era, model: ef.model, x: anchor.x + p.x, y: anchor.y + p.y, color: ef.color,
+        ref: { id: 'town_' + efKey, name: ef.name, trait: 'virtue', rarity: 2 },
+        phase: core.hash2(cfg.npcs.length + 1, 7) * 6.28, facing: efSpot.x > 380 ? -1 : 1
+      });
+    }
     if (cfg.hasGate) {
       for (i = 0; i < MARKS.length; i++) {
         n = MARKS[i];
@@ -1699,6 +1758,8 @@
     TALK_R: TALK_R, MARKS: MARKS,
     active: active, enter: enter, leave: leave, update: update,
     npcKeys: function () { return Object.keys(NPC_DEFS); },   // §5.16 몸짓 표 진단
+    eraFolk: ERA_FOLK, eraFolkKeyOf: eraFolkKeyOf, eraFolkSpot: function (id) { return TOWNS[id] ? eraFolkSpot(TOWNS[id]) : null; },
+    townIds: function () { return TOWN_ORDER.slice(); },
     setInput: setInput, moveTo: moveTo, castSkill: castSkill, refill: refill,
     heavyAttack: heavyAttack, doDodge: doDodge, castSetSkill: castSetSkill,
     castSigSkill: castSigSkill,

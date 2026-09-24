@@ -6468,19 +6468,89 @@ window.requestAnimationFrame = function () { return 0; };
     });
 
     t('지역 몬스터 — 지역 명단 안에서만, 위험도가 감당하는 단계까지만 나온다', function () {
+      /* 세 시대 몫(§5.20, dg.eraMix)은 따로 본다 — 여기서는 끄고 명단 규칙만 */
       var WM = DG.worldMap, ED = DG.enemyData, bad = 0, n = 0, i;
-      ['hellgate', 'saltmarsh', 'scrap'].forEach(function (k) {
-        var rg = WM.byKey(k);
-        [0, 7, 14, 30].forEach(function (lv) {
-          for (i = 0; i < 12; i++) {
-            var e = DN._pickEnemyRef(lv, false, null, k); n++;
-            if (rg.roster.indexOf(e.name) < 0 || e.tier > ED.tierOf(lv)) { bad++; }
-          }
+      C.setTune('dg.eraMix', 0);
+      try {
+        ['hellgate', 'saltmarsh', 'scrap'].forEach(function (k) {
+          var rg = WM.byKey(k);
+          [0, 7, 14, 30].forEach(function (lv) {
+            for (i = 0; i < 12; i++) {
+              var e = DN._pickEnemyRef(lv, false, null, k); n++;
+              if (rg.roster.indexOf(e.name) < 0 || e.tier > ED.tierOf(lv)) { bad++; }
+            }
+          });
         });
-      });
+      } finally { C.setTune('dg.eraMix', null); }
       var old = DN._pickEnemyRef(0, false, null, null);
       return bad === 0 && !!old && (n + '번 뽑아 명단·단계 밖 0');
     });
+
+    /* ── 세 시대 사람·적(§5.20 · SAGA-DESIGN §13) ─────────────────────── */
+    /** 제 씨앗으로 굴린다 — 공유 수열(파일 머리 mulberry32)을 안 건드려 뒤 항목 판정이 안 밀린다 */
+    function ownSeed(seed, fn) {
+      var keep = Math.random, s = seed >>> 0;
+      Math.random = function () { s = (s + 0x6D2B79F5) >>> 0; var q = s; q = Math.imul(q ^ (q >>> 15), q | 1); q ^= q + Math.imul(q ^ (q >>> 7), q | 61); return ((q ^ (q >>> 14)) >>> 0) / 4294967296; };
+      try { return fn(); } finally { Math.random = keep; }
+    }
+
+    t('세 시대 적 — 여덟 모두 제 몸(표에 있고 기존 적·보스와 안 겹침), 단계마다 현대·미래 하나씩, 이름 찾기', function () {
+      var ED = DG.enemyData, AS = DG.asset3d, used = {}, bad = [];
+      ED.enemies.concat(ED.bosses).forEach(function (e) { used[e.body || 'beast'] = 1; });
+      var per = {};
+      ED.eraEnemies.forEach(function (e) {
+        if (!AS.lookup(e.body)) { bad.push('몸없음:' + e.name); }
+        if (used[e.body]) { bad.push('겹침:' + e.name); }
+        if (e.kind !== 'beast' || !e.form) { bad.push('꼴:' + e.name); }
+        if (ED.byName(e.name) !== e) { bad.push('이름:' + e.name); }
+        per[e.tier + e.era] = (per[e.tier + e.era] || 0) + 1;
+      });
+      var bodies = ED.eraEnemies.map(function (e) { return e.body; });
+      if (bodies.filter(function (b, i) { return bodies.indexOf(b) !== i; }).length) { bad.push('몸 둘이 같음'); }
+      [1, 2, 3, 4].forEach(function (t) { if (per[t + 'modern'] !== 1 || per[t + 'future'] !== 1) { bad.push('단계' + t); } });
+      if (bad.length) { throw new Error(bad.join(',')); }
+      return ED.eraEnemies.length === 8 && '여덟 · 몸 여덟 모두 다름 · 단계 1~4 현대·미래 하나씩';
+    });
+
+    t('세 시대 적 — 들판 몫: 과거 땅엔 현대·미래, 현대 땅엔 과거·미래, 신화 땅엔 셋 다 · 약 40% · 보스·던전 방은 그대로', function () { return ownSeed(925, function () {
+      var WM = DG.worldMap, ED = DG.enemyData, jw = WM.byKey('jungwon').roster;
+      var eraOf = function (e) { return e.era || (jw.indexOf(e.name) >= 0 ? 'past' : '?'); };
+      var kinds = function (k) { var o = {}; DN._eraAltPoolFor(30, k).forEach(function (e) { o[eraOf(e)] = 1; }); return Object.keys(o).sort().join('+'); };
+      var past = kinds('jungwon'), modern = kinds('neon'), myth = kinds('hellgate'), fut = kinds('scrap');
+      var n = 600, era = 0, over = 0, i;
+      for (i = 0; i < n; i++) {
+        var e = DN._pickEnemyRef(14, false, null, 'silkroad');
+        if (e.era) { era++; if (e.tier > ED.tierOf(14)) { over++; } }
+        else if (jw.indexOf(e.name) >= 0 && WM.byKey('silkroad').roster.indexOf(e.name) < 0) { over++; }   // 과거 땅이 과거 몫을 받으면 안 된다
+      }
+      var boss = 0, room = 0;
+      for (i = 0; i < 60; i++) {
+        if (DN._pickEnemyRef(14, true, null, 'silkroad').era) { boss++; }
+        if (DN._pickEnemyRef(14, false, null, null).era) { room++; }
+      }
+      var rate = era / n;
+      return past === 'future+modern' && modern === 'future+past' && myth === 'future+modern+past' && fut === 'modern+past' &&
+        rate > 0.32 && rate < 0.48 && over === 0 && boss === 0 && room === 0 &&
+        ('과거 땅 ' + past + ' · 현대 땅 ' + modern + ' · 신화 땅 ' + myth + ' · 몫 ' + Math.round(rate * 100) + '%');
+    }); });
+
+    t('세 시대 손님 — 마을마다 한 명(현대 둘·미래 둘 모두 어딘가), 제 몸 folk:*, 볼일 없이 말만, 다른 사람과 닿는 거리가 안 겹친다', function () { return ownSeed(926, function () {
+      var T = DG.town, AS = DG.asset3d, ids = T.townIds(), seen = {}, placed = 0, bad = [];
+      Object.keys(T.eraFolk).forEach(function (k) { var f = T.eraFolk[k]; if (!AS.lookup(f.model) || f.lines.length < 3 || !DG.gesture.JOB[k]) { bad.push('표:' + k); } });
+      ['moru', 'galdae', 'jajak', 'sogeum'].concat(ids.slice(4, 16)).forEach(function (id) {
+        T._reset(id);
+        var ns = T.raw().room.npcs, ef = ns.filter(function (o) { return o.model; });
+        if (ef.length > 1) { bad.push('둘:' + id); }
+        if (!ef.length) { return; }
+        placed++; seen[ef[0].key] = 1;
+        if (ef[0].sheet || !T.eraFolk[ef[0].key]) { bad.push('볼일:' + id); }
+        ns.forEach(function (o) { if (o !== ef[0] && Math.hypot(o.x - ef[0].x, o.y - ef[0].y) < T.TALK_R * 2) { bad.push('가까움:' + id + ':' + o.key); } });
+      });
+      ids.forEach(function (id) { seen[T.eraFolkKeyOf(id)] = 1; });
+      T._reset('moru');
+      if (bad.length) { throw new Error(bad.join(',')); }
+      return Object.keys(seen).length === 4 && placed >= 12 && ('마을 ' + placed + '/16 에 섰다 · 손님 넷 모두 · 마을 ' + ids.length);
+    }); });
 
     t('지역 우두머리 — 자리는 제 지역·마을에서 떨어져 있고, 다가가면 호위 셋과 서며, 쓰러뜨리면 전설·10분 쉼', function () {
       var WM = DG.worldMap, T = DG.town, keepD = JSON.stringify(C.save.dungeon || {});

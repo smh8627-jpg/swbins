@@ -1866,3 +1866,12 @@ VRoid Studio 공식 CC0 샘플 AvatarSample_A/B/C(github.com/madjin/vrm-samples,
 `models/standin/` — `Birb.glb`·`Pigeon.glb`·`Snake.glb`·`Snake_angry.glb`·`Orc.gltf`·`Demon.gltf`. 사가고 `assets/models/animals/` 의 같은 파일을
 **그대로 복사**했다(출처·경위는 `saga-web/saga-go/assets/ASSET_LICENSES.md` — Quaternius CC0: 새 둘은 animals pack, 뱀 둘은 easy_enemies_pack,
 Orc·Demon 은 Ultimate Monsters). 사용자 결정("사가고처럼 대역 입히기")으로 신수·오마주 도감 초상에 사가고와 같은 대역을 입히는 데만 쓴다.
+
+## 세 시대 적 로봇 셋 — 사가고에서 복사 (2026-09-25, PLAN §5.20)
+
+`models/monsters/robots/` — `Robot_Drone.glb`·`Robot_Walker.glb`·`Robot_Large.glb`. 사가고 `assets/models/foes/` 의 같은 파일을
+**그대로 복사**했다(Quaternius CC0 1.0, 원 출처 cyberpunk pack `Enemy_Flying`·`Enemy_2Legs`·`Enemy_Large` — 경위는
+`saga-web/saga-go/assets/ASSET_LICENSES.md` "세 시대 사람·적" 절, Meshopt 압축본). 제 클립(걷기·대기·공격·죽음) 내장.
+같은 절의 나머지 몸(폭주 청년 `polypizza_men/Punk`·방역복 `polypizza_hazmat/HazmatMan`·특공대 `polypizza_men/SWAT`·외계 `Alien_0bb74be9`·
+장갑벌 `Armabee_Evolved`, 손님 `polypizza_men/Worker`·`polypizza_women/Suit`·`SciFiCharacter`·`polypizza_space/Astronaut1`)은
+이 판에 이미 있던 파일이라 위 해당 절 그대로다.

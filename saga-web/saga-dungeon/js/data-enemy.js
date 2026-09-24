@@ -236,6 +236,23 @@
     { name: '강철촉수귀', emoji: '🐙', kind: 'beast', color: '#4a5a68', form: 'dragon', body: 'cthulhu', tier: 4, resist: { emp: 45, chi: 10 }, atkEl: 'emp' }
   ];
 
+  /* 세 시대 적(PLAN §5.20 · SAGA-DESIGN §13, 2026-09-25) — 위 기계화 변종은 "몸은 그대로, 겉만 금속"이라
+     색만 다른 몸이었다. 이 여덟은 **저마다 제 몸**(제 클립 든 GLB, 기존 적이 안 쓰는 것)이다.
+     ENEMIES 에 안 넣는다 — 던전 방·지역 명단 규칙(poolFor)은 그대로 두고, 들판에서만 `dungeon.js`
+     pickEnemyRef 가 몫(`dg.eraMix`)만큼 그 지역 시대가 **아닌** 쪽에서 뽑는다. 단계마다 현대 하나·미래 하나.
+     사람 모양이어도 kind 는 beast(제 몸 GLB 로 세우는 길) — 2D 는 form 으로 그린다. 원거리는 look.weapon(staff)
+     으로 가르는 기존 규칙 그대로. 이름은 역할 묘사뿐이라 실명 없음 */
+  var ERA_ENEMIES = [
+    { name: '폭주 청년', emoji: '🛹', kind: 'beast', color: '#7a4a6a', form: 'ogre', body: 'era_punk', look: { weapon: 'club' }, tier: 1, era: 'modern', resist: { phys: 5 } },
+    { name: '정찰 드론', emoji: '🛸', kind: 'beast', color: '#8a9aa8', form: 'bird', body: 'era_drone', look: { weapon: 'staff' }, tier: 1, era: 'future', resist: { emp: 20 }, atkEl: 'emp' },
+    { name: '방역복 추적자', emoji: '☣️', kind: 'beast', color: '#c9b030', form: 'ogre', body: 'era_hazmat', tier: 2, era: 'modern', resist: { chi: 20 }, atkEl: 'pois' },
+    { name: '경비 보행기', emoji: '🤖', kind: 'beast', color: '#7a8a9a', form: 'ogre', body: 'era_walker', tier: 2, era: 'future', resist: { emp: 30, phys: 10 } },
+    { name: '진압 특공대', emoji: '🔫', kind: 'beast', color: '#3a3a44', form: 'ogre', body: 'era_swat', look: { weapon: 'staff' }, tier: 3, era: 'modern', resist: { phys: 20 } },
+    { name: '별바다 손님', emoji: '👽', kind: 'beast', color: '#6ac08a', form: 'ogre', body: 'alien', tier: 3, era: 'future', resist: { chi: 25 }, atkEl: 'emp' },
+    { name: '실험실 장갑벌', emoji: '🐝', kind: 'beast', color: '#b0703a', form: 'bird', body: 'armabee_evolved', tier: 4, era: 'modern', resist: { phys: 25 }, atkEl: 'pois' },
+    { name: '강철 거신', emoji: '🦾', kind: 'beast', color: '#9a6a4a', form: 'ogre', body: 'era_hulk', look: { weapon: 'club' }, tier: 4, era: 'future', resist: { emp: 45, phys: 20 } }
+  ];
+
   /* id(2026-09-18, §5.4 월드 보스) — 이전엔 아무도 개체를 식별할 필요가
      없어 없었다. `save.dex.worldBoss`(토벌첩)가 이 id 로 키를 삼는다.
      name 은 표시 글자(이름 정책 대상)라 id 는 로마자 슬러그로 뺐다. */
@@ -265,8 +282,28 @@
   global.DG = global.DG || {};
   global.DG.enemyData = {
     /** 표시 이름으로 찾기(§5.13 지역 우두머리가 몸을 빌린다) */
-    byName: function (n) { for (var i = 0; i < ENEMIES.length; i++) { if (ENEMIES[i].name === n) { return ENEMIES[i]; } } return null; },
+    byName: function (n) {
+      var i;
+      for (i = 0; i < ENEMIES.length; i++) { if (ENEMIES[i].name === n) { return ENEMIES[i]; } }
+      for (i = 0; i < ERA_ENEMIES.length; i++) { if (ERA_ENEMIES[i].name === n) { return ERA_ENEMIES[i]; } }
+      return null;
+    },
     enemies: ENEMIES,
+    eraEnemies: ERA_ENEMIES,
+    /**
+     * 세 시대 적 풀(§5.20) — `eras` 에 든 시대만, 이 관문 단계(t) 이하, 지금 단계는 세 몫(poolFor 명단 규칙과 같은 무게).
+     * 맞는 게 없으면 빈 배열
+     */
+    eraPoolFor: function (stage, eras) {
+      var t = tierOf(stage), out = [], i, e;
+      for (i = 0; i < ERA_ENEMIES.length; i++) {
+        e = ERA_ENEMIES[i];
+        if (e.tier > t || !eras || eras.indexOf(e.era) < 0) { continue; }
+        out.push(e);
+        if (e.tier === t) { out.push(e, e); }
+      }
+      return out;
+    },
     bosses: BOSSES,
     tierOf: tierOf,
     /**

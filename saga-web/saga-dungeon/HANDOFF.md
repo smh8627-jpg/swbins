@@ -4256,3 +4256,10 @@ VRoid 인물이 unlit(`MeshBasicMaterial`) 그대로라 명암 없이 평면이�
 - 마을 첫 화면 렌더 삼각형 **236만 → 17만**. `field-instance.js` 덩이(`frustumCulled=false`)가 시야 밖 자연물(삼각형 138만, 시야 안 0)을 늘 그렸다.
 - 고침: 덩이마다 원본 행렬·지역 경계구(`userData.fic`)를 적고 `DG.fieldInstance.cull(camera, scene)`(dungeon3d present 직전)이 카메라가 움직일 때만 시야·안개 끝 안 자리를 채운다. 이 덩이들은 그림자를 안 드리워 그림자 상자는 안 본다. 카메라를 자연물 쪽으로 돌려 three `Frustum` 기준과 대조 12/122 = 12/122.
 - `DG.fieldInstance.cullStats()`. 진단 414/414(한 번). `sw.js` dungeon-v0.167.1. **실기 확인 대기**.
+
+## 2026-09-25 (세 시대 사람·적) — PLAN §5.20 (SAGA-DESIGN §13, 다섯 판 중 마지막)
+- 적: `data-enemy.js` ERA_ENEMIES 여덟(ENEMIES 밖이라 던전 방·지역 명단 규칙 그대로). 단계 1~4 마다 현대·미래 하나, 몸 여덟 모두 다르고 기존 적·보스가 안 쓰는 GLB — 사람형도 kind beast(제 클립 몸 `asset3d.build` 길). 로봇 셋만 사가고에서 복사(`monsters/robots/`), 나머지는 이 판 poly.pizza·Quaternius 파일.
+- 섞기: `dungeon.js` pickEnemyRef — 들판(region)·잡졸만 `dg.eraMix` 0.4 몫을 지역 era 에 없는 시대에서(현대·미래 `eraPoolFor`, 과거 = 중원 명단). 몫 0 이면 난수를 안 굴린다(기존 수열 그대로).
+- 손님: `town.js` ERA_FOLK 넷 — 마을마다 id 해시로 하나, `placePoints` 로 NPC·소품·표식·스폰에서 100 떨어진 자리(16곳 중 13곳에 섬, 빽빽한 셋은 건너뜀), 시트 없이 말만(`ui.js` 대사 돌림), 몸짓 JOB 넷, 3D 는 `folk:*` 제 몸(사람 창고 미리 받기도 건너뜀). NPC_DEFS 일곱 그대로라 몸짓 진단 8 그대로.
+- 헤드리스로 새 몸 열둘 모두 GLB·키 40·걷기/대기/공격/죽음 클립 확인. 곁일: 헤드리스 첫 화면에서 `asset3d.tick` 대기줄이 9초 안에 안 비었다(직접 돌리니 섰다) — 실기에서 몸이 늦게 서는지 볼 것.
+- 진단 414 → 417/417 세 번 같음(새 3 — 새 항목은 제 씨앗 `ownSeed` 로, 공유 수열을 밀면 "동행 서명 — 합격"이 깨졌다). 기존 "지역 명단 안에서만" 은 eraMix 0 으로 명단 규칙만 본다. PLAN 91.4KB(§5.7 곁말·§7.2 그래픽 줄 줄임). `sw.js` dungeon-v0.168.0. **실기 확인 대기**.
