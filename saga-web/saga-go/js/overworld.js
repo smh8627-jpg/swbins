@@ -166,6 +166,30 @@
       }
     }
 
+    /* 지형 설계(landform.js, §5 ⑰) — 강·산맥은 굽이점을 점선처럼, 이름은 가운데에. 정상은 점(오른 곳은 진하게) */
+    var LFo = global.DG.landform;
+    if (LFo && LFo.on() && wl) {
+      var feat = function (list, t) {
+        list.forEach(function (f) {
+          var pts = f.pts, n = pts.length, q, k2;
+          for (q = 0; q < n - 1; q++) {
+            for (k2 = 0; k2 < 4; k2++) {
+              var u = k2 / 4, fp = wl.worldToLatLng(pts[q][0] + (pts[q + 1][0] - pts[q][0]) * u, pts[q][1] + (pts[q + 1][1] - pts[q][1]) * u);
+              pois.push({ lat: fp.lat, lng: fp.lng, t: t });
+            }
+          }
+          var mid = pts[Math.floor(n / 2)], mp = wl.worldToLatLng(mid[0], mid[1]);
+          pois.push({ lat: mp.lat, lng: mp.lng, t: 'feat-name', name: f.emoji + ' ' + f.name });
+        });
+      };
+      feat(LFo.RIVERS, 'river');
+      feat(LFo.RANGES, 'ridge');
+      LFo.peaks(pos.x, pos.y).forEach(function (pk) {
+        var pp = wl.worldToLatLng(pk.x, pk.y);
+        pois.push({ lat: pp.lat, lng: pp.lng, t: LFo.peakFound(pk.key) ? 'peak-found' : 'peak', name: '⛰️ ' + pk.name });
+      });
+    }
+
     var pr = project(trail, cur, pois);
     var pad = 26;
     var side = Math.min(cw, ch) - pad * 2;
@@ -181,7 +205,11 @@
       stele: { c: '#d9d2c0', r: 2.4 },
       'stele-faint': { c: 'rgba(217,210,192,.28)', r: 2.2 },
       waypoint: { c: '#6fd3ff', r: 4.5 },
-      landmark: { c: 'rgba(255,211,107,.7)', r: 4 }
+      landmark: { c: 'rgba(255,211,107,.7)', r: 4 },
+      river: { c: 'rgba(90,170,235,.75)', r: 2.2 },
+      ridge: { c: 'rgba(170,150,120,.7)', r: 2.6 },
+      peak: { c: 'rgba(240,240,240,.45)', r: 3.2 },
+      'peak-found': { c: '#ffffff', r: 3.6 }
     };
 
     function px(pt) { return { x: ox + (pt.x + 1) / 2 * side, y: oy + (pt.y + 1) / 2 * side }; }
@@ -211,12 +239,21 @@
         ctx.textAlign = 'left';
         continue;
       }
+      if (p.t === 'feat-name') {
+        sp = px(p);
+        ctx.font = '600 10px system-ui, sans-serif';
+        ctx.fillStyle = 'rgba(200,225,255,.7)';
+        ctx.textAlign = 'center';
+        ctx.fillText(p.name, sp.x, sp.y - 6);
+        ctx.textAlign = 'left';
+        continue;
+      }
       var st = POI_STYLE[p.t];
       if (!st) { continue; }
       sp = px(p);
       ctx.fillStyle = st.c;
       ctx.beginPath(); ctx.arc(sp.x, sp.y, st.r, 0, Math.PI * 2); ctx.fill();
-      if (p.t === 'beacon-lit' || p.t === 'beacon' || p.t === 'waypoint' || p.t === 'landmark') {
+      if (p.t === 'beacon-lit' || p.t === 'beacon' || p.t === 'waypoint' || p.t === 'landmark' || p.t === 'peak' || p.t === 'peak-found') {
         ctx.font = '600 9px system-ui, sans-serif';
         ctx.fillStyle = 'rgba(255,255,255,.75)';
         ctx.textAlign = 'center';

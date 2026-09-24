@@ -305,6 +305,9 @@
     var len = Math.hypot(dx, dy) || 1;
     var step = speed * speedMul() * (run ? 2.2 : 1) * dt;
     var ux = dx / len, uy = dy / len;
+    /* §5 ⑰ 오르기·헤엄·점프 — 능선 오르막은 절반(기력이 다하면 0), 강은 0.6. 능선·강 밖은 늘 1 */
+    var LFm = global.DG.landform;
+    if (LFm) { step *= LFm.moveMul(pos.x, pos.y, ux, uy, dt); }
     var nx = pos.x + ux * step, ny = pos.y + uy * step;
     var rects = solidRectsNear(pos.x, pos.y);
     var moved = 0;
@@ -620,6 +623,12 @@
     }
     var h = terrainNoise(tx, ty), band = bandFor(tx, ty);
     if (band.clear) { return 'grass'; }          // 지역 랜드마크 둘레는 비운다(§5 ⑩)
+    /* §5 ⑰ 지형 설계 — 손으로 그은 강·호수·산맥(고향 1.3km 밖). 없으면 null 이라 노이즈가 답한다 */
+    var LF = global.DG.landform;
+    if (LF) {
+      var shaped = LF.kindAt(tx, ty);
+      if (shaped) { return shaped; }
+    }
     var road = roadIsVertical(tx, ty) ? (tx % 7 === 0) : (ty % 9 === 0);
     if (road && nearTown(tx, ty)) { return 'road'; }
     if (h < band.water) { return 'water'; }
@@ -2015,7 +2024,7 @@
        function"으로 조용히 실패하고 있었다(HTTP는 200이었는데도) */
     latLngToWorld: latLngToWorld,
     useKeyboard: useKeyboard, useGeo: useGeo,
-    setStick: setStick, walkTo: walkTo, walkingTo: walkingTo,
+    setStick: setStick, walkTo: walkTo, walkingTo: walkingTo, inputBlocked: inputBlocked,
     keymap: keymap, beginRemap: beginRemap, remapping: function () { return remapping; },
     get mode() { return mode; },
     get accuracy() { return geoAccuracy; },

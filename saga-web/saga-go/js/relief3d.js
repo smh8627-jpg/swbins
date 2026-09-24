@@ -110,6 +110,12 @@
       base += (jn * 2 - 1) * j;
     }
     if (JITTER[k]) { base *= rel; }            // 사람이 만든 자리(마을·길·논밭)는 어느 지역이든 같은 높이
+    /* §5 ⑰ 지형 설계 — 손으로 그은 산맥(30~140m)은 노이즈 산(16m)보다 높다. 능선 단면이 곧 높이 */
+    var LF = global.DG.landform;
+    if (LF && k !== 'water') {
+      var lift = LF.liftAt((gx + 0.5) * GRID, (gy + 0.5) * GRID);
+      if (lift > 0 && lift > base) { base = lift; }
+    }
     /* 캐시가 무한히 자라지 않게 — 걸어서 지나온 격자는 다시 볼 일이 드물다 */
     if (lvCount > 4000) { lvCache = {}; lvCount = 0; }
     lvCache[ck] = base; lvCount++;

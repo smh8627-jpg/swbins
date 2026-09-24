@@ -2188,7 +2188,11 @@
       if (sm.done) { swapFx = null; }             // 이제 swapout 은 안 먹여져 sweepActors 가 흩어 지운다
       walking = walking || sm.inSide > 0.05;
     }
-    placeActor(meA, mx, my, h * farBoost(mx, my), walkBob, walking, mot.phase, now);
+    /* §5 ⑰ 점프 — 뛰어오른 높이만큼 몸을 띄우고 jump 몸짓(없으면 asset3d 가 idle 로 물러난다) */
+    var LFa = global.DG.landform, air = LFa ? LFa.airH() : 0;
+    if (air > 0) { meA.animName = 'jump'; meA.animUntil = now + 120; }
+    placeActor(meA, mx, my, h * farBoost(mx, my), walkBob + air, walking && !air, mot.phase, now);
+    if (air > 0 && meA.mesh) { meA.node.position.y += air; }
 
     /* 교전 상대(`duelStage()` 로 세운 임시 배우) — `spawns` 에 없으니 여기서
        직접 먹인다. 코앞이라 `farBoost` 는 안 준다(늘 가까이서 마주 선다) */

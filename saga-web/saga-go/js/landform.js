@@ -1,0 +1,406 @@
+/**
+ * 지형 설계(地形) — 원신식 강·호수·산맥·정상 + 오르기·헤엄·점프 (PLAN §5 ⑰)
+ * ---------------------------------------------------------------
+ * ⑩·⑮ 로 땅마다 이름과 바이옴은 생겼지만, 지형은 여전히 노이즈 문턱의 **뭉치**였다 —
+ * 산은 16m 언덕, 물은 흩어진 웅덩이. "저 산을 넘으면 뭐가 있을까"가 없었다(사용자
+ * "맵이 원신식 맞아?"). 여기서 **손으로 그은 고정 지형**을 얹는다.
+ *
+ *   강 셋    은하강(설산 → 고향 동쪽 → 갈대 나루 → 소금 갯벌 하구) · 붉은내(용의 협곡 → 가마골)
+ *            · 달빛내(옛 성터 → 달그림자 호수). 굽이는 고정 노이즈 — 해시만, 난수 0
+ *   호수 하나 달그림자 호수
+ *   산맥 일곱 땅마다 제 산 — 설산맥·솔숲 고개·붉은 벼랑·용의 협곡·성터 능선·서역 사구·구름 산.
+ *            능선 높이 34~140m(옛 산 16m), 허리가 가장 가파르다(smoothstep 단면)
+ *   정상     능선 위 이름 있는 봉우리 — 30m 안에 오르면 발견(보상·기록). save.peaks
+ *
+ * 판정 층(`kindAt`·`riverAt`·`ridgeAt`·`liftAt`·`peaks`)은 순수 함수다. `world.terrainAt`
+ * 이 손그림 땅·실제 지형(OSM) 다음, 노이즈 앞에서 이것을 묻는다. **고향(원점 1.3km)은
+ * 안 닿는다** — 옛 지형·진단 그대로.
+ *
+ * ── 몸 (키보드 모드만 — GPS 로 걷는 중엔 실제 몸이 걷는다) ──────────
+ *   오르기  능선 위 가파른 오르막(기울기 0.28 넘게)은 걸음이 절반, 기력이 준다. 다하면 못 오른다
+ *   헤엄    강·호수에선 걸음 0.6, 기력이 준다(여울은 걸어 건넌다)
+ *   점프    스페이스 / 점프 단추 — 1.3m 뛴다(화면 층). 오르는 중에 뛰면 기력 20 으로 4m 도약
+ *   기력    100 — 가만히·평지면 초당 25 찬다. 들판 전투 기력(⑨)과는 따로다(싸움 중엔 그쪽)
+ */
+(function (global) {
+  'use strict';
+
+  function core() { return global.DG.core; }
+  function K(key, def) { return core().tuned('landform.' + key, def); }
+  function on() { return K('on', 1) ? true : false; }
+
+  var CELL = 48;              // world.terrainAt 격자
+  var HOME_R = 1300;          // 고향 둘레는 안 건드린다
+  var STEP = 60;              // 선을 이만큼마다 잘게 쪼갠다(굽이)
+  var BUCKET = 500;           // 찾기 칸
+
+  /* ── 고정 지형 표 ─────────────────────────────────────────
+   * 좌표는 m(+x 동쪽·+y 남쪽 — biome.js 방위와 같다: 0 청풍(동)·90 대숲(남)·180 성터(서)·270 솔숲(북)).
+   * 강 w = 반폭(m) — 칸(48m) 가운데가 강줄기에서 34m 까지 벗어나도 끊기지 않게 판정은 최소 35 */
+  var RIVERS = [
+    { key: 'eunha', name: '은하강', hanja: '銀河江', emoji: '🌊', w: 30, wEnd: 52, meander: 170,
+      desc: '설산 눈물이 모여 고향 동쪽을 지나 갯벌로 흘러간다',
+      pts: [[700, -7800], [900, -5200], [1600, -2800], [1900, -900], [1850, 800], [2300, 2200], [3300, 3400], [5200, 5100], [7300, 7400], [9600, 9700]] },
+    { key: 'jeok', name: '붉은내', hanja: '赤川', emoji: '🔥', w: 30, wEnd: 34, meander: 140,
+      desc: '용의 협곡 불비를 삼킨 붉은 물 — 가마골을 지나 서쪽으로 꺾인다',
+      pts: [[600, 8800], [200, 6600], [-900, 4800], [-2200, 3600], [-3300, 2500], [-4200, 1700], [-4650, 1050]] },
+    { key: 'dalbit', name: '달빛내', hanja: '月川', emoji: '🌙', w: 32, wEnd: 40, meander: 120,
+      desc: '성터 언덕 밑에서 붉은내를 받아 달그림자 호수로 든다',
+      pts: [[-4650, 1050], [-4300, -400], [-3900, -1700], [-3450, -2750]] }
+  ];
+  var LAKES = [
+    { key: 'dalho', name: '달그림자 호수', hanja: '月影湖', emoji: '🌙', x: -3350, y: -3250, r: 460 }
+  ];
+  /* 산맥 — pts 는 [x, y, 능선 높이 m, 정상 이름?]. hw = 반폭(m) */
+  var RANGES = [
+    { key: 'seolsan', name: '설산맥', hanja: '雪山脈', emoji: '🏔️', hw: 560,
+      pts: [[-3600, -8000, 60], [-1200, -9200, 125, '만년설 봉'], [1400, -8700, 100, '북풍 봉'], [3800, -7800, 65]] },
+    { key: 'solryeong', name: '솔숲 고개', hanja: '松嶺', emoji: '🌲', hw: 300,
+      pts: [[-2800, -4300, 40], [-1100, -3950, 70, '솔바람 봉'], [200, -3650, 38]] },
+    { key: 'noeul', name: '붉은 벼랑', hanja: '赤壁', emoji: '🏺', hw: 300,
+      pts: [[-1700, 4900, 34], [-3000, 4700, 64, '노을 봉'], [-4200, 4000, 36]] },
+    { key: 'dragon', name: '용의 등줄기', hanja: '龍脊', emoji: '🐉', hw: 480,
+      pts: [[1800, 7000, 55], [2600, 9000, 110, '화산 봉'], [1900, 11200, 70]] },
+    { key: 'seongteo', name: '성터 능선', hanja: '城址稜', emoji: '🏯', hw: 300,
+      pts: [[-5200, 1700, 34], [-5700, 0, 60, '봉화 봉'], [-5100, -1700, 36]] },
+    { key: 'sagu', name: '서역 사구', hanja: '西域砂丘', emoji: '🐫', hw: 480,
+      pts: [[-8800, -2200, 45], [-10000, 0, 90, '모래탑 봉'], [-9000, 2300, 50]] },
+    { key: 'gureum', name: '구름 산', hanja: '雲山', emoji: '☁️', hw: 520,
+      pts: [[-6100, -7400, 60], [-7300, -8300, 140, '구름 봉'], [-8600, -8700, 80]] }
+  ];
+
+  /* ── 잘게 쪼개기(굽이) — 한 번만 ─────────────────────────── */
+  var SEGS = null, GRIDX = null, PEAKS = null;
+  function wig(s, seed, amp) {
+    /* 이 판 core.noise2 는 0~0.5 — *4-1 로 −1~1 */
+    return (core().noise2(s / STEP, seed * 37 + 5, 14) * 4 - 1) * amp;
+  }
+  function densify(pts, seed, amp, hasH) {
+    var out = [], s = 0, i;
+    for (i = 0; i < pts.length - 1; i++) {
+      var a = pts[i], b = pts[i + 1], L = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+      var nx = -(b[1] - a[1]) / L, ny = (b[0] - a[0]) / L, n = Math.max(1, Math.round(L / STEP)), k;
+      for (k = 0; k < n; k++) {
+        var t = k / n, e = (i === 0 && k === 0) ? 0 : wig(s, seed, amp);
+        out.push({ x: a[0] + (b[0] - a[0]) * t + nx * e, y: a[1] + (b[1] - a[1]) * t + ny * e,
+          h: hasH ? a[2] + (b[2] - a[2]) * t : 0, s: s });
+        s += L / n;
+      }
+    }
+    var z = pts[pts.length - 1];
+    out.push({ x: z[0], y: z[1], h: hasH ? z[2] : 0, s: s });
+    return out;
+  }
+  function addSeg(seg, R) {
+    var x0 = Math.floor((Math.min(seg.ax, seg.bx) - R) / BUCKET), x1 = Math.floor((Math.max(seg.ax, seg.bx) + R) / BUCKET);
+    var y0 = Math.floor((Math.min(seg.ay, seg.by) - R) / BUCKET), y1 = Math.floor((Math.max(seg.ay, seg.by) + R) / BUCKET);
+    for (var gy = y0; gy <= y1; gy++) {
+      for (var gx = x0; gx <= x1; gx++) {
+        var k = gx + ',' + gy;
+        (GRIDX[k] || (GRIDX[k] = [])).push(seg);
+      }
+    }
+  }
+  function build() {
+    if (SEGS) { return; }
+    SEGS = []; GRIDX = {}; PEAKS = [];
+    RIVERS.forEach(function (rv, ri) {
+      var d = densify(rv.pts, 11 + ri, rv.meander, false), tot = d[d.length - 1].s, i;
+      for (i = 0; i < d.length - 1; i++) {
+        var u = d[i].s / tot, w = rv.w + (rv.wEnd - rv.w) * u;
+        /* 여울 — 1.8km 마다 한 조각은 걸어서 건넌다(길이 끊기지 않게). 양 끝 400m 는 뺀다 */
+        var ford = d[i].s > 400 && d[i].s < tot - 400 && Math.floor(d[i].s / 1800) !== Math.floor(d[i + 1].s / 1800);
+        var sg = { type: 'river', f: rv, ax: d[i].x, ay: d[i].y, bx: d[i + 1].x, by: d[i + 1].y, w: w, ford: ford };
+        SEGS.push(sg); addSeg(sg, w + 40);
+      }
+    });
+    RANGES.forEach(function (rg, gi) {
+      var d = densify(rg.pts, 41 + gi, rg.hw * 0.22, true), i;
+      for (i = 0; i < d.length - 1; i++) {
+        var sg = { type: 'ridge', f: rg, ax: d[i].x, ay: d[i].y, bx: d[i + 1].x, by: d[i + 1].y, ha: d[i].h, hb: d[i + 1].h, w: rg.hw };
+        SEGS.push(sg); addSeg(sg, rg.hw + 10);
+      }
+      rg.pts.forEach(function (p) {
+        if (p[3]) { PEAKS.push({ key: rg.key + '_' + Math.round(p[0]) + '_' + Math.round(p[1]), name: p[3], range: rg, x: p[0], y: p[1], h: p[2] }); }
+      });
+    });
+  }
+
+  /** 점 → 선분 거리와 선분 위 비율 */
+  function segDist(sg, x, y) {
+    var dx = sg.bx - sg.ax, dy = sg.by - sg.ay, L2 = dx * dx + dy * dy || 1;
+    var t = ((x - sg.ax) * dx + (y - sg.ay) * dy) / L2;
+    t = t < 0 ? 0 : (t > 1 ? 1 : t);
+    return { d: Math.hypot(x - sg.ax - dx * t, y - sg.ay - dy * t), t: t };
+  }
+  function near(x, y) {
+    build();
+    return GRIDX[Math.floor(x / BUCKET) + ',' + Math.floor(y / BUCKET)] || null;
+  }
+
+  /** 이 자리의 강(반폭 안이면) — { f, d, w, ford } 또는 null. 호수도 여기서 답한다 */
+  function riverAt(x, y) {
+    if (!on()) { return null; }
+    var list = near(x, y), best = null, i;
+    if (list) {
+      for (i = 0; i < list.length; i++) {
+        var sg = list[i];
+        if (sg.type !== 'river') { continue; }
+        var q = segDist(sg, x, y);
+        if (q.d <= Math.max(sg.w, 35) && (!best || q.d < best.d)) { best = { f: sg.f, d: q.d, w: sg.w, ford: sg.ford }; }
+      }
+    }
+    if (best) { return best; }
+    for (i = 0; i < LAKES.length; i++) {
+      var L = LAKES[i], a = Math.atan2(y - L.y, x - L.x);
+      var rr = L.r * (0.86 + core().noise2(a * 3 + 50, 7, 1) * 0.56);   // 물가가 둥글지 않게
+      if (Math.hypot(x - L.x, y - L.y) <= rr) { return { f: L, d: 0, w: rr, lake: true, ford: false }; }
+    }
+    return null;
+  }
+
+  function smooth(t) { return t * t * (3 - 2 * t); }
+
+  /** 이 자리의 능선 — { f, t(0 발치 ~ 1 등성), h(m) } 또는 null. 겹치면 높은 쪽 */
+  function ridgeAt(x, y) {
+    if (!on()) { return null; }
+    var list = near(x, y), best = null, i;
+    if (!list) { return null; }
+    for (i = 0; i < list.length; i++) {
+      var sg = list[i];
+      if (sg.type !== 'ridge') { continue; }
+      var q = segDist(sg, x, y);
+      if (q.d >= sg.w) { continue; }
+      var t = 1 - q.d / sg.w, H = sg.ha + (sg.hb - sg.ha) * q.t, h = H * smooth(t);
+      if (!best || h > best.h) { best = { f: sg.f, t: t, h: h }; }
+    }
+    return best;
+  }
+
+  var kindCache = {}, kindCount = 0;
+  /** 격자 한 칸의 땅(`world.terrainAt` 가 묻는다) — 'water' | 'road'(여울) | 'mount' | null(노이즈가 답한다) */
+  function kindAt(tx, ty) {
+    if (!on()) { return null; }
+    var k = tx + ',' + ty;
+    if (kindCache.hasOwnProperty(k)) { return kindCache[k]; }
+    var x = (tx + 0.5) * CELL, y = (ty + 0.5) * CELL, out = null;
+    if (Math.hypot(x, y) >= HOME_R) {
+      var rv = riverAt(x, y);
+      if (rv) { out = rv.ford ? 'road' : 'water'; }
+      else {
+        var rg = ridgeAt(x, y);
+        if (rg && rg.t > 0.28) { out = 'mount'; }
+      }
+    }
+    if (kindCount > 40000) { kindCache = {}; kindCount = 0; }
+    kindCache[k] = out; kindCount++;
+    return out;
+  }
+
+  /** 기복에 얹을 능선 높이(m) — `relief3d.levelAt` 가 칸 가운데로 묻는다. 고향이면 0 */
+  function liftAt(x, y) {
+    if (!on() || Math.hypot(x, y) < HOME_R) { return 0; }
+    var rg = ridgeAt(x, y);
+    return rg ? rg.h : 0;
+  }
+
+  /** 정상 목록(가까운 순, R 안) */
+  /** 진단용 — 굽이를 넣은 강·능선 줄기 점들(키로) */
+  function line(key) {
+    build();
+    var out = [];
+    SEGS.forEach(function (sg) { if (sg.f.key === key) { out.push({ x: sg.ax, y: sg.ay }); } });
+    return out;
+  }
+
+  function peaks(x, y, R) {
+    build();
+    var out = [], i;
+    for (i = 0; i < PEAKS.length; i++) {
+      var p = PEAKS[i], d = Math.hypot(p.x - x, p.y - y);
+      if (R === undefined || d <= R) { out.push({ key: p.key, name: p.name, range: p.range.name, emoji: p.range.emoji, x: p.x, y: p.y, h: p.h, dist: d }); }
+    }
+    out.sort(function (a, b) { return a.dist - b.dist; });
+    return out;
+  }
+
+  /* ── 정상 발견 ─────────────────────────────────────────── */
+  var PEAK_R = 30;
+  function peakSave() {
+    var s = core().save;
+    if (!s.peaks || typeof s.peaks !== 'object') { s.peaks = {}; }
+    return s.peaks;
+  }
+  function peakFound(key) { return !!peakSave()[key]; }
+  function discoverPeak(p) {
+    if (!p || peakFound(p.key)) { return false; }
+    var c = core();
+    peakSave()[p.key] = Date.now();
+    var gold = 80 + Math.round(p.h);
+    c.save.player.gold = (c.save.player.gold || 0) + gold;
+    c.save.dust = (c.save.dust || 0) + 2;
+    if (c.gainExp) { c.gainExp(50); }
+    c.log('⛰️ 정상 — ' + p.name + ' (' + Math.round(p.h) + 'm · 금 +' + gold + ')', 'discover');
+    if (global.DG.ui && global.DG.ui.toast) { global.DG.ui.toast('⛰️ ' + p.name + ' 정상! ' + Math.round(p.h) + 'm — 멀리까지 보인다'); }
+    if (global.DG.audio) { try { global.DG.audio.play('discover'); } catch (e) { /* 소리는 없어도 된다 */ } }
+    c.emit('peak:found', { key: p.key, name: p.name });
+    c.persist();
+    return true;
+  }
+
+  /* ── 몸: 기력·오르기·헤엄·점프 (키보드 모드만) ──────────────── */
+  function STA_MAX() { return K('sta', 100); }
+  var CLIMB_G = 0.28;         // 이보다 가파른 오르막이 '오르기'(안쪽 산 허리 ≈0.33, 바깥 산 ≈0.43)
+  var CLIMB_MUL = 0.5, SWIM_MUL = 0.6, TIRED_SWIM = 0.3, SLIDE_MUL = 1.2;
+  var CLIMB_DRAIN = 12, SWIM_DRAIN = 6, REGEN = 25;
+  var JUMP_T = 0.55, JUMP_H = 1.3, LEAP = 4, LEAP_COST = 20;
+  var body = { sta: -1, state: 'walk', busy: false, climbT: 0, jumpT: -1, tired: false, ux: 0, uy: 0 };
+
+  function sta() { if (body.sta < 0) { body.sta = STA_MAX(); } return body.sta; }
+  function keyMode() { var W = global.DG.world; return !!(W && W.mode === 'keyboard'); }
+  function reliefH(x, y) { var R = global.DG.relief3d; return R ? R.heightAt(x, y) : 0; }
+
+  /**
+   * 걸음 배수 — `world.moveByKeys` 가 한 걸음마다 묻는다(ux·uy = 걷는 방향 단위벡터).
+   * 오르막 기울기는 화면 기복(`relief3d`)으로 잰다 — 보이는 산과 오르는 산이 같아야 해서.
+   * 능선 밖(노이즈 언덕·고향)에선 늘 1 — 옛 걸음 그대로
+   */
+  function moveMul(x, y, ux, uy, dt) {
+    if (!on() || !keyMode()) { return 1; }
+    sta();
+    body.ux = ux; body.uy = uy;
+    var mul = 1, air = body.jumpT >= 0;
+    var rv = riverAt(x, y);
+    if (rv && !rv.ford && !air) {
+      body.state = 'swim'; body.busy = true;
+      body.sta = Math.max(0, body.sta - SWIM_DRAIN * dt);
+      return body.sta > 0 ? SWIM_MUL : TIRED_SWIM;
+    }
+    if (ridgeAt(x, y)) {
+      var g = (reliefH(x + ux * 3, y + uy * 3) - reliefH(x, y)) / 3;
+      if (g > CLIMB_G) {
+        body.state = 'climb'; body.climbT = 0.35;
+        /* 다하면 30% 찰 때까지 못 오른다 — 그동안은 숨을 고르며 찬다(busy 를 안 켠다). 안 그러면 오르막을
+           계속 미는 자동 순행이 영영 못 움직인다 */
+        if (body.sta <= 0 || body.tired) {
+          if (!body.tired) { body.tired = true; tell('😮‍💨 기력이 다했다 — 잠깐 숨을 고르자'); }
+          return 0;
+        }
+        body.busy = true;
+        body.sta = Math.max(0, body.sta - CLIMB_DRAIN * (0.6 + g) * dt);
+        return CLIMB_MUL;
+      }
+      if (g < -CLIMB_G) { mul = SLIDE_MUL; }       // 가파른 내리막은 미끄러지듯 빨리
+    }
+    body.state = 'walk';
+    return air ? mul * 1.15 : mul;
+  }
+
+  function tell(msg) {
+    if (global.DG.ui && global.DG.ui.toast && !global.DG_NO_DRAW) { global.DG.ui.toast(msg); }
+  }
+
+  /**
+   * 점프 — 스페이스·점프 단추. 오르는 중(0.35초 안에 오르막을 밟았다)이면 기력 20 으로
+   * 오르막 쪽 4m 도약, 아니면 제자리에서 1.3m(화면 층 — 판정 좌표는 그대로). 되면 true
+   */
+  function jump() {
+    if (!on() || !keyMode() || body.jumpT >= 0) { return false; }
+    var W = global.DG.world;
+    if (W && W.inputBlocked && W.inputBlocked()) { return false; }
+    sta();
+    var pos = core().save.player.pos;
+    if (body.climbT > 0 && (body.ux || body.uy)) {
+      if (body.sta < LEAP_COST) { tell('😮‍💨 도약할 기력이 없다'); return false; }
+      body.sta -= LEAP_COST;
+      pos.x += body.ux * LEAP; pos.y += body.uy * LEAP;
+      core().emit('landform:leap', {});
+    }
+    body.jumpT = 0;
+    core().emit('landform:jump', {});
+    return true;
+  }
+
+  /** 지금 뛰어오른 높이(m) — `world3d` 가 내 몸에 얹는다 */
+  function airH() {
+    if (body.jumpT < 0) { return 0; }
+    var u = body.jumpT / JUMP_T;
+    return 4 * JUMP_H * u * (1 - u);
+  }
+
+  var acc = 0;
+  function tick(dt) {
+    if (!on() || !core() || !core().save) { return; }
+    sta();
+    if (body.jumpT >= 0) { body.jumpT += dt; if (body.jumpT >= JUMP_T) { body.jumpT = -1; } }
+    if (body.climbT > 0) { body.climbT -= dt; }
+    if (!body.busy) {
+      body.sta = Math.min(STA_MAX(), body.sta + REGEN * dt);
+      if (body.sta >= STA_MAX() * 0.3) { body.tired = false; }
+      if (body.state !== 'walk' && body.climbT <= 0) { body.state = 'walk'; }
+    }
+    body.busy = false;
+    acc += dt;
+    if (acc >= 0.25) {
+      acc = 0;
+      var pos = core().save.player.pos, list = peaks(pos.x, pos.y, PEAK_R);
+      if (list.length) { discoverPeak(list[0]); }
+    }
+    if (!global.DG_NO_DRAW) { paint(); }
+  }
+
+  /* ── 화면: 기력 고리·점프 단추 ────────────────────────────── */
+  var staEl = null, jumpEl = null, bound = false;
+  function bind() {
+    if (bound || !global.addEventListener) { return; }
+    bound = true;
+    /* 스페이스 — 들판 전투가 회피로 먼저 먹었으면(preventDefault) 뛰지 않는다. 그쪽 듣개가 먼저 붙는다(init 순서) */
+    global.addEventListener('keydown', function (e) {
+      if (e.key !== ' ' || e.repeat || e.defaultPrevented) { return; }
+      var tag = e.target && e.target.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || tag === 'BUTTON') { return; }
+      if (jump()) { e.preventDefault(); }
+    });
+  }
+  function paint() {
+    if (!global.document || !document.body) { return; }
+    bind();
+    if (!staEl) {
+      staEl = document.createElement('div');
+      staEl.id = 'lf-sta';
+      staEl.innerHTML = '<i></i><span></span>';
+      document.body.appendChild(staEl);
+      jumpEl = document.createElement('button');
+      jumpEl.id = 'lf-jump';
+      jumpEl.type = 'button';
+      jumpEl.setAttribute('aria-label', '점프');
+      jumpEl.innerHTML = '<span>⤒</span><em>점프</em>';
+      jumpEl.addEventListener('pointerdown', function (e) { e.preventDefault(); jump(); });
+      document.body.appendChild(jumpEl);
+    }
+    var km = keyMode(), full = body.sta >= STA_MAX() - 0.01;
+    staEl.classList.toggle('show', km && !full);
+    staEl.classList.toggle('low', body.sta < STA_MAX() * 0.25);
+    if (km && !full) {
+      staEl.style.setProperty('--p', Math.round(100 * body.sta / STA_MAX()));
+      staEl.querySelector('span').textContent = body.state === 'climb' ? '🧗' : (body.state === 'swim' ? '🏊' : '');
+    }
+    var touch = !!(('ontouchstart' in global) || (global.navigator && navigator.maxTouchPoints > 0));
+    jumpEl.classList.toggle('show', km && touch && !document.body.classList.contains('fc-on'));
+  }
+
+  global.DG = global.DG || {};
+  global.DG.landform = {
+    RIVERS: RIVERS, LAKES: LAKES, RANGES: RANGES, HOME_R: HOME_R, CELL: CELL,
+    CLIMB_G: CLIMB_G, CLIMB_MUL: CLIMB_MUL, SWIM_MUL: SWIM_MUL, LEAP: LEAP, LEAP_COST: LEAP_COST, JUMP_T: JUMP_T, JUMP_H: JUMP_H,
+    on: on, line: line, riverAt: riverAt, ridgeAt: ridgeAt, kindAt: kindAt, liftAt: liftAt, peaks: peaks,
+    peakFound: peakFound, discoverPeak: discoverPeak,
+    moveMul: moveMul, jump: jump, airH: airH, tick: tick,
+    stamina: function () { return sta(); }, state: function () { return body.state; },
+    /** 진단 전용 — 몸 상태와 캐시를 비운다 */
+    _resetForTest: function () {
+      body = { sta: -1, state: 'walk', busy: false, climbT: 0, jumpT: -1, tired: false, ux: 0, uy: 0 };
+      kindCache = {}; kindCount = 0;
+    }
+  };
+})(window);

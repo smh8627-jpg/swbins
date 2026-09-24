@@ -1742,3 +1742,28 @@ body.fc-on #dock, body.fc-on #near { display: none !important; }
 /* 따로 크기를 안 준 <small> 은 브라우저 기본(부모의 0.8배)이라 10px 대로 떨어진다 — 바닥 11px.
    :where 로 특이도 0 이라 크기를 준 규칙은 그대로 이긴다 */
 :where(#sheet-body, #encounter) small { font-size: max(11px, .8em); }
+
+/* §5 ⑰ 지형 설계 — 기력 고리(오르기·헤엄 때만, 다 차면 숨는다)·점프 단추(키보드 모드 + 터치, 들판 전투 HUD 가 뜨면 회피 단추에 자리를 준다) */
+#lf-sta {
+  display: none; position: fixed; z-index: 19; pointer-events: none;
+  left: calc(50% + 30px); top: calc(50% - 64px); width: 34px; height: 34px; border-radius: 50%;
+  background: conic-gradient(#ffe27a calc(var(--p, 100) * 1%), rgba(0, 0, 0, .38) 0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .35);
+}
+#lf-sta.show { display: grid; place-items: center; }
+#lf-sta.low { background: conic-gradient(#ff6a5a calc(var(--p, 100) * 1%), rgba(0, 0, 0, .38) 0); }
+#lf-sta i { position: absolute; inset: 5px; border-radius: 50%; background: rgba(20, 22, 28, .72); }
+#lf-sta span { position: relative; font-size: 14px; line-height: 1; }
+#lf-jump {
+  display: none; position: fixed; z-index: 20;
+  left: 44px; bottom: calc(280px + var(--safe-b)); width: 58px; height: 58px; border-radius: 50%;   /* 세로: 조이스틱 바로 위 — 옆은 #near 카드가 차지한다 */
+  background: var(--glass); border: 1px solid var(--glass-br); color: var(--ink);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  touch-action: none; -webkit-user-select: none; user-select: none; cursor: pointer;
+  place-items: center; gap: 0; font-weight: 700;
+}
+#lf-jump.show { display: grid; }
+#lf-jump span { font-size: 22px; line-height: 1; }
+#lf-jump em { font-size: 11px; font-style: normal; opacity: .7; }
+#lf-jump:active { transform: scale(.94); }
+@media (max-height: 500px) { #lf-jump { left: 142px; bottom: calc(150px + var(--safe-b)); } }   /* 가로: 위가 #top 이라 조이스틱 오른쪽 */

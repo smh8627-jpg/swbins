@@ -89,6 +89,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/vendor/RGBELoader.js"></script>
 <script src="js/land.js"></script>
 <script src="js/biome.js"></script>
+<script src="js/landform.js"></script>
 <script src="js/geo.js"></script>
 <script src="js/world.js"></script>
 <script src="js/npc.js"></script>
@@ -8400,6 +8401,113 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       var ok = Math.abs(tBlock - (enter - 0.04)) < 1e-6 && tHigh === 1 && tSide === 1 && tNone === 1 && tIn === 1 &&
         tRot < 1 && R3.camOcclude(P, { x: 0, y: 12, z: 2 }, [house]) === 1;   // 카메라가 집 앞이면 안 가린다
       return ok && ('집 뒤로 가면 ' + Math.round(tBlock * 100) + '% 자리로 당김 · 지붕 위·비껴감·벽 안은 그대로');
+    });
+
+    /* ── ⑰ 지형 설계 — 강·호수·산맥·정상 + 오르기·헤엄·점프 (`landform.js`, PLAN §5 ⑰) ── */
+    t('지형 설계 ⑰ — 강 셋·호수·산맥 일곱·정상 여덟이 고정 · 고향 1.3km 는 옛 땅 그대로 · 끄면 옛 노이즈', function () {
+      var LF = DG.landform, W = DG.world, gx, gy, home = [], homeOff = [], far = 0, farOff = [];
+      LF._resetForTest();
+      for (gy = -27; gy <= 27; gy += 3) { for (gx = -27; gx <= 27; gx += 3) { home.push(W.terrainAt(gx, gy)); } }
+      var farOn = [];
+      for (gy = -200; gy <= -150; gy += 2) { for (gx = 0; gx <= 60; gx += 2) { farOn.push(W.terrainAt(gx, gy)); } }
+      C.setTune('landform.on', 0);
+      try {
+        for (gy = -27; gy <= 27; gy += 3) { for (gx = -27; gx <= 27; gx += 3) { homeOff.push(W.terrainAt(gx, gy)); } }
+        for (gy = -200; gy <= -150; gy += 2) { for (gx = 0; gx <= 60; gx += 2) { farOff.push(W.terrainAt(gx, gy)); } }
+      } finally { C.setTune('landform.on', null); LF._resetForTest(); }
+      farOn.forEach(function (k, i) { if (k !== farOff[i]) { far++; } });
+      var again = [];
+      for (gy = -200; gy <= -150; gy += 2) { for (gx = 0; gx <= 60; gx += 2) { again.push(W.terrainAt(gx, gy)); } }
+      var same = JSON.stringify(home) === JSON.stringify(homeOff), det = JSON.stringify(again) === JSON.stringify(farOn);
+      var nP = LF.peaks(0, 0).length;
+      return same && det && far > 20 && LF.RIVERS.length === 3 && LF.LAKES.length === 1 && LF.RANGES.length === 7 && nP === 8 &&
+        ('고향 ' + home.length + '칸 옛 땅 그대로 · 북쪽 설산 자락 ' + far + '칸이 바뀜 · 다시 물어도 같음 · 강 3·호수 1·산맥 7·정상 ' + nP);
+    });
+
+    t('지형 설계 ⑰ — 강줄기는 끊기지 않는 물길(여울만 걸어 건넌다)·호수 한가운데는 물·물은 파인다', function () {
+      var LF = DG.landform, W = DG.world, RF = DG.relief3d, bad = [], fords = 0, cells = 0;
+      LF._resetForTest(); RF.reset();
+      LF.RIVERS.forEach(function (rv) {
+        LF.line(rv.key).forEach(function (p) {
+          var k = W.terrainAt(Math.floor(p.x / 48), Math.floor(p.y / 48));
+          cells++;
+          /* 지역 탑 둘레(34m)는 들로 비운다(⑩ — 탑이 물 위에 서지 않게) — 거기선 강이 탑 앞에서 여울이 된다 */
+          var clear = DG.biome && DG.biome.on() && DG.biome.bandAt(p.x, p.y).clear;
+          if (k === 'road' || clear) { fords++; } else if (k !== 'water') { bad.push(rv.key + '@' + Math.round(p.x) + ',' + Math.round(p.y) + '=' + k); }
+        });
+      });
+      var L = LF.LAKES[0], lake = W.terrainAt(Math.floor(L.x / 48), Math.floor(L.y / 48));
+      var low = RF.heightAt(L.x, L.y) < 0;
+      return bad.length === 0 && fords >= 3 && lake === 'water' && low &&
+        ('강줄기 ' + cells + '점 전부 물(여울 ' + fords + ') · 달그림자 호수 물 · 높이 ' + RF.heightAt(L.x, L.y).toFixed(1) + 'm') ||
+        ('끊김 ' + bad.slice(0, 4).join(' ') + ' 여울 ' + fords + ' 호수 ' + lake) === '';
+    });
+
+    t('지형 설계 ⑰ — 정상은 제 높이로 솟은 산(옛 산 16m 의 네댓 배)이고, 30m 안에 오르면 한 번만 발견', function () {
+      var LF = DG.landform, W = DG.world, RF = DG.relief3d, sv = C.save;
+      LF._resetForTest(); RF.reset();
+      var pk = LF.peaks(0, 0), bad = [];
+      pk.forEach(function (p) {
+        if (LF.liftAt(p.x, p.y) < p.h * 0.8 || RF.heightAt(p.x, p.y) < p.h * 0.8 || W.terrainAt(Math.floor(p.x / 48), Math.floor(p.y / 48)) !== 'mount') { bad.push(p.name); }
+      });
+      var top = pk.filter(function (p) { return p.name === '만년설 봉'; })[0];
+      var keepPos = { x: sv.player.pos.x, y: sv.player.pos.y }, keepPk = JSON.stringify(sv.peaks || {}), g0 = sv.player.gold || 0;
+      try {
+        delete sv.peaks;
+        sv.player.pos.x = top.x + 12; sv.player.pos.y = top.y;
+        LF.tick(0.3);
+        var g1 = sv.player.gold || 0, got = LF.peakFound(top.key);
+        LF.tick(0.3);
+        var g2 = sv.player.gold || 0;
+      } finally {
+        sv.player.pos.x = keepPos.x; sv.player.pos.y = keepPos.y; sv.peaks = JSON.parse(keepPk); sv.player.gold = g0;
+        LF._resetForTest();
+      }
+      return bad.length === 0 && got && g1 === g0 + 80 + top.h && g2 === g1 &&
+        ('정상 ' + pk.length + ' 전부 산·높이 ' + pk.map(function (p) { return p.h; }).join('/') + 'm · 만년설 봉 발견 금 +' + (g1 - g0) + ' · 두 번째는 없음');
+    });
+
+    t('지형 설계 ⑰ — 오르기(비탈 절반·기력 다하면 멈춤)·헤엄(0.6)·점프(1.3m)·오르다 뛰면 기력 20 으로 4m 도약 · 평지·끄면 1', function () {
+      var LF = DG.landform, RF = DG.relief3d, W = DG.world, sv = C.save;
+      if (W.mode !== 'keyboard') { return false; }
+      LF._resetForTest(); RF.reset();
+      var top = LF.peaks(0, 0).filter(function (p) { return p.name === '만년설 봉'; })[0], spot = null, d;
+      for (d = 60; d < 500; d += 10) {
+        var gg = (RF.heightAt(top.x, top.y + d - 3) - RF.heightAt(top.x, top.y + d)) / 3;
+        if (gg > LF.CLIMB_G + 0.05) { spot = { x: top.x, y: top.y + d, g: gg }; break; }
+      }
+      if (!spot) { return false; }
+      var m1 = LF.moveMul(spot.x, spot.y, 0, -1, 0.1), s1 = LF.stamina(), n = 0, m;
+      do { m = LF.moveMul(spot.x, spot.y, 0, -1, 0.1); n++; } while (m > 0 && n < 400);
+      var empty = m === 0 && LF.stamina() === 0;
+      LF.tick(0.5); LF.tick(0.5);
+      var stBack = LF.stamina(), back = stBack >= 12;
+      /* 헤엄 — 은하강 줄기 가운데(여울 아닌) 점 */
+      var ln = LF.line('eunha'), sw = null, i;
+      for (i = 20; i < ln.length && !sw; i++) { var r = LF.riverAt(ln[i].x, ln[i].y); if (r && !r.ford) { sw = ln[i]; } }
+      LF._resetForTest();
+      var mSwim = LF.moveMul(sw.x, sw.y, 1, 0, 0.1), mFlat = LF.moveMul(0, 0, 1, 0, 0.1);
+      /* 점프 */
+      LF._resetForTest();
+      var j1 = LF.jump(); LF.tick(LF.JUMP_T / 2); var hMid = LF.airH(); LF.tick(LF.JUMP_T); var hEnd = LF.airH();
+      /* 도약 */
+      LF._resetForTest();
+      var keep = { x: sv.player.pos.x, y: sv.player.pos.y }, leap = false;
+      try {
+        sv.player.pos.x = spot.x; sv.player.pos.y = spot.y;
+        LF.moveMul(spot.x, spot.y, 0, -1, 0.01);
+        var sBefore = LF.stamina();
+        LF.jump();
+        leap = Math.abs(sv.player.pos.y - (spot.y - LF.LEAP)) < 1e-6 && Math.abs(LF.stamina() - (sBefore - LF.LEAP_COST)) < 1e-6;
+      } finally { sv.player.pos.x = keep.x; sv.player.pos.y = keep.y; }
+      C.setTune('landform.on', 0);
+      var off;
+      try { LF._resetForTest(); off = LF.moveMul(spot.x, spot.y, 0, -1, 0.1) === 1 && LF.kindAt(0, -170) === null; }
+      finally { C.setTune('landform.on', null); LF._resetForTest(); }
+      return m1 === LF.CLIMB_MUL && s1 < 100 && empty && back && mSwim === LF.SWIM_MUL && mFlat === 1 &&
+        j1 && Math.abs(hMid - LF.JUMP_H) < 0.01 && hEnd === 0 && leap && off &&
+        ('비탈 ' + spot.g.toFixed(2) + ' → 걸음 ×' + m1 + ' · ' + n + '걸음에 기력 바닥 → 멈춤 · 1초 쉬면 ' + Math.round(stBack) + ' · 강 ×' + mSwim +
+          ' · 점프 ' + hMid.toFixed(2) + 'm · 도약 4m·기력 −20 · 끄면 1');
     });
 
     t('런타임 에러 없음', function () {
