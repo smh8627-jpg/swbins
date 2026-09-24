@@ -23,6 +23,87 @@
     { from: 26, name: '천계(天界)',   floor: '#2a2536', wall: '#453c58', tint: 'rgba(160,130,220,0.12)' }
   ];
 
+  /**
+   * 명소 층(名所層) — PLAN §5.15. 층 테마 여섯마다 테마 끝 층(5·10·15·20·25·30)은 **손으로 짠 고정 층**이다.
+   * 디아블로 2 의 고정 퀘스트 구역(늘 같은 모양·같은 주인) 자리 — 나머지 층은 지금처럼 문 갈림길.
+   * 방 다섯이 늘 같은 순서로 이어지고(문은 하나, 다음 방 이름이 붙는다), 방마다 기둥 배치(pat)·
+   * 적 명단·자리가 늘 같다. 마지막 방은 층 주인(guard — 몸은 base 몬스터를 빌린다, 이름은 창작).
+   * foes: [이름, 수, 정예면 true]. 방 종류(kind)는 ROOMS 의 것을 그대로 쓴다(상자·우물·사당 판정 재사용).
+   */
+  var FIXED = [
+    { floor: 5, key: 'tomb', name: '순장 왕릉', hanja: '殉葬王陵', emoji: '⚱️',
+      intro: '돌길 양옆으로 순장된 병사들의 무덤이 늘어서 있다 — 가장 안쪽 현실에 무언가 깨어 있다',
+      guard: { name: '녹슨 순장장군', emoji: '🦴', base: '해골대장', color: '#8a7a5a', desc: '왕을 따라 묻힌 장군이 아직 칼을 쥐고 있다' },
+      rooms: [
+        { kind: 'fight', title: '참배길', pat: 'hall', foes: [['해골졸개', 4], ['원혼', 2]] },
+        { kind: 'shrine', title: '제기방', pat: 'open', foes: [['풋귀', 2]] },
+        { kind: 'elite', title: '순장갱', pat: 'ring', foes: [['해골무사', 1, true], ['해골졸개', 3]] },
+        { kind: 'trove', title: '부장품실', pat: 'cross', foes: [['해골척후', 2]] },
+        { kind: 'boss', title: '현실(玄室)', pat: 'cross', foes: [['해골무사', 2]] }
+      ] },
+    { floor: 10, key: 'fort', name: '무너진 망루성', hanja: '望樓城', emoji: '🏯',
+      intro: '성문은 부서졌고 망루에는 아직 불이 켜져 있다 — 성주가 성을 버리지 않았다',
+      guard: { name: '망루성 성주의 망령', emoji: '👑', base: '철갑 중장병', color: '#5a6a8a', desc: '함락된 날의 갑옷 그대로 성을 지킨다' },
+      rooms: [
+        { kind: 'fight', title: '부서진 성문', pat: 'hall', foes: [['떠돌이 병졸', 3], ['위군 창병', 2], ['연노 사수', 1]] },
+        { kind: 'well', title: '병영 우물', pat: 'open', foes: [] },
+        { kind: 'cave', title: '무기고', pat: 'cross', foes: [['위군 창병', 2]] },
+        { kind: 'elite', title: '망루', pat: 'ring', foes: [['왜군 조총병', 1, true], ['연노 사수', 2]] },
+        { kind: 'boss', title: '성주각', pat: 'hall', foes: [['철갑 중장병', 2]] }
+      ] },
+    { floor: 15, key: 'bandit', name: '흑풍 산채', hanja: '黑風山寨', emoji: '🏴',
+      intro: '목책 너머로 검은 깃발이 펄럭인다 — 잡혀 온 사람들의 소리가 들린다',
+      guard: { name: '흑풍 채주', emoji: '🐯', base: '산군', color: '#3a3a2a', desc: '범 가죽을 두른 산채의 우두머리' },
+      rooms: [
+        { kind: 'fight', title: '목책 어귀', pat: 'hall', foes: [['산적', 4], ['도적떼', 2]] },
+        { kind: 'event', title: '포로 우리', pat: 'open', foes: [['산적', 3]] },
+        { kind: 'forage', title: '약초밭', pat: 'open', foes: [['멧돼지', 1]] },
+        { kind: 'elite', title: '두령방', pat: 'cross', foes: [['마적', 1, true], ['산적', 3]] },
+        { kind: 'boss', title: '취의청(聚義廳)', pat: 'ring', foes: [['마적', 2]] }
+      ] },
+    { floor: 20, key: 'palace', name: '가라앉은 용궁', hanja: '沈龍宮', emoji: '🐚',
+      intro: '산호 기둥 사이로 물빛이 일렁인다 — 용좌에는 주인 대신 다른 것이 앉아 있다',
+      guard: { name: '심연 용궁지기', emoji: '🐉', base: '흑이무기', color: '#1a4a6a', desc: '용이 되지 못한 채 용궁을 차지한 것' },
+      rooms: [
+        { kind: 'fight', title: '산호길', pat: 'hall', foes: [['철갑해', 3], ['집게괴', 2], ['늪슬라임', 2]] },
+        { kind: 'well', title: '진주 샘', pat: 'ring', foes: [] },
+        { kind: 'puzzle', title: '수정 기관', pat: 'open', foes: [] },
+        { kind: 'elite', title: '해마 마구간', pat: 'cross', foes: [['이무기', 1, true], ['심해 먹물귀', 2]] },
+        { kind: 'boss', title: '용좌', pat: 'ring', foes: [['철갑해', 2]] }
+      ] },
+    { floor: 25, key: 'hellgate', name: '업화 대문', hanja: '業火大門', emoji: '⛩️',
+      intro: '재가 눈처럼 내린다 — 거대한 문 앞에서 망자들이 줄을 서 있다',
+      guard: { name: '업화 문지기', emoji: '🔥', base: '겁화귀', color: '#8a2a10', desc: '죄의 무게를 재어 문을 여는 불의 수문장' },
+      rooms: [
+        { kind: 'fight', title: '재의 다리', pat: 'hall', foes: [['화염귀', 2], ['해골귀', 3], ['가시귀', 2]] },
+        { kind: 'shrine', title: '망자의 저울', pat: 'open', foes: [['원귀', 2]] },
+        { kind: 'event', title: '고문실', pat: 'cross', foes: [['악귀', 3]] },
+        { kind: 'elite', title: '불가마', pat: 'ring', foes: [['철가시귀', 1, true], ['역병강시', 2]] },
+        { kind: 'boss', title: '대문', pat: 'hall', foes: [['화염귀', 2]] }
+      ] },
+    { floor: 30, key: 'heaven', name: '구름 위 금궐', hanja: '金闕', emoji: '🏛️',
+      intro: '구름다리 끝에 금빛 궁궐이 떠 있다 — 천장군이 문을 닫고 칼을 뽑았다',
+      guard: { name: '타락 천장군', emoji: '⚡', base: '대요술사', color: '#8a8ad9', desc: '하늘 문을 지키다 스스로 문이 되어 버린 장군' },
+      rooms: [
+        { kind: 'fight', title: '구름다리', pat: 'hall', foes: [['회오리 정령', 2], ['폭풍 정령', 2], ['산도깨비', 2]] },
+        { kind: 'well', title: '선녀 샘', pat: 'ring', foes: [] },
+        { kind: 'puzzle', title: '별자리 기관', pat: 'open', foes: [['요술사', 1]] },
+        { kind: 'elite', title: '천병 사열장', pat: 'cross', foes: [['노왕도깨비', 1, true], ['요술사', 2]] },
+        { kind: 'boss', title: '금궐 정전', pat: 'hall', foes: [['폭풍 정령', 2]] }
+      ] }
+  ];
+  /** 방 기둥 배치 — 방 크기 비율(x, y). 판정은 없고 눈으로만(makeDecor 의 기둥과 같다) */
+  var FIXED_PAT = {
+    hall:  [[0.30, 0.24], [0.50, 0.24], [0.70, 0.24], [0.30, 0.76], [0.50, 0.76], [0.70, 0.76]],
+    ring:  [[0.60, 0.20], [0.80, 0.35], [0.80, 0.65], [0.60, 0.80], [0.40, 0.65], [0.40, 0.35]],
+    cross: [[0.40, 0.30], [0.40, 0.70], [0.75, 0.30], [0.75, 0.70]],
+    open:  [[0.25, 0.20], [0.25, 0.80]]
+  };
+  function fixedOf(floor) {
+    for (var i = 0; i < FIXED.length; i++) { if (FIXED[i].floor === floor) { return FIXED[i]; } }
+    return null;
+  }
+
   function themeOf(floor) {
     var t = THEMES[0];
     for (var i = 0; i < THEMES.length; i++) { if (floor >= THEMES[i].from) { t = THEMES[i]; } }
@@ -239,6 +320,7 @@
     themeOf: themeOf, boonByKey: boonByKey, modByKey: modByKey, rollMods: rollMods,
     /** 층당 방 수 · 보스 주기 */
     roomsFor: function (floor) { return 4 + Math.min(5, Math.floor(floor / 3)); },
-    isBossFloor: function (floor) { return floor % 3 === 0; }
+    isBossFloor: function (floor) { return floor % 3 === 0; },
+    FIXED: FIXED, FIXED_PAT: FIXED_PAT, fixedOf: fixedOf
   };
 })(window);

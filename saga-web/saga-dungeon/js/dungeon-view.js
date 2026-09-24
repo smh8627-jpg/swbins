@@ -749,7 +749,7 @@
     hud.innerHTML =
       '<div class="dg-row1">' +
         '<b class="dg-floor">제 ' + st.floor + ' 층</b>' +
-        '<span class="dg-theme">' + st.theme.name + '</span>' +
+        '<span class="dg-theme">' + (st.fixed ? st.fixed.emoji + ' ' + st.fixed.name + ' · ' + st.fixed.title : st.theme.name) + '</span>' +
         '<span class="dg-room">' + st.room + ' / ' + st.roomTotal + ' 방' +
           (st.cleared ? ' · <b class="ok">정리됨</b>' : '') + '</span>' +
         '<button class="btn tiny ghost dg-leave" data-act="leave" ' +
@@ -1210,6 +1210,12 @@
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.globalAlpha = open ? 1 : 0.45;
       ctx.fillText(DOOR_ICON[dr.kind] || '⚔️', dc.x, dc.y - 8 * m.s);
+      if (dr.title) {
+        /* 명소 층(§5.15) — 다음 방 이름 */
+        ctx.font = '700 ' + Math.round(9 * m.s + 7) + 'px "Malgun Gothic", system-ui';
+        ctx.fillStyle = '#f0d9a0';
+        ctx.fillText(dr.title, dc.x - 34 * m.s, dc.y + 14 * m.s);
+      }
       ctx.globalAlpha = 1;
     }
 

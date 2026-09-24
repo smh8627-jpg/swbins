@@ -6593,6 +6593,90 @@ window.requestAnimationFrame = function () { return 0; };
       } finally { Math.random = mr; C.save.quest = JSON.parse(keepQ); C.save.player.gold = g0; }
     });
 
+    /* ── 명소 층(§5.15) — 테마 끝 층은 손으로 짠 고정 층 ─────────────────── */
+
+    t('명소 층 — 여섯(5·10·15·20·25·30), 방 다섯에 마지막은 층 주인, 이름·몸은 다 도감에 있다', function () {
+      var DD = DG.dungeonData, ED = DG.enemyData, bad = [];
+      var floors = DD.FIXED.map(function (f) { return f.floor; }).join(',');
+      DD.FIXED.forEach(function (f) {
+        if (f.rooms.length !== 5 || f.rooms[4].kind !== 'boss') { bad.push(f.key + ':방'); }
+        if (!ED.byName(f.guard.base)) { bad.push(f.key + ':몸'); }
+        if (DD.themeOf(f.floor) !== DD.themeOf(f.floor - 4)) { bad.push(f.key + ':테마'); }
+        f.rooms.forEach(function (r) {
+          if (!DD.FIXED_PAT[r.pat]) { bad.push(f.key + ':' + r.pat); }
+          r.foes.forEach(function (x) { if (!ED.byName(x[0])) { bad.push(f.key + ':' + x[0]); } });
+        });
+      });
+      if (bad.length) { throw new Error(bad.join(',')); }
+      return floors === '5,10,15,20,25,30' && DD.FIXED.map(function (f) { return f.emoji + f.name; }).join(' · ');
+    });
+
+    t('명소 층 — 늘 같다: 두 번 지어도 방 순서·적 명단·자리·기둥·항아리가 한 치도 안 다르고, 적은 방 안에 선다', function () { return withTrial(function () {
+      delete C.save.dungeon.fallen;
+      var DD = DG.dungeonData, keepD = JSON.stringify(C.save.dungeon || {});
+      function sig(r) {
+        return JSON.stringify({ k: r.kind, t: r.title,
+          e: r.enemies.map(function (e) { return [e.ref.name, Math.round(e.x), Math.round(e.y), !!e.elite, !!e.fixedGuard]; }),
+          d: r.decor.filter(function (o) { return o.t === 'pillar' || o.t === 'jar'; }).map(function (o) { return [o.t, Math.round(o.x), Math.round(o.y)]; }) });
+      }
+      try {
+        DN.enter({ floor: 10 });
+        var same = 0, all = 0, inside = true;
+        DD.FIXED.forEach(function (def) {
+          def.rooms.forEach(function (rd, i) {
+            var a = DN._makeFixedRoom(def, i), b = DN._makeFixedRoom(def, i);
+            all++; if (sig(a) === sig(b)) { same++; }
+            a.enemies.forEach(function (e) { if (e.x < DN.WALL || e.x > DN.ROOM_W - DN.WALL || e.y < DN.WALL || e.y > DN.ROOM_H - DN.WALL) { inside = false; } });
+          });
+        });
+        DN.leave();
+        return same === all && all === 30 && inside && ('방 ' + all + ' 모두 같음 · 적은 방 안');
+      } finally { if (DN.active()) { DN.leave(); } C.save.dungeon = JSON.parse(keepD); }
+    }); });
+
+    t('명소 층 — 들어가면 명소 이름, 문은 하나(다음 방 이름), 끝방 층 주인 첫 토벌만 전설 · 다음 층은 예전 갈림길', function () { return withTrial(function () {
+      delete C.save.dungeon.fallen;
+      var keepD = JSON.stringify(C.save.dungeon || {});
+      try {
+        DN.enter({ floor: 5 });
+        var st = DN.status(), R = DN.raw(), doorsOk = true, i;
+        var named = st.fixed && st.fixed.key === 'tomb' && st.fixed.title === '참배길' && st.roomTotal === 5;
+        for (i = 0; i < 4; i++) {
+          if (R.room.doors.length !== 1 || !R.room.doors[0].title) { doorsOk = false; }
+          R.room.enemies = []; R.room.cleared = true;
+          DN.goRoom(R.room.doors[0].kind);
+        }
+        var g = R.room.enemies.filter(function (e) { return e.fixedGuard === 'tomb'; })[0];
+        var guardOk = !!g && g.boss && g.ref.name === '녹슨 순장장군' && R.room.doors[0].kind === 'stair';
+        R.room.drops = [];
+        DN._grantFixedReward(g, R.room);
+        var legend1 = R.room.drops.filter(function (d) { return d.kind === 'item' && d.item.tier === 4; }).length;
+        DN._grantFixedReward(g, R.room);
+        var legend2 = R.room.drops.filter(function (d) { return d.kind === 'item' && d.item.tier === 4; }).length;
+        var clears = DN.fixedState()[5].clears;
+        R.room.enemies = []; R.room.cleared = true; R.choice = null;
+        DN.goRoom('stair');
+        var st6 = DN.status(), plain = !st6.fixed && st6.floor === 6 && DN.raw().room.doors.length >= 2;
+        DN.leave();
+        return named && doorsOk && guardOk && legend1 === 1 && legend2 === 1 && clears === 2 && plain &&
+          '순장 왕릉 · 문 하나씩 → 현실의 녹슨 순장장군 · 첫 토벌만 전설 · 6층은 갈림길';
+      } finally { if (DN.active()) { DN.leave(); } C.save.dungeon = JSON.parse(keepD); }
+    }); });
+
+    t('명소 층 — 손잡이 dungeon.fixed 를 끄면 5층도 예전처럼 갈림길, 명소 아닌 층은 늘 그대로', function () { return withTrial(function () {
+      delete C.save.dungeon.fallen;
+      var keepD = JSON.stringify(C.save.dungeon || {});
+      try {
+        var on5 = !!DN.fixedFor(5), off4 = !DN.fixedFor(4) && !DN.fixedFor(31);
+        C.setTune('dungeon.fixed', 0);
+        var off5 = !DN.fixedFor(5);
+        DN.enter({ floor: 5 });
+        var plain = !DN.status().fixed && DN.raw().room.doors.length >= 2;
+        DN.leave();
+        return on5 && off4 && off5 && plain && '켜면 명소 · 끄면 갈림길 · 4·31층은 늘 갈림길';
+      } finally { C.setTune('dungeon.fixed', null); if (DN.active()) { DN.leave(); } C.save.dungeon = JSON.parse(keepD); }
+    }); });
+
     t('런타임 에러 없음', function () {
       return errors.length === 0 || ('에러 ' + errors.length + '건: ' + errors.join(' | ')) === '';
     });

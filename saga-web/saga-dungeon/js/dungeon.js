@@ -566,6 +566,83 @@
     return out;
   }
 
+  /* ── 명소 층(名所層, §5.15) — 테마 끝 층(5·10·15·20·25·30)은 손으로 짠 고정 층 ──────
+   * 방 다섯이 늘 같은 순서(문 하나, 다음 방 이름이 붙는다), 방마다 기둥·항아리·적 명단·자리가
+   * 늘 같다. 마지막 방은 층 주인. 방 종류 판정(상자·우물·사당·퍼즐·구출…)은 makeRoom 을 그대로
+   * 쓰고, 적과 장식만 표대로 갈아 끼운다. 자리 계산에 Math.random 을 안 쓴다.
+   * 손잡이 `dungeon.fixed`(기본 1) 를 끄면 예전처럼 모든 층이 갈림길이다. */
+  function fixedOn() { return !core.tuned || core.tuned('dungeon.fixed', 1) ? true : false; }
+  function fixedFor(floor) { return fixedOn() && DD.fixedOf ? DD.fixedOf(floor) : null; }
+  function fixedState() {
+    var d = dstate();
+    if (!d.fixed || typeof d.fixed !== 'object') { d.fixed = {}; }
+    return d.fixed;
+  }
+  /** 층 주인의 몸 — 표의 base 몬스터 몸을 빌려 이름·색만 갈아 끼운다(지역 우두머리와 같은 요령) */
+  function fixedGuardRef(def) {
+    var ED = global.DG.enemyData, base = ED && ED.byName ? ED.byName(def.guard.base) : null, r = {}, k;
+    if (base) { for (k in base) { if (Object.prototype.hasOwnProperty.call(base, k)) { r[k] = base[k]; } } }
+    else { r = { kind: 'beast', form: 'ogre' }; }
+    r.id = 'fx_' + def.key; r.name = def.guard.name; r.emoji = def.guard.emoji; r.color = def.guard.color;
+    delete r.biome;
+    return r;
+  }
+  /** 적 j 번째(모두 n)의 늘 같은 자리 — 방 오른쪽 절반, 가로는 황금비로 흩고 세로는 고르게 */
+  function fixedSpot(j, n) {
+    var fx0 = (j * 0.618034 + 0.13) % 1;
+    return { x: ROOM_W * (0.5 + 0.38 * fx0), y: WALL + P_R + (ROOM_H - WALL * 2 - P_R * 2) * ((j + 0.5) / Math.max(1, n)) };
+  }
+  var FIXED_JARS = [[0.16, 0.20], [0.16, 0.80], [0.90, 0.18], [0.90, 0.82]];
+  function makeFixedRoom(def, idx) {
+    var rd = def.rooms[idx], total = def.rooms.length, floor = def.floor, ED = global.DG.enemyData, i, j = 0;
+    var room = makeRoom(rd.kind, floor, idx, total);
+    var list = [];
+    rd.foes.forEach(function (f) { for (i = 0; i < f[1]; i++) { list.push({ name: f[0], elite: !!f[2] }); } });
+    room.enemies = [];
+    if (rd.kind === 'boss') {
+      var g = spawnEnemy(floor, true, { x: ROOM_W * 0.76, y: ROOM_H * 0.5, ref: fixedGuardRef(def) });
+      g.fixedGuard = def.key;
+      room.enemies.push(g);
+    }
+    list.forEach(function (f) {
+      var sp = fixedSpot(j++, list.length), ref = ED && ED.byName ? ED.byName(f.name) : null;
+      /* spawned — 정예 확률 굴림을 건너뛴다(표에 정예라 적힌 것만 정예) */
+      room.enemies.push(spawnEnemy(floor, false, { x: sp.x, y: sp.y, ref: ref || undefined, forceElite: f.elite, spawned: !f.elite }));
+    });
+    room.enemies.forEach(function (e) { e.spawned = false; });   // 처치 보상은 여느 적과 같게
+    room.cleared = !room.enemies.length;
+    room.title = rd.title; room.fixed = def.key;
+    /* 장식 — 횃불·가시(3D 잡동사니와 같은 자리)는 두고, 기둥·항아리·균열은 표대로 */
+    var dec = (room.decor || []).filter(function (o) { return o.t === 'torch' || o.t === 'spike'; });
+    (DD.FIXED_PAT[rd.pat] || DD.FIXED_PAT.open).forEach(function (q) { dec.push({ t: 'pillar', x: ROOM_W * q[0], y: ROOM_H * q[1] }); });
+    FIXED_JARS.forEach(function (q, k) { dec.push({ t: 'jar', broken: false, x: ROOM_W * q[0], y: ROOM_H * q[1], seed: k * 1.7 + 0.4 }); });
+    dec.push({ t: 'crack', x: ROOM_W * 0.34, y: ROOM_H * 0.58, a: 0.7, len: 30 });
+    dec.push({ t: 'crack', x: ROOM_W * 0.62, y: ROOM_H * 0.36, a: 2.1, len: 24 });
+    room.decor = dec;
+    return room;
+  }
+  function fixedDoors(def, idx) {
+    if (idx >= def.rooms.length - 1) { return [{ kind: 'stair', y: ROOM_H * 0.5 }]; }
+    var nx = def.rooms[idx + 1];
+    return [{ kind: nx.kind, y: ROOM_H * 0.5, title: nx.title }];
+  }
+  /** 층 주인을 쓰러뜨렸다 — kill() 이 부른다. 첫 답파면 전설 한 점 */
+  function grantFixedReward(e, room) {
+    var def = DD.FIXED ? DD.FIXED.filter(function (f) { return f.key === e.fixedGuard; })[0] : null;
+    if (!def || !room) { return; }
+    var all = fixedState(), st = all[def.floor] || (all[def.floor] = { clears: 0, firstAt: Date.now() });
+    var first = !st.clears;
+    st.clears += 1; st.lastAt = Date.now();
+    var IT = global.DG.item;
+    if (first && IT && IT.roll) {
+      room.drops.push({ kind: 'item', item: IT.roll(def.floor + 1, { tier: 4 }), x: jitter(e.x), y: jitter(e.y) });
+      core.gainFeat(10 + def.floor, '명소 첫 답파');
+    }
+    core.emit('dungeon:fixed', { key: def.key, floor: def.floor, first: first });
+    core.log('🏛️ ' + def.name + ' — ' + def.guard.name + ' 토벌' + (first ? ' · 첫 답파! 전설 한 점' : ''), 'good');
+    core.emit('toast', '🏛️ ' + def.guard.emoji + ' ' + def.guard.name + (first ? ' — 첫 답파!' : ' 토벌'));
+  }
+
   /** 다음 방 후보 2~3개 (문에 표시된다) */
   function makeDoors(floor, index, total) {
     var out = [];
@@ -775,13 +852,20 @@
   }
 
   function buildFloor() {
-    var total = DD.roomsFor(run.floor);
+    var fdef = fixedFor(run.floor);
+    run.fixed = fdef;
+    var total = fdef ? fdef.rooms.length : DD.roomsFor(run.floor);
     run.rooms = [];
     run.roomIdx = 0;
     var firstKind = 'fight';
-    run.room = makeRoom(firstKind, run.floor, 0, total);
+    run.room = fdef ? makeFixedRoom(fdef, 0) : makeRoom(firstKind, run.floor, 0, total);
     run.roomTotal = total;
-    run.room.doors = makeDoors(run.floor, 0, total);
+    run.room.doors = fdef ? fixedDoors(fdef, 0) : makeDoors(run.floor, 0, total);
+    if (fdef) {
+      var fst = fixedState()[fdef.floor];
+      core.log(fdef.emoji + ' 명소 — ' + fdef.name + '(' + fdef.hanja + ') · ' + fdef.intro, 'info');
+      core.emit('toast', fdef.emoji + ' ' + fdef.name + (fst && fst.clears ? ' · 답파 ' + fst.clears + '번' : ' — ' + fdef.intro));
+    }
     run.corridors = doorCorridors(run.room.doors);   // PLAN §28-4 Phase 2
     run.player = makePlayer();
     run.shots = [];
@@ -1115,9 +1199,15 @@
       run.room.doors = nmDoors(isLast);
       run.nightmare.roomT = NM_ROOM_TIMER;
     } else {
-      var isBoss = DD.isBossFloor(run.floor) && isLast;
-      run.room = makeRoom(isBoss ? 'boss' : kind, run.floor, run.roomIdx, run.roomTotal);
-      run.room.doors = makeDoors(run.floor, run.roomIdx, run.roomTotal);
+      if (run.fixed) {
+        run.room = makeFixedRoom(run.fixed, run.roomIdx);
+        run.room.doors = fixedDoors(run.fixed, run.roomIdx);
+        core.emit('toast', run.fixed.emoji + ' ' + run.room.title + (isLast ? ' — ' + run.fixed.guard.desc : ''));
+      } else {
+        var isBoss = DD.isBossFloor(run.floor) && isLast;
+        run.room = makeRoom(isBoss ? 'boss' : kind, run.floor, run.roomIdx, run.roomTotal);
+        run.room.doors = makeDoors(run.floor, run.roomIdx, run.roomTotal);
+      }
     }
     run.corridors = doorCorridors(run.room.doors);   // PLAN §28-4 Phase 2
     run.player.x = WALL + 40;
@@ -3548,6 +3638,7 @@
        별개로, best 층 기준의 참가 보상을 따로 준다(아래 grantWorldBossReward). */
     if (e.worldBoss) { grantWorldBossReward(e, run.room, false); }
     if (e.regionBoss) { grantRegionBossReward(e, run.room); }
+    if (e.fixedGuard) { grantFixedReward(e, run.room); }
     if (run.trial) { trialOnKill(e); }
   }
 
@@ -4264,6 +4355,8 @@
       skills: skills, rally: rallyOn(),
       room: run.room.index + 1, roomTotal: run.roomTotal,
       cleared: run.room.cleared, kind: run.room.kind,
+      /* 명소 층(§5.15) — 있으면 HUD 가 테마 이름 대신 명소 이름·방 이름을 쓴다 */
+      fixed: run.fixed ? { key: run.fixed.key, name: run.fixed.name, emoji: run.fixed.emoji, title: run.room.title || '' } : null,
       loot: { gold: Math.round(run.loot.gold), items: run.loot.items.length },
       boons: run.boons, choice: run.choice, merchantChoice: run.merchantChoice,
       graveChoice: run.graveChoice,
@@ -4351,6 +4444,9 @@
     stepRegionBoss: stepRegionBoss, regionBossState: function () { return rbState(); },
     RB_NEAR: RB_NEAR, RB_CD_MS: RB_CD_MS,
     _grantRegionBossReward: grantRegionBossReward, _pickEnemyRef: pickEnemyRef,
+    /** 명소 층(§5.15) */
+    fixedFor: fixedFor, fixedState: function () { return fixedState(); },
+    _makeFixedRoom: makeFixedRoom, _fixedDoors: fixedDoors, _grantFixedReward: grantFixedReward,
     pickupField: pickupField,
     active: active, enter: enter, leave: leave, update: update,
     setInput: setInput, moveTo: moveTo,

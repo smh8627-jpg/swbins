@@ -4187,3 +4187,11 @@ VRoid 인물이 unlit(`MeshBasicMaterial`) 그대로라 명암 없이 평면이�
 - `ui.js` 퀘스트 탭 "📜 지역 사연 n/9 평정" · `minimap.js` 큰 지도 🔍.
 - 진단 4 → jsdom 394/394 세 번 동일(러너: 스크래치패드 jsdom, 가짜 http 출처 + 파일 로더 + Proxy 캔버스). `sw.js` dungeon-v0.159.0. **실기 확인 대기**.
 - 함정: Git Bash `sed -i` 가 `_test.html` 을 통째 LF 로 바꿨다(패턴이 안 맞았는데도) — 치환은 파이썬 바이너리로만.
+
+## 2026-09-24 (이어서 8) — 명소 층(PLAN §5.15) — 테마 끝 층 여섯을 손으로 짠 고정 층으로
+
+- 계기: 지난 보고 끝에 "던전 안 고정 층을 원하는지" 물었고 답 없이 "사가웹 이어해" → 추천안(전부 고정 말고 테마 끝 층만)으로 진행.
+- 구조: 던전 층은 방마다 `makeDoors` 가 문 2~3 을 무작위로 뽑고 `makeRoom` 이 Math.random 으로 적·장식을 흩는다(3D 귀퉁이 잡동사니만 `seedOf(floor,index)` 로 결정적). 그래서 판정은 `makeRoom` 을 그대로 부르고 적·장식만 표대로 갈아 끼우는 `makeFixedRoom` 으로 했다 — 상자·우물·사당·퍼즐·구출·채집 판정을 새로 안 만든다.
+- 고정 적은 `spawned:true` 로 정예 확률 굴림을 건너뛰게 하고 곧바로 `spawned=false` 로 되돌린다(처치 보상 배율이 spawned 를 본다).
+- 층 주인 `e.fixedGuard` → `kill()` 에서 `grantFixedReward`(첫 토벌만 전설). `save.dungeon.fixed[층]`.
+- 진단 4 — 전체 실행에선 앞 항목이 부대를 비워 입장이 막혀서 시련 진단의 `withTrial` 로 감쌌다. jsdom 398/398 세 번 동일. `sw.js` dungeon-v0.160.0. **실기 확인 대기**.
