@@ -7,12 +7,17 @@ extends Node
 ## ① 표(다섯·재사용 대기·기본 이름) ② 주인공 E 돌진 — 길 위 적만·앞으로 나감 ③ 주인공 Q 불새 깃 — 기본 공격에 화 부여·끝나면 물리
 ## ④ 현책 E 팔괘진 — 인물을 바꿔도 남아 친다 ⑤ 현책 Q — 다른 인물 기력 +15·재사용 두 배 ⑥ 해장 E 포탄 — 늦게 떨어짐
 ## ⑦ 해장 Q — 명단 공격 +20%·상태 줄 ⑧ 결사 E — 보호막 25%·12초 ⑨ 결사 Q — 받는 피해 ×0.7 ⑩ 도적 두목 E — 솟구침
-## ⑪ 도적 두목 Q — 앞 7m 소용돌이 ⑫ 운명의 자리 1 이 고유 재사용에도·표에 없는 인물은 원소 기본.
+## ⑪ 도적 두목 Q — 앞 7m 소용돌이 ⑫ 운명의 자리 1 이 고유 재사용에도·지략 인물은 원소 기본.
+## 갈래 스킬(무용·통솔·인덕 × 원소 7): ⑬ 표 — 도감 전원이 trait 대로 갈래/원소 기본, 21칸 이름이 다 다름, 원소 덧붙임 수치
+## ⑭ 무용 돌격 — 길 위 적만·재사용 대기 ⑮ 물결 — 스킬이 명단 체력 4% 회복 ⑯ 바위 호령 — 보호막 +12%
+## ⑰ 번개 검기 — 기본 공격 뇌 부여 + 다른 인물 기력 +10 ⑱ 인덕 방패 20%·덩굴 군기 13초.
 ## 저장은 안 한다(명단은 끝에 되돌린다).
 
 const Kits := preload("res://games/saga_go/data/kits.gd")
 const Domains := preload("res://games/saga_go/data/domains.gd")
 const FieldEnemy := preload("res://games/saga_go/combat/field_enemy.gd")
+const Characters := preload("res://saga_core/data/characters.gd")
+const Elements := preload("res://games/saga_go/combat/elements.gd")
 
 var _p: CharacterBody3D
 var _fc: Node
@@ -48,9 +53,10 @@ func _physics_process(_delta: float) -> void:
 				_b = _dummy(_origin + Vector3(5.0, -0.3, 0.0))
 				_next()
 		1: # ① 표
+			var sage := _hero("wisdom", "fire")
 			var ok: bool = Kits.KITS.size() == 5 and is_equal_approx(float(_fc.call("skill_cd_of", "self")), 6.0) \
 				and is_equal_approx(float(_fc.call("skill_cd_of", "sg_zhugeliang")), 12.0) \
-				and Kits.name_of("kr_yeongaesomun", "skill", "fire") == "불꽃 부채" and Kits.name_of("self", "burst", "fire") == "불새 깃"
+				and Kits.name_of(sage, "skill", "fire") == "불꽃 부채" and Kits.name_of("self", "burst", "fire") == "불새 깃"
 			for id in Kits.KITS:
 				for w in ["skill", "burst"]:
 					ok = ok and String(Kits.KITS[id][w].get("name", "")) != "" and String(Kits.KITS[id][w].get("text", "")) != ""
@@ -187,11 +193,120 @@ func _physics_process(_delta: float) -> void:
 		12: # ⑫ 운명의 자리 1·기본 원소 스킬
 			PartyState.growth["kr_gyebaek"] = {"lv": 1, "exp": 0.0, "asc": 0, "tn": 1, "ts": 1, "tb": 1, "con": 1}
 			var c1 := float(_fc.call("skill_cd_of", "kr_gyebaek"))
-			var plain := float(_fc.call("skill_cd_of", "kr_yeongaesomun"))
+			var sage := _hero("wisdom", "water")
+			var plain := float(_fc.call("skill_cd_of", sage))
 			PartyState.growth.erase("kr_gyebaek")
-			_check("c1_and_default", is_equal_approx(c1, 9.6) and is_equal_approx(plain, 6.0) and not Kits.has_kit("kr_yeongaesomun"), "c1=%.2f plain=%.2f" % [c1, plain])
+			_check("c1_and_default", is_equal_approx(c1, 9.6) and is_equal_approx(plain, 6.0) and not Kits.has_kit(sage) and Kits.family_label(sage) == "지략",
+				"c1=%.2f plain=%.2f sage=%s" % [c1, plain, sage])
 			_next()
-		13:
+		13: # ⑬ 갈래 표
+			var ok := true
+			var names := {}
+			var n := {"might": 0, "command": 0, "virtue": 0, "wisdom": 0}
+			for h in Characters.HEROES:
+				var t := String(h.trait)
+				n[t] = int(n.get(t, 0)) + 1
+				if Kits.is_signature(h.id):
+					continue
+				if t == "wisdom":
+					ok = ok and not Kits.has_kit(h.id)
+					continue
+				var k := Kits.kit_of(h.id)
+				ok = ok and String(k.get("family", "")) == t
+				for w in ["skill", "burst"]:
+					var txt := Kits.text_of(h.id, w)
+					ok = ok and Kits.name_of(h.id, w, "") != "" and txt != "" and not txt.contains("%s")
+					names[Kits.name_of(h.id, w, "")] = true
+			var wf := Kits.family_kit("might", "wind")
+			var ff := Kits.family_kit("might", "fire")
+			var rv := Kits.family_kit("virtue", "rock")
+			var gc := Kits.family_kit("command", "grass")
+			ok = ok and names.size() == 42 and is_equal_approx(float(wf.skill.cd), 5.5) and is_equal_approx(float(ff.burst.mul), 1.8 * 1.15) \
+				and is_equal_approx(float(rv.skill.shield), 0.32) and not rv.skill.has("bonus_shield") and is_equal_approx(float(gc.burst.sec), 13.0) \
+				and is_equal_approx(float(Kits.family_kit("command", "ice").skill.mul), 0.95 * 1.15)
+			_check("family_table", ok, "names=%d might=%d command=%d virtue=%d wisdom=%d" % [names.size(), n.might, n.command, n.virtue, n.wisdom])
+			_next()
+		14: # ⑭ 무용 돌격
+			if _frame == 1:
+				_v = [_hero("might", "ice")]
+				PartyState.members.assign([_v[0]])
+				_use(1)
+				_put(_a.global_position + Vector3(0.0, 0.3, 3.0))
+				_p.call("face_toward", _a.global_position)
+			if _frame == 5:
+				_v.append_array([_a.get("hp"), _b.get("hp"), _fc.call("skill")])
+			if _frame == 25:
+				var cd := float(_fc.call("skill_cd_of", _v[0]))
+				var ok: bool = bool(_v[3]) and float(_a.get("hp")) < float(_v[1]) and is_equal_approx(float(_b.get("hp")), float(_v[2])) and is_equal_approx(cd, 7.0) \
+					and Kits.name_of(_v[0], "skill", "") == "서리 돌격"
+				_check("might_dash", ok, "%s a %.0f→%.0f b %.0f→%.0f cd=%.1f" % [_v[0], _v[1], _a.get("hp"), _v[2], _b.get("hp"), cd])
+				_next()
+		15: # ⑮ 물결 회복
+			var id := _hero("might", "water")
+			PartyState.members.assign([id])
+			_use(1)
+			_fc.call("revive_all")
+			var m := float(_fc.get("max_hp"))
+			_fc.set("hp", m * 0.5)
+			var used: bool = _fc.call("skill")
+			var got := float(_fc.get("hp")) - m * 0.5
+			_check("water_heal", used and absf(got - m * 0.04) < 0.01, "%s +%.1f want %.1f" % [id, got, m * 0.04])
+			_fc.call("revive_all")
+			_next()
+		16: # ⑯ 바위 호령 — 보호막 +12%
+			var id := _hero("command", "rock")
+			PartyState.members.assign([id])
+			_use(1)
+			_fc.set("shield_hp", 0.0)
+			var used: bool = _fc.call("skill")
+			var want := float(_fc.get("max_hp")) * 0.12
+			_check("rock_shield", used and is_equal_approx(float(_fc.get("shield_hp")), want) and _kinds().count("kit_shell") >= 1,
+				"%s shield=%.0f/%.0f" % [id, _fc.get("shield_hp"), want])
+			_fc.set("shield_hp", 0.0)
+			_next()
+		17: # ⑰ 번개 검기 — 뇌 부여 + 다른 인물 기력
+			if _frame == 1:
+				var id := _hero("might", "thunder")
+				_v = [id]
+				PartyState.members.assign([id, "sg_zhugeliang"])
+				_use(1)
+				_put(_a.global_position + Vector3(0.0, 0.3, 1.8))
+			if _frame == 10:
+				var id: String = _v[0]
+				_fc.get("_energy")[id] = 100.0
+				_fc.get("_energy")["sg_zhugeliang"] = 0.0
+				_fc.get("_energy")["self"] = 0.0
+				var ok_b: bool = _fc.call("burst")
+				## 기력은 기본 공격 전에 잰다(맞히면 대기 인물도 기력을 받는다 — 뇌 공명이면 더).
+				var e2 := float(_fc.call("energy_of", "sg_zhugeliang"))
+				var e0 := float(_fc.call("energy_of", "self"))
+				_a.call("set_aura", "")
+				_fc.set("_attack_t", 0.0)
+				_fc.call("attack")
+				var ok: bool = ok_b and _fc.call("infusion_of", id) == "thunder" and _a.get("aura") == "thunder" \
+					and is_equal_approx(e2, 10.0) and is_equal_approx(e0, 10.0)
+				_check("thunder_infuse", ok, "%s inf=%s aura=%s e2=%.1f self=%.1f" % [id, _fc.call("infusion_of", id), _a.get("aura"), e2, e0])
+				_fc.get("_infuse").erase(id)
+				_next()
+		18: # ⑱ 인덕 방패 20% · 덩굴 군기 13초
+			var vid := _hero("virtue", "fire")
+			var cid := _hero("command", "grass")
+			PartyState.members.assign([vid, cid])
+			_use(1)
+			_fc.set("shield_hp", 0.0)
+			var ok_s: bool = _fc.call("skill")
+			var want := float(_fc.get("max_hp")) * 0.2
+			var s := float(_fc.get("shield_hp"))
+			_use(2)
+			_fc.get("_energy")[cid] = 100.0
+			var ok_b: bool = _fc.call("burst")
+			var bt: String = _fc.call("buff_text")
+			_check("virtue_shield_grass_rally", ok_s and is_equal_approx(s, want) and ok_b and absf(float(_fc.get("_rally_t")) - 13.0) < 0.05 and bt.contains("공격 +15%"),
+				"%s shield=%.0f/%.0f %s rally=%.1f buff='%s'" % [vid, s, want, cid, _fc.get("_rally_t"), bt])
+			_fc.set("_rally_t", 0.0)
+			_fc.set("shield_hp", 0.0)
+			_next()
+		19:
 			PartyState.members.assign(_members_before)
 			print("KIT_PROBE_DONE fails=%d" % _fails)
 			get_tree().quit()
@@ -214,6 +329,13 @@ func _use(index: int) -> void:
 	_fc.set("active", index)
 	(_fc.get("_skill_cd") as Dictionary).clear()
 	(_fc.get("_effects") as Array).clear()
+
+## trait·원소가 맞는 첫 도감 인물(고유 다섯은 뺀다).
+func _hero(trait_id: String, el: String) -> String:
+	for h in Characters.HEROES:
+		if String(h.trait) == trait_id and Elements.element_of(h.id) == el and not Kits.is_signature(h.id):
+			return h.id
+	return ""
 
 func _kinds() -> Array:
 	return (_fc.get("_effects") as Array).map(func(fx: Dictionary) -> String: return String(fx.kind))

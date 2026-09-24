@@ -314,7 +314,8 @@ func _refresh() -> void:
 		if kind != "normal":
 			var which := "skill" if kind == "skill" else "burst"
 			t_name += " 「%s」" % Kits.name_of(id, which, Elements.element_of(id))
-			tb.tooltip_text = Kits.text_of(id, which)
+			var fam := Kits.family_label(id)
+			tb.tooltip_text = ("[%s] " % fam if fam != "" else "") + Kits.text_of(id, which)
 		var head := "%s  Lv.%d%s  ×%.2f" % [t_name, t_lv, " (+%d)" % bonus if bonus > 0 else "", PartyState.talent_mul(id, kind)]
 		var t_cost := Growth.talent_cost(id, t_lv)
 		if t_cost.is_empty():

@@ -265,7 +265,7 @@ func _enemy_kind(kind: String) -> Node:
 	return null
 
 ## 원소가 el 인 도감 인물 하나(Elements.element_of 는 id 해시라 고정).
-## 그 원소의 첫 인물 — 원소 기본 스킬을 보므로 고유 스킬(106장 ㉔ data/kits.gd)이 있는 인물은 뺀다.
+## 그 원소의 첫 인물 — 원소 기본 스킬을 보므로 고유·갈래 스킬(106장 ㉔ data/kits.gd)이 있는 인물은 뺀다(지략 인물).
 func _hero_of(el: String) -> String:
 	for h in Characters.HEROES:
 		if Elements.element_of(h.id) == el and not preload("res://games/saga_go/data/kits.gd").has_kit(h.id):

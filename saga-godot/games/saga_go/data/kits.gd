@@ -1,8 +1,11 @@
 extends RefCounted
 
 ## PLAN 106장 ㉔ — 인물별 고유 스킬(원신은 인물마다 E·Q 가 다르다). 표만 — 쓰는 곳은 combat/field_combat.gd `_kit_skill`·`_kit_burst`.
-## 인물이 105 라 대표 다섯부터: 주인공 · 마을·폐허에 서 있는 역사 인물 셋(현책·해장·결사) · 도적 두목(습격 사건 등용).
-## 표에 없는 인물은 지금처럼 원소마다 같은 스킬(field_combat 원소 표) — 이름만 ELEMENT_NAMES 로 붙인다.
+## 고유(KITS) 대표 다섯: 주인공 · 마을·폐허에 서 있는 역사 인물 셋(현책·해장·결사) · 도적 두목(습격 사건 등용).
+## 그 밖의 도감 인물은 **갈래 스킬**(FAMILIES) — 인물 trait 가 틀(무용 돌격·통솔 호령·인덕 방패), 원소가 이름·덧붙는 것(ELEMENT_EXTRA).
+##   사당 시련이 ★3~4 187명 중 아무나 주므로 몇 명만 손으로 짜면 거의 안 만난다 — 갈래×원소 21칸이면 명단 넷이 거의 안 겹친다.
+##   지략(wisdom) 인물은 원소를 그대로 다루는 이들이라 지금처럼 원소마다 같은 스킬(field_combat 원소 표) — 이름·설명은 ELEMENT_NAMES·ELEMENT_TEXTS.
+##   도감에 없는 id(점검용 등)도 원소 기본.
 ## 원소·무기는 그대로 id 해시(elements.gd·weapons.gd). 특성 배율·운명의 자리(1 스킬 쿨 -20%)는 고유 스킬에도 똑같이 든다.
 ##
 ## 스킬 type: dash(앞으로 돌진하며 지나간 길) · zone(발밑 진 — 인물을 바꿔도 남아 몇 초마다 가까운 적을 친다) ·
@@ -10,6 +13,9 @@ extends RefCounted
 ## 폭발 type(모두 먼저 둘레 radius 에 mul 한 번): infuse(그 인물 기본 공격에 원소 부여) · haste(명단 스킬 재사용이 두 배로 돎 + 다른 인물 기력) ·
 ##   rally(명단 공격 +) · guard(명단이 받는 피해 -) · vortex(앞 지점에 적을 빨아들이는 소용돌이)
 ## 이름·수치는 이 판 것(원작 스킬 이름을 옮기지 않는다).
+
+const Characters := preload("res://saga_core/data/characters.gd")
+const Elements := preload("res://games/saga_go/combat/elements.gd")
 
 const KITS := {
 	"self": {
@@ -44,27 +50,132 @@ const KITS := {
 	},
 }
 
-## 표에 없는 인물이 쓰는 원소 기본 스킬의 이름(인물 화면 표시).
+## 갈래 스킬 — trait → 틀. 수치는 고유 다섯보다 한 단 낮게(고유가 그 갈래의 "대표"). text 의 %s 자리에 원소 이름.
+const FAMILIES := {
+	"might": {"label": "무용",
+		"skill": {"noun": "돌격", "type": "dash", "cd": 7.0, "sec": 0.22, "speed": 16.0, "width": 1.8, "mul": 1.15,
+			"text": "앞으로 3.5m 돌진하며 지나간 길의 적을 %s 원소로 벤다(돌진 중 무적)"},
+		"burst": {"noun": "검기", "type": "infuse", "radius": 5.5, "mul": 1.8, "sec": 8.0, "normal_mul": 1.15,
+			"text": "둘레 5.5m 를 치고, 8초 동안 기본 공격·강공격·낙하 공격이 %s 원소(피해 ×1.15)"}},
+	"command": {"label": "통솔",
+		"skill": {"noun": "호령", "type": "shells", "cd": 8.0, "reach": 10.0, "count": 2, "delay": 0.6, "radius": 2.2, "mul": 0.95,
+			"text": "10m 안 적 둘 자리에 0.6초 뒤 %s 원소 탄(둘레 2.2m) — 적이 없으면 앞 8m 에 하나"},
+		"burst": {"noun": "군기", "type": "rally", "radius": 7.0, "mul": 1.5, "sec": 10.0, "atk": 1.15,
+			"text": "둘레 7m 를 %s 원소로 치고, 10초 동안 명단 공격 +15%%"}},
+	"virtue": {"label": "인덕",
+		"skill": {"noun": "방패", "type": "guard", "cd": 12.0, "radius": 3.0, "mul": 0.7, "shield": 0.2, "sec": 12.0,
+			"text": "둘레 3m 를 %s 원소로 치고, 명단에 보호막(지금 인물 최대 체력 20%%, 12초)"},
+		"burst": {"noun": "맹세", "type": "guard", "radius": 6.5, "mul": 1.4, "sec": 10.0, "taken": 0.8,
+			"text": "둘레 6.5m 를 %s 원소로 치고, 10초 동안 명단이 받는 피해 -20%%"}},
+}
+
+## 원소가 갈래 스킬에 붙이는 이름 앞말과 덧붙는 것 — 같은 갈래라도 원소마다 쓰임이 갈린다.
+##   heal 명단 체력 회복(비율) · bonus_shield 보호막(지금 인물 최대 체력 비율, 방패 틀이면 그 보호막에 더함) · team_energy 다른 인물 기력 ·
+##   cd_add 재사용 대기 더하기 · mul_mul 스킬 피해 곱 · burst_mul_mul 폭발 피해 곱 · sec_add 폭발 효과 시간 더하기.
+const ELEMENT_EXTRA := {
+	"fire": {"word": "불꽃", "burst_mul_mul": 1.15, "note_burst": "폭발 피해 ×1.15"},
+	"water": {"word": "물결", "skill": {"heal": 0.04}, "burst": {"heal": 0.08}, "note_skill": "명단 체력 4% 회복", "note_burst": "명단 체력 8% 회복"},
+	"thunder": {"word": "번개", "skill": {"team_energy": 3.0}, "burst": {"team_energy": 10.0}, "note_skill": "다른 인물 기력 +3", "note_burst": "다른 인물 기력 +10"},
+	"wind": {"word": "바람", "cd_add": -1.5, "note_skill": "재사용 대기 1.5초 짧음"},
+	"ice": {"word": "서리", "mul_mul": 1.15, "note_skill": "스킬 피해 ×1.15"},
+	"rock": {"word": "바위", "skill": {"bonus_shield": 0.12}, "note_skill": "보호막 +12%"},
+	"grass": {"word": "덩굴", "sec_add": 3.0, "note_burst": "폭발 효과 3초 더 길게"},
+}
+
+static var _family_cache := {}
+
+## 지략 인물·도감 밖 id 가 쓰는 원소 기본 스킬의 이름(인물 화면 표시).
 const ELEMENT_NAMES := {
 	"fire": ["불꽃 부채", "불꽃 고리"], "water": ["물결 치유", "치유의 비"], "thunder": ["낙뢰 셋", "뇌운"],
 	"wind": ["바람 끌기", "소용돌이"], "ice": ["얼음 부채", "눈보라"], "rock": ["바위 기둥", "바위 방패"], "grass": ["덩굴 가시", "가시덤불"],
 }
 
+## 원소 기본 스킬 설명(지략 인물·도감 밖 id) — field_combat 원소 표 수치 그대로.
+const ELEMENT_TEXTS := {
+	"fire": ["앞 5m 부채꼴을 불꽃으로 벤다", "둘레 7m 폭발 뒤 3초 불꽃 고리(둘레 5m)"],
+	"water": ["둘레 4m 물결 + 명단 체력 8% 회복", "둘레 7m 뒤 8초 동안 1초마다 체력 5% 회복"],
+	"thunder": ["8m 안 가까운 적 셋에 낙뢰", "둘레 7m 뒤 6초 동안 가까운 적에 낙뢰"],
+	"wind": ["둘레 5m 적을 끌어당기며 친다", "둘레 7m 뒤 6초 소용돌이(둘레 5m, 끌어당김)"],
+	"ice": ["앞 6m 부채꼴을 얼린다", "둘레 7m 뒤 6초 눈보라가 나를 따라다닌다"],
+	"rock": ["앞 2.5m 에 바위 기둥(둘레 3m)", "둘레 7m + 명단 보호막(최대 체력 30%)"],
+	"grass": ["둘레 4m 덩굴 가시", "둘레 7m 뒤 8초 가시덤불(둘레 5m)"],
+}
+
+## 고유든 갈래든 스킬 표가 있는가(없으면 원소 기본 — 지략 인물·도감 밖 id).
 static func has_kit(id: String) -> bool:
+	return not kit_of(id).is_empty()
+
+## 손으로 짠 고유 다섯인가(갈래 스킬은 false).
+static func is_signature(id: String) -> bool:
 	return KITS.has(id)
 
+## {skill, burst}(고유 → 갈래 → 빈 값). 갈래는 trait·원소로 한 번 만들어 둔다.
+static func kit_of(id: String) -> Dictionary:
+	if KITS.has(id):
+		return KITS[id]
+	if _family_cache.has(id):
+		return _family_cache[id]
+	var kit := {}
+	var h: Variant = Characters.find(id)
+	if h != null and FAMILIES.has(String(h.trait)):
+		kit = family_kit(String(h.trait), Elements.element_of(id))
+	_family_cache[id] = kit
+	return kit
+
+## 갈래 × 원소 한 칸 — FAMILIES 틀에 ELEMENT_EXTRA 를 얹는다.
+static func family_kit(trait_id: String, element: String) -> Dictionary:
+	var fam: Dictionary = FAMILIES[trait_id]
+	var ex: Dictionary = ELEMENT_EXTRA[element]
+	var el_name := Elements.name_of(element)
+	var out := {"family": trait_id}
+	for which in ["skill", "burst"]:
+		var d: Dictionary = (fam[which] as Dictionary).duplicate()
+		d.name = "%s %s" % [ex.word, d.noun]
+		d.erase("noun")
+		d.text = String(d.text) % el_name
+		for key in (ex.get(which, {}) as Dictionary):
+			if key == "bonus_shield" and d.type == "guard":
+				d.shield = float(d.shield) + float(ex[which][key])
+			else:
+				d[key] = ex[which][key]
+		if which == "skill":
+			d.cd = float(d.cd) + float(ex.get("cd_add", 0.0))
+			d.mul = float(d.mul) * float(ex.get("mul_mul", 1.0))
+		else:
+			d.mul = float(d.mul) * float(ex.get("burst_mul_mul", 1.0))
+			d.sec = float(d.sec) + float(ex.get("sec_add", 0.0))
+		var note := String(ex.get("note_" + which, ""))
+		if note != "":
+			d.text = "%s · %s" % [d.text, note]
+		out[which] = d
+	return out
+
 static func skill_of(id: String) -> Dictionary:
-	return KITS[id].skill if KITS.has(id) else {}
+	return kit_of(id).get("skill", {})
 
 static func burst_of(id: String) -> Dictionary:
-	return KITS[id].burst if KITS.has(id) else {}
+	return kit_of(id).get("burst", {})
 
-## "skill"·"burst" 이름(고유가 없으면 원소 기본 이름).
-static func name_of(id: String, which: String, element: String) -> String:
+## 갈래 이름("무용" 등) — 고유면 "고유", 원소 기본이면 "지략"(도감 밖 id 는 "").
+static func family_label(id: String) -> String:
 	if KITS.has(id):
-		return String(KITS[id][which].name)
+		return "고유"
+	var fam := String(kit_of(id).get("family", ""))
+	if fam != "":
+		return String(FAMILIES[fam].label)
+	return "지략" if Characters.find(id) != null else ""
+
+## "skill"·"burst" 이름(표가 없으면 원소 기본 이름).
+static func name_of(id: String, which: String, element: String) -> String:
+	var kit := kit_of(id)
+	if not kit.is_empty():
+		return String(kit[which].name)
 	var pair: Array = ELEMENT_NAMES.get(element, ["원소 스킬", "원소 폭발"])
 	return String(pair[0 if which == "skill" else 1])
 
 static func text_of(id: String, which: String) -> String:
-	return String(KITS[id][which].text) if KITS.has(id) else "원소마다 같은 기본 %s" % ("스킬" if which == "skill" else "폭발")
+	var kit := kit_of(id)
+	if not kit.is_empty():
+		return String(kit[which].text)
+	var pair: Array = ELEMENT_TEXTS.get(Elements.element_of(id), ["원소마다 같은 기본 스킬", "원소마다 같은 기본 폭발"])
+	return String(pair[0 if which == "skill" else 1])

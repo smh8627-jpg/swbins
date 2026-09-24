@@ -539,7 +539,7 @@ func skill() -> bool:
 	_player.call("play_action", "attack", 0.4, 0.0)
 	var hits := 0
 	_crit_id = id
-	## 106장 ㉔ — 고유 스킬이 있는 인물은 그것, 없으면 원소마다 같은 스킬.
+	## 106장 ㉔ — 고유·갈래 스킬이 있는 인물은 그것, 없으면(지략 인물) 원소마다 같은 스킬.
 	var kit := Kits.skill_of(id)
 	if not kit.is_empty():
 		hits = _kit_skill(id, kit, atk, el)
@@ -692,6 +692,7 @@ func _kit_skill(id: String, kit: Dictionary, atk: float, el: String) -> int:
 				e.call("knockback", -to_e, float(kit.pull))
 				hits += 1
 			_player.call("launch_up", float(kit.lift))
+	_kit_extras(id, kit, el)
 	return hits
 
 ## 고유 원소 폭발 — 모두 먼저 둘레 radius 에 mul 한 번, 그 뒤 type 마다 남는 것.
@@ -727,6 +728,18 @@ func _kit_burst(id: String, kb: Dictionary, atk: float, el: String) -> void:
 			_ring_fx(at, radius, Elements.color_of(el), 0.5)
 			_effects.append({"kind": "kit_vortex", "center": at, "left": sec, "tick": float(kb.tick), "t": float(kb.tick), "base": atk,
 				"radius": radius, "bolt": float(kb.bolt), "pull": float(kb.pull), "el": el, "owner": id})
+	_kit_extras(id, kb, el)
+
+## 갈래 스킬(data/kits.gd FAMILIES)에 원소가 덧붙이는 것 — 명단 회복·보호막·다른 인물 기력. 고유 다섯은 이 칸이 없다.
+func _kit_extras(id: String, d: Dictionary, el: String) -> void:
+	if d.has("heal"):
+		_heal_all(float(d.heal))
+	if d.has("bonus_shield") and String(d.type) != "guard":
+		grant_shield(max_hp * float(d.bonus_shield), el)
+	if d.has("team_energy"):
+		for other in roster():
+			if other != id:
+				_energy[other] = minf(energy_of(other) + float(d.team_energy), ENERGY_MAX)
 
 ## 지금 켜진 고유 폭발 효과(왼쪽 위 상태 줄).
 func buff_text() -> String:

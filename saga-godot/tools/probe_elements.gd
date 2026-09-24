@@ -275,9 +275,10 @@ func _enemy_kind(kind: String) -> Node:
 			return e
 	return null
 
+## 원소 기본 스킬을 보므로 고유·갈래 스킬(106장 ㉔ data/kits.gd)이 있는 인물은 뺀다(지략 인물).
 func _hero_of(el: String) -> String:
 	for h in Characters.HEROES:
-		if Elements.element_of(h.id) == el:
+		if Elements.element_of(h.id) == el and not preload("res://games/saga_go/data/kits.gd").has_kit(h.id):
 			return h.id
 	return ""
 
