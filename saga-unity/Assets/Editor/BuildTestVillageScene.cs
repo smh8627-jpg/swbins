@@ -212,6 +212,14 @@ namespace Saga.EditorTools
                     "Saga/Build Vegetation Triplanar Materials 를 먼저 실행할 것.");
             }
             builder.Init(trees, rocks, treeMat, rockMat);
+            // PLAN.md 107-3 식생 바이옴 — procgen 풀 3벌·갈대 2벌(없으면 안 깐다).
+            var grass = new GameObject[3];
+            for (int i = 0; i < grass.Length; i++)
+                grass[i] = AssetDatabase.LoadAssetAtPath<GameObject>($"{GeneratedDir}grass_s{i + 1}_{(i + 1):D2}.glb");
+            var reeds = new GameObject[2];
+            for (int i = 0; i < reeds.Length; i++)
+                reeds[i] = AssetDatabase.LoadAssetAtPath<GameObject>($"{GeneratedDir}reed_s{i + 1}_{(i + 1):D2}.glb");
+            builder.InitGroundCover(grass, reeds);
             builder.Build();
         }
 

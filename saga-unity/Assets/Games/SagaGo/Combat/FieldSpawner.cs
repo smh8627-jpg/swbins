@@ -68,6 +68,12 @@ namespace Saga.Go.Combat
             return null;
         }
 
+        /// <summary>107-3 식생 바이옴 — 늘어난 나무·풀이 비키는 들판 무리 한가운데(땅 높이 0).</summary>
+        public static System.Collections.Generic.IEnumerable<Vector3> GroupCenters()
+        {
+            foreach (var g in Groups) yield return TestMapData.WorldPos(g.Gx, g.Gy);
+        }
+
         /// <summary>그 무리 적이 한꺼번에 모두 쓰러져 있나(하나라도 서 있으면 false, 그 무리 적이 없어도 false).</summary>
         public static bool GroupWiped(string groupId)
         {

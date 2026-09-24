@@ -13,6 +13,8 @@ Shader "Saga/VertexColorTriplanarLit"
         _DetailTiling ("Detail Tiling (world units per repeat)", Float) = 1.5
         _DetailStrength ("Detail Strength", Range(0,1)) = 0.6
         _BlendSharpness ("Triplanar Blend Sharpness", Range(1,8)) = 4
+        // PLAN.md 107-3 식생 바이옴 — 초록 정점색(수관·풀)만 이 빛깔로 물들인다(a = 세기, 0 이면 그대로).
+        _CanopyTint ("Canopy Tint (leafy vertex colors only, a = strength)", Color) = (1,1,1,0)
     }
     SubShader
     {
@@ -38,6 +40,7 @@ Shader "Saga/VertexColorTriplanarLit"
             float _DetailTiling;
             float _DetailStrength;
             float _BlendSharpness;
+            half4 _CanopyTint;
 
             struct Attributes
             {
@@ -91,7 +94,13 @@ Shader "Saga/VertexColorTriplanarLit"
                 half3 ambient = SampleSH(normalWS);
 
                 half detail = SampleDetailTriplanar(IN.positionWS, normalWS);
-                half3 albedo = IN.color.rgb * lerp(1.0h, detail, _DetailStrength);
+                // 초록이 빨강·파랑보다 뚜렷한 정점(수관·풀)만 — 몸통 갈색·바위 회색은 0. procgen 수관 초록 평균 밝기(0.177)로 나눠
+                // 정점마다의 명암 흔들림은 살린다.
+                half3 baseCol = IN.color.rgb;
+                half leafy = saturate((baseCol.g - max(baseCol.r, baseCol.b)) * 6.0h) * _CanopyTint.a;
+                half3 tinted = _CanopyTint.rgb * (dot(baseCol, half3(0.3333h, 0.3333h, 0.3333h)) / 0.177h);
+                baseCol = lerp(baseCol, tinted, leafy);
+                half3 albedo = baseCol * lerp(1.0h, detail, _DetailStrength);
 
                 half3 lit = albedo * (shadowed + ambient);
                 lit = MixFog(lit, IN.fogCoord);

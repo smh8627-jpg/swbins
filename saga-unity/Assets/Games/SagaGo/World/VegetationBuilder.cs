@@ -25,11 +25,33 @@ namespace Saga.Go.World
     /// `Saga/VertexColorTriplanarLit`) 대신 정점색(몸통 갈색·수관 초록·
     /// 바위 회색)을 바탕으로 쓴다. GLB 풀이 비어 있으면(다른 PC 등) 예전
     /// 결합 메시 방식으로 대체한다.
+    ///
+    /// 2026-09-24 식생 바이옴(PLAN.md 107-3) — 숲 칸마다 그 지역(`GoWorldMap.RegionAt`)의 `Vegetation` 표로
+    /// 나무 수·수관 모양(활엽·침엽·버드나무류)·크기·잎 빛깔(`_CanopyTint`, 지역마다 재질 한 벌)을 고르고,
+    /// 들·숲 칸엔 풀 포기, 강 북쪽 둑엔 갈대를 깐다(풀·갈대는 procgen `grass_s*`·`reed_s*`, 충돌 없음).
+    /// 칸마다 앞 세 그루는 옛 자리 그대로(해시 salt 불변) — 늘어난 나무는 상자·역참·무리 자리를 비킨다.
     /// </summary>
     public class VegetationBuilder : MonoBehaviour
     {
-        private const int TreesPerForestTile = 3;
         private const int RocksPerMountainTile = 1;
+        /// <summary>옛 판의 칸당 나무 수 — 이 수 안쪽은 옛 자리 그대로, 넘치는 나무만 요지를 비킨다.</summary>
+        public const int LegacyTreesPerTile = 3;
+        /// <summary>늘어난 나무가 비키는 거리(상자·역참·들판 무리 한가운데·수호장).</summary>
+        public const float ExtraTreeClearance = 8f;
+        /// <summary>풀 포기가 비키는 거리(상자·역참 — 풀이 뚫고 나오지 않게).</summary>
+        public const float GrassClearance = 3.5f;
+        public const int ReedsPerBankTile = 7;
+        private const float GrassScaleMin = 0.8f, GrassScaleMax = 1.25f;
+        private const float ReedScaleMin = 1.1f, ReedScaleMax = 1.5f;
+
+        /// <summary>`treeModels[i]`(= procgen 씨앗 i+1) 수관 모양 — procgen.py `make_tree` 가 씨앗 난수 아홉째 값으로
+        /// 고르는 것을 같은 난수열로 미리 셈(1·2 침엽, 3·4·6·11 버드나무류, 나머지 활엽). GLB 꼭짓점 수로도 확인.</summary>
+        public static readonly GoWorldMap.TreeForm[] TreeFormBySeed =
+        {
+            GoWorldMap.TreeForm.Conifer, GoWorldMap.TreeForm.Conifer, GoWorldMap.TreeForm.Willow, GoWorldMap.TreeForm.Willow,
+            GoWorldMap.TreeForm.Broadleaf, GoWorldMap.TreeForm.Willow, GoWorldMap.TreeForm.Broadleaf, GoWorldMap.TreeForm.Broadleaf,
+            GoWorldMap.TreeForm.Broadleaf, GoWorldMap.TreeForm.Broadleaf, GoWorldMap.TreeForm.Willow, GoWorldMap.TreeForm.Broadleaf,
+        };
 
         // procgen.py 기본 치수(trunk_height=3.0m)가 이미 TrunkHeight와 맞춰
         // 나온 "실제 미터" 치수라 배율은 1이면 된다(Kenney tree_oak.glb는
@@ -58,6 +80,10 @@ namespace Saga.Go.World
         [SerializeField] private GameObject[] rockModels;
         [SerializeField] private Material treeMaterial;
         [SerializeField] private Material rockMaterial;
+        [SerializeField] private GameObject[] grassModels;
+        [SerializeField] private GameObject[] reedModels;
+
+        private readonly Dictionary<string, Material> _regionMaterials = new Dictionary<string, Material>();
 
         public void Init(GameObject[] trees, GameObject[] rocks, Material treeMat, Material rockMat)
         {
@@ -65,6 +91,13 @@ namespace Saga.Go.World
             rockModels = rocks;
             treeMaterial = treeMat;
             rockMaterial = rockMat;
+        }
+
+        /// <summary>107-3 식생 바이옴 — 풀·갈대 모델(없으면 안 깐다).</summary>
+        public void InitGroundCover(GameObject[] grass, GameObject[] reeds)
+        {
+            grassModels = grass;
+            reedModels = reeds;
         }
 
         private void Awake()
@@ -81,7 +114,58 @@ namespace Saga.Go.World
         {
             BuildTrees();
             BuildRocks();
+            BuildGrass();
+            BuildReeds();
             MarkStatic();
+        }
+
+        // ---- 식생 바이옴 ---------------------------------------------------
+
+        /// <summary>지역마다 재질 한 벌 — 나무 재질을 복제해 `_CanopyTint` 만 바꾼다(같은 지역끼리 정적 배칭이 묶인다).
+        /// 편집기 빌드에서 만든 재질은 씬에 함께 저장된다. 나무 재질이 없으면(다른 PC) null.</summary>
+        public Material RegionMaterial(string regionId)
+        {
+            if (treeMaterial == null) return null;
+            if (_regionMaterials.TryGetValue(regionId, out var m) && m != null) return m;
+            var veg = GoWorldMap.VegetationOf(regionId);
+            if (veg.CanopyTint.a <= 0f) { _regionMaterials[regionId] = treeMaterial; return treeMaterial; }
+            m = new Material(treeMaterial) { name = treeMaterial.name + "_" + regionId };
+            m.SetColor("_CanopyTint", veg.CanopyTint);
+            _regionMaterials[regionId] = m;
+            return m;
+        }
+
+        /// <summary>늘어난 나무·풀이 비키는 요지 — 보물 상자·역참·들판 무리 한가운데·망루 수호장.</summary>
+        public static List<Vector3> KeyPoints()
+        {
+            var list = new List<Vector3>();
+            foreach (var c in GoTreasure.Chests) list.Add(TestMapData.WorldPos(c.Gx, c.Gy));
+            foreach (var w in GoWorldMap.Waypoints) list.Add(TestMapData.WorldPos(w.Gx, w.Gy));
+            foreach (var g in Saga.Go.Combat.FieldSpawner.GroupCenters()) list.Add(g);
+            list.Add(TestMapData.WorldPos(Saga.Go.Combat.FieldSpawner.GuardianGx, Saga.Go.Combat.FieldSpawner.GuardianGy));
+            return list;
+        }
+
+        private static bool NearAny(Vector3 p, List<Vector3> points, float radius)
+        {
+            foreach (var q in points)
+            {
+                float dx = p.x - q.x, dz = p.z - q.z;
+                if (dx * dx + dz * dz < radius * radius) return true;
+            }
+            return false;
+        }
+
+        /// <summary>그 지역 모양에 맞는 나무 모델 번호들 — 모델 수가 표와 다르거나 맞는 게 없으면 전부.</summary>
+        private List<int> TreeCandidates(GoWorldMap.TreeForm forms)
+        {
+            var list = new List<int>();
+            if (treeModels.Length == TreeFormBySeed.Length)
+                for (int i = 0; i < treeModels.Length; i++)
+                    if ((forms & TreeFormBySeed[i]) != 0 && treeModels[i] != null) list.Add(i);
+            if (list.Count == 0)
+                for (int i = 0; i < treeModels.Length; i++) if (treeModels[i] != null) list.Add(i);
+            return list;
         }
 
         /// <summary>PLAN.md 76장 Mobile Performance Pass — 나무·바위는 절대
@@ -119,6 +203,7 @@ namespace Saga.Go.World
         private void BuildTrees()
         {
             float ground = TestMapData.Legend['T'].Height;
+            var keyPoints = KeyPoints();
 
             var visualParent = new GameObject("Trees");
             visualParent.transform.SetParent(transform, false);
@@ -140,26 +225,30 @@ namespace Saga.Go.World
                 for (int x = 0; x < row.Length; x++)
                 {
                     if (row[x] != 'T') continue;
+                    string region = GoWorldMap.RegionAt(x, y);
+                    var veg = GoWorldMap.VegetationOf(region);
+                    var candidates = hasModels ? TreeCandidates(veg.Forms) : null;
 
-                    for (int i = 0; i < TreesPerForestTile; i++)
+                    for (int i = 0; i < veg.TreesPerForestTile; i++)
                     {
                         float jx = (Hash(x, y, i * 2) - 0.5f) * TestMapData.TileSize * 0.8f;
                         float jz = (Hash(x, y, i * 2 + 1) - 0.5f) * TestMapData.TileSize * 0.8f;
-                        float s = 0.7f + Hash(x, y, i * 2 + 100) * 0.6f;
+                        float s = Mathf.Lerp(veg.ScaleMin, veg.ScaleMax, Hash(x, y, i * 2 + 100));
                         float yaw = Hash(x, y, i * 2 + 200) * 360f;
                         Vector3 basePos = TestMapData.WorldPos(x, y) + new Vector3(jx, ground, jz);
                         Quaternion rot = Quaternion.Euler(0f, yaw, 0f);
+                        if (i >= LegacyTreesPerTile && NearAny(basePos, keyPoints, ExtraTreeClearance)) continue;
 
                         if (hasModels)
                         {
-                            int variant = Mathf.FloorToInt(Hash(x, y, i * 2 + 300) * treeModels.Length);
-                            variant = Mathf.Clamp(variant, 0, treeModels.Length - 1);
+                            int pick = Mathf.Clamp(Mathf.FloorToInt(Hash(x, y, i * 2 + 300) * candidates.Count), 0, candidates.Count - 1);
+                            int variant = candidates[pick];
                             var tree = Object.Instantiate(treeModels[variant], visualParent.transform);
-                            tree.name = "Tree";
+                            tree.name = treeModels.Length == TreeFormBySeed.Length ? "Tree_" + TreeFormBySeed[variant] : "Tree";
                             tree.transform.position = basePos;
                             tree.transform.rotation = rot;
                             tree.transform.localScale = Vector3.one * (GeneratedTreeScale * s);
-                            ApplyMaterial(tree, treeMaterial);
+                            ApplyMaterial(tree, RegionMaterial(region));
                         }
                         else
                         {
@@ -264,6 +353,122 @@ namespace Saga.Go.World
             {
                 BuildBakedMesh(visualParent.transform, "Rocks", verts, colors, tris);
             }
+        }
+
+        // ---- 풀·갈대(107-3 식생 바이옴) -------------------------------------
+
+        /// <summary>들('.')·숲('T') 칸에 그 지역 수만큼 풀 포기 — 충돌 없음, 지역 재질(풀도 수관 빛깔로 물든다).</summary>
+        private void BuildGrass()
+        {
+            if (grassModels == null || grassModels.Length == 0) return;
+            var parent = new GameObject("Grass");
+            parent.transform.SetParent(transform, false);
+            var keyPoints = KeyPoints();
+            for (int y = 0; y < TestMapData.RowCount; y++)
+            {
+                string row = TestMapData.Rows[y];
+                for (int x = 0; x < row.Length; x++)
+                {
+                    char ch = row[x];
+                    if (ch != '.' && ch != 'T') continue;
+                    string region = GoWorldMap.RegionAt(x, y);
+                    var veg = GoWorldMap.VegetationOf(region);
+                    float ground = TestMapData.GroundHeight(x, y);
+                    for (int i = 0; i < veg.GrassPerTile; i++)
+                    {
+                        float jx = (Hash(x, y, i * 3 + 700) - 0.5f) * TestMapData.TileSize * 0.9f;
+                        float jz = (Hash(x, y, i * 3 + 701) - 0.5f) * TestMapData.TileSize * 0.9f;
+                        Vector3 pos = TestMapData.WorldPos(x, y) + new Vector3(jx, ground, jz);
+                        if (NearAny(pos, keyPoints, GrassClearance)) continue;
+                        int variant = Mathf.Clamp(Mathf.FloorToInt(Hash(x, y, i * 3 + 702) * grassModels.Length), 0, grassModels.Length - 1);
+                        if (grassModels[variant] == null) continue;
+                        var g = Object.Instantiate(grassModels[variant], parent.transform);
+                        g.name = "Grass";
+                        g.transform.position = pos;
+                        g.transform.rotation = Quaternion.Euler(0f, Hash(x, y, i * 3 + 703) * 360f, 0f);
+                        g.transform.localScale = Vector3.one * Mathf.Lerp(GrassScaleMin, GrassScaleMax, Hash(x, y, i * 3 + 704));
+                        TintGroundCover(g, region);
+                        StripColliders(g);
+                    }
+                }
+            }
+        }
+
+        /// <summary>강 북쪽 둑 — 강 칸 바로 위(+z) 줄의 들·숲 칸 남쪽 가장자리를 따라 갈대(길·다리 칸은 비움).</summary>
+        private void BuildReeds()
+        {
+            if (reedModels == null || reedModels.Length == 0) return;
+            var parent = new GameObject("Reeds");
+            parent.transform.SetParent(transform, false);
+            for (int y = 0; y < TestMapData.RowCount - 1; y++)
+            {
+                string row = TestMapData.Rows[y];
+                for (int x = 0; x < row.Length; x++)
+                {
+                    char ch = row[x];
+                    if ((ch != '.' && ch != 'T') || TestMapData.TileAt(x, y + 1) != '~') continue;
+                    float ground = TestMapData.GroundHeight(x, y);
+                    for (int i = 0; i < ReedsPerBankTile; i++)
+                    {
+                        float jx = (Hash(x, y, i * 3 + 800) - 0.5f) * TestMapData.TileSize * 0.95f;
+                        float jz = TestMapData.TileSize * (0.36f + Hash(x, y, i * 3 + 801) * 0.11f); // 둑 끝 1~7m 안쪽
+                        Vector3 pos = TestMapData.WorldPos(x, y) + new Vector3(jx, ground, jz);
+                        int variant = Mathf.Clamp(Mathf.FloorToInt(Hash(x, y, i * 3 + 802) * reedModels.Length), 0, reedModels.Length - 1);
+                        if (reedModels[variant] == null) continue;
+                        var r = Object.Instantiate(reedModels[variant], parent.transform);
+                        r.name = "Reed";
+                        r.transform.position = pos;
+                        r.transform.rotation = Quaternion.Euler(0f, Hash(x, y, i * 3 + 803) * 360f, 0f);
+                        r.transform.localScale = Vector3.one * Mathf.Lerp(ReedScaleMin, ReedScaleMax, Hash(x, y, i * 3 + 804));
+                        TintGroundCover(r, "river");
+                        StripColliders(r);
+                    }
+                }
+            }
+        }
+
+        private readonly Dictionary<string, Material> _coverMaterials = new Dictionary<string, Material>();
+
+        /// <summary>풀·갈대 GLB 는 정점색이 아니라 색마다 재질(glTFast `baseColorFactor`)이라 트라이플레이너를 안 씌우고,
+        /// 가져온 재질을 지역마다 복제해 초록 쪽만 셰이더 `_CanopyTint` 와 같은 공식으로 물들인다(세기 0 인 지역은 그대로).</summary>
+        private void TintGroundCover(GameObject go, string regionId)
+        {
+            var tint = GoWorldMap.VegetationOf(regionId).CanopyTint;
+            if (tint.a <= 0f) return;
+            foreach (var renderer in go.GetComponentsInChildren<MeshRenderer>(true))
+            {
+                var mats = renderer.sharedMaterials;
+                for (int i = 0; i < mats.Length; i++)
+                {
+                    var src = mats[i];
+                    if (src == null) continue;
+                    string prop = src.HasProperty("baseColorFactor") ? "baseColorFactor" : src.HasProperty("_BaseColor") ? "_BaseColor" : null;
+                    if (prop == null) continue;
+                    string key = src.GetInstanceID() + "|" + regionId;
+                    if (!_coverMaterials.TryGetValue(key, out var m) || m == null)
+                    {
+                        m = new Material(src) { name = src.name + "_" + regionId };
+                        m.SetColor(prop, TintLeafy(src.GetColor(prop), tint));
+                        _coverMaterials[key] = m;
+                    }
+                    mats[i] = m;
+                }
+                renderer.sharedMaterials = mats;
+            }
+        }
+
+        /// <summary>셰이더 `_CanopyTint` 와 같은 공식 — 초록이 뚜렷한 색만 tint 쪽으로, 밝기 흔들림은 살린다.</summary>
+        public static Color TintLeafy(Color c, Color tint)
+        {
+            float leafy = Mathf.Clamp01((c.g - Mathf.Max(c.r, c.b)) * 6f) * tint.a;
+            float k = (c.r + c.g + c.b) / 3f / 0.177f;
+            var t = new Color(tint.r * k, tint.g * k, tint.b * k, c.a);
+            return Color.Lerp(c, t, leafy);
+        }
+
+        private static void StripColliders(GameObject go)
+        {
+            foreach (var c in go.GetComponentsInChildren<Collider>(true)) Object.DestroyImmediate(c);
         }
 
         // ---- 공통 --------------------------------------------------------

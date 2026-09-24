@@ -8882,3 +8882,13 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - **결과**: GO 113(들판 전투·원소·상자·지도·지역 7·역참 5·사명·사당 시련·봉수대 등) · DUNGEON 32(파티·난입·컷 제목·탐험) · FOREST 21(택배·축제·박물관) · STORY 40(비경·관문 대장·컷) — ko 는 코드 폴백 그대로(화면 변화 없음), en 은 세션 번역(사람 검수 전, 자리표시 `{n}` 일치를 스크립트로 확인). REALM 은 원래 0. `settings.*` 공유 키는 안 건드림.
 - **도구**: `saga-unity/tools/loc-missing.py` — 판별 빠진 키 수, 하나라도 있으면 exit 1(PLAN 67~69 Localization 줄에 적음). 못 잡는 모양은 도구 머리말에.
 - 검증: 스캔 0 · `PlaytestHeadless`·`PlaytestForestHeadless`·`PlaytestStorySlice` 각 OK, `PlaytestDungeonHeadless` 는 첫 실행이 Unity 시작 단계 패키지 관리자 IPC 끊김("Failed to resolve packages: operation cancelled", 진단 전)으로 exit 1 → 재실행 OK. JSON 데이터만 바뀌어 판별 1회씩만 돌렸다.
+
+## 2026-09-24 — GO 107-3 식생 바이옴(지역마다 나무·잎 빛깔·풀·갈대, 씬 재빌드) (같은 대화 세 번째 "사가 유니티 이어해", Opus 5.5)
+
+- **고른 까닭**: 남은 후보 셋 중 STORY 파티·소환은 방향 질문에 답이 없었고 106-6 전용 클립은 Mixamo 로그인(사람 몫) — 코드로 끝나는 107-3 보류분(식생)을 골랐다. 보류 사유는 "편집기에서 굽는 씬 자산"이었는데 배치 모드 씬 재빌드(`BuildTestVillageScene.Build`)로 충분했다.
+- **발견**: procgen 이 찍어 둔 `grass_s1~3`·`reed_s1~2` GLB 가 코드 어디에서도 안 쓰이고 있었다. 나무 12벌은 씨앗마다 수관 모양이 셋 중 하나 — procgen `make_tree` 의 난수열(uniform 8번 뒤 integers)을 numpy 로 다시 돌려 1·2 침엽, 3·4·6·11 버드나무류, 나머지 활엽을 셈하고 GLB 꼭짓점 수(원뿔 수관이 적다)로 맞는지 확인했다.
+- **빛깔**: 정점색 나무 셰이더에 `_CanopyTint`(초록이 빨강·파랑보다 뚜렷한 정점만, a = 세기, 수관 평균 밝기 0.177 로 나눠 명암 흔들림 유지) — 기본 a=0 이라 바위·옛 재질은 그대로. 풀·갈대는 재질색 GLB(glTFast `baseColorFactor`)라 셰이더를 안 씌우고, 가져온 재질을 지역마다 복제해 C# 에서 같은 공식(`VegetationBuilder.TintLeafy`)으로 물들였다.
+- **자리 안전**: 칸마다 앞 세 그루는 옛 해시 salt 그대로라 옛 자리. 서쪽 숲길 넷째 나무만 새로 서는데, 상자·역참·들판 무리·수호장 8m 안이면 건너뛴다(그래서 서쪽 숲길 한 칸은 셋). 풀은 충돌 없음·요지 3.5m 비킴, 갈대는 강 바로 북쪽 줄의 남쪽 둑 띠.
+- **대가**: 풀·갈대 231 포기가 씬에 저장돼 `TestVillage.unity` 2.46→3.94MB. 정적 배칭 대상(`MarkStatic`)이라 그리기 묶음은 지역·재질별. 씬 재빌드가 `Go_GuardianIntro.playable` 도 새 fileID 로 다시 쓴다(내용 같음, 함께 커밋).
+- 파일: 고침 `GoWorldMap`(Vegetation 표·TreeForm)·`VegetationBuilder`(지역 나무·재질·풀·갈대·요지)·`VertexColorTriplanarLit.shader`(`_CanopyTint`)·`FieldSpawner`(GroupCenters)·`BuildTestVillageScene`(풀·갈대 넘김)·`PlaytestHeadless`, 새 `Editor/PlaytestGoVegetation.cs`, 씬·컷 재빌드.
+- 검증: 컴파일·씬 재빌드 exit 0 · GO `PlaytestHeadless` **3연속 OK**(새 `vegetation` 줄 "나무 44(서쪽 숲길 최대 4/칸) · 풀 181(마을 5.0·공터 11.8/칸) · 갈대 49" 3회 동일, 기존 진단 전부 그대로). 셋째 실행 한 번은 Unity 시작 단계 `Failed to resolve packages: operation cancelled` 로 진단 전 exit 1 → 재실행 OK(오늘 두 번째 — PROJECT_STATE 알려진 오류에 적음). 실기 확인 전(호박빛 세기·침엽수 둘 반복감·풀 키·갈대 자리).
