@@ -24,6 +24,10 @@
  * **그로기** — 피해를 주는 패턴을 셋 잇달아 다 피하면 5초 멈춘다(받는 피해 ×1.5,
  * 몸통 박치기·돌진 없음). 한 번이라도 맞으면 셈이 0 으로.
  *
+ * §5-11 — 관문 대장(e.gate) 다섯 + 관문 수호장도 고유 기술 하나씩. 관문 대장은 제 패턴(§5-4
+ * 달려들기·내려찍기·소환·방패)이 따로 있어 `step` 대신 `stepSig` 를 탄다 — 단계·광폭 없이
+ * 고유 기술만 8초마다(제 패턴이 걸려 있으면 미룬다). 그로기는 같이 탄다.
+ *
  * **판정은 `step(e, dt, api)` 하나다 — 순수하게 e 만 바꾸고 바깥 일은 api 로 한다**
  * (api.p·api.stg·api.fx·api.hurt·api.spawn·api.sfx·api.toast·api.rand·api.hpMax).
  * 그래서 자가진단이 가짜 api 로 단계·예고·판정을 값으로 굴린다.
@@ -57,8 +61,16 @@
     '위군 도독': { kind: 'beam', name: '쇠뇌 일제사' },
     '적국 대장군': { kind: 'pillar', name: '화계 불기둥' },
     '폐도 흉장': { kind: 'pull', name: '쇠사슬 끌어당김' },
-    '암굴 귀장': { kind: 'chase', name: '귀화 추적' }
+    '암굴 귀장': { kind: 'chase', name: '귀화 추적' },
+    /* 관문 대장(§5-11) */
+    '산채 두령': { kind: 'volley', name: '돌팔매 소나기' },
+    '왜구 선장': { kind: 'pull', name: '갈고리 끌어당김' },
+    '거란 도통': { kind: 'beam', name: '기마 화살 일제사' },
+    '몽골 만호장': { kind: 'ring', name: '만호 포위진' },
+    '왜장': { kind: 'pillar', name: '화승총 두 줄 사격' },
+    '관문 수호장': { kind: 'chase', name: '수호 인장 추적' }
   };
+  var GATE_SIG_CD = 8, GATE_SIG_FIRST = 4;
   function sigOf(e) { return (e && e.ref && SIG[e.ref.name]) || null; }
 
   /** 체력 비율 → 단계(0·1·2) */
@@ -243,11 +255,29 @@
       api.sfx('boss');
       return out;
     }
+    if (tickBusy(e, dt, api, out)) { return out; }
+    b.cd -= dt * (b.phase === 2 ? 1 / 0.7 : 1);
+    if (b.cd <= 0 && near && !(e.charge > 0)) {
+      var pool = poolOf(b.phase, b.sig);
+      /* 같은 것을 두 번 잇지 않는다 · 부르기는 단계마다 한 번 */
+      var cand = pool.filter(function (k) { return k !== b.last && !(k === 'summon' && b.summoned >= b.phase); });
+      if (!cand.length) { cand = pool; }
+      var kind = cand[Math.floor(api.rand() * cand.length) % cand.length];
+      if (b.first) { kind = b.first; b.first = ''; }     // 등장 뒤 첫 기술은 고유 기술
+      begin(e, kind, api);
+      b.cd = CD[b.phase];
+    }
+    return out;
+  }
+
+  /** 그로기·걸린 패턴을 한 걸음 굴린다 — @returns 이번 걸음을 여기서 끝냈으면 true */
+  function tickBusy(e, dt, api, out) {
+    var b = e.bp;
     if (b.groggy > 0) {
       b.groggy -= dt; out.groggy = true;
       e.charge = 0; e.chargeCd = Math.max(e.chargeCd || 0, 1);
       if (b.groggy <= 0) { b.groggy = 0; b.cd = Math.min(b.cd, 1.0); }
-      return out;
+      return true;
     }
     if (b.kind) {
       b.t -= dt;
@@ -266,25 +296,32 @@
           if (rh >= 0) { out.hit = rh; b.kind = ''; }
         }
       }
-      return out;
+      return true;
     }
-    b.cd -= dt * (b.phase === 2 ? 1 / 0.7 : 1);
-    if (b.cd <= 0 && near && !(e.charge > 0)) {
-      var pool = poolOf(b.phase, b.sig);
-      /* 같은 것을 두 번 잇지 않는다 · 부르기는 단계마다 한 번 */
-      var cand = pool.filter(function (k) { return k !== b.last && !(k === 'summon' && b.summoned >= b.phase); });
-      if (!cand.length) { cand = pool; }
-      var kind = cand[Math.floor(api.rand() * cand.length) % cand.length];
-      if (b.first) { kind = b.first; b.first = ''; }     // 등장 뒤 첫 기술은 고유 기술
-      begin(e, kind, api);
-      b.cd = CD[b.phase];
+    return false;
+  }
+
+  /**
+   * 관문 대장(§5-11) — 고유 기술만. 단계·광폭·공용 패턴은 없다(관문 대장 제 패턴이 따로 돈다).
+   * 제 패턴(e.patternT)이나 돌진이 걸려 있으면 미룬다.
+   */
+  function stepSig(e, dt, api, near) {
+    var b = init(e), out = { phase: 0, changed: false, hit: 0 };
+    if (!b.sig) { return out; }
+    if (b.sigCd === undefined) { b.sigCd = GATE_SIG_FIRST; b.first = ''; }
+    if (tickBusy(e, dt, api, out)) { return out; }
+    b.sigCd -= dt;
+    if (b.sigCd <= 0 && near && !(e.charge > 0) && !(e.patternT > 0)) {
+      begin(e, b.sig, api);
+      b.sigCd = GATE_SIG_CD;
     }
     return out;
   }
 
   global.DG = global.DG || {};
   global.DG.bossPattern = {
-    on: on, phaseOf: phaseOf, poolOf: poolOf, step: step, init: init, sigOf: sigOf,
+    on: on, phaseOf: phaseOf, poolOf: poolOf, step: step, stepSig: stepSig, init: init, sigOf: sigOf,
+    GATE_SIG_CD: GATE_SIG_CD, GATE_SIG_FIRST: GATE_SIG_FIRST,
     SLAM: SLAM, ROCK: ROCK, QUAKE: QUAKE, SWEEP: SWEEP, CD: CD, PHASE_AT: PHASE_AT,
     RING: RING, VOLLEY: VOLLEY, BEAM: BEAM, PILLAR: PILLAR, PULL: PULL, CHASE: CHASE, GROGGY: GROGGY, SIG: SIG,
     /** 받는 피해 배수 — side.js strike 가 부른다(그로기 동안 ×1.5) */

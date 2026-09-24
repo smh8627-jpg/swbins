@@ -837,3 +837,10 @@ SAGA-DESIGN §11 Phase 4 의 "사가스토리 펫 이미지 공백(보류)" — 
 - `side.js` strike 에 그로기 배수, 적 루프에서 BP.step 뒤 그로기면 `continue`(걷기·박치기 없음). 돌진은 step 이 `charge=0`·`chargeCd≥1` 로 막는다.
 - `side-view.js` ringwarn·beamwarn·groggy 그림, 불기둥은 zonewarn `fire` 로 붉게.
 - 진단 5 + 기존 "사냥터 루프 예고" 항목이 새 예고(ring/beam)도 받게. jsdom 238/239 세 번 동일(남은 1 은 jsdom 의 getBoundingClientRect 한계 — 화면 네 칸 조작, 늘 실패하던 것). `sw.js` side-v0.84.0. **실기 확인 대기**.
+
+## 2026-09-24 (이어서 2) — 관문 대장 고유 기술(PLAN §5-11)
+
+- 계기: "사가웹 이어해" — §8 4b 다음 후보.
+- `boss-pattern.js` — `step` 안의 그로기·걸린 패턴 처리를 `tickBusy` 로 떼고, 관문 대장용 `stepSig`(고유 기술만, `b.sigCd` 4초 → 8초)를 더했다. `SIG` 에 관문 대장 다섯 + 관문 수호장.
+- `side.js` — 사냥터 보스 분기 옆에 `e.gate` 분기(stepSig, 그로기면 continue), 관문 대장 제 패턴은 `e.bp.kind` 가 비어 있을 때만 문다.
+- 진단 2 → jsdom 240/241 세 번 동일(1 은 늘 있던 getBoundingClientRect 한계). `sw.js` side-v0.85.0. **실기 확인 대기**.

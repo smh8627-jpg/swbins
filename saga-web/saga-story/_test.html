@@ -993,6 +993,50 @@ window.DG_NO_TUNE = true;
         '둘 피함 → 맞으면 0 → 셋 피함 → 그로기 5초(×1.5, 패턴·돌진 없음, 제자리)';
     });
 
+    t('관문 대장 고유 기술(§5-11) — 다섯 대장·관문 수호장이 다 제 기술이 있고, 4초 뒤 첫 기술 · 8초 간격 · 제 패턴 중엔 미룬다', function () {
+      var BP = DG.bossPattern, bad = [];
+      SD.STAGES.forEach(function (st) { if (st.gateBoss && !BP.SIG[st.gateBoss.name]) { bad.push(st.key); } });
+      if (!BP.SIG['관문 수호장']) { bad.push('수호장'); }
+      var r = bpRig({ rand: [0.5] });
+      r.e.ref.name = '몽골 만호장'; r.e.gate = true; r.e.patternT = 0;
+      var t1 = null, t2 = null, i, T = 0, prev = '';
+      for (i = 0; i < 20 / 0.05; i++) {
+        BP.stepSig(r.e, 0.05, r.api, true); T += 0.05;
+        if (r.e.bp.kind === 'ring' && prev !== 'ring') { if (t1 === null) { t1 = T; } else if (t2 === null) { t2 = T; } }
+        prev = r.e.bp.kind;
+        r.api.p.x = r.e.x + r.e.w / 2 - 13;              // 붙어 서서 도넛을 피한다(그로기로 멈추지 않게 매번 맞지도 않게)
+      }
+      var gap = t2 - t1;
+      var r2 = bpRig({ rand: [0.5] });
+      r2.e.ref.name = '왜장'; r2.e.gate = true; r2.e.patternT = 99;
+      for (i = 0; i < 6 / 0.05; i++) { BP.stepSig(r2.e, 0.05, r2.api, true); }
+      var waited = !r2.e.bp.kind;
+      var r3 = bpRig(); BP.stepSig(r3.e, 5, r3.api, true);
+      if (bad.length) { throw new Error(bad.join(',')); }
+      return t1 !== null && Math.abs(t1 - 4.05) < 0.11 && Math.abs(gap - (8 + 1.3)) < 0.2 && waited && !r3.e.bp.kind &&
+        ('첫 ' + t1.toFixed(2) + '초 · 간격 ' + gap.toFixed(2) + '초(걸림 1.3 + 8) · 제 패턴 중 미룸 · 이름 없는 보스는 안 씀');
+    });
+
+    t('관문 대장 고유 기술(§5-11) — 실제 마을 도전에서 만호장이 포위진(도넛)을 예고한다', function () {
+      var S = DG.side;
+      if (S.active()) { S.leave(); }
+      ensureParty();
+      C.save.player.level = 10;
+      C.save.side.gateWeek = {}; C.save.side.gateDay = {};
+      S.challengeGate('sinya');
+      var run = S.raw(), b = run && run.boss, seen = false, i;
+      if (!b) { return false; }
+      run.player.invuln = 999;
+      for (i = 0; i < 160 && !seen && S.raw(); i++) {
+        run.player.x = b.x - 150; run.player.y = run.stage.floor - S.P_H;
+        S.update(0.05);
+        seen = S.fx().some(function (f) { return f.t === 'ringwarn'; });
+      }
+      if (S.active()) { S.leave(); }
+      C.save.side.gateWeek = {}; C.save.side.gateDay = {};
+      return seen && b.bp && b.bp.sig === 'ring' && '몽골 만호장 — 만호 포위진 예고';
+    });
+
     /* ── 자동 사냥 ────────────────────────────────────── */
 
     t('자동 — 켜고 끈 상태가 세이브에 남는다', function () {

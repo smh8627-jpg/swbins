@@ -1787,6 +1787,11 @@
         if (!run) { return; }
         /* 그로기(§5-10) — 멈춰 선다: 걷기·박치기·돌진 없음 */
         if (e.bp && e.bp.groggy > 0) { continue; }
+      } else if (e.gate && BPm && BPm.on() && BPm.sigOf(e)) {
+        /* 관문 대장 고유 기술(§5-11) — 제 패턴 사이사이에 */
+        BPm.stepSig(e, dt, bpApi(), near);
+        if (!run) { return; }
+        if (e.bp && e.bp.groggy > 0) { continue; }
       }
       /* 관문 대장(§5-4) 패턴 2·3 — 범위 표시 후 내려찍기 · 소환 2. 달려들기와
          겹치지 않게 e.charge<=0 일 때만 새로 문다(둘이 같이 터지면 정신없다) */
@@ -1806,7 +1811,7 @@
           }
         } else {
           e.patternCd -= dt;
-          if (e.patternCd <= 0 && near && e.charge <= 0) {
+          if (e.patternCd <= 0 && near && e.charge <= 0 && !(e.bp && e.bp.kind)) {
             e.patternCd = 7 + Math.random() * 4;
             if (Math.random() < 0.5) {
               e.patternKind = 'slam';
