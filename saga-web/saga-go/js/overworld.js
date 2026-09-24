@@ -156,6 +156,14 @@
         var lp = wl.worldToLatLng(lmk[i3].x, lmk[i3].y);
         pois.push({ lat: lp.lat, lng: lp.lng, t: BMo.found(lmk[i3].key) ? 'waypoint' : 'landmark', name: lmk[i3].name });
       }
+      /* 고정 특색 지역(§5 ⑮) — 땅 열여섯의 이름을 제 방위·고리 가운데쯤에(범위엔 안 낀다) */
+      if (BMo.ZONES) {
+        BMo.ZONES.forEach(function (z) {
+          var za = z.sector * Math.PI / 4, zr = z.ring ? BMo.RING_R * 1.5 : BMo.RING_R * 0.55;
+          var zp = wl.worldToLatLng(Math.cos(za) * zr, Math.sin(za) * zr);
+          pois.push({ lat: zp.lat, lng: zp.lng, t: 'zone', name: z.emoji + ' ' + z.name });
+        });
+      }
     }
 
     var pr = project(trail, cur, pois);
@@ -194,6 +202,15 @@
     for (i = 0; i < pr.pois.length; i++) {
       p = pr.pois[i];
       if (!onscreen(p)) { continue; }
+      if (p.t === 'zone') {
+        sp = px(p);
+        ctx.font = '700 12px system-ui, sans-serif';
+        ctx.fillStyle = 'rgba(240,217,160,.55)';
+        ctx.textAlign = 'center';
+        ctx.fillText(p.name, sp.x, sp.y);
+        ctx.textAlign = 'left';
+        continue;
+      }
       var st = POI_STYLE[p.t];
       if (!st) { continue; }
       sp = px(p);
@@ -216,6 +233,11 @@
 
     ctx.strokeStyle = 'rgba(255,255,255,.14)'; ctx.lineWidth = 1;
     ctx.strokeRect(ox + 0.5, oy + 0.5, side - 1, side - 1);
+    /* 지금 선 땅(§5 ⑮) — 왼쪽 위 */
+    var zNow = BMo && BMo.zoneAt ? BMo.zoneAt(pos.x, pos.y) : null;
+    ctx.font = '700 13px system-ui, sans-serif';
+    ctx.fillStyle = '#f0d9a0';
+    ctx.fillText(zNow ? zNow.emoji + ' ' + zNow.name + '(' + zNow.hanja + ')' : '🏡 고향 들녘', ox + 8, oy + 18);
 
     lastDrawn = pr.trail.length;
     return lastDrawn;
