@@ -73,6 +73,40 @@ namespace Saga.Go.Data
             new Atmosphere { RegionId = "farmland",    Fog = new Color(0.90f, 0.83f, 0.60f), DensityMul = 0.9f, Sun = new Color(1f, 0.96f, 0.82f) },    // 밀빛 논밭
         };
 
+        /// <summary>procgen.py 나무 수관 모양(씨앗마다 셋 중 하나) — 비트로 섞어 고른다.</summary>
+        [System.Flags]
+        public enum TreeForm { Broadleaf = 1, Conifer = 2, Willow = 4 }
+
+        /// <summary>PLAN.md 107-3 "식생 바이옴" — 숲 칸 나무 수·모양·크기, 수관·풀 빛깔(`_CanopyTint`, a = 세기), 풀 포기 수.
+        /// 편집기 씬 빌드 때 `VegetationBuilder` 가 칸의 지역을 보고 고른다(자리는 예전처럼 좌표 해시 — 칸마다 앞 셋은 옛 자리 그대로).</summary>
+        public struct Vegetation
+        {
+            public string RegionId;
+            public int TreesPerForestTile;
+            public TreeForm Forms;
+            public float ScaleMin, ScaleMax;
+            public Color CanopyTint;
+            /// <summary>들('.')·숲('T') 칸 하나에 까는 풀 포기.</summary>
+            public int GrassPerTile;
+        }
+
+        public static readonly Vegetation[] Vegetations =
+        {
+            new Vegetation { RegionId = "village",     TreesPerForestTile = 3, Forms = TreeForm.Broadleaf,                   ScaleMin = 0.7f, ScaleMax = 1.3f, CanopyTint = new Color(0.20f, 0.38f, 0.14f, 0f),    GrassPerTile = 5 },  // 옛 모습 그대로
+            new Vegetation { RegionId = "west_wood",   TreesPerForestTile = 4, Forms = TreeForm.Broadleaf | TreeForm.Willow, ScaleMin = 0.9f, ScaleMax = 1.5f, CanopyTint = new Color(0.07f, 0.22f, 0.09f, 0.7f),  GrassPerTile = 4 },  // 짙고 빽빽한 숲길
+            new Vegetation { RegionId = "east_grove",  TreesPerForestTile = 3, Forms = TreeForm.Broadleaf,                   ScaleMin = 0.8f, ScaleMax = 1.4f, CanopyTint = new Color(0.58f, 0.32f, 0.08f, 0.75f), GrassPerTile = 4 },  // 호박빛 단풍
+            new Vegetation { RegionId = "north_foot",  TreesPerForestTile = 3, Forms = TreeForm.Conifer,                     ScaleMin = 0.8f, ScaleMax = 1.5f, CanopyTint = new Color(0.10f, 0.24f, 0.20f, 0.6f),  GrassPerTile = 3 },  // 서늘한 바늘잎
+            new Vegetation { RegionId = "river",       TreesPerForestTile = 3, Forms = TreeForm.Willow,                      ScaleMin = 0.8f, ScaleMax = 1.3f, CanopyTint = new Color(0.22f, 0.40f, 0.20f, 0.4f),  GrassPerTile = 4 },  // (숲 칸 없음 — 강가는 갈대)
+            new Vegetation { RegionId = "south_glade", TreesPerForestTile = 2, Forms = TreeForm.Broadleaf | TreeForm.Willow, ScaleMin = 0.8f, ScaleMax = 1.4f, CanopyTint = new Color(0.40f, 0.42f, 0.12f, 0.6f),  GrassPerTile = 12 }, // 성긴 나무·금빛 풀밭
+            new Vegetation { RegionId = "farmland",    TreesPerForestTile = 2, Forms = TreeForm.Broadleaf,                   ScaleMin = 0.7f, ScaleMax = 1.2f, CanopyTint = new Color(0.34f, 0.42f, 0.12f, 0.5f),  GrassPerTile = 7 },  // 밀빛 둑
+        };
+
+        public static Vegetation VegetationOf(string regionId)
+        {
+            foreach (var v in Vegetations) if (v.RegionId == regionId) return v;
+            return Vegetations[0];
+        }
+
         public static Atmosphere AtmosphereOf(string regionId)
         {
             foreach (var a in Atmospheres) if (a.RegionId == regionId) return a;
