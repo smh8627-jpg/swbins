@@ -77,6 +77,8 @@ namespace Saga.EditorTools
                 if (PartyState.AtbOf(PartyRole.Guard) > 0f) Fail("도발 뒤 무사 게이지가 안 비었다");
                 if (!Near(PartyState.Summon - summonBefore, PartyState.SummonPerCommand)) Fail("명령이 소환 게이지를 안 보탰다");
                 if (!foe.IsTaunted) Fail("12m 안 적에 도발이 안 걸렸다");
+                bool clips = guard.UsesDeathClip; // 106-6 전용 클립을 받은 PC(Paladin@Taunt·Blocked·HitReaction·Dying)
+                if (guard.LastTrigger != (clips ? "Taunt" : "Attack")) Fail($"도발 동작 트리거 {guard.LastTrigger} (전용 클립 {clips})");
                 int heroHp = HeroState.Hp;
                 float gHp = guard.Hp;
                 for (int i = 0; i < 40; i++) foe.Tick(0.05f); // 2초 — 예비동작·판정 한 번 이상.
@@ -89,10 +91,18 @@ namespace Saga.EditorTools
                     if (!Near(hits, Mathf.Round(hits), 0.01f)) Fail($"무사가 받은 피해가 40% 가 아니다 ({taken})");
                 }
                 metrics += $" 도발 2초 무사 -{taken:0.0}";
+                if (clips && guard.LastTrigger != "Blocked") Fail($"도발 중 맞았는데 방패로 받는 동작이 아니다 ({guard.LastTrigger})");
 
                 // ── 쓰러짐
                 guard.TakeHit(1000f);
                 if (guard.IsUp) Fail("체력이 다해도 무사가 안 쓰러졌다");
+                if (clips)
+                {
+                    if (guard.LastTrigger != "Death") Fail($"쓰러짐 트리거 {guard.LastTrigger}");
+                    if (guard.transform.GetChild(0).localRotation != Quaternion.identity) Fail("전용 쓰러짐 클립이 있는데 몸을 절차적으로 눕혔다");
+                    guard.Animator.Update(0.3f);
+                    if (!guard.Animator.GetCurrentAnimatorStateInfo(0).IsName("Death") && !guard.Animator.GetNextAnimatorStateInfo(0).IsName("Death")) Fail("쓰러짐 상태로 안 넘어갔다");
+                }
                 if (foe.IsTaunted) Fail("무사가 쓰러졌는데 도발이 안 풀렸다");
                 PartyState.Fill(PartyRole.Guard);
                 if (party.TryOrderGuard()) Fail("쓰러진 무사에게 도발이 먹었다");
@@ -110,6 +120,14 @@ namespace Saga.EditorTools
                 int want = Mathf.Min(HeroState.HpMax, before + Mathf.CeilToInt(HeroState.HpMax * AllyMystic.HealPlayerFrac));
                 if (HeroState.Hp != want) Fail($"치유량 {before}→{HeroState.Hp} (기대 {want})");
                 if (!guard.IsUp || guard.Hp < AllyFighter.HpMax * AllyMystic.ReviveGuardFrac - 0.01f) Fail($"치유가 무사를 안 일으켰다 (서 있음 {guard.IsUp}, {guard.Hp})");
+                if (mystic.LastTrigger != (mystic.HasOwnClips ? "Heal" : "Attack")) Fail($"치유 시전 트리거 {mystic.LastTrigger} (전용 클립 {mystic.HasOwnClips})");
+                if (clips)
+                {
+                    guard.Animator.Update(0.05f);
+                    if (guard.Animator.GetCurrentAnimatorStateInfo(0).IsName("Death")) Fail("일어났는데 쓰러짐 자세에 머문다");
+                }
+                if (mystic.HasOwnClips && mystic.Animator.runtimeAnimatorController.name.Contains("Maria")) Fail("술사 전용 클립이 있는데 Maria 컨트롤러를 씌웠다");
+                metrics += $" · 전용 클립 무사 {clips}·술사 {mystic.HasOwnClips}";
 
                 // ── 스스로 일어남
                 guard.TakeHit(1000f);
@@ -127,6 +145,7 @@ namespace Saga.EditorTools
                 SetPrivate(mystic, "_castCooldown", 0f);
                 mystic.Tick(0.01f);
                 if (mystic.BoltsCast != casts + 1) Fail("10m 안 적에게 빛살을 안 쐈다");
+                if (mystic.LastTrigger != "Attack") Fail($"빛살 시전 트리거 {mystic.LastTrigger}");
                 var bolt = Object.FindObjectsByType<MysticBolt>(FindObjectsSortMode.None);
                 if (bolt.Length == 0) Fail("빛살 개체가 없다");
                 else

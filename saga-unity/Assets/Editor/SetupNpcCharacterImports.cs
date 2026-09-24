@@ -16,7 +16,8 @@ namespace Saga.EditorTools
     ///
     /// 컨트롤러 규칙은 Abe 와 같다: `Speed`(0 서기 · &gt;0.1 걷기 · &gt;0.6 달리기) + 트리거 `Attack`·`Hit`·`Death`
     /// (클립이 있을 때만). 걷기·달리기는 Mixamo "In Place" 로 받아 제자리 — 위치는 스크립트가 옮긴다.
-    /// 추가 대기 상태(`extraIdles`)는 트리거 없이 `NpcIdle`(런타임)이 이름으로 튼다.
+    /// 추가 대기 상태(`extraIdles`)는 트리거 없이 `NpcIdle`(런타임)이 이름으로 튼다. 추가 트리거(`ExtraTriggers`, 트리거 이름 = 파일
+    /// 접미사, 끝나면 대기로)는 PLAN.md 106-6 동료 전용 클립 — 무사 `Taunt`(방패 치켜듦)·`Blocked`(방패로 받음), 술사 `Heal`(치유 시전).
     /// </summary>
     public static class SetupNpcCharacterImports
     {
@@ -27,14 +28,19 @@ namespace Saga.EditorTools
             public string Name;
             public string Idle, Walk, Run, Attack, Hit, Death;
             public string[] ExtraIdles = new string[0];
+            public string[] ExtraTriggers = new string[0];
         }
 
         private static readonly Spec[] Specs =
         {
             new Spec { Name = "Skeleton", Idle = "Idle", Walk = "Walking", Attack = "Attack", Hit = "HitReaction", Death = "Dying" },
-            new Spec { Name = "Paladin", Idle = "Idle", Walk = "Walking", Run = "Running", Attack = "Attack" },
+            // 106-6 동행 무사 — 피격·쓰러짐·도발·방패 피격은 2026-09-24 Mixamo(README 레시피 표).
+            new Spec { Name = "Paladin", Idle = "Idle", Walk = "Walking", Run = "Running", Attack = "Attack", Hit = "HitReaction", Death = "Dying",
+                ExtraTriggers = new[] { "Taunt", "Blocked" } },
             new Spec { Name = "PeasantMan", Idle = "Idle" },
-            new Spec { Name = "PeasantGirl", Idle = "Idle", ExtraIdles = new[] { "Kneel" } },
+            // 106-6 동행 술사 몸 겸 마을 아낙·포로 — 걷기·달리기·빛살 시전(Attack = Cast)·치유 시전은 2026-09-24 Mixamo.
+            new Spec { Name = "PeasantGirl", Idle = "Idle", Walk = "Walking", Run = "Running", Attack = "Cast", ExtraIdles = new[] { "Kneel" },
+                ExtraTriggers = new[] { "Heal" } },
         };
 
         public static string PrefabPath(string name) => $"{Root}{name}/{name}Animated.prefab";
@@ -73,6 +79,7 @@ namespace Saga.EditorTools
             Add(spec.Hit, false);
             Add(spec.Death, false);
             foreach (var extra in spec.ExtraIdles) Add(extra, true);
+            foreach (var extra in spec.ExtraTriggers) Add(extra, false);
 
             string tag = $"SetupNpcCharacterImports:{spec.Name}";
             if (MixamoRigUtil.RigCharacter(dir, body, map.ToArray(), tag) == null) return false;
@@ -122,6 +129,7 @@ namespace Saga.EditorTools
             Trigger(controller, sm, idle, "Death", State(sm, "Death", dir, spec.Name, spec.Death), back: false);
 
             foreach (var extra in spec.ExtraIdles) State(sm, extra, dir, spec.Name, extra);
+            foreach (var extra in spec.ExtraTriggers) Trigger(controller, sm, idle, extra, State(sm, extra, dir, spec.Name, extra), back: true);
 
             EditorUtility.SetDirty(controller);
             return controller;
