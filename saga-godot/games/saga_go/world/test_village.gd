@@ -36,6 +36,12 @@ func _ready() -> void:
 	var spawner := preload("res://games/saga_go/combat/field_spawner.gd").new()
 	spawner.name = "FieldSpawner"
 	add_child(spawner)
+	## PLAN 106장 ㉓ — 들판 보스 셋 + 보상 꽃(의뢰가 field_enemy 무리에 붙으므로 Commissions 앞).
+	var field_bosses := preload("res://games/saga_go/world/field_bosses.gd").new()
+	field_bosses.name = "FieldBosses"
+	add_child(field_bosses)
+	if OS.get_environment("SAGA_FIELD_BOSS_PROBE") != "":
+		add_child(load("res://tools/probe_field_bosses.gd").new())
 	## PLAN 106장 ⑥ — 보물 상자(무리 잠금이 적의 home 을 보므로 FieldSpawner 뒤).
 	var chests := preload("res://games/saga_go/world/treasure_spawner.gd").new()
 	chests.name = "TreasureSpawner"

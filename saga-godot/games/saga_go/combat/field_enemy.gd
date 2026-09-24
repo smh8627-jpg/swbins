@@ -48,6 +48,19 @@ const KINDS := {
 	"storm_serpent": {"name": "먹구름 이무기", "hp": 6000.0, "atk": 40.0, "speed": 3.2, "aggro": 40.0,
 		"reach": 3.2, "tell": 1.0, "cd": 1.8, "exp": 0.0, "element": "thunder", "shield": 0.0,
 		"shape": "serpent", "height": 3.6, "colors": [Color(0.22, 0.24, 0.36), Color(0.55, 0.5, 0.85), Color(0.85, 0.7, 1.0)]},
+	## 106장 ㉓ 들판 보스 셋 — field_boss.gd 로 세상에 서 있다(world/field_bosses.gd). 2단계 방패는 phase_shield, 경험·전리품은 보상 꽃에서.
+	"gale_roc": {"name": "돌개바람 수리왕", "hp": 3000.0, "atk": 28.0, "speed": 4.0, "aggro": 16.0,
+		"reach": 3.0, "tell": 0.9, "cd": 1.8, "exp": 0.0, "element": "wind", "shield": 0.0, "phase_shield": 400.0,
+		"phase_text": "돌개바람 수리왕이 바람을 두른다 — 암으로 방패를 깨라",
+		"shape": "bird", "height": 3.0, "colors": [Color(0.3, 0.62, 0.55), Color(0.9, 0.97, 0.92), Color(1.0, 0.85, 0.3)]},
+	"tide_turtle": {"name": "물마루 거북왕", "hp": 3400.0, "atk": 26.0, "speed": 3.0, "aggro": 15.0,
+		"reach": 3.2, "tell": 1.0, "cd": 2.0, "exp": 0.0, "element": "water", "shield": 0.0, "phase_shield": 450.0,
+		"phase_text": "물마루 거북왕이 물을 두른다 — 뇌로 방패를 깨라",
+		"shape": "turtle", "height": 2.4, "colors": [Color(0.16, 0.34, 0.52), Color(0.3, 0.58, 0.66), Color(0.95, 0.9, 0.7)]},
+	"ember_king": {"name": "잿불 도깨비왕", "hp": 3000.0, "atk": 30.0, "speed": 3.8, "aggro": 16.0,
+		"reach": 3.0, "tell": 0.9, "cd": 1.8, "exp": 0.0, "element": "fire", "shield": 0.0, "phase_shield": 400.0,
+		"phase_text": "잿불 도깨비왕이 불을 두른다 — 수로 방패를 깨라",
+		"shape": "goblin", "height": 3.4, "colors": [Color(0.55, 0.18, 0.12), Color(0.22, 0.14, 0.12), Color(1.0, 0.6, 0.2)]},
 }
 
 const GRAVITY := 20.0
@@ -220,6 +233,7 @@ func _physics_process(delta: float) -> void:
 			if to_h.length() < 1.0:
 				hp = max_hp
 				shield = max_shield
+				_on_reset()
 				_refresh_bar()
 				ai = AI.IDLE
 				_pick_wander()
@@ -302,6 +316,15 @@ func _break_shield(from_dir: Vector3) -> void:
 	_t = BREAK_STAGGER
 	if from_dir.length() > 0.01:
 		_knock = from_dir.normalized() * 6.0
+
+## 집에 돌아가 체력을 채울 때·되살아날 때(보스가 단계를 처음으로 돌린다 — field_boss.gd).
+func _on_reset() -> void:
+	pass
+
+## 쓰러진 채 sec 뒤에 되살아나게(들판 보스는 보상 꽃을 받을 때까지 기다린다 — world/field_bosses.gd).
+func hold_respawn(sec: float) -> void:
+	if ai == AI.DEAD:
+		_t = sec
 
 func knockback(dir: Vector3, force: float) -> void:
 	_knock = Vector3(dir.x, 0, dir.z).normalized() * force
@@ -394,6 +417,7 @@ func _revive() -> void:
 	visible = true
 	collision_layer = 1
 	ai = AI.IDLE
+	_on_reset()
 	_refresh_bar()
 	_refresh_aura()
 	_pick_wander()
@@ -458,8 +482,8 @@ func _build_overhead() -> void:
 	_bar_fill = _bar_quad(Color(0.9, 0.25, 0.2), Vector2(1.0, 0.07))
 	_bar_fill.position = Vector3(0, top, 0.001)
 	add_child(_bar_fill)
-	## 원소 방패 막대 — 체력 막대 바로 위, 방패 원소 색.
-	if max_shield > 0.0:
+	## 원소 방패 막대 — 체력 막대 바로 위, 방패 원소 색(들판 보스는 2단계에 생기는 방패 자리를 미리).
+	if max_shield > 0.0 or def.has("phase_shield"):
 		_shield_bg = _bar_quad(Color(0.1, 0.08, 0.08, 0.8), Vector2(1.0, 0.08))
 		_shield_bg.position = Vector3(0, top + 0.11, 0)
 		add_child(_shield_bg)
@@ -511,7 +535,7 @@ func _refresh_bar() -> void:
 	var r := clampf(hp / max_hp, 0.0, 1.0)
 	(_bar_fill.mesh as QuadMesh).size = Vector2(maxf(r, 0.001), 0.07)
 	if _shield_fill:
-		var s := clampf(shield / max_shield, 0.0, 1.0)
+		var s := clampf(shield / max_shield, 0.0, 1.0) if max_shield > 0.0 else 0.0
 		_shield_fill.visible = s > 0.0
 		_shield_bg.visible = s > 0.0
 		(_shield_fill.mesh as QuadMesh).size = Vector2(maxf(s, 0.001), 0.055)

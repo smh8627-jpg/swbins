@@ -6,6 +6,8 @@ extends "res://games/saga_go/combat/field_enemy.gd"
 ##     먹구름 벼락 — 플레이어 발밑과 양옆 3m 에 원 셋(반경 2.5m) 1.0초 예고 → 안이면 ×1.2(한 번만)
 ##     물기 — 들판 적과 같은 돌진(가까울 때)
 ##   체력 절반에서 2단계: 뇌 원소 방패(체력 배율 × 600, 불로 ×2.5 — elements.gd 상성) + 패턴이 빨라짐. 방패가 깨지면 2초 비틀거림.
+## 106장 ㉓ 들판 보스 셋(world/field_bosses.gd)도 이 틀 — 2단계 방패 양·알림 글자는 KINDS 칸 phase_shield·phase_text,
+## 방패 원소는 보스 원소. 집으로 돌아가 체력을 채우거나 되살아나면 1단계로 돌아간다(_on_reset).
 ## 이름은 이 판 것.
 
 const BossToast := preload("res://saga_core/ui/toast.gd")
@@ -106,12 +108,39 @@ func _fire() -> void:
 func _check_phase() -> void:
 	if phase == 1 and hp <= max_hp * PHASE2_AT:
 		phase = 2
-		max_shield = PHASE2_SHIELD * (max_hp / float(def.hp))
+		max_shield = _phase_shield()
 		shield = max_shield
 		skill_cd = minf(skill_cd, 1.0)
 		_refresh_bar()
-		BossToast.show(self, "먹구름 이무기가 번개를 두른다 — 불로 방패를 깨라", 3.0)
+		BossToast.show(self, String(def.get("phase_text", "먹구름 이무기가 번개를 두른다 — 불로 방패를 깨라")), 3.0)
 		phase_changed.emit(phase)
+
+## 2단계 방패 — 체력 배율(비경 단계·세계 등급)을 그대로 따른다.
+func _phase_shield() -> float:
+	return float(def.get("phase_shield", PHASE2_SHIELD)) * (max_hp / float(def.hp))
+
+## 들판 보스 — 끌려 나갔다 집에서 체력을 채우거나 되살아나면 1단계부터.
+func _on_reset() -> void:
+	var was := phase
+	phase = 1
+	_rot = 0
+	skill_cd = 2.0
+	_set_tell(false)
+	_clear_marks()
+	max_shield = float(def.get("shield", 0.0)) * (max_hp / float(def.hp))
+	shield = max_shield
+	if was != 1:
+		phase_changed.emit(phase)
+
+## 세계 등급이 싸우는 중에 바뀌어도 2단계 방패는 깎인 비율 그대로.
+func apply_world_level(wl: int) -> void:
+	var ratio := shield / max_shield if max_shield > 0.0 else 1.0
+	super(wl)
+	if phase == 2:
+		max_shield = _phase_shield()
+		shield = max_shield * ratio
+		if is_inside_tree():
+			_refresh_bar()
 
 # ---------------------------------------------------------------- 예고 원
 
