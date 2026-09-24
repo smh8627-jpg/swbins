@@ -53,19 +53,25 @@ const ITEMS := {
 	"conch": {"name": "갯소라"},
 	"ash_flower": {"name": "재꽃"},
 	"boss_mat": {"name": "뇌룡 비늘"}, # 106장 ㉑ 주간 보스 — 특성 7→8 부터
+	## 106장 ㉓ 들판 보스 — 인물 돌파 2 단계부터(인물마다 셋 중 하나, boss_of).
+	"gale_plume": {"name": "돌개바람 깃"},
+	"tide_pearl": {"name": "물마루 진주"},
+	"ember_horn": {"name": "잿불 뿔"},
 }
 const BOOKS := ["book_s", "book_m", "book_l"]
 
-## 돌파 단계 n(1~6)으로 올라갈 때 드는 것. 결정은 인물 원소, 전리품·특산물(106장 ⑱)은 인물마다.
+## 돌파 단계 n(1~6)으로 올라갈 때 드는 것. 결정은 인물 원소, 전리품·특산물(106장 ⑱)·들판 보스 재료(106장 ㉓)는 인물마다.
+## 보스 재료는 원신처럼 첫 돌파엔 없고 2 단계부터 2·4·8·12·20.
 const ASCEND_COST := [
-	{"mora": 5000, "crystal": 1, "common": 3, "special": 3},
-	{"mora": 10000, "crystal": 3, "common": 10, "special": 10},
-	{"mora": 20000, "crystal": 6, "common": 15, "special": 20},
-	{"mora": 30000, "crystal": 9, "common": 20, "special": 30},
-	{"mora": 40000, "crystal": 12, "common": 25, "special": 45},
-	{"mora": 60000, "crystal": 20, "common": 30, "special": 60},
+	{"mora": 5000, "crystal": 1, "common": 3, "special": 3, "boss": 0},
+	{"mora": 10000, "crystal": 3, "common": 10, "special": 10, "boss": 2},
+	{"mora": 20000, "crystal": 6, "common": 15, "special": 20, "boss": 4},
+	{"mora": 30000, "crystal": 9, "common": 20, "special": 30, "boss": 8},
+	{"mora": 40000, "crystal": 12, "common": 25, "special": 45, "boss": 12},
+	{"mora": 60000, "crystal": 20, "common": 30, "special": 60, "boss": 20},
 ]
 const SPECIALTIES := ["orchid", "conch", "ash_flower"] # cooking.gd SPECIALTIES 와 같은 차례
+const BOSS_MATS := ["gale_plume", "tide_pearl", "ember_horn"] # field_bosses.gd BOSSES 와 같은 차례(마을·포구·폐허)
 
 ## 들판 적을 쓰러뜨리면(field_enemy._die). 정해진 양 — 운은 없다(점검이 늘 같게).
 const KILL_DROPS := {
@@ -184,7 +190,19 @@ static func ascend_cost(member_id: String, asc: int) -> Dictionary:
 	if asc >= MAX_ASC:
 		return {}
 	var c: Dictionary = ASCEND_COST[asc]
-	return {"mora": c.mora, crystal_of(member_id): c.crystal, common_of(member_id): c.common, specialty_of(member_id): c.special}
+	var out := {"mora": c.mora, crystal_of(member_id): c.crystal, common_of(member_id): c.common, specialty_of(member_id): c.special}
+	if int(c.boss) > 0:
+		out[boss_of(member_id)] = c.boss
+	return out
+
+## 인물마다 들판 보스 재료(106장 ㉓) — 주인공은 마을 보스 깃(첫 지역), 동료는 id 해시로 셋 중 하나(또 다른 곱수).
+static func boss_of(member_id: String) -> String:
+	if member_id == "self":
+		return BOSS_MATS[0]
+	var h := 0
+	for i in member_id.length():
+		h = (h * 37 + member_id.unicode_at(i)) & 0x7fffffff
+	return BOSS_MATS[h % BOSS_MATS.size()]
 
 static func item_name(item: String) -> String:
 	return ITEMS[item].name if ITEMS.has(item) else item
