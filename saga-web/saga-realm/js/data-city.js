@@ -882,10 +882,45 @@
   }
 
   global.DG = global.DG || {};
+  /* ── 싸움터 땅(SAGA-DESIGN §12 고정 특색 지역, 2026-09-24) — battle3d.js 가 그린다 ── */
+  var LAND_LOOK = {
+    plain: { name: '평야', ground: 0xcfe0a0, sky: 0xb9dcef, prop: 'grass' },
+    hill:  { name: '구릉', ground: 0xb8cf86, sky: 0xb4d6e8, prop: 'mound' },
+    river: { name: '강가', ground: 0xa9d18f, sky: 0xa9d2ea, prop: 'reed', stream: true },
+    mount: { name: '산성', ground: 0x9fa98a, sky: 0xaecadb, prop: 'peak' }
+  };
+  /** 주(州)가 땅 결을 덮어쓰는 곳 — 사막·초원·밀림·퓨전 셋 */
+  var PROV_LOOK = {
+    xi: { name: '사막', ground: 0xe0c98f, sky: 0xe8d9b8, prop: 'dune' }, sl: { name: '사막', ground: 0xdcc088, sky: 0xe6d4ae, prop: 'dune' },
+    dj: { name: '사막', ground: 0xd9c49a, sky: 0xe2d6bd, prop: 'dune' }, liang: { name: '사막', ground: 0xd6c08e, sky: 0xe0d2b0, prop: 'dune' },
+    mb: { name: '초원', ground: 0xc9d27a, sky: 0xc4ddec, prop: 'grass' }, xb: { name: '초원', ground: 0xc4cc72, sky: 0xc0d9e8, prop: 'grass' },
+    nz: { name: '밀림', ground: 0x7fae62, sky: 0xa8cfc0, prop: 'reed' }, tz: { name: '밀림', ground: 0x8ab466, sky: 0xb2d4c4, prop: 'reed' },
+    cp: { name: '밀림', ground: 0x80ad64, sky: 0xaccfc0, prop: 'reed' }, nh: { name: '해안', ground: 0xd8d0a0, sky: 0x9fd0e8, prop: 'reed', stream: true },
+    fu: { name: '균열', ground: 0x6d5a8a, sky: 0x8a7ab0, prop: 'crystal' },
+    pf: { name: '폐허', ground: 0x8c8a80, sky: 0xa6a6a0, prop: 'rubble' },
+    my: { name: '묘역', ground: 0x6f7560, sky: 0x8c9488, prop: 'grave' }
+  };
+  /** 순수 함수 — 이 성의 싸움터(바닥빛·하늘·소품 자리). 물 싸움(rep.water)은 물빛 그대로 */
+  function battleLook(cityId, water) {
+    var sc = find(cityId);
+    var L = (sc && PROV_LOOK[sc.prov]) || (sc && LAND_LOOK[sc.land]) || LAND_LOOK.plain;
+    var out = { name: L.name, ground: water ? 0x5aa9d8 : L.ground, sky: water ? 0x8fc4e6 : L.sky,
+                prop: water ? null : L.prop, stream: !water && !!L.stream, props: [] };
+    if (out.prop) {
+      var n = out.prop === 'grass' ? 6 : 8, i;
+      for (i = 0; i < n; i++) {
+        var a = (i + 0.5) / n * Math.PI * 2 + 0.3, r = 8.4 + (i % 3) * 0.7;
+        out.props.push({ kind: out.prop, x: Math.cos(a) * r, z: Math.sin(a) * r, s: 0.8 + (i % 4) * 0.22 });
+      }
+    }
+    return out;
+  }
+
   global.DG.cityData = {
     CITIES: CITIES, LINKS: LINKS, LANDS: LANDS, PROVINCES: PROVINCES,
     WATERWAYS: WATERWAYS,
     find: find, landOf: landOf, provName: provName, hops: hops,
+    battleLook: battleLook, LAND_LOOK: LAND_LOOK, PROV_LOOK: PROV_LOOK,
     isWater: isWater, waterAdj: waterAdj, path: path, pathMonths: pathMonths,
     /** 자가진단용 — 없는 도시를 가리켜 버려진 링크 */
     _dropped: dropped
