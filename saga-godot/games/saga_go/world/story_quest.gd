@@ -50,6 +50,9 @@ var _dlg_done: Callable
 var _dlg_npc := "" # 말 거는 임무 인물(대화 카메라가 그쪽을 잡는다, 비면 카메라 그대로)
 var _frozen_before := false
 var _count := 0 # gather 단계에서 캔 수(저장 안 함)
+var _follow_i := 0 # follow 단계 — 다음에 걸어갈 길 점
+var _follow_far := false # follow 단계 — 내가 FOLLOW_LOST 밖인가(추적 글자)
+var follow_speed_mul := 1.0 # 점검이 걸음을 빠르게 돌릴 때만
 
 func _ready() -> void:
 	add_to_group("go_story")
@@ -129,6 +132,8 @@ func target_pos() -> Vector3:
 			var dm := get_tree().get_first_node_in_group("go_domains")
 			if dm:
 				return dm.call("gate_pos", String(s.domain))
+		"follow":
+			return npc_pos(String(s.npc))
 		"gather":
 			var ga := get_tree().get_first_node_in_group("go_gathering")
 			if ga and _player:
@@ -153,7 +158,92 @@ func step_text() -> String:
 		return ""
 	if String(s.type) == "gather":
 		return "%s %d/%d" % [s.text, _count, int(s.count)]
+	if String(s.type) == "follow" and _follow_far:
+		return "%s — 너무 멀다, 가까이!" % s.text
 	return String(s.text)
+
+## 그 인물이 지금 세상에 서 있는가 — appear 가 있으면 그 장의 from~to 단계에만.
+func npc_visible(id: String) -> bool:
+	var ap: Dictionary = Story.NPCS[id].get("appear", {})
+	if ap.is_empty():
+		return true
+	return not locked() and ch() == int(ap.ch) and st() >= int(ap.from) and st() <= int(ap.to)
+
+## appear 인물을 보이거나 숨기고, 따라가기를 지난 뒤면 길 끝에 세운다(불러오기·단계마다).
+func _place_npcs() -> void:
+	for id in _npcs:
+		var info: Dictionary = Story.NPCS[id]
+		if not info.has("appear"):
+			continue
+		var root: Node3D = _npcs[id]
+		root.visible = npc_visible(id)
+		var p := _cell_pos(String(info.region), info.cell)
+		var c := Story.chapter(int(info.appear.ch))
+		if ch() == int(info.appear.ch) and not c.is_empty():
+			var steps: Array = c.steps
+			for j in steps.size():
+				var sj: Dictionary = steps[j]
+				if String(sj.type) == "follow" and String(sj.npc) == id and st() > j:
+					var path: Array = sj.path
+					p = _cell_pos(String(sj.region), path[path.size() - 1])
+		root.global_position = p
+		_npc_pos[id] = p
+
+## follow 단계 — 내가 가까우면 다음 길 점으로 걷고, 멀면 서서 기다린다. 길 끝이면 다음 단계.
+func _follow_tick(s: Dictionary, delta: float) -> void:
+	var id := String(s.npc)
+	var root: Node3D = _npcs.get(id)
+	if root == null:
+		return
+	var path: Array = s.path
+	var body := root.get_node_or_null("Body") as Node3D
+	var anim := body.get_node_or_null("AnimationPlayer") as AnimationPlayer if body else null
+	var to_p := _player.global_position - root.global_position
+	to_p.y = 0.0
+	var far := to_p.length() > Story.FOLLOW_LOST
+	if far != _follow_far:
+		_follow_far = far
+		_refresh()
+	if _follow_i >= path.size():
+		advance()
+		return
+	var walking := to_p.length() <= Story.FOLLOW_NEAR
+	if walking:
+		var goal := _cell_pos(String(s.region), path[_follow_i])
+		var step := goal - root.global_position
+		step.y = 0.0
+		var move := Story.FOLLOW_SPEED * follow_speed_mul * delta
+		if step.length() <= move:
+			root.global_position = goal
+			_follow_i += 1
+		else:
+			var np := root.global_position + step.normalized() * move
+			np.y = _ground_y(String(s.region), np)
+			root.global_position = np
+			if body:
+				body.rotation.y = lerp_angle(body.rotation.y, atan2(step.x, step.z), 0.2)
+		_npc_pos[id] = root.global_position
+	if anim:
+		var want := "walk" if walking and anim.has_animation("walk") else "idle"
+		if anim.current_animation != want and anim.has_animation(want):
+			anim.play(want)
+
+func follow_index() -> int:
+	return _follow_i
+
+## 걷는 인물의 발 높이 — 레이어 1 을 아래로 쏜다(다리 상판·바위 위). 나·적은 빼고, 못 맞히면 지형 높이.
+func _ground_y(region: String, p: Vector3) -> float:
+	var h := TerrainBuilder.height_at(region, p)
+	var q := PhysicsRayQueryParameters3D.create(Vector3(p.x, h + 12.0, p.z), Vector3(p.x, h - 6.0, p.z), 1)
+	var skip: Array[RID] = []
+	if _player is CollisionObject3D:
+		skip.append((_player as CollisionObject3D).get_rid())
+	for e in get_tree().get_nodes_in_group("field_enemy"):
+		if e is CollisionObject3D:
+			skip.append((e as CollisionObject3D).get_rid())
+	q.exclude = skip
+	var hit := get_world_3d().direct_space_state.intersect_ray(q)
+	return float((hit.position as Vector3).y) if not hit.is_empty() else h
 
 func gathered_count() -> int:
 	return _count
@@ -169,6 +259,9 @@ static func _cell_pos(region: String, cell: Vector2) -> Vector3:
 func _enter_step() -> void:
 	_clear_step_objects()
 	_count = 0
+	_follow_i = 0
+	_follow_far = false
+	_place_npcs()
 	var s := current_step()
 	match String(s.get("type", "")):
 		"kill":
@@ -274,12 +367,18 @@ func receive_element(pos: Vector3, radius: float, element: String) -> void:
 	if String(s.get("type", "")) == "light":
 		get_tree().create_timer(0.8).timeout.connect(advance)
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	if _player == null:
 		_player = get_tree().get_first_node_in_group("player")
 		return
 	var s := current_step()
+	var walker := String(s.npc) if String(s.get("type", "")) == "follow" else ""
 	match String(s.get("type", "")):
+		"follow":
+			if not _dlg_open:
+				_follow_tick(s, delta)
+			if current_step() != s:
+				return
 		"go":
 			var t := _cell_pos(String(s.region), s.cell)
 			if Vector2(_player.global_position.x - t.x, _player.global_position.z - t.z).length() <= float(s.radius):
@@ -294,6 +393,10 @@ func _physics_process(_delta: float) -> void:
 	_talk_btn.visible = near != "" and not _dlg_open and not _modal_open()
 	for id in _npcs:
 		var n: Node3D = _npcs[id]
+		if Story.NPCS[id].has("appear"):
+			n.visible = npc_visible(id) # 모험 등급이 올라 장이 풀릴 때도
+		if id == walker or not n.visible:
+			continue
 		var to_p := _player.global_position - n.global_position
 		to_p.y = 0.0
 		if to_p.length() < 6.0 and to_p.length() > 0.1:
@@ -318,7 +421,11 @@ func quest_enemies() -> Array:
 func near_npc() -> String:
 	if _player == null:
 		return ""
+	var s := current_step()
 	for id in _npc_pos:
+		## 숨은 인물·지금 앞장서 걷는 인물에겐 말을 못 건다.
+		if not npc_visible(id) or (String(s.get("type", "")) == "follow" and String(s.npc) == id):
+			continue
 		var d: Vector3 = _player.global_position - _npc_pos[id]
 		d.y = 0.0
 		if d.length() <= Story.TALK_M:
@@ -538,6 +645,8 @@ func _build_npc(id: String) -> void:
 	var anim := body.get_node_or_null("AnimationPlayer") as AnimationPlayer
 	if anim and anim.has_animation("idle"):
 		anim.play("idle")
+	if info.get("mask", false):
+		_add_mask(body)
 	var label := Label3D.new()
 	label.text = String(info.name)
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
@@ -549,6 +658,51 @@ func _build_npc(id: String) -> void:
 	root.add_child(label)
 	_npcs[id] = root
 	_npc_pos[id] = p
+
+## 흰 가면 — 머리 뼈에 붙인다(뼈를 못 찾으면 몸 앞 얼굴 높이). 눈구멍 둘·붉은 줄 하나.
+func _add_mask(body: Node3D) -> void:
+	var mask := Node3D.new()
+	mask.name = "Mask"
+	var skel := body.find_children("*", "Skeleton3D", true, false)
+	var head := -1
+	if not skel.is_empty():
+		head = (skel[0] as Skeleton3D).find_bone("J_Bip_C_Head")
+	if head >= 0:
+		var att := BoneAttachment3D.new()
+		att.bone_idx = head
+		skel[0].add_child(att)
+		att.add_child(mask)
+		mask.position = Vector3(0.0, 0.07, 0.085)
+	else:
+		body.add_child(mask)
+		mask.position = Vector3(0.0, 1.52, 0.1)
+	var face := MeshInstance3D.new()
+	var sm := SphereMesh.new()
+	sm.radius = 0.1
+	sm.height = 0.24
+	face.mesh = sm
+	face.scale = Vector3(1.0, 1.0, 0.35)
+	var white := StandardMaterial3D.new()
+	white.albedo_color = Color(0.94, 0.92, 0.86)
+	white.roughness = 0.6
+	face.material_override = white
+	mask.add_child(face)
+	var dark := StandardMaterial3D.new()
+	dark.albedo_color = Color(0.06, 0.05, 0.06)
+	var red := StandardMaterial3D.new()
+	red.albedo_color = Color(0.72, 0.12, 0.12)
+	for i in 3:
+		var dot := MeshInstance3D.new()
+		var bm := BoxMesh.new()
+		bm.size = Vector3(0.035, 0.014, 0.01) if i < 2 else Vector3(0.012, 0.12, 0.01)
+		dot.mesh = bm
+		dot.material_override = dark if i < 2 else red
+		dot.position = Vector3(-0.04 + 0.08 * i, 0.03, 0.036) if i < 2 else Vector3(0.0, -0.01, 0.037)
+		mask.add_child(dot)
+
+func has_mask(id: String) -> bool:
+	var root: Node3D = _npcs.get(id)
+	return root != null and not root.find_children("Mask", "Node3D", true, false).is_empty()
 
 func _build_marker() -> void:
 	_marker = Node3D.new()

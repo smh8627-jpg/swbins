@@ -9,7 +9,10 @@ extends Node
 ## ⑫ 2장 — 학자·제단 가기·주간 보스 비경 깨기·촌장 → 3장은 모험 등급 7 에 잠김 ⑬ 임무 목록(O).
 ## 106장 ㉗ 3장·대화 카메라: ⑭ 촌장 대화 — 인물이 말하면 카메라가 인물 얼굴을, 고르는 줄·내 대답이면 내 얼굴을 잡고, 끝나면 원래 시점
 ## ⑮ 청하란 셋 캐기(다른 채집물은 안 셈, 목표 = 가까운 청하란) ⑯ 요리 한 번(목표 = 가까운 솥) ⑰ 사공 ⑱ 잿불 도깨비왕 ⑲ 학자
-## ⑳ 잠든 무덤 깨기 ㉑ 잔치 마당 졸개 넷 ㉒ 촌장 → 3장 끝·보상·다 끝남·목록 ✔ 제3장.
+## ⑳ 잠든 무덤 깨기 ㉑ 잔치 마당 졸개 넷 ㉒ 촌장 → 3장 끝·보상·목록 ✔ 제3장.
+## 106장 ㉘ 4장: ㉓ 나그네는 4장 둘째 단계부터만 서 있고 가면이 머리 뼈에 붙음 ㉔ 나그네 대화 → 따라가기, 앞장선 동안은 말 못 검
+## ㉕ 따라가기 — 멀면 서서 기다리고 "너무 멀다", 가까우면 길 끝까지 걷고 다음 단계 ㉖ 나그네 → 들녘 졸개 넷 ㉗ 다 쓰러뜨리기
+## ㉘ 나그네 → 사라짐(길 끝 자리) ㉙ 학자 ㉚ 촌장 → 4장 끝·다 끝남·목록 ✔ 제4장.
 ## 저장은 안 한다(부대 경험·이야기 상태는 메모리에서만 바꾸고 끝에 되돌린다).
 
 const Story := preload("res://games/saga_go/data/story.gd")
@@ -17,6 +20,8 @@ const FieldBosses := preload("res://games/saga_go/world/field_bosses.gd")
 const Domains := preload("res://games/saga_go/data/domains.gd")
 const FieldEnemy := preload("res://games/saga_go/combat/field_enemy.gd")
 const Cooking := preload("res://games/saga_go/data/cooking.gd")
+const TestMap := preload("res://games/saga_go/data/test_map.gd")
+const TerrainBuilder := preload("res://games/saga_go/world/terrain_builder.gd")
 const Gathering := preload("res://games/saga_go/world/gathering.gd")
 
 var _p: CharacterBody3D
@@ -51,7 +56,7 @@ func _physics_process(_delta: float) -> void:
 			_sq.call("_enter_step")
 			_next()
 		1: # ① 표
-			var ok := Story.CHAPTERS.size() == 3
+			var ok := Story.CHAPTERS.size() == 4
 			for c in Story.CHAPTERS:
 				for s in c.steps:
 					match String(s.type):
@@ -61,6 +66,7 @@ func _physics_process(_delta: float) -> void:
 						"go", "kill", "light": ok = ok and s.has("region") and s.has("cell")
 						"gather": ok = ok and Cooking.GATHER.has(String(s.item)) and int(s.count) > 0
 						"cook": pass
+						"follow": ok = ok and Story.NPCS.has(String(s.npc)) and (s.path as Array).size() >= 2
 						_: ok = false
 			_check("table", ok, "chapters=%d" % Story.CHAPTERS.size())
 			_next()
@@ -316,11 +322,118 @@ func _physics_process(_delta: float) -> void:
 			_sq.call("toggle_journal")
 			## 장 보상 3 — 장 경험으로 모험 등급이 5 의 배수를 넘으면 등급 보상 1 이 더 붙는다(data/adventure.gd AR_REWARD_5).
 			var got := PartyState.count("fate_knot") - int(_v)
-			var ok: bool = int(_sq.call("ch")) == 3 and (got == 3 or got == 4) and _sq.call("tracker_text") == "" \
-				and _sq.call("target_pos") == Vector3.INF and jt.contains("✔ 제3장")
+			var ok: bool = int(_sq.call("ch")) == 3 and (got == 3 or got == 4) and String(_sq.call("tracker_text")).contains("제4장") and jt.contains("✔ 제3장")
 			_check("chapter3", ok, "ch=%d knots %d→%d" % [_sq.call("ch"), _v, PartyState.count("fate_knot")])
 			_next()
-		23:
+		23: # ㉓ 4장 — 나그네 등장 조건·가면
+			if _frame == 1:
+				PartyState.level = 9 # 모험 등급 10
+				PartyState.exp = 1500.0
+				_sq.call("_refresh")
+			if _frame < 4:
+				_dismiss_prompts()
+				return
+			if _frame == 4:
+				_v = [bool(_sq.call("npc_visible", "wanderer")), bool((_sq.get("_npcs")["wanderer"] as Node3D).visible)]
+				_near_npc("elder")
+			if _frame == 14:
+				_sq.call("interact")
+				_drain()
+			if _frame == 20:
+				var root: Node3D = _sq.get("_npcs")["wanderer"]
+				var att := root.find_children("*", "BoneAttachment3D", true, false)
+				var ok: bool = not bool(_v[0]) and not bool(_v[1]) and int(_sq.call("ch")) == 3 and int(_sq.call("st")) == 1 and root.visible \
+					and bool(_sq.call("has_mask", "wanderer")) and att.size() == 1 \
+					and (_sq.call("target_pos") as Vector3).is_equal_approx(_sq.call("npc_pos", "wanderer"))
+				_check("wanderer_appears", ok, "before=%s/%s st=%d visible=%s mask=%s on_head=%d" % [_v[0], _v[1], _sq.call("st"), root.visible, _sq.call("has_mask", "wanderer"), att.size()])
+				_next()
+		24: # ㉔ 나그네 대화 → 따라가기
+			if _frame == 1:
+				_near_npc("wanderer")
+			if _frame == 10:
+				_sq.call("interact")
+				_drain()
+				var ok: bool = int(_sq.call("st")) == 2 and _sq.call("near_npc") == "" and not bool(_sq.call("interact"))
+				_check("wanderer_talk", ok, "st=%d near='%s'" % [_sq.call("st"), _sq.call("near_npc")])
+				_next()
+		25: # ㉕ 따라가기 — 멀면 기다림, 가까우면 길 끝까지
+			var w: Vector3 = _sq.call("npc_pos", "wanderer")
+			if _frame == 1:
+				_sq.set("follow_speed_mul", 20.0)
+				_v = {"start": w}
+			if _frame < 40: # 40m 밖 — 서서 기다린다
+				_put(w + Vector3(40.0, 0.0, 0.0))
+				return
+			if _frame == 40:
+				_v.waited = w.is_equal_approx(_v.start)
+				_v.far_text = String(_sq.call("tracker_text")).contains("너무 멀다")
+			if int(_sq.call("st")) == 2 and _frame < 1200:
+				## 다리 칸(격자 5,7) 위에서는 강바닥이 아니라 상판 위를 걷는가.
+				var g := TestMap.world_pos(5.0, 7.0, "village")
+				if absf(w.z - g.z) < 10.0 and absf(w.x - g.x) < 10.0:
+					_v.bridge_lift = maxf(float(_v.get("bridge_lift", -99.0)), w.y - TerrainBuilder.height_at("village", w))
+				_put(w + Vector3(0.0, 0.0, 3.0))
+				return
+			var path: Array = Story.CHAPTERS[3].steps[2].path
+			var end := TestMap.world_pos(path[path.size() - 1].x, path[path.size() - 1].y, "village")
+			var at_end := Vector2(w.x - end.x, w.z - end.z).length() < 0.1
+			_sq.set("follow_speed_mul", 1.0)
+			var lift := float(_v.get("bridge_lift", -99.0))
+			_check("follow", bool(_v.waited) and bool(_v.far_text) and int(_sq.call("st")) == 3 and at_end and lift > 1.5,
+				"waited=%s far_text=%s st=%d at_end=%s bridge_lift=%.2f frames=%d" % [_v.waited, _v.far_text, _sq.call("st"), at_end, lift, _frame])
+			_next()
+		26: # ㉖ 나그네 → 들녘 졸개
+			if _frame == 1:
+				_near_npc("wanderer")
+			if _frame == 10:
+				_sq.call("interact")
+				_drain()
+				var n := (_sq.call("alive_quest_enemies") as Array).size()
+				_check("ambush", int(_sq.call("st")) == 4 and n == 4, "st=%d enemies=%d" % [_sq.call("st"), n])
+				_next()
+		27: # ㉗ 다 쓰러뜨리기
+			if _frame == 1:
+				for e in _sq.call("alive_quest_enemies"):
+					e.call("_die")
+			if _frame == 5:
+				_check("ch4_kill", int(_sq.call("st")) == 5, "st=%d" % _sq.call("st"))
+				_next()
+		28: # ㉘ 나그네 → 사라짐
+			if _frame == 1:
+				_near_npc("wanderer")
+			if _frame == 10:
+				_sq.call("interact")
+				_drain()
+			if _frame == 12:
+				var root: Node3D = _sq.get("_npcs")["wanderer"]
+				_check("wanderer_leaves", int(_sq.call("st")) == 6 and not root.visible and not bool(_sq.call("npc_visible", "wanderer")), "st=%d visible=%s" % [_sq.call("st"), root.visible])
+				_next()
+		29: # ㉙ 학자
+			if _frame == 1:
+				_near_npc("scholar")
+			if _frame == 10:
+				_sq.call("interact")
+				_drain()
+				_check("ch4_scholar", int(_sq.call("st")) == 7, "st=%d" % _sq.call("st"))
+				_next()
+		30: # ㉚ 촌장 → 4장 끝
+			if _frame == 1:
+				_near_npc("elder")
+			if _frame == 10:
+				_sq.call("interact")
+				_drain()
+			if _frame < 16:
+				return
+			_dismiss_prompts()
+			if _frame < 22:
+				return
+			_sq.call("toggle_journal")
+			var jt: String = _sq.call("journal_text")
+			_sq.call("toggle_journal")
+			var ok: bool = int(_sq.call("ch")) == 4 and _sq.call("tracker_text") == "" and _sq.call("target_pos") == Vector3.INF and jt.contains("✔ 제4장")
+			_check("chapter4", ok, "ch=%d tracker='%s'" % [_sq.call("ch"), _sq.call("tracker_text")])
+			_next()
+		31:
 			PartyState.story = _saved.story
 			PartyState.exp = _saved.exp
 			PartyState.level = _saved.level
