@@ -41,6 +41,7 @@ const ITEMS := {
 	"ore_m": {"name": "강화석"},
 	"ore_l": {"name": "정련 강화석"},
 	"iron": {"name": "무쇠 조각"},
+	"polish": {"name": "연마석"}, # 106장 ⑰ 성유물 강화(경험 2500)
 }
 const BOOKS := ["book_s", "book_m", "book_l"]
 

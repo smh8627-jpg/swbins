@@ -26,12 +26,14 @@ signal level_up(new_level: int)
 const Perks := preload("res://games/saga_go/data/perks.gd")
 const Growth := preload("res://games/saga_go/data/growth.gd")
 const Weapons := preload("res://games/saga_go/data/weapons.gd")
+const Artifacts := preload("res://games/saga_go/data/artifacts.gd")
 
 ## PLAN 106장 ⑩ — 인물 육성(원신식 레벨·돌파). 들판 전투는 이제 인물마다 이 값을 쓴다
 ## (char_atk·char_def). 위 atk/def(부대 전투력)는 옛 사건 결투·승급 3택이 그대로 쓴다.
 signal growth_changed(member_id: String)
 signal bag_changed()
 signal weapon_changed()
+signal artifact_changed()
 
 const BASE_ATK := 60.0
 const BASE_DEF := 35.0
@@ -61,6 +63,10 @@ var bag: Dictionary = {}
 ## (없거나 못 드는 무기면 그 종류 수련용). 필드만 더해 SAVE_VERSION 3 그대로.
 var weapons: Dictionary = {}
 var equip: Dictionary = {}
+## 106장 ⑰ — 성유물 uid("a<번호>") → artifacts.gd generate() 모양(owner = 낀 인물 id 또는 ""). 번호는 artifact_seq 로
+## 매기고 그 번호로 씨앗을 정한다(얻는 차례가 같으면 늘 같은 성유물). 필드만 더해 SAVE_VERSION 3 그대로.
+var artifacts: Dictionary = {}
+var artifact_seq := 0
 
 var _session_start_exp: float = 0.0
 
@@ -107,7 +113,8 @@ func add_exp(amount: float) -> void:
 ## 다르게 이미 정해진 값을 통째로 앉히고 수치만 다시 계산한다(신호는 한 번만,
 ## level_up 은 안 emit — 로드는 새 성장이 아니다).
 func restore(saved_members: Array[String], saved_exp: float = 0.0, saved_perks: Array[String] = [],
-		saved_growth: Dictionary = {}, saved_bag: Dictionary = {}, saved_weapons: Dictionary = {}, saved_equip: Dictionary = {}) -> void:
+		saved_growth: Dictionary = {}, saved_bag: Dictionary = {}, saved_weapons: Dictionary = {}, saved_equip: Dictionary = {},
+		saved_artifacts: Dictionary = {}, saved_artifact_seq: int = 0) -> void:
 	members = saved_members.duplicate()
 	exp = saved_exp
 	perks = saved_perks.duplicate()
@@ -128,6 +135,18 @@ func restore(saved_members: Array[String], saved_exp: float = 0.0, saved_perks: 
 	equip.clear()
 	for mid in saved_equip:
 		equip[str(mid)] = str(saved_equip[mid])
+	artifacts.clear()
+	for uid in saved_artifacts:
+		var a: Variant = saved_artifacts[uid]
+		if typeof(a) != TYPE_DICTIONARY or not Artifacts.SETS.has(str(a.get("set", ""))):
+			continue
+		var subs: Array = []
+		for s in a.get("subs", []):
+			subs.append([str(s[0]), float(s[1])])
+		artifacts[str(uid)] = {"set": str(a.set), "slot": str(a.get("slot", "flower")), "rarity": int(a.get("rarity", 4)),
+			"lv": int(a.get("lv", 0)), "exp": float(a.get("exp", 0.0)), "total": float(a.get("total", 0.0)),
+			"main": str(a.get("main", "hp")), "subs": subs, "seed": int(a.get("seed", 0)), "owner": str(a.get("owner", ""))}
+	artifact_seq = maxi(saved_artifact_seq, artifacts.size())
 	_recompute()
 	power_changed.emit(atk, def)
 
@@ -190,11 +209,11 @@ func char_cap(id: String) -> int:
 ## 희귀도·공명은 field_combat 이 곱한다.
 func char_atk(id: String) -> float:
 	var g := growth_of(id)
-	return (Growth.BASE_ATK * Growth.stat_mul(int(g.lv), int(g.asc)) + weapon_atk(id)) * (1.0 + stat(id, "atk_pct")) * atk_mul()
+	return ((Growth.BASE_ATK * Growth.stat_mul(int(g.lv), int(g.asc)) + weapon_atk(id)) * (1.0 + stat(id, "atk_pct")) + stat(id, "atk")) * atk_mul()
 
 func char_def(id: String) -> float:
 	var g := growth_of(id)
-	return Growth.BASE_DEF * Growth.stat_mul(int(g.lv), int(g.asc)) * def_mul()
+	return (Growth.BASE_DEF * Growth.stat_mul(int(g.lv), int(g.asc)) * (1.0 + stat(id, "def_pct")) + stat(id, "def")) * def_mul()
 
 func count(item: String) -> int:
 	return int(bag.get(item, 0))
@@ -386,12 +405,23 @@ func weapon_atk(id: String) -> float:
 	var w := weapon_state(wid)
 	return Weapons.atk_at(wid, int(w.lv), int(w.asc))
 
-## 부옵션 합(지금은 무기 하나 — 성유물이 생기면 여기서 더한다). 값은 비율.
+## 옵션 합 — 무기 부옵션 + 낀 성유물 주/부옵션 + 세트 2 효과(106장 ⑰). 비율 옵션은 비율, 고정값(hp·atk·def)은 수.
 func stat(id: String, key: String) -> float:
+	var v := 0.0
 	var wid := weapon_of(id)
 	if Weapons.info(wid).get("sub", "") == key:
-		return Weapons.sub_at(wid, int(weapon_state(wid).lv))
-	return 0.0
+		v += Weapons.sub_at(wid, int(weapon_state(wid).lv))
+	for art in equipped_artifacts(id):
+		if art.main == key:
+			v += Artifacts.main_value(art)
+		for s in art.subs:
+			if s[0] == key:
+				v += float(s[1])
+	var counts := set_counts(id)
+	for set_id in counts:
+		if int(counts[set_id]) >= 2:
+			v += float((Artifacts.SETS[set_id]["2"] as Dictionary).get(key, 0.0))
+	return v
 
 func crit_rate(id: String) -> float:
 	return clampf(Weapons.BASE_CRIT_RATE + stat(id, "crit_rate"), 0.0, 1.0)
@@ -400,11 +430,21 @@ func crit_dmg(id: String) -> float:
 	return Weapons.BASE_CRIT_DMG + stat(id, "crit_dmg")
 
 ## 무기 효과 배율 — kind(normal·skill·burst·reaction) 가 그 무기 효과면 1 + 값(재련 반영).
+## 성유물 4 세트도 더한다(기본 공격은 한손검·양손검·장병기만 · 스킬 · 폭발).
 func passive_mul(id: String, kind: String) -> float:
+	var m := 1.0
 	var wid := weapon_of(id)
-	if Weapons.info(wid).get("passive", "") != kind:
-		return 1.0
-	return 1.0 + Weapons.passive_at(wid, int(weapon_state(wid).ref))
+	if Weapons.info(wid).get("passive", "") == kind:
+		m += Weapons.passive_at(wid, int(weapon_state(wid).ref))
+	match kind:
+		"normal":
+			if ["sword", "claymore", "polearm"].has(Weapons.type_of(id)):
+				m += set4(id, "normal_melee")
+		"skill":
+			m += set4(id, "skill_dmg")
+		"burst":
+			m += set4(id, "burst_dmg")
+	return m
 
 ## 강화석 n 개를 무기에 쓴다(냥도 든다). 상한에서 멈추고 남는 경험은 버린다. 오른 레벨 수(못 쓰면 -1).
 func weapon_use_ore(wid: String, ore: String, n: int = 1) -> int:
@@ -460,3 +500,148 @@ func weapon_ascend(wid: String) -> bool:
 	weapon_changed.emit()
 	power_changed.emit(atk, def)
 	return true
+
+# ---------------------------------------------------------------- 성유물(106장 ⑰)
+
+## 새 성유물 — 번호를 하나 올려 그 번호로 씨앗을 정한다. 가득 차면 안 낀 ★4 부터 분해. uid 를 돌려준다.
+func add_artifact(rarity: int, set_id: String = "", slot: String = "") -> String:
+	artifact_seq += 1
+	var uid := "a%d" % artifact_seq
+	artifacts[uid] = Artifacts.generate(20260824 + artifact_seq * 7919, rarity, set_id, slot)
+	while artifacts.size() > Artifacts.CAP:
+		var victim := ""
+		for k in artifacts:
+			var a: Dictionary = artifacts[k]
+			if k != uid and a.owner == "" and (victim == "" or int(a.rarity) < int(artifacts[victim].rarity)):
+				victim = k
+		if victim == "" or not salvage(victim):
+			break
+	artifact_changed.emit()
+	return uid
+
+func artifact_of(id: String, slot: String) -> String:
+	for uid in artifacts:
+		var a: Dictionary = artifacts[uid]
+		if a.owner == id and a.slot == slot:
+			return uid
+	return ""
+
+func equipped_artifacts(id: String) -> Array:
+	var out: Array = []
+	for uid in artifacts:
+		if artifacts[uid].owner == id:
+			out.append(artifacts[uid])
+	return out
+
+## 낀다 — 그 부위에 끼던 건 이 성유물을 끼고 있던 인물에게 넘어간다(원신처럼 맞바꿈, 없으면 뺌).
+func equip_artifact(id: String, uid: String) -> bool:
+	if not artifacts.has(uid):
+		return false
+	var art: Dictionary = artifacts[uid]
+	if art.owner == id:
+		return true
+	var prev_owner: String = art.owner
+	var current := artifact_of(id, art.slot)
+	if current != "":
+		artifacts[current].owner = prev_owner
+	art.owner = id
+	artifact_changed.emit()
+	power_changed.emit(atk, def)
+	return true
+
+func unequip_artifact(id: String, slot: String) -> void:
+	var uid := artifact_of(id, slot)
+	if uid != "":
+		artifacts[uid].owner = ""
+		artifact_changed.emit()
+		power_changed.emit(atk, def)
+
+## 그 부위 성유물 — 희귀도·레벨 높은 순, 같으면 번호 순.
+func artifacts_for_slot(slot: String) -> Array[String]:
+	var out: Array[String] = []
+	for uid in artifacts:
+		if artifacts[uid].slot == slot:
+			out.append(uid)
+	out.sort_custom(func(a: String, b: String) -> bool:
+		var x: Dictionary = artifacts[a]
+		var y: Dictionary = artifacts[b]
+		if int(x.rarity) != int(y.rarity):
+			return int(x.rarity) > int(y.rarity)
+		if int(x.lv) != int(y.lv):
+			return int(x.lv) > int(y.lv)
+		return int(a.substr(1)) < int(b.substr(1)))
+	return out
+
+## 연마석으로 +1 — 오른 레벨 수(못 쓰면 -1). +4 마다 부옵션.
+func artifact_level_once(uid: String) -> int:
+	if not artifacts.has(uid):
+		return -1
+	var art: Dictionary = artifacts[uid]
+	var max_lv: int = Artifacts.MAX_LV[int(art.rarity)]
+	var start := int(art.lv)
+	var any := false
+	while int(art.lv) == start and start < max_lv:
+		if not spend_items({"mora": Artifacts.POLISH_MORA, "polish": 1}):
+			break
+		any = true
+		art.exp = float(art.exp) + Artifacts.POLISH_EXP
+		art.total = float(art.total) + Artifacts.POLISH_EXP
+		while int(art.lv) < max_lv and float(art.exp) >= Artifacts.exp_to_next(int(art.lv)):
+			art.exp = float(art.exp) - Artifacts.exp_to_next(int(art.lv))
+			art.lv = int(art.lv) + 1
+			if int(art.lv) % 4 == 0:
+				Artifacts.on_step(art)
+		if int(art.lv) >= max_lv:
+			art.exp = 0.0
+	if not any:
+		return -1
+	artifact_changed.emit()
+	power_changed.emit(atk, def)
+	return int(art.lv) - start
+
+## 분해 — 낀 건 안 된다. 연마석으로 돌려받는다.
+func salvage(uid: String) -> bool:
+	if not artifacts.has(uid) or artifacts[uid].owner != "":
+		return false
+	var n := Artifacts.salvage_value(artifacts[uid])
+	artifacts.erase(uid)
+	add_items({"polish": n})
+	artifact_changed.emit()
+	return true
+
+## 안 낀 ★rarity 이하·+0 인 것을 모두 분해 — 분해한 수.
+func salvage_unused(max_rarity: int = 4) -> int:
+	var n := 0
+	for uid in artifacts.keys():
+		var a: Dictionary = artifacts[uid]
+		if a.owner == "" and int(a.rarity) <= max_rarity and int(a.lv) == 0 and salvage(uid):
+			n += 1
+	return n
+
+func set_counts(id: String) -> Dictionary:
+	var c := {}
+	for art in equipped_artifacts(id):
+		c[art.set] = int(c.get(art.set, 0)) + 1
+	return c
+
+## 4 세트 효과 값(그 키가 있는 세트를 넷 이상 꼈을 때).
+func set4(id: String, key: String) -> float:
+	var v := 0.0
+	var counts := set_counts(id)
+	for set_id in counts:
+		if int(counts[set_id]) >= 4:
+			v += float((Artifacts.SETS[set_id]["4"] as Dictionary).get(key, 0.0))
+	return v
+
+## 반응 피해 배율 — 무기 효과(반응) + 4 세트(불꽃 무녀: 증발·융해·과부하·연소 · 바람 나그네: 확산).
+func react_mul(id: String, reaction: String) -> float:
+	var m := passive_mul(id, "reaction")
+	if Artifacts.FIRE_REACTIONS.has(reaction):
+		m += set4(id, "react_fire")
+	elif reaction == "swirl":
+		m += set4(id, "react_swirl")
+	return m
+
+## 원소(물리 "") 피해 보너스 배율.
+func dmg_bonus(id: String, element: String) -> float:
+	return 1.0 + stat(id, "elem_" + (element if element != "" else "phys"))

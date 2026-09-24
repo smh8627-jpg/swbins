@@ -28,6 +28,8 @@ func save() -> bool:
 		"bag": PartyState.bag,
 		"weapons": PartyState.weapons,
 		"equip": PartyState.equip,
+		"artifacts": PartyState.artifacts,
+		"artifact_seq": PartyState.artifact_seq,
 		"drops": DropState.drops,
 		"quest_active_id": QuestState.active_id,
 		"quest_active_name": QuestState.active_name,
@@ -76,9 +78,12 @@ func try_load() -> bool:
 	## weapons·equip(106장 ⑯) — 없으면 빈 사전(수련용만 든 상태). 필드만 더해 버전 그대로.
 	var weapons: Variant = data.get("weapons", {})
 	var equip: Variant = data.get("equip", {})
+	## artifacts·artifact_seq(106장 ⑰) — 없으면 빈 사전·0.
+	var arts: Variant = data.get("artifacts", {})
 	PartyState.restore(members, float(data.get("party_exp", 0.0)), perks,
 		growth if typeof(growth) == TYPE_DICTIONARY else {}, bag if typeof(bag) == TYPE_DICTIONARY else {},
-		weapons if typeof(weapons) == TYPE_DICTIONARY else {}, equip if typeof(equip) == TYPE_DICTIONARY else {})
+		weapons if typeof(weapons) == TYPE_DICTIONARY else {}, equip if typeof(equip) == TYPE_DICTIONARY else {},
+		arts if typeof(arts) == TYPE_DICTIONARY else {}, int(data.get("artifact_seq", 0)))
 
 	var pos: Array = data.get("player_pos", [])
 	var player := _find_player()

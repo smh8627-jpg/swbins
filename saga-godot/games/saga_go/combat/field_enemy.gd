@@ -337,7 +337,12 @@ func _die() -> void:
 	var loot: Dictionary = Growth.KILL_DROPS.get(kind, {})
 	if not loot.is_empty():
 		PartyState.add_items(loot)
-		CombatFeel.pickup(self, "냥 +%d" % int(loot.get("mora", 0)))
+		## 106장 ⑰ — 원소 괴물은 ★4 성유물 하나.
+		var art_text := ""
+		if def.has("element"):
+			PartyState.add_artifact(4)
+			art_text = " · 성유물"
+		CombatFeel.pickup(self, "냥 +%d%s" % [int(loot.get("mora", 0)), art_text])
 	died.emit(self)
 
 func _revive() -> void:

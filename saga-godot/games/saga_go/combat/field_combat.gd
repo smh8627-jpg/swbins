@@ -20,6 +20,7 @@ extends Node
 ## 106장 ⑯: 무기 종류마다 기본 공격 모양(WEAPON_KIT — 양손검은 무거운 타격이라 쇄빙·바위 방패에 세고, 법구는
 ## 인물 원소로, 활은 멀리 한 대씩), 치명타(인물 확률·피해 — 무기 부옵션, 씨앗 고정 난수), 무기 효과(기본 공격·스킬·
 ## 폭발·반응 피해), 기력 획득·체력 부옵션.
+## 106장 ⑰: 성유물 — 원소(물리) 피해 보너스(치는 인물이 있을 때만, 치명타와 같은 경계)·고정 체력·세트 4 반응 보너스.
 
 const Elements := preload("res://games/saga_go/combat/elements.gd")
 const Characters := preload("res://saga_core/data/characters.gd")
@@ -269,7 +270,7 @@ func max_hp_of(id: String) -> float:
 		m *= RESONANCE_WATER_HP
 	if PartyState.constellation(id) >= 4:
 		m *= Growth.C4_HP_MUL
-	return m * (1.0 + PartyState.stat(id, "hp_pct"))
+	return m * (1.0 + PartyState.stat(id, "hp_pct")) + PartyState.stat(id, "hp")
 
 ## 인물 공격 — 레벨·돌파(PartyState) × 희귀도·화 공명(_power_mul) × 운명의 자리 6(폭발 뒤 10초).
 func char_atk(id: String) -> float:
@@ -634,7 +635,7 @@ func _tick_effects(delta: float) -> void:
 				_ring_fx(fx.center, BLOOM_RADIUS, info.color, 0.4)
 				for e in _enemies_near(fx.center, BLOOM_RADIUS):
 					var push: Vector3 = (e as Node3D).global_position - fx.center
-					e.call("apply_damage", fx.base * BLOOM_MUL * _reaction_mul(), true, push, "grass")
+					e.call("apply_damage", fx.base * BLOOM_MUL * _reaction_mul("bloom"), true, push, "grass")
 	_crit_id = ""
 	_effects = _effects.filter(func(fx: Dictionary) -> bool: return fx.left > 0.0)
 
@@ -722,24 +723,24 @@ func _deal(enemy: Node, base: float, element: String, dir: Vector3) -> float:
 	## 쇄빙 — 얼어 있는 적을 강공격·낙하로 치면 크게 들어가고 풀린다.
 	if _heavy and enemy.call("is_frozen"):
 		var sh: Dictionary = Elements.REACTION_INFO["shatter"]
-		amount *= float(sh.mul) * _reaction_mul()
+		amount *= float(sh.mul) * _reaction_mul("shatter")
 		last_reaction = "shatter"
 		_reaction_text(enemy as Node3D, sh.name, sh.color)
 		enemy.call("unfreeze")
-		return enemy.call("apply_damage", amount * _crit_roll(), true, dir)
+		return enemy.call("apply_damage", amount * _crit_roll() * _dmg_bonus(element), true, dir)
 	## 촉진이 남은 적 — 뇌는 활성, 초는 발산(×1.25).
 	var bonus := ""
 	if float(enemy.get("quicken_t")) > 0.0 and (element == "thunder" or element == "grass"):
 		bonus = "aggravate" if element == "thunder" else "spread"
 		var bi: Dictionary = Elements.REACTION_INFO[bonus]
-		amount *= float(bi.mul) * _reaction_mul()
+		amount *= float(bi.mul) * _reaction_mul(bonus)
 		_reaction_text(enemy as Node3D, bi.name, bi.color)
 	var aura: String = enemy.get("aura")
 	var reaction := Elements.reaction_of(aura, element)
 	last_reaction = reaction if reaction != "" else bonus
 	if reaction != "":
 		var info: Dictionary = Elements.REACTION_INFO[reaction]
-		amount *= float(info.mul) * _reaction_mul()
+		amount *= float(info.mul) * _reaction_mul(reaction)
 		_reaction_text(enemy as Node3D, info.name, info.color)
 		enemy.call("set_aura", "")
 		match reaction:
@@ -774,7 +775,7 @@ func _deal(enemy: Node, base: float, element: String, dir: Vector3) -> float:
 						continue
 					if not other.call("is_shielded") and other.get("aura") == "":
 						other.call("set_aura", aura)
-					other.call("apply_damage", base * SWIRL_MUL, false, (other as Node3D).global_position - sw_center, aura)
+					other.call("apply_damage", base * SWIRL_MUL * _reaction_mul("swirl"), false, (other as Node3D).global_position - sw_center, aura)
 			"crystallize":
 				grant_shield(max_hp * CRYSTAL_SHIELD, aura)
 			"bloom":
@@ -786,7 +787,11 @@ func _deal(enemy: Node, base: float, element: String, dir: Vector3) -> float:
 	elif Elements.attaches(element):
 		enemy.call("set_aura", element)
 	var crit := _crit_roll()
-	return enemy.call("apply_damage", amount * crit, reaction != "" or bonus != "" or crit > 1.0, dir)
+	return enemy.call("apply_damage", amount * crit * _dmg_bonus(element), reaction != "" or bonus != "" or crit > 1.0, dir)
+
+## 원소(물리) 피해 보너스 — 치는 인물(_crit_id)이 있을 때만.
+func _dmg_bonus(element: String) -> float:
+	return PartyState.dmg_bonus(_crit_id, element) if _crit_id != "" else 1.0
 
 ## 치명타 — 치는 인물(_crit_id)이 있을 때만 굴린다. 배율(1 또는 1 + 치명타 피해).
 func _crit_roll() -> float:
@@ -796,14 +801,14 @@ func _crit_roll() -> float:
 		return 1.0 + PartyState.crit_dmg(_crit_id)
 	return 1.0
 
-## 반응 피해 배율 — 초 공명 +20% · 운명의 자리 2 +15%.
-func _reaction_mul() -> float:
+## 반응 피해 배율 — 초 공명 +20% · 운명의 자리 2 +15% · 무기 효과·성유물 4 세트(PartyState.react_mul).
+func _reaction_mul(reaction: String = "") -> float:
 	var m := 1.0
 	if resonance() == "grass":
 		m *= RESONANCE_GRASS_REACTION
 	if PartyState.constellation(active_id()) >= 2:
 		m *= Growth.C2_REACTION_MUL
-	return m * PartyState.passive_mul(active_id(), "reaction")
+	return m * PartyState.react_mul(active_id(), reaction)
 
 ## 명단 전체 보호막 — 더 큰 쪽으로 갈고 시간은 새로.
 func grant_shield(amount: float, element: String) -> void:

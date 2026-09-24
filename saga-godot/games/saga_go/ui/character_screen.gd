@@ -5,12 +5,15 @@ extends CanvasLayer
 ##   견문록 쓰기(한 레벨 올리기 · 권마다) · 돌파(상한에 닿고 재료가 있으면) · 오른쪽: 가방.
 ##   106장 ⑫: 가운데 아래 특성 셋(기본 공격·원소 스킬·원소 폭발, 줄마다 "올리기") · 운명의 자리(여섯 효과·"열기").
 ##   106장 ⑯: 돌파 밑에 무기(이름·종류·Lv·공격력·부옵션·효과·재련) — "강화"·"무기 돌파"·"무기 바꾸기"(같은 종류 차례로).
+##   106장 ⑰: 무기 밑에 성유물 다섯 부위(세트·★·+Lv·주/부옵션) — 부위마다 "바꾸기"(차례로, 끝은 빼기)·"강화"(연마석 +1),
+##   켜진 세트 효과 한 줄, "안 낀 ★4 분해".
 ## 열려 있는 동안 그룹 ui_modal(마우스 시점이 커서를 풀어 줌) + 플레이어 frozen.
 
 const Growth := preload("res://games/saga_go/data/growth.gd")
 const Elements := preload("res://games/saga_go/combat/elements.gd")
 const Characters := preload("res://saga_core/data/characters.gd")
 const Weapons := preload("res://games/saga_go/data/weapons.gd")
+const Artifacts := preload("res://games/saga_go/data/artifacts.gd")
 
 var is_open := false
 var selected := "self"
@@ -32,6 +35,11 @@ var _weapon_label: Label = null
 var _weapon_level_btn: Button = null
 var _weapon_asc_btn: Button = null
 var _weapon_swap_btn: Button = null
+var _art_title: Label = null
+var _art_labels: Dictionary = {}
+var _art_swap: Dictionary = {}
+var _art_up: Dictionary = {}
+var _salvage_btn: Button = null
 var _talent_buttons: Dictionary = {}
 var _con_label: Label = null
 var _con_button: Button = null
@@ -56,6 +64,7 @@ func _ready() -> void:
 	PartyState.bag_changed.connect(_refresh)
 	PartyState.growth_changed.connect(func(_id: String) -> void: _refresh())
 	PartyState.weapon_changed.connect(_refresh)
+	PartyState.artifact_changed.connect(_refresh)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("go_character") or event.is_action_pressed("go_bag"):
@@ -170,6 +179,35 @@ func _build() -> void:
 	_weapon_swap_btn.pressed.connect(swap_weapon)
 	wrow.add_child(_weapon_swap_btn)
 
+	_art_title = _label(mid, 18)
+	for slot in Artifacts.SLOTS:
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 6)
+		mid.add_child(row)
+		var l := Label.new()
+		l.add_theme_font_size_override("font_size", 14)
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(l)
+		var s: String = slot
+		var sw := Button.new()
+		sw.text = "바꾸기"
+		sw.custom_minimum_size = Vector2(80, 36)
+		sw.pressed.connect(func() -> void: swap_artifact(s))
+		row.add_child(sw)
+		var up := Button.new()
+		up.text = "강화"
+		up.custom_minimum_size = Vector2(64, 36)
+		up.pressed.connect(func() -> void: PartyState.artifact_level_once(PartyState.artifact_of(selected, s)))
+		row.add_child(up)
+		_art_labels[slot] = l
+		_art_swap[slot] = sw
+		_art_up[slot] = up
+	_salvage_btn = Button.new()
+	_salvage_btn.custom_minimum_size = Vector2(0, 36)
+	_salvage_btn.pressed.connect(func() -> void: PartyState.salvage_unused(4))
+	mid.add_child(_salvage_btn)
+
 	_talent_title = _label(mid, 20)
 	for kind in Growth.TALENTS:
 		var tb := Button.new()
@@ -262,6 +300,7 @@ func _refresh() -> void:
 			_asc_button.text += "  (Lv.%d 에 닿아야)" % cap
 
 	_refresh_weapon(id)
+	_refresh_artifacts(id)
 
 	var t_cap := PartyState.talent_cap(id)
 	_talent_title.text = "특성  (상한 Lv.%d%s)" % [t_cap, "" if t_cap >= Growth.TALENT_MAX else " — 돌파하면 늘어난다"]
@@ -333,6 +372,54 @@ func _refresh_weapon(id: String) -> void:
 	var choices := PartyState.weapons_for(id)
 	_weapon_swap_btn.text = "무기 바꾸기 (%d)" % choices.size()
 	_weapon_swap_btn.disabled = choices.size() <= 1
+
+func _refresh_artifacts(id: String) -> void:
+	var counts := PartyState.set_counts(id)
+	var on: Array[String] = []
+	for set_id in counts:
+		var n := int(counts[set_id])
+		var sd: Dictionary = Artifacts.SETS[set_id]
+		if n >= 2:
+			on.append("%s 2: %s" % [sd.name, sd.text2])
+		if n >= 4:
+			on.append("%s 4: %s" % [sd.name, sd.text4])
+	_art_title.text = "성유물  (연마석 %d · 가진 것 %d)%s" % [PartyState.count("polish"), PartyState.artifacts.size(),
+		("\n" + "\n".join(on)) if not on.is_empty() else ""]
+	for slot in Artifacts.SLOTS:
+		var l: Label = _art_labels[slot]
+		var uid := PartyState.artifact_of(id, slot)
+		var choices := PartyState.artifacts_for_slot(slot)
+		(_art_swap[slot] as Button).disabled = choices.is_empty()
+		if uid == "":
+			l.text = "%s — 비었음 (%d개 있음)" % [Artifacts.SLOT_NAMES[slot], choices.size()]
+			(_art_up[slot] as Button).disabled = true
+			continue
+		var a: Dictionary = PartyState.artifacts[uid]
+		var subs: Array[String] = []
+		for s in a.subs:
+			subs.append(Artifacts.stat_text(s[0], float(s[1])))
+		l.text = "%s  %s %s +%d  |  %s  |  %s" % [Artifacts.SLOT_NAMES[slot], Artifacts.SETS[a.set].name, "★".repeat(int(a.rarity)), int(a.lv),
+			Artifacts.stat_text(a.main, Artifacts.main_value(a)), " · ".join(subs)]
+		(_art_up[slot] as Button).disabled = int(a.lv) >= int(Artifacts.MAX_LV[int(a.rarity)]) or PartyState.count("polish") <= 0
+	var spare := 0
+	for k in PartyState.artifacts:
+		var a2: Dictionary = PartyState.artifacts[k]
+		if a2.owner == "" and int(a2.rarity) <= 4 and int(a2.lv) == 0:
+			spare += 1
+	_salvage_btn.text = "안 낀 ★4(+0) 분해 — %d개" % spare
+	_salvage_btn.disabled = spare == 0
+
+## 그 부위 성유물을 차례로 낀다 — 끝까지 가면 뺀다.
+func swap_artifact(slot: String) -> void:
+	var choices := PartyState.artifacts_for_slot(slot)
+	if choices.is_empty():
+		return
+	var cur := PartyState.artifact_of(selected, slot)
+	var i := choices.find(cur)
+	if i == choices.size() - 1:
+		PartyState.unequip_artifact(selected, slot)
+	else:
+		PartyState.equip_artifact(selected, choices[i + 1])
 
 ## 같은 종류 가진 무기를 차례로 쥐여 준다.
 func swap_weapon() -> void:

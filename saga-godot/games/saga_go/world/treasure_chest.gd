@@ -29,6 +29,7 @@ const GRADES := {
 }
 
 const OPEN_RADIUS := 1.9
+const ARTIFACT_DROPS := {"exquisite": [4], "precious": [5], "luxurious": [5, 5]}
 const HINT_RADIUS := 7.0
 const HINT_RESET_RADIUS := 12.0
 const CAMP_RADIUS := 12.0
@@ -139,6 +140,9 @@ func open() -> float:
 	PartyState.add_exp(reward)
 	## 106장 ⑩ — 육성 재료(냥·견문록·원소 결정, growth.gd CHEST_LOOT).
 	PartyState.add_items(Growth.CHEST_LOOT.get(grade, {}))
+	## 106장 ⑰ — 성유물(정교 ★4 하나·진귀 ★5 하나·화려 ★5 둘).
+	for r in ARTIFACT_DROPS.get(grade, []):
+		PartyState.add_artifact(r)
 	## 106장 ⑯ — 진귀 ★3·화려 ★4 무기(상자마다 정해진 종류). 이미 있으면 재련.
 	var wid := Weapons.chest_weapon(chest_id, grade)
 	if wid != "":

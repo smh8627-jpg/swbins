@@ -8500,3 +8500,11 @@ PROJECT_STATE.md` 참고. 요약:
 - 공격 공식에 무기 공격력이 더해져(수련용 +23) 초반 공격이 60 → 83. 성장 점검 "Lv1 공격 = 기본 × 특성" 을 (기본+무기) 로, "Lv20 이 1.6배" 를 인물 몫만으로 고침.
 - 점검 `tools/probe_weapons.gd` 11항목 3회 md5 동일 fails=0. 진귀 상자가 전부 잠금이라 점검은 unseal 뒤 연다(첫 판 실패). 활·법구 점검은 목표 적을 빈 모래밭으로 옮김(무리 동료를 먼저 겨눔). 다른 GO 점검 아홉 fails=0, REGRESS OK.
 - 실기 확인 전: 양손검 3타 속도, 활·법구 빛줄기, 치명타 숫자가 구분되는지, 인물 화면 무기 줄 길이.
+
+## GO 원신 기준 ⑰ 성유물 — 부위 5·★4/★5·강화·세트 5 (2026-09-24, 새 세션, "이어해줘")
+
+- 새 `data/artifacts.gd`(부위·주옵션표·부옵션 굴림·세트·생성 — 성유물마다 씨앗, +4 굴림은 씨앗×31+Lv) · `party_state.gd` 성유물 칸(`add_artifact`·맞바꿈 `equip_artifact`·`artifact_level_once`·`salvage(_unused)`·`set_counts`·`set4`·`react_mul`·`dmg_bonus`), `stat()` 이 무기+성유물+세트 2 를 합침, `passive_mul` 에 세트 4, 공격·방어에 고정값 · `save_state.gd` 두 필드 · `field_enemy._die`(원소 괴물 ★4) · `treasure_chest`(등급별).
+- `field_combat.gd`: `_dmg_bonus()`(치는 인물 있을 때만 — 옛 점검 정확값 보존) · `_reaction_mul(reaction)` 로 반응 이름을 넘겨 불꽃 무녀·바람 나그네 4 세트(확산 번짐 피해에도) · 고정 체력.
+- `stat()` 은 부를 때마다 성유물을 훑는다(상한 200) — 지금은 느리지 않지만 가진 게 많아지면 인물별 캐시를 둘 자리.
+- 점검 `tools/probe_artifacts.gd` 12항목 3회 md5 동일 fails=0. Write 툴로 쓴 GDScript 줄 잇기를 `\\` 로 적어 문법 오류(한 번) — GDScript 파일엔 백슬래시 하나. 다른 GO 점검 열 fails=0, REGRESS OK.
+- 실기 확인 전: 성유물 줄 글자 길이(부옵션 넷 + 세트 줄로 화면이 더 길어짐), 강화 속도(+20 에 연마석 126 개), 괴물 잡을 때마다 ★4 가 너무 쌓이지 않는지.
