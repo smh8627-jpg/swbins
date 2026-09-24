@@ -37,6 +37,9 @@
      `rtk:battle` 보고에서 성마다 마지막 싸움의 뼈대만 옮겨 둔다. 비우는 때는 monthOrders 와 같다 */
   var monthBattles = {};
   function monthBattlesView() { return monthBattles; }
+  /* 이 달 세작이 물어 온 재야 — 같은 화면 전용 기록(지도 위 세작, PLAN §5-10 ④). 성 → 무장 id */
+  var monthScouts = {};
+  function monthScoutsView() { return monthScouts; }
   core.on('rtk:battle', function (rep) {
     if (!rep || !rep.to) { return; }
     monthBattles[rep.to] = {
@@ -225,6 +228,7 @@
     var st = state();
     monthOrders = {};
     monthBattles = {};
+    monthScouts = {};
     var off = global.DG.off;
     var want = scen || '194';
     var sd = 0;
@@ -841,7 +845,12 @@
    */
   function rollScouting() {
     if (Math.random() > core.tuned('rtk.scoutChance', 0.12)) { return null; }
-    return revealFree();
+    var got = revealFree();
+    if (got) {
+      var gr = global.DG.off.rec(got.id);
+      if (gr && gr.city) { monthScouts[gr.city] = got.id; }
+    }
+    return got;
   }
 
   /** 우리 땅에 묻힌 재야 하나를 드러낸다 (가장 귀한 사람부터) */
@@ -1197,6 +1206,7 @@
 
     monthOrders = {};
     monthBattles = {};
+    monthScouts = {};
     global.DG.rtkAI.runAll();
     if (global.DG.war) { global.DG.war.resolveAll(); }
     if (global.DG.war) { global.DG.war.resolveJourneys(); }
@@ -1390,7 +1400,7 @@
     CHALLENGE_MONTHS: CHALLENGE_MONTHS, bests: bests,
     VICTORY: VICTORY, victoryKinds: victoryKinds, victoryProgress: victoryProgress, victoryNext: victoryNext,
     victoryDone: function (k) { return victoryDone(state(), k); }, resultCard: resultCard, tickVictories: tickVictories,
-    readyAt: readyAt, capOf: capOf, order: order, monthOrders: monthOrdersView, monthBattles: monthBattlesView, tryHire: tryHire, bumpStat: bumpStat,
+    readyAt: readyAt, capOf: capOf, order: order, monthOrders: monthOrdersView, monthBattles: monthBattlesView, monthScouts: monthScoutsView, tryHire: tryHire, bumpStat: bumpStat,
     setGov: setGov, govMul: govMul, reward: reward,
     goldOf: goldOf, foodOf: foodOf, eatOf: eatOf, secMul: secMul, harvestMul: harvestMul,
     marketRate: marketRate, trade: trade,

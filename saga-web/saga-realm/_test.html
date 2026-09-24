@@ -3777,6 +3777,44 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
          ' · 사람 ' + people + '/' + R3.ACTOR_MAX + ' · 가짜 10곳 → ' + many.length + ' · 새 판에 기록 비움');
     });
 
+    t('realm3d — actorPlan 재야·세작: 드러난 재야만·세작 기록·자리 떼어 두기·오가는 자리 (PLAN §5-10 ④)', function () {
+      var R3 = DG.realm3d;
+      if (!R3 || typeof R3.wanderPos !== 'function' || typeof R.monthScouts !== 'function') { return false; }
+      var st = fresh('cao');
+      var cid = ensureHiddenAtMine();
+      if (!cid) { return false; }
+      var focus = { x: DG.cityData.find(cid).x, y: DG.cityData.find(cid).y };
+      var before = R3.actorPlan(st, { focus: focus }).filter(function (a) { return a.kind === 'wander'; });
+      /* 세작 — 확률을 1로 잡아 이 달 한 번 물어 오게 한다 */
+      var raw = C.tune()['rtk.scoutChance'];
+      C.setTune('rtk.scoutChance', 1);
+      var got = R.rollScouting();
+      C.setTune('rtk.scoutChance', raw === undefined ? null : raw);
+      if (!got) { return false; }
+      var scoutCity = off.rec(got.id).city;
+      var okRec = R.monthScouts()[scoutCity] === got.id;
+      var plan = R3.actorPlan(st, { focus: focus });
+      var w = plan.filter(function (a) { return a.kind === 'wander'; });
+      var spy = w.filter(function (a) { return a.officer === got.id; })[0];
+      var people = plan.reduce(function (n, a) { return n + (a.slots || 1); }, 0);
+      var okPlan = before.length === 0 && !!spy && spy.spy === true && spy.force === null &&
+        w.every(function (a) { return off.rec(a.officer).found && !off.rec(a.officer).force; }) &&
+        w.length <= R3.WANDER_MAX && people <= R3.ACTOR_MAX && plan[plan.length - 1].kind === 'wander';
+      /* 세작 기록이 없으면 같은 사람이 흙빛 떠돌이로 오간다 — 한 주기 뒤 제자리, 반 주기에 가장 멀리 */
+      var plain = R3.actorPlan(st, { focus: focus, scouts: {} }).filter(function (a) { return a.officer === got.id; })[0];
+      var p0 = R3.wanderPos(plain, 3), p24 = R3.wanderPos(plain, 27);
+      var s0 = R3.wanderPos(spy, 0), s9 = R3.wanderPos(spy, 9);
+      var okPos = !!plain && !plain.spy && Math.abs(p0.x - p24.x) < 1e-9 && Math.abs(p0.y - p24.y) < 1e-9 &&
+        s0.x === s9.x && s0.y === s9.y && !s0.moving;
+      /* 주인 없는 성의 수비 무장(드러나 있어도)은 재야가 아니다 */
+      var okGarrison = !plan.some(function (a) { return a.kind === 'wander' && !R.city(a.city).force; });
+      fresh('cao');
+      var cleared = Object.keys(R.monthScouts()).length === 0;
+      return okRec && okPlan && okPos && okGarrison && cleared &&
+        ('세작이 ' + DG.cityData.find(scoutCity).name + '에서 ' + got.name + ' 를 물어 옴(🌙) · 떠돌이 ' + w.length +
+         '/' + R3.WANDER_MAX + ' · 사람 ' + people + '/' + R3.ACTOR_MAX + ' · 24초 한 주기 · 새 판에 기록 비움');
+    });
+
     t('realm3d — actorPlan 태수 몸짓: 명령→클립 표 완결·이 달 명령 반영·원정 뒤 자리 채움·가까운 성 먼저 (PLAN §5-10 ②)', function () {
       var R3 = DG.realm3d, A3 = DG.asset3d;
       if (!R3 || !R3.ORDER_GESTURES || typeof R.monthOrders !== 'function') { return false; }

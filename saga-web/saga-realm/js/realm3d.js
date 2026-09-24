@@ -884,12 +884,64 @@
     var used = out.length, fights = battlePlan(st, opt || {}), k;
     for (k = 0; k < fights.length && used + 2 <= ACTOR_MAX; k++) { out.push(fights[k]); used += 2; }
     if (used < ACTOR_MAX) {
+      /* ④ 재야·세작 — 태수가 150 성을 다 채우면 떠돌이가 설 자리가 없으니 WANDER_MAX 만큼은
+         태수보다 먼저 떼어 둔다(쓸 사람이 없으면 태수가 그 자리도 쓴다) */
+      var wand = wanderPlan(st, opt || {}).slice(0, Math.min(WANDER_MAX, ACTOR_MAX - used));
       var govs = governorPlan(st, opt || {}), busy = {};
       for (k = 0; k < out.length; k++) { if (out[k].kind === 'battle') { busy[out[k].city] = true; } }
       govs = govs.filter(function (g) { return !busy[g.city]; });   // 싸움 난 성은 태수 대신 싸움
-      out = out.concat(govs.slice(0, ACTOR_MAX - used));
+      out = out.concat(govs.slice(0, ACTOR_MAX - used - wand.length), wand);
     }
     return out;
+  }
+
+  /** ④ 재야·세작 — 드러난(found) 재야가 주인 있는 성에서 이웃 성 쪽 길을 느리게
+   *  오간다(수색 전 숨은 사람은 안 보인다 — 스포일러). 주인 없는 성의 사람은 재야가
+   *  아니라 수비 무장이라 뺀다. 이 달 세작이 물어 온 사람(`rtk.monthScouts`)은 밤 톤(`spy`)
+   *  으로 그 성 곁에 선다. 원소: { kind:'wander', id:'wander:<무장>', officer, city, toward,
+   *  x0,y0 → x1,y1(오가는 두 끝, 지도 좌표), phase(0~1, id 해시), spy, force:null } */
+  var WANDER_MAX = 4;
+  var WANDER_REACH = 0.4;             // 이웃 성까지 거리의 이만큼만 나갔다 돌아온다
+  var WANDER_PERIOD = 24;             // 초 — 한 번 다녀오는 데
+  function wanderPlan(st, opt) {
+    var rtkO = R(), O = global.DG.off, CDx = cityData();
+    var scouts = opt.scouts || (rtkO && rtkO.monthScouts ? rtkO.monthScouts() : null) || {};
+    var spyOf = {}, cid;
+    for (cid in scouts) { if (Object.prototype.hasOwnProperty.call(scouts, cid)) { spyOf[scouts[cid]] = true; } }
+    var focus = opt.focus || null, out = [], ids = Object.keys(st.officers || {}).sort(), i;
+    for (i = 0; i < ids.length; i++) {
+      var r = st.officers[ids[i]];
+      if (!r || r.force || !r.found || !r.city || r.dead) { continue; }
+      var cs = st.cities && st.cities[r.city], cd = CDx.find(r.city);
+      if (!cs || !cs.force || !cd || !cd.adj || !cd.adj.length) { continue; }
+      var h = hashOf(ids[i]), nb = CDx.find(cd.adj[h % cd.adj.length]);
+      if (!nb) { continue; }
+      var spy = !!spyOf[ids[i]];
+      var score = focus ? Math.hypot(cd.x - focus.x, cd.y - focus.y) : 0;
+      if (spy) { score -= 30; }
+      if (cs.force === st.me) { score -= 10; }
+      out.push({
+        kind: 'wander', id: 'wander:' + ids[i], officer: ids[i], city: r.city, toward: nb.id, force: null,
+        x0: cd.x, y0: cd.y, x1: cd.x + (nb.x - cd.x) * WANDER_REACH, y1: cd.y + (nb.y - cd.y) * WANDER_REACH,
+        phase: (h % 1000) / 1000, spy: spy, clip: 'walk', rest: 'idle', score: score
+      });
+    }
+    out.sort(function (p, q) {
+      if (p.score !== q.score) { return p.score - q.score; }
+      return p.id < q.id ? -1 : (p.id > q.id ? 1 : 0);
+    });
+    return out;
+  }
+
+  /** 순수 함수 — 떠돌이의 시각 s(초) 자리(지도 좌표)와 가는 쪽. 세작은 성 곁에 서 있다.
+   *  한 주기에 x0 → x1 → x0 를 코사인으로 부드럽게(끝에서 잠깐 머뭇) 오간다 */
+  function wanderPos(a, s) {
+    if (a.spy) { return { x: a.x0 + (a.x1 - a.x0) * 0.12, y: a.y0 + (a.y1 - a.y0) * 0.12, out: true, moving: false }; }
+    var u = ((s / WANDER_PERIOD) + a.phase) % 1;
+    if (u < 0) { u += 1; }
+    var k = (1 - Math.cos(u * Math.PI * 2)) / 2;          // 0 → 1 → 0
+    return { x: a.x0 + (a.x1 - a.x0) * k, y: a.y0 + (a.y1 - a.y0) * k, out: u < 0.5,
+             moving: Math.sin(u * Math.PI * 2) * Math.sin(u * Math.PI * 2) > 0.04 };
   }
 
   /** ③ 전투 자리 — 이 달 싸움 난 성마다, 공격해 온 쪽 진입로(성 → 출발 성 방향)에서
@@ -1028,7 +1080,7 @@
 
   function makeActor(a) {
     var t = three();
-    var grp = new t.Group(), col = forceColor(a.force), k;
+    var grp = new t.Group(), col = a.kind === 'wander' ? (a.spy ? SPY_TINT : WANDER_TINT) : forceColor(a.force), k;
     var c = { grp: grp, hero: null, soldiers: [], lastElapsed: a.elapsed, fromEl: a.elapsed, t0: null, plan: a, dead: false,
               sig: actorSig(a), badge: null, badgeKey: null, gOn: false, seed: (hashOf(a.id) % 100) / 37 };
     var sl = a.soldiers || [];
@@ -1094,6 +1146,17 @@
     c.flag.visible = false;
     c.grp.add(c.flag);
   }
+  /** 떠돌이·세작 — 세력이 없어 흙빛(재야), 세작은 밤빛에 몸을 어둡게 */
+  var WANDER_TINT = '#8a7a5c', SPY_TINT = '#2c3148';
+  function tickWander(c, a, tms, A3) {
+    var p = wanderPos(a, tms / 1000);
+    var wx = worldX(p.x), wz = worldZ(p.y);
+    c.grp.position.set(wx, elevAt(wx, wz), wz);
+    var hx = worldX(a.x1) - worldX(a.x0), hz = worldZ(a.y1) - worldZ(a.y0);
+    if (!p.out) { hx = -hx; hz = -hz; }
+    if (hx * hx + hz * hz > 1e-6) { c.grp.rotation.y = Math.atan2(hx, hz); }
+    if (c.hero && A3 && A3.step) { A3.step(c.hero, { anim: p.moving ? a.clip : a.rest, t: tms / 1000 }); }
+  }
   function tickBattle(c, a, tms, A3) {
     var wx = worldX(a.x), wz = worldZ(a.y);
     c.grp.position.set(wx, elevAt(wx, wz), wz);
@@ -1108,13 +1171,22 @@
   }
 
   /** 같은 id 라도 사람·세력이 바뀌면(태수 교체·성 함락) 몸을 새로 지어야 한다 */
-  function actorSig(a) { return a.kind + '|' + a.officer + '|' + a.force + (a.kind === 'battle' ? '|' + a.d + '|' + a.result : ''); }
+  function actorSig(a) {
+    return a.kind + '|' + a.officer + '|' + a.force + (a.kind === 'battle' ? '|' + a.d + '|' + a.result : '') +
+      (a.kind === 'wander' ? '|' + (a.spy ? 'spy' : '') : '');
+  }
   /** 태수 머리 위 명령 그림문자 — 명령이 바뀔 때만 갈아 끼운다 */
   function syncBadge(c, a) {
-    var key = a.kind === 'governor' ? a.order : null;
+    var key = a.kind === 'governor' ? a.order : (a.kind === 'wander' && a.spy ? 'spy' : null);
     if (c.badgeKey === key) { return; }
     if (c.badge) { c.grp.remove(c.badge); c.badge = null; }
     c.badgeKey = key;
+    if (key === 'spy') {
+      c.badge = emojiSprite('🌙', 3.2);
+      c.badge.position.y = HERO_SCALE + 2.0;
+      c.grp.add(c.badge);
+      return;
+    }
     if (key && a.emoji) {
       c.badge = emojiSprite(a.emoji, 3.4);
       c.badge.position.y = HERO_SCALE + 2.2;
@@ -1201,6 +1273,7 @@
       var c = actorCache[id], a = c.plan;
       if (a.kind === 'governor') { tickGovernor(c, a, tms, A3); continue; }
       if (a.kind === 'battle') { tickBattle(c, a, tms, A3); continue; }
+      if (a.kind === 'wander') { tickWander(c, a, tms, A3); continue; }
       var moving = c.t0 !== null;
       var frac = moving ? Math.min(1, (tms - c.t0) / ACTOR_TWEEN_MS) : 1;
       var el = moving ? c.fromEl + (a.elapsed - c.fromEl) * frac : a.elapsed;
@@ -1668,6 +1741,8 @@
     ACTOR_MAX: ACTOR_MAX,
     ORDER_GESTURES: ORDER_GESTURES,
     battleBeat: battleBeat,
+    wanderPos: wanderPos,
+    WANDER_MAX: WANDER_MAX,
     BATTLE_MAX: BATTLE_MAX,
     panBy: panBy,
     panTo: panTo,
