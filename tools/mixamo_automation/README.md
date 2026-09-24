@@ -74,6 +74,7 @@ node fetch.mjs --character "Paladin W/Prop J Nordstrom" --query "Sword And Shiel
 - `--character` 는 Mixamo 계정의 "현재 캐릭터"를 바꾼다(다음 실행에도 남는다). 이미 그 캐릭터면 건너뛰니 **클립마다 붙여 부르는 게 안전**하다.
 - `--tpose` 는 오른쪽 패널 DOWNLOAD → 모달 기본값(FBX Binary · T-pose). 파일은 캐릭터 이름으로 내려온다(`Paladin WProp J Nordstrom.fbx`).
 - `--inplace` 는 "In Place" 설정이 없는 클립(제자리 동작)에 주면 실패로 끝난다.
+- `--nth N`(0부터)은 같은 설명 문구 카드가 여럿일 때 고른다. **검색어에 따라 순서가 바뀐다** — `Sword And Shield Unblocked Impact` 는 검색어 `Sword And Shield Unblocked Impact` 로는 첫째가 쭈그린 판(파일 Crouching)이었고, `Shield Impact` 로는 첫째가 선 판(파일 Sword And Shield Impact)이었다. 받은 뒤 클립 길이·`RootT.y`(선 자세 ≈0.86)로 확인한다.
 
 `--match`는 Mixamo 카드의 "Description:" 뒤 문구와 **정확히** 일치해야
 한다(같은 이름이 여러 개라 구분용). `--list`로 먼저 후보 인덱스·설명을
@@ -90,6 +91,8 @@ Claude)이 한 번 판단해야 한다 — Mixamo 검색 결과 자체가 매번
 | saga-unity | 동행 무사(`Paladin W/Prop J Nordstrom`) idle·walk/run(inplace)·attack | 각 match 와 같은 문구 | `Sword And Shield Idle`·`Sword And Shield Walk`·`Sword And Shield Run`·`Sword And Shield High Attack`(query `Sword And Shield Slash`) | 2026-09-24 |
 | saga-unity | 마을 사람 idle(`Peasant Girl`·`Peasant Man`) | `Idle` | `Happy Idle Variation 1` · `Weight Shift Idle` | 2026-09-24 |
 | saga-unity | Maria(`Maria W/Prop J J Ong`) 등반·활공·수영·물 위 대기·점프(GO 107-2) | `Climbing`(--inplace)·`Falling Idle`·`Swimming`·`Floating`·`Jump` | `Climbing Up A Wall`·`Mid-Air Falling Idle`·`Swimming Underwater`·`Floating`(파일은 Treading Water)·`Jump Up` | 2026-09-24 |
+| saga-unity | 동행 무사 전용(106-6, `Paladin W/Prop J Nordstrom`) 도발·피격·도발 중 피격·쓰러짐 | `Sword And Shield Idle To Block`·`Shield Impact`·`Shield Impact`·`Sword And Shield Falling Back Death` | `Sword And Shield Idle To Block`·`Sword And Shield Unblocked Impact`(**--nth 0**, 파일 Sword And Shield Impact)·`Sword And Shield Blocked Impact`(**--nth 0**)·`Sword And Shield Falling Back Death` | 2026-09-24 |
+| saga-unity | 동행 술사 전용(106-6, `Peasant Girl`) 걷기·달리기(--inplace)·빛살 시전·치유 시전 | `Female Walk`·`Female Run`·`Spell`·`Spell` | `Female Normal Walk`·`Female Run Forward`·`One Handed Casting Spell Fowards`·`Casting A Ressurection Or Summon Spell` | 2026-09-24 |
 
 나머지(walk/run/attack/hit/dodge/death/pickup)는 아직 이 도구로 다시 고른
 적 없음 — saga-unity `CharactersRealistic`에서 재사용해 온 기존 클립을

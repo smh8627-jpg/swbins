@@ -48,6 +48,7 @@ const listOnly = hasFlag('list');
 const characterName = arg('character');
 const tpose = hasFlag('tpose');     // 애니메이션 대신 현재 캐릭터 몸체(T-pose)를 받는다
 const inPlace = hasFlag('inplace'); // 클립 설정의 "In Place" 를 켠다(있는 클립만)
+const nth = Number(arg('nth', '0')); // 같은 설명 문구 카드가 여럿일 때 몇 번째(0부터) — 예: 선 자세/쭈그린 자세 판
 
 if (!query && !tpose) {
   console.error('사용법: node fetch.mjs --query "Idle" [--match "Standing Idle" --out idle --dest <경로>] [--list]');
@@ -201,7 +202,7 @@ if (!match || !outName || !destDir) {
 }
 
 const escaped = match.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const target = page.locator('.product.product-animation').filter({ hasText: new RegExp(`Description:\\s*${escaped}$`) }).first();
+const target = page.locator('.product.product-animation').filter({ hasText: new RegExp(`Description:\\s*${escaped}$`) }).nth(nth);
 const count = await target.count();
 if (count === 0) {
   console.error(`--match "${match}" 에 해당하는 결과를 못 찾음. --list 로 정확한 문구를 다시 확인할 것`);
