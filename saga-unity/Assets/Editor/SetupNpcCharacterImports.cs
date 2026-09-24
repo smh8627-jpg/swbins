@@ -41,9 +41,28 @@ namespace Saga.EditorTools
             // 106-6 동행 술사 몸 겸 마을 아낙·포로 — 걷기·달리기·빛살 시전(Attack = Cast)·치유 시전은 2026-09-24 Mixamo.
             new Spec { Name = "PeasantGirl", Idle = "Idle", Walk = "Walking", Run = "Running", Attack = "Cast", ExtraIdles = new[] { "Kneel" },
                 ExtraTriggers = new[] { "Heal" } },
+            // PLAN.md 108 후속 — FOREST 짐승 여덟의 몸(2026-09-24 Mixamo, README 레시피 표). 빛깔·꾸밈은
+            // `SetupForestCreatureModels` 가 이 프리팹 위에 굽는다. 포자괴물만 덤벼서 Attack(포효)이 있다.
+            new Spec { Name = "Goblin", Idle = "Idle", Walk = "Walking", Run = "Running" },
+            new Spec { Name = "Hulk", Idle = "Idle", Walk = "Walking", Run = "Running" },
+            new Spec { Name = "Warrok", Idle = "Idle", Walk = "Walking", Run = "Running" },
+            new Spec { Name = "Parasite", Idle = "Idle", Walk = "Walking", Run = "Running", Attack = "Attack" },
+            new Spec { Name = "Nightshade", Idle = "Idle" },
+            new Spec { Name = "Jolleen", Idle = "Idle", Walk = "Walking", Run = "Running" },
         };
 
         public static string PrefabPath(string name) => $"{Root}{name}/{name}Animated.prefab";
+
+        /// <summary>표에서 한 캐릭터만 굽는다(`SetupForestCreatureModels` 가 제 몸 여섯만 부른다).</summary>
+        public static bool SetupOne(string name)
+        {
+            foreach (var spec in Specs)
+            {
+                if (spec.Name == name) return Setup(spec);
+            }
+            Debug.LogError($"[SetupNpcCharacterImports] 표에 {name} 없음");
+            return false;
+        }
 
         [MenuItem("Saga/Setup NPC Character Imports")]
         public static void SetupAll()

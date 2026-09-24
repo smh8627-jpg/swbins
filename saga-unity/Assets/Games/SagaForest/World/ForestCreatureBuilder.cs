@@ -37,6 +37,22 @@ namespace Saga.Forest.World
             new CreatureDef { Kind = "nabijeongryeong", Den = new Vector3(31f, 0f, -24f) },  // 꽃밭(kkot과 공유).
         };
 
+        /// <summary>PLAN.md 108 후속 — `Creatures` 순서 그대로 종마다 사실 모델 프리팹(Mixamo 몸 + 빛깔·꾸밈,
+        /// `SetupForestCreatureModels` 가 굽고 씬 빌더가 꽂는다). `CharactersRealistic/` 는 gitignore 라 다른 PC 에선
+        /// 비어 있을 수 있다 — 빈 칸이면 그 종은 예전 도형으로 선다.</summary>
+        [SerializeField] private GameObject[] models = new GameObject[0];
+
+        /// <summary>씬 빌더·진단용 — `models` 칸 순서.</summary>
+        public static string[] KindOrder
+        {
+            get
+            {
+                var kinds = new string[Creatures.Length];
+                for (int i = 0; i < kinds.Length; i++) kinds[i] = Creatures[i].Kind;
+                return kinds;
+            }
+        }
+
         private void Awake()
         {
             // 이미 저장된 씬을 실제 Play로 열면 Awake가 다시 불려 Build()를 또
@@ -48,11 +64,13 @@ namespace Saga.Forest.World
 
         public void Build()
         {
-            foreach (var def in Creatures)
+            for (int i = 0; i < Creatures.Length; i++)
             {
+                var def = Creatures[i];
                 var go = new GameObject($"Creature_{def.Kind}");
                 go.transform.SetParent(transform, false);
-                go.AddComponent<ForestCreature>().Setup(def.Kind, def.Den);
+                var model = models != null && i < models.Length ? models[i] : null;
+                go.AddComponent<ForestCreature>().Setup(def.Kind, def.Den, model);
             }
         }
     }

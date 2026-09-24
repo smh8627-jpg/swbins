@@ -59,6 +59,9 @@ namespace Saga.EditorTools
             EditorSettings.enterPlayModeOptions =
                 EnterPlayModeOptions.DisableDomainReload | EnterPlayModeOptions.DisableSceneReload;
 
+            // 배회 목표·쉬는 시간이 UnityEngine.Random 이라 씨앗을 고정한다(루트 CLAUDE.md 진단 씨앗 20260824) —
+            // 안 그러면 가장 좁게 도는 포자괴물이 den 바로 옆만 골라 5.5초 동안 안 움직이는 판이 드물게 나온다.
+            Random.InitState(20260824);
             ForestSaveState.DeleteForTest(); // 이전 헤드리스 실행이 남긴 세이브 무시(ForestSaveState.cs 주석 참고).
             EditorSceneManager.OpenScene(ScenePath);
 
@@ -106,6 +109,80 @@ namespace Saga.EditorTools
             }
         }
 
+        /// <summary>PLAN.md 108 후속 — 사실 모델 프리팹이 구워진 종은 반드시 그 몸으로 서야 한다(도형 섞임 없음).
+        /// 꾸밈·애니메이터·땅 휨 따라 내리기까지 본다. 프리팹이 없는 PC 면 그 종은 건너뛴다(도형 폴백이 정상).</summary>
+        private static bool CheckModels()
+        {
+            var extras = new Dictionary<string, string[]>
+            {
+                { "pojagoemul", new[] { "Spore0", "Spore1", "Spore2" } },
+                { "beoseot", new[] { "MushroomHat" } },
+                { "kkot", new[] { "Flower0", "Flower6" } },
+                { "nabijeongryeong", new[] { "WingL", "WingR" } },
+                { "angaeyuryeong", new[] { "GhostLight" } },
+            };
+            int baked = 0, models = 0;
+            foreach (var kind in Kinds)
+            {
+                if (AssetDatabase.LoadAssetAtPath<GameObject>(SetupForestCreatureModels.PrefabPath(kind)) == null) continue;
+                baked++;
+                var c = _creatures[kind].GetComponent<ForestCreature>();
+                if (c == null || !c.HasModel)
+                {
+                    Debug.LogError($"[PlaytestForestCreatures] {kind}: 모델 프리팹이 있는데 도형으로 섰다(씬 재빌드 필요?)");
+                    return false;
+                }
+                if (_creatures[kind].childCount != 1)
+                {
+                    Debug.LogError($"[PlaytestForestCreatures] {kind}: 모델 옆에 다른 자식 {_creatures[kind].childCount - 1}개(도형이 섞임)");
+                    return false;
+                }
+                if (c.ModelAnimator == null || c.ModelAnimator.runtimeAnimatorController == null)
+                {
+                    Debug.LogError($"[PlaytestForestCreatures] {kind}: 모델에 애니메이터·컨트롤러가 없다");
+                    return false;
+                }
+                if (c.ModelVisual.GetComponentsInChildren<SkinnedMeshRenderer>().Length == 0)
+                {
+                    Debug.LogError($"[PlaytestForestCreatures] {kind}: 살갗(SkinnedMeshRenderer)이 없다");
+                    return false;
+                }
+                if (extras.TryGetValue(kind, out var names))
+                {
+                    foreach (var n in names)
+                    {
+                        if (FindDeep(c.ModelVisual, n) == null)
+                        {
+                            Debug.LogError($"[PlaytestForestCreatures] {kind}: 꾸밈 '{n}' 이 없다");
+                            return false;
+                        }
+                    }
+                }
+                // 땅 휨: 10m 떨어진 곳이 중심이면 0.4m 내려가야 한다(`ForestLandmark.CurveAmount` 0.004 × 100).
+                c.FollowCurve(_creatures[kind].position + new Vector3(10f, 0f, 0f));
+                float dy = c.ModelVisual.localPosition.y;
+                if (Mathf.Abs(dy + 0.4f) > 0.01f)
+                {
+                    Debug.LogError($"[PlaytestForestCreatures] {kind}: 휨 따라 내림 {dy:F3} (기대 -0.400)");
+                    return false;
+                }
+                models++;
+            }
+            Debug.Log($"[PlaytestForestCreatures] models {models}/{baked} baked (of {Kinds.Length}) — 애니메이터·살갗·꾸밈·휨 내림 OK");
+            return true;
+        }
+
+        private static Transform FindDeep(Transform root, string name)
+        {
+            if (root.name == name) return root;
+            foreach (Transform child in root)
+            {
+                var hit = FindDeep(child, name);
+                if (hit != null) return hit;
+            }
+            return null;
+        }
+
         private static void Tick()
         {
             _framesSeen++;
@@ -141,6 +218,11 @@ namespace Saga.EditorTools
                         Fail();
                         return;
                     }
+                    if (!CheckModels())
+                    {
+                        Fail();
+                        return;
+                    }
                     // 최대 Idle(3.5초)이 다 지나고도 배회할 시간을 넉넉히 준다.
                     _waitUntilTime = Time.time + 5.5f;
                     _phase = Phase.WaitWander;
@@ -155,7 +237,7 @@ namespace Saga.EditorTools
                     foreach (var kind in Kinds)
                     {
                         float moved = Vector3.Distance(_creatures[kind].position, _startPos[kind]);
-                        Debug.Log($"[PlaytestForestCreatures] {kind} moved {moved:F2}m from den after wandering window");
+                        Debug.Log($"[PlaytestForestCreatures] {kind} moved {moved:F2}m from den after wandering window (state {_creatures[kind].GetComponent<ForestCreature>()?.DebugStateName})");
                         if (moved < 0.2f)
                         {
                             Debug.LogError($"[PlaytestForestCreatures] {kind}이(가) 배회 시간이 지나도 거의 안 움직임(moved={moved:F3})");
@@ -188,6 +270,18 @@ namespace Saga.EditorTools
                     float distBefore = Vector3.Distance(_fleePosBefore, _player.position);
                     float distAfter = Vector3.Distance(target.position, _player.position);
                     Debug.Log($"[PlaytestForestCreatures] dokkaebi flee check — distBefore={distBefore:F2} distAfter={distAfter:F2}");
+                    var fleer = target.GetComponent<ForestCreature>();
+                    if (fleer != null && fleer.HasModel && fleer.ModelAnimator != null && fleer.DebugStateName == "Flee")
+                    {
+                        float speed = fleer.ModelAnimator.GetFloat("Speed");
+                        Debug.Log($"[PlaytestForestCreatures] dokkaebi model flee Speed={speed:F2}");
+                        if (speed < 0.6f)
+                        {
+                            Debug.LogError("[PlaytestForestCreatures] 도망 중인데 모델이 달리기 값이 아님");
+                            Fail();
+                            return;
+                        }
+                    }
                     if (distAfter <= distBefore + 0.3f)
                     {
                         Debug.LogError("[PlaytestForestCreatures] 플레이어가 다가갔는데도 도주로 멀어지지 않음");

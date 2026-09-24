@@ -71,6 +71,7 @@ node fetch.mjs --character "Paladin W/Prop J Nordstrom" --query "Sword And Shiel
   --match "Sword And Shield Walk" --out "Paladin@Walking" --dest <경로> --inplace
 ```
 
+- 카드 이름을 모르면 `node list-characters.mjs goblin mutant` — 검색어마다 카드 이름을 한 줄로 찍는다(FOREST 짐승 몸을 이렇게 골랐다).
 - `--character` 는 Mixamo 계정의 "현재 캐릭터"를 바꾼다(다음 실행에도 남는다). 이미 그 캐릭터면 건너뛰니 **클립마다 붙여 부르는 게 안전**하다.
 - `--tpose` 는 오른쪽 패널 DOWNLOAD → 모달 기본값(FBX Binary · T-pose). 파일은 캐릭터 이름으로 내려온다(`Paladin WProp J Nordstrom.fbx`).
 - `--inplace` 는 "In Place" 설정이 없는 클립(제자리 동작)에 주면 실패로 끝난다.
@@ -93,6 +94,8 @@ Claude)이 한 번 판단해야 한다 — Mixamo 검색 결과 자체가 매번
 | saga-unity | Maria(`Maria W/Prop J J Ong`) 등반·활공·수영·물 위 대기·점프(GO 107-2) | `Climbing`(--inplace)·`Falling Idle`·`Swimming`·`Floating`·`Jump` | `Climbing Up A Wall`·`Mid-Air Falling Idle`·`Swimming Underwater`·`Floating`(파일은 Treading Water)·`Jump Up` | 2026-09-24 |
 | saga-unity | 동행 무사 전용(106-6, `Paladin W/Prop J Nordstrom`) 도발·피격·도발 중 피격·쓰러짐 | `Sword And Shield Idle To Block`·`Shield Impact`·`Shield Impact`·`Sword And Shield Falling Back Death` | `Sword And Shield Idle To Block`·`Sword And Shield Unblocked Impact`(**--nth 0**, 파일 Sword And Shield Impact)·`Sword And Shield Blocked Impact`(**--nth 0**)·`Sword And Shield Falling Back Death` | 2026-09-24 |
 | saga-unity | 동행 술사 전용(106-6, `Peasant Girl`) 걷기·달리기(--inplace)·빛살 시전·치유 시전 | `Female Walk`·`Female Run`·`Spell`·`Spell` | `Female Normal Walk`·`Female Run Forward`·`One Handed Casting Spell Fowards`·`Casting A Ressurection Or Summon Spell` | 2026-09-24 |
+| saga-unity | FOREST 짐승 몸(108 후속) — 숲도깨비 `Goblin D Shareyko`·바위도깨비 `Pumpkinhulk L Shaw`·무쇠도깨비 `Warrok W Kurniawan` idle·walk/run(inplace) | `Standing Idle`·`Sneak`·`Mutant Run` / `Mutant Idle`·`Mutant Walking`·`Mutant Run` | Goblin: `Standing Idle Looking Around`·`Male Ninja Sneak Walk`·`Mutant Running` · Hulk: `Mutant Breathing Idle`·`Mutant Brutal Walk`·`Mutant Running` · Warrok: `Mutant Stretching Idle`·`Mutant Brutal Walk`·`Mutant Running` | 2026-09-24 |
+| saga-unity | FOREST 짐승 몸 — 포자괴물 `Parasite L Starkie` idle·walk/run(inplace)·포효 · 안개유령 `Nightshade J Friedrich` 떠 있기 · 정령 셋 `Jolleen` idle·walk/run(inplace) | `Zombie Idle`·`Zombie Walking`·`Zombie Running`·`Mutant Roaring` / `Flying` / `Idle`·`Female Walk`·`Female Run` | `Zombie Standing Idle`·`Zombie Walking`·`Zombie Run`·`Mutant Roaring` / `Flying Idle` / `Happy Idle Variation 1`·`Female Normal Walk`·`Female Run Forward` | 2026-09-24 |
 
 나머지(walk/run/attack/hit/dodge/death/pickup)는 아직 이 도구로 다시 고른
 적 없음 — saga-unity `CharactersRealistic`에서 재사용해 온 기존 클립을

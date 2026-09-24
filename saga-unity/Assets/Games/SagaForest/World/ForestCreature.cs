@@ -87,9 +87,23 @@ namespace Saga.Forest.World
         public string Kind { get; private set; }
         public Vector3 Den => _origin;
 
+        // PLAN.md 108 후속 — 사실 모델(`ForestCreatureBuilder.models`)이 있으면 그 몸이 선다.
+        private Transform _modelVisual;
+        private Animator _animator;
+        private bool _hasAttackTrigger;
+        private float _wingPhase;
+        private Transform _wingL, _wingR;
+        private Quaternion _wingLRest, _wingRRest;
+
+        /// <summary>진단 — 사실 모델로 섰는지(없으면 예전 도형).</summary>
+        public bool HasModel => _modelVisual != null;
+        public Transform ModelVisual => _modelVisual;
+        public Animator ModelAnimator => _animator;
+
         /// <summary>씬 빌더가 스폰 직후 한 번 부른다 — `kind`가 시각과 능력치를
-        /// 함께 정한다(species별로 다른 primitive 조합·속도·경계심).</summary>
-        public void Setup(string kind, Vector3 origin)
+        /// 함께 정한다(species별로 다른 속도·경계심). `model` 이 있으면 그 프리팹을 "Visual" 아래에 세우고,
+        /// 없으면(다른 PC·에셋 안 받음) 예전 primitive 조합.</summary>
+        public void Setup(string kind, Vector3 origin, GameObject model = null)
         {
             Kind = kind;
             _origin = origin;
@@ -100,15 +114,15 @@ namespace Saga.Forest.World
             {
                 case "bawi":
                     _moveSpeed = 0.9f; _fleeSpeed = 2.2f; _fleeRadius = 4.0f; _wanderRadius = 2.5f;
-                    SpawnVisualBawi();
+                    if (model == null) SpawnVisualBawi();
                     break;
                 case "beoseot":
                     _moveSpeed = 2.0f; _fleeSpeed = 4.2f; _fleeRadius = 3.0f; _wanderRadius = 3.5f;
-                    SpawnVisualBeoseot();
+                    if (model == null) SpawnVisualBeoseot();
                     break;
                 case "kkot":
                     _moveSpeed = 1.2f; _fleeSpeed = 3.0f; _fleeRadius = 5.0f; _wanderRadius = 5.0f;
-                    SpawnVisualKkot();
+                    if (model == null) SpawnVisualKkot();
                     break;
                 case "pojagoemul":
                     // 다섯째 종(2026-09-12) — 넷 중 가장 좁게 돈다(새 초과, 기존
@@ -118,7 +132,7 @@ namespace Saga.Forest.World
                     // "노려보기 시작 거리"로 재해석된다.
                     _moveSpeed = 1.1f; _fleeSpeed = 2.8f; _fleeRadius = 4.5f; _wanderRadius = 1.8f;
                     _hostile = true;
-                    SpawnVisualPojagoemul();
+                    if (model == null) SpawnVisualPojagoemul();
                     break;
                 case "angaeyuryeong":
                     // 여섯째 종(2026-09-12) — 넷 중 가장 쉽게 놀란다(fleeRadius
@@ -126,29 +140,31 @@ namespace Saga.Forest.World
                     // 1.0이라 배회 내내 그 높이를 유지한다(MoveToward가 y는
                     // 안 건드리므로).
                     _moveSpeed = 1.8f; _fleeSpeed = 4.0f; _fleeRadius = 7.5f; _wanderRadius = 4.2f;
-                    SpawnVisualAngaeyuryeong();
+                    if (model == null) SpawnVisualAngaeyuryeong();
                     break;
                 case "musoetokkebi":
                     // 일곱째 종(2026-09-12) — 여섯 중 가장 느리게 튄다(fleeSpeed
                     // 최솟값, 새 초과 축 — 이전까지 이 축엔 기록이 없었다).
                     // 바위 지대(무쇠처럼 단단한 껍질, 놀라도 안 서두른다).
                     _moveSpeed = 1.0f; _fleeSpeed = 1.8f; _fleeRadius = 4.5f; _wanderRadius = 2.2f;
-                    SpawnVisualMusoetokkebi();
+                    if (model == null) SpawnVisualMusoetokkebi();
                     break;
                 case "nabijeongryeong":
                     // 여덟째 종(2026-09-12) — 여섯 중 가장 급하게 튄다(fleeSpeed
                     // 최댓값, musoetokkebi와 같은 축의 반대쪽 끝). 꽃밭(팔랑이며
                     // 날듯 산다는 인상, 실제 이동 로직은 다른 종과 동일).
                     _moveSpeed = 1.6f; _fleeSpeed = 4.8f; _fleeRadius = 5.5f; _wanderRadius = 4.5f;
-                    SpawnVisualNabijeongryeong();
+                    if (model == null) SpawnVisualNabijeongryeong();
                     break;
                 default: // "dokkaebi" — 첫 종, 기본값.
                     _moveSpeed = 1.5f; _fleeSpeed = 3.5f; _fleeRadius = 6.0f; _wanderRadius = 4.0f;
-                    SpawnVisualDokkaebi();
+                    if (model == null) SpawnVisualDokkaebi();
                     break;
             }
             _fleeStopRadius = _fleeRadius * 2f;
             _fleeStepRadius = _wanderRadius * 1.5f;
+
+            if (model != null) UseModel(model);
 
             var playerGo = GameObject.FindWithTag("Player");
             _player = playerGo != null ? playerGo.transform : null;
@@ -251,6 +267,7 @@ namespace Saga.Forest.World
         private void BeginEncounter()
         {
             _state = State.Encounter;
+            if (_animator != null && _hasAttackTrigger) _animator.SetTrigger("Attack"); // 포효하며 막아선다.
             var ui = ForestHostileEncounterUi.Instance;
             if (ui != null)
             {
@@ -308,13 +325,81 @@ namespace Saga.Forest.World
             transform.rotation = Quaternion.LookRotation(dir);
         }
 
+        // ── PLAN.md 108 후속 — 사실 모델 ──
+        // 몸은 Mixamo(Humanoid) + 빛깔·꾸밈을 편집기가 구운 프리팹이라 `ForestWorldCurve` 셰이더를 안 탄다 —
+        // 명소(`ForestLandmark`)처럼 "Visual" 을 땅이 휘는 만큼(거리² × 0.004) 통째로 내린다.
+
+        private void UseModel(GameObject model)
+        {
+            var visual = new GameObject("Visual").transform;
+            visual.SetParent(transform, false);
+            var body = Instantiate(model, visual, false);
+            body.name = model.name;
+            _modelVisual = visual;
+            _animator = body.GetComponentInChildren<Animator>();
+            if (_animator != null)
+            {
+                _animator.cullingMode = AnimatorCullingMode.CullUpdateTransforms;
+                foreach (var p in _animator.parameters)
+                {
+                    if (p.name == "Attack" && p.type == AnimatorControllerParameterType.Trigger) _hasAttackTrigger = true;
+                }
+            }
+            _wingL = FindDeep(body.transform, "WingL");
+            _wingR = FindDeep(body.transform, "WingR");
+            if (_wingL != null) _wingLRest = _wingL.localRotation;
+            if (_wingR != null) _wingRRest = _wingR.localRotation;
+            _wingPhase = Random.value * 6.28f;
+        }
+
+        private void LateUpdate()
+        {
+            if (_modelVisual == null) return;
+            if (_animator != null)
+            {
+                // 컨트롤러 규칙(SetupNpcCharacterImports): >0.1 걷기 · >0.6 달리기.
+                float speed = _state == State.Wander ? 0.4f
+                    : (_state == State.Flee || _state == State.Aggro) ? 1f : 0f;
+                _animator.SetFloat("Speed", speed);
+            }
+            if (_wingL != null && _wingR != null)
+            {
+                bool hurried = _state == State.Flee;
+                _wingPhase += Time.deltaTime * (hurried ? 22f : 9f);
+                float flap = Mathf.Sin(_wingPhase) * 35f;
+                // 날개 축은 편집기가 몸 방향에 맞춰 둔 것 — 제 앞(z)축을 돌면 위아래로 퍼덕인다.
+                _wingL.localRotation = _wingLRest * Quaternion.Euler(0f, 0f, -flap);
+                _wingR.localRotation = _wingRRest * Quaternion.Euler(0f, 0f, flap);
+            }
+            if (_player != null) FollowCurve(_player.position);
+        }
+
+        /// <summary>땅 휨 따라 "Visual" 을 내린다(`ForestLandmark.Follow` 와 같은 식). 진단도 부른다.</summary>
+        public void FollowCurve(Vector3 curveCenter)
+        {
+            if (_modelVisual == null) return;
+            float dx = transform.position.x - curveCenter.x, dz = transform.position.z - curveCenter.z;
+            _modelVisual.localPosition = new Vector3(0f, -(dx * dx + dz * dz) * ForestLandmark.CurveAmount, 0f);
+        }
+
+        private static Transform FindDeep(Transform root, string name)
+        {
+            if (root.name == name) return root;
+            foreach (Transform child in root)
+            {
+                var hit = FindDeep(child, name);
+                if (hit != null) return hit;
+            }
+            return null;
+        }
+
         private static float FlatDistSqr(Vector3 a, Vector3 b)
         {
             float dx = a.x - b.x, dz = a.z - b.z;
             return dx * dx + dz * dz;
         }
 
-        // ── 종별 시각 — 전부 primitive 조합(GLB 없음, PLAN.md 8장 placeholder),
+        // ── 종별 시각(폴백) — 사실 모델(`UseModel`)이 없을 때만 선다. primitive 조합(PLAN.md 8장 placeholder),
         // `Saga/ForestWorldCurve` 머티리얼을 물려 땅과 같이 휘게 한다(안 그러면
         // 공중에 뜬 것처럼 보인다 — 셰이더 클래스 주석 "땅·나무·NPC 등" 참고).
         // 여덟 종 다 primitive 조합이 겹치지 않게 짰다(구+원기둥 / 상자+상자 /

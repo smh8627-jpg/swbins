@@ -264,7 +264,22 @@ namespace Saga.EditorTools
         private static void BuildCreatures()
         {
             var go = new GameObject("Creatures");
-            go.AddComponent<ForestCreatureBuilder>();
+            var builder = go.AddComponent<ForestCreatureBuilder>();
+
+            // PLAN.md 108 후속 — 종마다 사실 모델(`SetupForestCreatureModels` 가 구운 프리팹). 없는 칸은 도형 폴백.
+            var kinds = ForestCreatureBuilder.KindOrder;
+            var models = new GameObject[kinds.Length];
+            int found = 0;
+            for (int i = 0; i < kinds.Length; i++)
+            {
+                models[i] = AssetDatabase.LoadAssetAtPath<GameObject>(SetupForestCreatureModels.PrefabPath(kinds[i]));
+                if (models[i] != null) found++;
+            }
+            SetPrivateField(builder, "models", models);
+            if (found < kinds.Length)
+            {
+                Debug.LogWarning($"[BuildTestVillageForestScene] 짐승 모델 {found}/{kinds.Length} — 나머지는 도형(Saga/Setup Forest Creature Models 먼저)");
+            }
         }
 
         /// <summary>PLAN.md 101-2 5.3 "마을 번들"(2026-09-20) — 네 바이옴 존
