@@ -257,7 +257,7 @@ namespace Saga.EditorTools
         }
 
         /// <summary>프리팹을 잠깐 세워 렌더러 키를 잰다(리깅 모델은 실제 크기 단위 — `DungeonEnemy.BuildVisual`).</summary>
-        private static float MeasureHeight(GameObject prefab)
+        internal static float MeasureHeight(GameObject prefab)
         {
             if (prefab == null) return 1f;
             var inst = Object.Instantiate(prefab);

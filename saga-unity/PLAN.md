@@ -1292,7 +1292,8 @@ Slice 승인/재설계 결정.** 100단계에서 무조건 다음 콘텐츠로 �
 - 진단: `CheckNpcModels`(동행·마을 사람 3·포로 Kneel·행상 5·해골 6 이 Humanoid). 이 PC 에 프리팹이 없으면 건너뛴다.
 - **GO·STORY·FOREST NPC 완료(2026-09-24, 판별 복사)**: 판마다 `NpcIdle` 복사본(`SpawnRigged` 가 그 판 사람 키로 맞추고 발을 뿌리에). GO 촌장 Peasant Man·떠돌이 상인 Peasant Girl·나그네 궁수(키 3.4, 마을 가운데·북쪽 문을 봄) · FOREST 숲지기 Peasant Man(1.8m, 셰이더가 안 휘어 짐승처럼 땅 휨만큼 내림) · STORY 척후병 Peasant Man·전직관 Jolleen(1.75m, 카메라 쪽 — STORY 동료 셋 몸과 안 겹치게). 프리팹이 없는 PC 는 예전 Kenney. 진단 `PlaytestNpcModels`(세 판 헤드리스).
 - **능묘지기 전용 몸 완료(2026-09-24)**: Ganfaul M Aure(검은 갑주 망령), 옛 몸과 같은 키 3.5m(`BuildDungeonTemple.GuardianHeight`, 프리팹 키를 재서 배율), 제 빛깔(옛 검푸른 칠 뺌). 없는 PC 는 Brute 1.5배.
-- 남은 것: 층 두목·엘리트 변형(지금 전부 Brute), REALM(인물이 화면에 서지 않는 경영형이라 해당 자리 없음).
+- **두목 전용 몸 둘째 묶음(2026-09-24)**: 황건 살수(방3 고정 + 층 미니보스) = Ninja · 층 주인(108 ③ 여섯) = Demon T Wiezzorek(명소 빛 35% — 한 몸을 빛으로 가름) · 5.7 기계화 정찰병 = Alien Soldier · STORY 황건 두목(들판·비경) = Morak. 키는 옛 몸과 같게(씬 빌더가 프리팹 키를 재서 `*ScaleMul`·`riggedBossVisualScale`), 제 빛깔. 층 끝 두목·황건적 두목은 원래 배역 Brute 그대로, 여느 정예는 잡졸 Abe 칠. 없는 PC 는 예전 몸. 진단 `PlaytestNpcModels`(DUNGEON 칸 셋·배율·방3 살수 키, STORY 두 곳 Morak·2.24m).
+- 남은 것: REALM(인물이 화면에 서지 않는 경영형이라 해당 자리 없음).
 
 ---
 

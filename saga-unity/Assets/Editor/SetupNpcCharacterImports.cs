@@ -55,7 +55,15 @@ namespace Saga.EditorTools
             // Brute 컨트롤러와 같은 다섯 상태(대기·걷기·공격·피격·쓰러짐)라 두목 코드는 그대로.
             new Spec { Name = "Maw", Idle = "Idle", Walk = "Walking", Attack = "Attack", Hit = "HitReaction", Death = "Dying" },
             new Spec { Name = "Ganfaul", Idle = "Idle", Walk = "Walking", Attack = "Attack", Hit = "HitReaction", Death = "Dying" },
+            // 두목 전용 몸 둘째 묶음(2026-09-24) — DUNGEON 황건 살수 Ninja · 층 주인 Demon T Wiezzorek · 기계화 정찰병 Alien Soldier,
+            // STORY 황건 두목 Morak. 다섯 상태 그대로(층 두목·황건적 두목은 원래 배역 Brute).
+            new Spec { Name = "Ninja", Idle = "Idle", Walk = "Walking", Attack = "Attack", Hit = "HitReaction", Death = "Dying" },
+            new Spec { Name = "Demon", Idle = "Idle", Walk = "Walking", Attack = "Attack", Hit = "HitReaction", Death = "Dying" },
+            new Spec { Name = "AlienSoldier", Idle = "Idle", Walk = "Walking", Attack = "Attack", Hit = "HitReaction", Death = "Dying" },
+            new Spec { Name = "Morak", Idle = "Idle", Walk = "Walking", Attack = "Attack", Hit = "HitReaction", Death = "Dying" },
         };
+
+        private static readonly string[] BossBodies = { "Maw", "Ganfaul", "Ninja", "Demon", "AlienSoldier", "Morak" };
 
         public static string PrefabPath(string name) => $"{Root}{name}/{name}Animated.prefab";
 
@@ -70,12 +78,13 @@ namespace Saga.EditorTools
             return false;
         }
 
-        /// <summary>두목 전용 몸 둘만 굽는다(배치 `-executeMethod` 용 — 나머지 컨트롤러를 다시 굽지 않는다).</summary>
+        /// <summary>두목 전용 몸만 굽는다(배치 `-executeMethod` 용 — 나머지 컨트롤러를 다시 굽지 않는다).</summary>
         public static void SetupBossBodies()
         {
-            bool maw = SetupOne("Maw"), ganfaul = SetupOne("Ganfaul");
+            var built = new List<string>();
+            foreach (var name in BossBodies) built.Add($"{name}={SetupOne(name)}");
             AssetDatabase.SaveAssets();
-            Debug.Log($"[SetupNpcCharacterImports] boss bodies Maw={maw} Ganfaul={ganfaul}");
+            Debug.Log($"[SetupNpcCharacterImports] boss bodies {string.Join(" ", built)}");
         }
 
         [MenuItem("Saga/Setup NPC Character Imports")]

@@ -84,14 +84,71 @@ namespace Saga.EditorTools
                 }
             }
             else m += $" 능묘지기=Ganfaul(배율 {keeper.VisualScale:F2}, 아직 안 섬)";
+            m += DungeonBossBodies();
             return End(m);
+        }
+
+        /// <summary>두목 전용 몸 둘째 묶음 — 층 진행기 칸 셋(살수 Ninja·주인 Demon·기계화 정찰병 Alien Soldier)이 차 있고
+        /// 배율 × 새 몸 키 = 옛 몸 키(Brute·Abe, ±8%) · 방3 고정 살수가 Ninja 로 Brute 1.8배 키에 제 빛깔.</summary>
+        private static string DungeonBossBodies()
+        {
+            string m = "";
+            var brute = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/CharactersRealistic/Brute/BruteAnimated.prefab");
+            var abe = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/CharactersRealistic/Abe/AbeAnimated.prefab");
+            var runner = Object.FindFirstObjectByType<Saga.Dungeon.World.DungeonFloorRunner>(FindObjectsInactive.Include);
+            if (runner == null) { Fail("DungeonFloorRunner 없음"); return m; }
+            var rso = new SerializedObject(runner);
+            foreach (var (field, mul, body, old) in new[] {
+                ("minibossModel", "minibossScaleMul", "Ninja", brute),
+                ("lordModel", "lordScaleMul", "Demon", brute),
+                ("fusionEliteModel", "fusionEliteScaleMul", "AlienSoldier", abe) })
+            {
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(SetupNpcCharacterImports.PrefabPath(body));
+                if (prefab == null || old == null) { m += $" {body}: 프리팹 없음(건너뜀)"; continue; }
+                if (rso.FindProperty(field).objectReferenceValue != prefab) { Fail($"층 진행기 {field} 가 {body} 아님"); continue; }
+                float got = rso.FindProperty(mul).floatValue * BuildDungeonTemple.MeasureHeight(prefab), want = BuildDungeonTemple.MeasureHeight(old);
+                if (Mathf.Abs(got - want) > want * 0.08f) Fail($"{body} 배율 키 {got:F2} ≠ 옛 몸 {want:F2}");
+                m += $" {field}={body}";
+            }
+
+            var ninja = AssetDatabase.LoadAssetAtPath<GameObject>(SetupNpcCharacterImports.PrefabPath("Ninja"));
+            if (ninja == null || brute == null) return m;
+            Saga.Dungeon.World.DungeonEnemy assassin = null;
+            foreach (var e in Object.FindObjectsByType<Saga.Dungeon.World.DungeonEnemy>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                if (e.gameObject.name == "Enemy_HwangGeon_Miniboss") assassin = e;
+            if (assassin == null) { Fail("방3 살수 없음"); return m; }
+            var aso = new SerializedObject(assassin);
+            if (aso.FindProperty("modelPrefab").objectReferenceValue != ninja) Fail("방3 살수 몸이 Ninja 아님");
+            if (aso.FindProperty("bodyColor").colorValue != Color.white) Fail("전용 몸 살수에 옛 자보라 칠");
+            var visual = assassin.transform.Find("Visual");
+            var rs = visual != null ? visual.GetComponentsInChildren<Renderer>() : new Renderer[0];
+            if (rs.Length == 0) return m + " 살수=Ninja(아직 안 섬)";
+            var b = rs[0].bounds;
+            foreach (var r in rs) b.Encapsulate(r.bounds);
+            float wantH = 1.8f * BuildDungeonTemple.MeasureHeight(brute);
+            if (Mathf.Abs(b.size.y - wantH) > wantH * 0.08f) Fail($"살수 키 {b.size.y:F2} ≠ {wantH:F2}");
+            return m + $" 살수=Ninja({b.size.y:F2}m)";
         }
 
         public static bool Story()
         {
             Begin("PlaytestStorySlice");
             string m = Check("Npc_Scout", "PeasantMan", 1.75f, typeof(Saga.Story.World.NpcIdle)) + Check("Npc_JobTrainer", "Jolleen", 1.75f, typeof(Saga.Story.World.NpcIdle));
-            return End(m);
+            // 두목 전용 몸 — 황건 두목 = Morak(들판·비경 둘 다), 배율 × 몸 키 = 2.24m(±8%).
+            var morak = AssetDatabase.LoadAssetAtPath<GameObject>(SetupNpcCharacterImports.PrefabPath("Morak"));
+            if (morak == null) return End(m + " 두목: Morak 프리팹 없음(건너뜀)");
+            float h = BuildDungeonTemple.MeasureHeight(morak);
+            foreach (var host in new Object[] {
+                Object.FindFirstObjectByType<Saga.Story.World.StoryEnemySpawner>(FindObjectsInactive.Include),
+                Object.FindFirstObjectByType<Saga.Story.World.StoryLabyrinthRunner>(FindObjectsInactive.Include) })
+            {
+                if (host == null) { Fail("두목을 세우는 곳(들판·비경) 없음"); continue; }
+                var so = new SerializedObject(host);
+                if (so.FindProperty("bossModelPrefab").objectReferenceValue != morak) { Fail($"{host.GetType().Name} 두목 몸이 Morak 아님"); continue; }
+                float got = so.FindProperty("riggedBossVisualScale").floatValue * h;
+                if (Mathf.Abs(got - 2.24f) > 2.24f * 0.08f) Fail($"{host.GetType().Name} 두목 키 {got:F2} ≠ 2.24");
+            }
+            return End(m + $" 두목=Morak({h:F2}m 원키)");
         }
 
         private static string Check(string rootName, string body, float height, System.Type idleType)

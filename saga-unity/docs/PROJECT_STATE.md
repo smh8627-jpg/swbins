@@ -1,11 +1,11 @@
 # PROJECT_STATE — saga-unity (상태만, ≤15KB, 덮어쓴다)
 
 **규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다(2026-09-16 재편 전 본문 5,532줄은 그쪽 첫 절에 그대로 있다). 넘치면 `tools/precheck.sh` 가 막는다.
-마지막 갱신: 2026-09-24 (예순 세션째 — 두목 전용 몸 Maw·Ganfaul까지. 헤드리스 통과, 실기 확인 전. 경위는 HISTORY 날짜 grep).
+마지막 갱신: 2026-09-25 (두목 전용 몸 둘째 묶음. 헤드리스 통과, 실기 확인 전).
 
 ## 캐릭터 자산 — 이 PC 기준 (2026-09-19)
 
-Maria·Abe·Brute + Skeleton·Paladin·PeasantMan·PeasantGirl·Archer·두목 Maw·Ganfaul + FOREST 몸 여섯(Goblin·Hulk·Warrok·Parasite·Nightshade·Jolleen) — `Assets/Art/CharactersRealistic/`, gitignore라 **PC마다 받는다**(앞 셋 `SetupXxxCharacterImport.cs`, 나머지 도구 README 레시피 → `Saga/Setup NPC Character Imports`·`Saga/Setup Forest Creature Models` → 씬 재빌드, 없으면 Kenney·도형 폴백). GUI 확인: Maria·Abe 만.
+Maria·Abe·Brute + Skeleton·Paladin·PeasantMan·PeasantGirl·Archer·두목 Maw·Ganfaul·Ninja·Demon·AlienSoldier·Morak + FOREST 몸 여섯(Goblin·Hulk·Warrok·Parasite·Nightshade·Jolleen) — `Assets/Art/CharactersRealistic/`, gitignore라 **PC마다 받는다**(앞 셋 `SetupXxxCharacterImport.cs`, 나머지 도구 README 레시피 → `Saga/Setup NPC Character Imports`·`Saga/Setup Forest Creature Models` → 씬 재빌드, 없으면 Kenney·도형 폴백). GUI 확인: Maria·Abe 만.
 
 ## 완료 요약 — 다섯 게임 × 진척
 
@@ -19,12 +19,12 @@ Maria·Abe·Brute + Skeleton·Paladin·PeasantMan·PeasantGirl·Archer·두목 M
 
 렌더러: 66-1장 PC(Forward+, MSAA 4)/Mobile(Forward, MSAA 2) 이중 프로파일 + `FF16Volume_PC/Mobile.asset` + `DecalRendererFeature`. 아트 방향 **사실적 PBR(FF16 톤)** — 66-2장·102장. Maria 피부 SSS는 `BuildMariaSssShaderGraph.cs`(Intensity=15). DUNGEON 카메라는 `CameraRig`→가상 카메라 `PlayerView`→`CinemachineBrain`(106-3), 컷은 `Cinematics/Timelines/Temple_*.playable`.
 
-## 다음 작업 (우선순위, 상세는 PLAN 해당 장 · 경위는 HISTORY 날짜 grep)
+## 다음 작업 (우선순위, 상세는 PLAN 해당 장)
 
-0. **다음 = 두목 전용 몸 이어서**(PLAN 106-4 끝줄): DUNGEON 층 두목·엘리트 변형·STORY 두목(아직 전부 Brute). Maw·Ganfaul 과 같은 길(mixamo README, 로그인 풀리면 사용자에게).
-0-1. **남은 것**: en 번역 사람 검수 전. GO 동료 몸 Maria.controller 리타깃·무기는 주인공 손에만. 다른 PC 는 Mixamo README 레시피(Maria 이동 5·DUNGEON 동료 8)를 받고 `Saga/Build Maria Traversal`·`Saga/Setup NPC Character Imports`.
-1. STORY 판수(Lv.15→20 약 11판, 20→25 약 28판)가 무거우면 `StoryCombat.JobPromoteLevel3/4`만.
-2. **101-2·104-1 잔여(보류)** — GO⑤(모바일 빌드 뒤)·`Characters/` Kenney(이제 폴백 전용 — 사실 모델 없는 PC). 헤어카드는 분리 헤어 메시 생기면.
+0. **적힌 대기 없음** — 두목 전용 몸(106-4)까지 끝. 다음은 사용자와(PLAN "남은 것" 줄 모으기부터).
+0-1. **남은 것**: en 번역 사람 검수 전. GO 동료 몸 Maria.controller 리타깃·무기는 주인공 손에만. 다른 PC 는 Mixamo README 레시피를 받고 `Saga/Build Maria Traversal`·`Saga/Setup NPC Character Imports`.
+1. STORY 판수(15→20 약 11판, 20→25 약 28판)가 무거우면 `StoryCombat.JobPromoteLevel3/4`만.
+2. **101-2·104-1 잔여(보류)** — GO⑤(모바일 빌드 뒤)·`Characters/` Kenney(폴백 전용). 헤어카드는 분리 헤어 메시 생기면.
 
 `ShotDir`(`Playtest*Gui.cs`)는 GUI 캡처 때마다 고친다.
 
@@ -52,8 +52,8 @@ Maria·Abe·Brute + Skeleton·Paladin·PeasantMan·PeasantGirl·Archer·두목 M
 | 검증 | 결과 |
 |---|---|
 | 컴파일·씬 다섯 재빌드 | exit 0(최근 FOREST 2026-09-24), 영속 리스너 32·17·10·39(2026-09-23) |
-| `PlaytestStorySlice` | **3연속 OK(2026-09-24, 106-10 뒤)** — `PlaytestStoryCompanions`·`PlaytestStorySummon`·`PlaytestStoryBossIntro`·`CheckOutfitTint`·`CheckUpperTiersAndPins`·`CheckPromotionAndSchools`·`CheckButtonWiring`(진짜 onClick)·`CheckJobSkills`·무예 세이브 왕복·옛 형식 로드 |
-| `PlaytestDungeonHeadless` | **3연속 OK(2026-09-24, 108 ③ 뒤)** — Landmarks·BossIntro·Party·Explore·NpcModels·Temple(+컷)·LockOn·EnemyTelegraph. 같은 씬 `FloorProgression` OK |
+| `PlaytestStorySlice` | **3연속 OK(2026-09-25, 두목 Morak 뒤)** — `PlaytestStoryCompanions`·`PlaytestStorySummon`·`PlaytestStoryBossIntro`·`CheckOutfitTint`·`CheckUpperTiersAndPins`·`CheckPromotionAndSchools`·`CheckButtonWiring`(진짜 onClick)·`CheckJobSkills`·무예 세이브 왕복·옛 형식 로드 |
+| `PlaytestDungeonHeadless` | **3연속 OK(2026-09-25, 두목 몸 셋 뒤)** — Landmarks·BossIntro·Party·Explore·NpcModels·Temple(+컷)·LockOn·EnemyTelegraph. 같은 씬 `FloorProgression` OK |
 | GO `PlaytestHeadless` | **3연속 OK(2026-09-24, 지역 소품 뒤)** — `PlaytestGo` RegionProps·RegionTraits·RegionMission(v16/v15)·Guardian·SlopesBiome·PartyBodies·ElementalFoe·Treasure·WorldMap(v16/v13)·Traversal·FieldCombat (항목은 각 파일 요약 주석) |
 | `PlaytestForestHeadless` | **3연속 OK(2026-09-24, 존 소품 뒤)** — `PlaytestForestZones`·`ZoneProps` 포함 · `PlaytestForestCreatures` 3연속(models 8/8, 씨앗 고정) · Finish·Furniture·HouseTransition OK |
 | REALM 헤드리스 | **4연속 OK(2026-09-23)** — `CheckButtonWiring`(네 판 공통) |
@@ -63,8 +63,8 @@ Maria·Abe·Brute + Skeleton·Paladin·PeasantMan·PeasantGirl·Archer·두목 M
 ## 실기 확인 대기 (항목명만 — 경위는 HISTORY grep)
 
 - GO: **수호장 Maw 몸 — 걷기·발톱 공격 박자·원소 빛** · **마을 사람 셋 모델(106-4) — 3.4m 키·바라보는 쪽** · **지역 소품(108 ①) — 1.9배 크기·그을린 빛·번쩍임·모닥불 빛·여울 바위가 헤엄길 막는지·LOD** · **특색 지역(108 ①) — 자막 세 줄·지도 두 줄 겹침·위험 3 난이도** · **식생 바이옴(107-3) — 호박빛 세기·침엽수 반복감·풀 키·갈대·폰 프레임** · **지역 사명(107-8) — 위쪽 줄 겹침·보상 크기·셋째 단 상자 찾기** · **망루 수호장(107-7·106-9) — 5.4m 크기·탑 겹침·겉→속 알림·난이도·컷이 절벽에 박히는지** · **경사·바이옴(107-3) — 비탈 28°·돌 쐐기·내리막·지역 안개/햇빛(강 물안개 세기)** · **동료 모델(107 ⑥) — Abe 몸의 Maria 리타깃(등반·활공·수영)·교체 순간·날개 자리** · **원소 쓰는 적(107 ⑤) — 원소 빛 해골이 괴물로 읽히는지·방패 막대·상성 글자·2초 비틀·화상/젖음/감전 체감** · **보물 상자(107 ④)** · **지역 지도(107 ③) — 망루·M 지도 가독성** · **이동(107 ②) — 등반 클립이 벽에 붙는지·넘어오르기 0.45s·활공·수영 높이·스태미나·카메라 끼임** · **들판 전투(107 ①) — 3타 간격·예고 0.6s·적 체력·HUD 자리**, 옛 VS 항목, **폰에서 설정·승급 3택·저장 버튼**
-- DUNGEON: **능묘지기 Ganfaul 몸 — 3.5m·등장 컷 포효(공격 클립)** · **바위 거신 실루엣·발광** · **명소 층(108 ③) — 5층 주인 세기·방 다섯 길이·첫 토벌 무기 체감** · **층 두목 컷(106-7) — 3.8초 길이·어깨 너머 샷·올려다보는 샷이 벽에 안 박히는지·이름표** · **파티·소환(106-6) — 전용 클립(무사 방패 들기·방패로 받기·쓰러짐, 술사 시전 둘·걷기) 어색함, 게이지 속도(8타·34타), 도발·치유 체감, 파티 줄 가독성, 소환 컷 길이·거신 크기·한 방 세기** · **탐험(106-5) — 점프 손맛, 담쟁이 등반·넘어오르기, 돌·틈 난이도, 탑 불빛, 막이** · **사실 모델 NPC(동행 기사 걷기↔달리기 발 미끄럼·마을 사람·포로 무릎→기쁨·행상 서는 자리·해골 파수꾼 크기/칠)**, **컷 셋(능묘 도착 4.5s·상자 2.6s·능묘지기 등장 5.2s) 길이·레터박스·"아무 키로 넘김"·상자 카메라가 벽에 안 박히는지·손떨림 세기**, **잊힌 능묘 한 바퀴(블록·벽력탄 심지·능묘지기 사이클·열쇠 줄)**, **락온(카메라 추적·예고 0.5s·완벽 회피 반격·옆걸음 발 미끄럼)**, 옛 VS·101 항목(목록은 HISTORY), **폰에서 공격·강공격·회전베기·회피·저장·설정·축복 버튼**
+- DUNGEON: **살수 Ninja(4.4m·옆차기)·층 주인 Demon(명소 빛 35%·뛰어 내려찍기 박자)·기계화 정찰병 Alien Soldier** · **능묘지기 Ganfaul 몸 — 3.5m·등장 컷 포효(공격 클립)** · **바위 거신 실루엣·발광** · **명소 층(108 ③) — 5층 주인 세기·방 다섯 길이·첫 토벌 무기 체감** · **층 두목 컷(106-7) — 3.8초 길이·어깨 너머 샷·올려다보는 샷이 벽에 안 박히는지·이름표** · **파티·소환(106-6) — 전용 클립(무사 방패 들기·방패로 받기·쓰러짐, 술사 시전 둘·걷기) 어색함, 게이지 속도(8타·34타), 도발·치유 체감, 파티 줄 가독성, 소환 컷 길이·거신 크기·한 방 세기** · **탐험(106-5) — 점프 손맛, 담쟁이 등반·넘어오르기, 돌·틈 난이도, 탑 불빛, 막이** · **사실 모델 NPC(동행 기사 걷기↔달리기 발 미끄럼·마을 사람·포로 무릎→기쁨·행상 서는 자리·해골 파수꾼 크기/칠)**, **컷 셋(능묘 도착 4.5s·상자 2.6s·능묘지기 등장 5.2s) 길이·레터박스·"아무 키로 넘김"·상자 카메라가 벽에 안 박히는지·손떨림 세기**, **잊힌 능묘 한 바퀴(블록·벽력탄 심지·능묘지기 사이클·열쇠 줄)**, **락온(카메라 추적·예고 0.5s·완벽 회피 반격·옆걸음 발 미끄럼)**, 옛 VS·101 항목(목록은 HISTORY), **폰에서 공격·강공격·회전베기·회피·저장·설정·축복 버튼**
 - FOREST: **숲지기 모델** · **존 소품 — 실측 크기·휨 따라 내림·걸림** · **짐승 여덟 모델 — 키·꾸밈 자리·안개유령 투명도·숲 톤** · **특색 존(108 ②) — 명소 크기·휨 따라 내림이 가까이서 튀는지·점광 세기·자막 세 줄**, 벽지/장판, 가구 배치, 생물·과일나무·좌판, 목표판/세션카드, 번들, 채집 손맛, 평가 별점, 택배 사슬, 축제(달력 1·8·15일), 과일나무·바크 톤, 잔디 디테일 톤, **폰에서 저장·설정·밀어내기 버튼**
-- STORY: **척후병·전직관 모델(106-4)** · **곁의 동료·소환(106-10) — 자리·겹침·화살·판수 · 거수 강림·내려찍기 박자·게이지** · **두목 등장 컷(106-8) — 3/4 로 도는 것·4.2초·블렌드** · 두목 크기·타격감, 사건·관계·선택, 전직 팝업, 목표판/세션카드, 타격 체감, 유품·데칼·레벨업 줌·직업별 무기, 관문 대장, 비경 지도·축복·아레나, 교대 버튼·서명, **무예 패널(K·"무예" 버튼·전직관)·무예 칸 넷·직업 무예 22 손맛·모바일 버튼·비경 노드 연속 탭**, **2차 전직(Lv.15, 전직관 2택)·2차 무예 19 손맛·유파 세트 체감·전우/천뢰 범위·Lv.10→15 비경 약 4판이 적당한지**, **3·4차 전직(Lv.20/25)·3·4차 무예 44 손맛·무예 패널 차수 탭·"칸" 고정 조작·4세트 체감·15→20/20→25 판수·전직 차수 옷 빛깔(4차 48%가 과하거나 약하지 않은지)**
+- STORY: **황건 두목 Morak(2.24m·훅 박자)** · **척후병·전직관 모델(106-4)** · **곁의 동료·소환(106-10) — 자리·겹침·화살·판수 · 거수 강림·내려찍기 박자·게이지** · **두목 등장 컷(106-8) — 3/4 로 도는 것·4.2초·블렌드** · 두목 크기·타격감, 사건·관계·선택, 전직 팝업, 목표판/세션카드, 타격 체감, 유품·데칼·레벨업 줌·직업별 무기, 관문 대장, 비경 지도·축복·아레나, 교대 버튼·서명, **무예 패널(K·"무예" 버튼·전직관)·무예 칸 넷·직업 무예 22 손맛·모바일 버튼·비경 노드 연속 탭**, **2차 전직(Lv.15, 전직관 2택)·2차 무예 19 손맛·유파 세트 체감·전우/천뢰 범위·Lv.10→15 비경 약 4판이 적당한지**, **3·4차 전직(Lv.20/25)·3·4차 무예 44 손맛·무예 패널 차수 탭·"칸" 고정 조작·4세트 체감·15→20/20→25 판수·전직 차수 옷 빛깔(4차 48%가 과하거나 약하지 않은지)**
 - REALM: 월드맵, 적국 사슬, 패널 여덟, 목표판/세션카드, 공격·계략, 특성·야망, 전술 토글, 서사 카드, 계승 토글, 일기토·설전, 승리 결과 카드, 성벽 실루엣, 오빗 카메라 pull-in, **폰에서 버튼 전부**
 - 공통: 폰 발열(30fps·"저" 버튼), BGM 음량, 설정 패널 6줄, SessionCard DoF, 접지 blob 그림자(Mobile 품질), LUT 톤 5장, Screen Space Shadows, Maria 피부 SSS

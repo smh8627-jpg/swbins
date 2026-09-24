@@ -155,6 +155,19 @@ namespace Saga.EditorTools
         private const float GruntTargetHeight = 1.6f;
         private const float BossTargetHeight = 1.6f * 1.4f;
 
+        /// <summary>PLAN.md 106-4 두목 전용 몸(2026-09-24) — 황건 두목 = Morak(가죽 갑주 두령). 없는 PC 는 Brute.</summary>
+        internal static GameObject StoryBossBody() =>
+            AssetDatabase.LoadAssetAtPath<GameObject>(SetupNpcCharacterImports.PrefabPath("Morak"))
+            ?? AssetDatabase.LoadAssetAtPath<GameObject>(BruteAnimatedPrefabPath);
+
+        /// <summary>두목 키 2.24m 에 맞추는 배율 — Brute 는 잰 값(2.34m) 그대로, 전용 몸은 프리팹 키를 잰다.</summary>
+        internal static float StoryBossScale(GameObject body)
+        {
+            if (body == null || body.name.StartsWith("Brute")) return BossTargetHeight / BruteNativeHeight;
+            float h = BuildDungeonTemple.MeasureHeight(body);
+            return h > 0.5f ? BossTargetHeight / h : BossTargetHeight / BruteNativeHeight;
+        }
+
         // 2026-09-14 "사운드" — GO/FOREST/REALM과 같은 Kenney CC0 자산
         // 트리(Assets/Art/Audio, 다섯 판 공유 원본) 재사용, 새 다운로드 없음.
         private const string HitClipPath = "Assets/Art/Audio/Kenney_RPGSounds/chop.ogg";
@@ -171,7 +184,7 @@ namespace Saga.EditorTools
             if (deathClip != null) SetPrivateField(spawner, "deathClip", deathClip);
 
             var abe = AssetDatabase.LoadAssetAtPath<GameObject>(AbeAnimatedPrefabPath);
-            var brute = AssetDatabase.LoadAssetAtPath<GameObject>(BruteAnimatedPrefabPath);
+            var brute = StoryBossBody();
             if (abe != null)
             {
                 SetPrivateField(spawner, "enemyModelPrefab", abe);
@@ -185,7 +198,7 @@ namespace Saga.EditorTools
             if (brute != null)
             {
                 SetPrivateField(spawner, "bossModelPrefab", brute);
-                SetPrivateField(spawner, "riggedBossVisualScale", BossTargetHeight / BruteNativeHeight);
+                SetPrivateField(spawner, "riggedBossVisualScale", StoryBossScale(brute));
             }
             spawner.Build();
         }
@@ -204,7 +217,7 @@ namespace Saga.EditorTools
             if (deathClip != null) SetPrivateField(runner, "deathClip", deathClip);
 
             var abe = AssetDatabase.LoadAssetAtPath<GameObject>(AbeAnimatedPrefabPath);
-            var brute = AssetDatabase.LoadAssetAtPath<GameObject>(BruteAnimatedPrefabPath);
+            var brute = StoryBossBody();
             if (abe != null)
             {
                 SetPrivateField(runner, "gruntModelPrefab", abe);
@@ -217,7 +230,7 @@ namespace Saga.EditorTools
             if (brute != null)
             {
                 SetPrivateField(runner, "bossModelPrefab", brute);
-                SetPrivateField(runner, "riggedBossVisualScale", BossTargetHeight / BruteNativeHeight);
+                SetPrivateField(runner, "riggedBossVisualScale", StoryBossScale(brute));
             }
         }
 

@@ -42,6 +42,18 @@ namespace Saga.Dungeon.World
         [SerializeField] private GameObject merchantModel; // PLAN.md 106-4 — Peasant Man(없으면 좌판만)
         [SerializeField] private GameObject captiveModel;  // PLAN.md 106-4 — Peasant Girl(없으면 캡슐)
 
+        // PLAN.md 106-4 두목 전용 몸(2026-09-24) — 빈 칸이면 예전 몸(살수·주인 = eliteModel, 기계화 정예 = gruntModel).
+        // 배율(ScaleMul)은 씬 빌더가 프리팹 키를 재서 옛 몸과 같은 키가 되게 넣는다. 전용 몸은 제 빛깔(주인만 명소 빛을 옅게).
+        [SerializeField] private GameObject minibossModel;      // 황건 살수 — Ninja
+        [SerializeField] private float minibossScaleMul = 1f;
+        [SerializeField] private GameObject lordModel;          // 층 주인 — Demon T Wiezzorek
+        [SerializeField] private float lordScaleMul = 1f;
+        [SerializeField] private GameObject fusionEliteModel;   // 기계화 정찰병(5.7 시대 퓨전) — Alien Soldier
+        [SerializeField] private float fusionEliteScaleMul = 1f;
+
+        /// <summary>층 주인 전용 몸에 명소 빛을 입히는 비율 — 여섯 주인이 한 몸이라 빛으로 가른다.</summary>
+        public const float LordTintMix = 0.35f;
+
         private static readonly Vector3[] GruntOffsets =
         {
             new Vector3(0f, 0f, 2f),
@@ -417,22 +429,23 @@ namespace Saga.Dungeon.World
             go.transform.SetParent(_contentRoot, false);
             go.transform.localPosition = SoloOffset;
             var enemy = go.AddComponent<DungeonEnemy>();
-            enemy.SetSpawnContext(RoomId, gruntModel);
 
             // PLAN.md 101-2 5.7 "시대 퓨전" — 깊은 층부터 정예를 기계화
             // 변종으로 바꿔치기(짐승형 파생 규칙이 없는 이 트랙의 재해석,
             // EraFusionData.cs 클래스 주석 참고).
             bool fusion = EraFusionData.IsFusionFloor(_floor);
+            bool mech = fusion && fusionEliteModel != null;
+            enemy.SetSpawnContext(RoomId, mech ? fusionEliteModel : gruntModel);
             string rewardItem = fusion ? EraFusionData.FusionRewardItemId(_floor) : "wp_saber";
             string displayName = fusion ? "기계화 정찰병" : "폐허의 황건 정예";
-            Color color = fusion ? EraFusionData.FusionBodyColor : new Color(0.75f, 0.35f, 0.15f);
+            Color color = mech ? Color.white : fusion ? EraFusionData.FusionBodyColor : new Color(0.75f, 0.35f, 0.15f);
 
             enemy.ConfigureCombat(
                 DungeonFormulas.EliteHp(_floor) * SigilState.EnemyHpMultiplier(_floor),
                 DungeonFormulas.EliteDmg(_floor) * SigilState.EnemyDamageMultiplier(_floor),
                 DungeonFormulas.EliteRewardExp(_floor), DungeonFormulas.EliteRewardGold(_floor),
                 rewardItem, null, false, displayName,
-                color, 1.25f);
+                color, 1.25f * (mech ? fusionEliteScaleMul : 1f));
             go.SetActive(true);
 
             foreach (var offset in EscortOffsets) SpawnGrunt(SoloOffset + offset);
@@ -445,7 +458,9 @@ namespace Saga.Dungeon.World
             go.transform.SetParent(_contentRoot, false);
             go.transform.localPosition = SoloOffset;
             var enemy = go.AddComponent<DungeonEnemy>();
-            enemy.SetSpawnContext(RoomId, eliteModel);
+            // 살수(미니보스)만 전용 몸 — 층 끝 두목은 원래 배역 Brute(황건적 두목) 그대로.
+            bool assassin = !withEscorts && minibossModel != null;
+            enemy.SetSpawnContext(RoomId, assassin ? minibossModel : eliteModel);
             // PLAN.md 101-2 5.4 "월드 보스" — withEscorts는 "boss" 종류(층 끝
             // 진짜 두목)에만 true라(미니보스는 false) 그대로 재사용한다.
             enemy.ConfigureCombat(
@@ -453,7 +468,7 @@ namespace Saga.Dungeon.World
                 DungeonFormulas.EnemyDmg(_floor, true) * SigilState.EnemyDamageMultiplier(_floor),
                 DungeonFormulas.RewardExp(_floor, true), DungeonFormulas.RewardGold(_floor, true),
                 "wp_greatblade", "gem_ruby", isBoss, displayName,
-                color, withEscorts ? 2.0f : 1.8f, newIsWorldBoss: withEscorts);
+                assassin ? Color.white : color, withEscorts ? 2.0f : 1.8f * (assassin ? minibossScaleMul : 1f), newIsWorldBoss: withEscorts);
             go.SetActive(true);
 
             if (withEscorts)
@@ -474,13 +489,15 @@ namespace Saga.Dungeon.World
             go.transform.SetParent(_contentRoot, false);
             go.transform.localPosition = SoloOffset;
             var enemy = go.AddComponent<DungeonEnemy>();
-            enemy.SetSpawnContext(RoomId, eliteModel);
+            bool demon = lordModel != null;
+            enemy.SetSpawnContext(RoomId, demon ? lordModel : eliteModel);
             enemy.ConfigureCombat(
                 DungeonFormulas.EnemyHp(_floor, true) * LordHpMul * SigilState.EnemyHpMultiplier(_floor),
                 DungeonFormulas.EnemyDmg(_floor, true) * SigilState.EnemyDamageMultiplier(_floor),
                 DungeonFormulas.RewardExp(_floor, true), DungeonFormulas.RewardGold(_floor, true),
                 LandmarkState.IsCleared(_landmark) ? "wp_greatblade" : lm.RewardItemId, "gem_ruby", true,
-                DungeonLandmarkData.LordName(_landmark), lm.LordColor, 2.1f);
+                DungeonLandmarkData.LordName(_landmark),
+                demon ? Color.Lerp(Color.white, lm.LordColor, LordTintMix) : lm.LordColor, 2.1f * (demon ? lordScaleMul : 1f));
             enemy.SetIntroSubtitle(string.Format(DungeonLocalization.T("cut.lord_sub", "{0}의 주인"), DungeonLandmarkData.Name(_landmark)));
             go.SetActive(true);
             _lord = enemy;

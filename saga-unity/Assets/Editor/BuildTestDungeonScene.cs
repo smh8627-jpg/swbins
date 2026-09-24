@@ -308,6 +308,7 @@ namespace Saga.EditorTools
         private static GameObject _characterA, _characterB, _characterC, _characterD;
         // PLAN.md 106-4 "캐릭터 통일" — `SetupNpcCharacterImports` 가 구운 사실 모델. 없으면 각 자리의 예전 모델.
         private static GameObject _skeleton, _paladin, _peasantMan, _peasantGirl;
+        private static GameObject _ninja, _demon, _alienSoldier; // 두목 전용 몸(106-4, 없는 PC 는 null → 옛 몸)
         private static int _villagerCount;
         private static GameObject _corridorGlb, _gateGlb, _roomGlb;
         private static Material _dungeonFloorMat, _dungeonWallMat;
@@ -376,6 +377,9 @@ namespace Saga.EditorTools
             _paladin = AssetDatabase.LoadAssetAtPath<GameObject>(SetupNpcCharacterImports.PrefabPath("Paladin"));
             _peasantMan = AssetDatabase.LoadAssetAtPath<GameObject>(SetupNpcCharacterImports.PrefabPath("PeasantMan"));
             _peasantGirl = AssetDatabase.LoadAssetAtPath<GameObject>(SetupNpcCharacterImports.PrefabPath("PeasantGirl"));
+            _ninja = AssetDatabase.LoadAssetAtPath<GameObject>(SetupNpcCharacterImports.PrefabPath("Ninja"));
+            _demon = AssetDatabase.LoadAssetAtPath<GameObject>(SetupNpcCharacterImports.PrefabPath("Demon"));
+            _alienSoldier = AssetDatabase.LoadAssetAtPath<GameObject>(SetupNpcCharacterImports.PrefabPath("AlienSoldier"));
             _villagerCount = 0;
             if (_skeleton == null || _paladin == null || _peasantMan == null || _peasantGirl == null)
             {
@@ -936,9 +940,11 @@ namespace Saga.EditorTools
             // 만나는 개체가 더 작고 색도 옅어 약해 보였다. 두목(1.6배·3.2m)보다
             // **더 크게(1.8배·3.6m)**·색도 짙고 채도 높은 자보라로 올려 "더
             // 깊이 들어갈수록 더 위협적"으로 읽히게 했다.
-            SetPrivateField(miniboss, "bodyColor", new Color(0.24f, 0.04f, 0.4f));
-            SetPrivateField(miniboss, "visualScale", 1.8f);
-            SetPrivateField(miniboss, "modelPrefab", _characterC);
+            // PLAN.md 106-4 두목 전용 몸(2026-09-24) — 살수 = Ninja, 옛 몸(Brute 1.8배)과 같은 키·제 빛깔. 없는 PC 는 예전 그대로.
+            bool ninja = _ninja != null;
+            SetPrivateField(miniboss, "bodyColor", ninja ? Color.white : new Color(0.24f, 0.04f, 0.4f));
+            SetPrivateField(miniboss, "visualScale", 1.8f * (ninja ? ScaleMulTo(_characterC, _ninja) : 1f));
+            SetPrivateField(miniboss, "modelPrefab", ninja ? _ninja : _characterC);
         }
 
         /// <summary>"방 종류 마지막" 슬라이스 — Room3 북쪽에서 복도3을 지나
@@ -1015,6 +1021,22 @@ namespace Saga.EditorTools
             SetPrivateField(runner, "merchantModel", _peasantMan); // PLAN.md 106-4
             SetPrivateField(runner, "captiveModel", _peasantGirl);
             SetPrivateField(runner, "eliteModel", _characterC);
+            // PLAN.md 106-4 두목 전용 몸(2026-09-24) — 살수 Ninja · 층 주인 Demon · 기계화 정찰병 Alien Soldier.
+            // 배율 = 옛 몸 키 / 새 몸 키(주인·살수는 Brute, 정찰병은 잡졸 Abe) — 층 공식의 배율(1.8·2.1·1.25)은 그대로 곱한다.
+            SetPrivateField(runner, "minibossModel", _ninja);
+            SetPrivateField(runner, "minibossScaleMul", ScaleMulTo(_characterC, _ninja));
+            SetPrivateField(runner, "lordModel", _demon);
+            SetPrivateField(runner, "lordScaleMul", ScaleMulTo(_characterC, _demon));
+            SetPrivateField(runner, "fusionEliteModel", _alienSoldier);
+            SetPrivateField(runner, "fusionEliteScaleMul", ScaleMulTo(_characterD, _alienSoldier));
+        }
+
+        /// <summary>새 몸을 옛 몸 키에 맞추는 배율(둘 다 리깅 모델이어야 실제 키로 잰다 — 아니면 1).</summary>
+        internal static float ScaleMulTo(GameObject oldBody, GameObject newBody)
+        {
+            if (oldBody == null || newBody == null || oldBody.GetComponent<Animator>() == null) return 1f;
+            float h = BuildDungeonTemple.MeasureHeight(newBody);
+            return h > 0.5f ? BuildDungeonTemple.MeasureHeight(oldBody) / h : 1f;
         }
 
         /// <summary>이벤트방(구출, js/dungeon.js:383-393) — 지키는 잡졸
