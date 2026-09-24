@@ -31,6 +31,12 @@
   var floorMesh = null, wallGroup = null, actorGroup = null, fxGroup = null;
   var fieldGroup = null;           // 방 밖 들판 (2단계)
   var fieldKey = null;             // 지금 세워 둔 들판의 씨앗+반경
+  /* 고정 세계 지도(§5.12) — 걸어서 창이 옮겨갈 때는 새 들판을 **뒤에서 다 지은 뒤 한 번에**
+     갈아 끼운다(예전엔 지우고 나서 여러 프레임에 걸쳐 채워, 걷는 도중 땅이 비었다 차올랐다).
+     fieldTarget 은 지금 공사 중인 묶음(piece()·타일이 여기에 붙는다) */
+  var fieldTarget = null, fieldNext = null, lastFieldWm = null;
+  /** 마을·들판(run.town)은 세계 좌표로 짓는다 — 던전 방 둘레는 예전 그대로(방 씨앗) */
+  function worldFieldOn(run) { return !!(run && run.town && global.DG.worldMap && global.DG.field3d); }
   var amb = null, key = null, torch = null, moveMark = null;
   var canvas = null;
   var fieldBuildErrShown = {};   // buildRoom/buildField 실패 토스트 — 메시지별 1회만(§57 후속)
@@ -1258,9 +1264,23 @@
   function nowMs() { return (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now(); }
 
   /** 창을 정하고 지을 칸 목록만 세운다 — 무거운 건 하나도 안 짓는다(순간). */
-  function buildField(run, cx0, cz0) {
+  function buildField(run, cx0, cz0, keepOld) {
     var F = global.DG.field3d;
     if (!fieldGroup) { return; }
+    /* 진행 중이던 뒷공사는 버린다(새 창이 이긴다) */
+    if (fieldNext) { scene.remove(fieldNext); fieldNext = null; }
+    var wm = worldFieldOn(run);
+    if (keepOld && F && FIELD()) {
+      /* 뒤에서 짓기 — 옛 들판은 끝날 때까지 그대로 보인다(fieldJobFinalize 가 갈아 끼운다) */
+      fieldNext = new T.Group();
+      fieldNext.visible = false;
+      scene.add(fieldNext);
+      fieldTarget = fieldNext;
+      fieldJob = null;
+      buildFieldJob(run, cx0 | 0, cz0 | 0, wm, F);
+      return;
+    }
+    fieldTarget = fieldGroup;
     /* 걸어서 들판 창이 옮겨갈 때마다(fwRk 변경) 여기가 **동기로** 도는데,
        세운 반경이 넓을수록(natItems 인스턴싱 전이면 조각 하나하나가 개별
        Mesh라) fieldGroup 자식이 수백 개까지도 간다. 앞에서부터 지우면
@@ -1277,7 +1297,11 @@
        그대로 먹는 heightAt/chunkAt/clutterAt)은 안 바뀐다 — 창이 옮겨가도
        "같은 자리는 늘 같은 지형"이 유지된다. */
     cx0 = cx0 | 0; cz0 = cz0 | 0;
+    buildFieldJob(run, cx0, cz0, wm, F);
+  }
 
+  /** 지을 칸 목록과 공사 묶음(fieldTarget)을 정한다 — 무거운 건 하나도 안 짓는다 */
+  function buildFieldJob(run, cx0, cz0, wm, F) {
     var W = d().ROOM_W, H = d().ROOM_H;
     var DD = global.DG.dataDungeon;
     var th = run.theme || (DD ? DD.themeOf(run.floor) : null);
@@ -1305,7 +1329,7 @@
        세운 칸보다 한참 낮은 자리에 아주 큰 민무늬 판 하나(그림자 없음,
        draw call 1개뿐)를 깔아 "끊긴 낭떨어지" 대신 "저 멀리 낮은 벌판"으로
        보이게 한다 — 칸별 비용은 그대로다(buildField 한 번에 하나뿐). */
-    var skirt = groundBox(fieldGroup, cx0 * F.CHUNK, -260, cz0 * F.CHUNK, 6000, 40, 6000,
+    var skirt = groundBox(fieldTarget, cx0 * F.CHUNK, -260, cz0 * F.CHUNK, 6000, 40, 6000,
       mix(stone, 0x141018, groundK), false);
     skirt.receiveShadow = false;
 
@@ -1316,19 +1340,47 @@
     fieldJob = {
       F: F, coords: coords, idx: 0, W: W, H: H, seed: seed, R: R, dens: dens,
       stone: stone, groundK: groundK, th: th, FI: FI, natItems: FI ? [] : null,
-      corridors: run.corridors
+      corridors: run.corridors, wm: wm, g: fieldTarget
     };
+    lastFieldWm = wm;
+  }
+
+  /**
+   * 고정 세계 지도 칸 하나(§5.12) — 세계 칸 좌표·세계 좌표 그대로 짓는다(fieldGroup 을
+   * 앵커만큼 밀어 화면 로컬로 맞춘다, render 참고). 소품은 충돌(dungeon.fieldBlockedAt)이
+   * 읽는 **같은 배열**이다 — 밀도(그래픽 등급)로 나무 수를 줄이지 않는다(줄이면 안 보이는 나무에 막힌다).
+   * 마을 발판(ring 0)은 땅만 조금 낮게 깐다 — 지금 마을의 바닥이 그 위를 덮는다.
+   */
+  function fieldJobChunkWorld(J, cx, cz) {
+    var WM = global.DG.worldMap, F = J.F, C = F.CHUNK, i;
+    var inf = WM.info(cx, cz, J.W, J.H);
+    if (!inf) { return; }
+    var tile = fieldTileBox(J.g, cx * C + C / 2, inf.ring === 0 ? -7 : -6, cz * C + C / 2,
+      C + 2, 12, C + 2, mix(inf.region.ground, 0x141018, J.groundK), false);
+    tile.receiveShadow = true;
+    if (inf.ring === 0) { return; }
+    var list = WM.pieces(cx, cz, J.W, J.H);
+    for (i = 0; i < list.length; i++) {
+      if (J.FI && NATURAL_KIND[list[i].t]) { J.natItems.push(natItem(F, list[i], inf.seed, J.W, J.H)); }
+      else { piece(list[i], inf.seed, J.W, J.H, J.stone); }
+    }
+    var deco = WM.clutter(cx, cz, J.W, J.H, J.dens);
+    for (i = 0; i < deco.length; i++) {
+      if (J.FI && NATURAL_KIND[deco[i].t]) { J.natItems.push(natItem(F, deco[i], inf.seed, J.W, J.H)); }
+      else { piece(deco[i], inf.seed, J.W, J.H, J.stone); }
+    }
   }
 
   /** 칸 하나 — 옛 buildField() 이중 루프의 몸통 그대로(짓는 내용은 안 바뀜) */
   function fieldJobChunk(J, cx, cz) {
+    if (J.wm) { fieldJobChunkWorld(J, cx, cz); return; }
     var F = J.F, W = J.W, H = J.H, seed = J.seed, dens = J.dens, stone = J.stone,
       groundK = J.groundK, th = J.th, FI = J.FI, natItems = J.natItems, i;
     var ring = F.ringOf(cx, cz, W, H);
     if (ring === 0) { return; }               // 방이 걸친 조각은 방 바닥이 맡는다
     var gx = cx * F.CHUNK, gz = cz * F.CHUNK;
     var hh = F.heightAt(gx + F.CHUNK / 2, gz + F.CHUNK / 2, seed, W, H);
-    var tile = fieldTileBox(fieldGroup, gx + F.CHUNK / 2, hh - 6, gz + F.CHUNK / 2,
+    var tile = fieldTileBox(J.g, gx + F.CHUNK / 2, hh - 6, gz + F.CHUNK / 2,
       F.CHUNK + 2, 12, F.CHUNK + 2, mix(stone, 0x141018, groundK), false);
     tile.receiveShadow = true;
 
@@ -1364,7 +1416,7 @@
     var natItems = J.natItems, FI = J.FI, i;
     if (FI && natItems && natItems.length) {
       var built = FI.build(natItems);
-      if (built && built.children && built.children.length) { fieldGroup.add(built); }
+      if (built && built.children && built.children.length) { J.g.add(built); }
       else {
         /* 방어적 — 인스턴싱이 뭔가 잘못돼(폴백조차 못 세웠으면) 아무것도
            안 보이는 것보다는 옛 개별 piece() 방식으로 되돌아간다. */
@@ -1375,6 +1427,13 @@
       }
     }
     fieldKey = J.seed + ':' + J.R + ':' + Math.round(J.dens * 100);
+    /* 뒤에서 지은 것이면 이제 옛 들판을 걷고 한 번에 갈아 끼운다(뒤에서부터 옮겨 O(n)) */
+    if (J.g && J.g !== fieldGroup) {
+      for (i = fieldGroup.children.length - 1; i >= 0; i--) { fieldGroup.remove(fieldGroup.children[i]); }
+      while (J.g.children.length) { fieldGroup.add(J.g.children[J.g.children.length - 1]); }
+      scene.remove(J.g);
+      if (fieldNext === J.g) { fieldNext = null; }
+    }
   }
 
   /** 매 프레임 부른다 — 진행 중인 들판 공사가 있으면 예산만큼만 이어 짓는다. */
@@ -1382,6 +1441,7 @@
     if (!fieldJob) { return; }
     lastFrameHadBuild = true;   // 조각 몇 개라도 지었으면 이 프레임 측정치도 평균에서 뺀다
     var J = fieldJob;
+    fieldTarget = J.g || fieldGroup;
     var deadline = nowMs() + FIELD_BUILD_BUDGET_MS;
     while (J.idx < J.coords.length && nowMs() < deadline) {
       var cx = J.coords[J.idx], cz = J.coords[J.idx + 1];
@@ -1393,6 +1453,7 @@
       fieldJobFinalize(J);
       lastFieldFinalizeMs = nowMs() - finT0;
       fieldJob = null;
+      fieldTarget = null;
     }
   }
 
@@ -1400,7 +1461,7 @@
    *  여전히 도형이다(PLAN 4절의 우선순위 ⑤나무 ⑥바위까지만 이번에 옮겼다) */
   function piece(p, seed, W, H, stone) {
     var F = global.DG.field3d;
-    var g = fieldGroup;
+    var g = fieldTarget || fieldGroup;
     var y = F.heightAt(p.x, p.z, seed, W, H);
     var s = p.s || 1;
     var AS3 = AS();
@@ -2484,6 +2545,10 @@
     var anc = run.anchor || { x: 0, y: 0 };
     var p0 = run.player;
     var p0x = p0.x - anc.x, p0y = p0.y - anc.y;   // 세계 → 로컬(위 anc 주석)
+    /* 고정 세계 지도(§5.12) — 마을·들판의 들판 묶음은 세계 좌표로 지어 두고 묶음째
+       앵커만큼 민다. 앵커가 바뀌어도(마을 사이를 걸어도) 다시 지을 필요가 없다 */
+    var wmNow = worldFieldOn(run);
+    if (fieldGroup) { fieldGroup.position.set(wmNow ? -anc.x : 0, 0, wmNow ? -anc.y : 0); }
 
     var W = d().ROOM_W, H = d().ROOM_H;
     /* 지형 높낮이(2026-09-06 실기기 제보 — "바닥 높낮이 때문에 캐릭터가
@@ -2540,8 +2605,9 @@
     var fldStep = Math.max(2, fldR - 1);
     var fldCx0 = 0, fldCz0 = 0;
     if (terrF && FIELD()) {
-      fldCx0 = Math.round(Math.round(p0x / terrF.CHUNK) / fldStep) * fldStep;
-      fldCz0 = Math.round(Math.round(p0y / terrF.CHUNK) / fldStep) * fldStep;
+      /* 세계 지도 판은 창 중심도 세계 칸으로 — 앵커가 바뀌어도 창이 안 튄다 */
+      fldCx0 = Math.round(Math.round((wmNow ? p0.x : p0x) / terrF.CHUNK) / fldStep) * fldStep;
+      fldCz0 = Math.round(Math.round((wmNow ? p0.y : p0y) / terrF.CHUNK) / fldStep) * fldStep;
     }
     /* 2026-09-08 — buildField() 자체는 위 프레임 예산제 커밋으로 가벼워졌는데도
        "이동하면 계속 끊긴다" 제보가 실기기(PC·폰 둘 다)에서 이어졌다. 범인은
@@ -2553,7 +2619,7 @@
        buildRoom()/prefetchActors() 는 **방이 실제로 바뀔 때만** 돈다. */
     var roomRk = (run.town ? 'town' : run.floor) + ':' + run.roomIdx + ':' +
              (run.room && run.room.cleared ? 'c' : 'o') + pzProg + capProg + ':sec' + secFound + forageProg;
-    var fwRk = fldCx0 + '_' + fldCz0;
+    var fwRk = (wmNow ? 'w' : '') + fldCx0 + '_' + fldCz0;
     var roomChanged = (roomRk !== roomKey);
     if (roomChanged) {
       roomKey = roomRk;
@@ -2578,12 +2644,15 @@
        여기가 던지면 **이번 칸은 옛 그림 그대로 두고 카메라·렌더는 그대로
        이어간다** — 그 프레임은 `renderer.render()`까지 항상 가게. 메시지별
        1회만 띄워 도배를 막는다. */
-    if (roomChanged || fwRk !== fieldWinKey) {
+    /* 세계 지도 판끼리(마을→마을·마을→들판)는 방이 바뀌어도 들판은 같은 세계라
+       창이 그대로면 다시 짓지 않는다 — 창이 옮겨가면 뒤에서 짓고 갈아 끼운다 */
+    var wmStay = wmNow && lastFieldWm === true;
+    if ((roomChanged && !wmStay) || fwRk !== fieldWinKey) {
       fieldWinKey = fwRk;
       lastFrameHadBuild = true;
       var fieldT0 = nowMs();
       try {
-        buildField(run, fldCx0, fldCz0);
+        buildField(run, fldCx0, fldCz0, wmStay || !roomChanged);
       } catch (e) {
         if (global.console) { console.warn('[던전 3D] 들판을 다시 짓다가 실패 — 이번 칸은 옛 그림 그대로 둔다', e); }
         try {

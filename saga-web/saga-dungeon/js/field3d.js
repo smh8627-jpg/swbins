@@ -172,10 +172,39 @@
      (town.js가 로드 시 한 번만 ROAD_SEGMENTS를 정한다) 칸 좌표로 그냥
      캐싱한다 — 같은 칸을 다시 물으면 공짜다. */
   var townRoadCache = {};
+  /* 2026-09-24 §5.12 — 세계 지도 굽기(칸 23만)가 칸마다 선분 수백 개를 훑으면 몇 초가
+     걸렸다. 선분마다 20 간격으로 짚어 가며 그 점 둘레 3×3 칸만 **같은 산식**(칸 중심과
+     선분 거리 < 70)으로 재서 한 번에 굽는다 — 칸 중심에서 70 안의 선분 위 점은 가장
+     가까운 짚은 점에서 10 안이라, 그 짚은 점은 늘 이 칸이나 이웃 칸(200) 안이다(빠짐 없음) */
+  var townRoadRaster = null;
+  function buildRoadRaster(segs) {
+    var R = {}, i, s, n, k, px, pz, sx, sz, ox, oz, cx, cz, key;
+    for (i = 0; i < segs.length; i++) {
+      s = segs[i];
+      n = Math.max(1, Math.ceil(Math.hypot(s.bx - s.ax, s.bz - s.az) / 20));
+      for (k = 0; k <= n; k++) {
+        px = s.ax + (s.bx - s.ax) * k / n; pz = s.az + (s.bz - s.az) * k / n;
+        sx = Math.floor(px / CHUNK); sz = Math.floor(pz / CHUNK);
+        for (oz = -1; oz <= 1; oz++) {
+          for (ox = -1; ox <= 1; ox++) {
+            cx = sx + ox; cz = sz + oz; key = cx + '_' + cz;
+            if (R[key]) { continue; }
+            if (distToSeg(cx * CHUNK + CHUNK / 2, cz * CHUNK + CHUNK / 2, s.ax, s.az, s.bx, s.bz) < TOWN_ROAD_BAND) { R[key] = true; }
+          }
+        }
+      }
+    }
+    return R;
+  }
   function onTownRoad(cx, cz) {
     var key = cx + '_' + cz;
     var cached = townRoadCache[key];
     if (cached !== undefined) { return cached; }
+    if (!townRoadRaster) {
+      var T0 = global.DG && global.DG.town, sg = T0 && T0.roadSegments ? T0.roadSegments() : null;
+      if (sg && sg.length) { townRoadRaster = buildRoadRaster(sg); }
+    }
+    if (townRoadRaster) { return (townRoadCache[key] = !!townRoadRaster[key]); }
     var T = global.DG && global.DG.town, result = false, segs, i, s, wx, wz;
     if (T && T.roadSegments) {
       segs = T.roadSegments();
@@ -512,6 +541,8 @@
     mix: mix, seedOf: seedOf, heightAt: heightAt,
     kindOf: kindOf, chunkAt: chunkAt, clutterAt: clutterAt, ringOf: ringOf, survey: survey,
     corridorNameAt: corridorNameAt,
+    /** 고정 세계 지도(world-map.js, §5.12) — 지역 가중치 표('region:<key>')를 얹는다 */
+    setBias: function (name, table) { THEME_BIAS[name] = table; },
     /** §5.7 시대 퓨전 — 자가진단이 seed·theme 만으로 자리·간격을 확인한다 */
     eraLayerSlots: eraLayerSlots, eraLayerAt: eraLayerAt, ERA_LAYER: ERA_LAYER
   };

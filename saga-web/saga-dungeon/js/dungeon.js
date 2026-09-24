@@ -1773,6 +1773,25 @@
     var F = global.DG.field3d;
     var floor = ctx ? ctx.floor : (run && run.floor);
     if (!F || floor === undefined || floor === null) { return false; }
+    /* 고정 세계 지도(§5.12, world-map.js) — 마을·들판은 세계 칸 좌표 하나로 정해진
+       소품만 본다. 서 있는 마을이 바뀌어도 발밑이 안 바뀌고, 그림(dungeon3d)과 같은 배열이다 */
+    var WM = global.DG.worldMap;
+    if (ctx && ctx.town && WM) {
+      var wW = ctx.roomW || ROOM_W, wH = ctx.roomH || ROOM_H, wpr = ctx.pr || P_R;
+      var wcx = Math.floor(x / F.CHUNK), wcz = Math.floor(y / F.CHUNK), qx, qz, qi, ql, qp, qr;
+      for (qz = wcz - 1; qz <= wcz + 1; qz++) {
+        for (qx = wcx - 1; qx <= wcx + 1; qx++) {
+          ql = WM.pieces(qx, qz, wW, wH);
+          for (qi = 0; qi < ql.length; qi++) {
+            qp = ql[qi];
+            if (!FIELD_BLOCK[qp.t]) { continue; }
+            qr = pieceRadius(qp);
+            if (qr > 0 && Math.hypot(x - qp.x, y - qp.z) < qr + wpr) { return true; }
+          }
+        }
+      }
+      return false;
+    }
     var roomIdx = ctx ? ctx.roomIdx : (run && run.roomIdx);
     var rw = (ctx && ctx.roomW) || ROOM_W, rh = (ctx && ctx.roomH) || ROOM_H;
     var pr = (ctx && ctx.pr) || P_R;
@@ -1897,12 +1916,16 @@
    */
   function boundPlayer(p, px, py, ctx) {
     var ax = (ctx && ctx.anchor) ? ctx.anchor.x : 0, ay = (ctx && ctx.anchor) ? ctx.anchor.y : 0;
+    /* 빠져나오기(§5.12) — 이미 소품 안에 서 있으면(무엇 때문이든) 소품 충돌은 안 본다.
+       막힌 자리에서 막힌 자리로만 가려 해 영영 못 움직이던 "끼임"이 없어진다.
+       벽(방 사각형)·세계 한계는 그대로 지킨다 */
+    var stuck = fieldBlockedAt(px, py, ctx);
     if (ctx && ctx.noRoom) {
       var lim = WORLD_LIMIT;
       var wnx = core.clamp(p.x, -lim, lim);
-      p.x = !fieldBlockedAt(wnx, py, ctx) ? wnx : px;
+      p.x = (stuck || !fieldBlockedAt(wnx, py, ctx)) ? wnx : px;
       var wny = core.clamp(p.y, -lim, lim);
-      p.y = !fieldBlockedAt(p.x, wny, ctx) ? wny : py;
+      p.y = (stuck || !fieldBlockedAt(p.x, wny, ctx)) ? wny : py;
       return;
     }
     var rw = (ctx && ctx.roomW) || ROOM_W, rh = (ctx && ctx.roomH) || ROOM_H;
@@ -1931,14 +1954,14 @@
     ext = corridorExtra(ctx, 'W', py, cy);
     if (ext) { loX = Math.min(loX, ax + lo - ext); }
     var nx = core.clamp(p.x, loX, hiXe);
-    p.x = (inRoomRect(nx, py, ctx) || !fieldBlockedAt(nx, py, ctx)) ? nx : px;
+    p.x = (stuck || inRoomRect(nx, py, ctx) || !fieldBlockedAt(nx, py, ctx)) ? nx : px;
     var loY = ay + lo - R, hiYe = ay + hiY + R;
     ext = corridorExtra(ctx, 'S', p.x, cx);
     if (ext) { hiYe = Math.max(hiYe, ay + hiY + ext); }
     ext = corridorExtra(ctx, 'N', p.x, cx);
     if (ext) { loY = Math.min(loY, ay + lo - ext); }
     var ny = core.clamp(p.y, loY, hiYe);
-    p.y = (inRoomRect(p.x, ny, ctx) || !fieldBlockedAt(p.x, ny, ctx)) ? ny : py;
+    p.y = (stuck || inRoomRect(p.x, ny, ctx) || !fieldBlockedAt(p.x, ny, ctx)) ? ny : py;
   }
 
   /* 2026-09-08 — "몬스터가 단조로워 디아블로처럼 몰이 사냥이 안 된다"(사용자
@@ -4241,6 +4264,8 @@
     FIELD_ENEMY_CAP: FIELD_ENEMY_CAP,
     fieldOn: fieldOn, fieldRadiusUnits: fieldRadiusUnits,
     fieldBoundPlayer: boundPlayer, _corridorReach: corridorReach,
+    /** 자가진단 전용(§5.12) — town.js safePoint 가 이 이름을 찾으면 옛 로컬 좌표로 돌기 시작해서 이름을 갈랐다 */
+    _fieldBlockedAt: fieldBlockedAt,
     _corridorExtra: corridorExtra, _doorCorridorUnits: doorCorridorUnits,
     spawnFieldRoamers: spawnFieldEncounters,
     spawnFieldTreasure: spawnFieldTreasure,

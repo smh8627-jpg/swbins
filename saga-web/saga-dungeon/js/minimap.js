@@ -377,6 +377,14 @@
     /* path(길)는 이미 road 칸 색으로 충분해 점을 안 찍는다 — 안 그러면
        길이 온통 점으로 덮여 오히려 abstract해진다. */
   };
+  /** '#rrggbb' 에 0xRRGGBB 를 k 만큼 섞는다 */
+  function tintHex(hex, rgb, k) {
+    var n = parseInt(String(hex).slice(1), 16);
+    var r = ((n >> 16) & 255) * (1 - k) + ((rgb >> 16) & 255) * k;
+    var g = ((n >> 8) & 255) * (1 - k) + ((rgb >> 8) & 255) * k;
+    var b = (n & 255) * (1 - k) + (rgb & 255) * k;
+    return '#' + ((1 << 24) | (Math.round(r) << 16) | (Math.round(g) << 8) | Math.round(b)).toString(16).slice(1);
+  }
   var WORLD_VIEW_HALF = 3200;   // 화면 중심(플레이어) 기준 세계 좌표로 이만큼(±) 보여준다
 
   /** 코너(상시) 미니맵 지형 — 순수 계산(캔버스 없이, 자가진단이 값으로
@@ -488,12 +496,14 @@
     /* 소품 점 — 칸이 화면에서 너무 작아지면(축소를 많이 했을 때) 점이
        서로 뭉개져 오히려 지저분해지므로, 칸 하나가 8px는 넘을 때만 찍는다. */
     var drawProps = tilePx >= 8 && !!T.worldPropsAt;
-    var cx, cz, pr;
+    var cx, cz, pr, WMb = global.DG.worldMap;
     for (cz = cz0; cz <= cz1; cz++) {
       for (cx = cx0; cx <= cx1; cx++) {
         if (!T.isSeen(cx, cz)) { continue; }        // 안 밝힌 칸은 안개 그대로
         var kind = T.worldKindAt(cx, cz);
         var col = kind === 'town' ? '#5a4a30' : (KIND_COLOR[kind] || '#3a3a3a');
+        /* 고정 세계 지도(§5.12) — 지역 땅빛을 35% 섞어 지역 경계가 지도에서도 읽히게 */
+        if (WMb && kind !== 'town') { col = tintHex(col, WMb.regionAt(cx * CHUNK + CHUNK / 2, cz * CHUNK + CHUNK / 2).ground, 0.35); }
         var s = toScreen(cx * CHUNK, cz * CHUNK);
         bigCtx.fillStyle = col;
         bigCtx.fillRect(s.x, s.y, tilePx, tilePx);
@@ -510,6 +520,16 @@
       }
     }
 
+    /* 지금 선 지역 이름 — 디아블로 지도 머리의 지역명 자리 */
+    if (WMb) {
+      var rgn = WMb.regionAt(p.x, p.y);
+      bigCtx.font = '700 15px system-ui, sans-serif';
+      bigCtx.textBaseline = 'top';
+      bigCtx.fillStyle = 'rgba(0,0,0,0.55)';
+      bigCtx.fillRect(10, 10, Math.min(W - 20, 30 + (rgn.name.length + rgn.hanja.length + 2) * 15), 26);
+      bigCtx.fillStyle = '#f0d9a0';
+      bigCtx.fillText(rgn.emoji + ' ' + rgn.name + '(' + rgn.hanja + ')', 18, 15);
+    }
     /* 마을 위치는 늘 보인다(존재 자체는 이미 아는 정보 — 옛 오버월드 창이
        고정 배치를 늘 보여 주던 것과 같은 생각) — 화면 밖이면 건너뛴다. */
     var towns = T.overworld.list(), i;

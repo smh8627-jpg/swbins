@@ -573,8 +573,6 @@
       var cell = candidates[idx];
       var id = 'gen' + (idx + 1);
       var salt = 20000 + idx * 97;
-      var biome = macroBiome(cell.gx, cell.gz);
-      var name = genName(biome, usedNames, salt);
       /* 2026-09-07 — 격자 원점 그대로 두면 완전한 바둑판으로 보인다(위
          ANCHOR_DIST 주석 참고). 결정적 해시로 방향·거리를 뽑아 최대
          TOWN_JITTER만큼 흔든다 — 칸을 벗어나는 일은 없다(반경이 칸
@@ -585,6 +583,12 @@
         x: Math.round(cell.gx * ANCHOR_DIST + Math.cos(jitAng) * jitMag),
         y: Math.round(cell.gz * ANCHOR_DIST + Math.sin(jitAng) * jitMag)
       };
+      /* 고정 세계 지도(§5.12) — 마을 성격은 그 자리 지역에서 받는다(설산엔 산 마을,
+         개펄엔 늪 마을). world-map.js 가 없으면 옛 2×2 블록 규칙 */
+      var WMg = global.DG.worldMap;
+      var region = WMg ? WMg.regionAt(anchor.x, anchor.y) : null;
+      var biome = region ? region.town : macroBiome(cell.gx, cell.gz);
+      var name = genName(biome, usedNames, salt);
       var npcKeys = seededShuffle(GEN_NPC_POOL, salt + 3).slice(0, 3);
       /* 2026-09-07 — 사용자 실기기 제보("NPC들이 너무 붙어있다")로 100→150.
          NPC는 셋뿐이라(위 slice(0,3)) 이 방(BASE_W×BASE_H=560×380) 안에서
@@ -624,7 +628,8 @@
       var rc = BIOME_ROOM_COLOR[biome];
       TOWNS[id] = {
         id: id, name: name, dirFromHub: null,
-        theme: { name: name, biome: 'town:' + biome, floor: rc.floor, wall: rc.wall, tint: rc.tint, town: true },
+        theme: { name: name, biome: 'town:' + biome, floor: rc.floor, wall: rc.wall, tint: rc.tint, town: true,
+                 region: region ? region.key : null },
         hasGate: false,
         npcs: npcs, decor: decor, exits: []
       };
@@ -978,12 +983,40 @@
   }
   /** 들판(활성 마을이 없을 때)에서 지형·테마를 고를 기준 — 가장 가까운 마을 */
   function nearestTownId(x, y) {
+    /* 빠른 길(§5.12 세계 지도 굽기가 칸 23만 개를 묻는다) — 앵커 격자(ANCHOR_DIST)
+       ±2 칸 안에서 찾은 거리가 NEAR_EXACT 보다 가까우면 그게 전체 최솟값이다:
+       ±3 칸 밖 마을 발판까지는 적어도 3×6400 − 3200(칸 절반) − 600(흔들림) − 방 폭(≤1120)
+       = 14280 떨어져 있다. 같은 거리면 TOWN_ORDER 앞쪽(아래 느린 길과 같은 규칙) */
+    var idx = townGridIndex(), gx = Math.round(x / ANCHOR_DIST), gz = Math.round(y / ANCHOR_DIST);
+    var fb = null, fbd = Infinity, fbo = Infinity, ox, oz, L, j, dd, oi;
+    for (oz = -2; oz <= 2; oz++) {
+      for (ox = -2; ox <= 2; ox++) {
+        L = idx[(gx + ox) + ',' + (gz + oz)];
+        if (!L || !L.length) { continue; }
+        for (j = 0; j < L.length; j++) {
+          dd = footprintDist(L[j].id, x, y); oi = L[j].o;
+          if (dd < fbd || (dd === fbd && oi < fbo)) { fbd = dd; fb = L[j].id; fbo = oi; }
+        }
+      }
+    }
+    if (fb && fbd < NEAR_EXACT) { return fb; }
     var best = TOWN_ORDER[0], bd = Infinity, i, d;
     for (i = 0; i < TOWN_ORDER.length; i++) {
       d = footprintDist(TOWN_ORDER[i], x, y);
       if (d < bd) { bd = d; best = TOWN_ORDER[i]; }
     }
     return best;
+  }
+  var NEAR_EXACT = 14000, townGrid = null;
+  function townGridIndex() {
+    if (townGrid && townGrid._n === TOWN_ORDER.length) { return townGrid; }   // 마을이 늘면(부팅 중) 다시
+    townGrid = { _n: TOWN_ORDER.length };
+    for (var i = 0; i < TOWN_ORDER.length; i++) {
+      var a = anchorOf(TOWN_ORDER[i]);
+      var k = Math.round(a.x / ANCHOR_DIST) + ',' + Math.round(a.y / ANCHOR_DIST);
+      (townGrid[k] = townGrid[k] || []).push({ id: TOWN_ORDER[i], o: i });
+    }
+    return townGrid;
   }
 
   /**
@@ -997,6 +1030,9 @@
   function worldKindAt(cx, cz) {
     var F = global.DG.field3d;
     if (!F) { return null; }
+    /* 고정 세계 지도(§5.12) — 그림·충돌과 같은 표 하나 */
+    var WMk = global.DG.worldMap;
+    if (WMk) { return WMk.kindAt(cx, cz, ROOM_W, ROOM_H); }
     var wx = cx * F.CHUNK + F.CHUNK / 2, wy = cz * F.CHUNK + F.CHUNK / 2;
     var id = nearestTownId(wx, wy), a = anchorOf(id), cfg = cfgOf(id);
     var acx = Math.floor(a.x / F.CHUNK), acz = Math.floor(a.y / F.CHUNK);
@@ -1024,6 +1060,8 @@
   function worldPropsAt(cx, cz) {
     var F = global.DG.field3d;
     if (!F) { return []; }
+    var WMp = global.DG.worldMap;
+    if (WMp) { return WMp.pieces(cx, cz, ROOM_W, ROOM_H); }
     var wx = cx * F.CHUNK + F.CHUNK / 2, wy = cz * F.CHUNK + F.CHUNK / 2;
     var id = nearestTownId(wx, wy), a = anchorOf(id), cfg = cfgOf(id);
     var acx = Math.floor(a.x / F.CHUNK), acz = Math.floor(a.y / F.CHUNK);
@@ -1293,6 +1331,13 @@
     target = null;
     fx.length = 0;
     markSeen(player.x, player.y);           // 포그오브워 — 처음 서는 자리 둘레는 바로 밝힌다
+    /* 고정 세계 지도(§5.12) — 들어서는 지역은 조용히 기억만(배너는 걸어서 넘어갈 때),
+       세계 칸 표는 뒤에서 잠깐씩 나눠 미리 굽는다(진단·그림 없는 판은 안 굽는다) */
+    var WMe = global.DG.worldMap;
+    if (WMe) {
+      regionNow = WMe.regionAt(player.x, player.y).key; regionPend = null; regionPendT = 0;
+      if (!global.DG_NO_DRAW) { WMe.bakeInBackground(ROOM_W, ROOM_H); }
+    }
     saveWorldPos();
     core.emit('town:enter', null);
     core.emit('changed');
@@ -1389,6 +1434,25 @@
 
   /* ── 한 틱 ────────────────────────────────────────────── */
 
+  /* ── 지역 진입(§5.12) — 디아블로의 "○○ 에 들어섰다" ──────────────
+   * 경계가 굽어 있어 선을 따라 걸으면 들락날락할 수 있다 — 새 지역에 1.2초
+   * 머물러야 바뀐 것으로 친다(배너가 깜빡이지 않게). */
+  var regionNow = null, regionPend = null, regionPendT = 0, REGION_HOLD = 1.2;
+  function stepRegion(dt) {
+    var WM = global.DG.worldMap;
+    if (!WM || !player) { return; }
+    var rg = WM.regionAt(player.x, player.y);
+    if (regionNow === null) { regionNow = rg.key; return; }
+    if (rg.key === regionNow) { regionPend = null; regionPendT = 0; return; }
+    if (rg.key !== regionPend) { regionPend = rg.key; regionPendT = 0; }
+    regionPendT += dt;
+    if (regionPendT < REGION_HOLD) { return; }
+    regionNow = rg.key; regionPend = null; regionPendT = 0;
+    core.log(rg.emoji + ' ' + rg.name + '(' + rg.hanja + ') 에 들어섰다 — ' + rg.desc, 'info');
+    core.emit('toast', rg.emoji + ' ' + rg.name + '(' + rg.hanja + ') — ' + rg.desc);
+    core.emit('region:enter', rg.key);
+  }
+
   function update(dt) {
     if (!on || !player) { return; }
     dt = Math.min(dt, 0.05);
@@ -1449,6 +1513,7 @@
     var ctx = raw();
     D().fieldBoundPlayer(player, px0, py0, ctx);
     markSeen(player.x, player.y);           // 포그오브워(PLAN §28-8 Phase 2) — 실제로 선 자리 기준
+    stepRegion(dt);
 
     /* 들판 로머 — 던전과 같은 주기·상한(PLAN 10절 "필드 사냥"과 동일 규칙) */
     fieldSpawnCd -= dt;
@@ -1636,10 +1701,15 @@
     /** 역참(웨이포인트)의 "다른 마을로" 목록 — ui.js openWaypoint()가 읽는다 */
     visitedTownIds: visitedTownIds, travelToTown: travelToTown,
     nameOf: function (id) { return cfgOf(id).name; },
+    /** 자가진단(§5.12) — 마을 테마(biome·region) 읽기 전용 */
+    themeOf: function (id) { var t = cfgOf(id).theme; return { name: t.name, biome: t.biome, region: t.region }; },
     /** PLAN §28-8 Phase 2(자동지도) — minimap.js가 읽는다. worldKindAt·
      *  isSeen 은 순수(three 필요 없음), currentAnchor 는 raw()와 같은 값을
      *  raw() 없이(town 이 꺼져 있어도) 셀 수 있게 한다. */
     worldKindAt: worldKindAt, worldPropsAt: worldPropsAt, isSeen: isSeen,
+    /** 고정 세계 지도(§5.12) — 지금 선 지역 키(배너 기준, 머묾 1.2초 반영) */
+    regionKey: function () { return regionNow; },
+    _stepRegion: stepRegion,
     currentAnchor: function () { return anchorOf(CURRENT_TOWN ? CURRENT_TOWN : nearestTownId(player ? player.x : 0, player ? player.y : 0)); },
     /** 지역 진입 전 미리 로드(PLAN 39절, `dungeon3d.js`의 `prefetchTownDest()`가
      *  읽는다) — 그 마을 decor 에 쓰이는 건물 종류(house·well·inn 등)를
