@@ -931,7 +931,7 @@
       if (!dm) {
         var dtint = d.rare ? '#f0c040' : (d.mini ? '#a0305a' :
           (d.role === 'magic' ? '#6a4fc0' : d.ref.color));
-        dm = actorShell(Tc, d.ref.kind, dtint, d.boss, d.ref.name, d.role === 'tank' || d.mini);
+        dm = actorShell(Tc, d.ref.kind, dtint, d.boss, d.ref.name, d.role === 'tank' || d.mini, d.ref.model);   // §5-12 — 쓰러지는 로봇·망자도 제 몸
         actorGroup.add(dm);
         deadMeshes[d.uid] = dm;
       }
