@@ -8510,6 +8510,70 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
           ' · 점프 ' + hMid.toFixed(2) + 'm · 도약 4m·기력 −20 · 끄면 1');
     });
 
+    t('지형 설계 ⑰ 활공 — 뛰어오른 채 한 번 더 누르면 날개(초당 2.4m·기력 4·걸음 ×1.7), 벼랑 밖에선 높이 날고, 접으면 떨어져 내린다', function () {
+      var LF = DG.landform, RF = DG.relief3d, W = DG.world, sv = C.save;
+      if (W.mode !== 'keyboard') { return false; }
+      LF._resetForTest(); RF.reset();
+      var top = LF.peaks(0, 0).filter(function (p) { return p.name === '만년설 봉'; })[0];
+      var keep = { x: sv.player.pos.x, y: sv.player.pos.y }, lands = 0, r = {};
+      var onLand = function () { lands++; };
+      C.on('landform:land', onLand);
+      try {
+        sv.player.pos.x = top.x + 40; sv.player.pos.y = top.y + 40;
+        var early = LF.jump() && !LF.jump();                  // 0.12초 전엔 날개를 못 편다
+        LF.tick(0.2);
+        r.open = LF.jump() && LF.gliding();
+        /* 벼랑 끝에서 뛰어내린 셈 — 몸을 산 아래(땅이 수십 m 낮은 자리)로 옮기면 그만큼 높이 난다(절대 높이 그대로) */
+        var gHere = RF.heightAt(sv.player.pos.x, sv.player.pos.y), aHere = LF.airH();
+        sv.player.pos.y += 260;
+        var gNew = RF.heightAt(sv.player.pos.x, sv.player.pos.y);
+        r.rise = gHere - gNew > 5 && Math.abs((LF.airH() - aHere) - (gHere - gNew)) < 1e-6;
+        var a0 = LF.airH(), s0 = LF.stamina();
+        LF.tick(1);
+        r.sink = Math.abs((a0 - LF.airH()) - LF.GLIDE_SINK) < 1e-6 && Math.abs((s0 - LF.stamina()) - LF.GLIDE_DRAIN) < 1e-6;
+        r.mul = LF.moveMul(sv.player.pos.x, sv.player.pos.y, 1, 0, 0.1) === LF.GLIDE_MUL;
+        /* 접으면 초당 14m — 땅에 닿으면 내린다 */
+        r.fold = LF.jump();
+        var tt = 0;
+        while (LF.gliding() && tt < 30) { LF.tick(0.1); tt += 0.1; }
+        r.land = !LF.gliding() && lands === 1 && LF.airH() === 0;
+        /* 평지에서 펴면 곧 내린다 */
+        LF._resetForTest();
+        sv.player.pos.x = 0; sv.player.pos.y = 0;
+        LF.jump(); LF.tick(0.2); LF.jump();
+        var ft = 0;
+        while (LF.gliding() && ft < 5) { LF.tick(0.05); ft += 0.05; }
+        r.flat = ft < 1;
+      } finally {
+        sv.player.pos.x = keep.x; sv.player.pos.y = keep.y;
+        if (C.off) { C.off('landform:land', onLand); }
+        LF._resetForTest();
+      }
+      return early && r.open && r.sink && r.mul && r.rise && r.fold && r.land && r.flat &&
+        ('0.12초 전 못 폄 · 폄 → 1초에 ' + LF.GLIDE_SINK + 'm·기력 ' + LF.GLIDE_DRAIN + ' · 걸음 ×' + LF.GLIDE_MUL + ' · 벼랑 밖으로 나가면 그만큼 높이 · 접고 ' + tt.toFixed(1) + '초에 내림 · 평지 ' + ft.toFixed(2) + '초') ||
+        (function () { throw new Error(JSON.stringify(r) + ' early=' + early); })();
+    });
+
+    t('지형 설계 ⑰ 정상 순간이동 — 오른 정상만 지점이 되고(pk:), 누르면 정상으로 건너간다 · 안 오른 곳은 안 된다', function () {
+      var LF = DG.landform, sv = C.save;
+      LF._resetForTest();
+      var top = LF.peaks(0, 0).filter(function (p) { return p.name === '구름 봉'; })[0];
+      var keep = { x: sv.player.pos.x, y: sv.player.pos.y }, keepPk = JSON.stringify(sv.peaks || {}), r = {};
+      try {
+        sv.peaks = {};
+        r.no = !LF.teleport(top.key) && LF.waypoints().length === 0;
+        sv.peaks[top.key] = 1;
+        var wp = LF.waypoints();
+        r.list = wp.length === 1 && wp[0].key === 'pk:' + top.key;
+        r.go = LF.teleport(top.key) && Math.hypot(sv.player.pos.x - top.x, sv.player.pos.y - top.y) < 10;
+      } finally {
+        sv.player.pos.x = keep.x; sv.player.pos.y = keep.y; sv.peaks = JSON.parse(keepPk);
+        if (DG.world.walkTo) { DG.world.walkTo(keep.x, keep.y); }
+        LF._resetForTest();
+      }
+      return r.no && r.list && r.go && '안 오른 구름 봉 ✕ · 오르면 지점 pk:… · 누르면 정상 6m 앞';
+    });
+
     t('런타임 에러 없음', function () {
       return errors.length === 0 || ('에러 ' + errors.length + '건: ' + errors.join(' | ')) === '';
     });

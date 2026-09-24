@@ -2147,6 +2147,38 @@
   }
   var lastLead = null, swapFx = null;
 
+  /**
+   * 활공 날개(§5 ⑰ 다음) — 저장소에 CC0 날개 에셋이 없어 **코드로** 짓는다(SAGA-DESIGN §7 허용):
+   * 머리 위 천 두 장이 V 자로 벌어진 모양, 한 번 지어 두고 켜고 끈다. 판정에는 안 닿는다
+   */
+  var gliderMesh = null;
+  function gliderOf() {
+    if (gliderMesh) { return gliderMesh; }
+    var g = new T.BufferGeometry();
+    /* 가운데 막대(0,0,±0.3)에서 좌우 끝(±1.6)으로, 끝이 조금 올라가고 뒤로 처진다 */
+    var v = new Float32Array([
+      0, 0, 0.35, -1.6, 0.35, -0.25, 0, 0, -0.45,
+      0, 0, 0.35, 0, 0, -0.45, 1.6, 0.35, -0.25
+    ]);
+    g.setAttribute('position', new T.BufferAttribute(v, 3));
+    g.computeVertexNormals();
+    var m = new T.MeshLambertMaterial({ color: 0xe8dcc0, side: T.DoubleSide });
+    gliderMesh = new T.Mesh(g, m);
+    gliderMesh.visible = false;
+    actorGroup.add(gliderMesh);
+    return gliderMesh;
+  }
+  function syncGlider(meA, on, x, y, air, h) {
+    if (!on && !gliderMesh) { return; }
+    var gm = gliderOf();
+    gm.visible = !!on && air > 0.05;
+    if (!gm.visible) { return; }
+    var s = Math.max(1, h / 1.7);
+    gm.scale.set(s, s, s);
+    gm.position.set(x, groundY(x, y) + air + h * 1.12, y);
+    gm.rotation.y = meA.ang || 0;
+  }
+
   function syncActors(W, now) {
     var pos = core.save.player.pos;
 
@@ -2193,6 +2225,7 @@
     if (air > 0) { meA.animName = 'jump'; meA.animUntil = now + 120; }
     placeActor(meA, mx, my, h * farBoost(mx, my), walkBob + air, walking && !air, mot.phase, now);
     if (air > 0 && meA.mesh) { meA.node.position.y += air; }
+    syncGlider(meA, LFa && LFa.gliding && LFa.gliding(), mx, my, air, h);
 
     /* 교전 상대(`duelStage()` 로 세운 임시 배우) — `spawns` 에 없으니 여기서
        직접 먹인다. 코앞이라 `farBoost` 는 안 준다(늘 가까이서 마주 선다) */
@@ -2735,6 +2768,12 @@
        그쪽은 순수 함수로 남겨 둔다(자가진단이 값으로 붙들고 있다) */
     var camLift = groundY(aim.pos.x, aim.pos.z);
     var lookLift = groundY(aim.look.x, aim.look.z);
+    /* 활공(§5 ⑰ 다음) — 몸이 땅 위 수십 m 를 나는 동안은 카메라·시선도 몸 높이를 따라간다 */
+    var LFc = global.DG.landform;
+    if (LFc && LFc.gliding && LFc.gliding()) {
+      var bodyY = groundY(pos.x, pos.y) + LFc.airH();
+      camLift = Math.max(camLift, bodyY); lookLift = Math.max(lookLift, bodyY);
+    }
     var want = new T.Vector3(aim.pos.x, aim.pos.y + camLift, aim.pos.z);
     var look = new T.Vector3(aim.look.x, aim.look.y + lookLift, aim.look.z);
     /* 건물 가림(camOcclude) — 2.5D·3D 에서만(2D 는 머리 위라 안 가린다). 칸이 바뀔 때만 집을 다시 모으고,

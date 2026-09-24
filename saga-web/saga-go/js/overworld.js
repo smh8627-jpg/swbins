@@ -293,6 +293,9 @@
     if (!box) { return; }
     if (!BMo || !BMo.on()) { box.innerHTML = ''; return; }
     var pos = core.save.player.pos, list = BMo.waypoints(), html = '', i;
+    /* 오른 정상(landform.js, §5 ⑰)도 지점이다 — 정상으로 건너가 활공으로 내려온다 */
+    var LFw = global.DG.landform;
+    if (LFw && LFw.on() && LFw.waypoints) { list = list.concat(LFw.waypoints()); }
     var wl = W(), geo = wl && wl.mode !== 'keyboard';
     list.forEach(function (p) { p.d = Math.hypot(p.x - pos.x, p.y - pos.y); });
     list.sort(function (a, b) { return a.d - b.d; });
@@ -306,7 +309,8 @@
     for (i = 0; i < bs.length; i++) {
       (function (b) {
         b.addEventListener('click', function () {
-          if (BMo.teleport(b.getAttribute('data-way'))) { close(); }
+          var wk = b.getAttribute('data-way');
+          if (wk.indexOf('pk:') === 0 ? (LFw && LFw.teleport(wk.slice(3))) : BMo.teleport(wk)) { close(); }
         });
       })(bs[i]);
     }

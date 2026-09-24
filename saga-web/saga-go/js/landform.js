@@ -20,6 +20,9 @@
  *   오르기  능선 위 가파른 오르막(기울기 0.28 넘게)은 걸음이 절반, 기력이 준다. 다하면 못 오른다
  *   헤엄    강·호수에선 걸음 0.6, 기력이 준다(여울은 걸어 건넌다)
  *   점프    스페이스 / 점프 단추 — 1.3m 뛴다(화면 층). 오르는 중에 뛰면 기력 20 으로 4m 도약
+ *   활공    뛰어오른 채 한 번 더 누르면 천 날개를 편다 — 초당 2.4m 가라앉으며 걸음 ×1.7, 기력 초당 4.
+ *           기력이 다하면 초당 9m, 한 번 더 누르면 접고 떨어진다(초당 14m). 땅에 닿으면 끝(⑰ 다음)
+ *   순간이동 오른 정상은 전체 지도(M)의 순간이동 지점이 된다 — 정상으로 날아가 활공으로 내려온다
  *   기력    100 — 가만히·평지면 초당 25 찬다. 들판 전투 기력(⑨)과는 따로다(싸움 중엔 그쪽)
  */
 (function (global) {
@@ -254,7 +257,10 @@
   var CLIMB_MUL = 0.5, SWIM_MUL = 0.6, TIRED_SWIM = 0.3, SLIDE_MUL = 1.2;
   var CLIMB_DRAIN = 12, SWIM_DRAIN = 6, REGEN = 25;
   var JUMP_T = 0.55, JUMP_H = 1.3, LEAP = 4, LEAP_COST = 20;
-  var body = { sta: -1, state: 'walk', busy: false, climbT: 0, jumpT: -1, tired: false, ux: 0, uy: 0 };
+  /* 활공 — 125m 봉우리에서 기력 100 이면 25초(≈60m 내려옴) 날고, 그 뒤 초당 9m 로 떨어진다 */
+  var GLIDE_MUL = 1.7, GLIDE_SINK = 2.4, GLIDE_TIRED_SINK = 9, GLIDE_FALL = 14, GLIDE_DRAIN = 4, GLIDE_OPEN_T = 0.12;
+  function freshBody() { return { sta: -1, state: 'walk', busy: false, climbT: 0, jumpT: -1, tired: false, ux: 0, uy: 0, glide: null }; }
+  var body = freshBody();
 
   function sta() { if (body.sta < 0) { body.sta = STA_MAX(); } return body.sta; }
   function keyMode() { var W = global.DG.world; return !!(W && W.mode === 'keyboard'); }
@@ -269,6 +275,7 @@
     if (!on() || !keyMode()) { return 1; }
     sta();
     body.ux = ux; body.uy = uy;
+    if (body.glide) { body.state = 'glide'; return body.glide.fall ? 1 : GLIDE_MUL; }   // 날개를 편 동안은 강·비탈을 안 본다
     var mul = 1, air = body.jumpT >= 0;
     var rv = riverAt(x, y);
     if (rv && !rv.ford && !air) {
@@ -305,11 +312,27 @@
    * 오르막 쪽 4m 도약, 아니면 제자리에서 1.3m(화면 층 — 판정 좌표는 그대로). 되면 true
    */
   function jump() {
-    if (!on() || !keyMode() || body.jumpT >= 0) { return false; }
+    if (!on() || !keyMode()) { return false; }
     var W = global.DG.world;
     if (W && W.inputBlocked && W.inputBlocked()) { return false; }
     sta();
     var pos = core().save.player.pos;
+    /* 활공 중에 누르면 날개를 접고 떨어진다 */
+    if (body.glide) {
+      if (body.glide.fall) { return false; }
+      body.glide.fall = true;
+      core().emit('landform:glide', { open: false });
+      return true;
+    }
+    /* 뛰어오른 채(0.12초 뒤) 다시 누르면 날개를 편다 — 기력이 조금이라도 있어야 한다 */
+    if (body.jumpT >= 0) {
+      if (body.jumpT < GLIDE_OPEN_T || body.sta <= 0) { return false; }
+      body.glide = { alt: reliefH(pos.x, pos.y) + airH(), fall: false };
+      body.jumpT = -1;
+      body.state = 'glide';
+      core().emit('landform:glide', { open: true });
+      return true;
+    }
     if (body.climbT > 0 && (body.ux || body.uy)) {
       if (body.sta < LEAP_COST) { tell('😮‍💨 도약할 기력이 없다'); return false; }
       body.sta -= LEAP_COST;
@@ -323,6 +346,10 @@
 
   /** 지금 뛰어오른 높이(m) — `world3d` 가 내 몸에 얹는다 */
   function airH() {
+    if (body.glide) {
+      var gp = core().save.player.pos;
+      return Math.max(0, body.glide.alt - reliefH(gp.x, gp.y));
+    }
     if (body.jumpT < 0) { return 0; }
     var u = body.jumpT / JUMP_T;
     return 4 * JUMP_H * u * (1 - u);
@@ -334,6 +361,7 @@
     sta();
     if (body.jumpT >= 0) { body.jumpT += dt; if (body.jumpT >= JUMP_T) { body.jumpT = -1; } }
     if (body.climbT > 0) { body.climbT -= dt; }
+    if (body.glide) { stepGlide(dt); }
     if (!body.busy) {
       body.sta = Math.min(STA_MAX(), body.sta + REGEN * dt);
       if (body.sta >= STA_MAX() * 0.3) { body.tired = false; }
@@ -347,6 +375,45 @@
       if (list.length) { discoverPeak(list[0]); }
     }
     if (!global.DG_NO_DRAW) { paint(); }
+  }
+
+  /** 활공 한 걸음 — 가라앉고 기력을 쓰다가, 땅(화면 기복)에 닿으면 내린다. 강 위에 내리면 그대로 헤엄 */
+  function stepGlide(dt) {
+    var g = body.glide, pos = core().save.player.pos;
+    var sink = g.fall ? GLIDE_FALL : (body.sta > 0 ? GLIDE_SINK : GLIDE_TIRED_SINK);
+    g.alt -= sink * dt;
+    if (!g.fall) { body.sta = Math.max(0, body.sta - GLIDE_DRAIN * dt); body.busy = true; }
+    body.state = 'glide';
+    var ground = reliefH(pos.x, pos.y);
+    if (g.alt <= ground + 0.02) {
+      body.glide = null;
+      body.state = 'walk';
+      core().emit('landform:land', { x: pos.x, y: pos.y });
+    }
+  }
+
+  /** 순간이동 — 오른 정상으로(키보드 모드만, biome.teleport 와 같은 규칙). 되면 true */
+  function teleport(key) {
+    var W = global.DG.world;
+    if (!on() || !W || W.mode !== 'keyboard' || !peakFound(key)) { return false; }
+    build();
+    var p = null, i;
+    for (i = 0; i < PEAKS.length; i++) { if (PEAKS[i].key === key) { p = PEAKS[i]; } }
+    if (!p) { return false; }
+    var pos = core().save.player.pos;
+    pos.x = p.x; pos.y = p.y + 6;
+    body.glide = null; body.jumpT = -1;
+    if (W.walkTo) { W.walkTo(pos.x, pos.y); }
+    core().log('🌀 순간이동 — ' + p.name + ' 정상', 'move');
+    core().emit('region:teleport', { key: 'pk:' + key });
+    return true;
+  }
+
+  /** 순간이동 지점으로 쓸 오른 정상들 — { key:'pk:…', x, y, name } */
+  function waypoints() {
+    return peaks(0, 0).filter(function (p) { return peakFound(p.key); }).map(function (p) {
+      return { key: 'pk:' + p.key, x: p.x, y: p.y, name: '⛰️ ' + p.name };
+    });
   }
 
   /* ── 화면: 기력 고리·점프 단추 ────────────────────────────── */
@@ -383,7 +450,13 @@
     staEl.classList.toggle('low', body.sta < STA_MAX() * 0.25);
     if (km && !full) {
       staEl.style.setProperty('--p', Math.round(100 * body.sta / STA_MAX()));
-      staEl.querySelector('span').textContent = body.state === 'climb' ? '🧗' : (body.state === 'swim' ? '🏊' : '');
+      staEl.querySelector('span').textContent = body.state === 'climb' ? '🧗' : (body.state === 'swim' ? '🏊' : (body.glide ? '🪂' : ''));
+    }
+    /* 뛰어오른 동안·활공 중엔 단추가 제 다음 할 일을 말한다 */
+    var lab = body.glide ? (body.glide.fall ? '낙하' : '접기') : (body.jumpT >= GLIDE_OPEN_T ? '활공' : '점프');
+    if (jumpEl.getAttribute('data-l') !== lab) {
+      jumpEl.setAttribute('data-l', lab);
+      jumpEl.innerHTML = '<span>' + ({ 점프: '⤒', 활공: '🪂', 접기: '⤓', 낙하: '💨' })[lab] + '</span><em>' + lab + '</em>';
     }
     var touch = !!(('ontouchstart' in global) || (global.navigator && navigator.maxTouchPoints > 0));
     jumpEl.classList.toggle('show', km && touch && !document.body.classList.contains('fc-on'));
@@ -395,11 +468,13 @@
     CLIMB_G: CLIMB_G, CLIMB_MUL: CLIMB_MUL, SWIM_MUL: SWIM_MUL, LEAP: LEAP, LEAP_COST: LEAP_COST, JUMP_T: JUMP_T, JUMP_H: JUMP_H,
     on: on, line: line, riverAt: riverAt, ridgeAt: ridgeAt, kindAt: kindAt, liftAt: liftAt, peaks: peaks,
     peakFound: peakFound, discoverPeak: discoverPeak,
-    moveMul: moveMul, jump: jump, airH: airH, tick: tick,
+    moveMul: moveMul, jump: jump, airH: airH, tick: tick, teleport: teleport, waypoints: waypoints,
+    GLIDE_MUL: GLIDE_MUL, GLIDE_SINK: GLIDE_SINK, GLIDE_DRAIN: GLIDE_DRAIN, GLIDE_OPEN_T: GLIDE_OPEN_T,
+    gliding: function () { return !!body.glide; },
     stamina: function () { return sta(); }, state: function () { return body.state; },
     /** 진단 전용 — 몸 상태와 캐시를 비운다 */
     _resetForTest: function () {
-      body = { sta: -1, state: 'walk', busy: false, climbT: 0, jumpT: -1, tired: false, ux: 0, uy: 0 };
+      body = freshBody();
       kindCache = {}; kindCount = 0;
     }
   };
