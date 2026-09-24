@@ -64,6 +64,10 @@ namespace Saga.Story.Player
 
         private bool BuffActive => Time.time < _buffUntilTime;
 
+        /// <summary>PLAN.md 106-10 소환 — 지금 한 타의 공격력(소환 피해 = 이 값 × 8), 줄에 매달렸는지(매달리면 못 부른다).</summary>
+        public float AttackPower => CurrentAtk;
+        public bool OnRope => _onRope;
+
         /// <summary>side.js buffOn().atk와 같은 자리 — 기합이 켜져 있으면
         /// 연참·횡소·기탄 전부 이 값으로 굴린다. 2026-09-15 — 전직으로
         /// 얻은 grow.atk(StoryJobState.AtkBonus)를 기초값 위에 얹는다.

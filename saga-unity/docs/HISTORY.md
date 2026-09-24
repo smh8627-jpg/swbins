@@ -8974,3 +8974,13 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - **진단 함정 둘**: ① 필드가 좁아(약 44m) 잡졸 없는 16m 구간이 없다 — 동료가 곁 잡졸을 먼저 노려 "따라오기"·"선봉 타격" 이 흔들렸다 → 맵 밖 x=-200 에 임시 바닥·발판을 깔고 시험 후 치움(`Physics.SyncTransforms`). ② 피해 굴림 난수로 선봉 피해 줄이 판마다 달랐다 → 진단 시작에 `Random.InitState(20260824)`. 동료 진단 뒤엔 `PausedForTest` 로 멈춰 뒤 단계(잡졸 10·한 방 피해 전제)를 안 흔든다. 교대 시험의 서명은 횡소(기합은 버프, 기탄은 투사체가 뒤 단계를 흔듦).
 - 파일: 새 `SagaStory/World/StoryCompanion.cs`·`StoryCompanionSquad.cs`·`Editor/PlaytestStoryCompanions.cs`, 고침 `BuildTestStoryScene`(`BuildCompanions`)·`SetupNpcCharacterImports`(Archer)·`StoryHud`(곁 줄)·`StoryEnemy`(`Hp`)·`story_ko/en.json`(`party.beside_hud`)·`PlaytestStorySlice`·mixamo README, STORY 씬 재빌드(`Story_BossIntro.playable` 은 fileID 만).
 - 검증: 씬 재빌드 exit 0 · `PlaytestStorySlice` **3연속 OK**(동료 줄 "models 3/3 · follow 6.0→0.7m · hop y2.0 · vanguard 8.1dmg · mystic mp+12" 세 번 같음) · 번역 누락 0. 화면은 안 봤다 — 실기 확인 전(곁에 선 자리·겹침, 뛰어오르기가 어색하지 않은지, 궁수 화살 모양, 교대 불꽃, 동료 세기가 판수를 너무 줄이지 않는지).
+
+## 2026-09-24 — PLAN 106-10 둘째 단계: STORY 소환 "우레뿔 거수" (사용자 "다른 작업 이어해", Opus 5.5)
+
+- **고른 까닭**: 남은 후보 둘 중 지역 소품은 에셋 먼저, STORY 소환은 106-10 에 이미 "다음 단계"로 적혀 결정이 필요 없다.
+- **2.5D 로 고친 것**: DUNGEON 바위 거신은 땅에서 솟는데, 이 판 발판은 허공에 떠서 발판 밑으로 몸이 비친다 → 먹구름에서 번개와 함께 내려선다. 피해는 × 15 대신 × 8(잡졸 18·두목 216 판이라 × 15 면 두목이 한 방). 범위는 거리 대신 좌우 14m·위아래 6m.
+- **몸**: 이 판 두목 몸(Brute)과 겹치지 않게 Warrok(FOREST 무쇠도깨비와 같은 몸, 다른 판) — 공격 클립이 없어 Mixamo `Mutant Jump Attack To Idle` 을 `Warrok@Attack` 으로 받고 표에 Attack 을 더했다. Warrok 을 다시 구워 컨트롤러가 바뀌었다(FOREST 짐승 진단 다시 OK).
+- **게이지**: `StoryEnemy.TakeDamage` 한 곳에서 `StorySummonState.HitSource`(플레이어 +3 · 동료 +1 · 없음 0)를 읽는다 — 동료 근접은 잠깐 Companion 으로, 유격 화살은 `StoryBolt.FromCompanion`, 소환 내려찍기는 None.
+- **컷**: `StoryCutscenes` 를 컷 둘로 넓힘(지금 틀 감독 `_dir`·이름표 시각을 컷마다). 소환 컷은 없으면 onEnd 를 안 부른다(소환수가 혼자 5초 논다 — 두목 컷은 없으면 바로 onEnd).
+- 파일: 새 `SagaStory/Data/StorySummonState.cs`·`World/StorySummon.cs`·`Player/StorySummoner.cs`·`Editor/PlaytestStorySummon.cs`·`Timelines/Story_Summon.playable`, 고침 `StoryCutscenes`·`BuildStoryCinematics`·`BuildTestStoryScene`(`BuildSummoner`·"소환" 버튼)·`StoryEnemy`·`StoryCompanion`·`StoryBolt`·`StoryPlayerController`(`AttackPower`·`OnRope`)·`StoryHud`(게이지 줄)·`story_ko/en.json`(키 8)·`SetupNpcCharacterImports`(Warrok Attack)·`PlaytestStorySlice`(버튼 목록·진단 연결)·`HOW_TO_PLAYTEST`(V)·mixamo README, STORY 씬 재빌드.
+- 검증: 씬 재빌드 exit 0 · `PlaytestStorySlice` **3연속 OK**(새 줄 "summon OK — close cam z-6.8 y1.3 · slam 193×2 · model Warrok" 세 번 같음) · `PlaytestForestCreatures` OK · 번역 누락 0. 실기 확인 전(내려서는 번개·크기 6.5m 가 화면에 들어오는지·내려찍기 클립 박자가 3.2s 에 맞는지·게이지 차는 속도·소리 없음).

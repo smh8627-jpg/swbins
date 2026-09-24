@@ -93,6 +93,11 @@ namespace Saga.Story.UI
                 beside = " · " + string.Format(StoryLocalization.T("party.beside_hud", "곁: {0}"), string.Join("·", names));
             }
             label.text += $"\n🎭 {partyName}{beside} {cooldown}";
+
+            // PLAN.md 106-10 둘째 단계 — 소환 게이지(차면 "준비").
+            label.text += "\n" + (StorySummonState.Ready
+                ? StoryLocalization.T("summon.ready_hud", "⚡ 소환 준비 — [V]")
+                : string.Format(StoryLocalization.T("summon.gauge_hud", "⚡ 소환 {0:0}%"), StorySummonState.Gauge));
         }
     }
 }

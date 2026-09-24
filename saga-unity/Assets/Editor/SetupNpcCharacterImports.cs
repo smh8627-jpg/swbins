@@ -45,7 +45,7 @@ namespace Saga.EditorTools
             // `SetupForestCreatureModels` 가 이 프리팹 위에 굽는다. 포자괴물만 덤벼서 Attack(포효)이 있다.
             new Spec { Name = "Goblin", Idle = "Idle", Walk = "Walking", Run = "Running" },
             new Spec { Name = "Hulk", Idle = "Idle", Walk = "Walking", Run = "Running" },
-            new Spec { Name = "Warrok", Idle = "Idle", Walk = "Walking", Run = "Running" },
+            new Spec { Name = "Warrok", Idle = "Idle", Walk = "Walking", Run = "Running", Attack = "Attack" }, // Attack = STORY 소환 내려찍기(106-10)
             new Spec { Name = "Parasite", Idle = "Idle", Walk = "Walking", Run = "Running", Attack = "Attack" },
             new Spec { Name = "Nightshade", Idle = "Idle" },
             new Spec { Name = "Jolleen", Idle = "Idle", Walk = "Walking", Run = "Running" },

@@ -27,6 +27,8 @@ namespace Saga.Story.World
         /// <summary>false면 첫 적 하나만 맞히고 사라진다 — 웹판 arrow·volley(`side.js`
         /// castBody의 pierce:false). 5-2 1단계 직업 무예(`StorySkillData`)가 쓴다.</summary>
         public bool Pierce { get; private set; } = true;
+        /// <summary>PLAN.md 106-10 — 곁의 유격이 쏜 화살(소환 게이지 +1).</summary>
+        public bool FromCompanion;
 
         public void Configure(float dir, float atk, float mul, Animator shooterAnimator)
         {
@@ -73,7 +75,9 @@ namespace Saga.Story.World
 
                 _alreadyHit.Add(enemy);
                 var (dmg, crit) = StoryCombat.RollDamage(_atk, _mul);
+                if (FromCompanion) StorySummonState.HitSource = StorySummonState.Source.Companion;
                 enemy.TakeDamage(dmg, crit);
+                StorySummonState.HitSource = StorySummonState.Source.Player;
                 if (crit) StoryCombat.TriggerHitstop(this);
                 StoryCameraFollow.Instance?.Shake(
                     crit ? StoryCombat.CritShakeMag : StoryCombat.HitShakeMag,

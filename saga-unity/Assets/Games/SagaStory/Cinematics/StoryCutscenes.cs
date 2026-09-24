@@ -35,10 +35,20 @@ namespace Saga.Story.Cinematics
         public const float NameStartSec = WideSec + 0.3f;
         public const float NameEndSec = WideSec + CloseSec - 0.3f;
 
+        // PLAN.md 106-10 둘째 단계 — 소환 컷(`Story_Summon.playable`, 5.0s). 넓은 샷(플레이어 등 뒤 낮은 데서 내려서는 거수를
+        // 올려다봄) → 맞붙여 자른 거수 옆 낮은 샷(내려찍기를 따라 내려봄). 이름표는 0.5~2.4s.
+        public const float SummonWideSec = 2.6f;
+        public const float SummonCloseSec = 2.4f;
+        public const float SummonNameStartSec = 0.5f;
+        public const float SummonNameEndSec = 2.4f;
+
         [SerializeField] private CinemachineBrain brain;
         [SerializeField] private PlayableDirector bossIntro;
         [SerializeField] private CinemachineCamera wideCam;
         [SerializeField] private CinemachineCamera closeCam;
+        [SerializeField] private PlayableDirector summonCut;
+        [SerializeField] private CinemachineCamera summonWideCam;
+        [SerializeField] private CinemachineCamera summonCloseCam;
         [SerializeField] private Canvas overlayCanvas;
         [SerializeField] private RectTransform topBar;
         [SerializeField] private RectTransform bottomBar;
@@ -52,6 +62,9 @@ namespace Saga.Story.Cinematics
 
         public CinemachineBrain Brain => brain;
         public PlayableDirector Director => bossIntro;
+        public PlayableDirector SummonDirector => summonCut;
+        public bool PlayingSummon => _playing && _isSummon;
+        public CinemachineCamera SummonCameraOf(bool close) => close ? summonCloseCam : summonWideCam;
         public bool RoarFired => _roarFired;
         public int PlayCount { get; private set; }
         public string ShownName => nameTitle != null ? nameTitle.text : string.Empty;
@@ -64,17 +77,21 @@ namespace Saga.Story.Cinematics
         private float _elapsed;
         private bool _roarFired;
         private StoryEnemy _boss;
+        private PlayableDirector _dir;
+        private bool _isSummon;
+        private float _nameStart = NameStartSec, _nameEnd = NameEndSec;
         private float _bar;
         private readonly List<Canvas> _hiddenCanvases = new List<Canvas>();
 
         private void Awake()
         {
             Instance = this;
-            if (bossIntro != null)
+            foreach (var d in new[] { bossIntro, summonCut })
             {
-                bossIntro.playOnAwake = false;
-                bossIntro.extrapolationMode = DirectorWrapMode.None;
-                bossIntro.stopped += OnDirectorStopped;
+                if (d == null) continue;
+                d.playOnAwake = false;
+                d.extrapolationMode = DirectorWrapMode.None;
+                d.stopped += OnDirectorStopped;
             }
             ApplyBars();
             if (skipHint != null) skipHint.SetActive(false);
@@ -84,6 +101,7 @@ namespace Saga.Story.Cinematics
         private void OnDestroy()
         {
             if (bossIntro != null) bossIntro.stopped -= OnDirectorStopped;
+            if (summonCut != null) summonCut.stopped -= OnDirectorStopped;
             if (Instance == this) Instance = null;
         }
 
@@ -123,6 +141,49 @@ namespace Saga.Story.Cinematics
             if (nameSub != null) nameSub.text = sub ?? string.Empty;
 
             _boss = boss;
+            return Begin(bossIntro, false, NameStartSec, NameEndSec, onEnd);
+        }
+
+        /// <summary>PLAN.md 106-10 — 소환수를 부른 순간 `StorySummoner` 가 부른다. 카메라 두 자리를 소환수·플레이어에 맞춰 다시
+        /// 잡는다. 컷이 없으면 false(소환수는 혼자 논다 — onEnd 는 안 부른다). 넘기거나 끝나면 onEnd(내려찍기 마무리).</summary>
+        public bool PlaySummon(StorySummon summon, Vector3 playerPos, float facing, Action onEnd)
+        {
+            if (summon == null || summonCut == null || summonCut.playableAsset == null) return false;
+            if (_playing) Finish();
+
+            Vector3 sp = summon.transform.position;
+            float h = StorySummon.Height;
+            float dir = facing >= 0f ? 1f : -1f;
+            // 넓은 샷 — 플레이어 등 뒤 낮은 데서, 내려서는 거수를 올려다보며 고개를 든다(화면 앞 -Z 쪽).
+            var wide = summonWideCam != null ? summonWideCam.GetComponent<StoryCutDolly>() : null;
+            if (wide != null)
+            {
+                Vector3 focus = playerPos + Vector3.up * 1.3f;
+                Vector3 a = PullIn(focus, playerPos + new Vector3(-dir * 2.6f, 0.9f, -3.6f));
+                Vector3 b = PullIn(focus, playerPos + new Vector3(-dir * 1.8f, 0.6f, -2.8f));
+                wide.Set(a, b, sp + Vector3.up * (h * 0.9f), sp + Vector3.up * (h * 0.6f));
+            }
+            // 가까운 샷 — 거수 옆 앞쪽 낮은 데서 내려찍는 주먹을 따라 내려본다.
+            var close = summonCloseCam != null ? summonCloseCam.GetComponent<StoryCutDolly>() : null;
+            if (close != null)
+            {
+                Vector3 focus = sp + Vector3.up * (h * 0.4f);
+                Vector3 a = PullIn(focus, sp + new Vector3(dir * 6.5f, 1.4f, -7f));
+                Vector3 b = PullIn(focus, sp + new Vector3(dir * 5f, 0.9f, -5.5f));
+                close.Set(a, b, sp + Vector3.up * (h * 0.75f), sp + Vector3.up * (h * 0.2f));
+            }
+            if (nameTitle != null) nameTitle.text = Data.StoryLocalization.T("cut.summon_title", "우레뿔 거수");
+            if (nameSub != null) nameSub.text = Data.StoryLocalization.T("cut.summon_sub", "소환 — 먹구름이 뿔에 내려앉는다");
+            _boss = null;
+            return Begin(summonCut, true, SummonNameStartSec, SummonNameEndSec, onEnd);
+        }
+
+        private bool Begin(PlayableDirector d, bool isSummon, float nameStart, float nameEnd, Action onEnd)
+        {
+            _dir = d;
+            _isSummon = isSummon;
+            _nameStart = nameStart;
+            _nameEnd = nameEnd;
             _playing = true;
             _onEnd = onEnd;
             _elapsed = 0f;
@@ -130,8 +191,8 @@ namespace Saga.Story.Cinematics
             PlayCount++;
             HideHud();
             if (skipHint != null) skipHint.SetActive(true);
-            bossIntro.time = 0.0;
-            bossIntro.Play();
+            d.time = 0.0;
+            d.Play();
             return true;
         }
 
@@ -144,11 +205,12 @@ namespace Saga.Story.Cinematics
         {
             if (!_playing) return;
             _playing = false;
-            if (bossIntro != null && bossIntro.state == PlayState.Playing) bossIntro.Stop();
+            if (_dir != null && _dir.state == PlayState.Playing) _dir.Stop();
             if (nameGroup != null) nameGroup.alpha = 0f;
             if (skipHint != null) skipHint.SetActive(false);
             ShowHud();
             _boss = null;
+            _isSummon = false;
             var cb = _onEnd;
             _onEnd = null;
             cb?.Invoke();
@@ -169,15 +231,15 @@ namespace Saga.Story.Cinematics
             if (!_playing) return;
 
             _elapsed += dt;
-            double t = bossIntro.time;
-            if (!_roarFired && t >= RoarSec)
+            double t = _dir.time;
+            if (!_isSummon && !_roarFired && t >= RoarSec)
             {
                 _roarFired = true;
                 if (_boss != null) _boss.PlayRoar();
             }
             if (nameGroup != null)
             {
-                float a = Mathf.Clamp01(Mathf.Min((float)(t - NameStartSec), (float)(NameEndSec - t)) / NameFadeSec);
+                float a = Mathf.Clamp01(Mathf.Min((float)(t - _nameStart), (float)(_nameEnd - t)) / NameFadeSec);
                 nameGroup.alpha = a;
             }
             if (_elapsed > SkipGraceSec && SkipPressed())
@@ -185,15 +247,15 @@ namespace Saga.Story.Cinematics
                 Finish();
                 return;
             }
-            if (t >= bossIntro.duration) Finish();
+            if (t >= _dir.duration) Finish();
         }
 
         /// <summary>진단용 — 컷을 t 초로 옮겨 그 자리를 평가한다(실제 카메라는 다음 프레임 브레인이 옮긴다).</summary>
         public void Seek(double t)
         {
-            if (!_playing) return;
-            bossIntro.time = t;
-            bossIntro.Evaluate();
+            if (!_playing || _dir == null) return;
+            _dir.time = t;
+            _dir.Evaluate();
         }
 
         private static bool SkipPressed()

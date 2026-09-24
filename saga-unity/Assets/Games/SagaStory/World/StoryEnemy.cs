@@ -275,6 +275,7 @@ namespace Saga.Story.World
         public void TakeDamage(float amount, bool crit = false)
         {
             if (_dead || amount <= 0f) return;
+            StorySummonState.OnEnemyHit(); // PLAN.md 106-10 — 소환 게이지(플레이어 +3 · 동료 +1 · 소환 자체는 0).
             float applied = _isChampion && _shieldBroken ? amount * ShieldVulnerableMul : amount;
             _hp -= applied;
             StoryAudio.PlaySfx(hitClip);

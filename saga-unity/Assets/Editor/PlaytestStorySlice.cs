@@ -184,6 +184,7 @@ namespace Saga.EditorTools
                     if (!CheckLevelUpCut()) { Fail(); return; }
                     if (!PlaytestStoryBossIntro.Run()) { Fail(); return; } // PLAN.md 106-8 — 두목 곁에 가기 전에(여기서 한 번 틀어 두면 뒤 단계가 안 막힌다).
                     if (!PlaytestStoryCompanions.Run()) { Fail(); return; } // PLAN.md 106-10 — 교대 셋 곁에 세우기. 끝나면 동료를 멈춰 뒤 단계를 안 흔든다.
+                    if (!PlaytestStorySummon.Run()) { Fail(); return; } // PLAN.md 106-10 둘째 단계 — 소환(게이지·컷·내려찍기).
                     _enemyIndex = 0;
                     _phase = Phase.TalkNpc;
                     break;
@@ -1569,7 +1570,7 @@ namespace Saga.EditorTools
             string[] persistentNames =
             {
                 "ActionButton_점프", "ActionButton_횡소", "ActionButton_기탄", "ActionButton_기합",
-                "ActionButton_선봉", "ActionButton_유격", "ActionButton_호법", "ActionButton_무예", "SaveButton",
+                "ActionButton_선봉", "ActionButton_유격", "ActionButton_호법", "ActionButton_무예", "ActionButton_소환", "SaveButton",
                 "SkillSlot_0", "SkillSlot_1", "SkillSlot_2", "SkillSlot_3",
             };
             foreach (var name in persistentNames)

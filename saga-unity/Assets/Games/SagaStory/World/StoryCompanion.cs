@@ -221,12 +221,16 @@ namespace Saga.Story.World
                 // 화살 — 기탄(StoryBolt)의 관통 없는 판(좁고 긴 모양), 흙빛.
                 var go = new GameObject("CompanionArrow");
                 go.transform.position = transform.position + new Vector3(_facing * 0.5f, 1.3f, -LaneZ);
-                go.AddComponent<StoryBolt>().Configure(_facing, BaseAtk, Mul, null, false,
+                var arrow = go.AddComponent<StoryBolt>();
+                arrow.Configure(_facing, BaseAtk, Mul, null, false,
                     StoryCombat.BoltSpeed * 1.4f, StoryCombat.BoltLife, new Color(0.55f, 0.42f, 0.28f));
+                arrow.FromCompanion = true;
                 return;
             }
             var (dmg, crit) = StoryCombat.RollDamage(BaseAtk, Mul);
+            StorySummonState.HitSource = StorySummonState.Source.Companion; // 소환 게이지 +1(플레이어 +3 보다 적게).
             target.TakeDamage(dmg, crit);
+            StorySummonState.HitSource = StorySummonState.Source.Player;
         }
 
         private void StartHop(Vector3 to)

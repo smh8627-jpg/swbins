@@ -66,12 +66,37 @@ namespace Saga.EditorTools
             EditorUtility.SetDirty(tl);
             d.playableAsset = tl;
 
+            // PLAN.md 106-10 둘째 단계 — 소환 컷(자리는 부르는 순간 `StoryCutscenes.PlaySummon` 이 다시 잡는다).
+            var summonWide = CutCamera(root, "CutCam_StorySummonWide", 55f);
+            var summonClose = CutCamera(root, "CutCam_StorySummonClose", 45f);
+            var sNoise = summonClose.gameObject.AddComponent<CinemachineBasicMultiChannelPerlin>();
+            sNoise.NoiseProfile = AssetDatabase.LoadAssetAtPath<NoiseSettings>(NoisePath);
+            sNoise.AmplitudeGain = 1.4f;
+            var sDirGo = new GameObject("Cut_StorySummon");
+            sDirGo.transform.SetParent(root.transform, false);
+            var sd = sDirGo.AddComponent<PlayableDirector>();
+            sd.playOnAwake = false;
+            sd.extrapolationMode = DirectorWrapMode.None;
+            sd.timeUpdateMode = DirectorUpdateMode.GameTime;
+            var stl = FreshTimeline("Story_Summon");
+            var scam = stl.CreateTrack<CinemachineTrack>(null, "Camera");
+            Shot(sd, scam, "story_summon_wide", summonWide, 0f, StoryCutscenes.SummonWideSec, 0.6f, 0f);
+            Shot(sd, scam, "story_summon_close", summonClose, StoryCutscenes.SummonWideSec, StoryCutscenes.SummonCloseSec, 0f, 0.7f);
+            Dolly(sd, stl, summonWide, 0f, StoryCutscenes.SummonWideSec);
+            Dolly(sd, stl, summonClose, StoryCutscenes.SummonWideSec, StoryCutscenes.SummonCloseSec);
+            sd.SetGenericBinding(scam, brain);
+            EditorUtility.SetDirty(stl);
+            sd.playableAsset = stl;
+
             var (overlay, top, bottom, skip, nameGroup, nameTitle, nameSub) = BuildOverlay();
 
             SetField(cuts, "brain", brain);
             SetField(cuts, "bossIntro", d);
             SetField(cuts, "wideCam", wideCam);
             SetField(cuts, "closeCam", closeCam);
+            SetField(cuts, "summonCut", sd);
+            SetField(cuts, "summonWideCam", summonWide);
+            SetField(cuts, "summonCloseCam", summonClose);
             SetField(cuts, "overlayCanvas", overlay);
             SetField(cuts, "topBar", top);
             SetField(cuts, "bottomBar", bottom);
@@ -79,7 +104,7 @@ namespace Saga.EditorTools
             SetField(cuts, "nameGroup", nameGroup);
             SetField(cuts, "nameTitle", nameTitle);
             SetField(cuts, "nameSub", nameSub);
-            Debug.Log("[BuildStoryCinematics] 두목 등장 컷 1 · 가상 카메라 2 · Timeline 1");
+            Debug.Log("[BuildStoryCinematics] 두목 등장 컷 · 소환 컷 · 가상 카메라 4 · Timeline 2");
         }
 
         private static TimelineAsset FreshTimeline(string name)

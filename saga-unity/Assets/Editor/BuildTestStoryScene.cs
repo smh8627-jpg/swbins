@@ -58,6 +58,7 @@ namespace Saga.EditorTools
             BuildLabyrinthGate();
             var (playerGo, playerController) = BuildPlayer();
             BuildCompanions(playerGo.transform.position);
+            BuildSummoner(playerGo);
             var brain = BuildCamera();
             BuildPostProcessingVolume();
             BuildToneVolume();
@@ -377,6 +378,23 @@ namespace Saga.EditorTools
                 members[i] = c;
             }
             SetPrivateField(squad, "members", members);
+        }
+
+        /// <summary>PLAN.md 106-10 둘째 단계 — 소환 "우레뿔 거수" 몸(Warrok, 내려찍기 클립 Attack). 없으면 캡슐.
+        /// 내려찍기 클립은 README 레시피로 받아 두면 여기서 Warrok 을 다시 굽는다(Attack 트리거가 없을 때만).</summary>
+        private static void BuildSummoner(GameObject playerGo)
+        {
+            var summoner = playerGo.AddComponent<StorySummoner>();
+            string path = SetupNpcCharacterImports.PrefabPath("Warrok");
+            var ctrl = AssetDatabase.LoadAssetAtPath<UnityEditor.Animations.AnimatorController>("Assets/Animators/Warrok.controller");
+            bool hasAttack = ctrl != null && System.Array.Exists(ctrl.parameters, p => p.name == "Attack");
+            if (!hasAttack && System.IO.File.Exists("Assets/Art/CharactersRealistic/Warrok/Warrok@Attack.fbx"))
+            {
+                SetupNpcCharacterImports.SetupOne("Warrok");
+            }
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (prefab == null) Debug.LogWarning($"[BuildTestStoryScene] 소환수 몸 {path} 없음 — 캡슐로 선다");
+            SetPrivateField(summoner, "summonPrefab", prefab);
         }
 
         /// <summary>Maria(Humanoid, Animator 포함) → 실패 시 character-a →
@@ -813,6 +831,12 @@ namespace Saga.EditorTools
             BuildPartySwapButton(canvasGo.transform, new Vector2(-100f, 580f), "호법", new Color(0.55f, 0.35f, 0.65f, 0.55f), controller, 2, "action.party_guardian");
             BuildPartySwapButton(canvasGo.transform, new Vector2(-280f, 580f), "유격", new Color(0.35f, 0.55f, 0.6f, 0.55f), controller, 1, "action.party_skirmisher");
             BuildPartySwapButton(canvasGo.transform, new Vector2(-460f, 580f), "선봉", new Color(0.65f, 0.35f, 0.35f, 0.55f), controller, 0, "action.party_vanguard");
+            // PLAN.md 106-10 둘째 단계 — 교대 줄 왼쪽 끝에 "소환"(게이지가 차면 V 와 같다).
+            var summoner = controller.GetComponent<StorySummoner>();
+            if (summoner != null)
+            {
+                BuildActionButton(canvasGo.transform, new Vector2(-640f, 580f), "소환", new Color(0.35f, 0.45f, 0.85f, 0.6f), summoner.TriggerSummon, "action.summon");
+            }
 
             // PLAN.md 101-2 5-2 1단계(2026-09-23) — 직업 무예 칸 넷(y=780, 오른쪽부터 칸 0~3)
             // 과 무예 점수 패널을 여는 "무예" 버튼(y=980). 칸 글자는 찍은 무예에 따라
