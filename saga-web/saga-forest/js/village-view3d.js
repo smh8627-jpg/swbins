@@ -311,7 +311,7 @@
     /* 축제 하루(PLAN §5.6) — 새 GLB 없이 기존 키: 안내판=표지판, 달집=모닥불, 줄=통나무, 솥=우물, 등롱=등 */
     festboard: 'building:board', festfire: 'campfire', festrope: 'log', festpot: 'well', festlantern: 'lantern',
     /* 방문객 조각(§5.9) — 새 GLB 없이: 나침반 조각=작은 상자, 도깨비불=등(밤에 빛난다) */
-    visitcompass: 'building:mail', visitwisp: 'lantern',
+    visitcompass: 'building:mail', visitwisp: 'lantern', visitkid: 'bush', visitufo: 'building:mail',
     gridchest: 'building:mail', gridbottle: 'plant', gridnode: 'rock:moss', gridcamp: 'tent', gridfire: 'campfire',
     /* 다리(2026-09-09) — asset3d.js 에 진작 등록만 되어 있던 'bridge' 를
        처음 쓴다(village.js 의 새 BRIDGE_TY 크로싱) */
@@ -387,7 +387,7 @@
     stele: 1.3, fireflyplot: 0.9, spiritmark: 1.5, spiritdone: 0.5,
     oldpost: 0.9,
     festboard: 1.2, festfire: 0.5, festrope: 0.5, festpot: 1.0, festlantern: 1.6,
-    visitcompass: 0.5, visitwisp: 0.9,
+    visitcompass: 0.5, visitwisp: 0.9, visitkid: 0.9, visitufo: 0.45,
     gridchest: 0.6, gridbottle: 0.35, gridnode: 0.9, gridcamp: 1.8, gridfire: 0.5,
     deer: 1.1, fox: 0.55, wolf: 0.95,
     rabbit: 0.3, squirrel: 0.25, duck: 0.35, bird: 0.2,
@@ -1727,8 +1727,43 @@
       }
       if (!slot.group) { continue; }   // 아직 짓는 중
       slot.group.position.set((npc.x - px) * scale, 0, (npc.y - py) * scale);
+      if (npc.gesture) { visitorGesture(slot, npc, px, py, dt); }
       if (slot.mixer) { slot.mixer.update(dt); }
     }
+  }
+
+  /**
+   * 방문객 몸짓(§5.10) — 곁(2.2칸)에 오면 나를 돌아보고 4초마다 손짓(interaction 클립 한 번),
+   * 부탁을 다 들어준 날(gesture 'dance')은 제자리에서 깡충 뛰며 천천히 돈다. 꼬마는 작게.
+   */
+  function visitorGesture(slot, npc, px, py, dt) {
+    var V = global.DG.village, TL = V.TILE || 32, t = three();
+    var dx = px - npc.x, dy = py - npc.y, near = Math.hypot(dx, dy) < TL * 2.2;
+    slot.gT = (slot.gT || 0) + dt;
+    if (npc.kid) { slot.group.scale.setScalar(PLAYER_H() * 0.7); }
+    if (npc.gesture === 'dance') {
+      slot.group.position.y = Math.abs(Math.sin(slot.gT * 5.5)) * 0.35 * PLAYER_H();
+      slot.yaw = (slot.yaw || 0) + dt * 1.6;
+      slot.group.rotation.y = slot.yaw;
+      if (slot.actions) { playAction(slot, 'walk'); }
+      return;
+    }
+    if (!near) { slot.waveCd = 0.6; if (slot.waveT > 0) { slot.waveT -= dt; } else { playAction(slot, 'idle'); } return; }
+    slot.yaw = angleLerp(slot.yaw || 0, Math.atan2(dx, dy), turnLerpK(dt));
+    slot.group.rotation.y = slot.yaw;
+    slot.waveCd = (slot.waveCd === undefined ? 0.6 : slot.waveCd) - dt;
+    if (slot.waveT > 0) { slot.waveT -= dt; return; }
+    if (slot.waveCd > 0 || !slot.actions || !slot.clipMap) { playAction(slot, 'idle'); return; }
+    slot.waveCd = 4;
+    var name = slot.clipMap.interaction || slot.clipMap.attack, act = name && slot.actions[name];
+    if (!act) { return; }
+    if (slot.action && slot.action !== act) { slot.action.fadeOut(0.12); }
+    act.reset();
+    if (t && t.LoopOnce) { act.setLoop(t.LoopOnce, 1); act.clampWhenFinished = true; }
+    act.fadeIn(0.12).play();
+    slot.action = act;
+    var clip = act.getClip();
+    slot.waveT = clip && clip.duration ? clip.duration : 0.8;
   }
 
   /**

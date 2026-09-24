@@ -1582,14 +1582,24 @@
     if (p.x < -120 || p.x > W + 120 || p.y < -140 || p.y > H + 140) { return; }
     var k = ZOOM * p.s;
     shadow(p.x, p.y + 3 * k, 12 * k, 4.4 * k);
+    /* 방문객 몸짓(§5.10) — 곁에 서면 나를 본다, 부탁을 다 들어준 날은 깡충 춤 */
+    var raw0 = V.raw(), gNear = n.gesture && Math.hypot(raw0.player.x - n.x, raw0.player.y - n.y) < NPC_TALK_DIST * 1.6;
+    var hop = n.gesture === 'dance' ? Math.abs(Math.sin(now / 170)) * 7 * k : 0;
+    var face = gNear ? (raw0.player.x < n.x ? -1 : 1) : (n.gesture === 'dance' ? (Math.sin(now / 700) < 0 ? -1 : 1) : n.facing);
     /* 2026-09-10 — 이모지 대신 residents 와 같은 사람 스탬프(Kenney CC0,
        sprite.js 의 stamp())를 쓴다. HEROES 로스터를 안 물리려고 ref 를
        {id:'npc_'+kind} 만 준다 — humanIndexOf() 가 이 문자열을 해시해
        14종 중 하나를 고정으로 고른다(같은 NPC는 늘 같은 얼굴) */
     global.DG.sprite.stamp(ctx, {
-      kind: 'human', ref: { id: n.id }, x: p.x, y: p.y, s: 0.86 * k,
-      facing: n.facing, phase: 0, walking: false, t: now
+      kind: 'human', ref: { id: n.id }, x: p.x, y: p.y - hop, s: (n.kid ? 0.62 : 0.86) * k,
+      facing: face, phase: 0, walking: n.gesture === 'dance', t: now
     });
+    if (gNear && n.gesture === 'wave') {
+      ctx.font = Math.round(15 * k) + 'px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('👋', p.x + face * 14 * k, p.y - 44 * k + Math.sin(now / 120) * 3 * k);
+      ctx.textAlign = 'left';
+    }
 
     var raw = V.raw();
     var near = Math.hypot(raw.player.x - n.x, raw.player.y - n.y) < NPC_TALK_DIST;

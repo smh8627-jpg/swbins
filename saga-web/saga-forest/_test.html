@@ -4443,6 +4443,83 @@ window.DG_NO_TUNE = true;
       });
     });
 
+    /* ── 방문객 다음(§5.10) — 새 손님 둘·단골 눌러앉기·몸짓 ── */
+    function visWith2(key, fn) {
+      var s = V.state(), bak = JSON.stringify({ bond: s.visitBond, set: s.visitSettled, gift: s.visitGift });
+      try {
+        s.visitBond = {}; s.visitSettled = []; s.visitGift = null;
+        return visWith(key, fn);
+      } finally {
+        var b = JSON.parse(bak);
+        s.visitBond = b.bond; s.visitSettled = b.set; s.visitGift = b.gift;
+        if (s.visitBond === undefined) { delete s.visitBond; }
+        if (s.visitSettled === undefined) { delete s.visitSettled; }
+        if (s.visitGift === undefined) { delete s.visitGift; }
+      }
+    }
+
+    t('방문객 — 도깨비 대장: 덤불 속 꼬마 셋, 찾으면 광장에 와 서고 다 찾아 말 걸면 보상 · 탐사원은 부품 넷', function () {
+      var kids = visWith2('dokkaebi', function () {
+        var VI = DG.visitor;
+        V.buildProps();
+        var bush = V.raw().props.filter(function (p) { return p.kind === 'visitkid'; });
+        var n0 = VI.list().length;
+        VI.pick(bush[0]);
+        var n1 = VI.list().length, kid = VI.list().filter(function (x) { return x.kid; })[0];
+        var kt = VI.talk(kid);
+        bush.slice(1).forEach(function (p) { VI.pick(p); });
+        var g0 = C.save.player.gold, st0 = DG.home.state().stock.visit_dokkaebi || 0;
+        var done = VI.talk(V.raw().visitors[0]);
+        return bush.length === 3 && n0 === 1 && n1 === 2 && kid && V.walkable(kid.x, kid.y) && kt.kind === 'talk' &&
+          VI.list().length === 4 && C.save.player.gold === g0 + 900 && (DG.home.state().stock.visit_dokkaebi || 0) === st0 + 1 &&
+          done.kind === 'quest';
+      });
+      var ufo = visWith2('alien', function () {
+        V.buildProps();
+        return V.raw().props.filter(function (p) { return p.kind === 'visitufo'; }).length === 4;
+      });
+      return kids && ufo && '덤불 3 → 꼬마 광장으로 → 🪙 900 + 방망이 탁자 · 부품 4';
+    });
+
+    t('방문객 — 단골: 세 번째 부탁을 마치면 눌러앉기를 청하고, 다른 날에도 광장 곁에 서서 하루 한 번 선물', function () {
+      return visWith2('angler', function (s) {
+        var VI = DG.visitor, npc = V.raw().visitors[0], fish = VD.ITEMS.fish[0].key;
+        s.visitBond = { angler: 2 };
+        s.bag = {}; s.bag[fish] = 3;
+        VI.talk(npc);                                     // 부탁 완료 → 단골 셋
+        var ask = VI.talk(npc), yes = VI.talk(npc);
+        var settledNow = VI.settled().indexOf('angler') >= 0;
+        s.day = visDay('fox'); DG.visitor._reset();
+        var other = VI.list().filter(function (x) { return x.settled && x.visitor === 'angler'; })[0];
+        var g0 = C.save.player.gold, gift = VI.talk(other), g1 = C.save.player.gold, again = VI.talk(other);
+        return /눌러앉아도/.test(ask.text) && yes.kind === 'quest' && settledNow && other && V.walkable(other.x, other.y) &&
+          g1 === g0 + VI.GIFT.angler && again.kind === 'talk' && C.save.player.gold === g1 &&
+          VI.list()[0].visitor === 'fox' && ('단골 3 → 청함 → 눌러앉음 · 여우 날에도 곁에 · 🪙 ' + VI.GIFT.angler + ' 하루 한 번');
+      });
+    });
+
+    t('방문객 — 눌러앉는 자리 여덟은 다 걸을 수 있고, 서로·광장 손님 자리와 겹치지 않는다', function () {
+      var VI = DG.visitor, sp = VI.spot(), pts = [], bad = 0, i, j;
+      for (i = 0; i < VI.SETTLE_SPOTS.length; i++) { pts.push(VI.settleSpot(i)); }
+      for (i = 0; i < pts.length; i++) {
+        if (!V.walkable(pts[i].x, pts[i].y) || Math.hypot(pts[i].x - sp.x, pts[i].y - sp.y) < V.TILE * 2) { bad++; }
+        for (j = i + 1; j < pts.length; j++) { if (Math.hypot(pts[i].x - pts[j].x, pts[i].y - pts[j].y) < V.TILE * 1.5) { bad++; } }
+      }
+      return bad === 0 && ('자리 ' + pts.length + ' · 겹침 0');
+    });
+
+    t('방문객 — 몸짓 값: 부탁 전 손짓, 마친 뒤 춤 · 손님 표가 바뀌어도 옛 기록을 딴 손님에게 안 쓴다', function () {
+      return visWith2('sailor', function (s) {
+        var VI = DG.visitor;
+        var before = VI.list()[0].gesture;
+        s.visit = { day: s.day, got: { 0: true, 1: true }, done: true, offered: false, key: 'wisp' };
+        var fresh = VI.rec(), clean = fresh.key === 'sailor' && !fresh.done && Object.keys(fresh.got).length === 0;
+        fresh.done = true;
+        var after = VI.list()[0].gesture;
+        return before === 'wave' && after === 'dance' && clean && '손짓 → 춤 · 딴 손님 기록은 새로';
+      });
+    });
+
     t('숲 NPC — margin 이 좁아 지형지물이 사라져도 죽지 않고 배열을 준다', function () {
       C.setTune('forest.margin', 5);
       V.buildNpcs();

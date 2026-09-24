@@ -1897,3 +1897,12 @@ jsdom 355/356 ×3(남은 하나는 캔버스 그림 — 깃발 그림, jsdom 한
 - 함정 둘(진단이 잡음): ① 소품 세우기(`marks`)가 `rec()` 로 세이브에 `visit` 칸을 만들어 "살피기 세이브 불변"(정령 진단)이 깼다 → 읽기 전용 `peek()`. ② 조각이 정령의 터 둘레에 섰다 → 정령·격자 `blocked` 와 터 둘레를 피한다. 숲 고리 사물도 조각 칸을 비운다(`visitor.blocked`).
 - 3D `syncNpcs` 가 사라진 NPC 배우를 안 치웠다(방문객은 날마다 바뀐다) → 목록에 없는 배우는 장면에서 뺀다.
 - 진단 7 → jsdom 365/366 세 번 동일(실패 하나는 기존 toDataURL 한계). 진단이 실제 날짜의 손님에 따라 바깥 숲이 달라지므로(조각 날) 정령 진단을 조각 날에 돌려 확인했다. `sw.js` village-v0.98.0. **실기 확인 대기**.
+
+## 2026-09-24 (이어서) — 방문객 다음: 새 손님 둘·단골 눌러앉기·몸짓(PLAN §5.10)
+
+- 계기: "사가웹 이어해" — §8 Phase 6 "다음" 세 줄.
+- `visitor.js` — 👺도깨비 대장(조각 `visitkid` "흔들리는 덤불" 셋, `back:true` 면 찾은 꼬마가 `list()` 에 대장 곁 NPC 로) · 👽탐사원(`visitufo` 넷). 손님 표가 늘면 날짜 해시로 그날 손님이 바뀌므로 `rec()`·`peek()` 가 `s.visit.key` 를 대조한다.
+- 단골 — `reward()`·여우 사기에서 `bondUp`, 셋 이상이면 마친 뒤 `settleAsk`(두 번 말 걸기). 눌러앉은 손님은 `list()` 에 `settle_<key>`(제 손님 날은 빼고), `talkSettled` 하루 한 번 선물. `settleSpot` 은 걸을 수 있는 칸을 둘레 순서로 찾아 붙든다.
+- 몸짓 — `list()` 항목에 `gesture`('wave'·'dance'). 2D `drawNpc` 돌아봄·👋·뜀, 3D `visitorGesture`(돌아봄·interaction 클립 LoopOnce 4초마다·춤은 뜀+돎).
+- `raw()` 가 매번 `visitor.list()` 를 부르므로 buildNpcs 는 안 부른다.
+- 진단 4 → jsdom 369/370 세 번 동일(남은 1 은 toDataURL — jsdom 한계로 늘 실패하던 것). `sw.js` village-v0.99.0. **실기 확인 대기**.

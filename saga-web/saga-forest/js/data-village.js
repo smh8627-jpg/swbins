@@ -134,6 +134,9 @@
     /* 떠돌이 방문객(PLAN §5.9) — visitor.js 가 그날에만 바깥 숲에 흩는다 */
     visitcompass: { name: '나침반 조각', emoji: '🧭', gather: null, reset: 0, hint: '줍는다' },
     visitwisp:    { name: '도깨비불 조각', emoji: '👻', gather: null, reset: 0, hint: '담는다' },
+    /* §5.10 — 숨바꼭질 꼬마(흔들리는 덤불)·탐사선 부품 */
+    visitkid:     { name: '흔들리는 덤불', emoji: '🌿', gather: null, reset: 0, hint: '들춘다' },
+    visitufo:     { name: '탐사선 부품',   emoji: '🔩', gather: null, reset: 0, hint: '줍는다' },
     oldpost: { name: '옛 우체통', emoji: '📮', gather: null, reset: 0, hint: '소포를 넣는다' },
     /* 폐허 확장(PLAN 46-2절, 2026-09-11) — §45가 냈던 "과거" 목적지를
        아치 하나뿐이던 폐허(ruinSpot)에 실제로 채웠다. ruinTower는 진짜
@@ -605,7 +608,9 @@
     { key: 'visit_wisp',   name: '도깨비 등롱',     price: 2400, set: 'jange', form: 'lamp',    fest: 'visit' },
     { key: 'visit_angler', name: '명인의 어탁',     price: 2000, set: 'jange', form: 'scroll',  fest: 'visit' },
     { key: 'visit_bug',    name: '나비 표본 액자',  price: 2000, set: 'jange', form: 'screen',  fest: 'visit' },
-    { key: 'visit_future', name: '시간의 탁상시계', price: 3000, set: 'jange', form: 'vase',    fest: 'visit' }
+    { key: 'visit_future', name: '시간의 탁상시계', price: 3000, set: 'jange', form: 'vase',    fest: 'visit' },
+    { key: 'visit_dokkaebi', name: '도깨비 방망이 탁자', price: 2400, set: 'jange', form: 'table', fest: 'visit' },
+    { key: 'visit_alien',  name: '별 지도 액자',    price: 3000, set: 'jange', form: 'scroll',  fest: 'visit' }
   ];
 
   var FURN = {};

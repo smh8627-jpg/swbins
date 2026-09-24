@@ -10,6 +10,13 @@
  *   🎣 낚시 명인 청파    물고기 셋을 보여 주면(가방에서 가져간다) 명인의 어탁
  *   🦋 곤충 박사 나비    곤충 셋을 보여 주면 나비 표본 액자
  *   🤖 시간 여행자 K-7   광석 둘과 화석 하나로 "미래 부품"을 만든다 → 시간의 탁상시계
+ *   👺 도깨비 대장 두두   숨바꼭질하던 꼬마 셋이 바깥 숲 덤불에 숨었다 → 찾으면 광장으로 뛰어온다(§5.10)
+ *   👽 불시착 탐사원 루미 탐사선 부품 넷이 바깥 숲에 흩어졌다 → 별 지도 액자(§5.10)
+ *
+ * §5.10 단골·눌러앉기 — 같은 손님의 부탁을 세 번 들어주면(`s.visitBond[key]`) 그다음 부탁을
+ * 마친 날 "여기 눌러앉아도 되겠소?" 하고 묻는다(한 번 더 말 걸면 허락). 눌러앉은 손님은
+ * (`s.visitSettled`) 날마다 광장 둘레 제자리에 서고, 하루 한 번 작은 선물을 준다.
+ * 몸짓 — 곁에 서면 나를 보고 손짓(👋), 그날 부탁을 다 들어주면 제자리에서 춤(깡충)을 춘다.
  *
  * "맵이 큰 것에 비해 NPC 가 없다"(사용자) — 선원·도깨비불 날엔 바깥 고리 다섯 자리에 일이 생긴다.
  * 한 사람과의 일은 하루 한 번(그날이 지나면 새 손님). 보상 가구는 전방에서 안 판다(`fest:'visit'`).
@@ -36,8 +43,25 @@
     { key: 'bugdoc', name: '곤충 박사 나비', emoji: '🦋', type: 'bring', cat: 'bug', n: 3,
       line: '표본이 모자라요! 곤충 세 마리만 나눠 주실래요?', gold: 700, furn: 'visit_bug' },
     { key: 'traveler', name: '시간 여행자 K-7', emoji: '🤖', type: 'bring', cat: 'ore', n: 2, cat2: 'fossil', n2: 1,
-      line: '삐빗. 2387년에서 왔습니다. 광석 둘과 화석 하나가 있으면 귀환 부품을 만들 수 있습니다', gold: 900, furn: 'visit_future' }
+      line: '삐빗. 2387년에서 왔습니다. 광석 둘과 화석 하나가 있으면 귀환 부품을 만들 수 있습니다', gold: 900, furn: 'visit_future' },
+    { key: 'dokkaebi', name: '도깨비 대장 두두', emoji: '👺', type: 'collect', piece: 'visitkid', n: 3, back: true,
+      line: '우리 꼬마 셋이 숨바꼭질하다 안 돌아와 — 바깥 숲 흔들리는 덤불 속 어딘가야', gold: 900, furn: 'visit_dokkaebi' },
+    { key: 'alien', name: '불시착 탐사원 루미', emoji: '👽', type: 'collect', piece: 'visitufo', n: 4,
+      line: '삐— 탐사선 부품 넷이 숲에 흩어졌어요. 찾아 주면 별 지도를 드릴게요', gold: 1100, furn: 'visit_alien' }
   ];
+  /** 조각 이름(주웠을 때 한 줄) */
+  var PIECE_TXT = { visitcompass: '🧭 나침반 조각', visitwisp: '👻 도깨비불 조각', visitkid: '🧒 도깨비 꼬마를 찾았다', visitufo: '🔩 탐사선 부품' };
+  /** 눌러앉은 손님의 하루 선물(🪙) · 한마디 */
+  var SETTLE_N = 3;
+  var GIFT = { fox: 300, sailor: 250, wisp: 200, angler: 220, bugdoc: 220, traveler: 280, dokkaebi: 240, alien: 300 };
+  var SETTLE_LINE = {
+    fox: '이 마을 손님들 눈이 밝아 장사할 맛이 나오', sailor: '바다는 멀어도 여기 바람이 좋구려',
+    wisp: '히히, 밤마다 마을 등불 옆에서 놀아', angler: '오늘 물때가 좋네 — 같이 낚으러 가겠나',
+    bugdoc: '이 숲의 곤충 도감을 새로 쓰는 중이에요', traveler: '삐빗. 귀환 일정을 무기한 미뤘습니다',
+    dokkaebi: '꼬마들이 마을 아이들이랑 잘 논다', alien: '이 별, 정착지로 등록했어요'
+  };
+  /** 광장 둘레 눌러앉는 자리(가운데 기준 칸) — 걸을 수 없으면 둘레를 정해진 순서로 찾는다 */
+  var SETTLE_SPOTS = [[4, -3], [-5, 2], [4, 3], [-5, -2], [0, 5], [1, -6], [-2, 5], [6, 0]];
   var BY = {};
   VISITORS.forEach(function (v) { BY[v.key] = v; });
   var FOX_MUL = 1.5;
@@ -50,14 +74,18 @@
 
   /** 오늘 기록 — 날이 바뀌면 새로. 손을 쓸 때(talk·pick)만 세이브에 만든다 */
   function rec() {
-    var s = V().state();
-    if (!s.visit || s.visit.day !== s.day) { s.visit = { day: s.day, got: {}, done: false, offered: false }; }
+    var s = V().state(), k = whoOn(s.day).key;
+    /* 손님이 바뀌었으면(날 또는 손님 표가 늘어 그날 손님이 달라졌을 때) 새로 */
+    if (!s.visit || s.visit.day !== s.day || (s.visit.key && s.visit.key !== k)) {
+      s.visit = { day: s.day, key: k, got: {}, done: false, offered: false };
+    }
     return s.visit;
   }
   /** 읽기 전용 — 소품 세우기·화면·상태는 세이브를 안 건드린다("살피기 세이브 불변") */
   function peek() {
-    var s = V().state();
-    return s.visit && s.visit.day === s.day ? s.visit : { day: s.day, got: {}, done: false, offered: false };
+    var s = V().state(), k = whoOn(s.day).key;
+    return s.visit && s.visit.day === s.day && (!s.visit.key || s.visit.key === k) ? s.visit
+      : { day: s.day, key: k, got: {}, done: false, offered: false };
   }
 
   function centerTile() { var v = V(); return { tx: Math.floor(v.W / 2), ty: Math.floor(v.H / 2) }; }
@@ -69,12 +97,53 @@
     return { x: x, y: y };
   }
 
-  /** 오늘 손님 한 명(화면·focus 가 읽는다). 일을 다 끝냈어도 그날은 광장에 머문다 */
+  /* ── 단골·눌러앉기(§5.10) ── */
+  function bonds() { var s = V().state(); return s.visitBond || {}; }
+  function settled() { var s = V().state(); return Array.isArray(s.visitSettled) ? s.visitSettled : []; }
+  function isSettled(k) { return settled().indexOf(k) >= 0; }
+  var settleCache = {};
+  /** 눌러앉은 손님 i 번째 자리 — 걸을 수 있는 칸을 정해진 순서로 찾는다(무작위 없음) */
+  function settleSpot(i) {
+    var v = V(), c = centerTile(), T = v.TILE, base = SETTLE_SPOTS[i % SETTLE_SPOTS.length], r, dx, dy;
+    var ck = i + '|' + c.tx + ',' + c.ty;
+    if (settleCache[ck]) { return settleCache[ck]; }
+    for (r = 0; r <= 3; r++) {
+      for (dy = -r; dy <= r; dy++) {
+        for (dx = -r; dx <= r; dx++) {
+          if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) { continue; }
+          var x = (c.tx + base[0] + dx) * T + T * 0.5, y = (c.ty + base[1] + dy) * T + T * 0.5;
+          if (!v.walkable || v.walkable(x, y)) { return (settleCache[ck] = { x: x, y: y }); }
+        }
+      }
+    }
+    return (settleCache[ck] = { x: (c.tx + base[0]) * T + T * 0.5, y: (c.ty + base[1]) * T + T * 0.5 });
+  }
+  /** 찾아 준 도깨비 꼬마 — 대장 곁(광장 반대쪽)으로 뛰어와 선다 */
+  function kidList(d, r, p) {
+    if (!d.back) { return []; }
+    var T = V().TILE, out = [];
+    Object.keys(r.got).sort().forEach(function (gi, j) {
+      out.push({ id: 'visit_kid' + gi, kind: 'visit_kid', visitor: d.key, kid: true, x: p.x - T * (1.4 + j * 0.9), y: p.y + T * 1.3,
+        facing: 1, gesture: 'dance', def: { name: '도깨비 꼬마', emoji: '🧒', line: '헤헤, 들켰다!' } });
+    });
+    return out;
+  }
+
+  /** 오늘 손님 한 명 + 눌러앉은 손님들(화면·focus 가 읽는다). 일을 다 끝냈어도 그날은 광장에 머문다 */
   function list() {
     if (!V() || !V().state) { return []; }
-    var d = today(), p = spot();
-    return [{ id: 'visit_' + d.key, kind: 'visit_' + d.key, visitor: d.key, x: p.x, y: p.y, facing: 1,
-      def: { name: d.name, emoji: d.emoji, line: d.line } }];
+    var d = today(), p = spot(), r = peek();
+    var out = [{ id: 'visit_' + d.key, kind: 'visit_' + d.key, visitor: d.key, x: p.x, y: p.y, facing: 1,
+      gesture: r.done ? 'dance' : 'wave', def: { name: d.name, emoji: d.emoji, line: d.line } }];
+    out = out.concat(kidList(d, r, p));
+    settled().forEach(function (k, i) {
+      var sv = BY[k];
+      if (!sv || k === d.key) { return; }        // 제 손님 날엔 광장 한가운데(위)에 선다
+      var q = settleSpot(i);
+      out.push({ id: 'settle_' + k, kind: 'settle_' + k, visitor: k, settled: true, x: q.x, y: q.y, facing: 1,
+        gesture: 'wave', def: { name: sv.name, emoji: sv.emoji, line: SETTLE_LINE[k] || sv.line } });
+    });
+    return out;
   }
 
   /** 바깥 숲 조각 자리 — 그날·세이브 해시, 서로 12타일 넘게 떨어진다 */
@@ -125,7 +194,7 @@
     var n = Object.keys(r.got).length;
     V().buildProps();
     core.persist();
-    return { kind: 'gather', text: (d.key === 'wisp' ? '👻 도깨비불 조각' : '🧭 나침반 조각') + ' (' + n + '/' + d.n + ') — ' +
+    return { kind: 'gather', text: (PIECE_TXT[d.piece] || '조각') + ' (' + n + '/' + d.n + ') — ' +
       (n >= d.n ? '다 모았다! 광장의 ' + d.name + '에게 가져가자' : '아직 ' + (d.n - n) + '개 남았다') };
   }
 
@@ -140,8 +209,15 @@
     return left === 0;
   }
 
+  function bondUp(k) {
+    var s = V().state();
+    if (!s.visitBond || typeof s.visitBond !== 'object') { s.visitBond = {}; }
+    s.visitBond[k] = (s.visitBond[k] || 0) + 1;
+    return s.visitBond[k];
+  }
   function reward(d) {
     var H = global.DG.home;
+    bondUp(d.key);
     core.save.player.gold += d.gold;
     if (H && d.furn) { H.stockAdd(d.furn, 1); }
     core.gainFeat(1, '방문객');
@@ -160,10 +236,45 @@
     return all[Math.floor(core.hash2(day * 7 + 3, 577) * 2 * all.length) % all.length];
   }
 
+  /** 눌러앉은 손님 — 하루 한 번 선물, 그 뒤엔 한마디 */
+  function talkSettled(d) {
+    var s = V().state();
+    if (!s.visitGift || s.visitGift.day !== s.day) { s.visitGift = { day: s.day, got: {} }; }
+    if (s.visitGift.got[d.key]) { return { kind: 'talk', name: d.name, text: d.emoji + ' ' + (SETTLE_LINE[d.key] || d.line) }; }
+    s.visitGift.got[d.key] = true;
+    var g = GIFT[d.key] || 200;
+    core.save.player.gold += g;
+    core.gainExp(5);
+    core.log(d.emoji + ' ' + d.name + '의 선물 — 🪙 ' + core.fmt(g), 'good');
+    core.emit('changed'); core.persist();
+    return { kind: 'quest', name: d.name, text: '이웃 좋다는 게 이런 거지 — 🪙 ' + core.fmt(g) + ' 받아 두시오' };
+  }
+  /** 부탁을 마친 날, 단골이면 눌러앉기를 청한다(한 번 더 말 걸면 허락) */
+  function settleAsk(d, r) {
+    if (isSettled(d.key) || (bonds()[d.key] || 0) < SETTLE_N || settled().length >= SETTLE_SPOTS.length) { return null; }
+    if (!r.askSettle) {
+      r.askSettle = true;
+      return { kind: 'talk', name: d.name, text: d.emoji + ' 벌써 ' + bonds()[d.key] + '번째로구려… 이 마을에 눌러앉아도 되겠소? (한 번 더 말 걸면 허락)' };
+    }
+    var s = V().state();
+    if (!Array.isArray(s.visitSettled)) { s.visitSettled = []; }
+    s.visitSettled.push(d.key);
+    core.log('🏡 ' + d.emoji + ' ' + d.name + '이(가) 마을에 눌러앉았다', 'good');
+    core.emit('village:settle', { key: d.key });
+    core.emit('changed'); core.persist();
+    return { kind: 'quest', name: d.name, text: '고맙소! 내일부터는 광장 곁에서 지내겠소 — 들르면 작은 선물을 드리리다' };
+  }
+
   /** 말을 건다 — village.interact() 가 방문객이면 여기로 보낸다 */
   function talk(npc) {
+    if (npc && npc.kid) { return { kind: 'talk', name: '도깨비 꼬마', text: '🧒 헤헤, 들켰다! 다음엔 더 꼭꼭 숨을 거야' }; }
+    if (npc && npc.settled && BY[npc.visitor]) { return talkSettled(BY[npc.visitor]); }
     var d = BY[npc.visitor] || today(), r = rec(), f;
-    if (r.done) { return { kind: 'talk', name: d.name, text: d.emoji + ' 오늘 고마웠소 — 또 들르리다' }; }
+    if (r.done) {
+      var ask = settleAsk(d, r);
+      if (ask) { return ask; }
+      return { kind: 'talk', name: d.name, text: d.emoji + ' 오늘 고마웠소 — 또 들르리다' };
+    }
     if (d.type === 'shop') {
       var it = foxItem(V().state().day), price = Math.round(it.price * FOX_MUL);
       if (!r.offered) {
@@ -174,6 +285,7 @@
       core.save.player.gold -= price;
       global.DG.home.stockAdd(it.key, 1);
       r.done = true;
+      bondUp(d.key);
       core.log('🦊 ' + d.name + '에게서 「' + it.name + '」을 샀다 — 🪙 ' + core.fmt(price), 'good');
       core.emit('changed'); core.persist();
       return { kind: 'quest', name: d.name, text: '「' + it.name + '」 — 좋은 눈이시오. 집 창고에 넣어 두었소' };
@@ -208,7 +320,8 @@
 
   function status() {
     var d = today(), r = peek();
-    return { key: d.key, name: d.name, emoji: d.emoji, type: d.type, done: r.done, got: Object.keys(r.got).length, n: d.n || 0 };
+    return { key: d.key, name: d.name, emoji: d.emoji, type: d.type, done: r.done, got: Object.keys(r.got).length, n: d.n || 0,
+             bond: bonds()[d.key] || 0, settled: settled().slice() };
   }
 
   global.DG = global.DG || {};
@@ -217,6 +330,7 @@
     whoOn: whoOn, today: today, list: list, spot: spot, pieces: pieces, marks: marks, foxItem: foxItem, blocked: blocked,
     /* 세이브가 바뀌는 곳 */
     pick: pick, talk: talk, rec: rec, status: status,
-    _reset: function () { pieceCache = null; }
+    SETTLE_N: SETTLE_N, SETTLE_SPOTS: SETTLE_SPOTS, GIFT: GIFT, settleSpot: settleSpot, settled: settled, bonds: bonds,
+    _reset: function () { pieceCache = null; settleCache = {}; }
   };
 })(window);
