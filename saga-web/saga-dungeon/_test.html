@@ -6977,6 +6977,89 @@ window.requestAnimationFrame = function () { return 0; };
       return basic && heavy && '평타: 40° 맞음·80° 안 맞음 · 강공격: 80° 맞음 · 180° 늘 안 맞음 · 경직 0.25초';
     });
 
+    /* §5.19 2차 — 원뿔·끌어당기기·흩어짐. 셋 다 방 하나만 빌리고 돌려 놓는다 */
+    function mobRoom(fn) {
+      if (DN.active()) { DN.leave(); }
+      var keepF = C.save.dungeon && C.save.dungeon.fallen;
+      if (C.save.dungeon) { delete C.save.dungeon.fallen; }
+      var keepP = C.save.party.slice();
+      if (!C.save.party.length) { C.save.party = [DG.data.heroes[0].id]; }
+      DN.enter({ floor: 5, mode: 'easy' });
+      try {
+        var run = DN.raw(), p = run.player;
+        var at = function (deg, d) {
+          var e = DN._spawnEnemy(5, false, { spawned: true, x: p.x + Math.cos(deg * Math.PI / 180) * d, y: p.y + Math.sin(deg * Math.PI / 180) * d });
+          e.hp = 1e6; e.hpMax = 1e6; e.cd = 0; return e;
+        };
+        return fn(run, p, at);
+      } finally {
+        C.setTune({ 'dg.cone': null, 'dg.pull': null, 'dg.scatter': null });
+        if (DN.active()) { DN.leave(); }
+        if (keepF) { C.save.dungeon.fallen = keepF; }
+        C.save.party = keepP;
+      }
+    }
+
+    t('몰이 사냥 §5.19 2차 — 원뿔 무예(arc)는 앞 부채꼴만 멀리, 뒤·옆은 안 맞는다 · 끄면 옛 회전참 · 넷에 달림', function () {
+      var SKD = DG.skillData, sk = SKD.skillByKey('w_cleave');
+      var arcs = SKD.SKILLS.filter(function (x) { return x.arc; }).map(function (x) { return x.key; });
+      return mobRoom(function (run, p, at) {
+        /* 사거리 34 × r 2.8 ≈ 95 · 반각 0.8(≈46°) · 방향 = 가장 가까운 적(앞 50) */
+        var front = at(0, 50), diag = at(40, 70), side = at(90, 60), back = at(180, 70), far = at(0, 140);
+        run.room.enemies = [front, diag, side, back, far];
+        DN._applyShape(sk, 1);
+        var cone = front.hp < 1e6 && diag.hp < 1e6 && side.hp === 1e6 && back.hp === 1e6 && far.hp === 1e6;
+        C.setTune('dg.cone', 0);
+        var f2 = at(0, 30), b2 = at(180, 40);
+        run.room.enemies = [f2, b2];
+        DN._applyShape(sk, 1);
+        var off = f2.hp < 1e6 && b2.hp < 1e6;
+        var FX = DG.fx3d, pf = FX.plan({ t: 'fan', x: 0, y: 0, a: 0.5, r: 60, life: 0.26 });
+        return cone && off && arcs.length === 4 && pf && pf.kind === 'slash' && pf.ang === 0.5 &&
+          ('앞 0°·40° 맞음 · 90°·180°·사거리 밖 안 맞음 · 끄면 뒤도 맞음 · 원뿔 무예 ' + arcs.join(','));
+      });
+    });
+
+    t('몰이 사냥 §5.19 2차 — 끌어당기기(pull)는 반경 안 잡졸을 발밑으로 모은다 · 보스는 안 끌림 · 끄면 그대로', function () {
+      var SKD = DG.skillData, sk = SKD.skillByKey('w_quake');
+      var pulls = SKD.SKILLS.filter(function (x) { return x.pull; }).map(function (x) { return x.key; });
+      return mobRoom(function (run, p, at) {
+        var a = at(0, 185), b = at(120, 170), boss = at(240, 180);
+        boss.boss = true;
+        run.room.enemies = [a, b, boss];
+        DN._applyShape(sk, 1);
+        for (var i = 0; i < 10; i++) { DN._pullStep(a, 0.05); DN._pullStep(b, 0.05); DN._pullStep(boss, 0.05); }
+        var near = function (e) { return Math.hypot(e.x - p.x, e.y - p.y) <= e.r + DN.P_R + 5; };
+        var ok = near(a) && near(b) && !(boss.pullT > 0) && Math.round(Math.hypot(boss.x - p.x, boss.y - p.y)) === 180 && a.aggro && b.aggro;
+        C.setTune('dg.pull', 0);
+        var c = at(60, 185);
+        run.room.enemies = [c];
+        DN._applyShape(sk, 1);
+        var off = !(c.pullT > 0);
+        var pr = DG.fx3d.plan({ t: 'pull', x: 0, y: 0, r: 150, life: 0.35 }), pr2 = DG.fx3d.plan({ t: 'pull', x: 0, y: 0, r: 150, life: 0.1 });
+        return ok && off && pulls.length === 4 && pr.r > pr2.r &&
+          ('185·170 거리 잡졸 → 발밑 · 보스 180 그대로 · 끄면 안 끌림 · 원 오그라듦 ' + Math.round(pr.r) + '→' + Math.round(pr2.r) + ' · ' + pulls.join(','));
+      });
+    });
+
+    t('몰이 사냥 §5.19 2차 — 쓰러짐 흩어짐: 세게 칠수록 멀리·같은 쪽이라도 제각각 · 끄면 곧게', function () {
+      return mobRoom(function (run, p, at) {
+        var a = at(0, 40), b = at(10, 60), c = at(5, 50);
+        [a, b, c].forEach(function (e) { e.hp = 1; });
+        run.room.enemies = [a, b, c];
+        DN._strike(a, 1, 60); DN._strike(b, 1, 0);
+        var angA = Math.atan2(a.dieDy, a.dieDx), angB = Math.atan2(b.dieDy, b.dieDx);
+        var strong = a.hp <= 0 && b.hp <= 0 && a.dieF > b.dieF && a.dieF > 1.3;
+        var spread = Math.abs(angA - 0) > 0.005 || Math.abs(angB - 10 * Math.PI / 180) > 0.005;
+        C.setTune('dg.scatter', 0);
+        DN._strike(c, 1, 60);
+        var straight = c.dieF === 1 && Math.abs(Math.atan2(c.dieDy, c.dieDx) - 5 * Math.PI / 180) < 0.01;
+        return strong && spread && straight &&
+          ('밀침 60 → 힘 ' + a.dieF.toFixed(2) + ' · 밀침 0 → ' + b.dieF.toFixed(2) + ' · 흔들림 ' +
+            (angA * 180 / Math.PI).toFixed(1) + '°/' + (angB * 180 / Math.PI).toFixed(1) + '° · 끄면 곧게');
+      });
+    });
+
     t('런타임 에러 없음', function () {
       return errors.length === 0 || ('에러 ' + errors.length + '건: ' + errors.join(' | ')) === '';
     });

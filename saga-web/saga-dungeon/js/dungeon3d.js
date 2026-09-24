@@ -2847,13 +2847,15 @@
         if (e._dieT0 === undefined) { e._dieT0 = nowT; }
         var DIE = e.dieBig ? 1.0 : 0.7, du = (nowT - e._dieT0) / DIE;
         if (du > 1) { continue; }
-        var fly = (e.dieBig ? 10 : 28) * (1 - (1 - du) * (1 - du));
+        /* §5.19 2차 흩어짐 — dieF(세게 맞을수록 멀리·높이)·dieSpin(공중에서 빙글) 은 판정 층 dieScatter() 가 남긴다 */
+        var dF = e.dieF || 1;
+        var fly = (e.dieBig ? 10 : 28) * dF * (1 - (1 - du) * (1 - du));
         var dxw = e.x + e.dieDx * fly, dyw = e.y + e.dieDy * fly;
         var da3 = actorOf('e' + i + ':' + (e.ref && e.ref.id), 'foe', e);
         da3.node.rotation.order = 'YXZ';
-        da3.node.rotation.y = Math.atan2(-e.dieDx, -e.dieDy);
+        da3.node.rotation.y = Math.atan2(-e.dieDx, -e.dieDy) + (e.dieSpin || 0) * Math.min(1, du * 1.6) * 4;
         da3.node.rotation.x = -Math.min(1, du * 1.8) * 1.35;
-        da3.node.position.set(dxw, groundYAt(dxw, dyw) + Math.sin(Math.min(1, du * 1.6) * Math.PI) * (e.dieBig ? 3 : 10) -
+        da3.node.position.set(dxw, groundYAt(dxw, dyw) + Math.sin(Math.min(1, du * 1.6) * Math.PI) * (e.dieBig ? 3 : 10) * Math.min(1.6, dF) -
           (du > 0.72 ? (du - 0.72) / 0.28 * 8 : 0), dyw);
         if (AS3) { AS3.step(da3.node.userData.mixerNode, { t: nowT, walking: false, anim: 'death' }); }
         continue;

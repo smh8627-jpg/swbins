@@ -61,7 +61,7 @@
   /** fx 가 태어날 때의 수명. 2D 층이 쓰던 그 값이다(같은 속도로 사그라져야 한다) */
   var FULL = {
     hit: 0.6, elem: 0.6, get: 1.1, slash: 0.16,
-    pop: 0.45, burst: 0.5, whirl: 0.3, ring: 0.55, trail: 0.22
+    pop: 0.45, burst: 0.5, whirl: 0.3, ring: 0.55, trail: 0.22, fan: 0.26, pull: 0.35
   };
 
   /** 흔들림 상한. 51절이 "Screen Shake 는 과하지 않게" 라고 못박았다 */
@@ -163,6 +163,20 @@
         kind: 'ring', hex: hexOf(f.color, 0x96dcff), alpha: a * 0.8, k: k,
         r: (f.r || 60) * (1.15 - a * 0.4),
         thick: 0.09, lift: 6, glow: true, spin: true
+      };
+    }
+    if (f.t === 'fan') {
+      /* §5.19 2차 원뿔 무예 — 부채꼴을 긋는 큰 획. slash 판을 크게 돌려 쓴다(새 지오메트리 없음) */
+      return {
+        kind: 'slash', hex: hexOf(f.color, 0xc8ecff), alpha: a * 0.9, k: k,
+        r: (f.r || 50) * (0.75 + k * 0.45), ang: f.a || 0, glow: true
+      };
+    }
+    if (f.t === 'pull') {
+      /* §5.19 2차 끌어당기기 — ring 과 반대로 **바깥에서 발밑으로 오그라든다** */
+      return {
+        kind: 'ring', hex: hexOf(f.color, 0xb48cff), alpha: 0.35 + 0.65 * a, k: k,
+        r: Math.max(8, (f.r || 150) * (1 - k)), thick: 0.08, lift: 5, glow: true
       };
     }
     if (f.t === 'zone') {

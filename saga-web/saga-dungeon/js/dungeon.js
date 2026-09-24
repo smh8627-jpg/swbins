@@ -71,6 +71,12 @@
   var HEAVY_SIDE = 0.75;
   function STAGGER() { return core.tuned('dg.stagger', 0.25); }                      // 맞으면 적 공격이 이만큼 밀린다(초)
   function FIELD_CAP() { return Math.max(1, Math.round(core.tuned('dg.fieldCap', 18))); }
+  /* §5.19 2차 — 원뿔 무예(swing 에 `arc`)·끌어당기기(nova·curse 에 `pull`)·쓰러짐 흩어짐. 셋 다 손잡이, 0 이면 옛 동작 */
+  function CONE_ON() { return core.tuned('dg.cone', 1) ? true : false; }             // 0 이면 arc 무예도 옛 회전참(둘레 전부)
+  function PULL_ON() { return core.tuned('dg.pull', 1) ? true : false; }
+  var PULL_SEC = 0.3;                   // 끌려오는 시간(초)
+  var PULL_SPD = 620;                   // 끌려오는 빠르기(단위/초) — 0.3초면 반경 150 을 다 당긴다
+  function SCATTER() { return core.tuned('dg.scatter', 1); }                         // 쓰러짐 흩어짐 세기(0 = 1차의 곧은 날림)
   var MP_MAX = 100;                     // 기력 최대치
   var MP_REGEN = 7;                     // 기력 자연 회복 (초당)
   var MP_ON_KILL = 9;                   // 적을 잡으면 기력 회복
@@ -2826,6 +2832,7 @@
         if (en.hp <= 0) { continue; }
         en.phase += dt * 7;
         if (en.hurt > 0) { en.hurt -= dt; }
+        if (en.pullT > 0) { pullStep(en, dt, ctx); }   // §5.19 2차 끌려오는 중
         var ed = dist(en, p);
         var el = en.elite ? eliteOf(en.elite) : null;
         if (el && el.regen && en.hp < en.hpMax) {
@@ -3170,6 +3177,7 @@
       if (en.hp <= 0) { continue; }
       en.phase += dt * 7;
       if (en.hurt > 0) { en.hurt -= dt; }
+      if (en.pullT > 0) { pullStep(en, dt); }        // §5.19 2차 끌려오는 중
       var ed = dist(en, p);
       var el = en.elite ? eliteOf(en.elite) : null;
       if (el && el.regen && en.hp < en.hpMax) {      // 되살아나는 — 피가 아문다
@@ -3691,7 +3699,7 @@
       hurtPlayer(Math.max(1, Math.round(dmg * elS.thorn)));
       if (!run) { return; }
     }
-    if (e.hp <= 0) { kill(e, kind, dmg); }
+    if (e.hp <= 0) { e.dieKb = push; e.dieOver = dmg / Math.max(1, e.hpMax); kill(e, kind, dmg); }
   }
 
   /**
@@ -3738,6 +3746,7 @@
     if (run.player) {
       var kdx = e.x - run.player.x, kdy = e.y - run.player.y, kdl = Math.sqrt(kdx * kdx + kdy * kdy) || 1;
       e.dieDx = kdx / kdl; e.dieDy = kdy / kdl; e.dieBig = !!(e.boss || e.elite);
+      dieScatter(e);
     }
     dstate().kills = (dstate().kills || 0) + 1;
     /* 처치는 한 대 맞은 것보다 더 묵직하게 — §5.8① 3단(잡졸/정예/크리)의
@@ -3892,6 +3901,94 @@
       while (da < -Math.PI) { da += Math.PI * 2; }
       if (Math.abs(da) > half) { continue; }
       strike(e, mul, kb);
+    }
+  }
+
+  /**
+   * §5.19 2차 쓰러짐 흩어짐 — 떼가 한꺼번에 쓰러질 때 모두 같은 결로 곧게 날지 않고 부채처럼 흩어진다.
+   * 방향을 ±0.45 라디안 흔들고(쓰러진 자리의 해시 — 난수 0), 세게 맞을수록(밀침·넘친 피해) 멀리 날고 빙글 돈다.
+   * 그림 층(dungeon3d)만 읽는다 — 판정은 이미 끝났다
+   */
+  function dieScatter(e) {
+    var s = SCATTER();
+    e.dieF = 1; e.dieSpin = 0;
+    if (!s) { return; }
+    var qx = Math.round(e.x * 3), qy = Math.round(e.y * 3);
+    var h = core.hash2(qx, qy), h2 = core.hash2(qy + 7, qx + 11);
+    var j = (h - 0.5) * 0.9 * s, cj = Math.cos(j), sj = Math.sin(j);
+    var dx = e.dieDx * cj - e.dieDy * sj, dy = e.dieDx * sj + e.dieDy * cj;
+    e.dieDx = dx; e.dieDy = dy;
+    var kb = e.dieKb || 0, over = Math.min(2, e.dieOver || 0);
+    var f = core.clamp(0.7 + kb / 40 + over * 0.35 + h2 * 0.3, 0.7, 2.4);
+    e.dieF = 1 + (f - 1) * s;
+    e.dieSpin = (h2 - 0.5) * 2 * Math.min(1.5, kb / 30) * s;
+  }
+
+  /** §5.19 2차 — 적 e 가 나(p)에서 a0 쪽 반각 half 부채꼴 안에 드나. 몸이 겹친 적은 늘 든다(발밑을 헛치지 않게) */
+  function inArc(p, e, a0, half) {
+    if (dist(p, e) <= (e.r || 12) + P_R) { return true; }
+    var da = Math.atan2(e.y - p.y, e.x - p.x) - a0;
+    while (da > Math.PI) { da -= Math.PI * 2; }
+    while (da < -Math.PI) { da += Math.PI * 2; }
+    return Math.abs(da) <= half;
+  }
+
+  /** 원뿔 무예의 방향 — 반경 1.2배 안의 가장 가까운 적, 없으면 마지막 걸음 방향 */
+  function coneAim(R) {
+    var p = run.player, best = null, bd = R * 1.2, i, es = run.room.enemies;
+    for (i = 0; i < es.length; i++) {
+      if (es[i].hp <= 0) { continue; }
+      var d0 = dist(p, es[i]);
+      if (d0 < bd) { bd = d0; best = es[i]; }
+    }
+    if (best) { return Math.atan2(best.y - p.y, best.x - p.x); }
+    return Math.atan2(p.dirY || 0, p.dirX || p.facing || 1);
+  }
+
+  /** 원뿔 궤적 — 부채꼴을 세 획(fx 'fan')으로 긋는다. 판정은 안 쓴다 */
+  function pushFanFx(p, a0, half, R, el) {
+    for (var s = -1; s <= 1; s++) {
+      var ang = a0 + s * half * 0.6;
+      fx.push({ t: 'fan', x: p.x + Math.cos(ang) * R * 0.5, y: p.y + Math.sin(ang) * R * 0.5, a: ang,
+        r: R * 0.55, life: 0.26, color: el ? elemColorOf(el) : null });
+    }
+  }
+
+  /**
+   * §5.19 2차 끌어당기기 — 반경 R 안의 적을 PULL_SEC 동안 내 발밑으로 끌어온다(`pullStep` 이 옮긴다).
+   * 보스는 안 끌린다. 끌린 적은 깬다(어그로). 난수 0 — 떼를 모아 한 번에 쓸어버리는 몰이의 앞 절반
+   */
+  function pullIn(R, el) {
+    if (!run || !run.room || !PULL_ON()) { return 0; }
+    var p = run.player, es = run.room.enemies, n = 0, i;
+    for (i = 0; i < es.length; i++) {
+      var e = es[i];
+      if (e.hp <= 0 || e.boss) { continue; }
+      var d0 = dist(p, e);
+      if (d0 > R + e.r || d0 <= e.r + P_R + 6) { continue; }
+      e.pullT = PULL_SEC;
+      wakeEnemy(e);
+      n++;
+    }
+    fx.push({ t: 'pull', x: p.x, y: p.y, r: R, life: 0.35, color: el ? elemColorOf(el) : null });
+    return n;
+  }
+
+  /** 끌려오는 중인 적 한 걸음. 들판 로머는 넉백과 같은 요령(축을 나눠 방 안쪽만 막는다) */
+  function pullStep(en, dt, ctx) {
+    if (!(en.pullT > 0) || !run || !run.player) { return; }
+    en.pullT -= dt;
+    var p = run.player, dx = p.x - en.x, dy = p.y - en.y, d = Math.sqrt(dx * dx + dy * dy) || 1;
+    var stop = en.r + P_R + 4;
+    if (d <= stop) { en.pullT = 0; return; }
+    var mv = Math.min(d - stop, PULL_SPD * dt), nx = en.x + dx / d * mv, ny = en.y + dy / d * mv;
+    if (en.field) {
+      var c = ctx || run;
+      if (!inRoomRect(nx, en.y, c)) { en.x = nx; }
+      if (!inRoomRect(en.x, ny, c)) { en.y = ny; }
+    } else {
+      en.x = core.clamp(nx, WALL + en.r, ROOM_W - WALL - en.r);
+      en.y = core.clamp(ny, WALL + en.r, ROOM_H - WALL - en.r);
     }
   }
 
@@ -4275,19 +4372,29 @@
     if (sk.shape === 'swing') {
       /* §5.1 무예 축 — 검세 확장(swingRangePct) */
       var radius = reachOf() * (sk.r || 2.0) * (1 + boonVal('swingRangePct') / 100);
-      fx.push({ t: 'whirl', x: p.x, y: p.y, r: radius, life: 0.3,
-        el: sk.el || null, color: sk.el ? elemColorOf(sk.el) : null });
-      for (j = 0; j < room.enemies.length; j++) {
-        var we = room.enemies[j];
+      /* §5.19 2차 원뿔 — `arc`(반각, 라디안)가 있으면 둘레가 아니라 **앞 부채꼴**을 멀리 쓴다.
+         방향은 부채꼴 안에 드는 가장 가까운 적 쪽(없으면 마지막 걸음 방향) — 떼를 향해 긋는 한 획 */
+      var arc = sk.arc && CONE_ON() ? sk.arc : 0, a0 = 0;
+      if (arc) {
+        a0 = coneAim(radius);
+        pushFanFx(p, a0, arc, radius, sk.el);
+      } else {
+        fx.push({ t: 'whirl', x: p.x, y: p.y, r: radius, life: 0.3,
+          el: sk.el || null, color: sk.el ? elemColorOf(sk.el) : null });
+      }
+      var wlist = room.enemies.slice();
+      for (j = 0; j < wlist.length && run; j++) {
+        var we = wlist[j];
         if (we.hp <= 0) { continue; }
-        if (dist(p, we) <= radius + we.r) {
-          strike(we, v * skillMul(), sk.kb === undefined ? 20 : sk.kb, sk.el || 'phys');
-        }
+        if (dist(p, we) > radius + we.r) { continue; }
+        if (arc && !inArc(p, we, a0, arc)) { continue; }
+        strike(we, v * skillMul(), sk.kb === undefined ? 20 : sk.kb, sk.el || 'phys');
       }
 
     } else if (sk.shape === 'nova') {
       /* §5.1 무예 축 — 이중/삼중 파동(novaExtraRing): 링이 한두 번 더 터진다 */
       var nr = (sk.r || 130), novaTimes = 1 + boonVal('novaExtraRing');
+      if (sk.pull) { pullIn(sk.pull, sk.el); }   // §5.19 2차 — 먼저 발밑으로 끌어 모은다
       for (var nt = 0; nt < novaTimes; nt++) {
         fx.push({ t: 'ring', x: p.x, y: p.y, life: 0.55,
           el: sk.el || null, color: sk.el ? elemColorOf(sk.el) : null });
@@ -4341,6 +4448,7 @@
     } else if (sk.shape === 'curse') {
       /* §5.1 무예 축 — 저주 지속(curseDurPct) */
       var cr = sk.r || 130, curseSec = (sk.sec || 5) * (1 + boonVal('curseDurPct') / 100);
+      if (sk.pull) { pullIn(sk.pull, null); }    // §5.19 2차 — 끌어 모아 묶는다(느려짐이 무리를 붙잡아 둔다)
       for (j = 0; j < room.enemies.length; j++) {
         var ce = room.enemies[j];
         if (ce.hp <= 0 || dist(p, ce) > cr + ce.r) { continue; }
@@ -4684,7 +4792,7 @@
     hardcore: hardcore, setHardcore: setHardcore, fallen: fallen,
     elemDmgOf: elemDmgOf, elemResOf: elemResOf,
     /** 자가진단용 — 한 대만 때려 본다 (저항이 결마다 다르게 깎는지) */
-    _strike: strike, _addPacks: addPacks, _cleave: cleave,
+    _strike: strike, _addPacks: addPacks, _cleave: cleave, _applyShape: applyShapeSkill, _pullStep: pullStep,
     /** 자가진단용 — 한 대 맞아 본다 (갑주의 원소 저항이 실제로 깎는지) */
     _hurt: hurtPlayer,
     /** 자가진단용 — 적 하나를 만들어만 본다 */

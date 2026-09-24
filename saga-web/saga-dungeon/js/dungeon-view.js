@@ -1946,6 +1946,18 @@
       ctx.lineWidth = 2.5;
       ctx.stroke();
       ctx.restore();
+    } else if (f.t === 'fan') {
+      /* §5.19 2차 원뿔 무예 — slash 와 같은 호를 크게 */
+      p = proj(m, f.x, f.y);
+      ctx.save();
+      ctx.translate(p.x, p.y - 10);
+      ctx.rotate((f.a || 0) * 0.5);
+      ctx.beginPath();
+      ctx.arc(0, 0, (f.r || 50) * 0.5 * Math.max(0.8, m.s), -0.8, 0.8);
+      ctx.strokeStyle = 'rgba(200,236,255,' + (f.life / 0.26 * 0.9) + ')';
+      ctx.lineWidth = 3.5;
+      ctx.stroke();
+      ctx.restore();
     } else if (f.t === 'pop') {
       ctx.beginPath();
       isoEllipse(ctx, m, f.x, f.y, (0.45 - f.life) * (f.boss ? 88 : 44));
@@ -1971,6 +1983,13 @@
       isoEllipse(ctx, m, f.x, f.y, f.r * (1.15 - f.life / 0.3 * 0.4));
       ctx.strokeStyle = 'rgba(150,220,255,' + (f.life / 0.3 * 0.8) + ')';
       ctx.lineWidth = 3;
+      ctx.stroke();
+    } else if (f.t === 'pull') {
+      /* §5.19 2차 끌어당기기 — 바깥에서 발밑으로 오그라드는 원 */
+      ctx.beginPath();
+      isoEllipse(ctx, m, f.x, f.y, Math.max(8, (f.r || 150) * (f.life / 0.35)));
+      ctx.strokeStyle = 'rgba(180,140,255,' + (0.35 + 0.65 * f.life / 0.35) + ')';
+      ctx.lineWidth = 2.5;
       ctx.stroke();
     } else if (f.t === 'zone') {
       /* 예고 원(§5.18) — 제 크기에 서서 터질 때가 다가올수록 진해진다(불바닥은 고르게) */

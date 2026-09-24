@@ -1954,9 +1954,10 @@
     if (sk.shape === 'passive') { return '+' + Math.round(v * 10) / 10 + '%'; }
     if (sk.shape === 'buff') { return '+' + Math.round(v) + '% · ' + (sk.sec || 6) + '초'; }
     if (sk.shape === 'heal') { return '체력 ' + Math.round(v) + '%'; }
-    if (sk.shape === 'curse') { return '받는 피해 +' + Math.round(v) + '%'; }
+    if (sk.shape === 'curse') { return '받는 피해 +' + Math.round(v) + '%' + (sk.pull ? ' · 끌어당김' : ''); }
     if (sk.shape === 'summon') { return Math.round(v) + '기 · ' + (sk.sec || 12) + '초'; }
-    return '위력 ' + Math.round(v * 100) + '%';
+    /* §5.19 2차 — 원뿔(arc)·끌어당김(pull)은 같은 모양 안의 변주라 수치 줄에 꼬리표로 */
+    return '위력 ' + Math.round(v * 100) + '%' + (sk.arc ? ' · 앞 부채꼴' : '') + (sk.pull ? ' · 끌어당김' : '');
   }
 
   /* ── 행상(行商) — 원작의 상인과 도박 ─────────────────────
