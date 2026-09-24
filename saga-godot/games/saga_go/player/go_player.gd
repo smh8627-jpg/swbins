@@ -100,6 +100,7 @@ var _pose_pitch := 0.0
 var _consuming := false
 var _dodge_t := 0.0
 var _dodge_dir := Vector3.FORWARD
+var _dodge_speed := DODGE_SPEED # 106장 ㉔ 돌진 스킬이 잠깐 바꾼다
 var _last_move_dir := Vector3.ZERO
 var _action_t := 0.0
 var _action_move := 1.0
@@ -170,8 +171,8 @@ func _tick_ground(delta: float, move_dir: Vector3) -> void:
 		return
 	if _dodge_t > 0.0:
 		_dodge_t -= delta
-		velocity.x = _dodge_dir.x * DODGE_SPEED
-		velocity.z = _dodge_dir.z * DODGE_SPEED
+		velocity.x = _dodge_dir.x * _dodge_speed
+		velocity.z = _dodge_dir.z * _dodge_speed
 		velocity.y = -1.0 if is_on_floor() else velocity.y - GRAVITY * delta
 		move_and_slide()
 		return
@@ -456,10 +457,33 @@ func start_dodge() -> bool:
 		return false
 	_spend(DODGE_COST)
 	_dodge_t = DODGE_SEC
+	_dodge_speed = DODGE_SPEED
 	_dodge_dir = _last_move_dir if _movement_input().length() > 0.05 else _facing()
 	_face(_dodge_dir, 1.0)
 	play_action("dodge", DODGE_SEC, 1.0)
 	return true
+
+## 106장 ㉔ 고유 스킬 돌진(주인공 불꽃 돌진) — 대시와 같은 틀(무적), 스태미나는 안 쓴다. 땅에서만.
+func skill_dash(dir: Vector3, sec: float, speed: float) -> bool:
+	if mode != Mode.GROUND:
+		return false
+	dir.y = 0.0
+	if dir.length() < 0.01:
+		return false
+	_dodge_dir = dir.normalized()
+	_dodge_t = sec
+	_dodge_speed = speed
+	_face(_dodge_dir, 1.0)
+	return true
+
+## 106장 ㉔ 고유 스킬 솟구침(도적 두목 회오리 도약) — 위로 vy 로 띄운다. 그 뒤는 보통 공중(활공·낙하 공격).
+func launch_up(vy: float) -> void:
+	if mode == Mode.CLIMB or mode == Mode.SWIM:
+		return
+	_dodge_t = 0.0
+	_coyote = 0.0
+	_set_mode(Mode.AIR)
+	velocity.y = vy
 
 func can_plunge() -> bool:
 	return not _plunge and (mode == Mode.AIR or mode == Mode.GLIDE) and _clearance() >= PLUNGE_MIN_CLEARANCE

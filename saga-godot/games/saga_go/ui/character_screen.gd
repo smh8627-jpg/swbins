@@ -14,6 +14,7 @@ const Elements := preload("res://games/saga_go/combat/elements.gd")
 const Characters := preload("res://saga_core/data/characters.gd")
 const Weapons := preload("res://games/saga_go/data/weapons.gd")
 const Artifacts := preload("res://games/saga_go/data/artifacts.gd")
+const Kits := preload("res://games/saga_go/data/kits.gd")
 
 var is_open := false
 var selected := "self"
@@ -308,7 +309,13 @@ func _refresh() -> void:
 		var tb: Button = _talent_buttons[kind]
 		var t_lv := PartyState.talent_level(id, kind)
 		var bonus := PartyState.talent_effective(id, kind) - t_lv
-		var head := "%s  Lv.%d%s  ×%.2f" % [Growth.TALENT_NAMES[kind], t_lv, " (+%d)" % bonus if bonus > 0 else "", PartyState.talent_mul(id, kind)]
+		## 106장 ㉔ — 스킬·폭발은 그 인물 고유 이름(없으면 원소 기본 이름), 설명은 마우스를 올리면.
+		var t_name: String = Growth.TALENT_NAMES[kind]
+		if kind != "normal":
+			var which := "skill" if kind == "skill" else "burst"
+			t_name += " 「%s」" % Kits.name_of(id, which, Elements.element_of(id))
+			tb.tooltip_text = Kits.text_of(id, which)
+		var head := "%s  Lv.%d%s  ×%.2f" % [t_name, t_lv, " (+%d)" % bonus if bonus > 0 else "", PartyState.talent_mul(id, kind)]
 		var t_cost := Growth.talent_cost(id, t_lv)
 		if t_cost.is_empty():
 			tb.text = head + "  |  끝"

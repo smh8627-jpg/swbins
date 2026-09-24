@@ -236,10 +236,10 @@ func _physics_process(_delta: float) -> void:
 			_check("kits", healed and hit == want and e_now > 0.0 and is_equal_approx(e_off, e_now * 0.6),
 				"healed=%s hit=%d/%d energy now=%.1f off=%.1f" % [healed, hit, want, e_now, e_off])
 			_next()
-		16: # ⑱ 폭발이 남기는 효과 — 화 폭발 뒤 불 고리가 계속 친다
+		16: # ⑱ 폭발이 남기는 효과 — 화 폭발 뒤 불 고리가 계속 친다(주인공은 고유 폭발이라 화 기본 인물로)
 			if _frame == 1:
-				PartyState.members.assign([_hero_of("thunder")])
-				_fc.set("active", 0) # 나 = 화
+				PartyState.members.assign([_hero_of("fire")])
+				_fc.set("active", 1) # 화 기본
 				_fc.set("energy", 100.0)
 				_target = _plain_enemies(1)[0]
 				(_target as Node3D).global_position = _p.global_position + Vector3(0.0, 0.0, -1.6)
@@ -265,9 +265,10 @@ func _enemy_kind(kind: String) -> Node:
 	return null
 
 ## 원소가 el 인 도감 인물 하나(Elements.element_of 는 id 해시라 고정).
+## 그 원소의 첫 인물 — 원소 기본 스킬을 보므로 고유 스킬(106장 ㉔ data/kits.gd)이 있는 인물은 뺀다.
 func _hero_of(el: String) -> String:
 	for h in Characters.HEROES:
-		if Elements.element_of(h.id) == el:
+		if Elements.element_of(h.id) == el and not preload("res://games/saga_go/data/kits.gd").has_kit(h.id):
 			return h.id
 	return ""
 

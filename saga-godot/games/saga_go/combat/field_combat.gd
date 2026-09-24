@@ -27,6 +27,7 @@ const Characters := preload("res://saga_core/data/characters.gd")
 const Toast := preload("res://saga_core/ui/toast.gd")
 const Growth := preload("res://games/saga_go/data/growth.gd")
 const Weapons := preload("res://games/saga_go/data/weapons.gd")
+const Kits := preload("res://games/saga_go/data/kits.gd")
 
 const COMBO_MUL := [0.35, 0.4, 0.6]
 const COMBO_SEC := [0.32, 0.32, 0.45]
@@ -63,6 +64,7 @@ const ENERGY_MAX := 100.0
 const ENERGY_PER_HIT := 5.0
 const ENERGY_PER_SKILL_HIT := 12.0
 const ENERGY_OFF_FIELD := 0.6 # 대기 중인 인물이 받는 몫
+const KIT_SHELL_ENERGY := 0.35 # 106장 ㉔ 포탄 하나가 맞힐 때 스킬 기력 몫
 
 ## 106장 ⑧ — 원소마다 스킬·폭발 모양. 수치는 atk 배율.
 ##   화 스킬: 앞 부채꼴 5m 한 번 ×1.1          화 폭발: 둘레 7m ×2.4 + 3초 불 고리(0.5초마다 ×0.25)
@@ -175,6 +177,13 @@ var _burn_t := 0.0
 var _burn_amount := 0.0
 var _effects: Array = [] # 폭발이 남기는 효과 {kind, center, left, tick, t, base}
 var _c6_left: Dictionary = {} # 운명의 자리 6 — 인물 id → 남은 초
+## 106장 ㉔ 고유 스킬이 남기는 것(data/kits.gd) — 원소 부여(인물 id → {el, left, mul}) · 명단 공격 + · 받는 피해 - · 스킬 재사용 가속.
+var _infuse: Dictionary = {}
+var _rally_t := 0.0
+var _rally_mul := 1.0
+var _guard_t := 0.0
+var _guard_mul := 1.0
+var _haste_t := 0.0
 ## 106장 ⑭ 명단 전체 보호막(결정·암 폭발). 원소는 표시용.
 var shield_hp := 0.0
 var shield_element := ""
@@ -279,11 +288,14 @@ func char_atk(id: String) -> float:
 	var a := PartyState.char_atk(id) * _power_mul(id)
 	if float(_c6_left.get(id, 0.0)) > 0.0:
 		a *= Growth.C6_ATK_MUL
+	if _rally_t > 0.0:
+		a *= _rally_mul
 	return a
 
-## 이 인물 스킬 재사용 대기(운명의 자리 1 이면 -20%).
+## 이 인물 스킬 재사용 대기 — 고유 스킬이면 그 표 값(106장 ㉔), 운명의 자리 1 이면 -20%.
 func skill_cd_of(id: String) -> float:
-	return SKILL_CD * (Growth.C1_SKILL_CD_MUL if PartyState.constellation(id) >= 1 else 1.0)
+	var base := float(Kits.skill_of(id).get("cd", SKILL_CD))
+	return base * (Growth.C1_SKILL_CD_MUL if PartyState.constellation(id) >= 1 else 1.0)
 
 func energy_of(id: String) -> float:
 	return float(_energy.get(id, 0.0))
@@ -381,10 +393,17 @@ func _physics_process(delta: float) -> void:
 	_combo_link = maxf(_combo_link - delta, 0.0)
 	_attack_t = maxf(_attack_t - delta, 0.0)
 	_switch_cd = maxf(_switch_cd - delta, 0.0)
+	## 106장 ㉔ 천기 뇌우(스킬 가속) 동안 재사용 대기가 두 배로 돈다.
+	var cd_step := delta * (2.0 if _haste_t > 0.0 else 1.0)
 	for k in _skill_cd.keys():
-		_skill_cd[k] = maxf(_skill_cd[k] - delta, 0.0)
+		_skill_cd[k] = maxf(_skill_cd[k] - cd_step, 0.0)
 	for k in _c6_left.keys():
 		_c6_left[k] = maxf(_c6_left[k] - delta, 0.0)
+	_rally_t = maxf(_rally_t - delta, 0.0)
+	_guard_t = maxf(_guard_t - delta, 0.0)
+	_haste_t = maxf(_haste_t - delta, 0.0)
+	for k in _infuse.keys():
+		_infuse[k].left = maxf(float(_infuse[k].left) - delta, 0.0)
 	if _shield_t > 0.0:
 		_shield_t -= delta
 		if _shield_t <= 0.0:
@@ -440,13 +459,13 @@ func attack() -> bool:
 		if not target.is_empty():
 			var e: Node3D = target[0]
 			_player.call("face_toward", e.global_position)
-			var el := active_element() if kit.get("elemental", false) else ""
+			var el := active_element() if kit.get("elemental", false) else _normal_el()
 			_shot_fx(e.global_position, Elements.color_of(el) if el != "" else Color(0.95, 0.9, 0.7))
 			_deal(e, amount, el, e.global_position - _player.global_position)
 			hits = 1
 	else:
 		_heavy = kit.get("heavy", false)
-		hits = _hit_front(float(kit.reach), float(kit.arc), amount, "")
+		hits = _hit_front(float(kit.reach), float(kit.arc), amount, _normal_el())
 		_heavy = false
 	_crit_id = ""
 	if hits > 0:
@@ -465,7 +484,7 @@ func charged_attack() -> bool:
 	_ring_fx(_player.global_position + _player.call("facing") * 1.2, 1.8, Color(0.95, 0.95, 0.85), 0.3)
 	_heavy = true
 	_crit_id = active_id()
-	var hits := _hit_front(CHARGE_REACH, -0.2, _normal_atk() * CHARGE_MUL, "")
+	var hits := _hit_front(CHARGE_REACH, -0.2, _normal_atk() * CHARGE_MUL, _normal_el())
 	_crit_id = ""
 	_heavy = false
 	if hits > 0:
@@ -485,7 +504,7 @@ func plunge_land(fell_m: float) -> int:
 	_crit_id = active_id()
 	for e in _enemies_near(center, PLUNGE_RADIUS):
 		var to_e: Vector3 = (e as Node3D).global_position - center
-		_deal(e, _normal_atk() * mul, "", to_e)
+		_deal(e, _normal_atk() * mul, _normal_el(), to_e)
 		hits += 1
 	_crit_id = ""
 	_heavy = false
@@ -493,9 +512,22 @@ func plunge_land(fell_m: float) -> int:
 		_gain_energy(ENERGY_PER_HIT * hits)
 	return hits
 
-## 기본 공격·강공격·낙하 공격 한 방의 바탕 — 지금 인물 공격 × 기본 공격 특성.
+## 기본 공격·강공격·낙하 공격 한 방의 바탕 — 지금 인물 공격 × 기본 공격 특성(× 원소 부여 배율, 106장 ㉔).
 func _normal_atk() -> float:
-	return char_atk(active_id()) * PartyState.talent_mul(active_id(), "normal") * PartyState.passive_mul(active_id(), "normal")
+	return char_atk(active_id()) * PartyState.talent_mul(active_id(), "normal") * PartyState.passive_mul(active_id(), "normal") * _infuse_mul()
+
+## 지금 인물의 원소 부여(불새 깃 등) — 켜져 있으면 그 원소, 아니면 ""(물리).
+func _normal_el() -> String:
+	var inf: Dictionary = _infuse.get(active_id(), {})
+	return String(inf.el) if float(inf.get("left", 0.0)) > 0.0 else ""
+
+func _infuse_mul() -> float:
+	var inf: Dictionary = _infuse.get(active_id(), {})
+	return float(inf.mul) if float(inf.get("left", 0.0)) > 0.0 else 1.0
+
+func infusion_of(id: String) -> String:
+	var inf: Dictionary = _infuse.get(id, {})
+	return String(inf.el) if float(inf.get("left", 0.0)) > 0.0 else ""
 
 func skill() -> bool:
 	var id := active_id()
@@ -507,7 +539,11 @@ func skill() -> bool:
 	_player.call("play_action", "attack", 0.4, 0.0)
 	var hits := 0
 	_crit_id = id
-	match el:
+	## 106장 ㉔ — 고유 스킬이 있는 인물은 그것, 없으면 원소마다 같은 스킬.
+	var kit := Kits.skill_of(id)
+	if not kit.is_empty():
+		hits = _kit_skill(id, kit, atk, el)
+	match "" if not kit.is_empty() else el:
 		"fire":
 			_aim_at_nearest()
 			var fwd: Vector3 = _player.call("facing")
@@ -563,6 +599,11 @@ func burst() -> bool:
 	var atk := char_atk(active_id()) * PartyState.talent_mul(active_id(), "burst") * PartyState.passive_mul(active_id(), "burst")
 	if PartyState.constellation(active_id()) >= 6:
 		_c6_left[active_id()] = Growth.C6_BUFF_SEC
+	var kb := Kits.burst_of(active_id())
+	if not kb.is_empty():
+		_kit_burst(active_id(), kb, atk, el)
+		get_tree().call_group("element_receiver", "receive_element", _player.global_position, float(kb.radius), el)
+		return true
 	var center := _player.global_position
 	_player.call("play_action", "attack", 0.6, 0.0)
 	_ring_fx(center, BURST_RADIUS, Elements.color_of(el), 0.7)
@@ -599,6 +640,108 @@ func burst() -> bool:
 	get_tree().call_group("element_receiver", "receive_element", center, BURST_RADIUS, el)
 	return true
 
+# ---------------------------------------------------------------- 고유 스킬(106장 ㉔, data/kits.gd)
+
+## 고유 원소 스킬 — 곧바로 맞힌 적 수(진·포탄은 나중에 맞히며 그때 기력).
+func _kit_skill(id: String, kit: Dictionary, atk: float, el: String) -> int:
+	var pos := _player.global_position
+	var col := Elements.color_of(el)
+	var hits := 0
+	match String(kit.type):
+		"dash":
+			_aim_at_nearest()
+			var fwd: Vector3 = _player.call("facing")
+			var length := float(kit.sec) * float(kit.speed)
+			var width := float(kit.width)
+			_player.call("skill_dash", fwd, float(kit.sec), float(kit.speed))
+			for e in _enemies_near(pos + fwd * length * 0.5, length * 0.5 + width):
+				var rel: Vector3 = (e as Node3D).global_position - pos
+				rel.y = 0.0
+				var along := clampf(rel.dot(fwd), 0.0, length)
+				if (rel - fwd * along).length() > width:
+					continue
+				_deal(e, atk * float(kit.mul), el, fwd)
+				hits += 1
+			_ring_fx(pos + fwd * length, 1.6, col, 0.35)
+		"zone":
+			_ring_fx(pos, float(kit.radius), col, 0.6)
+			_effects.append({"kind": "kit_zone", "center": pos, "left": float(kit.sec), "tick": float(kit.tick), "t": float(kit.tick), "base": atk,
+				"radius": float(kit.radius), "targets": int(kit.targets), "mul": float(kit.mul), "energy": float(kit.energy), "el": el, "owner": id})
+		"shells":
+			var points: Array = []
+			for e in _nearest(pos, float(kit.reach), int(kit.count)):
+				points.append((e as Node3D).global_position)
+			if points.is_empty():
+				points.append(pos + (_player.call("facing") as Vector3) * 8.0)
+			for sp in points:
+				_ring_fx(sp, float(kit.radius), col, float(kit.delay))
+				_effects.append({"kind": "kit_shell", "center": sp, "left": float(kit.delay), "tick": float(kit.delay), "t": float(kit.delay), "base": atk,
+					"radius": float(kit.radius), "mul": float(kit.mul), "el": el, "owner": id})
+		"guard":
+			_ring_fx(pos, float(kit.radius), col, 0.45)
+			for e in _enemies_near(pos, float(kit.radius)):
+				_deal(e, atk * float(kit.mul), el, (e as Node3D).global_position - pos)
+				hits += 1
+			grant_shield(max_hp * float(kit.shield), el)
+			_shield_t = float(kit.sec)
+		"updraft":
+			_ring_fx(pos, float(kit.radius), col, 0.45)
+			for e in _enemies_near(pos, float(kit.radius)):
+				var to_e: Vector3 = (e as Node3D).global_position - pos
+				_deal(e, atk * float(kit.mul), el, to_e)
+				e.call("knockback", -to_e, float(kit.pull))
+				hits += 1
+			_player.call("launch_up", float(kit.lift))
+	return hits
+
+## 고유 원소 폭발 — 모두 먼저 둘레 radius 에 mul 한 번, 그 뒤 type 마다 남는 것.
+func _kit_burst(id: String, kb: Dictionary, atk: float, el: String) -> void:
+	var center := _player.global_position
+	var radius := float(kb.radius)
+	var sec := float(kb.get("sec", 0.0))
+	_player.call("play_action", "attack", 0.6, 0.0)
+	_ring_fx(center, radius, Elements.color_of(el), 0.7)
+	var rig := get_tree().get_first_node_in_group("camera_rig")
+	if rig:
+		rig.call("shake", 0.18, 0.35)
+	_crit_id = id
+	for e in _enemies_near(center, radius):
+		_deal(e, atk * float(kb.mul), el, (e as Node3D).global_position - center)
+	_crit_id = ""
+	match String(kb.type):
+		"infuse":
+			_infuse[id] = {"el": el, "left": sec, "mul": float(kb.normal_mul)}
+		"haste":
+			_haste_t = sec
+			for other in roster():
+				if other != id:
+					_energy[other] = minf(energy_of(other) + float(kb.energy), ENERGY_MAX)
+		"rally":
+			_rally_t = sec
+			_rally_mul = float(kb.atk)
+		"guard":
+			_guard_t = sec
+			_guard_mul = float(kb.taken)
+		"vortex":
+			var at: Vector3 = center + (_player.call("facing") as Vector3) * float(kb.ahead)
+			_ring_fx(at, radius, Elements.color_of(el), 0.5)
+			_effects.append({"kind": "kit_vortex", "center": at, "left": sec, "tick": float(kb.tick), "t": float(kb.tick), "base": atk,
+				"radius": radius, "bolt": float(kb.bolt), "pull": float(kb.pull), "el": el, "owner": id})
+
+## 지금 켜진 고유 폭발 효과(왼쪽 위 상태 줄).
+func buff_text() -> String:
+	var parts: Array[String] = []
+	var inf := infusion_of(active_id())
+	if inf != "":
+		parts.append("%s 부여 %d초" % [Elements.name_of(inf), ceili(float(_infuse[active_id()].left))])
+	if _rally_t > 0.0:
+		parts.append("공격 +%d%% %d초" % [roundi((_rally_mul - 1.0) * 100.0), ceili(_rally_t)])
+	if _guard_t > 0.0:
+		parts.append("받는 피해 -%d%% %d초" % [roundi((1.0 - _guard_mul) * 100.0), ceili(_guard_t)])
+	if _haste_t > 0.0:
+		parts.append("스킬 가속 %d초" % ceili(_haste_t))
+	return " · ".join(parts)
+
 func _tick_effects(delta: float) -> void:
 	_crit_id = active_id()
 	for fx in _effects:
@@ -607,6 +750,7 @@ func _tick_effects(delta: float) -> void:
 		if fx.t > 0.0:
 			continue
 		fx.t += fx.tick
+		_crit_id = String(fx.get("owner", active_id()))
 		match fx.kind:
 			"fire_ring":
 				_ring_fx(fx.center, FIRE_BURST_RING.radius, Elements.color_of("fire"), 0.3)
@@ -640,6 +784,32 @@ func _tick_effects(delta: float) -> void:
 				for e in _enemies_near(fx.center, BLOOM_RADIUS):
 					var push: Vector3 = (e as Node3D).global_position - fx.center
 					e.call("apply_damage", fx.base * BLOOM_MUL * _reaction_mul("bloom"), true, push, "grass")
+			## 106장 ㉔ 고유 스킬 — 진(가까운 적 몇에 낙뢰, 맞히면 명단 기력) · 포탄(늦게 떨어짐) · 소용돌이(빨아들임).
+			"kit_zone":
+				var col_z := Elements.color_of(String(fx.el))
+				_ring_fx(fx.center, float(fx.radius), col_z, 0.25)
+				var zn := 0
+				for e in _nearest(fx.center, float(fx.radius), int(fx.targets)):
+					var zp: Vector3 = (e as Node3D).global_position
+					_bolt_fx(zp)
+					_deal(e, fx.base * float(fx.mul), String(fx.el), zp - fx.center)
+					zn += 1
+				if zn > 0:
+					_gain_energy(float(fx.energy) * zn)
+			"kit_shell":
+				_ring_fx(fx.center, float(fx.radius), Elements.color_of(String(fx.el)), 0.3)
+				var sn := 0
+				for e in _enemies_near(fx.center, float(fx.radius)):
+					_deal(e, fx.base * float(fx.mul), String(fx.el), (e as Node3D).global_position - fx.center)
+					sn += 1
+				if sn > 0:
+					_gain_energy(ENERGY_PER_SKILL_HIT * KIT_SHELL_ENERGY * sn)
+			"kit_vortex":
+				_ring_fx(fx.center, float(fx.radius), Elements.color_of(String(fx.el)), 0.3)
+				for e in _enemies_near(fx.center, float(fx.radius)):
+					var to_v: Vector3 = (e as Node3D).global_position - fx.center
+					_deal(e, fx.base * float(fx.bolt), String(fx.el), to_v)
+					e.call("knockback", -to_v, float(fx.pull))
 	_crit_id = ""
 	_effects = _effects.filter(func(fx: Dictionary) -> bool: return fx.left > 0.0)
 
@@ -853,6 +1023,8 @@ func take_damage(amount: float, source: Node) -> void:
 		return
 	var d := PartyState.char_def(active_id())
 	var dmg := amount * (1.0 - d / (d + 120.0))
+	if _guard_t > 0.0:
+		dmg *= _guard_mul # 106장 ㉔ 오천의 맹세
 	## 보호막이 먼저 받는다 — 다 막으면 원소 효과(화상·젖음·감전)도 안 든다.
 	if shield_hp > 0.0:
 		var absorbed := minf(shield_hp, dmg)
@@ -1182,6 +1354,9 @@ func _refresh_hud() -> void:
 	var res_text := " · 공명 %s" % Elements.name_of(res) if res != "" else ""
 	if shield_hp > 0.0:
 		res_text += " · 보호막 %d" % int(shield_hp)
+	var bt := buff_text()
+	if bt != "":
+		res_text += " · " + bt
 	_status_label.text = "%s HP %d/%d%s" % [display_name(active_id()), int(hp), int(max_hp), res_text]
 	if _skill_orb:
 		_skill_orb.color = Elements.color_of(el_now)
