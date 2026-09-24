@@ -8676,3 +8676,13 @@ PROJECT_STATE.md` 참고. 요약:
 - 점검 probe_story 41 → 50항목 fails=0(점검 변수 하나를 보스·사전 겸용으로 써서 한 번 틀림 → 따로). REGRESS OK·GO 점검 열넷 fails=0.
 - 함정: 점검 두 벌을 겹쳐 돌리면 CPU 가 모자라 의뢰·보물·오르기 점검이 시간 초과(출력 없음)·대화 몸짓 글자 흘리기가 한 판 FAIL — 혼자 다시 돌리면 다 통과. 점검은 한 벌씩.
 - 실기 확인 전: 봉우리 벽이 실제로 타지는지(길 찾기), 고원에서 싸울 만한지·카메라, 그림자 예고를 피할 수 있는지, 검은 가면 VRoid·가면 모양, 졸개 둘 자리.
+
+## 2026-09-25 — char-forge 단계 2: 공방 툰 몸 셋 + 나란히 비교 장면(게임 몸은 그대로)
+
+- 사용자 확정 교체 문턱: 새 몸이 지금보다 못하지 않다고 사람이 판정하기 전엔 게임 몸을 안 바꾼다. 그래서 이번엔 **비교 장면만** 만들었다.
+- 몸: Quaternius 옷 팩(Modular Character Outfits - Fantasy, CC0, 무료판 옷 넷)을 새로 받아 `../tools/char-forge` 에 붙였다. 옷은 Regular 비율이라 **옷 뼈대를 인물 뼈대로 삼고** 몸 팩(Superhero)의 머리·목·윗가슴만 떼어 Head 뼈에 옮겨 붙인다. 비어져 나온 살은 옷 면 6mm 아래로 눌러 넣고 완전히 덮인 가슴 살은 지운다(목은 남김 — 벌어진 옷깃 속이 구멍으로 보이지 않게).
+- `assets/characters_cf/cmp_{go,forest,dungeon}_01.glb`(CC0, 커밋) — 여덟 동작 내장(verify 0.0°·0cm). 툰은 cel_toon 이 바탕색만 읽어 노멀·거칠기를 뗐다(39.5MB → 6~10MB), 옷 4096² 텍스처는 2048²(지금 VRoid 몸 최대 1024).
+- 목 자른 자리 가림(바깥 법선 광선이 옷에 막히는 비율): go 0.957 · forest 1.0 · dungeon 0.988. 남은 몇 점은 허리띠 뒤·어깨 윗면 — 실기로 볼 것.
+- `tools/compare/CharCompare.tscn`: 짝 셋(GO·FOREST·DUNGEON) × (지금 VRoid | 새 공방), 게임 해·env_pc·cel_toon 같게, 키 1.70m 로 맞춤. 1~8 동작·Space 자동·←/→·↑/↓·Tab·R, 폰은 누르기. 헤드리스 로드: 양쪽 여덟 동작·셀 서피스 적용 확인.
+- 함정: `--headless --editor --quit` 가 `assets/generated/props/*.import` 19개를 매번 고쳐 쓴다 → 매번 `git checkout`. 추출 텍스처 파일을 지우면 다음 임포트에서 UID 못 찾음 오류가 한 번 난다(한 번 더 임포트하면 사라짐).
+- 사람 몫: `HOW_TO_PLAYTEST.md` §10 대로 비교 장면을 보고 짝마다 "바꿔도 된다/아직" 판정.

@@ -628,3 +628,9 @@ clutter와 같은 결). 폐허 지도가 7×7이라 "R" 칸이 21개뿐 — clut
 - 만드는 법: `../tools/char-forge/README.md` §3 · 이 판 쪽은 `tools/ual_lib_build.gd`. 다른 PC 는 원본이 없어도 된다(.res 가 커밋돼 있다). 다시 굽을 때만 `py tools/char-forge/fetch_sources.py`.
 - `AvatarSample_A`·`saga_forest_avatar_01`·`dungeon_hero_01` 셋 × 여덟 동작(idle·walk·sprint·attack·hit·dodge·death·pickup). 몸(VRoid)은 그대로다.
 - 옛 `anim/`(Mixamo 리타겟, 로컬 전용)은 이제 어느 씬도 안 부른다.
+
+## 2026-09-25 — 공방 툰 몸 셋(`assets/characters_cf/`) — 비교용, 게임엔 아직 안 씀
+
+- 출처: Quaternius Universal Base Characters(머리)·Modular Character Outfits - Fantasy(옷)·Universal Animation Library(동작) — 전부 CC0-1.0, 받기·sha256 은 `../tools/char-forge/sources.json`. 파일마다 옆에 `*.license.json`(쓴 입력 목록).
+- `cmp_go_01`(순찰자 여·긴 머리) · `cmp_forest_01`(농부 여·올린 머리) · `cmp_dungeon_01`(순찰자 남·가르마) — 레시피 `../tools/char-forge/recipes/_cmp_*.json`. 추출 텍스처(`cmp_*_T_*.png`)는 Godot 임포트가 만든 것.
+- 쓰는 곳: `tools/compare/CharCompare.tscn`(지금 VRoid 와 나란히). 사람이 "못하지 않다"고 판정한 짝만 게임 몸을 바꾼다.

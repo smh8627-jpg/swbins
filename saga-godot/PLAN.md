@@ -2885,7 +2885,7 @@ assets/generated/
 
 ## 103-4. VRoid·Mixamo 활용 조건
 
-- **대체 예정(2026-09-24 사용자 확정)**: 상용을 위해 VRoid·Mixamo 는 `tools/char-forge/`(Blender 헤드리스 + CC0 MakeHuman·Quaternius)로 바꾼다. 순서·기준은 그 README §7 — 이 장 아래 줄은 교체 전까지의 현재 상태다. **동작은 교체 끝**: 게임이 부르는 여덟 동작은 `assets/characters_vroid/anim_cc0/`(CC0, `tools/ual_lib_build.gd`), 아래 Mixamo 줄은 몸(VRoid) 얘기만 유효하다.
+- **대체 예정(2026-09-24 사용자 확정)**: 상용을 위해 VRoid·Mixamo 는 `tools/char-forge/`(Blender 헤드리스 + CC0 MakeHuman·Quaternius)로 바꾼다. 순서·기준은 그 README §7 — 이 장 아래 줄은 교체 전까지의 현재 상태다. **동작은 교체 끝**: 게임이 부르는 여덟 동작은 `assets/characters_vroid/anim_cc0/`(CC0, `tools/ual_lib_build.gd`), 아래 Mixamo 줄은 몸(VRoid) 얘기만 유효하다. **몸은 판정 대기**: 공방 툰 몸 셋(`assets/characters_cf/`)을 `tools/compare/CharCompare.tscn` 에서 지금 몸과 나란히 본다(`docs/HOW_TO_PLAYTEST.md` §10) — 사람이 "못하지 않다"고 한 짝만 바꾼다.
 - **Mixamo**: 인간형 GLB(character-a~d 는 리그가 Kenney 자체 — 리타겟 필요, VRoid 는 VRM 휴머노이드) 를 FBX 로 올려 자동 리깅 + 애니(idle·walk·run·attack·hit·dodge·death) 받기 → Godot `BoneMap`(`SkeletonProfileHumanoid`) 리타겟. 라이선스는 게임 사용 허용. 사람이 Adobe 계정으로 다운로드해야 한다(자동화 불가).
 - **VRoid**: 105장 Q3 결정(a, 2026-09-19) — 인물 105 조형은 사람 몫이라 현실적으로 **주역 5~10명만** VRoid, 나머지는 kitbash 저폴리. GO(AvatarSample_A)·FOREST(saga_forest_avatar_01) 플레이어에 적용 완료. DUNGEON 플레이어도 같은 VRoid로 바꿀지는 열려 있음(사람이 조형 하나 더 만들어 줘야 함, Q-d) — `cel_shader_apply.gd`의 `FACE_BAKE_BY_GLB` 표에 GLB 경로만 추가하면 같은 파이프라인으로 붙는다. `cel_toon` 으로만 렌더(MToon 원본 셰이더는 안 씀).
 - 66-1/66-2 와의 관계: 66-1 결정(Godot 유지)·66-2 결정(카툰 방향·원작 리소스 금지·Kenney 순차 교체)은 그대로. 이 장은 "무엇으로 교체하나" 의 실행 계획이다. AI 생성(SAGA-DESIGN §7.4)은 소품·건물 텍스처에만, 원작 IP 프롬프트 금지, 결과물도 팔레트 스냅.

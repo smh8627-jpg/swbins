@@ -1,0 +1,25 @@
+{
+ "id": "_cmp_forest_01",
+ "_note": "단계 2 나란히 비교용 — saga-godot FOREST 플레이어(saga_forest_avatar_01) 자리. 게임 인물 아님.",
+ "base": "superhero_female",
+ "face": "toon",
+ "outfit": "Female_Peasant",
+ "outfit_color": 2,
+ "hair": "Hair_Buns",
+ "brows": "Eyebrows_Female",
+ "height": 1.56,
+ "head_scale": 1.12,
+ "colors": {
+  "hair": "#6b4a32"
+ },
+ "anims": {
+  "idle": "Idle_Loop",
+  "walk": "Walk_Loop",
+  "sprint": "Sprint_Loop",
+  "attack": "Sword_Attack",
+  "hit": "Hit_Chest",
+  "dodge": "Roll",
+  "death": "Death01",
+  "pickup": "PickUp_Table"
+ }
+}

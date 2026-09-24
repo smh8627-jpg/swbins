@@ -19,6 +19,18 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.join(HERE, '_src')
 UBC = os.path.join(SRC, 'Universal Base Characters[Standard]')
 UAL_FBX = os.path.join(SRC, 'Animation Library[Standard]', 'Unreal Engine', 'AL_Standard.fbx')
+MCOF = os.path.join(SRC, 'Modular Character Outfits - Fantasy[Standard]')
+OUTFITS = {  # 무료판에 든 옷 넷 — 옷 색 번호별 BaseColor(1 = 기본)
+    'Female_Ranger': ('Ranger', {1: 'T_Ranger_BaseColor.png', 3: 'T_Ranger_3_BaseColor.png'}),
+    'Male_Ranger': ('Ranger', {1: 'T_Ranger_BaseColor.png', 3: 'T_Ranger_3_BaseColor.png'}),
+    'Female_Peasant': ('Peasant', {1: 'T_Peasant_BaseColor.png', 2: 'T_Peasant_2_BaseColor.png'}),
+    'Male_Peasant': ('Peasant', {1: 'T_Peasant_BaseColor.png', 2: 'T_Peasant_2_BaseColor.png'}),
+}
+# 옷을 입힐 땐 몸 팩에서 머리·목·윗가슴만 쓴다(옷 팩 Readme: 몸 전체를 쓰면 뚫고 나온다).
+# 머리·목만 남기면 트인 옷깃(목 앞)으로 잘린 자리가 30~40% 드러났다(2026-09-24 측정) — 윗가슴까지 남기고 옷 속에 눌러 넣는다.
+HEAD_GROUPS = {'Head', 'neck_01', 'spine_03', 'spine_02', 'clavicle_l', 'clavicle_r'}  # spine_02: 남자 순찰자 옷 V 깃이 깊다
+UNDER_CLOTH = 0.006  # 옷 아래로 눌러 넣는 깊이(m) — 얕으면 먼 거리에서 깊이 버퍼가 겹쳐 깜박인다
+MAX_TEX = 2048  # 옷 팩 4096² → 2048². 지금 VRoid 몸 텍스처는 가장 큰 게 1024 라 그보다 두 배 — 폰 화면에서 안 보이는 몫만 줄인다
 
 BASES = {  # 무료판에 든 몸 둘
     'superhero_female': ('Godot - UE/Superhero_Female_FullBody.gltf', 'Superhero_Female',
@@ -85,7 +97,7 @@ def load_body(recipe):
     arm = next(o for o in objs if o.type == 'ARMATURE')
     delete([o for o in objs if o.type == 'MESH' and o.parent is not arm])  # 팩에 섞인 빈 Icosphere
     arm.name = recipe['id']
-    body = next(o for o in arm.children if o.name.startswith(body_name))
+    body = next(o for o in arm.children if o.name.lower().startswith(body_name.lower()))  # 남자 몸은 'SuperHero_Male'
     tex = skins.get(recipe.get('skin', 'dark'))
     if tex:  # 피부 결: 팩의 밝은·어두운 두 장 중 하나
         bsdf = next(n for n in body.active_material.node_tree.nodes if n.type == 'BSDF_PRINCIPLED')
@@ -96,13 +108,13 @@ def load_body(recipe):
     return arm, body
 
 
-def attach_head_mesh(arm, name):
-    """'Origin at 0' 머리·눈썹 메시를 Head 뼈에 가중치 1 로 묶는다."""
+def attach_head_mesh(arm, name, offset=None):
+    """'Origin at 0' 머리·눈썹 메시를 Head 뼈에 가중치 1 로 묶는다. offset: 옷 뼈대로 옮긴 머리만큼 같이 옮긴다."""
     objs = import_new(os.path.join(UBC, 'Hairstyles', 'Origin at 0', 'glTF (Godot)', name + '.gltf'))
     meshes = [o for o in objs if o.type == 'MESH']
     delete([o for o in objs if o.type != 'MESH'])
     for m in meshes:
-        m.matrix_world = m.matrix_world.copy()
+        m.matrix_world = Matrix.Translation(offset or Vector()) @ m.matrix_world
         m.parent = arm
         m.matrix_parent_inverse = arm.matrix_world.inverted()
         vg = m.vertex_groups.new(name='Head')
@@ -110,6 +122,188 @@ def attach_head_mesh(arm, name):
         mod = m.modifiers.new('Armature', 'ARMATURE')
         mod.object = arm
     return meshes
+
+
+# ---------- D 옷 ----------
+
+def dominant_group(obj, v):
+    if not v.groups:
+        return None
+    g = max(v.groups, key=lambda g: g.weight)
+    return obj.vertex_groups[g.group].name
+
+
+def keep_only_groups(obj, keep):
+    """정점마다 가장 큰 가중치 뼈가 keep 밖이면 지운다(몸 팩에서 머리·목만 남기기)."""
+    import bmesh
+    bm = bmesh.new()
+    bm.from_mesh(obj.data)
+    deform = bm.verts.layers.deform.active
+    kill = []
+    for v in bm.verts:
+        w = v[deform] if deform else {}
+        if not w:
+            kill.append(v)
+            continue
+        gi = max(w.items(), key=lambda kv: kv[1])[0]
+        if obj.vertex_groups[gi].name not in keep:
+            kill.append(v)
+    bmesh.ops.delete(bm, geom=kill, context='VERTS')
+    bm.to_mesh(obj.data)
+    bm.free()
+
+
+def dress(recipe):
+    """옷 뼈대(Regular 비율)를 인물 뼈대로 삼고, 몸 팩의 머리(얼굴·눈·눈썹)만 떼어 그 Head 뼈에 옮겨 붙인다."""
+    name = recipe['outfit']
+    kind, colors = OUTFITS[name]
+    objs = import_new(os.path.join(MCOF, 'Exports', 'glTF (Godot-Unreal)', 'Outfits', name + '.gltf'))
+    arm = next(o for o in objs if o.type == 'ARMATURE')
+    delete([o for o in objs if o.type == 'MESH' and o.parent is not arm])
+    for m in [c for c in arm.children if c.type == 'MESH']:
+        if any(m.name.endswith('_' + part) or ('_' + part + '_') in m.name for part in recipe.get('outfit_drop', [])):
+            delete([m])
+    tex = colors.get(int(recipe.get('outfit_color', 1)))
+    if tex:
+        img = bpy.data.images.load(os.path.join(MCOF, 'Textures', kind, tex), check_existing=True)
+        for mat in {s.material for m in arm.children if m.type == 'MESH' for s in m.material_slots if s.material}:
+            # 바탕색 입력을 거슬러 올라가 옷 바탕색 그림을 찾는다(중간에 섞기 노드가 끼어 있기도 하다)
+            for n in mat.node_tree.nodes:
+                if n.type == 'TEX_IMAGE' and n.image and n.image.name.startswith(f'T_{kind}') and 'BaseColor' in n.image.name:
+                    n.image = img
+    barm, body = load_body({**recipe, 'skin': 'dark'})  # 옷 팩 팔 피부가 Dark 한 벌뿐이라 머리도 Dark 로 맞춘다
+    offset = (arm.matrix_world @ arm.data.bones['Head'].head_local) - (barm.matrix_world @ barm.data.bones['Head'].head_local)
+    keep_only_groups(body, HEAD_GROUPS)
+    for m in [c for c in barm.children if c.type == 'MESH']:
+        mw = m.matrix_world.copy()
+        m.parent = arm
+        m.matrix_world = Matrix.Translation(offset) @ mw
+        for mod in m.modifiers:
+            if mod.type == 'ARMATURE':
+                mod.object = arm
+    delete([barm])
+    tuck_under_cloth(arm, body)
+    arm.name = recipe['id']
+    return arm, body, offset
+
+
+def cloth_tree(arm, skip):
+    from mathutils.bvhtree import BVHTree
+    others = [m for m in arm.children if m.type == 'MESH' and m not in skip and not m.name.startswith(('Eye', 'Hair'))]
+    verts, polys = [], []
+    for m in others:
+        base = len(verts)
+        verts += [m.matrix_world @ v.co for v in m.data.vertices]
+        polys += [[base + i for i in p.vertices] for p in m.data.polygons]
+    return BVHTree.FromPolygons(verts, polys), verts
+
+
+def tuck_under_cloth(arm, body):
+    """몸 팩 윗가슴·목 살이 옷 밖으로 비어져 나오면(Superhero 몸이 옷의 Regular 몸보다 크다) 옷 면 바로 아래로 눌러 넣고,
+    옷에 완전히 덮인 살은 지운다. 덮인 쪽과 맞닿은 한 줄은 남겨 옷깃 아래로 살이 겹치게 한다(틈이 안 보이게)."""
+    import bmesh
+    tree, _ = cloth_tree(arm, {body})
+    mw, mwi = body.matrix_world, body.matrix_world.inverted()
+    bm = bmesh.new()
+    bm.from_mesh(body.data)
+    deform = bm.verts.layers.deform.active
+    head_gi = body.vertex_groups['Head'].index
+    moved = 0
+    for v in bm.verts:
+        w = v[deform]
+        if w and max(w.items(), key=lambda kv: kv[1])[0] == head_gi:
+            continue  # 얼굴은 건드리지 않는다
+        pw = mw @ v.co
+        q, n, _, dist = tree.find_nearest(pw)
+        if q is None or dist > 0.05:
+            continue
+        outside = (pw - q).dot(n) > 0
+        if outside or dist < UNDER_CLOTH:
+            v.co = mwi @ (q - n.normalized() * UNDER_CLOTH)
+            moved += 1
+    bm.normal_update()
+    covered = set()
+    for v in bm.verts:
+        pw = mw @ v.co
+        nw = (mw.to_3x3() @ v.normal).normalized()
+        hit = tree.ray_cast(pw + nw * 0.001, nw, 0.12)
+        if hit[0] is not None:
+            covered.add(v)
+    # 목(neck_01)은 덮였어도 남긴다 — 옷깃과 목 사이가 벌어진 옷은 위에서 내려다볼 때 목을 지운 자리가 구멍으로 보인다
+    neck = {body.vertex_groups[n].index for n in ('Head', 'neck_01')}
+
+    def dom(v):
+        w = v[deform]
+        return max(w.items(), key=lambda kv: kv[1])[0] if w else None
+    kill = [v for v in covered if dom(v) not in neck and all(e.other_vert(v) in covered for e in v.link_edges)]
+    bmesh.ops.delete(bm, geom=kill, context='VERTS')
+    bm.to_mesh(body.data)
+    bm.free()
+    return moved, len(kill)
+
+
+def seam_gap(arm, head):
+    """머리를 떼어 낸 가장자리(Head 뼈보다 아래 = 목·가슴 쪽) 정점이 옷에 덮였나.
+    covered = 그 정점에서 바깥 법선 쪽으로 쏜 광선이 옷에 막히는 비율(1.0 이면 잘린 자리가 밖에서 안 보인다)."""
+    tree, verts = cloth_tree(arm, {head})
+    count = {e.key: 0 for e in head.data.edges}
+    for poly in head.data.polygons:
+        for k in poly.edge_keys:
+            count[k] += 1
+    hz = (arm.matrix_world @ arm.data.bones['Head'].head_local).z
+    mw = head.matrix_world
+    edge = [head.data.vertices[i] for i in {i for k, c in count.items() if c == 1 for i in k}]
+    edge = [v for v in edge if (mw @ v.co).z < hz]  # 눈구멍·입 안처럼 원래 열린 자리는 뺀다
+    # glTF 들이기는 UV 이음매에서 정점을 둘로 나눈다 — 같은 자리에 짝이 있는 가장자리는 실제로 닫혀 있다
+    from mathutils import kdtree
+    kd = kdtree.KDTree(len(head.data.vertices))
+    for v in head.data.vertices:
+        kd.insert(v.co, v.index)
+    kd.balance()
+    edge = [v for v in edge if len(kd.find_range(v.co, 1e-5)) < 2]
+    if not edge:
+        return {'edge_verts': 0}
+    covered = 0
+    bare = []
+    for v in edge:
+        pw = mw @ v.co
+        nw = (mw.to_3x3() @ v.normal).normalized()
+        hit = tree.ray_cast(pw + nw * 0.001, nw, 1.0)[0] is not None  # 1m: 몸통 속 가장자리는 결국 옷에 막힌다 = 밖에서 안 보인다
+        covered += hit
+        if not hit:
+            bare.append(pw)
+    # 안 덮인 곳이 어디쯤인가(좌우 |x|·높이 z·앞뒤 y) — 목 앞이면 보이고, 옷 조각 사이 틈이면 대개 안 보인다
+    where = sorted({(round(abs(p.x), 2), round(p.z, 2), round(p.y, 2)) for p in bare})[:8]
+    return {'edge_verts': len(edge), 'covered': round(covered / len(edge), 3), 'bare_xzy': where,
+            'cut_z_min': round(min((mw @ v.co).z for v in edge), 3), 'outfit_top_z': round(max(v.z for v in verts), 3)}
+
+
+def albedo_only():
+    """툰(saga-godot cel_toon)은 바탕색 텍스처 하나만 읽는다 — 노멀·거칠기·ORM 을 떼어 파일만 무겁게 하지 않는다(화면은 같다)."""
+    for mat in bpy.data.materials:
+        if not mat.use_nodes:
+            continue
+        nt = mat.node_tree
+        bsdf = next((n for n in nt.nodes if n.type == 'BSDF_PRINCIPLED'), None)
+        keep = set()
+        if bsdf and bsdf.inputs['Base Color'].links:
+            stack = [bsdf.inputs['Base Color'].links[0].from_node]
+            while stack:
+                n = stack.pop()
+                keep.add(n)
+                for i in n.inputs:
+                    stack += [l.from_node for l in i.links]
+        for n in list(nt.nodes):
+            if n.type in ('TEX_IMAGE', 'NORMAL_MAP', 'SEPARATE_COLOR', 'SEPARATE_RGB') and n not in keep:
+                nt.nodes.remove(n)
+
+
+def cap_textures():
+    for im in bpy.data.images:
+        w, h = im.size[:]
+        if max(w, h) > MAX_TEX:
+            k = MAX_TEX / max(w, h)
+            im.scale(int(w * k), int(h * k))
 
 
 # ---------- 비율 ----------
@@ -147,20 +341,39 @@ def shape(arm, body, recipe):
 
 # ---------- F 재질 ----------
 
+def slot_of(mat_name, mesh_name):
+    n = mat_name.lower()
+    if 'eye' in n and 'brow' not in mesh_name.lower():
+        return 'eye'
+    if 'hair' in n:
+        return 'hair'
+    if any(k in n for k in ('superhero', 'regular', 'skin')):
+        return 'skin'
+    return 'cloth_a'
+
+
 def materials(arm, body, recipe):
+    """재질 이름을 표준 칸(skin·hair·eye·cloth_a)으로 — 같은 칸에 원본이 둘이면 skin_2 처럼 번호를 붙인다.
+    엔진(cel_shader_apply·CharacterVisual)은 이름 앞머리로 받는다."""
     colors = recipe.get('colors', {})
+    made = {}
+    used = {}
     for m in [c for c in arm.children if c.type == 'MESH']:
         for i, mat in enumerate(m.data.materials):
             if not mat:
                 continue
-            nm = mat.name.lower()
-            slot = 'skin' if m is body else 'eye' if 'eye' in nm and 'brow' not in m.name.lower() else 'hair'
-            mat = mat.copy()
-            mat.name = slot
-            m.data.materials[i] = mat
+            if mat.name in made:
+                m.data.materials[i] = made[mat.name]
+                continue
+            slot = slot_of(mat.name, m.name)
+            used[slot] = used.get(slot, 0) + 1
+            new = mat.copy()
+            new.name = slot if used[slot] == 1 else f'{slot}_{used[slot]}'
+            made[mat.name] = new
+            m.data.materials[i] = new
             col = colors.get(slot)
             if col and slot == 'hair':  # 텍스처 × 색 (glTF 익스포터가 baseColorFactor 로 옮긴다)
-                nt = mat.node_tree
+                nt = new.node_tree
                 bsdf = next(n for n in nt.nodes if n.type == 'BSDF_PRINCIPLED')
                 link = bsdf.inputs['Base Color'].links[0] if bsdf.inputs['Base Color'].links else None
                 if link:
@@ -420,7 +633,11 @@ def main():
         sys.exit('--recipe · --out 가 필요하다')
     recipe = json.load(open(recipe_path, encoding='utf-8'))
     bpy.ops.wm.read_factory_settings(use_empty=True)
-    arm, body = load_body(recipe)
+    offset = None
+    if recipe.get('outfit'):
+        arm, body, offset = dress(recipe)
+    else:
+        arm, body = load_body(recipe)
     for m in [c for c in arm.children if c.type == 'MESH' and c.name.startswith('Eyebrows')]:
         if recipe.get('brows'):
             delete([m])
@@ -428,7 +645,11 @@ def main():
         if recipe.get(part):
             if recipe[part] not in HAIRS:
                 sys.exit(f'{part}: 모르는 머리 {recipe[part]}')
-            attach_head_mesh(arm, recipe[part])
+            attach_head_mesh(arm, recipe[part], offset)
+    seam = seam_gap(arm, body) if recipe.get('outfit') else None
+    if recipe.get('face') == 'toon':
+        albedo_only()
+    cap_textures()
     shape(arm, body, recipe)
     materials(arm, body, recipe)
     rep = retarget(arm, recipe.get('anims', 'all'), bool(arg('--check')))
@@ -437,14 +658,18 @@ def main():
         'id': recipe['id'], 'generator': 'tools/char-forge/build.py', 'blender': bpy.app.version_string,
         'license': 'CC0-1.0 (입력 전부 CC0)',
         'inputs': ['ubc_standard: ' + BASES[recipe['base']][0], 'ual1_standard: Unreal Engine/AL_Standard.fbx']
-        + [f'ubc_standard: Hairstyles/Origin at 0/glTF (Godot)/{recipe[p]}.gltf' for p in ('hair', 'brows') if recipe.get(p)],
+        + [f'ubc_standard: Hairstyles/Origin at 0/glTF (Godot)/{recipe[p]}.gltf' for p in ('hair', 'brows') if recipe.get(p)]
+        + ([f"mcof_standard: Outfits/{recipe['outfit']}.gltf"] if recipe.get('outfit') else []),
     }
     json.dump(lic, open(os.path.splitext(out)[0] + '.license.json', 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
     tris = sum(sum(len(p.vertices) - 2 for p in m.data.polygons) for m in arm.children if m.type == 'MESH')
     meta = rep.pop('_meta')
     worst = max((v['ground_err_m'] or 0 for v in rep.values()), default=0)
     print('CHARFORGE', json.dumps({'id': recipe['id'], 'bones': len(arm.data.bones), 'tris': tris,
-                                   'anims': len(rep), 'ground_err_max_m': worst}, ensure_ascii=False))
+                                   'anims': len(rep), 'ground_err_max_m': worst, 'leg_ratio': meta['leg_ratio'],
+                                   'seam': seam,
+                                   'mats': sorted({s.material.name for m in arm.children if m.type == 'MESH'
+                                                   for s in m.material_slots if s.material})}, ensure_ascii=False))
     if arg('--check'):
         g = [n for n, v in rep.items() if v['ground_err_m'] is not None]
         print('CHECK grounded', len(g), '/', len(rep))
