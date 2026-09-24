@@ -77,6 +77,8 @@ func _ready() -> void:
 	add_child(domains)
 	if OS.get_environment("SAGA_DOMAIN_PROBE") != "":
 		add_child(load("res://tools/probe_domains.gd").new())
+	if OS.get_environment("SAGA_WEEKLY_PROBE") != "":
+		add_child(load("res://tools/probe_weekly_boss.gd").new())
 	if OS.get_environment("SAGA_COMMISSION_PROBE") != "":
 		add_child(load("res://tools/probe_commissions.gd").new())
 	if OS.get_environment("SAGA_GROWTH_PROBE") != "":

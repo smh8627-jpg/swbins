@@ -39,9 +39,19 @@ const DOMAINS := {
 		"waves": [["rock_bear", "wolf", "wolf"], ["grass_snake", "wind_hawk"]], "modifier": "fury",
 		"modifier_text": "지맥 이상: 적 공격 +30%",
 		"reward": [{"mora": 1000, "ore_s": 3, "iron": 2}, {"mora": 1800, "ore_m": 2, "iron": 4}, {"mora": 2600, "ore_m": 2, "ore_l": 1, "iron": 6}]},
+	## 106장 ㉑ 주간 보스 — 보스 하나(combat/field_boss.gd), 180초, 원기 60(이번 주 처음 셋은 30). 특성 7→8 재료 뇌룡 비늘.
+	"weekly": {"name": "먹구름 제단", "kind": "boss", "boss": true, "gate": ["coast", Vector2(5.4, 7.4)], "arena": Vector3(-1400.0, 40.0, 600.0),
+		"waves": [["storm_serpent"]], "modifier": "none", "time": 180.0,
+		"modifier_text": "주간 보스: 체력 절반에서 번개 방패(불에 약함) · 붉은 원을 피하라",
+		"sets": ["emblem", "gladiator"],
+		"reward": [{"mora": 2000, "boss_mat": 1, "talent_2": 2}, {"mora": 3000, "boss_mat": 2, "talent_2": 3}, {"mora": 4000, "boss_mat": 3, "talent_3": 1, "fate_knot": 1}],
+		"artifacts": [[0, 1], [0, 1], [0, 2]]},
 }
-const ORDER := ["tomb", "school", "forge"]
-const KIND_NAMES := {"artifact": "성유물", "talent": "특성 재료", "weapon": "무기 재료"}
+const ORDER := ["tomb", "school", "forge", "weekly"]
+const KIND_NAMES := {"artifact": "성유물", "talent": "특성 재료", "weapon": "무기 재료", "boss": "주간 보스"}
+const WEEKLY_COST := 60
+const WEEKLY_DISCOUNT_COST := 30
+const WEEKLY_DISCOUNTS := 3
 const FURY_MUL := 1.3
 const ENERGY_PER_KILL := 8.0
 const WATER_EVERY := 4.0
@@ -78,6 +88,30 @@ static func spend_resin(n: int) -> bool:
 	if was_full:
 		PartyState.resin_t = now() # 가득일 땐 시계가 멈춰 있었다 — 지금부터 다시 찬다
 	return true
+
+## 주 번호 — 월요일 새벽 4시에 넘어간다(commissions.gd 날짜 번호 기준, 1970-01-01 은 목요일).
+static func this_week() -> int:
+	return floori(float(preload("res://games/saga_go/data/commissions.gd").today() + 3) / 7.0)
+
+## 이번 주 주간 보스 보상 받은 번수(주가 바뀌었으면 0 으로 되돌린다).
+static func weekly_claims() -> int:
+	var w := this_week()
+	if int(PartyState.weekly.get("week", -1)) != w:
+		PartyState.weekly = {"week": w, "claims": 0}
+	return int(PartyState.weekly.claims)
+
+static func add_weekly_claim() -> void:
+	weekly_claims()
+	PartyState.weekly.claims = int(PartyState.weekly.claims) + 1
+
+## 이 비경 보상에 드는 원기.
+static func cost_of(id: String) -> int:
+	if DOMAINS[id].get("boss", false):
+		return WEEKLY_DISCOUNT_COST if weekly_claims() < WEEKLY_DISCOUNTS else WEEKLY_COST
+	return RESIN_COST
+
+static func time_of(id: String) -> float:
+	return float(DOMAINS[id].get("time", TIME_LIMIT))
 
 static func level_open(lv: int) -> bool:
 	return PartyState.level >= int(LEVELS[lv].party_lv)

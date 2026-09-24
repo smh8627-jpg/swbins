@@ -8540,3 +8540,13 @@ PROJECT_STATE.md` 참고. 요약:
 - ⑲ 커밋 때 공용 파일에 이 칸 몫(원기 칸·party_wiped)이 먼저 들어갔다 — 그땐 아무도 안 썼다.
 - 점검 `tools/probe_domains.gd` 11항목 3회 md5 동일 fails=0(첫 판 통과). 다른 GO 점검 열넷(LayoutWalk 포함) fails=0, REGRESS OK.
 - 실기 확인 전: 입구 문, 원판 넓이·조명, 120초, 단계 배율, 원기 속도.
+
+## GO 원신 기준 ㉑ 주간 보스 — 먹구름 이무기·패턴 셋·2단계 방패·뇌룡 비늘 (2026-09-24, 같은 세션, "사가고돗 이어해")
+
+- PROJECT_STATE 1순위. 비경 틀(⑳)을 그대로 씀 — `data/domains.gd` 에 "weekly" 칸(보스·180초·원기 60/주 처음 셋 30)과 `cost_of`·`time_of`·`this_week`·`weekly_claims`, `world/domains.gd` 는 보스면 원판 가운데에 `FieldBoss` 하나·안내 글자에 보스 체력·방패.
+- 새 `combat/field_boss.gd`(field_enemy 상속): 패턴 셋 차례로 — 내려찍기(5m 원 1.2초)·먹구름 벼락(원 셋 1.0초)·물기(부모 돌진). 패턴 중엔 부모 AI 를 안 돌리고 `_tick_status` 만(도트·부착 시간은 흐름), 얼면 예고 시간이 멈춤. 체력 50% 에 뇌 방패 600×배율.
+- 보스를 원판 가운데에 두는 까닭: 부모 AI 가 집에서 26m(LEASH) 넘게 끌려 나가면 돌아가 체력을 채운다 — 원판 반지름 18m 라 가운데면 절대 안 넘는다.
+- `growth.gd` 뇌룡 비늘(`boss_mat`)·`TALENT_WEEKLY`(7→8 1·8→9 2·9→10 2) — 특성 점검은 1→2 만 보므로 그대로 통과. `PartyState.weekly` 한 필드(버전 그대로).
+- 파이썬 치환을 bash heredoc 으로 넘기다 GDScript `\n` 이 든 줄에서 어긋남(쓰기 전에 assert 로 멈춰 파일은 안 깨짐) — Write 툴로 .py 를 쓰고 `\n` 은 자리표로 바꿔 넣음.
+- 점검 `tools/probe_weekly_boss.gd` 9항목 3회 md5 동일 fails=0(첫 판 통과). 다른 GO 점검 열다섯(LayoutWalk 포함) fails=0, REGRESS OK.
+- 실기 확인 전: 이무기 크기·모양, 붉은 원이 땅에서 보이는지, 예고 시간으로 피할 만한지, 체력 6000·180초.

@@ -79,6 +79,8 @@ var commissions: Dictionary = {}
 ## 106장 ⑳ 비경 원기 — 값·마지막으로 센 때(실제 시각 초, 0 = 아직 안 셈 → 가득). domains.gd resin_now() 가 채운다.
 var resin := 160
 var resin_t := 0.0
+## 106장 ㉑ 주간 보스 — {"week": 주 번호(월요일 새벽 4시 갈림), "claims": 이번 주 보상 받은 번수}. 처음 셋은 원기 절반.
+var weekly: Dictionary = {}
 
 var _session_start_exp: float = 0.0
 

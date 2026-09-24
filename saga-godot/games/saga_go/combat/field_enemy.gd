@@ -43,6 +43,10 @@ const KINDS := {
 	"grass_snake": {"name": "덩굴뱀", "hp": 250.0, "atk": 15.0, "speed": 4.4, "aggro": 12.0,
 		"reach": 2.2, "tell": 0.8, "cd": 1.8, "exp": 20.0, "element": "grass", "shield": 160.0,
 		"shape": "serpent", "height": 1.3, "colors": [Color(0.3, 0.6, 0.22), Color(0.7, 0.85, 0.35), Color(0.95, 0.55, 0.75)]},
+	## 106장 ㉑ 주간 보스 — field_boss.gd 가 이 칸을 쓴다(패턴·2단계 뇌 방패는 거기). 처음엔 방패 없음.
+	"storm_serpent": {"name": "먹구름 이무기", "hp": 6000.0, "atk": 40.0, "speed": 3.2, "aggro": 40.0,
+		"reach": 3.2, "tell": 1.0, "cd": 1.8, "exp": 0.0, "element": "thunder", "shield": 0.0,
+		"shape": "serpent", "height": 3.6, "colors": [Color(0.22, 0.24, 0.36), Color(0.55, 0.5, 0.85), Color(0.85, 0.7, 1.0)]},
 }
 
 const GRAVITY := 20.0

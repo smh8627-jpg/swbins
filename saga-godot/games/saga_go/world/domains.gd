@@ -12,6 +12,7 @@ const Domains := preload("res://games/saga_go/data/domains.gd")
 const TestMap := preload("res://games/saga_go/data/test_map.gd")
 const TerrainBuilder := preload("res://games/saga_go/world/terrain_builder.gd")
 const FieldEnemy := preload("res://games/saga_go/combat/field_enemy.gd")
+const FieldBoss := preload("res://games/saga_go/combat/field_boss.gd")
 const Toast := preload("res://saga_core/ui/toast.gd")
 
 signal state_changed(state: String)
@@ -104,7 +105,7 @@ func enter(id: String, lv: int) -> bool:
 	wave = 0
 	claimed = false
 	last_result = ""
-	time_left = Domains.TIME_LIMIT
+	time_left = Domains.time_of(id)
 	_start_t = Domains.START_DELAY
 	_return_pos = _gates[id] + Vector3(0.0, 0.4, 3.5)
 	var arena: Vector3 = Domains.DOMAINS[id].arena
@@ -122,10 +123,14 @@ func _spawn_wave() -> void:
 	var kinds: Array = d.waves[wave]
 	var lvd: Dictionary = Domains.LEVELS[level]
 	var arena: Vector3 = d.arena
+	var boss: bool = d.get("boss", false)
 	for i in kinds.size():
 		var a := PI + (float(i) - (kinds.size() - 1) * 0.5) * 0.7 # 북쪽(플레이어 맞은편)
 		var home := arena + Vector3(sin(a) * SPAWN_R, 0.6, cos(a) * SPAWN_R)
-		var e: CharacterBody3D = FieldEnemy.new()
+		## 주간 보스는 원판 가운데(집에서 26m 넘게 끌려 나가 체력을 채우는 일이 없게).
+		if boss:
+			home = arena + Vector3(0.0, 0.6, 0.0)
+		var e: CharacterBody3D = FieldBoss.new() if boss else FieldEnemy.new()
 		e.setup(kinds[i], home, 20260824 + wave * 31 + i)
 		e.scale_stats(float(lvd.hp), float(lvd.atk) * (Domains.FURY_MUL if d.modifier == "fury" else 1.0))
 		e.respawns = false
@@ -188,7 +193,7 @@ func _clear() -> void:
 	state = S.CLEARED
 	last_result = "clear"
 	_tree = _build_tree(Domains.DOMAINS[current].arena)
-	Toast.show(self, "도전 성공! 가운데 나무에서 보상 (원기 %d)" % Domains.RESIN_COST, 3.0)
+	Toast.show(self, "도전 성공! 가운데 나무에서 보상 (원기 %d)" % Domains.cost_of(current), 3.0)
 	state_changed.emit(state_name())
 	_refresh_hud()
 
@@ -196,13 +201,16 @@ func _clear() -> void:
 func claim() -> bool:
 	if state != S.CLEARED or claimed:
 		return false
-	if not Domains.spend_resin(Domains.RESIN_COST):
+	var cost := Domains.cost_of(current)
+	if not Domains.spend_resin(cost):
 		claimed = true # 한 번만 알린다
-		Toast.show(self, "원기가 모자라다 (%d/%d) — 보상 없이 나간다" % [Domains.resin_now(), Domains.RESIN_COST], 3.0)
+		Toast.show(self, "원기가 모자라다 (%d/%d) — 보상 없이 나간다" % [Domains.resin_now(), cost], 3.0)
 		_begin_leave()
 		return false
 	claimed = true
 	var d: Dictionary = Domains.DOMAINS[current]
+	if d.get("boss", false):
+		Domains.add_weekly_claim()
 	PartyState.add_items(d.reward[level])
 	PartyState.add_exp(Domains.REWARD_EXP[level])
 	if d.has("artifacts"):
@@ -293,8 +301,12 @@ func is_menu_open() -> bool:
 func _refresh_menu() -> void:
 	var d: Dictionary = Domains.DOMAINS[_menu_id]
 	_menu_title.text = "%s — %s 비경" % [d.name, Domains.KIND_NAMES[d.kind]]
-	_menu_body.text = "%s\n파도 %d · 제한 %d초 · 보상을 받을 때 원기 %d\n원기 %d/%d (8분에 1)" % [d.modifier_text,
-		(d.waves as Array).size(), int(Domains.TIME_LIMIT), Domains.RESIN_COST, Domains.resin_now(), Domains.RESIN_MAX]
+	var head := "보스 하나" if d.get("boss", false) else "파도 %d" % (d.waves as Array).size()
+	var week := ""
+	if d.get("boss", false):
+		week = " · 이번 주 할인 %d/%d 남음" % [maxi(Domains.WEEKLY_DISCOUNTS - Domains.weekly_claims(), 0), Domains.WEEKLY_DISCOUNTS]
+	_menu_body.text = "%s\n%s · 제한 %d초 · 보상을 받을 때 원기 %d%s\n원기 %d/%d (8분에 1)" % [d.modifier_text,
+		head, int(Domains.time_of(_menu_id)), Domains.cost_of(_menu_id), week, Domains.resin_now(), Domains.RESIN_MAX]
 	for lv in _menu_levels.size():
 		var b := _menu_levels[lv]
 		var lvd: Dictionary = Domains.LEVELS[lv]
@@ -409,10 +421,18 @@ func _refresh_hud() -> void:
 		S.STARTING:
 			_hud_label.text = "%s — %d초 뒤 시작\n%s" % [head, ceili(_start_t), d.modifier_text]
 		S.FIGHTING:
-			_hud_label.text = "%s — 파도 %d/%d · 남은 적 %d · %d초\n%s" % [head, wave + 1, (d.waves as Array).size(),
-				alive_enemies().size(), ceili(time_left), d.modifier_text]
+			if d.get("boss", false) and not alive_enemies().is_empty():
+				var b: Node = alive_enemies()[0]
+				var sh := ""
+				if float(b.get("shield")) > 0.0:
+					sh = " · 번개 방패 %d" % int(b.get("shield"))
+				_hud_label.text = "%s — %s 체력 %d%%%s · %d초\n%s" % [head, b.get("def").name, ceili(float(b.get("hp")) / float(b.get("max_hp")) * 100.0),
+					sh, ceili(time_left), d.modifier_text]
+			else:
+				_hud_label.text = "%s — 파도 %d/%d · 남은 적 %d · %d초\n%s" % [head, wave + 1, (d.waves as Array).size(),
+					alive_enemies().size(), ceili(time_left), d.modifier_text]
 		S.CLEARED:
-			_hud_label.text = "%s — 성공! 가운데 나무로 (원기 %d/%d)" % [head, Domains.resin_now(), Domains.RESIN_COST]
+			_hud_label.text = "%s — 성공! 가운데 나무로 (원기 %d/%d)" % [head, Domains.resin_now(), Domains.cost_of(current)]
 		S.LEAVING:
 			_hud_label.text = "%s — 곧 입구로 돌아간다" % head
 

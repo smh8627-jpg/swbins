@@ -52,6 +52,7 @@ const ITEMS := {
 	"orchid": {"name": "청하란"},
 	"conch": {"name": "갯소라"},
 	"ash_flower": {"name": "재꽃"},
+	"boss_mat": {"name": "뇌룡 비늘"}, # 106장 ㉑ 주간 보스 — 특성 7→8 부터
 }
 const BOOKS := ["book_s", "book_m", "book_l"]
 
@@ -91,7 +92,7 @@ const CHEST_LOOT := {
 ## 특성 셋 — 기본 공격(3타·강공격·낙하)·원소 스킬·원소 폭발. 레벨 1~10, 돌파 단계가 상한을 연다
 ## (돌파 0~1 → 1 · 2 → 2 · 3 → 4 · 4 → 6 · 5 → 8 · 6 → 10, 원신과 같은 계단). 운명의 자리 3·5 가 스킬·폭발에
 ## +3(최대 13). 레벨마다 그 특성 피해 배율 TALENT_MUL. 올리는 값: 냥 + 무예 책(쪽지 → 교본 → 비전) + 돌파 전리품.
-## 주간 보스 재료(원신 7→8 부터)는 주간 보스 갈래가 생길 때 붙인다.
+## 주간 보스 재료(뇌룡 비늘, 106장 ㉑)는 7→8 에 1 · 8→9 에 2 · 9→10 에 2.
 const TALENTS := ["normal", "skill", "burst"]
 const TALENT_NAMES := {"normal": "기본 공격", "skill": "원소 스킬", "burst": "원소 폭발"}
 const TALENT_MAX := 10
@@ -110,6 +111,7 @@ const TALENT_COST := [
 	{"mora": 90000, "book": "talent_3", "books": 12, "common": 18},
 	{"mora": 140000, "book": "talent_3", "books": 16, "common": 22},
 ]
+const TALENT_WEEKLY := [0, 0, 0, 0, 0, 0, 1, 2, 2] # 레벨 n → n+1 의 뇌룡 비늘
 
 ## 운명의 자리 0~6 — 같은 인물을 두 번 등용하는 대신 인연 매듭 하나로 한 자리씩 연다(인물 가리지 않는 재료:
 ## 진귀·화려 상자, 신상 Lv). 자리마다 효과가 정해져 있다(인물마다 다르게 짜는 건 인물 수가 105라 나중).
@@ -142,6 +144,8 @@ static func talent_cost(member_id: String, lv: int) -> Dictionary:
 	var c: Dictionary = TALENT_COST[lv - 1]
 	var out := {"mora": c.mora, c.book: c.books}
 	out[common_of(member_id)] = c.common
+	if int(TALENT_WEEKLY[lv - 1]) > 0:
+		out["boss_mat"] = TALENT_WEEKLY[lv - 1]
 	return out
 
 static func cap_of(asc: int) -> int:
