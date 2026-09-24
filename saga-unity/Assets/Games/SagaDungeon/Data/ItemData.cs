@@ -66,6 +66,14 @@ namespace Saga.Dungeon.Data
             // 맞춰 wp_greatblade(31) 바로 위/사이로 잡았다.
             ["wp_lance_e"] = new ItemData("wp_lance_e", "전자창", 34f, 2, WeaponShape.Lance),
             ["wp_gauntlet"] = new ItemData("wp_gauntlet", "동력장갑", 20f, 1, WeaponShape.Gauntlet),
+            // PLAN.md 108 ③ 명소 층 주인 첫 토벌 무기(`DungeonLandmarkData`) — 그 층에서 행상 환도(18)·
+            // 두목 흑철중검(31)보다 한 발 앞서게, 5층 24 에서 층마다 대략 +4~5.
+            ["wp_lm_tomb"] = new ItemData("wp_lm_tomb", "청동 순장검", 24f, 2),
+            ["wp_lm_fort"] = new ItemData("wp_lm_fort", "잿빛 성주도", 29f, 2),
+            ["wp_lm_bandit"] = new ItemData("wp_lm_bandit", "흑풍 쌍부", 33f, 2),
+            ["wp_lm_palace"] = new ItemData("wp_lm_palace", "비늘 삼지창", 37f, 2, WeaponShape.Lance),
+            ["wp_lm_hellgate"] = new ItemData("wp_lm_hellgate", "업화 철퇴", 41f, 2),
+            ["wp_lm_cloud"] = new ItemData("wp_lm_cloud", "천장 금검", 46f, 2),
         };
 
         public static ItemData Get(string id) => id != null && Catalog.TryGetValue(id, out var d) ? d : null;

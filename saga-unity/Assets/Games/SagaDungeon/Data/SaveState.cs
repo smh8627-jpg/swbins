@@ -32,7 +32,8 @@ namespace Saga.Dungeon.Data
         // 상태로 둔다 — 다음 EnsureToday() 호출이 오늘 날짜로 새로 채운다.
         // v9 — PLAN.md 106-2 "잊힌 능묘"(TempleState) 작은 열쇠 수 + 진행 비트. v8 이하
         // 세이브는 두 필드가 0 으로 채워져 "아직 안 들어감"과 같은 뜻이 된다.
-        private const int SaveVersion = 9;
+        // v10 — PLAN.md 108 ③ 명소 층 주인 토벌 수(LandmarkState). v9 이하는 null → 전부 0("아직 안 잡음").
+        private const int SaveVersion = 10;
 
         private static string SavePath => Path.Combine(Application.persistentDataPath, "save_dungeon.json");
 
@@ -65,6 +66,7 @@ namespace Saga.Dungeon.Data
             public int dailyStamps;
             public int templeKeys; // v9 — TempleState.SmallKeys.
             public int templeFlags; // v9 — (int)TempleState.Flags, 비트 순서는 TempleFlag 주석 참고.
+            public int[] landmarkClears; // v10 — LandmarkState.Snapshot(), DungeonLandmarkData.All 순서.
         }
 
         public static bool Save()
@@ -97,6 +99,7 @@ namespace Saga.Dungeon.Data
                 dailyStamps = DungeonDailyTaskState.Stamps,
                 templeKeys = TempleState.SmallKeys,
                 templeFlags = (int)TempleState.Flags,
+                landmarkClears = LandmarkState.Snapshot(),
             };
 
             try
@@ -142,6 +145,7 @@ namespace Saga.Dungeon.Data
             {
                 QuestState.RestoreLegacyStage(data.questStage);
             }
+            LandmarkState.Restore(data.version >= 10 ? data.landmarkClears : null); // 층을 짓기 전에(주인 보상 판정)
             if (data.version >= 5 && data.dungeonFloor >= 2)
             {
                 DungeonFloorRunner.Instance?.JumpToFloor(data.dungeonFloor);

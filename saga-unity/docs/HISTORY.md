@@ -8920,3 +8920,12 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - **함정 — 땅 휨**: 이 판 땅·나무·짐승은 `ForestWorldCurve` 셰이더(y −= 거리² × 0.004)로 휘는데 GLB 는 PBR 재질이라 안 휜다 → 20m 밖에서 1.6m 떠 보인다(옛 우편함·소원돌도 같은 문제로 URP/Lit). 명소는 `ForestLandmark` 가 "Visual" 을 통째로 거리² × 0.004 내린다(물체 안 굽음은 없지만 3~4m 짜리라 티 안 남). 충돌체는 뿌리에 두어 안 움직임.
 - 파일: 고침 `ForestBiomeData`(Zone 필드·`ZoneAt`·`EnterText`)·`ForestCreature`(`KindName`·`Kind`·`Den`)·`ForestBootstrap`·`BuildTestVillageForestScene`(`BuildLandmarks`)·`forest_ko/en.json`(키 25)·`PlaytestForestHeadless`, 새 `ForestLandmark.cs`·`ForestZoneTracker.cs`·`Editor/PlaytestForestZones.cs`, 씬 재빌드.
 - 검증: 씬 재빌드 exit 0 · `PlaytestForestHeadless` **3연속 OK**(진단 줄 md5 동일, 새 `zones` 줄 "명소 모양 조각 19") · 같은 씬 `PlaytestForestCreatures`·`Finish`·`Furniture`·`HouseTransition` 전부 OK. 실기 확인 전(명소 크기·휨 따라 내리는 게 가까이서 튀지 않는지·점광 세기·자막 세 줄 길이).
+
+## 2026-09-24 — PLAN 108 ③ DUNGEON 명소 층 여섯(손으로 짠 고정 층, 웹 사가블로 §5.15 결) (같은 대화 일곱 번째 "이어해", Opus 5.5)
+
+- **표**: 5 순장 왕릉 殉陵 · 10 무너진 망루성 廢樓城 · 15 흑풍 산채 黑風寨 · 20 가라앉은 용궁 沈龍宮 · 25 업화 대문 業火門 · 30 구름 위 금궐 雲上闕. 이름은 웹 판과 같은 뜻을 이 트랙에 다시 적은 것(코드 공유 없음), 한자·방 이름·잡졸·주인·무기는 지어낸 것. 웹 판처럼 5~30 에 두었다 — 31~100 은 갈림길 그대로.
+- **흐름**: 방 다섯이 늘 같은 순서(문 하나·표지에 다음 방 이름·난수 안 씀), 잡졸 이름은 그 층 것, 마지막 방 층 주인(두목 공식 × 1.15·호위 둘·월드 보스 초읽기 없음·등장 컷 부제 "○○의 주인" — `DungeonEnemy.SetIntroSubtitle`). 첫 토벌만 고유 무기(청동 순장검 24 … 천장 금검 46)와 금 층 × 40, 뒤로는 흑철중검. HUD 층 줄에 "⚱ 순장 왕릉 · 참배길", 내려갈 때 "⚱ 명소 층 — 이름 한자" + 사연, 방마다 자막 2.5초.
+- **세이브 v10**: `landmarkClears`(int[6]). v9 이하는 null → 전부 0. 층을 짓기 전에 복원(주인 보상 판정).
+- **곁에서 고친 결함**: `BuildRoomContent` 가 옛 방 내용을 `Destroy` 만 해서 같은 프레임에 다시 지으면(JumpToFloor 직후) 옛 적이 살아 있는 채로 방에 섞였다 — 진단이 5층 첫 방에서 "황건적" 넷을 잡았다. 떼어 내고 끈 뒤 지우게 고침(PROJECT_STATE 알려진 오류와 같은 함정).
+- 파일: 새 `Data/DungeonLandmarkData.cs`(표·`LandmarkState`)·`Editor/PlaytestDungeonLandmarks.cs`, 고침 `DungeonFloorRunner`(명소 흐름·`SpawnLord`·주인 토벌·옛 내용 떼기)·`DungeonEnemy`(부제·진단용 접근자)·`ItemData`(무기 여섯)·`SaveState`(v10)·`PlayerHud`·`dungeon_ko/en.json`(키 65)·`PlaytestDungeonHeadless`. 씬 재빌드 없음.
+- 검증: `PlaytestDungeonHeadless` **3연속 OK**(새 `landmarks` 줄 3회 같음, 달라진 건 원래 흔들리는 fps·컷 시각 줄뿐) · `PlaytestDungeonFloorProgression` OK(12방·4층) · `SimulateDungeonFloors` OK(공식만 봐서 명소 층은 모름). 실기 확인 전(5층 주인 세기·방 다섯이 짧거나 길지 않은지·첫 토벌 무기 체감·다른 층도 고정하길 원하는지).

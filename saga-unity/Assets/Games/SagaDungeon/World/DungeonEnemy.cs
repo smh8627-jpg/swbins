@@ -247,6 +247,16 @@ namespace Saga.Dungeon.World
             isWorldBoss = newIsWorldBoss;
         }
 
+        private string _introSubtitle;
+
+        /// <summary>PLAN.md 108 ③ — 명소 층 주인처럼 등장 컷 부제를 따로 줄 때("순장 왕릉의 주인").</summary>
+        public void SetIntroSubtitle(string subtitle) => _introSubtitle = subtitle;
+
+        /// <summary>진단 — 쓰러질 때 떨굴 무기 id.</summary>
+        public string RewardItemId => rewardItemId;
+        /// <summary>진단 — 세운 이름 원문(표시는 `LocalizedDisplayName`).</summary>
+        public string DisplayNameRaw => displayName;
+
         private void Awake()
         {
             _curHp = hp;
@@ -442,9 +452,9 @@ namespace Saga.Dungeon.World
             if (cuts == null || DungeonCutscenes.Playing) return false;
             if (!isWorldBoss && !IntroSeen.Add(displayName)) return false;
             _introPlayed = true;
-            string sub = isWorldBoss
+            string sub = _introSubtitle ?? (isWorldBoss
                 ? string.Format(DungeonLocalization.T("cut.floorboss_sub", "층 끝의 우두머리 — {0:0}초 안에 쓰러뜨려라"), WorldBossTimeLimitSec)
-                : DungeonLocalization.T("cut.miniboss_sub", "층을 지키는 살수 — 홀로 서서 기다린다");
+                : DungeonLocalization.T("cut.miniboss_sub", "층을 지키는 살수 — 홀로 서서 기다린다"));
             return cuts.PlayFieldBoss(this, _player.position, LocalizedDisplayName, sub, onEnd);
         }
 

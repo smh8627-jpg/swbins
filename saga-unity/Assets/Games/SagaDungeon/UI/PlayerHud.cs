@@ -47,6 +47,8 @@ namespace Saga.Dungeon.UI
             string gold = string.Format(DungeonLocalization.T("hud.gold"), HeroState.Gold);
             string atk = string.Format(DungeonLocalization.T("hud.atk"), HeroState.Atk);
             string floorLine = string.Format(DungeonLocalization.T("hud.floor"), floor);
+            string landmark = DungeonFloorRunner.Instance?.LandmarkHud ?? ""; // PLAN.md 108 ③ 명소 층
+            if (landmark.Length > 0) floorLine += "  " + landmark;
             label.text = $"Lv.{HeroState.Level}  {hp}  ({exp})  {gold}\n" +
                          $"{weapon} ({atk})  {floorLine}\n" +
                          $"{QuestState.ObjectiveText}"; // "퀘스트 시스템" 슬라이스

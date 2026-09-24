@@ -77,6 +77,27 @@ namespace Saga.Dungeon.World
         private CharacterController _playerController;
         private DungeonRoomBuilder _roomBuilder; // "방 셸 — 티어별 마모 3단" — 같은 GameObject에 붙어 있다(BuildTestDungeonScene.cs).
 
+        // PLAN.md 108 ③ 명소 층 — 이 층이 `DungeonLandmarkData` 의 몇 번째인지(-1 이면 보통 층), 지금 층 주인.
+        private int _landmark = -1;
+        private DungeonEnemy _lord;
+
+        public int CurrentLandmark => _landmark;
+        public int RoomIndex => _roomIndex;
+        public int RoomTotal => _roomTotal;
+        public DungeonEnemy Lord => _lord;
+        /// <summary>HUD 한 줄 — 명소 층이면 "⚱ 순장 왕릉 · 참배길", 아니면 빈 글.</summary>
+        public string LandmarkHud => _landmark >= 0 ? DungeonLandmarkData.HudLine(_landmark, _roomIndex) : "";
+        /// <summary>진단 — 지금 서 있는 문 표지(종류·글).</summary>
+        public IEnumerable<(string Kind, string Label)> DoorPods()
+        {
+            foreach (var d in _doorPods)
+            {
+                if (d.Pod == null) continue;
+                var mesh = d.Pod.GetComponentInChildren<TextMesh>();
+                yield return (d.Kind, mesh != null ? mesh.text : "");
+            }
+        }
+
         // `PlaytestDungeonFloorProgression.cs`(신규 검증 도구)가 실제로 잡아낸 결함 —
         // 방을 갈아치운 뒤에도 플레이어를 문 표지 자리(z=8~9)에 그대로 둬서, 다음 방이
         // 무전투 종류(POI)면 그 자리에 새로 선 문이 곧바로 다시 트리거돼 사람이 걷지도
@@ -120,13 +141,46 @@ namespace Saga.Dungeon.World
             _roomBuilder = GetComponent<DungeonRoomBuilder>();
             UpdateWearTier();
 
-            _roomTotal = DungeonFormulas.RoomsFor(_floor);
-            BuildRoomContent("fight"); // dungeon.js buildFloor() — 층의 첫 방은 항상 전투방.
+            EnterFloorLayout();
+            BuildRoomContent(FirstRoomKind()); // dungeon.js buildFloor() — 층의 첫 방은 항상 전투방(명소 층은 표의 첫 방).
         }
+
+        private void OnEnable() => DungeonEnemy.AnyDied += OnEnemyDied;
+        private void OnDisable() => DungeonEnemy.AnyDied -= OnEnemyDied;
 
         private void OnDestroy()
         {
             if (Instance == this) Instance = null;
+        }
+
+        /// <summary>PLAN.md 108 ③ — 층이 바뀔 때 명소 층인지 보고 방 수를 정한다(명소 층은 방 다섯 고정).</summary>
+        private void EnterFloorLayout()
+        {
+            _landmark = DungeonLandmarkData.IndexOfFloor(_floor);
+            _roomTotal = _landmark >= 0 ? DungeonLandmarkData.RoomCount : DungeonFormulas.RoomsFor(_floor);
+            _lord = null;
+        }
+
+        private string FirstRoomKind() => _landmark >= 0 ? DungeonLandmarkData.All[_landmark].Kinds[0] : "fight";
+
+        /// <summary>PLAN.md 108 ③ — 층 주인이 쓰러지면 토벌을 적고, 첫 토벌이면 금을 더 준다(무기는 주인이 떨군다).</summary>
+        private void OnEnemyDied(DungeonEnemy e)
+        {
+            if (e == null || e != _lord || _landmark < 0) return;
+            _lord = null;
+            bool first = LandmarkState.RecordClear(_landmark);
+            string name = DungeonLandmarkData.Name(_landmark);
+            if (first)
+            {
+                int gold = DungeonLandmarkData.FirstClearGoldPerFloor * _floor;
+                HeroState.AddGold(gold);
+                var item = ItemData.Get(DungeonLandmarkData.All[_landmark].RewardItemId);
+                DialogueLabel.Instance?.Show(string.Format(DungeonLandmarkData.FirstClearText(), name, item != null ? item.Name : "", gold), 5f);
+            }
+            else
+            {
+                DialogueLabel.Instance?.Show(string.Format(DungeonLocalization.T("landmark.clear_again", "⚱ {0} — 층 주인을 다시 눌렀다"), name), 3f);
+            }
         }
 
         /// <summary>`SaveState.TryLoad()`가 부른다(Awake가 끝난 뒤, GameBootstrap
@@ -142,9 +196,9 @@ namespace Saga.Dungeon.World
             ClearDoorPods();
             _floor = floor;
             _roomIndex = 0;
-            _roomTotal = DungeonFormulas.RoomsFor(_floor);
+            EnterFloorLayout();
             UpdateWearTier();
-            BuildRoomContent("fight");
+            BuildRoomContent(FirstRoomKind());
         }
 
         /// <summary>"방 셸 — 티어별 마모 3단" — `_roomBuilder`가 없는 PC(에셋
@@ -182,6 +236,15 @@ namespace Saga.Dungeon.World
         private void ShowKindDoors()
         {
             _doorsShown = true;
+            if (_landmark >= 0)
+            {
+                // PLAN.md 108 ③ 명소 층 — 갈림길 없이 문 하나, 표지에 다음 방 이름. 난수를 안 쓴다(같은 층은 늘 같은 방).
+                int next = _roomIndex + 1;
+                string kind = DungeonLandmarkData.All[_landmark].Kinds[next];
+                var landmarkPod = BuildDoorPod(DoorPodOffsets[1], kind, DungeonLandmarkData.RoomName(_landmark, next));
+                _doorPods.Add((landmarkPod, kind));
+                return;
+            }
             var kinds = DungeonFormulas.PickDoorKinds(_rng);
             for (int i = 0; i < kinds.Count && i < DoorPodOffsets.Length; i++)
             {
@@ -197,7 +260,7 @@ namespace Saga.Dungeon.World
             _doorPods.Add((pod, "stair"));
         }
 
-        private Transform BuildDoorPod(Vector3 localOffset, string kind)
+        private Transform BuildDoorPod(Vector3 localOffset, string kind, string label = null)
         {
             var go = new GameObject($"Door_{kind}");
             go.transform.SetParent(transform, false);
@@ -219,7 +282,7 @@ namespace Saga.Dungeon.World
             var mesh = labelGo.AddComponent<TextMesh>();
             mesh.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             labelGo.GetComponent<MeshRenderer>().sharedMaterial = mesh.font.material;
-            mesh.text = DungeonFormulas.KindDisplayName(kind);
+            mesh.text = label ?? DungeonFormulas.KindDisplayName(kind);
             mesh.characterSize = 0.22f;
             mesh.fontSize = 40;
             mesh.color = Color.white;
@@ -243,9 +306,10 @@ namespace Saga.Dungeon.World
         private void AdvanceRoom(string kind)
         {
             _roomIndex++;
-            bool forceBoss = DungeonFormulas.IsBossFloor(_floor) && _roomIndex >= _roomTotal - 1;
+            bool forceBoss = _landmark < 0 && DungeonFormulas.IsBossFloor(_floor) && _roomIndex >= _roomTotal - 1;
             BuildRoomContent(forceBoss ? "boss" : kind);
             RepositionPlayerToEntry();
+            if (_landmark >= 0) DialogueLabel.Instance?.Show(LandmarkHud, 2.5f); // 108 ③ 방마다 이름
         }
 
         private void Descend()
@@ -263,14 +327,15 @@ namespace Saga.Dungeon.World
 
             _floor++;
             _roomIndex = 0;
-            _roomTotal = DungeonFormulas.RoomsFor(_floor);
+            EnterFloorLayout();
             UpdateWearTier();
 
             string msg = $"🪜 제{_floor}층으로 내려간다";
             if (sigilBonus > 0) msg += $"\n📜 부적 층 클리어 — 금 {sigilBonus} 추가 획득";
             if (SigilState.IsSigilFloor(_floor)) msg += $"\n⚠ 부적 층 — {SigilState.Label(SigilState.ModOf(_floor))}";
-            DialogueLabel.Instance?.Show(msg, 4f);
-            BuildRoomContent("fight");
+            if (_landmark >= 0) msg += "\n" + DungeonLandmarkData.EnterText(_landmark); // 108 ③
+            DialogueLabel.Instance?.Show(msg, _landmark >= 0 ? 5f : 4f);
+            BuildRoomContent(FirstRoomKind());
             RepositionPlayerToEntry();
             FloorDescended?.Invoke(_floor);
         }
@@ -292,9 +357,14 @@ namespace Saga.Dungeon.World
 
         private void BuildRoomContent(string kind)
         {
+            // 떼어 내고 끈 뒤 지운다 — `Destroy` 는 프레임 끝이라 같은 프레임에 다시 지으면 옛 적이 살아 있는 채로
+            // 방에 섞여 센다(PROJECT_STATE 알려진 오류, 108 ③ 진단이 JumpToFloor 직후에 잡았다).
             for (int i = _contentRoot.childCount - 1; i >= 0; i--)
             {
-                UnityEngine.Object.Destroy(_contentRoot.GetChild(i).gameObject);
+                var old = _contentRoot.GetChild(i).gameObject;
+                old.transform.SetParent(null, true);
+                old.SetActive(false);
+                UnityEngine.Object.Destroy(old);
             }
 
             switch (kind)
@@ -311,6 +381,7 @@ namespace Saga.Dungeon.World
                 case "puzzle": SpawnPuzzle(); break;
                 case "event": SpawnCaptive(); break;
                 case "forage": SpawnForage(); break;
+                case DungeonLandmarkData.LordKind: SpawnLord(); break;
                 default: SpawnFight(); break;
             }
         }
@@ -328,7 +399,7 @@ namespace Saga.Dungeon.World
                 DungeonFormulas.EnemyHp(_floor, false) * SigilState.EnemyHpMultiplier(_floor),
                 DungeonFormulas.EnemyDmg(_floor, false) * SigilState.EnemyDamageMultiplier(_floor),
                 DungeonFormulas.RewardExp(_floor, false), DungeonFormulas.RewardGold(_floor, false),
-                "wp_axe", null, false, "황건적",
+                "wp_axe", null, false, _landmark >= 0 ? DungeonLandmarkData.GruntName(_landmark) : "황건적",
                 new Color(0.72f, 0.64f, 0.3f), 1f);
             go.SetActive(true);
             return go;
@@ -389,6 +460,31 @@ namespace Saga.Dungeon.World
             {
                 foreach (var offset in EscortOffsets) SpawnGrunt(SoloOffset + offset);
             }
+        }
+
+        /// <summary>PLAN.md 108 ③ 층 주인 — 층 두목 공식 × <see cref="LordHpMul"/>, 호위 둘. 월드 보스 초읽기는 안 건다(명소는 쫓기는 싸움이 아니다).
+        /// 첫 토벌 전이면 그 층 고유 무기를, 뒤로는 흑철중검을 떨군다.</summary>
+        public const float LordHpMul = 1.15f;
+
+        private void SpawnLord()
+        {
+            var lm = DungeonLandmarkData.All[_landmark];
+            var go = new GameObject("Enemy_Floor_Lord");
+            go.SetActive(false);
+            go.transform.SetParent(_contentRoot, false);
+            go.transform.localPosition = SoloOffset;
+            var enemy = go.AddComponent<DungeonEnemy>();
+            enemy.SetSpawnContext(RoomId, eliteModel);
+            enemy.ConfigureCombat(
+                DungeonFormulas.EnemyHp(_floor, true) * LordHpMul * SigilState.EnemyHpMultiplier(_floor),
+                DungeonFormulas.EnemyDmg(_floor, true) * SigilState.EnemyDamageMultiplier(_floor),
+                DungeonFormulas.RewardExp(_floor, true), DungeonFormulas.RewardGold(_floor, true),
+                LandmarkState.IsCleared(_landmark) ? "wp_greatblade" : lm.RewardItemId, "gem_ruby", true,
+                DungeonLandmarkData.LordName(_landmark), lm.LordColor, 2.1f);
+            enemy.SetIntroSubtitle(string.Format(DungeonLocalization.T("cut.lord_sub", "{0}의 주인"), DungeonLandmarkData.Name(_landmark)));
+            go.SetActive(true);
+            _lord = enemy;
+            foreach (var offset in EscortOffsets) SpawnGrunt(SoloOffset + offset);
         }
 
         private void SpawnTrove()

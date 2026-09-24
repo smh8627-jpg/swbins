@@ -132,6 +132,7 @@ namespace Saga.EditorTools
                 if (!PlaytestDungeonBossIntro.Run()) _hadError = true; // PLAN.md 106-7 층 두목 등장 컷.
                 if (!PlaytestDungeonParty.Run()) _hadError = true; // PLAN.md 106-6 파티·소환 — 더미로 보고 자리·게이지를 되돌린다.
                 if (!PlaytestDungeonExplore.Run()) _hadError = true; // PLAN.md 106-5 탐험 — 걷고 뛰고 오른 뒤 자리·비트를 되돌린다.
+                if (!PlaytestDungeonLandmarks.Run()) _hadError = true; // PLAN.md 108 ③ 명소 층 — 층·토벌·영웅·자리를 되돌린다.
                 CheckTemple(); // PLAN.md 106-2 — 플레이어를 순간이동시키므로 맨 끝(finally 에서 되돌린다).
                 StartCutCameraProbe(); // PLAN.md 106-3 — 6·8프레임째에 이어서 본다.
             }
