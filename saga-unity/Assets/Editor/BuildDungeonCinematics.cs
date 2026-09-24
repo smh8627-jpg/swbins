@@ -31,6 +31,9 @@ namespace Saga.EditorTools
         // PLAN.md 106-6 소환 — 넓은 샷(솟아오름)에서 가까운 샷(내리치기)으로. 합이 PartySummon.EndSec 와 같다.
         private const float SummonWideSec = 2.6f;
         private const float SummonCloseSec = PartySummon.EndSec - SummonWideSec;
+        // PLAN.md 106-7 층 두목·살수 등장 — 능묘지기 컷(5.2s)보다 짧게. 넓은→가까운 컷 순간에 포효.
+        private const float FieldBossWideSec = 1.6f;
+        private const float FieldBossCloseSec = 2.2f;
 
         private static readonly Color BarColor = new Color(0.01f, 0.01f, 0.015f, 1f);
         private static readonly Color RegionColor = new Color(1f, 0.95f, 0.86f);
@@ -87,6 +90,15 @@ namespace Saga.EditorTools
             summonNoise.NoiseProfile = AssetDatabase.LoadAssetAtPath<NoiseSettings>(NoisePath);
             summonNoise.AmplitudeGain = 1.4f;
 
+            // 층 두목 — 자리는 두목이 달려드는 순간 `DungeonCutscenes.PlayFieldBoss` 가 다시 잡는다.
+            var fieldWideCam = CutCamera(root, "CutCam_FieldBossWide", 50f,
+                e + new Vector3(1.3f, 2.3f, -3.2f), e + new Vector3(0.9f, 1.9f, -2.1f), e + Vector3.up * 1.8f, e + Vector3.up * 2f);
+            var fieldCloseCam = CutCamera(root, "CutCam_FieldBossClose", 40f,
+                e + new Vector3(1f, 0.35f, -4f), e + new Vector3(0.8f, 0.3f, -3f), e + Vector3.up * 2.8f, e + Vector3.up * 3.3f);
+            var fieldNoise = fieldCloseCam.gameObject.AddComponent<CinemachineBasicMultiChannelPerlin>();
+            fieldNoise.NoiseProfile = AssetDatabase.LoadAssetAtPath<NoiseSettings>(NoisePath);
+            fieldNoise.AmplitudeGain = 0.9f;
+
             // ── Timeline 셋
             var arrival = Director(root, "Cut_Arrival");
             {
@@ -134,6 +146,21 @@ namespace Saga.EditorTools
                 Finish(summon, tl, brain, cam, title, card);
             }
 
+            var field = Director(root, "Cut_FieldBoss");
+            {
+                var tl = FreshTimeline("Boss_FieldIntro");
+                var cam = tl.CreateTrack<CinemachineTrack>(null, "Camera");
+                Shot(field, cam, "fieldboss_wide", fieldWideCam, 0f, FieldBossWideSec, 0.6f, 0f);
+                Shot(field, cam, "fieldboss_close", fieldCloseCam, FieldBossWideSec, FieldBossCloseSec, 0f, 0.7f);
+                Dolly(field, tl, fieldWideCam, 0f, FieldBossWideSec);
+                Dolly(field, tl, fieldCloseCam, FieldBossWideSec, FieldBossCloseSec);
+                var title = tl.CreateTrack<CutsceneTitleTrack>(null, "Title");
+                // 글자는 두목마다 `CutsceneTitleCard.SetOverride` 로 덮어쓴다 — 여기 값은 덮어쓰기가 없을 때의 폴백.
+                Title(title, FieldBossWideSec + 0.3f, FieldBossCloseSec - 0.5f, CutsceneTitleStyle.Boss,
+                    "cut.floorboss_title", "두목", "cut.floorboss_fallback_sub", "층 끝의 우두머리");
+                Finish(field, tl, brain, cam, title, card);
+            }
+
             SetField(cuts, "brain", brain);
             SetField(cuts, "arrival", arrival);
             SetField(cuts, "chest", chest);
@@ -145,6 +172,10 @@ namespace Saga.EditorTools
             SetField(cuts, "summon", summon);
             SetField(cuts, "summonWideCam", summonWideCam);
             SetField(cuts, "summonCloseCam", summonCloseCam);
+            SetField(cuts, "fieldBoss", field);
+            SetField(cuts, "fieldBossWideCam", fieldWideCam);
+            SetField(cuts, "fieldBossCloseCam", fieldCloseCam);
+            SetField(cuts, "fieldBossRoarSec", FieldBossWideSec);
             SetField(cuts, "titleCard", card);
             SetField(cuts, "overlayCanvas", overlay);
             SetField(cuts, "topBar", topBar);
@@ -153,7 +184,7 @@ namespace Saga.EditorTools
             SetField(cuts, "bossRoarSec", BossWideSec);
 
             if (guardian == null) Debug.LogWarning("[BuildDungeonCinematics] 능묘지기를 못 받음 — 등장 컷의 포효가 빠진다.");
-            Debug.Log("[BuildDungeonCinematics] 컷 4(도착·상자·능묘지기·소환) · 가상 카메라 6 · Timeline 4");
+            Debug.Log("[BuildDungeonCinematics] 컷 5(도착·상자·능묘지기·소환·층 두목) · 가상 카메라 8 · Timeline 5");
         }
 
         // ───────────────────────── Timeline

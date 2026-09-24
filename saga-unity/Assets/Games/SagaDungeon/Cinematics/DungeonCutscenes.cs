@@ -15,6 +15,7 @@ namespace Saga.Dungeon.Cinematics
         Chest,     // 상자 열기 — 아이템 획득 클로즈업
         BossIntro, // 능묘지기 등장
         Summon,    // PLAN.md 106-6 소환수 "바위 거신"
+        FieldBoss, // PLAN.md 106-7 층 두목·살수 등장(여러 두목이 같이 쓴다)
     }
 
     /// <summary>
@@ -54,6 +55,10 @@ namespace Saga.Dungeon.Cinematics
         [SerializeField] private PlayableDirector summon;       // PLAN.md 106-6
         [SerializeField] private CinemachineCamera summonWideCam;
         [SerializeField] private CinemachineCamera summonCloseCam;
+        [SerializeField] private PlayableDirector fieldBoss;    // PLAN.md 106-7
+        [SerializeField] private CinemachineCamera fieldBossWideCam;
+        [SerializeField] private CinemachineCamera fieldBossCloseCam;
+        [SerializeField] private float fieldBossRoarSec = 1.6f;
         [SerializeField] private CutsceneTitleCard titleCard;
         [SerializeField] private Canvas overlayCanvas;
         [SerializeField] private RectTransform topBar;
@@ -109,6 +114,7 @@ namespace Saga.Dungeon.Cinematics
             yield return chest;
             yield return bossIntro;
             yield return summon;
+            yield return fieldBoss;
         }
 
         public CinemachineCamera CameraOf(CutsceneKind kind, bool close = false)
@@ -119,6 +125,7 @@ namespace Saga.Dungeon.Cinematics
                 case CutsceneKind.Chest: return chestCam;
                 case CutsceneKind.BossIntro: return close ? bossCloseCam : bossWideCam;
                 case CutsceneKind.Summon: return close ? summonCloseCam : summonWideCam;
+                case CutsceneKind.FieldBoss: return close ? fieldBossCloseCam : fieldBossWideCam;
                 default: return null;
             }
         }
@@ -187,6 +194,56 @@ namespace Saga.Dungeon.Cinematics
             return Play(summon, CutsceneKind.Summon, onEnd);
         }
 
+        /// <summary>PLAN.md 106-7 — 층 두목·살수가 처음 달려들 때 `DungeonEnemy` 가 부른다. 카메라 두 자리를 이 두목·플레이어에
+        /// 맞춰 다시 잡고(어깨 너머 넓은 샷 → 두목 발치에서 올려다보는 샷), 이름표를 이 두목 이름으로 덮어쓴다.
+        /// `fieldBossRoarSec` 에 포효한다.</summary>
+        public bool PlayFieldBoss(DungeonEnemy boss, Vector3 playerPos, string title, string sub, Action onEnd)
+        {
+            if (boss == null) return false;
+            Vector3 bossPos = boss.transform.position;
+            float h = 1.9f * boss.VisualScale;
+            Vector3 dir = bossPos - playerPos;
+            dir.y = 0f;
+            dir = dir.sqrMagnitude > 0.01f ? dir.normalized : Vector3.forward;
+            Vector3 side = Vector3.Cross(Vector3.up, dir).normalized;
+
+            var wide = fieldBossWideCam != null ? fieldBossWideCam.GetComponent<CutsceneDolly>() : null;
+            if (wide != null)
+            {
+                Vector3 head = playerPos + Vector3.up * 1.6f;
+                Vector3 a = PullIn(head, playerPos - dir * 3.2f + side * 1.3f + Vector3.up * 2.3f, out _);
+                Vector3 b = PullIn(head, playerPos - dir * 2.1f + side * 0.9f + Vector3.up * 1.9f, out _);
+                wide.Set(a, b, bossPos + Vector3.up * (h * 0.55f), bossPos + Vector3.up * (h * 0.65f));
+            }
+            var close = fieldBossCloseCam != null ? fieldBossCloseCam.GetComponent<CutsceneDolly>() : null;
+            if (close != null)
+            {
+                Vector3 chest = bossPos + Vector3.up * (h * 0.55f);
+                Vector3 best = Vector3.zero, bestTo = Vector3.zero;
+                float bestClear = -1f;
+                foreach (float sign in new[] { 1f, -1f })
+                {
+                    Vector3 from = PullIn(chest, bossPos - dir * (1.4f * h) + side * (0.55f * h * sign) + Vector3.up * 0.35f, out float clear);
+                    if (clear > bestClear)
+                    {
+                        bestClear = clear;
+                        best = from;
+                        bestTo = PullIn(chest, bossPos - dir * (1.0f * h) + side * (0.45f * h * sign) + Vector3.up * 0.3f, out _);
+                    }
+                }
+                close.Set(best, bestTo, bossPos + Vector3.up * (h * 0.8f), bossPos + Vector3.up * (h * 0.95f));
+            }
+            if (titleCard != null) titleCard.SetOverride(title, sub);
+            _boss = boss;
+            bool ok = Play(fieldBoss, CutsceneKind.FieldBoss, onEnd);
+            if (!ok)
+            {
+                _boss = null;
+                if (titleCard != null) titleCard.ClearOverride();
+            }
+            return ok;
+        }
+
         private bool Play(PlayableDirector director, CutsceneKind kind, Action onEnd)
         {
             if (director == null || director.playableAsset == null)
@@ -222,7 +279,11 @@ namespace Saga.Dungeon.Cinematics
             _current = null;
             _kind = CutsceneKind.None;
             if (d.state == PlayState.Playing) d.Stop();
-            if (titleCard != null) titleCard.HideAll();
+            if (titleCard != null)
+            {
+                titleCard.HideAll();
+                titleCard.ClearOverride();
+            }
             if (skipHint != null) skipHint.SetActive(false);
             ShowHud();
             _boss = null;
@@ -246,7 +307,8 @@ namespace Saga.Dungeon.Cinematics
             if (_current == null) return;
 
             _elapsed += dt;
-            if (_kind == CutsceneKind.BossIntro && !_roarFired && _current.time >= bossRoarSec)
+            float roarAt = _kind == CutsceneKind.FieldBoss ? fieldBossRoarSec : bossRoarSec;
+            if ((_kind == CutsceneKind.BossIntro || _kind == CutsceneKind.FieldBoss) && !_roarFired && _current.time >= roarAt)
             {
                 _roarFired = true;
                 if (_boss != null) _boss.PlayRoar();

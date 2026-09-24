@@ -8839,3 +8839,10 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - **HUD·버튼**: `PartyHud`(런타임에 막대를 만든다 — 버튼이 아니라 영속 리스너 불필요), 버튼 셋 도발·치유·소환(`ButtonWiring.Wire`, 회피·주목 줄 왼쪽 x=-460). 키 1·2·V.
 - 파일: 새 `Data/PartyState.cs`·`World/AllyMystic.cs`·`MysticBolt.cs`·`HealGlow.cs`·`PartySummon.cs`·`Player/PartyCommands.cs`·`UI/PartyHud.cs`·`Editor/PlaytestDungeonParty.cs`·`Cinematics/Timelines/Party_Summon.playable`, 고침 `AllyFighter`·`DungeonEnemy`·`PlayerCombat`(맞힐 때 게이지)·`DungeonCutscenes`(Summon 종류)·`BuildDungeonCinematics`·`BuildTestDungeonScene`·`PlaytestDungeonHeadless`. 씬 재빌드(Temple_* 타임라인은 재생성 순서만 바뀜 — 같이 커밋).
 - 검증: 컴파일·씬 재빌드 exit 0(버튼 23 전부 리스너) · `PlaytestDungeonHeadless` **3연속 OK**(첫 실행부터, 새 `party` 줄 "도발 2초 무사 -4.0 · 소환 한 방 200(레벨 3)·맞은 적 1" 3회 동일) · `PlaytestDungeonFloorProgression` OK. 실기 확인은 전. 새 글자 `party.*`·`action.taunt/heal/summon`·`cut.summon_*` 는 `DungeonLocalization.T` 폴백.
+
+## 2026-09-24 — PLAN 106-7 층 두목·살수 등장 컷(DUNGEON, 106-3 후속) (새 대화 "사가유니티 이어해줘", Opus 5.5)
+
+- **고른 까닭**: 지난 대화 끝에 다음 방향(GO·STORY 이식 / 106-6 다듬기)을 물었는데 답 없이 "이어해" — 진행 신호로 받아 추천안을 골랐다. 106-3 이 "다음에 옮길 곳"으로 적은 DUNGEON 층 두목·월드 보스 등장 컷이 판 안 작업이라 가장 작고 안전했다(GO·STORY 이식은 판별 복사라 그다음).
+- **구조**: 컷 하나(`Boss_FieldIntro`)를 여러 두목이 같이 쓴다 — 카메라 두 자리는 달려드는 순간 다시 잡고(상자·소환 컷 결), 이름표는 `CutsceneTitleCard.SetOverride` 로 덮어쓴다(Timeline 클립 글자는 폴백만). `DungeonEnemy` Idle→Chase 에서 `TryPlayFieldIntro` — 층 두목은 매번, 나머지 두목급은 이름마다 세션 한 번(`IntroSeen`), 능묘지기(갑주)는 제외. 두목전 시작 토스트는 컷 `onEnd` 로 미뤘다(레터박스 위에 겹치지 않게). 타이머는 컷 동안 Tick 이 일찍 돌아가 원래 안 준다.
+- 파일: 고침 `DungeonEnemy`·`DungeonCutscenes`(FieldBoss 종류·포효 시각 일반화)·`CutsceneTitleCard`(덮어쓰기)·`BuildDungeonCinematics`, 새 `Editor/PlaytestDungeonBossIntro.cs`·`Boss_FieldIntro.playable`. 씬 재빌드.
+- 검증: 씬 재빌드 exit 0 · `PlaytestDungeonHeadless` **3연속 OK**(새 `boss intro` 줄 "가까운 샷 5.4m · 컷 3번" 3회 동일) · `FloorProgression`·`FieldAmbush`·`Shortcut`·`Town2`·`Towns34` OK. 실기 확인은 전. 새 글자 `cut.floorboss_*`·`cut.miniboss_sub` 는 `DungeonLocalization.T` 폴백.

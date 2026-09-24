@@ -19,10 +19,31 @@ namespace Saga.Dungeon.Cinematics
         public string ShownTitle { get; private set; } = string.Empty;
         public float ShownAlpha { get; private set; }
 
+        // PLAN.md 106-7 — 두목 등장 컷 하나를 여러 두목이 같이 쓴다. 틀기 전에 이름을 덮어쓰고 끝나면 지운다.
+        private string _overrideTitle;
+        private string _overrideSub;
+
+        public void SetOverride(string title, string sub)
+        {
+            _overrideTitle = title;
+            _overrideSub = sub;
+        }
+
+        public void ClearOverride()
+        {
+            _overrideTitle = null;
+            _overrideSub = null;
+        }
+
         private void Awake() => HideAll();
 
         public void Show(CutsceneTitleStyle style, string title, string sub, float alpha)
         {
+            if (_overrideTitle != null)
+            {
+                title = _overrideTitle;
+                sub = _overrideSub ?? string.Empty;
+            }
             bool region = style == CutsceneTitleStyle.Region;
             var group = region ? regionGroup : bossGroup;
             var other = region ? bossGroup : regionGroup;

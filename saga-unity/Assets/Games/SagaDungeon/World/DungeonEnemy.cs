@@ -185,6 +185,12 @@ namespace Saga.Dungeon.World
         private AllyFighter _taunter;
         private float _tauntLeft;
 
+        // PLAN.md 106-7 "두목 등장 컷" — 층 두목(월드 보스)은 매번, 살수 같은 다른 두목급은 세션에 이름마다 한 번.
+        // 능묘지기(갑주)는 제 컷(106-3)이 따로 있다.
+        private static readonly HashSet<string> IntroSeen = new HashSet<string>();
+        private bool _introPlayed;
+        public static void ResetIntroSeenForTest() => IntroSeen.Clear();
+
         private float _windupLeft;
         private float _windupTotal;
         private bool _warnHot;
@@ -386,13 +392,11 @@ namespace Saga.Dungeon.World
                     if (isWorldBoss)
                     {
                         _worldBossActive = true;
-                        _worldBossTimeLeft = WorldBossTimeLimitSec;
+                        _worldBossTimeLeft = WorldBossTimeLimitSec; // 컷 동안은 Tick 이 일찍 돌아가 시간이 안 준다.
                         ActiveWorldBoss = this;
-                        string startMsg = string.Format(
-                            DungeonLocalization.T("worldboss.start", "⏱ 두목전 시작 — {0:0}초 안에 쓰러뜨려라"),
-                            WorldBossTimeLimitSec);
-                        DialogueLabel.Instance?.Show(startMsg, 3f);
                     }
+                    // 두목전 안내는 컷이 있으면 컷 뒤에(레터박스 위에 겹치지 않게).
+                    if (!TryPlayFieldIntro(isWorldBoss ? ShowWorldBossStart : (Action)null) && isWorldBoss) ShowWorldBossStart();
                 }
                 return;
             }
@@ -420,6 +424,28 @@ namespace Saga.Dungeon.World
                     BeginWindup();
                 }
             }
+        }
+
+        private void ShowWorldBossStart()
+        {
+            string startMsg = string.Format(
+                DungeonLocalization.T("worldboss.start", "⏱ 두목전 시작 — {0:0}초 안에 쓰러뜨려라"),
+                WorldBossTimeLimitSec);
+            DialogueLabel.Instance?.Show(startMsg, 3f);
+        }
+
+        /// <summary>PLAN.md 106-7 — 두목급(능묘지기 빼고)이 처음 달려들 때 등장 컷. 틀었으면 true.</summary>
+        private bool TryPlayFieldIntro(Action onEnd)
+        {
+            if (!isBoss || bombArmored || _introPlayed || _player == null) return false;
+            var cuts = DungeonCutscenes.Instance;
+            if (cuts == null || DungeonCutscenes.Playing) return false;
+            if (!isWorldBoss && !IntroSeen.Add(displayName)) return false;
+            _introPlayed = true;
+            string sub = isWorldBoss
+                ? string.Format(DungeonLocalization.T("cut.floorboss_sub", "층 끝의 우두머리 — {0:0}초 안에 쓰러뜨려라"), WorldBossTimeLimitSec)
+                : DungeonLocalization.T("cut.miniboss_sub", "층을 지키는 살수 — 홀로 서서 기다린다");
+            return cuts.PlayFieldBoss(this, _player.position, LocalizedDisplayName, sub, onEnd);
         }
 
         /// <summary>PLAN.md 106-3 — 등장 컷에서 `DungeonCutscenes` 가 부른다. 플레이어를 보고
