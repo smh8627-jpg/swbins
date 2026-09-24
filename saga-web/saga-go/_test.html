@@ -93,6 +93,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/geo.js"></script>
 <script src="js/world.js"></script>
 <script src="js/npc.js"></script>
+<script src="js/folk.js"></script>
 <script src="js/animal.js"></script>
 <script src="js/toon3d.js"></script>
 <script src="js/anim-own.js"></script>
@@ -8644,6 +8645,80 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         home === 0 && off === 0 && JSON.stringify(again) === JSON.stringify(east) &&
         ('땅 16 모두 과거·현대·미래 · 소품 ' + Object.keys(P3.FUSION).length + '종(파일 경로 맞음) · 청풍 벌판 256칸에 ' + east.length + '개(' + Object.keys(eraSeen).join('·') + ') · 고향 0 · 끄면 0 · 다시 훑어도 같음') ||
         (function () { throw new Error(bad.slice(0, 4).join(' ') + ' url=' + urlOk + ' east=' + east.length + ' wrong=' + wrong.length + ' home=' + home + ' off=' + off); })();
+    });
+
+    /* ── ⑱ 세 시대 사람·적 (field-combat ERA_THEMES · folk.js, PLAN §5 ⑱ · SAGA-DESIGN §13) ── */
+    t('세 시대 적 ⑱ — 땅 시대가 무리 60%, 나머지 두 시대가 40% · 땅 열여섯 모두 과거·현대·미래 무리 · 시작점 둘레·땅 없으면 옛 무리', function () {
+      var FC = DG.fieldCombat, BM = DG.biome, A3 = DG.asset3d, bad = [];
+      Object.keys(FC.ERA_THEMES).concat(Object.keys(FC.ERA_ELITES)).forEach(function (e) {
+        var ls = FC.ERA_THEMES[e] ? FC.ERA_THEMES[e] : [FC.ERA_ELITES[e]];
+        ls.forEach(function (l) { l.forEach(function (k) {
+          var F = FC.FOES[k];
+          if (!F || F.era !== e) { bad.push(k + ' 시대'); return; }
+          if ((A3.urlOf('pet', { id: 'fc_' + k }) || '').indexOf('assets/models/foes/') !== 0) { bad.push(k + ' 모델'); }
+        }); });
+      });
+      var byZone = {}, main = 0, n = 0, nearPast = true, cx, cy;
+      for (cy = -64; cy <= 64; cy += 2) {
+        for (cx = -64; cx <= 64; cx += 2) {
+          var c = FC.campAt(cx, cy, null, BM.biomeAt, BM.zoneAt);
+          if (!c) { continue; }
+          var d = Math.hypot(c.x, c.y), z = BM.zoneAt(c.x, c.y);
+          if (d < 300) { if (c.era !== 'past') { nearPast = false; } continue; }
+          if (!z || c.kind === 'boss') { continue; }
+          var era = c.era, eras = byZone[z.key] || (byZone[z.key] = {});
+          eras[era] = 1; n++;
+          if (era === (z.era === 'myth' ? 'past' : z.era)) { main++; }
+          c.foes.forEach(function (f) { if (FC.FOES[f.kind].era && FC.FOES[f.kind].era !== era) { bad.push(f.kind + '@' + era); } });
+        }
+      }
+      var full = BM.ZONES.filter(function (z) { var e = byZone[z.key] || {}; return e.past && e.modern && e.future; }).length;
+      var share = main / Math.max(1, n);
+      var same = JSON.stringify(FC.campAt(21, -7, null, BM.biomeAt, BM.zoneAt)) === JSON.stringify(FC.campAt(21, -7, null, BM.biomeAt, BM.zoneAt));
+      var plainOld = true;
+      for (cx = 5; cx < 25; cx++) { var o = FC.campAt(cx, 9, null, BM.biomeAt); if (o && o.era !== 'past') { plainOld = false; } }
+      return bad.length === 0 && full === 16 && share > 0.5 && share < 0.7 && nearPast && same && plainOld &&
+        ('무리 ' + n + '곳 · 제 시대 ' + Math.round(share * 100) + '% · 세 시대 다 있는 땅 ' + full + '/16 · 적 ' + (Object.keys(FC.FOES).filter(function (k) { return FC.FOES[k].era; }).length) + '종 모델 경로 맞음 · 시작점 300m 안 과거 · 땅 없으면 옛 무리') ||
+        (function () { throw new Error(bad.slice(0, 5).join(' ') + ' full=' + full + ' share=' + share.toFixed(2) + ' near=' + nearPast + ' same=' + same + ' old=' + plainOld); })();
+    });
+
+    t('땅 사람 ⑱ — 탑마다 셋(제 시대 + 나머지 둘)이 둘레에 서고 수호자 자리를 비킨다 · 오가는 자리는 시각의 순수 함수 · 말에 땅 이름(조사 맞음) · 시대 옷 · 고향·끄면 0', function () {
+      var FK = DG.folk, BM = DG.biome, A3 = DG.asset3d, bad = [], seen = {};
+      function cellIn(zk) {
+        for (var r = 1; r < 14; r++) { for (var a = 0; a < 16; a++) {
+          var i = Math.round(Math.cos(a / 16 * 6.283) * r), j = Math.round(Math.sin(a / 16 * 6.283) * r), c = BM.cellAt(i, j);
+          if (c.zone === zk) { return c; }
+        } }
+        return null;
+      }
+      BM.ZONES.forEach(function (z) {
+        var c = cellIn(z.key);
+        if (!c) { bad.push(z.key + ' 칸 없음'); return; }
+        var ps = FK.folkOf(c), ages = ps.map(function (p) { return p.age; });
+        if (ps.length !== 3 || ages[0] !== (z.era === 'myth' ? 'past' : z.era) || ages.slice().sort().join() !== 'future,modern,past') { bad.push(z.key + ' ' + ages.join('/')); }
+        ps.forEach(function (p) {
+          var dr = Math.hypot(p.x - c.x, p.y - c.y), dg = Math.hypot(p.x - (c.x + 16), p.y - (c.y + 10));
+          if (Math.abs(dr - FK.RING) > 0.01 || dg < 8) { bad.push(p.id + ' 자리 ' + dr.toFixed(1) + '/' + dg.toFixed(1)); }
+          var line = FK.say(p, 0) + FK.say(p, 7200000);
+          if (line.indexOf('{') >= 0) { bad.push(p.id + ' 말'); }
+          var u = A3.urlOf('hero', p) || '';
+          if (p.age !== 'past' && u.indexOf('folk_') !== 0) { bad.push(p.id + ' 옷 ' + u); }
+          seen[p.age + ':' + p.role] = 1;
+        });
+      });
+      var c0 = cellIn('neon'), p0 = FK.folkOf(c0)[0], a = FK.posAt(p0, 5000), b = FK.posAt(p0, 5000), moved = false, far = 0, t;
+      for (t = 0; t < 36000; t += 500) {
+        var q = FK.posAt(p0, t), dd = Math.hypot(q.x - p0.x, q.y - p0.y);
+        if (q.walking) { moved = true; } if (dd > far) { far = dd; }
+      }
+      var josaOk = FK.josa('잿빛 폐도시', '을') === '잿빛 폐도시를' && FK.josa('청풍 벌판', '이') === '청풍 벌판이' && FK.josa('가마골', '는') === '가마골은';
+      var here = FK.live({ x: c0.x, y: c0.y }, 0).length, home = FK.live({ x: 0, y: 0 }, 0).length;
+      C.setTune('folk.on', 0);
+      var off;
+      try { off = FK.live({ x: c0.x, y: c0.y }, 0).length; } finally { C.setTune('folk.on', null); }
+      return bad.length === 0 && JSON.stringify(a) === JSON.stringify(b) && moved && far <= 4.6 && far > 4 && josaOk && here >= 3 && home === 0 && off === 0 &&
+        ('땅 16 × 셋 = 48 모두 과거·현대·미래(첫째가 제 시대) · 역할 ' + Object.keys(seen).length + '가지 · 탑에서 24m·수호자와 8m+ · 4.5m 를 오감 · 조사 맞음 · 폐도시 탑 곁 ' + here + '명 · 고향 0 · 끄면 0') ||
+        (function () { throw new Error(bad.slice(0, 5).join(' ') + ' moved=' + moved + ' far=' + far.toFixed(2) + ' josa=' + josaOk + ' here=' + here + ' home=' + home + ' off=' + off); })();
     });
 
     t('런타임 에러 없음', function () {

@@ -148,6 +148,15 @@
     ember:  { name: '홍염마',     ref: 'pt_jeoktoma',     el: 'fire',  hp: 1.8, atk: 1.3, spd: 5.0, reach: 2.4, type: 'melee', wind: 0.7,  cd: 1.8, h: 1.5,  exp: 3, shield: 'fire',  sh: 1.2 },
     tortoise: { name: '물거북 장수', ref: 'pt_hyeonmu',   el: 'water', hp: 2.2, atk: 1.2, spd: 3.0, reach: 7.0, type: 'spit',  wind: 1.0,  cd: 2.4, h: 1.4,  exp: 3, shield: 'water', sh: 1.5, r: 2.2 },
     bolt:   { name: '섬영마',     ref: 'pt_jeolyeong',    el: 'elec',  hp: 1.6, atk: 1.2, spd: 7.5, reach: 2.2, type: 'melee', wind: 0.5,  cd: 1.5, h: 1.5,  exp: 3, shield: 'elec',  sh: 1.0 },
+    /* ⑱ 세 시대 적(SAGA-DESIGN §13) — 위 짐승·도깨비가 "과거", 아래가 현대·미래. 도감에 없는 종이라 ref 가 비고
+       몸은 `asset3d` 의 `pet:fc_<종류>` 다(Quaternius CC0). 힘은 과거 보통 무리와 같은 결 */
+    rat:    { name: '잿빛 떼쥐',   ref: null, era: 'modern', el: null,    hp: 0.7, atk: 0.8, spd: 6.2, reach: 1.8, type: 'melee', wind: 0.45, cd: 1.4, h: 0.7,  exp: 1 },
+    wasp:   { name: '벼락 말벌',   ref: null, era: 'modern', el: 'elec',  hp: 0.6, atk: 0.9, spd: 6.8, reach: 2.0, type: 'melee', wind: 0.5,  cd: 1.6, h: 0.9,  exp: 1 },
+    zombie: { name: '떠도는 망자', ref: null, era: 'modern', el: null,    hp: 1.5, atk: 1.1, spd: 3.0, reach: 2.2, type: 'melee', wind: 0.9,  cd: 2.2, h: 1.15, exp: 1 },
+    drone:  { name: '정찰 드론',   ref: null, era: 'future', el: 'elec',  hp: 0.7, atk: 0.9, spd: 5.5, reach: 7.0, type: 'spit',  wind: 0.8,  cd: 2.2, h: 1.0,  exp: 1, r: 1.6 },
+    walker: { name: '경비 보행기', ref: null, era: 'future', el: 'fire',  hp: 1.3, atk: 1.1, spd: 4.2, reach: 2.4, type: 'melee', wind: 0.7,  cd: 1.9, h: 1.2,  exp: 1 },
+    alien:  { name: '별바다 손님', ref: null, era: 'future', el: 'water', hp: 1.0, atk: 1.0, spd: 5.0, reach: 2.0, type: 'melee', wind: 0.55, cd: 1.6, h: 1.0,  exp: 1 },
+    hulk:   { name: '강철 거신',   ref: null, era: 'future', el: 'fire',  hp: 2.4, atk: 1.4, spd: 3.6, reach: 3.4, type: 'slam',  wind: 1.0,  cd: 2.6, h: 1.9,  exp: 3, r: 3.4, shield: 'elec', sh: 1.4 },
     /* 우두머리 — 멀리서만 */
     rex:    { name: '폭군용',     ref: 'pt_t_rex',        el: null,    hp: 6.0, atk: 2.0, spd: 4.5, reach: 4.5, type: 'slam',  wind: 1.2,  cd: 2.8, h: 2.4,  exp: 8, r: 4.8, boss: true },
     /* 싸워서 등용(PLAN §5 ⑯) — 들판 인물이 **제 기질대로** 싸운다. 몸은 도감 인물 그대로(world3d 가 hero 로 그린다),
@@ -209,6 +218,24 @@
     ['imp', 'toad', 'raptor']
   ];
   var ELITES = [['ember', 'imp', 'imp'], ['tortoise', 'toad', 'toad'], ['bolt', 'raptor', 'raptor']];
+  /* ⑱ 시대 무리 — 땅(biome.js ZONES)의 시대가 제 몫(60%)을, 나머지 두 시대가 40%를 나눠 갖는다.
+     과거 몫은 위 바이옴 무리 그대로(신화 땅도 과거 몫 — 도깨비·용이 신화다). 미래만 정예(강철 거신)가 따로 있다 */
+  var ERA_THEMES = {
+    modern: [['rat', 'rat', 'rat'], ['wasp', 'wasp'], ['zombie', 'zombie', 'rat'], ['zombie', 'wasp']],
+    future: [['drone', 'drone'], ['walker', 'walker', 'drone'], ['alien', 'alien', 'walker'], ['alien', 'drone']]
+  };
+  var ERA_ELITES = { future: ['hulk', 'drone', 'drone'] };
+  var ERAS3 = ['past', 'modern', 'future'];
+  function MAIN_SHARE() { return K('eraMain', 0.6); }
+  function ERA_FROM() { return K('eraFrom', 300); }      // 시작점 둘레는 과거 짐승만(첫걸음이 로봇이면 뜬금없다)
+  /** 이 칸 무리의 시대 — 순수 함수. zone 이 없으면(고향·진단) 'past' */
+  function eraOfCamp(cx, cy, zone, dist) {
+    if (!zone || !zone.era || dist < ERA_FROM()) { return 'past'; }
+    var main = zone.era === 'myth' ? 'past' : zone.era;
+    if (h3(cx, cy, 37) < MAIN_SHARE()) { return main; }
+    var rest = ERAS3.filter(function (e) { return e !== main; });
+    return rest[Math.floor(h3(cx, cy, 41) * rest.length) % rest.length];
+  }
 
   var CELL = 160;          // 무리 격자(m)
   var TILE = 48;           // world3d GRID — 지형 칸
@@ -221,8 +248,9 @@
   /**
    * 격자 한 칸의 무리 — 없으면 null. 순수 함수(같은 칸은 늘 같은 답).
    * terr(tx,ty) 를 주면 물·마을·길 위에는 안 세운다(진단은 안 줘도 된다).
+   * zfn(x,y) → 땅(biome.zoneAt)을 주면 ⑱ 시대가 섞인다 — 안 주면 옛 바이옴 무리 그대로.
    */
-  function campAt(cx, cy, terr, bfn) {
+  function campAt(cx, cy, terr, bfn, zfn) {
     if (h3(cx, cy, 7) > CAMP_CHANCE()) { return null; }
     var x = (cx + 0.2 + 0.6 * h3(cx, cy, 11)) * CELL;
     var y = (cy + 0.2 + 0.6 * h3(cx, cy, 13)) * CELL;
@@ -237,11 +265,16 @@
     var th = B && B.themes ? B.themes : null, el = B && B.elites ? B.elites : null;
     var bossP = B && B.boss !== undefined ? B.boss : 0.05;
     var r = h3(cx, cy, 17), list, kind = 'plain';
-    if (dist > 400 && r < bossP) { list = ['rex', 'boar', 'boar']; kind = 'boss'; }
+    var era = eraOfCamp(cx, cy, zfn ? zfn(x, y) : null, dist);
+    if (dist > 400 && r < bossP) { list = ['rex', 'boar', 'boar']; kind = 'boss'; era = 'past'; }
+    else if (r < bossP + 0.15 && ERA_ELITES[era]) { list = ERA_ELITES[era]; kind = 'elite'; }
     else if (r < bossP + 0.15) {
       list = el ? ELITES[el[Math.floor(h3(cx, cy, 19) * el.length) % el.length]]
         : ELITES[Math.floor(h3(cx, cy, 19) * ELITES.length) % ELITES.length];
       kind = 'elite';
+    } else if (ERA_THEMES[era]) {
+      var et = ERA_THEMES[era];
+      list = et[Math.floor(h3(cx, cy, 23) * et.length) % et.length];
     } else {
       list = th ? THEMES[th[Math.floor(h3(cx, cy, 23) * th.length) % th.length]]
         : THEMES[Math.floor(h3(cx, cy, 23) * THEMES.length) % THEMES.length];
@@ -252,7 +285,7 @@
       var rr = i === 0 && kind !== 'plain' ? 0 : 3.2;
       foes.push({ kind: list[i], dx: Math.cos(a) * rr, dy: Math.sin(a) * rr });
     }
-    return { key: cx + '_' + cy, x: x, y: y, tier: tierAt(x, y), kind: kind, foes: foes };
+    return { key: cx + '_' + cy, x: x, y: y, tier: tierAt(x, y), kind: kind, era: era, foes: foes };
   }
 
   /* ── 편성 ─────────────────────────────────────────────── */
@@ -354,7 +387,7 @@
    * 내 둘레 격자를 훑어 무리를 들이고, 멀어진(그리고 싸우지 않는) 무리는 치운다.
    * 치운 무리는 다시 오면 온전한 모습으로 선다(체력은 기억하지 않는다).
    */
-  function populate(S, px, py, terr, radius, bfn, lfn) {
+  function populate(S, px, py, terr, radius, bfn, lfn, zfn) {
     var R = radius || 200, far = R * 1.6;
     /* ⑪ 수호자 — 둘레 랜드마크(`biome.landmarks`)마다 하나 */
     if (lfn) {
@@ -371,7 +404,7 @@
       for (var cx = c0x; cx <= c1x; cx++) {
         var key = cx + '_' + cy;
         if (S.camps[key] || S.cleared[key]) { continue; }
-        var c = campAt(cx, cy, terr, bfn);
+        var c = campAt(cx, cy, terr, bfn, zfn);
         if (c && Math.hypot(c.x - px, c.y - py) <= R) { spawnCamp(S, c); }
       }
     }
@@ -921,7 +954,8 @@
       popAcc = 0;
       var BM = global.DG.biome;
       populate(S, pos.x, pos.y, terrFn(), K('activeR', 200), BM && BM.on() ? BM.biomeAt : null,
-        BM && BM.on() && BM.landmarks && K('guards', 1) ? BM.landmarks : null);
+        BM && BM.on() && BM.landmarks && K('guards', 1) ? BM.landmarks : null,
+        BM && BM.on() && BM.zoneAt && K('eras', 1) ? BM.zoneAt : null);
       respawnSweep();
     }
     if (refAcc > 2) { refAcc = 0; refreshStats(); }
@@ -1361,7 +1395,7 @@
 
   global.DG = global.DG || {};
   global.DG.fieldCombat = {
-    EL: EL, FOES: FOES, THEMES: THEMES, ELITES: ELITES, CELL: CELL, ENERGY_MAX: ENERGY_MAX,
+    EL: EL, FOES: FOES, THEMES: THEMES, ELITES: ELITES, ERA_THEMES: ERA_THEMES, ERA_ELITES: ERA_ELITES, eraOfCamp: eraOfCamp, CELL: CELL, ENERGY_MAX: ENERGY_MAX,
     SKILL_CD: SKILL_CD, SWAP_CD: SWAP_CD, DODGE_COST: DODGE_COST, VAPOR_MUL: VAPOR_MUL,
     /* 판정 층 — 화면 없이 굴린다(자가진단이 쓰는 문) */
     elementOf: elementOf, shapeOf: shapeOf, SHAPES: SHAPES, segDist: segDist, react: react, shieldMul: shieldMul, campAt: campAt, tierAt: tierAt, guardianAt: guardianAt, COUNTER: COUNTER,

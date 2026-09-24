@@ -225,6 +225,10 @@
      탈 필요가 없다 — 타면 파일마다 몸짓 마흔한 개를 헛되이 다시 굽는다. `acquire()`
      가 이 표에 있는 url 이면 자동 리타기팅을 건너뛴다. QRPG는 제 클립이 있어
      `needsRetarget()` 이 애초에 false 지만, 표에 같이 올려 뜻을 분명히 해 둔다 */
+  /* 땅 사람 옷차림(§5 ⑱) — 제 클립이 든 파일이라 QRPG 처럼 body 와 anim 을 같은 파일로 준다 */
+  var FOLK_DIR = PEOPLE + 'folk/', FOE_DIR = 'assets/models/foes/';
+  function folkRecipe(n) { var f = FOLK_DIR + n + '.glb'; return { key: 'folk_' + n.toLowerCase(), body: f, anim: f }; }
+
   var SKIP_AUTORETARGET = {};
   HERO_RECIPES.concat(HERO_RECIPES_FALLBACK).forEach(function (r) {
     SKIP_AUTORETARGET[r.body] = true;
@@ -407,7 +411,23 @@
     'landmark:canyon': BLD + 'LargeTower.glb',
     'landmark:marsh': BLD + 'Tower.glb',
     'landmark:ruins': BLD + 'LargeSquareTowerBricks.glb',
-    'landmark': BLD + 'LargeTower.glb'
+    'landmark': BLD + 'LargeTower.glb',
+
+    /* 세 시대 사람·적(PLAN §5 ⑱ · SAGA-DESIGN §13 전체 퓨전). 전부 Quaternius CC0 — 사가블로가 받아 둔 poly.pizza
+       사람·몬스터를 옮겨 오고, 사이버펑크 로봇 셋은 미러에서 받아 Meshopt 로 쌌다(`assets/ASSET_LICENSES.md`).
+       땅 사람(`folk.js`)은 ref.era 가 `folk_past`·`folk_modern`·`folk_future` 라 `hero:era:*` 에 걸린다 —
+       도감 인물의 era('삼국지' 등)와는 겹치지 않는다. 과거는 이미 받는 인물 여섯 벌에 농부·무녀를 보탠다 */
+    'hero:era:folk_past': HERO_RECIPES.concat(['m_Farmer', 'w_Witch'].map(folkRecipe)),
+    'hero:era:folk_modern': ['m_BusinessMan', 'm_Worker', 'm_Hoodie', 'm_SWAT', 'w_Suit', 'w_Worker'].map(folkRecipe),
+    'hero:era:folk_future': ['w_SciFi', 's_Astronaut1', 's_Astronaut2'].map(folkRecipe),
+    /* 들판 적(field-combat.js FOES) — 도감에 없는 종은 ref.id 가 `fc_<종류>` 다 */
+    'pet:fc_rat': FOE_DIR + 'Rat.glb',
+    'pet:fc_wasp': FOE_DIR + 'Wasp.glb',
+    'pet:fc_zombie': FOE_DIR + 'Zombie.glb',
+    'pet:fc_drone': FOE_DIR + 'Robot_Drone.glb',
+    'pet:fc_walker': FOE_DIR + 'Robot_Walker.glb',
+    'pet:fc_alien': FOE_DIR + 'Alien.glb',
+    'pet:fc_hulk': FOE_DIR + 'Robot_Large.glb'
   };
 
   /** 되돌림 자리 — 실사로 갈아 끼우기 전 값. `register('station', STATION_STYLIZED)` ·
@@ -492,7 +512,8 @@
   /** 인물의 몸·옷·머리 조합 — 표에 적힌 것이 조합 객체일 때만 준다(테스트가
    *  `register('hero', 'a.glb')` 처럼 문자열 하나로 덮어써도 안 깨지게) */
   function heroRecipe(ref) {
-    if (wantsAnimeAvatar()) {
+    /* ⑱ 땅 사람(`folk.js`)은 시대 옷이 곧 그 사람이라 애니메 몸으로 바꾸지 않는다 */
+    if (wantsAnimeAvatar() && !(ref && /^folk_/.test(String(ref.era || '')))) {
       var arec = oneOf(HERO_RECIPES_ANIME, ref);
       if (arec) { return arec; }
     }
@@ -528,7 +549,7 @@
 
   var WORDS = {
     idle: ['idle', 'stand', 'standing', 'breathe', 'rest', 'wait', 'loop'],
-    walk: ['walk', 'walking', 'locomotion', 'move', 'swim'],  // 'swim' — 물고기 클립(`Swim`)이 걷기 자리를 채운다
+    walk: ['walk', 'walking', 'locomotion', 'move', 'swim', 'flying'],  // 'swim' — 물고기 클립(`Swim`) · 'flying' — 말벌(`Wasp_Flying`, 걷기 클립 없음)
     run: ['run', 'running', 'jog'],
     sprint: ['sprint', 'runfast', 'fastrun', 'dash'],
     attack: ['attack', 'atk', 'slash', 'swing', 'strike', 'punch', 'shoot', 'cast'],

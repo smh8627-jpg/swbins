@@ -1389,3 +1389,20 @@ VRoid Studio 공식 CC0 샘플 AvatarSample_A/B/C(github.com/madjin/vrm-samples,
 | `cyberpunk_pack` | AC_Stacked · Light_Street_2 · Antenna_2 · Tank · Turret_Cannon · Support_Long |
 | `ultimate_space_pack` | SolarPanel_Structure · SolarPanel_Ground · GeodesicDome · House_Cylinder · Roof_Radar · Rover_1 · Tree_Floating_1 · Tree_Light_1 · Tree_Lava_1 · Tree_Spiral_1 |
 | `nature_pack` | Cactus_2 · PalmTree_2 · PineTree_Snow_2 · Rock_Snow_2 |
+
+## Quaternius — 세 시대 사람·적 (2026-09-24, `models/people/folk/`·`models/foes/`, PLAN §5 ⑱)
+
+| 항목 | |
+|---|---|
+| **만든 이** | Quaternius — CC0 1.0(재배포 허용, 저작자 표시 불필요) |
+| **받은 곳** | 사람 11·쥐·말벌·망자·외계 손님은 **사가블로가 이미 받아 둔 파일을 복사**(`saga-dungeon/assets/models/people/polypizza_men·women·space/`, `monsters/quaternius2/`·`monsters/quaternius/Alien_0bb74be9.glb` — 출처 poly.pizza "Ultimate Modular Men/Women Pack"·"Ultimate Space Kit"·Quaternius 몬스터, 사가블로 `assets/ASSET_LICENSES.md` 해당 절) · 로봇 셋은 미러 <https://github.com/trebeljahr/quaternius-showcase> `public/glb/cyberpunk_pack/`(`Enemy_Flying`·`Enemy_2Legs`·`Enemy_Large`) |
+| **가공** | 복사본은 이미 Meshopt. 로봇 셋만 `tools/glb-compress` 로 Meshopt(1.2MB → 0.26MB). 파일 이름: 사람은 `m_`(남)·`w_`(여)·`s_`(우주), 로봇은 `Robot_Drone`·`Robot_Walker`·`Robot_Large`. 전부 제 클립(걷기·대기·공격·죽음) 내장이라 리타깃 없음 |
+| **쓰이는 곳** | `js/asset3d.js` `hero:era:folk_*`(땅 사람 `folk.js`) · `pet:fc_*`(들판 적 `field-combat.js` FOES) |
+
+| 자리 | 파일 |
+|---|---|
+| 사람 — 과거 | m_Farmer · w_Witch (+ 기존 QRPG 여섯 벌) |
+| 사람 — 현대 | m_BusinessMan · m_Worker · m_Hoodie · m_SWAT · w_Suit · w_Worker |
+| 사람 — 미래 | w_SciFi · s_Astronaut1 · s_Astronaut2 |
+| 적 — 현대 | Rat · Wasp · Zombie |
+| 적 — 미래 | Robot_Drone · Robot_Walker · Robot_Large · Alien |

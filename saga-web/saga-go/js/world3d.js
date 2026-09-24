@@ -2352,6 +2352,19 @@
         : Math.sin(now / 700 + i) * h * 0.014;
       placeActor(na, n.x, n.y, h * 0.94 * farBoost(n.x, n.y), nbob, n.walking, n.phase, now);
     }
+    /* ⑱ 땅 사람 — 탑 둘레 과거·현대·미래 셋(`folk.js`). 주민처럼 잡히지 않는다. 서 있을 땐 탑을 본다 */
+    var FK = global.DG.folk;
+    var folks = FK ? FK.live(pos, now) : [];
+    for (i = 0; i < folks.length; i++) {
+      var fk = folks[i];
+      var fka = actorOf('fk' + fk.p.id, 'hero', fk.p, 96);
+      placeActor(fka, fk.x, fk.y, h * 0.94 * farBoost(fk.x, fk.y), fk.walking ? 0 : Math.sin(now / 700 + i) * h * 0.014, fk.walking, fk.phase, now);
+      if (!fk.walking && fka.mesh) {
+        var fkd = Math.PI / 2 - fk.ang - fka.ang;          // placeActor 규약(atan2(dx,dz))으로 탑 쪽 — 미끄러지듯 돈다
+        fkd = Math.atan2(Math.sin(fkd), Math.cos(fkd));
+        fka.ang += fkd * 0.08; fka.node.rotation.y = fka.ang;
+      }
+    }
 
     /* 짐승 — 들·강의 다섯 종(`animal.js`). 잡는 대상이 아니라 **거기 사는 것**이라
        등급 고리도 이름표도 없다. 새는 뜨고 물고기는 잠기므로 세운 뒤 높이를 준다 */

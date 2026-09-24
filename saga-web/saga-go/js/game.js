@@ -380,6 +380,7 @@
     global.DG.buddy.tick();             // 곁을 걷는 반려가 영초를 물어 온다
     global.DG.fort.tick();              // 사기가 다한 성채에서 손을 뗀다
     global.DG.npc.tick();               // 이 땅에 사는 열 사람 — 가까이 가면 한 마디 한다
+    if (global.DG.folk) { global.DG.folk.tick(); }   // ⑱ 탑 둘레 세 시대 사람 — 가까이 가면 한 마디
     global.DG.animal.tick();            // 들·강의 짐승 — 늑대가 붙으면 알린다
     global.DG.event.tick();             // 걷다가 만나는 사건 — 거리로 잰다
     global.DG.ambient.tick();           // 그 사이를 메우는 풍경·발자국(축1)

@@ -21,6 +21,8 @@
 | 3D 모델 (`models/buildings`) | 13 | 2.76 MB |
 | 3D 모델 (`models/props`) | 8 | 0.85 MB |
 | 3D 모델 (`models/fusion`, 땅 전용 퓨전 소품 — Quaternius CC0, Meshopt) | 33 | 0.6 MB |
+| 3D 모델 (`models/people/folk`, 땅 사람 세 시대 — Quaternius CC0, Meshopt) | 11 | 4.3 MB |
+| 3D 모델 (`models/foes`, 들판 적 현대·미래 — Quaternius CC0, Meshopt) | 7 | 0.8 MB |
 | 3D 모델 (`models/animals`) | 5종(파일 7개, 까치는 `.gltf`+`.bin`+`.webp`) | 2.07 MB |
 | 3D 모델 (`models/people/quaternius_rpg`, 사람 기본) | 6 | 10.8 MB |
 | 3D 모델 (`models/people/regular`, 되돌림 자리) | 33(`.gltf`12·`.bin`12·`.webp`8·`.png`1) | 7.7 MB |
