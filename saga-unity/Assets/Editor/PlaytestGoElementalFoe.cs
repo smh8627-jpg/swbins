@@ -94,7 +94,7 @@ namespace Saga.EditorTools
             var groups = new HashSet<string>();
             foreach (var e in FieldEnemy.All)
             {
-                if (!e.IsElemental) continue;
+                if (!e.IsElemental || e.IsGuardian) continue; // 107-7 수호장은 따로(PlaytestGoGuardian)
                 n++;
                 groups.Add(e.GroupId);
                 if (!FieldEnemy.CanStandOn(e.Home)) Fail($"{e.DisplayName} 집이 설 수 없는 칸");

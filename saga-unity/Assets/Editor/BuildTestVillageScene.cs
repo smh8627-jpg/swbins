@@ -84,6 +84,7 @@ namespace Saga.EditorTools
             BuildSettingsUi();
             BuildGoalBoardUi();
             BuildPerkChoiceUi();
+            BuildGoCinematics.Build(playerGo.GetComponentInChildren<Unity.Cinemachine.CinemachineBrain>()); // PLAN.md 106-9 — 카메라·HUD 뒤.
             BuildBootstrap();
             var joystick = BuildMobileHud();
 
@@ -318,6 +319,7 @@ namespace Saga.EditorTools
             var spawner = spawnerGo.AddComponent<Saga.Go.Combat.FieldSpawner>();
             SetPrivateField(spawner, "banditModel", AssetDatabase.LoadAssetAtPath<GameObject>(AbeAnimatedPrefabPath));
             SetPrivateField(spawner, "skeletonModel", AssetDatabase.LoadAssetAtPath<GameObject>(SetupNpcCharacterImports.PrefabPath("Skeleton")));
+            SetPrivateField(spawner, "guardianModel", AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/CharactersRealistic/Brute/BruteAnimated.prefab")); // PLAN.md 107-7 망루 수호장 = 두목 모델.
 
             // PLAN.md 107-6 "동료 모델" — 교체하면 몸이 바뀐다(모델은 로컬 전용, 없으면 주인공 몸 + 원소 빛깔)
             var bodies = playerGo.AddComponent<PartyBodies>();
@@ -663,6 +665,19 @@ namespace Saga.EditorTools
             camGo.AddComponent<AudioListener>();
             camGo.AddComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>()
                 .renderPostProcessing = true;
+
+            // PLAN.md 106-9 — DUNGEON 106-3 과 같은 하이브리드: CameraRig 는 이 플레이 가상 카메라를 밀고,
+            // 실제 카메라의 CinemachineBrain 이 거기(또는 수호장 등장 컷 카메라)에 붙인다.
+            var viewGo = new GameObject("PlayerView");
+            viewGo.transform.SetParent(rigGo.transform, false);
+            viewGo.transform.localPosition = new Vector3(0f, 0f, -9f);
+            var playerView = viewGo.AddComponent<Unity.Cinemachine.CinemachineCamera>();
+            playerView.Priority = 10;
+            playerView.Lens = Unity.Cinemachine.LensSettings.FromCamera(cam);
+            SetPrivateField(cameraRig, "view", viewGo.transform);
+            var brain = camGo.AddComponent<Unity.Cinemachine.CinemachineBrain>();
+            brain.DefaultBlend = new Unity.Cinemachine.CinemachineBlendDefinition(
+                Unity.Cinemachine.CinemachineBlendDefinition.Styles.EaseInOut, 0.6f);
 
             var inputActions = AssetDatabase.LoadAssetAtPath<UnityEngine.InputSystem.InputActionAsset>(InputActionsPath);
             if (inputActions == null)

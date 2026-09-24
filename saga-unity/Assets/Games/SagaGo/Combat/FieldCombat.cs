@@ -152,7 +152,7 @@ namespace Saga.Go.Combat
         {
             float dt = Time.deltaTime;
             TickTimers(dt);
-            if (DuelGate.Active || Active == null) return;
+            if (DuelGate.Active || Active == null || Saga.Go.Cinematics.GoCutscenes.Playing) return; // 106-9 등장 컷 동안 입력 안 받음
 
             var kb = Keyboard.current;
             if (kb == null) return;

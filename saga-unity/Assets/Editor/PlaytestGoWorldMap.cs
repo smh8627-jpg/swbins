@@ -56,7 +56,7 @@ namespace Saga.EditorTools
                 GoStamina.ResetFull();
                 ui.Close();
             }
-            if (_ok) Debug.Log($"[{_tag}] world map OK - 지역 {GoWorldMap.Regions.Length}·역참 {builder.Stones.Count}·봉우리·망루 등반/밝히기·순간이동(진짜 버튼)·지도 열고 닫기·세이브 v14 왕복·v13 로드");
+            if (_ok) Debug.Log($"[{_tag}] world map OK - 지역 {GoWorldMap.Regions.Length}·역참 {builder.Stones.Count}·봉우리·망루 등반/밝히기·순간이동(진짜 버튼)·지도 열고 닫기·세이브 v15 왕복·v13 로드");
             return _ok;
         }
 
@@ -185,14 +185,15 @@ namespace Saga.EditorTools
             var rg = WorldMapState.SnapshotRegions();
             if (!SaveState.Save()) { Fail("SaveState.Save 실패"); return; }
             string json = System.IO.File.ReadAllText(savePath);
-            if (!json.Contains("\"version\":14")) Fail("세이브 버전이 14 가 아님");
+            if (!json.Contains("\"version\":15")) Fail("세이브 버전이 15 가 아님"); // 107-7 수호장으로 v15
             WorldMapState.Restore(null, null, false);
             if (!SaveState.TryLoad()) { Fail("v14 TryLoad 실패"); return; }
             if (WorldMapState.ActiveCount != wp.Count || !WorldMapState.Revealed || WorldMapState.SnapshotRegions().Count != rg.Count)
                 Fail("v14 왕복 뒤 지도 상태가 다름");
 
             // v13 옛 파일 — 지도 필드 없이 → 빈 기본값
-            string v13 = json.Replace("\"version\":14", "\"version\":13");
+            string v13 = json.Replace("\"version\":15", "\"version\":13");
+            v13 = Regex.Replace(v13, ",\"guardianDown\":(true|false)", "");
             v13 = Regex.Replace(v13, ",\"waypoints\":\\[[^\\]]*\\]", "");
             v13 = Regex.Replace(v13, ",\"regionsVisited\":\\[[^\\]]*\\]", "");
             v13 = Regex.Replace(v13, ",\"mapRevealed\":(true|false)", "");

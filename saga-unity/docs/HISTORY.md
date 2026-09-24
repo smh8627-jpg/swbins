@@ -8856,3 +8856,12 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - **진단 함정 피하기**: `PlaytestStorySlice` 의 KillBoss 단계가 플레이어를 두목 곁으로 순간이동하므로, 컷 진단을 Init 단계(두목 곁에 가기 전)에 두고 거기서 한 번 틀고 넘겨 둔다(씬마다 한 번 규칙이라 뒤 단계가 안 막힌다).
 - 파일: 새 `Games/SagaStory/Cinematics/*`(넷)·`Story_BossIntro.playable`·`Editor/BuildStoryCinematics.cs`·`Editor/PlaytestStoryBossIntro.cs`, 고침 `StoryEnemy`(CheckIntro·PlayRoar·관문 대장 시간 멈춤)·`StoryPlayerController`(컷 동안 Update 조기 반환)·`StoryCameraFollow`(주석)·`BuildTestStoryScene`(카메라 하이브리드)·`PlaytestStorySlice`(호출). 씬 재빌드.
 - 검증: 씬 재빌드 exit 0 · `PlaytestStorySlice` **3연속 OK**(새 `boss intro` 줄 "가까운 샷 3.4m" 3회 동일, 버튼 배선·레벨업 줌·흔들림 등 기존 전부 그대로). 실기 확인은 전. 새 글자 `cut.story_*`·`cut.skip` 는 `StoryLocalization.T` 폴백.
+
+## 2026-09-24 — GO 107-7 망루 수호장(웹 ⑪ 두 겹 방패, 세이브 v15) + 106-9 수호장 등장 컷(GO 카메라 Cinemachine 하이브리드) (새 대화 "사가유니티 이어해줘", Opus 5.5)
+
+- **고른 까닭**: 지난 추천 "GO 두목 등장 컷"에 "이어해". 그런데 GO 엔 컷을 받을 두목급 들판 적이 없었다 — 옛 사건 결투(도적·흰 늑대·사당 시련)는 선택 화면 방식이고 흰 늑대 몸은 캡슐이라 클로즈업이 서지 않는다. 웹 사가고가 이미 ⑪ 지역 수호자(두 겹 방패)를 갖고 있어 그 규칙을 먼저 옮기고(107-7) 그 첫 만남에 컷을 붙였다(106-9). 이 판은 랜드마크 탑이 옛 망루 하나라 수호자도 하나.
+- **수호장**: `FieldEnemy.Kind.Guardian`(enum 끝에 추가). 겉 뇌 → 속 화 — 주인공(화)이 겉은 상성으로 깨고 속엔 면역이라 수 동료(산적)로 교체하게 만든다(웹 "한 사람으론 속 방패가 느리다"). 겹 전환은 `BreakShield` 첫머리에서(속 방패 가득·원소 바꿈·0.8초 휘청·알림), 속이 깨지면 3초. 거품·구슬·빛·방패 막대·이름·몸 빛깔을 겹마다 다시 칠한다(`ApplyElementColors`). 쓰러뜨리면 `GuardianState` → 세이브 v15 `guardianDown`, 다시 안 선다(Dead 타이머 무한).
+- **카메라**: GO `CameraRig` 에 `view` — 있으면 실제 카메라 대신 플레이 가상 카메라를 민다, 실제 카메라에 브레인. `SagaGo.asmdef` 에 Cinemachine·Timeline 참조를 더했다(DUNGEON asmdef 와 같은 둘).
+- **진단 함정 둘**: ① 겹 방패 진단의 첫 타격이 "처음 만남"(Aggro→EnterChase)으로 잡혀 등장 컷이 돌았고, 컷 동안 `Tick` 이 멈춰 휘청 시간이 안 흘러 실패 — `SetEngagedForTest` 로 진단이 만남 여부를 정한다. ② 세이브 버전을 직접 검사하던 `PlaytestGoWorldMap`·`PlaytestGoTreasure` 가 14 를 기대 — 15 로(지도 진단의 v13 가짜 파일은 `guardianDown` 도 뺀다). `PlaytestGoElementalFoe` "원소 적 8" 은 수호장(원소 방패를 둘렀다)을 뺀다.
+- 파일: 새 `Data/GuardianState.cs`·`Cinematics/`(GoCutDolly·Clip·Track·GoCutscenes)·`Go_GuardianIntro.playable`·`Editor/BuildGoCinematics.cs`·`Editor/PlaytestGoGuardian.cs`, 고침 `FieldEnemy`·`FieldSpawner`(수호장·PlannedCount)·`SaveState`(v15)·`CameraRig`(view)·`PlayerController`·`FieldCombat`(컷 동안 멈춤)·`SagaGo.asmdef`·`BuildTestVillageScene`(PlayerView·브레인·수호장 몸 Brute)·진단 넷. 씬 재빌드.
+- 검증: 씬 재빌드 exit 0 · GO `PlaytestHeadless` **3연속 OK**(새 `guardian` 줄 "가까운 샷 7.1m(키 5.4m)" 3회 동일, 기존 진단 전부 그대로). 실기 확인은 전. 새 글자 `field.foe.guardian`·`field.guard_*`·`cut.guardian_sub` 는 `GoLocalization.T` 폴백.

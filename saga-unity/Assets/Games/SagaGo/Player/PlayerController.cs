@@ -239,7 +239,16 @@ namespace Saga.Go.Player
             root.localScale = Vector3.one / Mathf.Max(0.01f, parent.lossyScale.y);
         }
 
-        private void Update() => Step(Time.deltaTime);
+        private void Update()
+        {
+            // PLAN.md 106-9 — 등장 컷 동안은 선다(진단은 Step 을 직접 부르므로 여기서만 막는다).
+            if (Saga.Go.Cinematics.GoCutscenes.Playing)
+            {
+                if (animator != null) animator.SetFloat("Speed", 0f);
+                return;
+            }
+            Step(Time.deltaTime);
+        }
 
         /// <summary>한 프레임 — 진단이 시간을 건너뛰려고 직접 부른다.</summary>
         public void Step(float dt)

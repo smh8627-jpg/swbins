@@ -14,7 +14,7 @@ namespace Saga.Go.Data
     /// </summary>
     public static class SaveState
     {
-        private const int SaveVersion = 14;
+        private const int SaveVersion = 15;
 
         private static string SavePath => Path.Combine(Application.persistentDataPath, "save.json");
 
@@ -78,6 +78,8 @@ namespace Saga.Go.Data
             public List<string> waypoints;
             public List<string> regionsVisited;
             public bool mapRevealed;
+            // v15 — PLAN.md 107-7 망루 수호장(한 번 쓰러뜨리면 다시 안 선다).
+            public bool guardianDown;
         }
 
         public static bool Save()
@@ -117,6 +119,7 @@ namespace Saga.Go.Data
                 waypoints = WorldMapState.SnapshotWaypoints(),
                 regionsVisited = WorldMapState.SnapshotRegions(),
                 mapRevealed = WorldMapState.Revealed,
+                guardianDown = GuardianState.Defeated,
             };
 
             try
@@ -167,6 +170,7 @@ namespace Saga.Go.Data
             DropState.Restore(data.drops);
             ShrineTrialState.Restore(data.shrineDate, data.shrineDailyCount, data.shrineShards, data.shrineStamps, data.shrineLockUntilTicks);
             WorldMapState.Restore(data.waypoints, data.regionsVisited, data.mapRevealed);
+            GuardianState.Restore(data.guardianDown);
 
             Transform player = FindPlayer();
             if (player != null && data.playerPos != null && data.playerPos.Length == 3)
@@ -323,6 +327,13 @@ namespace Saga.Go.Data
                 data.waypoints = new List<string>();
                 data.regionsVisited = new List<string>();
                 data.mapRevealed = false;
+                return data;
+            }
+            if (fromVersion == 14)
+            {
+                // v14엔 망루 수호장이 없었다 — 아직 안 쓰러뜨린 것과 같다.
+                data.version = 15;
+                data.guardianDown = false;
                 return data;
             }
             return null;

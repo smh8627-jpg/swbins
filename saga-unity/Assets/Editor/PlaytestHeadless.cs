@@ -139,6 +139,7 @@ namespace Saga.EditorTools
                 CheckRaidBoss();
                 CheckShrineTrial();
                 // PLAN.md 107-1 들판 전투 — 일일 과제(세이브 되돌림) 앞, 다른 진단 뒤(처치 경험치가 첫 레벨업이 되지 않게).
+                if (!PlaytestGoGuardian.Run("PlaytestHeadless")) _hadError = true; // PLAN.md 107-7 수호장 + 106-9 등장 컷(여기서 한 번 틀어 둔다)
                 if (!PlaytestGoFieldCombat.Run("PlaytestHeadless")) _hadError = true;
                 if (!PlaytestGoElementalFoe.Run("PlaytestHeadless")) _hadError = true; // PLAN.md 107-5 원소 쓰는 적
                 if (!PlaytestGoTraversal.Run("PlaytestHeadless")) _hadError = true; // PLAN.md 107 ② 이동

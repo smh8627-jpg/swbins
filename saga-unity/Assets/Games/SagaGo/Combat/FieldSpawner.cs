@@ -39,14 +39,21 @@ namespace Saga.Go.Combat
 
         public const float GroupSpread = 4.5f;
 
+        // 107-7 망루 수호장 — 옛 망루(4,6) 고원 남쪽 발치, 남쪽 공터 북쪽 가장자리(역참·돌탑·두 무리를 비켜 섰다).
+        public const float GuardianGx = 3.6f;
+        public const float GuardianGy = 6.75f;
+        public const string GuardianGroupId = "tower_guardian";
+
         [SerializeField] private GameObject banditModel;
         [SerializeField] private GameObject skeletonModel;
+        [SerializeField] private GameObject guardianModel;
 
+        /// <summary>세우는 들판 적 수 — 이미 쓰러뜨린 수호장은 안 센다.</summary>
         public static int PlannedCount
         {
             get
             {
-                int n = 0;
+                int n = GuardianState.Defeated ? 0 : 1;
                 foreach (var g in Groups) n += g.Members.Length;
                 return n;
             }
@@ -68,6 +75,11 @@ namespace Saga.Go.Combat
                     // 원소 쓰는 적은 해골 모델에 원소 빛깔을 입힌다("원소 깃든 망자", 사실적 PBR 트랙이라 코드 도형 대신)
                     FieldEnemy.Spawn(kind, home, kind == FieldEnemy.Kind.Bandit ? banditModel : skeletonModel, g.Id, transform);
                 }
+            }
+            if (!GuardianState.Defeated)
+            {
+                FieldEnemy.Spawn(FieldEnemy.Kind.Guardian, TestMapData.WorldPos(GuardianGx, GuardianGy),
+                    guardianModel != null ? guardianModel : banditModel, GuardianGroupId, transform);
             }
         }
     }

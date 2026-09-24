@@ -40,6 +40,9 @@ namespace Saga.Go.Player
         private const float CameraCollisionBuffer = 0.2f;
 
         [SerializeField] private Camera cam;
+        // PLAN.md 106-9 — 있으면 실제 카메라 대신 이 플레이 가상 카메라(CinemachineCamera)를 민다. 실제 카메라는
+        // `CinemachineBrain` 이 여기(평소) 또는 두목 등장 컷 카메라에 붙인다(DUNGEON `CameraRig.view` 와 같은 결).
+        [SerializeField] private Transform view;
 
         private float _zoom = 9f;
         private float _pitchDeg = 35f; // 양수 = 아래를 내려다보는 각도(Godot의 -35와 같은 뜻)
@@ -196,9 +199,10 @@ namespace Saga.Go.Player
 
         private void ApplyZoom()
         {
-            if (cam == null) return;
+            Transform target = view != null ? view : cam != null ? cam.transform : null;
+            if (target == null) return;
             float clippedZoom = ResolveCollisionZoom(_zoom);
-            cam.transform.localPosition = new Vector3(0f, 0f, -clippedZoom);
+            target.localPosition = new Vector3(0f, 0f, -clippedZoom);
         }
 
         /// <summary>벽에 카메라가 파고들지 않도록 원하는 줌 거리 안에서
