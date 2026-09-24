@@ -32,6 +32,9 @@ var _npc_pos: Dictionary = {} # id → Vector3
 var _quest_enemies: Array = []
 var _altar: Node3D = null
 var _altar_flame: Node3D = null
+var _seal: Array = [] # seal 단계 석등 [{node, mark, flame, lit}]
+var _seal_next := 0 # seal — 다음에 밝힐 order 칸
+var _was_locked := false
 var _marker: Node3D = null
 var _marker_label: Label3D = null
 var _tracker: Label = null
@@ -129,7 +132,7 @@ func target_pos() -> Vector3:
 	match String(s.type):
 		"talk":
 			return npc_pos(String(s.npc))
-		"go", "kill", "light":
+		"go", "kill", "light", "seal":
 			return _cell_pos(String(s.region), s.cell)
 		"boss":
 			var fb := get_tree().get_first_node_in_group("go_field_bosses")
@@ -167,32 +170,48 @@ func step_text() -> String:
 		return "%s %d/%d" % [s.text, _count, int(s.count)]
 	if String(s.type) == "follow" and _follow_far:
 		return "%s — 너무 멀다, 가까이!" % s.text
+	if String(s.type) == "seal":
+		var names: Array[String] = []
+		for m in s.order:
+			names.append(String(Story.SEAL_MARKS[m].name))
+		return "%s %d/%d (%s)" % [s.text, _seal_next, (s.order as Array).size(), " → ".join(names)]
 	return String(s.text)
 
-## 그 인물이 지금 세상에 서 있는가 — appear 가 있으면 그 장의 from~to 단계에만.
-func npc_visible(id: String) -> bool:
-	var ap: Dictionary = Story.NPCS[id].get("appear", {})
-	if ap.is_empty():
-		return true
-	return not locked() and ch() == int(ap.ch) and st() >= int(ap.from) and st() <= int(ap.to)
+## 지금 장·단계에 맞는 칸(appear·stations, data/story.gd) — 없으면 {}.
+func _window_now(v: Variant) -> Dictionary:
+	if locked():
+		return {}
+	for w in Story.windows(v):
+		if ch() == int(w.ch) and st() >= int(w.from) and st() <= int(w.to):
+			return w
+	return {}
 
-## appear 인물을 보이거나 숨기고, 따라가기를 지난 뒤면 길 끝에 세운다(불러오기·단계마다).
+## 그 인물이 지금 세상에 서 있는가 — appear 가 있으면 그 칸의 장·단계에만.
+func npc_visible(id: String) -> bool:
+	var info: Dictionary = Story.NPCS[id]
+	if not info.has("appear"):
+		return true
+	return not _window_now(info.appear).is_empty()
+
+## 인물을 보이거나 숨기고 제자리에 세운다(불러오기·단계마다·장이 풀릴 때) — 칸에 cell 이 있으면 거기,
+## 따라가기를 지난 뒤면 길 끝, 아니면 집 자리.
 func _place_npcs() -> void:
 	for id in _npcs:
 		var info: Dictionary = Story.NPCS[id]
-		if not info.has("appear"):
-			continue
 		var root: Node3D = _npcs[id]
 		root.visible = npc_visible(id)
 		var p := _cell_pos(String(info.region), info.cell)
-		var c := Story.chapter(int(info.appear.ch))
-		if ch() == int(info.appear.ch) and not c.is_empty():
+		var c := Story.chapter(ch())
+		if not locked() and not c.is_empty():
 			var steps: Array = c.steps
-			for j in steps.size():
+			for j in mini(st(), steps.size()):
 				var sj: Dictionary = steps[j]
-				if String(sj.type) == "follow" and String(sj.npc) == id and st() > j:
+				if String(sj.type) == "follow" and String(sj.npc) == id:
 					var path: Array = sj.path
 					p = _cell_pos(String(sj.region), path[path.size() - 1])
+		for w in [_window_now(info.get("appear")), _window_now(Story.STATIONS.get(id))]:
+			if (w as Dictionary).has("cell"):
+				p = _cell_pos(String(w.region), w.cell)
 		root.global_position = p
 		_npc_pos[id] = p
 
@@ -268,6 +287,8 @@ func _enter_step() -> void:
 	_count = 0
 	_follow_i = 0
 	_follow_far = false
+	_seal_next = 0
+	_was_locked = locked()
 	_place_npcs()
 	var s := current_step()
 	match String(s.get("type", "")):
@@ -288,6 +309,9 @@ func _enter_step() -> void:
 				_quest_enemies.append(e)
 		"light":
 			_build_altar(_cell_pos(String(s.region), s.cell))
+		"seal":
+			_build_altar(_cell_pos(String(s.region), s.cell))
+			_build_seal(String(s.region))
 		"boss":
 			## 이미 쓰러뜨려 보상 꽃을 기다리는 중이면(다시 서지 않으니) 그대로 넘긴다.
 			var fb := get_tree().get_first_node_in_group("go_field_bosses")
@@ -305,6 +329,7 @@ func _clear_step_objects() -> void:
 		_altar.queue_free()
 		_altar = null
 		_altar_flame = null
+	_seal.clear() # 석등은 제단 자식이라 함께 사라진다
 	if is_in_group("element_receiver"):
 		remove_from_group("element_receiver")
 
@@ -365,6 +390,9 @@ func _on_cooked() -> void:
 func receive_element(pos: Vector3, radius: float, element: String) -> void:
 	if _altar == null or element == "":
 		return
+	if not _seal.is_empty():
+		_seal_hit(pos, radius)
+		return
 	var ap := _altar.global_position
 	if Vector2(ap.x - pos.x, ap.z - pos.z).length() > radius + ALTAR_REACH:
 		return
@@ -374,10 +402,80 @@ func receive_element(pos: Vector3, radius: float, element: String) -> void:
 	if String(s.get("type", "")) == "light":
 		get_tree().create_timer(0.8).timeout.connect(advance)
 
+## seal — 원소가 닿은 꺼진 석등 가운데 다음 차례가 있으면 그것만 켜고, 없고 다른 것만 닿았으면 다 끈다.
+func _seal_hit(pos: Vector3, radius: float) -> void:
+	var s := current_step()
+	if String(s.get("type", "")) != "seal":
+		return
+	var order: Array = s.order
+	if _seal_next >= order.size():
+		return
+	var want := String(order[_seal_next])
+	var hit_want := false
+	var hit_other := false
+	for t in _seal:
+		if t.lit:
+			continue
+		var tp: Vector3 = (t.node as Node3D).global_position
+		if Vector2(tp.x - pos.x, tp.z - pos.z).length() > radius + ALTAR_REACH:
+			continue
+		if String(t.mark) == want:
+			hit_want = true
+		else:
+			hit_other = true
+	if hit_want:
+		for t in _seal:
+			if String(t.mark) == want:
+				t.lit = true
+				(t.flame as Node3D).visible = true
+		_seal_next += 1
+		CombatFeel.ui()
+		if _seal_next >= order.size():
+			_altar_flame.visible = true
+			remove_from_group("element_receiver")
+			Toast.show(self, "봉인이 풀린다 — 제단에 불이 붙었다", 2.5)
+			get_tree().create_timer(0.8).timeout.connect(advance)
+		else:
+			_refresh()
+	elif hit_other:
+		for t in _seal:
+			t.lit = false
+			(t.flame as Node3D).visible = false
+		var had := _seal_next > 0
+		_seal_next = 0
+		Toast.show(self, "석등이 모두 꺼졌다 — 차례가 틀렸다" if had else "이 석등이 먼저가 아니다", 2.0)
+		_refresh()
+
+func seal_lit() -> int:
+	return _seal_next
+
+## 원소 시야(106장 ⑬)가 짚는 다음 차례 석등 [{pos, color}] — seal 단계일 때만.
+func seal_hint() -> Array:
+	var s := current_step()
+	if String(s.get("type", "")) != "seal" or _seal_next >= (s.order as Array).size():
+		return []
+	var want := String(s.order[_seal_next])
+	for t in _seal:
+		if String(t.mark) == want:
+			return [{"pos": (t.node as Node3D).global_position, "color": Story.SEAL_MARKS[want].color}]
+	return []
+
+## 석등 자리(점검용) — 표지 → 월드 좌표.
+func seal_lamp_pos(mark: String) -> Vector3:
+	for t in _seal:
+		if String(t.mark) == mark:
+			return (t.node as Node3D).global_position
+	return Vector3.INF
+
 func _physics_process(delta: float) -> void:
 	if _player == null:
 		_player = get_tree().get_first_node_in_group("player")
 		return
+	## 모험 등급이 올라 장이 풀리거나 잠기면 인물 자리·표시를 다시(stations 로 옮겨 서는 인물).
+	if locked() != _was_locked:
+		_was_locked = locked()
+		_place_npcs()
+		_refresh()
 	var s := current_step()
 	var walker := String(s.npc) if String(s.get("type", "")) == "follow" else ""
 	match String(s.get("type", "")):
@@ -817,6 +915,72 @@ func _build_marker() -> void:
 	_marker_label.modulate = GOLD
 	_marker_label.position = Vector3(0.0, 3.2, 0.0)
 	_marker.add_child(_marker_label)
+
+## seal 석등 — 제단 둘레 SEAL_RING m 에 SEAL_LAYOUT 차례로(북쪽부터 시계 방향). 돌기둥·표지 빛깔 띠·글자, 켜지면 그 빛깔 불꽃.
+func _build_seal(region: String) -> void:
+	var stone := StandardMaterial3D.new()
+	stone.albedo_color = Color(0.5, 0.49, 0.46)
+	var n := Story.SEAL_LAYOUT.size()
+	for i in n:
+		var mark := String(Story.SEAL_LAYOUT[i])
+		var info: Dictionary = Story.SEAL_MARKS[mark]
+		var a := TAU * float(i) / float(n)
+		var world := _altar.global_position + Vector3(sin(a), 0.0, -cos(a)) * Story.SEAL_RING
+		world.y = TerrainBuilder.height_at(region, world) - 0.05
+		var t := Node3D.new()
+		t.name = "SealLamp_" + mark
+		_altar.add_child(t)
+		t.global_position = world
+		var post := MeshInstance3D.new()
+		var pm := CylinderMesh.new()
+		pm.top_radius = 0.2
+		pm.bottom_radius = 0.3
+		pm.height = 1.2
+		post.mesh = pm
+		post.material_override = stone
+		post.position = Vector3(0.0, 0.6, 0.0)
+		t.add_child(post)
+		var cap := MeshInstance3D.new()
+		var cb := BoxMesh.new()
+		cb.size = Vector3(0.66, 0.14, 0.66)
+		cap.mesh = cb
+		cap.material_override = stone
+		cap.position = Vector3(0.0, 1.27, 0.0)
+		t.add_child(cap)
+		var band := MeshInstance3D.new()
+		var bm := CylinderMesh.new()
+		bm.top_radius = 0.23
+		bm.bottom_radius = 0.23
+		bm.height = 0.1
+		band.mesh = bm
+		var bmat := StandardMaterial3D.new()
+		bmat.albedo_color = info.color
+		band.material_override = bmat
+		band.position = Vector3(0.0, 0.92, 0.0)
+		t.add_child(band)
+		var flame := MeshInstance3D.new()
+		var fm := SphereMesh.new()
+		fm.radius = 0.2
+		fm.height = 0.48
+		flame.mesh = fm
+		var fmat := StandardMaterial3D.new()
+		fmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		fmat.albedo_color = info.color
+		flame.material_override = fmat
+		flame.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		flame.position = Vector3(0.0, 1.56, 0.0)
+		flame.visible = false
+		t.add_child(flame)
+		var label := Label3D.new()
+		label.text = String(info.name)
+		label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		label.modulate = info.color
+		label.outline_size = 8
+		label.font_size = 56
+		label.pixel_size = 0.01
+		label.position = Vector3(0.0, 2.1, 0.0)
+		t.add_child(label)
+		_seal.append({"node": t, "mark": mark, "flame": flame, "lit": false})
 
 ## 옛 제단 — 돌 받침 + 붙으면 켜지는 불꽃. 붙기 전까지 element_receiver.
 func _build_altar(p: Vector3) -> void:

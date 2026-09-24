@@ -12,6 +12,10 @@ extends RefCounted
 ##     gather — 그 채집물(data/cooking.gd GATHER)을 count 번 캐기(world/gathering.gd `gathered`, 센 수는 저장 안 함)
 ##     cook   — 아무 요리나 한 번(world/kitchen.gd `cooked`)
 ##     follow — 그 인물이 path(칸 좌표)를 따라 걷는다 — 내가 FOLLOW_NEAR 안이면 걷고 멀면 서서 기다린다. 길 끝에 닿으면 끝(불러오면 길 처음부터)
+##     seal   — 그 자리 제단을 둘러싼 석등(order 순서의 SEAL_MARKS)을 order 차례대로 원소 스킬·폭발로 밝힌다(어느 원소든).
+##              차례가 틀리면 다 꺼진다. 한 번에 여럿이 닿으면 다음 차례 것만 켜진다. 켠 수는 저장 안 함
+##   인물 자리: appear(보일 때만 서 있는 인물) · stations(늘 있는 인물이 그 장·단계 동안 옮겨 서는 자리) —
+##     둘 다 {ch, from, to, region?, cell?} 한 칸 또는 여러 칸. region·cell 이 있으면 그 동안 거기에 선다.
 ##   대화 줄 말하는 이가 바뀌면 카메라가 그쪽으로(player/camera_rig.gd talk_shot — 인물 말은 내 어깨 너머, 내 말은 인물 어깨 너머).
 ##   단계마다 부대 경험 STEP_EXP, 장 끝에 reward + exp. 장은 모험 등급 ar 에 열린다.
 ##   목표 자리엔 금빛 기둥·"◆ 거리", 왼쪽 미니맵 밑에 임무 이름·목표, 지도·미니맵에 금빛 마름모(미니맵 밖이면 가장자리).
@@ -29,8 +33,24 @@ const NPCS := {
 		"idle": "이 비문, 읽을수록 이상하다니까."},
 	## 4장에만 나오는 인물 — appear 의 장·단계 사이에만 서 있고, 따라가기(follow) 단계를 지나면 길 끝에 선다. mask = 얼굴에 흰 가면.
 	"wanderer": {"name": "가면 쓴 나그네", "region": "village", "cell": Vector2(5.7, 6.2), "rarity": 4, "cloth": Color(0.22, 0.22, 0.28),
-		"idle": "……", "mask": true, "appear": {"ch": 3, "from": 1, "to": 5}},
+		"idle": "……", "mask": true, "appear": [{"ch": 3, "from": 1, "to": 5},
+			{"ch": 4, "from": 6, "to": 6, "region": "village", "cell": Vector2(0.9, 1.62)}]},
 }
+
+## 학자는 5장 동안 서쪽 고개 옛길에 가 있다(0~3 단계 옛길 어귀, 4~7 단계 둘째 제단 곁).
+const STATIONS := {
+	"scholar": [{"ch": 4, "from": 0, "to": 3, "region": "village", "cell": Vector2(1.1, 2.55)},
+		{"ch": 4, "from": 4, "to": 7, "region": "village", "cell": Vector2(1.5, 1.62)}],
+}
+
+## seal 석등 표지 — 글자·빛깔. 석등은 제단 둘레 SEAL_RING m 에, 놓인 자리 차례는 order 와 다르다(SEAL_LAYOUT).
+const SEAL_MARKS := {
+	"sun": {"name": "해", "color": Color(1.0, 0.62, 0.25)},
+	"moon": {"name": "달", "color": Color(0.7, 0.8, 1.0)},
+	"star": {"name": "별", "color": Color(0.95, 0.9, 0.55)},
+}
+const SEAL_RING := 6.0
+const SEAL_LAYOUT := ["moon", "star", "sun"] # 둘레에 놓는 차례(북쪽부터 시계 방향)
 
 const FOLLOW_NEAR := 12.0 # 이 안이면 따라가는 인물이 걷는다
 const FOLLOW_SPEED := 2.6 # m/초
@@ -140,6 +160,41 @@ const CHAPTERS := [
 				"lines": [["누리", "나그네가 쫓는 가면 쓴 자라… 먹구름이 다섯 번이나 더 올 수 있다는 말이냐.", "sorrow"],
 					["누리", "네가 있어 다행이구나. 마을 사람들 몫으로 모은 것이니 받아 두렴."]]},
 		]},
+	{"id": "ch5", "name": "제5장 · 서쪽 고개 옛길", "ar": 12,
+		"reward": {"fate_knot": 3, "mora": 35000, "book_l": 3, "talent_3": 2}, "exp": 220.0,
+		"steps": [
+			{"type": "talk", "npc": "elder", "text": "촌장에게 학자 소식 듣기",
+				"lines": [["누리", "은비가 서쪽 고개 옛길로 떠난 지 사흘째란다. 그 뒤로 소식이 뚝 끊겼어.", "sorrow"],
+					["누리", "그 길은 사당보다도 오래된 길이야. 숲에 묻혀서 이제 아는 사람도 드물지."],
+					["?", ["제가 찾아볼게요.", "혼자 간 거예요?"]],
+					["누리", "마을 서쪽 숲으로 들어가 고개 밑을 따라 북쪽으로 오르면 옛길이 나온단다. 서두르렴."]]},
+			{"type": "go", "region": "village", "cell": Vector2(1.3, 4.6), "radius": 10.0, "text": "서쪽 숲 옛길 어귀로"},
+			{"type": "kill", "region": "village", "cell": Vector2(1.1, 2.55), "kinds": ["bandit", "bandit", "grass_snake", "wind_hawk"],
+				"text": "옛길에서 학자를 에워싼 가면 졸개 물리치기"},
+			{"type": "talk", "npc": "scholar", "text": "옛길에서 학자와 이야기하기",
+				"lines": [["은비", "휴, 살았다! 비문을 베끼다가 졸개들한테 딱 걸렸지 뭐야.", "joy"],
+					["은비", "둘째 제단은 이 고개 너머, 옛 사당 뒤 숲에 있어. 석등 셋이 제단을 둘러싸고 있지."],
+					["은비", "비문엔 이렇게 적혀 있었어 — '해가 뜨고, 달이 지고, 별이 남는다'. 그 차례대로 불을 밝혀야 봉인이 풀려."],
+					["?", ["차례가 틀리면요?", "먼저 가 볼게요."]],
+					["은비", "전부 꺼져 버리겠지. 해, 달, 별 — 잊으면 안 돼!"]]},
+			{"type": "seal", "region": "village", "cell": Vector2(1.15, 1.3), "order": ["sun", "moon", "star"],
+				"text": "둘째 제단 석등을 비문 차례대로 밝히기"},
+			{"type": "kill", "region": "village", "cell": Vector2(1.15, 1.3), "kinds": ["bandit", "bandit", "thunder_cat", "ice_fox", "rock_bear"],
+				"text": "제단에 몰려든 가면 무리 물리치기"},
+			{"type": "talk", "npc": "wanderer", "text": "제단 곁의 가면 쓴 나그네와 이야기하기",
+				"lines": [["나그네", "……한발 늦을 뻔했군. 그자가 이 제단을 두드리러 오던 참이었다."],
+					["나그네", "네가 먼저 봉인을 밝혀 두었으니 깨우지는 못하고, 졸개만 풀어 놓고 달아났지."],
+					["?", ["그자를 봤어요?", "어디로 갔죠?"]],
+					["나그네", "북쪽 봉우리 너머로. 그자가 떨군 비문 조각이다 — 학자에게 건네게."]]},
+			{"type": "talk", "npc": "scholar", "text": "학자에게 셋째 비문 조각 건네기",
+				"lines": [["은비", "셋째 조각…! '다섯 제단이 모두 깨면 먹구름의 주인이 돌아온다'.", "surprised"],
+					["은비", "가면 쓴 자가 노리는 건 이무기가 아니었어. 그 '주인'이야."],
+					["?", ["먹구름의 주인?", "남은 제단은 셋이네요."]],
+					["은비", "둘은 우리가 지켰어. 남은 셋은… 조각을 더 읽어 보고 알려 줄게."]]},
+			{"type": "talk", "npc": "elder", "text": "청하 촌장에게 알리기",
+				"lines": [["누리", "은비가 무사하다니 다행이구나. 먹구름의 주인이라… 이름만 들어도 오싹하다.", "sorrow"],
+					["누리", "잊혔던 옛길까지 되살려 준 셈이니 마을이 네게 진 빚이 크구나. 받아 두렴.", "joy"]]},
+		]},
 ]
 
 static func chapter(i: int) -> Dictionary:
@@ -154,3 +209,9 @@ static func step_of(ch: int, st: int) -> Dictionary:
 
 static func all_done(ch: int) -> bool:
 	return ch >= CHAPTERS.size()
+
+## appear·stations 값 → 칸 목록(한 칸짜리 사전도 받는다).
+static func windows(v: Variant) -> Array:
+	if v is Array:
+		return v
+	return [v] if v is Dictionary and not (v as Dictionary).is_empty() else []

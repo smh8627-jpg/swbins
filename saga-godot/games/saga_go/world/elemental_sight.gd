@@ -186,6 +186,11 @@ func rescan() -> void:
 		_add(p, cp + Vector3.UP * 0.5, CHEST, "chest")
 		for t in c.call("unlit_torches"):
 			_add(p, t.pos + Vector3.UP * 1.3, Elements.color_of(t.element), "torch")
+	## 이야기 seal(106장 ㉚) — 다음 차례 석등만(흔적 후보는 아님, 금빛 기둥이 제단을 이미 짚는다).
+	var story := get_tree().get_first_node_in_group("go_story")
+	if story:
+		for t in story.call("seal_hint"):
+			_add(p, t.pos + Vector3.UP * 1.5, t.color, "torch")
 	var shards := get_tree().get_first_node_in_group("go_star_shards")
 	if shards:
 		for sp in shards.call("remaining_positions"):

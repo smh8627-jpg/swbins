@@ -13,7 +13,10 @@ extends Node
 ## 106장 ㉘ 4장: ㉓ 나그네는 4장 둘째 단계부터만 서 있고 가면이 머리 뼈에 붙음 ㉔ 나그네 대화 → 따라가기, 앞장선 동안은 말 못 검
 ## ㉕ 따라가기 — 멀면 서서 기다리고 "너무 멀다", 가까우면 길 끝까지 걷고 다음 단계 ㉖ 나그네 → 들녘 졸개 넷 ㉗ 다 쓰러뜨리기
 ## ㉘ 나그네 → 사라짐(길 끝 자리) ㉙ 학자 ㉚ 촌장 → 4장 끝·다 끝남·목록 ✔ 제4장.
-## 106장 ㉙ 대화 몸짓: ㉛ 글자 흘리기·입 모양(한글 모음 → 입 다섯)·말하는 동안 오른손이 앞·위로·F 한 번이면 줄 전체·끝나면 손·입 제자리·표정·눈 깜박임.
+## 106장 ㉚ 5장: ㉛ 잠긴 동안 학자는 폐허, 풀리면 옛길 어귀로 옮겨 서고 둘레 나무 줄기에 안 걸림 ㉜ 촌장 → 옛길 어귀 → 학자 둘레 졸개 넷
+## ㉝ 다 쓰러뜨리기 ㉞ 학자(옛길) → 제단·석등 셋, 학자는 제단 곁으로, 원소 시야가 다음 석등을 짚음 ㉟ 석등 차례(틀리면 다 꺼짐·폭발이 셋에 닿아도 다음 것만) → 가면 무리 다섯
+## ㊱ 다 쓰러뜨리기 → 나그네가 제단 곁에 ㊲ 나그네 → 사라짐 ㊳ 학자 → 폐허로 ㊴ 촌장 → 5장 끝·다 끝남·목록 ✔ 제5장.
+## 106장 ㉙ 대화 몸짓: ㊵ 글자 흘리기·입 모양(한글 모음 → 입 다섯)·말하는 동안 오른손이 앞·위로·F 한 번이면 줄 전체·끝나면 손·입 제자리·표정·눈 깜박임.
 ## 저장은 안 한다(부대 경험·이야기 상태는 메모리에서만 바꾸고 끝에 되돌린다).
 
 const Story := preload("res://games/saga_go/data/story.gd")
@@ -24,6 +27,7 @@ const Cooking := preload("res://games/saga_go/data/cooking.gd")
 const TestMap := preload("res://games/saga_go/data/test_map.gd")
 const TerrainBuilder := preload("res://games/saga_go/world/terrain_builder.gd")
 const Gathering := preload("res://games/saga_go/world/gathering.gd")
+const Veg := preload("res://games/saga_go/world/vegetation_builder.gd")
 
 var _p: CharacterBody3D
 var _sq: Node
@@ -57,7 +61,7 @@ func _physics_process(_delta: float) -> void:
 			_sq.call("_enter_step")
 			_next()
 		1: # ① 표
-			var ok := Story.CHAPTERS.size() == 4
+			var ok := Story.CHAPTERS.size() == 5
 			for c in Story.CHAPTERS:
 				for s in c.steps:
 					match String(s.type):
@@ -68,6 +72,10 @@ func _physics_process(_delta: float) -> void:
 						"gather": ok = ok and Cooking.GATHER.has(String(s.item)) and int(s.count) > 0
 						"cook": pass
 						"follow": ok = ok and Story.NPCS.has(String(s.npc)) and (s.path as Array).size() >= 2
+						"seal":
+							ok = ok and s.has("region") and s.has("cell") and (s.order as Array).size() == Story.SEAL_LAYOUT.size()
+							for m in s.order:
+								ok = ok and Story.SEAL_MARKS.has(m) and Story.SEAL_LAYOUT.has(m)
 						_: ok = false
 			_check("table", ok, "chapters=%d" % Story.CHAPTERS.size())
 			_next()
@@ -435,10 +443,156 @@ func _physics_process(_delta: float) -> void:
 			_sq.call("toggle_journal")
 			var jt: String = _sq.call("journal_text")
 			_sq.call("toggle_journal")
-			var ok: bool = int(_sq.call("ch")) == 4 and _sq.call("tracker_text") == "" and _sq.call("target_pos") == Vector3.INF and jt.contains("✔ 제4장")
+			var ok: bool = int(_sq.call("ch")) == 4 and jt.contains("✔ 제4장") and jt.contains("제5장")
 			_check("chapter4", ok, "ch=%d tracker='%s'" % [_sq.call("ch"), _sq.call("tracker_text")])
 			_next()
-		31: # ㉛ 대화 몸짓 — 다 끝난 뒤 촌장 혼잣말로
+		31: # ㉛ 5장 잠김 → 풀림, 학자가 옛길 어귀로
+			var home: Vector3 = TestMap.world_pos(Story.NPCS.scholar.cell.x, Story.NPCS.scholar.cell.y, "ruins")
+			var sta: Vector2 = Story.STATIONS.scholar[0].cell
+			var sta_w := TestMap.world_pos(sta.x, sta.y, "village")
+			if _frame == 1:
+				PartyState.exp = 1050.0 # 모험 등급 11
+				PartyState.level = 10
+			if _frame == 4:
+				var sp: Vector3 = _sq.call("npc_pos", "scholar")
+				_v = [bool(_sq.call("locked")), String(_sq.call("tracker_text")).contains("모험 등급 12"), _flat(sp, home) < 0.1]
+				PartyState.exp = 1150.0 # 모험 등급 12
+				PartyState.level = 11
+			if _frame == 8:
+				var sp: Vector3 = _sq.call("npc_pos", "scholar")
+				var t: Vector3 = _sq.call("target_pos")
+				var clear := _trunk_clear()
+				var pet := _pet_clear()
+				var ok: bool = bool(_v[0]) and bool(_v[1]) and bool(_v[2]) and not bool(_sq.call("locked")) and _flat(sp, sta_w) < 0.1 \
+					and t.is_equal_approx(_sq.call("npc_pos", "elder")) and String(_sq.call("tracker_text")).contains("제5장") and float(clear[0]) >= 1.5 and float(pet[0]) > 0.0
+				_check("ch5_unlock", ok, "locked=%s lock_text=%s at_home=%s scholar_at_road=%.2f trunk_min=%.2f@%s pet_margin=%.1f@%s" % [_v[0], _v[1], _v[2], _flat(sp, sta_w), clear[0], clear[1], pet[0], pet[1]])
+				_next()
+		32: # ㉜ 촌장 → 옛길 어귀 → 학자 둘레 졸개 넷
+			if _frame == 1:
+				_near_npc("elder")
+			if _frame == 10:
+				_sq.call("interact")
+				_drain()
+				_v = int(_sq.call("st"))
+				var go: Dictionary = Story.CHAPTERS[4].steps[1]
+				_put(TestMap.world_pos(go.cell.x, go.cell.y, "village") + Vector3(0.0, TerrainBuilder.height_at("village", TestMap.world_pos(go.cell.x, go.cell.y, "village")), 0.0))
+			if _frame == 16:
+				var n := (_sq.call("alive_quest_enemies") as Array).size()
+				_check("ch5_road", int(_v) == 1 and int(_sq.call("st")) == 2 and n == 4, "talk_st=%d st=%d enemies=%d" % [_v, _sq.call("st"), n])
+				_next()
+		33: # ㉝ 다 쓰러뜨리기
+			if _frame == 1:
+				for e in _sq.call("alive_quest_enemies"):
+					e.call("_die")
+			if _frame == 5:
+				_check("ch5_kill_road", int(_sq.call("st")) == 3, "st=%d" % _sq.call("st"))
+				_next()
+		34: # ㉞ 학자(옛길) → 제단·석등, 학자는 제단 곁으로
+			if _frame == 1:
+				_near_npc("scholar")
+			if _frame == 10:
+				_sq.call("interact")
+				_drain()
+			if _frame == 14:
+				var sp: Vector3 = _sq.call("npc_pos", "scholar")
+				var b: Vector2 = Story.STATIONS.scholar[1].cell
+				var lamps := 0
+				var seal: Dictionary = Story.CHAPTERS[4].steps[4]
+				var alt_y := TerrainBuilder.height_at("village", TestMap.world_pos(seal.cell.x, seal.cell.y, "village"))
+				var dy := 0.0 # 석등이 제단과 같은 땅(절벽 턱 위·아래가 아닌가)
+				for m in Story.SEAL_LAYOUT:
+					var lp: Vector3 = _sq.call("seal_lamp_pos", m)
+					if lp != Vector3.INF:
+						lamps += 1
+						dy = maxf(dy, absf(lp.y - alt_y))
+				_put(TestMap.world_pos(seal.cell.x, seal.cell.y, "village") + Vector3(3.0, TerrainBuilder.height_at("village", TestMap.world_pos(seal.cell.x, seal.cell.y, "village")), 0.0))
+				var sight: Node = get_tree().get_first_node_in_group("go_elemental_sight")
+				var hint := false
+				if sight:
+					sight.call("rescan")
+					var sun: Vector3 = _sq.call("seal_lamp_pos", "sun")
+					for t in sight.get("targets"):
+						hint = hint or (t.kind == "torch" and _flat(t.pos, sun) < 0.1)
+				var tx: String = _sq.call("tracker_text")
+				var ok: bool = int(_sq.call("st")) == 4 and lamps == 3 and _sq.is_in_group("element_receiver") and _flat(sp, TestMap.world_pos(b.x, b.y, "village")) < 0.1 \
+					and tx.contains("0/3") and tx.contains("해 → 달 → 별") and hint and dy < 1.0
+				_check("ch5_seal_ready", ok, "st=%d lamps=%d dy=%.2f recv=%s scholar_b=%.2f hint=%s tracker='%s'" % [_sq.call("st"), lamps, dy, _sq.is_in_group("element_receiver"), _flat(sp, TestMap.world_pos(b.x, b.y, "village")), hint, tx.replace("\n", " / ")])
+				_next()
+		35: # ㉟ 석등 차례 — 먼저가 아닌 것·틀린 차례·폭발은 다음 것만
+			var seal: Dictionary = Story.CHAPTERS[4].steps[4]
+			var center := TestMap.world_pos(seal.cell.x, seal.cell.y, "village")
+			if _frame == 1:
+				_v = []
+				_sq.call("receive_element", _sq.call("seal_lamp_pos", "moon"), 4.0, "fire") # 달이 먼저가 아니다
+				_v.append(int(_sq.call("seal_lit")))
+				_sq.call("receive_element", _sq.call("seal_lamp_pos", "sun"), 4.0, "water")
+				_v.append(int(_sq.call("seal_lit")))
+				_sq.call("receive_element", _sq.call("seal_lamp_pos", "star"), 4.0, "fire") # 달 앞에 별 — 다 꺼짐
+				_v.append(int(_sq.call("seal_lit")))
+				_sq.call("receive_element", center, 7.0, "thunder") # 폭발이 셋에 다 닿아도 해만
+				_v.append(int(_sq.call("seal_lit")))
+				_sq.call("receive_element", _sq.call("seal_lamp_pos", "moon"), 4.0, "ice")
+				_sq.call("receive_element", _sq.call("seal_lamp_pos", "star"), 4.0, "wind")
+				_v.append(int(_sq.call("seal_lit")))
+				_v.append(int(_sq.call("st")))
+			if _frame == 80:
+				var n := (_sq.call("alive_quest_enemies") as Array).size()
+				var ok: bool = _v == [0, 1, 0, 1, 3, 4] and int(_sq.call("st")) == 5 and n == 5 and not _sq.is_in_group("element_receiver")
+				_check("ch5_seal", ok, "lit=%s st=%d enemies=%d" % [_v, _sq.call("st"), n])
+				_next()
+		36: # ㊱ 다 쓰러뜨리기 → 나그네가 제단 곁에
+			if _frame == 1:
+				for e in _sq.call("alive_quest_enemies"):
+					e.call("_die")
+			if _frame == 5:
+				var root: Node3D = _sq.get("_npcs")["wanderer"]
+				var post: Dictionary = Story.NPCS.wanderer.appear[1]
+				var d := _flat(_sq.call("npc_pos", "wanderer"), TestMap.world_pos(post.cell.x, post.cell.y, "village"))
+				var ok: bool = int(_sq.call("st")) == 6 and root.visible and bool(_sq.call("npc_visible", "wanderer")) and d < 0.1 \
+					and (_sq.call("target_pos") as Vector3).is_equal_approx(_sq.call("npc_pos", "wanderer"))
+				_check("ch5_wanderer", ok, "st=%d visible=%s d=%.2f" % [_sq.call("st"), root.visible, d])
+				_next()
+		37: # ㊲ 나그네 → 사라짐
+			if _frame == 1:
+				_near_npc("wanderer")
+			if _frame == 10:
+				_sq.call("interact")
+				_drain()
+			if _frame == 12:
+				var root: Node3D = _sq.get("_npcs")["wanderer"]
+				_check("ch5_wanderer_leaves", int(_sq.call("st")) == 7 and not root.visible, "st=%d visible=%s" % [_sq.call("st"), root.visible])
+				_next()
+		38: # ㊳ 학자(제단 곁) → 폐허로 돌아감
+			if _frame == 1:
+				_near_npc("scholar")
+			if _frame == 10:
+				_sq.call("interact")
+				_drain()
+			if _frame == 12:
+				var home: Vector3 = TestMap.world_pos(Story.NPCS.scholar.cell.x, Story.NPCS.scholar.cell.y, "ruins")
+				var d := _flat(_sq.call("npc_pos", "scholar"), home)
+				_check("ch5_scholar", int(_sq.call("st")) == 8 and d < 0.1, "st=%d home_d=%.2f" % [_sq.call("st"), d])
+				_next()
+		39: # ㊴ 촌장 → 5장 끝
+			if _frame == 1:
+				_near_npc("elder")
+				_v = PartyState.count("fate_knot")
+			if _frame == 10:
+				_sq.call("interact")
+				_drain()
+			if _frame < 16:
+				return
+			_dismiss_prompts()
+			if _frame < 22:
+				return
+			_sq.call("toggle_journal")
+			var jt: String = _sq.call("journal_text")
+			_sq.call("toggle_journal")
+			var ok: bool = int(_sq.call("ch")) == 5 and _sq.call("tracker_text") == "" and _sq.call("target_pos") == Vector3.INF and jt.contains("✔ 제5장") \
+				and PartyState.count("fate_knot") == int(_v) + 3
+			_check("chapter5", ok, "ch=%d knots %d→%d tracker='%s'" % [_sq.call("ch"), _v, PartyState.count("fate_knot"), _sq.call("tracker_text")])
+			_next()
+		40: # ㊵ 대화 몸짓 — 다 끝난 뒤 촌장 혼잣말로
 			var face: Node = _sq.call("face_of", "elder")
 			var body: Node3D = (_sq.get("_npcs")["elder"] as Node3D).get_node("Body")
 			if _frame == 1:
@@ -482,7 +636,7 @@ func _physics_process(_delta: float) -> void:
 					_v.map, _v.revealing, _v.mouth, _v.lift, _v.fwd, _v.infl, _v.joy, _v.closed, back, _v.blink, face.call("front_sign")])
 				(_v.hand as Node).queue_free()
 				_next()
-		32:
+		41:
 			PartyState.story = _saved.story
 			PartyState.exp = _saved.exp
 			PartyState.level = _saved.level
@@ -543,6 +697,59 @@ func _hand_probe(body: Node3D) -> Node3D:
 	att.bone_idx = skel.find_bone("J_Bip_R_Hand")
 	skel.add_child(att)
 	return att
+
+func _flat(a: Vector3, b: Vector3) -> float:
+	return Vector2(a.x - b.x, a.z - b.z).length()
+
+## 5장 새 자리가 신수 조우 원(pet_encounter.gd TRIGGER_RADIUS + 임무 적 퍼짐)과 얼마나 떨어졌나 [여유 m, 어디] — 겹치면 조우 창이 대화를 막는다.
+func _pet_clear() -> Array:
+	var best := 1e9
+	var where := ""
+	var spots := _ch5_spots()
+	for n in get_tree().current_scene.get_children():
+		var sc: Script = n.get_script()
+		if sc == null or not sc.resource_path.ends_with("pet_encounter.gd"):
+			continue
+		for k in spots:
+			var m := _flat((n as Node3D).global_position, spots[k]) - float(n.get("TRIGGER_RADIUS")) - 4.5
+			if m < best:
+				best = m
+				where = "%s~%s" % [k, n.name]
+	return [best, where]
+
+func _ch5_spots() -> Dictionary:
+	var spots := {}
+	spots["road"] = TestMap.world_pos(Story.STATIONS.scholar[0].cell.x, Story.STATIONS.scholar[0].cell.y, "village")
+	spots["altar_side"] = TestMap.world_pos(Story.STATIONS.scholar[1].cell.x, Story.STATIONS.scholar[1].cell.y, "village")
+	spots["wanderer"] = TestMap.world_pos(Story.NPCS.wanderer.appear[1].cell.x, Story.NPCS.wanderer.appear[1].cell.y, "village")
+	var seal: Dictionary = Story.CHAPTERS[4].steps[4]
+	spots["altar"] = TestMap.world_pos(seal.cell.x, seal.cell.y, "village")
+	return spots
+
+## 5장 새 자리(학자 두 자리·나그네·제단·석등 셋)에서 가장 가까운 나무 줄기까지 [거리, 어디] — vegetation_builder 와 같은 해시.
+func _trunk_clear() -> Array:
+	var spots := _ch5_spots()
+	var c: Vector3 = spots["altar"]
+	for i in Story.SEAL_LAYOUT.size():
+		var a := TAU * float(i) / float(Story.SEAL_LAYOUT.size())
+		spots["lamp_" + String(Story.SEAL_LAYOUT[i])] = c + Vector3(sin(a), 0.0, -cos(a)) * Story.SEAL_RING
+	var best := 1e9
+	var where := ""
+	var rows := TestMap.rows_of("village")
+	for y in rows.size():
+		for x in String(rows[y]).length():
+			if String(rows[y])[x] != "T":
+				continue
+			for i in Veg.TREES_PER_FOREST_TILE:
+				var jx := (Veg._hash(x, y, i * 2) - 0.5) * TestMap.TILE_SIZE * 0.8
+				var jz := (Veg._hash(x, y, i * 2 + 1) - 0.5) * TestMap.TILE_SIZE * 0.8
+				var tp := TestMap.world_pos(x, y, "village") + Vector3(jx, 0.0, jz)
+				for k in spots:
+					var d := _flat(tp, spots[k])
+					if d < best:
+						best = d
+						where = k
+	return [best, where]
 
 func _near_npc(id: String) -> void:
 	_dismiss_prompts()
