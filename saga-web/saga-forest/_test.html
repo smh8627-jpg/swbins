@@ -1152,6 +1152,40 @@ window.DG_NO_TUNE = true;
         (n + '칸 훑어 바이옴 ' + Object.keys(seen).length + '종 · (37,-19) 재현');
     });
 
+    t('이름 있는 숲 여덟(§5.12) — 세이브 씨앗이 달라도 같은 땅, 방위마다 뭉쳐 있고 다섯 바이옴이 다 있다', function () {
+      var s = V.state(), seed0 = s.seed, a = [], b = [], tx, ty, same = 0, n = 0, bio = {};
+      for (ty = -32; ty < 52; ty += 4) { for (tx = -32; tx < 62; tx += 4) { a.push(V.forestAt(tx, ty).key); } }
+      s.seed = (seed0 || 0) + 12345;
+      for (ty = -32; ty < 52; ty += 4) { for (tx = -32; tx < 62; tx += 4) { b.push(V.forestAt(tx, ty).key); } }
+      s.seed = seed0;
+      var bioSame = V.biomeAt(-20, -20) === V.forestAt(-20, -20).biome;
+      V.FORESTS.forEach(function (f) { bio[f.biome] = 1; });
+      for (ty = -32; ty < 52; ty += 2) {
+        for (tx = -32; tx < 62; tx += 2) { n++; if (V.forestAt(tx, ty).key === V.forestAt(tx + 2, ty).key) { same++; } }
+      }
+      var seen = {}; a.forEach(function (k) { seen[k] = 1; });
+      return a.join() === b.join() && bioSame && Object.keys(bio).length === 5 && Object.keys(seen).length === 8 && same / n > 0.8 &&
+        ('씨앗 바꿔도 같음 · 숲 ' + Object.keys(seen).length + ' · 이웃 같은 숲 ' + Math.round(same / n * 100) + '%');
+    });
+
+    t('이름 있는 숲 여덟(§5.12) — 1초 넘게 머물면 그 숲 이름 한 번(경계를 스치면 조용), 마을 안은 조용', function () {
+      var raw = V.raw(), p = raw.player, sx = p.x, sy = p.y, got = [], listening = true;
+      C.on('forest:enter', function (e) { if (listening) { got.push(e.key); } });
+      try {
+        V._resetForest();
+        p.x = V.W * V.TILE / 2; p.y = V.H * V.TILE / 2; V._stepForest(0.3);
+        var inVillage = V.forestOfPlayer() === null;
+        p.x = -20 * V.TILE; p.y = V.H * V.TILE / 2;           // 서쪽 숲
+        V._stepForest(0.3);
+        p.x = V.W * V.TILE / 2; V._stepForest(0.3);            // 곧바로 돌아옴 — 스친 것
+        var quiet = got.length === 0;
+        p.x = -20 * V.TILE;
+        for (var i = 0; i < 6; i++) { V._stepForest(0.3); }
+        var f = V.forestOfPlayer();
+        return inVillage && quiet && got.length === 1 && f && got[0] === f.key && (f.emoji + ' ' + f.name + ' 에 들어섰다(한 번)');
+      } finally { listening = false; p.x = sx; p.y = sy; V._resetForest(); }
+    });
+
     /* ── PLAN 40절 PHASE 3 세 번째 칸: 호수 ──────────────────── */
 
     t('호수 — 랜덤이 아니라 고정 자리, 재현된다', function () {

@@ -128,11 +128,55 @@
    *  buildProps() 가 tileAt() 결과를 이 표로 되짚어 본다 */
   var GRASS_FAMILY = { grass: 1, grass_meadow: 1, grass_dark: 1, grass_mush: 1, grass_rocky: 1 };
 
-  function biomeAt(tx, ty) {
-    var s = st();
+  /* ── 이름 있는 숲 여덟(PLAN §5.12, SAGA-DESIGN §12 — 2026-09-24 사용자 "랜덤이 아닌 특색 있는 지역") ──
+   * 예전엔 BIOME_CELL 칸마다 **세이브 씨앗**으로 다섯 바이옴을 흩었다(세이브마다 다른 모자이크).
+   * 이제 마을을 가운데 두고 방위 여덟으로 고정된 숲이 선다 — 어느 세이브·기기든 같은 땅이다.
+   * 경계는 BIOME_CELL 칸 좌표만으로 정해지는 흔들림(±0.2 rad)으로 굽힌다(씨앗을 안 본다).
+   * biome 은 위 다섯 중 하나 — 땅 색·사물 문턱·짐승·채집 갈래는 그 바이옴 표를 그대로 탄다. */
+  var FORESTS = [
+    { key: 'eoksae', name: '억새 바람벌', hanja: '芒原', emoji: '🌾', biome: 'meadow', desc: '은빛 억새가 바람 따라 눕는 너른 벌' },
+    { key: 'yoseong', name: '버섯 요정골', hanja: '菌谷', emoji: '🍄', biome: 'mushroom', desc: '밤이면 버섯갓이 초롱처럼 빛나는 골짜기' },
+    { key: 'solsup', name: '푸른 솔숲', hanja: '靑松林', emoji: '🌲', biome: 'green', desc: '솔향이 짙은 오래된 소나무 숲' },
+    { key: 'neoldeol', name: '이끼 돌너덜', hanja: '苔石', emoji: '🪨', biome: 'rocky', desc: '이끼 낀 돌이 무너져 쌓인 비탈' },
+    { key: 'eoseureum', name: '어스름 고목숲', hanja: '暮林', emoji: '🌑', biome: 'dark', desc: '말라 죽은 고목 사이로 해가 잘 들지 않는다' },
+    { key: 'kkotip', name: '꽃잎 언덕', hanja: '花丘', emoji: '🌸', biome: 'meadow', desc: '철마다 다른 꽃이 언덕을 덮는다' },
+    { key: 'georin', name: '거인 바위 고개', hanja: '巨岩嶺', emoji: '⛰️', biome: 'rocky', desc: '거인이 굴려 놓았다는 바위가 길을 막는다' },
+    { key: 'bandi', name: '반딧불 참나무숲', hanja: '螢林', emoji: '✨', biome: 'green', desc: '여름밤 반딧불이 참나무 사이를 떠돈다' }
+  ];
+  var FOREST_BY = {};
+  FORESTS.forEach(function (f, i) { f.sector = i; FOREST_BY[f.key] = f; });
+  /** 이 칸의 숲 — 마을 가운데서 본 방위(0 = 동쪽, 화면 y 가 남쪽이라 시계 방향) */
+  function forestAt(tx, ty) {
     var cx = Math.floor(tx / BIOME_CELL), cy = Math.floor(ty / BIOME_CELL);
-    var h = core.hash2(cx * 733 + s.seed % 991, cy * 617 + (s.seed >> 3) % 857);
-    return BIOMES[Math.floor(h * BIOMES.length) % BIOMES.length];
+    var a = Math.atan2(ty + 0.5 - H / 2, tx + 0.5 - W / 2) + (core.hash2(cx * 733 + 17, cy * 617 + 29) - 0.5) * 0.4;
+    return FORESTS[((Math.round(a / (Math.PI / 4)) % 8) + 8) % 8];
+  }
+  function biomeAt(tx, ty) { return forestAt(tx, ty).biome; }
+  /** 마을 밖이면 선 숲, 안이면 null */
+  function forestOfPlayer() {
+    var tx = Math.floor(player.x / TILE), ty = Math.floor(player.y / TILE);
+    if (tx >= 0 && ty >= 0 && tx < W && ty < H) { return null; }
+    return forestAt(tx, ty);
+  }
+  var forestNow = null, forestT = 0;
+  /** 숲이 바뀌면 이름 한 줄(1초 넘게 머물 때만 — 경계를 스칠 때 깜빡이지 않게) */
+  var forestPend = null, forestPendT = 0;
+  function stepForest(dt) {
+    forestT -= dt;
+    if (forestT > 0) { return; }
+    forestT = 0.3;
+    var f = forestOfPlayer(), k = f ? f.key : 'village';
+    if (forestNow === null) { forestNow = k; return; }
+    if (k === forestNow) { forestPend = null; forestPendT = 0; return; }
+    if (k !== forestPend) { forestPend = k; forestPendT = 0; return; }
+    forestPendT += 0.3;
+    if (forestPendT < 1) { return; }
+    forestNow = k; forestPend = null; forestPendT = 0;
+    if (f) {
+      core.log(f.emoji + ' ' + f.name + '(' + f.hanja + ') — ' + f.desc, 'info');
+      core.emit('toast', f.emoji + ' ' + f.name + ' — ' + f.desc);
+      core.emit('forest:enter', { key: f.key });
+    }
   }
 
   /** 바이옴별 사물 문턱표 — 원래(기존 green) 문턱과 밀도를 그대로 두고, 나머지
@@ -1569,6 +1613,7 @@
   function setJoy(dx, dy) { joy.x = dx; joy.y = dy; }
 
   function update(dt) {
+    stepForest(dt);
     var km = keymap();
     var dx = 0, dy = 0;
     if (keys.w || keys.arrowup || keys[km.up]) { dy -= 1; }
@@ -2429,6 +2474,8 @@
     shopLevel: shopLevel, SHOP_TIERS: SHOP_TIERS,
     giveGift: giveGift, giftLike: giftLike, giftDislike: giftDislike, giftedToday: giftedToday,
     buildProps: buildProps, forestMargin: forestMargin, biomeAt: biomeAt, BIOMES: BIOMES,
+    FORESTS: FORESTS, forestAt: forestAt, forestByKey: function (k) { return FOREST_BY[k] || null; },
+    forestOfPlayer: forestOfPlayer, _stepForest: stepForest, _resetForest: function () { forestNow = null; forestPend = null; forestT = 0; },
     lakeCenter: lakeCenter, inLake: inLake, inRiver: inRiver, riverCenterX: riverCenterX,
     waterfallSpot: waterfallSpot, hamletSpot: hamletSpot, inHamlet: inHamlet,
     hamlet2Spot: hamlet2Spot, inHamlet2: inHamlet2,
