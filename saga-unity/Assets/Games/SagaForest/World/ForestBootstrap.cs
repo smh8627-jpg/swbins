@@ -23,6 +23,7 @@ namespace Saga.Forest.World
             ForestSettingsState.ApplyToAllScalers();
             ForestSettingsState.ApplyGraphicsQuality();
             ForestAudio.PlayBgm(bgmClip);
+            if (GetComponent<ForestZoneTracker>() == null) gameObject.AddComponent<ForestZoneTracker>(); // PLAN.md 108 ② 존 자막
 
             // PLAN.md 101-2 5.3 "마을 번들" — 실시간 완성은 이벤트로,
             // 로드 직후 "이미 완성돼 있던 것"은 이벤트 없이 상태를 직접

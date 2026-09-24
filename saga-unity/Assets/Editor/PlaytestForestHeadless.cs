@@ -91,6 +91,7 @@ namespace Saga.EditorTools
                 CheckTownScore();
                 CheckDelivery();
                 CheckFestival();
+                if (!PlaytestForestZones.Run()) _hadError = true; // PLAN.md 108 ② 고정 특색 지역
             }
             if (_framesSeen >= FramesToRun)
             {

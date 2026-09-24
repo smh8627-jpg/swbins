@@ -89,6 +89,7 @@ namespace Saga.EditorTools
             BuildTownScoreBoard();
             BuildDeliveryCounter();
             BuildDeliveryMailboxes();
+            BuildLandmarks();
             BuildWishStone();
             var (playerGo, playerTransform) = BuildPlayer();
             BuildCurveDriver(playerTransform);
@@ -333,6 +334,123 @@ namespace Saga.EditorTools
             go.transform.position = pos;
             var mailbox = go.AddComponent<ForestDeliveryMailbox>();
             SetPrivateField(mailbox, "zoneIndex", zoneIndex);
+        }
+
+        // PLAN.md 108 ② 존 명소 넷 — 전부 CC0 GLB(Kenney), 코드 도형 아님.
+        private const string AltarGlbPath = "Assets/Art/Shrine/altar-stone.glb";
+        private const string LanternGlbPath = "Assets/Art/Props/lantern.glb";
+        private const string RockLargeGlbPath = "Assets/Art/Rocks/rock_largeA.glb";
+        private const string RockSmallGlbPath = "Assets/Art/Rocks/rock_smallA.glb";
+        private const string PillarGlbPath = "Assets/Art/Buildings/pillar-stone.glb";
+
+        /// <summary>PLAN.md 108 ② — 존마다 명소 하나(`ForestBiomeData.Zone.LandmarkPos`, 존 중심에서 바깥 z 로 7m).
+        /// 모양은 "Visual" 아래(땅 휨 따라 `ForestLandmark` 가 내린다), 충돌체는 뿌리 쪽 "Colliders" 아래(안 움직인다).</summary>
+        private static void BuildLandmarks()
+        {
+            for (int i = 0; i < ForestBiomeData.Zones.Length; i++)
+            {
+                var z = ForestBiomeData.Zones[i];
+                var go = new GameObject($"Landmark_{z.Key}");
+                go.transform.position = new Vector3(z.LandmarkPos.x, 0f, z.LandmarkPos.y);
+                var visual = new GameObject("Visual").transform;
+                visual.SetParent(go.transform, false);
+                var cols = new GameObject("Colliders").transform;
+                cols.SetParent(go.transform, false);
+                switch (z.Key)
+                {
+                    case "dark_forest": // 이끼 돌제단 + 등불 둘(차가운 빛)
+                        LandmarkPiece(visual, AltarGlbPath, Vector3.zero, 0f, 1.1f, Vector3.one);
+                        LandmarkPiece(visual, LanternGlbPath, new Vector3(-1.7f, 0f, 0.5f), 0f, 1.5f, Vector3.one);
+                        LandmarkPiece(visual, LanternGlbPath, new Vector3(1.7f, 0f, 0.5f), 0f, 1.5f, Vector3.one);
+                        LandmarkLight(visual, new Vector3(0f, 1.8f, 0.6f), new Color(0.55f, 0.8f, 1f), 1.6f, 7f);
+                        LandmarkBox(cols, new Vector3(0f, 0.55f, 0f), new Vector3(2.2f, 1.1f, 1.4f));
+                        break;
+                    case "rocky": // 거인 선돌 + 곁돌 셋
+                        LandmarkPiece(visual, RockLargeGlbPath, Vector3.zero, 20f, 4.2f, new Vector3(0.7f, 1f, 0.7f));
+                        LandmarkPiece(visual, RockSmallGlbPath, new Vector3(1.8f, 0f, 0.6f), 40f, 0.6f, Vector3.one);
+                        LandmarkPiece(visual, RockSmallGlbPath, new Vector3(-1.5f, 0f, 1.1f), 130f, 0.5f, Vector3.one);
+                        LandmarkPiece(visual, RockSmallGlbPath, new Vector3(0.4f, 0f, -1.9f), 250f, 0.7f, Vector3.one);
+                        LandmarkCapsule(cols, Vector3.zero, 1.0f, 4.2f);
+                        break;
+                    case "mushroom_forest": // 요정 돌고리(작은 돌 여덟) + 가운데 보랏빛
+                        for (int k = 0; k < 8; k++)
+                        {
+                            float a = k * Mathf.PI * 2f / 8f;
+                            LandmarkPiece(visual, RockSmallGlbPath, new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * 2.2f, k * 47f, 0.45f + (k % 3) * 0.1f, Vector3.one);
+                        }
+                        LandmarkLight(visual, new Vector3(0f, 0.7f, 0f), new Color(0.8f, 0.5f, 1f), 1.4f, 5f);
+                        break; // 고리 안으로 걸어 들어갈 수 있게 충돌체 없음
+                    default: // "flower_field" — 옛 돌기둥터(셋은 서고 하나는 부러짐)
+                        for (int k = 0; k < 4; k++)
+                        {
+                            var p = new Vector3(k % 2 == 0 ? -1.8f : 1.8f, 0f, k < 2 ? -1.8f : 1.8f);
+                            LandmarkPiece(visual, PillarGlbPath, p, k * 90f, k == 3 ? 1.1f : 2.6f, Vector3.one);
+                            LandmarkCapsule(cols, p, 0.35f, k == 3 ? 1.1f : 2.6f);
+                        }
+                        break;
+                }
+                SetPrivateField(go.AddComponent<ForestLandmark>(), "zoneIndex", i);
+            }
+        }
+
+        /// <summary>GLB 하나를 키 `height`(축 배율 `axis` 뒤)로 맞춰 바닥이 `localPos.y` 에 닿게 놓는다. 딸린 충돌체는 지운다.</summary>
+        private static void LandmarkPiece(Transform parent, string path, Vector3 localPos, float yaw, float height, Vector3 axis)
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (prefab == null)
+            {
+                Debug.LogWarning($"[BuildTestVillageForestScene] 명소 모델을 못 찾음 — {path}");
+                return;
+            }
+            var inst = Object.Instantiate(prefab, parent, false);
+            inst.name = System.IO.Path.GetFileNameWithoutExtension(path);
+            inst.transform.localPosition = localPos;
+            inst.transform.localRotation = Quaternion.Euler(0f, yaw, 0f);
+            foreach (var c in inst.GetComponentsInChildren<Collider>()) Object.DestroyImmediate(c);
+            var b = WorldBounds(inst);
+            if (b.size.y > 0.001f) inst.transform.localScale = Vector3.Scale(axis, Vector3.one * (height / b.size.y));
+            b = WorldBounds(inst);
+            inst.transform.position += Vector3.up * (parent.TransformPoint(localPos).y - b.min.y);
+        }
+
+        private static Bounds WorldBounds(GameObject go)
+        {
+            var rs = go.GetComponentsInChildren<Renderer>();
+            if (rs.Length == 0) return new Bounds(go.transform.position, Vector3.zero);
+            var b = rs[0].bounds;
+            for (int i = 1; i < rs.Length; i++) b.Encapsulate(rs[i].bounds);
+            return b;
+        }
+
+        private static void LandmarkLight(Transform parent, Vector3 localPos, Color color, float intensity, float range)
+        {
+            var go = new GameObject("LandmarkLight");
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = localPos;
+            var l = go.AddComponent<Light>();
+            l.type = LightType.Point;
+            l.color = color;
+            l.intensity = intensity;
+            l.range = range;
+            l.shadows = LightShadows.None;
+        }
+
+        private static void LandmarkBox(Transform parent, Vector3 center, Vector3 size)
+        {
+            var c = new GameObject("Box").AddComponent<BoxCollider>();
+            c.transform.SetParent(parent, false);
+            c.center = center;
+            c.size = size;
+        }
+
+        private static void LandmarkCapsule(Transform parent, Vector3 pos, float radius, float height)
+        {
+            var c = new GameObject("Capsule").AddComponent<CapsuleCollider>();
+            c.transform.SetParent(parent, false);
+            c.transform.localPosition = pos;
+            c.radius = radius;
+            c.height = height;
+            c.center = new Vector3(0f, height * 0.5f, 0f);
         }
 
         private static void BuildCollectSpot(ForestMuseumState.Category category, Vector3 pos, Color color)

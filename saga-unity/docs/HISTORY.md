@@ -8911,3 +8911,12 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - **글**: 경계 자막은 "— 이름 한자 —" + "위험 ●●○ · 명단", 처음 가는 땅이면 사연 한 줄 더(4초, 다시 오면 2.2초). 지도 이름표에 위험 점, 지도 위쪽에 지금 선 지역 두 줄. 번역 키 10개(ko·en), `loc-missing.py` 빠진 키 0.
 - 파일: 고침 `GoWorldMap`(Region 필드·`DangerMul`·`DangerLine` 등)·`FieldEnemy`(`KindName`·`Danger`·`ApplyDanger`)·`FieldSpawner`(위험 적용·`GroupMembers`)·`WorldMapUi`(`EnterText`·`RegionInfo`·이름표)·`go_ko/en.json`·`PlaytestGoElementalFoe`(경험치·방패 기대값에 배율)·`PlaytestHeadless`, 새 `Editor/PlaytestGoRegionTraits.cs`. 씬 재빌드 없음(런타임에서 세우는 적이라).
 - 검증: GO `PlaytestHeadless` **3연속 OK**(진단 줄 3회 md5 동일, 새 `regionTraits` 줄 "무리 적 23(위험3 8)·해골 체력 동쪽 253/산기슭 286"). 실기 확인 전(자막 세 줄이 길지 않은지·지도 위쪽 두 줄이 지도와 안 겹치는지·위험 3 산기슭 해골이 버거운지).
+
+## 2026-09-24 — PLAN 108 ② FOREST 고정 특색 지역(한자·사연·짐승 명단·명소 넷) (같은 대화 여섯 번째 "이어해", Opus 5.5)
+
+- **표**: 어둑숲 暗林(숲도깨비·안개유령 · 이끼 돌제단) · 바위 지대 巖野(바위도깨비·무쇠도깨비 · 거인 선돌) · 버섯숲 菌林(버섯정령·포자괴물 · 요정 돌고리) · 꽃밭 花原(꽃정령·나비정령 · 옛 돌기둥터). 한자·명소 이름은 지어낸 것. 명단은 `ForestCreatureBuilder` den 과 같아야 한다(진단이 본다).
+- **존 자막**: `ForestZoneTracker`(부트스트랩이 Play 때 붙임) — 중심 11.5m 안이면 그 존. "— 어둑숲 暗林 —\n사는 것: 숲도깨비·안개유령", 그 판 첫 방문이면 사연 한 줄 더(4초, 다시 오면 2.2초), 마을로 오면 "— 마을 —". 집 안(+500m)은 마을로 친다. 세이브 스키마 안 바꿈(처음 봄은 세션 안에서만).
+- **명소**: 존 중심에서 바깥 z 로 7m — den 둘(중심·바깥 대각선)·채집 자리(안쪽 대각선)·우편함(바깥 x)과 안 겹치는 남은 축. 모양은 커밋된 CC0 GLB 만(altar-stone·lantern·rock_largeA/smallA·pillar-stone), 어둑숲·버섯숲엔 점광 하나씩. 충돌체는 제단(상자)·선돌·기둥(캡슐), 돌고리는 걸어 들어가게 없음.
+- **함정 — 땅 휨**: 이 판 땅·나무·짐승은 `ForestWorldCurve` 셰이더(y −= 거리² × 0.004)로 휘는데 GLB 는 PBR 재질이라 안 휜다 → 20m 밖에서 1.6m 떠 보인다(옛 우편함·소원돌도 같은 문제로 URP/Lit). 명소는 `ForestLandmark` 가 "Visual" 을 통째로 거리² × 0.004 내린다(물체 안 굽음은 없지만 3~4m 짜리라 티 안 남). 충돌체는 뿌리에 두어 안 움직임.
+- 파일: 고침 `ForestBiomeData`(Zone 필드·`ZoneAt`·`EnterText`)·`ForestCreature`(`KindName`·`Kind`·`Den`)·`ForestBootstrap`·`BuildTestVillageForestScene`(`BuildLandmarks`)·`forest_ko/en.json`(키 25)·`PlaytestForestHeadless`, 새 `ForestLandmark.cs`·`ForestZoneTracker.cs`·`Editor/PlaytestForestZones.cs`, 씬 재빌드.
+- 검증: 씬 재빌드 exit 0 · `PlaytestForestHeadless` **3연속 OK**(진단 줄 md5 동일, 새 `zones` 줄 "명소 모양 조각 19") · 같은 씬 `PlaytestForestCreatures`·`Finish`·`Furniture`·`HouseTransition` 전부 OK. 실기 확인 전(명소 크기·휨 따라 내리는 게 가까이서 튀지 않는지·점광 세기·자막 세 줄 길이).

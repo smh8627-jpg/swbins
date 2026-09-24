@@ -67,10 +67,31 @@ namespace Saga.Forest.World
         /// private State를 그대로 노출하지 않고 이름만 문자열로 준다.</summary>
         public string DebugStateName => _state.ToString();
 
+        /// <summary>PLAN.md 108 ② — 종 표시 이름(존 짐승 명단). 이름은 전부 지어낸 것.</summary>
+        public static string KindName(string kind)
+        {
+            switch (kind)
+            {
+                case "bawi": return ForestLocalization.T("creature.bawi", "바위도깨비");
+                case "beoseot": return ForestLocalization.T("creature.beoseot", "버섯정령");
+                case "kkot": return ForestLocalization.T("creature.kkot", "꽃정령");
+                case "pojagoemul": return ForestLocalization.T("creature.pojagoemul", "포자괴물");
+                case "angaeyuryeong": return ForestLocalization.T("creature.angaeyuryeong", "안개유령");
+                case "musoetokkebi": return ForestLocalization.T("creature.musoetokkebi", "무쇠도깨비");
+                case "nabijeongryeong": return ForestLocalization.T("creature.nabijeongryeong", "나비정령");
+                default: return ForestLocalization.T("creature.dokkaebi", "숲도깨비");
+            }
+        }
+
+        /// <summary>108 ② 진단 — 세운 종.</summary>
+        public string Kind { get; private set; }
+        public Vector3 Den => _origin;
+
         /// <summary>씬 빌더가 스폰 직후 한 번 부른다 — `kind`가 시각과 능력치를
         /// 함께 정한다(species별로 다른 primitive 조합·속도·경계심).</summary>
         public void Setup(string kind, Vector3 origin)
         {
+            Kind = kind;
             _origin = origin;
             _target = origin;
             transform.position = origin;
