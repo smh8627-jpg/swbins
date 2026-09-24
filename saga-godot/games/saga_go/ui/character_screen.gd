@@ -12,6 +12,7 @@ extends CanvasLayer
 const Growth := preload("res://games/saga_go/data/growth.gd")
 const Elements := preload("res://games/saga_go/combat/elements.gd")
 const Characters := preload("res://saga_core/data/characters.gd")
+const Story := preload("res://games/saga_go/data/story.gd")
 const Weapons := preload("res://games/saga_go/data/weapons.gd")
 const Artifacts := preload("res://games/saga_go/data/artifacts.gd")
 const Kits := preload("res://games/saga_go/data/kits.gd")
@@ -44,6 +45,7 @@ var _salvage_btn: Button = null
 var _talent_buttons: Dictionary = {}
 var _con_label: Label = null
 var _con_button: Button = null
+var _party_btn: Button = null # 106장 ㉛ 편성에 넣기
 var _frozen_before := false
 
 func _ready() -> void:
@@ -89,14 +91,19 @@ func owned() -> Array[String]:
 func _name(id: String) -> String:
 	if id == "self":
 		return "나"
-	var h: Variant = Characters.find(id)
+	var h: Variant = _hero_of(id)
 	return h.name if h != null else id
 
 func _rarity(id: String) -> int:
 	if id == "self":
 		return 5
-	var h: Variant = Characters.find(id)
+	var h: Variant = _hero_of(id)
 	return int(h.get("rarity", 2)) if h != null else 2
+
+## 도감 인물, 아니면 이야기 동료(106장 ㉛ data/story.gd MEMBERS).
+func _hero_of(id: String) -> Variant:
+	var h: Variant = Characters.find(id)
+	return h if h != null else Story.member(id)
 
 # ---------------------------------------------------------------- 짓기
 
@@ -141,6 +148,10 @@ func _build() -> void:
 	_exp_bar.show_percentage = false
 	mid.add_child(_exp_bar)
 	_asc_label = _label(mid, 16)
+	_party_btn = Button.new()
+	_party_btn.custom_minimum_size = Vector2(0, 40)
+	_party_btn.pressed.connect(put_in_party)
+	mid.add_child(_party_btn)
 	_stats = _label(mid, 18)
 	var books := HBoxContainer.new()
 	books.add_theme_constant_override("separation", 8)
@@ -255,7 +266,7 @@ func _refresh() -> void:
 	for id in owned():
 		var b := Button.new()
 		var el := Elements.element_of(id)
-		b.text = "%s  Lv.%d  [%s]" % [_name(id), PartyState.char_level(id), Elements.name_of(el)]
+		b.text = "%s%s  Lv.%d  [%s]" % ["⚔ " if PartyState.in_party(id) else "", _name(id), PartyState.char_level(id), Elements.name_of(el)]
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.custom_minimum_size = Vector2(0, 40)
 		b.modulate = Elements.color_of(el).lightened(0.45) if id != selected else Color.WHITE
@@ -275,6 +286,9 @@ func _refresh() -> void:
 	_exp_bar.max_value = Growth.exp_to_next(lv)
 	_exp_bar.value = float(g.exp) if lv < cap else _exp_bar.max_value
 	_asc_label.text = "돌파 %s" % ("◆".repeat(asc) + "◇".repeat(Growth.MAX_ASC - asc))
+	var in_p := PartyState.in_party(id)
+	_party_btn.text = "⚔ 들판 명단에 있음" if in_p else "⚔ 들판 명단에 넣기 (셋째 자리 동료가 빠진다)"
+	_party_btn.disabled = in_p
 	var fc := get_tree().get_first_node_in_group("go_field_combat")
 	var hp: float = fc.call("max_hp_of", id) if fc else 0.0
 	var atk: float = fc.call("char_atk", id) if fc else PartyState.char_atk(id)
@@ -436,6 +450,12 @@ func swap_weapon() -> void:
 		return
 	var i := choices.find(PartyState.weapon_of(selected))
 	PartyState.equip_weapon(selected, choices[(i + 1) % choices.size()])
+
+## 고른 인물을 들판 명단에(PartyState.put_in_party).
+func put_in_party() -> void:
+	if PartyState.put_in_party(selected):
+		CombatFeel.ui()
+		_refresh()
 
 func select(id: String) -> void:
 	selected = id

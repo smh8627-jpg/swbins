@@ -2,6 +2,7 @@ extends RefCounted
 
 ## PLAN 106장 ㉔ — 인물별 고유 스킬(원신은 인물마다 E·Q 가 다르다). 표만 — 쓰는 곳은 combat/field_combat.gd `_kit_skill`·`_kit_burst`.
 ## 고유(KITS) 대표 다섯: 주인공 · 마을·폐허에 서 있는 역사 인물 셋(현책·해장·결사) · 도적 두목(습격 사건 등용).
+##   + 106장 ㉛ 이야기로 만나는 동료 둘(data/story.gd MEMBERS — 학자 은비 2장·가면 쓴 나그네 5장 보상).
 ## 그 밖의 도감 인물은 **갈래 스킬**(FAMILIES) — 인물 trait 가 틀(무용 돌격·통솔 호령·인덕 방패), 원소가 이름·덧붙는 것(ELEMENT_EXTRA).
 ##   사당 시련이 ★3~4 187명 중 아무나 주므로 몇 명만 손으로 짜면 거의 안 만난다 — 갈래×원소 21칸이면 명단 넷이 거의 안 겹친다.
 ##   지략(wisdom) 인물은 원소를 그대로 다루는 이들이라 지금처럼 원소마다 같은 스킬(field_combat 원소 표) — 이름·설명은 ELEMENT_NAMES·ELEMENT_TEXTS.
@@ -12,6 +13,8 @@ extends RefCounted
 ##   shells(앞 적 몇에 늦게 떨어지는 포탄) · guard(명단 보호막 + 둘레) · updraft(위로 솟구침 + 둘레 끌어올림 — 활공·낙하로 잇는다)
 ## 폭발 type(모두 먼저 둘레 radius 에 mul 한 번): infuse(그 인물 기본 공격에 원소 부여) · haste(명단 스킬 재사용이 두 배로 돎 + 다른 인물 기력) ·
 ##   rally(명단 공격 +) · guard(명단이 받는 피해 -) · vortex(앞 지점에 적을 빨아들이는 소용돌이)
+## 106장 ㉛: 스킬 blink(가까운 적 뒤로 파고드는 돌진 + 표식 — 표식 난 적은 누구에게든 피해 +) ·
+##   폭발 echo(표식 난 적마다 메아리 베기 몇 번) · lore(명단 원소 반응 피해 +)
 ## 이름·수치는 이 판 것(원작 스킬 이름을 옮기지 않는다).
 
 const Characters := preload("res://saga_core/data/characters.gd")
@@ -41,6 +44,19 @@ const KITS := {
 			"text": "둘레 3.5m 를 치고, 명단에 보호막(지금 인물 최대 체력 25%, 12초)"},
 		"burst": {"name": "오천의 맹세", "type": "guard", "radius": 7.0, "mul": 1.6, "sec": 10.0, "taken": 0.7,
 			"text": "둘레 7m 번개, 10초 동안 명단이 받는 피해 -30%"},
+	},
+	"story_scholar": {
+		"skill": {"name": "비문 탁본", "type": "zone", "cd": 10.0, "radius": 4.5, "sec": 9.0, "tick": 1.5, "targets": 4, "mul": 0.35, "energy": 1.5,
+			"text": "발밑에 9초 비문 — 1.5초마다 안의 적 넷까지 덩굴 글자를 새겨 초 원소를 붙인다(맞힐 때마다 명단 기력). 인물을 바꿔도 남는다"},
+		"burst": {"name": "옛 글자 풀이", "type": "lore", "radius": 7.5, "mul": 1.3, "sec": 12.0, "react": 1.4,
+			"text": "둘레 7.5m 를 치고, 12초 동안 명단의 원소 반응 피해 +40%"},
+	},
+	"story_wanderer": {
+		"skill": {"name": "그림자 걸음", "type": "blink", "cd": 7.0, "reach": 10.0, "speed": 30.0, "behind": 1.5, "radius": 2.5, "mul": 1.5,
+			"mark_sec": 8.0, "mark_mul": 1.25,
+			"text": "10m 안 가까운 적 뒤로 파고들며 둘레 2.5m 를 벤다(무적) — 그 적에 8초 표식, 표식 난 적은 명단 누구에게든 피해 +25%"},
+		"burst": {"name": "가면 벗기", "type": "echo", "radius": 6.0, "mul": 1.6, "reach": 15.0, "hits": 3, "tick": 0.3, "echo_mul": 0.7,
+			"text": "둘레 6m 를 베고, 15m 안 표식 난 적마다 0.3초 간격 메아리 베기 셋(×0.7) — 표식 난 적이 없으면 가까운 적 둘에"},
 	},
 	"도적_두목": {
 		"skill": {"name": "회오리 도약", "type": "updraft", "cd": 8.0, "radius": 3.5, "mul": 1.2, "lift": 14.0, "pull": 5.0,

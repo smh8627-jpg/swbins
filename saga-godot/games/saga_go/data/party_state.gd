@@ -106,6 +106,29 @@ func session_exp_gained() -> float:
 	return exp - _session_start_exp
 
 
+## 106장 ㉛ 편성 — 들판 명단(field_combat roster = 나 + members 앞 셋)에 넣는다: 그 인물을 members 맨 앞으로(셋째가 밀려난다).
+## 순서는 그대로 저장된다(세이브 스키마 그대로). 이미 앞 셋이면 그대로.
+func put_in_party(id: String) -> bool:
+	var i := members.find(id)
+	if i < 0 or in_party(id):
+		return false
+	members.remove_at(i)
+	members.insert(0, id)
+	power_changed.emit(atk, def)
+	return true
+
+## 들판 명단(나 + members 앞 셋, 겹침 빼고)에 드는가.
+func in_party(id: String) -> bool:
+	if id == "self":
+		return true
+	var seen: Array[String] = []
+	for m in members:
+		if seen.size() >= 3:
+			break
+		if not seen.has(m):
+			seen.append(m)
+	return seen.has(id)
+
 func recruit(id: String) -> void:
 	members.append(id)
 	var old_level := level

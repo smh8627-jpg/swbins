@@ -89,6 +89,7 @@ func _ready() -> void:
 	var ki := get_tree().get_first_node_in_group("go_kitchen")
 	if ki:
 		ki.connect("cooked", func(_r: String, _q: int) -> void: _on_cooked())
+	_join_past()
 	_enter_step()
 
 func _ensure_actions() -> void:
@@ -344,7 +345,8 @@ func advance() -> void:
 		PartyState.add_items(c.reward)
 		PartyState.add_exp(float(c.exp))
 		PartyState.story = {"ch": ch() + 1, "step": 0}
-		Toast.show(self, "이야기 임무 완료 — %s\n보상: %s" % [c.name, _reward_text(c.reward)], 4.0)
+		var joined := _join(String(c.get("join", "")))
+		Toast.show(self, "이야기 임무 완료 — %s\n보상: %s%s" % [c.name, _reward_text(c.reward), _join_text(joined)], 4.0)
 		CombatFeel.ui()
 		chapter_done.emit(ch() - 1)
 	else:
@@ -354,6 +356,26 @@ func advance() -> void:
 			Toast.show(self, "◆ %s" % s.text, 2.5)
 	step_changed.emit(ch(), st())
 	_enter_step()
+
+## 106장 ㉛ 장 끝 이야기 동료(data/story.gd join·MEMBERS) — 이미 있으면 안 넣는다. 넣었으면 그 id.
+func _join(id: String) -> String:
+	if id == "" or not Story.MEMBERS.has(id) or PartyState.members.has(id):
+		return ""
+	PartyState.recruit(id)
+	return id
+
+func _join_text(id: String) -> String:
+	if id == "":
+		return ""
+	var t := "\n%s 이(가) 동료가 되었다" % String(Story.MEMBERS[id].name)
+	if not PartyState.in_party(id):
+		t += " — 인물 화면(C)에서 들판 명단에 넣을 수 있다"
+	return t
+
+## 이미 지난 장의 동료가 명단에 없으면 조용히 넣는다(이 기능 전에 그 장을 끝낸 세이브).
+func _join_past() -> void:
+	for i in mini(ch(), Story.CHAPTERS.size()):
+		_join(String(Story.CHAPTERS[i].get("join", "")))
 
 func _reward_text(r: Dictionary) -> String:
 	var parts: Array[String] = []

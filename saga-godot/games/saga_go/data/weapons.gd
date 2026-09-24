@@ -9,6 +9,7 @@ extends RefCounted
 ## 이름·수치는 이 판 것(원작 무기 이름을 옮기지 않는다).
 
 const Growth := preload("res://games/saga_go/data/growth.gd")
+const Story := preload("res://games/saga_go/data/story.gd")
 
 const TYPES := ["sword", "claymore", "polearm", "catalyst", "bow"]
 const TYPE_NAMES := {"sword": "한손검", "claymore": "양손검", "polearm": "장병기", "catalyst": "법구", "bow": "활"}
@@ -74,6 +75,8 @@ static func is_shared(wid: String) -> bool:
 static func type_of(member_id: String) -> String:
 	if member_id == "self":
 		return "sword"
+	if Story.MEMBERS.has(member_id): # 106장 ㉛ 이야기 동료는 표로
+		return String(Story.MEMBERS[member_id].weapon)
 	var h := 7
 	for i in member_id.length():
 		h = (h * 37 + member_id.unicode_at(i)) & 0x7fffffff

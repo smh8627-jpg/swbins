@@ -16,6 +16,7 @@ extends Node
 ## 106장 ㉚ 5장: ㉛ 잠긴 동안 학자는 폐허, 풀리면 옛길 어귀로 옮겨 서고 둘레 나무 줄기에 안 걸림 ㉜ 촌장 → 옛길 어귀 → 학자 둘레 졸개 넷
 ## ㉝ 다 쓰러뜨리기 ㉞ 학자(옛길) → 제단·석등 셋, 학자는 제단 곁으로, 원소 시야가 다음 석등을 짚음 ㉟ 석등 차례(틀리면 다 꺼짐·폭발이 셋에 닿아도 다음 것만) → 가면 무리 다섯
 ## ㊱ 다 쓰러뜨리기 → 나그네가 제단 곁에 ㊲ 나그네 → 사라짐 ㊳ 학자 → 폐허로 ㊴ 촌장 → 5장 끝·다 끝남·목록 ✔ 제5장.
+## 106장 ㉛ 이야기 동료: ⑫ 2장 끝에 학자 은비·㊴ 5장 끝에 나그네가 명단에(이미 지난 장이면 불러올 때 조용히).
 ## 106장 ㉙ 대화 몸짓: ㊵ 글자 흘리기·입 모양(한글 모음 → 입 다섯)·말하는 동안 오른손이 앞·위로·F 한 번이면 줄 전체·끝나면 손·입 제자리·표정·눈 깜박임.
 ## 저장은 안 한다(부대 경험·이야기 상태는 메모리에서만 바꾸고 끝에 되돌린다).
 
@@ -53,11 +54,13 @@ func _physics_process(_delta: float) -> void:
 		return
 	match _step:
 		0: # 준비 — 처음부터, 부대 경험 0(1장 보상으로 모험 등급 5 를 넘지 않게)
-			_saved = {"story": PartyState.story.duplicate(), "exp": PartyState.exp, "level": PartyState.level, "resin": PartyState.resin, "resin_t": PartyState.resin_t,
+			_saved = {"story": PartyState.story.duplicate(), "members": PartyState.members.duplicate(), "exp": PartyState.exp, "level": PartyState.level, "resin": PartyState.resin, "resin_t": PartyState.resin_t,
 				"gather_t": PartyState.gather_t.duplicate()}
 			PartyState.exp = 0.0
 			PartyState.level = 0
 			PartyState.story = {}
+			for id in Story.MEMBERS:
+				PartyState.members.erase(id)
 			_sq.call("_enter_step")
 			_next()
 		1: # ① 표
@@ -196,8 +199,9 @@ func _physics_process(_delta: float) -> void:
 				## 3장은 모험 등급 7 — 2장 경험으로 이미 닿았을 수도 있다(잠겼으면 등급 글, 열렸으면 첫 단계 글).
 				var tx: String = _sq.call("tracker_text")
 				var ok: bool = int(_v[0]) == 2 and int(_v[1]) == 3 and int(_sq.call("ch")) == 2 and tx.contains("제3장") \
-					and (tx.contains("모험 등급 7") if _sq.call("locked") else tx.contains("촌장"))
-				_check("chapter2", ok, "go_st=%d domain_st=%d ch=%d" % [_v[0], _v[1], _sq.call("ch")])
+					and (tx.contains("모험 등급 7") if _sq.call("locked") else tx.contains("촌장")) \
+					and PartyState.members.has("story_scholar") and not PartyState.members.has("story_wanderer")
+				_check("chapter2", ok, "go_st=%d domain_st=%d ch=%d scholar_joined=%s" % [_v[0], _v[1], _sq.call("ch"), PartyState.members.has("story_scholar")])
 				_next()
 		13: # ⑬ 임무 목록
 			if _frame < 6:
@@ -588,9 +592,16 @@ func _physics_process(_delta: float) -> void:
 			_sq.call("toggle_journal")
 			var jt: String = _sq.call("journal_text")
 			_sq.call("toggle_journal")
+			var joined := PartyState.members.has("story_wanderer") and PartyState.members.count("story_scholar") == 1
+			## 이 기능 전에 장을 끝낸 세이브 — 둘 다 빼고 불러올 때처럼 _join_past, 한 번 더 불러도 겹치지 않음.
+			for id in Story.MEMBERS:
+				PartyState.members.erase(id)
+			_sq.call("_join_past")
+			_sq.call("_join_past")
+			var past := PartyState.members.count("story_scholar") == 1 and PartyState.members.count("story_wanderer") == 1
 			var ok: bool = int(_sq.call("ch")) == 5 and _sq.call("tracker_text") == "" and _sq.call("target_pos") == Vector3.INF and jt.contains("✔ 제5장") \
-				and PartyState.count("fate_knot") == int(_v) + 3
-			_check("chapter5", ok, "ch=%d knots %d→%d tracker='%s'" % [_sq.call("ch"), _v, PartyState.count("fate_knot"), _sq.call("tracker_text")])
+				and PartyState.count("fate_knot") == int(_v) + 3 and joined and past
+			_check("chapter5", ok, "ch=%d knots %d→%d joined=%s past=%s tracker='%s'" % [_sq.call("ch"), _v, PartyState.count("fate_knot"), joined, past, _sq.call("tracker_text")])
 			_next()
 		40: # ㊵ 대화 몸짓 — 다 끝난 뒤 촌장 혼잣말로
 			var face: Node = _sq.call("face_of", "elder")
@@ -638,6 +649,7 @@ func _physics_process(_delta: float) -> void:
 				_next()
 		41:
 			PartyState.story = _saved.story
+			PartyState.members.assign(_saved.members)
 			PartyState.exp = _saved.exp
 			PartyState.level = _saved.level
 			PartyState.resin = _saved.resin

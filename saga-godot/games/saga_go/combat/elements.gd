@@ -1,5 +1,7 @@
 extends RefCounted
 
+const Story := preload("res://games/saga_go/data/story.gd")
+
 ## PLAN 106장 ③·⑭ — 원소 일곱과 반응. 원신의 "원소를 겹쳐 반응을 일으킨다" 문법만
 ## 따르고 이름·수치는 이 판 것으로 정했다(화·수·뇌·풍·빙·암·초).
 ##   화+수 → 증발 : 이번 타격 ×1.5                화+빙 → 융해 : 이번 타격 ×1.5
@@ -105,6 +107,8 @@ static func name_of(element: String) -> String:
 static func element_of(member_id: String) -> String:
 	if member_id == "self":
 		return "fire"
+	if Story.MEMBERS.has(member_id): # 106장 ㉛ 이야기 동료는 표로
+		return String(Story.MEMBERS[member_id].element)
 	var h := 0
 	for i in member_id.length():
 		h = (h * 31 + member_id.unicode_at(i)) & 0x7fffffff

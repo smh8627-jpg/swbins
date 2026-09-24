@@ -14,6 +14,7 @@ extends Label
 ## 보여준다.
 
 const Characters := preload("res://saga_core/data/characters.gd")
+const Story := preload("res://games/saga_go/data/story.gd")
 const Adventure := preload("res://games/saga_go/data/adventure.gd")
 
 func _ready() -> void:
@@ -25,6 +26,8 @@ func _refresh(atk: float, def: float) -> void:
 	var names: Array = []
 	for id in PartyState.members:
 		var h: Variant = Characters.find(id)
+		if h == null:
+			h = Story.member(id) # 106장 ㉛ 이야기 동료
 		names.append(h.name if h != null else id)
 	var names_text := " (" + "·".join(names) + ")" if not names.is_empty() else ""
 	## 106장 ㉒ — 옛 "Lv.N"(부대 레벨)은 모험 등급(= 레벨 + 1)으로 드러내고 세계 등급을 붙인다.

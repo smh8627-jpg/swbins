@@ -24,6 +24,7 @@ extends Node
 
 const Elements := preload("res://games/saga_go/combat/elements.gd")
 const Characters := preload("res://saga_core/data/characters.gd")
+const Story := preload("res://games/saga_go/data/story.gd")
 const Toast := preload("res://saga_core/ui/toast.gd")
 const Growth := preload("res://games/saga_go/data/growth.gd")
 const Weapons := preload("res://games/saga_go/data/weapons.gd")
@@ -184,6 +185,10 @@ var _rally_mul := 1.0
 var _guard_t := 0.0
 var _guard_mul := 1.0
 var _haste_t := 0.0
+## 106장 ㉛ 이야기 동료 — 반응 피해 +(학자 옛 글자 풀이) · 표식(나그네 그림자 걸음, 적 instance id → {left, mul}).
+var _lore_t := 0.0
+var _lore_mul := 1.0
+var _marks: Dictionary = {}
 ## 106장 ⑭ 명단 전체 보호막(결정·암 폭발). 원소는 표시용.
 var shield_hp := 0.0
 var shield_element := ""
@@ -267,8 +272,13 @@ func active_element() -> String:
 func display_name(id: String) -> String:
 	if id == "self":
 		return "나"
-	var h: Variant = Characters.find(id)
+	var h: Variant = _hero_of(id)
 	return h.name if h != null else id
+
+## 도감 인물, 아니면 이야기 동료(data/story.gd MEMBERS) — 둘 다 name·rarity 를 읽는다.
+static func _hero_of(id: String) -> Variant:
+	var h: Variant = Characters.find(id)
+	return h if h != null else Story.member(id)
 
 func hp_of(id: String) -> float:
 	var m := max_hp_of(id)
@@ -318,7 +328,7 @@ func resonance() -> String:
 func _power_mul(id: String) -> float:
 	var mul := 1.0
 	if id != "self":
-		var h: Variant = Characters.find(id)
+		var h: Variant = _hero_of(id)
 		if h != null:
 			mul = 0.9 + 0.05 * float(h.get("rarity", 2))
 	if resonance() == "fire":
@@ -402,6 +412,11 @@ func _physics_process(delta: float) -> void:
 	_rally_t = maxf(_rally_t - delta, 0.0)
 	_guard_t = maxf(_guard_t - delta, 0.0)
 	_haste_t = maxf(_haste_t - delta, 0.0)
+	_lore_t = maxf(_lore_t - delta, 0.0)
+	for k in _marks.keys():
+		_marks[k].left = float(_marks[k].left) - delta
+		if float(_marks[k].left) <= 0.0:
+			_marks.erase(k)
 	for k in _infuse.keys():
 		_infuse[k].left = maxf(float(_infuse[k].left) - delta, 0.0)
 	if _shield_t > 0.0:
@@ -684,6 +699,28 @@ func _kit_skill(id: String, kit: Dictionary, atk: float, el: String) -> int:
 				hits += 1
 			grant_shield(max_hp * float(kit.shield), el)
 			_shield_t = float(kit.sec)
+		"blink":
+			## 106장 ㉛ 그림자 걸음 — 가까운 적을 지나 그 뒤 behind m 까지 돌진(충돌·무적은 skill_dash 그대로), 그 둘레를 베고 표식.
+			var tgt := _nearest(pos, float(kit.reach), 1)
+			var fwd_b: Vector3 = _player.call("facing")
+			var dist := 3.0
+			var at := pos + fwd_b * dist
+			if not tgt.is_empty():
+				var tp: Vector3 = (tgt[0] as Node3D).global_position
+				var flat := Vector3(tp.x - pos.x, 0.0, tp.z - pos.z)
+				if flat.length() > 0.05:
+					fwd_b = flat.normalized()
+				dist = flat.length() + float(kit.behind)
+				at = tp
+			var speed := float(kit.speed)
+			_player.call("skill_dash", fwd_b, dist / speed, speed)
+			_ring_fx(at, float(kit.radius), col, 0.4)
+			for e in _enemies_near(at, float(kit.radius)):
+				_deal(e, atk * float(kit.mul), el, fwd_b)
+				hits += 1
+			if not tgt.is_empty():
+				_marks[(tgt[0] as Node).get_instance_id()] = {"left": float(kit.mark_sec), "mul": float(kit.mark_mul)}
+				_reaction_text(tgt[0] as Node3D, "표식", Color(0.85, 0.9, 1.0))
 		"updraft":
 			_ring_fx(pos, float(kit.radius), col, 0.45)
 			for e in _enemies_near(pos, float(kit.radius)):
@@ -723,6 +760,20 @@ func _kit_burst(id: String, kb: Dictionary, atk: float, el: String) -> void:
 		"guard":
 			_guard_t = sec
 			_guard_mul = float(kb.taken)
+		"lore":
+			_lore_t = sec
+			_lore_mul = float(kb.react)
+		"echo":
+			## 106장 ㉛ 가면 벗기 — 표식 난 적마다 메아리 베기(없으면 가까운 둘). 적을 따라가며 친다.
+			var marked: Array = []
+			for e in _enemies_near(center, float(kb.reach)):
+				if is_marked(e):
+					marked.append(e)
+			if marked.is_empty():
+				marked = _nearest(center, radius, 2)
+			for e in marked:
+				_effects.append({"kind": "kit_echo", "target": e, "center": center, "left": float(kb.tick) * float(kb.hits) + 0.01,
+					"tick": float(kb.tick), "t": float(kb.tick), "base": atk, "mul": float(kb.echo_mul), "el": el, "owner": id})
 		"vortex":
 			var at: Vector3 = center + (_player.call("facing") as Vector3) * float(kb.ahead)
 			_ring_fx(at, radius, Elements.color_of(el), 0.5)
@@ -753,7 +804,18 @@ func buff_text() -> String:
 		parts.append("받는 피해 -%d%% %d초" % [roundi((1.0 - _guard_mul) * 100.0), ceili(_guard_t)])
 	if _haste_t > 0.0:
 		parts.append("스킬 가속 %d초" % ceili(_haste_t))
+	if _lore_t > 0.0:
+		parts.append("반응 +%d%% %d초" % [roundi((_lore_mul - 1.0) * 100.0), ceili(_lore_t)])
+	if not _marks.is_empty():
+		parts.append("표식 %d" % _marks.size())
 	return " · ".join(parts)
+
+## 표식(그림자 걸음)이 남은 적인가.
+func is_marked(enemy: Node) -> bool:
+	return is_instance_valid(enemy) and _marks.has(enemy.get_instance_id())
+
+func lore_mul() -> float:
+	return _lore_mul if _lore_t > 0.0 else 1.0
 
 func _tick_effects(delta: float) -> void:
 	_crit_id = active_id()
@@ -817,6 +879,12 @@ func _tick_effects(delta: float) -> void:
 					sn += 1
 				if sn > 0:
 					_gain_energy(ENERGY_PER_SKILL_HIT * KIT_SHELL_ENERGY * sn)
+			"kit_echo":
+				var tg: Variant = fx.target
+				if is_instance_valid(tg) and not (tg as Node).call("is_dead"):
+					var ep: Vector3 = (tg as Node3D).global_position
+					_ring_fx(ep, 1.2, Elements.color_of(String(fx.el)), 0.2)
+					_deal(tg, fx.base * float(fx.mul), String(fx.el), ep - _player.global_position)
 			"kit_vortex":
 				_ring_fx(fx.center, float(fx.radius), Elements.color_of(String(fx.el)), 0.3)
 				for e in _enemies_near(fx.center, float(fx.radius)):
@@ -924,6 +992,9 @@ func _deal(enemy: Node, base: float, element: String, dir: Vector3) -> float:
 				rig.call("shake", 0.12, 0.25)
 		return dealt
 	var amount := base
+	## 106장 ㉛ 표식 난 적 — 명단 누구에게든 피해 +.
+	if _marks.has(enemy.get_instance_id()):
+		amount *= float(_marks[enemy.get_instance_id()].mul)
 	## 초전도가 남은 적 — 물리 피해 ×1.4. 빙 공명 — 빙이 붙었거나 얼어 있는 적에게 +15%.
 	if element == "" and float(enemy.get("phys_vuln_t")) > 0.0:
 		amount *= PHYS_VULN_MUL
@@ -1020,7 +1091,7 @@ func _reaction_mul(reaction: String = "") -> float:
 		m *= RESONANCE_GRASS_REACTION
 	if PartyState.constellation(active_id()) >= 2:
 		m *= Growth.C2_REACTION_MUL
-	return m * PartyState.react_mul(active_id(), reaction)
+	return m * lore_mul() * PartyState.react_mul(active_id(), reaction)
 
 ## 명단 전체 보호막 — 더 큰 쪽으로 갈고 시간은 새로.
 func grant_shield(amount: float, element: String) -> void:

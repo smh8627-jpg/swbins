@@ -18,6 +18,7 @@ extends RefCounted
 ##     둘 다 {ch, from, to, region?, cell?} 한 칸 또는 여러 칸. region·cell 이 있으면 그 동안 거기에 선다.
 ##   대화 줄 말하는 이가 바뀌면 카메라가 그쪽으로(player/camera_rig.gd talk_shot — 인물 말은 내 어깨 너머, 내 말은 인물 어깨 너머).
 ##   단계마다 부대 경험 STEP_EXP, 장 끝에 reward + exp. 장은 모험 등급 ar 에 열린다.
+##   join 이 있는 장은 끝날 때 그 이야기 인물(MEMBERS)이 동료로 들어온다(원신 이야기 보상 인물) — 이미 지난 장이면 불러올 때 들어온다.
 ##   목표 자리엔 금빛 기둥·"◆ 거리", 왼쪽 미니맵 밑에 임무 이름·목표, 지도·미니맵에 금빛 마름모(미니맵 밖이면 가장자리).
 ## 이야기·이름은 이 판 것(오마주 문법만). 등장인물은 가상의 마을 사람.
 
@@ -52,6 +53,17 @@ const SEAL_MARKS := {
 const SEAL_RING := 6.0
 const SEAL_LAYOUT := ["moon", "star", "sun"] # 둘레에 놓는 차례(북쪽부터 시계 방향)
 
+## 106장 ㉛ 이야기로 만나는 동료 — 도감(saga_core characters) 밖 id. 이름·희귀도·원소·무기를 여기서 정하고(해시 아님),
+## 고유 스킬은 data/kits.gd KITS. npc 는 세상에 서 있는 이야기 인물(동료가 돼도 임무 인물로 계속 선다).
+const MEMBERS := {
+	"story_scholar": {"name": "학자 은비", "rarity": 4, "element": "grass", "weapon": "catalyst", "npc": "scholar"},
+	"story_wanderer": {"name": "가면 쓴 나그네", "rarity": 5, "element": "ice", "weapon": "sword", "npc": "wanderer"},
+}
+
+## 이야기 동료 한 명(도감 인물처럼 name·rarity 를 읽는다) — 아니면 null.
+static func member(id: String) -> Variant:
+	return MEMBERS.get(id)
+
 const FOLLOW_NEAR := 12.0 # 이 안이면 따라가는 인물이 걷는다
 const FOLLOW_SPEED := 2.6 # m/초
 const FOLLOW_LOST := 30.0 # 이보다 멀면 추적 글자에 "놓치겠다"
@@ -83,7 +95,7 @@ const CHAPTERS := [
 					["누리", "고맙다. 네 덕에 마을이 한시름 놓았구나. 이건 마을이 모은 작은 성의란다.", "joy"],
 					["누리", "이무기를 상대하려면 더 강해져야 할 게다. 모험을 더 쌓고 오렴."]]},
 		]},
-	{"id": "ch2", "name": "제2장 · 먹구름 제단", "ar": 5,
+	{"id": "ch2", "name": "제2장 · 먹구름 제단", "ar": 5, "join": "story_scholar",
 		"reward": {"fate_knot": 3, "mora": 20000, "book_l": 1, "talent_3": 1}, "exp": 150.0,
 		"steps": [
 			{"type": "talk", "npc": "scholar", "text": "학자에게 제단 가는 길을 묻기",
@@ -93,7 +105,8 @@ const CHAPTERS := [
 			{"type": "domain", "domain": "weekly", "text": "먹구름 제단에서 먹구름 이무기를 쓰러뜨리기"},
 			{"type": "talk", "npc": "elder", "text": "청하 촌장에게 알리기",
 				"lines": [["누리", "하늘이… 개었구나! 몇 해 만에 보는 맑은 하늘이냐.", "joy"],
-					["누리", "이무기는 또 깨어날지 모르지만, 네가 있으니 든든하다. 잔치 준비를 해야겠구나!"]]},
+					["누리", "이무기는 또 깨어날지 모르지만, 네가 있으니 든든하다. 잔치 준비를 해야겠구나!"],
+					["누리", "참, 은비가 너와 함께 다니고 싶다더구나. 비문 읽는 솜씨가 싸움에도 쓸모 있을 게다.", "fun"]]},
 		]},
 	{"id": "ch3", "name": "제3장 · 잔칫날의 불청객", "ar": 7,
 		"reward": {"fate_knot": 3, "mora": 25000, "book_l": 2, "talent_3": 1}, "exp": 180.0,
@@ -160,7 +173,7 @@ const CHAPTERS := [
 				"lines": [["누리", "나그네가 쫓는 가면 쓴 자라… 먹구름이 다섯 번이나 더 올 수 있다는 말이냐.", "sorrow"],
 					["누리", "네가 있어 다행이구나. 마을 사람들 몫으로 모은 것이니 받아 두렴."]]},
 		]},
-	{"id": "ch5", "name": "제5장 · 서쪽 고개 옛길", "ar": 12,
+	{"id": "ch5", "name": "제5장 · 서쪽 고개 옛길", "ar": 12, "join": "story_wanderer",
 		"reward": {"fate_knot": 3, "mora": 35000, "book_l": 3, "talent_3": 2}, "exp": 220.0,
 		"steps": [
 			{"type": "talk", "npc": "elder", "text": "촌장에게 학자 소식 듣기",
@@ -185,7 +198,8 @@ const CHAPTERS := [
 				"lines": [["나그네", "……한발 늦을 뻔했군. 그자가 이 제단을 두드리러 오던 참이었다."],
 					["나그네", "네가 먼저 봉인을 밝혀 두었으니 깨우지는 못하고, 졸개만 풀어 놓고 달아났지."],
 					["?", ["그자를 봤어요?", "어디로 갔죠?"]],
-					["나그네", "북쪽 봉우리 너머로. 그자가 떨군 비문 조각이다 — 학자에게 건네게."]]},
+					["나그네", "북쪽 봉우리 너머로. 그자가 떨군 비문 조각이다 — 학자에게 건네게."],
+					["나그네", "……그자를 쫓는 길, 이제부턴 혼자보다 둘이 낫겠군. 촌장에게 인사를 마치면 네 곁에 서지."]]},
 			{"type": "talk", "npc": "scholar", "text": "학자에게 셋째 비문 조각 건네기",
 				"lines": [["은비", "셋째 조각…! '다섯 제단이 모두 깨면 먹구름의 주인이 돌아온다'.", "surprised"],
 					["은비", "가면 쓴 자가 노리는 건 이무기가 아니었어. 그 '주인'이야."],

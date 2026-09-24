@@ -11,6 +11,9 @@ extends Node
 ## 갈래 스킬(무용·통솔·인덕 × 원소 7): ⑬ 표 — 도감 전원이 trait 대로 갈래/원소 기본, 21칸 이름이 다 다름, 원소 덧붙임 수치
 ## ⑭ 무용 돌격 — 길 위 적만·재사용 대기 ⑮ 물결 — 스킬이 명단 체력 4% 회복 ⑯ 바위 호령 — 보호막 +12%
 ## ⑰ 번개 검기 — 기본 공격 뇌 부여 + 다른 인물 기력 +10 ⑱ 인덕 방패 20%·덩굴 군기 13초.
+## 106장 ㉛ 이야기 동료: ⑲ 표 — 원소·무기·이름·희귀도가 story.gd MEMBERS 대로 ⑳ 나그네 E 그림자 걸음 — 가까운 적 뒤로·표식·표식 난 적 피해 ×1.25
+## ㉑ 나그네 Q 가면 벗기 — 표식 난 적에만 메아리 셋 ㉒ 학자 E 비문(초 부착)·Q 옛 글자 풀이 — 반응 ×1.4·상태 줄
+## ㉓ 편성 — 넷째로 들어온 동료를 들판 명단에 넣으면 맨 앞, 셋째가 빠짐, 명단 수 그대로.
 ## 저장은 안 한다(명단은 끝에 되돌린다).
 
 const Kits := preload("res://games/saga_go/data/kits.gd")
@@ -18,6 +21,8 @@ const Domains := preload("res://games/saga_go/data/domains.gd")
 const FieldEnemy := preload("res://games/saga_go/combat/field_enemy.gd")
 const Characters := preload("res://saga_core/data/characters.gd")
 const Elements := preload("res://games/saga_go/combat/elements.gd")
+const Weapons := preload("res://games/saga_go/data/weapons.gd")
+const Story := preload("res://games/saga_go/data/story.gd")
 
 var _p: CharacterBody3D
 var _fc: Node
@@ -54,7 +59,7 @@ func _physics_process(_delta: float) -> void:
 				_next()
 		1: # ① 표
 			var sage := _hero("wisdom", "fire")
-			var ok: bool = Kits.KITS.size() == 5 and is_equal_approx(float(_fc.call("skill_cd_of", "self")), 6.0) \
+			var ok: bool = Kits.KITS.size() == 7 and is_equal_approx(float(_fc.call("skill_cd_of", "self")), 6.0) \
 				and is_equal_approx(float(_fc.call("skill_cd_of", "sg_zhugeliang")), 12.0) \
 				and Kits.name_of(sage, "skill", "fire") == "불꽃 부채" and Kits.name_of("self", "burst", "fire") == "불새 깃"
 			for id in Kits.KITS:
@@ -306,7 +311,78 @@ func _physics_process(_delta: float) -> void:
 			_fc.set("_rally_t", 0.0)
 			_fc.set("shield_hp", 0.0)
 			_next()
-		19:
+		19: # ⑲ 이야기 동료 표
+			var ok := true
+			for id in Story.MEMBERS:
+				var m: Dictionary = Story.MEMBERS[id]
+				ok = ok and Elements.element_of(id) == String(m.element) and Weapons.type_of(id) == String(m.weapon) \
+					and _fc.call("display_name", id) == String(m.name) and Kits.family_label(id) == "고유" and Story.NPCS.has(String(m.npc))
+			var joins := 0
+			for c in Story.CHAPTERS:
+				if Story.MEMBERS.has(String(c.get("join", ""))):
+					joins += 1
+			_check("story_members", ok and joins == 2, "members=%d joins=%d wanderer=%s/%s" % [Story.MEMBERS.size(), joins, Elements.element_of("story_wanderer"), Weapons.type_of("story_wanderer")])
+			_next()
+		20: # ⑳ 나그네 E 그림자 걸음 — 가까운 적(허수아비 a) 뒤로, 표식
+			if _frame == 1:
+				PartyState.members.assign(["story_wanderer"])
+				_use(1)
+				(_fc.get("_marks") as Dictionary).clear()
+				_put(_a.global_position + Vector3(-4.0, 0.3, 5.0))
+			if _frame == 5:
+				_v = [_a.get("hp"), _fc.call("skill")]
+			if _frame == 30:
+				var d := Vector2(_p.global_position.x - _a.global_position.x, _p.global_position.z - _a.global_position.z).length()
+				_a.call("set_aura", "")
+				_b.call("set_aura", "")
+				var da: float = _fc.call("_deal", _a, 100.0, "", Vector3.FORWARD)
+				var db: float = _fc.call("_deal", _b, 100.0, "", Vector3.FORWARD)
+				var bt: String = _fc.call("buff_text")
+				var ok: bool = bool(_v[1]) and float(_a.get("hp")) < float(_v[0]) and absf(d - 1.5) < 1.0 and bool(_fc.call("is_marked", _a)) \
+					and not bool(_fc.call("is_marked", _b)) and absf(da / maxf(db, 0.01) - 1.25) < 0.02 and bt.contains("표식 1")
+				_check("wanderer_blink", ok, "a %.0f→%.0f behind=%.2f marked=%s ratio=%.3f buff='%s'" % [_v[0], _a.get("hp"), d, _fc.call("is_marked", _a), da / maxf(db, 0.01), bt])
+				_next()
+		21: # ㉑ 나그네 Q 가면 벗기 — 표식 난 a 에만 메아리
+			if _frame == 1:
+				_use(1)
+				_fc.get("_energy")["story_wanderer"] = 100.0
+				var ok_b: bool = _fc.call("burst")
+				_v = [ok_b, _kinds().count("kit_echo"), float(_a.get("hp"))]
+			if _frame == 120:
+				var ok: bool = bool(_v[0]) and int(_v[1]) == 1 and float(_a.get("hp")) < float(_v[2]) and _kinds().count("kit_echo") == 0
+				_check("wanderer_echo", ok, "burst=%s echoes=%d a %.0f→%.0f" % [_v[0], _v[1], _v[2], _a.get("hp")])
+				(_fc.get("_marks") as Dictionary).clear()
+				_next()
+		22: # ㉒ 학자 E 비문 탁본(초 부착) · Q 옛 글자 풀이(반응 ×1.4)
+			if _frame == 1:
+				PartyState.members.assign(["story_scholar"])
+				_use(1)
+				_put(_a.global_position + Vector3(0.0, 0.3, 2.0))
+			if _frame == 5:
+				_a.call("set_aura", "")
+				_v = [_fc.call("skill"), _kinds().count("kit_zone")]
+			if _frame == 110:
+				_v.append(String(_a.get("aura")))
+				var m0: float = _fc.call("_reaction_mul", "")
+				_fc.get("_energy")["story_scholar"] = 100.0
+				var ok_b: bool = _fc.call("burst")
+				var m1: float = _fc.call("_reaction_mul", "")
+				var bt: String = _fc.call("buff_text")
+				var ok: bool = bool(_v[0]) and int(_v[1]) == 1 and _v[2] == "grass" and ok_b and absf(m1 / m0 - 1.4) < 0.001 and bt.contains("반응 +40%")
+				_check("scholar_lore", ok, "zone=%d aura=%s react ×%.2f buff='%s'" % [_v[1], _v[2], m1 / m0, bt])
+				_fc.set("_lore_t", 0.0)
+				_next()
+		23: # ㉓ 편성
+			PartyState.members.assign(["sg_zhugeliang", "kr_yisunsin", "kr_gyebaek", "story_wanderer"])
+			var before: bool = PartyState.in_party("story_wanderer")
+			var r0: Array = _fc.call("roster")
+			var put: bool = PartyState.put_in_party("story_wanderer")
+			var again: bool = PartyState.put_in_party("story_wanderer")
+			var r1: Array = _fc.call("roster")
+			var ok: bool = not before and not r0.has("story_wanderer") and put and not again and r1.has("story_wanderer") and r1.size() == 4 				and not r1.has("kr_gyebaek") and PartyState.members.size() == 4 and PartyState.members[0] == "story_wanderer" and PartyState.in_party("self")
+			_check("formation", ok, "before=%s roster %s → %s" % [before, r0, r1])
+			_next()
+		24:
 			PartyState.members.assign(_members_before)
 			print("KIT_PROBE_DONE fails=%d" % _fails)
 			get_tree().quit()
