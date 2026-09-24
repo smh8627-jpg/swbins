@@ -10,6 +10,7 @@ const Elements := preload("res://games/saga_go/combat/elements.gd")
 const Growth := preload("res://games/saga_go/data/growth.gd")
 const VroidBody := preload("res://games/saga_go/world/vroid_body.gd")
 const CreatureBuilder := preload("res://games/saga_go/world/creature_builder.gd")
+const Adventure := preload("res://games/saga_go/data/adventure.gd")
 
 signal died(enemy: Node)
 
@@ -81,6 +82,9 @@ var max_shield := 0.0
 var dmg_mul := 1.0
 var respawns := true
 var drops := true
+## 106장 ㉒ 세계 등급 — field_spawner 가 앉힌다(비경 적은 안 씀 = -1, Lv 표시 없음).
+var world_lv := -1
+var _name_label: Label3D = null
 
 var _t := 0.0
 var _wander_target := Vector3.ZERO
@@ -106,6 +110,21 @@ func setup(kind_id: String, home_pos: Vector3, seed_value: int) -> void:
 	element = def.get("element", "")
 	max_shield = def.get("shield", 0.0)
 	shield = max_shield
+
+## 106장 ㉒ 세계 등급 — 체력·방패는 비율을 지킨 채 배율만 바꾼다(싸우는 중에 바뀌어도 깎인 만큼 그대로).
+func apply_world_level(wl: int) -> void:
+	world_lv = wl
+	var hp_ratio := hp / max_hp if max_hp > 0.0 else 1.0
+	var sh_ratio := shield / max_shield if max_shield > 0.0 else 1.0
+	max_hp = float(def.hp) * Adventure.hp_mul(wl)
+	hp = max_hp * hp_ratio
+	max_shield = float(def.get("shield", 0.0)) * Adventure.hp_mul(wl)
+	shield = max_shield * sh_ratio
+	dmg_mul = Adventure.atk_mul(wl)
+	if _name_label:
+		_name_label.text = "Lv.%d %s" % [Adventure.enemy_level(wl), def.name]
+	if is_inside_tree():
+		_refresh_bar()
 
 ## 106장 ⑳ 비경 단계 — 체력·방패·공격 배율.
 func scale_stats(hp_mul: float, atk_mul: float) -> void:
@@ -355,7 +374,7 @@ func _die() -> void:
 		return
 	PartyState.add_exp(def.exp)
 	## 106장 ⑩ — 육성 재료(냥·전리품·원소 결정·견문록). 정해진 양(growth.gd KILL_DROPS).
-	var loot: Dictionary = Growth.KILL_DROPS.get(kind, {})
+	var loot: Dictionary = Adventure.scale_loot(Growth.KILL_DROPS.get(kind, {}), maxi(world_lv, 0))
 	if not loot.is_empty():
 		PartyState.add_items(loot)
 		## 106장 ⑰ — 원소 괴물은 ★4 성유물 하나.
@@ -423,7 +442,8 @@ func _build_visual() -> Node3D:
 func _build_overhead() -> void:
 	var top := 2.15 if kind == "bandit" else (float(def.height) + 0.45 if def.has("height") else 1.45)
 	var label := Label3D.new()
-	label.text = def.name
+	label.text = def.name if world_lv < 0 else "Lv.%d %s" % [Adventure.enemy_level(world_lv), def.name]
+	_name_label = label
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	label.no_depth_test = true
 	label.font_size = 36

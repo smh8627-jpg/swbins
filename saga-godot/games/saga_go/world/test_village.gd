@@ -26,6 +26,12 @@ func _ready() -> void:
 	_remove_resolved_events()
 	if OS.get_environment("SAGA_DENSITY_REPORT") != "":
 		_print_density_report()
+	## PLAN 106장 ㉒ — 모험 등급 보상·세계 등급(들판 적 무리가 세계 등급을 읽으므로 그 앞, 로드 뒤).
+	var adventure := preload("res://games/saga_go/world/adventure_rank.gd").new()
+	adventure.name = "AdventureRank"
+	add_child(adventure)
+	if OS.get_environment("SAGA_ADVENTURE_PROBE") != "":
+		add_child(load("res://tools/probe_adventure.gd").new())
 	## PLAN 106장 ③ — 들판 적 무리.
 	var spawner := preload("res://games/saga_go/combat/field_spawner.gd").new()
 	spawner.name = "FieldSpawner"

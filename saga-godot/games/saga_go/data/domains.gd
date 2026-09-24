@@ -16,11 +16,11 @@ const START_DELAY := 3.0
 const ARENA_R := 18.0
 const GATE_M := 3.0
 
-## 단계 — 체력·공격 배율, 여는 부대 레벨(옛 부대 레벨 = 모험 등급 자리), 권장 인물 레벨(표시만).
+## 단계 — 체력·공격 배율, 여는 모험 등급(106장 ㉒ adventure.gd), 권장 인물 레벨(표시만).
 const LEVELS := [
-	{"name": "I", "hp": 1.0, "atk": 1.0, "party_lv": 0, "rec": 1},
-	{"name": "II", "hp": 2.0, "atk": 1.5, "party_lv": 3, "rec": 20},
-	{"name": "III", "hp": 3.5, "atk": 2.2, "party_lv": 6, "rec": 40},
+	{"name": "I", "hp": 1.0, "atk": 1.0, "ar": 1, "rec": 1},
+	{"name": "II", "hp": 2.0, "atk": 1.5, "ar": 6, "rec": 20},
+	{"name": "III", "hp": 3.5, "atk": 2.2, "ar": 12, "rec": 40},
 ]
 
 ## 비경 — gate: [지역, 칸], arena: 세상 밖 원판 가운데. waves: 파도마다 적 kind. reward: 단계마다 가방 사전.
@@ -114,7 +114,7 @@ static func time_of(id: String) -> float:
 	return float(DOMAINS[id].get("time", TIME_LIMIT))
 
 static func level_open(lv: int) -> bool:
-	return PartyState.level >= int(LEVELS[lv].party_lv)
+	return PartyState.level + 1 >= int(LEVELS[lv].ar)
 
 ## 보상 한 줄(표시).
 static func reward_text(id: String, lv: int) -> String:

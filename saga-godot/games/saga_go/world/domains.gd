@@ -314,7 +314,7 @@ func _refresh_menu() -> void:
 			b.text = "%s 단계 (권장 Lv.%d) — %s" % [lvd.name, int(lvd.rec), Domains.reward_text(_menu_id, lv)]
 			b.disabled = false
 		else:
-			b.text = "%s 단계 — 부대 Lv.%d 에 열림" % [lvd.name, int(lvd.party_lv)]
+			b.text = "%s 단계 — 모험 등급 %d 에 열림" % [lvd.name, int(lvd.ar)]
 			b.disabled = true
 
 func _build_menu() -> void:

@@ -4,6 +4,7 @@ extends Node3D
 ## 자리는 글자 지도 칸 + 씨앗 흔들기로 결정적이다. 사건(도적 습격·인물 조우)
 ## 자리와 겹치지 않게 칸을 골랐다(bandit_encounter 기본 칸 (7,5) 등에서 2칸+).
 
+const Adventure := preload("res://games/saga_go/data/adventure.gd")
 const TestMap := preload("res://games/saga_go/data/test_map.gd")
 const TerrainBuilder := preload("res://games/saga_go/world/terrain_builder.gd")
 const FieldEnemy := preload("res://games/saga_go/combat/field_enemy.gd")
@@ -40,5 +41,14 @@ func _ready() -> void:
 			var e := FieldEnemy.new()
 			e.name = "FieldEnemy_%s_%d" % [region, n]
 			e.setup(kinds[i], p, 20260824 + n)
+			e.apply_world_level(Adventure.world_level())
 			add_child(e)
 			n += 1
+	PartyState.world_changed.connect(reapply_world_level)
+
+## 106장 ㉒ — 세계 등급이 바뀌면(모험 등급이 오르거나 낮추면) 들판 적 전부에 다시 앉힌다.
+func reapply_world_level() -> void:
+	var wl := Adventure.world_level()
+	for e in get_children():
+		if e.has_method("apply_world_level"):
+			e.call("apply_world_level", wl)

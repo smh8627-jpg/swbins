@@ -14,10 +14,12 @@ extends Label
 ## 보여준다.
 
 const Characters := preload("res://saga_core/data/characters.gd")
+const Adventure := preload("res://games/saga_go/data/adventure.gd")
 
 func _ready() -> void:
 	_refresh(PartyState.atk, PartyState.def)
 	PartyState.power_changed.connect(_refresh)
+	PartyState.world_changed.connect(func() -> void: _refresh(PartyState.atk, PartyState.def))
 
 func _refresh(atk: float, def: float) -> void:
 	var names: Array = []
@@ -25,4 +27,5 @@ func _refresh(atk: float, def: float) -> void:
 		var h: Variant = Characters.find(id)
 		names.append(h.name if h != null else id)
 	var names_text := " (" + "·".join(names) + ")" if not names.is_empty() else ""
-	text = "부대 %d명%s · 전투력 %d · Lv.%d" % [PartyState.members.size(), names_text, int(atk + def), PartyState.level]
+	## 106장 ㉒ — 옛 "Lv.N"(부대 레벨)은 모험 등급(= 레벨 + 1)으로 드러내고 세계 등급을 붙인다.
+	text = "모험 등급 %d · 세계 등급 %d · 부대 %d명%s · 전투력 %d" % [Adventure.ar(), Adventure.world_level(), PartyState.members.size(), names_text, int(atk + def)]

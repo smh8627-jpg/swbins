@@ -81,6 +81,11 @@ var resin := 160
 var resin_t := 0.0
 ## 106장 ㉑ 주간 보스 — {"week": 주 번호(월요일 새벽 4시 갈림), "claims": 이번 주 보상 받은 번수}. 처음 셋은 원기 절반.
 var weekly: Dictionary = {}
+## 106장 ㉒ 모험·세계 등급 — 세계 등급 한 단계 낮춤 · 보상을 준 마지막 모험 등급(-1 = 아직 안 셈 → 지금 등급으로 앉힘,
+## 옛 세이브에 지난 등급 보상이 한꺼번에 쏟아지지 않게). 필드만 더해 SAVE_VERSION 3 그대로.
+var wl_lowered := false
+var ar_paid := -1
+signal world_changed()
 
 var _session_start_exp: float = 0.0
 

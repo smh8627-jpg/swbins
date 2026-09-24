@@ -122,7 +122,7 @@ func _physics_process(_delta: float) -> void:
 				_next()
 		7: # ⑧ II 단계
 			if _frame == 1:
-				PartyState.level = 3
+				PartyState.level = 5 # 모험 등급 6 — II 단계가 열린다(106장 ㉒)
 				_v = PartyState.artifacts.size()
 				_dm.call("enter", "tomb", 1)
 			if _frame == 200:

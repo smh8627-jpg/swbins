@@ -49,11 +49,12 @@ func _physics_process(_delta: float) -> void:
 			_next()
 		1: # ② 토벌
 			var b0 := PartyState.count("book_s")
+			var ar0 := PartyState.ar_paid # 106장 ㉒ — 의뢰 보상 부대 경험으로 모험 등급이 오르면 그 보상(짧은 견문록 3)도 든다
 			var wolves := _enemies("wolf")
 			for i in 3:
 				wolves[i].call("_die")
 			var e: Dictionary = _entry("k_wolf")
-			_check("kill", e.done and int(e.p) == 3 and PartyState.count("book_s") == b0 + 2 and int(_cm.call("done_count")) == 1,
+			_check("kill", e.done and int(e.p) == 3 and PartyState.count("book_s") == b0 + 2 + 3 * (PartyState.ar_paid - ar0) and int(_cm.call("done_count")) == 1,
 				"p=%d done=%s book %d→%d" % [e.p, e.done, b0, PartyState.count("book_s")])
 			_next()
 		2: # ③ 채집

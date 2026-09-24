@@ -11,6 +11,7 @@ const Commissions := preload("res://games/saga_go/data/commissions.gd")
 const TestMap := preload("res://games/saga_go/data/test_map.gd")
 const TerrainBuilder := preload("res://games/saga_go/world/terrain_builder.gd")
 const Toast := preload("res://saga_core/ui/toast.gd")
+const Adventure := preload("res://games/saga_go/data/adventure.gd")
 
 signal changed()
 
@@ -24,6 +25,8 @@ var _visit_t := 0.0
 var _layer: CanvasLayer = null
 var _panel: PanelContainer = null
 var _label: Label = null
+var _ar_label: Label = null # 106장 ㉒ 모험·세계 등급 줄
+var _wl_btn: Button = null
 
 func _ready() -> void:
 	add_to_group("go_commissions")
@@ -205,14 +208,37 @@ func _build_panel() -> void:
 	sb.content_margin_bottom = 10
 	_panel.add_theme_stylebox_override("panel", sb)
 	_layer.add_child(_panel)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 6)
+	_panel.add_child(box)
+	## 106장 ㉒ — 원신 모험 수첩처럼 의뢰판 맨 위에 모험 등급·세계 등급, 세계 등급 낮추기 단추.
+	_ar_label = Label.new()
+	_ar_label.add_theme_font_size_override("font_size", 15)
+	_ar_label.add_theme_color_override("font_color", Color(1.0, 0.86, 0.5))
+	_ar_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(_ar_label)
+	_wl_btn = Button.new()
+	_wl_btn.custom_minimum_size = Vector2(0, 36)
+	_wl_btn.pressed.connect(func() -> void:
+		var adv := get_tree().get_first_node_in_group("go_adventure")
+		if adv:
+			adv.call("lower_world")
+		_refresh_panel())
+	box.add_child(_wl_btn)
 	_label = Label.new()
 	_label.add_theme_font_size_override("font_size", 15)
 	_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_panel.add_child(_label)
+	box.add_child(_label)
+	PartyState.world_changed.connect(_refresh_panel)
+	PartyState.level_up.connect(func(_lv: int) -> void: _refresh_panel())
 
 func _refresh_panel() -> void:
 	if _label == null:
 		return
+	var adv := get_tree().get_first_node_in_group("go_adventure") if is_inside_tree() else null
+	_ar_label.text = String(adv.call("summary")) if adv else ""
+	_wl_btn.visible = adv != null and (PartyState.wl_lowered or Adventure.can_lower())
+	_wl_btn.text = "세계 등급 되돌리기" if PartyState.wl_lowered else "세계 등급 한 단계 낮추기"
 	var lines: Array[String] = ["오늘의 의뢰  %d/%d" % [done_count(), Commissions.PER_DAY]]
 	for e in entries():
 		var c := info(e.id)
