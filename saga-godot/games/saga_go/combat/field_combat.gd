@@ -120,6 +120,16 @@ const BURN_TICKS := 3
 const BURN_MUL := 0.2
 const SOAK_STAMINA := 25.0
 const SHOCK_ENERGY := 25.0
+## 106장 ⑮ — 새 원소 괴물에게 맞았을 때.
+##   풍 → 휘말림: 지금 인물 스킬 재사용 대기 +TANGLE_CD 초
+##   빙 → 한기: 스태미나 회복이 CHILL_SEC 초 멈춤
+##   암 → 짓눌림: 맞은 피해 ×CRUSH_MUL 만큼 더(이것만으로는 안 쓰러짐)
+##   초 → 중독: 1초마다 맞은 피해 ×POISON_MUL, POISON_TICKS 번(화상과 같은 자리 — 겹치면 새것으로)
+const TANGLE_CD := 2.0
+const CHILL_SEC := 3.0
+const CRUSH_MUL := 0.3
+const POISON_TICKS := 4
+const POISON_MUL := 0.15
 
 ## 인물마다 체력·기력(없는 칸 = 체력 가득·기력 0). hp·energy 는 지금 인물 것.
 var _hp: Dictionary = {}
@@ -787,6 +797,21 @@ func _elemental_hit(el: String, dmg: float) -> void:
 		"thunder":
 			energy = maxf(energy - SHOCK_ENERGY, 0.0)
 			_reaction_text(_player, "감전", Elements.color_of(el))
+		"wind":
+			var id := active_id()
+			_skill_cd[id] = float(_skill_cd.get(id, 0.0)) + TANGLE_CD
+			_reaction_text(_player, "휘말림", Elements.color_of(el))
+		"ice":
+			_player.set("_regen_wait", maxf(float(_player.get("_regen_wait")), CHILL_SEC))
+			_reaction_text(_player, "한기", Elements.color_of(el))
+		"rock":
+			hp = maxf(hp - dmg * CRUSH_MUL, 1.0)
+			_reaction_text(_player, "짓눌림", Elements.color_of(el))
+		"grass":
+			_burn_left = POISON_TICKS
+			_burn_t = 1.0
+			_burn_amount = dmg * POISON_MUL
+			_reaction_text(_player, "중독", Elements.color_of(el))
 
 ## 지금 인물이 쓰러짐 — 살아 있는 다음 인물로 바로 바뀐다. 다 쓰러졌으면 원신처럼 잃는 것 없이
 ## 마지막으로 딛은 땅에서 모두 가득 차서 다시 일어난다.

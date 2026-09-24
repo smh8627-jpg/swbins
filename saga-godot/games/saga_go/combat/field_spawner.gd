@@ -19,6 +19,10 @@ const CAMPS := [
 	["coast", Vector2i(6, 5), ["water_turtle", "water_turtle", "fire_imp"]],
 	["ruins", Vector2i(4, 3), ["thunder_cat", "thunder_cat"]],
 	["ruins", Vector2i(5, 5), ["fire_imp", "fire_imp", "thunder_cat"]],
+	## PLAN 106장 ⑮ — 새 원소 넷. 상자 무리 잠금·순간이동 지점·별조각과 1.4칸(67m)+ 떨어진 자리.
+	["coast", Vector2i(4, 6), ["wind_hawk", "wind_hawk", "grass_snake"]],
+	["coast", Vector2i(6, 7), ["ice_fox", "ice_fox", "grass_snake"]],
+	["ruins", Vector2i(1, 4), ["rock_bear", "rock_bear"]],
 ]
 const SPREAD := 5.0
 

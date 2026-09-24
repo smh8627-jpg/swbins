@@ -30,6 +30,19 @@ const KINDS := {
 	"thunder_cat": {"name": "번개살쾡이", "hp": 230.0, "atk": 17.0, "speed": 6.0, "aggro": 15.0,
 		"reach": 1.8, "tell": 0.65, "cd": 1.5, "exp": 20.0, "element": "thunder", "shield": 130.0,
 		"shape": "beast", "height": 1.05, "colors": [Color(0.42, 0.3, 0.6), Color(0.78, 0.65, 1.0), Color(1.0, 0.95, 0.45)]},
+	## PLAN 106장 ⑮ — 새 원소 넷의 괴물(퓨전, 코드로 그림). 방패 상성은 elements.gd SHIELD_COUNTER.
+	"wind_hawk": {"name": "회오리매", "hp": 200.0, "atk": 15.0, "speed": 6.5, "aggro": 16.0,
+		"reach": 2.0, "tell": 0.6, "cd": 1.5, "exp": 20.0, "element": "wind", "shield": 140.0,
+		"shape": "bird", "height": 1.2, "colors": [Color(0.35, 0.78, 0.66), Color(0.88, 0.98, 0.94), Color(1.0, 0.95, 0.5)]},
+	"ice_fox": {"name": "눈여우", "hp": 240.0, "atk": 16.0, "speed": 5.8, "aggro": 14.0,
+		"reach": 1.8, "tell": 0.7, "cd": 1.6, "exp": 20.0, "element": "ice", "shield": 170.0,
+		"shape": "fox9", "height": 1.1, "colors": [Color(0.9, 0.95, 1.0), Color(0.55, 0.8, 0.95), Color(0.35, 0.7, 1.0)]},
+	"rock_bear": {"name": "바위곰", "hp": 380.0, "atk": 22.0, "speed": 3.6, "aggro": 11.0,
+		"reach": 2.3, "tell": 1.0, "cd": 2.2, "exp": 20.0, "element": "rock", "shield": 230.0,
+		"shape": "bear", "height": 1.7, "colors": [Color(0.5, 0.4, 0.3), Color(0.9, 0.7, 0.3), Color(1.0, 0.85, 0.35)]},
+	"grass_snake": {"name": "덩굴뱀", "hp": 250.0, "atk": 15.0, "speed": 4.4, "aggro": 12.0,
+		"reach": 2.2, "tell": 0.8, "cd": 1.8, "exp": 20.0, "element": "grass", "shield": 160.0,
+		"shape": "serpent", "height": 1.3, "colors": [Color(0.3, 0.6, 0.22), Color(0.7, 0.85, 0.35), Color(0.95, 0.55, 0.75)]},
 }
 
 const GRAVITY := 20.0

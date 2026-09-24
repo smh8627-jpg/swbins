@@ -7,6 +7,8 @@ extends Node
 ## ④ 초전도 — 둘레 물리 ×1.4 ⑤ 확산 — 옆 적에게 원소가 옮겨 붙음 ⑥ 결정 — 보호막이 받는 피해를 막음
 ## ⑦ 개화 — 1.5초 뒤 씨앗이 터짐 ⑧ 연소 — 지속 피해 ⑨ 촉진 → 활성 ×1.25 ⑩ 새 원소 넷의 스킬이 적을 맞힘·
 ## 암 폭발 보호막 ⑪ 풍 공명 — 스태미나 소모 ×0.85.
+## 106장 ⑮ 새 원소 괴물: ⑫ 넷 다 들판에 방패를 두르고 섬 ⑬ 방패 상성(풍←암·빙←화·암←초·초←풍, 바위 방패 물리 ×1.0)
+## ⑭ 잡으면 그 원소 결정 ⑮ 맞으면 휘말림·한기·짓눌림·중독.
 ## 명단·성장을 잠깐 바꿨다가 되돌린다. 저장은 안 한다.
 
 const Elements := preload("res://games/saga_go/combat/elements.gd")
@@ -189,7 +191,71 @@ func _physics_process(_delta: float) -> void:
 				PartyState.growth = _growth0
 				_fc.set("active", 0)
 				_next()
-		11:
+		11: # ⑫ 새 괴물 넷
+			var kinds := {"wind_hawk": "wind", "ice_fox": "ice", "rock_bear": "rock", "grass_snake": "grass"}
+			var ok := true
+			var detail := ""
+			for k in kinds:
+				var e := _enemy_kind(k)
+				var good: bool = e != null and e.get("element") == kinds[k] and e.call("is_shielded")
+				if not good:
+					ok = false
+					detail += "%s " % k
+			_check("new_monsters", ok, detail)
+			_next()
+		12: # ⑬ 방패 상성
+			var S := func(sh: String, inc: String) -> float: return Elements.shield_mul(sh, inc)
+			var table_ok: bool = is_equal_approx(S.call("wind", "rock"), 2.5) and is_equal_approx(S.call("ice", "fire"), 2.5) \
+				and is_equal_approx(S.call("rock", "grass"), 2.5) and is_equal_approx(S.call("grass", "wind"), 2.5) \
+				and is_equal_approx(S.call("rock", ""), 1.0) and is_equal_approx(S.call("ice", ""), 0.4) and S.call("rock", "rock") == 0.0
+			var bear := _enemy_kind("rock_bear")
+			var s0 := float(bear.get("shield"))
+			var dealt: float = _fc.call("_deal", bear, 20.0, "", Vector3.FORWARD)
+			_check("shield_counter", table_ok and is_equal_approx(dealt, 20.0) and is_equal_approx(float(bear.get("shield")), s0 - 20.0),
+				"table=%s dealt=%.1f" % [table_ok, dealt])
+			_next()
+		13: # ⑭ 잡으면 결정
+			if _frame == 1:
+				_v = 0.0
+				for k in ["wind_hawk", "ice_fox", "rock_bear", "grass_snake"]:
+					_v += PartyState.count("crystal_" + Elements.ORDER[["wind_hawk", "ice_fox", "rock_bear", "grass_snake"].find(k) + 3])
+					var e := _enemy_kind(k)
+					e.set("shield", 0.0)
+					e.call("apply_damage", 99999.0, false, Vector3.FORWARD)
+			if _frame == 3:
+				var now := 0
+				for el in ["wind", "ice", "rock", "grass"]:
+					now += PartyState.count("crystal_" + el)
+				_check("drops", now == int(_v) + 4, "crystals %d→%d" % [int(_v), now])
+				_next()
+		14: # ⑮ 맞으면 원소 효과
+			var id: String = _fc.call("active_id")
+			_fc.set("shield_hp", 0.0)
+			_fc.call("revive_all")
+			var effects := []
+			var src := func(el: String) -> Node:
+				for e in get_tree().get_nodes_in_group("field_enemy"):
+					if e.get("element") == el:
+						return e
+				return null
+			(_fc.get("_skill_cd") as Dictionary)[id] = 0.0
+			_fc.call("take_damage", 10.0, src.call("wind"))
+			effects.append(float((_fc.get("_skill_cd") as Dictionary).get(id, 0.0)) >= 1.99)
+			_p.set("_regen_wait", 0.0)
+			_fc.call("take_damage", 10.0, src.call("ice"))
+			effects.append(float(_p.get("_regen_wait")) >= 2.99)
+			var hp0 := float(_fc.get("hp"))
+			var d := PartyState.char_def(id)
+			var plain := 10.0 * (1.0 - d / (d + 120.0))
+			_fc.call("take_damage", 10.0, src.call("rock"))
+			effects.append(hp0 - float(_fc.get("hp")) > plain * 1.29)
+			_fc.call("take_damage", 10.0, src.call("grass"))
+			effects.append(int(_fc.get("_burn_left")) == 4)
+			_fc.set("_burn_left", 0)
+			_fc.call("revive_all")
+			_check("hit_effects", not effects.has(false), "wind/ice/rock/grass=%s" % [effects])
+			_next()
+		15:
 			print("ELEMENT_PROBE_DONE fails=%d" % _fails)
 			get_tree().quit()
 
@@ -202,6 +268,12 @@ func _prep(e: Node) -> void:
 	e.set("phys_vuln_t", 0.0)
 	e.set("quicken_t", 0.0)
 	(e.get("_dots") as Array).clear()
+
+func _enemy_kind(kind: String) -> Node:
+	for e in get_tree().get_nodes_in_group("field_enemy"):
+		if e.get("kind") == kind and not e.call("is_dead"):
+			return e
+	return null
 
 func _hero_of(el: String) -> String:
 	for h in Characters.HEROES:

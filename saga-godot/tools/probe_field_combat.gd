@@ -42,7 +42,7 @@ func _physics_process(_delta: float) -> void:
 				and Elements.reaction_of("fire", "fire") == "" and Elements.reaction_of("", "fire") == ""
 			_check("reaction_table", ok, "")
 			var n := get_tree().get_nodes_in_group("field_enemy").size()
-			_check("spawn_count", n == 21, "n=%d" % n)
+			_check("spawn_count", n == 29, "n=%d" % n)
 			_next()
 		1: # ③ 마을 서쪽 늑대 무리 한 마리 앞에 서서 기본 공격 연타
 			if _frame == 1:

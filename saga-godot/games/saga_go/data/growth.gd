@@ -56,10 +56,13 @@ const KILL_DROPS := {
 	"fire_imp": {"mora": 90, "crystal_fire": 1, "book_s": 1, "talent_1": 1},
 	"water_turtle": {"mora": 90, "crystal_water": 1, "book_s": 1, "talent_1": 1},
 	"thunder_cat": {"mora": 90, "crystal_thunder": 1, "book_s": 1, "talent_1": 1},
+	"wind_hawk": {"mora": 90, "crystal_wind": 1, "book_s": 1, "talent_1": 1},
+	"ice_fox": {"mora": 90, "crystal_ice": 1, "book_s": 1, "talent_1": 1},
+	"rock_bear": {"mora": 90, "crystal_rock": 1, "book_s": 1, "talent_1": 1},
+	"grass_snake": {"mora": 90, "crystal_grass": 1, "book_s": 1, "talent_1": 1},
 }
 
-## 보물 상자 등급마다(treasure_chest.open). 진귀·화려는 원소 일곱 결정을 다(106장 ⑭ — 풍·빙·암·초 결정은
-## 아직 이것뿐이다. 그 원소를 쓰는 괴물이 생기면 KILL_DROPS 에 더한다).
+## 보물 상자 등급마다(treasure_chest.open). 진귀·화려는 원소 일곱 결정을 다(풍·빙·암·초는 106장 ⑮ 괴물도 떨군다).
 const CHEST_LOOT := {
 	"common": {"mora": 300, "book_s": 1, "talent_1": 1},
 	"exquisite": {"mora": 800, "book_s": 3, "talent_1": 2},

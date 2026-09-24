@@ -8484,3 +8484,10 @@ PROJECT_STATE.md` 참고. 요약:
 - 점검 `tools/probe_elements.gd` 11항목 3회 md5 동일 fails=0(첫 판에 전부 통과). 다른 GO 점검 여덟 fails=0, REGRESS OK.
 - 파이썬 치환 스크립트를 bash heredoc 에 넣었더니 따옴표 짝 오류로 bash 가 거부 — 긴 치환은 스크래치패드에 Write 로 .py 를 쓰고 `py` 로 돌림.
 - 실기 확인 전: 반응 글자가 겹쳐 읽히는지, 빙결·보호막 표시, 새 원소 넷 모양, 바뀐 동료 원소.
+
+## GO 원신 기준 ⑮ 새 원소 괴물 넷 — 회오리매·눈여우·바위곰·덩굴뱀 (2026-09-24, 새 세션, "이어해줘")
+
+- PROJECT_STATE 1순위(⑭ 에서 풍·빙·암·초 결정이 상자에서만 나와 새 원소 동료 돌파가 막히던 것). 이름은 가명·모양은 creature_builder 틀(bird·fox9·bear·serpent) 재사용.
+- `field_enemy.gd` KINDS 넷 · `field_spawner.gd` 무리 셋(포구 둘·폐허 하나, 마을 뺌) · `growth.gd` KILL_DROPS 넷 · `elements.gd` SHIELD_COUNTER 넷 + `SHIELD_PHYSICAL_BY`(바위 방패 물리 ×1.0) · `field_combat._elemental_hit` 넷(휘말림·한기·짓눌림·중독 — 중독은 화상 칸을 같이 씀).
+- 점검: `probe_elements.gd` 11 → 15항목(괴물 넷 방패 · 상성 표·바위 물리 · 결정 드롭 · 맞았을 때 효과 넷) 3회 md5 동일 fails=0. `probe_field_combat.gd` 적 수 21 → 29(처음에 28 로 잘못 셈 — 새 무리 3+3+2). 다른 GO 점검 fails=0, REGRESS OK.
+- 실기 확인 전: 새 괴물 넷 모양(새·여우 틀이 괴물로 읽히는지), 바위곰 방패 230 이 답답하지 않은지, 효과 글자.

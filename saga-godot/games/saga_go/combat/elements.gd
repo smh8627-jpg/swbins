@@ -76,15 +76,18 @@ const REACTION_INFO := {
 }
 
 ## PLAN 106장 ⑦ — 원소 방패 상성. 방패 원소 → 그 방패를 빨리 깨는 원소(수>화, 뇌>수, 화>뇌).
-## 같은 원소는 방패를 못 긁고(면역), 원소 없는 기본 공격은 SHIELD_PHYSICAL 만큼만. 풍·빙·암·초는
-## 셋 모두에 보통(×1.0) — 그 원소를 쓰는 괴물이 생길 때 상성을 더한다.
-const SHIELD_COUNTER := {"fire": "water", "water": "thunder", "thunder": "fire"}
+## 같은 원소는 방패를 못 긁고(면역), 원소 없는 기본 공격은 SHIELD_PHYSICAL 만큼만.
+## 106장 ⑮ 새 넷: 풍 ← 암(바람에 안 밀림) · 빙 ← 화(녹임) · 암 ← 초(뿌리가 쪼갬) · 초 ← 풍(덩굴을 찢음).
+## 바위 방패는 물리로도 제대로 깎인다(원신 바위 방패를 둔기로 깨는 문법).
+const SHIELD_COUNTER := {"fire": "water", "water": "thunder", "thunder": "fire",
+	"wind": "rock", "ice": "fire", "rock": "grass", "grass": "wind"}
 const SHIELD_COUNTER_MUL := 2.5
 const SHIELD_PHYSICAL := 0.4
+const SHIELD_PHYSICAL_BY := {"rock": 1.0}
 
 static func shield_mul(shield_element: String, incoming: String) -> float:
 	if incoming == "":
-		return SHIELD_PHYSICAL
+		return float(SHIELD_PHYSICAL_BY.get(shield_element, SHIELD_PHYSICAL))
 	if incoming == shield_element:
 		return 0.0
 	if SHIELD_COUNTER.get(shield_element, "") == incoming:
