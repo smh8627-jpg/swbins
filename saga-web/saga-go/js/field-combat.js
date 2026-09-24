@@ -126,8 +126,30 @@
     tortoise: { name: '물거북 장수', ref: 'pt_hyeonmu',   el: 'water', hp: 2.2, atk: 1.2, spd: 3.0, reach: 7.0, type: 'spit',  wind: 1.0,  cd: 2.4, h: 1.4,  exp: 3, shield: 'water', sh: 1.5, r: 2.2 },
     bolt:   { name: '섬영마',     ref: 'pt_jeolyeong',    el: 'elec',  hp: 1.6, atk: 1.2, spd: 7.5, reach: 2.2, type: 'melee', wind: 0.5,  cd: 1.5, h: 1.5,  exp: 3, shield: 'elec',  sh: 1.0 },
     /* 우두머리 — 멀리서만 */
-    rex:    { name: '폭군용',     ref: 'pt_t_rex',        el: null,    hp: 6.0, atk: 2.0, spd: 4.5, reach: 4.5, type: 'slam',  wind: 1.2,  cd: 2.8, h: 2.4,  exp: 8, r: 4.8, boss: true }
+    rex:    { name: '폭군용',     ref: 'pt_t_rex',        el: null,    hp: 6.0, atk: 2.0, spd: 4.5, reach: 4.5, type: 'slam',  wind: 1.2,  cd: 2.8, h: 2.4,  exp: 8, r: 4.8, boss: true },
+    /* ⑪ 지역 수호자 — 랜드마크 탑 곁에 하나씩, 바이옴마다 몸·원소가 다르다. 방패가 **두 겹**
+       (`shields`, 겉 → 속)이라 한 원소로는 둘째 겹이 안 깨진다 — 겉을 깬 뒤 속 방패의 상성
+       원소를 가진 동행으로 바꿔 들어가야 하는 퍼즐. 겹마다 방패량은 같다(sh) */
+    g_plain:  { name: '벌판 수호 뿔룡',   ref: 'pt_triceratops', el: 'elec',  hp: 7.0, atk: 1.7, spd: 4.2, reach: 4.2, type: 'slam',  wind: 1.1, cd: 2.6, h: 2.3, exp: 12, r: 4.6, boss: true, guard: true, shields: ['elec', 'water'], sh: 1.3 },
+    g_bamboo: { name: '대숲 수호 백호',   ref: 'pt_baekho',      el: 'water', hp: 6.5, atk: 1.9, spd: 6.0, reach: 2.8, type: 'melee', wind: 0.8, cd: 1.9, h: 2.1, exp: 12, boss: true, guard: true, shields: ['water', 'fire'], sh: 1.3 },
+    g_canyon: { name: '협곡 수호 주작',   ref: 'pt_jujak',       el: 'fire',  hp: 6.0, atk: 1.8, spd: 4.8, reach: 8.0, type: 'spit',  wind: 1.0, cd: 2.3, h: 2.2, exp: 12, r: 2.8, boss: true, guard: true, shields: ['fire', 'elec'], sh: 1.3 },
+    g_marsh:  { name: '늪 수호 청룡',     ref: 'pt_cheongryong', el: 'water', hp: 6.5, atk: 1.8, spd: 4.5, reach: 7.5, type: 'spit',  wind: 1.0, cd: 2.4, h: 2.4, exp: 12, r: 3.0, boss: true, guard: true, shields: ['water', 'elec'], sh: 1.3 },
+    g_ruins:  { name: '성터 수호 불가사리', ref: 'pt_bulgasari', el: 'elec',  hp: 7.5, atk: 1.9, spd: 3.8, reach: 4.4, type: 'slam',  wind: 1.2, cd: 2.7, h: 2.3, exp: 12, r: 4.8, boss: true, guard: true, shields: ['elec', 'fire'], sh: 1.3 }
   };
+  function LAYER_STUN() { return 0.8; }     // 겉 방패가 깨질 때 — 짧게 휘청(속 방패가 곧 선다)
+  function CORE_STUN() { return 3; }        // 마지막 겹이 깨지면 — 길게 드러눕는다(약점)
+  var GUARD_OFF = { x: 16, y: 10 };         // 탑 한가운데가 아니라 둘레 빈터(biome LM_CLEAR 34m 안)
+
+  /**
+   * ⑪ 순수 함수 — 지역 가운데(biome `cellAt`·`landmarks` 원소) 곁의 수호자 무리. 고향은 없다.
+   * 등급은 그 자리 등급 + 1(최대 6). key 는 'g:<지역키>' — 토벌하면 다시 서지 않는다(save.field.guards)
+   */
+  function guardianAt(cell) {
+    if (!cell || !cell.biome || cell.biome === 'home' || !FOES['g_' + cell.biome]) { return null; }
+    var x = cell.x + GUARD_OFF.x, y = cell.y + GUARD_OFF.y;
+    return { key: 'g:' + cell.key, region: cell.key, x: x, y: y, tier: Math.min(6, tierAt(x, y) + 1), kind: 'guard',
+             foes: [{ kind: 'g_' + cell.biome, dx: 0, dy: 0 }] };
+  }
   /** 무리 꼴 — 격자 해시로 고른다(앞의 다섯은 보통, 정예·우두머리는 따로 굴린다) */
   var THEMES = [
     ['boar', 'boar', 'boar'],
@@ -256,13 +278,14 @@
       var F = FOES[c.foes[i].kind], m = tierMul(c.tier);
       var uid = ++S.uid;
       var hx = c.x + c.foes[i].dx, hy = c.y + c.foes[i].dy;
-      var shieldMax = F.shield ? Math.round(SHIELD_BASE() * F.sh * m) : 0;
+      var layers = F.shields ? F.shields.slice() : (F.shield ? [F.shield] : []);
+      var shieldMax = layers.length ? Math.round(SHIELD_BASE() * F.sh * m) : 0;
       S.foes[uid] = {
         uid: uid, camp: c.key, kind: c.foes[i].kind, name: F.name, el: F.el, tier: c.tier,
         x: hx, y: hy, hx: hx, hy: hy,
         hpMax: Math.round(HP_BASE() * F.hp * m), hp: Math.round(HP_BASE() * F.hp * m),
         atk: Math.round(ATK_BASE() * F.atk * m),
-        shield: shieldMax, shieldMax: shieldMax, shEl: F.shield || null,
+        shield: shieldMax, shieldMax: shieldMax, shEl: layers[0] || null, layers: layers, layer: 0,
         aura: null, auraT: 0, st: 'idle', stT: 0, cd: 0.4 + (uid % 5) * 0.2,
         wa: (uid * 2.39996) % 6.283, stun: 0, shockN: 0, shockT: 0, shockDmg: 0,
         mark: null, dead: false, deadT: 0, hitT: -99, moving: false, phase: 0, calmReturn: 0
@@ -275,8 +298,17 @@
    * 내 둘레 격자를 훑어 무리를 들이고, 멀어진(그리고 싸우지 않는) 무리는 치운다.
    * 치운 무리는 다시 오면 온전한 모습으로 선다(체력은 기억하지 않는다).
    */
-  function populate(S, px, py, terr, radius, bfn) {
+  function populate(S, px, py, terr, radius, bfn, lfn) {
     var R = radius || 200, far = R * 1.6;
+    /* ⑪ 수호자 — 둘레 랜드마크(`biome.landmarks`)마다 하나 */
+    if (lfn) {
+      var lms = lfn(px, py, R) || [], li;
+      for (li = 0; li < lms.length; li++) {
+        var gc = guardianAt(lms[li]);
+        if (!gc || S.camps[gc.key] || S.cleared[gc.key]) { continue; }
+        if (Math.hypot(gc.x - px, gc.y - py) <= R) { spawnCamp(S, gc); }
+      }
+    }
     var c0x = Math.floor((px - R) / CELL), c1x = Math.floor((px + R) / CELL);
     var c0y = Math.floor((py - R) / CELL), c1y = Math.floor((py + R) / CELL);
     for (var cy = c0y; cy <= c1y; cy++) {
@@ -329,7 +361,7 @@
     if (f.hp > 0 || f.dead) { return; }
     f.hp = 0; f.dead = true; f.deadT = 0; f.mark = null;
     S.kills++;
-    push(S, { t: 'kill', uid: f.uid, kind: f.kind, tier: f.tier, x: f.x, y: f.y, camp: f.camp, boss: !!FOES[f.kind].boss, elite: !!FOES[f.kind].shield });
+    push(S, { t: 'kill', uid: f.uid, kind: f.kind, tier: f.tier, x: f.x, y: f.y, camp: f.camp, boss: !!FOES[f.kind].boss, elite: !!FOES[f.kind].shield, guard: !!FOES[f.kind].guard });
     var cp = S.camps[f.camp];
     if (!cp) { return; }
     for (var i = 0; i < cp.uids.length; i++) {
@@ -340,12 +372,29 @@
     push(S, { t: 'clear', camp: cp.key, tier: cp.tier, kind: cp.kind, x: cp.x, y: cp.y });
   }
 
+  /** 방패 한 겹이 깨졌다 — 남은 겹이 있으면 곧바로 다음 원소 방패가 서고(짧게 휘청),
+   *  마지막 겹이면 길게 드러눕는다. 한 겹짜리 정예는 예전 그대로(2초) */
+  function breakShield(S, f) {
+    var L = f.layers || [], more = f.layer + 1 < L.length;
+    f.mark = null; f.st = 'chase';
+    if (more) {
+      f.layer++;
+      f.shEl = L[f.layer];
+      f.shield = f.shieldMax;
+      f.stun = LAYER_STUN();
+      push(S, { t: 'break', uid: f.uid, x: f.x, y: f.y, next: f.shEl, left: L.length - f.layer });
+      return;
+    }
+    f.stun = L.length > 1 ? CORE_STUN() : SHIELD_STUN();
+    push(S, { t: 'break', uid: f.uid, x: f.x, y: f.y, next: null, left: 0 });
+  }
+
   /** 방패부터 깎는 날것의 피해(광역 반응 조각·감전 틱이 쓴다) */
   function rawHit(S, f, dmg) {
     if (f.dead || dmg <= 0) { return 0; }
     if (f.shield > 0) {
       f.shield = Math.max(0, f.shield - dmg);
-      if (f.shield <= 0) { f.stun = SHIELD_STUN(); f.mark = null; f.st = 'chase'; push(S, { t: 'break', uid: f.uid, x: f.x, y: f.y }); }
+      if (f.shield <= 0) { breakShield(S, f); }
       return dmg;
     }
     f.hp -= dmg;
@@ -593,6 +642,7 @@
         moveToward(f, f.hx, f.hy, F.spd * 1.2 * dt);
         if (Math.hypot(f.x - f.hx, f.y - f.hy) < 0.6) {
           f.st = 'idle'; f.hp = f.hpMax; f.shield = f.shieldMax; f.aura = null; f.shockN = 0;
+          f.layer = 0; f.shEl = (f.layers && f.layers[0]) || f.shEl;
         }
       } else if (f.st === 'chase') {
         S.calmT = Math.min(S.calmT, 0);
@@ -655,6 +705,7 @@
     var s = core().save;
     if (!s.field || typeof s.field !== 'object') { s.field = { camps: {}, kills: 0, clears: 0 }; }
     if (!s.field.camps) { s.field.camps = {}; }
+    if (!s.field.guards || typeof s.field.guards !== 'object') { s.field.guards = {}; }   // ⑪ 지역키 → 토벌 시각(다시 안 선다)
     return s.field;
   }
   function pkey() { return (core().save.party || []).slice(0, PARTY_MAX()).join(','); }
@@ -668,6 +719,7 @@
       for (var c in fs.camps) {
         if (fs.camps.hasOwnProperty(c) && now - fs.camps[c] < RESPAWN_MS()) { S.cleared[c] = true; }
       }
+      for (var g in fs.guards) { if (fs.guards.hasOwnProperty(g)) { S.cleared['g:' + g] = true; } }
     } else if (k !== partyKey) {
       reparty(S, core().save.party);
       partyKey = k;
@@ -721,7 +773,8 @@
     if (popAcc > 0.5) {
       popAcc = 0;
       var BM = global.DG.biome;
-      populate(S, pos.x, pos.y, terrFn(), K('activeR', 200), BM && BM.on() ? BM.biomeAt : null);
+      populate(S, pos.x, pos.y, terrFn(), K('activeR', 200), BM && BM.on() ? BM.biomeAt : null,
+        BM && BM.on() && BM.landmarks && K('guards', 1) ? BM.landmarks : null);
       respawnSweep();
     }
     if (refAcc > 2) { refAcc = 0; refreshStats(); }
@@ -738,7 +791,7 @@
   function respawnSweep() {
     var fs = fieldSave(), now = Date.now();
     for (var c in S.cleared) {
-      if (!S.cleared.hasOwnProperty(c)) { continue; }
+      if (!S.cleared.hasOwnProperty(c) || c.indexOf('g:') === 0) { continue; }   // 수호자는 다시 안 선다
       var at = fs.camps[c];
       if (!at || now - at >= RESPAWN_MS()) { delete S.cleared[c]; delete fs.camps[c]; }
     }
@@ -766,7 +819,8 @@
         ring(e.x, e.y, e.kind === 'overload' ? OVERLOAD_R() : CHARGED_R(), e.kind === 'charged' ? EL.elec.color : '#ffb347', 0.45);
       } else if (e.t === 'dot') { floatNum(e.x, e.y, String(e.dmg), 'elec', 0.8); }
       else if (e.t === 'break') {
-        floatNum(e.x, e.y, '방패 깨짐!', null, 1.4, true);
+        floatNum(e.x, e.y, e.next ? '겉 방패 깨짐! ' + EL[e.next].icon + ' 속 방패' : '방패 깨짐!', null, 1.4, true);
+        if (e.next) { toast('🛡️ 속 방패 ' + EL[e.next].icon + ' — ' + EL[COUNTER[e.next]].icon + ' 원소 동행으로 바꿔라'); }
         ring(e.x, e.y, 2.4, '#ffffff', 0.4);
         if (W3()) { W3().shake(0.45); W3().hold(100); }
       } else if (e.t === 'swing') {
@@ -806,6 +860,20 @@
         if (e.elite || e.boss) { c.save.dust = (c.save.dust || 0) + (e.boss ? 6 : 2); }
         fieldSave().kills = (fieldSave().kills || 0) + 1;
         floatNum(e.x, e.y, '+' + gold + '금', null, 0.9, false);
+      } else if (e.t === 'clear' && e.kind === 'guard') {
+        var gs = fieldSave(), rk = e.camp.slice(2);
+        gs.guards[rk] = Date.now();
+        gs.clears = (gs.clears || 0) + 1;
+        var gg = 150 * e.tier;
+        c.save.player.gold = (c.save.player.gold || 0) + gg;
+        c.save.dust = (c.save.dust || 0) + 8;
+        if (c.gainExp) { c.gainExp(30 * e.tier); }
+        var BMg = global.DG.biome, pr = rk.split('_'), rc = BMg && BMg.cellAt ? BMg.cellAt(+pr[0], +pr[1]) : null;
+        toast('🛡️ ' + (rc ? rc.name + ' ' : '') + '수호자 토벌! 금 +' + gg + ' · 단사 +8');
+        c.log('🛡️ 지역 수호자 토벌' + (rc ? ' — ' + rc.name : '') + ' (등급 ' + e.tier + ') — 금 +' + gg, 'battle');
+        sfx('reward');
+        c.emit('field:guard', { region: rk, tier: e.tier });
+        c.persist();
       } else if (e.t === 'clear') {
         var fs = fieldSave();
         fs.camps[e.camp] = Date.now();
@@ -974,7 +1042,8 @@
       seen[f.uid] = true;
       b.style.left = Math.round(p.x) + 'px';
       b.style.top = Math.round(p.y) + 'px';
-      b.querySelector('small').textContent = (f.aura ? EL[f.aura].icon + ' ' : '') + f.name + ' Lv.' + (f.tier * 5) + (f.stun > 0 ? ' 💫' : '');
+      var layerTxt = f.layers && f.layers.length > 1 && f.shield > 0 ? ' 🛡️' + f.layers.slice(f.layer).map(function (x) { return EL[x].icon; }).join('') : '';
+      b.querySelector('small').textContent = (f.aura ? EL[f.aura].icon + ' ' : '') + f.name + ' Lv.' + (f.tier * 5) + layerTxt + (f.stun > 0 ? ' 💫' : '');
       b.querySelector('.fc-bhp i').style.width = Math.round(100 * f.hp / f.hpMax) + '%';
       var sh = b.querySelector('.fc-bsh');
       sh.style.display = f.shieldMax ? '' : 'none';
@@ -1109,7 +1178,7 @@
     EL: EL, FOES: FOES, THEMES: THEMES, ELITES: ELITES, CELL: CELL, ENERGY_MAX: ENERGY_MAX,
     SKILL_CD: SKILL_CD, SWAP_CD: SWAP_CD, DODGE_COST: DODGE_COST, VAPOR_MUL: VAPOR_MUL,
     /* 판정 층 — 화면 없이 굴린다(자가진단이 쓰는 문) */
-    elementOf: elementOf, react: react, shieldMul: shieldMul, campAt: campAt, tierAt: tierAt,
+    elementOf: elementOf, react: react, shieldMul: shieldMul, campAt: campAt, tierAt: tierAt, guardianAt: guardianAt, COUNTER: COUNTER,
     create: create, reparty: reparty, populate: populate, spawnCamp: spawnCamp, step: step, drain: drain,
     attack: attack, skill: skill, burst: burst, dodge: dodge, swap: swap, hitFoe: hitFoe,
     engaged: engaged, living: living, memberOf: memberOf,

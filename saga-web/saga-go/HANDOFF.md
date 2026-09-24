@@ -3670,3 +3670,10 @@ SAGA-HANDOFF 열린 항목 "tower_ruin.glb(역참) 아이콘 굽기 — 여섯 �
 - `field-combat.js` `campAt(…, bfn)` — 바이옴이 무리 꼴·정예·우두머리 확률을 고른다(인자 없으면 옛 그대로).
 - `world3d.js` 랜드마크 배우(`asset3d` `landmark:<바이옴>` 키, heightMul 5) · `biome.js` 가 안개를 뚫는 빛기둥(`fog:false`) · `overworld.js` 순간이동 지점 단추(키보드 모드만) + 지도 표식 · 2D 탑 그림 · 지역 이름 띠 `#region-banner`.
 - 진단 7 → jsdom 591/593 세 번 동일(남은 둘은 jsdom `Request` 한계). `sw.js` go-v5.63.0. **실기 확인 대기**.
+
+## 2026-09-24 — 원신식 ⑪ 지역 수호자(PLAN §5 ⑪)
+
+- 계기: 사용자 "사가웹 이어해" — 사가국지 §5-10 다섯 단계를 마친 뒤 SAGA-HANDOFF 열린 목록 첫 판(사가고 ⑪~⑬)으로. ⑨⑩ 실기 확인 결과는 아직 없다(몰아서 확인 — 그대로 진행).
+- `field-combat.js` — FOES 에 수호자 다섯(`g_<바이옴>`, `guard:true`·`shields:[겉,속]`), `guardianAt(cell)`(순수, key 'g:<지역키>'·등급+1), 방패 겹 `breakShield`(겉 → 속 방패 차오름·0.8초 / 마지막 3초 / 한 겹 정예는 예전 2초), `populate(…, lfn)`(tick 이 `biome.landmarks` 를 넘긴다, 손잡이 `field.guards`), 되돌아가면 겹도 처음으로. 보상은 `clear` 중 kind 'guard' 갈래 — `save.field.guards` 에 적고 `respawnSweep` 은 'g:' 를 건너뛴다(영구).
+- HUD — 이름 뒤 남은 겹 그림(🛡️🔥⚡), 겉이 깨질 때 떠오르는 글 "겉 방패 깨짐! ⚡ 속 방패" + 알림 "⚡ 방패 — 🔥 원소 동행으로 바꿔라".
+- 진단 1 추가 → jsdom 592/594 두 번 동일(남은 둘은 jsdom `Request` 한계). `sw.js` go-v5.64.0. **실기 확인 대기**(크기·탑과 겹침·알림·난이도).

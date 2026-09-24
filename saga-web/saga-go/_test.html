@@ -861,6 +861,44 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ('방패 ' + f.shieldMax + ' · 물리 40 · 수 2.5배로 깨짐');
     });
 
+    t('들판 전투 ⑪ — 지역 수호자: 바이옴마다 하나·방패 두 겹(겉 깨면 속 방패, 상성이 달라 교체해야)·토벌하면 안 선다', function () {
+      var FC = DG.fieldCombat, BM = DG.biome;
+      if (!FC.guardianAt || !BM || !BM.cellAt) { return false; }
+      var byBiome = {}, i, j;
+      for (j = -6; j <= 6; j++) { for (i = -6; i <= 6; i++) { var cc = BM.cellAt(i, j); if (!byBiome[cc.biome]) { byBiome[cc.biome] = cc; } } }
+      var kinds = ['plain', 'bamboo', 'canyon', 'marsh', 'ruins'];
+      var okTable = kinds.every(function (k) {
+        var c = byBiome[k], g = c && FC.guardianAt(c), F = g && FC.FOES[g.foes[0].kind];
+        return !!F && F.guard && g.key === 'g:' + c.key && g.tier === Math.min(6, FC.tierAt(g.x, g.y) + 1) &&
+          F.shields.length === 2 && F.shields[0] !== F.shields[1] &&
+          FC.COUNTER[F.shields[0]] !== FC.COUNTER[F.shields[1]] &&
+          FC.guardianAt(c).x === g.x;                                   // 결정적
+      });
+      var okHome = FC.guardianAt(BM.cellAt(0, 0)) === null;
+      /* 두 겹 — 겉을 상성으로 깨면 짧게 휘청·속 방패가 차오르고, 체력은 그대로 */
+      var cell = byBiome.canyon, S = fcState(), gcamp = FC.guardianAt(cell);
+      FC.spawnCamp(S, gcamp);
+      var f = S.foes[S.uid], m = S.party[0], L = f.layers.slice(), hp0 = f.hp;
+      FC.hitFoe(S, f, m, 99999, FC.COUNTER[L[0]], 'test');
+      var ev1 = fcEv(S, 'break');
+      var okOuter = ev1.length === 1 && ev1[0].next === L[1] && f.shEl === L[1] && f.shield === f.shieldMax &&
+        f.stun === 0.8 && f.hp === hp0;
+      var same = FC.hitFoe(S, f, m, 100, L[1], 'test');                 // 속 방패와 같은 원소 — 면역
+      FC.hitFoe(S, f, m, 99999, FC.COUNTER[L[1]], 'test');
+      var ev2 = fcEv(S, 'break');
+      var okInner = same.immune && ev2.length === 1 && ev2[0].next === null && f.shield === 0 && f.stun === 3 && f.hp === hp0;
+      /* 둘레 랜드마크가 있으면 populate 가 세우고, 치운 수호자는 다시 안 세운다 */
+      var S2 = fcState(), lfn = function () { return [cell]; };
+      FC.populate(S2, gcamp.x, gcamp.y, null, 200, null, lfn);
+      var spawned = !!S2.camps[gcamp.key];
+      var S3 = fcState(); S3.cleared[gcamp.key] = true;
+      FC.populate(S3, gcamp.x, gcamp.y, null, 200, null, lfn);
+      var okPop = spawned && !S3.camps[gcamp.key];
+      return okTable && okHome && okOuter && okInner && okPop &&
+        ('다섯 바이옴 수호자 · ' + FC.FOES[gcamp.foes[0].kind].name + ' ' + L.map(function (x) { return FC.EL[x].icon; }).join('→') +
+         ' — 겉 깨면 0.8초·속 깨면 3초 · 토벌 뒤 안 섬');
+    });
+
     t('들판 전투 — 예고 끝에 사거리 안이면 맞고, 회피 무적이면 안 맞는다', function () {
       function run(doDodge) {
         var FC = DG.fieldCombat, S = fcState(), f = fcFoe(S, 'boar', 1.5, 0);
