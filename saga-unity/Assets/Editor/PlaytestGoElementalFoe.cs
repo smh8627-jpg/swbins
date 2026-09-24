@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Saga.Go.Combat;
+using Saga.Go.Data;
 using Saga.Go.Player;
 
 namespace Saga.EditorTools
@@ -98,7 +99,8 @@ namespace Saga.EditorTools
                 n++;
                 groups.Add(e.GroupId);
                 if (!FieldEnemy.CanStandOn(e.Home)) Fail($"{e.DisplayName} 집이 설 수 없는 칸");
-                if (e.ExpReward != 20) Fail($"{e.DisplayName} 경험치 {e.ExpReward} ≠ 20");
+                int exp = Mathf.RoundToInt(20 * GoWorldMap.DangerMul(e.Danger)); // 108 지역 위험 배율
+                if (e.ExpReward != exp) Fail($"{e.DisplayName} 경험치 {e.ExpReward} ≠ {exp}");
             }
             if (n != 8 || groups.Count != 3) Fail($"원소 적 {n}마리·무리 {groups.Count} ≠ 8·3");
             foreach (var k in Kinds) if (Find(k) == null) { Fail($"{k} 가 없음"); return false; }
@@ -108,6 +110,7 @@ namespace Saga.EditorTools
         private static string CheckShield(FieldEnemy e, PlayerController pc, Vector3 origin)
         {
             float expectMax = e.EnemyKind == FieldEnemy.Kind.EmberImp ? 150f : e.EnemyKind == FieldEnemy.Kind.DrownedGhost ? 180f : 130f;
+            expectMax *= GoWorldMap.DangerMul(e.Danger); // 108 지역 위험 배율
             e.WarpForTest(origin + new Vector3(30f, 0f, 0f));
             string n = e.DisplayName;
             if (Mathf.Abs(e.ShieldMax - expectMax) > 0.01f || !Mathf.Approximately(e.ShieldHp, e.ShieldMax)) Fail($"{n} 방패 {e.ShieldHp}/{e.ShieldMax} ≠ {expectMax}");

@@ -68,6 +68,12 @@ namespace Saga.Go.Combat
             return null;
         }
 
+        /// <summary>108 진단 — 무리 id·구성(한가운데 지역은 `GroupRegion`).</summary>
+        public static System.Collections.Generic.IEnumerable<(string id, FieldEnemy.Kind[] members)> GroupMembers()
+        {
+            foreach (var g in Groups) yield return (g.Id, g.Members);
+        }
+
         /// <summary>107-3 식생 바이옴 — 늘어난 나무·풀이 비키는 들판 무리 한가운데(땅 높이 0).</summary>
         public static System.Collections.Generic.IEnumerable<Vector3> GroupCenters()
         {
@@ -93,13 +99,14 @@ namespace Saga.Go.Combat
             foreach (var g in Groups)
             {
                 Vector3 center = TestMapData.WorldPos(g.Gx, g.Gy);
+                int danger = GoWorldMap.DangerOf(GoWorldMap.RegionAt(center)); // 108 지역 위험도
                 for (int i = 0; i < g.Members.Length; i++)
                 {
                     float a = i * Mathf.PI * 2f / g.Members.Length + g.Gx;
                     Vector3 home = center + new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * GroupSpread;
                     var kind = g.Members[i];
                     // 원소 쓰는 적은 해골 모델에 원소 빛깔을 입힌다("원소 깃든 망자", 사실적 PBR 트랙이라 코드 도형 대신)
-                    FieldEnemy.Spawn(kind, home, kind == FieldEnemy.Kind.Bandit ? banditModel : skeletonModel, g.Id, transform);
+                    FieldEnemy.Spawn(kind, home, kind == FieldEnemy.Kind.Bandit ? banditModel : skeletonModel, g.Id, transform).ApplyDanger(danger);
                 }
             }
             if (!GuardianState.Defeated)

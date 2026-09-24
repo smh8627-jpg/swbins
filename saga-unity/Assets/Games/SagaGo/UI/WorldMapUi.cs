@@ -31,6 +31,7 @@ namespace Saga.Go.UI
         private readonly List<Button> _wpButtons = new List<Button>();
         private readonly List<Text> _regionLabels = new List<Text>();
         private Text _info;
+        private Text _regionInfo;
         private readonly List<Text> _rampLabels = new List<Text>();
         private readonly List<string> _rampRegions = new List<string>();
         public int RampLabelCount => _rampLabels.Count;
@@ -45,6 +46,8 @@ namespace Saga.Go.UI
         public string RegionLabel(int i) => _regionLabels[i].text;
         public string LastRegion => _lastRegion;
         public string InfoText => _info.text;
+        /// <summary>108 — 지도 위쪽 "지금 선 지역" 두 줄.</summary>
+        public string RegionInfoText => _regionInfo.text;
         /// <summary>진단용 — 지도 텍스처에서 칸 가운데 색.</summary>
         public Color TileColorOnMap(int gx, int gy) => _tex.GetPixel(gx * TilePx + TilePx / 2, (TestMapData.RowCount - 1 - gy) * TilePx + TilePx / 2);
 
@@ -95,6 +98,8 @@ namespace Saga.Go.UI
             var title = EncounterUiKit.NewText(_panel.transform, GoLocalization.T("map.title", "지도"), new Vector2(0.5f, 1f), new Vector2(0f, -60f), new Vector2(600f, 60f), 36);
             title.fontStyle = FontStyle.Bold;
             _info = EncounterUiKit.NewText(_panel.transform, "", new Vector2(0.5f, 0f), new Vector2(0f, 150f), new Vector2(900f, 60f), 22);
+            _regionInfo = EncounterUiKit.NewText(_panel.transform, "", new Vector2(0.5f, 1f), new Vector2(0f, -150f), new Vector2(1000f, 96f), 22);
+            _regionInfo.raycastTarget = false;
 
             foreach (var r in GoWorldMap.Regions)
             {
@@ -160,7 +165,7 @@ namespace Saga.Go.UI
             {
                 var r = GoWorldMap.Regions[i];
                 bool seen = WorldMapState.IsVisited(r.Id);
-                _regionLabels[i].text = seen ? GoLocalization.T(r.NameKey, r.NameKo) + MissionSuffix(r.Id) : "? ? ?";
+                _regionLabels[i].text = seen ? GoLocalization.T(r.NameKey, r.NameKo) + " " + GoWorldMap.DangerDots(r.Danger) + MissionSuffix(r.Id) : "? ? ?";
                 _regionLabels[i].color = seen ? Color.white : new Color(0.6f, 0.6f, 0.65f);
             }
             for (int i = 0; i < _wpButtons.Count; i++)
@@ -173,6 +178,8 @@ namespace Saga.Go.UI
                 _wpButtons[i].gameObject.SetActive(WorldMapState.IsVisited(GoWorldMap.RegionAt(GoWorldMap.WaypointPos(w))) || on);
             }
             for (int i = 0; i < _rampLabels.Count; i++) _rampLabels[i].gameObject.SetActive(WorldMapState.IsVisited(_rampRegions[i]));
+            var player = FieldCombat.Instance;
+            _regionInfo.text = RegionInfo(player != null ? GoWorldMap.RegionAt(player.transform.position) : _lastRegion ?? "village");
             _info.text = string.Format(GoLocalization.T("map.info", "푸른 ◆ 역참을 누르면 순간이동 · 켠 역참 {0}/{1}{2}"),
                 WorldMapState.ActiveCount, GoWorldMap.Waypoints.Length,
                 WorldMapState.Revealed ? "" : GoLocalization.T("map.hint", " · 옛 망루 꼭대기에 오르면 온 땅이 밝혀진다"))
@@ -236,10 +243,26 @@ namespace Saga.Go.UI
             bool first = _lastRegion == null;
             _lastRegion = region;
             if (first || DialogueLabel.Instance == null) return; // 시작 자리는 말없이 적기만
-            string name = GoWorldMap.RegionName(region);
-            DialogueLabel.Instance.Show(isNew
+            DialogueLabel.Instance.Show(EnterText(region, isNew), isNew ? 4f : 2.2f);
+        }
+
+        /// <summary>108 — 경계를 넘을 때 자막. 늘 "— 이름 한자 —" + 위험 줄, 처음 가는 땅이면 사연 한 줄을 더.</summary>
+        public static string EnterText(string region, bool isNew)
+        {
+            string name = GoWorldMap.RegionName(region) + " " + GoWorldMap.RegionOf(region).Hanja;
+            string head = isNew
                 ? string.Format(GoLocalization.T("region.enter_new", "— {0} —\n새 지역"), name)
-                : string.Format(GoLocalization.T("region.enter", "— {0} —"), name), isNew ? 3f : 1.8f);
+                : string.Format(GoLocalization.T("region.enter", "— {0} —"), name);
+            string text = head + "\n" + GoWorldMap.DangerLine(region);
+            return isNew ? text + "\n" + GoWorldMap.RegionLore(region) : text;
+        }
+
+        /// <summary>108 — 지도 위쪽 두 줄: "지금 · 이름 한자 · 위험 줄" + 사연.</summary>
+        public static string RegionInfo(string region)
+        {
+            return string.Format(GoLocalization.T("map.region_now", "지금 · {0} {1} · {2}"),
+                    GoWorldMap.RegionName(region), GoWorldMap.RegionOf(region).Hanja, GoWorldMap.DangerLine(region))
+                + "\n" + GoWorldMap.RegionLore(region);
         }
 
         private void UpdateArrow(FieldCombat fc)

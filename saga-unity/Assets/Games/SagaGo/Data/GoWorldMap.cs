@@ -1,10 +1,12 @@
 using UnityEngine;
+using Saga.Go.Combat;
 
 namespace Saga.Go.Data
 {
     /// <summary>
     /// PLAN.md 107-3 "지역 지도" — 지역 일곱·순간이동 지점 다섯·옛 망루 자리를 모은 표(글자 지도 칸 좌표).
-    /// 이름은 전부 지어낸 것(실제 지명·원작 이름 아님).
+    /// PLAN.md 108 "고정 특색 지역" — 지역마다 한자·사연·위험도·몬스터 명단(땅빛은 아래 `Atmospheres`·`Vegetations`).
+    /// 이름·한자는 전부 지어낸 것(실제 지명·원작 이름 아님).
     /// </summary>
     public static class GoWorldMap
     {
@@ -14,7 +16,20 @@ namespace Saga.Go.Data
             public string NameKey;
             public string NameKo;
             public float LabelGx, LabelGy;
+            /// <summary>108 — 지은 한자 이름(표시 글자, 번역 안 함).</summary>
+            public string Hanja;
+            public string LoreKey;
+            public string LoreKo;
+            /// <summary>108 — 1~3. 그 지역 들판 적의 체력·공격·방패·경험치에 `DangerMul` 을 곱한다(수호장 제외).</summary>
+            public int Danger;
+            /// <summary>108 — 그 지역에 서는 적 종류. `FieldSpawner` 무리 구성이 이 명단 안에 있어야 한다(진단이 본다).</summary>
+            public FieldEnemy.Kind[] Roster;
         }
+
+        public const int MaxDanger = 3;
+
+        /// <summary>위험 1 → ×1.0, 2 → ×1.15, 3 → ×1.3.</summary>
+        public static float DangerMul(int danger) => 1f + 0.15f * (Mathf.Clamp(danger, 1, MaxDanger) - 1);
 
         public struct Waypoint
         {
@@ -24,15 +39,29 @@ namespace Saga.Go.Data
             public float Gx, Gy;
         }
 
+        private static readonly FieldEnemy.Kind KB = FieldEnemy.Kind.Bandit;
+        private static readonly FieldEnemy.Kind KS = FieldEnemy.Kind.Skeleton;
+        private static readonly FieldEnemy.Kind KF = FieldEnemy.Kind.EmberImp;
+        private static readonly FieldEnemy.Kind KW = FieldEnemy.Kind.DrownedGhost;
+        private static readonly FieldEnemy.Kind KT = FieldEnemy.Kind.StormWraith;
+        private static readonly FieldEnemy.Kind KG = FieldEnemy.Kind.Guardian;
+
         public static readonly Region[] Regions =
         {
-            new Region { Id = "village",    NameKey = "region.village",    NameKo = "마을 들판",   LabelGx = 3f,   LabelGy = 3f },
-            new Region { Id = "west_wood",  NameKey = "region.west_wood",  NameKo = "서쪽 숲길",   LabelGx = 0f,   LabelGy = 3f },
-            new Region { Id = "east_grove", NameKey = "region.east_grove", NameKo = "동쪽 숲",     LabelGx = 7f,   LabelGy = 2.6f },
-            new Region { Id = "north_foot", NameKey = "region.north_foot", NameKo = "북쪽 산기슭", LabelGx = 2.5f, LabelGy = 0.6f },
-            new Region { Id = "river",      NameKey = "region.river",      NameKo = "너른 강",     LabelGx = 5.5f, LabelGy = 5f },
-            new Region { Id = "south_glade",NameKey = "region.south_glade",NameKo = "남쪽 공터",   LabelGx = 3f,   LabelGy = 7f },
-            new Region { Id = "farmland",   NameKey = "region.farmland",   NameKo = "끝 논밭",     LabelGx = 3f,   LabelGy = 9.3f },
+            new Region { Id = "village",    NameKey = "region.village",    NameKo = "마을 들판",   LabelGx = 3f,   LabelGy = 3f,   Hanja = "市原", Danger = 1, Roster = new FieldEnemy.Kind[0],
+                LoreKey = "region.village.lore",     LoreKo = "역참과 장터가 모인 첫 들판. 마을 울타리 안에선 칼 뽑을 일이 없다." },
+            new Region { Id = "west_wood",  NameKey = "region.west_wood",  NameKo = "서쪽 숲길",   LabelGx = 0f,   LabelGy = 3f,   Hanja = "雷林", Danger = 2, Roster = new[] { KT, KW },
+                LoreKey = "region.west_wood.lore",   LoreKo = "벼락 맞은 고목이 늘어선 짙은 숲길. 번개귀가 나무 사이를 건너뛴다." },
+            new Region { Id = "east_grove", NameKey = "region.east_grove", NameKo = "동쪽 숲",     LabelGx = 7f,   LabelGy = 2.6f, Hanja = "丹林", Danger = 2, Roster = new[] { KB, KS, KW },
+                LoreKey = "region.east_grove.lore",  LoreKo = "호박빛 단풍 숲에 산적 소굴이 숨어 있다. 옛 싸움터 해골과 숲 못의 물귀신도 깨어난다." },
+            new Region { Id = "north_foot", NameKey = "region.north_foot", NameKo = "북쪽 산기슭", LabelGx = 2.5f, LabelGy = 0.6f, Hanja = "寒麓", Danger = 3, Roster = new[] { KS },
+                LoreKey = "region.north_foot.lore",  LoreKo = "무너진 성터 무덤이 흩어진 서늘한 비탈. 해골 병사가 줄지어 지킨다." },
+            new Region { Id = "river",      NameKey = "region.river",      NameKo = "너른 강",     LabelGx = 5.5f, LabelGy = 5f,   Hanja = "廣川", Danger = 1, Roster = new FieldEnemy.Kind[0],
+                LoreKey = "region.river.lore",       LoreKo = "마을과 남쪽 땅을 가르는 물줄기. 헤엄칠 땐 기운이 다하지 않게." },
+            new Region { Id = "south_glade",NameKey = "region.south_glade",NameKo = "남쪽 공터",   LabelGx = 3f,   LabelGy = 7f,   Hanja = "金坪", Danger = 3, Roster = new[] { KB, KS, KG },
+                LoreKey = "region.south_glade.lore", LoreKo = "옛 망루 발치의 금빛 풀밭. 망루를 지키던 수호장이 아직 서 있다." },
+            new Region { Id = "farmland",   NameKey = "region.farmland",   NameKo = "끝 논밭",     LabelGx = 3f,   LabelGy = 9.3f, Hanja = "末田", Danger = 2, Roster = new[] { KB, KF, KT },
+                LoreKey = "region.farmland.lore",    LoreKo = "마른 논둑에 도깨비불이 인다. 산적이 가을걷이를 노린다." },
         };
 
         public static readonly Waypoint[] Waypoints =
@@ -138,6 +167,36 @@ namespace Saga.Go.Data
         {
             foreach (var r in Regions) if (r.Id == id) return GoLocalization.T(r.NameKey, r.NameKo);
             return id;
+        }
+
+        public static Region RegionOf(string id)
+        {
+            foreach (var r in Regions) if (r.Id == id) return r;
+            return Regions[0];
+        }
+
+        public static int DangerOf(string id) => RegionOf(id).Danger;
+
+        public static string RegionLore(string id)
+        {
+            var r = RegionOf(id);
+            return GoLocalization.T(r.LoreKey, r.LoreKo);
+        }
+
+        /// <summary>108 — "●●○" 식 위험 점(최대 `MaxDanger`).</summary>
+        public static string DangerDots(int danger)
+        {
+            danger = Mathf.Clamp(danger, 1, MaxDanger);
+            return new string('●', danger) + new string('○', MaxDanger - danger);
+        }
+
+        /// <summary>108 — "위험 ●●○ · 산적·해골 병사"(명단이 비면 "위험 ●○○ · 적 없음").</summary>
+        public static string DangerLine(string id)
+        {
+            var r = RegionOf(id);
+            string foes = r.Roster.Length == 0 ? GoLocalization.T("region.no_foes", "적 없음") : "";
+            for (int i = 0; i < r.Roster.Length; i++) foes += (i > 0 ? "·" : "") + FieldEnemy.KindName(r.Roster[i]);
+            return string.Format(GoLocalization.T("region.danger", "위험 {0} · {1}"), DangerDots(r.Danger), foes);
         }
 
         public static string WaypointName(Waypoint w) => GoLocalization.T(w.NameKey, w.NameKo);

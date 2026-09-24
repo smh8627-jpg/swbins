@@ -140,32 +140,61 @@ namespace Saga.Go.Combat
             return e;
         }
 
+        /// <summary>종류 이름(머리 위 이름표·108 지역 몬스터 명단이 같이 쓴다).</summary>
+        public static string KindName(Kind k)
+        {
+            switch (k)
+            {
+                case Kind.Bandit: return GoLocalization.T("field.foe.bandit", "산적");
+                case Kind.EmberImp: return GoLocalization.T("field.foe.imp", "불도깨비");
+                case Kind.DrownedGhost: return GoLocalization.T("field.foe.ghost", "물귀신");
+                case Kind.StormWraith: return GoLocalization.T("field.foe.wraith", "번개귀");
+                case Kind.Guardian: return GoLocalization.T("field.foe.guardian", "망루 수호장");
+                default: return GoLocalization.T("field.foe.skeleton", "해골 병사");
+            }
+        }
+
+        /// <summary>108 — 선 지역 위험도(1~3). `FieldSpawner` 가 세운 직후 `ApplyDanger` 로 정한다.</summary>
+        public int Danger { get; private set; } = 1;
+
+        /// <summary>108 — 지역 위험도 배율을 체력·공격·방패·경험치에 곱한다. 수호장은 자기 표 그대로(107-7).</summary>
+        public void ApplyDanger(int danger)
+        {
+            if (IsGuardian) return;
+            Danger = Mathf.Clamp(danger, 1, GoWorldMap.MaxDanger);
+            float m = GoWorldMap.DangerMul(Danger);
+            MaxHp *= m; Hp = MaxHp;
+            Atk *= m;
+            ShieldMax *= m; ShieldHp = ShieldMax;
+            ExpReward = Mathf.RoundToInt(ExpReward * m);
+        }
+
         private void Setup()
         {
             switch (kind)
             {
                 case Kind.Bandit:
-                    DisplayName = GoLocalization.T("field.foe.bandit", "산적");
+                    DisplayName = KindName(kind);
                     MaxHp = 320f; Atk = 26f; ExpReward = 15;
                     break;
                 case Kind.EmberImp:
-                    DisplayName = GoLocalization.T("field.foe.imp", "불도깨비");
+                    DisplayName = KindName(kind);
                     MaxHp = 260f; Atk = 24f; ExpReward = 20; Element = GoElement.Pyro; ShieldMax = 150f;
                     break;
                 case Kind.DrownedGhost:
-                    DisplayName = GoLocalization.T("field.foe.ghost", "물귀신");
+                    DisplayName = KindName(kind);
                     MaxHp = 300f; Atk = 22f; ExpReward = 20; Element = GoElement.Hydro; ShieldMax = 180f;
                     break;
                 case Kind.StormWraith:
-                    DisplayName = GoLocalization.T("field.foe.wraith", "번개귀");
+                    DisplayName = KindName(kind);
                     MaxHp = 230f; Atk = 28f; ExpReward = 20; Element = GoElement.Electro; ShieldMax = 130f;
                     break;
                 case Kind.Guardian:
-                    DisplayName = GoLocalization.T("field.foe.guardian", "망루 수호장");
+                    DisplayName = KindName(kind);
                     MaxHp = GuardianHp; Atk = GuardianAtk; ExpReward = GuardianExp; Element = GuardianOuter; ShieldMax = GuardianShield;
                     break;
                 default:
-                    DisplayName = GoLocalization.T("field.foe.skeleton", "해골 병사");
+                    DisplayName = KindName(kind);
                     MaxHp = 220f; Atk = 20f; ExpReward = 10;
                     break;
             }

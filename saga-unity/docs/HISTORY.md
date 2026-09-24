@@ -8901,3 +8901,13 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - **코드**: `SetupNpcCharacterImports` 표에 `ExtraTriggers`(끝나면 대기로) — Paladin `Hit`·`Death`·`Taunt`·`Blocked`, PeasantGirl `Walk`·`Run`·`Attack`(= Cast)·`Heal`. `AllyFighter`: 도발 `Taunt`, 맞으면 도발 중 `Blocked`·아니면 `Hit`, 쓰러짐 `Death`(머묾) → 일어나면 `Play("Idle")`, 클립 없으면 옛 폴백(검방 공격·절차적 눕히기). `AllyMystic`: 제 컨트롤러에 `Attack`·`Heal` 이 있으면 Maria.controller 를 안 씌움, 치유 `Heal`. 둘 다 `LastTrigger`(진단용). PeasantGirl 은 마을 아낙·포로도 같은 프리팹이라 상태만 늘었고(속도 0·Kneel 이름 재생) 영향 없음, GO 동료 몸은 Maria.controller 를 씌우니 그대로.
 - **진단**: `PlaytestDungeonParty` — 도발 트리거(전용이면 Taunt·아니면 Attack) · 도발 중 피격 Blocked · 쓰러짐 Death·절차적 눕히기 안 함·상태 들어감 · 치유 Heal·일어나면 Death 밖 · 술사가 Maria 안 씀 · 빛살 Attack. 측정 줄에 "전용 클립 무사 True·술사 True".
 - 검증: NPC 리깅 exit 0(여덟 클립 Humanoid, 4/4 프리팹) · `PlaytestDungeonHeadless` **3연속 OK**(전용 클립 경로 3회) · GO `PlaytestHeadless` OK(같은 프리팹). 컨트롤러 넷이 다시 구워져 Skeleton·PeasantMan 도 fileID 만 바뀜. 실기 확인 전(방패 들기 0.57s 가 도발로 읽히는지·치유 4.2s 가 길지 않은지·쓰러짐 뒤 곧장 서는 게 튀지 않는지).
+
+## 2026-09-24 — PLAN 108 ① GO 고정 특색 지역(한자·사연·위험도·몬스터 명단) (같은 대화 다섯 번째 "사가유니티 이어해", Opus 5.5)
+
+- **고른 까닭**: 106·107 이 다 끝났고 다음 후보(STORY 파티·소환)는 사용자와 정할 일. 같은 날 사용자 결정(SAGA-DESIGN §12 "무작위 땅 금지, 일곱 판 공통")으로 생긴 PLAN 108 ① 이 이 트랙 몫으로 남아 있었다.
+- **표**: 市原(마을 들판, ●○○ 적 없음)·雷林(서쪽 숲길, ●●○ 번개귀·물귀신)·丹林(동쪽 숲, ●●○ 산적·해골·물귀신)·寒麓(북쪽 산기슭, ●●● 해골)·廣川(너른 강, ●○○ 적 없음)·金坪(남쪽 공터, ●●● 산적·해골·수호장)·末田(끝 논밭, ●●○ 산적·불도깨비·번개귀). 한자는 지어낸 것.
+- **함정**: `spirit_grove` 무리(5.5, 2.2)는 칸 반올림 때문에 마을이 아니라 동쪽 숲에 속한다. 처음엔 마을 명단에 물귀신을 넣었다가 진단(명단 정직성)이 잡았고, 마을은 "적 없음"·동쪽 숲에 물귀신을 더했다(사연도 고침).
+- **수치**: 위험 배율 ×1.0/1.15/1.3 을 체력·공격·방패·경험치에 곱한다(수호장 제외). 원소 적 경험치 20 → 雷林·末田 23, 방패 불도깨비 173·물귀신 207·번개귀 150. 해골 체력 丹林 253 / 寒麓 286.
+- **글**: 경계 자막은 "— 이름 한자 —" + "위험 ●●○ · 명단", 처음 가는 땅이면 사연 한 줄 더(4초, 다시 오면 2.2초). 지도 이름표에 위험 점, 지도 위쪽에 지금 선 지역 두 줄. 번역 키 10개(ko·en), `loc-missing.py` 빠진 키 0.
+- 파일: 고침 `GoWorldMap`(Region 필드·`DangerMul`·`DangerLine` 등)·`FieldEnemy`(`KindName`·`Danger`·`ApplyDanger`)·`FieldSpawner`(위험 적용·`GroupMembers`)·`WorldMapUi`(`EnterText`·`RegionInfo`·이름표)·`go_ko/en.json`·`PlaytestGoElementalFoe`(경험치·방패 기대값에 배율)·`PlaytestHeadless`, 새 `Editor/PlaytestGoRegionTraits.cs`. 씬 재빌드 없음(런타임에서 세우는 적이라).
+- 검증: GO `PlaytestHeadless` **3연속 OK**(진단 줄 3회 md5 동일, 새 `regionTraits` 줄 "무리 적 23(위험3 8)·해골 체력 동쪽 253/산기슭 286"). 실기 확인 전(자막 세 줄이 길지 않은지·지도 위쪽 두 줄이 지도와 안 겹치는지·위험 3 산기슭 해골이 버거운지).
