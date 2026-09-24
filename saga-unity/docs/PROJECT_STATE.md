@@ -21,12 +21,12 @@ Maria·Abe·Brute + Skeleton·Paladin·PeasantMan·PeasantGirl·Archer·두목 M
 
 ## 다음 작업 (우선순위, 상세는 PLAN 해당 장 · 경위는 HISTORY 날짜 grep)
 
-0. **PLAN 106(106-4 NPC 세 판 포함)·107·108 + 106-10 완료** — 적힌 대기 없음. 다음 방향은 사용자와.
-0-1. **남은 것**: en 번역은 사람 검수 전. GO 동료 몸은 Maria.controller 리타깃, 무기는 주인공 손에만, 넘어오르기는 0.45s 코드 이동. 다른 PC 는 Mixamo README 레시피(Maria 이동 5·DUNGEON 동료 8)를 받고 `Saga/Build Maria Traversal`·`Saga/Setup NPC Character Imports`.
+0. **다음 = 두목 전용 몸 이어서**(PLAN 106-4 끝줄): DUNGEON 층 두목·엘리트 변형·STORY 두목(아직 전부 Brute). Maw·Ganfaul 과 같은 길(mixamo README, 로그인 풀리면 사용자에게).
+0-1. **남은 것**: en 번역 사람 검수 전. GO 동료 몸 Maria.controller 리타깃·무기는 주인공 손에만. 다른 PC 는 Mixamo README 레시피(Maria 이동 5·DUNGEON 동료 8)를 받고 `Saga/Build Maria Traversal`·`Saga/Setup NPC Character Imports`.
 1. STORY 판수(Lv.15→20 약 11판, 20→25 약 28판)가 무거우면 `StoryCombat.JobPromoteLevel3/4`만.
 2. **101-2·104-1 잔여(보류)** — GO⑤(모바일 빌드 뒤)·`Characters/` Kenney(이제 폴백 전용 — 사실 모델 없는 PC). 헤어카드는 분리 헤어 메시 생기면.
 
-`ShotDir`(두 `Playtest*Gui.cs`)는 scratchpad 경로 — GUI 스크린샷 때마다 고친다.
+`ShotDir`(`Playtest*Gui.cs`)는 GUI 캡처 때마다 고친다.
 
 ## 알려진 오류
 
