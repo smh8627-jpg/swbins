@@ -18,11 +18,13 @@
  *
  * ── 몸 (키보드 모드만 — GPS 로 걷는 중엔 실제 몸이 걷는다) ──────────
  *   오르기  능선 위 가파른 오르막(기울기 0.28 넘게)은 걸음이 절반, 기력이 준다. 다하면 못 오른다
- *   헤엄    강·호수에선 걸음 0.6, 기력이 준다(여울은 걸어 건넌다)
+ *   헤엄    강·호수에선 걸음 0.6, 기력이 준다(여울은 얕아 걸어 건너고, 가운데 다리가 선다)
  *   점프    스페이스 / 점프 단추 — 1.3m 뛴다(화면 층). 오르는 중에 뛰면 기력 20 으로 4m 도약
  *   활공    뛰어오른 채 한 번 더 누르면 천 날개를 편다 — 초당 2.4m 가라앉으며 걸음 ×1.7, 기력 초당 4.
  *           기력이 다하면 초당 9m, 한 번 더 누르면 접고 떨어진다(초당 14m). 땅에 닿으면 끝(⑰ 다음)
  *   순간이동 오른 정상은 전체 지도(M)의 순간이동 지점이 된다 — 정상으로 날아가 활공으로 내려온다
+ *   다리·폭포 여울마다 강을 가로지르는 다리 하나(걸으면 상판 위에 선다), 은하강·붉은내 발원지에 폭포.
+ *           그림은 손그림 땅(land.js 'B'·'W')의 다리·폭포 모델을 그대로 빌린다(`markAt`)
  *   기력    100 — 가만히·평지면 초당 25 찬다. 들판 전투 기력(⑨)과는 따로다(싸움 중엔 그쪽)
  */
 (function (global) {
@@ -73,7 +75,9 @@
   ];
 
   /* ── 잘게 쪼개기(굽이) — 한 번만 ─────────────────────────── */
-  var SEGS = null, GRIDX = null, PEAKS = null;
+  var SEGS = null, GRIDX = null, PEAKS = null, MARKS = null, FORDS = null;
+  var DECK = 1.9;             // 다리 상판 높이(m) — 도형 다리 상판 윗면(1.7 + 0.25)과 같은 자리
+  var FALLS = [{ river: 'eunha', name: '설산 폭포' }, { river: 'jeok', name: '용소 폭포' }];
   function wig(s, seed, amp) {
     /* 이 판 core.noise2 는 0~0.5 — *4-1 로 −1~1 */
     return (core().noise2(s / STEP, seed * 37 + 5, 14) * 4 - 1) * amp;
@@ -117,6 +121,7 @@
         SEGS.push(sg); addSeg(sg, w + 40);
       }
     });
+    buildMarks();
     RANGES.forEach(function (rg, gi) {
       var d = densify(rg.pts, 41 + gi, rg.hw * 0.22, true), i;
       for (i = 0; i < d.length - 1; i++) {
@@ -127,6 +132,58 @@
         if (p[3]) { PEAKS.push({ key: rg.key + '_' + Math.round(p[0]) + '_' + Math.round(p[1]), name: p[3], range: rg, x: p[0], y: p[1], h: p[2] }); }
       });
     });
+  }
+
+  /**
+   * 다리·폭포 자리 — 여울 조각이 이어진 무리마다 **가운데 조각**에 다리 하나(강을 가로지르는 방향),
+   * 강 첫 조각에 폭포(물이 흘러가는 쪽을 본다). 격자 칸 → 표식. 판정은 riverAt 의 ford 그대로다
+   */
+  function buildMarks() {
+    MARKS = {}; FORDS = [];
+    var byRiver = {};
+    SEGS.forEach(function (sg) { if (sg.type === 'river') { (byRiver[sg.f.key] || (byRiver[sg.f.key] = [])).push(sg); } });
+    Object.keys(byRiver).forEach(function (key) {
+      var list = byRiver[key], i = 0;
+      while (i < list.length) {
+        if (!list[i].ford) { i++; continue; }
+        var j = i;
+        while (j + 1 < list.length && list[j + 1].ford) { j++; }
+        var sg = list[Math.floor((i + j) / 2)];
+        var cx = (sg.ax + sg.bx) / 2, cy = (sg.ay + sg.by) / 2, L = Math.hypot(sg.bx - sg.ax, sg.by - sg.ay) || 1;
+        var fx = (sg.bx - sg.ax) / L, fy = (sg.by - sg.ay) / L;     // 물 흐르는 쪽
+        var ford = { x: cx, y: cy, fx: fx, fy: fy, tx: -fy, ty: fx, span: sg.w * 2 + 16, river: key };
+        FORDS.push(ford);
+        putMark(cx, cy, { t: 'bridge', rot: Math.atan2(ford.tx, ford.ty), span: ford.span });
+        i = j + 1;
+      }
+    });
+    FALLS.forEach(function (fl) {
+      var list = byRiver[fl.river];
+      if (!list || !list.length) { return; }
+      var sg = list[0], L = Math.hypot(sg.bx - sg.ax, sg.by - sg.ay) || 1;
+      putMark(sg.ax, sg.ay, { t: 'waterfall', rot: Math.atan2((sg.bx - sg.ax) / L, (sg.by - sg.ay) / L), name: fl.name });
+    });
+  }
+  function putMark(x, y, mk) {
+    var gx = Math.floor(x / CELL), gy = Math.floor(y / CELL);
+    mk.ox = x - (gx + 0.5) * CELL; mk.oz = y - (gy + 0.5) * CELL;   // 칸 가운데에서 얼마나 비켜 섰나
+    MARKS[gx + ',' + gy] = mk;
+  }
+  /** 이 칸에 설 다리·폭포 — { t, rot, ox, oz, span? } 또는 null(`world3d.propPlan` 이 묻는다) */
+  function markAt(gx, gy) {
+    if (!on()) { return null; }
+    build();
+    return MARKS[gx + ',' + gy] || null;
+  }
+  /** 다리 상판 위면 그 높이(m), 아니면 null — 내 몸을 상판에 세운다(화면 층) */
+  function deckAt(x, y) {
+    if (!on()) { return null; }
+    build();
+    for (var i = 0; i < FORDS.length; i++) {
+      var f = FORDS[i], dx = x - f.x, dy = y - f.y;
+      if (Math.abs(dx * f.tx + dy * f.ty) <= f.span / 2 && Math.abs(dx * f.fx + dy * f.fy) <= 3.5) { return DECK; }
+    }
+    return null;
   }
 
   /** 점 → 선분 거리와 선분 위 비율 */
@@ -181,7 +238,7 @@
   }
 
   var kindCache = {}, kindCount = 0;
-  /** 격자 한 칸의 땅(`world.terrainAt` 가 묻는다) — 'water' | 'road'(여울) | 'mount' | null(노이즈가 답한다) */
+  /** 격자 한 칸의 땅(`world.terrainAt` 가 묻는다) — 'water'(여울 포함) | 'mount' | null(노이즈가 답한다) */
   function kindAt(tx, ty) {
     if (!on()) { return null; }
     var k = tx + ',' + ty;
@@ -189,7 +246,7 @@
     var x = (tx + 0.5) * CELL, y = (ty + 0.5) * CELL, out = null;
     if (Math.hypot(x, y) >= HOME_R) {
       var rv = riverAt(x, y);
-      if (rv) { out = rv.ford ? 'road' : 'water'; }
+      if (rv) { out = 'water'; }                   // 여울도 물이다 — 가운데 다리가 건너고, 걸음은 ford 로 얕은 물을 걷는다
       else {
         var rg = ridgeAt(x, y);
         if (rg && rg.t > 0.28) { out = 'mount'; }
@@ -466,7 +523,7 @@
   global.DG.landform = {
     RIVERS: RIVERS, LAKES: LAKES, RANGES: RANGES, HOME_R: HOME_R, CELL: CELL,
     CLIMB_G: CLIMB_G, CLIMB_MUL: CLIMB_MUL, SWIM_MUL: SWIM_MUL, LEAP: LEAP, LEAP_COST: LEAP_COST, JUMP_T: JUMP_T, JUMP_H: JUMP_H,
-    on: on, line: line, riverAt: riverAt, ridgeAt: ridgeAt, kindAt: kindAt, liftAt: liftAt, peaks: peaks,
+    on: on, line: line, riverAt: riverAt, markAt: markAt, deckAt: deckAt, fords: function () { build(); return FORDS.slice(); }, DECK: DECK, ridgeAt: ridgeAt, kindAt: kindAt, liftAt: liftAt, peaks: peaks,
     peakFound: peakFound, discoverPeak: discoverPeak,
     moveMul: moveMul, jump: jump, airH: airH, tick: tick, teleport: teleport, waypoints: waypoints,
     GLIDE_MUL: GLIDE_MUL, GLIDE_SINK: GLIDE_SINK, GLIDE_DRAIN: GLIDE_DRAIN, GLIDE_OPEN_T: GLIDE_OPEN_T,

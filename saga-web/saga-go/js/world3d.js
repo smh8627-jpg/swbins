@@ -1175,8 +1175,9 @@
          짧게 잡았더니 아치 사이가 벌어져 사다리처럼 보였다(눈으로 보고 고쳤다) */
       var bn = 7, bj, bh = (GRID / bn) / 0.76;
       for (bj = 0; bj < bn; bj++) {
+        /* rot 0 — 안 주면 instGlb 가 칸마다 해시로 돌려 세워 아치 일곱이 제멋대로 돌았다(지형 설계 ⑰ 다리 때 발견) */
         out.push({ t: 'bridge', x: 0, z: (bj - (bn - 1) / 2) * (GRID / bn),
-                   h: bh, seg: bj });
+                   h: bh, seg: bj, rot: 0 });
       }
     }
     else if (mk === 'cave') { out.push({ t: 'cave', x: 0, z: 0, h: 7 }); }
@@ -1186,6 +1187,19 @@
     /* 옛 사원 — 손그린 땅에 **딱 한 칸**뿐인 특별 랜드마크(2026-09-11).
        shrine·cave·ruin과 같은 결로 markAt 이 답할 때만 세운다 */
     else if (mk === 'temple') { out.push({ t: 'temple', x: 0, z: 0, h: 18 }); }
+    /* 지형 설계(landform.js, §5 ⑰) — 여울 다리(강을 가로질러 rot 방향으로 이어 놓는다)·발원지 폭포.
+       그림은 위 손그림 땅의 다리·폭포 모델 그대로다 */
+    var LFp = !mk ? global.DG.landform : null, lmk = LFp && LFp.markAt ? LFp.markAt(gx, gy) : null;
+    if (lmk && lmk.t === 'bridge') {
+      var lsl = GRID / 7, lbn = Math.max(5, Math.ceil(lmk.span / lsl)), lbh = lsl / 0.76, lj;
+      var ltx = Math.sin(lmk.rot), ltz = Math.cos(lmk.rot);
+      for (lj = 0; lj < lbn; lj++) {
+        var la = (lj - (lbn - 1) / 2) * lsl;
+        out.push({ t: 'bridge', x: lmk.ox + ltx * la, z: lmk.oz + ltz * la, h: lbh, seg: lj, rot: lmk.rot });
+      }
+    } else if (lmk && lmk.t === 'waterfall') {
+      out.push({ t: 'waterfall', x: lmk.ox, z: lmk.oz, h: 16, rot: lmk.rot });
+    }
 
     /* 손으로 **놓은** 것(`land.js` deco — 맵 편집기 "3D 배치"가 고친다). 제 자리·키·돌림 그대로
        해시 소품 위에 얹는다. 이 계획을 거치므로 집·탑·우물·장터는 벽 충돌(`houseRects`)도
@@ -1782,6 +1796,7 @@
         /* 손으로 그린 땅이 못박아 둔 것은 **찾아가는 표적**이다 — 멀다고 빼면
            폐허가 코앞에서야 솟는다. 표식이 있는 격자는 잔 사물 규칙에서 뺀다 */
         var mk = RG3 ? RG3.markAt(gx, gy) : null;
+        if (!mk && global.DG.landform && global.DG.landform.markAt) { mk = global.DG.landform.markAt(gx, gy) ? 'lf' : null; }   // ⑰ 다리·폭포도 표적
         var tileDist = Math.hypot((gx + 0.5) * GRID - pos.x, (gy + 0.5) * GRID - pos.y);
         /* 풀·길의 잔 사물은 가까울 때만 세운다 — 반경 전체에 깔면 격자 백 개가
            한꺼번에 늘어나고, 멀리서는 어차피 한 픽셀이다 */
@@ -2225,6 +2240,12 @@
     if (air > 0) { meA.animName = 'jump'; meA.animUntil = now + 120; }
     placeActor(meA, mx, my, h * farBoost(mx, my), walkBob + air, walking && !air, mot.phase, now);
     if (air > 0 && meA.mesh) { meA.node.position.y += air; }
+    /* ⑰ 여울 다리 — 상판 위면 몸을 상판 높이에 세운다(땅은 물 바닥이라 안 올리면 다리 밑을 걷는다) */
+    var deck = LFa && LFa.deckAt ? LFa.deckAt(mx, my) : null;
+    if (deck !== null && meA.mesh && !air) {
+      var gyMe = groundY(mx, my);
+      if (deck > gyMe) { meA.node.position.y += deck - gyMe; }
+    }
     syncGlider(meA, LFa && LFa.gliding && LFa.gliding(), mx, my, air, h);
 
     /* 교전 상대(`duelStage()` 로 세운 임시 배우) — `spawns` 에 없으니 여기서

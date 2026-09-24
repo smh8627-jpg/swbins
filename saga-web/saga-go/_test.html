@@ -8424,7 +8424,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ('고향 ' + home.length + '칸 옛 땅 그대로 · 북쪽 설산 자락 ' + far + '칸이 바뀜 · 다시 물어도 같음 · 강 3·호수 1·산맥 7·정상 ' + nP);
     });
 
-    t('지형 설계 ⑰ — 강줄기는 끊기지 않는 물길(여울만 걸어 건넌다)·호수 한가운데는 물·물은 파인다', function () {
+    t('지형 설계 ⑰ — 강줄기는 끊기지 않는 물길(여울은 얕아 걸어 건넌다)·호수 한가운데는 물·물은 파인다', function () {
       var LF = DG.landform, W = DG.world, RF = DG.relief3d, bad = [], fords = 0, cells = 0;
       LF._resetForTest(); RF.reset();
       LF.RIVERS.forEach(function (rv) {
@@ -8433,9 +8433,10 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
           cells++;
           /* 지역 탑 둘레(34m)는 들로 비운다(⑩ — 탑이 물 위에 서지 않게) — 거기선 강이 탑 앞에서 여울이 된다 */
           var clear = DG.biome && DG.biome.on() && DG.biome.bandAt(p.x, p.y).clear;
-          if (k === 'road' || clear) { fords++; } else if (k !== 'water') { bad.push(rv.key + '@' + Math.round(p.x) + ',' + Math.round(p.y) + '=' + k); }
+          if (clear) { fords++; } else if (k !== 'water') { bad.push(rv.key + '@' + Math.round(p.x) + ',' + Math.round(p.y) + '=' + k); }
         });
       });
+      fords += LF.fords().length;
       var L = LF.LAKES[0], lake = W.terrainAt(Math.floor(L.x / 48), Math.floor(L.y / 48));
       var low = RF.heightAt(L.x, L.y) < 0;
       return bad.length === 0 && fords >= 3 && lake === 'water' && low &&
@@ -8572,6 +8573,42 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         LF._resetForTest();
       }
       return r.no && r.list && r.go && '안 오른 구름 봉 ✕ · 오르면 지점 pk:… · 누르면 정상 6m 앞';
+    });
+
+    t('지형 설계 ⑰ 다리·폭포 — 여울마다 강을 가로지르는 다리(손그림 땅 모델), 상판 위만 몸이 뜬다 · 발원지 둘에 폭포', function () {
+      var LF = DG.landform, R3 = DG.world3d, W = DG.world, bad = [];
+      LF._resetForTest();
+      var fs = LF.fords();
+      fs.forEach(function (f) {
+        var gx = Math.floor(f.x / 48), gy = Math.floor(f.y / 48), mk = LF.markAt(gx, gy);
+        if (!mk || mk.t !== 'bridge' || Math.abs(f.tx * f.fx + f.ty * f.fy) > 1e-9) { bad.push('표식@' + gx + ',' + gy); return; }
+        var plan = R3.propPlan(W.terrainAt(gx, gy), gx, gy, false).filter(function (q) { return q.t === 'bridge'; });
+        var across = plan.length >= 5 && plan.every(function (q) { return q.rot === mk.rot; });
+        /* 판의 첫·끝 조각이 강 양쪽(흐름에 수직)으로 벌어져 있나 */
+        var a = plan[0], z = plan[plan.length - 1];
+        var dxp = z.x - a.x, dzp = z.z - a.z, span = Math.hypot(dxp, dzp);
+        var perp = span > 30 && Math.abs((dxp * f.fx + dzp * f.fy) / span) < 1e-6;
+        if (!across || !perp) { bad.push('판@' + gx + ',' + gy + ' n' + plan.length); }
+        if (LF.deckAt(f.x, f.y) !== LF.DECK || LF.deckAt(f.x + f.fx * 10, f.y + f.fy * 10) !== null) { bad.push('상판@' + gx + ',' + gy); }
+      });
+      var falls = [], k;
+      LF.RIVERS.forEach(function (rv) {
+        var p0 = LF.line(rv.key)[0], mk = LF.markAt(Math.floor(p0.x / 48), Math.floor(p0.y / 48));
+        if (mk && mk.t === 'waterfall') { falls.push(mk.name); }
+      });
+      var fp = null;
+      LF.RIVERS.slice(0, 1).forEach(function (rv) {
+        var p0 = LF.line(rv.key)[0], gx = Math.floor(p0.x / 48), gy = Math.floor(p0.y / 48);
+        fp = R3.propPlan(W.terrainAt(gx, gy), gx, gy, false).filter(function (q) { return q.t === 'waterfall'; })[0];
+      });
+      C.setTune('landform.on', 0);
+      var off;
+      try { off = fs.length && LF.markAt(Math.floor(fs[0].x / 48), Math.floor(fs[0].y / 48)) === null && LF.deckAt(fs[0].x, fs[0].y) === null; }
+      finally { C.setTune('landform.on', null); LF._resetForTest(); }
+      return bad.length === 0 && fs.length >= 3 && falls.length === 2 && fp && typeof fp.rot === 'number' && off &&
+        ('다리 ' + fs.length + '(강을 가로질러 조각 ' + R3.propPlan(W.terrainAt(Math.floor(fs[0].x / 48), Math.floor(fs[0].y / 48)), Math.floor(fs[0].x / 48), Math.floor(fs[0].y / 48), false).filter(function (q) { return q.t === 'bridge'; }).length +
+          ') · 상판 ' + LF.DECK + 'm, 옆 10m 는 물 · 폭포 ' + falls.join('·') + ' · 끄면 없음') ||
+        (function () { throw new Error(bad.slice(0, 5).join(' ') + ' fords=' + fs.length + ' falls=' + falls.length + ' fp=' + !!fp + ' off=' + off); })();
     });
 
     t('런타임 에러 없음', function () {
