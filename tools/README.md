@@ -24,7 +24,7 @@
 | `tools/glb-compress/` | `compress.mjs` Meshopt+WebP 압축(처리 기록 manifest) · `vrm-slim.mjs` VRM 모프 떼기 · `seam-simplify.mjs` 사진측량 UV 조각 모델 줄이기 |
 | `tools/obj-split/` | OBJ 쪼개기 |
 | `tools/mixamo_automation/` | Mixamo 모션 받기(`fetch.mjs --dest`) — 원본은 로컬 전용(.gitignore) |
-| `tools/char-forge/` | **설계만** — VRoid·Mixamo 대체 자체 인물 공방(Blender 헤드리스 + CC0). 상용 전 필수 |
+| `tools/char-forge/` | VRoid·Mixamo 대체 자체 인물 공방(Blender 헤드리스 + CC0) — 레시피 → `.glb`/`.fbx`(`build.py`)·파일 검증(`verify.py`)·팩 받기(`fetch_sources.py`). 0단계 끝, 게임엔 아직 안 물림 |
 | `saga-web/tools/bake-portraits/` | 도감·카드 초상을 webp 로 미리 굽기 |
 | `saga-web/saga-go/tools/bake-icons/` | 짐승·건물 2D 지도 아이콘 굽기 |
 | `saga-godot/tools/mixamo_retarget.gd` | Mixamo 모션 → VRM 뼈대 리타겟 |

@@ -1,0 +1,217 @@
+{
+ "_note": "char-forge 표준 뼈(Quaternius Universal = UE 마네킹 이름) → [Godot SkeletonProfileHumanoid, Unity HumanBodyBones]. 끝 뼈(*_04_leaf_*·ball_leaf_*)는 표준에 없다(애니 안 받음).",
+ "bones": {
+  "root": [
+   "Root",
+   null
+  ],
+  "pelvis": [
+   "Hips",
+   "Hips"
+  ],
+  "spine_01": [
+   "Spine",
+   "Spine"
+  ],
+  "spine_02": [
+   "Chest",
+   "Chest"
+  ],
+  "spine_03": [
+   "UpperChest",
+   "UpperChest"
+  ],
+  "neck_01": [
+   "Neck",
+   "Neck"
+  ],
+  "Head": [
+   "Head",
+   "Head"
+  ],
+  "clavicle_l": [
+   "LeftShoulder",
+   "LeftShoulder"
+  ],
+  "upperarm_l": [
+   "LeftUpperArm",
+   "LeftUpperArm"
+  ],
+  "lowerarm_l": [
+   "LeftLowerArm",
+   "LeftLowerArm"
+  ],
+  "hand_l": [
+   "LeftHand",
+   "LeftHand"
+  ],
+  "thigh_l": [
+   "LeftUpperLeg",
+   "LeftUpperLeg"
+  ],
+  "calf_l": [
+   "LeftLowerLeg",
+   "LeftLowerLeg"
+  ],
+  "foot_l": [
+   "LeftFoot",
+   "LeftFoot"
+  ],
+  "ball_l": [
+   "LeftToes",
+   "LeftToes"
+  ],
+  "thumb_01_l": [
+   "LeftThumbMetacarpal",
+   "LeftThumbProximal"
+  ],
+  "thumb_02_l": [
+   "LeftThumbProximal",
+   "LeftThumbIntermediate"
+  ],
+  "thumb_03_l": [
+   "LeftThumbDistal",
+   "LeftThumbDistal"
+  ],
+  "index_01_l": [
+   "LeftIndexProximal",
+   "LeftIndexProximal"
+  ],
+  "index_02_l": [
+   "LeftIndexIntermediate",
+   "LeftIndexIntermediate"
+  ],
+  "index_03_l": [
+   "LeftIndexDistal",
+   "LeftIndexDistal"
+  ],
+  "middle_01_l": [
+   "LeftMiddleProximal",
+   "LeftMiddleProximal"
+  ],
+  "middle_02_l": [
+   "LeftMiddleIntermediate",
+   "LeftMiddleIntermediate"
+  ],
+  "middle_03_l": [
+   "LeftMiddleDistal",
+   "LeftMiddleDistal"
+  ],
+  "ring_01_l": [
+   "LeftRingProximal",
+   "LeftRingProximal"
+  ],
+  "ring_02_l": [
+   "LeftRingIntermediate",
+   "LeftRingIntermediate"
+  ],
+  "ring_03_l": [
+   "LeftRingDistal",
+   "LeftRingDistal"
+  ],
+  "pinky_01_l": [
+   "LeftLittleProximal",
+   "LeftLittleProximal"
+  ],
+  "pinky_02_l": [
+   "LeftLittleIntermediate",
+   "LeftLittleIntermediate"
+  ],
+  "pinky_03_l": [
+   "LeftLittleDistal",
+   "LeftLittleDistal"
+  ],
+  "clavicle_r": [
+   "RightShoulder",
+   "RightShoulder"
+  ],
+  "upperarm_r": [
+   "RightUpperArm",
+   "RightUpperArm"
+  ],
+  "lowerarm_r": [
+   "RightLowerArm",
+   "RightLowerArm"
+  ],
+  "hand_r": [
+   "RightHand",
+   "RightHand"
+  ],
+  "thigh_r": [
+   "RightUpperLeg",
+   "RightUpperLeg"
+  ],
+  "calf_r": [
+   "RightLowerLeg",
+   "RightLowerLeg"
+  ],
+  "foot_r": [
+   "RightFoot",
+   "RightFoot"
+  ],
+  "ball_r": [
+   "RightToes",
+   "RightToes"
+  ],
+  "thumb_01_r": [
+   "RightThumbMetacarpal",
+   "RightThumbProximal"
+  ],
+  "thumb_02_r": [
+   "RightThumbProximal",
+   "RightThumbIntermediate"
+  ],
+  "thumb_03_r": [
+   "RightThumbDistal",
+   "RightThumbDistal"
+  ],
+  "index_01_r": [
+   "RightIndexProximal",
+   "RightIndexProximal"
+  ],
+  "index_02_r": [
+   "RightIndexIntermediate",
+   "RightIndexIntermediate"
+  ],
+  "index_03_r": [
+   "RightIndexDistal",
+   "RightIndexDistal"
+  ],
+  "middle_01_r": [
+   "RightMiddleProximal",
+   "RightMiddleProximal"
+  ],
+  "middle_02_r": [
+   "RightMiddleIntermediate",
+   "RightMiddleIntermediate"
+  ],
+  "middle_03_r": [
+   "RightMiddleDistal",
+   "RightMiddleDistal"
+  ],
+  "ring_01_r": [
+   "RightRingProximal",
+   "RightRingProximal"
+  ],
+  "ring_02_r": [
+   "RightRingIntermediate",
+   "RightRingIntermediate"
+  ],
+  "ring_03_r": [
+   "RightRingDistal",
+   "RightRingDistal"
+  ],
+  "pinky_01_r": [
+   "RightLittleProximal",
+   "RightLittleProximal"
+  ],
+  "pinky_02_r": [
+   "RightLittleIntermediate",
+   "RightLittleIntermediate"
+  ],
+  "pinky_03_r": [
+   "RightLittleDistal",
+   "RightLittleDistal"
+  ]
+ }
+}

@@ -1,0 +1,13 @@
+{
+ "id": "_test_toon_01",
+ "_note": "0단계 연기 시험용. 게임 인물 아님(이름 없음).",
+ "base": "superhero_female",
+ "face": "toon",
+ "skin": "light",
+ "hair": "Hair_Long",
+ "brows": "Eyebrows_Female",
+ "height": 1.62,
+ "head_scale": 1.12,
+ "colors": {"hair": "#3a2a22"},
+ "anims": "all"
+}

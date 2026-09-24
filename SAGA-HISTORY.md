@@ -5168,3 +5168,9 @@ saga-go 정본을 다른 네 판에도 동일 반영, 가드돼 있어 그 판�
 
 - 사용자 확정: 앞으로의 모든 플랜은 "전체 퓨전"(과거·현대·미래 한 자리에) — 웹 다섯 판·saga-godot·saga-unity(`SAGA-DESIGN.md` §13).
 - 사가고 PLAN §5 ⑰ 넷째: Quaternius CC0 소품 33종(Meshopt), 땅 열여섯마다 세 시대 섞어 세움. 다리 모델이 디딤돌 바위라 조각 돌림 고정은 되돌림.
+
+## 2026-09-24 자체 인물 공방(char-forge) 설계·0단계
+
+- 사용자: VRoid·Mixamo 는 "자동화가 문제가 많고 저작권 때문에 자체적으로" · "상용하게 되면 꼭 필요". 결정 D1 Quaternius 무료판만 · D2 얼굴 toon|real 둘 다 · D3 Unity FBX Humanoid. 교체 문턱 = 나란히 비교해 지금보다 못하지 않을 때만. 정본 `tools/char-forge/README.md`.
+- 0단계 통과: Blender 5.2 헤드리스로 레시피 → .glb/.fbx. 쉼 자세가 목 14°·발 9° 달라 곡선 베끼기는 칼 휘두르기 15.6° 기울었다 → 쉼 방향 맞춤·다리 길이 비·땅 붙이기로 파일 검증 0.0°·0cm. glb 는 두 번 같은 바이트, fbx 는 익스포터 탓에 매번 달라 내용 검증. Godot 4.7·Unity 6000.3 빈 프로젝트 임포트 깨끗(Unity Humanoid 자동 52뼈).
+- 함정: itch 무료 팩 받기는 key 를 붙이면 "invalid key" — 빼야 된다. 속성 순서가 요청마다 바뀐다.

@@ -1,6 +1,6 @@
 # char-forge — 자체 인물 공방 (VRoid·Mixamo 대체)
 
-> 상태: **설계만, 코드 없음**. 이 파일이 정본이다. 두 3D 트랙 PLAN(`saga-godot` 103-4 · `saga-unity` 103-3)과
+> 상태: **0단계 끝**(도구 뼈대·검증 통과, 게임엔 아직 안 물림). 다음 = §7 단계 1(동작 교체). 이 파일이 정본이다. 두 3D 트랙 PLAN(`saga-godot` 103-4 · `saga-unity` 103-3)과
 > `SAGA-DESIGN.md` 는 여기를 가리키기만 한다. `tools/asset-forge` 처럼 **빌드 도구는 공유**(게임 코드 공유 금지와는 별개).
 
 ## 1. 왜
@@ -26,10 +26,29 @@
 5. **이름 정책을 지킨다.** 레시피 파일 이름·키는 `id` 만 쓰고, 표시 이름은 게임 데이터가 갖는다.
 6. **화질을 깎아서 맞추지 않는다**(메모리 `feedback_optimize_without_lowering_graphics`). 줄일 건 안 보이는 면·뼈·모프뿐이다.
 
-## 3. 이 PC 에서 확인된 것 (2026-09-24)
+## 3. 쓰는 법
 
-- Blender **5.2.1 LTS** — `C:\Program Files\Blender Foundation\Blender 5.2\blender.exe`. `-b --factory-startup --python-expr` 가 창 없이 돈다. **Rigify 가 기본 탑재**되어 있다.
-- MPFB(MakeHuman Blender 확장)는 **아직 설치 안 됨.** Blender 5.x 는 `blender -c extension ...` 로 명령줄 설치가 된다(0단계에서 확인).
+```bash
+B="/c/Program Files/Blender Foundation/Blender 5.2/blender.exe"      # Blender 5.2.1 LTS, Rigify 기본 탑재
+py tools/char-forge/fetch_sources.py                                 # 입력 팩 받기(sha256·CC0 확인, 사람 클릭 없음)
+"$B" -b --factory-startup -P tools/char-forge/build.py -- \
+    --recipe tools/char-forge/recipes/<id>.json --out tools/char-forge/_out/<id>.glb [--fbx tools/char-forge/_out/<id>.fbx] [--check]
+"$B" -b --factory-startup -P tools/char-forge/verify.py -- --glb tools/char-forge/_out/<id>.glb   # .fbx 도 받는다
+```
+
+| 파일 | 하는 일 |
+|---|---|
+| `sources.json` | 입력 장부(팩·URL·라이선스·sha256). 여기 없는 파일은 안 쓴다 |
+| `fetch_sources.py` | `_src/`(gitignore)에 받고 푼다. itch.io 무료 팩은 csrf → download_url → 파일 id(**key 없이** — 붙이면 "invalid key")로 받는다 |
+| `bonemap.json` | 표준 뼈 53개 → Godot `SkeletonProfileHumanoid`·Unity `HumanBodyBones` 이름 |
+| `build.py` | 레시피 → 몸·머리·눈썹·비율(머리 크기·키)·재질 이름(`skin`·`hair`·`eye`)·동작 굽기 → `.glb`(+`.fbx`) + `*.license.json` |
+| `verify.py` | 내보낸 **파일을 다시 열어** 원본 동작과 맞댄다: 팔다리 방향 ≤ 5° · 땅 닿음 ≤ 1cm · 걷기 손목이 움직이나 |
+| `recipes/` | 인물 레시피. `_test_*` 는 시험용(게임 인물 아님) |
+
+동작 굽기 요점(`build.py` `retarget`): 몸 팩과 동작 팩의 쉼 자세가 목 14°·발 9° 쯤 달라, 곡선을 그대로 베끼면 자세가 기운다(측정: 칼 휘두르기 15.6°).
+그래서 ① 뼈마다 쉼 방향을 원본 쪽으로 맞추는 최소 회전을 먼저 곱하고 ② 골반 이동은 **다리 길이 비**로 늘리고
+③ 원본 발이 땅(±1cm)에 있으면 낮은 발이 땅에 닿게 골반 아래를 올리고 내린다(1~3cm 사이는 서서히 풀어 이륙·착지에서 튀지 않게).
+MPFB(MakeHuman 확장)는 아직 설치하지 않았다 — 실사 몸이 필요한 단계 3 에서 들인다.
 
 ## 4. 입력 후보 — 라이선스 확인분
 
@@ -40,6 +59,10 @@
 | **Quaternius Universal Animation Library 1·2** | 동작 120+·130+(걷기 여러 방향·전투·총·감정 표현). 위 몸과 같은 뼈 | CC0(quaternius.com, Godot Asset Store 에도 올라와 있다). 무료판은 일부만 들어 있다 |
 | Blender Rigify | 괴물·비인간형 뼈 | Blender 안에 들어 있다. 만든 뼈에는 제약이 없다 |
 | 자체 키프레임 | 원하는 동작이 팩에 없을 때 bpy 로 직접 짠다(등반·활공·방패 도발 등) | 우리 것 |
+
+> **무료판에 실제로 든 것(2026-09-24 풀어 봄)**: 몸 = Superhero 남·여 둘(피부 밝음·어두움 두 장), 머리 6(`Hair_Long`·`Buns`·`SimpleParted`·`Buzzed`·`BuzzedFemale`·`Beard`)·눈썹 2.
+> 동작 45: 서기·걷기·조깅·질주·웅크려 걷기·뛰기(시작·공중·착지)·구르기·헤엄(앞·제자리)·칼(대기·베기)·주먹·권총·주문(시작·유지·쏘기·끝)·맞기(가슴·머리)·쓰러짐·줍기·앉기·말하기·춤·밀기·운전·고치기.
+> 없는 것(자체 키프레임 몫): 벽 오르기·활공·방패 막기·도발·활 쏘기. Regular·Teen 몸은 무료판에 없다 → 비율은 셰이프·뼈 길이로 만든다.
 
 > 유료판(Pro·Source)도 CC0 이다. 무료판에 빠진 동작이 필요하면 사는 게 가장 싸다 — **결정은 사용자 몫**(§8).
 
@@ -58,8 +81,9 @@
 
 ## 6. 표준 뼈
 
-- **Quaternius Universal 뼈대를 기준으로 삼는다**(권장). 동작 팩이 이 뼈로 만들어져 있어 재타겟 손실이 없고,
-  이름을 Godot `SkeletonProfileHumanoid` · Unity Humanoid 에 옮기는 대응표 **하나만** 두면 된다(`bonemap.json`).
+- **Quaternius Universal 뼈대의 UE 마네킹 이름 판**(`root·pelvis·spine_01~03·neck_01·Head·clavicle_l…`, 65개 중 끝 뼈를 뺀 53개)으로 정했다.
+  몸 팩(glTF)과 동작 팩 **Unreal 판 FBX** 가 같은 이름이다. 동작 팩의 Godot·Unity 판은 Rigify `DEF-*` 이름이라 쓰지 않는다.
+  Godot `SkeletonProfileHumanoid` · Unity Humanoid 이름 대응표는 `bonemap.json` **하나만** 둔다(Unity 는 이 이름을 스스로 52개 잡았다).
 - MPFB 몸을 쓸 때는 MPFB 의 "game engine" 뼈 → 이 표준 뼈로 가중치를 옮긴다.
 - 지금 있는 `saga-godot/tools/mixamo_retarget.gd`(Mixamo → VRM `J_Bip_*`)는 "부모 체인 1:1 대조 + FK 발 높이 확인"
   **검증 방식**을 그대로 다시 쓴다. 대응표만 바뀐다.
@@ -68,7 +92,7 @@
 
 | 단계 | 할 일 | 끝났다는 기준 |
 |---|---|---|
-| 0 | 도구 뼈대: `build.py` · `bonemap.json` · `sources.json`. 무료판 팩 받기, MPFB 명령줄 설치 | 레시피 하나 → `.glb`. Godot 헤드리스 임포트 오류 0 · Unity 배치 임포트 오류 0 · 두 번 뽑아 파일 해시가 같다 |
+| 0 ✅ | 도구 뼈대: `build.py` · `verify.py` · `bonemap.json` · `sources.json` · `fetch_sources.py`, 무료판 팩 받기 | **통과(2026-09-24)** `_test_toon_01`: 뼈 65·삼각형 17,966·동작 44·빌드 41초. verify(파일 기준) glb 팔다리 0.0°·땅 0cm, fbx 0.7°·2.7mm. `.glb` 는 두 번 뽑아 sha256 이 같다. `.fbx` 는 Blender FBX 익스포터가 메모리 주소 순서로 돌아 바이트가 매번 달라 내용 검증(verify)으로 갈음한다. Godot 4.7 빈 프로젝트 임포트 오류·경고 0(`_Loop` 는 Godot 가 떼고 반복으로 표시 → `Idle`·`Walk`). Unity 6000.3 빈 프로젝트 FBX Humanoid 아바타 valid·human, 클립 44, 스킨 메시 4 |
 | 1 | **동작 먼저 바꾼다**(가장 급하다 — 로컬 전용이라 다른 PC 가 막힌다). §9 대응표대로 UAL + 자체 키프레임 | Godot GO·FOREST 플레이어가 `idle/walk/sprint` 를 새 묶음으로 돈다. 발 높이 FK 오차 ≤ 1cm |
 | 2 | saga-godot 몸: VRoid 셋(`AvatarSample_A`·`saga_forest_avatar_01`·`dungeon_hero_01`) → 툰 레시피 | `cel_toon` 으로 그렸을 때 외곽선·램프가 깨지지 않는다. 실기 확인은 모아서(사람 몫) |
 | 3 | saga-unity 몸: Mixamo 인물·괴물(§9) → PBR 레시피. 괴물은 같은 몸에 비율 극단값 + kitbash(뿔·갑옷·버섯갓) | `CharactersRealistic/` 에 기대는 코드가 0 이 되고, 없는 PC 용 도형 대체도 필요 없어진다 |
@@ -104,7 +128,7 @@
 |---|---|---|---|
 | godot | GO·FOREST 플레이어 몸 | VRoid `AvatarSample_A` · `saga_forest_avatar_01` | 툰 레시피 |
 | godot | DUNGEON 영웅 | VRoid `dungeon_hero_01` | 툰 레시피 |
-| godot | 동작 idle/walk/run/attack/hit/dodge/death/pickup | Mixamo(로컬 전용) → `mixamo_retarget.gd` | UAL 이동·전투 |
+| godot | 동작 idle/walk/run/attack/hit/dodge/death/pickup | Mixamo(로컬 전용) → `mixamo_retarget.gd` | 무료판에 다 있다: `Idle_Loop`·`Walk_Loop`·`Jog_Fwd_Loop`(`Sprint_Loop`)·`Sword_Attack`·`Hit_Chest`·`Roll`·`Death01`·`PickUp_Table` |
 | unity | 주역·적 Maria·Abe·Brute | Mixamo 몸 + 클립 | PBR 레시피 + UAL |
 | unity | 동행 무사(Paladin)·술사(Peasant Girl)·유격(Erika Archer)·마을 사람 | Mixamo | PBR 레시피 + 장비 소켓 |
 | unity | 짐승·괴물(Goblin·Pumpkinhulk·Warrok·Parasite·Nightshade·Jolleen·Skeletonzombie) | Mixamo | 같은 몸의 비율 극단값 + kitbash, 떠 있는 것은 Rigify 뼈 |
