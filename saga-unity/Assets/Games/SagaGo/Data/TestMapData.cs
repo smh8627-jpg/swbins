@@ -131,6 +131,44 @@ namespace Saga.Go.Data
 
         public static float PeakHeight(int gx, int gy) => 12f + Hash01(gx, gy, 0x2545F491u) * 6f;
 
+        // ---- PLAN.md 107-3 "걸어 오르는 경사·고개" — 절벽 고원에 기대 선 돌 비탈 ----------------------------
+        // 28°라 캐릭터 경사 한계(45°) 안에서 걸어 오르고, 윗면 법선 y≈0.88 이라 등반(가파름 문턱 0.5)엔 안 걸린다.
+        public const float RampSlopeDeg = 28f;
+        public const float RampWidth = 8f;
+        /// <summary>비탈 윗끝이 고원 안으로 들어가는 길이(틈이 안 생기게).</summary>
+        public const float RampTopOverlap = 0.6f;
+
+        public struct Ramp
+        {
+            public string Id;
+            public int Gx, Gy;      // 발치 칸(걸을 수 있는 칸)
+            public int Dx, Dy;      // 발치 → 산 칸 방향(네 방향 중 하나)
+            public float Lateral;   // 칸 가운데에서 옆으로 비킨 거리(m)
+            public string LabelKey, LabelKo; // M 지도 표시(없으면 안 적음)
+        }
+
+        public static readonly Ramp[] Ramps =
+        {
+            // 고개 — (1,8) 산을 남쪽 공터 숲(1,7)에서 올라 끝 논밭 숲(1,9)으로 내려간다(가운데 길목 문 말고 다른 길)
+            new Ramp { Id = "pass_north", Gx = 1, Gy = 7, Dx = 0, Dy = 1, Lateral = 0f, LabelKey = "map.pass", LabelKo = "고개" },
+            new Ramp { Id = "pass_south", Gx = 1, Gy = 9, Dx = 0, Dy = -1, Lateral = 0f },
+            // 옛 망루 고원(4,6)으로 — 남쪽 공터(4,7) 동쪽 끝에서(가운데 행운 돌탑은 비킨다)
+            new Ramp { Id = "tower_slope", Gx = 4, Gy = 7, Dx = 0, Dy = -1, Lateral = 14f, LabelKey = "map.slope", LabelKo = "비탈" },
+        };
+
+        /// <summary>비탈의 아래끝 가운데(발치 땅 높이)·위끝 가운데(고원 높이)·오르는 방향·옆 방향.</summary>
+        public static void RampGeometry(Ramp r, out Vector3 bottom, out Vector3 top, out Vector3 dir, out Vector3 side)
+        {
+            dir = new Vector3(r.Dx, 0f, r.Dy);
+            side = new Vector3(dir.z, 0f, -dir.x);
+            float foot = GroundHeight(r.Gx, r.Gy);
+            float high = GroundHeight(r.Gx + r.Dx, r.Gy + r.Dy);
+            float run = (high - foot) / Mathf.Tan(RampSlopeDeg * Mathf.Deg2Rad);
+            Vector3 edge = WorldPos(r.Gx, r.Gy) + dir * (TileSize * 0.5f) + side * r.Lateral;
+            bottom = edge - dir * run + Vector3.up * foot;
+            top = edge + dir * RampTopOverlap + Vector3.up * high;
+        }
+
         /// <summary>봉우리 밑동 가운데(고원 윗면 높이).</summary>
         public static Vector3 PeakBase(int gx, int gy)
         {

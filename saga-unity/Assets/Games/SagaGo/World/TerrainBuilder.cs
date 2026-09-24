@@ -44,7 +44,74 @@ namespace Saga.Go.World
             BuildWater();
             BuildCollision();
             BuildPeaks();
+            BuildRamps();
             MarkStatic();
+        }
+
+        /// <summary>PLAN.md 107-3 "걸어 오르는 경사·고개" — `TestMapData.Ramps` 마다 절벽에 기댄 쐐기 모양 돌 비탈.
+        /// 윗면(28°)은 걸어서 오르고 옆면은 바위색. 충돌은 볼록 MeshCollider(쐐기 꼭짓점 여섯의 껍질).</summary>
+        private void BuildRamps()
+        {
+            var parent = new GameObject("Ramps");
+            parent.transform.SetParent(transform, false);
+            var mat = GetComponent<MeshRenderer>().sharedMaterial;
+            foreach (var r in TestMapData.Ramps)
+            {
+                TestMapData.RampGeometry(r, out Vector3 bottom, out Vector3 top, out Vector3 dir, out Vector3 side);
+                var mesh = BuildRampMesh(bottom, top, side * (TestMapData.RampWidth * 0.5f));
+                var go = new GameObject($"Ramp_{r.Id}");
+                go.transform.SetParent(parent.transform, false);
+                go.AddComponent<MeshFilter>().sharedMesh = mesh;
+                go.AddComponent<MeshRenderer>().sharedMaterial = mat;
+                var col = go.AddComponent<MeshCollider>();
+                col.sharedMesh = mesh;
+                col.convex = true;
+            }
+        }
+
+        private static Mesh BuildRampMesh(Vector3 bottom, Vector3 top, Vector3 halfSide)
+        {
+            const float Sink = 1.5f;
+            Vector3 foot = new Vector3(top.x, bottom.y - Sink, top.z);
+            Vector3 a0 = bottom - halfSide, a1 = bottom + halfSide;
+            Vector3 b0 = top - halfSide, b1 = top + halfSide;
+            Vector3 c0 = foot - halfSide, c1 = foot + halfSide;
+            Vector3 sideN = halfSide.normalized;
+            var verts = new List<Vector3>();
+            var colors = new List<Color>();
+            var normals = new List<Vector3>();
+            var uvs = new List<Vector2>();
+            var tris = new List<int>();
+
+            void Face(Vector3[] pts, Vector3 want, Color col)
+            {
+                Vector3 n = Vector3.Cross(pts[1] - pts[0], pts[2] - pts[0]).normalized;
+                if (Vector3.Dot(n, want) < 0f) { System.Array.Reverse(pts); n = -n; } // 유니티 앞면 = 보는 쪽으로 향한 외적
+                int k = verts.Count;
+                foreach (var p in pts)
+                {
+                    verts.Add(p);
+                    normals.Add(n);
+                    colors.Add(col);
+                    uvs.Add(new Vector2(p.x + p.z, p.y));
+                }
+                for (int i = 1; i + 1 < pts.Length; i++) { tris.Add(k); tris.Add(k + i); tris.Add(k + i + 1); }
+            }
+
+            Vector3 up = Vector3.Cross(b0 - a0, a1 - a0);
+            if (up.y < 0f) up = -up;
+            Face(new[] { a0, a1, b1, b0 }, up, CliffRockColor);           // 오르는 윗면
+            Face(new[] { a0, b0, c0 }, -sideN, CliffRockDark);             // 옆면 둘
+            Face(new[] { a1, c1, b1 }, sideN, CliffRockDark);
+            Face(new[] { a0, c0, c1, a1 }, Vector3.down, CliffRockDark);   // 밑면(땅속, 볼록 껍질용)
+            var mesh = new Mesh { name = "Ramp" };
+            mesh.SetVertices(verts);
+            mesh.SetColors(colors);
+            mesh.SetNormals(normals);
+            mesh.SetUVs(0, uvs);
+            mesh.SetTriangles(tris, 0);
+            mesh.RecalculateBounds();
+            return mesh;
         }
 
         /// <summary>

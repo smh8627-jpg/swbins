@@ -32,6 +32,7 @@ namespace Saga.Go.World
                 Chests.Add(TreasureChest.Spawn(c, transform, stoneMaterial));
             }
             if (GetComponent<WorldMapUi>() == null) gameObject.AddComponent<WorldMapUi>();
+            if (GetComponent<RegionAtmosphere>() == null) gameObject.AddComponent<RegionAtmosphere>(); // 107-3 지역 바이옴
         }
     }
 }

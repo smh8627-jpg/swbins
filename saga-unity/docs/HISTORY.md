@@ -8811,3 +8811,12 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - 결정: 동료마다 전용 클립을 따로 받지 않고 Maria.controller 를 아바타 리타깃으로 같이 쓴다 — 등반·활공·수영까지 한 번에 되고 새 Mixamo 받기가 없다. 무기는 주인공 손에만(장비가 주인공 것이라).
 - 함정 피함: 새 몸의 충돌체를 `Destroy` 로 지우면 프레임 끝까지 남아 같은 프레임 진단(과 CharacterController)이 본다 → 새로 만든 인스턴스라 `DestroyImmediate`.
 - 검증: 씬 재빌드 exit 0 · GO `PlaytestHeadless` **3연속 OK**(산적 몸 키 3.40m · 걷기 Speed 0.50, 앞 진단 전부 그대로) · `PlaytestLayoutWalkHeadless` fails=0(GO PlayerController 공유). 실기 확인은 전.
+
+
+## 2026-09-24 — PLAN 107-3 남은 것: 걸어 오르는 경사·고개 + 지역 바이옴(안개·햇빛) + 내리막 붙이기 (새 대화 "이어해줘", Opus 5.5)
+
+- 새 파일 `World/RegionAtmosphere`(지역 안개·짙기·햇빛으로 2.5초 스며듦) · 진단 `Editor/PlaytestGoSlopesBiome`. 고친 파일: `TestMapData`(`Ramps`·`RampGeometry`) · `TerrainBuilder.BuildRamps`(쐐기 메시·볼록 충돌) · `GoWorldMap.Atmospheres` · `WorldMapBuilder`(바이옴 붙임) · `WorldMapUi`(≡ 고개·비탈, 발 디딘 지역만) · `PlayerController`(내리막 붙이기) · 씬 재빌드.
+- 자리 결정: 이동 진단이 (2,6) 남면을 기어오르고 남쪽으로 활공해 (2,7) 에 내리므로 그 두 칸은 피해 고개를 (1,8) 에, 망루 비탈은 (4,7) 동쪽 끝(행운 돌탑에서 14m)으로.
+- **발견한 버그**: 첫 실행에서 비탈은 올라가는데 고개 내리막 "공중" 3.66초 — 떨어진 게 아니라 걸어 내려가는 동안 매 프레임 발이 떠서 `Mode = Air` 였다(실게임에서도 내리막마다 낙하 동작·활공 가능했을 것). 발밑 0.6m 안이면 붙이는 ground snap 을 넣자 공중 0.00s, 점프 2.30m·활공 등 이동 측정값은 그대로.
+- 식생 바이옴은 보류 — 풀·나무가 편집기에서 굽는 씬 자산이라 지역별로 바꾸려면 `VegetationBuilder` 재설계가 필요하다.
+- 검증: 씬 재빌드 exit 0 · GO `PlaytestHeadless` **3연속 OK**(망루 비탈 18.2m 6.1s · 고개 북쪽 14.9m 5.0s · 고개 넘기 12.7s 공중 0.00s, 3회 동일) · `PlaytestLayoutWalkHeadless` fails=0. 실기 확인은 전.

@@ -31,6 +31,10 @@ namespace Saga.Go.UI
         private readonly List<Button> _wpButtons = new List<Button>();
         private readonly List<Text> _regionLabels = new List<Text>();
         private Text _info;
+        private readonly List<Text> _rampLabels = new List<Text>();
+        private readonly List<string> _rampRegions = new List<string>();
+        public int RampLabelCount => _rampLabels.Count;
+        public bool RampLabelShown(int i) => _rampLabels[i].gameObject.activeSelf;
         private float _mapH;
         private float _regionCheck;
         private string _lastRegion;
@@ -106,6 +110,20 @@ namespace Saga.Go.UI
             tower.raycastTarget = false;
             tower.GetComponent<RectTransform>().pivot = new Vector2(0.5f, 0.5f);
 
+            // 107-3 걸어 오르는 경사·고개 — 비탈 한가운데에 작게
+            foreach (var r in TestMapData.Ramps)
+            {
+                if (string.IsNullOrEmpty(r.LabelKo)) continue;
+                TestMapData.RampGeometry(r, out Vector3 rb, out Vector3 rt, out _, out _);
+                Vector2 g = GoWorldMap.WorldToGridF((rb + rt) * 0.5f);
+                var ramp = EncounterUiKit.NewText(_mapRect, "≡ " + GoLocalization.T(r.LabelKey, r.LabelKo), new Vector2(0.5f, 0.5f), MapPos(g.x, g.y), new Vector2(120f, 30f), 18);
+                ramp.color = new Color(0.95f, 0.9f, 0.75f);
+                ramp.raycastTarget = false;
+                ramp.GetComponent<RectTransform>().pivot = new Vector2(0.5f, 0.5f);
+                _rampLabels.Add(ramp);
+                _rampRegions.Add(GoWorldMap.RegionAt((rb + rt) * 0.5f));
+            }
+
             for (int i = 0; i < GoWorldMap.Waypoints.Length; i++)
             {
                 var w = GoWorldMap.Waypoints[i];
@@ -154,6 +172,7 @@ namespace Saga.Go.UI
                 _wpButtons[i].GetComponent<Image>().color = on ? new Color(0.2f, 0.6f, 0.8f, 0.35f) : new Color(1f, 1f, 1f, 0.08f);
                 _wpButtons[i].gameObject.SetActive(WorldMapState.IsVisited(GoWorldMap.RegionAt(GoWorldMap.WaypointPos(w))) || on);
             }
+            for (int i = 0; i < _rampLabels.Count; i++) _rampLabels[i].gameObject.SetActive(WorldMapState.IsVisited(_rampRegions[i]));
             _info.text = string.Format(GoLocalization.T("map.info", "푸른 ◆ 역참을 누르면 순간이동 · 켠 역참 {0}/{1}{2}"),
                 WorldMapState.ActiveCount, GoWorldMap.Waypoints.Length,
                 WorldMapState.Revealed ? "" : GoLocalization.T("map.hint", " · 옛 망루 꼭대기에 오르면 온 땅이 밝혀진다"))

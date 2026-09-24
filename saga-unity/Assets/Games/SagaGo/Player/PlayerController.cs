@@ -30,6 +30,7 @@ namespace Saga.Go.Player
 
         private const float WalkSpeed = 6f;
         private const float RunSpeed = 10f;
+        private const float GroundSnapDistance = 0.6f; // 107-3 내리막 붙이기(달리기 10m/s·45° 한 프레임 낙차보다 넉넉히)
         private const float Gravity = 20f;
         private const float TurnRate = 12f; // Godot lerp_angle(from,to,weight)의 weight와 같은 순수 보간 계수(각도 단위 아님)
 
@@ -303,7 +304,20 @@ namespace Saga.Go.Player
 
             Vector3 horizontal = moveDir * speed;
             _controller.Move(new Vector3(horizontal.x, _verticalVelocity, horizontal.z) * dt);
+            bool wasGrounded = grounded;
             grounded = _controller.isGrounded;
+            // 107-3 비탈 — 내리막을 걸으면 매 프레임 발이 살짝 떠서 "공중"이 됐다(낙하 동작·활공 가능). 방금까지 딛고 있었고
+            // 뛰어오르는 중이 아니며 발밑 0.6m 안에 땅이 있으면 붙인다. 절벽 끝에서 걸어 나가면 발밑이 멀어 그대로 공중.
+            if (!grounded && wasGrounded && _verticalVelocity <= 0f)
+            {
+                float h = HeightAboveGround();
+                if (h > 0f && h < GroundSnapDistance)
+                {
+                    _controller.Move(Vector3.down * (h + 0.05f));
+                    grounded = _controller.isGrounded;
+                    if (grounded) _verticalVelocity = -2f;
+                }
+            }
             Mode = grounded ? MoveMode.Ground : MoveMode.Air;
 
             if (moving && visual != null)

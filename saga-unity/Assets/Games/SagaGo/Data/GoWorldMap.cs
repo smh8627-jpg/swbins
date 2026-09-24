@@ -52,6 +52,33 @@ namespace Saga.Go.Data
 
         public const float WaypointActivateRadius = 7f;
 
+        /// <summary>PLAN.md 107-3 "지역마다 바이옴" — 안개 빛깔·짙기(기본 `SkyFogBuilder.FogDensity` 배율)·햇빛 빛깔(곱).
+        /// 경계를 넘으면 `RegionAtmosphere` 가 몇 초에 걸쳐 스며들듯 바꾼다.</summary>
+        public struct Atmosphere
+        {
+            public string RegionId;
+            public Color Fog;
+            public float DensityMul;
+            public Color Sun;
+        }
+
+        public static readonly Atmosphere[] Atmospheres =
+        {
+            new Atmosphere { RegionId = "village",     Fog = new Color(0.85f, 0.72f, 0.58f), DensityMul = 1.0f, Sun = new Color(1f, 1f, 1f) },          // 기본 노을빛
+            new Atmosphere { RegionId = "west_wood",   Fog = new Color(0.60f, 0.68f, 0.52f), DensityMul = 2.2f, Sun = new Color(0.88f, 0.98f, 0.84f) }, // 짙은 숲 녹빛
+            new Atmosphere { RegionId = "east_grove",  Fog = new Color(0.80f, 0.64f, 0.48f), DensityMul = 1.6f, Sun = new Color(1f, 0.9f, 0.78f) },     // 호박빛 숲
+            new Atmosphere { RegionId = "north_foot",  Fog = new Color(0.64f, 0.68f, 0.76f), DensityMul = 2.0f, Sun = new Color(0.86f, 0.9f, 1f) },     // 서늘한 산 회청
+            new Atmosphere { RegionId = "river",       Fog = new Color(0.68f, 0.77f, 0.86f), DensityMul = 2.6f, Sun = new Color(0.9f, 0.95f, 1f) },     // 물안개
+            new Atmosphere { RegionId = "south_glade", Fog = new Color(0.93f, 0.78f, 0.54f), DensityMul = 1.2f, Sun = new Color(1f, 0.92f, 0.76f) },    // 금빛 공터
+            new Atmosphere { RegionId = "farmland",    Fog = new Color(0.90f, 0.83f, 0.60f), DensityMul = 0.9f, Sun = new Color(1f, 0.96f, 0.82f) },    // 밀빛 논밭
+        };
+
+        public static Atmosphere AtmosphereOf(string regionId)
+        {
+            foreach (var a in Atmospheres) if (a.RegionId == regionId) return a;
+            return Atmospheres[0];
+        }
+
         /// <summary>칸 → 지역 id. 산 칸은 그 줄 지역에 속한다.</summary>
         public static string RegionAt(int gx, int gy)
         {
