@@ -407,6 +407,8 @@
        마을·필드는 담이 없는 열린 땅이라 화면 밖으로 나가도 그냥 덜 보일 뿐이다
        — 그래서 마을에서만 훨씬 당겨 본다. 던전 쪽 1.05 는 그대로 둔다(연출·조작
        감각이 거기 맞춰져 있다, 2026-09-01 마을 세로화면 건과 같은 원칙) */
+    /* §5.19 — 방이 700×440 으로 커지면 카메라도 그만큼(1.24배) 물러난다 — 방을 다 담는 이 설계
+       (벽 밖 어둠이 화면을 먹지 않게, 진단 "카메라가 방을 담을 만큼")를 그대로 지킨다. 떼가 한눈에 든다 */
     var span = Math.sqrt(W * W + H * H);
     var dist = span * (close ? 0.4 : DUNGEON_DIST_MUL) * z;
     /* 플레이어를 따라가되 던전 방(!close)에서는 가운데로 **절반만** 당긴다.
@@ -2838,7 +2840,24 @@
     var es = (run.room && run.room.enemies) || [], i;
     for (i = 0; i < es.length; i++) {
       var e = es[i];
-      if (e.hp <= 0) { continue; }
+      if (e.hp <= 0) {
+        /* §5.19 쓰러짐 — 사라지지 않고 맞은 쪽으로 날아가 뒤로 넘어진 뒤 가라앉는다(잡졸 0.7초·정예/보스 1초).
+           방향은 판정 층 kill() 이 남긴 dieDx/dieDy. 그림만 — 판정은 이미 끝났다 */
+        if (e.dieDx === undefined) { continue; }
+        if (e._dieT0 === undefined) { e._dieT0 = nowT; }
+        var DIE = e.dieBig ? 1.0 : 0.7, du = (nowT - e._dieT0) / DIE;
+        if (du > 1) { continue; }
+        var fly = (e.dieBig ? 10 : 28) * (1 - (1 - du) * (1 - du));
+        var dxw = e.x + e.dieDx * fly, dyw = e.y + e.dieDy * fly;
+        var da3 = actorOf('e' + i + ':' + (e.ref && e.ref.id), 'foe', e);
+        da3.node.rotation.order = 'YXZ';
+        da3.node.rotation.y = Math.atan2(-e.dieDx, -e.dieDy);
+        da3.node.rotation.x = -Math.min(1, du * 1.8) * 1.35;
+        da3.node.position.set(dxw, groundYAt(dxw, dyw) + Math.sin(Math.min(1, du * 1.6) * Math.PI) * (e.dieBig ? 3 : 10) -
+          (du > 0.72 ? (du - 0.72) / 0.28 * 8 : 0), dyw);
+        if (AS3) { AS3.step(da3.node.userData.mixerNode, { t: nowT, walking: false, anim: 'death' }); }
+        continue;
+      }
       /* 세계 보스(§5.4) 부위 파괴 — 키에 부서진 부위를 섞어 넣으면 부서질
          때마다 actorOf 가 새 몸(새 look)을 짓는다. sweep() 이 옛 키를
          "이번 프레임에 안 보였다"로 알아서 치운다 — 수동 정리 필요 없다. */
@@ -2846,14 +2865,15 @@
       var a = actorOf('e' + i + ':' + (e.ref && e.ref.id) + wbk, 'foe', e);
       a.node.position.set(e.x, groundYAt(e.x, e.y), e.y);
       a.node.rotation.y = Math.atan2(p.x - e.x, p.y - e.y);
-      /* 맞은 직후에는 흔들린다 */
-      if (e.hurt > 0) { a.node.position.x += (Math.random() - 0.5) * 3; }
+      a.node.rotation.x = 0;
+      /* 맞은 직후에는 흔들린다 · §5.19 움찔(hit 모션)은 0.28초 — 판정의 80ms 플래시로는 모션이 안 보였다 */
+      if (e.hurt > 0) { a.node.position.x += (Math.random() - 0.5) * 3; e._hitUntil = nowT + 0.28; }
       if (AS3) {
         /* 어그로(2026-09-10) — 아직 못 알아챈 적은 사거리 판정과 무관하게
            'idle'(마을 NPC와 같은 이름, 아래 townMark 자리와 같은 결)이다.
            안 그러면 안 쫓아오는데 걷는 시늉만 제자리서 계속하는 것처럼 보인다. */
         var eWalking = e.aggro && Math.hypot(p.x - e.x, p.y - e.y) > (e.r || 12) + (d().P_R || 13) + 8;
-        var eAnim = e.hurt > 0 ? 'hit' : (!e.aggro ? 'idle' : (eWalking ? 'walk' : 'attack'));
+        var eAnim = (e.hurt > 0 || nowT < (e._hitUntil || 0)) ? 'hit' : (!e.aggro ? 'idle' : (eWalking ? 'walk' : 'attack'));
         AS3.step(a.node.userData.mixerNode, { t: nowT, walking: eWalking, anim: eAnim });
         /* §5.8① 피격 플래시 80ms(2026-09-18) — span 을 e.hurt 초기값(dungeon.js
            strike() 의 0.08)과 맞춰야 최고 밝기(1.0)에 실제로 닿는다 */

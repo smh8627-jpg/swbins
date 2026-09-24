@@ -20,7 +20,9 @@
   var core = global.DG.core;
   var DD = global.DG.dungeonData;
 
-  var ROOM_W = 560, ROOM_H = 360;       // 방의 논리 크기 (화면은 여기에 맞춰 늘린다)
+  /* §5.19 — 560×360(약 21×13m, 가로질러 3.4초)은 떼를 몰 자리가 없었다(사용자 "환경이 너무 좁아"). 700×440 — 넓이 1.5배.
+     들판 진단("방보다 대여섯 배 넓다")이 700 까지 버틴다 */
+  var ROOM_W = 700, ROOM_H = 440;       // 방의 논리 크기 (화면은 여기에 맞춰 늘린다)
   var WALL = 26;                        // 벽 두께
   var P_R = 13;                         // 플레이어 반지름
   var BASE_SPD = 148;                   // 이동 속도 (단위/초)
@@ -56,6 +58,19 @@
   var FLURRY_HITS = 3;                  // sword — 예고 뒤 잇달아 베는 횟수
   var FLURRY_GAP = 0.22;                // sword — 매 베기 사이 간격(초)
   var FLURRY_MUL = 0.7;                 // sword — 베기 한 번당 배율(셋 합쳐 강타 급)
+  /* §5.19 몰이 사냥(2026-09-24, 사용자 "몰이 사냥을 할 수가 없어 · 환경이 너무 좁아 · 오브젝트가 너무 많아 ·
+     모션이 필요해 · 왜 하는지 모를 정도"). 넷 다 손잡이 — 0 이면 옛 동작 그대로 */
+  function PACK_N() { return Math.max(0, Math.round(core.tuned('dg.pack', 2))); }     // 전투방 잡졸 하나마다 붙는 졸개 수
+  var PACK_CAP = 30;                                                                  // 전투방 적 상한(무리 포함)
+  function CLEAVE_ON() { return core.tuned('dg.cleave', 1) ? true : false; }         // 평타·강공격 휩쓸기
+  var CLEAVE_HALF = Math.PI / 3;        // 평타 부채꼴 반각(120°)
+  var CLEAVE_R = 1.35;                  // 평타 휩쓸기 반경 = 사거리 × 이것
+  var CLEAVE_MUL = 0.6;                 // 곁에 맞은 적은 이만큼
+  var HEAVY_HALF = Math.PI / 2;         // 강공격은 앞 반원(180°)
+  var HEAVY_R = 1.8;
+  var HEAVY_SIDE = 0.75;
+  function STAGGER() { return core.tuned('dg.stagger', 0.25); }                      // 맞으면 적 공격이 이만큼 밀린다(초)
+  function FIELD_CAP() { return Math.max(1, Math.round(core.tuned('dg.fieldCap', 18))); }
   var MP_MAX = 100;                     // 기력 최대치
   var MP_REGEN = 7;                     // 기력 자연 회복 (초당)
   var MP_ON_KILL = 9;                   // 적을 잡으면 기력 회복
@@ -355,6 +370,34 @@
     };
   }
 
+  /**
+   * §5.19 몰이 사냥 — 전투방 잡졸 하나하나를 **무리의 우두머리**로 삼아 둘레에 졸개를 붙인다.
+   * 자리·쿨·자세는 `core.hash2`(고정 입력) 로만 정한다 — `Math.random()` 을 한 번도 안 불러
+   * 방 만들기의 난수 순서가 그대로다(PLAN §2.3 RNG 순번 함정). 졸개는 작고(반지름 10) 약하다
+   * (체력 55%·피해 70%) — 떼로 몰아 한 번에 쓸어버리는 맛이지, 버티는 맛이 아니다. 정예·보스는 안 붙인다
+   */
+  function addPacks(room, index) {
+    var K = PACK_N();
+    if (!K) { return; }
+    var lead = room.enemies.slice(), i, k;
+    for (i = 0; i < lead.length && room.enemies.length < PACK_CAP; i++) {
+      var L = lead[i];
+      if (L.boss || L.elite || L.shade) { continue; }
+      for (k = 0; k < K && room.enemies.length < PACK_CAP; k++) {
+        var h1 = core.hash2(index * 97 + i * 31 + k, 7 + i * 13), h2 = core.hash2(i * 17 + k * 5, index * 53 + 3);
+        var a = (k / K + h1 * 0.4) * Math.PI * 2, rr = 24 + h2 * 20;
+        room.enemies.push({
+          x: core.clamp(L.x + Math.cos(a) * rr, WALL + 12, ROOM_W - WALL - 12),
+          y: core.clamp(L.y + Math.sin(a) * rr, WALL + 12, ROOM_H - WALL - 12),
+          r: 10, hp: Math.max(1, Math.round(L.hpMax * 0.55)), hpMax: Math.max(1, Math.round(L.hpMax * 0.55)),
+          boss: false, elite: null, shade: false, minion: true,
+          dmg: Math.max(1, Math.round(L.dmg * 0.7)), cd: 0.6 + h1 * 0.8, ref: L.ref, phase: h2 * 6.28,
+          hurt: 0, aggro: false
+        });
+      }
+    }
+  }
+
   /** 적의 표시 이름 — 정예는 접두가 붙는다 */
   function enemyName(e) {
     var base = (e.ref && e.ref.name) || '적';
@@ -394,6 +437,7 @@
       /* 디아블로처럼 몰려온다 — 4~7 + 층 보정, 상한 12 (성능·화면 밀도) */
       n = Math.min(12, 4 + Math.floor(Math.random() * 4) + Math.min(6, Math.floor(floor / 3)));
       for (var i = 0; i < n; i++) { room.enemies.push(spawnEnemy(floor, false)); }
+      addPacks(room, index);
     } else if (kind === 'trove') {
       room.chest = { x: ROOM_W * 0.72, y: ROOM_H * 0.5, taken: false };
       if (Math.random() < 0.5) { room.enemies.push(spawnEnemy(floor, false)); }
@@ -1010,8 +1054,8 @@
       run.room.grave = { x: ROOM_W * 0.3, y: ROOM_H * 0.5, taken: false };
       core.emit('toast', '🪦 유품이 이 층에 있다');
     }
-    run.fieldSpawnCd = 4;
-    spawnFieldEncounters(2 + Math.min(2, Math.floor(run.floor / 6)));
+    run.fieldSpawnCd = 3;
+    spawnFieldEncounters(8 + Math.min(4, Math.floor(run.floor / 4)));   // §5.19 두 무리쯤으로 시작
   }
 
   /* ── 난입(亂入, §5.5) ─────────────────────────────────────
@@ -2044,7 +2088,10 @@
            seed(위)는 여전히 th.name(마을마다 고유)로 재 — 같은 biome을
            공유하는 마을 여럿이 똑같은 지형 패턴을 복붙한 듯 반복하지
            않는다, 성격(가중치)만 같고 실제 배치는 마을마다 다르다. */
-        var list = F.chunkAt(cx, cz, seed, ring, 1, cTheme || (th && (th.biome || th.name)));
+        /* §5.19 — 그림(dungeon3d `FIELD_D()`, 등급별 0.16~0.375)과 **같은 밀도**로 잰다. 여태 1 로 재서
+           안 보이는 나무·바위의 절반 넘게가 길을 막았다. chunkAt 은 밀도가 낮으면 앞쪽 부분집합이라 어긋나지 않는다 */
+        var D3f = global.DG.dungeon3d, fDens = D3f && D3f.fieldDens ? D3f.fieldDens() : 1;
+        var list = F.chunkAt(cx, cz, seed, ring, fDens, cTheme || (th && (th.biome || th.name)));
         for (i = 0; i < list.length; i++) {
           pc = list[i];
           if (!FIELD_BLOCK[pc.t]) { continue; }
@@ -2185,7 +2232,8 @@
      제보). 무리(팩) 단위 스폰을 얹으며(아래 spawnFieldEncounters) 상한도
      같이 올린다 — 팩 하나(2~3마리)가 뜨자마자 예전 상한(4)에 거의 다 차면
      보충 트리클이 사실상 못 돌아 팩이 늘 하나뿐으로 보인다. */
-  var FIELD_ENEMY_CAP = 6;                // 들판에 동시에 사는 로머 상한
+  /* §5.19 — 6 → 18(손잡이 dg.fieldCap). 무리 2~3 → 4~6, 보충 4초 한 마리 → 3초 한 무리 */
+  var FIELD_ENEMY_CAP = 6;                // 옛 값(손잡이를 0 으로 되돌릴 때의 기준 — 지금은 FIELD_CAP())
 
   /**
    * 필드 사냥(PLAN 10절) — 방을 다 안 치워도 방 밖 들판에서 바로 싸울 수 있게,
@@ -2261,7 +2309,7 @@
     var biome = biomeOf(ctx);
     var R = fieldRadiusUnits(), remain = count;
     while (remain > 0) {
-      var packSize = Math.min(remain, 2 + (Math.random() < 0.5 ? 0 : 1));   // 2~3(남으면)
+      var packSize = Math.min(remain, 4 + Math.floor(Math.random() * 3));   // §5.19 4~6(남으면)
       /* 팩 중심 하나를 고른다 — 예전과 같은 각도·거리 뽑기 */
       var tries = 8, a0, d0, ax2 = 0, ay2 = 0, ok = false;
       while (tries-- && !ok) {
@@ -2965,8 +3013,8 @@
          주기적으로 하나씩 채운다(PLAN 10절 "랜덤 필드 구조") */
       run.fieldSpawnCd -= dt;
       if (run.fieldSpawnCd <= 0) {
-        run.fieldSpawnCd = 4;
-        if (fieldEnemyCount() < FIELD_ENEMY_CAP) { spawnFieldEncounters(1); }
+        run.fieldSpawnCd = 3;
+        if (fieldEnemyCount() < FIELD_CAP()) { spawnFieldEncounters(Math.min(5, FIELD_CAP() - fieldEnemyCount())); }
       }
       run.fieldTreasureCd -= dt;
       if (run.fieldTreasureCd <= 0) {
@@ -3109,6 +3157,7 @@
       p.castAnim = false;
       strike(near);
       if (!run) { return; }
+      if (CLEAVE_ON()) { cleave(near, reach * CLEAVE_R, CLEAVE_HALF, CLEAVE_MUL, 6); if (!run) { return; } }
       if (Math.random() * 100 < boonVal('echoPct')) { strike(near); }
       if (!run) { return; }
       tryShadowSig();                       // §5.1 인물 축 — 그림자 서명
@@ -3552,6 +3601,8 @@
     dmg = Math.max(1, Math.round(dmg));
     e.hp -= dmg;
     e.hurt = 0.08;   /* §5.8① 피격 플래시 80ms(적 전용 — 플레이어 쪽 hurtTint 는 안 건드림) */
+    /* §5.19 경직 — 맞으면 다음 공격이 조금 밀린다(보스는 안 밀린다). 떼를 몰아 치는 동안 숨 쉴 틈 */
+    if (!e.boss && STAGGER() > 0) { e.cd = Math.max(e.cd || 0, STAGGER()); }
     /* §5.1 세계 축 — 크리티컬 부가효과 둘 */
     if (crit && hasWd('wd_phys_cold') && hasEl('phys')) {
       e.slow = Math.max(e.slow || 0, 2); e.slowMul = 0.6;   // 빙인
@@ -3683,6 +3734,11 @@
    *  @param {number} [dmg] 마지막 일격의 피해량 — 시너지 부가 피해의 기준값 */
   function kill(e, kind, dmg) {
     run.kills += 1;
+    /* §5.19 쓰러짐 연출 — 화면 층(dungeon3d)이 이 방향으로 날려 눕힌다(판정은 안 쓴다) */
+    if (run.player) {
+      var kdx = e.x - run.player.x, kdy = e.y - run.player.y, kdl = Math.sqrt(kdx * kdx + kdy * kdy) || 1;
+      e.dieDx = kdx / kdl; e.dieDy = kdy / kdl; e.dieBig = !!(e.boss || e.elite);
+    }
     dstate().kills = (dstate().kills || 0) + 1;
     /* 처치는 한 대 맞은 것보다 더 묵직하게 — §5.8① 3단(잡졸/정예/크리)의
        대상이 아니라("처치"는 그 셋과 다른 결의 이벤트) 값은 그대로 두고
@@ -3739,9 +3795,9 @@
       }
       core.emit('toast', '👤 그림자가 갈라졌다');
     }
-    dropGold(run.room, e.x, e.y, e.boss ? 5 : (elK ? 2.2 : 1));
-    /* 정예는 원작처럼 **확정으로** 떨어뜨린다 */
-    var chance = e.boss ? 1 : (elK ? 1 : 0.2 + Math.min(0.15, run.floor * 0.004));
+    dropGold(run.room, e.x, e.y, e.boss ? 5 : (elK ? 2.2 : (e.minion ? 0.4 : 1)));
+    /* 정예는 원작처럼 **확정으로** 떨어뜨린다 · 무리 졸개(§5.19)는 잡졸의 절반 */
+    var chance = e.boss ? 1 : (elK ? 1 : (0.2 + Math.min(0.15, run.floor * 0.004)) * (e.minion ? 0.5 : 1));
     if (Math.random() < chance) {
       dropItem(run.room, e.x, e.y, e.boss ? 30 : (elK ? 14 : 0));
     }
@@ -3814,7 +3870,29 @@
     p.castAnim = false;
     sfx('heavy');
     strike(near, HEAVY_MUL, HEAVY_KB);
+    if (run && CLEAVE_ON()) { cleave(near, reach * HEAVY_R, HEAVY_HALF, HEAVY_MUL * HEAVY_SIDE, HEAVY_KB); }
     return true;
+  }
+
+  /**
+   * §5.19 휩쓸기 — 가장 가까운 적(`main`)을 친 뒤, 나에서 그 적 쪽 부채꼴(반각 half) 안·반경 R 안의
+   * **다른** 적을 mul 배로 함께 벤다. 한 대마다 `strike()` 를 거친다(모든 피해가 지나는 유일한 통로 — PLAN §2).
+   * 목록은 미리 떠 둔다 — 그림자 분열(strike → kill)이 도중에 배열을 늘린다
+   */
+  function cleave(main, R, half, mul, kb) {
+    if (!run || !run.room) { return; }
+    var p = run.player, a0 = Math.atan2(main.y - p.y, main.x - p.x);
+    var list = run.room.enemies.slice(), i;
+    for (i = 0; i < list.length && run; i++) {
+      var e = list[i];
+      if (e === main || e.hp <= 0) { continue; }
+      if (dist(p, e) - e.r > R) { continue; }
+      var da = Math.atan2(e.y - p.y, e.x - p.x) - a0;
+      while (da > Math.PI) { da -= Math.PI * 2; }
+      while (da < -Math.PI) { da += Math.PI * 2; }
+      if (Math.abs(da) > half) { continue; }
+      strike(e, mul, kb);
+    }
   }
 
   /** 회피 — 짧게 미끄러지며 그동안 무적이다. `p.dash`(무예 "돌진")와 달리
@@ -4606,7 +4684,7 @@
     hardcore: hardcore, setHardcore: setHardcore, fallen: fallen,
     elemDmgOf: elemDmgOf, elemResOf: elemResOf,
     /** 자가진단용 — 한 대만 때려 본다 (저항이 결마다 다르게 깎는지) */
-    _strike: strike,
+    _strike: strike, _addPacks: addPacks, _cleave: cleave,
     /** 자가진단용 — 한 대 맞아 본다 (갑주의 원소 저항이 실제로 깎는지) */
     _hurt: hurtPlayer,
     /** 자가진단용 — 적 하나를 만들어만 본다 */
@@ -4621,7 +4699,7 @@
     SKILL_SLOTS: SKILL_SLOTS,
     /** 던전 밖(마을 등)이 같은 필드 메커니즘을 빌려 쓸 때 쓰는 자리 —
      *  각 함수의 ctx 인자는 그 함수 정의 옆 주석을 볼 것 (사가블로 마을 필드전투). */
-    FIELD_ENEMY_CAP: FIELD_ENEMY_CAP,
+    FIELD_ENEMY_CAP: FIELD_ENEMY_CAP, FIELD_CAP: FIELD_CAP, PACK_N: PACK_N,
     fieldOn: fieldOn, fieldRadiusUnits: fieldRadiusUnits,
     fieldBoundPlayer: boundPlayer, _corridorReach: corridorReach,
     /** 자가진단 전용(§5.12) — town.js safePoint 가 이 이름을 찾으면 옛 로컬 좌표로 돌기 시작해서 이름을 갈랐다 */

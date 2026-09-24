@@ -1528,8 +1528,10 @@
     /* 들판 로머 — 던전과 같은 주기·상한(PLAN 10절 "필드 사냥"과 동일 규칙) */
     fieldSpawnCd -= dt;
     if (fieldSpawnCd <= 0) {
-      fieldSpawnCd = 4;
-      if (D().fieldRoamerCount(ctx) < D().FIELD_ENEMY_CAP) { D().spawnFieldRoamers(1, ctx); }
+      fieldSpawnCd = 3;
+      /* §5.19 — 상한 6 → 18(dg.fieldCap), 한 마리씩 → 모자란 만큼(최대 5, 한 무리) */
+      var capT = D().FIELD_CAP ? D().FIELD_CAP() : D().FIELD_ENEMY_CAP, haveT = D().fieldRoamerCount(ctx);
+      if (haveT < capT) { D().spawnFieldRoamers(Math.min(5, capT - haveT), ctx); }
     }
     fieldTreasureCd -= dt;
     if (fieldTreasureCd <= 0) {

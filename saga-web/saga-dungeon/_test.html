@@ -3060,9 +3060,10 @@ window.requestAnimationFrame = function () { return 0; };
     t('연단 — 부문 셋이 다음 글자가 된다', function () {
       var nx = FG.nextRune('cheon');
       IT.addMat('rune', 'cheon', 0, 3);
-      var n0 = IT.matCount('rune', nx.key, 0);
+      /* 앞 항목들이 떨군 天 이 남아 있을 수 있다(방 크기·드롭이 바뀌면 달라진다) — 0 이 아니라 셋이 빠졌는지로 본다 */
+      var n0 = IT.matCount('rune', nx.key, 0), c0 = IT.matCount('rune', 'cheon', 0);
       var r = FG.make('rune:cheon');
-      return r.ok && IT.matCount('rune', 'cheon', 0) === 0 &&
+      return r.ok && IT.matCount('rune', 'cheon', 0) === c0 - 3 &&
         IT.matCount('rune', nx.key, 0) === n0 + 1 &&
         ('天×3 → ' + nx.glyph);
     });
@@ -6924,6 +6925,57 @@ window.requestAnimationFrame = function () { return 0; };
           '불바닥 ' + ticks + '번 태움 · 6초 뒤 꺼짐 · 졸개 둘씩 두 번 · 끄면 없음';
       } finally { C.setTune('dungeon.guardSig', null); if (DN.active()) { DN.leave(); } C.save.dungeon = JSON.parse(keepD); }
     }); });
+
+    /* ── §5.19 몰이 사냥 — 파일 맨 끝(앞 항목 상태에 안 기댄다, PLAN §2.3) ── */
+    t('몰이 사냥 §5.19 — 전투방 졸개 무리는 난수 없이 해시로·늘 같은 자리·약하고 작다 · 방 700×440', function () {
+      DN.enter({ floor: 5, mode: 'easy' });
+      var K = DN.PACK_N ? DN.PACK_N() : 0;
+      function lead() {
+        var r = { enemies: [] }, i;
+        for (i = 0; i < 4; i++) { r.enemies.push(DN._spawnEnemy(5, false, { spawned: true, x: 300 + i * 70, y: 220 })); }
+        r.enemies[3].boss = true;                                   // 보스에는 안 붙는다
+        return r;
+      }
+      var a = lead(), b = lead(), R0 = Math.random, calls = 0;
+      Math.random = function () { calls++; return R0(); };
+      try { DN._addPacks(a, 3); } finally { Math.random = R0; }
+      DN._addPacks(b, 3);
+      DN.leave();
+      var mins = a.enemies.filter(function (e) { return e.minion; });
+      var same = JSON.stringify(mins.map(function (e) { return [Math.round(e.x), Math.round(e.y)]; })) ===
+        JSON.stringify(b.enemies.filter(function (e) { return e.minion; }).map(function (e) { return [Math.round(e.x), Math.round(e.y)]; }));
+      var weak = mins.every(function (e) { return e.r === 10 && e.hpMax === Math.max(1, Math.round(a.enemies[0].hpMax * 0.55)) && !e.elite && !e.boss; });
+      var inRoom = mins.every(function (e) { return e.x >= DN.WALL && e.x <= DN.ROOM_W - DN.WALL && e.y >= DN.WALL && e.y <= DN.ROOM_H - DN.WALL; });
+      return K === 2 && calls === 0 && mins.length === 3 * K && same && weak && inRoom && DN.ROOM_W === 700 && DN.ROOM_H === 440 &&
+        ('잡졸 셋 × 졸개 ' + K + ' = ' + mins.length + '(보스 제외) · 난수 0번 · 방 ' + DN.ROOM_W + '×' + DN.ROOM_H);
+    });
+
+    t('몰이 사냥 §5.19 — 평타 휩쓸기는 앞 120° 부채꼴만, 강공격은 앞 반원, 뒤는 안 맞는다 · 맞으면 경직', function () {
+      /* 앞 항목(결사 등)이 남긴 상태를 걷는다 — 이 항목은 방 하나만 빌린다 */
+      if (DN.active()) { DN.leave(); }
+      var keepF = C.save.dungeon && C.save.dungeon.fallen;
+      if (C.save.dungeon) { delete C.save.dungeon.fallen; }
+      var keepP = C.save.party.slice();
+      if (!C.save.party.length) { C.save.party = [DG.data.heroes[0].id]; }   // 앞 항목이 부대를 비워 두고 갔다
+      DN.enter({ floor: 5, mode: 'easy' });
+      var run = DN.raw();
+      if (!run) { throw new Error('방에 못 들어감 party=' + C.save.party.length + ' fallen=' + !!(C.save.dungeon && C.save.dungeon.fallen) + ' active=' + DN.active()); }
+      var p = run.player;
+      function at(deg, d) {
+        var e = DN._spawnEnemy(5, false, { spawned: true, x: p.x + Math.cos(deg * Math.PI / 180) * d, y: p.y + Math.sin(deg * Math.PI / 180) * d });
+        e.hp = 1e6; e.hpMax = 1e6; e.cd = 0; return e;
+      }
+      var main = at(0, 22), side = at(40, 26), perp = at(80, 26), back = at(180, 26);
+      run.room.enemies = [main, side, perp, back];
+      DN._cleave(main, 50, Math.PI / 3, 0.6, 0);
+      var basic = side.hp < 1e6 && perp.hp === 1e6 && back.hp === 1e6 && main.hp === 1e6 && side.cd >= 0.25;
+      DN._cleave(main, 60, Math.PI / 2, 1.95, 0);
+      var heavy = perp.hp < 1e6 && back.hp === 1e6;
+      DN.leave();
+      if (keepF) { C.save.dungeon.fallen = keepF; }
+      C.save.party = keepP;
+      return basic && heavy && '평타: 40° 맞음·80° 안 맞음 · 강공격: 80° 맞음 · 180° 늘 안 맞음 · 경직 0.25초';
+    });
 
     t('런타임 에러 없음', function () {
       return errors.length === 0 || ('에러 ' + errors.length + '건: ' + errors.join(' | ')) === '';

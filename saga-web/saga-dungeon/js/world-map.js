@@ -299,7 +299,9 @@
     if (!inf || inf.ring === 0) { return []; }
     var key = cacheKey(cx, cz), c = pieceCache[key];
     if (c) { return c; }
-    var list = F().chunkAt(cx, cz, inf.seed, inf.ring, 1, inf.region.theme);
+    /* §5.19 — 밀도 1 이면 숲 칸 하나(200)에 나무 7~14 그루가 다 길을 막아 떼를 몰 자리가 없었다.
+       손잡이 dg.worldDens(기본 0.5). 그림과 충돌이 이 한 배열을 같이 쓴다 */
+    var list = F().chunkAt(cx, cz, inf.seed, inf.ring, (global.DG.core && global.DG.core.tuned ? global.DG.core.tuned('dg.worldDens', 0.5) : 1), inf.region.theme);
     return remember('p', key, list);
   }
 
