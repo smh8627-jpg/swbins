@@ -66,6 +66,15 @@ func grown_count(item: String = "") -> int:
 			n += 1
 	return n
 
+## 지금 자라 있는 그 채집물 중 from 에 가장 가까운 자리(없으면 INF) — 이야기 임무 gather 목표(106장 ㉗).
+func nearest(item: String, from: Vector3) -> Vector3:
+	var best := Vector3.INF
+	for id in _nodes:
+		var n: Node3D = _nodes[id]
+		if n.get_meta("item") == item and (best == Vector3.INF or from.distance_to(n.global_position) < from.distance_to(best)):
+			best = n.global_position
+	return best
+
 func node_pos(id: String) -> Vector3:
 	return (_nodes[id] as Node3D).global_position if _nodes.has(id) else Vector3.INF
 

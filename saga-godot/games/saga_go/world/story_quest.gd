@@ -47,7 +47,9 @@ var _dlg_i := 0
 var _dlg_waiting_choice := false
 var _dlg_open := false
 var _dlg_done: Callable
+var _dlg_npc := "" # 말 거는 임무 인물(대화 카메라가 그쪽을 잡는다, 비면 카메라 그대로)
 var _frozen_before := false
+var _count := 0 # gather 단계에서 캔 수(저장 안 함)
 
 func _ready() -> void:
 	add_to_group("go_story")
@@ -68,6 +70,12 @@ func _ready() -> void:
 		dm.connect("state_changed", func(s: String) -> void:
 			if s == "cleared":
 				_on_domain_cleared(String(dm.get("current"))))
+	var ga := get_tree().get_first_node_in_group("go_gathering")
+	if ga:
+		ga.connect("gathered", _on_gathered)
+	var ki := get_tree().get_first_node_in_group("go_kitchen")
+	if ki:
+		ki.connect("cooked", func(_r: String, _q: int) -> void: _on_cooked())
 	_enter_step()
 
 func _ensure_actions() -> void:
@@ -121,10 +129,34 @@ func target_pos() -> Vector3:
 			var dm := get_tree().get_first_node_in_group("go_domains")
 			if dm:
 				return dm.call("gate_pos", String(s.domain))
+		"gather":
+			var ga := get_tree().get_first_node_in_group("go_gathering")
+			if ga and _player:
+				return ga.call("nearest", String(s.item), _player.global_position)
+		"cook":
+			var ki := get_tree().get_first_node_in_group("go_kitchen")
+			if ki and _player:
+				var best := Vector3.INF
+				for p in ki.call("pots"):
+					if best == Vector3.INF or _player.global_position.distance_to(p) < _player.global_position.distance_to(best):
+						best = p
+				return best
 	return Vector3.INF
 
 func tracker_text() -> String:
 	return _tracker.text
+
+## 지금 단계 목표 글(gather 는 센 수까지).
+func step_text() -> String:
+	var s := current_step()
+	if s.is_empty():
+		return ""
+	if String(s.type) == "gather":
+		return "%s %d/%d" % [s.text, _count, int(s.count)]
+	return String(s.text)
+
+func gathered_count() -> int:
+	return _count
 
 static func _cell_pos(region: String, cell: Vector2) -> Vector3:
 	var p := TestMap.world_pos(cell.x, cell.y, region)
@@ -136,6 +168,7 @@ static func _cell_pos(region: String, cell: Vector2) -> Vector3:
 ## 단계에 들어설 때 — 임무 적·제단을 세우고 표시를 새로.
 func _enter_step() -> void:
 	_clear_step_objects()
+	_count = 0
 	var s := current_step()
 	match String(s.get("type", "")):
 		"kill":
@@ -212,6 +245,20 @@ func _on_boss_died(bid: String) -> void:
 func _on_domain_cleared(did: String) -> void:
 	var s := current_step()
 	if String(s.get("type", "")) == "domain" and String(s.domain) == did:
+		advance()
+
+func _on_gathered(item: String) -> void:
+	var s := current_step()
+	if String(s.get("type", "")) != "gather" or String(s.item) != item:
+		return
+	_count += 1
+	if _count >= int(s.count):
+		advance()
+	else:
+		_refresh()
+
+func _on_cooked() -> void:
+	if String(current_step().get("type", "")) == "cook":
 		advance()
 
 ## 옛 제단(element_receiver 그룹) — 어느 원소든 스킬·폭발이 닿으면 불이 붙고 다음 단계.
@@ -307,25 +354,50 @@ func interact() -> bool:
 		return false
 	var s := current_step()
 	if String(s.get("type", "")) == "talk" and String(s.npc) == id:
-		open_dialogue(s.lines, advance)
+		open_dialogue(s.lines, advance, id)
 	else:
 		var info: Dictionary = Story.NPCS[id]
-		open_dialogue([[String(info.name), String(info.idle)]], Callable())
+		open_dialogue([[String(info.name), String(info.idle)]], Callable(), id)
 	return true
 
 func is_dialogue_open() -> bool:
 	return _dlg_open
 
-func open_dialogue(lines: Array, on_done: Callable) -> void:
+## npc_id 가 있으면 나를 그 인물 쪽으로 돌려 세우고, 줄마다 말하는 이를 카메라가 잡는다(106장 ㉗).
+func open_dialogue(lines: Array, on_done: Callable, npc_id := "") -> void:
 	_dlg_lines = lines
 	_dlg_i = 0
 	_dlg_done = on_done
+	_dlg_npc = npc_id if _npc_pos.has(npc_id) else ""
 	_dlg_open = true
 	_dlg.visible = true
 	add_to_group("ui_modal")
 	_frozen_before = bool(_player.get("frozen"))
 	_player.set("frozen", true)
+	if _dlg_npc != "" and _player.has_method("face_toward"):
+		_player.call("face_toward", _npc_pos[_dlg_npc])
 	_show_line()
+
+## 말하는 이 쪽으로 카메라 — 인물이 말하면 내 어깨 너머로 인물을, 내가 말하면 인물 어깨 너머로 나를.
+func _frame_speaker(me: bool) -> void:
+	if _dlg_npc == "":
+		return
+	var rig := _player.get_node_or_null("CameraRig")
+	if rig == null or not rig.has_method("talk_shot"):
+		return
+	var npc: Vector3 = _npc_pos[_dlg_npc]
+	var pp := _player.global_position
+	if me:
+		rig.call("talk_shot", pp, npc)
+	else:
+		rig.call("talk_shot", npc, pp)
+
+## 지금 카메라가 잡은 말하는 이("me"·"npc"·"") — 점검용.
+func speaker_side() -> String:
+	if not _dlg_open or _dlg_npc == "":
+		return ""
+	var line: Array = _dlg_lines[_dlg_i]
+	return "me" if String(line[0]) == "?" or _dlg_name.text == "나" else "npc"
 
 ## 다음 줄(고르는 줄이면 고르기 전엔 안 넘어간다).
 func next_line() -> void:
@@ -347,6 +419,7 @@ func choose(i: int) -> void:
 		c.queue_free()
 	_dlg_name.text = "나"
 	_dlg_text.text = String(opts[clampi(i, 0, opts.size() - 1)])
+	_frame_speaker(true)
 
 func _show_line() -> void:
 	var line: Array = _dlg_lines[_dlg_i]
@@ -365,16 +438,22 @@ func _show_line() -> void:
 			var k: int = i
 			b.pressed.connect(func() -> void: choose(k))
 			_dlg_choices.add_child(b)
+		_frame_speaker(true)
 	else:
 		_dlg_waiting_choice = false
 		_dlg_name.text = String(line[0])
 		_dlg_text.text = String(line[1])
+		_frame_speaker(String(line[0]) == "나")
 
 func _close_dialogue() -> void:
 	_dlg_open = false
 	_dlg.visible = false
 	remove_from_group("ui_modal")
 	_player.set("frozen", _frozen_before)
+	var rig := _player.get_node_or_null("CameraRig")
+	if _dlg_npc != "" and rig and rig.has_method("end_talk"):
+		rig.call("end_talk")
+	_dlg_npc = ""
 	var cb := _dlg_done
 	_dlg_done = Callable()
 	if cb.is_valid():
@@ -389,7 +468,7 @@ func _refresh() -> void:
 	elif locked():
 		_tracker.text = "◆ %s\n   모험 등급 %d 에 열린다" % [c.name, int(c.ar)]
 	else:
-		_tracker.text = "◆ %s\n   %s" % [c.name, current_step().text]
+		_tracker.text = "◆ %s\n   %s" % [c.name, step_text()]
 	_refresh_journal()
 	_refresh_marker()
 
@@ -407,7 +486,7 @@ func _refresh_marker() -> void:
 	if not c.is_empty() and not locked():
 		var lines := _tracker.text.split("\n")
 		if lines.size() >= 2:
-			_tracker.text = "%s\n   %s  %dm" % [lines[0], current_step().text, d]
+			_tracker.text = "%s\n   %s  %dm" % [lines[0], step_text(), d]
 
 func toggle_journal() -> void:
 	if not _journal_open and _modal_open():

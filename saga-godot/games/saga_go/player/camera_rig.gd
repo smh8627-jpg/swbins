@@ -42,6 +42,25 @@ const LOOK_UP_PITCH := 8.0
 var mouse_look := false
 var _look_released := false
 
+## PLAN 106장 ㉗ — 이야기 대화 구도(world/story_quest.gd 가 말하는 이가 바뀔 때마다 talk_shot).
+## 말하는 이 얼굴(TALK_EYE_H)을 중심에 두고, 듣는 이 어깨 너머(옆으로 TALK_SIDE_DEG·위로 TALK_UP_DEG)에서 잡는다 —
+## 팔 길이 = 두 사람 거리 + TALK_BACK. 부드럽게 옮겨 가고(TALK_BLEND), end_talk 면 원래 시점으로 돌아온다(TALK_RETURN_SEC).
+## 대화 중엔 끌기·마우스 시점·흔들림을 안 받는다. 팔이 내 몸에 걸려 짧아지지 않게 대화 동안만 내 몸을 뺀다.
+const TALK_EYE_H := 1.45
+const TALK_SIDE_DEG := 22.0
+const TALK_UP_DEG := 9.0
+const TALK_BACK := 1.7
+const TALK_BLEND := 7.0
+const TALK_RETURN_SEC := 0.45
+var _talk_on := false
+var _talk_to := Transform3D()
+var _talk_len := 0.0
+var _saved_basis := Basis()
+var _saved_len := 0.0
+var _return_left := 0.0
+var _return_from := Transform3D()
+var _return_from_len := 0.0
+
 func _ready() -> void:
 	spring_arm.spring_length = DEFAULT_ZOOM
 	rotation_degrees.x = -35.0
@@ -51,10 +70,12 @@ func _ready() -> void:
 		_visual_meshes = CameraNearFade.collect_meshes(visual)
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if mouse_look:
 		_update_capture()
-	if Time.get_ticks_msec() < _shake_until_msec:
+	if _talk_on or _return_left > 0.0:
+		_process_talk(delta)
+	elif Time.get_ticks_msec() < _shake_until_msec:
 		position = Vector3(
 			randf_range(-_shake_amp_m, _shake_amp_m),
 			randf_range(-_shake_amp_m, _shake_amp_m),
@@ -66,6 +87,64 @@ func _process(_delta: float) -> void:
 		var cam: Camera3D = spring_arm.get_node("Camera3D")
 		CameraNearFade.apply(_visual_meshes, cam.global_position, global_position)
 
+
+## 말하는 이(speaker)를 듣는 이(listener) 어깨 너머로 잡는다 — 둘 다 발 자리.
+func talk_shot(speaker: Vector3, listener: Vector3) -> void:
+	if not _talk_on:
+		if _return_left <= 0.0:
+			_saved_basis = transform.basis
+			_saved_len = spring_arm.spring_length
+		_return_left = 0.0
+		_talk_on = true
+		var body := get_parent() as CollisionObject3D
+		if body:
+			spring_arm.add_excluded_object(body.get_rid())
+	var eye := speaker + Vector3.UP * TALK_EYE_H
+	var back := listener - speaker
+	back.y = 0.0
+	var dist := back.length()
+	if dist < 0.1:
+		back = global_transform.basis.z
+		back.y = 0.0
+	back = back.normalized().rotated(Vector3.UP, deg_to_rad(TALK_SIDE_DEG))
+	var up := deg_to_rad(TALK_UP_DEG)
+	var to_cam := (back * cos(up) + Vector3.UP * sin(up)).normalized()
+	_talk_to = Transform3D(Basis.looking_at(-to_cam, Vector3.UP), eye)
+	_talk_len = dist + TALK_BACK
+
+## 대화가 끝남 — 대화 전 시점(각도·팔 길이)으로 돌아간다.
+func end_talk() -> void:
+	if not _talk_on:
+		return
+	_talk_on = false
+	_return_left = TALK_RETURN_SEC
+	_return_from = transform
+	_return_from_len = spring_arm.spring_length
+
+func in_talk() -> bool:
+	return _talk_on
+
+## 대화 구도의 목표(점검용) — 중심 자리·팔 길이.
+func talk_target() -> Dictionary:
+	return {"eye": _talk_to.origin, "len": _talk_len, "on": _talk_on}
+
+func _process_talk(delta: float) -> void:
+	if _talk_on:
+		var k := 1.0 - exp(-TALK_BLEND * delta)
+		global_transform = global_transform.interpolate_with(_talk_to, k)
+		spring_arm.spring_length = lerpf(spring_arm.spring_length, _talk_len, k)
+		return
+	_return_left = maxf(_return_left - delta, 0.0)
+	var t := 1.0 - _return_left / TALK_RETURN_SEC
+	t = t * t * (3.0 - 2.0 * t)
+	transform = _return_from.interpolate_with(Transform3D(_saved_basis, Vector3.ZERO), t)
+	spring_arm.spring_length = lerpf(_return_from_len, _saved_len, t)
+	if _return_left <= 0.0:
+		transform = Transform3D(_saved_basis, Vector3.ZERO)
+		spring_arm.spring_length = _saved_len
+		var body := get_parent() as CollisionObject3D
+		if body:
+			spring_arm.remove_excluded_object(body.get_rid())
 
 func shake(amp_m: float, dur_sec: float) -> void:
 	var until := Time.get_ticks_msec() + int(dur_sec * 1000.0)
@@ -95,6 +174,8 @@ func _update_capture() -> void:
 		Input.mouse_mode = m
 
 func _unhandled_input(event: InputEvent) -> void:
+	if _talk_on or _return_left > 0.0:
+		return
 	if _look_active():
 		_look_input(event)
 		return
