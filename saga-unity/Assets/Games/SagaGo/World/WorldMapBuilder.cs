@@ -33,6 +33,7 @@ namespace Saga.Go.World
             }
             if (GetComponent<WorldMapUi>() == null) gameObject.AddComponent<WorldMapUi>();
             if (GetComponent<RegionAtmosphere>() == null) gameObject.AddComponent<RegionAtmosphere>(); // 107-3 지역 바이옴
+            if (GetComponent<RegionMissionHud>() == null) gameObject.AddComponent<RegionMissionHud>(); // 107-8 지역 사명 사슬
         }
     }
 }

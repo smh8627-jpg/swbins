@@ -8865,3 +8865,12 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - **진단 함정 둘**: ① 겹 방패 진단의 첫 타격이 "처음 만남"(Aggro→EnterChase)으로 잡혀 등장 컷이 돌았고, 컷 동안 `Tick` 이 멈춰 휘청 시간이 안 흘러 실패 — `SetEngagedForTest` 로 진단이 만남 여부를 정한다. ② 세이브 버전을 직접 검사하던 `PlaytestGoWorldMap`·`PlaytestGoTreasure` 가 14 를 기대 — 15 로(지도 진단의 v13 가짜 파일은 `guardianDown` 도 뺀다). `PlaytestGoElementalFoe` "원소 적 8" 은 수호장(원소 방패를 둘렀다)을 뺀다.
 - 파일: 새 `Data/GuardianState.cs`·`Cinematics/`(GoCutDolly·Clip·Track·GoCutscenes)·`Go_GuardianIntro.playable`·`Editor/BuildGoCinematics.cs`·`Editor/PlaytestGoGuardian.cs`, 고침 `FieldEnemy`·`FieldSpawner`(수호장·PlannedCount)·`SaveState`(v15)·`CameraRig`(view)·`PlayerController`·`FieldCombat`(컷 동안 멈춤)·`SagaGo.asmdef`·`BuildTestVillageScene`(PlayerView·브레인·수호장 몸 Brute)·진단 넷. 씬 재빌드.
 - 검증: 씬 재빌드 exit 0 · GO `PlaytestHeadless` **3연속 OK**(새 `guardian` 줄 "가까운 샷 7.1m(키 5.4m)" 3회 동일, 기존 진단 전부 그대로). 실기 확인은 전. 새 글자 `field.foe.guardian`·`field.guard_*`·`cut.guardian_sub` 는 `GoLocalization.T` 폴백.
+
+## 2026-09-24 — GO 107-8 지역 사명 사슬(웹 ⑬, 세이브 v16) (새 대화 "사가 유니티 이어해", Opus 5.5)
+
+- **고른 까닭**: PROJECT_STATE 다음 후보 첫째(GO 107 지역 사명 사슬, 웹 ⑬)·메모리 추천 그대로. 웹 ⑬ 은 "탑 발견 → 무리 2 → 탑 곁 수호자"인데 이 판은 탑·수호자가 옛 망루 하나뿐 — 사명이 한 지역에만 생기면 "지역을 끝냈다" 매듭이 안 산다.
+- **옮긴 방식**: 첫 단 = 그 지역 역참(남쪽 공터만 옛 망루), 셋째 단 = 그 지역 보물 상자 모두(남쪽 공터만 망루 수호장) — 원신 탐색도 결이고, 이미 있는 역참·상자·무리를 한 사슬로 묶는다. 사명 지역 넷(동쪽 숲·북쪽 산기슭·남쪽 공터·끝 논밭), 역참이 없는 서쪽 숲길·너른 강과 고향은 뺐다. 규칙(앞에서부터 차례로, 발견 전 무리 셈 쌓임, 단마다 보상 한 번)·금 비율(80×등급·200×등급)은 웹 그대로, 단사 → 경험치(20·60×등급). 남쪽 공터 등급 3 = 수호장 등급.
+- **토벌 셈**: 107-4 무리 잠금과 같은 "한꺼번에 다 쓰러짐" 판정을 `FieldSpawner.GroupWiped` 로 뽑아 썼다(상자 쪽 코드는 안 건드림). 되살아난 같은 무리도 다시 센다 — 북쪽 산기슭은 무리가 하나뿐.
+- **한 줄 자리**: 목표판(y -10~-100)·자막(-80~-220) 아래 y -228, 오른쪽 지도 버튼(-230, 폭 160)과 안 겹치게 폭 680. 보상 글은 자막을 안 쓰고 그 줄에 4초 — 수호장 토벌 자막과 같은 틱에 덮이는 걸 피했다. 단 계산은 0.25초마다 다시 센다(역참·망루·수호장·상자 이벤트가 제각각, `WorldEventState` 엔 이벤트가 없다).
+- 파일: 새 `Data/GoRegionMission.cs`(표·순수 단 계산)·`Data/RegionMissionState.cs`(셈·받은 보상·v16)·`UI/RegionMissionHud.cs`·`Editor/PlaytestGoRegionMission.cs`, 고침 `FieldSpawner`(GroupRegion·GroupWiped)·`SaveState`(v16 `missions`, 15→16)·`WorldMapUi`(이름표 "사명 n/3"·"평정", 높이 64)·`WorldMapBuilder`(HUD 붙임)·`PlaytestHeadless`(보물 상자 뒤)·수호장/지도/상자 진단 버전 검사 16. 씬 재빌드 불필요(런타임 부착).
+- 검증: 컴파일 exit 0·오류 0 · GO `PlaytestHeadless` **3연속 OK**(첫 실행부터, 새 `region mission` 줄 3회 동일, 기존 진단 전부 그대로). `ProjectSettings/`·`Packages/` 변경 없음. 실기 확인 전(한 줄이 목표판·자막·지도 버튼과 안 겹치는지, 보상 크기). 새 글자 `mission.*`·`map.mission*` 는 `T(키, 한국어)` 폴백.

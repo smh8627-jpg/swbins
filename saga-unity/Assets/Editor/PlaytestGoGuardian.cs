@@ -13,7 +13,7 @@ namespace Saga.EditorTools
     /// PLAN.md 107-7 "망루 수호장" + 106-9 "GO 두목 등장 컷" 진단 — `PlaytestHeadless` 가 들판 전투 진단 앞에서 부른다.
     /// 표(체력·겹 방패·경험치·키·자리) · 겉(뇌): 화 상성 → 깨짐 → 0.8초 휘청 · 속(화): 체력 그대로·화 면역·물리 0.4·수 상성 → 깨짐 →
     /// 3초 드러눕기 → 체력 · 귀가하면 겉부터 다시 · 등장 컷(카메라 하이브리드·18m 밖 안 틂·안이면 틂·적 멈춤·HUD·이름표·포효·
-    /// 가까운 샷·넘김·한 번) · 토벌(금·경험·다시 안 섬·PlannedCount) · 세이브 v15 왕복·v14 로드. 끝나면 수호장·돈·경험·세이브를 되돌린다.
+    /// 가까운 샷·넘김·한 번) · 토벌(금·경험·다시 안 섬·PlannedCount) · 세이브 v16 왕복·v14 로드. 끝나면 수호장·돈·경험·세이브를 되돌린다.
     /// 컷을 여기서 한 번 틀어 두므로(Engaged) 뒤 진단이 수호장 곁을 지나도 컷이 안 돈다.
     /// </summary>
     public static class PlaytestGoGuardian
@@ -65,7 +65,7 @@ namespace Saga.EditorTools
                 if (savedJson != null) System.IO.File.WriteAllText(savePath, savedJson);
                 else if (System.IO.File.Exists(savePath)) System.IO.File.Delete(savePath);
             }
-            if (_ok) Debug.Log($"[{_tag}] guardian OK - 표·겉(뇌) 상성 깨짐·0.8초·속(화) 면역/물리/수 상성·3초 드러눕기·귀가 복구·등장 컷(브레인·18m·멈춤·HUD·이름표·포효·가까운 샷·넘김·한 번)·토벌(금·경험·안 섬)·세이브 v15/v14 |{metrics}");
+            if (_ok) Debug.Log($"[{_tag}] guardian OK - 표·겉(뇌) 상성 깨짐·0.8초·속(화) 면역/물리/수 상성·3초 드러눕기·귀가 복구·등장 컷(브레인·18m·멈춤·HUD·이름표·포효·가까운 샷·넘김·한 번)·토벌(금·경험·안 섬)·세이브 v16/v14 |{metrics}");
             return _ok;
         }
 
@@ -203,10 +203,10 @@ namespace Saga.EditorTools
             if (!SaveState.Save()) { Fail("SaveState.Save 실패"); return; }
             string path = System.IO.Path.Combine(Application.persistentDataPath, "save.json");
             string json = System.IO.File.ReadAllText(path);
-            if (!json.Contains("\"version\":15") || !json.Contains("\"guardianDown\":true")) Fail("세이브 v15 에 토벌이 안 남았다");
+            if (!json.Contains("\"version\":16") || !json.Contains("\"guardianDown\":true")) Fail("세이브 v16 에 토벌이 안 남았다");
             GuardianState.Restore(false);
-            if (!SaveState.TryLoad() || !GuardianState.Defeated) Fail("v15 왕복 뒤 토벌이 사라졌다");
-            string v14 = json.Replace("\"version\":15", "\"version\":14").Replace(",\"guardianDown\":true", "");
+            if (!SaveState.TryLoad() || !GuardianState.Defeated) Fail("v16 왕복 뒤 토벌이 사라졌다");
+            string v14 = json.Replace("\"version\":16", "\"version\":14").Replace(",\"guardianDown\":true", "");
             System.IO.File.WriteAllText(path, v14);
             if (!SaveState.TryLoad()) { Fail("v14 파일 TryLoad 실패"); return; }
             if (GuardianState.Defeated) Fail("v14 파일을 읽었는데 수호장이 쓰러진 걸로 나온다");

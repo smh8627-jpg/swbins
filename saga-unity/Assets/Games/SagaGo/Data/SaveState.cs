@@ -14,7 +14,7 @@ namespace Saga.Go.Data
     /// </summary>
     public static class SaveState
     {
-        private const int SaveVersion = 15;
+        private const int SaveVersion = 16;
 
         private static string SavePath => Path.Combine(Application.persistentDataPath, "save.json");
 
@@ -80,6 +80,8 @@ namespace Saga.Go.Data
             public bool mapRevealed;
             // v15 — PLAN.md 107-7 망루 수호장(한 번 쓰러뜨리면 다시 안 선다).
             public bool guardianDown;
+            // v16 — PLAN.md 107-8 지역 사명 사슬(지역마다 무리 토벌 셈·받은 보상).
+            public List<RegionMissionState.Entry> missions;
         }
 
         public static bool Save()
@@ -120,6 +122,7 @@ namespace Saga.Go.Data
                 regionsVisited = WorldMapState.SnapshotRegions(),
                 mapRevealed = WorldMapState.Revealed,
                 guardianDown = GuardianState.Defeated,
+                missions = RegionMissionState.Snapshot(),
             };
 
             try
@@ -171,6 +174,7 @@ namespace Saga.Go.Data
             ShrineTrialState.Restore(data.shrineDate, data.shrineDailyCount, data.shrineShards, data.shrineStamps, data.shrineLockUntilTicks);
             WorldMapState.Restore(data.waypoints, data.regionsVisited, data.mapRevealed);
             GuardianState.Restore(data.guardianDown);
+            RegionMissionState.Restore(data.missions);
 
             Transform player = FindPlayer();
             if (player != null && data.playerPos != null && data.playerPos.Length == 3)
@@ -334,6 +338,13 @@ namespace Saga.Go.Data
                 // v14엔 망루 수호장이 없었다 — 아직 안 쓰러뜨린 것과 같다.
                 data.version = 15;
                 data.guardianDown = false;
+                return data;
+            }
+            if (fromVersion == 15)
+            {
+                // v15엔 지역 사명이 없었다 — 토벌 셈 0·받은 보상 없음. 발견·수호장·상자는 이미 있는 기록에서 다시 센다.
+                data.version = 16;
+                data.missions = new List<RegionMissionState.Entry>();
                 return data;
             }
             return null;

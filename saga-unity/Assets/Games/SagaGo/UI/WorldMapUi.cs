@@ -98,7 +98,7 @@ namespace Saga.Go.UI
 
             foreach (var r in GoWorldMap.Regions)
             {
-                var label = EncounterUiKit.NewText(_mapRect, "", new Vector2(0.5f, 0.5f), MapPos(r.LabelGx, r.LabelGy), new Vector2(220f, 40f), 22);
+                var label = EncounterUiKit.NewText(_mapRect, "", new Vector2(0.5f, 0.5f), MapPos(r.LabelGx, r.LabelGy), new Vector2(220f, 64f), 22);
                 label.fontStyle = FontStyle.Bold;
                 label.raycastTarget = false;
                 label.GetComponent<RectTransform>().pivot = new Vector2(0.5f, 0.5f);
@@ -160,7 +160,7 @@ namespace Saga.Go.UI
             {
                 var r = GoWorldMap.Regions[i];
                 bool seen = WorldMapState.IsVisited(r.Id);
-                _regionLabels[i].text = seen ? GoLocalization.T(r.NameKey, r.NameKo) : "? ? ?";
+                _regionLabels[i].text = seen ? GoLocalization.T(r.NameKey, r.NameKo) + MissionSuffix(r.Id) : "? ? ?";
                 _regionLabels[i].color = seen ? Color.white : new Color(0.6f, 0.6f, 0.65f);
             }
             for (int i = 0; i < _wpButtons.Count; i++)
@@ -177,6 +177,16 @@ namespace Saga.Go.UI
                 WorldMapState.ActiveCount, GoWorldMap.Waypoints.Length,
                 WorldMapState.Revealed ? "" : GoLocalization.T("map.hint", " · 옛 망루 꼭대기에 오르면 온 땅이 밝혀진다"))
                 + string.Format(GoLocalization.T("map.chests", " · 보물 상자 {0}/{1}"), GoTreasure.OpenedCount, GoTreasure.Chests.Length);
+        }
+
+        /// <summary>107-8 — 사명이 있는 지역 이름 밑에 "사명 n/3" 또는 "평정".</summary>
+        private static string MissionSuffix(string regionId)
+        {
+            if (GoRegionMission.IndexOf(regionId) < 0) return "";
+            int stage = RegionMissionState.StageOf(regionId);
+            return stage >= GoRegionMission.Stages
+                ? "\n" + GoLocalization.T("map.mission_clear", "평정")
+                : "\n" + string.Format(GoLocalization.T("map.mission", "사명 {0}/{1}"), stage, GoRegionMission.Stages);
         }
 
         private void PaintTexture()

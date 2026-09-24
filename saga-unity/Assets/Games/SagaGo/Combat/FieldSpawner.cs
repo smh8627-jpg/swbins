@@ -61,6 +61,26 @@ namespace Saga.Go.Combat
 
         public static int GroupCount => Groups.Length;
 
+        /// <summary>107-8 지역 사명 — 무리 한가운데가 선 지역. 모르는 id(수호장 포함)는 null.</summary>
+        public static string GroupRegion(string groupId)
+        {
+            foreach (var g in Groups) if (g.Id == groupId) return GoWorldMap.RegionAt(TestMapData.WorldPos(g.Gx, g.Gy));
+            return null;
+        }
+
+        /// <summary>그 무리 적이 한꺼번에 모두 쓰러져 있나(하나라도 서 있으면 false, 그 무리 적이 없어도 false).</summary>
+        public static bool GroupWiped(string groupId)
+        {
+            int n = 0;
+            foreach (var e in FieldEnemy.All)
+            {
+                if (e.GroupId != groupId) continue;
+                if (e.Alive) return false;
+                n++;
+            }
+            return n > 0;
+        }
+
         private void Start()
         {
             if (FieldEnemy.All.Count > 0) return;
