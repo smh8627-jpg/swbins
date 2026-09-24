@@ -6817,6 +6817,114 @@ window.requestAnimationFrame = function () { return 0; };
       return ok && '합격 피해 ' + Math.round(ce.dmg) + ' / 그냥 ' + Math.round(pe.dmg) + ' (×' + ratio.toFixed(2) + ') · 창 밖·손잡이 0 은 0';
     }); });
 
+    /* ── 명소 층 주인 고유 수(§5.18) ───────────────────────────────────── */
+    /** 명소 층 끝방까지 곧장 가서 주인만 남긴다 — 나는 안 죽게 */
+    function guardRoom(floor) {
+      delete C.save.dungeon.fallen;
+      DN.enter({ floor: floor });
+      var R = DN.raw(), i;
+      for (i = 0; i < 4; i++) { R.room.enemies = []; R.room.cleared = true; DN.goRoom(R.room.doors[0].kind); }
+      var g = R.room.enemies.filter(function (e) { return e.fixedGuard; })[0];
+      R.room.enemies = [g];
+      R.player.invuln = 0; R.hp = 1e7;
+      return { R: R, g: g, p: R.player };
+    }
+    var GSTEP = function (o, sec, dt) { var n = Math.round(sec / (dt || 0.1)); for (var i = 0; i < n; i++) { DN._stepGuardSig(o.g, o.p, dt || 0.1); } };
+
+    t('명소 주인 고유 수 — 표: 여섯 모두 이름·갈래, 원은 늘 같게 나오고(순수) 갈래마다 모양이 맞다', function () {
+      var F = DG.dungeonData.FIXED, Z = DN._guardZones, kinds = {}, bad = [];
+      var g = { x: 300, y: 180 }, pl = { x: 150, y: 150 };
+      F.forEach(function (f) {
+        var s = f.guard.sig;
+        if (!s || !s.name) { bad.push(f.key); return; }
+        kinds[s.kind] = 1;
+        var a = JSON.stringify(Z(s, g, pl, 3)), b = JSON.stringify(Z(s, g, pl, 3));
+        if (a !== b) { bad.push(f.key + ':순수'); }
+      });
+      var sig = function (k) { return F.filter(function (f) { return f.key === k; })[0].guard.sig; };
+      var rain = Z(sig('fort'), g, pl, 0), cr0 = Z(sig('heaven'), g, pl, 0), cr1 = Z(sig('heaven'), g, pl, 1);
+      var shape = rain.length === 3 && rain[0].x === pl.x && rain[0].y === pl.y && cr0.length === 20 &&
+        JSON.stringify(cr0) !== JSON.stringify(cr1) && Z(sig('tomb'), g, pl, 0).length === 0 &&
+        Z(sig('palace'), g, pl, 0)[0].x === g.x && Z(sig('hellgate'), g, pl, 0).length === 1;
+      /* 예고 원 효과 — 퍼지지 않고 제 크기(r)에 서며 터질 때가 다가올수록 진해진다(3D 처방) */
+      var FX = DG.fx3d, z0 = FX.plan({ t: 'zone', x: 0, y: 0, r: 42, life: 0.9, max: 0.9 }), z1 = FX.plan({ t: 'zone', x: 0, y: 0, r: 42, life: 0.1, max: 0.9 });
+      var fxOk = z0 && z1 && z0.kind === 'ring' && z0.r === 42 && z1.r === 42 && z1.alpha > z0.alpha;
+      return !bad.length && Object.keys(kinds).length === 6 && shape && fxOk && '갈래 여섯 · 화살비 3 · 천뢰 20(+/× 번갈아) · 예고 원 크기 고정';
+    });
+
+    t('명소 주인 고유 수 — 예고 뒤 터진다: 화살비는 그 자리에 서 있으면 맞고 예고 중에 비키면 안 맞는다, 예고 중엔 무기 패턴을 쉰다', function () { return withTrial(function () {
+      var keepD = JSON.stringify(C.save.dungeon || {});
+      try {
+        var o = guardRoom(10), s;
+        o.p.x = o.g.x - 200; o.p.y = o.g.y;
+        o.g.gs = null; DN._stepGuardSig(o.g, o.p, 0.01); o.g.gs.cd = 0;
+        var busy = DN._stepGuardSig(o.g, o.p, 0.01) === true && o.g.gs.warn > 0;
+        var hp0 = o.R.hp; GSTEP(o, 1.0); var hitStay = o.R.hp < hp0;
+        o.g.gs.cd = 0; DN._stepGuardSig(o.g, o.p, 0.01);
+        o.p.y += 150;                                   // 예고 중에 비킨다
+        var hp1 = o.R.hp; GSTEP(o, 1.0); var dodged = o.R.hp === hp1;
+        s = o.g.gs;
+        var cdOk = Math.abs(s.cd - 7) < 0.2 && s.step === 2;
+        s.cd = 0; DN.update(0.05);                      // 실제 틱(적 루프)이 고유 수를 부른다
+        var live = o.g.gs.warn > 0 && o.g.gs.step === 3;
+        DN.leave();
+        return busy && hitStay && dodged && cdOk && live && '서면 맞음 · 비키면 안 맞음 · 쿨 7초 · 게임 틱이 부름';
+      } finally { if (DN.active()) { DN.leave(); } C.save.dungeon = JSON.parse(keepD); }
+    }); });
+
+    t('명소 주인 고유 수 — 흑풍 삼연돌은 세 번 내 자리로 뛰어들고, 소용돌이는 예고 동안 나를 끌어당긴다', function () { return withTrial(function () {
+      var keepD = JSON.stringify(C.save.dungeon || {});
+      try {
+        var o = guardRoom(15);
+        o.p.x = 150; o.p.y = 180; o.g.x = 420; o.g.y = 180;
+        o.g.gs = null; DN._stepGuardSig(o.g, o.p, 0.01); o.g.gs.cd = 0;
+        DN._stepGuardSig(o.g, o.p, 0.01);
+        GSTEP(o, 1.6, 0.05);
+        var hops = o.g.gs.step === 3 && Math.hypot(o.g.x - o.p.x, o.g.y - o.p.y) < 1 && Math.abs(o.g.gs.cd - 8) < 0.3;
+        DN.leave();
+        var v = guardRoom(20);
+        v.p.x = 120; v.p.y = 180; v.g.x = 420; v.g.y = 180;
+        v.g.gs = null; DN._stepGuardSig(v.g, v.p, 0.01); v.g.gs.cd = 0;
+        var d0 = Math.hypot(v.g.x - v.p.x, v.g.y - v.p.y);
+        DN._stepGuardSig(v.g, v.p, 0.01);
+        GSTEP(v, 1.1);
+        var pulled = d0 - Math.hypot(v.g.x - v.p.x, v.g.y - v.p.y);
+        DN.leave();
+        return hops && pulled > 55 && pulled < 80 && '세 번 뛰어듦 · 끌려옴 ' + Math.round(pulled);
+      } finally { if (DN.active()) { DN.leave(); } C.save.dungeon = JSON.parse(keepD); }
+    }); });
+
+    t('명소 주인 고유 수 — 업화 장판은 불바닥이 6초 남아 0.5초마다 태우고, 순장 호령은 체력 ⅔·⅓ 에 한 번씩 졸개 둘 · 손잡이 끄면 없다', function () { return withTrial(function () {
+      var keepD = JSON.stringify(C.save.dungeon || {});
+      try {
+        var o = guardRoom(25);
+        o.p.x = 150; o.p.y = 180; o.g.x = 420; o.g.y = 180;
+        o.g.gs = null; DN._stepGuardSig(o.g, o.p, 0.01); o.g.gs.cd = 0;
+        DN._stepGuardSig(o.g, o.p, 0.01); GSTEP(o, 0.9);
+        var pool = o.g.gs.pools.length === 1;
+        o.g.gs.cd = 99;
+        var hp0 = o.R.hp, ticks = 0, last = hp0, k;
+        for (k = 0; k < 20; k++) { DN._stepGuardSig(o.g, o.p, 0.1); if (o.R.hp < last) { ticks++; last = o.R.hp; } }
+        GSTEP(o, 5);
+        var gone = o.g.gs.pools.length === 0;
+        DN.leave();
+        var t0 = guardRoom(5), n0 = t0.R.room.enemies.length;
+        t0.g.gs = null; t0.g.hp = t0.g.hpMax * 0.6; DN._stepGuardSig(t0.g, t0.p, 0.1);
+        var n1 = t0.R.room.enemies.length; DN._stepGuardSig(t0.g, t0.p, 0.1);
+        var n1b = t0.R.room.enemies.length;
+        t0.g.hp = t0.g.hpMax * 0.3; DN._stepGuardSig(t0.g, t0.p, 0.1);
+        var n2 = t0.R.room.enemies.length; t0.g.hp = t0.g.hpMax * 0.1; DN._stepGuardSig(t0.g, t0.p, 0.1);
+        var n3 = t0.R.room.enemies.length;
+        C.setTune('dungeon.guardSig', 0);
+        t0.g.gs = null;
+        var off = DN._stepGuardSig(t0.g, t0.p, 0.1) === false && !t0.g.gs;
+        C.setTune('dungeon.guardSig', null);
+        DN.leave();
+        return pool && ticks >= 3 && ticks <= 5 && gone && n1 === n0 + 2 && n1b === n1 && n2 === n1 + 2 && n3 === n2 && off &&
+          '불바닥 ' + ticks + '번 태움 · 6초 뒤 꺼짐 · 졸개 둘씩 두 번 · 끄면 없음';
+      } finally { C.setTune('dungeon.guardSig', null); if (DN.active()) { DN.leave(); } C.save.dungeon = JSON.parse(keepD); }
+    }); });
+
     t('런타임 에러 없음', function () {
       return errors.length === 0 || ('에러 ' + errors.length + '건: ' + errors.join(' | ')) === '';
     });

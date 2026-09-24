@@ -621,6 +621,130 @@
     room.decor = dec;
     return room;
   }
+  /* ── 명소 층 주인 고유 수(§5.18) ─────────────────────────────
+   * 주인은 `spawnEnemy(floor, true)` 라 보스 판정(bossPattern)을 받지만 빌린 몸에 무기가 없으면
+   * 여섯 다 같은 강타 하나였다. `guard.sig` 표대로 제 수를 하나씩 더 쓴다 — 예고(원 테두리) 뒤 터진다.
+   * 고유 수를 예고·시전하는 동안은 무기 패턴을 쉬어 둘이 겹쳐 읽기 어렵지 않게 한다.
+   * 자리·박자는 전부 주인·나 자리와 시전 횟수(step)로만 정한다 — Math.random 없음. 손잡이 `dungeon.guardSig`. */
+  var GUARD_SIG_FIRST = 3, GUARD_POOL_TICK = 0.5;
+  function guardSigOn() { return !core.tuned || core.tuned('dungeon.guardSig', 1) ? true : false; }
+  function fixedDefByKey(key) {
+    var L = DD.FIXED || [], i;
+    for (i = 0; i < L.length; i++) { if (L[i].key === key) { return L[i]; } }
+    return null;
+  }
+  /** 고유 수가 칠 원들 — 순수. g 주인 자리, pl 나 자리, step 몇 번째 시전 */
+  function guardZones(sig, g, pl, step) {
+    var out = [], i, k, a;
+    if (!sig) { return out; }
+    if (sig.kind === 'rain') {
+      a = step * 1.1;
+      out.push({ x: pl.x, y: pl.y, r: sig.r });
+      for (i = 1; i < (sig.n || 3); i++) {
+        var sgn = i % 2 ? 1 : -1, m = Math.ceil(i / 2) * (sig.spread || 55);
+        out.push({ x: pl.x + Math.cos(a) * m * sgn, y: pl.y + Math.sin(a) * m * sgn, r: sig.r });
+      }
+    } else if (sig.kind === 'hops' || sig.kind === 'pool') {
+      out.push({ x: pl.x, y: pl.y, r: sig.r });
+    } else if (sig.kind === 'vortex') {
+      out.push({ x: g.x, y: g.y, r: sig.r });
+    } else if (sig.kind === 'cross') {
+      var base = step % 2 ? Math.PI / 4 : 0, arms = sig.arms || 4;
+      for (i = 0; i < arms; i++) {
+        a = base + i * Math.PI * 2 / arms;
+        for (k = 1; k <= (sig.count || 6); k++) {
+          out.push({ x: g.x + Math.cos(a) * sig.gap * k, y: g.y + Math.sin(a) * sig.gap * k, r: sig.r });
+        }
+      }
+    }
+    return out;
+  }
+  function inZones(zs, p) {
+    for (var i = 0; i < zs.length; i++) { if (Math.hypot(p.x - zs[i].x, p.y - zs[i].y) <= zs[i].r + P_R) { return true; } }
+    return false;
+  }
+  function guardSigState(en) {
+    return en.gs || (en.gs = { cd: GUARD_SIG_FIRST, warn: 0, step: 0, zones: null, left: 0, pools: [], poolT: 0, phase: 0, said: false });
+  }
+  function beginGuardSig(en, sig, s, p) {
+    s.zones = guardZones(sig, en, p, s.step);
+    s.step += 1;
+    s.warn = sig.warn;
+    for (var i = 0; i < s.zones.length; i++) {
+      fx.push({ t: 'zone', x: s.zones[i].x, y: s.zones[i].y, r: s.zones[i].r, life: sig.warn, max: sig.warn, color: sig.color });
+    }
+    if (!s.said) { s.said = true; core.emit('toast', (en.ref && en.ref.emoji || '') + ' ' + (en.ref && en.ref.name || '') + ' — ' + sig.name); }
+  }
+  function resolveGuardSig(en, sig, s, p) {
+    var zs = s.zones || [], i;
+    for (i = 0; i < zs.length; i++) { fx.push({ t: 'burst', x: zs[i].x, y: zs[i].y, life: 0.35, color: sig.color }); }
+    if (sig.kind === 'hops' && zs.length) {
+      en.x = core.clamp(zs[0].x, WALL + en.r, ROOM_W - WALL - en.r);
+      en.y = core.clamp(zs[0].y, WALL + en.r, ROOM_H - WALL - en.r);
+    }
+    if (sig.kind === 'pool' && zs.length) {
+      s.pools.push({ x: zs[0].x, y: zs[0].y, r: zs[0].r, t: sig.last });
+      while (s.pools.length > (sig.maxPools || 4)) { s.pools.shift(); }
+      fx.push({ t: 'zone', x: zs[0].x, y: zs[0].y, r: zs[0].r, life: sig.last, max: sig.last, color: sig.color, pool: true });
+    }
+    s.zones = null;
+    if (inZones(zs, p)) { hurtPlayer(en.dmg * sig.mul, sig.el); if (!run) { return; } }
+    if (sig.kind === 'hops' && --s.left > 0) { beginGuardSig(en, sig, s, p); return; }
+    s.left = 0;
+    s.cd = sig.cd;
+  }
+  /** 한 틱 — true 면 지금 고유 수를 예고·시전 중(무기 패턴을 쉰다) */
+  function stepGuardSig(en, p, dt) {
+    if (!guardSigOn()) { return false; }
+    var def = fixedDefByKey(en.fixedGuard), sig = def && def.guard && def.guard.sig;
+    if (!sig) { return false; }
+    var s = guardSigState(en), i;
+    /* 불바닥 — 남은 동안 0.5초마다, 안에 서 있으면 */
+    if (s.pools.length) {
+      for (i = s.pools.length - 1; i >= 0; i--) { s.pools[i].t -= dt; if (s.pools[i].t <= 0) { s.pools.splice(i, 1); } }
+      s.poolT -= dt;
+      if (s.poolT <= 0) {
+        s.poolT = GUARD_POOL_TICK;
+        if (inZones(s.pools, p)) { hurtPlayer(en.dmg * sig.poolMul, sig.el); if (!run) { return true; } }
+      }
+    }
+    if (sig.kind === 'summon') {
+      var at = sig.at || [];
+      if (s.phase < at.length && en.hp / (en.hpMax || en.hp || 1) <= at[s.phase]) {
+        s.phase += 1;
+        var ED = global.DG.enemyData, ref = ED && ED.byName ? ED.byName(sig.add) : null;
+        for (i = 0; i < (sig.n || 2); i++) {
+          var ay = core.clamp(en.y + (i % 2 ? 1 : -1) * (40 + 20 * Math.floor(i / 2)), WALL + P_R, ROOM_H - WALL - P_R);
+          run.room.enemies.push(spawnEnemy(run.floor, false, { x: core.clamp(en.x - 30, WALL + P_R, ROOM_W - WALL - P_R), y: ay, ref: ref || undefined, spawned: true }));
+        }
+        run.room.cleared = false;
+        fx.push({ t: 'ring', x: en.x, y: en.y, r: 60, life: 0.5, color: '#d9d0b0' });
+        core.emit('toast', (en.ref && en.ref.emoji || '') + ' ' + sig.name + ' — ' + (sig.line || ''));
+      }
+      return false;
+    }
+    if (s.warn > 0) {
+      s.warn -= dt;
+      if (sig.kind === 'vortex' && !p.dodge) {
+        var dd = dist(en, p) || 1, stop = en.r + P_R + 4;
+        if (dd > stop) {
+          var mv = Math.min(dd - stop, sig.pull * dt);
+          p.x = core.clamp(p.x + (en.x - p.x) / dd * mv, WALL + P_R, ROOM_W - WALL - P_R);
+          p.y = core.clamp(p.y + (en.y - p.y) / dd * mv, WALL + P_R, ROOM_H - WALL - P_R);
+        }
+      }
+      if (s.warn <= 0) { resolveGuardSig(en, sig, s, p); }
+      return true;
+    }
+    s.cd -= dt;
+    if (s.cd <= 0) {
+      if (sig.kind === 'hops') { s.left = sig.hops || 3; }
+      beginGuardSig(en, sig, s, p);
+      return true;
+    }
+    return false;
+  }
+
   function fixedDoors(def, idx) {
     if (idx >= def.rooms.length - 1) { return [{ kind: 'stair', y: ROOM_H * 0.5 }]; }
     var nx = def.rooms[idx + 1];
@@ -3084,7 +3208,10 @@
         /* 보스 패턴 — 예고 뒤 터진다(PLAN 15절, `bossPattern()` 참고 —
            무기마다 다르다, 2026-09-05까지는 전부 같은 강타 하나였다) */
         if (en.boss) {
-          bossPattern(en, p, ed, dt);
+          /* §5.18 명소 층 주인 — 고유 수를 예고·시전하는 동안은 무기 패턴을 쉰다 */
+          var gBusy = en.fixedGuard ? stepGuardSig(en, p, dt) : false;
+          if (!run) { return; }
+          if (!gBusy) { bossPattern(en, p, ed, dt); }
           if (!run) { return; }
         }
       }
@@ -4489,6 +4616,7 @@
     /** 자가진단용 — 동행(부대 2번째 인물)의 때림 배율을 그대로 읽는다 */
     _companionMul: companionMul,
     _allySigWants: allySigWants,
+    _guardZones: guardZones, _stepGuardSig: stepGuardSig,
     ROOM_W: ROOM_W, ROOM_H: ROOM_H, WALL: WALL, P_R: P_R,
     SKILL_SLOTS: SKILL_SLOTS,
     /** 던전 밖(마을 등)이 같은 필드 메커니즘을 빌려 쓸 때 쓰는 자리 —

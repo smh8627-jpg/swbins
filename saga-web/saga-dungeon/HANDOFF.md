@@ -4211,3 +4211,10 @@ VRoid 인물이 unlit(`MeshBasicMaterial`) 그대로라 명암 없이 평면이�
 - `gesture.js` — `sig` 갈래(✨ 서명 / ⚡ 합격).
 - 진단 3 → jsdom 405/405 세 번 동일. `sw.js` dungeon-v0.162.0. **실기 확인 대기**.
 - 함정: 동행 서명이 strike 를 더 부르며 Math.random 순서가 밀려 "세공 재료는 던전에서 나온다" 가 보스층 축복 3택 창(`run.choice`)에서 3000틱 멈췄다 — 자동(🤖)은 축복 창을 안 넘긴다. 그 항목 루프에서 창이 뜨면 첫 축복을 고르게 했다. 부대가 앞 항목에서 비워질 수 있어 새 항목은 `withAlly`(선두+서명 있는 동행)로 감쌌다.
+
+## 2026-09-24 (이어서 11) — 명소 층 주인 고유 수(PLAN §5.18)
+
+- 계기: "이어해" — §5.15 다음 후보. 주인 여섯이 빌린 몸에 무기가 없어 전부 `bossSlam` 하나였다.
+- `data-dungeon.js` guard.sig 여섯(summon·rain·hops·vortex·pool·cross) · `dungeon.js` `guardZones`(순수)·`stepGuardSig`(보스 루프에서 `en.fixedGuard` 만, 바쁘면 bossPattern 쉼)·불바닥 틱·호령 문턱.
+- 함정: 기존 fx `'ring'` 은 r 을 무시하고 0.55초 동안 0 에서 퍼지는 파문이다(life 가 0.55 보다 길면 반지름이 음수) — 긴 예고에 못 쓴다. 제 크기에 서는 `'zone'`(life·max) 을 fx3d·2D 에 새로 만들었다. 링 풀 18 로는 천뢰 원 스물이 모자라 36 으로.
+- 진단 4 → jsdom 409/409 세 번 동일. `sw.js` dungeon-v0.163.0. **실기 확인 대기**.

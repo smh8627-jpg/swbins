@@ -1972,6 +1972,19 @@
       ctx.strokeStyle = 'rgba(150,220,255,' + (f.life / 0.3 * 0.8) + ')';
       ctx.lineWidth = 3;
       ctx.stroke();
+    } else if (f.t === 'zone') {
+      /* 예고 원(§5.18) — 제 크기에 서서 터질 때가 다가올수록 진해진다(불바닥은 고르게) */
+      var zk = 1 - f.life / (f.max || 1);
+      ctx.beginPath();
+      isoEllipse(ctx, m, f.x, f.y, f.r || 40);
+      ctx.globalAlpha = f.pool ? Math.min(1, f.life) * 0.35 : 0.12 + 0.3 * zk;
+      ctx.fillStyle = f.color || '#ff6a3a';
+      ctx.fill();
+      ctx.globalAlpha = f.pool ? Math.min(1, f.life) * 0.8 : 0.4 + 0.6 * zk;
+      ctx.strokeStyle = f.color || '#ff6a3a';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
     } else if (f.t === 'ring') {
       ctx.beginPath();
       isoEllipse(ctx, m, f.x, f.y, (0.55 - f.life) * 130);

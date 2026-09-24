@@ -29,11 +29,14 @@
    * 방 다섯이 늘 같은 순서로 이어지고(문은 하나, 다음 방 이름이 붙는다), 방마다 기둥 배치(pat)·
    * 적 명단·자리가 늘 같다. 마지막 방은 층 주인(guard — 몸은 base 몬스터를 빌린다, 이름은 창작).
    * foes: [이름, 수, 정예면 true]. 방 종류(kind)는 ROOMS 의 것을 그대로 쓴다(상자·우물·사당 판정 재사용).
+   * guard.sig — 층 주인 고유 수(§5.18). kind 여섯: summon(체력 문턱마다 졸개) · rain(원 n 개) · hops(연속 돌진)
+   *   · vortex(끌어당긴 뒤 둘레 폭발) · pool(불바닥이 남는다) · cross(+/× 번갈아 줄 넷). 판정은 dungeon.js guardZones.
    */
   var FIXED = [
     { floor: 5, key: 'tomb', name: '순장 왕릉', hanja: '殉葬王陵', emoji: '⚱️',
       intro: '돌길 양옆으로 순장된 병사들의 무덤이 늘어서 있다 — 가장 안쪽 현실에 무언가 깨어 있다',
-      guard: { name: '녹슨 순장장군', emoji: '🦴', base: '해골대장', color: '#8a7a5a', desc: '왕을 따라 묻힌 장군이 아직 칼을 쥐고 있다' },
+      guard: { name: '녹슨 순장장군', emoji: '🦴', base: '해골대장', color: '#8a7a5a', desc: '왕을 따라 묻힌 장군이 아직 칼을 쥐고 있다',
+        sig: { name: '순장 호령', kind: 'summon', at: [0.66, 0.33], add: '해골졸개', n: 2, line: '순장된 병사들이 무덤에서 일어난다' } },
       rooms: [
         { kind: 'fight', title: '참배길', pat: 'hall', foes: [['해골졸개', 4], ['원혼', 2]] },
         { kind: 'shrine', title: '제기방', pat: 'open', foes: [['풋귀', 2]] },
@@ -43,7 +46,8 @@
       ] },
     { floor: 10, key: 'fort', name: '무너진 망루성', hanja: '望樓城', emoji: '🏯',
       intro: '성문은 부서졌고 망루에는 아직 불이 켜져 있다 — 성주가 성을 버리지 않았다',
-      guard: { name: '망루성 성주의 망령', emoji: '👑', base: '철갑 중장병', color: '#5a6a8a', desc: '함락된 날의 갑옷 그대로 성을 지킨다' },
+      guard: { name: '망루성 성주의 망령', emoji: '👑', base: '철갑 중장병', color: '#5a6a8a', desc: '함락된 날의 갑옷 그대로 성을 지킨다',
+        sig: { name: '망루 화살비', kind: 'rain', cd: 7, warn: 0.9, r: 42, n: 3, spread: 55, mul: 1.2, el: 'phys', color: '#d9c27a' } },
       rooms: [
         { kind: 'fight', title: '부서진 성문', pat: 'hall', foes: [['떠돌이 병졸', 3], ['위군 창병', 2], ['연노 사수', 1]] },
         { kind: 'well', title: '병영 우물', pat: 'open', foes: [] },
@@ -53,7 +57,8 @@
       ] },
     { floor: 15, key: 'bandit', name: '흑풍 산채', hanja: '黑風山寨', emoji: '🏴',
       intro: '목책 너머로 검은 깃발이 펄럭인다 — 잡혀 온 사람들의 소리가 들린다',
-      guard: { name: '흑풍 채주', emoji: '🐯', base: '산군', color: '#3a3a2a', desc: '범 가죽을 두른 산채의 우두머리' },
+      guard: { name: '흑풍 채주', emoji: '🐯', base: '산군', color: '#3a3a2a', desc: '범 가죽을 두른 산채의 우두머리',
+        sig: { name: '흑풍 삼연돌', kind: 'hops', cd: 8, warn: 0.45, r: 34, hops: 3, mul: 0.9, el: 'phys', color: '#b09a5a' } },
       rooms: [
         { kind: 'fight', title: '목책 어귀', pat: 'hall', foes: [['산적', 4], ['도적떼', 2]] },
         { kind: 'event', title: '포로 우리', pat: 'open', foes: [['산적', 3]] },
@@ -63,7 +68,8 @@
       ] },
     { floor: 20, key: 'palace', name: '가라앉은 용궁', hanja: '沈龍宮', emoji: '🐚',
       intro: '산호 기둥 사이로 물빛이 일렁인다 — 용좌에는 주인 대신 다른 것이 앉아 있다',
-      guard: { name: '심연 용궁지기', emoji: '🐉', base: '흑이무기', color: '#1a4a6a', desc: '용이 되지 못한 채 용궁을 차지한 것' },
+      guard: { name: '심연 용궁지기', emoji: '🐉', base: '흑이무기', color: '#1a4a6a', desc: '용이 되지 못한 채 용궁을 차지한 것',
+        sig: { name: '심연 소용돌이', kind: 'vortex', cd: 9, warn: 1.2, r: 95, pull: 60, mul: 1.4, el: 'cold', color: '#5ab4ff' } },
       rooms: [
         { kind: 'fight', title: '산호길', pat: 'hall', foes: [['철갑해', 3], ['집게괴', 2], ['늪슬라임', 2]] },
         { kind: 'well', title: '진주 샘', pat: 'ring', foes: [] },
@@ -73,7 +79,8 @@
       ] },
     { floor: 25, key: 'hellgate', name: '업화 대문', hanja: '業火大門', emoji: '⛩️',
       intro: '재가 눈처럼 내린다 — 거대한 문 앞에서 망자들이 줄을 서 있다',
-      guard: { name: '업화 문지기', emoji: '🔥', base: '겁화귀', color: '#8a2a10', desc: '죄의 무게를 재어 문을 여는 불의 수문장' },
+      guard: { name: '업화 문지기', emoji: '🔥', base: '겁화귀', color: '#8a2a10', desc: '죄의 무게를 재어 문을 여는 불의 수문장',
+        sig: { name: '업화 장판', kind: 'pool', cd: 6, warn: 0.8, r: 46, mul: 0.6, last: 6, poolMul: 0.2, maxPools: 4, el: 'fire', color: '#ff6a2a' } },
       rooms: [
         { kind: 'fight', title: '재의 다리', pat: 'hall', foes: [['화염귀', 2], ['해골귀', 3], ['가시귀', 2]] },
         { kind: 'shrine', title: '망자의 저울', pat: 'open', foes: [['원귀', 2]] },
@@ -83,7 +90,8 @@
       ] },
     { floor: 30, key: 'heaven', name: '구름 위 금궐', hanja: '金闕', emoji: '🏛️',
       intro: '구름다리 끝에 금빛 궁궐이 떠 있다 — 천장군이 문을 닫고 칼을 뽑았다',
-      guard: { name: '타락 천장군', emoji: '⚡', base: '대요술사', color: '#8a8ad9', desc: '하늘 문을 지키다 스스로 문이 되어 버린 장군' },
+      guard: { name: '타락 천장군', emoji: '⚡', base: '대요술사', color: '#8a8ad9', desc: '하늘 문을 지키다 스스로 문이 되어 버린 장군',
+        sig: { name: '천뢰 십자', kind: 'cross', cd: 8, warn: 1.0, r: 22, arms: 4, count: 5, gap: 48, mul: 1.3, el: 'lit', color: '#c9b8ff' } },
       rooms: [
         { kind: 'fight', title: '구름다리', pat: 'hall', foes: [['회오리 정령', 2], ['폭풍 정령', 2], ['산도깨비', 2]] },
         { kind: 'well', title: '선녀 샘', pat: 'ring', foes: [] },

@@ -68,6 +68,7 @@
   var SHAKE_MAX = 14;
 
   function full(f) {
+    if (f.t === 'zone') { return f.max || 1; }   // 예고 원(§5.18)은 길이가 제각각 — 태어날 때 life 를 max 로 싣는다
     /* 플레이어가 맞은 숫자는 0.7 로 태어난다(적을 때린 것은 0.6) */
     if (f.t === 'hit' && f.foe) { return 0.7; }
     return FULL[f.t] || 0.5;
@@ -162,6 +163,15 @@
         kind: 'ring', hex: hexOf(f.color, 0x96dcff), alpha: a * 0.8, k: k,
         r: (f.r || 60) * (1.15 - a * 0.4),
         thick: 0.09, lift: 6, glow: true, spin: true
+      };
+    }
+    if (f.t === 'zone') {
+      /* 예고 원(§5.18 명소 주인 고유 수) — 퍼지지 않고 제 크기에 서서, 터질 때가 다가올수록 진해진다.
+         불바닥(pool)은 고르게 깔려 있다가 마지막 1초에 옅어진다 */
+      return {
+        kind: 'ring', hex: hexOf(f.color, 0xff6a3a), k: k,
+        alpha: f.pool ? core.clamp(f.life, 0, 1) * 0.6 : 0.35 + 0.65 * k,
+        r: f.r || 40, thick: f.pool ? 0.2 : 0.08, lift: 3, glow: true
       };
     }
     if (f.t === 'ring') {
@@ -462,7 +472,7 @@
       wallGeo = new T.CylinderGeometry(1, 1, 1, 40, 1, true);
       pools.num = pool(makeNum, 40);
       pools.text = pool(makeText, 14);
-      pools.ring = pool(makeRing, 18);
+      pools.ring = pool(makeRing, 36);   // §5.18 천뢰 십자가 예고 원 스물을 한꺼번에 깐다
       pools.wall = pool(makeWall, 6);
       pools.slash = pool(makeSlash, 20);
       pools.burst = pool(makeBurst, 8);
