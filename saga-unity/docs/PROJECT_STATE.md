@@ -33,7 +33,7 @@ Maria(플레이어)·Abe(잡졸)·Brute(두목) + **2026-09-24 Skeleton·Paladin
 - **씬 빌더(에디터)에서 건 `onClick.AddListener`는 저장 안 된다** — 새 버튼은 `Saga.Core.ButtonWiring.Wire(button, 메서드)`(에디터면 영속·Play면 런타임, 인자 하나는 string/int 오버로드). 람다 불가(경고 남김) → 이름 있는 메서드로. 정적 메서드는 대상 컴포넌트 하나(`XxxSaveButton`). STORY는 `[SerializeField]`+`Awake()` 방식(둘 다 유효). 진단은 `Editor/ButtonWiringCheck.cs`(씬 전체 죽은 버튼 + 진짜 onClick).
 - 영속 리스너 메서드 이름을 바꾸면 **씬 재빌드** 필요 — 안 하면 먹통(`ButtonWiringCheck`가 대상 메서드 존재까지 보니 진단이 잡는다).
 - **`Destroy()`로 자식을 지우고 같은 프레임에 다시 그리면 쌓인다** — onClick 중이면 `DestroyImmediate` 말고 떼어 내고(`SetParent(null)`)·끄고 `Destroy`(`StoryLabyrinthMapUi.ClearChildren`).
-- **함정**: Unity 6000.3.24f1 > 프로젝트 6000.3.23f1 → 배치/GUI 실행이 ProjectSettings/Packages를 조용히 고친다. `tools/unity-batch.sh --`로 부르면 자동 원복(GUI 실행은 수동 `git checkout`).
+- **함정**: Unity 6000.3.24f1 > 프로젝트 6000.3.23f1 → 배치/GUI 실행이 ProjectSettings/Packages를 조용히 고친다. `tools/unity-batch.sh --`로 부르면 자동 원복(`*_RPAsset` v13 올림은 수동 checkout)(GUI 실행은 수동 `git checkout`).
 - `Animator.GetBoneTransform()`은 `isHuman`으로 먼저 거를 것.
 - 정적 상태의 `Restore()`가 관련 이벤트(`JobChosen`·`EquipmentChanged`·`StorySkillState.Changed`)를 쏴야 시각·UI가 안 낡는다.
 - URP 런타임 타입엔 asmdef에 `Unity.RenderPipelines.Universal.Runtime` 필요(SagaDungeon/SagaGo). SagaStory는 asmdef 없음.
@@ -66,4 +66,4 @@ Maria(플레이어)·Abe(잡졸)·Brute(두목) + **2026-09-24 Skeleton·Paladin
 - FOREST: **특색 존(108 ②) — 명소 크기·휨 따라 내림이 가까이서 튀는지·점광 세기·자막 세 줄**, 벽지/장판, 가구 배치, 생물·과일나무·좌판, 목표판/세션카드, 번들, 채집 손맛, 평가 별점, 택배 사슬, 축제(달력 1·8·15일), 과일나무·바크 톤, 잔디 디테일 톤, **폰에서 저장·설정·밀어내기 버튼**
 - STORY: **두목 등장 컷(106-8) — 2.5D 에서 3/4 로 도는 게 어색하지 않은지·4.2초·이름표·되돌아오는 블렌드** · 두목 크기·타격감, 사건·관계·선택, 전직 팝업, 목표판/세션카드, 타격 체감, 유품·데칼·레벨업 줌·직업별 무기, 관문 대장, 비경 지도·축복·아레나, 교대 버튼·서명, **무예 패널(K·"무예" 버튼·전직관)·무예 칸 넷·직업 무예 22 손맛·모바일 버튼 전체가 실제로 눌리는지·비경 노드 버튼 연속 탭**, **2차 전직(Lv.15, 전직관 2택)·2차 무예 19 손맛·유파 세트 체감(패널 "[유파·2세트]")·전우/천뢰 범위·Lv.10→15 비경 약 4판이 적당한지**, **3·4차 전직(Lv.20/25)·3·4차 무예 44 손맛·무예 패널 차수 탭·"칸" 고정 조작·4세트 체감·15→20/20→25 판수·전직 차수 옷 빛깔(4차 48%가 과하거나 약하지 않은지)**
 - REALM: 월드맵, 적국 사슬, 패널 여덟, 목표판/세션카드, 공격·계략, 특성·야망, 전술 토글, 서사 카드, 계승 토글, 일기토·설전, 승리 결과 카드, 성벽 실루엣, 오빗 카메라 pull-in, **폰에서 버튼 전부(명령·성·계략·공격·다음달·패널 닫기, 2026-09-23 고침)**
-- 공통: BGM 음량, 설정 패널 6줄, SessionCard DoF, 접지 blob 그림자(Mobile 품질), LUT 톤 5장, Screen Space Shadows, Maria 피부 SSS
+- 공통: 폰 발열(30fps·"저" 버튼), BGM 음량, 설정 패널 6줄, SessionCard DoF, 접지 blob 그림자(Mobile 품질), LUT 톤 5장, Screen Space Shadows, Maria 피부 SSS

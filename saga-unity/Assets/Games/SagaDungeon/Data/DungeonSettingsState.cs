@@ -87,6 +87,7 @@ namespace Saga.Dungeon.Data
             if (!HasGraphicsQualityOverride) return;
             QualitySettings.shadowDistance = HighGraphicsQuality ? 40f : 15f;
             QualitySettings.antiAliasing = HighGraphicsQuality ? 2 : 0;
+            Saga.Core.MobileGraphics.ApplyQuality(HighGraphicsQuality); // URP 는 위 둘을 안 읽는다 — 폰에선 파이프라인 에셋을 직접(2026-09-24 발열 점검)
         }
 
         public static void ApplyUiScale(CanvasScaler scaler)

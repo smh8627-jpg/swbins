@@ -1161,7 +1161,7 @@ Slice 승인/재설계 결정.** 100단계에서 무조건 다음 콘텐츠로 �
 ## 103-2. 임포트 프리셋 규칙(`Assets/Settings/Presets/`, 코드로 적용)
 | 대상 | Preset | 값 |
 |---|---|---|
-| 텍스처 albedo/normal/ORM | `Tex_PBR` | 최대 2048(PC)·1024(Mobile override, ASTC 6×6), sRGB albedo 만, 노멀 타입 지정 |
+| 텍스처 albedo/normal/ORM | `Tex_PBR` | 최대 2048(PC·Mobile 같음 — **모바일 해상도 안 낮춤**, 사용자 2026-09-24 "그래픽을 낮추라는 게 아니다", 옛 "Mobile 1024 override" 안 씀), sRGB albedo 만, 노멀 타입 지정 |
 | 메시 GLB/FBX 정적 | `Mesh_Static` | Read/Write 끔, 스케일 1.0(§6.0-3 자동 리스케일은 빌더에서), 라이트맵 UV 생성 |
 | 캐릭터 FBX | `Mesh_Humanoid` | `MixamoRigUtil` 이 처리(Humanoid·ExtractTextures) |
 | 오디오 | `Audio_SFX`/`Audio_BGM` | SFX 압축 ADPCM·BGM Vorbis 0.5·스트리밍 |

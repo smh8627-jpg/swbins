@@ -8929,3 +8929,17 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - **곁에서 고친 결함**: `BuildRoomContent` 가 옛 방 내용을 `Destroy` 만 해서 같은 프레임에 다시 지으면(JumpToFloor 직후) 옛 적이 살아 있는 채로 방에 섞였다 — 진단이 5층 첫 방에서 "황건적" 넷을 잡았다. 떼어 내고 끈 뒤 지우게 고침(PROJECT_STATE 알려진 오류와 같은 함정).
 - 파일: 새 `Data/DungeonLandmarkData.cs`(표·`LandmarkState`)·`Editor/PlaytestDungeonLandmarks.cs`, 고침 `DungeonFloorRunner`(명소 흐름·`SpawnLord`·주인 토벌·옛 내용 떼기)·`DungeonEnemy`(부제·진단용 접근자)·`ItemData`(무기 여섯)·`SaveState`(v10)·`PlayerHud`·`dungeon_ko/en.json`(키 65)·`PlaytestDungeonHeadless`. 씬 재빌드 없음.
 - 검증: `PlaytestDungeonHeadless` **3연속 OK**(새 `landmarks` 줄 3회 같음, 달라진 건 원래 흔들리는 fps·컷 시각 줄뿐) · `PlaytestDungeonFloorProgression` OK(12방·4층) · `SimulateDungeonFloors` OK(공식만 봐서 명소 층은 모름). 실기 확인 전(5층 주인 세기·방 다섯이 짧거나 길지 않은지·첫 토벌 무기 체감·다른 층도 고정하길 원하는지).
+
+## 2026-09-24 — 폰 발열 점검(그래픽 최적화 확인) — 화질은 그대로, 새는 것만 (사용자 "핸드폰 불나면 안되니", Opus 5.5)
+
+- **사용자 기준**: 도중에 "그래픽을 낮추라는 게 아니라는 건 알지?" — 화질을 깎는 최적화는 빼고, 보이는 것 안 바뀌는 것만.
+- **이미 모바일용으로 잘 나뉜 것(점검만)**: Android·iPhone 기본 품질 = Mobile · Mobile URP 렌더 스케일 0.8·MSAA 2·그림자 맵 1024·캐스케이드 1·소프트/추가 조명 그림자 끔·SRP Batcher · Mobile 렌더러는 데칼 하나(SSAO·Screen Space Shadows 는 PC 만) · DoF 는 PC 만 · 블룸 반 해상도·HQ 필터 끔 · Update 안의 Find 계열 호출 없음(StoryCameraFollow 는 null 일 때만).
+- **고친 것**:
+  - 설정 "그래픽 저" 가 **폰에서 실제로 아무 일도 안 했다** — 다섯 판 모두 `QualitySettings.shadowDistance`·`antiAliasing` 만 바꿨는데 URP 는 둘 다 안 읽는다(진단도 그 두 값만 봐서 통과했다). 새 `SagaCore/MobileGraphics.ApplyQuality` 가 활성 URP 에셋의 그림자 거리 15·MSAA 끔·렌더 스케일 ≤0.7·물체당 추가 조명 2 를 직접 건다. 기본 "고" 는 안 바꾸고, 사람이 "저" 를 골랐을 때만. 에디터에선 에셋 파일이 저장될 수 있어 플레이어 빌드에서만 건다.
+  - 모바일 프레임 상한 30 을 **명시**(`Application.targetFrameRate`, 모바일만). 기본값 -1 은 기기·화면(120Hz)마다 해석이 달라 못 박았다 — 보통 폰 기본도 30 이라 체감 변화는 없을 것(실기 확인 몫).
+  - Mobile 데칼 그리는 거리 1000m → 60m(발자국·그을음 데칼은 플레이어 곁에만 생긴다 — 60m 밖은 폰 화면에서 안 보인다).
+- **넣었다가 되돌린 것(화질 저하라)**: 폰 텍스처 1024·ASTC 6×6 상한(PLAN 103-2 에 적혀 있던 값 — 캐릭터 2048/4096 이 줄어든다, 103-2 를 "모바일도 2048" 로 고침) · GO 풀·갈대 그림자 끄기(씬 재빌드했다가 git 으로 원복).
+- **남겨 둔 권고(화질에 닿아 손 안 댐)**: GO 런타임 점광 약 36개(상자 16·원소 적 8·역참 5·석등·망루 60m) — 물체당 4개로 이미 막혀 있다 · 폰에서 HDR 버퍼 · 캐릭터 텍스처 2048/4096.
+- **함정**: Unity 6000.3.24 가 배치 실행 때 `Mobile_RPAsset.asset` 형식을 v12→v13 으로 올려 쓴다(`tools/unity-batch.sh` 원복 목록 밖) — 두 번 git checkout 으로 되돌림, 커밋 안 함.
+- 파일: 새 `SagaCore/MobileGraphics.cs`·`Editor/PlaytestMobileGraphics.cs`, 고침 다섯 `XxxSettingsState.ApplyGraphicsQuality`·`Mobile_Renderer.asset`·`PlaytestHeadless`·PLAN 103-2.
+- 검증: GO `PlaytestHeadless` OK(새 `mobile graphics` 줄 — Mobile 값 그대로·데칼 60m·고=안 바꿈/저=가벼움·30fps). 폰 실측(온도·프레임)은 모바일 빌드 뒤 실기 몫.
