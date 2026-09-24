@@ -190,13 +190,17 @@ namespace Saga.Go.Data
             return new string('●', danger) + new string('○', MaxDanger - danger);
         }
 
-        /// <summary>108 — "위험 ●●○ · 산적·해골 병사"(명단이 비면 "위험 ●○○ · 적 없음").</summary>
+        /// <summary>108 — "위험 ●●○ · 산적·해골 병사"(명단이 비면 "위험 ●○○ · 적 없음"), 109-1 다른 시대 무리가 서면 " · 시간 틈 떠도는 망자·…".</summary>
         public static string DangerLine(string id)
         {
             var r = RegionOf(id);
             string foes = r.Roster.Length == 0 ? GoLocalization.T("region.no_foes", "적 없음") : "";
             for (int i = 0; i < r.Roster.Length; i++) foes += (i > 0 ? "·" : "") + FieldEnemy.KindName(r.Roster[i]);
-            return string.Format(GoLocalization.T("region.danger", "위험 {0} · {1}"), DangerDots(r.Danger), foes);
+            string line = string.Format(GoLocalization.T("region.danger", "위험 {0} · {1}"), DangerDots(r.Danger), foes);
+            // 109-1 — 다른 시대 무리가 서면 그 이름을 뒤에(웹 ⑱ "적 이름 뒤 시대 표시")
+            var era = FieldSpawner.EraFoeNames(id);
+            if (era.Count > 0) line += " · " + string.Format(GoLocalization.T("region.era_foes", "시간 틈 {0}"), string.Join("·", era));
+            return line;
         }
 
         public static string WaypointName(Waypoint w) => GoLocalization.T(w.NameKey, w.NameKo);

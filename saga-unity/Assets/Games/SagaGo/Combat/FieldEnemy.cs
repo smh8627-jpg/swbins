@@ -88,6 +88,10 @@ namespace Saga.Go.Combat
         public float AuraLeft { get; private set; }
         public bool Charged => _chargedLeft > 0f;
         public string GroupId { get; private set; }
+        /// <summary>PLAN.md 109-1 — 이 적이 온 시대(무리 시대). 과거면 옛 몸·옛 이름.</summary>
+        public GoEra Era { get; private set; } = GoEra.Past;
+        /// <summary>다른 시대 몸 이름(`GoEras.FoeBodies`), 과거면 null.</summary>
+        public string EraBody { get; private set; }
         /// <summary>원소 쓰는 적의 원소(보통 적은 Physical).</summary>
         public GoElement Element { get; private set; }
         public float ShieldMax { get; private set; }
@@ -127,6 +131,10 @@ namespace Saga.Go.Combat
         private Renderer _shieldFillRenderer;
 
         public static FieldEnemy Spawn(Kind kind, Vector3 home, GameObject model, string groupId, Transform parent)
+            => Spawn(kind, home, model, groupId, parent, GoEra.Past, null);
+
+        /// <summary>PLAN.md 109-1 — 다른 시대 무리의 적. 종류(체력·원소·방패)는 그대로, 몸(`eraBody`)·이름만 그 시대 것.</summary>
+        public static FieldEnemy Spawn(Kind kind, Vector3 home, GameObject model, string groupId, Transform parent, GoEra era, string eraBody)
         {
             var go = new GameObject($"FieldEnemy_{kind}");
             go.transform.SetParent(parent, false);
@@ -134,6 +142,8 @@ namespace Saga.Go.Combat
             e.kind = kind;
             e.model = model;
             e.GroupId = groupId;
+            e.Era = era;
+            e.EraBody = era == GoEra.Past ? null : eraBody;
             e.Home = home;
             e._spawnHome = home;
             e.Setup();
@@ -198,6 +208,7 @@ namespace Saga.Go.Combat
                     MaxHp = 220f; Atk = 20f; ExpReward = 10;
                     break;
             }
+            if (EraBody != null) DisplayName = GoEras.FoeName(EraBody, Element);
             Hp = MaxHp;
             ShieldHp = ShieldMax;
             ShieldLayers = IsGuardian ? 2 : ShieldMax > 0f ? 1 : 0;
@@ -252,7 +263,7 @@ namespace Saga.Go.Combat
         /// <summary>몸에 늘 입히는 빛깔 — 해골은 바랜 흰빛, 원소 쓰는 적은 원소 빛(산적은 없음).</summary>
         private bool BaseTint(out Color c)
         {
-            if (kind == Kind.Skeleton) { c = new Color(0.88f, 0.9f, 0.96f); return true; }
+            if (kind == Kind.Skeleton && EraBody == null) { c = new Color(0.88f, 0.9f, 0.96f); return true; } // 바랜 뼈빛은 옛 해골 몸에만
             // 수호장 — 전용 몸(Maw, 2026-09-24)의 제 빛깔 위에 지금 겹의 원소가 은은히 밴다(옛 Brute 몸 때의 돌빛은 뺐다).
             if (IsGuardian) { c = Color.Lerp(Color.white, GoElements.ColorOf(Element), 0.3f); return true; }
             if (IsElemental) { c = Color.Lerp(new Color(0.35f, 0.33f, 0.32f), GoElements.ColorOf(Element), 0.75f); return true; }

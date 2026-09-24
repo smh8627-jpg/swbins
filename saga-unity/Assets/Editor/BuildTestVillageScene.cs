@@ -75,6 +75,7 @@ namespace Saga.EditorTools
             var (playerGo, cameraRig) = BuildPlayer();
             BuildFieldCombat(playerGo);
             BuildWorldMap();
+            BuildFolk();
             BuildReviewCamera();
             BuildPostProcessingVolume();
             BuildToneVolume();
@@ -365,6 +366,11 @@ namespace Saga.EditorTools
             // PLAN.md 107-7 망루 수호장 — 전용 몸 Maw J Laygo(2026-09-24), 없는 PC 는 두목 모델 Brute.
             SetPrivateField(spawner, "guardianModel", AssetDatabase.LoadAssetAtPath<GameObject>(SetupNpcCharacterImports.PrefabPath("Maw"))
                 ?? AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/CharactersRealistic/Brute/BruteAnimated.prefab"));
+            // PLAN.md 109-1 — 다른 시대 무리 몸(현대 방독면 약탈자·떠도는 망자, 미래 강철 경비병·별바다 손님). 없는 PC 는 옛 몸.
+            var eraNames = new List<string>();
+            foreach (var era in GoEras.All) eraNames.AddRange(GoEras.FoeBodies(era));
+            SetPrivateField(spawner, "eraBodyNames", eraNames.ToArray());
+            SetPrivateField(spawner, "eraBodyModels", LoadNpcPrefabs(eraNames));
 
             // PLAN.md 107-6 "동료 모델" — 교체하면 몸이 바뀐다(모델은 로컬 전용, 없으면 주인공 몸 + 원소 빛깔)
             var bodies = playerGo.AddComponent<PartyBodies>();
@@ -377,6 +383,27 @@ namespace Saga.EditorTools
             }
             SetPrivateField(bodies, "extraBodies", extras.ToArray());
             SetPrivateField(bodies, "bodyController", AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(MariaControllerPath));
+        }
+
+        private static GameObject[] LoadNpcPrefabs(List<string> names)
+        {
+            var models = new GameObject[names.Count];
+            for (int i = 0; i < names.Count; i++)
+            {
+                models[i] = AssetDatabase.LoadAssetAtPath<GameObject>(SetupNpcCharacterImports.PrefabPath(names[i]));
+                if (models[i] == null) Debug.LogWarning($"[BuildTestVillageScene] {names[i]} 몸 프리팹 없음(로컬 전용 — Saga/Setup NPC Character Imports) — 폴백");
+            }
+            return models;
+        }
+
+        /// <summary>PLAN.md 109-1 — 역참 둘레 세 시대 사람. Play 때 `FolkBuilder` 가 세우고, 여기선 몸 프리팹만 넘긴다.</summary>
+        private static void BuildFolk()
+        {
+            var go = new GameObject("Folk");
+            var builder = go.AddComponent<FolkBuilder>();
+            var names = new List<string>(GoEras.FolkBodies());
+            SetPrivateField(builder, "bodyNames", names.ToArray());
+            SetPrivateField(builder, "bodyModels", LoadNpcPrefabs(names));
         }
 
         /// <summary>PLAN.md 107-3 "지역 지도" — 순간이동 지점·옛 망루·지도 화면은 Play 때 `WorldMapBuilder` 가 세운다.

@@ -47,6 +47,41 @@ namespace Saga.Go.Combat
         [SerializeField] private GameObject banditModel;
         [SerializeField] private GameObject skeletonModel;
         [SerializeField] private GameObject guardianModel;
+        // PLAN.md 109-1 — 다른 시대 적 몸(`GoEras.FoeBodies` 이름과 같은 순서로 씬 빌더가 채운다). 없는 PC 는 null → 옛 몸.
+        [SerializeField] private string[] eraBodyNames = new string[0];
+        [SerializeField] private GameObject[] eraBodyModels = new GameObject[0];
+
+        /// <summary>109-1 — 무리 시대(한가운데·id 로 정해진다, 수호장은 과거). 모르는 id 는 과거.</summary>
+        public static GoEra GroupEra(string groupId)
+        {
+            foreach (var g in Groups) if (g.Id == groupId) return GoEras.GroupEra(g.Id, TestMapData.WorldPos(g.Gx, g.Gy));
+            return GoEra.Past;
+        }
+
+        /// <summary>109-1 — 그 지역 무리에 서는 다른 시대 적 이름들(겹침 없이, 원소 낱말 빼고). 지역 자막·지도 줄이 쓴다.</summary>
+        public static System.Collections.Generic.List<string> EraFoeNames(string regionId)
+        {
+            var names = new System.Collections.Generic.List<string>();
+            foreach (var g in Groups)
+            {
+                if (GoWorldMap.RegionAt(TestMapData.WorldPos(g.Gx, g.Gy)) != regionId) continue;
+                GoEra era = GroupEra(g.Id);
+                if (era == GoEra.Past) continue;
+                for (int i = 0; i < g.Members.Length; i++)
+                {
+                    string n = GoEras.FoeBodyName(GoEras.FoeBodyFor(era, g.Id, i));
+                    if (!names.Contains(n)) names.Add(n);
+                }
+            }
+            return names;
+        }
+
+        private GameObject EraModel(string body)
+        {
+            for (int i = 0; i < eraBodyNames.Length && i < eraBodyModels.Length; i++)
+                if (eraBodyNames[i] == body) return eraBodyModels[i];
+            return null;
+        }
 
         /// <summary>세우는 들판 적 수 — 이미 쓰러뜨린 수호장은 안 센다.</summary>
         public static int PlannedCount
@@ -100,13 +135,22 @@ namespace Saga.Go.Combat
             {
                 Vector3 center = TestMapData.WorldPos(g.Gx, g.Gy);
                 int danger = GoWorldMap.DangerOf(GoWorldMap.RegionAt(center)); // 108 지역 위험도
+                GoEra era = GoEras.GroupEra(g.Id, center); // 109-1 무리 시대
                 for (int i = 0; i < g.Members.Length; i++)
                 {
                     float a = i * Mathf.PI * 2f / g.Members.Length + g.Gx;
                     Vector3 home = center + new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * GroupSpread;
                     var kind = g.Members[i];
                     // 원소 쓰는 적은 해골 모델에 원소 빛깔을 입힌다("원소 깃든 망자", 사실적 PBR 트랙이라 코드 도형 대신)
-                    FieldEnemy.Spawn(kind, home, kind == FieldEnemy.Kind.Bandit ? banditModel : skeletonModel, g.Id, transform).ApplyDanger(danger);
+                    GameObject model = kind == FieldEnemy.Kind.Bandit ? banditModel : skeletonModel;
+                    string body = GoEras.FoeBodyFor(era, g.Id, i);
+                    if (body != null)
+                    {
+                        // 다른 시대 몸 — 없는 PC 는 옛 몸에 그 시대 이름만(종류·원소 규칙은 그대로)
+                        var eraModel = EraModel(body);
+                        if (eraModel != null) model = eraModel;
+                    }
+                    FieldEnemy.Spawn(kind, home, model, g.Id, transform, era, body).ApplyDanger(danger);
                 }
             }
             if (!GuardianState.Defeated)

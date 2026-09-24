@@ -61,7 +61,31 @@ namespace Saga.EditorTools
             new Spec { Name = "Demon", Idle = "Idle", Walk = "Walking", Attack = "Attack", Hit = "HitReaction", Death = "Dying" },
             new Spec { Name = "AlienSoldier", Idle = "Idle", Walk = "Walking", Attack = "Attack", Hit = "HitReaction", Death = "Dying" },
             new Spec { Name = "Morak", Idle = "Idle", Walk = "Walking", Attack = "Attack", Hit = "HitReaction", Death = "Dying" },
+            // PLAN.md 109-1 GO 세 시대(2026-09-25 Mixamo, README 레시피 표) — 다른 시대 들판 적 몸: 현대 방독면 약탈자 Gas Mask·
+            // 떠도는 망자 Copzombie L Actisdato, 미래 강철 경비병 Exo Red(+ 위 Alien Soldier). 다섯 상태(산적·해골과 같은 코드).
+            new Spec { Name = "GasMask", Idle = "Idle", Walk = "Walking", Attack = "Attack", Hit = "HitReaction", Death = "Dying" },
+            new Spec { Name = "Copzombie", Idle = "Idle", Walk = "Walking", Attack = "Attack", Hit = "HitReaction", Death = "Dying" },
+            new Spec { Name = "ExoRed", Idle = "Idle", Walk = "Walking", Attack = "Attack", Hit = "HitReaction", Death = "Dying" },
+            // 역참 둘레 사람 — 현대 여행자 Remy·택배 기사 Megan·순찰 대원 Swat Guy, 미래 탐사 대원 Exo Gray·수리 기사 Vanguard·
+            // 시간 여행자 Crypto. 서기·걷기만(`FolkWalker` 가 Speed 로 오간다).
+            new Spec { Name = "Remy", Idle = "Idle", Walk = "Walking" },
+            new Spec { Name = "Megan", Idle = "Idle", Walk = "Walking" },
+            new Spec { Name = "SwatGuy", Idle = "Idle", Walk = "Walking" },
+            new Spec { Name = "ExoGray", Idle = "Idle", Walk = "Walking" },
+            new Spec { Name = "Vanguard", Idle = "Idle", Walk = "Walking" },
+            new Spec { Name = "Crypto", Idle = "Idle", Walk = "Walking" },
         };
+
+        private static readonly string[] EraBodies = { "GasMask", "Copzombie", "ExoRed", "Remy", "Megan", "SwatGuy", "ExoGray", "Vanguard", "Crypto" };
+
+        /// <summary>109-1 세 시대 몸만 굽는다(배치 `-executeMethod` 용).</summary>
+        public static void SetupEraBodies()
+        {
+            var built = new List<string>();
+            foreach (var name in EraBodies) built.Add($"{name}={SetupOne(name)}");
+            AssetDatabase.SaveAssets();
+            Debug.Log($"[SetupNpcCharacterImports] era bodies {string.Join(" ", built)}");
+        }
 
         private static readonly string[] BossBodies = { "Maw", "Ganfaul", "Ninja", "Demon", "AlienSoldier", "Morak" };
 
