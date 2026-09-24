@@ -38,7 +38,7 @@
       ground: '#8a6b3a', width: 1200, floor: 560, town: true,
       plats: [[520, 430, 240]], ropes: [[540, 430, 560, 'ladder']],
       portals: [[1130, 'heodo']],
-      npcs: [[220, 'elder'], [620, 'guard'], [800, 'merchant'], [980, 'wanderer']],
+      npcs: [[220, 'elder'], [620, 'guard'], [800, 'merchant'], [980, 'wanderer'], [420, 'courier'], [710, 'timetraveler']],
       enemyLv: 1, spawn: 0,
       gateBoss: { name: '몽골 만호장', hpMul: 40, dmgMul: 2.5 }
     },
@@ -48,7 +48,7 @@
       plats: [[300, 430, 240], [900, 380, 260]],
       ropes: [[320, 430, 560, 'ladder'], [920, 380, 560, 'rope']],
       portals: [[70, 'sinya'], [1330, 'field']],
-      npcs: [[220, 'merchant'], [620, 'healer'], [980, 'guard'], [1100, 'wanderer']],
+      npcs: [[220, 'merchant'], [620, 'healer'], [980, 'guard'], [1100, 'wanderer'], [420, 'tourist'], [800, 'explorer']],
       enemyLv: 1, spawn: 0,
       gateBoss: { name: '왜장', hpMul: 40, dmgMul: 2.5 }
     },
@@ -71,7 +71,7 @@
       plats: [[400, 420, 240], [820, 360, 220]],
       ropes: [[420, 420, 560, 'ladder'], [840, 360, 560, 'rope']],
       portals: [[70, 'field'], [1230, 'forest']],
-      npcs: [[220, 'guard'], [620, 'elder'], [980, 'merchant']],
+      npcs: [[220, 'guard'], [620, 'elder'], [980, 'merchant'], [420, 'courier'], [800, 'explorer']],
       enemyLv: 5, spawn: 0,
       gateBoss: { name: '왜구 선장', hpMul: 40, dmgMul: 2.5 }
     },
@@ -93,7 +93,7 @@
       plats: [[380, 420, 240], [860, 360, 220]],
       ropes: [[400, 420, 560, 'ladder'], [880, 360, 560, 'rope']],
       portals: [[70, 'forest'], [1230, 'cave']],
-      npcs: [[220, 'guard'], [620, 'healer'], [800, 'merchant'], [980, 'wanderer']],
+      npcs: [[220, 'guard'], [620, 'healer'], [800, 'merchant'], [980, 'wanderer'], [420, 'tourist'], [710, 'timetraveler']],
       enemyLv: 12, spawn: 0,
       gateBoss: { name: '거란 도통', hpMul: 40, dmgMul: 2.5 }
     },
@@ -115,7 +115,7 @@
       plats: [[380, 420, 240], [860, 360, 220]],
       ropes: [[400, 420, 560, 'ladder'], [880, 360, 560, 'rope']],
       portals: [[70, 'cave'], [1230, 'gorge']],
-      npcs: [[220, 'wanderer'], [620, 'guard'], [980, 'merchant']],
+      npcs: [[220, 'wanderer'], [620, 'guard'], [980, 'merchant'], [420, 'courier'], [800, 'timetraveler']],
       enemyLv: 25, spawn: 0,
       gateBoss: { name: '산채 두령', hpMul: 40, dmgMul: 2.5 }
     },
@@ -347,8 +347,57 @@
       '드물게 희귀한 것들이 나온다더군 — 운이 좋으면 마주칠 걸세.',
       '보물상자를 봤다는 소문이 있던데, 사실인지는 모르겠네.',
       '길을 넓히려면 여러 곳을 밟아 봐야 하는 법이지.'
+    ] },
+    /* 세 시대 마을 사람(PLAN §5-12 · SAGA-DESIGN §13) — 마을마다 현대 하나·미래 하나를 더 세운다.
+       era 는 표시·진단용, model 은 `asset3d` 의 `folk:*`(제 옷 빛깔 그대로, 물들이지 않는다). 역할 이름뿐이라 실명 없음 */
+    courier: { name: '택배 기사', emoji: '📦', era: 'modern', model: 'folk:worker', lines: [
+      '받는 분이 갑옷 차림이던데… 서명은 붓으로 하시더라고요.',
+      '성문 파수병이 제 수레를 세 번이나 뒤졌어요.',
+      '사냥터 쪽 주소는 지도에 안 나와서 늘 헤매요.',
+      '요즘 떼쥐가 짐을 뜯어요. 가시는 길에 좀 잡아 주세요.'
+    ] },
+    tourist: { name: '사진 찍는 여행자', emoji: '📷', era: 'modern', model: 'folk:hoodie', lines: [
+      '이 성 사진 한 장만요! 기와 빛이 정말 좋네요.',
+      '여기는 신호가 한 칸도 안 잡혀요.',
+      '특공대 복장한 사람들이 사냥터에서 총을 쏘던데, 촬영인가요?',
+      '옛날 옷 입은 분들이 다들 진짜처럼 연기를 잘하시네요.'
+    ] },
+    timetraveler: { name: '시간 여행자', emoji: '⌛', era: 'future', model: 'folk:scifi', lines: [
+      '제가 온 해에는 이 마을이 유리 탑 숲이었어요.',
+      '경비 보행기가 제 뒤를 따라 넘어왔나 봐요. 미안해요.',
+      '촌로께 내일 비가 온다 했더니 놀라시더군요.',
+      '여기 무예는 우리 시대 기록에도 전설로 남아 있어요.'
+    ] },
+    explorer: { name: '탐사 대원', emoji: '🧑‍🚀', era: 'future', model: 'folk:astronaut', lines: [
+      '과거 신호가 겹쳐 잡히는 좌표예요. 흥미롭네요.',
+      '정찰 드론이 길을 잃었어요. 보이면 떨어뜨려 주세요.',
+      '강철 거신은 옛 전장 쇳물로 만든 거래요. 무섭죠?',
+      '이 시대 햇빛은 약해서 충전이 더뎌요.'
     ] }
   };
+
+  /* 세 시대 적(PLAN §5-12) — `data-enemy.js` 는 사가블로와 나눠 든 파일이라 칸을 안 늘리고(§2-2) 여기 둔다.
+     모양은 ENEMIES 와 같다(+ era·model). 관문대(tier)마다 현대 하나 이상·미래 하나 이상.
+     원거리·탱커는 기존 규칙 그대로 무기로 가른다(staff=탄환·halberd=탱커, `rangedOf`·`enemyRole`).
+     2D 는 kind·form·look 으로 그린다(로봇은 새·도깨비 꼴) — 3D 는 model 몸 */
+  var ERA_ENEMIES = [
+    { name: '잿빛 떼쥐', emoji: '🐀', kind: 'beast', color: '#6a6a6a', form: 'quad', tier: 1, era: 'modern', model: 'foe:rat' },
+    { name: '정찰 드론', emoji: '🛸', kind: 'beast', color: '#8a9aa8', form: 'bird', look: { weapon: 'staff' }, tier: 1, era: 'future', model: 'foe:drone' },
+    { name: '벼락 말벌', emoji: '🐝', kind: 'beast', color: '#d8b030', form: 'bird', tier: 2, era: 'modern', model: 'foe:wasp' },
+    { name: '경비 보행기', emoji: '🤖', kind: 'human', color: '#7a8a9a', look: { weapon: 'club', helm: 'helmet', armor: 'plate' }, tier: 2, era: 'future', model: 'foe:walker' },
+    { name: '떠도는 망자', emoji: '🧟', kind: 'human', color: '#5a7a5a', look: { weapon: 'club', helm: 'none', armor: 'leather' }, tier: 3, era: 'modern', model: 'foe:zombie' },
+    { name: '별바다 손님', emoji: '👽', kind: 'beast', color: '#6ac08a', form: 'ogre', tier: 3, era: 'future', model: 'foe:alien' },
+    { name: '진압 특공대', emoji: '🔫', kind: 'human', color: '#3a3a44', look: { weapon: 'staff', helm: 'helmet', armor: 'plate' }, tier: 4, era: 'modern', model: 'foe:swat' },
+    { name: '강철 거신', emoji: '🦾', kind: 'beast', color: '#9a6a4a', form: 'ogre', look: { weapon: 'halberd' }, tier: 4, era: 'future', model: 'foe:hulk' }
+  ];
+  /** 이 관문대(tier)의 시대 적 — 없으면 가까운 아래 tier */
+  function eraPoolFor(tier) {
+    for (var t = tier; t >= 1; t--) {
+      var p = ERA_ENEMIES.filter(function (e) { return e.tier === t; });
+      if (p.length) { return p; }
+    }
+    return [];
+  }
 
   /**
    * 마을 사람끼리의 잡담 (2026-09-10) — 사가의숲 `js/folk.js`("주민끼리의 대화")의
@@ -375,7 +424,7 @@
   global.DG.sideData = {
     STAGES: STAGES, SKILLS: SKILLS, DROPS: DROPS, GATHERS: GATHERS, NPC_TALK: NPC_TALK,
     RECIPES: RECIPES, recipe: recipe, STORY: STORY, EMOTES: EMOTES,
-    NPC_CHAT: NPC_CHAT, RANGED_WEAPON: RANGED_WEAPON,
+    NPC_CHAT: NPC_CHAT, RANGED_WEAPON: RANGED_WEAPON, ERA_ENEMIES: ERA_ENEMIES, eraPoolFor: eraPoolFor,
     stage: stage, rangedOf: rangedOf
   };
 })(window);

@@ -764,6 +764,9 @@
     var ed = global.DG.enemyData;
     if (!ed) { return { name: '산적', kind: 'beast', color: '#8a5a44', form: 'quad' }; }
     var pool = ed.poolFor(lv, false);
+    /* 세 시대 적(PLAN §5-12) — 사냥터 잡졸의 40% 는 현대·미래 적(비경·보스는 그대로) */
+    var ep = SD.eraPoolFor ? SD.eraPoolFor(ed.tierOf(lv)) : [];
+    if (ep.length && !(run && run.stage && run.stage.rift) && Math.random() < core.tuned('side.eraShare', 0.4)) { return core.pick(ep); }
     return core.pick(pool);
   }
 

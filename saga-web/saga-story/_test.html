@@ -4716,6 +4716,72 @@ window.DG_NO_TUNE = true;
       return '무명 ' + none.css + ' → 무사 ' + w1.css + ' → 전신 ' + w4.css + ' · 천존 ' + m4.css;
     });
 
+    t('세 시대 적(§5-12) — 관문대마다 현대·미래가 있고 몸은 표에 있다 · 사냥터 잡졸 약 40% 가 시대 적 · 원거리·탱커는 무기로 · 손잡이 0 이면 옛 적만', function () {
+      var S = DG.side, SD = DG.sideData, A = DG.asset3d, ED = DG.enemyData, bad = [], t0;
+      for (t0 = 1; t0 <= 4; t0++) {
+        var p = SD.eraPoolFor(t0), eras = {};
+        p.forEach(function (e) { eras[e.era] = 1; if (e.tier !== t0) { bad.push(e.name + ' tier'); } });
+        if (!eras.modern || !eras.future) { bad.push('tier' + t0 + ' ' + Object.keys(eras).join('/')); }
+      }
+      var old = {};
+      ED.enemies.forEach(function (e) { old[e.name] = 1; });
+      SD.ERA_ENEMIES.forEach(function (e) {
+        if (typeof A.REG()[e.model] !== 'string') { bad.push(e.name + ' 몸 없음'); }
+        if (old[e.name]) { bad.push(e.name + ' 이름 겹침'); }
+      });
+      var ranged = SD.ERA_ENEMIES.filter(function (e) { return !!SD.rangedOf(e); }).length;
+      var tank = SD.ERA_ENEMIES.filter(function (e) { return e.look && e.look.weapon === 'halberd'; }).length;
+      function share() {
+        var run = S.raw(), n = 0, era = 0, k;
+        for (k = 0; k < 400; k++) {
+          run.enemies = [];
+          var e = S.spawnEnemy(300);
+          if (!e) { continue; }
+          n++; if (e.ref.era) { era++; }
+        }
+        run.enemies = [];
+        return era / Math.max(1, n);
+      }
+      S.enter('field');
+      var on = share();
+      C.setTune('side.eraShare', 0);
+      var off;
+      try { off = share(); } finally { C.setTune('side.eraShare', null); S.leave(); }
+      return bad.length === 0 && on > 0.32 && on < 0.48 && off === 0 && ranged >= 2 && tank >= 1 &&
+        ('관문대 4 모두 현대·미래 · 시대 적 ' + SD.ERA_ENEMIES.length + '종(몸 표에 있음·이름 안 겹침) · 잡졸 중 ' + Math.round(on * 100) + '% · 원거리 ' + ranged + '·탱커 ' + tank + ' · 끄면 0') ||
+        (function () { throw new Error(bad.slice(0, 4).join(' ') + ' on=' + on.toFixed(2) + ' off=' + off + ' ranged=' + ranged + ' tank=' + tank); })();
+    });
+
+    t('세 시대 마을 사람(§5-12) — 마을 다섯 모두 현대 하나·미래 하나 이상 · 서로 80·문 150 넘게 떨어짐 · 몸은 제 옷(표에 있음) · 말 건다', function () {
+      var S = DG.side, SD = DG.sideData, A = DG.asset3d, bad = [], towns = 0;
+      SD.STAGES.filter(function (g) { return g.town; }).forEach(function (g) {
+        towns++;
+        var eras = {}, xs = g.npcs.map(function (n) { return n[0]; });
+        g.npcs.forEach(function (n) {
+          var tk = SD.NPC_TALK[n[1]];
+          if (!tk) { bad.push(g.key + ' ' + n[1]); return; }
+          eras[tk.era || 'past'] = 1;
+          if (tk.model && typeof A.REG()[tk.model] !== 'string') { bad.push(n[1] + ' 몸'); }
+          (g.portals || []).forEach(function (pt) { if (Math.abs(pt[0] - n[0]) < 150) { bad.push(g.key + ' 문 곁 ' + n[1]); } });
+        });
+        xs.forEach(function (x, i) { xs.forEach(function (y, j) { if (i < j && Math.abs(x - y) < 80) { bad.push(g.key + ' 붙음 ' + x + '/' + y); } }); });
+        if (!eras.past || !eras.modern || !eras.future) { bad.push(g.key + ' ' + Object.keys(eras).join('/')); }
+      });
+      S.enter('sinya');
+      var run = S.raw(), keys = run.npcs.map(function (n) { return n.key; });
+      var p = run.player, tt = run.npcs.filter(function (n) { return n.key === 'timetraveler'; })[0];
+      calm(run);
+      p.climb = null; p.x = tt.x - S.P_W / 2; p.y = run.stage.floor - S.P_H; p.vy = 0; p.onGround = true;
+      S.setInput('up', true); restInput();
+      var talk = S.raw().talk, spoke = !!talk && talk.name === '시간 여행자';
+      if (spoke) { S.setInput('up', true); restInput(); }
+      var near = keys.indexOf('courier') >= 0 && keys.indexOf('timetraveler') >= 0 && spoke;
+      S.leave();
+      return bad.length === 0 && towns === 5 && near &&
+        ('마을 ' + towns + ' 모두 과거·현대·미래 · 새 사람 넷(택배 기사·여행자·시간 여행자·탐사 대원) 제 몸 · 신야성에 택배 기사·시간 여행자(↑ 로 말 걸림)') ||
+        (function () { throw new Error(bad.slice(0, 5).join(' ') + ' near=' + near + ' keys=' + keys.join(',')); })();
+    });
+
     t('런타임 에러 없음', function () {
       return errors.length === 0 || ('에러 ' + errors.length + '건: ' + errors.join(' | ')) === '';
     });

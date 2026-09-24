@@ -32,6 +32,7 @@
   var STANDIN = 'assets/models/standin/';   // 신수·오마주 대역 — 사가고에서 복사(2026-09-23)
   var BUILDINGS = 'assets/models/buildings/';
   var PROPS = 'assets/models/props/';
+  var FOES = 'assets/models/foes/', FOLK = 'assets/models/people/folk/';
   var ANIM_SRC = 'assets/models/anim/UAL1_Standard.glb';
 
   /* 2026-09-03 — 사가의숲·사가고와 같은 이유로 사람 기본을 갈아 끼운다. Quaternius
@@ -224,7 +225,22 @@
     'critter:pk_mew': ANIMALS_EXTRA + 'Alpaca.glb',
     /* 랜덤 이벤트(PLAN 11절, 2026-09-09) — saga-dungeon 이 이미 받아 둔 KayKit
        상자를 그대로 재사용한다 */
-    'chest': PROPS + 'Chest.glb'
+    'chest': PROPS + 'Chest.glb',
+    /* 세 시대 사람·적(PLAN §5-12 · SAGA-DESIGN §13) — 사가고 ⑱ 과 같은 Quaternius CC0 파일을 복사해 왔다.
+       전부 제 클립(걷기·대기·공격·죽음) 내장이라 `buildModel()` 이 몸과 몸짓을 같은 파일로 세운다.
+       현대·미래 적(`data-side.js` ERA_ENEMIES)·마을 사람(NPC_TALK 의 model) 만 이 키를 쓴다 */
+    'foe:rat': FOES + 'Rat.glb',
+    'foe:wasp': FOES + 'Wasp.glb',
+    'foe:zombie': FOES + 'Zombie.glb',
+    'foe:drone': FOES + 'Robot_Drone.glb',
+    'foe:walker': FOES + 'Robot_Walker.glb',
+    'foe:alien': FOES + 'Alien.glb',
+    'foe:hulk': FOES + 'Robot_Large.glb',
+    'foe:swat': FOLK + 'm_SWAT.glb',
+    'folk:worker': FOLK + 'm_Worker.glb',
+    'folk:hoodie': FOLK + 'm_Hoodie.glb',
+    'folk:scifi': FOLK + 'w_SciFi.glb',
+    'folk:astronaut': FOLK + 's_Astronaut1.glb'
   };
 
   var REG = {};
@@ -458,7 +474,7 @@
   var SLOTS = ['idle', 'walk', 'run', 'sprint', 'attack', 'hit', 'dodge', 'death', 'interaction', 'jump', 'land'];
   var WORDS = {
     idle: ['idle', 'stand', 'standing', 'breathe', 'rest', 'wait', 'loop'],
-    walk: ['walk', 'walking', 'locomotion', 'move'],
+    walk: ['walk', 'walking', 'locomotion', 'move', 'flying'],   // 'flying' — 말벌(`Wasp_Flying`, 걷기 클립 없음)
     run: ['run', 'running', 'jog'],
     sprint: ['sprint', 'runfast', 'fastrun', 'dash'],
     attack: ['attack', 'atk', 'slash', 'swing', 'strike', 'punch', 'shoot', 'cast'],
@@ -648,9 +664,17 @@
    * @param heightPx  다 세운 뒤 세로 높이(이 판의 좌표는 픽셀이다)
    * @param tintHex   물들일 색(없으면 원래 옷 빛깔 그대로) — 짐승은 안 부른다
    */
-  function buildHero(seed, heightPx, tintHex, cb) {
+  function buildHero(seed, heightPx, tintHex, cb) { buildRecipe(heroRecipe(seed), seed, heightPx, tintHex, cb); }
+
+  /** 표 키 하나(`foe:*`·`folk:*`)를 제 클립 든 몸으로 세운다 — 물들이지 않는다(제 빛깔이 곧 그 시대 옷). 없으면 cb(null) */
+  function modelRecipe(key) {
+    var url = REG[key];
+    return typeof url === 'string' ? { key: key, body: url, anim: url } : null;
+  }
+  function buildModel(key, heightPx, cb) { buildRecipe(modelRecipe(key), key, heightPx, null, cb); }
+
+  function buildRecipe(rec, seed, heightPx, tintHex, cb) {
     var t = three();
-    var rec = heroRecipe(seed);
     if (!rec || !t) { cb(null); return; }
 
     var parts = {}, pending = 4;
@@ -774,6 +798,7 @@
     mapClips: mapClips,
     build: build,
     buildHero: buildHero,
+    buildModel: buildModel, modelRecipe: modelRecipe,
     ownAllMat: ownAllMat,
     three: three,
     REG: function () { return REG; },

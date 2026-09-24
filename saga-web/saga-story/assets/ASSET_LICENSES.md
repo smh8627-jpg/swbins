@@ -314,3 +314,10 @@ VRoid Studio 공식 CC0 샘플 AvatarSample_A/B/C(github.com/madjin/vrm-samples,
 `models/standin/` — `Birb.glb`·`Pigeon.glb`·`Snake.glb`·`Snake_angry.glb`·`Orc.gltf`·`Demon.gltf`. 사가고 `assets/models/animals/` 의 같은 파일을
 **그대로 복사**했다(출처·경위는 `saga-web/saga-go/assets/ASSET_LICENSES.md` — Quaternius CC0: 새 둘은 animals pack, 뱀 둘은 easy_enemies_pack,
 Orc·Demon 은 Ultimate Monsters). 사용자 결정("사가고처럼 대역 입히기")으로 신수·오마주 도감 초상에 사가고와 같은 대역을 입히는 데만 쓴다.
+
+## 세 시대 사람·적 — 사가고에서 복사 (2026-09-24, `models/foes/`·`models/people/folk/`, PLAN §5-12)
+
+Quaternius CC0 1.0. 사가고 `assets/models/foes/`(7: Rat·Wasp·Zombie·Alien·Robot_Drone·Robot_Walker·Robot_Large)·
+`assets/models/people/folk/`(5: m_Worker·m_Hoodie·m_SWAT·w_SciFi·s_Astronaut1)를 그대로 복사(이미 Meshopt, 제 클립 내장).
+받은 곳·가공 경위는 사가고 `assets/ASSET_LICENSES.md` "Quaternius — 세 시대 사람·적" 절(사람·쥐·말벌·망자·외계는
+원래 사가블로가 poly.pizza 에서 받은 것, 로봇 셋은 quaternius-showcase 미러 `cyberpunk_pack`).

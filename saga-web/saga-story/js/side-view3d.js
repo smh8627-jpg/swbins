@@ -654,7 +654,8 @@
     var NPC_COLORS = ['#c8b090', '#b7c3d8', '#d8b7a0', '#a8c8a0'];
     for (var i = 0; i < list.length; i++) {
       var anchorX = list[i][0];
-      var npc = actorShell(Tc, 'human', NPC_COLORS[i % NPC_COLORS.length], false, 'npc' + i, false);
+      var nt = global.DG.sideData && global.DG.sideData.NPC_TALK[list[i][1]];
+      var npc = actorShell(Tc, 'human', NPC_COLORS[i % NPC_COLORS.length], false, 'npc' + i, false, nt && nt.model);
       npc.userData.npcAnchor = anchorX;
       npc.userData.npcPhase = i * 1.7;
       place(npc, anchorX, 0, 1);
@@ -690,7 +691,7 @@
    * @param color  이 배우의 원래 빛깔 — 도형 표면·사람 GLB 옷의 물들임에 쓴다.
    *               짐승은 제 털빛이 맞으므로 안 물들인다
    */
-  function actorShell(Tc, kind, color, boss, seed, big) {
+  function actorShell(Tc, kind, color, boss, seed, big, model) {
     var shell = new Tc.Group();
     var prim = humanoid(Tc, color, boss);
     shell.add(prim);
@@ -718,7 +719,9 @@
     }
     var A = global.DG.asset3d;
     if (A) {
-      if (kind === 'beast') { A.build(big ? 'beast_big' : 'beast', seed, heightPx, swapActorIn); }
+      /* 세 시대 사람·적(PLAN §5-12) — 표 키(`foe:*`·`folk:*`)가 있으면 제 클립 든 그 몸으로 선다(물들이지 않는다) */
+      if (model && A.buildModel) { A.buildModel(model, heightPx, swapActorIn); }
+      else if (kind === 'beast') { A.build(big ? 'beast_big' : 'beast', seed, heightPx, swapActorIn); }
       else { A.buildHero(seed, heightPx, hexOf(color), swapActorIn); }
     }
     return shell;
@@ -890,17 +893,18 @@
         (e.role === 'magic' ? '#6a4fc0' : e.ref.color));
       var big = e.role === 'tank' || e.mini;
       if (!em) {
-        em = actorShell(Tc, e.ref.kind, tint, e.boss, e.ref.name, big);
+        em = actorShell(Tc, e.ref.kind, tint, e.boss, e.ref.name, big, e.ref.model);
         em.userData.boss = !!e.boss; em.userData.rare = !!e.rare;
-        em.userData.mini = !!e.mini; em.userData.role = e.role;
+        em.userData.mini = !!e.mini; em.userData.role = e.role; em.userData.model = e.ref.model || null;
         actorGroup.add(em); enemyPool[i] = em;
       }
       if (em.userData.boss !== !!e.boss || em.userData.rare !== !!e.rare ||
-          em.userData.mini !== !!e.mini || em.userData.role !== e.role) {
-        actorGroup.remove(em);
-        em = actorShell(Tc, e.ref.kind, tint, e.boss, e.ref.name, big);
+          em.userData.mini !== !!e.mini || em.userData.role !== e.role ||
+          em.userData.model !== (e.ref.model || null)) {   // §5-12 — 옛 병졸 칸에 로봇이 오면 몸을 다시 짓는다
+        actorGroup.remove(em); disposeDeep(em);   // 다시 짓는 일이 잦아져(§5-12) 옛 몸을 치운다
+        em = actorShell(Tc, e.ref.kind, tint, e.boss, e.ref.name, big, e.ref.model);
         em.userData.boss = !!e.boss; em.userData.rare = !!e.rare;
-        em.userData.mini = !!e.mini; em.userData.role = e.role;
+        em.userData.mini = !!e.mini; em.userData.role = e.role; em.userData.model = e.ref.model || null;
         actorGroup.add(em); enemyPool[i] = em;
       }
       em.visible = true;

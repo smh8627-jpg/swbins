@@ -858,3 +858,11 @@ SAGA-DESIGN §11 Phase 4 의 "사가스토리 펫 이미지 공백(보류)" — 
 - 다섯 판 공통: css 의 11px 미만 글자 227곳 → 11px(keyframes 제외), `:where(#sheet-body,#encounter) small` 바닥 11px, `@media (pointer: coarse)` 에서 `.btn`·시트 안 단추·닫기 40px·슬라이더 높이 40px.
 - 결과: `MLAYOUT 합계 0건`(첫 화면·첫 창·시트 전부 × 세로·가로). 진단 사가고 600/600 · 사가블로 409/409 · 사가의숲 374/374 · 사가스토리 241/241 · 사가국지 247/247. **실기 확인 대기**.
 - `sw.js` side-v0.87.0.
+
+## 2026-09-24 (세 시대 사람·적) — PLAN §5-12: 사냥터 잡졸 40% 현대·미래 · 마을마다 현대·미래 사람
+
+- 계기: "사가웹 이어해" — 사가고 ⑱ 뒤 다음 후보 "세 시대 사람·적을 다른 네 판으로"(SAGA-DESIGN §13). PLAN 여유가 가장 큰 편인 이 판부터.
+- `data-enemy.js` 는 사가블로와 나눠 든 파일이라 안 건드렸다(§2-2) — 시대 적은 `data-side.js` `ERA_ENEMIES`·`eraPoolFor`, 뽑기는 `side.js` `enemyRef`.
+- 3D: `asset3d.buildHero` 를 `buildRecipe(rec…)` 로 풀고 `buildModel(key)`(몸=몸짓 같은 파일, 물들임 없음)를 보탰다. `actorShell` 일곱째 인자 `model`. 적 풀은 인덱스로 재활용하는데 몸이 바뀌어도 다시 안 지어 옛 병졸 칸에 로봇이 오면 옛 몸이 남았을 것 — `userData.model` 비교를 넣고, 치운 몸은 `disposeDeep`(옛 코드는 안 치웠다).
+- 마을 NPC 는 목록 끝에 붙여(`run.npcs[0]` 을 보는 기존 대화 진단 그대로) 420·710/800 자리.
+- 진단 jsdom 242/243 세 번 같음(새 2 · 실패 하나 "화면을 넷으로 나눠"는 손대기 전에도 jsdom 에서 실패 — stash 로 기준선 확인). `sw.js` side-v0.88.0. **실기 확인 대기**.
