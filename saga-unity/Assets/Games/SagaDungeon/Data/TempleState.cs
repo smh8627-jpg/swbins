@@ -18,6 +18,8 @@ namespace Saga.Dungeon.Data
         BossDoor = 1 << 7,      // 보스 문 열림(보스 열쇠 소비)
         BossDefeated = 1 << 8,  // 능묘지기 쓰러뜨림
         BossIntroSeen = 1 << 9, // 능묘지기 등장 컷을 봤다(PLAN.md 106-3, 한 번만)
+        WatchTowerChest = 1 << 10, // PLAN.md 106-5 옛 감시탑 꼭대기 상자 열림
+        WatchLedgeChest = 1 << 11, // PLAN.md 106-5 징검돌 끝 선반 상자 열림
     }
 
     /// <summary>

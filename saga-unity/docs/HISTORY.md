@@ -8820,3 +8820,12 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - **발견한 버그**: 첫 실행에서 비탈은 올라가는데 고개 내리막 "공중" 3.66초 — 떨어진 게 아니라 걸어 내려가는 동안 매 프레임 발이 떠서 `Mode = Air` 였다(실게임에서도 내리막마다 낙하 동작·활공 가능했을 것). 발밑 0.6m 안이면 붙이는 ground snap 을 넣자 공중 0.00s, 점프 2.30m·활공 등 이동 측정값은 그대로.
 - 식생 바이옴은 보류 — 풀·나무가 편집기에서 굽는 씬 자산이라 지역별로 바꾸려면 `VegetationBuilder` 재설계가 필요하다.
 - 검증: 씬 재빌드 exit 0 · GO `PlaytestHeadless` **3연속 OK**(망루 비탈 18.2m 6.1s · 고개 북쪽 14.9m 5.0s · 고개 넘기 12.7s 공중 0.00s, 3회 동일) · `PlaytestLayoutWalkHeadless` fails=0. 실기 확인은 전.
+
+
+## 2026-09-24 — PLAN 106-5 탐험(DUNGEON): 점프·담쟁이 등반·넘어오르기 + 옛 감시탑 뜰 (같은 대화 "이어해줘", Opus 5.5)
+
+- 107(GO 원신)이 끝나 106 순서 5 로 돌아왔다. GO 이동을 0.53배(사람 1.8/3.4)로 줄여 던전 `PlayerController` 에 옮겼고(`Step`·`SetTestInput`·`Teleport` 도 새로), 점프 키는 Space(평타)와 겹쳐 F. 등반은 `DungeonClimbable` 만 — 방 벽을 넘어가면 안 되니 GO 와 반대로 허용 목록.
+- 새 파일: `World/DungeonClimbable` · `World/WatchCourtHint` · `Editor/BuildDungeonWatchCourt`(Room2 동쪽 (30,30) 새 방) · `Editor/PlaytestDungeonExplore`. 고친 파일: `PlayerController`·`PlayerCombat`·`PlayerBombs`(등반 중 막기)·`CameraRig`(광선이 Ignore Raycast 층 뺌)·`TempleChest`(`Treasure`·높이 차)·`TempleState`(비트 10·11)·`BuildTestDungeonScene`(Room2 동쪽 문·점프 버튼·뜰 조립)·`PlaytestDungeonHeadless`(보물 상자를 보스 열쇠 상자로 잘못 집지 않게 분류 고침·탐험 진단 호출). 씬 재빌드(컷 타임라인 셋은 재생성 순서만 바뀜 — 씬이 참조하니 같이 커밋).
+- **코스 두 번 고침**: ① 돌 사이 틈 0.8m → 점프 3번(틈을 걸어서 건넘). ② 1.2m 로 넓혀도 건넜다 — 캡슐(반지름 0.4)이 양 모서리에 걸쳐 버티고 반대편 턱을 계단처럼 올라탔다. 틈 2m 로 하니 이번엔 자연 점프(≈3.4m)가 셋째 돌(폭 1.6m)을 넘어 틈에 떨어질 판이라 돌을 폭 2.8m 계단식으로 바꿨다. 진단도 "점프 4번" 대신 "셋째 돌에서 점프 없이 걸으면 떨어짐"을 따로 본다.
+- 막이: 탑(8m)에서 달려 뛰면 방 벽(4m)에 닿는 거리라 이 방 벽 위에만 보이지 않는 막이. 카메라 벽 당김이 막이에 걸리지 않게 "Ignore Raycast" 층 + `CameraRig` 광선을 `Physics.DefaultRaycastLayers` 로.
+- 검증: 씬 재빌드 exit 0 · `PlaytestDungeonHeadless` **3연속 OK**(점프 1.37m · 징검돌 점프 4번 2.5s · 탑 8m 4.6s, 3회 동일, 능묘 진단 그대로 통과) · `PlaytestDungeonFloorProgression` OK. 실기 확인은 전. 새 글자 `explore.*`·`temple.got_treasure`·`action.jump` 는 `DungeonLocalization.T` 폴백.

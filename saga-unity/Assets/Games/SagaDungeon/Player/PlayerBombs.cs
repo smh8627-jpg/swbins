@@ -44,7 +44,7 @@ namespace Saga.Dungeon.Player
         /// <summary>모바일 "벽력탄" 버튼(영속 리스너)과 R키가 부른다.</summary>
         public void TryPlaceBomb()
         {
-            if (DungeonCutscenes.Playing) return;
+            if (DungeonCutscenes.Playing || (_controller != null && _controller.Climbing)) return; // 106-5 등반 중엔 못 놓는다
             if (!TempleState.HasBombs)
             {
                 DialogueLabel.Instance?.Show(DungeonLocalization.T("temple.no_bombs", "아직 놓을 것이 없다 — 능묘 어딘가에 벽력탄이 있다"), 3f);

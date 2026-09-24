@@ -305,7 +305,8 @@ namespace Saga.Dungeon.Player
             Vector3 dir = transform.TransformDirection(Vector3.back);
             Vector3 castStart = origin + dir * CameraSkin;
             float castDistance = desiredZoom - CameraSkin;
-            if (Physics.Raycast(castStart, dir, out RaycastHit hit, castDistance, ~0, QueryTriggerInteraction.Ignore))
+            // 106-5 — "Ignore Raycast" 층(옛 감시탑 뜰의 보이지 않는 막이)은 카메라를 당기지 않는다.
+            if (Physics.Raycast(castStart, dir, out RaycastHit hit, castDistance, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
             {
                 return Mathf.Max(CameraSkin, CameraSkin + hit.distance - CameraCollisionBuffer);
             }

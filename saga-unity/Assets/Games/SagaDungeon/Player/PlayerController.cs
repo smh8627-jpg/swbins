@@ -38,6 +38,11 @@ namespace Saga.Dungeon.Player
     /// 클립)를 쓴다 — 얼굴 방향만 맞추고 회전 자체는 클립에 맡긴다. Maria가
     /// 없어(로컬 전용 자산 미다운로드) character-a 폴백이 배정되면
     /// `animator`가 null이라 예전 절차적 롤이 그대로 쓰인다.
+    ///
+    /// **PLAN.md 106-5 "탐험"(2026-09-24)** — GO(107 ②)의 점프·등반·넘어오르기·내리막 붙이기를 던전 키(사람 1.8m,
+    /// GO 3.4m 의 0.53배)로 줄여 옮겼다. 점프 = F·"점프" 버튼(Space 는 평타), 1.3m. 등반은 **`DungeonClimbable` 이
+    /// 붙은 면만**(담쟁이 벽 — 방·복도 벽은 못 오른다, GO 는 반대로 `NoClimb` 만 뺀다), 스태미나 없음(던전엔 스태미나가
+    /// 없다). 등반 중 F = 손 놓기. 활공·수영은 안 옮겼다(던전에 절벽·물이 없다). 진단은 `Step`·`SetTestInput` 으로 돌린다.
     /// </summary>
     [RequireComponent(typeof(CharacterController))]
     public class PlayerController : MonoBehaviour
@@ -61,6 +66,18 @@ namespace Saga.Dungeon.Player
         // PLAN.md 106-1 "락온 중 이동" — 달리기 없이 대상을 보며 옆걸음.
         private const float LockMoveSpeed = 4.5f;
         private const float LockTurnRate = 14f;
+
+        // PLAN.md 106-5 "탐험" — GO 값 × 0.53(사람 키 1.8/3.4)
+        public enum MoveMode { Ground, Air, Climb, Mantle }
+        public const float JumpVelocity = 7.2f;          // v²/2g = 1.3m
+        public const float ClimbSpeed = 1.7f;
+        public const float ClimbSideSpeed = 1.4f;
+        private const float ClimbProbeHeight = 0.9f;     // 가슴 높이
+        private const float KneeProbeHeight = 0.3f;
+        private const float ClimbReach = 0.85f;          // 반지름 0.4 + 0.45
+        private const float ClimbRegrabSec = 0.45f;
+        private const float MantleSec = 0.4f;
+        private const float GroundSnapDistance = 0.4f;
 
         [SerializeField] private Transform visual;
         [SerializeField] private Animator animator;
@@ -100,6 +117,45 @@ namespace Saga.Dungeon.Player
         private float _footprintCooldown;
 
         public Transform Visual => visual;
+
+        public MoveMode Mode { get; private set; } = MoveMode.Ground;
+        /// <summary>등반·넘어오르기 중이면 true — 공격·회피·벽력탄을 막는다.</summary>
+        public bool Climbing => Mode == MoveMode.Climb || Mode == MoveMode.Mantle;
+        private bool _jumpQueued;
+        private Vector3 _wallNormal;
+        private float _regrabCooldown;
+        private Vector3 _mantleFrom, _mantleTo;
+        private float _mantleT;
+        private bool _hasClimbParam, _hasJumpParam, _hasClimbRate;
+        private bool _testInput;
+        private Vector2 _testRaw;
+
+        /// <summary>"점프" 버튼·진단이 부른다(다음 Step 에서 F 와 같게 처리).</summary>
+        public void RequestJump() => _jumpQueued = true;
+
+        /// <summary>진단용 — 입력을 월드 방향(x=+X, y=+Z)으로 곧장 준다.</summary>
+        public void SetTestInput(Vector2 raw) { _testInput = true; _testRaw = raw; }
+        public void ClearTestInput() { _testInput = false; _testRaw = Vector2.zero; _jumpQueued = false; }
+
+        /// <summary>진단용 순간이동 — 상태도 땅/공중으로 다시 잡는다.</summary>
+        public void Teleport(Vector3 pos)
+        {
+            _controller.enabled = false;
+            transform.position = pos;
+            _controller.enabled = true;
+            _verticalVelocity = 0f;
+            _dodgeTimeLeft = 0f;
+            _regrabCooldown = 0f;
+            Mode = HeightAboveGround() < 0.2f ? MoveMode.Ground : MoveMode.Air;
+        }
+
+        public float HeightAboveGround()
+        {
+            Vector3 origin = transform.position + Vector3.up * 0.3f;
+            if (Physics.Raycast(origin, Vector3.down, out RaycastHit hit, 100f, ~0, QueryTriggerInteraction.Ignore))
+                return hit.distance - 0.3f;
+            return 100f;
+        }
 
         /// <summary>Maria 배정 때만 non-null(위 클래스 주석 참고) — null이면
         /// 리깅 안 된 캐릭터라 PlayerCombat이 Attack/Death 트리거를 건너뛴다.</summary>
@@ -141,7 +197,10 @@ namespace Saga.Dungeon.Player
             {
                 foreach (var p in animator.parameters)
                 {
-                    if (p.name == "LockOn") { _hasStrafeParams = true; break; }
+                    if (p.name == "LockOn") _hasStrafeParams = true;
+                    else if (p.name == "Climb") _hasClimbParam = true;
+                    else if (p.name == "Jump") _hasJumpParam = true;
+                    else if (p.name == "ClimbRate") _hasClimbRate = true;
                 }
             }
 
@@ -189,15 +248,19 @@ namespace Saga.Dungeon.Player
             return trail;
         }
 
-        private void Update()
+        private void Update() => Step(Time.deltaTime);
+
+        /// <summary>한 프레임 — 진단이 시간을 건너뛰려고 직접 부른다.</summary>
+        public void Step(float dt)
         {
-            float dt = Time.deltaTime;
+            if (_regrabCooldown > 0f) _regrabCooldown -= dt;
+            if (Mode == MoveMode.Mantle) { StepMantle(dt); SetModeParams(); return; }
 
             if (_controller.isGrounded && _verticalVelocity < 0f)
             {
                 _verticalVelocity = 0f;
             }
-            _verticalVelocity -= Gravity * dt;
+            if (Mode != MoveMode.Climb) _verticalVelocity -= Gravity * dt;
 
             if (_dodgeCooldownLeft > 0f) _dodgeCooldownLeft -= dt;
             if (_invulnTimeLeft > 0f) _invulnTimeLeft -= dt;
@@ -220,14 +283,28 @@ namespace Saga.Dungeon.Player
             }
 
             var kb = Keyboard.current;
-            if (kb != null && kb.leftCtrlKey.wasPressedThisFrame)
+            if (kb != null && !_testInput && kb.leftCtrlKey.wasPressedThisFrame)
             {
                 TryDodge();
             }
+            bool jumpPressed = _jumpQueued || (kb != null && !_testInput && kb.fKey.wasPressedThisFrame);
+            _jumpQueued = false;
 
             Vector2 inputDir = MovementInput();
             Vector3 moveDir = WorldDirection(inputDir);
             _moveIntent = moveDir;
+
+            if (Mode == MoveMode.Climb)
+            {
+                StepClimb(dt, inputDir, jumpPressed);
+                SetModeParams();
+                return;
+            }
+            if (jumpPressed && _dodgeTimeLeft <= 0f && _controller.isGrounded)
+            {
+                _verticalVelocity = JumpVelocity;
+                if (animator != null && _hasJumpParam) animator.SetTrigger("Jump");
+            }
 
             if (_dodgeTimeLeft > 0f)
             {
@@ -264,15 +341,31 @@ namespace Saga.Dungeon.Player
             if (LockedOn)
             {
                 UpdateLockedMove(moveDir, dt);
+                UpdateGroundMode();
+                SetModeParams();
                 return;
             }
             SetStrafeFlag(false);
 
-            bool running = _sprintAction != null && _sprintAction.IsPressed();
+            bool running = !_testInput && _sprintAction != null && _sprintAction.IsPressed();
             float speed = running ? RunSpeed : WalkSpeed;
 
             Vector3 horizontal = moveDir * speed;
+            bool wasGrounded = _controller.isGrounded && _verticalVelocity <= 0f;
             _controller.Move(new Vector3(horizontal.x, _verticalVelocity, horizontal.z) * dt);
+            // 106-5 내리막 붙이기(GO 107-3 과 같은 결) — 방금까지 딛고 있었고 뛰어오르는 중이 아니며 발밑이 가까우면 붙인다.
+            if (!_controller.isGrounded && wasGrounded && _verticalVelocity <= 0f)
+            {
+                float h = HeightAboveGround();
+                if (h > 0f && h < GroundSnapDistance)
+                {
+                    _controller.Move(Vector3.down * (h + 0.05f));
+                    if (_controller.isGrounded) _verticalVelocity = 0f;
+                }
+            }
+            UpdateGroundMode();
+            SetModeParams();
+            if (moveDir.sqrMagnitude > 0.05f * 0.05f && TryStartClimb(moveDir)) return;
 
             if (animator != null)
             {
@@ -347,7 +440,7 @@ namespace Saga.Dungeon.Player
         /// TriggerAttack()과 같은 결).</summary>
         public void TryDodge()
         {
-            if (_dodgeCooldownLeft > 0f || _dodgeTimeLeft > 0f || DungeonCutscenes.Playing) return;
+            if (_dodgeCooldownLeft > 0f || _dodgeTimeLeft > 0f || DungeonCutscenes.Playing || Climbing) return;
 
             Vector3 dir = WorldDirection(MovementInput());
             if (dir.sqrMagnitude < 0.0001f)
@@ -385,6 +478,7 @@ namespace Saga.Dungeon.Player
 
         private Vector2 MovementInput()
         {
+            if (_testInput) return _testRaw;
             if (joystick != null && joystick.Value.sqrMagnitude > 0.05f * 0.05f)
             {
                 return joystick.Value;
@@ -395,6 +489,11 @@ namespace Saga.Dungeon.Player
         private Vector3 WorldDirection(Vector2 inputDir)
         {
             if (inputDir.sqrMagnitude < 0.001f) return Vector3.zero;
+            if (_testInput)
+            {
+                Vector3 t = new Vector3(inputDir.x, 0f, inputDir.y);
+                return t.sqrMagnitude > 1f ? t.normalized : t;
+            }
 
             Transform basis = cameraRig != null ? cameraRig.transform : transform;
             Vector3 forward = basis.forward; forward.y = 0f; forward.Normalize();
@@ -403,6 +502,117 @@ namespace Saga.Dungeon.Player
             Vector3 dir = forward * inputDir.y + right * inputDir.x;
             if (dir.sqrMagnitude > 1f) dir.Normalize();
             return dir;
+        }
+        // ---- PLAN.md 106-5 탐험 — 땅/공중·등반·넘어오르기 ----------------------------------
+
+        private void UpdateGroundMode()
+        {
+            if (Mode == MoveMode.Ground || Mode == MoveMode.Air)
+                Mode = _controller.isGrounded ? MoveMode.Ground : MoveMode.Air;
+        }
+
+        private void SetModeParams()
+        {
+            if (animator == null) return;
+            if (_hasClimbParam) animator.SetBool("Climb", Mode == MoveMode.Climb);
+        }
+
+        /// <summary>가슴·무릎 높이 광선이 둘 다 `DungeonClimbable` 의 가파른 면에 닿는 쪽으로 밀면 붙는다.</summary>
+        private bool TryStartClimb(Vector3 dir)
+        {
+            if (_regrabCooldown > 0f || LockedOn) return false;
+            dir.y = 0f;
+            if (dir.sqrMagnitude < 0.0001f) return false;
+            dir.Normalize();
+            Vector3 p = transform.position;
+            if (!ProbeWall(p + Vector3.up * ClimbProbeHeight, dir, ClimbReach, out RaycastHit chest)) return false;
+            if (!ProbeWall(p + Vector3.up * KneeProbeHeight, dir, ClimbReach + 0.2f, out _)) return false;
+            Vector3 n = chest.normal; n.y = 0f;
+            if (n.sqrMagnitude < 0.0001f || Vector3.Dot(dir, -n.normalized) < 0.5f) return false;
+            _wallNormal = n.normalized;
+            Mode = MoveMode.Climb;
+            _verticalVelocity = 0f;
+            if (visual != null) visual.rotation = Quaternion.LookRotation(-_wallNormal);
+            return true;
+        }
+
+        private static bool ProbeWall(Vector3 origin, Vector3 dir, float dist, out RaycastHit hit)
+        {
+            if (!Physics.Raycast(origin, dir, out hit, dist, ~0, QueryTriggerInteraction.Ignore)) return false;
+            if (hit.normal.y >= 0.5f) return false;
+            return hit.collider.GetComponentInParent<DungeonClimbable>() != null;
+        }
+
+        private void StepClimb(float dt, Vector2 raw, bool jumpPressed)
+        {
+            Vector3 p = transform.position;
+            Vector3 into = -_wallNormal;
+            if (!ProbeWall(p + Vector3.up * ClimbProbeHeight, into, ClimbReach + 0.3f, out RaycastHit hit))
+            {
+                // 가슴 높이에 벽이 없다 — 무릎엔 있으면 꼭대기 턱이라 넘어오르고, 없으면 벽이 끝나 떨어진다.
+                if (ProbeWall(p + Vector3.up * KneeProbeHeight, into, ClimbReach + 0.3f, out _) && BeginMantle(into)) return;
+                Drop(false);
+                return;
+            }
+            Vector3 n = hit.normal; n.y = 0f;
+            if (n.sqrMagnitude > 0.0001f) _wallNormal = n.normalized;
+            into = -_wallNormal;
+            if (jumpPressed) { Drop(true); return; }
+
+            bool moving = raw.sqrMagnitude > 0.05f * 0.05f;
+            Vector3 right = Vector3.Cross(Vector3.up, into);
+            Vector3 vel = Vector3.up * (raw.y * ClimbSpeed) + right * (raw.x * ClimbSideSpeed);
+            float gap = hit.distance - (_controller.radius + 0.03f);
+            vel += into * Mathf.Clamp(gap / Mathf.Max(dt, 0.001f), -3f, 3f);
+            _controller.Move(vel * dt);
+            if (visual != null) visual.rotation = Quaternion.LookRotation(into);
+            if (animator != null)
+            {
+                animator.SetFloat("Speed", _hasClimbParam ? 0f : (moving ? 0.5f : 0f));
+                if (_hasClimbRate) animator.SetFloat("ClimbRate", moving ? (raw.y < -0.1f ? -1f : 1f) : 0f);
+            }
+            if (raw.y < -0.1f && _controller.isGrounded) Mode = MoveMode.Ground; // 내려와 땅에 닿음
+        }
+
+        /// <summary>등반을 놓는다. `pushOff` 면 벽에서 살짝 뛰어 떨어진다(F).</summary>
+        private void Drop(bool pushOff)
+        {
+            Mode = MoveMode.Air;
+            _regrabCooldown = ClimbRegrabSec;
+            _verticalVelocity = pushOff ? 2f : 0f;
+            if (pushOff) _controller.Move(_wallNormal * 0.6f);
+        }
+
+        /// <summary>꼭대기 턱 너머 딛을 자리를 찾아 넘어오른다. 못 찾으면 false.</summary>
+        private bool BeginMantle(Vector3 into)
+        {
+            Vector3 p = transform.position;
+            Vector3 scan = p + Vector3.up * (ClimbProbeHeight + 1.9f) + into * (_controller.radius + 0.75f);
+            if (!Physics.Raycast(scan, Vector3.down, out RaycastHit top, 3.2f, ~0, QueryTriggerInteraction.Ignore)) return false;
+            if (top.normal.y < 0.6f || top.point.y < p.y) return false;
+            _mantleFrom = p;
+            _mantleTo = top.point + Vector3.up * 0.05f;
+            _mantleT = 0f;
+            Mode = MoveMode.Mantle;
+            _controller.enabled = false;
+            return true;
+        }
+
+        private void StepMantle(float dt)
+        {
+            _mantleT += dt / MantleSec;
+            float t = Mathf.Clamp01(_mantleT);
+            float up = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t / 0.6f));
+            float fwd = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((t - 0.4f) / 0.6f));
+            Vector3 flat = Vector3.Lerp(new Vector3(_mantleFrom.x, 0f, _mantleFrom.z), new Vector3(_mantleTo.x, 0f, _mantleTo.z), fwd);
+            transform.position = new Vector3(flat.x, Mathf.Lerp(_mantleFrom.y, _mantleTo.y, up), flat.z);
+            if (t >= 1f)
+            {
+                _controller.enabled = true;
+                Mode = MoveMode.Ground;
+                _verticalVelocity = 0f;
+                _regrabCooldown = ClimbRegrabSec;
+            }
         }
     }
 }

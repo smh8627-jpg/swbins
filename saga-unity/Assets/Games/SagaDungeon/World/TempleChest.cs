@@ -12,6 +12,7 @@ namespace Saga.Dungeon.World
         SmallKey,
         Bombs,
         BossKey,
+        Treasure,   // PLAN.md 106-5 — 높은 곳 보상(돈·경험치, `treasureGold`·`treasureExp`)
     }
 
     /// <summary>
@@ -24,6 +25,8 @@ namespace Saga.Dungeon.World
     public class TempleChest : MonoBehaviour
     {
         private const float OpenRadius = 1.9f;
+        /// <summary>106-5 — 높이 차가 이보다 크면 안 열린다(탑 꼭대기 상자를 밑에서 못 열게).</summary>
+        private const float OpenHeight = 1.5f;
         private const float LidOpenSec = 0.35f;
         private const float LidOpenDeg = -110f;
         private const float ItemRiseSec = 1.0f;
@@ -37,6 +40,8 @@ namespace Saga.Dungeon.World
         [SerializeField] private bool big;
         [SerializeField] private Material woodMaterial;
         [SerializeField] private Material metalMaterial;
+        [SerializeField] private int treasureGold;
+        [SerializeField] private int treasureExp;
 
         private Transform _visualRoot;
         private Transform _lidPivot;
@@ -107,6 +112,14 @@ namespace Saga.Dungeon.World
             root.transform.localPosition = new Vector3(0f, bodyHeight + 0.3f, 0f);
             var glow = TempleVisuals.Glow(content == TempleChestContent.Bombs
                 ? new Color(1f, 0.45f, 0.15f) : TempleVisuals.GoldColor);
+            if (content == TempleChestContent.Treasure)
+            {
+                // 금화 더미 — 납작한 원기둥 셋
+                for (int i = 0; i < 3; i++)
+                    TempleVisuals.Primitive(PrimitiveType.Cylinder, root.transform, "Coin", new Vector3((i - 1) * 0.14f, i * 0.05f, 0f),
+                        new Vector3(0.22f, 0.025f, 0.22f), glow, collider: false);
+                return root;
+            }
             if (content == TempleChestContent.Bombs)
             {
                 TempleVisuals.Primitive(PrimitiveType.Sphere, root.transform, "Bomb", Vector3.zero, Vector3.one * 0.4f,
@@ -146,7 +159,8 @@ namespace Saga.Dungeon.World
                 DialogueLabel.Instance?.Show(DungeonLocalization.T("temple.chest_appeared", "✨ 어디선가 상자가 나타났다"), 3f);
             }
             if (!_revealed || _player == null) return;
-            if (TempleVisuals.FlatDistance(transform.position, _player.position) <= OpenRadius * (big ? 1.25f : 1f))
+            if (TempleVisuals.FlatDistance(transform.position, _player.position) <= OpenRadius * (big ? 1.25f : 1f)
+                && Mathf.Abs(_player.position.y - transform.position.y) <= OpenHeight)
             {
                 Open();
             }
@@ -168,6 +182,11 @@ namespace Saga.Dungeon.World
                 case TempleChestContent.SmallKey:
                     TempleState.AddSmallKey();
                     msg = DungeonLocalization.T("temple.got_small_key", "🗝 작은 열쇠를 얻었다! — 잠긴 문 하나를 연다");
+                    break;
+                case TempleChestContent.Treasure:
+                    HeroState.AddGold(treasureGold);
+                    HeroState.AddExp(treasureExp);
+                    msg = string.Format(DungeonLocalization.T("temple.got_treasure", "💰 높은 곳의 보물 — 금 +{0} · 경험치 +{1}"), treasureGold, treasureExp);
                     break;
                 case TempleChestContent.Bombs:
                     msg = DungeonLocalization.T("temple.got_bombs", "💣 벽력탄을 얻었다! — R·「벽력탄」 버튼으로 놓는다. 금 간 벽을 부술 수 있다");

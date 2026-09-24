@@ -148,6 +148,9 @@ namespace Saga.Dungeon.Player
         }
 
         /// <summary>모바일 화면의 "공격" 버튼(OnClick)이 부른다.</summary>
+        /// <summary>PLAN.md 106-5 — 등반·넘어오르기 중엔 못 싸운다(GO 107 ② 와 같은 결).</summary>
+        private bool Climbing => _controller != null && _controller.Climbing;
+
         public void TriggerAttack() => TryAttack();
 
         /// <summary>모바일 화면의 "강공격" 버튼(OnClick)이 부른다.</summary>
@@ -158,7 +161,7 @@ namespace Saga.Dungeon.Player
 
         private void TryAttack()
         {
-            if (_cooldownLeft > 0f || DungeonCutscenes.Playing) return;
+            if (_cooldownLeft > 0f || DungeonCutscenes.Playing || Climbing) return;
             var enemy = PickTarget(AttackRange);
             if (enemy == null) return;
 
@@ -174,7 +177,7 @@ namespace Saga.Dungeon.Player
 
         private void TryHeavyAttack()
         {
-            if (_heavyCooldownLeft > 0f || (_controller != null && _controller.IsDodging) || DungeonCutscenes.Playing) return;
+            if (_heavyCooldownLeft > 0f || (_controller != null && _controller.IsDodging) || DungeonCutscenes.Playing || Climbing) return;
             var enemy = PickTarget(AttackRange * HeavyRangeMul);
             if (enemy == null) return;
 
@@ -195,7 +198,7 @@ namespace Saga.Dungeon.Player
         /// 이미 public static이라 별도 조회 API 없이 바로 순회한다.</summary>
         private void TryWhirl()
         {
-            if (_whirlCooldownLeft > 0f || DungeonCutscenes.Playing) return;
+            if (_whirlCooldownLeft > 0f || DungeonCutscenes.Playing || Climbing) return;
 
             bool hitAny = false;
             float damage = HeroState.HitDamage * WhirlDamageMul;

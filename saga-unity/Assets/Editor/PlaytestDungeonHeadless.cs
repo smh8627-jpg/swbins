@@ -129,6 +129,7 @@ namespace Saga.EditorTools
                 CheckNpcModels(); // PLAN.md 106-4 — 씬을 안 바꾸는 검사라 앞쪽 아무 데나.
                 CheckLockOn(); // PLAN.md 106-1 — 더미 처치가 레벨업을 부를 수 있어 CheckLevelUpCut 뒤.
                 CheckEnemyTelegraph();
+                if (!PlaytestDungeonExplore.Run()) _hadError = true; // PLAN.md 106-5 탐험 — 걷고 뛰고 오른 뒤 자리·비트를 되돌린다.
                 CheckTemple(); // PLAN.md 106-2 — 플레이어를 순간이동시키므로 맨 끝(finally 에서 되돌린다).
                 StartCutCameraProbe(); // PLAN.md 106-3 — 6·8프레임째에 이어서 본다.
             }
@@ -1340,7 +1341,7 @@ namespace Saga.EditorTools
             {
                 if (c.Content == TempleChestContent.SmallKey) keyChest = c;
                 else if (c.Content == TempleChestContent.Bombs) bombChest = c;
-                else bossKeyChest = c;
+                else if (c.Content == TempleChestContent.BossKey) bossKeyChest = c; // 106-5 보물 상자는 뺀다
             }
             TempleDoor smallDoor = null, bossDoor = null;
             foreach (var d in Object.FindObjectsByType<TempleDoor>(FindObjectsSortMode.None))

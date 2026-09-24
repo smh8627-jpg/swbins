@@ -334,6 +334,7 @@ namespace Saga.EditorTools
             BuildCorridorAndProcRoom();
             BuildDungeonTemple.Build(_corridorGlb, _gateGlb, _roomGlb, _dungeonFloorMat, _dungeonWallMat,
                 _characterC, _skeleton != null ? _skeleton : _characterD, RoomDoorWidth); // PLAN.md 106-2 "잊힌 능묘"(파수꾼 = 106-4 해골).
+            BuildDungeonWatchCourt.Build(_corridorGlb, _gateGlb, _roomGlb, _dungeonFloorMat, _dungeonWallMat, RoomDoorWidth); // PLAN.md 106-5 "탐험".
             var (playerGo, playerCombat, playerController) = BuildPlayer();
             BuildAlly();
             BuildPostProcessingVolume();
@@ -353,6 +354,7 @@ namespace Saga.EditorTools
             BuildDodgeButton(playerController);
             BuildLockOnButton(playerGo.GetComponent<PlayerLockOn>());
             BuildBombButton(playerGo.GetComponent<PlayerBombs>());
+            BuildJumpButton(playerController); // PLAN.md 106-5
             BuildMobileHud();
             BuildBlessingChoiceUi();
             BuildDungeonCinematics.Build(playerGo, BuildDungeonTemple.LastGuardian); // PLAN.md 106-3 — 플레이어·HUD 뒤.
@@ -788,6 +790,7 @@ namespace Saga.EditorTools
             room2Builder.OpenSouthDoor(RoomDoorWidth);
             room2Builder.OpenNorthDoor(RoomDoorWidth); // "방 종류 마지막" — 복도2로 Room3와 잇는다.
             room2Builder.OpenWestDoor(RoomDoorWidth); // PLAN.md 106-2 — "잊힌 능묘" 입구 복도.
+            room2Builder.OpenEastDoor(RoomDoorWidth); // PLAN.md 106-5 — "옛 감시탑 뜰" 복도.
 
             for (int i = 0; i < FieldEnemySpawns.Length; i++)
             {
@@ -1627,6 +1630,13 @@ namespace Saga.EditorTools
 
         /// <summary>PLAN.md 106-2 "벽력탄" — 주목 버튼 바로 위(20px 간격), 데스크톱은 R.
         /// 벽력탄 상자를 열기 전엔 눌러도 "아직 없다" 토스트만(PlayerBombs.TryPlaceBomb).</summary>
+        /// <summary>PLAN.md 106-5 "탐험" — 벽력탄 버튼 바로 위(20px 간격), 데스크톱은 F(Space 는 평타).</summary>
+        private static void BuildJumpButton(PlayerController controller)
+        {
+            BuildActionButton("JumpUI", "JumpButton", new Vector2(1f, 0f), new Vector2(-280f, 630f),
+                new Vector2(130f, 130f), new Color(0.3f, 0.55f, 0.35f, 0.55f), "점프", 26, controller.RequestJump, "action.jump");
+        }
+
         private static void BuildBombButton(PlayerBombs bombs)
         {
             // LockOnButton(y=330, 높이130) 바로 위, 20px 간격
