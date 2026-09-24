@@ -8829,3 +8829,13 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - **코스 두 번 고침**: ① 돌 사이 틈 0.8m → 점프 3번(틈을 걸어서 건넘). ② 1.2m 로 넓혀도 건넜다 — 캡슐(반지름 0.4)이 양 모서리에 걸쳐 버티고 반대편 턱을 계단처럼 올라탔다. 틈 2m 로 하니 이번엔 자연 점프(≈3.4m)가 셋째 돌(폭 1.6m)을 넘어 틈에 떨어질 판이라 돌을 폭 2.8m 계단식으로 바꿨다. 진단도 "점프 4번" 대신 "셋째 돌에서 점프 없이 걸으면 떨어짐"을 따로 본다.
 - 막이: 탑(8m)에서 달려 뛰면 방 벽(4m)에 닿는 거리라 이 방 벽 위에만 보이지 않는 막이. 카메라 벽 당김이 막이에 걸리지 않게 "Ignore Raycast" 층 + `CameraRig` 광선을 `Physics.DefaultRaycastLayers` 로.
 - 검증: 씬 재빌드 exit 0 · `PlaytestDungeonHeadless` **3연속 OK**(점프 1.37m · 징검돌 점프 4번 2.5s · 탑 8m 4.6s, 3회 동일, 능묘 진단 그대로 통과) · `PlaytestDungeonFloorProgression` OK. 실기 확인은 전. 새 글자 `explore.*`·`temple.got_treasure`·`action.jump` 는 `DungeonLocalization.T` 폴백.
+
+## 2026-09-24 — PLAN 106-6 FF 확장(DUNGEON): 동료 파티(무사 도발·술사 치유·ATB) + 소환수 "바위 거신" — 106장 여섯 순서 코드 완료 (새 대화 "사가유니티 이어해줘", Opus 5.5)
+
+- **설계 판단**: 106 표의 "동료 파티 전투·소환수 대형 연출" 한 줄뿐이라 FF 최신작(FF7R·FF16) 전투에서 두 문법만 골랐다 — ① 동료는 스스로 평타, 특기는 플레이어가 **게이지(ATB)를 써서 시킨다** ② 파티가 쌓은 게이지로 **소환수가 판을 뒤집는다**(컷 연출 포함). 동료 교대·장비·성장은 수치 확장이라 이번엔 뺐다(106 "수치 확장 멈춤" 원칙). 게이지는 **맞힌 횟수**로 차게 해 레벨·장비와 박자가 무관하다. 세이브 스키마 안 바뀜.
+- **파티**: 기존 동행 무사(`AllyFighter`)에 체력 40(웹판 `hpMaxOf`)·쓰러짐(12초 뒤 30%)·명령 "방패 도발"(12m·8초·받는 피해 40%). 새 뒷줄 술사(`AllyMystic`, Peasant Girl) — 그 모델엔 걷기 클립이 없어 GO 107-6 처럼 Maria.controller 를 씌웠다(Speed 0/0.5/1 규칙이 AllyFighter 와 같아 그대로 돈다). 빛살(`MysticBolt`)·물러섬·명령 "치유의 빛"(+40%·무사 일으킴, `HealGlow`).
+- **적 AI**: `DungeonEnemy` 표적을 `Target`(플레이어 또는 도발한 무사) 하나로 바꿔 쓴다 — 예비동작·판정은 그대로라 기존 진단(락온·예고·능묘) 전부 그대로 통과. 술사는 표적이 아니다(체력 없음). 적이 동료를 스스로 노리는 "적개심" 규칙은 기존 진단 전제(더미가 플레이어를 친다)를 흔들 수 있어 도발만으로 좁혔다.
+- **소환**(`PartySummon`·`PartyCommands`): Brute 3.2배 + 돌빛 틴트(발광 재질은 URP Lit 키워드가 필요해 틴트·점광·진 고리로 대신). 시간은 거신이 스스로 세고(`Tick`), 컷(`DungeonCutscenes.PlaySummon`, Timeline `Party_Summon`)은 카메라 두 자리·제목만 — 넘기거나 컷이 없으면 `onEnd` 가 `ResolveNow()` 로 그 자리에서 내리친다(피해 한 번). 카메라 자리는 상자 컷처럼 부르는 순간 다시 잡고 벽이 막으면 당긴다.
+- **HUD·버튼**: `PartyHud`(런타임에 막대를 만든다 — 버튼이 아니라 영속 리스너 불필요), 버튼 셋 도발·치유·소환(`ButtonWiring.Wire`, 회피·주목 줄 왼쪽 x=-460). 키 1·2·V.
+- 파일: 새 `Data/PartyState.cs`·`World/AllyMystic.cs`·`MysticBolt.cs`·`HealGlow.cs`·`PartySummon.cs`·`Player/PartyCommands.cs`·`UI/PartyHud.cs`·`Editor/PlaytestDungeonParty.cs`·`Cinematics/Timelines/Party_Summon.playable`, 고침 `AllyFighter`·`DungeonEnemy`·`PlayerCombat`(맞힐 때 게이지)·`DungeonCutscenes`(Summon 종류)·`BuildDungeonCinematics`·`BuildTestDungeonScene`·`PlaytestDungeonHeadless`. 씬 재빌드(Temple_* 타임라인은 재생성 순서만 바뀜 — 같이 커밋).
+- 검증: 컴파일·씬 재빌드 exit 0(버튼 23 전부 리스너) · `PlaytestDungeonHeadless` **3연속 OK**(첫 실행부터, 새 `party` 줄 "도발 2초 무사 -4.0 · 소환 한 방 200(레벨 3)·맞은 적 1" 3회 동일) · `PlaytestDungeonFloorProgression` OK. 실기 확인은 전. 새 글자 `party.*`·`action.taunt/heal/summon`·`cut.summon_*` 는 `DungeonLocalization.T` 폴백.

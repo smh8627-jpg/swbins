@@ -169,6 +169,7 @@ namespace Saga.Dungeon.Player
             _controller.FaceToward(enemy.transform.position);
             float mul = ConsumeCounter();
             enemy.TakeDamage(HeroState.HitDamage * mul, heavy: mul > 1f);
+            PartyState.AddPlayerHit(heavy: mul > 1f); // PLAN.md 106-6 — 맞힐 때마다 동료 명령·소환 게이지.
             _cameraRig?.Shake(mul > 1f ? HeavyShakeMag : HitShakeMag, mul > 1f ? HeavyShakeSec : HitShakeSec);
             SfxPlayer.PlayHit();
             _controller.Animator?.SetTrigger("Attack");
@@ -185,6 +186,7 @@ namespace Saga.Dungeon.Player
             _cooldownLeft = Mathf.Max(_cooldownLeft, HeavyRecoverSec);
             _controller.FaceToward(enemy.transform.position);
             enemy.TakeDamage(HeroState.HitDamage * HeavyDamageMul * ConsumeCounter(), heavy: true);
+            PartyState.AddPlayerHit(heavy: true);
             _cameraRig?.Shake(HeavyShakeMag, HeavyShakeSec);
             SfxPlayer.PlayHeavyHit();
             // Maria.controller엔 슬래시 클립이 하나뿐이라 강공격도 같은
@@ -210,6 +212,7 @@ namespace Saga.Dungeon.Player
                 hitAny = true;
             }
             if (!hitAny) return;
+            PartyState.AddPlayerHit(heavy: false); // 여럿을 베도 한 번(게이지가 회전베기 난사로 넘치지 않게).
 
             // PLAN.md 101-2 5.1 "축복 3택" 선(旋) 축 — BlessingState.SweepMultiplier로
             // 나눈다(클수록 회전베기를 더 자주 쓴다, 51장 "범위형 빌드"를 직접 강화).

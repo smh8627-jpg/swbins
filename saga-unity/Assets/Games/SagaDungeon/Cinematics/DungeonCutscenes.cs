@@ -14,6 +14,7 @@ namespace Saga.Dungeon.Cinematics
         Arrival,   // 능묘 도착 — 지역명 카드
         Chest,     // 상자 열기 — 아이템 획득 클로즈업
         BossIntro, // 능묘지기 등장
+        Summon,    // PLAN.md 106-6 소환수 "바위 거신"
     }
 
     /// <summary>
@@ -50,6 +51,9 @@ namespace Saga.Dungeon.Cinematics
         [SerializeField] private CinemachineCamera chestCam;
         [SerializeField] private CinemachineCamera bossWideCam;
         [SerializeField] private CinemachineCamera bossCloseCam;
+        [SerializeField] private PlayableDirector summon;       // PLAN.md 106-6
+        [SerializeField] private CinemachineCamera summonWideCam;
+        [SerializeField] private CinemachineCamera summonCloseCam;
         [SerializeField] private CutsceneTitleCard titleCard;
         [SerializeField] private Canvas overlayCanvas;
         [SerializeField] private RectTransform topBar;
@@ -104,6 +108,7 @@ namespace Saga.Dungeon.Cinematics
             yield return arrival;
             yield return chest;
             yield return bossIntro;
+            yield return summon;
         }
 
         public CinemachineCamera CameraOf(CutsceneKind kind, bool close = false)
@@ -113,6 +118,7 @@ namespace Saga.Dungeon.Cinematics
                 case CutsceneKind.Arrival: return arrivalCam;
                 case CutsceneKind.Chest: return chestCam;
                 case CutsceneKind.BossIntro: return close ? bossCloseCam : bossWideCam;
+                case CutsceneKind.Summon: return close ? summonCloseCam : summonWideCam;
                 default: return null;
             }
         }
@@ -138,6 +144,47 @@ namespace Saga.Dungeon.Cinematics
             bool ok = Play(bossIntro, CutsceneKind.BossIntro, onEnd);
             if (!ok) _boss = null;
             return ok;
+        }
+
+        /// <summary>PLAN.md 106-6 — `PartyCommands` 가 소환수를 세운 뒤 부른다. 카메라 두 자리를 이 소환수·플레이어에
+        /// 맞춰 다시 잡는다(벽이 막으면 당긴다). 내리치기 시간은 `PartySummon` 이 스스로 세고, 넘기거나 컷이 없으면
+        /// `onEnd` 가 불려 소환수가 그 자리에서 끝낸다.</summary>
+        public bool PlaySummon(Vector3 summonPos, Vector3 playerPos, float summonHeight, Action onEnd)
+        {
+            Vector3 fwd = summonPos - playerPos;
+            fwd.y = 0f;
+            fwd = fwd.sqrMagnitude > 0.01f ? fwd.normalized : Vector3.forward;
+            Vector3 side = Vector3.Cross(Vector3.up, fwd).normalized;
+
+            // 넓은 샷 — 플레이어 등 뒤 낮은 데서, 솟아오르는 거신을 올려다보며 고개를 든다.
+            var wide = summonWideCam != null ? summonWideCam.GetComponent<CutsceneDolly>() : null;
+            if (wide != null)
+            {
+                Vector3 focus = playerPos + Vector3.up * 1.4f;
+                Vector3 a = PullIn(focus, playerPos - fwd * 3.6f + side * 1.6f + Vector3.up * 1.1f, out _);
+                Vector3 b = PullIn(focus, playerPos - fwd * 2.4f + side * 1.1f + Vector3.up * 0.7f, out _);
+                wide.Set(a, b, summonPos + Vector3.up * (summonHeight * 0.25f), summonPos + Vector3.up * (summonHeight * 0.85f));
+            }
+            // 가까운 샷 — 거신 옆 낮은 데서 주먹이 떨어지는 걸 따라 내려본다(벽에 덜 막힌 쪽).
+            var close = summonCloseCam != null ? summonCloseCam.GetComponent<CutsceneDolly>() : null;
+            if (close != null)
+            {
+                Vector3 focus = summonPos + Vector3.up * (summonHeight * 0.4f);
+                Vector3 best = Vector3.zero, bestTo = Vector3.zero;
+                float bestClear = -1f;
+                foreach (float sign in new[] { 1f, -1f })
+                {
+                    Vector3 from = PullIn(focus, summonPos + side * (7f * sign) - fwd * 1.5f + Vector3.up * 1.2f, out float clear);
+                    if (clear > bestClear)
+                    {
+                        bestClear = clear;
+                        best = from;
+                        bestTo = PullIn(focus, summonPos + side * (5.5f * sign) - fwd * 1f + Vector3.up * 0.8f, out _);
+                    }
+                }
+                close.Set(best, bestTo, summonPos + Vector3.up * (summonHeight * 0.75f), summonPos + Vector3.up * (summonHeight * 0.3f));
+            }
+            return Play(summon, CutsceneKind.Summon, onEnd);
         }
 
         private bool Play(PlayableDirector director, CutsceneKind kind, Action onEnd)

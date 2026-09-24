@@ -1,5 +1,7 @@
 using UnityEngine;
 using Saga.Dungeon.Cinematics;
+using Saga.Dungeon.Data;
+using Saga.Dungeon.UI;
 
 namespace Saga.Dungeon.World
 {
@@ -17,6 +19,11 @@ namespace Saga.Dungeon.World
     /// 스탯은 `partyPower()` 공식 그대로(might=24·wisdom=12·command=18
     /// → atk=24×0.7+12×0.3=20.4) 옮기되, 등용 대상이 없어 임의로 잡은
     /// 가상의 동행("동행 무사", 원작 상표 없음).
+    ///
+    /// PLAN.md 106-6 "FF 확장" — 파티의 앞줄. 체력이 생기고(웹판 `hpMaxOf` = max(30, def×3), def = command×0.6 +
+    /// wisdom×0.2 = 13.2 → 40), 명령 "방패 도발"(게이지 한 칸)을 받으면 12m 안 적이 8초 동안 무사만 노린다
+    /// (받는 피해 40%). 체력이 다하면 쓰러지고 12초 뒤 30% 로 일어난다 — 술사의 "치유의 빛"은 곧바로 일으킨다.
+    /// 적이 곁에 없으면 4초 뒤 체력이 다 찬다(던전 한 판을 무사 체력으로 막지 않게).
     /// </summary>
     public class AllyFighter : MonoBehaviour
     {
@@ -42,17 +49,166 @@ namespace Saga.Dungeon.World
         // 런타임에도 돎)로 편집기 빌드 스크립트가 채워 준다.
         [SerializeField] private GameObject modelPrefab;
 
+        // PLAN.md 106-6 — 체력·쓰러짐·도발.
+        public const int HpMax = 40;
+        public const float TauntSec = 8f;
+        public const float TauntRadius = 12f;
+        public const float TauntDamageMul = 0.4f;
+        public const float DownSec = 12f;
+        public const float GetUpHpFrac = 0.3f;
+        private const float CalmRegenSec = 4f;
+        private const float CalmRadius = 12f;
+        private static readonly Color TauntRingColor = new Color(1f, 0.78f, 0.25f);
+
         private Transform _player;
         private float _attackCooldown;
         private Animator _animator; // PLAN.md 106-4 — 사실 모델(Paladin)일 때만. Speed 0/0.5/1 + Attack 트리거.
+        private Transform _visual;
+        private float _hp = HpMax;
+        private float _downLeft;
+        private float _tauntLeft;
+        private float _calmFor;
+        private LineRenderer _tauntRing;
 
         public Animator Animator => _animator;
 
+        public static AllyFighter Instance { get; private set; }
+        public float Hp => _hp;
+        public bool IsUp => _downLeft <= 0f;
+        public bool Taunting => _tauntLeft > 0f && IsUp;
+        public float DownLeft => _downLeft;
+
         private void Awake()
         {
+            Instance = this;
             if (transform.childCount == 0) BuildVisual();
+            _visual = transform.childCount > 0 ? transform.GetChild(0) : null;
             var playerGo = GameObject.FindWithTag("Player");
             _player = playerGo != null ? playerGo.transform : null;
+        }
+
+        private void OnDestroy()
+        {
+            if (Instance == this) Instance = null;
+        }
+
+        /// <summary>PLAN.md 106-6 "방패 도발" — `PartyCommands` 가 게이지를 쓴 뒤 부른다. 걸린 적 수를 돌려준다.</summary>
+        public int OrderTaunt()
+        {
+            if (!IsUp) return 0;
+            _tauntLeft = TauntSec;
+            int n = 0;
+            foreach (var e in DungeonEnemy.Active)
+            {
+                if (e == null || !e.IsAlive) continue;
+                if (Vector3.Distance(transform.position, e.transform.position) > TauntRadius) continue;
+                e.Taunt(this, TauntSec);
+                n++;
+            }
+            if (_animator != null) _animator.SetTrigger("Attack"); // 방패를 치켜드는 대신 검방 공격 클립(전용 클립 없음).
+            EnsureTauntRing();
+            _tauntRing.enabled = true;
+            DialogueLabel.Instance?.Show(DungeonLocalization.T("party.taunt", "동행 무사: 「이쪽이다!」 — 적이 무사를 노린다"), 2.5f);
+            return n;
+        }
+
+        /// <summary>적의 판정이 도발 중인 무사에게 떨어졌다(`DungeonEnemy.ResolveStrike`).</summary>
+        public void TakeHit(float amount)
+        {
+            if (!IsUp || amount <= 0f) return;
+            float taken = amount * (Taunting ? TauntDamageMul : 1f);
+            _hp = Mathf.Max(0f, _hp - taken);
+            _calmFor = 0f;
+            DamagePopup.Spawn(transform.position + Vector3.up * 2f, taken, false);
+            if (_hp <= 0f) GoDown();
+        }
+
+        /// <summary>술사 "치유의 빛" — 쓰러져 있으면 일으키고, 서 있으면 채운다.</summary>
+        public void Revive(float hpFrac)
+        {
+            _hp = Mathf.Max(_hp, HpMax * Mathf.Clamp01(hpFrac));
+            if (_downLeft > 0f)
+            {
+                _downLeft = 0f;
+                SetDownPose(false);
+            }
+        }
+
+        /// <summary>진단용 — 게이지·쓰러짐을 처음 상태로.</summary>
+        public void ResetParty()
+        {
+            _hp = HpMax;
+            _downLeft = 0f;
+            _tauntLeft = 0f;
+            _calmFor = 0f;
+            if (_tauntRing != null) _tauntRing.enabled = false;
+            SetDownPose(false);
+        }
+
+        private void GoDown()
+        {
+            _downLeft = DownSec;
+            _tauntLeft = 0f;
+            if (_tauntRing != null) _tauntRing.enabled = false;
+            SetDownPose(true);
+            DialogueLabel.Instance?.Show(DungeonLocalization.T("party.guard_down", "동행 무사가 쓰러졌다 — 술사의 치유로 일으킬 수 있다"), 3f);
+        }
+
+        /// <summary>Paladin 엔 쓰러짐 클립이 없어 몸을 뒤로 눕힌다(절차적 폴백, PlayerController 구르기와 같은 결).</summary>
+        private void SetDownPose(bool down)
+        {
+            SetSpeed(0f);
+            if (_visual == null) return;
+            _visual.localRotation = down ? Quaternion.Euler(-80f, 0f, 0f) : Quaternion.identity;
+            _visual.localPosition = down ? new Vector3(0f, 0.3f, 0f) : Vector3.zero;
+        }
+
+        /// <summary>한 프레임 분량의 쓰러짐·도발·회복 — 진단이 시간을 직접 넣는다.</summary>
+        public void TickParty(float dt)
+        {
+            if (_downLeft > 0f)
+            {
+                _downLeft -= dt;
+                if (_downLeft <= 0f)
+                {
+                    _downLeft = 0f;
+                    _hp = HpMax * GetUpHpFrac;
+                    SetDownPose(false);
+                }
+                return;
+            }
+            if (_tauntLeft > 0f)
+            {
+                _tauntLeft -= dt;
+                if (_tauntLeft <= 0f && _tauntRing != null) _tauntRing.enabled = false;
+            }
+            if (_hp < HpMax)
+            {
+                _calmFor = DungeonEnemy.FindNearest(transform.position, CalmRadius) == null ? _calmFor + dt : 0f;
+                if (_calmFor >= CalmRegenSec) _hp = HpMax;
+            }
+        }
+
+        private void EnsureTauntRing()
+        {
+            if (_tauntRing != null) return;
+            var go = new GameObject("TauntRing");
+            go.transform.SetParent(transform, false);
+            go.transform.localPosition = new Vector3(0f, 0.06f, 0f);
+            _tauntRing = go.AddComponent<LineRenderer>();
+            _tauntRing.useWorldSpace = false;
+            _tauntRing.loop = true;
+            _tauntRing.widthMultiplier = 0.08f;
+            _tauntRing.material = new Material(Shader.Find("Sprites/Default"));
+            _tauntRing.startColor = _tauntRing.endColor = TauntRingColor;
+            _tauntRing.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            const int seg = 36;
+            _tauntRing.positionCount = seg;
+            for (int i = 0; i < seg; i++)
+            {
+                float a = i * Mathf.PI * 2f / seg;
+                _tauntRing.SetPosition(i, new Vector3(Mathf.Cos(a) * 1.1f, 0f, Mathf.Sin(a) * 1.1f));
+            }
         }
 
         private void BuildVisual()
@@ -84,6 +240,8 @@ namespace Saga.Dungeon.World
                 SetSpeed(0f); // PLAN.md 106-3 — 컷 동안은 동행도 선다.
                 return;
             }
+            TickParty(Time.deltaTime);
+            if (!IsUp) return;
             if (_attackCooldown > 0f) _attackCooldown -= Time.deltaTime;
 
             var target = DungeonEnemy.FindNearest(transform.position, EngageRadius);
@@ -98,6 +256,7 @@ namespace Saga.Dungeon.World
                     {
                         _attackCooldown = AttackInterval;
                         target.TakeDamage(HitDamage);
+                        PartyState.AddAllyHit(PartyRole.Guard); // PLAN.md 106-6 — 제 평타도 게이지를 조금 채운다.
                         if (_animator != null) _animator.SetTrigger("Attack");
                     }
                     SetSpeed(0f);

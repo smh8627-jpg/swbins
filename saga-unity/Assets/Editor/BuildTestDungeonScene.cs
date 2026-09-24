@@ -355,6 +355,7 @@ namespace Saga.EditorTools
             BuildLockOnButton(playerGo.GetComponent<PlayerLockOn>());
             BuildBombButton(playerGo.GetComponent<PlayerBombs>());
             BuildJumpButton(playerController); // PLAN.md 106-5
+            BuildPartyUi(playerGo.GetComponent<PartyCommands>()); // PLAN.md 106-6
             BuildMobileHud();
             BuildBlessingChoiceUi();
             BuildDungeonCinematics.Build(playerGo, BuildDungeonTemple.LastGuardian); // PLAN.md 106-3 — 플레이어·HUD 뒤.
@@ -1153,6 +1154,8 @@ namespace Saga.EditorTools
             var lockOn = playerGo.AddComponent<PlayerLockOn>(); // PLAN.md 106-1 "락온".
             SetPrivateField(pc, "lockOn", lockOn);
             playerGo.AddComponent<PlayerBombs>(); // PLAN.md 106-2 "벽력탄".
+            var party = playerGo.AddComponent<PartyCommands>(); // PLAN.md 106-6 "FF 확장" — 명령 1·2, 소환 V.
+            SetPrivateField(party, "summonPrefab", _characterC); // 바위 거신 = 두목 모델 3.2배.
 
             var combat = playerGo.AddComponent<PlayerCombat>();
             playerGo.AddComponent<WeaponVisual>(); // PLAN.md 101-3 G "장비 가시화".
@@ -1208,6 +1211,36 @@ namespace Saga.EditorTools
             go.transform.position = PlayerSpawn + new Vector3(1.5f, 0f, 0f);
             var ally = go.AddComponent<AllyFighter>();
             SetPrivateField(ally, "modelPrefab", _paladin != null ? _paladin : _characterB); // PLAN.md 106-4 — 검방 든 기사.
+
+            // PLAN.md 106-6 — 뒷줄 술사. Peasant Girl 엔 걷기 클립이 없어 Maria.controller 를 씌운다(GO 107-6 리타깃).
+            var mysticGo = new GameObject("AllyMystic");
+            mysticGo.transform.position = PlayerSpawn + new Vector3(-1.5f, 0f, -1.5f);
+            var mystic = mysticGo.AddComponent<AllyMystic>();
+            SetPrivateField(mystic, "modelPrefab", _peasantGirl != null ? _peasantGirl : _characterB);
+            SetPrivateField(mystic, "bodyController",
+                AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>("Assets/Animators/Maria.controller"));
+        }
+
+        /// <summary>PLAN.md 106-6 — 파티 명령 버튼 셋(회피·주목 줄 왼쪽 한 줄 더) + 왼쪽 위 파티 줄.</summary>
+        private static void BuildPartyUi(PartyCommands party)
+        {
+            var taunt = BuildActionButton("TauntUI", "TauntButton", new Vector2(1f, 0f), new Vector2(-460f, 180f),
+                new Vector2(130f, 130f), new Color(0.75f, 0.55f, 0.15f, 0.55f), "도발", 26, party.OrderGuard, "action.taunt");
+            var heal = BuildActionButton("HealUI", "HealButton", new Vector2(1f, 0f), new Vector2(-460f, 330f),
+                new Vector2(130f, 130f), new Color(0.25f, 0.6f, 0.35f, 0.55f), "치유", 26, party.OrderMystic, "action.heal");
+            var summon = BuildActionButton("SummonUI", "SummonButton", new Vector2(1f, 0f), new Vector2(-460f, 480f),
+                new Vector2(130f, 130f), new Color(0.6f, 0.4f, 0.15f, 0.55f), "소환", 26, party.Summon, "action.summon");
+
+            var canvasGo = new GameObject("PartyHudUI");
+            var canvas = canvasGo.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            var scaler = canvasGo.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1080, 1920);
+            var hud = canvasGo.AddComponent<PartyHud>();
+            SetPrivateField(hud, "tauntButton", taunt.GetComponent<Image>());
+            SetPrivateField(hud, "healButton", heal.GetComponent<Image>());
+            SetPrivateField(hud, "summonButton", summon.GetComponent<Image>());
         }
 
         /// <summary>PLAN.md 66-2장(파이널 판타지 최신작 기준) "다음에 할 일"

@@ -28,6 +28,9 @@ namespace Saga.EditorTools
         private const float ChestSec = 2.6f;
         private const float BossWideSec = 2.0f;
         private const float BossCloseSec = 3.2f;
+        // PLAN.md 106-6 소환 — 넓은 샷(솟아오름)에서 가까운 샷(내리치기)으로. 합이 PartySummon.EndSec 와 같다.
+        private const float SummonWideSec = 2.6f;
+        private const float SummonCloseSec = PartySummon.EndSec - SummonWideSec;
 
         private static readonly Color BarColor = new Color(0.01f, 0.01f, 0.015f, 1f);
         private static readonly Color RegionColor = new Color(1f, 0.95f, 0.86f);
@@ -75,6 +78,15 @@ namespace Saga.EditorTools
             noise.AmplitudeGain = 0.8f;
             if (noise.NoiseProfile == null) Debug.LogWarning($"[BuildDungeonCinematics] 손떨림 프리셋을 못 찾음: {NoisePath}");
 
+            // 소환 — 자리는 부르는 순간 `DungeonCutscenes.PlaySummon` 이 다시 잡는다. 가까운 샷은 내리칠 때 흔들린다.
+            var summonWideCam = CutCamera(root, "CutCam_SummonWide", 50f,
+                e + new Vector3(0f, 1.1f, -4f), e + new Vector3(0f, 0.7f, -3f), e + Vector3.up * 2f, e + Vector3.up * 5f);
+            var summonCloseCam = CutCamera(root, "CutCam_SummonClose", 46f,
+                e + new Vector3(7f, 1.2f, 0f), e + new Vector3(5.5f, 0.8f, 0f), e + Vector3.up * 4.5f, e + Vector3.up * 2f);
+            var summonNoise = summonCloseCam.gameObject.AddComponent<CinemachineBasicMultiChannelPerlin>();
+            summonNoise.NoiseProfile = AssetDatabase.LoadAssetAtPath<NoiseSettings>(NoisePath);
+            summonNoise.AmplitudeGain = 1.4f;
+
             // ── Timeline 셋
             var arrival = Director(root, "Cut_Arrival");
             {
@@ -108,6 +120,20 @@ namespace Saga.EditorTools
                 Finish(boss, tl, brain, cam, title, card);
             }
 
+            var summon = Director(root, "Cut_Summon");
+            {
+                var tl = FreshTimeline("Party_Summon");
+                var cam = tl.CreateTrack<CinemachineTrack>(null, "Camera");
+                Shot(summon, cam, "summon_wide", summonWideCam, 0f, SummonWideSec, 0.6f, 0f);
+                Shot(summon, cam, "summon_close", summonCloseCam, SummonWideSec, SummonCloseSec, 0f, 0.7f);
+                Dolly(summon, tl, summonWideCam, 0f, SummonWideSec);
+                Dolly(summon, tl, summonCloseCam, SummonWideSec, SummonCloseSec);
+                var title = tl.CreateTrack<CutsceneTitleTrack>(null, "Title");
+                Title(title, 0.5f, 1.9f, CutsceneTitleStyle.Boss,
+                    "cut.summon_title", "바위 거신", "cut.summon_sub", "소환 — 잠든 산이 깨어난다");
+                Finish(summon, tl, brain, cam, title, card);
+            }
+
             SetField(cuts, "brain", brain);
             SetField(cuts, "arrival", arrival);
             SetField(cuts, "chest", chest);
@@ -116,6 +142,9 @@ namespace Saga.EditorTools
             SetField(cuts, "chestCam", chestCam);
             SetField(cuts, "bossWideCam", bossWideCam);
             SetField(cuts, "bossCloseCam", bossCloseCam);
+            SetField(cuts, "summon", summon);
+            SetField(cuts, "summonWideCam", summonWideCam);
+            SetField(cuts, "summonCloseCam", summonCloseCam);
             SetField(cuts, "titleCard", card);
             SetField(cuts, "overlayCanvas", overlay);
             SetField(cuts, "topBar", topBar);
@@ -124,7 +153,7 @@ namespace Saga.EditorTools
             SetField(cuts, "bossRoarSec", BossWideSec);
 
             if (guardian == null) Debug.LogWarning("[BuildDungeonCinematics] 능묘지기를 못 받음 — 등장 컷의 포효가 빠진다.");
-            Debug.Log("[BuildDungeonCinematics] 컷 3(도착·상자·능묘지기) · 가상 카메라 4 · Timeline 3");
+            Debug.Log("[BuildDungeonCinematics] 컷 4(도착·상자·능묘지기·소환) · 가상 카메라 6 · Timeline 4");
         }
 
         // ───────────────────────── Timeline

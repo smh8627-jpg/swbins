@@ -180,6 +180,11 @@ namespace Saga.Dungeon.World
         private Animator _animator;
         private Coroutine _flashRoutine;
 
+        // PLAN.md 106-6 "FF 확장" — 동행 무사의 "방패 도발". 걸려 있는 동안 플레이어 대신 무사를 쫓고 때린다.
+        // 무사가 쓰러지거나 시간이 다 되면 다시 플레이어.
+        private AllyFighter _taunter;
+        private float _tauntLeft;
+
         private float _windupLeft;
         private float _windupTotal;
         private bool _warnHot;
@@ -191,6 +196,17 @@ namespace Saga.Dungeon.World
         public float VisualScale => visualScale;
         public bool IsWindingUp => _state == State.Windup;
         public float StrikeReach => attackRange * StrikeReachMul;
+        public bool IsTaunted => _tauntLeft > 0f && _taunter != null && _taunter.IsUp;
+
+        /// <summary>PLAN.md 106-6 — `AllyFighter.OrderTaunt()` 가 반경 안 적에게 건다.</summary>
+        public void Taunt(AllyFighter by, float seconds)
+        {
+            if (_state == State.Dead || by == null) return;
+            _taunter = by;
+            _tauntLeft = seconds;
+        }
+
+        private Transform Target => IsTaunted ? _taunter.transform : _player;
 
         /// <summary>"랜덤 이벤트" 슬라이스 — `DungeonAmbush.cs`처럼 런타임에
         /// 즉석으로 만든 개체에 값을 채우는 정식 API. 편집기 빌드 스크립트의
@@ -330,6 +346,7 @@ namespace Saga.Dungeon.World
             }
 
             if (_armorHintCooldown > 0f) _armorHintCooldown -= dt;
+            if (_tauntLeft > 0f) _tauntLeft -= dt;
             if (_stunLeft > 0f)
             {
                 _stunLeft -= dt;
@@ -352,7 +369,8 @@ namespace Saga.Dungeon.World
                 }
             }
 
-            float dist = Vector3.Distance(transform.position, _player.position);
+            Transform target = Target;
+            float dist = Vector3.Distance(transform.position, target.position);
 
             if (_state == State.Windup)
             {
@@ -362,7 +380,7 @@ namespace Saga.Dungeon.World
 
             if (_state == State.Idle)
             {
-                if (dist <= aggroRadius)
+                if (dist <= aggroRadius || IsTaunted)
                 {
                     _state = State.Chase;
                     if (isWorldBoss)
@@ -382,7 +400,7 @@ namespace Saga.Dungeon.World
             // Chase
             if (dist > attackRange)
             {
-                Vector3 dir = _player.position - transform.position;
+                Vector3 dir = target.position - transform.position;
                 dir.y = 0f;
                 if (dir.sqrMagnitude > 0.0001f)
                 {
@@ -395,7 +413,7 @@ namespace Saga.Dungeon.World
             else
             {
                 _animator?.SetFloat("Speed", 0f);
-                FacePlayer();
+                Face(target);
                 _attackCooldown -= dt;
                 if (_attackCooldown <= 0f)
                 {
@@ -408,14 +426,14 @@ namespace Saga.Dungeon.World
         /// 공격 클립을 포효 대신 한 번 튼다(판정 없음 — 예비동작 상태로 들어가지 않는다).</summary>
         public void PlayRoar()
         {
-            if (_player != null) FacePlayer();
+            if (_player != null) Face(_player);
             _animator?.SetTrigger("Attack");
             SfxPlayer.PlayHeavyHit();
         }
 
-        private void FacePlayer()
+        private void Face(Transform target)
         {
-            Vector3 dir = _player.position - transform.position;
+            Vector3 dir = target.position - transform.position;
             dir.y = 0f;
             if (dir.sqrMagnitude > 0.0001f) transform.rotation = Quaternion.LookRotation(dir.normalized);
         }
@@ -455,6 +473,11 @@ namespace Saga.Dungeon.World
             EndWindup();
             _attackCooldown = Mathf.Max(MinRecoverSec, attackInterval - _windupTotal);
             if (dist > StrikeReach) return;
+            if (IsTaunted)
+            {
+                _taunter.TakeHit(dmg); // 무사는 방패로 받는다(피해 감소는 AllyFighter 쪽).
+                return;
+            }
             if (HeroState.Invulnerable)
             {
                 Saga.Dungeon.Player.PlayerController.ReportDodgedStrike();
