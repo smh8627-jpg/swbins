@@ -13,6 +13,17 @@
  * 단계가 넘어가면 포효(흔들림·이름 띠·토스트)하고 걸려 있던 패턴을 거둔다.
  * 관문 대장(e.gate)은 제 패턴(§5-4)이 있어 여기 안 탄다.
  *
+ * §5-10(2026-09-24) — 사냥터 보스 여섯마다 **고유 기술 하나**(SIG, 이름으로 찾는다)가
+ * 모든 단계 후보에 끼고, 등장 뒤 첫 기술은 늘 그것이다:
+ *   ring   도넛    — 보스 곁 r100 만 산다(붙어라)
+ *   volley 화살비  — 다섯 점이 110 간격, 사이 틈으로
+ *   beam   공중 쇠뇌 — 뛰었거나 발판 위면 맞는다(땅에 붙어라 — 지진의 거꾸로)
+ *   pillar 불기둥 두 박자 — 120 칸 홀수 줄 → 짝수 줄, 한 칸 옮겨 딛는다
+ *   pull   끌어당김 — 1.4초 끌려가다(150px/s) 보스 둘레 r130 폭발, 거슬러 달려라
+ *   chase  추적 장판 — 1초 따라오다 0.5초 멈춘 뒤 터진다
+ * **그로기** — 피해를 주는 패턴을 셋 잇달아 다 피하면 5초 멈춘다(받는 피해 ×1.5,
+ * 몸통 박치기·돌진 없음). 한 번이라도 맞으면 셈이 0 으로.
+ *
  * **판정은 `step(e, dt, api)` 하나다 — 순수하게 e 만 바꾸고 바깥 일은 api 로 한다**
  * (api.p·api.stg·api.fx·api.hurt·api.spawn·api.sfx·api.toast·api.rand·api.hpMax).
  * 그래서 자가진단이 가짜 api 로 단계·예고·판정을 값으로 굴린다.
@@ -32,6 +43,23 @@
   var QUAKE = { t: 1.2, mul: 1.2 };
   var SWEEP = { t: 1.8, w: 170, pct: 0.55 };
   function ENRAGE() { return K('enrage', 1.25); }
+  var RING = { t: 1.3, r: 100, mul: 1.1 };
+  var VOLLEY = { t: 1.2, r: 34, mul: 0.8, n: 5, gap: 110 };
+  var BEAM = { t: 1.1, mul: 1.1, y: 95 };
+  var PILLAR = { t: 1.0, t2: 0.8, w: 60, gap: 120, n: 3, mul: 1.0 };
+  var PULL = { t: 1.4, v: 150, r: 130, mul: 1.4 };
+  var CHASE = { t: 1.5, lock: 0.5, r: 70, mul: 1.4 };
+  var GROGGY = { n: 3, t: 5, mul: 1.5 };
+  /** 사냥터 보스 고유 기술 — data-side.js STAGES 의 boss.name 으로 찾는다 */
+  var SIG = {
+    '황건 두목': { kind: 'ring', name: '황천 부적진' },
+    '오랑캐 족장': { kind: 'volley', name: '초원 화살비' },
+    '위군 도독': { kind: 'beam', name: '쇠뇌 일제사' },
+    '적국 대장군': { kind: 'pillar', name: '화계 불기둥' },
+    '폐도 흉장': { kind: 'pull', name: '쇠사슬 끌어당김' },
+    '암굴 귀장': { kind: 'chase', name: '귀화 추적' }
+  };
+  function sigOf(e) { return (e && e.ref && SIG[e.ref.name]) || null; }
 
   /** 체력 비율 → 단계(0·1·2) */
   function phaseOf(hp, hpMax) {
@@ -40,19 +68,34 @@
   }
 
   /** 이 단계에서 고를 수 있는 패턴 */
-  function poolOf(ph) {
-    if (ph === 0) { return ['slam', 'rock']; }
-    if (ph === 1) { return ['slam', 'rock', 'quake', 'summon']; }
-    return ['slam', 'rock', 'quake', 'sweep'];
+  function poolOf(ph, sig) {
+    var out = ph === 0 ? ['slam', 'rock'] : ph === 1 ? ['slam', 'rock', 'quake', 'summon'] : ['slam', 'rock', 'quake', 'sweep'];
+    if (sig) { out.push(sig); }
+    return out;
   }
 
   function init(e) {
     if (e.bp) { return e.bp; }
-    e.bp = { phase: 0, cd: 3.2, kind: '', t: 0, marks: null, safe: null, summoned: 0, baseDmg: e.dmg, last: '' };
+    var sg = sigOf(e);
+    e.bp = { phase: 0, cd: 3.2, kind: '', t: 0, marks: null, safe: null, summoned: 0, baseDmg: e.dmg, last: '',
+             sig: sg ? sg.kind : '', first: sg ? sg.kind : '', dodge: 0, groggy: 0, wave: 0, hitAcc: 0, warn: null };
     return e.bp;
   }
 
   function feet(api) { return { x: api.p.x + P_W / 2, y: api.p.y + P_H }; }
+  function mid(e) { return e.x + e.w / 2; }
+  /** 불기둥 한 박자 — 내 발 둘레 120 칸, wave 1 은 홀수 칸(내 칸은 비었다), 2 는 짝수 칸 */
+  function pillarMarks(b, api, cx, wave) {
+    var out = [], k;
+    for (k = -PILLAR.n; k <= PILLAR.n; k++) {
+      if (Math.abs(k) % 2 !== (wave === 1 ? 1 : 0)) { continue; }
+      var mx = cx + k * PILLAR.gap;
+      if (mx < 0 || mx > api.stg.width) { continue; }
+      out.push({ x: mx, y: api.stg.floor, r: PILLAR.w, col: true });
+      api.fx.push({ t: 'zonewarn', x: mx, y: api.stg.floor, r: PILLAR.w, life: wave === 1 ? PILLAR.t : PILLAR.t2, rock: true, fire: true });
+    }
+    return out;
+  }
 
   /** 패턴을 건다 — 예고(fx)를 먼저 내고, t 초 뒤 resolve 가 판정한다 */
   function begin(e, kind, api) {
@@ -86,6 +129,35 @@
       api.spawn(Math.max(40, e.x - 90));
       api.spawn(Math.min(stg.width - 40, e.x + 90));
       api.toast('👥 ' + e.ref.name + '이(가) 부하를 불렀다!');
+    } else if (kind === 'ring') {
+      b.t = RING.t; b.cx = mid(e);
+      api.fx.push({ t: 'ringwarn', x: b.cx, y: stg.floor, r: RING.r, life: RING.t });
+    } else if (kind === 'volley') {
+      b.t = VOLLEY.t; b.marks = [];
+      var j0 = (api.rand() - 0.5) * 40;
+      for (i = 0; i < VOLLEY.n; i++) {
+        var vx = Math.max(20, Math.min(stg.width - 20, f.x + (i - 2) * VOLLEY.gap + j0));
+        b.marks.push({ x: vx, y: f.y, r: VOLLEY.r });
+        api.fx.push({ t: 'zonewarn', x: vx, y: f.y, r: VOLLEY.r, life: VOLLEY.t, rock: true });
+      }
+    } else if (kind === 'beam') {
+      b.t = BEAM.t;
+      api.fx.push({ t: 'beamwarn', x: 0, y: stg.floor - BEAM.y, life: BEAM.t });
+    } else if (kind === 'pillar') {
+      b.t = PILLAR.t; b.wave = 1; b.hitAcc = 0; b.px = f.x;
+      b.marks = pillarMarks(b, api, f.x, 1);
+    } else if (kind === 'pull') {
+      b.t = PULL.t; b.cx = mid(e);
+      api.fx.push({ t: 'zonewarn', x: b.cx, y: stg.floor, r: PULL.r, life: PULL.t });
+      api.toast('⛓️ ' + e.ref.name + '의 쇠사슬 — 거슬러 달려라!');
+    } else if (kind === 'chase') {
+      b.t = CHASE.t; b.marks = [{ x: f.x, y: f.y, r: CHASE.r }];
+      b.warn = { t: 'zonewarn', x: f.x, y: f.y, r: CHASE.r, life: CHASE.t, chase: true };
+      api.fx.push(b.warn);
+    }
+    if (b.sig && kind === b.sig) {
+      var sg = sigOf(e);
+      api.fx.push({ t: 'bossintro', name: e.ref.name + ' — ' + sg.name, life: 1.0 });
     }
     api.sfx(kind === 'summon' ? 'boss' : 'charge');
     /* 돌진과 겹치지 않게 — 패턴이 풀릴 때까지 돌진을 미룬다 */
@@ -110,7 +182,45 @@
     } else if (b.kind === 'sweep') {
       if (Math.abs(f.x - b.safe.x) > b.safe.w / 2) { hit = 1; api.hurt(Math.round(api.hpMax() * SWEEP.pct), true); }
       api.fx.push({ t: 'shake', x: e.x, y: e.y, life: 0.6, span: 0.6, amt: 12, big: true });
+    } else if (b.kind === 'ring') {
+      if (Math.abs(f.x - b.cx) > RING.r) { hit = 1; api.hurt(Math.round(e.dmg * RING.mul)); }
+      api.fx.push({ t: 'shake', x: e.x, y: e.y, life: 0.4, span: 0.4, amt: 8, big: true });
+    } else if (b.kind === 'volley' || b.kind === 'chase') {
+      for (i = 0; i < b.marks.length; i++) {
+        var vm = b.marks[i];
+        if (Math.abs(f.x - vm.x) < vm.r && Math.abs(f.y - vm.y) < vm.r * 1.6) { hit++; }
+      }
+      if (hit) { api.hurt(Math.round(e.dmg * (b.kind === 'chase' ? CHASE.mul : VOLLEY.mul))); }
+      api.fx.push({ t: 'shake', x: e.x, y: e.y, life: 0.3, span: 0.3, amt: 5, big: true });
+    } else if (b.kind === 'beam') {
+      if (!api.p.onGround || f.y < stg.floor - 8) { hit = 1; api.hurt(Math.round(e.dmg * BEAM.mul)); }
+      api.fx.push({ t: 'shake', x: e.x, y: e.y, life: 0.3, span: 0.3, amt: 5, big: true });
+    } else if (b.kind === 'pillar') {
+      for (i = 0; i < b.marks.length; i++) { if (Math.abs(f.x - b.marks[i].x) < PILLAR.w) { hit = 1; } }
+      if (hit) { api.hurt(Math.round(e.dmg * PILLAR.mul)); }
+      api.fx.push({ t: 'shake', x: e.x, y: e.y, life: 0.3, span: 0.3, amt: 6, big: true });
+      if (b.wave === 1) {
+        /* 둘째 박자 — 같은 칸 격자에서 짝수 줄. 한 칸(120) 옮겨 딛어야 산다 */
+        b.hitAcc = hit; b.wave = 2; b.t = PILLAR.t2;
+        b.marks = pillarMarks(b, api, b.px, 2);
+        return -1;
+      }
+      hit = hit || b.hitAcc; b.wave = 0;
+    } else if (b.kind === 'pull') {
+      if (Math.abs(f.x - b.cx) < PULL.r) { hit = 1; api.hurt(Math.round(e.dmg * PULL.mul)); }
+      api.fx.push({ t: 'shake', x: e.x, y: e.y, life: 0.5, span: 0.5, amt: 10, big: true });
     }
+    /* 그로기 셈 — 피해를 주는 패턴만(부르기 제외). 셋 잇달아 다 피하면 5초 멈춘다 */
+    if (hit) { b.dodge = 0; } else {
+      b.dodge += 1;
+      if (b.dodge >= GROGGY.n) {
+        b.dodge = 0; b.groggy = GROGGY.t; e.charge = 0;
+        api.fx.push({ t: 'groggy', x: mid(e), y: e.y, life: GROGGY.t });
+        api.toast('💫 ' + e.ref.name + ' 그로기 — ' + GROGGY.t + '초 동안 받는 피해 ×' + GROGGY.mul + '!');
+        api.sfx('boss');
+      }
+    }
+    b.warn = null;
     b.kind = ''; b.marks = null; b.safe = null;
     return hit;
   }
@@ -124,7 +234,7 @@
     var ph = phaseOf(e.hp, e.hpMax);
     if (ph > b.phase) {
       b.phase = ph; out.phase = ph; out.changed = true;
-      b.kind = ''; b.marks = null; b.safe = null; b.t = 0;
+      b.kind = ''; b.marks = null; b.safe = null; b.t = 0; b.wave = 0; b.warn = null;
       b.cd = 1.4;                                  // 포효 뒤 곧 새 패턴
       if (ph === 2) { e.dmg = Math.round(b.baseDmg * ENRAGE()); }
       api.fx.push({ t: 'bossintro', name: e.ref.name + (ph === 1 ? ' — 2단계' : ' — 광폭'), life: 1.6 });
@@ -133,18 +243,39 @@
       api.sfx('boss');
       return out;
     }
+    if (b.groggy > 0) {
+      b.groggy -= dt; out.groggy = true;
+      e.charge = 0; e.chargeCd = Math.max(e.chargeCd || 0, 1);
+      if (b.groggy <= 0) { b.groggy = 0; b.cd = Math.min(b.cd, 1.0); }
+      return out;
+    }
     if (b.kind) {
       b.t -= dt;
-      if (b.t <= 0) { out.hit = b.kind === 'summon' ? 0 : resolve(e, api); b.kind = ''; }
+      if (b.kind === 'pull' && b.t > 0) {
+        /* 끌어당김 — 보스 쪽으로 끌린다(보스를 넘어가진 않는다) */
+        var pf = feet(api), pd = b.cx - pf.x, pv = (pd > 0 ? 1 : -1) * Math.min(Math.abs(pd), PULL.v * dt);
+        api.p.x += pv;
+      } else if (b.kind === 'chase' && b.t > CHASE.lock) {
+        var cf = feet(api);
+        b.marks[0].x = cf.x; b.marks[0].y = cf.y;
+        if (b.warn) { b.warn.x = cf.x; b.warn.y = cf.y; }
+      }
+      if (b.t <= 0) {
+        if (b.kind === 'summon') { b.kind = ''; } else {
+          var rh = resolve(e, api);
+          if (rh >= 0) { out.hit = rh; b.kind = ''; }
+        }
+      }
       return out;
     }
     b.cd -= dt * (b.phase === 2 ? 1 / 0.7 : 1);
     if (b.cd <= 0 && near && !(e.charge > 0)) {
-      var pool = poolOf(b.phase);
+      var pool = poolOf(b.phase, b.sig);
       /* 같은 것을 두 번 잇지 않는다 · 부르기는 단계마다 한 번 */
       var cand = pool.filter(function (k) { return k !== b.last && !(k === 'summon' && b.summoned >= b.phase); });
       if (!cand.length) { cand = pool; }
       var kind = cand[Math.floor(api.rand() * cand.length) % cand.length];
+      if (b.first) { kind = b.first; b.first = ''; }     // 등장 뒤 첫 기술은 고유 기술
       begin(e, kind, api);
       b.cd = CD[b.phase];
     }
@@ -153,7 +284,10 @@
 
   global.DG = global.DG || {};
   global.DG.bossPattern = {
-    on: on, phaseOf: phaseOf, poolOf: poolOf, step: step, init: init,
-    SLAM: SLAM, ROCK: ROCK, QUAKE: QUAKE, SWEEP: SWEEP, CD: CD, PHASE_AT: PHASE_AT
+    on: on, phaseOf: phaseOf, poolOf: poolOf, step: step, init: init, sigOf: sigOf,
+    SLAM: SLAM, ROCK: ROCK, QUAKE: QUAKE, SWEEP: SWEEP, CD: CD, PHASE_AT: PHASE_AT,
+    RING: RING, VOLLEY: VOLLEY, BEAM: BEAM, PILLAR: PILLAR, PULL: PULL, CHASE: CHASE, GROGGY: GROGGY, SIG: SIG,
+    /** 받는 피해 배수 — side.js strike 가 부른다(그로기 동안 ×1.5) */
+    dmgTakenMul: function (e) { return e && e.bp && e.bp.groggy > 0 ? GROGGY.mul : 1; }
   };
 })(window);

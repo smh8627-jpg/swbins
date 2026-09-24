@@ -829,3 +829,11 @@ SAGA-DESIGN §11 Phase 4 의 "사가스토리 펫 이미지 공백(보류)" — 
 - 예고 그림(`side-view.js` drawFx): 낙석 그림자 기둥 · 지진 바닥 띠 · 휩쓸기 붉은 화면 + 초록 안전 기둥. 덧그림이라 3D 바탕에서도 그대로.
 - 패턴이 걸리면 돌진 쿨(`chargeCd`)을 미뤄 둘이 겹치지 않게. 옛 진단 "보스는 뜸을 들이다 달려든다" 그대로 통과.
 - 진단 7 → jsdom 233/234 세 번 동일(실패 하나는 기존 getBoundingClientRect 한계). `sw.js` side-v0.83.0. **실기 확인 대기**.
+
+## 2026-09-24 (이어서) — 보스 고유 기술·그로기(PLAN §5-10)
+
+- 계기: "사가웹 이어해" — §8 4b "다음" 두 줄(보스마다 고유 패턴·그로기).
+- `boss-pattern.js` — `SIG`(보스 이름 → 기술) 여섯: 도넛 ring · 화살비 volley · 공중 쇠뇌 beam · 불기둥 두 박자 pillar(resolve 가 -1 을 돌려 둘째 박자를 건다) · 쇠사슬 pull(보스 쪽으로 150px/s, 자리는 걸 때 붙든다) · 귀화 추적 chase(예고 fx 를 붙들고 따라 옮김). `poolOf(ph, sig)`·`b.first` 로 첫 기술 고정. 그로기 — `b.dodge` 셋이면 `b.groggy` 5초, `dmgTakenMul`.
+- `side.js` strike 에 그로기 배수, 적 루프에서 BP.step 뒤 그로기면 `continue`(걷기·박치기 없음). 돌진은 step 이 `charge=0`·`chargeCd≥1` 로 막는다.
+- `side-view.js` ringwarn·beamwarn·groggy 그림, 불기둥은 zonewarn `fire` 로 붉게.
+- 진단 5 + 기존 "사냥터 루프 예고" 항목이 새 예고(ring/beam)도 받게. jsdom 238/239 세 번 동일(남은 1 은 jsdom 의 getBoundingClientRect 한계 — 화면 네 칸 조작, 늘 실패하던 것). `sw.js` side-v0.84.0. **실기 확인 대기**.

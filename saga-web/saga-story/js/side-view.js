@@ -1050,10 +1050,57 @@
         ctx.lineWidth = 2.5;
         ctx.stroke();
         if (f.rock) {
-          /* 낙석(§5-9) — 떨어질 자리 위로 그림자 기둥이 내려온다 */
-          ctx.fillStyle = 'rgba(60,40,30,' + (0.10 + zk * 0.25) + ')';
+          /* 낙석(§5-9) — 떨어질 자리 위로 그림자 기둥이 내려온다(불기둥 §5-10 은 붉게) */
+          ctx.fillStyle = f.fire ? 'rgba(255,110,40,' + (0.10 + zk * 0.3) + ')' : 'rgba(60,40,30,' + (0.10 + zk * 0.25) + ')';
           ctx.fillRect(x - f.r * 0.5, 0, f.r, f.y);
         }
+      } else if (f.t === 'ringwarn') {
+        /* 도넛(§5-10 고유 기술) — 화면 전체가 붉고 보스 곁 원만 초록. 붙어야 산다 */
+        var rk = 1 - Math.max(0, f.life / 1.3);
+        ctx.fillStyle = 'rgba(200,40,30,' + (0.10 + rk * 0.22) + ')';
+        ctx.fillRect(0, 0, Math.max(0, x - f.r), H);
+        ctx.fillRect(x + f.r, 0, Math.max(0, W - x - f.r), H);
+        ctx.beginPath();
+        ctx.ellipse(x, f.y, f.r, f.r * 0.4, 0, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(80,230,120,' + (0.22 + rk * 0.2) + ')';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(120,255,160,.9)';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+        ctx.font = '900 17px system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#eaffef';
+        ctx.fillText('붙어라!', x, f.y - 90);
+        ctx.textAlign = 'left';
+      } else if (f.t === 'beamwarn') {
+        /* 공중 쇠뇌(§5-10 고유 기술) — 뛴 높이로 가로 띠가 온다. 땅에 붙어 있으면 산다 */
+        var bk = 1 - Math.max(0, f.life / 1.1), ba = 0.16 + bk * 0.34;
+        ctx.fillStyle = 'rgba(255,70,50,' + ba + ')';
+        ctx.fillRect(0, f.y - 60, W, 60);
+        ctx.strokeStyle = 'rgba(255,150,110,' + (0.5 + bk * 0.5) + ')';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(-2, f.y - 60, W + 4, 60);
+        ctx.font = '900 20px system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = 'rgba(255,240,200,' + (0.6 + bk * 0.4) + ')';
+        ctx.fillText('⬇ 뛰지 마라! 쇠뇌가 머리 위로', W / 2, f.y - 70);
+        ctx.textAlign = 'left';
+      } else if (f.t === 'groggy') {
+        /* 그로기(§5-10) — 보스 머리 위로 별이 돈다 */
+        var ga = Date.now() / 260;
+        ctx.font = '700 16px system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        for (var gs = 0; gs < 3; gs++) {
+          var gang = ga + gs * 2.094;
+          ctx.fillText('⭐', x + Math.cos(gang) * 26, f.y - 14 + Math.sin(gang) * 7);
+        }
+        ctx.font = '900 15px system-ui, sans-serif';
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = 'rgba(20,20,40,.85)';
+        ctx.strokeText('그로기 ' + Math.ceil(Math.max(0, f.life)) + '초', x, f.y - 34);
+        ctx.fillStyle = '#ffe66a';
+        ctx.fillText('그로기 ' + Math.ceil(Math.max(0, f.life)) + '초', x, f.y - 34);
+        ctx.textAlign = 'left';
       } else if (f.t === 'quakewarn') {
         /* 지진(§5-9) — 바닥 전체가 떨린다. 점프하거나 발판 위로 */
         var qk = 1 - Math.max(0, f.life), qa = 0.18 + qk * 0.4 + Math.sin(Date.now() / 60) * 0.08;

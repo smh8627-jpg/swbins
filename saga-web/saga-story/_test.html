@@ -864,10 +864,133 @@ window.DG_NO_TUNE = true;
       var warned = false;
       for (var i = 0; i < 200 && !warned && S.raw(); i++) {
         S.update(0.05);
-        warned = S.fx().some(function (f) { return f.t === 'zonewarn' || f.t === 'quakewarn' || f.t === 'sweepwarn'; });
+        warned = S.fx().some(function (f) { return /^(zone|quake|sweep|ring|beam)warn$/.test(f.t); });
       }
       if (S.active()) { S.leave(); }
       return warned && !!b.bp && ('사냥터 보스 예고 확인 · 단계 ' + b.bp.phase);
+    });
+
+    /* ── 보스 고유 기술·그로기(§5-10) ── */
+    function bpSig(name, kind) {
+      var r = bpRig({ rand: [0.5] });
+      r.e.ref.name = name;
+      var b = DG.bossPattern.init(r.e);
+      b.cd = 0;
+      if (kind) { b.first = kind; }
+      DG.bossPattern.step(r.e, 0.05, r.api, true);
+      return r;
+    }
+
+    t('보스 고유 기술 — 사냥터 보스 여섯이 다 제 기술이 있고, 등장 뒤 첫 기술이 그것이며 모든 단계 후보에 낀다', function () {
+      var BP = DG.bossPattern, bad = [], names = [];
+      SD.STAGES.forEach(function (st) {
+        if (!st.boss) { return; }
+        var sg = BP.SIG[st.boss.name];
+        if (!sg) { bad.push(st.key); return; }
+        names.push(sg.name);
+        var r = bpSig(st.boss.name);
+        if (r.e.bp.kind !== sg.kind) { bad.push(st.key + ':첫 ' + r.e.bp.kind); }
+        [0, 1, 2].forEach(function (ph) { if (BP.poolOf(ph, sg.kind).indexOf(sg.kind) < 0) { bad.push(st.key + ':후보'); } });
+        if (!r.api.fx.some(function (f) { return f.t === 'bossintro' && f.name.indexOf(sg.name) >= 0; })) { bad.push(st.key + ':이름띠'); }
+      });
+      var plain = bpSig('시험 대장');
+      if (plain.e.bp.sig || BP.poolOf(0).length !== 2) { bad.push('일반 보스'); }
+      if (bad.length) { throw new Error(bad.join(',')); }
+      return names.length === 6 && ('여섯: ' + names.join('·'));
+    });
+
+    t('보스 고유 기술 — 도넛은 붙으면 살고, 공중 쇠뇌는 땅에 있으면 산다', function () {
+      function ring(close) {
+        var r = bpSig('황건 두목');
+        if (close) { r.api.p.x = r.e.x + r.e.w / 2 - 13 - 40; }
+        bpRun(r, 1.4);
+        return r.hurts.length;
+      }
+      function beam(jump) {
+        var r = bpSig('위군 도독');
+        var warn = r.api.fx.some(function (f) { return f.t === 'beamwarn'; });
+        if (jump) { r.api.p.onGround = false; r.api.p.y -= 70; }
+        bpRun(r, 1.2);
+        return warn ? r.hurts.length : -1;
+      }
+      var a = ring(false), b = ring(true), c = beam(false), d = beam(true);
+      return a === 1 && b === 0 && c === 0 && d === 1 && '도넛 멀리 맞음·붙으면 삶 · 쇠뇌 땅 삶·점프 맞음';
+    });
+
+    t('보스 고유 기술 — 화살비 틈·불기둥 두 박자(한 칸 옮겨 딛기)', function () {
+      function volley(dx) {
+        var r = bpSig('오랑캐 족장');
+        var n = r.e.bp.marks.length;
+        r.api.p.x += dx;
+        bpRun(r, 1.3);
+        return n === 5 ? r.hurts.length : -1;
+      }
+      function pillar(step) {
+        var r = bpSig('적국 대장군');
+        bpRun(r, 1.05);                                  // 첫 박자(홀수 줄) — 내 칸은 비었다
+        var first = r.hurts.length, wave2 = r.e.bp.kind === 'pillar' && r.e.bp.wave === 2;
+        if (step) { r.api.p.x += 120; }
+        bpRun(r, 0.9);
+        return { first: first, wave2: wave2, hit: r.hurts.length, done: !r.e.bp.kind };
+      }
+      var v0 = volley(0), v1 = volley(55), p0 = pillar(false), p1 = pillar(true);
+      return v0 === 1 && v1 === 0 && p0.first === 0 && p0.wave2 && p0.hit === 1 && p1.hit === 0 && p1.done &&
+        '화살비 서면 맞음·틈 삶 · 불기둥 첫 박자 0 · 안 옮기면 둘째에 맞음 · 옮기면 0';
+    });
+
+    t('보스 고유 기술 — 끌어당김은 거슬러 달려야 살고, 추적 장판은 멈춘 뒤 비키면 산다', function () {
+      function pull(run) {
+        var r = bpSig('폐도 흉장'), x0 = r.api.p.x, i;
+        for (i = 0; i < 1.5 / 0.05; i++) {
+          if (run) { r.api.p.x -= 270 * 0.05; }
+          DG.bossPattern.step(r.e, 0.05, r.api, true);
+        }
+        return { hit: r.hurts.length, pulled: !run && r.api.p.x > x0 + 150 };
+      }
+      function chase(dodge) {
+        var r = bpSig('암굴 귀장');
+        r.api.p.x += 80;                                 // 따라오는 동안 움직여도 따라온다
+        bpRun(r, 1.1);
+        var followed = Math.abs(r.e.bp.marks[0].x - (r.api.p.x + 13)) < 1;
+        if (dodge) { r.api.p.x += 100; }
+        bpRun(r, 0.5);
+        return { hit: r.hurts.length, followed: followed };
+      }
+      var a = pull(false), b = pull(true), c = chase(false), d = chase(true);
+      return a.hit === 1 && a.pulled && b.hit === 0 && c.hit === 1 && c.followed && d.hit === 0 &&
+        '끌려가 맞음·거슬러 삶 · 추적 따라옴·멈춘 뒤 비키면 삶';
+    });
+
+    t('보스 그로기 — 패턴 셋을 잇달아 피하면 5초 멈추고 받는 피해 ×1.5, 한 번 맞으면 셈이 0', function () {
+      var BP = DG.bossPattern, r = bpRig({ rand: [0.0] }), i;
+      var b = BP.init(r.e);
+      function dodgeSlam() { b.cd = 0; b.last = 'rock'; BP.step(r.e, 0.05, r.api, true); r.api.p.x += 200; bpRun(r, 1.1); r.api.p.x -= 200; }
+      dodgeSlam(); dodgeSlam();
+      var two = b.dodge === 2 && !b.groggy;
+      b.cd = 0; b.last = 'rock'; BP.step(r.e, 0.05, r.api, true); bpRun(r, 1.1);   // 맞는다
+      var reset = b.dodge === 0 && r.hurts.length === 1;
+      dodgeSlam(); dodgeSlam(); dodgeSlam();
+      var gro = b.groggy > 4 && BP.dmgTakenMul(r.e) === 1.5 && r.toasts.some(function (m) { return m.indexOf('그로기') >= 0; });
+      b.cd = 0;
+      bpRun(r, 3);
+      var still = !b.kind && b.groggy > 0 && r.e.charge === 0;
+      bpRun(r, 2.2);
+      var over = b.groggy === 0 && BP.dmgTakenMul(r.e) === 1;
+      /* 실제 사냥터 — 그로기면 걷지 않는다 */
+      if (S.active()) { S.leave(); }
+      C.save.side.bossAt = {};
+      S.enter('field');
+      var run = S.raw(), boss = run.boss, walked = true;
+      if (boss) {
+        run.player.x = boss.x - 300; run.player.invuln = 999;
+        BP.init(boss).groggy = 5;
+        var bx = boss.x;
+        for (i = 0; i < 20; i++) { S.update(0.05); }
+        walked = Math.abs(boss.x - bx) > 0.5;
+      }
+      if (S.active()) { S.leave(); }
+      return two && reset && gro && still && over && !!boss && !walked &&
+        '둘 피함 → 맞으면 0 → 셋 피함 → 그로기 5초(×1.5, 패턴·돌진 없음, 제자리)';
     });
 
     /* ── 자동 사냥 ────────────────────────────────────── */

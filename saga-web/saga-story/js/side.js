@@ -1094,6 +1094,8 @@
     }
     /* 관문 대장(§5-4) 취약 — 방패가 깨진 10초 동안 받는 피해 ×1.5 */
     if (e.gate && e.gateVulnT > 0) { dmg *= GATE_VULN_MUL; }
+    /* 사냥터 보스 그로기(§5-10) — 패턴 셋을 잇달아 피하면 5초 동안 ×1.5 */
+    if (e.bp && e.bp.groggy > 0 && global.DG.bossPattern) { dmg *= global.DG.bossPattern.dmgTakenMul(e); }
     dmg = Math.max(1, Math.round(dmg));
     e.hp -= dmg;
     if (rm && rm.leech) { run.hp = Math.min(run.hpMax, run.hp + dmg * rm.leech); }
@@ -1783,6 +1785,8 @@
       if (e.boss && !e.gate && BPm && BPm.on()) {
         BPm.step(e, dt, bpApi(), near);
         if (!run) { return; }
+        /* 그로기(§5-10) — 멈춰 선다: 걷기·박치기·돌진 없음 */
+        if (e.bp && e.bp.groggy > 0) { continue; }
       }
       /* 관문 대장(§5-4) 패턴 2·3 — 범위 표시 후 내려찍기 · 소환 2. 달려들기와
          겹치지 않게 e.charge<=0 일 때만 새로 문다(둘이 같이 터지면 정신없다) */
