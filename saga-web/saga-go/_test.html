@@ -2688,7 +2688,8 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       var i, town = 0, grass = 0;
       for (i = 0; i < 40; i++) {
         town += R3.propPlan('town', i, 3).length;
-        grass += R3.propPlan('grass', i, 3).length;
+        /* 땅 전용 퓨전 소품(⑰, 들·숲 칸 16%)은 제 진단이 따로 잰다 — 여기는 들의 자연 잡물만 */
+        grass += R3.propPlan('grass', i, 3).filter(function (q) { return q.t.indexOf('zp_') !== 0; }).length;
       }
       return town > grass * 3 && ('40칸에 마을 ' + town + ' · 들 ' + grass);
     });
@@ -8583,7 +8584,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         var gx = Math.floor(f.x / 48), gy = Math.floor(f.y / 48), mk = LF.markAt(gx, gy);
         if (!mk || mk.t !== 'bridge' || Math.abs(f.tx * f.fx + f.ty * f.fy) > 1e-9) { bad.push('표식@' + gx + ',' + gy); return; }
         var plan = R3.propPlan(W.terrainAt(gx, gy), gx, gy, false).filter(function (q) { return q.t === 'bridge'; });
-        var across = plan.length >= 5 && plan.every(function (q) { return q.rot === mk.rot; });
+        var across = plan.length >= 5;   // 조각(디딤돌 바위) 하나하나의 돌림은 해시 — 줄만 강을 가로지른다
         /* 판의 첫·끝 조각이 강 양쪽(흐름에 수직)으로 벌어져 있나 */
         var a = plan[0], z = plan[plan.length - 1];
         var dxp = z.x - a.x, dzp = z.z - a.z, span = Math.hypot(dxp, dzp);
@@ -8609,6 +8610,40 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ('다리 ' + fs.length + '(강을 가로질러 조각 ' + R3.propPlan(W.terrainAt(Math.floor(fs[0].x / 48), Math.floor(fs[0].y / 48)), Math.floor(fs[0].x / 48), Math.floor(fs[0].y / 48), false).filter(function (q) { return q.t === 'bridge'; }).length +
           ') · 상판 ' + LF.DECK + 'm, 옆 10m 는 물 · 폭포 ' + falls.join('·') + ' · 끄면 없음') ||
         (function () { throw new Error(bad.slice(0, 5).join(' ') + ' fords=' + fs.length + ' falls=' + falls.length + ' fp=' + !!fp + ' off=' + off); })();
+    });
+
+    t('땅 전용 퓨전 소품 ⑰ — 땅 열여섯마다 과거·현대·미래가 다 든 소품 명단 · 들·숲 칸에 제 땅 것만 선다 · 고향·손잡이 0 은 없음', function () {
+      var BM = DG.biome, P3 = DG.prop3d, R3 = DG.world3d, W = DG.world, bad = [];
+      BM.ZONES.forEach(function (z) {
+        var eras = {}, all = (z.props ? z.props.main.concat(z.props.mix) : []);
+        all.forEach(function (k) { if (!P3.FUSION[k]) { bad.push(z.key + ':' + k + ' 표에 없음'); } else { eras[P3.FUSION[k].era] = 1; } });
+        if (!eras.past || !eras.modern || !eras.future) { bad.push(z.key + ' 시대 ' + Object.keys(eras).join('/')); }
+      });
+      var urlOk = Object.keys(P3.FUSION).every(function (k) { return (P3.pick('zp_' + k, 0, 0) || '').indexOf('assets/models/fusion/' + P3.FUSION[k].f + '.glb') === 0; });
+      /* 청풍 벌판(동쪽 안쪽 고리) 한 덩이를 훑는다 */
+      function scan(x0, y0, n) {
+        var got = [], gx, gy, g0x = Math.floor(x0 / 48), g0y = Math.floor(y0 / 48);
+        for (gy = g0y; gy < g0y + n; gy++) {
+          for (gx = g0x; gx < g0x + n; gx++) {
+            R3.propPlan(W.terrainAt(gx, gy), gx, gy, false).forEach(function (q) {
+              if (q.t.indexOf('zp_') === 0) { got.push({ k: q.t.slice(3), zone: BM.zoneAt((gx + 0.5) * 48, (gy + 0.5) * 48) }); }
+            });
+          }
+        }
+        return got;
+      }
+      var east = scan(3000, -300, 16), wrong = east.filter(function (g) { return !g.zone || (g.zone.props.main.concat(g.zone.props.mix)).indexOf(g.k) < 0; });
+      var eraSeen = {};
+      east.forEach(function (g) { eraSeen[P3.FUSION[g.k].era] = 1; });
+      var home = scan(-400, -400, 16).length;
+      C.setTune('world3d.zoneProps', 0);
+      var off;
+      try { off = scan(3000, -300, 16).length; } finally { C.setTune('world3d.zoneProps', null); }
+      var again = scan(3000, -300, 16);
+      return bad.length === 0 && urlOk && east.length >= 10 && wrong.length === 0 && Object.keys(eraSeen).length >= 2 &&
+        home === 0 && off === 0 && JSON.stringify(again) === JSON.stringify(east) &&
+        ('땅 16 모두 과거·현대·미래 · 소품 ' + Object.keys(P3.FUSION).length + '종(파일 경로 맞음) · 청풍 벌판 256칸에 ' + east.length + '개(' + Object.keys(eraSeen).join('·') + ') · 고향 0 · 끄면 0 · 다시 훑어도 같음') ||
+        (function () { throw new Error(bad.slice(0, 4).join(' ') + ' url=' + urlOk + ' east=' + east.length + ' wrong=' + wrong.length + ' home=' + home + ' off=' + off); })();
     });
 
     t('런타임 에러 없음', function () {

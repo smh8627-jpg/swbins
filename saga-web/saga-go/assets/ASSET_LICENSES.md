@@ -1370,3 +1370,22 @@ VRoid Studio 공식 CC0 샘플 AvatarSample_A/B/C(github.com/madjin/vrm-samples,
 `tools/bake-icons/bake-beasts.mjs`(`view=pet` 옆 3/4 구도)로 기존 28장을 다시 굽고, "도감 펫 종마다 제 모델" 절에서 옮긴 모델 57개를
 더 구워 모두 85장. 원본은 전부 이 문서에 적힌 CC0 GLB(Quaternius 계열)이고 `_x2` 는 `models/animals_extra2/` 쪽 같은 이름 모델이다.
 파일: `beast_Alpaca.png`·`beast_Anglerfish.png`·`beast_Apatosaurus.png`·`beast_Armored_Catfish.png`·`beast_Bear.png`·`beast_Betta.png`·`beast_Birb.png`·`beast_Black_Lion_Fish.png`·`beast_Blobfish.png`·`beast_BlueDemon.png`·`beast_Blue_Goldfish.png`·`beast_Blue_Tang.png`·`beast_Boar.png`·`beast_Bull.png`·`beast_Butterfly_Fish.png`·`beast_Cardinal_Fish.png`·`beast_Cat.png`·`beast_Clownfish.png`·`beast_Coral_Grouper.png`·`beast_Cow.png`·`beast_Cow_Farm.png`·`beast_Cowfish.png`·`beast_Crane.png`·`beast_Deer.png`·`beast_Demon.png`·`beast_Dolphin.png`·`beast_Donkey.png`·`beast_Fish1.png`·`beast_Fish2.png`·`beast_Fish3.png`·`beast_Flatfish.png`·`beast_Flower_Horn.png`·`beast_Fox.png`·`beast_Frog.png`·`beast_Goblin_Shark.png`·`beast_Goldfish.png`·`beast_Horse.png`·`beast_Horse_Farm.png`·`beast_Horse_White.png`·`beast_Humphead.png`·`beast_Husky.png`·`beast_Koi.png`·`beast_Koi_x2.png`·`beast_Lionfish.png`·`beast_Llama.png`·`beast_Mandarin_Fish.png`·`beast_Manta_ray.png`·`beast_Monkey.png`·`beast_Moorish_Idol.png`·`beast_Orc.png`·`beast_Owl.png`·`beast_Panda.png`·`beast_Parasaurolophus.png`·`beast_Parrot_Fish.png`·`beast_Pig.png`·`beast_Pigeon.png`·`beast_Piranha.png`·`beast_Puffer.png`·`beast_Pug.png`·`beast_Red_Snapper.png`·`beast_Royal_Gramma.png`·`beast_Shark.png`·`beast_Shark_x2.png`·`beast_Sheep.png`·`beast_ShibaInu.png`·`beast_Snake.png`·`beast_Snake_angry.png`·`beast_Stag.png`·`beast_Stegosaurus.png`·`beast_Sunfish.png`·`beast_Swordfish.png`·`beast_Tang.png`·`beast_Tetra.png`·`beast_Tiger.png`·`beast_Trex.png`·`beast_Triceratops.png`·`beast_Tuna.png`·`beast_Turbot.png`·`beast_Velociraptor.png`·`beast_Whale.png`·`beast_Wolf.png`·`beast_Worm.png`·`beast_Yellow_Tang.png`·`beast_Zebra.png`·`beast_Zebra_Clown_Fish.png`
+
+## Quaternius — 땅 전용 퓨전 소품 서른셋 (2026-09-24, `models/fusion/`, PLAN §5 ⑰ 넷째)
+
+| 항목 | |
+|---|---|
+| **만든 이** | Quaternius — 맨 위 "Quaternius — 저지대 다각형" 절과 같은 배포(CC0 1.0, 재배포 허용) |
+| **받은 곳** | 같은 미러 <https://github.com/trebeljahr/quaternius-showcase> `public/glb/` — 묶음 여덟 |
+| **가공** | `tools/glb-compress` 로 Meshopt(+WebP). 우주 묶음(`*-transformed.glb`)은 원본이 **Draco** 라 이 판 로더(Meshopt 디코더만)가 못 읽어 gltf-transform `meshopt` 로 다시 쌌다. 파일 이름에서 `-transformed` 는 뗐다 |
+| **쓰이는 곳** | `js/prop3d.js` `FUSION` 표 → `biome.js` 땅 열여섯 `props`(제 시대 + 다른 시대, SAGA-DESIGN §13 전체 퓨전) → `world3d.propPlan` |
+
+| 묶음 | 파일 |
+|---|---|
+| `real_time_strategy_pack` | Windmill_FirstAge · Wall_FirstAge · Barrel · Crate_Stack1 |
+| `medieval_village_pack` | Hay · Cart · Bonfire_Lit · Cauldron |
+| `survival_pack` | Tent · PropaneTank |
+| `street_pack` | Streetlight_Single · TrafficLight · Sign_Stop |
+| `cyberpunk_pack` | AC_Stacked · Light_Street_2 · Antenna_2 · Tank · Turret_Cannon · Support_Long |
+| `ultimate_space_pack` | SolarPanel_Structure · SolarPanel_Ground · GeodesicDome · House_Cylinder · Roof_Radar · Rover_1 · Tree_Floating_1 · Tree_Light_1 · Tree_Lava_1 · Tree_Spiral_1 |
+| `nature_pack` | Cactus_2 · PalmTree_2 · PineTree_Snow_2 · Rock_Snow_2 |

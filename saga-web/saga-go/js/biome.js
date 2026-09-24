@@ -103,8 +103,29 @@
       desc: '쓰러진 기계 더미 사이로 홀로그램 표지가 깜빡인다',
       places: ['고철 산', '쓰러진 거신', '홀로그램 표지', '기름 늪', '부품 시장', '정지한 공장'] }
   ];
+  /* 땅 전용 퓨전 소품(§5 ⑰ 넷째 · SAGA-DESIGN §13 "전체 퓨전 — 과거·현대·미래를 한 자리에").
+     main = 제 색깔(세우는 몫 60%), mix = 나머지 시대(40%). 땅마다 main+mix 에 과거·현대·미래가 다 든다.
+     키는 prop3d FUSION 표 */
+  var ZONE_PROPS = {
+    cheongpung: { main: ['windmill', 'hay', 'cart'], mix: ['streetlight', 'solar_low'] },
+    galdae:     { main: ['barrel', 'crate'], mix: ['antenna', 'radar'] },
+    jugeup:     { main: ['cart', 'bonfire', 'barrel'], mix: ['traffic', 'dome'] },
+    gamagol:    { main: ['cauldron', 'bonfire'], mix: ['propane', 'turret'] },
+    gojeong:    { main: ['wall', 'crate'], mix: ['stop', 'turret'] },
+    dalho:      { main: ['tree_light', 'tree_float'], mix: ['barrel', 'lamp2', 'radar'] },
+    solryeong:  { main: ['tent', 'bonfire'], mix: ['lamp2', 'rover'] },
+    hwanggeum:  { main: ['streetlight', 'propane'], mix: ['hay', 'cart', 'solar'] },
+    neon:       { main: ['ac', 'lamp2', 'stop'], mix: ['wall', 'tank'] },
+    saltflat:   { main: ['antenna', 'propane'], mix: ['barrel', 'crate', 'rover'] },
+    dragon:     { main: ['tree_lava'], mix: ['bonfire', 'propane', 'turret'] },
+    solar:      { main: ['solar', 'dome', 'capsule'], mix: ['windmill', 'streetlight'] },
+    silkroad:   { main: ['tent', 'cactus', 'palm'], mix: ['propane', 'rover'] },
+    heaven:     { main: ['tree_float', 'tree_spiral'], mix: ['wall', 'lamp2', 'dome'] },
+    snowfort:   { main: ['pylon', 'antenna', 'pine_snow', 'rock_snow'], mix: ['tent', 'radar'] },
+    scrap:      { main: ['tank', 'turret', 'rover'], mix: ['cart', 'ac'] }
+  };
   var ZBY = {};
-  ZONES.forEach(function (z, i) { z.sector = i % 8; ZBY[z.key] = z; });
+  ZONES.forEach(function (z, i) { z.sector = i % 8; ZBY[z.key] = z; z.props = ZONE_PROPS[z.key] || null; });
   /** 칸(i, j)의 땅 — 칸 좌표만으로(고정 흔들림으로 경계를 굽힌다). 고향 칸은 null */
   function zoneOfCell(i, j) {
     if (i === 0 && j === 0) { return null; }

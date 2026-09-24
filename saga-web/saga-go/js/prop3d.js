@@ -269,6 +269,33 @@
     market: { all: [BLD_REAL + 'market_cross.glb'] },
   };
 
+  /* ── 땅 전용 퓨전 소품(PLAN §5 ⑰ 넷째 · SAGA-DESIGN §13 전체 퓨전) ───────────────
+   * Quaternius CC0(저다각형) — `assets/models/fusion/`, 받은 곳·라이선스는 ASSET_LICENSES.md.
+   * era: past·modern·future·myth(자연·신화). h = 세울 키(m, 모델은 키 1 로 정규화된다).
+   * 땅(biome.js ZONES `props`)마다 제 시대를 중심으로 나머지 시대를 섞어 세운다 — 소품 이름은 'zp_' + 키 */
+  var FUS = 'assets/models/fusion/';
+  var FUSION = {
+    windmill: { f: 'Windmill_FirstAge', h: 9, era: 'past' },      hay: { f: 'Hay', h: 1.3, era: 'past' },
+    cart: { f: 'Cart', h: 2, era: 'past' },                       tent: { f: 'Tent', h: 2.6, era: 'past' },
+    bonfire: { f: 'Bonfire_Lit', h: 1, era: 'past' },             cauldron: { f: 'Cauldron', h: 1.2, era: 'past' },
+    wall: { f: 'Wall_FirstAge', h: 3, era: 'past' },              barrel: { f: 'Barrel', h: 1.2, era: 'past' },
+    crate: { f: 'Crate_Stack1', h: 1.6, era: 'past' },
+    streetlight: { f: 'Streetlight_Single', h: 6, era: 'modern' }, traffic: { f: 'TrafficLight', h: 4.5, era: 'modern' },
+    stop: { f: 'Sign_Stop', h: 2.5, era: 'modern' },              ac: { f: 'AC_Stacked', h: 2.4, era: 'modern' },
+    lamp2: { f: 'Light_Street_2', h: 5, era: 'modern' },          antenna: { f: 'Antenna_2', h: 7, era: 'modern' },
+    propane: { f: 'PropaneTank', h: 1.5, era: 'modern' },
+    solar: { f: 'SolarPanel_Structure', h: 3, era: 'future' },    solar_low: { f: 'SolarPanel_Ground', h: 1.2, era: 'future' },
+    dome: { f: 'GeodesicDome', h: 7, era: 'future' },             capsule: { f: 'House_Cylinder', h: 5, era: 'future' },
+    radar: { f: 'Roof_Radar', h: 3, era: 'future' },              rover: { f: 'Rover_1', h: 2.6, era: 'future' },
+    tank: { f: 'Tank', h: 3, era: 'future' },                     turret: { f: 'Turret_Cannon', h: 3, era: 'future' },
+    pylon: { f: 'Support_Long', h: 12, era: 'future' },
+    tree_float: { f: 'Tree_Floating_1', h: 8, era: 'myth' },      tree_light: { f: 'Tree_Light_1', h: 6, era: 'myth' },
+    tree_lava: { f: 'Tree_Lava_1', h: 6, era: 'myth' },           tree_spiral: { f: 'Tree_Spiral_1', h: 6, era: 'myth' },
+    cactus: { f: 'Cactus_2', h: 3.5, era: 'myth' },               palm: { f: 'PalmTree_2', h: 9, era: 'myth' },
+    pine_snow: { f: 'PineTree_Snow_2', h: 10, era: 'myth' },      rock_snow: { f: 'Rock_Snow_2', h: 2, era: 'myth' }
+  };
+  Object.keys(FUSION).forEach(function (k) { REG['zp_' + k] = { all: [FUS + FUSION[k].f + '.glb'] }; });
+
   function register(name, season, urls) {
     if (!name) { return REG; }
     if (!urls) { delete REG[name]; return REG; }
@@ -585,7 +612,7 @@
     /* 값을 내는 함수 — three 없이도 돈다 (자가진단이 이것만 따로 본다) */
     pick: pick, urls: urls, eagerUrls: eagerUrls, seasonKey: seasonKey, seasonTintHex: seasonTintHex,
     ready: ready, casts: casts, PALETTE: PALETTE, snapPalette: snapPalette,
-    houseOn: houseOn, heightMul: heightMul,
+    houseOn: houseOn, heightMul: heightMul, FUSION: FUSION,
     /* 그림 층 */
     parts: parts, preload: preload, stats: stats,
     /** 진단이 제 뒤를 치울 때 */

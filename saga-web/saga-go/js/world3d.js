@@ -924,6 +924,8 @@
 
   /* 이 판의 core.hash2 는 0~0.5 만 돌려준다(world.js 주석 참고) — 두 배로 편다 */
   function h1(a, b) { return Math.min(0.999999, core.hash2(a, b) * 2); }
+  /** 땅 전용 퓨전 소품이 설 칸의 몫(§5 ⑰ 넷째) — 0 이면 안 세운다 */
+  function ZP_RATE() { return core.tuned('world3d.zoneProps', 0.16); }
 
   /** 이 격자가 얼마나 번화한가 (0 변두리 ~ 1 도심) */
   function urbanity(gx, gy) {
@@ -1175,9 +1177,8 @@
          짧게 잡았더니 아치 사이가 벌어져 사다리처럼 보였다(눈으로 보고 고쳤다) */
       var bn = 7, bj, bh = (GRID / bn) / 0.76;
       for (bj = 0; bj < bn; bj++) {
-        /* rot 0 — 안 주면 instGlb 가 칸마다 해시로 돌려 세워 아치 일곱이 제멋대로 돌았다(지형 설계 ⑰ 다리 때 발견) */
         out.push({ t: 'bridge', x: 0, z: (bj - (bn - 1) / 2) * (GRID / bn),
-                   h: bh, seg: bj, rot: 0 });
+                   h: bh, seg: bj });
       }
     }
     else if (mk === 'cave') { out.push({ t: 'cave', x: 0, z: 0, h: 7 }); }
@@ -1188,17 +1189,31 @@
        shrine·cave·ruin과 같은 결로 markAt 이 답할 때만 세운다 */
     else if (mk === 'temple') { out.push({ t: 'temple', x: 0, z: 0, h: 18 }); }
     /* 지형 설계(landform.js, §5 ⑰) — 여울 다리(강을 가로질러 rot 방향으로 이어 놓는다)·발원지 폭포.
-       그림은 위 손그림 땅의 다리·폭포 모델 그대로다 */
+       그림은 위 손그림 땅의 다리·폭포 모델 그대로다. 다리 모델은 실은 이끼 바위(디딤돌, prop3d `bridge`)라
+       **줄만** 강을 가로지르게 놓고 바위 하나하나의 돌림은 해시에 맡긴다(같은 쪽을 보면 되풀이가 드러난다) */
     var LFp = !mk ? global.DG.landform : null, lmk = LFp && LFp.markAt ? LFp.markAt(gx, gy) : null;
     if (lmk && lmk.t === 'bridge') {
       var lsl = GRID / 7, lbn = Math.max(5, Math.ceil(lmk.span / lsl)), lbh = lsl / 0.76, lj;
       var ltx = Math.sin(lmk.rot), ltz = Math.cos(lmk.rot);
       for (lj = 0; lj < lbn; lj++) {
         var la = (lj - (lbn - 1) / 2) * lsl;
-        out.push({ t: 'bridge', x: lmk.ox + ltx * la, z: lmk.oz + ltz * la, h: lbh, seg: lj, rot: lmk.rot });
+        out.push({ t: 'bridge', x: lmk.ox + ltx * la, z: lmk.oz + ltz * la, h: lbh, seg: lj });
       }
     } else if (lmk && lmk.t === 'waterfall') {
       out.push({ t: 'waterfall', x: lmk.ox, z: lmk.oz, h: 16, rot: lmk.rot });
+    }
+
+    /* 땅 전용 퓨전 소품(PLAN §5 ⑰ 넷째 · SAGA-DESIGN §13) — 이름 있는 땅(biome.js ZONES `props`)의 들·숲
+       칸 가운데 ZP_RATE 만큼에 하나. 제 색깔(main) 60% · 다른 시대(mix) 40% — 한 땅 안에 과거·현대·미래가
+       다 선다. 손그림 땅·고향·마을·길·물·산은 뺀다. 자리·종류 모두 칸 해시(난수 0) */
+    if (!authored && (kind === 'grass' || kind === 'forest') && ZP_RATE() > 0) {
+      var BMz = global.DG.biome, P3z = global.DG.prop3d;
+      var zz = BMz && BMz.on() && P3z && P3z.FUSION ? BMz.zoneAt((gx + 0.5) * GRID, (gy + 0.5) * GRID) : null;
+      if (zz && zz.props && h1(gx * 13 + 7, gy * 19 + 3) < ZP_RATE()) {
+        var zl = h1(gx * 5 + 1, gy * 23 + 9) < 0.4 ? zz.props.mix : zz.props.main;
+        var zk = zl[Math.floor(h1(gx * 31 + 2, gy * 7 + 11) * zl.length) % zl.length], zs = spot(211);
+        if (P3z.FUSION[zk]) { out.push({ t: 'zp_' + zk, x: zs.x, z: zs.z, h: P3z.FUSION[zk].h }); }
+      }
     }
 
     /* 손으로 **놓은** 것(`land.js` deco — 맵 편집기 "3D 배치"가 고친다). 제 자리·키·돌림 그대로
@@ -1520,7 +1535,9 @@
     var natureLod = p.t === 'tree' || p.t === 'rock' || p.t === 'grass' || p.t === 'reed';
     var lodOk = !natureLod ||
       Math.hypot(x - core.save.player.pos.x, z - core.save.player.pos.y) <= LOD_NEAR();
-    if (lodOk && GLB[p.t] && instGlb(key, GLB[p.t], x, z, p.h, gx + Math.round(p.x),
+    /* 땅 전용 퓨전 소품('zp_*')은 prop3d 표 이름 그대로다 */
+    var glbName = GLB[p.t] || (p.t && p.t.indexOf('zp_') === 0 ? p.t : null);
+    if (lodOk && glbName && instGlb(key, glbName, x, z, p.h, gx + Math.round(p.x),
                             gy + Math.round(p.z), p.rot)) {
       return true;
     }

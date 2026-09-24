@@ -1,0 +1,167 @@
+{
+  "AC_Stacked.glb": {
+    "size": 11284,
+    "result": "ok",
+    "at": "2026-09-24T11:51:18.988Z"
+  },
+  "Antenna_2.glb": {
+    "size": 7980,
+    "result": "ok",
+    "at": "2026-09-24T11:51:24.081Z"
+  },
+  "Barrel.glb": {
+    "size": 7448,
+    "result": "ok",
+    "at": "2026-09-24T11:51:26.416Z"
+  },
+  "Bonfire_Lit.glb": {
+    "size": 19704,
+    "result": "ok",
+    "at": "2026-09-24T11:51:28.571Z"
+  },
+  "Cactus_2.glb": {
+    "size": 12304,
+    "result": "ok",
+    "at": "2026-09-24T11:51:33.221Z"
+  },
+  "Cart.glb": {
+    "size": 30972,
+    "result": "ok",
+    "at": "2026-09-24T11:51:36.021Z"
+  },
+  "Cauldron.glb": {
+    "size": 16660,
+    "result": "ok",
+    "at": "2026-09-24T11:51:37.179Z"
+  },
+  "Crate_Stack1.glb": {
+    "size": 10232,
+    "result": "ok",
+    "at": "2026-09-24T11:51:39.180Z"
+  },
+  "GeodesicDome.glb": {
+    "size": 9920,
+    "result": "kept-original",
+    "at": "2026-09-24T11:51:43.695Z"
+  },
+  "Hay.glb": {
+    "size": 9420,
+    "result": "ok",
+    "at": "2026-09-24T11:51:45.579Z"
+  },
+  "House_Cylinder.glb": {
+    "size": 7096,
+    "result": "kept-original",
+    "at": "2026-09-24T11:51:47.530Z"
+  },
+  "Light_Street_2.glb": {
+    "size": 9632,
+    "result": "ok",
+    "at": "2026-09-24T11:51:54.626Z"
+  },
+  "PalmTree_2.glb": {
+    "size": 22680,
+    "result": "ok",
+    "at": "2026-09-24T11:51:58.424Z"
+  },
+  "PineTree_Snow_2.glb": {
+    "size": 28244,
+    "result": "ok",
+    "at": "2026-09-24T11:52:04.327Z"
+  },
+  "PropaneTank.glb": {
+    "size": 12696,
+    "result": "ok",
+    "at": "2026-09-24T11:52:07.628Z"
+  },
+  "Rock_Snow_2.glb": {
+    "size": 5288,
+    "result": "ok",
+    "at": "2026-09-24T11:52:15.951Z"
+  },
+  "Roof_Radar.glb": {
+    "size": 6716,
+    "result": "kept-original",
+    "at": "2026-09-24T11:52:20.844Z"
+  },
+  "Rover_1.glb": {
+    "size": 28696,
+    "result": "kept-original",
+    "at": "2026-09-24T11:52:24.131Z"
+  },
+  "Sign_Stop.glb": {
+    "size": 7996,
+    "result": "ok",
+    "at": "2026-09-24T11:52:24.798Z"
+  },
+  "SolarPanel_Ground.glb": {
+    "size": 3688,
+    "result": "kept-original",
+    "at": "2026-09-24T11:52:25.481Z"
+  },
+  "SolarPanel_Structure.glb": {
+    "size": 7284,
+    "result": "kept-original",
+    "at": "2026-09-24T11:52:26.099Z"
+  },
+  "Streetlight_Single.glb": {
+    "size": 17264,
+    "result": "ok",
+    "at": "2026-09-24T11:52:26.732Z"
+  },
+  "Support_Long.glb": {
+    "size": 9688,
+    "result": "ok",
+    "at": "2026-09-24T11:52:27.575Z"
+  },
+  "Tank.glb": {
+    "size": 15952,
+    "result": "ok",
+    "at": "2026-09-24T11:52:38.321Z"
+  },
+  "Tent.glb": {
+    "size": 15112,
+    "result": "ok",
+    "at": "2026-09-24T11:52:43.444Z"
+  },
+  "TrafficLight.glb": {
+    "size": 11932,
+    "result": "ok",
+    "at": "2026-09-24T11:52:45.022Z"
+  },
+  "Tree_Floating_1.glb": {
+    "size": 12636,
+    "result": "kept-original",
+    "at": "2026-09-24T11:52:47.414Z"
+  },
+  "Tree_Lava_1.glb": {
+    "size": 7024,
+    "result": "kept-original",
+    "at": "2026-09-24T11:52:52.953Z"
+  },
+  "Tree_Light_1.glb": {
+    "size": 10528,
+    "result": "kept-original",
+    "at": "2026-09-24T11:52:56.566Z"
+  },
+  "Tree_Spiral_1.glb": {
+    "size": 5676,
+    "result": "kept-original",
+    "at": "2026-09-24T11:52:59.535Z"
+  },
+  "Turret_Cannon.glb": {
+    "size": 25908,
+    "result": "ok",
+    "at": "2026-09-24T11:53:00.456Z"
+  },
+  "Wall_FirstAge.glb": {
+    "size": 6996,
+    "result": "ok",
+    "at": "2026-09-24T11:53:01.128Z"
+  },
+  "Windmill_FirstAge.glb": {
+    "size": 30592,
+    "result": "ok",
+    "at": "2026-09-24T11:53:01.933Z"
+  }
+}
