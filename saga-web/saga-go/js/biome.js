@@ -227,6 +227,95 @@
     return true;
   }
 
+  /* ══ ⑬ 지역 사명 — 지역마다 세 단(탑 찾기 → 그 지역 무리 토벌 → 탑 곁 수호자) ══════
+   * 단은 **앞에서부터 차례로** 채워진다 — 탑을 찾기 전에 무리를 쳐 두면 셈은 쌓이고, 탑을
+   * 찾는 순간 둘째 단까지 한꺼번에 넘어간다. 보상은 넘어간 단마다 한 번(`paid`). 첫 단 보상은
+   * 발견(`discover`)이 이미 준다. 진행은 save.missions = { 지역키: { clears, paid } } */
+  var MISSION_CLEARS = 2;
+  function missions() {
+    var s = core().save;
+    if (!s.missions || typeof s.missions !== 'object') { s.missions = {}; }
+    return s.missions;
+  }
+  /** 순수 함수 — st = { found, clears, guard } → 세 단과 지금 단 */
+  function missionView(st) {
+    var n = Math.min(MISSION_CLEARS, st.clears || 0);
+    var steps = [
+      { k: 'find', text: '가운데 탑을 찾아라', done: !!st.found },
+      { k: 'clear', text: '이 지역 무리 토벌 ' + n + '/' + MISSION_CLEARS, done: (st.clears || 0) >= MISSION_CLEARS },
+      { k: 'guard', text: '탑 곁 수호자를 쓰러뜨려라', done: !!st.guard }
+    ];
+    var stage = 0;
+    while (stage < steps.length && steps[stage].done) { stage++; }
+    return { steps: steps, stage: stage, next: steps[stage] || null, done: stage === steps.length };
+  }
+  function missionState(key) {
+    var m = missions()[key] || {}, fs = core().save.field;
+    return { found: found(key), clears: m.clears || 0, guard: !!(fs && fs.guards && fs.guards[key]), paid: m.paid || 0 };
+  }
+  /** 단이 넘어갔으면 보상 — 둘째 단 금 80×등급·단사 2, 셋째(평정) 금 200×등급·단사 10 */
+  function progressMission(key) {
+    if (!key || key === '0_0') { return null; }
+    var c = core(), g = missions(), st = missionState(key), v = missionView(st);
+    var m = g[key] || (g[key] = { clears: 0, paid: 0 });
+    if (v.stage <= (m.paid || 0)) { return v; }
+    var p = key.split('_'), cell = cellAt(+p[0], +p[1]);
+    var FC = global.DG.fieldCombat, tier = FC ? FC.tierAt(cell.x, cell.y) : 1;
+    if (v.stage >= 2 && (m.paid || 0) < 2) {
+      var g2 = 80 * tier;
+      c.save.player.gold = (c.save.player.gold || 0) + g2;
+      c.save.dust = (c.save.dust || 0) + 2;
+      c.log('📜 ' + cell.name + ' 사명 2/3 — 무리를 몰아냈다 (금 +' + g2 + ')', 'discover');
+      if (global.DG.ui && global.DG.ui.toast) { global.DG.ui.toast('📜 ' + cell.name + ' 사명 2/3 — 이제 탑 곁 수호자'); }
+    }
+    if (v.done) {
+      var g3 = 200 * tier;
+      c.save.player.gold = (c.save.player.gold || 0) + g3;
+      c.save.dust = (c.save.dust || 0) + 10;
+      c.log('🏯 ' + cell.name + ' 평정 — 사명 3/3 (금 +' + g3 + ' · 단사 +10)', 'discover');
+      if (global.DG.ui && global.DG.ui.toast) { global.DG.ui.toast('🏯 ' + cell.name + ' 평정! 금 +' + g3 + ' · 단사 +10'); }
+      c.emit('region:settled', { key: key, name: cell.name });
+    }
+    m.paid = v.stage;
+    c.persist();
+    return v;
+  }
+  function onFieldClear(e) {
+    if (!e || e.x === undefined || !on()) { return; }
+    var key = regionAt(e.x, e.y).cell.key;
+    if (key === '0_0') { return; }
+    var g = missions(), m = g[key] || (g[key] = { clears: 0, paid: 0 });
+    m.clears = (m.clears || 0) + 1;
+    progressMission(key);
+  }
+  var subscribed = false;
+  function subscribe() {
+    if (subscribed || !core() || !core().on) { return; }
+    subscribed = true;
+    core().on('field:clear', onFieldClear);
+    core().on('field:guard', function (e) { if (e && e.region) { progressMission(e.region); } });
+    core().on('region:found', function (e) { if (e && e.key) { progressMission(e.key); } });
+  }
+
+  var missionEl = null, missionTxt = '';
+  function paintMission(cell) {
+    if (!global.document || global.DG_NO_DRAW) { return; }
+    var txt = '';
+    if (cell.biome !== 'home') {
+      var v = missionView(missionState(cell.key));
+      if (!v.done) { txt = '📜 ' + cell.name + ' 사명 ' + v.stage + '/3 · ' + v.next.text; }
+    }
+    if (txt === missionTxt) { return; }
+    missionTxt = txt;
+    if (!missionEl) {
+      missionEl = document.createElement('div');
+      missionEl.id = 'region-mission';
+      document.body.appendChild(missionEl);
+    }
+    missionEl.textContent = txt;
+    missionEl.style.display = txt ? '' : 'none';
+  }
+
   var lastKey = null, bannerEl = null, bannerT = 0, acc = 0;
   var beams = {};
 
@@ -248,6 +337,7 @@
 
   function tick(dt) {
     if (!on() || !core() || !core().save) { return; }
+    subscribe();
     var pos = core().save.player.pos;
     acc += dt;
     if (bannerT > 0) { bannerT -= dt; if (bannerT <= 0 && bannerEl) { bannerEl.classList.remove('show'); } }
@@ -260,7 +350,7 @@
     }
     var c = r.cell;
     if (c.biome !== 'home' && !found(c.key) && Math.hypot(pos.x - c.x, pos.y - c.y) < FIND_R) { discover(c.key); }
-    if (!global.DG_NO_DRAW) { paintBeams(pos); }
+    if (!global.DG_NO_DRAW) { paintBeams(pos); paintMission(c); }
   }
 
   /* 빛기둥 — 안개를 뚫고 멀리서 보인다(fog:false). 못 찾은 곳은 금빛, 찾은 곳은 옅은 푸른빛 */
@@ -299,6 +389,8 @@
     on: on, cellAt: cellAt, regionAt: regionAt, biomeAt: biomeAt, bandAt: bandAt, reliefAt: reliefAt,
     landmarks: landmarks, bandOf: bandOf, invCdf: invCdf,
     found: found, discover: discover, waypoints: waypoints, teleport: teleport, tick: tick,
+    MISSION_CLEARS: MISSION_CLEARS, missionView: missionView, missionState: missionState, progressMission: progressMission,
+    subscribe: subscribe,
     _resetForTest: function () { lastKey = null; acc = 0; }
   };
 })(window);

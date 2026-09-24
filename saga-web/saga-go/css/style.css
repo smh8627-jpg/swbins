@@ -1699,6 +1699,13 @@ body.fc-on #dock, body.fc-on #near { display: none !important; }
 #region-banner.show { opacity: 1; transform: translate(-50%, 0); }
 #region-banner b { display: block; font-size: 22px; letter-spacing: .12em; }
 #region-banner small { display: block; font-size: 12px; opacity: .85; margin-top: 2px; }
+/* ⑬ 지금 지역 사명 한 줄 — 위쪽 가운데, 눌리지 않는다 */
+#region-mission {
+  position: fixed; left: 50%; top: calc(58px + var(--safe-t)); transform: translateX(-50%);
+  z-index: 24; pointer-events: none; max-width: calc(100vw - 32px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  padding: 4px 12px; border-radius: 999px; font-size: 12px; color: #fff;
+  background: rgba(10,12,16,.55); text-shadow: 0 1px 3px rgba(0,0,0,.8);
+}
 #overworld-map .ow-way { margin-top: 8px; max-height: 120px; overflow-y: auto; }
 #overworld-map .ow-way-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
 #overworld-map .ow-way-list .btn em { font-style: normal; opacity: .6; font-size: 11px; }

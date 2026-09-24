@@ -3686,3 +3686,10 @@ SAGA-HANDOFF 열린 항목 "tower_ruin.glb(역참) 아이콘 굽기 — 여섯 �
 - 옛 원형 ×2.2 를 전제로 한 진단 셋(증발·폭발 기력)은 멤버 모양을 'circle' 로 박았다.
 - 진단 1 추가 → jsdom 593/595 두 번 동일(둘은 jsdom `Request` 한계). `sw.js` go-v5.65.0. **실기 확인 대기**.
 - 다음: ⑬ 지역 사명 사슬(지역마다 3단, 랜드마크로 이어짐).
+
+## 2026-09-24 (이어서 2) — 원신식 ⑬ 지역 사명 사슬(PLAN §5 ⑬)
+
+- ⑫ 커밋(`a882b145`) 뒤 바로.
+- `biome.js` — `missionView(st)`(순수, 세 단·앞에서부터 차례), `missionState(key)`(save.regions·save.missions·save.field.guards 에서 읽음), `progressMission(key)`(넘어간 단 보상 한 번 — `paid`), 구독은 `tick` 첫 호출의 `subscribe()`(field:clear → 그 무리 자리의 지역 셈 +1, field:guard·region:found → 진행). 위쪽 가운데 `#region-mission` 한 줄.
+- 진단 1 추가(세이브를 잠깐 비웠다 `finally` 로 되돌린다 — 메모리 "검증 스크립트 세이브 복원 순서" 대로) → jsdom 594/596 두 번 동일(둘은 `Request` 한계). `sw.js` go-v5.66.0. **실기 확인 대기**(한 줄 자리).
+- 원신식 다음 후보 넷 중 셋(⑪⑫⑬) 끝. 남은 것: 지도 위 동행 모션(교체할 때 곁에서 걸어 나오기).

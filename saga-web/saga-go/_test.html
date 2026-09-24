@@ -1069,6 +1069,47 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       return best;
     }
 
+    t('지역 ⑬ — 사명 세 단: 차례로 채워지고(탑 전에 친 무리도 셈), 단마다 보상 한 번, 셋째에 평정', function () {
+      var BM = DG.biome, C = DG.core, sv = C.save;
+      if (!BM.missionView || !BM.progressMission) { return false; }
+      /* 순수 — 앞 단이 안 끝나면 뒤 단이 차 있어도 거기서 멈춘다 */
+      var v0 = BM.missionView({ found: false, clears: 5, guard: true });
+      var v2 = BM.missionView({ found: true, clears: 2, guard: false });
+      var v3 = BM.missionView({ found: true, clears: 3, guard: true });
+      var okPure = v0.stage === 0 && v0.next.k === 'find' && v2.stage === 2 && v2.next.k === 'guard' && v3.done && v3.next === null &&
+        BM.missionView({ found: true, clears: 1 }).next.text.indexOf('1/2') >= 0;
+      /* 런타임 — 한 지역의 세이브만 비웠다가 되돌린다 */
+      var cell = bmFind('marsh'), key = cell.key;
+      var keep = { gold: sv.player.gold, dust: sv.dust, reg: sv.regions && sv.regions[key], mis: sv.missions, guards: sv.field && sv.field.guards };
+      try {
+        BM.subscribe();
+        if (!sv.regions) { sv.regions = {}; }
+        delete sv.regions[key];
+        sv.missions = {};
+        if (!sv.field) { sv.field = { camps: {}, kills: 0, clears: 0 }; }
+        sv.field.guards = {};
+        var g0 = sv.player.gold || 0;
+        C.emit('field:clear', { camp: 'x', tier: 1, kind: 'plain', x: cell.x + 30, y: cell.y });
+        C.emit('field:clear', { camp: 'y', tier: 1, kind: 'plain', x: cell.x - 30, y: cell.y });
+        C.emit('field:clear', { camp: 'z', tier: 1, kind: 'plain', x: 0, y: 0 });          // 고향 무리는 안 센다
+        var beforeFind = BM.missionState(key).clears === 2 && sv.player.gold === g0 && !sv.missions['0_0'];
+        var tier = DG.fieldCombat.tierAt(cell.x, cell.y);
+        BM.discover(key);                                                                   // 탑 → 둘째 단까지 한꺼번에
+        var afterFind = sv.player.gold === g0 + (60 + 30 * tier) + 80 * tier && sv.missions[key].paid === 2;
+        BM.progressMission(key);                                                            // 다시 불러도 두 번 안 준다
+        var noDouble = sv.player.gold === g0 + (60 + 30 * tier) + 80 * tier;
+        sv.field.guards[key] = Date.now();
+        C.emit('field:guard', { region: key, tier: tier + 1 });
+        var settled = sv.missions[key].paid === 3 && sv.player.gold === g0 + (60 + 30 * tier) + 80 * tier + 200 * tier;
+        return okPure && beforeFind && afterFind && noDouble && settled &&
+          (cell.name + ' — 무리 2 먼저 → 탑 찾자 2/3(금 +' + 80 * tier + ') → 수호자 → 평정(금 +' + 200 * tier + ')');
+      } finally {
+        sv.player.gold = keep.gold; sv.dust = keep.dust; sv.missions = keep.mis;
+        if (keep.reg) { sv.regions[key] = keep.reg; } else { delete sv.regions[key]; }
+        sv.field.guards = keep.guards || {};
+      }
+    });
+
     t('지역 — 격자로 늘 같은 지역, 원점은 고향 들녘, 둘레엔 다섯 바이옴이 다 있다', function () {
       var BM = DG.biome, kinds = {}, same = true;
       for (var j = -4; j <= 4; j++) {
