@@ -1696,6 +1696,7 @@
     ROOM_W: ROOM_W, ROOM_H: ROOM_H, WALL: WALL, P_R: P_R,
     TALK_R: TALK_R, MARKS: MARKS,
     active: active, enter: enter, leave: leave, update: update,
+    npcKeys: function () { return Object.keys(NPC_DEFS); },   // §5.16 몸짓 표 진단
     setInput: setInput, moveTo: moveTo, castSkill: castSkill, refill: refill,
     heavyAttack: heavyAttack, doDodge: doDodge, castSetSkill: castSetSkill,
     castSigSkill: castSigSkill,

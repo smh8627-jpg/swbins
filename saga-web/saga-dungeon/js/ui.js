@@ -2630,6 +2630,7 @@
   global.DG.ui = {
     init: init, toast: toast, tickRefresh: tickRefresh,
     openSheet: openSheet, closeSheet: closeSheet,
+    openTab: function () { return openTab; },   // §5.16 몸짓 — 닿아 연 시트가 아직 열려 있나
     openDetail: openDetail, closeDetail: closeDetail,
     renderPanel: renderSheet, renderHud: renderTop, renderCamp: renderCamp, renderGoals: renderGoals
   };

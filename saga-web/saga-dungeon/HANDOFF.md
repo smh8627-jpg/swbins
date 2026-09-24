@@ -4195,3 +4195,11 @@ VRoid 인물이 unlit(`MeshBasicMaterial`) 그대로라 명암 없이 평면이�
 - 고정 적은 `spawned:true` 로 정예 확률 굴림을 건너뛰게 하고 곧바로 `spawned=false` 로 되돌린다(처치 보상 배율이 spawned 를 본다).
 - 층 주인 `e.fixedGuard` → `kill()` 에서 `grantFixedReward`(첫 토벌만 전설). `save.dungeon.fixed[층]`.
 - 진단 4 — 전체 실행에선 앞 항목이 부대를 비워 입장이 막혀서 시련 진단의 `withTrial` 로 감쌌다. jsdom 398/398 세 번 동일. `sw.js` dungeon-v0.160.0. **실기 확인 대기**.
+
+## 2026-09-24 (이어서 9) — 몸짓(PLAN §5.16) — 마을 사람·동행이 일과 명령에 맞춰 움직인다
+
+- 계기: "사가웹 이어해" — SAGA-HANDOFF 가 다음 첫 일로 적은 "빌드 다음 ③ 몸짓"(사가국지 §5-10 과 같은 결).
+- 찾은 것: `dungeon3d.js` 마을 사람은 `anim:'idle'` 고정, 동행은 attack/walk/idle 뿐. 마을엔 `run.companion` 이 없다(동행 호응은 던전 안에서만 보인다). `town:npc` 가 닿을 때 한 번 오고 ui.js 가 그 사람 시트를 연다 → "그 시트가 열린 채 `changed`" 를 그 사람의 일로 읽으면 가게마다 훅을 안 박아도 된다.
+- `gesture.js`(새) — `JOB` 표·`KIND` 넷(greet·serve·rally·cheer)·`plan(key, now, base, npc)` 순수 · `onEvent(name, p, now)` 를 core 사건 여덟에 묶음. 틈틈이 일 = FNV 해시 주기 7~11초.
+- `dungeon3d.js` — NPC·동행 `AS3.step` anim 을 `plan().slot` 으로, `gestureBubble`(labelNode 재사용, 글자 바뀔 때만 새로). `dungeon-view.js` 2D `gesturePlate`. `ui.js` `openTab()` · `town.js` `npcKeys()` 노출.
+- 진단 4 → jsdom 402/402 세 번 동일(3D 풍선 경로는 jsdom 에 WebGL 이 없어 안 돈다 — 실기 확인 몫). `sw.js` dungeon-v0.161.0. **실기 확인 대기**.

@@ -109,6 +109,7 @@ window.requestAnimationFrame = function () { return 0; };
 <script src="js/hero.js"></script>
 <script src="js/skill.js"></script>
 <script src="js/secret.js"></script>
+<script src="js/gesture.js"></script>
 <script src="js/world-map.js"></script>
 <script src="js/dungeon.js"></script>
 <script src="js/town.js"></script>
@@ -6676,6 +6677,74 @@ window.requestAnimationFrame = function () { return 0; };
         return on5 && off4 && off5 && plain && '켜면 명소 · 끄면 갈림길 · 4·31층은 늘 갈림길';
       } finally { C.setTune('dungeon.fixed', null); if (DN.active()) { DN.leave(); } C.save.dungeon = JSON.parse(keepD); }
     }); });
+
+    /* ── 몸짓(§5.16, `gesture.js`) — 마을 사람·동행이 일과 명령에 맞춰 움직인다 ───── */
+    t('몸짓 — 표: 마을 사람 일곱+방랑 상인 모두 일 몸짓·글자, 동작 이름은 전부 asset3d 슬롯에 있다', function () {
+      var GS = DG.gesture, keys = DG.town.npcKeys().concat(['fieldmerchant']), SL = DG.asset3d.SLOTS, bad = [];
+      keys.forEach(function (k) { var j = GS.JOB[k]; if (!j || SL.indexOf(j.work) < 0 || !j.glyph || !j.verb) { bad.push(k); } });
+      Object.keys(GS.KIND).forEach(function (k) { var s = GS.KIND[k].slot; if (s && SL.indexOf(s) < 0) { bad.push('KIND:' + k); } });
+      return keys.length === 8 && !bad.length && '사람 ' + keys.length + ' · 갈래 ' + Object.keys(GS.KIND).length;
+    });
+
+    t('몸짓 — 수명·틈틈이: 일 몸짓은 1.6초 뒤 풀리고, 혼자 일하는 주기는 키마다 7~11초로 늘 같다', function () {
+      var GS = DG.gesture;
+      GS.reset();
+      GS.cue('smith', 'serve', 100);
+      var a = GS.plan('smith', 100.5, 'idle', false), b = GS.plan('smith', 101.7, 'idle', false);
+      var inCue = a.slot === 'attack' && a.text === '🔨 벼림' && a.kind === 'serve';
+      var over = b.text === '' && b.slot === 'idle';
+      /* 60초 동안 0.1초 걸음으로 — 일하는 창의 개수 */
+      var ok = true, phases = {};
+      DG.town.npcKeys().forEach(function (k) {
+        var n = 0, prev = false, s;
+        for (s = 0; s < 600; s++) {
+          var w = GS.plan(k, 1000 + s * 0.1, 'idle', true).kind === 'work';
+          if (w && !prev) { n++; }
+          prev = w;
+        }
+        var c = GS.workCycle(k), c2 = GS.workCycle(k);
+        if (n < 5 || n > 9 || c.period !== c2.period || c.offset !== c2.offset || c.period < 7 || c.period > 11) { ok = false; }
+        phases[(c.offset / c.period).toFixed(2)] = 1;
+      });
+      var walkKeep = GS.plan('smith', 1000, 'walk', true).slot === 'walk';
+      GS.reset();
+      return inCue && over && ok && Object.keys(phases).length >= 5 && walkKeep && '일 1.6초 · 주기 7~11초 · 어긋남 ' + Object.keys(phases).length + '가지';
+    });
+
+    t('몸짓 — 사건: 닿으면 인사, 그 사람이 연 시트에서 일을 보면 제 일 몸짓, 서명 무예에 동행 호응, 보스·레벨업에 환호', function () {
+      var GS = DG.gesture, U = DG.ui;
+      GS.reset();
+      var g = GS.onEvent('town:npc', { key: 'pedlar', sheet: 'vendor' }, 200);
+      var greet = g && g.kind === 'greet' && GS.plan('pedlar', 200.3, 'idle', true).text === '👋';
+      U.openSheet('vendor');
+      var s1 = GS.onEvent('changed', null, 200.5), s2 = GS.onEvent('changed', null, 200.9);
+      var serve = s1 && s1.kind === 'serve' && s1.text === '💰 흥정' && !s2;
+      U.closeSheet();
+      var gone = !GS.onEvent('changed', null, 203) && !GS.serving();
+      var rally = GS.onEvent('dungeon:skill', 'sig:x', 300);
+      var plain = !GS.onEvent('dungeon:skill', 'fire_bolt', 300);
+      var mob = !GS.onEvent('dungeon:kill', { e: { boss: false } }, 301);
+      var boss = GS.onEvent('dungeon:kill', { e: { boss: true } }, 302);
+      var lv = GS.onEvent('hero:levelup', { id: 'x', lv: 2 }, 310);
+      var chP = GS.plan('ally', 310.2, 'idle', false), chW = GS.plan('ally', 310.2, 'walk', false);
+      var cheer = boss && boss.kind === 'cheer' && lv && lv.text === '🎉 경하' && chP.slot === 'jump' && chP.bob > 0 &&
+        chW.slot === 'walk' && chW.bob === 0 && chW.text === '🎉 경하';
+      GS.reset();
+      return greet && serve && gone && rally && rally.slot === 'attack' && plain && mob && cheer && '인사 · 일 · 닫으면 끝 · 호응 · 환호(걸으면 글자만)';
+    });
+
+    t('몸짓 — 손잡이 dungeon.gesture 를 끄면 몸짓·글자·틈틈이 일 모두 없다 · Math.random 을 안 쓴다', function () {
+      var GS = DG.gesture;
+      GS.reset();
+      try {
+        C.setTune('dungeon.gesture', 0);
+        var none = !GS.cue('smith', 'serve', 5) && !GS.onEvent('hero:levelup', {}, 5);
+        var quiet = true, s;
+        for (s = 0; s < 120; s++) { var g = GS.plan('smith', s * 0.1, 'idle', true); if (g.slot !== 'idle' || g.text) { quiet = false; } }
+        var src = [GS.plan, GS.cue, GS.onEvent, GS.workCycle, GS.inWork].map(String).join('');
+        return none && quiet && src.indexOf('Math.random') < 0 && '끄면 늘 idle · 무작위 0';
+      } finally { C.setTune('dungeon.gesture', null); GS.reset(); }
+    });
 
     t('런타임 에러 없음', function () {
       return errors.length === 0 || ('에러 ' + errors.length + '건: ' + errors.join(' | ')) === '';

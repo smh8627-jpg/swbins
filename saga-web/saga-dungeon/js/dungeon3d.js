@@ -1768,6 +1768,24 @@
 
   /** asset3d — 사가고와 같은 것을 쓴다(사가블로 4단계, `assets/ASSET_LICENSES.md`) */
   function AS() { return global.DG.asset3d; }
+  /** 몸짓(§5.16, `gesture.js`) — 손잡이 dungeon.gesture 가 0 이면 plan 이 늘 base 를 돌려준다 */
+  function GS() { return global.DG.gesture; }
+
+  /** 몸짓 글자 풍선 — 머리 위로 살짝 떠오르며 처음·끝에 옅어진다. 글자가 바뀔 때만 새로 짓는다 */
+  function gestureBubble(node, g, y) {
+    var u = node.userData, text = g && g.text;
+    if (!text) { if (u.bubble) { u.bubble.visible = false; } return; }
+    if (!u.bubble || u.bubbleText !== text) {
+      if (u.bubble) { node.remove(u.bubble); }
+      u.bubble = labelNode(text, y, 60);
+      u.bubbleText = text;
+      node.add(u.bubble);
+    }
+    var k = g.k || 0;
+    u.bubble.visible = true;
+    u.bubble.position.y = y + k * 6;
+    u.bubble.material.opacity = core.clamp(Math.min(k * 6, (1 - k) * 4), 0, 1);
+  }
 
   /** 로딩 우선순위(PLAN 39절) — 마을 한 곳이 GLB 36개를 부른다(집·나무·바위…,
    *  buildRoom()·buildField() 가 곧 부른다). 그런데 정작 화면에서 가장 먼저
@@ -2792,8 +2810,13 @@
       if (c.walking) { ally.ang = Math.atan2(c.dirX || (c.facing || 1), c.dirY || 0.001); }
       ally.node.rotation.y = ally.ang;
       ally.node.position.y = allyGroundY + (c.walking ? Math.abs(Math.sin(c.phase || 0)) * 2.2 : 0);
+      /* §5.16 몸짓 — 서명 무예에 호응(❗)·보스·레벨업에 환호(🎉, 통통 튄다). 걷거나 치는 중이면 글자만 */
+      var allyBase = c.atkAnim > 0 ? 'attack' : (c.walking ? 'walk' : 'idle');
+      var allyG = GS() ? GS().plan('ally', nowT, allyBase, false) : null;
+      if (allyG && allyG.bob) { ally.node.position.y += allyG.bob * 7; }
+      gestureBubble(ally.node, allyG, 62);
       if (AS3) {
-        AS3.step(ally.node.userData.mixerNode, { t: nowT, walking: !!c.walking, anim: c.atkAnim > 0 ? 'attack' : (c.walking ? 'walk' : 'idle') });
+        AS3.step(ally.node.userData.mixerNode, { t: nowT, walking: !!c.walking, anim: allyG ? allyG.slot : allyBase });
       }
     }
     /* c가 없으면(부대 2번째 인물이 없는 회차) 그냥 actorOf('ally',...)를 이번
@@ -2839,7 +2862,10 @@
       na.node.position.set(np.x - anc.x, 0, np.y - anc.y);
       na.node.rotation.y = Math.atan2(p.x - np.x, p.y - np.y);   // 다가서면 나를 본다(둘 다 세계 좌표라 차는 그대로)
       townMark(na.node, Math.hypot(np.x - p.x, np.y - p.y), talkR);
-      if (AS3) { AS3.step(na.node.userData.mixerNode, { t: nowT, walking: false, anim: 'idle' }); }
+      /* §5.16 몸짓 — 닿으면 인사(👋), 연 시트에서 일을 보면 제 일 몸짓(🔨 벼림…), 틈틈이 혼자 일한다 */
+      var npG = GS() ? GS().plan(np.key, nowT, 'idle', true) : null;
+      gestureBubble(na.node, npG, 70);
+      if (AS3) { AS3.step(na.node.userData.mixerNode, { t: nowT, walking: false, anim: npG ? npG.slot : 'idle' }); }
     }
     var mks = (run.room && run.room.marks) || [];
     for (i = 0; i < mks.length; i++) {

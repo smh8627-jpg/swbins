@@ -1369,7 +1369,7 @@
       else if (it.kind === 'foe') { drawFoe(m, it.o, now, bars); }
       else if (it.kind === 'npc') { drawNpc(m, it.o, now, plates, it.near); }
       else if (it.kind === 'mark') { drawMark(m, it.o, now, plates, it.near); }
-      else if (it.kind === 'companion') { drawCompanion(m, it.o, now); }
+      else if (it.kind === 'companion') { drawCompanion(m, it.o, now, plates); }
       else { drawPlayer(m, run, now); }
     }
 
@@ -1561,6 +1561,14 @@
        아홉을 다 이름으로 띄우면 폰에서 글자가 겹쳐 죄다 못 읽는다. */
     plates.push({ x: p.x, y: p.y - 44 * z,
       text: near ? (o.emoji + ' ' + o.name) : o.emoji, color: '#e6d3a6' });
+    gesturePlate(plates, o.key, p.x, p.y - 60 * z, true);
+  }
+
+  /** 몸짓 글자(§5.16, `gesture.js`) — 3D 풍선과 같은 글자를 이름표 위에 띄운다 */
+  function gesturePlate(plates, key, x, y, npc) {
+    var GS = global.DG.gesture;
+    var g = GS ? GS.plan(key, Date.now() / 1000, 'idle', npc) : null;
+    if (g && g.text) { plates.push({ x: x, y: y - g.k * 6, text: g.text, color: '#ffe8a8' }); }
   }
 
   /**
@@ -1798,7 +1806,7 @@
   /** 동행(§51) — 부대 2번째 인물. drawPlayer 와 같은 결이나 마을 전용
    *  장식(사기 고리·황금 고리)은 뺐다(동행은 던전에서만 산다,
    *  buildFloor 참고 — 마을엔 run.companion 이 없다). */
-  function drawCompanion(m, c, now) {
+  function drawCompanion(m, c, now, plates) {
     var ref = global.DG.data.find(c.id);
     if (!ref) { return; }
     var p = proj(m, c.x, c.y);
@@ -1819,6 +1827,7 @@
       phase: c.phase, walking: c.walking || c.atkAnim > 0,
       color: fac.color, look: global.DG.sprite.lookOf(ref), t: now
     });
+    if (plates) { gesturePlate(plates, 'ally', p.x, p.y - 44 * Math.max(0.7, m.s), false); }
   }
 
   /* ── 조명 레이어 ─────────────────────────────────────── */
