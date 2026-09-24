@@ -1228,7 +1228,8 @@
     for (i = 0; i < plan.length; i++) {
       var p = plan[i];
       if (p.t === 'house' || p.t === 'tower') {
-        out.push({ x: ox + p.x, z: oz + p.z, w: p.w, d: p.d, rot: p.rot });
+        var P3h = global.DG.prop3d, hm = P3h && P3h.heightMul ? P3h.heightMul(p.t) : 1;
+        out.push({ x: ox + p.x, z: oz + p.z, w: p.w, d: p.d, rot: p.rot, h: (p.h || 6) * hm });
       } else if (p.t === 'well') {
         out.push({ x: ox + p.x, z: oz + p.z, w: p.h * 1.6, d: p.h * 1.6, rot: 0 });
       } else if (p.t === 'market') {
@@ -2221,8 +2222,10 @@
 
     /* 야생 대상 */
     var sp = W.spawns, i;
+    var FCs = global.DG.fieldCombat, duelUid = FCs && FCs.duelSpawn ? FCs.duelSpawn() : null;
     for (i = 0; i < sp.length; i++) {
       var s = sp[i];
+      if (duelUid !== null && s.uid === duelUid) { continue; }   // ⑯ 겨루는 동안엔 들판 전투 몸(fc)이 대신 선다
       var kind = s.kind === 'hero' ? 'hero' : 'pet';
       var a = actorOf('sp' + s.uid, kind, s.ref, 96);
       var bob = s.moving
@@ -2302,8 +2305,9 @@
     var fcs = FC ? FC.live() : [];
     for (i = 0; i < fcs.length; i++) {
       var fo = fcs[i];
-      var foa = actorOf('fc' + fo.uid, 'pet', fo.ref, 96);
-      var foh = h * fo.h * (fo.dead ? Math.max(0.05, 1 - fo.deadT) : 1);
+      var foa = actorOf('fc' + fo.uid, fo.hero ? 'hero' : 'pet', fo.ref, 96);
+      /* ⑯ 굴복한 인물은 사라지지 않고 무릎 꿇는다(키를 낮춘다) */
+      var foh = h * fo.h * (fo.dead ? Math.max(0.05, 1 - fo.deadT) : (fo.yielded ? 0.72 : 1));
       placeActor(foa, fo.x, fo.y, foh, 0, fo.moving && !fo.dead, fo.phase, now);
       if (foa.mesh) { foa.node.rotation.z = fo.stun ? Math.sin(now / 90) * 0.12 : 0; }
     }
@@ -2671,6 +2675,51 @@
     };
   }
 
+  /**
+   * 건물 가림 — 원신처럼 **카메라가 벽 앞으로 당겨 온다**(PLAN §5 ⑯ 곁, 2026-09-24 사용자 "건물 근처로 가면
+   * 캐릭터가 안 보여"). 집은 인스턴스로 그려 한 채만 반투명하게 할 수 없어서, 광선 대신 벽 충돌과 같은
+   * 사각형(`houseRects`, 키 h 를 실었다)으로 잰다 — 머리(P)에서 카메라(C)로 가는 선이 집 몸통에
+   * **지붕보다 낮게** 들어가면, 들어가는 자리 조금 앞(t)까지 당긴다. 순수 함수 — 진단이 값으로 붙든다.
+   *   P·C = {x, y, z}(three 좌표, y 가 위) · rects = [{x, z, w, d, rot, h, base}] → t(0.2~1, 1 = 안 가림)
+   * 보이는 GLB 는 키로 고르게 늘여 벽 사각형보다 넓다 — 반폭은 max(w/2, 키×0.45)로 넉넉히 잡는다.
+   */
+  function camOcclude(P, C, rects) {
+    var best = 1, i;
+    for (i = 0; i < rects.length; i++) {
+      var r = rects[i];
+      var c = Math.cos(r.rot || 0), sn = Math.sin(r.rot || 0);
+      function loc(x, z) { var dx = x - r.x, dz = z - r.z; return [dx * c + dz * sn, -dx * sn + dz * c]; }
+      var a = loc(P.x, P.z), b = loc(C.x, C.z);
+      var hx = Math.max(r.w / 2, r.h * 0.45), hz = Math.max(r.d / 2, r.h * 0.45);
+      var t0 = 0, t1 = 1, k, lo = [-hx, -hz], hi = [hx, hz], ok = true;
+      for (k = 0; k < 2 && ok; k++) {
+        var d = b[k] - a[k];
+        if (Math.abs(d) < 1e-9) { if (a[k] < lo[k] || a[k] > hi[k]) { ok = false; } continue; }
+        var u0 = (lo[k] - a[k]) / d, u1 = (hi[k] - a[k]) / d;
+        if (u0 > u1) { var tmp = u0; u0 = u1; u1 = tmp; }
+        t0 = Math.max(t0, u0); t1 = Math.min(t1, u1);
+        if (t0 > t1) { ok = false; }
+      }
+      if (!ok || t0 <= 0 || t0 >= 1) { continue; }      // 안 지나거나, 머리가 이미 몸통 안(벽에 붙음)
+      var y = P.y + (C.y - P.y) * t0, top = (r.base || 0) + r.h;
+      if (y < top && t0 < best) { best = t0; }
+    }
+    return best >= 1 ? 1 : Math.max(0.2, best - 0.04);
+  }
+  function OCCLUDE_ON() { return core.tuned('world3d.camOcclude', 1) ? true : false; }
+  /** 내 둘레 3×3 칸의 집 — 땅 높이(base)를 붙인다(산비탈 마을) */
+  function rectsNear(x, y) {
+    var gx0 = Math.floor(x / GRID), gy0 = Math.floor(y / GRID), gx, gy, rs, i, out = [];
+    for (gy = gy0 - 1; gy <= gy0 + 1; gy++) {
+      for (gx = gx0 - 1; gx <= gx0 + 1; gx++) {
+        rs = houseRects(gx, gy);
+        for (i = 0; i < rs.length; i++) { if (rs[i].h) { rs[i].base = groundY(rs[i].x, rs[i].z); out.push(rs[i]); } }
+      }
+    }
+    return out;
+  }
+  var occlT = 1, occlAcc = 9, occlRects = [], occlCell = null;
+
   function syncCamera(W, dt) {
     var pos = core.save.player.pos;
     /* 조우 무대에서는 줌을 무시한다 — 무대는 늘 같은 그림이어야 한다 */
@@ -2684,10 +2733,28 @@
     var lookLift = groundY(aim.look.x, aim.look.z);
     var want = new T.Vector3(aim.pos.x, aim.pos.y + camLift, aim.pos.z);
     var look = new T.Vector3(aim.look.x, aim.look.y + lookLift, aim.look.z);
+    /* 건물 가림(camOcclude) — 2.5D·3D 에서만(2D 는 머리 위라 안 가린다). 칸이 바뀔 때만 집을 다시 모으고,
+       판정은 0.1초마다(폰 발열). 당길 때는 빨리, 풀 때는 천천히 — 벽 너머가 비치는 순간이 없게 */
+    var occl = 1;
+    if (OCCLUDE_ON() && W.tiltMode >= 1 && !stageAt) {
+      var cellK = Math.floor(pos.x / GRID) + ':' + Math.floor(pos.y / GRID);
+      if (cellK !== occlCell) { occlCell = cellK; occlRects = rectsNear(pos.x, pos.y); }
+      occlAcc += dt;
+      if (occlAcc > 0.1 && occlRects.length) {
+        occlAcc = 0;
+        var head = { x: pos.x, y: groundY(pos.x, pos.y) + 1.7, z: pos.y };
+        occlT = camOcclude(head, { x: want.x, y: want.y, z: want.z }, occlRects);
+      } else if (!occlRects.length) { occlT = 1; }
+      occl = occlT;
+      if (occl < 1) {
+        var hy = groundY(pos.x, pos.y) + 1.7;
+        want.set(pos.x + (want.x - pos.x) * occl, hy + (want.y - hy) * occl, pos.y + (want.z - pos.y) * occl);
+      }
+    }
     if (!camPos) { camPos = want.clone(); camLook = look.clone(); }
     /* 카메라는 곧바로 붙지 않고 따라온다 — 원작의 그 미끄러지는 느낌이다.
        교전 중에는 조금 더 빨리 붙는다(줌인이 굼뜨면 때리는 맛이 죽는다) */
-    var k = Math.min(1, dt * (battleOn ? 9 : 6.5));
+    var k = Math.min(1, dt * (occl < 1 ? 14 : (battleOn ? 9 : 6.5)));
     camPos.lerp(want, k);
     camLook.lerp(look, k);
     camera.position.copy(camPos);
@@ -2923,6 +2990,7 @@
     /** 등롱·사당 불꽃·연기 켬(PLAN 44절) — 손잡이로 잡는다 */
     flameOn: FLAME_ON, flameAmt: FLAME_AMT, smokeOn: SMOKE_ON,
     houseRects: houseRects,
+    camOcclude: camOcclude,
     /** 땅 높이(m) — 들판 전투가 예고 원·숫자를 땅에 붙일 때 쓴다 */
     groundY: groundY,
     /** 지금 쓰는 시야각(도) — 진단·데모가 세로 화면 보정을 값으로 본다 */

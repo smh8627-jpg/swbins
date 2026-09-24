@@ -8324,6 +8324,84 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       return '정사각 _s · 카드 _c · 목록 밖은 굽는 쪽 · 있으면 안 굽고 sweep 이 파일로 교체';
     });
 
+    /* ── ⑯ 싸워서 등용 (field-combat.js duelCamp·challenge, encounter.js duelResult) ── */
+    t('싸워서 등용 ⑯ — 희귀도로 체력·졸개·방패가 서고, 굴복하면 1초 무릎 꿇은 뒤 win · 전멸이면 lose · 등용 카드가 도감·동행에 넣는다', function () {
+      var FC = DG.fieldCombat, D = DG.data, C0 = DG.core;
+      if (!FC.duelCamp || !DG.encounter.duelResult) { return false; }
+      var byR = {};
+      D.heroes.forEach(function (h) { if (!byR[h.rarity]) { byR[h.rarity] = h; } });
+      var rs = Object.keys(byR).map(Number).sort(), lo = byR[rs[0]], hi = byR[rs[rs.length - 1]];
+      function nL(r) { return r >= 5 ? 2 : (r >= 4 ? 1 : 0); }
+      function nR(r) { return r >= 4 ? 2 : (r >= 3 ? 1 : 0); }
+      var wantL = nL(hi.rarity), wantR = nR(hi.rarity);
+      var cLo = FC.duelCamp(lo, 0, 0, 11), cHi = FC.duelCamp(hi, 0, 0, 12);
+      var el = FC.elementOf(hi.id);
+      var okPlan = cLo.foes.length === 1 + nR(lo.rarity) && cLo.hero.layers.length === nL(lo.rarity) && cLo.key === 'h:11' &&
+        cHi.foes.length === 1 + wantR && cHi.hero.layers.length === wantL && (!wantL || cHi.hero.layers[0] === el) &&
+        (wantL < 2 || cHi.hero.layers[1] === FC.COUNTER[el]) &&
+        cHi.hero.hp > cLo.hero.hp && cHi.hero.atk > cLo.hero.atk &&
+        JSON.stringify(FC.duelCamp(hi, 0, 0, 12)) === JSON.stringify(cHi) &&
+        FC.FOES[cLo.foes[0].kind].hero === true;
+      /* 이긴다 — 판정 층만(화면 없음). challenge 는 3D 가 있어야 하니 같은 모양을 손으로 세운다 */
+      var S = fcState();
+      FC.spawnCamp(S, cLo);
+      var f = S.foes[S.camps[cLo.key].uids[0]];
+      S.duel = { uid: f.uid, camp: cLo.key, spawnUid: 11, heroId: lo.id, wiped: false };
+      var okBody = f.heroId === lo.id && f.name === lo.name && f.el === FC.elementOf(lo.id) && f.st === 'chase' && f.hpMax === cLo.hero.hp;
+      FC.hitFoe(S, f, S.party[0], 9999999, null, 'test');
+      var y1 = fcEv(S, 'yield').length === 1 && f.st === 'yield' && !f.dead && FC.living(S).length === 0 &&
+        S.camps[cLo.key].uids.every(function (u) { return u === f.uid || !S.foes[u]; });
+      FC.step(S, 0.5, { px: 0, py: 0, blocked: false });
+      var early = fcEv(S, 'duelEnd').length === 0;
+      FC.step(S, 0.6, { px: 0, py: 0, blocked: false });
+      var endW = fcEv(S, 'duelEnd');
+      var okWin = y1 && early && endW.length === 1 && endW[0].result === 'win' && endW[0].spawnUid === 11 && !S.camps[cLo.key] && S.duel === null;
+      /* 진다 — 붙어 서서 맞기만 하면 전멸 → 인물이 돌아가며 lose */
+      var S2 = fcState();
+      FC.spawnCamp(S2, cHi);
+      var hf = S2.foes[S2.camps[cHi.key].uids[0]];
+      S2.duel = { uid: hf.uid, camp: cHi.key, spawnUid: 12, heroId: hi.id, wiped: false };
+      var endL = [], k;
+      for (k = 0; k < 900 && !endL.length; k++) {
+        FC.step(S2, 0.1, { px: hf.x, py: hf.y, blocked: false });
+        endL = fcEv(S2, 'duelEnd');
+      }
+      var okLose = endL.length === 1 && endL[0].result === 'lose' && !S2.camps[cHi.key];
+      /* 등용 카드 — 등용서 1·명성 ★×12 를 쓰고 도감·동행에 넣는다 */
+      var sv = C0.save, keep = { scroll: sv.items.scroll, fame: sv.player.fame, party: sv.party.slice(), dex: sv.dex.heroes[lo.id] };
+      sv.items.scroll = 1; sv.player.fame = 100; delete sv.dex.heroes[lo.id];
+      var okCard;
+      try {
+        DG.encounter.duelResult('win', 11, lo.id);
+        okCard = DG.encounter.active && !!sv.dex.heroes[lo.id] && sv.items.scroll === 0 && sv.player.fame === 100 - lo.rarity * 12 &&
+          /굴복/.test(document.getElementById('encounter').textContent);
+      } finally {
+        DG.encounter.close();
+        sv.items.scroll = keep.scroll; sv.player.fame = keep.fame; sv.party = keep.party;
+        if (keep.dex) { sv.dex.heroes[lo.id] = keep.dex; } else { delete sv.dex.heroes[lo.id]; }
+      }
+      return okPlan && okBody && okWin && okLose && okCard &&
+        ('★' + lo.rarity + ' 체력 ' + cLo.hero.hp + ' 졸개 ' + nR(lo.rarity) + '(굴복하면 흩어짐) · ★' + hi.rarity + ' 체력 ' + cHi.hero.hp + ' 졸개 ' + wantR + '·방패 ' +
+         cHi.hero.layers.map(function (x) { return FC.EL[x].icon; }).join('→') + ' · 굴복 1초 뒤 win · 전멸 lose ' + (k / 10) + '초');
+    });
+
+    t('건물 가림 — 머리→카메라 선이 집 몸통에 지붕보다 낮게 들면 그 앞까지 당기고, 비껴가거나 지붕 위로 지나면 그대로', function () {
+      var R3 = DG.world3d;
+      if (!R3.camOcclude) { return false; }
+      var P = { x: 0, y: 1.7, z: 0 };
+      var house = { x: 0, z: 10, w: 8, d: 6, rot: 0, h: 9, base: 0 };      // 반폭 max(4, 4.05)·반깊이 max(3, 4.05)
+      var tBlock = R3.camOcclude(P, { x: 0, y: 12, z: 24 }, [house]);      // 뒤 24m·높이 12 — 집(z 5.95~14.05)을 지나며 지붕(9) 아래
+      var tHigh = R3.camOcclude(P, { x: 0, y: 40, z: 24 }, [house]);       // 가파르게 — 들어가는 자리 높이 11.7 > 9
+      var tSide = R3.camOcclude(P, { x: 20, y: 12, z: 24 }, [house]);      // 비껴간다
+      var tNone = R3.camOcclude(P, { x: 0, y: 12, z: 24 }, []);
+      var tIn = R3.camOcclude({ x: 0, y: 1.7, z: 10 }, { x: 0, y: 12, z: 34 }, [house]);   // 머리가 이미 몸통 안 — 당기지 않는다
+      var tRot = R3.camOcclude(P, { x: 0, y: 12, z: 24 }, [{ x: 0, z: 10, w: 8, d: 6, rot: Math.PI / 2, h: 9, base: 0 }]);
+      var enter = (10 - 4.05) / 24;
+      var ok = Math.abs(tBlock - (enter - 0.04)) < 1e-6 && tHigh === 1 && tSide === 1 && tNone === 1 && tIn === 1 &&
+        tRot < 1 && R3.camOcclude(P, { x: 0, y: 12, z: 2 }, [house]) === 1;   // 카메라가 집 앞이면 안 가린다
+      return ok && ('집 뒤로 가면 ' + Math.round(tBlock * 100) + '% 자리로 당김 · 지붕 위·비껴감·벽 안은 그대로');
+    });
+
     t('런타임 에러 없음', function () {
       return errors.length === 0 || ('에러 ' + errors.length + '건: ' + errors.join(' | ')) === '';
     });

@@ -1,8 +1,9 @@
 /**
  * 조우 — 등용(인물) / 포획(펫)
  * ---------------------------------------------------------------
- * 인물: 3라운드 설득. 인물의 성향(trait)에 맞는 어필을 고르면 호감도가 크게 오른다.
- *       호감도 100 이상이면 등용 성공. 등용서 1개와 명성을 소모한다.
+ * 인물: **3D 들판에서는 싸워서 등용**(PLAN §5 ⑯) — 원신식 들판 전투(`field-combat.js challenge`)로
+ *       그 인물과 겨뤄 굴복시키면 동행이 된다. 등용서 1개와 명성을 소모한다(지면 절반).
+ *       2D·진단(DG_NO_DRAW)·자동 순행은 예전 3라운드 설득(성향(trait)에 맞는 어필 → 호감도 100).
  * 펫  : 타이밍 미니게임. 움직이는 바늘을 목표 구간에서 멈추면 포획률이 오른다.
  *       사료 1개를 소모한다.
  */
@@ -58,6 +59,8 @@
 
   function open(spawn) {
     if (cur) { return; }
+    var FCo = global.DG.fieldCombat;
+    if (FCo && FCo.duelSpawn && FCo.duelSpawn() !== null) { return; }   // ⑯ 겨루는 중엔 다른 조우 안 연다
     mount();
     if (spawn.kind === 'hero') { startHero(spawn); }
     else { startPet(spawn); }
@@ -68,6 +71,18 @@
   function startHero(spawn) {
     var h = spawn.ref;
     var need = h.rarity * 12;                    // 필요 명성
+    /* ⑯ 싸워서 등용 — 소모품이 있고 3D 들판 전투가 도는 자리면 곧장 겨룬다(카드 없이).
+       모자라면 아래 옛 카드가 "(부족)"을 보여 준다 */
+    var FC = global.DG.fieldCombat;
+    if (!global.DG_NO_DRAW && FC && FC.canChallenge && FC.canChallenge() &&
+        core.save.items.scroll >= 1 && core.save.player.fame >= need && FC.challenge(spawn)) {
+      var rar0 = data.rarity[h.rarity];
+      if (global.DG.ui && global.DG.ui.toast) {
+        global.DG.ui.toast('⚔️ ' + h.name + ' ' + rar0.label + ' — "내 마음을 얻고 싶다면 실력으로 보여라!"');
+      }
+      core.log('⚔️ ' + h.name + '와(과) 겨룬다 — 굴복시키면 동행이 된다', 'battle');
+      return;
+    }
     cur = {
       spawn: spawn, hero: h, round: 1, maxRound: 3,
       favor: 0, needFame: need, done: false, history: [],
@@ -230,8 +245,8 @@
   function succeedHero() {
     var h = cur.hero;
     cur.done = true;
-    core.save.items.scroll -= 1;
-    core.save.player.fame -= cur.needFame;
+    core.save.items.scroll = Math.max(0, core.save.items.scroll - 1);
+    core.save.player.fame = Math.max(0, core.save.player.fame - cur.needFame);
     var got = gainHero(h);
     var feat = got.feat, exp = got.exp, gold = got.gold;
     global.DG.world.removeSpawn(cur.spawn.uid);
@@ -240,7 +255,7 @@
     el.innerHTML = '' +
       '<div class="enc-card result good catchpop">' +
         '<div class="enc-big">' + global.DG.portrait3d.img('hero', h, 96) + '</div>' +
-        '<h3>' + h.name + ' 등용!</h3>' +
+        '<h3>' + h.name + (cur.duel ? ' 굴복 — 등용!' : ' 등용!') + '</h3>' +
         '<p class="quote">"' + h.quote + '"</p>' +
         '<div class="enc-reward">공적 +' + feat + ' · 경험치 +' + exp + ' · 금 +' + gold + '</div>' +
         '<button class="btn primary wide" data-act="ok">확인</button>' +
@@ -250,18 +265,40 @@
     core.persist();
   }
 
+  /**
+   * ⑯ 겨룬 판 결과(field-combat.js 'duelEnd') — win 은 등용 카드, lose 는 떠났다 카드(옛 실패와 같은 값),
+   * flee(끌고 멀어져 인물이 돌아감)는 소모 없이 물러난 것으로 친다(옛 카드의 "물러난다"와 같다)
+   */
+  function duelResult(result, spawnUid, heroId) {
+    var h = data.find(heroId);
+    if (!h || cur) { return; }
+    var W = global.DG.world, sp = null, list = (W && W.spawns) || [];
+    for (var i = 0; i < list.length; i++) { if (list[i].uid === spawnUid) { sp = list[i]; } }
+    sp = sp || { uid: spawnUid, kind: 'hero', ref: h };
+    if (result === 'flee') {
+      W.removeSpawn(spawnUid);
+      core.log(h.name + '이(가) 겨루기를 거두고 떠났다.', 'info');
+      if (global.DG.ui && global.DG.ui.toast) { global.DG.ui.toast('🚶 ' + h.name + ' — "싱겁구려." 떠났다'); }
+      return;
+    }
+    mount();
+    cur = { spawn: sp, hero: h, needFame: h.rarity * 12, done: false, history: [], duel: true };
+    el.classList.add('show');
+    if (result === 'win') { succeedHero(); } else { failHero(); }
+  }
+
   function failHero() {
     var h = cur.hero;
     cur.done = true;
-    core.save.items.scroll -= 1;
-    core.save.player.fame -= Math.floor(cur.needFame / 2);
+    core.save.items.scroll = Math.max(0, core.save.items.scroll - 1);
+    core.save.player.fame = Math.max(0, core.save.player.fame - Math.floor(cur.needFame / 2));
     global.DG.world.removeSpawn(cur.spawn.uid);
     core.log(h.name + ' 등용 실패…', 'bad');
     el.innerHTML = '' +
       '<div class="enc-card result bad jolt">' +
         '<div class="enc-big">' + global.DG.portrait3d.img('hero', h, 96, 'dark') + '</div>' +
         '<h3>' + h.name + '은(는) 떠났다</h3>' +
-        '<p class="quote">"인연이 아닌 듯하오."</p>' +
+        '<p class="quote">"' + (cur.duel ? '그 실력으로는 아직이오.' : '인연이 아닌 듯하오.') + '"</p>' +
         '<div class="enc-reward">등용서 1 소모 · 명성 절반 반환</div>' +
         '<button class="btn ghost wide" data-act="ok">확인</button>' +
       '</div>';
@@ -630,6 +667,8 @@
     gainHero: gainHero,
     /** 포획 처리 — 적도(rogue.js)의 정화처럼 조우 밖에서 짐승을 얻는 길도 이걸 쓴다 */
     gainPet: gainPet,
+    /** ⑯ 겨룬 판 결과 — field-combat.js 가 부른다 */
+    duelResult: duelResult,
     get active() { return !!cur; }
   };
 })(window);

@@ -150,6 +150,11 @@
     bolt:   { name: '섬영마',     ref: 'pt_jeolyeong',    el: 'elec',  hp: 1.6, atk: 1.2, spd: 7.5, reach: 2.2, type: 'melee', wind: 0.5,  cd: 1.5, h: 1.5,  exp: 3, shield: 'elec',  sh: 1.0 },
     /* 우두머리 — 멀리서만 */
     rex:    { name: '폭군용',     ref: 'pt_t_rex',        el: null,    hp: 6.0, atk: 2.0, spd: 4.5, reach: 4.5, type: 'slam',  wind: 1.2,  cd: 2.8, h: 2.4,  exp: 8, r: 4.8, boss: true },
+    /* 싸워서 등용(PLAN §5 ⑯) — 들판 인물이 **제 기질대로** 싸운다. 몸은 도감 인물 그대로(world3d 가 hero 로 그린다),
+       원소는 동행이 됐을 때와 같은 elementOf(id). 체력·공격·방패는 희귀도로 정한다(duelCamp). 쓰러지지 않고 **굴복**한다 */
+    h_might:  { name: '무인', ref: null, hero: true, el: null, hp: 1, atk: 1, spd: 5.0, reach: 3.4, type: 'slam',  wind: 0.9,  cd: 2.1, h: 1.0, exp: 4, r: 3.6 },
+    h_wisdom: { name: '책사', ref: null, hero: true, el: null, hp: 1, atk: 1, spd: 4.2, reach: 7.5, type: 'spit',  wind: 0.9,  cd: 2.0, h: 1.0, exp: 4, r: 2.4 },
+    h_virtue: { name: '덕장', ref: null, hero: true, el: null, hp: 1, atk: 1, spd: 6.0, reach: 2.4, type: 'melee', wind: 0.55, cd: 1.4, h: 1.0, exp: 4 },
     /* ⑪ 지역 수호자 — 랜드마크 탑 곁에 하나씩, 바이옴마다 몸·원소가 다르다. 방패가 **두 겹**
        (`shields`, 겉 → 속)이라 한 원소로는 둘째 겹이 안 깨진다 — 겉을 깬 뒤 속 방패의 상성
        원소를 가진 동행으로 바꿔 들어가야 하는 퍼즐. 겹마다 방패량은 같다(sh) */
@@ -162,6 +167,27 @@
   function LAYER_STUN() { return 0.8; }     // 겉 방패가 깨질 때 — 짧게 휘청(속 방패가 곧 선다)
   function CORE_STUN() { return 3; }        // 마지막 겹이 깨지면 — 길게 드러눕는다(약점)
   var GUARD_OFF = { x: 16, y: 10 };         // 탑 한가운데가 아니라 둘레 빈터(biome LM_CLEAR 34m 안)
+
+  /**
+   * ⑯ 순수 함수 — 들판 인물 h 와 겨루는 판. 인물 하나(가운데) + ★3 이상이면 제 원소 졸개(★3 하나·★4~5 둘).
+   * 인물 체력 = HP_BASE × (1.6 + 0.7×★) × 등급배수, 공격 = ATK_BASE × (0.9 + 0.12×★) × 등급배수.
+   * ★4 는 제 원소 방패 한 겹, ★5 는 두 겹(제 원소 → 그 상성) — 원신 정예처럼 교체해서 깨야 한다
+   */
+  var RETINUE = { fire: 'imp', water: 'toad', elec: 'raptor' };
+  function heroKind(h) { return h.trait === 'might' ? 'h_might' : (h.trait === 'wisdom' ? 'h_wisdom' : 'h_virtue'); }
+  function duelCamp(h, x, y, spawnUid) {
+    var r = h.rarity || 1, el = elementOf(h.id), tier = tierAt(x, y), m = tierMul(tier);
+    var foes = [{ kind: heroKind(h), dx: 0, dy: 0 }];
+    var nRet = r >= 4 ? 2 : (r >= 3 ? 1 : 0);
+    for (var i = 0; i < nRet; i++) { foes.push({ kind: RETINUE[el], dx: (i ? -3.2 : 3.2), dy: 2.4 }); }
+    var layers = r >= 5 ? [el, COUNTER[el]] : (r >= 4 ? [el] : []);
+    return {
+      key: 'h:' + spawnUid, x: x, y: y, tier: tier, kind: 'hero', foes: foes,
+      hero: { id: h.id, name: h.name, el: el, layers: layers,
+        hp: Math.round(HP_BASE() * (1.6 + 0.7 * r) * m), atk: Math.round(ATK_BASE() * (0.9 + 0.12 * r) * m),
+        shield: layers.length ? Math.round(SHIELD_BASE() * 1.1 * m) : 0 }
+    };
+  }
 
   /**
    * ⑪ 순수 함수 — 지역 가운데(biome `cellAt`·`landmarks` 원소) 곁의 수호자 무리. 고향은 없다.
@@ -314,6 +340,13 @@
         mark: null, dead: false, deadT: 0, hitT: -99, moving: false, phase: 0, calmReturn: 0
       };
       S.camps[c.key].uids.push(uid);
+      if (F.hero && c.hero) {
+        var fh = S.foes[uid], hh = c.hero;
+        fh.heroId = hh.id; fh.name = hh.name; fh.el = hh.el;
+        fh.hpMax = fh.hp = hh.hp; fh.atk = hh.atk;
+        fh.layers = hh.layers.slice(); fh.shEl = hh.layers[0] || null; fh.shield = fh.shieldMax = hh.shield;
+        fh.st = 'chase';                      // 겨루자 한 쪽이라 처음부터 깨어 있다
+      }
     }
   }
 
@@ -345,6 +378,7 @@
     for (var k in S.camps) {
       if (!S.camps.hasOwnProperty(k)) { continue; }
       var cp = S.camps[k];
+      if (cp.kind === 'hero') { continue; }            // ⑯ 겨루는 판은 판이 끝날 때 치운다(duelCheck)
       if (Math.hypot(cp.x - px, cp.y - py) <= far) { continue; }
       var busy = false, j;
       for (j = 0; j < cp.uids.length; j++) {
@@ -361,7 +395,7 @@
   function push(S, e) { S.ev.push(e); return e; }
   function living(S) {
     var out = [];
-    for (var k in S.foes) { if (S.foes.hasOwnProperty(k) && !S.foes[k].dead) { out.push(S.foes[k]); } }
+    for (var k in S.foes) { if (S.foes.hasOwnProperty(k) && !S.foes[k].dead && S.foes[k].st !== 'yield') { out.push(S.foes[k]); } }
     return out;
   }
   function nearestFoe(S, px, py, r) {
@@ -381,7 +415,8 @@
   function wake(f) { if (f.st === 'idle' || f.st === 'return') { f.st = 'chase'; f.stT = 0; } }
 
   function killCheck(S, f) {
-    if (f.hp > 0 || f.dead) { return; }
+    if (f.hp > 0 || f.dead || f.st === 'yield') { return; }
+    if (FOES[f.kind].hero) { yieldHero(S, f); return; }
     f.hp = 0; f.dead = true; f.deadT = 0; f.mark = null;
     S.kills++;
     push(S, { t: 'kill', uid: f.uid, kind: f.kind, tier: f.tier, x: f.x, y: f.y, camp: f.camp, boss: !!FOES[f.kind].boss, elite: !!FOES[f.kind].shield, guard: !!FOES[f.kind].guard });
@@ -393,6 +428,35 @@
     }
     S.cleared[cp.key] = true;
     push(S, { t: 'clear', camp: cp.key, tier: cp.tier, kind: cp.kind, x: cp.x, y: cp.y });
+  }
+
+  /** ⑯ 인물이 굴복 — 쓰러뜨리지 않고 무릎 꿇린다(몸은 그 자리에 남아 등용 카드로 넘어간다). 졸개는 흩어진다 */
+  function yieldHero(S, f) {
+    f.hp = 0; f.mark = null; f.st = 'yield'; f.stun = 99;
+    var cp = S.camps[f.camp];
+    if (cp) {
+      for (var i = 0; i < cp.uids.length; i++) { if (cp.uids[i] !== f.uid) { delete S.foes[cp.uids[i]]; } }
+    }
+    push(S, { t: 'yield', uid: f.uid, heroId: f.heroId, camp: f.camp, x: f.x, y: f.y });
+  }
+
+  /** ⑯ 겨루는 판 끝 — 굴복(win)·전멸(lose)·끌고 멀어져 인물이 돌아감(flee). 판을 치우고 사건 하나 */
+  function endDuel(S, result) {
+    var D = S.duel;
+    if (!D) { return; }
+    var cp = S.camps[D.camp];
+    if (cp) { for (var i = 0; i < cp.uids.length; i++) { delete S.foes[cp.uids[i]]; } delete S.camps[D.camp]; }
+    S.duel = null;
+    push(S, { t: 'duelEnd', result: result, spawnUid: D.spawnUid, heroId: D.heroId });
+  }
+  /** 굴복하면 1초 무릎 꿇은 채 두었다가(보이게) 끝낸다 */
+  function duelCheck(S, dt) {
+    var D = S.duel;
+    if (!D) { return; }
+    var f = S.foes[D.uid];
+    if (!f) { endDuel(S, 'flee'); return; }
+    if (f.st === 'yield') { D.yieldT = (D.yieldT || 0) + dt; if (D.yieldT > 1) { endDuel(S, 'win'); } return; }
+    if (f.st === 'return' || f.st === 'idle') { endDuel(S, D.wiped ? 'lose' : 'flee'); }
   }
 
   /** 방패 한 겹이 깨졌다 — 남은 겹이 있으면 곧바로 다음 원소 방패가 서고(짧게 휘청),
@@ -643,6 +707,7 @@
         if (L[j].st !== 'idle') { L[j].st = 'return'; L[j].mark = null; L[j].calmReturn = 3; }
       }
       S.calmT = 0;
+      if (S.duel) { S.duel.wiped = true; }
       push(S, { t: 'wipe' });
     }
   }
@@ -754,6 +819,7 @@
       }
       if (f.moving) { f.phase += dt * 9; }
     }
+    duelCheck(S, dt);
     return S;
   }
 
@@ -943,6 +1009,14 @@
         var D = global.DG.drop, lost = D && D.lose ? D.lose() : null;
         toast('🏳️ 모두 쓰러져 물러났다' + (lost ? ' — 금 ' + lost.gold + ' 을 흘렸다(되찾을 수 있다)' : ''));
         c.log('🏳️ 들판 전투 전멸 — 30% 로 일어났다', 'battle');
+      } else if (e.t === 'yield') {
+        floatNum(e.x, e.y, '🏳️ 굴복!', null, 1.6, true);
+        ring(e.x, e.y, 3, '#f5b445', 0.7);
+        if (W3()) { W3().shake(0.4); W3().hold(160); }
+        sfx('reward');
+      } else if (e.t === 'duelEnd') {
+        var ENC = global.DG.encounter;
+        if (ENC && ENC.duelResult) { ENC.duelResult(e.result, e.spawnUid, e.heroId); }
       } else if (e.t === 'kill') {
         var gold = 3 + 2 * e.tier, exp = Math.round(6 * e.tier * FOES[e.kind].exp);
         c.save.player.gold = (c.save.player.gold || 0) + gold;
@@ -1128,7 +1202,7 @@
       var b = barEls[f.uid];
       if (!b) {
         b = barEls[f.uid] = document.createElement('div');
-        b.className = 'fc-bar' + (F.boss ? ' boss' : '');
+        b.className = 'fc-bar' + (F.boss || F.hero ? ' boss' : '');
         b.innerHTML = '<small></small><span class="fc-bhp"><i></i></span><span class="fc-bsh"><i></i></span>';
         numLayer.appendChild(b);
       }
@@ -1250,12 +1324,31 @@
     for (var k in S.foes) {
       if (!S.foes.hasOwnProperty(k)) { continue; }
       var f = S.foes[k], F = FOES[f.kind];
-      var ref = (D && D.find && D.find(F.ref)) || { id: 'fc_' + f.kind, name: F.name, kind: 'beast', rarity: 2, form: 'boar' };
+      var ref = (D && D.find && D.find(f.heroId || F.ref)) || { id: 'fc_' + f.kind, name: F.name, kind: 'beast', rarity: 2, form: 'boar' };
       out.push({ uid: f.uid, x: f.x, y: f.y, h: F.h, ref: ref, moving: f.moving, phase: f.phase,
-        dead: f.dead, deadT: f.deadT, stun: f.stun > 0, el: f.el, aura: f.aura, boss: !!F.boss });
+        dead: f.dead, deadT: f.deadT, stun: f.stun > 0 && f.st !== 'yield', el: f.el, aura: f.aura, boss: !!F.boss,
+        hero: !!F.hero, yielded: f.st === 'yield' });
     }
     return out;
   }
+
+  /**
+   * ⑯ 싸워서 등용 — 들판 인물을 눌렀을 때(encounter.js startHero). 3D 들판 전투가 도는 자리에서만 true
+   * (2D·진단(DG_NO_DRAW)은 옛 설득 카드). 판은 인물이 서 있던 자리에 선다 — 끝나면 'duelEnd'(win·lose·flee)
+   */
+  function canChallenge() { return !!(on() && core() && core().save && W3() && !(S && S.duel)); }
+  function challenge(spawn) {
+    if (!canChallenge() || !spawn || !spawn.ref) { return false; }
+    ensureState();
+    var c = duelCamp(spawn.ref, spawn.x, spawn.y, spawn.uid);
+    if (S.camps[c.key]) { return false; }
+    spawnCamp(S, c);
+    var cp = S.camps[c.key];
+    S.duel = { uid: cp.uids[0], camp: c.key, spawnUid: spawn.uid, heroId: spawn.ref.id, wiped: false };
+    for (var i = 0; i < cp.uids.length; i++) { wake(S.foes[cp.uids[i]]); }
+    return true;
+  }
+  function duelSpawn() { return S && S.duel ? S.duel.spawnUid : null; }
 
   /** 지도 위 아바타로 설 사람 — 교체하면 바뀐다(없으면 null → 동행 선두) */
   function leadId() {
@@ -1275,6 +1368,7 @@
     create: create, reparty: reparty, populate: populate, spawnCamp: spawnCamp, step: step, drain: drain,
     attack: attack, skill: skill, burst: burst, dodge: dodge, swap: swap, hitFoe: hitFoe,
     engaged: engaged, living: living, memberOf: memberOf,
+    duelCamp: duelCamp, canChallenge: canChallenge, challenge: challenge, duelSpawn: duelSpawn,
     /* 런타임 */
     init: init, tick: tick, act: act, live: live, leadId: leadId,
     state: function () { return S; },
