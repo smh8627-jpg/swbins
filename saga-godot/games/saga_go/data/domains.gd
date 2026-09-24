@@ -1,0 +1,98 @@
+extends RefCounted
+
+## PLAN 106장 ⑳ — 원신식 비경(짧은 도전 던전) 규칙. 상태는 PartyState.resin·resin_t, 진행은 world/domains.gd.
+##   비경 셋 — 성유물(잠든 무덤, 폐허)·특성(옛 서당, 마을)·무기(쇠부리 터, 포구). 입구 3m 안에서 F → 단계(I·II·III) 고르기.
+##   안: 세상 밖 떨어진 원판(지름 36m). 3초 뒤 파도 둘을 차례로, 120초 안에 다 쓰러뜨리면 보상 나무가 난다 —
+##   원기 20 을 써서 받는다(모자라면 못 받고 나감). 명단이 다 쓰러지거나 시간이 다 되면 실패(원기 안 씀).
+##   지맥 이상(비경마다 하나): 무덤 = 적이 물을 띤다 · 서당 = 적을 쓰러뜨리면 명단 기력 +8 · 쇠부리 터 = 적 공격 +30%.
+##   원기(원신의 레진 자리): 상한 160, 실제 시각 8분에 1 — 저장한다.
+## 이름·수치는 이 판 것.
+
+const RESIN_MAX := 160
+const RESIN_SEC := 480.0
+const RESIN_COST := 20
+const TIME_LIMIT := 120.0
+const START_DELAY := 3.0
+const ARENA_R := 18.0
+const GATE_M := 3.0
+
+## 단계 — 체력·공격 배율, 여는 부대 레벨(옛 부대 레벨 = 모험 등급 자리), 권장 인물 레벨(표시만).
+const LEVELS := [
+	{"name": "I", "hp": 1.0, "atk": 1.0, "party_lv": 0, "rec": 1},
+	{"name": "II", "hp": 2.0, "atk": 1.5, "party_lv": 3, "rec": 20},
+	{"name": "III", "hp": 3.5, "atk": 2.2, "party_lv": 6, "rec": 40},
+]
+
+## 비경 — gate: [지역, 칸], arena: 세상 밖 원판 가운데. waves: 파도마다 적 kind. reward: 단계마다 가방 사전.
+## 성유물 비경은 artifacts 로 [★4 수, ★5 수], 세트는 sets 둘 중 번갈아.
+const DOMAINS := {
+	"tomb": {"name": "잠든 무덤", "kind": "artifact", "gate": ["ruins", Vector2(5.0, 2.3)], "arena": Vector3(-1400.0, 40.0, 0.0),
+		"waves": [["wolf", "wolf", "bandit"], ["water_turtle", "fire_imp"]], "modifier": "water",
+		"modifier_text": "지맥 이상: 적이 물을 띤다", "sets": ["crimson", "depth"],
+		"reward": [{"mora": 1000, "polish": 1}, {"mora": 1800, "polish": 2}, {"mora": 2600, "polish": 3}],
+		"artifacts": [[2, 0], [2, 1], [1, 2]]},
+	"school": {"name": "옛 서당", "kind": "talent", "gate": ["village", Vector2(3.3, 5.6)], "arena": Vector3(-1400.0, 40.0, 200.0),
+		"waves": [["bandit", "bandit", "bandit"], ["thunder_cat", "ice_fox"]], "modifier": "energy",
+		"modifier_text": "지맥 이상: 적을 쓰러뜨리면 명단 기력 +8",
+		"reward": [{"mora": 1000, "talent_1": 3}, {"mora": 1800, "talent_1": 2, "talent_2": 2}, {"mora": 2600, "talent_2": 3, "talent_3": 1}]},
+	"forge": {"name": "쇠부리 터", "kind": "weapon", "gate": ["coast", Vector2(7.3, 4.6)], "arena": Vector3(-1400.0, 40.0, 400.0),
+		"waves": [["rock_bear", "wolf", "wolf"], ["grass_snake", "wind_hawk"]], "modifier": "fury",
+		"modifier_text": "지맥 이상: 적 공격 +30%",
+		"reward": [{"mora": 1000, "ore_s": 3, "iron": 2}, {"mora": 1800, "ore_m": 2, "iron": 4}, {"mora": 2600, "ore_m": 2, "ore_l": 1, "iron": 6}]},
+}
+const ORDER := ["tomb", "school", "forge"]
+const KIND_NAMES := {"artifact": "성유물", "talent": "특성 재료", "weapon": "무기 재료"}
+const FURY_MUL := 1.3
+const ENERGY_PER_KILL := 8.0
+const WATER_EVERY := 4.0
+const REWARD_EXP := [10.0, 15.0, 20.0]
+
+static var time_offset := 0.0
+
+static func now() -> float:
+	return Time.get_unix_time_from_system() + time_offset
+
+## 지금 원기 — 저장된 값에 지난 시간만큼 더한다(상한 160). PartyState 에 앉히며 돌려준다.
+static func resin_now() -> int:
+	var t := now()
+	if float(PartyState.resin_t) <= 0.0:
+		PartyState.resin = RESIN_MAX
+		PartyState.resin_t = t
+		return RESIN_MAX
+	if PartyState.resin >= RESIN_MAX:
+		PartyState.resin_t = t
+		return RESIN_MAX
+	var gained := floori((t - float(PartyState.resin_t)) / RESIN_SEC)
+	if gained > 0:
+		PartyState.resin = mini(PartyState.resin + gained, RESIN_MAX)
+		PartyState.resin_t = float(PartyState.resin_t) + gained * RESIN_SEC
+		if PartyState.resin >= RESIN_MAX:
+			PartyState.resin_t = t
+	return PartyState.resin
+
+static func spend_resin(n: int) -> bool:
+	if resin_now() < n:
+		return false
+	var was_full := PartyState.resin >= RESIN_MAX
+	PartyState.resin -= n
+	if was_full:
+		PartyState.resin_t = now() # 가득일 땐 시계가 멈춰 있었다 — 지금부터 다시 찬다
+	return true
+
+static func level_open(lv: int) -> bool:
+	return PartyState.level >= int(LEVELS[lv].party_lv)
+
+## 보상 한 줄(표시).
+static func reward_text(id: String, lv: int) -> String:
+	var d: Dictionary = DOMAINS[id]
+	var parts: Array[String] = []
+	if d.has("artifacts"):
+		var a: Array = d.artifacts[lv]
+		if int(a[0]) > 0:
+			parts.append("★4 성유물 %d" % int(a[0]))
+		if int(a[1]) > 0:
+			parts.append("★5 성유물 %d" % int(a[1]))
+	var r: Dictionary = d.reward[lv]
+	for item in r:
+		parts.append("%s %d" % [preload("res://games/saga_go/data/growth.gd").item_name(item), int(r[item])])
+	return " · ".join(parts)

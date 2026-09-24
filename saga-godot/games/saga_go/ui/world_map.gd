@@ -563,6 +563,9 @@ func open_map() -> void:
 		return
 	if get_tree().get_nodes_in_group("duel_active").size() > 0:
 		return
+	## 비경 안에선 지도(순간이동)를 안 연다(106장 ⑳ — 원신도 그렇다).
+	if get_tree().get_nodes_in_group("go_domain_active").size() > 0:
+		return
 	## 다른 화면(인물·요리)이 열려 있으면 안 연다 — frozen 되돌림이 엇갈린다.
 	for g in ["go_character_screen", "go_cooking_screen"]:
 		var other := get_tree().get_first_node_in_group(g)

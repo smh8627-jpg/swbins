@@ -71,6 +71,12 @@ func _ready() -> void:
 	commissions.name = "Commissions"
 	add_child(commissions)
 	commissions.changed.connect(_refresh_goal_board)
+	## PLAN 106장 ⑳ — 비경 셋(입구 F·세상 밖 원판·보상 나무·원기).
+	var domains := preload("res://games/saga_go/world/domains.gd").new()
+	domains.name = "Domains"
+	add_child(domains)
+	if OS.get_environment("SAGA_DOMAIN_PROBE") != "":
+		add_child(load("res://tools/probe_domains.gd").new())
 	if OS.get_environment("SAGA_COMMISSION_PROBE") != "":
 		add_child(load("res://tools/probe_commissions.gd").new())
 	if OS.get_environment("SAGA_GROWTH_PROBE") != "":

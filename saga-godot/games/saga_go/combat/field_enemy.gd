@@ -73,6 +73,10 @@ var phys_vuln_t := 0.0
 var quicken_t := 0.0
 var shield := 0.0
 var max_shield := 0.0
+## 106장 ⑳ 비경 — 공격 배율, 쓰러지면 되살아나지 않고 사라짐, 경험·전리품 없음(비경 보상은 끝에 한꺼번에).
+var dmg_mul := 1.0
+var respawns := true
+var drops := true
 
 var _t := 0.0
 var _wander_target := Vector3.ZERO
@@ -98,6 +102,14 @@ func setup(kind_id: String, home_pos: Vector3, seed_value: int) -> void:
 	element = def.get("element", "")
 	max_shield = def.get("shield", 0.0)
 	shield = max_shield
+
+## 106장 ⑳ 비경 단계 — 체력·방패·공격 배율.
+func scale_stats(hp_mul: float, atk_mul: float) -> void:
+	max_hp *= hp_mul
+	hp = max_hp
+	max_shield *= hp_mul
+	shield = max_shield
+	dmg_mul = atk_mul
 
 func _ready() -> void:
 	add_to_group("field_enemy")
@@ -220,7 +232,7 @@ func _try_hit_player(player: Node3D) -> void:
 		return
 	var fc := get_tree().get_first_node_in_group("go_field_combat")
 	if fc:
-		fc.call("take_damage", def.atk, self)
+		fc.call("take_damage", def.atk * dmg_mul, self)
 
 func _pick_wander() -> void:
 	var a := _rng.randf() * TAU
@@ -332,6 +344,11 @@ func _die() -> void:
 	_dots.clear()
 	visible = false
 	collision_layer = 0
+	if not drops:
+		died.emit(self)
+		if not respawns:
+			queue_free()
+		return
 	PartyState.add_exp(def.exp)
 	## 106장 ⑩ — 육성 재료(냥·전리품·원소 결정·견문록). 정해진 양(growth.gd KILL_DROPS).
 	var loot: Dictionary = Growth.KILL_DROPS.get(kind, {})
@@ -344,6 +361,8 @@ func _die() -> void:
 			art_text = " · 성유물"
 		CombatFeel.pickup(self, "냥 +%d%s" % [int(loot.get("mora", 0)), art_text])
 	died.emit(self)
+	if not respawns:
+		queue_free()
 
 func _revive() -> void:
 	global_position = home
