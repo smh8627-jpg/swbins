@@ -8695,3 +8695,10 @@ PROJECT_STATE.md` 참고. 요약:
 - `tools/compare/CharCompare.tscn`: 짝 셋(GO·FOREST·DUNGEON) × (지금 VRoid | 새 공방), 게임 해·env_pc·cel_toon 같게, 키 1.70m 로 맞춤. 1~8 동작·Space 자동·←/→·↑/↓·Tab·R, 폰은 누르기. 헤드리스 로드: 양쪽 여덟 동작·셀 서피스 적용 확인.
 - 함정: `--headless --editor --quit` 가 `assets/generated/props/*.import` 19개를 매번 고쳐 쓴다 → 매번 `git checkout`. 추출 텍스처 파일을 지우면 다음 임포트에서 UID 못 찾음 오류가 한 번 난다(한 번 더 임포트하면 사라짐).
 - 사람 몫: `HOW_TO_PLAYTEST.md` §10 대로 비교 장면을 보고 짝마다 "바꿔도 된다/아직" 판정.
+
+## 2026-09-25 — 몸 방향 결정 D4: 주역은 VRoid 직접 디자인 + `vroid_intake.sh`
+
+- 사용자가 공방 툰 몸을 보고 "얼굴이 원신 같은 애니 캐릭터가 아니다" · "구시대 서양인 캐릭터" → 선택지(외주·구매·AI 3D·코드 애니 얼굴) 중 **VRoid 직접 디자인** 선택. `assets/characters_cf/cmp_*` 는 게임에 안 넣는다(비교 장면은 새 주역 볼 때 다시 씀).
+- VRoid 약관 다시 확인: 만든 모델 개인·법인 상업 사용 OK, 금지는 VRoid 결과물로 메시 변형·조합 **앱을 만드는 것**뿐 — 이전 "105명을 코드로 뽑으면 닿는다"는 지나쳤다. Hunyuan3D 는 한국이 라이선스 지역에서 빠져 못 쓴다.
+- `../tools/char-forge/vroid_intake.sh <vrm> <id>`: 사본 → 얼굴 굽기 → CC0 동작 굽기·파일 검증 → `anim_cc0/<id>_lib.res` → 셀 셰이더 얼굴 표 → `probe_anim_cc0.gd`(이제 anim_cc0 폴더 전부를 본다). dungeon_hero_01 로 끝까지 돌려 커밋된 결과와 바이트가 같음 확인.
+- 함정: **헤드리스 Godot 은 백그라운드에서 stdin 을 물려받으면 0% CPU 로 멈춘다**(임포트·점검이 각 17분+). Godot 호출엔 모두 `</dev/null`. Git Bash 엔 `pgrep` 이 없어 `until … ! pgrep` 대기 루프가 안 끝났다(직접 PID 로 정리).

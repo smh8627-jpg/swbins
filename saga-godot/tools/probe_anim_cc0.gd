@@ -6,7 +6,7 @@ extends SceneTree
 ## 사용법: Godot_..._console.exe --headless --path saga-godot --script tools/probe_anim_cc0.gd
 ## 출력: PROBE_ANIM {...} 한 줄씩 + RESULT n/n
 
-const BODIES := ["AvatarSample_A", "saga_forest_avatar_01", "dungeon_hero_01"]
+const LIB_DIR := "res://assets/characters_vroid/anim_cc0"  # 여기 있는 <몸>_lib.res 전부(새 주역이 들어오면 저절로 점검된다)
 const CLIPS := ["idle", "walk", "sprint", "attack", "hit", "dodge", "death", "pickup"]
 const LOOPS := ["idle", "walk", "sprint"]
 const FEET := ["J_Bip_L_Foot", "J_Bip_R_Foot"]
@@ -20,7 +20,12 @@ func _process(_delta: float) -> bool:
 	_done = true
 	var ok := 0
 	var total := 0
-	for body in BODIES:
+	var bodies: Array[String] = []
+	for f in DirAccess.get_files_at(LIB_DIR):
+		if f.ends_with("_lib.res"):
+			bodies.append(f.trim_suffix("_lib.res"))
+	bodies.sort()
+	for body in bodies:
 		total += 1
 		var fails: Array = []
 		var inst: Node3D = (load("res://assets/characters_vroid/%s.glb" % body) as PackedScene).instantiate()
@@ -28,7 +33,7 @@ func _process(_delta: float) -> bool:
 		var skel: Skeleton3D = inst.find_children("*", "Skeleton3D", true, false)[0]
 		var ap := AnimationPlayer.new()
 		inst.add_child(ap)
-		var lib: AnimationLibrary = load("res://assets/characters_vroid/anim_cc0/%s_lib.res" % body)
+		var lib: AnimationLibrary = load("%s/%s_lib.res" % [LIB_DIR, body])
 		ap.add_animation_library("", lib)
 		var rest_y := {}
 		for f in FEET:
