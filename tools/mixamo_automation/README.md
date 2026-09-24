@@ -39,6 +39,19 @@ mkdir -p "$LOCALAPPDATA/swbins-mixamo-automation-profile"   # 경로는 예시, 
 
 `curl http://127.0.0.1:9222/json/version` 로 포트가 살아있는지 확인 가능.
 
+### 백그라운드(창 없이) 받기 — 로그인이 살아 있을 때 (2026-09-24 확인)
+
+같은 프로필을 `--headless=new` 로 띄우면 창 없이 로그인 쿠키를 그대로 쓴다(검색·캐릭터 바꾸기·몸체·클립 전부 됨).
+한 프로필은 크롬 하나만 쓸 수 있으니 창 있는 자동화 크롬을 먼저 닫는다(**그 프로필의 PID 만** — 사용자 크롬 전체를 끄지 않는다).
+
+```bash
+"/c/Program Files/Google/Chrome/Application/chrome.exe" --headless=new   --remote-debugging-port=9222 --remote-allow-origins=*   --user-data-dir="$LOCALAPPDATA\swbins-mixamo-automation-profile" "https://www.mixamo.com" &
+```
+
+- 다 받으면 그 헤드리스 크롬도 PID 로 닫는다(명령줄에 프로필 경로·`--headless` 가 든 주 프로세스, `--type=` 없는 것).
+- **로그인만은 사람 몫** — Adobe 세션이 만료되면(머리줄에 "Log in") `fetch.mjs` 가 받기 전에 바로 "로그인이 풀려 있음"으로 끝난다(exit 3).
+  그땐 창 있는 모드로 띄워 사람이 로그인한 뒤 다시 헤드리스로 돌린다.
+
 ## 설치
 
 ```bash
@@ -96,6 +109,7 @@ Claude)이 한 번 판단해야 한다 — Mixamo 검색 결과 자체가 매번
 | saga-unity | 동행 술사 전용(106-6, `Peasant Girl`) 걷기·달리기(--inplace)·빛살 시전·치유 시전 | `Female Walk`·`Female Run`·`Spell`·`Spell` | `Female Normal Walk`·`Female Run Forward`·`One Handed Casting Spell Fowards`·`Casting A Ressurection Or Summon Spell` | 2026-09-24 |
 | saga-unity | FOREST 짐승 몸(108 후속) — 숲도깨비 `Goblin D Shareyko`·바위도깨비 `Pumpkinhulk L Shaw`·무쇠도깨비 `Warrok W Kurniawan` idle·walk/run(inplace) | `Standing Idle`·`Sneak`·`Mutant Run` / `Mutant Idle`·`Mutant Walking`·`Mutant Run` | Goblin: `Standing Idle Looking Around`·`Male Ninja Sneak Walk`·`Mutant Running` · Hulk: `Mutant Breathing Idle`·`Mutant Brutal Walk`·`Mutant Running` · Warrok: `Mutant Stretching Idle`·`Mutant Brutal Walk`·`Mutant Running` | 2026-09-24 |
 | saga-unity | FOREST 짐승 몸 — 포자괴물 `Parasite L Starkie` idle·walk/run(inplace)·포효 · 안개유령 `Nightshade J Friedrich` 떠 있기 · 정령 셋 `Jolleen` idle·walk/run(inplace) | `Zombie Idle`·`Zombie Walking`·`Zombie Running`·`Mutant Roaring` / `Flying` / `Idle`·`Female Walk`·`Female Run` | `Zombie Standing Idle`·`Zombie Walking`·`Zombie Run`·`Mutant Roaring` / `Flying Idle` / `Happy Idle Variation 1`·`Female Normal Walk`·`Female Run Forward` | 2026-09-24 |
+| saga-unity | 두목 전용 몸 — GO 망루 수호장 `Maw J Laygo`·DUNGEON 능묘지기 `Ganfaul M Aure` 대기·걷기(--inplace)·공격·피격·쓰러짐 (몸은 `--tpose --out Maw`/`Ganfaul`) | Maw: `Mutant Idle`·`Mutant Walking`·`Mutant Swiping`·`Hit Reaction`·`Mutant Dying` / Ganfaul: `Standing Idle`·`Mutant Walking`·`Mutant Swiping`·`Hit Reaction`·`Dying` | Maw: `Mutant Breathing Idle`·`Mutant Brutal Walk`·`Mutant Attacking With Left Hand`·`Hit Reaction`·`Mutant Dying Falling Onto Back` / Ganfaul: `Standing Idle`·`Mutant Brutal Walk`·`Mutant Attacking With Left Hand`·`Hit Reaction`·`Dying Front Head Impact To Two Knees` → `Saga.EditorTools.SetupNpcCharacterImports.SetupBossBodies` | 2026-09-24 |
 | saga-unity | STORY 소환 우레뿔 거수(106-10, `Warrok W Kurniawan`) 내려찍기 | `Mutant Attack` | `Mutant Jump Attack To Idle`(파일 Mutant Jump Attack) | 2026-09-24 |
 | saga-unity | STORY 유격(106-10, `Erika Archer With Bow/Arrow`) idle·walk/run(inplace)·쏘기 | `Bow Idle`·`Bow Walk`·`Bow Run`·`Arrow` | `Standing Idle With Bow`·`Walking Forward With Bow`(**--nth 1**, 첫째는 쭈그린 판 Crouch Walk)·`Running Forward With Bow`·`Standing Aim Fire Arrow`(파일 Standing Aim Recoil) | 2026-09-24 |
 

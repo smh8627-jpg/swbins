@@ -362,7 +362,9 @@ namespace Saga.EditorTools
             var spawner = spawnerGo.AddComponent<Saga.Go.Combat.FieldSpawner>();
             SetPrivateField(spawner, "banditModel", AssetDatabase.LoadAssetAtPath<GameObject>(AbeAnimatedPrefabPath));
             SetPrivateField(spawner, "skeletonModel", AssetDatabase.LoadAssetAtPath<GameObject>(SetupNpcCharacterImports.PrefabPath("Skeleton")));
-            SetPrivateField(spawner, "guardianModel", AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/CharactersRealistic/Brute/BruteAnimated.prefab")); // PLAN.md 107-7 망루 수호장 = 두목 모델.
+            // PLAN.md 107-7 망루 수호장 — 전용 몸 Maw J Laygo(2026-09-24), 없는 PC 는 두목 모델 Brute.
+            SetPrivateField(spawner, "guardianModel", AssetDatabase.LoadAssetAtPath<GameObject>(SetupNpcCharacterImports.PrefabPath("Maw"))
+                ?? AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/CharactersRealistic/Brute/BruteAnimated.prefab"));
 
             // PLAN.md 107-6 "동료 모델" — 교체하면 몸이 바뀐다(모델은 로컬 전용, 없으면 주인공 몸 + 원소 빛깔)
             var bodies = playerGo.AddComponent<PartyBodies>();

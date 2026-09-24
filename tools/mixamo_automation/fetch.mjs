@@ -93,6 +93,18 @@ await cdpSession.send('Browser.setDownloadBehavior', {
   eventsEnabled: false,
 });
 
+// 로그인이 풀리면 검색·캐릭터 바꾸기는 되는 척하다 DOWNLOAD 모달에서 30초 타임아웃으로 끝난다(2026-09-24 실제로 겪음) —
+// 받기 전에 머리줄에 "Log in" 이 보이는지 먼저 본다. --list 는 로그인 없이도 되니 안 본다.
+if (tpose || (match && outName)) {
+  if (!page.url().includes('mixamo.com')) await page.goto('https://www.mixamo.com/#/', { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1500);
+  if ((await page.locator('a:has-text("Log in"), button:has-text("Log in")').count()) > 0) {
+    console.error('Mixamo 로그인이 풀려 있음 — 자동화 크롬 창을 띄워(README "최초 설정") 사람이 로그인한 뒤 다시 실행');
+    await browser.close();
+    process.exit(3);
+  }
+}
+
 // 오른쪽 패널의 현재 캐릭터 이름(대문자로 보인다) — 카드 목록이 아니라 DOWNLOAD 버튼이 있는 패널에서 찾는다.
 async function currentCharacter() {
   return page.evaluate(() => {

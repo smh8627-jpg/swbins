@@ -9012,3 +9012,12 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - **바로잡음**: 바로 앞 FOREST 존 소품을 사람 키 2.7 기준 1.5배로 키웠는데, 2.7 은 Kenney 모델 원래 키(`CharacterVisual.NativeHeight`)일 뿐 FOREST 사람 키는 1.8m(주민·Maria) — 배율 1.0 으로 고치고 쌓은 높이도 맞췄다. GO(사람 3.4 → 1.9배)는 맞다.
 - 파일: 새 `SagaGo|SagaForest|SagaStory/World/NpcIdle.cs`·`Editor/PlaytestNpcModels.cs`, 고침 `NpcBuilder`(`InitRigs`)·`ForestVillager`·`StoryNpc`·`StoryJobTrainer`·씬 빌더 셋·헤드리스 셋·`ForestZoneProps`(배율), 씬 셋 재빌드(타임라인 셋 다시 구워짐).
 - 검증: GO `PlaytestHeadless` 3연속 OK(세 사람 3.40m) · `PlaytestForestHeadless` 3연속 OK(숲지기 1.80m·존 소품 OK) · `PlaytestStorySlice` 6회 중 5회 OK — 실패 1회는 `PartySwapWait` "동료 서명(기탄) 뒤에도 더미가 안 죽음"(실시간 투사체 대기, 사실 모델엔 충돌체가 없어 이번 변경과 닿지 않음, 알려진 오류에 적음). 실기 확인 전(바라보는 쪽·키·대기 동작, FOREST 소품 실측 크기).
+
+## 2026-09-24 — 두목 전용 몸: GO 망루 수호장 Maw J Laygo · DUNGEON 능묘지기 Ganfaul M Aure (사용자 "이어해줘", Opus 5.5)
+
+- **고른 까닭**: 이번엔 PLAN "남은 것:" 줄을 먼저 다 모았다(앞 세션 교훈). 결정 없이 되는 것 중 가장 눈에 띄는 빈칸 — 두목 셋(수호장·능묘지기·층 두목)이 모두 Brute 몸을 키만 키워 썼다. 107-7·106-4 에 "전용 모델"이 적혀 있었다.
+- **몸 고르기**: `list-characters.mjs` 로 후보를 찾고 카드 썸네일을 받아 봤다 — Knight D Pelegrini(사람 병사 같음)·Warzombie(현대 군모)·Mutant(SF 빛 칼날) 빼고, 수호장 = Maw(뿔 달린 갑주 거수), 능묘지기 = Ganfaul(검은 갑주 망령). 둘 다 Brute 컨트롤러와 같은 다섯 상태라 두목 코드는 그대로.
+- **막힘**: 처음 받기가 DOWNLOAD 모달에서 30초 타임아웃 — 화면을 찍어 보니 Mixamo 로그인이 풀려 있었다("Please sign in to download"). 사용자가 로그인한 뒤 몸 둘 + 클립 열 전부 자동으로 받았다. 사용자가 "백그라운드로 가져올 수 있지 않나?" — 받기는 이미 전부 자동이고 로그인만 사람 몫이라고 답하고, 같은 프로필 `--headless=new` 로 창 없이 받기를 실제로 확인(README "백그라운드" 절). `fetch.mjs` 는 받기 전에 머리줄 "Log in" 을 봐서 로그인이 풀렸으면 곧장 exit 3.
+- **맞춤**: 수호장은 `FieldEnemy` 가 이미 키를 재 5.4m 로 맞춘다 — 돌빛 칠만 빼고 제 빛깔 위에 원소 30%. 능묘지기는 리깅 모델을 실제 크기 × `visualScale` 로 쓰는 구조라, 프리팹 키를 재서 옛 몸과 같은 3.5m 가 되게 배율을 넣고 검푸른 칠을 뺐다. 굽기는 두 몸만(`SetupNpcCharacterImports.SetupBossBodies`, 다른 컨트롤러를 다시 굽지 않음).
+- 파일: `SetupNpcCharacterImports`(표 둘·`SetupBossBodies`)·`Assets/Animators/Maw|Ganfaul.controller`(새)·`BuildTestVillageScene`·`BuildTestDungeonScene`·`BuildDungeonTemple`(`GuardianHeight`·`MeasureHeight`)·`FieldEnemy`(수호장 칠)·`PlaytestNpcModels`(`Dungeon()`·수호장 몸)·`PlaytestDungeonHeadless`, GO·DUNGEON 씬 재빌드, `tools/mixamo_automation`(`fetch.mjs` 로그인 확인·README 레시피·백그라운드 절). 원본 FBX 는 gitignore(PC마다 받기).
+- 검증: `PlaytestDungeonHeadless` 3연속 OK(능묘지기 Ganfaul 3.50m, 능묘·등장 컷 그대로) · GO `PlaytestHeadless` 3연속 OK(수호장 Maw, 수호장 진단 키 5.4m·등장 컷 그대로). 화면은 안 봄 — 실기 확인 전(걷기 박자·발톱 공격이 한 방 판정 시각과 맞는지·포효 대신 공격 클립이 어색한지).

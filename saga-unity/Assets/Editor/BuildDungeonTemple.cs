@@ -29,13 +29,19 @@ namespace Saga.EditorTools
         private static GameObject _corridorGlb, _gateGlb, _roomGlb, _guardianModel, _wardenModel;
         private static Material _floorMat, _wallMat, _woodMat, _metalMat;
         private static float _doorWidth;
+        private static bool _dedicatedGuardian;
+
+        /// <summary>능묘지기 키(m) — 옛 몸 Brute(2.34m) × 1.5 와 같게 전용 몸도 맞춘다.</summary>
+        public const float GuardianHeight = 3.5f;
 
         /// <summary>마지막 `Build()` 가 만든 능묘지기 — `BuildDungeonCinematics` 가 등장 컷 포효에 쓴다.</summary>
         public static DungeonEnemy LastGuardian { get; private set; }
 
         public static void Build(GameObject corridorGlb, GameObject gateGlb, GameObject roomGlb,
-            Material floorMat, Material wallMat, GameObject guardianModel, GameObject wardenModel, float roomDoorWidth)
+            Material floorMat, Material wallMat, GameObject guardianModel, GameObject wardenModel, float roomDoorWidth,
+            bool dedicatedGuardian = false)
         {
+            _dedicatedGuardian = dedicatedGuardian;
             _corridorGlb = corridorGlb;
             _gateGlb = gateGlb;
             _roomGlb = roomGlb;
@@ -241,12 +247,30 @@ namespace Saga.EditorTools
             SetField(e, "rewardItemId", "wp_greatblade");
             SetField(e, "isBoss", true);
             SetField(e, "displayName", "능묘지기");
-            SetField(e, "bodyColor", GuardianTint);
-            SetField(e, "visualScale", 1.5f);
+            // 전용 몸(Ganfaul)은 제 빛깔 그대로·키를 재서 3.5m 로, 옛 두목 몸(Brute)은 검푸른 칠·1.5배.
+            SetField(e, "bodyColor", _dedicatedGuardian ? Color.white : GuardianTint);
+            SetField(e, "visualScale", _dedicatedGuardian ? GuardianHeight / Mathf.Max(0.5f, MeasureHeight(_guardianModel)) : 1.5f);
             SetField(e, "modelPrefab", _guardianModel);
             SetField(e, "bombArmored", true);
             SetField(e, "deathFlag", TempleFlag.BossDefeated);
             return e;
+        }
+
+        /// <summary>프리팹을 잠깐 세워 렌더러 키를 잰다(리깅 모델은 실제 크기 단위 — `DungeonEnemy.BuildVisual`).</summary>
+        private static float MeasureHeight(GameObject prefab)
+        {
+            if (prefab == null) return 1f;
+            var inst = Object.Instantiate(prefab);
+            float h = 0f;
+            var rs = inst.GetComponentsInChildren<Renderer>();
+            if (rs.Length > 0)
+            {
+                var b = rs[0].bounds;
+                foreach (var r in rs) b.Encapsulate(r.bounds);
+                h = b.size.y;
+            }
+            Object.DestroyImmediate(inst);
+            return h;
         }
 
         private static void SetField(object target, string fieldName, object value)

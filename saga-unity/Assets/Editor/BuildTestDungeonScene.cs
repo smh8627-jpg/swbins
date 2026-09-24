@@ -332,8 +332,10 @@ namespace Saga.EditorTools
             BuildCorridorAndRoom3();
             BuildCorridorAndRoom4();
             BuildCorridorAndProcRoom();
+            // PLAN.md 106-4 — 능묘지기 전용 몸 Ganfaul M Aure(2026-09-24), 없는 PC 는 두목 모델(Brute 1.5배).
+            var keeper = AssetDatabase.LoadAssetAtPath<GameObject>(SetupNpcCharacterImports.PrefabPath("Ganfaul"));
             BuildDungeonTemple.Build(_corridorGlb, _gateGlb, _roomGlb, _dungeonFloorMat, _dungeonWallMat,
-                _characterC, _skeleton != null ? _skeleton : _characterD, RoomDoorWidth); // PLAN.md 106-2 "잊힌 능묘"(파수꾼 = 106-4 해골).
+                keeper != null ? keeper : _characterC, _skeleton != null ? _skeleton : _characterD, RoomDoorWidth, keeper != null); // PLAN.md 106-2 "잊힌 능묘"(파수꾼 = 106-4 해골).
             BuildDungeonWatchCourt.Build(_corridorGlb, _gateGlb, _roomGlb, _dungeonFloorMat, _dungeonWallMat, RoomDoorWidth); // PLAN.md 106-5 "탐험".
             var (playerGo, playerCombat, playerController) = BuildPlayer();
             BuildAlly();

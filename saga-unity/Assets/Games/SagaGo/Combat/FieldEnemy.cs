@@ -253,8 +253,8 @@ namespace Saga.Go.Combat
         private bool BaseTint(out Color c)
         {
             if (kind == Kind.Skeleton) { c = new Color(0.88f, 0.9f, 0.96f); return true; }
-            // 수호장 — 돌빛 몸에 지금 겹의 원소가 은은히 밴다.
-            if (IsGuardian) { c = Color.Lerp(new Color(0.58f, 0.55f, 0.5f), GoElements.ColorOf(Element), 0.35f); return true; }
+            // 수호장 — 전용 몸(Maw, 2026-09-24)의 제 빛깔 위에 지금 겹의 원소가 은은히 밴다(옛 Brute 몸 때의 돌빛은 뺐다).
+            if (IsGuardian) { c = Color.Lerp(Color.white, GoElements.ColorOf(Element), 0.3f); return true; }
             if (IsElemental) { c = Color.Lerp(new Color(0.35f, 0.33f, 0.32f), GoElements.ColorOf(Element), 0.75f); return true; }
             c = Color.white;
             return false;

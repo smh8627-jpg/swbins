@@ -51,6 +51,10 @@ namespace Saga.EditorTools
             new Spec { Name = "Jolleen", Idle = "Idle", Walk = "Walking", Run = "Running" },
             // PLAN.md 106-10 STORY 유격(궁수) 몸 — 활 대기·걷기·달리기(In Place)·쏘기(Attack).
             new Spec { Name = "Archer", Idle = "Idle", Walk = "Walking", Run = "Running", Attack = "Attack" },
+            // 두목 전용 몸(2026-09-24) — GO 망루 수호장(107-7) Maw J Laygo · DUNGEON 능묘지기(106-4) Ganfaul M Aure.
+            // Brute 컨트롤러와 같은 다섯 상태(대기·걷기·공격·피격·쓰러짐)라 두목 코드는 그대로.
+            new Spec { Name = "Maw", Idle = "Idle", Walk = "Walking", Attack = "Attack", Hit = "HitReaction", Death = "Dying" },
+            new Spec { Name = "Ganfaul", Idle = "Idle", Walk = "Walking", Attack = "Attack", Hit = "HitReaction", Death = "Dying" },
         };
 
         public static string PrefabPath(string name) => $"{Root}{name}/{name}Animated.prefab";
@@ -64,6 +68,14 @@ namespace Saga.EditorTools
             }
             Debug.LogError($"[SetupNpcCharacterImports] 표에 {name} 없음");
             return false;
+        }
+
+        /// <summary>두목 전용 몸 둘만 굽는다(배치 `-executeMethod` 용 — 나머지 컨트롤러를 다시 굽지 않는다).</summary>
+        public static void SetupBossBodies()
+        {
+            bool maw = SetupOne("Maw"), ganfaul = SetupOne("Ganfaul");
+            AssetDatabase.SaveAssets();
+            Debug.Log($"[SetupNpcCharacterImports] boss bodies Maw={maw} Ganfaul={ganfaul}");
         }
 
         [MenuItem("Saga/Setup NPC Character Imports")]
