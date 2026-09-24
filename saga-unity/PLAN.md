@@ -1171,6 +1171,7 @@ Slice 승인/재설계 결정.** 100단계에서 무조건 다음 콘텐츠로 �
 - **결정(2026-09-21, 사용자, 구 105 Q-U4)**: 실제 Mixamo 모델은 **현재 3명(Maria·Abe·Brute) 유지**, 늘리지 않는다. 나머지 인물은 이 3 베이스 + 장비 소켓 변형(101-3 G)으로 간다.
 - **Blender**(설치 완료, 2026-09-21, winget `BlenderFoundation.Blender` 5.2.1 LTS, `C:\Program Files\Blender Foundation\Blender 5.2\blender.exe`): 헤어 마스크·리토폴로지·헤어카드 분리(⑪이 막힌 지점)·데시메이트를 `blender -b -P` 배치로 세션이 자동화 가능. 다른 PC는 새로 설치해야 한다.
 - **VRoid**: 이 트랙에선 쓰지 않는다(102-3).
+- **대체 예정(2026-09-24 사용자 확정)**: 상용을 위해 Mixamo 몸·클립은 `tools/char-forge/`(Blender 헤드리스 + CC0 MakeHuman·Quaternius, PBR 레시피)로 바꾼다. 교체 대상 표·순서는 그 README §7·§9 — 위 "3명 유지" 결정은 교체 전까지의 현재 상태다.
 - AI 3D(§7.4)로 만든 소품은 Blender 데시메이트 + 102-2 Preset 을 거친 뒤에만 `Generated/` 로.
 
 ## 103-4. 44장 교체 결정과의 관계

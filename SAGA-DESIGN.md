@@ -174,6 +174,7 @@
 | Blender 4.x | 킷배싱·리토폴로지·베이크·자동 리깅(Rigify)·Python 배치 | 헤드리스 `blender -b -P` 로 세션이 자동화 가능 |
 | Mixamo | 인간형 자동 리깅 + 애니 2천 종 | Adobe 계정, 게임 사용 허용. 인물 105명 모션 통일에 가장 빠름 |
 | VRoid Studio | 이미 사용. 인물 초상·컷신용 | §6.0-1 스타일과 충돌 — 툰 셰이더로만 |
+| **자체 인물 공방** | Mixamo·VRoid 대체(2026-09-24 사용자 확정 — "저작권 때문에 자체적으로", "상용하게 되면 꼭 필요") | Blender 헤드리스 + CC0(MakeHuman·Quaternius). 설계·순서 정본 `tools/char-forge/README.md` — 상용 전 두 3D 트랙 모두 교체 |
 | Material Maker | 절차 텍스처 노드 | MIT |
 | Krita / GIMP | 2D 수정 | |
 | Audacity | 사운드 | |
