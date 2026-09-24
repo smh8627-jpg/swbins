@@ -96,7 +96,7 @@ python -m http.server 8791      # Windows 에서 python 이 안 되면 py -m htt
 실기 조작법은 `saga-godot/docs/HOW_TO_PLAYTEST.md` 처럼 트랙마다 `docs/` 에 있습니다.
 
 **만드는 도구** — `saga-web/tools/run-tools.bat` 이 콘텐츠 편집기(:8799)·맵 편집기(:8800)·
-사가 엔진(:8801, 코드 없이 3D 게임을 만드는 편집기)을 한꺼번에 띄웁니다. 저장소 전체 도구 목록은
+사가 엔진(:8801, 코드 없이 3D 게임을 만드는 편집기 — 별도 저장소 [swbins4](https://github.com/smh8627-jpg/swbins4) 로 떼어냈고, 이 저장소 옆에 받아 두면 같이 뜹니다)을 한꺼번에 띄웁니다. 저장소 전체 도구 목록은
 [`tools/README.md`](tools/README.md) 에 있습니다.
 
 ## 어떻게 만들어졌나

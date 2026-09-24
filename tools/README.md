@@ -10,10 +10,10 @@
 | `saga-web/tools/content-editor/` | 도감(`data.js` HEROES·PETS·BIOS)을 다섯 판에 함께 반영 · 판별 `data-*.js` 표 88개 항목 편집 · 3D 자산 재할당·업로드(OBJ+MTL+텍스처도 GLB 로 자동 변환) · 실명 가드 · sw.js 자동 올림 · ▶ 실행 창 · **대사·퀘스트 편집기**(`story.html` — 다섯 판 퀘스트·대사·문답 표 15개를 칸으로, 바뀐 값 자리만 저장) | `run-editor.bat` → :8799 |
 | `saga-web/tools/map-editor/` | 어댑터 구조 — 사가고 `land.js` 글자 지도(칠하기·명소 옮기기) · 사가국지 `data-city.js` 성 135(끌기·길 잇기/끊기·지형 칠하기) · 사가스토리 `data-side.js` 사냥터 11(발판·줄·문·사람·채집) · **3D 배치**(사가고 `land.js` `deco` — 게임 js 로 그린 3D 뷰포트·이동/회전/크기 기즈모·되돌리기) · **사가블로 마을**(`town.js` 손 마을 넷의 장식·사람·표식 — 끌기·자동 장식·게임에서 설 자리 겹쳐 보기). 검사는 그 판 게임 데이터·진단 그대로 · ▶ 실행 창 | `run-map-editor.bat` → :8800 |
 | `saga-web/tools/new-game/` | 여섯 번째 웹 판 뼈대(바로 도는 최소 놀이·세이브·sw.js·진단 8항목·문서 3층) + `register.mjs`(CLAUDE.md 표·precheck·asset-audit·content-editor GAMES 자동 등록, 멱등) | `node new-game.mjs --folder saga-xxx --title .. --port ..` |
-| `saga-web/tools/engine/` | **사가 엔진** — 코드 없이 3D 게임을 만드는 범용 편집기+실행기(다섯 판과 코드 공유 없음). 게임 = `project.json`(장면·개체·컴포넌트·이벤트). 전투 스타일 넷(간단·원신식·젤다식·파판식 ATB) · 시점 다섯 · saga-godot 범용 시스템(이동 기술·시간/날씨/계절·보물 상자·채집·낚시·밭·상점·퀘스트·도감·거점·하트·동료·파도·레벨·스킬 9갈래·일기토·문답·툰/외곽선) · 예제 틀 여섯 · 한 폴더로 내보내기. 진단 `test/run.mjs`(규칙·서버)·`test/dom.mjs`(jsdom 화면) | `run-engine.bat` → :8801 |
+| 사가 엔진 → **별도 저장소 [swbins4](https://github.com/smh8627-jpg/swbins4)** | 코드 없이 3D 게임을 만드는 범용 편집기+실행기. 2026-09-25 이 저장소(`saga-web/tools/engine/`)에서 떼어냈다 — 실명 가드·three·Quaternius CC0 모델 묶음을 안에 들였고 다섯 판과 코드 공유 없음. 사용법·진단은 그 저장소 README | 이 저장소 옆(`..\swbins4`)에 받아 두면 `saga-web/tools/run-tools.bat` 이 :8801 로 같이 켠다(다섯 판 assets 를 에셋 묶음으로 붙여서) |
 | `tools/scene-layout/` | 글자 지도 → 배치표(JSON) → Godot `.tscn`(걷기 래퍼 `LayoutWalk.tscn` 로 실제 이동·명소 판정까지) / Unity `.unity` 조립(트랙별 스크립트) | README 의 두 단계 명령 |
 
-웹 편집기 셋(콘텐츠 편집기·맵 편집기·사가 엔진)을 한 번에 켜고 상태를 보는 허브: `saga-web/tools/run-tools.bat` → `index.html`.
+웹 편집기 셋(콘텐츠 편집기·맵 편집기·사가 엔진 — 엔진은 옆 저장소 swbins4 가 있을 때)을 한 번에 켜고 상태를 보는 허브: `saga-web/tools/run-tools.bat` → `index.html`.
 두 편집기 모두 위 줄 **▶ 실행**(F5)으로 게임을 편집기 안 오른쪽 창에 띄운다(연습용 세이브, `saga-web/tools/lib/gameserve.js`·`play-panel.js`).
 
 ## 에셋 만들기·다듬기

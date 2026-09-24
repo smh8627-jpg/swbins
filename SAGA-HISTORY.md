@@ -5174,3 +5174,12 @@ saga-go 정본을 다른 네 판에도 동일 반영, 가드돼 있어 그 판�
 - 사용자: VRoid·Mixamo 는 "자동화가 문제가 많고 저작권 때문에 자체적으로" · "상용하게 되면 꼭 필요". 결정 D1 Quaternius 무료판만 · D2 얼굴 toon|real 둘 다 · D3 Unity FBX Humanoid. 교체 문턱 = 나란히 비교해 지금보다 못하지 않을 때만. 정본 `tools/char-forge/README.md`.
 - 0단계 통과: Blender 5.2 헤드리스로 레시피 → .glb/.fbx. 쉼 자세가 목 14°·발 9° 달라 곡선 베끼기는 칼 휘두르기 15.6° 기울었다 → 쉼 방향 맞춤·다리 길이 비·땅 붙이기로 파일 검증 0.0°·0cm. glb 는 두 번 같은 바이트, fbx 는 익스포터 탓에 매번 달라 내용 검증. Godot 4.7·Unity 6000.3 빈 프로젝트 임포트 깨끗(Unity Humanoid 자동 52뼈).
 - 함정: itch 무료 팩 받기는 key 를 붙이면 "invalid key" — 빼야 된다. 속성 순서가 요청마다 바뀐다.
+
+## 2026-09-25 게임 제작 도구 ㉔ 사가 엔진 독립 프로젝트로 떼어냄(swbins4)
+
+- 사용자 "게임툴 이어서" → HANDOFF 다음 순서(맨 마지막, 위치는 그때 묻기) — 물음에 `C:\swbins4`(사용자가 미리 만든 빈 저장소, 원격 swbins4 **공개**)를 골랐다.
+- 기대던 셋을 안으로: 실명 가드 사본 `lib/realname.js`(EXEMPT 뺌) · three r169 `vendor/three/`(MIT 문서) · 에셋은 다섯 판 assets 대신 **에셋 묶음** `library/<묶음>/` — 기본 `quaternius`(사가고 animals·buildings·nature·props·quaternius_rpg + 사가블로 monsters/quaternius 의 .glb 122개, 31MB, 전부 CC0 — ASSET_LICENSES 대조, realistic/·.gltf 는 뺐다). 참조 `lib:saga-go/models/…` → `lib:quaternius/…`(틀은 make-templates 로 다시 지어 참조 수 그대로). 저장소 밖 폴더는 `SAGA_ENGINE_LIBS="이름=폴더;…"`.
+- 내보내기는 쓴 묶음의 LICENSE.md 를 같이 넣는다. 시험 추가: 틀·설명서·편집기가 쓰는 lib: 모델이 묶음에 다 있는지 · 붙인 묶음 · 모델 아닌 파일 막음. run.mjs 293/293 · dom.mjs 55/55 각 세 번.
+- 함정: dom.mjs 가 옛 자리에서도 터졌다(Node 24.19) — 글로 만든 판을 연 직후 창을 닫아, 닫힌 창에 `/api/assets` 응답이 와서 document 없음. 시험 쪽 fetch 가 진행 중 요청을 세고 `shut()` 이 기다린다. 에셋 목록 캐시는 묶음 구성이 바뀌면 다시 훑는다.
+- swbins 쪽: `saga-web/tools/engine/` 지움 · precheck 엔진 절 뺌 · `run-tools.bat` 은 옆에 `..\swbins4` 가 있을 때만 켜고 다섯 판 assets 를 묶음으로 붙여 옛 참조 `lib:saga-go/models/…` 도 풀린다(확인: saga-go 223·saga-dungeon 399·quaternius 122) · 허브 카드·tools/README·루트 README 가 swbins4 를 가리킨다.
+- 실제 그림·조작감은 여전히 사용자 몫(확인 전). 커밋: swbins4 e582b28(첫 커밋·푸시).

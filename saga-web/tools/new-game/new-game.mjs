@@ -64,7 +64,7 @@ for (const g of fs.readdirSync(WEB)) {
 }
 taken.port.set(8799, 'tools/content-editor');
 taken.port.set(8800, 'tools/map-editor');
-taken.port.set(8801, 'tools/engine');
+taken.port.set(8801, '사가 엔진(swbins4 저장소)');
 const target = path.join(outRoot, folder);
 if (fs.existsSync(target)) die('이미 있다: ' + target);
 if (taken.port.has(port)) die(`포트 ${port} 는 ${taken.port.get(port)} 가 쓴다`);
