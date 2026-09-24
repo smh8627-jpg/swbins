@@ -114,6 +114,8 @@ func _ready() -> void:
 		add_child(load("res://tools/probe_traversal.gd").new())
 	if OS.get_environment("SAGA_COMBAT_PROBE") != "":
 		add_child(load("res://tools/probe_field_combat.gd").new())
+	if OS.get_environment("SAGA_PERF_PROBE") != "":
+		add_child(load("res://tools/probe_perf.gd").new())
 	if OS.get_environment("SAGA_KIT_PROBE") != "":
 		add_child(load("res://tools/probe_kits.gd").new())
 	if OS.get_environment("SAGA_ELEMENT_PROBE") != "":
@@ -124,6 +126,9 @@ func _ready() -> void:
 		add_child(load("res://tools/probe_artifacts.gd").new())
 	if OS.get_environment("SAGA_TREASURE_PROBE") != "":
 		add_child(load("res://tools/probe_treasure.gd").new())
+
+	## 그리기 부담 — 다 지은 뒤 지도 전체 MultiMesh 를 칸으로 쪼개고 카메라 far 를 안개에 맞춘다(보이는 것은 그대로, render_budget.gd).
+	(func() -> void: preload("res://games/saga_go/world/render_budget.gd").apply(self)).call_deferred()
 
 	## PLAN.md 101-4 GO ①후보 "일과판" — 로드가 끝난 뒤(위와 같은 이유,
 	## 세션 델타의 기준점이 로드 전 값이면 안 된다) 세션을 연다.

@@ -4,7 +4,7 @@ extends Node
 ##   SAGA_FIELD_BOSS_PROBE=1 "$GODOT" --headless --path saga-godot res://games/saga_go/world/TestVillage.tscn
 ##
 ## ① 돌파 2 단계부터 보스 재료(2·…·20, 첫 돌파엔 없음)·인물마다 셋 중 하나 ② 셋이 제자리에·세계 등급 체력
-## ③ 다가가면 싸움 → 화면 위 보스 막대 ④ 체력 절반 → 2단계 보스 원소 방패(풍 ← 암 ×2.5)·세계 등급이 바뀌어도 방패 비율 그대로
+## ③ 다가가면 싸움 → 화면 위 보스 막대·먼 보스는 잠듦 ④ 체력 절반 → 2단계 보스 원소 방패(풍 ← 암 ×2.5)·세계 등급이 바뀌어도 방패 비율 그대로
 ## ⑤ 끌려 나갔다 집에 가면 1단계·체력 가득 ⑥ 쓰러뜨리면 보상 꽃·되살아나지 않음 ⑦ 원기 모자라면 못 받고 꽃이 남음
 ## ⑧ 원기 40 → 보스 재료·결정·★4·꽃 사라짐·150초 뒤 다시 섬 ⑨ 다시 서면 1단계 ⑩ 보스 재료가 있어야 돌파 2.
 ## 저장은 안 한다.
@@ -76,6 +76,9 @@ func _physics_process(_delta: float) -> void:
 			if _frame == 40:
 				var t: String = _fb.call("hud_text")
 				_check("hud", _fb.call("engaged_boss") == "gale_roc" and t.contains("돌개바람 수리왕") and t.contains("체력"), "hud='%s'" % t)
+				## 폰 발열 — 100m 밖에서 쉬는 적은 잠들고(포구 거북왕), 곁의 적은 깨어 있다(field_enemy SLEEP_M).
+				var far_b: Node = _fb.call("boss", "tide_turtle")
+				_check("sleep_far", bool(far_b.get("asleep")) and not bool(_boss.get("asleep")), "far=%s near=%s" % [far_b.get("asleep"), _boss.get("asleep")])
 				_next()
 		3: # ④ 2단계
 			if _frame == 1:

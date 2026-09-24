@@ -35,19 +35,18 @@
 ## 테스트 상태
 
 - `godot_regress.sh` REGRESS OK(09-24 ⑪ 뒤, 다섯 판·재질 감사 0·잡음 없음).
-- GO 자동 점검 열아홉: `SAGA_STORY_PROBE=1`(13) · `SAGA_KIT_PROBE=1`(12) · `SAGA_FIELD_BOSS_PROBE=1`(10) · `SAGA_ADVENTURE_PROBE=1`(9) · `SAGA_WEEKLY_PROBE=1`(9) · `SAGA_DOMAIN_PROBE=1`(11) · `SAGA_COMMISSION_PROBE=1`(10) · `SAGA_COOK_PROBE=1`(13) · `SAGA_TRAVERSAL_PROBE=1`(14) · `SAGA_COMBAT_PROBE=1`(19) · `SAGA_TREASURE_PROBE=1`(9) · `SAGA_MAP_PROBE=1`(10) · `SAGA_GROWTH_PROBE=1`(10) · `SAGA_SHARD_PROBE=1`(6) · `SAGA_TALENT_PROBE=1`(10) · `SAGA_SIGHT_PROBE=1`(8) · `SAGA_ELEMENT_PROBE=1`(15) · `SAGA_WEAPON_PROBE=1`(11) · `SAGA_ARTIFACT_PROBE=1`(12) · LayoutWalk `SAGA_LAYOUT_PROBE=1` — 전부 fails=0. 오늘 이 PC 는 빨라 한 판 7~25초.
+- GO 그리기 부담 `SAGA_PERF_PROBE=1`(창 모드·모바일 렌더러, PLAN 104-7 예산 draw call ≤260·삼각형 평균 ≤35만) — 09-24 마을 32만·포구 19만·폐허 22만. GO 자동 점검 열아홉: `SAGA_STORY_PROBE=1`(13) · `SAGA_KIT_PROBE=1`(12) · `SAGA_FIELD_BOSS_PROBE=1`(10) · `SAGA_ADVENTURE_PROBE=1`(9) · `SAGA_WEEKLY_PROBE=1`(9) · `SAGA_DOMAIN_PROBE=1`(11) · `SAGA_COMMISSION_PROBE=1`(10) · `SAGA_COOK_PROBE=1`(13) · `SAGA_TRAVERSAL_PROBE=1`(14) · `SAGA_COMBAT_PROBE=1`(19) · `SAGA_TREASURE_PROBE=1`(9) · `SAGA_MAP_PROBE=1`(10) · `SAGA_GROWTH_PROBE=1`(10) · `SAGA_SHARD_PROBE=1`(6) · `SAGA_TALENT_PROBE=1`(10) · `SAGA_SIGHT_PROBE=1`(8) · `SAGA_ELEMENT_PROBE=1`(15) · `SAGA_WEAPON_PROBE=1`(11) · `SAGA_ARTIFACT_PROBE=1`(12) · LayoutWalk `SAGA_LAYOUT_PROBE=1` — 전부 fails=0. 오늘 이 PC 는 빨라 한 판 7~25초.
 - 새 스크립트는 `--check-only --script res://…` 로 먼저 문법만(자동 로드 이름 오류는 정상) — 문법 오류 판은 씬이 안 떠 timeout 까지 멈춘다.
 - 셰이더(물·하늘)는 창 모드 콘솔 exe 를 화면 밖에서 300프레임 돌려 Forward+·Mobile 오류 0(헤드리스는 셰이더를 컴파일 안 함). 미니맵 원형 셰이더(⑨)·원소 시야 막(⑬)도 창 모드 두 렌더러 오류 0(09-24).
 
 ## 실기 확인 대기
 
+- **GO 폰 발열(104-7)** — 나무 칸 쪼개기·먼 적 재우기 뒤 실제 폰 발열·프레임, 먼 나무 LOD 가 보이는지.
 - **GO 106장 ㉕ 이야기 임무** — 대화 창·추적 글자 자리(왼쪽 글자들과 겹침), 금빛 기둥, 임무 인물 셋 모양, 1장 흐름. ㉓ 보상 단추가 이제 실제로 뜨는지도.
 - **GO 106장 ㉔ 고유 스킬** — 불꽃 돌진 거리·무적, 불 부여가 보이는지(지금은 상태 줄 글자뿐), 솟구침 뒤 활공, 진·포탄 원.
 - **GO 106장 ㉓ 들판 보스** — 세 보스 크기·모양(새·거북·도깨비 틀), 화면 위 보스 막대, 보상 꽃, 체력 3000대가 모험 등급 3 에 알맞은지.
 - **GO 106장 ㉒ 모험·세계 등급** — 왼쪽 위 글자 길이(한 줄에 드는지), 세계 등급 1(모험 등급 5)부터 들판 적이 너무 세지 않은지, 머리 위 "Lv.N" 글자, 의뢰판 맨 위 낮추기 단추. **실제 세이브는 모험 등급 3**(부대 레벨 2)이라 아직 세계 등급 0.
 - **GO 106장 ㉑ 주간 보스** — 이무기 모양, 붉은 원·예고 시간, 체력 6000·180초.
-- **GO 106장 ⑳ 비경** — 입구 문, 원판 넓이·조명·벽, 120초, 단계 배율, 원기 속도.
-- **GO 106장 ⑲ 일일 의뢰** — 의뢰판 겹침, 둘러보기 12m, 승급 3택 빈도.
-- **GO 106장 ⑧~⑱**(09-24) — 전투 조작·지도·육성·별조각·특성·원소 시야·원소 7·새 괴물·무기·성유물·채집요리. 볼 것은 HISTORY 09-24 각 절 끝 "실기 확인 전" 줄.
+- **GO 106장 ⑧~⑳**(09-24) — 전투 조작·지도·육성·별조각·특성·원소 시야·원소 7·새 괴물·무기·성유물·채집요리·의뢰·비경. 볼 것은 HISTORY 09-24 각 절 끝 "실기 확인 전" 줄.
 - **GO 106장 ①~⑦**(09-23) — 이동·물하늘·들판 전투·인물 모델·지역 잇기·보물 상자·원소 쓰는 적. 상세 HISTORY 09-23.
 - GO 마을 식생(09-23 오전)·FOREST 플레이어·식생·LayoutWalk·STORY 사제 유대 — HISTORY 09-23.

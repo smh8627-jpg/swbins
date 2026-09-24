@@ -71,6 +71,11 @@ const LUNGE_SPEED := 9.0
 const LUNGE_SEC := 0.18
 ## 원소 방패가 깨지면 이만큼 멈춰 선다(원신 방패 깨기의 보상 틈).
 const BREAK_STAGGER := 2.0
+## 폰 발열(2026-09-24) — 플레이어에게서 SLEEP_M 밖에서 쉬는(배회) 적은 AI·물리를 멈추고 제자리에 선다(원신도 먼 적은 서 있다).
+## SLEEP_CHECK 초마다 거리만 보고, WAKE_M 안으로 들어오면 다시 움직인다. 세 지역 적 32마리가 물리 시간의 3/4 을 먹던 것.
+const SLEEP_M := 100.0
+const WAKE_M := 90.0
+const SLEEP_CHECK := 0.5
 
 enum AI { IDLE, CHASE, WINDUP, LUNGE, RECOVER, RETURN, DEAD }
 
@@ -112,6 +117,8 @@ var _aura_dot: MeshInstance3D = null
 var _tell_label: Label3D = null
 var _anim: AnimationPlayer = null
 var _rng := RandomNumberGenerator.new()
+var asleep := false
+var _sleep_t := 1.0 # 처음 1초는 땅에 내려앉게 깨어 있는다
 
 func setup(kind_id: String, home_pos: Vector3, seed_value: int) -> void:
 	kind = kind_id
@@ -171,6 +178,8 @@ func _physics_process(delta: float) -> void:
 		_t -= delta
 		if _t <= 0.0:
 			_revive()
+		return
+	if ai == AI.IDLE and _sleep_tick(delta):
 		return
 	_tick_status(delta)
 	if ai == AI.DEAD:
@@ -253,6 +262,23 @@ func _physics_process(delta: float) -> void:
 		global_position = home
 		velocity = Vector3.ZERO
 		ai = AI.IDLE
+
+## 멀리 쉬는 중이면 true(이번 프레임은 아무것도 안 한다). 쉬는 동안엔 몸 애니도 멈춘다.
+func _sleep_tick(delta: float) -> bool:
+	_sleep_t -= delta
+	if _sleep_t <= 0.0:
+		_sleep_t = SLEEP_CHECK
+		var player := get_tree().get_first_node_in_group("player") as Node3D
+		var far := false
+		if player:
+			var d := Vector2(player.global_position.x - global_position.x, player.global_position.z - global_position.z).length()
+			far = d > (WAKE_M if asleep else SLEEP_M)
+		if far != asleep:
+			asleep = far
+			velocity = Vector3.ZERO
+			if _visual:
+				_visual.process_mode = Node.PROCESS_MODE_DISABLED if asleep else Node.PROCESS_MODE_INHERIT
+	return asleep
 
 func _player_can_fight(player: Node3D) -> bool:
 	if player == null:
