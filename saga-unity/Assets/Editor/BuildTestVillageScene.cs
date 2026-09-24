@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -59,6 +60,7 @@ namespace Saga.EditorTools
             BuildVegetation();
             BuildLandmarks();
             BuildProps();
+            BuildRegionProps();
             BuildAnimals();
             BuildNpcs();
             BuildBanditEncounter();
@@ -261,6 +263,34 @@ namespace Saga.EditorTools
                 AssetDatabase.LoadAssetAtPath<Mesh>(BuildPropsMaterialSplit.StallSplitMeshPath),
                 AssetDatabase.LoadAssetAtPath<Material>(BuildPropsMaterialSplit.StallWoodMatPath),
                 AssetDatabase.LoadAssetAtPath<Material>(BuildPropsMaterialSplit.StallCanopyMatPath));
+            builder.Build();
+        }
+
+        /// <summary>PLAN.md 108 ① 지역 전용 소품 — Poly Haven 스캔(`tools/fetch_polyhaven_models.py`)·폐허 기둥.</summary>
+        private static void BuildRegionProps()
+        {
+            var go = new GameObject("RegionProps");
+            var builder = go.AddComponent<RegionPropsBuilder>();
+            var ids = new List<string>();
+            foreach (var c in GoRegionProps.Clusters)
+                foreach (var p in c.Pieces)
+                {
+                    if (p.Model == GoRegionProps.Pillar) continue;
+                    int hash = p.Model.IndexOf('#');
+                    string id = hash >= 0 ? p.Model.Substring(0, hash) : p.Model;
+                    if (!ids.Contains(id)) ids.Add(id);
+                }
+            var models = new GameObject[ids.Count];
+            var lods = new GameObject[ids.Count]; // tools/polyhaven_lod1.py 산출물 — 없는 모델은 null(LOD 없이 원본만)
+            for (int i = 0; i < ids.Count; i++)
+            {
+                models[i] = AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Art/Props/PolyHaven/{ids[i]}/{ids[i]}_1k.gltf");
+                lods[i] = AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Art/Props/PolyHaven/{ids[i]}/{ids[i]}_lod1.glb");
+                if (models[i] == null) Debug.LogWarning($"[BuildTestVillageScene] Poly Haven 모델 없음: {ids[i]}");
+            }
+            builder.Init(ids.ToArray(), models, lods,
+                AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Buildings/pillar-stone.glb"),
+                AssetDatabase.LoadAssetAtPath<Material>(VillageStoneMatPath));
             builder.Build();
         }
 

@@ -8984,3 +8984,13 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - **컷**: `StoryCutscenes` 를 컷 둘로 넓힘(지금 틀 감독 `_dir`·이름표 시각을 컷마다). 소환 컷은 없으면 onEnd 를 안 부른다(소환수가 혼자 5초 논다 — 두목 컷은 없으면 바로 onEnd).
 - 파일: 새 `SagaStory/Data/StorySummonState.cs`·`World/StorySummon.cs`·`Player/StorySummoner.cs`·`Editor/PlaytestStorySummon.cs`·`Timelines/Story_Summon.playable`, 고침 `StoryCutscenes`·`BuildStoryCinematics`·`BuildTestStoryScene`(`BuildSummoner`·"소환" 버튼)·`StoryEnemy`·`StoryCompanion`·`StoryBolt`·`StoryPlayerController`(`AttackPower`·`OnRope`)·`StoryHud`(게이지 줄)·`story_ko/en.json`(키 8)·`SetupNpcCharacterImports`(Warrok Attack)·`PlaytestStorySlice`(버튼 목록·진단 연결)·`HOW_TO_PLAYTEST`(V)·mixamo README, STORY 씬 재빌드.
 - 검증: 씬 재빌드 exit 0 · `PlaytestStorySlice` **3연속 OK**(새 줄 "summon OK — close cam z-6.8 y1.3 · slam 193×2 · model Warrok" 세 번 같음) · `PlaytestForestCreatures` OK · 번역 누락 0. 실기 확인 전(내려서는 번개·크기 6.5m 가 화면에 들어오는지·내려찍기 클립 박자가 3.2s 에 맞는지·게이지 차는 속도·소리 없음).
+
+## 2026-09-24 — PLAN 108 ① GO 지역 전용 소품 묶음 (사용자 "사가 유니티 이어 해", Opus 5.5)
+
+- **고른 까닭**: PROJECT_STATE 다음 작업 "지역 소품(에셋 먼저)". 결정할 방향은 없고 막힌 건 에셋뿐이었다 — 저장소를 먼저 뒤져 보니 웹 판에 Poly Haven·아일랜드 문화유산 사실 스캔이 있었지만 웹용 `EXT_meshopt_compression`·`EXT_texture_webp` 압축이라 glTFast 가 못 읽는다(trimesh 도 버퍼를 못 읽음). Poly Haven 공개 API 카탈로그(모델 521)에서 사연에 맞는 열 벌을 골라 glTF 1k 원본을 새로 받았다(`tools/fetch_polyhaven_models.py`, 약 27MB).
+- **무더기 아홉**(`GoRegionProps.Clusters`): 雷林 벼락 고목 둘 · 丹林 산적 야영터 · 寒麓 무너진 성터·무덤 줄 · 廣川 여울 바위 둘 · 金坪 옛 수비대 자리 · 末田 가을걷이 마당. 마을 들판은 집·장터·폐허로 이미 차 있어 뺐다. 자리는 상자·역참·무리·수호장·채집·NPC·조우·석등·비탈 좌표를 다 모아 손으로 골랐다.
+- **무게**: 사진측량 원본이 통나무 하나 10만 삼각형이라 처음 배치(모닥불 속 작은 통나무 둘 포함)는 곁에 서면 수십만 — 모닥불 속 통나무는 빼고, Blender 5.2 배치 decimate 로 LOD1 여섯 벌(`tools/polyhaven_lod1.py`, 통나무 10만→1.2만), LODGroup 은 화면 높이 25% 넘을 때만 원본. 화질(텍스처·가까이 모양)은 원본 그대로.
+- **발견하고 고친 것**: 밑면을 렌더러 경계 상자로 맞추니 눕힌 방패가 0.09·0.17m 떴다 — 기울인 조각의 경계 상자는 헐겁고, Play 모드 정적 배칭 뒤엔 꼭짓점 기준으로 딱 맞게 잡혀 진단이 잡아냈다. 빌더가 실제 꼭짓점 최저점으로 맞춘다. 진단의 삼각형 셈도 정적 배칭 뒤엔 합친 메시 전체를 세서 부풀었다 → 렌더러 서브메시 구간만 센다.
+- **식생**: 무더기 빈터(`Clearing`) 안엔 옛 자리 나무·풀도 안 세운다(`VegetationBuilder.TreeBase`·`SkipTree` 로 뽑아 진단이 같은 식으로 칸마다 정확한 수를 본다). 이번 자리엔 걸린 옛 나무가 0 그루였다.
+- 파일: 새 `SagaGo/Data/GoRegionProps.cs`·`World/RegionPropsBuilder.cs`·`World/PropFlicker.cs`·`Editor/PlaytestGoRegionProps.cs`·`Assets/Art/Props/PolyHaven/`(열 벌 + LOD1 여섯 + LICENSE)·`tools/fetch_polyhaven_models.py`·`tools/polyhaven_lod1.py`, 고침 `VegetationBuilder`·`PlaytestGoVegetation`(칸마다 표대로 정확한 수)·`BuildTestVillageScene`(`BuildRegionProps`)·`PlaytestHeadless`, GO 씬 재빌드(수호장 컷 타임라인도 같이 다시 구워짐).
+- 검증: 씬 재빌드 exit 0 · GO `PlaytestHeadless` **3연속 OK**(새 줄 "무더기 9·조각 46(LOD 31)·삼각형 가까이 970k·멀리 213k·가장 무거운 무더기 bandit_camp 250k·불빛 2" 세 번 같음). 화면은 안 봄 — 실기 확인 전(크기 1.9배가 맞는지·그을린 빛·번쩍임 세기·모닥불 빛·여울 바위가 헤엄길을 막지 않는지·LOD 바뀌는 순간 튀는지).

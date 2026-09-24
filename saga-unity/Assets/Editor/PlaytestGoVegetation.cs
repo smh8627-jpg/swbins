@@ -68,17 +68,27 @@ namespace Saga.EditorTools
                 if (r != null && r.sharedMaterial != null && r.sharedMaterial.HasProperty("_CanopyTint")
                     && !Near(r.sharedMaterial.GetColor("_CanopyTint"), want, want.a > 0f)) Fail($"{region} 나무 재질 빛깔 {r.sharedMaterial.GetColor("_CanopyTint")}");
             }
-            int maxWest = 0;
+            int maxWest = 0, cleared = 0;
+            var keys = VegetationBuilder.KeyPoints();
             for (int y = 0; y < TestMapData.RowCount; y++)
                 for (int x = 0; x < TestMapData.Cols; x++)
                 {
                     if (TestMapData.TileAt(x, y) != 'T') continue;
                     var v = GoWorldMap.VegetationOf(GoWorldMap.RegionAt(x, y));
                     int n = perTile.TryGetValue((x, y), out var c) ? c : 0;
-                    int lo = Mathf.Min(VegetationBuilder.LegacyTreesPerTile, v.TreesPerForestTile);
-                    if (n < lo || n > v.TreesPerForestTile) Fail($"({x},{y}) {v.RegionId} 나무 {n} — {lo}~{v.TreesPerForestTile} 밖");
+                    // 표대로 선 수 — 옛 셋은 지역 소품 빈터(108 ①)에서만, 늘어난 나무는 요지 곁에서도 빠진다.
+                    int want = 0;
+                    for (int i = 0; i < v.TreesPerForestTile; i++)
+                    {
+                        var at = VegetationBuilder.TreeBase(x, y, i);
+                        if (!VegetationBuilder.SkipTree(at, i, keys)) want++;
+                        else if (i < VegetationBuilder.LegacyTreesPerTile) cleared++;
+                    }
+                    if (n != want) Fail($"({x},{y}) {v.RegionId} 나무 {n} ≠ 표 {want}");
                     if (v.RegionId == "west_wood") maxWest = Mathf.Max(maxWest, n);
                 }
+            foreach (var t in trees)
+                if (GoRegionProps.InClearing(t.position)) Fail($"지역 소품 빈터에 나무 {t.position}");
             if (maxWest < 4) Fail("서쪽 숲길에 네 그루 선 칸이 없다(빽빽한 숲 아님)");
             foreach (var c in GoTreasure.Chests)
             {
@@ -87,7 +97,7 @@ namespace Saga.EditorTools
                 foreach (var t in trunks)
                     if (Flat(t.position - p).magnitude < 2.5f) Fail($"상자 {c.Id} 가 나무 몸통에 박혔다");
             }
-            return $" 나무 {trees.Count}(서쪽 숲길 최대 {maxWest}/칸){(named ? "" : " · 모양 이름 없음(모델 없는 PC)")}";
+            return $" 나무 {trees.Count}(서쪽 숲길 최대 {maxWest}/칸, 소품 빈터가 비운 옛 자리 {cleared}){(named ? "" : " · 모양 이름 없음(모델 없는 PC)")}";
         }
 
         private static string CheckGrass(VegetationBuilder veg)
@@ -113,6 +123,7 @@ namespace Saga.EditorTools
                 if (ch != '.' && ch != 'T') Fail($"풀이 {ch} 칸 ({gx},{gy}) 에");
                 if (g.GetComponentInChildren<Collider>(true) != null) Fail("풀에 충돌체가 있다");
                 foreach (var k in keys) if (Flat(g.position - k).magnitude < VegetationBuilder.GrassClearance - 0.01f) { Fail("풀이 상자·역참·무리 자리를 안 비켰다"); break; }
+                if (GoRegionProps.InClearing(g.position)) Fail("풀이 지역 소품 빈터에 났다");
                 string rg = GoWorldMap.RegionAt(gx, gy);
                 byRegion[rg] = byRegion.TryGetValue(rg, out var n) ? n + 1 : 1;
                 var col = LeafColor(g);

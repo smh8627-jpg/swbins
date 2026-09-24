@@ -200,9 +200,20 @@ namespace Saga.Go.World
 
         // ---- 나무 --------------------------------------------------------
 
+        /// <summary>숲 칸 (x,y) 의 i 번째 나무 밑동 자리(해시 salt 불변 — 옛 자리 그대로).</summary>
+        public static Vector3 TreeBase(int x, int y, int i)
+        {
+            float jx = (Hash(x, y, i * 2) - 0.5f) * TestMapData.TileSize * 0.8f;
+            float jz = (Hash(x, y, i * 2 + 1) - 0.5f) * TestMapData.TileSize * 0.8f;
+            return TestMapData.WorldPos(x, y) + new Vector3(jx, TestMapData.Legend['T'].Height, jz);
+        }
+
+        /// <summary>안 세우는 나무 — 지역 소품 빈터(108 ①, 옛 자리라도) · 늘어난 나무가 요지에 가까울 때.</summary>
+        public static bool SkipTree(Vector3 basePos, int i, List<Vector3> keyPoints) =>
+            GoRegionProps.InClearing(basePos) || (i >= LegacyTreesPerTile && NearAny(basePos, keyPoints, ExtraTreeClearance));
+
         private void BuildTrees()
         {
-            float ground = TestMapData.Legend['T'].Height;
             var keyPoints = KeyPoints();
 
             var visualParent = new GameObject("Trees");
@@ -231,13 +242,11 @@ namespace Saga.Go.World
 
                     for (int i = 0; i < veg.TreesPerForestTile; i++)
                     {
-                        float jx = (Hash(x, y, i * 2) - 0.5f) * TestMapData.TileSize * 0.8f;
-                        float jz = (Hash(x, y, i * 2 + 1) - 0.5f) * TestMapData.TileSize * 0.8f;
                         float s = Mathf.Lerp(veg.ScaleMin, veg.ScaleMax, Hash(x, y, i * 2 + 100));
                         float yaw = Hash(x, y, i * 2 + 200) * 360f;
-                        Vector3 basePos = TestMapData.WorldPos(x, y) + new Vector3(jx, ground, jz);
+                        Vector3 basePos = TreeBase(x, y, i);
                         Quaternion rot = Quaternion.Euler(0f, yaw, 0f);
-                        if (i >= LegacyTreesPerTile && NearAny(basePos, keyPoints, ExtraTreeClearance)) continue;
+                        if (SkipTree(basePos, i, keyPoints)) continue;
 
                         if (hasModels)
                         {
@@ -379,7 +388,7 @@ namespace Saga.Go.World
                         float jx = (Hash(x, y, i * 3 + 700) - 0.5f) * TestMapData.TileSize * 0.9f;
                         float jz = (Hash(x, y, i * 3 + 701) - 0.5f) * TestMapData.TileSize * 0.9f;
                         Vector3 pos = TestMapData.WorldPos(x, y) + new Vector3(jx, ground, jz);
-                        if (NearAny(pos, keyPoints, GrassClearance)) continue;
+                        if (NearAny(pos, keyPoints, GrassClearance) || GoRegionProps.InClearing(pos)) continue;
                         int variant = Mathf.Clamp(Mathf.FloorToInt(Hash(x, y, i * 3 + 702) * grassModels.Length), 0, grassModels.Length - 1);
                         if (grassModels[variant] == null) continue;
                         var g = Object.Instantiate(grassModels[variant], parent.transform);

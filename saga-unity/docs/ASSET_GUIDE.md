@@ -602,3 +602,10 @@ GO와 같은 procgen 나무로 바꿨다 — 단, GO의 12종 변종 풀과 달�
 검증: 컴파일(오류 0) → `BuildTestVillageScene.Build`(재질 못 찾음 경고
 없음) → `PlaytestHeadless` 3연속 OK. 실루엣이 실제로 어떻게 보이는지는
 사람 확인 몫.
+
+## 2026-09-24 — GO 지역 전용 소품: Poly Haven 사진측량 모델 열 벌 (PLAN.md 108 ①)
+
+- 받은 곳: Poly Haven 공개 API(CC0), glTF 1k 원본 그대로 → `Assets/Art/Props/PolyHaven/<id>/`(목록·쓰임은 그 폴더 `LICENSE.txt`). 다시 받기 `py -3.12 tools/fetch_polyhaven_models.py`.
+- **웹 판의 같은 스캔(`saga-web/*/assets/models/*/realistic/`)은 못 쓴다** — 웹용으로 `EXT_meshopt_compression`·`EXT_texture_webp` 압축돼 있어 glTFast 가 안 읽는다(meshopt 해제 패키지 없음·WebP 미지원). 원본을 새로 받았다.
+- 사진측량 원본이 무겁다(쓰러진 통나무 10만 삼각형) → `tools/polyhaven_lod1.py`(Blender 5.2 배치 decimate)로 `<id>_lod1.glb` 여섯 벌, `RegionPropsBuilder` 가 LODGroup(화면 높이 25% 넘을 때만 원본, 0.4% 밑이면 안 그림). 텍스처·가까이 모양은 원본 그대로.
+- 합계 약 29MB(텍스처가 대부분). 치수는 실측 미터 → `GoRegionProps.WorldScale`(1.9, 사람 키 3.4 기준) 배.
