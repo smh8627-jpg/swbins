@@ -198,9 +198,10 @@
     var planted = (V2.state().planted || []).length;
     var home = global.DG.home ? global.DG.home.score().total : 0;
     var museum = global.DG.museum ? global.DG.museum.count().done : 0;
+    var guests = global.DG.visitor && global.DG.visitor.beautyBonus ? global.DG.visitor.beautyBonus() : 0;   // 눌러앉은 손님(§5.11)
 
     var score = 100 - weeds * 3 + Math.min(flowers, 30) + planted * 2 +
-                Math.round(home / 4) + museum * 2;
+                Math.round(home / 4) + museum * 2 + guests;
     score = Math.max(0, score);
 
     var G = VD().BEAUTY_GRADES;
@@ -211,7 +212,7 @@
     var g = G[0];
     for (i = 0; i < G.length; i++) { if (cap.score >= G[i].at) { g = G[i]; } }
     return { score: cap.score, grade: g.name, level: G.indexOf(g), stars: G.indexOf(g) + 1,
-             weeds: weeds, flowers: flowers, planted: planted, home: home, museum: museum,
+             weeds: weeds, flowers: flowers, planted: planted, home: home, museum: museum, guests: guests,
              bundlesFull: bundlesFull, capped: cap.capped };
   }
 

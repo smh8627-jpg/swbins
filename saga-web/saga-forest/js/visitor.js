@@ -18,6 +18,9 @@
  * (`s.visitSettled`) 날마다 광장 둘레 제자리에 서고, 하루 한 번 작은 선물을 준다.
  * 몸짓 — 곁에 서면 나를 보고 손짓(👋), 그날 부탁을 다 들어주면 제자리에서 춤(깡충)을 춘다.
  *
+ * §5.11 이웃 — 눌러앉은 손님은 하나에 마을 평가 +6(town.beauty). 광장에 손님이 둘 이상인 날은
+ * 날짜 해시로 한 쌍이 서로 마주 보고 수다를 떤다(말을 걸면 그 대화가 들린다).
+ *
  * "맵이 큰 것에 비해 NPC 가 없다"(사용자) — 선원·도깨비불 날엔 바깥 고리 다섯 자리에 일이 생긴다.
  * 한 사람과의 일은 하루 한 번(그날이 지나면 새 손님). 보상 가구는 전방에서 안 판다(`fest:'visit'`).
  *
@@ -60,6 +63,20 @@
     bugdoc: '이 숲의 곤충 도감을 새로 쓰는 중이에요', traveler: '삐빗. 귀환 일정을 무기한 미뤘습니다',
     dokkaebi: '꼬마들이 마을 아이들이랑 잘 논다', alien: '이 별, 정착지로 등록했어요'
   };
+  /** 수다(§5.11) — 먼저 꺼내는 말 · 받는 말. 둘을 이어 붙여 한 쌍의 대화가 된다 */
+  var CHAT_OPEN = {
+    fox: '요즘 바다 건너 물건값이 부쩍 올랐다오', sailor: '어젯밤 바람 냄새가 폭풍 전날 같았소',
+    wisp: '히히, 어제 등불 셋을 몰래 껐다 켰어', angler: '못 가장자리에 큰 놈이 하나 사는 게 틀림없네',
+    bugdoc: '이 숲 나비 날개 무늬가 도감이랑 달라요', traveler: '삐빗. 이 시대 달력은 계산이 어렵습니다',
+    dokkaebi: '우리 꼬마들이 마을 아이들 신발을 숨겼대', alien: '이 별 사람들은 밥을 하루 세 번이나 먹어요'
+  };
+  var CHAT_REPLY = {
+    fox: '그런 건 내가 싸게 구해 주리다, 수수료만 조금', sailor: '허허, 뱃사람 앞에서 그런 얘기를',
+    wisp: '헤에, 그럼 오늘 밤에 같이 보러 가자', angler: '기다리는 게 반이지, 서두르지 말게',
+    bugdoc: '어머, 그거 새 종일지도 몰라요!', traveler: '삐빗. 기록해 두겠습니다',
+    dokkaebi: '크하하, 그 정도는 장난도 아니지', alien: '제 별에선 그걸 "우정" 이라고 불러요'
+  };
+  var GUEST_BEAUTY = 6;
   /** 광장 둘레 눌러앉는 자리(가운데 기준 칸) — 걸을 수 없으면 둘레를 정해진 순서로 찾는다 */
   var SETTLE_SPOTS = [[4, -3], [-5, 2], [4, 3], [-5, -2], [0, 5], [1, -6], [-2, 5], [6, 0]];
   var BY = {};
@@ -129,8 +146,15 @@
     return out;
   }
 
-  /** 오늘 손님 한 명 + 눌러앉은 손님들(화면·focus 가 읽는다). 일을 다 끝냈어도 그날은 광장에 머문다 */
-  function list() {
+  /** 오늘 수다 떠는 한 쌍 — 광장에 선 손님(오늘 손님 + 눌러앉은 손님) 둘 이상일 때, 날짜 해시로 */
+  function chatPair(people, day) {
+    if (people.length < 2) { return null; }
+    var n = people.length, i = Math.floor(core.hash2(day * 23 + 5, 331) * 2 * n) % n;
+    var j = (i + 1 + Math.floor(core.hash2(day * 29 + 9, 557) * 2 * (n - 1)) % (n - 1)) % n;
+    var a = people[i], b = people[j];
+    return { a: a, b: b, text: a.def.emoji + ' "' + (CHAT_OPEN[a.visitor] || '…') + '" — ' + b.def.emoji + ' "' + (CHAT_REPLY[b.visitor] || '…') + '"' };
+  }
+  function listRaw() {
     if (!V() || !V().state) { return []; }
     var d = today(), p = spot(), r = peek();
     var out = [{ id: 'visit_' + d.key, kind: 'visit_' + d.key, visitor: d.key, x: p.x, y: p.y, facing: 1,
@@ -143,6 +167,19 @@
       out.push({ id: 'settle_' + k, kind: 'settle_' + k, visitor: k, settled: true, x: q.x, y: q.y, facing: 1,
         gesture: 'wave', def: { name: sv.name, emoji: sv.emoji, line: SETTLE_LINE[k] || sv.line } });
     });
+    return out;
+  }
+  /** 오늘 손님 한 명 + 눌러앉은 손님들(화면·focus 가 읽는다). 일을 다 끝냈어도 그날은 광장에 머문다.
+   *  수다 한 쌍은 서로를 보고(faceX·faceY) 대화 한 줄(chat)을 들고 있다 */
+  function list() {
+    var out = listRaw();
+    if (!out.length) { return out; }
+    var people = out.filter(function (x) { return !x.kid; }), pr = chatPair(people, V().state().day);
+    if (pr) {
+      pr.a.chat = pr.b.chat = pr.text;
+      pr.a.faceX = pr.b.x; pr.a.faceY = pr.b.y; pr.b.faceX = pr.a.x; pr.b.faceY = pr.a.y;
+      pr.a.chatWith = pr.b.visitor; pr.b.chatWith = pr.a.visitor;
+    }
     return out;
   }
 
@@ -240,7 +277,10 @@
   function talkSettled(d) {
     var s = V().state();
     if (!s.visitGift || s.visitGift.day !== s.day) { s.visitGift = { day: s.day, got: {} }; }
-    if (s.visitGift.got[d.key]) { return { kind: 'talk', name: d.name, text: d.emoji + ' ' + (SETTLE_LINE[d.key] || d.line) }; }
+    if (s.visitGift.got[d.key]) {
+      var me = list().filter(function (x) { return x.settled && x.visitor === d.key; })[0];
+      return { kind: 'talk', name: d.name, text: me && me.chat ? '(수다 중) ' + me.chat : d.emoji + ' ' + (SETTLE_LINE[d.key] || d.line) };
+    }
     s.visitGift.got[d.key] = true;
     var g = GIFT[d.key] || 200;
     core.save.player.gold += g;
@@ -331,6 +371,9 @@
     /* 세이브가 바뀌는 곳 */
     pick: pick, talk: talk, rec: rec, status: status,
     SETTLE_N: SETTLE_N, SETTLE_SPOTS: SETTLE_SPOTS, GIFT: GIFT, settleSpot: settleSpot, settled: settled, bonds: bonds,
+    GUEST_BEAUTY: GUEST_BEAUTY, CHAT_OPEN: CHAT_OPEN, CHAT_REPLY: CHAT_REPLY,
+    /** 마을 평가(town.beauty)가 읽는다 — 눌러앉은 손님 몫 */
+    beautyBonus: function () { return settled().length * GUEST_BEAUTY; },
     _reset: function () { pieceCache = null; settleCache = {}; }
   };
 })(window);

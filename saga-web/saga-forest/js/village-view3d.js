@@ -1748,7 +1748,15 @@
       if (slot.actions) { playAction(slot, 'walk'); }
       return;
     }
-    if (!near) { slot.waveCd = 0.6; if (slot.waveT > 0) { slot.waveT -= dt; } else { playAction(slot, 'idle'); } return; }
+    if (!near) {
+      slot.waveCd = 0.6;
+      if (npc.faceX !== undefined) {   // 수다(§5.11) — 상대를 본다
+        slot.yaw = angleLerp(slot.yaw || 0, Math.atan2(npc.faceX - npc.x, npc.faceY - npc.y), turnLerpK(dt));
+        slot.group.rotation.y = slot.yaw;
+      }
+      if (slot.waveT > 0) { slot.waveT -= dt; } else { playAction(slot, 'idle'); }
+      return;
+    }
     slot.yaw = angleLerp(slot.yaw || 0, Math.atan2(dx, dy), turnLerpK(dt));
     slot.group.rotation.y = slot.yaw;
     slot.waveCd = (slot.waveCd === undefined ? 0.6 : slot.waveCd) - dt;

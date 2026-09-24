@@ -1571,6 +1571,7 @@
       '<div class="stat-row"><span>심어 둔 것</span><b>🌱 ' + bt.planted + '</b></div>' +
       '<div class="stat-row"><span>집 꾸미기</span><b>🏠 +' + Math.round(bt.home / 4) + '</b></div>' +
       '<div class="stat-row"><span>사고 기증</span><b>🏛️ +' + bt.museum * 2 + '</b></div>' +
+      (bt.guests ? '<div class="stat-row"><span>이웃 손님</span><b>🏡 +' + bt.guests + '</b></div>' : '') +
       (warn ? '<small class="muted" style="color:var(--bad,#c0392b)">⚠ ' + esc(warn.text) + '</small>'
             : '<small class="muted">잡초는 <b>안 뽑으면 날마다 늡니다</b>. ' +
               '평가가 높으면 주민이 잘 떠나지 않습니다. 평가서는 월요일 아침에 옵니다.</small>') +
