@@ -83,6 +83,12 @@ namespace Saga.Story.Player
 
         private void Update()
         {
+            // PLAN.md 106-8 — 두목 등장 컷 동안은 선다(입력·이동·중력 전부 — 짧은 컷이라 땅 위에서만 튼다).
+            if (Saga.Story.Cinematics.StoryCutscenes.Playing)
+            {
+                if (animator != null) animator.SetFloat("Speed", 0f);
+                return;
+            }
             float dt = Time.deltaTime;
             _attackCooldownLeft = Mathf.Max(0f, _attackCooldownLeft - dt);
             _sweepCooldownLeft = Mathf.Max(0f, _sweepCooldownLeft - dt);

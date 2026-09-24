@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Saga.Story.Data;
 using Saga.Story.Audio;
+using Saga.Story.Cinematics;
 using Saga.Story.UI;
 
 namespace Saga.Story.World
@@ -113,6 +114,13 @@ namespace Saga.Story.World
         private float _shieldTimer;
         private float _championTimeLeft;
 
+        // PLAN.md 106-8 "두목 등장 컷" — 플레이어가 처음 이 거리(X) 안으로 들어오면 한 번(씬 로드마다).
+        public const float IntroRadiusM = 9f;
+        private bool _introPlayed;
+        private Transform _player;
+        public bool IntroPlayed => _introPlayed;
+        public float VisualHeight => isBoss ? 1.6f * BossVisualScaleMul : 1.6f;
+
         public bool IsChampion => _isChampion;
         public float ChampionTimeLeft => _championTimeLeft;
         public bool ChampionShieldBroken => _shieldBroken;
@@ -178,7 +186,9 @@ namespace Saga.Story.World
 
         private void Update()
         {
-            if (!_isChampion || _dead) return;
+            if (_dead) return;
+            if (isBoss && !_introPlayed) CheckIntro();
+            if (!_isChampion || StoryCutscenes.Playing) return; // 컷 동안 관문 대장 시간은 안 준다.
 
             if (_shieldBroken)
             {
@@ -192,6 +202,35 @@ namespace Saga.Story.World
 
             _championTimeLeft -= Time.deltaTime;
             if (_championTimeLeft <= 0f) Regroup();
+        }
+
+        /// <summary>PLAN.md 106-8 — 플레이어가 X 로 9m 안에 들어오면 등장 컷. 진단도 직접 부른다. 틀었으면 true.</summary>
+        public bool CheckIntro()
+        {
+            if (!isBoss || _dead || _introPlayed || isLabyrinthEnemy) return false;
+            if (_player == null)
+            {
+                var go = GameObject.FindWithTag("Player");
+                if (go == null) return false;
+                _player = go.transform;
+            }
+            if (Mathf.Abs(_player.position.x - transform.position.x) > IntroRadiusM) return false;
+            var cuts = StoryCutscenes.Instance;
+            if (cuts == null || StoryCutscenes.Playing) return false;
+            _introPlayed = true;
+            string title = StoryLocalization.T("cut.story_boss_title", "황건 두목");
+            string sub = _isChampion
+                ? StoryLocalization.T("cut.story_champion_sub", "관문 대장 — 이번 주 강화판, 180초 안에 쓰러뜨려라")
+                : StoryLocalization.T("cut.story_boss_sub", "들판 가장 안쪽을 지키는 우두머리");
+            return cuts.PlayBossIntro(this, _player.position, VisualHeight, title, sub, null);
+        }
+
+        /// <summary>등장 컷이 넓은→가까운 샷으로 자르는 순간 부른다 — 공격 클립을 포효 대신 한 번(판정 없음, 이 판 두목은 반격이 없다).</summary>
+        public void PlayRoar()
+        {
+            var animator = _visualGo != null ? _visualGo.GetComponentInChildren<Animator>() : null;
+            if (animator != null) animator.SetTrigger("Attack");
+            StoryAudio.PlaySfx(hitClip);
         }
 
         private void BuildVisual()

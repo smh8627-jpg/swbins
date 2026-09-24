@@ -15,6 +15,10 @@ namespace Saga.Story.World
     /// 플레이어(Z=0 평면)를 보려면 카메라가 **음(-)의 Z distance**에
     /// 서야 한다(saga-godot `story_camera.gd`는 +Z에 선다 — 핸디니스
     /// 차이, 값 자체는 같다).
+    ///
+    /// PLAN.md 106-8 — 이 컴포넌트는 이제 실제 카메라가 아니라 플레이 가상 카메라(StoryPlayerView,
+    /// CinemachineCamera)에 붙는다. 실제 카메라는 `CinemachineBrain` 이 이 자리(평소) 또는 두목 등장 컷
+    /// 카메라에 붙인다 — 위치 계산은 그대로(DUNGEON `CameraRig` 가 `PlayerView` 를 움직이는 것과 같은 결).
     /// </summary>
     public class StoryCameraFollow : MonoBehaviour
     {

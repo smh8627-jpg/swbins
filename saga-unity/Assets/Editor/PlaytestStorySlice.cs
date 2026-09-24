@@ -182,6 +182,7 @@ namespace Saga.EditorTools
                     // 시작하면 그 자체로 GainExp()가 걸려 나중엔 이미 다른
                     // 레벨업이 지나간 뒤일 수 있다.
                     if (!CheckLevelUpCut()) { Fail(); return; }
+                    if (!PlaytestStoryBossIntro.Run()) { Fail(); return; } // PLAN.md 106-8 — 두목 곁에 가기 전에(여기서 한 번 틀어 두면 뒤 단계가 안 막힌다).
                     _enemyIndex = 0;
                     _phase = Phase.TalkNpc;
                     break;

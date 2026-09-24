@@ -8846,3 +8846,13 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - **구조**: 컷 하나(`Boss_FieldIntro`)를 여러 두목이 같이 쓴다 — 카메라 두 자리는 달려드는 순간 다시 잡고(상자·소환 컷 결), 이름표는 `CutsceneTitleCard.SetOverride` 로 덮어쓴다(Timeline 클립 글자는 폴백만). `DungeonEnemy` Idle→Chase 에서 `TryPlayFieldIntro` — 층 두목은 매번, 나머지 두목급은 이름마다 세션 한 번(`IntroSeen`), 능묘지기(갑주)는 제외. 두목전 시작 토스트는 컷 `onEnd` 로 미뤘다(레터박스 위에 겹치지 않게). 타이머는 컷 동안 Tick 이 일찍 돌아가 원래 안 준다.
 - 파일: 고침 `DungeonEnemy`·`DungeonCutscenes`(FieldBoss 종류·포효 시각 일반화)·`CutsceneTitleCard`(덮어쓰기)·`BuildDungeonCinematics`, 새 `Editor/PlaytestDungeonBossIntro.cs`·`Boss_FieldIntro.playable`. 씬 재빌드.
 - 검증: 씬 재빌드 exit 0 · `PlaytestDungeonHeadless` **3연속 OK**(새 `boss intro` 줄 "가까운 샷 5.4m · 컷 3번" 3회 동일) · `FloorProgression`·`FieldAmbush`·`Shortcut`·`Town2`·`Towns34` OK. 실기 확인은 전. 새 글자 `cut.floorboss_*`·`cut.miniboss_sub` 는 `DungeonLocalization.T` 폴백.
+
+## 2026-09-24 — PLAN 106-8 STORY 두목 등장 컷(106 결 옮기기 첫째, 판별 복사) + STORY 카메라 Cinemachine 하이브리드 (새 대화 "사가유니티 이어해줘", Opus 5.5)
+
+- **고른 까닭**: 지난 대화 끝 추천("두목 등장 컷을 STORY 관문 대장이나 GO 두목으로")에 "이어해" — STORY 를 먼저 골랐다. STORY 두목은 들판 한 자리에 서 있는 한 마리라 트리거가 단순하고, GO 는 사건 결투(사당 시련·희귀 늑대)가 여럿이라 그다음.
+- **카메라**: STORY 엔 Cinemachine 이 없었다 — `StoryCameraFollow` 를 실제 카메라에서 떼어 플레이 가상 카메라 `StoryPlayerView` 에 붙이고 실제 카메라에 브레인(106-3 DUNGEON 과 같은 하이브리드). 흔들림·레벨업 줌 진단(`_shakeTimer`·`_zDistance`)은 컴포넌트를 그대로 보므로 안 바뀌었다.
+- **판별 복사**: `StoryCutDolly`·`StoryCutDollyClip`·`StoryCutDollyTrack`(DUNGEON 달리 셋 이름만 바꿈), `StoryCutscenes`(DUNGEON 관리자에서 컷 하나 몫만). 제목 트랙은 안 옮기고 이름표를 컷 시각으로 직접 페이드했다(컷이 하나라 트랙이 과함).
+- **2.5D 샷**: 카메라는 늘 화면 앞(-Z)에 서고 X 로 두목 반대쪽 옆 — 옆모습 화면이 3/4 로 돌았다 이즈 아웃으로 돌아온다. 이 판 두목은 반격이 없어 포효는 공격 클립·타격음만.
+- **진단 함정 피하기**: `PlaytestStorySlice` 의 KillBoss 단계가 플레이어를 두목 곁으로 순간이동하므로, 컷 진단을 Init 단계(두목 곁에 가기 전)에 두고 거기서 한 번 틀고 넘겨 둔다(씬마다 한 번 규칙이라 뒤 단계가 안 막힌다).
+- 파일: 새 `Games/SagaStory/Cinematics/*`(넷)·`Story_BossIntro.playable`·`Editor/BuildStoryCinematics.cs`·`Editor/PlaytestStoryBossIntro.cs`, 고침 `StoryEnemy`(CheckIntro·PlayRoar·관문 대장 시간 멈춤)·`StoryPlayerController`(컷 동안 Update 조기 반환)·`StoryCameraFollow`(주석)·`BuildTestStoryScene`(카메라 하이브리드)·`PlaytestStorySlice`(호출). 씬 재빌드.
+- 검증: 씬 재빌드 exit 0 · `PlaytestStorySlice` **3연속 OK**(새 `boss intro` 줄 "가까운 샷 3.4m" 3회 동일, 버튼 배선·레벨업 줌·흔들림 등 기존 전부 그대로). 실기 확인은 전. 새 글자 `cut.story_*`·`cut.skip` 는 `StoryLocalization.T` 폴백.

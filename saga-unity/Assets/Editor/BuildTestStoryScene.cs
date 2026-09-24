@@ -57,7 +57,7 @@ namespace Saga.EditorTools
             BuildDiscovery();
             BuildLabyrinthGate();
             var (playerGo, playerController) = BuildPlayer();
-            BuildCamera();
+            var brain = BuildCamera();
             BuildPostProcessingVolume();
             BuildToneVolume();
             BuildEventSystem();
@@ -72,6 +72,7 @@ namespace Saga.EditorTools
             BuildSettingsUi();
             BuildGoalBoardUi();
             BuildMobileControls(playerController);
+            BuildStoryCinematics.Build(brain); // PLAN.md 106-8 — 카메라·HUD 뒤.
             BuildBootstrap();
 
             AssetDatabase.SaveAssets();
@@ -358,8 +359,10 @@ namespace Saga.EditorTools
         }
 
         /// <summary>2절 — 카메라는 플레이어의 자식이 아니라 독립 오브젝트
-        /// (StoryCameraFollow.cs 클래스 주석 참고, Y 보간을 위해서다).</summary>
-        private static void BuildCamera()
+        /// (StoryCameraFollow.cs 클래스 주석 참고, Y 보간을 위해서다).
+        /// PLAN.md 106-8 — DUNGEON 106-3 과 같은 하이브리드: `StoryCameraFollow` 는 플레이 가상 카메라
+        /// (StoryPlayerView)를 움직이고, 실제 카메라의 `CinemachineBrain` 이 거기(또는 두목 등장 컷 카메라)에 붙는다.</summary>
+        private static Unity.Cinemachine.CinemachineBrain BuildCamera()
         {
             var camGo = new GameObject("StoryCamera");
             camGo.transform.position = new Vector3(2f, 2.6f, -16f);
@@ -368,9 +371,19 @@ namespace Saga.EditorTools
             cam.clearFlags = CameraClearFlags.SolidColor;
             cam.backgroundColor = SkyColor;
             camGo.AddComponent<AudioListener>();
-            camGo.AddComponent<StoryCameraFollow>();
             camGo.AddComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>()
                 .renderPostProcessing = true;
+            var brain = camGo.AddComponent<Unity.Cinemachine.CinemachineBrain>();
+            brain.DefaultBlend = new Unity.Cinemachine.CinemachineBlendDefinition(
+                Unity.Cinemachine.CinemachineBlendDefinition.Styles.EaseInOut, 0.6f);
+
+            var viewGo = new GameObject("StoryPlayerView");
+            viewGo.transform.position = camGo.transform.position;
+            var view = viewGo.AddComponent<Unity.Cinemachine.CinemachineCamera>();
+            view.Priority = 10;
+            view.Lens = Unity.Cinemachine.LensSettings.FromCamera(cam);
+            viewGo.AddComponent<StoryCameraFollow>();
+            return brain;
         }
 
         /// <summary>PLAN.md 66-2장(파이널 판타지 최신작 기준) "다음에 할 일"
