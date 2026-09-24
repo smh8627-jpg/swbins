@@ -61,6 +61,13 @@ const KINDS := {
 		"reach": 3.0, "tell": 0.9, "cd": 1.8, "exp": 0.0, "element": "fire", "shield": 0.0, "phase_shield": 400.0,
 		"phase_text": "잿불 도깨비왕이 불을 두른다 — 수로 방패를 깨라",
 		"shape": "goblin", "height": 3.4, "colors": [Color(0.55, 0.18, 0.12), Color(0.22, 0.14, 0.12), Color(1.0, 0.6, 0.2)]},
+	## 106장 ㉜ 이야기 보스 "검은 가면"(6장 북쪽 봉우리) — field_boss.gd 틀, 사람 몸(VRoid)+검은 가면. 패턴 차례 rotation 에 그림자(뒤로 옮겨 붙어
+	## 내려찍기), 2단계 뇌 방패와 함께 가면 졸개 summon 을 부른다. 한 번뿐(되살아나지 않음·보상은 이야기 장).
+	"black_mask": {"name": "검은 가면", "hp": 4200.0, "atk": 32.0, "speed": 4.6, "aggro": 22.0,
+		"reach": 2.4, "tell": 0.8, "cd": 1.6, "exp": 0.0, "element": "thunder", "shield": 0.0, "phase_shield": 520.0,
+		"phase_text": "검은 가면이 먹구름을 두르고 졸개를 부른다 — 불로 방패를 깨라",
+		"rotation": ["shadow", "storm", "bite", "slam", "shadow", "bite"], "summon": ["bandit", "bandit"],
+		"vroid": true, "cloth": Color(0.12, 0.11, 0.16), "mask": Color(0.55, 0.3, 0.85)},
 }
 
 const GRAVITY := 20.0
@@ -479,6 +486,12 @@ func _build_visual() -> Node3D:
 	if kind == "bandit":
 		v = VroidBody.build(String(name), 2, Color(0.55, 0.28, 0.25))
 		_anim = v.get_node_or_null("AnimationPlayer") as AnimationPlayer
+	elif def.get("vroid", false):
+		## 106장 ㉜ 사람 몸 보스 — 검은 옷 + 가면(VroidBody.add_mask).
+		v = VroidBody.build(String(name), 5, def.cloth)
+		_anim = v.get_node_or_null("AnimationPlayer") as AnimationPlayer
+		if def.has("mask"):
+			VroidBody.add_mask(v, def.mask, Color(0.08, 0.07, 0.1))
 	elif def.has("shape"):
 		v = CreatureBuilder.build(def.shape, def.colors)
 		CreatureBuilder._fit(v, def.shape, def.height)
@@ -490,7 +503,7 @@ func _build_visual() -> Node3D:
 
 ## 머리 위: 이름표 · 체력 막대 · 붙은 원소 점 · 공격 예고 "!".
 func _build_overhead() -> void:
-	var top := 2.15 if kind == "bandit" else (float(def.height) + 0.45 if def.has("height") else 1.45)
+	var top := 2.15 if kind == "bandit" or def.get("vroid", false) else (float(def.height) + 0.45 if def.has("height") else 1.45)
 	var label := Label3D.new()
 	label.text = def.name if world_lv < 0 else "Lv.%d %s" % [Adventure.enemy_level(world_lv), def.name]
 	_name_label = label

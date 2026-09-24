@@ -15,6 +15,7 @@ const TestMap := preload("res://games/saga_go/data/test_map.gd")
 const TerrainBuilder := preload("res://games/saga_go/world/terrain_builder.gd")
 const FieldEnemy := preload("res://games/saga_go/combat/field_enemy.gd")
 const FieldBosses := preload("res://games/saga_go/world/field_bosses.gd")
+const FieldBoss := preload("res://games/saga_go/combat/field_boss.gd")
 const VroidBody := preload("res://games/saga_go/world/vroid_body.gd")
 const TalkFace := preload("res://games/saga_go/world/talk_face.gd")
 const Toast := preload("res://saga_core/ui/toast.gd")
@@ -25,6 +26,7 @@ signal chapter_done(ch: int)
 const GOLD := Color(1.0, 0.84, 0.35)
 const KILL_SPREAD := 4.5
 const ALTAR_REACH := 1.5
+const DUEL_FALL := 5.0
 
 var _player: Node3D = null
 var _npcs: Dictionary = {} # id → Node3D
@@ -133,7 +135,12 @@ func target_pos() -> Vector3:
 	match String(s.type):
 		"talk":
 			return npc_pos(String(s.npc))
-		"go", "kill", "light", "seal":
+		"go", "kill", "light", "seal", "climb":
+			return _cell_pos(String(s.region), s.cell)
+		"duel":
+			for e in _quest_enemies:
+				if is_instance_valid(e) and not e.call("is_dead"):
+					return (e as Node3D).global_position
 			return _cell_pos(String(s.region), s.cell)
 		"boss":
 			var fb := get_tree().get_first_node_in_group("go_field_bosses")
@@ -310,6 +317,19 @@ func _enter_step() -> void:
 				_quest_enemies.append(e)
 		"light":
 			_build_altar(_cell_pos(String(s.region), s.cell))
+		"duel":
+			## 106장 ㉜ 이야기 보스 — field_boss.gd 틀, 한 번뿐. 위 보스 막대(world/field_bosses.gd)가 go_story_boss 를 본다.
+			var bp := _cell_pos(String(s.region), s.cell) + Vector3.UP * 0.3
+			var boss: CharacterBody3D = FieldBoss.new()
+			boss.name = "StoryBoss_" + String(s.kind)
+			boss.setup(String(s.kind), bp, 20260824 + 950)
+			boss.respawns = false
+			boss.drops = false
+			boss.apply_world_level(Adventure.world_level())
+			add_child(boss)
+			boss.global_position = bp
+			boss.add_to_group("go_story_boss")
+			_quest_enemies.append(boss)
 		"seal":
 			_build_altar(_cell_pos(String(s.region), s.cell))
 			_build_seal(String(s.region))
@@ -511,9 +531,24 @@ func _physics_process(delta: float) -> void:
 			if Vector2(_player.global_position.x - t.x, _player.global_position.z - t.z).length() <= float(s.radius):
 				advance()
 				return
-		"kill":
+		"kill", "duel":
+			if String(s.type) == "duel":
+				## 봉우리 보스가 절벽 밑으로 떨어지면(집보다 DUEL_FALL m 아래) 봉우리로 되돌린다 — 밑에서 못 올라와 멈추지 않게.
+				for e in alive_quest_enemies():
+					var home: Vector3 = e.get("home")
+					if (e as Node3D).global_position.y < home.y - DUEL_FALL:
+						(e as Node3D).global_position = home
+						(e as CharacterBody3D).velocity = Vector3.ZERO
 			if not _quest_enemies.is_empty() and alive_quest_enemies().is_empty():
+				if String(s.type) == "duel":
+					Toast.show(self, "%s의 가면에 금이 가고 — 먹구름 속으로 달아났다" % String(FieldEnemy.KINDS[String(s.kind)].name), 3.0)
 				_quest_enemies.clear()
+				advance()
+				return
+		"climb":
+			var t := _cell_pos(String(s.region), s.cell)
+			var pp := _player.global_position
+			if Vector2(pp.x - t.x, pp.z - t.z).length() <= float(s.radius) and pp.y >= t.y - Story.CLIMB_SLACK:
 				advance()
 				return
 	var near := near_npc()
@@ -844,7 +879,7 @@ func _build_npc(id: String) -> void:
 	if anim and anim.has_animation("idle"):
 		anim.play("idle")
 	if info.get("mask", false):
-		_add_mask(body)
+		VroidBody.add_mask(body)
 	var tf := TalkFace.attach(body)
 	if tf:
 		_faces[id] = tf
@@ -859,50 +894,6 @@ func _build_npc(id: String) -> void:
 	root.add_child(label)
 	_npcs[id] = root
 	_npc_pos[id] = p
-
-## 흰 가면 — 머리 뼈에 붙인다(뼈를 못 찾으면 몸 앞 얼굴 높이). 눈구멍 둘·붉은 줄 하나.
-func _add_mask(body: Node3D) -> void:
-	var mask := Node3D.new()
-	mask.name = "Mask"
-	var skel := body.find_children("*", "Skeleton3D", true, false)
-	var head := -1
-	if not skel.is_empty():
-		head = (skel[0] as Skeleton3D).find_bone("J_Bip_C_Head")
-	if head >= 0:
-		var att := BoneAttachment3D.new()
-		att.bone_idx = head
-		skel[0].add_child(att)
-		att.add_child(mask)
-		## 뼈대 공간 앞이 -Z 인 몸(saga_forest_avatar_01)이면 가면도 뒤집어 얼굴 쪽에.
-		var front := VroidBody.front_sign(skel[0])
-		mask.position = Vector3(0.0, 0.07, 0.085 * front)
-		mask.rotation.y = 0.0 if front > 0.0 else PI
-	else:
-		body.add_child(mask)
-		mask.position = Vector3(0.0, 1.52, 0.1)
-	var face := MeshInstance3D.new()
-	var sm := SphereMesh.new()
-	sm.radius = 0.1
-	sm.height = 0.24
-	face.mesh = sm
-	face.scale = Vector3(1.0, 1.0, 0.35)
-	var white := StandardMaterial3D.new()
-	white.albedo_color = Color(0.94, 0.92, 0.86)
-	white.roughness = 0.6
-	face.material_override = white
-	mask.add_child(face)
-	var dark := StandardMaterial3D.new()
-	dark.albedo_color = Color(0.06, 0.05, 0.06)
-	var red := StandardMaterial3D.new()
-	red.albedo_color = Color(0.72, 0.12, 0.12)
-	for i in 3:
-		var dot := MeshInstance3D.new()
-		var bm := BoxMesh.new()
-		bm.size = Vector3(0.035, 0.014, 0.01) if i < 2 else Vector3(0.012, 0.12, 0.01)
-		dot.mesh = bm
-		dot.material_override = dark if i < 2 else red
-		dot.position = Vector3(-0.04 + 0.08 * i, 0.03, 0.036) if i < 2 else Vector3(0.0, -0.01, 0.037)
-		mask.add_child(dot)
 
 func has_mask(id: String) -> bool:
 	var root: Node3D = _npcs.get(id)

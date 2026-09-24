@@ -11,6 +11,7 @@ extends "res://games/saga_go/combat/field_enemy.gd"
 ## 이름은 이 판 것.
 
 const BossToast := preload("res://saga_core/ui/toast.gd")
+const Minion := preload("res://games/saga_go/combat/field_enemy.gd")
 
 signal phase_changed(phase: int)
 
@@ -21,6 +22,9 @@ const SLAM := {"radius": 5.0, "tell": 1.2, "mul": 1.6}
 const STORM := {"radius": 2.5, "tell": 1.0, "mul": 1.2, "side": 3.0}
 const PHASE2_SHIELD := 600.0
 const PHASE2_AT := 0.5
+## 106장 ㉜ 그림자 — 플레이어 등 뒤 SHADOW.behind m 로 옮겨 붙어 둘레 radius 내려찍기(예고가 짧다, 대시로 피한다).
+const SHADOW := {"behind": 2.2, "radius": 3.2, "tell": 0.8, "mul": 1.4}
+const SUMMON_SPREAD := 4.0
 
 var phase := 1
 var skill := ""
@@ -29,10 +33,12 @@ var skill_cd := 2.0
 var hits_taken := 0 # 점검용 — 패턴에 맞은 번수
 var _rot := 0
 var _marks: Array = [] # [{pos, radius, node}]
+var summoned: Array = [] # 2단계에 부른 졸개(def.summon) — 보스가 쓰러지거나 되돌아가면 흩어진다
 
 func _physics_process(delta: float) -> void:
 	if ai == AI.DEAD:
 		_clear_marks()
+		_clear_summons()
 		super(delta)
 		return
 	_check_phase()
@@ -54,7 +60,8 @@ func _physics_process(delta: float) -> void:
 	if skill_cd <= 0.0 and frozen_t <= 0.0 and (ai == AI.CHASE or ai == AI.RECOVER):
 		var player := get_tree().get_first_node_in_group("player") as Node3D
 		if _player_can_fight(player):
-			begin_skill(ROTATION[_rot % ROTATION.size()], player)
+			var rot: Array = def.get("rotation", ROTATION)
+			begin_skill(String(rot[_rot % rot.size()]), player)
 			_rot += 1
 			return
 	super(delta)
@@ -78,12 +85,22 @@ func begin_skill(which: String, player: Node3D) -> void:
 			var side := to_p.normalized().cross(Vector3.UP) if to_p.length() > 0.1 else Vector3.RIGHT
 			for off in [Vector3.ZERO, side * STORM.side, -side * STORM.side]:
 				_mark(player.global_position + off, STORM.radius)
+		"shadow":
+			skill_t = SHADOW.tell
+			var back: Vector3 = -(player.call("facing") as Vector3) if player.has_method("facing") else -to_p.normalized()
+			back.y = 0.0
+			if back.length() < 0.01:
+				back = Vector3.BACK
+			global_position = player.global_position + back.normalized() * SHADOW.behind
+			velocity = Vector3.ZERO
+			_face(player.global_position - global_position, 1.0)
+			_mark(global_position, SHADOW.radius)
 	_set_tell(true)
 
 func _fire() -> void:
 	_set_tell(false)
 	var player := get_tree().get_first_node_in_group("player") as Node3D
-	var mul: float = SLAM.mul if skill == "slam" else STORM.mul
+	var mul: float = SLAM.mul if skill == "slam" else (SHADOW.mul if skill == "shadow" else STORM.mul)
 	var hit := false
 	if player:
 		for m in _marks:
@@ -113,7 +130,31 @@ func _check_phase() -> void:
 		skill_cd = minf(skill_cd, 1.0)
 		_refresh_bar()
 		BossToast.show(self, String(def.get("phase_text", "먹구름 이무기가 번개를 두른다 — 불로 방패를 깨라")), 3.0)
+		_summon()
 		phase_changed.emit(phase)
+
+## 2단계 졸개(def.summon) — 보스 둘레에, 되살아나지 않고 전리품 없음, 보스와 같은 세계 등급.
+func _summon() -> void:
+	var kinds: Array = def.get("summon", [])
+	for i in kinds.size():
+		var a := TAU * float(i) / float(kinds.size())
+		var p := global_position + Vector3(cos(a), 0.0, sin(a)) * SUMMON_SPREAD
+		var m: CharacterBody3D = Minion.new()
+		m.name = "%s_Summon_%d" % [name, i]
+		m.setup(String(kinds[i]), p + Vector3.UP * 0.3, 20260824 + 700 + i)
+		m.respawns = false
+		m.drops = false
+		if world_lv >= 0:
+			m.apply_world_level(world_lv)
+		get_parent().add_child(m)
+		m.global_position = p + Vector3.UP * 0.3
+		summoned.append(m)
+
+func _clear_summons() -> void:
+	for m in summoned:
+		if is_instance_valid(m):
+			(m as Node).queue_free()
+	summoned.clear()
 
 ## 2단계 방패 — 체력 배율(비경 단계·세계 등급)을 그대로 따른다.
 func _phase_shield() -> float:
@@ -127,6 +168,7 @@ func _on_reset() -> void:
 	skill_cd = 2.0
 	_set_tell(false)
 	_clear_marks()
+	_clear_summons()
 	max_shield = float(def.get("shield", 0.0)) * (max_hp / float(def.hp))
 	shield = max_shield
 	if was != 1:
@@ -182,3 +224,4 @@ func _clear_marks() -> void:
 
 func _exit_tree() -> void:
 	_clear_marks()
+	_clear_summons()

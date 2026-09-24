@@ -89,3 +89,48 @@ static func _hash(id: String) -> int:
 	for i in id.length():
 		h = (h * 131 + id.unicode_at(i)) & 0x7fffffff
 	return h
+
+## 가면 — 머리 뼈에 붙인다(뼈를 못 찾으면 몸 앞 얼굴 높이). 눈구멍 둘·줄 하나. 이야기 나그네(흰 가면·붉은 줄, world/story_quest.gd)·
+## 검은 가면(field_enemy black_mask, 검은 가면·보랏빛 줄)이 쓴다.
+static func add_mask(body: Node3D, stripe: Color = Color(0.72, 0.12, 0.12), face_col: Color = Color(0.94, 0.92, 0.86)) -> void:
+	var mask := Node3D.new()
+	mask.name = "Mask"
+	var skel := body.find_children("*", "Skeleton3D", true, false)
+	var head := -1
+	if not skel.is_empty():
+		head = (skel[0] as Skeleton3D).find_bone("J_Bip_C_Head")
+	if head >= 0:
+		var att := BoneAttachment3D.new()
+		att.bone_idx = head
+		skel[0].add_child(att)
+		att.add_child(mask)
+		## 뼈대 공간 앞이 -Z 인 몸(saga_forest_avatar_01)이면 가면도 뒤집어 얼굴 쪽에.
+		var front := front_sign(skel[0])
+		mask.position = Vector3(0.0, 0.07, 0.085 * front)
+		mask.rotation.y = 0.0 if front > 0.0 else PI
+	else:
+		body.add_child(mask)
+		mask.position = Vector3(0.0, 1.52, 0.1)
+	var face := MeshInstance3D.new()
+	var sm := SphereMesh.new()
+	sm.radius = 0.1
+	sm.height = 0.24
+	face.mesh = sm
+	face.scale = Vector3(1.0, 1.0, 0.35)
+	var white := StandardMaterial3D.new()
+	white.albedo_color = face_col
+	white.roughness = 0.6
+	face.material_override = white
+	mask.add_child(face)
+	var dark := StandardMaterial3D.new()
+	dark.albedo_color = Color(0.06, 0.05, 0.06)
+	var red := StandardMaterial3D.new()
+	red.albedo_color = stripe
+	for i in 3:
+		var dot := MeshInstance3D.new()
+		var bm := BoxMesh.new()
+		bm.size = Vector3(0.035, 0.014, 0.01) if i < 2 else Vector3(0.012, 0.12, 0.01)
+		dot.mesh = bm
+		dot.material_override = dark if i < 2 else red
+		dot.position = Vector3(-0.04 + 0.08 * i, 0.03, 0.036) if i < 2 else Vector3(0.0, -0.01, 0.037)
+		mask.add_child(dot)

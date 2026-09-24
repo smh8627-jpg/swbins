@@ -12,6 +12,8 @@ extends RefCounted
 ##     gather — 그 채집물(data/cooking.gd GATHER)을 count 번 캐기(world/gathering.gd `gathered`, 센 수는 저장 안 함)
 ##     cook   — 아무 요리나 한 번(world/kitchen.gd `cooked`)
 ##     follow — 그 인물이 path(칸 좌표)를 따라 걷는다 — 내가 FOLLOW_NEAR 안이면 걷고 멀면 서서 기다린다. 길 끝에 닿으면 끝(불러오면 길 처음부터)
+##     climb  — 그 자리 radius 안, 땅 높이 - CLIMB_SLACK m 보다 높이 서기(산 꼭대기 — 벽을 타거나 활공으로)
+##     duel   — 그 자리에 이야기 보스 kind(combat/field_boss.gd, 되살아나지 않음·전리품 없음·세계 등급) 하나, 쓰러뜨리기
 ##     seal   — 그 자리 제단을 둘러싼 석등(order 순서의 SEAL_MARKS)을 order 차례대로 원소 스킬·폭발로 밝힌다(어느 원소든).
 ##              차례가 틀리면 다 꺼진다. 한 번에 여럿이 닿으면 다음 차례 것만 켜진다. 켠 수는 저장 안 함
 ##   인물 자리: appear(보일 때만 서 있는 인물) · stations(늘 있는 인물이 그 장·단계 동안 옮겨 서는 자리) —
@@ -35,14 +37,18 @@ const NPCS := {
 	## 4장에만 나오는 인물 — appear 의 장·단계 사이에만 서 있고, 따라가기(follow) 단계를 지나면 길 끝에 선다. mask = 얼굴에 흰 가면.
 	"wanderer": {"name": "가면 쓴 나그네", "region": "village", "cell": Vector2(5.7, 6.2), "rarity": 4, "cloth": Color(0.22, 0.22, 0.28),
 		"idle": "……", "mask": true, "appear": [{"ch": 3, "from": 1, "to": 5},
-			{"ch": 4, "from": 6, "to": 6, "region": "village", "cell": Vector2(0.9, 1.62)}]},
+			{"ch": 4, "from": 6, "to": 6, "region": "village", "cell": Vector2(0.9, 1.62)},
+			{"ch": 5, "from": 2, "to": 4, "region": "village", "cell": Vector2(7.35, 1.3)}]},
 }
 
 ## 학자는 5장 동안 서쪽 고개 옛길에 가 있다(0~3 단계 옛길 어귀, 4~7 단계 둘째 제단 곁).
 const STATIONS := {
 	"scholar": [{"ch": 4, "from": 0, "to": 3, "region": "village", "cell": Vector2(1.1, 2.55)},
-		{"ch": 4, "from": 4, "to": 7, "region": "village", "cell": Vector2(1.5, 1.62)}],
+		{"ch": 4, "from": 4, "to": 7, "region": "village", "cell": Vector2(1.5, 1.62)},
+		{"ch": 5, "from": 5, "to": 6, "region": "village", "cell": Vector2(6.85, 1.62)}],
 }
+
+const CLIMB_SLACK := 2.5
 
 ## seal 석등 표지 — 글자·빛깔. 석등은 제단 둘레 SEAL_RING m 에, 놓인 자리 차례는 order 와 다르다(SEAL_LAYOUT).
 const SEAL_MARKS := {
@@ -208,6 +214,35 @@ const CHAPTERS := [
 			{"type": "talk", "npc": "elder", "text": "청하 촌장에게 알리기",
 				"lines": [["누리", "은비가 무사하다니 다행이구나. 먹구름의 주인이라… 이름만 들어도 오싹하다.", "sorrow"],
 					["누리", "잊혔던 옛길까지 되살려 준 셈이니 마을이 네게 진 빚이 크구나. 받아 두렴.", "joy"]]},
+		]},
+	{"id": "ch6", "name": "제6장 · 북쪽 봉우리의 검은 가면", "ar": 15,
+		"reward": {"fate_knot": 4, "mora": 40000, "book_l": 3, "talent_3": 2}, "exp": 240.0,
+		"steps": [
+			{"type": "talk", "npc": "scholar", "text": "학자에게 셋째 제단 자리 듣기",
+				"lines": [["은비", "조각들을 맞춰 봤어. 셋째 제단은 마을 북쪽 봉우리 꼭대기야 — 길이 없어서 벽을 타고 올라가야 해."],
+					["은비", "나그네는 벌써 올라갔대. 검은 가면이 그리로 가는 걸 봤다나.", "surprised"],
+					["?", ["바로 갈게요.", "검은 가면?"]],
+					["은비", "진짜 범인 말이야. 이번엔 도망치기 전에 붙잡아야 해! 기력 잘 보면서 올라가."]]},
+			{"type": "climb", "region": "village", "cell": Vector2(7.1, 1.5), "radius": 9.0, "text": "북쪽 봉우리 꼭대기로 올라가기(벽 타기)"},
+			{"type": "talk", "npc": "wanderer", "text": "봉우리의 나그네와 이야기하기",
+				"lines": [["나그네", "제법 빨리 왔군. 그자가 곧 제단을 두드리러 올 게다."],
+					["나그네", "그자는 그림자처럼 등 뒤로 붙는다. 붉은 원이 발밑에 생기면 곧장 몸을 빼게."],
+					["?", ["같이 싸워요.", "왔다!"]],
+					["나그네", "……왔군. 먹구름을 두르면 불로 깨라!", "angry"]]},
+			{"type": "duel", "kind": "black_mask", "region": "village", "cell": Vector2(7.1, 1.55), "text": "검은 가면과 맞서기"},
+			{"type": "talk", "npc": "wanderer", "text": "나그네와 검은 가면이 남긴 것 살피기",
+				"lines": [["나그네", "……먹구름 속으로 달아났군. 하지만 가면에 금이 갔다. 다음엔 못 숨는다."],
+					["나그네", "그자가 떨군 비문 조각이다. 그리고 제단 — 두드린 자국이 있지만 아직 살아 있어."],
+					["나그네", "원소의 불을 다시 밝히게. 학자도 곧 올라올 게다."]]},
+			{"type": "light", "region": "village", "cell": Vector2(7.0, 1.3), "text": "셋째 제단에 원소 불 다시 밝히기"},
+			{"type": "talk", "npc": "scholar", "text": "봉우리에 올라온 학자에게 넷째 조각 보이기",
+				"lines": [["은비", "헉, 헉… 이 벽 누가 만든 거야. 조각 좀 보여 줘!", "sorrow"],
+					["은비", "'먹구름 임금은 다섯 제단에 나뉘어 잠들었다. 가면은 임금의 신하의 표식이다'…", "surprised"],
+					["?", ["신하라고요?", "검은 가면이 그 신하?"]],
+					["은비", "응. 남은 제단은 둘. 그자도 급해졌을 거야 — 마을에 먼저 알리자."]]},
+			{"type": "talk", "npc": "elder", "text": "청하 촌장에게 알리기",
+				"lines": [["누리", "먹구름 임금의 신하라… 옛날 할머니가 들려주던 자장가에 그런 말이 있었지.", "sorrow"],
+					["누리", "봉우리까지 오르다니 장하구나. 다친 데는 없느냐? 이건 마을 사람들이 모은 거란다.", "joy"]]},
 		]},
 ]
 

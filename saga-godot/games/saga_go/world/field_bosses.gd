@@ -211,12 +211,24 @@ func _build_hud() -> void:
 	for c in [bg, _hp_fill, _sh_bg, _sh_fill, _hud_label]:
 		(c as Control).mouse_filter = Control.MOUSE_FILTER_IGNORE
 
+## 106장 ㉜ 이야기 보스(go_story_boss 그룹 — story_quest duel 단계)가 싸우는 중이면 그것.
+func _engaged_story_boss() -> Node:
+	if _player == null:
+		return null
+	for e in get_tree().get_nodes_in_group("go_story_boss"):
+		var ai := int(e.get("ai"))
+		if ai == FieldEnemy.AI.IDLE or ai == FieldEnemy.AI.RETURN or ai == FieldEnemy.AI.DEAD:
+			continue
+		if _player.global_position.distance_to((e as Node3D).global_position) <= FB.ENGAGE_M:
+			return e
+	return null
+
 func _refresh_hud() -> void:
 	var id := engaged_boss()
-	_hud.visible = id != ""
-	if id == "":
+	var e: Node = _bosses[id] if id != "" else _engaged_story_boss()
+	_hud.visible = e != null
+	if e == null:
 		return
-	var e: Node = _bosses[id]
 	var def: Dictionary = e.get("def")
 	var hp_r := clampf(float(e.get("hp")) / float(e.get("max_hp")), 0.0, 1.0)
 	var sh := float(e.get("shield"))
