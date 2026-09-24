@@ -116,7 +116,8 @@ python -m http.server 8791      # Windows 에서 python 이 안 되면 py -m htt
   3D 트랙은 헤드리스 엔진으로 장면을 띄워 도는 자동 점검(Godot `tools/godot_regress.sh`·`probe_*.gd`)을 씁니다.
 - **눈으로 보기** — `_demo.html#<장면>` 이 정지 화면을 만들어 줍니다.
   `_admin.html` 은 세이브와 균형 손잡이를 만지는 운영판입니다.
-- **커밋 전 점검** — `tools/precheck.sh` 가 커밋 훅으로 돌아 js 구문·바뀐 에셋·문서 크기 상한을 봅니다.
+- **커밋 전 점검** — `tools/precheck.sh` 가 js 구문·바뀐 에셋·문서 크기 상한을 봅니다(`bash tools/precheck.sh`.
+  Claude Code 세션에서는 `git commit` 전에 훅 `tools/hooks/gate.js` 가 저절로 돌립니다).
 
 ## 문서 지도
 

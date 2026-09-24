@@ -7,7 +7,7 @@
 - 웹 다섯 판: `saga-web/<폴더>/PLAN.md` 가 정본, 이력은 각 폴더 `HANDOFF.md`
 - 3D 두 트랙(코드 공유 없음): `saga-godot/`(Godot 4)·`saga-unity/`(Unity 6) — 각 폴더 `CLAUDE.md` 부터
 - 규칙·방향·함정: `SAGA-HANDOFF.md`(≤80KB) · 이력: `SAGA-HISTORY.md`(grep 으로만, 아래 "토큰" 절)
-- 도구: `tools/README.md` · 커밋 훅 `tools/precheck.sh`(막히면 원인을 고친다)
+- 도구: `tools/README.md` · `git commit` 때 훅이 `tools/precheck.sh` 를 돌린다(막히면 원인을 고친다)
 
 ## 다섯 판 — 완전히 별개인 프로젝트
 
