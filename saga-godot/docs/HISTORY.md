@@ -8656,3 +8656,13 @@ PROJECT_STATE.md` 참고. 요약:
 - 찾은 빈틈: 들판 명단이 나 + members 앞 셋 고정 → 넷째부터 들어온 동료는 싸움에 못 나옴. 인물 화면에 "들판 명단에 넣기"(맨 앞으로) — 빼기·네 칸 고르기 화면은 다음.
 - 점검 probe_kits 18 → 23항목(표·blink 뒤 1.6m·표식 비 1.250·echo 표식 난 적만·lore ×1.40·편성) · probe_story 합류 2장·5장·지난 장 합류 fails=0.
 - 실기 확인 전: 그림자 걸음이 적 뒤로 자연스럽게 들어가는지(벽·절벽 곁), 메아리가 보이는지, 비문 원이 보이는지, 편성 단추 자리, 합류 알림 문구.
+
+## 2026-09-24 — 동작을 Mixamo → CC0(char-forge 단계 1)
+
+- 사용자: 상용 대비 VRoid·Mixamo 를 자체 도구로(`../tools/char-forge/README.md`). 이 판 몫 단계 1 = 몸은 VRoid 그대로, 동작만 바꿈.
+- `tools/char-forge/bake_for_rig.py`(Blender)가 Quaternius Universal Animation Library(CC0) 여덟 동작을 VRoid 셋의 `J_Bip_*` 52뼈에 굽고, 새 `tools/ual_lib_build.gd` 가 그 .glb 를 프로젝트 밖에서 GLTFDocument 로 읽어 월드 기준으로 옮겨 `assets/characters_vroid/anim_cc0/<몸>_lib.res` 로 쓴다(**커밋됨** — 다른 PC 도 Mixamo 없이 돈다).
+- 짝: idle=Idle_Loop · walk=Walk_Loop · sprint=Sprint_Loop · attack=Sword_Attack · hit=Hit_Chest · dodge=Roll · death=Death01 · pickup=PickUp_Table.
+- 참조 여섯(Player·ForestPlayer·DungeonPlayer·StoryPlayer·LordPortrait·vroid_body.gd)을 `anim/` → `anim_cc0/`. 옛 `anim/`·`_mixamo_src/`·`mixamo_retarget.gd` 는 남김(지우지 않음).
+- 함정: saga_forest_avatar_01 은 뒤돌아 있어 원본을 Z 180° 돌려 굽는다. 동작 팩 FBX 는 뼈대 오브젝트 회전까지 키로 가져 frame_set 마다 돌림이 풀린다 — 돌린 뒤 행렬을 붙들어 써야 한다(검증 쪽이 이걸 몰라 180° 로 잘못 봤다).
+- 검증: Blender verify 셋 다 뼈 방향 0.0°·땅 0cm · ual_lib_build 자체 확인 ≤ 0.10°(재출력 쉼 위치 반올림) · 새 `tools/probe_anim_cc0.gd` RESULT 3/3(여덟 동작·이동 셋 반복·움직인 뼈 49·이동 셋 낮은 발 ±1cm·서기 위팔 아래) · godot_regress 다섯 판 통과, .import/project.godot 잡음 없음.
+- 실기 확인 전: 걷기·질주 보폭이 이동 속도와 맞는지(미끄러짐), 칼 베기·구르기가 그 판 공격·회피 시간과 맞는지, 서기 동작 느낌이 Mixamo 보다 못하지 않은지.

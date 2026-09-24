@@ -1,6 +1,6 @@
 # char-forge — 자체 인물 공방 (VRoid·Mixamo 대체)
 
-> 상태: **0단계 끝**(도구 뼈대·검증 통과, 게임엔 아직 안 물림). 다음 = §7 단계 1(동작 교체). 이 파일이 정본이다. 두 3D 트랙 PLAN(`saga-godot` 103-4 · `saga-unity` 103-3)과
+> 상태: **단계 1 끝(saga-godot 동작)** — 게임이 부르는 여덟 동작이 CC0 로 바뀌었다(실기 확인 전). 다음 = §7 단계 2(godot 툰 몸 — 교체 문턱 있음). 이 파일이 정본이다. 두 3D 트랙 PLAN(`saga-godot` 103-4 · `saga-unity` 103-3)과
 > `SAGA-DESIGN.md` 는 여기를 가리키기만 한다. `tools/asset-forge` 처럼 **빌드 도구는 공유**(게임 코드 공유 금지와는 별개).
 
 ## 1. 왜
@@ -44,6 +44,8 @@ py tools/char-forge/fetch_sources.py                                 # 입력 �
 | `build.py` | 레시피 → 몸·머리·눈썹·비율(머리 크기·키)·재질 이름(`skin`·`hair`·`eye`)·동작 굽기 → `.glb`(+`.fbx`) + `*.license.json` |
 | `verify.py` | 내보낸 **파일을 다시 열어** 원본 동작과 맞댄다: 팔다리 방향 ≤ 5° · 땅 닿음 ≤ 1cm · 걷기 손목이 움직이나 |
 | `recipes/` | 인물 레시피. `_test_*` 는 시험용(게임 인물 아님) |
+| `bake_for_rig.py` | 이미 있는 몸(VRoid 등)의 뼈대에 동작만 굽는다 → 뼈대+동작 `.glb`. `--map vroid --clips 게임이름=UAL이름,…` |
+| `rigmaps.py` | 표준 뼈 목록·기준 자식 표(뼈 방향)·뼈 이름 표(`identity`·`vroid`) |
 
 동작 굽기 요점(`build.py` `retarget`): 몸 팩과 동작 팩의 쉼 자세가 목 14°·발 9° 쯤 달라, 곡선을 그대로 베끼면 자세가 기운다(측정: 칼 휘두르기 15.6°).
 그래서 ① 뼈마다 쉼 방향을 원본 쪽으로 맞추는 최소 회전을 먼저 곱하고 ② 골반 이동은 **다리 길이 비**로 늘리고
@@ -93,7 +95,7 @@ MPFB(MakeHuman 확장)는 아직 설치하지 않았다 — 실사 몸이 필요
 | 단계 | 할 일 | 끝났다는 기준 |
 |---|---|---|
 | 0 ✅ | 도구 뼈대: `build.py` · `verify.py` · `bonemap.json` · `sources.json` · `fetch_sources.py`, 무료판 팩 받기 | **통과(2026-09-24)** `_test_toon_01`: 뼈 65·삼각형 17,966·동작 44·빌드 41초. verify(파일 기준) glb 팔다리 0.0°·땅 0cm, fbx 0.7°·2.7mm. `.glb` 는 두 번 뽑아 sha256 이 같다. `.fbx` 는 Blender FBX 익스포터가 메모리 주소 순서로 돌아 바이트가 매번 달라 내용 검증(verify)으로 갈음한다. Godot 4.7 빈 프로젝트 임포트 오류·경고 0(`_Loop` 는 Godot 가 떼고 반복으로 표시 → `Idle`·`Walk`). Unity 6000.3 빈 프로젝트 FBX Humanoid 아바타 valid·human, 클립 44, 스킨 메시 4 |
-| 1 | **동작 먼저 바꾼다**(가장 급하다 — 로컬 전용이라 다른 PC 가 막힌다). §9 대응표대로 UAL + 자체 키프레임 | Godot GO·FOREST 플레이어가 `idle/walk/sprint` 를 새 묶음으로 돈다. 발 높이 FK 오차 ≤ 1cm |
+| 1 ✅ | **동작 먼저 바꾼다**(로컬 전용이라 다른 PC 가 막혔다) | **통과(2026-09-24, saga-godot)** `bake_for_rig.py` → VRoid 셋 `J_Bip_*` 52뼈 × 여덟 동작, verify 0.0°·0cm(뒤돌아 있는 saga_forest_avatar_01 은 원본을 180° 돌려 굽는다) → `saga-godot/tools/ual_lib_build.gd` → `anim_cc0/*_lib.res`(커밋, 자체 확인 ≤ 0.10°) → `probe_anim_cc0.gd` 3/3 · godot_regress 통과. saga-unity 동작은 몸과 함께 단계 3 에서(Mixamo 인물마다 몸·동작이 한 벌) |
 | 2 | saga-godot 몸: VRoid 셋(`AvatarSample_A`·`saga_forest_avatar_01`·`dungeon_hero_01`) → 툰 레시피 | `cel_toon` 으로 그렸을 때 외곽선·램프가 깨지지 않는다. 실기 확인은 모아서(사람 몫) |
 | 3 | saga-unity 몸: Mixamo 인물·괴물(§9) → PBR 레시피. 괴물은 같은 몸에 비율 극단값 + kitbash(뿔·갑옷·버섯갓) | `CharactersRealistic/` 에 기대는 코드가 0 이 되고, 없는 PC 용 도형 대체도 필요 없어진다 |
 | 4 | 인물 명단 → 레시피 대량 생성(도감 `id` 마다) | 인물마다 실루엣이 다르다(키·체격·머리·옷 네 축 중 둘 이상) |
@@ -128,7 +130,6 @@ MPFB(MakeHuman 확장)는 아직 설치하지 않았다 — 실사 몸이 필요
 |---|---|---|---|
 | godot | GO·FOREST 플레이어 몸 | VRoid `AvatarSample_A` · `saga_forest_avatar_01` | 툰 레시피 |
 | godot | DUNGEON 영웅 | VRoid `dungeon_hero_01` | 툰 레시피 |
-| godot | 동작 idle/walk/run/attack/hit/dodge/death/pickup | Mixamo(로컬 전용) → `mixamo_retarget.gd` | 무료판에 다 있다: `Idle_Loop`·`Walk_Loop`·`Jog_Fwd_Loop`(`Sprint_Loop`)·`Sword_Attack`·`Hit_Chest`·`Roll`·`Death01`·`PickUp_Table` |
 | unity | 주역·적 Maria·Abe·Brute | Mixamo 몸 + 클립 | PBR 레시피 + UAL |
 | unity | 동행 무사(Paladin)·술사(Peasant Girl)·유격(Erika Archer)·마을 사람 | Mixamo | PBR 레시피 + 장비 소켓 |
 | unity | 짐승·괴물(Goblin·Pumpkinhulk·Warrok·Parasite·Nightshade·Jolleen·Skeletonzombie) | Mixamo | 같은 몸의 비율 극단값 + kitbash, 떠 있는 것은 Rigify 뼈 |

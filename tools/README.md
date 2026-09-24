@@ -27,7 +27,8 @@
 | `tools/char-forge/` | VRoid·Mixamo 대체 자체 인물 공방(Blender 헤드리스 + CC0) — 레시피 → `.glb`/`.fbx`(`build.py`)·파일 검증(`verify.py`)·팩 받기(`fetch_sources.py`). 0단계 끝, 게임엔 아직 안 물림 |
 | `saga-web/tools/bake-portraits/` | 도감·카드 초상을 webp 로 미리 굽기 |
 | `saga-web/saga-go/tools/bake-icons/` | 짐승·건물 2D 지도 아이콘 굽기 |
-| `saga-godot/tools/mixamo_retarget.gd` | Mixamo 모션 → VRM 뼈대 리타겟 |
+| `saga-godot/tools/mixamo_retarget.gd` | (옛) Mixamo 모션 → VRM 뼈대 리타겟 — 이제 어느 씬도 결과를 안 부른다 |
+| `saga-godot/tools/ual_lib_build.gd` | char-forge 가 VRoid 뼈대에 구운 CC0 동작 .glb → `anim_cc0/*_lib.res` (월드 기준 변환·자체 확인) · 점검 `probe_anim_cc0.gd` |
 
 ## 점검·검증
 

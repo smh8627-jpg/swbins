@@ -10,9 +10,9 @@ const CelShaderApply := preload("res://saga_core/shaders/cel_shader_apply.gd")
 
 const BODIES := [
 	{"glb": "res://assets/characters_vroid/dungeon_hero_01.glb", "scale": 0.933514,
-		"lib": "res://assets/characters_vroid/anim/dungeon_hero_01_lib.res"},
+		"lib": "res://assets/characters_vroid/anim_cc0/dungeon_hero_01_lib.res"},
 	{"glb": "res://assets/characters_vroid/saga_forest_avatar_01.glb", "scale": 1.0344,
-		"lib": "res://assets/characters_vroid/anim/saga_forest_avatar_01_lib.res"},
+		"lib": "res://assets/characters_vroid/anim_cc0/saga_forest_avatar_01_lib.res"},
 ]
 
 const HAIR_TINTS := [

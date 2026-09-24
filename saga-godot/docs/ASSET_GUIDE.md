@@ -621,3 +621,10 @@ clutter와 같은 결). 폐허 지도가 7×7이라 "R" 칸이 21개뿐 — clut
 09-20 절들이 문장으로 적은 파일(`RockPath_Round_Small×3+Thin`·`Flower_3/4` 등)을 점검 도구가 이름으로 대조할 수 있게
 패턴으로 다시 적는다 — 출처는 위 "Quaternius Stylized Nature MegaKit(Standard, CC0)" 절 그대로다.
 `rocks/RockPath_*.gltf` · `rocks/Pebble_*.gltf` · `rocks/Rock_Medium_*.gltf` · `vegetation/Flower_*.gltf` · `vegetation/Grass_*.gltf`
+
+## 2026-09-24 — CC0 동작 묶음(`assets/characters_vroid/anim_cc0/`) — Mixamo 동작 갈음
+
+- 출처: Quaternius **Universal Animation Library [Standard]**(CC0-1.0, opengameart.org/content/universal-animation-library), 받기·sha256 은 `../tools/char-forge/sources.json`.
+- 만드는 법: `../tools/char-forge/README.md` §3 · 이 판 쪽은 `tools/ual_lib_build.gd`. 다른 PC 는 원본이 없어도 된다(.res 가 커밋돼 있다). 다시 굽을 때만 `py tools/char-forge/fetch_sources.py`.
+- `AvatarSample_A`·`saga_forest_avatar_01`·`dungeon_hero_01` 셋 × 여덟 동작(idle·walk·sprint·attack·hit·dodge·death·pickup). 몸(VRoid)은 그대로다.
+- 옛 `anim/`(Mixamo 리타겟, 로컬 전용)은 이제 어느 씬도 안 부른다.

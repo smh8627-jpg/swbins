@@ -106,7 +106,7 @@ transform = Transform3D(0.933514, 0, 0, 0, 0.933514, 0, 0, 0, 0.933514, 0, 0, 0)
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="Visual"]
 script = ExtResource("84")
-library_path = "res://assets/characters_vroid/anim/dungeon_hero_01_lib.res"
+library_path = "res://assets/characters_vroid/anim_cc0/dungeon_hero_01_lib.res"
 
 [node name="CameraRig" type="Node3D" parent="."]
 script = ExtResource("2")

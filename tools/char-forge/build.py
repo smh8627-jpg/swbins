@@ -12,6 +12,9 @@
 import bpy, json, math, os, sys
 from mathutils import Matrix, Vector
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import rigmaps  # noqa: E402
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.join(HERE, '_src')
 UBC = os.path.join(SRC, 'Universal Base Characters[Standard]')
@@ -198,66 +201,106 @@ def new_channelbag(act, owner):
         return slot, strip.channelbag(slot, ensure=True)
 
 
-def retarget(tgt, want, check):
+def face_like(src, tgt, pairs):
+    """두 뼈대의 앞(발목 → 발끝)이 반대면 원본을 Z 축 180° 돌린다(saga_forest_avatar_01 은 뒤돌아 있다)."""
+    def fwd(arm, foot, ball):
+        v = (arm.matrix_world @ arm.data.bones[ball].head_local) - (arm.matrix_world @ arm.data.bones[foot].head_local)
+        v.z = 0
+        return v.normalized()
+    if fwd(src, 'foot_l', 'ball_l').dot(fwd(tgt, pairs['foot_l'], pairs['ball_l'])) < 0:
+        src.rotation_euler.z += math.pi
+        bpy.context.view_layer.update()
+        return True
+    return False
+
+
+def rest_align(src, s_rest, t_rest, pairs):
+    """뼈마다 타깃 쉼 방향 → 원본 쉼 방향 최소 회전(비틀림 없음). 방향 = 기준 자식 머리 - 내 머리(rigmaps.REF_CHILD)."""
+    align = {}
+    for s in rigmaps.STD_BONES:
+        if s not in pairs:
+            continue
+        c = rigmaps.REF_CHILD.get(s)
+        if c and c in pairs:
+            sd = (s_rest[c].translation - s_rest[s].translation).normalized()
+            td = (t_rest[pairs[c]].translation - t_rest[pairs[s]].translation).normalized()
+            align[s] = td.rotation_difference(sd).to_matrix()
+        else:  # 끝 뼈: 부모 맞춤을 물려받는다
+            p = src.data.bones[s].parent
+            align[s] = align.get(p.name, Matrix.Identity(3)) if p else Matrix.Identity(3)
+    return align
+
+
+def retarget(tgt, want, check, name_map=None):
+    """UAL 동작을 tgt 뼈대에 굽는다.
+    want: 'all' | [UAL 이름…] | {내보낼 이름: UAL 이름}. name_map: 표준 → tgt 뼈 이름(rigmaps.MAPS)."""
+    name_map = name_map or rigmaps.IDENTITY
     objs = import_new(UAL_FBX)
     src = next(o for o in objs if o.type == 'ARMATURE')
     delete([o for o in objs if o is not src])
     scene = bpy.context.scene
     scene.render.fps, scene.render.fps_base = 30, 1.0
     src_acts = [a for a in bpy.data.actions if a.name.startswith('Rig|')]
+    pairs = {s: t for s, t in name_map.items() if t and s in src.data.bones and t in tgt.data.bones}
+    t2s = {t: s for s, t in pairs.items()}
+    flipped = face_like(src, tgt, pairs)
+    # 동작 팩 FBX 는 뼈대 오브젝트 회전까지 키로 가져 frame_set 마다 되돌아간다 — 돌린 뒤의 행렬을 여기서 붙들어 끝까지 쓴다
     smw, tmw = src.matrix_world.copy(), tgt.matrix_world.copy()
     s_rest = {b.name: smw @ b.matrix_local for b in src.data.bones}
     t_rest_arm = {b.name: b.matrix_local.copy() for b in tgt.data.bones}
     t_rest = {n: tmw @ m for n, m in t_rest_arm.items()}
     order = topo(tgt.data.bones)
-    # 쉼 방향 맞춤: 뼈마다 파일 쪽 쉼 방향을 원본 쉼 방향으로 돌리는 최소 회전(비틀림 없음).
-    # 이게 없으면 두 쉼 자세 차이(목 14°·발 9°)만큼 모든 동작이 기운다(verify.py 로 측정, 칼 휘두르기 15.6°).
-    def rest_dir(arm_obj, R, n):
-        b = arm_obj.data.bones[n]
-        return (arm_obj.matrix_world.to_3x3() @ (b.tail_local - b.head_local)).normalized()
-    align = {}
-    for b in tgt.data.bones:
-        if b.name in s_rest:
-            align[b.name] = rest_dir(tgt, t_rest, b.name).rotation_difference(rest_dir(src, s_rest, b.name)).to_matrix()
+    # 쉼 방향 맞춤: 이게 없으면 두 쉼 자세 차이(목 14°·발 9°)만큼 모든 동작이 기운다(verify.py 로 측정, 칼 휘두르기 15.6°)
+    align = rest_align(src, s_rest, t_rest, pairs)
+
     # 골반 이동 배율 = 다리 길이 비(골반 높이 비는 몸 비율이 다르면 발이 뜨거나 묻힌다)
-    leg = lambda R: sum((R[a].translation - R[b].translation).length
-                        for a, b in (('thigh_l', 'calf_l'), ('calf_l', 'foot_l')))
-    k = leg(t_rest) / leg(s_rest)
-    moving = {'root', 'pelvis'}
-    feet = ('foot_l', 'foot_r')
+    def leg(R, nm):
+        return sum((R[nm[a]].translation - R[nm[b]].translation).length
+                   for a, b in (('thigh_l', 'calf_l'), ('calf_l', 'foot_l')))
+    k = leg(t_rest, pairs) / leg(s_rest, rigmaps.IDENTITY)
+    moving = {pairs[s] for s in ('root', 'pelvis') if s in pairs}
+    s_feet, t_feet = ('foot_l', 'foot_r'), (pairs['foot_l'], pairs['foot_r'])
     below_pelvis = set()
 
     def sub(b):
         below_pelvis.add(b.name)
         for c in b.children:
             sub(c)
-    sub(tgt.data.bones['pelvis'])
-    report = {}
+    sub(tgt.data.bones[pairs['pelvis']])
+    if isinstance(want, dict):
+        jobs = list(want.items())
+    else:
+        jobs = [(n, n) for n in (a.name.split('|')[-1] for a in src_acts)
+                if n not in SKIP_ANIMS and (want == 'all' or n in want)]
+    by_name = {a.name.split('|')[-1]: a for a in src_acts}
+    report = {'_meta': {'flipped': flipped, 'leg_ratio': round(k, 4), 'bones': len(pairs)}}
     made = []
     src.animation_data_create()
-    for sa in src_acts:
-        name = sa.name.split('|')[-1]
-        if name in SKIP_ANIMS or (want != 'all' and name not in want):
-            continue
+    for out_name, ual_name in jobs:
+        sa = by_name.get(ual_name)
+        if sa is None:
+            sys.exit(f'동작 팩에 {ual_name} 이 없다')
         src.animation_data.action = sa
         if sa.slots and src.animation_data.action_slot is None:
             src.animation_data.action_slot = sa.slots[0]
         f0, f1 = (int(round(x)) for x in sa.frame_range)
         frames = list(range(f0, f1 + 1))
-        keys = {b.name: {'loc': [], 'rot': []} for b in order}
+        keys = {n: {'loc': [], 'rot': []} for n in t2s}
         ground_err = None
+        hips_xy = []
         for f in frames:
             scene.frame_set(f)
             W = {}
             for b in order:
                 n = b.name
                 p = b.parent
-                if n in src.pose.bones and n in s_rest:
-                    sw = smw @ src.pose.bones[n].matrix
-                    rot = (sw.to_3x3().normalized() @ s_rest[n].to_3x3().normalized().inverted()
-                           @ align[n] @ t_rest[n].to_3x3().normalized())
+                s = t2s.get(n)
+                if s:
+                    sw = smw @ src.pose.bones[s].matrix
+                    rot = (sw.to_3x3().normalized() @ s_rest[s].to_3x3().normalized().inverted()
+                           @ align[s] @ t_rest[n].to_3x3().normalized())
                     if n in moving or p is None:
-                        t = t_rest[n].translation + (sw.translation - s_rest[n].translation) * k
+                        t = t_rest[n].translation + (sw.translation - s_rest[s].translation) * k
                     else:
                         t = (W[p.name] @ (t_rest[p.name].inverted() @ t_rest[n])).translation
                     W[n] = Matrix.Translation(t) @ rot.to_4x4()
@@ -265,20 +308,20 @@ def retarget(tgt, want, check):
                     W[n] = (W[p.name] @ (t_rest[p.name].inverted() @ t_rest[n])) if p else t_rest[n]
             # 땅 붙이기: 원본의 낮은 발이 땅(쉼 높이 ±1cm)에 있으면 구운 쪽 낮은 발도 거기에 — 골반 아래를 통째로 올리고 내린다.
             # 1~3cm 사이는 서서히 풀어 뜀뛰기 이륙·착지에서 튀지 않게 한다.
-            s_low = min((smw @ src.pose.bones[fb].matrix).translation.z - s_rest[fb].translation.z for fb in feet)
-            t_low = min(W[fb].translation.z - t_rest[fb].translation.z for fb in feet)
+            s_low = min((smw @ src.pose.bones[fb].matrix).translation.z - s_rest[fb].translation.z for fb in s_feet)
+            t_low = min(W[fb].translation.z - t_rest[fb].translation.z for fb in t_feet)
             w = max(0.0, min(1.0, 1.0 - (abs(s_low) - 0.01) / 0.02))
             dz = (s_low - t_low) * w
             if dz:
                 for n in below_pelvis:
                     W[n] = Matrix.Translation((0, 0, dz)) @ W[n]
             if check and abs(s_low) < 0.01:
-                e = abs(min(W[fb].translation.z - t_rest[fb].translation.z for fb in feet) - s_low)
+                e = abs(min(W[fb].translation.z - t_rest[fb].translation.z for fb in t_feet) - s_low)
                 ground_err = max(ground_err or 0.0, e)
+            hips_xy.append(W[pairs['pelvis']].translation.xy.copy())
             A = {n: tmw.inverted() @ m for n, m in W.items()}
-            for b in order:
-                n = b.name
-                p = b.parent
+            for n in t2s:
+                p = tgt.data.bones[n].parent
                 if p is None:
                     basis = t_rest_arm[n].inverted() @ A[n]
                 else:
@@ -289,13 +332,10 @@ def retarget(tgt, want, check):
                     q.negate()
                 keys[n]['loc'].append(loc)
                 keys[n]['rot'].append(q)
-        act = bpy.data.actions.new(name)
+        act = bpy.data.actions.new(out_name)
         act.use_fake_user = True
         slot, cb = new_channelbag(act, tgt)
-        for b in order:
-            n = b.name
-            if n not in s_rest:
-                continue
+        for n in t2s:
             for path, vals, count in ((f'pose.bones["{n}"].location', keys[n]['loc'], 3),
                                       (f'pose.bones["{n}"].rotation_quaternion', keys[n]['rot'], 4)):
                 if path.endswith('location') and n not in moving and all((v.length < 1e-5) for v in vals):
@@ -311,8 +351,10 @@ def retarget(tgt, want, check):
                         kp.interpolation = 'LINEAR'
                     fc.update()
         made.append((act, slot))
-        # 땅 닿음: 원본이 발을 땅에 댄 프레임에서 구운 쪽 낮은 발 높이 차(최대)
-        report[name] = {'frames': len(frames), 'ground_err_m': round(ground_err, 4) if ground_err is not None else None}
+        # ground_err: 원본이 발을 땅에 댄 프레임에서 구운 쪽 낮은 발 높이 차(최대) · drift: 골반이 처음→끝 수평으로 간 거리(제자리인지)
+        report[out_name] = {'src': ual_name, 'frames': len(frames),
+                            'ground_err_m': round(ground_err, 4) if ground_err is not None else None,
+                            'drift_m': round((hips_xy[-1] - hips_xy[0]).length, 3)}
     for pb in tgt.pose.bones:
         pb.rotation_mode = 'QUATERNION'
     tgt.animation_data_create()
@@ -399,6 +441,7 @@ def main():
     }
     json.dump(lic, open(os.path.splitext(out)[0] + '.license.json', 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
     tris = sum(sum(len(p.vertices) - 2 for p in m.data.polygons) for m in arm.children if m.type == 'MESH')
+    meta = rep.pop('_meta')
     worst = max((v['ground_err_m'] or 0 for v in rep.values()), default=0)
     print('CHARFORGE', json.dumps({'id': recipe['id'], 'bones': len(arm.data.bones), 'tris': tris,
                                    'anims': len(rep), 'ground_err_max_m': worst}, ensure_ascii=False))

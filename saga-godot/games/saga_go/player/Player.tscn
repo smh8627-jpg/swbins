@@ -26,7 +26,7 @@ transform = Transform3D(1.091, 0, 0, 0, 1.091, 0, 0, 0, 1.091, 0, 0, 0)
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="Visual"]
 script = ExtResource("4")
-library_path = "res://assets/characters_vroid/anim/AvatarSample_A_lib.res"
+library_path = "res://assets/characters_vroid/anim_cc0/AvatarSample_A_lib.res"
 
 [node name="CameraRig" type="Node3D" parent="."]
 script = ExtResource("2")
