@@ -32,6 +32,14 @@ static func build(id: String, rarity: int = 3, cloth_override: Variant = null) -
 	var body: Dictionary = BODIES[h % BODIES.size()]
 	var v := (load(body.glb) as PackedScene).instantiate() as Node3D
 	v.scale = Vector3.ONE * float(body.scale)
+	## 2026-09-24 — saga_forest_avatar_01 은 뼈대 공간 앞이 -Z(VRM 1.0 식)라, 부르는 쪽이 모두 "앞 = +Z"로
+	## 돌리던(atan2(x, z)) 인물·도적이 등을 보이며 걸었다. 안쪽 자식을 Y축 180° 돌려 돌려주는 몸은 늘 +Z 를 보게 한다
+	## (애니 트랙은 "Skeleton3D:뼈" 경로라 안 바뀐다. 뼈대 공간 자체는 그대로 -Z 라 뼈에 뭘 붙일 땐 front_sign 을 본다).
+	var skels := v.find_children("*", "Skeleton3D", true, false)
+	if not skels.is_empty() and front_sign(skels[0]) < 0.0:
+		for c in v.get_children():
+			if c is Node3D:
+				(c as Node3D).transform = Transform3D(Basis(Vector3.UP, PI), Vector3.ZERO) * (c as Node3D).transform
 	CelShaderApply.apply_to(v)
 	## 부르는 쪽이 또 apply_to 하면 얼굴 베이크가 두 번 덮여 단색이 된다(재질 감사 flat-tint).
 	v.set_meta("cel_applied", true)
@@ -47,6 +55,14 @@ static func build(id: String, rarity: int = 3, cloth_override: Variant = null) -
 		## 무리가 박자 맞춰 숨쉬지 않게 시작점을 어긋낸다.
 		ap.seek(float(h % 100) / 100.0 * ap.current_animation_length, true)
 	return v
+
+## 뼈대 공간에서 몸 앞이 +Z 면 1, -Z 면 -1 — 오른발목 → 발끝 쉬는 자세 방향(뼈가 없으면 1).
+static func front_sign(skel: Skeleton3D) -> float:
+	var foot := skel.find_bone("J_Bip_R_Foot")
+	var toe := skel.find_bone("J_Bip_R_ToeBase")
+	if foot < 0 or toe < 0:
+		return 1.0
+	return -1.0 if skel.get_bone_global_rest(toe).origin.z < skel.get_bone_global_rest(foot).origin.z else 1.0
 
 static func _tint(root: Node, hair: Color, cloth: Color, gold: bool) -> void:
 	for mi in root.find_children("*", "MeshInstance3D", true, false):

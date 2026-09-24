@@ -13,6 +13,7 @@ extends Node
 ## 106장 ㉘ 4장: ㉓ 나그네는 4장 둘째 단계부터만 서 있고 가면이 머리 뼈에 붙음 ㉔ 나그네 대화 → 따라가기, 앞장선 동안은 말 못 검
 ## ㉕ 따라가기 — 멀면 서서 기다리고 "너무 멀다", 가까우면 길 끝까지 걷고 다음 단계 ㉖ 나그네 → 들녘 졸개 넷 ㉗ 다 쓰러뜨리기
 ## ㉘ 나그네 → 사라짐(길 끝 자리) ㉙ 학자 ㉚ 촌장 → 4장 끝·다 끝남·목록 ✔ 제4장.
+## 106장 ㉙ 대화 몸짓: ㉛ 글자 흘리기·입 모양(한글 모음 → 입 다섯)·말하는 동안 오른손이 앞·위로·F 한 번이면 줄 전체·끝나면 손·입 제자리·표정·눈 깜박임.
 ## 저장은 안 한다(부대 경험·이야기 상태는 메모리에서만 바꾸고 끝에 되돌린다).
 
 const Story := preload("res://games/saga_go/data/story.gd")
@@ -215,8 +216,8 @@ func _physics_process(_delta: float) -> void:
 				_v.npc_look = _looks_at(_sq.call("npc_pos", "elder"))
 				_v.npc_side = String(_sq.call("speaker_side"))
 				_v.in_talk = bool(rig.call("in_talk"))
-				_sq.call("next_line")
-				_sq.call("next_line") # 고르는 줄
+				_line_next()
+				_line_next() # 고르는 줄
 			if _frame == 90:
 				_v.me_look = _looks_at(_p.global_position)
 				_v.me_side = String(_sq.call("speaker_side"))
@@ -342,10 +343,14 @@ func _physics_process(_delta: float) -> void:
 			if _frame == 20:
 				var root: Node3D = _sq.get("_npcs")["wanderer"]
 				var att := root.find_children("*", "BoneAttachment3D", true, false)
+				## 가면이 얼굴 쪽(몸 앞 +Z)에 있는가 — 머리 뼈 자리보다 몸 앞으로 나와 있어야.
+				var mask_n: Node3D = root.find_children("Mask", "Node3D", true, false)[0]
+				var body_w: Node3D = root.get_node("Body")
+				var mask_fwd := (mask_n.global_position - (att[0] as Node3D).global_position).dot(body_w.global_transform.basis.z.normalized())
 				var ok: bool = not bool(_v[0]) and not bool(_v[1]) and int(_sq.call("ch")) == 3 and int(_sq.call("st")) == 1 and root.visible \
-					and bool(_sq.call("has_mask", "wanderer")) and att.size() == 1 \
+					and bool(_sq.call("has_mask", "wanderer")) and att.size() == 1 and mask_fwd > 0.05 \
 					and (_sq.call("target_pos") as Vector3).is_equal_approx(_sq.call("npc_pos", "wanderer"))
-				_check("wanderer_appears", ok, "before=%s/%s st=%d visible=%s mask=%s on_head=%d" % [_v[0], _v[1], _sq.call("st"), root.visible, _sq.call("has_mask", "wanderer"), att.size()])
+				_check("wanderer_appears", ok, "before=%s/%s st=%d visible=%s mask=%s on_head=%d mask_fwd=%.3f" % [_v[0], _v[1], _sq.call("st"), root.visible, _sq.call("has_mask", "wanderer"), att.size(), mask_fwd])
 				_next()
 		24: # ㉔ 나그네 대화 → 따라가기
 			if _frame == 1:
@@ -433,7 +438,51 @@ func _physics_process(_delta: float) -> void:
 			var ok: bool = int(_sq.call("ch")) == 4 and _sq.call("tracker_text") == "" and _sq.call("target_pos") == Vector3.INF and jt.contains("✔ 제4장")
 			_check("chapter4", ok, "ch=%d tracker='%s'" % [_sq.call("ch"), _sq.call("tracker_text")])
 			_next()
-		31:
+		31: # ㉛ 대화 몸짓 — 다 끝난 뒤 촌장 혼잣말로
+			var face: Node = _sq.call("face_of", "elder")
+			var body: Node3D = (_sq.get("_npcs")["elder"] as Node3D).get_node("Body")
+			if _frame == 1:
+				_near_npc("elder")
+				_v = {"hand": _hand_probe(body), "blink": 0.0, "base_y": 0.0, "base_f": 0.0, "n": 0}
+			if _frame > 1:
+				_v.blink = maxf(float(_v.blink), float(face.call("blink_weight")))
+			if _frame >= 30 and _frame < 60: # 몸짓 없을 때 손 자리 평균(서기 애니가 조금 흔든다)
+				var hp: Vector3 = (_v.hand as Node3D).global_position - body.global_position
+				_v.base_y += hp.y
+				_v.base_f += hp.dot(body.global_transform.basis.z.normalized())
+				_v.n += 1
+			if _frame == 60:
+				_v.map = [face.call("viseme_of", "가"), face.call("viseme_of", "기"), face.call("viseme_of", "구"), face.call("viseme_of", "게"), face.call("viseme_of", "고"), face.call("viseme_of", "!"), face.call("viseme_of", "a")]
+				_v.opened = bool(_sq.call("interact"))
+			if _frame == 66:
+				var vc := int((_sq.get("_dlg_text") as Label).visible_characters)
+				_v.revealing = bool(_sq.call("is_revealing")) and vc > 0 and vc < String((_sq.get("_dlg_text") as Label).text).length()
+				_v.mouth = float((face.call("mouth_state") as Array)[1])
+			if _frame == 110:
+				var hp: Vector3 = (_v.hand as Node3D).global_position - body.global_position
+				_v.lift = hp.y - float(_v.base_y) / float(_v.n)
+				_v.fwd = hp.dot(body.global_transform.basis.z.normalized()) - float(_v.base_f) / float(_v.n)
+				_v.infl = float(face.get("influence"))
+				_v.done_reveal = not bool(_sq.call("is_revealing"))
+				_v.open_mid = bool(_sq.call("is_dialogue_open"))
+				face.call("set_mood", "joy")
+			if _frame == 150:
+				_v.joy = float(face.call("mood_weight", "joy"))
+				face.call("set_mood", "")
+				_sq.call("next_line") # 혼잣말 한 줄 — 닫힘
+				_v.closed = not bool(_sq.call("is_dialogue_open"))
+			if _frame == 420:
+				var hp: Vector3 = (_v.hand as Node3D).global_position - body.global_position
+				var back := absf(hp.y - float(_v.base_y) / float(_v.n)) < 0.05
+				var ok: bool = _v.map == [0, 1, 2, 3, 4, -1, -1] and bool(_v.opened) and bool(_v.revealing) and float(_v.mouth) > 0.2 \
+					and float(_v.lift) > 0.12 and float(_v.fwd) > 0.08 and float(_v.infl) > 0.9 and bool(_v.done_reveal) and bool(_v.open_mid) \
+					and float(_v.joy) > 0.5 and bool(_v.closed) and float(face.get("influence")) < 0.05 and back and float(_v.blink) > 0.99 \
+					and bool(face.call("has_mouth"))
+				_check("talk_face", ok, "map=%s reveal=%s mouth=%.2f lift=%.2f fwd=%.2f infl=%.2f joy=%.2f closed=%s back=%s blink=%.1f front=%+.0f" % [
+					_v.map, _v.revealing, _v.mouth, _v.lift, _v.fwd, _v.infl, _v.joy, _v.closed, back, _v.blink, face.call("front_sign")])
+				(_v.hand as Node).queue_free()
+				_next()
+		32:
 			PartyState.story = _saved.story
 			PartyState.exp = _saved.exp
 			PartyState.level = _saved.level
@@ -480,6 +529,20 @@ func _looks_at(foot: Vector3) -> float:
 	var cam: Camera3D = _p.get_node("CameraRig/SpringArm3D/Camera3D")
 	var to: Vector3 = (foot + Vector3.UP * 1.45) - cam.global_position
 	return (-cam.global_transform.basis.z).dot(to.normalized())
+
+## 다음 줄로 — 글자가 흘러나오는 중이면 두 번(한 번은 줄 전체 보이기).
+func _line_next() -> void:
+	if _sq.call("is_revealing"):
+		_sq.call("next_line")
+	_sq.call("next_line")
+
+## 오른손 뼈에 붙인 빈 노드(손짓 점검 — 뼈대 수정 뒤 자리를 따라간다).
+func _hand_probe(body: Node3D) -> Node3D:
+	var skel: Skeleton3D = body.find_children("*", "Skeleton3D", true, false)[0]
+	var att := BoneAttachment3D.new()
+	att.bone_idx = skel.find_bone("J_Bip_R_Hand")
+	skel.add_child(att)
+	return att
 
 func _near_npc(id: String) -> void:
 	_dismiss_prompts()

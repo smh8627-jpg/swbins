@@ -6,6 +6,7 @@ extends CharacterBody3D
 ## (CC0 Kenney Blocky Characters, ASSET_GUIDE.md 참고) — 안에 idle·walk·
 ## sprint 애니메이션이 이미 들어 있어서 그걸 그대로 재생만 한다.
 
+const VroidBody := preload("res://games/saga_go/world/vroid_body.gd")
 const CelShaderApply := preload("res://saga_core/shaders/cel_shader_apply.gd")
 const BlobShadow := preload("res://saga_core/world/blob_shadow.gd")
 
@@ -45,6 +46,13 @@ func _ready() -> void:
 		_joystick = found[0]
 	_play_anim("idle")
 	CelShaderApply.apply_to(visual)
+	## 2026-09-24 — FOREST 아바타(saga_forest_avatar_01)는 뼈대 공간 앞이 -Z 라, 아래 target_yaw = atan2(x, z)(앞 = +Z)로
+	## 돌리면 등을 앞으로 한 채 달렸다. world/vroid_body.gd 와 같게 Visual 안쪽을 Y축 180° 돌려 앞을 +Z 로(앞이 +Z 인 GO·DUNGEON 몸은 그대로).
+	var skels := visual.find_children("*", "Skeleton3D", true, false)
+	if not skels.is_empty() and VroidBody.front_sign(skels[0]) < 0.0:
+		for c in visual.get_children():
+			if c is Node3D:
+				(c as Node3D).transform = Transform3D(Basis(Vector3.UP, PI), Vector3.ZERO) * (c as Node3D).transform
 	var shadow := BlobShadow.make_decal()
 	shadow.position = Vector3(0, 0.15, 0)
 	add_child(shadow)

@@ -16,6 +16,7 @@ const TerrainBuilder := preload("res://games/saga_go/world/terrain_builder.gd")
 const FieldEnemy := preload("res://games/saga_go/combat/field_enemy.gd")
 const FieldBosses := preload("res://games/saga_go/world/field_bosses.gd")
 const VroidBody := preload("res://games/saga_go/world/vroid_body.gd")
+const TalkFace := preload("res://games/saga_go/world/talk_face.gd")
 const Toast := preload("res://saga_core/ui/toast.gd")
 
 signal step_changed(ch: int, step: int)
@@ -53,6 +54,12 @@ var _count := 0 # gather 단계에서 캔 수(저장 안 함)
 var _follow_i := 0 # follow 단계 — 다음에 걸어갈 길 점
 var _follow_far := false # follow 단계 — 내가 FOLLOW_LOST 밖인가(추적 글자)
 var follow_speed_mul := 1.0 # 점검이 걸음을 빠르게 돌릴 때만
+## 106장 ㉙ 대화 몸짓 — 임무 인물 id → TalkFace(world/talk_face.gd), 나는 첫 대화 때 붙인다. 글자는 REVEAL_CPS 로 흘린다.
+const REVEAL_CPS := 30.0
+var _faces: Dictionary = {}
+var _player_tf: Node = null
+var _reveal := -1.0 # 흘러나온 글자 수(음수면 다 보임)
+var _reveal_face: Node = null
 
 func _ready() -> void:
 	add_to_group("go_story")
@@ -506,9 +513,12 @@ func speaker_side() -> String:
 	var line: Array = _dlg_lines[_dlg_i]
 	return "me" if String(line[0]) == "?" or _dlg_name.text == "나" else "npc"
 
-## 다음 줄(고르는 줄이면 고르기 전엔 안 넘어간다).
+## 다음 줄(고르는 줄이면 고르기 전엔 안 넘어간다). 글자가 흘러나오는 중이면 먼저 줄 전체를 한 번에 보인다(원신처럼 두 번 눌러 넘김).
 func next_line() -> void:
 	if not _dlg_open or _dlg_waiting_choice:
+		return
+	if _reveal >= 0.0:
+		_finish_reveal()
 		return
 	_dlg_i += 1
 	if _dlg_i >= _dlg_lines.size():
@@ -525,7 +535,7 @@ func choose(i: int) -> void:
 	for c in _dlg_choices.get_children():
 		c.queue_free()
 	_dlg_name.text = "나"
-	_dlg_text.text = String(opts[clampi(i, 0, opts.size() - 1)])
+	_begin_reveal(String(opts[clampi(i, 0, opts.size() - 1)]), _player_face(), "")
 	_frame_speaker(true)
 
 func _show_line() -> void:
@@ -535,6 +545,7 @@ func _show_line() -> void:
 	if String(line[0]) == "?":
 		_dlg_waiting_choice = true
 		_dlg_name.text = "나"
+		_begin_reveal("", null, "")
 		_dlg_text.text = "…"
 		var opts: Array = line[1]
 		for i in opts.size():
@@ -549,10 +560,77 @@ func _show_line() -> void:
 	else:
 		_dlg_waiting_choice = false
 		_dlg_name.text = String(line[0])
-		_dlg_text.text = String(line[1])
-		_frame_speaker(String(line[0]) == "나")
+		var me := String(line[0]) == "나"
+		_begin_reveal(String(line[1]), _player_face() if me else _faces.get(_dlg_npc), String(line[2]) if line.size() > 2 else "")
+		_frame_speaker(me)
+
+# ---------------------------------------------------------------- 대화 몸짓(106장 ㉙, world/talk_face.gd)
+
+## 말하는 이의 몸짓을 켜고(다른 이는 끄고) 글자를 처음부터 흘린다. face 가 null 이면 몸짓 없이 글자만.
+func _begin_reveal(text: String, face: Node, mood: String) -> void:
+	for f in _all_faces():
+		if f != face:
+			f.call("set_talking", false)
+			f.call("set_mood", "")
+	_reveal_face = face
+	_dlg_text.text = text
+	if face:
+		face.call("set_talking", true)
+		face.call("set_mood", mood)
+	if text.is_empty():
+		_reveal = -1.0
+		_dlg_text.visible_characters = -1
+		return
+	_reveal = 0.0
+	_dlg_text.visible_characters = 0
+
+## 줄 전체를 보이고 입을 닫는다(손짓은 다음 줄까지 남는다).
+func _finish_reveal() -> void:
+	_reveal = -1.0
+	_dlg_text.visible_characters = -1
+	if _reveal_face:
+		_reveal_face.call("speak", "")
+
+func is_revealing() -> bool:
+	return _reveal >= 0.0
+
+func _process(delta: float) -> void:
+	if _reveal < 0.0 or not _dlg_open:
+		return
+	var text := _dlg_text.text
+	var before := int(_reveal)
+	_reveal += REVEAL_CPS * delta
+	var now := mini(int(_reveal), text.length())
+	if _reveal_face:
+		for i in range(before, now):
+			_reveal_face.call("speak", text[i])
+	_dlg_text.visible_characters = now
+	if now >= text.length():
+		_finish_reveal()
+
+## 그 인물(또는 "me")의 몸짓 노드 — 점검용.
+func face_of(id: String) -> Node:
+	return _player_face() if id == "me" else _faces.get(id)
+
+func _player_face() -> Node:
+	if _player_tf == null and _player:
+		var vis := _player.get_node_or_null("Visual")
+		if vis:
+			_player_tf = TalkFace.attach(vis)
+	return _player_tf
+
+func _all_faces() -> Array:
+	var out: Array = _faces.values()
+	if _player_tf:
+		out.append(_player_tf)
+	return out
 
 func _close_dialogue() -> void:
+	for f in _all_faces():
+		f.call("set_talking", false)
+		f.call("set_mood", "")
+	_reveal = -1.0
+	_reveal_face = null
 	_dlg_open = false
 	_dlg.visible = false
 	remove_from_group("ui_modal")
@@ -647,6 +725,9 @@ func _build_npc(id: String) -> void:
 		anim.play("idle")
 	if info.get("mask", false):
 		_add_mask(body)
+	var tf := TalkFace.attach(body)
+	if tf:
+		_faces[id] = tf
 	var label := Label3D.new()
 	label.text = String(info.name)
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
@@ -672,7 +753,10 @@ func _add_mask(body: Node3D) -> void:
 		att.bone_idx = head
 		skel[0].add_child(att)
 		att.add_child(mask)
-		mask.position = Vector3(0.0, 0.07, 0.085)
+		## 뼈대 공간 앞이 -Z 인 몸(saga_forest_avatar_01)이면 가면도 뒤집어 얼굴 쪽에.
+		var front := VroidBody.front_sign(skel[0])
+		mask.position = Vector3(0.0, 0.07, 0.085 * front)
+		mask.rotation.y = 0.0 if front > 0.0 else PI
 	else:
 		body.add_child(mask)
 		mask.position = Vector3(0.0, 1.52, 0.1)

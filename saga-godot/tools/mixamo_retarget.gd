@@ -16,6 +16,9 @@ extends SceneTree
 ## 전제(2026-09-19 verify_chain.gd 로 실측 확인됨): 매핑한 22개 본이
 ## 두 스켈레톤에서 부모-자식 관계가 정확히 1:1로 일치한다(중간에 안 매핑된
 ## 본이 끼어있지 않음) — 안 그러면 부모 글로벌로 나누는 로컬 변환이 틀어진다.
+## (2026-09-24 팔이 머리 위로 올라간 원인: saga_forest_avatar_01 은 뼈대 공간이 Y축 180° 돌아 있다(앞 -Z·오른팔 +X,
+## VRM 1.0 식) — Mixamo(앞 +Z) 스윙을 그대로 얹으면 "팔을 내리는" 회전이 "팔을 올리는" 회전이 되고 다리도 거꾸로 걷는다.
+## 타깃 발목→발끝 쉬는 자세 방향으로 앞을 재서, 뒤돌아 있으면 스윙·엉덩이 이동을 Y축 180° 로 켤레(R·q·R⁻¹) 해 옮긴다.)
 ## 결과 .res 는 assets/characters_vroid/anim/ 에 쌓인다(마찬가지로 로컬
 ## 전용 — 리타겟해도 모션 자체는 Mixamo 것이라 재배포 금지 그대로 적용).
 ##
@@ -89,6 +92,8 @@ var src_parent := {}
 var src_rest := {}
 var tgt_parent := {}
 var tgt_rest := {}
+## 타깃이 소스(Mixamo, 앞 +Z)와 반대로 서 있으면 Y축 180°, 아니면 항등 — 스윙을 이것으로 켤레해 옮긴다.
+var tgt_flip := Quaternion.IDENTITY
 
 
 func _init():
@@ -102,6 +107,11 @@ func _init():
 
 	_load_skeleton_info(target_glb, tgt_parent, tgt_rest)
 	_load_skeleton_info(SRC_DIR + "/idle.fbx", src_parent, src_rest)
+	var foot_z = _global_rest_transform("J_Bip_R_Foot", tgt_parent, tgt_rest).origin.z
+	var toe_z = _global_rest_transform("J_Bip_R_ToeBase", tgt_parent, tgt_rest).origin.z
+	if toe_z < foot_z:
+		tgt_flip = Quaternion(Vector3.UP, PI)
+	print("target faces %s" % ("-Z (flip swings 180 about Y)" if toe_z < foot_z else "+Z"))
 
 	var chain_order = BONE_MAP.keys()
 	chain_order.sort_custom(func(a, b): return _depth(a, src_parent) < _depth(b, src_parent))
@@ -280,7 +290,7 @@ func _retarget_one(src_path, src_g_rest, tgt_g_rest, dir_local_src,
 				## 최단 회전. 트위스트(자기 축 비틀림)는 안 건드린다.
 				var src_dir_rest_world = src_g_rest[src_name] * dir_local_src[src_name]
 				var src_dir_t_world = src_global[src_name] * dir_local_src[src_name]
-				var swing = Quaternion(src_dir_rest_world, src_dir_t_world)
+				var swing = tgt_flip * Quaternion(src_dir_rest_world, src_dir_t_world) * tgt_flip.inverse()
 				swings[src_name] = swing
 				tgt_g = swing * tgt_g_rest[tgt_name]
 			else:
@@ -298,7 +308,7 @@ func _retarget_one(src_path, src_g_rest, tgt_g_rest, dir_local_src,
 
 		var hips_bidx = bone_idx_cache[hips_src_name]
 		var src_hips_pos = skel.get_bone_pose_position(hips_bidx)
-		var delta = (src_hips_pos - hips_rest_local_pos) * pos_scale
+		var delta = tgt_flip * ((src_hips_pos - hips_rest_local_pos) * pos_scale)
 		var corrected_delta = swings[hips_src_name] * delta
 		if strip_horizontal:
 			## Mixamo 소스가 "In Place" 없이 내려와 walk/run 은 1초에 1.5m씩
