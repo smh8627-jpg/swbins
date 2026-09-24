@@ -106,31 +106,73 @@ func session_exp_gained() -> float:
 	return exp - _session_start_exp
 
 
-## 106장 ㉛ 편성 — 들판 명단(field_combat roster = 나 + members 앞 셋)에 넣는다: 그 인물을 members 맨 앞으로(셋째가 밀려난다).
-## 순서는 그대로 저장된다(세이브 스키마 그대로). 이미 앞 셋이면 그대로.
-func put_in_party(id: String) -> bool:
-	var i := members.find(id)
-	if i < 0 or in_party(id):
-		return false
-	members.remove_at(i)
-	members.insert(0, id)
+## 106장 ㉛·㉝ 편성 — 들판 명단 = 나 + members 앞 party_size 명(겹침 빼고). 자리 순서 = members 순서(숫자키 2·3·4).
+## party_size 기본 PARTY_MAX 라 옛 세이브·점검은 옛날과 같다(앞 셋). 세이브 "party_size" 한 칸(없으면 PARTY_MAX, 버전 그대로).
+const PARTY_MAX := 3
+var party_size := PARTY_MAX
+
+## 나를 뺀 들판 명단.
+func party() -> Array[String]:
+	var out: Array[String] = []
+	for m in members:
+		if out.size() >= party_size:
+			break
+		if not out.has(m):
+			out.append(m)
+	return out
+
+func in_party(id: String) -> bool:
+	return id == "self" or party().has(id)
+
+## 명단을 p 로(그 밖의 동료는 원래 순서로 뒤에, first 가 있으면 그 맨 앞).
+func _set_party(p: Array[String], first: String = "") -> void:
+	var rest: Array[String] = []
+	if first != "":
+		rest.append(first)
+	for m in members:
+		if not p.has(m) and not rest.has(m):
+			rest.append(m)
+	members.assign(p + rest)
+	party_size = p.size()
 	power_changed.emit(atk, def)
+
+## 넣기 — 빈 자리가 있으면 그 자리에, 꽉 찼으면 마지막 자리와 바꾼다. 넣었으면 true.
+func put_in_party(id: String) -> bool:
+	if id == "self" or not members.has(id) or in_party(id):
+		return false
+	var p := party()
+	var out := ""
+	if p.size() >= PARTY_MAX:
+		out = p.pop_back()
+	p.append(id)
+	_set_party(p, out)
 	return true
 
-## 들판 명단(나 + members 앞 셋, 겹침 빼고)에 드는가.
-func in_party(id: String) -> bool:
-	if id == "self":
-		return true
-	var seen: Array[String] = []
-	for m in members:
-		if seen.size() >= 3:
-			break
-		if not seen.has(m):
-			seen.append(m)
-	return seen.has(id)
+## 빼기 — 나는 못 뺀다(늘 첫 자리). 뺐으면 true.
+func remove_from_party(id: String) -> bool:
+	var p := party()
+	if not p.has(id):
+		return false
+	p.erase(id)
+	_set_party(p, id)
+	return true
+
+## 명단 안에서 한 자리 앞으로(숫자키 순서). 옮겼으면 true.
+func move_up_in_party(id: String) -> bool:
+	var p := party()
+	var i := p.find(id)
+	if i <= 0:
+		return false
+	p[i] = p[i - 1]
+	p[i - 1] = id
+	_set_party(p)
+	return true
 
 func recruit(id: String) -> void:
 	members.append(id)
+	## 106장 ㉝ — 편성으로 자리를 비워 둔 채면 새 동료가 그 빈자리에(옛날처럼 셋이 찰 때까지는 저절로).
+	if party_size < PARTY_MAX and not in_party(id):
+		put_in_party(id)
 	var old_level := level
 	_recompute()
 	power_changed.emit(atk, def)

@@ -254,8 +254,9 @@ func _has_button(action: String, button: int) -> bool:
 # ---------------------------------------------------------------- 인물
 
 func roster() -> Array[String]:
+	## 106장 ㉝ 편성 — 나 + PartyState.party()(members 앞 party_size 명).
 	var r: Array[String] = ["self"]
-	for id in PartyState.members:
+	for id in PartyState.party():
 		if r.size() >= ROSTER_MAX:
 			break
 		if not r.has(id):

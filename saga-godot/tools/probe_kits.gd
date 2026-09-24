@@ -13,7 +13,7 @@ extends Node
 ## ⑰ 번개 검기 — 기본 공격 뇌 부여 + 다른 인물 기력 +10 ⑱ 인덕 방패 20%·덩굴 군기 13초.
 ## 106장 ㉛ 이야기 동료: ⑲ 표 — 원소·무기·이름·희귀도가 story.gd MEMBERS 대로 ⑳ 나그네 E 그림자 걸음 — 가까운 적 뒤로·표식·표식 난 적 피해 ×1.25
 ## ㉑ 나그네 Q 가면 벗기 — 표식 난 적에만 메아리 셋 ㉒ 학자 E 비문(초 부착)·Q 옛 글자 풀이 — 반응 ×1.4·상태 줄
-## ㉓ 편성 — 넷째로 들어온 동료를 들판 명단에 넣으면 맨 앞, 셋째가 빠짐, 명단 수 그대로.
+## ㉓ 편성(106장 ㉛·㉝) — 꽉 찬 명단에 넣으면 마지막 자리와 바뀜 · 빼면 자리가 비고 명단이 줄어듦 · 빈자리에 새 동료가 저절로 · 앞 자리로 · 나는 못 뺌.
 ## 저장은 안 한다(명단은 끝에 되돌린다).
 
 const Kits := preload("res://games/saga_go/data/kits.gd")
@@ -379,8 +379,18 @@ func _physics_process(_delta: float) -> void:
 			var put: bool = PartyState.put_in_party("story_wanderer")
 			var again: bool = PartyState.put_in_party("story_wanderer")
 			var r1: Array = _fc.call("roster")
-			var ok: bool = not before and not r0.has("story_wanderer") and put and not again and r1.has("story_wanderer") and r1.size() == 4 				and not r1.has("kr_gyebaek") and PartyState.members.size() == 4 and PartyState.members[0] == "story_wanderer" and PartyState.in_party("self")
-			_check("formation", ok, "before=%s roster %s → %s" % [before, r0, r1])
+			var swap_ok: bool = not before and not r0.has("story_wanderer") and put and not again 				and r1 == ["self", "sg_zhugeliang", "kr_yisunsin", "story_wanderer"] and PartyState.members.size() == 4
+			## 빼기 → 셋, 빈자리에 새 동료가 저절로, 앞 자리로, 나는 못 뺌
+			var rm: bool = PartyState.remove_from_party("sg_zhugeliang")
+			var r2: Array = _fc.call("roster")
+			PartyState.recruit("story_scholar")
+			var r3: Array = _fc.call("roster")
+			var up: bool = PartyState.move_up_in_party("story_scholar")
+			var r4: Array = _fc.call("roster")
+			var self_rm: bool = PartyState.remove_from_party("self")
+			var ok: bool = swap_ok and rm and r2 == ["self", "kr_yisunsin", "story_wanderer"] and PartyState.party_size == 3 				and r3 == ["self", "kr_yisunsin", "story_wanderer", "story_scholar"] and up and r4 == ["self", "kr_yisunsin", "story_scholar", "story_wanderer"] 				and not self_rm and PartyState.members.size() == 5 and PartyState.members.has("sg_zhugeliang")
+			_check("formation", ok, "roster %s → %s → 빼기 %s → 합류 %s → 앞으로 %s" % [r0, r1, r2, r3, r4])
+			PartyState.party_size = PartyState.PARTY_MAX
 			_next()
 		24:
 			PartyState.members.assign(_members_before)

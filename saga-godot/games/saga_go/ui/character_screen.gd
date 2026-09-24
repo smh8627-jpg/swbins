@@ -45,7 +45,9 @@ var _salvage_btn: Button = null
 var _talent_buttons: Dictionary = {}
 var _con_label: Label = null
 var _con_button: Button = null
-var _party_btn: Button = null # 106장 ㉛ 편성에 넣기
+var _party_btn: Button = null # 106장 ㉛·㉝ 편성 넣기·빼기
+var _party_up_btn: Button = null # 106장 ㉝ 명단 앞 자리로
+var _party_label: Label = null # 106장 ㉝ 지금 들판 명단 한 줄
 var _frozen_before := false
 
 func _ready() -> void:
@@ -148,10 +150,23 @@ func _build() -> void:
 	_exp_bar.show_percentage = false
 	mid.add_child(_exp_bar)
 	_asc_label = _label(mid, 16)
+	_party_label = _label(mid, 16)
+	var prow := HBoxContainer.new()
+	prow.add_theme_constant_override("separation", 8)
+	mid.add_child(prow)
 	_party_btn = Button.new()
 	_party_btn.custom_minimum_size = Vector2(0, 40)
-	_party_btn.pressed.connect(put_in_party)
-	mid.add_child(_party_btn)
+	_party_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_party_btn.pressed.connect(toggle_party)
+	prow.add_child(_party_btn)
+	_party_up_btn = Button.new()
+	_party_up_btn.text = "◀ 앞 자리로"
+	_party_up_btn.custom_minimum_size = Vector2(0, 40)
+	_party_up_btn.pressed.connect(func() -> void:
+		if PartyState.move_up_in_party(selected):
+			CombatFeel.ui()
+			_refresh())
+	prow.add_child(_party_up_btn)
 	_stats = _label(mid, 18)
 	var books := HBoxContainer.new()
 	books.add_theme_constant_override("separation", 8)
@@ -287,8 +302,23 @@ func _refresh() -> void:
 	_exp_bar.value = float(g.exp) if lv < cap else _exp_bar.max_value
 	_asc_label.text = "돌파 %s" % ("◆".repeat(asc) + "◇".repeat(Growth.MAX_ASC - asc))
 	var in_p := PartyState.in_party(id)
-	_party_btn.text = "⚔ 들판 명단에 있음" if in_p else "⚔ 들판 명단에 넣기 (셋째 자리 동료가 빠진다)"
-	_party_btn.disabled = in_p
+	var pl := PartyState.party()
+	var slots: Array[String] = ["1 나"]
+	for i in pl.size():
+		slots.append("%d %s" % [i + 2, _name(pl[i])])
+	for i in range(pl.size(), PartyState.PARTY_MAX):
+		slots.append("%d (빈자리)" % (i + 2))
+	_party_label.text = "들판 명단: " + " · ".join(slots)
+	if id == "self":
+		_party_btn.text = "⚔ 나는 늘 첫 자리"
+	elif in_p:
+		_party_btn.text = "⚔ 들판 명단에서 빼기"
+	elif pl.size() >= PartyState.PARTY_MAX:
+		_party_btn.text = "⚔ 들판 명단에 넣기 (%s 와 바뀐다)" % _name(pl[pl.size() - 1])
+	else:
+		_party_btn.text = "⚔ 들판 명단에 넣기"
+	_party_btn.disabled = id == "self"
+	_party_up_btn.disabled = not in_p or id == "self" or pl.find(id) <= 0
 	var fc := get_tree().get_first_node_in_group("go_field_combat")
 	var hp: float = fc.call("max_hp_of", id) if fc else 0.0
 	var atk: float = fc.call("char_atk", id) if fc else PartyState.char_atk(id)
@@ -451,7 +481,13 @@ func swap_weapon() -> void:
 	var i := choices.find(PartyState.weapon_of(selected))
 	PartyState.equip_weapon(selected, choices[(i + 1) % choices.size()])
 
-## 고른 인물을 들판 명단에(PartyState.put_in_party).
+## 고른 인물을 들판 명단에 넣거나 뺀다(PartyState.put_in_party·remove_from_party).
+func toggle_party() -> void:
+	var done: bool = PartyState.remove_from_party(selected) if PartyState.in_party(selected) else PartyState.put_in_party(selected)
+	if done:
+		CombatFeel.ui()
+		_refresh()
+
 func put_in_party() -> void:
 	if PartyState.put_in_party(selected):
 		CombatFeel.ui()

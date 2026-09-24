@@ -22,6 +22,7 @@ func save() -> bool:
 		"version": SAVE_VERSION,
 		"player_pos": [player.global_position.x, player.global_position.y, player.global_position.z],
 		"party_members": PartyState.members,
+		"party_size": PartyState.party_size,
 		"party_exp": PartyState.exp,
 		"party_perks": PartyState.perks,
 		"char_growth": PartyState.growth,
@@ -93,6 +94,8 @@ func try_load() -> bool:
 		growth if typeof(growth) == TYPE_DICTIONARY else {}, bag if typeof(bag) == TYPE_DICTIONARY else {},
 		weapons if typeof(weapons) == TYPE_DICTIONARY else {}, equip if typeof(equip) == TYPE_DICTIONARY else {},
 		arts if typeof(arts) == TYPE_DICTIONARY else {}, int(data.get("artifact_seq", 0)))
+	## party_size(106장 ㉝ 편성) — 없으면 PARTY_MAX(옛날처럼 앞 셋).
+	PartyState.party_size = clampi(int(data.get("party_size", PartyState.PARTY_MAX)), 0, PartyState.PARTY_MAX)
 	## gather_t·cook_prof(106장 ⑱) — 없으면 빈 사전(다 자라 있고 숙련 0).
 	var gt: Variant = data.get("gather_t", {})
 	var cp: Variant = data.get("cook_prof", {})

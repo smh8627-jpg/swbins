@@ -21,8 +21,20 @@ const CompanionFollow := preload("res://saga_core/world/companion_follow.gd")
 ## 로드가 끝난 **뒤에** 여기서 한 번에 정리한다 — 사건 노드는 일단
 ## 평소대로 다 지어지고, 이미 끝난 것만 이 시점에 치운다.
 
+## 점검(SAGA_*_PROBE)은 실제 세이브를 불러온 채 돌고 명단을 members 로 바꿔 끼운다 — 편성(㉝)으로 줄여 둔 자리 수가 점검을 흔들지 않게.
+const PROBES := ["ADVENTURE", "ARTIFACT", "TREASURE", "FIELD_BOSS", "SHARD", "MAP", "COOK", "STORY", "DOMAIN", "WEEKLY", "COMMISSION", "GROWTH",
+	"TALENT", "SIGHT", "TRAVERSAL", "COMBAT", "PERF", "KIT", "ELEMENT", "WEAPON", "LAYOUT"]
+
+static func _any_probe() -> bool:
+	for p in PROBES:
+		if OS.get_environment("SAGA_%s_PROBE" % p) != "":
+			return true
+	return false
+
 func _ready() -> void:
 	SaveState.try_load()
+	if _any_probe():
+		PartyState.party_size = PartyState.PARTY_MAX
 	_remove_resolved_events()
 	if OS.get_environment("SAGA_DENSITY_REPORT") != "":
 		_print_density_report()
