@@ -1469,6 +1469,14 @@ GO 세계는 사람 키가 3.4m(`CharacterVisual.HumanHeight`, 실측의 약 1.8
 
 ---
 
+# 108. 고정 특색 지역 (2026-09-24 사용자 결정 — `../SAGA-DESIGN.md` §12, 일곱 판 공통)
+
+사용자: "전체 지역을 랜덤이 아닌 사가블로처럼 각각 특색이 있는 지역으로" · "모든 프로젝트에 적용". 본보기는 웹 사가블로 §5.12(방위별 이름 있는 지역 아홉·지역 명단·위험도)·사가고 ⑮(땅 열여섯).
+
+- **지금(2026-09-24 조사)**: GO `Data/GoWorldMap.cs` 지역 일곱(마을 들판·서쪽 숲길·동쪽 숲·북쪽 산기슭·너른 강·남쪽 공터·끝 논밭)은 이름·글자 자리뿐, 지형은 고정 `TestMapData.Rows`. FOREST `ForestBiomeData.Zones` 는 고정 구역·빛깔(시각만). STORY 는 웹 판 옮김. DUNGEON 은 `SagaBiome` 다섯 + 고정 씨앗 `System.Random(20260824)`.
+- **할 일**: ① `GoWorldMap.Region` 에 사연·땅빛·소품 묶음·몬스터 명단·위험도 필드 → `WorldMapBuilder`·`FieldSpawner`·`RegionAtmosphere` 가 읽는다(107장 GO 원신 기준과 한 몸) ② FOREST 구역에 이름·명소·짐승 명단 ③ DUNGEON 은 층 사이에 손으로 짠 명소 층(웹 사가블로 §5.15 결).
+- 이 장은 방향만 적는다 — 착수는 이 트랙 세션이 106·107 순서와 맞춰 정한다(다른 세션이 같은 파일을 고치는 중일 수 있다).
+
 # FINAL RULE
 
 Claude Code는 이 문서를 한 번에 1~100까지 실행하지 않는다.
