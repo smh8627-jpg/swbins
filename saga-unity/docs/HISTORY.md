@@ -8994,3 +8994,12 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - **식생**: 무더기 빈터(`Clearing`) 안엔 옛 자리 나무·풀도 안 세운다(`VegetationBuilder.TreeBase`·`SkipTree` 로 뽑아 진단이 같은 식으로 칸마다 정확한 수를 본다). 이번 자리엔 걸린 옛 나무가 0 그루였다.
 - 파일: 새 `SagaGo/Data/GoRegionProps.cs`·`World/RegionPropsBuilder.cs`·`World/PropFlicker.cs`·`Editor/PlaytestGoRegionProps.cs`·`Assets/Art/Props/PolyHaven/`(열 벌 + LOD1 여섯 + LICENSE)·`tools/fetch_polyhaven_models.py`·`tools/polyhaven_lod1.py`, 고침 `VegetationBuilder`·`PlaytestGoVegetation`(칸마다 표대로 정확한 수)·`BuildTestVillageScene`(`BuildRegionProps`)·`PlaytestHeadless`, GO 씬 재빌드(수호장 컷 타임라인도 같이 다시 구워짐).
 - 검증: 씬 재빌드 exit 0 · GO `PlaytestHeadless` **3연속 OK**(새 줄 "무더기 9·조각 46(LOD 31)·삼각형 가까이 970k·멀리 213k·가장 무거운 무더기 bandit_camp 250k·불빛 2" 세 번 같음). 화면은 안 봄 — 실기 확인 전(크기 1.9배가 맞는지·그을린 빛·번쩍임 세기·모닥불 빛·여울 바위가 헤엄길을 막지 않는지·LOD 바뀌는 순간 튀는지).
+
+## 2026-09-24 — PLAN 108 끝줄 FOREST 존 전용 소품 (사용자 "사가 유니티 이어 해", Opus 5.5)
+
+- **고른 까닭**: 앞 세션이 PLAN 108 끝줄에 남긴 유일한 대기 항목. 에셋은 GO 지역 소품 때 받은 Poly Haven 스캔 그대로(한 Unity 프로젝트 안 에셋 공유 — 코드는 이 판 것으로 새로 썼다).
+- **자리**: 존마다 den 둘(가운데·(6sx,4sz))·도감 채집 자리(−6sx,−6sz)·우편함(8sx,0)·명소(0,7sz) — 이 다섯과 떨어진 두 곳 A(−7sx,2sz)·B(3sx,−7sz) 를 부호만 바꿔 네 존에 똑같이 쓴다. 짐승은 굴 둘레 2.5~3.5m 를 transform 으로 걸어 충돌을 안 탄다.
+- **휨**: PBR 조각은 `ForestWorldCurve` 셰이더를 안 타 명소처럼 내려야 하는데, 명소는 통째로 한 번 내린다(무더기 폭이 넓으면 가장자리가 뜬다) → 조각마다 따로 내린다(`ForestZonePropsBuilder.Follow`, 조각 26 개 루프). 충돌은 뿌리에(안 움직임), 밑면 높이는 그 아래 Body 에. 정적 배칭하면 휨이 막혀 정적 표시를 안 한다(진단이 본다).
+- **무게**: 첫 배치는 버섯숲에 쓰러진 통나무(원본 10만 삼각형) 둘이라 존 원본 27만 > 상한 25만 → 하나를 이끼 바위로. 최대 18만.
+- 파일: 새 `SagaForest/Data/ForestZoneProps.cs`·`World/ForestZonePropsBuilder.cs`·`Editor/PlaytestForestZoneProps.cs`, 고침 `BuildTestVillageForestScene`(`BuildZoneProps`)·`PlaytestForestHeadless`, FOREST 씬 재빌드, 앞 커밋에서 빠진 `PolyHaven/LICENSE.txt.meta`.
+- 검증: 씬 재빌드 exit 0 · `PlaytestForestHeadless` **3연속 OK**(새 줄 "무더기 8·조각 26(LOD 19)·존 원본 삼각형 최대 180k" 세 번 같음) · `PlaytestForestCreatures` OK. 화면은 안 봄 — 실기 확인 전(1.5배 크기·휨 따라 내림이 가까이서 튀는지·플레이어가 조각에 걸리는지).

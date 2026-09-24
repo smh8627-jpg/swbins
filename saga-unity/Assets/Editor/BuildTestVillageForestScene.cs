@@ -90,6 +90,7 @@ namespace Saga.EditorTools
             BuildDeliveryCounter();
             BuildDeliveryMailboxes();
             BuildLandmarks();
+            BuildZoneProps();
             BuildWishStone();
             var (playerGo, playerTransform) = BuildPlayer();
             BuildCurveDriver(playerTransform);
@@ -406,6 +407,31 @@ namespace Saga.EditorTools
                 }
                 SetPrivateField(go.AddComponent<ForestLandmark>(), "zoneIndex", i);
             }
+        }
+
+        /// <summary>PLAN.md 108 끝줄 — 존 전용 소품(GO 지역 소품과 같은 Poly Haven 스캔, `ForestZoneProps`).</summary>
+        private static void BuildZoneProps()
+        {
+            var go = new GameObject("ZoneProps");
+            var builder = go.AddComponent<ForestZonePropsBuilder>();
+            var ids = new System.Collections.Generic.List<string>();
+            foreach (var c in ForestZoneProps.Clusters)
+                foreach (var p in c.Pieces)
+                {
+                    int hash = p.Model.IndexOf('#');
+                    string id = hash >= 0 ? p.Model.Substring(0, hash) : p.Model;
+                    if (!ids.Contains(id)) ids.Add(id);
+                }
+            var models = new GameObject[ids.Count];
+            var lods = new GameObject[ids.Count];
+            for (int i = 0; i < ids.Count; i++)
+            {
+                models[i] = AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Art/Props/PolyHaven/{ids[i]}/{ids[i]}_1k.gltf");
+                lods[i] = AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Art/Props/PolyHaven/{ids[i]}/{ids[i]}_lod1.glb");
+                if (models[i] == null) Debug.LogWarning($"[BuildTestVillageForestScene] Poly Haven 모델 없음: {ids[i]}");
+            }
+            builder.Init(ids.ToArray(), models, lods);
+            builder.Build();
         }
 
         /// <summary>GLB 하나를 키 `height`(축 배율 `axis` 뒤)로 맞춰 바닥이 `localPos.y` 에 닿게 놓는다. 딸린 충돌체는 지운다.</summary>

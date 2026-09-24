@@ -1,7 +1,7 @@
 Poly Haven (https://polyhaven.com) — all assets are CC0 1.0 Universal
 (public domain). No attribution required.
 
-PLAN.md 108 ① "지역 전용 소품 묶음"(GO) — 사진측량 스캔 모델 열 벌.
+PLAN.md 108 ① "지역 전용 소품 묶음"(GO)·108 끝줄 FOREST 존 소품 — 사진측량 스캔 모델 열 벌.
 
 - dead_quiver_trunk (벼락 고목·무덤가 고사목) — https://polyhaven.com/a/dead_quiver_trunk
 - dead_tree_trunk (쓰러진 통나무·야영 걸상·떠내려온 통나무) — https://polyhaven.com/a/dead_tree_trunk
