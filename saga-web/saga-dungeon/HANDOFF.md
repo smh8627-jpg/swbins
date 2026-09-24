@@ -4203,3 +4203,11 @@ VRoid 인물이 unlit(`MeshBasicMaterial`) 그대로라 명암 없이 평면이�
 - `gesture.js`(새) — `JOB` 표·`KIND` 넷(greet·serve·rally·cheer)·`plan(key, now, base, npc)` 순수 · `onEvent(name, p, now)` 를 core 사건 여덟에 묶음. 틈틈이 일 = FNV 해시 주기 7~11초.
 - `dungeon3d.js` — NPC·동행 `AS3.step` anim 을 `plan().slot` 으로, `gestureBubble`(labelNode 재사용, 글자 바뀔 때만 새로). `dungeon-view.js` 2D `gesturePlate`. `ui.js` `openTab()` · `town.js` `npcKeys()` 노출.
 - 진단 4 → jsdom 402/402 세 번 동일(3D 풍선 경로는 jsdom 에 WebGL 이 없어 안 돈다 — 실기 확인 몫). `sw.js` dungeon-v0.161.0. **실기 확인 대기**.
+
+## 2026-09-24 (이어서 10) — 동행 서명·합격(PLAN §5.17)
+
+- 계기: "이어해줘" — §8 "빌드 다음" 새 후보(동행도 제 서명을 쓴다).
+- `dungeon.js` — `stepAllySig`(updateCompanion 첫머리, 첫 쿨 4s) → `allySigWants`(순수: 곁 셋·정예·보스·합격 창) → `castAllySig`(동행 자리 파동, 제 원소·v × companionMul, 합격 ×1.5·토스트, `dungeon:skill` 'ally:id[:combo]'). `castSigSkill` 이 `run.comboT = 1.5`. 손잡이 `dungeon.allySig`.
+- `gesture.js` — `sig` 갈래(✨ 서명 / ⚡ 합격).
+- 진단 3 → jsdom 405/405 세 번 동일. `sw.js` dungeon-v0.162.0. **실기 확인 대기**.
+- 함정: 동행 서명이 strike 를 더 부르며 Math.random 순서가 밀려 "세공 재료는 던전에서 나온다" 가 보스층 축복 3택 창(`run.choice`)에서 3000틱 멈췄다 — 자동(🤖)은 축복 창을 안 넘긴다. 그 항목 루프에서 창이 뜨면 첫 축복을 고르게 했다. 부대가 앞 항목에서 비워질 수 있어 새 항목은 `withAlly`(선두+서명 있는 동행)로 감쌌다.

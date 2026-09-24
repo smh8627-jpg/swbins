@@ -1081,6 +1081,8 @@ window.requestAnimationFrame = function () { return 0; };
       var guard = 0;
       while (IT.matList().length === 0 && guard++ < 3000) {
         AU.update(0.05);
+        /* 축복 3택 창은 자동이 안 넘긴다(사람 몫) — 난수 순서가 밀려 보스층에 닿으면 여기서 고른다(§5.17 때 밟음) */
+        if (DN.raw() && DN.raw().choice) { DN.pickBoon(DN.raw().choice[0]); }
         if (DN.active()) { DN.update(0.05); }
         else { DN.enter({ floor: 8 }); }
       }
@@ -6745,6 +6747,75 @@ window.requestAnimationFrame = function () { return 0; };
         return none && quiet && src.indexOf('Math.random') < 0 && '끄면 늘 idle · 무작위 0';
       } finally { C.setTune('dungeon.gesture', null); GS.reset(); }
     });
+
+    /* ── 동행 서명(§5.17) — 동행도 제 서명 무예를 쓴다, 선두 서명 직후면 합격 ───── */
+    /** 앞 항목이 부대를 비워 둘 수 있어 — 선두 + 서명 있는 동행 둘로 세우고 끝나면 되돌린다 */
+    function withAlly(fn) {
+      var HS = DG.heroSkillData, lead = DG.data.heroes[0].id;
+      var ally = DG.data.heroes.filter(function (h) { return h.id !== lead && HS.sigOf(h.id); })[0].id;
+      var keepParty = C.save.party.slice(), keepD = JSON.stringify(C.save.dungeon || {});
+      var keepDex = {}; [lead, ally].forEach(function (id) { keepDex[id] = C.save.dex.heroes[id]; if (!keepDex[id]) { C.save.dex.heroes[id] = { count: 1, firstAt: 0 }; } });
+      if (DN.raw()) { DN.leave(); }
+      C.save.party = [lead, ally];
+      try { return fn(); } finally {
+        if (DN.raw()) { DN.leave(); }
+        C.save.dungeon = JSON.parse(keepD);
+        [lead, ally].forEach(function (id) { if (keepDex[id]) { C.save.dex.heroes[id] = keepDex[id]; } else { delete C.save.dex.heroes[id]; } });
+        C.save.party = keepParty;
+      }
+    }
+    t('동행 서명 — 쓸 까닭: 곁에 셋이면 쓰고 둘이면 안 쓴다, 정예·보스는 하나로도, 합격 창이면 하나로도, 멀면 안 쓴다', function () {
+      var W = DN._allySigWants, c = { x: 0, y: 0 };
+      var m = function (x, o) { var e = { x: x, y: 0, r: 10, hp: 5 }; for (var k in (o || {})) { e[k] = o[k]; } return e; };
+      var two = !W(c, [m(20), m(40)], false), three = W(c, [m(20), m(40), m(60)], false);
+      var elite = W(c, [m(30, { elite: true })], false), boss = W(c, [m(30, { boss: true })], false);
+      var combo = W(c, [m(30)], true), far = !W(c, [m(400), m(410), m(420)], false), dead = !W(c, [m(10, { hp: 0 }), m(20), m(30)], false);
+      return two && three && elite && boss && combo && far && dead && '셋·정예·보스·합격 창 · 둘·멀리·죽은 적은 셈 안 함';
+    });
+
+    t('동행 서명 — 실제 방: 적 셋이 동행 곁에 몰리면 제 서명이 나가 셋 다 맞고, 쿨다운(서명 cd×1.5, 8초 이상)이 걸린다', function () { return withAlly(function () {
+      DN.enter({ floor: 5, mode: 'easy' });
+      var run = DN.raw(), c = run.companion, sk = DG.heroSkillData.sigOf(c.id);
+      if (!sk) { DN.leave(); return '동행 서명 없음 — 건너뜀'; }
+      run.room.enemies.length = 0;
+      run.player.x = -999; run.player.y = -999;
+      var es = [0, 1, 2].map(function (i) {
+        var e = DN._spawnEnemy(5, false, { spawned: true, x: c.x + 60, y: c.y - 40 + i * 40 });
+        e.hp = 1e6; e.hpMax = 1e6; e.elite = false; e.boss = false; run.room.enemies.push(e); return e;
+      });
+      c.sigCd = 0; c.atkCd = 99;
+      DN.update(0.05);
+      var all = es.every(function (e) { return e.hp < 1e6; });
+      var cd = c.sigCd >= 7.9 && Math.abs(c.sigCd - Math.max(8, (sk.cd || 12) * 1.5)) < 0.2;
+      var n = run.allySigs;
+      DN.leave();
+      return all && cd && n === 1 && '셋 다 맞음 · 쿨다운 ' + c.sigCd.toFixed(1) + '초 · ' + sk.name;
+    }); });
+
+    t('동행 서명 — 합격: 선두 서명 뒤 1.5초 안이면 적 하나로도 나가고 ×1.5 · 창이 지나면 안 나간다 · 손잡이 끄면 없다', function () { return withAlly(function () {
+      var hitOf = function (combo, tune, elite) {
+        DN.enter({ floor: 5, mode: 'easy' });
+        var run = DN.raw(), c = run.companion;
+        if (!DG.heroSkillData.sigOf(c.id)) { DN.leave(); return null; }
+        run.room.enemies.length = 0;
+        run.player.x = -999; run.player.y = -999;
+        var e = DN._spawnEnemy(5, false, { spawned: true, x: c.x + 60, y: c.y });
+        e.hp = 1e6; e.hpMax = 1e6; e.elite = !!elite; e.boss = false; run.room.enemies.push(e);
+        c.sigCd = 0; c.atkCd = 99;
+        run.comboT = combo;
+        if (tune !== undefined) { C.setTune('dungeon.allySig', tune); }
+        var keepR = Math.random; Math.random = function () { return 0.5; };   // 치명타 굴림을 붙든다
+        try { DN.update(0.05); } finally { Math.random = keepR; C.setTune('dungeon.allySig', null); }
+        var r = { dmg: 1e6 - e.hp, combos: run.allyCombos || 0 };
+        DN.leave();
+        return r;
+      };
+      var a = hitOf(1.2), late = hitOf(0), off = hitOf(1.2, 0);
+      if (!a) { return '동행 서명 없음 — 건너뜀'; }
+      var ce = hitOf(1.2, undefined, true), pe = hitOf(0, undefined, true), ratio = ce.dmg / (pe.dmg || 1);
+      var ok = a.dmg > 0 && a.combos === 1 && late.dmg === 0 && off.dmg === 0 && pe.combos === 0 && Math.abs(ratio - 1.5) < 0.02;
+      return ok && '합격 피해 ' + Math.round(ce.dmg) + ' / 그냥 ' + Math.round(pe.dmg) + ' (×' + ratio.toFixed(2) + ') · 창 밖·손잡이 0 은 0';
+    }); });
 
     t('런타임 에러 없음', function () {
       return errors.length === 0 || ('에러 ' + errors.length + '건: ' + errors.join(' | ')) === '';

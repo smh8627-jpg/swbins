@@ -39,6 +39,7 @@
     greet: { dur: 1.0, slot: 'interaction', text: '👋' },
     serve: { dur: 1.6, slot: null,          text: null },
     rally: { dur: 0.8, slot: 'attack',      text: '❗ 호응' },
+    sig:   { dur: 1.0, slot: 'attack',      text: '✨ 서명' },
     cheer: { dur: 1.4, slot: 'jump',        text: '🎉', bob: true }
   };
 
@@ -132,7 +133,9 @@
       return cue(serving.key, 'serve', t);
     }
     if (name === 'dungeon:skill') {
-      return typeof p === 'string' && p.indexOf('sig:') === 0 ? cue('ally', 'rally', t) : null;
+      if (typeof p !== 'string') { return null; }
+      if (p.indexOf('ally:') === 0) { return cue('ally', 'sig', t, /:combo$/.test(p) ? '⚡ 합격' : null); }   // §5.17 동행 서명
+      return p.indexOf('sig:') === 0 ? cue('ally', 'rally', t) : null;
     }
     if (name === 'hero:levelup') { return cue('ally', 'cheer', t, '🎉 경하'); }
     if (name === 'dungeon:kill') { return p && p.e && p.e.boss ? cue('ally', 'cheer', t, '🎉 이겼다') : null; }

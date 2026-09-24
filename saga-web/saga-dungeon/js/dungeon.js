@@ -3784,6 +3784,7 @@
     if (boonVal('sigDmgPct') > 0) { fx.push({ t: 'ring', x: p.x, y: p.y, life: 0.6 }); }
     applyShapeSkill(sk, sk.v * (1 + boonVal('sigDmgPct') / 100));
     if (!run) { return true; }
+    run.comboT = ALLY_COMBO_WIN;           // §5.17 — 이 창 안에 동행 서명이 나가면 합격
     core.emit('dungeon:skill', 'sig:' + leadId());
     return true;
   }
@@ -4230,6 +4231,66 @@
   /** 동행의 때림 배율 — 선두 개인 전투력 대비 제 몫(0.2~1.5배)에
    *  "덤"이라는 뜻으로 0.55를 곱한다. 선두보다 약해도 최소한의 몫은,
    *  세게 키워도 선두를 넘어서지는(1.5배 상한) 못하게 눌렀다. */
+  /* ── 동행 서명(§5.17) ─────────────────────────────────────
+   * 동행도 제 서명 무예(`heroSkillData.sigOf(동행 id)`)를 스스로 쓴다 — 곁에 적이 셋 이상
+   * 몰렸거나 보스·정예가 닿으면. 모양은 동행 자리를 가운데 둔 파동 하나로 통일한다
+   * (선두의 applyShapeSkill 은 선두 자리·선두 축복을 보므로 빌리지 않는다). 원소·이름·위력은 제 것.
+   * 선두가 서명을 지른 뒤 1.5초 안이면 적 하나만 닿아도 곧장 나가고 **합격**(×1.5).
+   * 판정에 Math.random 을 안 쓴다(맞히는 strike 는 동행 평타와 같은 길). 손잡이 `dungeon.allySig`. */
+  var ALLY_SIG_FIRST = 4, ALLY_SIG_CD_MUL = 1.5, ALLY_SIG_CD_MIN = 8, ALLY_SIG_R = 120,
+    ALLY_SIG_CROWD = 3, ALLY_COMBO_WIN = 1.5, ALLY_COMBO_MUL = 1.5;
+  function allySigOn() { return !core.tuned || core.tuned('dungeon.allySig', 1) ? true : false; }
+
+  /** 지금 쓸 까닭이 있나 — 순수. combo 면 적 하나만 닿아도 된다 */
+  function allySigWants(c, enemies, combo) {
+    if (!c || !allySigOn()) { return false; }
+    var n = 0, strong = false, i, e;
+    for (i = 0; i < (enemies || []).length; i++) {
+      e = enemies[i];
+      if (!e || e.hp <= 0) { continue; }
+      if (Math.hypot(e.x - c.x, e.y - c.y) > ALLY_SIG_R + (e.r || 0)) { continue; }
+      n++;
+      if (e.boss || e.elite) { strong = true; }
+    }
+    return n > 0 && (combo || strong || n >= ALLY_SIG_CROWD);
+  }
+
+  function castAllySig(c, sk, combo) {
+    var room = run.room, mul = (sk.v || 1) * companionMul() * (combo ? ALLY_COMBO_MUL : 1), hit = 0, i;
+    var R = ALLY_SIG_R, kb = Math.min(30, sk.kb === undefined ? 20 : sk.kb);
+    c.sigCd = Math.max(ALLY_SIG_CD_MIN, (sk.cd || 12) * ALLY_SIG_CD_MUL);
+    c.atkAnim = 0.35;
+    fx.push({ t: 'whirl', x: c.x, y: c.y, r: R, life: 0.35, el: sk.el || null, color: sk.el ? elemColorOf(sk.el) : null });
+    for (i = 0; i < room.enemies.length; i++) {
+      var e = room.enemies[i];
+      if (e.hp <= 0 || dist(c, e) > R + e.r) { continue; }
+      strike(e, mul, kb, sk.el || 'phys');
+      hit++;
+      if (!run) { return hit; }
+    }
+    run.allySigs = (run.allySigs || 0) + 1;
+    if (combo) {
+      run.comboT = 0;
+      run.allyCombos = (run.allyCombos || 0) + 1;
+      var ref = global.DG.data && global.DG.data.find(c.id);
+      core.emit('toast', '⚡ 합격! ' + (ref ? ref.name + ' · ' : '') + (sk.emoji || '') + ' ' + sk.name);
+    }
+    core.emit('dungeon:skill', 'ally:' + c.id + (combo ? ':combo' : ''));
+    return hit;
+  }
+
+  function stepAllySig(c, dt) {
+    if (c.sigCd === undefined) { c.sigCd = ALLY_SIG_FIRST; }
+    c.sigCd -= dt;
+    if (run.comboT > 0) { run.comboT -= dt; }
+    if (c.sigCd > 0 || run.choice) { return; }
+    var HS = global.DG.heroSkillData, sk = HS && HS.sigOf(c.id);
+    if (!sk) { return; }
+    var combo = run.comboT > 0;
+    if (!allySigWants(c, run.room.enemies, combo)) { return; }
+    castAllySig(c, sk, combo);
+  }
+
   function companionMul() {
     var HR = global.DG.hero;
     var id = run.companion && run.companion.id;
@@ -4244,6 +4305,8 @@
     c.phase += dt * 7;
     if (c.atkAnim > 0) { c.atkAnim -= dt; }
     c.atkCd -= dt;
+    stepAllySig(c, dt);
+    if (!run) { return; }
 
     var best = null, bd = 1e9;
     for (i = 0; i < room.enemies.length; i++) {
@@ -4425,6 +4488,7 @@
     _dropMat: dropMat,
     /** 자가진단용 — 동행(부대 2번째 인물)의 때림 배율을 그대로 읽는다 */
     _companionMul: companionMul,
+    _allySigWants: allySigWants,
     ROOM_W: ROOM_W, ROOM_H: ROOM_H, WALL: WALL, P_R: P_R,
     SKILL_SLOTS: SKILL_SLOTS,
     /** 던전 밖(마을 등)이 같은 필드 메커니즘을 빌려 쓸 때 쓰는 자리 —
