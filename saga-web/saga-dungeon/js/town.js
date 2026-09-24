@@ -1438,6 +1438,7 @@
    * 경계가 굽어 있어 선을 따라 걸으면 들락날락할 수 있다 — 새 지역에 1.2초
    * 머물러야 바뀐 것으로 친다(배너가 깜빡이지 않게). */
   var regionNow = null, regionPend = null, regionPendT = 0, REGION_HOLD = 1.2;
+  var questFieldCd = 0;
   function fieldLevel() {
     var WM = global.DG.worldMap;
     return (WM && player) ? WM.levelAt(player.x, player.y) : 0;
@@ -1554,6 +1555,11 @@
     D().pickupField(ctx, fx);
     D().stepWorldBoss(ctx, fx);   // 세계 보스(§5.4) — 예고·출현·75초 제한을 스스로 관리한다
     if (D().stepRegionBoss) { D().stepRegionBoss(ctx); }   // 지역 우두머리(§5.13) — 고정 자리에 다가가면
+    questFieldCd -= dt;
+    if (questFieldCd <= 0 && global.DG.quest && global.DG.quest.stepField) {
+      questFieldCd = 0.4;
+      global.DG.quest.stepField(player.x, player.y);   // 지역 사연(§5.14) — 사슬 열기·흔적 자리
+    }
     /* 체력이 0까지 떨어지면 던전과 완전히 같게 처리한다(hurtPlayer→die() 그대로) —
        dungeon:end 가 곧바로 town.enter({fromDungeon:true})를 다시 불러 굴혈 앞으로
        돌려보낸다. 마을은 안전지대 예외를 안 둔다(사용자 확정) — 대신 돌아온

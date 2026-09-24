@@ -27,6 +27,7 @@
       s.quest = { mainIdx: 0, mainHave: 0, region: {}, eventIdx: 0, eventHave: 0, random: null };
     }
     if (!s.quest.region) { s.quest.region = {}; }
+    if (!s.quest.chain || typeof s.quest.chain !== 'object') { s.quest.chain = {}; }
     return s.quest;
   }
 
@@ -122,6 +123,87 @@
     core().emit('changed');
   }
 
+  /* ── 지역 사연 사슬(§5.14) ─────────────────────────────────
+   * 지역 아홉마다 네 걸음(토벌 → 흔적 → 정예 → 우두머리) → 평정. 걸음은 **순서대로만**
+   * 센다 — 우두머리를 먼저 잡아도 사슬은 안 건너뛴다. 대신 우두머리 걸음에 닿으면 쉬던
+   * 우두머리를 곧바로 다시 세운다(10분 기다리게 두지 않는다). 세이브 save.quest.chain[지역]
+   * = { step, have, done, at }, 아홉 다 평정하면 save.quest.chainAll = true.
+   * Math.random 을 하나도 안 쓴다(§2.3 — RNG 순번을 밀지 않는다). */
+  var CLUE_R = 320;
+  function WM() { return global.DG.worldMap; }
+  function chainDef(key, step) {
+    var W = WM(), rg = W && W.byKey(key);
+    if (!rg) { return null; }
+    return QD().chainStep(key, step, rg.lvl, rg.name, rg.boss.name);
+  }
+  /** 처음 발 들인 지역의 사슬을 연다 — @returns 새로 열었으면 true */
+  function chainOpen(key, now) {
+    var q = qs(), c = QD().CHAINS[key], W = WM();
+    if (!c || !W || q.chain[key]) { return false; }
+    q.chain[key] = { step: 0, have: 0, done: false, at: now === undefined ? Date.now() : now };
+    var rg = W.byKey(key);
+    core().log('📜 지역 사연 — ' + rg.name + ' · ' + c.title + ' — ' + c.giver + ': "' + c.intro + '"', 'info');
+    core().emit('toast', '📜 ' + c.title + ' — ' + c.intro);
+    return true;
+  }
+  /** 걸음 하나를 마쳤다 — 보상을 주고 다음 걸음으로(넷째면 평정) */
+  function chainAdvance(key) {
+    var q = qs(), ch = q.chain[key], c = QD().CHAINS[key], W = WM();
+    if (!ch || ch.done || !c || !W) { return false; }
+    var def = chainDef(key, ch.step), rg = W.byKey(key);
+    if (ch.step === 1) { core().log(c.clue.emoji + ' ' + c.clue.name + ' — ' + c.clue.found, 'info'); }
+    grant(def.reward, '사연 · ' + c.title + ' · ' + def.name);
+    ch.step += 1;
+    ch.have = 0;
+    if (ch.step === 3) {
+      /* 우두머리 걸음 — 쉬던 우두머리를 곧바로 다시 세운다 */
+      var DN = global.DG.dungeon, rbs = DN && DN.regionBossState ? DN.regionBossState() : null;
+      if (rbs && rbs[key]) { rbs[key].lastAt = 0; }
+      core().log('☠️ ' + rg.boss.name + '이(가) 소식을 듣고 제자리로 돌아왔다 — 큰 지도 ☠️', 'info');
+    }
+    if (ch.step >= 4) {
+      ch.done = true;
+      core().log('🏳️ ' + rg.name + ' 평정 — ' + c.done, 'good');
+      core().emit('toast', '🏳️ ' + rg.name + ' 평정 — ' + c.done);
+      core().emit('quest:chain', { key: key });
+      var all = W.REGIONS.every(function (r) { return q.chain[r.key] && q.chain[r.key].done; });
+      if (all && !q.chainAll) {
+        q.chainAll = true;
+        grant(QD().CHAIN_ALL.reward, QD().CHAIN_ALL.name);
+      }
+    }
+    return true;
+  }
+  function chainBump(key, kind) {
+    var ch = qs().chain[key];
+    if (!ch || ch.done) { return false; }
+    if ((kind === 'kill' && ch.step === 0) || (kind === 'elite' && ch.step === 2)) {
+      ch.have += 1;
+      var def = chainDef(key, ch.step);
+      if (def && ch.have >= def.need) { return chainAdvance(key); }
+      return true;
+    }
+    return false;
+  }
+  /** 들판을 걸을 때 town.update 가 부른다 — 지금 선 지역 사슬을 열고, 흔적 자리에 닿았는지 본다 */
+  function stepField(x, y, now) {
+    var W = WM();
+    if (!W) { return false; }
+    var rg = W.regionAt(x, y), changed = chainOpen(rg.key, now);
+    var ch = qs().chain[rg.key];
+    if (ch && !ch.done && ch.step === 1) {
+      var sp = W.clueSpot(rg.key);
+      if (sp && Math.hypot(x - sp.x, y - sp.y) <= CLUE_R) { changed = chainAdvance(rg.key) || changed; }
+    }
+    if (changed) { core().emit('changed'); }
+    return changed;
+  }
+  function onRegionBoss(p) {
+    if (!p || !p.key) { return; }
+    var ch = qs().chain[p.key];
+    if (ch && !ch.done && ch.step === 3 && chainAdvance(p.key)) { core().emit('changed'); }
+  }
+
   /* ── 사건을 듣는다 ────────────────────────────────────────── */
 
   function killMatches(req, e) {
@@ -156,6 +238,13 @@
     if (q.random && q.random.req.t === 'kill' && killMatches(q.random.req, e)) {
       q.random.have++;
       changed = checkRandom() || changed;
+    }
+
+    /* 지역 사연(§5.14) — 들판 처치만, 그 몬스터가 선 자리의 지역으로 센다 */
+    if (e.field && WM()) {
+      var rk = WM().regionAt(e.x, e.y).key;
+      changed = chainBump(rk, 'kill') || changed;
+      if (e.elite || e.boss) { changed = chainBump(rk, 'elite') || changed; }
     }
 
     if (changed) { core().emit('changed'); }
@@ -209,6 +298,7 @@
   core().on('dungeon:room', onRoom);
   core().on('dungeon:floor', onFloor);
   core().on('dungeon:rescue', onRescue);
+  core().on('regionboss:kill', onRegionBoss);
 
   /* ── 화면이 읽어 가는 것 ──────────────────────────────────── */
 
@@ -227,6 +317,23 @@
       });
     }
     var ev = QD().EVENT[q.eventIdx];
+    var chains = [], nDone = 0, W = WM();
+    if (W) {
+      W.REGIONS.forEach(function (rg) {
+        var ch = q.chain[rg.key], c = QD().CHAINS[rg.key];
+        if (!c) { return; }
+        if (!ch) { chains.push({ key: rg.key, locked: true, name: rg.name, emoji: rg.emoji }); return; }
+        if (ch.done) { nDone++; }
+        var def = ch.done ? null : chainDef(rg.key, ch.step);
+        chains.push({
+          key: rg.key, locked: false, done: ch.done, name: rg.name, emoji: rg.emoji, title: c.title,
+          giver: c.giver, step: ch.step, steps: QD().CHAIN_STEPS.length,
+          stepName: def ? def.name : '평정', desc: def ? def.desc : c.done,
+          have: def ? Math.min(ch.have, def.need) : 0, need: def ? def.need : 0,
+          clue: (!ch.done && ch.step === 1) ? W.clueSpot(rg.key) : null
+        });
+      });
+    }
     ensureRandom();
     return {
       main: m ? { name: m.name, desc: m.desc, have: Math.min(q.mainHave, m.req.n), need: m.req.n }
@@ -237,13 +344,29 @@
       event: ev ? { name: ev.name, desc: ev.desc, have: Math.min(q.eventHave, ev.req.n), need: ev.req.n }
                 : null,
       eventDone: q.eventIdx >= QD().EVENT.length,
+      chains: chains, chainDone: nDone, chainAll: !!q.chainAll,
       random: { name: q.random.name, desc: q.random.desc,
                 have: Math.min(q.random.have, q.random.req.n), need: q.random.req.n }
     };
   }
 
   global.DG.quest = {
-    status: status, reroll: reroll,
+    status: status, reroll: reroll, stepField: stepField, CLUE_R: CLUE_R,
+    /** 큰 지도가 읽는다 — 흔적 걸음에 선 사슬의 자리들(가볍게: 무작위 현상판은 안 굴린다) */
+    clueSpots: function () {
+      var W = WM(), q = qs(), out = [];
+      if (!W) { return out; }
+      W.REGIONS.forEach(function (rg) {
+        var ch = q.chain[rg.key], c = QD().CHAINS[rg.key];
+        if (ch && !ch.done && ch.step === 1 && c) {
+          var sp = W.clueSpot(rg.key);
+          if (sp) { out.push({ key: rg.key, x: sp.x, y: sp.y, name: c.clue.name, emoji: c.clue.emoji }); }
+        }
+      });
+      return out;
+    },
+    chainState: function () { return qs().chain; },
+    _chainOpen: chainOpen, _onRegionBoss: onRegionBoss,
     /** 자가진단용 — 사건을 직접 흘려본다 */
     _onKill: onKill, _onRoom: onRoom, _onFloor: onFloor, _onRescue: onRescue,
     _regionIndexOf: regionIndexOf

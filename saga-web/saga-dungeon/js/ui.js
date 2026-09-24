@@ -1320,6 +1320,23 @@
     }
     html += '</div>';
 
+    /* 지역 사연 사슬(§5.14) — 고정 세계 지도의 지역 아홉, 발 들인 곳만 열린다 */
+    if (st.chains && st.chains.length) {
+      html += '<div class="sec"><h4>📜 지역 사연 <small>' + st.chainDone + '/' + st.chains.length + ' 평정' +
+        (st.chainAll ? ' · 🏳️ 구주 평정' : '') + '</small></h4>';
+      st.chains.forEach(function (c) {
+        if (c.locked) {
+          html += qstRow('❔', c.emoji + ' ' + c.name, '아직 발 들이지 않은 땅', 0, 0, 'locked');
+        } else if (c.done) {
+          html += qstRow('🏳️', c.emoji + ' ' + c.name + ' · ' + c.title, '평정 — ' + c.desc, 0, 0, 'done');
+        } else {
+          html += qstRow('📜', c.emoji + ' ' + c.name + ' · ' + c.title + ' (' + (c.step + 1) + '/' + c.steps + ' ' + c.stepName + ')',
+            c.desc + ' — ' + c.giver, c.have, c.need);
+        }
+      });
+      html += '</div>';
+    }
+
     html += '<div class="sec"><h4>🙏 이벤트</h4>';
     if (st.eventDone) {
       html += '<div class="hint">이벤트 퀘스트를 모두 마쳤습니다.</div>';

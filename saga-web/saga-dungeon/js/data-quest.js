@@ -118,9 +118,82 @@
       req: { t: 'discover', room: 'forage', lo: 1, hi: 1 } }
   ];
 
+
+  /**
+   * 지역 사연(事緣) 사슬 — PLAN §5.14. 고정 세계 지도(§5.12)의 지역 아홉마다 네 걸음:
+   *   0 토벌(그 지역 들판 몬스터 n) → 1 흔적(world-map clueSpot 에 닿기) →
+   *   2 정예(그 지역 정예·우두머리 n) → 3 우두머리(§5.13 지역 우두머리 토벌) → 평정.
+   * 디아블로 2 막(Act) 퀘스트처럼 걸음마다 한 줄 사연이 이어진다. 이름은 전부 창작(실명 없음).
+   * 수치는 지역 기본 위험도(world-map FOES.lvl)로 정한다 — chainStep() 이 계산한다.
+   */
+  var CHAINS = {
+    jungwon: { title: '흑기 도적의 밤', giver: '벌판 역참지기',
+      intro: '밤마다 검은 깃발 무리가 역참을 턴다 — 벌판부터 조용히 시켜 달라',
+      clue: { name: '불탄 역참 깃발', emoji: '🚩', found: '깃발 밑에 끼인 약탈 장부 — 두목의 진지가 적혀 있다' },
+      elite: '도적 무리의 정예 척후', done: '벌판 길에 다시 수레가 다닌다' },
+    neon: { title: '멈춘 공장의 심장', giver: '고물 줍는 아이',
+      intro: '공장 쪽에서 쇠 긁는 소리가 밤새 난다 — 무서워서 못 가겠다',
+      clue: { name: '깜빡이는 비상등 상자', emoji: '🚨', found: '상자 속 기록기가 "둥지" 라는 말과 좌표를 되풀이한다' },
+      elite: '공장을 지키는 강철 정예', done: '굴뚝 아래가 조용해졌다 — 아이가 고철을 한 아름 들고 온다' },
+    saltmarsh: { title: '물 빠진 바다의 노래', giver: '염전 늙은 뱃사공',
+      intro: '썰물 때마다 갯벌 밑에서 무언가 운다 — 배가 셋이나 사라졌다',
+      clue: { name: '녹슨 관측탑 일지', emoji: '📓', found: '마지막 장 — "촉수, 물길 셋째 갈래 아래" 라고 적혀 있다' },
+      elite: '갯벌의 정예 괴물', done: '밀물이 제 소리로 돌아왔다 — 뱃사공이 소금 한 섬을 내민다' },
+    hellgate: { title: '갈라진 땅의 문지기', giver: '떠돌이 퇴마사',
+      intro: '균열이 해마다 한 뼘씩 넓어진다 — 새어 나오는 것들부터 막아야 한다',
+      clue: { name: '금 간 봉인비', emoji: '🪨', found: '비문의 마지막 글자가 불에 녹았다 — 문지기가 안에서 깼다' },
+      elite: '균열에서 나온 정예 원귀', done: '봉인비에 새 글자가 새겨졌다 — 균열이 멈췄다' },
+    solar: { title: '과열된 태양로', giver: '개척지 정비공',
+      intro: '태양로 온도가 계속 오른다 — 주변 기계들이 미쳐 날뛴다',
+      clue: { name: '꺼진 제어 단말', emoji: '💻', found: '마지막 기록 — "냉각 실패. 거신 기동" 이 붉게 떠 있다' },
+      elite: '폭주한 기계 정예', done: '태양판 위로 다시 새가 앉는다 — 개척지에 불이 들어왔다' },
+    silkroad: { title: '끊긴 대상 길', giver: '대상 우두머리',
+      intro: '서역 길목이 막힌 지 석 달 — 낙타도 짐도 돌아오지 않는다',
+      clue: { name: '모래에 묻힌 낙타 방울', emoji: '🔔', found: '방울 곁에 거대한 뿔 자국 — 발자국이 모래바다 쪽으로 이어진다' },
+      elite: '길목을 지키는 정예 짐승', done: '방울 소리가 다시 들린다 — 대상이 비단 한 필을 남기고 떠난다' },
+    heaven: { title: '칼을 든 수호장', giver: '사당지기 도사',
+      intro: '하늘 사당의 수호장이 사당을 버렸다 — 그 칼끝이 이제 우리를 향한다',
+      clue: { name: '빛이 꺼진 홀로그램 비석', emoji: '🪧', found: '비석에 남은 마지막 빛 — 수호장의 맹세가 거꾸로 새겨져 있다' },
+      elite: '타락을 따른 정예', done: '비석에 빛이 돌아왔다 — 도사가 향을 사른다' },
+    snowfort: { title: '산성의 거한', giver: '케이블카 기사',
+      intro: '산성 폐허에 누가 눌러앉아 케이블카가 끊겼다 — 골짜기가 고립됐다',
+      clue: { name: '멈춘 케이블카 칸', emoji: '🚡', found: '칸 안에 얼어붙은 커다란 손자국 — 산성 꼭대기로 이어진다' },
+      elite: '설산의 정예 짐승', done: '케이블카가 다시 움직인다 — 골짜기에 불빛이 켜졌다' },
+    scrap: { title: '스스로 일어선 고철', giver: '떠돌이 수리 로봇',
+      intro: '쓰러진 기계들이 하나씩 사라진다 — 누군가 그것들을 모으고 있다',
+      clue: { name: '반쯤 묻힌 조립 설계도', emoji: '📐', found: '설계도 가장자리에 거대한 몸의 도면 — 이미 완성됐다고 적혀 있다' },
+      elite: '고철 거신의 정예 부품', done: '황무지의 기계들이 잠들었다 — 수리 로봇이 나사 한 줌을 건넨다' }
+  };
+  var CHAIN_STEPS = ['토벌', '흔적', '정예', '우두머리'];
+  /** 걸음 하나의 요구·보상 — lvl 은 그 지역 기본 위험도(0~6) */
+  function chainStep(key, step, lvl, regionName, bossName) {
+    var c = CHAINS[key];
+    if (!c || step < 0 || step > 3) { return null; }
+    var L = lvl || 0;
+    if (step === 0) {
+      var n = 10 + L * 2;
+      return { name: CHAIN_STEPS[0], desc: regionName + ' 들판에서 몬스터 ' + n + '마리를 처치하라', need: n,
+               reward: { gold: 60 + 30 * L, exp: 10 + 5 * L } };
+    }
+    if (step === 1) {
+      return { name: CHAIN_STEPS[1], desc: c.clue.emoji + ' ' + c.clue.name + '을(를) 찾아라 (큰 지도 🔍)', need: 1,
+               reward: { gold: 80 + 40 * L, exp: 15 + 5 * L } };
+    }
+    if (step === 2) {
+      var m = L ? 3 : 2;
+      return { name: CHAIN_STEPS[2], desc: c.elite + ' ' + m + '마리를 쓰러뜨려라', need: m,
+               reward: { gold: 100 + 50 * L, exp: 20 + 8 * L } };
+    }
+    return { name: CHAIN_STEPS[3], desc: '☠️ ' + bossName + '을(를) 토벌하라', need: 1,
+             reward: { gold: 400 + 200 * L, exp: 60 + 20 * L, feat: 20 + L } };
+  }
+  /** 아홉을 다 평정하면 한 번 */
+  var CHAIN_ALL = { name: '구주 평정(九州平定)', reward: { gold: 20000, exp: 1000, feat: 100 } };
+
   global.DG = global.DG || {};
   global.DG.questData = {
     MAIN: MAIN, REGION: REGION, EVENT: EVENT, RANDOM_POOL: RANDOM_POOL,
-    regionQuest: regionQuest
+    regionQuest: regionQuest,
+    CHAINS: CHAINS, CHAIN_STEPS: CHAIN_STEPS, chainStep: chainStep, CHAIN_ALL: CHAIN_ALL
   };
 })(window);

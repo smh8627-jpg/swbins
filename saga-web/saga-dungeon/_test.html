@@ -6506,6 +6506,93 @@ window.requestAnimationFrame = function () { return 0; };
       } finally { C.save.dungeon = JSON.parse(keepD); }
     });
 
+    /* ── 지역 사연 사슬(§5.14) ─────────────────────────────────────── */
+
+    t('지역 사연 — 아홉 모두 사연이 있고, 흔적 자리는 제 지역·마을 발판 2200 밖, 우두머리 자리와 떨어져 있다', function () {
+      var WM = DG.worldMap, T = DG.town, QD = DG.questData, bad = [];
+      WM.REGIONS.forEach(function (r) {
+        var c = QD.CHAINS[r.key], s = WM.clueSpot(r.key), b = WM.bossSpot(r.key);
+        if (!c || !c.clue || !c.title) { bad.push(r.key + ':표'); return; }
+        if (!s || WM.regionAt(s.x, s.y) !== r) { bad.push(r.key + ':지역'); return; }
+        if (T.footprintDist(T.nearestTownId(s.x, s.y), s.x, s.y) < 2200) { bad.push(r.key + ':마을'); }
+        if (Math.hypot(s.x - b.x, s.y - b.y) < 3000) { bad.push(r.key + ':우두머리'); }
+        [0, 1, 2, 3].forEach(function (k) { if (!QD.chainStep(r.key, k, r.lvl, r.name, r.boss.name)) { bad.push(r.key + ':걸음' + k); } });
+      });
+      if (bad.length) { throw new Error(bad.join(',')); }
+      return '사연 9 · 걸음 4 · 흔적 자리 9';
+    });
+
+    t('지역 사연 — 들어서면 열리고, 토벌→흔적→정예→우두머리 순서로만 차며, 평정하면 보상', function () {
+      var Q = DG.quest, WM = DG.worldMap, keepQ = JSON.stringify(C.save.quest || {}), keepD = JSON.stringify(C.save.dungeon || {});
+      var g0 = C.save.player.gold;
+      try {
+        Q.chainState(); C.save.quest.chain = {}; delete C.save.quest.chainAll;
+        var rg = WM.byKey('neon'), bs = WM.bossSpot('neon'), cs = WM.clueSpot('neon'), i;
+        Q.stepField(bs.x, bs.y, 1000);
+        var ch = Q.chainState().neon, opened = !!ch && ch.step === 0;
+        Q._onKill({ e: { field: false, x: bs.x, y: bs.y }, floor: 3 });       // 던전 처치는 안 센다
+        Q._onKill({ e: { field: true, x: 0, y: 0 }, floor: 0 });              // 딴 지역(중원, 안 열림)
+        var untouched = ch.have === 0;
+        var need0 = DG.questData.chainStep('neon', 0, rg.lvl, rg.name, rg.boss.name).need;
+        for (i = 0; i < need0; i++) { Q._onKill({ e: { field: true, x: bs.x, y: bs.y }, floor: 3 }); }
+        var hunted = ch.step === 1;
+        Q.stepField(cs.x + Q.CLUE_R * 3, cs.y, 1000);
+        var notYet = ch.step === 1;
+        Q.stepField(cs.x + Q.CLUE_R * 0.5, cs.y, 1000);
+        var found = ch.step === 2;
+        Q._onRegionBoss({ key: 'neon' });                                      // 정예 걸음에선 우두머리 처치 안 센다
+        Q._onKill({ e: { field: true, x: bs.x, y: bs.y }, floor: 3 });        // 잡졸은 정예 걸음에 안 센다
+        var skipOk = ch.step === 2 && ch.have === 0;
+        DG.dungeon.regionBossState().neon = { kills: 1, firstAt: 1, lastAt: Date.now() };
+        for (i = 0; i < 3; i++) { Q._onKill({ e: { field: true, elite: 'brute', x: bs.x, y: bs.y }, floor: 3 }); }
+        var elited = ch.step === 3 && DG.dungeon.regionBossState().neon.lastAt === 0;   // 쉬던 우두머리가 다시 선다
+        var gBefore = C.save.player.gold;
+        Q._onRegionBoss({ key: 'neon' });
+        var done = ch.done && C.save.player.gold > gBefore;
+        return opened && untouched && hunted && notYet && found && skipOk && elited && done &&
+          ('토벌 ' + need0 + ' · 흔적 · 정예 3 · 우두머리 → 평정 · 금 +' + (C.save.player.gold - g0));
+      } finally {
+        C.save.quest = JSON.parse(keepQ); C.save.dungeon = JSON.parse(keepD); C.save.player.gold = g0;
+      }
+    });
+
+    t('지역 사연 — 아홉을 다 평정하면 구주 평정 한 번, 다시 평정해도 또 안 준다', function () {
+      var Q = DG.quest, WM = DG.worldMap, keepQ = JSON.stringify(C.save.quest || {}), g0 = C.save.player.gold;
+      try {
+        Q.chainState(); C.save.quest.chain = {}; delete C.save.quest.chainAll;
+        WM.REGIONS.forEach(function (r) { Q._chainOpen(r.key, 1000); Q.chainState()[r.key].step = 3; });
+        var last = WM.REGIONS[WM.REGIONS.length - 1].key, pre = false;
+        WM.REGIONS.forEach(function (r) {
+          if (r.key === last) { pre = !C.save.quest.chainAll; }
+          Q._onRegionBoss({ key: r.key });
+        });
+        var all = C.save.quest.chainAll === true, gAll = C.save.player.gold;
+        Q.chainState()[last].done = false; Q.chainState()[last].step = 3;
+        Q._onRegionBoss({ key: last });
+        var once = C.save.player.gold - gAll < DG.questData.CHAIN_ALL.reward.gold;
+        return pre && all && once && ('아홉 평정 → ' + DG.questData.CHAIN_ALL.name + ' 한 번');
+      } finally { C.save.quest = JSON.parse(keepQ); C.save.player.gold = g0; }
+    });
+
+    t('지역 사연 — 화면 값: 안 간 곳은 잠김, 흔적 걸음이면 큰 지도 🔍 자리가 나온다, Math.random 을 안 쓴다', function () {
+      var Q = DG.quest, WM = DG.worldMap, keepQ = JSON.stringify(C.save.quest || {}), g0 = C.save.player.gold;
+      var mr = Math.random, used = 0;
+      try {
+        Q.chainState(); C.save.quest.chain = {}; delete C.save.quest.chainAll;
+        Math.random = function () { used++; return mr(); };
+        var cs = WM.clueSpot('heaven');
+        Q._chainOpen('heaven', 1000); Q.chainState().heaven.step = 1;
+        var spots = Q.clueSpots();
+        Q.stepField(cs.x, cs.y, 1000);
+        Math.random = mr;
+        var st = Q.status(), heaven = null, locked = 0;
+        st.chains.forEach(function (c) { if (c.key === 'heaven') { heaven = c; } if (c.locked) { locked++; } });
+        return used === 0 && spots.length === 1 && spots[0].key === 'heaven' && heaven && heaven.step === 2 &&
+          heaven.need === 3 && locked === 8 && st.chains.length === 9 &&
+          ('잠김 8 · 🔍 1 · 흔적 → 정예 ' + heaven.need);
+      } finally { Math.random = mr; C.save.quest = JSON.parse(keepQ); C.save.player.gold = g0; }
+    });
+
     t('런타임 에러 없음', function () {
       return errors.length === 0 || ('에러 ' + errors.length + '건: ' + errors.join(' | ')) === '';
     });

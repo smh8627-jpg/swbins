@@ -148,12 +148,10 @@
    * 마을 발판에 너무 가까우면 반지름·각도를 정해진 순서로 조금씩 옮긴다(무작위 없음).
    */
   var spotCache = {};
-  function bossSpot(key) {
-    if (spotCache[key]) { return spotCache[key]; }
-    var R0 = BY[key], t = global.DG.town;
+  function placeSpot(key, cacheK, a0, r0) {
+    if (spotCache[cacheK]) { return spotCache[cacheK]; }
+    var R0 = BY[key], t = global.DG.town, k, best = null;
     if (!R0) { return null; }
-    var si = SECTORS.indexOf(key), step = Math.PI * 2 / SECTORS.length;
-    var a0 = si < 0 ? Math.PI * 0.75 : si * step, r0 = si < 0 ? 8500 : 28000, k, best = null;
     for (k = 0; k < 40; k++) {
       var dr = (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 700, da = ((k >> 2) % 2 ? 1 : -1) * Math.floor(k / 4) * 0.05;
       var x = Math.round(Math.cos(a0 + da) * (r0 + dr)), y = Math.round(Math.sin(a0 + da) * (r0 + dr));
@@ -163,8 +161,20 @@
       break;
     }
     if (!best) { best = { x: Math.round(Math.cos(a0) * r0), y: Math.round(Math.sin(a0) * r0) }; }
-    if (t && t.nearestTownId) { spotCache[key] = best; }   // 마을이 실린 뒤에만 붙든다
+    if (t && t.nearestTownId) { spotCache[cacheK] = best; }   // 마을이 실린 뒤에만 붙든다
     return best;
+  }
+  function bossSpot(key) {
+    var si = SECTORS.indexOf(key), step = Math.PI * 2 / SECTORS.length;
+    return placeSpot(key, 'boss:' + key, si < 0 ? Math.PI * 0.75 : si * step, si < 0 ? 8500 : 28000);
+  }
+  /**
+   * 지역 사연 사슬(§5.14) 둘째 걸음 "흔적" 자리 — 우두머리보다 안쪽(반지름 19000, 중원 5200),
+   * 방위 한가운데서 조금 비껴(+0.22 rad) 선다. 옮기는 규칙은 우두머리와 같다(무작위 없음).
+   */
+  function clueSpot(key) {
+    var si = SECTORS.indexOf(key), step = Math.PI * 2 / SECTORS.length;
+    return placeSpot(key, 'clue:' + key, si < 0 ? Math.PI * 1.6 : si * step + 0.22, si < 0 ? 5200 : 19000);
   }
 
   /** 가운데 원(중원) 반지름 — 손으로 지은 넷(모루골·갈대나루·자작재·소금벌, 앵커 ±6400)이 다 들어간다 */
@@ -357,7 +367,7 @@
   global.DG.worldMap = {
     REGIONS: REGIONS, byKey: function (k) { return BY[k] || null; }, CENTER_R: CENTER_R, BOUND: BOUND,
     regionAt: regionAt, info: info, pieces: pieces, clutter: clutter, kindAt: kindAt,
-    levelAt: levelAt, bossSpot: bossSpot, LEVEL_STEP: LEVEL_STEP, LEVEL_MAX: LEVEL_MAX,
+    levelAt: levelAt, bossSpot: bossSpot, clueSpot: clueSpot, LEVEL_STEP: LEVEL_STEP, LEVEL_MAX: LEVEL_MAX,
     bakeStep: bakeStep, bakeProgress: bakeProgress, bakeInBackground: bakeInBackground,
     /** 절차 생성 마을의 성격 — 그 앵커 자리 지역에서 받는다(town.js 가 부른다) */
     townBiomeAt: function (wx, wy) { return regionAt(wx, wy).town; },

@@ -4177,3 +4177,13 @@ VRoid 인물이 unlit(`MeshBasicMaterial`) 그대로라 명암 없이 평면이�
 - `dungeon.js` `pickEnemyRef(…, regionKey)` · `stepRegionBoss`(1500 안·호위 정예 셋·위험+4·체력×3) · `grantRegionBossReward`(전설·보물 둘·재료·금·공적, 10분 쉼) · kill 훅.
 - `dungeon-view.js` 들판 HUD 머리 = 지역명·위험 N. `minimap.js` 큰 지도 우두머리 ☠ 아홉.
 - 진단 4 → jsdom 390/390 세 번 동일(거르개로 "지역" 만 돌리면 "월드맵 — 던전 안" 이 앞 항목 상태에 기대 실패하는 건 기존 것). `sw.js` dungeon-v0.158.0. **실기 확인 대기**.
+
+## 2026-09-24 (이어서 7) — 지역 사연 사슬(PLAN §5.14)
+
+- 계기: "사가웹 이어해" — §8 "고정 세계" 다음 후보 중 사용자 확인이 필요 없는 지역 퀘스트 사슬부터. 던전 안 고정 층은 여전히 확인 대기.
+- `data-quest.js` CHAINS — 지역 아홉마다 제목·의뢰인·사연·흔적(이름·찾았을 때 한 줄)·정예 이름·평정 한 줄(전부 창작). `chainStep(key, step, lvl)` 이 걸음 넷(토벌 10+2L·흔적·정예 3(중원 2)·우두머리)의 요구·보상을 낸다. CHAIN_ALL 구주 평정.
+- `quest.js` — 들판 틱(`stepField`, town.update 0.4초)에서 지금 지역 사슬을 열고 흔적 자리 320 안을 본다. `dungeon:kill` 은 `e.field` 만, 처치 자리의 지역으로 센다. `regionboss:kill` 로 넷째 걸음. 셋째를 마치면 쉬던 우두머리의 `lastAt` 을 0 으로(곧바로 다시 선다). Math.random 안 씀.
+- `world-map.js` — `bossSpot` 의 옮김 규칙을 `placeSpot` 으로 떼고 `clueSpot`(반지름 19000·+0.22 rad, 중원 5200) 추가.
+- `ui.js` 퀘스트 탭 "📜 지역 사연 n/9 평정" · `minimap.js` 큰 지도 🔍.
+- 진단 4 → jsdom 394/394 세 번 동일(러너: 스크래치패드 jsdom, 가짜 http 출처 + 파일 로더 + Proxy 캔버스). `sw.js` dungeon-v0.159.0. **실기 확인 대기**.
+- 함정: Git Bash `sed -i` 가 `_test.html` 을 통째 LF 로 바꿨다(패턴이 안 맞았는데도) — 치환은 파이썬 바이너리로만.

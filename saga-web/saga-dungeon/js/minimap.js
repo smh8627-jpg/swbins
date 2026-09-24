@@ -544,6 +544,14 @@
         bigCtx.fillText('☠️ ' + rr.boss.name + (st && st.kills ? ' ✓' : ''), q.x - 8, q.y);
         bigCtx.globalAlpha = 1;
       });
+      /* 지역 사연(§5.14) — 흔적 걸음에 선 사슬의 흔적 자리 🔍 */
+      var QM = global.DG.quest, clues = QM && QM.clueSpots ? QM.clueSpots() : [];
+      bigCtx.fillStyle = '#9fd3ff';
+      clues.forEach(function (c) {
+        var q = toScreen(c.x, c.y);
+        if (q.x < -40 || q.y < -20 || q.x > W + 40 || q.y > H + 20) { return; }
+        bigCtx.fillText('🔍 ' + c.emoji + ' ' + c.name, q.x - 8, q.y);
+      });
     }
     /* 마을 위치는 늘 보인다(존재 자체는 이미 아는 정보 — 옛 오버월드 창이
        고정 배치를 늘 보여 주던 것과 같은 생각) — 화면 밖이면 건너뛴다. */
