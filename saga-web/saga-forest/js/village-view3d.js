@@ -311,7 +311,7 @@
     /* 축제 하루(PLAN §5.6) — 새 GLB 없이 기존 키: 안내판=표지판, 달집=모닥불, 줄=통나무, 솥=우물, 등롱=등 */
     festboard: 'building:board', festfire: 'campfire', festrope: 'log', festpot: 'well', festlantern: 'lantern',
     /* 방문객 조각(§5.9) — 새 GLB 없이: 나침반 조각=작은 상자, 도깨비불=등(밤에 빛난다) */
-    visitcompass: 'building:mail', visitwisp: 'lantern', visitkid: 'bush', visitufo: 'building:mail',
+    visitcompass: 'building:mail', visitwisp: 'lantern', visitkid: 'bush', visitufo: 'building:mail', visitparcel: 'crate',
     gridchest: 'building:mail', gridbottle: 'plant', gridnode: 'rock:moss', gridcamp: 'tent', gridfire: 'campfire',
     /* 다리(2026-09-09) — asset3d.js 에 진작 등록만 되어 있던 'bridge' 를
        처음 쓴다(village.js 의 새 BRIDGE_TY 크로싱) */
@@ -387,7 +387,7 @@
     stele: 1.3, fireflyplot: 0.9, spiritmark: 1.5, spiritdone: 0.5,
     oldpost: 0.9,
     festboard: 1.2, festfire: 0.5, festrope: 0.5, festpot: 1.0, festlantern: 1.6,
-    visitcompass: 0.5, visitwisp: 0.9, visitkid: 0.9, visitufo: 0.45,
+    visitcompass: 0.5, visitwisp: 0.9, visitkid: 0.9, visitufo: 0.45, visitparcel: 0.5,
     gridchest: 0.6, gridbottle: 0.35, gridnode: 0.9, gridcamp: 1.8, gridfire: 0.5,
     deer: 1.1, fox: 0.55, wolf: 0.95,
     rabbit: 0.3, squirrel: 0.25, duck: 0.35, bird: 0.2,
@@ -1718,8 +1718,9 @@
       slot = npc3d[npc.id];
       if (!slot) {
         slot = npc3d[npc.id] = { group: null, mixer: null, actions: null, clipMap: null, action: null, building: true };
-        (function (id) {
-          asset3d().build('hero', { id: id }, function (g) {
+        (function (id, body) {
+          /* §5.13 — 손님은 제 몸(body: 로봇·우주복·유령·도깨비·작업복)이 있으면 그것으로 선다 */
+          asset3d().build('hero', body ? { id: id, body: body } : { id: id }, function (g) {
             var cur = npc3d[id];
             if (!cur) { return; }
             cur.building = false;
@@ -1732,7 +1733,7 @@
             scene.add(g);
             playAction(cur, 'idle');
           });
-        })(npc.id);
+        })(npc.id, npc.body || null);
         continue;
       }
       if (!slot.group) { continue; }   // 아직 짓는 중

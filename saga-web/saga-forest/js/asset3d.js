@@ -1055,6 +1055,18 @@
    * @param cb  function(group|null) — group.userData 에 mixer·actions·clipMap 이 실린다
    */
   function buildHero(ref, cb) {
+    /* §5.13 — 손님 제 몸(`ref.body`, 제 클립 든 CC0 GLB: 로봇·우주복·유령·도깨비·작업복). 몸이 곧 몸짓 파일이다.
+       못 실리면 옛 길(애니메·QRPG)로 */
+    if (ref && ref.body && three()) {
+      loadHeroRecipe({ key: 'body:' + ref.body, body: ref.body, anim: ref.body }, function (model) {
+        if (model) { cb(model); return; }
+        buildHeroPlain(ref, cb);
+      });
+      return;
+    }
+    buildHeroPlain(ref, cb);
+  }
+  function buildHeroPlain(ref, cb) {
     var t = three();
     if (!t) { cb(null); return; }
     if (wantsMixamoReal()) {

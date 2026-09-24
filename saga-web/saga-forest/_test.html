@@ -5874,6 +5874,38 @@ window.DG_NO_TUNE = true;
       return '경계 ' + cases.length + '곳 통과 · 가구·옷 ' + R[1].name + '→' + R[5].name + ' · 채집물 ' + R[1].name + '→' + R[5].name;
     });
 
+    t('세 시대 손님(§5.13) — 열 손님에 과거·현대·미래·신화 · 현대 셋 · 미래·신화 손님은 제 몸 · 택배 기사·사진작가 부탁이 끝난다', function () {
+      var VI = DG.visitor, eras = {}, bad = [];
+      VI.VISITORS.forEach(function (v) {
+        eras[v.era] = (eras[v.era] || 0) + 1;
+        if (!v.era) { bad.push(v.key + ' era'); }
+        if ((v.era === 'future' || (v.era === 'myth' && v.type !== 'shop') || v.key === 'courier' || v.key === 'photo') && !v.body) { bad.push(v.key + ' 몸'); }
+        if (!VI.GIFT[v.key] || !VI.CHAT_OPEN[v.key] || !VI.CHAT_REPLY[v.key]) { bad.push(v.key + ' 표'); }
+        if (v.furn && !(VD.furn(v.furn) && VD.furn(v.furn).fest === 'visit')) { bad.push(v.key + ' 가구'); }
+        if (!visDay(v.key)) { bad.push(v.key + ' 안 옴'); }
+      });
+      var parcel = visWith('courier', function () {
+        var npc = V.raw().visitors[0], first = VI.talk(npc);
+        V.buildProps();
+        var ps = V.raw().props.filter(function (p) { return p.kind === 'visitparcel'; });
+        ps.forEach(function (p) { VI.pick(p); });
+        var g0 = C.save.player.gold, st0 = DG.home.state().stock.visit_parcel || 0, done = VI.talk(npc);
+        return first.kind === 'quest' && ps.length === 4 && C.save.player.gold === g0 + 900 &&
+          (DG.home.state().stock.visit_parcel || 0) === st0 + 1 && /m_Worker/.test(npc.body || '');
+      });
+      var photo = visWith('photo', function (s) {
+        var npc = V.raw().visitors[0], fish = VD.ITEMS.fish[0].key, bug = VD.ITEMS.bug[0].key;
+        s.bag = {}; s.bag[fish] = 1; s.bag[bug] = 1;
+        var g0 = C.save.player.gold, r = VI.talk(npc);
+        return r.kind === 'quest' && !s.bag[fish] && !s.bag[bug] && C.save.player.gold === g0 + 800;
+      });
+      var robot = visWith('traveler', function () { return /Robot_Walker/.test(V.raw().visitors[0].body || ''); });
+      return bad.length === 0 && eras.past >= 2 && eras.modern === 3 && eras.future === 2 && eras.myth >= 3 && parcel && photo && robot &&
+        ('손님 ' + VI.VISITORS.length + ' — 과거 ' + eras.past + '·현대 ' + eras.modern + '·미래 ' + eras.future + '·신화 ' + eras.myth +
+         ' · 소포 넷 → 🪙 900 + 소포 상자 탑 · 사진 → 🪙 800 · 시간 여행자는 로봇 몸') ||
+        (function () { throw new Error(bad.slice(0, 5).join(' ') + ' eras=' + JSON.stringify(eras) + ' parcel=' + parcel + ' photo=' + photo + ' robot=' + robot); })();
+    });
+
     t('런타임 에러 없음', function () {
       return errors.length === 0 || ('에러 ' + errors.length + '건: ' + errors.join(' | ')) === '';
     });

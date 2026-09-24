@@ -137,6 +137,7 @@
     /* §5.10 — 숨바꼭질 꼬마(흔들리는 덤불)·탐사선 부품 */
     visitkid:     { name: '흔들리는 덤불', emoji: '🌿', gather: null, reset: 0, hint: '들춘다' },
     visitufo:     { name: '탐사선 부품',   emoji: '🔩', gather: null, reset: 0, hint: '줍는다' },
+    visitparcel:  { name: '떨어진 소포',   emoji: '📦', gather: null, reset: 0, hint: '줍는다' },   // §5.13 택배 기사
     oldpost: { name: '옛 우체통', emoji: '📮', gather: null, reset: 0, hint: '소포를 넣는다' },
     /* 폐허 확장(PLAN 46-2절, 2026-09-11) — §45가 냈던 "과거" 목적지를
        아치 하나뿐이던 폐허(ruinSpot)에 실제로 채웠다. ruinTower는 진짜
@@ -610,7 +611,10 @@
     { key: 'visit_bug',    name: '나비 표본 액자',  price: 2000, set: 'jange', form: 'screen',  fest: 'visit' },
     { key: 'visit_future', name: '시간의 탁상시계', price: 3000, set: 'jange', form: 'vase',    fest: 'visit' },
     { key: 'visit_dokkaebi', name: '도깨비 방망이 탁자', price: 2400, set: 'jange', form: 'table', fest: 'visit' },
-    { key: 'visit_alien',  name: '별 지도 액자',    price: 3000, set: 'jange', form: 'scroll',  fest: 'visit' }
+    { key: 'visit_alien',  name: '별 지도 액자',    price: 3000, set: 'jange', form: 'scroll',  fest: 'visit' },
+    /* 현대 손님 둘(§5.13) */
+    { key: 'visit_parcel', name: '소포 상자 탑',    price: 2200, set: 'jange', form: 'chest',   fest: 'visit' },
+    { key: 'visit_photo',  name: '숲 사진첩 병풍',  price: 2200, set: 'jange', form: 'screen',  fest: 'visit' }
   ];
 
   var FURN = {};

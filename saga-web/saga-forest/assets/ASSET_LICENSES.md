@@ -1020,3 +1020,13 @@ PLAN.md 양쪽에 "캠프 소품이 미착수"로 적힌 옛 기록이 있었는
 | `models/animals_extra/` | `Alpaca.glb`·`Bull.glb`·`Cow.glb`·`Cow_Farm.glb`·`Dolphin.glb`·`Donkey.glb`·`Fish1.glb`·`Fish2.glb`·`Fish3.glb`·`Fox.glb`·`Horse.glb`·`Horse_Farm.glb`·`Llama.glb`·`MantaRay.glb`·`Pig.glb`·`Pug.glb`·`Shark.glb`·`Sheep.glb`·`Stag.glb`·`Whale.glb`·`White_Horse.glb`·`Zebra.glb` |
 | `models/animals_extra2/` | `Anglerfish.glb`·`Apatosaurus.glb`·`Armored_Catfish.glb`·`Betta.glb`·`Black_Lion_Fish.glb`·`Blobfish.glb`·`Blue_Goldfish.glb`·`Blue_Tang.glb`·`Butterfly_Fish.glb`·`Cardinal_Fish.glb`·`Clownfish.glb`·`Coral_Grouper.glb`·`Cowfish.glb`·`Flatfish.glb`·`Flower_Horn.glb`·`Goblin_Shark.glb`·`Goldfish.glb`·`Humphead.glb`·`Koi.glb`·`Lionfish.glb`·`Mandarin_Fish.glb`·`Moorish_Idol.glb`·`Parasaurolophus.glb`·`Parrot_Fish.glb`·`Piranha.glb`·`Puffer.glb`·`Red_Snapper.glb`·`Royal_Gramma.glb`·`Shark.glb`·`Stegosaurus.glb`·`Sunfish.glb`·`Swordfish.glb`·`T_Rex.glb`·`Tang.glb`·`Tetra.glb`·`Triceratops.glb`·`Tuna.glb`·`Turbot.glb`·`Velociraptor.glb`·`Worm.glb`·`Yellow_Tang.glb`·`Zebra_Clown_Fish.glb` |
 | `models/standin/` | `Birb.glb`·`Demon.gltf`·`Orc.gltf`·`Pigeon.glb`·`Snake_angry.glb` (사가고에서) |
+
+## 세 시대 손님 몸 (2026-09-24, PLAN §5.13) — 사가고·사가블로에서 복사
+
+| 자리 | 파일 | 원본 |
+|---|---|---|
+| `models/foes/` | `Robot_Walker.glb` | 사가고(quaternius-showcase 미러 `cyberpunk_pack/Enemy_2Legs`, Meshopt) |
+| `models/people/folk/` | `m_Worker.glb`·`m_Hoodie.glb` | 사가고(원래 사가블로 poly.pizza "Ultimate Modular Men Pack") |
+| `models/monsters/` | `Ghost.glb` | 사가블로 `monsters/quaternius/Ghost_810f60a2.glb`(Ultimate Monsters) |
+
+전부 © Quaternius, CC0 1.0. 제 클립 내장. 경위는 사가고 `assets/ASSET_LICENSES.md` "Quaternius — 세 시대 사람·적" 절.

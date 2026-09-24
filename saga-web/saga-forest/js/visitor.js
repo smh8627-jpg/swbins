@@ -34,47 +34,58 @@
   function V() { return global.DG.village; }
   function VD() { return global.DG.villageData; }
 
+  /* 세 시대 손님(§5.13 · SAGA-DESIGN §13) — era 는 표시·진단용(past·modern·future·myth), body 는 3D 몸
+     (제 클립 든 CC0 GLB — 없으면 사람 기본 몸). 사가고 ⑱·사가블로에서 복사해 온 Quaternius 파일 */
+  var M = 'assets/models/';
   var VISITORS = [
-    { key: 'fox', name: '여우 화상 호연', emoji: '🦊', type: 'shop',
+    { key: 'fox', name: '여우 화상 호연', emoji: '🦊', type: 'shop', era: 'myth',
       line: '눈이 밝은 손님만 알아보는 물건이 있지요 — 오늘 하루뿐이랍니다' },
     { key: 'sailor', name: '난파 선원 풍랑', emoji: '🧭', type: 'collect', piece: 'visitcompass', n: 5,
-      line: '배가 뒤집혀 나침반이 산산이… 숲 어디에 조각이 떨어졌을 텐데', gold: 800, furn: 'visit_sailor' },
+      line: '배가 뒤집혀 나침반이 산산이… 숲 어디에 조각이 떨어졌을 텐데', gold: 800, furn: 'visit_sailor', era: 'past' },
     { key: 'wisp', name: '도깨비불 반디', emoji: '👻', type: 'collect', piece: 'visitwisp', n: 5,
-      line: '히잉… 놀라서 몸이 다섯 조각으로 흩어졌어. 숲에서 좀 찾아 줘', gold: 1000, furn: 'visit_wisp' },
+      line: '히잉… 놀라서 몸이 다섯 조각으로 흩어졌어. 숲에서 좀 찾아 줘', gold: 1000, furn: 'visit_wisp', era: 'myth', body: M + 'monsters/Ghost.glb' },
     { key: 'angler', name: '낚시 명인 청파', emoji: '🎣', type: 'bring', cat: 'fish', n: 3,
-      line: '이 마을 물고기 구경 좀 하세나 — 셋만 보여 주게', gold: 700, furn: 'visit_angler' },
+      line: '이 마을 물고기 구경 좀 하세나 — 셋만 보여 주게', gold: 700, furn: 'visit_angler', era: 'past' },
     { key: 'bugdoc', name: '곤충 박사 나비', emoji: '🦋', type: 'bring', cat: 'bug', n: 3,
-      line: '표본이 모자라요! 곤충 세 마리만 나눠 주실래요?', gold: 700, furn: 'visit_bug' },
+      line: '표본이 모자라요! 곤충 세 마리만 나눠 주실래요?', gold: 700, furn: 'visit_bug', era: 'modern' },
     { key: 'traveler', name: '시간 여행자 K-7', emoji: '🤖', type: 'bring', cat: 'ore', n: 2, cat2: 'fossil', n2: 1,
-      line: '삐빗. 2387년에서 왔습니다. 광석 둘과 화석 하나가 있으면 귀환 부품을 만들 수 있습니다', gold: 900, furn: 'visit_future' },
+      line: '삐빗. 2387년에서 왔습니다. 광석 둘과 화석 하나가 있으면 귀환 부품을 만들 수 있습니다', gold: 900, furn: 'visit_future', era: 'future', body: M + 'foes/Robot_Walker.glb' },
     { key: 'dokkaebi', name: '도깨비 대장 두두', emoji: '👺', type: 'collect', piece: 'visitkid', n: 3, back: true,
-      line: '우리 꼬마 셋이 숨바꼭질하다 안 돌아와 — 바깥 숲 흔들리는 덤불 속 어딘가야', gold: 900, furn: 'visit_dokkaebi' },
+      line: '우리 꼬마 셋이 숨바꼭질하다 안 돌아와 — 바깥 숲 흔들리는 덤불 속 어딘가야', gold: 900, furn: 'visit_dokkaebi', era: 'myth', body: M + 'standin/Orc.gltf' },
     { key: 'alien', name: '불시착 탐사원 루미', emoji: '👽', type: 'collect', piece: 'visitufo', n: 4,
-      line: '삐— 탐사선 부품 넷이 숲에 흩어졌어요. 찾아 주면 별 지도를 드릴게요', gold: 1100, furn: 'visit_alien' }
+      line: '삐— 탐사선 부품 넷이 숲에 흩어졌어요. 찾아 주면 별 지도를 드릴게요', gold: 1100, furn: 'visit_alien', era: 'future', body: M + 'people/space/Astronaut1.glb' },
+    /* 현대 손님 둘(§5.13) — 과거·신화·미래는 있는데 현대가 곤충 박사 하나뿐이었다 */
+    { key: 'courier', name: '택배 기사 달음', emoji: '📦', type: 'collect', piece: 'visitparcel', n: 4,
+      line: '주소가 지도에 없는 동네라 헤매다 소포 넷을 숲길에 떨어뜨렸어요 — 좀 찾아 주실래요?', gold: 900, furn: 'visit_parcel', era: 'modern', body: M + 'people/folk/m_Worker.glb' },
+    { key: 'photo', name: '사진작가 찰나', emoji: '📷', type: 'bring', cat: 'fish', n: 1, cat2: 'bug', n2: 1,
+      line: '이 숲 도감 사진을 찍는 중이에요 — 물고기 하나, 곤충 하나만 모델이 돼 주면 좋겠는데', gold: 800, furn: 'visit_photo', era: 'modern', body: M + 'people/folk/m_Hoodie.glb' }
   ];
   /** 조각 이름(주웠을 때 한 줄) */
-  var PIECE_TXT = { visitcompass: '🧭 나침반 조각', visitwisp: '👻 도깨비불 조각', visitkid: '🧒 도깨비 꼬마를 찾았다', visitufo: '🔩 탐사선 부품' };
+  var PIECE_TXT = { visitcompass: '🧭 나침반 조각', visitwisp: '👻 도깨비불 조각', visitkid: '🧒 도깨비 꼬마를 찾았다', visitufo: '🔩 탐사선 부품', visitparcel: '📦 떨어진 소포' };
   /** 눌러앉은 손님의 하루 선물(🪙) · 한마디 */
   var SETTLE_N = 3;
-  var GIFT = { fox: 300, sailor: 250, wisp: 200, angler: 220, bugdoc: 220, traveler: 280, dokkaebi: 240, alien: 300 };
+  var GIFT = { fox: 300, sailor: 250, wisp: 200, angler: 220, bugdoc: 220, traveler: 280, dokkaebi: 240, alien: 300, courier: 240, photo: 220 };
   var SETTLE_LINE = {
     fox: '이 마을 손님들 눈이 밝아 장사할 맛이 나오', sailor: '바다는 멀어도 여기 바람이 좋구려',
     wisp: '히히, 밤마다 마을 등불 옆에서 놀아', angler: '오늘 물때가 좋네 — 같이 낚으러 가겠나',
     bugdoc: '이 숲의 곤충 도감을 새로 쓰는 중이에요', traveler: '삐빗. 귀환 일정을 무기한 미뤘습니다',
-    dokkaebi: '꼬마들이 마을 아이들이랑 잘 논다', alien: '이 별, 정착지로 등록했어요'
+    dokkaebi: '꼬마들이 마을 아이들이랑 잘 논다', alien: '이 별, 정착지로 등록했어요',
+    courier: '이 마을은 제가 맡을게요 — 주소도 이제 다 외웠어요', photo: '오늘 빛이 좋아요, 한 장 찍어 드릴까요?'
   };
   /** 수다(§5.11) — 먼저 꺼내는 말 · 받는 말. 둘을 이어 붙여 한 쌍의 대화가 된다 */
   var CHAT_OPEN = {
     fox: '요즘 바다 건너 물건값이 부쩍 올랐다오', sailor: '어젯밤 바람 냄새가 폭풍 전날 같았소',
     wisp: '히히, 어제 등불 셋을 몰래 껐다 켰어', angler: '못 가장자리에 큰 놈이 하나 사는 게 틀림없네',
     bugdoc: '이 숲 나비 날개 무늬가 도감이랑 달라요', traveler: '삐빗. 이 시대 달력은 계산이 어렵습니다',
-    dokkaebi: '우리 꼬마들이 마을 아이들 신발을 숨겼대', alien: '이 별 사람들은 밥을 하루 세 번이나 먹어요'
+    dokkaebi: '우리 꼬마들이 마을 아이들 신발을 숨겼대', alien: '이 별 사람들은 밥을 하루 세 번이나 먹어요',
+    courier: '갓 쓴 분께 소포를 드렸더니 절을 하시더라고요', photo: '어제 찍은 사진에 도깨비불이 찍혔어요'
   };
   var CHAT_REPLY = {
     fox: '그런 건 내가 싸게 구해 주리다, 수수료만 조금', sailor: '허허, 뱃사람 앞에서 그런 얘기를',
     wisp: '헤에, 그럼 오늘 밤에 같이 보러 가자', angler: '기다리는 게 반이지, 서두르지 말게',
     bugdoc: '어머, 그거 새 종일지도 몰라요!', traveler: '삐빗. 기록해 두겠습니다',
-    dokkaebi: '크하하, 그 정도는 장난도 아니지', alien: '제 별에선 그걸 "우정" 이라고 불러요'
+    dokkaebi: '크하하, 그 정도는 장난도 아니지', alien: '제 별에선 그걸 "우정" 이라고 불러요',
+    courier: '배송 완료, 도장 꾹!', photo: '그 순간을 놓치면 안 되죠'
   };
   var GUEST_BEAUTY = 6;
   /** 광장 둘레 눌러앉는 자리(가운데 기준 칸) — 걸을 수 없으면 둘레를 정해진 순서로 찾는다 */
@@ -158,14 +169,14 @@
     if (!V() || !V().state) { return []; }
     var d = today(), p = spot(), r = peek();
     var out = [{ id: 'visit_' + d.key, kind: 'visit_' + d.key, visitor: d.key, x: p.x, y: p.y, facing: 1,
-      gesture: r.done ? 'dance' : 'wave', def: { name: d.name, emoji: d.emoji, line: d.line } }];
+      gesture: r.done ? 'dance' : 'wave', body: d.body || null, def: { name: d.name, emoji: d.emoji, line: d.line } }];
     out = out.concat(kidList(d, r, p));
     settled().forEach(function (k, i) {
       var sv = BY[k];
       if (!sv || k === d.key) { return; }        // 제 손님 날엔 광장 한가운데(위)에 선다
       var q = settleSpot(i);
       out.push({ id: 'settle_' + k, kind: 'settle_' + k, visitor: k, settled: true, x: q.x, y: q.y, facing: 1,
-        gesture: 'wave', def: { name: sv.name, emoji: sv.emoji, line: SETTLE_LINE[k] || sv.line } });
+        gesture: 'wave', body: sv.body || null, def: { name: sv.name, emoji: sv.emoji, line: SETTLE_LINE[k] || sv.line } });
     });
     return out;
   }
