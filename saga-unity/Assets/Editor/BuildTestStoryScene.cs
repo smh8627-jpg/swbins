@@ -57,6 +57,7 @@ namespace Saga.EditorTools
             BuildDiscovery();
             BuildLabyrinthGate();
             var (playerGo, playerController) = BuildPlayer();
+            BuildCompanions(playerGo.transform.position);
             var brain = BuildCamera();
             BuildPostProcessingVolume();
             BuildToneVolume();
@@ -318,6 +319,64 @@ namespace Saga.EditorTools
             playerGo.AddComponent<BlobShadow>(); // PLAN.md 102-2 "Shadows" — Mobile만 켜진다.
 
             return (playerGo, storyController);
+        }
+
+        // PLAN.md 106-10 — 교대 셋(선봉·유격·호법)의 몸. `StoryPartyState.Roster` 순서와 같다.
+        private static readonly (string body, StoryCompanion.Style style, Color fallback)[] CompanionBodies =
+        {
+            ("Paladin", StoryCompanion.Style.Melee, new Color(0.75f, 0.72f, 0.65f)),
+            ("Archer", StoryCompanion.Style.Archer, new Color(0.45f, 0.62f, 0.4f)),
+            ("PeasantGirl", StoryCompanion.Style.Mystic, new Color(0.85f, 0.8f, 0.95f)),
+        };
+        private const float CompanionHeight = 1.72f;
+
+        /// <summary>PLAN.md 106-10 "교대 셋을 곁에 세우기" — Mixamo 몸 프리팹(`SetupNpcCharacterImports`)이 있으면 그것,
+        /// 없으면(다른 PC) 빛깔 캡슐. 궁수는 몸 FBX 만 받아 두고 프리팹이 아직 없으면 여기서 굽는다.</summary>
+        private static void BuildCompanions(Vector3 playerPos)
+        {
+            var root = new GameObject("Companions");
+            var squad = root.AddComponent<StoryCompanionSquad>();
+            var members = new StoryCompanion[CompanionBodies.Length];
+            for (int i = 0; i < CompanionBodies.Length; i++)
+            {
+                var (body, style, fallback) = CompanionBodies[i];
+                string prefabPath = SetupNpcCharacterImports.PrefabPath(body);
+                if (AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath) == null
+                    && System.IO.File.Exists($"Assets/Art/CharactersRealistic/{body}/{body}.fbx"))
+                {
+                    SetupNpcCharacterImports.SetupOne(body);
+                }
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+
+                var go = new GameObject($"Companion_{StoryPartyState.Roster[i].Id}");
+                go.transform.SetParent(root.transform, false);
+                go.transform.position = new Vector3(playerPos.x - 1.2f - i, playerPos.y, StoryCompanion.LaneZ);
+                Animator anim = null;
+                if (prefab != null)
+                {
+                    var inst = (GameObject)PrefabUtility.InstantiatePrefab(prefab, go.transform);
+                    inst.name = "Visual";
+                    inst.transform.localPosition = Vector3.zero;
+                    inst.transform.localRotation = Quaternion.identity;
+                    var b = new Bounds();
+                    bool any = false;
+                    foreach (var r in inst.GetComponentsInChildren<Renderer>())
+                    {
+                        if (!any) { b = r.bounds; any = true; } else b.Encapsulate(r.bounds);
+                    }
+                    if (any && b.size.y > 0.01f) inst.transform.localScale = Vector3.one * (CompanionHeight / b.size.y);
+                    anim = inst.GetComponent<Animator>();
+                }
+                else
+                {
+                    Debug.LogWarning($"[BuildTestStoryScene] 동료 몸 {prefabPath} 없음 — 캡슐로 선다(tools/mixamo_automation README 레시피)");
+                    Saga.Story.World.CharacterVisual.SpawnFallbackCapsule(go.transform, CompanionHeight, fallback);
+                }
+                var c = go.AddComponent<StoryCompanion>();
+                c.Configure(i, style, anim);
+                members[i] = c;
+            }
+            SetPrivateField(squad, "members", members);
         }
 
         /// <summary>Maria(Humanoid, Animator 포함) → 실패 시 character-a →

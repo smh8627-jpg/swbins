@@ -49,6 +49,8 @@ namespace Saga.EditorTools
             new Spec { Name = "Parasite", Idle = "Idle", Walk = "Walking", Run = "Running", Attack = "Attack" },
             new Spec { Name = "Nightshade", Idle = "Idle" },
             new Spec { Name = "Jolleen", Idle = "Idle", Walk = "Walking", Run = "Running" },
+            // PLAN.md 106-10 STORY 유격(궁수) 몸 — 활 대기·걷기·달리기(In Place)·쏘기(Attack).
+            new Spec { Name = "Archer", Idle = "Idle", Walk = "Walking", Run = "Running", Attack = "Attack" },
         };
 
         public static string PrefabPath(string name) => $"{Root}{name}/{name}Animated.prefab";

@@ -54,6 +54,7 @@
     { "key": "action.party_vanguard", "value": "Vanguard" },
     { "key": "action.party_skirmisher", "value": "Skirmisher" },
     { "key": "action.party_guardian", "value": "Guardian" },
+    { "key": "party.beside_hud", "value": "beside: {0}" },
     { "key": "party.cooldown_hud", "value": "(swap in {0:0.0}s)" },
     { "key": "party.ready_hud", "value": "(swap ready)" },
     { "key": "party.swapped_toast", "value": "Swapped to {0}! Signature triggered." },

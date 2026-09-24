@@ -8964,3 +8964,13 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - 함정: 일괄 받기 셸 스크립트에서 `"$R\$2"` 가 `$2` 를 글자로 남겨 파일이 `CharactersRealistic$2/` 로 모였다 — 파일 이름 접두사로 제 폴더에 옮김.
 - 파일: 새 `Editor/SetupForestCreatureModels.cs`·`Art/Vegetation/QuaterniusNature/`·`Animators/{Goblin,Hulk,Warrok,Parasite,Nightshade,Jolleen}.controller`·`tools/mixamo_automation/list-characters.mjs`, 고침 `ForestCreature`(`UseModel`·`LateUpdate`·`FollowCurve`·포효)·`ForestCreatureBuilder`(`models`·`KindOrder`)·`SetupNpcCharacterImports`·`BuildTestVillageForestScene`·`PlaytestForestCreatures`(모델 확인·씨앗)·mixamo README, 숲 씬 재빌드.
 - 검증: 모델 굽기 8/8 · 씬 재빌드 exit 0 · `PlaytestForestCreatures` **3연속 OK**(새 줄 "models 8/8 — 애니메이터·살갗·꾸밈·휨 내림 OK", 도망 중 Speed 1.00) · `PlaytestForestHeadless` **3연속 OK**(진단 줄 md5 동일) · `Finish`·`Furniture`·`HouseTransition` OK. 화면은 안 봤다 — 실기 확인 전(키·빛깔·꾸밈 자리가 머리·등에 맞는지·안개유령 투명도·날개 퍼덕임·Mixamo 괴물이 숲 톤과 어울리는지).
+
+## 2026-09-24 — PLAN 106-10 STORY 파티: 교대 셋을 곁에 세우기 (사용자 "사가 유니티 이어 해줘" → 세 안 중 사용자 선택, Opus 5.5)
+
+- **결정**: 미뤄 두던 "STORY 파티·소환" 을 세 안(소환만 · 교대 셋을 곁에 세우기 · STORY 건너뛰기)으로 물었고 사용자가 **교대 셋을 곁에 세우기** 를 골랐다. 앞에 나선 역할은 플레이어와 한 몸(숨김), 쉬는 둘이 곁에서 스스로 싸운다. 5-8 공격 배율·서명은 그대로. 소환은 다음 단계.
+- **몸**: 선봉 Paladin · 유격 새 Mixamo 궁수 `Erika Archer With Bow/Arrow`(대기·걷기·달리기·쏘기, 걷기는 같은 설명 카드 둘째 `--nth 1` — 첫째는 쭈그린 판) · 호법 Peasant Girl. Abe 는 이 판 잡졸 몸이라 동료로 안 썼다.
+- **수치**: 한 타 = 기초 공격력(시작 + 전직 + 기억 조각, × 비경 축복) × 선봉 0.35/1.1s · 유격 0.3/1.6s 화살(관통 없음) · 호법 0.22/2.2s + 적이 곁이면 8s 마다 기력 12%. 체력·쓰러짐 없음(적이 반격 안 함).
+- **이동**: 뒤쪽 줄 z=+0.9, 발밑 땅 찾기·중력, 높이 0.8m 넘게 다르면 0.5s 포물선 뛰어오름, 14m 넘으면 곁으로 옮김. 플레이어 착지 판정은 `isGrounded` 가 아니라 발밑 땅 찾기(순간이동 직후엔 `isGrounded` 가 거짓이라 진단이 못 봤다).
+- **진단 함정 둘**: ① 필드가 좁아(약 44m) 잡졸 없는 16m 구간이 없다 — 동료가 곁 잡졸을 먼저 노려 "따라오기"·"선봉 타격" 이 흔들렸다 → 맵 밖 x=-200 에 임시 바닥·발판을 깔고 시험 후 치움(`Physics.SyncTransforms`). ② 피해 굴림 난수로 선봉 피해 줄이 판마다 달랐다 → 진단 시작에 `Random.InitState(20260824)`. 동료 진단 뒤엔 `PausedForTest` 로 멈춰 뒤 단계(잡졸 10·한 방 피해 전제)를 안 흔든다. 교대 시험의 서명은 횡소(기합은 버프, 기탄은 투사체가 뒤 단계를 흔듦).
+- 파일: 새 `SagaStory/World/StoryCompanion.cs`·`StoryCompanionSquad.cs`·`Editor/PlaytestStoryCompanions.cs`, 고침 `BuildTestStoryScene`(`BuildCompanions`)·`SetupNpcCharacterImports`(Archer)·`StoryHud`(곁 줄)·`StoryEnemy`(`Hp`)·`story_ko/en.json`(`party.beside_hud`)·`PlaytestStorySlice`·mixamo README, STORY 씬 재빌드(`Story_BossIntro.playable` 은 fileID 만).
+- 검증: 씬 재빌드 exit 0 · `PlaytestStorySlice` **3연속 OK**(동료 줄 "models 3/3 · follow 6.0→0.7m · hop y2.0 · vanguard 8.1dmg · mystic mp+12" 세 번 같음) · 번역 누락 0. 화면은 안 봤다 — 실기 확인 전(곁에 선 자리·겹침, 뛰어오르기가 어색하지 않은지, 궁수 화살 모양, 교대 불꽃, 동료 세기가 판수를 너무 줄이지 않는지).

@@ -170,6 +170,8 @@ namespace Saga.Story.World
         /// 호출부(PlaytestStorySlice.cs)는 GameObject 파괴 대신 이 플래그를
         /// 본다 — DUNGEON `DungeonEnemy._state`와 같은 결.</summary>
         public bool IsDead => _dead;
+        /// <summary>진단 — 남은 체력(PLAN.md 106-10 동료 타격 확인).</summary>
+        public float Hp => _hp;
 
         private void Awake()
         {

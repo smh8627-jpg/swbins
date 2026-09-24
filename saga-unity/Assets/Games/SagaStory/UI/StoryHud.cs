@@ -81,7 +81,18 @@ namespace Saga.Story.UI
             string cooldown = StoryPartyState.CooldownLeft > 0f
                 ? string.Format(StoryLocalization.T("party.cooldown_hud", "(교대까지 {0:0.0}초)"), StoryPartyState.CooldownLeft)
                 : StoryLocalization.T("party.ready_hud", "(교대 가능)");
-            label.text += $"\n🎭 {partyName} {cooldown}";
+            // PLAN.md 106-10 — 쉬는 둘은 곁에서 싸운다.
+            string beside = "";
+            if (StoryCompanionSquad.Instance != null)
+            {
+                var names = new System.Collections.Generic.List<string>();
+                for (int i = 0; i < StoryPartyState.Roster.Length; i++)
+                {
+                    if (i != StoryPartyState.ActiveIndex) names.Add(StoryPartyState.Roster[i].Name);
+                }
+                beside = " · " + string.Format(StoryLocalization.T("party.beside_hud", "곁: {0}"), string.Join("·", names));
+            }
+            label.text += $"\n🎭 {partyName}{beside} {cooldown}";
         }
     }
 }
