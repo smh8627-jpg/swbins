@@ -125,6 +125,22 @@ namespace Saga.Go.World
             travelerModel = traveler;
         }
 
+        // PLAN.md 106-4 "캐릭터 통일" GO 몫 — Mixamo 사실 모델(촌장 Peasant Man · 상인 Peasant Girl · 나그네 궁수).
+        // 로컬 전용 자산이라 없는 PC 면 null → 위 Kenney 모델로 폴백.
+        [SerializeField] private GameObject elderRig;
+        [SerializeField] private GameObject merchantRig;
+        [SerializeField] private GameObject travelerRig;
+
+        public void InitRigs(GameObject elder, GameObject merchant, GameObject traveler)
+        {
+            elderRig = elder;
+            merchantRig = merchant;
+            travelerRig = traveler;
+        }
+
+        /// <summary>사실 모델 NPC 가 마을 쪽을 보게 돌리는 각도(Mixamo 는 +z 를 본다).</summary>
+        private static float YawFor(string id) => id == "npc_elder" ? 90f : id == "npc_merchant" ? 270f : 180f; // 촌장·상인은 마을 가운데, 나그네는 북쪽 문
+
         private void Awake()
         {
             // 이미 저장된 씬을 실제 Play로 열면 Awake가 다시 불려 Build()를
@@ -140,6 +156,17 @@ namespace Saga.Go.World
             foreach (var v in BuildVillagerDefs())
             {
                 Spawn(v);
+            }
+        }
+
+        private GameObject RigFor(string id)
+        {
+            switch (id)
+            {
+                case "npc_elder": return elderRig;
+                case "npc_merchant": return merchantRig;
+                case "npc_traveler": return travelerRig;
+                default: return null;
             }
         }
 
@@ -165,8 +192,11 @@ namespace Saga.Go.World
             root.transform.position = pos;
 
             var model = ModelFor(v.Id);
-            if (model != null) CharacterVisual.Spawn(model, root.transform, CharacterVisual.HumanHeight, v.Color);
-            else CharacterVisual.SpawnFallbackCapsule(root.transform, v.Color);
+            if (NpcIdle.SpawnRigged(RigFor(v.Id), root.transform, CharacterVisual.HumanHeight, YawFor(v.Id)) == null)
+            {
+                if (model != null) CharacterVisual.Spawn(model, root.transform, CharacterVisual.HumanHeight, v.Color);
+                else CharacterVisual.SpawnFallbackCapsule(root.transform, v.Color);
+            }
 
             var talkGo = new GameObject("TalkArea");
             talkGo.transform.SetParent(root.transform, false);

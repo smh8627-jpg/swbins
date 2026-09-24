@@ -11,8 +11,9 @@ namespace Saga.Forest.Data
     /// </summary>
     public static class ForestZoneProps
     {
-        /// <summary>Poly Haven 은 실측 미터 — 이 판 사람 키 2.7(실제 약 1.8m)에 맞춰 곱한다.</summary>
-        public const float WorldScale = 1.5f;
+        /// <summary>Poly Haven 은 실측 미터 — 이 판은 사람 키가 실제와 같은 1.8m(주민·Maria `PlayerTargetHeight`)라 그대로.
+        /// (`CharacterVisual.NativeHeight` 2.7 은 Kenney 모델 원래 키일 뿐 — 처음에 이걸 사람 키로 잘못 읽어 1.5배로 뒀다.)</summary>
+        public const float WorldScale = 1.0f;
 
         public struct Piece
         {
@@ -76,7 +77,7 @@ namespace Saga.Forest.Data
             } },
             new Cluster { Id = "rocky_b", ZoneKey = "rocky", NameKo = "광부 짐", Ax = BX, Az = BZ, Pieces = new[] {
                 P(Crate, 0f, 0f, 1f, 15f),
-                Up(P(Crate, 0.05f, 0.1f, 1f, -10f), 0.52f),
+                Up(P(Crate, 0.05f, 0.1f, 1f, -10f), 0.35f),
                 P(Bucket, 1.2f, -0.4f, 1f, 30f, false),
                 P(Barrel, -1.2f, 0.3f),
             } },
@@ -100,7 +101,7 @@ namespace Saga.Forest.Data
             new Cluster { Id = "flower_b", ZoneKey = "flower_field", NameKo = "쉼터", Ax = BX, Az = BZ, Pieces = new[] {
                 P(Log, 0f, 0f, 0.9f, 0f),
                 P(Crate, 1.9f, 0.4f, 1f, 20f),
-                Up(P(Lantern, 1.9f, 0.45f, 1f, 0f, false), 0.52f),
+                Up(P(Lantern, 1.9f, 0.45f, 1f, 0f, false), 0.35f),
                 P(Barrel, -1.9f, -0.2f, 1f, 30f),
             } },
         };

@@ -211,6 +211,8 @@ namespace Saga.EditorTools
             go.transform.position = VillagerSpawn;
             var villager = go.AddComponent<ForestVillager>();
             SetPrivateField(villager, "modelPrefab", _villagerGlb);
+            // PLAN.md 106-4 FOREST 몫 — 숲지기 사실 모델(없으면 null → Kenney). 굽기: Saga/Setup NPC Character Imports.
+            SetPrivateField(villager, "rigPrefab", AssetDatabase.LoadAssetAtPath<GameObject>(SetupNpcCharacterImports.PrefabPath("PeasantMan")));
         }
 
         private static GameObject BuildHouse()

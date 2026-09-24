@@ -311,6 +311,11 @@ namespace Saga.EditorTools
                 // 나그네도 상인과 같은 모델(character-c)을 재사용 — 색조(v.Color)로만
                 // 구분한다. Kenney 킷을 4종만 받아 뒀고 넷째(d)는 산적 몫이라(50~52행).
                 AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Characters/character-c.glb"));
+            // PLAN.md 106-4 GO 몫 — 사실 모델(없으면 null, 위 Kenney 로 폴백). 굽기: Saga/Setup NPC Character Imports.
+            builder.InitRigs(
+                AssetDatabase.LoadAssetAtPath<GameObject>(SetupNpcCharacterImports.PrefabPath("PeasantMan")),
+                AssetDatabase.LoadAssetAtPath<GameObject>(SetupNpcCharacterImports.PrefabPath("PeasantGirl")),
+                AssetDatabase.LoadAssetAtPath<GameObject>(SetupNpcCharacterImports.PrefabPath("Archer")));
             builder.Build();
         }
 

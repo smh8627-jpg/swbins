@@ -148,6 +148,7 @@ namespace Saga.EditorTools
                 if (!PlaytestGoSlopesBiome.Run("PlaytestHeadless")) _hadError = true; // PLAN.md 107-3 경사·고개·바이옴
                 if (!PlaytestGoVegetation.Run("PlaytestHeadless")) _hadError = true; // PLAN.md 107-3 식생 바이옴(읽기만)
                 if (!PlaytestGoRegionProps.Run("PlaytestHeadless")) _hadError = true; // PLAN.md 108 ① 지역 전용 소품(읽기만)
+                if (!PlaytestNpcModels.Go()) _hadError = true; // PLAN.md 106-4 GO 몫 — 마을 사람 사실 모델(읽기만)
                 if (!PlaytestMobileGraphics.Run()) _hadError = true; // 2026-09-24 폰 발열 점검(읽기만)
                 if (!PlaytestGoTreasure.Run("PlaytestHeadless")) _hadError = true; // PLAN.md 107-4 보물 상자(세이브·상자 기록 되돌림 포함)
                 if (!PlaytestGoRegionMission.Run("PlaytestHeadless")) _hadError = true; // PLAN.md 107-8 지역 사명 사슬(사명·지도·수호장·상자 기록·세이브 되돌림)

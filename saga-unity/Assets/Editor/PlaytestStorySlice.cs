@@ -185,6 +185,7 @@ namespace Saga.EditorTools
                     if (!PlaytestStoryBossIntro.Run()) { Fail(); return; } // PLAN.md 106-8 — 두목 곁에 가기 전에(여기서 한 번 틀어 두면 뒤 단계가 안 막힌다).
                     if (!PlaytestStoryCompanions.Run()) { Fail(); return; } // PLAN.md 106-10 — 교대 셋 곁에 세우기. 끝나면 동료를 멈춰 뒤 단계를 안 흔든다.
                     if (!PlaytestStorySummon.Run()) { Fail(); return; } // PLAN.md 106-10 둘째 단계 — 소환(게이지·컷·내려찍기).
+                    if (!PlaytestNpcModels.Story()) { Fail(); return; } // PLAN.md 106-4 STORY 몫 — 척후병·전직관 사실 모델.
                     _enemyIndex = 0;
                     _phase = Phase.TalkNpc;
                     break;

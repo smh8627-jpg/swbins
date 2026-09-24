@@ -1290,7 +1290,8 @@ Slice 승인/재설계 결정.** 100단계에서 무조건 다음 콘텐츠로 �
 - **굽기**: `SetupNpcCharacterImports`(표 하나로 넷, Abe 스크립트를 더 복사하지 않음) → `Assets/Animators/<이름>.controller`(커밋) + `<이름>Animated.prefab`(로컬). 규칙은 Abe 와 같은 `Speed`·`Attack/Hit/Death`, 추가 대기(`Kneel`)는 상태 이름으로 튼다. 프리팹이 없으면 씬 빌더가 예전 모델로 폴백.
 - 런타임 포로·행상은 `DungeonEnemy.SetSpawnContext` 와 같은 결(비활성 → `SetModel` → 활성).
 - 진단: `CheckNpcModels`(동행·마을 사람 3·포로 Kneel·행상 5·해골 6 이 Humanoid). 이 PC 에 프리팹이 없으면 건너뛴다.
-- 남은 것: 능묘지기(Brute 1.5배)를 따로 뽑을지, 층 두목·엘리트 변형, GO·STORY·FOREST NPC(판별 복사).
+- **GO·STORY·FOREST NPC 완료(2026-09-24, 판별 복사)**: 판마다 `NpcIdle` 복사본(`SpawnRigged` 가 그 판 사람 키로 맞추고 발을 뿌리에). GO 촌장 Peasant Man·떠돌이 상인 Peasant Girl·나그네 궁수(키 3.4, 마을 가운데·북쪽 문을 봄) · FOREST 숲지기 Peasant Man(1.8m, 셰이더가 안 휘어 짐승처럼 땅 휨만큼 내림) · STORY 척후병 Peasant Man·전직관 Jolleen(1.75m, 카메라 쪽 — STORY 동료 셋 몸과 안 겹치게). 프리팹이 없는 PC 는 예전 Kenney. 진단 `PlaytestNpcModels`(세 판 헤드리스).
+- 남은 것: 능묘지기(Brute 1.5배)를 따로 뽑을지, 층 두목·엘리트 변형, REALM(인물이 화면에 서지 않는 경영형이라 해당 자리 없음).
 
 ---
 
@@ -1519,7 +1520,7 @@ GO 세계는 사람 키가 3.4m(`CharacterVisual.HumanHeight`, 실측의 약 1.8
 - **③ DUNGEON 완료(2026-09-24)** — 웹 사가블로 §5.15 결(코드 공유 없음). `DungeonLandmarkData` 명소 층 여섯: 5 순장 왕릉 殉陵 · 10 무너진 망루성 廢樓城 · 15 흑풍 산채 黑風寨 · 20 가라앉은 용궁 沈龍宮 · 25 업화 대문 業火門 · 30 구름 위 금궐 雲上闕. 31~100층과 그 사이 층은 예전 갈림길 그대로(전부 고정하면 로그라이트 반복이 죽는다).
   - 명소 층은 방 다섯이 늘 같은 순서. 문 하나에 다음 방 이름이 붙고, 난수를 안 쓴다. 잡졸 이름은 그 층 것. 마지막 방은 층 주인(두목 공식 × 1.15, 호위 둘, 월드 보스 초읽기 없음, 등장 컷 부제 "○○의 주인").
   - 첫 토벌에만 그 층 고유 무기(24~46)와 금(층 × 40). 두 번째부터는 흑철중검. 세이브 v10 `landmarkClears`. HUD 층 줄에 "⚱ 이름 · 방 이름", 들어갈 때·방마다 자막.
-- **FOREST 존 전용 소품 완료(2026-09-24)**: `ForestZoneProps.Clusters` 존마다 무더기 둘(A = 가운데 + (−7sx, 2sz) · B = (3sx, −7sz), sx·sz 는 존 바깥 방향 부호 — den 둘·채집·우편함·명소를 비킨 두 곳). 暗林 이끼 고목·버려진 등롱 · 巖野 굴러온 바위·광부 짐 · 菌林 썩은 통나무·버섯 바구니 · 花原 꽃 따는 자리·쉼터. GO 와 같은 Poly Haven 스캔(에셋만 같이, 코드는 이 판 것), 사람 키 2.7 기준 × 1.5. 조각마다 뿌리(충돌, 안 움직임) → Visual(휨 거리² × 0.004 만큼 내림, `ForestZonePropsBuilder.Follow`) → Body(밑면) → LOD0·LOD1(화면 높이 30%). 휨 때문에 정적 표시 안 함. 존 하나 원본 삼각형 ≤ 25만. 진단 `PlaytestForestZoneProps`.
+- **FOREST 존 전용 소품 완료(2026-09-24)**: `ForestZoneProps.Clusters` 존마다 무더기 둘(A = 가운데 + (−7sx, 2sz) · B = (3sx, −7sz), sx·sz 는 존 바깥 방향 부호 — den 둘·채집·우편함·명소를 비킨 두 곳). 暗林 이끼 고목·버려진 등롱 · 巖野 굴러온 바위·광부 짐 · 菌林 썩은 통나무·버섯 바구니 · 花原 꽃 따는 자리·쉼터. GO 와 같은 Poly Haven 스캔(에셋만 같이, 코드는 이 판 것), 사람 키가 실제와 같은 1.8m 라 실측 그대로(× 1). 조각마다 뿌리(충돌, 안 움직임) → Visual(휨 거리² × 0.004 만큼 내림, `ForestZonePropsBuilder.Follow`) → Body(밑면) → LOD0·LOD1(화면 높이 30%). 휨 때문에 정적 표시 안 함. 존 하나 원본 삼각형 ≤ 25만. 진단 `PlaytestForestZoneProps`.
 - 108 은 이 트랙 몫(①②③)과 GO·FOREST 소품까지 전부 끝.
 - 이 장은 방향만 적는다 — 착수는 이 트랙 세션이 106·107 순서와 맞춰 정한다(다른 세션이 같은 파일을 고치는 중일 수 있다).
 

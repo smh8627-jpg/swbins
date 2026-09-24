@@ -9003,3 +9003,12 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - **무게**: 첫 배치는 버섯숲에 쓰러진 통나무(원본 10만 삼각형) 둘이라 존 원본 27만 > 상한 25만 → 하나를 이끼 바위로. 최대 18만.
 - 파일: 새 `SagaForest/Data/ForestZoneProps.cs`·`World/ForestZonePropsBuilder.cs`·`Editor/PlaytestForestZoneProps.cs`, 고침 `BuildTestVillageForestScene`(`BuildZoneProps`)·`PlaytestForestHeadless`, FOREST 씬 재빌드, 앞 커밋에서 빠진 `PolyHaven/LICENSE.txt.meta`.
 - 검증: 씬 재빌드 exit 0 · `PlaytestForestHeadless` **3연속 OK**(새 줄 "무더기 8·조각 26(LOD 19)·존 원본 삼각형 최대 180k" 세 번 같음) · `PlaytestForestCreatures` OK. 화면은 안 봄 — 실기 확인 전(1.5배 크기·휨 따라 내림이 가까이서 튀는지·플레이어가 조각에 걸리는지).
+
+## 2026-09-24 — PLAN 106-4 GO·FOREST·STORY NPC 사실 모델 + FOREST 존 소품 배율 바로잡기 (사용자 "이어해줘", Opus 5.5)
+
+- **고른 까닭**: 앞 세션 끝에 "적힌 대기 없음, 방향은 사용자와"로 물었는데 답 없이 "이어해줘" — 저장소를 다시 보니 PLAN 106-4 끝줄에 "남은 것: GO·STORY·FOREST NPC(판별 복사)"가 적혀 있었다(앞 세션이 놓침). Kenney 블록 인물이 남은 자리는 이 셋뿐(주인공은 다섯 판 Maria, 적은 Abe·Brute·Skeleton).
+- **배역**: GO 촌장 Peasant Man · 떠돌이 상인 Peasant Girl · 나그네 궁수 · FOREST 숲지기 Peasant Man · STORY 척후병 Peasant Man · 전직관 Jolleen. STORY 는 동료 셋(Paladin·Archer·Peasant Girl)과 몸이 안 겹치게 골랐다. 새로 받은 Mixamo 몸 없음.
+- **코드**: 판마다 `NpcIdle` 복사(DUNGEON 것 + `SpawnRigged` 가 렌더러 키를 재서 그 판 사람 키로 맞추고 발을 뿌리에). 없는 PC 는 예전 Kenney 로 폴백. FOREST 사실 모델은 `ForestWorldCurve` 셰이더를 안 타 짐승처럼 땅 휨만큼 내린다(`ForestVillager.FollowCurve`).
+- **바로잡음**: 바로 앞 FOREST 존 소품을 사람 키 2.7 기준 1.5배로 키웠는데, 2.7 은 Kenney 모델 원래 키(`CharacterVisual.NativeHeight`)일 뿐 FOREST 사람 키는 1.8m(주민·Maria) — 배율 1.0 으로 고치고 쌓은 높이도 맞췄다. GO(사람 3.4 → 1.9배)는 맞다.
+- 파일: 새 `SagaGo|SagaForest|SagaStory/World/NpcIdle.cs`·`Editor/PlaytestNpcModels.cs`, 고침 `NpcBuilder`(`InitRigs`)·`ForestVillager`·`StoryNpc`·`StoryJobTrainer`·씬 빌더 셋·헤드리스 셋·`ForestZoneProps`(배율), 씬 셋 재빌드(타임라인 셋 다시 구워짐).
+- 검증: GO `PlaytestHeadless` 3연속 OK(세 사람 3.40m) · `PlaytestForestHeadless` 3연속 OK(숲지기 1.80m·존 소품 OK) · `PlaytestStorySlice` 6회 중 5회 OK — 실패 1회는 `PartySwapWait` "동료 서명(기탄) 뒤에도 더미가 안 죽음"(실시간 투사체 대기, 사실 모델엔 충돌체가 없어 이번 변경과 닿지 않음, 알려진 오류에 적음). 실기 확인 전(바라보는 쪽·키·대기 동작, FOREST 소품 실측 크기).

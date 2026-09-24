@@ -93,6 +93,7 @@ namespace Saga.EditorTools
                 CheckFestival();
                 if (!PlaytestForestZones.Run()) _hadError = true; // PLAN.md 108 ② 고정 특색 지역
                 if (!PlaytestForestZoneProps.Run()) _hadError = true; // PLAN.md 108 끝줄 존 전용 소품
+                if (!PlaytestNpcModels.Forest()) _hadError = true; // PLAN.md 106-4 FOREST 몫 — 숲지기 사실 모델
             }
             if (_framesSeen >= FramesToRun)
             {

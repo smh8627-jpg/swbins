@@ -45,6 +45,11 @@ namespace Saga.Story.World
         private static readonly Color BodyColor = new Color(0.35f, 0.5f, 0.32f); // 병졸 갑주와 다른 녹갈색 평상복
 
         [SerializeField] private GameObject modelPrefab; // BuildTestStoryScene.cs가 character-b.glb를 채운다.
+        // PLAN.md 106-4 STORY 몫 — Mixamo 사실 모델(척후병 Peasant Man). 로컬 전용이라 없으면 null → 위 Kenney.
+        [SerializeField] private GameObject rigPrefab;
+        /// <summary>사실 모델 키(Maria 1.8m 와 나란히) · 카메라(−z) 쪽을 본다.</summary>
+        private const float RigHeight = 1.75f;
+        private const float RigYaw = 180f;
 
         private float _lastSaidTime = -TalkGapSec;
 
@@ -57,6 +62,7 @@ namespace Saga.Story.World
 
         private void BuildVisual()
         {
+            if (NpcIdle.SpawnRigged(rigPrefab, transform, RigHeight, RigYaw) != null) return;
             if (modelPrefab != null)
             {
                 CharacterVisual.Spawn(modelPrefab, transform, NpcHeight, BodyColor);

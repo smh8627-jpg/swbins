@@ -263,6 +263,8 @@ namespace Saga.EditorTools
             {
                 Debug.LogWarning($"[BuildTestStoryScene] {VillagerModelPath} 를 못 찾음 — 척후병은 primitive capsule로 대체됨.");
             }
+            // PLAN.md 106-4 STORY 몫 — 척후병 사실 모델(없으면 null → Kenney).
+            SetPrivateField(npc, "rigPrefab", AssetDatabase.LoadAssetAtPath<GameObject>(SetupNpcCharacterImports.PrefabPath("PeasantMan")));
         }
 
         /// <summary>PLAN.md 51장 "STORY 확장 — 전직·SP 투자 UI" —
@@ -285,6 +287,8 @@ namespace Saga.EditorTools
             {
                 Debug.LogWarning($"[BuildTestStoryScene] {VillagerModelPath} 를 못 찾음 — 전직관은 primitive capsule로 대체됨.");
             }
+            // PLAN.md 106-4 STORY 몫 — 전직관 사실 모델(없으면 null → Kenney).
+            SetPrivateField(trainer, "rigPrefab", AssetDatabase.LoadAssetAtPath<GameObject>(SetupNpcCharacterImports.PrefabPath("Jolleen")));
         }
 
         /// <summary>PLAN.md 72~73장 World Event / Hidden Area + 51장
