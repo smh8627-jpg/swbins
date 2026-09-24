@@ -546,6 +546,8 @@
    */
   function heroRecipe(ref) {
     if (ref && ref.monster) { return { body: ref.monster, anim: ref.monster }; }
+    /* 시간 틈 사람(§5-12) — 제 시대 옷 몸(`body`, 제 클립 내장). 애니메 몸으로 바꾸지 않는다 */
+    if (ref && ref.body) { return { body: ref.body, anim: ref.body }; }
     if (wantsAnimeAvatar()) {
       var arec = oneOf(HERO_RECIPES_ANIME, ref);
       if (arec) { return arec; }
@@ -605,7 +607,7 @@
   function attachAccessories(body, ref, done) {
     /* 몬스터(ref.monster)는 사람 몸이 아니라 무기·투구를 얹을 자리(손·머리
        위치 가정)가 안 맞는다 — 애초에 자기 모습 그대로가 맞다 */
-    if (ref && ref.monster) { done(); return; }
+    if (ref && (ref.monster || ref.body)) { done(); return; }   // 시간 틈 사람(`body`)도 옷이 곧 그 사람이다
     var t = three();
     var S = global.DG.sprite;
     var look = (S && S.lookOf) ? S.lookOf(ref) : null;

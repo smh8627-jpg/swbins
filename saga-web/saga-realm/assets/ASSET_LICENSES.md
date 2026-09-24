@@ -288,3 +288,11 @@ VRoid Studio 공식 CC0 샘플 AvatarSample_A/B/C(github.com/madjin/vrm-samples,
 `assets/models/people/anime/avatar_*.glb` 넷은 `tools/glb-compress/vrm-slim.mjs` 로 **가공한 파일**이다 —
 표정 모프 타깃(54~57개)을 떼고 같은 재질 프리미티브를 합쳤다(정점·뼈·재질·텍스처는 그대로, 용량 25MB → 11MB,
 캐릭터당 드로우콜 90~135 → 14~19). 다섯 판 복사본은 같은 파일(md5 동일)이다.
+
+## 시간 틈 사람 아홉 — 사가고에서 복사 + 사이버펑크 주인공 (2026-09-24, `models/people/folk/`, PLAN §5-12)
+
+Quaternius CC0 1.0. 여덟(m_SWAT·m_Worker·m_BusinessMan·w_Suit·m_Hoodie·w_SciFi·s_Astronaut1·s_Astronaut2)은 사가고
+`assets/models/people/folk/` 복사(원래 사가블로가 poly.pizza "Ultimate Modular Men/Women Pack"·"Ultimate Space Kit" 에서 받은 것,
+이미 Meshopt) — 경위는 사가고 `assets/ASSET_LICENSES.md` "Quaternius — 세 시대 사람·적" 절. `f_Cyber.glb` 는 미러
+<https://github.com/trebeljahr/quaternius-showcase> `public/glb/cyberpunk_pack/Character.glb` 를 `tools/glb-compress` 로 Meshopt(850KB → 247KB).
+전부 제 클립(걷기·대기·공격·죽음) 내장. `data-force.js` `TIME_OFFICERS` 의 `body` 가 가리킨다.

@@ -4494,6 +4494,35 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ('싸움터 ' + Object.keys(kinds).length + '결 · ' + Object.keys(kinds).join('·'));
     });
 
+    t('시간 틈 사람 아홉(§5-12 전체 퓨전) — 현대 다섯·미래 넷 · 시나리오 아홉 모두 재야(숨은 채 여러 성에) · 몸은 제 시대 옷(애니메·괴물 아님) · 이름 안 겹침', function () {
+      var TM = FD.TIME_OFFICERS || [], A3 = DG.asset3d, bad = [], eras = {}, names = {};
+      TM.forEach(function (o) {
+        eras[o.era] = (eras[o.era] || 0) + 1;
+        if (o.monster || !o.body || o.body.indexOf('assets/models/people/folk/') !== 0) { bad.push(o.id + ' 몸'); }
+        var rec = A3.heroRecipe(o);
+        if (!rec || rec.body !== o.body || rec.anim !== o.body) { bad.push(o.id + ' 조합'); }
+        if (!off.find(o.id)) { bad.push(o.id + ' 명부'); }
+      });
+      off.all().forEach(function (h) { names[h.name] = (names[h.name] || 0) + 1; });
+      TM.forEach(function (o) { if (names[o.name] > 1) { bad.push(o.name + ' 이름 겹침'); } });
+      var cities = {};
+      /* 시나리오 아홉을 새로 세우며 난수를 쓴다 — 공유 씨앗 순번을 밀지 않게 이 안에서만 갈아 끼운다(§2-13) */
+      withSeed(20260924, function () {
+        FD.SCENARIOS.forEach(function (sc) {
+          fresh(sc.forces[0].id, sc.id);
+          TM.forEach(function (o) {
+            var r = off.rec(o.id);
+            if (r.force || !r.city || r.dead || r.found) { bad.push(sc.id + ':' + o.id); }
+            cities[r.city] = 1;
+          });
+        });
+        fresh('cao');
+      });
+      return bad.length === 0 && TM.length === 9 && eras['현대(가상)'] === 5 && eras['미래(가상)'] === 4 && Object.keys(cities).length >= 6 &&
+        ('현대 5·미래 4 · 시나리오 ' + FD.SCENARIOS.length + ' 모두 숨은 재야 · 흩어진 성 ' + Object.keys(cities).length + ' · 제 옷 몸(몸=몸짓 같은 파일) · 이름 겹침 0') ||
+        (function () { throw new Error(bad.slice(0, 5).join(' ') + ' n=' + TM.length + ' eras=' + JSON.stringify(eras) + ' cities=' + Object.keys(cities).length); })();
+    });
+
     t('런타임 에러 없음', function () {
       return errors.length === 0 || ('에러 ' + errors.length + '건: ' + errors.join(' | ')) === '';
     });

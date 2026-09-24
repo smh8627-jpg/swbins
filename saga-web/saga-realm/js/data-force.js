@@ -865,6 +865,33 @@
       stats: { might: 40, wisdom: 88, command: 64 } }
   ];
 
+  /* ── 시간 틈 사람 아홉 (PLAN §5-12 · SAGA-DESIGN §13 전체 퓨전, 2026-09-24) — 이계(균열·폐허·묘역)는 괴물이
+     지키지만 본토엔 옛사람뿐이었다. 시간의 틈으로 떨어진 **현대 다섯·미래 넷**을 어느 표에도 안 싣는다 —
+     그래서 어느 시나리오에서든 재야로 흩어지고(`scatterFree`), 수색으로 찾아 등용한다. `body` 는 사람 몸 CC0
+     GLB(Quaternius — 사가고 ⑱ 에서 복사, 제 클립 내장)라 `asset3d.heroRecipe()` 가 몸이자 몸짓으로 쓴다.
+     `monster` 가 아니라서 괴물 딱지·후계 뒷순위는 안 붙는다. 이름·한자는 전부 지어낸 것 */
+  var FOLK = 'assets/models/people/folk/';
+  var TIME_OFFICERS = [
+    { id: 'tm_gangseo',  name: '강서', hanja: '剛誓', era: '현대(가상)', faction: '시간 틈', rarity: 4, trait: 'might', emoji: '🛡️',
+      quote: '방패 뒤로 서십시오. 이 성문은 제가 막습니다.', stats: { might: 84, wisdom: 42, command: 74 }, body: FOLK + 'm_SWAT.glb' },
+    { id: 'tm_gongseok', name: '공석', hanja: '工石', era: '현대(가상)', faction: '시간 틈', rarity: 3, trait: 'virtue', emoji: '🦺',
+      quote: '성벽이요? 사흘이면 두 겹으로 올립니다.', stats: { might: 68, wisdom: 58, command: 62 }, body: FOLK + 'm_Worker.glb' },
+    { id: 'tm_geumdam',  name: '금담', hanja: '金談', era: '현대(가상)', faction: '시간 틈', rarity: 4, trait: 'wisdom', emoji: '💼',
+      quote: '군자금은 모으는 게 아니라 굴리는 겁니다.', stats: { might: 40, wisdom: 86, command: 64 }, body: FOLK + 'm_BusinessMan.glb' },
+    { id: 'tm_myeongbyeon', name: '명변', hanja: '明辯', era: '현대(가상)', faction: '시간 틈', rarity: 3, trait: 'wisdom', emoji: '⚖️',
+      quote: '설전이라면 제 쪽이 이깁니다. 근거가 있으니까요.', stats: { might: 34, wisdom: 88, command: 56 }, body: FOLK + 'w_Suit.glb' },
+    { id: 'tm_doha',     name: '도하', hanja: '道河', era: '현대(가상)', faction: '시간 틈', rarity: 3, trait: 'wisdom', emoji: '💻',
+      quote: '봉화보다 빠른 소식길을 알고 있어요.', stats: { might: 46, wisdom: 82, command: 50 }, body: FOLK + 'm_Hoodie.glb' },
+    { id: 'tm_seongyeon', name: '성연', hanja: '星緣', era: '미래(가상)', faction: '시간 틈', rarity: 4, trait: 'virtue', emoji: '🧭',
+      quote: '별자리가 이 시대 것과 조금 달라요. 그래도 길은 찾습니다.', stats: { might: 50, wisdom: 86, command: 76 }, body: FOLK + 'w_SciFi.glb' },
+    { id: 'tm_gwedo',    name: '궤도', hanja: '軌道', era: '미래(가상)', faction: '시간 틈', rarity: 4, trait: 'virtue', emoji: '🧑‍🚀',
+      quote: '대원들은 제가 데려갑니다. 한 명도 두고 가지 않아요.', stats: { might: 66, wisdom: 70, command: 84 }, body: FOLK + 's_Astronaut1.glb' },
+    { id: 'tm_eunha',    name: '은하', hanja: '銀河', era: '미래(가상)', faction: '시간 틈', rarity: 3, trait: 'might', emoji: '🚀',
+      quote: '여기 중력은 가볍네요. 창도 가볍게 들립니다.', stats: { might: 76, wisdom: 58, command: 68 }, body: FOLK + 's_Astronaut2.glb' },
+    { id: 'tm_yeongjeom', name: '영점', hanja: '零點', era: '미래(가상)', faction: '시간 틈', rarity: 4, trait: 'might', emoji: '🦾',
+      quote: '의체 출력 백 퍼센트. 일기토, 받아 드리죠.', stats: { might: 88, wisdom: 50, command: 62 }, body: FOLK + 'f_Cyber.glb' }
+  ];
+
   /** 성 id → 그 성의 수비 무장 id 목록 (rtk.js seedNeutral() 이 쓴다) */
   var SILK_GARRISON = {
     wusun: ['sl_cheonsan', 'sl_hwachin'],
@@ -1296,6 +1323,7 @@
     XIANBEI_OFFICERS: XIANBEI_OFFICERS, XIANBEI_GARRISON: XIANBEI_GARRISON,
     NANHAI_OFFICERS: NANHAI_OFFICERS, NANHAI_GARRISON: NANHAI_GARRISON,
     SILK_OFFICERS: SILK_OFFICERS, SILK_GARRISON: SILK_GARRISON,
+    TIME_OFFICERS: TIME_OFFICERS,
     SCENARIOS: SCENARIOS, scenario: scenario, use: use,
     current: function () { return current; },
     find: function (id) { return byId[id] || null; },

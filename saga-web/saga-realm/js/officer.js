@@ -118,6 +118,11 @@
     for (var ssl = 0; ssl < sl.length; ssl++) {
       if (!data.find(sl[ssl].id)) { data.heroes.push(sl[ssl]); }
     }
+    /* 시간 틈 사람 아홉(§5-12) — 어느 표에도 안 실려 늘 재야로 흩어진다 */
+    var tm = FD.TIME_OFFICERS || [];
+    for (var ttm = 0; ttm < tm.length; ttm++) {
+      if (!data.find(tm[ttm].id)) { data.heroes.push(tm[ttm]); }
+    }
     merged = true;
     return data.heroes.length;
   }
