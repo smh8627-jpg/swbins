@@ -3721,3 +3721,11 @@ SAGA-HANDOFF 열린 항목 "tower_ruin.glb(역참) 아이콘 굽기 — 여섯 �
 - `world.js syncRenderMode` 가 3D 동안 매 프레임 body 클래스·style 쓰기·전체 2D 캔버스 지우기 — 켜짐/꺼짐이 바뀔 때·크기 바뀐 뒤만.
 - `game.js frameGapMs` 60 상한·좁은 화면 시트 30(만남 창은 3D 가 이 루프에서 돌아 안 묶는다).
 - jsdom 598/600 — 실패 2("배우 — 조립하면…"·"걸으면 다리가…", `Request is not defined`)는 수정 전 HEAD 에서도 같다. `sw.js` go-v5.70.0. **실기 확인 대기**.
+
+## 2026-09-24 (폰 배치) — 폰 UI 자동 점검 도구로 잰 자리 고치기
+
+- 계기: 사용자 "폰 화면에서 UI 가 엉망". 새 도구 `saga-web/tools/mobile-layout/`(헤드리스 크롬 모바일 에뮬레이션, 스크린샷 없이 rect 숫자) — README.
+- 사가고: 폰 가로에서 세로로 선 독(8칸 522px)이 화면 위로 144px 넘어 ⛶ 밑에 깔림 → 키 500 이하·폭 781 이상이면 독을 가로로 눕혀 오른쪽 아래, 근처 카드는 독 위 오른쪽에 가로로(왼쪽 아래 미니맵 비킴). 세로 독 칸 37px → 42px(틈 4). 독 `justify-content: safe flex-end`.
+- 다섯 판 공통: css 의 11px 미만 글자 227곳 → 11px(keyframes 제외), `:where(#sheet-body,#encounter) small` 바닥 11px, `@media (pointer: coarse)` 에서 `.btn`·시트 안 단추·닫기 40px·슬라이더 높이 40px.
+- 결과: `MLAYOUT 합계 0건`(첫 화면·첫 창·시트 전부 × 세로·가로). 진단 사가고 600/600 · 사가블로 409/409 · 사가의숲 374/374 · 사가스토리 241/241 · 사가국지 247/247. **실기 확인 대기**.
+- `sw.js` go-v5.71.0.

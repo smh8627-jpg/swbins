@@ -36,6 +36,7 @@
 | `tools/asset-audit/` | 세 트랙 에셋 점검 — 공개 유출 · 압축 디코더 누락 · 용량 · .meta/.import 짝 · 폰 예산 · 출처 문서 · 미참조 · 사본. `--quick` 은 바뀐 것만 |
 | `tools/claude-home/` | 좀비 청소기 — 부모 죽은 bash·git·serena·헤드리스 크롬 묶음만 끔(일반 node·Unity·Godot 품은 묶음은 보존), 세션 시작·턴 끝(10분 간격) 훅. PC마다 `node tools/claude-home/install.js`(되돌리기 `--uninstall`), 기록 `~/.claude/reap-orphans.log` |
 | `tools/hooks/` | `gate.js` 훅 게이트(세션 절차·커밋 전 precheck·PLAN 날짜 기록 막기) · `syntax-check.js` js 구문 한꺼번에 |
+| `saga-web/tools/mobile-layout/` | 폰 배치 점검 — 다섯 판을 헤드리스 크롬 모바일 에뮬레이션(세로·가로)으로 띄워 화면 밖·닿지 않음·가림·겹침·터치 40px·글자 11px 을 **숫자로**(스크린샷 없음), 첫 화면·첫 창·시트 전부. `node probe.js` → `MLAYOUT 합계 0건` |
 | `saga-godot/tools/godot_regress.sh` | 다섯 대표 씬 헤드리스 3회 회귀(로그 md5·error/warn 0) |
 | `saga-unity/tools/unity-batch.sh` | Unity 배치 실행 + 설치 버전 부작용 4파일 원복 — **다른 세션이 saga-unity 를 고치는 중이면 쓰지 않는다**(Packages 파일을 되돌린다) |
 | 각 판 `_test.html` · `_admin.html` · `_demo.html` | 진단(RESULT n/n) · 세이브·균형 손잡이 · 장면 데모 |

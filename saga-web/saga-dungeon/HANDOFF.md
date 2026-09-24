@@ -4225,3 +4225,11 @@ VRoid 인물이 unlit(`MeshBasicMaterial`) 그대로라 명암 없이 평면이�
 - **버그**: `dungeon-view.js draw()` 가 매 프레임 `dungeon3d.resize()` → `post3d.resize()`(curW=0) → 후처리 렌더 타깃(HalfFloat·MSAA·깊이·블룸)을 **매 프레임 버리고 새로 지었다**(옛 "tier=high ema=92ms" 튐의 진짜 원인일 가능성). 크기·픽셀비가 그대로면 resize 가 아무것도 안 한다.
 - `game.js frameGapMs` 60 상한(`perf.fps`, 0 = 없음)·좁은 화면 시트 30. `dungeon3d updatePerf` 는 상한 간격을 60fps 기준으로 되돌려 잰다(안 그러면 멀쩡한 폰이 LOW 로 떨어진다), 10fps 이하 동안은 안 잰다.
 - jsdom 409/409. `sw.js` dungeon-v0.164.0. **실기 확인 대기**(발열·끊김).
+
+## 2026-09-24 (폰 배치) — 폰 UI 자동 점검 도구로 잰 자리 고치기
+
+- 계기: 사용자 "폰 화면에서 UI 가 엉망". 새 도구 `saga-web/tools/mobile-layout/`(헤드리스 크롬 모바일 에뮬레이션, 스크린샷 없이 rect 숫자) — README.
+- 사가블로: 폰 가로에서 목표판 세 줄이 상단 205px, 강공격·회피 넷이 세로 238px 로 도구줄을 덮음 → 목표판 한 줄로 접기(누르면 펼침)·`#dg-actions` 2×2(diablo.css). 마을 조작 안내가 미니맵 위 → 좌우 여백. 좁은 화면 하단 시트가 z 21, 미니맵 z 65 라 시트 왼쪽 아래 단추(승급·+1단·도감 칸)를 덮음 → 시트 열리면 미니맵 숨김. 목표판 ✕ 누르는 자리 40px. 도구 36→40px.
+- 다섯 판 공통: css 의 11px 미만 글자 227곳 → 11px(keyframes 제외), `:where(#sheet-body,#encounter) small` 바닥 11px, `@media (pointer: coarse)` 에서 `.btn`·시트 안 단추·닫기 40px·슬라이더 높이 40px.
+- 결과: `MLAYOUT 합계 0건`(첫 화면·첫 창·시트 전부 × 세로·가로). 진단 사가고 600/600 · 사가블로 409/409 · 사가의숲 374/374 · 사가스토리 241/241 · 사가국지 247/247. **실기 확인 대기**.
+- `sw.js` dungeon-v0.165.0.

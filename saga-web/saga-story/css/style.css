@@ -93,7 +93,7 @@ body.tilted #vignette {
 }
 .p-meta { line-height: 1.25; }
 .p-title { font-size: 13px; font-weight: 700; letter-spacing: -.2px; }
-.p-sub { font-size: 10.5px; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+.p-sub { font-size: 11px; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
 .p-sub b { color: var(--gold); font-weight: 600; }
 .p-bars { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; width: 118px; }
 .p-bar { position: relative; height: 5px; border-radius: 3px; overflow: hidden; background: rgba(0,0,0,.35); }
@@ -160,14 +160,14 @@ body.focus #top, body.focus #autobar, body.focus #dock { display: none !importan
 .widget { border-radius: var(--r-md); padding: 10px 12px; }
 .w-head {
   display: flex; align-items: center; gap: 6px;
-  font-size: 10.5px; color: var(--ink-dim); letter-spacing: .3px; margin-bottom: 5px;
+  font-size: 11px; color: var(--ink-dim); letter-spacing: .3px; margin-bottom: 5px;
 }
 .w-head b { color: var(--ink); font-size: 12px; font-weight: 700; letter-spacing: -.2px; }
 .w-head .right { margin-left: auto; color: var(--gold); font-weight: 700; font-size: 11px; }
 .bar { height: 6px; border-radius: 3px; background: rgba(255,255,255,.10); overflow: hidden; }
 .bar > i { display: block; height: 100%; border-radius: 3px; background: var(--gold); transition: width .3s; }
 .bar.blue > i { background: var(--blue); }
-.w-foot { margin-top: 5px; font-size: 10.5px; color: var(--ink-faint); }
+.w-foot { margin-top: 5px; font-size: 11px; color: var(--ink-faint); }
 .w-foot b { color: var(--ink-dim); }
 
 /* ── 근처 대상 ────────────────────────────────────────── */
@@ -189,7 +189,7 @@ body.focus #top, body.focus #autobar, body.focus #dock { display: none !importan
 }
 .near-meta { line-height: 1.3; }
 .near-meta b { font-size: 13.5px; }
-.near-meta small { display: block; font-size: 10.5px; color: var(--ink-dim); }
+.near-meta small { display: block; font-size: 11px; color: var(--ink-dim); }
 
 /* ── 액션 독 ──────────────────────────────────────────── */
 /* 접지 않고 다 펼친다(사가고 UI와 같은 결) — 아홉 칸이라 사가고(여덟 칸)보다
@@ -212,14 +212,14 @@ body.focus #top, body.focus #autobar, body.focus #dock { display: none !importan
   transition: transform .12s, background .12s, border-color .12s;
 }
 #dock button span { font-size: 21px; line-height: 1; }
-#dock button small { font-size: 9.5px; color: var(--ink-dim); }
+#dock button small { font-size: 11px; color: var(--ink-dim); }
 #dock button:hover { transform: translateY(-2px); }
 #dock button.on { background: var(--gold); border-color: var(--gold); }
 #dock button.on span, #dock button.on small { color: #22190a; }
 #dock button i.badge {
   position: absolute; margin: -34px 0 0 34px; font-style: normal;
   min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px;
-  background: var(--bad); color: #fff; font-size: 10px; font-weight: 700;
+  background: var(--bad); color: #fff; font-size: 11px; font-weight: 700;
   display: grid; place-items: center;
 }
 
@@ -256,7 +256,7 @@ body.focus #top, body.focus #autobar, body.focus #dock { display: none !importan
 .sec { margin-bottom: 18px; }
 .sec:last-child { margin-bottom: 4px; }
 .sec h4 {
-  margin: 0 0 9px; font-size: 10.5px; font-weight: 700;
+  margin: 0 0 9px; font-size: 11px; font-weight: 700;
   color: var(--ink-faint); letter-spacing: .6px; text-transform: uppercase;
 }
 .card { background: rgba(255,255,255,.045); border: 1px solid var(--glass-br); border-radius: var(--r-md); padding: 12px; }
@@ -293,11 +293,11 @@ body.focus #top, body.focus #autobar, body.focus #dock { display: none !importan
   width: 56px; opacity: .5;
 }
 .mentor-chip.on { opacity: 1; }
-.mentor-chip small { font-size: 10px; text-align: center; color: var(--ink-dim); line-height: 1.25; }
+.mentor-chip small { font-size: 11px; text-align: center; color: var(--ink-dim); line-height: 1.25; }
 .mentor-chip.on small { color: var(--ink); }
 .muted { color: var(--ink-dim); }
 .warn { color: var(--bad); }
-small.muted { display: block; margin-top: 7px; font-size: 10.5px; }
+small.muted { display: block; margin-top: 7px; font-size: 11px; }
 
 .row { display: flex; align-items: center; gap: 8px; }
 .row .sp { margin-left: auto; }
@@ -314,7 +314,7 @@ small.muted { display: block; margin-top: 7px; font-size: 10.5px; }
 .brow .bi { font-size: 18px; grid-row: span 2; }
 .brow .bn { font-size: 12.5px; font-weight: 600; }
 .brow .bl { font-size: 11px; font-weight: 700; color: var(--gold); }
-.brow .be { grid-column: 2 / -1; font-size: 10.5px; color: var(--ink-dim); }
+.brow .be { grid-column: 2 / -1; font-size: 11px; color: var(--ink-dim); }
 
 .prod { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .prod > div {
@@ -329,8 +329,8 @@ small.muted { display: block; margin-top: 7px; font-size: 10.5px; }
   background: rgba(255,255,255,.045); padding: 9px 11px; border-radius: var(--r-sm);
 }
 .rrow b { flex: 1; font-weight: 600; }
-.rrow small { color: var(--ink-dim); font-size: 10.5px; }
-.tag { font-size: 10px; font-weight: 700; color: var(--gold);
+.rrow small { color: var(--ink-dim); font-size: 11px; }
+.tag { font-size: 11px; font-weight: 700; color: var(--gold);
        background: var(--gold-soft); border-radius: 6px; padding: 3px 7px; }
 
 /* 스프라이트 초상 */
@@ -362,7 +362,7 @@ small.muted { display: block; margin-top: 7px; font-size: 10.5px; }
 }
 .pc-top > div { flex: 1; line-height: 1.35; min-width: 0; }
 .pc-top b { font-size: 13px; }
-.pc-top small { display: block; font-size: 10.5px; }
+.pc-top small { display: block; font-size: 11px; }
 .pc-pet { margin-top: 8px; display: flex; align-items: center; gap: 6px; font-size: 11px; }
 .pc-pet select {
   flex: 1; background: rgba(0,0,0,.34); color: var(--ink);
@@ -383,11 +383,11 @@ small.muted { display: block; margin-top: 7px; font-size: 10.5px; }
 .dcell.locked { opacity: .3; }
 .dcell .de { font-size: 22px; display: block; line-height: 1.1; }
 .dcell small {
-  display: block; font-size: 9.5px; margin-top: 4px; color: var(--ink-dim);
+  display: block; font-size: 11px; margin-top: 4px; color: var(--ink-dim);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .dcell .cnt {
-  position: absolute; right: 4px; top: 4px; font-style: normal; font-size: 9px; font-weight: 700;
+  position: absolute; right: 4px; top: 4px; font-style: normal; font-size: 11px; font-weight: 700;
   background: var(--gold); color: #22190a; border-radius: 7px; padding: 1px 5px;
 }
 
@@ -472,7 +472,7 @@ small.muted { display: block; margin-top: 7px; font-size: 10.5px; }
 .enc-actions { display: flex; flex-direction: column; gap: 7px; margin: 11px 0; }
 .btn.appeal { text-align: left; padding: 11px 14px; border-radius: 13px; }
 .btn.appeal b { display: block; font-size: 13px; }
-.btn.appeal small { display: block; font-size: 10.5px; color: var(--ink-dim); margin-top: 2px; font-weight: 400; }
+.btn.appeal small { display: block; font-size: 11px; color: var(--ink-dim); margin-top: 2px; font-weight: 400; }
 
 .enc-card.result { text-align: center; }
 .enc-big { font-size: 60px; line-height: 1.1; margin-bottom: 6px; }
@@ -537,7 +537,7 @@ small.muted { display: block; margin-top: 7px; font-size: 10.5px; }
    자리(= (100vw - hud폭)/2)로 못 박아 아무리 가로로 늘어도 hud 쪽으로
    넘어가지 않고 그 안에서만 옆으로 스크롤한다 */
 @media (max-width: 780px) {
-  #dock { left: 12px; justify-content: flex-end; overflow-x: auto; }
+  #dock { left: 12px; justify-content: safe flex-end; overflow-x: auto; }
 }
 /* 561~780px 만 — #hud 가 아직 가운데 앉아 있는 폭이다(560px 이하에서는 아래
    560px 규칙이 hud 를 오른쪽으로 옮겨 독 위에 쌓아서, 이 계산이 필요 없다.
@@ -551,7 +551,7 @@ small.muted { display: block; margin-top: 7px; font-size: 10.5px; }
    780px 규칙과 같은 결로 눕혀서 사냥 화면을 가리지 않게 한다 */
 @media (min-width: 781px) and (max-height: 640px) {
   #dock {
-    flex-direction: row; left: 12px; justify-content: flex-end;
+    flex-direction: row; left: 12px; justify-content: safe flex-end;
     max-height: none; overflow-y: visible; overflow-x: auto;
     max-width: calc((100vw - min(560px, 100vw - 96px)) / 2 - 24px);
   }
@@ -591,7 +591,7 @@ button.pc-emoji { cursor: pointer; padding: 0; }
 .pc-top > .pc-meta { flex: 1; line-height: 1.35; min-width: 0; }
 .pc-top > .pc-btns { flex: 0 0 auto; display: flex; flex-direction: column; gap: 4px; }
 .pc-meta b { font-size: 13px; }
-.pc-meta small { display: block; font-size: 10.5px; }
+.pc-meta small { display: block; font-size: 11px; }
 
 /* 대기 인물 */
 .benchlist { gap: 6px; }
@@ -601,7 +601,7 @@ button.pc-emoji { cursor: pointer; padding: 0; }
 }
 .benchbtn .pt { width: 26px; height: 26px; }
 .benchbtn b { font-size: 12px; font-weight: 600; }
-.benchbtn small { font-size: 10px; color: var(--ink-dim); }
+.benchbtn small { font-size: 11px; color: var(--ink-dim); }
 
 /* 교역 */
 .tradelist { display: flex; flex-direction: column; gap: 5px; }
@@ -613,7 +613,7 @@ button.pc-emoji { cursor: pointer; padding: 0; }
 .trow .te { font-size: 19px; width: 22px; text-align: center; }
 .trow .tn { flex: 1; min-width: 0; line-height: 1.35; }
 .trow .tn b { font-size: 12.5px; display: block; }
-.trow .tn small { font-size: 10.5px; color: var(--ink-dim); }
+.trow .tn small { font-size: 11px; color: var(--ink-dim); }
 
 /* 영지 카드 */
 .rcard {
@@ -627,7 +627,7 @@ button.pc-emoji { cursor: pointer; padding: 0; }
 .rc-dev { display: flex; align-items: center; gap: 8px; margin: 9px 0 7px; font-size: 11.5px; }
 .rc-dev .bar { flex: 1; }
 .rc-dev b { color: var(--gold); }
-.rc-dev small { color: var(--ink-faint); font-size: 10.5px; white-space: nowrap; }
+.rc-dev small { color: var(--ink-faint); font-size: 11px; white-space: nowrap; }
 .rc-eff { font-size: 11px; color: var(--ink-dim); line-height: 1.6; }
 .rc-gov {
   display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
@@ -646,7 +646,7 @@ button.pc-emoji { cursor: pointer; padding: 0; }
 }
 .govchip .pt { width: 24px; height: 24px; }
 .govchip b { font-size: 12px; }
-.govchip small { font-size: 10px; color: var(--ink-dim); }
+.govchip small { font-size: 11px; color: var(--ink-dim); }
 
 /* ── 인물 · 펫 상세 ─────────────────────────────────────────── */
 #detail {
@@ -701,7 +701,7 @@ button.pc-emoji { cursor: pointer; padding: 0; }
   border-right: 2px solid rgba(255,255,255,.55);
 }
 .st-v { width: 62px; text-align: right; font-variant-numeric: tabular-nums; flex: 0 0 auto; }
-.st-v em { font-style: normal; color: var(--good); font-size: 10px; margin-left: 3px; }
+.st-v em { font-style: normal; color: var(--good); font-size: 11px; margin-left: 3px; }
 
 .dt-line {
   display: flex; justify-content: space-between; align-items: center;
@@ -721,7 +721,7 @@ button.pc-emoji { cursor: pointer; padding: 0; }
 .dt-bio { font-size: 12px; line-height: 1.8; margin: 13px 0 0; color: #d7dce6; }
 .dt-acts { display: flex; flex-direction: column; gap: 6px; margin-top: 13px; }
 .dt-acts .btn.wide { margin-top: 0; }
-.dt-tip { display: block; margin-top: 9px; font-size: 10.5px; line-height: 1.7; }
+.dt-tip { display: block; margin-top: 9px; font-size: 11px; line-height: 1.7; }
 .dt-tip b { color: var(--ink); }
 
 @media (max-width: 780px) {
@@ -766,7 +766,7 @@ button.pc-emoji { cursor: pointer; padding: 0; }
 }
 .ow-node i { font-size: 20px; }
 .ow-node b { font-size: 11.5px; line-height: 1.3; }
-.ow-node small { font-size: 9.5px; color: var(--ink-dim); }
+.ow-node small { font-size: 11px; color: var(--ink-dim); }
 .ow-node.locked { opacity: .45; }
 .ow-node.open.town b { color: #a8d8e0; }
 .ow-node.open.field b { color: #ffcf7a; }
@@ -827,7 +827,7 @@ button.pc-emoji { cursor: pointer; padding: 0; }
 }
 .ai-top { display: flex; align-items: baseline; gap: 8px; margin-bottom: 5px; }
 .ai-top b { font-size: 12px; }
-.ai-top small { font-size: 10px; color: var(--ink-faint); margin-left: auto; }
+.ai-top small { font-size: 11px; color: var(--ink-faint); margin-left: auto; }
 .ai-text { font-size: 11.5px; line-height: 1.75; color: #d7dce6; white-space: normal; }
 
 .on-dot { color: var(--purple); }
@@ -975,7 +975,7 @@ body.tilted3 #vignette {
 .hud-sk.ready { border-color: rgba(201,162,74,.7); background: rgba(201,162,74,.16); }
 .hud-sk b { font-size: 20px; line-height: 1; }
 .hud-sk small {
-  position: absolute; right: 4px; top: 2px; font-size: 9px; color: var(--ink-dim);
+  position: absolute; right: 4px; top: 2px; font-size: 11px; color: var(--ink-dim);
 }
 .hud-sk u {                       /* 쿨다운 — 위에서 덮는다 */
   position: absolute; left: 0; top: 0; right: 0; display: block;
@@ -1055,20 +1055,20 @@ body.tilted3 #vignette {
   .avatar { width: 28px; height: 28px; }
   .avatar i { font-size: 12px; }
   .p-meta { min-width: 0; }
-  .p-title { font-size: 10.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .p-sub { font-size: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .p-title { font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .p-sub { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .p-bars { width: 100%; max-width: 100px; margin-top: 2px; gap: 1px; }
   .p-bar { height: 3.5px; }
 
   /* 목표판(§5-6) — 세로로 좁아지면 3줄이 다 안 들어가 1줄(추적 사명)만 남기고
      접는다("탭으로 펼치기"까지는 이번엔 안 넣었다 — HANDOFF 기록) */
-  .goals { max-width: calc(100vw - 24px); font-size: 9.5px; padding: 3px 10px; gap: 0; }
+  .goals { max-width: calc(100vw - 24px); font-size: 11px; padding: 3px 10px; gap: 0; }
   .goal-row:nth-child(2), .goal-row:nth-child(3) { display: none; }
 
   /* 도구 — 지도·자동·더보기 셋뿐이라 한 줄로 끝난다(예전엔 아홉이라 두세 줄이었다) */
   .tools { gap: 5px; }
   .icon-btn { width: 34px; height: 34px; font-size: 13px; }
-  .icon-btn.txt { font-size: 9.5px; }
+  .icon-btn.txt { font-size: 11px; }
 
   .wallet { flex-wrap: wrap; padding: 4px 6px; }
   .coin { padding: 3px 7px; font-size: 11px; }
@@ -1097,9 +1097,9 @@ body.tilted3 #vignette {
   .hud-skills { display: grid; grid-template-columns: repeat(2, 28px); gap: 2px; }
   .hud-sk { width: 28px; height: 28px; border-radius: 9px; }
   .hud-sk b { font-size: 12px; }
-  .hud-sk small { font-size: 7px; right: 2px; }
+  .hud-sk small { font-size: 11px; right: 2px; }
   /* '나온다' 는 두 칸을 다 차지하는 맨 아랫줄로 */
-  .hud-out { grid-column: 1 / -1; margin-left: 0; padding: 3px 8px; font-size: 10px; text-align: center; }
+  .hud-out { grid-column: 1 / -1; margin-left: 0; padding: 3px 8px; font-size: 11px; text-align: center; }
 
   /* 독 — 가로로 깔린다(780px 규칙). 사냥터·가방·더보기 셋뿐이라 오른쪽에
      붙여도 화면을 넓게 안 먹는다(예전엔 여섯이라 화면 폭을 다 썼다).
@@ -1107,7 +1107,7 @@ body.tilted3 #vignette {
   #dock { right: 6px; gap: 5px; }
   #dock button { width: 42px; height: 42px; border-radius: 13px; flex: 0 0 auto; }
   #dock button span { font-size: 16px; }
-  #dock button small { font-size: 8px; }
+  #dock button small { font-size: 11px; }
 
   /* 손가락 조작판 — #hud 가 여기서 거의 전체 폭(calc(100vw-16px))으로 커지고
      두 줄(3차 전직은 스킬 여덟 칸)이라 카드가 높다. 체력·기력 띠를 뺀 뒤로
@@ -1143,7 +1143,7 @@ body.tilted3 #vignette {
   #dock { bottom: calc(6px + var(--safe-b)); gap: 6px; }
   #dock button { width: 46px; height: 46px; border-radius: 15px; }
   #dock button span { font-size: 17px; }
-  #dock button small { font-size: 8px; }
+  #dock button small { font-size: 11px; }
 
   #hud { bottom: calc(6px + var(--safe-b)); }
   .hud-card { padding: 6px 9px; }
@@ -1211,3 +1211,38 @@ body.cine::after { bottom: 0; }
 @media (prefers-reduced-motion: reduce) {
   body.cine::before, body.cine::after, .story-title, .story-card, .story-face { animation: none !important; }
 }
+
+/* ── 폰 배치 점검(tools/mobile-layout) 으로 잰 자리 ─────────────────────
+   ⛶(#btn-focus)는 #top 밖에서 오른쪽 위에 고정이라 도구줄 맨 끝(⋯·↺)을 덮어 눌리지 않았다 — 사가고처럼 자리를 비운다 */
+.tools { margin-right: 50px; }
+@media (max-width: 560px) {
+  .icon-btn { width: 40px; height: 40px; font-size: 15px; }
+  /* 공격·탕약·회피 28px 는 손가락에 작다 — 투명한 칸 그대로 40px 로 */
+  .hud-skills { grid-template-columns: repeat(2, 40px); gap: 4px; }
+  .hud-sk { width: 40px; height: 40px; }
+  .hud-sk b { font-size: 16px; }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  .hud-sk { width: 40px; height: 40px; }
+  #dock button { flex: 0 0 auto; }
+  /* 가운데 560px 조작 띠 때문에 독이 118px 에 갇혀 아홉 칸 중 일곱이 왼쪽 밖(스크롤로도 못 닿는 쪽)으로 밀렸다.
+     조작 띠를 오른쪽 아래로 붙여 폭을 내용만큼만 쓰고, 독은 그 왼쪽 자리를 다 쓴다 */
+  #hud { left: auto; right: 12px; transform: none; width: auto; max-width: calc(100vw - 500px); }
+  #dock { max-width: calc(100vw - 24px - 330px); }
+}
+/* 손가락 화면의 작은 글자 단추(건너뛰기·나온다) — 누르는 높이만 40px */
+@media (pointer: coarse) {
+  .btn.tiny { min-height: 40px; }
+}
+/* 첫 발 장면 동안 상단 줄은 장면 제목과 겹친다 — 어차피 조작이 안 먹는 동안이라 감춘다 */
+body.cine #top, body.cine #btn-focus { visibility: hidden; }
+/* 손가락 화면 — 시트 안 단추·닫기·슬라이더의 누르는 높이 40px(모양은 그대로, 높이만) */
+@media (pointer: coarse) {
+  .btn { min-height: 40px; }
+  #sheet-close, #sheet-map { min-width: 40px; min-height: 40px; }
+  #sheet-body button { min-height: 40px; min-width: 40px; }
+  input[type=range] { height: 40px; }
+}
+/* 따로 크기를 안 준 <small> 은 브라우저 기본(부모의 0.8배)이라 10px 대로 떨어진다 — 바닥 11px.
+   :where 로 특이도 0 이라 크기를 준 규칙은 그대로 이긴다 */
+:where(#sheet-body, #encounter) small { font-size: max(11px, .8em); }

@@ -1730,3 +1730,11 @@ VRoid 장수가 unlit(`MeshBasicMaterial`) 그대로라 명암 없이 평면이�
 - 정적 소품 약 1,070개(GLB 사본마다 부품별 그리기 호출) — 다 도착하면 같은 지오메트리·같은 재질 값끼리 InstancedMesh 하나로 묶는다(행렬 그대로라 그림 같음, 스킨·셰이더 덧대기·빛 든 것은 안 묶음). 손잡이 `realm3d.staticInst`, 진단 `DG.realm3d.staticInstStats()`.
 - 성 안(`city3d`)·전투 디오라마(`battle3d`) 60 상한.
 - jsdom 247/247(3D 는 jsdom 에 WebGL 이 없어 안 돈다 — 묶기·상한은 실기 확인 몫). `sw.js` realm-v1.59.0. **실기 확인 대기**(소품 묶은 뒤 그림이 같은지·발열).
+
+## 2026-09-24 (폰 배치) — 폰 UI 자동 점검 도구로 잰 자리 고치기
+
+- 계기: 사용자 "폰 화면에서 UI 가 엉망". 새 도구 `saga-web/tools/mobile-layout/`(헤드리스 크롬 모바일 에뮬레이션, 스크린샷 없이 rect 숫자) — README.
+- 사가국지: 프로필 군주 초상 `.avatar-pt` 에 크기가 없어 넓은 화면에서 192px 로 늘어 폰 가로 상단이 283px(¾) → 40px(좁은 화면 30px, 프로필 폭 제한·말줄임). 폰 가로 독 가로로. 지도 단추 🏠➕➖ 30→40px.
+- 다섯 판 공통: css 의 11px 미만 글자 227곳 → 11px(keyframes 제외), `:where(#sheet-body,#encounter) small` 바닥 11px, `@media (pointer: coarse)` 에서 `.btn`·시트 안 단추·닫기 40px·슬라이더 높이 40px.
+- 결과: `MLAYOUT 합계 0건`(첫 화면·첫 창·시트 전부 × 세로·가로). 진단 사가고 600/600 · 사가블로 409/409 · 사가의숲 374/374 · 사가스토리 241/241 · 사가국지 247/247. **실기 확인 대기**.
+- `sw.js` realm-v1.60.0.

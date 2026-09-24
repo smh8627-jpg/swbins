@@ -1578,7 +1578,7 @@
     /* 고유 — 이름 아래에 그 물건의 내력을 한 줄 (원작의 유니크가 그렇다) */
     var uq1 = it.uniqOf(g);
     if (uq1) {
-      html += '<div style="color:#c7a76c;font-size:10.5px;margin-top:2px">⭐ ' +
+      html += '<div style="color:#c7a76c;font-size:11px;margin-top:2px">⭐ ' +
         esc(uq1.desc) + '</div>';
     }
 
@@ -1593,7 +1593,7 @@
       }
       html += '<div style="color:#00c000;margin-top:4px">〈' + esc(st1.name) + '〉 ' +
         worn + ' / ' + st1.pieces.length + ' 점</div>' +
-        '<div class="muted" style="font-size:10.5px">' + esc(st1.desc) + '</div>';
+        '<div class="muted" style="font-size:11px">' + esc(st1.desc) + '</div>';
       var kk;
       for (kk in st1.bonus) {
         if (!Object.prototype.hasOwnProperty.call(st1.bonus, kk)) { continue; }

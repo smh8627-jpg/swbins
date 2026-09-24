@@ -325,7 +325,7 @@ b, strong, .p-sub, .coin, .dg-loot, .d2-gv { font-variant-numeric: tabular-nums;
   position: absolute; left: 50%; transform: translateX(-50%);
   bottom: -8px; padding: 1px 7px; border-radius: 999px;
   background: rgba(10, 8, 5, .75); border: 1px solid rgba(201, 162, 74, .4);
-  font-size: 9.5px; font-weight: 700; color: rgba(232, 226, 210, .85);
+  font-size: 11px; font-weight: 700; color: rgba(232, 226, 210, .85);
   line-height: 1.5; letter-spacing: -.2px; pointer-events: none;
 }
 #dg-minimap.folded { padding: 0; width: 30px; height: 30px; border-radius: 50%; overflow: hidden; }
@@ -490,11 +490,11 @@ b, strong, .p-sub, .coin, .dg-loot, .d2-gv { font-variant-numeric: tabular-nums;
   font-style: normal; line-height: 46px;
 }
 .dg-sk-key {
-  position: absolute; left: 2px; top: 0; font-size: 9px; color: #d9c48a;
+  position: absolute; left: 2px; top: 0; font-size: 11px; color: #d9c48a;
   text-shadow: 0 1px 2px #000; font-weight: 700;
 }
 .dg-sk-cost {
-  position: absolute; right: 2px; bottom: 0; font-size: 9px; color: #8fb0ff;
+  position: absolute; right: 2px; bottom: 0; font-size: 11px; color: #8fb0ff;
   text-shadow: 0 1px 2px #000;
 }
 
@@ -514,7 +514,7 @@ b, strong, .p-sub, .coin, .dg-loot, .d2-gv { font-variant-numeric: tabular-nums;
   transition: width .3s;
 }
 .d2-xp > span {
-  position: absolute; right: 5px; top: -1px; font-size: 8.5px; color: #b7a67c;
+  position: absolute; right: 5px; top: -1px; font-size: 11px; color: #b7a67c;
   text-shadow: 0 1px 2px #000;
 }
 .d2-line {
@@ -523,7 +523,7 @@ b, strong, .p-sub, .coin, .dg-loot, .d2-gv { font-variant-numeric: tabular-nums;
   text-shadow: 0 1px 2px #000;
 }
 .d2-line b { color: var(--gold); }
-.d2-line .d2-keys { margin-left: auto; color: var(--ink-faint); font-size: 10.5px; }
+.d2-line .d2-keys { margin-left: auto; color: var(--ink-faint); font-size: 11px; }
 /**
  * 요대(腰帶) — 원작의 벨트. 칸 넷에 1 2 3 4 가 걸린다.
  * 칸 번호를 왼쪽 위에 늘 새겨 둔다 — 원작에서도 어느 키가 어느 칸인지가
@@ -542,13 +542,13 @@ b, strong, .p-sub, .coin, .dg-loot, .d2-gv { font-variant-numeric: tabular-nums;
 .d2-belt .d2-cell::before {                 /* 칸 번호 */
   content: counter(d2belt); counter-increment: d2belt;
   position: absolute; left: 2px; top: 0;
-  font-size: 8.5px; font-weight: 700; color: #b7a67c;
+  font-size: 11px; font-weight: 700; color: #b7a67c;
   text-shadow: 0 1px 2px #000; font-family: var(--d2-serif);
 }
 .d2-belt { counter-reset: d2belt; }
 .d2-belt .d2-cell > i {
   position: absolute; right: 2px; bottom: 0; font-style: normal;
-  font-size: 10px; font-weight: 700; color: #f0e2b8; text-shadow: 0 1px 2px #000;
+  font-size: 11px; font-weight: 700; color: #f0e2b8; text-shadow: 0 1px 2px #000;
 }
 .d2-belt .d2-cell.empty { opacity: .45; cursor: default; }
 .d2-belt .d2-cell.empty:hover { border-color: #4a3b23; }
@@ -614,15 +614,15 @@ b, strong, .p-sub, .coin, .dg-loot, .d2-gv { font-variant-numeric: tabular-nums;
 .d2-inv .d2-it.on   { box-shadow: inset 0 0 0 2px #d8bd7c, inset 0 0 14px rgba(0,0,0,.6); }
 .d2-inv .d2-it > i {
   position: absolute; left: 2px; top: 1px; font-style: normal;
-  font-size: 8.5px; font-weight: 700; text-shadow: 0 1px 2px #000;
+  font-size: 11px; font-weight: 700; text-shadow: 0 1px 2px #000;
 }
 /* 부서진 것 — 칸 오른쪽 위에 붉은 표. 원작도 부서진 물건은 붉게 보인다 */
 .d2-inv .d2-it > b.d2-broke {
-  position: absolute; right: 1px; top: 0; font-size: 9px;
+  position: absolute; right: 1px; top: 0; font-size: 11px;
   filter: drop-shadow(0 0 3px #b23a2c);
 }
 .d2-inv .d2-it.lock::after {
-  content: '🔒'; position: absolute; right: 1px; bottom: 0; font-size: 8.5px;
+  content: '🔒'; position: absolute; right: 1px; bottom: 0; font-size: 11px;
 }
 
 /* 종이인형(장착창) — 원작의 인물 창 */
@@ -637,12 +637,12 @@ b, strong, .p-sub, .coin, .dg-loot, .d2-gv { font-variant-numeric: tabular-nums;
   height: 62px; display: grid; place-items: center; text-align: center;
   background: rgba(0, 0, 0, 0.45);
   box-shadow: inset 0 0 0 1px rgba(107, 88, 54, 0.45);
-  font-size: 10.5px; line-height: 1.35; padding: 3px 4px; cursor: pointer;
+  font-size: 11px; line-height: 1.35; padding: 3px 4px; cursor: pointer;
 }
-.d2-doll .d2-dslot small { display: block; color: var(--ink-faint); font-size: 9px; }
+.d2-doll .d2-dslot small { display: block; color: var(--ink-faint); font-size: 11px; }
 .d2-doll .d2-who { text-align: center; }
 .d2-doll .d2-who b { display: block; color: #e6d9b0; font-size: 12.5px; }
-.d2-doll .d2-who small { color: var(--ink-dim); font-size: 10px; }
+.d2-doll .d2-who small { color: var(--ink-dim); font-size: 11px; }
 
 /* 물건 설명 쪽지 — 원작의 검은 바탕 · 등급색 이름 */
 .d2-tip {
@@ -679,9 +679,9 @@ b, strong, .p-sub, .coin, .dg-loot, .d2-gv { font-variant-numeric: tabular-nums;
   background: linear-gradient(180deg, #e0533c, #8d0f08);
 }
 #d2-foe .d2-fres {
-  font-size: 10.5px; color: #9aa3b2; text-shadow: 0 1px 3px #000; margin-top: 2px;
+  font-size: 11px; color: #9aa3b2; text-shadow: 0 1px 3px #000; margin-top: 2px;
 }
-#d2-foe .d2-faff { font-size: 10.5px; color: #9c8be0; text-shadow: 0 1px 3px #000; margin-top: 2px; }
+#d2-foe .d2-faff { font-size: 11px; color: #9c8be0; text-shadow: 0 1px 3px #000; margin-top: 2px; }
 
 /* ── 10b. 가입 화면 — 플레이어가 **맨 처음 보는 판** ──────── */
 
@@ -790,9 +790,19 @@ b, strong, .p-sub, .coin, .dg-loot, .d2-gv { font-variant-numeric: tabular-nums;
 /* 폰 폭 — 구슬 둘과 무예 넷이 한 줄에 다 들어와야 한다 (390px 실측으로 잡은 값) */
 @media (max-width: 430px) {
   .d2-globe { width: 68px; height: 68px; }
-  .d2-globe .d2-gv { bottom: 15px; font-size: 9.5px; }
+  .d2-globe .d2-gv { bottom: 15px; font-size: 11px; }
   .dg-skill { width: 35px; height: 35px; }
   .dg-sk-e { font-size: 17px; line-height: 35px; }
   .dg-sk-cd { line-height: 35px; font-size: 11px; }
   .d2-belt .d2-cell { width: 25px; height: 25px; font-size: 13px; }
+}
+
+/* 폰 가로(키 390) — 세로로 선 강공격·회피 넷(238px)이 화면 꼭대기까지 올라가 도구줄을 덮었다(tools/mobile-layout).
+   두 줄 두 칸으로 접고 독 바로 위에 둔다 */
+@media (max-height: 500px) and (min-width: 781px) {
+  #dg-actions { display: grid; grid-template-columns: repeat(2, 52px); bottom: calc(84px + var(--safe-b)); }
+}
+/* 좁은 화면의 하단 시트는 z 21, 미니맵은 z 65 — 시트 왼쪽 아래 단추(승급·+1단·도감 칸)를 미니맵이 덮어 눌리지 않았다 */
+@media (max-width: 780px) {
+  body.sheet-open #dg-minimap { visibility: hidden; }
 }
