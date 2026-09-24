@@ -70,6 +70,27 @@
     { "key": "biome.dark_forest", "value": "어둑숲" },
     { "key": "biome.rocky", "value": "바위 지대" },
     { "key": "biome.mushroom_forest", "value": "버섯숲" },
-    { "key": "biome.flower_field", "value": "꽃밭" }
+    { "key": "biome.flower_field", "value": "꽃밭" },
+    { "key": "town_score.home_line", "value": "집 꾸미기 {0}개 (+{1}점)" },
+    { "key": "town_score.museum_line", "value": "박물관 기증 {0}/12 (+{1}점)" },
+    { "key": "museum.bundle_done_toast", "value": "🎉 도감 한 갈래를 다 채웠다 — 마을에 새 시설이 생겼다!" },
+    { "key": "museum.all_done_toast", "value": "🚩 네 갈래를 모두 채웠다 — 마을 어귀에 깃발이 섰다!" },
+    { "key": "festival.flowerhunt_done", "value": "🌸 꽃놀이 성사! — 네 갈래를 1분 안에 모두 찾았다 (과일 +{0})" },
+    { "key": "delivery.already_carrying", "value": "택배 — 지금 {0}(으)로 갈 소포를 들고 있다." },
+    { "key": "delivery.kind_fragile", "value": "깨지기 쉬움(달리면 파손!)" },
+    { "key": "delivery.kind_timed", "value": "시간제한(45초 안에!)" },
+    { "key": "delivery.kind_normal", "value": "보통" },
+    { "key": "delivery.pickup_toast", "value": "택배 접수 — 목적지: {0} · 소포: {1}" },
+    { "key": "delivery.broke_toast", "value": "택배 — 뛰다가 소포가 깨졌다! 보상 없음(사슬 끊김)" },
+    { "key": "delivery.chain_tag", "value": " (사슬 보너스!)" },
+    { "key": "delivery.late_tag", "value": " (시간 초과, 보상 절반)" },
+    { "key": "delivery.done_toast", "value": "택배 완료 — 과일 +{0}{1}" },
+    { "key": "town_score.board", "value": "마을 평가 {0}\n{1}\n{2}" },
+    { "key": "festival.sebae", "value": "{0} — \"새해 복 많이 받으시게 — 세배값이네.\" (과일 +{1})" },
+    { "key": "festival.wish_idle", "value": "소원돌 — 소원날에만 별똥별이 뜬다고 한다." },
+    { "key": "festival.wish_done", "value": "✨ 별똥별에 소원을 빌었다 — 24시간 동안 채집이 잘 될 것 같다(과일 획득 ×1.5)." },
+    { "key": "festival.wish_already", "value": "오늘 소원은 이미 빌었다." },
+    { "key": "museum.gather_new_toast", "value": "{0}을(를) 처음으로 발견했다! (도감에 기록됨)" },
+    { "key": "museum.gather_toast", "value": "{0}을(를) 발견했다(이미 도감에 있음)" }
   ]
 }

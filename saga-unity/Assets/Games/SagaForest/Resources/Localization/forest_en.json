@@ -70,6 +70,27 @@
     { "key": "biome.dark_forest", "value": "Gloomwood" },
     { "key": "biome.rocky", "value": "Rocky Outcrop" },
     { "key": "biome.mushroom_forest", "value": "Mushroom Grove" },
-    { "key": "biome.flower_field", "value": "Flower Field" }
+    { "key": "biome.flower_field", "value": "Flower Field" },
+    { "key": "town_score.home_line", "value": "Home decor {0} (+{1} pts)" },
+    { "key": "town_score.museum_line", "value": "Museum donations {0}/12 (+{1} pts)" },
+    { "key": "museum.bundle_done_toast", "value": "🎉 You completed a collection line — a new facility opened in town!" },
+    { "key": "museum.all_done_toast", "value": "🚩 All four lines complete — a flag now stands at the town entrance!" },
+    { "key": "festival.flowerhunt_done", "value": "🌸 Flower outing success! — found all four lines within 1 minute (+{0} fruit)" },
+    { "key": "delivery.already_carrying", "value": "Delivery — you are already carrying a parcel for {0}." },
+    { "key": "delivery.kind_fragile", "value": "Fragile (running breaks it!)" },
+    { "key": "delivery.kind_timed", "value": "Timed (within 45s!)" },
+    { "key": "delivery.kind_normal", "value": "Normal" },
+    { "key": "delivery.pickup_toast", "value": "Delivery accepted — to: {0} · parcel: {1}" },
+    { "key": "delivery.broke_toast", "value": "Delivery — the parcel broke while running! No reward (chain broken)" },
+    { "key": "delivery.chain_tag", "value": " (chain bonus!)" },
+    { "key": "delivery.late_tag", "value": " (late, half reward)" },
+    { "key": "delivery.done_toast", "value": "Delivery done — +{0} fruit{1}" },
+    { "key": "town_score.board", "value": "Town rating {0}\n{1}\n{2}" },
+    { "key": "festival.sebae", "value": "{0} — \"A blessed new year to you — here's a little New Year's gift.\" (+{1} fruit)" },
+    { "key": "festival.wish_idle", "value": "Wishing stone — they say shooting stars appear only on wishing day." },
+    { "key": "festival.wish_done", "value": "✨ You wished on a shooting star — gathering should go well for 24 hours (fruit ×1.5)." },
+    { "key": "festival.wish_already", "value": "You already made today's wish." },
+    { "key": "museum.gather_new_toast", "value": "Found {0} for the first time! (recorded in the collection)" },
+    { "key": "museum.gather_toast", "value": "Found {0} (already in the collection)" }
   ]
 }

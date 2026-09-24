@@ -8874,3 +8874,11 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - **한 줄 자리**: 목표판(y -10~-100)·자막(-80~-220) 아래 y -228, 오른쪽 지도 버튼(-230, 폭 160)과 안 겹치게 폭 680. 보상 글은 자막을 안 쓰고 그 줄에 4초 — 수호장 토벌 자막과 같은 틱에 덮이는 걸 피했다. 단 계산은 0.25초마다 다시 센다(역참·망루·수호장·상자 이벤트가 제각각, `WorldEventState` 엔 이벤트가 없다).
 - 파일: 새 `Data/GoRegionMission.cs`(표·순수 단 계산)·`Data/RegionMissionState.cs`(셈·받은 보상·v16)·`UI/RegionMissionHud.cs`·`Editor/PlaytestGoRegionMission.cs`, 고침 `FieldSpawner`(GroupRegion·GroupWiped)·`SaveState`(v16 `missions`, 15→16)·`WorldMapUi`(이름표 "사명 n/3"·"평정", 높이 64)·`WorldMapBuilder`(HUD 붙임)·`PlaytestHeadless`(보물 상자 뒤)·수호장/지도/상자 진단 버전 검사 16. 씬 재빌드 불필요(런타임 부착).
 - 검증: 컴파일 exit 0·오류 0 · GO `PlaytestHeadless` **3연속 OK**(첫 실행부터, 새 `region mission` 줄 3회 동일, 기존 진단 전부 그대로). `ProjectSettings/`·`Packages/` 변경 없음. 실기 확인 전(한 줄이 목표판·자막·지도 버튼과 안 겹치는지, 보상 크기). 새 글자 `mission.*`·`map.mission*` 는 `T(키, 한국어)` 폴백.
+
+## 2026-09-24 — 빠진 번역 키 205개 채움(GO·DUNGEON·FOREST·STORY) + `tools/loc-missing.py` (같은 대화 두 번째 "사가 유니티 이어해", Opus 5.5)
+
+- **고른 까닭**: 지난 답의 다음 후보 중 STORY 파티·소환은 방향을 물어야 하고 106-6 전용 클립은 Mixamo 로그인(사람 몫)이 필요 — 답 없이 "이어해"라 지금 끝낼 수 있는 PROJECT_STATE 0-1 번역 빚부터.
+- **찾는 법**: `XxxLocalization.T("키", "한국어")` 호출 · 에디터 빌더의 `"키", "한국어"` 짝(컷 제목 트랙) · 표 데이터 `NameKey/NameKo`·`LabelKey/LabelKo` 짝을 판별로 모아 ko/en JSON 과 비교. 그 밖에 키가 뒤에 오는 버튼 빌더(`action.taunt/heal/summon`)·따로 선언된 폴백(`museum.gather_*`·`foe.shrine_*`·`chest.unlock_*`·`enemy.elite_fusion`)은 문자열 키 전수 훑기로 손으로 더했다.
+- **결과**: GO 113(들판 전투·원소·상자·지도·지역 7·역참 5·사명·사당 시련·봉수대 등) · DUNGEON 32(파티·난입·컷 제목·탐험) · FOREST 21(택배·축제·박물관) · STORY 40(비경·관문 대장·컷) — ko 는 코드 폴백 그대로(화면 변화 없음), en 은 세션 번역(사람 검수 전, 자리표시 `{n}` 일치를 스크립트로 확인). REALM 은 원래 0. `settings.*` 공유 키는 안 건드림.
+- **도구**: `saga-unity/tools/loc-missing.py` — 판별 빠진 키 수, 하나라도 있으면 exit 1(PLAN 67~69 Localization 줄에 적음). 못 잡는 모양은 도구 머리말에.
+- 검증: 스캔 0 · `PlaytestHeadless`·`PlaytestForestHeadless`·`PlaytestStorySlice` 각 OK, `PlaytestDungeonHeadless` 는 첫 실행이 Unity 시작 단계 패키지 관리자 IPC 끊김("Failed to resolve packages: operation cancelled", 진단 전)으로 exit 1 → 재실행 OK. JSON 데이터만 바뀌어 판별 1회씩만 돌렸다.

@@ -1,7 +1,7 @@
 # PROJECT_STATE — saga-unity (상태만, ≤15KB, 덮어쓴다)
 
 **규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다(2026-09-16 재편 전 본문 5,532줄은 그쪽 첫 절에 그대로 있다). 넘치면 `tools/precheck.sh` 가 막는다.
-마지막 갱신: 2026-09-24 (마흔여덟 세션째 — PLAN 106 전부·두목 컷 셋 + GO 107-7 수호장(v15) + **GO 107-8 지역 사명 사슬(세이브 v16)**. 헤드리스 통과, 실기 확인 전. 경위는 HISTORY 날짜 grep).
+마지막 갱신: 2026-09-24 (마흔아홉 세션째 — PLAN 106 전부·두목 컷 셋 + GO 107-7 수호장(v15)·107-8 지역 사명(v16) + **빠진 번역 키 205개 채움**. 헤드리스 통과, 실기 확인 전. 경위는 HISTORY 날짜 grep).
 
 ## 캐릭터 자산 — 이 PC 기준 (2026-09-19)
 
@@ -22,7 +22,7 @@ Maria(플레이어)·Abe(잡졸)·Brute(두목) + **2026-09-24 Skeleton·Paladin
 ## 다음 작업 (우선순위, 상세는 PLAN 해당 장 · 경위는 HISTORY 날짜 grep)
 
 0. **PLAN 106** — DUNGEON 1~6·106-7, STORY 106-8, GO 106-9(+107-7 수호장) 두목 컷까지 완료, GO 107-8 지역 사명 사슬도 완료. 다음 후보: STORY 파티·소환(5-8 교대와 결이 달라 사용자와) · 106-6 전용 클립·소환수 모델. GO 107장(①~⑧)은 전부 코드 완료(식생 바이옴 보류).
-0-1. **107·106-6 남은 것**: 새 글자 GO `field.*`·`move.*`·`chest.*`·`map.*`·`field.foe.*`·`field.st.*`·`mission.*`·`map.mission*`, DUNGEON `party.*`·`action.taunt/heal/summon`·`cut.summon_*` 가 `T(키, 한국어)` 폴백 — ko/en 표(다섯 벌 md5)에 넣기. 동료 몸은 Maria.controller 리타깃(전용 클립 없음), 무기는 주인공 손에만. 넘어오르기 전용 클립 없음(0.45s 코드 이동). 다른 PC 는 Maria 이동 클립 5개를 README 레시피로 받고 `Saga/Build Maria Traversal` 한 번.
+0-1. **107·106-6 남은 것**: 새 글자 ko/en 표는 2026-09-24 전부 채움(네 판 205개, en 은 사람 검수 전). 동료 몸은 Maria.controller 리타깃(전용 클립 없음), 무기는 주인공 손에만. 넘어오르기 전용 클립 없음(0.45s 코드 이동). 다른 PC 는 Maria 이동 클립 5개를 README 레시피로 받고 `Saga/Build Maria Traversal` 한 번.
 1. **STORY 101-2 전부 완료** — 남은 건 실기 확인(아래 대기 목록). 판수 체감(Lv.15→20 약 11판, 20→25 약 28판)이 무거우면 `StoryCombat.JobPromoteLevel3/4`만 고치면 된다.
 2. **101-2·104-1 잔여(보류)** — GO⑤(모바일 빌드 뒤)·`Characters/` Kenney(실사용 중). 헤어카드는 분리 헤어 메시 생기면. (`Props/` lantern·stall-red는 2026-09-23 완료 — 아래 표에서 뺌)
 

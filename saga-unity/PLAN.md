@@ -1001,7 +1001,7 @@ Skill/UI/Environment 사운드 구조(Unity AudioSource + AudioMixer로
 **진행 요약(2026-09-14~15, 경위는 `docs/HISTORY.md` "67~69장" 절)** — SFX·BGM·접근성 설정·Localization 인프라가 다섯 판 전부에 붙었다. 유지할 결정만 적는다:
 - SFX 는 코드로 Master/SFX/BGM 볼륨을 곱하는 `XxxAudio.cs`(다섯 벌). AudioMixer 에셋은 사람이 GUI 로 노드를 이어야 해 배치 모드로 못 만든다 — 만들지 않는다.
 - BGM 은 판마다 CC0 상시 루프 1곡(`Assets/Art/Audio/CC0_BGM/`). 승리/패배처럼 들어야 갈리는 선곡은 사람 몫 — 먼저 묻지 않고 시작하지 않는다.
-- Localization: `XxxLocalization.T(key[, fallback])` + `Resources/Localization/xxx_<lang>.json`(ko·en, ja 없음). 키 누락은 키 자체를 돌려준다(빈 화면 대신 보이게). `settings.*` 공유 키는 다섯 벌 md5 일치, 게임별 키는 불일치 허용. **내부 식별자(문자열 값으로 매칭되는 상수)는 번역하지 않는다.** 씬에 구워 넣는 버튼은 `LocalizedButtonLabel`(폴링) 로만 언어 전환. en 은 세션 번역이라 사람 검수 전.
+- Localization: `XxxLocalization.T(key[, fallback])` + `Resources/Localization/xxx_<lang>.json`(ko·en, ja 없음). 키 누락은 키 자체를 돌려준다(빈 화면 대신 보이게). `settings.*` 공유 키는 다섯 벌 md5 일치, 게임별 키는 불일치 허용. 코드에 `T(키, 한국어)` 로만 있고 표에 없는 키는 `py tools/loc-missing.py`(판별 개수, 빠지면 exit 1)로 훑는다 — 2026-09-24 GO·DUNGEON·FOREST·STORY 205개를 채워 0(REALM 은 원래 0). **내부 식별자(문자열 값으로 매칭되는 상수)는 번역하지 않는다.** 씬에 구워 넣는 버튼은 `LocalizedButtonLabel`(폴링) 로만 언어 전환. en 은 세션 번역이라 사람 검수 전.
 - **완료(2026-09-22 재조사)**: 위 "미착수" 넷을 다시 확인해 보니 REALM 문답 36·서고·GO HiddenTreasure·DUNGEON 행상/구출·FOREST 가구 14/마감재 10 은 이미 키가 채워져 있었다(이 줄이 오래 안 갱신된 낡은 기록) — 실제로 비어 있던 건 REALM "전투 서술" 쪽(일기토·설전·전술·승리 카드·1인 서사 카드 7종, `RealmLocalization.T()` 호출은 있었지만 ko/en JSON에 키 자체가 없어 항상 한국어 폴백만 나왔다, 92개 추가)과 FOREST 바이옴 4곳 이름(애초에 `T()` 호출조차 없이 필드 그대로 노출, `ForestBiomeData.Zone.DisplayName`을 계산 프로퍼티로 바꿈)뿐이었다 — 둘 다 마저 채웠다.
 
 ---
@@ -1319,7 +1319,7 @@ FF 최신작 전투의 "동료는 스스로 싸우고, 특기는 게이지를 �
 - **HUD**(`PartyHud`, 왼쪽 위 체력 막대 아래): 무사 = 이름·체력·게이지·[1](쓰러지면 "쓰러짐") / 술사 = 이름·게이지·[2] / 소환 게이지·[V]. 차면 금빛 + "준비". 모바일 버튼 셋(도발·치유·소환, 회피·주목 줄 왼쪽 한 줄)은 준비되면 진해지고 아니면 흐려진다.
 - 막힘: 컷 중·등반 중 명령·소환 안 먹음. 게이지가 덜 차면 토스트로 까닭.
 - 진단: `PlaytestDungeonParty`(`PlaytestDungeonHeadless` 가 탐험 진단 앞에서 부름) — 진짜 평타 → 게이지 · 덜 찬 명령 막힘 · 도발(적이 무사를 쫓아 때림·플레이어 무피해·40%) · 쓰러짐(도발 풀림·명령 막힘·HUD) · 치유(+40%·일으킴) · 12초 기상 30% · 빛살(쏨·맞힘·게이지·간격) · 물러섬 · 소환(덜 참/곁에 적 없음 막힘 · 컷·HUD 꺼짐 · 3.2s 전 안 침 · 14m 안만 × 15 · 넘겨도 한 번 · 초반에 넘기면 즉시).
-- 남은 것: 술사 시전·무사 방패 전용 클립(지금은 Maria 베기·검방 공격 클립), 소환수 전용 모델·발광 재질(지금은 Brute + 돌빛 틴트), 동료 교대·장비·성장, GO·STORY 로 옮기기(판별 복사). 새 글자 `party.*`·`action.taunt/heal/summon`·`cut.summon_*` 는 `DungeonLocalization.T(키, 한국어)` 폴백 — ko/en 표에 넣기.
+- 남은 것: 술사 시전·무사 방패 전용 클립(지금은 Maria 베기·검방 공격 클립), 소환수 전용 모델·발광 재질(지금은 Brute + 돌빛 틴트), 동료 교대·장비·성장, GO·STORY 로 옮기기(판별 복사). 새 글자 `party.*`·`action.taunt/heal/summon`·`cut.summon_*` 는 ko/en 표에 넣었다(2026-09-24, en 은 세션 번역 — 사람 검수 전).
 
 ## 106-7. 층 두목·살수 등장 컷 (106-3 후속)
 
