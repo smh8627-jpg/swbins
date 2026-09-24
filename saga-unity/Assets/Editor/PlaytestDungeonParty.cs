@@ -189,6 +189,21 @@ namespace Saga.EditorTools
                 float nearHp = CurHp(nearFoe), farHp = CurHp(far);
                 if (s != null)
                 {
+                    // 106-6 남은 것 "소환수 전용 모델" — 두목 뼈대 위 바위 마디·발광 조각, 두목 살갗은 숨김.
+                    var anim = s.GetComponentInChildren<Animator>();
+                    if (anim != null && anim.isHuman)
+                    {
+                        if (s.GolemChunks < 12 || s.GolemRunes < 3) Fail($"바위 거신 마디 {s.GolemChunks}·발광 {s.GolemRunes} (기대 ≥12·3)");
+                        foreach (var sk in s.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+                            if (sk.enabled) { Fail("거신 속 두목 살갗이 보인다"); break; }
+                        foreach (var mr in s.GetComponentsInChildren<MeshRenderer>(true))
+                        {
+                            var m = mr.sharedMaterial;
+                            if (m != null && m.HasProperty("_Metallic") && m.GetFloat("_Metallic") > 0.5f) { Fail($"거신 바위가 금속 재질 {m.name}"); break; }
+                        }
+                        metrics += $" 거신 마디 {s.GolemChunks}·발광 {s.GolemRunes}";
+                    }
+                    else metrics += " 거신 = 틴트 폴백(사람 뼈대 모델 없음)";
                     s.Tick(PartySummon.SlamSec - 0.3f);
                     if (s.Slammed) Fail("3.2초 전에 내리쳤다");
                     s.Tick(0.4f);

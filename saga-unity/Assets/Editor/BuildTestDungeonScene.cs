@@ -1156,6 +1156,10 @@ namespace Saga.EditorTools
             playerGo.AddComponent<PlayerBombs>(); // PLAN.md 106-2 "벽력탄".
             var party = playerGo.AddComponent<PartyCommands>(); // PLAN.md 106-6 "FF 확장" — 명령 1·2, 소환 V.
             SetPrivateField(party, "summonPrefab", _characterC); // 바위 거신 = 두목 모델 3.2배.
+            // 106-6 남은 것 "소환수 전용 모델" — 두목 뼈대에 붙일 CC0 바위 둘 + 돌 재질.
+            SetPrivateField(party, "summonRockLarge", AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Rocks/rock_largeA.glb"));
+            SetPrivateField(party, "summonRockSmall", AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Rocks/rock_smallA.glb"));
+            SetPrivateField(party, "summonStone", RockStoneMaterial.LoadOrCreate());
 
             var combat = playerGo.AddComponent<PlayerCombat>();
             playerGo.AddComponent<WeaponVisual>(); // PLAN.md 101-3 G "장비 가시화".

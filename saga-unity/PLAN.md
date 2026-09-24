@@ -1320,7 +1320,8 @@ FF 최신작 전투의 "동료는 스스로 싸우고, 특기는 게이지를 �
 - 막힘: 컷 중·등반 중 명령·소환 안 먹음. 게이지가 덜 차면 토스트로 까닭.
 - 진단: `PlaytestDungeonParty`(`PlaytestDungeonHeadless` 가 탐험 진단 앞에서 부름) — 진짜 평타 → 게이지 · 덜 찬 명령 막힘 · 도발(적이 무사를 쫓아 때림·플레이어 무피해·40%) · 쓰러짐(도발 풀림·명령 막힘·HUD) · 치유(+40%·일으킴) · 12초 기상 30% · 빛살(쏨·맞힘·게이지·간격) · 물러섬 · 소환(덜 참/곁에 적 없음 막힘 · 컷·HUD 꺼짐 · 3.2s 전 안 침 · 14m 안만 × 15 · 넘겨도 한 번 · 초반에 넘기면 즉시).
 - **전용 클립(2026-09-24)**: 무사 = 도발 `Taunt`(방패 치켜듦 0.57s)·도발 중 피격 `Blocked`(방패 자세로 받음)·피격 `Hit`·쓰러짐 `Death`(2.3s 뒤로 눕고 머묾 — 일어나면 대기로 곧장, 절차적 눕히기는 클립 없는 PC 폴백), 술사 = 제 컨트롤러로 걷기·달리기·빛살 시전 `Attack`(한 손 앞으로)·치유 시전 `Heal`(되살림 주문 4.2s) — Maria.controller 리타깃은 클립 없는 PC 폴백. Mixamo 레시피는 `tools/mixamo_automation` README 표(같은 설명 카드 둘 중 선 판은 `--nth`), `SetupNpcCharacterImports` 의 `ExtraTriggers`. 진단은 `PlaytestDungeonParty` 가 트리거·상태(쓰러짐 들어감/일어나면 나옴·술사가 Maria 를 안 씀)까지 본다.
-- 남은 것: 소환수 전용 모델·발광 재질(지금은 Brute + 돌빛 틴트), 동료 교대·장비·성장, GO·STORY 로 옮기기(판별 복사). 새 글자 `party.*`·`action.taunt/heal/summon`·`cut.summon_*` 는 ko/en 표에 넣었다(2026-09-24, en 은 세션 번역 — 사람 검수 전).
+- **소환수 모델(2026-09-24)**: 두목(Brute) 뼈대에 CC0 바위(Kenney rock_largeA/smallA) 14 덩이를 마디마다 붙이고(몸통·팔 둘×2·다리 둘×2·머리·주먹 둘·발 둘) 두목 살갗은 숨긴다 — 두목 클립 그대로 솟고 내리친다. 가슴·두 주먹에 금빛 발광 조각 셋. 돌은 PolyHaven rock_boulder_dry 사진 재질(`rock_boulder_dry_URPLit.mat`, 비금속). 사람 뼈대가 아니거나 바위가 없으면 예전 돌빛 틴트.
+- 남은 것: 동료 교대·장비·성장, GO·STORY 로 옮기기(판별 복사). 새 글자 `party.*`·`action.taunt/heal/summon`·`cut.summon_*` 는 ko/en 표에 넣었다(2026-09-24, en 은 세션 번역 — 사람 검수 전).
 
 ## 106-7. 층 두목·살수 등장 컷 (106-3 후속)
 

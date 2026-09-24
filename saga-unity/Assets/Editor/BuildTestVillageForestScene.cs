@@ -407,6 +407,20 @@ namespace Saga.EditorTools
             inst.transform.localPosition = localPos;
             inst.transform.localRotation = Quaternion.Euler(0f, yaw, 0f);
             foreach (var c in inst.GetComponentsInChildren<Collider>()) Object.DestroyImmediate(c);
+            if (path == RockLargeGlbPath || path == RockSmallGlbPath)
+            {
+                // Kenney 바위 재질은 금속·주황/청록 단색 — 사진 돌 재질로 갈아 끼운다(`RockStoneMaterial`).
+                var stone = RockStoneMaterial.LoadOrCreate();
+                if (stone != null)
+                {
+                    foreach (var r in inst.GetComponentsInChildren<MeshRenderer>())
+                    {
+                        var mats = r.sharedMaterials;
+                        for (int i = 0; i < mats.Length; i++) mats[i] = stone;
+                        r.sharedMaterials = mats;
+                    }
+                }
+            }
             var b = WorldBounds(inst);
             if (b.size.y > 0.001f) inst.transform.localScale = Vector3.Scale(axis, Vector3.one * (height / b.size.y));
             b = WorldBounds(inst);

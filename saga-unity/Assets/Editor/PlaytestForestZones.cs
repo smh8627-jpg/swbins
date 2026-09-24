@@ -92,6 +92,13 @@ namespace Saga.EditorTools
                 if (Vector2.Distance(new Vector2(p.x, p.z), z.LandmarkPos) > 0.01f) Fail($"{z.Key} 명소 자리 {p}");
                 if (lm.Visual == null || lm.Visual.GetComponentsInChildren<MeshRenderer>().Length == 0) { Fail($"{z.Key} 명소 모양(GLB)이 없음"); continue; }
                 pieces += lm.Visual.GetComponentsInChildren<MeshRenderer>().Length;
+                foreach (Transform piece in lm.Visual)
+                {
+                    if (!piece.name.StartsWith("rock_")) continue; // 바위만 — 등불 쇠붙이는 원래 금속
+                    foreach (var mr in piece.GetComponentsInChildren<MeshRenderer>())
+                        foreach (var mat in mr.sharedMaterials)
+                            if (mat == null || mat.name != "rock_boulder_dry_URPLit") Fail($"{z.Key} 명소 바위 {piece.name} 재질 {(mat != null ? mat.name : "null")} — 돌 재질이 아님");
+                }
                 foreach (var o in others)
                     if (Vector2.Distance(new Vector2(p.x, p.z), new Vector2(o.x, o.z)) < 4f) Fail($"{z.Key} 명소가 {o} 와 4m 안");
                 // 땅 휨: 20m 떨어진 곳에서 보면 0.004 × 400 = 1.6m 내려간다

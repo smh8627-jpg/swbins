@@ -43,8 +43,24 @@ namespace Saga.Dungeon.World
         public float Elapsed => _t;
         public static int SlamCount { get; private set; } // 진단용 누적.
 
+        /// <summary>PLAN.md 106-6 남은 것 "소환수 전용 모델·발광 재질"(2026-09-24) — 두목(Brute) 뼈대 위에 CC0 바위(Kenney
+        /// rock_largeA/smallA, 돌 재질 PolyHaven rock_boulder_dry)를 마디마다 붙여 걷고 내리치는 바위 거신으로 만든다.
+        /// 가슴 한가운데·두 주먹에 금빛으로 달아오른 돌 조각(발광 재질). 사람 뼈대가 아니거나 바위가 없으면 예전 돌빛 틴트.</summary>
+        public struct Look
+        {
+            public GameObject RockLarge;
+            public GameObject RockSmall;
+            public Material Stone;
+        }
+
+        public int GolemChunks { get; private set; }
+        public int GolemRunes { get; private set; }
+
         /// <summary>플레이어 앞 `StandOffM`(벽이 가까우면 벽 앞)에 세운다.</summary>
-        public static PartySummon Spawn(GameObject modelPrefab, Vector3 playerPos, Vector3 playerForward)
+        public static PartySummon Spawn(GameObject modelPrefab, Vector3 playerPos, Vector3 playerForward) =>
+            Spawn(modelPrefab, playerPos, playerForward, default);
+
+        public static PartySummon Spawn(GameObject modelPrefab, Vector3 playerPos, Vector3 playerForward, Look look)
         {
             Vector3 fwd = playerForward;
             fwd.y = 0f;
@@ -59,11 +75,11 @@ namespace Saga.Dungeon.World
             go.transform.position = new Vector3(playerPos.x, playerPos.y, playerPos.z) + fwd * d;
             go.transform.rotation = Quaternion.LookRotation(fwd);
             var s = go.AddComponent<PartySummon>();
-            s.Build(modelPrefab);
+            s.Build(modelPrefab, look);
             return s;
         }
 
-        private void Build(GameObject modelPrefab)
+        private void Build(GameObject modelPrefab, Look look)
         {
             var bodyRoot = new GameObject("Body").transform;
             bodyRoot.SetParent(transform, false);
@@ -74,7 +90,7 @@ namespace Saga.Dungeon.World
                 inst.name = "Visual";
                 inst.transform.localScale = Vector3.one * Scale;
                 _animator = inst.GetComponent<Animator>();
-                CharacterVisual.Tint(inst, StoneTint);
+                if (!BuildGolem(inst, look)) CharacterVisual.Tint(inst, StoneTint);
                 _height = 1.9f * Scale;
             }
             else
@@ -94,6 +110,115 @@ namespace Saga.Dungeon.World
             _shock = Ring("SlamShock", 1f, 0.25f);
             _shock.enabled = false;
             SfxPlayer.PlayHeavyHit();
+        }
+
+        // 마디(시작 뼈 → 끝 뼈)마다 바위 한 덩이 — 굵기는 마디 길이에 곱한다. 손·머리·발은 끝 뼈가 없어 앞 마디를 늘여 쓴다.
+        private static readonly (HumanBodyBones From, HumanBodyBones To, bool Large, float Thick)[] Segments =
+        {
+            (HumanBodyBones.Hips, HumanBodyBones.Neck, true, 0.85f),
+            (HumanBodyBones.LeftUpperArm, HumanBodyBones.LeftLowerArm, true, 0.55f),
+            (HumanBodyBones.RightUpperArm, HumanBodyBones.RightLowerArm, true, 0.55f),
+            (HumanBodyBones.LeftLowerArm, HumanBodyBones.LeftHand, true, 0.5f),
+            (HumanBodyBones.RightLowerArm, HumanBodyBones.RightHand, true, 0.5f),
+            (HumanBodyBones.LeftUpperLeg, HumanBodyBones.LeftLowerLeg, true, 0.55f),
+            (HumanBodyBones.RightUpperLeg, HumanBodyBones.RightLowerLeg, true, 0.55f),
+            (HumanBodyBones.LeftLowerLeg, HumanBodyBones.LeftFoot, true, 0.5f),
+            (HumanBodyBones.RightLowerLeg, HumanBodyBones.RightFoot, true, 0.5f),
+        };
+
+        // 끝 마디: (뼈, 방향을 잡을 앞 뼈, 앞 마디 대비 길이, 굵기, 큰 바위?) — 주먹은 크게, 머리는 작게.
+        private static readonly (HumanBodyBones Bone, HumanBodyBones Prev, float LenMul, float Thick, bool Large)[] Tips =
+        {
+            (HumanBodyBones.Head, HumanBodyBones.Neck, 2.2f, 0.9f, false),
+            (HumanBodyBones.LeftHand, HumanBodyBones.LeftLowerArm, 0.45f, 1.5f, true),
+            (HumanBodyBones.RightHand, HumanBodyBones.RightLowerArm, 0.45f, 1.5f, true),
+            (HumanBodyBones.LeftFoot, HumanBodyBones.LeftLowerLeg, 0.4f, 1.2f, false),
+            (HumanBodyBones.RightFoot, HumanBodyBones.RightLowerLeg, 0.4f, 1.2f, false),
+        };
+
+        /// <summary>두목 몸을 숨기고 뼈마다 바위를 붙인다. 붙였으면 true.</summary>
+        private bool BuildGolem(GameObject inst, Look look)
+        {
+            if (_animator == null || !_animator.isHuman || look.RockLarge == null || look.RockSmall == null) return false;
+            Material stone = look.Stone != null ? look.Stone : new Material(Shader.Find("Universal Render Pipeline/Lit")) { color = StoneTint };
+            var rune = new Material(Shader.Find("Universal Render Pipeline/Lit")) { name = "SummonRune (generated)", color = new Color(0.25f, 0.18f, 0.1f) };
+            rune.EnableKeyword("_EMISSION");
+            rune.SetColor("_EmissionColor", RuneColor * 4f);
+            rune.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
+
+            int chunks = 0;
+            foreach (var s in Segments)
+            {
+                var a = _animator.GetBoneTransform(s.From);
+                var b = _animator.GetBoneTransform(s.To);
+                if (a == null || b == null) continue;
+                if (Chunk(s.Large ? look.RockLarge : look.RockSmall, stone, a, a.position, b.position, s.Thick, chunks)) chunks++;
+            }
+            foreach (var t in Tips)
+            {
+                var bone = _animator.GetBoneTransform(t.Bone);
+                var prev = _animator.GetBoneTransform(t.Prev);
+                if (bone == null || prev == null) continue;
+                Vector3 dir = bone.position - prev.position;
+                Vector3 end = bone.position + dir * t.LenMul;
+                if (Chunk(t.Large ? look.RockLarge : look.RockSmall, stone, bone, bone.position, end, t.Thick, chunks)) chunks++;
+            }
+            if (chunks < 10) return false; // 뼈가 모자란 모델 — 반쯤 붙은 괴물보다 예전 틴트가 낫다.
+
+            // 발광: 가슴 한가운데 하나, 두 주먹에 하나씩.
+            int runes = 0;
+            var chest = _animator.GetBoneTransform(HumanBodyBones.Chest) ?? _animator.GetBoneTransform(HumanBodyBones.Spine);
+            var hips = _animator.GetBoneTransform(HumanBodyBones.Hips);
+            var neck = _animator.GetBoneTransform(HumanBodyBones.Neck);
+            if (chest != null && hips != null && neck != null)
+            {
+                float torso = Vector3.Distance(hips.position, neck.position);
+                Vector3 front = inst.transform.forward * torso * 0.45f;
+                if (Chunk(look.RockSmall, rune, chest, chest.position + front, chest.position + front + Vector3.up * torso * 0.25f, 1.2f, 100)) runes++;
+            }
+            foreach (var hb in new[] { HumanBodyBones.LeftHand, HumanBodyBones.RightHand })
+            {
+                var hand = _animator.GetBoneTransform(hb);
+                var lower = _animator.GetBoneTransform(hb == HumanBodyBones.LeftHand ? HumanBodyBones.LeftLowerArm : HumanBodyBones.RightLowerArm);
+                if (hand == null || lower == null) continue;
+                Vector3 dir = hand.position - lower.position;
+                if (Chunk(look.RockSmall, rune, hand, hand.position + dir * 0.3f, hand.position + dir * 0.55f, 1.3f, 200 + runes)) runes++;
+            }
+
+            foreach (var r in inst.GetComponentsInChildren<SkinnedMeshRenderer>(true)) r.enabled = false;
+            GolemChunks = chunks;
+            GolemRunes = runes;
+            return true;
+        }
+
+        /// <summary>`from`→`to` 를 따라 누운 바위 한 덩이를 월드 크기로 맞춰 `bone` 에 붙인다(뼈를 따라 움직인다).</summary>
+        private static bool Chunk(GameObject prefab, Material mat, Transform bone, Vector3 from, Vector3 to, float thick, int seed)
+        {
+            Vector3 dir = to - from;
+            float len = dir.magnitude;
+            if (len < 0.01f) return false;
+            var rock = Instantiate(prefab);
+            rock.name = "GolemRock";
+            foreach (var c in rock.GetComponentsInChildren<Collider>(true)) Destroy(c);
+            var mesh = rock.GetComponentInChildren<MeshFilter>();
+            Vector3 size = mesh != null && mesh.sharedMesh != null ? Vector3.Scale(mesh.sharedMesh.bounds.size, mesh.transform.lossyScale) : Vector3.one;
+            size = new Vector3(Mathf.Max(size.x, 0.01f), Mathf.Max(size.y, 0.01f), Mathf.Max(size.z, 0.01f));
+            float w = len * thick;
+            rock.transform.rotation = Quaternion.LookRotation(dir / len) * Quaternion.Euler(0f, 0f, seed * 67f % 360f);
+            rock.transform.localScale = new Vector3(w / size.x, w / size.y, len * 1.15f / size.z);
+            rock.transform.position = Vector3.zero;
+            var renderers = rock.GetComponentsInChildren<MeshRenderer>(true);
+            // 기울어진 상자의 AABB 가운데 = 상자 가운데 — 모델 원점이 바닥에 있어도 마디 한가운데로 맞춘다.
+            Vector3 center = renderers.Length > 0 ? renderers[0].bounds.center : Vector3.zero;
+            rock.transform.position = (from + to) * 0.5f - center;
+            foreach (var r in renderers)
+            {
+                var mats = r.sharedMaterials;
+                for (int i = 0; i < mats.Length; i++) mats[i] = mat;
+                r.sharedMaterials = mats;
+            }
+            rock.transform.SetParent(bone, true);
+            return true;
         }
 
         private LineRenderer Ring(string name, float radius, float width)

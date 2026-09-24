@@ -15,6 +15,10 @@ namespace Saga.Dungeon.Player
     public class PartyCommands : MonoBehaviour
     {
         [SerializeField] private GameObject summonPrefab;
+        // PLAN.md 106-6 남은 것 "소환수 전용 모델" — 바위 거신 몸(CC0 바위 둘 + PolyHaven 돌 재질). 씬 빌더가 채운다.
+        [SerializeField] private GameObject summonRockLarge;
+        [SerializeField] private GameObject summonRockSmall;
+        [SerializeField] private Material summonStone;
 
         private PlayerController _controller;
 
@@ -107,7 +111,8 @@ namespace Saga.Dungeon.Player
             if (new Vector2(fwd.x, fwd.z).sqrMagnitude < 0.01f)
                 fwd = _controller != null && _controller.Visual != null ? _controller.Visual.forward : transform.forward;
             if (_controller != null) _controller.FaceToward(transform.position + fwd);
-            var s = PartySummon.Spawn(summonPrefab, transform.position, fwd);
+            var s = PartySummon.Spawn(summonPrefab, transform.position, fwd,
+                new PartySummon.Look { RockLarge = summonRockLarge, RockSmall = summonRockSmall, Stone = summonStone });
             LastSummon = s;
             var cuts = DungeonCutscenes.Instance;
             float height = 1.9f * PartySummon.Scale;

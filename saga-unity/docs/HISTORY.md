@@ -8943,3 +8943,11 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - **함정**: Unity 6000.3.24 가 배치 실행 때 `Mobile_RPAsset.asset` 형식을 v12→v13 으로 올려 쓴다(`tools/unity-batch.sh` 원복 목록 밖) — 두 번 git checkout 으로 되돌림, 커밋 안 함.
 - 파일: 새 `SagaCore/MobileGraphics.cs`·`Editor/PlaytestMobileGraphics.cs`, 고침 다섯 `XxxSettingsState.ApplyGraphicsQuality`·`Mobile_Renderer.asset`·`PlaytestHeadless`·PLAN 103-2.
 - 검증: GO `PlaytestHeadless` OK(새 `mobile graphics` 줄 — Mobile 값 그대로·데칼 60m·고=안 바꿈/저=가벼움·30fps). 폰 실측(온도·프레임)은 모바일 빌드 뒤 실기 몫.
+
+## 2026-09-24 — PLAN 106-6 소환수 전용 모델 "바위 거신" + 바위 재질 바로잡기 (사용자 "다음 이어할 사항 진행 해줘", Opus 5.5)
+
+- **고른 까닭**: 남은 후보 중 STORY 파티·소환은 방향 결정 몫, 지역 소품은 에셋 먼저 — 결정·새 에셋 없이 끝나는 106-6 "소환수 전용 모델·발광 재질".
+- **모양**: `PartySummon.BuildGolem` — 두목(Brute) 뼈대 위 마디 9(몸통·위아래팔·위아래다리) + 끝 5(머리·주먹 둘·발 둘) = 바위 14 덩이, 마디 길이에 맞춰 늘이고(굵기 배율 0.5~1.5, 주먹 1.5) 뼈에 붙여 두목 클립 그대로 움직인다. 두목 SkinnedMeshRenderer 는 끈다. 가슴 한가운데·두 주먹에 발광 조각 셋(URP Lit 발광 금빛 × 4). 사람 뼈대가 아니거나 바위·마디가 모자라면(10 미만) 예전 돌빛 틴트.
+- **발견 — Kenney 바위 재질**: rock_largeA/smallA 는 텍스처 없이 **metallic 1 · 주황(0.89,0.51,0.34)/청록(0.17,0.85,0.72) 단색**이었다 — 사가의숲 108 ② 명소(거인 선돌·요정 돌고리)도 번쩍이는 장난감 돌이었다. UV 는 실제 투영값(약 ±20)이라 새 `Editor/RockStoneMaterial`(PolyHaven rock_boulder_dry 1k, 비금속, 타일링 0.03)로 둘 다 갈아 끼움.
+- 파일: 고침 `PartySummon`(`Look`·`BuildGolem`·`Chunk`)·`PartyCommands`(바위 둘·돌 재질 필드)·`BuildTestDungeonScene`·`BuildTestVillageForestScene`(명소 바위 재질)·`PlaytestDungeonParty`(마디 ≥12·발광 ≥3·살갗 숨김·비금속)·`PlaytestForestZones`(명소 바위 = 돌 재질), 새 `Editor/RockStoneMaterial.cs`·`rock_boulder_dry_URPLit.mat`, 씬 둘 재빌드(컷 playable 다섯은 fileID 만).
+- 검증: 씬 둘 재빌드 exit 0 · `PlaytestDungeonHeadless` **3연속 OK**("거신 마디 14·발광 3" 세 번 같음) · `PlaytestForestHeadless` OK(첫 실행은 알려진 `Failed to resolve packages` 로 진단 전 exit 1 → 재실행 OK). 실기 확인 전(거신 실루엣이 바위 괴물로 읽히는지·바위 사이 틈·발광 세기·숲 명소 돌 빛깔).

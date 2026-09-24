@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!114 &-7338634468530090362
+--- !u!114 &-8170140191774888998
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -12,11 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 90fb794a295e73545af71bcdb7375791, type: 3}
   m_Name: CinemachineShot
   m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineShot
-  DisplayName: boss_close
+  DisplayName: boss_wide
   VirtualCamera:
-    exposedName: boss_close
+    exposedName: boss_wide
     defaultValue: {fileID: 0}
---- !u!114 &-2631808136990190835
+--- !u!114 &-4966823948618015515
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -40,10 +40,10 @@ MonoBehaviour:
   - m_Version: 1
     m_Start: 2
     m_ClipIn: 0
-    m_Asset: {fileID: 3955349318612285809}
+    m_Asset: {fileID: -933541170093080798}
     m_Duration: 3.200000047683716
     m_TimeScale: 1
-    m_ParentTrack: {fileID: -2631808136990190835}
+    m_ParentTrack: {fileID: -4966823948618015515}
     m_EaseInDuration: 0
     m_EaseOutDuration: 0
     m_BlendInDuration: 0
@@ -108,7 +108,7 @@ MonoBehaviour:
     m_DisplayName: CutsceneDollyClip
   m_Markers:
     m_Objects: []
---- !u!114 &-255194976501872059
+--- !u!114 &-3413014593673626267
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -132,10 +132,10 @@ MonoBehaviour:
   - m_Version: 1
     m_Start: 0
     m_ClipIn: 0
-    m_Asset: {fileID: 1647775892036271616}
+    m_Asset: {fileID: -8170140191774888998}
     m_Duration: 2
     m_TimeScale: 1
-    m_ParentTrack: {fileID: -255194976501872059}
+    m_ParentTrack: {fileID: -3413014593673626267}
     m_EaseInDuration: 0.699999988079071
     m_EaseOutDuration: 0
     m_BlendInDuration: -1
@@ -201,10 +201,10 @@ MonoBehaviour:
   - m_Version: 1
     m_Start: 2
     m_ClipIn: 0
-    m_Asset: {fileID: -7338634468530090362}
+    m_Asset: {fileID: -193422931115523013}
     m_Duration: 3.200000047683716
     m_TimeScale: 1
-    m_ParentTrack: {fileID: -255194976501872059}
+    m_ParentTrack: {fileID: -3413014593673626267}
     m_EaseInDuration: 0
     m_EaseOutDuration: 0.800000011920929
     m_BlendInDuration: -1
@@ -270,31 +270,7 @@ MonoBehaviour:
   m_Markers:
     m_Objects: []
   TrackPriority: 0
---- !u!114 &11400000
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bfda56da833e2384a9677cd3c976a436, type: 3}
-  m_Name: Temple_BossIntro
-  m_EditorClassIdentifier: Unity.Timeline::UnityEngine.Timeline.TimelineAsset
-  m_Version: 0
-  m_Tracks:
-  - {fileID: -255194976501872059}
-  - {fileID: 2020157239533311885}
-  - {fileID: -2631808136990190835}
-  - {fileID: 531548969845511822}
-  m_FixedDuration: 0
-  m_EditorSettings:
-    m_Framerate: 60
-    m_ScenePreview: 1
-  m_DurationMode: 0
-  m_MarkerTrack: {fileID: 0}
---- !u!114 &402955776899424117
+--- !u!114 &-1663977023439960838
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -312,7 +288,71 @@ MonoBehaviour:
   subKey: cut.guardian_sub
   subFallback: "\uC78A\uD78C \uB2A5\uBB18\uC758 \uAC11\uC8FC \uD30C\uC218 \u2014
     \uCE7C\uB0A0\uC744 \uD295\uAE34\uB2E4"
---- !u!114 &531548969845511822
+--- !u!114 &-933541170093080798
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5efe9f149a2a90b49813938af1b19b55, type: 3}
+  m_Name: CutsceneDollyClip
+  m_EditorClassIdentifier: SagaDungeon::Saga.Dungeon.Cinematics.CutsceneDollyClip
+--- !u!114 &-193422931115523013
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 90fb794a295e73545af71bcdb7375791, type: 3}
+  m_Name: CinemachineShot
+  m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineShot
+  DisplayName: boss_close
+  VirtualCamera:
+    exposedName: boss_close
+    defaultValue: {fileID: 0}
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bfda56da833e2384a9677cd3c976a436, type: 3}
+  m_Name: Temple_BossIntro
+  m_EditorClassIdentifier: Unity.Timeline::UnityEngine.Timeline.TimelineAsset
+  m_Version: 0
+  m_Tracks:
+  - {fileID: -3413014593673626267}
+  - {fileID: 8248124638744177028}
+  - {fileID: -4966823948618015515}
+  - {fileID: 3305492707397285779}
+  m_FixedDuration: 0
+  m_EditorSettings:
+    m_Framerate: 60
+    m_ScenePreview: 1
+  m_DurationMode: 0
+  m_MarkerTrack: {fileID: 0}
+--- !u!114 &1263986259684751981
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5efe9f149a2a90b49813938af1b19b55, type: 3}
+  m_Name: CutsceneDollyClip
+  m_EditorClassIdentifier: SagaDungeon::Saga.Dungeon.Cinematics.CutsceneDollyClip
+--- !u!114 &3305492707397285779
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -336,10 +376,10 @@ MonoBehaviour:
   - m_Version: 1
     m_Start: 2.299999952316284
     m_ClipIn: 0
-    m_Asset: {fileID: 402955776899424117}
+    m_Asset: {fileID: -1663977023439960838}
     m_Duration: 2.700000047683716
     m_TimeScale: 1
-    m_ParentTrack: {fileID: 531548969845511822}
+    m_ParentTrack: {fileID: 3305492707397285779}
     m_EaseInDuration: 0
     m_EaseOutDuration: 0
     m_BlendInDuration: 0
@@ -404,23 +444,7 @@ MonoBehaviour:
     m_DisplayName: "\uB2A5\uBB18\uC9C0\uAE30"
   m_Markers:
     m_Objects: []
---- !u!114 &1647775892036271616
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 90fb794a295e73545af71bcdb7375791, type: 3}
-  m_Name: CinemachineShot
-  m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineShot
-  DisplayName: boss_wide
-  VirtualCamera:
-    exposedName: boss_wide
-    defaultValue: {fileID: 0}
---- !u!114 &2020157239533311885
+--- !u!114 &8248124638744177028
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -444,10 +468,10 @@ MonoBehaviour:
   - m_Version: 1
     m_Start: 0
     m_ClipIn: 0
-    m_Asset: {fileID: 7673292822610627013}
+    m_Asset: {fileID: 1263986259684751981}
     m_Duration: 2
     m_TimeScale: 1
-    m_ParentTrack: {fileID: 2020157239533311885}
+    m_ParentTrack: {fileID: 8248124638744177028}
     m_EaseInDuration: 0
     m_EaseOutDuration: 0
     m_BlendInDuration: 0
@@ -512,27 +536,3 @@ MonoBehaviour:
     m_DisplayName: CutsceneDollyClip
   m_Markers:
     m_Objects: []
---- !u!114 &3955349318612285809
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5efe9f149a2a90b49813938af1b19b55, type: 3}
-  m_Name: CutsceneDollyClip
-  m_EditorClassIdentifier: SagaDungeon::Saga.Dungeon.Cinematics.CutsceneDollyClip
---- !u!114 &7673292822610627013
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5efe9f149a2a90b49813938af1b19b55, type: 3}
-  m_Name: CutsceneDollyClip
-  m_EditorClassIdentifier: SagaDungeon::Saga.Dungeon.Cinematics.CutsceneDollyClip
