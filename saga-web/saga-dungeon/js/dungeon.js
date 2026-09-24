@@ -3677,7 +3677,14 @@
   function secretMod(sk) {
     var SC = global.DG.secret;
     if (!SC || !sk) { return { sk: sk, dmg: 1, cost: 1, cd: 1, drain: 0, key: null }; }
-    return SC.modify(sk, SC.of(leadId(), sk.key));
+    var m = SC.modify(sk, SC.of(leadId(), sk.key));
+    /* 비전(§5.10) — 선두가 입은 전설이 이 비결을 키우면 위력 ×1.6 · 부르기는 수 +1 */
+    var b = m.key && SC.boostOf ? SC.boostOf(leadId(), m.key) : 1;
+    if (b > 1) {
+      m.dmg *= b; m.boost = b;
+      if (sk.shape === 'summon') { m.summonAdd = (m.summonAdd || 0) + 1; }
+    }
+    return m;
   }
 
   /** 무예의 위력 배수 — '집중·주술' 같은 상시가 여기 얹힌다 */
@@ -4005,7 +4012,7 @@
       var sdef = smod.key && global.DG.secret ? global.DG.secret.byKey(smod.key) : null;
       skills.push({
         key: sk.key, name: sk.name, emoji: sk.emoji, desc: sk.desc,
-        rank: got[i].rank, secret: smod.key, secretEmoji: sdef ? sdef.emoji : '',
+        rank: got[i].rank, secret: smod.key, secretEmoji: sdef ? sdef.emoji : '', secretBoost: smod.boost || 1,
         cost: scost, cd: cd, cdMax: sk.cd * smod.cd,
         ready: cd <= 0 && run.mp >= scost
       });

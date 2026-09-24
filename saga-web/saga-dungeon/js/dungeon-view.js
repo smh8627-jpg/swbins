@@ -863,7 +863,8 @@
       btns[i].querySelector('.dg-sk-e').textContent = sk.emoji + (sk.secretEmoji || '');
       btns[i].querySelector('.dg-sk-cost').textContent = sk.empty ? '' : sk.cost;
       btns[i].title = sk.empty ? '무예를 걸어 두세요'
-        : (sk.name + ' ' + (sk.rank || 1) + '단' + (sk.secret ? ' · 비결 ' + sk.secretEmoji : '') + ' — ' + sk.desc);
+        : (sk.name + ' ' + (sk.rank || 1) + '단' + (sk.secret ? ' · 비결 ' + sk.secretEmoji : '') +
+           (sk.secretBoost > 1 ? ' · 📜 비전 ×' + sk.secretBoost : '') + ' — ' + sk.desc);
       btns[i].classList.toggle('empty', !!sk.empty);
       btns[i].classList.toggle('ready', sk.ready);
       btns[i].classList.toggle('nomana', !sk.empty && sk.cd <= 0 && !sk.ready);

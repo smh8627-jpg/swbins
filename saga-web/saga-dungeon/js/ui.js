@@ -1499,6 +1499,9 @@
         '(' + t.hanja + ') \u00b7 값 ' + it.power(g) + '</span>';
     var ls = it.lines(g), i;
     for (i = 0; i < ls.length; i++) { html += '<div>' + esc(ls[i]) + '</div>'; }
+    /* 비전(§5.10) — 전설 한 점에 하나, 그 비결을 건 무예를 키운다 */
+    var lore1 = global.DG.secret && global.DG.secret.loreLine ? global.DG.secret.loreLine(g) : '';
+    if (lore1) { html += '<div style="color:#f0a53a">' + esc(lore1) + '</div>'; }
     /* 내구 — 부적은 안 닳으므로 줄 자체가 없다 */
     var dmax = it.durMaxOf(g);
     if (dmax) {
@@ -1870,11 +1873,13 @@
     var SC = global.DG.secret;
     if (!SC || !rank || sk.shape === 'passive') { return ''; }
     var cur = SC.of(hid, sk.key), html = '<div class="gr-secret"><small class="muted">비결</small> ';
+    var lores = SC.activeLores ? SC.activeLores(hid) : {};
     SC.SECRETS.forEach(function (s) {
       var lock = rank < s.rank;
+      /* 비전(§5.10) — 입은 전설이 키우는 비결엔 📜 가 붙는다 */
       html += '<button class="btn tiny' + (cur === s.key ? ' primary' : '') + '" data-act="skill-secret"' +
-        ' data-key="' + sk.key + '" data-sec="' + s.key + '" title="' + esc(s.desc) + '"' + (lock ? ' disabled' : '') + '>' +
-        s.emoji + ' ' + s.name + (lock ? ' 🔒' + s.rank : '') + '</button>';
+        ' data-key="' + sk.key + '" data-sec="' + s.key + '" title="' + esc(s.desc + (lores[s.key] ? ' · 📜 비전 위력 ×' + SC.LORE_MUL : '')) + '"' + (lock ? ' disabled' : '') + '>' +
+        s.emoji + ' ' + s.name + (lores[s.key] ? '📜' : '') + (lock ? ' 🔒' + s.rank : '') + '</button>';
     });
     if (cur) { html += '<div class="muted" style="font-size:11px">' + esc(SC.byKey(cur).desc) + '</div>'; }
     return html + '</div>';
@@ -1920,6 +1925,8 @@
       '<div class="gr-top"><b style="color:' + t.color + '">' + esc(it.name(g)) + '</b>' +
       '<span class="gr-lv">' + t.name + (ns ? ' \u00B7 ' + ns + '\uD640' : '') + '</span></div>' +
       '<div class="gr-opts">' + esc(it.lines(g).join(' \u00B7 ')) + '</div>' +
+      (global.DG.secret && global.DG.secret.loreLine && global.DG.secret.loreLine(g)
+        ? '<div class="gr-opts" style="color:#f0a53a">' + esc(global.DG.secret.loreLine(g)) + '</div>' : '') +
       '<div class="gr-btns">' + btn + '</div></div>';
   }
 

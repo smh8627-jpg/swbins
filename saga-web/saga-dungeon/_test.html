@@ -6187,6 +6187,67 @@ window.requestAnimationFrame = function () { return 0; };
       return '정사각 _s · 카드 _c · 목록 밖은 굽는 쪽 · 있으면 안 굽고 sweep 이 파일로 교체';
     });
 
+    /* ── 비전(秘傳, §5.10, `secret.js`) — 비결을 키우는 전설 ─────────────
+       물건은 손으로 만든다(IT.roll 은 Math.random 을 먹어 RNG 순번을 민다, §2.3) */
+    function loreItem(uid, extra) {
+      var g = { uid: uid, base: 'w_hwando', tier: 4, ilvl: 20, main: 30, aff: [], sock: [] }, k;
+      for (k in (extra || {})) { g[k] = extra[k]; }
+      return g;
+    }
+
+    t('비전 — 전설에만 붙고, 고유는 늘 같은 비전, 미확인은 숨고, 지정(lore)이 앞선다', function () {
+      var SC = DG.secret, seen = {}, i;
+      for (i = 0; i < 60; i++) { seen[SC.loreOf(loreItem('gL' + i))] = 1; }
+      var five = SC.SECRETS.every(function (s) { return seen[s.key]; }) && !seen['null'];
+      var low = SC.loreOf(loreItem('gL1', { tier: 3 })) === null;
+      var u1 = SC.loreOf(loreItem('gA', { uniq: 'u_ssanggeom' })), u2 = SC.loreOf(loreItem('gB', { uniq: 'u_ssanggeom' }));
+      var unid = SC.loreOf(loreItem('gL2', { unid: true })) === null;
+      var pin = SC.loreOf(loreItem('gL3', { lore: 'haste' })) === 'haste';
+      var line = SC.loreLine(loreItem('gL3', { lore: 'haste' }));
+      return five && low && u1 && u1 === u2 && unid && pin && line.indexOf('×1.6') > 0 && SC.loreLine(loreItem('x', { tier: 2 })) === '' &&
+        ('60점에 다섯 다 · 보물 이하 없음 · 쌍룡도=' + u1 + ' · ' + line);
+    });
+
+    t('비전 — 선두가 입으면 그 비결 무예 위력 ×1.6, 다른 비결·부서진 물건은 그대로', function () {
+      /* 이 자리에선 부대가 비어 있다(앞선 항목들이 비운다) — 한 명 세우고 끝에 되돌린다 */
+      var SC = DG.secret, SKx = DG.skill, keepParty = C.save.party.slice();
+      if (!C.save.party.length) { C.save.party = [DG.data.heroes[0].id]; }
+      var id = C.save.party[0], keepDex = C.save.dex.heroes[id];
+      C.save.dex.heroes[id] = keepDex || { count: 1, firstAt: 0 };
+      var keepEq = JSON.stringify(C.save.gear.equip[id] || {});
+      try {
+        C.save.skills = {}; C.save.slots = {}; C.save.secrets = {};
+        var act = SKx.treeOf(id).filter(function (x) { return x.row === 0 && x.shape !== 'passive' && x.shape !== 'summon'; })[0];
+        SKx.learn(id, act.key);
+        C.save.skills[id][act.key] = 5;
+        SC.set(id, act.key, 'fury');
+        C.save.gear.equip[id] = {};
+        var plain = DN._secretMod(act).dmg;
+        var g = loreItem('gLoreT', { lore: 'fury' });
+        C.save.gear.equip[id].weapon = g;
+        var boosted = DN._secretMod(act);
+        /* 앞선 항목이 남긴 판(열린 회차·결사로 스러짐)에 기대지 않는다 — §2.3 격리 */
+        if (DN.raw()) { DN.leave(); }
+        DN.enter({ floor: 4, mode: 'easy' });
+        var run = DN.raw();
+        if (!run) { throw new Error('입장 실패'); }
+        run.mp = run.mpMax;
+        var fired = DN.castSkill(0), st = DN.status().skills[0];
+        DN.leave();
+        var other = SC.boostOf(id, 'haste');
+        g.dur = 0;                                   // 부서지면 값을 못 낸다
+        var broken = SC.boostOf(id, 'fury');
+        return Math.abs(plain - 1.45) < 1e-9 && Math.abs(boosted.dmg - 1.45 * 1.6) < 1e-9 && boosted.boost === 1.6 &&
+          fired && st.secretBoost === 1.6 && other === 1 && broken === 1 && SC.activeLores(id).fury !== true &&
+          (act.name + ' · 분노 ×' + plain + ' → 비전 ×' + Math.round(boosted.dmg * 100) / 100 + ' · 부서지면 꺼짐');
+      } finally {
+        C.save.gear.equip[id] = JSON.parse(keepEq);
+        C.save.skills = {}; C.save.slots = {}; C.save.secrets = {};
+        if (keepDex) { C.save.dex.heroes[id] = keepDex; } else { delete C.save.dex.heroes[id]; }
+        C.save.party = keepParty;
+      }
+    });
+
     t('런타임 에러 없음', function () {
       return errors.length === 0 || ('에러 ' + errors.length + '건: ' + errors.join(' | ')) === '';
     });

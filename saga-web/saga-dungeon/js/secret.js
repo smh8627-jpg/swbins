@@ -101,9 +101,65 @@
     return { ok: true, key: key };
   }
 
+  /* ── 비전(秘傳) — 비결을 키우는 전설 장비 (PLAN §5.10) ─────────────
+   * 디아블로3 의 전설 능력·세트 자리다. **전설(4) 등급 물건 하나에 비전 하나**가
+   * 붙는다 — 다섯 비결 가운데 하나. 선두가 그 물건을 입고 있으면 **그 비결을 건
+   * 무예**의 위력이 ×1.6(부르기 모양은 수 +1). 같은 비전 두 점은 겹치지 않는다
+   * (원작 전설 능력도 안 겹친다) — 다른 비전 둘을 입어 빌드를 두 갈래로 키운다.
+   *
+   * 무엇이 붙는지는 굴리지 않고 **물건에서 읽는다**(RNG 순번 함정, PLAN §2.3):
+   * 고유는 고유 이름(정해진 물건이라 늘 같은 비전), 나머지는 uid 의 해시.
+   * `it.lore` 가 적혀 있으면 그것을 쓴다(어드민·진단이 직접 지정). 세이브 스키마는 그대로.
+   * 부서진 것·미확인은 안 센다. */
+  var LORE_TIER = 4, LORE_MUL = 1.6;
+  var LORE_NAME = { fury: '노화(怒火)', frost: '빙혼(氷魂)', spread: '만상(萬象)', haste: '섬광(閃光)', leech: '혈해(血海)' };
+
+  function strHash(s) {
+    var h = 0, i;
+    s = String(s || '');
+    for (i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) % 65521; }
+    return h;
+  }
+
+  /** 이 물건의 비전 — 없으면 null */
+  function loreOf(it) {
+    if (!it || it.unid || it.tier !== LORE_TIER) { return null; }
+    if (it.lore && BY[it.lore]) { return it.lore; }
+    var i = Math.floor(core().hash2(strHash(it.uniq || it.uid), 5510) * SECRETS.length);
+    return SECRETS[Math.min(SECRETS.length - 1, i)].key;
+  }
+
+  /** 인물이 입은 것 가운데 이 비결을 키우는 비전이 있으면 ×1.6, 없으면 1 */
+  function boostOf(heroId, key) {
+    var s = core().save, eq = s.gear && s.gear.equip && s.gear.equip[heroId], IT = global.DG.item, k;
+    if (!key || !eq) { return 1; }
+    for (k in eq) {
+      if (!Object.prototype.hasOwnProperty.call(eq, k) || !eq[k]) { continue; }
+      if (IT && IT.isBroken && IT.isBroken(eq[k])) { continue; }
+      if (loreOf(eq[k]) === key) { return LORE_MUL; }
+    }
+    return 1;
+  }
+
+  /** 인물이 입어서 켜진 비전들 { 비결: true } */
+  function activeLores(heroId) {
+    var out = {};
+    SECRETS.forEach(function (S) { if (boostOf(heroId, S.key) > 1) { out[S.key] = true; } });
+    return out;
+  }
+
+  /** 설명 한 줄 — 비전이 없으면 '' */
+  function loreLine(it) {
+    var k = loreOf(it);
+    if (!k) { return ''; }
+    return '📜 비전 「' + LORE_NAME[k] + '」 — ' + BY[k].emoji + BY[k].name + ' 비결을 건 무예 위력 ×' + LORE_MUL;
+  }
+
   global.DG = global.DG || {};
   global.DG.secret = {
     SECRETS: SECRETS, byKey: function (k) { return BY[k] || null; },
-    unlocked: unlocked, modify: modify, of: of, set: set
+    unlocked: unlocked, modify: modify, of: of, set: set,
+    LORE_MUL: LORE_MUL, LORE_NAME: LORE_NAME,
+    loreOf: loreOf, boostOf: boostOf, activeLores: activeLores, loreLine: loreLine
   };
 })(window);
