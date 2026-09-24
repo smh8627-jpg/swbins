@@ -256,7 +256,8 @@
       dexPct: dexPct(),
       next: lines().session.label
     };
-    if ((reason === 'leave' || reason === 'horde' || reason === 'nightmare') && payload && payload.loot) {
+    if ((reason === 'leave' || reason === 'horde' || reason === 'nightmare' ||
+         reason === 'trial' || reason === 'trial-fail') && payload && payload.loot) {
       card.items = payload.loot.items || 0;
     } else if (reason === 'dead' && payload && payload.lost) {
       card.lostGold = payload.lost.gold || 0;
@@ -279,6 +280,13 @@
       card.nmNext = !!payload.nightmare.nextSigil;
     }
     if (reason === 'nightmare-fail') { card.nmFail = true; }
+    /* 시련(§5.11) — 단계·걸린 시간·순위·새로 열린 단계 */
+    if (payload && payload.trial) {
+      card.trialLv = payload.trial.lv;
+      if (payload.trial.sec != null) { card.trialSec = payload.trial.sec; }
+      if (payload.trial.rank) { card.trialRank = payload.trial.rank; }
+      if (payload.trial.open) { card.trialOpen = payload.trial.open; }
+    }
     /* 세션을 여기서 닫는다 — 다음 판은 새 기준값에서 다시 잰다 */
     sess.start = Date.now();
     sess.gold0 = core.save.player.gold;

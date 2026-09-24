@@ -4147,3 +4147,10 @@ VRoid 인물이 unlit(`MeshBasicMaterial`) 그대로라 명암 없이 평면이�
 - `dungeon.js` `secretMod` — 비결 배수에 비전을 곱한다(분노 1.45 → 2.32, 부르기는 수 +1). `status().skills[].secretBoost`.
 - `ui.js` 툴팁·가방 줄에 📜 비전 줄(`item.lines()` 는 안 건드림 — 고유 줄 수 진단), 비결 단추에 📜. `dungeon-view.js` 무예 칸 제목.
 - 진단 2(맨 끝). 처음엔 부대가 빈 자리라 입장이 실패했다 — 그 자리는 앞선 항목들이 부대를 비운다, 한 명 세우고 되돌리게. jsdom 378/378. `sw.js` dungeon-v0.155.0. **실기 확인 대기**.
+
+## 2026-09-24 (이어서 4) — 시련(試鍊, PLAN §5.11) — 대균열식 15분 시간 도전
+
+- `dungeon.js` — `enter({trial: lv})`(제10층 문턱·열린 단계까지). 부적 던전 틀을 빌린다(`run.nightmare` 에 `trial:true`, 변형자 없음, 방 999). `run.trial = {lv,t,prog,guardian,won,deaths}`. 처치마다 진척(잡졸 3·정예 8·보스 10·그림자 1), 100 이면 수호자 소환. 수호자 처치는 `won` 만 세우고 다음 틱 `stepTrial` 이 끝낸다(kill 도중 run 을 비우지 않게). 쓰러지면 `reviveTrial`(−30초·제자리). 완주: 전설 한 점을 노획물에 얹어 확정·공적·순위표 10·절반 넘게 남기면 두 단계. 시간 초과: 주운 것만 확정.
+- 세이브 `save.dungeon.trial = {best, open, runs, board}`. `trialInfo()`·`enterTrial(lv)` 내보냄.
+- `ui.js` 굴혈 선택 카드 "⏳ 시련" 절·순위표, 종료 카드. `dungeon-view.js` HUD(시계·진척 막대). `goals.js` 카드 필드.
+- 진단 3 → jsdom 381/381 세 번 동일. `sw.js` dungeon-v0.156.0. **실기 확인 대기**.

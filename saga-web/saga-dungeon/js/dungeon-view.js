@@ -690,6 +690,28 @@
       setTip(false);
       return;
     }
+    /* 시련(§5.11) — 단계·남은 시계·진척 막대(차면 수호자) */
+    if (st.trial) {
+      var tr = st.trial, tsec = Math.ceil(tr.t);
+      var kt = 'tr|' + tr.lv + '|' + tsec + '|' + tr.prog + '|' + (tr.guardian ? 1 : 0) + '|' + tr.deaths;
+      if (kt === hudKey) { return; }
+      hudKey = kt;
+      var tm = Math.floor(tsec / 60), ts2 = tsec % 60, pct = Math.round(tr.prog / tr.goal * 100);
+      hud.innerHTML =
+        '<div class="dg-row1">' +
+          '<b class="dg-floor">⏳ 시련 ' + tr.lv + '단계</b>' +
+          '<span class="dg-theme" style="' + (tsec < 60 ? 'color:var(--bad)' : '') + '">' +
+            tm + ':' + (ts2 < 10 ? '0' : '') + ts2 + '</span>' +
+          '<span class="dg-room">' + (tr.guardian ? '<b class="ok">수호자!</b>' :
+            '<span style="display:inline-block;width:70px;height:7px;background:rgba(0,0,0,.4);vertical-align:middle;border-radius:3px">' +
+            '<span style="display:block;height:100%;width:' + pct + '%;background:#f0a53a;border-radius:3px"></span></span> ' + pct + '%') +
+            (tr.deaths ? ' · 💀' + tr.deaths : '') + '</span>' +
+          '<button class="btn tiny ghost dg-leave" data-act="leave" ' +
+            'title="지금까지 주운 것을 확정하고 나온다(기록은 안 남는다)">🚪 탈출</button>' +
+        '</div>';
+      setTip(false);
+      return;
+    }
     /* 부적 던전(§5.3) — 층 대신 티어·변형자·(있으면) 방 시계를 말한다 */
     if (st.nightmare) {
       var kn = 'nm|' + st.nightmare.tier + '|' + st.room + '|' +

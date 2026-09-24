@@ -669,12 +669,21 @@
       core.emit('toast', '⚠️ 그 부적을 찾을 수 없습니다');
       return false;
     }
+    /* 시련(§5.11) — 열린 단계까지만. 제10층을 밟아야 열린다(부적과 같은 문턱) */
+    var trialLv = 0;
+    if (opts.trial && !horde && !sig) {
+      trialLv = Math.round(opts.trial);
+      if (!trialReady() || trialLv < 1 || trialLv > trialState().open) {
+        core.emit('toast', '⚠️ 아직 열리지 않은 시련입니다');
+        return false;
+      }
+    }
     var nmMods = sig ? DD.rollMods(sig.seed) : null;
     /* 난입(§5.5)·부적(§5.3)은 층이 없다 — 지금까지 밟은 최고 층을 적 배율
        기준으로만 빌린다(spawnEnemy 가 floor 인자를 요구해서다, 화면엔 안
        보인다). 부적은 최소 10층부터(드랍 조건과 맞춘다). */
     var floor = horde ? Math.max(1, dstate().best || 1) :
-      sig ? Math.max(10, dstate().best || 10) : Math.max(1, Math.round(opts.floor || 1));
+      (sig || trialLv) ? Math.max(10, dstate().best || 10) : Math.max(1, Math.round(opts.floor || 1));
     /* 난도는 들어갈 때 정해지고 회차 내내 바뀌지 않는다 */
     var md = modeOf(opts.mode || dstate().mode);
     if ((dstate().best || 0) < md.need) { md = MODES[0]; }
@@ -684,7 +693,10 @@
       /* 부적(§5.3) — 없으면 null. `run.nightmare.roomT` 는 'timer' 변형자일
          때만 뜻이 있다(없으면 그냥 안 줄어든 채로 논다). */
       nightmare: sig ? { sigilId: sig.id, tier: sig.tier, mods: nmMods.mods,
-        resistElem: nmMods.resistElem, roomT: 75 } : null,
+        resistElem: nmMods.resistElem, roomT: 75 } :
+        /* 시련(§5.11)은 부적 던전의 틀(방·문·적 배율 1+0.35×단계)을 빌린다 — 변형자는 없다 */
+        trialLv ? { sigilId: null, tier: trialLv, mods: [], resistElem: null, roomT: 75, trial: true } : null,
+      trial: trialLv ? { lv: trialLv, t: TRIAL_SEC, prog: 0, guardian: false, won: false, deaths: 0 } : null,
       floor: floor, startFloor: floor,
       boons: {}, choice: null, boonPicks: 0,   // 축복(§5.1) — 회차 전체 상한 8은 boonPicks로 센다
       hpMax: 0, hp: 0,
@@ -711,6 +723,11 @@
       dstate().horde = dstate().horde || { best: 0, runs: 0 };
       dstate().horde.runs += 1;
       core.log('⚔️ 난입(亂入) 시작', 'info');
+    } else if (trialLv) {
+      buildNightmareRoom();
+      run.roomTotal = TRIAL_ROOMS;           // 방은 끝없이 — 끝은 진척 막대와 수호자가 정한다
+      trialState().runs += 1;
+      core.log('⏳ 시련(試鍊) · 제' + trialLv + '단계 — 15분 안에 수호자를 쓰러뜨려라', 'info');
     } else if (sig) {
       buildNightmareRoom();
       core.log('📜 부적 던전 · 티어 ' + sig.tier + ' 진입', 'info');
@@ -951,6 +968,126 @@
     core.emit('changed');
     core.persist();
     return { tier: tier, gotNext: !!got };
+  }
+
+  /* ── 시련(試鍊, §5.11) — 대균열식 시간 도전 ─────────────────────
+   * 디아블로3 대균열 자리. 단계를 골라 들어가 **15분 안에** 진척 막대(100)를
+   * 채우면 시련 수호자가 나온다 — 쓰러뜨리면 완주, 기록이 순위표에 남고
+   * 전설 한 점(비전이 붙는다, §5.10)을 받는다. 절반(7분 30초) 넘게 남기면 두 단계가 열린다.
+   * 죽어도 끝나지 않는다 — 시계가 30초 깎이고 그 자리에서 일어선다(원작도 시간만 잃는다).
+   * 시간이 다 되면 주운 것은 챙겨 나온다(기록·보상 없음). 적 배율은 부적과 같은 1+0.35×단계. */
+  var TRIAL_SEC = 900, TRIAL_GOAL = 100, TRIAL_DEATH_SEC = 30, TRIAL_MAX = 100;
+  var TRIAL_ROOMS = 999, TRIAL_BOARD = 10, TRIAL_NEED = 10;
+
+  function trialState() {
+    var d = dstate();
+    if (!d.trial || typeof d.trial !== 'object') { d.trial = {}; }
+    var ts = d.trial;
+    if (typeof ts.best !== 'number') { ts.best = 0; }
+    if (typeof ts.open !== 'number' || ts.open < 1) { ts.open = 1; }
+    if (typeof ts.runs !== 'number') { ts.runs = 0; }
+    if (!Array.isArray(ts.board)) { ts.board = []; }
+    return ts;
+  }
+  function trialReady() { return (dstate().best || 0) >= TRIAL_NEED; }
+
+  /** 처치 하나가 채우는 진척 — 정예 8 · 보스 10 · 갈라진 그림자 1 · 잡졸 3 */
+  function trialPts(e) {
+    if (e.trialGuardian) { return 0; }
+    if (e.boss) { return 10; }
+    if (e.elite) { return 8; }
+    if (e.shade || e.spawned) { return 1; }
+    return 3;
+  }
+
+  function trialOnKill(e) {
+    var T = run.trial;
+    if (e.trialGuardian) { T.won = true; return; }   // 끝내기는 다음 틱(stepTrial) — kill() 도중 run 을 비우지 않는다
+    if (T.guardian) { return; }
+    T.prog = Math.min(TRIAL_GOAL, T.prog + trialPts(e));
+    if (T.prog >= TRIAL_GOAL) { summonTrialGuardian(); }
+  }
+
+  function summonTrialGuardian() {
+    var T = run.trial, p = run.player;
+    var g = spawnEnemy(run.floor, true, {
+      x: core.clamp(p.x + 140, WALL + 30, ROOM_W - WALL - 30), y: ROOM_H * 0.5
+    });
+    g.trialGuardian = true;
+    run.room.enemies.push(g);
+    run.room.cleared = false;
+    T.guardian = true;
+    fx.push({ t: 'ring', x: g.x, y: g.y, life: 0.8 });
+    core.log('⏳ 시련 수호자 — ' + enemyName(g) + ' 이(가) 나타났다', 'info');
+    core.emit('toast', '⏳ 시련 수호자 등장!');
+  }
+
+  /** 순위표 — 높은 단계, 같은 단계면 빨리 끝낸 순. 들어간 자리(1~10)를 돌려준다, 밖이면 0 */
+  function recordTrial(entry) {
+    var ts = trialState();
+    ts.board.push(entry);
+    ts.board.sort(function (a, b) { return (b.lv - a.lv) || (a.sec - b.sec) || (a.at - b.at); });
+    if (ts.board.length > TRIAL_BOARD) { ts.board.length = TRIAL_BOARD; }
+    return ts.board.indexOf(entry) + 1;
+  }
+
+  /** @returns {boolean} 회차가 끝났으면 true */
+  function stepTrial(dt) {
+    var T = run.trial;
+    if (T.won) { endTrialClear(); return true; }
+    T.t -= dt;
+    if (T.t <= 0) { endTrialFail(); return true; }
+    return false;
+  }
+
+  /** 시련 중 쓰러짐 — 시계 30초를 내고 그 자리에서 일어선다 */
+  function reviveTrial() {
+    var T = run.trial;
+    T.deaths += 1;
+    T.t -= TRIAL_DEATH_SEC;
+    dstate().deaths = (dstate().deaths || 0) + 1;
+    if (T.t <= 0) { endTrialFail(); return; }
+    run.hp = run.hpMax;
+    run.player.invuln = 2;
+    run.player.dots = [];
+    fx.push({ t: 'ring', x: run.player.x, y: run.player.y, life: 0.7 });
+    core.log('💀 시련 · 쓰러졌다 — 시계 ' + TRIAL_DEATH_SEC + '초를 내고 다시 일어선다', 'bad');
+    core.emit('toast', '💀 −' + TRIAL_DEATH_SEC + '초 · 다시 일어선다');
+  }
+
+  function endTrialClear() {
+    var T = run.trial, lv = T.lv;
+    var left = Math.max(0, Math.round(T.t)), used = TRIAL_SEC - left;
+    /* 완주 보상 — 전설 한 점(비전이 붙는다). 노획물에 얹어 같이 확정한다 */
+    var IT = global.DG.item;
+    if (IT && IT.roll) { run.loot.items.push(IT.roll(run.floor + lv, { tier: 4 })); }
+    var s = settleLoot('시련 완주');
+    core.gainFeat(6 + lv, '시련 완주');
+    var ts = trialState(), jump = left >= TRIAL_SEC / 2 ? 2 : 1;
+    if (lv > ts.best) { ts.best = lv; }
+    ts.open = Math.min(TRIAL_MAX, Math.max(ts.open, lv + jump));
+    var rank = recordTrial({ lv: lv, sec: used, hero: leadId(), deaths: T.deaths, at: Date.now() });
+    run = null;
+    core.log('🏆 시련 제' + lv + '단계 완주 · ' + core.fmtTime(used) + (rank ? ' · 순위 ' + rank + '위' : '') +
+      ' · 제' + ts.open + '단계까지 열림', 'good');
+    core.emit('toast', '🏆 시련 제' + lv + '단계 완주!');
+    core.emit('dungeon:end', { reason: 'trial', floor: 0,
+      trial: { lv: lv, sec: used, left: left, jump: jump, rank: rank, open: ts.open }, loot: s });
+    core.emit('changed');
+    core.persist();
+    return { lv: lv, sec: used, rank: rank, jump: jump };
+  }
+
+  function endTrialFail() {
+    var lv = run.trial.lv;
+    var s = settleLoot('시련 시간 초과');
+    run = null;
+    core.log('⏱️ 시련 제' + lv + '단계 · 시간이 다 되었다 — 주운 것만 챙겨 나온다', 'bad');
+    core.emit('toast', '⏱️ 시련 시간 초과');
+    core.emit('dungeon:end', { reason: 'trial-fail', floor: 0, trial: { lv: lv }, loot: s });
+    core.emit('changed');
+    core.persist();
+    return true;
   }
 
   /** 다음 방으로 */
@@ -1264,6 +1401,8 @@
     /* 난입(§5.5) 사망은 결사·유품과 다른 결이다 — "층" 이 진짜가 아니라서
        (floor 는 적 배율용 대역값이다) 유품 층 번호가 엉뚱하게 겹칠 수
        있다. 최고 생존 기록만 남기고 간단히 끝낸다. */
+    /* 시련(§5.11)은 죽어도 안 끝난다 — 시계만 깎인다 */
+    if (run.trial) { reviveTrial(); return; }
     if (run.horde) { dieHorde(); return; }
     /* 부적 던전(§5.3) 사망도 같은 이유(floor 대역값)로 결사·유품과 안
        엮인다 — 실패로 끝내고 부적은 이미 굴혈에서 소모됐으니 그걸로 끝. */
@@ -2499,6 +2638,8 @@
         if (!run) { return; }
       }
     } else if (run.nightmare) {
+      /* 시련(§5.11) — 15분 시계 하나. 수호자를 쓰러뜨린 다음 틱에 끝낸다 */
+      if (run.trial && stepTrial(dt)) { return; }
       /* 부적 던전(§5.3) — 들판 로머도 안 돈다(방 단위 구조 유지). '촉박'
          변형자일 때만 방 시계가 뜻이 있다 — 아니면 roomT 는 그냥 안 줄어든다. */
       if (nmHasMod('timer')) {
@@ -3309,6 +3450,7 @@
     /* 세계 보스(§5.4) — 위 일반 처치 보상(run.floor=0 이라 미미하다)과
        별개로, best 층 기준의 참가 보상을 따로 준다(아래 grantWorldBossReward). */
     if (e.worldBoss) { grantWorldBossReward(e, run.room, false); }
+    if (run.trial) { trialOnKill(e); }
   }
 
   /* 2026-09-10 — "강공격이랑 전용 회피 버튼도"(사용자). 평타(위 update() "내
@@ -4040,6 +4182,11 @@
         resistElem: run.nightmare.resistElem,
         roomT: nmHasMod('timer') ? Math.max(0, run.nightmare.roomT) : null
       } : null,
+      /* 시련(§5.11) — 있으면 화면이 HUD 를 단계·시계·진척 막대로 바꾼다 */
+      trial: run.trial ? {
+        lv: run.trial.lv, t: Math.max(0, run.trial.t), sec: TRIAL_SEC,
+        prog: run.trial.prog, goal: TRIAL_GOAL, guardian: run.trial.guardian, deaths: run.trial.deaths
+      } : null,
       boonPicks: run.boonPicks || 0, boonMax: BOON_MAX_STACK,
       kills: run.kills, best: dstate().best || 0,
       atk: Math.round(atkOf()), reach: Math.round(reachOf()),
@@ -4123,6 +4270,18 @@
     /** 부적 던전(§5.3) — `enter({sigilId})` 그대로도 되지만 이름을 하나
      *  내준다(위 enterHorde와 같은 이유). */
     enterNightmare: function (sigilId) { return enter({ sigilId: sigilId }); },
+    /** 시련(§5.11) — 단계 lv 로 들어간다(열린 단계까지만) */
+    enterTrial: function (lv) { return enter({ trial: lv }); },
+    /** 시련 기록 — 굴혈 선택 카드·순위표가 읽는다 */
+    trialInfo: function () {
+      var ts = trialState();
+      return { ready: trialReady(), need: TRIAL_NEED, best: ts.best, open: ts.open, runs: ts.runs,
+               board: ts.board.slice(), sec: TRIAL_SEC, goal: TRIAL_GOAL, max: TRIAL_MAX };
+    },
+    TRIAL_SEC: TRIAL_SEC, TRIAL_GOAL: TRIAL_GOAL, TRIAL_DEATH_SEC: TRIAL_DEATH_SEC,
+    /** 자가진단 전용 — 처치 하나를 시련 진척에 흘린다(kill 의 드롭·경험은 안 탄다) */
+    _trialOnKill: function (e) { if (run && run.trial) { trialOnKill(e); } },
+    _trialPts: trialPts,
     NM_ROOM_TOTAL: NM_ROOM_TOTAL, NM_ROOM_TIMER: NM_ROOM_TIMER,
     /** 자가진단 전용 — 지금 회차의 변형자 판정을 직접 읽는다 */
     _nmHasMod: nmHasMod, _nmMul: nmMul, _nmLootMul: nmLootMul,

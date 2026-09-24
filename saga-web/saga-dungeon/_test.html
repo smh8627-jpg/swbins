@@ -6248,6 +6248,88 @@ window.requestAnimationFrame = function () { return 0; };
       }
     });
 
+    /* ── 시련(試鍊, §5.11) — 대균열식 시간 도전 ──────────────────────
+       이 자리엔 부대가 비어 있다 — 한 명 세우고, 던전 기록·가방은 통째로 되돌린다 */
+    function withTrial(fn) {
+      var keepParty = C.save.party.slice(), keepD = JSON.stringify(C.save.dungeon || {});
+      var keepBag = JSON.stringify(C.save.gear.bag || []);
+      if (DN.raw()) { DN.leave(); }
+      if (!C.save.party.length) { C.save.party = [DG.data.heroes[0].id]; }
+      var id = C.save.party[0], keepDex = C.save.dex.heroes[id];
+      C.save.dex.heroes[id] = keepDex || { count: 1, firstAt: 0 };
+      try { return fn(id); } finally {
+        if (DN.raw()) { DN.leave(); }
+        C.save.dungeon = JSON.parse(keepD);
+        C.save.gear.bag = JSON.parse(keepBag);
+        if (keepDex) { C.save.dex.heroes[id] = keepDex; } else { delete C.save.dex.heroes[id]; }
+        C.save.party = keepParty;
+      }
+    }
+
+    t('시련 — 제10층 전엔 닫혀 있고, 열린 단계까지만 들어가며, 적 배율은 1+0.35×단계', function () {
+      return withTrial(function () {
+        C.save.dungeon.best = 5; delete C.save.dungeon.trial;
+        var shut = DN.enterTrial(1) === false && !DN.raw() && DN.trialInfo().ready === false;
+        C.save.dungeon.best = 12;
+        var over = DN.enterTrial(2) === false && !DN.raw();
+        var ok = DN.enterTrial(1), st = DN.status(), run = DN.raw();
+        var fine = ok && st.trial && st.trial.lv === 1 && st.trial.t === DN.TRIAL_SEC && st.trial.prog === 0 &&
+          Math.abs(DN._nmMul() - 1.35) < 1e-9 && run.nightmare.mods.length === 0 && st.roomTotal > 100 &&
+          DN.trialInfo().runs === 1;
+        DN.leave();
+        return shut && over && fine && '10층 전 닫힘 · 2단계 거절 · 1단계 입장 · 적 ×1.35 · 변형자 없음';
+      });
+    });
+
+    t('시련 — 진척 100 이면 수호자가 나오고, 쓰러뜨리면 완주·순위·전설 한 점·두 단계 열림', function () {
+      return withTrial(function (id) {
+        C.save.dungeon.best = 12; delete C.save.dungeon.trial;
+        C.save.gear.bag = [];
+        var ends = [];
+        C.on('dungeon:end', function (p) { ends.push(p); });
+        DN.enterTrial(1);
+        var run = DN.raw(), i;
+        run.room.enemies = [];
+        var pts = DN._trialPts({}) === 3 && DN._trialPts({ elite: 'x' }) === 8 && DN._trialPts({ shade: true }) === 1;
+        for (i = 0; i < 33; i++) { DN._trialOnKill({}); }
+        var before = run.trial.prog === 99 && !run.trial.guardian;
+        DN._trialOnKill({});
+        var g = run.room.enemies.filter(function (e) { return e.trialGuardian; })[0];
+        var summoned = run.trial.guardian && !!g && g.boss && run.room.cleared === false;
+        DN._trialOnKill(g);
+        DN.update(0.016);
+        var info = DN.trialInfo(), last = ends[ends.length - 1];
+        var legend = C.save.gear.bag.filter(function (it) { return it.tier === 4; }).length === 1;
+        return pts && before && summoned && !DN.raw() && info.best === 1 && info.open === 3 &&
+          info.board.length === 1 && info.board[0].lv === 1 && info.board[0].hero === id &&
+          last && last.reason === 'trial' && last.trial.rank === 1 && last.trial.jump === 2 && legend &&
+          ('잡졸 3·정예 8 · 99 → 100 수호자 · 완주 1위 · 제' + info.open + '단계까지 열림 · 전설 1');
+      });
+    });
+
+    t('시련 — 쓰러지면 시계 30초를 내고 일어서며, 시간이 다 되면 기록 없이 주운 것만 챙긴다', function () {
+      return withTrial(function () {
+        C.save.dungeon.best = 12; delete C.save.dungeon.trial;
+        var ends = [];
+        C.on('dungeon:end', function (p) { ends.push(p); });
+        DN.enterTrial(1);
+        var run = DN.raw();
+        run.room.enemies = [];
+        run.player.dots = [{ el: 'pois', dps: 1e9, t: 1 }];
+        DN.update(0.016);
+        var alive = DN.raw() === run && run.trial.deaths === 1 && run.hp === run.hpMax &&
+          Math.abs(run.trial.t - (DN.TRIAL_SEC - DN.TRIAL_DEATH_SEC - 0.016)) < 0.05 && run.player.invuln > 0;
+        run.loot.gold = 50;
+        var gold0 = C.save.player.gold;
+        run.trial.t = 0.01;
+        DN.update(0.016);
+        var info = DN.trialInfo(), last = ends[ends.length - 1];
+        return alive && !DN.raw() && last && last.reason === 'trial-fail' && info.board.length === 0 &&
+          info.best === 0 && info.open === 1 && C.save.player.gold - gold0 === 50 &&
+          '쓰러짐 → −30초·체력 가득 · 시간 초과 → 기록 없음·금 50 확정';
+      });
+    });
+
     t('런타임 에러 없음', function () {
       return errors.length === 0 || ('에러 ' + errors.length + '건: ' + errors.join(' | ')) === '';
     });

@@ -269,6 +269,15 @@
         DG1.enter({ floor: 1 });
         return;
       }
+      if (act === 'gate-trial') {
+        var DG3 = global.DG.dungeon, TG3 = global.DG.town;
+        var tlv = parseInt(b.getAttribute('data-lv'), 10);
+        encClose();
+        closeSheet();
+        if (TG3) { TG3.leave(); }
+        if (!DG3.enterTrial(tlv)) { toast('⚠️ 그 단계는 아직 열리지 않았습니다'); }
+        return;
+      }
       if (act === 'gate-sigil') {
         var DG2 = global.DG.dungeon, TG2 = global.DG.town;
         var sid = b.getAttribute('data-id');
@@ -773,13 +782,19 @@
     /* 부적 던전(§5.3) — 완주(nightmare)·시간초과(nightmare-fail)·도중
        사망(dead + nmTier) 셋 다 "층" 대신 "티어"로 읽는다. */
     var isNm = card.nmTier != null;
-    var title = card.reason === 'horde' ? '🏆 난입 완주!' :
+    /* 시련(§5.11) — 완주(trial)·시간 초과(trial-fail) */
+    var isTrial = card.trialLv != null;
+    var title = card.reason === 'trial' ? '🏆 시련 완주!' :
+      card.reason === 'trial-fail' ? '⏱️ 시련 · 시간 초과' :
+      card.reason === 'horde' ? '🏆 난입 완주!' :
       isHorde ? '💀 난입 · 쓰러졌다' :
       card.reason === 'nightmare' ? '📜 부적 던전 완주!' :
       card.nmFail ? '⏱️ 부적 던전 · 시간 초과' :
       isNm ? '💀 부적 던전 · 쓰러졌다' :
       card.reason === 'leave' ? '🚪 던전에서 나왔다' : '💀 패퇴했다';
-    var sub = isHorde ? (Math.floor(card.hordeSecs / 60) + '분 ' + (card.hordeSecs % 60) + '초 생존') :
+    var sub = isTrial ? ('제' + card.trialLv + '단계' + (card.trialSec != null ? ' · ' + core.fmtTime(card.trialSec) : '') +
+        (card.trialRank ? ' · 순위 ' + card.trialRank + '위' : '') + (card.trialOpen ? ' · 제' + card.trialOpen + '단계까지 열림' : '')) :
+      isHorde ? (Math.floor(card.hordeSecs / 60) + '분 ' + (card.hordeSecs % 60) + '초 생존') :
       isNm ? ('티어 ' + card.nmTier + (card.nmNext ? ' · 다음 부적 획득' : '')) :
       ('제' + card.floor + '층까지');
     var html = '<div class="enc-card">' +
@@ -788,7 +803,8 @@
       '<div class="sec">';
     if (card.nmFail) {
       html += '<div class="hint">시간을 못 맞춰 그 방까지의 노획물을 못 챙겼습니다 — 부적은 이미 썼습니다.</div>';
-    } else if (card.reason === 'leave' || card.reason === 'horde' || card.reason === 'nightmare') {
+    } else if (card.reason === 'leave' || card.reason === 'horde' || card.reason === 'nightmare' ||
+               card.reason === 'trial' || card.reason === 'trial-fail') {
       html += '<div>💰 금 ' + (card.gold >= 0 ? '+' : '') + core.fmt(card.gold) + '</div>' +
         '<div>📦 장비 ' + (card.items || 0) + '점</div>';
     } else {
@@ -986,8 +1002,39 @@
     } else {
       html += '<div class="hint">부적이 없습니다 — 던전 제10층+ 보스나 난입(§5.5) 15분 완주에서 얻습니다.</div>';
     }
+    html += trialGateHtml();
     html += '<button class="btn primary wide" data-act="enc-close">물러난다</button></div>';
     encOpen(html);
+  }
+
+  /**
+   * 시련(試鍊, §5.11) — 대균열식 시간 도전. 열린 단계 가운데 위쪽 셋을 단추로,
+   * 순위표(상위 5)를 아래에. 제10층을 밟기 전엔 문턱만 말한다.
+   */
+  function trialGateHtml() {
+    var D = global.DG.dungeon, info = D && D.trialInfo ? D.trialInfo() : null;
+    if (!info) { return ''; }
+    var html = '<div class="sec"><h4>⏳ 시련(試鍊) · 15분 시간 도전</h4>';
+    if (!info.ready) {
+      return html + '<div class="hint">던전 제' + info.need + '층을 밟으면 열립니다.</div></div>';
+    }
+    html += '<div class="hint">진척 막대를 채우면 수호자가 나옵니다 — 쓰러뜨리면 전설 한 점. ' +
+      '절반 넘게 남기면 두 단계가 열립니다. 쓰러지면 30초를 잃습니다.</div>';
+    for (var lv = info.open; lv >= Math.max(1, info.open - 2); lv--) {
+      html += '<button class="btn wide ghost" data-act="gate-trial" data-lv="' + lv + '" style="text-align:left">' +
+        '제 <b>' + lv + '</b> 단계' + (lv === info.open ? ' <small class="muted">(새 단계)</small>' : '') +
+        '<span style="float:right">적 ×' + (Math.round((1 + 0.35 * lv) * 100) / 100) + '</span></button>';
+    }
+    if (info.board.length) {
+      html += '<div style="font-size:11.5px;margin-top:4px"><b>순위표</b>';
+      info.board.slice(0, 5).forEach(function (r, i) {
+        var h = global.DG.data && global.DG.data.find ? global.DG.data.find(r.hero) : null;
+        html += '<div class="muted">' + (i + 1) + '위 · 제' + r.lv + '단계 · ' + core.fmtTime(r.sec) +
+          (h ? ' · ' + esc(h.name) : '') + (r.deaths ? ' · 💀' + r.deaths : '') + '</div>';
+      });
+      html += '</div>';
+    }
+    return html + '</div>';
   }
 
   /**
