@@ -563,6 +563,11 @@ func open_map() -> void:
 		return
 	if get_tree().get_nodes_in_group("duel_active").size() > 0:
 		return
+	## 다른 화면(인물·요리)이 열려 있으면 안 연다 — frozen 되돌림이 엇갈린다.
+	for g in ["go_character_screen", "go_cooking_screen"]:
+		var other := get_tree().get_first_node_in_group(g)
+		if other and other.get("is_open"):
+			return
 	is_open = true
 	_screen.visible = true
 	_mini.visible = false

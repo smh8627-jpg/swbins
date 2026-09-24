@@ -438,9 +438,10 @@ func open_screen() -> void:
 		return
 	if get_tree().get_nodes_in_group("duel_active").size() > 0:
 		return
-	var wm := get_tree().get_first_node_in_group("go_world_map")
-	if wm and wm.get("is_open"):
-		return
+	for g in ["go_world_map", "go_cooking_screen"]:
+		var other := get_tree().get_first_node_in_group(g)
+		if other and other.get("is_open"):
+			return
 	_player = get_tree().get_first_node_in_group("player")
 	is_open = true
 	_root.visible = true

@@ -67,6 +67,12 @@ var equip: Dictionary = {}
 ## 매기고 그 번호로 씨앗을 정한다(얻는 차례가 같으면 늘 같은 성유물). 필드만 더해 SAVE_VERSION 3 그대로.
 var artifacts: Dictionary = {}
 var artifact_seq := 0
+## 106장 ⑱ 채집·요리 — 채집물 id → 캔 때(실제 시각 초, cooking.gd now()) · 요리 id → 조리한 번수(숙련).
+## 필드만 더해 SAVE_VERSION 3 그대로. 음식 버프(계열 → {recipe, q, stat, value, left})는 저장하지 않는다(세션 한정).
+var gather_t: Dictionary = {}
+var cook_prof: Dictionary = {}
+var food_buffs: Dictionary = {}
+signal food_changed()
 
 var _session_start_exp: float = 0.0
 
@@ -421,7 +427,45 @@ func stat(id: String, key: String) -> float:
 	for set_id in counts:
 		if int(counts[set_id]) >= 2:
 			v += float((Artifacts.SETS[set_id]["2"] as Dictionary).get(key, 0.0))
+	return v + food_stat(key)
+
+## 음식 버프(106장 ⑱) — 명단 전체에 같은 값. 계열마다 하나라 key 가 겹칠 일은 드물지만 더해 둔다.
+func food_stat(key: String) -> float:
+	var v := 0.0
+	for cat in food_buffs:
+		var b: Dictionary = food_buffs[cat]
+		if b.stat == key and float(b.left) > 0.0:
+			v += float(b.value)
 	return v
+
+## 버프를 건다(같은 계열은 갈아 끼움).
+func set_food_buff(cat: String, recipe: String, q: int, key: String, value: float, sec: float) -> void:
+	food_buffs[cat] = {"recipe": recipe, "q": q, "stat": key, "value": value, "left": sec}
+	power_changed.emit(atk, def)
+	food_changed.emit()
+
+## cooking.gd 가 부른다 — 남은 시간을 깎고 끝난 버프를 뺀다.
+func tick_food(delta: float) -> void:
+	var ended := false
+	for cat in food_buffs.keys():
+		food_buffs[cat].left = float(food_buffs[cat].left) - delta
+		if float(food_buffs[cat].left) <= 0.0:
+			food_buffs.erase(cat)
+			ended = true
+	if ended:
+		power_changed.emit(atk, def)
+		food_changed.emit()
+
+## save_state.gd 가 불러온 뒤 — 채집 시각·숙련(없으면 빈 사전).
+func restore_cooking(saved_gather: Dictionary, saved_prof: Dictionary) -> void:
+	gather_t.clear()
+	for k in saved_gather:
+		gather_t[str(k)] = float(saved_gather[k])
+	cook_prof.clear()
+	for k in saved_prof:
+		cook_prof[str(k)] = int(saved_prof[k])
+	food_buffs.clear()
+	food_changed.emit()
 
 func crit_rate(id: String) -> float:
 	return clampf(Weapons.BASE_CRIT_RATE + stat(id, "crit_rate"), 0.0, 1.0)

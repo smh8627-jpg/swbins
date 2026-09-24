@@ -8508,3 +8508,14 @@ PROJECT_STATE.md` 참고. 요약:
 - `stat()` 은 부를 때마다 성유물을 훑는다(상한 200) — 지금은 느리지 않지만 가진 게 많아지면 인물별 캐시를 둘 자리.
 - 점검 `tools/probe_artifacts.gd` 12항목 3회 md5 동일 fails=0. Write 툴로 쓴 GDScript 줄 잇기를 `\\` 로 적어 문법 오류(한 번) — GDScript 파일엔 백슬래시 하나. 다른 GO 점검 열 fails=0, REGRESS OK.
 - 실기 확인 전: 성유물 줄 글자 길이(부옵션 넷 + 세트 줄로 화면이 더 길어짐), 강화 속도(+20 에 연마석 126 개), 괴물 잡을 때마다 ★4 가 너무 쌓이지 않는지.
+
+## GO 원신 기준 ⑱ 채집·요리 — 채집 55·요리 8·특산물 돌파 (2026-09-24, 새 세션, "사가고돗 이어해")
+
+- PROJECT_STATE 1순위. GO 에 채집·요리 코드가 전혀 없어 새로 지음: `data/cooking.gd`(표) · `world/gathering.gd`(24무리 55개, 코드로 그린 풀·열매·조개, 특산물은 빛무리) · `world/kitchen.gd`(신상 곁 냄비 셋·조리·먹기·포만감) · `ui/cooking_screen.gd`(G·냄비 곁 F·"요리" 단추, 불 끄기 바늘).
+- 다시 자라는 시간은 실제 시각(`Cooking.now()`, 점검은 `time_offset`) — 일반 30분·특산물 1시간. 원신의 하루·이틀은 이 판 채집 자리 수(55)로는 너무 느려 줄였다.
+- 버프는 `PartyState.food_buffs`(세션 한정) → `stat()` 끝에 `food_stat()` 을 더해 공격·방어·치명이 그대로 흐른다. 모험 요리는 field_combat 이 매 프레임 쓰는 `stamina_cost_mul` 에 곱함. 회복은 field_combat 에 `heal_member`·`revive_member`·`heal_all` 공개.
+- 돌파 비용에 특산물(3~60, 주인공 청하란·동료 id 해시 ×29) — 옛 점검은 `ascend_cost()` 로 재료를 주므로 그대로 통과. 늑대·바위곰 드롭에 짐승 고기.
+- 세이브: `gather_t`·`cook_prof` 두 필드(없으면 빈 사전, SAVE_VERSION 3 그대로) — `PartyState.restore_cooking`.
+- 곁가지 고침: 지도·인물·요리 화면이 서로 열려 있으면 안 열리게(전엔 M 을 인물 화면 위에서 눌러 frozen 되돌림이 엇갈릴 수 있었다).
+- 점검 `tools/probe_cooking.gd` 13항목 3회 md5 동일 fails=0(첫 판 통과 — 점검 파일 `var ok :=` 타입 추론만 한 번 고침). 다른 GO 점검 열둘 fails=0, REGRESS OK.
+- 실기 확인 전: 채집물 크기, 특산물 빛무리, 재생 시간·특산물 요구량, 바늘 속도, 냄비가 신상 회복 범위 안이라는 점.

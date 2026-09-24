@@ -30,6 +30,8 @@ func save() -> bool:
 		"equip": PartyState.equip,
 		"artifacts": PartyState.artifacts,
 		"artifact_seq": PartyState.artifact_seq,
+		"gather_t": PartyState.gather_t,
+		"cook_prof": PartyState.cook_prof,
 		"drops": DropState.drops,
 		"quest_active_id": QuestState.active_id,
 		"quest_active_name": QuestState.active_name,
@@ -84,6 +86,10 @@ func try_load() -> bool:
 		growth if typeof(growth) == TYPE_DICTIONARY else {}, bag if typeof(bag) == TYPE_DICTIONARY else {},
 		weapons if typeof(weapons) == TYPE_DICTIONARY else {}, equip if typeof(equip) == TYPE_DICTIONARY else {},
 		arts if typeof(arts) == TYPE_DICTIONARY else {}, int(data.get("artifact_seq", 0)))
+	## gather_t·cook_prof(106장 ⑱) — 없으면 빈 사전(다 자라 있고 숙련 0).
+	var gt: Variant = data.get("gather_t", {})
+	var cp: Variant = data.get("cook_prof", {})
+	PartyState.restore_cooking(gt if typeof(gt) == TYPE_DICTIONARY else {}, cp if typeof(cp) == TYPE_DICTIONARY else {})
 
 	var pos: Array = data.get("player_pos", [])
 	var player := _find_player()

@@ -387,7 +387,9 @@ func _physics_process(delta: float) -> void:
 		_shield_t -= delta
 		if _shield_t <= 0.0:
 			shield_hp = 0.0
-	_player.set("stamina_cost_mul", RESONANCE_WIND_STAMINA if resonance() == "wind" else 1.0)
+	## 풍 공명 × 모험 요리(106장 ⑱ 스태미나 소모 감소).
+	var st_mul := RESONANCE_WIND_STAMINA if resonance() == "wind" else 1.0
+	_player.set("stamina_cost_mul", st_mul * (1.0 - clampf(PartyState.food_stat("stamina_save"), 0.0, 0.9)))
 	if _combo_link <= 0.0:
 		_combo = 0
 	if _charge_armed:
@@ -655,6 +657,28 @@ func _bolt(e: Node, amount: float) -> void:
 	var pos: Vector3 = (e as Node3D).global_position
 	_bolt_fx(pos)
 	_deal(e, amount, "thunder", pos - _player.global_position)
+
+## 106장 ⑱ 요리 — 살아 있는 한 인물 회복(비율 + 고정). 실제로 오른 양(쓰러졌거나 명단에 없으면 -1).
+func heal_member(id: String, ratio: float, flat: float = 0.0) -> float:
+	if not roster().has(id) or hp_of(id) <= 0.0:
+		return -1.0
+	var before := hp_of(id)
+	_hp[id] = minf(before + max_hp_of(id) * ratio + flat, max_hp_of(id))
+	_refresh_hud()
+	return hp_of(id) - before
+
+## 쓰러진 인물을 되살린다(체력 비율). 쓰러지지 않았거나 명단에 없으면 false.
+func revive_member(id: String, ratio: float) -> bool:
+	if not roster().has(id) or hp_of(id) > 0.0:
+		return false
+	_hp[id] = maxf(max_hp_of(id) * ratio, 1.0)
+	_refresh_hud()
+	return true
+
+## 요리로 명단 모두 회복(쓰러진 인물은 빼고) — 공개 이름.
+func heal_all(ratio: float) -> void:
+	_heal_all(ratio)
+	_refresh_hud()
 
 func _heal_all(ratio: float) -> void:
 	for id in roster():

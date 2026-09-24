@@ -42,29 +42,40 @@ const ITEMS := {
 	"ore_l": {"name": "정련 강화석"},
 	"iron": {"name": "무쇠 조각"},
 	"polish": {"name": "연마석"}, # 106장 ⑰ 성유물 강화(경험 2500)
+	## 106장 ⑱ 채집·요리 — 일반 재료 다섯 + 짐승 고기 + 지역 특산물 셋(돌파에도 쓴다). 요리 자체는 cooking.gd dish_id.
+	"mint": {"name": "박하"},
+	"honey_flower": {"name": "꿀꽃"},
+	"apple": {"name": "산사과"},
+	"mushroom": {"name": "송이버섯"},
+	"clam": {"name": "바지락"},
+	"meat": {"name": "짐승 고기"},
+	"orchid": {"name": "청하란"},
+	"conch": {"name": "갯소라"},
+	"ash_flower": {"name": "재꽃"},
 }
 const BOOKS := ["book_s", "book_m", "book_l"]
 
-## 돌파 단계 n(1~6)으로 올라갈 때 드는 것. 결정은 인물 원소, 전리품은 인물마다.
+## 돌파 단계 n(1~6)으로 올라갈 때 드는 것. 결정은 인물 원소, 전리품·특산물(106장 ⑱)은 인물마다.
 const ASCEND_COST := [
-	{"mora": 5000, "crystal": 1, "common": 3},
-	{"mora": 10000, "crystal": 3, "common": 10},
-	{"mora": 20000, "crystal": 6, "common": 15},
-	{"mora": 30000, "crystal": 9, "common": 20},
-	{"mora": 40000, "crystal": 12, "common": 25},
-	{"mora": 60000, "crystal": 20, "common": 30},
+	{"mora": 5000, "crystal": 1, "common": 3, "special": 3},
+	{"mora": 10000, "crystal": 3, "common": 10, "special": 10},
+	{"mora": 20000, "crystal": 6, "common": 15, "special": 20},
+	{"mora": 30000, "crystal": 9, "common": 20, "special": 30},
+	{"mora": 40000, "crystal": 12, "common": 25, "special": 45},
+	{"mora": 60000, "crystal": 20, "common": 30, "special": 60},
 ]
+const SPECIALTIES := ["orchid", "conch", "ash_flower"] # cooking.gd SPECIALTIES 와 같은 차례
 
 ## 들판 적을 쓰러뜨리면(field_enemy._die). 정해진 양 — 운은 없다(점검이 늘 같게).
 const KILL_DROPS := {
-	"wolf": {"mora": 40, "wolf_fang": 1},
+	"wolf": {"mora": 40, "wolf_fang": 1, "meat": 1},
 	"bandit": {"mora": 60, "bandit_badge": 1, "iron": 1},
 	"fire_imp": {"mora": 90, "crystal_fire": 1, "book_s": 1, "talent_1": 1, "ore_s": 1},
 	"water_turtle": {"mora": 90, "crystal_water": 1, "book_s": 1, "talent_1": 1, "ore_s": 1},
 	"thunder_cat": {"mora": 90, "crystal_thunder": 1, "book_s": 1, "talent_1": 1, "ore_s": 1},
 	"wind_hawk": {"mora": 90, "crystal_wind": 1, "book_s": 1, "talent_1": 1, "ore_s": 1},
 	"ice_fox": {"mora": 90, "crystal_ice": 1, "book_s": 1, "talent_1": 1, "ore_s": 1},
-	"rock_bear": {"mora": 90, "crystal_rock": 1, "book_s": 1, "talent_1": 1, "ore_s": 1},
+	"rock_bear": {"mora": 90, "crystal_rock": 1, "book_s": 1, "talent_1": 1, "ore_s": 1, "meat": 1},
 	"grass_snake": {"mora": 90, "crystal_grass": 1, "book_s": 1, "talent_1": 1, "ore_s": 1},
 }
 
@@ -155,12 +166,21 @@ static func common_of(member_id: String) -> String:
 		h = (h * 17 + member_id.unicode_at(i)) & 0x7fffffff
 	return "wolf_fang" if h % 2 == 0 else "bandit_badge"
 
+## 인물마다 돌파 특산물(106장 ⑱) — 주인공은 마을 청하란, 동료는 id 해시로 셋 중 하나(전리품 해시와 다른 곱수).
+static func specialty_of(member_id: String) -> String:
+	if member_id == "self":
+		return SPECIALTIES[0]
+	var h := 0
+	for i in member_id.length():
+		h = (h * 29 + member_id.unicode_at(i)) & 0x7fffffff
+	return SPECIALTIES[h % SPECIALTIES.size()]
+
 ## 다음 돌파에 드는 것 {item: 수}. 끝까지 돌파했으면 빈 사전.
 static func ascend_cost(member_id: String, asc: int) -> Dictionary:
 	if asc >= MAX_ASC:
 		return {}
 	var c: Dictionary = ASCEND_COST[asc]
-	return {"mora": c.mora, crystal_of(member_id): c.crystal, common_of(member_id): c.common}
+	return {"mora": c.mora, crystal_of(member_id): c.crystal, common_of(member_id): c.common, specialty_of(member_id): c.special}
 
 static func item_name(item: String) -> String:
 	return ITEMS[item].name if ITEMS.has(item) else item

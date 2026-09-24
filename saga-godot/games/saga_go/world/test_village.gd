@@ -54,6 +54,18 @@ func _ready() -> void:
 	var chars := preload("res://games/saga_go/ui/character_screen.gd").new()
 	chars.name = "CharacterScreen"
 	add_child(chars)
+	## PLAN 106장 ⑱ — 채집(재료·특산물) + 냄비·요리 + 요리·음식 화면(G, 냄비 곁 F).
+	var gathering := preload("res://games/saga_go/world/gathering.gd").new()
+	gathering.name = "Gathering"
+	add_child(gathering)
+	var kitchen := preload("res://games/saga_go/world/kitchen.gd").new()
+	kitchen.name = "Kitchen"
+	add_child(kitchen)
+	var cooking := preload("res://games/saga_go/ui/cooking_screen.gd").new()
+	cooking.name = "CookingScreen"
+	add_child(cooking)
+	if OS.get_environment("SAGA_COOK_PROBE") != "":
+		add_child(load("res://tools/probe_cooking.gd").new())
 	if OS.get_environment("SAGA_GROWTH_PROBE") != "":
 		add_child(load("res://tools/probe_growth.gd").new())
 	if OS.get_environment("SAGA_TALENT_PROBE") != "":
