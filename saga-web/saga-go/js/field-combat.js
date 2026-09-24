@@ -91,6 +91,29 @@
   /** 인물의 원소 — id 해시로 고정(바뀌지 않는다) */
   function elementOf(id) { return EL_KEYS[Math.floor(hs(id) * 3) % 3]; }
 
+  /* ⑫ 스킬 모양 — 인물마다 다르다(원소와 다른 해시). 주인공 '나'는 옛 원형 광역 그대로.
+     찌르기: 앞으로 좁고 길게 세게 · 돌진: 파고들며 길 위를 친다(짧은 무적) ·
+     장판: 그 자리가 몇 초 동안 원소를 묻힌다(반응 굴리기) · 소환: 곁의 정령이 가까운 적을 친다 */
+  var SHAPES = {
+    circle: { key: 'circle', name: '원형',   icon: '⭕' },
+    thrust: { key: 'thrust', name: '찌르기', icon: '🗡️' },
+    dash:   { key: 'dash',   name: '돌진',   icon: '💨' },
+    field:  { key: 'field',  name: '장판',   icon: '🌀' },
+    summon: { key: 'summon', name: '소환',   icon: '👻' }
+  };
+  var SHAPE_KEYS = ['thrust', 'dash', 'field', 'summon'];
+  function shapeOf(id) { return id === '_me' ? 'circle' : SHAPE_KEYS[Math.floor(hs(id + '#shape') * 4) % 4]; }
+  function THRUST_LEN() { return 8; }  function THRUST_W() { return 1.6; }  function THRUST_MUL() { return K('thrustMul', 2.8); }
+  function DASH_LEN() { return 6; }    function DASH_W() { return 1.8; }    function DASH_MUL() { return K('dashMul', 2.4); }
+  function FIELD_R() { return 4; }     function FIELD_T() { return 5; }     function FIELD_MUL() { return K('fieldMul', 0.6); }
+  function SUMMON_T() { return 8; }    function SUMMON_EVERY() { return 1.5; }  function SUMMON_R() { return 7; }  function SUMMON_MUL() { return K('summonMul', 0.9); }
+  /** 점 (x,y) 에서 선분 (ax,ay)-(bx,by) 까지 거리 */
+  function segDist(x, y, ax, ay, bx, by) {
+    var vx = bx - ax, vy = by - ay, L2 = vx * vx + vy * vy;
+    var u = L2 > 0 ? Math.max(0, Math.min(1, ((x - ax) * vx + (y - ay) * vy) / L2)) : 0;
+    return Math.hypot(x - (ax + vx * u), y - (ay + vy * u));
+  }
+
   /**
    * 원소 반응 — 이미 붙어 있는 원소(aura)에 새 원소(hit)가 닿으면.
    * 같은 원소·물리는 반응 없음(null).
@@ -220,7 +243,7 @@
     var s = statsOf(id);
     var hpMax = Math.round(300 + s.command * 6);
     return {
-      id: id, name: h ? h.name : '나', el: elementOf(id),
+      id: id, name: h ? h.name : '나', el: elementOf(id), shape: shapeOf(id),
       atk: Math.max(20, Math.round(s.might * 0.7 + s.wisdom * 0.3)),
       hpMax: hpMax, hp: hpMax, em: s.wisdom, def: s.command,
       skillCd: 0, burstCd: 0, energy: 0, down: false, burn: null
@@ -234,7 +257,7 @@
       t: 0, party: ids.map(memberOf), active: 0, swapCd: 0,
       stamina: STA_MAX(), staT: 9, iframe: 0, dash: null,
       combo: 0, comboT: 9, atkCd: 0, calmT: 99,
-      foes: {}, camps: {}, cleared: {}, uid: 0, ev: [], kills: 0
+      foes: {}, camps: {}, cleared: {}, uid: 0, ev: [], kills: 0, zones: []
     };
   }
 
@@ -484,16 +507,72 @@
     if (!m || m.down || m.skillCd > 0) { return { ok: false, cd: m ? m.skillCd : 0 }; }
     var aim = nearestFoe(S, px, py, SKILL_AIM());
     var cx = aim ? aim.x : px, cy = aim ? aim.y : py;
-    var hits = foesWithin(S, cx, cy, SKILL_R());
-    for (var i = 0; i < hits.length; i++) { hitFoe(S, hits[i], m, m.atk * SKILL_MUL(), m.el, 'skill'); }
+    var sh = m.shape || 'circle', hits = [], i, ev;
+    /* 겨눈 쪽 — 적이 없으면 마지막으로 움직인(회피한) 쪽, 그것도 없으면 +y */
+    var dx = cx - px, dy = cy - py, dl = Math.hypot(dx, dy);
+    if (dl < 1e-6) { dx = S.lastDx || 0; dy = S.lastDy || 1; dl = Math.hypot(dx, dy) || 1; }
+    dx /= dl; dy /= dl;
+    if (sh === 'thrust') {
+      var ex = px + dx * THRUST_LEN(), ey = py + dy * THRUST_LEN();
+      hits = living(S).filter(function (f) { return segDist(f.x, f.y, px, py, ex, ey) <= THRUST_W(); });
+      for (i = 0; i < hits.length; i++) { hitFoe(S, hits[i], m, m.atk * THRUST_MUL(), m.el, 'skill'); }
+      ev = { x: ex, y: ey, x0: px, y0: py, r: THRUST_W() };
+    } else if (sh === 'dash') {
+      var go = aim ? Math.min(DASH_LEN(), Math.max(0, dl - 1.2)) : DASH_LEN();
+      var bx = px + dx * go, by = py + dy * go;
+      hits = living(S).filter(function (f) { return segDist(f.x, f.y, px, py, bx + dx * 1.2, by + dy * 1.2) <= DASH_W(); });
+      for (i = 0; i < hits.length; i++) { hitFoe(S, hits[i], m, m.atk * DASH_MUL(), m.el, 'skill'); }
+      S.dash = { vx: dx * go / DASH_T(), vy: dy * go / DASH_T(), t: DASH_T() };
+      S.iframe = Math.max(S.iframe, 0.3);
+      ev = { x: bx, y: by, x0: px, y0: py, r: DASH_W() };
+    } else if (sh === 'field') {
+      S.zones.push({ kind: 'field', x: cx, y: cy, r: FIELD_R(), t: FIELD_T(), next: 0, el: m.el, atk: m.atk, em: m.em, uid: m.id });
+      hits = foesWithin(S, cx, cy, FIELD_R());          // 기력 셈에만 — 피해는 zone 틱(바로 첫 틱)이 준다
+      ev = { x: cx, y: cy, r: FIELD_R() };
+    } else if (sh === 'summon') {
+      S.zones.push({ kind: 'summon', x: px + dx * 1.5, y: py + dy * 1.5, r: SUMMON_R(), t: SUMMON_T(), next: 0, el: m.el, atk: m.atk, em: m.em, uid: m.id });
+      hits = aim ? [aim] : [];
+      ev = { x: px + dx * 1.5, y: py + dy * 1.5, r: SUMMON_R() };
+    } else {
+      hits = foesWithin(S, cx, cy, SKILL_R());
+      for (i = 0; i < hits.length; i++) { hitFoe(S, hits[i], m, m.atk * SKILL_MUL(), m.el, 'skill'); }
+      ev = { x: cx, y: cy, r: SKILL_R() };
+    }
+    if (sh === 'field' || sh === 'summon') { stepZones(S, 0); }   // 놓자마자 첫 틱
     m.skillCd = SKILL_CD();
     m.energy = Math.min(ENERGY_MAX(), m.energy + 6 + Math.min(6, hits.length * 2));
     for (var j = 0; j < S.party.length; j++) {
       var o = S.party[j];
       if (j !== S.active && !o.down) { o.energy = Math.min(ENERGY_MAX(), o.energy + 3); }
     }
-    push(S, { t: 'skill', el: m.el, x: cx, y: cy, r: SKILL_R(), n: hits.length });
-    return { ok: true, n: hits.length };
+    push(S, { t: 'skill', el: m.el, shape: sh, x: ev.x, y: ev.y, x0: ev.x0, y0: ev.y0, r: ev.r, n: hits.length });
+    return { ok: true, n: hits.length, shape: sh };
+  }
+
+  /** 장판·소환 — 놓은 사람 공격력으로 틱마다 친다(그 사이 교체해도 남는다) */
+  function stepZones(S, dt) {
+    var Z = S.zones || [], i, k;
+    for (i = Z.length - 1; i >= 0; i--) {
+      var z = Z[i];
+      z.t -= dt; z.next -= dt;
+      if (z.next <= 1e-9 && z.t > 1e-9) {
+        var who = { atk: z.atk, em: z.em };
+        if (z.kind === 'field') {
+          var in_ = foesWithin(S, z.x, z.y, z.r);
+          for (k = 0; k < in_.length; k++) { hitFoe(S, in_[k], who, z.atk * FIELD_MUL(), z.el, 'zone'); }
+          push(S, { t: 'zone', kind: 'field', el: z.el, x: z.x, y: z.y, r: z.r, n: in_.length });
+          z.next += 1;
+        } else {
+          var tg = nearestFoe(S, z.x, z.y, z.r);
+          if (tg) {
+            hitFoe(S, tg, who, z.atk * SUMMON_MUL(), z.el, 'zone');
+            push(S, { t: 'zone', kind: 'summon', el: z.el, x: z.x, y: z.y, tx: tg.x, ty: tg.y, r: 1.2, n: 1 });
+          }
+          z.next += SUMMON_EVERY();
+        }
+      }
+      if (z.t <= 1e-9) { Z.splice(i, 1); }
+    }
   }
 
   /** 원소 폭발 — 기력 60 을 다 쓴다. 내 둘레 7m, 1초 무적 */
@@ -511,6 +590,7 @@
   /** 회피 — 스태미나 20, 0.35초 무적, 3.6m 미끄러진다. 방향이 없으면 가장 가까운 적 반대로 */
   function dodge(S, dx, dy, px, py) {
     if (S.stamina < DODGE_COST() || allDown(S)) { return { ok: false }; }
+    if (dx || dy) { S.lastDx = dx; S.lastDy = dy; }
     if (!dx && !dy) {
       var n = nearestFoe(S, px || 0, py || 0, 30);
       if (n) { dx = (px || 0) - n.x; dy = (py || 0) - n.y; } else { dy = 1; }
@@ -588,6 +668,7 @@
       S.dash.t -= dd;
       if (S.dash.t <= 1e-6) { S.dash = null; }
     }
+    if (S.zones && S.zones.length) { stepZones(S, dt); }
     var i, m;
     for (i = 0; i < S.party.length; i++) {
       m = S.party[i];
@@ -826,12 +907,24 @@
       } else if (e.t === 'swing') {
         if (W3()) { W3().playAnim('me', 'attack', 280); }
       } else if (e.t === 'skill') {
-        ring(e.x, e.y, e.r, EL[e.el].color, 0.5);
+        if (e.shape === 'thrust' || e.shape === 'dash') {
+          /* 선 모양 — 길을 따라 작은 원을 늘어놓는다 */
+          for (var si = 1; si <= 4; si++) {
+            var sf = si / 4;
+            ring(e.x0 + (e.x - e.x0) * sf, e.y0 + (e.y - e.y0) * sf, e.r * 0.8, EL[e.el].color, 0.35 + sf * 0.2);
+          }
+        } else {
+          ring(e.x, e.y, e.r, EL[e.el].color, e.shape === 'field' ? 0.9 : 0.5);
+        }
+        if (e.shape && e.shape !== 'circle') { floatNum(pos.x, pos.y, SHAPES[e.shape].icon + ' ' + SHAPES[e.shape].name, e.el, 0.9, true, true); }
         if (W3()) { W3().playAnim('me', 'attack', 380); }
       } else if (e.t === 'burst') {
         ring(e.x, e.y, e.r, EL[e.el].color, 0.8);
         ring(e.x, e.y, e.r * 0.55, '#ffffff', 0.5);
         sfx('thunder');
+      } else if (e.t === 'zone') {
+        if (e.kind === 'field') { ring(e.x, e.y, e.r, EL[e.el].color, 0.4); }
+        else { ring(e.x, e.y, 0.9, EL[e.el].color, 0.3); ring(e.tx, e.ty, e.r, EL[e.el].color, 0.3); }
       } else if (e.t === 'dodge') { if (W3()) { W3().playAnim('me', 'dodge', 300); } }
       else if (e.t === 'tell') { if (W3()) { W3().playAnim('fc' + e.uid, 'attack', 700); } }
       else if (e.t === 'strike') { if (e.r) { ring(e.x, e.y, e.r, '#ff4d4d', 0.3); } }
@@ -989,7 +1082,7 @@
     sk.style.setProperty('--el', EL[m.el].color);
     bu.style.setProperty('--el', EL[m.el].color);
     sk.querySelector('.fc-cd').style.height = Math.round(100 * m.skillCd / SKILL_CD()) + '%';
-    sk.querySelector('span').textContent = m.skillCd > 0 ? m.skillCd.toFixed(1) : EL[m.el].icon + ' 스킬';
+    sk.querySelector('span').textContent = m.skillCd > 0 ? m.skillCd.toFixed(1) : EL[m.el].icon + ' ' + (SHAPES[m.shape] && m.shape !== 'circle' ? SHAPES[m.shape].name : '스킬');
     var ready = m.energy >= ENERGY_MAX() && m.burstCd <= 0;
     bu.classList.toggle('ready', ready);
     bu.querySelector('.fc-fill').style.height = Math.round(100 * m.energy / ENERGY_MAX()) + '%';
@@ -1178,7 +1271,7 @@
     EL: EL, FOES: FOES, THEMES: THEMES, ELITES: ELITES, CELL: CELL, ENERGY_MAX: ENERGY_MAX,
     SKILL_CD: SKILL_CD, SWAP_CD: SWAP_CD, DODGE_COST: DODGE_COST, VAPOR_MUL: VAPOR_MUL,
     /* 판정 층 — 화면 없이 굴린다(자가진단이 쓰는 문) */
-    elementOf: elementOf, react: react, shieldMul: shieldMul, campAt: campAt, tierAt: tierAt, guardianAt: guardianAt, COUNTER: COUNTER,
+    elementOf: elementOf, shapeOf: shapeOf, SHAPES: SHAPES, segDist: segDist, react: react, shieldMul: shieldMul, campAt: campAt, tierAt: tierAt, guardianAt: guardianAt, COUNTER: COUNTER,
     create: create, reparty: reparty, populate: populate, spawnCamp: spawnCamp, step: step, drain: drain,
     attack: attack, skill: skill, burst: burst, dodge: dodge, swap: swap, hitFoe: hitFoe,
     engaged: engaged, living: living, memberOf: memberOf,

@@ -815,11 +815,11 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 
     t('들판 전투 — 증발은 ×1.5(숙련 보정 포함), 반응 뒤 원소는 지워진다', function () {
       var FC = DG.fieldCombat, S = fcState(), f = fcFoe(S, 'bear', 3, 0);
-      S.party[0].el = 'fire';
+      S.party[0].el = 'fire'; S.party[0].shape = 'circle';        // ⑫ 모양은 따로 본다 — 여기선 옛 원형
       FC.skill(S, 0, 0);
       var plain = fcEv(S, 'hit')[0].dmg;                       // 60×2.2 = 132, 불이 붙는다
       var S2 = fcState(), g = fcFoe(S2, 'bear', 3, 0);
-      S2.party[0].el = 'fire'; g.aura = 'water'; g.auraT = 5;
+      S2.party[0].el = 'fire'; S2.party[0].shape = 'circle'; g.aura = 'water'; g.auraT = 5;
       FC.skill(S2, 0, 0);
       var ev = fcEv(S2);
       var hit = ev.filter(function (e) { return e.t === 'hit'; })[0];
@@ -899,6 +899,44 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
          ' — 겉 깨면 0.8초·속 깨면 3초 · 토벌 뒤 안 섬');
     });
 
+    t('들판 전투 ⑫ — 스킬 모양 넷: 찌르기(좁고 길게)·돌진(파고듦·무적)·장판(5초 5틱)·소환(1.5초마다 6번)', function () {
+      var FC = DG.fieldCombat;
+      if (!FC.shapeOf || !FC.SHAPES) { return false; }
+      /* 모양 배정 — 결정적, 주인공은 원형, 동행 id 가 넷을 고루 쓴다 */
+      var seen = {}, k;
+      for (k = 0; k < 40; k++) { seen[FC.shapeOf('fc_s' + k)] = true; }
+      var okPick = FC.shapeOf('_me') === 'circle' && FC.shapeOf('fc_s3') === FC.shapeOf('fc_s3') &&
+        seen.thrust && seen.dash && seen.field && seen.summon && !seen.circle &&
+        FC.memberOf('fc_s7').shape === FC.shapeOf('fc_s7');
+      function one(shape) { var S = fcState(); S.party[0].shape = shape; S.party[0].el = 'fire'; return S; }
+      /* 찌르기 — 겨눈 쪽 직선 8m·폭 1.6m 안만, ×2.8 */
+      var S1 = one('thrust'), a1 = fcFoe(S1, 'bear', 0, 4), b1 = fcFoe(S1, 'bear', 0, 7), c1 = fcFoe(S1, 'bear', 2.5, 4.2);
+      var r1 = FC.skill(S1, 0, 0), h1 = fcEv(S1, 'hit');
+      var okThrust = r1.shape === 'thrust' && r1.n === 2 && h1.length === 2 && h1[0].dmg === 168 && c1.hp === c1.hpMax;
+      /* 돌진 — 적 1.2m 앞까지 파고들며 치고, 0.3초 무적 */
+      var S2 = one('dash'), a2 = fcFoe(S2, 'bear', 0, 5);
+      var r2 = FC.skill(S2, 0, 0), iframe = S2.iframe, moved = 0, i;
+      for (i = 0; i < 5; i++) { FC.step(S2, 0.05, { px: 0, py: 0, blocked: true }); }
+      fcEv(S2, 'move').forEach(function (e) { moved += e.dy; });
+      var okDash = r2.n === 1 && a2.hp === a2.hpMax - 144 && iframe >= 0.3 && Math.abs(moved - 3.8) < 1e-6;
+      /* 장판 — 4m 자리, 놓자마자 첫 틱 + 1초마다, 5초 동안 다섯 틱(×0.6) */
+      var S3 = one('field'), a3 = fcFoe(S3, 'bear', 0, 3);
+      FC.skill(S3, 0, 0);
+      for (i = 0; i < 70; i++) { FC.step(S3, 0.1, { px: 0, py: 0, blocked: true }); }
+      var z3 = fcEv(S3, 'zone').length;
+      var okField = z3 === 5 && a3.hp === a3.hpMax - 5 * 36 && S3.zones.length === 0 && a3.aura === 'fire';
+      /* 소환 — 8초 동안 1.5초마다 가장 가까운 적 하나(×0.9), 교체해도 남는다 */
+      var S4 = fcState(['fc_a', 'fc_b']); S4.party[0].shape = 'summon';
+      var a4 = fcFoe(S4, 'bear', 0, 5);
+      FC.skill(S4, 0, 0);
+      FC.swap(S4, 1);
+      for (i = 0; i < 90; i++) { FC.step(S4, 0.1, { px: 0, py: 0, blocked: true }); }
+      var z4 = fcEv(S4, 'zone').filter(function (e) { return e.kind === 'summon'; }).length;
+      var okSummon = z4 === 6 && a4.hp === a4.hpMax - 6 * 54 && S4.zones.length === 0;
+      return okPick && okThrust && okDash && okField && okSummon &&
+        ('찌르기 2마리 168 · 돌진 3.8m 144 · 장판 5틱 ×36 · 소환 6번 ×54 · 주인공 원형');
+    });
+
     t('들판 전투 — 예고 끝에 사거리 안이면 맞고, 회피 무적이면 안 맞는다', function () {
       function run(doDodge) {
         var FC = DG.fieldCombat, S = fcState(), f = fcFoe(S, 'boar', 1.5, 0);
@@ -952,6 +990,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 
     t('들판 전투 — 폭발은 기력 60 이 차야 나가고, 스킬이 기력을 채운다', function () {
       var FC = DG.fieldCombat, S = fcState(['fc_a', 'fc_b']), m = S.party[0];
+      m.shape = 'circle';
       fcFoe(S, 'bear', 3, 0); fcFoe(S, 'bear', 3.5, 0.5);
       var no = FC.burst(S, 0, 0).ok;
       FC.skill(S, 0, 0);
