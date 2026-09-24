@@ -17,6 +17,12 @@
  *
  * 판정 층(`cellAt`·`regionAt`·`bandAt`·`reliefAt`·`biomeAt`·`landmarks`)은 순수
  * 함수다. 세이브는 `save.regions = { 지역키: 발견 시각 }` 하나(읽는 쪽 기본값).
+ *
+ * §5 ⑮ 고정 특색 지역(2026-09-24 사용자 "전체 지역을 랜덤이 아닌 사가블로처럼 각각 특색 있는
+ * 지역으로", 전 프로젝트 공통) — 칸의 바이옴·이름을 해시로 뽑지 않는다. 고향을 가운데 두고
+ * 방위 여덟 × 고리 둘(안쪽 6km · 바깥) = **이름 있는 땅 열여섯**(`ZONES`)이 고정 배치되고,
+ * 칸은 제가 속한 땅의 바이옴·지명 표를 받는다. 경계는 칸 좌표만으로 정해지는 고정 흔들림으로
+ * 굽힌다(자로 그은 선이 안 보이게). 땅이 바뀌면 큰 이름 띠(이모지·이름·한자·사연).
  */
 (function (global) {
   'use strict';
@@ -39,14 +45,74 @@
     marsh:  { key: 'marsh',  name: '안개 늪',     noun: '늪',   desc: '물두꺼비 울음이 번지는 물가',  share: [34, 4, 30, 8],   relief: 0.5,  color: '#5fb3b3', themes: [2, 5], elites: [1], boss: 0.04 },
     ruins:  { key: 'ruins',  name: '옛 성터 고원', noun: '고원', desc: '무너진 성벽 위로 번개가 친다', share: [6, 26, 14, 20],  relief: 1.4,  color: '#b3a3dc', themes: [3, 4, 5], elites: [2], boss: 0.1 }
   };
-  var PICK = ['plain', 'bamboo', 'canyon', 'marsh', 'ruins'];
-  var PREFIX = {
-    plain: ['청풍', '황금', '너른', '봄빛', '흰구름', '종달새'],
-    bamboo: ['밤이슬', '천년', '속삭이는', '푸른바람', '학이 앉은', '깊은'],
-    canyon: ['화염', '노을', '적사', '불꽃바위', '마른', '용이 긁은'],
-    marsh: ['달그림자', '갈대', '잠긴', '물안개', '버들', '두꺼비'],
-    ruins: ['옛 왕의', '무너진', '번개', '잊힌', '돌거인', '바람 우는']
-  };
+
+
+  /* ── 고정 특색 지역(§5 ⑮) ──────────────────────────────────────────
+   * 방위 여덟(0 = +x 쪽, 칸 좌표 각도 순) × 고리 둘. era: past·modern·future·myth(퓨전 — 사가블로 §5.12 와 같은 결).
+   * biome 은 위 다섯 중 하나(지형 문턱·기복·무리 꼴을 그대로 빌린다), places 는 그 땅 칸들의 지명. 이름은 전부 창작 */
+  var RING_R = 6000;
+  var ZONES = [
+    /* 안쪽 고리 — 걸어서 닿는 이웃 땅 */
+    { key: 'cheongpung', ring: 0, name: '청풍 벌판', hanja: '淸風', emoji: '🌾', biome: 'plain', era: 'past',
+      desc: '바람개비가 도는 너른 들 — 봄이면 종달새가 먼저 운다',
+      places: ['바람개비 언덕', '여울목', '종달새 들', '느티 마당', '보리밭 둑', '청풍 나루'] },
+    { key: 'galdae', ring: 0, name: '갈대 나루', hanja: '蘆津', emoji: '🦆', biome: 'marsh', era: 'past',
+      desc: '갈대 사이로 나룻배가 잠든 물가',
+      places: ['갈대 숲길', '옛 나루터', '물새 섬', '버들 여울', '안개 선착장', '두꺼비 못'] },
+    { key: 'jugeup', ring: 0, name: '대숲 고을', hanja: '竹邑', emoji: '🎋', biome: 'bamboo', era: 'past',
+      desc: '하늘을 가린 대나무 사이로 옛 고을 기와가 보인다',
+      places: ['죽림 오솔길', '학이 앉은 골', '바람 대숲', '옛 고을 터', '이슬 계곡', '대숲 사당'] },
+    { key: 'gamagol', ring: 0, name: '가마골', hanja: '窯谷', emoji: '🏺', biome: 'canyon', era: 'past',
+      desc: '도자기 가마 연기가 붉은 바위 골을 채운다',
+      places: ['불가마 터', '붉은 벼랑', '가마꾼 마을', '노을 바위', '깨진 항아리 골', '화염 고개'] },
+    { key: 'gojeong', ring: 0, name: '옛 성터 언덕', hanja: '古城', emoji: '🏯', biome: 'ruins', era: 'past',
+      desc: '무너진 성벽이 언덕을 두른다 — 밤이면 옛 병사들이 돈다',
+      places: ['무너진 성문', '망루 터', '돌거인 언덕', '잊힌 우물', '옛 왕의 길', '봉화 둑'] },
+    { key: 'dalho', ring: 0, name: '달그림자 호수', hanja: '月影湖', emoji: '🌙', biome: 'marsh', era: 'myth',
+      desc: '달이 두 개 비친다는 안개 호수',
+      places: ['달그림자 물가', '잠긴 사당', '물안개 섬', '은빛 여울', '용궁 나루', '거울 못'] },
+    { key: 'solryeong', ring: 0, name: '솔숲 고개', hanja: '松嶺', emoji: '🌲', biome: 'bamboo', era: 'past',
+      desc: '소나무 고개 너머 산적이 길을 막는다',
+      places: ['솔바람 고개', '산적 망루', '송진 골', '호랑이 바위', '약초 비탈', '고개 주막'] },
+    { key: 'hwanggeum', ring: 0, name: '황금 들녘', hanja: '黃金野', emoji: '🌻', biome: 'plain', era: 'modern',
+      desc: '해바라기 밭 사이로 녹슨 경운기와 전봇대가 서 있다',
+      places: ['해바라기 밭', '녹슨 경운기', '전봇대 길', '양봉 언덕', '허수아비 들', '간이역 터'] },
+    /* 바깥 고리 — 멀리 떠나야 닿는 땅(현대·미래·신화가 섞인다) */
+    { key: 'neon', ring: 1, name: '잿빛 폐도시', hanja: '廢都市', emoji: '🏭', biome: 'ruins', era: 'modern',
+      desc: '멈춘 공장 굴뚝과 무너진 고가도로',
+      places: ['멈춘 공장', '무너진 고가', '네온 간판 거리', '지하철 입구', '녹슨 급수탑', '빈 주차장'] },
+    { key: 'saltflat', ring: 1, name: '소금 갯벌', hanja: '鹽田', emoji: '🦀', biome: 'marsh', era: 'modern',
+      desc: '물 빠진 갯벌에 녹슨 관측탑이 기울어 있다',
+      places: ['소금 창고', '녹슨 관측탑', '갯골', '염전 둑', '난파선', '칠게 벌'] },
+    { key: 'dragon', ring: 1, name: '용의 협곡', hanja: '龍峽', emoji: '🐉', biome: 'canyon', era: 'myth',
+      desc: '거대한 발톱 자국이 난 붉은 협곡 — 하늘에서 불이 떨어진다',
+      places: ['용 발톱 벼랑', '불비 골', '비늘 바위', '용알 둥지', '화산 입', '천둥 다리'] },
+    { key: 'solar', ring: 1, name: '태양 신도시', hanja: '新都市', emoji: '🔆', biome: 'plain', era: 'future',
+      desc: '태양광 판이 끝없이 늘어선 개척지',
+      places: ['태양광 들', '반듯한 신작로', '개척 천막촌', '충전탑', '드론 활주로', '유리 온실'] },
+    { key: 'silkroad', ring: 1, name: '서역 모랫길', hanja: '西域', emoji: '🐫', biome: 'canyon', era: 'past',
+      desc: '대상의 낙타 방울이 모래바람 속에 울린다',
+      places: ['대상 야영지', '모래 묻힌 탑', '오아시스', '낙타 방울 고개', '붉은 사구', '비단길 관문'] },
+    { key: 'heaven', ring: 1, name: '천계 구름 사당', hanja: '天界', emoji: '☁️', biome: 'ruins', era: 'myth',
+      desc: '구름 위 사당과 빛으로 새긴 홀로그램 비석',
+      places: ['구름 사당', '빛의 비석', '선녀 계단', '별자리 제단', '천문 누각', '무지개 다리'] },
+    { key: 'snowfort', ring: 1, name: '북방 설산', hanja: '北方雪山', emoji: '🏔️', biome: 'ruins', era: 'modern',
+      desc: '눈 덮인 산성과 케이블카 기둥이 골짜기를 가로지른다',
+      places: ['눈 덮인 산성', '케이블카 기둥', '얼음 폭포', '설인 굴', '북풍 고개', '만년설 봉'] },
+    { key: 'scrap', ring: 1, name: '기계 황무지', hanja: '機械荒蕪', emoji: '🤖', biome: 'plain', era: 'future',
+      desc: '쓰러진 기계 더미 사이로 홀로그램 표지가 깜빡인다',
+      places: ['고철 산', '쓰러진 거신', '홀로그램 표지', '기름 늪', '부품 시장', '정지한 공장'] }
+  ];
+  var ZBY = {};
+  ZONES.forEach(function (z, i) { z.sector = i % 8; ZBY[z.key] = z; });
+  /** 칸(i, j)의 땅 — 칸 좌표만으로(고정 흔들림으로 경계를 굽힌다). 고향 칸은 null */
+  function zoneOfCell(i, j) {
+    if (i === 0 && j === 0) { return null; }
+    var a = Math.atan2(j, i) + (h3(i, j, 17) - 0.5) * 0.34;
+    var sec = ((Math.round(a / (Math.PI / 4)) % 8) + 8) % 8;
+    var d = Math.hypot(i, j) * SIZE + (h3(i, j, 19) - 0.5) * SIZE;
+    return ZONES[(d < RING_R ? 0 : 8) + sec];
+  }
 
   /* 노이즈 누적 분포 → 문턱(world.js 가 400만 표본으로 잰 분위수에 끝점만 더했다) */
   var CDF = [[0, 0], [0.14, 0.1614], [0.32, 0.2106], [0.68, 0.2905], [0.80, 0.3211], [1.0, 0.5]];
@@ -81,14 +147,14 @@
     var c = cellCache[k];
     if (c) { return c; }
     var home = i === 0 && j === 0;
-    var bk = home ? 'home' : PICK[Math.floor(h3(i, j, 3) * PICK.length) % PICK.length];
+    var z = home ? null : zoneOfCell(i, j);
+    var bk = home ? 'home' : z.biome;
     var B = BIOMES[bk];
-    var pre = home ? null : PREFIX[bk][Math.floor(h3(i, j, 5) * 6) % 6];
     c = {
-      key: k, i: i, j: j, biome: bk,
+      key: k, i: i, j: j, biome: bk, zone: z ? z.key : 'home',
       x: (i + (h3(i, j, 1) - 0.5) * 0.7) * SIZE,
       y: (j + (h3(i, j, 2) - 0.5) * 0.7) * SIZE,
-      name: home ? B.name : pre + ' ' + B.noun
+      name: home ? B.name : z.places[Math.floor(h3(i, j, 5) * 2 * z.places.length) % z.places.length]
     };
     if (home) { c.x = 0; c.y = 0; }
     if (cellCount > 3000) { cellCache = {}; cellCount = 0; }
@@ -316,7 +382,7 @@
     missionEl.style.display = txt ? '' : 'none';
   }
 
-  var lastKey = null, bannerEl = null, bannerT = 0, acc = 0;
+  var lastKey = null, lastZone = null, bannerEl = null, bannerT = 0, acc = 0;
   var beams = {};
 
   function banner(cell) {
@@ -326,9 +392,11 @@
       bannerEl.id = 'region-banner';
       document.body.appendChild(bannerEl);
     }
-    var B = BIOMES[cell.biome];
+    var B = BIOMES[cell.biome], z = ZBY[cell.zone];
     bannerEl.style.setProperty('--bc', B.color);
-    bannerEl.innerHTML = '<b>' + cell.name + '</b><small>' + B.desc + (found(cell.key) ? '' : ' · 가운데 탑을 찾아라') + '</small>';
+    var head = z && cell.zone !== lastZone ? z.emoji + ' ' + z.name + '(' + z.hanja + ')' : (z ? z.emoji + ' ' + z.name + ' · ' + cell.name : cell.name);
+    var sub = z && cell.zone !== lastZone ? z.desc + ' — ' + cell.name : (z ? z.desc : B.desc);
+    bannerEl.innerHTML = '<b>' + head + '</b><small>' + sub + (found(cell.key) ? '' : ' · 가운데 탑을 찾아라') + '</small>';
     bannerEl.classList.remove('show');
     void bannerEl.offsetWidth;
     bannerEl.classList.add('show');
@@ -347,6 +415,10 @@
     if (r.cell.key !== lastKey) {
       if (lastKey !== null) { banner(r.cell); }
       lastKey = r.cell.key;
+      if (r.cell.zone !== lastZone) {
+        if (lastZone !== null) { core().emit('zone:enter', { key: r.cell.zone }); }
+        lastZone = r.cell.zone;
+      }
     }
     var c = r.cell;
     if (c.biome !== 'home' && !found(c.key) && Math.hypot(pos.x - c.x, pos.y - c.y) < FIND_R) { discover(c.key); }
@@ -388,9 +460,13 @@
     BIOMES: BIOMES, SIZE: SIZE, BLEND: BLEND, FIND_R: FIND_R,
     on: on, cellAt: cellAt, regionAt: regionAt, biomeAt: biomeAt, bandAt: bandAt, reliefAt: reliefAt,
     landmarks: landmarks, bandOf: bandOf, invCdf: invCdf,
+    ZONES: ZONES, RING_R: RING_R, zoneOfCell: zoneOfCell,
+    zoneByKey: function (k) { return ZBY[k] || null; },
+    /** 이 자리의 땅(고향이면 null) */
+    zoneAt: function (x, y) { return ZBY[regionAt(x, y).cell.zone] || null; },
     found: found, discover: discover, waypoints: waypoints, teleport: teleport, tick: tick,
     MISSION_CLEARS: MISSION_CLEARS, missionView: missionView, missionState: missionState, progressMission: progressMission,
     subscribe: subscribe,
-    _resetForTest: function () { lastKey = null; acc = 0; }
+    _resetForTest: function () { lastKey = null; lastZone = null; acc = 0; }
   };
 })(window);

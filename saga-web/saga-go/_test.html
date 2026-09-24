@@ -1134,6 +1134,66 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         Object.keys(kinds).length === 6 && ('81칸 · 바이옴 ' + Object.keys(kinds).sort().join('·'));
     });
 
+    t('고정 지역 ⑮ — 이름 있는 땅 열여섯(안쪽 여덟·바깥 여덟), 이름·한자·지명 여섯, 겹치는 이름 없음, ±12칸에 다 있다', function () {
+      var BM = DG.biome, names = {}, bad = [], seen = {};
+      BM.ZONES.forEach(function (z) {
+        if (names[z.name]) { bad.push('겹침 ' + z.name); }
+        names[z.name] = 1;
+        if (!z.hanja || !z.emoji || !z.desc || z.places.length !== 6 || !BM.BIOMES[z.biome]) { bad.push(z.key); }
+      });
+      for (var j = -12; j <= 12; j++) {
+        for (var i = -12; i <= 12; i++) {
+          var c = BM.cellAt(i, j), z = BM.zoneByKey(c.zone);
+          seen[c.zone] = 1;
+          if (z && (c.biome !== z.biome || z.places.indexOf(c.name) < 0)) { bad.push(c.key); }
+          if (z && z.ring === 0 && Math.hypot(i, j) * BM.SIZE > BM.RING_R + BM.SIZE) { bad.push('안쪽 밖 ' + c.key); }
+          if (z && z.ring === 1 && Math.hypot(i, j) * BM.SIZE < BM.RING_R - BM.SIZE) { bad.push('바깥 안 ' + c.key); }
+        }
+      }
+      if (bad.length) { throw new Error(bad.slice(0, 8).join(',')); }
+      return BM.ZONES.length === 16 && Object.keys(seen).length === 17 &&
+        ('땅 16 + 고향 · ' + BM.ZONES.map(function (z) { return z.emoji + z.name; }).join(' '));
+    });
+
+    t('고정 지역 ⑮ — 땅은 뭉쳐 있다(이웃 칸이 대부분 같은 땅), 같은 칸은 늘 같은 땅', function () {
+      var BM = DG.biome, same = 0, n = 0, stable = true;
+      for (var j = -10; j <= 10; j++) {
+        for (var i = -10; i <= 10; i++) {
+          var z = BM.cellAt(i, j).zone;
+          if (BM.zoneOfCell(i, j) && BM.zoneOfCell(i, j).key !== z) { stable = false; }
+          [[1, 0], [0, 1]].forEach(function (d) { n++; if (BM.cellAt(i + d[0], j + d[1]).zone === z) { same++; } });
+        }
+      }
+      var r = same / n;
+      return stable && r > 0.7 && ('이웃이 같은 땅 ' + Math.round(r * 100) + '%');
+    });
+
+    t('고정 지역 ⑮ — 땅을 넘으면 zone:enter 가 한 번, 칸만 바뀌면 안 난다', function () {
+      var BM = DG.biome, bak = JSON.stringify(C.save.player.pos), got = [];
+      var listening = true;
+      C.on('zone:enter', function (e) { if (listening) { got.push(e.key); } });
+      try {
+        BM._resetForTest();
+        var a = null, b = null, i, j;
+        for (i = 1; i < 12 && !b; i++) {
+          var z0 = BM.cellAt(i, 0).zone, z1 = BM.cellAt(i + 1, 0).zone;
+          if (!a && z0 === z1 && z0 !== 'home') { a = [BM.cellAt(i, 0), BM.cellAt(i + 1, 0)]; }
+          if (z0 !== z1 && z0 !== 'home') { b = [BM.cellAt(i, 0), BM.cellAt(i + 1, 0)]; }
+        }
+        var P = C.save.player.pos;
+        P.x = a[0].x; P.y = a[0].y; BM.tick(0.3);
+        P.x = a[1].x; P.y = a[1].y; BM.tick(0.3);
+        var quiet = got.length === 0;
+        P.x = b[0].x; P.y = b[0].y; BM.tick(0.3); got = [];
+        P.x = b[1].x; P.y = b[1].y; BM.tick(0.3);
+        return quiet && got.length === 1 && got[0] === b[1].zone &&
+          ('같은 땅 안 칸 이동 조용 · ' + BM.zoneByKey(b[0].zone).name + ' → ' + BM.zoneByKey(b[1].zone).name);
+      } finally {
+        listening = false;
+        var q = JSON.parse(bak); C.save.player.pos.x = q.x; C.save.player.pos.y = q.y; BM._resetForTest();
+      }
+    });
+
     t('지역 — 고향은 옛 지형 문턱 그대로(회귀 없음)', function () {
       var BM = DG.biome, b = BM.bandOf(BM.BIOMES.home), c = BM.bandAt(0, 0);
       function eq(x, y) { return Math.abs(x - y) < 1e-9; }
