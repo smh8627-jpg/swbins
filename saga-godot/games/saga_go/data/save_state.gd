@@ -26,6 +26,8 @@ func save() -> bool:
 		"party_perks": PartyState.perks,
 		"char_growth": PartyState.growth,
 		"bag": PartyState.bag,
+		"weapons": PartyState.weapons,
+		"equip": PartyState.equip,
 		"drops": DropState.drops,
 		"quest_active_id": QuestState.active_id,
 		"quest_active_name": QuestState.active_name,
@@ -71,8 +73,12 @@ func try_load() -> bool:
 	## char_growth·bag(106장 ⑩) — v3 부터. v2 이하는 _migrate_step 이 부대 레벨로 채워 온다.
 	var growth: Variant = data.get("char_growth", {})
 	var bag: Variant = data.get("bag", {})
+	## weapons·equip(106장 ⑯) — 없으면 빈 사전(수련용만 든 상태). 필드만 더해 버전 그대로.
+	var weapons: Variant = data.get("weapons", {})
+	var equip: Variant = data.get("equip", {})
 	PartyState.restore(members, float(data.get("party_exp", 0.0)), perks,
-		growth if typeof(growth) == TYPE_DICTIONARY else {}, bag if typeof(bag) == TYPE_DICTIONARY else {})
+		growth if typeof(growth) == TYPE_DICTIONARY else {}, bag if typeof(bag) == TYPE_DICTIONARY else {},
+		weapons if typeof(weapons) == TYPE_DICTIONARY else {}, equip if typeof(equip) == TYPE_DICTIONARY else {})
 
 	var pos: Array = data.get("player_pos", [])
 	var player := _find_player()

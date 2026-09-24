@@ -73,7 +73,9 @@ func _physics_process(_delta: float) -> void:
 			PartyState.growth["self"] = {"lv": 1, "exp": 0.0, "asc": 0}
 			var atk1: float = _fc.call("char_atk", "self")
 			var hp1: float = _fc.call("max_hp_of", "self")
-			_check("stats_scale", atk20 > atk1 * 1.6 and hp20 > hp1 and is_equal_approx(PartyState.char_atk("self"), Growth.BASE_ATK * PartyState.atk_mul()),
+			## 106장 ⑯ — 공격 = (인물 기본 × 배율 + 무기 공격력) × 승급 특성. 인물 몫만 1.6배 넘게 올라야 한다.
+			var w: float = PartyState.weapon_atk("self")
+			_check("stats_scale", (atk20 - w) > (atk1 - w) * 1.6 and hp20 > hp1 and is_equal_approx(PartyState.char_atk("self"), (Growth.BASE_ATK + w) * PartyState.atk_mul()),
 				"atk %.1f→%.1f hp %.1f→%.1f" % [atk1, atk20, hp1, hp20])
 			PartyState.growth["self"] = {"lv": 20, "exp": 0.0, "asc": 1}
 			_next()

@@ -4,11 +4,13 @@ extends CanvasLayer
 ##   왼쪽: 인물 목록(나 + 등용한 동료 전원) · 가운데: 레벨/상한·경험 막대·돌파 단계·체력/공격/방어,
 ##   견문록 쓰기(한 레벨 올리기 · 권마다) · 돌파(상한에 닿고 재료가 있으면) · 오른쪽: 가방.
 ##   106장 ⑫: 가운데 아래 특성 셋(기본 공격·원소 스킬·원소 폭발, 줄마다 "올리기") · 운명의 자리(여섯 효과·"열기").
+##   106장 ⑯: 돌파 밑에 무기(이름·종류·Lv·공격력·부옵션·효과·재련) — "강화"·"무기 돌파"·"무기 바꾸기"(같은 종류 차례로).
 ## 열려 있는 동안 그룹 ui_modal(마우스 시점이 커서를 풀어 줌) + 플레이어 frozen.
 
 const Growth := preload("res://games/saga_go/data/growth.gd")
 const Elements := preload("res://games/saga_go/combat/elements.gd")
 const Characters := preload("res://saga_core/data/characters.gd")
+const Weapons := preload("res://games/saga_go/data/weapons.gd")
 
 var is_open := false
 var selected := "self"
@@ -26,6 +28,10 @@ var _book_buttons: Dictionary = {}
 var _once_button: Button = null
 var _bag_label: Label = null
 var _talent_title: Label = null
+var _weapon_label: Label = null
+var _weapon_level_btn: Button = null
+var _weapon_asc_btn: Button = null
+var _weapon_swap_btn: Button = null
 var _talent_buttons: Dictionary = {}
 var _con_label: Label = null
 var _con_button: Button = null
@@ -49,6 +55,7 @@ func _ready() -> void:
 	add_child(open_btn)
 	PartyState.bag_changed.connect(_refresh)
 	PartyState.growth_changed.connect(func(_id: String) -> void: _refresh())
+	PartyState.weapon_changed.connect(_refresh)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("go_character") or event.is_action_pressed("go_bag"):
@@ -146,6 +153,23 @@ func _build() -> void:
 	_asc_button.pressed.connect(func() -> void: PartyState.ascend(selected))
 	mid.add_child(_asc_button)
 
+	_weapon_label = _label(mid, 16)
+	var wrow := HBoxContainer.new()
+	wrow.add_theme_constant_override("separation", 8)
+	mid.add_child(wrow)
+	_weapon_level_btn = Button.new()
+	_weapon_level_btn.custom_minimum_size = Vector2(0, 40)
+	_weapon_level_btn.pressed.connect(func() -> void: PartyState.weapon_level_once(PartyState.weapon_of(selected)))
+	wrow.add_child(_weapon_level_btn)
+	_weapon_asc_btn = Button.new()
+	_weapon_asc_btn.custom_minimum_size = Vector2(0, 40)
+	_weapon_asc_btn.pressed.connect(func() -> void: PartyState.weapon_ascend(PartyState.weapon_of(selected)))
+	wrow.add_child(_weapon_asc_btn)
+	_weapon_swap_btn = Button.new()
+	_weapon_swap_btn.custom_minimum_size = Vector2(0, 40)
+	_weapon_swap_btn.pressed.connect(swap_weapon)
+	wrow.add_child(_weapon_swap_btn)
+
 	_talent_title = _label(mid, 20)
 	for kind in Growth.TALENTS:
 		var tb := Button.new()
@@ -237,6 +261,8 @@ func _refresh() -> void:
 		if not at_cap:
 			_asc_button.text += "  (Lv.%d 에 닿아야)" % cap
 
+	_refresh_weapon(id)
+
 	var t_cap := PartyState.talent_cap(id)
 	_talent_title.text = "특성  (상한 Lv.%d%s)" % [t_cap, "" if t_cap >= Growth.TALENT_MAX else " — 돌파하면 늘어난다"]
 	for kind in Growth.TALENTS:
@@ -274,6 +300,47 @@ func _refresh() -> void:
 		if n > 0 or item == "mora":
 			lines.append("%s  %d" % [Growth.item_name(item), n])
 	_bag_label.text = "\n".join(lines)
+
+func _refresh_weapon(id: String) -> void:
+	var wid := PartyState.weapon_of(id)
+	var w: Dictionary = Weapons.info(wid)
+	var ws := PartyState.weapon_state(wid)
+	var cap := PartyState.weapon_cap(wid)
+	var lines: Array[String] = ["무기  %s  %s  [%s]  Lv.%d/%d  재련 %d" % [w.name, "★".repeat(int(w.rarity)), Weapons.TYPE_NAMES[w.type], int(ws.lv), cap, int(ws.ref)]]
+	var parts: Array[String] = ["공격력 %d" % int(PartyState.weapon_atk(id))]
+	if w.has("sub"):
+		parts.append("%s +%.1f%%" % [Weapons.STAT_NAMES[w.sub], Weapons.sub_at(wid, int(ws.lv)) * 100.0])
+	if w.has("passive"):
+		parts.append("%s +%d%%" % [Weapons.PASSIVE_NAMES[w.passive], int(round(Weapons.passive_at(wid, int(ws.ref)) * 100.0))])
+	lines.append("   ".join(parts))
+	lines.append("치명타 확률 %.1f%%  ·  치명타 피해 %.1f%%" % [PartyState.crit_rate(id) * 100.0, PartyState.crit_dmg(id) * 100.0])
+	_weapon_label.text = "\n".join(lines)
+	var ores: Array[String] = []
+	for ore in Weapons.ORES:
+		ores.append("%s %d" % [Growth.item_name(ore), PartyState.count(ore)])
+	_weapon_level_btn.text = "강화 (%s)" % " · ".join(ores)
+	_weapon_level_btn.disabled = int(ws.lv) >= cap
+	var cost := Weapons.ascend_cost(wid, int(ws.asc))
+	if cost.is_empty():
+		_weapon_asc_btn.text = "무기 돌파 끝"
+		_weapon_asc_btn.disabled = true
+	else:
+		var cp: Array[String] = []
+		for item in cost:
+			cp.append("%s %d/%d" % [Growth.item_name(item), PartyState.count(item), int(cost[item])])
+		_weapon_asc_btn.text = "무기 돌파  |  " + " · ".join(cp)
+		_weapon_asc_btn.disabled = not PartyState.can_weapon_ascend(wid)
+	var choices := PartyState.weapons_for(id)
+	_weapon_swap_btn.text = "무기 바꾸기 (%d)" % choices.size()
+	_weapon_swap_btn.disabled = choices.size() <= 1
+
+## 같은 종류 가진 무기를 차례로 쥐여 준다.
+func swap_weapon() -> void:
+	var choices := PartyState.weapons_for(selected)
+	if choices.size() <= 1:
+		return
+	var i := choices.find(PartyState.weapon_of(selected))
+	PartyState.equip_weapon(selected, choices[(i + 1) % choices.size()])
 
 func select(id: String) -> void:
 	selected = id

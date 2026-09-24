@@ -36,6 +36,11 @@ const ITEMS := {
 	"talent_2": {"name": "무예 교본"},
 	"talent_3": {"name": "무예 비전"},
 	"fate_knot": {"name": "인연 매듭"},
+	## 106장 ⑯ 무기 — 강화석(무기 경험 400·2000·10000)·무쇠 조각(무기 돌파).
+	"ore_s": {"name": "강화석 조각"},
+	"ore_m": {"name": "강화석"},
+	"ore_l": {"name": "정련 강화석"},
+	"iron": {"name": "무쇠 조각"},
 }
 const BOOKS := ["book_s", "book_m", "book_l"]
 
@@ -52,22 +57,22 @@ const ASCEND_COST := [
 ## 들판 적을 쓰러뜨리면(field_enemy._die). 정해진 양 — 운은 없다(점검이 늘 같게).
 const KILL_DROPS := {
 	"wolf": {"mora": 40, "wolf_fang": 1},
-	"bandit": {"mora": 60, "bandit_badge": 1},
-	"fire_imp": {"mora": 90, "crystal_fire": 1, "book_s": 1, "talent_1": 1},
-	"water_turtle": {"mora": 90, "crystal_water": 1, "book_s": 1, "talent_1": 1},
-	"thunder_cat": {"mora": 90, "crystal_thunder": 1, "book_s": 1, "talent_1": 1},
-	"wind_hawk": {"mora": 90, "crystal_wind": 1, "book_s": 1, "talent_1": 1},
-	"ice_fox": {"mora": 90, "crystal_ice": 1, "book_s": 1, "talent_1": 1},
-	"rock_bear": {"mora": 90, "crystal_rock": 1, "book_s": 1, "talent_1": 1},
-	"grass_snake": {"mora": 90, "crystal_grass": 1, "book_s": 1, "talent_1": 1},
+	"bandit": {"mora": 60, "bandit_badge": 1, "iron": 1},
+	"fire_imp": {"mora": 90, "crystal_fire": 1, "book_s": 1, "talent_1": 1, "ore_s": 1},
+	"water_turtle": {"mora": 90, "crystal_water": 1, "book_s": 1, "talent_1": 1, "ore_s": 1},
+	"thunder_cat": {"mora": 90, "crystal_thunder": 1, "book_s": 1, "talent_1": 1, "ore_s": 1},
+	"wind_hawk": {"mora": 90, "crystal_wind": 1, "book_s": 1, "talent_1": 1, "ore_s": 1},
+	"ice_fox": {"mora": 90, "crystal_ice": 1, "book_s": 1, "talent_1": 1, "ore_s": 1},
+	"rock_bear": {"mora": 90, "crystal_rock": 1, "book_s": 1, "talent_1": 1, "ore_s": 1},
+	"grass_snake": {"mora": 90, "crystal_grass": 1, "book_s": 1, "talent_1": 1, "ore_s": 1},
 }
 
 ## 보물 상자 등급마다(treasure_chest.open). 진귀·화려는 원소 일곱 결정을 다(풍·빙·암·초는 106장 ⑮ 괴물도 떨군다).
 const CHEST_LOOT := {
-	"common": {"mora": 300, "book_s": 1, "talent_1": 1},
-	"exquisite": {"mora": 800, "book_s": 3, "talent_1": 2},
-	"precious": {"mora": 1500, "book_m": 2, "crystal_fire": 1, "crystal_water": 1, "crystal_thunder": 1, "crystal_wind": 1, "crystal_ice": 1, "crystal_rock": 1, "crystal_grass": 1, "talent_2": 2, "fate_knot": 1},
-	"luxurious": {"mora": 3000, "book_m": 3, "book_l": 1, "crystal_fire": 2, "crystal_water": 2, "crystal_thunder": 2, "crystal_wind": 2, "crystal_ice": 2, "crystal_rock": 2, "crystal_grass": 2, "talent_2": 3, "talent_3": 1, "fate_knot": 2},
+	"common": {"mora": 300, "book_s": 1, "talent_1": 1, "ore_s": 2},
+	"exquisite": {"mora": 800, "book_s": 3, "talent_1": 2, "ore_m": 1, "iron": 2},
+	"precious": {"mora": 1500, "book_m": 2, "crystal_fire": 1, "crystal_water": 1, "crystal_thunder": 1, "crystal_wind": 1, "crystal_ice": 1, "crystal_rock": 1, "crystal_grass": 1, "talent_2": 2, "fate_knot": 1, "ore_m": 3, "iron": 3},
+	"luxurious": {"mora": 3000, "book_m": 3, "book_l": 1, "crystal_fire": 2, "crystal_water": 2, "crystal_thunder": 2, "crystal_wind": 2, "crystal_ice": 2, "crystal_rock": 2, "crystal_grass": 2, "talent_2": 3, "talent_3": 1, "fate_knot": 2, "ore_l": 1, "ore_m": 3, "iron": 5},
 }
 
 ## ---------------------------------------------------------------- 특성·운명의 자리(106장 ⑫)

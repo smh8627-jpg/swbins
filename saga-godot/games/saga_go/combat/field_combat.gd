@@ -17,17 +17,30 @@ extends Node
 ## (1 스킬 쿨 -20% · 2 반응 피해 +15% · 3/5 특성 +3 · 4 체력 +20% · 6 폭발 뒤 10초 공격 +25%).
 ## 106장 ⑭: 원소 일곱(풍·빙·암·초 추가)과 반응(elements.gd), 명단 전체 보호막(결정·암 폭발 — 받는 피해를 먼저 막고
 ## 원소 효과도 막는다), 쇄빙(얼어 있는 적을 강공격·낙하로).
+## 106장 ⑯: 무기 종류마다 기본 공격 모양(WEAPON_KIT — 양손검은 무거운 타격이라 쇄빙·바위 방패에 세고, 법구는
+## 인물 원소로, 활은 멀리 한 대씩), 치명타(인물 확률·피해 — 무기 부옵션, 씨앗 고정 난수), 무기 효과(기본 공격·스킬·
+## 폭발·반응 피해), 기력 획득·체력 부옵션.
 
 const Elements := preload("res://games/saga_go/combat/elements.gd")
 const Characters := preload("res://saga_core/data/characters.gd")
 const Toast := preload("res://saga_core/ui/toast.gd")
 const Growth := preload("res://games/saga_go/data/growth.gd")
+const Weapons := preload("res://games/saga_go/data/weapons.gd")
 
 const COMBO_MUL := [0.35, 0.4, 0.6]
 const COMBO_SEC := [0.32, 0.32, 0.45]
 const COMBO_LINK_SEC := 0.9
 const ATTACK_REACH := 2.6
 const ATTACK_ARC_DOT := 0.25
+## 106장 ⑯ — 무기 종류마다 기본 공격 3타(mul 은 공격 배율, sec 은 한 타 시간). 한손검이 옛 값 그대로.
+##   reach/arc: 앞 부채꼴 · range: 그 거리 안 가장 가까운 적 하나(법구는 인물 원소, 활은 물리) · heavy: 무거운 타격
+const WEAPON_KIT := {
+	"sword": {"mul": [0.35, 0.4, 0.6], "sec": [0.32, 0.32, 0.45], "reach": 2.6, "arc": 0.25},
+	"claymore": {"mul": [0.6, 0.7, 1.0], "sec": [0.55, 0.55, 0.75], "reach": 3.0, "arc": 0.0, "heavy": true},
+	"polearm": {"mul": [0.3, 0.35, 0.5], "sec": [0.26, 0.26, 0.38], "reach": 3.4, "arc": 0.55},
+	"catalyst": {"mul": [0.3, 0.35, 0.5], "sec": [0.34, 0.34, 0.45], "range": 7.0, "elemental": true},
+	"bow": {"mul": [0.3, 0.3, 0.45], "sec": [0.3, 0.3, 0.4], "range": 14.0},
+}
 const AUTO_AIM_RANGE := 7.0
 
 ## 106장 ⑧ 강공격·낙하 공격(둘 다 물리).
@@ -163,7 +176,9 @@ var _c6_left: Dictionary = {} # 운명의 자리 6 — 인물 id → 남은 초
 var shield_hp := 0.0
 var shield_element := ""
 var _shield_t := 0.0
-var _heavy := false # 지금 치는 게 강공격·낙하인가(쇄빙)
+var _heavy := false # 지금 치는 게 강공격·낙하·양손검인가(쇄빙)
+var _crit_id := "" # 지금 치는 인물(치명타 굴림) — 비었으면 치명타 없음(점검이 _deal 을 바로 부를 때)
+var _rng := RandomNumberGenerator.new()
 var _hud: Control = null
 var _hp_bar: ProgressBar = null
 var _status_label: Label = null
@@ -177,6 +192,7 @@ var _touch_buttons: Dictionary = {}
 func _ready() -> void:
 	add_to_group("go_field_combat")
 	_player = get_parent() as CharacterBody3D
+	_rng.seed = 20260824
 	_ensure_actions()
 	PartyState.power_changed.connect(func(_a: float, _d: float) -> void: _refresh_hud())
 	_build_hud()
@@ -253,7 +269,7 @@ func max_hp_of(id: String) -> float:
 		m *= RESONANCE_WATER_HP
 	if PartyState.constellation(id) >= 4:
 		m *= Growth.C4_HP_MUL
-	return m
+	return m * (1.0 + PartyState.stat(id, "hp_pct"))
 
 ## 인물 공격 — 레벨·돌파(PartyState) × 희귀도·화 공명(_power_mul) × 운명의 자리 6(폭발 뒤 10초).
 func char_atk(id: String) -> float:
@@ -403,13 +419,31 @@ func _grounded_ok() -> bool:
 func attack() -> bool:
 	if _attack_t > 0.0 or not _grounded_ok():
 		return false
+	var kit: Dictionary = WEAPON_KIT[Weapons.type_of(active_id())]
 	var step := _combo
-	_combo = (_combo + 1) % COMBO_MUL.size()
+	_combo = (_combo + 1) % (kit.mul as Array).size()
 	_combo_link = COMBO_LINK_SEC
-	_attack_t = COMBO_SEC[step]
+	_attack_t = kit.sec[step]
 	_aim_at_nearest()
-	_player.call("play_action", "attack", COMBO_SEC[step], 0.25)
-	var hits := _hit_front(ATTACK_REACH, ATTACK_ARC_DOT, _normal_atk() * COMBO_MUL[step], "")
+	_player.call("play_action", "attack", kit.sec[step], 0.25)
+	var amount: float = _normal_atk() * float(kit.mul[step])
+	var hits := 0
+	_crit_id = active_id()
+	if kit.has("range"):
+		## 법구·활 — 멀리 있는 적 하나. 법구는 인물 원소로 친다(원신 법구 기본 공격 문법).
+		var target := _nearest(_player.global_position, float(kit.range), 1)
+		if not target.is_empty():
+			var e: Node3D = target[0]
+			_player.call("face_toward", e.global_position)
+			var el := active_element() if kit.get("elemental", false) else ""
+			_shot_fx(e.global_position, Elements.color_of(el) if el != "" else Color(0.95, 0.9, 0.7))
+			_deal(e, amount, el, e.global_position - _player.global_position)
+			hits = 1
+	else:
+		_heavy = kit.get("heavy", false)
+		hits = _hit_front(float(kit.reach), float(kit.arc), amount, "")
+		_heavy = false
+	_crit_id = ""
 	if hits > 0:
 		_gain_energy(ENERGY_PER_HIT * hits)
 	return true
@@ -425,7 +459,9 @@ func charged_attack() -> bool:
 	_player.call("play_action", "attack", 0.5, 0.0)
 	_ring_fx(_player.global_position + _player.call("facing") * 1.2, 1.8, Color(0.95, 0.95, 0.85), 0.3)
 	_heavy = true
+	_crit_id = active_id()
 	var hits := _hit_front(CHARGE_REACH, -0.2, _normal_atk() * CHARGE_MUL, "")
+	_crit_id = ""
 	_heavy = false
 	if hits > 0:
 		_gain_energy(ENERGY_PER_HIT * hits)
@@ -441,10 +477,12 @@ func plunge_land(fell_m: float) -> int:
 		rig.call("shake", 0.14, 0.3)
 	var hits := 0
 	_heavy = true
+	_crit_id = active_id()
 	for e in _enemies_near(center, PLUNGE_RADIUS):
 		var to_e: Vector3 = (e as Node3D).global_position - center
 		_deal(e, _normal_atk() * mul, "", to_e)
 		hits += 1
+	_crit_id = ""
 	_heavy = false
 	if hits > 0:
 		_gain_energy(ENERGY_PER_HIT * hits)
@@ -452,7 +490,7 @@ func plunge_land(fell_m: float) -> int:
 
 ## 기본 공격·강공격·낙하 공격 한 방의 바탕 — 지금 인물 공격 × 기본 공격 특성.
 func _normal_atk() -> float:
-	return char_atk(active_id()) * PartyState.talent_mul(active_id(), "normal")
+	return char_atk(active_id()) * PartyState.talent_mul(active_id(), "normal") * PartyState.passive_mul(active_id(), "normal")
 
 func skill() -> bool:
 	var id := active_id()
@@ -460,9 +498,10 @@ func skill() -> bool:
 		return false
 	_skill_cd[id] = skill_cd_of(id)
 	var el := active_element()
-	var atk := char_atk(id) * PartyState.talent_mul(id, "skill")
+	var atk := char_atk(id) * PartyState.talent_mul(id, "skill") * PartyState.passive_mul(id, "skill")
 	_player.call("play_action", "attack", 0.4, 0.0)
 	var hits := 0
+	_crit_id = id
 	match el:
 		"fire":
 			_aim_at_nearest()
@@ -505,6 +544,7 @@ func skill() -> bool:
 			for e in _enemies_near(_player.global_position, GRASS_SKILL.radius):
 				_deal(e, atk * GRASS_SKILL.mul, el, (e as Node3D).global_position - _player.global_position)
 				hits += 1
+	_crit_id = ""
 	_gain_energy(ENERGY_PER_SKILL_HIT * hits)
 	## 106장 ⑥ 원소 석등(treasure_chest.gd) — 스킬을 쓴 자리 둘레 4m 석등을 밝힌다(원소마다 같게).
 	get_tree().call_group("element_receiver", "receive_element", _player.global_position, SKILL_RADIUS, el)
@@ -515,7 +555,7 @@ func burst() -> bool:
 		return false
 	energy = 0.0
 	var el := active_element()
-	var atk := char_atk(active_id()) * PartyState.talent_mul(active_id(), "burst")
+	var atk := char_atk(active_id()) * PartyState.talent_mul(active_id(), "burst") * PartyState.passive_mul(active_id(), "burst")
 	if PartyState.constellation(active_id()) >= 6:
 		_c6_left[active_id()] = Growth.C6_BUFF_SEC
 	var center := _player.global_position
@@ -532,8 +572,10 @@ func burst() -> bool:
 		"ice": mul = ICE_BURST.mul
 		"rock": mul = ROCK_BURST.mul
 		"grass": mul = GRASS_BURST.mul
+	_crit_id = active_id()
 	for e in _enemies_near(center, BURST_RADIUS):
 		_deal(e, atk * mul, el, (e as Node3D).global_position - center)
+	_crit_id = ""
 	match el:
 		"fire":
 			_effects.append({"kind": "fire_ring", "center": center, "left": FIRE_BURST_RING.sec, "tick": FIRE_BURST_RING.tick, "t": FIRE_BURST_RING.tick, "base": atk})
@@ -553,6 +595,7 @@ func burst() -> bool:
 	return true
 
 func _tick_effects(delta: float) -> void:
+	_crit_id = active_id()
 	for fx in _effects:
 		fx.left -= delta
 		fx.t -= delta
@@ -592,6 +635,7 @@ func _tick_effects(delta: float) -> void:
 				for e in _enemies_near(fx.center, BLOOM_RADIUS):
 					var push: Vector3 = (e as Node3D).global_position - fx.center
 					e.call("apply_damage", fx.base * BLOOM_MUL * _reaction_mul(), true, push, "grass")
+	_crit_id = ""
 	_effects = _effects.filter(func(fx: Dictionary) -> bool: return fx.left > 0.0)
 
 func _hit_front(reach: float, arc_dot: float, amount: float, element: String) -> int:
@@ -624,6 +668,7 @@ func _gain_energy(amount: float) -> void:
 	var now := active_id()
 	for id in roster():
 		var got := amount if id == now else amount * ENERGY_OFF_FIELD
+		got *= 1.0 + PartyState.stat(id, "energy")
 		_energy[id] = minf(energy_of(id) + got, ENERGY_MAX)
 
 func _aim_at_nearest() -> void:
@@ -681,7 +726,7 @@ func _deal(enemy: Node, base: float, element: String, dir: Vector3) -> float:
 		last_reaction = "shatter"
 		_reaction_text(enemy as Node3D, sh.name, sh.color)
 		enemy.call("unfreeze")
-		return enemy.call("apply_damage", amount, true, dir)
+		return enemy.call("apply_damage", amount * _crit_roll(), true, dir)
 	## 촉진이 남은 적 — 뇌는 활성, 초는 발산(×1.25).
 	var bonus := ""
 	if float(enemy.get("quicken_t")) > 0.0 and (element == "thunder" or element == "grass"):
@@ -740,7 +785,16 @@ func _deal(enemy: Node, base: float, element: String, dir: Vector3) -> float:
 				enemy.set("quicken_t", QUICKEN_SEC)
 	elif Elements.attaches(element):
 		enemy.call("set_aura", element)
-	return enemy.call("apply_damage", amount, reaction != "" or bonus != "", dir)
+	var crit := _crit_roll()
+	return enemy.call("apply_damage", amount * crit, reaction != "" or bonus != "" or crit > 1.0, dir)
+
+## 치명타 — 치는 인물(_crit_id)이 있을 때만 굴린다. 배율(1 또는 1 + 치명타 피해).
+func _crit_roll() -> float:
+	if _crit_id == "":
+		return 1.0
+	if _rng.randf() < PartyState.crit_rate(_crit_id):
+		return 1.0 + PartyState.crit_dmg(_crit_id)
+	return 1.0
 
 ## 반응 피해 배율 — 초 공명 +20% · 운명의 자리 2 +15%.
 func _reaction_mul() -> float:
@@ -749,7 +803,7 @@ func _reaction_mul() -> float:
 		m *= RESONANCE_GRASS_REACTION
 	if PartyState.constellation(active_id()) >= 2:
 		m *= Growth.C2_REACTION_MUL
-	return m
+	return m * PartyState.passive_mul(active_id(), "reaction")
 
 ## 명단 전체 보호막 — 더 큰 쪽으로 갈고 시간은 새로.
 func grant_shield(amount: float, element: String) -> void:
@@ -855,6 +909,35 @@ func _ring_fx(center: Vector3, radius: float, color: Color, sec: float) -> void:
 	tw.tween_property(mi, "scale", Vector3.ONE, sec)
 	tw.tween_property(mat, "albedo_color:a", 0.0, sec)
 	tw.chain().tween_callback(mi.queue_free)
+
+## 법구·활 기본 공격 — 인물 가슴에서 적까지 가는 빛줄기(0.15초).
+func _shot_fx(to: Vector3, color: Color) -> void:
+	var from := _player.global_position + Vector3.UP * 1.2
+	var target := to + Vector3.UP * 0.8
+	var d := from.distance_to(target)
+	if d < 0.2:
+		return
+	var mi := MeshInstance3D.new()
+	var cyl := CylinderMesh.new()
+	cyl.top_radius = 0.04
+	cyl.bottom_radius = 0.04
+	cyl.height = d
+	cyl.radial_segments = 5
+	mi.mesh = cyl
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.albedo_color = color
+	mi.material_override = mat
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	get_tree().current_scene.add_child(mi)
+	mi.global_position = (from + target) * 0.5
+	var up := (target - from).normalized()
+	var side := up.cross(Vector3.FORWARD if absf(up.dot(Vector3.FORWARD)) < 0.9 else Vector3.RIGHT).normalized()
+	mi.global_basis = Basis(side, up, side.cross(up)).orthonormalized()
+	var tw := mi.create_tween()
+	tw.tween_property(mat, "albedo_color:a", 0.0, 0.15)
+	tw.tween_callback(mi.queue_free)
 
 ## 낙뢰 — 하늘에서 적 머리로 떨어지는 가는 기둥.
 func _bolt_fx(pos: Vector3) -> void:

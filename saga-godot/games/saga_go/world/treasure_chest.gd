@@ -15,6 +15,7 @@ const TerrainBuilder := preload("res://games/saga_go/world/terrain_builder.gd")
 const Elements := preload("res://games/saga_go/combat/elements.gd")
 const Toast := preload("res://saga_core/ui/toast.gd")
 const Growth := preload("res://games/saga_go/data/growth.gd")
+const Weapons := preload("res://games/saga_go/data/weapons.gd")
 
 const GRADES := {
 	"common": {"name": "평범한 상자", "exp": 5.0, "scale": 1.0,
@@ -138,6 +139,11 @@ func open() -> float:
 	PartyState.add_exp(reward)
 	## 106장 ⑩ — 육성 재료(냥·견문록·원소 결정, growth.gd CHEST_LOOT).
 	PartyState.add_items(Growth.CHEST_LOOT.get(grade, {}))
+	## 106장 ⑯ — 진귀 ★3·화려 ★4 무기(상자마다 정해진 종류). 이미 있으면 재련.
+	var wid := Weapons.chest_weapon(chest_id, grade)
+	if wid != "":
+		var got := PartyState.add_weapon(wid)
+		Toast.show(self, "무기 %s %s" % [Weapons.info(wid).name, "— 재련" if got == "refine" else ("(재련 끝)" if got == "max" else "획득")], TOAST_SEC)
 	var tw := create_tween()
 	tw.tween_property(_lid, "rotation_degrees:x", -110.0, 0.5).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	_sparkle(g.metal)

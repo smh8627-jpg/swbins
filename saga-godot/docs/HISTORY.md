@@ -8491,3 +8491,12 @@ PROJECT_STATE.md` 참고. 요약:
 - `field_enemy.gd` KINDS 넷 · `field_spawner.gd` 무리 셋(포구 둘·폐허 하나, 마을 뺌) · `growth.gd` KILL_DROPS 넷 · `elements.gd` SHIELD_COUNTER 넷 + `SHIELD_PHYSICAL_BY`(바위 방패 물리 ×1.0) · `field_combat._elemental_hit` 넷(휘말림·한기·짓눌림·중독 — 중독은 화상 칸을 같이 씀).
 - 점검: `probe_elements.gd` 11 → 15항목(괴물 넷 방패 · 상성 표·바위 물리 · 결정 드롭 · 맞았을 때 효과 넷) 3회 md5 동일 fails=0. `probe_field_combat.gd` 적 수 21 → 29(처음에 28 로 잘못 셈 — 새 무리 3+3+2). 다른 GO 점검 fails=0, REGRESS OK.
 - 실기 확인 전: 새 괴물 넷 모양(새·여우 틀이 괴물로 읽히는지), 바위곰 방패 230 이 답답하지 않은지, 효과 글자.
+
+## GO 원신 기준 ⑯ 무기·치명타 — 종류 5·무기 15·레벨/돌파/재련 (2026-09-24, 새 세션, "이어해줘")
+
+- "무기·성유물" 이 한 칸이지만 둘 다 커서 무기(+치명타)를 먼저, 성유물은 다음 칸으로 나눔.
+- 새 `data/weapons.gd`(종류·표·계산·상자 무기) · `party_state.gd` 무기 칸(`weapons`·`equip`, `weapon_of`·`add_weapon`(재련)·`equip_weapon`(한 자루 옮기기)·`stat`·`crit_rate/dmg`·`passive_mul`·강화·돌파) · `save_state.gd` 두 필드(없으면 빈 사전) · `treasure_chest.open` 무기 · `growth.gd` 강화석 셋·무쇠.
+- `field_combat.gd`: `WEAPON_KIT`(종류마다 3타 — 양손검 `_heavy`, 법구 원소, 활·법구 `_shot_fx` 빛줄기) · `_crit_roll()`(치는 인물 `_crit_id` 가 있을 때만 — 옛 점검들의 `_deal` 정확값이 안 흔들림) · 무기 효과(기본 공격·스킬·폭발·반응) · 기력 획득·체력 부옵션.
+- 공격 공식에 무기 공격력이 더해져(수련용 +23) 초반 공격이 60 → 83. 성장 점검 "Lv1 공격 = 기본 × 특성" 을 (기본+무기) 로, "Lv20 이 1.6배" 를 인물 몫만으로 고침.
+- 점검 `tools/probe_weapons.gd` 11항목 3회 md5 동일 fails=0. 진귀 상자가 전부 잠금이라 점검은 unseal 뒤 연다(첫 판 실패). 활·법구 점검은 목표 적을 빈 모래밭으로 옮김(무리 동료를 먼저 겨눔). 다른 GO 점검 아홉 fails=0, REGRESS OK.
+- 실기 확인 전: 양손검 3타 속도, 활·법구 빛줄기, 치명타 숫자가 구분되는지, 인물 화면 무기 줄 길이.

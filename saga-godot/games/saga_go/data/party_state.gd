@@ -25,11 +25,13 @@ signal level_up(new_level: int)
 
 const Perks := preload("res://games/saga_go/data/perks.gd")
 const Growth := preload("res://games/saga_go/data/growth.gd")
+const Weapons := preload("res://games/saga_go/data/weapons.gd")
 
 ## PLAN 106장 ⑩ — 인물 육성(원신식 레벨·돌파). 들판 전투는 이제 인물마다 이 값을 쓴다
 ## (char_atk·char_def). 위 atk/def(부대 전투력)는 옛 사건 결투·승급 3택이 그대로 쓴다.
 signal growth_changed(member_id: String)
 signal bag_changed()
+signal weapon_changed()
 
 const BASE_ATK := 60.0
 const BASE_DEF := 35.0
@@ -55,6 +57,10 @@ var perks: Array[String] = []
 var growth: Dictionary = {}
 ## 아이템 id(growth.gd ITEMS) → 개수.
 var bag: Dictionary = {}
+## 106장 ⑯ — 가진 무기 id → {"lv", "exp", "asc", "ref"}(수련용은 처음 쓸 때 칸이 생긴다) · 인물 id → 든 무기 id
+## (없거나 못 드는 무기면 그 종류 수련용). 필드만 더해 SAVE_VERSION 3 그대로.
+var weapons: Dictionary = {}
+var equip: Dictionary = {}
 
 var _session_start_exp: float = 0.0
 
@@ -101,7 +107,7 @@ func add_exp(amount: float) -> void:
 ## 다르게 이미 정해진 값을 통째로 앉히고 수치만 다시 계산한다(신호는 한 번만,
 ## level_up 은 안 emit — 로드는 새 성장이 아니다).
 func restore(saved_members: Array[String], saved_exp: float = 0.0, saved_perks: Array[String] = [],
-		saved_growth: Dictionary = {}, saved_bag: Dictionary = {}) -> void:
+		saved_growth: Dictionary = {}, saved_bag: Dictionary = {}, saved_weapons: Dictionary = {}, saved_equip: Dictionary = {}) -> void:
 	members = saved_members.duplicate()
 	exp = saved_exp
 	perks = saved_perks.duplicate()
@@ -114,6 +120,14 @@ func restore(saved_members: Array[String], saved_exp: float = 0.0, saved_perks: 
 	bag.clear()
 	for item in saved_bag:
 		bag[str(item)] = int(saved_bag[item])
+	weapons.clear()
+	for wid in saved_weapons:
+		var w: Variant = saved_weapons[wid]
+		if typeof(w) == TYPE_DICTIONARY and Weapons.WEAPONS.has(str(wid)):
+			weapons[str(wid)] = {"lv": int(w.get("lv", 1)), "exp": float(w.get("exp", 0.0)), "asc": int(w.get("asc", 0)), "ref": int(w.get("ref", 1))}
+	equip.clear()
+	for mid in saved_equip:
+		equip[str(mid)] = str(saved_equip[mid])
 	_recompute()
 	power_changed.emit(atk, def)
 
@@ -172,10 +186,11 @@ func char_asc(id: String) -> int:
 func char_cap(id: String) -> int:
 	return Growth.cap_of(char_asc(id))
 
-## 들판 전투 공격·방어 — 레벨·돌파 배율 × 승급 특성. 희귀도·공명은 field_combat 이 곱한다.
+## 들판 전투 공격·방어 — (인물 기본 × 레벨·돌파 배율 + 무기 공격력) × (1 + 공격력%) × 승급 특성.
+## 희귀도·공명은 field_combat 이 곱한다.
 func char_atk(id: String) -> float:
 	var g := growth_of(id)
-	return Growth.BASE_ATK * Growth.stat_mul(int(g.lv), int(g.asc)) * atk_mul()
+	return (Growth.BASE_ATK * Growth.stat_mul(int(g.lv), int(g.asc)) + weapon_atk(id)) * (1.0 + stat(id, "atk_pct")) * atk_mul()
 
 func char_def(id: String) -> float:
 	var g := growth_of(id)
@@ -303,5 +318,145 @@ func unlock_constellation(id: String) -> bool:
 	spend_items(Growth.CONSTELLATION_COST)
 	growth_of(id)["con"] = constellation(id) + 1
 	growth_changed.emit(id)
+	power_changed.emit(atk, def)
+	return true
+
+# ---------------------------------------------------------------- 무기(106장 ⑯)
+
+## 이 인물이 든 무기 id — 든 게 없거나 못 드는 거면 그 종류 수련용.
+func weapon_of(id: String) -> String:
+	var wid: String = equip.get(id, "")
+	if wid == "" or not owns_weapon(wid) or Weapons.info(wid).type != Weapons.type_of(id):
+		return Weapons.default_of(Weapons.type_of(id))
+	return wid
+
+func owns_weapon(wid: String) -> bool:
+	return Weapons.WEAPONS.has(wid) and (Weapons.is_shared(wid) or weapons.has(wid))
+
+func weapon_state(wid: String) -> Dictionary:
+	if not weapons.has(wid):
+		weapons[wid] = {"lv": 1, "exp": 0.0, "asc": 0, "ref": 1}
+	return weapons[wid]
+
+func weapon_cap(wid: String) -> int:
+	return Growth.cap_of(int(weapon_state(wid).asc))
+
+## 무기를 얻는다 — 처음이면 "new", 이미 있으면 재련 +1 해서 "refine"(5 면 "max"). 수련용은 "".
+func add_weapon(wid: String) -> String:
+	if not Weapons.WEAPONS.has(wid) or Weapons.is_shared(wid):
+		return ""
+	var out := "new"
+	if weapons.has(wid):
+		var w: Dictionary = weapons[wid]
+		if int(w.ref) >= Weapons.REFINE_MAX:
+			out = "max"
+		else:
+			w.ref = int(w.ref) + 1
+			out = "refine"
+	else:
+		weapon_state(wid)
+	weapon_changed.emit()
+	return out
+
+## 이 인물이 들 수 있는 가진 무기(같은 종류) — 수련용 먼저, 그다음 희귀도 높은 순.
+func weapons_for(id: String) -> Array[String]:
+	var t := Weapons.type_of(id)
+	var out: Array[String] = [Weapons.default_of(t)]
+	for r in [4, 3]:
+		for wid in Weapons.WEAPONS:
+			if Weapons.info(wid).type == t and int(Weapons.info(wid).rarity) == r and weapons.has(wid):
+				out.append(wid)
+	return out
+
+## 무기를 쥐여 준다. 한 자루뿐인 무기를 다른 인물이 들고 있었으면 그 인물은 수련용으로 돌아간다.
+func equip_weapon(id: String, wid: String) -> bool:
+	if not owns_weapon(wid) or Weapons.info(wid).type != Weapons.type_of(id):
+		return false
+	if not Weapons.is_shared(wid):
+		for other in equip.keys():
+			if other != id and equip[other] == wid:
+				equip.erase(other)
+	equip[id] = wid
+	weapon_changed.emit()
+	power_changed.emit(atk, def)
+	return true
+
+func weapon_atk(id: String) -> float:
+	var wid := weapon_of(id)
+	var w := weapon_state(wid)
+	return Weapons.atk_at(wid, int(w.lv), int(w.asc))
+
+## 부옵션 합(지금은 무기 하나 — 성유물이 생기면 여기서 더한다). 값은 비율.
+func stat(id: String, key: String) -> float:
+	var wid := weapon_of(id)
+	if Weapons.info(wid).get("sub", "") == key:
+		return Weapons.sub_at(wid, int(weapon_state(wid).lv))
+	return 0.0
+
+func crit_rate(id: String) -> float:
+	return clampf(Weapons.BASE_CRIT_RATE + stat(id, "crit_rate"), 0.0, 1.0)
+
+func crit_dmg(id: String) -> float:
+	return Weapons.BASE_CRIT_DMG + stat(id, "crit_dmg")
+
+## 무기 효과 배율 — kind(normal·skill·burst·reaction) 가 그 무기 효과면 1 + 값(재련 반영).
+func passive_mul(id: String, kind: String) -> float:
+	var wid := weapon_of(id)
+	if Weapons.info(wid).get("passive", "") != kind:
+		return 1.0
+	return 1.0 + Weapons.passive_at(wid, int(weapon_state(wid).ref))
+
+## 강화석 n 개를 무기에 쓴다(냥도 든다). 상한에서 멈추고 남는 경험은 버린다. 오른 레벨 수(못 쓰면 -1).
+func weapon_use_ore(wid: String, ore: String, n: int = 1) -> int:
+	if not owns_weapon(wid):
+		return -1
+	var w := weapon_state(wid)
+	var old_lv := int(w.lv)
+	var used := 0
+	for i in n:
+		if int(w.lv) >= weapon_cap(wid) or count(ore) <= 0:
+			break
+		var gain: int = Weapons.ORE_EXP[ore]
+		if not spend_items({"mora": int(ceil(gain * Weapons.MORA_PER_EXP)), ore: 1}):
+			break
+		used += 1
+		w.exp = float(w.exp) + gain
+		while int(w.lv) < weapon_cap(wid) and float(w.exp) >= Weapons.exp_to_next(int(w.lv)):
+			w.exp = float(w.exp) - Weapons.exp_to_next(int(w.lv))
+			w.lv = int(w.lv) + 1
+		if int(w.lv) >= weapon_cap(wid):
+			w.exp = 0.0
+	if used == 0:
+		return -1
+	weapon_changed.emit()
+	power_changed.emit(atk, def)
+	return int(w.lv) - old_lv
+
+## 다음 레벨까지 — 작은 강화석부터. 오른 레벨 수(못 쓰면 -1).
+func weapon_level_once(wid: String) -> int:
+	var start := int(weapon_state(wid).lv)
+	var any := false
+	for ore in Weapons.ORES:
+		while int(weapon_state(wid).lv) == start and start < weapon_cap(wid) and count(ore) > 0:
+			if weapon_use_ore(wid, ore, 1) < 0:
+				break
+			any = true
+		if int(weapon_state(wid).lv) > start:
+			break
+	return int(weapon_state(wid).lv) - start if any else -1
+
+func can_weapon_ascend(wid: String) -> bool:
+	if not owns_weapon(wid):
+		return false
+	var w := weapon_state(wid)
+	return int(w.asc) < Growth.MAX_ASC and int(w.lv) >= weapon_cap(wid) and has_items(Weapons.ascend_cost(wid, int(w.asc)))
+
+func weapon_ascend(wid: String) -> bool:
+	if not can_weapon_ascend(wid):
+		return false
+	var w := weapon_state(wid)
+	spend_items(Weapons.ascend_cost(wid, int(w.asc)))
+	w.asc = int(w.asc) + 1
+	weapon_changed.emit()
 	power_changed.emit(atk, def)
 	return true
