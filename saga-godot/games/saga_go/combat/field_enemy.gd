@@ -68,6 +68,12 @@ const KINDS := {
 		"phase_text": "검은 가면이 먹구름을 두르고 졸개를 부른다 — 불로 방패를 깨라",
 		"rotation": ["shadow", "storm", "bite", "slam", "shadow", "bite"], "summon": ["bandit", "bandit"],
 		"vroid": true, "cloth": Color(0.12, 0.11, 0.16), "mask": Color(0.55, 0.3, 0.85)},
+	## 106장 ㉞ 7장 둘째 대결 "금 간 검은 가면"(포구 넷째 제단) — 가면에 금, 바다 안개를 둘러 물. 새 패턴 밀물(tide), 2단계 물 방패(뇌로 깬다).
+	"black_mask_tide": {"name": "금 간 검은 가면", "hp": 4800.0, "atk": 34.0, "speed": 4.8, "aggro": 22.0,
+		"reach": 2.4, "tell": 0.75, "cd": 1.5, "exp": 0.0, "element": "water", "shield": 0.0, "phase_shield": 560.0,
+		"phase_text": "금 간 검은 가면이 바다 안개를 두르고 졸개를 부른다 — 뇌로 방패를 깨라",
+		"rotation": ["tide", "shadow", "bite", "tide", "slam", "shadow"], "summon": ["bandit", "water_turtle"],
+		"vroid": true, "cloth": Color(0.1, 0.12, 0.17), "mask": Color(0.3, 0.55, 0.9), "crack": true},
 }
 
 const GRAVITY := 20.0
@@ -109,6 +115,11 @@ var respawns := true
 var drops := true
 ## 106장 ㉒ 세계 등급 — field_spawner 가 앉힌다(비경 적은 안 씀 = -1, Lv 표시 없음).
 var world_lv := -1
+## 106장 ㉞ 제단 지키기(story defend) — 지킬 것(siege_hit(dmg)·siege_radius() 가 있는 노드). 있으면 떠돌지 않고 곧장 그리로 가서 친다.
+## 플레이어가 SIEGE_PULL m 안이면 플레이어를 먼저 친다(가까이 붙어 막아 내는 맛).
+var siege: Node3D = null
+const SIEGE_PULL := 5.0
+var _hit_siege := false
 var _name_label: Label3D = null
 
 var _t := 0.0
@@ -217,25 +228,42 @@ func _physics_process(delta: float) -> void:
 				move = to_w.normalized() * def.speed * 0.3
 			elif _t <= 0.0:
 				_pick_wander()
-			if dist < def.aggro and _player_can_fight(player):
+			if (dist < def.aggro and _player_can_fight(player)) or is_instance_valid(siege):
 				ai = AI.CHASE
 		AI.CHASE:
-			if from_home > LEASH or not _player_can_fight(player):
+			if is_instance_valid(siege) and not (dist <= SIEGE_PULL and _player_can_fight(player)):
+				var to_s := siege.global_position - global_position
+				to_s.y = 0.0
+				if to_s.length() <= def.reach + float(siege.call("siege_radius")):
+					ai = AI.WINDUP
+					_t = def.tell
+					_hit_siege = true
+					_set_tell(true)
+				else:
+					move = to_s.normalized() * def.speed
+			elif not is_instance_valid(siege) and (from_home > LEASH or not _player_can_fight(player)):
 				ai = AI.RETURN
 			elif dist <= def.reach:
 				ai = AI.WINDUP
 				_t = def.tell
+				_hit_siege = false
 				_set_tell(true)
 			else:
 				move = to_player.normalized() * def.speed
 		AI.WINDUP:
-			_face(to_player, delta * 3.0)
+			if _hit_siege and is_instance_valid(siege):
+				_face(siege.global_position - global_position, delta * 3.0)
+			else:
+				_face(to_player, delta * 3.0)
 			if _t <= 0.0:
 				_set_tell(false)
 				ai = AI.LUNGE
 				_t = LUNGE_SEC
 				_knock = _facing() * LUNGE_SPEED
-				_try_hit_player(player)
+				if _hit_siege:
+					_try_hit_siege()
+				else:
+					_try_hit_player(player)
 		AI.LUNGE:
 			if _t <= 0.0:
 				ai = AI.RECOVER
@@ -303,6 +331,14 @@ func _try_hit_player(player: Node3D) -> void:
 	var fc := get_tree().get_first_node_in_group("go_field_combat")
 	if fc:
 		fc.call("take_damage", def.atk * dmg_mul, self)
+
+func _try_hit_siege() -> void:
+	if not is_instance_valid(siege):
+		return
+	var to_s := siege.global_position - global_position
+	to_s.y = 0.0
+	if to_s.length() <= def.reach + float(siege.call("siege_radius")) + 0.6:
+		siege.call("siege_hit", def.atk * dmg_mul, self)
 
 func _pick_wander() -> void:
 	var a := _rng.randf() * TAU
@@ -491,7 +527,7 @@ func _build_visual() -> Node3D:
 		v = VroidBody.build(String(name), 5, def.cloth)
 		_anim = v.get_node_or_null("AnimationPlayer") as AnimationPlayer
 		if def.has("mask"):
-			VroidBody.add_mask(v, def.mask, Color(0.08, 0.07, 0.1))
+			VroidBody.add_mask(v, def.mask, Color(0.08, 0.07, 0.1), def.get("crack", false))
 	elif def.has("shape"):
 		v = CreatureBuilder.build(def.shape, def.colors)
 		CreatureBuilder._fit(v, def.shape, def.height)

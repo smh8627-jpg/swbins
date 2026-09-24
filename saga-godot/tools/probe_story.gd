@@ -18,7 +18,11 @@ extends Node
 ## ㊱ 다 쓰러뜨리기 → 나그네가 제단 곁에 ㊲ 나그네 → 사라짐 ㊳ 학자 → 폐허로 ㊴ 촌장 → 5장 끝·다 끝남·목록 ✔ 제5장.
 ## 106장 ㉜ 6장: ㊵ 풀림·새 자리 여유(신수 원·바위) ㊶ 학자 → 봉우리 목표 ㊷ 골짜기에선 안 넘어가고 꼭대기에 서면 넘어감·나그네가 봉우리에
 ## ㊸ 나그네 → 검은 가면(이야기 보스·가면·위 보스 막대) ㊹ 그림자(등 뒤로 옮겨 붙음)·절반에서 방패+졸개 둘·쓰러뜨리면 졸개도 흩어짐 ㊺ 나그네 → 제단·학자 봉우리로
-## ㊻ 제단 ㊼ 학자 ㊽ 촌장 → 6장 끝·다 끝남·✔ 제6장.
+## ㊻ 제단 ㊼ 학자 ㊽ 촌장 → 6장 끝·✔ 제6장·추적 글자는 제7장.
+## 106장 ㉞ 7장: [49] 풀림·곶 자리(신수 원 여유·제단·나그네·물결 나오는 자리가 다 뭍) [50] 학자 → 사공 [51] 사공 → 곶 [52] 곶 가기 → 나그네
+## [53] 나그네 → 제단 지키기, 멀면 물결이 안 나옴 [54] 가까이 오면 첫 물결 셋, 무리가 제단으로 가서 친다 [55] 시간이 지나면·다 잡으면 다음 물결
+## [56] 제단이 무너지면 처음부터(쉬는 틈) → 세 물결 다 잡으면 금 간 검은 가면(가면에 금·물·위 보스 막대) [57] 밀물 원 넷이 나를 향해 줄지어·2단계 물 방패+졸개 둘
+## [58] 나그네 → 제단 [59] 제단 [60] 사공 [61] 촌장 → 7장 끝·다 끝남·✔ 제7장.
 ## 106장 ㉛ 이야기 동료: ⑫ 2장 끝에 학자 은비·㊴ 5장 끝에 나그네가 명단에(이미 지난 장이면 불러올 때 조용히).
 ## 106장 ㉙ 대화 몸짓: ㊾ 글자 흘리기·입 모양(한글 모음 → 입 다섯)·말하는 동안 오른손이 앞·위로·F 한 번이면 줄 전체·끝나면 손·입 제자리·표정·눈 깜박임.
 ## 저장은 안 한다(부대 경험·이야기 상태는 메모리에서만 바꾸고 끝에 되돌린다).
@@ -68,7 +72,7 @@ func _physics_process(_delta: float) -> void:
 			_sq.call("_enter_step")
 			_next()
 		1: # ① 표
-			var ok := Story.CHAPTERS.size() == 6
+			var ok := Story.CHAPTERS.size() == 7
 			for c in Story.CHAPTERS:
 				for s in c.steps:
 					match String(s.type):
@@ -81,6 +85,11 @@ func _physics_process(_delta: float) -> void:
 						"follow": ok = ok and Story.NPCS.has(String(s.npc)) and (s.path as Array).size() >= 2
 						"climb": ok = ok and s.has("region") and s.has("cell") and float(s.radius) > 0.0
 						"duel": ok = ok and FieldEnemy.KINDS.has(String(s.kind)) and s.has("region") and s.has("cell")
+						"defend":
+							ok = ok and s.has("region") and s.has("cell") and float(s.hp) > 0.0 and (s.waves as Array).size() >= 2
+							for w in s.waves:
+								for k in w:
+									ok = ok and FieldEnemy.KINDS.has(String(k))
 						"seal":
 							ok = ok and s.has("region") and s.has("cell") and (s.order as Array).size() == Story.SEAL_LAYOUT.size()
 							for m in s.order:
@@ -737,11 +746,192 @@ func _physics_process(_delta: float) -> void:
 			_sq.call("toggle_journal")
 			var jt: String = _sq.call("journal_text")
 			_sq.call("toggle_journal")
-			var ok: bool = int(_sq.call("ch")) == 6 and _sq.call("tracker_text") == "" and _sq.call("target_pos") == Vector3.INF and jt.contains("✔ 제6장") \
+			## 6장 보상 경험으로 모험 등급 18 이 돼 7장이 바로 열린다.
+			var ok: bool = int(_sq.call("ch")) == 6 and String(_sq.call("tracker_text")).contains("제7장") and jt.contains("✔ 제6장") \
 				and PartyState.count("fate_knot") == int(_v) + 4
-			_check("chapter6", ok, "ch=%d knots %d→%d tracker='%s'" % [_sq.call("ch"), _v, PartyState.count("fate_knot"), _sq.call("tracker_text")])
+			_check("chapter6", ok, "ch=%d knots %d→%d tracker='%s'" % [_sq.call("ch"), _v, PartyState.count("fate_knot"), String(_sq.call("tracker_text")).replace("\n", " / ")])
 			_next()
-		49: # ㊾ 대화 몸짓 — 다 끝난 뒤 촌장 혼잣말로
+		49: # [49] 7장 풀림·곶 자리
+			if _frame == 1:
+				PartyState.exp = 1700.0 # 모험 등급 18
+				PartyState.level = 17
+			if _frame == 6:
+				var spots := _ch7_spots()
+				var pet := _pet_clear(spots)
+				var wet := ""
+				for k in spots:
+					if TerrainBuilder.height_at("coast", spots[k]) < TerrainBuilder.WATER_LEVEL + 0.3:
+						wet += k + " "
+				var ev := _coast_event_clear(spots)
+				var ok: bool = not bool(_sq.call("locked")) and (_sq.call("target_pos") as Vector3).is_equal_approx(_sq.call("npc_pos", "scholar")) \
+					and float(pet[0]) > 0.0 and float(ev[0]) > 5.0 and wet == "" and not bool(_sq.call("npc_visible", "wanderer"))
+				_check("ch7_unlock", ok, "locked=%s pet_margin=%.1f@%s event_margin=%.1f@%s wet='%s' wanderer=%s" % [_sq.call("locked"), pet[0], pet[1], ev[0], ev[1], wet, _sq.call("npc_visible", "wanderer")])
+				_next()
+		50: # [50] 학자 → 사공
+			if _frame == 1:
+				_near_npc("scholar")
+			if _frame == 10:
+				_sq.call("interact")
+				_drain()
+				var ok: bool = int(_sq.call("st")) == 1 and (_sq.call("target_pos") as Vector3).is_equal_approx(_sq.call("npc_pos", "ferryman"))
+				_check("ch7_scholar", ok, "st=%d" % _sq.call("st"))
+				_next()
+		51: # [51] 사공 → 곶
+			if _frame == 1:
+				_near_npc("ferryman")
+			if _frame == 10:
+				_sq.call("interact")
+				_drain()
+				var c: Dictionary = Story.CHAPTERS[6].steps[2]
+				var ok: bool = int(_sq.call("st")) == 2 and _flat(_sq.call("target_pos"), TestMap.world_pos(c.cell.x, c.cell.y, "coast")) < 0.1
+				_check("ch7_ferryman", ok, "st=%d" % _sq.call("st"))
+				_next()
+		52: # [52] 곶 가기 → 나그네
+			if _frame == 1:
+				_put(_sq.call("target_pos"))
+			if _frame == 10:
+				var post: Dictionary = Story.NPCS.wanderer.appear[3]
+				var d := _flat(_sq.call("npc_pos", "wanderer"), TestMap.world_pos(post.cell.x, post.cell.y, "coast"))
+				var ok: bool = int(_sq.call("st")) == 3 and bool(_sq.call("npc_visible", "wanderer")) and d < 0.1
+				_check("ch7_cape", ok, "st=%d wanderer=%s d=%.2f" % [_sq.call("st"), _sq.call("npc_visible", "wanderer"), d])
+				_next()
+		53: # [53] 나그네 → 제단 지키기, 멀리 있으면 물결이 안 나옴
+			if _frame == 1:
+				_near_npc("wanderer")
+			if _frame == 10:
+				_v = {"near": String(_sq.call("near_npc")), "prompts": _visible_prompts(), "pnames": str(get_tree().get_nodes_in_group("ui_modal").filter(func(n: Node) -> bool: return n != _sq and n.get("visible") != false).map(func(n: Node) -> String: return String(n.name) + ":" + String(n.get_script().resource_path.get_file() if n.get_script() else ""))), "opened": bool(_sq.call("interact"))}
+				_drain()
+				_put(TestMap.world_pos(4.4, 4.3, "coast") + Vector3.UP * 0.5) # 포구 신상 — 제단에서 96m
+			if _frame == 30:
+				var alt: Node3D = _sq.get("_altar")
+				var ok: bool = int(_sq.call("st")) == 4 and alt != null and alt.has_method("siege_hit") and int(_sq.call("defend_wave")) == -1 \
+					and _sq.call("quest_enemies").is_empty() and String(_sq.call("tracker_text")).contains("제단 곁으로") \
+					and not _sq.is_in_group("element_receiver") and float(_sq.call("defend_hp")) > 0.0
+				_check("ch7_defend_wait", ok, "near=%s prompts=%d %s opened=%s st=%d wave=%d enemies=%d hp=%.0f tracker='%s'" % [_v.near, _v.prompts, _v.pnames, _v.opened, _sq.call("st"), _sq.call("defend_wave"), _sq.call("quest_enemies").size(), _sq.call("defend_hp"), String(_sq.call("tracker_text")).replace("\n", " / ")])
+				_next()
+		54: # [54] 가까이 오면 첫 물결 — 무리가 제단으로 가서 친다(나는 20m 떨어져 구경)
+			var alt: Node3D = _sq.get("_altar")
+			if _frame == 1:
+				_put(alt.global_position + Vector3(0.0, 0.5, 20.0))
+			if _frame == 5:
+				var es: Array = _sq.call("alive_quest_enemies")
+				_v = {"n": es.size(), "siege": es.all(func(e: Variant) -> bool: return e.get("siege") == alt), "hp0": float(_sq.call("defend_hp"))}
+			if _frame == 900 or (_frame > 5 and float(_sq.call("defend_hp")) < float(_v.hp0)):
+				var ok: bool = int(_sq.call("defend_wave")) == 0 and int(_v.n) == 3 and bool(_v.siege) and float(_sq.call("defend_hp")) < float(_v.hp0) \
+					and String(_sq.call("tracker_text")).contains("물결 1/3")
+				_check("ch7_defend_wave1", ok, "wave=%d n=%d siege=%s hp %.0f→%.0f frame=%d" % [_sq.call("defend_wave"), _v.n, _v.siege, _v.hp0, _sq.call("defend_hp"), _frame])
+				_next()
+		55: # [55] 시간이 지나면 다음 물결(앞 물결이 남아 있어도), 다 잡으면 그다음
+			if _frame == 1:
+				_sq.set("_wave_t", Story.DEFEND_WAVE_SEC)
+			if _frame == 4:
+				_v = {"w1": int(_sq.call("defend_wave")), "n1": (_sq.call("alive_quest_enemies") as Array).size()}
+				for e in _sq.call("alive_quest_enemies"):
+					e.call("_die")
+			if _frame == 8:
+				var ok: bool = int(_v.w1) == 1 and int(_v.n1) == 7 and int(_sq.call("defend_wave")) == 2 and (_sq.call("alive_quest_enemies") as Array).size() == 4 and int(_sq.call("st")) == 4
+				_check("ch7_defend_waves", ok, "timer→wave %d alive %d · cleared→wave %d alive %d st=%d" % [_v.w1, _v.n1, _sq.call("defend_wave"), (_sq.call("alive_quest_enemies") as Array).size(), _sq.call("st")])
+				_next()
+		56: # [56] 제단이 무너지면 처음부터(쉬는 틈) → 세 물결 다 잡으면 금 간 검은 가면
+			var alt: Node3D = _sq.get("_altar")
+			if _frame == 1:
+				alt.call("siege_hit", 1e6, null)
+			if _frame == 4:
+				_v = {"st": int(_sq.call("st")), "wave": int(_sq.call("defend_wave")), "n": (_sq.call("quest_enemies") as Array).size(),
+					"full": is_equal_approx(float(_sq.call("defend_hp")), float(_sq.call("defend_max"))), "hold": float(_sq.get("_defend_hold"))}
+			if _frame == 30:
+				_v.still = int(_sq.call("defend_wave")) # 쉬는 틈엔 곁에 있어도 안 나옴
+				_sq.set("_defend_hold", 0.0)
+			if _frame > 32 and _frame < 200 and int(_sq.call("st")) == 4:
+				for e in _sq.call("alive_quest_enemies"):
+					e.call("_die")
+			if _frame == 200:
+				var bosses := get_tree().get_nodes_in_group("go_story_boss")
+				var boss: Node3D = bosses[0] if bosses.size() == 1 else null
+				var fbn: Node = get_tree().get_first_node_in_group("go_field_bosses")
+				var hud: String = fbn.call("hud_text") if fbn else ""
+				var cracked: bool = boss != null and not boss.find_children("Crack0", "MeshInstance3D", true, false).is_empty()
+				var ok: bool = int(_v.st) == 4 and int(_v.wave) == -1 and int(_v.n) == 0 and bool(_v.full) and float(_v.hold) > 3.0 and int(_v.still) == -1 \
+					and int(_sq.call("st")) == 5 and boss != null and String(boss.get("kind")) == "black_mask_tide" and String(boss.get("element")) == "water" \
+					and cracked and hud.contains("금 간 검은 가면")
+				_check("ch7_defend_done", ok, "fail: st=%d wave=%d n=%d full=%s hold=%.1f still=%d · st=%d bosses=%d cracked=%s hud='%s'" % [_v.st, _v.wave, _v.n, _v.full, _v.hold, _v.still, _sq.call("st"), bosses.size(), cracked, hud])
+				_boss = boss
+				_next()
+		57: # [57] 밀물 원 넷이 나를 향해 줄지어 · 2단계 물 방패+졸개 둘 · 쓰러뜨리기
+			var boss: Node = _boss
+			if _frame == 1:
+				_put((boss as Node3D).global_position + Vector3(0.0, 0.5, 10.0))
+			if _frame == 3:
+				boss.call("_clear_marks") # 저절로 쓰던 패턴 예고는 지우고
+				boss.call("begin_skill", "tide", _p)
+				var marks: Array = boss.get("_marks")
+				var to_p: Vector3 = _p.global_position - (boss as Node3D).global_position
+				to_p.y = 0.0
+				var line := true
+				for m in marks:
+					var rel: Vector3 = (m.pos as Vector3) - (boss as Node3D).global_position
+					rel.y = 0.0
+					line = line and rel.normalized().dot(to_p.normalized()) > 0.95
+				_v = {"marks": marks.size(), "line": line}
+			if _frame == 90:
+				boss.set("hp", float(boss.get("max_hp")) * 0.45)
+			if _frame == 95:
+				_v.phase = int(boss.get("phase"))
+				_v.shield = float(boss.get("shield"))
+				_v.summons = (boss.get("summoned") as Array).filter(func(m: Variant) -> bool: return is_instance_valid(m)).size()
+				boss.call("_die")
+			if _frame == 101:
+				var ok: bool = int(_v.marks) == 4 and bool(_v.line) and int(_v.phase) == 2 and float(_v.shield) > 0.0 and int(_v.summons) == 2 \
+					and int(_sq.call("st")) == 6 and get_tree().get_nodes_in_group("go_story_boss").is_empty()
+				_check("ch7_duel", ok, "marks=%d line=%s phase=%d shield=%.0f summons=%d st=%d" % [_v.marks, _v.line, _v.phase, _v.shield, _v.summons, _sq.call("st")])
+				_next()
+		58: # [58] 나그네 → 제단
+			if _frame == 1:
+				_dismiss_prompts()
+				_near_npc("wanderer")
+			if _frame == 10:
+				_sq.call("interact")
+				_drain()
+			if _frame == 14:
+				var ok: bool = int(_sq.call("st")) == 7 and not bool(_sq.call("npc_visible", "wanderer")) and _sq.get("_altar") != null and _sq.is_in_group("element_receiver")
+				_check("ch7_after_duel", ok, "st=%d wanderer=%s receiver=%s" % [_sq.call("st"), _sq.call("npc_visible", "wanderer"), _sq.is_in_group("element_receiver")])
+				_next()
+		59: # [59] 제단
+			if _frame == 1:
+				var alt: Node3D = _sq.get("_altar")
+				_sq.call("receive_element", alt.global_position, 4.0, "thunder")
+			if _frame == 80:
+				_check("ch7_light", int(_sq.call("st")) == 8, "st=%d" % _sq.call("st"))
+				_next()
+		60: # [60] 사공
+			if _frame == 1:
+				_near_npc("ferryman")
+			if _frame == 10:
+				_sq.call("interact")
+				_drain()
+				_check("ch7_ferryman_after", int(_sq.call("st")) == 9, "st=%d" % _sq.call("st"))
+				_next()
+		61: # [61] 촌장 → 7장 끝(장 경험으로 모험 등급 20 을 넘으면 등급 보상 매듭 하나가 더 — adventure.gd AR_REWARD_5)
+			if _frame == 1:
+				_near_npc("elder")
+				_v = {"knots": PartyState.count("fate_knot"), "ar": PartyState.level + 1}
+			if _frame == 10:
+				_sq.call("interact")
+				_drain()
+			if _frame < 16:
+				return
+			_dismiss_prompts()
+			if _frame < 22:
+				return
+			_sq.call("toggle_journal")
+			var jt: String = _sq.call("journal_text")
+			_sq.call("toggle_journal")
+			var bonus := (PartyState.level + 1) / 5 - int(_v.ar) / 5
+			var ok: bool = int(_sq.call("ch")) == 7 and _sq.call("tracker_text") == "" and _sq.call("target_pos") == Vector3.INF and jt.contains("✔ 제7장") \
+				and PartyState.count("fate_knot") == int(_v.knots) + 4 + bonus
+			_check("chapter7", ok, "ch=%d knots %d→%d (ar %d→%d, +%d) tracker='%s'" % [_sq.call("ch"), _v.knots, PartyState.count("fate_knot"), _v.ar, PartyState.level + 1, bonus, _sq.call("tracker_text")])
+			_next()
+		62: # ㊾ 대화 몸짓 — 다 끝난 뒤 촌장 혼잣말로
 			var face: Node = _sq.call("face_of", "elder")
 			var body: Node3D = (_sq.get("_npcs")["elder"] as Node3D).get_node("Body")
 			if _frame == 1:
@@ -785,7 +975,7 @@ func _physics_process(_delta: float) -> void:
 					_v.map, _v.revealing, _v.mouth, _v.lift, _v.fwd, _v.infl, _v.joy, _v.closed, back, _v.blink, face.call("front_sign")])
 				(_v.hand as Node).queue_free()
 				_next()
-		50:
+		63:
 			PartyState.story = _saved.story
 			PartyState.members.assign(_saved.members)
 			PartyState.exp = _saved.exp
@@ -877,6 +1067,39 @@ func _ch6_spots() -> Dictionary:
 	var alt: Dictionary = Story.CHAPTERS[5].steps[5]
 	spots["altar"] = TestMap.world_pos(alt.cell.x, alt.cell.y, "village")
 	return spots
+
+## 7장 곶 자리 — 제단·나그네·싸움터·물결이 나오는 둘레 자리 전부(포구).
+func _ch7_spots() -> Dictionary:
+	var spots := {}
+	var d: Dictionary = Story.CHAPTERS[6].steps[4]
+	var c := TestMap.world_pos(d.cell.x, d.cell.y, "coast")
+	spots["altar"] = c
+	spots["wanderer"] = TestMap.world_pos(Story.NPCS.wanderer.appear[3].cell.x, Story.NPCS.wanderer.appear[3].cell.y, "coast")
+	var du: Dictionary = Story.CHAPTERS[6].steps[5]
+	spots["duel"] = TestMap.world_pos(du.cell.x, du.cell.y, "coast")
+	for w in (d.waves as Array).size():
+		var n: int = (d.waves[w] as Array).size()
+		for i in n:
+			var a := TAU * float(i) / float(n) + 0.9 * w
+			spots["wave%d_%d" % [w, i]] = c + Vector3(cos(a), 0.0, sin(a)) * Story.DEFEND_RING
+	return spots
+
+## 포구 사건(region2_coast.gd — 어부 부탁·표류물·조각배, 반경 안에 들면 선택 창이 떠 대화를 막는다)과의 여유 [m, 어디].
+func _coast_event_clear(spots: Dictionary) -> Array:
+	const Coast := preload("res://games/saga_go/world/region2_coast.gd")
+	var evs := {"fisher": [Coast.FISHER_GRID, Coast.FISHER_TALK_RADIUS], "driftwood": [Coast.DRIFTWOOD_GRID, Coast.DRIFTWOOD_TRIGGER_RADIUS],
+		"boat": [Coast.BOAT_GRID, Coast.BOAT_TRIGGER_RADIUS]}
+	var best := 1e9
+	var where := ""
+	for e in evs:
+		var g: Vector2i = evs[e][0]
+		var ep := TestMap.world_pos(g.x, g.y, "coast")
+		for k in spots:
+			var m := _flat(ep, spots[k]) - float(evs[e][1])
+			if m < best:
+				best = m
+				where = "%s~%s" % [k, e]
+	return [best, where]
 
 ## 산 바위(vegetation_builder _scatter_rocks 와 같은 해시)에서 가장 가까운 거리 [m, 어디] — 바위가 제단·인물을 덮지 않게.
 func _rock_clear(spots: Dictionary) -> Array:

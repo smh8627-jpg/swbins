@@ -92,7 +92,8 @@ static func _hash(id: String) -> int:
 
 ## 가면 — 머리 뼈에 붙인다(뼈를 못 찾으면 몸 앞 얼굴 높이). 눈구멍 둘·줄 하나. 이야기 나그네(흰 가면·붉은 줄, world/story_quest.gd)·
 ## 검은 가면(field_enemy black_mask, 검은 가면·보랏빛 줄)이 쓴다.
-static func add_mask(body: Node3D, stripe: Color = Color(0.72, 0.12, 0.12), face_col: Color = Color(0.94, 0.92, 0.86)) -> void:
+## crack — 왼쪽 눈가에 흰 금(106장 ㉞ 7장 "금 간 검은 가면").
+static func add_mask(body: Node3D, stripe: Color = Color(0.72, 0.12, 0.12), face_col: Color = Color(0.94, 0.92, 0.86), crack := false) -> void:
 	var mask := Node3D.new()
 	mask.name = "Mask"
 	var skel := body.find_children("*", "Skeleton3D", true, false)
@@ -134,3 +135,17 @@ static func add_mask(body: Node3D, stripe: Color = Color(0.72, 0.12, 0.12), face
 		dot.material_override = dark if i < 2 else red
 		dot.position = Vector3(-0.04 + 0.08 * i, 0.03, 0.036) if i < 2 else Vector3(0.0, -0.01, 0.037)
 		mask.add_child(dot)
+	if crack:
+		var pale := StandardMaterial3D.new()
+		pale.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		pale.albedo_color = Color(0.88, 0.84, 0.96)
+		for k in 2:
+			var cr := MeshInstance3D.new()
+			var cm := BoxMesh.new()
+			cm.size = Vector3(0.008, 0.075, 0.01)
+			cr.mesh = cm
+			cr.material_override = pale
+			cr.name = "Crack%d" % k
+			cr.position = Vector3(-0.055, 0.035, 0.037) if k == 0 else Vector3(-0.042, -0.035, 0.036)
+			cr.rotation.z = 0.5 if k == 0 else -0.45
+			mask.add_child(cr)

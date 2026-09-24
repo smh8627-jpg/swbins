@@ -65,6 +65,26 @@ var _faces: Dictionary = {}
 var _player_tf: Node = null
 var _reveal := -1.0 # 흘러나온 글자 수(음수면 다 보임)
 var _reveal_face: Node = null
+## 106장 ㉞ defend — 물결 차례(-1 = 아직 시작 전), 이번 물결이 나온 뒤 흐른 초, 제단 글자. 제단 체력은 SiegeAltar 가 든다.
+var _wave := -1
+var _wave_t := 0.0
+var _defend_label: Label3D = null
+var _defend_warned := false
+var _defend_hold := 0.0 # 무너진 뒤 다시 첫 물결까지 쉬는 초
+const DEFEND_REST := 4.0
+
+## defend 제단 — field_enemy.siege 가 이 노드를 친다(siege_hit·siege_radius).
+class SiegeAltar extends Node3D:
+	signal hit(amount: float)
+	var hp := 1.0
+	var max_hp := 1.0
+	func siege_radius() -> float:
+		return 0.9
+	func siege_hit(amount: float, _from: Node) -> void:
+		if hp <= 0.0:
+			return
+		hp = maxf(0.0, hp - amount)
+		hit.emit(amount)
 
 func _ready() -> void:
 	add_to_group("go_story")
@@ -135,7 +155,7 @@ func target_pos() -> Vector3:
 	match String(s.type):
 		"talk":
 			return npc_pos(String(s.npc))
-		"go", "kill", "light", "seal", "climb":
+		"go", "kill", "light", "seal", "climb", "defend":
 			return _cell_pos(String(s.region), s.cell)
 		"duel":
 			for e in _quest_enemies:
@@ -178,6 +198,10 @@ func step_text() -> String:
 		return "%s %d/%d" % [s.text, _count, int(s.count)]
 	if String(s.type) == "follow" and _follow_far:
 		return "%s — 너무 멀다, 가까이!" % s.text
+	if String(s.type) == "defend":
+		if _wave < 0:
+			return "%s — 제단 곁으로 가면 무리가 온다" % s.text
+		return "%s — 제단 %d/%d · 물결 %d/%d" % [s.text, ceili(defend_hp()), ceili(defend_max()), _wave + 1, (s.waves as Array).size()]
 	if String(s.type) == "seal":
 		var names: Array[String] = []
 		for m in s.order:
@@ -296,6 +320,9 @@ func _enter_step() -> void:
 	_follow_i = 0
 	_follow_far = false
 	_seal_next = 0
+	_wave = -1
+	_wave_t = 0.0
+	_defend_warned = false
 	_was_locked = locked()
 	_place_npcs()
 	var s := current_step()
@@ -333,6 +360,14 @@ func _enter_step() -> void:
 		"seal":
 			_build_altar(_cell_pos(String(s.region), s.cell))
 			_build_seal(String(s.region))
+		"defend":
+			_build_altar(_cell_pos(String(s.region), s.cell), true)
+			var sa := _altar as SiegeAltar
+			sa.max_hp = float(s.hp) * Adventure.atk_mul(Adventure.world_level())
+			sa.hp = sa.max_hp
+			sa.hit.connect(_on_altar_hit)
+			remove_from_group("element_receiver") # 지키는 제단엔 불을 안 붙인다
+			_refresh_defend_label()
 		"boss":
 			## 이미 쓰러뜨려 보상 꽃을 기다리는 중이면(다시 서지 않으니) 그대로 넘긴다.
 			var fb := get_tree().get_first_node_in_group("go_field_bosses")
@@ -350,6 +385,7 @@ func _clear_step_objects() -> void:
 		_altar.queue_free()
 		_altar = null
 		_altar_flame = null
+		_defend_label = null
 	_seal.clear() # 석등은 제단 자식이라 함께 사라진다
 	if is_in_group("element_receiver"):
 		remove_from_group("element_receiver")
@@ -541,9 +577,12 @@ func _physics_process(delta: float) -> void:
 						(e as CharacterBody3D).velocity = Vector3.ZERO
 			if not _quest_enemies.is_empty() and alive_quest_enemies().is_empty():
 				if String(s.type) == "duel":
-					Toast.show(self, "%s의 가면에 금이 가고 — 먹구름 속으로 달아났다" % String(FieldEnemy.KINDS[String(s.kind)].name), 3.0)
+					Toast.show(self, String(s.get("flee", "%s의 가면에 금이 가고 — 먹구름 속으로 달아났다" % String(FieldEnemy.KINDS[String(s.kind)].name))), 3.0)
 				_quest_enemies.clear()
 				advance()
+				return
+		"defend":
+			if _defend_tick(s, delta):
 				return
 		"climb":
 			var t := _cell_pos(String(s.region), s.cell)
@@ -566,6 +605,88 @@ func _physics_process(delta: float) -> void:
 			if body:
 				body.rotation.y = lerp_angle(body.rotation.y, atan2(to_p.x, to_p.z), 0.15)
 	_refresh_marker()
+
+## defend 한 프레임 — 가까이 오면 첫 물결, 물결을 다 잡거나 DEFEND_WAVE_SEC 가 지나면 다음, 마지막까지 다 잡으면 끝(true = 단계가 바뀜).
+func _defend_tick(s: Dictionary, delta: float) -> bool:
+	if _altar == null:
+		return false
+	var waves: Array = s.waves
+	if _wave < 0:
+		if _defend_hold > 0.0:
+			_defend_hold -= delta
+			return false
+		var ap := _altar.global_position
+		if Vector2(_player.global_position.x - ap.x, _player.global_position.z - ap.z).length() <= Story.DEFEND_START:
+			_spawn_wave(s, 0)
+			Toast.show(self, "가면 무리가 몰려온다 — 제단을 지켜라", 2.5)
+		return false
+	_wave_t += delta
+	var alive := alive_quest_enemies()
+	if _wave + 1 < waves.size():
+		if alive.is_empty() or _wave_t >= Story.DEFEND_WAVE_SEC:
+			_spawn_wave(s, _wave + 1)
+	elif alive.is_empty():
+		Toast.show(self, "무리가 모두 물러갔다 — 제단이 버텼다", 2.5)
+		_quest_enemies.clear()
+		advance()
+		return true
+	return false
+
+## defend 물결 w — 제단 둘레 DEFEND_RING m 에 고르게(물결마다 조금씩 돌려), 곧장 제단으로.
+func _spawn_wave(s: Dictionary, w: int) -> void:
+	_wave = w
+	_wave_t = 0.0
+	var center := _altar.global_position
+	var kinds: Array = (s.waves as Array)[w]
+	for i in kinds.size():
+		var a := TAU * float(i) / float(kinds.size()) + 0.9 * w
+		var p := center + Vector3(cos(a), 0.0, sin(a)) * Story.DEFEND_RING
+		p.y = TerrainBuilder.height_at(String(s.region), p) + 0.3
+		var e: CharacterBody3D = FieldEnemy.new()
+		e.name = "StoryRaider_%d_%d" % [w, i]
+		e.setup(String(kinds[i]), p, 20260824 + 1000 + w * 10 + i)
+		e.respawns = false
+		e.drops = false
+		e.siege = _altar
+		e.apply_world_level(Adventure.world_level())
+		add_child(e)
+		_quest_enemies.append(e)
+	if w > 0:
+		Toast.show(self, "물결 %d/%d — 무리가 또 온다" % [w + 1, (s.waves as Array).size()], 2.0)
+	_refresh()
+
+func _on_altar_hit(_amount: float) -> void:
+	_refresh_defend_label()
+	_refresh()
+	if not _defend_warned and defend_hp() <= defend_max() * 0.5:
+		_defend_warned = true
+		Toast.show(self, "제단이 흔들린다 — 무리를 떼어 내라!", 2.0)
+	if defend_hp() <= 0.0:
+		call_deferred("_defend_failed")
+
+## 제단이 무너지면 무리가 물러가고 그 단계 처음부터(나그네 말 그대로 다시).
+func _defend_failed() -> void:
+	if String(current_step().get("type", "")) != "defend":
+		return
+	Toast.show(self, "제단이 무너질 뻔했다 — 무리가 물러갔다. 다시 지켜 보자", 3.0)
+	_enter_step()
+	_defend_hold = DEFEND_REST
+
+func defend_hp() -> float:
+	return (_altar as SiegeAltar).hp if _altar is SiegeAltar else 0.0
+
+func defend_max() -> float:
+	return (_altar as SiegeAltar).max_hp if _altar is SiegeAltar else 0.0
+
+func defend_wave() -> int:
+	return _wave
+
+func _refresh_defend_label() -> void:
+	if _defend_label == null:
+		return
+	var r := defend_hp() / defend_max() if defend_max() > 0.0 else 0.0
+	_defend_label.text = "넷째 제단 %d%%" % roundi(r * 100.0)
+	_defend_label.modulate = Color(0.55, 1.0, 0.6).lerp(Color(1.0, 0.35, 0.3), 1.0 - r)
 
 ## 보이는 창이 떠 있는가(숨겨 둔 선택지 창은 그룹에 남아 있다 — camera_rig._modal_open 과 같게). 자기 자신은 뺀다.
 func _modal_open() -> bool:
@@ -996,8 +1117,8 @@ func _build_seal(region: String) -> void:
 		_seal.append({"node": t, "mark": mark, "flame": flame, "lit": false})
 
 ## 옛 제단 — 돌 받침 + 붙으면 켜지는 불꽃. 붙기 전까지 element_receiver.
-func _build_altar(p: Vector3) -> void:
-	_altar = Node3D.new()
+func _build_altar(p: Vector3, siege := false) -> void:
+	_altar = SiegeAltar.new() if siege else Node3D.new()
 	_altar.name = "StoryAltar"
 	add_child(_altar)
 	_altar.global_position = p
@@ -1025,6 +1146,15 @@ func _build_altar(p: Vector3) -> void:
 	_altar_flame.position = Vector3(0.0, 1.4, 0.0)
 	_altar_flame.visible = false
 	_altar.add_child(_altar_flame)
+	if siege:
+		_defend_label = Label3D.new()
+		_defend_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		_defend_label.no_depth_test = true
+		_defend_label.font_size = 48
+		_defend_label.outline_size = 10
+		_defend_label.pixel_size = 0.006
+		_defend_label.position = Vector3(0.0, 2.3, 0.0)
+		_altar.add_child(_defend_label)
 	add_to_group("element_receiver")
 
 func _build_ui() -> void:

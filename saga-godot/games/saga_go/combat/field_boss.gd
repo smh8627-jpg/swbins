@@ -25,6 +25,8 @@ const PHASE2_AT := 0.5
 ## 106장 ㉜ 그림자 — 플레이어 등 뒤 SHADOW.behind m 로 옮겨 붙어 둘레 radius 내려찍기(예고가 짧다, 대시로 피한다).
 const SHADOW := {"behind": 2.2, "radius": 3.2, "tell": 0.8, "mul": 1.4}
 const SUMMON_SPREAD := 4.0
+## 106장 ㉞ 밀물 — 보스에서 플레이어 쪽으로 원 넷이 줄지어(first m 부터 step m 간격) 1.1초 예고. 옆으로 비켜 피한다.
+const TIDE := {"count": 4, "first": 2.5, "step": 3.0, "radius": 2.0, "tell": 1.1, "mul": 1.3}
 
 var phase := 1
 var skill := ""
@@ -95,12 +97,17 @@ func begin_skill(which: String, player: Node3D) -> void:
 			velocity = Vector3.ZERO
 			_face(player.global_position - global_position, 1.0)
 			_mark(global_position, SHADOW.radius)
+		"tide":
+			skill_t = TIDE.tell
+			var fwd := to_p.normalized() if to_p.length() > 0.1 else _facing()
+			for i in int(TIDE.count):
+				_mark(global_position + fwd * (float(TIDE.first) + float(TIDE.step) * i), float(TIDE.radius))
 	_set_tell(true)
 
 func _fire() -> void:
 	_set_tell(false)
 	var player := get_tree().get_first_node_in_group("player") as Node3D
-	var mul: float = SLAM.mul if skill == "slam" else (SHADOW.mul if skill == "shadow" else STORM.mul)
+	var mul: float = {"slam": SLAM.mul, "shadow": SHADOW.mul, "tide": TIDE.mul}.get(skill, STORM.mul)
 	var hit := false
 	if player:
 		for m in _marks:
