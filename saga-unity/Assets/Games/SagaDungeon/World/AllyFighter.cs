@@ -105,7 +105,8 @@ namespace Saga.Dungeon.World
                 e.Taunt(this, TauntSec);
                 n++;
             }
-            if (_animator != null) _animator.SetTrigger("Attack"); // 방패를 치켜드는 대신 검방 공격 클립(전용 클립 없음).
+            // 106-6 전용 클립 — 방패를 치켜든다(Paladin@Taunt). 클립이 없는 PC 는 검방 공격 클립.
+            Trigger(HasParam("Taunt") ? "Taunt" : "Attack");
             EnsureTauntRing();
             _tauntRing.enabled = true;
             DialogueLabel.Instance?.Show(DungeonLocalization.T("party.taunt", "동행 무사: 「이쪽이다!」 — 적이 무사를 노린다"), 2.5f);
@@ -120,7 +121,10 @@ namespace Saga.Dungeon.World
             _hp = Mathf.Max(0f, _hp - taken);
             _calmFor = 0f;
             DamagePopup.Spawn(transform.position + Vector3.up * 2f, taken, false);
-            if (_hp <= 0f) GoDown();
+            if (_hp <= 0f) { GoDown(); return; }
+            // 도발 중엔 방패로 받아 내는 동작(Blocked), 아니면 맞아 휘청(Hit) — 클립이 있을 때만.
+            if (Taunting && HasParam("Blocked")) Trigger("Blocked");
+            else if (HasParam("Hit")) Trigger("Hit");
         }
 
         /// <summary>술사 "치유의 빛" — 쓰러져 있으면 일으키고, 서 있으면 채운다.</summary>
@@ -154,10 +158,21 @@ namespace Saga.Dungeon.World
             DialogueLabel.Instance?.Show(DungeonLocalization.T("party.guard_down", "동행 무사가 쓰러졌다 — 술사의 치유로 일으킬 수 있다"), 3f);
         }
 
-        /// <summary>Paladin 엔 쓰러짐 클립이 없어 몸을 뒤로 눕힌다(절차적 폴백, PlayerController 구르기와 같은 결).</summary>
+        /// <summary>쓰러짐 — 전용 클립(Paladin@Dying, 마지막 프레임에 머문다)이 있으면 그것, 일어날 땐 대기로 곧장.
+        /// 클립이 없는 PC 는 몸을 뒤로 눕힌다(절차적 폴백, PlayerController 구르기와 같은 결).</summary>
         private void SetDownPose(bool down)
         {
             SetSpeed(0f);
+            if (UsesDeathClip)
+            {
+                if (down) Trigger("Death");
+                else if (_animator.GetCurrentAnimatorStateInfo(0).IsName("Death") || _animator.IsInTransition(0))
+                {
+                    _animator.ResetTrigger("Death");
+                    _animator.Play("Idle", 0, 0f);
+                }
+                return;
+            }
             if (_visual == null) return;
             _visual.localRotation = down ? Quaternion.Euler(-80f, 0f, 0f) : Quaternion.identity;
             _visual.localPosition = down ? new Vector3(0f, 0.3f, 0f) : Vector3.zero;
@@ -187,6 +202,25 @@ namespace Saga.Dungeon.World
                 _calmFor = DungeonEnemy.FindNearest(transform.position, CalmRadius) == null ? _calmFor + dt : 0f;
                 if (_calmFor >= CalmRegenSec) _hp = HpMax;
             }
+        }
+
+        /// <summary>106-6 전용 클립 — 쓰러짐을 클립으로 보이는가(아니면 몸을 눕히는 폴백).</summary>
+        public bool UsesDeathClip => HasParam("Death");
+
+        /// <summary>진단용 — 마지막으로 건 트리거 이름.</summary>
+        public string LastTrigger { get; private set; }
+
+        private bool HasParam(string name)
+        {
+            if (_animator == null || _animator.runtimeAnimatorController == null) return false;
+            foreach (var p in _animator.parameters) if (p.name == name) return true;
+            return false;
+        }
+
+        private void Trigger(string name)
+        {
+            LastTrigger = name;
+            if (HasParam(name)) _animator.SetTrigger(name);
         }
 
         private void EnsureTauntRing()

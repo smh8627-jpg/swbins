@@ -11,7 +11,8 @@ namespace Saga.Dungeon.World
     /// 명령 "치유의 빛"(게이지 한 칸)은 플레이어 체력 40% 를 채우고 무사를 60% 로 일으킨다. 적은 술사를 노리지 않는다
     /// (도발은 무사 몫 — 적 표적은 플레이어·도발한 무사 둘뿐이라 술사는 체력이 없다).
     /// 스탯은 무사와 같은 `partyPower()` 공식(might 10·wisdom 30 → atk 16 → 한 타 max(4, 16/6) = 4).
-    /// 몸은 Peasant Girl(Humanoid)에 Maria.controller 를 씌운 리타깃(GO 107-6 과 같은 방식 — 그 모델엔 걷기 클립이 없다).
+    /// 몸은 Peasant Girl — 제 컨트롤러에 전용 클립(걷기·달리기·빛살 시전 `Attack`·치유 시전 `Heal`, 2026-09-24 Mixamo)이 있으면 그대로,
+    /// 없는 PC 면 Maria.controller 를 씌운 리타깃(GO 107-6 과 같은 방식).
     /// </summary>
     public class AllyMystic : MonoBehaviour
     {
@@ -64,7 +65,7 @@ namespace Saga.Dungeon.World
                 var inst = Instantiate(modelPrefab, transform, false);
                 inst.name = "Visual";
                 _animator = inst.GetComponent<Animator>();
-                if (bodyController != null && _animator.isHuman) _animator.runtimeAnimatorController = bodyController;
+                if (bodyController != null && _animator.isHuman && !HasOwnClips) _animator.runtimeAnimatorController = bodyController;
                 CharacterVisual.EnsureBlobShadow(transform);
                 return;
             }
@@ -78,7 +79,7 @@ namespace Saga.Dungeon.World
             HeroState.HealBy(Mathf.CeilToInt(HeroState.HpMax * HealPlayerFrac));
             var guard = AllyFighter.Instance;
             if (guard != null) guard.Revive(ReviveGuardFrac);
-            if (_animator != null) _animator.SetTrigger("Attack");
+            Trigger(HasParam("Heal") ? "Heal" : "Attack");
             if (_player != null) HealGlow.Spawn(_player.position);
             if (guard != null) HealGlow.Spawn(guard.transform.position);
             DialogueLabel.Instance?.Show(DungeonLocalization.T("party.heal", "동행 술사: 「치유의 빛!」 — 체력이 차오른다"), 2.5f);
@@ -120,7 +121,7 @@ namespace Saga.Dungeon.World
                 {
                     _castCooldown = CastInterval;
                     BoltsCast++;
-                    if (_animator != null) _animator.SetTrigger("Attack");
+                    Trigger("Attack");
                     MysticBolt.Fire(transform.position + Vector3.up * HandHeight + transform.forward * 0.4f, target, BoltDamage);
                 }
                 return;
@@ -138,6 +139,25 @@ namespace Saga.Dungeon.World
             SetSpeed(far ? 1f : 0.5f);
             transform.position += toPlayer.normalized * (far ? FollowSpeed : WalkFollowSpeed) * dt;
             Face(_player.position);
+        }
+
+        /// <summary>제 컨트롤러가 걷기·시전을 다 갖췄나(전용 클립을 받은 PC) — 아니면 Maria.controller 리타깃.</summary>
+        public bool HasOwnClips => HasParam("Attack") && HasParam("Heal");
+
+        /// <summary>진단용 — 마지막으로 건 트리거 이름.</summary>
+        public string LastTrigger { get; private set; }
+
+        private bool HasParam(string name)
+        {
+            if (_animator == null || _animator.runtimeAnimatorController == null) return false;
+            foreach (var p in _animator.parameters) if (p.name == name) return true;
+            return false;
+        }
+
+        private void Trigger(string name)
+        {
+            LastTrigger = name;
+            if (HasParam(name)) _animator.SetTrigger(name);
         }
 
         private void SetSpeed(float value)
