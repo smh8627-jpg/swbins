@@ -7,7 +7,8 @@
  *   /projects/<id>/assets/…    프로젝트가 올린 모델('proj:<파일>')
  *   /api/projects              목록 · /api/templates 틀 목록 · /api/assets 에셋 목록(GLB 몸짓 이름까지)
  *   /api/project/<id>          GET 읽기 · POST {project, base} 저장
- *   /api/new                   POST {id, title, template} 새 프로젝트
+ *   /api/new                   POST {id, title, template} 새 프로젝트 — template 대신 project(설명서로 지은 판)를 줘도 된다
+ *   /api/brief                 POST {text, id, title} 게임 설명서(글) → 지은 판 + 알림 + 검사(저장 안 함)
  *   /api/upload/<id>?name=     POST 몸통 = .glb 바이트
  *   /api/export/<id>           POST → dist/<id>/ 에 바로 도는 폴더(index.html 하나 열면 된다)
  *
@@ -26,6 +27,7 @@ require('./runtime/systems.js');  // 시스템 컴포넌트·행동을 SIM 표�
 require('./runtime/basics.js');   // 기본기(스위치·문·파티클·아이템·컷신·효과·음악)
 require('./runtime/genres.js');   // 장르(장비·꾸미기·영지·던전)
 const realname = require('../content-editor/realname');
+const BRIEF = require('./editor/brief.js');   // 게임 설명서 → project.json(API 없이 규칙만)
 
 const HERE = __dirname;
 const WEB = process.env.SAGA_WEB_ROOT ? path.resolve(process.env.SAGA_WEB_ROOT) : path.join(HERE, '..', '..');
@@ -122,11 +124,11 @@ function listTemplates() {
     return { name: f.replace(/\.json$/, ''), title: p.title, desc: p.desc || '', scenes: (p.scenes || []).length };
   });
 }
-function newProject(id, title, template) {
+function newProject(id, title, template, given) {
   if (!idOk(id)) { return { code: 400, body: { error: 'id 는 영소문자·숫자·- (예: my-game)' } }; }
   if (fs.existsSync(path.join(PROJ, id))) { return { code: 409, body: { error: '이미 있다: ' + id } }; }
   let p;
-  if (template && template !== 'blank') {
+  if (given && typeof given === 'object') { p = given; } else if (template && template !== 'blank') {
     const tf = inside(TEMPLATES, template + '.json');
     if (!tf || !fs.existsSync(tf)) { return { code: 400, body: { error: '모르는 틀: ' + template } }; }
     p = JSON.parse(fs.readFileSync(tf, 'utf8'));
@@ -290,7 +292,11 @@ async function handle(req, res) {
       }
       const body = JSON.parse((await readBody(req, 20 * 1024 * 1024)).toString('utf8') || '{}');
       if ((m = /^\/api\/project\/([a-z0-9-]+)$/.exec(p))) { const r = saveProject(m[1], body.project, body.base); return send(res, r.code, r.body); }
-      if (p === '/api/new') { const r = newProject(body.id, body.title, body.template); return send(res, r.code, r.body); }
+      if (p === '/api/new') { const r = newProject(body.id, body.title, body.template, body.project); return send(res, r.code, r.body); }
+      if (p === '/api/brief') {
+        const b = BRIEF.build(String(body.text || ''), { id: idOk(body.id) ? body.id : 'my-game', title: body.title });
+        return send(res, 200, Object.assign(b, { check: checkProject(b.project) }));
+      }
       if (p === '/api/check') { return send(res, 200, checkProject(body.project)); }
       if ((m = /^\/api\/export\/([a-z0-9-]+)$/.exec(p))) {
         if (!fs.existsSync(projFile(m[1]))) { return send(res, 404, { error: '없는 프로젝트' }); }

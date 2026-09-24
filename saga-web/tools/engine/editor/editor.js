@@ -1145,7 +1145,8 @@
         })));
       }
       kids.push(h('h3', { text: '새로 만들기 — 틀 고르기' }), tplBox, row('id', idIn), row('제목', titleIn), err,
-        h('div', { class: 'foot' }, [canClose ? h('button', { text: '닫기', onclick: closeModal }) : null, h('button', { class: 'primary', text: '만들기', onclick: function () {
+        h('div', { class: 'foot' }, [canClose ? h('button', { text: '닫기', onclick: closeModal }) : null,
+          h('button', { text: '📝 글로 만들기', title: '게임 설명서(글)로 짓기', onclick: function () { briefMaker(canClose); } }), h('button', { class: 'primary', text: '만들기', onclick: function () {
           api('POST', '/api/new', { id: idIn.value.trim(), title: titleIn.value.trim(), template: chosen }).then(function (j) {
             if (j._status !== 200) { err.textContent = (j.error || '실패') + (j.errors ? '\n' + j.errors.join('\n') : ''); return; }
             closeModal(); open(idIn.value.trim());
@@ -1157,6 +1158,61 @@
   $('#b-projects').onclick = function () {
     if (dirty && !window.confirm('저장 안 한 것이 있다. 그래도 다른 프로젝트를 열까?')) { return; }
     projectPicker(!!proj);
+  };
+
+  /* 글(게임 설명서)로 새로 만들기 — 규칙만으로 짓는다(API·인터넷 없음). 무료 채팅 AI 에 줄 안내문도 복사해 준다 */
+  function briefMaker(canClose) {
+    var B = window.SagaBrief, draft = '';
+    try { draft = localStorage.getItem('saga-engine/brief') || ''; } catch (e) { /* 없어도 된다 */ }
+    var ta = h('textarea', { class: 'brief', spellcheck: 'false', value: draft || B.EXAMPLE });
+    var idIn = h('input', { placeholder: 'my-game (영소문자·숫자·-)', style: 'width:100%' });
+    var info = h('div', { class: 'brief-info' }), err = h('div', { class: 'err' });
+    var helpBox = h('pre', { class: 'brief-help', text: B.HELP, hidden: true });
+    var timer = 0;
+    function preview() {
+      try { localStorage.setItem('saga-engine/brief', ta.value); } catch (e) { /* 없어도 된다 */ }
+      var r = B.build(ta.value, { id: idIn.value.trim() || 'my-game' }), v = SIM.validate(r.project);
+      info.innerHTML = '';
+      info.appendChild(h('b', { text: '「' + r.project.title + '」 장면 ' + r.stats.scenes + ' · 개체 ' + r.stats.entities + ' · 목표 ' + r.stats.goals +
+        ' · 전투 ' + ({ simple: '간단', genshin: '원신식', zelda: '젤다식', ff: '파판식' }[r.project.combat.style] || r.project.combat.style) }));
+      r.notes.concat(v.errors.map(function (x) { return '검사: ' + x; })).forEach(function (n) { info.appendChild(h('div', { class: 'note', text: '· ' + n })); });
+      if (!r.notes.length && !v.errors.length) { info.appendChild(h('div', { class: 'okay', text: '알아듣지 못한 줄 없음' })); }
+      return r;
+    }
+    ta.addEventListener('input', function () { clearTimeout(timer); timer = setTimeout(preview, 250); });
+    function copy(text, done) {
+      var ok = function () { status(done, 'ok'); }, old = function () { var t = h('textarea', { value: text }); document.body.appendChild(t); t.select(); try { document.execCommand('copy'); ok(); } catch (e) { status('복사 못 했다', 'bad'); } t.remove(); };
+      if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(text).then(ok, old); } else { old(); }
+    }
+    modal([h('h2', { text: '📝 글로 게임 만들기 — 게임 설명서' }),
+      h('div', { class: 'dim', text: '한 줄에 하나씩: 장면·놓을 것·목표. 자리는 알아서 흩어 놓고, 만든 뒤 편집기에서 얼마든지 고친다. 같은 글이면 늘 같은 판.' }),
+      h('div', { class: 'brief-tools' }, [
+        h('button', { text: '예시 넣기', onclick: function () { if (ta.value.trim() && ta.value !== B.EXAMPLE && !window.confirm('지금 글을 지우고 예시를 넣을까?')) { return; } ta.value = B.EXAMPLE; preview(); } }),
+        h('button', { text: '형식 보기', onclick: function () { helpBox.hidden = !helpBox.hidden; } }),
+        h('button', { text: '📋 AI 안내문 복사', title: '무료 채팅 AI(웹)에 붙여 넣고 맨 끝에 원하는 게임을 적으면 이 형식으로 써 준다 — 받은 글을 여기에 붙여 넣는다',
+          onclick: function () { copy(B.AI_PROMPT, 'AI 안내문을 복사했다 — 채팅 AI 에 붙여 넣고 맨 끝에 원하는 게임을 적을 것'); } })
+      ]),
+      helpBox, ta, info, row('id', idIn), err,
+      h('div', { class: 'foot' }, [
+        h('button', { text: canClose ? '닫기' : '← 틀로 만들기', onclick: function () { if (canClose) { closeModal(); } else { projectPicker(false); } } }),
+        h('button', { class: 'primary', text: '만들기', onclick: function () {
+          var id = idIn.value.trim();
+          api('POST', '/api/brief', { text: ta.value, id: id }).then(function (b) {
+            if (b._status !== 200) { err.textContent = b.error || '실패'; return; }
+            if (b.check.errors.length) { err.textContent = '검사 오류\n' + b.check.errors.join('\n'); return; }
+            api('POST', '/api/new', { id: id, project: b.project }).then(function (j) {
+              if (j._status !== 200) { err.textContent = (j.error || '실패') + (j.errors ? '\n' + j.errors.join('\n') : ''); return; }
+              closeModal(); open(id);
+              if (b.notes.length) { setTimeout(function () { status('글에서 못 알아들은 줄 ' + b.notes.length + '개 — 편집기에서 채울 것', 'bad'); }, 600); }
+            });
+          });
+        } })])]);
+    preview();
+    setTimeout(function () { ta.focus(); }, 30);
+  }
+  $('#b-brief').onclick = function () {
+    if (dirty && !window.confirm('저장 안 한 것이 있다. 그래도 새 게임을 만들까?')) { return; }
+    briefMaker(!!proj);
   };
 
   function open(id) {

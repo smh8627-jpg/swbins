@@ -667,6 +667,63 @@ t('틀 언덕 마을 퍼즐: 끝까지 풀기', () => {
 });
 
 /* ════════════════════════════════════════════════════════════════════
+   5b) 게임 설명서(글) → 판 — editor/brief.js
+   ════════════════════════════════════════════════════════════════════ */
+const BRIEF = require(path.join(ROOT, 'editor/brief.js'));
+const RN = require(path.join(ROOT, '../content-editor/realname.js'));
+t('설명서: 예시 글', () => {
+  const r = BRIEF.build(BRIEF.EXAMPLE, { id: 'ex' }), v = SIM.validate(r.project);
+  ok('설명서 예시: 못 알아들은 줄 없음', r.notes.length === 0, r.notes.join(' | '));
+  ok('설명서 예시: 검사 통과(경고도 없음)', v.errors.length === 0 && v.warns.length === 0, v.errors.concat(v.warns).join(' | '));
+  ok('설명서 예시: 장면 둘·목표 둘·젤다식', r.stats.scenes === 2 && r.stats.goals === 2 && r.project.combat.style === 'zelda', JSON.stringify(r.stats));
+  ok('설명서 예시: 결정적(같은 글 = 같은 판)', JSON.stringify(r.project) === JSON.stringify(BRIEF.build(BRIEF.EXAMPLE, { id: 'ex' }).project));
+  ok('설명서 예시: 실명 없음', !SIM.displayTexts(r.project).some((x) => RN.hits(x).length));
+  const s1 = r.project.scenes[0], s2 = r.project.scenes[1];
+  const door = s1.entities.find((e) => e.comps && e.comps.portal), back = s2.entities.find((e) => e.comps && e.comps.portal);
+  ok('설명서 예시: 문이 서로를 가리키고 도착점이 있다', door.comps.portal.scene === s2.id && back.comps.portal.scene === s1.id &&
+    s2.entities.some((e) => e.id === door.comps.portal.at) && s1.entities.some((e) => e.id === back.comps.portal.at));
+  ok('설명서 예시: 대사·상점 물건', s1.entities.some((e) => e.comps && e.comps.talk && e.comps.talk.lines.length === 2) &&
+    s1.entities.some((e) => e.comps && e.comps.shop && e.comps.shop.items.join() === '포션|10|potion|1,씨앗|3|seed|1'));
+  ok('설명서 예시: 해골 궁수는 원거리 적(결승 아님)', s2.entities.filter((e) => e.name === '해골 궁수' && e.comps.foe.ranged).length === 2 && !s2.entities.some((e) => e.id === 'goal'));
+  /* 겹침 없이 흩었나 — 플레이어 곁 3m 안에 아무것도 없다 */
+  const pl = s1.entities[0].pos;
+  ok('설명서 예시: 시작 자리 비움', !s1.entities.slice(1).some((e) => e.look.shape !== 'none' && Math.hypot(e.pos[0] - pl[0], e.pos[2] - pl[2]) < 3));
+  const a = SIM.create(r.project), b = SIM.create(r.project);
+  const inp = (i) => ({ mx: Math.sin(i / 50), mz: Math.cos(i / 70), jump: i % 90 === 0, atk: i % 20 === 0, act: i % 100 === 0 });
+  run(a, 30, inp); run(b, 30, inp);
+  ok('설명서 예시: 돈다·결정적', a.snapshot() === b.snapshot() && !(a.state.over && !a.state.over.win));
+});
+t('설명서: 종류 전부·전투 넷', () => {
+  const all = BRIEF.KINDS.filter((K) => !/dungeon|wave|town/.test(K.k)).map((K) => '  ' + K.w[0] + (K.k === 'portal' ? ' → 둘째' : '') + (K.k === 'gate' ? '' : ' 2')).join('\n');
+  for (const st of ['간단', '원신식', '젤다식', '파판식']) {
+    const txt = '제목: 모두\n전투: ' + st + '\n장면: 첫째\n  레버\n' + all + '\n장면: 둘째\n  문 → 첫째\n  적 파도 12\n장면: 셋째\n  던전 6\n장면: 넷째\n  영지: 북쪽 성 (적)\n  영지: 남쪽 성 (나)\n' +
+      '목표: 동전 2개\n목표: 두목 쓰러뜨리기\n목표: 주민 만나기\n목표: 30초 버티기\n목표: 레벨 3\n목표: 결승까지';
+    const r = BRIEF.build(txt, { id: 'all' }), v = SIM.validate(r.project);
+    ok('설명서 종류 전부(' + st + '): 알아들음', r.notes.length === 0, r.notes.join(' | '));
+    ok('설명서 종류 전부(' + st + '): 검사', v.errors.length === 0, v.errors.slice(0, 4).join(' | '));
+    const s = SIM.create(r.project); run(s, 3, (i) => ({ atk: i % 15 === 0 }));
+    ok('설명서 종류 전부(' + st + '): 돈다', !!s.state.player);
+  }
+  const r = BRIEF.build('장면: 가\n  문지기 "여기는 못 지나간다"\n  뭔지모를것\n  문 → 없는곳\n목표: 하늘 날기');
+  ok('설명서: "문지기" 는 사람, 모르는 줄·없는 장면·모르는 목표는 알림', r.project.scenes[0].entities.some((e) => e.comps && e.comps.talk && e.comps.talk.name === '문지기') && r.notes.length === 3, r.notes.join(' | '));
+  const one = BRIEF.splitThing('적: 무서운 늑대 ×3 (체력 30, 원소 불) "크르릉"');
+  ok('설명서: 줄 쪼개기', one.kind.k === 'foe' && one.name === '무서운 늑대' && one.count === 3 && one.opts.length === 2 && one.lines[0] === '크르릉', JSON.stringify(one));
+});
+t('설명서: 끝까지 놀기(동전 → 결승)', () => {
+  const r = BRIEF.build('제목: 동전 시험\n장면: 들판\n  동전 3\n  결승\n목표: 동전 3개 모으기\n목표: 결승까지', { id: 'c3' });
+  ok('설명서 놀기: 검사', SIM.validate(r.project).errors.length === 0 && r.notes.length === 0, r.notes.join(' | '));
+  const s = SIM.create(r.project), S = s.state;
+  const goal = () => S.ents.find((e) => e.id === 'goal');
+  ok('설명서 놀기: 결승점은 처음에 숨음', goal().hidden);
+  S.ents.filter((e) => e.comps.pickup && e.alive).forEach((c) => { S.player.p = [c.p[0], c.p[1], c.p[2]]; S.player.v = [0, 0, 0]; run(s, 0.3); });
+  ok('설명서 놀기: 동전 셋 → 목표 하나', S.vars.coins === 3 && S.vars.goalsDone === 1, JSON.stringify(S.vars));
+  run(s, 0.2);
+  ok('설명서 놀기: 결승점이 나타남', !goal().hidden);
+  S.player.p = [goal().p[0], 0, goal().p[2]]; S.player.v = [0, 0, 0]; run(s, 0.5);
+  ok('설명서 놀기: 결승 → 이김', S.over && S.over.win, JSON.stringify(S.over));
+});
+
+/* ════════════════════════════════════════════════════════════════════
    6) 서버 API(임시 폴더)
    ════════════════════════════════════════════════════════════════════ */
 async function serverTests() {
@@ -752,6 +809,13 @@ async function serverTests() {
     ok('내보내기: 박힌 프로젝트 검사', SIM.validate(ep).errors.length === 0);
     r = await J('GET', '/api/projects');
     ok('서버: 프로젝트 목록', r.status === 200 && r.j.length === TPL.length);
+    /* 설명서 → 미리 보기 → 새로 만들기 */
+    r = await J('POST', '/api/brief', { text: BRIEF.EXAMPLE, id: 'from-brief' });
+    ok('서버: 설명서 짓기', r.status === 200 && r.j.project.id === 'from-brief' && r.j.check.errors.length === 0 && r.j.notes.length === 0, JSON.stringify(r.j.check || r.j).slice(0, 200));
+    const made = await J('POST', '/api/new', { id: 'from-brief', project: r.j.project });
+    ok('서버: 설명서 판 저장', made.status === 200, JSON.stringify(made.j).slice(0, 200));
+    r = await J('POST', '/api/brief', { text: '장면: 가\n  주민: 세종대왕 "안녕"', id: 'rn' });
+    ok('서버: 설명서도 실명 가드', r.status === 200 && r.j.check.errors.some((e) => /실명|표시 글자/.test(e)), JSON.stringify(r.j.check));
   } finally {
     server.close();
     fs.rmSync(tmp, { recursive: true, force: true });

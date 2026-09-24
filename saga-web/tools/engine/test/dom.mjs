@@ -128,12 +128,23 @@ try {
     /* 장면 바꾸기 */
     const ss = doc.querySelector('#scene-sel'); ss.value = 'cave'; ss.dispatchEvent(new w.Event('change'));
     ok('편집기: 장면 바꾸기', doc.querySelectorAll('#ents li').length >= 7);
+    /* 글로 만들기 — 예시 글 미리 보기 → 새 프로젝트로 열림 */
+    doc.querySelector('#b-brief').click();
+    const ta = doc.querySelector('#modal textarea.brief');
+    ok('편집기: 글로 만들기 창', !!ta && /장면 2 · 개체 \d+ · 목표 2/.test(doc.querySelector('#modal .brief-info').textContent), doc.querySelector('#modal').textContent.slice(0, 120));
+    ta.value = w.SagaBrief.EXAMPLE + '\n  뭔지모를것'; ta.dispatchEvent(new w.Event('input'));
+    await sleep(400);
+    ok('편집기: 글 미리 보기 알림', /뭔지모를것/.test(doc.querySelector('#modal .brief-info').textContent));
+    doc.querySelector('#modal .row input').value = 'd-brief';
+    [...doc.querySelectorAll('#modal .foot button')].find((b) => b.textContent === '만들기').click();
+    const madeB = await until(() => w.SagaEditor.project.id === 'd-brief' && doc.querySelector('#modal').hidden, 5000);
+    ok('편집기: 글로 만든 판이 열림', madeB && w.SagaEditor.project.scenes.length === 2, doc.querySelector('#modal .err') && doc.querySelector('#modal .err').textContent);
     ok('편집기: 오류 없음(끝)', errors.length === 0, errors.slice(0, 3).join(' | '));
     w.close();
   }
 
-  /* ── 실행기 — 틀 여섯 ──────────────────────────────────────────── */
-  for (const t of tpls) {
+  /* ── 실행기 — 틀 여섯 + 글로 만든 판(d-brief) ──────────────────── */
+  for (const t of tpls.concat([{ name: 'brief' }])) {
     const errors = [];
     const dom = await open(base + '/runtime/play.html?p=d-' + t.name, errors);
     const w = dom.window, doc = w.document;
