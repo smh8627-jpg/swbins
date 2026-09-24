@@ -803,8 +803,11 @@
   }
 
   /** 지도 타일을 카메라 둘레에만 깐다 (멀어진 것은 지운다) */
+  /* 발열(2026-09-24 "핸드폰 불남") — 가만히 서 있어도 매 프레임 49장 × (열쇠 문자열·계절·landTexture 의 땅 소유 검사 ~36번)을
+     다시 돌았다. 선 칸·배율·물감·반경이 그대로고 지난번에 모든 장이 칠해졌으면 건너뛴다(계절·손으로 그린 땅이 바뀌는
+     경우를 위해 5초에 한 번은 그대로 다시 돈다) */
+  var groundKey = '', groundAt = 0, GROUND_REFRESH_MS = 5000;
   function syncGround(W) {
-    syncGen++;
     var mpp = W.metersPerPixel();
     var span = W.TILE_PX * mpp;                     // 타일 한 장이 덮는 미터
     var pos = core.save.player.pos;
@@ -815,6 +818,10 @@
     /* 밤에는 지도 자체가 어두워야 한다 — 타일 색에 조명의 물감을 곱한다.
        (지도 이미지는 늘 한낮 그림이라, 안 곱하면 밤에 땅만 대낮이다) */
     var tint = lightNow ? lightNow.tint : 0xffffff;
+    var gk = cx + '/' + cy + '/' + mpp + '/' + tint + '/' + R + '/' + (RELIEF_ON() ? 1 : 0), gNow = Date.now();
+    if (gk === groundKey && gNow - groundAt < GROUND_REFRESH_MS) { return; }
+    var groundPending = false;
+    syncGen++;
 
     for (var dy = -R; dy <= R; dy++) {
       for (var dx = -R; dx <= R; dx++) {
@@ -860,9 +867,11 @@
              지도가 그렇게 생긴 줄 알게 된다 — 옅은 종이색으로 비워 둔다.
              타일이 오면 위에서 곧바로 갈아 끼운다. */
           mesh.material.color.setHex(mixHex(0xd7dbe0, tint, 0.85));
+          groundPending = true;                    // 아직 안 온 장이 있다 — 다음 프레임도 다시 본다
         }
       }
     }
+    groundKey = groundPending ? '' : gk; groundAt = gNow;
     for (var k in tileMeshes) {
       if (!Object.prototype.hasOwnProperty.call(tileMeshes, k) || live[k]) { continue; }
       var m = tileMeshes[k];

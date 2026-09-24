@@ -766,6 +766,7 @@
    *  일기토 장수(`duelActors`)가 서 있으면 매 프레임 실제로 움직인다
    *  (`duelWant`가 바뀔 때만 동작을 바꿔 타지만, mixer 는 계속 갱신해야
    *  끊기지 않고 부드럽게 이어진다 — 그래서 여기, 매 프레임에 있다) */
+  var lastBattleT = 0;
   function tick(now) {
     if (!active()) { loopRunning = false; clearTimers(); return; }
     /* 화면에 보이는 채로 다른 창을 쓰는 중이면 렌더를 쉰다 — 안 그러면
@@ -774,6 +775,10 @@
       global.setTimeout(function () { requestAnimationFrame(tick); }, 500);
       return;
     }
+    /* 발열(2026-09-24) — 60 상한(손잡이 perf.fps). 120Hz 폰에서 초당 120번 그리던 헛그림만 막는다 */
+    var bNow = performance.now(), bfps = global.DG.core && global.DG.core.tuned ? global.DG.core.tuned('perf.fps', 60) : 60;
+    if (bfps > 0 && bNow - lastBattleT < 1000 / bfps - 2) { requestAnimationFrame(tick); return; }
+    lastBattleT = bNow;
     spin += 0.004;
     /* 라운드 충격 — 부딪힐 때마다 살짝 훅 당겼다가(dist 를 살짝 줄인다) 풀린다.
        tick() 는 렌더 직전에 한 번만 도니 여기서 감쇠도 같이 한다 */

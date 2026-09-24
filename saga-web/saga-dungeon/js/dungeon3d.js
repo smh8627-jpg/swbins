@@ -271,6 +271,11 @@
     skipNextEma = false;
     if (lastFrameT !== null) {
       var dtMs = now - lastFrameT;
+      /* 프레임 상한(game.js frameGapMs — 시트가 덮으면 30fps)이 걸리면 간격이 늘 33ms 라 그대로 재면 멀쩡한 폰도 LOW 로
+         떨어진다 — 상한 간격으로 60fps 기준으로 되돌린다. 10fps 이하로 묶인 동안은 재지도 찍지도 않는다 */
+      var GM = global.DG.game, capMs = GM && GM.frameGapMs ? GM.frameGapMs() : 0;
+      if (capMs >= 50) { lastFrameT = now; return; }
+      if (capMs > 16.7) { dtMs = dtMs * 16.7 / capMs; }
       /* 2026-09-08 — "여전히 끊겨" 재확인 로그가 매번 깨끗했다(ema 16~20ms,
          튄 프레임 하나 없이). 2초마다 한 번(120프레임)만 찍는 표본이 문제였다
          — 짧은 튐 한 프레임은 이동평균(0.9 가중)이 다음 표본 찍기 전에
@@ -633,9 +638,15 @@
     return true;
   }
 
+  /* 발열(2026-09-24 "핸드폰 불남") — dungeon-view.js draw() 가 **매 프레임** 이 함수를 부르고, 여기서 post3d.resize() 가
+     curW=0 으로 지워 후처리 렌더 타깃(HalfFloat·MSAA·깊이·블룸)을 매 프레임 버리고 새로 지었다.
+     크기·픽셀비가 그대로면 아무것도 안 한다 */
+  var lastRW = 0, lastRH = 0, lastRPR = 0;
   function resize() {
     if (!available() || !canvas) { return; }
-    var w = canvas.clientWidth || 1, h = canvas.clientHeight || 1;
+    var w = canvas.clientWidth || 1, h = canvas.clientHeight || 1, pr = renderer.getPixelRatio();
+    if (w === lastRW && h === lastRH && pr === lastRPR) { return; }
+    lastRW = w; lastRH = h; lastRPR = pr;
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();

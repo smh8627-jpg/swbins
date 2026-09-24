@@ -336,6 +336,7 @@
     requestAnimationFrame(tick);
   }
 
+  var lastCityT = 0;
   /** 궤도 카메라를 손대지 않고 천천히 저절로 돈다 — 손잡이를 하나 더 두지 않는다 */
   function tick() {
     if (!active()) { loopRunning = false; return; }
@@ -345,6 +346,10 @@
       global.setTimeout(function () { requestAnimationFrame(tick); }, 500);
       return;
     }
+    /* 발열(2026-09-24) — 60 상한(손잡이 perf.fps). 120Hz 폰에서 초당 120번 그리던 헛그림만 막는다 */
+    var nowMs = performance.now(), cfps = global.DG.core && global.DG.core.tuned ? global.DG.core.tuned('perf.fps', 60) : 60;
+    if (cfps > 0 && nowMs - lastCityT < 1000 / cfps - 2) { requestAnimationFrame(tick); return; }
+    lastCityT = nowMs;
     spin += 0.0035;
     var dist = TIER_H.t3 * 2.6;
     camera.position.set(Math.sin(spin) * dist, TIER_H.t3 * 1.5, Math.cos(spin) * dist);

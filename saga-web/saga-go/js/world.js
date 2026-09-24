@@ -1128,8 +1128,13 @@
   var dragged = false;
 
   /** 3D 를 쓰는 동안에는 2D 두 장을 감춘다 (같은 그림을 두 번 그리지 않게) */
+  var lastRenderMode = null;
   function syncRenderMode() {
     var on = !!(global.DG.world3d && global.DG.world3d.active());
+    /* 발열(2026-09-24) — 여태 매 프레임 body 클래스·style 을 쓰고 화면 전체 2D 캔버스를 지웠다(빈 캔버스를 또 지우고
+       다시 합성). 3D 동안 이 캔버스에 그리는 곳은 없다 — 켜짐/꺼짐이 바뀔 때와 크기가 바뀐 뒤(resize 가 lastRenderMode 를 비운다)만 */
+    if (on === lastRenderMode) { return on; }
+    lastRenderMode = on;
     /* 화면을 덮는 것들(비네트의 가짜 지평선)을 걷어 준다 — css 의 body.r3d */
     if (document.body) { document.body.classList.toggle('r3d', on); }
     var el3 = document.getElementById('map3d');
@@ -1185,6 +1190,7 @@
 
   function resize() {
     if (!canvas) { return; }
+    lastRenderMode = null;
     if (global.DG.world3d) { global.DG.world3d.resize(); }
     dpr = global.devicePixelRatio || 1;
     geom = computeGeom();

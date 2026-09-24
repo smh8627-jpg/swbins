@@ -581,17 +581,82 @@
   function addProp(kind, id, x, z, scaleH, rotY, seq, grp) {
     var g2 = grp || dyn;
     var isStatic = g2 === statGrp;
+    if (isStatic) { statPending++; }
     asset3d().build(kind, { id: id }, function (g) {
-      if (!g) { return; }
+      if (isStatic) { statPending--; }
+      if (!g) { if (isStatic) { maybeFreezeStatic(); } return; }
       if (isStatic) { if (!statGrp) { return; } }
       else if (seq !== rebuildSeq || !dyn) { return; }
       g.position.set(x, elevAt(x, z), z);
       g.rotation.y = rotY || 0;
       g.scale.setScalar(scaleH);
+      if (isStatic) { g.userData.instOk = true; }
       g2.add(g);
       addShadow(x, z, scaleH * 0.4, g2);
+      if (isStatic) { maybeFreezeStatic(); }
     });
   }
+
+  /* 발열(2026-09-24 "핸드폰 불남") — 정적 소품(나무·바위·집·우물… 약 1,070개)은 저마다 GLB 사본이라 부품마다 따로
+     그렸다(그리기 호출 수천 번/프레임). 모두 도착하면 **같은 지오메트리·같은 재질 값**끼리 InstancedMesh 하나로 묶는다 —
+     자리·크기·돌림은 원래 행렬 그대로라 그림은 똑같다. 스킨·셰이더 덧대기·빛·스프라이트가 든 것은 안 묶고 그대로 둔다.
+     손잡이 `realm3d.staticInst`(기본 1, 0 이면 예전 그대로) */
+  var statPending = 0, statFrozen = false, statInst = [];
+  function STATIC_INST() { return C().tuned('realm3d.staticInst', 1) ? true : false; }
+  function maybeFreezeStatic() {
+    if (statPending > 0 || !staticBuilt || statFrozen) { return; }
+    freezeStatic();
+  }
+  function hexOrNo(c) { return c && c.getHex ? c.getHex() : -1; }
+  function uuidOrNo(x) { return x ? x.uuid : '-'; }
+  /** 재질 값의 지문 — 이 값이 같으면 보이는 모습이 같다 */
+  function matSig(m) {
+    return [m.type, hexOrNo(m.color), hexOrNo(m.emissive), uuidOrNo(m.map), uuidOrNo(m.gradientMap), uuidOrNo(m.alphaMap),
+      m.transparent ? 1 : 0, m.opacity, m.alphaTest, m.side, m.vertexColors ? 1 : 0, m.flatShading ? 1 : 0,
+      m.depthWrite ? 1 : 0, m.fog ? 1 : 0, m.wireframe ? 1 : 0].join(',');
+  }
+  function freezeStatic() {
+    var t = three();
+    if (!t || !statGrp || !STATIC_INST() || !t.InstancedMesh) { return; }
+    statFrozen = true;
+    statGrp.updateMatrixWorld(true);
+    var inv = new t.Matrix4().copy(statGrp.matrixWorld).invert();
+    var groups = {}, order = [], roots = [], own = Object.prototype.hasOwnProperty;
+    statGrp.children.slice().forEach(function (root) {
+      if (!root.userData || !root.userData.instOk) { return; }
+      var ok = true, list = [];
+      root.traverse(function (o) {
+        if (!ok) { return; }
+        if (o.isSkinnedMesh || o.isInstancedMesh || o.isLight || o.isSprite || o.isPoints || o.isLine) { ok = false; return; }
+        if (!o.isMesh) { return; }
+        var m = o.material;
+        if (!m || Array.isArray(m) || m.isShaderMaterial || own.call(m, 'onBeforeCompile') || !o.geometry || o.geometry.morphAttributes && Object.keys(o.geometry.morphAttributes).length) { ok = false; return; }
+        if (!o.visible) { return; }
+        list.push(o);
+      });
+      if (!ok || !list.length) { return; }
+      list.forEach(function (o) {
+        var k = o.geometry.uuid + '|' + matSig(o.material) + '|' + (o.castShadow ? 1 : 0) + (o.receiveShadow ? 1 : 0) + '|' + o.renderOrder;
+        var g = groups[k];
+        if (!g) { g = groups[k] = { geo: o.geometry, mat: o.material, cast: o.castShadow, recv: o.receiveShadow, ro: o.renderOrder, mats: [] }; order.push(k); }
+        g.mats.push(new t.Matrix4().multiplyMatrices(inv, o.matrixWorld));
+      });
+      roots.push(root);
+    });
+    order.forEach(function (k) {
+      var g = groups[k], im = new t.InstancedMesh(g.geo, g.mat, g.mats.length), i;
+      for (i = 0; i < g.mats.length; i++) { im.setMatrixAt(i, g.mats[i]); }
+      im.instanceMatrix.needsUpdate = true;
+      im.castShadow = g.cast; im.receiveShadow = g.recv; im.renderOrder = g.ro;
+      if (im.computeBoundingSphere) { im.computeBoundingSphere(); } else { im.frustumCulled = false; }
+      im.userData.staticInst = true;
+      statGrp.add(im);
+      statInst.push(im);
+    });
+    roots.forEach(function (r) { statGrp.remove(r); });
+    statFreezeStats = { props: roots.length, meshes: order.reduce(function (s, k) { return s + groups[k].mats.length; }, 0), draws: order.length };
+  }
+  var statFreezeStats = null;
 
   /** 성 둘레 잔장식 — 우물 · 횃불 두 개. 3등급 대성은 성벽 · 시장 · 사찰까지
    *  더해 "이 나라의 큰 성" 임이 한눈에 보이도록 한다.
@@ -1552,6 +1617,7 @@
    *  시나리오·세력이 바뀌어도 안 바뀌므로 다시 지을 이유가 없다. */
   function buildStaticOnce() {
     if (staticBuilt || !statGrp) { return; }
+    statPending++;                      // 다 부르기 전에 묶이지 않게(동기로 떨어지는 도형 소품이 있다)
     staticBuilt = true;
     var cities = cityData().CITIES, i;
     for (i = 0; i < cities.length; i++) {
@@ -1563,6 +1629,8 @@
       riverPond(city, 0, statGrp);
     }
     scatterField(0, statGrp);
+    statPending--;
+    maybeFreezeStatic();
   }
 
   /** 성·길·진영을 다시 짓는다 — 세력이 바뀌거나(정벌) 달이 넘어갈 때(`changed`
@@ -1701,6 +1769,28 @@
     requestAnimationFrame(tick);
   }
 
+  /* 발열(2026-09-24 "핸드폰 불남") — 턴제 지도인데 멈춰 있어도 초당 60·120번 다시 그렸다. 그림은 그대로 두고 헛그림만 막는다:
+     상한 60(손잡이 `perf.fps`, 0 = 상한 없음) · 카메라가 멎고 행군·배우 보간이 없으면 30(숨 쉬는 몸짓·깃발 까딱은 그대로 움직인다)
+     · 좁은 화면에서 시트가 덮으면 30 · 전투·만남 창(#encounter, 화면 전체)이 덮으면 10 */
+  var lastTickT = 0;
+  function mapBusy() {
+    var e = 1e-3;
+    if (Math.abs(targetYaw - yaw) > e || Math.abs(targetPitch - pitch) > e || Math.abs(targetDist - dist) > 0.05 ||
+        Math.abs(targetPivotX - pivotX) > 0.05 || Math.abs(targetPivotZ - pivotZ) > 0.05) { return true; }
+    if (marches.length) { return true; }
+    for (var id in actorCache) { if (Object.prototype.hasOwnProperty.call(actorCache, id) && actorCache[id].t0 !== null) { return true; } }
+    return false;
+  }
+  function tickGapMs() {
+    var fps = C().tuned ? C().tuned('perf.fps', 60) : 60;
+    var enc = document.getElementById('encounter');
+    if (enc && enc.classList.contains('show')) { return 100; }
+    var b = document.body;
+    var sheet = b && b.classList.contains('sheet-open') && (global.innerWidth || 0) <= 780;
+    if (sheet || !mapBusy()) { fps = fps ? Math.min(fps, 30) : 30; }
+    return fps > 0 ? 1000 / fps : 0;
+  }
+
   function tick(now) {
     if (!active()) { loopRunning = false; return; }
     /* 화면에 보이는 채로 다른 창을 쓰는 중이면 렌더를 쉰다 — 안 그러면
@@ -1709,6 +1799,9 @@
       global.setTimeout(function () { requestAnimationFrame(tick); }, 500);
       return;
     }
+    var gap = tickGapMs();
+    if (gap && (now || 0) - lastTickT < gap - 2) { requestAnimationFrame(tick); return; }
+    lastTickT = now || 0;
     yaw += (targetYaw - yaw) * 0.15;
     pitch += (targetPitch - pitch) * 0.15;
     dist += (targetDist - dist) * 0.15;
@@ -1757,6 +1850,8 @@
   global.DG.realm3d = {
     available: available,
     active: active,
+    /** 진단 — 정적 소품 묶기 결과 {props, meshes, draws} (아직이면 null)·순수 재질 지문 */
+    staticInstStats: function () { return statFreezeStats; }, _matSig: matSig, _tickGapMs: tickGapMs,
     init: init,
     toggle: toggle,
     rebuild: rebuild,

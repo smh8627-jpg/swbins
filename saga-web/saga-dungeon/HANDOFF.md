@@ -4218,3 +4218,10 @@ VRoid 인물이 unlit(`MeshBasicMaterial`) 그대로라 명암 없이 평면이�
 - `data-dungeon.js` guard.sig 여섯(summon·rain·hops·vortex·pool·cross) · `dungeon.js` `guardZones`(순수)·`stepGuardSig`(보스 루프에서 `en.fixedGuard` 만, 바쁘면 bossPattern 쉼)·불바닥 틱·호령 문턱.
 - 함정: 기존 fx `'ring'` 은 r 을 무시하고 0.55초 동안 0 에서 퍼지는 파문이다(life 가 0.55 보다 길면 반지름이 음수) — 긴 예고에 못 쓴다. 제 크기에 서는 `'zone'`(life·max) 을 fx3d·2D 에 새로 만들었다. 링 풀 18 로는 천뢰 원 스물이 모자라 36 으로.
 - 진단 4 → jsdom 409/409 세 번 동일. `sw.js` dungeon-v0.163.0. **실기 확인 대기**.
+
+## 2026-09-24 (발열) — 폰 발열: 그림은 그대로, 헛일만 없앤다
+
+- 계기: "사가웹 그래픽 최적화 확인 해줘 핸드폰 불남" → 다섯 판 조사(읽기 전용 조사 다섯 갈래). 도중 사용자 "그래픽을 낮추라는 건 아니라는 건 알지?" — 폰 AUTO 상한·그림자 512·픽셀비·MSAA 끄기는 넣었다가 되돌렸고 **그림이 같은 헛일만** 남겼다.
+- **버그**: `dungeon-view.js draw()` 가 매 프레임 `dungeon3d.resize()` → `post3d.resize()`(curW=0) → 후처리 렌더 타깃(HalfFloat·MSAA·깊이·블룸)을 **매 프레임 버리고 새로 지었다**(옛 "tier=high ema=92ms" 튐의 진짜 원인일 가능성). 크기·픽셀비가 그대로면 resize 가 아무것도 안 한다.
+- `game.js frameGapMs` 60 상한(`perf.fps`, 0 = 없음)·좁은 화면 시트 30. `dungeon3d updatePerf` 는 상한 간격을 60fps 기준으로 되돌려 잰다(안 그러면 멀쩡한 폰이 LOW 로 떨어진다), 10fps 이하 동안은 안 잰다.
+- jsdom 409/409. `sw.js` dungeon-v0.164.0. **실기 확인 대기**(발열·끊김).

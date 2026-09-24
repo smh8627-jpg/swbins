@@ -313,6 +313,16 @@
      requestAnimationFrame 이 다시 안 걸려 화면이 그 자리에 통째로 멈춘다
      (걷는 도중 조우·방 전환처럼 상태 의존적으로만 터지는 예외라 자가진단·
      로딩 확인으로는 못 잡았다, 2026-09-04 "사가블로가 멈춘다" 제보로 확인) */
+  /** 프레임 간격 상한(ms, 0 = 상한 없음) — 발열(2026-09-24 "핸드폰 불남"): 90·120Hz 폰은 초당 90·120번 그렸다.
+   *  그림은 그대로 두고 **헛그림만** 막는다 — 손잡이 `perf.fps`(기본 60, 0 = 상한 없음).
+   *  좁은 화면에서 시트가 게임을 덮으면 30(판정은 dt 로 그대로 흐른다) */
+  function frameGapMs() {
+    var fps = core.tuned ? core.tuned('perf.fps', 60) : 60;
+    var b = document.body;
+    if (b && b.classList.contains('sheet-open') && (global.innerWidth || 0) <= 780) { fps = fps ? Math.min(fps, 30) : 30; }
+    return fps > 0 ? 1000 / fps : 0;
+  }
+
   function loop(now) {
     /* 탭이 숨겨졌거나 창이 포커스를 잃으면 3D 를 완전히 멈춘다 — "화면엔
        보이는데 다른 창을 쓰는 중"은 브라우저가 알아서 안 줄여 준다. 이 판이
@@ -396,7 +406,7 @@
   global.DG = global.DG || {};
   /** 자가진단이 합류 규칙을 직접 굴려 볼 수 있게 노출한다 */
   global.DG.game = {
-    START_PARTY: START_PARTY,
+    START_PARTY: START_PARTY, frameGapMs: frameGapMs,
     pickNewHero: pickNewHero, joinHero: joinHero, bossReward: bossReward
   };
 

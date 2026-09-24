@@ -309,6 +309,23 @@
      직접 굴리므로 경직에 닿지 않는다. 그래서 균형이 한 자도 안 바뀐다. */
   var freeze = 0;
 
+  /** 프레임 간격 상한(ms, 0 = 상한 없음) — 발열(2026-09-24 "핸드폰 불남"): 90·120Hz 폰은 초당 90·120번 그렸다.
+   *  그림은 그대로 두고 **헛그림만** 막는다 — 손잡이 `perf.fps`(기본 60, 0 = 상한 없음).
+   *  좁은 화면의 시트는 30, 전체 지도·만남·상세 창이 화면을 통째로 덮으면 10(판정은 dt 로 그대로 흐른다) */
+  function sheetOver() {
+    var b = document.body;
+    return !!(b && b.classList.contains('sheet-open') && (global.innerWidth || 0) <= 780);
+  }
+  function covered() {
+    return !!document.querySelector('#owmap.show, #encounter.show, #detail.show');
+  }
+  function frameGapMs() {
+    var fps = core.tuned ? core.tuned('perf.fps', 60) : 60;
+    if (covered()) { fps = fps ? Math.min(fps, 10) : 10; }
+    else if (sheetOver()) { fps = fps ? Math.min(fps, 30) : 30; }
+    return fps > 0 ? 1000 / fps : 0;
+  }
+
   function loop(now) {
     /* 탭이 숨겨졌거나 창이 포커스를 잃으면 3D 를 완전히 멈춘다 — "화면엔
        보이는데 다른 창을 쓰는 중"은 브라우저가 알아서 안 줄여 준다. 이 판이
@@ -319,6 +336,8 @@
       global.setTimeout(function () { requestAnimationFrame(loop); }, 500);
       return;
     }
+    var cap = frameGapMs();
+    if (cap && now - lastFrame < cap - 2) { requestAnimationFrame(loop); return; }
     var dt = Math.min((now - lastFrame) / 1000, 0.1);
     lastFrame = now;
 
@@ -368,7 +387,7 @@
 
   global.DG = global.DG || {};
   global.DG.game = {
-    boot: boot, start: start, retry3d: retry3d,
+    boot: boot, start: start, retry3d: retry3d, frameGapMs: frameGapMs,
     keymap: keymap, beginRemap: beginRemap, remapping: function () { return remapping; }
   };
 

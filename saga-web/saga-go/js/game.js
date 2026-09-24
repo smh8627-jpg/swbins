@@ -347,6 +347,17 @@
     });
   }
 
+  /** 프레임 간격 상한(ms, 0 = 상한 없음) — 발열(2026-09-24 "핸드폰 불남"): 90·120Hz 폰은 초당 90·120번 그렸다.
+   *  그림은 그대로 두고 **헛그림만** 막는다 — 손잡이 `perf.fps`(기본 60, 0 = 상한 없음).
+   *  좁은 화면에서 시트가 게임을 덮으면 30(판정은 dt 로 그대로 흐른다). 만남 창(#encounter)은 3D 가 이 루프에서
+   *  돌므로(world3d → encounter3d.tick) 묶지 않는다 */
+  function frameGapMs() {
+    var fps = core.tuned ? core.tuned('perf.fps', 60) : 60;
+    var b = document.body;
+    if (b && b.classList.contains('sheet-open') && (global.innerWidth || 0) <= 780) { fps = fps ? Math.min(fps, 30) : 30; }
+    return fps > 0 ? 1000 / fps : 0;
+  }
+
   function loop(now) {
     /* 탭이 숨겨졌거나 창이 포커스를 잃으면 3D 를 완전히 멈춘다 — 브라우저가
        알아서 줄여 주는 건 "다른 탭으로 전환"뿐이고, "화면엔 보이는데 다른
@@ -357,6 +368,8 @@
       global.setTimeout(function () { requestAnimationFrame(loop); }, 500);
       return;
     }
+    var cap = frameGapMs();
+    if (cap && now - lastFrame < cap - 2) { requestAnimationFrame(loop); return; }
     var dt = Math.min((now - lastFrame) / 1000, 0.1);
     lastFrame = now;
 
@@ -399,7 +412,7 @@
   global.DG = global.DG || {};
   /** 자가진단이 걷기 보급을 직접 굴려 볼 수 있게 노출한다 */
   global.DG.game = {
-    tickSupply: tickSupply, SUPPLY_STEP: SUPPLY_STEP,
+    tickSupply: tickSupply, SUPPLY_STEP: SUPPLY_STEP, frameGapMs: frameGapMs,
     /** 자가진단이 5분 실제로 안 기다리고도 마무리 카드 경로를 재볼 수 있게 */
     snapshotSession: snapshotSession, sessionDiff: sessionDiff, maybeShowSessionCard: maybeShowSessionCard
   };

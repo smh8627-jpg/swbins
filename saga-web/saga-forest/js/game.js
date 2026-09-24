@@ -197,6 +197,16 @@
     });
   }
 
+  /** 프레임 간격 상한(ms, 0 = 상한 없음) — 발열(2026-09-24 "핸드폰 불남"): 90·120Hz 폰은 초당 90·120번 그렸다.
+   *  그림은 그대로 두고 **헛그림만** 막는다 — 손잡이 `perf.fps`(기본 60, 0 = 상한 없음).
+   *  좁은 화면에서 시트가 게임을 덮으면 30(판정은 dt 로 그대로 흐른다) */
+  function frameGapMs() {
+    var fps = core.tuned ? core.tuned('perf.fps', 60) : 60;
+    var b = document.body;
+    if (b && b.classList.contains('sheet-open') && (global.innerWidth || 0) <= 780) { fps = fps ? Math.min(fps, 30) : 30; }
+    return fps > 0 ? 1000 / fps : 0;
+  }
+
   function loop(now) {
     /* 탭이 숨겨졌거나 창이 포커스를 잃으면 3D 를 완전히 멈춘다 — "화면엔
        보이는데 다른 창을 쓰는 중"은 브라우저가 알아서 안 줄여 준다. 이 판이
@@ -207,14 +217,20 @@
       global.setTimeout(function () { requestAnimationFrame(loop); }, 500);
       return;
     }
+    /* 발열(2026-09-24 "핸드폰 불남") — 120Hz 폰은 상한 없이 초당 120번을 그렸다.
+       터치 기기는 초당 30번, 시트가 화면을 덮으면 10번만 돈다(dt 는 쌓인 만큼 그대로) */
+    var cap = frameGapMs();
+    if (cap && now - lastFrame < cap - 2) { requestAnimationFrame(loop); return; }
     var dt = Math.min((now - lastFrame) / 1000, 0.1);
     lastFrame = now;
 
     global.DG.auto.update(dt);
     V.update(dt);
     if (!global.DG_NO_DRAW) {
-      global.DG.villageView.draw();
-      if (global.DG.villageView3d) { global.DG.villageView3d.step(dt); }
+      var VV3 = global.DG.villageView3d;
+      /* 3D 가 켜져 있으면 2D 캔버스는 display:none 인데도 매 프레임 하늘·땅·사람을 다 그렸다 — 카메라만 맞춘다 */
+      if (VV3 && VV3.active()) { global.DG.villageView.syncCam(); } else { global.DG.villageView.draw(); }
+      if (VV3) { VV3.step(dt); }
       if (global.DG.minimap) { global.DG.minimap.tick(dt); }
     }
 

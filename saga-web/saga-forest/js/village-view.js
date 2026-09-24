@@ -2774,6 +2774,8 @@
   global.DG.villageView = {
     flagIcon: flagIcon, flagIconOf: flagIconOf,
     init: init, draw: draw, resize: resize,
+    /** 3D 가 켜져 2D 를 안 그릴 때도 카메라(좌표 변환 기준)는 사람을 따라간다 — 발열 대책(2026-09-24) */
+    syncCam: function () { var p = V.raw().player; cam.x = p.x; cam.y = p.y; },
     /** 자가진단용 */
     _cam: function () { return cam; },
     _project: project,

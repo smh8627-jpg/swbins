@@ -199,6 +199,11 @@
    *  draw() 가 이미 0~250ms 로 잘라 넘기므로 여기서는 그대로 평균에 얹는다 */
   function updatePerf(dtMs) {
     if (!(dtMs > 0)) { return; }
+    /* 프레임 상한(game.js frameGapMs — 시트 30·전체 창 10fps)이 걸리면 간격이 늘 길다 — 그대로 재면 멀쩡한 폰도 LOW 로
+       떨어진다. 상한 간격으로 나눠 60fps 기준으로 되돌리고, 10fps 로 묶인 동안은 아예 안 잰다 */
+    var G = global.DG.game, cap = G && G.frameGapMs ? G.frameGapMs() : 0;
+    if (cap >= 50) { return; }
+    if (cap > 16.7) { dtMs = dtMs * 16.7 / cap; }
     perfEma = perfEma * 0.9 + dtMs * 0.1;
     var next = stepTowards(autoLevel, autoLevelFor(perfEma));
     var now = Date.now();

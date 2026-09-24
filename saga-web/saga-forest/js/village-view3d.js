@@ -1653,10 +1653,19 @@
       if (!Object.prototype.hasOwnProperty.call(byUrl, url)) { continue; }
       grp = byUrl[url];
       parts = grp.parts;
+      /* 발열(2026-09-24) — 가만히 서 있어도 매 프레임 행렬을 다시 짜 GPU 로 통째로 다시 보냈다. 이번 자리 목록의
+         지문이 지난번과 같으면(같은 메시·같은 개수) 건너뛴다 — 뽑거나 베어 목록이 바뀌면 지문이 바뀐다 */
+      var sig = grp.items.length;
+      for (idx = 0; idx < grp.items.length; idx++) {
+        item = grp.items[idx];
+        sig = (sig * 31 + item.x * 7.13 + item.z * 3.71 + item.h) % 1e9;
+      }
       for (j = 0; j < parts.length; j++) {
         part = parts[j];
         key = instKey(url, j);
         im = ensureInstMesh(key, part.geometry, part.material, grp.items.length);
+        if (im.userData.instSig === sig && im.count === grp.items.length) { continue; }
+        im.userData.instSig = sig;
         for (idx = 0; idx < grp.items.length; idx++) {
           item = grp.items[idx];
           instDummy.position.set(item.x, 0, item.z);
@@ -1675,6 +1684,7 @@
       if (!Object.prototype.hasOwnProperty.call(instMesh, key)) { continue; }
       if (usedInstKey(key, byUrl)) { continue; }
       instMesh[key].count = 0;
+      instMesh[key].userData.instSig = null;
     }
   }
   /** 순수 함수 — key("url|idx")의 url이 이번 프레임 byUrl에 있었는지 */
