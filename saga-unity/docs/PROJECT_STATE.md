@@ -21,7 +21,7 @@ Maria·Abe·Brute + Skeleton·Paladin·PeasantMan·PeasantGirl·Archer·두목 M
 
 ## 다음 작업 (우선순위, 상세는 PLAN 해당 장)
 
-0. **적힌 대기 없음** — 두목 전용 몸(106-4)까지 끝. 다음은 사용자와(PLAN "남은 것" 줄 모으기부터).
+0. **다음 = PLAN 109장 표 1번부터 순서대로**(전체 퓨전 → 인물 105 → 웹 변경 이식, 건너뛰기 금지).
 0-1. **남은 것**: en 번역 사람 검수 전. GO 동료 몸 Maria.controller 리타깃·무기는 주인공 손에만. 다른 PC 는 Mixamo README 레시피를 받고 `Saga/Build Maria Traversal`·`Saga/Setup NPC Character Imports`.
 1. STORY 판수(15→20 약 11판, 20→25 약 28판)가 무거우면 `StoryCombat.JobPromoteLevel3/4`만.
 2. **101-2·104-1 잔여(보류)** — GO⑤(모바일 빌드 뒤)·`Characters/` Kenney(폴백 전용). 헤어카드는 분리 헤어 메시 생기면.

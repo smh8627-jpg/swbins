@@ -9031,3 +9031,8 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - 파일: `DungeonFloorRunner`(칸 셋·`LordTintMix`)·`BuildTestDungeonScene`(방3 살수·층 진행기·`ScaleMulTo`)·`BuildTestStoryScene`(`StoryBossBody`·`StoryBossScale`)·`BuildDungeonTemple`·`SetupNpcCharacterImports`(표 넷·`SetupBossBodies` 여섯)·`PlaytestNpcModels`(DUNGEON 칸 셋·배율 키·방3 살수 4.38m / STORY 두 곳 Morak·2.24m)·`Assets/Animators/{Ninja,Demon,AlienSoldier,Morak}.controller`, DUNGEON·STORY 씬 재빌드, `tools/mixamo_automation/README.md`. 다시 구워진 Maw·Ganfaul 컨트롤러는 되돌림.
 - 검증: `PlaytestDungeonHeadless` 3연속 OK(era fusion 5층 정찰병 바꿔치기·Landmarks 층 주인 포함) · `PlaytestStorySlice` 3연속 OK(두목 처치·등장 컷 그대로) · `PlaytestDungeonFloorProgression` OK. 화면은 안 봄 — 실기 확인 전(살수 4.4m 가 사람 몸이라 과한지·옆차기/뛰어 내려찍기/훅이 판정 시각과 맞는지·주인 빛 세기).
 - 곁일: 이 세션 Bash 가 PATH 를 윈도 형식(`;`)으로 받아 `grep`·`rtk` 가 없다고 나옴 — 명령 앞에 `export PATH="/usr/bin:/mingw64/bin:$PATH"`, rtk 훅이 바꾼 명령은 `/usr/bin/grep` 처럼 절대 경로로 피했다.
+
+## 2026-09-25 — PLAN 109장 신설: 전체 퓨전 · 인물 105 · 웹 변경 이식 순서표 (사용자 "다 순서대로 적용 되어야 해", Opus 5.5, 코드 없음)
+
+- 경위: 사용자가 "퓨전 과거·현대·미래도 적용?" · "캐릭터 100개 넘는데 에셋 다 적용?" · "웹판 변경사항 적용?" 을 물었다. 점검하니 셋 다 아니었다 — 퓨전은 DUNGEON 5.7 뿐, 도감 인물 105 없음(GO 등용 산적 한 종·몸 약 20), 웹 PLAN §5 의 09-24 새 절 대부분 미이식. 앞서 "거의 다 끝"이라 한 건 이 트랙 PLAN 에 적힌 것만 센 것이라 정정했다.
+- 결정: 새 세션부터 109장 표를 위에서 한 줄씩(A 퓨전 1~5 → B 인물 105 6~8 → C 웹 이식 9~13 → D 상시 대조). PROJECT_STATE 다음 작업 = 109장 1번.
