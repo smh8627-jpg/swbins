@@ -14,6 +14,7 @@ const TestMap := preload("res://games/saga_go/data/test_map.gd")
 const Toast := preload("res://saga_core/ui/toast.gd")
 
 signal changed()
+signal cooked(recipe: String, q: int) # 106장 ⑲ 의뢰가 센다
 
 const POT_M := 3.0
 const POT_OFFSET := Vector3(3.5, 0.0, 1.5)
@@ -80,6 +81,7 @@ func cook(recipe: String, q: int) -> bool:
 	PartyState.add_items({Cooking.dish_id(recipe, q): 1})
 	PartyState.cook_prof[recipe] = mini(prof(recipe) + 1, Cooking.PROF_MAX)
 	CombatFeel.ui()
+	cooked.emit(recipe, q)
 	changed.emit()
 	return true
 

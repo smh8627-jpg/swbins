@@ -158,6 +158,8 @@ var max_hp: float:
 	get: return max_hp_of(active_id())
 var active := 0
 var last_reaction := ""
+signal reacted(reaction: String) # 106장 ⑲ 의뢰(원소 수련)가 센다
+signal party_wiped() # 106장 ⑳ 비경 — 명단이 다 쓰러지면 도전 실패
 
 var _player: CharacterBody3D = null
 var _combo := 0
@@ -750,6 +752,7 @@ func _deal(enemy: Node, base: float, element: String, dir: Vector3) -> float:
 		amount *= float(sh.mul) * _reaction_mul("shatter")
 		last_reaction = "shatter"
 		_reaction_text(enemy as Node3D, sh.name, sh.color)
+		reacted.emit("shatter")
 		enemy.call("unfreeze")
 		return enemy.call("apply_damage", amount * _crit_roll() * _dmg_bonus(element), true, dir)
 	## 촉진이 남은 적 — 뇌는 활성, 초는 발산(×1.25).
@@ -759,6 +762,7 @@ func _deal(enemy: Node, base: float, element: String, dir: Vector3) -> float:
 		var bi: Dictionary = Elements.REACTION_INFO[bonus]
 		amount *= float(bi.mul) * _reaction_mul(bonus)
 		_reaction_text(enemy as Node3D, bi.name, bi.color)
+		reacted.emit(bonus)
 	var aura: String = enemy.get("aura")
 	var reaction := Elements.reaction_of(aura, element)
 	last_reaction = reaction if reaction != "" else bonus
@@ -766,6 +770,7 @@ func _deal(enemy: Node, base: float, element: String, dir: Vector3) -> float:
 		var info: Dictionary = Elements.REACTION_INFO[reaction]
 		amount *= float(info.mul) * _reaction_mul(reaction)
 		_reaction_text(enemy as Node3D, info.name, info.color)
+		reacted.emit(reaction)
 		enemy.call("set_aura", "")
 		match reaction:
 			"overload":
@@ -913,6 +918,7 @@ func _down() -> void:
 	shield_hp = 0.0
 	energy = 0.0
 	Toast.show(_player, "쓰러졌다 — 정신을 차려 보니 안전한 곳이다", 3.0)
+	party_wiped.emit()
 
 # ---------------------------------------------------------------- 연출
 

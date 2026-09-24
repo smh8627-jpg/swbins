@@ -32,6 +32,9 @@ func save() -> bool:
 		"artifact_seq": PartyState.artifact_seq,
 		"gather_t": PartyState.gather_t,
 		"cook_prof": PartyState.cook_prof,
+		"commissions": PartyState.commissions,
+		"resin": PartyState.resin,
+		"resin_t": PartyState.resin_t,
 		"drops": DropState.drops,
 		"quest_active_id": QuestState.active_id,
 		"quest_active_name": QuestState.active_name,
@@ -90,6 +93,12 @@ func try_load() -> bool:
 	var gt: Variant = data.get("gather_t", {})
 	var cp: Variant = data.get("cook_prof", {})
 	PartyState.restore_cooking(gt if typeof(gt) == TYPE_DICTIONARY else {}, cp if typeof(cp) == TYPE_DICTIONARY else {})
+	## commissions(106장 ⑲) — 없거나 날이 지났으면 commissions.gd 가 오늘 것으로 새로 굴린다.
+	var cm: Variant = data.get("commissions", {})
+	PartyState.commissions = (cm as Dictionary).duplicate(true) if typeof(cm) == TYPE_DICTIONARY else {}
+	## resin·resin_t(106장 ⑳) — 없으면 가득·아직 안 셈.
+	PartyState.resin = int(data.get("resin", 160))
+	PartyState.resin_t = float(data.get("resin_t", 0.0))
 
 	var pos: Array = data.get("player_pos", [])
 	var player := _find_player()

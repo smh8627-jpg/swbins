@@ -66,6 +66,13 @@ func _ready() -> void:
 	add_child(cooking)
 	if OS.get_environment("SAGA_COOK_PROBE") != "":
 		add_child(load("res://tools/probe_cooking.gd").new())
+	## PLAN 106장 ⑲ — 일일 의뢰 넷(U) + 마을 역참 옆 게시판(채집·요리·들판 적 신호에 붙으므로 그 뒤).
+	var commissions := preload("res://games/saga_go/world/commissions.gd").new()
+	commissions.name = "Commissions"
+	add_child(commissions)
+	commissions.changed.connect(_refresh_goal_board)
+	if OS.get_environment("SAGA_COMMISSION_PROBE") != "":
+		add_child(load("res://tools/probe_commissions.gd").new())
 	if OS.get_environment("SAGA_GROWTH_PROBE") != "":
 		add_child(load("res://tools/probe_growth.gd").new())
 	if OS.get_environment("SAGA_TALENT_PROBE") != "":
@@ -110,9 +117,8 @@ func _ready() -> void:
 
 ## saga_core/ui/goal_board.gd는 QuestState·CodexState·PartyState를 모른다
 ## (saga_core가 GO만의 싱글턴을 알면 안 된다) — 그래서 이 셋을 다 아는
-## 이 판의 월드 스크립트가 3줄을 조립해 넣어 준다. "이번 주"는 아직
-## 없는 걸 있는 척하지 않고 "—"로 정직하게 비워 둔다(PLAN.md 105 Q-f
-## 옆, 주간 축 자체가 101-1 §H의 열린 구멍).
+## 이 판의 월드 스크립트가 3줄을 조립해 넣어 준다. 셋째 줄("이번 주" 자리)은
+## 106장 ⑲ 일일 의뢰가 채운다(의뢰 노드가 없으면 "—").
 func _refresh_goal_board() -> void:
 	var board := get_tree().get_first_node_in_group("goal_board")
 	if board == null:
@@ -123,7 +129,14 @@ func _refresh_goal_board() -> void:
 	else:
 		now = "도감 채우기 (%d/%d)" % [CodexState.count(), CodexState.total()]
 	var session := "경험치 +%.0f · 발견 +%d" % [PartyState.session_exp_gained(), CodexState.session_discovered()]
-	board.set_goals(now, session, "—")
+	## 셋째 줄 — 106장 ⑲ 일일 의뢰(전엔 "—").
+	var week := "—"
+	var cm := get_tree().get_first_node_in_group("go_commissions")
+	if cm:
+		week = "의뢰 %d/4" % int(cm.call("done_count"))
+		if cm.call("all_done") and not cm.call("bonus_claimed"):
+			week += " · 게시판 보상"
+	board.set_goals(now, session, week)
 
 ## PLAN.md 104-5 — 지역 3(마을·포구·폐허) 발견 밀도(§3-E). 평소엔 안
 ## 돌린다(로그에 매번 섞이면 회귀 md5 가 흔들린다) — 측정할 때만

@@ -73,6 +73,12 @@ var gather_t: Dictionary = {}
 var cook_prof: Dictionary = {}
 var food_buffs: Dictionary = {}
 signal food_changed()
+## 106장 ⑲ 일일 의뢰 — {"day": 날짜 번호, "list": [{"id", "p"(진척), "done"}], "bonus": 추가 보상 받음}. 날이 바뀌면
+## world/commissions.gd 가 새로 굴린다. 필드만 더해 SAVE_VERSION 3 그대로.
+var commissions: Dictionary = {}
+## 106장 ⑳ 비경 원기 — 값·마지막으로 센 때(실제 시각 초, 0 = 아직 안 셈 → 가득). domains.gd resin_now() 가 채운다.
+var resin := 160
+var resin_t := 0.0
 
 var _session_start_exp: float = 0.0
 
