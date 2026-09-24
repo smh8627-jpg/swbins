@@ -937,6 +937,17 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ('찌르기 2마리 168 · 돌진 3.8m 144 · 장판 5틱 ×36 · 소환 6번 ×54 · 주인공 원형');
     });
 
+    t('들판 전투 ⑭ — 교체 연출: 새 몸은 곁 1.6m 에서 0.35초에 걸어 들고, 옛 몸은 0.6초에 2.4m 물러나 0.9초에 흩어진다', function () {
+      var W3 = DG.world3d;
+      if (!W3 || typeof W3.swapMotion !== 'function') { return false; }
+      var m0 = W3.swapMotion(0), mIn = W3.swapMotion(350), mMid = W3.swapMotion(175), mOut = W3.swapMotion(600),
+          m899 = W3.swapMotion(899), m900 = W3.swapMotion(900);
+      var ok = Math.abs(m0.inSide - 1.6) < 1e-9 && m0.outBack === 0 && mIn.inSide === 0 &&
+        mMid.inSide > 0 && mMid.inSide < 0.8 &&                  // 빨리 붙고 끝에서 느려진다(ease-out)
+        Math.abs(mOut.outBack - 2.4) < 1e-9 && !m899.done && m900.done && W3.swapMotion(-5).inSide === 1.6;
+      return ok && ('0ms 옆 ' + m0.inSide + 'm → 175ms ' + mMid.inSide.toFixed(2) + 'm → 350ms 제자리 · 옛 몸 600ms 에 ' + mOut.outBack + 'm · 900ms 끝');
+    });
+
     t('들판 전투 — 예고 끝에 사거리 안이면 맞고, 회피 무적이면 안 맞는다', function () {
       function run(doDodge) {
         var FC = DG.fieldCombat, S = fcState(), f = fcFoe(S, 'boar', 1.5, 0);

@@ -2123,6 +2123,20 @@
     }
   }
 
+  /* ── 지도 위 동행 모션 — 교체 연출(PLAN §5 ⑭) ─────────────────────────
+   * 들판 전투에서 교체하면(`fieldCombat.leadId()` 가 바뀌면) 예전엔 옛 몸을 지우고 새 몸이
+   * 그 자리에 뚝 섰다. 이제 옛 몸은 지우지 않고 'swapout' 으로 옮겨 옆뒤로 물러나게 한 뒤
+   * (`sweepActors` 의 떠오르며 흩어지기로) 사라지고, 새 몸은 곁(옆 1.6m)에서 걸어 나와
+   * 제자리에 선다. 판정·카메라는 그대로 `pos` — 화면 층만 움직인다 */
+  var SWAP_IN_MS = 350, SWAP_OUT_MS = 600, SWAP_LIFE_MS = 900, SWAP_SIDE = 1.6, SWAP_BACK = 2.4;
+  /** 순수 함수 — 교체 뒤 ms 에 새 몸이 옆으로 남은 거리·옛 몸이 물러난 거리 */
+  function swapMotion(ms) {
+    var i = Math.max(0, Math.min(1, ms / SWAP_IN_MS)), o = Math.max(0, Math.min(1, ms / SWAP_OUT_MS));
+    function ease(k) { return 1 - (1 - k) * (1 - k); }
+    return { inSide: SWAP_SIDE * (1 - ease(i)), outBack: SWAP_BACK * ease(o), done: ms >= SWAP_LIFE_MS };
+  }
+  var lastLead = null, swapFx = null;
+
   function syncActors(W, now) {
     var pos = core.save.player.pos;
 
@@ -2132,6 +2146,13 @@
     var lead = (FCd && FCd.leadId()) || (core.save.party && core.save.party[0]);
     var me = lead ? global.DG.data.find(lead) : null;
     var meRef = me || { id: '_me', name: '나', faction: '조선', rarity: 3, trait: 'virtue' };
+    if (lastLead !== null && meRef.id !== lastLead && actors.me && actors.me.who === lastLead) {
+      if (actors.swapout) { actorGroup.remove(actors.swapout.node); actorGroup.remove(actors.swapout.shadow); }
+      actors.swapout = actors.me;                       // 옛 몸을 지우지 않고 넘긴다 — 다시 안 짓는다
+      delete actors.me;
+      swapFx = { t0: now, ang: actors.swapout.ang || 0, x: pos.x, y: pos.y };
+    }
+    lastLead = meRef.id;
     dropActorIfNot('me', meRef.id);
     var meA = actorOf('me', 'hero', meRef, 96);
     meA.who = meRef.id;
@@ -2143,7 +2164,21 @@
       : Math.sin(now / 700) * h * 0.016;
     /* 나에게도 같은 보정을 준다 — 안 그러면 크게 당겼을 때 **나만 점**이 되고
        야생 대상이 나보다 크게 보인다 */
-    placeActor(meA, pos.x, pos.y, h * farBoost(pos.x, pos.y), walkBob, walking, mot.phase, now);
+    var mx = pos.x, my = pos.y;
+    if (swapFx) {
+      var sm = swapMotion(now - swapFx.t0);
+      var sx = Math.cos(swapFx.ang), sy = -Math.sin(swapFx.ang), bx = -Math.sin(swapFx.ang), by = -Math.cos(swapFx.ang);
+      mx += sx * sm.inSide; my += sy * sm.inSide;
+      var so = actors.swapout;
+      if (so && !sm.done) {
+        so.seen = frame;
+        var ox = swapFx.x + bx * sm.outBack - sx * sm.outBack * 0.35, oy = swapFx.y + by * sm.outBack - sy * sm.outBack * 0.35;
+        placeActor(so, ox, oy, h * farBoost(ox, oy), 0, sm.outBack < SWAP_BACK - 1e-3, now / 480, now);
+      }
+      if (sm.done) { swapFx = null; }             // 이제 swapout 은 안 먹여져 sweepActors 가 흩어 지운다
+      walking = walking || sm.inSide > 0.05;
+    }
+    placeActor(meA, mx, my, h * farBoost(mx, my), walkBob, walking, mot.phase, now);
 
     /* 교전 상대(`duelStage()` 로 세운 임시 배우) — `spawns` 에 없으니 여기서
        직접 먹인다. 코앞이라 `farBoost` 는 안 준다(늘 가까이서 마주 선다) */
@@ -2852,6 +2887,7 @@
 
   global.DG.world3d = {
     init: init, resize: resize, render: render, refreshProps: refreshProps,
+    swapMotion: swapMotion,
     resetActors: resetActors,
     /** 인스턴스 창고 속을 들여다본다(진단·데모용). 이름 조각으로 걸러 볼 수 있다 */
     instReport: instReport,

@@ -3693,3 +3693,10 @@ SAGA-HANDOFF 열린 항목 "tower_ruin.glb(역참) 아이콘 굽기 — 여섯 �
 - `biome.js` — `missionView(st)`(순수, 세 단·앞에서부터 차례), `missionState(key)`(save.regions·save.missions·save.field.guards 에서 읽음), `progressMission(key)`(넘어간 단 보상 한 번 — `paid`), 구독은 `tick` 첫 호출의 `subscribe()`(field:clear → 그 무리 자리의 지역 셈 +1, field:guard·region:found → 진행). 위쪽 가운데 `#region-mission` 한 줄.
 - 진단 1 추가(세이브를 잠깐 비웠다 `finally` 로 되돌린다 — 메모리 "검증 스크립트 세이브 복원 순서" 대로) → jsdom 594/596 두 번 동일(둘은 `Request` 한계). `sw.js` go-v5.66.0. **실기 확인 대기**(한 줄 자리).
 - 원신식 다음 후보 넷 중 셋(⑪⑫⑬) 끝. 남은 것: 지도 위 동행 모션(교체할 때 곁에서 걸어 나오기).
+
+## 2026-09-24 (이어서 3) — 지도 위 동행 모션 ⑭ 교체 연출(PLAN §5 ⑭)
+
+- 사용자 "이어해" — ⑬ 커밋(`4531c864`) 뒤.
+- `world3d.js` — `lastLead`·`swapFx`. 선두가 바뀌면 `actors.me` 를 `actors.swapout` 으로 옮기고(몸을 다시 짓지 않는다) 0.6초 동안 옆뒤로 2.4m 걸어 물러나게, 0.9초 뒤엔 안 먹여서 `sweepActors` 가 떠오르며 흩어 지운다. 새 몸은 옆 1.6m 에서 0.35초 ease-out 으로 들어선다. 순수 함수 `swapMotion(ms)`.
+- 진단 1 추가 → jsdom 595/597 두 번 동일(둘은 `Request` 한계). `sw.js` go-v5.67.0. **실기 확인 대기**.
+- 이로써 §8 "원신식 다음(후보)" 넷(⑪⑫⑬⑭) 모두 코드분 끝.
