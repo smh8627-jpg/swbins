@@ -44,6 +44,10 @@
   function PITCH_MAX() { return C().tuned('realm3d.pitchMax', 1.3); }
   function DIST_MIN() { return C().tuned('realm3d.distMin', 90); }
   function DIST_MAX() { return C().tuned('realm3d.distMax', 900); }
+  /** 지도 위 배우(PLAN §5-10) — 0 이면 옛 지도(원정은 🚩 깃발만). 카메라가
+   *  `actorLod` 보다 멀면 배우를 숨기고 옛 깃발로 돌아간다 */
+  function ACTORS_ON() { return C().tuned('realm3d.actors', 1) ? true : false; }
+  function ACTOR_LOD() { return C().tuned('realm3d.actorLod', 480); }
 
   /**
    * 그래픽 품질 3단(SAGA-DESIGN §8 성능 상한, PLAN §7-2 "성능 상한") — 이 판은
@@ -312,6 +316,11 @@
                                  // `core.on('changed')`(무장 등용 등 판정마다 울린다)가 `dyn`을
                                  // 통째로 다시 지어도 이 그룹은 안 건드려 연출이 안 끊긴다
   var marches = [];             // showMarch() 로 띄운, 지금 이동 중인 행군 연출들
+  var actorGrp = null;          // 지도 위 배우(PLAN §5-10) — `dyn`과 별도 그룹. `rebuild()`는
+                                 // 배우를 허물지 않고 `syncActors()`로 목표 자리만 갈아 준다
+                                 // (판정마다 장수 GLB 를 다시 받으면 걷기가 끊긴다)
+  var actorCache = {};          // 배우 id → { grp, hero, soldiers, lastElapsed, tween… }
+  var journeyFlags = {};        // 원정 id → 🚩 스프라이트(dyn 몫) — 배우를 못 보일 때(멀리·손잡이 0·모델 준비 전) 대신 선다
 
   var yaw = 0, pitch = 0.85, dist = 260;
   var targetYaw = 0, targetPitch = 0.85, targetDist = 260;
@@ -419,6 +428,8 @@
     scene.add(statGrp);
     fx = new t.Group();
     scene.add(fx);
+    actorGrp = new t.Group();
+    scene.add(actorGrp);
 
     fitCameraToMap();
     yaw = targetYaw; pitch = targetPitch; dist = targetDist;
@@ -477,6 +488,7 @@
     floaters = [];
     shadowInst = null;
     shadowCount = 0;
+    journeyFlags = {};
   }
 
   /** 재해 그림문자 — 캔버스에 이모지를 한 번 찍어 텍스처로 굳힌다(문자마다 캐시) */
@@ -731,14 +743,18 @@
   /** 원정 하나가 경로 위 지금 어디쯤 있는가(화면 x·y) — `ui-rtk.js` 의
    *  `journeyPos()` 와 같은 구간별 실거리 보간이다(두 파일이 같은 값을
    *  따로 계산한다 — 2D·3D 가 별 모듈이라 공유할 자리가 마땅치 않다) */
-  function journeyPos(j) {
+  /*  `elapsed`(선택)를 주면 `j.monthsElapsed` 대신 그 값(소수 가능)으로 잰다 —
+   *  배우가 지난달 자리→이번 달 자리로 길을 따라 걷는 보간(PLAN §5-10 ①)이
+   *  같은 함수를 쓴다. 안 주면 예전 그대로다 */
+  function journeyPos(j, elapsed) {
     var CDx = cityData();
     var path = j.path, i;
     if (!path || path.length < 2) {
       var only = path && CDx.find(path[0]);
       return only ? { x: only.x, y: only.y } : null;
     }
-    var frac = clamp((j.monthsElapsed || 0) / (j.monthsTotal || 1), 0, 0.999);
+    var el = (elapsed === undefined || elapsed === null) ? (j.monthsElapsed || 0) : elapsed;
+    var frac = clamp(el / (j.monthsTotal || 1), 0, 0.999);
     var segs = [], total = 0;
     for (i = 0; i < path.length - 1; i++) {
       var a = CDx.find(path[i]), b = CDx.find(path[i + 1]);
@@ -771,6 +787,442 @@
     var flag = emojiSprite('🚩', 9);
     flag.position.set(wx, elevAt(wx, wz) + 9, wz);
     dyn.add(flag);
+    journeyFlags[j.id] = flag;
+  }
+
+  /* ── 지도 위 배우(PLAN §5-10 "리얼리티") ───────────────────
+   * ① 원정군 — 🚩 하나 대신 이끄는 장수(일기토와 같은 3D 몸, 세력색)와 병사
+   * 3~5가 길 위에 선다. ▶ 다음 달로 원정이 한 달 나아가면 ACTOR_TWEEN_MS 동안
+   * 지난달 자리 → 이번 달 자리로 **길을 따라** 걷는다(`journeyPos(j, 소수 달)`)
+   * — 판정은 war.js 가 이미 끝냈고 여기선 화면만 움직인다. 누가·어디서·무슨
+   * 클립인지는 순수 함수 `actorPlan(state)`가 정하고(three 없이 진단된다),
+   * 그리는 쪽(`syncActors`·`tickActors`)은 그 목록대로 배우를 만들고·옮기고·
+   * 지울 뿐이다. 배우는 `dyn` 이 아니라 `actorGrp` 에 산다 — `changed`(판정
+   * 하나마다 울린다)로 `rebuild()` 가 돌 때마다 장수 GLB 를 다시 받으면 걷던
+   * 걸음이 끊기기 때문이다. */
+  var ACTOR_MAX = 24;               // 한 화면 배우 상한(원정 장수 우선 → 태수 → 재야, §5-10 수치)
+  var ACTOR_TWEEN_MS = 1500;        // 지난달 자리 → 이번 달 자리 걷기
+  var HERO_SCALE = 5;               // 몸 키 1(normalize) → 성 탑(7~14) 옆에서 사람 크기로 읽히게
+  var SOLDIER_SCALE = 1.7;          // 병사 도형(키 약 1.8) → 장수보다 살짝 작게
+
+  /** 원정 무장 중 통솔이 가장 높은 사람이 앞장선다(같으면 목록 앞사람) */
+  function leaderOf(ids) {
+    var O = global.DG.off, best = null, bc = -1, i, c;
+    for (i = 0; i < ids.length; i++) {
+      c = (O && O.stats) ? (O.stats(ids[i]).command || 0) : 0;
+      if (c > bc) { bc = c; best = ids[i]; }
+    }
+    return best;
+  }
+  /** 병사 n 명의 병종 — war.js `troopMixOf`(화면용 비율)를 따르고, 기병을
+   *  결정적으로 사이사이 끼운다(battle3d 처럼 Math.random 을 안 쓴다 — 진단이
+   *  같은 목록을 두 번 뽑아 비교한다). 원정은 늘 육로라 수군은 없다 */
+  function soldierTypes(n, mix) {
+    var cavN = Math.min(n, Math.round(n * ((mix && mix.cav) || 0)));
+    var arr = [], i;
+    for (i = 0; i < n; i++) { arr.push('inf'); }
+    for (i = 0; i < cavN; i++) { arr[Math.floor((i + 0.5) * n / cavN)] = 'cav'; }
+    return arr;
+  }
+
+  /** ② 태수 몸짓 — 내정 명령(rtk ORDERS 열 가지) → 표준 클립 슬롯(asset3d SLOTS) 우선순위.
+   *  인물 몸(QRPG·VRoid 자체 몸짓)에 괭이질·망치질 같은 전용 클립이 없어 가까운 표준
+   *  동작으로 갈음하고, 무슨 일인지는 머리 위 그림문자(명령 emoji)가 말한다. 몸에 없는
+   *  슬롯(대체 별칭)은 건너뛰고 다음 것을 쓴다 — 다 없으면 idle */
+  var ORDER_GESTURES = {
+    agri:   ['interaction', 'attack'],   // 개간 — 허리 굽혀 줍기(PickUp) / 내리치기
+    comm:   ['interaction', 'idle'],     // 상업 — 물건 집어 건네기
+    tech:   ['attack', 'interaction'],   // 기술 — 두드리기
+    sec:    ['interaction', 'idle'],     // 치안 — 살피기
+    wall:   ['attack', 'interaction'],   // 축성 — 망치질
+    draft:  ['jump', 'interaction'],     // 징병 — 뛰어올라 외치기
+    train:  ['attack'],                  // 훈련 — 칼 휘두르기
+    ships:  ['attack', 'interaction'],   // 조선 — 두드리기
+    search: ['interaction', 'idle'],     // 수색 — 뒤져 보기
+    hire:   ['interaction', 'idle']      // 등용 — 몸 굽혀 읍하기
+  };
+  var GESTURE_EVERY = 2.6;              // 초 — 몸짓 한 번 + 쉬기
+  var GESTURE_ON = 1.3;                 // 그중 몸짓하는 앞부분
+
+  /**
+   * 순수 함수 — 이 달 지도에 설 배우 목록. `state` 만 읽고 아무것도 안 바꾼다.
+   * 원정 원소: { kind:'journey', id, force, officer, x, y(지금 자리, 지도 좌표), px, py(지난달
+   * 자리), elapsed, total, path, clip(움직일 때 클립), rest(설 때 클립), soldiers[] }
+   * 태수 원소: { kind:'governor', id:'gov:<성>', city, force, officer, x, y(성문 앞), order(명령
+   * key|null), emoji, clips(몸짓 슬롯 우선순위), rest }
+   * 순서: 원정(내 것 → 병력 순 → id) 먼저, 남는 자리에 태수(이 달 명령한 곳·내 성·`opt.focus`
+   * 에 가까운 곳 먼저). 상한 ACTOR_MAX. 손잡이 0 이면 빈 목록.
+   * @param opt { orders: {성: {key}}(기본 rtk.monthOrders()), focus: {x,y}(지도 좌표, 카메라 중심) }
+   */
+  function actorPlan(st, opt) {
+    if (!ACTORS_ON() || !st || !st.started) { return []; }
+    var list = st.journeys || [], out = [], i;
+    for (i = 0; i < list.length; i++) {
+      var j = list[i];
+      if (!j || !j.officers || !j.officers.length) { continue; }
+      var pos = journeyPos(j);
+      if (!pos) { continue; }
+      var el = j.monthsElapsed || 0;
+      var prev = journeyPos(j, Math.max(0, el - 1));
+      var mix = (W() && W().troopMixOf) ? W().troopMixOf({ officers: j.officers, water: false }) : null;
+      var n = clamp(Math.round((j.troops || 0) / 4000) + 2, 3, 5);
+      out.push({
+        kind: 'journey', id: j.id, force: j.force, officer: leaderOf(j.officers),
+        troops: j.troops || 0, mine: j.force === st.me,
+        x: pos.x, y: pos.y, px: prev.x, py: prev.y,
+        elapsed: el, total: j.monthsTotal || 1, path: j.path,
+        clip: 'walk', rest: 'idle', soldiers: soldierTypes(n, mix)
+      });
+    }
+    out.sort(function (a, b) {
+      if (a.mine !== b.mine) { return a.mine ? -1 : 1; }
+      if (a.troops !== b.troops) { return b.troops - a.troops; }
+      return a.id < b.id ? -1 : (a.id > b.id ? 1 : 0);
+    });
+    out = out.slice(0, ACTOR_MAX);
+    /* 싸움 자리는 장수 둘이라 두 칸을 쓴다(`slots`) — 상한은 사람 수로 센다 */
+    var used = out.length, fights = battlePlan(st, opt || {}), k;
+    for (k = 0; k < fights.length && used + 2 <= ACTOR_MAX; k++) { out.push(fights[k]); used += 2; }
+    if (used < ACTOR_MAX) {
+      var govs = governorPlan(st, opt || {}), busy = {};
+      for (k = 0; k < out.length; k++) { if (out[k].kind === 'battle') { busy[out[k].city] = true; } }
+      govs = govs.filter(function (g) { return !busy[g.city]; });   // 싸움 난 성은 태수 대신 싸움
+      out = out.concat(govs.slice(0, ACTOR_MAX - used));
+    }
+    return out;
+  }
+
+  /** ③ 전투 자리 — 이 달 싸움 난 성마다, 공격해 온 쪽 진입로(성 → 출발 성 방향)에서
+   *  두 지휘관이 맞붙는다. 원소: { kind:'battle', id:'fight:<성>', city, a, d(무장 id),
+   *  force, defForce, result('atk'|'def'|'draw'), x, y(두 사람 가운데), dx, dy(공격군이
+   *  바라보는 쪽, 단위 벡터), slots:2 }. 내 싸움 → 카메라 가까운 순 → id */
+  var BATTLE_MAX = 6;
+  function battlePlan(st, opt) {
+    var rtkO = R();
+    var fights = opt.battles || (rtkO && rtkO.monthBattles ? rtkO.monthBattles() : null) || {};
+    var focus = opt.focus || null, CDx = cityData(), out = [], id;
+    for (id in fights) {
+      if (!Object.prototype.hasOwnProperty.call(fights, id)) { continue; }
+      var f = fights[id], to = CDx.find(f.to);
+      if (!to || !f.a || !f.d) { continue; }
+      var fr = f.from ? CDx.find(f.from) : null;
+      var ux = 0, uy = 1;                            // 출발 성을 모르면 성문 쪽(+y)
+      if (fr) {
+        var len = Math.hypot(fr.x - to.x, fr.y - to.y);
+        if (len > 1e-6) { ux = (fr.x - to.x) / len; uy = (fr.y - to.y) / len; }
+      }
+      var foot = Math.max(3.2, TIER_H[cityTier(to)] * 0.5);
+      var off = (foot + 6) / WORLD_SCALE();
+      var mine = f.force === st.me || f.defForce === st.me;
+      var score = focus ? Math.hypot(to.x - focus.x, to.y - focus.y) : 0;
+      if (mine) { score -= 40; }
+      out.push({
+        kind: 'battle', id: 'fight:' + f.to, city: f.to, a: f.a, d: f.d, officer: f.a,
+        force: f.force, defForce: f.defForce, result: f.result, mine: mine,
+        x: to.x + ux * off, y: to.y + uy * off, dx: -ux, dy: -uy, slots: 2, score: score
+      });
+    }
+    out.sort(function (p, q) {
+      if (p.score !== q.score) { return p.score - q.score; }
+      return p.id < q.id ? -1 : (p.id > q.id ? 1 : 0);
+    });
+    return out.slice(0, BATTLE_MAX);
+  }
+
+  /** 순수 함수 — 싸움 자리 연출표: 시각 s(초, 등장부터)에 두 사람(a 공격·d 수비)이 할
+   *  동작. 합 셋(0.9초씩: 공격군 치기 → 수비군 치기 → 이긴 쪽 치기, 비기면 둘째 합까지)
+   *  뒤 진 쪽은 death 에서 멈추고 이긴 쪽은 idle, 결과 깃발이 선다(flag). 비기면 아무도
+   *  안 쓰러지고 둘 다 idle(진을 쳤다). `hit` 는 그 합이 막 시작됐는지(원샷 다시 틀기) */
+  var BOUT_S = 0.9;
+  function battleBeat(result, s) {
+    var bout = Math.floor(s / BOUT_S), rounds = result === 'draw' ? 2 : 3;
+    if (s < 0) { return { a: 'idle', d: 'idle', bout: -1, flag: false }; }
+    if (bout < rounds) {
+      var aHits = bout === 0 || (bout === 2 && result === 'atk');
+      return aHits ? { a: 'attack', d: 'hit', bout: bout, flag: false }
+                   : { a: 'hit', d: 'attack', bout: bout, flag: false };
+    }
+    if (result === 'atk') { return { a: 'idle', d: 'death', bout: rounds, flag: true }; }
+    if (result === 'def') { return { a: 'death', d: 'idle', bout: rounds, flag: true }; }
+    return { a: 'idle', d: 'idle', bout: rounds, flag: true };
+  }
+
+  /** 태수 후보 — 주인 있는 성에 태수가 앉아 있고 그 사람이 성 안에 있을 때 */
+  function governorPlan(st, opt) {
+    var rtkO = R();
+    var orders = opt.orders || (rtkO && rtkO.monthOrders ? rtkO.monthOrders() : null) || {};
+    var focus = opt.focus || null;
+    var cities = cityData().CITIES, O = global.DG.off, out = [], i;
+    for (i = 0; i < cities.length; i++) {
+      var cd = cities[i], cs = st.cities && st.cities[cd.id];
+      if (!cs || !cs.force || !cs.gov) { continue; }
+      var rec = (O && O.rec) ? O.rec(cs.gov) : null;
+      if (rec && (rec.city !== cd.id || rec.journey)) { continue; }
+      var od = orders[cd.id], key = (od && ORDER_GESTURES[od.key]) ? od.key : null;
+      var info = (key && rtkO && rtkO.orderByKey) ? rtkO.orderByKey(key) : null;
+      /* 성문 앞 — 탑 밑동(footprint)보다 조금 더 앞(+z, 기본 카메라 쪽) */
+      var foot = Math.max(3.2, TIER_H[cityTier(cd)] * 0.5);
+      var gx = cd.x, gy = cd.y + (foot + 3.2) / WORLD_SCALE();
+      var score = focus ? Math.hypot(cd.x - focus.x, cd.y - focus.y) : 0;
+      if (key) { score -= 25; }
+      if (cs.force === st.me) { score -= 10; }
+      out.push({
+        kind: 'governor', id: 'gov:' + cd.id, city: cd.id, force: cs.force, officer: cs.gov,
+        mine: cs.force === st.me, x: gx, y: gy, order: key, emoji: info ? info.emoji : null,
+        clips: key ? ORDER_GESTURES[key].slice() : [], rest: 'idle', score: score
+      });
+    }
+    out.sort(function (a, b) {
+      if (a.score !== b.score) { return a.score - b.score; }
+      return a.id < b.id ? -1 : (a.id > b.id ? 1 : 0);
+    });
+    return out;
+  }
+
+  /** 순수 함수 — 걷기 보간 중 배우 자리(지도 좌표). frac 0 = 지난달(`fromEl`,
+   *  안 주면 elapsed-1) 자리, 1 = 이번 달 자리(= `journeyPos(j)`). 길을 따라
+   *  꺾이며 가므로 두 점을 곧게 잇는 것과 다르다 */
+  function actorPos(a, frac, fromEl) {
+    var from = (fromEl === undefined || fromEl === null) ? Math.max(0, a.elapsed - 1) : fromEl;
+    var el = from + (a.elapsed - from) * clamp(frac, 0, 1);
+    return journeyPos({ path: a.path, monthsTotal: a.total }, el);
+  }
+
+  /* 병사 — 몸통·머리·창(기병은 말 몸통을 더한다). 모양·재질은 전부 공유 */
+  var soldierGeo = null, soldierMats = {};
+  function soldierMat(hex) {
+    var t = three(), TN = global.DG.toon3d;
+    if (!soldierMats[hex]) {
+      soldierMats[hex] = TN ? TN.lambertLike({ color: hex }) : new t.MeshLambertMaterial({ color: hex });
+    }
+    return soldierMats[hex];
+  }
+  function soldierMesh(color, kind) {
+    var t = three();
+    if (!soldierGeo) {
+      soldierGeo = {
+        body: new t.CylinderGeometry(0.3, 0.38, 1.25, 6),
+        head: new t.SphereGeometry(0.27, 8, 6),
+        spear: new t.CylinderGeometry(0.035, 0.035, 2.4, 4),
+        horse: new t.BoxGeometry(0.55, 0.7, 1.55)
+      };
+    }
+    var g = new t.Group(), lift = kind === 'cav' ? 0.75 : 0;
+    var hex = new t.Color(color).getHex();
+    if (kind === 'cav') {
+      var horse = new t.Mesh(soldierGeo.horse, soldierMat(0x5a4028));
+      horse.position.y = 0.5;
+      g.add(horse);
+    }
+    var body = new t.Mesh(soldierGeo.body, soldierMat(hex));
+    body.position.y = 0.62 + lift;
+    g.add(body);
+    var head = new t.Mesh(soldierGeo.head, soldierMat(0xe8c9a0));
+    head.position.y = 1.5 + lift;
+    g.add(head);
+    var spear = new t.Mesh(soldierGeo.spear, soldierMat(0x6b5533));
+    spear.position.set(0.42, 1.2 + lift, 0.1);
+    g.add(spear);
+    return g;
+  }
+
+  function makeActor(a) {
+    var t = three();
+    var grp = new t.Group(), col = forceColor(a.force), k;
+    var c = { grp: grp, hero: null, soldiers: [], lastElapsed: a.elapsed, fromEl: a.elapsed, t0: null, plan: a, dead: false,
+              sig: actorSig(a), badge: null, badgeKey: null, gOn: false, seed: (hashOf(a.id) % 100) / 37 };
+    var sl = a.soldiers || [];
+    for (k = 0; k < sl.length; k++) {
+      var s = soldierMesh(col, sl[k]);
+      /* 장수 뒤로 두 줄 — 로컬 +z 가 걸어가는 쪽(아래 rotation.y 와 짝) */
+      s.scale.setScalar(SOLDIER_SCALE);
+      s.userData.ox = (k % 2 ? 1 : -1) * 2.1;
+      s.userData.oz = -3.6 - Math.floor(k / 2) * 3;
+      s.userData.seed = k * 1.7;
+      grp.add(s);
+      c.soldiers.push(s);
+    }
+    if (blobGeo) {
+      var blob = new t.Mesh(blobGeo, blobMat);
+      blob.rotation.x = -Math.PI / 2;
+      blob.position.y = 0.05;
+      blob.scale.setScalar(1.8);
+      grp.add(blob);
+    }
+    actorGrp.add(grp);
+    var O = global.DG.off;
+    if (a.kind === 'battle') { makeDuelists(c, a, O); return c; }
+    var ref = (O && O.find && a.officer) ? O.find(a.officer) : null;
+    if (ref && asset3d() && asset3d().buildHero) {
+      asset3d().buildHero(ref, col, function (m) {
+        if (c.dead || !m) { return; }
+        m.scale.setScalar(HERO_SCALE);
+        grp.add(m);
+        c.hero = m;
+      });
+    }
+    return c;
+  }
+  /** 싸움 자리 — 두 지휘관을 마주 세운다(공격군 로컬 -z·수비군 +z, 그룹은 공격군이 보는
+   *  쪽으로 돈다). 결과 깃발은 이긴 쪽 색(비기면 ⛺) — 연출이 끝날 때까지 숨겨 둔다 */
+  var DUEL_GAP = 2.0;
+  function makeDuelists(c, a, O) {
+    c.t0 = now();
+    c.duel = { a: null, d: null, bout: -2 };
+    var A3 = asset3d();
+    [['a', a.a, a.force, -DUEL_GAP, 0], ['d', a.d, a.defForce, DUEL_GAP, Math.PI]].forEach(function (s) {
+      var ref = (O && O.find) ? O.find(s[1]) : null;
+      if (!ref || !A3 || !A3.buildHero) { return; }
+      A3.buildHero(ref, forceColor(s[2]), function (m) {
+        if (c.dead || !m) { return; }
+        m.scale.setScalar(HERO_SCALE);
+        m.position.z = s[3];
+        m.rotation.y = s[4];
+        c.grp.add(m);
+        c.duel[s[0]] = m;
+        if (s[0] === 'a') { c.hero = m; }
+      });
+    });
+    if (a.result === 'draw') {
+      c.flag = emojiSprite('⛺', 4.2);
+      c.flag.position.set(2.6, 3.4, 0);
+    } else {
+      c.flag = banner(forceColor(a.result === 'atk' ? a.force : a.defForce));
+      c.flag.scale.setScalar(2.2);
+      c.flag.position.set(2.6, 0, 0);
+    }
+    c.flag.visible = false;
+    c.grp.add(c.flag);
+  }
+  function tickBattle(c, a, tms, A3) {
+    var wx = worldX(a.x), wz = worldZ(a.y);
+    c.grp.position.set(wx, elevAt(wx, wz), wz);
+    c.grp.rotation.y = Math.atan2(a.dx, a.dy);   // 로컬 +z = 공격군이 성 쪽으로 보는 방향
+    var beat = battleBeat(a.result, (tms - c.t0) / 1000);
+    var fresh = beat.bout !== c.duel.bout;
+    c.duel.bout = beat.bout;
+    if (c.flag) { c.flag.visible = beat.flag; }
+    if (!A3 || !A3.step) { return; }
+    if (c.duel.a) { A3.step(c.duel.a, { anim: beat.a, force: fresh, t: tms / 1000 }); }
+    if (c.duel.d) { A3.step(c.duel.d, { anim: beat.d, force: fresh, t: tms / 1000 }); }
+  }
+
+  /** 같은 id 라도 사람·세력이 바뀌면(태수 교체·성 함락) 몸을 새로 지어야 한다 */
+  function actorSig(a) { return a.kind + '|' + a.officer + '|' + a.force + (a.kind === 'battle' ? '|' + a.d + '|' + a.result : ''); }
+  /** 태수 머리 위 명령 그림문자 — 명령이 바뀔 때만 갈아 끼운다 */
+  function syncBadge(c, a) {
+    var key = a.kind === 'governor' ? a.order : null;
+    if (c.badgeKey === key) { return; }
+    if (c.badge) { c.grp.remove(c.badge); c.badge = null; }
+    c.badgeKey = key;
+    if (key && a.emoji) {
+      c.badge = emojiSprite(a.emoji, 3.4);
+      c.badge.position.y = HERO_SCALE + 2.2;
+      c.grp.add(c.badge);
+    }
+  }
+  /** 몸에 실제로 있는 첫 슬롯(별칭으로 떨어진 것은 건너뛴다) — 없으면 null */
+  function gestureSlot(model, clips) {
+    var cm = model && model.userData && model.userData.clipMap, i;
+    if (!cm) { return null; }
+    for (i = 0; i < clips.length; i++) {
+      if (cm[clips[i]] && !(cm.alias && cm.alias[clips[i]])) { return clips[i]; }
+    }
+    return null;
+  }
+  function dropActor(id) {
+    var c = actorCache[id];
+    if (!c) { return; }
+    c.dead = true;
+    if (c.hero && c.hero.userData.mixer) { c.hero.userData.mixer.stopAllAction(); }
+    if (c.duel && c.duel.d && c.duel.d.userData.mixer) { c.duel.d.userData.mixer.stopAllAction(); }
+    actorGrp.remove(c.grp);
+    delete actorCache[id];
+  }
+
+  /** 카메라 궤도 중심(세계 좌표) → 지도 좌표 — 태수는 가까운 성부터 뽑는다 */
+  function focusMap() { return { x: pivotX / WORLD_SCALE() + 50, y: pivotZ / WORLD_SCALE() + 50 }; }
+  var lastSyncX = 0, lastSyncZ = 0;
+  var RESYNC_PAN = 60;              // 궤도 중심이 이만큼(세계 단위) 옮겨 가면 태수를 다시 뽑는다
+
+  /** `rebuild()` 끝에서 — 목록대로 배우를 두고, 원정이 한 달 나아갔으면 걷기를 건다 */
+  function syncActors(st) {
+    if (!actorGrp || !three()) { return; }
+    var plan = actorPlan(st, { focus: focusMap() }), seen = {}, i, id;
+    lastSyncX = pivotX; lastSyncZ = pivotZ;
+    for (i = 0; i < plan.length; i++) {
+      var a = plan[i], c = actorCache[a.id];
+      seen[a.id] = true;
+      if (c && c.sig !== actorSig(a)) { dropActor(a.id); c = null; }
+      if (!c) { c = actorCache[a.id] = makeActor(a); }
+      syncBadge(c, a);
+      if (a.elapsed !== c.lastElapsed) {
+        /* 걷는 도중 또 한 달이 넘어가면(빨리 누르기) 지금 선 자리에서 이어 걷는다 */
+        c.fromEl = (c.t0 !== null && typeof c.curEl === 'number') ? c.curEl : c.lastElapsed;
+        c.t0 = now();
+        c.lastElapsed = a.elapsed;
+      }
+      c.plan = a;
+    }
+    for (id in actorCache) {
+      if (Object.prototype.hasOwnProperty.call(actorCache, id) && !seen[id]) { dropActor(id); }
+    }
+  }
+
+  /** 태수 — 성문 앞에 서서, 이 달 명령이 있으면 GESTURE_EVERY 마다 그 몸짓을 한 번 */
+  function tickGovernor(c, a, tms, A3) {
+    var wx = worldX(a.x), wz = worldZ(a.y);
+    c.grp.position.set(wx, elevAt(wx, wz), wz);
+    c.grp.rotation.y = 0;                       // 로컬 +z = 기본 카메라 쪽을 본다
+    if (c.badge) { c.badge.position.y = HERO_SCALE + 2.2 + Math.sin(tms / 420 + c.seed) * 0.35; }
+    if (!c.hero || !A3 || !A3.step) { return; }
+    var slot = a.order ? gestureSlot(c.hero, a.clips) : null;
+    var on = !!slot && ((tms / 1000 + c.seed) % GESTURE_EVERY) < GESTURE_ON;
+    var start = on && !c.gOn;
+    c.gOn = on;
+    A3.step(c.hero, { anim: on ? slot : a.rest, force: start, t: tms / 1000 });
+  }
+
+  /** 매 프레임 — 멀면(LOD) 배우를 숨기고 🚩 로 돌아간다. 보일 때만 mixer 를 돌린다 */
+  function tickActors(tms) {
+    if (!actorGrp) { return; }
+    var lod = !ACTORS_ON() || dist > ACTOR_LOD(), id;
+    actorGrp.visible = !lod;
+    for (id in journeyFlags) {
+      if (!Object.prototype.hasOwnProperty.call(journeyFlags, id)) { continue; }
+      var ac = actorCache[id];
+      journeyFlags[id].visible = lod || !(ac && ac.hero);
+    }
+    if (lod) { return; }
+    if (Math.hypot(pivotX - lastSyncX, pivotZ - lastSyncZ) > RESYNC_PAN && R() && R().state) { syncActors(R().state()); }
+    var A3 = asset3d();
+    for (id in actorCache) {
+      if (!Object.prototype.hasOwnProperty.call(actorCache, id)) { continue; }
+      var c = actorCache[id], a = c.plan;
+      if (a.kind === 'governor') { tickGovernor(c, a, tms, A3); continue; }
+      if (a.kind === 'battle') { tickBattle(c, a, tms, A3); continue; }
+      var moving = c.t0 !== null;
+      var frac = moving ? Math.min(1, (tms - c.t0) / ACTOR_TWEEN_MS) : 1;
+      var el = moving ? c.fromEl + (a.elapsed - c.fromEl) * frac : a.elapsed;
+      c.curEl = el;
+      var jj = { path: a.path, monthsTotal: a.total };
+      var p = journeyPos(jj, el), ahead = journeyPos(jj, el + 0.05);
+      if (!p) { continue; }
+      var wx = worldX(p.x), wz = worldZ(p.y), gy = elevAt(wx, wz);
+      var hx = worldX(ahead.x) - wx, hz = worldZ(ahead.y) - wz;
+      if (hx * hx + hz * hz > 1e-6) { c.grp.rotation.y = Math.atan2(hx, hz); }
+      c.grp.position.set(wx, gy, wz);
+      /* 병사 발을 제 자리 지형에 붙인다(언덕에서 뜨거나 묻히지 않게) + 걸을 때 까딱 */
+      var ry = c.grp.rotation.y, cs = Math.cos(ry), sn = Math.sin(ry), k;
+      for (k = 0; k < c.soldiers.length; k++) {
+        var s = c.soldiers[k], u = s.userData;
+        var sx = wx + u.ox * cs + u.oz * sn, sz = wz - u.ox * sn + u.oz * cs;
+        var bob = moving ? Math.abs(Math.sin(tms / 150 + u.seed)) * 0.45 : 0;
+        s.position.set(u.ox, elevAt(sx, sz) - gy + bob, u.oz);
+      }
+      if (c.hero && A3 && A3.step) { A3.step(c.hero, { anim: moving ? a.clip : a.rest, t: tms / 1000 }); }
+      if (moving && frac >= 1) { c.t0 = null; }
+    }
   }
 
   /** 성과 성 사이 길 — 평지 구간은 예전처럼 한 토막, 언덕·산을 지나는 긴
@@ -1021,7 +1473,7 @@
     rebuildSeq++;
     clearDyn();
     var st = R().state();
-    if (!st || !st.started) { return; }
+    if (!st || !st.started) { syncActors(null); return; }
     buildStaticOnce();
     var cities = cityData().CITIES, i, j, drawn = {};
 
@@ -1060,6 +1512,9 @@
        에워싸지 않은, 오가는 중인 상태다 */
     var journeys = W() ? W().journeys() : [];
     for (i = 0; i < journeys.length; i++) { buildJourney(journeys[i], seq); }
+
+    /* 배우(PLAN §5-10) — 다시 짓지 않고 목표만 갈아 준다 */
+    syncActors(st);
   }
 
   /* ── 카메라 조작 (드래그 회전 · 휠/핀치 확대) ─────────── */
@@ -1192,6 +1647,7 @@
       mm.grp.position.set(mx, elevAt(mx, mz), mz);
       if (frac >= 1) { fx.remove(mm.grp); marches.splice(m, 1); }
     }
+    tickActors(t);
 
     renderer.render(scene, camera);
     requestAnimationFrame(tick);
@@ -1205,6 +1661,14 @@
     toggle: toggle,
     rebuild: rebuild,
     showMarch: showMarch,
+    /* PLAN §5-10 지도 위 배우 — three 없이 도는 순수 함수(_test.html) */
+    actorPlan: actorPlan,
+    actorPos: actorPos,
+    journeyPos: journeyPos,
+    ACTOR_MAX: ACTOR_MAX,
+    ORDER_GESTURES: ORDER_GESTURES,
+    battleBeat: battleBeat,
+    BATTLE_MAX: BATTLE_MAX,
     panBy: panBy,
     panTo: panTo,
     /* SAGA-DESIGN §7-2 "3D 진단 공백" — three 없이도 도는 순수 함수라 _test.html 이 부른다 */

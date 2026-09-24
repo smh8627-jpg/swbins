@@ -3699,6 +3699,126 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ('idle←' + m.idle + ' · walk←' + m.walk + ' · attack←' + m.attack + ' · 빈 목록 → 빈 표');
     });
 
+    t('realm3d — actorPlan 원정군 배우: 결정성·상한 24·걷기 보간 = journeyPos·손잡이 0 (PLAN §5-10 ①)', function () {
+      var R3 = DG.realm3d, A3 = DG.asset3d;
+      if (!R3 || typeof R3.actorPlan !== 'function' || !A3) { return false; }
+      var st = fresh('zan');
+      R.city('beiping').troops = 20000; R.city('beiping').food = 999999;
+      var lead = off.atCity('beiping', 'zan').slice(0, 2).map(function (h) { return h.id; });
+      var res = W.startJourney('beiping', 'wirye', lead, 8000);
+      if (!res.ok || res.months < 2) { return false; }
+      W.resolveJourneys();                              // 한 달 나아간다 → elapsed 1
+      var j = W.journeyById(res.id);
+      var p1 = R3.actorPlan(st), p2 = R3.actorPlan(st);
+      var a = p1[0];
+      var same = JSON.stringify(p1) === JSON.stringify(p2);
+      var now = R3.journeyPos(j), before = R3.journeyPos(j, j.monthsElapsed - 1);
+      var e1 = R3.actorPos(a, 1), e0 = R3.actorPos(a, 0), mid = R3.actorPos(a, 0.5);
+      var close = function (p, q) { return Math.abs(p.x - q.x) < 1e-9 && Math.abs(p.y - q.y) < 1e-9; };
+      var okPos = close(e1, now) && close(e0, before) && close({ x: a.x, y: a.y }, now) &&
+        close({ x: a.px, y: a.py }, before) && !close(mid, now) && !close(mid, before);
+      var cm = A3.mapClips(['Idle', 'Walk']);
+      var okClip = a.kind === 'journey' && !!cm[a.clip] && !!cm[a.rest] &&
+        lead.indexOf(a.officer) >= 0 && a.soldiers.length >= 3 && a.soldiers.length <= 5;
+      /* 상한 — 가짜 원정 30개를 더 얹어 24로 잘리는지, 내 원정이 맨 앞인지 */
+      var orig = st.journeys.slice(), k;
+      for (k = 0; k < 30; k++) {
+        st.journeys.push({ id: 'fake' + k, force: 'yuan', from: j.from, to: j.to, path: j.path,
+          troops: 1000 + k * 500, officers: j.officers, monthsTotal: j.monthsTotal, monthsElapsed: 0 });
+      }
+      var big = R3.actorPlan(st);
+      st.journeys = orig;
+      var okCap = big.length === R3.ACTOR_MAX && R3.ACTOR_MAX === 24 && big[0].id === res.id &&
+        big[1].troops >= big[2].troops;
+      var raw = C.tune()['realm3d.actors'];
+      C.setTune('realm3d.actors', 0);
+      var offList = R3.actorPlan(st);
+      C.setTune('realm3d.actors', raw === undefined ? null : raw);
+      var okKnob = offList.length === 0 &&
+        R3.actorPlan(st).filter(function (x) { return x.kind === 'journey'; }).length === 1;
+      return same && okPos && okClip && okCap && okKnob &&
+        ('앞장 ' + off.find(a.officer).name + ' + 병사 ' + a.soldiers.join('·') + ' · ' + j.monthsElapsed + '/' + j.monthsTotal +
+         '달 보간 끝점 = journeyPos · 31개 → ' + big.length + ' · 손잡이 0 → 빈 목록');
+    });
+
+    t('realm3d — actorPlan 전투 자리: 이 달 싸움 기록·두 칸 상한·연출표 (PLAN §5-10 ③)', function () {
+      var R3 = DG.realm3d;
+      if (!R3 || typeof R3.battleBeat !== 'function' || typeof R.monthBattles !== 'function') { return false; }
+      var st = fresh('cao');
+      var from = R.city('chenliu'), to = R.city('luoyang');
+      from.troops = to.troops * 6; from.food = 999999;
+      var lead = off.atCity('chenliu', 'cao').slice(0, 3).map(function (h) { return h.id; });
+      var rep = W.march('chenliu', 'luoyang', lead, from.troops - 1);
+      var rec = R.monthBattles().luoyang;
+      var okRec = !!rec && rec.from === 'chenliu' && rec.force === 'cao' &&
+        rec.result === (rep.won ? 'atk' : (rep.routed ? 'def' : 'draw')) && lead.indexOf(rec.a) >= 0 && !!rec.d;
+      var focus = { x: DG.cityData.find('luoyang').x, y: DG.cityData.find('luoyang').y };
+      var plan = R3.actorPlan(st, { focus: focus });
+      var fight = plan.filter(function (a) { return a.kind === 'battle'; })[0];
+      var people = plan.reduce(function (n, a) { return n + (a.slots || 1); }, 0);
+      var okPlan = !!fight && fight.city === 'luoyang' && fight.a === rec.a && fight.d === rec.d &&
+        !plan.some(function (a) { return a.id === 'gov:luoyang'; }) && people <= R3.ACTOR_MAX &&
+        Math.abs(Math.hypot(fight.dx, fight.dy) - 1) < 1e-9;
+      /* 상한 — 가짜 싸움 열 곳 → BATTLE_MAX */
+      var fake = {}, ids = DG.cityData.CITIES.slice(0, 10), k;
+      for (k = 0; k < ids.length; k++) { fake[ids[k].id] = { to: ids[k].id, from: null, force: 'yuan', defForce: 'liu', a: rec.a, d: rec.d, result: 'def' }; }
+      var many = R3.actorPlan(st, { battles: fake }).filter(function (a) { return a.kind === 'battle'; });
+      var okCap = many.length === R3.BATTLE_MAX;
+      /* 연출표 — 합 셋 뒤 진 쪽이 쓰러지고 깃발, 비기면 둘 다 서 있다 */
+      var B = R3.battleBeat;
+      var okBeat = B('atk', 0).a === 'attack' && B('atk', 0).d === 'hit' && B('atk', 1.0).d === 'attack' &&
+        B('atk', 2.0).a === 'attack' && B('atk', 3).d === 'death' && B('atk', 3).a === 'idle' && B('atk', 3).flag &&
+        B('def', 2.0).d === 'attack' && B('def', 3).a === 'death' && !B('def', 1).flag &&
+        B('draw', 2.0).a === 'idle' && B('draw', 2.0).d === 'idle' && B('draw', 2.0).flag;
+      fresh('cao');
+      var cleared = Object.keys(R.monthBattles()).length === 0;
+      return okRec && okPlan && okCap && okBeat && cleared &&
+        (DG.cityData.find('luoyang').name + ' 싸움(' + rec.result + ') ' + off.find(rec.a).name + ' vs ' + off.find(rec.d).name +
+         ' · 사람 ' + people + '/' + R3.ACTOR_MAX + ' · 가짜 10곳 → ' + many.length + ' · 새 판에 기록 비움');
+    });
+
+    t('realm3d — actorPlan 태수 몸짓: 명령→클립 표 완결·이 달 명령 반영·원정 뒤 자리 채움·가까운 성 먼저 (PLAN §5-10 ②)', function () {
+      var R3 = DG.realm3d, A3 = DG.asset3d;
+      if (!R3 || !R3.ORDER_GESTURES || typeof R.monthOrders !== 'function') { return false; }
+      /* 표 완결 — rtk 명령 열 가지가 다 있고, 슬롯은 전부 asset3d 표준 슬롯 이름이다 */
+      var std = A3.mapClips(['Idle', 'Walk', 'Run', 'Sprint', 'Attack', 'Hit', 'Dodge', 'Death', 'Interact', 'Jump', 'Land']);
+      var okTable = R.ORDERS.every(function (o) {
+        var g = R3.ORDER_GESTURES[o.key];
+        return g && g.length && g.every(function (s) { return !!std[s] && !(std.alias && std.alias[s]); });
+      });
+      var st = fresh('zan');
+      var cid = 'beiping', gov = R.city(cid).gov;
+      if (!gov) { return false; }
+      var freshEmpty = Object.keys(R.monthOrders()).length === 0;
+      off.rec(gov).done = false; off.rec(gov).hurt = 0;
+      st.forces.zan.gold = 99999;
+      var res = R.order(cid, gov, 'train');
+      if (!res.ok) { return false; }
+      var focus = { x: DG.cityData.find(cid).x, y: DG.cityData.find(cid).y };
+      var p1 = R3.actorPlan(st, { focus: focus }), p2 = R3.actorPlan(st, { focus: focus });
+      var g = p1.filter(function (a) { return a.kind === 'governor'; });
+      var mine = g.filter(function (a) { return a.city === cid; })[0];
+      var okGov = !!mine && g[0] === mine && mine.officer === gov && mine.order === 'train' &&
+        mine.clips[0] === 'attack' && mine.emoji === R.orderByKey('train').emoji &&
+        JSON.stringify(p1) === JSON.stringify(p2) && p1.length <= R3.ACTOR_MAX;
+      /* 원정이 생기면 앞자리를 원정이 차지하고 태수는 남은 자리만 */
+      R.city(cid).troops = 20000; R.city(cid).food = 999999;
+      var lead = off.atCity(cid, 'zan').slice(0, 2).map(function (h) { return h.id; });   // 태수도 함께 떠난다
+      var jr = W.startJourney(cid, 'wirye', lead, 8000);
+      var p3 = R3.actorPlan(st, { focus: focus });
+      var okMix = !!jr.ok && p3.length <= R3.ACTOR_MAX && p3[0].kind === 'journey' &&
+        p3.filter(function (a) { return a.kind === 'governor'; }).length === Math.min(p1.length, R3.ACTOR_MAX - 1) &&
+        !p3.some(function (a) { return a.id === 'gov:' + cid; });            // 원정 간 태수는 성문 앞에서 빠진다
+      /* 명령이 없는 성의 태수는 idle(빈 몸짓) */
+      var idleGov = g.filter(function (a) { return a.city !== cid && !a.order; })[0];
+      var okIdle = !!idleGov && idleGov.clips.length === 0 && idleGov.emoji === null;
+      fresh('zan');
+      var cleared = Object.keys(R.monthOrders()).length === 0;
+      return okTable && freshEmpty && okGov && okMix && okIdle && cleared &&
+        ('명령 ' + R.ORDERS.length + '가지 표 완결 · ' + DG.cityData.find(cid).name + ' 태수 ' + off.find(gov).name +
+         ' 훈련 → ' + mine.clips.join('/') + ' ' + mine.emoji + ' · 태수 ' + p1.length + ' → 원정 1 + 태수 ' + (p3.length - 1) + ' · 새 판에 기록 비움');
+    });
+
     /* ── VRoid 몸 변형 (vroid-variant.js, 2026-09-20) — 인물 전원에게 VRoid 몸을 나눠 입히고 색만 바꾼다 ─────────── */
 
     t('vroid-variant — 인물 전원의 머리·옷·눈 칸이 늘 같고(해시), 서로 거의 안 겹친다', function () {

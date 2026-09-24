@@ -28,6 +28,24 @@
 
   /* ── 내정 명령 ────────────────────────────────────────── */
 
+  /* 이 달 성마다 마지막으로 내린 명령 — **화면 전용**(지도 위 태수 몸짓, PLAN §5-10 ②).
+     세이브에 안 넣는다(state 밖). 판정은 이 표를 안 읽는다. endMonth 첫머리에 비우므로
+     ▶ 다음 달 뒤엔 그 달 AI 가 내린 명령이, 내 차례 동안엔 내가 내린 명령이 남는다 */
+  var monthOrders = {};
+  function monthOrdersView() { return monthOrders; }
+  /* 이 달 싸움 — 같은 화면 전용 기록(지도 위 전투 자리 모션, PLAN §5-10 ③). war.js 가 쏘는
+     `rtk:battle` 보고에서 성마다 마지막 싸움의 뼈대만 옮겨 둔다. 비우는 때는 monthOrders 와 같다 */
+  var monthBattles = {};
+  function monthBattlesView() { return monthBattles; }
+  core.on('rtk:battle', function (rep) {
+    if (!rep || !rep.to) { return; }
+    monthBattles[rep.to] = {
+      to: rep.to, from: rep.from || null, force: rep.force || null, defForce: rep.defForce || null,
+      a: rep.leadA || (rep.duel && rep.duel.a) || null, d: rep.leadD || (rep.duel && rep.duel.d) || null,
+      result: rep.won ? 'atk' : (rep.routed ? 'def' : 'draw')
+    };
+  });
+
   /**
    *   stat   판정에 쓰는 자질
    *   gold   드는 금
@@ -205,6 +223,8 @@
    */
   function setup(meId, scen, seed) {
     var st = state();
+    monthOrders = {};
+    monthBattles = {};
     var off = global.DG.off;
     var want = scen || '194';
     var sd = 0;
@@ -427,6 +447,7 @@
 
     fs.gold -= o.gold;
     r.done = true;
+    monthOrders[cityId] = { key: orderKey, officer: officerId };
 
     if (orderKey === 'search') { return doSearch(c, cityId, h, r); }
     if (orderKey === 'hire') { return doHire(c, cityId, h, r); }
@@ -1174,6 +1195,8 @@
     if (!st.started || st.result) { return null; }
     var snap = snapshot();
 
+    monthOrders = {};
+    monthBattles = {};
     global.DG.rtkAI.runAll();
     if (global.DG.war) { global.DG.war.resolveAll(); }
     if (global.DG.war) { global.DG.war.resolveJourneys(); }
@@ -1367,7 +1390,7 @@
     CHALLENGE_MONTHS: CHALLENGE_MONTHS, bests: bests,
     VICTORY: VICTORY, victoryKinds: victoryKinds, victoryProgress: victoryProgress, victoryNext: victoryNext,
     victoryDone: function (k) { return victoryDone(state(), k); }, resultCard: resultCard, tickVictories: tickVictories,
-    readyAt: readyAt, capOf: capOf, order: order, tryHire: tryHire, bumpStat: bumpStat,
+    readyAt: readyAt, capOf: capOf, order: order, monthOrders: monthOrdersView, monthBattles: monthBattlesView, tryHire: tryHire, bumpStat: bumpStat,
     setGov: setGov, govMul: govMul, reward: reward,
     goldOf: goldOf, foodOf: foodOf, eatOf: eatOf, secMul: secMul, harvestMul: harvestMul,
     marketRate: marketRate, trade: trade,
