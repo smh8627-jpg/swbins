@@ -1585,7 +1585,8 @@
     /* 방문객 몸짓(§5.10) — 곁에 서면 나를 본다, 부탁을 다 들어준 날은 깡충 춤 */
     var raw0 = V.raw(), gNear = n.gesture && Math.hypot(raw0.player.x - n.x, raw0.player.y - n.y) < NPC_TALK_DIST * 1.6;
     var hop = n.gesture === 'dance' ? Math.abs(Math.sin(now / 170)) * 7 * k : 0;
-    var face = gNear ? (raw0.player.x < n.x ? -1 : 1) : (n.gesture === 'dance' ? (Math.sin(now / 700) < 0 ? -1 : 1) : n.facing);
+    var face = gNear ? (raw0.player.x < n.x ? -1 : 1) : (n.gesture === 'dance' ? (Math.sin(now / 700) < 0 ? -1 : 1) :
+      (n.faceX !== undefined ? (n.faceX < n.x ? -1 : 1) : n.facing));
     /* 2026-09-10 — 이모지 대신 residents 와 같은 사람 스탬프(Kenney CC0,
        sprite.js 의 stamp())를 쓴다. HEROES 로스터를 안 물리려고 ref 를
        {id:'npc_'+kind} 만 준다 — humanIndexOf() 가 이 문자열을 해시해
@@ -1609,7 +1610,7 @@
       bubble('말을 건다 [' + core.actHint() + ']', p.x, p.y - 82 * k, '#0d5b86', '#e6f5ff');
       bubble(def.name, p.x, p.y - 60 * k, '#5a6472', '#f2f4f8');
     } else if (near) {
-      bubble(def.line, p.x, p.y - 82 * k, '#2f3a46', '#fffdf4');
+      bubble(n.chat && n.x <= n.faceX ? n.chat : (n.chat ? '…' : def.line), p.x, p.y - 82 * k, '#2f3a46', '#fffdf4');
       bubble(def.name, p.x, p.y - 60 * k, '#5a6472', '#f2f4f8');
     } else {
       bubble(def.name, p.x, p.y - 62 * k, '#3c4450', '#ffffff');
