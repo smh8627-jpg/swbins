@@ -497,6 +497,18 @@
       renderSheet();
       return;
     }
+    /* 지도 위 배우(PLAN §5-10) — 끄면 옛 지도(원정은 🚩), 다시 지어 곧바로 반영한다 */
+    if (a === 'actors-toggle') {
+      core.setTune('realm3d.actors', core.tuned('realm3d.actors', 1) ? 0 : 1);
+      if (global.DG.realm3d && global.DG.realm3d.active()) { global.DG.realm3d.rebuild(); }
+      renderSheet();
+      return;
+    }
+    if (a === 'cityzoom-toggle') {
+      core.setTune('realm3d.cityZoom', core.tuned('realm3d.cityZoom', 1) ? 0 : 1);
+      renderSheet();
+      return;
+    }
     if (a === 'quality-set') {
       var R3q = global.DG.realm3d;
       if (R3q && R3q.setQuality) { R3q.setQuality(g('data-level')); }
@@ -1283,6 +1295,10 @@
         '<button data-act="monthcard-toggle">' + (monthCardOn() ? '켜짐' : '꺼짐') + '</button></div>' +
       '<div class="key-row" title="켜면 군주도 늙고 65세부터 세상을 떠난다 — 후계가 잇고 나머지는 흔들린다"><b>군주 노쇠·계승</b>' +
         '<button data-act="lordaging-toggle">' + (off().lordAgingOn() ? '켜짐' : '꺼짐') + '</button></div>' +
+      '<div class="key-row" title="원정군·태수·싸움·재야가 3D 지도 위에서 움직인다 — 끄면 깃발만"><b>지도 위 인물</b>' +
+        '<button data-act="actors-toggle">' + (core.tuned('realm3d.actors', 1) ? '켜짐' : '꺼짐') + '</button></div>' +
+      '<div class="key-row" title="성을 누르면 카메라가 그 성 태수 앞으로 다가간다"><b>성 누르면 다가가기</b>' +
+        '<button data-act="cityzoom-toggle">' + (core.tuned('realm3d.cityZoom', 1) ? '켜짐' : '꺼짐') + '</button></div>' +
       qRow;
   }
 

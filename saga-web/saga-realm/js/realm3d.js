@@ -48,6 +48,8 @@
    *  `actorLod` 보다 멀면 배우를 숨기고 옛 깃발로 돌아간다 */
   function ACTORS_ON() { return C().tuned('realm3d.actors', 1) ? true : false; }
   function ACTOR_LOD() { return C().tuned('realm3d.actorLod', 480); }
+  /** ⑤ 성을 누르면 그 성 태수에게 다가가는 줌 — 0 이면 예전처럼 카메라는 그대로 */
+  function CITY_ZOOM() { return C().tuned('realm3d.cityZoom', 1) ? true : false; }
 
   /**
    * 그래픽 품질 3단(SAGA-DESIGN §8 성능 상한, PLAN §7-2 "성능 상한") — 이 판은
@@ -1018,6 +1020,7 @@
       var score = focus ? Math.hypot(cd.x - focus.x, cd.y - focus.y) : 0;
       if (key) { score -= 25; }
       if (cs.force === st.me) { score -= 10; }
+      if (opt.pin === cd.id) { score -= 1000; }       // ⑤ 방금 누른 성의 태수는 반드시 선다
       out.push({
         kind: 'governor', id: 'gov:' + cd.id, city: cd.id, force: cs.force, officer: cs.gov,
         mine: cs.force === st.me, x: gx, y: gy, order: key, emoji: info ? info.emoji : null,
@@ -1212,6 +1215,30 @@
     delete actorCache[id];
   }
 
+  /** ⑤ 순수 함수 — 성을 눌렀을 때 카메라가 갈 곳(세계 좌표 x·z, 거리, 기울기). 태수가 있으면
+   *  성문 앞 태수 자리, 없으면 성 한가운데. 가깝게(ZOOM_DIST) 낮게(ZOOM_PITCH) 다가가
+   *  사람 키가 읽히게 한다. 없는 성이면 null */
+  var ZOOM_DIST = 105, ZOOM_PITCH = 0.62;
+  function zoomFor(cityId, st) {
+    var cd = cityData().find(cityId);
+    if (!cd) { return null; }
+    var mx = cd.x, my = cd.y;
+    var g = st ? governorPlan(st, { pin: cityId, orders: {} }).filter(function (a) { return a.city === cityId; })[0] : null;
+    if (g) { mx = g.x; my = g.y; }
+    return { x: clampPan(worldX(mx)), z: clampPan(worldZ(my)),
+             dist: clamp(ZOOM_DIST, DIST_MIN(), DIST_MAX()), pitch: clamp(ZOOM_PITCH, PITCH_MIN(), PITCH_MAX()) };
+  }
+  var pinCity = null;               // 방금 누른 성(태수 자리를 보장한다)
+  function zoomToCity(cityId) {
+    if (!CITY_ZOOM() || !ACTORS_ON()) { return; }
+    var st = R() && R().state ? R().state() : null;
+    var z = zoomFor(cityId, st);
+    if (!z) { return; }
+    pinCity = cityId;
+    targetPivotX = z.x; targetPivotZ = z.z; targetDist = z.dist; targetPitch = z.pitch;
+    if (st) { syncActors(st); }
+  }
+
   /** 카메라 궤도 중심(세계 좌표) → 지도 좌표 — 태수는 가까운 성부터 뽑는다 */
   function focusMap() { return { x: pivotX / WORLD_SCALE() + 50, y: pivotZ / WORLD_SCALE() + 50 }; }
   var lastSyncX = 0, lastSyncZ = 0;
@@ -1220,7 +1247,7 @@
   /** `rebuild()` 끝에서 — 목록대로 배우를 두고, 원정이 한 달 나아갔으면 걷기를 건다 */
   function syncActors(st) {
     if (!actorGrp || !three()) { return; }
-    var plan = actorPlan(st, { focus: focusMap() }), seen = {}, i, id;
+    var plan = actorPlan(st, { focus: focusMap(), pin: pinCity }), seen = {}, i, id;
     lastSyncX = pivotX; lastSyncZ = pivotZ;
     for (i = 0; i < plan.length; i++) {
       var a = plan[i], c = actorCache[a.id];
@@ -1648,7 +1675,7 @@
       if (p && !dragMoved && pointerCount() === 0) {
         var hit = pickHit(e.clientX, e.clientY);
         if (hit && hit.campId && global.DG.ui) { global.DG.ui.openSheet('camp'); }
-        else if (hit && hit.cityId && global.DG.ui) { global.DG.ui.openCity(hit.cityId); }
+        else if (hit && hit.cityId && global.DG.ui) { zoomToCity(hit.cityId); global.DG.ui.openCity(hit.cityId); }
       }
     }
     canvas.addEventListener('pointerup', endPointer);
@@ -1742,6 +1769,7 @@
     ORDER_GESTURES: ORDER_GESTURES,
     battleBeat: battleBeat,
     wanderPos: wanderPos,
+    zoomFor: zoomFor,
     WANDER_MAX: WANDER_MAX,
     BATTLE_MAX: BATTLE_MAX,
     panBy: panBy,
