@@ -23,6 +23,7 @@ extends Node
 ## [53] 나그네 → 제단 지키기, 멀면 물결이 안 나옴 [54] 가까이 오면 첫 물결 셋, 무리가 제단으로 가서 친다 [55] 시간이 지나면·다 잡으면 다음 물결
 ## [56] 제단이 무너지면 처음부터(쉬는 틈) → 세 물결 다 잡으면 금 간 검은 가면(가면에 금·물·위 보스 막대) [57] 밀물 원 넷이 나를 향해 줄지어·2단계 물 방패+졸개 둘
 ## [58] 나그네 → 제단 [59] 제단 [60] 사공 [61] 촌장 → 7장 끝·다 끝남·✔ 제7장.
+## 106장 ㉟ 이야기 동료 둘 더: ㊽ 6장 끝에 촌장·[61] 7장 끝에 사공이 명단에(이미 지난 장이면 불러올 때 조용히).
 ## 106장 ㉛ 이야기 동료: ⑫ 2장 끝에 학자 은비·㊴ 5장 끝에 나그네가 명단에(이미 지난 장이면 불러올 때 조용히).
 ## 106장 ㉙ 대화 몸짓: ㊾ 글자 흘리기·입 모양(한글 모음 → 입 다섯)·말하는 동안 오른손이 앞·위로·F 한 번이면 줄 전체·끝나면 손·입 제자리·표정·눈 깜박임.
 ## 저장은 안 한다(부대 경험·이야기 상태는 메모리에서만 바꾸고 끝에 되돌린다).
@@ -748,8 +749,8 @@ func _physics_process(_delta: float) -> void:
 			_sq.call("toggle_journal")
 			## 6장 보상 경험으로 모험 등급 18 이 돼 7장이 바로 열린다.
 			var ok: bool = int(_sq.call("ch")) == 6 and String(_sq.call("tracker_text")).contains("제7장") and jt.contains("✔ 제6장") \
-				and PartyState.count("fate_knot") == int(_v) + 4
-			_check("chapter6", ok, "ch=%d knots %d→%d tracker='%s'" % [_sq.call("ch"), _v, PartyState.count("fate_knot"), String(_sq.call("tracker_text")).replace("\n", " / ")])
+				and PartyState.count("fate_knot") == int(_v) + 4 and PartyState.members.count("story_elder") == 1
+			_check("chapter6", ok, "ch=%d knots %d→%d elder=%s tracker='%s'" % [_sq.call("ch"), _v, PartyState.count("fate_knot"), PartyState.members.has("story_elder"), String(_sq.call("tracker_text")).replace("\n", " / ")])
 			_next()
 		49: # [49] 7장 풀림·곶 자리
 			if _frame == 1:
@@ -928,8 +929,13 @@ func _physics_process(_delta: float) -> void:
 			_sq.call("toggle_journal")
 			var bonus := (PartyState.level + 1) / 5 - int(_v.ar) / 5
 			var ok: bool = int(_sq.call("ch")) == 7 and _sq.call("tracker_text") == "" and _sq.call("target_pos") == Vector3.INF and jt.contains("✔ 제7장") \
-				and PartyState.count("fate_knot") == int(_v.knots) + 4 + bonus
-			_check("chapter7", ok, "ch=%d knots %d→%d (ar %d→%d, +%d) tracker='%s'" % [_sq.call("ch"), _v.knots, PartyState.count("fate_knot"), _v.ar, PartyState.level + 1, bonus, _sq.call("tracker_text")])
+				and PartyState.count("fate_knot") == int(_v.knots) + 4 + bonus and PartyState.members.count("story_ferryman") == 1
+			## 이 기능 전에 6·7장을 끝낸 세이브 — 둘 다 빼고 불러올 때처럼 _join_past.
+			PartyState.members.erase("story_elder")
+			PartyState.members.erase("story_ferryman")
+			_sq.call("_join_past")
+			var past := PartyState.members.count("story_elder") == 1 and PartyState.members.count("story_ferryman") == 1
+			_check("chapter7", ok and past, "ch=%d knots %d→%d (ar %d→%d, +%d) ferryman=%s past=%s tracker='%s'" % [_sq.call("ch"), _v.knots, PartyState.count("fate_knot"), _v.ar, PartyState.level + 1, bonus, PartyState.members.has("story_ferryman"), past, _sq.call("tracker_text")])
 			_next()
 		62: # ㊾ 대화 몸짓 — 다 끝난 뒤 촌장 혼잣말로
 			var face: Node = _sq.call("face_of", "elder")

@@ -189,6 +189,10 @@ var _haste_t := 0.0
 var _lore_t := 0.0
 var _lore_mul := 1.0
 var _marks: Dictionary = {}
+## 106장 ㉟ 뱃노래(사공 버들 폭발) — 남은 초·다음 따라 치기까지·수치 {every, count, reach, bolt, base, el, owner}.
+var _rain_t := 0.0
+var _rain_cd := 0.0
+var _rain: Dictionary = {}
 ## 106장 ⑭ 명단 전체 보호막(결정·암 폭발). 원소는 표시용.
 var shield_hp := 0.0
 var shield_element := ""
@@ -414,6 +418,8 @@ func _physics_process(delta: float) -> void:
 	_guard_t = maxf(_guard_t - delta, 0.0)
 	_haste_t = maxf(_haste_t - delta, 0.0)
 	_lore_t = maxf(_lore_t - delta, 0.0)
+	_rain_t = maxf(_rain_t - delta, 0.0)
+	_rain_cd = maxf(_rain_cd - delta, 0.0)
 	for k in _marks.keys():
 		_marks[k].left = float(_marks[k].left) - delta
 		if float(_marks[k].left) <= 0.0:
@@ -486,6 +492,7 @@ func attack() -> bool:
 	_crit_id = ""
 	if hits > 0:
 		_gain_energy(ENERGY_PER_HIT * hits)
+		_rain_follow()
 	return true
 
 ## 강공격 — 기본 공격 단추를 CHARGE_SEC 넘게 누르고 있으면. 앞쪽 넓게 한 번, 스태미나를 쓴다.
@@ -505,6 +512,7 @@ func charged_attack() -> bool:
 	_heavy = false
 	if hits > 0:
 		_gain_energy(ENERGY_PER_HIT * hits)
+		_rain_follow()
 	return true
 
 ## 낙하 공격이 땅에 닿았을 때 go_player.gd 가 부른다 — 높이 떨어질수록 세다.
@@ -526,6 +534,7 @@ func plunge_land(fell_m: float) -> int:
 	_heavy = false
 	if hits > 0:
 		_gain_energy(ENERGY_PER_HIT * hits)
+		_rain_follow()
 	return hits
 
 ## 기본 공격·강공격·낙하 공격 한 방의 바탕 — 지금 인물 공격 × 기본 공격 특성(× 원소 부여 배율, 106장 ㉔).
@@ -722,6 +731,36 @@ func _kit_skill(id: String, kit: Dictionary, atk: float, el: String) -> int:
 			if not tgt.is_empty():
 				_marks[(tgt[0] as Node).get_instance_id()] = {"left": float(kit.mark_sec), "mul": float(kit.mark_mul)}
 				_reaction_text(tgt[0] as Node3D, "표식", Color(0.85, 0.9, 1.0))
+		"gust":
+			## 106장 ㉟ 부채 바람 — 앞 부채꼴을 치고 밀어낸다(회복은 _kit_extras heal).
+			_aim_at_nearest()
+			var fwd_g: Vector3 = _player.call("facing")
+			_ring_fx(pos + fwd_g * float(kit.reach) * 0.5, float(kit.reach) * 0.5, col, 0.4)
+			for e in _enemies_near(pos, float(kit.reach) + 0.5):
+				var to_g: Vector3 = (e as Node3D).global_position - pos
+				to_g.y = 0.0
+				if to_g.length() > 0.3 and fwd_g.dot(to_g.normalized()) < float(kit.arc):
+					continue
+				_deal(e, atk * float(kit.mul), el, to_g)
+				e.call("knockback", to_g if to_g.length() > 0.3 else fwd_g, float(kit.push))
+				hits += 1
+		"wave":
+			## 106장 ㉟ 노 물결 — 앞으로 곧게, 길 위 적을 앞으로 밀어낸다(나는 제자리).
+			_aim_at_nearest()
+			var fwd_w: Vector3 = _player.call("facing")
+			var ln := float(kit.length)
+			var wd := float(kit.width)
+			for i in 3:
+				_ring_fx(pos + fwd_w * ln * (0.25 + 0.3 * i), wd, col, 0.3 + 0.1 * i)
+			for e in _enemies_near(pos + fwd_w * ln * 0.5, ln * 0.5 + wd):
+				var rel_w: Vector3 = (e as Node3D).global_position - pos
+				rel_w.y = 0.0
+				var along_w := clampf(rel_w.dot(fwd_w), 0.0, ln)
+				if (rel_w - fwd_w * along_w).length() > wd:
+					continue
+				_deal(e, atk * float(kit.mul), el, fwd_w)
+				e.call("knockback", fwd_w, float(kit.push))
+				hits += 1
 		"updraft":
 			_ring_fx(pos, float(kit.radius), col, 0.45)
 			for e in _enemies_near(pos, float(kit.radius)):
@@ -775,6 +814,13 @@ func _kit_burst(id: String, kb: Dictionary, atk: float, el: String) -> void:
 			for e in marked:
 				_effects.append({"kind": "kit_echo", "target": e, "center": center, "left": float(kb.tick) * float(kb.hits) + 0.01,
 					"tick": float(kb.tick), "t": float(kb.tick), "base": atk, "mul": float(kb.echo_mul), "el": el, "owner": id})
+		"feast":
+			_effects.append({"kind": "kit_feast", "center": center, "left": sec, "tick": float(kb.tick), "t": float(kb.tick), "base": atk,
+				"radius": radius, "heal": float(kb.heal), "bolt": float(kb.bolt), "el": el, "owner": id})
+		"rain":
+			_rain_t = sec
+			_rain_cd = 0.0
+			_rain = {"every": float(kb.every), "count": int(kb.count), "reach": float(kb.reach), "bolt": float(kb.bolt), "base": atk, "el": el, "owner": id}
 		"vortex":
 			var at: Vector3 = center + (_player.call("facing") as Vector3) * float(kb.ahead)
 			_ring_fx(at, radius, Elements.color_of(el), 0.5)
@@ -809,7 +855,26 @@ func buff_text() -> String:
 		parts.append("반응 +%d%% %d초" % [roundi((_lore_mul - 1.0) * 100.0), ceili(_lore_t)])
 	if not _marks.is_empty():
 		parts.append("표식 %d" % _marks.size())
+	if _rain_t > 0.0:
+		parts.append("뱃노래 %d초" % ceili(_rain_t))
 	return " · ".join(parts)
+
+## 106장 ㉟ 뱃노래 — 기본·강·낙하 공격이 맞은 뒤 부른다. 켜져 있고 쉬는 틈이 지났으면 가까운 적 몇에 물 노(버들 치명타로).
+## 따라 친 적 수.
+func _rain_follow() -> int:
+	if _rain_t <= 0.0 or _rain_cd > 0.0:
+		return 0
+	_rain_cd = float(_rain.every)
+	var was := _crit_id
+	_crit_id = String(_rain.owner)
+	var n := 0
+	for e in _nearest(_player.global_position, float(_rain.reach), int(_rain.count)):
+		var ep: Vector3 = (e as Node3D).global_position
+		_shot_fx(ep, Elements.color_of(String(_rain.el)))
+		_deal(e, float(_rain.base) * float(_rain.bolt), String(_rain.el), ep - _player.global_position)
+		n += 1
+	_crit_id = was
+	return n
 
 ## 표식(그림자 걸음)이 남은 적인가.
 func is_marked(enemy: Node) -> bool:
@@ -886,6 +951,15 @@ func _tick_effects(delta: float) -> void:
 					var ep: Vector3 = (tg as Node3D).global_position
 					_ring_fx(ep, 1.2, Elements.color_of(String(fx.el)), 0.2)
 					_deal(tg, fx.base * float(fx.mul), String(fx.el), ep - _player.global_position)
+			"kit_feast":
+				## 106장 ㉟ 잔칫날 순풍 — 안에 선 지금 인물 회복, 안의 적 원소 피해.
+				_ring_fx(fx.center, float(fx.radius), Elements.color_of(String(fx.el)), 0.3)
+				var to_me: Vector3 = _player.global_position - fx.center
+				to_me.y = 0.0
+				if to_me.length() <= float(fx.radius):
+					heal_member(active_id(), float(fx.heal))
+				for e in _enemies_near(fx.center, float(fx.radius)):
+					_deal(e, fx.base * float(fx.bolt), String(fx.el), (e as Node3D).global_position - fx.center)
 			"kit_vortex":
 				_ring_fx(fx.center, float(fx.radius), Elements.color_of(String(fx.el)), 0.3)
 				for e in _enemies_near(fx.center, float(fx.radius)):

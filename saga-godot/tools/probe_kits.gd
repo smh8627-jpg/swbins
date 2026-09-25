@@ -14,6 +14,8 @@ extends Node
 ## 106장 ㉛ 이야기 동료: ⑲ 표 — 원소·무기·이름·희귀도가 story.gd MEMBERS 대로 ⑳ 나그네 E 그림자 걸음 — 가까운 적 뒤로·표식·표식 난 적 피해 ×1.25
 ## ㉑ 나그네 Q 가면 벗기 — 표식 난 적에만 메아리 셋 ㉒ 학자 E 비문(초 부착)·Q 옛 글자 풀이 — 반응 ×1.4·상태 줄
 ## ㉓ 편성(106장 ㉛·㉝) — 꽉 찬 명단에 넣으면 마지막 자리와 바뀜 · 빼면 자리가 비고 명단이 줄어듦 · 빈자리에 새 동료가 저절로 · 앞 자리로 · 나는 못 뺌.
+## 106장 ㉟: ㉔ 촌장 E 부채 바람 — 앞 적만 치고 밀어냄·명단 모두 6% 회복 · Q 잔칫날 순풍 — 안에 서 있으면 1초마다 5% 회복·안의 적 풍
+## ㉕ 사공 E 노 물결 — 길 위 적만·앞으로 밀어냄 · Q 뱃노래 — 기본 공격이 맞으면 물 노가 따라 침(1초 쉼)·상태 줄.
 ## 저장은 안 한다(명단은 끝에 되돌린다).
 
 const Kits := preload("res://games/saga_go/data/kits.gd")
@@ -59,7 +61,7 @@ func _physics_process(_delta: float) -> void:
 				_next()
 		1: # ① 표
 			var sage := _hero("wisdom", "fire")
-			var ok: bool = Kits.KITS.size() == 7 and is_equal_approx(float(_fc.call("skill_cd_of", "self")), 6.0) \
+			var ok: bool = Kits.KITS.size() == 9 and is_equal_approx(float(_fc.call("skill_cd_of", "self")), 6.0) \
 				and is_equal_approx(float(_fc.call("skill_cd_of", "sg_zhugeliang")), 12.0) \
 				and Kits.name_of(sage, "skill", "fire") == "불꽃 부채" and Kits.name_of("self", "burst", "fire") == "불새 깃"
 			for id in Kits.KITS:
@@ -321,7 +323,7 @@ func _physics_process(_delta: float) -> void:
 			for c in Story.CHAPTERS:
 				if Story.MEMBERS.has(String(c.get("join", ""))):
 					joins += 1
-			_check("story_members", ok and joins == 2, "members=%d joins=%d wanderer=%s/%s" % [Story.MEMBERS.size(), joins, Elements.element_of("story_wanderer"), Weapons.type_of("story_wanderer")])
+			_check("story_members", ok and joins == 4, "members=%d joins=%d wanderer=%s/%s" % [Story.MEMBERS.size(), joins, Elements.element_of("story_wanderer"), Weapons.type_of("story_wanderer")])
 			_next()
 		20: # ⑳ 나그네 E 그림자 걸음 — 가까운 적(허수아비 a) 뒤로, 표식
 			if _frame == 1:
@@ -392,7 +394,69 @@ func _physics_process(_delta: float) -> void:
 			_check("formation", ok, "roster %s → %s → 빼기 %s → 합류 %s → 앞으로 %s" % [r0, r1, r2, r3, r4])
 			PartyState.party_size = PartyState.PARTY_MAX
 			_next()
-		24:
+		24: # ㉔ 촌장 E 부채 바람 · Q 잔칫날 순풍
+			var eid := "story_elder"
+			if _frame == 1:
+				PartyState.members.assign([eid])
+				_use(1)
+				_fc.call("revive_all")
+				_put(_a.global_position + Vector3(0.0, 0.3, 2.5))
+			if _frame == 5:
+				var hps: Dictionary = _fc.get("_hp")
+				hps["self"] = float(_fc.call("max_hp_of", "self")) * 0.5
+				hps[eid] = float(_fc.call("max_hp_of", eid)) * 0.5
+				_a.set("_knock", Vector3.ZERO)
+				_v = {"a": float(_a.get("hp")), "b": float(_b.get("hp")), "skill": bool(_fc.call("skill"))}
+				_v.self_gain = float(_fc.call("hp_of", "self")) / float(_fc.call("max_hp_of", "self")) - 0.5
+				_v.knock = (_a.get("_knock") as Vector3)
+				_v.away = (_v.knock as Vector3).normalized().dot(Vector3(0.0, 0.0, -1.0)) # 나(남쪽) → a(북쪽) 방향으로 밀림
+				_v.a1 = float(_a.get("hp"))
+				_v.b_same = is_equal_approx(float(_b.get("hp")), float(_v.b)) # 부채꼴 밖(폭발 전에 잰다)
+				_fc.get("_energy")[eid] = 100.0
+				_v.burst = bool(_fc.call("burst"))
+				_v.feast = _kinds().count("kit_feast")
+				hps[eid] = float(_fc.call("max_hp_of", eid)) * 0.5
+				_v.a2 = float(_a.get("hp"))
+			if _frame == 140: # 1초마다 — 두 번은 돈다
+				var gain := float(_fc.call("hp_of", eid)) / float(_fc.call("max_hp_of", eid)) - 0.5
+				var ok: bool = bool(_v.skill) and float(_v.a1) < float(_v.a) and bool(_v.b_same) and absf(float(_v.self_gain) - 0.06) < 0.005 \
+					and float(_v.away) > 0.9 and bool(_v.burst) and int(_v.feast) == 1 and gain >= 0.099 and float(_a.get("hp")) < float(_v.a2)
+				_check("elder_heal", ok, "a %.0f→%.0f b same=%s self +%.3f push·dot=%.2f feast=%d elder +%.3f a %.0f→%.0f" % [_v.a, _v.a1, _v.b_same, _v.self_gain, _v.away, _v.feast, gain, _v.a2, _a.get("hp")])
+				(_fc.get("_effects") as Array).clear()
+				_next()
+		25: # ㉕ 사공 E 노 물결 · Q 뱃노래
+			var fid := "story_ferryman"
+			if _frame == 1:
+				PartyState.members.assign([fid])
+				_use(1)
+				_put(_a.global_position + Vector3(0.0, 0.3, 4.0))
+			if _frame == 5:
+				_a.set("_knock", Vector3.ZERO)
+				_a.call("set_aura", "")
+				_v = {"a": float(_a.get("hp")), "b": float(_b.get("hp")), "skill": bool(_fc.call("skill"))}
+				_v.fwd = (_a.get("_knock") as Vector3).normalized().dot(Vector3(0.0, 0.0, -1.0))
+				_v.aura = String(_a.get("aura"))
+				_v.a1 = float(_a.get("hp"))
+				_fc.get("_energy")[fid] = 100.0
+				_v.burst = bool(_fc.call("burst"))
+				_v.bt = String(_fc.call("buff_text"))
+				_put(_a.global_position + Vector3(0.0, 0.3, 1.5))
+			if _frame == 12:
+				_fc.set("_attack_t", 0.0)
+				_fc.set("_rain_cd", 0.0)
+				_v.a2 = float(_a.get("hp"))
+				_v.hit = bool(_fc.call("attack"))
+				_v.cd = float(_fc.get("_rain_cd"))
+				_v.again = int(_fc.call("_rain_follow")) # 쉬는 틈 — 안 나감
+				_fc.set("_rain_cd", 0.0)
+				_v.follow = int(_fc.call("_rain_follow")) # a·b 둘 다 8m 안
+				var ok: bool = bool(_v.skill) and float(_v.a1) < float(_v.a) and float(_v.fwd) > 0.9 and String(_v.aura) == "water" and bool(_v.burst) \
+					and absf(float(_fc.get("_rain_t")) - 15.0) < 0.3 and String(_v.bt).contains("뱃노래") and bool(_v.hit) and float(_v.cd) > 0.9 \
+					and int(_v.again) == 0 and int(_v.follow) == 2 and float(_a.get("hp")) < float(_v.a2)
+				_check("ferryman_rain", ok, "a %.0f→%.0f push·dot=%.2f aura=%s rain=%.1f buff='%s' hit=%s cd=%.2f again=%d follow=%d" % [_v.a, _v.a1, _v.fwd, _v.aura, _fc.get("_rain_t"), _v.bt, _v.hit, _v.cd, _v.again, _v.follow])
+				_fc.set("_rain_t", 0.0)
+				_next()
+		26:
 			PartyState.members.assign(_members_before)
 			print("KIT_PROBE_DONE fails=%d" % _fails)
 			get_tree().quit()
