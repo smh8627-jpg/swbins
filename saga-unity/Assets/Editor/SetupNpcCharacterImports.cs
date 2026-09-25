@@ -74,7 +74,30 @@ namespace Saga.EditorTools
             new Spec { Name = "ExoGray", Idle = "Idle", Walk = "Walking" },
             new Spec { Name = "Vanguard", Idle = "Idle", Walk = "Walking" },
             new Spec { Name = "Crypto", Idle = "Idle", Walk = "Walking" },
+            // PLAN.md 109-2 DUNGEON 세 시대(2026-09-25) — 전투 방 잡졸의 층 단계별 현대·미래 몸(GasMask·ExoRed 는 위 GO 몫을 같이 쓴다):
+            // 폭주 청년 Brian·시험 기동 인형 X Bot·진압 특공대 Swat·강철 인형 병정 Y Bot·암흑가 해결사 The Boss·별 너머 방문자 Zlorp
+            // (Prisoner B Styperek·Survivor A Lusth 는 휴머노이드 자동 매핑이 "RightLowerArm 없음"으로 실패해 바꿨다).
+            new Spec { Name = "Brian", Idle = "Idle", Walk = "Walking", Attack = "Attack", Hit = "HitReaction", Death = "Dying" },
+            new Spec { Name = "XBot", Idle = "Idle", Walk = "Walking", Attack = "Attack", Hit = "HitReaction", Death = "Dying" },
+            new Spec { Name = "Swat", Idle = "Idle", Walk = "Walking", Attack = "Attack", Hit = "HitReaction", Death = "Dying" },
+            new Spec { Name = "YBot", Idle = "Idle", Walk = "Walking", Attack = "Attack", Hit = "HitReaction", Death = "Dying" },
+            new Spec { Name = "Boss", Idle = "Idle", Walk = "Walking", Attack = "Attack", Hit = "HitReaction", Death = "Dying" },
+            new Spec { Name = "Zlorp", Idle = "Idle", Walk = "Walking", Attack = "Attack", Hit = "HitReaction", Death = "Dying" },
+            // 행상 — 고물 행상 Leonard · 시간 행상 Astra(서기만).
+            new Spec { Name = "Leonard", Idle = "Idle" },
+            new Spec { Name = "Astra", Idle = "Idle" },
         };
+
+        private static readonly string[] DungeonEraBodies = { "Brian", "XBot", "Swat", "YBot", "Boss", "Zlorp", "Leonard", "Astra" };
+
+        /// <summary>109-2 DUNGEON 세 시대 몸만 굽는다(배치 `-executeMethod` 용).</summary>
+        public static void SetupDungeonEraBodies()
+        {
+            var built = new List<string>();
+            foreach (var name in DungeonEraBodies) built.Add($"{name}={SetupOne(name)}");
+            AssetDatabase.SaveAssets();
+            Debug.Log($"[SetupNpcCharacterImports] dungeon era bodies {string.Join(" ", built)}");
+        }
 
         private static readonly string[] EraBodies = { "GasMask", "Copzombie", "ExoRed", "Remy", "Megan", "SwatGuy", "ExoGray", "Vanguard", "Crypto" };
 

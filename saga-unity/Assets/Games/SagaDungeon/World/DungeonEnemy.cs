@@ -67,6 +67,15 @@ namespace Saga.Dungeon.World
             ["기계화 정찰병"] = "enemy.elite_fusion", // 101-2 5.7 "시대 퓨전" — 깊은 층 정예 변종.
             ["능묘 파수꾼"] = "enemy.temple_warden", // PLAN.md 106-2 "잊힌 능묘" 잡졸.
             ["능묘지기"] = "enemy.temple_guardian", // PLAN.md 106-2 "잊힌 능묘" 보스.
+            // PLAN.md 109-2 세 시대 잡졸(DungeonEras.Foes 와 같은 이름)
+            ["폭주 청년"] = "enemy.era_rioter",
+            ["시험 기동 인형"] = "enemy.era_testbot",
+            ["방역복 추적자"] = "enemy.era_hazmat",
+            ["경비 보행병"] = "enemy.era_sentry",
+            ["진압 특공대"] = "enemy.era_swat",
+            ["강철 인형 병정"] = "enemy.era_steelbot",
+            ["암흑가 해결사"] = "enemy.era_enforcer",
+            ["별 너머 방문자"] = "enemy.era_visitor",
         };
 
         // PLAN.md 106-2 "잊힌 능묘" 보스 — 갑주를 입은 동안 칼은 15%만 들어가고,

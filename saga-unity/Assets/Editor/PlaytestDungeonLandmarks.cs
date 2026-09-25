@@ -135,7 +135,14 @@ namespace Saga.EditorTools
         {
             runner.JumpToFloor(6);
             if (runner.CurrentLandmark != -1 || runner.LandmarkHud != "" || runner.RoomTotal != DungeonFormulas.RoomsFor(6)) Fail("6층이 명소처럼 굴음");
-            foreach (var e in RoomEnemies(runner)) if (e.DisplayNameRaw != "황건적") Fail($"보통 층 잡졸 {e.DisplayNameRaw}");
+            // 109-2 — 보통 층 잡졸은 해시대로 황건적이거나 그 단계의 현대·미래 적
+            int gi = 0;
+            foreach (var e in RoomEnemies(runner))
+            {
+                var era = DungeonEras.GruntEra(6, runner.RoomIndex, gi++);
+                string want = era == DungeonEra.Past ? "황건적" : DungeonEras.FoeFor(6, era).NameKo;
+                if (e.DisplayNameRaw != want) Fail($"보통 층 잡졸 {e.DisplayNameRaw} ≠ {want}");
+            }
             KillRoom(runner);
             Tick(runner);
             int n = 0;

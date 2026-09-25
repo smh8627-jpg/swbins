@@ -327,6 +327,7 @@ namespace Saga.EditorTools
             BuildCorridorAndTown2();
             BuildCorridorAndTown3();
             BuildCorridorAndTown4();
+            BuildEraFolk(); // PLAN.md 109-2 — 마을·갈림길 시대 손님(마을 넷을 다 지은 뒤)
             BuildShortcutCrossroads();
             BuildShortcutCrossroads2();
             BuildCorridorAndRoom2();
@@ -1029,6 +1030,46 @@ namespace Saga.EditorTools
             SetPrivateField(runner, "lordScaleMul", ScaleMulTo(_characterC, _demon));
             SetPrivateField(runner, "fusionEliteModel", _alienSoldier);
             SetPrivateField(runner, "fusionEliteScaleMul", ScaleMulTo(_characterD, _alienSoldier));
+            // PLAN.md 109-2 세 시대 — 전투 방 잡졸의 현대·미래 몸 여덟(키는 잡졸 몸에 맞춘다)·행상 몸 둘. 없는 PC 는 null → 옛 몸.
+            var eraNames = Saga.Dungeon.Data.DungeonEras.FoeBodies();
+            var eraModels = new GameObject[eraNames.Length];
+            var eraMuls = new float[eraNames.Length];
+            for (int i = 0; i < eraNames.Length; i++)
+            {
+                eraModels[i] = AssetDatabase.LoadAssetAtPath<GameObject>(SetupNpcCharacterImports.PrefabPath(eraNames[i]));
+                eraMuls[i] = ScaleMulTo(_characterD, eraModels[i]);
+                if (eraModels[i] == null) Debug.LogWarning($"[BuildTestDungeonScene] 시대 잡졸 몸 {eraNames[i]} 없음 — 잡졸 몸으로 폴백");
+            }
+            SetPrivateField(runner, "eraFoeNames", eraNames);
+            SetPrivateField(runner, "eraFoeModels", eraModels);
+            SetPrivateField(runner, "eraFoeScaleMuls", eraMuls);
+            SetPrivateField(runner, "modernPeddlerModel", AssetDatabase.LoadAssetAtPath<GameObject>(SetupNpcCharacterImports.PrefabPath(Saga.Dungeon.Data.DungeonEras.ModernPeddlerBody)));
+            SetPrivateField(runner, "futurePeddlerModel", AssetDatabase.LoadAssetAtPath<GameObject>(SetupNpcCharacterImports.PrefabPath(Saga.Dungeon.Data.DungeonEras.FuturePeddlerBody)));
+        }
+
+        /// <summary>PLAN.md 109-2 — 마을 셋·갈림길의 시대 손님 자리(`DungeonEras.FolkList` 순). 문·행상·등롱·궤짝·촌민과 안 겹친다.</summary>
+        internal static readonly Vector3[] EraFolkSpots =
+        {
+            Town2Center + new Vector3(5f, 0f, 5f),
+            Town3Center + new Vector3(-5f, 0f, 0f),
+            Town4Center + new Vector3(5f, 0f, 0f),
+            CrossroadsCenter + new Vector3(3f, 0f, 3f),
+        };
+
+        private static void BuildEraFolk()
+        {
+            var list = Saga.Dungeon.Data.DungeonEras.FolkList;
+            for (int i = 0; i < list.Length && i < EraFolkSpots.Length; i++)
+            {
+                var go = new GameObject("EraFolk_" + list[i].Id);
+                go.transform.position = EraFolkSpots[i];
+                // 방 가운데 쪽을 본다(Mixamo 는 +z 를 본다).
+                Vector3 toCenter = -new Vector3(EraFolkSpots[i].x - Mathf.Round(EraFolkSpots[i].x / 30f) * 30f, 0f, EraFolkSpots[i].z - Mathf.Round(EraFolkSpots[i].z / 30f) * 30f);
+                if (toCenter.sqrMagnitude > 0.01f) go.transform.rotation = Quaternion.LookRotation(toCenter);
+                var folk = go.AddComponent<EraFolk>();
+                folk.Init(i, AssetDatabase.LoadAssetAtPath<GameObject>(SetupNpcCharacterImports.PrefabPath(list[i].Body)));
+                folk.BuildVisual();
+            }
         }
 
         /// <summary>새 몸을 옛 몸 키에 맞추는 배율(둘 다 리깅 모델이어야 실제 키로 잰다 — 아니면 1).</summary>

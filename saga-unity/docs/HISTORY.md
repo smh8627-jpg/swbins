@@ -9091,3 +9091,16 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - 함정 둘: ① 허리 천 단면을 살 전체로 재면 A 자세 손이 엉덩이 높이라 손까지 둘렀다(고블린 폭 ±0.48m) → 몸통·다리 가중치 정점만. ② MPFB 재질은 같은 그림을 두 노드가 읽어, 색 입힐 때 한쪽만 바꾸니 원본 그림도 FBX 에 딸려 가 Unity 에 꺼내졌다 → 둘 다 바꿈(FBX 12.8→9.7MB·13.6→9.9MB).
 - 정직한 예상: 사람 몸 비틀기라 Mixamo 의 조각한 괴물보다 못할 수 있다. 지금 Brute 는 바지·신·머리·수염이 있고 공방 두목은 허리 천뿐. 떠 있는 괴물(Nightshade)·짐승형(Warrok·Parasite)은 아직.
 - 같은 시각 다른 세션이 DUNGEON 을 고치는 중 — 그 파일은 안 건드림. 사람 몫: HOW_TO_PLAYTEST §9(짝 셋).
+
+## 2026-09-25 DUNGEON — PLAN 109-2a 세 시대 잡졸·마을 손님·행상 (웹 사가블로 §5.20 재해석)
+
+"이어해" → 109장 2번. 쪼갬: **2a 잡졸·손님·행상(이번)** / 2b 명소 층·마을 꾸밈 시대 층(다음). 웹 쪽 근거는 같은 날 새로 생긴 사가블로 §5.20.
+
+- **잡졸**(`Data/DungeonEras.cs`·`DungeonFloorRunner.SpawnGrunt(offset, slot)`): 절차 층 **전투 방 잡졸 넷만** FNV(층:방:자리) % 100 — 60 미만 황건적, 80 미만 현대, 나머지 미래. 층 난수 `_rng` 는 안 건드려 문 순서·방 종류가 예전 그대로(웹 "공유 수열 안 밂"). 명소 층 잡졸·정예/두목 호위·살수·두목·층 주인은 그대로. 체력·공격·보상은 잡졸 공식 그대로, 몸·이름·키만. 층 단계 넷(2~9·10~24·25~49·50~) × 현대·미래: 폭주 청년 Brian·시험 기동 인형 X Bot / 방역복 추적자 Gas Mask·경비 보행병 Exo Red(GO 몸 같이 씀) / 진압 특공대 Swat·강철 인형 병정 Y Bot / 암흑가 해결사 The Boss·별 너머 방문자 Zlorp. 옛 적·두목·NPC 몸(Alien Soldier 정찰병 포함)과 안 겹친다. 도감 키가 표시 이름이라 새 도감 칸 여덟. 몫 실측 41%(층 2~100 × 방 8 × 넷).
+- **몸 받기**: Mixamo 헤드리스로 여덟 벌. **Prisoner B Styperek·Survivor A Lusth 는 Unity 휴머노이드 자동 매핑이 "Required human bone 'RightLowerArm' not found" 로 실패** → The Boss·Leonard 로 바꿔 다시 받았다(README 레시피 표에 적음).
+- **행상**: 같은 해시(층:방#peddler)로 몸만 — 현대 고물 행상 Leonard·미래 시간 행상 Astra. 토스트 글("행상 —")은 그대로.
+- **마을 손님**(`World/EraFolk.cs`, 씬에 굽는다): Town2 택배 기사(Megan)·Town3 시간 여행자(Crypto)·Town4 탐사 대원(Exo Gray)·갈림길 출장 온 회사원(Remy) — 현대 둘·미래 둘, 다가설 때마다 대사 넷을 돌려 말한다(볼일 없음). 자리는 행상·등롱·궤짝·촌민에서 2m 이상.
+- **진단** `PlaytestDungeonEras`(명소 층 뒤): 표(몸 여덟 서로 다름·옛 몸과 안 겹침·단계 경계)·몫(잡졸 34~46%·현대/미래 쏠림·행상)·단계×시대마다 층을 찾아 전투 방 실제 이름·몸·정예 방 호위는 옛 잡졸·행상 몸 둘·손님 넷(몸·대사 돌림·자리). `PlaytestDungeonLandmarks` 의 "보통 층 잡졸 = 황건적" 검사는 해시 기대값으로 고침. 첫 실행 한 번 실패 — 씬 고정 방에도 "Merchant" 이름이 있어 행상을 잘못 집었다 → 층 진행기 방 안에서만 찾게.
+- 막힘 둘: ① 굽기 중 다른 세션(char-forge)이 편집 중이던 `BuildCharCompareRealScene.cs` 컴파일 오류로 Editor 어셈블리가 막힘 → 손대지 않고 그 세션이 커밋(39aff13b)할 때까지 기다렸다. ② `Failed to resolve packages` 로 exit 1(알려진 일) → 재실행.
+- 검증: 몸 굽기 8/8 · 씬 재빌드 exit 0(폴백 경고 0) · `PlaytestDungeonHeadless` **3연속 OK**("잡졸 몫 41%(현대 638·미래 648)·행상 42% 시대 잡졸 20(사실 몸 20·몸 8가지) Modern 행상=Leonard Future 행상=Astra 손님 4(사실 몸 4)") · `PlaytestDungeonFloorProgression` OK. 배치가 다시 쓴 타임라인 다섯은 되돌림.
+- 실기 확인 전: 시대 잡졸 여덟 크기·타격감(사람 몸 적), 손님 대사, 행상 몸.

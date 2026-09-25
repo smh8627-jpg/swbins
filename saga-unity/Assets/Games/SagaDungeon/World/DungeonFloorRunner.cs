@@ -50,6 +50,13 @@ namespace Saga.Dungeon.World
         [SerializeField] private float lordScaleMul = 1f;
         [SerializeField] private GameObject fusionEliteModel;   // 기계화 정찰병(5.7 시대 퓨전) — Alien Soldier
         [SerializeField] private float fusionEliteScaleMul = 1f;
+        // PLAN.md 109-2 세 시대 — 전투 방 잡졸의 현대·미래 몸(`DungeonEras.FoeBodies` 이름 순, 배율 = 잡졸 키 / 새 몸 키)·행상 몸.
+        // 없는 PC 는 null → 잡졸 몸에 그 시대 이름·빛깔만.
+        [SerializeField] private string[] eraFoeNames = new string[0];
+        [SerializeField] private GameObject[] eraFoeModels = new GameObject[0];
+        [SerializeField] private float[] eraFoeScaleMuls = new float[0];
+        [SerializeField] private GameObject modernPeddlerModel;
+        [SerializeField] private GameObject futurePeddlerModel;
 
         /// <summary>층 주인 전용 몸에 명소 빛을 입히는 비율 — 여섯 주인이 한 몸이라 빛으로 가른다.</summary>
         public const float LordTintMix = 0.35f;
@@ -398,6 +405,43 @@ namespace Saga.Dungeon.World
             }
         }
 
+        /// <summary>진단 — 지금 층에 그 종류 방을 바로 짓는다(문 고르기 없이).</summary>
+        public void BuildRoomForTest(string kind) => BuildRoomContent(kind);
+
+        /// <summary>109-2 — 이 방 행상이 선 시대(진단).</summary>
+        public DungeonEra LastPeddlerEra { get; private set; }
+
+        private int EraFoeIndex(string body)
+        {
+            for (int i = 0; i < eraFoeNames.Length; i++) if (eraFoeNames[i] == body) return i;
+            return -1;
+        }
+
+        /// <summary>109-2 — 전투 방 잡졸 i 번째. 층 단계의 현대·미래 적이면 몸·이름·배율을 바꾸고 체력·공격·보상은 잡졸 그대로.</summary>
+        private GameObject SpawnGrunt(Vector3 localOffset, int fightSlot)
+        {
+            DungeonEra era = _landmark >= 0 ? DungeonEra.Past : DungeonEras.GruntEra(_floor, _roomIndex, fightSlot);
+            if (era == DungeonEra.Past) return SpawnGrunt(localOffset);
+            var foe = DungeonEras.FoeFor(_floor, era);
+            int k = EraFoeIndex(foe.Body);
+            var model = k >= 0 && k < eraFoeModels.Length ? eraFoeModels[k] : null;
+            float mul = model != null && k < eraFoeScaleMuls.Length ? eraFoeScaleMuls[k] : 1f;
+            var go = new GameObject("Enemy_Floor_EraGrunt");
+            go.SetActive(false);
+            go.transform.SetParent(_contentRoot, false);
+            go.transform.localPosition = localOffset;
+            var enemy = go.AddComponent<DungeonEnemy>();
+            enemy.SetSpawnContext(RoomId, model != null ? model : gruntModel);
+            enemy.ConfigureCombat(
+                DungeonFormulas.EnemyHp(_floor, false) * SigilState.EnemyHpMultiplier(_floor),
+                DungeonFormulas.EnemyDmg(_floor, false) * SigilState.EnemyDamageMultiplier(_floor),
+                DungeonFormulas.RewardExp(_floor, false), DungeonFormulas.RewardGold(_floor, false),
+                "wp_axe", null, false, foe.NameKo,
+                model != null ? Color.white : era == DungeonEra.Future ? EraFusionData.FusionBodyColor : new Color(0.3f, 0.34f, 0.3f), mul);
+            go.SetActive(true);
+            return go;
+        }
+
         private GameObject SpawnGrunt(Vector3 localOffset)
         {
             var go = new GameObject("Enemy_Floor_Grunt");
@@ -419,7 +463,7 @@ namespace Saga.Dungeon.World
 
         private void SpawnFight()
         {
-            foreach (var offset in GruntOffsets) SpawnGrunt(offset);
+            for (int i = 0; i < GruntOffsets.Length; i++) SpawnGrunt(GruntOffsets[i], i);
         }
 
         private void SpawnElite()
@@ -545,7 +589,10 @@ namespace Saga.Dungeon.World
             go.transform.localPosition = PoiAnchor;
             var merchant = go.AddComponent<DungeonMerchant>();
             merchant.Configure(RoomId, "wp_saber", null, 45);
-            merchant.SetModel(merchantModel);
+            // 109-2 — 행상도 약 40% 가 현대(고물 행상)·미래(시간 행상) 몸. 없는 PC 는 옛 몸.
+            LastPeddlerEra = DungeonEras.PeddlerEra(_floor, _roomIndex);
+            var peddler = LastPeddlerEra == DungeonEra.Modern ? modernPeddlerModel : LastPeddlerEra == DungeonEra.Future ? futurePeddlerModel : null;
+            merchant.SetModel(peddler != null ? peddler : merchantModel);
             go.SetActive(true);
         }
 
