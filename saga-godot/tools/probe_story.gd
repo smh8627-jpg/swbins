@@ -81,7 +81,7 @@ func _physics_process(_delta: float) -> void:
 			_sq.call("_enter_step")
 			_next()
 		1: # ① 표
-			var ok := Story.CHAPTERS.size() == 10 # 106장 ㊺ 2부 10장(따로 probe_story2.gd)
+			var ok := Story.CHAPTERS.size() == 11 # 106장 ㊺ 2부 10·11장(따로 probe_story2.gd)
 			for c in Story.CHAPTERS:
 				for s in c.steps:
 					match String(s.type):

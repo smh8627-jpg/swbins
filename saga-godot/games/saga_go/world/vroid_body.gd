@@ -190,3 +190,61 @@ static func add_crown(body: Node3D, gold: Color = Color(0.9, 0.74, 0.3)) -> void
 		sp.material_override = mat
 		sp.position = Vector3(cos(a) * 0.098, 0.05, sin(a) * 0.098)
 		crown.add_child(sp)
+
+## 106장 ㊺-3 옛 장수 투구 — 머리 뼈 위(산성지기 바우, 과거). 쇠 사발 + 챙 + 꼭대기 붉은 술. 뼈를 못 찾으면 몸 위 머리 높이.
+static func add_helmet(body: Node3D, iron: Color = Color(0.36, 0.35, 0.36), tassel: Color = Color(0.72, 0.16, 0.14)) -> void:
+	var helm := Node3D.new()
+	helm.name = "Helmet"
+	var skel := body.find_children("*", "Skeleton3D", true, false)
+	var head := -1
+	if not skel.is_empty():
+		head = (skel[0] as Skeleton3D).find_bone("J_Bip_C_Head")
+	if head >= 0:
+		var att := BoneAttachment3D.new()
+		att.bone_idx = head
+		skel[0].add_child(att)
+		att.add_child(helm)
+		helm.position = Vector3(0.0, 0.1, 0.0)
+	else:
+		body.add_child(helm)
+		helm.position = Vector3(0.0, 1.66, 0.0)
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = iron
+	mat.metallic = 0.6
+	mat.roughness = 0.45
+	var bowl := MeshInstance3D.new()
+	var sm := SphereMesh.new()
+	sm.radius = 0.14
+	sm.height = 0.16
+	sm.is_hemisphere = true
+	bowl.mesh = sm
+	bowl.material_override = mat
+	helm.add_child(bowl)
+	var brim := MeshInstance3D.new()
+	var bm := CylinderMesh.new()
+	bm.top_radius = 0.16
+	bm.bottom_radius = 0.17
+	bm.height = 0.018
+	brim.mesh = bm
+	brim.material_override = mat
+	helm.add_child(brim)
+	var spike := MeshInstance3D.new()
+	var km := CylinderMesh.new()
+	km.top_radius = 0.0
+	km.bottom_radius = 0.018
+	km.height = 0.08
+	km.radial_segments = 6
+	spike.mesh = km
+	spike.material_override = mat
+	spike.position = Vector3(0.0, 0.2, 0.0)
+	helm.add_child(spike)
+	var red := StandardMaterial3D.new()
+	red.albedo_color = tassel
+	var tuft := MeshInstance3D.new()
+	var tm := SphereMesh.new()
+	tm.radius = 0.04
+	tm.height = 0.11
+	tuft.mesh = tm
+	tuft.material_override = red
+	tuft.position = Vector3(0.0, 0.25, 0.0)
+	helm.add_child(tuft)

@@ -7,6 +7,10 @@ extends Node
 ## 10장 "서리 고개 너머": [1] 표·인물 자리(명소 충돌에 안 묻힘·따라가는 길이 걸어서 이어짐) [2] 촌장 → 고개 목표(고원)
 ## [3] 고개 [4] 고원 신상 [5] 호수 무리 넷(고원에 섬) [6] 하람 → 따라가기 [7] 따라가기 끝 = 길 끝 [8] 반디(하람은 비행선 곁)
 ## [9] 산성 터(하람도 산성으로) [10] 하람 → 10장 끝·보상·✔ 제10장·하람은 관측소로.
+## 11장 "얼음 아래 산성"(㊺-3): [11] 표·자리(바우 투구·명소에 안 묻힘·석등 셋이 얼음 위·지키기 무리 나오는 자리에서 제단까지 담에 안 막힘)
+## [12] 하람 → 문루 목표 [13] 문루 — 바우가 나타남 [14] 바우 → 호수 석등(바우는 호숫가) [15] 석등 차례(틀리면 꺼짐·달 → 해 → 별) → 파수 넷
+## [16] 파수 [17] 바우 → 봉화 제단(바우는 문루로) [18] 지키기(남쪽 반원에서만·물결 셋·제단 글자) [19] 바우(하람은 비행선 곁)
+## [20] 반디 → 11장 끝·보상·✔ 제11장·바우 사라짐·하람은 관측소로.
 ## 이야기 상태·부대 경험·가방은 끝에 되돌린다. 저장은 안 한다.
 
 const Story := preload("res://games/saga_go/data/story.gd")
@@ -14,6 +18,8 @@ const TestMap := preload("res://games/saga_go/data/test_map.gd")
 const TerrainBuilder := preload("res://games/saga_go/world/terrain_builder.gd")
 
 const CH := 9 # 10장(0부터)
+const CH11 := 10
+const FORT := Vector2(3.0, 4.0) # world/region4_frost.gd FORT_CELL — 담 한 변 16m
 
 var _p: CharacterBody3D
 var _sq: Node
@@ -136,7 +142,144 @@ func _physics_process(_delta: float) -> void:
 			var ok: bool = int(_sq.call("ch")) == CH + 1 and jt.contains("✔ 제10장") and PartyState.count("mora") >= int(_v.mora) + 40000 and home < 1.0
 			_check("chapter10", ok, "ch=%d mora +%d haram_home=%.1f tracker='%s'" % [_sq.call("ch"), PartyState.count("mora") - int(_v.mora), home, _sq.call("tracker_text")])
 			_next()
-		11:
+		11: # [11] 11장 표·자리
+			var c := Story.chapter(CH11)
+			var bad: Array = []
+			if String(c.get("id", "")) != "ch11" or int(c.ar) <= int(Story.chapter(CH).ar):
+				bad.append("chapter")
+			var info: Dictionary = Story.NPCS.bawoo
+			if String(info.region) != "frost" or String(info.get("era", "")) != "과거" or not info.get("helmet", false):
+				bad.append("bawoo info")
+			if bool(_sq.call("npc_visible", "bawoo")):
+				bad.append("bawoo before fort")
+			var root: Node3D = (_sq.get("_npcs") as Dictionary).get("bawoo")
+			if root == null or root.find_children("Helmet", "Node3D", true, false).is_empty():
+				bad.append("no helmet")
+			for cell in [info.cell, (info.appear as Array)[1].cell]:
+				var hits := _hits(_cell3(cell))
+				if not hits.is_empty():
+					bad.append("bawoo %s in %s" % [cell, hits])
+			var steps: Array = c.steps
+			for si in [1, 3, 6]:
+				if TestMap.tile_at(roundi(steps[si].cell.x), roundi(steps[si].cell.y), "frost") == "^":
+					bad.append("step %d on mountain" % si)
+			## 석등 셋 — 둘레 SEAL_RING m 가 모두 얼음(I).
+			var sc: Vector3 = TestMap.world_pos(steps[3].cell.x, steps[3].cell.y, "frost")
+			for i in Story.SEAL_LAYOUT.size():
+				var a := TAU * float(i) / Story.SEAL_LAYOUT.size()
+				var lp := sc + Vector3(sin(a), 0.0, -cos(a)) * Story.SEAL_RING
+				if _tile(lp) != "I":
+					bad.append("lamp %d not on ice" % i)
+			## 지키기 — dirs 마다 DEFEND_RING m 에서 제단 2.5m 앞까지 걸어서(산성 담에 안 막힘).
+			var d: Dictionary = steps[6]
+			var ap := _cell3(d.cell)
+			for deg in d.dirs:
+				var a := deg_to_rad(float(deg))
+				var sp := ap + Vector3(sin(a), 0.0, -cos(a)) * Story.DEFEND_RING
+				var why := _walk_block(sp, ap + (sp - ap).normalized() * 2.5)
+				if why != "":
+					bad.append("dir %d: %s" % [deg, why])
+			_check("ch11_table", bad.is_empty(), str(bad))
+			_next()
+		12: # [12] 하람 → 문루
+			_talk("haram", 1, "ch11_haram", Vector2(3.0, 4.2))
+		13: # [13] 문루 — 바우가 나타남
+			if _frame == 1:
+				_put(_target())
+			if _frame == 12:
+				var b := _flat(_sq.call("npc_pos", "bawoo"), TestMap.world_pos(3.0, 4.11, "frost"))
+				_check("ch11_gate", int(_sq.call("st")) == 2 and bool(_sq.call("npc_visible", "bawoo")) and b < 1.0, "st=%d visible=%s at_gate=%.1f" % [_sq.call("st"), _sq.call("npc_visible", "bawoo"), b])
+				_next()
+		14: # [14] 바우 → 호수 석등(바우는 호숫가)
+			if _frame == 13:
+				_v = _flat(_sq.call("npc_pos", "bawoo"), TestMap.world_pos(3.25, 2.36, "frost"))
+			if _frame < 14:
+				_talk("bawoo", 3, "ch11_bawoo", Vector2(3.25, 2.1))
+				return
+			_talk("bawoo", 3, "ch11_bawoo", Vector2(3.25, 2.1), "bawoo_at_lake=%.1f tracker='%s'" % [float(_v), String(_sq.call("tracker_text")).replace("
+", " / ")],
+				float(_v) < 1.0 and String(_sq.call("tracker_text")).contains("달 → 해 → 별"))
+		15: # [15] 석등 차례 — 해 먼저(틀림) → 달 → 별(해 앞에 — 다 꺼짐) → 달·해·별, 다 켜지면 파수 넷
+			if _frame == 1:
+				_put(_target() + Vector3(0.0, 0.0, 3.0))
+				_v = []
+			if _frame == 6:
+				_sq.call("receive_element", _sq.call("seal_lamp_pos", "sun"), 0.5, "fire")
+				_v.append(int(_sq.call("seal_lit")))
+				_sq.call("receive_element", _sq.call("seal_lamp_pos", "moon"), 0.5, "ice")
+				_v.append(int(_sq.call("seal_lit")))
+				_sq.call("receive_element", _sq.call("seal_lamp_pos", "star"), 0.5, "fire")
+				_v.append(int(_sq.call("seal_lit")))
+				for m in ["moon", "sun", "star"]:
+					_sq.call("receive_element", _sq.call("seal_lamp_pos", m), 0.5, "fire")
+				_v.append(int(_sq.call("seal_lit")))
+			if _frame == 90:
+				var es: Array = _sq.call("alive_quest_enemies")
+				var on_ice := es.filter(func(e: Node) -> bool: return _tile((e as Node3D).global_position) == "I").size()
+				var ok: bool = _v == [0, 1, 0, 3] and int(_sq.call("st")) == 4 and es.size() == 4 and on_ice == 4
+				_check("ch11_seal", ok, "lit=%s st=%d enemies=%d on_ice=%d" % [_v, _sq.call("st"), es.size(), on_ice])
+				_next()
+		16: # [16] 파수
+			if _frame == 1:
+				for e in _sq.call("alive_quest_enemies"):
+					e.call("_die")
+			if _frame == 8:
+				_check("ch11_guards", int(_sq.call("st")) == 5, "st=%d" % _sq.call("st"))
+				_next()
+		17: # [17] 바우 → 봉화 제단(바우는 문루로)
+			if _frame == 13:
+				_v = _flat(_sq.call("npc_pos", "bawoo"), TestMap.world_pos(3.0, 4.11, "frost"))
+			if _frame < 14:
+				_talk("bawoo", 6, "ch11_ember", Vector2(3.0, 4.25))
+				return
+			_talk("bawoo", 6, "ch11_ember", Vector2(3.0, 4.25), "bawoo_at_gate=%.1f" % float(_v), float(_v) < 1.0)
+		18: # [18] 지키기 — 남쪽 반원에서만, 물결 셋
+			if _frame == 1:
+				_put(_target() + Vector3(2.5, 0.0, 2.5))
+				_v = {"south": true, "waves": 0, "label": ""}
+			if _frame > 4 and _frame % 6 == 0 and int(_sq.call("st")) == 6:
+				var lbl := _sq.get("_defend_label") as Label3D
+				if lbl and String(_v.label) == "":
+					_v.label = lbl.text
+				var fc := TestMap.world_pos(FORT.x, FORT.y, "frost")
+				for e in _sq.call("alive_quest_enemies"):
+					var ep := (e as Node3D).global_position
+					if ep.z < fc.z + 8.45 and absf(ep.x - fc.x) < 8.45: # 산성 담 안에서 나온 무리
+						_v.south = false
+					e.call("_die")
+				_v.waves = maxi(int(_v.waves), int(_sq.call("defend_wave")) + 1)
+			if _frame > 4 and (int(_sq.call("st")) != 6 or _frame > 600):
+				var ok: bool = int(_sq.call("st")) == 7 and bool(_v.south) and int(_v.waves) == 3 and String(_v.label).begins_with("봉화 제단")
+				_check("ch11_defend", ok, "st=%d south=%s waves=%d label='%s' frames=%d" % [_sq.call("st"), _v.south, _v.waves, _v.label, _frame])
+				_next()
+		19: # [19] 바우 — 하람은 비행선 곁
+			if _frame == 13:
+				_v = _flat(_sq.call("npc_pos", "haram"), TestMap.world_pos(5.85, 4.85, "frost"))
+			if _frame < 14:
+				_talk("bawoo", 8, "ch11_farewell", Vector2.INF)
+				return
+			_talk("bawoo", 8, "ch11_farewell", Vector2.INF, "haram_at_ship=%.1f" % float(_v), float(_v) < 1.0)
+		20: # [20] 반디 → 11장 끝
+			if _frame == 1:
+				_v = {"mora": PartyState.count("mora")}
+				_near_npc("bandi")
+			if _frame == 10:
+				_sq.call("interact")
+				_drain()
+			if _frame < 16:
+				return
+			_dismiss_prompts()
+			if _frame < 22:
+				return
+			_sq.call("toggle_journal")
+			var jt: String = _sq.call("journal_text")
+			_sq.call("toggle_journal")
+			var home := _flat(_sq.call("npc_pos", "haram"), TestMap.world_pos(3.85, 1.7, "frost"))
+			var ok: bool = int(_sq.call("ch")) == CH11 + 1 and jt.contains("✔ 제11장") and PartyState.count("mora") >= int(_v.mora) + 42000 \
+				and home < 1.0 and not bool(_sq.call("npc_visible", "bawoo"))
+			_check("chapter11", ok, "ch=%d mora +%d haram_home=%.1f bawoo=%s" % [_sq.call("ch"), PartyState.count("mora") - int(_v.mora), home, _sq.call("npc_visible", "bawoo")])
+			_next()
+		21:
 			PartyState.story = _saved.story
 			PartyState.members.assign(_saved.members)
 			PartyState.exp = _saved.exp
@@ -171,6 +314,16 @@ func _go(want_st: int, name: String, next_cell: Vector2) -> void:
 
 func _target() -> Vector3:
 	return _sq.call("target_pos")
+
+func _cell3(cell: Vector2) -> Vector3:
+	var p := TestMap.world_pos(cell.x, cell.y, "frost")
+	p.y = TerrainBuilder.height_at("frost", p)
+	return p
+
+## 그 월드 자리의 고원 지형 글자.
+func _tile(p: Vector3) -> String:
+	var g := TestMap.grid_at("frost", p)
+	return TestMap.tile_at(g.x, g.y, "frost")
 
 ## 그 자리 1.2m 위에 걸리는 고원 명소 충돌(지형·나무 빼고).
 func _hits(pos: Vector3) -> Array:

@@ -897,7 +897,7 @@ func _defend_tick(s: Dictionary, delta: float) -> bool:
 		var ap := _altar.global_position
 		if Vector2(_player.global_position.x - ap.x, _player.global_position.z - ap.z).length() <= Story.DEFEND_START:
 			_spawn_wave(s, 0)
-			Toast.show(self, "가면 무리가 몰려온다 — 제단을 지켜라", 2.5)
+			Toast.show(self, String(s.get("start", "가면 무리가 몰려온다 — 제단을 지켜라")), 2.5)
 		return false
 	_wave_t += delta
 	var alive := alive_quest_enemies()
@@ -912,14 +912,20 @@ func _defend_tick(s: Dictionary, delta: float) -> bool:
 	return false
 
 ## defend 물결 w — 제단 둘레 DEFEND_RING m 에 고르게(물결마다 조금씩 돌려), 곧장 제단으로.
+## dirs(도, 북쪽 0·시계 방향 — 석등과 같게)가 있으면 그 방향들에서만 차례로(담이 막는 쪽에선 안 나오게, 106장 ㊺-3 산성 문루).
 func _spawn_wave(s: Dictionary, w: int) -> void:
 	_wave = w
 	_wave_t = 0.0
 	var center := _altar.global_position
 	var kinds: Array = (s.waves as Array)[w]
 	for i in kinds.size():
-		var a := TAU * float(i) / float(kinds.size()) + 0.9 * w
-		var p := center + Vector3(cos(a), 0.0, sin(a)) * Story.DEFEND_RING
+		var p: Vector3
+		if s.has("dirs"):
+			var a := deg_to_rad(float((s.dirs as Array)[(i + w) % (s.dirs as Array).size()]))
+			p = center + Vector3(sin(a), 0.0, -cos(a)) * Story.DEFEND_RING
+		else:
+			var a := TAU * float(i) / float(kinds.size()) + 0.9 * w
+			p = center + Vector3(cos(a), 0.0, sin(a)) * Story.DEFEND_RING
 		p.y = TerrainBuilder.height_at(String(s.region), p) + 0.3
 		var e: CharacterBody3D = FieldEnemy.new()
 		e.name = "StoryRaider_%d_%d" % [w, i]
@@ -964,7 +970,7 @@ func _refresh_defend_label() -> void:
 	if _defend_label == null:
 		return
 	var r := defend_hp() / defend_max() if defend_max() > 0.0 else 0.0
-	_defend_label.text = "넷째 제단 %d%%" % roundi(r * 100.0)
+	_defend_label.text = "%s %d%%" % [String(current_step().get("altar", "넷째 제단")), roundi(r * 100.0)]
 	_defend_label.modulate = Color(0.55, 1.0, 0.6).lerp(Color(1.0, 0.35, 0.3), 1.0 - r)
 
 ## 보이는 창이 떠 있는가(숨겨 둔 선택지 창은 그룹에 남아 있다 — camera_rig._modal_open 과 같게). 자기 자신은 뺀다.
@@ -1335,6 +1341,8 @@ func _build_npc(id: String) -> void:
 		anim.play("idle")
 	if info.get("mask", false):
 		VroidBody.add_mask(body, info.get("mask_color", Color(0.72, 0.12, 0.12)), info.get("mask_face", Color(0.94, 0.92, 0.86)), info.get("crack", false))
+	if info.get("helmet", false):
+		VroidBody.add_helmet(body)
 	var tf := TalkFace.attach(body)
 	if tf:
 		_faces[id] = tf
