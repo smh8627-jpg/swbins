@@ -61,6 +61,26 @@ namespace Saga.Go.Combat
         public static event System.Action Wiped;
 
         [SerializeField] private PlayerController player;
+        // PLAN.md 109-8 소환 정령 몸(Poly Haven 등잔 — 씬 빌더가 채운다, 없으면 빛만)
+        [SerializeField] private GameObject spiritModel;
+
+        /// <summary>109-8 장판·소환 — 놓은 사람 공격력으로 틱마다 친다(그 사이 교체해도 남는다).</summary>
+        public class SkillZone
+        {
+            public SkillShape Kind;
+            public string Owner;
+            public Vector3 Center;
+            public float Radius, Left, Next, Atk;
+            public GoElement Element;
+            public Color Color;
+            public int Ticks, Hits;
+            public SkillSpirit Spirit;
+        }
+
+        private readonly List<SkillZone> _zones = new List<SkillZone>();
+        public IReadOnlyList<SkillZone> Zones => _zones;
+        /// <summary>마지막 스킬의 모양(진단·HUD).</summary>
+        public SkillShape LastShape { get; private set; }
 
         private readonly List<Member> _party = new List<Member>();
         public IReadOnlyList<Member> Party => _party;
@@ -181,6 +201,7 @@ namespace Saga.Go.Combat
             if (InvulnLeft > 0f) InvulnLeft -= dt;
             if (SwapCooldown > 0f) SwapCooldown -= dt;
             foreach (var m in _party) if (m.SkillCd > 0f) m.SkillCd = Mathf.Max(0f, m.SkillCd - dt);
+            TickZones(dt);
             TickBurn(dt);
             _sinceHit += dt;
             if (_sinceHit >= RegenDelaySec)
@@ -226,21 +247,170 @@ namespace Saga.Go.Combat
             return hits;
         }
 
-        /// <summary>원소 스킬 — 앞 2m 중심 반경 7m. 들어간 적 수(-1 = 쿨·못 씀).</summary>
+        /// <summary>원소 스킬(E) — 나선 사람의 모양(`GoSkillShapes`, 109-8)대로. 주인공 = 앞 2m 중심 반경 7m 원형.
+        /// 들어간 적 수(장판·소환은 첫 틱에 든 수) · -1 = 쿨·못 씀.</summary>
         public int Skill()
         {
             var m = Active;
             if (!CanAct() || m.SkillCd > 0f) return -1;
             m.SkillCd = SkillCooldownSec;
-            var target = Nearest(AutoFaceRadius * 1.5f);
+            var shape = GoSkillShapes.ShapeOf(m.Id);
+            LastShape = shape;
+            float aimRange = shape == SkillShape.Circle ? AutoFaceRadius * 1.5f : Mathf.Max(AutoFaceRadius * 1.5f, GoSkillShapes.ThrustLen);
+            var target = Nearest(aimRange);
             if (target != null && player != null) player.FaceToward(target.transform.position);
-            Vector3 center = transform.position + Forward() * SkillOffset;
-            int hits = AreaHit(center, SkillRadius, Atk * SkillMul, m.Element);
+            Vector3 pos = transform.position;
+            Vector3 dir = Forward();
+            float aimDist = 0f;
+            if (target != null)
+            {
+                Vector3 d = Flat(target.transform.position - pos);
+                aimDist = d.magnitude;
+                if (aimDist > 0.01f) dir = d / aimDist;
+            }
+            Color fx = GoSkillShapes.FxColor(m.Id, m.Element);
+            float atk = Atk;
+            int hits;
+            switch (shape)
+            {
+                case SkillShape.Thrust:
+                {
+                    Vector3 end = pos + dir * GoSkillShapes.ThrustLen;
+                    hits = LineHit(pos, end, GoSkillShapes.ThrustWidth, atk * GoSkillShapes.ThrustMul, m.Element);
+                    FieldLineFx.Spawn(pos, end, GoSkillShapes.ThrustWidth * 2f, fx);
+                    ElementPulse?.Invoke((pos + end) * 0.5f, GoSkillShapes.ThrustLen * 0.5f, m.Element);
+                    break;
+                }
+                case SkillShape.Dash:
+                {
+                    float go = target != null ? Mathf.Min(GoSkillShapes.DashLen, Mathf.Max(0f, aimDist - GoSkillShapes.DashStop)) : GoSkillShapes.DashLen;
+                    Vector3 end = pos + dir * go;
+                    hits = LineHit(pos, end + dir * GoSkillShapes.DashStop, GoSkillShapes.DashWidth, atk * GoSkillShapes.DashMul, m.Element);
+                    InvulnLeft = Mathf.Max(InvulnLeft, GoSkillShapes.DashInvulnSec);
+                    if (player != null && go > 0.05f) player.Dash(dir, go, GoSkillShapes.DashSec);
+                    FieldLineFx.Spawn(pos, end + dir * GoSkillShapes.DashStop, GoSkillShapes.DashWidth * 2f, fx, 0.45f);
+                    ElementPulse?.Invoke(end, GoSkillShapes.DashWidth * 2f, m.Element);
+                    break;
+                }
+                case SkillShape.Field:
+                {
+                    Vector3 c = target != null ? Flat(target.transform.position) + Vector3.up * pos.y : pos + dir * SkillOffset;
+                    var z = new SkillZone { Kind = shape, Owner = m.Id, Center = c, Radius = GoSkillShapes.FieldRadius, Left = GoSkillShapes.FieldSec,
+                        Atk = atk, Element = m.Element, Color = fx };
+                    _zones.Add(z);
+                    TickZone(z, 0f); // 놓자마자 첫 틱
+                    hits = z.Hits;
+                    break;
+                }
+                case SkillShape.Summon:
+                {
+                    Vector3 c = pos + dir * GoSkillShapes.SummonOffset;
+                    var z = new SkillZone { Kind = shape, Owner = m.Id, Center = c, Radius = GoSkillShapes.SummonRadius, Left = GoSkillShapes.SummonSec,
+                        Atk = atk, Element = m.Element, Color = fx };
+                    z.Spirit = SkillSpirit.Spawn(c, spiritModel, fx);
+                    _zones.Add(z);
+                    ElementPulse?.Invoke(c, 3f, m.Element);
+                    TickZone(z, 0f);
+                    hits = z.Hits;
+                    break;
+                }
+                default:
+                {
+                    Vector3 center = pos + Forward() * SkillOffset;
+                    hits = AreaHit(center, SkillRadius, atk * SkillMul, m.Element);
+                    FieldRingFx.Spawn(center, SkillRadius, GoElements.ColorOf(m.Element));
+                    ElementPulse?.Invoke(center, SkillRadius, m.Element);
+                    break;
+                }
+            }
             if (hits > 0) m.Energy = Mathf.Min(BurstCost, m.Energy + EnergyPerSkillHit);
-            FieldRingFx.Spawn(center, SkillRadius, GoElements.ColorOf(m.Element));
-            ElementPulse?.Invoke(center, SkillRadius, m.Element);
+            if (shape != SkillShape.Circle)
+                FieldDamageText.Spawn(pos + Vector3.up * 5.2f, GoSkillShapes.Name(shape), fx, 1.1f);
             if (player != null && player.Animator != null) player.Animator.SetTrigger("Attack");
             return hits;
+        }
+
+        /// <summary>선분 둘레 폭 안의 적을 친다(찌르기·돌진).</summary>
+        private int LineHit(Vector3 a, Vector3 b, float width, float amount, GoElement el)
+        {
+            int hits = 0;
+            float atk = Atk;
+            foreach (var e in Snapshot())
+            {
+                if (GoSkillShapes.SegDist(e.transform.position, a, b) > width) continue;
+                e.TakeHit(amount, el, atk, out _);
+                hits++;
+            }
+            return hits;
+        }
+
+        private void TickZones(float dt)
+        {
+            for (int i = _zones.Count - 1; i >= 0; i--)
+            {
+                var z = _zones[i];
+                TickZone(z, dt);
+                if (z.Left <= 1e-6f) RemoveZone(i);
+            }
+        }
+
+        private void TickZone(SkillZone z, float dt)
+        {
+            z.Left -= dt;
+            z.Next -= dt;
+            while (z.Next <= 1e-6f && z.Left > 1e-6f)
+            {
+                z.Ticks++;
+                if (z.Kind == SkillShape.Field)
+                {
+                    int n = 0;
+                    foreach (var e in Snapshot())
+                    {
+                        if (Flat(e.transform.position - z.Center).magnitude > z.Radius) continue;
+                        e.TakeHit(z.Atk * GoSkillShapes.FieldMul, z.Element, z.Atk, out _);
+                        n++;
+                    }
+                    z.Hits += n;
+                    FieldRingFx.Spawn(z.Center, z.Radius, z.Color, 0.7f);
+                    ElementPulse?.Invoke(z.Center, z.Radius, z.Element);
+                    z.Next += GoSkillShapes.FieldEvery;
+                }
+                else
+                {
+                    FieldEnemy best = null;
+                    float bestD = z.Radius;
+                    foreach (var e in Snapshot())
+                    {
+                        float d = Flat(e.transform.position - z.Center).magnitude;
+                        if (d <= bestD) { bestD = d; best = e; }
+                    }
+                    if (best != null)
+                    {
+                        best.TakeHit(z.Atk * GoSkillShapes.SummonMul, z.Element, z.Atk, out _);
+                        z.Hits++;
+                        Vector3 from = z.Spirit != null ? z.Spirit.Tip : z.Center + Vector3.up * SkillSpirit.Hover;
+                        FieldLineFx.Spawn(from, best.transform.position + Vector3.up * 1.6f, 0.5f, z.Color, 0.3f, 0f);
+                        if (z.Spirit != null) z.Spirit.Flash();
+                    }
+                    z.Next += GoSkillShapes.SummonEvery;
+                }
+            }
+        }
+
+        private void RemoveZone(int i)
+        {
+            var z = _zones[i];
+            if (z.Spirit != null)
+            {
+                FieldRingFx.Spawn(z.Spirit.transform.position - Vector3.up * SkillSpirit.Hover, 1.5f, z.Color, 0.4f);
+                Destroy(z.Spirit.gameObject);
+            }
+            _zones.RemoveAt(i);
+        }
+
+        private void ClearZones()
+        {
+            for (int i = _zones.Count - 1; i >= 0; i--) RemoveZone(i);
         }
 
         /// <summary>원소 폭발 — 반경 12m, 기력 100 소모. 들어간 적 수(-1 = 기력 모자람).</summary>
@@ -290,7 +460,7 @@ namespace Saga.Go.Combat
             SwapCooldown = SwapCooldownSec;
             ComboStep = 0;
             _comboWindow = 0f;
-            ApplyLook();
+            ApplyLook(true);
             FieldRingFx.Spawn(transform.position, 2.5f, GoElements.ColorOf(Active.Element), 0.35f);
             return true;
         }
@@ -371,7 +541,7 @@ namespace Saga.Go.Combat
                 {
                     ActiveIndex = idx;
                     SwapCooldown = 0f;
-                    ApplyLook();
+                    ApplyLook(true);
                     return;
                 }
             }
@@ -383,6 +553,7 @@ namespace Saga.Go.Combat
         {
             foreach (var m in _party) { m.Hp = m.MaxHp; m.SkillCd = 0f; }
             BurnTicksLeft = 0;
+            ClearZones();
             ActiveIndex = 0;
             ApplyLook();
             foreach (var e in FieldEnemy.All) e.ForceReturn();
@@ -395,12 +566,13 @@ namespace Saga.Go.Combat
 
         // ---- 도움 --------------------------------------------------------------
 
-        private void ApplyLook()
+        /// <param name="motion">109-8 교체 연출 — 옛 몸이 옆뒤로 물러나 흩어지고 새 몸이 옆에서 들어선다(교체·쓰러져 넘김만, 되돌림·전멸은 바로).</param>
+        private void ApplyLook(bool motion = false)
         {
             if (player == null || player.Visual == null || Active == null) return;
             // 107 ⑥ — 나선 인물의 몸으로 바꾼다. 제 몸이 없는 동료(모델 없음)만 주인공 몸에 원소 빛을 옅게 입힌다.
             if (_bodies == null) _bodies = player.GetComponent<PartyBodies>();
-            bool ownBody = _bodies != null && _bodies.Show(Active.Id);
+            bool ownBody = _bodies != null && _bodies.Show(Active.Id, motion);
             if (ActiveIndex == 0 || ownBody) CharacterVisual.ClearTint(player.Visual.gameObject);
             else CharacterVisual.Tint(player.Visual.gameObject, Color.Lerp(Color.white, GoElements.ColorOf(Active.Element), 0.35f));
         }
@@ -452,6 +624,7 @@ namespace Saga.Go.Combat
             SwapCooldown = 0f;
             _sinceHit = 999f;
             BurnTicksLeft = 0;
+            ClearZones();
             ApplyLook();
         }
     }

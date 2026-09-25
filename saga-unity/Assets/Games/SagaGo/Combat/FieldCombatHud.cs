@@ -146,9 +146,10 @@ namespace Saga.Go.Combat
             _staminaFill.color = GoStamina.SprintLocked ? new Color(1f, 0.45f, 0.3f, 0.9f) : new Color(0.9f, 1f, 0.6f, 0.9f);
 
             Color ec = GoElements.ColorOf(m.Element);
+            string skillName = GoSkillShapes.Name(GoSkillShapes.ShapeOf(m.Id)); // 109-8 — 동행마다 모양 이름(주인공 = 스킬)
             _skillLabel.text = m.SkillCd > 0f
-                ? $"{GoLocalization.T("field.btn.skill", "스킬")}\n{Mathf.CeilToInt(m.SkillCd)}"
-                : $"{GoLocalization.T("field.btn.skill", "스킬")}\n(E)";
+                ? $"{skillName}\n{Mathf.CeilToInt(m.SkillCd)}"
+                : $"{skillName}\n(E)";
             _skillImage.color = new Color(ec.r, ec.g, ec.b, m.SkillCd > 0f ? 0.15f : 0.45f);
             _burstLabel.text = m.BurstReady
                 ? $"{GoLocalization.T("field.btn.burst", "폭발")}\n★ (Q)"

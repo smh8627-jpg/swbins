@@ -87,6 +87,7 @@ namespace Saga.EditorTools
 
             hero.rotation = Quaternion.Euler(0f, 90f, 0f);
             if (!fc.Swap(idx)) { Fail("산적으로 교체가 안 됨"); return ""; }
+            bodies.FinishMotion(); // 109-8 교체 연출(옛 몸이 물러남)은 PlaytestGoSkillShapes 가 본다 — 여기선 끝난 자리만
             var body = pc.Visual;
             if (body == hero || body == null) { Fail("교체했는데 몸이 그대로"); return ""; }
             if (hero.gameObject.activeSelf || !body.gameObject.activeSelf) Fail("옛 몸이 안 꺼지거나 새 몸이 안 켜짐");
@@ -115,6 +116,7 @@ namespace Saga.EditorTools
             if (pc.Visual != hero || !hero.gameObject.activeSelf || body.gameObject.activeSelf) Fail("주인공으로 되돌렸는데 몸이 안 바뀜");
             if (hero.GetComponentInChildren<MeshRenderer>(true) == null || FindDeep(hero, "WeaponBlade (generated)") == null) Fail("주인공 손의 무기가 사라짐");
             fc.Swap(idx);
+            bodies.FinishMotion();
             if (pc.Visual != body) Fail("두 번째 교체에서 몸을 새로 만듦");
             int bodyCount = 0;
             foreach (Transform c in pc.transform) if (c.name.StartsWith("Body_")) bodyCount++;

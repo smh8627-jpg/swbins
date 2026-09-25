@@ -358,6 +358,8 @@ namespace Saga.EditorTools
         {
             var combat = playerGo.AddComponent<Saga.Go.Combat.FieldCombat>();
             SetPrivateField(combat, "player", playerGo.GetComponent<PlayerController>());
+            // PLAN.md 109-8 소환 정령 몸 — 인물 꾸밈과 같은 Poly Haven 등잔(커밋된 에셋)
+            SetPrivateField(combat, "spiritModel", AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Props/PolyHaven/brass_diya_lantern/brass_diya_lantern_1k.gltf"));
 
             var spawnerGo = new GameObject("FieldSpawner");
             var spawner = spawnerGo.AddComponent<Saga.Go.Combat.FieldSpawner>();

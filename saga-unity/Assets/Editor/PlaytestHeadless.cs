@@ -157,6 +157,7 @@ namespace Saga.EditorTools
                 if (!PlaytestGoHeroes.Run("PlaytestHeadless")) _hadError = true; // PLAN.md 109-6 도감 105·싸워서 등용(동행·인연·경험치 되돌림)
                 if (!PlaytestGoHeroDex.Run("PlaytestHeadless")) _hadError = true; // PLAN.md 109-6b 도감 화면(동행·만남·세이브 되돌림)
                 if (!PlaytestGoHeroLooks.Run("PlaytestHeadless")) _hadError = true; // PLAN.md 109-7 인물 105 몸 배정(표·105 벌 입혀 보기·교체·들판)
+                if (!PlaytestGoSkillShapes.Run("PlaytestHeadless")) _hadError = true; // PLAN.md 109-8 스킬 모양 넷·교체 연출(동행·적·자리 되돌림)
                 // 반드시 마지막 — DailyTaskState 진단이 SaveState.TryLoad()로
                 // 세이브 파일을 v9 모양으로 잠깐 바꿔치기해 로드하는데, 이건
                 // 살아있는 PartyState/Inventory/GoldState 등을 그 v9 기본값으로
