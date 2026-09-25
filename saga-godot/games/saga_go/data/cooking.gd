@@ -1,8 +1,8 @@
 extends RefCounted
 
 ## PLAN 106장 ⑱ — 원신식 채집·요리 규칙(표·계산만, 상태는 PartyState.bag·gather_t·cook_prof·food_buffs).
-##   채집물: 일반 재료 다섯(박하·꿀꽃·산사과·송이버섯·바지락, 실제 시각 30분 뒤 다시 자람) + 지역 특산물 셋
-##   (마을 청하란·포구 갯소라·폐허 재꽃, 1시간 — 원신의 하루·이틀을 이 판 채집 자리 수에 맞춰 줄였다) + 짐승 고기(늑대·바위곰).
+##   채집물: 일반 재료 다섯(박하·꿀꽃·산사과·송이버섯·바지락, 실제 시각 30분 뒤 다시 자람) + 지역 특산물 넷
+##   (마을 청하란·포구 갯소라·폐허 재꽃·고원 눈꽃, 1시간 — 원신의 하루·이틀을 이 판 채집 자리 수에 맞춰 줄였다) + 짐승 고기(늑대·바위곰).
 ##   요리 여덟: 회복(한 인물·모두·되살리기) 셋 · 공격 계열(공격·치명 확률·치명 피해) 셋 · 방어 계열 하나 · 모험 계열 하나.
 ##   품질 셋(이상한·보통·맛있는) — 조리 때 불 끄는 때를 맞히면 맛있는. 숙련 5 번이면 "자동 조리"(보통).
 ##   버프는 명단 전체 300초, 계열마다 하나만(새로 먹으면 갈아 끼움). 회복 요리는 먹은 인물 포만감 +35(100 을 넘으면 못 먹음).
@@ -35,11 +35,13 @@ const GATHER := {
 	"orchid": {"name": "청하란", "kind": "special", "color": Color(0.72, 0.86, 1.0)},
 	"conch": {"name": "갯소라", "kind": "special", "color": Color(1.0, 0.62, 0.52)},
 	"ash_flower": {"name": "재꽃", "kind": "special", "color": Color(0.8, 0.74, 0.9)},
+	"snow_bloom": {"name": "눈꽃", "kind": "special", "color": Color(0.9, 0.96, 1.0)},
 }
 const MEAT := "meat" # 짐승 고기 — 채집이 아니라 들판 적(growth.gd KILL_DROPS)
 
 ## 지역 특산물 — 인물 돌파에 쓴다(growth.gd ASCEND_COST "special").
-const SPECIALTY_OF_REGION := {"village": "orchid", "coast": "conch", "ruins": "ash_flower"}
+const SPECIALTY_OF_REGION := {"village": "orchid", "coast": "conch", "ruins": "ash_flower", "frost": "snow_bloom"}
+## 인물 해시 풀(growth.gd SPECIALTIES 와 같은 차례) — 고원 눈꽃은 해시 밖(growth.gd SPECIALTY_OF).
 const SPECIALTIES := ["orchid", "conch", "ash_flower"]
 
 ## 채집 무리 — [무리 id, 채집물, 지역, 칸(소수), 개수]. 한 무리의 채집물은 가운데에서 1.4m 둘레에 고르게 놓인다.
@@ -71,6 +73,10 @@ const PATCHES := [
 	["f_mush", "mushroom", "frost", Vector2(1.3, 3.4), 3],
 	["f_mint", "mint", "frost", Vector2(6.2, 6.3), 2],
 	["f_apple", "apple", "frost", Vector2(1.4, 6.3), 2],
+	## 106장 ㊻-3 고원 특산물 눈꽃 — 석상·호수 서쪽 · 산성과 봉화 사이 · 위성 조각 남쪽(비행선 북쪽).
+	["f_snow_nw", "snow_bloom", "frost", Vector2(2.3, 2.3), 2],
+	["f_snow_mid", "snow_bloom", "frost", Vector2(4.2, 3.4), 2],
+	["f_snow_e", "snow_bloom", "frost", Vector2(6.4, 4.2), 2],
 	["r_ash_se", "ash_flower", "ruins", Vector2(4.8, 5.5), 2],
 ]
 const PATCH_RING_M := 1.4

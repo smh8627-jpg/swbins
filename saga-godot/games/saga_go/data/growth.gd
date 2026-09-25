@@ -52,6 +52,7 @@ const ITEMS := {
 	"orchid": {"name": "청하란"},
 	"conch": {"name": "갯소라"},
 	"ash_flower": {"name": "재꽃"},
+	"snow_bloom": {"name": "눈꽃"}, # 서리봉 고원 특산물 — SPECIALTY_OF 인물만
 	"boss_mat": {"name": "뇌룡 비늘"}, # 106장 ㉑ 주간 보스 — 특성 7→8 부터
 	## 106장 ㉓ 들판 보스 — 인물 돌파 2 단계부터(인물마다 셋 중 하나, boss_of).
 	"gale_plume": {"name": "돌개바람 깃"},
@@ -81,6 +82,8 @@ const ASCEND_COST := [
 	{"mora": 60000, "crystal": 20, "common": 30, "special": 60, "boss": 20},
 ]
 const SPECIALTIES := ["orchid", "conch", "ash_flower"] # cooking.gd SPECIALTIES 와 같은 차례
+## 새 지역 특산물도 같은 까닭으로 해시 밖 — 그 지역 인물에게만(106장 ㊻-3).
+const SPECIALTY_OF := {"story_haram": "snow_bloom"}
 const BOSS_MATS := ["gale_plume", "tide_pearl", "ember_horn"] # field_bosses.gd BOSSES 와 같은 차례(마을·포구·폐허)
 ## 해시로 고르는 인물 재료는 위 셋에서만 — 늘리면 있던 인물의 돌파 재료가 바뀐다(세이브에 모은 재료가 헛것이 된다).
 ## 새 지역 보스 재료는 그 지역 인물에게 여기서 정해 준다(원신도 새 지역 보스 = 그 지역 인물 재료).
@@ -193,6 +196,8 @@ static func common_of(member_id: String) -> String:
 static func specialty_of(member_id: String) -> String:
 	if member_id == "self":
 		return SPECIALTIES[0]
+	if SPECIALTY_OF.has(member_id):
+		return String(SPECIALTY_OF[member_id])
 	var h := 0
 	for i in member_id.length():
 		h = (h * 29 + member_id.unicode_at(i)) & 0x7fffffff

@@ -49,9 +49,9 @@ func _physics_process(_delta: float) -> void:
 				if Cooking.is_special(row[1]):
 					special[row[2]] = int(special.get(row[2], 0)) + 1
 			var total := Gathering.all_nodes().size()
-			var ok: bool = total == 62 and regions.size() == 4 and special.get("village") == 6 and special.get("coast") == 6 \
-				and special.get("ruins") == 6 and int(_ga.call("grown_count")) + PartyState.gather_t.size() == 62 \
-				and (_ki.call("pots") as Array).size() == 4 # 106장 ㊺ 고원 채집 일곱(특산물 없음)·신상 냄비 하나 더
+			var ok: bool = total == 68 and regions.size() == 4 and special.get("village") == 6 and special.get("coast") == 6 \
+				and special.get("ruins") == 6 and special.get("frost") == 6 and int(_ga.call("grown_count")) + PartyState.gather_t.size() == 68 \
+				and (_ki.call("pots") as Array).size() == 4 # 106장 ㊺ 고원 채집 일곱·신상 냄비 하나 더 · ㊻-3 고원 눈꽃 여섯
 			_check("layout", ok, "total=%d regions=%s special=%s pots=%d" % [total, regions, special, (_ki.call("pots") as Array).size()])
 			_next()
 		1: # ② 줍기 — 마을 서쪽 박하
@@ -183,7 +183,9 @@ func _physics_process(_delta: float) -> void:
 				kinds[Growth.specialty_of(String(h.id))] = true
 			var last := Growth.ascend_cost("self", 5)
 			_check("ascend_special", int(c.get("orchid", 0)) == 3 and kinds.size() == 3 and int(last.get("orchid", 0)) == 60 \
-				and int(Growth.KILL_DROPS.wolf.get("meat", 0)) == 1, "cost=%s kinds=%s" % [c, kinds.keys()])
+				and int(Growth.KILL_DROPS.wolf.get("meat", 0)) == 1 and not kinds.has("snow_bloom") \
+				and Growth.specialty_of("story_haram") == "snow_bloom" and int(Growth.ascend_cost("story_haram", 0).get("snow_bloom", 0)) == 3,
+				"cost=%s kinds=%s haram=%s" % [c, kinds.keys(), Growth.specialty_of("story_haram")])
 			_next()
 		12: # ⑬ restore_cooking
 			var gt := PartyState.gather_t.duplicate()

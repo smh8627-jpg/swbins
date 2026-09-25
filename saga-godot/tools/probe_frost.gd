@@ -206,7 +206,7 @@ func _physics_process(_delta: float) -> void:
 			var nc := spots.filter(func(s: Array) -> bool: return String(s[0]).begins_with("chest")).size()
 			var ns := spots.filter(func(s: Array) -> bool: return String(s[0]).begins_with("shard")).size()
 			var nodes := get_tree().get_nodes_in_group("treasure_chest").filter(func(c: Node) -> bool: return TestMap.region_at((c as Node3D).global_position) == "frost").size()
-			_check("pickups", nc == 5 and ns == 3 and g == 7 and buried.is_empty() and nodes + _opened_frost_chests() == 5, "chests=%d(nodes %d) shards=%d gather=%d buried=%s" % [nc, nodes, ns, g, buried])
+			_check("pickups", nc == 5 and ns == 3 and g == 13 and buried.is_empty() and nodes + _opened_frost_chests() == 5, "chests=%d(nodes %d) shards=%d gather=%d buried=%s" % [nc, nodes, ns, g, buried])
 			_next()
 		6: # ⑦ 탐험도 칸 수
 			var total := 0

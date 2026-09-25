@@ -1,7 +1,7 @@
 extends Node3D
 
 ## PLAN 106장 ⑱ — 원신식 채집(들판에 난 재료·지역 특산물). 표는 data/cooking.gd PATCHES.
-##   세 지역 24무리 55개 — 일반 재료 다섯(박하·꿀꽃·산사과·송이버섯·바지락)과 특산물 셋(청하란·갯소라·재꽃, 옅게 빛남).
+##   세 지역 24무리 55개 — 일반 재료 다섯(박하·꿀꽃·산사과·송이버섯·바지락)과 특산물 넷(청하란·갯소라·재꽃·고원 눈꽃, 옅게 빛남).
 ##   1.5m 안에 들면 줍는다(별조각·상자와 같은 "다가가면" 문법 — 이 판엔 줍기 단추가 없다). 캔 때를
 ##   PartyState.gather_t 에 적고, 일반 30분·특산물 1시간(실제 시각) 뒤 그 자리에 다시 난다.
 ## 모양은 코드로 그린 작은 풀·열매·조개(충돌 없음). test_village.gd 가 로드 뒤에 짓는다.
@@ -123,11 +123,11 @@ func _build(id: String, item: String, pos: Vector3) -> void:
 			for i in 5:
 				var a := TAU * i / 5.0
 				_blob(root, Vector3(cos(a) * 0.12, 0.16 + 0.04 * (i % 2), sin(a) * 0.12), Vector3(0.14, 0.05, 0.08), c, a)
-		"honey_flower", "orchid", "ash_flower":
+		"honey_flower", "orchid", "ash_flower", "snow_bloom":
 			for i in 3:
 				var off := Vector3(cos(i * 2.1) * 0.16, 0.0, sin(i * 2.1) * 0.16)
 				var h := 0.32 + 0.08 * i
-				_stem(root, off, h, Color(0.3, 0.55, 0.25) if item != "ash_flower" else Color(0.45, 0.45, 0.42))
+				_stem(root, off, h, {"ash_flower": Color(0.45, 0.45, 0.42), "snow_bloom": Color(0.55, 0.7, 0.68)}.get(item, Color(0.3, 0.55, 0.25)))
 				for pi in 5:
 					var a := TAU * pi / 5.0
 					_blob(root, off + Vector3(cos(a) * 0.06, h, sin(a) * 0.06), Vector3(0.06, 0.025, 0.06), c, a)
