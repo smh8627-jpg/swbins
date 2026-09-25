@@ -136,6 +136,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/adventure.js"></script>
 <script src="js/treasure.js"></script>
 <script src="js/domain.js"></script>
+<script src="js/fieldboss.js"></script>
 <script src="js/rogue.js"></script>
 <script src="js/fort.js"></script>
 <script src="js/raid.js"></script>
@@ -7559,14 +7560,16 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
     function perkRig(idx) {
       var id = DG.data.heroes[idx].id;
       var keep = JSON.stringify({ d: C.save.dex.heroes[id] || null, h: C.save.heroes[id] || null, gold: C.save.player.gold,
-        dust: C.save.dust, party: C.save.party.slice(), log: C.save.log.length, cook: C.save.cook || null });
+        dust: C.save.dust, party: C.save.party.slice(), log: C.save.log.length, cook: C.save.cook || null, bm: C.save.bossMat || null });
       C.save.dex.heroes[id] = { count: 20, firstAt: Date.now() };
+      C.save.bossMat = { plain: 999, bamboo: 999, canyon: 999, marsh: 999, ruins: 999 };   // ⑲-10 승급 보스 재료
       C.save.heroes[id] = { lv: 1, exp: 0, rank: 0 };
       C.save.player.gold = 999999;
       C.save.cook = { bag: { orchid: 999, conch: 999, ash_flower: 999 }, prof: {}, gather: {} };   // ⑲-6 승급 특산물
       return { id: id, undo: function () {
         var k = JSON.parse(keep);
         if (k.cook) { C.save.cook = k.cook; } else { delete C.save.cook; }
+        if (k.bm) { C.save.bossMat = k.bm; } else { delete C.save.bossMat; }
         if (k.d) { C.save.dex.heroes[id] = k.d; } else { delete C.save.dex.heroes[id]; }
         if (k.h) { C.save.heroes[id] = k.h; } else { delete C.save.heroes[id]; }
         C.save.player.gold = k.gold; C.save.dust = k.dust; C.save.party = k.party;
@@ -10020,6 +10023,110 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       } finally { rig.undo(); }
       var bad = Object.keys(r).filter(function (k) { return !r[k]; });
       return bad.length === 0 ? '7→8 🐉1 · 없으면 거절 · 올리면 0' : ('실패 ' + bad.join(','));
+    });
+
+    /* ── ⑲-10 들판 보스 — 보상 꽃·다시 서기·돌파 재료 (`fieldboss.js`, PLAN §5 ⑲-10) ── */
+    function fbCell() {
+      var B = DG.biome, F = DG.fieldCombat;
+      for (var j = -3; j <= 3; j++) { for (var i = -3; i <= 3; i++) { var c = B.cellAt(i, j), g = F.guardianAt(c); if (g) { return { cell: c, g: g, rk: c.key }; } } }
+      return null;
+    }
+
+    t('들판 보스 ⑲-10 — 돌파 재료: 다섯 · 인물마다 해시로 하나(결정성·다섯 고루) · 승급 ★2~★5 에 2·4·8·12(★1 은 없음)', function () {
+      var FB = DG.fieldBoss, seen = {}, i;
+      for (i = 0; i < 100; i++) { seen[FB.bossOf(D.heroes[i].id)] = (seen[FB.bossOf(D.heroes[i].id)] || 0) + 1; }
+      var id = D.heroes[3].id;
+      var ok = FB.MAT_KEYS.length === 5 && FB.MAT_KEYS.every(function (k) { return seen[k] >= 8; }) && FB.bossOf(id) === FB.bossOf(id) &&
+        FB.rankNeed(id, 0) === null && FB.rankNeed(id, 1).n === 2 && FB.rankNeed(id, 2).n === 4 && FB.rankNeed(id, 3).n === 8 &&
+        FB.rankNeed(id, 4).n === 12 && FB.rankNeed(id, 5) === null && FB.rankNeed(id, 1).item === FB.bossOf(id);
+      return ok && ('100명 — ' + FB.MAT_KEYS.map(function (k) { return FB.MATS[k].icon + seen[k]; }).join(' '));
+    });
+
+    t('들판 보스 ⑲-10 — 승급 ★1→★2: 보스 재료가 없으면 거절 · 있으면 2 빠짐', function () {
+      var FB = DG.fieldBoss, rig = perkRig(45), id = rig.id, r = {};
+      try {
+        C.save.heroes[id].rank = 1;
+        var k = FB.bossOf(id);
+        C.save.bossMat[k] = 1;
+        var chk = HR.rankUpCheck(id);
+        r.no = !chk.ok && chk.why === FB.MATS[k].name + ' 부족' && chk.cost.boss.n === 2;
+        C.save.bossMat[k] = 3;
+        r.up = HR.rankUp(id) && HR.info(id).rank === 2 && C.save.bossMat[k] === 1;
+      } finally { rig.undo(); }
+      var bad = Object.keys(r).filter(function (k2) { return !r[k2]; });
+      return bad.length === 0 ? '1 개면 거절 · 3 → 1(두 개 씀)' : ('실패 ' + bad.join(','));
+    });
+
+    t('들판 보스 ⑲-10 — 보상 꽃: 쓰러진 수호자 자리에 핌 · 원기 40 · 재료 2·★4·금·부대 경험 · 두 번 안 줌 · 모자라면 남음 · 옛 세이브도 핌', function () {
+      var FB = DG.fieldBoss, rig = dmRig(), DM = rig.DM, AR = DG.artifact, r = {};
+      try {
+        var fc = fbCell(), rk = fc.rk;
+        C.save.field = C.save.field || {};
+        C.save.field.guards = {}; delete C.save.field.guardPaid;
+        r.none = FB.bloomAt(rk) === null;
+        C.save.field.guards[rk] = Date.now() - 86400000;           // 옛 세이브 — guardPaid 칸이 없다
+        var b = FB.bloomAt(rk);
+        r.bloom = b && b.x === fc.g.x && b.y === fc.g.y && b.biome === fc.cell.biome && FB.blooms().length === 1;
+        C.save.bossMat = {};
+        var res0 = DM.resin(), a0 = AR.count(), g0 = C.save.player.gold;
+        C.save.field.guardPaid = {};
+        var c1 = FB.claim(rk);
+        r.claim = c1.ok && DM.resin() === res0 - 40 && FB.count(fc.cell.biome) === 2 && AR.count() === a0 + 1 &&
+          C.save.player.gold === g0 + 100 * fc.g.tier && C.save.field.guardPaid[rk] > 0 && FB.bloomAt(rk) === null;
+        r.once = !FB.claim(rk).ok;
+        delete C.save.field.guardPaid[rk];
+        C.save.resin.v = 39;
+        var c2 = FB.claim(rk);
+        r.short = !c2.ok && /원기/.test(c2.why) && FB.bloomAt(rk) !== null && C.save.resin.v === 39;
+      } finally { rig.undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '꽃 → 원기 40 · 재료 2 · ★4 1 · 금 100×등급 · 한 번만 · 39 면 남음' : ('실패 ' + bad.join(','));
+    });
+
+    t('들판 보스 ⑲-10 — 다시 서기(런타임): 꽃을 받고 150초 전엔 안 서고 · 뒤엔 선다(불러올 때·둘러볼 때 둘 다) · 안 받은 수호자는 안 선다', function () {
+      var rig = dmRig(), FC = rig.FC, r = {};
+      try {
+        var fc = fbCell(), rk = fc.rk, key = 'g:' + rk;
+        function has() { return !!FC.state().camps[key]; }
+        function at() { C.save.player.pos.x = fc.g.x + 5; C.save.player.pos.y = fc.g.y; FC._resetForTest(); FC.tick(0.05); }
+        C.save.field.guards = {}; C.save.field.guardPaid = {};
+        C.save.field.guards[rk] = Date.now() - 999e3;
+        at(); r.unpaid = !has();
+        C.save.field.guardPaid[rk] = Date.now() - 100e3;
+        at(); r.early = !has();
+        C.save.field.guardPaid[rk] = Date.now() - 151e3;
+        at(); r.load = has();
+        C.save.field.guardPaid[rk] = Date.now() - 100e3;
+        at();
+        C.save.field.guardPaid[rk] = Date.now() - 151e3;
+        FC.tick(0.6);
+        r.sweep = has();
+        r.mission = !!C.save.field.guards[rk];                     // 사명 "평정" 기록은 그대로
+      } finally { rig.undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '안 받음 ✕ · 100초 ✕ · 151초 ○(불러오기·둘러보기) · 평정 기록 유지' : ('실패 ' + bad.join(','));
+    });
+
+    t('들판 보스 ⑲-10 — 다시 선 수호자를 쓰러뜨리면 토벌 금·단사·경험 없이 꽃이 다시 핀다', function () {
+      var rig = dmRig(), FC = rig.FC, FB = DG.fieldBoss, r = {};
+      try {
+        var fc = fbCell(), rk = fc.rk, key = 'g:' + rk;
+        C.save.field.guards = {}; C.save.field.guardPaid = {};
+        C.save.field.guards[rk] = Date.now() - 999e3;
+        C.save.field.guardPaid[rk] = Date.now() - 151e3;
+        C.save.player.pos.x = fc.g.x + 5; C.save.player.pos.y = fc.g.y;
+        FC._resetForTest(); FC.tick(0.05);
+        var S = FC.state(), foes = S.camps[key].uids.map(function (u) { return S.foes[u]; });
+        var g0 = C.save.player.gold, lv0 = C.save.player.level, e0 = C.save.player.exp;
+        foes.forEach(function (f) { f.shield = 0; f.layers = []; for (var i = 0; i < 3; i++) { FC.hitFoe(S, f, S.party[0], 1e8, null, 'test'); } });
+        FC.tick(0.05);
+        var gain = C.save.player.gold - g0;
+        r.loot = gain === FC.killGold(fc.g.tier) * foes.length && gain < FC.clearLoot('guard', fc.g.tier).gold;
+        r.exp = C.save.player.level === lv0 && C.save.player.exp - e0 < 30 * fc.g.tier;
+        r.bloom = !C.save.field.guardPaid[rk] && FB.bloomAt(rk) !== null;
+      } finally { rig.undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '적 하나 금만 · 토벌 금·경험 없음 · 꽃 다시' : ('실패 ' + bad.join(','));
     });
 
     t('런타임 에러 없음', function () {

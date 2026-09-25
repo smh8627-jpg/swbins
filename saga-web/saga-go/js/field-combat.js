@@ -1194,8 +1194,14 @@
     var s = core().save;
     if (!s.field || typeof s.field !== 'object') { s.field = { camps: {}, kills: 0, clears: 0 }; }
     if (!s.field.camps) { s.field.camps = {}; }
-    if (!s.field.guards || typeof s.field.guards !== 'object') { s.field.guards = {}; }   // ⑪ 지역키 → 토벌 시각(다시 안 선다)
+    if (!s.field.guards || typeof s.field.guards !== 'object') { s.field.guards = {}; }   // ⑪ 지역키 → 마지막 토벌 시각(사명 평정은 있기만 보면 된다)
+    if (!s.field.guardPaid || typeof s.field.guardPaid !== 'object') { s.field.guardPaid = {}; }   // ⑲-10 지역키 → 꽃을 받은 시각(150초 뒤 다시 선다)
     return s.field;
+  }
+  /** ⑲-10 이 수호자가 다시 섰나 — 꽃을 받고 150초가 지났으면. **순수 함수**(fs 를 읽기만) */
+  function guardBack(fs, rk, now) {
+    var at = fs.guardPaid && fs.guardPaid[rk];
+    return !!at && now - at >= K('guardBackSec', 150) * 1000;
   }
   function pkey() { return (core().save.party || []).slice(0, PARTY_MAX()).join(','); }
 
@@ -1208,7 +1214,7 @@
       for (var c in fs.camps) {
         if (fs.camps.hasOwnProperty(c) && now - fs.camps[c] < RESPAWN_MS()) { S.cleared[c] = true; }
       }
-      for (var g in fs.guards) { if (fs.guards.hasOwnProperty(g)) { S.cleared['g:' + g] = true; } }
+      for (var g in fs.guards) { if (fs.guards.hasOwnProperty(g) && !guardBack(fs, g, now)) { S.cleared['g:' + g] = true; } }
     } else if (k !== partyKey) {
       reparty(S, core().save.party);
       partyKey = k;
@@ -1287,7 +1293,8 @@
   function respawnSweep() {
     var fs = fieldSave(), now = Date.now();
     for (var c in S.cleared) {
-      if (!S.cleared.hasOwnProperty(c) || c.indexOf('g:') === 0) { continue; }   // 수호자는 다시 안 선다
+      if (!S.cleared.hasOwnProperty(c)) { continue; }
+      if (c.indexOf('g:') === 0) { if (guardBack(fs, c.slice(2), now)) { delete S.cleared[c]; } continue; }   // ⑲-10 꽃을 받고 150초면 다시 선다
       var at = fs.camps[c];
       if (!at || now - at >= RESPAWN_MS()) { delete S.cleared[c]; delete fs.camps[c]; }
     }
@@ -1412,15 +1419,17 @@
       } else if (e.t === 'clear' && e.kind === 'domain') {
         c.emit('field:clear', e);                                      // ⑲-9 비경 파도 — 보상은 보상 나무에서
       } else if (e.t === 'clear' && e.kind === 'guard') {
-        var gs = fieldSave(), rk = e.camp.slice(2);
+        var gs = fieldSave(), rk = e.camp.slice(2), again = !!gs.guards[rk];
         gs.guards[rk] = Date.now();
+        delete gs.guardPaid[rk];                                        // ⑲-10 보상 꽃이 다시 핀다(fieldboss.js)
         gs.clears = (gs.clears || 0) + 1;
-        var gl = clearLoot('guard', e.tier), gg = gl.gold, gd = gl.dust;
+        /* ⑲-10 다시 선 수호자는 토벌 금·단사·경험이 없다 — 보상은 꽃에서(원기 40) */
+        var gl = again ? { gold: 0, dust: 0 } : clearLoot('guard', e.tier), gg = gl.gold, gd = gl.dust;
         c.save.player.gold = (c.save.player.gold || 0) + gg;
         c.save.dust = (c.save.dust || 0) + gd;
-        if (c.gainExp) { c.gainExp(30 * e.tier); }
+        if (c.gainExp && !again) { c.gainExp(30 * e.tier); }
         var BMg = global.DG.biome, pr = rk.split('_'), rc = BMg && BMg.cellAt ? BMg.cellAt(+pr[0], +pr[1]) : null;
-        toast('🛡️ ' + (rc ? rc.name + ' ' : '') + '수호자 토벌! 금 +' + gg + ' · 단사 +' + gd);
+        toast('🛡️ ' + (rc ? rc.name + ' ' : '') + '수호자 토벌!' + (again ? '' : ' 금 +' + gg + ' · 단사 +' + gd) + ' — 🌸 보상 꽃이 피었다');
         c.log('🛡️ 지역 수호자 토벌' + (rc ? ' — ' + rc.name : '') + ' (등급 ' + e.tier + ') — 금 +' + gg, 'battle');
         sfx('reward');
         c.emit('field:guard', { region: rk, tier: e.tier });
@@ -1793,7 +1802,7 @@
     create: create, reparty: reparty, populate: populate, spawnCamp: spawnCamp, step: step, drain: drain,
     attack: attack, skill: skill, burst: burst, dodge: dodge, swap: swap, hitFoe: hitFoe,
     engaged: engaged, living: living, memberOf: memberOf, applyWorld: applyWorld, rescaleWorld: rescaleWorld, killGold: killGold, clearLoot: clearLoot,
-    duelCamp: duelCamp, canChallenge: canChallenge, challenge: challenge, duelSpawn: duelSpawn,
+    guardBack: guardBack, duelCamp: duelCamp, canChallenge: canChallenge, challenge: challenge, duelSpawn: duelSpawn,
     /* 런타임 */
     init: init, tick: tick, act: act, live: live, leadId: leadId,
     state: function () { return S; },

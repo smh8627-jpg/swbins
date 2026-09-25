@@ -92,6 +92,11 @@
         if (nb && nb.inRange) { core.emit('beacon:request', nb.beacon); }
         return;
       }
+      if (e.target.closest('[data-act="bloom"]')) {              // ⑲-10 보상 꽃
+        var FB0 = global.DG.fieldBoss, nb0 = FB0 && FB0.nearest(DOMAIN_NEAR);
+        if (nb0 && nb0.inRange) { core.emit('fieldboss:request', nb0.b); }
+        return;
+      }
       if (e.target.closest('[data-act="domain"]')) {             // ⑲-9 비경 입구
         var DM0 = global.DG.domain, nd0 = DM0 && DM0.nearest(DOMAIN_NEAR);
         if (nd0 && nd0.inRange) { core.emit('domain:request', nd0.d); }
@@ -617,6 +622,18 @@
       '</div>';
   }
   var DOMAIN_NEAR = 300;     // m
+  /** ⑲-10 보상 꽃 — 쓰러진 수호자 자리 */
+  function nearBloomCard(nb) {
+    var FB = global.DG.fieldBoss, b = nb.b, M = FB.MATS[b.biome], DM = global.DG.domain;
+    return '<div class="near-card">' +
+        '<div class="near-ico" style="border-color:#ffb6e1">🌸</div>' +
+        '<div class="near-meta"><b>' + esc(b.name) + ' 보상 꽃</b>' +
+          '<small style="color:#ffb6e1">' + (M ? M.icon + ' ' + M.name + ' · ' : '') + Math.round(nb.dist) + 'm' + (DM ? ' · 🌙 ' + DM.resin() + '/' + FB.COST : '') + '</small></div>' +
+        (nb.inRange
+          ? '<button class="btn primary" data-act="bloom">받는다</button>'
+          : approachBtn(b.x, b.y)) +
+      '</div>';
+  }
 
   var SHRINE_NEAR = 500;     // m — 이보다 먼 사당은 (보여도) 근접 패널에 안 올린다
 
@@ -628,7 +645,8 @@
     var nb = BC ? BC.nearestUnlit() : null;
     var SHR = global.DG.shrine, nsh = SHR ? SHR.nearest(SHRINE_NEAR) : null;
     var DMN = global.DG.domain, ndm = DMN && !DMN.active() ? DMN.nearest(DOMAIN_NEAR) : null;
-    if (!n && !ns && !nb && !nsh && !ndm) {
+    var FBN = global.DG.fieldBoss, nfb = FBN ? FBN.nearest(DOMAIN_NEAR) : null;
+    if (!n && !ns && !nb && !nsh && !ndm && !nfb) {
       els.near.classList.remove('show');
       nearUid = null;
       return;
@@ -643,12 +661,13 @@
       (nb ? nb.beacon.key + '|' + (nb.dist <= BC.HIT_RADIUS) + '|' + Math.round(nb.dist / 5) : '-') + '||' +
       (nsh ? nsh.shrine.key + '|' + nsh.inRange + '|' + Math.round(nsh.dist / 5) + '|' + nsh.state.clears + '|' +
         SHR.entry(nsh.shrine).reason : '-') + '||' +
-      (ndm ? ndm.d.id + '|' + ndm.inRange + '|' + Math.round(ndm.dist / 5) + '|' + DMN.resin() : '-');
+      (ndm ? ndm.d.id + '|' + ndm.inRange + '|' + Math.round(ndm.dist / 5) + '|' + DMN.resin() : '-') + '||' +
+      (nfb ? nfb.b.rk + '|' + nfb.inRange + '|' + Math.round(nfb.dist / 5) : '-');
     if (key !== nearUid) {
       nearUid = key;
       els.near.innerHTML = (n ? nearSpawnCard(n) : '') + (ns ? nearStationCard(ns) : '') +
         (nb ? nearBeaconCard({ beacon: nb.beacon, dist: nb.dist, inRange: nb.dist <= BC.HIT_RADIUS }) : '') +
-        (nsh ? nearShrineCard(nsh) : '') + (ndm ? nearDomainCard(ndm) : '');
+        (nsh ? nearShrineCard(nsh) : '') + (ndm ? nearDomainCard(ndm) : '') + (nfb ? nearBloomCard(nfb) : '');
     }
     els.near.classList.add('show');
   }
@@ -1448,7 +1467,8 @@
           (chk.ok ? '' : ' disabled') + ' data-act="rankup" data-id="' + h.id + '">' +
           '✨ 승급 ★' + (g.rank + 1) + ' · 중복 ' + hero().dupOf(h.id) + '/' + cost.dup +
           ' · 🪙 ' + core.fmt(cost.gold) +
-          (cost.sp ? ' · ' + cost.sp.icon + ' ' + cost.sp.have + '/' + cost.sp.n : '') + '</button>';
+          (cost.sp ? ' · ' + cost.sp.icon + ' ' + cost.sp.have + '/' + cost.sp.n : '') +
+          (cost.boss ? ' · ' + cost.boss.icon + ' ' + cost.boss.have + '/' + cost.boss.n : '') + '</button>';   // ⑲-10 보스 재료
       }
       if (net().online()) {
         out += '<button class="btn wide" data-act="dt-talk" data-id="' + h.id + '">💬 말을 건다 (사관)</button>';

@@ -585,7 +585,7 @@
     /* 판정(순수) */
     entranceOf: entranceOf, altarOf: altarOf, resinAt: resinAt, weekKey: weekKey, rewardOf: rewardOf, rewardText: rewardText,
     /* 세이브를 읽는 값 */
-    list: list, byId: byId, nearest: nearest, resin: resin, resinNextMs: resinNextMs, costOf: costOf, weeklyUsed: weeklyUsed,
+    list: list, byId: byId, nearest: nearest, resin: resin, resinNextMs: resinNextMs, spendResin: spend, costOf: costOf, weeklyUsed: weeklyUsed,
     stageOpen: stageOpen, enterCheck: enterCheck,
     /* 도전 */
     enter: enter, leave: leave, claim: claim, step: step, tick: tick, openGate: openGate,

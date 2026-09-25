@@ -397,6 +397,7 @@
     if (global.DG.treasure) { global.DG.treasure.tick(dt); }         // 보물 상자·수집 구슬·원소 시야(§5⑲-3)
     if (global.DG.cooking) { global.DG.cooking.tick(dt); }           // 채집·솥·요리 버프(§5⑲-6)
     if (global.DG.domain) { global.DG.domain.tick(dt); }             // 비경·원기·주간 보스(§5⑲-9)
+    if (global.DG.fieldBoss) { global.DG.fieldBoss.tick(dt); }       // 들판 보스 보상 꽃(§5⑲-10)
     if (!global.DG_NO_DRAW) {
       world.draw();
       global.DG.minimap.tick(dt);      // 미니맵은 매 프레임이 아니라 제 박자로 다시 그린다
