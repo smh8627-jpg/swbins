@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!114 &-6985725693460756117
+--- !u!114 &-4551778915684351490
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5efe9f149a2a90b49813938af1b19b55, type: 3}
   m_Name: CutsceneDollyClip
   m_EditorClassIdentifier: SagaDungeon::Saga.Dungeon.Cinematics.CutsceneDollyClip
---- !u!114 &-3334032579024670877
+--- !u!114 &-3823396483469129533
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -36,10 +36,10 @@ MonoBehaviour:
   - m_Version: 1
     m_Start: 0.699999988079071
     m_ClipIn: 0
-    m_Asset: {fileID: 4095873200030451952}
+    m_Asset: {fileID: 7399726014915810810}
     m_Duration: 3.200000047683716
     m_TimeScale: 1
-    m_ParentTrack: {fileID: -3334032579024670877}
+    m_ParentTrack: {fileID: -3823396483469129533}
     m_EaseInDuration: 0
     m_EaseOutDuration: 0
     m_BlendInDuration: 0
@@ -118,32 +118,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: Unity.Timeline::UnityEngine.Timeline.TimelineAsset
   m_Version: 0
   m_Tracks:
-  - {fileID: 4856097969892446285}
-  - {fileID: 5725120278384917434}
-  - {fileID: -3334032579024670877}
+  - {fileID: 7405355451071827934}
+  - {fileID: 9023611385414024981}
+  - {fileID: -3823396483469129533}
   m_FixedDuration: 0
   m_EditorSettings:
     m_Framerate: 60
     m_ScenePreview: 1
   m_DurationMode: 0
   m_MarkerTrack: {fileID: 0}
---- !u!114 &490006575396779594
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 90fb794a295e73545af71bcdb7375791, type: 3}
-  m_Name: CinemachineShot
-  m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineShot
-  DisplayName: arrival_wide
-  VirtualCamera:
-    exposedName: arrival_wide
-    defaultValue: {fileID: 0}
---- !u!114 &4095873200030451952
+--- !u!114 &7399726014915810810
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -160,7 +144,7 @@ MonoBehaviour:
   titleFallback: "\uC78A\uD78C \uB2A5\uBB18"
   subKey: cut.temple_sub
   subFallback: "\uC774\uB984 \uC783\uC740 \uC655\uC774 \uC7A0\uB4E0 \uACF3"
---- !u!114 &4856097969892446285
+--- !u!114 &7405355451071827934
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -184,10 +168,10 @@ MonoBehaviour:
   - m_Version: 1
     m_Start: 0
     m_ClipIn: 0
-    m_Asset: {fileID: 490006575396779594}
+    m_Asset: {fileID: 8942176893659416623}
     m_Duration: 4.5
     m_TimeScale: 1
-    m_ParentTrack: {fileID: 4856097969892446285}
+    m_ParentTrack: {fileID: 7405355451071827934}
     m_EaseInDuration: 0.8999999761581421
     m_EaseOutDuration: 0.8999999761581421
     m_BlendInDuration: -1
@@ -253,7 +237,23 @@ MonoBehaviour:
   m_Markers:
     m_Objects: []
   TrackPriority: 0
---- !u!114 &5725120278384917434
+--- !u!114 &8942176893659416623
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 90fb794a295e73545af71bcdb7375791, type: 3}
+  m_Name: CinemachineShot
+  m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineShot
+  DisplayName: arrival_wide
+  VirtualCamera:
+    exposedName: arrival_wide
+    defaultValue: {fileID: 0}
+--- !u!114 &9023611385414024981
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -277,10 +277,10 @@ MonoBehaviour:
   - m_Version: 1
     m_Start: 0
     m_ClipIn: 0
-    m_Asset: {fileID: -6985725693460756117}
+    m_Asset: {fileID: -4551778915684351490}
     m_Duration: 4.5
     m_TimeScale: 1
-    m_ParentTrack: {fileID: 5725120278384917434}
+    m_ParentTrack: {fileID: 9023611385414024981}
     m_EaseInDuration: 0
     m_EaseOutDuration: 0
     m_BlendInDuration: 0

@@ -99,6 +99,7 @@ namespace Saga.Dungeon.World
         // PLAN.md 108 ③ 명소 층 — 이 층이 `DungeonLandmarkData` 의 몇 번째인지(-1 이면 보통 층), 지금 층 주인.
         private int _landmark = -1;
         private DungeonEnemy _lord;
+        private EraDecorBuilder _eraDecor; // PLAN.md 109-2b — 자식 "LandmarkEraDecor"(없는 씬이면 null).
 
         public int CurrentLandmark => _landmark;
         public int RoomIndex => _roomIndex;
@@ -158,6 +159,7 @@ namespace Saga.Dungeon.World
             _contentRoot = contentGo.transform;
 
             _roomBuilder = GetComponent<DungeonRoomBuilder>();
+            _eraDecor = GetComponentInChildren<EraDecorBuilder>(true);
             UpdateWearTier();
 
             EnterFloorLayout();
@@ -178,6 +180,7 @@ namespace Saga.Dungeon.World
             _landmark = DungeonLandmarkData.IndexOfFloor(_floor);
             _roomTotal = _landmark >= 0 ? DungeonLandmarkData.RoomCount : DungeonFormulas.RoomsFor(_floor);
             _lord = null;
+            if (_eraDecor != null) _eraDecor.ShowLandmark(_landmark); // 109-2b 명소 층 꾸밈(시대 층) — 그 층 것만 켠다.
         }
 
         private string FirstRoomKind() => _landmark >= 0 ? DungeonLandmarkData.All[_landmark].Kinds[0] : "fight";

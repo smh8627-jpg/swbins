@@ -330,6 +330,7 @@ namespace Saga.EditorTools
             BuildEraFolk(); // PLAN.md 109-2 — 마을·갈림길 시대 손님(마을 넷을 다 지은 뒤)
             BuildShortcutCrossroads();
             BuildShortcutCrossroads2();
+            BuildTownEraDecor(); // PLAN.md 109-2b — 마을 셋·갈림길 둘 꾸밈에 시대 층(갈림길까지 다 지은 뒤)
             BuildCorridorAndRoom2();
             BuildCorridorAndRoom3();
             BuildCorridorAndRoom4();
@@ -1045,6 +1046,37 @@ namespace Saga.EditorTools
             SetPrivateField(runner, "eraFoeScaleMuls", eraMuls);
             SetPrivateField(runner, "modernPeddlerModel", AssetDatabase.LoadAssetAtPath<GameObject>(SetupNpcCharacterImports.PrefabPath(Saga.Dungeon.Data.DungeonEras.ModernPeddlerBody)));
             SetPrivateField(runner, "futurePeddlerModel", AssetDatabase.LoadAssetAtPath<GameObject>(SetupNpcCharacterImports.PrefabPath(Saga.Dungeon.Data.DungeonEras.FuturePeddlerBody)));
+
+            // PLAN.md 109-2b — 명소 층 꾸밈 여섯 벌(시대 층). 꺼 둔 채 굽고, 층 진행기가 그 층일 때만 켠다.
+            var landmarkDecorGo = new GameObject("LandmarkEraDecor");
+            landmarkDecorGo.transform.SetParent(procRoomGo.transform, false);
+            var landmarkDecor = landmarkDecorGo.AddComponent<EraDecorBuilder>();
+            InitEraDecor(landmarkDecor);
+            landmarkDecor.BuildLandmarks();
+        }
+
+        /// <summary>PLAN.md 109-2b — `DungeonEraDecor.Towns` 순서의 방 가운데.</summary>
+        internal static readonly Vector3[] EraDecorTownCenters = { Town2Center, Town3Center, Town4Center, CrossroadsCenter, Crossroads2Center };
+
+        private static void BuildTownEraDecor()
+        {
+            var go = new GameObject("TownEraDecor");
+            var builder = go.AddComponent<EraDecorBuilder>();
+            InitEraDecor(builder);
+            builder.BuildTowns(EraDecorTownCenters);
+        }
+
+        /// <summary>Poly Haven 스캔(GO 108 ① 이 받은 것, `tools/fetch_polyhaven_models.py`)을 불러 넣는다. 없는 모델은 경고 뒤 그 조각만 빠진다.</summary>
+        private static void InitEraDecor(EraDecorBuilder builder)
+        {
+            var ids = DungeonEraDecor.ModelIds;
+            var models = new GameObject[ids.Length];
+            for (int i = 0; i < ids.Length; i++)
+            {
+                models[i] = AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Art/Props/PolyHaven/{ids[i]}/{ids[i]}_1k.gltf");
+                if (models[i] == null) Debug.LogWarning($"[BuildTestDungeonScene] 시대 꾸밈 모델 {ids[i]} 없음");
+            }
+            builder.Init(ids, models);
         }
 
         /// <summary>PLAN.md 109-2 — 마을 셋·갈림길의 시대 손님 자리(`DungeonEras.FolkList` 순). 문·행상·등롱·궤짝·촌민과 안 겹친다.</summary>
