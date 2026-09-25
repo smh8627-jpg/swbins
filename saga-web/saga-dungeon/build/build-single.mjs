@@ -44,7 +44,7 @@ const readAll = (list) => list.map((rel) => {
 const cssParts = readAll(cssHrefs);
 const jsParts = readAll(scriptSrcs);
 
-let html = indexHtml.replace(/<script src="assets\/portraits\/manifest\.js"><\/script>\s*/, '').replace(/<script src="assets\/sprites2d\/mon-manifest\.js"><\/script>\s*/, '');   // 없는 파일을 가리키면 깨진 그림이 뜬다
+let html = indexHtml.replace(/<script src="assets\/portraits\/manifest\.js"><\/script>\s*/, '').replace(/<script src="assets\/sprites2d\/mon-manifest\.js"><\/script>\s*/, '').replace(/<script src="assets\/sprites2d\/people-manifest\.js"><\/script>\s*/, '');   // 없는 파일을 가리키면 깨진 그림이 뜬다
 
 /* 스타일시트 → <style> */
 for (const href of cssHrefs) {

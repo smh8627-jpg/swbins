@@ -4,6 +4,7 @@
  *
  *   node tools/bake-portraits/bake.mjs <게임폴더> [--kind=hero|pet] [--limit=N] [--only=id,id]
  *   node tools/bake-portraits/bake.mjs saga-dungeon --sprites=monsters   (적 짐승 몸 → 옆모습 걷기 시트 assets/sprites2d/mon_*.webp)
+ *   node tools/bake-portraits/bake.mjs saga-dungeon --sprites=people [--only=h_x,n_y] (사람 3D 몸 → 인물별 걷기 시트 assets/sprites2d/people/*.webp)
  *   node tools/bake-portraits/bake.mjs saga-forest --sprites=animals [--only=wolf,rabbit] (들짐승 3D → 2D 지도 시트 assets/sprites2d/animals/<종류>.png)
  *   (2026-09-23 까지는 짐승 외곽선이 검은 파편으로 번져 `--tune=world3d.outline:0` 로 끄고 구웠다 — 외곽선 폭·스키닝 순서를 고쳐 이제 켜고 굽는다)
  *   부가 옵션: --tune=키:값(굽는 동안 손잡이) --gl=d3d11(실제 GPU) --out=경로 --eval=파일.js(페이지 안에서 스크립트 실행)
@@ -147,16 +148,16 @@ try {
    * 몸 키(`data-enemy.js` 의 body, 없으면 'beast')마다 5컷 가로 시트 — 걷기 4컷 + 서 있기 1컷, 컷당 128px 정사각,
    * 발이 아래·몸 중심이 가운데, 앞(+Z)이 **오른쪽**(카메라가 -X 에서 +X 를 본다). 컷 사이 배율은 같다(흔들림 없게).
    * 결과 `assets/sprites2d/mon_<몸>.webp` + `mon-manifest.js`(굽힌 키 목록). */
-  if (opt.sprites === 'monsters') {
+  if (opt.sprites === 'monsters' || opt.sprites === 'people') {
     await evalJs(`(function () {
-      var T = THREE, A3 = DG.asset3d, R = null, scene = null, cam = null, rig = null, CELL = 128, SS = 2;
+      var T = THREE, A3 = DG.asset3d, R = null, scene = null, cam = null, rig = null, CELL = ${opt.sprites === 'people' ? Number(opt.cell || 96) : 128}, SS = 2;
       function boot() {
         if (R) { return; }
         var cv = document.createElement('canvas');
         R = new T.WebGLRenderer({ canvas: cv, antialias: true, alpha: true, preserveDrawingBuffer: true });
         R.setClearColor(0x000000, 0); R.setPixelRatio(1); R.setSize(CELL * SS, CELL * SS, false);
         if (T.ACESFilmicToneMapping) { R.toneMapping = T.ACESFilmicToneMapping; }
-        R.toneMappingExposure = 1.2;
+        R.toneMappingExposure = ${Number(opt.expo || 1.2)};
         if (T.SRGBColorSpace) { R.outputColorSpace = T.SRGBColorSpace; }
         scene = new T.Scene();
         scene.add(new T.HemisphereLight(0xdce8ff, 0x746a5c, 2.2));
@@ -166,9 +167,16 @@ try {
         rig = new T.Group(); scene.add(rig);
       }
       function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
-      window.__bakeSprite = async function (key, quality) {
+      window.__bakeSprite = function (key, quality) {
+        return bakeNode(A3.build(key, 'spr', 42, null, function () { return new T.Group(); }), quality);
+      };
+      /* --sprites=people : 3D 가 세우는 것과 같은 씨앗·물빛의 사람 몸(sprite.peopleList 한 줄) */
+      window.__bakePerson = function (p, quality) {
+        return bakeNode(p.model ? A3.build(p.model, p.seed, 42, null, function () { return new T.Group(); })
+          : A3.buildHero(p.seed, 42, p.tint, null), quality);
+      };
+      async function bakeNode(node, quality) {
         boot();
-        var node = A3.build(key, 'spr', 42, null, function () { return new T.Group(); });
         for (var i = 0; i < 300 && node.userData.assetState === 'shape'; i++) { await sleep(100); }
         if (node.userData.assetState !== 'glb') { return null; }
         while (rig.children.length) { rig.remove(rig.children[0]); }
@@ -197,6 +205,32 @@ try {
       };
       return true;
     })()`);
+    /* ── --sprites=people : 사람(도감 인물·마을 사람·사람 적)마다 3D 몸을 옆모습 걷기 시트로(2026-09-25, CHARACTER_UNIQUENESS ⑤) ──
+     * 목록은 게임의 `DG.sprite.peopleList()`(줄기·씨앗·물빛·folk 몸) — 결과 `assets/sprites2d/people/<줄기>.webp` + `people-manifest.js`.
+     * 몬스터 시트와 같은 5컷 가로(걷기 4 + 서기 1), 컷 --cell(기본 96)px. --only=줄기,… 로 일부만 */
+    if (opt.sprites === 'people') {
+      const list = await evalJs('DG.sprite.peopleList()');
+      const outDir = path.resolve(opt.out || path.join(gameDir, 'assets', 'sprites2d', 'people'));
+      fs.mkdirSync(outDir, { recursive: true });
+      const onlyP = opt.only ? String(opt.only).split(',') : null;
+      const okP = []; const badP = [];
+      for (const p of list.filter(x => !onlyP || onlyP.includes(x.stem))) {
+        const url = await evalJs(`window.__bakePerson(${JSON.stringify(p)}, 0.85)`, 90000).catch(() => null);
+        if (url && url.startsWith('data:image/webp')) { fs.writeFileSync(path.join(outDir, `${p.stem}.webp`), Buffer.from(url.split(',')[1], 'base64')); okP.push(p.stem); }
+        else { badP.push(p.stem); }
+        if ((okP.length + badP.length) % 20 === 0) { console.log(`… ${okP.length + badP.length}/${list.length}`); }
+      }
+      const pmf = path.join(path.dirname(outDir), 'people-manifest.js');
+      let prevP = [];
+      if (fs.existsSync(pmf)) { const m = fs.readFileSync(pmf, 'utf8').match(/keys:"([^"]*)"/); if (m && m[1]) { prevP = m[1].split(','); } }
+      const allP = [...new Set([...prevP, ...okP])].filter(k => fs.existsSync(path.join(outDir, k + '.webp'))).sort();
+      fs.writeFileSync(pmf, `/* bake-portraits --sprites=people 가 쓴다 — 손으로 고치지 않는다. 사람마다 5컷 가로 시트(걷기 4 + 서기 1), 컷 ${Number(opt.cell || 96)}px, people/<줄기>.webp. */
+(function(g){g.DG=g.DG||{};g.DG.peopleSprites={v:1,cell:${Number(opt.cell || 96)},walk:4,keys:"${allP.join(',')}"};})(window);
+`);
+      console.log(`사람 시트 — 구움 ${okP.length}, 못 구움 ${badP.length}${badP.length ? ' (' + badP.join(',') + ')' : ''}`);
+      done(0);
+      await new Promise(() => {});
+    }
     const keys = await evalJs(`(function () {
       var E = DG.enemyData, seen = {}, out = [];
       (E.enemies || []).concat(E.bosses || [], E.eraEnemies || []).forEach(function (e) { if (e.kind === 'beast') { var k = e.body || 'beast'; if (!seen[k]) { seen[k] = 1; out.push(k); } } });

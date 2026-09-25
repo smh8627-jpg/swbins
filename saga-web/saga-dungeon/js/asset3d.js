@@ -1064,12 +1064,13 @@
      VRoid 네 벌 해시(한 몸당 수십 명) 대신 **이름마다 제 몸**을 손으로 짝지었다 — 모두 다른 hero_light 한 벌,
      역할에 어울리게(산적=바이킹·왜구=해적·마적=카우보이·기병=기사…). 도감 인물·동행·나는 VRoid 그대로.
      그림체는 Quaternius 저폴리 계열만(Kenney 블록형 제외), 세 시대 적·손님이 쓰는 파일(§5.20)도 뺐다.
-     키는 buildHero 씨앗 — 적은 표시 이름, 마을 사람은 'npc:'+키. 손잡이 `asset3d.fixedBody`(0 = 옛 해시) */
+     키는 buildHero 씨앗 — 적은 표시 이름, 마을 사람은 'npc:'+키. 손잡이 `asset3d.fixedBody`(0 = 옛 해시).
+     ppmore_adventurer2·ppmore_soldier2 는 ppmen_adventurer·ppwomen_soldier 와 같은 GLB(md5 같음)라 안 쓴다(2026-09-25 2D 사람 시트로 발견) */
   var FIXED_HERO = {
     '황건적': 'ogau_worker_male', '산적': 'ogau_viking_male', '도적떼': 'kaykitadv_rogue_hooded',
     '떠돌이 병졸': 'ogau_soldier_male', '왜구': 'ogau_pirate_male', '마적': 'ogau_cowboy_male',
-    '오랑캐 궁수': 'qrpg_ranger', '거란 기병': 'ogau_bluesoldier_male', '여진 궁수': 'ppmore_adventurer2',
-    '몽골 기병': 'ogau_knight_male', '왜군 조총병': 'ogau_ninja_male', '위군 창병': 'ppmore_soldier2',
+    '오랑캐 궁수': 'qrpg_ranger', '거란 기병': 'ogau_bluesoldier_male', '여진 궁수': 'ogau_elf',
+    '몽골 기병': 'ogau_knight_male', '왜군 조총병': 'ogau_ninja_male', '위군 창병': 'ogau_viking_female',
     '수군 척후선': 'pppirate_henry', '철갑 중장병': 'ogaknight_char', '근위 기병': 'kaykitadv_knight',
     '연노 사수': 'ogau_bluesoldier_female', '수군 함대': 'pppirate_anne', '흑기병': 'ogau_knight_golden_male',
     '황건 두목': 'qrpg_warrior', '산채 두령': 'kaykitadv_barbarian', '왜구 선장': 'pppirate_piratecaptain',

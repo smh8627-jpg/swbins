@@ -370,6 +370,54 @@
     return (h % HUMAN_SPRITE_N) + 1;
   }
 
+  /** 2D 사람 인물별(2026-09-25, CHARACTER_UNIQUENESS ⑤) — Kenney 열넷을 해시로 나누면 한 장에 여남은 명이 겹친다.
+   *  그래서 3D 몸을 옆모습 걷기 시트로 미리 구운 `assets/sprites2d/people/<줄기>.webp`(5컷 가로: 걷기 4 + 서기 1,
+   *  앞이 오른쪽 — `tools/bake-portraits --sprites=people` 산출, `people-manifest.js` 에 적힌 것만)를 먼저 쓴다.
+   *  몸은 3D 와 같은 씨앗 — 도감 인물 'hero:'+id(초상과 같은 몸), 마을 사람 'npc:'+키, 세 시대 손님 제 folk 몸,
+   *  사람 적 이름. 줄기: h_<id> · n_<키> · f_<이름 FNV 16진>. 없으면(단독 빌드·안 구운 사람) 예전 Kenney 열넷 */
+  var peopleSet = null, peopleFrom = null, personImgCache = {};
+  function nameHash(s) {
+    var h = 2166136261, i;
+    s = String(s || '');
+    for (i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+    return ('0000000' + (h >>> 0).toString(16)).slice(-8);
+  }
+  function personStem(ref) {
+    if (!ref) { return null; }
+    var id = String(ref.id || '');
+    if (id.indexOf('town_') === 0) { return 'n_' + id.slice(5); }
+    if (id && ref.faction !== undefined) { return 'h_' + id; }
+    if (ref.tier && ref.name) { return 'f_' + nameHash(ref.name); }
+    return null;
+  }
+  function personKeyOf(ref) {
+    var M = global.DG.peopleSprites;
+    if (!M || !M.keys) { return null; }
+    if (peopleFrom !== M) { peopleSet = {}; peopleFrom = M; String(M.keys).split(',').forEach(function (k) { if (k) { peopleSet[k] = 1; } }); }
+    var k = personStem(ref);
+    return k && peopleSet[k] ? k : null;
+  }
+  function personImg(key) {
+    var im = personImgCache[key];
+    if (!im) { im = new Image(); im.src = 'assets/sprites2d/people/' + key + '.webp'; personImgCache[key] = im; }
+    return im;
+  }
+  function personReady(ref) { var k = personKeyOf(ref); if (!k) { return false; } var im = personImg(k); return !!(im.complete && im.naturalWidth); }
+  /** 굽기 도구가 부른다 — 구울 사람 목록 { stem, seed, tint, model } (3D 가 세우는 몸과 같은 씨앗·물빛) */
+  function peopleList() {
+    var out = [], seen = {}, D = global.DG.data, TW = global.DG.town, E = global.DG.enemyData;
+    function add(stem, seed, tint, model) { if (!seen[stem]) { seen[stem] = 1; out.push({ stem: stem, seed: seed, tint: tint || null, model: model || null }); } }
+    (D.heroes || []).forEach(function (h) { add('h_' + h.id, 'hero:' + h.id, D.faction(h.faction).color); });
+    var nd = (TW && TW.npcDefs) || {}, k;
+    for (k in nd) { if (nd.hasOwnProperty(k)) { add('n_' + k, 'npc:' + k, nd[k].color); } }
+    var ef = (TW && TW.eraFolk) || {};
+    for (k in ef) { if (ef.hasOwnProperty(k)) { add('n_' + k, 'npc:' + k, null, ef[k].model); } }
+    ((E && E.enemies) || []).concat((E && E.bosses) || []).forEach(function (e) {
+      if (e.kind === 'human') { add('f_' + nameHash(e.name), e.name, e.color); }
+    });
+    return out;
+  }
+
   /** 2D 던전 뷰의 적 짐승 — 3D 몸(`data-enemy.js` 의 body, 없으면 'beast'=늑대)을 옆모습 걷기 시트로 미리 구운 그림
    *  (`tools/bake-portraits --sprites=monsters` → `assets/sprites2d/mon_<몸>.webp`, 5컷 가로: 걷기 4 + 서기 1, 컷 128px, 앞이 오른쪽).
    *  `mon-manifest.js` 에 적힌 몸만 쓰고 나머지·도감 펫·단독 빌드(파일 없음)는 자리표시(`loadingMark`)다(코드 그림은 2026-09-23 삭제).
@@ -424,7 +472,13 @@
 
     var himg = kind === 'human' ? humanImg(humanIndexOf(o.ref)) : null;
     var useImg = !!(himg && himg.complete && himg.naturalWidth);   // 짐승은 아래에서 켠다
-    if (kind === 'human') {
+    var pk = kind === 'human' ? personKeyOf(o.ref) : null, pim = pk ? personImg(pk) : null, person = false;
+    if (pim && pim.complete && pim.naturalWidth) {
+      var pcell = pim.naturalHeight, pframe = pb === PHASES ? 4 : (pb >> 1) % 4, psq = H * 1.1;
+      c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high';
+      c.drawImage(pim, pframe * pcell, 0, pcell, pcell, footX - psq / 2, footY - psq * 0.97, psq, psq);
+      useImg = true; person = true;
+    } else if (kind === 'human') {
       if (useImg) {
         var hdw = H * 1.2, hdh = H * 1.2;
         c.imageSmoothingEnabled = false;
@@ -448,7 +502,7 @@
        그래서 스탬프는 늘 얇게, 위쪽 테만 두른다. 초상 쪽은 각자 세기를 준다. */
     diabloize(cv, H >= 64 ? { rimK: 0.30, dark: 0.88 }
                           : { rimK: 0.24, wide: false, dark: 0.88 });
-    return { cv: cv, w: w, h: h, footX: footX, footY: footY, base: base, sc: sc, img: useImg };
+    return { cv: cv, w: w, h: h, footX: footX, footY: footY, base: base, sc: sc, img: useImg, person: person };
   }
 
   /**
@@ -464,6 +518,7 @@
 
     var e = stampCache[key];
     if (e && !e.img && (kind === 'human' ? humanReady(o.ref) : monReady(o.ref))) { e = null; }   // 그림이 실리기 전에 구운 코드 그림 컷은 다시 굽는다
+    if (e && !e.person && kind === 'human' && personReady(o.ref)) { e = null; }   // 인물 시트가 늦게 실리면 Kenney 컷을 갈아 끼운다
     if (e) { stat.hit++; }
     else {
       stat.miss++;
@@ -745,7 +800,7 @@
     portraitCard: portraitCard,
     stamp: stamp, stampStats: stampStats,
     lookOf: lookOf, beastFormOf: beastFormOf, beastColorOf: beastColorOf,
-   
+    peopleList: peopleList, personKeyOf: personKeyOf,
     portrait: portrait, shade: shade
   };
 })(window);

@@ -1758,6 +1758,7 @@
     TALK_R: TALK_R, MARKS: MARKS,
     active: active, enter: enter, leave: leave, update: update,
     npcKeys: function () { return Object.keys(NPC_DEFS); },   // §5.16 몸짓 표 진단
+    npcDefs: NPC_DEFS,                                        // 2D 사람 시트 굽기(sprite.peopleList)가 옷 빛깔을 읽는다
     eraFolk: ERA_FOLK, eraFolkKeyOf: eraFolkKeyOf, eraFolkSpot: function (id) { return TOWNS[id] ? eraFolkSpot(TOWNS[id]) : null; },
     townIds: function () { return TOWN_ORDER.slice(); },
     setInput: setInput, moveTo: moveTo, castSkill: castSkill, refill: refill,

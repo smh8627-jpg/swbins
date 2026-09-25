@@ -119,6 +119,7 @@ window.requestAnimationFrame = function () { return 0; };
 <script src="js/toon3d.js"></script>
 <script src="js/anim-own.js"></script>
 <script src="js/vroid-variant.js"></script>
+<script src="assets/sprites2d/people-manifest.js"></script>
 <script src="js/asset3d.js"></script>
 <script src="js/terrain3d.js"></script>
 <script src="js/sway3d.js"></script>
@@ -5765,6 +5766,31 @@ window.requestAnimationFrame = function () { return 0; };
       });
       return heroes.length >= 100 && again && inRange && n >= Math.floor(heroes.length * 0.9) &&
         ('인물 ' + heroes.length + '명 · 서로 다른 조합 ' + n + '(' + V.N + '³ 칸)');
+    });
+
+    t('vroid-variant — 앞말 붙은 씨앗(초상 hero:·동행 ally:)도 도감 인물끼리 머리·옷 조합이 안 겹친다(눈동자만 다르면 작은 그림에서 같은 사람)', function () {
+      var V = DG.vroidVariant, heroes = DG.data.heroes, bad = [];
+      ['', 'hero:', 'ally:'].forEach(function (pre) {
+        var seen = {};
+        heroes.forEach(function (h) {
+          var p = V.pick(pre + h.id), k = p.hair + '.' + p.cloth;
+          if (seen[k]) { bad.push(pre + h.id + '=' + seen[k]); } else { seen[k] = pre + h.id; }
+        });
+      });
+      return bad.length === 0 && ('인물 ' + heroes.length + '명 × 앞말 셋 · 겹침 0');
+    });
+
+    t('2D 사람 시트 — 도감 인물·마을 사람·손님·사람 적마다 제 시트(줄기 안 겹침), 매니페스트에 다 있다', function () {
+      var S = DG.sprite, L = S.peopleList(), M = DG.peopleSprites, keys = {}, stems = {}, miss = [];
+      String((M && M.keys) || '').split(',').forEach(function (k) { if (k) { keys[k] = 1; } });
+      L.forEach(function (p) { stems[p.stem] = 1; if (!keys[p.stem]) { miss.push(p.stem); } });
+      var h = DG.data.heroes[0], hk = S.personKeyOf(h), nk = S.personKeyOf({ id: 'town_captain', name: '군교' });
+      var foe = DG.enemyData.enemies.filter(function (e) { return e.kind === 'human'; })[0], fk = S.personKeyOf(foe);
+      var beast = DG.enemyData.enemies.filter(function (e) { return e.kind === 'beast'; })[0];
+      return L.length >= DG.data.heroes.length + 8 && Object.keys(stems).length === L.length && miss.length === 0 &&
+        hk === 'h_' + h.id && nk === 'n_captain' && !!fk && fk.indexOf('f_') === 0 &&
+        S.personKeyOf(beast) === null && S.personKeyOf(null) === null &&
+        ('사람 ' + L.length + '명 · 시트 ' + Object.keys(keys).length + ' · 예: ' + hk + ' / ' + nk + ' / ' + fk);
     });
 
     t('vroid-variant — 머리·옷·눈 재질만 인물 색으로 바꾸고, 피부·얼굴과 원본 재질은 그대로다', function () {

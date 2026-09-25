@@ -54,24 +54,29 @@
   }
   /* 2026-09-25 — 도감 인물(DG.data.heroes) 끼리는 칸 셋이 겹치지 않게 한다. 해시만 쓰면 105명 중 몸·색까지
      똑같은 쌍이 나왔다(사가고 두 쌍, tools/asset-audit/CHARACTER_UNIQUENESS.md). 도감 순서대로 훑어 앞사람과
-     겹치면 `id#1`·`id#2`… 로 다시 굴린다 — 안 겹치는 인물은 예전 색 그대로다. 도감 밖(주민·절차 인물)은 해시 그대로 */
-  var uniq = null;
-  function uniqTable() {
-    if (uniq) { return uniq; }
+     겹치면 `id#1`·`id#2`… 로 다시 굴린다 — 안 겹치는 인물은 예전 색 그대로다. 도감 밖(주민·절차 인물)은 해시 그대로.
+     씨앗에 앞말이 붙어 오는 판(사가블로 초상 'hero:'+id · 동행 'ally:'+id)은 앞말마다 따로 표를 짓는다 —
+     맨 id 표로만 찾던 때는 사가블로에서 한 번도 안 걸렸다. 겹침은 **머리·옷 두 칸**으로 가른다 — 눈동자만 다른 쌍은
+     작은 그림(2D 걷기 시트 96px·먼 3D)에서 한 픽셀도 안 달라 똑같은 사람이었다(사가블로 18쌍, 2026-09-25 2D 사람 시트 md5 로 발견).
+     두 칸은 N² 자리뿐이라 도감이 그보다 많은 판(사가국지 308명)은 예전처럼 세 칸으로 가른다 */
+  var uniq = {};
+  function uniqTable(pre) {
+    if (uniq[pre]) { return uniq[pre]; }
     var D = global.DG && global.DG.data;
     if (!D || !D.heroes || !D.heroes.length) { return null; }
-    var seen = {}, out = {}, i, k, p, key;
+    var seen = {}, out = {}, i, k, p, key, two = D.heroes.length <= N * N;
     for (i = 0; i < D.heroes.length; i++) {
       k = 0;
-      do { p = rawPick(k ? D.heroes[i].id + '#' + k : D.heroes[i].id); key = p.hair + ',' + p.cloth + ',' + p.eye; k++; } while (seen[key] && k < 64);
+      do { p = rawPick(pre + (k ? D.heroes[i].id + '#' + k : D.heroes[i].id)); key = p.hair + ',' + p.cloth + (two ? '' : ',' + p.eye); k++; } while (seen[key] && k < 400);
       seen[key] = 1; out[D.heroes[i].id] = p;
     }
-    uniq = out;
-    return uniq;
+    uniq[pre] = out;
+    return out;
   }
   function pick(id) {
-    var U = uniqTable();
-    return U && Object.prototype.hasOwnProperty.call(U, id) ? U[id] : rawPick(id);
+    var s = String(id === undefined || id === null ? '' : id), m = /^(hero|ally):(.+)$/.exec(s);
+    var U = uniqTable(m ? m[1] + ':' : ''), bare = m ? m[2] : s;
+    return U && Object.prototype.hasOwnProperty.call(U, bare) ? U[bare] : rawPick(s);
   }
 
   function kindOf(name) {

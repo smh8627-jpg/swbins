@@ -1832,6 +1832,14 @@ VRoid Studio 공식 CC0 샘플 AvatarSample_A/B/C(github.com/madjin/vrm-samples,
 **Slime Enemy 는 Charlie 의 CC-BY(저작자 표시 필요)**, **Boar·Tiger·Elephant 는 Poly by Google 의 CC-BY 3.0(표시 필요)** — 표시 문구는
 위 해당 절과 같고 그대로 이행한다. 이 그림을 다시 뽑거나 모델을 바꾸면 이 절과 위 절을 같이 본다.
 
+## 사람 2D 시트 — 사람마다 3D 몸을 옆모습 걷기 그림으로 미리 구움 (`assets/sprites2d/people/*.webp`, 2026-09-25)
+
+`tools/bake-portraits/bake.mjs --sprites=people` 가 `sprite.peopleList()` 의 174명(도감 인물 135 · 마을 사람 7 · 세 시대 손님 4 · 사람 적 28)을
+위 몬스터 시트와 같은 5컷 가로 시트(컷 96px)로 구운 것이다. 2D 던전 뷰의 사람 그림이 Kenney 열넷(위 절)을 해시로 나눠 쓰던 것을
+사람마다 제 그림으로 바꾼다(`people-manifest.js` 에 적힌 것만, 없으면 Kenney 그대로). **원본은 위 각 절의 GLB·VRM 그대로다 — 새로 받은
+것이 없고**, 이 그림은 파생물이므로 각 모델의 라이선스가 그대로 따른다: VRoid 몸(`people/anime/`)·Quaternius·KayKit·OGA 사람은 위 해당 절,
+poly.pizza 의 CC-BY 몸은 **위 절의 저작자 표시를 그대로 이행**한다. 모델을 바꾸면 이 절과 위 절을 같이 본다.
+
 ## 도감(펫) 초상 — 3D 굽기가 안 되는 91종을 사가고 `beast_*.png` 16장으로 일부 채움 (2026-09-22)
 
 `assets/portraits/pet/`(14종, 위 "도감(펫) 초상 실사화" 절)와 `asset3d.js` REG 에 없어 3D 굽기 자체가 안 되는 나머지
