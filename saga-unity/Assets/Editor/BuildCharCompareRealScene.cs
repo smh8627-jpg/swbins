@@ -9,13 +9,14 @@ using UnityEngine;
 namespace Saga.EditorTools
 {
     /// <summary>
-    /// char-forge 단계 3(`tools/char-forge/README.md` §7) — 지금 몸(Mixamo Maria, 로컬 전용)과 공방 사실 몸
-    /// (`Assets/Art/CharactersForge/*.fbx`, MakeHuman·UAL 전부 CC0)을 같은 빛·같은 키(1.70m)로 나란히 세우는 비교 장면.
+    /// char-forge 단계 3(`tools/char-forge/README.md` §7) — 지금 몸(Mixamo, 로컬 전용)과 공방 사실 몸
+    /// (`Assets/Art/CharactersForge/*.fbx`, MakeHuman·UAL 전부 CC0)을 짝(주역 Maria · Goblin · 두목 Brute)마다 같은 빛·같은 키로
+    /// 나란히 세우는 비교 장면.
     /// 교체 문턱: 사람이 "못하지 않다"고 판정한 짝만 게임 몸을 바꾼다 — 이 장면은 그 판정용이고, 게임 씬은 안 건드린다.
-    /// 두 몸이 같은 순서(서기 → 걷기 → 달리기 → 베기 → 맞기 → 구르기 → 줍기 → 쓰러짐)로 저절로 돈다(런타임 스크립트 없음).
+    /// 몸마다 가진 동작을 같은 순서(서기 → 걷기 → 달리기 → 베기 → 맞기 → 구르기 → 줍기 → 쓰러짐)로 저절로 돈다(런타임 스크립트 없음).
     /// 피부는 Maria 와 같은 FakeSSS(`BuildMariaSssShaderGraph.BuildGraph`)에 공방 피부 그림을 바탕색으로 이은 그래프
     /// (`Generated/ForgeSkin.shadergraph`, 없으면 짓는다) — 둘이 같은 피부 셰이더로 비교된다. 그 밖엔 다른 saga 편집기 코드에
-    /// 기대지 않는다. Maria 파일이 없는 PC 는 공방 몸만 선다.
+    /// 기대지 않는다. 지금 몸 파일이 없는 PC 는 공방 몸만 선다.
     /// </summary>
     public static class BuildCharCompareRealScene
     {
@@ -23,21 +24,53 @@ namespace Saga.EditorTools
         public const string SkinGraph = ForgeDir + "Generated/ForgeSkin.shadergraph";
         private const string ScenePath = "Assets/Scenes/CharCompareReal.unity";
         private const string AnimDir = "Assets/Animators/CharForge/";
-        private const float Height = 1.70f;
-        private const float Gap = 1.1f;
-
-        private const string MariaDir = "Assets/Art/CharactersRealistic/";
-        private const string MariaBody = MariaDir + "Maria WProp J J Ong.fbx";
-        private static readonly Dictionary<string, string> MariaClips = new Dictionary<string, string>
-        {
-            { "idle", "Action Idle To Fight Idle" }, { "walk", "Walking" }, { "run", "Running" },
-            { "attack", "Sword And Shield Slash" }, { "hit", "Hit Reaction" }, { "dodge", "Stand To Roll" },
-            { "interaction", "Picking Up" }, { "death", "Two Handed Sword Death" },
-        };
+        private const string NowRoot = "Assets/Art/CharactersRealistic/";
         // BuildMariaSkinSplit.cs 가 구운 피부/기타 분리(있으면 게임과 같게 물린다)
-        private const string MariaSplit = MariaDir + "Generated/Maria_Split.asset";
-        private const string MariaSkin = MariaDir + "Generated/MariaSkin.mat";
-        private const string MariaRest = MariaDir + "Generated/MariaRest.mat";
+        private const string MariaSplit = NowRoot + "Generated/Maria_Split.asset";
+        private const string MariaSkin = NowRoot + "Generated/MariaSkin.mat";
+        private const string MariaRest = NowRoot + "Generated/MariaRest.mat";
+
+        /// <summary>비교 짝 — 지금 Mixamo 몸(로컬 전용 파일, 없으면 공방 몸만)과 공방 몸. 짝마다 키를 같게 맞춘다
+        /// (게임도 CharacterVisual 이 목표 키로 맞추니 모양·결만 본다). 지금 몸 클립은 SetupNpcCharacterImports·
+        /// SetupBruteCharacterImport·SetupMixamoCharacterImport 가 붙인 이름 그대로({상태: (파일 접미어, 클립 이름)}).</summary>
+        private sealed class Pair
+        {
+            public string Key, NowBody, ForgeId;
+            public float Height;
+            public Dictionary<string, (string file, string clip)> NowClips;
+        }
+
+        private static readonly Pair[] Pairs =
+        {
+            new Pair
+            {
+                Key = "Maria", NowBody = NowRoot + "Maria WProp J J Ong.fbx", ForgeId = "_cmp_real_hero_f_01", Height = 1.70f,
+                NowClips = new Dictionary<string, (string, string)>
+                {
+                    { "idle", ("Action Idle To Fight Idle", "idle") }, { "walk", ("Walking", "walk") }, { "run", ("Running", "run") },
+                    { "attack", ("Sword And Shield Slash", "attack") }, { "hit", ("Hit Reaction", "hit") }, { "dodge", ("Stand To Roll", "dodge") },
+                    { "interaction", ("Picking Up", "interaction") }, { "death", ("Two Handed Sword Death", "death") },
+                },
+            },
+            new Pair
+            {
+                Key = "Goblin", NowBody = NowRoot + "Goblin/Goblin.fbx", ForgeId = "_cmp_real_goblin_01", Height = 1.25f,
+                NowClips = new Dictionary<string, (string, string)>
+                {
+                    { "idle", ("Idle", "idle") }, { "walk", ("Walking", "walking") }, { "run", ("Running", "running") },
+                },
+            },
+            new Pair
+            {
+                Key = "Brute", NowBody = NowRoot + "Brute/Brute.fbx", ForgeId = "_cmp_real_brute_01", Height = 2.40f,
+                NowClips = new Dictionary<string, (string, string)>
+                {
+                    { "idle", ("Idle", "idle") }, { "walk", ("Walking", "walk") }, { "attack", ("SlashAdvance", "attack") },
+                    { "hit", ("HitReaction", "hit") }, { "death", ("Dying", "death") },
+                },
+            },
+        };
+        private const float DefaultHeight = 1.70f;
 
         private static readonly string[] Cycle = { "idle", "walk", "run", "attack", "hit", "dodge", "interaction", "death" };
         private static readonly HashSet<string> Loops = new HashSet<string> { "idle", "walk", "run" };
@@ -60,59 +93,92 @@ namespace Saga.EditorTools
             light.intensity = 1.2f;
             light.shadows = LightShadows.Soft;
             light.transform.rotation = Quaternion.Euler(40f, 30f, 0f);
+
+            // 짝(지금 | 공방)을 왼쪽부터 — 표에 없는 공방 FBX 는 뒤에 혼자 선다
+            var groups = new List<(float height, List<(string label, GameObject go)> figs)>();
+            var forgeIds = forge.Select(Path.GetFileNameWithoutExtension).ToList();
+            foreach (var pair in Pairs)
+            {
+                var figs = new List<(string, GameObject)>();
+                var nowAsset = AssetDatabase.LoadAssetAtPath<GameObject>(pair.NowBody);
+                if (nowAsset != null)
+                {
+                    var dir = Path.GetDirectoryName(pair.NowBody).Replace('\\', '/') + "/";
+                    var body = Path.GetFileNameWithoutExtension(pair.NowBody);
+                    var clips = pair.NowClips.ToDictionary(kv => kv.Key, kv => ClipIn(dir + body + "@" + kv.Value.file + ".fbx", kv.Value.clip));
+                    var now = (GameObject)PrefabUtility.InstantiatePrefab(nowAsset);
+                    now.name = "NOW_" + pair.Key;
+                    if (pair.Key == "Maria") ApplyMariaSkinSplit(now);
+                    Animate(now, pair.Key, clips);
+                    figs.Add(("NOW  " + pair.Key, now));
+                }
+                else
+                {
+                    Debug.LogWarning("[CharCompareReal] 지금 몸 파일이 없다(로컬 전용): " + pair.NowBody);
+                }
+                if (forgeIds.Remove(pair.ForgeId)) figs.Add(("FORGE  " + pair.Key, ForgeFigure(pair.ForgeId)));
+                if (figs.Count > 0) groups.Add((pair.Height, figs));
+            }
+            foreach (var id in forgeIds) groups.Add((DefaultHeight, new List<(string, GameObject)> { ("FORGE  " + id, ForgeFigure(id)) }));
+
+            // 짝 사이 간격은 큰 몸일수록 넓게. 키 맞추기 → 자리 → 카메라를 보게 → 이름표
+            float x = 0f, maxH = 0f;
+            var placed = new List<(string label, GameObject go, float h)>();
+            foreach (var (h, figs) in groups)
+            {
+                float step = 0.45f * h + 0.35f;
+                for (int i = 0; i < figs.Count; i++)
+                {
+                    var (label, go) = figs[i];
+                    FitHeight(go, h);
+                    go.transform.position = new Vector3(x, go.transform.position.y, 0f);
+                    go.transform.rotation = Quaternion.Euler(0f, 180f, 0f); // 카메라(-Z 쪽)를 보게
+                    Label(label, new Vector3(x, h + 0.25f, 0f));
+                    placed.Add((label, go, h));
+                    x += step;
+                }
+                x += 0.6f;
+                maxH = Mathf.Max(maxH, h);
+            }
+            float width = x - 0.6f - (placed.Count > 0 ? 0.45f * groups.Last().height + 0.35f : 0f);
+            foreach (var p in placed) p.go.transform.position += Vector3.left * (width * 0.5f);
+            foreach (var t in Object.FindObjectsByType<TextMesh>(FindObjectsSortMode.None)) t.transform.position += Vector3.left * (width * 0.5f);
+
             var ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
             ground.name = "Ground";
-            ground.transform.localScale = new Vector3(2f, 1f, 2f);
+            ground.transform.localScale = new Vector3(Mathf.Max(2f, width * 0.2f + 1f), 1f, 2f);
             ground.GetComponent<Renderer>().sharedMaterial = Lit("CharCompareGround", new Color(0.55f, 0.55f, 0.55f));
-
-            var rows = new List<(string label, GameObject go)>();
-            var mariaAsset = AssetDatabase.LoadAssetAtPath<GameObject>(MariaBody);
-            if (mariaAsset != null)
-            {
-                var clips = MariaClips.ToDictionary(kv => kv.Key,
-                    kv => ClipIn(MariaDir + "Maria WProp J J Ong@" + kv.Value + ".fbx", kv.Key));
-                var maria = (GameObject)PrefabUtility.InstantiatePrefab(mariaAsset);
-                maria.name = "NOW_Mixamo_Maria";
-                ApplyMariaSkinSplit(maria);
-                Animate(maria, "Maria", clips);
-                rows.Add(("NOW  Mixamo", maria));
-            }
-            else
-            {
-                Debug.LogWarning("[CharCompareReal] Maria 파일이 없다(Assets/Art/CharactersRealistic 은 로컬 전용) — 공방 몸만 세운다");
-            }
-            foreach (var fbx in forge)
-            {
-                var id = Path.GetFileNameWithoutExtension(fbx);
-                var go = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(fbx));
-                go.name = "FORGE_" + id;
-                var clips = AssetDatabase.LoadAllAssetsAtPath(fbx).OfType<AnimationClip>()
-                    .Where(c => !c.name.StartsWith("__preview")).ToDictionary(c => c.name, c => c);
-                Animate(go, id, clips);
-                rows.Add(("FORGE  " + id, go));
-            }
-
-            for (int i = 0; i < rows.Count; i++)
-            {
-                var (label, go) = rows[i];
-                FitHeight(go, Height);
-                var p = go.transform.position;
-                go.transform.position = new Vector3((i - (rows.Count - 1) * 0.5f) * Gap, p.y, 0f);
-                go.transform.rotation = Quaternion.Euler(0f, 180f, 0f); // 카메라(-Z 쪽)를 보게
-                Label(label, go.transform.position + Vector3.up * (Height + 0.25f));
-            }
 
             var cam = new GameObject("Main Camera", typeof(Camera)).GetComponent<Camera>();
             cam.tag = "MainCamera";
             cam.clearFlags = CameraClearFlags.SolidColor;
             cam.backgroundColor = new Color(0.5f, 0.6f, 0.7f);
             cam.fieldOfView = 35f;
-            cam.transform.position = new Vector3(0f, 1.2f, -2.6f - 0.6f * rows.Count);
-            cam.transform.rotation = Quaternion.Euler(6f, 0f, 0f);
+            float dist = Mathf.Max(width * 1.05f + 1.2f, maxH * 2.4f);
+            cam.transform.position = new Vector3(0f, maxH * 0.55f, -dist);
+            cam.transform.rotation = Quaternion.Euler(4f, 0f, 0f);
 
             if (!AssetDatabase.IsValidFolder("Assets/Scenes")) AssetDatabase.CreateFolder("Assets", "Scenes");
             EditorSceneManager.SaveScene(scene, ScenePath);
-            Debug.Log("[CharCompareReal] built " + ScenePath + " — " + string.Join(" | ", rows.Select(r => r.label)));
+            Debug.Log("[CharCompareReal] built " + ScenePath + " — " + string.Join(" | ", placed.Select(r => r.label)));
+        }
+
+        private static GameObject ForgeFigure(string id)
+        {
+            var fbx = ForgeDir + id + ".fbx";
+            var go = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(fbx));
+            go.name = "FORGE_" + id;
+            var clips = AssetDatabase.LoadAllAssetsAtPath(fbx).OfType<AnimationClip>()
+                .Where(c => !c.name.StartsWith("__preview")).ToDictionary(c => c.name, c => c);
+            Animate(go, id, clips);
+            return go;
+        }
+
+        /// <summary>검사용 — 몸 이름(NOW_<짝>·FORGE_<id>)으로 짝 키를 찾는다.</summary>
+        private static float ExpectedHeight(string name)
+        {
+            var p = Pairs.FirstOrDefault(x => name == "NOW_" + x.Key || name == "FORGE_" + x.ForgeId);
+            return p != null ? p.Height : DefaultHeight;
         }
 
         /// <summary>배치 모드: 짓고 → 검사 → 종료 코드(0 통과 · 3 실패).</summary>
@@ -122,7 +188,7 @@ namespace Saga.EditorTools
             EditorApplication.Exit(Verify() ? 0 : 3);
         }
 
-        /// <summary>열린 비교 장면 검사 — 몸마다 키 1.70m·발 y=0·카메라 쪽·상태 8, 공방 피부는 FakeSSS 그래프 + 그림.
+        /// <summary>열린 비교 장면 검사 — 몸마다 짝 키·발 y=0·카메라 쪽·동작 셋 이상, 공방 피부는 FakeSSS 그래프 + 그림, 부품은 색.
         /// 결과는 `CMP …` 줄로 찍는다(배치 로그를 grep).</summary>
         [MenuItem("Saga/Char Forge/Verify Compare Real Scene")]
         public static bool Verify()
@@ -149,11 +215,19 @@ namespace Saga.EditorTools
                 Debug.Log("CMP " + a.name + " h=" + (hi - lo).ToString("0.000") + " lo=" + lo.ToString("0.000") + " faceZ=" + faceZ.ToString("0.00")
                           + " states=" + string.Join(",", states) + " mats=" + string.Join(" ", mats.Select(m =>
                               m.name + ":" + m.shader.name.Replace("Universal Render Pipeline/", "URP/") + (m.HasProperty("_BaseMap") && m.GetTexture("_BaseMap") ? "+tex" : ""))));
-                ok &= states.Length == 8 && !states.Any(s => s.EndsWith("!")) && Mathf.Abs(hi - lo - Height) < 0.02f && Mathf.Abs(lo) < 0.01f && faceZ < -0.3f;
+                var want = ExpectedHeight(a.name);
+                ok &= states.Length >= 3 && !states.Any(s => s.EndsWith("!")) && Mathf.Abs(hi - lo - want) < 0.02f && Mathf.Abs(lo) < 0.01f && faceZ < -0.3f;
                 if (a.name.StartsWith("FORGE_"))
                 {
                     var skin = mats.FirstOrDefault(m => m.name.EndsWith("_skin"));
                     ok &= skin != null && skin.shader == AssetDatabase.LoadAssetAtPath<Shader>(SkinGraph) && skin.GetTexture("_BaseMap") != null;
+                    // 그림 없는 부품 재질(뿔 등)은 FBX 의 바탕색을 옮겨 받아야 한다 — 흰색이면 옮기기가 빠진 것
+                    foreach (var m in mats.Where(m => !m.GetTexture("_BaseMap")))
+                    {
+                        var c = m.GetColor("_BaseColor");
+                        Debug.Log("CMP_PART " + m.name + " color=" + ColorUtility.ToHtmlStringRGB(c));
+                        ok &= !(c.r > 0.99f && c.g > 0.99f && c.b > 0.99f);
+                    }
                 }
             }
             Debug.Log("CMP_RESULT " + (ok ? "OK" : "FAIL"));
@@ -204,7 +278,9 @@ namespace Saga.EditorTools
                     AssetDatabase.CreateAsset(m, path);
                 }
                 var baseTex = src.mainTexture;
-                if (baseTex != null) m.SetTexture("_BaseMap", baseTex);
+                m.SetTexture("_BaseMap", baseTex);
+                // 그림이 있으면 흰 바탕(그림 그대로), 없으면(공방 부품 — 뿔·허리 천) FBX 의 바탕색을 옮긴다
+                m.SetColor("_BaseColor", baseTex != null ? Color.white : src.color);
                 var bump = src.HasProperty("_BumpMap") ? src.GetTexture("_BumpMap") : null;
                 if (bump != null) { m.SetTexture("_BumpMap", bump); m.EnableKeyword("_NORMALMAP"); }
                 // 칸별 손질 — 이름은 build_real.py 가 표준 칸으로 붙인다(skin·eye·hair·hair_brow·hair_lash·teeth·cloth_*)

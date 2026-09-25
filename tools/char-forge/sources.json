@@ -75,6 +75,24 @@
       "sha256": "b542127a8e25547c7c29c19f2d1d2adb9a664c80396ecd694095dbc8028a0107",
       "install": "mpfb_user_data",
       "checked": "2026-09-25"
+    },
+    "mh_animal01": {
+      "title": "MakeHuman asset pack animal01 — 짐승·괴물 얼굴 모프 다섯(돼지 코·파우누스 얼굴·당나귀/말 머리·고양이 귀)",
+      "license": "CC0-1.0 (팩 목록 다섯 항목 전부 CC0 — 같은 사이트의 animal02~04 는 CC-BY 라 안 들임)",
+      "license_file": "packs/animal01.json",
+      "license_must_not_contain": [
+        "CC-BY",
+        "AGPL"
+      ],
+      "page": "http://static.makehumancommunity.org/assets/assetpacks/animal01.html",
+      "download": {
+        "kind": "direct",
+        "url": "https://files2.makehumancommunity.org/asset_packs/animal01/animal01_cc0.zip"
+      },
+      "zip": "animal01_cc0.zip",
+      "sha256": "03cdf572f3dce0b57fde0add54c12e8523e0cfd811c2ab0752cb7a324cd14bed",
+      "install": "mpfb_user_data",
+      "checked": "2026-09-25"
     }
   }
 }

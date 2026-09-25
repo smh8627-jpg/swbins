@@ -1,0 +1,20 @@
+{
+ "id": "_cmp_real_goblin_01",
+ "_note": "단계 3 괴물 비교용 — saga-unity Goblin(Mixamo) 자리 후보. 게임 인물 아님(이름 없음). 작은 키·큰 머리·뾰족하고 큰 귀·큰 코·초록 피부·허리 천.",
+ "macro": {"gender": 1.0, "age": 0.45, "muscle": 0.7, "weight": 0.2, "height": 0.0, "proportions": 0.0,
+           "race": {"asian": 0.3, "caucasian": 0.4, "african": 0.3}},
+ "targets": {"ear-shape-pointed": 1.0, "ear-scale-incr": 1.0, "ear-scale-vert-incr": 0.7, "ear-rot-backward": 0.6,
+             "ear-trans-up": 0.5, "ear-wing-incr": 1.0,
+             "nose-scale-vert-incr": 0.7, "nose-scale-horiz-incr": 0.5, "nose-hump-incr": 0.8, "nose-point-down": 0.6,
+             "culturalibre_faun_face": 0.6, "head-scale-horiz-incr": 0.35, "head-scale-vert-incr": 0.3,
+             "chin-prognathism-incr": 0.5, "eyebrows-angle-down": 0.7, "mouth-scale-horiz-incr": 0.5,
+             "neck-scale-horiz-decr": 0.4, "torso-scale-horiz-decr": 0.3},
+ "skin": "middleage_caucasian_male/middleage_caucasian_male.mhmat",
+ "tints": {"skin": "#98b863"},
+ "eyes": "high-poly/high-poly.mhclo",
+ "eyelashes": "eyelashes02/eyelashes02.mhclo",
+ "teeth": "teeth_base/teeth_base.mhclo",
+ "kitbash": [{"part": "loincloth", "color": "#5a4632", "length": 0.5}],
+ "anims": {"idle": "Idle_Loop", "walk": "Walk_Loop", "run": "Jog_Fwd_Loop", "attack": "Punch_Jab",
+           "hit": "Hit_Chest", "death": "Death01"}
+}

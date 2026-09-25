@@ -9082,3 +9082,12 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - 함정: 손으로 쓴 guid 만 든 fbx `.meta` 는 가져오기 칸이 비어 기본값 0 = **옛 방식(materialLocation External·텍스처 이름)** 이 된다 → 재질이 밖에 텍스처 이름으로 생기고 `.fbm` 폴더가 생겨 이름으로 찾는 연결이 빗나갔다. 빌더가 `ImportViaMaterialDescription`·`InPrefab` 을 못 박고 전 연결(remap)을 비운 뒤 잇는다.
 - 커밋: Unity 가 채운 fbx `.meta`·재질 여덟·꺼낸 텍스처(14MB — FBX 에 박힌 것과 겹친다, 나중에 FBX 를 그림 없이 내보내 줄일 수 있다)·ForgeSkin 그래프·비교 장면·컨트롤러(Maria 것은 Maria 파일이 없는 PC 에서 빈 참조 — TestCharacterRealistic 과 같은 처지). Unity 부수 변경 ShaderGraphSettings.asset(줄끝만)은 되돌림. 같은 시각 다른 세션의 DUNGEON 파일은 안 건드림.
 - 사람 몫 그대로: HOW_TO_PLAYTEST §9 판정.
+
+## 2026-09-25 — char-forge 괴물 첫 짝 둘(Goblin·Brute) + 비교 장면 짝 셋 (사용자 "괴물도 공방 몸으로 이어서 해줘")
+
+- `build_real.py` 에 괴물 칸 셋: `targets`(MPFB 기본 모프 + animal01 팩 — 뼈 달기 전에) · `tints`(피부 그림에 색을 곱해 새 그림으로 굽기, FBX 는 노드를 못 옮김) · `kitbash`(뿔 `horns` 머리 뼈 · 허리 천 `loincloth` 골반→허벅지 무게, 실제 살을 재서 자리). MakeHuman animal01(돼지 코·파우누스 얼굴 등 CC0)을 sources.json 에 올림, animal02~04 는 CC-BY 라 안 들임.
+- `Assets/Art/CharactersForge/_cmp_real_goblin_01.fbx`(Goblin 자리 후보 — 1.32m·뾰족 큰 귀·큰 코·초록·허리 천, 동작 6) · `_cmp_real_brute_01.fbx`(두목 Brute 자리 후보 — 2.55m·근육 최대·돼지 코·튀어나온 턱·붉은 잿빛·굽은 뿔·허리 천, 동작 6). verify fbx 0.27°·0.55°, glb 0.0°, 두 번 빌드 같은 바이트.
+- `BuildCharCompareRealScene` 을 짝 표(Pairs)로: Maria | 공방 주역(1.70m) · Goblin | 공방 고블린(1.25m) · Brute | 공방 두목(2.40m) — 지금 몸 클립은 SetupNpc·SetupBrute 가 붙인 이름 그대로, 몸마다 가진 동작만 돈다. 그림 없는 부품 재질은 FBX 바탕색을 옮김(검사가 흰색이면 실패). saga-unity 배치 `CMP_RESULT OK`.
+- 함정 둘: ① 허리 천 단면을 살 전체로 재면 A 자세 손이 엉덩이 높이라 손까지 둘렀다(고블린 폭 ±0.48m) → 몸통·다리 가중치 정점만. ② MPFB 재질은 같은 그림을 두 노드가 읽어, 색 입힐 때 한쪽만 바꾸니 원본 그림도 FBX 에 딸려 가 Unity 에 꺼내졌다 → 둘 다 바꿈(FBX 12.8→9.7MB·13.6→9.9MB).
+- 정직한 예상: 사람 몸 비틀기라 Mixamo 의 조각한 괴물보다 못할 수 있다. 지금 Brute 는 바지·신·머리·수염이 있고 공방 두목은 허리 천뿐. 떠 있는 괴물(Nightshade)·짐승형(Warrok·Parasite)은 아직.
+- 같은 시각 다른 세션이 DUNGEON 을 고치는 중 — 그 파일은 안 건드림. 사람 몫: HOW_TO_PLAYTEST §9(짝 셋).

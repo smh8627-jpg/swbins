@@ -1,0 +1,64 @@
+{
+ "id": "_cmp_real_brute_01",
+ "_note": "단계 3 괴물 비교용 — saga-unity 두목 Brute(Mixamo) 자리 후보. 게임 인물 아님(이름 없음). 가장 큰 키·근육·돼지 코·튀어나온 턱·붉은 잿빛 피부·굽은 뿔·허리 천.",
+ "macro": {
+  "gender": 1.0,
+  "age": 0.6,
+  "muscle": 1.0,
+  "weight": 0.75,
+  "height": 1.0,
+  "proportions": 1.0,
+  "race": {
+   "asian": 0.1,
+   "caucasian": 0.5,
+   "african": 0.4
+  }
+ },
+ "targets": {
+  "elvs_piggy_nose1": 0.35,
+  "ear-shape-pointed": 0.6,
+  "ear-scale-incr": 0.4,
+  "chin-prognathism-incr": 0.8,
+  "chin-width-incr": 0.6,
+  "forehead-nubian-incr": 0.6,
+  "eyebrows-trans-down": 0.5,
+  "eyebrows-angle-down": 0.5,
+  "neck-scale-horiz-incr": 0.8,
+  "torso-scale-horiz-incr": 0.4,
+  "torso-muscle-pectoral-incr": 0.6,
+  "torso-muscle-dorsi-incr": 0.6,
+  "head-scale-horiz-incr": 0.2,
+  "mouth-scale-horiz-incr": 0.3,
+  "nose-scale-horiz-incr": 0.4
+ },
+ "skin": "middleage_african_male/middleage_african_male.mhmat",
+ "tints": {
+  "skin": "#d49a8a"
+ },
+ "eyes": "high-poly/high-poly.mhclo",
+ "eyebrows": "eyebrow010/eyebrow010.mhclo",
+ "eyelashes": "eyelashes01/eyelashes01.mhclo",
+ "teeth": "teeth_base/teeth_base.mhclo",
+ "kitbash": [
+  {
+   "part": "horns",
+   "length": 0.22,
+   "radius": 0.028,
+   "curl": 0.6,
+   "color": "#d8cdb0"
+  },
+  {
+   "part": "loincloth",
+   "color": "#43342a",
+   "length": 0.6
+  }
+ ],
+ "anims": {
+  "idle": "Sword_Idle",
+  "walk": "Walk_Loop",
+  "run": "Jog_Fwd_Loop",
+  "attack": "Sword_Attack",
+  "hit": "Hit_Chest",
+  "death": "Death01"
+ }
+}
