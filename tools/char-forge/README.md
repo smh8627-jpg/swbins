@@ -1,6 +1,6 @@
 # char-forge — 자체 인물 공방 (VRoid·Mixamo 대체)
 
-> 상태(2026-09-25 저녁): **saga-godot 몸 = VRoid 직접 디자인(D4)** — 이 도구는 VRoid 주역에 CC0 동작·얼굴 굽기·게임 배선을 맡는다(§10 `vroid_intake.sh`, 사람이 `.vrm` 을 Downloads 에 둘 때). **saga-unity(사실풍) = 단계 3 `build_real.py`** — Mixamo 괴물 자리 전부(Goblin·Brute·Warrok·Parasite·Nightshade·Hulk·Jolleen·Skeleton)와 동행 셋(Paladin·PeasantGirl·Archer)에 공방 후보가 있고, 두목 여섯(Maw·Ganfaul·Ninja·Demon·AlienSoldier·Morak)·GO 세 시대 아홉(들판 적 GasMask·Copzombie·ExoRed, 역참 사람 Remy·Megan·SwatGuy·ExoGray·Vanguard·Crypto)·DUNGEON 세 시대 여덟(잡졸 Brian·XBot·Swat·YBot·Boss·Zlorp, 행상 Leonard·Astra)도 공방 후보가 있다. 비교 장면 `Saga/Char Forge/Build Compare Real Scene` 짝 서른다섯 `CMP_RESULT OK`, **사람 판정 전**(saga-unity `docs/HOW_TO_PLAYTEST.md` §9). **새 세션 다음 일**: ① 판정이 나온 짝부터 게임 몸 교체(`SetupNpcCharacterImports`·`SetupForestCreatureModels` 가 공방 FBX 를 받게) · ② 판정이 없으면 남은 사람 NPC 를 `shell` 로 — STORY 세 시대(Racer·Dummy·Warzombie·Mremireh·Jody·Yaku·Steve·Mannequin·Olivia·Ely), FOREST 마을 사람(CastleGuard·Pelegrini·Pete·Sophie·Uriel·Jennifer), PeasantMan, 짝마다 비교 장면에 더하고 같은 점검(verify·결정성·뚫림·CMP) · ③ 동작 빈칸(등반·활공·방패 막기 — 자체 키프레임, §4). 실기 확인은 재촉하지 않는다.
+> 상태(2026-09-25 저녁): **saga-godot 몸 = VRoid 직접 디자인(D4)** — 이 도구는 VRoid 주역에 CC0 동작·얼굴 굽기·게임 배선을 맡는다(§10 `vroid_intake.sh`, 사람이 `.vrm` 을 Downloads 에 둘 때). **saga-unity(사실풍) = 단계 3 `build_real.py`** — Mixamo 괴물 자리 전부(Goblin·Brute·Warrok·Parasite·Nightshade·Hulk·Jolleen·Skeleton)와 동행 셋(Paladin·PeasantGirl·Archer)에 공방 후보가 있고, 두목 여섯(Maw·Ganfaul·Ninja·Demon·AlienSoldier·Morak)·GO 세 시대 아홉(들판 적 GasMask·Copzombie·ExoRed, 역참 사람 Remy·Megan·SwatGuy·ExoGray·Vanguard·Crypto)·DUNGEON 세 시대 여덟(잡졸 Brian·XBot·Swat·YBot·Boss·Zlorp, 행상 Leonard·Astra)도 공방 후보가 있다. 비교 장면 `Saga/Char Forge/Build Compare Real Scene` 짝 서른다섯 `CMP_RESULT OK`, **사람 판정 전**(saga-unity `docs/HOW_TO_PLAYTEST.md` §9). **새 세션 다음 일**: ① 판정이 나온 짝부터 게임 몸 교체(`SetupNpcCharacterImports`·`SetupForestCreatureModels` 가 공방 FBX 를 받게) · ② 판정이 없으면 남은 사람 NPC 열일곱을 `shell` 로 — STORY 세 시대(Racer·Dummy·Warzombie·Mremireh·Jody·Yaku·Steve·Mannequin·Olivia·Ely — 역할은 `StoryEras.cs`), FOREST 마을 사람(CastleGuard·Pelegrini·Pete·Sophie·Uriel·Jennifer — 109-4, `ForestZoneProps`·`SetupNpcCharacterImports` 주석), PeasantMan(STORY 정찰병 NPC 1.75m), 순서는 §3 "짝 하나 더하는 순서" · ③ 동작 빈칸(등반·활공·방패 막기 — 자체 키프레임, §4). 실기 확인은 재촉하지 않는다.
 > `SAGA-DESIGN.md` 는 여기를 가리키기만 한다. `tools/asset-forge` 처럼 **빌드 도구는 공유**(게임 코드 공유 금지와는 별개).
 
 ## 1. 왜
@@ -49,6 +49,7 @@ py tools/char-forge/fetch_sources.py                                 # 입력 �
 | `rigmaps.py` | 표준 뼈 목록·기준 자식 표(뼈 방향)·뼈 이름 표(`identity`·`vroid`·`mpfb`) |
 | `skeleton.py` | 해골 부품(`kitbash` `skeleton`, 레시피 마지막) — 뼈대 자리·살 단면 → 뼈 조각·두개골, 살·눈·눈썹은 걷고 이만 남긴다 |
 | `build_real.py` | **단계 3 사실 몸** — 레시피 → MPFB 몸(모프 `macro`)·`game_engine` 뼈·피부·눈·눈썹·속눈썹·이·머리·옷(MakeHuman system assets) → 모프 굳히기·옷 아래 살·도우미 지우기 → 재질 칸 이름 → UAL 동작 → `.fbx`(Unity Humanoid)+`.glb`. `BLENDER_USER_RESOURCES=tools/char-forge/_blender` 필요 |
+| `measure_shape.py` | 모양 점검(스크린샷 대신) — `.glb` 를 다시 열어 복면·바이저 띠 속 남은 살, 띠·모자·배낭 둘레(°), 옷자락 뚫림(서기·걷기·달리기), 모자 밖 머리카락을 찍는다 |
 
 동작 굽기 요점(`build.py` `retarget`): 몸 팩과 동작 팩의 쉼 자세가 목 14°·발 9° 쯤 달라, 곡선을 그대로 베끼면 자세가 기운다(측정: 칼 휘두르기 15.6°).
 그래서 ① 뼈마다 쉼 방향을 원본 쪽으로 맞추는 최소 회전을 먼저 곱하고 ② 골반 이동은 **다리 길이 비**로 늘리고
@@ -61,6 +62,8 @@ export BLENDER_USER_RESOURCES="$PWD/tools/char-forge/_blender"
     --out tools/char-forge/_out/_cmp_real_hero_f_01.glb --fbx tools/char-forge/_out/_cmp_real_hero_f_01.fbx --check
 "$B" -b --factory-startup -P tools/char-forge/verify.py -- --glb tools/char-forge/_out/_cmp_real_hero_f_01.fbx --map mpfb --clips idle=Sword_Idle,…
 ```
+
+**사람 NPC 짝 하나 더하는 순서(saga-unity, 09-25 굳힘)**: ① 비슷한 `_cmp_real_*` 레시피를 본떠 새 레시피(자리 이름·역할을 `_note` 에, 이름은 가명·실명 금지) → ② `build_real.py --check` → ③ `verify.py`(fbx·glb, `--map mpfb --clips` 는 레시피 anims) → ④ `measure_shape.py` → ⑤ 두 번 빌드해 glb sha256 같은지 → ⑥ `.fbx`+`.license.json` 을 `saga-unity/Assets/Art/CharactersForge/` 에 → ⑦ `BuildCharCompareRealScene.Pairs` 에 짝(지금 몸 상태 수에 맞춰 `BossPair` 다섯 상태 · `FolkPair` 서기·걷기 · `IdlePair` 서기만) → ⑧ **다른 세션 Unity 가 안 돌 때**(`Get-CimInstance Win32_Process` 로 saga-unity 배치 확인 — 도는 중에 FBX 를 넣으면 그 진단에 섞인다, 남의 커밋 전 파일 컴파일 오류면 고치지 말고 그쪽 커밋을 기다린다) `-executeMethod Saga.EditorTools.BuildCharCompareRealScene.BuildAndVerifyBatch` → `CMP_RESULT OK` → ⑨ 배치가 올린 `ProjectSettings/ProjectVersion.txt`·`Packages/` 되돌리기 → ⑩ HOW_TO_PLAYTEST §9 짝 목록·saga-unity HISTORY·이 README, `git commit -- <경로>`(CharactersForge·Animators/CharForge 폴더는 이 도구 몫). 껍데기 색이 다르면 칸 이름을 달리한다(같은 칸은 첫 색으로 합친다). 셸 heredoc 에 한글과 작은따옴표가 섞이면 파싱이 깨지니 레시피·생성기는 Write 로 쓴다.
 
 사실 몸 요점: 뼈를 부위보다 먼저 단다(붙이는 순간 가중치를 옮긴다 — MPFB `characterbuilder` 와 같은 순서). 재질은 `GAMEENGINE`(바탕색·노멀 그림을 원리 BSDF 에 바로 — FBX 로 그대로 간다). `bake_modifiers_remove_helpers(bake_masks=True)` 로 옷 아래 가려진 살을 실제로 지운다(운동복이면 허리 아래 몸이 빠진다). 세분화는 안 건다(폰 예산). 레시피 `macro` = MakeHuman 0~1 값(gender 0 여 · 1 남, race asian·caucasian·african).
 
