@@ -46,6 +46,8 @@ namespace Saga.Dungeon.World
             _cameraRig = Object.FindFirstObjectByType<CameraRig>(); // 101-3 G "성장 연출"용.
             _blessingChoiceUi = Object.FindFirstObjectByType<BlessingChoiceUi>();
             _sessionCard = Object.FindFirstObjectByType<SessionCard>();
+            // PLAN.md 109-10 비결 패널 — Play 때 짓는다(씬 재빌드 없이, 공격 버튼이 이미 있는 뒤라 딱지도 붙는다).
+            if (Object.FindFirstObjectByType<SecretPanelUi>() == null) new GameObject("SecretPanelUI").AddComponent<SecretPanelUi>();
             if (DungeonFloorRunner.Instance != null) DungeonFloorRunner.Instance.FloorDescended += OnFloorDescended;
         }
 

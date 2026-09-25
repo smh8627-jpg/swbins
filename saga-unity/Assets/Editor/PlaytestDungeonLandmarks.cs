@@ -166,7 +166,7 @@ namespace Saga.EditorTools
         {
             var saveType = typeof(SaveState);
             var ver = saveType.GetField("SaveVersion", BindingFlags.NonPublic | BindingFlags.Static);
-            if (ver == null || (int)ver.GetValue(null) != 10) Fail($"세이브 버전 {(ver != null ? ver.GetValue(null) : "?")} ≠ 10");
+            if (ver == null || (int)ver.GetValue(null) < 10) Fail($"세이브 버전 {(ver != null ? ver.GetValue(null) : "?")} < 10");
             var data = saveType.GetNestedType("SaveData", BindingFlags.NonPublic);
             if (data == null || data.GetField("landmarkClears") == null) Fail("SaveData.landmarkClears 없음");
             LandmarkState.Restore(new[] { 3, 0, 1 });

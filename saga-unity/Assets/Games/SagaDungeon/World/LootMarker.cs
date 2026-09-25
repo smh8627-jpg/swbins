@@ -1,5 +1,6 @@
 using UnityEngine;
 using Saga.Dungeon.Audio;
+using Saga.Dungeon.Data;
 
 namespace Saga.Dungeon.World
 {
@@ -14,6 +15,12 @@ namespace Saga.Dungeon.World
     ///
     /// 회수 판정은 트리거 콜라이더 대신 `DungeonSecretStash.cs`와 같은
     /// "DUNGEON 관례"(Update() 폴링 거리 판정)를 그대로 따른다.
+    ///
+    /// **전리품 빛기둥(PLAN.md 109-10, 웹 §5.9)** — 명품 이상이 떨어지면 그 자리에 등급색 기둥이 선다
+    /// (디아블로3 낙하 빛기둥). 이 트랙 무기 등급 셋(`ItemData.Grade`) + 명소 층 첫 토벌 무기를 웹 넷에
+    /// 맞췄다: 1 = 명품(노랑, 옅고 짧게) · 2 = 보물(초록) · 명소 무기 = 고유(주황, 굵고 높게). 높이는 웹
+    /// 110·180·260 의 비를 이 방 크기에 맞춘 3.4·5.6·8m. 보물·고유는 떨어지는 순간 소리가 난다.
+    /// 기둥이 선 표식은 1.5초 동안 줍히지 않는다 — 바로 곁에서 쓰러뜨려도 기둥이 서는 걸 보게.
     /// </summary>
     public class LootMarker : MonoBehaviour
     {
@@ -29,18 +36,98 @@ namespace Saga.Dungeon.World
         /// <summary>테스트 전용 카운터(리플렉션 대신) — `HitSpark.SpawnCount`와 같은 결.</summary>
         public static int SpawnCount { get; private set; }
 
+        public const int PillarNone = 0, PillarFine = 1, PillarTreasure = 2, PillarUnique = 3;
+        private static readonly float[] PillarHeight = { 0f, 3.4f, 5.6f, 8f };
+        private static readonly float[] PillarRadius = { 0f, 0.18f, 0.18f, 0.26f };
+        private static readonly float[] PillarAlpha = { 0f, 0.28f, 0.28f, 0.42f };
+        private static readonly Color[] PillarColor =
+        {
+            Color.clear,
+            new Color(1f, 1f, 0.39f),       // 웹 명품 #ffff64
+            new Color(0f, 0.75f, 0f),       // 웹 보물 #00c000
+            new Color(0.94f, 0.65f, 0.23f), // 웹 고유 #f0a53a
+        };
+        private const float PillarRiseSec = 0.35f;
+        private const float PillarHoldSec = 1.5f;
+
+        /// <summary>진단 — 기둥이 선 수·마지막 기둥 등급.</summary>
+        public static int PillarCount { get; private set; }
+        public static int LastPillarTier { get; private set; }
+
+        /// <summary>떨어진 물건 → 기둥 등급. 명소 층 첫 토벌 무기(`wp_lm_*`, 한 번뿐)는 고유.</summary>
+        public static int PillarTierOf(ItemData item)
+        {
+            if (item == null || item.Grade <= 0) return PillarNone;
+            if (item.Id.StartsWith("wp_lm_")) return PillarUnique;
+            return item.Grade >= 2 ? PillarTreasure : PillarFine;
+        }
+
+        private int _pillarTier;
+        private LineRenderer _core;
+        private LineRenderer _halo;
+
         private Transform _player;
         private Transform _visual;
         private Vector3 _basePos;
         private float _age;
 
-        public static void Spawn(Vector3 worldPos)
+        public static void Spawn(Vector3 worldPos, int pillarTier = PillarNone)
         {
             SpawnCount++;
             var go = new GameObject("LootMarker");
             go.transform.position = worldPos;
-            go.AddComponent<LootMarker>();
+            var marker = go.AddComponent<LootMarker>();
+            pillarTier = Mathf.Clamp(pillarTier, PillarNone, PillarUnique);
+            if (pillarTier == PillarNone) return;
+            PillarCount++;
+            LastPillarTier = pillarTier;
+            marker._pillarTier = pillarTier;
+            marker.BuildPillar();
+            if (pillarTier >= PillarTreasure) SfxPlayer.PlayDiscovery(); // 웹 — 보물·전설·고유는 떨어지는 순간 소리.
         }
+
+        /// <summary>기둥 = 세로 선 둘(속 기둥 + 두 배 폭 옅은 테), 위로 갈수록 사라진다. 선은 늘 카메라를 본다.</summary>
+        private void BuildPillar()
+        {
+            Color c = PillarColor[_pillarTier];
+            float a = PillarAlpha[_pillarTier];
+            _core = NewBeam("PillarCore", c, a * 1.6f, PillarRadius[_pillarTier] * 2f);
+            _halo = NewBeam("PillarHalo", c, a * 0.6f, PillarRadius[_pillarTier] * 4.5f);
+            SetPillarHeight(0.05f);
+        }
+
+        private LineRenderer NewBeam(string name, Color c, float alpha, float width)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(transform, false);
+            var lr = go.AddComponent<LineRenderer>();
+            lr.material = new Material(Shader.Find("Sprites/Default")) { name = name + " (generated)" };
+            lr.useWorldSpace = false;
+            lr.positionCount = 2;
+            lr.widthMultiplier = width;
+            lr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            lr.receiveShadows = false;
+            var g = new Gradient();
+            g.SetKeys(new[] { new GradientColorKey(c, 0f), new GradientColorKey(Color.Lerp(c, Color.white, 0.35f), 1f) },
+                new[] { new GradientAlphaKey(Mathf.Clamp01(alpha), 0f), new GradientAlphaKey(Mathf.Clamp01(alpha) * 0.7f, 0.6f), new GradientAlphaKey(0f, 1f) });
+            lr.colorGradient = g;
+            return lr;
+        }
+
+        private void SetPillarHeight(float h)
+        {
+            foreach (var lr in new[] { _core, _halo })
+            {
+                if (lr == null) continue;
+                lr.SetPosition(0, Vector3.zero);
+                lr.SetPosition(1, Vector3.up * h);
+            }
+        }
+
+        /// <summary>진단 — 기둥 등급·지금 높이(없으면 0).</summary>
+        public int PillarTier => _pillarTier;
+        public float PillarTopHeight => _core != null ? _core.GetPosition(1).y : 0f;
+        public float PillarFullHeight => PillarHeight[_pillarTier];
 
         private void Awake()
         {
@@ -78,7 +165,11 @@ namespace Saga.Dungeon.World
                 _visual.Rotate(Vector3.up, SpinDegPerSec * Time.deltaTime, Space.World);
             }
 
-            if (_player != null && Vector3.Distance(_basePos, _player.position) <= PickupRadius)
+            if (_pillarTier > PillarNone)
+                SetPillarHeight(PillarHeight[_pillarTier] * Mathf.SmoothStep(0.02f, 1f, Mathf.Clamp01(_age / PillarRiseSec)));
+
+            bool holding = _pillarTier > PillarNone && _age < PillarHoldSec;
+            if (!holding && _player != null && Vector3.Distance(_basePos, _player.position) <= PickupRadius)
             {
                 SfxPlayer.PlayDiscovery();
                 Destroy(gameObject);

@@ -95,6 +95,20 @@ namespace Saga.Dungeon.World
         public bool IsBombArmored => bombArmored;
         public bool IsStunned => _stunLeft > 0f;
 
+        // PLAN.md 109-10 비결 한기(웹 §5.9) — 맞으면 얼어 쫓기·공격 준비·예비동작이 느려진다(시간 제한은 그대로).
+        private static readonly Color ChillColor = new Color(0.7f, 0.88f, 1f);
+        private float _chillLeft;
+        public bool IsChilled => _chillLeft > 0f;
+        public float CurrentHp => _curHp;
+
+        public void Chill(float seconds)
+        {
+            if (_state == State.Dead || seconds <= 0f) return;
+            bool was = _chillLeft > 0f;
+            _chillLeft = Mathf.Max(_chillLeft, seconds);
+            if (!was && _visualGo != null) CharacterVisual.Tint(_visualGo, CurrentTint());
+        }
+
         private string LocalizedDisplayName =>
             DisplayNameKeys.TryGetValue(displayName, out var key) ? DungeonLocalization.T(key, displayName) : displayName;
         [SerializeField] private Color bodyColor = new Color(0.72f, 0.64f, 0.3f); // 황건 — 누런 두건.
@@ -394,6 +408,13 @@ namespace Saga.Dungeon.World
                 }
             }
 
+            if (_chillLeft > 0f)
+            {
+                _chillLeft -= dt;
+                dt *= Saga.Dungeon.Data.SecretState.ChillSlow; // 아래(쫓기·공격 준비·예비동작)만 느려진다.
+                if (_chillLeft <= 0f && _visualGo != null) CharacterVisual.Tint(_visualGo, CurrentTint());
+            }
+
             Transform target = Target;
             float dist = Vector3.Distance(transform.position, target.position);
 
@@ -535,7 +556,7 @@ namespace Saga.Dungeon.World
         {
             if (_state == State.Windup) _state = State.Chase;
             if (_warnRing != null) _warnRing.enabled = false;
-            if (_visualGo != null) CharacterVisual.Tint(_visualGo, bodyColor);
+            if (_visualGo != null) CharacterVisual.Tint(_visualGo, CurrentTint()); // 얼어 있으면 얼음빛으로(아니면 bodyColor).
         }
 
         private void EnsureWarnRing()
@@ -717,7 +738,7 @@ namespace Saga.Dungeon.World
         private Color CurrentTint()
         {
             if (_stunLeft > 0f) return StunColor;
-            if (_state != State.Windup) return bodyColor;
+            if (_state != State.Windup) return _chillLeft > 0f ? Color.Lerp(bodyColor, ChillColor, 0.55f) : bodyColor;
             return _warnHot ? WarnColor : Color.Lerp(bodyColor, WarnColor, 0.45f);
         }
 
@@ -757,7 +778,7 @@ namespace Saga.Dungeon.World
 
             // PLAN.md 101-3 F "죽음"(2026-09-17) — 보상은 이미 위에서 다
             // 줬다, 이건 그 자리에 남는 시각적 표식뿐(LootMarker.cs 클래스 주석 참고).
-            LootMarker.Spawn(transform.position);
+            LootMarker.Spawn(transform.position, LootMarker.PillarTierOf(item)); // PLAN.md 109-10 명품 이상은 빛기둥.
             AnyDied?.Invoke(this);
             // PLAN.md 101-2 5.6 "목표판·세션 카드·일일/주간"(2026-09-21) — 일일 풀의
             // "적 처치" 항목. 월드 보스(5.4)는 뽑기 확률 없이 매 세션 만난다는 보장이
