@@ -18,6 +18,7 @@ const FieldBosses := preload("res://games/saga_go/world/field_bosses.gd")
 const FieldBoss := preload("res://games/saga_go/combat/field_boss.gd")
 const VroidBody := preload("res://games/saga_go/world/vroid_body.gd")
 const TalkFace := preload("res://games/saga_go/world/talk_face.gd")
+const SkyIsle := preload("res://games/saga_go/world/sky_isle.gd")
 const Toast := preload("res://saga_core/ui/toast.gd")
 
 signal step_changed(ch: int, step: int)
@@ -27,6 +28,7 @@ const GOLD := Color(1.0, 0.84, 0.35)
 const KILL_SPREAD := 4.5
 const ALTAR_REACH := 1.5
 const DUEL_FALL := 5.0
+const DUEL_CLEAR := 4.0
 
 var _player: Node3D = null
 var _npcs: Dictionary = {} # id → Node3D
@@ -162,12 +164,14 @@ func target_pos() -> Vector3:
 		"talk":
 			return npc_pos(String(s.npc))
 		"go", "kill", "light", "seal", "climb", "defend":
-			return _cell_pos(String(s.region), s.cell)
+			return _cell_pos(String(s.region), s.cell, bool(s.get("sky", false)))
+		"sky":
+			return SkyIsle.center()
 		"duel":
 			for e in _quest_enemies:
 				if is_instance_valid(e) and not e.call("is_dead"):
 					return (e as Node3D).global_position
-			return _cell_pos(String(s.region), s.cell)
+			return _cell_pos(String(s.region), s.cell, bool(s.get("sky", false)))
 		"boss":
 			var fb := get_tree().get_first_node_in_group("go_field_bosses")
 			if fb and fb.call("boss", String(s.boss)):
@@ -255,7 +259,7 @@ func _place_npcs() -> void:
 					p = _cell_pos(String(sj.region), path[path.size() - 1])
 		for w in [_window_now(info.get("appear")), _window_now(Story.STATIONS.get(id))]:
 			if (w as Dictionary).has("cell"):
-				p = _cell_pos(String(w.region), w.cell)
+				p = _cell_pos(String(w.region), w.cell, bool(w.get("sky", false)))
 		root.global_position = p
 		_npc_pos[id] = p
 
@@ -318,9 +322,10 @@ func _ground_y(region: String, p: Vector3) -> float:
 func gathered_count() -> int:
 	return _count
 
-static func _cell_pos(region: String, cell: Vector2) -> Vector3:
+## sky = 구름섬 윗면 높이(106장 ㊳ 9장, world/sky_isle.gd) — 아니면 땅 높이.
+static func _cell_pos(region: String, cell: Vector2, sky := false) -> Vector3:
 	var p := TestMap.world_pos(cell.x, cell.y, region)
-	p.y = TerrainBuilder.height_at(region, p)
+	p.y = SkyIsle.top_y() if sky else TerrainBuilder.height_at(region, p)
 	return p
 
 # ---------------------------------------------------------------- 단계
@@ -343,12 +348,13 @@ func _enter_step() -> void:
 	var s := current_step()
 	match String(s.get("type", "")):
 		"kill":
-			var center := _cell_pos(String(s.region), s.cell)
+			var sky := bool(s.get("sky", false))
+			var center := _cell_pos(String(s.region), s.cell, sky)
 			var kinds: Array = s.kinds
 			for i in kinds.size():
 				var a := TAU * float(i) / float(kinds.size())
 				var p := center + Vector3(cos(a), 0.0, sin(a)) * KILL_SPREAD
-				p.y = TerrainBuilder.height_at(String(s.region), p) + 0.3
+				p.y = (center.y if sky else TerrainBuilder.height_at(String(s.region), p)) + 0.3
 				var e: CharacterBody3D = FieldEnemy.new()
 				e.name = "StoryEnemy_%d" % i
 				e.setup(String(kinds[i]), p, 20260824 + 900 + i)
@@ -361,7 +367,14 @@ func _enter_step() -> void:
 			_build_altar(_cell_pos(String(s.region), s.cell))
 		"duel":
 			## 106장 ㉜ 이야기 보스 — field_boss.gd 틀, 한 번뿐. 위 보스 막대(world/field_bosses.gd)가 go_story_boss 를 본다.
-			var bp := _cell_pos(String(s.region), s.cell) + Vector3.UP * 0.3
+			var bp := _cell_pos(String(s.region), s.cell, bool(s.get("sky", false))) + Vector3.UP * 0.3
+			## 내가 그 자리에 서 있으면 몸이 겹쳐 서로 밀어 올린다(구름섬에서 둘이 20m 솟았다) — 나에게서 DUEL_CLEAR m 떨어뜨려 세운다.
+			if _player:
+				var away := bp - _player.global_position
+				away.y = 0.0
+				if away.length() < DUEL_CLEAR:
+					var dir := away.normalized() if away.length() > 0.1 else Vector3.BACK
+					bp = Vector3(_player.global_position.x, bp.y, _player.global_position.z) + dir * DUEL_CLEAR
 			var boss: CharacterBody3D = FieldBoss.new()
 			boss.name = "StoryBoss_" + String(s.kind)
 			boss.setup(String(s.kind), bp, 20260824 + 950)
@@ -588,8 +601,8 @@ func _physics_process(delta: float) -> void:
 				advance()
 				return
 		"kill", "duel":
-			if String(s.type) == "duel":
-				## 봉우리 보스가 절벽 밑으로 떨어지면(집보다 DUEL_FALL m 아래) 봉우리로 되돌린다 — 밑에서 못 올라와 멈추지 않게.
+			if String(s.type) == "duel" or bool(s.get("sky", false)):
+				## 봉우리 보스·구름섬 무리가 밑으로 떨어지면(집보다 DUEL_FALL m 아래) 제자리로 되돌린다 — 밑에서 못 올라와 멈추지 않게.
 				for e in alive_quest_enemies():
 					var home: Vector3 = e.get("home")
 					if (e as Node3D).global_position.y < home.y - DUEL_FALL:
@@ -606,6 +619,10 @@ func _physics_process(delta: float) -> void:
 				return
 		"chase":
 			if _chase_tick(s, delta):
+				return
+		"sky":
+			if SkyIsle.on_isle(_player.global_position):
+				advance()
 				return
 		"climb":
 			var t := _cell_pos(String(s.region), s.cell)
@@ -1093,7 +1110,7 @@ func _build_npc(id: String) -> void:
 	root.name = "StoryNpc_" + id
 	add_child(root)
 	root.global_position = p
-	var body := VroidBody.build("story_" + id, int(info.rarity), info.cloth)
+	var body := VroidBody.build("story_" + String(info.get("body", id)), int(info.rarity), info.cloth)
 	body.name = "Body"
 	root.add_child(body)
 	var anim := body.get_node_or_null("AnimationPlayer") as AnimationPlayer

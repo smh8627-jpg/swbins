@@ -27,6 +27,8 @@ const SHADOW := {"behind": 2.2, "radius": 3.2, "tell": 0.8, "mul": 1.4}
 const SUMMON_SPREAD := 4.0
 ## 106장 ㉞ 밀물 — 보스에서 플레이어 쪽으로 원 넷이 줄지어(first m 부터 step m 간격) 1.1초 예고. 옆으로 비켜 피한다.
 const TIDE := {"count": 4, "first": 2.5, "step": 3.0, "radius": 2.0, "tell": 1.1, "mul": 1.3}
+## 106장 ㊳ 고리 — 보스 둘레 inner~outer m 고리 1.3초 예고(먹구름 임금). 안쪽은 비어 있어 보스 곁으로 파고들거나 멀리 벗어나 피한다.
+const HALO := {"inner": 3.0, "outer": 9.0, "tell": 1.3, "mul": 1.5}
 
 var phase := 1
 var skill := ""
@@ -102,18 +104,21 @@ func begin_skill(which: String, player: Node3D) -> void:
 			var fwd := to_p.normalized() if to_p.length() > 0.1 else _facing()
 			for i in int(TIDE.count):
 				_mark(global_position + fwd * (float(TIDE.first) + float(TIDE.step) * i), float(TIDE.radius))
+		"halo":
+			skill_t = HALO.tell
+			_mark(global_position, float(HALO.outer), float(HALO.inner))
 	_set_tell(true)
 
 func _fire() -> void:
 	_set_tell(false)
 	var player := get_tree().get_first_node_in_group("player") as Node3D
-	var mul: float = {"slam": SLAM.mul, "shadow": SHADOW.mul, "tide": TIDE.mul}.get(skill, STORM.mul)
+	var mul: float = {"slam": SLAM.mul, "shadow": SHADOW.mul, "tide": TIDE.mul, "halo": HALO.mul}.get(skill, STORM.mul)
 	var hit := false
 	if player:
 		for m in _marks:
 			var d: Vector3 = player.global_position - m.pos
 			d.y = 0.0
-			if d.length() <= float(m.radius):
+			if d.length() <= float(m.radius) and d.length() >= float(m.get("inner", 0.0)):
 				hit = true
 				break
 	if hit:
@@ -193,14 +198,23 @@ func apply_world_level(wl: int) -> void:
 
 # ---------------------------------------------------------------- 예고 원
 
-func _mark(pos: Vector3, radius: float) -> void:
+## inner > 0 이면 가운데가 빈 고리(halo) — 납작한 도넛으로 그린다.
+func _mark(pos: Vector3, radius: float, inner := 0.0) -> void:
 	var mi := MeshInstance3D.new()
-	var cm := CylinderMesh.new()
-	cm.top_radius = radius
-	cm.bottom_radius = radius
-	cm.height = 0.04
-	cm.radial_segments = 28
-	mi.mesh = cm
+	if inner > 0.0:
+		var tm := TorusMesh.new()
+		tm.inner_radius = inner
+		tm.outer_radius = radius
+		tm.rings = 40
+		mi.mesh = tm
+		mi.scale = Vector3(1.0, 0.02, 1.0)
+	else:
+		var cm := CylinderMesh.new()
+		cm.top_radius = radius
+		cm.bottom_radius = radius
+		cm.height = 0.04
+		cm.radial_segments = 28
+		mi.mesh = cm
 	var mat := StandardMaterial3D.new()
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -209,7 +223,7 @@ func _mark(pos: Vector3, radius: float) -> void:
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	get_parent().add_child(mi)
 	mi.global_position = Vector3(pos.x, global_position.y + 0.05, pos.z)
-	_marks.append({"pos": pos, "radius": radius, "node": mi})
+	_marks.append({"pos": pos, "radius": radius, "inner": inner, "node": mi})
 
 func _flash_marks() -> void:
 	for m in _marks:
@@ -218,7 +232,7 @@ func _flash_marks() -> void:
 			continue
 		(mi.material_override as StandardMaterial3D).albedo_color = Color(0.9, 0.8, 1.0, 0.7)
 		var tw := mi.create_tween()
-		tw.tween_property(mi, "scale", Vector3(1.15, 1.0, 1.15), 0.2)
+		tw.tween_property(mi, "scale", Vector3(1.15, mi.scale.y, 1.15), 0.2)
 		tw.tween_callback(mi.queue_free)
 	_marks.clear()
 

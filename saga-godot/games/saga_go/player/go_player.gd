@@ -106,6 +106,12 @@ var _action_t := 0.0
 var _action_move := 1.0
 var _plunge := false
 var _plunge_from_y := 0.0
+## 106장 ㊳ 바람 기둥(world/sky_isle.gd 가 기둥 안이면 매 프레임 updraft 를 부른다) — 남은 초·솟는 속도·
+## 기둥 안에서 스스로 활공을 접었으면 기둥을 나갈 때까지 다시 펴지 않는다.
+var _updraft_t := 0.0
+var _updraft_vy := 0.0
+var _updraft_skip := false
+const UPDRAFT_MIN_CLEARANCE := 1.0 # 이보다 낮은 턱에서 발이 떨어진 건 활공으로 안 친다
 var combat: Node = null
 
 var _glider: MeshInstance3D = null
@@ -146,6 +152,9 @@ func _physics_process(delta: float) -> void:
 		_jump_buffer = JUMP_BUFFER_SEC
 
 	_action_t = maxf(_action_t - delta, 0.0)
+	_updraft_t = maxf(_updraft_t - delta, 0.0)
+	if _updraft_t <= 0.0:
+		_updraft_skip = false
 	var input_dir := _movement_input()
 	var move_dir := _world_direction(input_dir)
 	if move_dir.length() > 0.05:
@@ -236,6 +245,10 @@ func _tick_air(delta: float, move_dir: Vector3) -> void:
 		_jump_buffer = 0.0
 		_set_mode(Mode.GLIDE)
 		return
+	elif _updraft_t > 0.0 and not _updraft_skip and stamina > 0.0 and not _exhausted \
+			and (velocity.y > 0.5 or _clearance() >= UPDRAFT_MIN_CLEARANCE):
+		_set_mode(Mode.GLIDE) # 바람 기둥 안 공중(뛰어올랐거나 발밑이 떴다) — 저절로 활공
+		return
 	_coyote -= delta
 
 	var speed := WALK_SPEED * speed_mult
@@ -259,16 +272,19 @@ func _tick_glide(delta: float, move_dir: Vector3) -> void:
 		_set_mode(Mode.SWIM)
 		return
 	if _jump_buffer > 0.0 or stamina <= 0.0:
+		if _jump_buffer > 0.0 and _updraft_t > 0.0:
+			_updraft_skip = true
 		_jump_buffer = 0.0
 		_set_mode(Mode.AIR)
 		return
 	var fwd := _facing()
-	var dir := move_dir if move_dir.length() > 0.05 else fwd * 0.6
+	## 바람 기둥 안에선 손을 떼면 앞으로 흐르지 않고 제자리에서 솟는다(기둥 밖으로 밀려나지 않게).
+	var dir := move_dir if move_dir.length() > 0.05 else (Vector3.ZERO if _updraft_t > 0.0 else fwd * 0.6)
 	if move_dir.length() > 0.05:
 		_face(move_dir, delta * 0.5)
 	velocity.x = lerpf(velocity.x, dir.x * GLIDE_SPEED, 3.0 * delta)
 	velocity.z = lerpf(velocity.z, dir.z * GLIDE_SPEED, 3.0 * delta)
-	velocity.y = lerpf(velocity.y, -GLIDE_FALL, 5.0 * delta)
+	velocity.y = lerpf(velocity.y, _updraft_vy if _updraft_t > 0.0 else -GLIDE_FALL, 5.0 * delta)
 	_spend(COST_GLIDE * delta)
 	_play_anim("idle")
 	var hit := _wall_ahead(fwd)
@@ -484,6 +500,14 @@ func launch_up(vy: float) -> void:
 	_coyote = 0.0
 	_set_mode(Mode.AIR)
 	velocity.y = vy
+
+## 106장 ㊳ 바람 기둥 안(world/sky_isle.gd 가 매 프레임) — 공중이면 활공으로, 활공이면 vy 로 솟는다. 땅에선 뛰어야 뜬다.
+func updraft(vy: float) -> void:
+	_updraft_t = 0.15
+	_updraft_vy = vy
+
+func in_updraft() -> bool:
+	return _updraft_t > 0.0
 
 func can_plunge() -> bool:
 	return not _plunge and (mode == Mode.AIR or mode == Mode.GLIDE) and _clearance() >= PLUNGE_MIN_CLEARANCE

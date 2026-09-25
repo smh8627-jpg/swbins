@@ -22,7 +22,9 @@ extends RefCounted
 ##     chase  — name 도둑이 path(칸 좌표)를 따라 CHASE_SPEED 로 달아난다(내가 CHASE_START m 안에 들면 출발, 길 점마다 CHASE_PAUSE 초 숨 고르기).
 ##              CHASE_CATCH m 안으로 따라잡으면 끝, 길 끝까지 놓치면 처음 자리로 돌아가 다시 기다린다(걸어서는 못 잡고 달려야 잡는다)
 ##     sail   — 그 인물(npc)에게 F → 한 줄(line) 뒤 배로 to {region, cell} 에 내린다(106장 ㊲ 사공 버들의 배)
+##     sky    — 바람 기둥을 타고 구름섬(world/sky_isle.gd — 북쪽 봉우리 옆 하늘) 윗면에 서기(106장 ㊳)
 ##     duel 의 flee = 쓰러뜨렸을 때 알림 글자(없으면 "가면에 금이 가고 — 먹구름 속으로 달아났다")
+##   단계·인물 칸에 sky = true 면 그 칸의 높이는 땅이 아니라 구름섬 윗면(kill·duel·appear — 9장).
 ##   인물 자리: appear(보일 때만 서 있는 인물) · stations(늘 있는 인물이 그 장·단계 동안 옮겨 서는 자리) —
 ##     둘 다 {ch, from, to, region?, cell?} 한 칸 또는 여러 칸. region·cell 이 있으면 그 동안 거기에 선다.
 ##   대화 줄 말하는 이가 바뀌면 카메라가 그쪽으로(player/camera_rig.gd talk_shot — 인물 말은 내 어깨 너머, 내 말은 인물 어깨 너머).
@@ -47,11 +49,16 @@ const NPCS := {
 			{"ch": 4, "from": 6, "to": 6, "region": "village", "cell": Vector2(0.9, 1.62)},
 			{"ch": 5, "from": 2, "to": 4, "region": "village", "cell": Vector2(7.35, 1.3)},
 			{"ch": 6, "from": 2, "to": 6, "region": "coast", "cell": Vector2(3.3, 4.75)},
-			{"ch": 7, "from": 6, "to": 9, "region": "coast", "cell": Vector2(5.9, 1.88)}]},
+			{"ch": 7, "from": 6, "to": 9, "region": "coast", "cell": Vector2(5.9, 1.88)},
+			{"ch": 8, "from": 2, "to": 2, "region": "village", "cell": Vector2(7.35, 1.3)},
+			{"ch": 8, "from": 3, "to": 8, "region": "village", "cell": Vector2(6.95, 1.12), "sky": true}]},
 	## 8장 — 검은 가면의 참이름. 가면 반쪽이 깨진 채(금 간 파란 줄 가면) 다섯째 제단 곁에 한 번 선다.
 	"haesol": {"name": "해솔", "region": "coast", "cell": Vector2(6.12, 2.05), "rarity": 5, "cloth": Color(0.1, 0.12, 0.17),
 		"idle": "……", "mask": true, "mask_color": Color(0.3, 0.55, 0.9), "mask_face": Color(0.08, 0.07, 0.1), "crack": true,
 		"appear": [{"ch": 7, "from": 8, "to": 8}]},
+	## 9장 — 가면이 떨어진 뒤의 해솔(몸은 해솔과 같게 body). 구름섬에서 되찾은 뒤에만.
+	"haesol_free": {"name": "해솔", "body": "haesol", "region": "village", "cell": Vector2(7.22, 0.9), "rarity": 5, "cloth": Color(0.16, 0.18, 0.26),
+		"idle": "……고맙다. 노래를 다시 부를 수 있을 것 같아.", "appear": [{"ch": 8, "from": 6, "to": 9, "region": "village", "cell": Vector2(7.22, 0.9), "sky": true}]},
 }
 
 ## 학자는 5장 동안 서쪽 고개 옛길에 가 있다(0~3 단계 옛길 어귀, 4~7 단계 둘째 제단 곁).
@@ -93,6 +100,8 @@ const MEMBERS := {
 	## 106장 ㉟ 둘 더 — 촌장 누리 6장(치유)·늙은 사공 버들 7장(협동 공격) 보상.
 	"story_elder": {"name": "촌장 누리", "rarity": 4, "element": "wind", "weapon": "catalyst", "npc": "elder"},
 	"story_ferryman": {"name": "사공 버들", "rarity": 4, "element": "water", "weapon": "polearm", "npc": "ferryman"},
+	## 106장 ㊳ 9장 보상 — 가면을 벗은 해솔(먹구름 벼락·뇌 부여).
+	"story_haesol": {"name": "해솔", "rarity": 5, "element": "thunder", "weapon": "claymore", "npc": "haesol_free"},
 }
 
 ## 이야기 동료 한 명(도감 인물처럼 name·rarity 를 읽는다) — 아니면 null.
@@ -359,6 +368,47 @@ const CHAPTERS := [
 			{"type": "talk", "npc": "elder", "text": "청하 촌장에게 알리기",
 				"lines": [["누리", "해솔… 그 아이를 기억한다. 늘 노래를 흥얼거리던 착한 아이였지.", "sorrow"],
 					["누리", "다섯 제단이 모두 밝혀졌으니 이제 먹구름 위만 남았구나. 이건 온 마을이 모은 거란다.", "joy"]]},
+		]},
+	## 106장 ㊳ 1부 마무리 — 북쪽 봉우리 바람 기둥 → 구름섬(world/sky_isle.gd) → 해솔 → 먹구름 임금 → 활공으로 마을에.
+	{"id": "ch9", "name": "제9장 · 먹구름 위 여섯째 자리", "ar": 25, "join": "story_haesol",
+		"reward": {"fate_knot": 5, "mora": 60000, "book_l": 5, "talent_3": 4}, "exp": 320.0,
+		"steps": [
+			{"type": "talk", "npc": "scholar", "text": "폐허의 학자에게 여섯째 자리 묻기",
+				"lines": [["은비", "다섯 조각을 다 맞췄어! 끝 구절은 이래 — '다섯 불이 모이는 곳, 봉우리 위 하늘에 여섯째 자리'.", "joy"],
+					["은비", "그리고 어젯밤, 북쪽 봉우리 꼭대기에서 하늘로 바람 기둥이 솟는 걸 봤어. 다섯 제단 불빛이 거기로 모이더라."],
+					["?", ["봉우리로 갈게요.", "하늘로 가는 길이라고요?"]],
+					["은비", "바람을 타면 구름 위까지 오를 수 있을 거야. 나그네가 먼저 봉우리로 갔어 — 서둘러!"]]},
+			{"type": "climb", "region": "village", "cell": Vector2(7.1, 1.5), "radius": 10.0, "text": "북쪽 봉우리 꼭대기로 오르기"},
+			{"type": "talk", "npc": "wanderer", "text": "바람 기둥 곁의 나그네와 이야기하기",
+				"lines": [["나그네", "왔군. 보이나 — 저 바람 기둥. 다섯 제단의 불이 하늘에 길을 냈다.", "surprised"],
+					["나그네", "기둥 안에서 뛰어올라 날개를 펴게. 바람이 구름섬까지 밀어 올려 줄 거다."],
+					["?", ["같이 가요.", "해솔은 거기 있을까요?"]],
+					["나그네", "…있을 거다. 이번엔 가면이 아니라 해솔을 데려온다. 먼저 올라가 있겠네."]]},
+			{"type": "sky", "text": "바람 기둥을 타고 구름섬에 오르기(기둥 안에서 뛰어올라 활공)"},
+			{"type": "kill", "region": "village", "cell": Vector2(7.1, 1.0), "sky": true, "kinds": ["wind_hawk", "thunder_cat", "thunder_cat", "bandit"],
+				"text": "구름섬을 지키는 먹구름 무리 물리치기"},
+			{"type": "duel", "kind": "haesol_mask", "region": "village", "cell": Vector2(7.1, 1.0), "sky": true, "text": "먹구름 가면을 쓴 해솔과 맞서기",
+				"flee": "해솔의 가면이 마침내 두 쪽으로 갈라져 떨어졌다 — 해솔이 무릎을 꿇는다"},
+			{"type": "talk", "npc": "haesol_free", "text": "가면을 벗은 해솔과 이야기하기",
+				"lines": [["해솔", "……여기가, 어디지. 오래 꿈을 꾼 것 같아. 먹구름 속에서 누가 계속 노래를 부르라고…", "sorrow"],
+					["해솔", "아니 — 늦었다! 내가 자물쇠를 두드려 낸 틈으로 임금의 꿈이 새어 나왔어. 그 꿈이 이 섬에서 몸을 얻는다!", "surprised"],
+					["?", ["같이 막아요!", "해솔, 괜찮아요?"]],
+					["해솔", "몸이 아직 말을 안 들어. 네가 먹구름 임금을 막아 줘. 난 곁에서 노래로 바람을 붙들고 있을게.", "angry"]]},
+			{"type": "duel", "kind": "storm_king", "region": "village", "cell": Vector2(7.1, 1.0), "sky": true, "text": "먹구름 임금 물리치기",
+				"flee": "먹구름 임금 — 꿈이 흩어지며 하늘의 먹구름이 걷혀 간다"},
+			{"type": "talk", "npc": "wanderer", "text": "나그네와 해솔 곁으로 가기",
+				"lines": [["나그네", "……해솔.", "sorrow"],
+					["해솔", "여전하구나, 그 흰 가면. 날 찾겠다는 맹세였다고? 바보 같긴.", "fun"],
+					["나그네", "이제 벗어도 되겠지.", "joy"],
+					["?", ["다행이에요.", "두 분 다 돌아와서 기뻐요."]],
+					["해솔", "마을로 내려가자. 누리 할머니한테 혼나야겠지만 — 날개를 펴고 곧장."]]},
+			{"type": "talk", "npc": "haesol_free", "text": "해솔과 함께 내려갈 채비하기",
+				"lines": [["해솔", "난간을 넘어 활공하면 청하 마을까지 한달음이야. 먼저 가 있어, 곧 따라갈게.", "joy"]]},
+			{"type": "go", "region": "village", "cell": Vector2(5.8, 3.3), "radius": 20.0, "text": "구름섬에서 활공해 청하 마을로 내려가기"},
+			{"type": "talk", "npc": "elder", "text": "청하 촌장에게 알리기",
+				"lines": [["누리", "하늘이 이렇게 파란 건 몇 해 만인지…! 먹구름이 걷혔어.", "joy"],
+					["누리", "해솔이 돌아왔다고? 그 녀석, 할머니 볼 낯도 없나 봐. 이따 잔칫상 앞에 끌고 오너라.", "fun"],
+					["누리", "약속대로 잔치를 열자꾸나. 이건 온 마을이 너를 위해 모은 거다. 고맙다, 정말로.", "joy"]]},
 		]},
 ]
 

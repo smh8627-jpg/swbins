@@ -74,6 +74,19 @@ const KINDS := {
 		"phase_text": "금 간 검은 가면이 바다 안개를 두르고 졸개를 부른다 — 뇌로 방패를 깨라",
 		"rotation": ["tide", "shadow", "bite", "tide", "slam", "shadow"], "summon": ["bandit", "water_turtle"],
 		"vroid": true, "cloth": Color(0.1, 0.12, 0.17), "mask": Color(0.3, 0.55, 0.9), "crack": true},
+	## 106장 ㊳ 9장 구름섬 — 셋째 대결 "먹구름 가면 해솔"(뇌, 금 간 가면에 먹구름 빛, 2단계 뇌 방패·회오리매·번개살쾡이)과
+	## 1부 마지막 보스 "먹구름 임금"(뇌, 사람 몸 1.9배·왕관·어두운 가면, 새 패턴 고리(halo) — 보스 곁으로 파고들거나 멀리 벗어나 피한다).
+	"haesol_mask": {"name": "먹구름 가면 해솔", "hp": 5400.0, "atk": 36.0, "speed": 5.0, "aggro": 22.0,
+		"reach": 2.4, "tell": 0.7, "cd": 1.4, "exp": 0.0, "element": "thunder", "shield": 0.0, "phase_shield": 600.0,
+		"phase_text": "해솔이 먹구름을 두르고 매와 살쾡이를 부른다 — 불로 방패를 깨라",
+		"rotation": ["shadow", "storm", "tide", "bite", "shadow", "slam"], "summon": ["wind_hawk", "thunder_cat"],
+		"vroid": true, "cloth": Color(0.1, 0.12, 0.17), "mask": Color(0.62, 0.45, 1.0), "crack": true},
+	"storm_king": {"name": "먹구름 임금", "hp": 9000.0, "atk": 40.0, "speed": 3.6, "aggro": 30.0,
+		"reach": 3.4, "tell": 0.9, "cd": 1.7, "exp": 0.0, "element": "thunder", "shield": 0.0, "phase_shield": 800.0,
+		"phase_text": "먹구름 임금이 하늘의 번개를 두르고 매와 살쾡이를 부른다 — 불로 방패를 깨라",
+		"rotation": ["slam", "halo", "storm", "bite", "shadow", "halo", "tide", "storm"], "summon": ["wind_hawk", "thunder_cat"],
+		"vroid": true, "size": 1.9, "body_r": 0.85, "cloth": Color(0.14, 0.13, 0.22),
+		"mask": Color(0.9, 0.75, 0.35), "mask_face": Color(0.16, 0.12, 0.24), "crown": Color(0.9, 0.74, 0.3)},
 }
 
 const GRAVITY := 20.0
@@ -177,8 +190,8 @@ func _ready() -> void:
 	collision_layer = 1
 	collision_mask = 1
 	var shape := CapsuleShape3D.new()
-	shape.radius = 0.4 if kind == "bandit" else 0.45
-	shape.height = 1.7 if kind == "bandit" else 1.0
+	shape.radius = float(def.get("body_r", 0.4 if kind == "bandit" else 0.45))
+	shape.height = 1.7 if kind == "bandit" else (1.0 * float(def.get("size", 1.0)))
 	var cs := CollisionShape3D.new()
 	cs.shape = shape
 	cs.position = Vector3(0, shape.height * 0.5, 0)
@@ -527,7 +540,10 @@ func _build_visual() -> Node3D:
 		v = VroidBody.build(String(name), 5, def.cloth)
 		_anim = v.get_node_or_null("AnimationPlayer") as AnimationPlayer
 		if def.has("mask"):
-			VroidBody.add_mask(v, def.mask, Color(0.08, 0.07, 0.1), def.get("crack", false))
+			VroidBody.add_mask(v, def.mask, def.get("mask_face", Color(0.08, 0.07, 0.1)), def.get("crack", false))
+		if def.has("crown"):
+			VroidBody.add_crown(v, def.crown)
+		v.scale *= float(def.get("size", 1.0))
 	elif def.has("shape"):
 		v = CreatureBuilder.build(def.shape, def.colors)
 		CreatureBuilder._fit(v, def.shape, def.height)
@@ -539,7 +555,7 @@ func _build_visual() -> Node3D:
 
 ## 머리 위: 이름표 · 체력 막대 · 붙은 원소 점 · 공격 예고 "!".
 func _build_overhead() -> void:
-	var top := 2.15 if kind == "bandit" or def.get("vroid", false) else (float(def.height) + 0.45 if def.has("height") else 1.45)
+	var top := 2.15 * float(def.get("size", 1.0)) if kind == "bandit" or def.get("vroid", false) else (float(def.height) + 0.45 if def.has("height") else 1.45)
 	var label := Label3D.new()
 	label.text = def.name if world_lv < 0 else "Lv.%d %s" % [Adventure.enemy_level(world_lv), def.name]
 	_name_label = label

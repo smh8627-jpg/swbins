@@ -63,7 +63,7 @@ func _physics_process(_delta: float) -> void:
 				_next()
 		1: # ① 표
 			var sage := _hero("wisdom", "fire")
-			var ok: bool = Kits.KITS.size() == 9 and is_equal_approx(float(_fc.call("skill_cd_of", "self")), 6.0) \
+			var ok: bool = Kits.KITS.size() == 10 and is_equal_approx(float(_fc.call("skill_cd_of", "self")), 6.0) \
 				and is_equal_approx(float(_fc.call("skill_cd_of", "sg_zhugeliang")), 12.0) \
 				and Kits.name_of(sage, "skill", "fire") == "불꽃 부채" and Kits.name_of("self", "burst", "fire") == "불새 깃"
 			for id in Kits.KITS:
@@ -325,7 +325,7 @@ func _physics_process(_delta: float) -> void:
 			for c in Story.CHAPTERS:
 				if Story.MEMBERS.has(String(c.get("join", ""))):
 					joins += 1
-			_check("story_members", ok and joins == 4, "members=%d joins=%d wanderer=%s/%s" % [Story.MEMBERS.size(), joins, Elements.element_of("story_wanderer"), Weapons.type_of("story_wanderer")])
+			_check("story_members", ok and joins == 5, "members=%d joins=%d wanderer=%s/%s" % [Story.MEMBERS.size(), joins, Elements.element_of("story_wanderer"), Weapons.type_of("story_wanderer")])
 			_next()
 		20: # ⑳ 나그네 E 그림자 걸음 — 가까운 적(허수아비 a) 뒤로, 표식
 			if _frame == 1:
@@ -419,7 +419,7 @@ func _physics_process(_delta: float) -> void:
 				_v.feast = _kinds().count("kit_feast")
 				hps[eid] = float(_fc.call("max_hp_of", eid)) * 0.5
 				_v.a2 = float(_a.get("hp"))
-			if _frame == 140: # 1초마다 — 두 번은 돈다
+			if _frame == 170: # 1초마다 — 두 번은 돈다(140 이면 바쁜 판에서 한 번만 돈 적 있다)
 				var gain := float(_fc.call("hp_of", eid)) / float(_fc.call("max_hp_of", eid)) - 0.5
 				var ok: bool = bool(_v.skill) and float(_v.a1) < float(_v.a) and bool(_v.b_same) and absf(float(_v.self_gain) - 0.06) < 0.005 \
 					and float(_v.away) > 0.9 and bool(_v.burst) and int(_v.feast) == 1 and gain >= 0.099 and float(_a.get("hp")) < float(_v.a2)

@@ -100,6 +100,10 @@ func _ready() -> void:
 	domains.name = "Domains"
 	add_child(domains)
 	## PLAN 106장 ㉕ — 이야기 임무(들판 보스·비경 신호에 붙으므로 그 뒤).
+	## PLAN 106장 ㊳ — 9장 구름섬·바람 기둥(북쪽 봉우리 옆 하늘).
+	var sky_isle := preload("res://games/saga_go/world/sky_isle.gd").new()
+	sky_isle.name = "SkyIsle"
+	add_child(sky_isle)
 	var story := preload("res://games/saga_go/world/story_quest.gd").new()
 	story.name = "StoryQuest"
 	add_child(story)

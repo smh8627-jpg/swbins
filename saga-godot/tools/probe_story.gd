@@ -26,6 +26,10 @@ extends Node
 ## 106장 ㊲ 8장: [62] 풀림·바위섬 지형(꼭대기 높이·배 댄 자리 물 위·옮긴 별조각은 물 위)·자리가 다 뭍·도둑 길 사건 여유·도둑 평균 속도가 걷기~달리기 사이
 ## [63] 촌장 → 사공 [64] 사공 → 도둑(가까우면 달아남) [65] 놓치면 처음 자리로·따라잡으면 끝 [66] 사공 → 배 [67] 배 — 섬에 내리고 신상이 켜짐·사공도 섬에
 ## [68] 섬 꼭대기 무리 [69] 나그네 → 석등(뭍) [70] 별→달→해 → 해솔(가면에 금) [71] 해솔 → 사라짐 [72] 나그네 → 배 [73] 배 — 포구로 [74] 촌장 → 8장 끝·✔ 제8장.
+## 106장 ㊳ 9장: [75] 풀림·구름섬 자리(밑 지형·기둥 둘레·기둥~섬 틈·들판 적 여유)·바람 기둥·먹구름 [76] 학자 → 봉우리 [77] 꼭대기(땅에선 안 뜸)·나그네
+## [78] 나그네 → 구름섬 목표·나그네는 섬 위 [79] 바람 기둥 — 공중이면 저절로 활공·솟음·섬 윗면보다 위로, 접으면 다시 안 폄, 섬에 서면 넘어감
+## [80] 섬 무리(떨어지면 제자리로) [81] 먹구름 가면 해솔(금·2단계 졸개 둘) → 가면 벗은 해솔 [82] 먹구름 임금(1.9배·왕관)·고리(곁·바깥은 안 맞음)
+## [83] 나그네 [84] 해솔 → 마을 목표 [85] 마을에 내려오면 넘어감 [86] 촌장 → 9장 끝·해솔 합류·먹구름 걷힘·✔ 제9장.
 ## 106장 ㉟ 이야기 동료 둘 더: ㊽ 6장 끝에 촌장·[61] 7장 끝에 사공이 명단에(이미 지난 장이면 불러올 때 조용히).
 ## 106장 ㉛ 이야기 동료: ⑫ 2장 끝에 학자 은비·㊴ 5장 끝에 나그네가 명단에(이미 지난 장이면 불러올 때 조용히).
 ## 106장 ㉙ 대화 몸짓: ㊾ 글자 흘리기·입 모양(한글 모음 → 입 다섯)·말하는 동안 오른손이 앞·위로·F 한 번이면 줄 전체·끝나면 손·입 제자리·표정·눈 깜박임.
@@ -40,6 +44,7 @@ const TestMap := preload("res://games/saga_go/data/test_map.gd")
 const TerrainBuilder := preload("res://games/saga_go/world/terrain_builder.gd")
 const Gathering := preload("res://games/saga_go/world/gathering.gd")
 const Veg := preload("res://games/saga_go/world/vegetation_builder.gd")
+const SkyIsle := preload("res://games/saga_go/world/sky_isle.gd")
 
 var _p: CharacterBody3D
 var _sq: Node
@@ -76,7 +81,7 @@ func _physics_process(_delta: float) -> void:
 			_sq.call("_enter_step")
 			_next()
 		1: # ① 표
-			var ok := Story.CHAPTERS.size() == 8
+			var ok := Story.CHAPTERS.size() == 9
 			for c in Story.CHAPTERS:
 				for s in c.steps:
 					match String(s.type):
@@ -85,7 +90,7 @@ func _physics_process(_delta: float) -> void:
 						"domain": ok = ok and Domains.DOMAINS.has(String(s.domain))
 						"go", "kill", "light": ok = ok and s.has("region") and s.has("cell")
 						"gather": ok = ok and Cooking.GATHER.has(String(s.item)) and int(s.count) > 0
-						"cook": pass
+						"cook", "sky": pass
 						"follow": ok = ok and Story.NPCS.has(String(s.npc)) and (s.path as Array).size() >= 2
 						"climb": ok = ok and s.has("region") and s.has("cell") and float(s.radius) > 0.0
 						"duel": ok = ok and FieldEnemy.KINDS.has(String(s.kind)) and s.has("region") and s.has("cell")
@@ -920,7 +925,7 @@ func _physics_process(_delta: float) -> void:
 		61: # [61] 촌장 → 7장 끝(장 경험으로 모험 등급 20 을 넘으면 등급 보상 매듭 하나가 더 — adventure.gd AR_REWARD_5)
 			if _frame == 1:
 				_near_npc("elder")
-				_v = {"knots": PartyState.count("fate_knot"), "ar": PartyState.level + 1}
+				_v = {"knots": PartyState.count("fate_knot"), "ar": PartyState.level + 1, "paid": PartyState.ar_paid}
 			if _frame == 10:
 				_sq.call("interact")
 				_drain()
@@ -932,7 +937,7 @@ func _physics_process(_delta: float) -> void:
 			_sq.call("toggle_journal")
 			var jt: String = _sq.call("journal_text")
 			_sq.call("toggle_journal")
-			var bonus := (PartyState.level + 1) / 5 - int(_v.ar) / 5
+			var bonus := int(PartyState.ar_paid) / 5 - int(_v.paid) / 5 # 이 사이에 치른 모험 등급 보상(5의 배수마다 매듭 하나)
 			var ok: bool = int(_sq.call("ch")) == 7 and String(_sq.call("tracker_text")).contains("제8장") and jt.contains("✔ 제7장") \
 				and PartyState.count("fate_knot") == int(_v.knots) + 4 + bonus and PartyState.members.count("story_ferryman") == 1
 			## 이 기능 전에 6·7장을 끝낸 세이브 — 둘 다 빼고 불러올 때처럼 _join_past.
@@ -1102,7 +1107,7 @@ func _physics_process(_delta: float) -> void:
 		74: # [74] 촌장 → 8장 끝
 			if _frame == 1:
 				_near_npc("elder")
-				_v = {"knots": PartyState.count("fate_knot"), "ar": PartyState.level + 1}
+				_v = {"knots": PartyState.count("fate_knot"), "ar": PartyState.level + 1, "paid": PartyState.ar_paid}
 			if _frame == 10:
 				_sq.call("interact")
 				_drain()
@@ -1114,12 +1119,223 @@ func _physics_process(_delta: float) -> void:
 			_sq.call("toggle_journal")
 			var jt: String = _sq.call("journal_text")
 			_sq.call("toggle_journal")
-			var bonus := (PartyState.level + 1) / 5 - int(_v.ar) / 5
-			var ok: bool = int(_sq.call("ch")) == 8 and _sq.call("tracker_text") == "" and _sq.call("target_pos") == Vector3.INF and jt.contains("✔ 제8장") \
+			var bonus := int(PartyState.ar_paid) / 5 - int(_v.paid) / 5 # 이 사이에 치른 모험 등급 보상(5의 배수마다 매듭 하나)
+			var ok: bool = int(_sq.call("ch")) == 8 and String(_sq.call("tracker_text")).contains("제9장") and jt.contains("✔ 제8장") \
 				and PartyState.count("fate_knot") == int(_v.knots) + 4 + bonus
 			_check("chapter8", ok, "ch=%d knots %d→%d (+%d) tracker='%s'" % [_sq.call("ch"), _v.knots, PartyState.count("fate_knot"), bonus, _sq.call("tracker_text")])
 			_next()
-		75: # ㊾ 대화 몸짓 — 다 끝난 뒤 촌장 혼잣말로
+		75: # [75] 9장 풀림·구름섬·바람 기둥 자리
+			if _frame == 1:
+				PartyState.exp = 2500.0 # 모험 등급 26(9장 25)
+				PartyState.level = 25
+			if _frame == 6:
+				var sky: Node = get_tree().get_first_node_in_group("go_sky_isle")
+				var c := SkyIsle.center()
+				var base := SkyIsle.draft_base()
+				var under := -1e9 # 섬 둘레·밑 지형 가장 높은 곳
+				for i in 24:
+					for r in [0.0, SkyIsle.RADIUS * 0.5, SkyIsle.RADIUS + 2.0]:
+						var a := TAU * i / 24.0
+						var q := c + Vector3(cos(a), 0.0, sin(a)) * float(r)
+						under = maxf(under, TerrainBuilder.height_at("village", q))
+				var col := -1e9 # 바람 기둥 둘레 지형(기둥이 벽에 묻히지 않게)
+				for i in 12:
+					var a := TAU * i / 12.0
+					col = maxf(col, TerrainBuilder.height_at("village", base + Vector3(cos(a), 0.0, sin(a)) * SkyIsle.DRAFT_R))
+				var near := 1e9
+				for e in get_tree().get_nodes_in_group("field_enemy"):
+					near = minf(near, _flat((e as Node3D).global_position, c))
+				var gap := _flat(base, c) - SkyIsle.RADIUS
+				var ok: bool = not bool(_sq.call("locked")) and (_sq.call("target_pos") as Vector3).is_equal_approx(_sq.call("npc_pos", "scholar")) \
+					and sky != null and bool(sky.call("draft_active")) and bool(sky.call("gloom_visible")) \
+					and under < c.y - 10.0 and col < base.y + 3.0 and gap > 5.0 and gap < 14.0 and near > 30.0
+				_check("ch9_unlock", ok, "locked=%s top=%.1f base=%.1f under=%.1f col=%.1f gap=%.1f near_enemy=%.0f draft=%s gloom=%s" % [
+					_sq.call("locked"), c.y, base.y, under, col, gap, near, sky.call("draft_active") if sky else false, sky.call("gloom_visible") if sky else false])
+				_next()
+		76: # [76] 학자 → 봉우리
+			if _frame == 1:
+				_near_npc("scholar")
+			if _frame == 10:
+				_sq.call("interact")
+				_drain()
+				var c: Dictionary = Story.CHAPTERS[8].steps[1]
+				_check("ch9_scholar", int(_sq.call("st")) == 1 and _flat(_sq.call("target_pos"), TestMap.world_pos(c.cell.x, c.cell.y, "village")) < 0.1, "st=%d" % _sq.call("st"))
+				_next()
+		77: # [77] 봉우리 꼭대기 → 나그네가 봉우리에
+			if _frame == 1:
+				_put(SkyIsle.draft_base())
+				_p.call("_set_mode", _p.Mode.GROUND)
+			if _frame == 30:
+				var post: Dictionary = Story.NPCS.wanderer.appear[5]
+				var d := _flat(_sq.call("npc_pos", "wanderer"), TestMap.world_pos(post.cell.x, post.cell.y, "village"))
+				## 땅에 선 채로는 기둥이 안 띄운다
+				var dy := _p.global_position.y - SkyIsle.draft_base().y
+				_check("ch9_peak", int(_sq.call("st")) == 2 and bool(_sq.call("npc_visible", "wanderer")) and d < 0.1 and absf(dy) < 1.5,
+					"st=%d wanderer=%s d=%.2f dy=%.2f" % [_sq.call("st"), _sq.call("npc_visible", "wanderer"), d, dy])
+				_next()
+		78: # [78] 나그네 → 구름섬 목표, 나그네는 섬 위에
+			if _frame == 1:
+				_near_npc("wanderer")
+			if _frame == 10:
+				_sq.call("interact")
+				_drain()
+			if _frame == 14:
+				var w: Vector3 = _sq.call("npc_pos", "wanderer")
+				var ok: bool = int(_sq.call("st")) == 3 and (_sq.call("target_pos") as Vector3).is_equal_approx(SkyIsle.center()) \
+					and absf(w.y - SkyIsle.top_y()) < 0.01 and SkyIsle.on_isle(w) and String(_sq.call("tracker_text")).contains("구름섬")
+				_check("ch9_wanderer", ok, "st=%d wanderer_y=%.1f top=%.1f" % [_sq.call("st"), w.y, SkyIsle.top_y()])
+				_next()
+		79: # [79] 바람 기둥 — 공중이면 저절로 활공하고 솟는다, 뛰어 접으면 기둥 안에서 다시 안 편다
+			var b := SkyIsle.draft_base()
+			if _frame == 1:
+				_put(b + Vector3(0.0, 3.0, 0.0))
+				_p.set("stamina", float(_p.get("stamina_max")))
+				_p.call("_set_mode", _p.Mode.AIR)
+				_v = {"y0": _p.global_position.y, "glide": false, "peak": -1e9}
+			if _frame > 1 and _frame < 400:
+				_v.glide = bool(_v.glide) or int(_p.get("mode")) == _p.Mode.GLIDE
+				_v.peak = maxf(float(_v.peak), _p.global_position.y)
+			if _frame == 60:
+				_v.rise1 = _p.global_position.y - float(_v.y0)
+			if _frame == 400:
+				_v.top = float(_v.peak)
+				_v.stam = float(_p.get("stamina"))
+				## 기둥 안에서 스스로 접기(점프) — 기둥을 나갈 때까지 활공을 다시 펴지 않는다
+				_put(b + Vector3(0.0, 12.0, 0.0))
+				_p.call("_set_mode", _p.Mode.GLIDE)
+			if _frame == 405: # 기둥 안에서 활공하던 중 점프 — 접기
+				_p.set("_jump_buffer", 0.12)
+			if _frame == 420:
+				_v.skip_ok = int(_p.get("mode")) != _p.Mode.GLIDE
+				_put(SkyIsle.center() + Vector3(0.0, 0.5, 0.0))
+			if _frame == 440:
+				var ok: bool = bool(_v.glide) and float(_v.rise1) > 3.0 and float(_v.top) > SkyIsle.top_y() + 2.0 and bool(_v.skip_ok) and int(_sq.call("st")) == 4
+				_check("ch9_updraft", ok, "glide=%s rise_1s=%.1f peak=%.1f top=%.1f stamina_left=%.0f skip=%s st=%d" % [_v.glide, _v.rise1, _v.top, SkyIsle.top_y(), _v.stam, _v.skip_ok, _sq.call("st")])
+				_next()
+		80: # [80] 구름섬 무리 — 섬 위에 서고, 떨어지면 제자리로
+			if _frame == 5:
+				var es: Array = _sq.call("alive_quest_enemies")
+				_v = {"n": es.size(), "high": es.all(func(e: Variant) -> bool: return SkyIsle.on_isle((e as Node3D).global_position)), "back": false}
+				if not es.is_empty():
+					(es[0] as Node3D).global_position = (es[0].get("home") as Vector3) + Vector3(20.0, -12.0, 0.0)
+					_v.fell = es[0]
+			if _frame == 8:
+				_v.back = _v.has("fell") and SkyIsle.on_isle((_v.fell as Node3D).global_position)
+				for e in _sq.call("alive_quest_enemies"):
+					e.call("_die")
+			if _frame == 14:
+				_check("ch9_isle_kill", int(_v.n) == 4 and bool(_v.high) and bool(_v.back) and int(_sq.call("st")) == 5, "n=%d high=%s back=%s st=%d" % [_v.n, _v.high, _v.back, _sq.call("st")])
+				_next()
+		81: # [81] 먹구름 가면 해솔 — 섬 위·가면 금·2단계 방패+졸개 둘 → 가면 벗은 해솔
+			if _frame == 10:
+				var bosses := get_tree().get_nodes_in_group("go_story_boss")
+				_boss = bosses[0] if bosses.size() == 1 else null
+				_v = {"n": bosses.size(), "on": _boss != null and SkyIsle.on_isle((_boss as Node3D).global_position),
+					"crack": _boss != null and not _boss.find_children("Crack0", "MeshInstance3D", true, false).is_empty(), "phase": 0, "summons": 0,
+					"rel": ((_boss as Node3D).global_position - SkyIsle.center()) if _boss else Vector3.ZERO}
+				if _boss:
+					_boss.set("hp", float(_boss.get("max_hp")) * 0.45)
+			if _frame == 16 and _boss:
+				_v.phase = int(_boss.get("phase"))
+				_v.summons = (_boss.get("summoned") as Array).filter(func(m: Variant) -> bool: return is_instance_valid(m)).size()
+				_boss.call("_die")
+			if _frame == 24:
+				var free_ok: bool = bool(_sq.call("npc_visible", "haesol_free")) and not bool(_sq.call("has_mask", "haesol_free")) and SkyIsle.on_isle(_sq.call("npc_pos", "haesol_free"))
+				var ok: bool = int(_v.n) == 1 and bool(_v.on) and bool(_v.crack) and int(_v.phase) == 2 and int(_v.summons) == 2 \
+					and int(_sq.call("st")) == 6 and free_ok
+				_check("ch9_haesol_duel", ok, "n=%d on=%s crack=%s phase=%d summons=%d st=%d free=%s boss_rel=%s me_rel=%s" % [_v.n, _v.on, _v.crack, _v.phase, _v.summons, _sq.call("st"), free_ok, _v.get("rel", ""), _p.global_position - SkyIsle.center()])
+				_next()
+		82: # [82] 해솔 → 먹구름 임금(1.9배·왕관), 고리 — 곁·멀리는 안 맞고 고리 위만 맞음
+			if _frame == 1:
+				_dismiss_prompts()
+				_near_npc("haesol_free")
+			if _frame == 10:
+				_sq.call("interact")
+				_drain()
+			if _frame == 30:
+				var bosses := get_tree().get_nodes_in_group("go_story_boss")
+				_boss = bosses[0] if bosses.size() == 1 else null
+				_v = {"n": bosses.size(), "size": 0.0, "crown": false, "on": false, "hits": [], "h0": 0}
+				if _boss:
+					var ref: Node3D = load("res://games/saga_go/world/vroid_body.gd").build(String(_boss.name), 5)
+					var base_scale := ref.scale.x
+					ref.free()
+					_v.size = float((_boss.get("_visual") as Node3D).scale.x) / base_scale
+					_v.crown = not _boss.find_children("Crown", "Node3D", true, false).is_empty()
+					_v.on = SkyIsle.on_isle((_boss as Node3D).global_position)
+			## 고리 셋: 6m(고리 위) · 1.5m(안쪽 빈 곳) · 11m(바깥)
+			if _boss:
+				for k in 3:
+					var f0 := 40 + k * 110
+					if _frame == f0:
+						var bp := (_boss as Node3D).global_position
+						_boss.set("velocity", Vector3.ZERO)
+						_put(Vector3(bp.x + [6.0, 1.5, 11.0][k], SkyIsle.top_y() + 0.2, bp.z))
+						_v.h0 = int(_boss.get("hits_taken"))
+						_boss.call("begin_skill", "halo", _p)
+					if _frame == f0 + 100:
+						(_v.hits as Array).append(int(_boss.get("hits_taken")) - int(_v.h0))
+			if _frame == 380:
+				var ok: bool = int(_v.n) == 1 and int(_sq.call("st")) == 7 and float(_v.size) > 1.8 and float(_v.size) < 2.0 and bool(_v.crown) and bool(_v.on) \
+					and _v.hits == [1, 0, 0]
+				_check("ch9_king", ok, "n=%d st=%d size=%.2f crown=%s on=%s halo_hits(6m,1.5m,11m)=%s" % [_v.n, _sq.call("st"), _v.size, _v.crown, _v.on, _v.hits])
+				if _boss:
+					_boss.call("_die")
+				_next()
+		83: # [83] 임금 쓰러짐 → 나그네
+			if _frame == 1:
+				_dismiss_prompts()
+			if _frame == 5:
+				_near_npc("wanderer")
+			if _frame == 14:
+				_sq.call("interact")
+				_drain()
+			if _frame == 18:
+				_check("ch9_wanderer_after", int(_sq.call("st")) == 9 and get_tree().get_nodes_in_group("go_story_boss").is_empty(), "st=%d" % _sq.call("st"))
+				_next()
+		84: # [84] 해솔 → 마을로 내려가기(해솔·나그네는 섬에서 사라짐)
+			if _frame == 1:
+				_near_npc("haesol_free")
+			if _frame == 10:
+				_sq.call("interact")
+				_drain()
+			if _frame == 14:
+				var e: Vector2 = Story.CHAPTERS[8].steps[10].cell
+				var ok: bool = int(_sq.call("st")) == 10 and not bool(_sq.call("npc_visible", "haesol_free")) and not bool(_sq.call("npc_visible", "wanderer")) \
+					and _flat(_sq.call("target_pos"), TestMap.world_pos(e.x, e.y, "village")) < 0.1
+				_check("ch9_haesol_after", ok, "st=%d haesol=%s wanderer=%s" % [_sq.call("st"), _sq.call("npc_visible", "haesol_free"), _sq.call("npc_visible", "wanderer")])
+				_next()
+		85: # [85] 활공해 마을에(섬 위에선 안 넘어감)
+			if _frame == 1:
+				_v = int(_sq.call("st"))
+				_put(TestMap.world_pos(5.8, 3.3, "village") + Vector3(8.0, 0.5, 0.0))
+			if _frame == 20:
+				_check("ch9_glide_home", int(_v) == 10 and int(_sq.call("st")) == 11, "st_on_isle=%d st=%d" % [_v, _sq.call("st")])
+				_next()
+		86: # [86] 촌장 → 9장 끝·해솔 합류·먹구름 걷힘·바람 기둥은 남음
+			if _frame == 1:
+				_near_npc("elder")
+				_v = {"knots": PartyState.count("fate_knot"), "ar": PartyState.level + 1, "paid": PartyState.ar_paid}
+			if _frame == 10:
+				_sq.call("interact")
+				_drain()
+			if _frame < 16:
+				return
+			_dismiss_prompts()
+			if _frame < 22:
+				return
+			_sq.call("toggle_journal")
+			var jt: String = _sq.call("journal_text")
+			_sq.call("toggle_journal")
+			var sky: Node = get_tree().get_first_node_in_group("go_sky_isle")
+			var bonus := int(PartyState.ar_paid) / 5 - int(_v.paid) / 5 # 이 사이에 치른 모험 등급 보상(5의 배수마다 매듭 하나)
+			var ok: bool = int(_sq.call("ch")) == 9 and _sq.call("tracker_text") == "" and _sq.call("target_pos") == Vector3.INF and jt.contains("✔ 제9장") \
+				and PartyState.count("fate_knot") == int(_v.knots) + 5 + bonus and PartyState.members.count("story_haesol") == 1 \
+				and not bool(sky.call("gloom_visible")) and bool(sky.call("draft_active"))
+			_check("chapter9", ok, "ch=%d knots %d→%d (+%d) haesol=%s gloom=%s draft=%s tracker='%s'" % [_sq.call("ch"), _v.knots, PartyState.count("fate_knot"), bonus,
+				PartyState.members.has("story_haesol"), sky.call("gloom_visible"), sky.call("draft_active"), _sq.call("tracker_text")])
+			_next()
+		87: # ㊾ 대화 몸짓 — 다 끝난 뒤 촌장 혼잣말로
 			var face: Node = _sq.call("face_of", "elder")
 			var body: Node3D = (_sq.get("_npcs")["elder"] as Node3D).get_node("Body")
 			if _frame == 1:
@@ -1163,7 +1379,7 @@ func _physics_process(_delta: float) -> void:
 					_v.map, _v.revealing, _v.mouth, _v.lift, _v.fwd, _v.infl, _v.joy, _v.closed, back, _v.blink, face.call("front_sign")])
 				(_v.hand as Node).queue_free()
 				_next()
-		76:
+		88:
 			PartyState.story = _saved.story
 			PartyState.members.assign(_saved.members)
 			PartyState.exp = _saved.exp

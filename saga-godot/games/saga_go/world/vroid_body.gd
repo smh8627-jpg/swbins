@@ -149,3 +149,44 @@ static func add_mask(body: Node3D, stripe: Color = Color(0.72, 0.12, 0.12), face
 			cr.position = Vector3(-0.055, 0.035, 0.037) if k == 0 else Vector3(-0.042, -0.035, 0.036)
 			cr.rotation.z = 0.5 if k == 0 else -0.45
 			mask.add_child(cr)
+
+## 106장 ㊳ 왕관 — 머리 뼈 위(먹구름 임금). 금빛 테 하나 + 뿔 다섯. 뼈를 못 찾으면 몸 위 머리 높이.
+static func add_crown(body: Node3D, gold: Color = Color(0.9, 0.74, 0.3)) -> void:
+	var crown := Node3D.new()
+	crown.name = "Crown"
+	var skel := body.find_children("*", "Skeleton3D", true, false)
+	var head := -1
+	if not skel.is_empty():
+		head = (skel[0] as Skeleton3D).find_bone("J_Bip_C_Head")
+	if head >= 0:
+		var att := BoneAttachment3D.new()
+		att.bone_idx = head
+		skel[0].add_child(att)
+		att.add_child(crown)
+		crown.position = Vector3(0.0, 0.17, 0.0)
+	else:
+		body.add_child(crown)
+		crown.position = Vector3(0.0, 1.72, 0.0)
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = gold
+	mat.metallic = 0.7
+	mat.roughness = 0.35
+	var band := MeshInstance3D.new()
+	var tm := TorusMesh.new()
+	tm.inner_radius = 0.085
+	tm.outer_radius = 0.11
+	band.mesh = tm
+	band.material_override = mat
+	crown.add_child(band)
+	for i in 5:
+		var a := TAU * i / 5.0
+		var sp := MeshInstance3D.new()
+		var cm := CylinderMesh.new()
+		cm.top_radius = 0.0
+		cm.bottom_radius = 0.022
+		cm.height = 0.09
+		cm.radial_segments = 6
+		sp.mesh = cm
+		sp.material_override = mat
+		sp.position = Vector3(cos(a) * 0.098, 0.05, sin(a) * 0.098)
+		crown.add_child(sp)
