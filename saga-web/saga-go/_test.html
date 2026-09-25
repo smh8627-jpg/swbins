@@ -2898,6 +2898,32 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       return '펫 ' + n + '종 초상 모델 = 지도 그림';
     });
 
+    t('에셋 — 절차 펫·현대·미래 들판 적도 지도 그림이 3D 모델과 같은 동물(회색 로딩 표시 아님)', function () {
+      /* 2026-09-25 — `beastImgOf` 가 pt_/pk_ 만 받아 절차 펫(ptgen*_)·들판 적(fc_*)은 2D 그림이 없었다(CHARACTER_UNIQUENESS ⑤).
+         절차 펫은 네발 열 벌만 돌려 입던 풀을 땅짐승 스물셋(`form:gen`)으로 넓혔다 */
+      AS.clear(); AS.restore();
+      var RK = DG.regionKr, G = DG.genchar, bad = [], seen = {}, i, r;
+      var code = RK.REGIONS[0].code;
+      for (i = 0; i < 60; i++) {
+        var p = G.pet(code, 1 + (i % 5), i);
+        var u = AS.urlOf('pet', p) || '', base = u.split('/').pop().replace(/\.(glb|gltf)$/, '');
+        var im = DG.sprite.beastImgOf(p);
+        if (DG.sprite.beastFormOf(p) !== 'gen' || !base || !im || im.src.indexOf('beast_' + base + '.png') < 0) { bad.push(p.id); }
+        seen[base] = 1;
+      }
+      var fc = ['rat', 'wasp', 'zombie', 'drone', 'walker', 'alien', 'hulk'];
+      fc.forEach(function (k) {
+        var ref = { id: 'fc_' + k, kind: 'beast', form: 'boar' };
+        var u = AS.urlOf('pet', ref) || '', base = u.split('/').pop().replace(/\.glb$/, '');
+        var im = DG.sprite.beastImgOf(ref);
+        if (!/\/foes\//.test(u) || !im || im.src.indexOf('beast_' + base + '.png') < 0) { bad.push('fc_' + k); }
+      });
+      var gen = AS.REG['pet:form:gen'] || [];
+      AS.clear();
+      if (bad.length || gen.length !== 23 || Object.keys(seen).length < 15) { return false; }
+      return '절차 펫 60마리 ' + Object.keys(seen).length + '종(풀 ' + gen.length + ') · 들판 적 ' + fc.length + '종 · 지도 그림 = 3D 모델';
+    });
+
     t('에셋 — 손잡이를 내리면 표가 있어도 도형으로 간다', function () {
       AS.clear();
       var guan = D.find('sg_guanyu');
@@ -7607,6 +7633,9 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
     function bondKeep(ids) {
       var snap = ids.map(function (id) { return C.save.heroes[id] ? JSON.stringify(C.save.heroes[id]) : null; });
       var party = C.save.party.slice(), dist = C.save.player.distance;
+      /* 2026-09-25 — 앞 항목이 난수에 따라 이 인물 기록을 만들어 두면 "기록도 안 생김" 이 떨어졌다(예전부터 가끔 흔들린 원인).
+         재는 동안만 비우고 끝나면 스냅숏으로 되돌린다 */
+      ids.forEach(function (id) { delete C.save.heroes[id]; });
       DG.bond._resetForTest();
       return function () {
         ids.forEach(function (id, i) { if (snap[i]) { C.save.heroes[id] = JSON.parse(snap[i]); } else { delete C.save.heroes[id]; } });

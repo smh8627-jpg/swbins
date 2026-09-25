@@ -1512,15 +1512,22 @@
    * (CC0, `assets/sprites2d/animals/`, `ASSET_LICENSES.md` 참고)의 실제
    * 4방향 idle/run 그림으로 바꿨다. 원본은 앞/뒤 방향도 있지만 이 게임은
    * 좌/우(facing -1/1)만 추적하므로 그 둘만 골라 담았다(ANIMAL_SPRITE 표).
-   * 나머지 넷(늑대·토끼·오리·뱀)은 맞는 CC0 를 못 찾아 emoji 그대로 —
-   * ANIMAL_SPRITE 에 없는 kind 는 자동으로 이 fallback 을 탄다.
+   * 나머지 넷(늑대·토끼·오리·뱀)은 맞는 CC0 를 못 찾아 emoji 였다 — 2026-09-25 부터 3D 에 서는 **그 모델**을 옆에서 구운
+   * 같은 모양 시트(`tools/bake-portraits/bake.mjs saga-forest --sprites=animals`, 컷 44×36). 정지 모델(토끼·오리)은 달리기 줄이
+   * 깡충 뛰는 높이 차다. 희귀 괴물 둘(포자괴물·성간충)도 같은 길. ANIMAL_SPRITE 에 없는 kind 만 emoji 로 떨어진다.
    */
   var ANIMAL_SPRITE = {
     deer:     { w: 41, h: 33, idleFrames: 4, runFrames: 4, idleMs: 300, runMs: 150 },
     fox:      { w: 35, h: 32, idleFrames: 4, runFrames: 4, idleMs: 300, runMs: 150 },
     squirrel: { w: 30, h: 28, idleFrames: 4, runFrames: 4, idleMs: 300, runMs: 150 },
     frog:     { w: 24, h: 21, idleFrames: 2, runFrames: 4, idleMs: 600, runMs: 150 },
-    bird:     { w: 28, h: 24, idleFrames: 4, runFrames: 4, idleMs: 300, runMs: 150 }
+    bird:     { w: 28, h: 24, idleFrames: 4, runFrames: 4, idleMs: 300, runMs: 150 },
+    wolf:     { w: 44, h: 36, idleFrames: 4, runFrames: 4, idleMs: 300, runMs: 150 },
+    rabbit:   { w: 44, h: 36, idleFrames: 1, runFrames: 4, idleMs: 300, runMs: 120 },
+    duck:     { w: 44, h: 36, idleFrames: 1, runFrames: 4, idleMs: 300, runMs: 150 },
+    snake:    { w: 44, h: 36, idleFrames: 4, runFrames: 4, idleMs: 300, runMs: 170 },
+    mushnub:  { w: 44, h: 36, idleFrames: 1, runFrames: 4, idleMs: 300, runMs: 150 },   // 희귀 괴물 둘 — 3D 의 monster:<종류>
+    spacebug: { w: 44, h: 36, idleFrames: 4, runFrames: 4, idleMs: 300, runMs: 150 }
   };
   var animalImgCache = {};
   function animalImg(kind) {
@@ -2778,6 +2785,7 @@
     syncCam: function () { var p = V.raw().player; cam.x = p.x; cam.y = p.y; },
     /** 자가진단용 */
     _cam: function () { return cam; },
+    _animalSprite: function (kind) { return ANIMAL_SPRITE[kind] || null; },
     _project: project,
     _unproject: unproject,
     _projectIn: projIn,

@@ -224,7 +224,7 @@
     'critter:pk_dragonite': STANDIN + 'Alpaking.glb',
     'critter:pk_charizard': STANDIN + 'Dragon.glb',
     'critter:pk_gyarados': STANDIN + 'Snake_angry.glb',
-    'critter:pk_mewtwo': STANDIN + 'Alien.glb',
+    'critter:pk_mewtwo': STANDIN + 'Alien_2.glb',
     'critter:pk_mew': STANDIN + 'Cat_Monster.glb',
     /* 랜덤 이벤트(PLAN 11절, 2026-09-09) — saga-dungeon 이 이미 받아 둔 KayKit
        상자를 그대로 재사용한다 */

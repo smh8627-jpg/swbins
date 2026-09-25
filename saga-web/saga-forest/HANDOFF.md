@@ -1965,3 +1965,10 @@ jsdom 355/356 ×3(남은 하나는 캔버스 그림 — 깃발 그림, jsdom 한
 - 28종만 초상 다시 굽기(`tools/bake-portraits/bake.mjs <판> --kind=pet --only=…`). 진단 항목에 "대역 28종 서로 다름" 을 더했다.
 - 새 파일 `assets/models/standin/` 19개. sw village-v0.105.0.
 - 진단은 아래 커밋 메시지 · **실기 확인 대기**(도감·초상에서 대역 모습).
+
+## 2026-09-25 (2D 빈칸) — 들짐승 넷·희귀 괴물 둘도 2D 시트 (CHARACTER_UNIQUENESS ⑤)
+- 늑대·토끼·오리·뱀·포자괴물·성간충이 2D 에서 emoji 였다. 새 `bake.mjs saga-forest --sprites=animals` — 3D 에 서는 그 모델을 옆에서 구워
+  `ANIMAL_SPRITE` 와 같은 4줄(서기 좌·우 / 달리기 좌·우) × 4컷, 컷 44×36. 정지 모델(토끼·오리)은 달리기 줄이 깡충 높이 차.
+  그림은 직접 안 보고 픽셀 통계(불투명·어두운 비율·컷마다 다름)로만 확인했다. `_animalSprite` 진단 창구, 진단 새 1.
+- 의조(pk_mewtwo) 대역을 방울형 Alien → 두발 외계인 Alien_2(Ultimate Monsters `Alien_b048d82a`)로 — 방울형은 사가고 들판 적 "별바다 손님"과 같은 파일이었다. 초상 다시 구움.
+- sw village-v0.106.0 · **실기 확인 대기**(2D 모드 지도에서 크기·방향).

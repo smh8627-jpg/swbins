@@ -472,7 +472,7 @@
     'pet:pk_lapras': STANDIN + 'Glub_Evolved.glb',
     'pet:pk_magikarp': STANDIN + 'Glub.glb',
     'pet:pk_mew': STANDIN + 'Cat_Monster.glb',
-    'pet:pk_mewtwo': STANDIN + 'Alien.glb',
+    'pet:pk_mewtwo': STANDIN + 'Alien_2.glb',
     'pet:pk_pikachu': STANDIN + 'Bunny.glb',
     'pet:pk_slowbro': STANDIN + 'Pink_Slime.glb',
     'pet:pk_snorlax': STANDIN + 'Yeti.glb',

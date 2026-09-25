@@ -1432,4 +1432,9 @@ Quaternius "Ultimate Monsters"(CC0, 사가블로 `assets/models/monsters/quatern
 | 불가사리 | **Elephant**(쇠를 먹는 코끼리 코 짐승) |
 | 싹등이·불꼬리·물뿜이·뜀잉어·번개볼·떡잎이 | Mushnub·Dino·Squidle·Glub·Bunny·Monkroose |
 | 늘보소라·그늘귀·누운산·나룻고래·만권 | Pink_Slime·Ghost·Yeti·Glub_Evolved·Wizard |
-| 순룡·화룡·이무기·의조·시조 | Alpaking·Dragon·Snake_angry·Alien·Cat(괴물 고양이) |
+| 순룡·화룡·이무기·의조·시조 | Alpaking·Dragon·Snake_angry·Alien_2(두발 외계인 — 방울형 Alien 은 사가고 들판 적과 같은 파일이라 피함)·Cat(괴물 고양이) |
+
+## 지도 스탬프 추가 — 들판 적·의조 (2026-09-25, `assets/sprites2d/beast_*.png`)
+
+`beast_Rat`·`Wasp`·`Zombie`·`Robot_Drone`·`Robot_Walker`·`Robot_Large`(들판 적 `assets/models/foes/`, Quaternius CC0)·
+`beast_Alien_2`(의조, Ultimate Monsters CC0)를 `tools/bake-icons/bake-beasts.mjs` 로 구운 파생 그림. 절차 펫은 이미 있던 땅짐승 그림 스물셋을 쓴다.

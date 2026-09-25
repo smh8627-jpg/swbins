@@ -3811,3 +3811,13 @@ SAGA-HANDOFF 열린 항목 "tower_ruin.glb(역참) 아이콘 굽기 — 여섯 �
 - 지도 스탬프도 같은 동물: `sprite.js` `PET_BEAST_FILE` 에 28종, `tools/bake-icons/bake-beasts.mjs` 가 `standin/` 도 찾게 해 새 그림 19장(`assets/sprites2d/beast_<모델>.png`).
   진단 "스탬프 = 초상 모델" 77 → 105. "인연 — 파티에 없으면 안 오른다" 는 예전부터 가끔 떨어지는 항목(위 3738행 기록).
 - 진단은 아래 커밋 메시지 · **실기 확인 대기**(도감·초상에서 대역 모습).
+
+## 2026-09-25 (2D 빈칸) — 절차 펫·현대·미래 들판 적도 지도 그림 (CHARACTER_UNIQUENESS ⑤)
+- `beastImgOf` 가 `pt_/pk_` 만 받아 절차 펫(`ptgen*_`, genchar 네 벌)·들판 적(`fc_*`)은 지도에서 회색 로딩 표시였다.
+  절차 펫: 새 형태 `gen`(sprite `beastFormOf` 가 `ptgen*_` 에 준다) = 땅짐승 스물셋 — asset3d `pet:form:gen` 과 sprite `BEAST_FORM_FILES.gen` 이 같은 순서·같은 해시라
+  3D 와 2D 가 같은 동물이다(예전 네발 열 벌에서 넓힘 — 이미 잡은 절차 펫도 모습이 바뀔 수 있다, 세이브는 id 만이라 안전).
+  들판 적: `FC_BEAST_FILE` 일곱 → `assets/sprites2d/beast_<모델>.png`(bake-beasts 가 `foes/` 도 찾음). 진단 새 1.
+- 의조(pk_mewtwo) 대역을 방울형 Alien → 두발 외계인 Alien_2(Ultimate Monsters `Alien_b048d82a`)로 — 방울형은 사가고 들판 적 "별바다 손님"과 같은 파일이었다. 초상 다시 구움.
+- 진단 "인연 — 파티에 없으면 안 오른다"(예전부터 흔들림) 원인: 앞 항목이 난수에 따라 대기 인물(`jp_hanzo`)의 `save.heroes` 기록을 만들어 두면 "기록도 안 생김" 이 거짓.
+  이번엔 네 번 연속 떨어져 `bondKeep` 이 재는 동안 그 인물 기록을 비우고 끝나면 되돌리게 고쳤다. 포획·역참 보상 항목의 설명 글은 씨앗 없는 게임 난수라 판마다 다를 수 있다.
+- sw go-v5.79.0 · **실기 확인 대기**.

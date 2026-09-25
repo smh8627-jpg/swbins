@@ -885,3 +885,7 @@ SAGA-DESIGN §11 Phase 4 의 "사가스토리 펫 이미지 공백(보류)" — 
 - 28종만 초상 다시 굽기(`tools/bake-portraits/bake.mjs <판> --kind=pet --only=…`). 진단 항목에 "대역 28종 서로 다름" 을 더했다.
 - 새 파일 `assets/models/standin/` 19개. 구미호는 여태처럼 `critter:fox`(여우). sw side-v0.89.0.
 - 진단은 아래 커밋 메시지 · **실기 확인 대기**(도감·초상에서 대역 모습).
+
+## 2026-09-25 (펫 대역 이어서) — 의조 대역 교체
+- 의조(pk_mewtwo) 대역을 방울형 Alien → 두발 외계인 Alien_2(Ultimate Monsters `Alien_b048d82a`)로 — 방울형은 사가고 들판 적 "별바다 손님"과 같은 파일이었다. 초상 다시 구움.
+- sw side-v0.89.1.

@@ -743,7 +743,7 @@
     'pet:pk_dragonite': PEOPLE_MONSTERS_Q + 'Alpaking_acb0f155.glb',
     'pet:pk_charizard': PEOPLE_MONSTERS_Q + 'Dragon_ae5b8510.glb',
     'pet:pk_gyarados': STANDIN + 'Snake_angry.glb',
-    'pet:pk_mewtwo': PEOPLE_MONSTERS_Q + 'Alien_0bb74be9.glb',
+    'pet:pk_mewtwo': PEOPLE_MONSTERS_Q + 'Alien_b048d82a.glb',
     'pet:pk_mew': PEOPLE_MONSTERS_Q + 'Cat_7ccb71fe.glb',
     /* 2026-09-04(이어서) — 사용자가 "사가고처럼 실사화"를 요청 → 사람은
        막다른 길(Mixamo 재배포 금지, 위 delam 주석 참고)이라 자연물만

@@ -332,8 +332,13 @@
     toad: ['Frog'],
     dragon: ['Trex', 'Triceratops', 'Stegosaurus', 'Velociraptor'],
     turtle: ['Snake', 'Snake_angry'],
-    ogre: ['Orc', 'Demon', 'BlueDemon']
+    ogre: ['Orc', 'Demon', 'BlueDemon'],
+    /* 2026-09-25 — 절차 펫(`ptgen*_`, genchar*.js) 전용 풀: 땅짐승 스물셋(네발 열 벌만 돌려 입던 것을 넓혔다). asset3d `pet:form:gen` 과 같은 순서 */
+    gen: ['Deer', 'Wolf', 'Cow', 'Alpaca', 'Bull', 'Donkey', 'Fox', 'Husky', 'ShibaInu', 'Stag', 'Tiger', 'Bear', 'Boar', 'Panda', 'Monkey', 'Cat', 'Llama', 'Pig', 'Pug', 'Sheep', 'Zebra', 'Horse_Farm', 'Cow_Farm']
   };
+  /* 2026-09-25 — 현대·미래 들판 적(field-combat FOES, id `fc_<종류>`, asset3d `pet:fc_*` 와 같은 모델). 여태 2D 그림이 없어 회색 로딩 표시였다 */
+  var FC_BEAST_FILE = { fc_rat: 'Rat', fc_wasp: 'Wasp', fc_zombie: 'Zombie', fc_drone: 'Robot_Drone', fc_walker: 'Robot_Walker',
+    fc_alien: 'Alien', fc_hulk: 'Robot_Large' };
   /* 도감 펫 중 **제 모델이 있는 종**(asset3d.js `pet:pt_*`, 2026-09-23)은 형태 해시가 아니라 그 모델을 구운 그림을 쓴다 —
      3D 초상과 지도 스탬프가 같은 동물이어야 한다(예전엔 고래가 초상은 사슴·지도도 사슴). `_x2` 는 animals_extra2 쪽 같은 이름 모델 */
   var PET_BEAST_FILE = {
@@ -362,7 +367,7 @@
     pt_jeolyeong: 'Horse_White', pt_magpie: 'Pigeon',
     pk_bulbasaur: 'Mushnub', pk_charmander: 'Dino', pk_squirtle: 'Squidle', pk_magikarp: 'Glub', pk_pikachu: 'Bunny',
     pk_eevee: 'Monkroose', pk_slowbro: 'Pink_Slime', pk_gengar: 'Ghost', pk_snorlax: 'Yeti', pk_lapras: 'Glub_Evolved',
-    pk_alakazam: 'Wizard', pk_dragonite: 'Alpaking', pk_charizard: 'Dragon', pk_gyarados: 'Snake_angry', pk_mewtwo: 'Alien',
+    pk_alakazam: 'Wizard', pk_dragonite: 'Alpaking', pk_charizard: 'Dragon', pk_gyarados: 'Snake_angry', pk_mewtwo: 'Alien_2',
     pk_mew: 'Cat_Monster'
   };
   var beastImgCache = {};
@@ -381,7 +386,8 @@
   function beastImgOf(pet) {
     if (!pet || !pet.id) { return null; }
     if (BG_BEAST_FILE[pet.id]) { return beastImgFile(BG_BEAST_FILE[pet.id]); }
-    if (!/^(pt_|pk_)/.test(pet.id)) { return null; }
+    if (FC_BEAST_FILE[pet.id]) { return beastImgFile(FC_BEAST_FILE[pet.id]); }
+    if (!/^(pt_|pk_|ptgen[a-z]*_)/.test(pet.id)) { return null; }   // 절차 펫(2026-09-25)도 — 3D 와 같은 해시·같은 풀
     if (PET_BEAST_FILE[pet.id]) { return beastImgFile(PET_BEAST_FILE[pet.id]); }
     var list = BEAST_FORM_FILES[beastFormOf(pet)];
     if (!list) { return null; }
@@ -393,7 +399,10 @@
   function beastPatternOf(pet) { return (pet && BEAST_PATTERN[pet.id]) || ''; }
   /* 도감에 없는 짐승(`animal.js`, 잡는 대상이 아니라 도감에 자리가 없다)은
      `form`·`color` 를 제가 직접 들고 온다 — 도감 펫엔 그 필드가 없다 */
-  function beastFormOf(pet) { return (pet && (pet.form || BEAST_FORM[pet.id])) || 'quad'; }
+  function beastFormOf(pet) {
+    if (!pet) { return 'quad'; }
+    return pet.form || BEAST_FORM[pet.id] || (/^ptgen[a-z]*_/.test(pet.id || '') ? 'gen' : 'quad');
+  }
   function beastColorOf(pet) { return (pet && (pet.color || BEAST_COLOR[pet.id])) || '#9a8f7a'; }
 
   /**

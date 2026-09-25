@@ -4,6 +4,7 @@
  *
  *   node tools/bake-portraits/bake.mjs <게임폴더> [--kind=hero|pet] [--limit=N] [--only=id,id]
  *   node tools/bake-portraits/bake.mjs saga-dungeon --sprites=monsters   (적 짐승 몸 → 옆모습 걷기 시트 assets/sprites2d/mon_*.webp)
+ *   node tools/bake-portraits/bake.mjs saga-forest --sprites=animals [--only=wolf,rabbit] (들짐승 3D → 2D 지도 시트 assets/sprites2d/animals/<종류>.png)
  *   (2026-09-23 까지는 짐승 외곽선이 검은 파편으로 번져 `--tune=world3d.outline:0` 로 끄고 구웠다 — 외곽선 폭·스키닝 순서를 고쳐 이제 켜고 굽는다)
  *   부가 옵션: --tune=키:값(굽는 동안 손잡이) --gl=d3d11(실제 GPU) --out=경로 --eval=파일.js(페이지 안에서 스크립트 실행)
  *
@@ -217,6 +218,82 @@ try {
     const all = [...new Set([...prevKeys, ...okKeys])].sort();
     fs.writeFileSync(mfp, `/* bake-portraits --sprites=monsters 가 쓴다 — 손으로 고치지 않는다. 5컷 가로 시트(걷기 4 + 서기 1), 컷 128px. */\n(function(g){g.DG=g.DG||{};g.DG.monsterSprites={v:1,cell:128,walk:4,keys:"${all.join(',')}"};})(window);\n`);
     console.log(`몬스터 시트 — 구움 ${okKeys.length}, 못 구움 ${bad.length}${bad.length ? ' (' + bad.join(',') + ')' : ''}`);
+    done(0);
+    await new Promise(() => {});
+  }
+
+  /* ── --sprites=animals : 사가의숲 들짐승(VD.ANIMALS)의 3D 몸을 2D 지도 시트로 굽는다(2026-09-25, CHARACTER_UNIQUENESS ⑤) ──
+   * `village-view.js` `ANIMAL_SPRITE` 과 같은 모양 — 4줄(0 서기·왼쪽 / 1 서기·오른쪽 / 2 달리기·왼쪽 / 3 달리기·오른쪽) × 4컷,
+   * 컷 CW×CH px. 앞(+Z)이 오른쪽(카메라가 -X 에서 +X 를 본다), 왼쪽 줄은 좌우를 뒤집는다. 발이 아래, 여덟 자세를 다 담는 한 배율.
+   * 클립이 없는 정지 모델(토끼·오리)은 달리기 줄을 깡충 뛰는 높이 차로 가른다. 결과 `assets/sprites2d/animals/<종류>.png` */
+  if (opt.sprites === 'animals') {
+    const CW = Number(opt.cw || 44), CH = Number(opt.ch || 36);
+    await evalJs(`(function () {
+      var T = THREE, A3 = DG.asset3d, R = null, scene = null, cam = null, rig = null, SS = 4, CW = ${CW}, CH = ${CH};
+      function boot() {
+        if (R) { return; }
+        var cv = document.createElement('canvas');
+        R = new T.WebGLRenderer({ canvas: cv, antialias: true, alpha: true, preserveDrawingBuffer: true });
+        R.setClearColor(0x000000, 0); R.setPixelRatio(1); R.setSize(CW * SS, CH * SS, false);
+        if (T.SRGBColorSpace) { R.outputColorSpace = T.SRGBColorSpace; }
+        scene = new T.Scene();
+        scene.add(new T.HemisphereLight(0xfff6e8, 0x6a6250, 2.4));
+        var sun = new T.DirectionalLight(0xfff3dc, 1.8); sun.position.set(-1.2, 1.7, 0.7); scene.add(sun);
+        cam = new T.OrthographicCamera(-1, 1, 1, -1, 0.1, 5000);
+        rig = new T.Group(); scene.add(rig);
+      }
+      function built(kind, id) { return new Promise(function (res) { A3.build(kind, { id: id }, res); setTimeout(function () { res(null); }, 40000); }); }
+      window.__bakeAnimal = async function (kind) {
+        boot();
+        var node = (await built('animal', 'an_' + kind)) || (await built('monster', kind));   // 희귀 괴물(포자괴물·성간충)은 monster:<종류>
+        if (!node) { return null; }
+        while (rig.children.length) { rig.remove(rig.children[0]); }
+        rig.add(node);
+        var u = node.userData, cm = u.clipMap || {}, acts = u.actions || {};
+        var idleA = acts[cm.idle], runA = acts[cm.run] || acts[cm.walk];
+        function pose(row, f) {
+          var a = row >= 2 ? runA : idleA;
+          if (u.mixer) { u.mixer.stopAllAction(); if (a) { a.reset().play(); u.mixer.setTime(f / 4 * (a.getClip().duration || 1)); } }
+          node.updateMatrixWorld(true);
+        }
+        var box = new T.Box3(), tmp = new T.Box3(), r, f;
+        for (r = 1; r <= 3; r += 2) { for (f = 0; f < 4; f++) { pose(r, f); tmp.setFromObject(node, true); if (!tmp.isEmpty()) { box.union(tmp); } } }
+        if (box.isEmpty()) { return null; }
+        var hop = !runA ? [0, 0.12, 0.18, 0.12] : [0, 0, 0, 0];        // 정지 모델 — 달리기 줄은 깡충(몸 키 비율)
+        var h = (box.max.y - box.min.y) * (1 + 0.18), d = box.max.z - box.min.z, cz = (box.min.z + box.max.z) / 2;
+        var halfH = Math.max(h, d * CH / CW) / 2 * 1.06, halfW = halfH * CW / CH, cy = box.min.y + halfH * 0.98;
+        cam.left = -halfW; cam.right = halfW; cam.top = halfH; cam.bottom = -halfH; cam.updateProjectionMatrix();
+        cam.position.set(-2000, cy, cz); cam.lookAt(0, cy, cz);
+        var out = document.createElement('canvas'); out.width = CW * 4; out.height = CH * 4;
+        var oc = out.getContext('2d'); oc.imageSmoothingQuality = 'high';
+        for (r = 0; r < 4; r++) {
+          for (f = 0; f < 4; f++) {
+            pose(r, f);
+            var lift = (r >= 2 ? hop[f] : 0) * (box.max.y - box.min.y);
+            node.position.y = lift; node.updateMatrixWorld(true);
+            R.render(scene, cam);
+            node.position.y = 0;
+            oc.save();
+            if (r % 2 === 0) { oc.translate((f + 1) * CW, r * CH); oc.scale(-1, 1); } else { oc.translate(f * CW, r * CH); }
+            oc.drawImage(R.domElement, 0, 0, CW, CH);
+            oc.restore();
+          }
+        }
+        rig.remove(node);
+        return out.toDataURL('image/png');
+      };
+      return true;
+    })()`);
+    const kinds2 = opt.only ? String(opt.only).split(',') : ['wolf', 'rabbit', 'duck', 'snake'];
+    const outDir = path.resolve(opt.out || path.join(gameDir, 'assets', 'sprites2d', 'animals'));
+    fs.mkdirSync(outDir, { recursive: true });
+    const okK = [], badK = [];
+    for (const k of kinds2) {
+      const url = await evalJs(`window.__bakeAnimal(${JSON.stringify(k)})`, 70000).catch(() => null);
+      if (url && url.startsWith('data:image/png')) { fs.writeFileSync(path.join(outDir, `${k}.png`), Buffer.from(url.split(',')[1], 'base64')); okK.push(k); }
+      else { badK.push(k); }
+    }
+    console.log(`들짐승 시트 ${CW}x${CH} — 구움 ${okK.length}, 못 구움 ${badK.length}${badK.length ? ' (' + badK.join(',') + ')' : ''}`);
     done(0);
     await new Promise(() => {});
   }

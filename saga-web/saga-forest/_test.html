@@ -147,6 +147,17 @@ window.DG_NO_TUNE = true;
         'THREE + GLTFLoader';
     });
 
+    t('2D 들짐승 — 희귀 괴물까지 모두 그림 시트(늑대·토끼·오리·뱀·포자괴물·성간충은 3D 모델을 구운 것), emoji 아님 (CHARACTER_UNIQUENESS ⑤)', function () {
+      /* 2026-09-25 — 넷은 맞는 CC0 픽셀 그림이 없어 emoji 였다. 3D 에 서는 그 모델을 옆에서 구워(bake.mjs --sprites=animals) 같은 4줄 시트로 */
+      var VV = DG.villageView, VD = DG.villageData;
+      if (!VV || !VV._animalSprite || !VD || !VD.ANIMALS) { return false; }
+      var plain = Object.keys(VD.ANIMALS);
+      var miss = plain.filter(function (k) { var s = VV._animalSprite(k); return !s || !(s.w > 0 && s.h > 0 && s.runFrames >= 1 && s.idleFrames >= 1); });
+      var baked = ['wolf', 'rabbit', 'duck', 'snake', 'mushnub', 'spacebug'].every(function (k) { var s = VV._animalSprite(k); return s && s.w === 44 && s.h === 36; });
+      if (miss.length || !baked) { throw new Error('시트 없음 ' + miss.join(',')); }
+      return '들짐승·희귀 괴물 ' + plain.length + '종 모두 시트 · 여섯은 44×36(3D 모델에서 구움)';
+    });
+
     t('asset3d — 펫 105종 전부 제 모델(또는 사가고와 같은 대역), 늑대·사슴·여우 돌려 입기 아님', function () {
       /* 2026-09-24 — 여태 105종이 늑대·사슴·여우 셋을 id 해시로 돌려 입어 고래도 범도 여우였다(펫 초상 모음) */
       var A3 = DG.asset3d, D = DG.data;

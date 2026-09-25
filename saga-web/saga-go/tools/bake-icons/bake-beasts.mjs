@@ -4,7 +4,7 @@
  * `js/sprite.js` 의 `PET_BEAST_FILE`(펫별)·`BEAST_FORM_FILES`(형태 풀)·`BG_BEAST_FILE`(배경 생물)에 적힌 키를 모아
  * `_bake_one.html?view=pet` 으로 **한 개씩 새로 연 페이지**에서 굽고(README "알려진 흠" — 한 페이지에서 몰아 구우면 간헐적으로 멎는다)
  * `assets/sprites2d/beast_<키>.png` 에 쓴다. 키 → 모델: `<이름>_x2` 는 `animals_extra2/<이름>`, 나머지는 animals → animals_extra →
- * animals_extra2 → standin(신수·오마주 대역, 2026-09-25) 순으로 찾는다. 물고기 형태에 쓰이는 키는 yaw 1.4(거의 옆모습). 헤드리스 크롬은 제가 띄운 것만 끈다.
+ * animals_extra2 → standin(신수·오마주 대역) → foes(들판 적, `FC_BEAST_FILE`) 순으로 찾는다(2026-09-25). 물고기 형태에 쓰이는 키는 yaw 1.4(거의 옆모습). 헤드리스 크롬은 제가 띄운 것만 끈다.
  */
 import http from 'node:http'; import fs from 'node:fs'; import path from 'node:path'; import os from 'node:os'; import { spawn } from 'node:child_process';
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')), '..', '..');
@@ -13,13 +13,13 @@ const only = process.argv[2] ? new Set(process.argv[2].split(',')) : null;
 const spr = fs.readFileSync(path.join(root, 'js', 'sprite.js'), 'utf8');
 const block = name => { const i = spr.indexOf('var ' + name + ' = {'); return i < 0 ? '' : spr.slice(i, spr.indexOf('};', i)); };
 const petFile = Object.fromEntries([...block('PET_BEAST_FILE').matchAll(/(p[tk]_[a-z0-9_]+): '([A-Za-z0-9_]+)'/g)].map(m => [m[1], m[2]]));
-const formFiles = block('BEAST_FORM_FILES'), bgFiles = block('BG_BEAST_FILE');
+const formFiles = block('BEAST_FORM_FILES'), bgFiles = block('BG_BEAST_FILE') + block('FC_BEAST_FILE');
 const fishPets = new Set([...block('BEAST_FORM').matchAll(/(p[tk]_[a-z0-9_]+): 'fish'/g)].map(m => m[1]));
 const keys = new Set([...Object.values(petFile), ...[...formFiles.matchAll(/'([A-Za-z0-9_]+)'/g)].map(m => m[1]), ...[...bgFiles.matchAll(/: '([A-Za-z0-9_]+)'/g)].map(m => m[1])]);
 const fishKeys = new Set([...Object.entries(petFile).filter(([id]) => fishPets.has(id)).map(([, k]) => k), ...((formFiles.match(/fish: \[([^\]]*)\]/) || ['', ''])[1].match(/[A-Za-z0-9_]+/g) || [])]);
 function urlOf(k) {
   if (/_x2$/.test(k)) { return 'assets/models/animals_extra2/' + k.slice(0, -3) + '.glb'; }
-  for (const d of ['animals', 'animals_extra', 'animals_extra2', 'standin']) for (const e of ['.glb', '.gltf']) { const u = `assets/models/${d}/${k}${e}`; if (fs.existsSync(path.join(root, u))) return u; }
+  for (const d of ['animals', 'animals_extra', 'animals_extra2', 'standin', 'foes']) for (const e of ['.glb', '.gltf']) { const u = `assets/models/${d}/${k}${e}`; if (fs.existsSync(path.join(root, u))) return u; }
   return null;
 }
 const jobs = [...keys].sort().filter(k => !only || only.has(k)).map(k => ({ key: k, url: urlOf(k), yaw: fishKeys.has(k) ? 1.4 : null })).filter(j => j.url);
