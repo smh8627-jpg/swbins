@@ -1608,50 +1608,11 @@ namespace Saga.EditorTools
             gridRect.anchoredPosition = new Vector2(0f, -30f);
             gridRect.sizeDelta = Vector2.zero;
 
-            var centerCell = BuildMapCell(gridRect, Vector2.zero, "모루골");
-            var northCell = BuildMapCell(gridRect, new Vector2(0f, 110f), "던전 굴혈");
-            var southCell = BuildMapCell(gridRect, new Vector2(0f, -110f), "Town2");
-            var westCell = BuildMapCell(gridRect, new Vector2(-110f, 0f), "Town3");
-            var eastCell = BuildMapCell(gridRect, new Vector2(110f, 0f), "Town4");
-
+            // PLAN.md 109-10-4 — 지역 아홉 칸은 OverworldMapUI 가 Play 때 이 Grid 밑에 짓는다(DungeonWorldMap 표).
             var mapUi = canvasGo.AddComponent<OverworldMapUI>();
             SetPrivateField(mapUi, "panel", panelGo);
-            SetPrivateField(mapUi, "centerCell", centerCell);
-            SetPrivateField(mapUi, "northCell", northCell);
-            SetPrivateField(mapUi, "southCell", southCell);
-            SetPrivateField(mapUi, "westCell", westCell);
-            SetPrivateField(mapUi, "eastCell", eastCell);
 
             panelGo.SetActive(false); // OverworldMapUI가 M키로 토글 — 시작은 닫힘.
-        }
-
-        private static Image BuildMapCell(RectTransform parent, Vector2 offset, string label)
-        {
-            var cellGo = new GameObject("Cell_" + label, typeof(RectTransform));
-            cellGo.transform.SetParent(parent, false);
-            var cellRect = (RectTransform)cellGo.transform;
-            cellRect.anchorMin = cellRect.anchorMax = new Vector2(0.5f, 0.5f);
-            cellRect.pivot = new Vector2(0.5f, 0.5f);
-            cellRect.anchoredPosition = offset;
-            cellRect.sizeDelta = new Vector2(100f, 100f);
-            var img = cellGo.AddComponent<Image>();
-            img.color = new Color(1f, 1f, 1f, 0.12f);
-
-            var textGo = new GameObject("Text", typeof(RectTransform));
-            textGo.transform.SetParent(cellGo.transform, false);
-            var textRect = (RectTransform)textGo.transform;
-            textRect.anchorMin = Vector2.zero;
-            textRect.anchorMax = Vector2.one;
-            textRect.offsetMin = Vector2.zero;
-            textRect.offsetMax = Vector2.zero;
-            var text = textGo.AddComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            text.fontSize = 20;
-            text.alignment = TextAnchor.MiddleCenter;
-            text.color = Color.white;
-            text.text = label;
-
-            return img;
         }
 
         /// <summary>화면 왼쪽 위 — 디버그 빌드에서만 렌더러 이름·FPS·레벨·

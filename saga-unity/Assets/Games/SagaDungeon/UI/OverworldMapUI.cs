@@ -1,80 +1,140 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using Saga.Dungeon.Data;
 
 namespace Saga.Dungeon.UI
 {
     /// <summary>
     /// saga-dungeon 웹판 PLAN.md 28-1절 "지도 UI — 디아블로 M키 방식"을
     /// 옮겼다. `Minimap.cs`(늘 화면 구석에 방·마을 점만 찍는 작은 개략도)
-    /// 와는 목적이 다르다 — M키를 누르면 화면 중앙에 나침반형 5칸이
+    /// 와는 목적이 다르다 — M키를 누르면 화면 중앙에 지역 지도가
     /// 펼쳐져 "지금 어느 지역에 있고 다른 마을이 어느 방향에 있는지"를
     /// 보여준다. **텔레포트 없음 — 보기만 하는 창**(웹판과 같은 결).
-    /// 현재 위치 칸만 매 프레임(패널이 열려 있을 때만) 밝게 강조한다.
+    /// PLAN.md 109-10-4(웹 §5.12 "큰 지도 지역빛·이름") — 나침반 다섯 칸 → **3×3 지역 아홉 칸**
+    /// (<see cref="DungeonWorldMap"/>): 칸마다 이름·한자·자리, 바탕은 그 지역 땅빛, 지금 선 칸은 금빛.
+    /// 칸은 Play 때 짓는다(씬에 남은 예전 다섯 칸은 끈다 — 씬 재빌드 없이).
     /// </summary>
     public class OverworldMapUI : MonoBehaviour
     {
-        // BuildTestDungeonScene.cs 좌표 산출과 같은 값 — 정확한 경계선이
-        // 아니라 "대략 이 방향"을 가르는 느슨한 문턱이라 방마다 정확한
-        // 범위를 따로 안 쓴다(Room1 자체는 반경 10 안쪽이라 항상 중심).
-        private const float RegionThreshold = 15f;
+        private const float CellSize = 140f;
+        private const float CellGap = 150f;
+        private static readonly Color HighlightColor = new Color(1f, 0.85f, 0.35f, 0.7f);
 
         [SerializeField] private GameObject panel;
-        [SerializeField] private Image centerCell;
-        [SerializeField] private Image northCell;
-        [SerializeField] private Image southCell;
-        [SerializeField] private Image westCell;
-        [SerializeField] private Image eastCell;
-
-        private static readonly Color DimColor = new Color(1f, 1f, 1f, 0.12f);
-        private static readonly Color HighlightColor = new Color(1f, 0.85f, 0.35f, 0.55f);
 
         private Transform _player;
         private bool _visible;
+        private Image[] _cells;
+        private Text _where;
+        private int _shown = -2;
+
+        public bool Visible => _visible;
+        public int CellCount => _cells != null ? _cells.Length : 0;
+        public string WhereText => _where != null ? _where.text : "";
+        public Color CellColor(int i) => _cells[i].color;
+        public string CellText(int i) => _cells[i].GetComponentInChildren<Text>().text;
 
         private void Awake()
         {
             var go = GameObject.FindWithTag("Player");
             _player = go != null ? go.transform : null;
+            BuildRegionCells();
             if (panel != null) panel.SetActive(false);
         }
 
         private void Update()
         {
             var kb = Keyboard.current;
-            if (kb != null && kb.mKey.wasPressedThisFrame)
+            if (kb != null && kb.mKey.wasPressedThisFrame) SetVisible(!_visible);
+            if (_visible) Refresh();
+        }
+
+        public void SetVisible(bool on)
+        {
+            _visible = on;
+            if (panel != null) panel.SetActive(on);
+            _shown = -2;
+            if (on) Refresh();
+        }
+
+        /// <summary>지금 선 칸을 금빛으로(바뀐 때만 다시 칠한다).</summary>
+        public void Refresh()
+        {
+            if (_cells == null) return;
+            int cur = _player != null ? DungeonWorldMap.IndexAt(_player.position) : -1;
+            if (cur == _shown) return;
+            _shown = cur;
+            for (int i = 0; i < _cells.Length; i++) _cells[i].color = i == cur ? HighlightColor : IdleColor(i);
+            if (_where != null)
+                _where.text = cur >= 0
+                    ? string.Format(DungeonLocalization.T("region.map_here", "지금 — {0} {1}"), DungeonWorldMap.Name(cur), DungeonWorldMap.All[cur].Hanja)
+                    : DungeonLocalization.T("region.map_outside", "지금 — 지역 밖(던전 속)");
+        }
+
+        /// <summary>칸 바탕 = 그 지역 땅빛(웹 ground 그대로, 반투명).</summary>
+        public static Color IdleColor(int i)
+        {
+            var g = DungeonWorldMap.All[i].Ground;
+            return new Color(g.r, g.g, g.b, 0.75f);
+        }
+
+        private void BuildRegionCells()
+        {
+            if (panel == null) return;
+            var prt = (RectTransform)panel.transform;
+            prt.sizeDelta = new Vector2(480f, 600f);
+            var grid = panel.transform.Find("Grid");
+            if (grid == null) return;
+            foreach (Transform old in grid) old.gameObject.SetActive(false); // 예전 나침반 다섯 칸.
+            var gridRect = (RectTransform)grid;
+            gridRect.anchoredPosition = new Vector2(0f, -45f);
+
+            var title = panel.transform.Find("Title");
+            _where = NewText(panel.transform, "", new Vector2(0.5f, 1f), new Vector2(0f, -72f), new Vector2(440f, 36f), 22);
+            _where.gameObject.name = "Where";
+            if (title != null) title.SetAsLastSibling();
+
+            _cells = new Image[DungeonWorldMap.All.Length];
+            for (int i = 0; i < _cells.Length; i++)
             {
-                _visible = !_visible;
-                if (panel != null) panel.SetActive(_visible);
+                var r = DungeonWorldMap.All[i];
+                var cellGo = new GameObject("Region_" + r.Key, typeof(RectTransform));
+                cellGo.transform.SetParent(grid, false);
+                var crt = (RectTransform)cellGo.transform;
+                crt.anchorMin = crt.anchorMax = crt.pivot = new Vector2(0.5f, 0.5f);
+                crt.anchoredPosition = new Vector2(r.GridX * CellGap, r.GridZ * CellGap);
+                crt.sizeDelta = new Vector2(CellSize, CellSize);
+                var img = cellGo.AddComponent<Image>();
+                img.color = IdleColor(i);
+                _cells[i] = img;
+                var t = NewText(cellGo.transform, "", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(CellSize - 8f, CellSize - 8f), 20);
+                t.text = $"{DungeonWorldMap.Name(i)}\n<size=17>{r.Hanja}</size>\n<size=15>{DungeonWorldMap.Place(i)}</size>";
             }
-
-            if (_visible) UpdateHighlight();
         }
 
-        private void UpdateHighlight()
+        private static Text NewText(Transform parent, string content, Vector2 anchor, Vector2 pos, Vector2 size, int fontSize)
         {
-            if (_player == null) return;
-
-            ResetCell(centerCell);
-            ResetCell(northCell);
-            ResetCell(southCell);
-            ResetCell(westCell);
-            ResetCell(eastCell);
-
-            Vector3 p = _player.position;
-            Image current;
-            if (p.z < -RegionThreshold) current = southCell;
-            else if (p.x < -RegionThreshold) current = westCell;
-            else if (p.x > RegionThreshold) current = eastCell;
-            else if (p.z > RegionThreshold) current = northCell;
-            else current = centerCell;
-
-            if (current != null) current.color = HighlightColor;
-        }
-
-        private static void ResetCell(Image cell)
-        {
-            if (cell != null) cell.color = DimColor;
+            var go = new GameObject("Text", typeof(RectTransform));
+            go.transform.SetParent(parent, false);
+            var rt = (RectTransform)go.transform;
+            rt.anchorMin = rt.anchorMax = rt.pivot = anchor;
+            rt.anchoredPosition = pos;
+            rt.sizeDelta = size;
+            var t = go.AddComponent<Text>();
+            t.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            t.fontSize = fontSize;
+            t.alignment = TextAnchor.MiddleCenter;
+            t.color = Color.white;
+            t.supportRichText = true;
+            t.horizontalOverflow = HorizontalWrapMode.Wrap;
+            t.verticalOverflow = VerticalWrapMode.Overflow;
+            t.raycastTarget = false;
+            t.text = content;
+            var o = go.AddComponent<Outline>();
+            o.effectColor = new Color(0f, 0f, 0f, 0.8f);
+            o.effectDistance = new Vector2(1.5f, -1.5f);
+            return t;
         }
     }
 }

@@ -2,15 +2,15 @@ using System.Reflection;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
-using UnityEngine.UI;
+using Saga.Dungeon.Data;
 using Saga.Dungeon.UI;
 
 namespace Saga.EditorTools
 {
     /// <summary>
     /// DUNGEON "오버월드 지도 UI" 슬라이스(2026-09-12) — `OverworldMapUI.cs`가
-    /// 플레이어 위치를 남/서/동/북/중심 다섯 칸 중 올바른 칸으로 강조하는지
-    /// 확인한다. M키 입력 자체(`Keyboard.current.mKey`)는 이 프로젝트가
+    /// 플레이어 위치를 올바른 칸으로 강조하는지 확인한다. PLAN.md 109-10-4 부터 칸은
+    /// 3×3 지역 아홉(`DungeonWorldMap`) — 아홉 칸 가운데 자리마다 그 칸만 금빛인지, 던전 층(ProcRoom)은 아무 칸도 아닌지. M키 입력 자체(`Keyboard.current.mKey`)는 이 프로젝트가
     /// 이미 스페이스바(PlayerCombat)·왼쪽 Alt(강공격) 등에서 검증 없이도
     /// 써 온 표준 Input System 패턴이라 새로 흉내 내지 않고, **핵심 로직인
     /// "좌표→강조 칸" 매핑**만 리플렉션으로 직접 불러 검증한다
@@ -82,7 +82,7 @@ namespace Saga.EditorTools
 
                 bool ok = !_hadError && _phase == Phase.Done;
                 Debug.Log(ok
-                    ? "[PlaytestOverworldMap] OK - region highlight matched all five positions, panel starts hidden, no errors"
+                    ? "[PlaytestOverworldMap] OK - region highlight matched all nine cells + dungeon floor, panel starts hidden, no errors"
                     : $"[PlaytestOverworldMap] FAIL - error={_hadError} phase={_phase} frames={_framesSeen}");
                 EditorApplication.Exit(ok ? 0 : 1);
             }
@@ -122,19 +122,19 @@ namespace Saga.EditorTools
                     }
 
                     // M키 시뮬레이션 없이 "열린 상태"만 강제해 강조 로직을 바로 검증(위 클래스 주석 참고).
-                    SetPrivate(_mapUi, "_visible", true);
-
-                    if (!CheckRegion(new Vector3(0f, 0f, -30f), "southCell") // Town2
-                        || !CheckRegion(new Vector3(-30f, 0f, 0f), "westCell") // Town3
-                        || !CheckRegion(new Vector3(30f, 0f, 0f), "eastCell") // Town4
-                        || !CheckRegion(new Vector3(0f, 0f, 60f), "northCell") // Room3(던전 방향)
-                        || !CheckRegion(new Vector3(0f, 0f, 0f), "centerCell")) // Room1
+                    _mapUi.SetVisible(true);
+                    if (_mapUi.CellCount != DungeonWorldMap.All.Length)
                     {
+                        Debug.LogError($"[PlaytestOverworldMap] 칸 {_mapUi.CellCount} ≠ 지역 {DungeonWorldMap.All.Length}");
                         Fail();
                         return;
                     }
+                    for (int i = 0; i < DungeonWorldMap.All.Length; i++)
+                        if (!CheckRegion(DungeonWorldMap.CellCenter(i), i)) { Fail(); return; }
+                    if (!CheckRegion(new Vector3(0f, 0f, 120f), -1)) { Fail(); return; } // ProcRoom — 던전 층
 
-                    Debug.Log("[PlaytestOverworldMap] all five region checks passed");
+                    _mapUi.SetVisible(false);
+                    Debug.Log("[PlaytestOverworldMap] all nine region checks passed");
                     EditorApplication.update -= Tick;
                     EditorApplication.isPlaying = false;
                     _phase = Phase.Done;
@@ -142,28 +142,19 @@ namespace Saga.EditorTools
             }
         }
 
-        private static bool CheckRegion(Vector3 pos, string expectedFieldName)
+        private static bool CheckRegion(Vector3 pos, int expected)
         {
             _playerController.enabled = false;
             _player.position = pos;
             _playerController.enabled = true;
 
-            InvokePrivate(_mapUi, "UpdateHighlight");
-
-            string[] cellFields = { "centerCell", "northCell", "southCell", "westCell", "eastCell" };
-            foreach (var fieldName in cellFields)
+            _mapUi.Refresh();
+            for (int i = 0; i < _mapUi.CellCount; i++)
             {
-                var img = (Image)GetPrivate(_mapUi, fieldName);
-                if (img == null)
+                bool lit = _mapUi.CellColor(i) != OverworldMapUI.IdleColor(i);
+                if (lit != (i == expected))
                 {
-                    Debug.LogError($"[PlaytestOverworldMap] {fieldName}이 안 채워짐");
-                    return false;
-                }
-                bool shouldBeHighlighted = fieldName == expectedFieldName;
-                bool isHighlighted = img.color.a > 0.3f; // HighlightColor.a=0.55, DimColor.a=0.12
-                if (shouldBeHighlighted != isHighlighted)
-                {
-                    Debug.LogError($"[PlaytestOverworldMap] pos={pos} 기대={expectedFieldName} — {fieldName} highlighted={isHighlighted}(기대={shouldBeHighlighted})");
+                    Debug.LogError($"[PlaytestOverworldMap] pos={pos} 기대={expected} — 칸 {i} 금빛={lit}");
                     return false;
                 }
             }
@@ -181,18 +172,6 @@ namespace Saga.EditorTools
         {
             var field = target.GetType().GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance);
             return field?.GetValue(target);
-        }
-
-        private static void SetPrivate(object target, string fieldName, object value)
-        {
-            var field = target.GetType().GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance);
-            field?.SetValue(target, value);
-        }
-
-        private static void InvokePrivate(object target, string methodName)
-        {
-            var method = target.GetType().GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Instance);
-            method?.Invoke(target, null);
         }
     }
 }

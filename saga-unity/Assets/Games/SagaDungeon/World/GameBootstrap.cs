@@ -49,6 +49,7 @@ namespace Saga.Dungeon.World
             // PLAN.md 109-10 비결 패널 — Play 때 짓는다(씬 재빌드 없이, 공격 버튼이 이미 있는 뒤라 딱지도 붙는다).
             if (Object.FindFirstObjectByType<SecretPanelUi>() == null) new GameObject("SecretPanelUI").AddComponent<SecretPanelUi>();
             TrialRunner.Install(); // PLAN.md 109-10-3 시련 — 난입 방에 러너, 난입 표식 곁에 표식, 단계 카드(Play 때, 씬 재빌드 없이).
+            DungeonRegionTracker.Install(); // PLAN.md 109-10-4 지역 아홉 — 들어섬 배너·바닥 땅빛(Play 때, 씬 재빌드 없이).
             if (DungeonFloorRunner.Instance != null) DungeonFloorRunner.Instance.FloorDescended += OnFloorDescended;
         }
 
