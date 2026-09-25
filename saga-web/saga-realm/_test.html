@@ -4523,6 +4523,58 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         (function () { throw new Error(bad.slice(0, 5).join(' ') + ' n=' + TM.length + ' eras=' + JSON.stringify(eras) + ' cities=' + Object.keys(cities).length); })();
     });
 
+    t('asset3d — 병사 몸: 장식 천만 세력 색·걷기 클립·창은 오른손·기수는 말 등에 앉음·몸 없으면 null (CHARACTER_UNIQUENESS ⑤)', function () {
+      /* 2026-09-25 — 지도 원정군·전투 무리 병사가 원기둥·구·상자였다. 실제 GLB(기사·짐말)는 비동기라 같은 뼈 이름의 가짜 장면으로 잰다.
+         이 진단 페이지는 battle3d.js 를 안 싣는다(UI 가 캔버스를 띄우는 길이 바뀐다) — 전투 무리 쪽은 몸 조립이 같은 함수라 여기서 함께 선다 */
+      var A3 = DG.asset3d, TH = window.THREE;
+      if (!A3 || !A3.assembleTrooper || !TH) { return false; }
+      function scene(bones, mats, h) {
+        var root = new TH.Group(), made = {};
+        bones.forEach(function (b) {
+          var bo = new TH.Bone(); bo.name = b[0]; bo.position.set(b[1], b[2], b[3]);
+          (b[4] ? made[b[4]] : root).add(bo); made[b[0]] = bo;
+        });
+        mats.forEach(function (n, i) {
+          var g = new TH.BoxGeometry(0.4, h, 0.4); g.translate(0, h / 2, 0);
+          var m = new TH.Mesh(g, new TH.MeshStandardMaterial({ name: n, color: 0x808080 + i }));
+          root.add(m);
+        });
+        return root;
+      }
+      function clip(name, track) { return new TH.AnimationClip(name, 1, track ? [track] : []); }
+      var sitTrack = new TH.VectorKeyframeTrack('Hips.position', [0, 1], [0, 0.9, 0, 0, 0.5, 0.1]);
+      var body = { gltf: { scene: scene([['Hips', 0, 0.9, 0], ['FistR', -0.3, -0.2, 0.05, 'Hips']], ['Red', 'Armor'], 1.8) },
+        clips: [clip('CharacterArmature|Idle'), clip('CharacterArmature|Walk'), clip('CharacterArmature|SitDown', sitTrack)] };
+      var horse = { gltf: { scene: scene([['Hips', 0, 1.2, -0.6], ['Shoulders', 0, 1.25, 0.6], ['Head', 0, 1.9, 1.0]], ['Coat'], 2.0) },
+        clips: [clip('Armature|Idle'), clip('Armature|Walk')] };
+      var spear = { gltf: { scene: scene([], ['Steel'], 3) }, clips: [] };
+      var armor0 = null; body.gltf.scene.traverse(function (o) { if (o.isMesh && o.material.name === 'Armor') { armor0 = o.material.color.getHex(); } });
+      var inf = A3.assembleTrooper('inf', { body: body, spear: spear }, 0x2255aa);
+      var colOf = function (root, name) {
+        var c = null;
+        root.traverse(function (o) { if (o.isMesh && o.material && o.material.name === name && !c) { c = o.material.color.getHex(); } });
+        return c;
+      };
+      var fist = null; inf.traverse(function (o) { if (o.isBone && o.name === 'FistR') { fist = o; } });
+      inf.updateMatrixWorld(true);
+      var fp = inf.worldToLocal(fist.getWorldPosition(new TH.Vector3()));
+      var sp = inf.children[inf.children.length - 1];
+      var okInf = inf.userData.trooper === 'inf' && colOf(inf, 'Red') === 0x2255aa && colOf(inf, 'Armor') === armor0 &&
+        !!inf.userData.clipMap.walk && !!inf.userData.clipMap.idle && A3.step(inf, { anim: 'walk', t: 0 }) &&
+        Math.abs(sp.position.x - fp.x) < 1e-6 && fp.x < 0 && sp.position.y === 0;
+      var cav = A3.assembleTrooper('cav', { body: body, horse: horse }, 0xaa2222);
+      cav.updateMatrixWorld(true);
+      var hb = {}; cav.userData.horse.traverse(function (o) { if (o.isBone) { hb[o.name] = o.getWorldPosition(new TH.Vector3()); } });
+      var rh = null; cav.userData.rider.traverse(function (o) { if (o.isBone && o.name === 'Hips') { rh = o.getWorldPosition(new TH.Vector3()); } });
+      var seat = hb.Hips.clone().lerp(hb.Shoulders, 0.55); seat.y += 1.2 * 0.1;
+      var okCav = cav.userData.trooper === 'cav' && cav.userData.mixer === cav.userData.horse.userData.mixer &&
+        cav.userData.rider.userData.seated === true && rh.distanceTo(seat) < 1e-4 &&
+        colOf(cav, 'Red') === 0xaa2222;
+      var none = A3.assembleTrooper('inf', { body: null }, 0x2255aa) === null;
+      return okInf && okCav && none &&
+        ('보병 장식 천만 물듦·걷기·창 오른손 x ' + fp.x.toFixed(2) + ' · 기수 엉덩이 = 말 등 · 몸 없으면 null');
+    });
+
     t('런타임 에러 없음', function () {
       return errors.length === 0 || ('에러 ' + errors.length + '건: ' + errors.join(' | ')) === '';
     });

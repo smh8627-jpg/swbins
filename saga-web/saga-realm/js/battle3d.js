@@ -38,6 +38,8 @@
    *  거리-당김, 일기토 근접 컷)은 안 가린다 — 진짜 화면이 떨리는 지터
    *  (`wallShake`)만 이 손잡이로 끈다 */
   function SHAKE_ON() { return core() ? (core().tuned('battle3d.shake', 1) ? true : false) : true; }
+  /** 무리 병사 몸(2026-09-25) — 1 이면 깃발 다발 대신 CC0 기사·기병(`asset3d.buildTrooper`), 0 이면 옛 깃발 다발 */
+  function TROOP_MODEL() { return core() ? (core().tuned('battle3d.troopModel', 1) ? true : false) : true; }
 
   var TIER_H = { t1: 6, t2: 8, t3: 11 };
   function tierOf(maxWall) {
@@ -98,11 +100,13 @@
   var duelCamActive = false, camBlend = 0;
   /* 라운드 충격(2026-09-10) — 무리(atk/def 깃발 다발) 자체를 실제 장수로 안
      바꾸기로 한 원래 판단(장수 30명을 세우면 오히려 어수선하다)은 그대로
-     두고, 대신 **부딪히는 순간**을 카메라·무리 밀림·소리 셋으로 더 또렷하게
+     두고(2026-09-25 부터 무리는 이름 없는 병사 몸 — 아래 `troopPool`), 대신 **부딪히는 순간**을 카메라·무리 밀림·소리 셋으로 더 또렷하게
      낸다. `roundPulse`는 라운드가 넘어갈 때마다 1로 켜졌다가 tick()마다
      0.85배씩 죽는다 — atk/defGroupRef(위 cluster()가 돌려준 그 그룹)를
      서로에게로 살짝 밀었다 당기고, 넓은 카메라도 살짝 훅 당긴다 */
   var atkGroupRef = null, defGroupRef = null, roundPulse = 0;
+  var troopGen = 0, tickTroopGen = 0;    // 무리 병사 — 새 합마다 치기를 처음부터 다시 튼다(duelGen 과 같은 요령)
+  var troopHitAt = -99, TROOP_HIT_S = 0.7;
   /* 성벽 붕괴 흔들림(2026-09-10) — lastWallN 은 "직전 프레임에 성벽이 몇
      칸이었나"만 기억하는 값(판정 아님, renderLive() 가 매 프레임 잰다).
      wallShake 는 roundPulse 와 같은 감쇠 방식이지만 더 크게 흔든다(성벽이
@@ -375,8 +379,14 @@
   }
 
   /** mix({inf,cav,navy} 비율) → 깃발 n개 각각의 병종 배열. 자리는 이미
-   *  clusterLayout 이 정했으니 여기선 순서만 섞어(화면 표식이라 씨앗 불필요)
-   *  같은 병종이 한쪽에 뭉치지 않게 한다(2026-09-23, PLAN §6). */
+   *  clusterLayout 이 정했으니 여기선 순서만 섞어 같은 병종이 한쪽에 뭉치지
+   *  않게 한다(2026-09-23, PLAN §6). 2026-09-25 — 섞기는 n 으로 정한 씨앗(`jit`)을
+   *  쓴다: 병사 몸이 서면서 합마다 Math.random 으로 자리·병종이 뒤바뀌면 병사가
+   *  순간이동하는 것처럼 보였다(깃발일 땐 티가 덜 났다) */
+  function jit(i, salt) {
+    var x = Math.sin((i + 1) * 12.9898 + salt * 78.233) * 43758.5453;
+    return x - Math.floor(x);
+  }
   function troopTypes(n, mix) {
     var navyN = Math.min(n, Math.round(n * (mix.navy || 0)));
     var cavN = Math.min(n - navyN, Math.round(n * (mix.cav || 0)));
@@ -385,13 +395,35 @@
     for (i = 0; i < cavN; i++) { arr.push('cav'); }
     while (arr.length < n) { arr.push('inf'); }
     for (i = arr.length - 1; i > 0; i--) {
-      var j = Math.floor(Math.random() * (i + 1));
+      var j = Math.floor(jit(i, n) * (i + 1));
       var tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
     }
     return arr;
   }
 
-  function cluster(n, cx, cz, color, formKey, mix) {
+  /* 무리 병사 몸(2026-09-25, `tools/asset-audit/CHARACTER_UNIQUENESS.md` ⑤) — 깃발 다발(코드 도형) 자리에
+   * `asset3d.buildTrooper` 병사가 선다. 몸은 싸움 한 판 동안 **쪽·병종마다 모아 두고**(`troopPool`) 합마다
+   * 새 무리 그룹에 옮겨 달기만 한다 — `renderLive()` 가 합마다 무리를 다시 짓는데 그때마다 스킨 모델을
+   * 복제하면 무겁고 걷던 몸짓도 끊긴다. 새 싸움(`buildBase`)이면 비운다. 아직 안 온 자리는 옛 깃발로 채우고,
+   * 셋에 하나는 깃발잡이로 깃발을 그대로 둔다(세력 색이 멀리서도 읽히게). 수군은 배 에셋이 없어 뱃전 상자 그대로 */
+  var TROOP_H = 1.0, TROOP_H_CAV = 0.7;     // 병사 몸 키 1 → 일기토 장수(1.5)보다 작게, 기병은 말이 길어 작게(기수 머리가 보병과 비슷한 높이)
+  var TROOP_SPREAD = 1.25;                  // 몸은 깃발보다 넓어 진형 자리 간격을 이만큼 벌린다
+  var troopPool = null, troopSeq = 0;
+  function resetTroopPool() { troopPool = { a: { inf: [], cav: [] }, d: { inf: [], cav: [] } }; troopSeq++; }
+  function wantTroops(side, kind, n, color) {
+    var A3x = asset3d();
+    if (!TROOP_MODEL() || !A3x || !A3x.buildTrooper || !troopPool) { return; }
+    var list = troopPool[side][kind], mySeq = troopSeq;
+    while (list.length < n) {
+      var slot = { model: null };
+      list.push(slot);
+      (function (sl) {
+        A3x.buildTrooper(kind, color, function (m) { if (mySeq === troopSeq && m) { sl.model = m; } });
+      })(slot);
+    }
+  }
+
+  function cluster(n, cx, cz, color, formKey, mix, side) {
     var t = three();
     var i;
     var g = new t.Group();
@@ -399,16 +431,48 @@
     curGroup = g;
     var pts = clusterLayout(n, formKey);
     var types = mix ? troopTypes(n, mix) : null;
+    var used = { inf: 0, cav: 0 }, face = side === 'a' ? Math.PI : 0;   // 공격군(+z)은 -z 를, 수비군은 +z 를 본다
+    if (side && troopPool) {
+      var needInf = 0, needCav = 0;
+      for (i = 0; i < n; i++) { if (types && types[i] === 'cav') { needCav++; } else { needInf++; } }
+      wantTroops(side, 'inf', needInf, color);
+      wantTroops(side, 'cav', needCav, color);
+    }
+    var spread = (side && troopPool && TROOP_MODEL()) ? TROOP_SPREAD : 1;
     for (i = 0; i < n; i++) {
-      var x = pts[i].x + (Math.random() - 0.5) * 0.12;
-      var z = pts[i].z + (Math.random() - 0.5) * 0.12;
-      var b = banner(color, false, types && types[i]);
-      b.position.set(x, 0, z);
-      g.add(b);
+      var x = pts[i].x * spread + (jit(i, 3) - 0.5) * 0.12;
+      var z = pts[i].z * spread + (jit(i, 7) - 0.5) * 0.12;
+      var kind = types && types[i];
+      var pk = kind === 'cav' ? 'cav' : 'inf';
+      var slot = (side && troopPool) ? troopPool[side][pk][used[pk]++] : null;
+      if (slot && slot.model) {
+        var m = slot.model;
+        m.scale.setScalar(pk === 'cav' ? TROOP_H_CAV : TROOP_H);
+        m.position.set(x, 0, z);
+        m.rotation.y = face;
+        g.add(m);
+        if (kind === 'navy') {
+          var hull = banner(color, false, 'navy');
+          hull.children[0].visible = false; hull.children[1].visible = false;   // 깃대·천은 빼고 뱃전만
+          hull.position.set(x, 0, z);
+          hull.scale.setScalar(1.6);
+          g.add(hull);
+        }
+        if (i % 3 === 0) {                               // 깃발잡이 — 병사 등 뒤에 깃발
+          var fb = banner(color, false, null);
+          fb.position.set(x + 0.16, 0, z + (side === 'a' ? 0.18 : -0.18));
+          g.add(fb);
+        }
+      } else {
+        var b = banner(color, false, kind);
+        b.position.set(x, 0, z);
+        g.add(b);
+      }
       addShadow(x, z, 0.22);
     }
     curGroup = prevGroup;
     g.position.set(cx, 0, cz);
+    g.userData.troops = g.children.filter(function (o) { return o.userData && o.userData.trooper; });
     curGroup.add(g);
     return g;
   }
@@ -451,6 +515,7 @@
     curGroup = dyn;
     atkGroupRef = null; defGroupRef = null; roundPulse = 0;
     lastWallN = null; wallShake = 0;
+    resetTroopPool();
     if (fx) { fx.clear(); }
     debris = [];
     var c = R().city(rep.to);
@@ -609,9 +674,9 @@
     var atkN = clamp(Math.round((atkStart / 1200) * atkSurvive), 1, 14);
     var defN = clamp(Math.round((defStart / 1200) * defSurvive), 1, 14);
 
-    atkGroupRef = cluster(atkN, 0, 4.2, forceColor(rep.force), rep.formA, rep.mixA);
-    defGroupRef = cluster(defN, 0, -3.0, forceColor(rep.defForce), rep.formD, rep.mixD);
-    if (state.roundTick) { roundPulse = 1; }
+    atkGroupRef = cluster(atkN, 0, 4.2, forceColor(rep.force), rep.formA, rep.mixA, 'a');
+    defGroupRef = cluster(defN, 0, -3.0, forceColor(rep.defForce), rep.formD, rep.mixD, 'd');
+    if (state.roundTick) { roundPulse = 1; troopGen++; }
 
     /* 일기토 — 2026-09-10 부터는 깃발이 아니라 `duelActors`(setupDuel() 이
        세운 실제 장수 둘)를 실제로 움직인다. 여기선 "무슨 동작을 원하는지"
@@ -787,6 +852,18 @@
     var lunge = roundPulse * 0.6;
     if (atkGroupRef) { atkGroupRef.position.z = 4.2 - lunge; }
     if (defGroupRef) { defGroupRef.position.z = -3.0 + lunge; }
+    /* 무리 병사 몸짓 — 합이 부딪힌 뒤 TROOP_HIT_S 동안 치고, 나머지는 대기 */
+    var A3t = asset3d(), tT = (now || 0) / 1000, freshRound = troopGen !== tickTroopGen;
+    tickTroopGen = troopGen;
+    if (freshRound) { troopHitAt = tT; }
+    var troopAnim = (tT - troopHitAt) < TROOP_HIT_S ? 'attack' : 'idle';
+    [atkGroupRef, defGroupRef].forEach(function (grp) {
+      var ts = grp && grp.userData.troops, ti;
+      if (!ts || !A3t || !A3t.step) { return; }
+      for (ti = 0; ti < ts.length; ti++) {
+        A3t.step(ts[ti], { t: tT + ti * 0.37, anim: troopAnim, force: freshRound });
+      }
+    });
 
     var dist = 13 - roundPulse * 1.2;
     var wideX = Math.sin(spin) * dist, wideY = 8.5, wideZ = Math.cos(spin) * dist - 1;

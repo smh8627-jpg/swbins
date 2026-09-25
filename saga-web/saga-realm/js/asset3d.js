@@ -361,16 +361,21 @@
       var out = one.map(function (m) {
         if (!m || (!m.isMeshStandardMaterial && !m.isMeshPhysicalMaterial)) { return m; }
         /* 2026-09-17 — SAGA-DESIGN §6.1: 손잡이가 켜져 있으면 툰으로, 꺼지면 예전 Lambert */
-        if (toon) { return TN.toonify(m); }
-        /* vertexColors 를 안 옮기면(정점빛깔로 색을 주고 baseColorFactor 는
-           검게 비워 둔 옷감이 있다) 그 자리가 조명과 무관하게 통째로 새까맣게
-           뜬다 — 2026-09-03, 무장 초상에서 후드가 늘 새까맣던 원인 */
-        return new t.MeshLambertMaterial({
-          color: m.color ? m.color.clone() : new t.Color(0xffffff),
-          map: m.map || null, vertexColors: !!m.vertexColors,
-          transparent: !!m.transparent, opacity: m.opacity,
-          alphaTest: m.alphaTest || 0, side: m.side
-        });
+        var nm;
+        if (toon) { nm = TN.toonify(m); } else {
+          /* vertexColors 를 안 옮기면(정점빛깔로 색을 주고 baseColorFactor 는
+             검게 비워 둔 옷감이 있다) 그 자리가 조명과 무관하게 통째로 새까맣게
+             뜬다 — 2026-09-03, 무장 초상에서 후드가 늘 새까맣던 원인 */
+          nm = new t.MeshLambertMaterial({
+            color: m.color ? m.color.clone() : new t.Color(0xffffff),
+            map: m.map || null, vertexColors: !!m.vertexColors,
+            transparent: !!m.transparent, opacity: m.opacity,
+            alphaTest: m.alphaTest || 0, side: m.side
+          });
+        }
+        /* 2026-09-25 — 새 재질은 이름을 잃는다. 원래 이름을 남겨 둔다(병사 `tintNamed` 가 장식 천만 고른다) */
+        if (nm !== m) { nm.userData.srcName = m.name || ''; }
+        return nm;
       });
       o.material = Array.isArray(o.material) ? out : out[0];
     });
@@ -721,6 +726,133 @@
     }
   }
 
+  /* ── 병사(2026-09-25, `tools/asset-audit/CHARACTER_UNIQUENESS.md` ⑤ 빈칸) ────────────────────────
+   * 지도 원정군(`realm3d.js`)·전투 무리(`battle3d.js`)의 병사가 원기둥·구·상자 도형이었다. Quaternius CC0 두 벌을
+   * 사가블로에서 md5 그대로 복사해 쓴다 — 보병 = Ultimate Animated Character Pack `Knight_Male`(걷기·대기·치기·
+   * 쓰러짐 클립 내장), 기병 = 같은 기사가 Farm Animal Pack `Horse_Farm`(걷기·대기) 위에 `SitDown` 끝 자세로 앉는다.
+   * 세력 색은 기사 장식 천(`Red` 재질)에만 — 갑옷·피부는 제 빛깔. 창은 장수와 같은 `wpn:spear` 를 오른편에 세운다.
+   * 병사는 이름 없는 무리라 한 벌을 나눠 입는다(인물이 아니다). 몸을 못 받으면 cb(null) — 부르는 쪽이 옛 도형을 둔다 */
+  var TROOP_DIR = 'assets/models/troops/';
+  var TROOPER = { body: TROOP_DIR + 'Knight_Male.glb', horse: TROOP_DIR + 'Horse_Farm.glb' };
+  var TROOP_TINT = /^Red$/;
+  var HORSE_H = 1.2;        // 말 키(머리 끝) — 사람 키 1 기준
+  var SPEAR_H = 1.3;        // 창 길이 — 사람(머리 큰 저폴리, 키 1)보다 조금 길게, 땅에 짚는다
+
+  /** 이름이 `re` 에 맞는 재질만 `hex` 로 바꾼다(곱하지 않는다 — 빨강 × 남색 = 검정). 원래 이름은 delam 이 남긴 `srcName` */
+  function tintNamed(model, hex, re) {
+    var t = three(), TNc = global.DG.toon3d, n = 0;
+    model.traverse(function (o) {
+      if (!o.isMesh || !o.material || Array.isArray(o.material)) { return; }
+      var src = o.material;
+      var nm = (src.userData && src.userData.srcName !== undefined) ? src.userData.srcName : (src.name || '');
+      if (!src.color || src.isShaderMaterial || !re.test(nm)) { return; }
+      var key = (src.uuid || '') + '|' + hex + '|named';
+      if (!tintCache[key]) {
+        var m = TNc && TNc.cloneMat ? TNc.cloneMat(src) : src.clone();
+        m.color = new t.Color(hex);
+        tintCache[key] = m;
+      }
+      o.material = tintCache[key];
+      n++;
+    });
+    return n;
+  }
+  /** 클립 목록으로 mixer·동작표를 단다(buildHero 와 같은 모양 — `play`·`step` 이 그대로 돈다) */
+  function withMixer(model, clips) {
+    var t = three();
+    if (!clips || !clips.length) { return model; }
+    var mx = new t.AnimationMixer(model.children[0]), acts = {}, i;
+    for (i = 0; i < clips.length; i++) { acts[clips[i].name] = mx.clipAction(clips[i]); }
+    model.userData.mixer = mx;
+    model.userData.actions = acts;
+    model.userData.clipMap = mapClips(clips.map(function (c) { return c.name; }));
+    return model;
+  }
+  function boneOf(root, name) {
+    var hit = null;
+    root.traverse(function (o) { if (!hit && o.isBone && o.name === name) { hit = o; } });
+    return hit;
+  }
+  /** 기수를 앉힌다 — SitDown 끝 자세로 멈추고, 엉덩이 뼈를 말 등(엉덩이·어깨 뼈 사이 55%, 몸통 반지름만큼 위)에 맞춘다 */
+  function seatRider(g, horse, man) {
+    var t = three(), u = man.userData;
+    var sit = u.actions && u.clipMap && u.actions[findClip(u.actions, /sitdown/)];
+    if (sit) {
+      sit.setLoop(t.LoopOnce, 1);
+      sit.clampWhenFinished = true;
+      sit.reset().play();
+      u.mixer.update(sit.getClip().duration + 0.01);
+    }
+    g.updateMatrixWorld(true);
+    var hh = boneOf(horse, 'Hips'), hs = boneOf(horse, 'Shoulders'), mh = boneOf(man, 'Hips');
+    if (!hh || !hs || !mh) { man.position.set(0, HORSE_H * 0.5, 0); return; }
+    var a = hh.getWorldPosition(new t.Vector3()), b = hs.getWorldPosition(new t.Vector3());
+    var seat = a.lerp(b, 0.55);
+    seat.y += HORSE_H * 0.1;
+    var hip = mh.getWorldPosition(new t.Vector3());
+    man.position.add(seat.sub(hip));
+    man.userData.seated = true;
+  }
+  function findClip(actions, re) {
+    var k;
+    for (k in actions) { if (actions.hasOwnProperty(k) && re.test(normName(k))) { return k; } }
+    return null;
+  }
+  /**
+   * 병사 한 명(비동기). kind 'inf'(보병) | 'cav'(기병). 돌려주는 그룹은 키 1(기병은 말 키 HORSE_H), 바닥 y=0,
+   * 앞 = +z. `userData.mixer` 가 있어 `step(g, {anim:'walk'|'idle'|'attack'…})` 로 몸짓한다(기병은 말이 걷고 기수는 앉은 채)
+   */
+  function buildTrooper(kind, tintHex, cb) {
+    var t = three();
+    if (!t) { cb(null); return; }
+    var got = {}, need = kind === 'cav' ? 3 : 2;
+    function one() { need--; if (need === 0) { done(); } }
+    acquire(TROOPER.body, function (c) { got.body = c; one(); });
+    if (REG['wpn:spear']) { acquire(REG['wpn:spear'], function (c) { got.spear = c; one(); }); } else { one(); }
+    if (kind === 'cav') { acquire(TROOPER.horse, function (c) { got.horse = c; one(); }); }
+    function done() {
+      var g;
+      try { g = assembleTrooper(kind, got, tintHex); } catch (e) {
+        broke = (e && e.message) ? e.message : 'trooper 실패';
+        g = null;
+      }
+      if (g) { built++; }
+      cb(g);
+    }
+  }
+  /** 받아 둔 몸·말·창(`{body, horse, spear}` — acquire 캐시 원소, `{gltf, clips}`)을 병사 하나로 묶는다(동기, 진단이 가짜 뼈대로 부른다) */
+  function assembleTrooper(kind, got, tintHex) {
+    var t = three();
+    if (!got || !got.body || !got.body.gltf) { return null; }
+    var man = normalize(cloneScene(got.body.gltf)), g = man;
+    if (tintHex) { tintNamed(man, tintHex, TROOP_TINT); }
+    withMixer(man, got.body.clips);
+    if (got.spear && got.spear.gltf) {
+      /* 오른손(앞 +z 를 보므로 -x 쪽, 뼈 `FistR`) 자리에 세워 땅을 짚는다 — 걸을 때 팔 흔들림은 지도 거리에선 안 보인다 */
+      var sp = normalize(cloneScene(got.spear.gltf)), fist = boneOf(man, 'FistR'), fp = null;
+      if (fist) { man.updateMatrixWorld(true); fp = man.worldToLocal(fist.getWorldPosition(new t.Vector3())); }
+      sp.scale.setScalar(SPEAR_H);
+      sp.position.set(fp ? fp.x : -0.15, 0, fp ? fp.z : 0.05);
+      man.add(sp);
+    }
+    if (kind === 'cav' && got.horse && got.horse.gltf) {
+      var horse = withMixer(normalize(cloneScene(got.horse.gltf)), got.horse.clips);
+      horse.scale.setScalar(HORSE_H);
+      g = new t.Group();
+      g.add(horse);
+      g.add(man);
+      seatRider(g, horse, man);
+      /* 몸짓은 말이 한다 — 기수 mixer 는 앉은 자세로 한 번 굴리고 끝 */
+      g.userData.mixer = horse.userData.mixer;
+      g.userData.actions = horse.userData.actions;
+      g.userData.clipMap = horse.userData.clipMap;
+      g.userData.rider = man;
+      g.userData.horse = horse;
+    }
+    g.userData.trooper = g !== man ? 'cav' : 'inf';
+    return g;
+  }
+
   /**
    * GLB 를 불러 세운다(비동기). 실패하거나 three/GLTFLoader 가 없으면
    * **조용히 도형으로 떨어진다** — 부르는 쪽은 항상 그룹 하나를 받는다.
@@ -808,6 +940,8 @@
     build: build,
     heroRecipe: heroRecipe,
     buildHero: buildHero,
+    buildTrooper: buildTrooper, assembleTrooper: assembleTrooper,
+    TROOPER: TROOPER,
     mapClips: mapClips,
     play: play,
     step: step,

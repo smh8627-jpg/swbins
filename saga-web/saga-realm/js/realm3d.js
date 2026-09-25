@@ -50,6 +50,8 @@
   function ACTOR_LOD() { return C().tuned('realm3d.actorLod', 480); }
   /** ⑤ 성을 누르면 그 성 태수에게 다가가는 줌 — 0 이면 예전처럼 카메라는 그대로 */
   function CITY_ZOOM() { return C().tuned('realm3d.cityZoom', 1) ? true : false; }
+  /** 병사 몸(2026-09-25) — 1 이면 원정군 병사가 CC0 기사·기병(`asset3d.buildTrooper`), 0 이면 옛 도형 */
+  function TROOP_MODEL() { return C().tuned('realm3d.troopModel', 1) ? true : false; }
 
   /**
    * 그래픽 품질 3단(SAGA-DESIGN §8 성능 상한, PLAN §7-2 "성능 상한") — 이 판은
@@ -938,6 +940,7 @@
   var ACTOR_TWEEN_MS = 1500;        // 지난달 자리 → 이번 달 자리 걷기
   var HERO_SCALE = 5;               // 몸 키 1(normalize) → 성 탑(7~14) 옆에서 사람 크기로 읽히게
   var SOLDIER_SCALE = 1.7;          // 병사 도형(키 약 1.8) → 장수보다 살짝 작게
+  var TROOP_SCALE = 4.2;            // 병사 몸(키 1, 기병은 말 키 1.2) → 장수(5)보다 살짝 작게
 
   /** 원정 무장 중 통솔이 가장 높은 사람이 앞장선다(같으면 목록 앞사람) */
   function leaderOf(ids) {
@@ -1175,7 +1178,8 @@
     return journeyPos({ path: a.path, monthsTotal: a.total }, el);
   }
 
-  /* 병사 — 몸통·머리·창(기병은 말 몸통을 더한다). 모양·재질은 전부 공유 */
+  /* 병사 — 몸통·머리·창(기병은 말 몸통을 더한다). 모양·재질은 전부 공유.
+   * 2026-09-25 부터는 몸(`asset3d.buildTrooper`)이 올 때까지 서 있는 자리 표시일 뿐이다 */
   var soldierGeo = null, soldierMats = {};
   function soldierMat(hex) {
     var t = three(), TN = global.DG.toon3d;
@@ -1218,16 +1222,24 @@
     var grp = new t.Group(), col = a.kind === 'wander' ? (a.spy ? SPY_TINT : WANDER_TINT) : forceColor(a.force), k;
     var c = { grp: grp, hero: null, soldiers: [], lastElapsed: a.elapsed, fromEl: a.elapsed, t0: null, plan: a, dead: false,
               sig: actorSig(a), badge: null, badgeKey: null, gOn: false, seed: (hashOf(a.id) % 100) / 37 };
-    var sl = a.soldiers || [];
+    var sl = a.soldiers || [], rowZ = -3.6, rowD = 0;
     for (k = 0; k < sl.length; k++) {
-      var s = soldierMesh(col, sl[k]);
-      /* 장수 뒤로 두 줄 — 로컬 +z 가 걸어가는 쪽(아래 rotation.y 와 짝) */
-      s.scale.setScalar(SOLDIER_SCALE);
-      s.userData.ox = (k % 2 ? 1 : -1) * 2.1;
-      s.userData.oz = -3.6 - Math.floor(k / 2) * 3;
+      /* 두 줄씩 — 줄 깊이는 말이 끼면 말 길이만큼(몸 키 1.2 × 1.33 × TROOP_SCALE ≈ 6.7) */
+      if (k % 2 === 0) {
+        rowZ -= rowD;
+        rowD = (sl[k] === 'cav' || sl[k + 1] === 'cav') ? 7 : 3;
+      }
+      /* 병사 자리(s) 하나에 도형을 먼저 세우고, 몸이 오면 도형을 걷어 몸으로 바꾼다 */
+      var s = new t.Group(), prim = soldierMesh(col, sl[k]);
+      prim.scale.setScalar(SOLDIER_SCALE);
+      s.add(prim);
+      /* 장수 뒤로 두 줄 — 로컬 +z 가 걸어가는 쪽(아래 rotation.y 와 짝). 기병은 말 길이만큼 한 칸 더 옆 */
+      s.userData.ox = (k % 2 ? 1 : -1) * (sl[k] === 'cav' ? 2.6 : 2.1);
+      s.userData.oz = rowZ - (rowD - 3) / 2;
       s.userData.seed = k * 1.7;
       grp.add(s);
       c.soldiers.push(s);
+      if (TROOP_MODEL() && asset3d() && asset3d().buildTrooper) { dressSoldier(c, s, prim, sl[k], col); }
     }
     if (blobGeo) {
       var blob = new t.Mesh(blobGeo, blobMat);
@@ -1249,6 +1261,15 @@
       });
     }
     return c;
+  }
+  function dressSoldier(c, s, prim, kind, col) {
+    asset3d().buildTrooper(kind, col, function (m) {
+      if (c.dead || !m) { return; }
+      m.scale.setScalar(TROOP_SCALE);
+      s.remove(prim);
+      s.add(m);
+      s.userData.model = m;
+    });
   }
   /** 싸움 자리 — 두 지휘관을 마주 세운다(공격군 로컬 -z·수비군 +z, 그룹은 공격군이 보는
    *  쪽으로 돈다). 결과 깃발은 이긴 쪽 색(비기면 ⛺) — 연출이 끝날 때까지 숨겨 둔다 */
@@ -1342,6 +1363,10 @@
     if (!c) { return; }
     c.dead = true;
     if (c.hero && c.hero.userData.mixer) { c.hero.userData.mixer.stopAllAction(); }
+    (c.soldiers || []).forEach(function (s) {
+      var m = s.userData.model;
+      if (m && m.userData.mixer) { m.userData.mixer.stopAllAction(); }
+    });
     if (c.duel && c.duel.d && c.duel.d.userData.mixer) { c.duel.d.userData.mixer.stopAllAction(); }
     actorGrp.remove(c.grp);
     delete actorCache[id];
@@ -1444,13 +1469,14 @@
       var hx = worldX(ahead.x) - wx, hz = worldZ(ahead.y) - wz;
       if (hx * hx + hz * hz > 1e-6) { c.grp.rotation.y = Math.atan2(hx, hz); }
       c.grp.position.set(wx, gy, wz);
-      /* 병사 발을 제 자리 지형에 붙인다(언덕에서 뜨거나 묻히지 않게) + 걸을 때 까딱 */
+      /* 병사 발을 제 자리 지형에 붙인다(언덕에서 뜨거나 묻히지 않게). 몸이 온 병사는 걷기 클립, 도형은 걸을 때 까딱 */
       var ry = c.grp.rotation.y, cs = Math.cos(ry), sn = Math.sin(ry), k;
       for (k = 0; k < c.soldiers.length; k++) {
         var s = c.soldiers[k], u = s.userData;
         var sx = wx + u.ox * cs + u.oz * sn, sz = wz - u.ox * sn + u.oz * cs;
-        var bob = moving ? Math.abs(Math.sin(tms / 150 + u.seed)) * 0.45 : 0;
+        var bob = (moving && !u.model) ? Math.abs(Math.sin(tms / 150 + u.seed)) * 0.45 : 0;
         s.position.set(u.ox, elevAt(sx, sz) - gy + bob, u.oz);
+        if (u.model && A3 && A3.step) { A3.step(u.model, { anim: moving ? a.clip : a.rest, t: tms / 1000 + u.seed }); }
       }
       if (c.hero && A3 && A3.step) { A3.step(c.hero, { anim: moving ? a.clip : a.rest, t: tms / 1000 }); }
       if (moving && frac >= 1) { c.t0 = null; }

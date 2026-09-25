@@ -296,3 +296,11 @@ Quaternius CC0 1.0. 여덟(m_SWAT·m_Worker·m_BusinessMan·w_Suit·m_Hoodie·w_
 이미 Meshopt) — 경위는 사가고 `assets/ASSET_LICENSES.md` "Quaternius — 세 시대 사람·적" 절. `f_Cyber.glb` 는 미러
 <https://github.com/trebeljahr/quaternius-showcase> `public/glb/cyberpunk_pack/Character.glb` 를 `tools/glb-compress` 로 Meshopt(850KB → 247KB).
 전부 제 클립(걷기·대기·공격·죽음) 내장. `data-force.js` `TIME_OFFICERS` 의 `body` 가 가리킨다.
+
+## 병사 두 벌 — 원정군·전투 무리 (2026-09-25, `models/troops/`, CHARACTER_UNIQUENESS ⑤)
+
+Quaternius CC0 1.0, 사가블로에서 md5 그대로 복사(이미 Meshopt). `Knight_Male.glb` = "Ultimate Animated Character Pack"
+(opengameart.org/content/animated-characters-pack, 경위는 사가블로 `assets/ASSET_LICENSES.md` "캐릭터 13차분") —
+클립 11개(`CharacterArmature|Idle·Walk·Punch·RecieveHit·Defeat·SitDown`…). `Horse_Farm.glb` = poly.pizza "Farm Animal Pack"
+(사가블로 `animals_extra/`, 같은 파일 절) — 클립 `Armature|Idle·Walk·Run·Death`. `js/asset3d.js` `buildTrooper` 가 부른다
+(보병 = 기사, 기병 = 짐말 위 기사). 창은 이미 있던 `weapons/spear.glb`.
