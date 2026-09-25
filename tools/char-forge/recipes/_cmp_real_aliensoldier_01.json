@@ -1,0 +1,33 @@
+{
+ "id": "_cmp_real_aliensoldier_01",
+ "_note": "단계 3 두목 비교용 — saga-unity Alien Soldier(Mixamo) 자리 후보(DUNGEON 기계화 정찰병 fusionElite · GO 미래 적). 게임 인물 아님(이름 없음). 다부진 몸·먹빛 몸 옷·잿빛 쇠 가슴판·어깨·팔·허벅지·정강이 판·쇠 장화·검은 장갑·얼굴까지 닫힌 투구·앞쪽 청록 바이저(투구 속 눈썹·속눈썹·이는 안 단다 — 안 보이는 낭비).",
+ "macro": {"gender": 1.0, "age": 0.4, "muscle": 0.8, "weight": 0.45, "height": 0.75, "proportions": 0.9,
+           "race": {"asian": 0.4, "caucasian": 0.4, "african": 0.2}},
+ "targets": {"neck-scale-horiz-incr": 0.4},
+ "skin": "young_caucasian_male/young_caucasian_male.mhmat",
+ "eyes": "low-poly/low-poly.mhclo",
+ "kitbash": [
+  {"part": "shell", "slot": "cloth", "color": "#262a31", "rough": 0.8, "offset": 0.003, "thick": 0.003,
+   "groups": ["pelvis", "spine_0*", "clavicle_*", "upperarm_*", "lowerarm_*", "thigh_*", "calf_*", "neck_01"], "minw": 0.5},
+  {"part": "shell", "slot": "leather", "color": "#16181c", "rough": 0.6, "offset": 0.005, "thick": 0.003,
+   "groups": ["hand_*", "index_*", "middle_*", "ring_*", "pinky_*", "thumb_*"], "minw": 0.3},
+  {"part": "shell", "slot": "metal", "color": "#7d8894", "rough": 0.3, "offset": 0.014, "thick": 0.006,
+   "groups": ["foot_*", "ball_*", "calf_*"], "z": [0.0, 0.1], "minw": 0.3},
+  {"part": "shell", "slot": "metal", "color": "#7d8894", "rough": 0.3, "offset": 0.018, "thick": 0.007,
+   "groups": ["spine_01", "spine_02", "spine_03"], "z": [0.54, 0.8]},
+  {"part": "shell", "slot": "metal", "color": "#7d8894", "rough": 0.3, "offset": 0.024, "thick": 0.007,
+   "groups": ["upperarm_*", "clavicle_*"], "z": [0.73, 0.86], "minw": 0.4},
+  {"part": "shell", "slot": "metal", "color": "#7d8894", "rough": 0.3, "offset": 0.012, "thick": 0.006,
+   "groups": ["lowerarm_*"], "minw": 0.7},
+  {"part": "shell", "slot": "metal", "color": "#7d8894", "rough": 0.3, "offset": 0.014, "thick": 0.006,
+   "groups": ["thigh_*"], "z": [0.33, 0.47], "minw": 0.7},
+  {"part": "shell", "slot": "metal", "color": "#7d8894", "rough": 0.3, "offset": 0.016, "thick": 0.006,
+   "groups": ["calf_*"], "z": [0.1, 0.27], "minw": 0.7},
+  {"part": "shell", "slot": "metal", "color": "#7d8894", "rough": 0.3, "offset": 0.016, "thick": 0.007,
+   "groups": ["head", "neck_01"], "minw": 0.5},
+  {"part": "shell", "slot": "metal_visor", "color": "#2fb8b0", "rough": 0.15, "offset": 0.024, "thick": 0.004,
+   "groups": ["head"], "z_eye": [-0.022, 0.018], "facing": 0.35, "minw": 0.5}
+ ],
+ "anims": {"idle": "Pistol_Idle_Loop", "walk": "Walk_Loop", "run": "Jog_Fwd_Loop", "attack": "Punch_Cross",
+           "hit": "Hit_Chest", "death": "Death01"}
+}

@@ -251,14 +251,22 @@ BONE_NAMES = set()  # kitbash() 가 뼈대에서 채운다(살 정점 무리 중
 
 def _shell_faces(skin, p, height, eyes):
     """껍데기가 덮을 살 면 번호 — 모든 정점이 `groups`(fnmatch 무늬, 무게 합 ≥ minw)이고 `z`(키 몫 [아래, 위]) 안.
-    `open_face` 면 눈 앞쪽·눈썹 아래 얼굴 창은 뺀다(투구)."""
+    `z_eye` [아래, 위] 는 눈 높이에서 m 로 잰 띠(복면·머리띠·바이저 — 키 몫은 머리 크기 모프마다 어긋난다).
+    `facing` 이면 살 법선의 앞(-Y) 성분이 그 값 이상인 면만(바이저·앞 가슴판). `open_face` 면 눈 앞쪽·눈썹 아래 얼굴 창은 뺀다(투구)."""
     import fnmatch
     names = [g.name for g in skin.vertex_groups]
     want = {skin.vertex_groups[n].index for n in names if any(fnmatch.fnmatch(n, pat) for pat in p['groups'])}
     if not want:
         sys.exit(f"kitbash shell: 무리가 없다 {p['groups']}")
     mw = skin.matrix_world
+    rot = mw.to_3x3()
     zlo, zhi = [f * height for f in p.get('z', (0.0, 1.01))]
+    if 'z_eye' in p:
+        if eyes is None:
+            sys.exit('kitbash shell z_eye: 눈이 없다')
+        ez = sum((eyes.matrix_world @ v.co).z for v in eyes.data.vertices) / len(eyes.data.vertices)
+        zlo, zhi = ez + p['z_eye'][0], ez + p['z_eye'][1]
+    face_min = p.get('facing')
     minw = p.get('minw', 0.5)
     win = None
     if p.get('open_face') and eyes is not None:
@@ -270,6 +278,8 @@ def _shell_faces(skin, p, height, eyes):
         co = mw @ v.co
         good = sum(g.weight for g in v.groups if g.group in want) >= minw and zlo <= co.z <= zhi
         if good and win and co.y < win[1] and co.z < win[2] and abs(co.x - win[0]) < win[3]:
+            good = False
+        if good and face_min is not None and -(rot @ v.normal).normalized().y < face_min:
             good = False
         ok.append(good)
     return [f.index for f in skin.data.polygons if all(ok[i] for i in f.vertices)]

@@ -149,6 +149,25 @@ namespace Saga.EditorTools
                     { "idle", ("Idle", "idle") }, { "walk", ("Walking", "walking") }, { "run", ("Running", "running") },
                 },
             },
+            // 두목 전용 몸 여섯(SetupNpcCharacterImports.BossBodies) — 공방은 껍데기 옷·뿔·엄니로. 키는 게임 자리 쯤
+            // (망루 수호장·능묘지기·살수·층 주인·기계화 정찰병·황건 두목 2.24m)
+            BossPair("Maw", "_cmp_real_maw_01", 2.20f),
+            BossPair("Ganfaul", "_cmp_real_ganfaul_01", 1.90f),
+            BossPair("Ninja", "_cmp_real_ninja_01", 1.80f),
+            BossPair("Demon", "_cmp_real_demon_01", 2.40f),
+            BossPair("AlienSoldier", "_cmp_real_aliensoldier_01", 1.85f),
+            BossPair("Morak", "_cmp_real_morak_01", 2.24f),
+        };
+
+        /// <summary>두목 몸 짝 — 지금 몸은 다섯 상태(대기·걷기·공격·피격·쓰러짐)가 같은 이름이다.</summary>
+        private static Pair BossPair(string key, string forgeId, float height) => new Pair
+        {
+            Key = key, NowBody = NowRoot + key + "/" + key + ".fbx", ForgeId = forgeId, Height = height,
+            NowClips = new Dictionary<string, (string, string)>
+            {
+                { "idle", ("Idle", "idle") }, { "walk", ("Walking", "walking") }, { "attack", ("Attack", "attack") },
+                { "hit", ("HitReaction", "hitreaction") }, { "death", ("Dying", "dying") },
+            },
         };
         private const float DefaultHeight = 1.70f;
 
