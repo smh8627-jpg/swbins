@@ -13,11 +13,14 @@ namespace Saga.EditorTools
     /// (`Assets/Art/CharactersForge/*.fbx`, MakeHuman·UAL 전부 CC0)을 같은 빛·같은 키(1.70m)로 나란히 세우는 비교 장면.
     /// 교체 문턱: 사람이 "못하지 않다"고 판정한 짝만 게임 몸을 바꾼다 — 이 장면은 그 판정용이고, 게임 씬은 안 건드린다.
     /// 두 몸이 같은 순서(서기 → 걷기 → 달리기 → 베기 → 맞기 → 구르기 → 줍기 → 쓰러짐)로 저절로 돈다(런타임 스크립트 없음).
-    /// 다른 saga 편집기 코드에 기대지 않는다(빈 URP 프로젝트에서도 돈다). Maria 파일이 없는 PC 는 공방 몸만 선다.
+    /// 피부는 Maria 와 같은 FakeSSS(`BuildMariaSssShaderGraph.BuildGraph`)에 공방 피부 그림을 바탕색으로 이은 그래프
+    /// (`Generated/ForgeSkin.shadergraph`, 없으면 짓는다) — 둘이 같은 피부 셰이더로 비교된다. 그 밖엔 다른 saga 편집기 코드에
+    /// 기대지 않는다. Maria 파일이 없는 PC 는 공방 몸만 선다.
     /// </summary>
     public static class BuildCharCompareRealScene
     {
         private const string ForgeDir = "Assets/Art/CharactersForge/";
+        public const string SkinGraph = ForgeDir + "Generated/ForgeSkin.shadergraph";
         private const string ScenePath = "Assets/Scenes/CharCompareReal.unity";
         private const string AnimDir = "Assets/Animators/CharForge/";
         private const float Height = 1.70f;
@@ -112,6 +115,51 @@ namespace Saga.EditorTools
             Debug.Log("[CharCompareReal] built " + ScenePath + " — " + string.Join(" | ", rows.Select(r => r.label)));
         }
 
+        /// <summary>배치 모드: 짓고 → 검사 → 종료 코드(0 통과 · 3 실패).</summary>
+        public static void BuildAndVerifyBatch()
+        {
+            Build();
+            EditorApplication.Exit(Verify() ? 0 : 3);
+        }
+
+        /// <summary>열린 비교 장면 검사 — 몸마다 키 1.70m·발 y=0·카메라 쪽·상태 8, 공방 피부는 FakeSSS 그래프 + 그림.
+        /// 결과는 `CMP …` 줄로 찍는다(배치 로그를 grep).</summary>
+        [MenuItem("Saga/Char Forge/Verify Compare Real Scene")]
+        public static bool Verify()
+        {
+            var anims = Object.FindObjectsByType<Animator>(FindObjectsSortMode.None).OrderBy(a => a.transform.position.x).ToArray();
+            bool ok = anims.Length >= 1;
+            foreach (var a in anims)
+            {
+                var ctl = a.runtimeAnimatorController as AnimatorController;
+                var states = ctl ? ctl.layers[0].stateMachine.states.Select(s => s.state.name + (s.state.motion ? "" : "!")).ToArray() : new string[0];
+                var smrs = a.GetComponentsInChildren<SkinnedMeshRenderer>();
+                float lo = float.MaxValue, hi = float.MinValue;
+                foreach (var r in smrs)
+                {
+                    var mesh = new Mesh();
+                    r.BakeMesh(mesh, true);
+                    foreach (var v in mesh.vertices) { var w = r.transform.localToWorldMatrix.MultiplyPoint3x4(v); lo = Mathf.Min(lo, w.y); hi = Mathf.Max(hi, w.y); }
+                    Object.DestroyImmediate(mesh);
+                }
+                var foot = a.GetBoneTransform(HumanBodyBones.LeftFoot);
+                var toe = a.GetBoneTransform(HumanBodyBones.LeftToes);
+                var faceZ = foot && toe ? (toe.position - foot.position).normalized.z : 0f;
+                var mats = smrs.SelectMany(r => r.sharedMaterials).Where(m => m).Distinct().ToList();
+                Debug.Log("CMP " + a.name + " h=" + (hi - lo).ToString("0.000") + " lo=" + lo.ToString("0.000") + " faceZ=" + faceZ.ToString("0.00")
+                          + " states=" + string.Join(",", states) + " mats=" + string.Join(" ", mats.Select(m =>
+                              m.name + ":" + m.shader.name.Replace("Universal Render Pipeline/", "URP/") + (m.HasProperty("_BaseMap") && m.GetTexture("_BaseMap") ? "+tex" : ""))));
+                ok &= states.Length == 8 && !states.Any(s => s.EndsWith("!")) && Mathf.Abs(hi - lo - Height) < 0.02f && Mathf.Abs(lo) < 0.01f && faceZ < -0.3f;
+                if (a.name.StartsWith("FORGE_"))
+                {
+                    var skin = mats.FirstOrDefault(m => m.name.EndsWith("_skin"));
+                    ok &= skin != null && skin.shader == AssetDatabase.LoadAssetAtPath<Shader>(SkinGraph) && skin.GetTexture("_BaseMap") != null;
+                }
+            }
+            Debug.Log("CMP_RESULT " + (ok ? "OK" : "FAIL"));
+            return ok;
+        }
+
         /// <summary>공방 FBX 를 Humanoid 로 — 클립 이름의 "뼈대|" 앞머리를 떼고 이동 셋은 반복, 텍스처를 꺼내 URP Lit 재질로 바꿔 끼운다.</summary>
         public static void SetupForgeImport(string fbx)
         {
@@ -119,6 +167,11 @@ namespace Saga.EditorTools
             if (mi == null) return;
             mi.animationType = ModelImporterAnimationType.Human;
             mi.avatarSetup = ModelImporterAvatarSetup.CreateFromThisModel;
+            // 재질은 FBX 안(재질 이름 그대로)에 두고 아래에서 이름으로 바꿔 끼운다 — .meta 에 칸이 없으면 기본값 0 이 옛 방식
+            // (External·텍스처 이름)이라 재질이 밖에 텍스처 이름으로 생기고 .fbm 폴더가 생긴다(2026-09-25 겪음)
+            mi.materialImportMode = ModelImporterMaterialImportMode.ImportViaMaterialDescription;
+            mi.materialLocation = ModelImporterMaterialLocation.InPrefab;
+            foreach (var kv in mi.GetExternalObjectMap().ToList()) mi.RemoveRemap(kv.Key); // 전 실행의 연결을 비우고 새로 잇는다
             mi.SaveAndReimport();
             var id = Path.GetFileNameWithoutExtension(fbx);
             var texDir = ForgeDir + "Textures/";
@@ -140,6 +193,7 @@ namespace Saga.EditorTools
             // 재질: 가져온 것(읽기 전용)의 그림을 URP Lit 새 재질로 옮겨 이름으로 바꿔 끼운다
             var matDir = ForgeDir + "Materials/";
             if (!AssetDatabase.IsValidFolder(matDir.TrimEnd('/'))) AssetDatabase.CreateFolder(ForgeDir.TrimEnd('/'), "Materials");
+            var sss = ForgeSkinShader();
             foreach (var src in AssetDatabase.LoadAllAssetsAtPath(fbx).OfType<Material>().ToList())
             {
                 var path = matDir + id + "_" + src.name + ".mat";
@@ -157,6 +211,17 @@ namespace Saga.EditorTools
                 float smooth = src.name.StartsWith("eye") ? 0.85f : src.name.StartsWith("skin") ? 0.4f
                     : src.name.StartsWith("hair") ? 0.3f : src.name.StartsWith("teeth") ? 0.6f : 0.2f;
                 m.SetFloat("_Smoothness", smooth);
+                if (sss != null && src.name.StartsWith("skin"))
+                {
+                    // Maria 피부와 같은 FakeSSS(웜톤 역광 글로우) — 매끈함도 Maria 값(BuildMariaSkinSplit 0.35)에 맞춘다
+                    m.shader = sss;
+                    if (baseTex != null) m.SetTexture("_BaseMap", baseTex);
+                    m.SetFloat("_Smoothness", 0.35f);
+                }
+                else if (m.shader.name != "Universal Render Pipeline/Lit")
+                {
+                    m.shader = Shader.Find("Universal Render Pipeline/Lit");
+                }
                 if (src.name.StartsWith("hair"))
                 {
                     m.SetFloat("_AlphaClip", 1f);
@@ -169,6 +234,27 @@ namespace Saga.EditorTools
                 mi.AddRemap(new AssetImporter.SourceAssetIdentifier(typeof(Material), src.name), m);
             }
             mi.SaveAndReimport();
+        }
+
+        /// <summary>공방 피부 그래프 — 없으면 Maria 와 같은 빌더로 짓는다(피부 그림 `_BaseMap` → 바탕색, FakeSSS → 발광).
+        /// 컴파일 오류면 null(피부는 URP Lit 으로 남는다). 메뉴로 다시 지으려면 그래프 파일을 지우고 장면을 다시 짓는다.</summary>
+        public static Shader ForgeSkinShader()
+        {
+            var shader = AssetDatabase.LoadAssetAtPath<Shader>(SkinGraph);
+            if (shader == null)
+            {
+                var dir = Path.GetDirectoryName(SkinGraph).Replace('\\', '/');
+                if (!AssetDatabase.IsValidFolder(dir)) AssetDatabase.CreateFolder(ForgeDir.TrimEnd('/'), "Generated");
+                if (!BuildMariaSssShaderGraph.BuildGraph(SkinGraph, "_BaseMap")) return null;
+                AssetDatabase.ImportAsset(SkinGraph, ImportAssetOptions.ForceSynchronousImport);
+                shader = AssetDatabase.LoadAssetAtPath<Shader>(SkinGraph);
+            }
+            if (shader == null || ShaderUtil.ShaderHasError(shader) || shader.FindPropertyIndex("_BaseMap") < 0)
+            {
+                Debug.LogError("[CharCompareReal] 공방 피부 그래프가 없거나 오류 — 피부는 URP Lit 으로 둔다: " + SkinGraph);
+                return null;
+            }
+            return shader;
         }
 
         private static AnimationClip ClipIn(string fbx, string name) =>

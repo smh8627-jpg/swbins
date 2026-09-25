@@ -30,7 +30,11 @@ namespace Saga.EditorTools
         private const BindingFlags NestedTypeFlags = BindingFlags.Public | BindingFlags.NonPublic;
 
         [MenuItem("Saga/Build Maria SSS Shader Graph (Reflection)")]
-        public static void Build()
+        public static void Build() => BuildGraph(OutputPath, null);
+
+        /// <summary>그래프를 짓는다. baseMapReference 가 있으면 그 이름의 Texture2D 속성을 바탕색에 잇는다
+        /// (char-forge 공방 몸 — `BuildCharCompareRealScene.cs`). Maria 는 null: 바탕색 블록을 비워 `_BaseColor` 단색으로 둔다.</summary>
+        public static bool BuildGraph(string outputPath, string baseMapReference)
         {
             var graphDataType = T("UnityEditor.ShaderGraph.GraphData");
             var categoryDataType = T("UnityEditor.ShaderGraph.CategoryData");
@@ -54,7 +58,7 @@ namespace Saga.EditorTools
             if (allTypes.Any(t => t == null))
             {
                 Debug.LogError("[BuildMariaSssShaderGraph] 타입을 하나 이상 못 찾음 — 중단");
-                return;
+                return false;
             }
 
             try
@@ -90,7 +94,7 @@ namespace Saga.EditorTools
                 if (subGraphAsset == null)
                 {
                     Debug.LogError($"[BuildMariaSssShaderGraph] Sub Graph 자산을 못 찾음: {SubGraphPath}");
-                    return;
+                    return false;
                 }
                 var subGraphNode = Activator.CreateInstance(subGraphNodeType);
                 var assetProp = subGraphNodeType.GetProperty("asset", InstanceFlags);
@@ -138,7 +142,7 @@ namespace Saga.EditorTools
                 if (outputSlot == null)
                 {
                     Debug.LogError("[BuildMariaSssShaderGraph] SubGraphNode 출력 슬롯(id=1)을 못 찾음");
-                    return;
+                    return false;
                 }
                 var slotReferenceProp = materialSlotType.GetProperty("slotReference", InstanceFlags);
                 var outputSlotRef = slotReferenceProp.GetValue(outputSlot);
@@ -162,7 +166,7 @@ namespace Saga.EditorTools
                 if (emissionBlock == null)
                 {
                     Debug.LogError("[BuildMariaSssShaderGraph] Emission 블록 노드를 못 찾음");
-                    return;
+                    return false;
                 }
                 var emissionSlot = findSlotGeneric.Invoke(emissionBlock, new object[] { 0 });
                 var emissionSlotRef = slotReferenceProp.GetValue(emissionSlot);
@@ -171,25 +175,69 @@ namespace Saga.EditorTools
                     .First(m => m.Name == "Connect" && m.GetParameters().Length == 2);
                 connectMethod.Invoke(graph, new[] { outputSlotRef, emissionSlotRef });
 
-                var dir = Path.GetDirectoryName(OutputPath);
+                // char-forge 공방 몸 — 피부 그림(Texture2D 속성 → Sample Texture 2D)을 바탕색 블록에 잇는다.
+                // 이으면 `_BaseColor` 는 더 안 드러나고, `_Smoothness` 는 그대로 비어 있어 재질 값으로 남는다.
+                if (baseMapReference != null)
+                {
+                    object baseColorBlock = null;
+                    foreach (var bn in (IEnumerable)getNodesGeneric.Invoke(graph, null))
+                    {
+                        var d = descriptorProp.GetValue(bn);
+                        if ((string)d.GetType().GetProperty("name", InstanceFlags).GetValue(d) == "BaseColor")
+                        {
+                            baseColorBlock = bn;
+                            break;
+                        }
+                    }
+                    var texPropType = T("UnityEditor.ShaderGraph.Internal.Texture2DShaderProperty");
+                    var propertyNodeType = T("UnityEditor.ShaderGraph.PropertyNode");
+                    var sampleNodeType = T("UnityEditor.ShaderGraph.SampleTexture2DNode");
+                    if (baseColorBlock == null || texPropType == null || propertyNodeType == null || sampleNodeType == null)
+                    {
+                        Debug.LogError("[BuildMariaSssShaderGraph] 바탕색 블록·텍스처 노드 타입을 못 찾음");
+                        return false;
+                    }
+                    var texProp = Activator.CreateInstance(texPropType, true);
+                    texPropType.GetProperty("displayName", InstanceFlags).SetValue(texProp, "Base Map");
+                    var refProp = texPropType.GetProperty("overrideReferenceName", InstanceFlags);
+                    if (refProp != null) refProp.SetValue(texProp, baseMapReference);
+                    else texPropType.GetField("m_OverrideReferenceName", InstanceFlags)?.SetValue(texProp, baseMapReference);
+                    texPropType.GetProperty("isMainTexture", InstanceFlags)?.SetValue(texProp, true); // mat.mainTexture 로도 닿게
+                    Invoke(graph, "AddGraphInput", texProp, -1);
+
+                    var propNode = Activator.CreateInstance(propertyNodeType);
+                    propertyNodeType.GetProperty("property", InstanceFlags).SetValue(propNode, texProp);
+                    Invoke(graph, "AddNode", propNode, true);
+                    var sampleNode = Activator.CreateInstance(sampleNodeType);
+                    Invoke(graph, "AddNode", sampleNode, true);
+
+                    // 슬롯 번호: PropertyNode 출력 0 · SampleTexture2D 입력 Texture 1 · 출력 RGBA 0 · BaseColor 블록 입력 0
+                    object SlotRef(object node, int id) => slotReferenceProp.GetValue(findSlotGeneric.Invoke(node, new object[] { id }));
+                    connectMethod.Invoke(graph, new[] { SlotRef(propNode, 0), SlotRef(sampleNode, 1) });
+                    connectMethod.Invoke(graph, new[] { SlotRef(sampleNode, 0), SlotRef(baseColorBlock, 0) });
+                }
+
+                var dir = Path.GetDirectoryName(outputPath);
                 if (!AssetDatabase.IsValidFolder(dir))
                 {
                     Directory.CreateDirectory(dir!);
                 }
                 var writeMethod = fileUtilitiesType.GetMethod("WriteShaderGraphToDisk", BindingFlags.Public | BindingFlags.Static);
-                var result = writeMethod.Invoke(null, new object[] { OutputPath, graph });
+                var result = writeMethod.Invoke(null, new object[] { outputPath, graph });
                 if (result == null)
                 {
                     Debug.LogError("[BuildMariaSssShaderGraph] 디스크 쓰기 실패");
-                    return;
+                    return false;
                 }
 
                 AssetDatabase.Refresh();
-                Debug.Log($"[BuildMariaSssShaderGraph] done — {OutputPath}");
+                Debug.Log($"[BuildMariaSssShaderGraph] done — {outputPath}");
+                return true;
             }
             catch (Exception e)
             {
                 Debug.LogError($"[BuildMariaSssShaderGraph] 예외: {e}");
+                return false;
             }
         }
 

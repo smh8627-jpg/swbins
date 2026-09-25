@@ -9073,3 +9073,12 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - 새 `Assets/Editor/BuildCharCompareRealScene.cs`(메뉴 `Saga/Char Forge/Build Compare Real Scene`): 공방 FBX Humanoid·클립 이름 정리·텍스처 꺼내기·URP Lit 재질로 바꿔 끼우기(머리 셋 알파 잘라내기·양면) + 지금 Maria | 공방 몸을 같은 빛·키 1.70m(BakeMesh 로 잰 키)·같은 순서 자동 동작 컨트롤러로 나란히. 다른 saga 편집기 코드에 기대지 않는다. 빈 URP 17.3 프로젝트에 Maria FBX(.meta 째)를 복사해 돌려 CMP_RESULT OK(두 몸 1.700m·발 y=0·카메라 쪽·상태 8, 공방 재질 URP/Lit+tex).
 - **saga-unity 에서는 아직 안 돌렸다** — 같은 시각 다른 세션이 saga-unity 를 고치는 중(unity-batch 는 Packages 를 되돌린다). `.meta` 는 고정 GUID 로 손으로 썼다(fbx 는 guid 만 — 첫 임포트 때 Unity 가 채운다). 빌더를 돌리면 `Assets/Art/CharactersForge/Textures·Materials`·`Assets/Animators/CharForge/`·`Assets/Scenes/CharCompareReal.unity` 가 생긴다.
 - 사람 몫: HOW_TO_PLAYTEST §9 대로 비교 장면 보고 "바꿔도 된다/아직". 공방 피부는 URP Lit(Maria 의 FakeSSS 는 아직 안 붙임).
+
+## 2026-09-25 — char-forge 공방 몸에 FakeSSS 피부 + 비교 장면을 saga-unity 에서 실제로 지음 (사용자 "이어서 FakeSSS 피부 붙여줘")
+
+- Maria 피부 그래프(`MariaSkin.shadergraph`)는 바탕색 블록을 비워 `_BaseColor` 단색에 FakeSSS 를 발광으로 더한다 — 그대로 씌우면 공방 몸 피부 그림이 사라진다.
+  그래서 `BuildMariaSssShaderGraph.Build` 를 `BuildGraph(outputPath, baseMapReference)` 로 빼고(Maria 는 null — 전과 같은 그래프), 공방 몸은 `_BaseMap` Texture2D 속성 → Sample Texture 2D → 바탕색 선을 더한 `Assets/Art/CharactersForge/Generated/ForgeSkin.shadergraph`(노드 넷·선 셋, 컴파일 오류 없음). Intensity 15·Colour 웜톤 등 FakeSSS 값은 Maria 와 같고 매끈함도 0.35 로 맞췄다.
+- `BuildCharCompareRealScene` 가 그래프가 없으면 짓고 피부 재질에 씌운다 + 검사 `Verify`(메뉴 `Saga/Char Forge/Verify Compare Real Scene`)·배치 `BuildAndVerifyBatch`. saga-unity 배치(unity-batch.sh) `CMP_RESULT OK`: Maria(MariaSkin·Rest)·공방(ForgeSkin+그림, 나머지 URP Lit+그림) 둘 다 1.700m·발 y=0·동작 8.
+- 함정: 손으로 쓴 guid 만 든 fbx `.meta` 는 가져오기 칸이 비어 기본값 0 = **옛 방식(materialLocation External·텍스처 이름)** 이 된다 → 재질이 밖에 텍스처 이름으로 생기고 `.fbm` 폴더가 생겨 이름으로 찾는 연결이 빗나갔다. 빌더가 `ImportViaMaterialDescription`·`InPrefab` 을 못 박고 전 연결(remap)을 비운 뒤 잇는다.
+- 커밋: Unity 가 채운 fbx `.meta`·재질 여덟·꺼낸 텍스처(14MB — FBX 에 박힌 것과 겹친다, 나중에 FBX 를 그림 없이 내보내 줄일 수 있다)·ForgeSkin 그래프·비교 장면·컨트롤러(Maria 것은 Maria 파일이 없는 PC 에서 빈 참조 — TestCharacterRealistic 과 같은 처지). Unity 부수 변경 ShaderGraphSettings.asset(줄끝만)은 되돌림. 같은 시각 다른 세션의 DUNGEON 파일은 안 건드림.
+- 사람 몫 그대로: HOW_TO_PLAYTEST §9 판정.
