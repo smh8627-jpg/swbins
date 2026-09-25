@@ -10,7 +10,7 @@ namespace Saga.EditorTools
 {
     /// <summary>
     /// char-forge 단계 3(`tools/char-forge/README.md` §7) — 지금 몸(Mixamo, 로컬 전용)과 공방 사실 몸
-    /// (`Assets/Art/CharactersForge/*.fbx`, MakeHuman·UAL 전부 CC0)을 짝(주역 Maria · Goblin · 두목 Brute)마다 같은 빛·같은 키로
+    /// (`Assets/Art/CharactersForge/*.fbx`, MakeHuman·UAL 전부 CC0)을 짝(주역 Maria · Goblin · 두목 Brute · 숲 괴물 Warrok·Parasite·Nightshade)마다 같은 빛·같은 키로
     /// 나란히 세우는 비교 장면.
     /// 교체 문턱: 사람이 "못하지 않다"고 판정한 짝만 게임 몸을 바꾼다 — 이 장면은 그 판정용이고, 게임 씬은 안 건드린다.
     /// 몸마다 가진 동작을 같은 순서(서기 → 걷기 → 달리기 → 베기 → 맞기 → 구르기 → 줍기 → 쓰러짐)로 저절로 돈다(런타임 스크립트 없음).
@@ -68,6 +68,30 @@ namespace Saga.EditorTools
                     { "idle", ("Idle", "idle") }, { "walk", ("Walking", "walk") }, { "attack", ("SlashAdvance", "attack") },
                     { "hit", ("HitReaction", "hit") }, { "death", ("Dying", "death") },
                 },
+            },
+            // 사가의숲 괴물 셋 — 키는 SetupForestCreatureModels 표(무쇠도깨비·포자괴물·안개유령)와 같다
+            new Pair
+            {
+                Key = "Warrok", NowBody = NowRoot + "Warrok/Warrok.fbx", ForgeId = "_cmp_real_warrok_01", Height = 1.75f,
+                NowClips = new Dictionary<string, (string, string)>
+                {
+                    { "idle", ("Idle", "idle") }, { "walk", ("Walking", "walking") }, { "run", ("Running", "running") },
+                    { "attack", ("Attack", "attack") },
+                },
+            },
+            new Pair
+            {
+                Key = "Parasite", NowBody = NowRoot + "Parasite/Parasite.fbx", ForgeId = "_cmp_real_parasite_01", Height = 1.60f,
+                NowClips = new Dictionary<string, (string, string)>
+                {
+                    { "idle", ("Idle", "idle") }, { "walk", ("Walking", "walking") }, { "run", ("Running", "running") },
+                    { "attack", ("Attack", "attack") },
+                },
+            },
+            new Pair
+            {
+                Key = "Nightshade", NowBody = NowRoot + "Nightshade/Nightshade.fbx", ForgeId = "_cmp_real_nightshade_01", Height = 1.60f,
+                NowClips = new Dictionary<string, (string, string)> { { "idle", ("Idle", "idle") } },
             },
         };
         private const float DefaultHeight = 1.70f;
@@ -181,6 +205,13 @@ namespace Saga.EditorTools
             return p != null ? p.Height : DefaultHeight;
         }
 
+        /// <summary>검사용 — 공방 몸은 동작 셋 이상, 지금 몸은 가진 클립 수까지(지금 Nightshade 는 서기 하나뿐).</summary>
+        private static int MinStates(string name)
+        {
+            var p = Pairs.FirstOrDefault(x => name == "NOW_" + x.Key);
+            return p != null ? Mathf.Min(3, p.NowClips.Count) : 3;
+        }
+
         /// <summary>배치 모드: 짓고 → 검사 → 종료 코드(0 통과 · 3 실패).</summary>
         public static void BuildAndVerifyBatch()
         {
@@ -216,7 +247,7 @@ namespace Saga.EditorTools
                           + " states=" + string.Join(",", states) + " mats=" + string.Join(" ", mats.Select(m =>
                               m.name + ":" + m.shader.name.Replace("Universal Render Pipeline/", "URP/") + (m.HasProperty("_BaseMap") && m.GetTexture("_BaseMap") ? "+tex" : ""))));
                 var want = ExpectedHeight(a.name);
-                ok &= states.Length >= 3 && !states.Any(s => s.EndsWith("!")) && Mathf.Abs(hi - lo - want) < 0.02f && Mathf.Abs(lo) < 0.01f && faceZ < -0.3f;
+                ok &= states.Length >= MinStates(a.name) && !states.Any(s => s.EndsWith("!")) && Mathf.Abs(hi - lo - want) < 0.02f && Mathf.Abs(lo) < 0.01f && faceZ < -0.3f;
                 if (a.name.StartsWith("FORGE_"))
                 {
                     var skin = mats.FirstOrDefault(m => m.name.EndsWith("_skin"));
@@ -247,6 +278,17 @@ namespace Saga.EditorTools
             mi.materialLocation = ModelImporterMaterialLocation.InPrefab;
             foreach (var kv in mi.GetExternalObjectMap().ToList()) mi.RemoveRemap(kv.Key); // 전 실행의 연결을 비우고 새로 잇는다
             mi.SaveAndReimport();
+            // 아바타가 깨졌으면 .meta 의 뼈 짝을 비우고 한 번 더 자동으로 맞춘다 — 한 번 실패한 가져오기의 불완전한 짝
+            // (LeftFoot 빠짐)이 .meta 에 남아, 몸을 고쳐 다시 넣어도 그 짝을 그대로 써서 계속 실패했다(09-25 유령 몸)
+            var avatar = AssetDatabase.LoadAllAssetsAtPath(fbx).OfType<Avatar>().FirstOrDefault();
+            if (avatar == null || !avatar.isValid || !avatar.isHuman)
+            {
+                var hd = mi.humanDescription;
+                hd.human = new HumanBone[0];
+                hd.skeleton = new SkeletonBone[0];
+                mi.humanDescription = hd;
+                mi.SaveAndReimport();
+            }
             var id = Path.GetFileNameWithoutExtension(fbx);
             var texDir = ForgeDir + "Textures/";
             mi.ExtractTextures(texDir);

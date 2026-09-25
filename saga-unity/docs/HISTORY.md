@@ -9118,3 +9118,12 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - 109-2 끝 → 다음 = 109-3 STORY 세 시대.
 - 실기 확인 전: 잔해 크기·청록 세기·도는 속도가 벽 4m 방에서 과한지, 업화 대문 덮개 차(3.5m)·방호벽 어울림, 카메라가 떠 있는 잔해에 가리는지.
 - **뒤이어 GO 도 바로잡음**: `BuildTestVillageScene.Build` 로 다시 굽고 `Go_GuardianIntro.playable` 을 `TestVillage.unity` 와 같이 커밋(씬 바인딩 4 → 타임라인에 전부 있음). GO `PlaytestHeadless` **3연속 OK**(수호장 등장 컷 브레인·이름표·포효 포함). 중간에 다른 세션(char-forge) 배치 Unity 가 라이선스 뮤텍스를 쥐고 있어 첫 세 번은 시작도 못 함 — 끄지 않고 끝나길 기다렸다가 돌렸다. STORY 두 컷은 HEAD 에서 이미 맞아 손대지 않음.
+
+## 2026-09-25 — char-forge 숲 괴물 셋(Warrok·Parasite·Nightshade) + 비교 장면 짝 여섯 (사용자 "vroid 비슷한 자체 게임툴 이어해")
+
+- 공방(`tools/char-forge/build_real.py`) 새 부품 넷: `horns` `count: 1`(정수리 외뿔, 뿌리 = 머리 가운데 줄의 실제 최고점) · `tusks`(입술 `lips` 무리 좌우 끝) · `spores`(등·어깨 살에 반쯤 묻힌 혹 무리, id 씨앗, 혹마다 그 자리 살 뼈 무게) · `robe`(쇄골 → 발목 옷자락, 톱니 끝단, `hide_legs` 로 속 다리 살 지움).
+- 레시피 셋 → `Assets/Art/CharactersForge/`: `_cmp_real_warrok_01`(무쇠도깨비·STORY 소환 자리 — 외뿔·엄니·긴 팔·짧은 다리·잿빛 푸른 피부, Brute 와 안 겹치게) · `_cmp_real_parasite_01`(포자괴물 — 마른 몸·긴 손가락·민머리·누런 초록·포자 혹 16) · `_cmp_real_nightshade_01`(안개유령 — 긴 머리·창백한 푸른 피부·해진 옷자락, 다리 없음).
+- 바로잡음 셋: ① 다리 길이 모프가 발을 8cm 띄움 → 모프 뒤 땅 다시 맞춤(MPFB 는 `abs(최저점)` 이라 올리기만 한다) ② 옷자락 단면을 네모 내접 타원으로 감싸 두 다리 모서리가 37% 뚫림 → 점을 모두 품는 타원, 그래도 허벅지 70% 만 따라가 서기 29% → 유령은 속 다리를 지워 1.4% ③ 다리 살을 지우니 Unity Humanoid 가 `LeftFoot` 을 못 찾음(스킨에 묶인 뼈만 본다) → 끝단에 발·발끝 무게 1%, 그리고 한 번 실패한 가져오기의 불완전한 뼈 짝이 `.meta` 에 남아 계속 실패 → `SetupForgeImport` 가 아바타가 깨졌으면 뼈 짝을 비우고 다시 가져온다.
+- 비교 장면 `BuildCharCompareRealScene` 짝 여섯(Warrok 1.75·Parasite 1.60·Nightshade 1.60m — `SetupForestCreatureModels` 키), 지금 몸 동작 검사는 가진 클립 수까지(지금 Nightshade 는 서기 하나).
+- 검증: build `--check` 땅 0cm · verify fbx ≤ 0.31°·glb 0.0° · 두 번 빌드 glb 같은 바이트 · 부품 뿌리-살 0.3~2.3mm · saga-unity 배치 `CMP_RESULT OK`(몸 열둘 키·발 y=0·앞 방향·동작·ForgeSkin·부품 색). 게임 몸은 그대로 — 판정 전.
+- 실기 확인 전(HOW_TO_PLAYTEST §9): 괴물다운가 — 공방 Warrok 은 털이 없고, Parasite 는 찢긴 살 결이 없다. 유령 옷자락은 쓰러짐 동작에서 36% 뚫린다(게임은 서기만).

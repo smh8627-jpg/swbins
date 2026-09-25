@@ -1,0 +1,29 @@
+{
+ "id": "_cmp_real_warrok_01",
+ "_note": "단계 3 괴물 비교용 — saga-unity Warrok(Mixamo) 자리 후보(사가의숲 무쇠도깨비·사가스토리 소환 거구). 게임 인물 아님(이름 없음). 두목 Brute(두 굽은 뿔·돼지 코·붉은 피부)와 안 겹치게: 정수리 외뿔·엄니·긴 팔·짧은 다리·구부정한 목·넓은 턱·잿빛 푸른 피부.",
+ "macro": {"gender": 1.0, "age": 0.55, "muscle": 1.0, "weight": 1.0, "height": 0.6, "proportions": 0.3,
+           "race": {"asian": 0.4, "caucasian": 0.2, "african": 0.4}},
+ "targets": {"measure-upperarm-length-incr": 1.0, "measure-lowerarm-length-incr": 1.0, "hand-scale-incr": 0.8,
+             "hand-fingers-diameter-incr": 0.7, "upperarm-shoulder-muscle-incr": 1.0,
+             "upperlegs-height-decr": 0.7, "lowerlegs-height-decr": 0.5, "foot-scale-incr": 0.5,
+             "neck-trans-forward": 0.8, "neck-scale-horiz-incr": 1.0, "neck-double-incr": 0.4,
+             "torso-vshape-incr": 0.8, "measure-shoulder-dist-incr": 0.8, "torso-muscle-dorsi-incr": 1.0,
+             "head-square": 0.8, "head-scale-horiz-incr": 0.3, "chin-width-incr": 1.0, "chin-prognathism-incr": 0.5,
+             "mouth-scale-horiz-incr": 0.8, "mouth-lowerlip-volume-incr": 0.6,
+             "nose-scale-horiz-incr": 0.8, "nose-flaring-incr": 0.8, "nose-point-width-incr": 0.6,
+             "forehead-nubian-incr": 0.8, "eyebrows-trans-down": 0.8, "eyebrows-angle-down": 0.7,
+             "eye-scale-decr": 0.4, "ear-shape-pointed": 0.4},
+ "skin": "middleage_african_male/middleage_african_male.mhmat",
+ "tints": {"skin": "#a9b8d6"},
+ "eyes": "high-poly/high-poly.mhclo",
+ "eyebrows": "eyebrow010/eyebrow010.mhclo",
+ "eyelashes": "eyelashes01/eyelashes01.mhclo",
+ "teeth": "teeth_base/teeth_base.mhclo",
+ "kitbash": [
+  {"part": "horns", "count": 1, "length": 0.2, "radius": 0.036, "curl": 0.25, "color": "#c9b98f"},
+  {"part": "tusks", "length": 0.055, "radius": 0.009, "color": "#ece2c6"},
+  {"part": "loincloth", "color": "#8a6a2c", "length": 0.65}
+ ],
+ "anims": {"idle": "Idle_Loop", "walk": "Walk_Loop", "run": "Jog_Fwd_Loop", "attack": "Sword_Attack",
+           "hit": "Hit_Chest", "death": "Death01"}
+}

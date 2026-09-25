@@ -75,6 +75,13 @@ def make_human(svc, r):
                                feet_on_ground=True, scale=0.1, macro_detail_dict=macro)
     if r.get('targets'):
         load_targets(svc, basemesh, r['targets'])
+        # 다리 길이 모프(upperlegs-height-decr 등)는 발을 띄운다 — create_human 의 땅 맞춤은 macro 만 봐서 다시 맞춘다
+        # (MPFB deserialize 도 모프 뒤에 한 번 더 한다. 그쪽은 abs(최저점)이라 뜬 발은 더 올리므로 부호를 지켜 내린다)
+        low = svc['ObjectService'].get_lowest_point(basemesh)
+        if abs(low) > 1e-4:
+            basemesh.location.z -= low
+            with build.ctx(basemesh, [basemesh]):
+                bpy.ops.object.transform_apply(location=True, rotation=False, scale=False)
     # 뼈를 부위보다 먼저 — add_mhclo_asset 이 붙이는 순간 가중치를 옮긴다(MPFB characterbuilder 와 같은 순서)
     HS.add_builtin_rig(basemesh, 'game_engine', import_weights=True)
     HS.set_character_skin(asset(svc, r['skin'], 'skins'), basemesh, bodyproxy=None,
@@ -198,40 +205,127 @@ def _bridge(bm, r0, r1):
         bm.faces.new((r0[k], r0[(k + 1) % n], r1[(k + 1) % n], r1[k]))
 
 
+def _cone(bm, pts, r0, n=10):
+    """점 줄(뿌리 → 끝)을 따라 가늘어지는 원뿔 관 — 뿔·엄니."""
+    seg = len(pts) - 1
+    rings = []
+    for i, c in enumerate(pts):
+        tan = (pts[min(i + 1, seg)] - pts[max(i - 1, 0)]).normalized()
+        a = tan.cross(Vector((0, 1, 0)) if abs(tan.y) < 0.9 else Vector((1, 0, 0))).normalized()
+        b = tan.cross(a).normalized()
+        rad = r0 * (1 - i / seg) ** 0.85 + 0.0015
+        rings.append(_ring(bm, c, a, b, rad, rad, n))
+    for i in range(seg):
+        _bridge(bm, rings[i], rings[i + 1])
+    bm.faces.new(list(reversed(rings[0])))
+    bm.faces.new(rings[-1])
+
+
+def _groups_of(skin, names):
+    return {skin.vertex_groups[g].index for g in names if g in skin.vertex_groups}
+
+
+def _skin_weights(skin, v, top=4):
+    """살 정점 하나의 뼈 무게(큰 넷, 합 1) — 살에 박히는 부품이 그 자리 살과 같이 움직이게."""
+    ws = sorted(((skin.vertex_groups[g.group].name, g.weight) for g in v.groups
+                 if g.weight > 0 and skin.vertex_groups[g.group].name in BONE_NAMES), key=lambda t: -t[1])[:top]
+    s = sum(w for _, w in ws) or 1.0
+    return {b: w / s for b, w in ws} or {'pelvis': 1.0}
+
+
+BONE_NAMES = set()  # kitbash() 가 뼈대에서 채운다(살 정점 무리 중 뼈 이름인 것만 무게로 옮긴다)
+
+
 def kitbash(arm, parts):
     """괴물 부품 — README §5 D(kitbash). 몸을 다 지은 뒤 실제 살 모양을 재서 자리를 잡는다. 앞 = -Y(Blender), 위 = +Z.
-    horns: 머리 뼈에 붙는 굽은 원뿔 둘 · loincloth: 허리에서 허벅지 중간까지 치마 천(위는 골반, 아래로 갈수록 허벅지 무게)."""
+    horns: 머리 뼈에 붙는 굽은 원뿔 둘(`count: 1` 이면 정수리 외뿔) · tusks: 아랫입술 두 끝에서 솟는 엄니 ·
+    loincloth: 허리에서 허벅지 중간까지 치마 천(위는 골반, 아래로 갈수록 허벅지 무게) ·
+    spores: 등·어깨 살에 반쯤 묻힌 혹 무리(자리·크기는 인물 id 씨앗) · robe: 쇄골 아래부터 발목까지 드리운 긴 옷자락(끝단은 해진 톱니)."""
     skin = next(o for o in arm.children if o.type == 'MESH' and o.name.endswith('_basemesh'))
+    BONE_NAMES.clear()
+    BONE_NAMES.update(b.name for b in arm.data.bones)
     for p in parts:
         kind_ = p['part']
         if kind_ == 'horns':
             hv = _verts_world(skin, 'head')
             lo, hi = Vector([min(v[i] for v in hv) for i in range(3)]), Vector([max(v[i] for v in hv) for i in range(3)])
             size = hi - lo
-            L, r0, seg, n = p.get('length', 0.15), p.get('radius', 0.022), 10, 10
+            L, r0, seg = p.get('length', 0.15), p.get('radius', 0.022), 10
+            up, back = Vector((0, 0, 1)), Vector((0, 1, 0))
+            curl = p.get('curl', 0.5)
             bm, weights = bmesh.new(), {}
-            for sx in (-1, 1):
-                out, up, back = Vector((sx, 0, 0)), Vector((0, 0, 1)), Vector((0, 1, 0))
-                base = Vector(((lo.x + hi.x) / 2 + sx * 0.27 * size.x, lo.y + 0.42 * size.y, hi.z - 0.14 * size.z))
-                base -= (out * 0.4 + up * 0.6) * r0  # 뿌리를 살 속에 조금 묻는다
-                curl = p.get('curl', 0.5)
-                pts = [base + out * (L * 0.5 * t) + up * (L * (0.8 * t - 0.25 * curl * t * t)) + back * (L * 0.45 * curl * t * t)
+            if p.get('count', 2) == 1:
+                # 정수리 외뿔 — 뿌리는 머리 가운데 줄에서 실제로 가장 높은 살(머리 모프마다 정수리 높이가 다르다)
+                cx, yt = (lo.x + hi.x) / 2, lo.y + p.get('at', 0.40) * size.y
+                crown = [v for v in hv if abs(v.x - cx) < 0.012 and abs(v.y - yt) < 0.02] or hv
+                base = max(crown, key=lambda v: v.z).copy() - up * (0.6 * r0)
+                pts = [base + up * (L * (0.9 * t - 0.2 * curl * t * t)) + back * (L * 0.5 * curl * t * t)
                        for t in (i / seg for i in range(seg + 1))]
-                rings = []
-                for i, c in enumerate(pts):
-                    tan = (pts[min(i + 1, seg)] - pts[max(i - 1, 0)]).normalized()
-                    a = tan.cross(Vector((0, 1, 0)) if abs(tan.y) < 0.9 else Vector((1, 0, 0))).normalized()
-                    b = tan.cross(a).normalized()
-                    rad = r0 * (1 - i / seg) ** 0.85 + 0.0015
-                    rings.append(_ring(bm, c, a, b, rad, rad, n))
-                for i in range(seg):
-                    _bridge(bm, rings[i], rings[i + 1])
-                bm.faces.new(list(reversed(rings[0])))
-                bm.faces.new(rings[-1])
+                _cone(bm, pts, r0)
+            else:
+                for sx in (-1, 1):
+                    out = Vector((sx, 0, 0))
+                    base = Vector(((lo.x + hi.x) / 2 + sx * 0.27 * size.x, lo.y + 0.42 * size.y, hi.z - 0.14 * size.z))
+                    base -= (out * 0.4 + up * 0.6) * r0  # 뿌리를 살 속에 조금 묻는다
+                    pts = [base + out * (L * 0.5 * t) + up * (L * (0.8 * t - 0.25 * curl * t * t)) + back * (L * 0.45 * curl * t * t)
+                           for t in (i / seg for i in range(seg + 1))]
+                    _cone(bm, pts, r0)
             bm.verts.index_update()
             for v in bm.verts:
                 weights[v.index] = {'head': 1.0}
             _new_part(arm, f'{arm.name}_kitbash_horn', bm, weights, p.get('color', '#d8cdb0'), 0.55)
+        elif kind_ == 'tusks':
+            # 입술 살(MPFB 'lips' 무리)의 좌우 끝 = 입꼬리. 아랫입술 쪽으로 내려 살 속에 묻고 위·앞·바깥으로 솟게
+            lv = _verts_world(skin, 'lips')
+            if not lv:
+                sys.exit('kitbash tusks: 살에 lips 무리가 없다')
+            cx = sum(v.x for v in lv) / len(lv)
+            zlow = min(v.z for v in lv)
+            L, r0, seg = p.get('length', 0.035), p.get('radius', 0.008), 6
+            bm, weights = bmesh.new(), {}
+            for sx in (-1, 1):
+                corner = max(lv, key=lambda v: (v.x - cx) * sx)
+                out = Vector((sx, 0, 0))
+                base = Vector((cx + (corner.x - cx) * 0.8, corner.y + 0.004, zlow + 0.002))
+                pts = [base + Vector((0, 0, 1)) * (L * t) + Vector((0, -1, 0)) * (L * 0.25 * t) + out * (L * 0.2 * t * t)
+                       for t in (i / seg for i in range(seg + 1))]
+                _cone(bm, pts, r0, 8)
+            bm.verts.index_update()
+            for v in bm.verts:
+                weights[v.index] = {'head': 1.0}
+            _new_part(arm, f'{arm.name}_kitbash_tusk', bm, weights, p.get('color', '#e8dfc4'), 0.45)
+        elif kind_ == 'spores':
+            import random, zlib
+            rng = random.Random(zlib.crc32(f"{arm.name}/spores".encode()))
+            back = _groups_of(skin, p.get('groups', ('spine_02', 'spine_03', 'clavicle_l', 'clavicle_r', 'neck_01')))
+            rot = skin.matrix_world.to_3x3()
+            cand = [v for v in skin.data.vertices
+                    if sum(g.weight for g in v.groups if g.group in back) >= 0.5 and (rot @ v.normal).y > 0.35]
+            if not cand:
+                sys.exit('kitbash spores: 등 살을 못 찾았다')
+            rmin, rmax = p.get('radius', (0.018, 0.05))
+            picked = []
+            for _ in range(4000):
+                if len(picked) >= p.get('count', 14):
+                    break
+                v = cand[rng.randrange(len(cand))]
+                r = rmin + (rmax - rmin) * rng.random() ** 1.6  # 작은 혹이 많고 큰 혹은 드물게
+                co = skin.matrix_world @ v.co
+                if all((co - c).length > (r + rc) * 0.85 for c, rc, _ in picked):
+                    picked.append((co, r, v))
+            bm, weights = bmesh.new(), {}
+            for co, r, v in picked:
+                nrm = (rot @ v.normal).normalized()
+                ws = _skin_weights(skin, v)
+                geom = bmesh.ops.create_icosphere(bm, subdivisions=2, radius=r)
+                sq = Vector((1 + 0.25 * (rng.random() - 0.5), 1 + 0.25 * (rng.random() - 0.5), 1 + 0.25 * (rng.random() - 0.5)))
+                ctr = co + nrm * (r * 0.35)  # 65% 는 살 속에
+                for bv in geom['verts']:
+                    bv.co = ctr + Vector((bv.co.x * sq.x, bv.co.y * sq.y, bv.co.z * sq.z))
+                bm.verts.index_update()
+                for bv in geom['verts']:
+                    weights[bv.index] = ws
+            _new_part(arm, f'{arm.name}_kitbash_spore', bm, weights, p.get('color', '#b8a24a'), 0.7)
         elif kind_ == 'loincloth':
             bones = arm.data.bones
             z_top = (arm.matrix_world @ bones['pelvis'].head_local).z + p.get('top', 0.04)
@@ -266,6 +360,88 @@ def kitbash(arm, parts):
                     wt = 0.75 * t * min(1.0, abs(v.co.x - cx) / 0.05)
                     weights[v.index] = {'pelvis': 1.0 - wt, side: wt} if wt > 0 else {'pelvis': 1.0}
             _new_part(arm, f'{arm.name}_kitbash_cloth', bm, weights, p.get('color', '#5a4632'), 0.9)
+        elif kind_ == 'robe':
+            # 떠 있는 괴물(안개 유령)의 긴 옷자락 — 단면은 몸통·다리 살만(팔·손·목은 뺀다), 아래로 갈수록 벌어지고 끝단은 톱니.
+            # 무게: 골반 위는 높이에 맞는 등뼈 하나, 아래는 골반 → 허벅지 → 종아리로 옮겨 가되 가운데(두 다리 사이)는 골반에 남긴다
+            bones = arm.data.bones
+            W = lambda b: arm.matrix_world @ bones[b].head_local  # noqa: E731
+            pel, kn, an = W('pelvis'), W('calf_l'), W('foot_l')
+            z_top = W('clavicle_l').z - p.get('top', 0.06)
+            z_bot = an.z + p.get('hem', 0.06)
+            body = _groups_of(skin, ('pelvis', 'spine_01', 'spine_02', 'spine_03', 'thigh_l', 'thigh_r', 'calf_l', 'calf_r'))
+            allv = [skin.matrix_world @ v.co for v in skin.data.vertices
+                    if sum(g.weight for g in v.groups if g.group in body) >= 0.6]
+            rows, n, flare = 14, 36, p.get('flare', 0.5)
+            bm, weights, rings, prev = bmesh.new(), {}, [], None
+            for i in range(rows):
+                t = i / (rows - 1)
+                z = z_top + (z_bot - z_top) * t
+                sl = [v for v in allv if abs(v.z - z) < 0.012]
+                if sl:
+                    # 단면 점을 모두 품는 타원 — 테두리 네모의 내접 타원은 두 다리 단면의 모서리(허벅지 바깥 앞뒤)를 놓친다(09-25 측정 37%)
+                    cx0, cy0 = (min(v.x for v in sl) + max(v.x for v in sl)) / 2, (min(v.y for v in sl) + max(v.y for v in sl)) / 2
+                    hx = max(max(v.x for v in sl) - cx0, 1e-3)
+                    hy = max(max(v.y for v in sl) - cy0, 1e-3)
+                    s = max(math.hypot((v.x - cx0) / hx, (v.y - cy0) / hy) for v in sl)
+                    prev = (cx0, cy0, hx, hy, s)
+                cx0, cy0, hx, hy, s = prev if prev else (0.0, 0.0, 0.15, 0.1, 1.0)
+                c = Vector((cx0, cy0, z))
+                # 위(가슴)는 살에 붙고, 골반 아래부터 치마처럼 벌어진다 — 아래 단면이 두 다리를 다 품도록 앞뒤도 넓힌다
+                below = max(0.0, (pel.z - z) / max(pel.z - z_bot, 1e-6))
+                sx = hx * s * (1.04 + flare * below) + 0.008
+                sy = max(hy * s, sx * 0.62 * below) * (1.04 + flare * 0.6 * below) + 0.008
+                ring = _ring(bm, c, Vector((1, 0, 0)), Vector((0, 1, 0)), sx, sy, n)
+                if i == rows - 1:
+                    for k, v in enumerate(ring):  # 해진 끝단
+                        v.co.z += p.get('jag', 0.05) * (0.5 + 0.5 * math.cos(k * 2 * math.pi * 3 / n) * (1 if k % 2 else -0.6))
+                rings.append(ring)
+            for i in range(rows - 1):
+                _bridge(bm, rings[i], rings[i + 1])
+            bm.verts.index_update()
+            cx = pel.x
+            lsign = 1.0 if W('thigh_l').x > cx else -1.0
+            spine = sorted(((W(b).z, b) for b in ('spine_01', 'spine_02', 'spine_03')), reverse=True)
+            for ring in rings:
+                for v in ring:
+                    z = v.co.z
+                    if z >= pel.z:
+                        b = next((nm for hz, nm in spine if z >= hz), 'pelvis')
+                        weights[v.index] = {b: 1.0}
+                        continue
+                    side = 'l' if (v.co.x - cx) * lsign > 0 else 'r'
+                    t_leg = min(1.0, (pel.z - z) / max(pel.z - kn.z, 1e-6))
+                    t_calf = min(1.0, max(0.0, (kn.z - z) / max(kn.z - an.z, 1e-6)))
+                    leg = 0.7 * t_leg * min(1.0, abs(v.co.x - cx) / 0.06)
+                    ws = {'pelvis': 1.0 - leg}
+                    if leg > 0:
+                        ws[f'thigh_{side}'] = leg * (1 - 0.5 * t_calf)
+                        if t_calf > 0:
+                            ws[f'calf_{side}'] = leg * 0.5 * t_calf
+                    weights[v.index] = ws
+            if p.get('hide_legs'):
+                # 다리 살을 지우면 발 뼈에 묶인 정점이 0 이 된다 — Unity Humanoid 는 스킨에 묶인 뼈로 아바타를 지어
+                # "Required human bone 'LeftFoot' not found" 로 멈춘다(09-25). 끝단에 발·발끝 뼈 무게를 1% 씩 걸어 둔다(움직임엔 안 보인다)
+                for v in rings[-1]:
+                    side = 'l' if (v.co.x - cx) * lsign > 0 else 'r'
+                    ws = {b: w * 0.98 for b, w in weights[v.index].items()}
+                    ws[f'foot_{side}'] = ws[f'ball_{side}'] = 0.01  # 발끝(ball)도 — 발 방향 검사가 LeftToes 를 쓴다
+                    weights[v.index] = ws
+            _new_part(arm, f'{arm.name}_kitbash_robe', bm, weights, p.get('color', '#3c4a5c'), 0.85)
+            if p.get('hide_legs'):
+                # 떠 있는 유령은 옷자락 속에 다리가 없다 — 옷자락은 허벅지를 70% 까지만 따라가서, 서기·걷기에 다리가 벌어지면
+                # 허벅지가 뚫고 나왔다(09-25 광선 측정 서기 29%·걷기 38%). 옷자락 크기를 잰 뒤에 지운다(단면이 다리를 품어야 한다)
+                leg = _groups_of(skin, ('thigh_l', 'thigh_r', 'calf_l', 'calf_r', 'foot_l', 'foot_r', 'ball_l', 'ball_r'))
+                zc = pel.z - 0.03
+                kill = [v.index for v in skin.data.vertices
+                        if sum(g.weight for g in v.groups if g.group in leg) >= 0.5 and (skin.matrix_world @ v.co).z < zc]
+                sbm = bmesh.new()
+                sbm.from_mesh(skin.data)
+                sbm.verts.ensure_lookup_table()
+                bmesh.ops.delete(sbm, geom=[sbm.verts[i] for i in kill], context='VERTS')
+                sbm.to_mesh(skin.data)
+                sbm.free()
+                skin.data.update()
+                print('KITBASH robe hide_legs: 살 정점', len(kill), '지움')
         else:
             sys.exit(f'kitbash: 모르는 부품 {kind_}')
 
