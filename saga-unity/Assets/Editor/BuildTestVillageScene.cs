@@ -382,6 +382,23 @@ namespace Saga.EditorTools
                 if (go != null) extras.Add(go);
             }
             SetPrivateField(bodies, "extraBodies", extras.ToArray());
+            // PLAN.md 109-7 — 인물 105 몸 열일곱(`GoHeroLooks.Bodies`)·꾸밈 열셋(Poly Haven, `GoHeroLooks.AllGear`).
+            var lookNames = new List<string>();
+            foreach (var b in Saga.Go.Data.GoHeroLooks.Bodies) lookNames.Add(b.Name);
+            SetPrivateField(bodies, "lookBodyNames", lookNames.ToArray());
+            SetPrivateField(bodies, "lookBodies", LoadNpcPrefabs(lookNames));
+            var gearNames = new List<string>();
+            var gearModels = new List<GameObject>();
+            foreach (var g in Saga.Go.Data.GoHeroLooks.AllGear)
+            {
+                string id = Saga.Go.Data.GoHeroLooks.GearAsset(g);
+                var m = AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Art/Props/PolyHaven/{id}/{id}_1k.gltf");
+                if (m == null) Debug.LogWarning($"[BuildTestVillageScene] 인물 꾸밈 {id} 없음(tools/fetch_polyhaven_models.py)");
+                gearNames.Add(g.ToString());
+                gearModels.Add(m);
+            }
+            SetPrivateField(bodies, "gearNames", gearNames.ToArray());
+            SetPrivateField(bodies, "gearModels", gearModels.ToArray());
             SetPrivateField(bodies, "bodyController", AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(MariaControllerPath));
         }
 

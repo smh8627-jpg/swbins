@@ -105,8 +105,7 @@ namespace Saga.Go.Combat
                 inst.transform.localPosition = Vector3.zero;
                 inst.transform.localRotation = Quaternion.identity;
                 foreach (var col in inst.GetComponentsInChildren<Collider>()) Destroy(col);
-                float h = Height(inst);
-                if (h > 0.01f) inst.transform.localScale *= CharacterVisual.HumanHeight / h;
+                _bodies.Dress(inst, hero.Id, CharacterVisual.HumanHeight); // 109-7 키·체격·꾸밈(동행이 됐을 때와 같은 겉모습)
                 var anim = inst.GetComponentInChildren<Animator>();
                 if (anim != null && anim.isHuman && _bodies.BodyController != null) anim.runtimeAnimatorController = _bodies.BodyController;
                 CharacterVisual.EnsureBlobShadow(root.transform);
@@ -132,15 +131,6 @@ namespace Saga.Go.Combat
         {
             if (_bodies == null && FieldCombat.Instance != null) _bodies = FieldCombat.Instance.GetComponent<PartyBodies>();
             return _bodies;
-        }
-
-        private static float Height(GameObject go)
-        {
-            var rs = go.GetComponentsInChildren<Renderer>();
-            if (rs.Length == 0) return 0f;
-            var b = rs[0].bounds;
-            foreach (var r in rs) b.Encapsulate(r.bounds);
-            return b.size.y;
         }
 
         private void Update()
@@ -185,7 +175,7 @@ namespace Saga.Go.Combat
             if (slot.Idle != null) Destroy(slot.Idle);
             slot.Idle = null;
             var prefab = Bodies() != null ? _bodies.PrefabFor(hero.Id) : null;
-            slot.Fighter = FieldEnemy.SpawnHero(hero, pos, prefab, _bodies != null ? _bodies.BodyController : null, transform);
+            slot.Fighter = FieldEnemy.SpawnHero(hero, pos, prefab, _bodies != null ? _bodies.BodyController : null, transform, _bodies);
             slot.Fighter.transform.rotation = rot;
             slot.Fighter.Challenge();
             HeroDexState.MarkSeen(hero.Id); // 109-6b 도감 — 겨뤄 본 사람은 그림자에서 벗어난다

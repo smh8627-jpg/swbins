@@ -122,6 +122,7 @@ namespace Saga.Go.Combat
         private GoHeroes.Hero _hero;
         private GoElement _outerElement, _innerElement;
         private RuntimeAnimatorController _controllerOverride;
+        private Saga.Go.Player.PartyBodies _dresser; // 109-7 — 인물 겉모습(키·체격·꾸밈)을 입힐 곳
         private Vector3 _strikePoint;
         private bool Ranged => IsHero && _hero.Trait == HeroTrait.Wisdom;
         private bool Quick => IsHero && _hero.Trait == HeroTrait.Virtue;
@@ -187,7 +188,8 @@ namespace Saga.Go.Combat
         }
 
         /// <summary>109-6 — 들판 인물 하나를 겨루기 상대로 세운다(몸은 동행이 됐을 때와 같은 몸, 컨트롤러는 Maria 것 리타깃).</summary>
-        public static FieldEnemy SpawnHero(GoHeroes.Hero hero, Vector3 home, GameObject model, RuntimeAnimatorController controller, Transform parent)
+        public static FieldEnemy SpawnHero(GoHeroes.Hero hero, Vector3 home, GameObject model, RuntimeAnimatorController controller, Transform parent,
+            Saga.Go.Player.PartyBodies dresser = null)
         {
             var go = new GameObject($"FieldHero_{hero.Id}");
             go.transform.SetParent(parent, false);
@@ -198,6 +200,7 @@ namespace Saga.Go.Combat
             e.HeroId = hero.Id;
             e.HeroRarity = hero.Rarity;
             e._controllerOverride = controller;
+            e._dresser = dresser;
             e.GroupId = "hero_" + hero.Id;
             e.Home = home;
             e._spawnHome = home;
@@ -303,6 +306,7 @@ namespace Saga.Go.Combat
                 if (_animator != null) _animator.applyRootMotion = false;
                 if (IsHero)
                 {
+                    if (_dresser != null) _dresser.Dress(inst, HeroId, BodyHeight * HeightFactor()); // 109-7 선 인물·동행과 같은 겉모습
                     foreach (var col in inst.GetComponentsInChildren<Collider>()) Destroy(col); // 동행 몸 프리팹 — 제 충돌은 뺀다(PartyBodies 와 같은 결)
                     if (_animator != null && _animator.isHuman && _controllerOverride != null) _animator.runtimeAnimatorController = _controllerOverride;
                 }

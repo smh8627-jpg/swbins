@@ -20,6 +20,9 @@ IDS = [
     # PLAN.md 109-1b 세 시대 — 현대 조각(땅) · 미래 "시간 틈 잔해"(청록 재질로 떠서 돈다)
     "barrel_03", "old_tyre", "utility_box_01", "covered_car", "concrete_road_barrier_02",
     "vintage_spacecraft_instrument", "security_camera_02", "portable_searchlight", "power_box_01", "portable_generator",
+    # PLAN.md 109-7 인물 105 몸 배정 — 몸에 다는 꾸밈(등·허리·머리). 인물마다 실루엣이 갈리게.
+    "antique_katana_01", "antique_estoc", "wooden_handle_saber", "ornate_medieval_dagger", "ornate_medieval_mace",
+    "ornate_war_hammer", "wooden_axe", "hatchet", "fishermans_hat", "round_spectacles", "seadogs_compass", "brass_diya_lantern",
 ]
 RES = "1k"
 HERE = os.path.dirname(os.path.abspath(__file__))

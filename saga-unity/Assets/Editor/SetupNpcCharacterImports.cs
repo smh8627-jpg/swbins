@@ -109,7 +109,29 @@ namespace Saga.EditorTools
             new Spec { Name = "Sophie", Idle = "Idle", Walk = "Walking" },
             new Spec { Name = "Uriel", Idle = "Idle", Walk = "Walking" },
             new Spec { Name = "Jennifer", Idle = "Idle", Walk = "Walking" },
+            // PLAN.md 109-7 GO 인물 105 몸 배정(2026-09-25 Mixamo, README 레시피 표) — 역사풍 몸 여덟: 여 Kachujin G Rosales·Arissa·
+            // Eve By J.Gonzales / 남 Dreyar By M.Aure·Castle Guard 02·Heraklios By A. Dizon·Brady·Joe(근대 인물 양복).
+            // 대기만 받는다 — 인물 몸은 동행·겨루기 모두 주인공 Maria.controller 로 리타깃해 쓴다(`GoHeroLooks`).
+            new Spec { Name = "Kachujin", Idle = "Idle" },
+            new Spec { Name = "Arissa", Idle = "Idle" },
+            new Spec { Name = "Eve", Idle = "Idle" },
+            new Spec { Name = "Dreyar", Idle = "Idle" },
+            new Spec { Name = "CastleGuard02", Idle = "Idle" },
+            new Spec { Name = "Heraklios", Idle = "Idle" },
+            new Spec { Name = "Brady", Idle = "Idle" },
+            new Spec { Name = "Joe", Idle = "Idle" },
         };
+
+        private static readonly string[] HeroBodies = { "Kachujin", "Arissa", "Eve", "Dreyar", "CastleGuard02", "Heraklios", "Brady", "Joe" };
+
+        /// <summary>109-7 인물 몸 여덟만 굽는다(배치 `-executeMethod` 용).</summary>
+        public static void SetupHeroBodies()
+        {
+            var built = new List<string>();
+            foreach (var name in HeroBodies) built.Add($"{name}={SetupOne(name)}");
+            AssetDatabase.SaveAssets();
+            Debug.Log($"[SetupNpcCharacterImports] hero bodies {string.Join(" ", built)}");
+        }
 
         private static readonly string[] ForestEraBodies = { "CastleGuard", "Pelegrini", "Pete", "Sophie", "Uriel", "Jennifer" };
 
