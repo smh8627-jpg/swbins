@@ -1,0 +1,118 @@
+{
+ "id": "_cmp_real_patrol_01",
+ "_note": "단계 3 역참 사람 비교용 — saga-unity Swat Guy(Mixamo) 자리 후보(GO 현대 순찰 대원). 게임 인물 아님. 다부진 남자·짙은 남색 제복(긴소매)·검은 조끼·장갑·목 긴 장화·챙 모자.",
+ "macro": {
+  "gender": 1.0,
+  "age": 0.45,
+  "muscle": 0.7,
+  "weight": 0.55,
+  "height": 0.7,
+  "proportions": 0.8,
+  "race": {
+   "asian": 0.5,
+   "caucasian": 0.3,
+   "african": 0.2
+  }
+ },
+ "skin": "middleage_asian_male/middleage_asian_male.mhmat",
+ "eyebrows": "eyebrow005/eyebrow005.mhclo",
+ "eyes": "high-poly/high-poly.mhclo",
+ "eyelashes": "eyelashes01/eyelashes01.mhclo",
+ "teeth": "teeth_base/teeth_base.mhclo",
+ "kitbash": [
+  {
+   "part": "shell",
+   "slot": "cloth",
+   "color": "#1f2a44",
+   "rough": 0.85,
+   "offset": 0.004,
+   "thick": 0.003,
+   "groups": [
+    "pelvis",
+    "spine_0*",
+    "clavicle_*",
+    "upperarm_*",
+    "lowerarm_*",
+    "thigh_*",
+    "calf_*",
+    "neck_01"
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#111214",
+   "rough": 0.65,
+   "offset": 0.004,
+   "thick": 0.003,
+   "groups": [
+    "hand_*",
+    "index_*",
+    "middle_*",
+    "ring_*",
+    "pinky_*",
+    "thumb_*"
+   ],
+   "minw": 0.3
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#111214",
+   "rough": 0.65,
+   "offset": 0.014,
+   "thick": 0.005,
+   "groups": [
+    "foot_*",
+    "ball_*",
+    "calf_*"
+   ],
+   "z": [
+    0.0,
+    0.24
+   ],
+   "minw": 0.3
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#15171a",
+   "rough": 0.6,
+   "offset": 0.016,
+   "thick": 0.008,
+   "groups": [
+    "spine_0*",
+    "pelvis"
+   ],
+   "z": [
+    0.52,
+    0.79
+   ]
+  },
+  {
+   "part": "shell",
+   "slot": "cloth_cap",
+   "color": "#161d30",
+   "rough": 0.8,
+   "offset": 0.014,
+   "thick": 0.006,
+   "groups": [
+    "head"
+   ],
+   "z_eye": [
+    0.045,
+    0.2
+   ],
+   "minw": 0.5
+  }
+ ],
+ "anims": {
+  "idle": "Idle_Loop",
+  "walk": "Walk_Loop",
+  "run": "Jog_Fwd_Loop",
+  "interaction": "PickUp_Table",
+  "hit": "Hit_Chest",
+  "death": "Death01"
+ }
+}

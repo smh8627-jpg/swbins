@@ -9197,3 +9197,10 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - 검증: `PlaytestRealmSlice` **3연속 OK**(eras 줄 셋 같음 "강서(현대) 찾음·2달 만에 등용 · 이계 합류 3/3·월간 추첨 2장 중 퓨전 첫 등장", save/load round-trip OK).
 - **109 A(전체 퓨전) 다섯 줄 끝**. 다음 = 109-6 B 인물 105(웹 도감 → GO 등용 목록·싸워서 등용).
 - 실기 확인 전: 수색 글 두 줄이 토스트에 다 보이는지, 퓨전 카드가 너무 자주/드물게 뜨는지, 이계 무장 셋의 셈(무력·지력).
+
+## 2026-09-25 — char-forge GO 세 시대 아홉(들판 적 셋·역참 사람 여섯) + 비교 장면 짝 스물일곱 ("이어해")
+
+- 들판 적: `_cmp_real_gasmask_01`(방독면 약탈자) · `_cmp_real_copzombie_01`(떠도는 망자) · `_cmp_real_exored_01`(강철 경비병). 역참 사람: `_cmp_real_tourist_01`(여행자) · `_cmp_real_courier_f_01`(택배 기사) · `_cmp_real_patrol_01`(순찰 대원) · `_cmp_real_surveyor_01`(탐사 대원) · `_cmp_real_mechanic_01`(수리 기사) · `_cmp_real_chrononaut_f_01`(시간 여행자, 여자). 옷·모자·배낭·보안경으로 여섯이 서로 다르게.
+- `build_real.py` `shell` `facing_back`(등쪽 면만 — 배낭·짐틀). 방독면은 앞면만 고르면 코 밑·턱 아래 면이 빠져 살 388점이 비쳐 띠로 한 바퀴(26점). 이마 띠는 5.5cm(3cm 는 뒤통수가 끊긴다).
+- 검증: verify fbx ≤ 0.55°·glb 0.0° · 두 번 빌드 같은 바이트(예전 몸 그대로) · 모자 밖 머리카락 0% · 겉옷자락 뚫림 서기 6.8%·걷기 28%·달리기 71% · saga-unity 배치 `CMP_RESULT OK`(몸 쉰넷). 첫 배치는 다른 세션의 커밋 전 `PlaytestRealmEras.cs` 컴파일 오류로 멈춰, 그쪽 커밋(e7fadd45) 뒤 다시 돌렸다. 배치가 올린 `ProjectVersion`·`Packages` 는 되돌렸다.
+- 게임 몸은 그대로 — 사람 판정 전(HOW_TO_PLAYTEST §9). 남은 사람 NPC: DUNGEON·STORY·FOREST 세 시대 몸(README 상태 줄 ②).

@@ -1,0 +1,123 @@
+{
+ "id": "_cmp_real_mechanic_01",
+ "_note": "단계 3 역참 사람 비교용 — saga-unity Vanguard(Mixamo) 자리 후보(GO 미래 수리 기사). 게임 인물 아님. 땅딸막한 남자·짧은 머리·주황 작업복(온몸)·가죽 연장 띠·두꺼운 장갑·장화·이마에 걸친 보안경 띠.",
+ "macro": {
+  "gender": 1.0,
+  "age": 0.55,
+  "muscle": 0.6,
+  "weight": 0.7,
+  "height": 0.4,
+  "proportions": 0.6,
+  "race": {
+   "asian": 0.4,
+   "caucasian": 0.35,
+   "african": 0.25
+  }
+ },
+ "targets": {
+  "chin-width-incr": 0.3
+ },
+ "skin": "middleage_caucasian_male/middleage_caucasian_male.mhmat",
+ "eyebrows": "eyebrow006/eyebrow006.mhclo",
+ "hair": "short04/short04.mhclo",
+ "eyes": "high-poly/high-poly.mhclo",
+ "eyelashes": "eyelashes01/eyelashes01.mhclo",
+ "teeth": "teeth_base/teeth_base.mhclo",
+ "kitbash": [
+  {
+   "part": "shell",
+   "slot": "cloth",
+   "color": "#c8641e",
+   "rough": 0.9,
+   "offset": 0.006,
+   "thick": 0.004,
+   "groups": [
+    "pelvis",
+    "spine_0*",
+    "clavicle_*",
+    "upperarm_*",
+    "lowerarm_*",
+    "thigh_*",
+    "calf_*",
+    "neck_01"
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#4a3a28",
+   "rough": 0.65,
+   "offset": 0.008,
+   "thick": 0.003,
+   "groups": [
+    "hand_*",
+    "index_*",
+    "middle_*",
+    "ring_*",
+    "pinky_*",
+    "thumb_*"
+   ],
+   "minw": 0.3
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#2a241e",
+   "rough": 0.65,
+   "offset": 0.014,
+   "thick": 0.005,
+   "groups": [
+    "foot_*",
+    "ball_*",
+    "calf_*"
+   ],
+   "z": [
+    0.0,
+    0.16
+   ],
+   "minw": 0.3
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#5a4028",
+   "rough": 0.6,
+   "offset": 0.022,
+   "thick": 0.008,
+   "groups": [
+    "pelvis",
+    "spine_01"
+   ],
+   "z": [
+    0.5,
+    0.56
+   ],
+   "minw": 0.4
+  },
+  {
+   "part": "shell",
+   "slot": "metal_lens",
+   "color": "#2a2f33",
+   "rough": 0.2,
+   "offset": 0.02,
+   "thick": 0.006,
+   "groups": [
+    "head"
+   ],
+   "z_eye": [
+    0.035,
+    0.09
+   ],
+   "minw": 0.5
+  }
+ ],
+ "anims": {
+  "idle": "Idle_Loop",
+  "walk": "Walk_Loop",
+  "run": "Jog_Fwd_Loop",
+  "interaction": "PickUp_Table",
+  "hit": "Hit_Chest",
+  "death": "Death01"
+ }
+}

@@ -1,0 +1,166 @@
+{
+ "id": "_cmp_real_surveyor_01",
+ "_note": "단계 3 역참 사람 비교용 — saga-unity Exo Gray(Mixamo) 자리 후보(GO 미래 탐사 대원). 게임 인물 아님. 남자·흰 잿빛 몸 옷·흰 가슴판·어깨판·등 짐틀·얼굴 트인 흰 투구·청록 눈 띠.",
+ "macro": {
+  "gender": 1.0,
+  "age": 0.4,
+  "muscle": 0.55,
+  "weight": 0.45,
+  "height": 0.65,
+  "proportions": 0.85,
+  "race": {
+   "asian": 0.35,
+   "caucasian": 0.4,
+   "african": 0.25
+  }
+ },
+ "skin": "young_caucasian_male/young_caucasian_male.mhmat",
+ "eyebrows": "eyebrow002/eyebrow002.mhclo",
+ "eyes": "high-poly/high-poly.mhclo",
+ "eyelashes": "eyelashes01/eyelashes01.mhclo",
+ "teeth": "teeth_base/teeth_base.mhclo",
+ "kitbash": [
+  {
+   "part": "shell",
+   "slot": "cloth",
+   "color": "#9aa0a6",
+   "rough": 0.7,
+   "offset": 0.004,
+   "thick": 0.003,
+   "groups": [
+    "pelvis",
+    "spine_0*",
+    "clavicle_*",
+    "upperarm_*",
+    "lowerarm_*",
+    "thigh_*",
+    "calf_*",
+    "neck_01"
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#4a4e54",
+   "rough": 0.65,
+   "offset": 0.005,
+   "thick": 0.003,
+   "groups": [
+    "hand_*",
+    "index_*",
+    "middle_*",
+    "ring_*",
+    "pinky_*",
+    "thumb_*"
+   ],
+   "minw": 0.3
+  },
+  {
+   "part": "shell",
+   "slot": "metal",
+   "color": "#d8dcdf",
+   "rough": 0.65,
+   "offset": 0.014,
+   "thick": 0.005,
+   "groups": [
+    "foot_*",
+    "ball_*",
+    "calf_*"
+   ],
+   "z": [
+    0.0,
+    0.14
+   ],
+   "minw": 0.3
+  },
+  {
+   "part": "shell",
+   "slot": "metal",
+   "color": "#d8dcdf",
+   "rough": 0.3,
+   "offset": 0.016,
+   "thick": 0.006,
+   "groups": [
+    "spine_0*"
+   ],
+   "z": [
+    0.58,
+    0.8
+   ],
+   "facing": -0.1
+  },
+  {
+   "part": "shell",
+   "slot": "metal",
+   "color": "#d8dcdf",
+   "rough": 0.3,
+   "offset": 0.022,
+   "thick": 0.006,
+   "groups": [
+    "upperarm_*",
+    "clavicle_*"
+   ],
+   "z": [
+    0.75,
+    0.86
+   ],
+   "minw": 0.4
+  },
+  {
+   "part": "shell",
+   "slot": "metal",
+   "color": "#d8dcdf",
+   "rough": 0.3,
+   "offset": 0.018,
+   "thick": 0.006,
+   "groups": [
+    "head",
+    "neck_01"
+   ],
+   "open_face": true,
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "metal_visor",
+   "color": "#2fb8b0",
+   "rough": 0.15,
+   "offset": 0.026,
+   "thick": 0.004,
+   "groups": [
+    "head"
+   ],
+   "z_eye": [
+    0.035,
+    0.055
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "metal_pack",
+   "color": "#5d646b",
+   "rough": 0.4,
+   "offset": 0.055,
+   "thick": 0.012,
+   "groups": [
+    "spine_0*",
+    "clavicle_*"
+   ],
+   "z": [
+    0.6,
+    0.82
+   ],
+   "facing_back": 0.4
+  }
+ ],
+ "anims": {
+  "idle": "Idle_Loop",
+  "walk": "Walk_Loop",
+  "run": "Jog_Fwd_Loop",
+  "interaction": "PickUp_Table",
+  "hit": "Hit_Chest",
+  "death": "Death01"
+ }
+}

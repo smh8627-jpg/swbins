@@ -1,0 +1,112 @@
+{
+ "id": "_cmp_real_copzombie_01",
+ "_note": "단계 3 들판 적 비교용 — saga-unity Copzombie(Mixamo) 자리 후보(GO 현대 '떠도는 망자'). 게임 인물 아님. 꺼진 볼·잿빛 초록 피부·반소매 남색 제복 윗옷·남색 바지·검은 구두·챙 모자.",
+ "macro": {
+  "gender": 1.0,
+  "age": 0.55,
+  "muscle": 0.45,
+  "weight": 0.2,
+  "height": 0.65,
+  "proportions": 0.7,
+  "race": {
+   "asian": 0.3,
+   "caucasian": 0.5,
+   "african": 0.2
+  }
+ },
+ "targets": {
+  "cheek-volume-decr": 1.0,
+  "cheek-bones-incr": 0.5,
+  "eyebrows-trans-down": 0.3,
+  "mouth-angles-down": 0.6
+ },
+ "skin": "middleage_caucasian_male/middleage_caucasian_male.mhmat",
+ "tints": {
+  "skin": "#a9b89c"
+ },
+ "eyebrows": "eyebrow003/eyebrow003.mhclo",
+ "eyes": "high-poly/high-poly.mhclo",
+ "eyelashes": "eyelashes01/eyelashes01.mhclo",
+ "teeth": "teeth_base/teeth_base.mhclo",
+ "kitbash": [
+  {
+   "part": "shell",
+   "slot": "cloth",
+   "color": "#2a3450",
+   "rough": 0.85,
+   "offset": 0.005,
+   "thick": 0.004,
+   "groups": [
+    "spine_0*",
+    "clavicle_*",
+    "upperarm_*",
+    "pelvis"
+   ],
+   "z": [
+    0.5,
+    0.86
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "cloth_pants",
+   "color": "#222a3e",
+   "rough": 0.9,
+   "offset": 0.006,
+   "thick": 0.004,
+   "groups": [
+    "pelvis",
+    "thigh_*",
+    "calf_*"
+   ],
+   "z": [
+    0.02,
+    0.58
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#141414",
+   "rough": 0.65,
+   "offset": 0.008,
+   "thick": 0.005,
+   "groups": [
+    "foot_*",
+    "ball_*",
+    "calf_*"
+   ],
+   "z": [
+    0.0,
+    0.07
+   ],
+   "minw": 0.3
+  },
+  {
+   "part": "shell",
+   "slot": "cloth_cap",
+   "color": "#1f2638",
+   "rough": 0.8,
+   "offset": 0.014,
+   "thick": 0.006,
+   "groups": [
+    "head"
+   ],
+   "z_eye": [
+    0.045,
+    0.2
+   ],
+   "minw": 0.5
+  }
+ ],
+ "anims": {
+  "idle": "Sword_Idle",
+  "walk": "Walk_Loop",
+  "run": "Jog_Fwd_Loop",
+  "attack": "Punch_Jab",
+  "hit": "Hit_Chest",
+  "death": "Death01"
+ }
+}

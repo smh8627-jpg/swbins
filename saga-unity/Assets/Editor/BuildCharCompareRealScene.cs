@@ -157,9 +157,26 @@ namespace Saga.EditorTools
             BossPair("Demon", "_cmp_real_demon_01", 2.40f),
             BossPair("AlienSoldier", "_cmp_real_aliensoldier_01", 1.85f),
             BossPair("Morak", "_cmp_real_morak_01", 2.24f),
+            // GO 세 시대(109-1) — 들판 적 셋(다섯 상태 몸)과 역참 사람 여섯(서기·걷기만)
+            BossPair("GasMask", "_cmp_real_gasmask_01", 1.75f),
+            BossPair("Copzombie", "_cmp_real_copzombie_01", 1.75f),
+            BossPair("ExoRed", "_cmp_real_exored_01", 1.90f),
+            FolkPair("Remy", "_cmp_real_tourist_01", 1.75f),
+            FolkPair("Megan", "_cmp_real_courier_f_01", 1.65f),
+            FolkPair("SwatGuy", "_cmp_real_patrol_01", 1.80f),
+            FolkPair("ExoGray", "_cmp_real_surveyor_01", 1.78f),
+            FolkPair("Vanguard", "_cmp_real_mechanic_01", 1.70f),
+            FolkPair("Crypto", "_cmp_real_chrononaut_f_01", 1.72f),
         };
 
-        /// <summary>두목 몸 짝 — 지금 몸은 다섯 상태(대기·걷기·공격·피격·쓰러짐)가 같은 이름이다.</summary>
+        /// <summary>역참·마을 사람 짝 — 지금 몸은 서기·걷기뿐이다(`FolkWalker`).</summary>
+        private static Pair FolkPair(string key, string forgeId, float height) => new Pair
+        {
+            Key = key, NowBody = NowRoot + key + "/" + key + ".fbx", ForgeId = forgeId, Height = height,
+            NowClips = new Dictionary<string, (string, string)> { { "idle", ("Idle", "idle") }, { "walk", ("Walking", "walking") } },
+        };
+
+        /// <summary>두목·들판 적 몸 짝 — 지금 몸은 다섯 상태(대기·걷기·공격·피격·쓰러짐)가 같은 이름이다.</summary>
         private static Pair BossPair(string key, string forgeId, float height) => new Pair
         {
             Key = key, NowBody = NowRoot + key + "/" + key + ".fbx", ForgeId = forgeId, Height = height,
