@@ -39,11 +39,11 @@
   /* share = [물, 산, 숲, 마을] %, 나머지가 들. 고향은 world.js 옛 비율 그대로 */
   var BIOMES = {
     home:   { key: 'home',   name: '고향 들녘',   noun: '들녘', desc: '숲과 마을이 뒤섞인 첫 땅',     share: [14, 18, 36, 12], relief: 1.0,  color: '#9bc46f' },
-    plain:  { key: 'plain',  name: '푸른 벌판',   noun: '벌판', desc: '바람이 먼저 닿는 너른 들',     share: [8, 8, 22, 12],   relief: 0.75, color: '#c3dc6a', themes: [0, 3, 4], elites: [2], boss: 0.05 },
-    bamboo: { key: 'bamboo', name: '대숲 골짜기', noun: '대숲', desc: '하늘을 가린 짙은 숲',          share: [10, 14, 52, 10], relief: 1.15, color: '#5ea85a', themes: [1, 0, 4], elites: [0], boss: 0.04 },
-    canyon: { key: 'canyon', name: '붉은 협곡',   noun: '협곡', desc: '불도깨비가 사는 바위 골',      share: [5, 46, 12, 7],   relief: 1.9,  color: '#e0824e', themes: [1, 4, 5], elites: [0], boss: 0.09 },
-    marsh:  { key: 'marsh',  name: '안개 늪',     noun: '늪',   desc: '물두꺼비 울음이 번지는 물가',  share: [34, 4, 30, 8],   relief: 0.5,  color: '#5fb3b3', themes: [2, 5], elites: [1], boss: 0.04 },
-    ruins:  { key: 'ruins',  name: '옛 성터 고원', noun: '고원', desc: '무너진 성벽 위로 번개가 친다', share: [6, 26, 14, 20],  relief: 1.4,  color: '#b3a3dc', themes: [3, 4, 5], elites: [2], boss: 0.1 }
+    plain:  { key: 'plain',  name: '푸른 벌판',   noun: '벌판', desc: '바람이 먼저 닿는 너른 들',     share: [8, 8, 22, 12],   relief: 0.75, color: '#c3dc6a', themes: [0, 3, 4, 6], elites: [2], boss: 0.05 },
+    bamboo: { key: 'bamboo', name: '대숲 골짜기', noun: '대숲', desc: '하늘을 가린 짙은 숲',          share: [10, 14, 52, 10], relief: 1.15, color: '#5ea85a', themes: [1, 0, 4, 7], elites: [0], boss: 0.04 },
+    canyon: { key: 'canyon', name: '붉은 협곡',   noun: '협곡', desc: '불도깨비가 사는 바위 골',      share: [5, 46, 12, 7],   relief: 1.9,  color: '#e0824e', themes: [1, 4, 5, 8], elites: [0], boss: 0.09 },
+    marsh:  { key: 'marsh',  name: '안개 늪',     noun: '늪',   desc: '물두꺼비 울음이 번지는 물가',  share: [34, 4, 30, 8],   relief: 0.5,  color: '#5fb3b3', themes: [2, 5, 6], elites: [1], boss: 0.04 },
+    ruins:  { key: 'ruins',  name: '옛 성터 고원', noun: '고원', desc: '무너진 성벽 위로 번개가 친다', share: [6, 26, 14, 20],  relief: 1.4,  color: '#b3a3dc', themes: [3, 4, 5, 8], elites: [2], boss: 0.1 }
   };
 
 

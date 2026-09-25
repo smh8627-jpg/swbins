@@ -8,10 +8,13 @@
  *             멀리(900m 마다) 갈수록 등급이 오른다 — 원신의 "세계 레벨" 자리
  *   편성      동행 앞 4명. 숫자 1~4(또는 초상)로 즉시 교체, 교체 1초 쿨
  *   조작      기본 공격 3타 · 원소 스킬(7초) · 원소 폭발(기력 60) · 회피(스태미나 20)
- *   원소      화·수·뇌 셋. 인물마다 id 해시로 고정(saga-godot PLAN 106장과 같은 규칙)
- *   반응      화+수 증발(×1.5) · 화+뇌 과부하(4m 광역·밀침) · 수+뇌 감전(3초 지속)
- *   원소 방패 정예 셋: 방패 동안 체력 대신 방패만 깎인다. 같은 원소 면역·물리 ×0.4·
- *             상성(수>화·뇌>수·화>뇌) ×2.5 → 깨지면 2초 비틀거림
+ *   원소      일곱 — 화·수·뇌·풍·빙·암·초(§5 ⑲-1, saga-godot PLAN 106 ⑭). 인물마다 id 해시로 고정, 주인공은 화.
+ *             풍·암은 적에게 안 붙고 반응만 일으킨다
+ *   반응      증발·융해 ×1.5 · 과부하(4m 광역·밀침) · 감전(3초 지속) · 빙결(2.5초 멈춤 → 쇄빙 ×1.5) ·
+ *             초전도(3m + 8초 물리 ×1.4) · 확산(4m 원소 옮기기) · 결정(명단 보호막) · 개화(씨앗) ·
+ *             연소(0.5초 × 8) · 촉진(8초 뇌·초 ×1.25)
+ *   원소 방패 방패 동안 체력 대신 방패만 깎인다. 같은 원소 면역·물리 ×0.4(바위는 ×1)·
+ *             상성(수>화·뇌>수·화>뇌·암>풍·화>빙·초>암·풍>초) ×2.5 → 깨지면 2초 비틀거림
  *
  * **판정 층(`create`·`step`·`attack`·`skill`·`burst`·`dodge`·`swap`·`react`·
  * `shieldMul`·`campAt`)은 순수 함수다** — 화면·세이브를 안 만진다. 자가진단이 이것만
@@ -30,12 +33,31 @@
   var EL = {
     fire:  { key: 'fire',  name: '화', icon: '🔥', color: '#ff6a3d' },
     water: { key: 'water', name: '수', icon: '💧', color: '#3fa9f5' },
-    elec:  { key: 'elec',  name: '뇌', icon: '⚡', color: '#b57bff' }
+    elec:  { key: 'elec',  name: '뇌', icon: '⚡', color: '#b57bff' },
+    wind:  { key: 'wind',  name: '풍', icon: '🌪️', color: '#5fe0bd' },
+    ice:   { key: 'ice',   name: '빙', icon: '❄️', color: '#aeeaff' },
+    rock:  { key: 'rock',  name: '암', icon: '🪨', color: '#eeb84c' },
+    grass: { key: 'grass', name: '초', icon: '🌿', color: '#8cd938' }
   };
-  var EL_KEYS = ['fire', 'water', 'elec'];
-  /** 방패 원소 → 그것을 크게 깎는 원소 (수>화 · 뇌>수 · 화>뇌) */
-  var COUNTER = { fire: 'water', water: 'elec', elec: 'fire' };
-  var REACT_NAME = { vaporize: '증발', overload: '과부하', charged: '감전' };
+  /* ⑲-1 — 옛 셋을 앞에 그대로 둔다. 동행 원소는 id 해시 % 7 이라 옛 동행 원소가 바뀐다(세이브엔 원소가 없다) */
+  var EL_KEYS = ['fire', 'water', 'elec', 'wind', 'ice', 'rock', 'grass'];
+  var NO_AURA = { wind: 1, rock: 1 };                          // 붙지 않고 반응만
+  var SWIRLABLE = { fire: 1, water: 1, elec: 1, ice: 1 };      // 확산·결정이 받는 원소
+  /** 방패 원소 → 그것을 크게 깎는 원소 (수>화 · 뇌>수 · 화>뇌 · 암>풍 · 화>빙 · 초>암 · 풍>초) */
+  var COUNTER = { fire: 'water', water: 'elec', elec: 'fire', wind: 'rock', ice: 'fire', rock: 'grass', grass: 'wind' };
+  /** 반응 — 이름·빛깔 원소·고리 반지름(화면용). 활성·발산은 촉진 상태에서, 쇄빙은 빙결 상태에서 난다 */
+  var REACT = {
+    vaporize: { name: '증발', el: 'fire', r: 0 }, melt: { name: '융해', el: 'fire', r: 0 },
+    overload: { name: '과부하', el: 'fire', r: 4 }, charged: { name: '감전', el: 'elec', r: 3 },
+    frozen: { name: '빙결', el: 'ice', r: 0 }, superconduct: { name: '초전도', el: 'ice', r: 3 },
+    swirl: { name: '확산', el: 'wind', r: 4 }, crystallize: { name: '결정', el: 'rock', r: 0 },
+    bloom: { name: '개화', el: 'grass', r: 0 }, burning: { name: '연소', el: 'fire', r: 0 },
+    quicken: { name: '촉진', el: 'grass', r: 0 }, aggravate: { name: '활성', el: 'elec', r: 0 },
+    spread: { name: '발산', el: 'grass', r: 0 }, shatter: { name: '쇄빙', el: 'ice', r: 0 }
+  };
+  var REACT_NAME = {};
+  (function () { for (var k in REACT) { if (REACT.hasOwnProperty(k)) { REACT_NAME[k] = REACT[k].name; } } })();
+  function attaches(el) { return !!el && !NO_AURA[el]; }
 
   function on() { return K('on', 1) ? true : false; }
   function PARTY_MAX() { return 4; }
@@ -61,9 +83,20 @@
   function CHARGED_R() { return 3; }
   function CHARGED_MUL() { return K('chargedMul', 0.45); }
   function AURA_T() { return 7; }
+  /* ⑲-1 새 반응 수치 — saga-godot PLAN 106 ⑭ 칸 그대로 */
+  function MELT_MUL() { return K('meltMul', 1.5); }
+  function FROZEN_T() { return 2.5; }
+  function SHATTER_MUL() { return 1.5; }
+  function SUPER_R() { return 3; }       function SUPER_MUL() { return 0.5; }   function SUPER_T() { return 8; }   function SUPER_PHYS() { return 1.4; }
+  function SWIRL_R() { return 4; }       function SWIRL_MUL() { return 0.6; }
+  function CRYSTAL_HP() { return 0.2; }  function CRYSTAL_T() { return 15; }
+  function BLOOM_R() { return 3; }       function BLOOM_T() { return 1.5; }     function BLOOM_MUL() { return 1.5; }
+  function BURN_N() { return 8; }        function BURN_EVERY() { return 0.5; }  function BURN_MUL() { return 0.2; }
+  function QUICK_T() { return 8; }       function QUICK_MUL() { return 1.25; }
   function SHIELD_STUN() { return 2; }
   function STUN_MUL() { return 1.3; }
   function PHYS_SHIELD() { return 0.4; }
+  var PHYS_SHIELD_BY = { rock: 1.0 };      // 바위 방패는 물리로도 제대로 깎인다
   function COUNTER_MUL() { return 2.5; }
   function AGGRO_R() { return K('aggroR', 12); }
   function LEASH_R() { return K('leashR', 34); }
@@ -88,8 +121,8 @@
     return (h >>> 0) / 4294967296;
   }
 
-  /** 인물의 원소 — id 해시로 고정(바뀌지 않는다) */
-  function elementOf(id) { return EL_KEYS[Math.floor(hs(id) * 3) % 3]; }
+  /** 인물의 원소 — id 해시로 고정(바뀌지 않는다). 주인공 '_me' 는 화(saga-godot 와 같게) */
+  function elementOf(id) { return id === '_me' ? 'fire' : EL_KEYS[Math.floor(hs(id) * EL_KEYS.length) % EL_KEYS.length]; }
 
   /* ⑫ 스킬 모양 — 인물마다 다르다(원소와 다른 해시). 주인공 '나'는 옛 원형 광역 그대로.
      찌르기: 앞으로 좁고 길게 세게 · 돌진: 파고들며 길 위를 친다(짧은 무적) ·
@@ -116,19 +149,27 @@
 
   /**
    * 원소 반응 — 이미 붙어 있는 원소(aura)에 새 원소(hit)가 닿으면.
-   * 같은 원소·물리는 반응 없음(null).
+   * 같은 원소·물리·반응 없는 쌍은 null. 풍·암은 받는 원소(화·수·뇌·빙)에만 반응한다.
+   * from = 반응 전에 붙어 있던 원소(확산이 옮겨 붙인다)
    */
   function react(aura, hit) {
     if (!aura || !hit || aura === hit) { return null; }
-    var pair = [aura, hit].sort().join('+');
-    if (pair === 'fire+water') { return { kind: 'vaporize', name: REACT_NAME.vaporize }; }
-    if (pair === 'elec+fire') { return { kind: 'overload', name: REACT_NAME.overload }; }
-    return { kind: 'charged', name: REACT_NAME.charged };
+    var kind = null;
+    if (hit === 'wind') { kind = SWIRLABLE[aura] ? 'swirl' : null; }
+    else if (hit === 'rock') { kind = SWIRLABLE[aura] ? 'crystallize' : null; }
+    else {
+      kind = {
+        'fire+water': 'vaporize', 'elec+fire': 'overload', 'elec+water': 'charged',
+        'fire+ice': 'melt', 'ice+water': 'frozen', 'elec+ice': 'superconduct',
+        'grass+water': 'bloom', 'fire+grass': 'burning', 'elec+grass': 'quicken'
+      }[[aura, hit].sort().join('+')] || null;
+    }
+    return kind ? { kind: kind, name: REACT_NAME[kind], from: aura } : null;
   }
 
-  /** 원소 방패가 받는 배수 — 같은 원소 0 · 물리 0.4 · 상성 2.5 · 그 밖 1 */
+  /** 원소 방패가 받는 배수 — 같은 원소 0 · 물리 0.4(바위 1) · 상성 2.5 · 그 밖 1 */
   function shieldMul(shEl, hitEl) {
-    if (!hitEl) { return PHYS_SHIELD(); }
+    if (!hitEl) { return PHYS_SHIELD_BY[shEl] || PHYS_SHIELD(); }
     if (hitEl === shEl) { return 0; }
     if (COUNTER[shEl] === hitEl) { return COUNTER_MUL(); }
     return 1;
@@ -148,6 +189,12 @@
     ember:  { name: '홍염마',     ref: 'pt_jeoktoma',     el: 'fire',  hp: 1.8, atk: 1.3, spd: 5.0, reach: 2.4, type: 'melee', wind: 0.7,  cd: 1.8, h: 1.5,  exp: 3, shield: 'fire',  sh: 1.2 },
     tortoise: { name: '물거북 장수', ref: 'pt_hyeonmu',   el: 'water', hp: 2.2, atk: 1.2, spd: 3.0, reach: 7.0, type: 'spit',  wind: 1.0,  cd: 2.4, h: 1.4,  exp: 3, shield: 'water', sh: 1.5, r: 2.2 },
     bolt:   { name: '섬영마',     ref: 'pt_jeolyeong',    el: 'elec',  hp: 1.6, atk: 1.2, spd: 7.5, reach: 2.2, type: 'melee', wind: 0.5,  cd: 1.5, h: 1.5,  exp: 3, shield: 'elec',  sh: 1.0 },
+    /* ⑲-1 새 원소 괴물 넷(saga-godot PLAN 106 ⑮) — 보통 무리지만 제 원소 방패를 얇게 두른다(light: 정예 보상 없음).
+       몸은 들판 적이 안 쓰던 도감 펫(부엉이·여우·판다·성난 뱀) */
+    hawk:   { name: '회오리매',   ref: 'pt_owl',          el: 'wind',  hp: 0.8, atk: 1.0, spd: 7.2, reach: 2.2, type: 'melee', wind: 0.5,  cd: 1.6, h: 1.1,  exp: 2, shield: 'wind',  sh: 0.5,  light: true },
+    snowfox:{ name: '눈여우',     ref: 'pt_fox',          el: 'ice',   hp: 1.0, atk: 1.0, spd: 6.4, reach: 2.0, type: 'melee', wind: 0.6,  cd: 1.7, h: 1.0,  exp: 2, shield: 'ice',   sh: 0.6,  light: true },
+    rockbear:{ name: '바위곰',    ref: 'pt_panda',        el: 'rock',  hp: 1.9, atk: 1.3, spd: 3.8, reach: 3.0, type: 'slam',  wind: 1.0,  cd: 2.5, h: 1.35, exp: 2, shield: 'rock',  sh: 0.8,  light: true, r: 3.2 },
+    vine:   { name: '덩굴뱀',     ref: 'pk_gyarados',     el: 'grass', hp: 1.0, atk: 0.9, spd: 3.6, reach: 6.0, type: 'spit',  wind: 0.9,  cd: 2.3, h: 1.0,  exp: 2, shield: 'grass', sh: 0.55, light: true, r: 1.8 },
     /* ⑱ 세 시대 적(SAGA-DESIGN §13) — 위 짐승·도깨비가 "과거", 아래가 현대·미래. 도감에 없는 종이라 ref 가 비고
        몸은 `asset3d` 의 `pet:fc_<종류>` 다(Quaternius CC0). 힘은 과거 보통 무리와 같은 결 */
     rat:    { name: '잿빛 떼쥐',   ref: null, era: 'modern', el: null,    hp: 0.7, atk: 0.8, spd: 6.2, reach: 1.8, type: 'melee', wind: 0.45, cd: 1.4, h: 0.7,  exp: 1 },
@@ -182,7 +229,7 @@
    * 인물 체력 = HP_BASE × (1.6 + 0.7×★) × 등급배수, 공격 = ATK_BASE × (0.9 + 0.12×★) × 등급배수.
    * ★4 는 제 원소 방패 한 겹, ★5 는 두 겹(제 원소 → 그 상성) — 원신 정예처럼 교체해서 깨야 한다
    */
-  var RETINUE = { fire: 'imp', water: 'toad', elec: 'raptor' };
+  var RETINUE = { fire: 'imp', water: 'toad', elec: 'raptor', wind: 'hawk', ice: 'snowfox', rock: 'rockbear', grass: 'vine' };
   function heroKind(h) { return h.trait === 'might' ? 'h_might' : (h.trait === 'wisdom' ? 'h_wisdom' : 'h_virtue'); }
   function duelCamp(h, x, y, spawnUid) {
     var r = h.rarity || 1, el = elementOf(h.id), tier = tierAt(x, y), m = tierMul(tier);
@@ -215,7 +262,11 @@
     ['toad', 'toad', 'toad'],
     ['raptor', 'raptor'],
     ['bear', 'boar', 'boar'],
-    ['imp', 'toad', 'raptor']
+    ['imp', 'toad', 'raptor'],
+    /* ⑲-1 새 원소 무리(6~8) — 바이옴 themes 가 번호로 고른다(biome.js) */
+    ['hawk', 'hawk', 'vine'],
+    ['snowfox', 'snowfox', 'vine'],
+    ['rockbear', 'rockbear']
   ];
   var ELITES = [['ember', 'imp', 'imp'], ['tortoise', 'toad', 'toad'], ['bolt', 'raptor', 'raptor']];
   /* ⑱ 시대 무리 — 땅(biome.js ZONES)의 시대가 제 몫(60%)을, 나머지 두 시대가 40%를 나눠 갖는다.
@@ -316,7 +367,8 @@
       t: 0, party: ids.map(memberOf), active: 0, swapCd: 0,
       stamina: STA_MAX(), staT: 9, iframe: 0, dash: null,
       combo: 0, comboT: 9, atkCd: 0, calmT: 99,
-      foes: {}, camps: {}, cleared: {}, uid: 0, ev: [], kills: 0, zones: []
+      foes: {}, camps: {}, cleared: {}, uid: 0, ev: [], kills: 0, zones: [],
+      guard: null                          // ⑲-1 결정 보호막 { hp, max, t } — 명단 전체가 나눠 쓴다
     };
   }
 
@@ -370,6 +422,7 @@
         shield: shieldMax, shieldMax: shieldMax, shEl: layers[0] || null, layers: layers, layer: 0,
         aura: null, auraT: 0, st: 'idle', stT: 0, cd: 0.4 + (uid % 5) * 0.2,
         wa: (uid * 2.39996) % 6.283, stun: 0, shockN: 0, shockT: 0, shockDmg: 0,
+        frozenT: 0, physT: 0, quickT: 0, burnN: 0, burnT: 0, burnDmg: 0,
         mark: null, dead: false, deadT: 0, hitT: -99, moving: false, phase: 0, calmReturn: 0
       };
       S.camps[c.key].uids.push(uid);
@@ -452,7 +505,7 @@
     if (FOES[f.kind].hero) { yieldHero(S, f); return; }
     f.hp = 0; f.dead = true; f.deadT = 0; f.mark = null;
     S.kills++;
-    push(S, { t: 'kill', uid: f.uid, kind: f.kind, tier: f.tier, x: f.x, y: f.y, camp: f.camp, boss: !!FOES[f.kind].boss, elite: !!FOES[f.kind].shield, guard: !!FOES[f.kind].guard });
+    push(S, { t: 'kill', uid: f.uid, kind: f.kind, tier: f.tier, x: f.x, y: f.y, camp: f.camp, boss: !!FOES[f.kind].boss, elite: !!FOES[f.kind].shield && !FOES[f.kind].light, guard: !!FOES[f.kind].guard });
     var cp = S.camps[f.camp];
     if (!cp) { return; }
     for (var i = 0; i < cp.uids.length; i++) {
@@ -538,16 +591,52 @@
       out.dmg = Math.round(raw * mul * sm);
       rawHit(S, f, out.dmg);
     } else {
-      var rc = react(f.aura, el);
-      if (!rc && el) { f.aura = el; f.auraT = AURA_T(); }
-      var dmg = raw * mul * (rc && rc.kind === 'vaporize' ? VAPOR_MUL() * emB : 1);
-      out.dmg = Math.round(dmg);
+      var rc = null, extra = 1;
+      if (!el && f.physT > 0) { extra *= SUPER_PHYS(); }                       // 초전도 뒤 물리
+      if (f.frozenT > 0 && (el === 'rock' || src === 'heavy')) {
+        /* 쇄빙 — 얼어 멈춘 적을 암이나 3타째 기본 공격으로 깨면 크게 들어가고 풀린다 */
+        rc = { kind: 'shatter', name: REACT_NAME.shatter }; extra *= SHATTER_MUL(); f.frozenT = 0;
+      } else if (f.quickT > 0 && (el === 'elec' || el === 'grass')) {
+        /* 촉진 상태 — 뇌는 활성, 초는 발산 ×1.25(붙은 원소는 안 건드린다) */
+        rc = { kind: el === 'elec' ? 'aggravate' : 'spread', name: REACT_NAME[el === 'elec' ? 'aggravate' : 'spread'] };
+        extra *= QUICK_MUL() * emB;
+      } else {
+        rc = react(f.aura, el);
+        if (!rc && attaches(el)) { f.aura = el; f.auraT = AURA_T(); }
+        if (rc) { f.aura = null; f.auraT = 0; }
+        if (rc && rc.kind === 'vaporize') { extra *= VAPOR_MUL() * emB; }
+        if (rc && rc.kind === 'melt') { extra *= MELT_MUL() * emB; }
+      }
+      out.dmg = Math.round(raw * mul * extra);
       f.hp -= out.dmg;
       if (rc) {
         out.react = rc.kind;
-        f.aura = null; f.auraT = 0;
         var near, i;
-        if (rc.kind === 'overload') {
+        if (rc.kind === 'frozen') {
+          f.frozenT = FROZEN_T(); f.mark = null;
+          if (f.st === 'wind') { f.st = 'chase'; f.cd = FOES[f.kind].cd; }       // 휘두르던 것도 멎는다
+        } else if (rc.kind === 'superconduct') {
+          near = foesWithin(S, f.x, f.y, SUPER_R());
+          for (i = 0; i < near.length; i++) { near[i].physT = SUPER_T(); wake(near[i]); rawHit(S, near[i], Math.round(m.atk * SUPER_MUL() * emB)); }
+        } else if (rc.kind === 'swirl') {
+          near = foesWithin(S, f.x, f.y, SWIRL_R());
+          for (i = 0; i < near.length; i++) {
+            var sg = near[i];
+            if (sg === f) { continue; }
+            wake(sg);
+            if (!sg.aura || sg.aura === rc.from) { sg.aura = rc.from; sg.auraT = AURA_T(); }
+            rawHit(S, sg, Math.round(m.atk * SWIRL_MUL() * emB));
+          }
+        } else if (rc.kind === 'crystallize') {
+          var am = active(S), gh = Math.round((am ? am.hpMax : 600) * CRYSTAL_HP());
+          S.guard = { hp: Math.max(gh, S.guard ? S.guard.hp : 0), max: gh, t: CRYSTAL_T() };
+        } else if (rc.kind === 'bloom') {
+          S.zones.push({ kind: 'seed', x: f.x, y: f.y, r: BLOOM_R(), t: BLOOM_T(), el: 'grass', dmg: Math.round(m.atk * BLOOM_MUL() * emB) });
+        } else if (rc.kind === 'burning') {
+          f.burnN = BURN_N(); f.burnT = BURN_EVERY(); f.burnDmg = Math.max(1, Math.round(m.atk * BURN_MUL() * emB));
+        } else if (rc.kind === 'quicken') {
+          f.quickT = QUICK_T();
+        } else if (rc.kind === 'overload') {
           near = foesWithin(S, f.x, f.y, OVERLOAD_R());
           var od = Math.round(m.atk * OVERLOAD_MUL() * emB);
           for (i = 0; i < near.length; i++) {
@@ -592,7 +681,7 @@
     S.combo++; S.comboT = 0;
     S.atkCd = step === 2 ? 0.55 : 0.34;
     if (!tgt) { push(S, { t: 'swing', step: step }); return { ok: true, miss: true, step: step }; }
-    var r = hitFoe(S, tgt, m, m.atk * [0.9, 1.0, 1.5][step], null, 'basic');
+    var r = hitFoe(S, tgt, m, m.atk * [0.9, 1.0, 1.5][step], null, step === 2 ? 'heavy' : 'basic');   // 3타째는 쇄빙을 낸다(⑲-1)
     m.energy = Math.min(ENERGY_MAX(), m.energy + 1.5);
     push(S, { t: 'swing', step: step, uid: tgt.uid });
     return { ok: true, step: step, hit: r };
@@ -652,6 +741,16 @@
     for (i = Z.length - 1; i >= 0; i--) {
       var z = Z[i];
       z.t -= dt; z.next -= dt;
+      if (z.kind === 'seed') {
+        /* ⑲-1 개화 씨앗 — 1.5초 뒤 둘레 3m 에서 터진다 */
+        if (z.t <= 1e-9) {
+          var sn = foesWithin(S, z.x, z.y, z.r);
+          for (k = 0; k < sn.length; k++) { wake(sn[k]); rawHit(S, sn[k], z.dmg); }
+          push(S, { t: 'zone', kind: 'seed', el: 'grass', x: z.x, y: z.y, r: z.r, n: sn.length });
+          Z.splice(i, 1);
+        }
+        continue;
+      }
       if (z.next <= 1e-9 && z.t > 1e-9) {
         var who = { atk: z.atk, em: z.em };
         if (z.kind === 'field') {
@@ -713,11 +812,31 @@
     var m = active(S);
     if (!m || m.down) { return; }
     var dmg = Math.max(1, Math.round(f.atk * (1 - m.def / (m.def + 300))));
-    m.hp -= dmg; S.calmT = 0;
-    if (f.el === 'fire') { m.burn = { n: 3, t: 1, dmg: Math.max(1, Math.round(dmg * 0.2)) }; }
+    var rockX = f.el === 'rock' ? Math.round(dmg * 0.3) : 0;   // ⑲-1 짓눌림 — 이것만으로는 안 쓰러진다
+    S.calmT = 0;
+    /* ⑲-1 결정 보호막이 먼저 막는다 — 다 막으면 원소 효과도 없다 */
+    var G = S.guard, absorbed = 0;
+    if (G && G.hp > 0) {
+      absorbed = Math.min(G.hp, dmg + rockX);
+      G.hp -= absorbed;
+      var fromBase = Math.min(dmg, absorbed);
+      dmg -= fromBase; rockX -= absorbed - fromBase;
+      if (G.hp <= 0) { S.guard = null; }
+    }
+    if (dmg <= 0 && rockX <= 0) {
+      push(S, { t: 'hurt', uid: f.uid, dmg: 0, el: f.el, id: m.id, guarded: absorbed });
+      return;
+    }
+    m.hp -= dmg;
+    if (rockX > 0 && m.hp > 0) { m.hp = Math.max(1, m.hp - rockX); }
+    var tot = dmg + rockX;
+    if (f.el === 'fire') { m.burn = { n: 3, t: 1, dmg: Math.max(1, Math.round(tot * 0.2)) }; }
     else if (f.el === 'water') { S.stamina = Math.max(0, S.stamina - 25); S.staT = 0; }
     else if (f.el === 'elec') { m.energy = Math.max(0, m.energy - 10); }
-    push(S, { t: 'hurt', uid: f.uid, dmg: dmg, el: f.el, id: m.id });
+    else if (f.el === 'wind') { m.skillCd += 2; }                                   // 휘말림
+    else if (f.el === 'ice') { S.staT = Math.min(S.staT, -2.2); }                   // 한기 — 스태미나 회복 3초 멈춤
+    else if (f.el === 'grass') { m.burn = { n: 4, t: 1, dmg: Math.max(1, Math.round(tot * 0.15)), poison: true }; }   // 중독(화상 자리)
+    push(S, { t: 'hurt', uid: f.uid, dmg: tot, el: f.el, id: m.id, guarded: absorbed });
     if (m.hp <= 0) { downMember(S, S.active); }
   }
 
@@ -741,6 +860,7 @@
       }
       S.calmT = 0;
       if (S.duel) { S.duel.wiped = true; }
+      S.guard = null;
       push(S, { t: 'wipe' });
     }
   }
@@ -767,6 +887,7 @@
       if (S.dash.t <= 1e-6) { S.dash = null; }
     }
     if (S.zones && S.zones.length) { stepZones(S, dt); }
+    if (S.guard) { S.guard.t -= dt; if (S.guard.t <= 0 || S.guard.hp <= 0) { S.guard = null; } }
     var i, m;
     for (i = 0; i < S.party.length; i++) {
       m = S.party[i];
@@ -801,11 +922,23 @@
         if (f.shockT <= 0) {
           f.shockT += 1; f.shockN--;
           var sd = rawHit(S, f, f.shockDmg);
-          push(S, { t: 'dot', uid: f.uid, x: f.x, y: f.y, dmg: sd });
+          push(S, { t: 'dot', uid: f.uid, x: f.x, y: f.y, dmg: sd, el: 'elec' });
+          if (f.dead) { continue; }
+        }
+      }
+      if (f.physT > 0) { f.physT -= dt; }
+      if (f.quickT > 0) { f.quickT -= dt; }
+      if (f.burnN > 0) {                                  // ⑲-1 연소 — 0.5초마다 여덟 번
+        f.burnT -= dt;
+        if (f.burnT <= 0) {
+          f.burnT += BURN_EVERY(); f.burnN--;
+          var bd = rawHit(S, f, f.burnDmg);
+          push(S, { t: 'dot', uid: f.uid, x: f.x, y: f.y, dmg: bd, el: 'fire' });
           if (f.dead) { continue; }
         }
       }
       if (inp.blocked) { continue; }
+      if (f.frozenT > 0) { f.frozenT -= dt; continue; }   // ⑲-1 빙결 — 꼼짝 못 한다
       if (f.stun > 0) { f.stun -= dt; continue; }
       var F = FOES[f.kind];
       var d = Math.hypot(f.x - px, f.y - py);
@@ -821,6 +954,7 @@
         moveToward(f, f.hx, f.hy, F.spd * 1.2 * dt);
         if (Math.hypot(f.x - f.hx, f.y - f.hy) < 0.6) {
           f.st = 'idle'; f.hp = f.hpMax; f.shield = f.shieldMax; f.aura = null; f.shockN = 0;
+          f.frozenT = 0; f.physT = 0; f.quickT = 0; f.burnN = 0;
           f.layer = 0; f.shEl = (f.layers && f.layers[0]) || f.shEl;
         }
       } else if (f.st === 'chase') {
@@ -996,9 +1130,11 @@
           if (e.src === 'burst') { w.shake(0.5); w.hold(90); } else if (e.react) { w.shake(0.3); w.hold(60); } else { w.shake(0.12); }
         }
       } else if (e.t === 'react') {
-        floatNum(e.x, e.y, e.name + '!', e.kind === 'vaporize' ? 'fire' : (e.kind === 'overload' ? 'fire' : 'elec'), 1.5, true);
-        ring(e.x, e.y, e.kind === 'overload' ? OVERLOAD_R() : CHARGED_R(), e.kind === 'charged' ? EL.elec.color : '#ffb347', 0.45);
-      } else if (e.t === 'dot') { floatNum(e.x, e.y, String(e.dmg), 'elec', 0.8); }
+        var RI = REACT[e.kind] || { el: 'fire', r: 2 };
+        floatNum(e.x, e.y, e.name + '!', RI.el, 1.5, true);
+        ring(e.x, e.y, RI.r || 1.8, e.kind === 'overload' ? '#ffb347' : EL[RI.el].color, 0.45);
+        if (e.kind === 'crystallize') { toast('🪨 결정 보호막 — 명단이 ' + (S.guard ? S.guard.hp : 0) + ' 만큼 막는다(15초)'); }
+      } else if (e.t === 'dot') { floatNum(e.x, e.y, String(e.dmg), e.el || 'elec', 0.8); }
       else if (e.t === 'break') {
         floatNum(e.x, e.y, e.next ? '겉 방패 깨짐! ' + EL[e.next].icon + ' 속 방패' : '방패 깨짐!', null, 1.4, true);
         if (e.next) { toast('🛡️ 속 방패 ' + EL[e.next].icon + ' — ' + EL[COUNTER[e.next]].icon + ' 원소 동행으로 바꿔라'); }
@@ -1023,11 +1159,12 @@
         ring(e.x, e.y, e.r * 0.55, '#ffffff', 0.5);
         sfx('thunder');
       } else if (e.t === 'zone') {
-        if (e.kind === 'field') { ring(e.x, e.y, e.r, EL[e.el].color, 0.4); }
+        if (e.kind === 'field' || e.kind === 'seed') { ring(e.x, e.y, e.r, EL[e.el].color, e.kind === 'seed' ? 0.7 : 0.4); }
         else { ring(e.x, e.y, 0.9, EL[e.el].color, 0.3); ring(e.tx, e.ty, e.r, EL[e.el].color, 0.3); }
       } else if (e.t === 'dodge') { if (W3()) { W3().playAnim('me', 'dodge', 300); } }
       else if (e.t === 'tell') { if (W3()) { W3().playAnim('fc' + e.uid, 'attack', 700); } }
       else if (e.t === 'strike') { if (e.r) { ring(e.x, e.y, e.r, '#ff4d4d', 0.3); } }
+      else if (e.t === 'hurt' && !e.dmg) { floatNum(pos.x, pos.y, '🪨 막음', 'rock', 1, true, true); }
       else if (e.t === 'hurt') {
         floatNum(pos.x, pos.y, '-' + e.dmg, e.el, 1, false, true);
         if (W3()) { W3().playAnim('me', 'hit', 260); W3().shake(0.25); }
@@ -1148,7 +1285,7 @@
     var key = S.party.map(function (m) { return m.id; }).join(',');
     if (key !== partyKeyPainted) {
       partyKeyPainted = key;
-      var P3 = global.DG.portrait3d, html = '';
+      var P3 = global.DG.portrait3d, html = '<div class="fc-guard"><i></i><b></b></div>';   // ⑲-1 결정 보호막 띠
       for (var i = 0; i < S.party.length; i++) {
         var m = S.party[i], h = m.id === '_me' ? null : data().find(m.id);
         var face = h && P3 && P3.img ? P3.img('hero', h, 40) : '<b>' + EL[m.el].icon + '</b>';
@@ -1163,6 +1300,14 @@
         (function (b) {
           b.addEventListener('pointerdown', function (ev) { ev.preventDefault(); ev.stopPropagation(); act('swap', +b.getAttribute('data-idx')); });
         })(mb[j]);
+      }
+    }
+    var gd = box.querySelector('.fc-guard');
+    if (gd) {
+      gd.classList.toggle('on', !!S.guard);
+      if (S.guard) {
+        gd.querySelector('i').style.width = Math.round(100 * S.guard.hp / S.guard.max) + '%';
+        gd.querySelector('b').textContent = '🪨 ' + S.guard.hp + ' · ' + Math.ceil(S.guard.t) + '초';
       }
     }
     var rows = box.querySelectorAll('.fc-mem');
@@ -1184,6 +1329,9 @@
     paintMarks();
     tickRings(dt);
     if (!show) { return; }
+    /* ⑲-1 원소가 일곱으로 늘며 동행 원소가 새로 정해졌다 — 처음 한 번만 알린다(save.field.el7) */
+    var fsv = fieldSave();
+    if (!fsv.el7) { fsv.el7 = 1; toast('✨ 원소가 일곱(화·수·뇌·풍·빙·암·초)으로 늘었다 — 동행 원소가 새로 정해졌다'); core().persist(); }
     paintParty();
     var m = active(S);
     var sk = hudEl.querySelector('.fc-skill'), bu = hudEl.querySelector('.fc-burst');
@@ -1398,7 +1546,7 @@
     EL: EL, FOES: FOES, THEMES: THEMES, ELITES: ELITES, ERA_THEMES: ERA_THEMES, ERA_ELITES: ERA_ELITES, eraOfCamp: eraOfCamp, CELL: CELL, ENERGY_MAX: ENERGY_MAX,
     SKILL_CD: SKILL_CD, SWAP_CD: SWAP_CD, DODGE_COST: DODGE_COST, VAPOR_MUL: VAPOR_MUL,
     /* 판정 층 — 화면 없이 굴린다(자가진단이 쓰는 문) */
-    elementOf: elementOf, shapeOf: shapeOf, SHAPES: SHAPES, segDist: segDist, react: react, shieldMul: shieldMul, campAt: campAt, tierAt: tierAt, guardianAt: guardianAt, COUNTER: COUNTER,
+    elementOf: elementOf, EL_KEYS: EL_KEYS, REACT: REACT, attaches: attaches, shapeOf: shapeOf, SHAPES: SHAPES, segDist: segDist, react: react, shieldMul: shieldMul, campAt: campAt, tierAt: tierAt, guardianAt: guardianAt, COUNTER: COUNTER,
     create: create, reparty: reparty, populate: populate, spawnCamp: spawnCamp, step: step, drain: drain,
     attack: attack, skill: skill, burst: burst, dodge: dodge, swap: swap, hitFoe: hitFoe,
     engaged: engaged, living: living, memberOf: memberOf,

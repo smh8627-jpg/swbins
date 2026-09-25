@@ -776,20 +776,29 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
     }
     function fcEv(S, kind) { return DG.fieldCombat.drain(S).filter(function (e) { return !kind || e.t === kind; }); }
 
-    t('들판 전투 — 원소 반응 셋(증발·과부하·감전), 같은 원소·물리는 반응 없음', function () {
-      var R = DG.fieldCombat.react;
-      return R('water', 'fire').kind === 'vaporize' && R('fire', 'water').kind === 'vaporize' &&
-        R('elec', 'fire').kind === 'overload' && R('fire', 'elec').kind === 'overload' &&
-        R('water', 'elec').kind === 'charged' && R('elec', 'water').kind === 'charged' &&
-        R('fire', 'fire') === null && R('fire', null) === null && R(null, 'fire') === null &&
-        '반응 6쌍 · 같은 원소·물리·맨몸 0';
+    t('들판 전투 ⑲-1 — 원소 반응: 열한 쌍(증발·과부하·감전·융해·빙결·초전도·확산·결정·개화·연소·촉진) · 풍·암은 받는 원소에만 · 같은 원소·물리는 없음', function () {
+      var FC = DG.fieldCombat, R = FC.react, K = function (a, b) { var r = R(a, b); return r ? r.kind : null; };
+      var want = { 'water|fire': 'vaporize', 'fire|water': 'vaporize', 'elec|fire': 'overload', 'fire|elec': 'overload',
+        'water|elec': 'charged', 'elec|water': 'charged', 'ice|fire': 'melt', 'fire|ice': 'melt', 'water|ice': 'frozen', 'ice|water': 'frozen',
+        'ice|elec': 'superconduct', 'elec|ice': 'superconduct', 'fire|wind': 'swirl', 'ice|wind': 'swirl', 'water|rock': 'crystallize',
+        'elec|rock': 'crystallize', 'water|grass': 'bloom', 'grass|water': 'bloom', 'grass|fire': 'burning', 'fire|grass': 'burning',
+        'grass|elec': 'quicken', 'elec|grass': 'quicken' };
+      var bad = Object.keys(want).filter(function (k) { var p = k.split('|'); return K(p[0], p[1]) !== want[k]; });
+      var none = [['grass', 'wind'], ['grass', 'rock'], ['wind', 'fire'], ['rock', 'fire'], ['fire', 'fire'], ['fire', null], [null, 'fire'], ['ice', 'ice']]
+        .filter(function (p) { return K(p[0], p[1]) !== null; });
+      var names = Object.keys(FC.REACT).length;
+      return bad.length === 0 && none.length === 0 && names === 14 && R('fire', 'wind').from === 'fire' &&
+        !FC.attaches('wind') && !FC.attaches('rock') && FC.attaches('ice') && FC.attaches('grass') &&
+        ('반응 ' + Object.keys(want).length + '방향 · 무반응 8 · 이름 ' + names + '(활성·발산·쇄빙 포함)');
     });
 
-    t('들판 전투 — 원소 방패: 같은 원소 면역·물리 0.4·상성 2.5(수>화·뇌>수·화>뇌)', function () {
+    t('들판 전투 — 원소 방패: 같은 원소 면역·물리 0.4(바위 1)·상성 2.5(수>화·뇌>수·화>뇌·암>풍·화>빙·초>암·풍>초)', function () {
       var M = DG.fieldCombat.shieldMul;
       return M('fire', 'fire') === 0 && M('fire', null) === 0.4 && M('fire', 'water') === 2.5 &&
         M('water', 'elec') === 2.5 && M('elec', 'fire') === 2.5 && M('fire', 'elec') === 1 &&
-        '면역·물리·상성·보통 넷';
+        M('wind', 'rock') === 2.5 && M('ice', 'fire') === 2.5 && M('rock', 'grass') === 2.5 && M('grass', 'wind') === 2.5 &&
+        M('rock', null) === 1 && M('wind', null) === 0.4 && M('ice', 'ice') === 0 && M('ice', 'water') === 1 &&
+        '면역·물리(바위 1)·상성 일곱·보통';
     });
 
     t('들판 전투 — 무리 자리는 격자 해시로 늘 같고, 시작점 60m 안엔 없다', function () {
@@ -861,6 +870,129 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       for (var i = 0; i < 21; i++) { FC.step(S, 0.1, { px: 100, py: 0, blocked: false }); }
       return r1.immune && r1.dmg === 0 && r2.dmg === 40 && sh === f.shieldMax - 40 && broke && f.stun <= 0 &&
         ('방패 ' + f.shieldMax + ' · 물리 40 · 수 2.5배로 깨짐');
+    });
+
+    t('들판 전투 ⑲-1 — 원소 배정: 일곱이 도감에 고루·주인공은 화·같은 id 는 늘 같다', function () {
+      var FC = DG.fieldCombat, cnt = {}, H = DG.data.heroes;
+      H.forEach(function (h) { var e = FC.elementOf(h.id); cnt[e] = (cnt[e] || 0) + 1; });
+      var ks = FC.EL_KEYS, min = Math.min.apply(null, ks.map(function (k) { return cnt[k] || 0; }));
+      return ks.length === 7 && min >= 5 && FC.elementOf('_me') === 'fire' && FC.memberOf('_me').el === 'fire' &&
+        FC.elementOf(H[3].id) === FC.elementOf(H[3].id) &&
+        ks.every(function (k) { return FC.EL[k] && FC.COUNTER[k] && FC.COUNTER[k] !== k && FC.EL[FC.COUNTER[k]]; }) &&
+        ('도감 ' + H.length + '명 — ' + ks.map(function (k) { return FC.EL[k].icon + (cnt[k] || 0); }).join(' '));
+    });
+
+    t('들판 전투 ⑲-1 — 빙결: 2.5초 꼼짝 못 하고, 3타째(heavy)로 치면 쇄빙 ×1.5·풀림', function () {
+      var FC = DG.fieldCombat, S = fcState(), f = fcFoe(S, 'bear', 2, 0), m = S.party[0];
+      f.aura = 'water'; f.auraT = 5;
+      FC.hitFoe(S, f, m, 10, 'ice', 'test');
+      var okFreeze = f.frozenT === 2.5 && f.aura === null && fcEv(S, 'react').some(function (e) { return e.kind === 'frozen'; });
+      f.st = 'chase'; f.cd = 0;
+      var x0 = f.x, y0 = f.y, i;
+      for (i = 0; i < 10; i++) { FC.step(S, 0.1, { px: 0, py: 0, blocked: false }); }
+      var still = f.x === x0 && f.y === y0 && fcEv(S, 'tell').length === 0 && Math.abs(f.frozenT - 1.5) < 1e-6;
+      var hp0 = f.hp, r = FC.hitFoe(S, f, m, 100, null, 'heavy');
+      return okFreeze && still && r.react === 'shatter' && r.dmg === 150 && f.hp === hp0 - 150 && f.frozenT === 0 &&
+        ('빙결 2.5초 · 1초 뒤 제자리 · 쇄빙 ' + r.dmg);
+    });
+
+    t('들판 전투 ⑲-1 — 초전도(3m ×0.5 + 8초 물리 ×1.4) · 확산(4m 옆 적에 원소를 옮기고 ×0.6, 풍·암은 안 붙음)', function () {
+      var FC = DG.fieldCombat, S = fcState(), a = fcFoe(S, 'bear', 10, 0), b = fcFoe(S, 'bear', 12, 0), m = S.party[0];
+      a.aura = 'ice'; a.auraT = 5;
+      FC.hitFoe(S, a, m, 10, 'elec', 'test');
+      var sc = Math.round(60 * 0.5 * 1.2);                                     // 36
+      var bh = b.hp, r = FC.hitFoe(S, b, m, 100, null, 'test');
+      var okSuper = b.physT === 8 && bh === b.hpMax - sc && r.dmg === 140 && a.hp === a.hpMax - 10 - sc;
+      var S2 = fcState(), c = fcFoe(S2, 'bear', 10, 0), d = fcFoe(S2, 'bear', 12.5, 0), e = fcFoe(S2, 'bear', 20, 0);
+      c.aura = 'fire'; c.auraT = 5;
+      FC.hitFoe(S2, c, S2.party[0], 10, 'wind', 'test');
+      var sw = Math.round(60 * 0.6 * 1.2);                                     // 43
+      var okSwirl = d.aura === 'fire' && d.hp === d.hpMax - sw && e.hp === e.hpMax && e.aura === null && c.aura === null && c.hp === c.hpMax - 10;
+      var S3 = fcState(), g = fcFoe(S3, 'bear', 10, 0);
+      FC.hitFoe(S3, g, S3.party[0], 10, 'wind', 'test'); FC.hitFoe(S3, g, S3.party[0], 10, 'rock', 'test');
+      return okSuper && okSwirl && g.aura === null &&
+        ('초전도 옆 ' + sc + ' → 물리 100 이 ' + r.dmg + ' · 확산 옆 ' + sw + '·불 옮겨 붙음 · 풍·암 맨몸엔 안 붙음');
+    });
+
+    t('들판 전투 ⑲-1 — 결정 보호막: 지금 인물 최대 체력 20%·15초, 피해를 먼저 막고 다 막으면 원소 효과(화상)도 없다', function () {
+      var FC = DG.fieldCombat, S = fcState(), a = fcFoe(S, 'bear', 10, 0), m = S.party[0];
+      a.aura = 'water'; a.auraT = 5;
+      FC.hitFoe(S, a, m, 10, 'rock', 'test');
+      var gmax = Math.round(m.hpMax * 0.2), okMake = !!S.guard && S.guard.hp === gmax && S.guard.t === 15;
+      var f = fcFoe(S, 'imp', 1.5, 0), got = null, i;
+      f.st = 'chase'; f.cd = 0;
+      for (i = 0; i < 60 && !got; i++) { FC.step(S, 0.05, { px: 0, py: 0, blocked: false }); fcEv(S, 'hurt').forEach(function (e) { got = e; }); }
+      var base = Math.round(f.atk * (1 - m.def / (m.def + 300)));
+      var okBlock = !!got && got.dmg === 0 && got.guarded === base && m.hp === m.hpMax && m.burn === null && S.guard.hp === gmax - base;
+      S.guard.t = 0.05; FC.step(S, 0.1, { px: 0, py: 0, blocked: true });
+      return okMake && okBlock && S.guard === null &&
+        ('보호막 ' + gmax + ' · 불도깨비 ' + base + ' 다 막음(화상 없음) · 15초 뒤 사라짐');
+    });
+
+    t('들판 전투 ⑲-1 — 개화(1.5초 뒤 3m ×1.5) · 연소(0.5초마다 ×0.2 여덟 번) · 촉진(8초 뇌 활성·초 발산 ×1.25)', function () {
+      var FC = DG.fieldCombat, i;
+      var S1 = fcState(), a = fcFoe(S1, 'bear', 10, 0), b = fcFoe(S1, 'bear', 12, 0);
+      a.aura = 'water'; a.auraT = 5;
+      FC.hitFoe(S1, a, S1.party[0], 10, 'grass', 'test');
+      var early = b.hp === b.hpMax;
+      for (i = 0; i < 16; i++) { FC.step(S1, 0.1, { px: 0, py: 0, blocked: true }); }
+      var bl = Math.round(60 * 1.5 * 1.2);                                     // 108
+      var okBloom = early && b.hp === b.hpMax - bl && a.hp === a.hpMax - 10 - bl && S1.zones.length === 0;
+      var S2 = fcState(), c = fcFoe(S2, 'bear', 10, 0), dots = 0;
+      c.aura = 'grass'; c.auraT = 5;
+      FC.hitFoe(S2, c, S2.party[0], 10, 'fire', 'test');
+      fcEv(S2);
+      for (i = 0; i < 50; i++) { FC.step(S2, 0.1, { px: 0, py: 0, blocked: true }); dots += fcEv(S2, 'dot').length; }
+      var bu = Math.round(60 * 0.2 * 1.2);                                     // 14
+      var okBurn = dots === 8 && c.hp === c.hpMax - 10 - 8 * bu;
+      var S3 = fcState(), d = fcFoe(S3, 'bear', 10, 0);
+      d.aura = 'elec'; d.auraT = 5;
+      FC.hitFoe(S3, d, S3.party[0], 10, 'grass', 'test');
+      var q1 = d.quickT === 8 && d.aura === null;
+      var r1 = FC.hitFoe(S3, d, S3.party[0], 100, 'elec', 'test'), r2 = FC.hitFoe(S3, d, S3.party[0], 100, 'grass', 'test');
+      var okQuick = q1 && r1.react === 'aggravate' && r1.dmg === 150 && r2.react === 'spread' && r2.dmg === 150 && d.aura === null;
+      return okBloom && okBurn && okQuick &&
+        ('개화 ' + bl + ' · 연소 ' + bu + '×8 · 활성·발산 100→150');
+    });
+
+    t('들판 전투 ⑲-1 — 새 원소 괴물 넷: 제 원소 방패(얇게·정예 보상 없음)·서로 다른 몸·바이옴 무리에 선다·맞으면 원소 효과', function () {
+      var FC = DG.fieldCombat, F = FC.FOES, NEW = { hawk: 'wind', snowfox: 'ice', rockbear: 'rock', vine: 'grass' }, k;
+      var refs = {}, okTable = true;
+      for (k in F) { if (F.hasOwnProperty(k) && F[k].ref && !NEW[k]) { refs[F[k].ref] = k; } }
+      for (k in NEW) {
+        var f = F[k];
+        if (!f || f.el !== NEW[k] || f.shield !== NEW[k] || !f.light || !f.ref || refs[f.ref]) { okTable = false; }
+      }
+      var th = FC.THEMES.slice(6).map(function (x) { return x.join(','); }).join('|');
+      var BM = DG.biome, seen = {}, cx, cy;
+      if (BM && BM.biomeAt) {
+        for (cy = -25; cy <= 25; cy++) { for (cx = -25; cx <= 25; cx++) {
+          var c = FC.campAt(cx, cy, null, BM.biomeAt);
+          if (c) { c.foes.forEach(function (o) { if (NEW[o.kind]) { seen[o.kind] = (seen[o.kind] || 0) + 1; } }); }
+        } }
+      }
+      var okCamp = Object.keys(NEW).every(function (x) { return seen[x] > 0; });
+      /* 쓰러뜨려도 정예가 아니다 */
+      var S = fcState(), h = fcFoe(S, 'hawk', 30, 0);
+      FC.hitFoe(S, h, S.party[0], 999999, 'rock', 'test'); FC.hitFoe(S, h, S.party[0], 999999, null, 'test');
+      var kill = fcEv(S, 'kill')[0], okKill = !!kill && kill.elite === false;
+      /* 맞으면 — 풍 스킬 쿨 +2 · 빙 스태미나 회복 멈춤 · 암 짓눌림(안 쓰러짐) · 초 중독 네 번 */
+      function strike(kind, prep) {
+        var S1 = fcState(), f1 = fcFoe(S1, kind, 1.5, 0), got = null;
+        f1.st = 'chase'; f1.cd = 0;
+        if (prep) { prep(S1, f1); }
+        for (var i = 0; i < 80 && !got; i++) { FC.step(S1, 0.05, { px: 0, py: 0, blocked: false }); fcEv(S1, 'hurt').forEach(function (e) { got = e; }); }
+        return { S: S1, f: f1, e: got };
+      }
+      var w = strike('hawk'), ic = strike('snowfox'), vi = strike('vine');
+      var rb = strike('rockbear', function (S1, f1) {
+        var m = S1.party[0], base = Math.round(f1.atk * (1 - m.def / (m.def + 300)));
+        m.hp = base + 1;
+      });
+      var okHurt = !!w.e && w.S.party[0].skillCd >= 1.9 && !!ic.e && ic.S.staT < -2 && !!rb.e && rb.S.party[0].hp === 1 && !rb.S.party[0].down &&
+        !!vi.e && !!vi.S.party[0].burn && vi.S.party[0].burn.n === 4 && !!vi.S.party[0].burn.poison;
+      return okTable && th === 'hawk,hawk,vine|snowfox,snowfox,vine|rockbear,rockbear' && okCamp && okKill && okHurt &&
+        ('51×51칸 — ' + Object.keys(NEW).map(function (x) { return F[x].name + ' ' + seen[x]; }).join(' · '));
     });
 
     t('들판 전투 ⑪ — 지역 수호자: 바이옴마다 하나·방패 두 겹(겉 깨면 속 방패, 상성이 달라 교체해야)·토벌하면 안 선다', function () {

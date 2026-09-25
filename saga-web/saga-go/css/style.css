@@ -1635,6 +1635,12 @@ body.fc-on #dock, body.fc-on #near { display: none !important; }
 }
 #field-hud .fc-mem.on { opacity: 1; border-color: var(--el); box-shadow: 0 0 0 2px var(--el) inset; }
 #field-hud .fc-mem.down { filter: grayscale(1); opacity: .45; }
+/* ⑲-1 결정 보호막 — 명단 위 금빛 띠(없으면 안 보인다) */
+#field-hud .fc-guard { display: none; position: relative; width: 150px; height: 16px; border-radius: 8px; overflow: hidden;
+  background: rgba(0,0,0,.4); border: 1px solid #eeb84c; }
+#field-hud .fc-guard.on { display: block; }
+#field-hud .fc-guard i { position: absolute; left: 0; top: 0; bottom: 0; background: rgba(238,184,76,.55); }
+#field-hud .fc-guard b { position: relative; display: block; font-size: 11px; line-height: 14px; text-align: center; color: #fff4d6; }
 #field-hud .fc-face { width: 36px; height: 36px; border-radius: 50%; overflow: hidden; flex: none;
   display: grid; place-items: center; background: rgba(0,0,0,.35); box-shadow: 0 0 0 2px var(--el); }
 #field-hud .fc-face img { width: 100%; height: 100%; object-fit: cover; }
