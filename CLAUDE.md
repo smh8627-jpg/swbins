@@ -67,7 +67,7 @@
   --enable-unsafe-swiftshader --disable-gpu-sandbox`). 실기기 확인은 사용자 몫.
 - 헤드리스 크롬은 전용 `--user-data-dir` 로 띄우고 그 turn 안에 **그 PID 만** `taskkill //F //T //PID`.
   `//IM chrome.exe`(사용자 크롬)·`//IM node.exe`(다른 세션 서버) 금지.
-- 진단 씨앗은 mulberry32(20260824) 고정. 시각 의존 축은 진단에서 붙든다 — 사가고는 `weather.force('clear')`·`rogue.force(false)`, 사가의숲은 날짜 해시(`VD.weatherOf`) — 그 판 PLAN §9.
+- 진단 씨앗은 mulberry32(20260824) 고정. 시각 의존 축(날씨·떠돌이 등)은 진단에서 붙든다 — 방법은 그 판 PLAN §9.
 - 서버(`run.bat` 등)는 사용자가 실기 테스트를 요청할 때만 띄운다.
 - 큰 파일은 **Write 툴**로 쓴다. 파이썬은 `py`(`python` 은 스토어 껍데기). 치환은 바이너리(`'rb'`/`'wb'`) — 텍스트 모드는 CRLF 로 뒤집힌다.
   긴 치환은 heredoc 말고 스크래치패드 `.py` 로(셸이 따옴표·백슬래시를 깬다).
