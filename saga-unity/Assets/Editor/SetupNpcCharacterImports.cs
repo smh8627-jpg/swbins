@@ -100,7 +100,27 @@ namespace Saga.EditorTools
             // 들판 손님 — 사진 찍는 여행자 Olivia · 시간 여행자 Ely By K.Atienza(서기·걷기).
             new Spec { Name = "Olivia", Idle = "Idle", Walk = "Walking" },
             new Spec { Name = "Ely", Idle = "Idle", Walk = "Walking" },
+            // PLAN.md 109-4 FOREST 세 시대 마을 사람(2026-09-25 Mixamo, README 레시피 표) — 과거 길 잃은 성 파수병 Castle Guard 01(Pirate By P. Konstantinov 는 의족이라 LeftFoot 이 없어 휴머노이드 실패)·
+            // 붉은 두건 순례 기사 Knight D Pelegrini / 현대 택배 기사 Pete·사진작가 Sophie / 미래 금빛 외골격 시간 여행자 Uriel A Plotexia·
+            // 불시착 탐사원 Jennifer. 서기·걷기(`ForestEraFolk` 가 Speed 로 오간다).
+            new Spec { Name = "CastleGuard", Idle = "Idle", Walk = "Walking" },
+            new Spec { Name = "Pelegrini", Idle = "Idle", Walk = "Walking" },
+            new Spec { Name = "Pete", Idle = "Idle", Walk = "Walking" },
+            new Spec { Name = "Sophie", Idle = "Idle", Walk = "Walking" },
+            new Spec { Name = "Uriel", Idle = "Idle", Walk = "Walking" },
+            new Spec { Name = "Jennifer", Idle = "Idle", Walk = "Walking" },
         };
+
+        private static readonly string[] ForestEraBodies = { "CastleGuard", "Pelegrini", "Pete", "Sophie", "Uriel", "Jennifer" };
+
+        /// <summary>109-4 FOREST 세 시대 마을 사람 몸만 굽는다(배치 `-executeMethod` 용).</summary>
+        public static void SetupForestEraBodies()
+        {
+            var built = new List<string>();
+            foreach (var name in ForestEraBodies) built.Add($"{name}={SetupOne(name)}");
+            AssetDatabase.SaveAssets();
+            Debug.Log($"[SetupNpcCharacterImports] forest era bodies {string.Join(" ", built)}");
+        }
 
         private static readonly string[] StoryEraBodies = { "Racer", "Dummy", "Warzombie", "Mremireh", "Jody", "Yaku", "Steve", "Mannequin", "Olivia", "Ely" };
 

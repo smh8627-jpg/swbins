@@ -18,6 +18,7 @@ namespace Saga.EditorTools
         public const float DenClearance = 5.5f;
         public const float ObjectClearance = 4.5f;
         public const float HouseClearance = 6f;
+        public const float OwnLandmarkClearance = 2.5f;
         public const long MaxZoneTris = 250000;
 
         private static readonly HashSet<string> Objects = new HashSet<string>
@@ -77,7 +78,8 @@ namespace Saga.EditorTools
             foreach (var mb in Object.FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
             {
                 string n = mb.GetType().Name;
-                if (Objects.Contains(n)) objects.Add((n, mb.transform.position, ObjectClearance));
+                if (n == "ForestLandmark") objects.Add((n + ((ForestLandmark)mb).ZoneIndex, mb.transform.position, ObjectClearance));
+                else if (Objects.Contains(n)) objects.Add((n, mb.transform.position, ObjectClearance));
                 else if (n == "ForestHouse") objects.Add((n, mb.transform.position, HouseClearance));
             }
             if (objects.Count < 12) Fail($"비킬 물건이 {objects.Count} 개뿐 — 이름표가 낡았나");
@@ -87,7 +89,13 @@ namespace Saga.EditorTools
                 {
                     var at = ForestZoneProps.PiecePos(c, p);
                     foreach (var d in dens) if (Flat(d - at) < DenClearance) Fail($"{c.Id} {p.Model} 이 짐승 굴에서 {Flat(d - at):F1}m");
-                    foreach (var (n, pos, r) in objects) if (Flat(pos - at) < r) Fail($"{c.Id} {p.Model} 이 {n} 에서 {Flat(pos - at):F1}m");
+                    // 109-4 명소 곁 무더기는 제 명소 둘레에 선다 — 그 명소만 비킴 대신 땅 조각 2.5m(명소 몸 반지름)·잔해는 위에 뜬다.
+                    string own = c.AtLandmark ? "ForestLandmark" + ForestZoneProps.ZoneIndex(c.ZoneKey) : null;
+                    foreach (var (n, pos, r) in objects)
+                    {
+                        float need = n == own ? (p.Era == ForestEra.Future ? 0f : OwnLandmarkClearance) : r;
+                        if (Flat(pos - at) < need) Fail($"{c.Id} {p.Model} 이 {n} 에서 {Flat(pos - at):F1}m");
+                    }
                     if (player != null && Flat(player.transform.position - at) < 5f) Fail($"{c.Id} {p.Model} 이 플레이어 스폰 곁");
                 }
         }

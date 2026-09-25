@@ -9162,3 +9162,18 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - `build_real.py` `shell`: 뼈 무리 살 면을 법선 쪽으로 띄운 두께 판(천·가죽·쇠 칸), 살과 같은 뼈 무게. 투구·두건은 `open_face`. 땅 아래 금지(장화 밑창 -1.7cm 바로잡음). 안 보이는 면 덜기(덮인 살·가장자리 세 줄 너머 안쪽 겹·바깥 판 밑 안쪽 껍데기) — 무사 6.9만 → 4.5만 삼각형, 화질 그대로.
 - `_cmp_real_paladin_01`(Paladin 자리) · `_cmp_real_mage_f_01`(PeasantGirl 자리, 치마는 robe weights skin) · `_cmp_real_archer_f_01`(Archer 자리). 비교 빌더: `metal` 금속감·`leather` 광택, 짝 셋 추가.
 - 검증: verify fbx ≤ 0.54°·glb 0.0° · 두 번 빌드 같은 바이트(예전 몸도 그대로) · 치마 뚫림 서기 0.2%·걷기 6%·달리기 34% · saga-unity 배치 `CMP_RESULT OK`(몸 스물넷). 게임 몸은 그대로 — 판정 전. 지금 Archer 는 활·화살 메시가 붙어 있고 공방 유격은 맨손.
+
+## 2026-09-25 FOREST — PLAN 109-4 세 시대 존 소품·마을 사람 (웹 사가의숲 §5.13·SAGA-DESIGN §13 재해석)
+
+"사가 유니티 이어 하자" → 109 표 4번 줄.
+
+- **구조 대조**: 웹은 손님 열(과거 2·현대 3·미래 2·신화 3)이 날짜 해시로 하루 한 명·부탁·단골(§5.9·5.10·5.13). 이 트랙 FOREST 엔 손님 틀이 없고 그건 109 C 줄 12 몫 → 여기선 마을에 늘 서 있는 세 시대 사람 여섯 + 존 소품·명소에 시대 조각만.
+- **소품** `Data/ForestZoneProps.cs`: 조각에 `Era`·`Pitch`, 무더기에 `AtLandmark`(가운데 = 명소 자리). 무더기 여덟에 현대(타이어·방호벽·드럼통 둘·덮개 씌운 차 0.8배)·미래(감시 눈·발전기), 존마다 명소 곁 무더기 — 암림 배전함+제단 위 중계함 2.0m, 암야 타이어+선돌 곁 탐조등 2.2m, 균림 배전함+돌고리 위 계기 1.6m, 화원 타이어+돌기둥 위 감시 눈 2.9m. 42 중 16(38%), 존 원본 삼각형 최대 227k(상한 250k). 모델은 DUNGEON 109-2b 와 같은 Poly Haven 스캔.
+  - `ForestZonePropsBuilder`: 미래 조각을 URP Lit 청록 발광(GO·DUNGEON 과 같은 빛깔)으로, Body 에 `ForestRiftSpin`(세로축 9°/s, 시각의 순수 함수). 휨 내림은 그대로 Visual 이.
+  - `PlaytestForestZoneProps`: 명소 곁 무더기는 제 명소만 비킴 4.5m → 땅 조각 2.5m·잔해 0.
+- **사람** `Data/ForestEras.cs`·`World/ForestEraFolk.cs`: 길 잃은 성 파수병 Castle Guard 01·붉은 두건 순례 기사 Knight D Pelegrini / 택배 기사 달음 Pete(택배 창구 곁)·사진작가 찰나 Sophie / 금빛 외골격 시간 여행자 Uriel A Plotexia(소원석 곁)·불시착 탐사원 루미 Jennifer. 36초 중 3초 걸어 3.5m·위상 흩음, 곁 2.5m 에 오면 대사 넷 돌림(쿨다운 4초), 땅 휨만큼 Visual 내림. 대사는 존 소품(선돌 탐조등·돌고리 계기·덮개 차)을 가리킨다. ko/en 33키.
+- **몸 받기**: Mixamo 헤드리스(로그인 살아 있음). 카드 35장을 썸네일로 모아 보고 골랐다. **`Pirate By P. Konstantinov` 는 의족이라 `LeftFoot` 이 없어 휴머노이드 실패** → Castle Guard 01 로 바꿈(역할도 난파 선원 → 성 파수병).
+- **진단** `PlaytestForestEras`(존 소품 진단 뒤): 표(여섯·시대 둘씩·몸 다름·옛 몸과 안 겹침·대사 넷)·길(존 밖·물건 3m·집 5m·스폰 4m·소품 3m·서로 2.5m)·몸 리깅·키·오가기(자리·Speed)·대사 돌림·휨 / 소품 존마다 현대·미래·명소 곁·30~50%·잔해 돎·발광·충돌 없음·돌아도 밑면 그대로.
+- 검증: 몸 굽기 6/6 · 씬 재빌드 exit 0 · `PlaytestForestHeadless` **3연속 OK**(eras 줄 셋 같음 "몸 6/6(디스크 6) · 소품 42(현대 10·미래 6, 38 %)·잔해 돎 6") · `PlaytestForestCreatures` OK(models 8/8).
+- 다음 = 109-5 REALM 세 시대.
+- 실기 확인 전: 잔해 크기·청록 세기·뜬 높이, 덮개 차 크기, 마을 사람 발 미끄럼·키·대사 겹침(숲지기와 가까우면 두 줄이 번갈아).

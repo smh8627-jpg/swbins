@@ -10,6 +10,7 @@ namespace Saga.Forest.World
     /// → "Body"(밑면을 땅에 맞춘 높이) → LOD0 원본 · LOD1 가벼운 메시(LODGroup 은 Visual 에).
     /// 조각이 매 프레임 움직이므로 정적 표시를 하지 않는다(정적 배칭이 휨을 막는다).
     /// 편집기 빌드가 모델을 `Init()` 으로 채우고 한 번 구워 씬에 저장한다(GO `RegionPropsBuilder` 와 같은 결, 코드는 이 판 것).
+    /// PLAN.md 109-4 — 미래 조각(시간 틈 잔해)은 원본 텍스처를 쓴 URP Lit 청록 발광 재질로 바꾸고 "Body" 를 `ForestRiftSpin` 으로 돌린다.
     /// </summary>
     public class ForestZonePropsBuilder : MonoBehaviour
     {
@@ -23,6 +24,7 @@ namespace Saga.Forest.World
         public const float CullScreenHeight = 0.004f;
 
         private Transform _player;
+        private readonly Dictionary<Material, Material> _rift = new Dictionary<Material, Material>();
 
         public IReadOnlyList<Transform> Visuals => visuals;
 
@@ -72,9 +74,14 @@ namespace Saga.Forest.World
                     if (piece == null) continue;
                     piece.position = ForestZoneProps.PiecePos(c, p);
                     var body = piece.Find("Visual/Body");
-                    body.localRotation = Quaternion.Euler(0f, p.Yaw, 0f);
+                    body.localRotation = Quaternion.Euler(p.Pitch, p.Yaw, 0f);
                     if (TryLowest(body.gameObject, out float low))
                         body.position += Vector3.up * (piece.position.y + p.Y - low);
+                    if (p.Era == ForestEra.Future)
+                    {
+                        Rift(body.gameObject);
+                        body.gameObject.AddComponent<ForestRiftSpin>().Init(body.localRotation, i * 47f + c.Id.Length * 31f);
+                    }
                     if (p.Collide) AddBoxCollider(piece, body.Find("LOD0"));
                     visuals.Add(piece.Find("Visual"));
                 }
@@ -130,6 +137,39 @@ namespace Saga.Forest.World
             });
             group.RecalculateBounds();
             return piece;
+        }
+
+        /// <summary>DUNGEON `EraDecorBuilder.Rift` 와 같은 식 — glTFast 재질 텍스처를 URP Lit 칸으로 옮기고 청록 발광.</summary>
+        private void Rift(GameObject go)
+        {
+            var lit = Shader.Find("Universal Render Pipeline/Lit");
+            if (lit == null) return;
+            foreach (var r in go.GetComponentsInChildren<MeshRenderer>(true))
+            {
+                var mats = r.sharedMaterials;
+                for (int i = 0; i < mats.Length; i++)
+                {
+                    var m = mats[i];
+                    if (m == null) continue;
+                    if (!_rift.TryGetValue(m, out var glow))
+                    {
+                        glow = new Material(lit) { name = m.name + "_rift" };
+                        Texture baseTex = m.HasProperty("baseColorTexture") ? m.GetTexture("baseColorTexture") : m.HasProperty("_BaseMap") ? m.GetTexture("_BaseMap") : null;
+                        Texture normal = m.HasProperty("normalTexture") ? m.GetTexture("normalTexture") : m.HasProperty("_BumpMap") ? m.GetTexture("_BumpMap") : null;
+                        if (baseTex != null) { glow.SetTexture("_BaseMap", baseTex); glow.SetTexture("_EmissionMap", baseTex); }
+                        if (normal != null) { glow.SetTexture("_BumpMap", normal); glow.EnableKeyword("_NORMALMAP"); }
+                        glow.SetColor("_BaseColor", ForestEras.RiftTint);
+                        glow.SetFloat("_Metallic", 0.8f);
+                        glow.SetFloat("_Smoothness", 0.6f);
+                        glow.EnableKeyword("_EMISSION");
+                        glow.SetColor("_EmissionColor", ForestEras.RiftGlow);
+                        glow.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
+                        _rift[m] = glow;
+                    }
+                    mats[i] = glow;
+                }
+                r.sharedMaterials = mats;
+            }
         }
 
         private static GameObject Part(GameObject src, string part, string id)

@@ -81,6 +81,7 @@ namespace Saga.EditorTools
             var groundGo = BuildGround();
             BuildFruitTree();
             BuildVillager();
+            BuildEraFolk();
             var houseGo = BuildHouse();
             BuildHomeFurniture(houseGo);
             BuildFinishStall();
@@ -213,6 +214,25 @@ namespace Saga.EditorTools
             SetPrivateField(villager, "modelPrefab", _villagerGlb);
             // PLAN.md 106-4 FOREST 몫 — 숲지기 사실 모델(없으면 null → Kenney). 굽기: Saga/Setup NPC Character Imports.
             SetPrivateField(villager, "rigPrefab", AssetDatabase.LoadAssetAtPath<GameObject>(SetupNpcCharacterImports.PrefabPath("PeasantMan")));
+        }
+
+        /// <summary>PLAN.md 109-4 — 마을 광장 둘레 시대 섞인 사람 여섯(`ForestEras.FolkList`). 몸이 없는 PC 는 캡슐.
+        /// 굽기: `SetupNpcCharacterImports.SetupForestEraBodies`.</summary>
+        private static void BuildEraFolk()
+        {
+            var root = new GameObject("EraFolk").transform;
+            for (int i = 0; i < ForestEras.FolkList.Length; i++)
+            {
+                var f = ForestEras.FolkList[i];
+                var go = new GameObject($"EraFolk_{f.Id}");
+                go.transform.SetParent(root, false);
+                go.transform.position = new Vector3(f.Start.x, 0f, f.Start.y);
+                var folk = go.AddComponent<ForestEraFolk>();
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(SetupNpcCharacterImports.PrefabPath(f.Body));
+                if (prefab == null) Debug.LogWarning($"[BuildTestVillageForestScene] 시대 사람 몸 없음: {f.Body} — 캡슐로 대신");
+                folk.Init(i, prefab);
+                folk.BuildVisual();
+            }
         }
 
         private static GameObject BuildHouse()
