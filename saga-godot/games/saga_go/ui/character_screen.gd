@@ -16,6 +16,7 @@ const Story := preload("res://games/saga_go/data/story.gd")
 const Weapons := preload("res://games/saga_go/data/weapons.gd")
 const Artifacts := preload("res://games/saga_go/data/artifacts.gd")
 const Kits := preload("res://games/saga_go/data/kits.gd")
+const Toast := preload("res://saga_core/ui/toast.gd")
 
 var is_open := false
 var selected := "self"
@@ -48,6 +49,7 @@ var _con_button: Button = null
 var _party_btn: Button = null # 106장 ㉛·㉝ 편성 넣기·빼기
 var _party_up_btn: Button = null # 106장 ㉝ 명단 앞 자리로
 var _party_label: Label = null # 106장 ㉝ 지금 들판 명단 한 줄
+var _preset_btns: Array = [] # 106장 ㊱ 편성 1~4 단추
 var _frozen_before := false
 
 func _ready() -> void:
@@ -150,6 +152,17 @@ func _build() -> void:
 	_exp_bar.show_percentage = false
 	mid.add_child(_exp_bar)
 	_asc_label = _label(mid, 16)
+	var srow := HBoxContainer.new()
+	srow.add_theme_constant_override("separation", 6)
+	mid.add_child(srow)
+	for k in PartyState.PRESET_COUNT:
+		var sb := Button.new()
+		sb.custom_minimum_size = Vector2(0, 36)
+		sb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var kk: int = k
+		sb.pressed.connect(func() -> void: use_preset(kk))
+		srow.add_child(sb)
+		_preset_btns.append(sb)
 	_party_label = _label(mid, 16)
 	var prow := HBoxContainer.new()
 	prow.add_theme_constant_override("separation", 8)
@@ -163,7 +176,7 @@ func _build() -> void:
 	_party_up_btn.text = "◀ 앞 자리로"
 	_party_up_btn.custom_minimum_size = Vector2(0, 40)
 	_party_up_btn.pressed.connect(func() -> void:
-		if PartyState.move_up_in_party(selected):
+		if not _combat_blocked() and PartyState.move_up_in_party(selected):
 			CombatFeel.ui()
 			_refresh())
 	prow.add_child(_party_up_btn)
@@ -309,6 +322,11 @@ func _refresh() -> void:
 	for i in range(pl.size(), PartyState.PARTY_MAX):
 		slots.append("%d (빈자리)" % (i + 2))
 	_party_label.text = "들판 명단: " + " · ".join(slots)
+	for k in _preset_btns.size():
+		var n := PartyState.preset_party(k).size()
+		var sb: Button = _preset_btns[k]
+		sb.text = ("▶ 편성 %d" if k == PartyState.preset_i else "편성 %d") % (k + 1) + " (%d명)" % (n + 1)
+		sb.disabled = k == PartyState.preset_i
 	if id == "self":
 		_party_btn.text = "⚔ 나는 늘 첫 자리"
 	elif in_p:
@@ -483,15 +501,37 @@ func swap_weapon() -> void:
 
 ## 고른 인물을 들판 명단에 넣거나 뺀다(PartyState.put_in_party·remove_from_party).
 func toggle_party() -> void:
+	if _combat_blocked():
+		return
 	var done: bool = PartyState.remove_from_party(selected) if PartyState.in_party(selected) else PartyState.put_in_party(selected)
 	if done:
 		CombatFeel.ui()
 		_refresh()
 
 func put_in_party() -> void:
-	if PartyState.put_in_party(selected):
+	if not _combat_blocked() and PartyState.put_in_party(selected):
 		CombatFeel.ui()
 		_refresh()
+
+## 106장 ㊱ 편성 칸 k 로 — 싸우는 중이면 막는다. 지금 인물은 첫 자리(나)로 돌아간다. 바꿨으면 true.
+func use_preset(k: int) -> bool:
+	if _combat_blocked() or not PartyState.use_preset(k):
+		return false
+	var fc := get_tree().get_first_node_in_group("go_field_combat")
+	if fc:
+		fc.set("active", 0)
+	CombatFeel.ui()
+	Toast.show(self, "편성 %d — %s" % [k + 1, " · ".join(["나"] + PartyState.party().map(func(id: String) -> String: return _name(id)))], 2.0)
+	_refresh()
+	return true
+
+## 싸우는 중이면(field_combat.in_combat) 알리고 true — 원신처럼 편성을 못 바꾼다.
+func _combat_blocked() -> bool:
+	var fc := get_tree().get_first_node_in_group("go_field_combat")
+	if fc and fc.call("in_combat"):
+		Toast.show(self, "싸우는 중에는 편성을 바꿀 수 없다", 2.0)
+		return true
+	return false
 
 func select(id: String) -> void:
 	selected = id

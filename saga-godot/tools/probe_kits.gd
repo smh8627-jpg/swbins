@@ -16,6 +16,8 @@ extends Node
 ## ㉓ 편성(106장 ㉛·㉝) — 꽉 찬 명단에 넣으면 마지막 자리와 바뀜 · 빼면 자리가 비고 명단이 줄어듦 · 빈자리에 새 동료가 저절로 · 앞 자리로 · 나는 못 뺌.
 ## 106장 ㉟: ㉔ 촌장 E 부채 바람 — 앞 적만 치고 밀어냄·명단 모두 6% 회복 · Q 잔칫날 순풍 — 안에 서 있으면 1초마다 5% 회복·안의 적 풍
 ## ㉕ 사공 E 노 물결 — 길 위 적만·앞으로 밀어냄 · Q 뱃노래 — 기본 공격이 맞으면 물 노가 따라 침(1초 쉼)·상태 줄.
+## 106장 ㊱ ㉖ 편성 여러 벌 — 빈 칸으로 바꾸면 나 혼자·넣기가 그 칸에 남음·돌아오면 옛 명단·세이브 왕복·옛 세이브(칸 없음)는 지금 명단이 1번
+##   · 쫓는 적이 30m 안이면(싸우는 중) 인물 화면에서 바꾸기·넣기 막힘, 멈추면 바뀌고 지금 인물은 첫 자리.
 ## 저장은 안 한다(명단은 끝에 되돌린다).
 
 const Kits := preload("res://games/saga_go/data/kits.gd")
@@ -456,7 +458,53 @@ func _physics_process(_delta: float) -> void:
 				_check("ferryman_rain", ok, "a %.0f→%.0f push·dot=%.2f aura=%s rain=%.1f buff='%s' hit=%s cd=%.2f again=%d follow=%d" % [_v.a, _v.a1, _v.fwd, _v.aura, _fc.get("_rain_t"), _v.bt, _v.hit, _v.cd, _v.again, _v.follow])
 				_fc.set("_rain_t", 0.0)
 				_next()
-		26:
+		26: # ㉖ 편성 여러 벌
+			if _frame == 1:
+				_v = {"presets": PartyState.presets.duplicate(true), "pi": PartyState.preset_i, "size": PartyState.party_size}
+				PartyState.members.assign(["sg_zhugeliang", "kr_yisunsin", "kr_gyebaek", "story_wanderer"])
+				PartyState.party_size = 3
+				PartyState.restore_presets(null, 2) # 옛 세이브 — 칸 없음
+				var legacy: bool = PartyState.preset_i == 0 and PartyState.presets[0] == ["sg_zhugeliang", "kr_yisunsin", "kr_gyebaek"]
+				var sw1: bool = PartyState.use_preset(1)
+				var r1: Array = _fc.call("roster")
+				var put: bool = PartyState.put_in_party("story_wanderer")
+				var p1: Array = PartyState.presets[1]
+				var sw0: bool = PartyState.use_preset(0)
+				var same: bool = PartyState.use_preset(0)
+				var r0: Array = _fc.call("roster")
+				PartyState.use_preset(1)
+				var r1b: Array = _fc.call("roster")
+				var saved: Array = PartyState.presets.duplicate(true)
+				PartyState.restore_presets(saved, 1)
+				var trip: bool = PartyState.preset_i == 1 and PartyState.preset_party(0) == ["sg_zhugeliang", "kr_yisunsin", "kr_gyebaek"] and PartyState.party() == ["story_wanderer"]
+				var ok: bool = legacy and sw1 and r1 == ["self"] and put and p1 == ["story_wanderer"] and sw0 and not same \
+					and r0 == ["self", "sg_zhugeliang", "kr_yisunsin", "kr_gyebaek"] and r1b == ["self", "story_wanderer"] and trip and PartyState.members.size() == 4
+				_v.ok = ok
+				_v.detail = "legacy=%s r1=%s put=%s p1=%s r0=%s r1b=%s trip=%s" % [legacy, r1, put, p1, r0, r1b, trip]
+				## 싸우는 중 — 허수아비 a 가 나를 쫓는 셈
+				_put(_a.global_position + Vector3(0.0, 0.3, 4.0))
+			if _frame == 5:
+				var cs: Node = get_tree().get_first_node_in_group("go_character_screen")
+				_a.set("ai", FieldEnemy.AI.IDLE) # 앞 단계가 남긴 상태를 비우고 a 만 쫓게
+				_b.set("ai", FieldEnemy.AI.IDLE)
+				_v.quiet = not bool(_fc.call("in_combat"))
+				_a.set("ai", FieldEnemy.AI.CHASE)
+				_fc.set("active", 1)
+				_v.fight = bool(_fc.call("in_combat"))
+				_v.blocked = cs != null and not bool(cs.call("use_preset", 2))
+				_v.still = PartyState.preset_i == 1
+				_a.set("ai", FieldEnemy.AI.IDLE)
+				_v.calm = not bool(_fc.call("in_combat"))
+				_v.moved = cs != null and bool(cs.call("use_preset", 2))
+				_v.active = int(_fc.get("active"))
+				var ok: bool = bool(_v.ok) and bool(_v.quiet) and bool(_v.fight) and bool(_v.blocked) and bool(_v.still) and bool(_v.calm) and bool(_v.moved) \
+					and PartyState.preset_i == 2 and int(_v.active) == 0
+				_check("presets", ok, "%s · quiet=%s still=%s fight=%s blocked=%s calm=%s moved=%s active=%d" % [_v.detail, _v.quiet, _v.still, _v.fight, _v.blocked, _v.calm, _v.moved, _v.active])
+				PartyState.presets = _v.presets
+				PartyState.preset_i = int(_v.pi)
+				PartyState.party_size = int(_v.size)
+				_next()
+		27:
 			PartyState.members.assign(_members_before)
 			print("KIT_PROBE_DONE fails=%d" % _fails)
 			get_tree().quit()

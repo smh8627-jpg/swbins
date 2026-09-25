@@ -110,6 +110,11 @@ func session_exp_gained() -> float:
 ## party_size 기본 PARTY_MAX 라 옛 세이브·점검은 옛날과 같다(앞 셋). 세이브 "party_size" 한 칸(없으면 PARTY_MAX, 버전 그대로).
 const PARTY_MAX := 3
 var party_size := PARTY_MAX
+## 106장 ㊱ 편성 여러 벌(원신 파티 1~4) — 칸마다 나를 뺀 명단. 지금 명단(members 앞 party_size)은 늘 presets[preset_i] 와 같게 둔다
+## (_set_party 가 적어 둔다). 다른 칸으로 바꾸면 그 칸 명단을 members 앞으로. 세이브 "party_presets"·"party_preset"(없으면 지금 명단이 1번).
+const PRESET_COUNT := 4
+var presets: Array = [[], [], [], []]
+var preset_i := 0
 
 ## 나를 뺀 들판 명단.
 func party() -> Array[String]:
@@ -134,7 +139,46 @@ func _set_party(p: Array[String], first: String = "") -> void:
 			rest.append(m)
 	members.assign(p + rest)
 	party_size = p.size()
+	presets[preset_i] = p.duplicate()
 	power_changed.emit(atk, def)
+
+## 편성 칸 k 로 바꾼다 — 지금 명단은 지금 칸에 남고, k 칸 명단(없는 동료·겹침은 빼고)이 들판 명단이 된다. 바꿨으면 true.
+func use_preset(k: int) -> bool:
+	if k < 0 or k >= PRESET_COUNT or k == preset_i:
+		return false
+	presets[preset_i] = party().duplicate()
+	preset_i = k
+	var p: Array[String] = []
+	for id in presets[k]:
+		if members.has(String(id)) and not p.has(String(id)) and p.size() < PARTY_MAX:
+			p.append(String(id))
+	_set_party(p)
+	return true
+
+## 편성 칸 k 의 명단(지금 칸이면 지금 명단).
+func preset_party(k: int) -> Array[String]:
+	var out: Array[String] = []
+	if k == preset_i:
+		return party()
+	for id in presets[k]:
+		if members.has(String(id)) and not out.has(String(id)):
+			out.append(String(id))
+	return out
+
+## 세이브에서 — 칸이 없으면 지금 명단이 1번, 나머지는 빈 칸.
+func restore_presets(saved: Variant, saved_i: int) -> void:
+	presets = [[], [], [], []]
+	if typeof(saved) == TYPE_ARRAY:
+		for k in mini((saved as Array).size(), PRESET_COUNT):
+			var arr: Variant = saved[k]
+			if typeof(arr) == TYPE_ARRAY:
+				for id in arr:
+					if (presets[k] as Array).size() < PARTY_MAX:
+						(presets[k] as Array).append(String(id))
+		preset_i = clampi(saved_i, 0, PRESET_COUNT - 1)
+	else:
+		preset_i = 0
+	presets[preset_i] = party().duplicate()
 
 ## 넣기 — 빈 자리가 있으면 그 자리에, 꽉 찼으면 마지막 자리와 바꾼다. 넣었으면 true.
 func put_in_party(id: String) -> bool:

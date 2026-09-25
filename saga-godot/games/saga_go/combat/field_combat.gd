@@ -29,6 +29,7 @@ const Toast := preload("res://saga_core/ui/toast.gd")
 const Growth := preload("res://games/saga_go/data/growth.gd")
 const Weapons := preload("res://games/saga_go/data/weapons.gd")
 const Kits := preload("res://games/saga_go/data/kits.gd")
+const FieldEnemy := preload("res://games/saga_go/combat/field_enemy.gd")
 
 const COMBO_MUL := [0.35, 0.4, 0.6]
 const COMBO_SEC := [0.32, 0.32, 0.45]
@@ -363,6 +364,24 @@ func revive_all() -> void:
 	_burn_left = 0
 
 # ---------------------------------------------------------------- 입력
+
+## 106장 ㊱ 싸우는 중인가 — 쫓거나 치는 적(쉬는 적·제단만 치는 적 빼고)이 IN_COMBAT_M 안에 있으면. 원신처럼 이때는 편성을 못 바꾼다.
+const IN_COMBAT_M := 30.0
+func in_combat() -> bool:
+	if _player == null:
+		return false
+	for e in get_tree().get_nodes_in_group("field_enemy"):
+		if e.call("is_dead") or bool(e.get("asleep")):
+			continue
+		var a := int(e.get("ai"))
+		if a != FieldEnemy.AI.CHASE and a != FieldEnemy.AI.WINDUP and a != FieldEnemy.AI.LUNGE and a != FieldEnemy.AI.RECOVER:
+			continue
+		if is_instance_valid(e.get("siege")):
+			continue
+		var d: Vector3 = (e as Node3D).global_position - _player.global_position
+		if Vector2(d.x, d.z).length() <= IN_COMBAT_M:
+			return true
+	return false
 
 func _duel_open() -> bool:
 	return get_tree().get_nodes_in_group("duel_active").size() > 0
