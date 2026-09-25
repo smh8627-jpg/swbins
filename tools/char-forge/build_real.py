@@ -249,6 +249,80 @@ def _skin_weights(skin, v, top=4):
 BONE_NAMES = set()  # kitbash() 가 뼈대에서 채운다(살 정점 무리 중 뼈 이름인 것만 무게로 옮긴다)
 
 
+def _shell_faces(skin, p, height, eyes):
+    """껍데기가 덮을 살 면 번호 — 모든 정점이 `groups`(fnmatch 무늬, 무게 합 ≥ minw)이고 `z`(키 몫 [아래, 위]) 안.
+    `open_face` 면 눈 앞쪽·눈썹 아래 얼굴 창은 뺀다(투구)."""
+    import fnmatch
+    names = [g.name for g in skin.vertex_groups]
+    want = {skin.vertex_groups[n].index for n in names if any(fnmatch.fnmatch(n, pat) for pat in p['groups'])}
+    if not want:
+        sys.exit(f"kitbash shell: 무리가 없다 {p['groups']}")
+    mw = skin.matrix_world
+    zlo, zhi = [f * height for f in p.get('z', (0.0, 1.01))]
+    minw = p.get('minw', 0.5)
+    win = None
+    if p.get('open_face') and eyes is not None:
+        ev = [eyes.matrix_world @ v.co for v in eyes.data.vertices]
+        ecx = sum(v.x for v in ev) / len(ev)
+        win = (ecx, sum(v.y for v in ev) / len(ev) + 0.03, max(v.z for v in ev) + 0.028, (max(v.x for v in ev) - min(v.x for v in ev)) * 0.95)
+    ok = []
+    for v in skin.data.vertices:
+        co = mw @ v.co
+        good = sum(g.weight for g in v.groups if g.group in want) >= minw and zlo <= co.z <= zhi
+        if good and win and co.y < win[1] and co.z < win[2] and abs(co.x - win[0]) < win[3]:
+            good = False
+        ok.append(good)
+    return [f.index for f in skin.data.polygons if all(ok[i] for i in f.vertices)]
+
+
+def _shell_add(acc, skin, faces, offset, thick, rings=3):
+    """살 면 → 두께 있는 닫힌 껍데기(바깥·안 두 겹 + 가장자리 벽). 정점마다 그 살 정점의 뼈 무게.
+    땅(z=0) 아래로는 안 내려간다(장화 밑창이 법선 쪽으로 1.7cm 땅에 박혔다). 돌려주는 값 = {살 면: (바깥 면, 안 면)}."""
+    from collections import Counter
+    bm, weights = acc
+    wl = bm.verts.layers.int.get('w') or bm.verts.layers.int.new('w')
+    me, mw = skin.data, skin.matrix_world
+    rot = mw.to_3x3()
+    outer, inner = {}, {}
+    for fi in faces:
+        for vi in me.polygons[fi].vertices:
+            if vi in outer:
+                continue
+            v = me.vertices[vi]
+            co, n = mw @ v.co, (rot @ v.normal).normalized()
+            ws = _skin_weights(skin, v)
+            for d, tab in ((offset + thick, outer), (offset, inner)):
+                q = co + n * d
+                q.z = max(q.z, 0.0)
+                nv = bm.verts.new(q)
+                nv[wl] = len(weights)
+                tab[vi] = nv
+                weights.append(ws)  # 만든 순서 = 나중 정점 번호(BMVert 는 사전 키로 못 쓴다 — 해골에서 겪음)
+    edges = Counter()
+    for fi in faces:
+        pv = list(me.polygons[fi].vertices)
+        for a, b in zip(pv, pv[1:] + pv[:1]):
+            edges[(a, b)] += 1
+    rim = [(a, b) for (a, b) in edges if (b, a) not in edges]  # 가장자리(한 면만 가진 모서리)
+    # 안쪽 겹은 가장자리 틈(띄운 만큼의 좁은 틈)으로만 보인다 — 가장자리에서 rings 줄까지만 둔다. 그 너머는 닫힌 바깥 겹에
+    # 가려 안 보이는 면이라 안 만든다(장갑·장화·쇠판 삼각형 반쯤)
+    near = {v for e in rim for v in e}
+    fs = set(faces)
+    keep = set()
+    for _ in range(rings):
+        ring = {fi for fi in fs if any(v in near for v in me.polygons[fi].vertices)}
+        keep |= ring
+        near |= {v for fi in ring for v in me.polygons[fi].vertices}
+    fmap = {}
+    for fi in faces:
+        pv = list(me.polygons[fi].vertices)
+        fo = bm.faces.new([outer[i] for i in pv])
+        fmap[fi] = (fo, bm.faces.new([inner[i] for i in reversed(pv)])) if fi in keep else (fo,)
+    for a, b in rim:
+        bm.faces.new([outer[b], outer[a], inner[a], inner[b]])
+    return fmap
+
+
 def kitbash(arm, parts):
     """괴물 부품 — README §5 D(kitbash). 몸을 다 지은 뒤 실제 살 모양을 재서 자리를 잡는다. 앞 = -Y(Blender), 위 = +Z.
     horns: 머리 뼈에 붙는 굽은 원뿔 둘(`count: 1` 이면 정수리 외뿔) · tusks: 아랫입술 두 끝에서 솟는 엄니 ·
@@ -258,9 +332,23 @@ def kitbash(arm, parts):
     skin = next(o for o in arm.children if o.type == 'MESH' and o.name.endswith('_basemesh'))
     BONE_NAMES.clear()
     BONE_NAMES.update(b.name for b in arm.data.bones)
+    shells, covered, shell_log = {}, set(), []  # 칸 → (bmesh, [무게 — 정점 층 'w' 번호], 색, 거칠기) · 껍데기에 덮인 살 면 · 껍데기마다 (칸, 띄움, 두께, 살 면, 면 짝)
+    height = max((skin.matrix_world @ v.co).z for v in skin.data.vertices)
+    eyes = next((o for o in arm.children if o.type == 'MESH' and o.name.endswith('_eyes')), None)
     for p in parts:
         kind_ = p['part']
-        if kind_ == 'horns':
+        if kind_ == 'shell':
+            # 옷·갑옷 껍데기 — 살을 본떠 띄운 두께 판. 같은 칸(slot: cloth·leather·metal …)은 한 물체로 합친다
+            faces = _shell_faces(skin, p, height, eyes)
+            slot = p.get('slot', 'cloth')
+            if slot not in shells:
+                shells[slot] = (bmesh.new(), [], p.get('color', '#6b5a48'), p.get('rough', 0.8))
+            fmap = _shell_add(shells[slot][:2], skin, faces, p.get('offset', 0.005), p.get('thick', 0.004))
+            shell_log.append((slot, p.get('offset', 0.005), p.get('thick', 0.004), set(faces), fmap))
+            if p.get('hide_under', True):
+                covered.update(faces)
+            print('KITBASH shell', slot, '살 면', len(faces))
+        elif kind_ == 'horns':
             hv = _verts_world(skin, 'head')
             lo, hi = Vector([min(v[i] for v in hv) for i in range(3)]), Vector([max(v[i] for v in hv) for i in range(3)])
             size = hi - lo
@@ -507,9 +595,46 @@ def kitbash(arm, parts):
                       dark=(flags, p.get('socket', '#17120e')))
             for o in [skin] + [o for o in meshes if o is not teeth]:
                 bpy.data.objects.remove(o, do_unlink=True)
+            # 걷은 살·눈의 재질·그림이 남으면 FBX 가 쓰지도 않는 피부 그림을 싣는다(09-25) — 주인 없는 것을 비운다
+            bpy.data.orphans_purge(do_local_ids=True, do_linked_ids=True, do_recursive=True)
             print('KITBASH skeleton: 뼈 조각 정점', len(weights), '· 어두운 면', sum(flags), '· 키 비', round(s_, 3))
         else:
             sys.exit(f'kitbash: 모르는 부품 {kind_}')
+    if shell_log:
+        # 바깥 껍데기(더 멀리 띄운 판)에 덮인 안쪽 껍데기 면은 안 보이는 낭비 — 판 가장자리에서 두 줄 안쪽부터 지운다
+        # (가장자리 틈으로 들여다봐도 구멍이 안 보이게). 화질은 그대로, 삼각형만 준다
+        vf = {}
+        for f in skin.data.polygons:
+            for vi in f.vertices:
+                vf.setdefault(vi, []).append(f.index)
+        polys = skin.data.polygons
+        for slot, off, th, fs, fmap in shell_log:
+            over = set()
+            for slot2, off2, th2, fs2, _ in shell_log:
+                if off2 > off + th + 0.002:
+                    over |= fs2
+            inner = fs & over
+            for _ in range(2):
+                inner = {f for f in inner if all(g in inner for vi in polys[f].vertices for g in vf[vi])}
+            if inner:
+                gone = [x for f in inner for x in fmap[f]]
+                bmesh.ops.delete(shells[slot][0], geom=gone, context='FACES_ONLY')
+                print('KITBASH shell', slot, '덮인 안쪽 면', len(inner), '지움')
+    for slot, (bm, wv, col, rough) in shells.items():
+        wl = bm.verts.layers.int['w']
+        bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context='VERTS')
+        bm.verts.index_update()
+        _new_part(arm, f'{arm.name}_kitbash_{slot}', bm, {v.index: wv[v[wl]] for v in bm.verts}, col, rough)
+    if covered and skin.name in bpy.data.objects:
+        # 껍데기 속 살 면은 지운다(같은 뼈 무게라 뚫리진 않지만 삼각형 예산 — 투구 속 귀처럼 튀어나온 살도 여기서 빠진다)
+        sbm = bmesh.new()
+        sbm.from_mesh(skin.data)
+        sbm.faces.ensure_lookup_table()
+        bmesh.ops.delete(sbm, geom=[sbm.faces[i] for i in sorted(covered)], context='FACES_ONLY')
+        bmesh.ops.delete(sbm, geom=[v for v in sbm.verts if not v.link_faces], context='VERTS')
+        sbm.to_mesh(skin.data)
+        sbm.free()
+        print('KITBASH shell: 덮인 살 면', len(covered), '지움')
 
 
 def main():

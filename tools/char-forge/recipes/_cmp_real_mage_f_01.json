@@ -1,0 +1,22 @@
+{
+ "id": "_cmp_real_mage_f_01",
+ "_note": "단계 3 사람 비교용 — saga-unity PeasantGirl(Mixamo) 자리 후보(DUNGEON 동행 술사 106-6 겸 마을 아낙·포로). 게임 인물 아님(이름 없음). 동양 여자·땋은 머리·흰 저고리(몸통·팔 껍데기)·가슴 위에서 발목까지 쪽빛 치마(옷자락, 무게 = 가장 가까운 살)·가죽 신.",
+ "macro": {"gender": 0.0, "age": 0.42, "muscle": 0.4, "weight": 0.4, "height": 0.35, "proportions": 0.8,
+           "race": {"asian": 0.85, "caucasian": 0.1, "african": 0.05}},
+ "targets": {"eye-scale-incr": 0.2, "nose-scale-horiz-decr": 0.2},
+ "skin": "young_asian_female/young_asian_female.mhmat",
+ "eyes": "high-poly/high-poly.mhclo",
+ "eyebrows": "eyebrow001/eyebrow001.mhclo",
+ "eyelashes": "eyelashes02/eyelashes02.mhclo",
+ "teeth": "teeth_base/teeth_base.mhclo",
+ "hair": "braid01/braid01.mhclo",
+ "kitbash": [
+  {"part": "shell", "slot": "cloth", "color": "#ece5d3", "rough": 0.85, "offset": 0.004, "thick": 0.004,
+   "groups": ["spine_0*", "clavicle_*", "upperarm_*", "lowerarm_*"], "minw": 0.5},
+  {"part": "shell", "slot": "leather", "color": "#4a3526", "rough": 0.7, "offset": 0.007, "thick": 0.004,
+   "groups": ["foot_*", "ball_*"], "minw": 0.4},
+  {"part": "robe", "color": "#2f4a7a", "top": 0.12, "hem": 0.035, "flare": 0.55, "jag": 0.0, "weights": "skin"}
+ ],
+ "anims": {"idle": "Idle_Loop", "walk": "Walk_Loop", "run": "Jog_Fwd_Loop", "attack": "Spell_Simple_Shoot",
+           "hit": "Hit_Chest", "death": "Death01"}
+}

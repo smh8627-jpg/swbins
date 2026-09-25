@@ -101,6 +101,35 @@ namespace Saga.EditorTools
                     { "idle", ("Idle", "idle") }, { "walk", ("Walking", "walking") }, { "run", ("Running", "running") },
                 },
             },
+            // 동행 무사(106-6) — 공방은 살을 본뜬 껍데기(누비옷·가죽·쇠판·투구)로 입힌다
+            new Pair
+            {
+                Key = "Paladin", NowBody = NowRoot + "Paladin/Paladin.fbx", ForgeId = "_cmp_real_paladin_01", Height = 1.80f,
+                NowClips = new Dictionary<string, (string, string)>
+                {
+                    { "idle", ("Idle", "idle") }, { "walk", ("Walking", "walking") }, { "run", ("Running", "running") },
+                    { "attack", ("Attack", "attack") }, { "hit", ("HitReaction", "hitreaction") }, { "death", ("Dying", "dying") },
+                },
+            },
+            // 동행 술사(106-6, 마을 아낙·포로 겸) · STORY 유격(106-10)
+            new Pair
+            {
+                Key = "PeasantGirl", NowBody = NowRoot + "PeasantGirl/PeasantGirl.fbx", ForgeId = "_cmp_real_mage_f_01", Height = 1.65f,
+                NowClips = new Dictionary<string, (string, string)>
+                {
+                    { "idle", ("Idle", "idle") }, { "walk", ("Walking", "walking") }, { "run", ("Running", "running") },
+                    { "attack", ("Cast", "cast") },
+                },
+            },
+            new Pair
+            {
+                Key = "Archer", NowBody = NowRoot + "Archer/Archer.fbx", ForgeId = "_cmp_real_archer_f_01", Height = 1.70f,
+                NowClips = new Dictionary<string, (string, string)>
+                {
+                    { "idle", ("Idle", "idle") }, { "walk", ("Walking", "walking") }, { "run", ("Running", "running") },
+                    { "attack", ("Attack", "attack") },
+                },
+            },
             // 해골 — 공방은 뼈를 코드로 짓는다(사람 몸 비틀기가 아니다)
             new Pair
             {
@@ -357,8 +386,10 @@ namespace Saga.EditorTools
                 if (bump != null) { m.SetTexture("_BumpMap", bump); m.EnableKeyword("_NORMALMAP"); }
                 // 칸별 손질 — 이름은 build_real.py 가 표준 칸으로 붙인다(skin·eye·hair·hair_brow·hair_lash·teeth·cloth_*)
                 float smooth = src.name.StartsWith("eye") ? 0.85f : src.name.StartsWith("skin") ? 0.4f
-                    : src.name.StartsWith("hair") ? 0.3f : src.name.StartsWith("teeth") ? 0.6f : 0.2f;
+                    : src.name.StartsWith("hair") ? 0.3f : src.name.StartsWith("teeth") ? 0.6f
+                    : src.name.StartsWith("metal") ? 0.62f : src.name.StartsWith("leather") ? 0.35f : 0.2f;
                 m.SetFloat("_Smoothness", smooth);
+                m.SetFloat("_Metallic", src.name.StartsWith("metal") ? 0.85f : 0f); // 공방 껍데기 쇠판(shell slot metal)
                 if (sss != null && src.name.StartsWith("skin"))
                 {
                     // Maria 피부와 같은 FakeSSS(웜톤 역광 글로우) — 매끈함도 Maria 값(BuildMariaSkinSplit 0.35)에 맞춘다
