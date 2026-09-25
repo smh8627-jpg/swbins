@@ -133,6 +133,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/duel.js"></script>
 <script src="js/rogue-action.js"></script>
 <script src="js/field-combat.js"></script>
+<script src="js/adventure.js"></script>
 <script src="js/treasure.js"></script>
 <script src="js/rogue.js"></script>
 <script src="js/fort.js"></script>
@@ -174,6 +175,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
     var C = DG.core, W = DG.world, D = DG.data;
     var HR = DG.hero, NT = DG.net, AI = DG.ai;
     localStorage.removeItem(C.SAVE_KEY);   // 깨끗한 상태로 판정
+    if (DG.adventure) { DG.adventure._enableForTest(false); }   // ⑲-7 — 옛 항목의 금·적 체력 값이 등급 보상·세계 배율에 안 흔들리게(그 항목만 켠다)
 
     /* ── 본편 뼈대 ─────────────────────────────────────── */
 
@@ -9601,6 +9603,110 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       }
       var bad = Object.keys(r).filter(function (k) { return !r[k]; });
       return bad.length === 0 ? '★1 에 3 · 모자라면 거절 · 5 → 2 · 셋 모두 쓰임 · 멧돼지 고기 1' : ('실패 ' + bad.join(','));
+    });
+
+    /* ── ⑲-7 모험 등급·세계 등급 (`adventure.js`, PLAN §5 ⑲-7) ── */
+    function advRig(level) {
+      var s = C.save, keep = JSON.stringify({ lv: s.player.level, exp: s.player.exp, gold: s.player.gold, a: s.adventure || null,
+        gm: s.gearMat || null, tm: s.talentMat || null, hs: s.heroes || null });
+      s.player.level = level || 1; s.player.exp = 0;
+      s.adventure = { lowered: 0, paid: s.player.level };
+      DG.adventure._enableForTest(true);
+      return function () {
+        var k = JSON.parse(keep);
+        s.player.level = k.lv; s.player.exp = k.exp; s.player.gold = k.gold;
+        if (k.a) { s.adventure = k.a; } else { delete s.adventure; }
+        if (k.gm) { s.gearMat = k.gm; } else { delete s.gearMat; }
+        if (k.tm) { s.talentMat = k.tm; } else { delete s.talentMat; }
+        if (k.hs) { s.heroes = k.hs; } else { delete s.heroes; }
+        DG.adventure._enableForTest(false);
+      };
+    }
+
+    t('모험 ⑲-7 — 문턱 표: 세계 0~8 이 모험 1·3·6·9·12·15·18·21·24 · 단조 · 배율 체력·방패 +35%·공격 +22%·금 +25%·3 단계마다 단사 +1', function () {
+      var A = DG.adventure, ok = true, prev = 0, lv;
+      for (lv = 1; lv <= 40; lv++) { var w = A.naturalOf(lv); if (w < prev || w - prev > 1) { ok = false; } prev = w; }
+      var at = A.WL_AT.every(function (v, i) { return A.naturalOf(v) === i && (i === 0 || A.naturalOf(v - 1) === i - 1); });
+      var mul = Math.abs(A.hpMul(4) - 2.4) < 1e-9 && Math.abs(A.atkMul(4) - 1.88) < 1e-9 && Math.abs(A.lootMul(8) - 3) < 1e-9 &&
+        A.dustAdd(2) === 0 && A.dustAdd(3) === 1 && A.dustAdd(8) === 2 && A.hpMul(0) === 1 && A.lvAdd(0) === 0 && A.lvAdd(8) === 77;
+      return ok && at && mul && prev === 8 && A.WL_MAX === 8 && ('문턱 ' + A.WL_AT.join('·') + ' · 세계 4 = 체력 ×2.4·공격 ×1.88');
+    });
+
+    t('모험 ⑲-7 — 낮추기: 세계 0 이면 거절 · 한 단계만 · 싸우는 중 거절 · 되돌리기', function () {
+      var A = DG.adventure, FC = DG.fieldCombat, undo = advRig(1), r = {};
+      try {
+        r.zero = !A.lower().ok && A.worldLevel() === 0 && !A.restore().ok;
+        C.save.player.level = 10; A._resetForTest();
+        r.nat = A.worldLevel() === 3 && A.natural() === 3 && A.nextAt() === 12;
+        r.low = A.lower().ok && A.worldLevel() === 2 && C.save.adventure.lowered === 1 && !A.lower().ok;
+        r.back = A.restore().ok && A.worldLevel() === 3 && C.save.adventure.lowered === 0;
+        var S0 = FC.state(), fake = fcState(); fake.calmT = 0;
+        FC._setStateForTest(fake);
+        r.fight = !A.lower().ok && A.lowerCheck().why.indexOf('싸우는') >= 0 && A.worldLevel() === 3;
+        FC._setStateForTest(S0);
+        r.card = A.cardHtml().indexOf('data-act="wl-lower"') >= 0;
+      } finally { undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '0 은 거절 · 3 → 2 → 3 · 싸우는 중 거절 · 카드 단추' : ('실패 ' + bad.join(','));
+    });
+
+    t('모험 ⑲-7 — 들판 적: 새 무리 체력·방패·공격이 세계 배율 × 거리 등급 · 겨루기 인물·수호자도 · 세계가 바뀌면 비율 그대로 다시 앉힘', function () {
+      var A = DG.adventure, FC = DG.fieldCombat, BM = DG.biome, undo = advRig(1), r = {};
+      try {
+        var camp = null, ci; for (ci = 1; ci < 40 && !camp; ci++) { camp = FC.campAt(ci, 2); }
+        var S0 = fcState(); FC.spawnCamp(S0, camp);
+        var f0 = S0.foes[S0.camps[camp.key].uids[0]];
+        C.save.player.level = 12; A._resetForTest();                       // 세계 4
+        var S4 = fcState(); FC.spawnCamp(S4, camp);
+        var f4 = S4.foes[S4.camps[camp.key].uids[0]];
+        r.camp = f4.wl === 4 && f4.hpMax === Math.round(f0.hpMax * 2.4) && f4.atk === Math.round(f0.atk * 1.88) &&
+          f4.shieldMax === Math.round(f0.shieldMax * 2.4) && (f0.wl || 0) === 0;
+        var h = DG.data.heroes[5], dc = FC.duelCamp(h, 0, 0, 77), Sd = fcState(); FC.spawnCamp(Sd, dc);
+        var fh = Sd.foes[Sd.camps[dc.key].uids[0]];
+        r.duel = fh.hpMax === Math.round(dc.hero.hp * 2.4) && fh.wl === 4;
+        var cells = [], i, j;
+        for (j = -3; j <= 3; j++) { for (i = -3; i <= 3; i++) { var g = FC.guardianAt(BM.cellAt(i, j)); if (g) { cells.push(g); } } }
+        var Sg = fcState(); FC.spawnCamp(Sg, cells[0]); r.guard = !!cells.length && Sg.foes[Sg.uid].wl === 4;
+        /* 반쯤 깎인 적 — 세계 4 → 2(낮추기 아님, 판정 층만)로 비율 그대로 */
+        f4.hp = Math.round(f4.hpMax / 2);
+        C.save.player.level = 6; A._resetForTest();                        // 세계 2
+        var n = FC.rescaleWorld(S4);
+        r.rescale = n === S4.camps[camp.key].uids.length && f4.wl === 2 && Math.abs(f4.hp / f4.hpMax - 0.5) < 0.02 &&
+          Math.abs(f4.hpMax - f0.hpMax * 1.7) <= 1 && FC.rescaleWorld(S4) === 0;
+      } finally { undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '세계 4 = 체력 ×2.4·공격 ×1.88 · 인물·수호자 · 4 → 2 반 체력 그대로' : ('실패 ' + bad.join(','));
+    });
+
+    t('모험 ⑲-7 — 전리품: 적 금·무리/우두머리/수호자 금 ×(1+0.25·세계) · 단사 +세계/3 · 세계 0 은 예전과 같음', function () {
+      var A = DG.adventure, FC = DG.fieldCombat, undo = advRig(1), r = {};
+      try {
+        r.w0 = FC.killGold(3) === 9 && FC.clearLoot('boss', 2).gold === 150 && FC.clearLoot('boss', 2).dust === 3 &&
+          FC.clearLoot('guard', 4).gold === 600 && FC.clearLoot('guard', 4).dust === 8 && FC.clearLoot('camp', 1).dust === 1;
+        C.save.player.level = 18; A._resetForTest();                       // 세계 6
+        r.w6 = A.worldLevel() === 6 && FC.killGold(3) === Math.round(9 * 2.5) && FC.clearLoot('elite', 2).gold === Math.round(70 * 2.5) &&
+          FC.clearLoot('elite', 2).dust === 3 && FC.clearLoot('guard', 4).dust === 10;
+      } finally { undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '세계 6 = 금 ×2.5 · 단사 +2' : ('실패 ' + bad.join(','));
+    });
+
+    t('모험 ⑲-7 — 등급 보상: 오를 때마다 금 100×등급·강화석 2·5 배수 인연 매듭 · 한 번씩 · 옛 세이브는 지금 등급으로 앉혀 안 쏟아짐', function () {
+      var A = DG.adventure, WP = DG.weapon, TL = DG.talent, undo = advRig(4), r = {};
+      try {
+        var g0 = C.save.player.gold || 0, o0 = WP.ore(), k0 = TL.count('knot');
+        C.save.player.level = 6; var got = A.payUpTo(6);
+        r.pay = got.length === 2 && C.save.player.gold === g0 + 500 + 600 && WP.ore() === o0 + 4 && TL.count('knot') === k0 + 1 &&
+          C.save.adventure.paid === 6 && A.payUpTo(6).length === 0;
+        delete C.save.adventure; C.save.player.level = 20; A.init();
+        r.old = C.save.adventure.paid === 20 && A.payUpTo(20).length === 0 && A.rewardOf(20).knot === 1 && A.rewardOf(21).knot === 0;
+        /* 경험으로 한 단계 — 이벤트 길(levelup → onLevelUp) */
+        var g1 = C.save.player.gold; C.save.player.exp = 0;
+        C.gainExp(C.expNeed(20) + 1);
+        r.event = C.save.player.level === 21 && C.save.adventure.paid === 21 && C.save.player.gold === g1 + 2100 && A.worldLevel() === 7;
+      } finally { undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '5·6 → 금 1100·🪨 4·🪢 1 · 옛 세이브 20 안 쏟아짐 · 경험으로 21' : ('실패 ' + bad.join(','));
     });
 
     t('런타임 에러 없음', function () {

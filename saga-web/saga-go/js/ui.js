@@ -140,6 +140,9 @@
         global.DG.auto.toggle();
       } else if (act === 'auto-flag') {
         global.DG.auto.toggleFlag(b.getAttribute('data-flag'));
+      } else if (act === 'wl-lower' || act === 'wl-restore') {
+        var AD = global.DG.adventure, wr = AD ? (act === 'wl-lower' ? AD.lower() : AD.restore()) : null;
+        if (wr) { toast(wr.ok ? '🌍 세계 등급 ' + wr.wl + ' — 들판 적이 ' + (act === 'wl-lower' ? '약해졌습니다' : '되돌아왔습니다') : '🌍 ' + wr.why); }
       } else if (act === 'quest-claim') {
         var qr = global.DG.quest.claim(parseInt(b.getAttribute('data-i'), 10));
         if (qr && qr.breakthrough) { closeSheet(); }
@@ -454,6 +457,12 @@
       (M ? '<div class="p-goal" data-act="open-quest">🚩 ' + goalWeekText() + '</div>' : '');
   }
 
+  /** 윗단 등급 글 — ⑲-7 모험 등급·세계 등급(adventure.js 가 없으면 예전 "Lv.N") */
+  function advText(lv) {
+    var A = global.DG.adventure;
+    return A ? '모험 ' + lv + ' · 세계 ' + A.worldLevel() : 'Lv.' + lv;
+  }
+
   function renderTop() {
     var p = core.save.player;
     var need = core.expNeed(p.level);
@@ -465,7 +474,7 @@
     els.profile.innerHTML =
       '<div class="avatar" style="--p:' + pct + '%"><i>🧭</i></div>' +
       '<div class="p-meta">' +
-        '<div class="p-title">' + titleOf(p.featTotal) + ' · Lv.' + p.level + '</div>' +
+        '<div class="p-title">' + titleOf(p.featTotal) + ' · ' + advText(p.level) + '</div>' +
         (core.tuneCount() ? '<div class="p-tune" title="어드민에서 잡아 둔 균형 손잡이가 있습니다">🎛️ 손잡이 ' +
           core.tuneCount() + '개' + (global.DG.world.speedMul > 1 ? ' · 걸음 ×' + global.DG.world.speedMul : '') +
           '</div>' : '') +
@@ -652,7 +661,7 @@
     var Q = global.DG.quest;
     var st = Q.state();
     var list = Q.list();
-    var html = dailySection();
+    var html = (global.DG.adventure ? global.DG.adventure.cardHtml() : '') + dailySection();   // ⑲-7 모험 등급 카드
     html += '<div class="sec"><h4>인장(印章) <small class="muted">' +
       st.stamps + ' / ' + Q.STAMPS_FOR_BREAK + '</small></h4><div class="card">' +
       '<div class="bar blue"><i style="width:' +
@@ -1618,7 +1627,7 @@
   var levelupTimer = null;
   function showLevelUp(lv) {
     if (!els.levelup) { return; }
-    els.levelup.innerHTML = '<div class="lv-banner"><b>LEVEL UP</b><span>Lv.' + lv + '</span></div>';
+    els.levelup.innerHTML = '<div class="lv-banner"><b>LEVEL UP</b><span>' + (global.DG.adventure ? '모험 등급 ' : 'Lv.') + lv + '</span></div>';
     els.levelup.classList.remove('show');
     void els.levelup.offsetWidth;               // 리플로우를 강제해 연타 레벨업도 매번 다시 재생한다
     els.levelup.classList.add('show');

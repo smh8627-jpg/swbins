@@ -301,6 +301,41 @@
   function TIER_STEP() { return K('tierStep', 900); }
   function tierAt(x, y) { return 1 + Math.min(5, Math.floor(Math.hypot(x, y) / TIER_STEP())); }
   function tierMul(t) { return 1 + 0.3 * (t - 1); }
+  /* §5 ⑲-7 세계 등급(adventure.js) — 거리 등급 배율에 곱한다. 모듈이 없으면 세계 0 */
+  function ADV() { return global.DG.adventure || null; }
+  function wlNow() { var A = ADV(); return A ? A.worldLevel() : 0; }
+  function lootMul() { var A = ADV(); return A ? A.lootMul(wlNow()) : 1; }
+  function dustAdd() { var A = ADV(); return A ? A.dustAdd(wlNow()) : 0; }
+  function lvAddOf(w) { var A = ADV(); return A && w ? A.lvAdd(w) : 0; }
+  /** 전리품 — 쓰러뜨린 적 하나의 금 · 무리/수호자 토벌의 금·단사(세계 등급 배율을 탄다) */
+  function killGold(tier) { return Math.round((3 + 2 * tier) * lootMul()); }
+  function clearLoot(kind, tier) {
+    if (kind === 'guard') { return { gold: Math.round(150 * tier * lootMul()), dust: 8 + dustAdd() }; }
+    var g = 15 * tier + (kind === 'boss' ? 60 * tier : (kind === 'elite' ? 20 * tier : 0));
+    return { gold: Math.round(g * lootMul()), dust: (kind === 'boss' ? 3 : 1) + dustAdd() };
+  }
+  /** 적 하나를 세계 등급 w 로 앉힌다 — 지금 배율에서 깎인 비율 그대로(체력·방패 / 공격) */
+  function applyWorld(f, w) {
+    var A = ADV(), from = f.wl || 0;
+    if (!A || from === w) { return; }
+    var kh = A.hpMul(w) / A.hpMul(from), ka = A.atkMul(w) / A.atkMul(from);
+    f.hpMax = Math.round(f.hpMax * kh);
+    f.hp = f.dead ? f.hp : Math.max(1, Math.round(f.hp * kh));
+    f.atk = Math.round(f.atk * ka);
+    f.shieldMax = Math.round(f.shieldMax * kh);
+    f.shield = Math.round(f.shield * kh);
+    f.wl = w;
+  }
+  /** 세계 등급이 바뀌면 살아 있는 적을 다시 앉힌다(adventure.js 가 부른다 — 판 St 를 안 주면 런타임 판) */
+  function rescaleWorld(St) {
+    St = St || S;
+    if (!St) { return 0; }
+    var w = wlNow(), n = 0, k;
+    for (k in St.foes) {
+      if (Object.prototype.hasOwnProperty.call(St.foes, k) && !St.foes[k].dead && (St.foes[k].wl || 0) !== w) { applyWorld(St.foes[k], w); n++; }
+    }
+    return n;
+  }
 
   /**
    * 격자 한 칸의 무리 — 없으면 null. 순수 함수(같은 칸은 늘 같은 답).
@@ -511,6 +546,7 @@
         fh.layers = hh.layers.slice(); fh.shEl = hh.layers[0] || null; fh.shield = fh.shieldMax = hh.shield;
         fh.st = 'chase';                      // 겨루자 한 쪽이라 처음부터 깨어 있다
       }
+      applyWorld(S.foes[uid], wlNow());       // ⑲-7 세계 등급
     }
   }
 
@@ -1347,7 +1383,7 @@
         var ENC = global.DG.encounter;
         if (ENC && ENC.duelResult) { ENC.duelResult(e.result, e.spawnUid, e.heroId); }
       } else if (e.t === 'kill') {
-        var gold = 3 + 2 * e.tier, exp = Math.round(6 * e.tier * FOES[e.kind].exp);
+        var gold = killGold(e.tier), exp = Math.round(6 * e.tier * FOES[e.kind].exp);
         c.save.player.gold = (c.save.player.gold || 0) + gold;
         if (c.gainExp) { c.gainExp(Math.max(1, Math.round(exp / 2))); }
         for (var j = 0; j < S.party.length; j++) {
@@ -1367,12 +1403,12 @@
         var gs = fieldSave(), rk = e.camp.slice(2);
         gs.guards[rk] = Date.now();
         gs.clears = (gs.clears || 0) + 1;
-        var gg = 150 * e.tier;
+        var gl = clearLoot('guard', e.tier), gg = gl.gold, gd = gl.dust;
         c.save.player.gold = (c.save.player.gold || 0) + gg;
-        c.save.dust = (c.save.dust || 0) + 8;
+        c.save.dust = (c.save.dust || 0) + gd;
         if (c.gainExp) { c.gainExp(30 * e.tier); }
         var BMg = global.DG.biome, pr = rk.split('_'), rc = BMg && BMg.cellAt ? BMg.cellAt(+pr[0], +pr[1]) : null;
-        toast('🛡️ ' + (rc ? rc.name + ' ' : '') + '수호자 토벌! 금 +' + gg + ' · 단사 +8');
+        toast('🛡️ ' + (rc ? rc.name + ' ' : '') + '수호자 토벌! 금 +' + gg + ' · 단사 +' + gd);
         c.log('🛡️ 지역 수호자 토벌' + (rc ? ' — ' + rc.name : '') + ' (등급 ' + e.tier + ') — 금 +' + gg, 'battle');
         sfx('reward');
         c.emit('field:guard', { region: rk, tier: e.tier });
@@ -1381,11 +1417,11 @@
         var fs = fieldSave();
         fs.camps[e.camp] = Date.now();
         fs.clears = (fs.clears || 0) + 1;
-        var bonus = 15 * e.tier + (e.kind === 'boss' ? 60 * e.tier : (e.kind === 'elite' ? 20 * e.tier : 0));
+        var cl = clearLoot(e.kind, e.tier), bonus = cl.gold, cd = cl.dust;
         c.save.player.gold = (c.save.player.gold || 0) + bonus;
-        c.save.dust = (c.save.dust || 0) + (e.kind === 'boss' ? 3 : 1);
+        c.save.dust = (c.save.dust || 0) + cd;
         var label = e.kind === 'boss' ? '우두머리' : (e.kind === 'elite' ? '정예 무리' : '무리');
-        toast('⚔️ ' + label + ' 토벌! 금 +' + bonus + ' · 단사 +' + (e.kind === 'boss' ? 3 : 1));
+        toast('⚔️ ' + label + ' 토벌! 금 +' + bonus + ' · 단사 +' + cd);
         c.log('⚔️ 들판 ' + label + ' 토벌 (등급 ' + e.tier + ') — 금 +' + bonus, 'battle');
         sfx('reward');
         c.emit('field:clear', e);
@@ -1570,7 +1606,7 @@
       b.style.left = Math.round(p.x) + 'px';
       b.style.top = Math.round(p.y) + 'px';
       var layerTxt = f.layers && f.layers.length > 1 && f.shield > 0 ? ' 🛡️' + f.layers.slice(f.layer).map(function (x) { return EL[x].icon; }).join('') : '';
-      b.querySelector('small').textContent = (f.aura ? EL[f.aura].icon + ' ' : '') + f.name + ' Lv.' + (f.tier * 5) + layerTxt + (f.stun > 0 ? ' 💫' : '');
+      b.querySelector('small').textContent = (f.aura ? EL[f.aura].icon + ' ' : '') + f.name + ' Lv.' + (f.tier * 5 + lvAddOf(f.wl)) + layerTxt + (f.stun > 0 ? ' 💫' : '');
       b.querySelector('.fc-bhp i').style.width = Math.round(100 * f.hp / f.hpMax) + '%';
       var sh = b.querySelector('.fc-bsh');
       sh.style.display = f.shieldMax ? '' : 'none';
@@ -1744,11 +1780,12 @@
     elementOf: elementOf, EL_KEYS: EL_KEYS, heavy: heavy, plunge: plunge, plungeMul: plungeMul, plungeLand: plungeLand, PLUNGE_R: PLUNGE_R(), CHARGE_COST: CHARGE_COST(), REACT: REACT, attaches: attaches, shapeOf: shapeOf, SHAPES: SHAPES, segDist: segDist, react: react, shieldMul: shieldMul, campAt: campAt, tierAt: tierAt, guardianAt: guardianAt, COUNTER: COUNTER,
     create: create, reparty: reparty, populate: populate, spawnCamp: spawnCamp, step: step, drain: drain,
     attack: attack, skill: skill, burst: burst, dodge: dodge, swap: swap, hitFoe: hitFoe,
-    engaged: engaged, living: living, memberOf: memberOf,
+    engaged: engaged, living: living, memberOf: memberOf, applyWorld: applyWorld, rescaleWorld: rescaleWorld, killGold: killGold, clearLoot: clearLoot,
     duelCamp: duelCamp, canChallenge: canChallenge, challenge: challenge, duelSpawn: duelSpawn,
     /* 런타임 */
     init: init, tick: tick, act: act, live: live, leadId: leadId,
     state: function () { return S; },
+    _setStateForTest: function (st) { S = st; },
     _resetForTest: function () { S = null; partyKey = ''; popAcc = 9; }
   };
 })(window);
