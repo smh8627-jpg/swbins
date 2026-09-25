@@ -32,7 +32,24 @@ namespace Saga.Realm.Data
             ["puyang"] = new[] { "kr_yisunsin" },
         };
 
+        /// <summary>PLAN.md 109-5 — 시간 틈 사람 아홉(적국 성에 묻힘)·이계 무장 셋(퓨전 사연 둘째 단에서만 합류)을 명부에 합친다.
+        /// 옛 세이브엔 없던 사람이라 불러오면 재야 그대로다(웹 `mergeRoster` 와 같은 결 — 세이브 버전 안 올림).</summary>
+        static RealmOfficerPool()
+        {
+            foreach (var t in RealmEras.TimeOfficers)
+            {
+                Catalog[t.Id] = new RealmOfficer(t.Id, t.NameKo, t.Might, t.Wisdom, t.Command, t.Rarity, t.Era);
+                if (!HiddenByCity.TryGetValue(t.CityId, out var ids)) ids = new string[0];
+                var list = new List<string>(ids) { t.Id };
+                HiddenByCity[t.CityId] = list.ToArray();
+            }
+            foreach (var g in RealmEras.Gateways)
+                Catalog[g.OfficerId] = new RealmOfficer(g.OfficerId, g.OfficerNameKo, g.Might, g.Wisdom, g.Command, g.Rarity, RealmEra.Otherworld);
+        }
+
         public static RealmOfficer Get(string id) => Catalog.TryGetValue(id, out var o) ? o : null;
+
+        public static IEnumerable<string> AllIds => Catalog.Keys;
 
         public static string[] HiddenAt(string cityId) => HiddenByCity.TryGetValue(cityId, out var ids) ? ids : System.Array.Empty<string>();
     }

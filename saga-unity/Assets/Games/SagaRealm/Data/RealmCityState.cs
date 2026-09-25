@@ -326,7 +326,8 @@ namespace Saga.Realm.Data
             int reach = Mathf.Clamp(Mathf.RoundToInt(hidden.Count * (officer.Wisdom / 130f)), 1, hidden.Count);
             var found = hidden[UnityEngine.Random.Range(0, reach)];
             _foundIds.Add(found.Id);
-            return new OrderResult(true, string.Format(RealmLocalization.T("order.search_found", "{0} — {1}을(를) 찾아냈다!"), officer.Name, found.Name));
+            // PLAN.md 109-5 — 시간 틈 사람이면 사연 한 토막을 덧붙인다.
+            return new OrderResult(true, string.Format(RealmLocalization.T("order.search_found", "{0} — {1}을(를) 찾아냈다!"), officer.Name, found.Name) + RealmEras.FoundStory(found.Id));
         }
 
         /// <summary>등용 성공률 — rtk.js tryHire() 그대로(0.28 + 지력/260 -
@@ -354,7 +355,7 @@ namespace Saga.Realm.Data
             if (targetId == null) return new OrderResult(true, RealmLocalization.T("order.hire_none_found", "부를 사람이 없다 (먼저 수색하시오)"));
 
             var target = RealmOfficerPool.Get(targetId);
-            float chance = HireChance(officer.Wisdom, target.Rarity, debateMul);
+            float chance = RealmEras.AdjustHireChance(target, HireChance(officer.Wisdom, target.Rarity, debateMul)); // 109-5 낯선 시대 × 0.85
             if (UnityEngine.Random.value > chance)
             {
                 return new OrderResult(true, string.Format(RealmLocalization.T("order.hire_declined", "{0}이(가) 설득에 응하지 않았다."), target.Name));
@@ -365,6 +366,31 @@ namespace Saga.Realm.Data
         }
 
         private static string CityName(string cityId) => RealmCityData.Get(cityId)?.Name ?? cityId;
+
+        /// <summary>PLAN.md 109-5 퓨전 사연 둘째 단 — 이계 무장이 그 성에 합류한다. 이미 로스터에 있으면 false.</summary>
+        public static bool JoinOfficer(string officerId, string cityId)
+        {
+            if (_roster.Contains(officerId) || RealmOfficerPool.Get(officerId) == null || !_cities.ContainsKey(cityId)) return false;
+            _roster.Add(officerId);
+            _officerCity[officerId] = cityId;
+            Changed?.Invoke();
+            return true;
+        }
+
+        public static bool OwnsCity(string cityId) => _activeCityIds.Contains(cityId);
+
+        /// <summary>PLAN.md 109-5 퓨전 사연 — 한 성의 값을 더하고(치안·훈련 0~100, 기술 ~900, 병력·상업 0 이상) 인구에 배율을 곱한다.</summary>
+        public static void AdjustCity(string cityId, int sec = 0, int troops = 0, int train = 0, int tech = 0, int comm = 0, float popMul = 1f)
+        {
+            if (!_cities.TryGetValue(cityId, out var r)) return;
+            r.Sec = Mathf.Clamp(r.Sec + sec, 0, 100);
+            r.Train = Mathf.Clamp(r.Train + train, 0, 100);
+            r.Tech = Mathf.Clamp(r.Tech + tech, 0, 900);
+            r.Troops = Mathf.Max(0, r.Troops + troops);
+            r.Comm = Mathf.Max(0, r.Comm + comm);
+            if (popMul != 1f) r.Pop = Mathf.Max(1000, Mathf.RoundToInt(r.Pop * popMul));
+            Changed?.Invoke();
+        }
 
         /// <summary>다음 달 — rtk.js endMonth()(AI·전쟁·외교 호출은 이
         /// 슬라이스에 없어 뺐다) + settleMonth()의 금고/군량/치안 갈래.

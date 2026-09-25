@@ -82,6 +82,7 @@ namespace Saga.EditorTools
             AttackZangke, AttackJiaozhi, AttackHepu, AttackJiuzhen, AttackYunnan, AttackRinan,
             AttackYongchang, AttackXianglin, AttackDianchong, AttackShendu,
             AttackBijing, AttackJiantuoluo, AttackLuorong, AttackJibin, AttackDaxia, AttackWuyishanli, AttackMoqietuo, AttackSheyi, AttackZhuwu, AttackXiquan, AttackQuzu,
+            Eras,
             QuizCorrect, QuizWrong, QuizArchive,
             SaveLoad, Done,
         }
@@ -1346,7 +1347,15 @@ namespace Saga.EditorTools
                     // 32차 확장(2026-09-19) — 전충의 셋째이자 마지막 목표
                     // (TargetFrom("dianchong")), 원작에 더 뻗는 LINKS 없어
                     // 전충 갈래가 이걸로 전부 닫힌다.
-                    if (!AttackChainStep(RealmEnemyCity.DianchongId, RealmEnemyCity.QuzuId, Phase.QuizCorrect, RealmEnemyCity.QuzuId)) return;
+                    if (!AttackChainStep(RealmEnemyCity.DianchongId, RealmEnemyCity.QuzuId, Phase.Eras, RealmEnemyCity.QuzuId)) return;
+                    break;
+                }
+
+                case Phase.Eras:
+                {
+                    // PLAN.md 109-5 세 시대 — 전 적국 함락 뒤(관문 셋·시간 틈 성 아홉이 다 우리 것). 합류한 무장은 뒤 세이브 왕복이 본다.
+                    if (!PlaytestRealmEras.Run()) { Fail(); return; }
+                    _phase = Phase.QuizCorrect;
                     break;
                 }
 

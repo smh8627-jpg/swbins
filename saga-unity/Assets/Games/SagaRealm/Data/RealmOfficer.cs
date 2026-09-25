@@ -10,14 +10,25 @@ namespace Saga.Realm.Data
     {
         public readonly string Id;
         private readonly string _name;
-        public string Name => RealmLocalization.T("officer." + Id, _name);
+        /// <summary>PLAN.md 109-5 — 시간 틈·이계 사람은 이름 뒤에 딱지(현대·미래·균열…)가 붙는다(`RealmEras.Tag`).</summary>
+        public string Name
+        {
+            get
+            {
+                string n = RealmLocalization.T("officer." + Id, _name);
+                string tag = RealmEras.Tag(Id, Era);
+                return tag.Length == 0 ? n : $"{n}({tag})";
+            }
+        }
+        public readonly RealmEra Era;
         public readonly int Might;
         public readonly int Wisdom;
         public readonly int Command;
         public readonly int Rarity;
 
-        public RealmOfficer(string id, string name, int might, int wisdom, int command, int rarity)
+        public RealmOfficer(string id, string name, int might, int wisdom, int command, int rarity, RealmEra era = RealmEra.Past)
         {
+            Era = era;
             Id = id;
             _name = name;
             Might = might;
