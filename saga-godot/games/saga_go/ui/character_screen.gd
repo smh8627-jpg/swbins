@@ -294,7 +294,7 @@ func _refresh() -> void:
 	for id in owned():
 		var b := Button.new()
 		var el := Elements.element_of(id)
-		b.text = "%s%s  Lv.%d  [%s]" % ["⚔ " if PartyState.in_party(id) else "", _name(id), PartyState.char_level(id), Elements.name_of(el)]
+		b.text = "%s%s  Lv.%d  [%s]" % ["⚔ " if PartyState.in_party(id) else ("🧭 " if PartyState.is_away(id) else ""), _name(id), PartyState.char_level(id), Elements.name_of(el)]
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.custom_minimum_size = Vector2(0, 40)
 		b.modulate = Elements.color_of(el).lightened(0.45) if id != selected else Color.WHITE
@@ -331,11 +331,13 @@ func _refresh() -> void:
 		_party_btn.text = "⚔ 나는 늘 첫 자리"
 	elif in_p:
 		_party_btn.text = "⚔ 들판 명단에서 빼기"
+	elif PartyState.is_away(id):
+		_party_btn.text = "🧭 탐사 중 — 역참 곁 탐사 게시판에서 부르기"
 	elif pl.size() >= PartyState.PARTY_MAX:
 		_party_btn.text = "⚔ 들판 명단에 넣기 (%s 와 바뀐다)" % _name(pl[pl.size() - 1])
 	else:
 		_party_btn.text = "⚔ 들판 명단에 넣기"
-	_party_btn.disabled = id == "self"
+	_party_btn.disabled = id == "self" or PartyState.is_away(id)
 	_party_up_btn.disabled = not in_p or id == "self" or pl.find(id) <= 0
 	var fc := get_tree().get_first_node_in_group("go_field_combat")
 	var hp: float = fc.call("max_hp_of", id) if fc else 0.0

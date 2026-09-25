@@ -23,7 +23,7 @@ const CompanionFollow := preload("res://saga_core/world/companion_follow.gd")
 
 ## 점검(SAGA_*_PROBE)은 실제 세이브를 불러온 채 돌고 명단을 members 로 바꿔 끼운다 — 편성(㉝)으로 줄여 둔 자리 수가 점검을 흔들지 않게.
 const PROBES := ["ADVENTURE", "ARTIFACT", "TREASURE", "FIELD_BOSS", "SHARD", "MAP", "COOK", "STORY", "DOMAIN", "WEEKLY", "COMMISSION", "GROWTH",
-	"TALENT", "SIGHT", "TRAVERSAL", "COMBAT", "PERF", "KIT", "ELEMENT", "WEAPON", "LAYOUT", "ARCHERY", "QMAP", "FISH", "ACHIEVE"]
+	"TALENT", "SIGHT", "TRAVERSAL", "COMBAT", "PERF", "KIT", "ELEMENT", "WEAPON", "LAYOUT", "ARCHERY", "QMAP", "FISH", "ACHIEVE", "DISPATCH"]
 
 static func _any_probe() -> bool:
 	for p in PROBES:
@@ -154,6 +154,13 @@ func _ready() -> void:
 		add_child(load("res://tools/probe_treasure.gd").new())
 	if OS.get_environment("SAGA_ARCHERY_PROBE") != "": # 106장 ㊵ 활 조준·과녁
 		add_child(load("res://tools/probe_archery.gd").new())
+
+	## PLAN 106장 ㊹ — 탐사 파견(마을 역참 곁 게시판).
+	var dispatch := preload("res://games/saga_go/world/dispatch.gd").new()
+	dispatch.name = "Dispatch"
+	add_child(dispatch)
+	if OS.get_environment("SAGA_DISPATCH_PROBE") != "":
+		add_child(load("res://tools/probe_dispatch.gd").new())
 
 	## PLAN 106장 ㊸ — 업적(다른 노드 신호에 붙으므로 맨 뒤).
 	var achievements := preload("res://games/saga_go/world/achievements.gd").new()

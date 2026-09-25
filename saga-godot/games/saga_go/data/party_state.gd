@@ -97,6 +97,9 @@ var fishing: Dictionary = {}
 ## 106장 ㊸ 업적 — {"stats": {셈: 수}, "tier": {업적: 닿은 단계}, "claimed": {업적: 받은 단계}}. 필드만 더해 SAVE_VERSION 그대로.
 ## world/achievements.gd 가 읽고 쓴다(표는 data/achievements.gd).
 var achievements: Dictionary = {}
+## 106장 ㊹ 탐사 파견 — {"out": {탐사지: {"id", "hours", "start"}}, "done": 받은 번수}. 필드만 더해 SAVE_VERSION 그대로.
+## world/dispatch.gd 가 읽고 쓴다(표는 data/dispatch.gd). 탐사 중인 동료는 들판 명단·편성에 못 넣는다(is_away).
+var dispatch: Dictionary = {}
 signal world_changed()
 
 var _session_start_exp: float = 0.0
@@ -138,6 +141,13 @@ func party() -> Array[String]:
 func in_party(id: String) -> bool:
 	return id == "self" or party().has(id)
 
+## 106장 ㊹ 탐사 나가 있는 동료인가.
+func is_away(id: String) -> bool:
+	for sid in dispatch.get("out", {}):
+		if String((dispatch.out[sid] as Dictionary).get("id", "")) == id:
+			return true
+	return false
+
 ## 명단을 p 로(그 밖의 동료는 원래 순서로 뒤에, first 가 있으면 그 맨 앞).
 func _set_party(p: Array[String], first: String = "") -> void:
 	var rest: Array[String] = []
@@ -159,7 +169,7 @@ func use_preset(k: int) -> bool:
 	preset_i = k
 	var p: Array[String] = []
 	for id in presets[k]:
-		if members.has(String(id)) and not p.has(String(id)) and p.size() < PARTY_MAX:
+		if members.has(String(id)) and not p.has(String(id)) and p.size() < PARTY_MAX and not is_away(String(id)):
 			p.append(String(id))
 	_set_party(p)
 	return true
@@ -170,7 +180,7 @@ func preset_party(k: int) -> Array[String]:
 	if k == preset_i:
 		return party()
 	for id in presets[k]:
-		if members.has(String(id)) and not out.has(String(id)):
+		if members.has(String(id)) and not out.has(String(id)) and not is_away(String(id)):
 			out.append(String(id))
 	return out
 
@@ -191,7 +201,7 @@ func restore_presets(saved: Variant, saved_i: int) -> void:
 
 ## 넣기 — 빈 자리가 있으면 그 자리에, 꽉 찼으면 마지막 자리와 바꾼다. 넣었으면 true.
 func put_in_party(id: String) -> bool:
-	if id == "self" or not members.has(id) or in_party(id):
+	if id == "self" or not members.has(id) or in_party(id) or is_away(id):
 		return false
 	var p := party()
 	var out := ""
