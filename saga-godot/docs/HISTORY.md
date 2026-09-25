@@ -8804,6 +8804,6 @@ PROJECT_STATE.md` 참고. 요약:
 - 원신은 인물 고유 특성이 탐사 보상을 늘리지만 이 판엔 그런 특성이 없어 탐사지마다 잘 맞는 원소 하나 — 그 원소 인물이면 +25%.
 - 탐사 중인 동료는 `PartyState.is_away` — put_in_party·use_preset·preset_party 가 뺀다(원신처럼 명단과 탐사가 겹치지 않음). 들판 명단에 있는 동료는 못 보낸다. 인물 화면 목록 🧭·넣기 단추 막음.
 - 게시판 자리: 처음 (3.5,−3.5)m 는 순간이동 지점과 4.9m 라 점검(5m)에 걸려 (4,−4)m 로. 촌장 누리·역참지기 묵호·의뢰 게시판·냄비와 5.7m 이상.
-- 점검 새 probe_dispatch 12항목 fails=0 · ACHIEVE·STORY·COMBAT·KIT·GROWTH·FISH·COMMISSION·REGRESS 는 아래 결과.
-- 사고: 웹 사가고 이식 표에 26번 줄을 넣는 파이썬이 같은 파일을 읽기 전에 쓰기로 열어 `saga-web/saga-go/PLAN.md` 를 비웠다 — 다른 세션이 막 넣은 ⑲-4 절(안 올린 13줄)까지. 그 세션 기록(jsonl)의 삽입 스크립트를 HEAD 본에 다시 돌려 똑같이 되살리고, 커밋엔 26번 줄만 `git apply --cached` 로 올렸다. 교훈: 제자리 치환은 읽기 → 쓰기 두 줄로.
+- 점검 새 probe_dispatch 12항목 fails=0 · ACHIEVE·STORY·COMBAT·KIT·GROWTH·FISH·COMMISSION fails=0 · REGRESS OK.
+- 사고: 웹 사가고 이식 표에 26번 줄을 넣는 파이썬이 같은 파일을 읽기 전에 쓰기로 열어 `saga-web/saga-go/PLAN.md` 를 비웠다 — 다른 세션이 막 넣은 ⑲-4 절(안 올린 13줄)까지. 그 세션 기록(jsonl)의 삽입 스크립트를 HEAD 본에 다시 돌려 똑같이 되살리고, 26번 줄은 그 세션이 곧이어 파일째 커밋하며(f5d65b14) 함께 올라갔다. 교훈: 제자리 치환은 읽기 → 쓰기 두 줄로.
 - 실기 확인 전: 게시판 모양·자리(역참 앞에서 보이는지), 화면 크기(폰 폭 — 탐사지 줄·동료 두 줄 칸), 알림, 끈 뒤 다시 켰을 때 남은 시간.
