@@ -26,6 +26,9 @@ const BANNER_SEC := 2.8
 
 const REGION_NAMES := {"village": "청하 마을", "coast": "갯바람 포구", "ruins": "잿빛 폐허"}
 ## 지역마다 지도를 밝히는 신상(waypoints.gd POINTS 의 신상 id).
+## 106장 ㊶ 임무 표식 색(story_quest.gd WQ_BLUE 와 같게).
+const STORY_GOLD := Color(1.0, 0.84, 0.35)
+const WQ_BLUE := Color(0.45, 0.8, 1.0)
 const REGION_STATUE := {"village": "v_statue", "coast": "c_dock", "ruins": "r_statue"}
 
 var map_texture: ImageTexture = null
@@ -48,6 +51,8 @@ var _explore_label: Label = null
 var _select_label: Label = null
 var _warp_button: Button = null
 var _selected := ""
+var _selected_mark: Dictionary = {} # 106장 ㊶ 지도에서 누른 임무 표식(map_marks 한 칸)
+var _track_button: Button = null
 var _frozen_before := false
 
 func _ready() -> void:
@@ -331,16 +336,17 @@ class MiniOverlay extends Control:
 			var bd := Vector2(bp.x - me.x, bp.z - me.z) * px_per_m
 			if bd.length() <= size.x * 0.5 - 10.0 and map.call("revealed", FieldBosses.FB.BOSSES[id].region):
 				map.draw_boss_icon(self, c + bd, 1.0)
-		## 106장 ㉕ 이야기 임무 목표 — 멀면 미니맵 가장자리에 붙인다(원신과 같다).
-		var story := get_tree().get_first_node_in_group("go_story")
-		if story:
-			var sp: Vector3 = story.call("target_pos")
-			if sp != Vector3.INF:
-				var sd := Vector2(sp.x - me.x, sp.z - me.z) * px_per_m
-				var lim := size.x * 0.5 - 10.0
-				if sd.length() > lim:
-					sd = sd.normalized() * lim
-				map.draw_story_icon(self, c + sd, 1.0)
+		## 106장 ㉕·㊶ 임무 표식 — 따라가는 임무는 멀면 미니맵 가장자리에 붙이고(원신과 같다),
+		## 맡을 수 있는 !·안 따라가는 임무는 둘레 안에 있을 때만.
+		var lim := size.x * 0.5 - 10.0
+		for mk in map.call("quest_marks"):
+			var mp: Vector3 = mk.pos
+			var sd := Vector2(mp.x - me.x, mp.z - me.z) * px_per_m
+			if sd.length() > lim:
+				if not map.call("is_tracked_kind", String(mk.kind)):
+					continue
+				sd = sd.normalized() * lim
+			map.draw_quest_icon(self, c + sd, String(mk.kind), 1.0)
 		## 인물 화살표.
 		var fa: float = _ang(map.facing_dir())
 		var tip := c + Vector2(cos(fa), sin(fa)) * 11.0
@@ -371,9 +377,45 @@ func draw_boss_icon(ci: CanvasItem, at: Vector2, s: float) -> void:
 
 ## 이야기 임무 목표 — 금빛 마름모.
 func draw_story_icon(ci: CanvasItem, at: Vector2, s: float) -> void:
+	draw_quest_icon(ci, at, "story", s)
+
+## 106장 ㊶ 임무 표식(story_quest.map_marks 의 kind) — 이야기 금빛·세계 임무 푸른빛, 따라가는 것은 찬 마름모,
+## 안 따라가는 것은 빈 마름모, 맡을 수 있는 세계 임무는 둥근 판에 "!".
+func draw_quest_icon(ci: CanvasItem, at: Vector2, kind: String, s: float) -> void:
+	var col := STORY_GOLD if kind.begins_with("story") else WQ_BLUE
+	var ink := Color(0.25, 0.15, 0.02) if kind.begins_with("story") else Color(0.04, 0.14, 0.24)
+	if kind == "wq_open":
+		ci.draw_circle(at, 9.0 * s, Color(0.04, 0.1, 0.18, 0.9))
+		ci.draw_circle(at, 7.5 * s, col)
+		ci.draw_rect(Rect2(at + Vector2(-1.3, -5.2) * s, Vector2(2.6, 6.4) * s), ink)
+		ci.draw_circle(at + Vector2(0, 3.8) * s, 1.5 * s, ink)
+		return
 	var pts := PackedVector2Array([at + Vector2(0, -10) * s, at + Vector2(7, 0) * s, at + Vector2(0, 10) * s, at + Vector2(-7, 0) * s])
-	ci.draw_colored_polygon(pts, Color(1.0, 0.84, 0.35))
-	ci.draw_polyline(PackedVector2Array([pts[0], pts[1], pts[2], pts[3], pts[0]]), Color(0.25, 0.15, 0.02), 2.0)
+	var ring := PackedVector2Array([pts[0], pts[1], pts[2], pts[3], pts[0]])
+	if is_tracked_kind(kind):
+		ci.draw_colored_polygon(pts, col)
+		ci.draw_polyline(ring, ink, 2.0)
+	else:
+		ci.draw_colored_polygon(pts, Color(ink.r, ink.g, ink.b, 0.55))
+		ci.draw_polyline(ring, col, 2.2)
+
+func is_tracked_kind(kind: String) -> bool:
+	return kind == "story" or kind == "wq_track"
+
+## 지금 지도에 그릴 임무 표식(story_quest.map_marks) — 이야기 노드가 없으면 [].
+## 신상을 안 켠 지역(구름)엔 맡을 수 있는 !·안 따라가는 표식을 안 그린다 — 따라가는 목표는 늘 보인다.
+func quest_marks() -> Array:
+	var story := get_tree().get_first_node_in_group("go_story")
+	if story == null:
+		return []
+	var out: Array = []
+	for mk in story.call("map_marks"):
+		if not is_tracked_kind(String(mk.kind)):
+			var rid := TestMap.region_at(mk.pos)
+			if rid != "" and not revealed(rid):
+				continue
+		out.append(mk)
+	return out
 
 # ---------------------------------------------------------------- 지역 이름
 
@@ -476,11 +518,12 @@ class MapView extends Control:
 		for id in FieldBosses.FB.ORDER:
 			if map.call("revealed", FieldBosses.FB.BOSSES[id].region):
 				map.draw_boss_icon(self, offset + map.world_to_px(FieldBosses.home_of(id)) * zoom, 1.4)
-		var story := get_tree().get_first_node_in_group("go_story")
-		if story:
-			var sp: Vector3 = story.call("target_pos")
-			if sp != Vector3.INF:
-				map.draw_story_icon(self, offset + map.world_to_px(sp) * zoom, 1.4)
+		var sel: Dictionary = map.get("_selected_mark")
+		for mk in map.call("quest_marks"):
+			var qat: Vector2 = offset + map.world_to_px(mk.pos) * zoom
+			map.draw_quest_icon(self, qat, String(mk.kind), 1.4)
+			if not sel.is_empty() and sel.kind == mk.kind and sel.quest == mk.quest:
+				draw_arc(qat, 17.0, 0.0, TAU, 32, Color(1, 1, 1), 2.0)
 		var me: Node3D = map.get("_player")
 		if me:
 			var at: Vector2 = offset + map.world_to_px(me.global_position) * zoom
@@ -506,7 +549,7 @@ func _build_screen() -> void:
 	side.offset_left = -260
 	side.offset_right = -20
 	side.offset_top = 20
-	side.offset_bottom = 290
+	side.offset_bottom = 330
 	_screen.add_child(side)
 	var box := VBoxContainer.new()
 	side.add_child(box)
@@ -516,6 +559,10 @@ func _build_screen() -> void:
 	box.add_child(title)
 	_explore_label = Label.new()
 	box.add_child(_explore_label)
+	var legend := Label.new()
+	legend.text = "◆ 따라가는 임무(금 이야기·푸른 세계)\n◇ 진행 중 · ! 맡을 수 있는 세계 임무"
+	legend.add_theme_font_size_override("font_size", 13)
+	box.add_child(legend)
 	var hint := Label.new()
 	hint.text = "M·Esc 닫기 · 끌기 옮기기 · 휠 확대"
 	hint.add_theme_font_size_override("font_size", 13)
@@ -528,7 +575,7 @@ func _build_screen() -> void:
 	bottom.anchor_bottom = 1.0
 	bottom.offset_left = -360
 	bottom.offset_right = -20
-	bottom.offset_top = -120
+	bottom.offset_top = -168
 	bottom.offset_bottom = -20
 	_screen.add_child(bottom)
 	var bbox := VBoxContainer.new()
@@ -542,6 +589,12 @@ func _build_screen() -> void:
 	_warp_button.custom_minimum_size = Vector2(0, 44)
 	_warp_button.pressed.connect(func() -> void: warp_selected())
 	bbox.add_child(_warp_button)
+	_track_button = Button.new()
+	_track_button.text = "따라가기"
+	_track_button.visible = false
+	_track_button.custom_minimum_size = Vector2(0, 44)
+	_track_button.pressed.connect(func() -> void: track_selected())
+	bbox.add_child(_track_button)
 
 	var close := Button.new()
 	close.text = "닫기"
@@ -562,8 +615,13 @@ func _refresh_screen() -> void:
 	lines.append("")
 	lines.append("신상 Lv.%d · 별조각 %d/%d (바친 것 %d)" % [StarShards.statue_level(), StarShards.collected(), StarShards.total(), StarShards.offered()])
 	_explore_label.text = "\n".join(lines)
+	_track_button.visible = not _selected_mark.is_empty()
+	if not _selected_mark.is_empty():
+		_refresh_mark_selection()
+		return
+	_warp_button.text = "순간이동"
 	if _selected == "":
-		_select_label.text = "순간이동 지점을 누르세요"
+		_select_label.text = "순간이동 지점·임무 표식을 누르세요"
 		_warp_button.disabled = true
 		return
 	var row := Waypoints.row_of(_selected)
@@ -581,14 +639,89 @@ func _pick_at(px: Vector2) -> void:
 		if d < best_d:
 			best_d = d
 			best = row[0]
-	_selected = best
+	## 106장 ㊶ — 임무 표식이 더 가까우면 그것.
+	var mark: Dictionary = {}
+	for mk in quest_marks():
+		var d := world_to_px(mk.pos).distance_to(px)
+		if d < best_d:
+			best_d = d
+			mark = mk
+	_selected = "" if not mark.is_empty() else best
+	_selected_mark = mark
 	_refresh_screen()
 
 func select(id: String) -> void:
 	_selected = id
+	_selected_mark = {}
 	_refresh_screen()
 
+## 106장 ㊶ 임무 표식 고르기(점검·지도 누르기) — kind·quest 가 같은 표식을 찾아서.
+func select_mark(kind: String, quest: String) -> bool:
+	for mk in quest_marks():
+		if String(mk.kind) == kind and String(mk.quest) == quest:
+			_selected = ""
+			_selected_mark = mk
+			_refresh_screen()
+			return true
+	return false
+
+## 고른 표식 글자·단추 — 따라가기(맡은 임무·이야기, 이미 따라가면 막음) · 순간이동 = 표식에서 가장 가까운 켠 지점.
+func _refresh_mark_selection() -> void:
+	var mk := _selected_mark
+	var kind := String(mk.kind)
+	var head := "이야기 임무" if kind.begins_with("story") else "세계 임무"
+	var near := nearest_active_point(mk.pos)
+	var near_txt := ""
+	if near != "":
+		near_txt = "\n가까운 지점: %s (%dm)" % [Waypoints.row_of(near)[4], int(_flat_dist(_wps.call("world_pos_of", near), mk.pos))]
+	_select_label.text = "%s · %s\n▶ %s%s" % [head, mk.name, mk.text, near_txt]
+	_track_button.disabled = kind == "wq_open" or is_tracked_kind(kind)
+	_track_button.text = "맡은 뒤 따라갈 수 있다" if kind == "wq_open" else ("따라가는 중" if is_tracked_kind(kind) else "따라가기")
+	_warp_button.text = "가까운 지점으로 순간이동"
+	_warp_button.disabled = near == ""
+
+## 표식 자리에서 가장 가까운 켠 순간이동 지점 id — 없으면 "".
+func nearest_active_point(world: Vector3) -> String:
+	if _wps == null:
+		return ""
+	var best := ""
+	var best_d := INF
+	for row in Waypoints.POINTS:
+		if not Waypoints.is_active(row[0]):
+			continue
+		var d := _flat_dist(_wps.call("world_pos_of", row[0]), world)
+		if d < best_d:
+			best_d = d
+			best = row[0]
+	return best
+
+static func _flat_dist(a: Vector3, b: Vector3) -> float:
+	return Vector2(a.x - b.x, a.z - b.z).length()
+
+## 고른 표식의 임무를 따라간다(story_quest.set_track) — 지도는 열어 둔 채 글자만 새로.
+func track_selected() -> bool:
+	if _selected_mark.is_empty():
+		return false
+	var kind := String(_selected_mark.kind)
+	if kind == "wq_open" or is_tracked_kind(kind):
+		return false
+	var story := get_tree().get_first_node_in_group("go_story")
+	if story == null or not story.call("set_track", String(_selected_mark.quest)):
+		return false
+	var q := String(_selected_mark.quest)
+	var want := "story" if q == "" else "wq_track"
+	if not select_mark(want, q):
+		_selected_mark = {}
+		_refresh_screen()
+	return true
+
 func warp_selected() -> bool:
+	if not _selected_mark.is_empty():
+		var near := nearest_active_point(_selected_mark.pos)
+		if near == "":
+			return false
+		_selected = near
+		_selected_mark = {}
 	if _wps == null or _selected == "" or not Waypoints.is_active(_selected):
 		return false
 	var ok: bool = _wps.call("teleport", _selected)
@@ -618,6 +751,7 @@ func open_map() -> void:
 	_player.set("frozen", true)
 	_view.center_on(_player.global_position)
 	_selected = ""
+	_selected_mark = {}
 	_refresh_screen()
 
 func close_map() -> void:

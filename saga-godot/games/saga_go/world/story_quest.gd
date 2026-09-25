@@ -261,9 +261,51 @@ func npc_pos(id: String) -> Vector3:
 
 ## 지금 목표 자리(없으면 INF) — 지도·미니맵·기둥이 쓴다.
 func target_pos() -> Vector3:
-	var s := current_step()
+	return _step_target(current_step(), true)
+
+## 106장 ㊶ 지도 표식 — [{kind, pos, quest, name, text}]. kind:
+##   "wq_open"    맡을 수 있는 세계 임무(맡길 사람 자리, 푸른 !)
+##   "wq_idle"    맡았지만 안 따라가는 세계 임무(그 단계 자리, 푸른 빈 마름모)
+##   "wq_track"   따라가는 세계 임무(푸른 찬 마름모 — 미니맵 가장자리에 붙음)
+##   "story"      따라가는 이야기 임무(금빛 찬 마름모) · "story_idle" 세계 임무를 따라가는 동안의 이야기 임무(금빛 빈 마름모)
+## quest 는 세계 임무 id, 이야기면 "". 자리를 못 정하는 단계(쫓기 도둑이 아직 안 선 것 등)는 빠진다.
+func map_marks() -> Array:
+	var out: Array = []
+	var t := track()
+	for q in WorldQuests.ORDER:
+		var d := WorldQuests.quest(q)
+		if wq_started(q):
+			var s := WorldQuests.step_of(q, wq_step(q))
+			var p := _step_target(s, q == t)
+			if p != Vector3.INF:
+				out.append({"kind": "wq_track" if q == t else "wq_idle", "pos": p, "quest": q, "name": String(d.name), "text": String(s.get("text", ""))})
+		elif wq_open(q):
+			var gp := npc_pos(String(d.giver))
+			if gp != Vector3.INF:
+				out.append({"kind": "wq_open", "pos": gp, "quest": q, "name": String(d.name),
+					"text": "%s에게 말 걸기" % String(_npc_info(String(d.giver)).get("name", ""))})
+	if not locked():
+		var ss := Story.step_of(ch(), st())
+		if not ss.is_empty():
+			var sp := _step_target(ss, t == "")
+			if sp != Vector3.INF:
+				out.append({"kind": "story" if t == "" else "story_idle", "pos": sp, "quest": "",
+					"name": String(Story.chapter(ch()).get("name", "이야기 임무")), "text": String(ss.get("text", ""))})
+	return out
+
+## 한 단계의 목표 자리 — tracked 가 아니면 세상에 아직 안 선 것(쫓기 도둑·임무 적) 대신 그 단계 칸 자리.
+func _step_target(s: Dictionary, tracked: bool) -> Vector3:
 	if s.is_empty():
 		return Vector3.INF
+	if not tracked:
+		match String(s.type):
+			"chase":
+				return _cell_pos(String(s.region), (s.path as Array)[0])
+			"duel":
+				return _cell_pos(String(s.region), s.cell, bool(s.get("sky", false)))
+			"gather", "cook":
+				if _player == null:
+					return Vector3.INF
 	match String(s.type):
 		"talk":
 			return npc_pos(String(s.npc))
