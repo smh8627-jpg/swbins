@@ -29,6 +29,9 @@ const SUMMON_SPREAD := 4.0
 const TIDE := {"count": 4, "first": 2.5, "step": 3.0, "radius": 2.0, "tell": 1.1, "mul": 1.3}
 ## 106장 ㊳ 고리 — 보스 둘레 inner~outer m 고리 1.3초 예고(먹구름 임금). 안쪽은 비어 있어 보스 곁으로 파고들거나 멀리 벗어나 피한다.
 const HALO := {"inner": 3.0, "outer": 9.0, "tell": 1.3, "mul": 1.5}
+## 106장 ㊺-4 틈새 질주 — 보스에서 플레이어 쪽으로(플레이어를 지나) 원 다섯 1.0초 예고 → 보스가 줄 끝으로 옮겨 나타난다(틈새 서리 구미호).
+## 줄 끝 땅 높이가 RIFT.climb m 넘게 다르면(벽·바위 위) 옮기지 않고 원만 친다.
+const RIFT := {"count": 5, "first": 2.0, "step": 2.6, "radius": 1.8, "tell": 1.0, "mul": 1.4, "climb": 1.5}
 
 var phase := 1
 var skill := ""
@@ -107,12 +110,17 @@ func begin_skill(which: String, player: Node3D) -> void:
 		"halo":
 			skill_t = HALO.tell
 			_mark(global_position, float(HALO.outer), float(HALO.inner))
+		"rift":
+			skill_t = RIFT.tell
+			var lane := to_p.normalized() if to_p.length() > 0.1 else _facing()
+			for i in int(RIFT.count):
+				_mark(global_position + lane * (float(RIFT.first) + float(RIFT.step) * i), float(RIFT.radius))
 	_set_tell(true)
 
 func _fire() -> void:
 	_set_tell(false)
 	var player := get_tree().get_first_node_in_group("player") as Node3D
-	var mul: float = {"slam": SLAM.mul, "shadow": SHADOW.mul, "tide": TIDE.mul, "halo": HALO.mul}.get(skill, STORM.mul)
+	var mul: float = {"slam": SLAM.mul, "shadow": SHADOW.mul, "tide": TIDE.mul, "halo": HALO.mul, "rift": RIFT.mul}.get(skill, STORM.mul)
 	var hit := false
 	if player:
 		for m in _marks:
@@ -126,6 +134,8 @@ func _fire() -> void:
 		if fc and fc.call("can_be_targeted"):
 			fc.call("take_damage", def.atk * mul * dmg_mul, self)
 			hits_taken += 1
+	if skill == "rift" and not _marks.is_empty():
+		_rift_to(_marks[_marks.size() - 1].pos)
 	var rig := get_tree().get_first_node_in_group("camera_rig")
 	if rig and skill == "slam":
 		rig.call("shake", 0.18, 0.3)
@@ -133,6 +143,20 @@ func _fire() -> void:
 	skill = ""
 	ai = AI.RECOVER
 	_t = 0.6
+
+## 틈새 질주 끝 — 줄 끝 땅(레이어 1, 나·적 빼고)에 나타난다. 높이가 크게 다르면 제자리.
+func _rift_to(pos: Vector3) -> void:
+	var q := PhysicsRayQueryParameters3D.create(Vector3(pos.x, global_position.y + 10.0, pos.z), Vector3(pos.x, global_position.y - 10.0, pos.z), 1)
+	var skip: Array[RID] = [get_rid()]
+	for n in get_tree().get_nodes_in_group("player") + get_tree().get_nodes_in_group("field_enemy"):
+		if n is CollisionObject3D:
+			skip.append((n as CollisionObject3D).get_rid())
+	q.exclude = skip
+	var hit := get_world_3d().direct_space_state.intersect_ray(q)
+	if hit.is_empty() or absf(float((hit.position as Vector3).y) - global_position.y) > float(RIFT.climb):
+		return
+	global_position = Vector3(pos.x, float((hit.position as Vector3).y) + 0.3, pos.z)
+	velocity = Vector3.ZERO
 
 func _check_phase() -> void:
 	if phase == 1 and hp <= max_hp * PHASE2_AT:

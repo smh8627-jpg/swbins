@@ -53,6 +53,11 @@ const GLOW := Color(0.35, 0.85, 1.0)
 
 var _vane: Node3D = null
 var _snow: CPUParticles3D = null
+## 106장 ㊺-4 — 이야기 12장(별배 심장)을 마치면 눈이 잦아든다. PartyState.story.ch 가 이 값 이상이면 SNOW_CALM 알갱이.
+const CALM_AFTER_CH := 12
+const SNOW_FULL := 260
+const SNOW_CALM := 60
+var _calm_t := 0.0
 var _player: Node3D = null
 
 
@@ -368,7 +373,7 @@ func _build_small(id: String, c: Vector2, shape: String) -> void:
 func _build_snow() -> void:
 	_snow = CPUParticles3D.new()
 	_snow.name = "Snowfall"
-	_snow.amount = 260
+	_snow.amount = SNOW_FULL
 	_snow.lifetime = 5.0
 	_snow.preprocess = 5.0
 	_snow.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
@@ -393,6 +398,13 @@ func _build_snow() -> void:
 	_snow.top_level = true
 	add_child(_snow)
 
+## 별배 심장이 켜졌는가(12장 끝) — 눈이 잦아든다.
+static func calm() -> bool:
+	return int(PartyState.story.get("ch", 0)) >= CALM_AFTER_CH
+
+func snow_amount() -> int:
+	return _snow.amount
+
 func player_inside() -> bool:
 	return _player != null and TestMap.region_at(_player.global_position) == REGION
 
@@ -403,6 +415,12 @@ func _process(delta: float) -> void:
 		_player = get_tree().get_first_node_in_group("player") as Node3D
 		return
 	var inside := player_inside()
+	_calm_t -= delta
+	if _calm_t <= 0.0:
+		_calm_t = 1.0
+		var want := SNOW_CALM if calm() else SNOW_FULL
+		if _snow.amount != want:
+			_snow.amount = want
 	if _snow.emitting != inside:
 		_snow.emitting = inside
 	if inside:

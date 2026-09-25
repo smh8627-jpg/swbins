@@ -87,6 +87,13 @@ const KINDS := {
 		"rotation": ["slam", "halo", "storm", "bite", "shadow", "halo", "tide", "storm"], "summon": ["wind_hawk", "thunder_cat"],
 		"vroid": true, "size": 1.9, "body_r": 0.85, "cloth": Color(0.14, 0.13, 0.22),
 		"mask": Color(0.9, 0.75, 0.35), "mask_face": Color(0.16, 0.12, 0.24), "crown": Color(0.9, 0.74, 0.3)},
+	## 106장 ㊺-4 12장 이야기 보스 "틈새 서리 구미호"(서리봉 고원 얼음굴 앞) — 시간 틈에서 나온 아홉 꼬리 여우(코드 몸 fox9, 3.2m).
+	## 새 패턴 틈새 질주(rift) — 플레이어 쪽으로 원 다섯이 줄지어 예고 → 틈으로 사라져 줄 끝에 나타나며 길 위를 친다. 2단계 빙 방패(불로 깬다).
+	"rift_fox": {"name": "틈새 서리 구미호", "hp": 6000.0, "atk": 38.0, "speed": 5.2, "aggro": 24.0,
+		"reach": 3.0, "tell": 0.75, "cd": 1.5, "exp": 0.0, "element": "ice", "shield": 0.0, "phase_shield": 700.0,
+		"phase_text": "틈새 서리 구미호가 시간 틈의 서리를 두르고 여우와 매를 부른다 — 불로 방패를 깨라",
+		"rotation": ["rift", "bite", "storm", "rift", "slam", "halo"], "summon": ["ice_fox", "wind_hawk"],
+		"shape": "fox9", "height": 3.2, "colors": [Color(0.92, 0.96, 1.0), Color(0.6, 0.55, 0.95), Color(0.45, 0.95, 1.0)]},
 }
 
 const GRAVITY := 20.0

@@ -11,6 +11,9 @@ extends Node
 ## [12] 하람 → 문루 목표 [13] 문루 — 바우가 나타남 [14] 바우 → 호수 석등(바우는 호숫가) [15] 석등 차례(틀리면 꺼짐·달 → 해 → 별) → 파수 넷
 ## [16] 파수 [17] 바우 → 봉화 제단(바우는 문루로) [18] 지키기(남쪽 반원에서만·물결 셋·제단 글자) [19] 바우(하람은 비행선 곁)
 ## [20] 반디 → 11장 끝·보상·✔ 제11장·바우 사라짐·하람은 관측소로.
+## 12장 "떨어진 별배"(㊺-4): [21] 표·자리(하람 동료 표·고유 스킬·구미호 틈새 질주·목표 칸·심장 받침·반디 자리가 명소에 안 묻힘·아직 눈 가득)
+## [22] 하람 → 반디 [23] 반디 → 얼음굴 [24] 얼음굴 어귀 [25] 시간 틈 무리 넷 [26] 틈새 서리 구미호(틈새 질주 — 원 다섯·줄 끝으로 옮김)
+## [27] 반디(얼음굴 앞) → 심장 받침 [28] 불씨(하람은 비행선 곁) [29] 반디 [30] 하람 → 12장 끝·하람 동료·눈이 잦아듦.
 ## 이야기 상태·부대 경험·가방은 끝에 되돌린다. 저장은 안 한다.
 
 const Story := preload("res://games/saga_go/data/story.gd")
@@ -19,6 +22,9 @@ const TerrainBuilder := preload("res://games/saga_go/world/terrain_builder.gd")
 
 const CH := 9 # 10장(0부터)
 const CH11 := 10
+const CH12 := 11
+const Kits := preload("res://games/saga_go/data/kits.gd")
+const FieldEnemy := preload("res://games/saga_go/combat/field_enemy.gd")
 const FORT := Vector2(3.0, 4.0) # world/region4_frost.gd FORT_CELL — 담 한 변 16m
 
 var _p: CharacterBody3D
@@ -279,7 +285,109 @@ func _physics_process(_delta: float) -> void:
 				and home < 1.0 and not bool(_sq.call("npc_visible", "bawoo"))
 			_check("chapter11", ok, "ch=%d mora +%d haram_home=%.1f bawoo=%s" % [_sq.call("ch"), PartyState.count("mora") - int(_v.mora), home, _sq.call("npc_visible", "bawoo")])
 			_next()
-		21:
+		21: # [21] 12장 표·자리
+			var c := Story.chapter(CH12)
+			var bad: Array = []
+			if String(c.get("id", "")) != "ch12" or int(c.ar) <= int(Story.chapter(CH11).ar) or String(c.get("join", "")) != "story_haram":
+				bad.append("chapter")
+			var m: Dictionary = Story.MEMBERS.get("story_haram", {})
+			if String(m.get("element", "")) != "fire" or String(m.get("weapon", "")) != "bow" or String(m.get("npc", "")) != "haram" or not Kits.KITS.has("story_haram"):
+				bad.append("member")
+			var fox: Dictionary = FieldEnemy.KINDS.get("rift_fox", {})
+			if not (fox.get("rotation", []) as Array).has("rift") or String(fox.get("element", "")) != "ice":
+				bad.append("rift_fox")
+			var steps: Array = c.steps
+			for si in [2, 3, 4, 6]:
+				if TestMap.tile_at(roundi(steps[si].cell.x), roundi(steps[si].cell.y), "frost") == "^":
+					bad.append("step %d on mountain" % si)
+			for cell in [steps[6].cell, (Story.STATIONS.bandi as Array)[0].cell, steps[4].cell]:
+				var hits := _hits(_cell3(cell))
+				if not hits.is_empty():
+					bad.append("%s in %s" % [cell, hits])
+			var fr := get_tree().get_first_node_in_group("go_frost_region")
+			_v = int(fr.call("snow_amount")) if fr else -1
+			_check("ch12_table", bad.is_empty() and int(_v) == 260, "%s snow=%d" % [bad, _v])
+			_next()
+		22: # [22] 하람 → 반디
+			_talk("haram", 1, "ch12_haram", Vector2(6.0, 4.8))
+		23: # [23] 반디 → 얼음굴
+			_talk("bandi", 2, "ch12_bandi", Vector2(6.2, 2.05))
+		24: # [24] 얼음굴 어귀
+			_go(3, "ch12_cave", Vector2(5.9, 2.25))
+		25: # [25] 시간 틈 무리 넷
+			if _frame == 1:
+				_put(_target() + Vector3(0, 0, 6))
+			if _frame == 10:
+				var es: Array = _sq.call("alive_quest_enemies")
+				_v = {"n": es.size(), "frost": es.filter(func(e: Node) -> bool: return TestMap.region_at((e as Node3D).global_position) == "frost").size()}
+				for e in es:
+					e.call("_die")
+			if _frame == 16:
+				_check("ch12_kill", int(_v.n) == 4 and int(_v.frost) == 4 and int(_sq.call("st")) == 4, "n=%d frost=%d st=%d" % [_v.n, _v.frost, _sq.call("st")])
+				_next()
+		26: # [26] 틈새 서리 구미호 — 틈새 질주: 원 다섯, 줄 끝으로 옮겨 나타남
+			if _frame == 1:
+				_put(_target() + Vector3(0, 0, 8))
+			if _frame == 12:
+				var bosses := get_tree().get_nodes_in_group("go_story_boss")
+				var b: Node3D = bosses[0] if not bosses.is_empty() else null
+				_v = {"n": bosses.size(), "marks": 0, "moved": -1.0, "kind": ""}
+				if b:
+					_v.kind = String(b.get("kind"))
+					b.call("_clear_marks")
+					b.call("_set_tell", false)
+					b.call("begin_skill", "rift", _p)
+					var marks: Array = b.get("_marks")
+					_v.marks = marks.size()
+					var end: Vector3 = marks[marks.size() - 1].pos if not marks.is_empty() else Vector3.INF
+					b.call("_fire")
+					_v.moved = _flat(b.global_position, end)
+					b.call("_die")
+			if _frame == 20:
+				var ok: bool = int(_v.n) == 1 and String(_v.kind) == "rift_fox" and int(_v.marks) == 5 and float(_v.moved) < 0.5 and int(_sq.call("st")) == 5
+				_check("ch12_duel", ok, "n=%d kind=%s marks=%d moved=%.2f st=%d" % [_v.n, _v.kind, _v.marks, _v.moved, _sq.call("st")])
+				_next()
+		27: # [27] 반디(얼음굴 앞) → 심장 받침
+			if _frame == 1: # 대화 전 — 끝나면 비행선으로 돌아간다
+				_v = _flat(_sq.call("npc_pos", "bandi"), TestMap.world_pos(6.15, 2.5, "frost"))
+			if _frame < 14:
+				_talk("bandi", 6, "ch12_heart", Vector2(6.53, 5.37))
+				return
+			_talk("bandi", 6, "ch12_heart", Vector2(6.53, 5.37), "bandi_at_cave=%.1f" % float(_v), float(_v) < 1.0)
+		28: # [28] 불씨 — 하람은 비행선 곁
+			if _frame == 1:
+				_put(_target() + Vector3(2.5, 0.0, 2.5))
+			if _frame == 6:
+				_sq.call("receive_element", (_sq.get("_altar") as Node3D).global_position, 2.0, "fire")
+			if _frame == 80:
+				var h := _flat(_sq.call("npc_pos", "haram"), TestMap.world_pos(5.85, 4.85, "frost"))
+				_check("ch12_ember", int(_sq.call("st")) == 7 and h < 1.0, "st=%d haram_at_ship=%.1f" % [_sq.call("st"), h])
+				_next()
+		29: # [29] 반디
+			_talk("bandi", 8, "ch12_calm", Vector2(5.85, 4.85))
+		30: # [30] 하람 → 12장 끝
+			if _frame == 1:
+				_v = {"knots": PartyState.count("fate_knot")}
+				_near_npc("haram")
+			if _frame == 10:
+				_sq.call("interact")
+				_drain()
+			if _frame < 16:
+				return
+			_dismiss_prompts()
+			if _frame < 90:
+				return
+			_sq.call("toggle_journal")
+			var jt: String = _sq.call("journal_text")
+			_sq.call("toggle_journal")
+			var fr := get_tree().get_first_node_in_group("go_frost_region")
+			var snow := int(fr.call("snow_amount")) if fr else -1
+			var home := _flat(_sq.call("npc_pos", "haram"), TestMap.world_pos(3.85, 1.7, "frost"))
+			var ok: bool = int(_sq.call("ch")) == CH12 + 1 and jt.contains("✔ 제12장") and PartyState.count("fate_knot") >= int(_v.knots) + 4 \
+				and PartyState.members.count("story_haram") == 1 and snow == 60 and home < 1.0
+			_check("chapter12", ok, "ch=%d knots +%d haram=%s snow=%d haram_home=%.1f" % [_sq.call("ch"), PartyState.count("fate_knot") - int(_v.knots), PartyState.members.has("story_haram"), snow, home])
+			_next()
+		31:
 			PartyState.story = _saved.story
 			PartyState.members.assign(_saved.members)
 			PartyState.exp = _saved.exp
