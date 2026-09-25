@@ -275,7 +275,7 @@ namespace Saga.EditorTools
         {
             var saveType = typeof(SaveState);
             var ver = saveType.GetField("SaveVersion", BindingFlags.NonPublic | BindingFlags.Static);
-            if (ver == null || (int)ver.GetValue(null) != 11) Fail($"세이브 버전 {(ver != null ? ver.GetValue(null) : "?")} ≠ 11");
+            if (ver == null || (int)ver.GetValue(null) < 11) Fail($"세이브 버전 {(ver != null ? ver.GetValue(null) : "?")} < 11");
             var data = saveType.GetNestedType("SaveData", BindingFlags.NonPublic);
             if (data == null || data.GetField("secrets") == null) Fail("SaveData.secrets 없음");
             SetLevel(9);

@@ -50,6 +50,7 @@ namespace Saga.Dungeon.World
             _triggeredThisVisit = true;
 
             if (HordeRunner.Instance == null) return;
+            if (TrialRunner.Busy) return; // PLAN.md 109-10-3 — 시련이 같은 방을 쓰는 중.
             if (HordeRunner.Instance.IsActive)
             {
                 DialogueLabel.Instance?.Show("이미 난입 중이다.", ToastSec);

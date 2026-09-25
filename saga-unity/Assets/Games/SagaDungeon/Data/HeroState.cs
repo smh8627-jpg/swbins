@@ -63,6 +63,9 @@ namespace Saga.Dungeon.Data
         /// 같은 뜻, DungeonEnemy.cs는 이 플래그를 몰라도 된다).</summary>
         public static bool Invulnerable { get; set; }
 
+        /// <summary>PLAN.md 109-10-3 시련 동안 켠다 — 쓰러져도 유품(금)을 떨구지 않는다.</summary>
+        public static bool GraveSuppressed { get; set; }
+
         public static event Action<int> LeveledUp;
 
         /// <summary>PLAN.md 101-2 5.2 "유품" — 인자는 <see cref="DropGoldAsGrave"/>가
@@ -138,6 +141,7 @@ namespace Saga.Dungeon.Data
         /// 있는 노획물은 사실상 골드뿐이다 — 소지 골드 전부를 내려놓고 돌려준다.</summary>
         public static int DropGoldAsGrave()
         {
+            if (GraveSuppressed) return 0; // PLAN.md 109-10-3 시련 — 쓰러져도 끝나지 않고 −30초뿐(유품 없음).
             int amount = Gold;
             Gold = 0;
             return amount;

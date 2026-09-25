@@ -414,6 +414,18 @@ namespace Saga.Dungeon.World
         /// <summary>109-2 — 이 방 행상이 선 시대(진단).</summary>
         public DungeonEra LastPeddlerEra { get; private set; }
 
+        // PLAN.md 109-10-3 시련(`TrialRunner`)이 같은 몸을 쓴다 — 없는 PC 는 null(부르는 쪽이 옛 몸으로).
+        public GameObject GruntModel => gruntModel;
+        public GameObject EliteModel => eliteModel;
+        public (GameObject model, float scale) FusionEliteBody => (fusionEliteModel, fusionEliteModel != null ? fusionEliteScaleMul : 1f);
+        public (GameObject model, float scale) LordBody => (lordModel, lordModel != null ? lordScaleMul : 1f);
+        public (GameObject model, float scale) EraFoeBody(string body)
+        {
+            int k = EraFoeIndex(body);
+            var model = k >= 0 && k < eraFoeModels.Length ? eraFoeModels[k] : null;
+            return (model, model != null && k < eraFoeScaleMuls.Length ? eraFoeScaleMuls[k] : 1f);
+        }
+
         private int EraFoeIndex(string body)
         {
             for (int i = 0; i < eraFoeNames.Length; i++) if (eraFoeNames[i] == body) return i;

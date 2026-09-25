@@ -34,7 +34,8 @@ namespace Saga.Dungeon.Data
         // 세이브는 두 필드가 0 으로 채워져 "아직 안 들어감"과 같은 뜻이 된다.
         // v10 — PLAN.md 108 ③ 명소 층 주인 토벌 수(LandmarkState). v9 이하는 null → 전부 0("아직 안 잡음").
         // v11 — PLAN.md 109-10 비결(SecretState, 웹 §5.9 `save.secrets`). 무예 셋 순서 정수, v10 이하는 null → 전부 없음.
-        private const int SaveVersion = 11;
+        // v12 — PLAN.md 109-10-3 시련(TrialState, 웹 §5.11 `trial = {best, open, runs, board}`). v11 이하는 0/0/0/null → 열린 단계 1.
+        private const int SaveVersion = 12;
 
         private static string SavePath => Path.Combine(Application.persistentDataPath, "save_dungeon.json");
 
@@ -69,6 +70,10 @@ namespace Saga.Dungeon.Data
             public int templeFlags; // v9 — (int)TempleState.Flags, 비트 순서는 TempleFlag 주석 참고.
             public int[] landmarkClears; // v10 — LandmarkState.Snapshot(), DungeonLandmarkData.All 순서.
             public int[] secrets; // v11 — SecretState.Snapshot(), SecretMove 순서(평타·강공격·회전베기).
+            public int trialBest; // v12 — TrialState 넷.
+            public int trialOpen;
+            public int trialRuns;
+            public TrialState.Entry[] trialBoard;
         }
 
         public static bool Save()
@@ -103,6 +108,10 @@ namespace Saga.Dungeon.Data
                 templeFlags = (int)TempleState.Flags,
                 landmarkClears = LandmarkState.Snapshot(),
                 secrets = SecretState.Snapshot(),
+                trialBest = TrialState.Best,
+                trialOpen = TrialState.Open,
+                trialRuns = TrialState.Runs,
+                trialBoard = TrialState.SnapshotBoard(),
             };
 
             try
@@ -140,6 +149,8 @@ namespace Saga.Dungeon.Data
 
             HeroState.Restore(data.level, data.exp, data.hp, data.gold, data.weaponId, data.gemId);
             SecretState.Restore(data.version >= 11 ? data.secrets : null); // 레벨 뒤(모자라면 없는 것으로 읽는다).
+            if (data.version >= 12) TrialState.Restore(data.trialBest, data.trialOpen, data.trialRuns, data.trialBoard);
+            else TrialState.Restore(0, 1, 0, null);
             BestiaryState.Restore(data.discovered);
             if (data.version >= 4)
             {

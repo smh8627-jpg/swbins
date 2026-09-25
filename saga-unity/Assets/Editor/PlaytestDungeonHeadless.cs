@@ -137,6 +137,7 @@ namespace Saga.EditorTools
                 if (!PlaytestDungeonEras.Run()) _hadError = true; // PLAN.md 109-2 세 시대 — 층·도감·자리를 되돌린다.
                 if (!PlaytestDungeonEraDecor.Run()) _hadError = true; // PLAN.md 109-2b 명소 층·마을 꾸밈 시대 층 — 층·자리를 되돌린다.
                 if (!PlaytestDungeonSecrets.Run()) _hadError = true; // PLAN.md 109-10 비결·빛기둥 — 영웅·비결·다른 적을 되돌린다.
+                if (!PlaytestDungeonTrial.Run()) _hadError = true; // PLAN.md 109-10-3 시련 — 시련 기록·영웅·자리를 되돌린다.
                 CheckTemple(); // PLAN.md 106-2 — 플레이어를 순간이동시키므로 맨 끝(finally 에서 되돌린다).
                 StartCutCameraProbe(); // PLAN.md 106-3 — 6·8프레임째에 이어서 본다.
             }

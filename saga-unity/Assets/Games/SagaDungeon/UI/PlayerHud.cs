@@ -59,6 +59,10 @@ namespace Saga.Dungeon.UI
             string temple = TempleState.HudLine();
             if (temple.Length > 0) label.text += $"\n{temple}";
 
+            // PLAN.md 109-10-3 시련 — 단계·남은 시간(1분 미만 붉게)·진척 또는 수호자.
+            string trial = TrialRunner.HudLine();
+            if (trial.Length > 0) label.text += $"\n{trial}";
+
             // PLAN.md 101-2 5.4 "월드 보스" — 75초 두목전이 진행 중일 때만 카운트다운을 얹는다.
             var worldBoss = DungeonEnemy.ActiveWorldBoss;
             if (worldBoss != null)
