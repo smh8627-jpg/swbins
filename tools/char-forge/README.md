@@ -1,6 +1,6 @@
 # char-forge — 자체 인물 공방 (VRoid·Mixamo 대체)
 
-> 상태: **saga-godot 몸 = VRoid 직접 디자인으로 확정(D4, 2026-09-25)**. 공방 툰 몸(`_cmp_*`)은 얼굴이 원신풍 애니가 아니라 쓰지 않는다. 이 도구는 VRoid 주역에 CC0 동작·얼굴 굽기·게임 배선을 맡는다(§10 `vroid_intake.sh`). saga-unity(사실풍)는 단계 3(MakeHuman 사실 몸, `build_real.py`) — 첫 비교 몸 `_cmp_real_hero_f_01` 과 비교 장면 빌더까지 됐고 사람 판정을 기다린다(2026-09-25).
+> 상태(2026-09-25 저녁): **saga-godot 몸 = VRoid 직접 디자인(D4)** — 이 도구는 VRoid 주역에 CC0 동작·얼굴 굽기·게임 배선을 맡는다(§10 `vroid_intake.sh`, 사람이 `.vrm` 을 Downloads 에 둘 때). **saga-unity(사실풍) = 단계 3 `build_real.py`** — Mixamo 괴물 자리 전부(Goblin·Brute·Warrok·Parasite·Nightshade·Hulk·Jolleen·Skeleton)와 동행 셋(Paladin·PeasantGirl·Archer)에 공방 후보가 있고, 비교 장면 `Saga/Char Forge/Build Compare Real Scene` 짝 열둘 `CMP_RESULT OK`, **사람 판정 전**(saga-unity `docs/HOW_TO_PLAYTEST.md` §9). **새 세션 다음 일**: ① 판정이 나온 짝부터 게임 몸 교체(`SetupNpcCharacterImports`·`SetupForestCreatureModels` 가 공방 FBX 를 받게) · ② 판정이 없으면 남은 사람 NPC 를 `shell` 로 — 두목(Maw·Ganfaul·Ninja·Demon·AlienSoldier·Morak), 세 시대 잡졸(GasMask·Copzombie·ExoRed·Brian·XBot·Swat·YBot·Boss·Zlorp), 역참 사람(Remy·Megan·SwatGuy·ExoGray·Vanguard·Crypto), 짝마다 비교 장면에 더하고 같은 점검(verify·결정성·뚫림·CMP) · ③ 동작 빈칸(등반·활공·방패 막기 — 자체 키프레임, §4). 실기 확인은 재촉하지 않는다.
 > `SAGA-DESIGN.md` 는 여기를 가리키기만 한다. `tools/asset-forge` 처럼 **빌드 도구는 공유**(게임 코드 공유 금지와는 별개).
 
 ## 1. 왜
