@@ -9117,3 +9117,4 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - 검증: 씬 재빌드 exit 0(모델 빠짐 경고 0) · `PlaytestDungeonHeadless` **3연속 OK**(결과 줄 md5 같음, "조각 69·다른 시대 41 % 마을 조각 23(최대 255k) 명소 조각 48(최대 102k)") · `PlaytestDungeonFloorProgression` OK.
 - 109-2 끝 → 다음 = 109-3 STORY 세 시대.
 - 실기 확인 전: 잔해 크기·청록 세기·도는 속도가 벽 4m 방에서 과한지, 업화 대문 덮개 차(3.5m)·방호벽 어울림, 카메라가 떠 있는 잔해에 가리는지.
+- **뒤이어 GO 도 바로잡음**: `BuildTestVillageScene.Build` 로 다시 굽고 `Go_GuardianIntro.playable` 을 `TestVillage.unity` 와 같이 커밋(씬 바인딩 4 → 타임라인에 전부 있음). GO `PlaytestHeadless` **3연속 OK**(수호장 등장 컷 브레인·이름표·포효 포함). 중간에 다른 세션(char-forge) 배치 Unity 가 라이선스 뮤텍스를 쥐고 있어 첫 세 번은 시작도 못 함 — 끄지 않고 끝나길 기다렸다가 돌렸다. STORY 두 컷은 HEAD 에서 이미 맞아 손대지 않음.

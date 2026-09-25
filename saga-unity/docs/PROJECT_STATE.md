@@ -55,7 +55,7 @@ Maria·Abe·Brute + Skeleton·Paladin·PeasantMan·PeasantGirl·Archer·두목 M
 | 컴파일·씬 재빌드 | exit 0(GO·DUNGEON 2026-09-25), 영속 리스너 32·17·10·39(09-23) |
 | `PlaytestStorySlice` | **3연속 OK(2026-09-25, 두목 Morak 뒤)** — `PlaytestStoryCompanions`·`PlaytestStorySummon`·`PlaytestStoryBossIntro`·`CheckOutfitTint`·`CheckUpperTiersAndPins`·`CheckPromotionAndSchools`·`CheckButtonWiring`(진짜 onClick)·`CheckJobSkills`·무예 세이브 왕복·옛 형식 로드 |
 | `PlaytestDungeonHeadless` | **3연속 OK(2026-09-25, 꾸밈 시대 층 뒤)** — EraDecor·Eras·Landmarks·BossIntro·Party·Explore·NpcModels·Temple(+컷)·LockOn·EnemyTelegraph. 같은 씬 `FloorProgression` OK |
-| GO `PlaytestHeadless` | **3연속 OK(2026-09-25, 세 시대 뒤)** — `PlaytestGo` Eras·RegionProps·RegionTraits·RegionMission(v16/v15)·Guardian·SlopesBiome·PartyBodies·ElementalFoe·Treasure·WorldMap(v16/v13)·Traversal·FieldCombat (항목은 각 파일 요약 주석) |
+| GO `PlaytestHeadless` | **3연속 OK(2026-09-25, 수호장 컷 바인딩 바로잡은 뒤)** — `PlaytestGo` Eras·RegionProps·RegionTraits·RegionMission(v16/v15)·Guardian·SlopesBiome·PartyBodies·ElementalFoe·Treasure·WorldMap(v16/v13)·Traversal·FieldCombat (항목은 각 파일 요약 주석) |
 | `PlaytestForestHeadless` | **3연속 OK(2026-09-24, 존 소품 뒤)** — `PlaytestForestZones`·`ZoneProps` 포함 · `PlaytestForestCreatures` 3연속(models 8/8, 씨앗 고정) · Finish·Furniture·HouseTransition OK |
 | REALM 헤드리스 | **4연속 OK(2026-09-23)** — `CheckButtonWiring`(네 판 공통) |
 | GUI 실제 Play | GO 라이팅·Maria 동작·Dungeon 카메라(yaw=180)·SSS(Intensity=15) |
