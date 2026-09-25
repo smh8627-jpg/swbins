@@ -27,6 +27,7 @@ const CHEST := Color(1.0, 0.78, 0.3)
 const SHARD := Color(0.55, 0.9, 1.0)
 const WAYPOINT := Color(0.85, 0.95, 1.0)
 const ENEMY := Color(1.0, 0.36, 0.3)
+const TARGET := Color(1.0, 0.95, 0.8)
 const TRAIL := Color(0.75, 0.95, 1.0)
 
 const SCREEN_SHADER := """
@@ -186,6 +187,8 @@ func rescan() -> void:
 		_add(p, cp + Vector3.UP * 0.5, CHEST, "chest")
 		for t in c.call("unlit_torches"):
 			_add(p, t.pos + Vector3.UP * 1.3, Elements.color_of(t.element), "torch")
+		for tp in c.call("unhit_targets"): # 106장 ㊵ 아직 안 맞힌 과녁
+			_add(p, tp, TARGET, "target")
 	## 이야기 seal(106장 ㉚) — 다음 차례 석등만(흔적 후보는 아님, 금빛 기둥이 제단을 이미 짚는다).
 	var story := get_tree().get_first_node_in_group("go_story")
 	if story:

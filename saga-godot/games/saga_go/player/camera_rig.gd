@@ -61,6 +61,53 @@ var _return_left := 0.0
 var _return_from := Transform3D()
 var _return_from_len := 0.0
 
+## PLAN 106장 ㊵ — 활 조준 시점(combat/aimed_shot.gd 가 set_aim). 오른 어깨 너머 AIM_OFFSET 에서 AIM_LEN 뒤,
+## 화각을 AIM_FOV 로 좁힌다. 위아래는 AIM_PITCH_DOWN~AIM_PITCH_UP(위로도 쏘게), 마우스·끌기는 AIM_LOOK_MUL 배로 곱게.
+## 터치는 조준 중에 어느 손가락으로 끌어도(공격 단추를 누른 채 다른 손가락으로) 돈다. 끝나면 옛 팔 길이·화각으로.
+const AIM_LEN := 2.4
+const AIM_OFFSET := Vector3(0.62, 0.55, 0.0)
+const AIM_FOV := 40.0
+const AIM_PITCH_DOWN := -60.0
+const AIM_PITCH_UP := 50.0
+const AIM_LOOK_MUL := 0.6
+const AIM_BLEND := 12.0
+var aiming := false
+var _pre_aim_len := DEFAULT_ZOOM
+var _base_fov := 50.0
+
+func set_aim(on: bool) -> void:
+	if on == aiming:
+		return
+	aiming = on
+	var cam := spring_arm.get_node("Camera3D") as Camera3D
+	var body := get_parent() as CollisionObject3D
+	if on:
+		_pre_aim_len = spring_arm.spring_length
+		_base_fov = cam.fov
+		if body:
+			spring_arm.add_excluded_object(body.get_rid())
+	else:
+		rotation_degrees.x = clamp(rotation_degrees.x, -MAX_PITCH, LOOK_UP_PITCH)
+		if body and not _talk_on:
+			spring_arm.remove_excluded_object(body.get_rid())
+
+func _process_aim(delta: float) -> void:
+	var cam := spring_arm.get_node("Camera3D") as Camera3D
+	var k := 1.0 - exp(-AIM_BLEND * delta)
+	var want_len := AIM_LEN if aiming else _pre_aim_len
+	var want_off := AIM_OFFSET if aiming else Vector3.ZERO
+	var want_fov := AIM_FOV if aiming else _base_fov
+	spring_arm.spring_length = lerpf(spring_arm.spring_length, want_len, k)
+	spring_arm.position = spring_arm.position.lerp(want_off, k)
+	cam.fov = lerpf(cam.fov, want_fov, k)
+	if not aiming and spring_arm.position.length() < 0.01:
+		spring_arm.position = Vector3.ZERO
+		spring_arm.spring_length = _pre_aim_len
+		cam.fov = _base_fov
+
+func _aim_settled() -> bool:
+	return not aiming and spring_arm.position == Vector3.ZERO
+
 func _ready() -> void:
 	spring_arm.spring_length = DEFAULT_ZOOM
 	rotation_degrees.x = -35.0
@@ -73,6 +120,8 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if mouse_look:
 		_update_capture()
+	if not _aim_settled():
+		_process_aim(delta)
 	if _talk_on or _return_left > 0.0:
 		_process_talk(delta)
 	elif Time.get_ticks_msec() < _shake_until_msec:
@@ -195,7 +244,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			_begin_drag(st.pressed, st.position)
 	elif event is InputEventScreenDrag:
 		var sd := event as InputEventScreenDrag
-		if sd.index == 0:
+		if aiming:
+			_aim_turn(sd.relative * (ROTATE_SPEED / LOOK_SPEED))
+		elif sd.index == 0:
 			_apply_drag(sd.relative, sd.position)
 
 func _begin_drag(pressed: bool, pos: Vector2) -> void:
@@ -216,6 +267,9 @@ func _apply_drag(relative: Vector2, pos: Vector2) -> void:
 func _look_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		var rel := (event as InputEventMouseMotion).relative
+		if aiming:
+			_aim_turn(rel)
+			return
 		rotate_y(-rel.x * LOOK_SPEED)
 		rotation_degrees.x = clamp(rotation_degrees.x - rel.y * LOOK_SPEED * 57.3, -MAX_PITCH, LOOK_UP_PITCH)
 	elif event is InputEventMouseButton:
@@ -230,5 +284,12 @@ func _look_input(event: InputEvent) -> void:
 	elif event is InputEventKey and (event as InputEventKey).pressed and (event as InputEventKey).keycode == KEY_ESCAPE:
 		_look_released = true
 
+## 조준 중 돌리기 — rel 은 마우스 픽셀 단위(LOOK_SPEED 기준).
+func _aim_turn(rel: Vector2) -> void:
+	rotate_y(-rel.x * LOOK_SPEED * AIM_LOOK_MUL)
+	rotation_degrees.x = clamp(rotation_degrees.x - rel.y * LOOK_SPEED * AIM_LOOK_MUL * 57.3, AIM_PITCH_DOWN, AIM_PITCH_UP)
+
 func _zoom(delta: float) -> void:
+	if aiming:
+		return
 	spring_arm.spring_length = clamp(spring_arm.spring_length + delta, MIN_ZOOM, MAX_ZOOM)

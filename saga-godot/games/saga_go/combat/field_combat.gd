@@ -9,6 +9,7 @@ extends Node
 ##   Q                원소 폭발 — 그 인물의 기력 100 을 모아 큰 한 방 + 남는 효과
 ##   Shift / 오른쪽 / L  대시(회피) — 무적 0.3초, 스태미나 15 (Shift 는 계속 누르면 달리기)
 ##   1~4              인물 교체 — 나 + 등용한 동료 앞 셋(쿨 1초). 인물마다 원소가 정해져 있다
+##   R                활 조준 켜고 끔(106장 ㊵, combat/aimed_shot.gd) — 활 인물은 공격을 길게 눌러도 조준 사격
 ## 체력·기력은 인물마다 따로(원신과 같다). 지금 인물이 쓰러지면 다음 인물로 저절로 바뀌고,
 ## 다 쓰러지면 마지막으로 딛은 땅에서 모두 가득 차서 일어난다. 명단에 같은 원소가 둘 이상이면
 ## 원소 공명(화 공격 +25% · 수 최대 체력 +25% · 뇌 기력 +50%). 공격·방어·체력은 인물마다 레벨·돌파로
@@ -30,6 +31,7 @@ const Growth := preload("res://games/saga_go/data/growth.gd")
 const Weapons := preload("res://games/saga_go/data/weapons.gd")
 const Kits := preload("res://games/saga_go/data/kits.gd")
 const FieldEnemy := preload("res://games/saga_go/combat/field_enemy.gd")
+const AimedShot := preload("res://games/saga_go/combat/aimed_shot.gd")
 
 const COMBO_MUL := [0.35, 0.4, 0.6]
 const COMBO_SEC := [0.32, 0.32, 0.45]
@@ -200,6 +202,9 @@ var shield_element := ""
 var _shield_t := 0.0
 var _heavy := false # 지금 치는 게 강공격·낙하·양손검인가(쇄빙)
 var _crit_id := "" # 지금 치는 인물(치명타 굴림) — 비었으면 치명타 없음(점검이 _deal 을 바로 부를 때)
+var force_crit := false # 106장 ㊵ 급소 화살 — 이 한 방은 반드시 치명타
+var aim: Node = null # 106장 ㊵ 활 조준 사격(combat/aimed_shot.gd)
+var _aim_hint: Label = null
 var _rng := RandomNumberGenerator.new()
 var _hud: Control = null
 var _hp_bar: ProgressBar = null
@@ -218,12 +223,15 @@ func _ready() -> void:
 	_ensure_actions()
 	PartyState.power_changed.connect(func(_a: float, _d: float) -> void: _refresh_hud())
 	_build_hud()
+	aim = AimedShot.new()
+	aim.name = "AimedShot"
+	add_child(aim)
 	_refresh_hud()
 
 ## 새 입력 액션·키는 project.godot 를 고치지 않고 여기서 등록한다(GO 만 — 다른 판엔 안 샌다).
 ## 106장 ⑧: 원신 PC 배치(마우스 왼쪽 공격·E 스킬·오른쪽 대시)를 옛 J/K/L 옆에 더한다.
 func _ensure_actions() -> void:
-	var keys := {"combat_burst": KEY_Q, "party_1": KEY_1, "party_2": KEY_2, "party_3": KEY_3, "party_4": KEY_4}
+	var keys := {"combat_burst": KEY_Q, "go_aim": KEY_R, "party_1": KEY_1, "party_2": KEY_2, "party_3": KEY_3, "party_4": KEY_4}
 	for action in keys:
 		if InputMap.has_action(action):
 			continue
@@ -398,30 +406,60 @@ func _mouse_blocked(event: InputEvent) -> bool:
 		return false
 	return Input.mouse_mode != Input.MOUSE_MODE_CAPTURED
 
+const INPUT_ACTIONS := ["combat_quick", "combat_ult", "combat_burst", "combat_dodge", "go_aim", "party_1", "party_2", "party_3", "party_4"]
+
 func _unhandled_input(event: InputEvent) -> void:
 	if _duel_open() or _player == null or _player.get("frozen") or _mouse_blocked(event):
 		return
-	if event.is_action_pressed("combat_quick"):
-		press_attack()
-	elif event.is_action_released("combat_quick"):
-		_charge_armed = false
-	elif event.is_action_pressed("combat_ult"):
-		skill()
-	elif event.is_action_pressed("combat_burst"):
-		burst()
-	elif event.is_action_pressed("combat_dodge"):
-		_player.call("start_dodge")
-	for i in ROSTER_MAX:
-		if event.is_action_pressed("party_%d" % (i + 1)):
-			switch_to(i)
+	for action in INPUT_ACTIONS:
+		if event.is_action_pressed(action):
+			_act(action, true)
+			return
+		if event.is_action_released(action):
+			_act(action, false)
+			return
 
-## 공격 단추를 눌렀을 때 — 공중이면 낙하 공격, 아니면 기본 공격 한 타 + 강공격 대기.
+## 키·마우스(_unhandled_input)와 터치 단추가 같이 쓰는 입구. 터치 단추가 예전엔 Input.action_press 만 불러
+## _unhandled_input 이 안 불렸다(그 함수는 입력 이벤트를 만들지 않는다) — 폰에서 공격·스킬·폭발·대시가 안 먹던 까닭.
+func _act(action: String, pressed: bool) -> void:
+	if _duel_open() or _player == null or _player.get("frozen"):
+		return
+	match action:
+		"combat_quick":
+			if pressed:
+				press_attack()
+			else:
+				release_attack()
+		"combat_ult":
+			if pressed:
+				skill()
+		"combat_burst":
+			if pressed:
+				burst()
+		"combat_dodge":
+			if pressed:
+				_player.call("start_dodge")
+		"go_aim":
+			if pressed:
+				aim.toggle()
+		_:
+			if pressed and action.begins_with("party_"):
+				switch_to(int(action.substr(6)) - 1)
+
+## 공격 단추를 눌렀을 때 — 공중이면 낙하 공격, 조준 중이면 충전, 아니면 기본 공격 한 타 + 강공격 대기.
 func press_attack() -> bool:
+	if aim.active:
+		return aim.begin_charge()
 	if _player.call("start_plunge"):
 		return true
 	_charge_armed = true
 	_charge_hold = 0.0
 	return attack()
+
+## 공격 단추를 뗌 — 강공격 대기를 풀고, 조준 충전 중이면 쏜다(106장 ㊵).
+func release_attack() -> bool:
+	_charge_armed = false
+	return aim.release()
 
 func _physics_process(delta: float) -> void:
 	_combo_link = maxf(_combo_link - delta, 0.0)
@@ -458,7 +496,9 @@ func _physics_process(delta: float) -> void:
 		_charge_hold += delta
 		if _charge_hold >= CHARGE_SEC:
 			_charge_armed = false
-			charged_attack()
+			## 106장 ㊵ — 활의 강공격은 조준 사격(길게 누른 채 조준으로 들어가 떼면 쏜다).
+			if not (Weapons.type_of(active_id()) == "bow" and aim.enter(true)):
+				charged_attack()
 	_since_hurt += delta
 	if _burn_left > 0 and hp > 0.0:
 		_burn_t -= delta
@@ -504,6 +544,14 @@ func attack() -> bool:
 			_shot_fx(e.global_position, Elements.color_of(el) if el != "" else Color(0.95, 0.9, 0.7))
 			_deal(e, amount, el, e.global_position - _player.global_position)
 			hits = 1
+		else:
+			## 106장 ㊵ — 둘레에 적이 없으면 사거리 안 가장 가까운 과녁을 친다(과녁 퍼즐을 법구로도).
+			var t := nearest_target(float(kit.range))
+			if t:
+				_player.call("face_toward", t.global_position)
+				var tel := active_element() if kit.get("elemental", false) else _normal_el()
+				_shot_fx(t.call("center") - Vector3.UP * 0.8, Elements.color_of(tel) if tel != "" else Color(0.95, 0.9, 0.7))
+				t.call("strike", tel)
 	else:
 		_heavy = kit.get("heavy", false)
 		hits = _hit_front(float(kit.reach), float(kit.arc), amount, _normal_el())
@@ -1054,6 +1102,20 @@ func _nearest(pos: Vector3, radius: float, count: int) -> Array:
 		return a.global_position.distance_squared_to(pos) < b.global_position.distance_squared_to(pos))
 	return list.slice(0, count)
 
+## 106장 ㊵ 아직 안 켜진 과녁 중 가장 가까운 것(적 셈과 같게 높이는 반만 친다) — 없으면 null.
+func nearest_target(radius: float) -> Node3D:
+	var best: Node3D = null
+	var best_d := radius
+	for t in get_tree().get_nodes_in_group("shoot_target"):
+		if t.call("is_lit"):
+			continue
+		var d: Vector3 = (t.call("center") as Vector3) - (_player.global_position + Vector3.UP * 1.2)
+		d.y *= 0.5
+		if d.length() <= best_d:
+			best_d = d.length()
+			best = t
+	return best
+
 func _enemies_near(pos: Vector3, radius: float) -> Array:
 	var out: Array = []
 	for e in get_tree().get_nodes_in_group("field_enemy"):
@@ -1174,6 +1236,8 @@ func _dmg_bonus(element: String) -> float:
 func _crit_roll() -> float:
 	if _crit_id == "":
 		return 1.0
+	if force_crit: # 106장 ㊵ 급소를 맞힌 화살
+		return 1.0 + PartyState.crit_dmg(_crit_id)
 	if _rng.randf() < PartyState.crit_rate(_crit_id):
 		return 1.0 + PartyState.crit_dmg(_crit_id)
 	return 1.0
@@ -1423,7 +1487,8 @@ func _build_hud() -> void:
 	_hud.add_child(_roster_box)
 
 	if DisplayServer.is_touchscreen_available():
-		var specs := [["공격", "combat_quick", -170], ["스킬", "combat_ult", -300], ["폭발", "combat_burst", -430], ["대시", "combat_dodge", -560]]
+		## [글자, 동작, 오른쪽 끝 x, 위 y] — 106장 ㊵ "조준"은 공격 단추 바로 위(활 인물일 때만 보임).
+		var specs := [["공격", "combat_quick", -170, -300], ["스킬", "combat_ult", -300, -300], ["폭발", "combat_burst", -430, -300], ["대시", "combat_dodge", -560, -300], ["조준", "go_aim", -170, -430]]
 		for sp in specs:
 			var b := Button.new()
 			b.text = sp[0]
@@ -1434,16 +1499,32 @@ func _build_hud() -> void:
 			b.anchor_bottom = 1.0
 			b.offset_left = sp[2] - 110
 			b.offset_right = sp[2]
-			b.offset_top = -300
-			b.offset_bottom = -190
+			b.offset_top = sp[3]
+			b.offset_bottom = sp[3] + 110
 			var action: String = sp[1]
-			b.button_down.connect(func(): Input.action_press(action))
-			b.button_up.connect(func(): Input.action_release(action))
+			b.button_down.connect(func(): _act(action, true))
+			b.button_up.connect(func(): _act(action, false))
 			_hud.add_child(b)
 			_touch_buttons[action] = b
 	else:
 		_skill_orb = _orb("E", -196)
 		_burst_orb = _orb("Q", -108)
+		## 106장 ㊵ — 활 인물일 때만 "R 조준".
+		_aim_hint = Label.new()
+		_aim_hint.text = "R 조준"
+		_aim_hint.anchor_left = 1.0
+		_aim_hint.anchor_right = 1.0
+		_aim_hint.anchor_top = 1.0
+		_aim_hint.anchor_bottom = 1.0
+		_aim_hint.offset_left = -284
+		_aim_hint.offset_right = -204
+		_aim_hint.offset_top = -96
+		_aim_hint.offset_bottom = -70
+		_aim_hint.add_theme_font_size_override("font_size", 15)
+		_aim_hint.add_theme_constant_override("outline_size", 5)
+		_aim_hint.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+		_aim_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_hud.add_child(_aim_hint)
 
 func _orb(key: String, x: float) -> Orb:
 	var o := Orb.new()
@@ -1547,6 +1628,13 @@ func _refresh_hud() -> void:
 		_burst_orb.glow = energy >= ENERGY_MAX
 		_burst_orb.sub_text = "" if energy >= ENERGY_MAX else "%d%%" % int(energy)
 		_burst_orb.queue_redraw()
+	var bow := Weapons.type_of(active_id()) == "bow"
+	if _aim_hint:
+		_aim_hint.visible = bow
+		_aim_hint.text = "R 조준 끝" if aim and aim.active else "R 조준"
+	if _touch_buttons.has("go_aim"):
+		(_touch_buttons.go_aim as Button).visible = bow
+		(_touch_buttons.go_aim as Button).text = "조준 끝" if aim and aim.active else "조준"
 	if _touch_buttons.has("combat_ult"):
 		(_touch_buttons.combat_ult as Button).text = "스킬" if cd <= 0.0 else "%.1f" % cd
 		(_touch_buttons.combat_burst as Button).text = "폭발!" if energy >= ENERGY_MAX else "폭발 %d%%" % int(energy)

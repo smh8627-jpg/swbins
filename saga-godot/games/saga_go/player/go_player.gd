@@ -113,6 +113,7 @@ var _updraft_vy := 0.0
 var _updraft_skip := false
 const UPDRAFT_MIN_CLEARANCE := 1.0 # 이보다 낮은 턱에서 발이 떨어진 건 활공으로 안 친다
 var combat: Node = null
+var aiming := false # 106장 ㊵ 활 조준 중(combat/aimed_shot.gd 가 켜고 끈다)
 
 var _glider: MeshInstance3D = null
 var _ring: StaminaRing = null
@@ -189,6 +190,9 @@ func _tick_ground(delta: float, move_dir: Vector3) -> void:
 	## 계속 누르고 있으면 그대로 달리기.
 	if Input.is_action_just_pressed("run") and start_dodge():
 		return
+	## 106장 ㊵ 조준 중엔 제자리(방향은 aimed_shot.gd 가 카메라 쪽으로 돌린다).
+	if aiming:
+		move_dir = Vector3.ZERO
 	var running := Input.is_action_pressed("run") and not _exhausted and stamina > 0.0 and move_dir.length() > 0.05
 	var speed := (RUN_SPEED if running else WALK_SPEED) * speed_mult
 	if _action_t > 0.0:
@@ -467,6 +471,10 @@ func respawn_safe() -> void:
 ## 땅이나 공중(점프 중)일 때만 싸운다 — 등반·활공·수영 중엔 안 된다(원신과 같다).
 func can_act() -> bool:
 	return mode == Mode.GROUND or mode == Mode.AIR
+
+## 106장 ㊵ 활 조준 — 땅에 서서만(대시·낙하 중엔 풀린다).
+func can_aim() -> bool:
+	return mode == Mode.GROUND and _dodge_t <= 0.0 and not _plunge and is_on_floor()
 
 func start_dodge() -> bool:
 	if mode != Mode.GROUND or _dodge_t > 0.0 or stamina < DODGE_COST:

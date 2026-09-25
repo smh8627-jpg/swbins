@@ -4,7 +4,7 @@ extends Node
 ##
 ##   SAGA_TREASURE_PROBE=1 "$GODOT" --headless --path saga-godot res://games/saga_go/world/TestVillage.tscn
 ##
-## ① 상자 16·등급 분포·봉인 5 ② 자리 높이(정교 = 산 턱 9m+, 나머지 = 땅) ③ 걸어 다가가면 열림
+## ① 상자 18(106장 ㊵ 과녁 둘 포함)·등급 분포·봉인 7 ② 자리 높이(정교 = 산 턱 9m+, 나머지 = 땅) ③ 걸어 다가가면 열림
 ## →경험치·EventState ④ 무리 잠금: 봉인 중엔 안 열림 → 무리 전멸 뒤 풀림 ⑤ 석등: 먼 곳·다른
 ## 원소는 안 켜짐, 시간이 지나면 꺼짐, 셋 다 켜면 풀림 ⑥ 실제 원소 스킬(K)이 석등을 켬
 ## ⑦ 다시 지으면 연 상자는 안 생김. 저장은 안 한다.
@@ -38,13 +38,13 @@ func _physics_process(_delta: float) -> void:
 				by_grade[c.grade] = by_grade.get(c.grade, 0) + 1
 				if c.sealed:
 					sealed += 1
-			var ok: bool = chests.size() == 16 and by_grade.get("common", 0) == 7 and by_grade.get("exquisite", 0) == 4 \
-				and by_grade.get("precious", 0) == 3 and by_grade.get("luxurious", 0) == 2 and sealed == 5
+			var ok: bool = chests.size() == 18 and by_grade.get("common", 0) == 7 and by_grade.get("exquisite", 0) == 5 \
+				and by_grade.get("precious", 0) == 4 and by_grade.get("luxurious", 0) == 2 and sealed == 7
 			_check("chest_count", ok, "n=%d grades=%s sealed=%d" % [chests.size(), by_grade, sealed])
 			var bad: Array = []
 			for c in chests:
 				var y: float = (c as Node3D).global_position.y
-				if c.grade == "exquisite":
+				if c.grade == "exquisite" and c.lock != "target": # 106장 ㊵ 과녁 상자는 모래밭
 					if y < 9.0:
 						bad.append("%s y=%.1f" % [c.chest_id, y])
 				elif y < -0.6 or y > 2.5:
@@ -117,7 +117,7 @@ func _physics_process(_delta: float) -> void:
 			add_child(sp)
 			var n := sp.get_child_count()
 			sp.free()
-			_check("persist_skip", n == 14 and TreasureSpawner.opened_count() == 2, "rebuilt=%d opened=%d" % [n, TreasureSpawner.opened_count()])
+			_check("persist_skip", n == 16 and TreasureSpawner.opened_count() == 2, "rebuilt=%d opened=%d" % [n, TreasureSpawner.opened_count()])
 			_next()
 		6:
 			print("TREASURE_PROBE_DONE fails=%d" % _fails)

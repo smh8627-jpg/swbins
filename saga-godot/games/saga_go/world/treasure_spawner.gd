@@ -1,6 +1,6 @@
 extends Node3D
 
-## PLAN 106장 ⑥ — 세 지역에 보물 상자 16개. 원신 들판처럼 "걷다 보면 눈에 띄는 것"
+## PLAN 106장 ⑥ — 세 지역에 보물 상자 16개(㊵ 과녁 잠금 둘을 더해 18). 원신 들판처럼 "걷다 보면 눈에 띄는 것"
 ## (평범) · "올라가야 닿는 것"(정교, 산 테두리 턱) · "무리를 쓸어야 풀리는 것"(적 무리 옆)
 ## · "원소로 푸는 것"(석등)을 섞었다. 자리는 글자 지도 칸(소수 = 칸 안 위치) — 칸 가운데를
 ## 쓰는 사건·발견 지점과 비껴 놓았다. test_village.gd 가 SaveState 로드와 FieldSpawner
@@ -11,7 +11,7 @@ const TerrainBuilder := preload("res://games/saga_go/world/terrain_builder.gd")
 const TreasureChest := preload("res://games/saga_go/world/treasure_chest.gd")
 const Toast := preload("res://saga_core/ui/toast.gd")
 
-## [id, 지역, 칸(소수 — 반올림한 정수 칸 안, 가운데에서 소수만큼 비킴), 등급, 잠금, 석등 원소]
+## [id, 지역, 칸(소수 — 반올림한 정수 칸 안, 가운데에서 소수만큼 비킴), 등급, 잠금, 석등 원소 또는 과녁(target)]
 const CHESTS := [
 	## 마을 11×11
 	["v_forest_w", "village", Vector2(1.2, 3.3), "common", "none", []],
@@ -26,11 +26,14 @@ const CHESTS := [
 	["c_sand_e", "coast", Vector2(6.5, 4.3), "common", "none", []],
 	["c_ridge_s", "coast", Vector2(4.0, 7.62), "exquisite", "none", []],      # 남쪽 테두리 산 턱, 22~30m
 	["c_camp_wolf", "coast", Vector2(2.05, 6.05), "precious", "camp", []],    # 들판 무리 (2,6) 늑대 둘
+	## 106장 ㊵ 과녁 — 여섯째 칸이 과녁 [각도°(0 = 남쪽 +Z), 상자에서 m, 판 높이 m, 흔들림 m]
+	["c_target_dune", "coast", Vector2(5.6, 5.4), "exquisite", "target", [[0, 9.0, 3.0, 0.0], [120, 11.0, 5.5, 0.0], [240, 10.0, 8.0, 0.0]]],
 	## 폐허 7×7
 	["r_floor_sw", "ruins", Vector2(1.4, 5.4), "common", "none", []],
 	["r_floor_ne", "ruins", Vector2(4.7, 1.3), "common", "none", []],
 	["r_ridge_e", "ruins", Vector2(5.62, 3.0), "exquisite", "none", []],      # (6,3) 동쪽 테두리 산 턱
 	["r_torch_fire", "ruins", Vector2(3.0, 4.0), "precious", "torch", ["fire", "fire", "fire"]], # 주인공 혼자서도
+	["r_target_court", "ruins", Vector2(3.9, 5.2), "precious", "target", [[60, 9.0, 4.0, 0.0], [180, 10.0, 6.5, 0.0], [300, 11.0, 5.0, 2.5]]], # 셋째는 떠서 오간다
 	["r_camp_bandit", "ruins", Vector2(2.05, 2.05), "luxurious", "camp", []], # 들판 무리 (2,2) 도적 셋
 ]
 

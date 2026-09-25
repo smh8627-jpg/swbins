@@ -4,6 +4,7 @@ extends Node3D
 ##   grade: common(평범) · exquisite(정교) · precious(진귀) · luxurious(화려)
 ##   lock : none(그냥 열림) · camp(둘레 적 무리를 한꺼번에 다 쓰러뜨리면 봉인이 풀림)
 ##          · torch(석등마다 정해진 원소를 원소 스킬·폭발로 밝히고, 다 켜져 있는 동안 풀림)
+##          · target(106장 ㊵ — 둘레 과녁을 TARGET_SEC 안에 다 맞히면 풀림, world/shoot_target.gd)
 ## 다가가면 저절로 열린다(모바일에 새 버튼이 필요 없게). 연 상자는 EventState 에
 ## "chest_<id>" 로 남아 저장·재실행 뒤에도 되살아나지 않는다(원신 상자처럼 한 번뿐).
 ## 보상은 이 판 유일한 재화인 경험치(party_state.gd 헤더) — 새 경제를 만들지 않는다.
@@ -16,6 +17,7 @@ const Elements := preload("res://games/saga_go/combat/elements.gd")
 const Toast := preload("res://saga_core/ui/toast.gd")
 const Growth := preload("res://games/saga_go/data/growth.gd")
 const Weapons := preload("res://games/saga_go/data/weapons.gd")
+const ShootTarget := preload("res://games/saga_go/world/shoot_target.gd")
 
 const GRADES := {
 	"common": {"name": "평범한 상자", "exp": 5.0, "scale": 1.0,
@@ -40,6 +42,8 @@ const TORCH_SEC := 20.0
 const TORCH_RING := 6.0
 ## 스킬 반경에 얹는 여유(석등 몸 두께).
 const TORCH_REACH_PAD := 0.8
+## 106장 ㊵ 과녁 하나가 켜져 있는 시간 — 셋을 이 안에 다 맞혀야 한다.
+const TARGET_SEC := 10.0
 const VANISH_SEC := 2.5
 const TOAST_SEC := 4.0
 
@@ -47,6 +51,7 @@ var chest_id := ""
 var grade := "common"
 var lock := "none"
 var torch_elements: Array = []
+var target_specs: Array = [] ## 106장 ㊵ [[각도°, 거리 m, 판 높이 m, 흔들림 m], …]
 var region := "village"
 
 var sealed := false
@@ -57,6 +62,7 @@ var _hinted := false
 var _lid: Node3D
 var _seal: Node3D
 var _torches: Array = [] ## [{node, element, flame, lit_t}]
+var _targets: Array = [] ## shoot_target.gd 노드
 
 
 func setup(id: String, grade_id: String, lock_id: String, region_id: String, pos: Vector3, elements: Array = []) -> void:
@@ -64,7 +70,10 @@ func setup(id: String, grade_id: String, lock_id: String, region_id: String, pos
 	grade = grade_id
 	lock = lock_id
 	region = region_id
-	torch_elements = elements
+	if lock_id == "target":
+		target_specs = elements
+	else:
+		torch_elements = elements
 	position = pos
 
 
@@ -82,6 +91,8 @@ func _ready() -> void:
 	if lock == "torch":
 		add_to_group("element_receiver")
 		_build_torches()
+	if lock == "target":
+		_build_targets()
 
 
 func _physics_process(delta: float) -> void:
@@ -121,6 +132,8 @@ func lock_hint() -> String:
 	match lock:
 		"camp":
 			return "🔒 %s — 둘레의 적을 모두 물리치면 봉인이 풀린다 (남은 %d)" % [title, maxi(_camp_alive, 0)]
+		"target":
+			return "🔒 %s — 과녁 %d개를 %d초 안에 모두 맞혀라 (활 조준 R · 법구·활 기본 공격)" % [title, _targets.size(), int(TARGET_SEC)]
 		"torch":
 			var names: Array = []
 			for el in torch_elements:
@@ -236,6 +249,58 @@ func _tick_torches(delta: float) -> void:
 		if t.lit_t <= 0.0:
 			(t.flame as Node3D).visible = false
 
+# ---------------------------------------------------------------- 잠금: 과녁(106장 ㊵)
+
+func _build_targets() -> void:
+	for i in target_specs.size():
+		var sp: Array = target_specs[i]
+		var a := deg_to_rad(float(sp[0]))
+		var world := global_position + Vector3(sin(a), 0, cos(a)) * float(sp[1])
+		world.y = TerrainBuilder.height_at(region, world) - 0.05
+		var t := ShootTarget.new()
+		t.name = "Target_%d" % i
+		t.hold_sec = TARGET_SEC
+		t.setup(to_local(world), float(sp[2]), Vector3.ZERO, float(sp[3]), float(i) * 2.1)
+		t.struck.connect(_on_target_struck)
+		add_child(t)
+		_targets.append(t)
+
+
+func _on_target_struck(_t: Node3D) -> void:
+	if not sealed:
+		return
+	var n := hit_count()
+	CombatFeel.ui()
+	if n == _targets.size():
+		for t in _targets:
+			t.call("lock_lit")
+		unseal()
+	else:
+		Toast.show(self, "과녁 %d/%d" % [n, _targets.size()], 1.5)
+
+
+func hit_count() -> int:
+	var n := 0
+	for t in _targets:
+		if t.call("is_lit"):
+			n += 1
+	return n
+
+
+func targets() -> Array:
+	return _targets.duplicate()
+
+
+## 원소 시야(106장 ⑬)가 짚는 아직 안 맞은 과녁 자리 — 봉인이 남아 있을 때만.
+func unhit_targets() -> Array:
+	var out: Array = []
+	if not sealed or is_open:
+		return out
+	for t in _targets:
+		if not t.call("is_lit"):
+			out.append(t.call("center"))
+	return out
+
 # ---------------------------------------------------------------- 모양
 
 func _build_chest(p: Node3D, wood: Color, metal: Color) -> void:
@@ -285,7 +350,7 @@ func _build_seal() -> void:
 	_seal.name = "Seal"
 	_seal.position = Vector3(0, 0.45, 0)
 	add_child(_seal)
-	var color := Color(0.62, 0.45, 1.0) if lock == "camp" else Color(1.0, 0.72, 0.35)
+	var color := Color(0.62, 0.45, 1.0) if lock == "camp" else (Color(0.95, 0.95, 0.85) if lock == "target" else Color(1.0, 0.72, 0.35))
 	for i in 2:
 		var ring := MeshInstance3D.new()
 		var tor := TorusMesh.new()
@@ -313,6 +378,10 @@ func _build_torches() -> void:
 		t.name = "Torch_%d" % i
 		add_child(t)
 		t.global_position = world
+		## 106장 ㊵ 화살이 석등 머리에 멎는다(충전 화살 원소로 멀리서 밝히기) — aimed_shot.gd first_hit.
+		t.add_to_group("arrow_stop")
+		t.set_meta("arrow_y", 1.2)
+		t.set_meta("arrow_r", 0.45)
 		var el: String = torch_elements[i]
 		var col := Elements.color_of(el)
 		var stone := Color(0.55, 0.54, 0.5)
