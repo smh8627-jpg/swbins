@@ -354,14 +354,29 @@
     }
     return { might: 60, wisdom: 60, command: 60 };
   }
+  /** ⑲-4 무예 단계·운명의 자리(talent.js) — 없거나 '_me' 면 모두 1 */
+  function talentMods(id) {
+    var T = global.DG.talent;
+    if (T && id !== '_me') { return T.combatMods(id); }
+    return { tm: { n: 1, s: 1, b: 1 }, con: 0, cdMul: 1, reactMul: 1, hpMul: 1, c6: false };
+  }
+  /** 피해 출처별 무예 배율 × 자리 6 폭발 뒤 공격 */
+  function talentMul(m, src) {
+    var T = global.DG.talent, k = T ? T.keyOfSrc(src) : null, v = 1;
+    if (k && m.tm) { v *= m.tm[k] || 1; }
+    if (m.c6T > 0 && T) { v *= T.C6_ATK; }
+    return v;
+  }
   function memberOf(id) {
     var h = id === '_me' ? null : (data() && data().find ? data().find(id) : null);
     var s = statsOf(id);
-    var hpMax = Math.round(300 + s.command * 6);
+    var tl = talentMods(id);
+    var hpMax = Math.round((300 + s.command * 6) * tl.hpMul);
     return {
       id: id, name: h ? h.name : '나', el: elementOf(id), shape: shapeOf(id),
       atk: Math.max(20, Math.round(s.might * 0.7 + s.wisdom * 0.3)),
       hpMax: hpMax, hp: hpMax, em: s.wisdom, def: s.command,
+      tm: tl.tm, con: tl.con, cdMul: tl.cdMul, reactMul: tl.reactMul, c6: tl.c6, c6T: 0,
       skillCd: 0, burstCd: 0, energy: 0, down: false, burn: null
     };
   }
@@ -388,7 +403,7 @@
       var o = old[fresh[i].id], m = fresh[i];
       if (!o) { continue; }
       m.hp = Math.round(m.hpMax * (o.hp / o.hpMax)); m.down = o.down;
-      m.skillCd = o.skillCd; m.burstCd = o.burstCd; m.energy = o.energy;
+      m.skillCd = o.skillCd; m.burstCd = o.burstCd; m.energy = o.energy; m.skCdMax = o.skCdMax; m.c6T = o.c6T || 0;
     }
     S.party = fresh;
     S.active = 0;
@@ -518,7 +533,7 @@
     if (FOES[f.kind].hero) { yieldHero(S, f); return; }
     f.hp = 0; f.dead = true; f.deadT = 0; f.mark = null;
     S.kills++;
-    push(S, { t: 'kill', uid: f.uid, kind: f.kind, tier: f.tier, x: f.x, y: f.y, camp: f.camp, boss: !!FOES[f.kind].boss, elite: !!FOES[f.kind].shield && !FOES[f.kind].light, guard: !!FOES[f.kind].guard });
+    push(S, { t: 'kill', uid: f.uid, kind: f.kind, tier: f.tier, x: f.x, y: f.y, camp: f.camp, boss: !!FOES[f.kind].boss, elite: !!FOES[f.kind].shield && !FOES[f.kind].light, shield: !!FOES[f.kind].shield, guard: !!FOES[f.kind].guard });
     var cp = S.camps[f.camp];
     if (!cp) { return; }
     for (var i = 0; i < cp.uids.length; i++) {
@@ -595,8 +610,9 @@
   function hitFoe(S, f, m, raw, el, src) {
     var out = { uid: f.uid, dmg: 0, react: null, shield: false, immune: false };
     if (f.dead) { return out; }
-    var emB = 1 + (m.em || 0) / 300;
+    var emB = (1 + (m.em || 0) / 300) * (m.reactMul || 1);     // ⑲-4 자리 2 — 반응 피해 +15%
     var mul = f.stun > 0 ? STUN_MUL() : 1;
+    raw *= talentMul(m, src);
     S.calmT = 0; f.hitT = S.t; wake(f);
     if (f.shield > 0) {
       var sm = shieldMul(f.shEl, el);
@@ -760,11 +776,11 @@
       S.iframe = Math.max(S.iframe, 0.3);
       ev = { x: bx, y: by, x0: px, y0: py, r: DASH_W() };
     } else if (sh === 'field') {
-      S.zones.push({ kind: 'field', x: cx, y: cy, r: FIELD_R(), t: FIELD_T(), next: 0, el: m.el, atk: m.atk, em: m.em, uid: m.id });
+      S.zones.push({ kind: 'field', x: cx, y: cy, r: FIELD_R(), t: FIELD_T(), next: 0, el: m.el, atk: m.atk, em: m.em, uid: m.id, tm: m.tm, reactMul: m.reactMul });
       hits = foesWithin(S, cx, cy, FIELD_R());          // 기력 셈에만 — 피해는 zone 틱(바로 첫 틱)이 준다
       ev = { x: cx, y: cy, r: FIELD_R() };
     } else if (sh === 'summon') {
-      S.zones.push({ kind: 'summon', x: px + dx * 1.5, y: py + dy * 1.5, r: SUMMON_R(), t: SUMMON_T(), next: 0, el: m.el, atk: m.atk, em: m.em, uid: m.id });
+      S.zones.push({ kind: 'summon', x: px + dx * 1.5, y: py + dy * 1.5, r: SUMMON_R(), t: SUMMON_T(), next: 0, el: m.el, atk: m.atk, em: m.em, uid: m.id, tm: m.tm, reactMul: m.reactMul });
       hits = aim ? [aim] : [];
       ev = { x: px + dx * 1.5, y: py + dy * 1.5, r: SUMMON_R() };
     } else {
@@ -773,7 +789,7 @@
       ev = { x: cx, y: cy, r: SKILL_R() };
     }
     if (sh === 'field' || sh === 'summon') { stepZones(S, 0); }   // 놓자마자 첫 틱
-    m.skillCd = SKILL_CD();
+    m.skillCd = m.skCdMax = SKILL_CD() * (m.cdMul || 1);        // ⑲-4 자리 1 — 대기 -20%
     m.energy = Math.min(ENERGY_MAX(), m.energy + 6 + Math.min(6, hits.length * 2));
     for (var j = 0; j < S.party.length; j++) {
       var o = S.party[j];
@@ -800,7 +816,7 @@
         continue;
       }
       if (z.next <= 1e-9 && z.t > 1e-9) {
-        var who = { atk: z.atk, em: z.em };
+        var who = { atk: z.atk, em: z.em, tm: z.tm, reactMul: z.reactMul };
         if (z.kind === 'field') {
           var in_ = foesWithin(S, z.x, z.y, z.r);
           for (k = 0; k < in_.length; k++) { hitFoe(S, in_[k], who, z.atk * FIELD_MUL(), z.el, 'zone'); }
@@ -825,6 +841,7 @@
     if (!m || m.down || m.energy < ENERGY_MAX() || m.burstCd > 0) { return { ok: false }; }
     m.energy = 0; m.burstCd = BURST_CD();
     S.iframe = Math.max(S.iframe, 1.0);
+    if (m.c6 && global.DG.talent) { m.c6T = global.DG.talent.C6_SEC; }   // ⑲-4 자리 6 — 폭발 뒤 공격 +25%
     var hits = foesWithin(S, px, py, BURST_R());
     for (var i = 0; i < hits.length; i++) { hitFoe(S, hits[i], m, m.atk * BURST_MUL(), m.el, 'burst'); }
     push(S, { t: 'burst', el: m.el, x: px, y: py, r: BURST_R(), n: hits.length });
@@ -941,6 +958,7 @@
       m = S.party[i];
       m.skillCd = Math.max(0, m.skillCd - dt);
       m.burstCd = Math.max(0, m.burstCd - dt);
+      if (m.c6T > 0) { m.c6T = Math.max(0, m.c6T - dt); }
       if (m.burn && !m.down) {
         m.burn.t -= dt;
         if (m.burn.t <= 0) {
@@ -1095,6 +1113,7 @@
       var m = S.party[i], f = memberOf(m.id);
       var ratio = m.hpMax ? m.hp / m.hpMax : 1;
       m.atk = f.atk; m.em = f.em; m.def = f.def; m.hpMax = f.hpMax;
+      m.tm = f.tm; m.con = f.con; m.cdMul = f.cdMul; m.reactMul = f.reactMul; m.c6 = f.c6;
       m.hp = Math.round(f.hpMax * ratio);
     }
   }
@@ -1261,6 +1280,10 @@
           if (S.party[j].id !== '_me' && !S.party[j].down && H && H.gainExp) { H.gainExp(S.party[j].id, exp); }
         }
         if (e.elite || e.boss) { c.save.dust = (c.save.dust || 0) + (e.boss ? 6 : 2); }
+        if (e.shield && global.DG.talent) {                       // ⑲-4 방패 두른 원소 괴물 — 무예 쪽지
+          var tmTxt = global.DG.talent.onElite();
+          if (tmTxt) { floatNum(e.x, e.y + 1.2, tmTxt, null, 0.9, false); }
+        }
         fieldSave().kills = (fieldSave().kills || 0) + 1;
         floatNum(e.x, e.y, '+' + gold + '금', null, 0.9, false);
       } else if (e.t === 'clear' && e.kind === 'guard') {
@@ -1415,7 +1438,7 @@
     var sk = hudEl.querySelector('.fc-skill'), bu = hudEl.querySelector('.fc-burst');
     sk.style.setProperty('--el', EL[m.el].color);
     bu.style.setProperty('--el', EL[m.el].color);
-    sk.querySelector('.fc-cd').style.height = Math.round(100 * m.skillCd / SKILL_CD()) + '%';
+    sk.querySelector('.fc-cd').style.height = Math.round(100 * Math.min(1, m.skillCd / (m.skCdMax || SKILL_CD()))) + '%';
     sk.querySelector('span').textContent = m.skillCd > 0 ? m.skillCd.toFixed(1) : EL[m.el].icon + ' ' + (SHAPES[m.shape] && m.shape !== 'circle' ? SHAPES[m.shape].name : '스킬');
     var ready = m.energy >= ENERGY_MAX() && m.burstCd <= 0;
     bu.classList.toggle('ready', ready);

@@ -185,7 +185,8 @@
     s.player.gold = (s.player.gold || 0) + G.gold;
     if (G.dust) { s.dust = (s.dust || 0) + G.dust; }
     if (c.gainExp) { c.gainExp(G.exp); }
-    toast(G.icon + ' ' + G.name + ' 보물 상자 — 금 +' + G.gold + (G.dust ? ' · 단사 +' + G.dust : '') + ' · 경험 +' + G.exp);
+    var TL = global.DG.talent, mt = TL ? TL.onChest(ch.grade) : '';   // ⑲-4 무예 책·인연 매듭
+    toast(G.icon + ' ' + G.name + ' 보물 상자 — 금 +' + G.gold + (G.dust ? ' · 단사 +' + G.dust : '') + ' · 경험 +' + G.exp + (mt ? ' · ' + mt : ''));
     c.log(G.icon + ' ' + G.name + ' 보물 상자를 열었다 — 금 +' + G.gold, 'discover');
     sfx('reward');
     c.emit('treasure:open', { id: ch.id, grade: ch.grade });
@@ -326,7 +327,8 @@
     if (up > 0) {
       s.player.gold = (s.player.gold || 0) + 200 * up;
       s.dust = (s.dust || 0) + 2 * up;
-      toast('🗿 신상 등급 ' + lv1 + ' — 들판 기력 상한 +' + STA_PER_LV * up + ' · 금 +' + 200 * up);
+      var mk = global.DG.talent ? global.DG.talent.onShrine(up) : '';   // ⑲-4 등급마다 인연 매듭 1
+      toast('🗿 신상 등급 ' + lv1 + ' — 들판 기력 상한 +' + STA_PER_LV * up + ' · 금 +' + 200 * up + (mk ? ' · ' + mk : ''));
       c.log('🗿 ' + near1.name + ' 탑에 구슬을 바쳤다 — 신상 등급 ' + lv1, 'discover');
       sfx('reward');
     } else {

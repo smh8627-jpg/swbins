@@ -193,6 +193,14 @@
       if (act === 'rankup') { hero().rankUp(id); }
       else if (act === 'perk-pick') { if (global.DG.perk) { global.DG.perk.choose(id, b.getAttribute('data-perk')); } }
       else if (act === 'perk-skip') { if (global.DG.perk) { global.DG.perk.decline(id); } }
+      else if (act === 'talent-up') {
+        var TLu = global.DG.talent, tk = b.getAttribute('data-key');
+        if (TLu && !TLu.up(id, tk)) { toast('⚔️ ' + TLu.upCheck(id, tk).why); }
+      }
+      else if (act === 'talent-con') {
+        var TLc = global.DG.talent;
+        if (TLc && !TLc.unlockCon(id)) { toast('🌟 ' + TLc.conCheck(id).why); }
+      }
       else if (act === 'buddy-set') { if (buddy()) { buddy().set(id); } }
       else if (act === 'buddy-clear') { if (buddy()) { buddy().clear(); } }
       else if (act === 'buddy-feed') {
@@ -1148,6 +1156,44 @@
     return out + '</div>';
   }
 
+  /** 무예 단계·운명의 자리(PLAN §5 ⑲-4) — 들판 전투 피해에만 탄다 */
+  function talentBlock(id) {
+    var TL = global.DG.talent;
+    if (!TL) { return ''; }
+    var rank = hero().info(id).rank || 0, cap = TL.cap(rank), i, k, out = '<div class="dt-talent">';
+    var mt = [];
+    for (k in TL.MATS) {
+      if (Object.prototype.hasOwnProperty.call(TL.MATS, k)) { mt.push(TL.MATS[k].icon + ' ' + TL.count(k)); }
+    }
+    out += '<div class="dt-line"><span>⚔️ 무예 (상한 ' + cap + ' · 승급 ★' + rank + ')</span><b>' + mt.join(' ') + '</b></div>';
+    for (i = 0; i < TL.KINDS.length; i++) {
+      var K = TL.KINDS[i], lv = TL.baseLevel(id, K.key), eff = TL.level(id, K.key);
+      var chk = TL.upCheck(id, K.key), c = TL.cost(lv), label;
+      var head = K.icon + ' ' + K.name + ' <b>' + eff + '</b>' + (eff > lv ? '<small>(+' + (eff - lv) + ')</small>' : '') +
+        ' <small>×' + TL.mulAt(eff) + '</small>';
+      if (lv >= TL.MAX) { label = head + ' <small>· 최대</small>'; }
+      else if (lv >= cap) { label = head + ' <small>· 승급 ★' + TL.nextRankFor(lv + 1) + ' 에 열림</small>'; }
+      else {
+        label = head + ' <small>· 🪙 ' + core.fmt(c.gold) + ' · ' + TL.MATS[c.book].icon + ' ' + TL.count(c.book) + '/' + c.books +
+          ' · 丹 ' + c.dust + '</small>';
+      }
+      out += '<button class="btn ' + (chk.ok ? 'primary' : 'ghost') + ' wide"' + (chk.ok ? '' : ' disabled') +
+        ' data-act="talent-up" data-id="' + id + '" data-key="' + K.key + '">' + label + '</button>';
+    }
+    var con = TL.con(id), dots = '';
+    for (i = 0; i < TL.CON_MAX; i++) { dots += i < con ? '●' : '○'; }
+    out += '<div class="dt-line"><span>🌟 운명의 자리 ' + dots + '</span><b>' + con + '/' + TL.CON_MAX + '</b></div>';
+    for (i = 0; i < TL.CON_MAX; i++) {
+      out += '<small class="' + (i < con ? '' : 'muted') + '" style="display:block">' + (i < con ? '◆' : '◇') + ' ' + (i + 1) + '. ' + esc(TL.CON_TEXT[i]) + '</small>';
+    }
+    if (con < TL.CON_MAX) {
+      var ok = TL.conCheck(id).ok;
+      out += '<button class="btn ' + (ok ? 'primary' : 'ghost') + ' wide"' + (ok ? '' : ' disabled') + ' data-act="talent-con" data-id="' + id + '">' +
+        '🌟 ' + (con + 1) + '번째 자리 열기 · ' + TL.MATS.knot.icon + ' ' + TL.count('knot') + '/1</button>';
+    }
+    return out + '</div>';
+  }
+
   /** 인연(PLAN §5 ⑥) — 등급·다음까지·결이 맞는 동료 */
   function bondBlock(id) {
     var BD = global.DG.bond;
@@ -1227,7 +1273,7 @@
         statRow('통솔', bk.base.command, bk.grown.command, bk.final.command, cap) +
         '</div>' +
         '<div class="dt-line"><span>인물 됨됨이</span><b>' + core.fmt(hero().power(h.id)) + '</b></div>' +
-        perkBlock(h.id) + bondBlock(h.id);
+        perkBlock(h.id) + talentBlock(h.id) + bondBlock(h.id);
 
       out += '<div class="dt-pet"><span>🐾 펫</span>' +
         '<select data-equip="' + h.id + '">' + petOptions(h.id) + '</select>' +
