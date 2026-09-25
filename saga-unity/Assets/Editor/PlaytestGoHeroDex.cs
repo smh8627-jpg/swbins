@@ -11,7 +11,7 @@ namespace Saga.EditorTools
     /// PLAN.md 109-6b 도감 화면 진단 — `PlaytestHeadless` 가 도감 105·싸워서 등용 진단 뒤에 부른다.
     /// 빈 판(동행·만남 없음) → 진짜 "도감" 버튼으로 열림 · 모은 수 0/105 · 시대 넷 탭(22/26/20/37 칸)·진짜 탭 버튼 · 전부 그림자(검은 칸·이름 없음·"? ? ?") ·
     /// 겨루기를 열면 만남(이름·회색) · 동행이면 등용(원소 빛깔·원소·기질·한마디) · 진짜 칸 버튼 → 자세히(서는 지역) · 탭·제목 수 ·
-    /// 가로 PC 캔버스(1080×607)에 들어가는 배치 · 지도와 서로 닫힘 · 닫기 버튼 · 세이브 v17 왕복·v16 로드(동행만 만남).
+    /// 가로 PC 캔버스(1080×607)에 들어가는 배치 · 지도와 서로 닫힘 · 닫기 버튼 · 세이브 v18 왕복·v16 로드(동행만 만남).
     /// 끝나면 동행·인연·만남·들판 인물·세이브 파일을 되돌린다.
     /// </summary>
     public static class PlaytestGoHeroDex
@@ -61,7 +61,7 @@ namespace Saga.EditorTools
                 else if (System.IO.File.Exists(savePath)) System.IO.File.Delete(savePath);
             }
             if (FieldEnemy.All.Count != enemies) Fail($"끝난 뒤 들판 적 {FieldEnemy.All.Count} ≠ {enemies}");
-            if (_ok) Debug.Log($"[{_tag}] hero dex OK - 버튼 열림·0/105·탭 넷 칸 {metrics}·그림자·겨루기→만남·동행→등용·칸 버튼 자세히·탭 수·가로 배치·지도와 서로 닫힘·닫기·v17 왕복·v16 로드");
+            if (_ok) Debug.Log($"[{_tag}] hero dex OK - 버튼 열림·0/105·탭 넷 칸 {metrics}·그림자·겨루기→만남·동행→등용·칸 버튼 자세히·탭 수·가로 배치·지도와 서로 닫힘·닫기·v18 왕복·v16 로드");
             return _ok;
         }
 
@@ -195,10 +195,10 @@ namespace Saga.EditorTools
             if (seen.Count != 1) { Fail($"만남 기록 {seen.Count} ≠ 1"); return; }
             if (!SaveState.Save()) { Fail("SaveState.Save 실패"); return; }
             string json = System.IO.File.ReadAllText(path);
-            if (!json.Contains("\"version\":17") || !json.Contains($"\"heroesSeen\":[\"{seen[0]}\"]")) Fail("세이브 v17 에 만남이 없다");
+            if (!json.Contains("\"version\":18") || !json.Contains($"\"heroesSeen\":[\"{seen[0]}\"]")) Fail("세이브 v18 에 만남이 없다");
             HeroDexState.Restore(null);
-            if (!SaveState.TryLoad() || !HeroDexState.IsSeen(seen[0])) Fail("v17 왕복 뒤 만남이 사라졌다");
-            string v16 = Regex.Replace(json.Replace("\"version\":17", "\"version\":16"), ",\"heroesSeen\":\\[[^\\]]*\\]", "");
+            if (!SaveState.TryLoad() || !HeroDexState.IsSeen(seen[0])) Fail("v18 왕복 뒤 만남이 사라졌다");
+            string v16 = Regex.Replace(json.Replace("\"version\":18", "\"version\":16"), ",\"heroesSeen\":\\[[^\\]]*\\]", "");
             if (v16.Contains("heroesSeen")) { Fail("v16 모양 만들기 실패"); return; }
             System.IO.File.WriteAllText(path, v16);
             if (!SaveState.TryLoad()) { Fail("v16 파일 TryLoad 실패"); return; }

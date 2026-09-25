@@ -45,7 +45,130 @@ namespace Saga.Go.World
             BuildCollision();
             BuildPeaks();
             BuildRamps();
+            BuildWaterfalls();
             MarkStatic();
+        }
+
+        /// <summary>PLAN.md 109-9 발원지 폭포 — 고원 윗면 샘 웅덩이 → 턱에서 밖으로 휘어 절벽 면을 타고 강 수면까지 떨어지는 물 판
+        /// (`Saga/WaterfallUnlit`, 흘러내리는 물살) → 아래에 물보라(입자). 충돌체 없음 — 뒤 절벽은 그대로 기어오른다.</summary>
+        private void BuildWaterfalls()
+        {
+            var parent = new GameObject("Waterfalls");
+            parent.transform.SetParent(transform, false);
+            var shader = Shader.Find("Saga/WaterfallUnlit");
+            var poolShader = Shader.Find("Saga/WaterUnlit");
+            foreach (var w in TestMapData.Waterfalls)
+            {
+                TestMapData.WaterfallGeometry(w, out Vector3 lip, out Vector3 foot, out Vector3 dir, out Vector3 side);
+                var root = new GameObject($"Waterfall_{w.Id}");
+                root.transform.SetParent(parent.transform, false);
+
+                // 물 판 — 턱 뒤(윗면) → 턱 → 밖으로 휘어 → 수면. 줄마다 (왼쪽, 오른쪽) 정점 둘, uv.y = 흐른 거리(m).
+                var path = new List<Vector3>
+                {
+                    lip - dir * 3f + Vector3.up * 0.08f,
+                    lip + Vector3.up * 0.1f,
+                    lip + dir * (TestMapData.WaterfallLip * 0.7f) - Vector3.up * 0.6f,
+                    lip + dir * TestMapData.WaterfallLip - Vector3.up * 2f,
+                };
+                float drop = lip.y - foot.y;
+                for (int k = 1; k <= 6; k++)
+                {
+                    float f = k / 6f;
+                    Vector3 p = Vector3.Lerp(lip + dir * TestMapData.WaterfallLip - Vector3.up * 2f, foot, f);
+                    path.Add(new Vector3(p.x, lip.y - 2f - (drop - 2f) * f, p.z));
+                }
+                var verts = new List<Vector3>();
+                var uvs = new List<Vector2>();
+                var tris = new List<int>();
+                float along = 0f;
+                float half = TestMapData.WaterfallWidth * 0.5f;
+                for (int i = 0; i < path.Count; i++)
+                {
+                    if (i > 0) along += Vector3.Distance(path[i - 1], path[i]);
+                    float widen = 1f + 0.25f * Mathf.Clamp01((float)(i - 3) / (path.Count - 4)); // 떨어지며 조금 퍼진다
+                    verts.Add(path[i] - side * half * widen); uvs.Add(new Vector2(0f, along));
+                    verts.Add(path[i] + side * half * widen); uvs.Add(new Vector2(1f, along));
+                    if (i == 0) continue;
+                    int b = verts.Count - 4;
+                    tris.Add(b); tris.Add(b + 2); tris.Add(b + 1);
+                    tris.Add(b + 1); tris.Add(b + 2); tris.Add(b + 3);
+                }
+                var mesh = new Mesh { name = $"Waterfall_{w.Id}" };
+                mesh.SetVertices(verts);
+                mesh.SetUVs(0, uvs);
+                mesh.SetTriangles(tris, 0);
+                mesh.RecalculateNormals();
+                mesh.RecalculateBounds();
+                var sheet = new GameObject("Sheet");
+                sheet.transform.SetParent(root.transform, false);
+                sheet.AddComponent<MeshFilter>().sharedMesh = mesh;
+                var sr = sheet.AddComponent<MeshRenderer>();
+                sr.sharedMaterial = new Material(shader != null ? shader : poolShader) { name = "Waterfall (generated)" };
+                sr.shadowCastingMode = ShadowCastingMode.Off;
+
+                // 샘 웅덩이 — 턱 뒤 고원 윗면
+                var pool = GameObject.CreatePrimitive(PrimitiveType.Quad);
+                pool.name = "SourcePool";
+                Object.DestroyImmediate(pool.GetComponent<Collider>());
+                pool.transform.SetParent(root.transform, false);
+                pool.transform.position = lip - dir * 6f + Vector3.up * 0.06f;
+                pool.transform.rotation = Quaternion.LookRotation(Vector3.down, dir);
+                pool.transform.localScale = new Vector3(TestMapData.WaterfallWidth + 2f, 8f, 1f);
+                pool.GetComponent<MeshRenderer>().sharedMaterial = new Material(poolShader) { name = "WaterfallPool (generated)" };
+
+                // 물보라 — 아래끝 수면에서 피어오르는 흰 김
+                var mist = new GameObject("Mist");
+                mist.transform.SetParent(root.transform, false);
+                mist.transform.position = foot + dir * 1.5f;
+                mist.transform.rotation = Quaternion.LookRotation(Vector3.up, dir);
+                var ps = mist.AddComponent<ParticleSystem>();
+                var main = ps.main;
+                main.loop = true;
+                main.startLifetime = new ParticleSystem.MinMaxCurve(1.6f, 2.8f);
+                main.startSpeed = new ParticleSystem.MinMaxCurve(1.5f, 4f);
+                main.startSize = new ParticleSystem.MinMaxCurve(2.5f, 5f);
+                main.startColor = new Color(0.95f, 0.98f, 1f, 0.28f);
+                main.maxParticles = 160;
+                main.simulationSpace = ParticleSystemSimulationSpace.World;
+                main.gravityModifier = -0.05f;
+                var em = ps.emission;
+                em.rateOverTime = 40f;
+                var shape = ps.shape;
+                shape.shapeType = ParticleSystemShapeType.Box;
+                shape.scale = new Vector3(TestMapData.WaterfallWidth * 1.2f, 2f, 0.5f);
+                var col = ps.colorOverLifetime;
+                col.enabled = true;
+                var grad = new Gradient();
+                grad.SetKeys(new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
+                             new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(1f, 0.2f), new GradientAlphaKey(0f, 1f) });
+                col.color = grad;
+                var pr = mist.GetComponent<ParticleSystemRenderer>();
+                pr.sharedMaterial = new Material(Shader.Find("Sprites/Default")) { name = "WaterfallMist (generated)", mainTexture = SoftDot() };
+                pr.shadowCastingMode = ShadowCastingMode.Off;
+                ps.Play();
+            }
+        }
+
+        private static Texture2D _softDot;
+
+        /// <summary>물보라 입자 한 알 — 가운데가 짙고 가장자리로 흐려지는 흰 점(64², 코드로 한 번 굽는다).</summary>
+        private static Texture2D SoftDot()
+        {
+            if (_softDot != null) return _softDot;
+            const int N = 64;
+            _softDot = new Texture2D(N, N, TextureFormat.RGBA32, false) { name = "SoftDot (generated)", wrapMode = TextureWrapMode.Clamp };
+            var px = new Color[N * N];
+            for (int y = 0; y < N; y++)
+                for (int x = 0; x < N; x++)
+                {
+                    float d = Vector2.Distance(new Vector2(x + 0.5f, y + 0.5f), new Vector2(N * 0.5f, N * 0.5f)) / (N * 0.5f);
+                    float a = Mathf.Clamp01(1f - d);
+                    px[y * N + x] = new Color(1f, 1f, 1f, a * a);
+                }
+            _softDot.SetPixels(px);
+            _softDot.Apply();
+            return _softDot;
         }
 
         /// <summary>PLAN.md 107-3 "걸어 오르는 경사·고개" — `TestMapData.Ramps` 마다 절벽에 기댄 쐐기 모양 돌 비탈.

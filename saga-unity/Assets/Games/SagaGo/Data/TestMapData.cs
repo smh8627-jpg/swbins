@@ -169,6 +169,39 @@ namespace Saga.Go.Data
             top = edge + dir * RampTopOverlap + Vector3.up * high;
         }
 
+        // ---- PLAN.md 109-9 발원지 폭포 둘(웹 사가고 ⑰) — 산 고원에서 강으로 떨어진다 -----------------------------
+
+        public struct Waterfall
+        {
+            public string Id;
+            public int Gx, Gy;      // 폭포가 떨어지는 산 칸
+            public int Dx, Dy;      // 산 칸 → 강 칸 방향
+            public string NameKey, NameKo;
+        }
+
+        public const float WaterfallWidth = 9f;
+        /// <summary>물이 넘치는 턱이 절벽 면 밖으로 나오는 거리 · 아래끝이 면에서 떨어진 거리.</summary>
+        public const float WaterfallLip = 1.4f;
+        public const float WaterfallFoot = 2.6f;
+
+        public static readonly Waterfall[] Waterfalls =
+        {
+            // 동쪽 끝 경계 산(고원 30~38m) — 너른 강의 발원지
+            new Waterfall { Id = "fall_east", Gx = 8, Gy = 4, Dx = 0, Dy = 1, NameKey = "map.fall_east", NameKo = "은빛 폭포" },
+            // 서쪽 남쪽 산(12~22m) — 강 남쪽 둑으로
+            new Waterfall { Id = "fall_west", Gx = 1, Gy = 6, Dx = 0, Dy = -1, NameKey = "map.fall_west", NameKo = "안개 폭포" },
+        };
+
+        /// <summary>폭포 턱 가운데(고원 높이·절벽 면 위)·아래끝 가운데(수면)·떨어지는 쪽·옆 방향.</summary>
+        public static void WaterfallGeometry(Waterfall w, out Vector3 lip, out Vector3 foot, out Vector3 dir, out Vector3 side)
+        {
+            dir = new Vector3(w.Dx, 0f, w.Dy);
+            side = new Vector3(dir.z, 0f, -dir.x);
+            Vector3 edge = WorldPos(w.Gx, w.Gy) + dir * (TileSize * 0.5f);
+            lip = edge + Vector3.up * MountainHeight(w.Gx, w.Gy);
+            foot = edge + dir * WaterfallFoot + Vector3.up * WaterSurfaceHeight;
+        }
+
         /// <summary>봉우리 밑동 가운데(고원 윗면 높이).</summary>
         public static Vector3 PeakBase(int gx, int gy)
         {

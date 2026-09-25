@@ -223,11 +223,13 @@ namespace Saga.Go.World
                 {
                     ApplyPbrToRenderers(roof, EnvironmentMaterial.MakeTiled(stoneMaterial, roofSize.x, roofSize.z));
                 }
+                CameraOccluder.Attach(roof); // 109-9 — 밟지는 않지만 카메라는 지붕 앞에서 멈춘다
             }
             else
             {
                 var roof = CreateBox("Roof", houseParent.position + localOffset + Vector3.up * (bodySize.y + roofSize.y * 0.5f), roofSize, RoofColor, withCollider: false);
                 roof.transform.SetParent(houseParent, true);
+                CameraOccluder.Attach(roof);
             }
         }
 

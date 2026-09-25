@@ -43,6 +43,13 @@ namespace Saga.Go.UI
         public bool IsOpen => _panel != null && _panel.activeSelf;
         public Button MapButton { get; private set; }
         public Button WaypointButton(int i) => _wpButtons[i];
+        /// <summary>109-9 정상 ▲(오른 정상 = 누르면 순간이동).</summary>
+        public Button PeakButton(int i) => _peakButtons[i];
+        private readonly List<Button> _peakButtons = new List<Button>();
+        private readonly List<Text> _fallLabels = new List<Text>();
+        private readonly List<string> _fallRegions = new List<string>();
+        public int FallLabelCount => _fallLabels.Count;
+        public bool FallLabelShown(int i) => _fallLabels[i].gameObject.activeSelf;
         public string RegionLabel(int i) => _regionLabels[i].text;
         public string LastRegion => _lastRegion;
         public string InfoText => _info.text;
@@ -140,6 +147,32 @@ namespace Saga.Go.UI
                 _wpButtons.Add(b);
             }
 
+            // 109-9 발원지 폭포 — 아래끝 자리에 "≋ 이름"(그 지역이나 너른 강에 발 디디면 보임)
+            foreach (var w in TestMapData.Waterfalls)
+            {
+                TestMapData.WaterfallGeometry(w, out _, out Vector3 foot, out _, out _);
+                Vector2 g = GoWorldMap.WorldToGridF(foot);
+                var fall = EncounterUiKit.NewText(_mapRect, "≋ " + GoLocalization.T(w.NameKey, w.NameKo), new Vector2(0.5f, 0.5f), MapPos(g.x, g.y), new Vector2(140f, 30f), 18);
+                fall.color = new Color(0.7f, 0.9f, 1f);
+                fall.raycastTarget = false;
+                fall.GetComponent<RectTransform>().pivot = new Vector2(0.5f, 0.5f);
+                _fallLabels.Add(fall);
+                _fallRegions.Add(GoWorldMap.RegionAt(w.Gx, w.Gy));
+            }
+
+            // 109-9 정상 — 봉우리마다 작은 ▲(그 지역에 발 디디면 보임, 오른 정상은 금빛·누르면 순간이동)
+            for (int i = 0; i < GoWorldMap.Peaks.Length; i++)
+            {
+                var p = GoWorldMap.Peaks[i];
+                Vector2 g = GoWorldMap.WorldToGridF(p.Top);
+                var b = EncounterUiKit.NewButton(_mapRect, "▲", new Vector2(0.5f, 0.5f), MapPos(g.x, g.y), new Vector2(44f, 44f), null);
+                b.GetComponent<RectTransform>().pivot = new Vector2(0.5f, 0.5f);
+                b.GetComponentInChildren<Text>().fontSize = 24;
+                int idx = i;
+                b.onClick.AddListener(() => TeleportToPeak(idx));
+                _peakButtons.Add(b);
+            }
+
             var arrowText = EncounterUiKit.NewText(_mapRect, "▲", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(48f, 48f), 36);
             arrowText.color = new Color(1f, 0.95f, 0.35f);
             arrowText.raycastTarget = false;
@@ -178,12 +211,23 @@ namespace Saga.Go.UI
                 _wpButtons[i].gameObject.SetActive(WorldMapState.IsVisited(GoWorldMap.RegionAt(GoWorldMap.WaypointPos(w))) || on);
             }
             for (int i = 0; i < _rampLabels.Count; i++) _rampLabels[i].gameObject.SetActive(WorldMapState.IsVisited(_rampRegions[i]));
+            for (int i = 0; i < _fallLabels.Count; i++)
+                _fallLabels[i].gameObject.SetActive(WorldMapState.IsVisited(_fallRegions[i]) || WorldMapState.IsVisited("river"));
+            for (int i = 0; i < _peakButtons.Count; i++)
+            {
+                var p = GoWorldMap.Peaks[i];
+                bool found = WorldMapState.IsPeakFound(p.Id);
+                _peakButtons[i].GetComponentInChildren<Text>().color = found ? new Color(1f, 0.82f, 0.35f) : new Color(0.6f, 0.58f, 0.55f);
+                _peakButtons[i].GetComponent<Image>().color = found ? new Color(0.8f, 0.6f, 0.2f, 0.35f) : new Color(1f, 1f, 1f, 0.05f);
+                _peakButtons[i].gameObject.SetActive(found || WorldMapState.IsVisited(p.RegionId));
+            }
             var player = FieldCombat.Instance;
             _regionInfo.text = RegionInfo(player != null ? GoWorldMap.RegionAt(player.transform.position) : _lastRegion ?? "village");
             _info.text = string.Format(GoLocalization.T("map.info", "푸른 ◆ 역참을 누르면 순간이동 · 켠 역참 {0}/{1}{2}"),
                 WorldMapState.ActiveCount, GoWorldMap.Waypoints.Length,
                 WorldMapState.Revealed ? "" : GoLocalization.T("map.hint", " · 옛 망루 꼭대기에 오르면 온 땅이 밝혀진다"))
-                + string.Format(GoLocalization.T("map.chests", " · 보물 상자 {0}/{1}"), GoTreasure.OpenedCount, GoTreasure.Chests.Length);
+                + string.Format(GoLocalization.T("map.chests", " · 보물 상자 {0}/{1}"), GoTreasure.OpenedCount, GoTreasure.Chests.Length)
+                + string.Format(GoLocalization.T("map.peaks", " · 오른 정상 ▲ {0}/{1}"), WorldMapState.PeakCount, GoWorldMap.Peaks.Length);
         }
 
         /// <summary>107-8 — 사명이 있는 지역 이름 밑에 "사명 n/3" 또는 "평정".</summary>
@@ -289,6 +333,26 @@ namespace Saga.Go.UI
         }
 
         public void Close() => _panel.SetActive(false);
+
+        /// <summary>109-9 — 오른 정상이면 그 윗면으로 순간이동(true). 결투 중·안 오른 정상은 거절.</summary>
+        public bool TeleportToPeak(int index)
+        {
+            var p = GoWorldMap.Peaks[index];
+            if (!WorldMapState.IsPeakFound(p.Id))
+            {
+                if (DialogueLabel.Instance != null) DialogueLabel.Instance.Show(GoLocalization.T("map.peak_locked", "아직 오르지 않은 정상 — 기어올라 윗면에 서야 한다"), 2f);
+                return false;
+            }
+            if (DuelGate.Active) return false;
+            var fc = FieldCombat.Instance;
+            var pc = fc != null ? fc.GetComponent<PlayerController>() : Object.FindFirstObjectByType<PlayerController>();
+            if (pc == null) return false;
+            pc.Teleport(GoWorldMap.PeakArrival(p));
+            foreach (var e in FieldEnemy.All) e.ForceReturn();
+            Close();
+            if (DialogueLabel.Instance != null) DialogueLabel.Instance.Show(string.Format(GoLocalization.T("map.teleported", "{0}(으)로 순간이동"), GoWorldMap.PeakName(p)), 2f);
+            return true;
+        }
 
         /// <summary>활성 지점이면 그 자리로 순간이동(true). 결투 중·비활성은 거절.</summary>
         public bool TeleportTo(int index)

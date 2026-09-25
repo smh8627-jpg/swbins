@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using Saga.Go.Combat;
 
@@ -221,5 +222,70 @@ namespace Saga.Go.Data
             return new Vector2(world.x / TestMapData.TileSize + TestMapData.Cols * 0.5f,
                                world.z / TestMapData.TileSize + TestMapData.RowCount * 0.5f);
         }
+
+        // ---- PLAN.md 109-9 정상 — 웹 사가고 ⑰ "정상 발견 · 오른 정상 순간이동" ----------------------------
+
+        public struct Peak
+        {
+            public string Id;       // "peak_{gx}_{gy}"
+            public int Gx, Gy;
+            public Vector3 Top;     // 윗면 가운데(월드)
+            public string RegionId;
+            public int Order;       // 그 지역 안 몇째(이름에 쓴다, 1부터)
+        }
+
+        /// <summary>정상 윗면에 섰다고 보는 거리 — 수평은 윗면 반지름 + 1m, 높이는 윗면 1.2m 아래까지.</summary>
+        public const float PeakStandRadius = TestMapData.PeakTopRadius + 1f;
+        public const float PeakStandBelow = 1.2f;
+        /// <summary>웹 ⑰ — 정상 발견 = 금 80 + 높이 · 경험 50 · 단사 2(이 판엔 단사가 없어 지역 사명과 같은 비율로 경험 +20).</summary>
+        public const int PeakGoldBase = 80;
+        public const int PeakExp = 70;
+
+        private static Peak[] _peaks;
+
+        /// <summary>봉우리가 선 산 칸마다 정상 하나(`TestMapData.HasPeak`, 줄 → 칸 순서).</summary>
+        public static Peak[] Peaks
+        {
+            get
+            {
+                if (_peaks != null) return _peaks;
+                var list = new List<Peak>();
+                var order = new Dictionary<string, int>();
+                for (int y = 0; y < TestMapData.RowCount; y++)
+                    for (int x = 0; x < TestMapData.Cols; x++)
+                    {
+                        if (!TestMapData.HasPeak(x, y)) continue;
+                        Vector3 top = TestMapData.PeakBase(x, y) + Vector3.up * TestMapData.PeakHeight(x, y);
+                        string region = RegionAt(x, y);
+                        order.TryGetValue(region, out int n);
+                        order[region] = n + 1;
+                        list.Add(new Peak { Id = $"peak_{x}_{y}", Gx = x, Gy = y, Top = top, RegionId = region, Order = n + 1 });
+                    }
+                _peaks = list.ToArray();
+                return _peaks;
+            }
+        }
+
+        public static int PeakIndex(string id)
+        {
+            for (int i = 0; i < Peaks.Length; i++) if (Peaks[i].Id == id) return i;
+            return -1;
+        }
+
+        /// <summary>"북쪽 산기슭 봉우리 3" — 지역 안 순번(한 지역에 봉우리가 열 넘게 선다).</summary>
+        public static string PeakName(Peak p) =>
+            string.Format(GoLocalization.T("map.peak_name", "{0} 봉우리 {1}"), RegionName(p.RegionId), p.Order);
+
+        public static int PeakGold(Peak p) => PeakGoldBase + Mathf.RoundToInt(p.Top.y);
+
+        /// <summary>정상 윗면에 서 있나.</summary>
+        public static bool StandsOn(Peak p, Vector3 pos)
+        {
+            Vector2 d = new Vector2(pos.x - p.Top.x, pos.z - p.Top.z);
+            return d.magnitude <= PeakStandRadius && pos.y >= p.Top.y - PeakStandBelow;
+        }
+
+        /// <summary>오른 정상으로 순간이동해 내리는 자리 — 윗면 가운데 조금 위.</summary>
+        public static Vector3 PeakArrival(Peak p) => p.Top + Vector3.up * 0.3f;
     }
 }

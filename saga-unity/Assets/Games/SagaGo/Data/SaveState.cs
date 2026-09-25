@@ -14,7 +14,7 @@ namespace Saga.Go.Data
     /// </summary>
     public static class SaveState
     {
-        private const int SaveVersion = 17;
+        private const int SaveVersion = 18;
 
         private static string SavePath => Path.Combine(Application.persistentDataPath, "save.json");
 
@@ -84,6 +84,8 @@ namespace Saga.Go.Data
             public List<RegionMissionState.Entry> missions;
             // v17 — PLAN.md 109-6b 도감 화면(겨루기를 연 인물 = "만남", 등용은 partyMembers).
             public List<string> heroesSeen;
+            // v18 — PLAN.md 109-9 오른 정상(발견 보상 한 번·지도에서 순간이동).
+            public List<string> peaksFound;
         }
 
         public static bool Save()
@@ -126,6 +128,7 @@ namespace Saga.Go.Data
                 guardianDown = GuardianState.Defeated,
                 missions = RegionMissionState.Snapshot(),
                 heroesSeen = HeroDexState.Snapshot(),
+                peaksFound = WorldMapState.SnapshotPeaks(),
             };
 
             try
@@ -179,6 +182,7 @@ namespace Saga.Go.Data
             GuardianState.Restore(data.guardianDown);
             RegionMissionState.Restore(data.missions);
             HeroDexState.Restore(data.heroesSeen);
+            WorldMapState.RestorePeaks(data.peaksFound);
 
             Transform player = FindPlayer();
             if (player != null && data.playerPos != null && data.playerPos.Length == 3)
@@ -356,6 +360,13 @@ namespace Saga.Go.Data
                 // v16엔 도감 "만남"이 없었다 — 동행만 만난 것으로 친다(HeroDexState.IsSeen 이 동행 명단을 본다).
                 data.version = 17;
                 data.heroesSeen = new List<string>();
+                return data;
+            }
+            if (fromVersion == 17)
+            {
+                // v17엔 정상 기록이 없었다 — 아직 아무 정상에도 안 오른 것과 같다.
+                data.version = 18;
+                data.peaksFound = new List<string>();
                 return data;
             }
             return null;

@@ -11,6 +11,7 @@ namespace Saga.Go.Data
     {
         private static readonly HashSet<string> _waypoints = new HashSet<string>();
         private static readonly HashSet<string> _regions = new HashSet<string>();
+        private static readonly HashSet<string> _peaks = new HashSet<string>(); // 109-9 오른 정상(세이브 v18 peaksFound)
 
         public static bool Revealed { get; private set; }
         public static event Action Changed;
@@ -43,6 +44,26 @@ namespace Saga.Go.Data
             Revealed = true;
             Changed?.Invoke();
             return true;
+        }
+
+        public static bool IsPeakFound(string peakId) => _peaks.Contains(peakId);
+        public static int PeakCount => _peaks.Count;
+
+        /// <summary>109-9 — 처음 오른 정상이면 true.</summary>
+        public static bool FindPeak(string peakId)
+        {
+            if (!_peaks.Add(peakId)) return false;
+            Changed?.Invoke();
+            return true;
+        }
+
+        public static List<string> SnapshotPeaks() => new List<string>(_peaks);
+
+        public static void RestorePeaks(IEnumerable<string> peaks)
+        {
+            _peaks.Clear();
+            if (peaks != null) foreach (var p in peaks) _peaks.Add(p);
+            Changed?.Invoke();
         }
 
         public static List<string> SnapshotWaypoints() => new List<string>(_waypoints);

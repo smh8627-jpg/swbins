@@ -38,6 +38,11 @@ namespace Saga.Go.Player
         // 새로 짠다).
         private const float CameraSkin = 0.6f;
         private const float CameraCollisionBuffer = 0.2f;
+        // PLAN.md 109-9 건물 가림(웹 사가고 ⑯ 뒷부분) — 가는 광선 대신 구로 쓸어 벽 모서리를 스치며 파고들지 않게,
+        // 사람·짐승·나무 줄기(캡슐·구·CharacterController)는 지나가고(곁을 지날 때 카메라가 들썩이지 않게),
+        // 밟지 않는 지붕은 `CameraOccluder` 트리거로 막는다(지붕 너머로 가서 캐릭터가 가려지던 문제).
+        public const float CastRadius = 0.35f;
+        private static readonly RaycastHit[] _hits = new RaycastHit[32];
 
         [SerializeField] private Camera cam;
         // PLAN.md 106-9 — 있으면 실제 카메라 대신 이 플레이 가상 카메라(CinemachineCamera)를 민다. 실제 카메라는
@@ -209,18 +214,33 @@ namespace Saga.Go.Player
         /// raycast로 막힌 지점을 찾으면 그만큼 당긴다(102-5 "카메라 클리핑").
         /// 막힌 게 없으면 원래 _zoom 그대로 돌려준다 — 이 메서드는 _zoom
         /// 자체는 바꾸지 않아 장애물을 벗어나면 바로 원래 거리로 복귀한다.</summary>
-        private float ResolveCollisionZoom(float desiredZoom)
+        private float ResolveCollisionZoom(float desiredZoom) =>
+            OcclusionZoom(transform.position, transform.TransformDirection(Vector3.back), desiredZoom);
+
+        /// <summary>원점에서 dir 쪽으로 desiredZoom 까지 — 막히면 그 앞까지 당긴 거리(진단도 부른다).</summary>
+        public static float OcclusionZoom(Vector3 origin, Vector3 dir, float desiredZoom)
         {
             if (desiredZoom <= CameraSkin) return desiredZoom;
-            Vector3 origin = transform.position;
-            Vector3 dir = transform.TransformDirection(Vector3.back);
             Vector3 castStart = origin + dir * CameraSkin;
             float castDistance = desiredZoom - CameraSkin;
-            if (Physics.Raycast(castStart, dir, out RaycastHit hit, castDistance, ~0, QueryTriggerInteraction.Ignore))
+            int n = Physics.SphereCastNonAlloc(castStart, CastRadius, dir, _hits, castDistance, ~0, QueryTriggerInteraction.Collide);
+            float best = float.MaxValue;
+            for (int i = 0; i < n; i++)
             {
-                return Mathf.Max(CameraSkin, CameraSkin + hit.distance - CameraCollisionBuffer);
+                if (!Blocks(_hits[i].collider)) continue;
+                best = Mathf.Min(best, _hits[i].distance);
             }
-            return desiredZoom;
+            if (best == float.MaxValue) return desiredZoom;
+            return Mathf.Max(CameraSkin, CameraSkin + best - CameraCollisionBuffer);
+        }
+
+        /// <summary>카메라를 막는 충돌체인가 — 지붕 트리거는 막고, 그 밖 트리거·사람·짐승·줄기는 지나간다.</summary>
+        public static bool Blocks(Collider c)
+        {
+            if (c == null) return false;
+            if (c.isTrigger) return c.GetComponent<Saga.Go.World.CameraOccluder>() != null;
+            if (c is CharacterController || c is CapsuleCollider || c is SphereCollider) return false;
+            return true;
         }
     }
 }
