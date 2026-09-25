@@ -72,6 +72,12 @@ var _defend_label: Label3D = null
 var _defend_warned := false
 var _defend_hold := 0.0 # 무너진 뒤 다시 첫 물결까지 쉬는 초
 const DEFEND_REST := 4.0
+## 106장 ㊲ chase — 도둑(VRoid 몸)·다음 길 점·달리는 중인가·숨 고르는 남은 초.
+var _thief: Node3D = null
+var _chase_i := 0
+var _chase_run := false
+var _chase_pause := 0.0
+var chase_speed_mul := 1.0 # 점검이 도둑을 느리게/빠르게 돌릴 때만
 
 ## defend 제단 — field_enemy.siege 가 이 노드를 친다(siege_hit·siege_radius).
 class SiegeAltar extends Node3D:
@@ -170,8 +176,10 @@ func target_pos() -> Vector3:
 			var dm := get_tree().get_first_node_in_group("go_domains")
 			if dm:
 				return dm.call("gate_pos", String(s.domain))
-		"follow":
+		"follow", "sail":
 			return npc_pos(String(s.npc))
+		"chase":
+			return _thief.global_position if _thief else Vector3.INF
 		"gather":
 			var ga := get_tree().get_first_node_in_group("go_gathering")
 			if ga and _player:
@@ -198,6 +206,10 @@ func step_text() -> String:
 		return "%s %d/%d" % [s.text, _count, int(s.count)]
 	if String(s.type) == "follow" and _follow_far:
 		return "%s — 너무 멀다, 가까이!" % s.text
+	if String(s.type) == "chase" and _thief:
+		if not _chase_run:
+			return "%s — 다가가면 달아난다" % s.text
+		return "%s — %s이(가) 달아난다" % [s.text, String(s.name)] # 거리는 _refresh_marker 가 붙인다
 	if String(s.type) == "defend":
 		if _wave < 0:
 			return "%s — 제단 곁으로 가면 무리가 온다" % s.text
@@ -323,6 +335,9 @@ func _enter_step() -> void:
 	_wave = -1
 	_wave_t = 0.0
 	_defend_warned = false
+	_chase_i = 0
+	_chase_run = false
+	_chase_pause = 0.0
 	_was_locked = locked()
 	_place_npcs()
 	var s := current_step()
@@ -360,6 +375,8 @@ func _enter_step() -> void:
 		"seal":
 			_build_altar(_cell_pos(String(s.region), s.cell))
 			_build_seal(String(s.region))
+		"chase":
+			_build_thief(s)
 		"defend":
 			_build_altar(_cell_pos(String(s.region), s.cell), true)
 			var sa := _altar as SiegeAltar
@@ -387,6 +404,9 @@ func _clear_step_objects() -> void:
 		_altar_flame = null
 		_defend_label = null
 	_seal.clear() # 석등은 제단 자식이라 함께 사라진다
+	if _thief:
+		_thief.queue_free()
+		_thief = null
 	if is_in_group("element_receiver"):
 		remove_from_group("element_receiver")
 
@@ -584,6 +604,9 @@ func _physics_process(delta: float) -> void:
 		"defend":
 			if _defend_tick(s, delta):
 				return
+		"chase":
+			if _chase_tick(s, delta):
+				return
 		"climb":
 			var t := _cell_pos(String(s.region), s.cell)
 			var pp := _player.global_position
@@ -605,6 +628,81 @@ func _physics_process(delta: float) -> void:
 			if body:
 				body.rotation.y = lerp_angle(body.rotation.y, atan2(to_p.x, to_p.z), 0.15)
 	_refresh_marker()
+
+## chase 한 프레임 — 가까이 오면 달아나기 시작, 길 점마다 숨 고르기, 따라잡으면 끝(true), 길 끝이면 처음 자리로.
+func _chase_tick(s: Dictionary, delta: float) -> bool:
+	if _thief == null:
+		return false
+	var path: Array = s.path
+	var to_me := _player.global_position - _thief.global_position
+	to_me.y = 0.0
+	if _chase_run and to_me.length() <= Story.CHASE_CATCH:
+		Toast.show(self, "%s을(를) 따라잡았다 — 노를 되찾았다" % String(s.name), 2.5)
+		CombatFeel.ui()
+		advance()
+		return true
+	if not _chase_run:
+		if to_me.length() <= Story.CHASE_START:
+			_chase_run = true
+			_chase_i = 1
+			Toast.show(self, "%s이(가) 달아난다 — 달려서 쫓아라!" % String(s.name), 2.0)
+			_refresh()
+		_thief_anim(false)
+		return false
+	if _chase_pause > 0.0:
+		_chase_pause -= delta
+		_thief_anim(false)
+		return false
+	if _chase_i >= path.size():
+		## 놓쳤다 — 처음 자리로 돌아가 다시 기다린다.
+		_thief.global_position = _cell_pos(String(s.region), path[0])
+		_chase_run = false
+		_chase_i = 0
+		Toast.show(self, "%s을(를) 놓쳤다 — 처음 자리로 돌아갔다. 다시 쫓아 보자" % String(s.name), 2.5)
+		_refresh()
+		return false
+	var goal := _cell_pos(String(s.region), path[_chase_i])
+	var step := goal - _thief.global_position
+	step.y = 0.0
+	var move := Story.CHASE_SPEED * chase_speed_mul * delta
+	if step.length() <= move:
+		_thief.global_position = goal
+		_chase_i += 1
+		_chase_pause = Story.CHASE_PAUSE
+	else:
+		var np := _thief.global_position + step.normalized() * move
+		np.y = _ground_y(String(s.region), np)
+		_thief.global_position = np
+		var body := _thief.get_node_or_null("Body") as Node3D
+		if body:
+			body.rotation.y = lerp_angle(body.rotation.y, atan2(step.x, step.z), 0.3)
+	_thief_anim(true)
+	_refresh_marker()
+	return false
+
+func _thief_anim(running: bool) -> void:
+	var body := _thief.get_node_or_null("Body")
+	var anim := body.get_node_or_null("AnimationPlayer") as AnimationPlayer if body else null
+	if anim == null:
+		return
+	var want := "walk" if running else "idle"
+	anim.speed_scale = 1.7 if running else 1.0
+	if anim.has_animation(want) and anim.current_animation != want:
+		anim.play(want)
+
+func chase_state() -> Dictionary:
+	return {"run": _chase_run, "i": _chase_i, "pos": _thief.global_position if _thief else Vector3.INF}
+
+## sail — 사공에게 F 로 한 줄 뒤 배로 건넌다(화면은 알림 글자로만).
+func _sail(s: Dictionary) -> void:
+	if current_step() != s:
+		return
+	var to: Dictionary = s.to
+	var p := _cell_pos(String(to.region), to.cell)
+	_player.global_position = p + Vector3.UP * 0.8
+	(_player as CharacterBody3D).velocity = Vector3.ZERO
+	Toast.show(self, String(s.get("arrive", "배가 닿았다")), 2.5)
+	advance()
 
 ## defend 한 프레임 — 가까이 오면 첫 물결, 물결을 다 잡거나 DEFEND_WAVE_SEC 가 지나면 다음, 마지막까지 다 잡으면 끝(true = 단계가 바뀜).
 func _defend_tick(s: Dictionary, delta: float) -> bool:
@@ -745,6 +843,8 @@ func interact() -> bool:
 	var s := current_step()
 	if String(s.get("type", "")) == "talk" and String(s.npc) == id:
 		open_dialogue(s.lines, advance, id)
+	elif String(s.get("type", "")) == "sail" and String(s.npc) == id:
+		open_dialogue([s.line], func() -> void: _sail(s), id)
 	else:
 		var info: Dictionary = Story.NPCS[id]
 		open_dialogue([[String(info.name), String(info.idle)]], Callable(), id)
@@ -1000,7 +1100,7 @@ func _build_npc(id: String) -> void:
 	if anim and anim.has_animation("idle"):
 		anim.play("idle")
 	if info.get("mask", false):
-		VroidBody.add_mask(body)
+		VroidBody.add_mask(body, info.get("mask_color", Color(0.72, 0.12, 0.12)), info.get("mask_face", Color(0.94, 0.92, 0.86)), info.get("crack", false))
 	var tf := TalkFace.attach(body)
 	if tf:
 		_faces[id] = tf
@@ -1115,6 +1215,26 @@ func _build_seal(region: String) -> void:
 		label.position = Vector3(0.0, 2.1, 0.0)
 		t.add_child(label)
 		_seal.append({"node": t, "mark": mark, "flame": flame, "lit": false})
+
+## chase 도둑 — 가면 쓴 사람 몸 + 이름표, path 첫 점에.
+func _build_thief(s: Dictionary) -> void:
+	_thief = Node3D.new()
+	_thief.name = "StoryThief"
+	add_child(_thief)
+	_thief.global_position = _cell_pos(String(s.region), (s.path as Array)[0])
+	var body := VroidBody.build("story_thief", 2, s.get("cloth", Color(0.35, 0.3, 0.28)))
+	body.name = "Body"
+	_thief.add_child(body)
+	VroidBody.add_mask(body)
+	var label := Label3D.new()
+	label.text = String(s.name)
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label.font_size = 34
+	label.outline_size = 8
+	label.pixel_size = 0.005
+	label.modulate = Color(1.0, 0.6, 0.45)
+	label.position = Vector3(0.0, 2.1, 0.0)
+	_thief.add_child(label)
 
 ## 옛 제단 — 돌 받침 + 붙으면 켜지는 불꽃. 붙기 전까지 element_receiver.
 func _build_altar(p: Vector3, siege := false) -> void:

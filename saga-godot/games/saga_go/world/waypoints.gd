@@ -25,6 +25,7 @@ const POINTS := [
 	["v_bridge", "village", Vector2(6.2, 6.4), false, "남쪽 다리목"],
 	["c_dock", "coast", Vector2(4.4, 4.3), true, "포구 신상"],
 	["c_pass", "coast", Vector2(1.3, 5.2), false, "서쪽 고개"],
+	["c_isle", "coast", Vector2(5.95, 2.27), false, "앞바다 바위섬"], # 106장 ㊲ — 8장 배 댄 자리 곁(내리면 켜짐), 헤엄쳐 와도 된다
 	["r_statue", "ruins", Vector2(3.5, 3.0), true, "폐허 신상"],
 	["r_gate", "ruins", Vector2(3.3, 1.3), false, "폐허 어귀"],
 ]

@@ -37,7 +37,7 @@ const SHARDS := [
 	["c_peak_s", "coast", Vector2(3.0, 8.0), "peak"],
 	["c_peak_se", "coast", Vector2(6.0, 8.0), "peak"],
 	["c_sea_w", "coast", Vector2(2.0, 2.0), "water"],
-	["c_sea_e", "coast", Vector2(6.0, 2.0), "water"],
+	["c_sea_e", "coast", Vector2(7.0, 3.0), "water"], # 106장 ㊲ (6,2) 가 바위섬이 돼 옆 바다 칸으로
 	["c_dune", "coast", Vector2(5.0, 6.0), "air"],
 	["r_peak_w", "ruins", Vector2(0.0, 2.0), "peak"],
 	["r_peak_e", "ruins", Vector2(6.0, 5.0), "peak"],

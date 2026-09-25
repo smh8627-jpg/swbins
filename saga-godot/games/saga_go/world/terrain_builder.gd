@@ -48,7 +48,14 @@ const LEGEND := {
 	## 2026-09-16, "coast" 지역 신규 — region2_coast.gd가 primitive
 	## PlaneMesh(SAND_COLOR)로 자급자족하던 모래밭을 같은 색으로 옮긴다.
 	"D": {"name": "sand", "color": Color(0.76, 0.68, 0.5), "walkable": true, "height": 0.05},
+	## 106장 ㊲ 바위섬 — 기준 높이는 바다 밑(가장자리에 절벽이 안 선다), 가운데로 ISLET_RISE 만큼 둥글게 솟는다(vertex_height).
+	## 물은 이 칸에도 깐다(_build_water) — 물 밑 비탈이 드러나지 않게.
+	"K": {"name": "islet", "color": Color(0.4, 0.5, 0.3), "walkable": true, "height": -3.0},
 }
+const ISLET_RISE := 6.0     # 바다 밑(-3)에서 꼭대기까지 — 꼭대기 3m, 물 위 반지름 약 16m
+const ISLET_TOP_R := 0.16   # 칸 비율 — 이 안은 평평한 꼭대기(약 7.7m)
+const ISLET_SHORE_R := 0.47 # 이 밖은 바다 밑
+const ISLET_BUMP := 0.6     # 꼭대기 울퉁불퉁
 
 ## 수면 높이. 예전 식(강바닥 -1.0 + WATER_HEIGHT_ABOVE_BED 0.55)과 같은 값을
 ## 상수로 못박았다 — 바닥을 파도 물 높이는 그대로다.
@@ -113,7 +120,14 @@ static func tile_base_height(region: String, x: int, y: int) -> float:
 ## 칸 안 (u,v)(0~1) 자리의 실제 지면 높이. 산만 봉우리가 솟는다.
 static func vertex_height(region: String, x: int, y: int, u: float, v: float) -> float:
 	var base := tile_base_height(region, x, y)
-	if TestMap.tile_at(x, y, region) != "^":
+	var tch := TestMap.tile_at(x, y, region)
+	if tch == "K":
+		var r := Vector2(u - 0.5, v - 0.5).length()
+		var fk := 1.0 - smoothstep(ISLET_TOP_R, ISLET_SHORE_R, r)
+		var tsk := TestMap.tile_size_of(region)
+		var nk := _peak_noise().get_noise_2d((x + u) * tsk, (y + v) * tsk) * 0.5 + 0.5
+		return base + ISLET_RISE * fk + ISLET_BUMP * nk * fk * fk
+	if tch != "^":
 		return base
 	var d: float = min(min(u, 1.0 - u), min(v, 1.0 - v))
 	var f := smoothstep(0.0, PEAK_FALLOFF, d)
@@ -351,7 +365,7 @@ func _build_water() -> void:
 		var row: String = rows[y]
 		for x in row.length():
 			var ch: String = row[x]
-			if ch != "~" and ch != "B":
+			if ch != "~" and ch != "B" and ch != "K":
 				continue
 			positions.append(TestMap.world_pos(x, y, region_id) + Vector3(0, WATER_LEVEL, 0))
 
