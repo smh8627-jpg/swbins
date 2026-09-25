@@ -1759,3 +1759,7 @@ VRoid 장수가 unlit(`MeshBasicMaterial`) 그대로라 명암 없이 평면이�
 - ② 동양풍 탑 `city_t2_asian`(20부품)·`city_t3_asian`(40부품) — 새 `tools/glb-compress/join-parts.mjs`(flatten→join→prune)로 재질 4개 = 프리미티브 4개. 모양·UV 그대로. kitbash 로 다시 구우면 이 도구를 한 번 더 걸 것.
 - 남은 호출 대부분은 VRoid 사람 몸(한 명당 부품 30여 개 + 외곽선) — `tools/asset-audit/CHARACTER_UNIQUENESS.md` 길과 같이 볼 일.
 - 진단 248/248(한 번). `sw.js` realm-v1.61.1. **실기 확인 대기**.
+
+## 2026-09-25 (캐릭터 모두 다르게) — vroid-variant 다섯 벌 갱신
+- 다섯 벌 `vroid-variant.js`(md5 4071db45…): 도감 인물(`DG.data.heroes`)끼리 머리·옷·눈 칸 셋이 겹치면 도감 순서대로 뒷사람만 `id#1`… 로 다시 굴린다(`rawPick` 은 옛 해시). 사가고 기준 겹침 3 → 0, 나머지 102명은 예전 색 그대로.
+- 이 판 코드는 그대로. `sw.js` realm-v1.61.2.

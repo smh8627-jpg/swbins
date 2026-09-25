@@ -866,3 +866,9 @@ SAGA-DESIGN §11 Phase 4 의 "사가스토리 펫 이미지 공백(보류)" — 
 - 3D: `asset3d.buildHero` 를 `buildRecipe(rec…)` 로 풀고 `buildModel(key)`(몸=몸짓 같은 파일, 물들임 없음)를 보탰다. `actorShell` 일곱째 인자 `model`. 적 풀은 인덱스로 재활용하는데 몸이 바뀌어도 다시 안 지어 옛 병졸 칸에 로봇이 오면 옛 몸이 남았을 것 — `userData.model` 비교를 넣고, 치운 몸은 `disposeDeep`(옛 코드는 안 치웠다).
 - 마을 NPC 는 목록 끝에 붙여(`run.npcs[0]` 을 보는 기존 대화 진단 그대로) 420·710/800 자리.
 - 진단 jsdom 242/243 세 번 같음(새 2 · 실패 하나 "화면을 넷으로 나눠"는 손대기 전에도 jsdom 에서 실패 — stash 로 기준선 확인). `sw.js` side-v0.88.0. **실기 확인 대기**.
+
+## 2026-09-25 (캐릭터 모두 다르게) — 마을 사람 몸을 자리 번호가 아니라 역할로
+- `side-view3d.js` rebuildNpcs 가 몸 씨앗 `'npc'+i`·옷빛 `i % 4` 로 골라 같은 촌로·장사치가 마을마다 다른 몸이었다 → 씨앗 `'npc:'+역할`, 옷빛은 역할 해시.
+- 다섯 벌 `vroid-variant.js`(md5 4071db45…): 도감 인물(`DG.data.heroes`)끼리 머리·옷·눈 칸 셋이 겹치면 도감 순서대로 뒷사람만 `id#1`… 로 다시 굴린다(`rawPick` 은 옛 해시). 사가고 기준 겹침 3 → 0, 나머지 102명은 예전 색 그대로.
+- 진단 243/243. `sw.js` side-v0.88.2. **실기 확인 대기**.
+- 2D 빈칸: 시대 적 여덟이 2D 에서 늑대(짐승형)·Kenney 사람(보행기·망자·특공대)으로 나오던 것 → 제 몸 시트. 같은 GLB(md5 같음)를 사가블로에서 구운 `mon_rat·wasp·zombie·alien·era_drone·era_walker·era_hulk·era_swat.webp` 복사, `sprite.js` MODEL_SHEET(model → 시트)·manifest 11키. `_test.html` 에 mon-manifest 를 실었다(전엔 안 실려 시트 판정이 늘 null). 진단 244/244 세 번 같음.

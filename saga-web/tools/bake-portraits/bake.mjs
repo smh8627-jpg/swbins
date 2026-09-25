@@ -198,7 +198,7 @@ try {
     })()`);
     const keys = await evalJs(`(function () {
       var E = DG.enemyData, seen = {}, out = [];
-      (E.enemies || []).concat(E.bosses || []).forEach(function (e) { if (e.kind === 'beast') { var k = e.body || 'beast'; if (!seen[k]) { seen[k] = 1; out.push(k); } } });
+      (E.enemies || []).concat(E.bosses || [], E.eraEnemies || []).forEach(function (e) { if (e.kind === 'beast') { var k = e.body || 'beast'; if (!seen[k]) { seen[k] = 1; out.push(k); } } });
       return out;
     })()`);
     fs.mkdirSync(path.join(gameDir, 'assets', 'sprites2d'), { recursive: true });

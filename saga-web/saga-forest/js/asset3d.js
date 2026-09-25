@@ -1084,7 +1084,11 @@
          2026-09-20 — 사용자 "104명은 다 바꾸라고 했는데" → 나머지 주민도 VRoid 몸 넷에 id 해시로 나눠 입히고
          머리·옷·눈 색만 인물마다 바꾼다(vroid-variant.js). 마을 배경과 어울리는지는 실기 확인 몫 —
          튀면 이 줄의 oneOf(HERO_RECIPES_ANIME, ref) 만 지우면 NPC 7명만 남는다 */
-      var npcRec = HERO_RECIPES_ANIME_NPC[ref && ref.id];
+      /* 2026-09-25 — 표 키는 `keeper` 인데 village.js npcAt 이 주는 id 는 `npc_keeper` 라 여태 한 번도 안 걸렸다
+         (전원 해시 VRoid 로 섰다). 배달원은 제 몸(우주복 `hero:npc_courier`)이 따로 있어 그쪽으로 보낸다 */
+      var nk = animeNpcKey(ref);
+      if (nk === 'courier' && lookup('hero', ref) && lookup('hero', ref).key === 'hero:npc_courier') { buildHeroDefault(ref, cb); return; }
+      var npcRec = nk ? HERO_RECIPES_ANIME_NPC[nk] : null;
       var arec = npcRec || oneOf(HERO_RECIPES_ANIME, ref);
       if (arec) {
         loadHeroRecipe(arec, function (model) {
@@ -1095,6 +1099,13 @@
       }
     }
     buildHeroDefault(ref, cb);
+  }
+
+  /** 숲 NPC id(`npc_<kind>`) → 전용 몸 표 키. 주민·플레이어는 null */
+  function animeNpcKey(ref) {
+    var id = ref && typeof ref.id === 'string' ? ref.id : '';
+    var k = id.indexOf('npc_') === 0 ? id.slice(4) : '';
+    return k && Object.prototype.hasOwnProperty.call(HERO_RECIPES_ANIME_NPC, k) ? k : null;
   }
 
   /** 기본 경로 — QRPG(공개 기본), 그마저 못 실리면 옛 조합형으로 한 번 더 */
@@ -1262,6 +1273,7 @@
     wantsAnimeAvatar: wantsAnimeAvatar, wantsOwnAnim: wantsOwnAnim,
     heroRecipesAnime: function () { return HERO_RECIPES_ANIME; },
     heroRecipesAnimeNpc: function () { return HERO_RECIPES_ANIME_NPC; },
+    animeNpcKey: animeNpcKey,
     vrmToUal1Bones: function () { return VRM_TO_UAL1_BONES; },
     boneNameMap: boneNameMap
   };

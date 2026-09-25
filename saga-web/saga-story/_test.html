@@ -78,6 +78,7 @@ window.DG_NO_TUNE = true;
 <script src="js/data-rift.js"></script>
 <script src="js/data-achieve.js"></script>
 <script src="js/sprite.js"></script>
+<script src="assets/sprites2d/mon-manifest.js"></script>
 <script src="js/core.js"></script>
 <script src="js/account.js"></script>
 <script src="js/hero.js"></script>
@@ -4714,6 +4715,14 @@ window.DG_NO_TUNE = true;
       if (Object.keys(JD.BRANCH_TINT).some(function (r) { return !JD.nextJobs('none').some(function (j) { return j.key === r; }); })) { bad.push('갈래 키'); }
       if (bad.length) { throw new Error('실패: ' + bad.join(', ')); }
       return '무명 ' + none.css + ' → 무사 ' + w1.css + ' → 전신 ' + w4.css + ' · 천존 ' + m4.css;
+    });
+
+    t('세 시대 적(§5-12) — 2D 도 제 몸 시트(사가블로에서 구운 같은 GLB) · 옛 적은 늑대·코끼리·멧돼지 그대로', function () {
+      var SD = DG.sideData, SP = DG.sprite, ED = DG.enemyData, miss = [], keys = {};
+      SD.ERA_ENEMIES.forEach(function (e) { var k = SP.monKeyOf(e); if (!k || k.indexOf('beast') === 0) { miss.push(e.name); } else { keys[k] = 1; } });
+      var oldOk = ED.enemies.every(function (e) { var k = SP.monKeyOf(e); return !k || k.indexOf('beast') === 0; });
+      if (miss.length) { throw new Error('시트 없음 ' + miss.join(',')); }
+      return Object.keys(keys).length === SD.ERA_ENEMIES.length && oldOk && ('시대 적 ' + Object.keys(keys).length + '종 모두 제 시트');
     });
 
     t('세 시대 적(§5-12) — 관문대마다 현대·미래가 있고 몸은 표에 있다 · 사냥터 잡졸 약 40% 가 시대 적 · 원거리·탱커는 무기로 · 손잡이 0 이면 옛 적만', function () {

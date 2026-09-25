@@ -681,6 +681,16 @@ window.DG_NO_TUNE = true;
         'NPC ' + ids.length + '명 다 generated 옷 물들인 아바타 · NPCS 표와 id 일치';
     });
 
+    t('asset3d — 숲 NPC 실제 id(npc_종류)가 전용 몸 표에 닿는다 · 배달원은 우주복 · 주민은 안 닿는다', function () {
+      /* 2026-09-25 — 표 키(keeper)와 실제 id(npc_keeper)가 어긋나 전용 몸이 한 번도 안 실렸다(위 항목은 표만 봐서 못 잡음) */
+      var A3 = DG.asset3d, ids = Object.keys(A3.heroRecipesAnimeNpc()), miss = [];
+      ids.forEach(function (k) { if (A3.animeNpcKey({ id: 'npc_' + k }) !== k) { miss.push(k); } });
+      var courier = A3.lookup('hero', { id: 'npc_courier' });
+      var resident = A3.animeNpcKey({ id: 'bk_seondeok' }) === null && A3.animeNpcKey({ id: 'keeper' }) === null;
+      if (miss.length) { throw new Error('안 닿음 ' + miss.join(',')); }
+      return resident && courier && courier.key === 'hero:npc_courier' && ('일곱 모두 닿음 · 배달원 ' + courier.key);
+    });
+
     /* ── 3D 마을 화면 (PLAN 40절 PHASE 2 — Player 3D) ─────── */
 
     t('village-view3d — three 는 실려 있으니 available, init 을 안 불렀으니 active 는 아니다', function () {

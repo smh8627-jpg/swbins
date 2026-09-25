@@ -301,10 +301,15 @@
    *  몸 고르기: 코끼리병 → beast_big(코끼리), 산짐승 무리 → beast_boar(멧돼지), 나머지 → beast(늑대). 못 쓰면 자리표시(`loadingMark`, 코드 그림은 2026-09-23 삭제).
    *  SAGA-DESIGN §11 Phase 3(2026-09-20). 도감 펫은 `tier` 가 없어 여기 안 탄다. */
   var monSet = null, monFrom = null, monImgCache = {};
+  /* 세 시대 적(§5-12)은 제 몸(model)의 시트 — 사가블로에서 같은 GLB(md5 같음)로 구운 것을 복사했다(2026-09-25).
+     사람 모양(보행기·망자·특공대)도 Kenney 사람 대신 이 시트로 선다 */
+  var MODEL_SHEET = { 'foe:rat': 'rat', 'foe:wasp': 'wasp', 'foe:zombie': 'zombie', 'foe:alien': 'alien',
+    'foe:drone': 'era_drone', 'foe:walker': 'era_walker', 'foe:hulk': 'era_hulk', 'foe:swat': 'era_swat' };
   function monKeyOf(ref) {
     var M = global.DG.monsterSprites;
     if (!M || !M.keys || !ref || !ref.tier) { return null; }
     if (monFrom !== M) { monSet = {}; monFrom = M; String(M.keys).split(',').forEach(function (k) { if (k) { monSet[k] = 1; } }); }
+    if (ref.model && MODEL_SHEET[ref.model]) { return monSet[MODEL_SHEET[ref.model]] ? MODEL_SHEET[ref.model] : null; }
     var n = String(ref.name || '');
     var k = /코끼리/.test(n) ? 'beast_big' : (/산짐승|멧돼지/.test(n) ? 'beast_boar' : 'beast');
     return monSet[k] ? k : null;
@@ -380,7 +385,7 @@
    * @param o {kind, ref, x, y, s, facing, phase, walking, color, look, form, divine, skin, t}
    */
   function stamp(ctx, o) {
-    var kind = o.kind === 'beast' ? 'beast' : 'human';
+    var kind = o.kind === 'beast' || (o.ref && o.ref.tier && MODEL_SHEET[o.ref.model]) ? 'beast' : 'human';
     var sc = bucketScale(o.s || 1);
     var pb = bucketPhase(o.phase || 0, !!o.walking);
     var id = (o.ref && (o.ref.id || o.ref.name)) || o.key || 'anon';
@@ -674,7 +679,7 @@
   global.DG = global.DG || {};
   global.DG.sprite = {
     portraitCard: portraitCard,
-    stamp: stamp, stampStats: stampStats,
+    stamp: stamp, stampStats: stampStats, monKeyOf: monKeyOf,
     lookOf: lookOf, beastFormOf: beastFormOf, beastColorOf: beastColorOf,
    
     portrait: portrait, shade: shade

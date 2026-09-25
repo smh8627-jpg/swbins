@@ -47,10 +47,31 @@
     return h >>> 0;
   }
 
-  /** 인물 id → 칸 셋 { hair, cloth, eye } (각 0~11) */
-  function pick(id) {
+  /** 인물 id → 칸 셋 { hair, cloth, eye } (각 0~11) — 해시 그대로 */
+  function rawPick(id) {
     var h = hash(id);
     return { hair: h % N, cloth: Math.floor(h / N) % N, eye: Math.floor(h / (N * N)) % N };
+  }
+  /* 2026-09-25 — 도감 인물(DG.data.heroes) 끼리는 칸 셋이 겹치지 않게 한다. 해시만 쓰면 105명 중 몸·색까지
+     똑같은 쌍이 나왔다(사가고 두 쌍, tools/asset-audit/CHARACTER_UNIQUENESS.md). 도감 순서대로 훑어 앞사람과
+     겹치면 `id#1`·`id#2`… 로 다시 굴린다 — 안 겹치는 인물은 예전 색 그대로다. 도감 밖(주민·절차 인물)은 해시 그대로 */
+  var uniq = null;
+  function uniqTable() {
+    if (uniq) { return uniq; }
+    var D = global.DG && global.DG.data;
+    if (!D || !D.heroes || !D.heroes.length) { return null; }
+    var seen = {}, out = {}, i, k, p, key;
+    for (i = 0; i < D.heroes.length; i++) {
+      k = 0;
+      do { p = rawPick(k ? D.heroes[i].id + '#' + k : D.heroes[i].id); key = p.hair + ',' + p.cloth + ',' + p.eye; k++; } while (seen[key] && k < 64);
+      seen[key] = 1; out[D.heroes[i].id] = p;
+    }
+    uniq = out;
+    return uniq;
+  }
+  function pick(id) {
+    var U = uniqTable();
+    return U && Object.prototype.hasOwnProperty.call(U, id) ? U[id] : rawPick(id);
   }
 
   function kindOf(name) {
@@ -513,6 +534,6 @@
     return n;
   }
 
-  global.DG.vroidVariant = { N: N, HAIR: HAIR, CLOTH: CLOTH, EYE: EYE, pick: pick, apply: apply, isVroid: isVroid, faceFront: faceFront, hash: hash,
+  global.DG.vroidVariant = { N: N, HAIR: HAIR, CLOTH: CLOTH, EYE: EYE, pick: pick, rawPick: rawPick, apply: apply, isVroid: isVroid, faceFront: faceFront, hash: hash,
     shade: shade, faceFrame: faceFrame, FACE_RE: FACE_RE };
 })(window);

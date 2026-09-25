@@ -655,7 +655,11 @@
     for (var i = 0; i < list.length; i++) {
       var anchorX = list[i][0];
       var nt = global.DG.sideData && global.DG.sideData.NPC_TALK[list[i][1]];
-      var npc = actorShell(Tc, 'human', NPC_COLORS[i % NPC_COLORS.length], false, 'npc' + i, false, nt && nt.model);
+      /* 2026-09-25 — 몸·옷빛을 자리 번호(i)가 아니라 **역할 키**로 고른다. 전에는 'npc'+i 라 같은 촌로·장사치가
+         마을마다 다른 몸으로 섰다(tools/asset-audit/CHARACTER_UNIQUENESS.md) */
+      var role = list[i][1], rh = 0, ri;
+      for (ri = 0; ri < role.length; ri++) { rh = (rh * 31 + role.charCodeAt(ri)) >>> 0; }
+      var npc = actorShell(Tc, 'human', NPC_COLORS[rh % NPC_COLORS.length], false, 'npc:' + role, false, nt && nt.model);
       npc.userData.npcAnchor = anchorX;
       npc.userData.npcPhase = i * 1.7;
       place(npc, anchorX, 0, 1);
