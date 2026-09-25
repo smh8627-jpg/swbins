@@ -1,0 +1,116 @@
+{
+ "id": "_cmp_real_chrononaut_02",
+ "_note": "단계 3 STORY 비교용 — saga-unity Ely(Mixamo) 자리 후보(STORY 미래 '시간 여행자'). 게임 인물 아님. 남자·곱슬 머리·옅은 연보라 몸 옷·은빛 목 고리·가슴 청록 빛 띠·은 팔 가리개·흰 장화. GO 시간 여행자(여·쪽빛 긴 겉옷자락·놋쇠)와 겹치지 않게.",
+ "macro": {
+  "gender": 1.0,
+  "age": 0.35,
+  "muscle": 0.5,
+  "weight": 0.35,
+  "height": 0.622,
+  "proportions": 0.9,
+  "race": {
+   "asian": 0.2,
+   "caucasian": 0.2,
+   "african": 0.6
+  }
+ },
+ "skin": "young_african_male/young_african_male.mhmat",
+ "eyebrows": "eyebrow003/eyebrow003.mhclo",
+ "hair": "afro01/afro01.mhclo",
+ "eyes": "high-poly/high-poly.mhclo",
+ "eyelashes": "eyelashes01/eyelashes01.mhclo",
+ "teeth": "teeth_base/teeth_base.mhclo",
+ "kitbash": [
+  {
+   "part": "shell",
+   "slot": "cloth",
+   "color": "#c9c3dc",
+   "rough": 0.85,
+   "offset": 0.004,
+   "thick": 0.003,
+   "groups": [
+    "pelvis",
+    "spine_0*",
+    "clavicle_*",
+    "upperarm_*",
+    "lowerarm_*",
+    "thigh_*",
+    "calf_*",
+    "neck_01"
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#ecebf0",
+   "rough": 0.65,
+   "offset": 0.014,
+   "thick": 0.005,
+   "groups": [
+    "foot_*",
+    "ball_*",
+    "calf_*"
+   ],
+   "z": [
+    0.0,
+    0.2
+   ],
+   "minw": 0.3
+  },
+  {
+   "part": "shell",
+   "slot": "metal",
+   "color": "#bcc2ca",
+   "rough": 0.3,
+   "offset": 0.018,
+   "thick": 0.006,
+   "groups": [
+    "neck_01",
+    "clavicle_*",
+    "spine_03"
+   ],
+   "z": [
+    0.8,
+    0.86
+   ],
+   "minw": 0.4
+  },
+  {
+   "part": "shell",
+   "slot": "metal",
+   "color": "#bcc2ca",
+   "rough": 0.3,
+   "offset": 0.012,
+   "thick": 0.005,
+   "groups": [
+    "lowerarm_*"
+   ],
+   "minw": 0.75
+  },
+  {
+   "part": "shell",
+   "slot": "metal_glow",
+   "color": "#35d8e0",
+   "rough": 0.2,
+   "offset": 0.012,
+   "thick": 0.004,
+   "groups": [
+    "spine_0*"
+   ],
+   "z": [
+    0.68,
+    0.71
+   ],
+   "minw": 0.5
+  }
+ ],
+ "anims": {
+  "idle": "Idle_Loop",
+  "walk": "Walk_Loop",
+  "run": "Jog_Fwd_Loop",
+  "interaction": "PickUp_Table",
+  "hit": "Hit_Chest",
+  "death": "Death01"
+ }
+}

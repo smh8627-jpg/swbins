@@ -1,0 +1,122 @@
+{
+ "id": "_cmp_real_punk_f_01",
+ "_note": "단계 3 STORY 비교용 — saga-unity Jody(Mixamo) 자리 후보(STORY 현대 '뒷골목 불량배', 비경 5층~). 게임 인물 아님. 젊은 여자·단발·자홍 비니·검은 가죽 조끼 위 짧은 윗옷(맨팔)·찢긴 잿빛 바지·높은 장화.",
+ "macro": {
+  "gender": 0.0,
+  "age": 0.42,
+  "muscle": 0.6,
+  "weight": 0.35,
+  "height": 0.616,
+  "proportions": 0.85,
+  "race": {
+   "asian": 0.5,
+   "caucasian": 0.35,
+   "african": 0.15
+  }
+ },
+ "skin": "young_caucasian_female/young_caucasian_female.mhmat",
+ "eyebrows": "eyebrow006/eyebrow006.mhclo",
+ "hair": "bob01/bob01.mhclo",
+ "eyes": "high-poly/high-poly.mhclo",
+ "eyelashes": "eyelashes02/eyelashes02.mhclo",
+ "teeth": "teeth_base/teeth_base.mhclo",
+ "kitbash": [
+  {
+   "part": "shell",
+   "slot": "cloth",
+   "color": "#d6d2c8",
+   "rough": 0.85,
+   "offset": 0.006,
+   "thick": 0.004,
+   "groups": [
+    "spine_0*",
+    "clavicle_*",
+    "pelvis",
+    "neck_01"
+   ],
+   "z": [
+    0.6,
+    0.86
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#141416",
+   "rough": 0.55,
+   "offset": 0.012,
+   "thick": 0.005,
+   "groups": [
+    "spine_0*",
+    "clavicle_*",
+    "pelvis"
+   ],
+   "z": [
+    0.56,
+    0.86
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "cloth_pants",
+   "color": "#5b5d62",
+   "rough": 0.85,
+   "offset": 0.006,
+   "thick": 0.004,
+   "groups": [
+    "pelvis",
+    "thigh_*",
+    "calf_*"
+   ],
+   "z": [
+    0.02,
+    0.6
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#141416",
+   "rough": 0.65,
+   "offset": 0.014,
+   "thick": 0.005,
+   "groups": [
+    "foot_*",
+    "ball_*",
+    "calf_*"
+   ],
+   "z": [
+    0.0,
+    0.24
+   ],
+   "minw": 0.3
+  },
+  {
+   "part": "shell",
+   "slot": "cloth_cap",
+   "color": "#b0206a",
+   "rough": 0.85,
+   "offset": 0.034,
+   "thick": 0.006,
+   "groups": [
+    "head"
+   ],
+   "z_eye": [
+    0.035,
+    0.2
+   ],
+   "minw": 0.5
+  }
+ ],
+ "anims": {
+  "idle": "Sword_Idle",
+  "walk": "Walk_Loop",
+  "run": "Jog_Fwd_Loop",
+  "attack": "Punch_Cross",
+  "hit": "Hit_Chest",
+  "death": "Death01"
+ }
+}

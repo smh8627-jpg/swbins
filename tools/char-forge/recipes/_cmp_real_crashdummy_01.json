@@ -1,0 +1,126 @@
+{
+ "id": "_cmp_real_crashdummy_01",
+ "_note": "단계 3 STORY 비교용 — saga-unity Dummy(Mixamo) 자리 후보(STORY 미래 '시험 인형', 비경 1~2층). 게임 인물 아님. 충돌 시험 인형 — 온몸 노란 합성수지 껍데기·목·팔꿈치·무릎·허리 검은 마디 띠·얼굴 없는 노란 머리. 시험 기동 인형(흰 쇠·주황 눈 띠)·강철 인형(검은 쇠)과 겹치지 않게 눈 띠 없음.",
+ "macro": {
+  "gender": 0.5,
+  "age": 0.4,
+  "muscle": 0.5,
+  "weight": 0.45,
+  "height": 0.655,
+  "proportions": 0.9,
+  "race": {
+   "asian": 0.34,
+   "caucasian": 0.33,
+   "african": 0.33
+  }
+ },
+ "skin": "young_caucasian_male/young_caucasian_male.mhmat",
+ "eyes": "low-poly/low-poly.mhclo",
+ "kitbash": [
+  {
+   "part": "shell",
+   "slot": "plastic",
+   "color": "#e8c21e",
+   "rough": 0.45,
+   "offset": 0.008,
+   "thick": 0.005,
+   "groups": [
+    "pelvis",
+    "spine_0*",
+    "clavicle_*",
+    "upperarm_*",
+    "lowerarm_*",
+    "thigh_*",
+    "calf_*",
+    "neck_01",
+    "hand_*",
+    "index_*",
+    "middle_*",
+    "ring_*",
+    "pinky_*",
+    "thumb_*",
+    "foot_*",
+    "ball_*",
+    "head"
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "cloth_joint",
+   "color": "#18181a",
+   "rough": 0.6,
+   "offset": 0.016,
+   "thick": 0.005,
+   "groups": [
+    "neck_01",
+    "head",
+    "spine_03"
+   ],
+   "z": [
+    0.82,
+    0.86
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "cloth_joint",
+   "color": "#18181a",
+   "rough": 0.6,
+   "offset": 0.016,
+   "thick": 0.005,
+   "groups": [
+    "upperarm_*",
+    "lowerarm_*"
+   ],
+   "z": [
+    0.6,
+    0.66
+   ],
+   "minw": 0.3
+  },
+  {
+   "part": "shell",
+   "slot": "cloth_joint",
+   "color": "#18181a",
+   "rough": 0.6,
+   "offset": 0.016,
+   "thick": 0.005,
+   "groups": [
+    "thigh_*",
+    "calf_*"
+   ],
+   "z": [
+    0.26,
+    0.31
+   ],
+   "minw": 0.3
+  },
+  {
+   "part": "shell",
+   "slot": "cloth_joint",
+   "color": "#18181a",
+   "rough": 0.6,
+   "offset": 0.016,
+   "thick": 0.005,
+   "groups": [
+    "pelvis",
+    "spine_01"
+   ],
+   "z": [
+    0.55,
+    0.59
+   ],
+   "minw": 0.5
+  }
+ ],
+ "anims": {
+  "idle": "Idle_Loop",
+  "walk": "Walk_Loop",
+  "run": "Jog_Fwd_Loop",
+  "attack": "Punch_Jab",
+  "hit": "Hit_Chest",
+  "death": "Death01"
+ }
+}

@@ -1,0 +1,115 @@
+{
+ "id": "_cmp_real_warzombie_01",
+ "_note": "단계 3 STORY 비교용 — saga-unity Warzombie(Mixamo) 자리 후보(STORY 현대 '떠도는 망자', 비경 3~4층). 게임 인물 아님. 전장 망자 — 퍼렇게 멍든 잿빛 보라 피부·꺼진 볼·해진 국방색 전투복·녹슨 철모·흙 묻은 군화. GO 떠도는 망자(남색 제복·챙 모자·잿빛 초록)와 겹치지 않게.",
+ "macro": {
+  "gender": 1.0,
+  "age": 0.5,
+  "muscle": 0.6,
+  "weight": 0.25,
+  "height": 0.494,
+  "proportions": 0.8,
+  "race": {
+   "asian": 0.2,
+   "caucasian": 0.6,
+   "african": 0.2
+  }
+ },
+ "skin": "middleage_caucasian_male/middleage_caucasian_male.mhmat",
+ "eyebrows": "eyebrow004/eyebrow004.mhclo",
+ "eyes": "high-poly/high-poly.mhclo",
+ "eyelashes": "eyelashes01/eyelashes01.mhclo",
+ "teeth": "teeth_base/teeth_base.mhclo",
+ "targets": {
+  "cheek-volume-decr": 1.0,
+  "eye-bag-incr": 1.0,
+  "mouth-angles-down": 0.8,
+  "eyebrows-trans-down": 0.5,
+  "neck-trans-forward": 0.5
+ },
+ "tints": {
+  "skin": "#a79aae"
+ },
+ "kitbash": [
+  {
+   "part": "shell",
+   "slot": "cloth",
+   "color": "#4e5634",
+   "rough": 0.95,
+   "offset": 0.006,
+   "thick": 0.004,
+   "groups": [
+    "spine_0*",
+    "clavicle_*",
+    "pelvis",
+    "neck_01",
+    "upperarm_*",
+    "lowerarm_*"
+   ],
+   "z": [
+    0.48,
+    0.88
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "cloth_pants",
+   "color": "#474c30",
+   "rough": 0.95,
+   "offset": 0.006,
+   "thick": 0.004,
+   "groups": [
+    "pelvis",
+    "thigh_*",
+    "calf_*"
+   ],
+   "z": [
+    0.02,
+    0.58
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#2a241c",
+   "rough": 0.65,
+   "offset": 0.012,
+   "thick": 0.005,
+   "groups": [
+    "foot_*",
+    "ball_*",
+    "calf_*"
+   ],
+   "z": [
+    0.0,
+    0.16
+   ],
+   "minw": 0.3
+  },
+  {
+   "part": "shell",
+   "slot": "metal_helmet",
+   "color": "#4a4a36",
+   "rough": 0.6,
+   "offset": 0.022,
+   "thick": 0.007,
+   "groups": [
+    "head"
+   ],
+   "z_eye": [
+    0.03,
+    0.2
+   ],
+   "minw": 0.5
+  }
+ ],
+ "anims": {
+  "idle": "Idle_Loop",
+  "walk": "Walk_Loop",
+  "run": "Jog_Fwd_Loop",
+  "attack": "Punch_Jab",
+  "hit": "Hit_Chest",
+  "death": "Death01"
+ }
+}

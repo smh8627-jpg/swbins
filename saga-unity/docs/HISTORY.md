@@ -9254,3 +9254,11 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - 배정 결과: Uriel·Dreyar·Brady·Peasant Man·Pelegrini 10 · Heraklios·Morak 9 · Castle Guard 02·Paladin 7 · Joe·Castle Guard 5 · Kachujin·Peasant Girl·Arissa 3 · Eve 2 · Archer·Ninja 1, 꾸밈 132, 꾸밈 없는 사람 12. 전체 명단은 진단 로그 `hero looks table` 한 줄.
 - 검증: 컴파일 · GO 씬 재빌드(수호장 컷 타임라인 같이 커밋) · GO `PlaytestHeadless` **3연속 OK**(hero looks 줄 md5 세 번 같음).
 - **줄 7 끝**. 다음 = 109-8. 실기 확인 전: 등 무기 기울기·등에 박히는지, 허리 소품이 걸을 때 손에 걸리는지, 모자·안경 자리, 몸 너비 0.9/1.1 이 어색한지(뼈가 도는 곳에서 조금 기울 수 있다), 금빛 갑옷 열 명이 너무 많은지. 몸 여덟은 로컬 전용 — 다른 PC 는 Mixamo 레시피(README 표 109-7 줄) → `SetupHeroBodies` → GO 씬 재빌드.
+
+## 2026-09-25 — char-forge 남은 사람 NPC 열일곱(STORY 세 시대 열·정찰병·FOREST 마을 사람 여섯) + 비교 장면 짝 쉰둘 ("vroid 같은 자체툴 이어 해줘")
+
+- STORY 적: `_cmp_real_rider_01`(Racer) · `_cmp_real_crashdummy_01`(Dummy — 온몸 노란 합성수지) · `_cmp_real_warzombie_01`(Warzombie) · `_cmp_real_starguest_01`(Mremireh) · `_cmp_real_punk_f_01`(Jody) · `_cmp_real_plasma_01`(Yaku) · `_cmp_real_merc_01`(Steve) · `_cmp_real_colossus_01`(Mannequin). STORY 사람: `_cmp_real_phototourist_f_01`(Olivia) · `_cmp_real_chrononaut_02`(Ely) · `_cmp_real_scout_01`(PeasantMan). FOREST: `_cmp_real_sentry_01`(CastleGuard) · `_cmp_real_pilgrim_01`(Pelegrini) · `_cmp_real_courier_02`(Pete) · `_cmp_real_photographer_f_02`(Sophie) · `_cmp_real_goldexo_f_01`(Uriel) · `_cmp_real_castaway_f_01`(Jennifer). 이로써 Mixamo 사람·괴물 자리 전부에 공방 후보가 있다.
+- 비교 빌더: 짝 열일곱 + 합성수지 칸(`_plastic`)을 살 없는 몸 검사에 받고 매끈함 0.5.
+- 함정: MakeHuman `macro.height` 가 가팔라 첫 빌드가 1.41~2.34m 로 빗나갔다(목표 1.65~1.84) — 레시피마다 선형 보정해 ±1.5% 안으로. `age` 0.3 은 청소년 비율이라 어른은 0.42 로 올렸다. 규칙은 char-forge README §3.
+- 검증: verify fbx ≤ 0.55°·glb 0.0° · 두 번 빌드 같은 바이트 · 시험 인형 밖 살 0점 · 옷자락 뚫림 순례 기사 0%·16%, 사진작가 2.6%·23% · saga-unity 배치 `CMP_RESULT OK`(몸 104). 배치가 올린 `ProjectVersion`·`Packages` 는 `tools/unity-batch.sh` 가 되돌렸다.
+- 게임 몸은 그대로 — 사람 판정 전(HOW_TO_PLAYTEST §9).

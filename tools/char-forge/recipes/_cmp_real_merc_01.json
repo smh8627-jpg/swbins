@@ -1,0 +1,162 @@
+{
+ "id": "_cmp_real_merc_01",
+ "_note": "단계 3 STORY 비교용 — saga-unity Steve(Mixamo) 자리 후보(STORY 현대 '용병 돌격대', 비경 5층~). 게임 인물 아님. 다부진 용병 — 모래빛 전투복·국방색 방탄 조끼(앞뒤)·검은 장갑·무릎 받이·모래빛 군화·검은 야구모자. 진압 특공대(먹빛)·순찰 대원(남색)과 겹치지 않게.",
+ "macro": {
+  "gender": 1.0,
+  "age": 0.5,
+  "muscle": 0.85,
+  "weight": 0.6,
+  "height": 0.526,
+  "proportions": 0.9,
+  "race": {
+   "asian": 0.2,
+   "caucasian": 0.5,
+   "african": 0.3
+  }
+ },
+ "skin": "middleage_african_male/middleage_african_male.mhmat",
+ "eyebrows": "eyebrow010/eyebrow010.mhclo",
+ "hair": "short01/short01.mhclo",
+ "eyes": "high-poly/high-poly.mhclo",
+ "eyelashes": "eyelashes01/eyelashes01.mhclo",
+ "teeth": "teeth_base/teeth_base.mhclo",
+ "targets": {
+  "chin-width-incr": 0.4,
+  "neck-scale-horiz-incr": 0.4
+ },
+ "kitbash": [
+  {
+   "part": "shell",
+   "slot": "cloth",
+   "color": "#a38d64",
+   "rough": 0.85,
+   "offset": 0.006,
+   "thick": 0.004,
+   "groups": [
+    "spine_0*",
+    "clavicle_*",
+    "pelvis",
+    "neck_01",
+    "upperarm_*",
+    "lowerarm_*"
+   ],
+   "z": [
+    0.47,
+    0.88
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "cloth_pants",
+   "color": "#9a8660",
+   "rough": 0.85,
+   "offset": 0.006,
+   "thick": 0.004,
+   "groups": [
+    "pelvis",
+    "thigh_*",
+    "calf_*"
+   ],
+   "z": [
+    0.02,
+    0.58
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#6a5a3e",
+   "rough": 0.65,
+   "offset": 0.014,
+   "thick": 0.005,
+   "groups": [
+    "foot_*",
+    "ball_*",
+    "calf_*"
+   ],
+   "z": [
+    0.0,
+    0.18
+   ],
+   "minw": 0.3
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#141414",
+   "rough": 0.65,
+   "offset": 0.004,
+   "thick": 0.003,
+   "groups": [
+    "hand_*",
+    "index_*",
+    "middle_*",
+    "ring_*",
+    "pinky_*",
+    "thumb_*"
+   ],
+   "minw": 0.3
+  },
+  {
+   "part": "shell",
+   "slot": "cloth_vest",
+   "color": "#4a5236",
+   "rough": 0.9,
+   "offset": 0.026,
+   "thick": 0.012,
+   "groups": [
+    "spine_0*",
+    "clavicle_*",
+    "pelvis"
+   ],
+   "z": [
+    0.56,
+    0.82
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#1f1f1f",
+   "rough": 0.6,
+   "offset": 0.02,
+   "thick": 0.008,
+   "groups": [
+    "thigh_*",
+    "calf_*"
+   ],
+   "z": [
+    0.27,
+    0.32
+   ],
+   "minw": 0.4
+  },
+  {
+   "part": "shell",
+   "slot": "cloth_cap",
+   "color": "#18181a",
+   "rough": 0.85,
+   "offset": 0.02,
+   "thick": 0.006,
+   "groups": [
+    "head"
+   ],
+   "z_eye": [
+    0.04,
+    0.2
+   ],
+   "minw": 0.5
+  }
+ ],
+ "anims": {
+  "idle": "Pistol_Idle_Loop",
+  "walk": "Walk_Loop",
+  "run": "Jog_Fwd_Loop",
+  "attack": "Punch_Cross",
+  "hit": "Hit_Chest",
+  "death": "Death01"
+ }
+}

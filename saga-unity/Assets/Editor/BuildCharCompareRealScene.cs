@@ -176,6 +176,25 @@ namespace Saga.EditorTools
             BossPair("Zlorp", "_cmp_real_visitor_01", 1.60f),
             IdlePair("Leonard", "_cmp_real_junkpeddler_01", 1.70f),
             IdlePair("Astra", "_cmp_real_timepeddler_f_01", 1.68f),
+            // STORY 세 시대(109-3) — 비경 단계별 적 여덟(다섯 상태 몸, 키는 HeightMul 쯤)과 들머리 사람 둘·정찰병(서기)
+            BossPair("Racer", "_cmp_real_rider_01", 1.75f),
+            BossPair("Dummy", "_cmp_real_crashdummy_01", 1.75f),
+            BossPair("Warzombie", "_cmp_real_warzombie_01", 1.75f),
+            BossPair("Mremireh", "_cmp_real_starguest_01", 1.84f),
+            BossPair("Jody", "_cmp_real_punk_f_01", 1.65f),
+            BossPair("Yaku", "_cmp_real_plasma_01", 1.84f),
+            BossPair("Steve", "_cmp_real_merc_01", 1.80f),
+            BossPair("Mannequin", "_cmp_real_colossus_01", 2.28f),
+            FolkPair("Olivia", "_cmp_real_phototourist_f_01", 1.65f),
+            FolkPair("Ely", "_cmp_real_chrononaut_02", 1.75f),
+            IdlePair("PeasantMan", "_cmp_real_scout_01", 1.75f),
+            // FOREST 마을 사람 여섯(109-4, ForestEraFolk — 서기·걷기)
+            FolkPair("CastleGuard", "_cmp_real_sentry_01", 1.80f),
+            FolkPair("Pelegrini", "_cmp_real_pilgrim_01", 1.78f),
+            FolkPair("Pete", "_cmp_real_courier_02", 1.68f),
+            FolkPair("Sophie", "_cmp_real_photographer_f_02", 1.70f),
+            FolkPair("Uriel", "_cmp_real_goldexo_f_01", 1.78f),
+            FolkPair("Jennifer", "_cmp_real_castaway_f_01", 1.68f),
         };
 
         /// <summary>행상 짝 — 지금 몸은 서기 하나뿐이다.</summary>
@@ -360,10 +379,10 @@ namespace Saga.EditorTools
                 {
                     var skin = mats.FirstOrDefault(m => m.name.EndsWith("_skin"));
                     // 해골(공방 skeleton.py)은 살이 없다 — 피부 대신 뼈 칸(bone)이 있어야 한다.
-                    // 온몸 쇠 인형(시험 기동·강철 인형)은 껍데기가 살을 다 덮어 지웠다 — 쇠 칸(metal)
+                    // 온몸 쇠 인형(시험 기동·강철 인형)은 껍데기가 살을 다 덮어 지웠다 — 쇠 칸(metal) · 충돌 시험 인형은 합성수지 칸(plastic)
                     ok &= skin != null
                         ? skin.shader == AssetDatabase.LoadAssetAtPath<Shader>(SkinGraph) && skin.GetTexture("_BaseMap") != null
-                        : mats.Any(m => m.name.EndsWith("_bone") || m.name.EndsWith("_metal"));
+                        : mats.Any(m => m.name.EndsWith("_bone") || m.name.EndsWith("_metal") || m.name.EndsWith("_plastic"));
                     // 그림 없는 부품 재질(뿔 등)은 FBX 의 바탕색을 옮겨 받아야 한다 — 흰색이면 옮기기가 빠진 것
                     foreach (var m in mats.Where(m => !m.GetTexture("_BaseMap")))
                     {
@@ -440,7 +459,7 @@ namespace Saga.EditorTools
                 // 칸별 손질 — 이름은 build_real.py 가 표준 칸으로 붙인다(skin·eye·hair·hair_brow·hair_lash·teeth·cloth_*)
                 float smooth = src.name.StartsWith("eye") ? 0.85f : src.name.StartsWith("skin") ? 0.4f
                     : src.name.StartsWith("hair") ? 0.3f : src.name.StartsWith("teeth") ? 0.6f
-                    : src.name.StartsWith("metal") ? 0.62f : src.name.StartsWith("leather") ? 0.35f : 0.2f;
+                    : src.name.StartsWith("metal") ? 0.62f : src.name.StartsWith("plastic") ? 0.5f : src.name.StartsWith("leather") ? 0.35f : 0.2f;
                 m.SetFloat("_Smoothness", smooth);
                 m.SetFloat("_Metallic", src.name.StartsWith("metal") ? 0.85f : 0f); // 공방 껍데기 쇠판(shell slot metal)
                 if (sss != null && src.name.StartsWith("skin"))

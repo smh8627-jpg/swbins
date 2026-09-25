@@ -1,0 +1,139 @@
+{
+ "id": "_cmp_real_castaway_f_01",
+ "_note": "단계 3 FOREST 비교용 — saga-unity Jennifer(Mixamo) 자리 후보(FOREST 미래 '불시착 탐사원'). 게임 인물 아님. 젊은 여자·말총머리·하늘빛 비행복(온몸)·흰 가슴판·흰 장화·장갑·등 잿빛 생존 짐·귀 옆 머리띠형 통신기. 탐사 대원(흰 판·흰 투구·청록 눈 띠)·수리 기사(주황 작업복)와 겹치지 않게.",
+ "macro": {
+  "gender": 0.0,
+  "age": 0.42,
+  "muscle": 0.55,
+  "weight": 0.35,
+  "height": 0.641,
+  "proportions": 0.9,
+  "race": {
+   "asian": 0.4,
+   "caucasian": 0.4,
+   "african": 0.2
+  }
+ },
+ "skin": "young_caucasian_female/young_caucasian_female.mhmat",
+ "eyebrows": "eyebrow001/eyebrow001.mhclo",
+ "hair": "ponytail01/ponytail01.mhclo",
+ "eyes": "high-poly/high-poly.mhclo",
+ "eyelashes": "eyelashes02/eyelashes02.mhclo",
+ "teeth": "teeth_base/teeth_base.mhclo",
+ "kitbash": [
+  {
+   "part": "shell",
+   "slot": "cloth",
+   "color": "#4f86b8",
+   "rough": 0.85,
+   "offset": 0.005,
+   "thick": 0.004,
+   "groups": [
+    "pelvis",
+    "spine_0*",
+    "clavicle_*",
+    "upperarm_*",
+    "lowerarm_*",
+    "thigh_*",
+    "calf_*",
+    "neck_01"
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#e8e8ea",
+   "rough": 0.65,
+   "offset": 0.014,
+   "thick": 0.005,
+   "groups": [
+    "foot_*",
+    "ball_*",
+    "calf_*"
+   ],
+   "z": [
+    0.0,
+    0.2
+   ],
+   "minw": 0.3
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#e8e8ea",
+   "rough": 0.65,
+   "offset": 0.004,
+   "thick": 0.003,
+   "groups": [
+    "hand_*",
+    "index_*",
+    "middle_*",
+    "ring_*",
+    "pinky_*",
+    "thumb_*"
+   ],
+   "minw": 0.3
+  },
+  {
+   "part": "shell",
+   "slot": "metal",
+   "color": "#e2e4e6",
+   "rough": 0.35,
+   "offset": 0.016,
+   "thick": 0.005,
+   "groups": [
+    "spine_02",
+    "spine_03"
+   ],
+   "z": [
+    0.64,
+    0.8
+   ],
+   "facing": 0.3,
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "metal_pack",
+   "color": "#6a7078",
+   "rough": 0.5,
+   "offset": 0.07,
+   "thick": 0.012,
+   "groups": [
+    "spine_0*",
+    "clavicle_*"
+   ],
+   "z": [
+    0.56,
+    0.82
+   ],
+   "facing_back": 0.35,
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "metal_band",
+   "color": "#2a2c30",
+   "rough": 0.3,
+   "offset": 0.018,
+   "thick": 0.004,
+   "groups": [
+    "head"
+   ],
+   "z_eye": [
+    0.0,
+    0.03
+   ],
+   "minw": 0.5
+  }
+ ],
+ "anims": {
+  "idle": "Idle_Loop",
+  "walk": "Walk_Loop",
+  "run": "Jog_Fwd_Loop",
+  "interaction": "PickUp_Table",
+  "hit": "Hit_Chest",
+  "death": "Death01"
+ }
+}

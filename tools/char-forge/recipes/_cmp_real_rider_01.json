@@ -1,0 +1,133 @@
+{
+ "id": "_cmp_real_rider_01",
+ "_note": "단계 3 STORY 비교용 — saga-unity Racer(Mixamo) 자리 후보(STORY 현대 '폭주 라이더', 비경 1~2층). 게임 인물 아님. 마른 젊은 남자·검은 가죽 라이더 재킷·가죽 바지·장화·장갑·붉은 칠 풀페이스 헬멧에 앞 검은 가리개. 폭주 청년(붉은 두건·청바지)과 겹치지 않게 머리를 통째로 덮는다.",
+ "macro": {
+  "gender": 1.0,
+  "age": 0.42,
+  "muscle": 0.55,
+  "weight": 0.3,
+  "height": 0.603,
+  "proportions": 0.9,
+  "race": {
+   "asian": 0.6,
+   "caucasian": 0.3,
+   "african": 0.1
+  }
+ },
+ "skin": "young_asian_male/young_asian_male.mhmat",
+ "eyes": "low-poly/low-poly.mhclo",
+ "kitbash": [
+  {
+   "part": "shell",
+   "slot": "leather_jacket",
+   "color": "#161618",
+   "rough": 0.55,
+   "offset": 0.008,
+   "thick": 0.005,
+   "groups": [
+    "spine_0*",
+    "clavicle_*",
+    "pelvis",
+    "neck_01",
+    "upperarm_*",
+    "lowerarm_*"
+   ],
+   "z": [
+    0.47,
+    0.88
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "leather_pants",
+   "color": "#1f1f22",
+   "rough": 0.85,
+   "offset": 0.006,
+   "thick": 0.004,
+   "groups": [
+    "pelvis",
+    "thigh_*",
+    "calf_*"
+   ],
+   "z": [
+    0.02,
+    0.58
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#101012",
+   "rough": 0.65,
+   "offset": 0.014,
+   "thick": 0.005,
+   "groups": [
+    "foot_*",
+    "ball_*",
+    "calf_*"
+   ],
+   "z": [
+    0.0,
+    0.2
+   ],
+   "minw": 0.3
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#101012",
+   "rough": 0.65,
+   "offset": 0.004,
+   "thick": 0.003,
+   "groups": [
+    "hand_*",
+    "index_*",
+    "middle_*",
+    "ring_*",
+    "pinky_*",
+    "thumb_*"
+   ],
+   "minw": 0.3
+  },
+  {
+   "part": "shell",
+   "slot": "metal_helmet",
+   "color": "#a5221c",
+   "rough": 0.25,
+   "offset": 0.03,
+   "thick": 0.008,
+   "groups": [
+    "head",
+    "neck_01"
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "metal_visor",
+   "color": "#0d0f12",
+   "rough": 0.1,
+   "offset": 0.036,
+   "thick": 0.004,
+   "groups": [
+    "head"
+   ],
+   "z_eye": [
+    -0.03,
+    0.03
+   ],
+   "facing": 0.35,
+   "minw": 0.5
+  }
+ ],
+ "anims": {
+  "idle": "Sword_Idle",
+  "walk": "Walk_Loop",
+  "run": "Jog_Fwd_Loop",
+  "attack": "Punch_Cross",
+  "hit": "Hit_Chest",
+  "death": "Death01"
+ }
+}

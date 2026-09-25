@@ -1,0 +1,174 @@
+{
+ "id": "_cmp_real_sentry_01",
+ "_note": "단계 3 FOREST 비교용 — saga-unity CastleGuard(Mixamo) 자리 후보(FOREST 옛 '길 잃은 성 파수병'). 게임 인물 아님. 중년 남자·잿빛 사슬 갑옷(몸통·팔)·앞뒤 쪽빛 겉옷판·가죽 띠·가죽 장갑·장화·얼굴 트인 둥근 쇠 투구. 무사(붉은 누비옷·쇠 판갑)와 겹치지 않게.",
+ "macro": {
+  "gender": 1.0,
+  "age": 0.55,
+  "muscle": 0.7,
+  "weight": 0.6,
+  "height": 0.548,
+  "proportions": 0.85,
+  "race": {
+   "asian": 0.2,
+   "caucasian": 0.7,
+   "african": 0.1
+  }
+ },
+ "skin": "middleage_caucasian_male/middleage_caucasian_male.mhmat",
+ "eyebrows": "eyebrow007/eyebrow007.mhclo",
+ "eyes": "high-poly/high-poly.mhclo",
+ "eyelashes": "eyelashes01/eyelashes01.mhclo",
+ "teeth": "teeth_base/teeth_base.mhclo",
+ "kitbash": [
+  {
+   "part": "shell",
+   "slot": "metal_mail",
+   "color": "#80858a",
+   "rough": 0.55,
+   "offset": 0.006,
+   "thick": 0.004,
+   "groups": [
+    "spine_0*",
+    "clavicle_*",
+    "pelvis",
+    "neck_01",
+    "upperarm_*",
+    "lowerarm_*"
+   ],
+   "z": [
+    0.46,
+    0.88
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "cloth_pants",
+   "color": "#3b3530",
+   "rough": 0.85,
+   "offset": 0.006,
+   "thick": 0.004,
+   "groups": [
+    "pelvis",
+    "thigh_*",
+    "calf_*"
+   ],
+   "z": [
+    0.02,
+    0.58
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#3a2a1e",
+   "rough": 0.65,
+   "offset": 0.014,
+   "thick": 0.005,
+   "groups": [
+    "foot_*",
+    "ball_*",
+    "calf_*"
+   ],
+   "z": [
+    0.0,
+    0.2
+   ],
+   "minw": 0.3
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#3a2a1e",
+   "rough": 0.65,
+   "offset": 0.004,
+   "thick": 0.003,
+   "groups": [
+    "hand_*",
+    "index_*",
+    "middle_*",
+    "ring_*",
+    "pinky_*",
+    "thumb_*"
+   ],
+   "minw": 0.3
+  },
+  {
+   "part": "shell",
+   "slot": "cloth_tabard",
+   "color": "#2a3a6a",
+   "rough": 0.9,
+   "offset": 0.016,
+   "thick": 0.005,
+   "groups": [
+    "spine_0*",
+    "pelvis",
+    "thigh_*"
+   ],
+   "z": [
+    0.4,
+    0.8
+   ],
+   "facing": 0.3,
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "cloth_tabard",
+   "color": "#2a3a6a",
+   "rough": 0.9,
+   "offset": 0.016,
+   "thick": 0.005,
+   "groups": [
+    "spine_0*",
+    "pelvis",
+    "thigh_*"
+   ],
+   "z": [
+    0.4,
+    0.8
+   ],
+   "facing_back": 0.3,
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "leather_belt",
+   "color": "#2a1f16",
+   "rough": 0.6,
+   "offset": 0.022,
+   "thick": 0.006,
+   "groups": [
+    "pelvis",
+    "spine_01"
+   ],
+   "z": [
+    0.55,
+    0.58
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "metal",
+   "color": "#9ba3ab",
+   "rough": 0.35,
+   "offset": 0.014,
+   "thick": 0.006,
+   "groups": [
+    "head"
+   ],
+   "open_face": true,
+   "minw": 0.5
+  }
+ ],
+ "anims": {
+  "idle": "Sword_Idle",
+  "walk": "Walk_Loop",
+  "run": "Jog_Fwd_Loop",
+  "interaction": "PickUp_Table",
+  "hit": "Hit_Chest",
+  "death": "Death01"
+ }
+}

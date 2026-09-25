@@ -1,0 +1,107 @@
+{
+ "id": "_cmp_real_phototourist_f_01",
+ "_note": "단계 3 STORY 비교용 — saga-unity Olivia(Mixamo) 자리 후보(STORY 현대 '사진 찍는 여행자'). 게임 인물 아님. 젊은 여자·단발·민트빛 바람막이·흰 반바지(맨 종아리)·흰 운동화·이마에 올린 선글라스.",
+ "macro": {
+  "gender": 0.0,
+  "age": 0.42,
+  "muscle": 0.45,
+  "weight": 0.4,
+  "height": 0.643,
+  "proportions": 0.85,
+  "race": {
+   "asian": 0.7,
+   "caucasian": 0.2,
+   "african": 0.1
+  }
+ },
+ "skin": "young_asian_female/young_asian_female.mhmat",
+ "eyebrows": "eyebrow002/eyebrow002.mhclo",
+ "hair": "bob01/bob01.mhclo",
+ "eyes": "high-poly/high-poly.mhclo",
+ "eyelashes": "eyelashes02/eyelashes02.mhclo",
+ "teeth": "teeth_base/teeth_base.mhclo",
+ "kitbash": [
+  {
+   "part": "shell",
+   "slot": "cloth",
+   "color": "#7ec8b0",
+   "rough": 0.85,
+   "offset": 0.008,
+   "thick": 0.004,
+   "groups": [
+    "spine_0*",
+    "clavicle_*",
+    "pelvis",
+    "neck_01",
+    "upperarm_*",
+    "lowerarm_*"
+   ],
+   "z": [
+    0.47,
+    0.88
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "cloth_pants",
+   "color": "#ece9e0",
+   "rough": 0.85,
+   "offset": 0.006,
+   "thick": 0.004,
+   "groups": [
+    "pelvis",
+    "thigh_*",
+    "calf_*"
+   ],
+   "z": [
+    0.36,
+    0.58
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#f0eee8",
+   "rough": 0.65,
+   "offset": 0.01,
+   "thick": 0.005,
+   "groups": [
+    "foot_*",
+    "ball_*",
+    "calf_*"
+   ],
+   "z": [
+    0.0,
+    0.05
+   ],
+   "minw": 0.3
+  },
+  {
+   "part": "shell",
+   "slot": "metal_lens",
+   "color": "#141416",
+   "rough": 0.1,
+   "offset": 0.022,
+   "thick": 0.004,
+   "groups": [
+    "head"
+   ],
+   "z_eye": [
+    0.05,
+    0.085
+   ],
+   "facing": 0.5,
+   "minw": 0.5
+  }
+ ],
+ "anims": {
+  "idle": "Idle_Loop",
+  "walk": "Walk_Loop",
+  "run": "Jog_Fwd_Loop",
+  "interaction": "PickUp_Table",
+  "hit": "Hit_Chest",
+  "death": "Death01"
+ }
+}

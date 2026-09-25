@@ -1,0 +1,133 @@
+{
+ "id": "_cmp_real_starguest_01",
+ "_note": "단계 3 STORY 비교용 — saga-unity Mremireh(Mixamo) 자리 후보(STORY 미래 '별바다 손님', 비경 3~4층, 키 1.05배). 게임 인물 아님. 크고 가는 외계 무인 — 짙은 쪽빛 피부·민머리·길고 뾰족한 귀·뒤로 누운 짧은 뿔 둘·먹보라 몸 옷·금빛 가슴판·어깨판·팔 가리개. 별 너머 방문자(큰 머리·더듬이·은빛)와 겹치지 않게.",
+ "macro": {
+  "gender": 1.0,
+  "age": 0.4,
+  "muscle": 0.7,
+  "weight": 0.2,
+  "height": 0.619,
+  "proportions": 1.0,
+  "race": {
+   "asian": 0.2,
+   "caucasian": 0.3,
+   "african": 0.5
+  }
+ },
+ "skin": "young_african_male/young_african_male.mhmat",
+ "eyes": "high-poly/high-poly.mhclo",
+ "eyelashes": "eyelashes01/eyelashes01.mhclo",
+ "teeth": "teeth_base/teeth_base.mhclo",
+ "targets": {
+  "ear-shape-pointed": 1.0,
+  "ear-scale-vert-incr": 0.8,
+  "head-scale-vert-incr": 0.4,
+  "cheek-bones-incr": 0.8,
+  "chin-prognathism-decr": 0.3,
+  "measure-neck-height-incr": 0.5
+ },
+ "tints": {
+  "skin": "#6f7fc4"
+ },
+ "kitbash": [
+  {
+   "part": "horns",
+   "length": 0.12,
+   "radius": 0.018,
+   "curl": 0.5,
+   "color": "#1e2233"
+  },
+  {
+   "part": "shell",
+   "slot": "cloth",
+   "color": "#2a2238",
+   "rough": 0.85,
+   "offset": 0.004,
+   "thick": 0.003,
+   "groups": [
+    "pelvis",
+    "spine_0*",
+    "clavicle_*",
+    "upperarm_*",
+    "lowerarm_*",
+    "thigh_*",
+    "calf_*",
+    "neck_01"
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#1a1522",
+   "rough": 0.65,
+   "offset": 0.014,
+   "thick": 0.005,
+   "groups": [
+    "foot_*",
+    "ball_*",
+    "calf_*"
+   ],
+   "z": [
+    0.0,
+    0.22
+   ],
+   "minw": 0.3
+  },
+  {
+   "part": "shell",
+   "slot": "metal",
+   "color": "#b08a3a",
+   "rough": 0.3,
+   "offset": 0.018,
+   "thick": 0.006,
+   "groups": [
+    "spine_01",
+    "spine_02",
+    "spine_03"
+   ],
+   "z": [
+    0.54,
+    0.8
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "metal",
+   "color": "#b08a3a",
+   "rough": 0.3,
+   "offset": 0.026,
+   "thick": 0.006,
+   "groups": [
+    "upperarm_*",
+    "clavicle_*"
+   ],
+   "z": [
+    0.74,
+    0.86
+   ],
+   "minw": 0.4
+  },
+  {
+   "part": "shell",
+   "slot": "metal",
+   "color": "#b08a3a",
+   "rough": 0.3,
+   "offset": 0.014,
+   "thick": 0.005,
+   "groups": [
+    "lowerarm_*"
+   ],
+   "minw": 0.7
+  }
+ ],
+ "anims": {
+  "idle": "Sword_Idle",
+  "walk": "Walk_Loop",
+  "run": "Jog_Fwd_Loop",
+  "attack": "Sword_Attack",
+  "hit": "Hit_Chest",
+  "death": "Death01"
+ }
+}

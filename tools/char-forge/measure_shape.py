@@ -63,14 +63,16 @@ if eyes and skin:
 
 robe = next((o for n, o in meshes.items() if n.endswith('_robe')), None)
 if robe and skin:
-    legs = {g.index for g in skin.vertex_groups if g.name.startswith(('thigh_', 'calf_'))}
-    leg_idx = [v.index for v in skin.data.vertices if sum(g.weight for g in v.groups if g.group in legs) >= 0.5]
-    if not leg_idx:
-        # 온몸 옷 껍데기가 다리 살을 덮어 지웠다 — 그 껍데기(살과 같은 뼈 무게)를 다리로 잰다
-        skin = next(o for n, o in meshes.items() if n.endswith('_kitbash_cloth'))
-        legs = {g.index for g in skin.vertex_groups if g.name.startswith(('thigh_', 'calf_'))}
-        leg_idx = [v.index for v in skin.data.vertices if sum(g.weight for g in v.groups if g.group in legs) >= 0.5]
-        print('MEASURE robe 다리 = 옷 껍데기', len(leg_idx))
+    def leg_verts(o):
+        legs = {g.index for g in o.vertex_groups if g.name.startswith(('thigh_', 'calf_'))}
+        return [v.index for v in o.data.vertices if sum(g.weight for g in v.groups if g.group in legs) >= 0.5]
+    # 옷 껍데기(온몸 옷·바지)가 다리 살을 덮어 지웠으면 그 껍데기(살과 같은 뼈 무게)를 다리로 잰다 —
+    # 발목 몇 점만 살로 남는 몸이 있어(바지 + 코트 자락) 다리 정점이 가장 많은 쪽을 고른다
+    cands = [skin] + [o for n, o in meshes.items() if '_kitbash_cloth' in n]
+    skin = max(cands, key=lambda o: len(leg_verts(o)))
+    leg_idx = leg_verts(skin)
+    if skin.name.find('_kitbash_') >= 0:
+        print('MEASURE robe 다리 = 옷 껍데기', skin.name.split('_kitbash_')[-1], len(leg_idx))
     for nm in ('idle', 'walk', 'run'):
         act = ACTS[nm]
         ad = arm.animation_data_create()

@@ -1,0 +1,153 @@
+{
+ "id": "_cmp_real_pilgrim_01",
+ "_note": "단계 3 FOREST 비교용 — saga-unity Pelegrini(Mixamo) 자리 후보(FOREST 옛 '붉은 두건 순례 기사'). 게임 인물 아님. 늙수그레한 남자·얼굴 트인 붉은 두건·정강이까지 내려오는 흰 겉옷자락·어깨 붉은 망토깃·가죽 띠·밤빛 장화. 폭주 청년(붉은 두건 윗옷·청바지)과 겹치지 않게 긴 흰 옷.",
+ "macro": {
+  "gender": 1.0,
+  "age": 0.7,
+  "muscle": 0.55,
+  "weight": 0.45,
+  "height": 0.529,
+  "proportions": 0.85,
+  "race": {
+   "asian": 0.1,
+   "caucasian": 0.8,
+   "african": 0.1
+  }
+ },
+ "skin": "old_caucasian_male/old_caucasian_male.mhmat",
+ "eyebrows": "eyebrow005/eyebrow005.mhclo",
+ "eyes": "high-poly/high-poly.mhclo",
+ "eyelashes": "eyelashes01/eyelashes01.mhclo",
+ "teeth": "teeth_base/teeth_base.mhclo",
+ "targets": {
+  "cheek-volume-decr": 0.3,
+  "nose-scale-vert-incr": 0.3
+ },
+ "kitbash": [
+  {
+   "part": "shell",
+   "slot": "cloth",
+   "color": "#d9d0bb",
+   "rough": 0.9,
+   "offset": 0.005,
+   "thick": 0.004,
+   "groups": [
+    "pelvis",
+    "spine_0*",
+    "clavicle_*",
+    "upperarm_*",
+    "lowerarm_*",
+    "thigh_*",
+    "calf_*",
+    "neck_01"
+   ],
+   "z": [
+    0.3,
+    0.88
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#4a3322",
+   "rough": 0.65,
+   "offset": 0.014,
+   "thick": 0.005,
+   "groups": [
+    "foot_*",
+    "ball_*",
+    "calf_*"
+   ],
+   "z": [
+    0.0,
+    0.2
+   ],
+   "minw": 0.3
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#4a3322",
+   "rough": 0.65,
+   "offset": 0.004,
+   "thick": 0.003,
+   "groups": [
+    "hand_*",
+    "index_*",
+    "middle_*",
+    "ring_*",
+    "pinky_*",
+    "thumb_*"
+   ],
+   "minw": 0.3
+  },
+  {
+   "part": "shell",
+   "slot": "cloth_mantle",
+   "color": "#8e1f1c",
+   "rough": 0.9,
+   "offset": 0.02,
+   "thick": 0.006,
+   "groups": [
+    "spine_03",
+    "clavicle_*",
+    "neck_01",
+    "upperarm_*"
+   ],
+   "z": [
+    0.76,
+    0.87
+   ],
+   "minw": 0.35
+  },
+  {
+   "part": "shell",
+   "slot": "leather_belt",
+   "color": "#3a2818",
+   "rough": 0.6,
+   "offset": 0.02,
+   "thick": 0.006,
+   "groups": [
+    "pelvis",
+    "spine_01"
+   ],
+   "z": [
+    0.55,
+    0.58
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "cloth_hood",
+   "color": "#8e1f1c",
+   "rough": 0.9,
+   "offset": 0.016,
+   "thick": 0.005,
+   "groups": [
+    "head",
+    "neck_01"
+   ],
+   "open_face": true,
+   "minw": 0.5
+  },
+  {
+   "part": "robe",
+   "color": "#d9d0bb",
+   "top": 0.34,
+   "length": 0.62,
+   "flare": 0.35,
+   "jag": 0.0,
+   "weights": "skin"
+  }
+ ],
+ "anims": {
+  "idle": "Idle_Loop",
+  "walk": "Walk_Loop",
+  "run": "Jog_Fwd_Loop",
+  "interaction": "PickUp_Table",
+  "hit": "Hit_Chest",
+  "death": "Death01"
+ }
+}

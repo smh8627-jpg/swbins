@@ -1,0 +1,134 @@
+{
+ "id": "_cmp_real_photographer_f_02",
+ "_note": "단계 3 FOREST 비교용 — saga-unity Sophie(Mixamo) 자리 후보(FOREST 현대 '사진작가 찰나'). 게임 인물 아님. 여자·짧은 머리·검은 목폴라·무릎 아래까지 내려오는 모래빛 긴 겉옷자락·짙은 바지·밤빛 구두·검붉은 베레모. STORY 사진 찍는 여행자(단발·민트 바람막이·반바지)와 겹치지 않게.",
+ "macro": {
+  "gender": 0.0,
+  "age": 0.45,
+  "muscle": 0.4,
+  "weight": 0.35,
+  "height": 0.566,
+  "proportions": 0.95,
+  "race": {
+   "asian": 0.1,
+   "caucasian": 0.2,
+   "african": 0.7
+  }
+ },
+ "skin": "young_african_female/young_african_female.mhmat",
+ "eyebrows": "eyebrow008/eyebrow008.mhclo",
+ "hair": "short02/short02.mhclo",
+ "eyes": "high-poly/high-poly.mhclo",
+ "eyelashes": "eyelashes02/eyelashes02.mhclo",
+ "teeth": "teeth_base/teeth_base.mhclo",
+ "kitbash": [
+  {
+   "part": "shell",
+   "slot": "cloth",
+   "color": "#161618",
+   "rough": 0.85,
+   "offset": 0.005,
+   "thick": 0.004,
+   "groups": [
+    "spine_0*",
+    "clavicle_*",
+    "pelvis",
+    "neck_01",
+    "upperarm_*",
+    "lowerarm_*"
+   ],
+   "z": [
+    0.47,
+    0.9
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "cloth_pants",
+   "color": "#2a2826",
+   "rough": 0.85,
+   "offset": 0.006,
+   "thick": 0.004,
+   "groups": [
+    "pelvis",
+    "thigh_*",
+    "calf_*"
+   ],
+   "z": [
+    0.02,
+    0.58
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#4a2e1c",
+   "rough": 0.65,
+   "offset": 0.01,
+   "thick": 0.005,
+   "groups": [
+    "foot_*",
+    "ball_*",
+    "calf_*"
+   ],
+   "z": [
+    0.0,
+    0.05
+   ],
+   "minw": 0.3
+  },
+  {
+   "part": "shell",
+   "slot": "cloth_coat",
+   "color": "#bba27c",
+   "rough": 0.9,
+   "offset": 0.014,
+   "thick": 0.005,
+   "groups": [
+    "spine_0*",
+    "clavicle_*",
+    "upperarm_*",
+    "lowerarm_*"
+   ],
+   "z": [
+    0.5,
+    0.86
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "cloth_cap",
+   "color": "#6a1f2a",
+   "rough": 0.85,
+   "offset": 0.045,
+   "thick": 0.006,
+   "groups": [
+    "head"
+   ],
+   "z_eye": [
+    0.065,
+    0.22
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "robe",
+   "color": "#bba27c",
+   "top": 0.3,
+   "length": 0.55,
+   "flare": 0.35,
+   "jag": 0.0,
+   "weights": "skin"
+  }
+ ],
+ "anims": {
+  "idle": "Idle_Loop",
+  "walk": "Walk_Loop",
+  "run": "Jog_Fwd_Loop",
+  "interaction": "PickUp_Table",
+  "hit": "Hit_Chest",
+  "death": "Death01"
+ }
+}

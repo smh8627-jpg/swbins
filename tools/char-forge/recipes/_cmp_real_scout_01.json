@@ -1,0 +1,142 @@
+{
+ "id": "_cmp_real_scout_01",
+ "_note": "단계 3 STORY 비교용 — saga-unity PeasantMan(Mixamo) 자리 후보(STORY 들판 정찰병 NPC, 1.75m). 게임 인물 아님. 마른 중년 남자·삼베빛 짧은 저고리·밤빛 바지·종아리 감발·짚신빛 신·검은 머리띠. 황건 살수(먹빛·복면)·황건 두목(누런 두건·맨팔)과 겹치지 않게.",
+ "macro": {
+  "gender": 1.0,
+  "age": 0.55,
+  "muscle": 0.6,
+  "weight": 0.25,
+  "height": 0.579,
+  "proportions": 0.8,
+  "race": {
+   "asian": 0.85,
+   "caucasian": 0.1,
+   "african": 0.05
+  }
+ },
+ "skin": "middleage_asian_male/middleage_asian_male.mhmat",
+ "eyebrows": "eyebrow009/eyebrow009.mhclo",
+ "hair": "short03/short03.mhclo",
+ "eyes": "high-poly/high-poly.mhclo",
+ "eyelashes": "eyelashes01/eyelashes01.mhclo",
+ "teeth": "teeth_base/teeth_base.mhclo",
+ "targets": {
+  "cheek-volume-decr": 0.5
+ },
+ "kitbash": [
+  {
+   "part": "shell",
+   "slot": "cloth",
+   "color": "#b9a888",
+   "rough": 0.95,
+   "offset": 0.006,
+   "thick": 0.004,
+   "groups": [
+    "spine_0*",
+    "clavicle_*",
+    "pelvis",
+    "neck_01",
+    "upperarm_*",
+    "lowerarm_*"
+   ],
+   "z": [
+    0.44,
+    0.88
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "cloth_pants",
+   "color": "#5a4632",
+   "rough": 0.95,
+   "offset": 0.006,
+   "thick": 0.004,
+   "groups": [
+    "pelvis",
+    "thigh_*",
+    "calf_*"
+   ],
+   "z": [
+    0.18,
+    0.58
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "cloth_wrap",
+   "color": "#e0d8c4",
+   "rough": 0.95,
+   "offset": 0.012,
+   "thick": 0.005,
+   "groups": [
+    "calf_*"
+   ],
+   "z": [
+    0.05,
+    0.25
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#b8a070",
+   "rough": 0.65,
+   "offset": 0.01,
+   "thick": 0.005,
+   "groups": [
+    "foot_*",
+    "ball_*",
+    "calf_*"
+   ],
+   "z": [
+    0.0,
+    0.05
+   ],
+   "minw": 0.3
+  },
+  {
+   "part": "shell",
+   "slot": "leather_belt",
+   "color": "#3a2a1c",
+   "rough": 0.7,
+   "offset": 0.02,
+   "thick": 0.006,
+   "groups": [
+    "pelvis",
+    "spine_01"
+   ],
+   "z": [
+    0.54,
+    0.57
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "cloth_band",
+   "color": "#1c1a18",
+   "rough": 0.85,
+   "offset": 0.016,
+   "thick": 0.004,
+   "groups": [
+    "head"
+   ],
+   "z_eye": [
+    0.04,
+    0.075
+   ],
+   "minw": 0.5
+  }
+ ],
+ "anims": {
+  "idle": "Idle_Talking_Loop",
+  "walk": "Walk_Loop",
+  "run": "Jog_Fwd_Loop",
+  "interaction": "PickUp_Table",
+  "hit": "Hit_Chest",
+  "death": "Death01"
+ }
+}
