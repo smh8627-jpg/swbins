@@ -6534,6 +6534,26 @@ window.requestAnimationFrame = function () { return 0; };
         ('과거 땅 ' + past + ' · 현대 땅 ' + modern + ' · 신화 땅 ' + myth + ' · 몫 ' + Math.round(rate * 100) + '%');
     }); });
 
+    t('제 몸 — 사람 적·보스·마을 사람은 이름마다 서로 다른 몸(도감 인물·동행은 VRoid 그대로) · 손잡이 0 이면 옛 해시', function () {
+      var A = DG.asset3d, E = DG.enemyData, used = {}, bad = [], era = {};
+      E.eraEnemies.forEach(function (e) { var u = A.urlOf(e.body, 'x'); if (u) { era[u] = 1; } });
+      var seeds = E.enemies.concat(E.bosses).filter(function (e) { return e.kind === 'human'; }).map(function (e) { return e.name; })
+        .concat(DG.town.npcKeys().concat(['fieldmerchant']).map(function (k) { return 'npc:' + k; }));
+      seeds.forEach(function (s) {
+        var r = A.fixedRecipe(s);
+        if (!r) { bad.push('없음:' + s); return; }
+        if (used[r.key]) { bad.push('겹침:' + s); }
+        used[r.key] = 1;
+        if (r.body.indexOf('/kenney_') >= 0 || r.body.indexOf('/people/anime/') >= 0) { bad.push('그림체:' + s); }
+        if (era[r.body]) { bad.push('시대 몸과 겹침:' + s); }
+        if (A.heroRecipe(s) !== r) { bad.push('안 탐:' + s); }
+      });
+      var heroAnime = A.heroRecipe(DG.data.heroes[0].id).body.indexOf('/people/anime/') >= 0;
+      A.set('asset3d.fixedBody', 0); var off = A.fixedRecipe('산적') === null && A.heroRecipe('산적') !== A.lightRecipeOf; A.set('asset3d.fixedBody', null);
+      if (bad.length) { throw new Error(bad.join(',')); }
+      return seeds.length >= 36 && heroAnime && off && A.fixedRecipe('산적') && ('사람 적·보스·마을 사람 ' + seeds.length + ' · 몸 ' + Object.keys(used).length + ' 모두 다름 · 도감 인물은 VRoid');
+    });
+
     t('세 시대 손님 — 마을마다 한 명(현대 둘·미래 둘 모두 어딘가), 제 몸 folk:*, 볼일 없이 말만, 다른 사람과 닿는 거리가 안 겹친다', function () { return ownSeed(926, function () {
       var T = DG.town, AS = DG.asset3d, ids = T.townIds(), seen = {}, placed = 0, bad = [];
       Object.keys(T.eraFolk).forEach(function (k) { var f = T.eraFolk[k]; if (!AS.lookup(f.model) || f.lines.length < 3 || !DG.gesture.JOB[k]) { bad.push('표:' + k); } });

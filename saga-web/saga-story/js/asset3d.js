@@ -414,8 +414,71 @@
     return (C && C.tuned && C.tuned('world3d.animeAvatar', 1)) ? true : false;
   }
 
+  /* 2026-09-25 — "캐릭터 모두 다르게" ②(tools/asset-audit/CHARACTER_UNIQUENESS.md): 사람 적·보스·마을 사람은 VRoid 네 벌
+     해시 대신 **이름마다 제 몸** — 모두 다른 한 벌을 역할에 맞게 손으로 짝지었다(사가블로 `asset3d.js` FIXED_HERO 와 같은
+     이름은 같은 몸). 파일은 사가블로 hero_light 창고(Quaternius·poly.pizza·KayKit CC0)에서 `people/fixed/` 로 복사, 전부
+     제 클립 내장이라 body = anim. 도감 인물·주인공·파티는 VRoid 그대로. 키는 buildHero 씨앗 — 적은 표시 이름, 마을 사람은
+     'npc:'+역할. 손잡이 `asset3d.fixedBody`(0 = 옛 해시) */
+  var FIXED_HERO = {
+    '황건적': 'F:oga_ultimate_Worker_Male.glb',
+    '산적': 'F:oga_ultimate_Viking_Male.glb',
+    '도적떼': 'F:kaykit_adventurers_Rogue_Hooded.glb',
+    '떠돌이 병졸': 'F:oga_ultimate_Soldier_Male.glb',
+    '왜구': 'F:oga_ultimate_Pirate_Male.glb',
+    '마적': 'F:oga_ultimate_Cowboy_Male.glb',
+    '오랑캐 궁수': 'Q:Ranger.glb',
+    '거란 기병': 'F:oga_ultimate_BlueSoldier_Male.glb',
+    '여진 궁수': 'F:polypizza_more_Adventurer2.glb',
+    '몽골 기병': 'F:oga_ultimate_Knight_Male.glb',
+    '왜군 조총병': 'F:oga_ultimate_Ninja_Male.glb',
+    '위군 창병': 'F:polypizza_more_Soldier2.glb',
+    '수군 척후선': 'F:polypizza_pirate_Henry.glb',
+    '철갑 중장병': 'F:oga_knight_KnightCharacter.glb',
+    '근위 기병': 'F:kaykit_adventurers_Knight.glb',
+    '연노 사수': 'F:oga_ultimate_BlueSoldier_Female.glb',
+    '수군 함대': 'F:polypizza_pirate_Anne.glb',
+    '흑기병': 'F:oga_ultimate_Knight_Golden_Male.glb',
+    '황건 두목': 'Q:Warrior.glb',
+    '산채 두령': 'F:kaykit_adventurers_Barbarian.glb',
+    '왜구 선장': 'F:polypizza_pirate_PirateCaptain.glb',
+    '오랑캐 족장': 'F:polypizza_wide_CharSoldier.glb',
+    '거란 도통': 'F:oga_ultimate_Soldier_Female.glb',
+    '몽골 만호장': 'F:polypizza_men_Adventurer.glb',
+    '왜장': 'F:oga_ultimate_Kimono_Male.glb',
+    '위군 도독': 'F:polypizza_men_King.glb',
+    '관문 수호장': 'F:oga_ultimate_Knight_Golden_Female.glb',
+    '적국 대장군': 'F:polypizza_women_HoodedAdventurer.glb',
+    '노략 궁수': 'F:polypizza_women_Adventurer.glb',
+    '유민 폭도': 'F:oga_ultimate_Casual3_Male.glb',
+    '요동 철기': 'Q:Cleric.glb',
+    '왜군 낭인': 'F:oga_ultimate_Ninja_Sand.glb',
+    '중장 방패병': 'F:oga_ultimate_Viking_Female.glb',
+    '중장 창병': 'F:polypizza_women_Soldier.glb',
+    '자객대': 'F:oga_ultimate_Ninja_Female.glb',
+    '창귀병(槍鬼兵)': 'F:kaykit_adventurers_Rogue.glb',
+    '황실 궁병': 'F:oga_ultimate_Elf.glb',
+    '뇌격 기병': 'F:kaykit_adventurers_Mage.glb',
+    '폐도 흉장': 'F:polypizza_apoc_Lis.glb',
+    '암굴 귀장': 'F:polypizza_wide_Wizard.glb',
+    'npc:elder': 'F:oga_ultimate_OldClassy_Male.glb',
+    'npc:guard': 'F:polypizza_men_Man2.glb',
+    'npc:merchant': 'F:oga_ultimate_Chef_Male.glb',
+    'npc:wanderer': 'F:oga_ultimate_Casual_Male.glb',
+    'npc:healer': 'F:oga_ultimate_Doctor_Female_Young.glb'
+  };
+  function fixedRecipe(seed) {
+    var C = global.DG.core;
+    if (C && C.tuned && !C.tuned('asset3d.fixedBody', 1)) { return null; }
+    var f = FIXED_HERO[String(seed)];
+    if (!f) { return null; }
+    var url = f.replace(/^F:/, 'assets/models/people/fixed/').replace(/^Q:/, 'assets/models/people/quaternius_rpg/');
+    return { key: 'fixed:' + seed, body: url, anim: url };
+  }
+
   /** 표에서 이 씨앗이 고를 몸+옷+머리 조합 — 조합 객체일 때만 돌려준다 */
   function heroRecipe(seed) {
+    var frec = fixedRecipe(seed);
+    if (frec) { return frec; }
     if (wantsAnimeAvatar()) {
       var arec = oneOf(HERO_RECIPES_ANIME, seed);
       if (arec) { return arec; }
@@ -794,7 +857,7 @@
     clear: clear,
     lookup: lookup,
     oneOf: oneOf,
-    heroRecipe: heroRecipe,
+    heroRecipe: heroRecipe, FIXED_HERO: FIXED_HERO, fixedRecipe: fixedRecipe,
     mapClips: mapClips,
     build: build,
     buildHero: buildHero,

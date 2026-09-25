@@ -4717,6 +4717,24 @@ window.DG_NO_TUNE = true;
       return '무명 ' + none.css + ' → 무사 ' + w1.css + ' → 전신 ' + w4.css + ' · 천존 ' + m4.css;
     });
 
+    t('제 몸 — 사람 적·보스·마을 사람은 이름마다 서로 다른 몸(도감 인물은 VRoid 그대로) · 손잡이 0 이면 옛 해시', function () {
+      var A = DG.asset3d, E = DG.enemyData, SD = DG.sideData, used = {}, bad = [], roles = {};
+      Object.keys(SD.NPC_TALK).forEach(function (k) { if (!SD.NPC_TALK[k].model) { roles['npc:' + k] = 1; } });
+      var seeds = E.enemies.concat(E.bosses).filter(function (e) { return e.kind === 'human'; }).map(function (e) { return e.name; }).concat(Object.keys(roles));
+      seeds.forEach(function (s) {
+        var r = A.fixedRecipe(s);
+        if (!r) { bad.push('없음:' + s); return; }
+        if (used[r.body]) { bad.push('겹침:' + s); }
+        used[r.body] = 1;
+        if (r.body.indexOf('/people/anime/') >= 0) { bad.push('VRoid:' + s); }
+        if (A.heroRecipe(s).body !== r.body) { bad.push('안 탐:' + s); }
+      });
+      var heroAnime = A.heroRecipe(DG.data.heroes[0].id).body.indexOf('/people/anime/') >= 0;
+      C.setTune('asset3d.fixedBody', 0); var off = A.fixedRecipe('산적') === null; C.setTune('asset3d.fixedBody', null);
+      if (bad.length) { throw new Error(bad.join(',')); }
+      return heroAnime && off && ('사람 적·보스·마을 사람 ' + seeds.length + ' · 몸 ' + Object.keys(used).length + ' 모두 다름 · 도감 인물은 VRoid');
+    });
+
     t('세 시대 적(§5-12) — 2D 도 제 몸 시트(사가블로에서 구운 같은 GLB) · 옛 적은 늑대·코끼리·멧돼지 그대로', function () {
       var SD = DG.sideData, SP = DG.sprite, ED = DG.enemyData, miss = [], keys = {};
       SD.ERA_ENEMIES.forEach(function (e) { var k = SP.monKeyOf(e); if (!k || k.indexOf('beast') === 0) { miss.push(e.name); } else { keys[k] = 1; } });

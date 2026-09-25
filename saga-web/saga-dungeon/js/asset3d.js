@@ -1057,7 +1057,38 @@
     var s = String(seed || '');
     return (s.indexOf('me:') === 0) ? 'hero' : 'hero_light';
   }
+  /* 2026-09-25 — "캐릭터 모두 다르게" ②(tools/asset-audit/CHARACTER_UNIQUENESS.md): 사람 적·보스·마을 사람은
+     VRoid 네 벌 해시(한 몸당 수십 명) 대신 **이름마다 제 몸**을 손으로 짝지었다 — 모두 다른 hero_light 한 벌,
+     역할에 어울리게(산적=바이킹·왜구=해적·마적=카우보이·기병=기사…). 도감 인물·동행·나는 VRoid 그대로.
+     그림체는 Quaternius 저폴리 계열만(Kenney 블록형 제외), 세 시대 적·손님이 쓰는 파일(§5.20)도 뺐다.
+     키는 buildHero 씨앗 — 적은 표시 이름, 마을 사람은 'npc:'+키. 손잡이 `asset3d.fixedBody`(0 = 옛 해시) */
+  var FIXED_HERO = {
+    '황건적': 'ogau_worker_male', '산적': 'ogau_viking_male', '도적떼': 'kaykitadv_rogue_hooded',
+    '떠돌이 병졸': 'ogau_soldier_male', '왜구': 'ogau_pirate_male', '마적': 'ogau_cowboy_male',
+    '오랑캐 궁수': 'qrpg_ranger', '거란 기병': 'ogau_bluesoldier_male', '여진 궁수': 'ppmore_adventurer2',
+    '몽골 기병': 'ogau_knight_male', '왜군 조총병': 'ogau_ninja_male', '위군 창병': 'ppmore_soldier2',
+    '수군 척후선': 'pppirate_henry', '철갑 중장병': 'ogaknight_char', '근위 기병': 'kaykitadv_knight',
+    '연노 사수': 'ogau_bluesoldier_female', '수군 함대': 'pppirate_anne', '흑기병': 'ogau_knight_golden_male',
+    '황건 두목': 'qrpg_warrior', '산채 두령': 'kaykitadv_barbarian', '왜구 선장': 'pppirate_piratecaptain',
+    '오랑캐 족장': 'ppwide_soldier', '거란 도통': 'ogau_soldier_female', '몽골 만호장': 'ppmen_adventurer',
+    '왜장': 'ogau_kimono_male', '위군 도독': 'ppmen_king', '관문 수호장': 'ogau_knight_golden_female',
+    '적국 대장군': 'ppwomen_hoodedadventurer',
+    'npc:captain': 'ppwomen_soldier', 'npc:quarter': 'ogau_worker_female', 'npc:master': 'qrpg_monk',
+    'npc:smith': 'ogau_casual_bald', 'npc:pedlar': 'ppmen_farmer', 'npc:scribe': 'ogau_oldclassy_male',
+    'npc:herald': 'ppmen_manlongsleeves', 'npc:fieldmerchant': 'ppmore_charsam'
+  };
+  var lightByKey = null;
+  function fixedRecipe(seed) {
+    if (!tuned('asset3d.fixedBody', 1)) { return null; }
+    var k = FIXED_HERO[String(seed)];
+    if (!k) { return null; }
+    if (!lightByKey) { lightByKey = {}; HERO_RECIPES_LIGHT.forEach(function (r) { lightByKey[r.key] = r; }); }
+    return lightByKey[k] || null;
+  }
+
   function heroRecipe(seed) {
+    var frec = fixedRecipe(seed);
+    if (frec) { return frec; }
     if (wantsAnimeAvatar()) {
       var arec = oneOf(HERO_RECIPES_ANIME, seed);
       if (arec) { return arec; }
@@ -1680,6 +1711,7 @@
   global.DG = global.DG || {};
   global.DG.asset3d = {
     REG: REG, register: register, lookup: lookup, urlOf: urlOf, wants: wants, oneOf: oneOf,
+    FIXED_HERO: FIXED_HERO, fixedRecipe: fixedRecipe,
     normName: normName, score: score, mapClips: mapClips, SLOTS: SLOTS, fit: fit,
     ready: function () { return !!three(); }, hasLoader: function () { return !!loader(); },
     DEFAULTS: DEFAULTS, restore: restore, heroRecipe: heroRecipe, ANIM_SRC: ANIM_SRC,

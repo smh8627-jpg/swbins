@@ -4268,3 +4268,8 @@ VRoid 인물이 unlit(`MeshBasicMaterial`) 그대로라 명암 없이 평면이�
 - 다섯 벌 `vroid-variant.js`(md5 4071db45…): 도감 인물(`DG.data.heroes`)끼리 머리·옷·눈 칸 셋이 겹치면 도감 순서대로 뒷사람만 `id#1`… 로 다시 굴린다(`rawPick` 은 옛 해시). 사가고 기준 겹침 3 → 0, 나머지 102명은 예전 색 그대로.
 - 이 판 코드는 그대로. `sw.js` dungeon-v0.168.1.
 - 곁일: 세 시대 적 여덟(§5.20)의 2D 걷기 시트를 구웠다 — `bake.mjs --sprites=monsters` 대상 목록에 `eraEnemies` 를 더하고 `--only=` 여덟만(`mon_era_*`·`mon_alien`·`mon_armabee_evolved`, manifest 갱신). 2D 모드에서 도형 대신 제 모습으로 걷는다.
+
+## 2026-09-25 (캐릭터 모두 다르게 ②) — 사람 적·보스·마을 사람 제 몸 36
+- 사용자 결정(2026-09-25, 제안 둘째 안에 "이어해"): **사람 적·보스·마을 사람만** VRoid 네 벌 해시 대신 이름마다 제 몸, 도감 인물·주인공·동행은 VRoid 그대로. 몸은 사가블로 hero_light 창고(Quaternius 저폴리 계열, Kenney 블록형·세 시대 파일 제외)에서 역할에 맞게 손으로 짝지었다. 손잡이 `asset3d.fixedBody`(0 = 옛 해시).
+- `asset3d.js` FIXED_HERO(적 표시 이름·'npc:'+키 → hero_light 키) · `fixedRecipe` 가 `heroRecipe` 맨 앞. 산적=바이킹·왜구=해적·마적=카우보이·기병=기사·왜장=기모노… 36 모두 다름.
+- 헤드리스로 36벌 모두 GLB·키 맞음·걷기/대기/공격/죽음 확인(두 묶음으로 — probe evaluate 30초 제한). 진단 새 1 → 418/418 세 번 같음. `sw.js` dungeon-v0.168.2. **실기 확인 대기**(저폴리 적이 VRoid 동행 옆에서 어색하지 않은지 · 물들임 색).

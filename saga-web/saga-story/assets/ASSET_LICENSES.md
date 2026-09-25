@@ -321,3 +321,10 @@ Quaternius CC0 1.0. 사가고 `assets/models/foes/`(7: Rat·Wasp·Zombie·Alien�
 `assets/models/people/folk/`(5: m_Worker·m_Hoodie·m_SWAT·w_SciFi·s_Astronaut1)를 그대로 복사(이미 Meshopt, 제 클립 내장).
 받은 곳·가공 경위는 사가고 `assets/ASSET_LICENSES.md` "Quaternius — 세 시대 사람·적" 절(사람·쥐·말벌·망자·외계는
 원래 사가블로가 poly.pizza 에서 받은 것, 로봇 셋은 quaternius-showcase 미러 `cyberpunk_pack`).
+
+## 사람 적·마을 사람 제 몸 — 사가블로에서 복사 (2026-09-25)
+
+`models/people/fixed/` — 사가블로 `assets/models/people/` 의 hero_light 창고 파일을 **그대로 복사**했다(파일 이름 = 원래 폴더_파일).
+출처·라이선스는 전부 사가블로 `assets/ASSET_LICENSES.md` 의 해당 절: `oga_ultimate_*`(Quaternius Ultimate Animated Character Pack, CC0 —
+OpenGameArt), `polypizza_*`(Quaternius Ultimate Modular Men/Women·Pirate·Apocalypse·Wide 묶음, CC0 — poly.pizza), `kaykit_adventurers_*`
+(KayKit Adventurers, CC0), `oga_knight_*`(Lowpoly Animated Knight, CC0). 전부 제 클립 내장. 쓰는 곳: `js/asset3d.js` FIXED_HERO.

@@ -511,7 +511,34 @@
 
   /** 인물의 몸·옷·머리 조합 — 표에 적힌 것이 조합 객체일 때만 준다(테스트가
    *  `register('hero', 'a.glb')` 처럼 문자열 하나로 덮어써도 안 깨지게) */
+  /* 2026-09-25 — "캐릭터 모두 다르게" ②: 주민 열(`npc.js`)은 VRoid 네 벌 해시 대신 **사람마다 제 몸** — 역할에 맞게 손으로
+     짝지은 서로 다른 한 벌(사가블로 hero_light 창고의 Quaternius·poly.pizza CC0 를 `people/fixed/` 로 복사, 제 클립 내장).
+     ⑱ 땅 사람이 쓰는 파일(회사원·농부·후드·특공대·작업복·마녀·우주복)은 피했다. 도감 인물·절차 인물은 VRoid 그대로.
+     손잡이 `asset3d.fixedBody`(0 = 옛 해시) */
+  var FIXED_HERO = {
+    npc_elder: 'oga_ultimate_OldClassy_Male.glb',
+    npc_merchant: 'oga_ultimate_Casual2_Male.glb',
+    npc_old: 'oga_ultimate_Doctor_Male_Old.glb',
+    npc_soldier: 'oga_ultimate_Soldier_Male.glb',
+    npc_scholar: 'oga_ultimate_Kimono_Male.glb',
+    npc_herb: 'oga_ultimate_Doctor_Female_Young.glb',
+    npc_smith: 'oga_ultimate_Casual_Bald.glb',
+    npc_ronin: 'oga_ultimate_Ninja_Sand.glb',
+    npc_bandit: 'oga_ultimate_Viking_Male.glb',
+    npc_stranger: 'polypizza_wide_Wizard.glb'
+  };
+  function fixedRecipe(ref) {
+    var id = ref && ref.id;
+    if (!id || !Object.prototype.hasOwnProperty.call(FIXED_HERO, id)) { return null; }
+    var C = global.DG.core;
+    if (C && C.tuned && !C.tuned('asset3d.fixedBody', 1)) { return null; }
+    var url = PEOPLE + 'fixed/' + FIXED_HERO[id];
+    return { key: 'fixed:' + id, body: url, anim: url };
+  }
+
   function heroRecipe(ref) {
+    var frec = fixedRecipe(ref);
+    if (frec) { return frec; }
     /* ⑱ 땅 사람(`folk.js`)은 시대 옷이 곧 그 사람이라 애니메 몸으로 바꾸지 않는다 */
     if (wantsAnimeAvatar() && !(ref && /^folk_/.test(String(ref.era || '')))) {
       var arec = oneOf(HERO_RECIPES_ANIME, ref);
@@ -1506,7 +1533,7 @@
     hasLoader: function () { return !!loader(); },
     DEFAULTS: DEFAULTS, restore: restore, tintOf: tintOf, oneOf: oneOf,
     pickPieces: pickPieces,
-    ANIM_SRC: ANIM_SRC, heroRecipe: heroRecipe,
+    ANIM_SRC: ANIM_SRC, heroRecipe: heroRecipe, FIXED_HERO: FIXED_HERO, fixedRecipe: fixedRecipe,
     REALISTIC_ON: REALISTIC_ON, heroPool: heroPool,
     build: build, step: step, play: play, primitive: primitive, stats: stats,
     /** 진단 전용 — VRM 애니메 아바타 손잡이·레시피·뼈 매핑표 조회(2026-09-20) */

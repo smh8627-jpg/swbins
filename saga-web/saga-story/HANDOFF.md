@@ -872,3 +872,8 @@ SAGA-DESIGN §11 Phase 4 의 "사가스토리 펫 이미지 공백(보류)" — 
 - 다섯 벌 `vroid-variant.js`(md5 4071db45…): 도감 인물(`DG.data.heroes`)끼리 머리·옷·눈 칸 셋이 겹치면 도감 순서대로 뒷사람만 `id#1`… 로 다시 굴린다(`rawPick` 은 옛 해시). 사가고 기준 겹침 3 → 0, 나머지 102명은 예전 색 그대로.
 - 진단 243/243. `sw.js` side-v0.88.2. **실기 확인 대기**.
 - 2D 빈칸: 시대 적 여덟이 2D 에서 늑대(짐승형)·Kenney 사람(보행기·망자·특공대)으로 나오던 것 → 제 몸 시트. 같은 GLB(md5 같음)를 사가블로에서 구운 `mon_rat·wasp·zombie·alien·era_drone·era_walker·era_hulk·era_swat.webp` 복사, `sprite.js` MODEL_SHEET(model → 시트)·manifest 11키. `_test.html` 에 mon-manifest 를 실었다(전엔 안 실려 시트 판정이 늘 null). 진단 244/244 세 번 같음.
+
+## 2026-09-25 (캐릭터 모두 다르게 ②) — 사람 적·보스·마을 사람 제 몸 45
+- 사용자 결정(2026-09-25, 제안 둘째 안에 "이어해"): **사람 적·보스·마을 사람만** VRoid 네 벌 해시 대신 이름마다 제 몸, 도감 인물·주인공·동행은 VRoid 그대로. 몸은 사가블로 hero_light 창고(Quaternius 저폴리 계열, Kenney 블록형·세 시대 파일 제외)에서 역할에 맞게 손으로 짝지었다. 손잡이 `asset3d.fixedBody`(0 = 옛 해시).
+- `asset3d.js` FIXED_HERO(사가블로와 같은 이름은 같은 몸, 이 판에만 있는 열둘·마을 역할 다섯은 새로) — 파일 42개(17.4MB)를 `people/fixed/` 로 복사(QRPG 셋은 이미 있던 것). 적이 설 때만 받는다.
+- 헤드리스로 45벌 확인. 진단 새 1 → 245/245 세 번 같음. `sw.js` side-v0.88.3. **실기 확인 대기**.
