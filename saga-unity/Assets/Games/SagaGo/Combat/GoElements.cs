@@ -65,6 +65,7 @@ namespace Saga.Go.Combat
         public static GoElement ForMember(string id)
         {
             if (string.IsNullOrEmpty(id)) return HeroElement;
+            if (Saga.Go.Data.GoHeroes.TryGet(id, out var hero)) return Saga.Go.Data.GoHeroes.ElementOf(hero); // 109-6 도감 인물은 제 원소
             uint h = 2166136261;
             foreach (char c in id)
             {

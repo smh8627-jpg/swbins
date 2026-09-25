@@ -33,6 +33,8 @@ namespace Saga.Go.Player
         }
 
         public string ShownId { get; private set; } = HeroId;
+        /// <summary>109-6 — 들판 인물(겨루기 상대)도 동행이 됐을 때와 같은 몸·같은 컨트롤러를 쓴다.</summary>
+        public RuntimeAnimatorController BodyController => bodyController;
         public Transform HeroVisual => _heroVisual;
 
         private void Awake()

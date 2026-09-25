@@ -83,6 +83,16 @@ namespace Saga.Go.Combat
             return null;
         }
 
+        /// <summary>109-6 — 들판 인물의 졸개 하나(겨루기 동안만). 원소 = 그 인물 원소, 옛 시대면 해골 몸·다른 시대면 그 시대 몸.</summary>
+        public FieldEnemy SpawnHeroMinion(GoElement element, Vector3 home, string groupId, GoEra era, int index)
+        {
+            var kind = element == GoElement.Pyro ? FieldEnemy.Kind.EmberImp : element == GoElement.Hydro ? FieldEnemy.Kind.DrownedGhost : FieldEnemy.Kind.StormWraith;
+            string body = GoEras.FoeBodyFor(era, groupId, index);
+            GameObject model = skeletonModel;
+            if (body != null) { var m = EraModel(body); if (m != null) model = m; }
+            return FieldEnemy.Spawn(kind, home, model, groupId, transform, era, body);
+        }
+
         /// <summary>세우는 들판 적 수 — 이미 쓰러뜨린 수호장은 안 센다.</summary>
         public static int PlannedCount
         {
@@ -130,6 +140,7 @@ namespace Saga.Go.Combat
 
         private void Start()
         {
+            if (GetComponent<FieldHeroes>() == null) gameObject.AddComponent<FieldHeroes>(); // 109-6 들판 인물
             if (FieldEnemy.All.Count > 0) return;
             foreach (var g in Groups)
             {

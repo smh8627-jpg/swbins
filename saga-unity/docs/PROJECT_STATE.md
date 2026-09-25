@@ -1,7 +1,7 @@
 # PROJECT_STATE — saga-unity (상태만, ≤15KB, 덮어쓴다)
 
 **규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다(2026-09-16 재편 전 본문 5,532줄은 그쪽 첫 절에 그대로 있다). 넘치면 `tools/precheck.sh` 가 막는다.
-마지막 갱신: 2026-09-25 (109-5 REALM 세 시대 — 109 A 전체 퓨전 끝. 헤드리스 3연속, 실기 확인 전).
+마지막 갱신: 2026-09-25 (109-6a GO 도감 105·들판 인물·싸워서 등용. 헤드리스 3연속, 실기 확인 전).
 
 ## 캐릭터 자산 — 이 PC 기준 (2026-09-19)
 
@@ -21,7 +21,7 @@ Maria·Abe·Brute + Skeleton·Paladin·PeasantMan·PeasantGirl·Archer·두목 M
 
 ## 다음 작업 (우선순위, 상세는 PLAN 해당 장)
 
-0. **다음 = PLAN 109장 6(B 인물 105 — 웹 도감 HEROES 105 를 GO 등용 목록으로·싸워서 등용)**, 그 뒤 표 순서대로(건너뛰기 금지).
+0. **다음 = PLAN 109장 6b(GO 도감 화면 — 모은 수·시대 넷·안 만난 사람 그림자)**, 그 뒤 7(몸 배정)부터 표 순서대로(건너뛰기 금지).
 0-1. **남은 것**: en 번역 사람 검수 전. GO 동료 몸 Maria.controller 리타깃·무기는 주인공 손에만. 다른 PC 는 Mixamo 레시피로 받고 `Saga/Setup NPC Character Imports`.
 1. STORY 판수(15→20 약 11판, 20→25 약 28판)가 무거우면 `StoryCombat.JobPromoteLevel3/4`만.
 2. **101-2·104-1 잔여(보류)** — GO⑤(모바일 빌드 뒤)·Kenney 폴백·헤어카드.
@@ -53,7 +53,7 @@ Maria·Abe·Brute + Skeleton·Paladin·PeasantMan·PeasantGirl·Archer·두목 M
 | 컴파일·씬 재빌드 | exit 0(GO·DUNGEON 2026-09-25), 영속 리스너 32·17·10·39(09-23) |
 | `PlaytestStorySlice` | **3연속 OK(2026-09-25, 세 시대 뒤)** — `PlaytestStoryEras`·`PlaytestStoryCompanions`·`PlaytestStorySummon`·`PlaytestStoryBossIntro`·`CheckOutfitTint`·`CheckUpperTiersAndPins`·`CheckPromotionAndSchools`·`CheckButtonWiring`(진짜 onClick)·`CheckJobSkills`·무예 세이브 왕복·옛 형식 로드 |
 | `PlaytestDungeonHeadless` | **3연속 OK(2026-09-25, 꾸밈 시대 층 뒤)** — EraDecor·Eras·Landmarks·BossIntro·Party·Explore·NpcModels·Temple(+컷)·LockOn·EnemyTelegraph. 같은 씬 `FloorProgression` OK |
-| GO `PlaytestHeadless` | **3연속 OK(2026-09-25, 수호장 컷 바인딩 바로잡은 뒤)** — `PlaytestGo` Eras·RegionProps·RegionTraits·RegionMission(v16/v15)·Guardian·SlopesBiome·PartyBodies·ElementalFoe·Treasure·WorldMap(v16/v13)·Traversal·FieldCombat (항목은 각 파일 요약 주석) |
+| GO `PlaytestHeadless` | **3연속 OK(2026-09-25, 109-6a 뒤)** — `PlaytestGo` Heroes(도감 105·겨루기 ★3/4/5·굴복→동행)·Eras·RegionProps·RegionTraits·RegionMission(v16/v15)·Guardian·SlopesBiome·PartyBodies·ElementalFoe·Treasure·WorldMap(v16/v13)·Traversal·FieldCombat (항목은 각 파일 요약 주석) |
 | `PlaytestForestHeadless` | **3연속 OK(2026-09-25, 세 시대 뒤)** — `PlaytestForestEras`(사람 6/6 몸·소품 38%·잔해 돎 6)·`Zones`·`ZoneProps` 포함 · `PlaytestForestCreatures` 3연속(models 8/8, 씨앗 고정) · Finish·Furniture·HouseTransition OK |
 | REALM 헤드리스 | **3연속 OK(2026-09-25, 세 시대 뒤)** — `PlaytestRealmEras`(전 성 함락 뒤·문답 앞)·`CheckButtonWiring` |
 | GUI 실제 Play | GO 라이팅·Maria 동작·Dungeon 카메라(yaw=180)·SSS(Intensity=15) |
@@ -61,7 +61,7 @@ Maria·Abe·Brute + Skeleton·Paladin·PeasantMan·PeasantGirl·Archer·두목 M
 
 ## 실기 확인 대기 (항목명만 — 경위는 HISTORY grep)
 
-- GO: **세 시대(109-1) — 현대·미래 적 몸·발 미끄럼, 역참 사람 오가기·자리, 위험 줄 길이, 잔해 크기·청록 세기·차 크기** · **수호장 Maw 몸 — 걷기·발톱 공격 박자·원소 빛** · **마을 사람 셋 모델(106-4) — 3.4m 키·바라보는 쪽** · **지역 소품(108 ①) — 1.9배 크기·그을린 빛·번쩍임·모닥불 빛·여울 바위가 헤엄길 막는지·LOD** · **특색 지역(108 ①) — 자막 세 줄·지도 두 줄 겹침·위험 3 난이도** · **식생 바이옴(107-3) — 호박빛 세기·침엽수 반복감·풀 키·갈대·폰 프레임** · **지역 사명(107-8) — 위쪽 줄 겹침·보상 크기·셋째 단 상자 찾기** · **망루 수호장(107-7·106-9) — 5.4m 크기·탑 겹침·겉→속 알림·난이도·컷이 절벽에 박히는지** · **경사·바이옴(107-3) — 비탈 28°·돌 쐐기·내리막·지역 안개/햇빛(강 물안개 세기)** · **동료 모델(107 ⑥) — Abe 몸의 Maria 리타깃(등반·활공·수영)·교체 순간·날개 자리** · **원소 쓰는 적(107 ⑤) — 원소 빛 해골이 괴물로 읽히는지·방패 막대·상성 글자·2초 비틀·화상/젖음/감전 체감** · **보물 상자(107 ④)** · **지역 지도(107 ③) — 망루·M 지도 가독성** · **이동(107 ②) — 등반 클립이 벽에 붙는지·넘어오르기 0.45s·활공·수영 높이·스태미나·카메라 끼임** · **들판 전투(107 ①) — 3타 간격·예고 0.6s·적 체력·HUD 자리**, 옛 VS 항목, **폰에서 설정·승급 3택·저장 버튼**
+- GO: **들판 인물(109-6a) — 7m 겨루기 거리·★5 두 겹 난이도·지(智) 원거리 예고 원·굴복 무릎 동작·다음 사람 4초** · **세 시대(109-1) — 현대·미래 적 몸·발 미끄럼, 역참 사람 오가기·자리, 위험 줄 길이, 잔해 크기·청록 세기·차 크기** · **수호장 Maw 몸 — 걷기·발톱 공격 박자·원소 빛** · **마을 사람 셋 모델(106-4) — 3.4m 키·바라보는 쪽** · **지역 소품(108 ①) — 1.9배 크기·그을린 빛·번쩍임·모닥불 빛·여울 바위가 헤엄길 막는지·LOD** · **특색 지역(108 ①)** · **식생 바이옴(107-3)** · **지역 사명(107-8)** · **망루 수호장(107-7·106-9) — 5.4m 크기·탑 겹침·겉→속 알림·난이도·컷이 절벽에 박히는지** · **경사·바이옴(107-3)** · **동료 모델(107 ⑥) — Abe 몸의 Maria 리타깃(등반·활공·수영)·교체 순간·날개 자리** · **원소 쓰는 적(107 ⑤) — 원소 빛 해골이 괴물로 읽히는지·방패 막대·상성 글자·2초 비틀·화상/젖음/감전 체감** · **보물 상자(107 ④)** · **지역 지도(107 ③) — 망루·M 지도 가독성** · **이동(107 ②) — 등반 클립이 벽에 붙는지·넘어오르기 0.45s·활공·수영 높이·스태미나·카메라 끼임** · **들판 전투(107 ①) — 3타 간격·예고 0.6s·적 체력·HUD 자리**, 옛 VS 항목, **폰에서 설정·승급 3택·저장 버튼**
 - DUNGEON: **꾸밈 시대 층(109-2b) — 잔해 크기·청록 세기·도는 속도(벽 4m 방), 업화 대문 덮개 차·방호벽 어울림, 카메라가 잔해에 가리는지** · **세 시대 잡졸 여덟 크기·타격감·손님 대사·행상 몸** · 두목 전용 몸(살수 Ninja·층 주인 Demon·정찰병 Alien Soldier·능묘지기 Ganfaul) · 바위 거신 · 명소 층(108 ③) 주인 세기·방 길이·첫 토벌 무기 · 컷(106-3·106-7 두목·능묘 셋) 길이·샷이 벽에 박히는지·이름표 · 파티·소환(106-6) 클립·게이지·도발/치유 · 탐험(106-5) 점프·등반·탑 불빛 · 사실 모델 NPC 발 미끄럼·자리 · 잊힌 능묘 한 바퀴 · 락온 · 옛 VS·101 항목 — 세부는 HISTORY grep · **폰에서 버튼 전부**
 - FOREST: **세 시대(109-4) — 잔해 크기·청록 세기·뜬 높이(돌기둥 위 2.9m), 꽃밭 덮개 차 크기, 마을 사람 여섯 발 미끄럼·키·대사 겹침** · **숲지기 모델** · **존 소품 — 실측 크기·휨 따라 내림·걸림** · **짐승 여덟 모델 — 키·꾸밈 자리·안개유령 투명도·숲 톤** · **특색 존(108 ②) — 명소 크기·휨 따라 내림이 가까이서 튀는지·점광 세기·자막 세 줄**, 벽지/장판, 가구 배치, 생물·과일나무·좌판, 목표판/세션카드, 번들, 채집 손맛, 평가 별점, 택배 사슬, 축제(달력 1·8·15일), 과일나무·바크 톤, 잔디 디테일 톤, **폰에서 저장·설정·밀어내기 버튼**
 - STORY: **세 시대(109-3) — 시대 적 여덟 키·타격감(강철 거신 2.1m), 알림 글, 뒤쪽 길 손님 둘이 잘 보이는지·대사** · 두목 Morak(훅 박자) · 척후병·전직관 모델 · 곁의 동료·소환(106-10) · 두목 등장 컷(106-8) · 사건·관계·선택·전직 팝업·관문 대장·비경 · 무예 1~4차(패널 K·칸·손맛·판수·유파 세트·옷 빛깔) — 세부는 HISTORY grep · **폰에서 버튼 전부**

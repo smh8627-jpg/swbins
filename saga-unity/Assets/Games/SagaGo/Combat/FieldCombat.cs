@@ -57,6 +57,8 @@ namespace Saga.Go.Combat
 
         /// <summary>원소 스킬·폭발이 터진 원(가운데·반경·원소) — 적이 없어도 쏜다. 원소 석등(107-4)이 듣는다.</summary>
         public static event System.Action<Vector3, float, GoElement> ElementPulse;
+        /// <summary>109-6 — 모두 쓰러졌다(`FieldHeroes` 가 겨루던 인물을 떠나보낸다).</summary>
+        public static event System.Action Wiped;
 
         [SerializeField] private PlayerController player;
 
@@ -120,18 +122,23 @@ namespace Saga.Go.Combat
 
             float maxHp = 200f + Def * 2f;
             AddMember(old, HeroId, GoLocalization.T("field.hero", "주인공"), GoElements.HeroElement, maxHp);
-            foreach (var id in PartyState.MemberIds)
+            // PLAN.md 109-6 — 곁에 서는 셋 = 가장 최근에 등용한 셋(편성 화면이 생기기 전까지). 이름·원소는 도감(`GoHeroes`)에서.
+            var members = PartyState.MemberIds;
+            for (int k = members.Count - 1; k >= 0 && _party.Count < MaxParty; k--)
             {
-                if (_party.Count >= MaxParty) break;
+                string id = members[k];
                 bool dup = false;
                 foreach (var m in _party) if (m.Id == id) { dup = true; break; }
                 if (dup) continue;
-                AddMember(old, id, id, GoElements.ForMember(id), maxHp);
+                AddMember(old, id, MemberName(id), GoElements.ForMember(id), maxHp);
             }
             ActiveIndex = 0;
             for (int i = 0; i < _party.Count; i++) if (_party[i].Id == activeId) ActiveIndex = i;
             ApplyLook();
         }
+
+        /// <summary>동료 이름 — 도감 인물은 가명, 그 밖(산적)은 id 그대로.</summary>
+        public static string MemberName(string id) => GoHeroes.TryGet(id, out var h) ? GoHeroes.Name(h) : id;
 
         private void AddMember(Dictionary<string, Member> old, string id, string name, GoElement el, float maxHp)
         {
@@ -379,6 +386,7 @@ namespace Saga.Go.Combat
             ActiveIndex = 0;
             ApplyLook();
             foreach (var e in FieldEnemy.All) e.ForceReturn();
+            Wiped?.Invoke(); // 109-6 — 겨루던 들판 인물은 떠난다
             if (player != null) player.Teleport(SafePoint);
             else transform.position = SafePoint;
             GoStamina.ResetFull();

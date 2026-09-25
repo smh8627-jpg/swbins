@@ -19,7 +19,7 @@ namespace Saga.Go.Combat
     /// </summary>
     public class FieldEnemy : MonoBehaviour
     {
-        public enum Kind { Bandit, Skeleton, EmberImp, DrownedGhost, StormWraith, Guardian }
+        public enum Kind { Bandit, Skeleton, EmberImp, DrownedGhost, StormWraith, Guardian, Hero }
         public enum State { Wander, Chase, Telegraph, Recover, Return, Dead, Stagger }
 
         public const float DetectRadius = 24f;
@@ -99,6 +99,42 @@ namespace Saga.Go.Combat
         public bool Shielded => ShieldHp > 0f;
         public bool IsElemental => Element != GoElement.Physical;
         public bool IsGuardian => kind == Kind.Guardian;
+
+        // ---- PLAN.md 109-6 들판 인물(웹 사가고 ⑯ 싸워서 등용) — `FieldHeroes` 가 겨루기를 열 때만 세운다 ----
+        public bool IsHero => kind == Kind.Hero;
+        public string HeroId { get; private set; }
+        public int HeroRarity { get; private set; }
+        /// <summary>체력이 0 이 되어 무릎 꿇었다(쓰러지지 않는다 — 다시 서지도 않는다).</summary>
+        public bool Yielded { get; private set; }
+        public static event Action<FieldEnemy> HeroYielded;
+        /// <summary>끌고 멀리 가 인물이 제자리로 돌아감 — 없던 일(웹 ⑯ "34m 밖").</summary>
+        public static event Action<FieldEnemy> HeroReset;
+
+        /// <summary>인물은 제 기질로 싸운다(웹 ⑯): 무 = 넓은 내려찍기 · 지 = 떨어지는 원거리(예고 자리가 플레이어 발밑) · 덕 = 빠른 근접.</summary>
+        public const float HeroMightRadius = 6.5f;
+        public const float HeroMightTelegraph = 0.85f;
+        public const float HeroWisdomRange = 11f;
+        public const float HeroWisdomRadius = 3.4f;
+        public const float HeroWisdomTelegraph = 0.9f;
+        public const float HeroVirtueTelegraph = 0.4f;
+        public const float HeroVirtueRecover = 0.6f;
+
+        private GoHeroes.Hero _hero;
+        private GoElement _outerElement, _innerElement;
+        private RuntimeAnimatorController _controllerOverride;
+        private Vector3 _strikePoint;
+        private bool Ranged => IsHero && _hero.Trait == HeroTrait.Wisdom;
+        private bool Quick => IsHero && _hero.Trait == HeroTrait.Virtue;
+        private float TelegraphTime => !IsHero ? TelegraphSec : Ranged ? HeroWisdomTelegraph : Quick ? HeroVirtueTelegraph : HeroMightTelegraph;
+        /// <summary>진단용 — 지금 인물의 예고 반경.</summary>
+        public float StrikeReach => !IsHero ? StrikeRadius : Ranged ? HeroWisdomRadius : Quick ? StrikeRadius : HeroMightRadius;
+        private float RecoverTime => Quick ? HeroVirtueRecover : RecoverSec;
+        private float EngageReach => Ranged ? HeroWisdomRange : EngageRange;
+        /// <summary>두 겹 방패 — 수호장과 ★5 인물.</summary>
+        private bool TwoLayered => IsGuardian || (IsHero && HeroRarity >= 5);
+        private GoElement OuterElement => IsGuardian ? GuardianOuter : _outerElement;
+        private GoElement InnerElement => IsGuardian ? GuardianInner : _innerElement;
+        public Vector3 StrikePoint => Ranged ? _strikePoint : transform.position;
         /// <summary>남은 방패 겹(수호장 2→1→0, 원소 적 1→0, 보통 적 0).</summary>
         public int ShieldLayers { get; private set; }
         public bool Engaged { get; private set; }
@@ -150,6 +186,25 @@ namespace Saga.Go.Combat
             return e;
         }
 
+        /// <summary>109-6 — 들판 인물 하나를 겨루기 상대로 세운다(몸은 동행이 됐을 때와 같은 몸, 컨트롤러는 Maria 것 리타깃).</summary>
+        public static FieldEnemy SpawnHero(GoHeroes.Hero hero, Vector3 home, GameObject model, RuntimeAnimatorController controller, Transform parent)
+        {
+            var go = new GameObject($"FieldHero_{hero.Id}");
+            go.transform.SetParent(parent, false);
+            var e = go.AddComponent<FieldEnemy>();
+            e.kind = Kind.Hero;
+            e.model = model;
+            e._hero = hero;
+            e.HeroId = hero.Id;
+            e.HeroRarity = hero.Rarity;
+            e._controllerOverride = controller;
+            e.GroupId = "hero_" + hero.Id;
+            e.Home = home;
+            e._spawnHome = home;
+            e.Setup();
+            return e;
+        }
+
         /// <summary>종류 이름(머리 위 이름표·108 지역 몬스터 명단이 같이 쓴다).</summary>
         public static string KindName(Kind k)
         {
@@ -160,6 +215,7 @@ namespace Saga.Go.Combat
                 case Kind.DrownedGhost: return GoLocalization.T("field.foe.ghost", "물귀신");
                 case Kind.StormWraith: return GoLocalization.T("field.foe.wraith", "번개귀");
                 case Kind.Guardian: return GoLocalization.T("field.foe.guardian", "망루 수호장");
+                case Kind.Hero: return GoLocalization.T("field.foe.hero", "들판 인물");
                 default: return GoLocalization.T("field.foe.skeleton", "해골 병사");
             }
         }
@@ -203,6 +259,13 @@ namespace Saga.Go.Combat
                     DisplayName = KindName(kind);
                     MaxHp = GuardianHp; Atk = GuardianAtk; ExpReward = GuardianExp; Element = GuardianOuter; ShieldMax = GuardianShield;
                     break;
+                case Kind.Hero:
+                    DisplayName = GoHeroes.Label(_hero);
+                    MaxHp = GoHeroes.MaxHp(HeroRarity); Atk = GoHeroes.Atk(HeroRarity); ExpReward = GoHeroes.ExpPerRarity * HeroRarity;
+                    Element = _outerElement = GoHeroes.ElementOf(_hero);
+                    _innerElement = GoHeroes.InnerOf(_outerElement);
+                    ShieldMax = GoHeroes.ShieldLayers(HeroRarity) > 0 ? GoHeroes.ShieldPerLayer * (HeroRarity - 2) : 0f;
+                    break;
                 default:
                     DisplayName = KindName(kind);
                     MaxHp = 220f; Atk = 20f; ExpReward = 10;
@@ -211,7 +274,7 @@ namespace Saga.Go.Combat
             if (EraBody != null) DisplayName = GoEras.FoeName(EraBody, Element);
             Hp = MaxHp;
             ShieldHp = ShieldMax;
-            ShieldLayers = IsGuardian ? 2 : ShieldMax > 0f ? 1 : 0;
+            ShieldLayers = TwoLayered ? 2 : ShieldMax > 0f ? 1 : 0;
             transform.position = Grounded(Home);
             _wanderTarget = Home;
             _timer = UnityEngine.Random.Range(0.5f, 3f);
@@ -238,6 +301,11 @@ namespace Saga.Go.Combat
                 if (h > 0.01f) inst.transform.localScale = Vector3.one * (BodyHeight * HeightFactor() / h);
                 _animator = inst.GetComponentInChildren<Animator>();
                 if (_animator != null) _animator.applyRootMotion = false;
+                if (IsHero)
+                {
+                    foreach (var col in inst.GetComponentsInChildren<Collider>()) Destroy(col); // 동행 몸 프리팹 — 제 충돌은 뺀다(PartyBodies 와 같은 결)
+                    if (_animator != null && _animator.isHuman && _controllerOverride != null) _animator.runtimeAnimatorController = _controllerOverride;
+                }
                 _visual = inst.transform;
                 if (BaseTint(out Color tint)) CharacterVisual.Tint(inst, tint);
             }
@@ -264,6 +332,7 @@ namespace Saga.Go.Combat
         private bool BaseTint(out Color c)
         {
             if (kind == Kind.Skeleton && EraBody == null) { c = new Color(0.88f, 0.9f, 0.96f); return true; } // 바랜 뼈빛은 옛 해골 몸에만
+            if (IsHero) { c = Color.Lerp(Color.white, GoElements.ColorOf(Element), 0.15f); return true; } // 109-6 — 제 몸은 그대로, 원소만 옅게
             // 수호장 — 전용 몸(Maw, 2026-09-24)의 제 빛깔 위에 지금 겹의 원소가 은은히 밴다(옛 Brute 몸 때의 돌빛은 뺐다).
             if (IsGuardian) { c = Color.Lerp(Color.white, GoElements.ColorOf(Element), 0.3f); return true; }
             if (IsElemental) { c = Color.Lerp(new Color(0.35f, 0.33f, 0.32f), GoElements.ColorOf(Element), 0.75f); return true; }
@@ -446,10 +515,13 @@ namespace Saga.Go.Combat
         private void EnterChase()
         {
             CurrentState = State.Chase;
-            if (!IsGuardian || Engaged) return;
+            if (!(IsGuardian || IsHero) || Engaged) return;
             Engaged = true;
-            GuardianEngaged?.Invoke(this);
+            if (IsGuardian) GuardianEngaged?.Invoke(this);
         }
+
+        /// <summary>109-6 — `FieldHeroes` 가 겨루기를 연다(바로 달려든다).</summary>
+        public void Challenge() => EnterChase();
 
         /// <summary>한 틱 — 진단이 시간을 건너뛰려고 직접 부른다.</summary>
         public void Tick(float dt)
@@ -482,6 +554,7 @@ namespace Saga.Go.Combat
             switch (CurrentState)
             {
                 case State.Wander:
+                    if (IsHero) { SetMoveAnim(0f); if (playerOk) Face(toPlayer); break; } // 109-6 — 인물은 겨루기가 열려야 움직인다
                     if (distPlayer < (IsGuardian ? GuardianDetectRadius : DetectRadius)) { EnterChase(); break; }
                     _timer -= dt;
                     if (_timer <= 0f)
@@ -499,20 +572,20 @@ namespace Saga.Go.Combat
                         CurrentState = State.Return;
                         break;
                     }
-                    if (distPlayer <= EngageRange)
+                    if (distPlayer <= EngageReach)
                     {
                         BeginTelegraph();
                         break;
                     }
-                    MoveToward(fc.transform.position, ChaseSpeed, dt, EngageRange * 0.9f);
+                    MoveToward(fc.transform.position, ChaseSpeed, dt, EngageReach * 0.9f);
                     break;
 
                 case State.Telegraph:
                     SetMoveAnim(0f);
                     if (playerOk) Face(toPlayer);
                     _timer -= dt;
-                    float p = 1f - Mathf.Clamp01(_timer / TelegraphSec);
-                    SetRingRadius(Mathf.Lerp(0.6f, StrikeRadius, p));
+                    float p = 1f - Mathf.Clamp01(_timer / TelegraphTime);
+                    SetRingRadius(Mathf.Lerp(0.6f, StrikeReach, p));
                     TintVisual(Color.Lerp(Color.white, new Color(1f, 0.35f, 0.3f), p), true);
                     if (_timer <= 0f) ResolveStrike();
                     break;
@@ -536,6 +609,11 @@ namespace Saga.Go.Combat
                         ResetShields();
                         CurrentState = State.Wander;
                         _timer = 1f;
+                        if (IsHero)
+                        {
+                            Engaged = false;
+                            HeroReset?.Invoke(this);
+                        }
                     }
                     break;
             }
@@ -545,10 +623,15 @@ namespace Saga.Go.Combat
         private void BeginTelegraph()
         {
             CurrentState = State.Telegraph;
-            _timer = TelegraphSec;
+            _timer = TelegraphTime;
             _alertText.gameObject.SetActive(true);
             _warnRing.enabled = true;
             SetRingRadius(0.6f);
+            // 109-6 지(智) 인물 — 떨어지는 원거리: 예고 원이 시작 순간 플레이어 발밑에 선다.
+            var fc = FieldCombat.Instance;
+            _strikePoint = fc != null ? fc.transform.position : transform.position;
+            if (Ranged) _warnRing.transform.position = new Vector3(_strikePoint.x, Grounded(_strikePoint).y + 0.15f, _strikePoint.z);
+            else _warnRing.transform.localPosition = new Vector3(0f, 0.15f, 0f);
         }
 
         /// <summary>예고 끝 판정 — 그 순간 반경 안이면 맞는다(회피 무적이면 `FieldCombat` 이 흘린다).</summary>
@@ -559,12 +642,13 @@ namespace Saga.Go.Combat
             TintVisual(Color.white, false);
             if (_animator != null) _animator.SetTrigger("Attack");
             var fc = FieldCombat.Instance;
-            if (fc != null && fc.CanBeTargeted && Flat(fc.transform.position - transform.position).magnitude <= StrikeRadius)
+            if (fc != null && fc.CanBeTargeted && Flat(fc.transform.position - StrikePoint).magnitude <= StrikeReach)
             {
                 fc.ReceiveStrike(Atk, this);
             }
             CurrentState = State.Recover;
-            _timer = RecoverSec;
+            _timer = RecoverTime;
+            _warnRing.transform.localPosition = new Vector3(0f, 0.15f, 0f);
         }
 
         private void TickStatus(float dt)
@@ -678,10 +762,10 @@ namespace Saga.Go.Combat
         /// 수호장은 겉이 깨지면 0.8초 휘청한 뒤 속 방패(다른 원소)가 차오르고, 속이 깨지면 3초 드러눕는다.</summary>
         private void BreakShield()
         {
-            if (IsGuardian && ShieldLayers >= 2)
+            if (TwoLayered && ShieldLayers >= 2)
             {
                 ShieldLayers = 1;
-                Element = GuardianInner;
+                Element = InnerElement;
                 ShieldHp = ShieldMax;
                 _alertText.gameObject.SetActive(false);
                 _warnRing.enabled = false;
@@ -689,10 +773,10 @@ namespace Saga.Go.Combat
                 _timer = GuardianOuterStaggerSec;
                 if (_animator != null) _animator.SetTrigger("Hit");
                 FieldDamageText.Spawn(transform.position + Vector3.up * (BodyTop + 2f),
-                    GoLocalization.T("field.guard_outer_break", "겉 방패 깨짐!"), GoElements.ColorOf(GuardianOuter), 1.4f);
-                FieldRingFx.Spawn(transform.position, 6f, GoElements.ColorOf(GuardianOuter), 0.5f);
+                    GoLocalization.T("field.guard_outer_break", "겉 방패 깨짐!"), GoElements.ColorOf(OuterElement), 1.4f);
+                FieldRingFx.Spawn(transform.position, 6f, GoElements.ColorOf(OuterElement), 0.5f);
                 string hint = string.Format(GoLocalization.T("field.guard_inner", "속 방패 {0} — {1} 원소 동료로 바꿔라"),
-                    GoElements.NameOf(GuardianInner), GoElements.NameOf(GoElement.Hydro));
+                    GoElements.NameOf(InnerElement), GoElements.NameOf(CounterOf(InnerElement)));
                 Saga.Go.UI.DialogueLabel.Instance?.Show(hint, 3.5f);
                 ApplyElementColors();
                 RefreshElementFx();
@@ -718,10 +802,10 @@ namespace Saga.Go.Combat
         private void ResetShields()
         {
             ShieldHp = ShieldMax;
-            if (IsGuardian)
+            if (TwoLayered)
             {
                 ShieldLayers = 2;
-                Element = GuardianOuter;
+                Element = OuterElement;
                 ApplyElementColors();
             }
             else
@@ -750,6 +834,14 @@ namespace Saga.Go.Combat
             }
             if (_nameText != null) _nameText.color = Color.Lerp(Color.white, c, 0.6f);
             if (_visual != null && !_tinted && BaseTint(out Color baseTint)) CharacterVisual.Tint(_visual.gameObject, baseTint);
+        }
+
+        /// <summary>그 원소를 누르는 원소(수 → 화 · 뇌 → 수 · 화 → 뇌).</summary>
+        private static GoElement CounterOf(GoElement e)
+        {
+            foreach (GoElement a in new[] { GoElement.Pyro, GoElement.Hydro, GoElement.Electro })
+                if (GoElements.Counters(a, e)) return a;
+            return GoElement.Physical;
         }
 
         private void StartCharged(float atk)
@@ -795,6 +887,7 @@ namespace Saga.Go.Combat
 
         private void Die()
         {
+            if (IsHero) { Yield(); return; }
             Hp = 0f;
             CurrentState = State.Dead;
             _timer = RespawnSec;
@@ -818,6 +911,26 @@ namespace Saga.Go.Combat
             }
             Killed?.Invoke(this);
             Invoke(nameof(HideBody), 2.5f);
+        }
+
+        /// <summary>109-6 굴복 — 쓰러지지 않고 무릎 꿇는다(Interact 동작). 다시 서지 않고, `FieldHeroes` 가 등용한 뒤 치운다.</summary>
+        private void Yield()
+        {
+            Hp = 0f;
+            Yielded = true;
+            CurrentState = State.Dead;
+            _timer = float.MaxValue;
+            _chargedLeft = 0f;
+            Aura = GoElement.Physical;
+            AuraLeft = 0f;
+            _alertText.gameObject.SetActive(false);
+            _warnRing.enabled = false;
+            TintVisual(Color.white, false);
+            if (_animator != null) _animator.SetTrigger("Interact");
+            _headUi.gameObject.SetActive(false);
+            RefreshElementFx();
+            PlayerStats.AddExp(ExpReward);
+            HeroYielded?.Invoke(this);
         }
 
         private void HideBody()
@@ -987,7 +1100,7 @@ namespace Saga.Go.Combat
             if (_hpFill == null) return;
             float r = MaxHp > 0f ? Mathf.Clamp01(Hp / MaxHp) : 0f;
             _hpFill.localScale = new Vector3(1.94f * r, 0.16f, 1f);
-            if (IsGuardian && _nameText != null)
+            if (TwoLayered && _nameText != null)
             {
                 string name = ShieldLayers > 0
                     ? $"{DisplayName}  {string.Format(GoLocalization.T("field.guard_layers", "방패 {0}겹"), ShieldLayers)}"
