@@ -434,9 +434,9 @@
   function goalSessionText() {
     var Dl = global.DG.daily;
     if (!Dl) { return ''; }
-    var t = Dl.firstUndone();
-    if (!t) { return '오늘 일과를 다 했습니다'; }
-    return esc(t.def.name) + ' <b>' + core.fmt(Math.min(t.got, t.need)) + '/' + core.fmt(t.need) + '</b>';
+    var t = Dl.firstUndone(), n = Dl.state().tasks.length, head = '일과 ' + Dl.doneCount() + '/' + n;   // ⑲-8
+    if (!t) { return Dl.bonusState() === 'ready' ? head + ' — 역참에서 마무리 보상' : '오늘 일과를 다 했습니다'; }
+    return head + ' · ' + esc(t.def.name) + ' <b>' + core.fmt(Math.min(t.got, t.need)) + '/' + core.fmt(t.need) + '</b>';
   }
 
   /** "이번 주" — 주간 이정표(milestone.js) 다음 단 */
@@ -639,11 +639,11 @@
     var Dl = global.DG.daily;
     if (!Dl) { return ''; }
     var s = Dl.state(), list = Dl.list();
-    var html = '<div class="sec"><h4>오늘의 일과 <small class="muted">' +
+    var html = '<div class="sec"><h4>오늘의 일과 ' + Dl.doneCount() + '/' + list.length + ' <small class="muted">' +
       '도장 ' + s.stamps + ' / ' + Dl.STAMPS_FOR_WEEK + '</small></h4>';
     html += '<div class="card"><div class="bar blue"><i style="width:' +
       Math.round(s.stamps / Dl.STAMPS_FOR_WEEK * 100) + '%"></i></div>' +
-      '<small class="muted">셋을 마치는 대로 도장을 받습니다. 일곱이면 주간 보상.</small></div>';
+      '<small class="muted">하나 마칠 때마다 도장을 받습니다. 일곱이면 주간 보상. 새벽 4시에 새로 뽑힙니다.</small></div>';
     for (var i = 0; i < list.length; i++) {
       var t = list[i];
       html += '<div class="card' + (t.done ? ' done' : '') + '">' +
@@ -653,6 +653,13 @@
           '<small class="muted">' + rewardLine(t.def.reward) + '</small>') +
       '</div>';
     }
+    /* ⑲-8 마무리 보상 — 넷을 다 하면 역참에서 */
+    var bs = Dl.bonusState();
+    html += '<div class="card' + (bs === 'paid' ? ' done' : '') + '">' +
+      '<div class="stat-row"><span>📋 <b>마무리 보상</b></span><b>' +
+        (bs === 'paid' ? '받음' : (bs === 'ready' ? '역참에 들르면' : Dl.doneCount() + ' / ' + list.length)) + '</b></div>' +
+      (bs === 'paid' ? '' : '<small class="muted">' + rewardLine(Dl.BONUS_REWARD).replace('채우면', '다 하고 역참에서') + '</small>') +
+    '</div>';
     html += '</div>';
     return html;
   }
@@ -724,6 +731,10 @@
     ['scroll', 'feed', 'treat', 'incense', 'prayer'].forEach(function (k) {
       if (r[k]) { out.push(B.def(k).emoji + ' ' + r[k]); }
     });
+    if (r.party) { out.push('부대 경험 ' + r.party); }        // ⑲-8
+    if (r.ore) { out.push('🪨 강화석 ' + r.ore); }
+    if (r.note) { out.push('📃 무예 쪽지 ' + r.note); }
+    if (r.knot) { out.push('🪢 인연 매듭 ' + r.knot); }
     return '채우면 ' + out.join(' · ');
   }
 

@@ -194,6 +194,7 @@
     if (!available(node)) { return false; }
     sv().gather[node.id] = nowFn();
     add(node.item, 1);
+    if (global.DG.daily) { global.DG.daily.progress('gather'); }   // ⑲-8 일일 의뢰
     return true;
   }
   /** 다시 자란 기록은 지운다(세이브가 끝없이 안 커지게) */
@@ -247,6 +248,7 @@
     var P = sv().prof;
     P[recipe] = Math.min(99, (P[recipe] || 0) + 1);
     core().emit('cook:done', { recipe: recipe, q: q });
+    if (global.DG.daily) { global.DG.daily.progress('cook'); }     // ⑲-8 일일 의뢰
     core().persist();
     return id;
   }

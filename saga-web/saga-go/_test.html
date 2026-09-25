@@ -7110,6 +7110,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       var keepGold = C.save.player.gold;
       C.save.daily.tasks = [{ key: 'station', got: 0, need: 2, done: false }];
       C.save.daily.stamps = 0;
+      C.save.daily.bonus = 1;                                    // ⑲-8 마무리 보상은 따로 본다
       var g0 = C.save.player.gold;
       var filled = DG.daily.progress('station', 2);
       var t0 = DG.daily.state().tasks[0], stamps = DG.daily.state().stamps;
@@ -7127,6 +7128,105 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       var got = DG.daily.state().tasks[0].got;
       C.save.daily = keepDaily;
       return got === 3 && ('넘어간 진행 ' + got + '(3을 한 번만 보냄)');
+    });
+
+    /* ── ⑲-8 일일 의뢰 (`daily.js` 넓힘, PLAN §5 ⑲-8) ── */
+    function dlKeep() {
+      var bak = JSON.stringify(C.save);
+      return function () {
+        var snap = JSON.parse(bak);
+        Object.keys(C.save).forEach(function (k) { delete C.save[k]; });
+        Object.keys(snap).forEach(function (k) { C.save[k] = snap[k]; });
+      };
+    }
+
+    t('일과 ⑲-8 — 하루 넷 = 갈래 넷에서 하나씩(100일) · 새 후보 넷이 든다 · 상자·사당은 안 뽑힘', function () {
+      var Dl = DG.daily, seen = {}, ok = Dl.PER_DAY === 4;
+      for (var i = 1; i <= 100; i++) {
+        var p = Dl.pickToday('probe-' + i), gs = p.map(function (d) { return d.group; }).join(',');
+        if (p.length !== 4 || gs !== Dl.GROUPS.join(',') || p.some(function (d) { return d.disabled; })) { ok = false; }
+        p.forEach(function (d) { seen[d.key] = 1; });
+      }
+      var fresh = ['hunt', 'react', 'gather', 'cook'].every(function (k) { return seen[k]; });
+      return ok && fresh && !seen.chest && !seen.shrine && ('100일 — 넷 다 갈래 하나씩 · 뽑힌 종류 ' + Object.keys(seen).length);
+    });
+
+    t('일과 ⑲-8 — 날 갈림은 새벽 4시(03:59 는 전날)', function () {
+      var Dl = DG.daily;
+      var a = Dl.dayKey(new Date(2026, 8, 26, 3, 59).getTime()), b = Dl.dayKey(new Date(2026, 8, 26, 4, 0).getTime());
+      return a === '2026-9-25' && b === '2026-9-26' && (a + ' → ' + b);
+    });
+
+    t('일과 ⑲-8 — 마무리 보상: 넷 전엔 없음 · 넷 다 하고 역참에서 한 번(금·강화석·매듭) · 두 번째 역참 없음 · 날이 바뀌면 0', function () {
+      var Dl = DG.daily, undo = dlKeep(), r = {};
+      try {
+        Dl.state();
+        C.save.daily.bonus = 0;
+        C.save.daily.tasks = [
+          { key: 'walk', got: 800, need: 800, done: true }, { key: 'station', got: 0, need: 2, done: false },
+          { key: 'hunt', got: 8, need: 8, done: true }, { key: 'cook', got: 2, need: 2, done: true }];
+        var ore0 = DG.weapon.ore(), knot0 = DG.talent.count('knot');
+        Dl.progress('station', 1);
+        r.wait = Dl.bonusState() === 'wait' && DG.weapon.ore() === ore0;
+        var g0 = C.save.player.gold;
+        Dl.progress('station', 1);                               // 넷째가 차고 그 자리가 역참
+        var g1 = C.save.player.gold;
+        r.paid = Dl.bonusState() === 'paid' && C.save.daily.bonus === 1 && DG.weapon.ore() === ore0 + 2 &&
+          DG.talent.count('knot') === knot0 + 1 && g1 - g0 >= Dl.BONUS_REWARD.gold;
+        Dl.progress('station', 1);
+        r.once = C.save.player.gold === g1 && DG.talent.count('knot') === knot0 + 1 && Dl.claimBonus() === null;
+        C.save.daily.date = '2000-1-1';
+        Dl.state();
+        r.roll = C.save.daily.bonus === 0 && Dl.bonusState() === 'wait';
+      } finally { undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '셋 땐 대기 · 넷째 역참에서 받음(🪨 +2 · 🪢 +1) · 다시 안 줌 · 날 바뀌면 0' : ('실패 ' + bad.join(','));
+    });
+
+    t('일과 ⑲-8 — 신호: 채집 → gather · 요리 → cook', function () {
+      var Dl = DG.daily, CK = DG.cooking, undo = dlKeep(), undoC = ckRig(), r = {};
+      try {
+        Dl.state();
+        C.save.daily.bonus = 1;
+        C.save.daily.tasks = [{ key: 'gather', got: 0, need: 5, done: false }, { key: 'cook', got: 0, need: 2, done: false }];
+        var P = CK.cellPatches(1, 1, function (tx, ty) { return DG.world.terrainAt(tx, ty); }).patches;
+        var nd = P[0].nodes[0];
+        r.pick = CK.pick(nd) && !CK.pick(nd) && C.save.daily.tasks[0].got === 1;
+        CK.add('honey_flower', 4); CK.add('apple', 2);
+        CK.cook('honey_cake', 1, true);
+        r.cook = C.save.daily.tasks[1].got === 1;
+      } finally { undoC(); undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '줍기 1(두 번째 거절은 안 셈) · 요리 1' : ('실패 ' + bad.join(','));
+    });
+
+    t('일과 ⑲-8 — 신호(런타임): 원소 반응 → react · 들판 무리 잡기 → hunt(마리마다)', function () {
+      var FC = DG.fieldCombat, Dl = DG.daily, undo = dlKeep(), r = {};
+      try {
+        FC._resetForTest();
+        var ids = [D.heroes[0].id, D.heroes[1].id];
+        ids.forEach(function (id) { if (!C.save.dex.heroes[id]) { C.save.dex.heroes[id] = { count: 1, firstAt: 0 }; } });
+        C.save.party = ids.slice();
+        var c = null, cx, cy, terr = function (tx, ty) { return W.terrainAt(tx, ty); };
+        var bfn = DG.biome && DG.biome.on() ? DG.biome.biomeAt : null;
+        for (cy = 3; cy < 30 && !c; cy++) { for (cx = 3; cx < 30 && !c; cx++) { c = FC.campAt(cx, cy, terr, bfn); } }
+        C.save.player.pos.x = c.x; C.save.player.pos.y = c.y;
+        Dl.state();
+        C.save.daily.bonus = 1;
+        C.save.daily.tasks = [{ key: 'react', got: 0, need: 6, done: false }, { key: 'hunt', got: 0, need: 99, done: false }];
+        FC.tick(0.05);
+        var S = FC.state(), mine = FC.living(S).filter(function (f) { return f.camp === c.key; });
+        var f0 = mine[0];
+        f0.shield = 0; f0.aura = 'water'; f0.auraT = 5;
+        FC.hitFoe(S, f0, S.party[0], 1, 'fire', 'test');
+        FC.tick(0.05);
+        r.react = C.save.daily.tasks[0].got === 1;
+        mine.forEach(function (f) { FC.hitFoe(S, f, S.party[0], 1e7, null, 'test'); FC.hitFoe(S, f, S.party[0], 1e7, null, 'test'); });
+        FC.tick(0.05);
+        r.hunt = mine.length > 0 && C.save.daily.tasks[1].got === mine.length;
+      } finally { undo(); FC._resetForTest(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '반응 1 · 무리 잡은 수만큼' : ('실패 ' + bad.join(','));
     });
 
     t('목표판 — 부팅 직후 세 줄이 비지 않는다', function () {

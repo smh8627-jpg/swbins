@@ -1316,6 +1316,7 @@
         var RI = REACT[e.kind] || { el: 'fire', r: 2 };
         floatNum(e.x, e.y, e.name + '!', RI.el, 1.5, true);
         ring(e.x, e.y, RI.r || 1.8, e.kind === 'overload' ? '#ffb347' : EL[RI.el].color, 0.45);
+        if (global.DG.daily) { global.DG.daily.progress('react'); }   // ⑲-8 일일 의뢰(쇄빙·활성 포함)
         if (e.kind === 'crystallize') { toast('🪨 결정 보호막 — 명단이 ' + (S.guard ? S.guard.hp : 0) + ' 만큼 막는다(15초)'); }
       } else if (e.t === 'dot') { floatNum(e.x, e.y, String(e.dmg), e.el || 'elec', 0.8); }
       else if (e.t === 'break') {
@@ -1398,6 +1399,7 @@
         }
         if (global.DG.cooking) { var mt6 = global.DG.cooking.onKill(e.kind); if (mt6) { floatNum(e.x, e.y + 2.2, mt6, null, 0.85, false); } }   // ⑲-6 짐승 고기
         fieldSave().kills = (fieldSave().kills || 0) + 1;
+        if (global.DG.daily) { global.DG.daily.progress('hunt'); }    // ⑲-8 일일 의뢰
         floatNum(e.x, e.y, '+' + gold + '금', null, 0.9, false);
       } else if (e.t === 'clear' && e.kind === 'guard') {
         var gs = fieldSave(), rk = e.camp.slice(2);
