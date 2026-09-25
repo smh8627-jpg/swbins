@@ -309,7 +309,10 @@
   }
 
   /* ── 몸: 기력·오르기·헤엄·점프 (키보드 모드만) ──────────────── */
-  function STA_MAX() { return K('sta', 100); }
+  function STA_MAX() {
+    var TR = global.DG.treasure;                                   // §5 ⑲-3 신상 봉헌 — 등급마다 +8
+    return K('sta', 100) + (TR && TR.staBonus ? TR.staBonus() : 0);
+  }
   var CLIMB_G = 0.28;         // 이보다 가파른 오르막이 '오르기'(안쪽 산 허리 ≈0.33, 바깥 산 ≈0.43)
   var CLIMB_MUL = 0.5, SWIM_MUL = 0.6, TIRED_SWIM = 0.3, SLIDE_MUL = 1.2;
   var CLIMB_DRAIN = 12, SWIM_DRAIN = 6, REGEN = 25;

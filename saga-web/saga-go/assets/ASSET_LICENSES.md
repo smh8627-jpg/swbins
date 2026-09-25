@@ -1438,3 +1438,16 @@ Quaternius "Ultimate Monsters"(CC0, 사가블로 `assets/models/monsters/quatern
 
 `beast_Rat`·`Wasp`·`Zombie`·`Robot_Drone`·`Robot_Walker`·`Robot_Large`(들판 적 `assets/models/foes/`, Quaternius CC0)·
 `beast_Alien_2`(의조, Ultimate Monsters CC0)를 `tools/bake-icons/bake-beasts.mjs` 로 구운 파생 그림. 절차 펫은 이미 있던 땅짐승 그림 스물셋을 쓴다.
+
+## 보물 상자 (`models/props/Chest.glb`, PLAN §5 ⑲-3, 2026-09-25)
+
+| 항목 | |
+|---|---|
+| **만든 이** | Kay Lousberg — KayKit Dungeon Remastered |
+| **라이선스** | **CC0 1.0 Universal** |
+| **저작자 표시** | 필요 없다 |
+| **재배포** | 허용된다 |
+| **받은 곳** | `saga-story/assets/models/props/Chest.glb`(= `saga-dungeon/assets/models/dungeon/chest.glb`, md5 같음)를 그대로 복사했다 |
+
+석등은 새 파일이 아니다 — 위 Poly Haven 절의 `wooden_lantern.glb`(CC0)를 `asset3d` 표 `lantern` 으로 한 번 더 가리킨다.
+수집 구슬·석등 불빛은 모델이 아니라 효과 층(빛 스프라이트)이다.

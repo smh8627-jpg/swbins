@@ -129,6 +129,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/duel.js"></script>
 <script src="js/rogue-action.js"></script>
 <script src="js/field-combat.js"></script>
+<script src="js/treasure.js"></script>
 <script src="js/rogue.js"></script>
 <script src="js/fort.js"></script>
 <script src="js/raid.js"></script>
@@ -8809,6 +8810,134 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       return r.low && r.start && r.fast && r.land &&
         ('평지 못 함 · ' + h0.toFixed(1) + 'm 에서 내리꽂아 ' + tt.toFixed(2) + '초에 착지 → 낙하 공격(' + got[0].toFixed(1) + 'm)') ||
         (function () { throw new Error(JSON.stringify(r)); })();
+    });
+
+    /* ── ⑲-3 보물 상자·수집 구슬·신상 봉헌·원소 시야 (`treasure.js`, PLAN §5 ⑲-3) ── */
+    function trFind(pred) {
+      var TR = DG.treasure, i, j, n, it;
+      for (j = -4; j <= 4; j++) { for (i = -4; i <= 4; i++) {
+        it = TR.itemsAt(i, j);                       // 실제 자리(지형을 비킨 것) — near·campsNear 와 같은 캐시
+        for (n = 0; n < it.chests.length; n++) { if (pred(it.chests[n])) { return it.chests[n]; } }
+      } }
+      return null;
+    }
+
+    t('보물 ⑲-3 — 자리: 지역 칸마다 고정·칸당 평범 둘·정교·진귀(+화려 넷에 하나 꼴)·고향은 셋·물·마을·길 비킴·석등 둘은 5m·다른 원소', function () {
+      var TR = DG.treasure, W = DG.world, i, j, n, lux = 0, cells = 0, bad = 0, total = 0, ids = {}, dup = 0, okGrade = true, okLamp = true;
+      var terr = function (tx, ty) { return W.terrainAt(tx, ty); };
+      var same = JSON.stringify(TR.cellItems(3, 2)) === JSON.stringify(TR.cellItems(3, 2));
+      var home = TR.cellItems(0, 0).chests.map(function (c) { return c.grade; }).join(',');
+      for (j = -7; j <= 7; j++) { for (i = -7; i <= 7; i++) {
+        if (!i && !j) { continue; }
+        var it = TR.cellItems(i, j, terr), g = it.chests.map(function (c) { return c.grade; });
+        cells++;
+        if (g.slice(0, 4).join(',') !== 'common,common,exquisite,precious' || (g.length === 5 && g[4] !== 'luxurious') || g.length < 4 || g.length > 5) { okGrade = false; }
+        if (g.length === 5) { lux++; }
+        for (n = 0; n < it.chests.length; n++) {
+          var c = it.chests[n], tk = terr(Math.floor(c.x / 48), Math.floor(c.y / 48));
+          total++;
+          if (tk === 'water' || tk === 'town' || tk === 'road') { bad++; }
+          if (ids[c.id]) { dup++; } ids[c.id] = 1;
+          if (c.lock !== TR.LOCK_OF[c.grade]) { okGrade = false; }
+          if (c.lock === 'lantern') {
+            var L = c.lanterns;
+            if (L.length !== 2 || L[0].el === L[1].el || L.some(function (l) { return Math.abs(Math.hypot(l.x - c.x, l.y - c.y) - 5) > 1e-6; })) { okLamp = false; }
+          } else if (c.lanterns.length) { okLamp = false; }
+        }
+      } }
+      var share = lux / cells;
+      return same && home === 'common,common,exquisite' && okGrade && okLamp && dup === 0 && bad <= total * 0.02 && share > 0.15 && share < 0.35 &&
+        ('칸 ' + cells + ' · 상자 ' + total + ' · 화려 ' + Math.round(share * 100) + '% · 물·마을·길 ' + bad + ' · 고향 ' + home.split(',').length);
+    });
+
+    t('보물 ⑲-3 — 열기: 한 번만·등급 보상(진귀 금 200·단사 3)·save.chests 에 남는다', function () {
+      var TR = DG.treasure, s = C.save, keep = { chests: JSON.stringify(s.chests || {}), gold: s.player.gold, dust: s.dust };
+      try {
+        var ch = { id: 'ctest_x_0', grade: 'precious', lock: 'camp', x: 1e6, y: 1e6, lanterns: [] };
+        var g0 = s.player.gold || 0, d0 = s.dust || 0;
+        var a = TR.open(ch), b = TR.open(ch);
+        return a && !b && (s.player.gold - g0) === 200 && (s.dust - d0) === 3 && !!s.chests[ch.id] && TR.opened(ch.id) &&
+          ('처음 열림 · 두 번째 거절 · 금 +200 · 단사 +3');
+      } finally { s.chests = JSON.parse(keep.chests); s.player.gold = keep.gold; s.dust = keep.dust; }
+    });
+
+    t('보물 ⑲-3 — 무리 잠금: 진귀·화려 상자에 tc: 무리가 서고(들판 populate), 치우면 풀려 다시 안 선다', function () {
+      var TR = DG.treasure, FC = DG.fieldCombat;
+      TR._resetForTest();
+      var ch = trFind(function (c) { return c.lock === 'camp'; }), lux = trFind(function (c) { return c.lock === 'elite'; });
+      if (!ch || !lux) { return false; }
+      var cs = TR.campsNear(ch.x, ch.y, 30).filter(function (c) { return c.key === 'tc:' + ch.id; })[0];
+      var ce = TR.campsNear(lux.x, lux.y, 30).filter(function (c) { return c.key === 'tc:' + lux.id; })[0];
+      var S = fcState();
+      FC.populate(S, ch.x, ch.y, null, 200, null, null, null, TR.campsNear);
+      var spawned = !!S.camps['tc:' + ch.id] && S.camps['tc:' + ch.id].uids.length === cs.foes.length;
+      TR.onClear({ camp: 'tc:' + ch.id });
+      var gone = TR.campsNear(ch.x, ch.y, 30).every(function (c) { return c.key !== 'tc:' + ch.id; }) && TR._unlocked()[ch.id] === true;
+      TR._resetForTest();
+      return !!cs && cs.foes.length >= 2 && cs.kind === 'plain' && !!ce && ce.kind === 'elite' && spawned && gone &&
+        ('진귀 무리 ' + cs.foes.map(function (f) { return FC.FOES[f.kind].name; }).join('·') + ' · 화려 정예 ' + FC.FOES[ce.foes[0].kind].name + ' · 치우면 풀림');
+    });
+
+    t('보물 ⑲-3 — 석등 잠금: 맞는 원소가 닿아야 켜지고, 첫 불 뒤 20초 안에 둘 다 켜야 풀린다', function () {
+      var TR = DG.treasure;
+      TR._resetForTest();
+      var ch = trFind(function (c) { return c.lock === 'lantern'; });
+      if (!ch) { return false; }
+      var L = ch.lanterns, wrong = ['fire', 'water', 'elec', 'wind', 'ice', 'rock', 'grass'].filter(function (e) { return e !== L[0].el && e !== L[1].el; })[0];
+      TR.onElement({ el: wrong, x: L[0].x, y: L[0].y, r: 4 });
+      var noWrong = !TR._lit()[ch.id];
+      TR.onElement({ el: L[0].el, x: L[0].x, y: L[0].y, r: 2 });
+      var one = !!TR._lit()[ch.id] && TR._lit()[ch.id].on[0] === true && TR._lit()[ch.id].on[1] === false && !TR._unlocked()[ch.id];
+      TR._stepLit(20.5);
+      var out = !TR._lit()[ch.id];
+      TR.onElement({ el: L[0].el, x: L[0].x, y: L[0].y, r: 2 });
+      TR._stepLit(12);
+      TR.onElement({ el: L[1].el, x: L[1].x, y: L[1].y, r: 2 });
+      var ok = TR._unlocked()[ch.id] === true;
+      TR._resetForTest();
+      return noWrong && one && out && ok && ('석등 ' + L.map(function (l) { return DG.fieldCombat.EL[l.el].icon; }).join('·') + ' · 틀린 원소 안 켜짐 · 20초 넘으면 꺼짐 · 12초 안에 둘 → 풀림');
+    });
+
+    t('보물 ⑲-3 — 수집 구슬: 칸마다 셋(높이 0.6·1.2·1.8·2.4)·1.6m 안+높이가 닿아야(나무 위는 점프)·GPS 는 8m·높이 무시', function () {
+      var TR = DG.treasure, W = DG.world, LF = DG.landform, terr = function (tx, ty) { return W.terrainAt(tx, ty); }, i, j, kinds = {}, okH = true, n3 = true;
+      for (j = -5; j <= 5; j++) { for (i = -5; i <= 5; i++) {
+        var os = TR.cellItems(i, j, terr, LF).orbs;
+        if (os.length !== 3) { n3 = false; }
+        os.forEach(function (o) { kinds[o.kind] = (kinds[o.kind] || 0) + 1; if ([0.6, 1.2, 1.8, 2.4].indexOf(o.h) < 0) { okH = false; } });
+      } }
+      var P = TR.pickable, tree = { x: 0, y: 0, h: 2.4 }, low = { x: 0, y: 0, h: 1.2 };
+      var okPick = !P(tree, 1, 0, 0, false) && P(tree, 1, 0, 1.2, false) && P(low, 1, 0, 0, false) && !P(low, 2, 0, 0, false) &&
+        P(tree, 7, 0, 0, true) && !P(tree, 9, 0, 0, true);
+      return n3 && okH && okPick && kinds.field > 0 && (kinds.tree > 0 || kinds.ridge > 0) &&
+        ('121칸 — ' + Object.keys(kinds).map(function (k) { return k + ' ' + kinds[k]; }).join(' · ') + ' · 나무 위는 발밑 1.1m+');
+    });
+
+    t('보물 ⑲-3 — 봉헌: 찾은 탑 25m 안에서 구슬을 바치면 둘마다 신상 등급 +1(최대 10) → 들판 기력 상한 +8·금 200', function () {
+      var TR = DG.treasure, BMb = DG.biome, LF = DG.landform, s = C.save;
+      var keep = { orbs: JSON.stringify(s.orbs || { got: {}, given: 0 }), regions: JSON.stringify(s.regions || {}), gold: s.player.gold, dust: s.dust };
+      try {
+        var lv = TR.levelOf(0) === 0 && TR.levelOf(1) === 0 && TR.levelOf(2) === 1 && TR.levelOf(25) === 10;
+        var c = BMb.cellAt(1, 0);
+        s.regions = s.regions || {}; s.regions[c.key] = Date.now();
+        s.orbs = { got: { oa: 1, ob: 1, oc: 1 }, given: 0 };
+        var g0 = s.player.gold || 0;
+        var far = TR.offer({ x: c.x + 200, y: c.y });
+        var did = TR.offer({ x: c.x + 5, y: c.y });
+        var okOffer = !far && did && s.orbs.given === 3 && TR.level() === 1 && TR.held() === 0 && (s.player.gold - g0) === 200 && TR.staBonus() === 8;
+        s.orbs = { got: {}, given: 6 };
+        LF._resetForTest();
+        var sta = LF.stamina();
+        return lv && okOffer && sta === 124 && ('3개 바침 → 등급 1·금 +200 · 6개면 기력 상한 ' + sta);
+      } finally {
+        s.orbs = JSON.parse(keep.orbs); s.regions = JSON.parse(keep.regions); s.player.gold = keep.gold; s.dust = keep.dust;
+        LF._resetForTest();
+      }
+    });
+
+    t('보물 ⑲-3 — 원소 시야 흔적: 가장 가까운 것 쪽으로 2.2m 마다 빛 점·최대 14', function () {
+      var TR = DG.treasure, a = TR.trail(0, 0, 10, 0), b = TR.trail(0, 0, 100, 0), z = TR.trail(3, 3, 3, 3);
+      return a.length === 4 && Math.abs(a[0].x - 2.2) < 1e-9 && Math.abs(a[3].x - 8.8) < 1e-9 && b.length === 14 && z.length === 0 &&
+        ('10m → 점 4 · 100m → 14(최대)');
     });
 
     t('지형 설계 ⑰ 정상 순간이동 — 오른 정상만 지점이 되고(pk:), 누르면 정상으로 건너간다 · 안 오른 곳은 안 된다', function () {

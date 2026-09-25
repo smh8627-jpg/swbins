@@ -1773,3 +1773,27 @@ body.fc-on #dock, body.fc-on #near { display: none !important; }
 #lf-jump em { font-size: 11px; font-style: normal; opacity: .7; }
 #lf-jump:active { transform: scale(.94); }
 @media (max-height: 500px) { #lf-jump { left: 142px; bottom: calc(150px + var(--safe-b)); } }   /* 가로: 위가 #top 이라 조이스틱 오른쪽 */
+/* ── 원소 시야(treasure.js, PLAN §5 ⑲-3) — V 누르는 동안 / 👁 단추. 3D 화면만 잿빛, HUD 는 제 색 ── */
+#map3d { transition: filter .2s ease; }
+body.sight-on #map3d { filter: grayscale(.92) brightness(.62) contrast(1.15) sepia(.12) hue-rotate(170deg); }
+#tr-sight-layer { position: fixed; inset: 0; z-index: 12; pointer-events: none; overflow: hidden; }
+#tr-sight-layer .tr-dot { position: absolute; width: var(--s, 20px); height: var(--s, 20px); margin: calc(var(--s, 20px) / -2) 0 0 calc(var(--s, 20px) / -2);
+  border-radius: 50%; background: radial-gradient(circle, #fff 0 18%, var(--c) 40%, transparent 72%); mix-blend-mode: screen;
+  animation: tr-pulse 1.4s ease-in-out infinite; }
+#tr-sight-layer .tr-dot.trail { animation-duration: .9s; opacity: .8; }
+@keyframes tr-pulse { 0%, 100% { transform: scale(.85); } 50% { transform: scale(1.15); } }
+#tr-sight-layer .tr-wave { position: absolute; left: 50%; top: 50%; width: 20px; height: 20px; margin: -10px 0 0 -10px; border-radius: 50%;
+  border: 3px solid rgba(160, 230, 255, .8); animation: tr-wave .7s ease-out forwards; }
+@keyframes tr-wave { to { transform: scale(90); opacity: 0; } }
+#tr-sight {
+  display: none; position: fixed; z-index: 20;
+  left: 49px; bottom: calc(350px + var(--safe-b)); width: 48px; height: 48px; border-radius: 50%;
+  background: var(--glass); border: 1px solid var(--glass-br); color: var(--ink);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  touch-action: none; -webkit-user-select: none; user-select: none; cursor: pointer; place-items: center; gap: 0; font-weight: 700;
+}
+#tr-sight.show { display: grid; }
+#tr-sight.on { border-color: #9fe6ff; box-shadow: 0 0 0 2px #9fe6ff inset; }
+#tr-sight span { font-size: 18px; line-height: 1; }
+#tr-sight em { font-size: 11px; font-style: normal; opacity: .7; }
+@media (max-height: 500px) { #tr-sight { left: 212px; bottom: calc(155px + var(--safe-b)); } }

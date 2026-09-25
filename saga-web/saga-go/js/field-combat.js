@@ -446,8 +446,15 @@
    * 내 둘레 격자를 훑어 무리를 들이고, 멀어진(그리고 싸우지 않는) 무리는 치운다.
    * 치운 무리는 다시 오면 온전한 모습으로 선다(체력은 기억하지 않는다).
    */
-  function populate(S, px, py, terr, radius, bfn, lfn, zfn) {
+  function populate(S, px, py, terr, radius, bfn, lfn, zfn, tfn) {
     var R = radius || 200, far = R * 1.6;
+    /* §5 ⑲-3 보물 상자를 지키는 무리(treasure.campsNear) — 키 'tc:<상자>', 연 상자 것은 안 온다 */
+    if (tfn) {
+      var tcs = tfn(px, py, R) || [], ti;
+      for (ti = 0; ti < tcs.length; ti++) {
+        if (!S.camps[tcs[ti].key] && !S.cleared[tcs[ti].key]) { spawnCamp(S, tcs[ti]); }
+      }
+    }
     /* ⑪ 수호자 — 둘레 랜드마크(`biome.landmarks`)마다 하나 */
     if (lfn) {
       var lms = lfn(px, py, R) || [], li;
@@ -1132,7 +1139,8 @@
       var BM = global.DG.biome;
       populate(S, pos.x, pos.y, terrFn(), K('activeR', 200), BM && BM.on() ? BM.biomeAt : null,
         BM && BM.on() && BM.landmarks && K('guards', 1) ? BM.landmarks : null,
-        BM && BM.on() && BM.zoneAt && K('eras', 1) ? BM.zoneAt : null);
+        BM && BM.on() && BM.zoneAt && K('eras', 1) ? BM.zoneAt : null,
+        global.DG.treasure && global.DG.treasure.on() ? global.DG.treasure.campsNear : null);
       respawnSweep();
     }
     if (refAcc > 2) { refAcc = 0; refreshStats(); }
@@ -1163,6 +1171,10 @@
     var c = core(), H = global.DG.hero, i;
     for (i = 0; i < ev.length; i++) {
       var e = ev[i];
+      /* ⑲-3 원소 신호 — 스킬·폭발·장판 자리를 알린다(treasure.js 가 석등을 켠다) */
+      if ((e.t === 'skill' || e.t === 'burst' || (e.t === 'zone' && e.kind === 'field')) && e.el) {
+        c.emit('field:element', { el: e.el, x: e.x, y: e.y, r: e.r || 3, t: e.t });
+      }
       if (e.t === 'move') { pos.x += e.dx; pos.y += e.dy; }
       else if (e.t === 'hit') {
         sfx('hit');
@@ -1387,7 +1399,8 @@
   }
 
   function paint(dt) {
-    var show = engaged(S) || !!nearestFoe(S, core().save.player.pos.x, core().save.player.pos.y, 22);
+    var pp = core().save.player.pos, TR = global.DG.treasure;
+    var show = engaged(S) || !!nearestFoe(S, pp.x, pp.y, 22) || !!(TR && TR.wantsHud && TR.wantsHud(pp.x, pp.y));   // ⑲-3 석등 곁에서도 스킬을 쓰게
     if (!hudEl) { buildHud(); }
     hudEl.classList.toggle('show', show);
     document.body.classList.toggle('fc-on', show);
