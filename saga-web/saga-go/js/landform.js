@@ -316,6 +316,8 @@
   var JUMP_T = 0.55, JUMP_H = 1.3, LEAP = 4, LEAP_COST = 20;
   /* 활공 — 125m 봉우리에서 기력 100 이면 25초(≈60m 내려옴) 날고, 그 뒤 초당 9m 로 떨어진다 */
   var GLIDE_MUL = 1.7, GLIDE_SINK = 2.4, GLIDE_TIRED_SINK = 9, GLIDE_FALL = 14, GLIDE_DRAIN = 4, GLIDE_OPEN_T = 0.12;
+  /* §5 ⑲-2 낙하 공격 — 활공 중 발밑 2.5m 넘을 때 공격을 누르면 초당 30m 로 내리꽂는다(착지 판정은 field-combat) */
+  var PLUNGE_MIN_H = 2.5, PLUNGE_SINK = 30;
   function freshBody() { return { sta: -1, state: 'walk', busy: false, climbT: 0, jumpT: -1, tired: false, ux: 0, uy: 0, glide: null }; }
   var body = freshBody();
 
@@ -401,6 +403,16 @@
     return true;
   }
 
+  /** §5 ⑲-2 낙하 공격 시작 — 활공 중이고 발밑이 2.5m 넘으면 날개를 접고 내리꽂는다. 되면 true(이미 내리꽂는 중이면 false) */
+  function startPlunge() {
+    if (!on() || !keyMode() || !body.glide || body.glide.plunge !== undefined) { return false; }
+    if (airH() < PLUNGE_MIN_H) { return false; }
+    body.glide.fall = true;
+    body.glide.plunge = body.glide.alt;
+    core().emit('landform:plunge', {});
+    return true;
+  }
+
   /** 지금 뛰어오른 높이(m) — `world3d` 가 내 몸에 얹는다 */
   function airH() {
     if (body.glide) {
@@ -437,7 +449,7 @@
   /** 활공 한 걸음 — 가라앉고 기력을 쓰다가, 땅(화면 기복)에 닿으면 내린다. 강 위에 내리면 그대로 헤엄 */
   function stepGlide(dt) {
     var g = body.glide, pos = core().save.player.pos;
-    var sink = g.fall ? GLIDE_FALL : (body.sta > 0 ? GLIDE_SINK : GLIDE_TIRED_SINK);
+    var sink = g.plunge !== undefined ? PLUNGE_SINK : (g.fall ? GLIDE_FALL : (body.sta > 0 ? GLIDE_SINK : GLIDE_TIRED_SINK));
     g.alt -= sink * dt;
     if (!g.fall) { body.sta = Math.max(0, body.sta - GLIDE_DRAIN * dt); body.busy = true; }
     body.state = 'glide';
@@ -445,7 +457,10 @@
     if (g.alt <= ground + 0.02) {
       body.glide = null;
       body.state = 'walk';
-      core().emit('landform:land', { x: pos.x, y: pos.y });
+      var fell = g.plunge !== undefined ? Math.max(0, g.plunge - ground) : null;
+      core().emit('landform:land', { x: pos.x, y: pos.y, plunge: fell });
+      var FC = global.DG.fieldCombat;
+      if (fell !== null && FC && FC.plungeLand) { FC.plungeLand(fell); }
     }
   }
 
@@ -526,6 +541,7 @@
     on: on, line: line, riverAt: riverAt, markAt: markAt, deckAt: deckAt, fords: function () { build(); return FORDS.slice(); }, DECK: DECK, ridgeAt: ridgeAt, kindAt: kindAt, liftAt: liftAt, peaks: peaks,
     peakFound: peakFound, discoverPeak: discoverPeak,
     moveMul: moveMul, jump: jump, airH: airH, tick: tick, teleport: teleport, waypoints: waypoints,
+    startPlunge: startPlunge, PLUNGE_MIN_H: PLUNGE_MIN_H, PLUNGE_SINK: PLUNGE_SINK,
     GLIDE_MUL: GLIDE_MUL, GLIDE_SINK: GLIDE_SINK, GLIDE_DRAIN: GLIDE_DRAIN, GLIDE_OPEN_T: GLIDE_OPEN_T,
     gliding: function () { return !!body.glide; },
     stamina: function () { return sta(); }, state: function () { return body.state; },

@@ -882,7 +882,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ('도감 ' + H.length + '명 — ' + ks.map(function (k) { return FC.EL[k].icon + (cnt[k] || 0); }).join(' '));
     });
 
-    t('들판 전투 ⑲-1 — 빙결: 2.5초 꼼짝 못 하고, 3타째(heavy)로 치면 쇄빙 ×1.5·풀림', function () {
+    t('들판 전투 ⑲-1 — 빙결: 2.5초 꼼짝 못 하고, 강공격·낙하(heavy)로 치면 쇄빙 ×1.5·풀림', function () {
       var FC = DG.fieldCombat, S = fcState(), f = fcFoe(S, 'bear', 2, 0), m = S.party[0];
       f.aura = 'water'; f.auraT = 5;
       FC.hitFoe(S, f, m, 10, 'ice', 'test');
@@ -993,6 +993,31 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         !!vi.e && !!vi.S.party[0].burn && vi.S.party[0].burn.n === 4 && !!vi.S.party[0].burn.poison;
       return okTable && th === 'hawk,hawk,vine|snowfox,snowfox,vine|rockbear,rockbear' && okCamp && okKill && okHurt &&
         ('51×51칸 — ' + Object.keys(NEW).map(function (x) { return F[x].name + ' ' + seen[x]; }).join(' · '));
+    });
+
+    t('들판 전투 ⑲-2 — 강공격: 스태미나 20·×1.3 물리·앞쪽만(3.2m)·모자라면 안 됨·빙결 적은 쇄빙, 3타째 기본 공격은 쇄빙 안 함', function () {
+      var FC = DG.fieldCombat, S = fcState(), a = fcFoe(S, 'bear', 2, 0), b = fcFoe(S, 'bear', -2.5, 0), c = fcFoe(S, 'bear', 0, 3.0);
+      var r = FC.heavy(S, 0, 0);
+      var ok1 = r.ok && r.n === 2 && a.hp === a.hpMax - 78 && c.hp === c.hpMax - 78 && b.hp === b.hpMax && S.stamina === 80 && S.combo === 0;
+      S.stamina = 10;
+      var r2 = FC.heavy(S, 0, 0), ok2 = !r2.ok && r2.tired && a.hp === a.hpMax - 78 && fcEv(S, 'tired').length === 1;
+      var S2 = fcState(), f = fcFoe(S2, 'bear', 2, 0);
+      f.frozenT = 2;
+      FC.heavy(S2, 0, 0);
+      var h = fcEv(S2, 'hit')[0], ok3 = h.react === 'shatter' && h.dmg === 117 && f.frozenT === 0;
+      var S3 = fcState(), g = fcFoe(S3, 'bear', 2, 0);
+      g.frozenT = 2; S3.combo = 2;
+      FC.attack(S3, 0, 0);
+      var h3 = fcEv(S3, 'hit')[0], ok4 = h3.react === null && h3.dmg === 90 && g.frozenT === 2;
+      return ok1 && ok2 && ok3 && ok4 && ('앞 둘 ' + 78 + ' · 뒤 0 · 스태미나 100→80 · 모자라면 거절 · 쇄빙 ' + h.dmg + ' · 3타째 ' + h3.dmg + '(안 깨짐)');
+    });
+
+    t('들판 전투 ⑲-2 — 낙하 공격: 둘레 3.5m ×(1.2 + 0.1×떨어진 m), 15m 에서 막힘', function () {
+      var FC = DG.fieldCombat, S = fcState(), a = fcFoe(S, 'bear', 2, 0), b = fcFoe(S, 'bear', 0, -3.4), c = fcFoe(S, 'bear', 5, 0);
+      var r = FC.plunge(S, 0, 0, 10);
+      var okMul = Math.abs(FC.plungeMul(0) - 1.2) < 1e-9 && Math.abs(FC.plungeMul(30) - 2.7) < 1e-9 && Math.abs(FC.plungeMul(-5) - 1.2) < 1e-9;
+      return r.ok && r.n === 2 && a.hp === a.hpMax - 132 && b.hp === b.hpMax - 132 && c.hp === c.hpMax && okMul &&
+        fcEv(S, 'plunge').length === 1 && ('10m ×' + r.mul.toFixed(1) + ' → 132 둘 · 5m 밖 0 · 30m 도 ×2.7');
     });
 
     t('들판 전투 ⑪ — 지역 수호자: 바이옴마다 하나·방패 두 겹(겉 깨면 속 방패, 상성이 달라 교체해야)·토벌하면 안 선다', function () {
@@ -8750,6 +8775,40 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       return early && r.open && r.sink && r.mul && r.rise && r.fold && r.land && r.flat &&
         ('0.12초 전 못 폄 · 폄 → 1초에 ' + LF.GLIDE_SINK + 'm·기력 ' + LF.GLIDE_DRAIN + ' · 걸음 ×' + LF.GLIDE_MUL + ' · 벼랑 밖으로 나가면 그만큼 높이 · 접고 ' + tt.toFixed(1) + '초에 내림 · 평지 ' + ft.toFixed(2) + '초') ||
         (function () { throw new Error(JSON.stringify(r) + ' early=' + early); })();
+    });
+
+    t('들판 전투 ⑲-2 — 활공 중 공격 → 초당 30m 로 내리꽂고, 착지하면 떨어진 높이로 낙하 공격을 부른다 · 발밑 2.5m 안이면 안 된다', function () {
+      var LF = DG.landform, RF = DG.relief3d, W = DG.world, FC = DG.fieldCombat, sv = C.save;
+      if (W.mode !== 'keyboard' || !LF.startPlunge) { return false; }
+      LF._resetForTest(); RF.reset();
+      var top = LF.peaks(0, 0).filter(function (p) { return p.name === '만년설 봉'; })[0];
+      var keep = { x: sv.player.pos.x, y: sv.player.pos.y }, keepPL = FC.plungeLand, got = [], r = {};
+      FC.plungeLand = function (fell) { got.push(fell); return { ok: true }; };
+      try {
+        /* 평지 — 날개를 펴도 발밑이 낮아 안 된다 */
+        sv.player.pos.x = 0; sv.player.pos.y = 0;
+        LF.jump(); LF.tick(0.2); LF.jump();
+        r.low = LF.gliding() && LF.airH() < LF.PLUNGE_MIN_H && !LF.startPlunge();
+        LF._resetForTest();
+        /* 봉우리 곁에서 펴고 산 아래로 나가 높이 뜬 채 */
+        sv.player.pos.x = top.x + 40; sv.player.pos.y = top.y + 40;
+        LF.jump(); LF.tick(0.2); LF.jump();
+        sv.player.pos.y += 260;
+        var h0 = LF.airH();
+        r.start = h0 > LF.PLUNGE_MIN_H && LF.startPlunge() && !LF.startPlunge();
+        LF.tick(0.1);
+        r.fast = Math.abs((h0 - LF.airH()) - LF.PLUNGE_SINK * 0.1) < 1e-6;
+        var tt = 0;
+        while (LF.gliding() && tt < 30) { LF.tick(0.05); tt += 0.05; }
+        r.land = !LF.gliding() && got.length === 1 && Math.abs(got[0] - h0) < 1e-6;
+      } finally {
+        FC.plungeLand = keepPL;
+        sv.player.pos.x = keep.x; sv.player.pos.y = keep.y;
+        LF._resetForTest();
+      }
+      return r.low && r.start && r.fast && r.land &&
+        ('평지 못 함 · ' + h0.toFixed(1) + 'm 에서 내리꽂아 ' + tt.toFixed(2) + '초에 착지 → 낙하 공격(' + got[0].toFixed(1) + 'm)') ||
+        (function () { throw new Error(JSON.stringify(r)); })();
     });
 
     t('지형 설계 ⑰ 정상 순간이동 — 오른 정상만 지점이 되고(pk:), 누르면 정상으로 건너간다 · 안 오른 곳은 안 된다', function () {

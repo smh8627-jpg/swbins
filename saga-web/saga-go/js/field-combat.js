@@ -7,7 +7,8 @@
  *   무리      160m 격자마다 해시로 자리·종류가 정해진다(세이브 없이도 늘 같은 자리).
  *             멀리(900m 마다) 갈수록 등급이 오른다 — 원신의 "세계 레벨" 자리
  *   편성      동행 앞 4명. 숫자 1~4(또는 초상)로 즉시 교체, 교체 1초 쿨
- *   조작      기본 공격 3타 · 원소 스킬(7초) · 원소 폭발(기력 60) · 회피(스태미나 20)
+ *   조작      기본 공격 3타 · 길게 누르면 강공격(0.4초·스태미나 20) · 활공 중엔 낙하 공격(§5 ⑲-2) ·
+ *             원소 스킬(7초) · 원소 폭발(기력 60) · 회피(스태미나 20)
  *   원소      일곱 — 화·수·뇌·풍·빙·암·초(§5 ⑲-1, saga-godot PLAN 106 ⑭). 인물마다 id 해시로 고정, 주인공은 화.
  *             풍·암은 적에게 안 붙고 반응만 일으킨다
  *   반응      증발·융해 ×1.5 · 과부하(4m 광역·밀침) · 감전(3초 지속) · 빙결(2.5초 멈춤 → 쇄빙 ×1.5) ·
@@ -77,6 +78,11 @@
   function DASH_M() { return K('dashM', 3.6); }
   function DASH_T() { return 0.18; }
   function SWAP_CD() { return K('swapCd', 1); }
+  /* ⑲-2 강공격·낙하 공격 — saga-godot PLAN 106 ⑧ 칸 그대로(둘 다 물리, 쇄빙을 낸다) */
+  function CHARGE_HOLD() { return 0.4; }  function CHARGE_COST() { return K('chargeCost', 20); }
+  function CHARGE_MUL() { return K('chargeMul', 1.3); }  function CHARGE_REACH() { return 3.2; }  function CHARGE_ARC() { return -0.2; }
+  function PLUNGE_R() { return 3.5; }     function PLUNGE_MUL() { return K('plungeMul', 1.2); }
+  function PLUNGE_PER_M() { return 0.1; } function PLUNGE_MAX_M() { return 15; }
   function VAPOR_MUL() { return K('vaporMul', 1.5); }
   function OVERLOAD_R() { return 4; }
   function OVERLOAD_MUL() { return K('overloadMul', 1.2); }
@@ -681,10 +687,45 @@
     S.combo++; S.comboT = 0;
     S.atkCd = step === 2 ? 0.55 : 0.34;
     if (!tgt) { push(S, { t: 'swing', step: step }); return { ok: true, miss: true, step: step }; }
-    var r = hitFoe(S, tgt, m, m.atk * [0.9, 1.0, 1.5][step], null, step === 2 ? 'heavy' : 'basic');   // 3타째는 쇄빙을 낸다(⑲-1)
+    var r = hitFoe(S, tgt, m, m.atk * [0.9, 1.0, 1.5][step], null, 'basic');
     m.energy = Math.min(ENERGY_MAX(), m.energy + 1.5);
     push(S, { t: 'swing', step: step, uid: tgt.uid });
     return { ok: true, step: step, hit: r };
+  }
+
+  /**
+   * ⑲-2 강공격 — 공격을 0.4초 넘게 누르고 있으면(런타임이 잰다). 전투 스태미나 20, 가장 가까운 적 쪽
+   * 앞 넓게(3.2m, 앞뒤 내적 −0.2 이상) ×1.3 물리. 콤보는 처음부터. 모자라면 { ok:false, tired:true }
+   */
+  function heavy(S, px, py) {
+    var m = active(S);
+    if (!m || m.down) { return { ok: false }; }
+    if (S.stamina < CHARGE_COST()) { push(S, { t: 'tired' }); return { ok: false, tired: true }; }
+    S.stamina -= CHARGE_COST(); S.staT = 0;
+    S.combo = 0; S.comboT = 9; S.atkCd = 0.5;
+    var n = nearestFoe(S, px, py, LUNGE_R());
+    var dx = n ? n.x - px : (S.lastDx || 0), dy = n ? n.y - py : (S.lastDy || 1), dl = Math.hypot(dx, dy) || 1;
+    dx /= dl; dy /= dl;
+    var hits = living(S).filter(function (f) {
+      var fx = f.x - px, fy = f.y - py, d = Math.hypot(fx, fy);
+      return d <= CHARGE_REACH() && (d < 0.5 || (fx * dx + fy * dy) / d >= CHARGE_ARC());
+    });
+    for (var i = 0; i < hits.length; i++) { hitFoe(S, hits[i], m, m.atk * CHARGE_MUL(), null, 'heavy'); }
+    m.energy = Math.min(ENERGY_MAX(), m.energy + 1.5 * hits.length);
+    push(S, { t: 'heavy', x: px + dx * 1.2, y: py + dy * 1.2, r: 1.8, n: hits.length });
+    return { ok: true, n: hits.length };
+  }
+
+  /** ⑲-2 낙하 공격 — 내리꽂아 땅에 닿은 자리 둘레 3.5m, ×(1.2 + 0.1×떨어진 m, 15m 까지) 물리 */
+  function plungeMul(fell) { return PLUNGE_MUL() + PLUNGE_PER_M() * Math.max(0, Math.min(PLUNGE_MAX_M(), fell || 0)); }
+  function plunge(S, px, py, fell) {
+    var m = active(S);
+    if (!m || m.down) { return { ok: false }; }
+    var mul = plungeMul(fell), hits = foesWithin(S, px, py, PLUNGE_R());
+    for (var i = 0; i < hits.length; i++) { hitFoe(S, hits[i], m, m.atk * mul, null, 'heavy'); }
+    m.energy = Math.min(ENERGY_MAX(), m.energy + 1.5 * hits.length);
+    push(S, { t: 'plunge', x: px, y: py, r: PLUNGE_R(), n: hits.length, mul: mul });
+    return { ok: true, n: hits.length, mul: mul };
   }
 
   /** 원소 스킬 — 겨눈 적 둘레 4.5m 에 원소를 붙인다. 기력 +6(+2/마리), 대기 동료 +3 */
@@ -1076,6 +1117,8 @@
     if (!n) { return; }
     if (m.energy >= ENERGY_MAX() && foesWithin(S, pos.x, pos.y, BURST_R()).length >= 2) { act('burst'); return; }
     if (m.skillCd <= 0) { act('skill'); return; }
+    /* ⑲-2 얼어 있는 적이 곁에 있으면 강공격으로 깬다 */
+    if (n.frozenT > 0 && S.stamina >= CHARGE_COST() && Math.hypot(n.x - pos.x, n.y - pos.y) <= CHARGE_REACH()) { act('heavy'); return; }
     if (Math.hypot(n.x - pos.x, n.y - pos.y) <= LUNGE_R()) { act('attack'); }
   }
 
@@ -1154,6 +1197,16 @@
         }
         if (e.shape && e.shape !== 'circle') { floatNum(pos.x, pos.y, SHAPES[e.shape].icon + ' ' + SHAPES[e.shape].name, e.el, 0.9, true, true); }
         if (W3()) { W3().playAnim('me', 'attack', 380); }
+      } else if (e.t === 'heavy') {
+        ring(e.x, e.y, e.r, '#f4f1e2', 0.5);
+        floatNum(pos.x, pos.y, '강공격', null, 1, true, true);
+        if (W3()) { W3().playAnim('me', 'attack', 500); W3().shake(0.2); }
+      } else if (e.t === 'tired') { floatNum(pos.x, pos.y, '기력 부족', null, 0.9, true, true); }
+      else if (e.t === 'plunge') {
+        ring(e.x, e.y, e.r, '#f4ecd0', 0.6); ring(e.x, e.y, e.r * 0.45, '#ffffff', 0.4);
+        floatNum(pos.x, pos.y, '낙하 공격 ×' + e.mul.toFixed(1), null, 1.2, true, true);
+        if (W3()) { W3().playAnim('me', 'attack', 420); W3().shake(0.45); W3().hold(90); }
+        sfx('hit');
       } else if (e.t === 'burst') {
         ring(e.x, e.y, e.r, EL[e.el].color, 0.8);
         ring(e.x, e.y, e.r * 0.55, '#ffffff', 0.5);
@@ -1233,7 +1286,12 @@
   function act(kind, arg) {
     if (!S || blocked()) { return { ok: false }; }
     var pos = core().save.player.pos, r;
-    if (kind === 'attack') { r = attack(S, pos.x, pos.y); }
+    if (kind === 'attack') {
+      /* ⑲-2 활공 중(발밑 2.5m 넘게)이면 기본 공격 대신 내리꽂는다 — 착지는 landform 이 plungeLand 로 알린다 */
+      var LF = global.DG.landform;
+      if (LF && LF.startPlunge && LF.startPlunge()) { return { ok: true, plunge: true }; }
+      r = attack(S, pos.x, pos.y);
+    } else if (kind === 'heavy') { r = heavy(S, pos.x, pos.y); }
     else if (kind === 'skill') { r = skill(S, pos.x, pos.y); }
     else if (kind === 'burst') { r = burst(S, pos.x, pos.y); }
     else if (kind === 'dodge') {
@@ -1270,7 +1328,14 @@
     var btns = hudEl.querySelectorAll('[data-fc]');
     for (var i = 0; i < btns.length; i++) {
       (function (b) {
-        b.addEventListener('pointerdown', function (ev) { ev.preventDefault(); ev.stopPropagation(); act(b.getAttribute('data-fc')); });
+        b.addEventListener('pointerdown', function (ev) {
+          ev.preventDefault(); ev.stopPropagation();
+          var k = b.getAttribute('data-fc'), r = act(k);
+          if (k === 'attack' && !(r && r.plunge)) { holdStart(); }                // ⑲-2 누르고 있으면 강공격
+        });
+        if (b.getAttribute('data-fc') === 'attack') {
+          ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (t) { b.addEventListener(t, holdEnd); });
+        }
       })(btns[i]);
     }
     numLayer = document.createElement('div');
@@ -1480,10 +1545,27 @@
     }
   }
 
+  /* ⑲-2 공격 누르고 있기 — 0.4초 넘으면 강공격 한 번(떼면 풀린다) */
+  var holdTimer = null;
+  function holdStart() {
+    holdEnd();
+    holdTimer = setTimeout(function () { holdTimer = null; act('heavy'); }, CHARGE_HOLD() * 1000);
+  }
+  function holdEnd() { if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; } }
+  /** ⑲-2 landform 이 내리꽂기 착지 때 부른다 — 떨어진 높이(m) */
+  function plungeLand(fell) {
+    if (!on() || !core() || !core().save) { return { ok: false }; }
+    ensureState();
+    var pos = core().save.player.pos, r = plunge(S, pos.x, pos.y, fell);
+    handle(drain(S), pos);
+    return r;
+  }
+
   /* ── 입력: 키 ─────────────────────────────────────────── */
   function bindKeys() {
     if (bound) { return; }
     bound = true;
+    global.addEventListener('keyup', function (e) { if (e.key && e.key.toLowerCase() === 'j') { holdEnd(); } });
     global.addEventListener('keydown', function (e) {
       if (!S || !on() || e.repeat) { return; }
       var tag = e.target && e.target.tagName;
@@ -1491,7 +1573,7 @@
       if (blocked()) { return; }
       var k = e.key.toLowerCase();
       var nearby = engaged(S) || !!nearestFoe(S, core().save.player.pos.x, core().save.player.pos.y, 22);
-      if (k === 'j') { act('attack'); }
+      if (k === 'j') { var ra = act('attack'); if (!(ra && ra.plunge)) { holdStart(); } }
       else if (k === 'e') { act('skill'); }
       else if (k === 'q') { act('burst'); }
       else if (k === ' ' && nearby) { e.preventDefault(); act('dodge'); }
@@ -1546,7 +1628,7 @@
     EL: EL, FOES: FOES, THEMES: THEMES, ELITES: ELITES, ERA_THEMES: ERA_THEMES, ERA_ELITES: ERA_ELITES, eraOfCamp: eraOfCamp, CELL: CELL, ENERGY_MAX: ENERGY_MAX,
     SKILL_CD: SKILL_CD, SWAP_CD: SWAP_CD, DODGE_COST: DODGE_COST, VAPOR_MUL: VAPOR_MUL,
     /* 판정 층 — 화면 없이 굴린다(자가진단이 쓰는 문) */
-    elementOf: elementOf, EL_KEYS: EL_KEYS, REACT: REACT, attaches: attaches, shapeOf: shapeOf, SHAPES: SHAPES, segDist: segDist, react: react, shieldMul: shieldMul, campAt: campAt, tierAt: tierAt, guardianAt: guardianAt, COUNTER: COUNTER,
+    elementOf: elementOf, EL_KEYS: EL_KEYS, heavy: heavy, plunge: plunge, plungeMul: plungeMul, plungeLand: plungeLand, PLUNGE_R: PLUNGE_R(), CHARGE_COST: CHARGE_COST(), REACT: REACT, attaches: attaches, shapeOf: shapeOf, SHAPES: SHAPES, segDist: segDist, react: react, shieldMul: shieldMul, campAt: campAt, tierAt: tierAt, guardianAt: guardianAt, COUNTER: COUNTER,
     create: create, reparty: reparty, populate: populate, spawnCamp: spawnCamp, step: step, drain: drain,
     attack: attack, skill: skill, burst: burst, dodge: dodge, swap: swap, hitFoe: hitFoe,
     engaged: engaged, living: living, memberOf: memberOf,
