@@ -311,6 +311,27 @@
     { "key": "labyrinth.regroup", "value": "⏱ 시간 초과 — 재기(再起)로 다시 도전한다" },
     { "key": "labyrinth.failed", "value": "💀 패퇴 — {0}층에서 회차가 끝났다(기억 조각은 남는다, 보유 {1})" },
     { "key": "labyrinth.abandon", "value": "🚪 비경에서 물러났다" },
-    { "key": "labyrinth.cleared", "value": "🏆 비경 클리어! 관문의 주인을 넘어섰다" }
+    { "key": "labyrinth.cleared", "value": "🏆 비경 클리어! 관문의 주인을 넘어섰다" },
+    { "key": "enemy.hwanggeon", "value": "황건적" },
+    { "key": "era.announce_future", "value": "⏳ 시간 틈 너머에서 — {0}" },
+    { "key": "era.announce_modern", "value": "⏳ 다른 시대에서 흘러든 — {0}" },
+    { "key": "enemy.era_rider", "value": "폭주 라이더" },
+    { "key": "enemy.era_dummy", "value": "시험 인형" },
+    { "key": "enemy.era_revenant", "value": "떠도는 망자" },
+    { "key": "enemy.era_stranger", "value": "별바다 손님" },
+    { "key": "enemy.era_punk", "value": "뒷골목 불량배" },
+    { "key": "enemy.era_plasma", "value": "플라즈마 변이체" },
+    { "key": "enemy.era_merc", "value": "용병 돌격대" },
+    { "key": "enemy.era_colossus", "value": "강철 거신" },
+    { "key": "era_folk.photographer", "value": "사진 찍는 여행자" },
+    { "key": "era_folk.photographer.0", "value": "황건 난리 한복판이라니, 이건 꼭 찍어 가야 해요. 저 두목 쪽으로 좀 비켜 주실래요?" },
+    { "key": "era_folk.photographer.1", "value": "휴대폰 배터리가 12% 남았어요. 이 시대엔 충전할 데가 없겠죠?" },
+    { "key": "era_folk.photographer.2", "value": "방금 지나간 헬멧 쓴 사람, 제 시대 폭주족이랑 똑같이 생겼어요." },
+    { "key": "era_folk.photographer.3", "value": "사진 속 하늘에 금이 가 있어요. 시간 틈이라는 게 저건가 봐요." },
+    { "key": "era_folk.story_chrononaut", "value": "시간 여행자" },
+    { "key": "era_folk.story_chrononaut.0", "value": "제 기록엔 이 들판이 '첫 사냥터'로만 남아 있어요. 이렇게 시끄러운 줄은 몰랐네요." },
+    { "key": "era_folk.story_chrononaut.1", "value": "비경 깊은 층일수록 틈이 넓어요. 강철 거신을 보면 무리하지 마세요." },
+    { "key": "era_folk.story_chrononaut.2", "value": "그 무예, 제 시대 교본에 그림으로만 남아 있던 거예요." },
+    { "key": "era_folk.story_chrononaut.3", "value": "돌아갈 좌표가 자꾸 흔들려요. 당분간은 여기서 구경이나 할게요." }
   ]
 }

@@ -52,6 +52,13 @@ namespace Saga.Story.World
         [SerializeField] private float riggedBossVisualScale = 1f;
         [SerializeField] private AudioClip hitClip;
         [SerializeField] private AudioClip deathClip;
+        // PLAN.md 109-3 세 시대 — 필드 `StoryEnemySpawner` 와 같은 표(이름 순 몸·배율). 없는 PC 는 null → 잡졸 몸.
+        [SerializeField] private string[] eraFoeNames = new string[0];
+        [SerializeField] private GameObject[] eraFoeModels = new GameObject[0];
+        [SerializeField] private float[] eraFoeScales = new float[0];
+        /// <summary>이번 회차에 시작한 전투 노드 수 — 시대 해시의 한 축(회차마다 0 부터, 같은 씨앗이면 같은 적).</summary>
+        private int _combatCount;
+        public int CombatCount => _combatCount;
 
         private Vector3 _returnPosition;
         private readonly List<StoryEnemy> _arenaEnemies = new List<StoryEnemy>();
@@ -128,6 +135,7 @@ namespace Saga.Story.World
         {
             if (StoryLabyrinthState.InRun) return;
             RememberReturnPosition();
+            _combatCount = 0;
             StoryLabyrinthState.StartRun(System.Environment.TickCount);
             StoryLabyrinthMapUi.Instance?.ShowEntryBlessing(() => StoryLabyrinthMapUi.Instance?.ShowFloor());
         }
@@ -137,6 +145,7 @@ namespace Saga.Story.World
         public void StartRunWithSeed(int seed)
         {
             RememberReturnPosition();
+            _combatCount = 0;
             StoryLabyrinthState.StartRun(seed);
         }
 
@@ -217,6 +226,9 @@ namespace Saga.Story.World
             float weeklyHpMul = StoryLabyrinthState.CurrentWeeklyVariant.EnemyHpMul;
             bool boss = type == StoryLabyrinthData.NodeType.Boss;
             int count = type == StoryLabyrinthData.NodeType.Elite || boss ? 1 : 2;
+            bool plain = count == 2; // 109-3 — 보통 전투 잡졸만 세 시대(정예·보스는 그대로).
+            int combat = _combatCount++;
+            int tier = StoryEras.Tier(StoryLabyrinthState.Floor);
             for (int i = 0; i < count; i++)
             {
                 float x = ArenaOriginX + 6f + i * 5f;
@@ -234,8 +246,22 @@ namespace Saga.Story.World
                 var enemy = go.AddComponent<StoryEnemy>();
                 if (boss) enemy.SetBoss(true);
                 enemy.SetLabyrinthEnemy(true);
-                SetPrivate(enemy, "modelPrefab", gruntModelPrefab);
-                SetPrivate(enemy, "riggedVisualScale", riggedVisualScale);
+                GameObject model = gruntModelPrefab;
+                float scale = riggedVisualScale;
+                var era = plain ? StoryEras.LabyrinthEra(StoryLabyrinthState.Floor, combat, i) : StoryEra.Past;
+                if (era != StoryEra.Past)
+                {
+                    var foe = StoryEras.FoeFor(tier, era);
+                    enemy.SetEra(foe);
+                    int k = System.Array.IndexOf(eraFoeNames, foe.Body);
+                    if (k >= 0 && k < eraFoeModels.Length && eraFoeModels[k] != null)
+                    {
+                        model = eraFoeModels[k];
+                        scale = k < eraFoeScales.Length ? eraFoeScales[k] : 1f;
+                    }
+                }
+                SetPrivate(enemy, "modelPrefab", model);
+                SetPrivate(enemy, "riggedVisualScale", scale);
                 SetPrivate(enemy, "hitClip", hitClip);
                 SetPrivate(enemy, "deathClip", deathClip);
                 if (boss)

@@ -88,6 +88,8 @@ node fetch.mjs --character "Paladin W/Prop J Nordstrom" --query "Sword And Shiel
 - `--character` 는 Mixamo 계정의 "현재 캐릭터"를 바꾼다(다음 실행에도 남는다). 이미 그 캐릭터면 건너뛰니 **클립마다 붙여 부르는 게 안전**하다.
 - `--tpose` 는 오른쪽 패널 DOWNLOAD → 모달 기본값(FBX Binary · T-pose). 파일은 캐릭터 이름으로 내려온다(`Paladin WProp J Nordstrom.fbx`).
 - `--inplace` 는 "In Place" 설정이 없는 클립(제자리 동작)에 주면 실패로 끝난다.
+- `--charquery "<검색어>"` 는 카드 검색어만 바꾼다(고르기는 여전히 `--character` 정확히) — 이름에 `.` 이 든 카드(`Ely By K.Atienza`)는 전체 이름 검색이 0건이다.
+- 여러 몸을 셸 반복문으로 받을 때 `--dest "$R\$n"` 처럼 쓰면 bash 가 `\$` 를 `$` 로 읽어 **전부 `CharactersRealistic$n` 한 폴더에 떨어진다**(2026-09-25) — 경로는 `"$R/$n"` 처럼 슬래시로.
 - `--nth N`(0부터)은 같은 설명 문구 카드가 여럿일 때 고른다. **검색어에 따라 순서가 바뀐다** — `Sword And Shield Unblocked Impact` 는 검색어 `Sword And Shield Unblocked Impact` 로는 첫째가 쭈그린 판(파일 Crouching)이었고, `Shield Impact` 로는 첫째가 선 판(파일 Sword And Shield Impact)이었다. 받은 뒤 클립 길이·`RootT.y`(선 자세 ≈0.86)로 확인한다.
 
 `--match`는 Mixamo 카드의 "Description:" 뒤 문구와 **정확히** 일치해야
@@ -115,6 +117,7 @@ Claude)이 한 번 판단해야 한다 — Mixamo 검색 결과 자체가 매번
 | saga-unity | STORY 유격(106-10, `Erika Archer With Bow/Arrow`) idle·walk/run(inplace)·쏘기 | `Bow Idle`·`Bow Walk`·`Bow Run`·`Arrow` | `Standing Idle With Bow`·`Walking Forward With Bow`(**--nth 1**, 첫째는 쭈그린 판 Crouch Walk)·`Running Forward With Bow`·`Standing Aim Fire Arrow`(파일 Standing Aim Recoil) | 2026-09-24 |
 | saga-unity | GO 세 시대(109-1) 적 몸 — 현대 방독면 약탈자 `Gas Mask`·떠도는 망자 `Copzombie L Actisdato`, 미래 강철 경비병 `Exo Red` 대기·걷기(--inplace)·공격·피격·쓰러짐 / 역참 사람 — 현대 `Remy`·`Megan`·`Swat Guy`, 미래 `Exo Gray`·`Vanguard By T. Choonyung`·`Crypto` 대기·걷기(--inplace) (몸은 `--tpose --out GasMask`/`Copzombie`/`ExoRed`/`Remy`/`Megan`/`SwatGuy`/`ExoGray`/`Vanguard`/`Crypto`) | GasMask = AlienSoldier 레시피 · Copzombie = 능묘 파수꾼(Zombie) 레시피 · ExoRed = Morak 레시피(걷기만 `Male Walk`) / 남자 사람: `Idle`·`Male Walk` · 여자(Megan): `Idle`·`Female Walk` | ExoRed 걷기 `Male Standard Walk` / 남자 사람 `Weight Shift Idle`·`Male Standard Walk` / Megan `Happy Idle Variation 1`·`Female Normal Walk` → `SetupNpcCharacterImports.SetupEraBodies` | 2026-09-25 |
 | saga-unity | DUNGEON 세 시대(109-2) 잡졸 몸 — `Brian`·`Y Bot`·`The Boss`(Morak 레시피) · `X Bot`·`Swat`·`Zlorp`(AlienSoldier 레시피) / 행상 `Leonard`(남자 사람 대기)·`Astra`(여자 사람 대기). **`Prisoner B Styperek`·`Survivor A Lusth` 는 받아지지만 Unity 휴머노이드 자동 매핑이 `RightLowerArm` 을 못 찾아 실패** — 쓰지 말 것 | 위 GO 줄과 같은 query | 같은 match → `SetupNpcCharacterImports.SetupDungeonEraBodies` | 2026-09-25 |
+| saga-unity | STORY 세 시대(109-3) 적 몸 — `Racer`·`Jody`·`Mannequin`(Morak 레시피) · `Dummy`·`Mremireh O Desbiens`·`Steve`(AlienSoldier 레시피) · `Warzombie F Pedroso`·`Yaku J Ignite`(능묘 파수꾼 Zombie 레시피) / 들판 손님 `Olivia`·`Ely By K.Atienza`(여자 사람 대기·걷기). **`Ely By K.Atienza` 는 카드 이름 전체로 검색하면 0건** — `--charquery ely` | 위 줄들과 같은 query | 같은 match → `SetupNpcCharacterImports.SetupStoryEraBodies` | 2026-09-25 |
 
 나머지(walk/run/attack/hit/dodge/death/pickup)는 아직 이 도구로 다시 고른
 적 없음 — saga-unity `CharactersRealistic`에서 재사용해 온 기존 클립을

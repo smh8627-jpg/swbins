@@ -86,7 +86,32 @@ namespace Saga.EditorTools
             // 행상 — 고물 행상 Leonard · 시간 행상 Astra(서기만).
             new Spec { Name = "Leonard", Idle = "Idle" },
             new Spec { Name = "Astra", Idle = "Idle" },
+            // PLAN.md 109-3 STORY 세 시대(2026-09-25 Mixamo, README 레시피 표) — 단계 넷 × 현대·미래 적:
+            // 폭주 라이더 Racer·시험 인형 Dummy / 떠도는 망자 Warzombie F Pedroso·별바다 손님 Mremireh O Desbiens /
+            // 뒷골목 불량배 Jody·플라즈마 변이체 Yaku J Ignite / 용병 돌격대 Steve·강철 거신 Mannequin. 다섯 상태.
+            new Spec { Name = "Racer", Idle = "Idle", Walk = "Walking", Attack = "Attack", Hit = "HitReaction", Death = "Dying" },
+            new Spec { Name = "Dummy", Idle = "Idle", Walk = "Walking", Attack = "Attack", Hit = "HitReaction", Death = "Dying" },
+            new Spec { Name = "Warzombie", Idle = "Idle", Walk = "Walking", Attack = "Attack", Hit = "HitReaction", Death = "Dying" },
+            new Spec { Name = "Mremireh", Idle = "Idle", Walk = "Walking", Attack = "Attack", Hit = "HitReaction", Death = "Dying" },
+            new Spec { Name = "Jody", Idle = "Idle", Walk = "Walking", Attack = "Attack", Hit = "HitReaction", Death = "Dying" },
+            new Spec { Name = "Yaku", Idle = "Idle", Walk = "Walking", Attack = "Attack", Hit = "HitReaction", Death = "Dying" },
+            new Spec { Name = "Steve", Idle = "Idle", Walk = "Walking", Attack = "Attack", Hit = "HitReaction", Death = "Dying" },
+            new Spec { Name = "Mannequin", Idle = "Idle", Walk = "Walking", Attack = "Attack", Hit = "HitReaction", Death = "Dying" },
+            // 들판 손님 — 사진 찍는 여행자 Olivia · 시간 여행자 Ely By K.Atienza(서기·걷기).
+            new Spec { Name = "Olivia", Idle = "Idle", Walk = "Walking" },
+            new Spec { Name = "Ely", Idle = "Idle", Walk = "Walking" },
         };
+
+        private static readonly string[] StoryEraBodies = { "Racer", "Dummy", "Warzombie", "Mremireh", "Jody", "Yaku", "Steve", "Mannequin", "Olivia", "Ely" };
+
+        /// <summary>109-3 STORY 세 시대 몸만 굽는다(배치 `-executeMethod` 용).</summary>
+        public static void SetupStoryEraBodies()
+        {
+            var built = new List<string>();
+            foreach (var name in StoryEraBodies) built.Add($"{name}={SetupOne(name)}");
+            AssetDatabase.SaveAssets();
+            Debug.Log($"[SetupNpcCharacterImports] story era bodies {string.Join(" ", built)}");
+        }
 
         private static readonly string[] DungeonEraBodies = { "Brian", "XBot", "Swat", "YBot", "Boss", "Zlorp", "Leonard", "Astra" };
 

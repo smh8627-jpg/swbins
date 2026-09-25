@@ -54,6 +54,7 @@ namespace Saga.EditorTools
             BuildLabyrinthRunner();
             BuildNpc();
             BuildJobTrainer();
+            BuildEraFolk(); // PLAN.md 109-3 들판 시대 손님
             BuildDiscovery();
             BuildLabyrinthGate();
             var (playerGo, playerController) = BuildPlayer();
@@ -200,7 +201,41 @@ namespace Saga.EditorTools
                 SetPrivateField(spawner, "bossModelPrefab", brute);
                 SetPrivateField(spawner, "riggedBossVisualScale", StoryBossScale(brute));
             }
+            AssignEraFoes(spawner);
             spawner.Build();
+        }
+
+        /// <summary>PLAN.md 109-3 — 시대 적 몸 여덟(`StoryEras.FoeBodies` 순)·배율(잡졸 1.6m × HeightMul / 몸 키). 없는 몸은 null → 잡졸 몸.</summary>
+        private static void AssignEraFoes(Object target)
+        {
+            var names = Saga.Story.Data.StoryEras.FoeBodies();
+            var models = new GameObject[names.Length];
+            var scales = new float[names.Length];
+            for (int t = 0, i = 0; t < Saga.Story.Data.StoryEras.TierCount; t++)
+                for (int e = 0; e < 2; e++, i++)
+                {
+                    models[i] = AssetDatabase.LoadAssetAtPath<GameObject>(SetupNpcCharacterImports.PrefabPath(names[i]));
+                    float h = models[i] != null ? BuildDungeonTemple.MeasureHeight(models[i]) : 0f;
+                    scales[i] = h > 0.5f ? GruntTargetHeight * Saga.Story.Data.StoryEras.Foes[t, e].HeightMul / h : 1f;
+                    if (models[i] == null) Debug.LogWarning($"[BuildTestStoryScene] 시대 적 몸 {names[i]} 없음 — 잡졸 몸으로 폴백");
+                }
+            SetPrivateField(target, "eraFoeNames", names);
+            SetPrivateField(target, "eraFoeModels", models);
+            SetPrivateField(target, "eraFoeScales", scales);
+        }
+
+        /// <summary>PLAN.md 109-3 — 들판 들머리의 시대 손님 둘(싸움길 뒤쪽).</summary>
+        private static void BuildEraFolk()
+        {
+            var list = Saga.Story.Data.StoryEras.FolkList;
+            for (int i = 0; i < list.Length; i++)
+            {
+                var go = new GameObject("EraFolk_" + list[i].Id);
+                go.transform.position = new Vector3(list[i].X, 0.1f, Saga.Story.Data.StoryEras.FolkLaneZ);
+                var folk = go.AddComponent<StoryEraFolk>();
+                folk.Init(i, AssetDatabase.LoadAssetAtPath<GameObject>(SetupNpcCharacterImports.PrefabPath(list[i].Body)));
+                folk.BuildVisual();
+            }
         }
 
         /// <summary>PLAN.md 101-2 STORY "5-3 비경" 실행기 — 아레나 잡졸/보스도
@@ -232,6 +267,7 @@ namespace Saga.EditorTools
                 SetPrivateField(runner, "bossModelPrefab", brute);
                 SetPrivateField(runner, "riggedBossVisualScale", StoryBossScale(brute));
             }
+            AssignEraFoes(runner);
         }
 
         /// <summary>PLAN.md 101-2 STORY "5-3 비경" 입구 — 필드가 이미

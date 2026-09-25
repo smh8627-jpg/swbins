@@ -311,6 +311,27 @@
     { "key": "labyrinth.regroup", "value": "⏱ Time up — rise again and retry" },
     { "key": "labyrinth.failed", "value": "💀 Defeated — the run ended on floor {0} (memory shards remain, have {1})" },
     { "key": "labyrinth.abandon", "value": "🚪 You withdrew from the labyrinth" },
-    { "key": "labyrinth.cleared", "value": "🏆 Labyrinth cleared! You overcame the Master of the Gate" }
+    { "key": "labyrinth.cleared", "value": "🏆 Labyrinth cleared! You overcame the Master of the Gate" },
+    { "key": "enemy.hwanggeon", "value": "Yellow Turban" },
+    { "key": "era.announce_future", "value": "⏳ From beyond the time rift — {0}" },
+    { "key": "era.announce_modern", "value": "⏳ Drifted in from another era — {0}" },
+    { "key": "enemy.era_rider", "value": "Street Racer" },
+    { "key": "enemy.era_dummy", "value": "Test Dummy" },
+    { "key": "enemy.era_revenant", "value": "Wandering Revenant" },
+    { "key": "enemy.era_stranger", "value": "Star-Sea Stranger" },
+    { "key": "enemy.era_punk", "value": "Back-Alley Punk" },
+    { "key": "enemy.era_plasma", "value": "Plasma Mutant" },
+    { "key": "enemy.era_merc", "value": "Mercenary Raider" },
+    { "key": "enemy.era_colossus", "value": "Steel Colossus" },
+    { "key": "era_folk.photographer", "value": "Traveling Photographer" },
+    { "key": "era_folk.photographer.0", "value": "Right in the middle of the Yellow Turban uprising? I have to get a shot. Could you step toward that chief a bit?" },
+    { "key": "era_folk.photographer.1", "value": "My phone's at 12%. I guess there's nowhere to charge it in this era." },
+    { "key": "era_folk.photographer.2", "value": "That guy in the helmet who just passed looks exactly like a biker from my time." },
+    { "key": "era_folk.photographer.3", "value": "There's a crack in the sky in my photos. That must be the time rift." },
+    { "key": "era_folk.story_chrononaut", "value": "Time Traveler" },
+    { "key": "era_folk.story_chrononaut.0", "value": "My records only call this field 'the first hunting ground'. I didn't know it was this noisy." },
+    { "key": "era_folk.story_chrononaut.1", "value": "The deeper the Labyrinth floor, the wider the rift. Don't push it if you meet the Steel Colossus." },
+    { "key": "era_folk.story_chrononaut.2", "value": "That martial art only survives as drawings in my era's manuals." },
+    { "key": "era_folk.story_chrononaut.3", "value": "My return coordinates keep drifting. I'll just watch from here for a while." }
   ]
 }

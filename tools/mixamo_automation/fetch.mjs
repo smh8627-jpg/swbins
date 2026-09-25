@@ -46,6 +46,8 @@ const listOnly = hasFlag('list');
 // (Characters 탭 검색 → 카드 → 확인 모달 "USE THIS CHARACTER"). 이미 그 캐릭터면 건너뛴다.
 // 바뀐 선택은 계정에 남는다 — 다음 실행도 그 캐릭터로 받으니 캐릭터마다 이 옵션을 붙여 부른다.
 const characterName = arg('character');
+// --charquery "<검색어>" — 카드 이름 전체로는 검색이 안 되는 카드("Ely By K.Atienza" 는 0건)를 짧은 검색어로 찾는다. 고르기는 여전히 --character 정확히.
+const charQuery = arg('charquery') || characterName;
 const tpose = hasFlag('tpose');     // 애니메이션 대신 현재 캐릭터 몸체(T-pose)를 받는다
 const inPlace = hasFlag('inplace'); // 클립 설정의 "In Place" 를 켠다(있는 클립만)
 const nth = Number(arg('nth', '0')); // 같은 설명 문구 카드가 여럿일 때 몇 번째(0부터) — 예: 선 자세/쭈그린 자세 판
@@ -117,7 +119,7 @@ async function currentCharacter() {
 }
 
 if (characterName) {
-  await page.goto(`https://www.mixamo.com/#/?page=1&query=${encodeURIComponent(characterName)}&type=Character`, { waitUntil: 'networkidle' });
+  await page.goto(`https://www.mixamo.com/#/?page=1&query=${encodeURIComponent(charQuery)}&type=Character`, { waitUntil: 'networkidle' });
   await page.reload({ waitUntil: 'networkidle' });
   await page.waitForSelector('.product.product-character', { timeout: 15000 });
   await page.waitForTimeout(800);

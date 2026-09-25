@@ -23,6 +23,10 @@ namespace Saga.Story.World
         // 2026-09-14 "사운드" — StoryEnemy.cs로 그대로 넘길 뿐, 여긴 안 쓴다.
         [SerializeField] private AudioClip hitClip;
         [SerializeField] private AudioClip deathClip;
+        // PLAN.md 109-3 세 시대 — 시대 적 몸(`StoryEras.FoeBodies` 이름 순, 배율 = 1.6m × HeightMul / 몸 키). 없는 PC 는 null → 잡졸 몸에 이름·빛깔만.
+        [SerializeField] private string[] eraFoeNames = new string[0];
+        [SerializeField] private GameObject[] eraFoeModels = new GameObject[0];
+        [SerializeField] private float[] eraFoeScales = new float[0];
 
         private void Awake()
         {
@@ -32,14 +36,30 @@ namespace Saga.Story.World
 
         public void Build()
         {
-            foreach (var x in FieldMapData.EnemyPositionsM())
+            var xs = FieldMapData.EnemyPositionsM();
+            for (int i = 0; i < xs.Length; i++)
             {
                 var go = new GameObject("Enemy_HwangGeon");
                 go.transform.SetParent(transform, false);
-                go.transform.localPosition = new Vector3(x, GroundY, 0f);
+                go.transform.localPosition = new Vector3(xs[i], GroundY, 0f);
                 var enemy = go.AddComponent<StoryEnemy>();
-                SetPrivateField(enemy, "modelPrefab", enemyModelPrefab);
-                SetPrivateField(enemy, "riggedVisualScale", riggedVisualScale);
+                // 109-3 — 들판 열 자리 중 넷은 다른 시대 적(표에 박은 자리, 난수 없음).
+                var era = StoryEras.FieldEra(i);
+                GameObject model = enemyModelPrefab;
+                float scale = riggedVisualScale;
+                if (era != StoryEra.Past)
+                {
+                    var foe = StoryEras.FoeFor(0, era);
+                    enemy.SetEra(foe);
+                    int k = System.Array.IndexOf(eraFoeNames, foe.Body);
+                    if (k >= 0 && k < eraFoeModels.Length && eraFoeModels[k] != null)
+                    {
+                        model = eraFoeModels[k];
+                        scale = k < eraFoeScales.Length ? eraFoeScales[k] : 1f;
+                    }
+                }
+                SetPrivateField(enemy, "modelPrefab", model);
+                SetPrivateField(enemy, "riggedVisualScale", scale);
                 SetPrivateField(enemy, "hitClip", hitClip);
                 SetPrivateField(enemy, "deathClip", deathClip);
             }

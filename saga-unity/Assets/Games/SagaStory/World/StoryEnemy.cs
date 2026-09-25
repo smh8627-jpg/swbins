@@ -33,6 +33,8 @@ namespace Saga.Story.World
 
         // data-enemy.js 황건적/황건 두목 공통 color '#c9a83a'.
         private static readonly Color BodyColor = new Color(0.788f, 0.659f, 0.227f);
+        // 109-3 — 몸이 없는 PC 에서 다른 시대 잡졸을 빛깔로라도 가른다(몸이 있으면 리깅 모델이라 안 칠한다).
+        private Color TintColor => era == StoryEra.Future ? new Color(0.55f, 0.62f, 0.68f) : era == StoryEra.Modern ? new Color(0.3f, 0.34f, 0.3f) : BodyColor;
         private const float BossVisualScaleMul = 1.4f;
 
         [SerializeField] private GameObject modelPrefab; // 잡졸 — BuildTestStoryScene.cs가 채운다(44장 이후 Abe).
@@ -81,6 +83,51 @@ namespace Saga.Story.World
 
         public bool IsBoss => isBoss;
 
+        // ── PLAN.md 109-3 세 시대(2026-09-25) ──────────────────────
+        // `StoryEnemySpawner`·`StoryLabyrinthRunner` 가 Awake 전에 넣는다. 과거면 예전 황건적 그대로.
+        [SerializeField] private StoryEra era = StoryEra.Past;
+        [SerializeField] private string eraNameKo = "";
+        [SerializeField] private string eraNameKey = "";
+        [SerializeField] private float heightMul = 1f;
+        private static readonly HashSet<string> Announced = new HashSet<string>();
+
+        public StoryEra Era => era;
+        public float HeightMul => heightMul;
+        public string DisplayName => era == StoryEra.Past
+            ? (isBoss ? StoryLocalization.T("cut.story_boss_title", "황건 두목") : StoryLocalization.T("enemy.hwanggeon", "황건적"))
+            : StoryLocalization.T(eraNameKey, eraNameKo);
+
+        /// <summary>Awake 전(비활성 상태 또는 에디터 빌드)에 부른다 — 몸은 호출부가 `modelPrefab` 으로 넣는다.</summary>
+        public void SetEra(StoryEras.Foe foe)
+        {
+            era = foe.Era;
+            eraNameKo = foe.NameKo;
+            eraNameKey = foe.NameKey;
+            heightMul = foe.HeightMul;
+        }
+
+        /// <summary>진단 — 이번 판 "시간 틈" 알림을 지운다.</summary>
+        public static void ResetAnnouncements() => Announced.Clear();
+        public static bool WasAnnounced(string name) => Announced.Contains(name);
+
+        /// <summary>다른 시대 잡졸 — 플레이어가 X 로 가까이 오면 그 이름을 판마다 한 번 알린다.</summary>
+        public bool CheckAnnounce()
+        {
+            if (era == StoryEra.Past || _dead) return false;
+            string name = DisplayName;
+            if (Announced.Contains(name)) return false;
+            if (_player == null)
+            {
+                var go = GameObject.FindWithTag("Player");
+                if (go == null) return false;
+                _player = go.transform;
+            }
+            if (Mathf.Abs(_player.position.x - transform.position.x) > StoryEras.AnnounceRadiusM) return false;
+            Announced.Add(name);
+            DialogueLabel.Instance?.Show(string.Format(StoryEras.AnnounceText(era), name), 2.5f);
+            return true;
+        }
+
         /// <summary>StoryEnemySpawner.cs 전용 — Awake() 전(AddComponent
         /// 직후)에 불러야 한다(BuildVisual()·HP 초기화가 이 값을 본다).</summary>
         public void SetBoss(bool value) => isBoss = value;
@@ -119,7 +166,7 @@ namespace Saga.Story.World
         private bool _introPlayed;
         private Transform _player;
         public bool IntroPlayed => _introPlayed;
-        public float VisualHeight => isBoss ? 1.6f * BossVisualScaleMul : 1.6f;
+        public float VisualHeight => (isBoss ? 1.6f * BossVisualScaleMul : 1.6f) * heightMul;
 
         public bool IsChampion => _isChampion;
         public float ChampionTimeLeft => _championTimeLeft;
@@ -190,6 +237,7 @@ namespace Saga.Story.World
         {
             if (_dead) return;
             if (isBoss && !_introPlayed) CheckIntro();
+            if (era != StoryEra.Past && !StoryCutscenes.Playing) CheckAnnounce();
             if (!_isChampion || StoryCutscenes.Playing) return; // 컷 동안 관문 대장 시간은 안 준다.
 
             if (_shieldBroken)
@@ -237,7 +285,7 @@ namespace Saga.Story.World
 
         private void BuildVisual()
         {
-            float height = isBoss ? 1.6f * BossVisualScaleMul : 1.6f;
+            float height = VisualHeight;
             bool useBossModel = isBoss && bossModelPrefab != null;
             GameObject effectiveModel = useBossModel ? bossModelPrefab : modelPrefab;
             float effectiveRiggedScale = useBossModel ? riggedBossVisualScale : riggedVisualScale;
@@ -259,11 +307,11 @@ namespace Saga.Story.World
             }
             else if (effectiveModel != null)
             {
-                _visualGo = CharacterVisual.Spawn(effectiveModel, transform, height, BodyColor).gameObject;
+                _visualGo = CharacterVisual.Spawn(effectiveModel, transform, height, TintColor).gameObject;
             }
             else
             {
-                _visualGo = CharacterVisual.SpawnFallbackCapsule(transform, height, BodyColor).gameObject;
+                _visualGo = CharacterVisual.SpawnFallbackCapsule(transform, height, TintColor).gameObject;
             }
         }
 
@@ -280,7 +328,7 @@ namespace Saga.Story.World
             _hp -= applied;
             StoryAudio.PlaySfx(hitClip);
 
-            float height = isBoss ? 1.6f * BossVisualScaleMul : 1.6f;
+            float height = VisualHeight;
             Vector3 popupPos = transform.position + Vector3.up * height;
             DamagePopup.Spawn(popupPos, applied, crit);
             HitSpark.Spawn(popupPos, crit);
@@ -306,7 +354,7 @@ namespace Saga.Story.World
             // 되돌려야 진짜 텍스처가 돌아온다. 비리깅(primitive)은 원래
             // BodyColor로 칠해져 있었으니 그 색으로 되돌린다.
             if (_isRiggedVisual) CharacterVisual.ClearTint(_visualGo);
-            else CharacterVisual.Tint(_visualGo, BodyColor);
+            else CharacterVisual.Tint(_visualGo, TintColor);
         }
 
         private void Die()

@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!114 &-6799523259966480219
+--- !u!114 &-3242497015962378422
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -9,10 +9,14 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f9a420cd3ee6cd043aec3fe559aa63d9, type: 3}
-  m_Name: StoryCutDollyClip
-  m_EditorClassIdentifier: Assembly-CSharp::Saga.Story.Cinematics.StoryCutDollyClip
---- !u!114 &-4500883803358799845
+  m_Script: {fileID: 11500000, guid: 90fb794a295e73545af71bcdb7375791, type: 3}
+  m_Name: CinemachineShot
+  m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineShot
+  DisplayName: story_summon_wide
+  VirtualCamera:
+    exposedName: story_summon_wide
+    defaultValue: {fileID: 0}
+--- !u!114 &-2881985729021450681
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -36,10 +40,10 @@ MonoBehaviour:
   - m_Version: 1
     m_Start: 2.5999999046325684
     m_ClipIn: 0
-    m_Asset: {fileID: -4255517505106799439}
+    m_Asset: {fileID: -1272266304598912531}
     m_Duration: 2.4000000953674316
     m_TimeScale: 1
-    m_ParentTrack: {fileID: -4500883803358799845}
+    m_ParentTrack: {fileID: -2881985729021450681}
     m_EaseInDuration: 0
     m_EaseOutDuration: 0
     m_BlendInDuration: 0
@@ -104,7 +108,7 @@ MonoBehaviour:
     m_DisplayName: StoryCutDollyClip
   m_Markers:
     m_Objects: []
---- !u!114 &-4255517505106799439
+--- !u!114 &-1272266304598912531
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -130,16 +134,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: Unity.Timeline::UnityEngine.Timeline.TimelineAsset
   m_Version: 0
   m_Tracks:
-  - {fileID: 8301776184768591871}
-  - {fileID: 352507641985520155}
-  - {fileID: -4500883803358799845}
+  - {fileID: 2252137435095232979}
+  - {fileID: 791771245675594846}
+  - {fileID: -2881985729021450681}
   m_FixedDuration: 0
   m_EditorSettings:
     m_Framerate: 60
     m_ScenePreview: 1
   m_DurationMode: 0
   m_MarkerTrack: {fileID: 0}
---- !u!114 &352507641985520155
+--- !u!114 &791771245675594846
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -163,10 +167,10 @@ MonoBehaviour:
   - m_Version: 1
     m_Start: 0
     m_ClipIn: 0
-    m_Asset: {fileID: -6799523259966480219}
+    m_Asset: {fileID: 4635725383549082968}
     m_Duration: 2.5999999046325684
     m_TimeScale: 1
-    m_ParentTrack: {fileID: 352507641985520155}
+    m_ParentTrack: {fileID: 791771245675594846}
     m_EaseInDuration: 0
     m_EaseOutDuration: 0
     m_BlendInDuration: 0
@@ -231,39 +235,7 @@ MonoBehaviour:
     m_DisplayName: StoryCutDollyClip
   m_Markers:
     m_Objects: []
---- !u!114 &2555681117407581921
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 90fb794a295e73545af71bcdb7375791, type: 3}
-  m_Name: CinemachineShot
-  m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineShot
-  DisplayName: story_summon_close
-  VirtualCamera:
-    exposedName: story_summon_close
-    defaultValue: {fileID: 0}
---- !u!114 &3477773141243095092
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 90fb794a295e73545af71bcdb7375791, type: 3}
-  m_Name: CinemachineShot
-  m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineShot
-  DisplayName: story_summon_wide
-  VirtualCamera:
-    exposedName: story_summon_wide
-    defaultValue: {fileID: 0}
---- !u!114 &8301776184768591871
+--- !u!114 &2252137435095232979
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -287,10 +259,10 @@ MonoBehaviour:
   - m_Version: 1
     m_Start: 0
     m_ClipIn: 0
-    m_Asset: {fileID: 3477773141243095092}
+    m_Asset: {fileID: -3242497015962378422}
     m_Duration: 2.5999999046325684
     m_TimeScale: 1
-    m_ParentTrack: {fileID: 8301776184768591871}
+    m_ParentTrack: {fileID: 2252137435095232979}
     m_EaseInDuration: 0.6000000238418579
     m_EaseOutDuration: 0
     m_BlendInDuration: -1
@@ -356,10 +328,10 @@ MonoBehaviour:
   - m_Version: 1
     m_Start: 2.5999999046325684
     m_ClipIn: 0
-    m_Asset: {fileID: 2555681117407581921}
+    m_Asset: {fileID: 8967872652179741455}
     m_Duration: 2.4000000953674316
     m_TimeScale: 1
-    m_ParentTrack: {fileID: 8301776184768591871}
+    m_ParentTrack: {fileID: 2252137435095232979}
     m_EaseInDuration: 0
     m_EaseOutDuration: 0.699999988079071
     m_BlendInDuration: -1
@@ -425,3 +397,31 @@ MonoBehaviour:
   m_Markers:
     m_Objects: []
   TrackPriority: 0
+--- !u!114 &4635725383549082968
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f9a420cd3ee6cd043aec3fe559aa63d9, type: 3}
+  m_Name: StoryCutDollyClip
+  m_EditorClassIdentifier: Assembly-CSharp::Saga.Story.Cinematics.StoryCutDollyClip
+--- !u!114 &8967872652179741455
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 90fb794a295e73545af71bcdb7375791, type: 3}
+  m_Name: CinemachineShot
+  m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineShot
+  DisplayName: story_summon_close
+  VirtualCamera:
+    exposedName: story_summon_close
+    defaultValue: {fileID: 0}
