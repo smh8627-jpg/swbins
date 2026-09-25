@@ -281,6 +281,7 @@ namespace Saga.Go.UI
 
         public void Open()
         {
+            if (HeroDexUi.Instance != null && HeroDexUi.Instance.IsOpen) HeroDexUi.Instance.Close(); // 109-6b 도감과 겹치지 않게
             OnChanged();
             _panel.SetActive(true);
             var fc = FieldCombat.Instance;

@@ -271,7 +271,7 @@ namespace Saga.EditorTools
             if (opened < 4) Fail($"진단에서 연 상자 {opened} < 4");
             if (!SaveState.Save()) { Fail("SaveState.Save 실패"); return; }
             string json = System.IO.File.ReadAllText(savePath);
-            if (!json.Contains("\"version\":16")) Fail("세이브 버전이 16 이 아님(107-4 는 스키마를 안 바꾼다, 16 = 107-8 지역 사명)");
+            if (!json.Contains("\"version\":17")) Fail("세이브 버전이 17 이 아님(107-4 는 스키마를 안 바꾼다, 17 = 109-6b 도감 만남)");
             if (!json.Contains("chest_village_e")) Fail("세이브에 chest_village_e 가 없음");
 
             var ch = Find(b, "village_e");

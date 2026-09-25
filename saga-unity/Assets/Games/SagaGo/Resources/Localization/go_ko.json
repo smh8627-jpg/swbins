@@ -462,6 +462,18 @@
     { "key": "hero.challenge", "value": "⚔ {0} — \"{1}\"\n겨루기! 이겨서 굴복시키면 동행이 된다" },
     { "key": "hero.yield", "value": "{0}이(가) 무릎을 꿇었다…" },
     { "key": "hero.joined", "value": "{0} — 동행이 되었다! ({1} 원소 · 1~4 로 바꿔 싸운다)" },
-    { "key": "hero.left", "value": "{0}은(는) 등을 돌려 떠났다." }
+    { "key": "hero.left", "value": "{0}은(는) 등을 돌려 떠났다." },
+    { "key": "dex.button", "value": "도감" },
+    { "key": "dex.close", "value": "닫는다" },
+    { "key": "dex.title", "value": "도감 — 등용 {0}/{1} · 만남 {2}" },
+    { "key": "dex.seen", "value": "만남" },
+    { "key": "dex.hint", "value": "칸을 누르면 자세히 · 들판에서 겨뤄 본 사람은 그림자에서 벗어나고, 이겨서 굴복시키면 동행이 된다" },
+    { "key": "dex.detail.got", "value": "{0} · {1} 원소 · 기질 {2}\n무력 {3} · 지력 {4} · 통솔 {5} — \"{6}\"" },
+    { "key": "dex.detail.seen", "value": "{0} · {1} 원소 — 만났지만 아직 동행이 아니다\n{2}에 선다 · 이겨서 굴복시키면 동행" },
+    { "key": "dex.detail.unseen", "value": "아직 만나지 않은 사람 — {0} {1}\n{2} 어딘가에 선다" },
+    { "key": "hero.trait.might", "value": "무" },
+    { "key": "hero.trait.wisdom", "value": "지" },
+    { "key": "hero.trait.virtue", "value": "덕" },
+    { "key": "hero.trait.command", "value": "통" }
   ]
 }

@@ -14,7 +14,7 @@ namespace Saga.Go.Data
     /// </summary>
     public static class SaveState
     {
-        private const int SaveVersion = 16;
+        private const int SaveVersion = 17;
 
         private static string SavePath => Path.Combine(Application.persistentDataPath, "save.json");
 
@@ -82,6 +82,8 @@ namespace Saga.Go.Data
             public bool guardianDown;
             // v16 — PLAN.md 107-8 지역 사명 사슬(지역마다 무리 토벌 셈·받은 보상).
             public List<RegionMissionState.Entry> missions;
+            // v17 — PLAN.md 109-6b 도감 화면(겨루기를 연 인물 = "만남", 등용은 partyMembers).
+            public List<string> heroesSeen;
         }
 
         public static bool Save()
@@ -123,6 +125,7 @@ namespace Saga.Go.Data
                 mapRevealed = WorldMapState.Revealed,
                 guardianDown = GuardianState.Defeated,
                 missions = RegionMissionState.Snapshot(),
+                heroesSeen = HeroDexState.Snapshot(),
             };
 
             try
@@ -175,6 +178,7 @@ namespace Saga.Go.Data
             WorldMapState.Restore(data.waypoints, data.regionsVisited, data.mapRevealed);
             GuardianState.Restore(data.guardianDown);
             RegionMissionState.Restore(data.missions);
+            HeroDexState.Restore(data.heroesSeen);
 
             Transform player = FindPlayer();
             if (player != null && data.playerPos != null && data.playerPos.Length == 3)
@@ -345,6 +349,13 @@ namespace Saga.Go.Data
                 // v15엔 지역 사명이 없었다 — 토벌 셈 0·받은 보상 없음. 발견·수호장·상자는 이미 있는 기록에서 다시 센다.
                 data.version = 16;
                 data.missions = new List<RegionMissionState.Entry>();
+                return data;
+            }
+            if (fromVersion == 16)
+            {
+                // v16엔 도감 "만남"이 없었다 — 동행만 만난 것으로 친다(HeroDexState.IsSeen 이 동행 명단을 본다).
+                data.version = 17;
+                data.heroesSeen = new List<string>();
                 return data;
             }
             return null;

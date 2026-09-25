@@ -146,6 +146,31 @@ namespace Saga.Go.Data
             return list;
         }
 
+        private static Dictionary<string, string> _regionOf;
+
+        /// <summary>그 인물이 서는 지역 id(도감 화면 "어디서 만나나" 한 줄). 없는 id 면 null.</summary>
+        public static string RegionOf(string heroId)
+        {
+            if (_regionOf == null)
+            {
+                _regionOf = new Dictionary<string, string>();
+                foreach (var s in Stands)
+                    foreach (var id in RosterOf(s.RegionId)) _regionOf[id] = s.RegionId;
+            }
+            return heroId != null && _regionOf.TryGetValue(heroId, out var r) ? r : null;
+        }
+
+        public static string TraitName(HeroTrait t)
+        {
+            switch (t)
+            {
+                case HeroTrait.Might: return GoLocalization.T("hero.trait.might", "무");
+                case HeroTrait.Wisdom: return GoLocalization.T("hero.trait.wisdom", "지");
+                case HeroTrait.Virtue: return GoLocalization.T("hero.trait.virtue", "덕");
+                default: return GoLocalization.T("hero.trait.command", "통");
+            }
+        }
+
         public static readonly Hero[] All =
         {
             new Hero { Id = "sg_guanyu", NameKo = "명운", Era = HeroEra.ThreeKingdoms, Faction = "촉", Rarity = 5, Trait = HeroTrait.Virtue, Might = 97, Wisdom = 75, Command = 95, WebElement = WebElement.Elec,

@@ -13,7 +13,7 @@ namespace Saga.Go.Combat
     /// 곁 <see cref="GoHeroes.ChallengeRadius"/> 안에 들면 그 자리에서 겨루기가 열린다 — 인물이 들판 적(`FieldEnemy.Kind.Hero`)으로 바뀌고
     /// 졸개(★3 하나·★4~5 둘, 제 원소 — 둘째는 다른 시대 몸)가 붙는다. 체력이 0 이면 쓰러지지 않고 굴복 → <see cref="GoHeroes.YieldSec"/> 뒤
     /// 동행(`PartyState.Recruit`)이 되고 다음 사람이 선다. 끌고 멀리 가면(들판 적 규칙 — 32m 밖) 인물이 돌아가 없던 일,
-    /// 모두 쓰러지면 인물은 떠나고(그 판에선 그 지역 명단 뒤로) 다음 사람이 선다. 세이브는 동행 명단 그대로(새 칸 없음).
+    /// 모두 쓰러지면 인물은 떠나고(그 판에선 그 지역 명단 뒤로) 다음 사람이 선다. 세이브는 동행 명단 + 겨루기를 연 사람(`HeroDexState`, 109-6b 도감 "만남").
     /// `FieldSpawner` 가 Play 시작 때 붙인다(씬에 굳히지 않는다).
     /// </summary>
     public class FieldHeroes : MonoBehaviour
@@ -188,6 +188,7 @@ namespace Saga.Go.Combat
             slot.Fighter = FieldEnemy.SpawnHero(hero, pos, prefab, _bodies != null ? _bodies.BodyController : null, transform);
             slot.Fighter.transform.rotation = rot;
             slot.Fighter.Challenge();
+            HeroDexState.MarkSeen(hero.Id); // 109-6b 도감 — 겨뤄 본 사람은 그림자에서 벗어난다
             int n = GoHeroes.Minions(hero.Rarity);
             var element = GoHeroes.ElementOf(hero);
             for (int i = 0; i < n && _spawner != null; i++)

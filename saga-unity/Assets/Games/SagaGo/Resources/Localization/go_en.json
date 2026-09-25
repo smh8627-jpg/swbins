@@ -462,6 +462,18 @@
     { "key": "hero.challenge", "value": "⚔ {0} — \"{1}\"\nA duel! Make them yield and they will join you" },
     { "key": "hero.yield", "value": "{0} kneels…" },
     { "key": "hero.joined", "value": "{0} — joined your party! ({1} element · switch with 1–4)" },
-    { "key": "hero.left", "value": "{0} turned away and left." }
+    { "key": "hero.left", "value": "{0} turned away and left." },
+    { "key": "dex.button", "value": "Codex" },
+    { "key": "dex.close", "value": "Close" },
+    { "key": "dex.title", "value": "Codex — recruited {0}/{1} · met {2}" },
+    { "key": "dex.seen", "value": "Met" },
+    { "key": "dex.hint", "value": "Tap a card for details · anyone you have challenged in the field steps out of the shadow; defeat them to make them yield and join you" },
+    { "key": "dex.detail.got", "value": "{0} · {1} element · trait {2}\nMight {3} · Wisdom {4} · Command {5} — \"{6}\"" },
+    { "key": "dex.detail.seen", "value": "{0} · {1} element — met, but not yet a companion\nStands in {2} · defeat them to make them yield and join" },
+    { "key": "dex.detail.unseen", "value": "Not yet met — {0} {1}\nStands somewhere in {2}" },
+    { "key": "hero.trait.might", "value": "Might" },
+    { "key": "hero.trait.wisdom", "value": "Wisdom" },
+    { "key": "hero.trait.virtue", "value": "Virtue" },
+    { "key": "hero.trait.command", "value": "Command" }
   ]
 }

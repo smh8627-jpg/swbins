@@ -1,7 +1,7 @@
 # PROJECT_STATE — saga-unity (상태만, ≤15KB, 덮어쓴다)
 
 **규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다(2026-09-16 재편 전 본문 5,532줄은 그쪽 첫 절에 그대로 있다). 넘치면 `tools/precheck.sh` 가 막는다.
-마지막 갱신: 2026-09-25 (109-6a GO 도감 105·들판 인물·싸워서 등용. 헤드리스 3연속, 실기 확인 전).
+마지막 갱신: 2026-09-25 (109-6b GO 도감 화면·세이브 v17. 헤드리스 3연속, 실기 확인 전).
 
 ## 캐릭터 자산 — 이 PC 기준 (2026-09-19)
 
@@ -11,7 +11,7 @@ Maria·Abe·Brute + Skeleton·Paladin·PeasantMan·PeasantGirl·Archer·두목 M
 
 | 게임 | 씬 | Vertical Slice(Phase 1~8) | 51장 콘텐츠 확장 | 44장 에셋 교체 | 공통(66-2 라이팅·67~69 사운드/설정/Localization) |
 |---|---|---|---|---|---|
-| GO | `TestVillage` | 완료 — 도적의 습격(이동·촌장·상인·나그네·조우·전투·등용·EXP·장비·루트·저장 v13) | 동물 Group·나그네·은닉 보물·산신당·행운 돌탑·동굴 유물·채집 · 101-2 ④⑦③: 일과판·승급 3택·75초 토벌 · ①⑥⑧: 봉수대·인연·패배 비용·회수 · ②: 사당 시련(파도 3·인장 조각) · **107 ①~⑥ (2026-09-24)** 들판 전투 + 이동 + 지역 지도(세이브 v14) + 보물 상자 16 + 원소 쓰는 적 8 + 동료 몸 교체 · **107-7** 망루 수호장(v15)·106-9 등장 컷 · **107-8** 지역 사명 사슬(v16) · **108 ①** 지역 한자·사연·위험 1~3·몬스터 명단 + **지역 소품 무더기 9**(Poly Haven) · **109-1** 세 시대 적(무리 4/9)·역참 사람 15·소품 현대 13·시간 틈 잔해 9 | Player·주요 Enemy·Environment·Building 전부 GLB/PBR, Props Kenney 넷 + Poly Haven 스캔 열 벌(108 ①), Rocks/Vegetation은 procgen 트라이플레이너(102-4) | 전부 붙음. 목표판/세션카드(A·B). 101-3 C·F·G 전부 완료 |
+| GO | `TestVillage` | 완료 — 도적의 습격(이동·촌장·상인·나그네·조우·전투·등용·EXP·장비·루트·저장 v13) | 동물 Group·나그네·은닉 보물·산신당·행운 돌탑·동굴 유물·채집 · 101-2 ④⑦③: 일과판·승급 3택·75초 토벌 · ①⑥⑧: 봉수대·인연·패배 비용·회수 · ②: 사당 시련(파도 3·인장 조각) · **107 ①~⑥ (2026-09-24)** 들판 전투 + 이동 + 지역 지도(세이브 v14) + 보물 상자 16 + 원소 쓰는 적 8 + 동료 몸 교체 · **107-7** 망루 수호장(v15)·106-9 등장 컷 · **107-8** 지역 사명 사슬(v16) · **108 ①** 지역 한자·사연·위험 1~3·몬스터 명단 + **지역 소품 무더기 9**(Poly Haven) · **109-1** 세 시대 적(무리 4/9)·역참 사람 15·소품 현대 13·시간 틈 잔해 9 · **109-6** 도감 105·싸워서 등용·도감 화면 B(v17) | Player·주요 Enemy·Environment·Building 전부 GLB/PBR, Props Kenney 넷 + Poly Haven 스캔 열 벌(108 ①), Rocks/Vegetation은 procgen 트라이플레이너(102-4) | 전부 붙음. 목표판/세션카드(A·B). 101-3 C·F·G 전부 완료 |
 | DUNGEON | `TestDungeon` | 완료 — 첫 방→무리·엘리트/보스·방 종류·회피·강공격·필드·동행 | 마을 넷·층 진행·매복·구출·수수께끼·은닉 창고·빌드·도감·보석/영웅 상태 · **101-2 전부 완료** · **106-5 탐험** 점프 F·담쟁이 등반·옛 감시탑 뜰 · **106-6** 무사·술사 파티, 명령 1·2, 소환 V · **106-7** 층 두목 등장 컷 · **108 ③** 명소 층 여섯(5~30층 고정 방 다섯·층 주인·첫 토벌 무기, v10) · **109-2a** 잡졸 41% 시대 적 8·행상·손님 4 · **109-2b** 명소 층 여섯·마을 다섯 꾸밈에 현대·미래 조각(69 중 41%) | Player·잡졸·미니보스/두목·Environment·Building · 103-1 방 셸 마모 3단 | 전부 붙음. 목표판/세션카드. 101-3 C·F·G 전부 완료 |
 | FOREST | `TestVillageForest` | 완료(이동 전용) — 마을·집·주민 | 벽지/장판·가구 배치·생물·과일나무·채집·좌판·밀어내기 전투 · **101-2 전부 완료**(번들·채집 손맛·평가·택배 사슬·축제) · **108 ②** 존 한자·사연·짐승 명단·명소 넷·존 자막·존 소품 무더기 8 · **짐승 여덟 사실 모델**(Mixamo 몸 + 빛깔·꾸밈) · **109-4** 존 소품 38% 현대·미래·마을 사람 여섯 | Environment 완료, 과일나무 procgen(102-4) | 전부 붙음. 목표판/세션카드. 101-3 해당 없음 |
 | STORY | `TestField` | 완료 — 2.5D 횡스크롤(Z 고정)·잡졸 10·두목·사명 2·볼트·로프 | 척후병 NPC·사건·관계·선택·전직 · 관문 대장(5-4)·비경(5-3)·동료 교대(5-8) · **106-8 두목 등장 컷** · **106-10 교대 셋이 곁에서 싸움**(Paladin·Archer·Peasant Girl) + 소환 우레뿔 거수(V) · **5-2 전부**: 무예 1~4차(`StorySkillData`·`StorySkillState`·패널 K·칸 4 자동/고정)·전직 1~4차(Lv.10/15/20/25)·유파 세트·옷 빛깔(차수×12%) · **109-3** 시대 적 여덟(들판 4/10·비경 40%)·손님 둘 | 척후병·전직관·마을 사람·숲지기 Mixamo(106-4) | 전부 붙음. 목표판/세션카드. 101-3 C·F·G 전부 완료 |
@@ -21,7 +21,7 @@ Maria·Abe·Brute + Skeleton·Paladin·PeasantMan·PeasantGirl·Archer·두목 M
 
 ## 다음 작업 (우선순위, 상세는 PLAN 해당 장)
 
-0. **다음 = PLAN 109장 6b(GO 도감 화면 — 모은 수·시대 넷·안 만난 사람 그림자)**, 그 뒤 7(몸 배정)부터 표 순서대로(건너뛰기 금지).
+0. **다음 = PLAN 109장 7(몸 배정 — 시대 × 체형 몸 20여 벌 + 빛깔·꾸밈)**, 그 뒤 8부터 표 순서대로(건너뛰기 금지).
 0-1. **남은 것**: en 번역 사람 검수 전. GO 동료 몸 Maria.controller 리타깃·무기는 주인공 손에만. 다른 PC 는 Mixamo 레시피로 받고 `Saga/Setup NPC Character Imports`.
 1. STORY 판수(15→20 약 11판, 20→25 약 28판)가 무거우면 `StoryCombat.JobPromoteLevel3/4`만.
 2. **101-2·104-1 잔여(보류)** — GO⑤(모바일 빌드 뒤)·Kenney 폴백·헤어카드.
@@ -53,7 +53,7 @@ Maria·Abe·Brute + Skeleton·Paladin·PeasantMan·PeasantGirl·Archer·두목 M
 | 컴파일·씬 재빌드 | exit 0(GO·DUNGEON 2026-09-25), 영속 리스너 32·17·10·39(09-23) |
 | `PlaytestStorySlice` | **3연속 OK(2026-09-25, 세 시대 뒤)** — `PlaytestStoryEras`·`PlaytestStoryCompanions`·`PlaytestStorySummon`·`PlaytestStoryBossIntro`·`CheckOutfitTint`·`CheckUpperTiersAndPins`·`CheckPromotionAndSchools`·`CheckButtonWiring`(진짜 onClick)·`CheckJobSkills`·무예 세이브 왕복·옛 형식 로드 |
 | `PlaytestDungeonHeadless` | **3연속 OK(2026-09-25, 꾸밈 시대 층 뒤)** — EraDecor·Eras·Landmarks·BossIntro·Party·Explore·NpcModels·Temple(+컷)·LockOn·EnemyTelegraph. 같은 씬 `FloorProgression` OK |
-| GO `PlaytestHeadless` | **3연속 OK(2026-09-25, 109-6a 뒤)** — `PlaytestGo` Heroes(도감 105·겨루기 ★3/4/5·굴복→동행)·Eras·RegionProps·RegionTraits·RegionMission(v16/v15)·Guardian·SlopesBiome·PartyBodies·ElementalFoe·Treasure·WorldMap(v16/v13)·Traversal·FieldCombat (항목은 각 파일 요약 주석) |
+| GO `PlaytestHeadless` | **3연속 OK(2026-09-25, 109-6b 뒤)** — `PlaytestGo` HeroDex(탭 넷·그림자→만남→등용·v17/v16)·Heroes(도감 105·겨루기 ★3/4/5·굴복→동행)·Eras·RegionProps·RegionTraits·RegionMission(v17/v15)·Guardian·SlopesBiome·PartyBodies·ElementalFoe·Treasure·WorldMap(v17/v13)·Traversal·FieldCombat (항목은 각 파일 요약 주석) |
 | `PlaytestForestHeadless` | **3연속 OK(2026-09-25, 세 시대 뒤)** — `PlaytestForestEras`(사람 6/6 몸·소품 38%·잔해 돎 6)·`Zones`·`ZoneProps` 포함 · `PlaytestForestCreatures` 3연속(models 8/8, 씨앗 고정) · Finish·Furniture·HouseTransition OK |
 | REALM 헤드리스 | **3연속 OK(2026-09-25, 세 시대 뒤)** — `PlaytestRealmEras`(전 성 함락 뒤·문답 앞)·`CheckButtonWiring` |
 | GUI 실제 Play | GO 라이팅·Maria 동작·Dungeon 카메라(yaw=180)·SSS(Intensity=15) |

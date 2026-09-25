@@ -11,7 +11,7 @@ namespace Saga.EditorTools
     /// <summary>
     /// PLAN.md 107-8 "지역 사명 사슬" 진단 — `PlaytestHeadless` 가 보물 상자 진단 뒤에 부른다.
     /// 순수 단 계산(앞 단 막힘) · 표(지역·역참·망루·무리·상자) · 일부만 쓰러뜨리면 안 셈 · 무리 먼저(발견 전 셈 쌓임, 보상 없음, 2 에서 멈춤) →
-    /// 역참 켜는 순간 2/3 한꺼번에(금 80×등급) · 마을은 안 셈 · 한 줄(다음 할 일·보상 글·다 끝나면 숨음) · 세이브 v16 왕복 뒤 다시 안 줌 ·
+    /// 역참 켜는 순간 2/3 한꺼번에(금 80×등급) · 마을은 안 셈 · 한 줄(다음 할 일·보상 글·다 끝나면 숨음) · 세이브 v17 왕복 뒤 다시 안 줌 ·
     /// 상자 → 평정(금 200×등급) · 지도 이름 밑 "평정"/"사명 n/3" · 망루 → 무리 → 수호장 → 평정 · v15 로드.
     /// 끝나면 사명·지도·수호장·월드 이벤트·돈·경험·적·세이브 파일을 되돌린다.
     /// </summary>
@@ -76,7 +76,7 @@ namespace Saga.EditorTools
                 if (savedJson != null) System.IO.File.WriteAllText(savePath, savedJson);
                 else if (System.IO.File.Exists(savePath)) System.IO.File.Delete(savePath);
             }
-            if (_ok) Debug.Log($"[{_tag}] region mission OK - 순수 단 계산·표 {GoRegionMission.Missions.Length}·일부 처치 안 셈·무리 먼저→역참 2/3 한꺼번에·마을 안 셈·한 줄/보상 글/숨김·v16 왕복 다시 안 줌·상자 평정·지도 표시·망루→무리→수호장 평정·v15 로드");
+            if (_ok) Debug.Log($"[{_tag}] region mission OK - 순수 단 계산·표 {GoRegionMission.Missions.Length}·일부 처치 안 셈·무리 먼저→역참 2/3 한꺼번에·마을 안 셈·한 줄/보상 글/숨김·v17 왕복 다시 안 줌·상자 평정·지도 표시·망루→무리→수호장 평정·v15 로드");
             return _ok;
         }
 
@@ -170,12 +170,12 @@ namespace Saga.EditorTools
             if (!SaveState.Save()) { Fail("SaveState.Save 실패"); return; }
             string path = System.IO.Path.Combine(Application.persistentDataPath, "save.json");
             string json = System.IO.File.ReadAllText(path);
-            if (!json.Contains("\"version\":16") || !json.Contains("\"missions\":[")) Fail("세이브 v16 에 사명이 없다");
+            if (!json.Contains("\"version\":17") || !json.Contains("\"missions\":[")) Fail("세이브 v17 에 사명이 없다");
             RegionMissionState.Restore(null);
             int g = GoldState.Gold;
-            if (!SaveState.TryLoad()) { Fail("v16 TryLoad 실패"); return; }
+            if (!SaveState.TryLoad()) { Fail("v17 TryLoad 실패"); return; }
             if (RegionMissionState.ClearsOf("east_grove") != GoRegionMission.ClearsNeeded || (RegionMissionState.PaidOf("east_grove") & 1) == 0)
-                Fail("v16 왕복 뒤 토벌 셈·받은 보상이 사라졌다");
+                Fail("v17 왕복 뒤 토벌 셈·받은 보상이 사라졌다");
             g = GoldState.Gold; // TryLoad 가 세이브의 돈으로 되돌린다
             hud.Tick(TestMapData.WorldPos(6.9f, 3f), RegionMissionHud.RefreshSec + 0.01f);
             if (GoldState.Gold != g) Fail("다시 불러온 뒤 받은 보상을 또 줬다");
@@ -246,7 +246,7 @@ namespace Saga.EditorTools
         {
             if (!SaveState.Save()) { Fail("SaveState.Save 실패(v15 준비)"); return; }
             string json = System.IO.File.ReadAllText(path);
-            string v15 = Regex.Replace(json.Replace("\"version\":16", "\"version\":15"), ",\"missions\":\\[[^\\]]*\\]", "");
+            string v15 = Regex.Replace(json.Replace("\"version\":17", "\"version\":15"), ",\"missions\":\\[[^\\]]*\\]", "");
             if (v15.Contains("missions")) { Fail("v15 모양 만들기 실패"); return; }
             System.IO.File.WriteAllText(path, v15);
             if (!SaveState.TryLoad()) { Fail("v15 파일 TryLoad 실패"); return; }
