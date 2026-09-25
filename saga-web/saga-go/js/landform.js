@@ -321,6 +321,8 @@
   var GLIDE_MUL = 1.7, GLIDE_SINK = 2.4, GLIDE_TIRED_SINK = 9, GLIDE_FALL = 14, GLIDE_DRAIN = 4, GLIDE_OPEN_T = 0.12;
   /* §5 ⑲-2 낙하 공격 — 활공 중 발밑 2.5m 넘을 때 공격을 누르면 초당 30m 로 내리꽂는다(착지 판정은 field-combat) */
   var PLUNGE_MIN_H = 2.5, PLUNGE_SINK = 30;
+  /** ⑲-6 요리 모험 계열(갯소라 구이) — 스태미나 소모 배율 */
+  function SAVE_MUL() { var C = global.DG.cooking; return C && C.staminaMul ? C.staminaMul() : 1; }
   function freshBody() { return { sta: -1, state: 'walk', busy: false, climbT: 0, jumpT: -1, tired: false, ux: 0, uy: 0, glide: null }; }
   var body = freshBody();
 
@@ -342,7 +344,7 @@
     var rv = riverAt(x, y);
     if (rv && !rv.ford && !air) {
       body.state = 'swim'; body.busy = true;
-      body.sta = Math.max(0, body.sta - SWIM_DRAIN * dt);
+      body.sta = Math.max(0, body.sta - SWIM_DRAIN * SAVE_MUL() * dt);
       return body.sta > 0 ? SWIM_MUL : TIRED_SWIM;
     }
     if (ridgeAt(x, y)) {
@@ -356,7 +358,7 @@
           return 0;
         }
         body.busy = true;
-        body.sta = Math.max(0, body.sta - CLIMB_DRAIN * (0.6 + g) * dt);
+        body.sta = Math.max(0, body.sta - CLIMB_DRAIN * (0.6 + g) * SAVE_MUL() * dt);
         return CLIMB_MUL;
       }
       if (g < -CLIMB_G) { mul = SLIDE_MUL; }       // 가파른 내리막은 미끄러지듯 빨리
@@ -396,8 +398,8 @@
       return true;
     }
     if (body.climbT > 0 && (body.ux || body.uy)) {
-      if (body.sta < LEAP_COST) { tell('😮‍💨 도약할 기력이 없다'); return false; }
-      body.sta -= LEAP_COST;
+      if (body.sta < LEAP_COST * SAVE_MUL()) { tell('😮‍💨 도약할 기력이 없다'); return false; }
+      body.sta -= LEAP_COST * SAVE_MUL();
       pos.x += body.ux * LEAP; pos.y += body.uy * LEAP;
       core().emit('landform:leap', {});
     }
@@ -454,7 +456,7 @@
     var g = body.glide, pos = core().save.player.pos;
     var sink = g.plunge !== undefined ? PLUNGE_SINK : (g.fall ? GLIDE_FALL : (body.sta > 0 ? GLIDE_SINK : GLIDE_TIRED_SINK));
     g.alt -= sink * dt;
-    if (!g.fall) { body.sta = Math.max(0, body.sta - GLIDE_DRAIN * dt); body.busy = true; }
+    if (!g.fall) { body.sta = Math.max(0, body.sta - GLIDE_DRAIN * SAVE_MUL() * dt); body.busy = true; }
     body.state = 'glide';
     var ground = reliefH(pos.x, pos.y);
     if (g.alt <= ground + 0.02) {

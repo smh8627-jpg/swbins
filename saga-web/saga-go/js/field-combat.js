@@ -387,6 +387,11 @@
       for (q in a.stats) { if (Object.prototype.hasOwnProperty.call(a.stats, q)) { out.st[q] = (out.st[q] || 0) + a.stats[q]; } }
       out.four = a.four;
     }
+    var CK = global.DG.cooking;                              // ⑲-6 요리 버프(명단 전체, 300초)
+    if (CK && CK.buffStats) {
+      var bf = CK.buffStats(), z;
+      for (z in bf) { if (Object.prototype.hasOwnProperty.call(bf, z) && bf[z]) { out.st[z] = (out.st[z] || 0) + bf[z]; } }
+    }
     return out;
   }
   function memberOf(id) {
@@ -428,6 +433,8 @@
       return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
     };
   }
+  /** ⑲-6 요리 모험 계열 — 회피·강공격 스태미나 배율 */
+  function staSave() { var C = global.DG.cooking; return C && C.staminaMul ? C.staminaMul() : 1; }
   function rxB(m, kind) { return 1 + ((m.rx && m.rx[kind]) || 0); }
 
   function create(partyIds) {
@@ -785,8 +792,9 @@
   function heavy(S, px, py) {
     var m = active(S);
     if (!m || m.down) { return { ok: false }; }
-    if (S.stamina < CHARGE_COST()) { push(S, { t: 'tired' }); return { ok: false, tired: true }; }
-    S.stamina -= CHARGE_COST(); S.staT = 0;
+    var cc = CHARGE_COST() * staSave();
+    if (S.stamina < cc) { push(S, { t: 'tired' }); return { ok: false, tired: true }; }
+    S.stamina -= cc; S.staT = 0;
     S.combo = 0; S.comboT = 9; S.atkCd = 0.5;
     var n = nearestFoe(S, px, py, LUNGE_R());
     var dx = n ? n.x - px : (S.lastDx || 0), dy = n ? n.y - py : (S.lastDy || 1), dl = Math.hypot(dx, dy) || 1;
@@ -912,14 +920,15 @@
 
   /** 회피 — 스태미나 20, 0.35초 무적, 3.6m 미끄러진다. 방향이 없으면 가장 가까운 적 반대로 */
   function dodge(S, dx, dy, px, py) {
-    if (S.stamina < DODGE_COST() || allDown(S)) { return { ok: false }; }
+    var dc = DODGE_COST() * staSave();
+    if (S.stamina < dc || allDown(S)) { return { ok: false }; }
     if (dx || dy) { S.lastDx = dx; S.lastDy = dy; }
     if (!dx && !dy) {
       var n = nearestFoe(S, px || 0, py || 0, 30);
       if (n) { dx = (px || 0) - n.x; dy = (py || 0) - n.y; } else { dy = 1; }
     }
     var len = Math.hypot(dx, dy) || 1;
-    S.stamina -= DODGE_COST(); S.staT = 0;
+    S.stamina -= dc; S.staT = 0;
     S.iframe = Math.max(S.iframe, DODGE_IFRAME());
     S.dash = { vx: dx / len * DASH_M() / DASH_T(), vy: dy / len * DASH_M() / DASH_T(), t: DASH_T() };
     push(S, { t: 'dodge' });
@@ -1351,6 +1360,7 @@
           if (global.DG.artifact) { tmTxt += ' · ' + global.DG.artifact.onElite(); }   // ⑲-5 성유물 ★4
           if (tmTxt) { floatNum(e.x, e.y + 1.2, tmTxt, null, 0.9, false); }
         }
+        if (global.DG.cooking) { var mt6 = global.DG.cooking.onKill(e.kind); if (mt6) { floatNum(e.x, e.y + 2.2, mt6, null, 0.85, false); } }   // ⑲-6 짐승 고기
         fieldSave().kills = (fieldSave().kills || 0) + 1;
         floatNum(e.x, e.y, '+' + gold + '금', null, 0.9, false);
       } else if (e.t === 'clear' && e.kind === 'guard') {

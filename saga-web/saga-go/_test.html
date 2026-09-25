@@ -86,6 +86,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/talent.js"></script>
 <script src="js/weapon.js"></script>
 <script src="js/artifact.js"></script>
+<script src="js/cooking.js"></script>
 <script src="js/data-bond.js"></script>
 <script src="js/bond.js"></script>
 <script src="js/vendor/three.iife.js"></script>
@@ -6465,6 +6466,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       C.save.dex.heroes[id] = { count: 3, firstAt: Date.now() };
       C.save.heroes[id] = { lv: 1, exp: 0, rank: 0 };
       C.save.player.gold = 9999;
+      if (DG.cooking) { DG.cooking.add(DG.cooking.specialtyOf(id), 3); }   // ⑲-6 승급 특산물
       var m0 = HR.growMul(id);
       var gold0 = C.save.player.gold;
       var ok = HR.rankUp(id);
@@ -7454,12 +7456,14 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
     function perkRig(idx) {
       var id = DG.data.heroes[idx].id;
       var keep = JSON.stringify({ d: C.save.dex.heroes[id] || null, h: C.save.heroes[id] || null, gold: C.save.player.gold,
-        dust: C.save.dust, party: C.save.party.slice(), log: C.save.log.length });
+        dust: C.save.dust, party: C.save.party.slice(), log: C.save.log.length, cook: C.save.cook || null });
       C.save.dex.heroes[id] = { count: 20, firstAt: Date.now() };
       C.save.heroes[id] = { lv: 1, exp: 0, rank: 0 };
       C.save.player.gold = 999999;
+      C.save.cook = { bag: { orchid: 999, conch: 999, ash_flower: 999 }, prof: {}, gather: {} };   // ⑲-6 승급 특산물
       return { id: id, undo: function () {
         var k = JSON.parse(keep);
+        if (k.cook) { C.save.cook = k.cook; } else { delete C.save.cook; }
         if (k.d) { C.save.dex.heroes[id] = k.d; } else { delete C.save.dex.heroes[id]; }
         if (k.h) { C.save.heroes[id] = k.h; } else { delete C.save.heroes[id]; }
         C.save.player.gold = k.gold; C.save.dust = k.dust; C.save.party = k.party;
@@ -9451,6 +9455,152 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         (html.match(/data-art-equip/g) || []).length === 5 && html.indexOf('절연 깃발 4세트') >= 0 &&
         (html.match(/data-act="talent-up"/g) || []).length === 3 && html.indexOf('운명의 자리') >= 0;
       return ok && ('상세 ' + html.length + '자 · 무기·부위 다섯·세트·무예 셋');
+    });
+
+    /* ── ⑲-6 채집·요리 (`cooking.js`, PLAN §5 ⑲-6) ── */
+    function ckRig() {
+      var s = C.save, keep = JSON.stringify(s.cook || null), pos = { x: s.player.pos.x, y: s.player.pos.y };
+      s.cook = { bag: {}, prof: {}, gather: {} };
+      DG.cooking._resetForTest();
+      return function () {
+        var k = JSON.parse(keep);
+        if (k) { s.cook = k; } else { delete s.cook; }
+        s.player.pos.x = pos.x; s.player.pos.y = pos.y;
+        DG.cooking._resetForTest(); DG.cooking._setNowForTest(null);
+      };
+    }
+
+    t('요리 ⑲-6 — 채집 자리: 칸마다 고정·일반 무리 여섯 + 특산 둘(고향 하나)·바이옴 특산·무리당 2~3·물·마을·길 비킴', function () {
+      var CK = DG.cooking, W = DG.world, terr = function (tx, ty) { return W.terrainAt(tx, ty); }, i, j, n, bad = 0, total = 0, ids = {}, dup = 0, ok = true;
+      var same = JSON.stringify(CK.cellPatches(2, -3)) === JSON.stringify(CK.cellPatches(2, -3));
+      for (j = -5; j <= 5; j++) { for (i = -5; i <= 5; i++) {
+        var cp = CK.cellPatches(i, j, terr), bio = cp.cell.biome, P = cp.patches, home = bio === 'home';
+        var sp = P.filter(function (p) { return CK.ITEMS[p.item].kind === 'special'; });
+        if (P.length !== (home ? 7 : 8) || sp.length !== (home ? 1 : 2) || sp.some(function (p) { return p.item !== CK.SPECIAL_OF[bio]; })) { ok = false; }
+        for (n = 0; n < P.length; n++) {
+          var c = P[n], L = c.nodes.length, spc = CK.ITEMS[c.item].kind === 'special';
+          if (spc ? L !== 2 : (L < 2 || L > 3)) { ok = false; }
+          var tk = terr(Math.floor(c.x / 48), Math.floor(c.y / 48));
+          total++; if (tk === 'water' || tk === 'town' || tk === 'road') { bad++; }
+          c.nodes.forEach(function (nd) { if (ids[nd.id]) { dup++; } ids[nd.id] = 1; if (Math.abs(Math.hypot(nd.x - c.x, nd.y - c.y) - 1.4) > 1e-6) { ok = false; } });
+        }
+      } }
+      return same && ok && dup === 0 && bad <= total * 0.03 && ('칸 121 · 무리 ' + total + ' · 물·마을·길 ' + bad + ' · 채집물 ' + Object.keys(ids).length);
+    });
+
+    t('요리 ⑲-6 — 줍기: 한 번만 · 일반 30분·특산 1시간 뒤 다시 · 다 자란 기록은 지움 · 저절로 줍기 1.5m', function () {
+      var CK = DG.cooking, undo = ckRig(), r = {}, T = 1e12;
+      try {
+        CK._setNowForTest(function () { return T; });
+        var P = CK.cellPatches(1, 1, function (tx, ty) { return DG.world.terrainAt(tx, ty); }).patches;
+        var cn = P.filter(function (p) { return CK.ITEMS[p.item].kind === 'common'; })[0].nodes[0];
+        var sn = P.filter(function (p) { return CK.ITEMS[p.item].kind === 'special'; })[0].nodes[0];
+        r.once = CK.pick(cn) && !CK.pick(cn) && CK.count(cn.item) === 1 && CK.pick(sn) && CK.count(sn.item) === 1;
+        T += 29 * 60e3; r.early = !CK.available(cn) && !CK.available(sn);
+        T += 60e3; r.common = CK.available(cn) && !CK.available(sn);
+        T += 30 * 60e3; r.special = CK.available(sn);
+        CK.prune(); r.prune = Object.keys(C.save.cook.gather).length === 0;
+        var nd = CK.near(sn.x, sn.y, 3).filter(function (q) { return CK.available(q); });
+        C.save.player.pos.x = sn.x; C.save.player.pos.y = sn.y + 1.2;
+        var before = CK.count(sn.item); CK.check();
+        r.auto = CK.count(sn.item) > before && nd.length >= 1;
+      } finally { undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '두 번째 거절 · 29분 ✕ · 30분 일반 ○ · 60분 특산 ○ · 기록 지움 · 곁에 서면 저절로' : ('실패 ' + bad.join(','));
+    });
+
+    t('요리 ⑲-6 — 품질: 바늘 1.6초 왕복 · 맛있는 칸 ±0.07·보통 ±0.2 · 솥 곁(역참 +3.5m)에서만 조리 · 재료 빠짐 · 숙련 5 → 자동(보통)', function () {
+      var CK = DG.cooking, W = DG.world, undo = ckRig(), r = {};
+      try {
+        r.needle = CK.needleAt(0) === 0 && Math.abs(CK.needleAt(0.8) - 1) < 1e-9 && Math.abs(CK.needleAt(0.4) - 0.5) < 1e-9 && Math.abs(CK.needleAt(1.6)) < 1e-9;
+        r.q = CK.qualityAt('honey_cake', 0.62) === 2 && CK.qualityAt('honey_cake', 0.69) === 2 && CK.qualityAt('honey_cake', 0.72) === 1 &&
+          CK.qualityAt('honey_cake', 0.81) === 1 && CK.qualityAt('honey_cake', 0.84) === 0;
+        var st = W.stationsIn(0, 0)[0];
+        C.save.player.pos.x = st.x + 3.5 + 2; C.save.player.pos.y = st.y;
+        r.pot = CK.atPot();
+        C.save.player.pos.x = st.x + 60;
+        r.far = !CK.atPot() && /솥/.test(CK.cookCheck('honey_cake').why);
+        r.lack = /꿀꽃 부족/.test(CK.cookCheck('honey_cake', true).why);
+        CK.add('honey_flower', 12); CK.add('apple', 6);
+        var id = CK.cook('honey_cake', 2, true);
+        r.cook = id === 'dish_honey_cake_2' && CK.count(id) === 1 && CK.count('honey_flower') === 10 && CK.count('apple') === 5 && CK.prof('honey_cake') === 1;
+        r.noAuto = !CK.canAuto('honey_cake') && CK.autoCook('honey_cake', true) === null;
+        for (var i = 0; i < 4; i++) { CK.cook('honey_cake', 0, true); }
+        r.auto = CK.canAuto('honey_cake') && CK.autoCook('honey_cake', true) === 'dish_honey_cake_1';
+      } finally { undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '바늘 0→1→0 · 칸 셋 · 솥 곁만 · 재료 2+1 빠짐 · 다섯 번 뒤 자동 보통' : ('실패 ' + bad.join(','));
+    });
+
+    t('요리 ⑲-6 — 먹기: 꿀꽃 떡 26%+80 · 포만감(셋째 거절) · 버섯 꼬치 명단 · 고기 찜 되살리기(15%) · 없으면 거절', function () {
+      var CK = DG.cooking, undo = ckRig(), r = {};
+      try {
+        var S = fcState(['fc_a', 'fc_b']), a = S.party[0], b2 = S.party[1];
+        r.none = !CK.eat('dish_honey_cake_2', 'fc_a', S).ok;
+        CK.add('dish_honey_cake_2', 3); CK.add('dish_mush_skewer_1', 1); CK.add('dish_meat_stew_1', 1);
+        a.hp = 100;
+        var e1 = CK.eat('dish_honey_cake_2', 'fc_a', S);
+        r.heal = e1.ok && a.hp === 100 + Math.round(a.hpMax * 0.26 + 80) && CK.fullOf('fc_a') === 35 && CK.count('dish_honey_cake_2') === 2;
+        a.hp = 100; CK.eat('dish_honey_cake_2', 'fc_a', S);
+        var e3 = CK.eat('dish_honey_cake_2', 'fc_a', S);
+        r.full = !e3.ok && /배가 부르다/.test(e3.why) && CK.count('dish_honey_cake_2') === 1;
+        CK.step(40); r.decay = CK.fullOf('fc_a') === 30;
+        a.hp = 50; b2.hp = 50;
+        r.all = CK.eat('dish_mush_skewer_1', null, S).ok && a.hp === 50 + Math.round(a.hpMax * 0.09) && b2.hp === 50 + Math.round(b2.hpMax * 0.09);
+        b2.down = true; b2.hp = 0;
+        r.revive = CK.eat('dish_meat_stew_1', null, S).ok && !b2.down && b2.hp === Math.round(b2.hpMax * 0.15);
+      } finally { undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '떡 +252 · 포만감 35 → 셋째 거절 · 초마다 1 · 꼬치 명단 9% · 찜 되살리기 15%' : ('실패 ' + bad.join(','));
+    });
+
+    t('요리 ⑲-6 — 버프: 계열마다 하나(갈아 끼움)·300초 · 들판 공격 +24·치명 · 스태미나 소모 −24%(회피 20 → 15.2)', function () {
+      var CK = DG.cooking, a = heroOfType('sword', 0), undoG = gearRig([a]), undo = ckRig(), r = {};
+      try {
+        var m0 = fcState([a]).party[0];
+        CK.add('dish_mint_stirfry_2', 1); CK.add('dish_mint_stirfry_0', 1); CK.add('dish_orchid_tea_2', 1); CK.add('dish_clam_soup_1', 1); CK.add('dish_conch_grill_2', 1);
+        CK.eat('dish_mint_stirfry_2');
+        var m1 = fcState([a]).party[0];
+        r.atk = CK.buffStats().atk === 24 && m1.atk === m0.atk + 24;
+        CK.eat('dish_mint_stirfry_0'); r.swap = CK.buffStats().atk === 12;
+        CK.eat('dish_orchid_tea_2'); r.cat = CK.buffStats().atk === 0 && CK.buffStats().crit_rate === 0.1;
+        CK.eat('dish_clam_soup_1');
+        var m2 = fcState([a]).party[0];
+        r.def = CK.buffStats().def === 15 && m2.def === m0.def + 15 && Math.abs(m2.cr - (m0.cr + 0.1)) < 1e-9;
+        CK.eat('dish_conch_grill_2');
+        var S = fcState([a]); S.stamina = 100;
+        DG.fieldCombat.dodge(S, 1, 0, 0, 0);
+        r.sta = Math.abs(CK.staminaMul() - 0.76) < 1e-9 && Math.abs(S.stamina - (100 - 20 * 0.76)) < 1e-9;
+        CK.step(301);
+        r.end = Object.keys(CK.buffs()).length === 0 && CK.staminaMul() === 1;
+      } finally { undo(); undoG(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '공격 +24 → 12(갈아 끼움) → 차가 대신 · 방어 +15 · 치명 +10% · 회피 15.2 · 300초 뒤 끝' : ('실패 ' + bad.join(','));
+    });
+
+    t('요리 ⑲-6 — 승급 특산물: ★1~5 = 3·10·20·30·45 · 모자라면 거절 · 쓰면 빠짐 · 인물마다 셋 중 하나(주인공 청하란) · 짐승 고기', function () {
+      var CK = DG.cooking, HR2 = DG.hero, id = DG.data.heroes[23].id, undo = ckRig(), s = C.save;
+      var keep = JSON.stringify({ d: s.dex.heroes[id] || null, h: s.heroes[id] || null, gold: s.player.gold }), r = {};
+      try {
+        s.dex.heroes[id] = { count: 9, firstAt: Date.now() }; s.heroes[id] = { lv: 1, exp: 0, rank: 0 }; s.player.gold = 999999;
+        var it = CK.specialtyOf(id), need = CK.rankNeed(id, 0);
+        r.table = CK.RANK_SP.join(',') === '3,10,20,30,45' && need.n === 3 && need.item === it && CK.rankNeed(id, 5) === null && CK.specialtyOf('_me') === 'orchid';
+        var chk = HR2.rankUpCheck(id);
+        r.lack = !chk.ok && chk.why === CK.ITEMS[it].name + ' 부족' && chk.cost.sp.n === 3;
+        CK.add(it, 5);
+        r.up = HR2.rankUp(id) && HR2.info(id).rank === 1 && CK.count(it) === 2;
+        var seen = {}; DG.data.heroes.forEach(function (h) { seen[CK.specialtyOf(h.id)] = 1; });
+        r.spread = Object.keys(seen).length === 3;
+        r.meat = CK.onKill('boar') === '🍖 +1' && CK.onKill('imp') === '' && CK.count('meat') === 1;
+      } finally {
+        var k = JSON.parse(keep);
+        if (k.d) { s.dex.heroes[id] = k.d; } else { delete s.dex.heroes[id]; }
+        if (k.h) { s.heroes[id] = k.h; } else { delete s.heroes[id]; }
+        s.player.gold = k.gold;
+        undo();
+      }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '★1 에 3 · 모자라면 거절 · 5 → 2 · 셋 모두 쓰임 · 멧돼지 고기 1' : ('실패 ' + bad.join(','));
     });
 
     t('런타임 에러 없음', function () {

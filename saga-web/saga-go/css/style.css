@@ -1797,3 +1797,38 @@ body.sight-on #map3d { filter: grayscale(.92) brightness(.62) contrast(1.15) sep
 #tr-sight span { font-size: 18px; line-height: 1; }
 #tr-sight em { font-size: 11px; font-style: normal; opacity: .7; }
 @media (max-height: 500px) { #tr-sight { left: 212px; bottom: calc(155px + var(--safe-b)); } }
+
+/* §5 ⑲-6 요리 — 🍲 단추(솥 곁이거나 요리를 들고 있을 때) · 요리 창 */
+#ck-btn {
+  display: none; position: fixed; z-index: 20;
+  left: 49px; bottom: calc(404px + var(--safe-b)); width: 48px; height: 48px; border-radius: 50%;
+  background: var(--glass); border: 1px solid var(--glass-br); color: var(--ink);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  touch-action: none; -webkit-user-select: none; user-select: none; cursor: pointer; place-items: center; gap: 0; font-weight: 700;
+}
+#ck-btn.show { display: grid; }
+#ck-btn.pot { border-color: #ffb347; box-shadow: 0 0 0 2px #ffb347 inset; }
+#ck-btn span { font-size: 18px; line-height: 1; }
+#ck-btn em { font-size: 11px; font-style: normal; opacity: .7; }
+@media (max-height: 500px) { #ck-btn { left: 266px; bottom: calc(155px + var(--safe-b)); } }
+#ck-sheet { display: none; position: fixed; inset: 0; z-index: 60; background: rgba(0, 0, 0, .45); align-items: flex-end; justify-content: center; }
+#ck-sheet.show { display: flex; }
+#ck-sheet .ck-card { width: min(560px, 100%); max-height: min(86vh, 720px); overflow-y: auto; box-sizing: border-box;
+  padding: 12px 14px calc(14px + var(--safe-b)); border-radius: 16px 16px 0 0; background: var(--glass); border: 1px solid var(--glass-br);
+  color: var(--ink); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+#ck-sheet .ck-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+#ck-sheet .ck-head span { flex: 1; font-size: 12px; opacity: .75; }
+#ck-sheet .ck-x { background: none; border: 0; color: inherit; font-size: 18px; cursor: pointer; padding: 4px 8px; }
+#ck-sheet .ck-mats { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 12px; margin-bottom: 8px; }
+#ck-sheet .ck-mats .dim { opacity: .4; }
+#ck-sheet .ck-buffs { font-size: 12px; margin: 6px 0; color: #ffd28a; }
+#ck-sheet .ck-row { display: flex; gap: 8px; align-items: center; padding: 6px 0; border-top: 1px solid var(--glass-br); }
+#ck-sheet .ck-name { flex: 1; min-width: 0; }
+#ck-sheet .ck-name small { display: block; font-size: 11px; }
+#ck-sheet .ck-acts { display: flex; gap: 4px; }
+#ck-sheet .ck-dish { font-size: 12px; padding: 2px 0 6px 18px; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+#ck-sheet .ck-cook { margin: 6px 0 10px; font-size: 13px; }
+#ck-sheet .ck-bar { position: relative; height: 22px; margin: 8px 0; border-radius: 11px; background: rgba(255, 255, 255, .12); overflow: hidden; }
+#ck-sheet .ck-bar .ck-ok { position: absolute; top: 0; bottom: 0; background: rgba(255, 210, 120, .35); }
+#ck-sheet .ck-bar .ck-best { position: absolute; top: 0; bottom: 0; background: rgba(255, 170, 60, .85); }
+#ck-sheet .ck-bar .ck-needle { position: absolute; top: -2px; bottom: -2px; width: 4px; margin-left: -2px; background: #fff; border-radius: 2px; }

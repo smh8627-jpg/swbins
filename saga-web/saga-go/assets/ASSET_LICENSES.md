@@ -1451,3 +1451,15 @@ Quaternius "Ultimate Monsters"(CC0, 사가블로 `assets/models/monsters/quatern
 
 석등은 새 파일이 아니다 — 위 Poly Haven 절의 `wooden_lantern.glb`(CC0)를 `asset3d` 표 `lantern` 으로 한 번 더 가리킨다.
 수집 구슬·석등 불빛은 모델이 아니라 효과 층(빛 스프라이트)이다.
+
+## 채집물 — 버섯·꽃·풀숲·열매 덤불 (`models/nature/`, PLAN §5 ⑲-6, 2026-09-25)
+
+| 항목 | |
+|---|---|
+| **만든 이** | Quaternius (<https://quaternius.com>) — `crops_pack`(Mushroom_1) · `nature_pack`(Flowers · Plant_1 · BushBerries_1) |
+| **라이선스** | **CC0 1.0 Universal** |
+| **저작자 표시** | 필요 없다 |
+| **재배포** | 허용된다 |
+| **받은 곳** | `saga-forest/assets/models/props/Mushroom_1.glb` · `saga-forest/assets/models/nature/{Flowers,Plant_1,BushBerries_1}.glb` 를 그대로 복사했다(그쪽 ASSET_LICENSES 의 Quaternius 절) |
+
+바지락·갯소라 자리는 이미 있는 `nature/Rock_1.glb` 를 작게 쓴다. 솥은 위 퓨전 소품 절의 `Cauldron`·`Bonfire_Lit`(`models/fusion/`)를 한 번 더 가리킨다.

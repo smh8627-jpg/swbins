@@ -201,8 +201,12 @@
     /* 지난 승급의 특성 카드를 아직 안 골랐다 — 고르거나 물려야 다음 승급이 열린다(perk.js) */
     if (global.DG.perk && global.DG.perk.pending(id)) { return { ok: false, why: '특성 카드부터' }; }
     var c = rankUpCost(g.rank);
+    /* 지역 특산물(cooking.js, PLAN §5 ⑲-6) — 원신 돌파 문법. 그 모듈이 없으면 예전 그대로 */
+    var sp = global.DG.cooking ? global.DG.cooking.rankNeed(id, g.rank) : null;
+    if (sp) { c.sp = sp; }
     if (dupOf(id) < c.dup) { return { ok: false, why: '중복 인물 부족', cost: c }; }
     if (core.save.player.gold < c.gold) { return { ok: false, why: '금 부족', cost: c }; }
+    if (sp && sp.have < sp.n) { return { ok: false, why: sp.name + ' 부족', cost: c }; }
     return { ok: true, cost: c };
   }
 
@@ -216,6 +220,7 @@
     var g = ensure(id);
     core.save.dex.heroes[id].count -= chk.cost.dup;
     core.save.player.gold -= chk.cost.gold;
+    if (chk.cost.sp && global.DG.cooking) { global.DG.cooking.spendRank(id, g.rank); }
     g.rank += 1;
     var h = data.find(id);
     core.gainFeat(g.rank * 6, '인물 승급');

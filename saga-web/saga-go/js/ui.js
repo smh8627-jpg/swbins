@@ -1406,7 +1406,8 @@
         out += '<button class="btn ' + (chk.ok ? 'primary' : 'ghost') + ' wide"' +
           (chk.ok ? '' : ' disabled') + ' data-act="rankup" data-id="' + h.id + '">' +
           '✨ 승급 ★' + (g.rank + 1) + ' · 중복 ' + hero().dupOf(h.id) + '/' + cost.dup +
-          ' · 🪙 ' + core.fmt(cost.gold) + '</button>';
+          ' · 🪙 ' + core.fmt(cost.gold) +
+          (cost.sp ? ' · ' + cost.sp.icon + ' ' + cost.sp.have + '/' + cost.sp.n : '') + '</button>';
       }
       if (net().online()) {
         out += '<button class="btn wide" data-act="dt-talk" data-id="' + h.id + '">💬 말을 건다 (사관)</button>';

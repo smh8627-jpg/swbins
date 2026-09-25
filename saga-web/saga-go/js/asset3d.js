@@ -471,6 +471,14 @@
     /* §5 ⑲-3 보물 상자(KayKit Dungeon Remastered CC0, 사가스토리와 같은 파일)·석등(Poly Haven 등롱 CC0, prop3d `lamp` 와 같은 파일) */
     'chest': 'assets/models/props/Chest.glb',
     'lantern': 'assets/models/props/realistic/wooden_lantern.glb',
+    /* §5 ⑲-6 채집물(Quaternius CC0, 사가의숲과 같은 파일)·솥(퓨전 소품 가마솥·모닥불) */
+    'gather:mushroom': 'assets/models/nature/Mushroom_1.glb',
+    'gather:flower': 'assets/models/nature/Flowers.glb',
+    'gather:plant': 'assets/models/nature/Plant_1.glb',
+    'gather:berry': 'assets/models/nature/BushBerries_1.glb',
+    'gather:rock': 'assets/models/nature/Rock_1.glb',
+    'cook:pot': 'assets/models/fusion/Cauldron.glb',
+    'cook:fire': 'assets/models/fusion/Bonfire_Lit.glb',
     'landmark': BLD + 'LargeTower.glb',
 
     /* 세 시대 사람·적(PLAN §5 ⑱ · SAGA-DESIGN §13 전체 퓨전). 전부 Quaternius CC0 — 사가블로가 받아 둔 poly.pizza
