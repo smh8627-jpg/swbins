@@ -39,6 +39,8 @@ namespace Saga.Dungeon.UI
         {
             if (label == null) return;
             string weapon = HeroState.EquippedWeapon?.Name ?? DungeonLocalization.T("item.bare_hands");
+            var lore = SecretState.EquippedLore; // PLAN.md 109-10-2 비전
+            if (lore != Secret.None) weapon += string.Format(DungeonLocalization.T("lore.hud", " [비전 {0}]"), SecretState.LoreName(lore));
             // "절차적 층 진행" 슬라이스 — ProcRoom에 아직 안 닿았으면(Room1~4,
             // 개념상 "층1") DungeonFloorRunner.Instance가 null이라 1로 대신함.
             int floor = DungeonFloorRunner.Instance?.CurrentFloor ?? 1;

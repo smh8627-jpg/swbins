@@ -766,6 +766,7 @@ namespace Saga.Dungeon.World
             if (HeroState.Level > levelBefore) msg += string.Format(DungeonLocalization.T("combat.levelup_suffix", " — 레벨업! ({0} → {1})"), levelBefore, HeroState.Level);
             if (item != null) msg += string.Format(DungeonLocalization.T(equipped ? "enemy.loot_equipped" : "enemy.loot_plain",
                 equipped ? "\n{0}을(를) 주웠다 — 바로 갖췄다." : "\n{0}을(를) 주웠다."), item.Name);
+            if (item != null && item.Lore != Secret.None) msg += "\n" + SecretState.LoreLine(item.Lore); // PLAN.md 109-10-2 비전
             if (gem != null) msg += string.Format(DungeonLocalization.T(socketed ? "enemy.gem_socketed" : "enemy.loot_plain",
                 socketed ? "\n{0}을(를) 주웠다 — 바로 세공했다." : "\n{0}을(를) 주웠다."), gem.Name);
             if (newlyDiscovered) msg += string.Format(DungeonLocalization.T("enemy.bestiary_new", "\n📖 도감에 처음 기록됨 — {0}"), LocalizedDisplayName);

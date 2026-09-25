@@ -40,6 +40,9 @@ namespace Saga.Dungeon.Data
         public const float LeechSec = 3f;
         public const float LeechFrac = 0.12f;
 
+        /// <summary>PLAN.md 109-10-2 비전(웹 §5.10 `LORE_MUL`) — 든 무기의 비전과 같은 비결을 건 무예 위력 배율.</summary>
+        public const float LoreMul = 1.6f;
+
         private static readonly Secret[] Chosen = new Secret[MoveCount];
         private static float _leechUntil = -1f;
         private static float _leechCarry;
@@ -76,16 +79,50 @@ namespace Saga.Dungeon.Data
 
         public static float DamageMul(SecretMove m)
         {
+            float lore = LoreBoosts(m) ? LoreMul : 1f;
             switch (Of(m))
             {
-                case Secret.Rage: return RageDamage;
-                case Secret.Frost: return FrostDamage;
-                case Secret.Spread: return SpreadDamage;
-                case Secret.Swift: return SwiftDamage;
-                case Secret.Leech: return LeechDamage;
+                case Secret.Rage: return RageDamage * lore;
+                case Secret.Frost: return FrostDamage * lore;
+                case Secret.Spread: return SpreadDamage * lore;
+                case Secret.Swift: return SwiftDamage * lore;
+                case Secret.Leech: return LeechDamage * lore;
                 default: return 1f;
             }
         }
+
+        // ── 비전(PLAN.md 109-10-2, 웹 §5.10)
+        // 웹: 전설 한 점에 비전 하나, 선두가 입으면 그 비결을 건 무예 위력 ×1.6, 같은 비전 두 점은 안 겹친다.
+        // 이 트랙은 무기 한 칸(`HeroState.EquipIfBetter`)이라 늘 한 점 — 겹침은 저절로 없다. 보석엔 비전이 없다.
+        // 부서짐·미확인·부르기 수 +1 은 이 트랙에 없는 축이라 뺐다. 세이브도 없다(무기 id 에서 읽는다).
+
+        /// <summary>지금 든 무기의 비전(없으면 없음).</summary>
+        public static Secret EquippedLore => HeroState.EquippedWeapon?.Lore ?? Secret.None;
+
+        /// <summary>이 무예의 비결이 든 무기 비전과 같은가.</summary>
+        public static bool LoreBoosts(SecretMove m)
+        {
+            var s = Of(m);
+            return s != Secret.None && s == EquippedLore;
+        }
+
+        /// <summary>웹 비전 이름 다섯 — 노화·빙혼·만상·섬광·혈해(비결 순서).</summary>
+        public static string LoreName(Secret s)
+        {
+            switch (s)
+            {
+                case Secret.Rage: return DungeonLocalization.T("lore.rage", "노화");
+                case Secret.Frost: return DungeonLocalization.T("lore.frost", "빙혼");
+                case Secret.Spread: return DungeonLocalization.T("lore.spread", "만상");
+                case Secret.Swift: return DungeonLocalization.T("lore.swift", "섬광");
+                case Secret.Leech: return DungeonLocalization.T("lore.leech", "혈해");
+                default: return "";
+            }
+        }
+
+        /// <summary>물건 설명 줄 — "비전 노화 — 분노를 건 무예 위력 ×1.6"(없으면 빈 글).</summary>
+        public static string LoreLine(Secret s) => s == Secret.None ? "" :
+            string.Format(DungeonLocalization.T("lore.line", "비전 {0} — {1} 을(를) 건 무예 위력 ×1.6"), LoreName(s), Name(s));
 
         public static float CooldownMul(SecretMove m)
         {

@@ -14,6 +14,9 @@ namespace Saga.EditorTools
     /// 웹 진단 항목(다섯·해금 · 모양별 변형·원본 불변 · 단수 잠금·풀기·환원 · 실제 시전 · 흡혈 버프)을 이 트랙에 맞춰:
     /// 표(다섯·열리는 레벨·단) · 무예 셋 × 비결 다섯 배율 · 잠금·풀기·환원(레벨이 내려간 세이브) · 실제 시전(없음 = 옛 수치,
     /// 신속·분노·확산 평타/회전베기·한기 얼림·흡혈) · 빛기둥(등급 → 기둥, 실제 처치) · 패널(진짜 onClick·딱지·잠긴 칸) · 세이브 v11.
+    /// PLAN.md 109-10-2 비전(웹 §5.10): 명소 무기에만·다섯 다 나옴 · 들면 ×1.6(분노와 곱해 2.32)·실제 시전 · 딴 비결·빈 무예 그대로 ·
+    /// 내려놓으면 꺼짐 · 패널·HUD·줍기 글.
+    /// 앞 진단들은 비전 없는 목검(wp_start)을 쥐고 돈다 — 실제 세이브의 명소 무기가 배율을 흔들지 않게.
     /// 끝나면 영웅·비결·다른 적·파티 게이지를 시작 때로.
     /// </summary>
     public static class PlaytestDungeonSecrets
@@ -42,8 +45,11 @@ namespace Saga.EditorTools
             {
                 DungeonCutscenes.Instance?.Skip();
                 if (lockOn != null) lockOn.Release();
+                _weapon = "wp_start";
+                SetLevel(HeroState.Level);
                 m += CheckTable() + CheckMultipliers() + CheckLocks() + CheckCasts(combat, playerGo.transform.position)
-                    + CheckPillars(playerGo.transform.position) + CheckPanel(panel) + CheckSave();
+                    + CheckPanel(panel) + CheckSave() + CheckLore(combat, panel, playerGo.transform.position)
+                    + CheckPillars(playerGo.transform.position); // 빛기둥은 무기를 바꿔 줍는다 — 맨 끝.
             }
             finally
             {
@@ -59,7 +65,7 @@ namespace Saga.EditorTools
                 combat.ResetCooldownsForTest();
                 if (panel.IsOpen) panel.Toggle();
             }
-            if (_ok) Debug.Log($"{T} OK - 다섯·Lv 1/3/5/7/9·배율 18칸·잠금·풀기·환원·실제 시전(옛 수치·신속·분노·확산 셋·반경·한기·흡혈)·빛기둥(명품·보물·고유·소리 자리)·패널 onClick·딱지·세이브 v11 |{m}");
+            if (_ok) Debug.Log($"{T} OK - 다섯·Lv 1/3/5/7/9·배율 18칸·잠금·풀기·환원·실제 시전(옛 수치·신속·분노·확산 셋·반경·한기·흡혈)·빛기둥(명품·보물·고유·소리 자리)·패널 onClick·딱지·세이브 v11·비전(명소에만·다섯·×2.32·실제 시전·딴 비결·내려놓기·패널·HUD·줍기 글) |{m}");
             return _ok;
         }
 
@@ -193,7 +199,7 @@ namespace Saga.EditorTools
             // 흡혈 평타 — 3초 창, 준 피해의 12%(끝수 넘김) 회복, 창 안의 다른 무예도 흡수.
             SecretState.Restore(Only(SecretMove.Attack, Secret.Leech));
             var l = Dummy(p + x * 1.2f);
-            HeroState.Restore(9, 0, 1, HeroState.Gold, HeroState.EquippedWeaponId, HeroState.SocketedGemId);
+            HeroState.Restore(9, 0, 1, HeroState.Gold, _weapon, HeroState.SocketedGemId);
             float carry = 0f; int expectHeal = 0;
             float dealt = Cast(combat, SecretMove.Attack) * 0.9f;
             carry += dealt * 0.12f; expectHeal += (int)Mathf.Floor(carry); carry -= Mathf.Floor(carry);
@@ -284,6 +290,75 @@ namespace Saga.EditorTools
 
         [System.Serializable] private class Wrap { public int[] secrets; }
 
+        private static string CheckLore(PlayerCombat combat, SecretPanelUi panel, Vector3 p)
+        {
+            var lores = new HashSet<Secret>();
+            foreach (var kv in ItemData.Catalog)
+            {
+                bool unique = kv.Key.StartsWith("wp_lm_");
+                if (unique != (kv.Value.Lore != Secret.None)) Fail($"{kv.Key} 비전 {kv.Value.Lore}(명소 무기에만)");
+                if (unique) lores.Add(kv.Value.Lore);
+                if (unique && LootMarker.PillarTierOf(kv.Value) != LootMarker.PillarUnique) Fail($"{kv.Key} 가 고유 기둥이 아님");
+            }
+            if (lores.Count != SecretState.SecretCount) Fail($"비전 {lores.Count}/5 가지만 나옴");
+            var loreNames = new HashSet<string>();
+            for (int s = 1; s <= SecretState.SecretCount; s++)
+                if (!loreNames.Add(SecretState.LoreName((Secret)s)) || SecretState.LoreName((Secret)s) == SecretState.Name((Secret)s)) Fail($"비전 이름 {(Secret)s}");
+
+            // 잿빛 성주도(노화 = 분노) 를 든다.
+            _weapon = "wp_lm_fort";
+            SetLevel(9);
+            HeroState.FullHeal();
+            if (SecretState.EquippedLore != Secret.Rage) Fail($"성주도 비전 {SecretState.EquippedLore}");
+            SecretState.Restore(new[] { (int)Secret.Swift, (int)Secret.Rage, 0 });
+            if (!Near(SecretState.DamageMul(SecretMove.Heavy), 1.45f * 1.6f) || !SecretState.LoreBoosts(SecretMove.Heavy)) Fail($"분노 + 노화 {SecretState.DamageMul(SecretMove.Heavy)} ≠ 2.32");
+            if (!Near(SecretState.DamageMul(SecretMove.Attack), 0.7f) || SecretState.LoreBoosts(SecretMove.Attack)) Fail($"신속(딴 비결)이 비전을 탐 {SecretState.DamageMul(SecretMove.Attack)}");
+            if (!Near(SecretState.DamageMul(SecretMove.Whirl), 1f) || SecretState.LoreBoosts(SecretMove.Whirl)) Fail("빈 무예가 비전을 탐");
+            if (!Near(SecretState.CooldownMul(SecretMove.Heavy), 1.4f)) Fail("비전이 재냉각까지 바꿈");
+
+            // 실제 시전 — 강공격 2.6 × 2.32.
+            var d = Dummy(p + Vector3.right * 1.2f);
+            float hit = Cast(combat, SecretMove.Heavy);
+            float dealt = d.hp0 - d.e.CurrentHp;
+            if (!Near(dealt, hit * 2.6f * 1.45f * 1.6f, 0.15f)) Fail($"노화 강공격 {dealt} ≠ {hit * 2.6f * 1.45f * 1.6f}");
+            Kill(d);
+
+            // 패널·HUD.
+            panel.Refresh();
+            if (panel.TitleText == null || !panel.TitleText.Contains(SecretState.LoreName(Secret.Rage))) Fail($"패널 제목에 비전 없음 '{panel.TitleText}'");
+            if (panel.RowText(SecretMove.Heavy) == null || !panel.RowText(SecretMove.Heavy).Contains("1.6")) Fail($"강공격 줄에 ×1.6 없음 '{panel.RowText(SecretMove.Heavy)}'");
+            if (panel.RowText(SecretMove.Attack).Contains("1.6")) Fail("딴 비결 줄에 ×1.6");
+            if (!panel.CellText(SecretMove.Whirl, Secret.Rage).Contains(SecretState.LoreName(Secret.Rage)) || panel.CellText(SecretMove.Whirl, Secret.Swift).Contains(SecretState.LoreName(Secret.Swift)))
+                Fail("비전 칸 표시");
+            var hud = Object.FindFirstObjectByType<PlayerHud>();
+            var hudLabel = hud != null ? typeof(PlayerHud).GetField("label", BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(hud) as UnityEngine.UI.Text : null;
+            var refresh = typeof(PlayerHud).GetMethod("Refresh", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (hudLabel == null || refresh == null) Fail("HUD 글 못 찾음");
+            else
+            {
+                refresh.Invoke(hud, null);
+                if (!hudLabel.text.Contains(SecretState.LoreName(Secret.Rage))) Fail($"HUD 무기 줄에 비전 없음");
+            }
+
+            // 내려놓으면 꺼짐.
+            _weapon = "wp_axe";
+            SetLevel(9);
+            if (SecretState.EquippedLore != Secret.None || !Near(SecretState.DamageMul(SecretMove.Heavy), 1.45f)) Fail($"쇠도끼로 바꿔도 비전 {SecretState.DamageMul(SecretMove.Heavy)}");
+            panel.Refresh();
+            if (panel.RowText(SecretMove.Heavy).Contains("1.6") || panel.TitleText.Contains(SecretState.LoreName(Secret.Rage))) Fail("무기를 바꿔도 패널에 비전이 남음");
+
+            // 줍기 글 — 비늘 삼지창(빙혼)을 떨어뜨리는 적을 쓰러뜨린다.
+            var drop = Dummy(p + Vector3.right * 6f, "wp_lm_palace");
+            drop.e.TakeDamage(1e7f);
+            var dl = DialogueLabel.Instance;
+            var dlText = dl != null ? typeof(DialogueLabel).GetField("label", BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(dl) as UnityEngine.UI.Text : null;
+            if (dlText == null || !dlText.text.Contains(SecretState.LoreLine(Secret.Frost))) Fail($"줍기 글에 비전 줄 없음 '{dlText?.text}'");
+            SecretState.Restore(null);
+            _weapon = "wp_start";
+            SetLevel(9);
+            return $" 비전 {lores.Count}·노화 강공격 {dealt:0.0}";
+        }
+
         // ── 도우미
 
         private struct D { public DungeonEnemy e; public float hp0; }
@@ -329,8 +404,10 @@ namespace Saga.EditorTools
             return a;
         }
 
+        private static string _weapon = "wp_start";
+
         private static void SetLevel(int level) =>
-            HeroState.Restore(level, 0, HeroState.HpMax, HeroState.Gold, HeroState.EquippedWeaponId, HeroState.SocketedGemId);
+            HeroState.Restore(level, 0, HeroState.HpMax, HeroState.Gold, _weapon, HeroState.SocketedGemId);
 
         private static bool Near(float a, float b, float eps = 0.02f) => Mathf.Abs(a - b) <= eps;
 

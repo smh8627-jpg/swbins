@@ -256,6 +256,15 @@
     { "key": "secret.locked", "value": "{0} — unlocks at Lv.{1}" },
     { "key": "secret.cleared", "value": "{0} — secret removed" },
     { "key": "secret.set", "value": "{0} · {1} — {2}" },
-    { "key": "secret.close", "value": "Close" }
+    { "key": "secret.close", "value": "Close" },
+    { "key": "lore.rage", "value": "Wrathfire" },
+    { "key": "lore.frost", "value": "Icesoul" },
+    { "key": "lore.spread", "value": "Myriad" },
+    { "key": "lore.swift", "value": "Flash" },
+    { "key": "lore.leech", "value": "Bloodsea" },
+    { "key": "lore.line", "value": "Lore {0} — moves set to {1} deal ×1.6" },
+    { "key": "lore.row", "value": " · lore {0} ×1.6" },
+    { "key": "lore.cell", "value": "Lore {0}" },
+    { "key": "lore.hud", "value": " [lore {0}]" }
   ]
 }

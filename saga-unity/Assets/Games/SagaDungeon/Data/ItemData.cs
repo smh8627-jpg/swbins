@@ -26,13 +26,19 @@ namespace Saga.Dungeon.Data
         public readonly int Grade;
         public readonly WeaponShape Shape;
 
-        private ItemData(string id, string name, float atk, int grade, WeaponShape shape = WeaponShape.Blade)
+        // PLAN.md 109-10-2 비전(웹 사가블로 §5.10) — 웹은 전설(4) 한 점에 비전 하나인데 이 트랙엔 전설 등급이
+        // 없어 맨 위(빛기둥 "고유") = 명소 층 첫 토벌 무기 여섯이 맡는다. 웹 "고유는 늘 같은 비전"대로 굴리지
+        // 않고 여기 박는다(층 이름에 맞춰, 다섯 다 나오게 — 분노만 둘). 없음 = 비전 없는 무기.
+        public readonly Secret Lore;
+
+        private ItemData(string id, string name, float atk, int grade, WeaponShape shape = WeaponShape.Blade, Secret lore = Secret.None)
         {
             Id = id;
             _name = name;
             AtkBonus = atk;
             Grade = grade;
             Shape = shape;
+            Lore = lore;
         }
 
         public static readonly Dictionary<string, ItemData> Catalog = new Dictionary<string, ItemData>
@@ -68,12 +74,12 @@ namespace Saga.Dungeon.Data
             ["wp_gauntlet"] = new ItemData("wp_gauntlet", "동력장갑", 20f, 1, WeaponShape.Gauntlet),
             // PLAN.md 108 ③ 명소 층 주인 첫 토벌 무기(`DungeonLandmarkData`) — 그 층에서 행상 환도(18)·
             // 두목 흑철중검(31)보다 한 발 앞서게, 5층 24 에서 층마다 대략 +4~5.
-            ["wp_lm_tomb"] = new ItemData("wp_lm_tomb", "청동 순장검", 24f, 2),
-            ["wp_lm_fort"] = new ItemData("wp_lm_fort", "잿빛 성주도", 29f, 2),
-            ["wp_lm_bandit"] = new ItemData("wp_lm_bandit", "흑풍 쌍부", 33f, 2),
-            ["wp_lm_palace"] = new ItemData("wp_lm_palace", "비늘 삼지창", 37f, 2, WeaponShape.Lance),
-            ["wp_lm_hellgate"] = new ItemData("wp_lm_hellgate", "업화 철퇴", 41f, 2),
-            ["wp_lm_cloud"] = new ItemData("wp_lm_cloud", "천장 금검", 46f, 2),
+            ["wp_lm_tomb"] = new ItemData("wp_lm_tomb", "청동 순장검", 24f, 2, lore: Secret.Leech),        // 혈해 — 순장 피
+            ["wp_lm_fort"] = new ItemData("wp_lm_fort", "잿빛 성주도", 29f, 2, lore: Secret.Rage),         // 노화 — 무너진 성주의 분
+            ["wp_lm_bandit"] = new ItemData("wp_lm_bandit", "흑풍 쌍부", 33f, 2, lore: Secret.Spread),     // 만상 — 흩어지는 검은 바람
+            ["wp_lm_palace"] = new ItemData("wp_lm_palace", "비늘 삼지창", 37f, 2, WeaponShape.Lance, Secret.Frost), // 빙혼 — 가라앉은 물
+            ["wp_lm_hellgate"] = new ItemData("wp_lm_hellgate", "업화 철퇴", 41f, 2, lore: Secret.Rage),   // 노화 — 업화
+            ["wp_lm_cloud"] = new ItemData("wp_lm_cloud", "천장 금검", 46f, 2, lore: Secret.Swift),        // 섬광 — 구름 번개
         };
 
         public static ItemData Get(string id) => id != null && Catalog.TryGetValue(id, out var d) ? d : null;

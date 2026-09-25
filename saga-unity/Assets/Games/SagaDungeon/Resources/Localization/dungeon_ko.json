@@ -256,6 +256,15 @@
     { "key": "secret.locked", "value": "{0} — Lv.{1} 에 열린다" },
     { "key": "secret.cleared", "value": "{0} — 비결을 풀었다" },
     { "key": "secret.set", "value": "{0} · {1} — {2}" },
-    { "key": "secret.close", "value": "닫기" }
+    { "key": "secret.close", "value": "닫기" },
+    { "key": "lore.rage", "value": "노화" },
+    { "key": "lore.frost", "value": "빙혼" },
+    { "key": "lore.spread", "value": "만상" },
+    { "key": "lore.swift", "value": "섬광" },
+    { "key": "lore.leech", "value": "혈해" },
+    { "key": "lore.line", "value": "비전 {0} — {1} 을(를) 건 무예 위력 ×1.6" },
+    { "key": "lore.row", "value": " · 비전 {0} ×1.6" },
+    { "key": "lore.cell", "value": "비전 {0}" },
+    { "key": "lore.hud", "value": " [비전 {0}]" }
   ]
 }

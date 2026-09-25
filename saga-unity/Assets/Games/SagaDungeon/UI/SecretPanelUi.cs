@@ -37,6 +37,9 @@ namespace Saga.Dungeon.UI
         public Button ToggleButton => _toggle;
         public Button Cell(SecretMove m, Secret s) => s == Secret.None ? null : _cells[(int)m, (int)s - 1];
         public string BadgeText(SecretMove m) => _badges[(int)m] != null ? _badges[(int)m].text : null;
+        public string TitleText => _title != null ? _title.text : null;
+        public string RowText(SecretMove m) => _rowLabels[(int)m] != null ? _rowLabels[(int)m].text : null;
+        public string CellText(SecretMove m, Secret s) => s == Secret.None ? null : _cellTexts[(int)m, (int)s - 1].text;
 
         private void Awake()
         {
@@ -44,16 +47,19 @@ namespace Saga.Dungeon.UI
             Build();
             SecretState.Changed += Refresh;
             HeroState.LeveledUp += OnLeveledUp;
+            HeroState.EquipmentChanged += OnEquipmentChanged; // 비전(109-10-2)은 든 무기에서 읽는다.
         }
 
         private void OnDestroy()
         {
             SecretState.Changed -= Refresh;
             HeroState.LeveledUp -= OnLeveledUp;
+            HeroState.EquipmentChanged -= OnEquipmentChanged;
             if (Instance == this) Instance = null;
         }
 
         private void OnLeveledUp(int level) => Refresh();
+        private void OnEquipmentChanged(string weaponId) => Refresh();
 
         private void Update()
         {
@@ -92,7 +98,8 @@ namespace Saga.Dungeon.UI
             if (_closeText != null) _closeText.text = DungeonLocalization.T("secret.close", "닫기");
             if (_title != null)
                 _title.text = string.Format(DungeonLocalization.T("secret.title", "비결 — 무예 하나에 하나 · 단 {0}/{1} (Lv.{2})"),
-                    SecretState.Rank, SecretState.MaxRank, HeroState.Level);
+                    SecretState.Rank, SecretState.MaxRank, HeroState.Level)
+                    + (SecretState.EquippedLore == Secret.None ? "" : "\n" + SecretState.LoreLine(SecretState.EquippedLore));
             for (int m = 0; m < SecretState.MoveCount; m++)
             {
                 var move = (SecretMove)m;
@@ -103,6 +110,8 @@ namespace Saga.Dungeon.UI
                     string line = on == Secret.None
                         ? string.Format(DungeonLocalization.T("secret.row_none", "{0} — 비결 없음"), SecretState.MoveName(move))
                         : string.Format(DungeonLocalization.T("secret.row", "{0} — {1}: {2}"), SecretState.MoveName(move), SecretState.Name(on), SecretState.Effect(on, move));
+                    if (SecretState.LoreBoosts(move))
+                        line += string.Format(DungeonLocalization.T("lore.row", " · 비전 {0} ×1.6"), SecretState.LoreName(on));
                     if (on == Secret.None && picked != Secret.None)
                         line += string.Format(DungeonLocalization.T("secret.row_sleep", " (고른 {0} 은 Lv.{1} 에 다시 산다)"), SecretState.Name(picked), SecretState.UnlockLevel(picked));
                     _rowLabels[m].text = line;
@@ -115,7 +124,9 @@ namespace Saga.Dungeon.UI
                     bool open = SecretState.IsUnlocked(s);
                     cell.interactable = open;
                     ((Image)cell.targetGraphic).color = !open ? CellLocked : on == s ? CellOn : CellIdle;
-                    _cellTexts[m, i].text = open ? SecretState.Name(s) : $"{SecretState.Name(s)}\nLv.{SecretState.UnlockLevel(s)}";
+                    string cellText = open ? SecretState.Name(s) : $"{SecretState.Name(s)}\nLv.{SecretState.UnlockLevel(s)}";
+                    if (s == SecretState.EquippedLore) cellText += "\n" + string.Format(DungeonLocalization.T("lore.cell", "비전 {0}"), SecretState.LoreName(s));
+                    _cellTexts[m, i].text = cellText;
                 }
                 if (_badges[m] != null) _badges[m].text = SecretState.Glyph(on);
             }
@@ -146,7 +157,7 @@ namespace Saga.Dungeon.UI
             prt.sizeDelta = new Vector2(980f, 1080f);
             _panel.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0.88f);
 
-            _title = NewText(_panel.transform, "", new Vector2(0.5f, 1f), new Vector2(0f, -30f), new Vector2(920f, 70f), 30);
+            _title = NewText(_panel.transform, "", new Vector2(0.5f, 1f), new Vector2(0f, -20f), new Vector2(920f, 90f), 28);
             float y = -130f;
             for (int m = 0; m < SecretState.MoveCount; m++)
             {
@@ -157,7 +168,7 @@ namespace Saga.Dungeon.UI
                     var move = (SecretMove)m;
                     var s = (Secret)(i + 1);
                     float x = (i - 2) * 180f;
-                    var b = NewButton(_panel.transform, "", new Vector2(0.5f, 1f), new Vector2(x, y), new Vector2(165f, 120f), CellIdle, 26);
+                    var b = NewButton(_panel.transform, "", new Vector2(0.5f, 1f), new Vector2(x, y), new Vector2(165f, 120f), CellIdle, 24);
                     b.onClick.AddListener(() => Pick(move, s));
                     _cells[m, i] = b;
                     _cellTexts[m, i] = b.GetComponentInChildren<Text>();
