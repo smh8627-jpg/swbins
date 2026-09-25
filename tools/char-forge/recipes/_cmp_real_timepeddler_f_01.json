@@ -1,0 +1,124 @@
+{
+ "id": "_cmp_real_timepeddler_f_01",
+ "_note": "단계 3 행상 비교용 — saga-unity Astra(Mixamo) 자리 후보(DUNGEON 미래 '시간 행상'). 게임 인물 아님. 여자·단발·먹빛 몸 옷·발목까지 보랏빛 긴 겉옷자락·은빛 팔 가리개·이마의 은빛 눈 띠·등 짐틀.",
+ "macro": {
+  "gender": 0.0,
+  "age": 0.5,
+  "muscle": 0.45,
+  "weight": 0.4,
+  "height": 0.5,
+  "proportions": 0.9,
+  "race": {
+   "asian": 0.5,
+   "caucasian": 0.3,
+   "african": 0.2
+  }
+ },
+ "skin": "young_asian_female/young_asian_female.mhmat",
+ "eyebrows": "eyebrow001/eyebrow001.mhclo",
+ "hair": "bob02/bob02.mhclo",
+ "eyes": "high-poly/high-poly.mhclo",
+ "eyelashes": "eyelashes02/eyelashes02.mhclo",
+ "teeth": "teeth_base/teeth_base.mhclo",
+ "kitbash": [
+  {
+   "part": "shell",
+   "slot": "cloth",
+   "color": "#23252e",
+   "rough": 0.85,
+   "offset": 0.004,
+   "thick": 0.003,
+   "groups": [
+    "pelvis",
+    "spine_0*",
+    "clavicle_*",
+    "upperarm_*",
+    "lowerarm_*",
+    "thigh_*",
+    "calf_*",
+    "neck_01"
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#2a2430",
+   "rough": 0.65,
+   "offset": 0.014,
+   "thick": 0.005,
+   "groups": [
+    "foot_*",
+    "ball_*",
+    "calf_*"
+   ],
+   "z": [
+    0.0,
+    0.22
+   ],
+   "minw": 0.3
+  },
+  {
+   "part": "shell",
+   "slot": "metal",
+   "color": "#b8bec6",
+   "rough": 0.3,
+   "offset": 0.012,
+   "thick": 0.005,
+   "groups": [
+    "lowerarm_*"
+   ],
+   "minw": 0.75
+  },
+  {
+   "part": "shell",
+   "slot": "metal_lens",
+   "color": "#b8bec6",
+   "rough": 0.3,
+   "offset": 0.018,
+   "thick": 0.005,
+   "groups": [
+    "head"
+   ],
+   "z_eye": [
+    0.035,
+    0.09
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "metal_pack",
+   "color": "#5d646b",
+   "rough": 0.4,
+   "offset": 0.055,
+   "thick": 0.012,
+   "groups": [
+    "spine_0*",
+    "clavicle_*"
+   ],
+   "z": [
+    0.6,
+    0.82
+   ],
+   "facing_back": 0.4
+  },
+  {
+   "part": "robe",
+   "color": "#4a3060",
+   "top": 0.1,
+   "hem": 0.04,
+   "flare": 0.45,
+   "jag": 0.0,
+   "weights": "skin"
+  }
+ ],
+ "anims": {
+  "idle": "Idle_Talking_Loop",
+  "walk": "Walk_Loop",
+  "run": "Jog_Fwd_Loop",
+  "interaction": "PickUp_Table",
+  "hit": "Hit_Chest",
+  "death": "Death01"
+ }
+}

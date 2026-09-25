@@ -9221,3 +9221,10 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - **진단** `PlaytestGoHeroes`: 표·명단(105 빠짐없이·위험도)·자리(설 땅·제 지역·무리/수호장 30m·사건 물건 12m)·서 있는 사람·겨루기 ★3/★4/★5(체력·방패 겹·속 원소·졸개 수·시대·기질 반경)·굴복→동행(곁 이름·원소)·다음 사람·끌고 감·전멸. 동행·인연·경험치·자리 되돌림.
 - 검증: 컴파일 · GO `PlaytestHeadless` **3연속 OK**(heroes 줄 셋 같음 "★3 영진(Might·수) ★4 뇌호(Might·수) ★5 명운(Virtue·뇌)").
 - 다음 = 109-6b 도감 화면. 실기 확인 전: 겨루기 거리 7m, ★5 두 겹 난이도, 지 원거리 예고 원, 굴복 무릎이 무릎으로 보이는지(Maria Interact 클립), 다음 사람 4초.
+
+## 2026-09-25 — char-forge DUNGEON 세 시대 여덟(잡졸 여섯·행상 둘) + 비교 장면 짝 서른다섯 ("이어해")
+
+- 잡졸: `_cmp_real_rioter_01`(폭주 청년) · `_cmp_real_testbot_01`(시험 기동 인형 — 온몸 흰 쇠) · `_cmp_real_riotswat_01`(진압 특공대) · `_cmp_real_steelbot_01`(강철 인형 병정 — 검은 쇠·붉은 눈 띠) · `_cmp_real_enforcer_01`(암흑가 해결사) · `_cmp_real_visitor_01`(별 너머 방문자 — 큰 머리·더듬이). 행상: `_cmp_real_junkpeddler_01`(고물 행상) · `_cmp_real_timepeddler_f_01`(시간 행상).
+- 비교 빌더: `IdlePair`(서기만 몸) + 짝 여덟. 두 쇠 인형은 껍데기가 살을 다 덮어 살 메시가 없어 검사가 쇠 칸(`_metal`)을 해골의 뼈 칸처럼 받는다.
+- 검증: verify fbx ≤ 0.55°·glb 0.0° · 두 번 빌드 같은 바이트 · 복면 360°·앞 남은 살 63점 · 긴 겉옷자락 뚫림 서기 20%·걷기 39% · saga-unity 배치 `CMP_RESULT OK`(몸 일흔). 배치가 올린 `ProjectVersion`·`Packages` 는 되돌렸다.
+- 게임 몸은 그대로 — 사람 판정 전(HOW_TO_PLAYTEST §9). 남은 사람 NPC: STORY·FOREST 세 시대 몸·PeasantMan.

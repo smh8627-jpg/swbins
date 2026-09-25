@@ -1,0 +1,135 @@
+{
+ "id": "_cmp_real_steelbot_01",
+ "_note": "단계 3 잡졸 비교용 — saga-unity Y Bot(Mixamo) 자리 후보(DUNGEON 미래 '강철 인형 병정', 층 25~49). 게임 인물 아님. 큰 강철 인형 — 온몸 검은 쇠 껍데기 위 가슴판·넓은 어깨판·팔·정강이 판, 얼굴 없는 투구에 붉은 눈 띠(앞). 시험 기동 인형(흰·주황)과 겹치지 않게.",
+ "macro": {
+  "gender": 1.0,
+  "age": 0.4,
+  "muscle": 0.9,
+  "weight": 0.5,
+  "height": 0.9,
+  "proportions": 1.0,
+  "race": {
+   "asian": 0.34,
+   "caucasian": 0.33,
+   "african": 0.33
+  }
+ },
+ "skin": "young_african_male/young_african_male.mhmat",
+ "eyes": "low-poly/low-poly.mhclo",
+ "kitbash": [
+  {
+   "part": "shell",
+   "slot": "metal",
+   "color": "#3b3f45",
+   "rough": 0.35,
+   "offset": 0.008,
+   "thick": 0.005,
+   "groups": [
+    "pelvis",
+    "spine_0*",
+    "clavicle_*",
+    "upperarm_*",
+    "lowerarm_*",
+    "thigh_*",
+    "calf_*",
+    "neck_01",
+    "hand_*",
+    "index_*",
+    "middle_*",
+    "ring_*",
+    "pinky_*",
+    "thumb_*",
+    "foot_*",
+    "ball_*",
+    "head"
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "metal_plate",
+   "color": "#5a5f66",
+   "rough": 0.3,
+   "offset": 0.026,
+   "thick": 0.008,
+   "groups": [
+    "spine_0*",
+    "pelvis"
+   ],
+   "z": [
+    0.52,
+    0.8
+   ]
+  },
+  {
+   "part": "shell",
+   "slot": "metal_plate",
+   "color": "#5a5f66",
+   "rough": 0.3,
+   "offset": 0.038,
+   "thick": 0.009,
+   "groups": [
+    "upperarm_*",
+    "clavicle_*"
+   ],
+   "z": [
+    0.72,
+    0.87
+   ],
+   "minw": 0.35
+  },
+  {
+   "part": "shell",
+   "slot": "metal_plate",
+   "color": "#5a5f66",
+   "rough": 0.3,
+   "offset": 0.02,
+   "thick": 0.006,
+   "groups": [
+    "lowerarm_*"
+   ],
+   "minw": 0.75
+  },
+  {
+   "part": "shell",
+   "slot": "metal_plate",
+   "color": "#5a5f66",
+   "rough": 0.3,
+   "offset": 0.022,
+   "thick": 0.006,
+   "groups": [
+    "calf_*"
+   ],
+   "z": [
+    0.1,
+    0.27
+   ],
+   "minw": 0.7
+  },
+  {
+   "part": "shell",
+   "slot": "metal_visor",
+   "color": "#c8281e",
+   "rough": 0.15,
+   "offset": 0.02,
+   "thick": 0.004,
+   "groups": [
+    "head"
+   ],
+   "z_eye": [
+    -0.012,
+    0.014
+   ],
+   "facing": 0.4,
+   "minw": 0.5
+  }
+ ],
+ "anims": {
+  "idle": "Sword_Idle",
+  "walk": "Walk_Loop",
+  "run": "Jog_Fwd_Loop",
+  "attack": "Sword_Attack",
+  "hit": "Hit_Chest",
+  "death": "Death01"
+ }
+}

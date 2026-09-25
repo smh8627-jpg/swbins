@@ -1,0 +1,73 @@
+{
+ "id": "_cmp_real_testbot_01",
+ "_note": "단계 3 잡졸 비교용 — saga-unity X Bot(Mixamo) 자리 후보(DUNGEON 미래 '시험 기동 인형', 층 2~9). 게임 인물 아님. 매끈한 흰 인형 — 온몸(손·발·머리까지) 흰 쇠 껍데기, 얼굴 없는 투구에 주황 눈 띠 한 바퀴. 속 얼굴·눈썹은 안 단다(안 보이는 낭비).",
+ "macro": {
+  "gender": 0.5,
+  "age": 0.4,
+  "muscle": 0.55,
+  "weight": 0.35,
+  "height": 0.65,
+  "proportions": 1.0,
+  "race": {
+   "asian": 0.34,
+   "caucasian": 0.33,
+   "african": 0.33
+  }
+ },
+ "skin": "young_caucasian_male/young_caucasian_male.mhmat",
+ "eyes": "low-poly/low-poly.mhclo",
+ "kitbash": [
+  {
+   "part": "shell",
+   "slot": "metal",
+   "color": "#d9dcdf",
+   "rough": 0.25,
+   "offset": 0.01,
+   "thick": 0.006,
+   "groups": [
+    "pelvis",
+    "spine_0*",
+    "clavicle_*",
+    "upperarm_*",
+    "lowerarm_*",
+    "thigh_*",
+    "calf_*",
+    "neck_01",
+    "hand_*",
+    "index_*",
+    "middle_*",
+    "ring_*",
+    "pinky_*",
+    "thumb_*",
+    "foot_*",
+    "ball_*",
+    "head"
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "metal_visor",
+   "color": "#e0782a",
+   "rough": 0.15,
+   "offset": 0.018,
+   "thick": 0.004,
+   "groups": [
+    "head"
+   ],
+   "z_eye": [
+    -0.018,
+    0.02
+   ],
+   "minw": 0.5
+  }
+ ],
+ "anims": {
+  "idle": "Sword_Idle",
+  "walk": "Walk_Loop",
+  "run": "Jog_Fwd_Loop",
+  "attack": "Punch_Cross",
+  "hit": "Hit_Chest",
+  "death": "Death01"
+ }
+}

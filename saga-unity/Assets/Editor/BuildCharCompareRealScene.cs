@@ -167,6 +167,22 @@ namespace Saga.EditorTools
             FolkPair("ExoGray", "_cmp_real_surveyor_01", 1.78f),
             FolkPair("Vanguard", "_cmp_real_mechanic_01", 1.70f),
             FolkPair("Crypto", "_cmp_real_chrononaut_f_01", 1.72f),
+            // DUNGEON 세 시대(109-2) — 층 단계별 잡졸 여섯(다섯 상태 몸)과 행상 둘(서기만)
+            BossPair("Brian", "_cmp_real_rioter_01", 1.75f),
+            BossPair("XBot", "_cmp_real_testbot_01", 1.80f),
+            BossPair("Swat", "_cmp_real_riotswat_01", 1.82f),
+            BossPair("YBot", "_cmp_real_steelbot_01", 1.95f),
+            BossPair("Boss", "_cmp_real_enforcer_01", 1.85f),
+            BossPair("Zlorp", "_cmp_real_visitor_01", 1.60f),
+            IdlePair("Leonard", "_cmp_real_junkpeddler_01", 1.70f),
+            IdlePair("Astra", "_cmp_real_timepeddler_f_01", 1.68f),
+        };
+
+        /// <summary>행상 짝 — 지금 몸은 서기 하나뿐이다.</summary>
+        private static Pair IdlePair(string key, string forgeId, float height) => new Pair
+        {
+            Key = key, NowBody = NowRoot + key + "/" + key + ".fbx", ForgeId = forgeId, Height = height,
+            NowClips = new Dictionary<string, (string, string)> { { "idle", ("Idle", "idle") } },
         };
 
         /// <summary>역참·마을 사람 짝 — 지금 몸은 서기·걷기뿐이다(`FolkWalker`).</summary>
@@ -343,10 +359,11 @@ namespace Saga.EditorTools
                 if (a.name.StartsWith("FORGE_"))
                 {
                     var skin = mats.FirstOrDefault(m => m.name.EndsWith("_skin"));
-                    // 해골(공방 skeleton.py)은 살이 없다 — 피부 대신 뼈 칸(bone)이 있어야 한다
+                    // 해골(공방 skeleton.py)은 살이 없다 — 피부 대신 뼈 칸(bone)이 있어야 한다.
+                    // 온몸 쇠 인형(시험 기동·강철 인형)은 껍데기가 살을 다 덮어 지웠다 — 쇠 칸(metal)
                     ok &= skin != null
                         ? skin.shader == AssetDatabase.LoadAssetAtPath<Shader>(SkinGraph) && skin.GetTexture("_BaseMap") != null
-                        : mats.Any(m => m.name.EndsWith("_bone"));
+                        : mats.Any(m => m.name.EndsWith("_bone") || m.name.EndsWith("_metal"));
                     // 그림 없는 부품 재질(뿔 등)은 FBX 의 바탕색을 옮겨 받아야 한다 — 흰색이면 옮기기가 빠진 것
                     foreach (var m in mats.Where(m => !m.GetTexture("_BaseMap")))
                     {
