@@ -43,6 +43,7 @@ func save() -> bool:
 		"ar_paid": PartyState.ar_paid,
 		"story": PartyState.story,
 		"world_quests": PartyState.world_quests,
+		"fishing": PartyState.fishing,
 		"drops": DropState.drops,
 		"quest_active_id": QuestState.active_id,
 		"quest_active_name": QuestState.active_name,
@@ -123,6 +124,9 @@ func try_load() -> bool:
 	## world_quests(106장 ㊴) — 없으면 빈 사전(아무것도 안 맡음).
 	var wq: Variant = data.get("world_quests", {})
 	PartyState.world_quests = (wq as Dictionary).duplicate(true) if typeof(wq) == TYPE_DICTIONARY else {}
+	## fishing(106장 ㊷) — 없으면 빈 사전(잡은 것 없음·낚시터 물고기 가득).
+	var fi: Variant = data.get("fishing", {})
+	PartyState.fishing = (fi as Dictionary).duplicate(true) if typeof(fi) == TYPE_DICTIONARY else {}
 
 	var pos: Array = data.get("player_pos", [])
 	var player := _find_player()

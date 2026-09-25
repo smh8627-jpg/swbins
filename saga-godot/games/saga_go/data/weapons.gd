@@ -35,6 +35,8 @@ const WEAPONS := {
 	"w_polearm_4": {"name": "봉수 월도", "type": "polearm", "rarity": 4, "atk": 44.0, "sub": "energy", "sub_value": 0.067, "passive": "burst", "passive_value": 0.16},
 	"w_catalyst_4": {"name": "별자리 두루마리", "type": "catalyst", "rarity": 4, "atk": 42.0, "sub": "atk_pct", "sub_value": 0.09, "passive": "skill", "passive_value": 0.16},
 	"w_bow_4": {"name": "갯바람 각궁", "type": "bow", "rarity": 4, "atk": 44.0, "sub": "crit_rate", "sub_value": 0.04, "passive": "burst", "passive_value": 0.16},
+	## 106장 ㊷ 낚시 조합에서 물고기로 바꾸는 작살(상자에서는 안 나온다 — chest_weapon 은 w_<종류>_<등급> 만).
+	"w_polearm_catch": {"name": "갯바람 작살", "type": "polearm", "rarity": 4, "atk": 42.0, "sub": "energy", "sub_value": 0.1, "passive": "burst", "passive_value": 0.16},
 }
 
 const REFINE_MAX := 5

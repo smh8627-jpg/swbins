@@ -91,6 +91,9 @@ var story: Dictionary = {}
 ## 106장 ㊴ 세계 임무 — {"steps": {id: 단계}, "done": [id…], "track": 따라가는 임무 id(빈 글자 = 이야기 임무)}.
 ## 필드만 더해 SAVE_VERSION 그대로. world/story_quest.gd 가 읽고 쓴다(표는 data/world_quests.gd).
 var world_quests: Dictionary = {}
+## 106장 ㊷ 낚시 — {"log": {물고기: 잡은 수}, "gone": {"<낚시터>:<번호>": 잡은 시각}}. 필드만 더해 SAVE_VERSION 그대로.
+## world/fishing.gd 가 읽고 쓴다(표는 data/fishing.gd).
+var fishing: Dictionary = {}
 signal world_changed()
 
 var _session_start_exp: float = 0.0

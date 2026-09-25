@@ -57,6 +57,15 @@ const ITEMS := {
 	"gale_plume": {"name": "돌개바람 깃"},
 	"tide_pearl": {"name": "물마루 진주"},
 	"ember_horn": {"name": "잿불 뿔"},
+	## 106장 ㊷ 낚시 — 물고기(data/fishing.gd FISH, 가방 칸 id 는 "fish_" + 물고기 id).
+	"fish_crucian": {"name": "은비늘 붕어"},
+	"fish_mandarin": {"name": "청하 쏘가리"},
+	"fish_clockcarp": {"name": "태엽 잉어"},
+	"fish_gizzard": {"name": "갯바람 전어"},
+	"fish_lanternpuffer": {"name": "등불 복어"},
+	"fish_steelflounder": {"name": "강철 넙치"},
+	"fish_neonhairtail": {"name": "네온 갈치"},
+	"fish_moonjelly": {"name": "옛 달 해파리"},
 }
 const BOOKS := ["book_s", "book_m", "book_l"]
 

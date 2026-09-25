@@ -14,6 +14,8 @@ const Waypoints := preload("res://games/saga_go/world/waypoints.gd")
 const TreasureSpawner := preload("res://games/saga_go/world/treasure_spawner.gd")
 const StarShards := preload("res://games/saga_go/world/star_shards.gd")
 const FieldBosses := preload("res://games/saga_go/world/field_bosses.gd") # 106장 ㉓ 들판 보스 표시(신상을 켠 지역만)
+const FishingSpots := preload("res://games/saga_go/world/fishing.gd") # 106장 ㊷ 낚시터 표시(신상을 켠 지역만)
+const FishingData := preload("res://games/saga_go/data/fishing.gd")
 
 const M_PER_PX := 3.0
 const MINI_SIZE := 190.0
@@ -336,6 +338,11 @@ class MiniOverlay extends Control:
 			var bd := Vector2(bp.x - me.x, bp.z - me.z) * px_per_m
 			if bd.length() <= size.x * 0.5 - 10.0 and map.call("revealed", FieldBosses.FB.BOSSES[id].region):
 				map.draw_boss_icon(self, c + bd, 1.0)
+		for fid in FishingData.SPOT_ORDER:
+			var fp: Vector3 = FishingSpots.stand_pos(fid)
+			var fd := Vector2(fp.x - me.x, fp.z - me.z) * px_per_m
+			if fd.length() <= size.x * 0.5 - 10.0 and map.call("revealed", FishingData.spot(fid).region):
+				map.draw_fish_icon(self, c + fd, 1.0)
 		## 106장 ㉕·㊶ 임무 표식 — 따라가는 임무는 멀면 미니맵 가장자리에 붙이고(원신과 같다),
 		## 맡을 수 있는 !·안 따라가는 임무는 둘레 안에 있을 때만.
 		var lim := size.x * 0.5 - 10.0
@@ -374,6 +381,13 @@ func draw_boss_icon(ci: CanvasItem, at: Vector2, s: float) -> void:
 	ci.draw_colored_polygon(PackedVector2Array([at + Vector2(6, -3) * s, at + Vector2(8, -12) * s, at + Vector2(2, -6) * s]), horn)
 	ci.draw_circle(at, 8.0 * s, Color(0.1, 0.04, 0.06, 0.9))
 	ci.draw_circle(at, 6.0 * s, Color(0.78, 0.22, 0.3))
+
+## 106장 ㊷ 낚시터 — 물빛 원에 흰 물고기(몸통 + 꼬리).
+func draw_fish_icon(ci: CanvasItem, at: Vector2, s: float) -> void:
+	ci.draw_circle(at, 8.0 * s, Color(0.04, 0.12, 0.2, 0.9))
+	ci.draw_circle(at, 6.5 * s, Color(0.3, 0.62, 0.86))
+	ci.draw_colored_polygon(PackedVector2Array([at + Vector2(-4, 0) * s, at + Vector2(0, -2.4) * s, at + Vector2(3, 0) * s, at + Vector2(0, 2.4) * s]), Color(1, 1, 1))
+	ci.draw_colored_polygon(PackedVector2Array([at + Vector2(2.5, 0) * s, at + Vector2(5, -2.2) * s, at + Vector2(5, 2.2) * s]), Color(1, 1, 1))
 
 ## 이야기 임무 목표 — 금빛 마름모.
 func draw_story_icon(ci: CanvasItem, at: Vector2, s: float) -> void:
@@ -518,6 +532,9 @@ class MapView extends Control:
 		for id in FieldBosses.FB.ORDER:
 			if map.call("revealed", FieldBosses.FB.BOSSES[id].region):
 				map.draw_boss_icon(self, offset + map.world_to_px(FieldBosses.home_of(id)) * zoom, 1.4)
+		for fid in FishingData.SPOT_ORDER:
+			if map.call("revealed", FishingData.spot(fid).region):
+				map.draw_fish_icon(self, offset + map.world_to_px(FishingSpots.stand_pos(fid)) * zoom, 1.4)
 		var sel: Dictionary = map.get("_selected_mark")
 		for mk in map.call("quest_marks"):
 			var qat: Vector2 = offset + map.world_to_px(mk.pos) * zoom
