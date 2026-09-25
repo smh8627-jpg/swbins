@@ -3801,3 +3801,13 @@ SAGA-HANDOFF 열린 항목 "tower_ruin.glb(역참) 아이콘 굽기 — 여섯 �
 ## 2026-09-25 (캐릭터 모두 다르게 ②) — 주민 열 제 몸
 - 사용자 결정(2026-09-25, 제안 둘째 안에 "이어해"): **사람 적·보스·마을 사람만** VRoid 네 벌 해시 대신 이름마다 제 몸, 도감 인물·주인공·동행은 VRoid 그대로. 몸은 사가블로 hero_light 창고(Quaternius 저폴리 계열, Kenney 블록형·세 시대 파일 제외)에서 역할에 맞게 손으로 짝지었다. 손잡이 `asset3d.fixedBody`(0 = 옛 해시). 이 판 대상은 `npc.js` 주민 열(들판 적은 이미 제 모델).
 - `asset3d.js` FIXED_HERO(npc_* → `people/fixed/` 열 파일, ⑱ 땅 사람 파일은 피함). 헤드리스 10/10. 진단 새 1 → 614/614 세 번 같음. `sw.js` go-v5.77.3. **실기 확인 대기**.
+
+## 2026-09-25 (펫 대역) — 신수·오마주 28종도 제 모델 (CHARACTER_UNIQUENESS ④)
+- 신수·오마주·까치 28종이 id 해시·형태 표로 공룡·뱀·오크·당나귀를 나눠 입던 것(해태=당나귀, 번개볼=알파카, 청룡=스테고…)을 **종마다 한 벌**로.
+  Quaternius "Ultimate Monsters"(CC0) 열여덟 벌 + 코끼리(불가사리, Poly by Google CC-BY 3.0). 범·여우·말·흰말은 같은 종이라 그 모델(백호·구미호·홍염마·섬영마).
+  까치는 네 판 모두 비둘기(사가고에서 사용자가 정한 것 — 사가블로·사가의숲은 정지 까마귀였다). 배정표는 `assets/ASSET_LICENSES.md` 새 절, 네 판 같다.
+- 28종만 초상 다시 굽기(`tools/bake-portraits/bake.mjs <판> --kind=pet --only=…`). 진단 항목에 "대역 28종 서로 다름" 을 더했다.
+- 이 판은 `pet:<id>` 줄 28개를 새로 넣었다(형태 표는 되돌림 자리). 새 파일 `assets/models/standin/` 19개. sw go-v5.78.0.
+- 지도 스탬프도 같은 동물: `sprite.js` `PET_BEAST_FILE` 에 28종, `tools/bake-icons/bake-beasts.mjs` 가 `standin/` 도 찾게 해 새 그림 19장(`assets/sprites2d/beast_<모델>.png`).
+  진단 "스탬프 = 초상 모델" 77 → 105. "인연 — 파티에 없으면 안 오른다" 는 예전부터 가끔 떨어지는 항목(위 3738행 기록).
+- 진단은 아래 커밋 메시지 · **실기 확인 대기**(도감·초상에서 대역 모습).

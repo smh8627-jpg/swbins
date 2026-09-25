@@ -328,3 +328,23 @@ Quaternius CC0 1.0. 사가고 `assets/models/foes/`(7: Rat·Wasp·Zombie·Alien�
 출처·라이선스는 전부 사가블로 `assets/ASSET_LICENSES.md` 의 해당 절: `oga_ultimate_*`(Quaternius Ultimate Animated Character Pack, CC0 —
 OpenGameArt), `polypizza_*`(Quaternius Ultimate Modular Men/Women·Pirate·Apocalypse·Wide 묶음, CC0 — poly.pizza), `kaykit_adventurers_*`
 (KayKit Adventurers, CC0), `oga_knight_*`(Lowpoly Animated Knight, CC0). 전부 제 클립 내장. 쓰는 곳: `js/asset3d.js` FIXED_HERO.
+
+## 신수·오마주·까치 대역 28종 — 종마다 한 벌 (2026-09-25, CHARACTER_UNIQUENESS ④)
+
+Quaternius "Ultimate Monsters"(CC0, 사가블로 `assets/models/monsters/quaternius/` 에서 md5 그대로 복사 — 출처는 그쪽 `assets/ASSET_LICENSES.md` "Ultimate Monsters 45종" 절) 열여덟 벌을 `models/standin/<이름>.glb` 로(해시 꼬리만 뗌).
+
+> **Elephant** (`models/standin/Elephant.glb`) — © **Poly by Google**, [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/). poly.pizza `/m/a27MA0rXyyj`, 사가블로 `models/animals/Elephant.glb` 복사. **저작자 표시 필요** — 이 문구가 그 표시다.
+
+| 펫 | 모델 |
+|---|---|
+| 삼족오·까치 | Birb · Pigeon |
+| 해태 | Goleling(돌정령 — 해태상이 돌 수호수) |
+| 청룡 | Dragon_Evolved(날개 용) |
+| 백호·구미호·홍염마·섬영마 | Tiger·Fox·Horse·White_Horse(같은 종, 이미 있던 모델) |
+| 주작 | Hywirl(날짐승) |
+| 현무 | Snake | 
+| 도깨비 | Orc |
+| 불가사리 | **Elephant**(쇠를 먹는 코끼리 코 짐승) |
+| 싹등이·불꼬리·물뿜이·뜀잉어·번개볼·떡잎이 | Mushnub·Dino·Squidle·Glub·Bunny·Monkroose |
+| 늘보소라·그늘귀·누운산·나룻고래·만권 | Pink_Slime·Ghost·Yeti·Glub_Evolved·Wizard |
+| 순룡·화룡·이무기·의조·시조 | Alpaking·Dragon·Snake_angry·Alien·Cat(괴물 고양이) |

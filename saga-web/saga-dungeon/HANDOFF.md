@@ -4273,3 +4273,11 @@ VRoid 인물이 unlit(`MeshBasicMaterial`) 그대로라 명암 없이 평면이�
 - 사용자 결정(2026-09-25, 제안 둘째 안에 "이어해"): **사람 적·보스·마을 사람만** VRoid 네 벌 해시 대신 이름마다 제 몸, 도감 인물·주인공·동행은 VRoid 그대로. 몸은 사가블로 hero_light 창고(Quaternius 저폴리 계열, Kenney 블록형·세 시대 파일 제외)에서 역할에 맞게 손으로 짝지었다. 손잡이 `asset3d.fixedBody`(0 = 옛 해시).
 - `asset3d.js` FIXED_HERO(적 표시 이름·'npc:'+키 → hero_light 키) · `fixedRecipe` 가 `heroRecipe` 맨 앞. 산적=바이킹·왜구=해적·마적=카우보이·기병=기사·왜장=기모노… 36 모두 다름.
 - 헤드리스로 36벌 모두 GLB·키 맞음·걷기/대기/공격/죽음 확인(두 묶음으로 — probe evaluate 30초 제한). 진단 새 1 → 418/418 세 번 같음. `sw.js` dungeon-v0.168.2. **실기 확인 대기**(저폴리 적이 VRoid 동행 옆에서 어색하지 않은지 · 물들임 색).
+
+## 2026-09-25 (펫 대역) — 신수·오마주 28종도 제 모델 (CHARACTER_UNIQUENESS ④)
+- 신수·오마주·까치 28종이 id 해시·형태 표로 공룡·뱀·오크·당나귀를 나눠 입던 것(해태=당나귀, 번개볼=알파카, 청룡=스테고…)을 **종마다 한 벌**로.
+  Quaternius "Ultimate Monsters"(CC0) 열여덟 벌 + 코끼리(불가사리, Poly by Google CC-BY 3.0). 범·여우·말·흰말은 같은 종이라 그 모델(백호·구미호·홍염마·섬영마).
+  까치는 네 판 모두 비둘기(사가고에서 사용자가 정한 것 — 사가블로·사가의숲은 정지 까마귀였다). 배정표는 `assets/ASSET_LICENSES.md` 새 절, 네 판 같다.
+- 28종만 초상 다시 굽기(`tools/bake-portraits/bake.mjs <판> --kind=pet --only=…`). 진단 항목에 "대역 28종 서로 다름" 을 더했다.
+- 이 판은 새 파일 없음 — 이미 있던 `monsters/quaternius/`·`animals/Elephant.glb` 를 `pet:*` 가 가리킨다. sw dungeon-v0.169.0.
+- 진단은 아래 커밋 메시지 · **실기 확인 대기**(도감·초상에서 대역 모습).

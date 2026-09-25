@@ -4587,12 +4587,16 @@ window.DG_NO_TUNE = true;
       var P3 = DG.portrait3d, D = DG.data, REG = DG.asset3d.REG(), S = DG.sprite;   // 이 판은 REG 가 함수
       var no = D.pets.filter(function (p) { return !P3.supports('pet', p); });
       var keyOk = ['critter:tiger', 'critter:whale', 'critter:pug', 'critter:stag', 'critter:t_rex'].every(function (k) { return !!REG[k]; });
-      var stand = { haetae: /Donkey\.glb$/, cheongryong: /Stegosaurus\.glb$/, dokkaebi: /standin\/Orc\.gltf$/, pk_charizard: /T_Rex\.glb$/ };
+      var stand = { haetae: /standin\/Goleling\.glb$/, cheongryong: /standin\/Dragon_Evolved\.glb$/, dokkaebi: /standin\/Orc\.gltf$/, pk_charizard: /standin\/Dragon\.glb$/ };
       var standOk = Object.keys(stand).every(function (k) { return stand[k].test(REG['critter:' + k] || ''); });
+      /* 2026-09-25 — 대역 28종이 서로 안 겹친다(CHARACTER_UNIQUENESS ④). 구미호는 여우 키(critter:fox)로 굽는다 */
+      var SI = ['pt_samjogo','pt_haetae','pt_cheongryong','pt_baekho','pt_jujak','pt_hyeonmu','pt_gumiho','pt_dokkaebi','pt_bulgasari','pt_jeoktoma','pt_jeolyeong','pt_magpie','pk_bulbasaur','pk_charmander','pk_squirtle','pk_magikarp','pk_pikachu','pk_eevee','pk_slowbro','pk_gengar','pk_snorlax','pk_lapras','pk_alakazam','pk_dragonite','pk_charizard','pk_gyarados','pk_mewtwo','pk_mew'], su = {};
+      SI.forEach(function (id) { su[REG[id === 'pt_gumiho' ? 'critter:fox' : 'critter:' + id.replace(/^pt_/, '')]] = 1; });
+      standOk = standOk && Object.keys(su).length === SI.length && !su.undefined;
       var sideOk = ['critter:deer', 'critter:fox'].every(function (k) { return /animals\/(Deer|Fox)\.glb$/.test(REG[k]); });   // 옆면 뷰가 부르는 키는 그대로
       var gone = !S.human && !S.beast && !S.beastPatternOf;
       if (no.length || !keyOk || !standOk || !sideOk || !gone) { return false; }
-      return '3D 초상 ' + D.pets.length + '종 전부 · 대역(해태=당나귀·청룡=스테고·도깨비=오크) · 옆면 뷰 키 그대로 · 코드 그림 함수 없음';
+      return '3D 초상 ' + D.pets.length + '종 전부 · 대역 28종 서로 다름(해태=돌정령·청룡=날개 용·도깨비=오크) · 옆면 뷰 키 그대로 · 코드 그림 함수 없음';
     });
 
     t('초상 자리표시(SAGA-DESIGN §11 Phase 0) — 3D 로 갈아 끼울 자리는 코드 스프라이트 대신 자리표시로 시작하고, 굽기를 포기하면 옛 그림으로 되돌리며, 갈아 끼워지지 않을 자리는 옛 그림 그대로다', function () {

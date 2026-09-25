@@ -355,7 +355,15 @@
     pt_sunfish: 'Sunfish', pt_swordfish: 'Swordfish', pt_t_rex: 'Trex', pt_tang: 'Tang', pt_tetra: 'Tetra',
     pt_tiger: 'Tiger', pt_toad: 'Frog', pt_triceratops: 'Triceratops', pt_tuna: 'Tuna', pt_turbot: 'Turbot',
     pt_velociraptor: 'Velociraptor', pt_whale: 'Whale', pt_white_horse: 'Horse_White', pt_worm: 'Worm',
-    pt_yellow_tang: 'Yellow_Tang', pt_zebra: 'Zebra', pt_zebra_clown_fish: 'Zebra_Clown_Fish'
+    pt_yellow_tang: 'Yellow_Tang', pt_zebra: 'Zebra', pt_zebra_clown_fish: 'Zebra_Clown_Fish',
+    /* 2026-09-25 — 신수·오마주·까치 28종도 제 모델(asset3d.js 같은 날 주석, `standin/`) — 지도 그림도 같은 동물 */
+    pt_samjogo: 'Birb', pt_haetae: 'Goleling', pt_cheongryong: 'Dragon_Evolved', pt_baekho: 'Tiger', pt_jujak: 'Hywirl',
+    pt_hyeonmu: 'Snake', pt_gumiho: 'Fox', pt_dokkaebi: 'Orc', pt_bulgasari: 'Elephant', pt_jeoktoma: 'Horse',
+    pt_jeolyeong: 'Horse_White', pt_magpie: 'Pigeon',
+    pk_bulbasaur: 'Mushnub', pk_charmander: 'Dino', pk_squirtle: 'Squidle', pk_magikarp: 'Glub', pk_pikachu: 'Bunny',
+    pk_eevee: 'Monkroose', pk_slowbro: 'Pink_Slime', pk_gengar: 'Ghost', pk_snorlax: 'Yeti', pk_lapras: 'Glub_Evolved',
+    pk_alakazam: 'Wizard', pk_dragonite: 'Alpaking', pk_charizard: 'Dragon', pk_gyarados: 'Snake_angry', pk_mewtwo: 'Alien',
+    pk_mew: 'Cat_Monster'
   };
   var beastImgCache = {};
   function beastImgFile(name) {

@@ -1875,3 +1875,21 @@ Orc·Demon 은 Ultimate Monsters). 사용자 결정("사가고처럼 대역 입�
 같은 절의 나머지 몸(폭주 청년 `polypizza_men/Punk`·방역복 `polypizza_hazmat/HazmatMan`·특공대 `polypizza_men/SWAT`·외계 `Alien_0bb74be9`·
 장갑벌 `Armabee_Evolved`, 손님 `polypizza_men/Worker`·`polypizza_women/Suit`·`SciFiCharacter`·`polypizza_space/Astronaut1`)은
 이 판에 이미 있던 파일이라 위 해당 절 그대로다.
+
+## 신수·오마주·까치 대역 28종 — 종마다 한 벌 (2026-09-25, CHARACTER_UNIQUENESS ④)
+
+이 판은 파일을 새로 들이지 않았다 — 이미 있던 `models/monsters/quaternius/`(Ultimate Monsters, 위 절)와 `models/animals/Elephant.glb`(Poly by Google, CC-BY 3.0, 위 절)를 `pet:*` 표가 가리킨다.
+
+| 펫 | 모델 |
+|---|---|
+| 삼족오·까치 | Birb · Pigeon |
+| 해태 | Goleling(돌정령 — 해태상이 돌 수호수) |
+| 청룡 | Dragon_Evolved(날개 용) |
+| 백호·구미호·홍염마·섬영마 | Tiger·Fox·Horse·White_Horse(같은 종, 이미 있던 모델) |
+| 주작 | Hywirl(날짐승) |
+| 현무 | Snake | 
+| 도깨비 | Orc |
+| 불가사리 | **Elephant**(쇠를 먹는 코끼리 코 짐승) |
+| 싹등이·불꼬리·물뿜이·뜀잉어·번개볼·떡잎이 | Mushnub·Dino·Squidle·Glub·Bunny·Monkroose |
+| 늘보소라·그늘귀·누운산·나룻고래·만권 | Pink_Slime·Ghost·Yeti·Glub_Evolved·Wizard |
+| 순룡·화룡·이무기·의조·시조 | Alpaking·Dragon·Snake_angry·Alien·Cat(괴물 고양이) |
