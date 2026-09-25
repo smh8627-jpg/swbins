@@ -46,8 +46,11 @@ func _physics_process(_delta: float) -> void:
 				mats[Growth.boss_of(id)] = true
 			var ok: bool = not c0.has("gale_plume") and int(c1.get("gale_plume", 0)) == 2 and int(c5.get("gale_plume", 0)) == 20 \
 				and Growth.boss_of("self") == "gale_plume" and mats.size() >= 2 and Growth.BOSS_MATS.size() == 3
-			for i in FB.ORDER.size():
+			for i in Growth.BOSS_MATS.size():
 				ok = ok and FB.BOSSES[FB.ORDER[i]].mat == Growth.BOSS_MATS[i] and Growth.ITEMS.has(Growth.BOSS_MATS[i])
+			## 넷째(서리봉 고원)부터는 해시 밖 — 그 지역 인물만(BOSS_OF).
+			ok = ok and FB.ORDER.size() == 4 and Growth.ITEMS.has(String(FB.BOSSES.snow_bear_king.mat)) \
+				and Growth.boss_of("story_haram") == "frost_core" and int(Growth.ascend_cost("story_haram", 1).get("frost_core", 0)) == 2
 			_check("table", ok, "c1=%s kinds=%d" % [c1, mats.size()])
 			_next()
 		1: # ② 셋이 제자리에

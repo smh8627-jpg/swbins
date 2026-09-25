@@ -2,7 +2,8 @@ extends RefCounted
 
 ## PLAN 106장 ㉓ — 원신식 들판 보스(세계에 서 있는 보스) 규칙. 진행은 world/field_bosses.gd, 저장은 없다
 ## (불러오면 셋 다 서 있다 — 원신도 들판 보스는 늘 다시 선다. 원기만 PartyState.resin 으로 남는다).
-##   셋 — 마을 동쪽 숲 가장자리 돌개바람 수리왕(풍) · 포구 동쪽 모래밭 물마루 거북왕(수) · 폐허 동쪽 뜰 잿불 도깨비왕(화).
+##   넷 — 마을 동쪽 숲 가장자리 돌개바람 수리왕(풍) · 포구 동쪽 모래밭 물마루 거북왕(수) · 폐허 동쪽 뜰 잿불 도깨비왕(화)
+##   · 서리봉 고원 산성 남쪽 눈밭 만년설 바위곰왕(암, 106장 ㊺ 뒤 — 재료는 고원 출신 하람 돌파에, growth.gd BOSS_OF).
 ##   몸·패턴은 주간 보스 틀(combat/field_boss.gd): 내려찍기·먹구름 벼락·물기, 체력 절반에서 보스 원소 방패.
 ##   세계 등급을 받는다(field_enemy.apply_world_level — 들판 적과 같은 배율·Lv 표시).
 ##   쓰러뜨리면 그 자리에 보상 꽃 — 3m 안에서 F(터치 "보상" 단추)로 원기 40 을 쓰고 받는다(모자라면 꽃이 남는다).
@@ -29,8 +30,11 @@ const BOSSES := {
 		"reward": {"mora": 1800, "tide_pearl": 2, "crystal_water": 1, "book_s": 2}},
 	"ember_king": {"kind": "ember_king", "region": "ruins", "cell": Vector2(5.0, 4.0), "mat": "ember_horn",
 		"reward": {"mora": 1800, "ember_horn": 2, "crystal_fire": 1, "book_s": 2}},
+	## (3.15, 5.65) — 산성 남쪽·고개 길 서쪽 눈밭. 무리 (2,6) 1.2칸 · 눈사람 1.1칸 · 산성 지키기 제단 1.4칸.
+	"snow_bear_king": {"kind": "snow_bear_king", "region": "frost", "cell": Vector2(3.15, 5.65), "mat": "frost_core",
+		"reward": {"mora": 1800, "frost_core": 2, "crystal_rock": 1, "book_s": 2}},
 }
-const ORDER := ["gale_roc", "tide_turtle", "ember_king"]
+const ORDER := ["gale_roc", "tide_turtle", "ember_king", "snow_bear_king"]
 
 static func reward_of(id: String, wl: int) -> Dictionary:
 	return Adventure.scale_loot(BOSSES[id].reward, wl)

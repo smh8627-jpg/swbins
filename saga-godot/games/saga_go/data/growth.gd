@@ -57,6 +57,7 @@ const ITEMS := {
 	"gale_plume": {"name": "돌개바람 깃"},
 	"tide_pearl": {"name": "물마루 진주"},
 	"ember_horn": {"name": "잿불 뿔"},
+	"frost_core": {"name": "만년설 바위 심장"}, # 서리봉 고원 들판 보스 — BOSS_OF 인물만
 	## 106장 ㊷ 낚시 — 물고기(data/fishing.gd FISH, 가방 칸 id 는 "fish_" + 물고기 id).
 	"fish_crucian": {"name": "은비늘 붕어"},
 	"fish_mandarin": {"name": "청하 쏘가리"},
@@ -81,6 +82,9 @@ const ASCEND_COST := [
 ]
 const SPECIALTIES := ["orchid", "conch", "ash_flower"] # cooking.gd SPECIALTIES 와 같은 차례
 const BOSS_MATS := ["gale_plume", "tide_pearl", "ember_horn"] # field_bosses.gd BOSSES 와 같은 차례(마을·포구·폐허)
+## 해시로 고르는 인물 재료는 위 셋에서만 — 늘리면 있던 인물의 돌파 재료가 바뀐다(세이브에 모은 재료가 헛것이 된다).
+## 새 지역 보스 재료는 그 지역 인물에게 여기서 정해 준다(원신도 새 지역 보스 = 그 지역 인물 재료).
+const BOSS_OF := {"story_haram": "frost_core"}
 
 ## 들판 적을 쓰러뜨리면(field_enemy._die). 정해진 양 — 운은 없다(점검이 늘 같게).
 const KILL_DROPS := {
@@ -206,6 +210,8 @@ static func ascend_cost(member_id: String, asc: int) -> Dictionary:
 
 ## 인물마다 들판 보스 재료(106장 ㉓) — 주인공은 마을 보스 깃(첫 지역), 동료는 id 해시로 셋 중 하나(또 다른 곱수).
 static func boss_of(member_id: String) -> String:
+	if BOSS_OF.has(member_id):
+		return String(BOSS_OF[member_id])
 	if member_id == "self":
 		return BOSS_MATS[0]
 	var h := 0

@@ -19,6 +19,8 @@ const StarShards := preload("res://games/saga_go/world/star_shards.gd")
 const Gathering := preload("res://games/saga_go/world/gathering.gd")
 const WorldMap := preload("res://games/saga_go/ui/world_map.gd")
 const Frost := preload("res://games/saga_go/world/region4_frost.gd")
+const FieldBosses := preload("res://games/saga_go/data/field_bosses.gd")
+const FieldSpawner := preload("res://games/saga_go/combat/field_spawner.gd")
 
 var _p: CharacterBody3D
 var _fr: Node
@@ -137,7 +139,40 @@ func _physics_process(_delta: float) -> void:
 				var gy := TerrainBuilder.height_at("frost", (e as Node3D).global_position)
 				if (e as Node3D).global_position.y < gy - 0.6:
 					bad.append("%s under %.1f<%.1f" % [e.name, (e as Node3D).global_position.y, gy])
-			_check("camps", n == 11 and bad.is_empty(), "n=%d bad=%s" % [n, bad])
+			_check("camps", n == 12 and bad.is_empty(), "n=%d bad=%s" % [n, bad]) # 무리 넷 열한 마리 + 들판 보스
+			## 들판 보스 자리 — 반경 12m 가 평평하고(높이 차 1m 안), 상자·순간이동·별조각·무리·채집·명소에서 1칸(48m)+.
+			var bc: Vector2 = FieldBosses.BOSSES.snow_bear_king.cell
+			var bp := TestMap.world_pos(bc.x, bc.y, "frost")
+			var hs: Array = []
+			for k in 16:
+				for r in [0.0, 6.0, 12.0]:
+					var q: Vector3 = bp + Vector3(cos(TAU * k / 16.0), 0.0, sin(TAU * k / 16.0)) * float(r)
+					hs.append(TerrainBuilder.height_at("frost", q))
+			var near: Array = []
+			var others: Array = []
+			for row in TreasureSpawner.CHESTS:
+				if row[1] == "frost":
+					others.append(["chest " + String(row[0]), row[2]])
+			for row in Waypoints.POINTS:
+				if row[1] == "frost":
+					others.append(["wp " + String(row[0]), row[2]])
+			for row in StarShards.in_region("frost"):
+				others.append(["shard " + String(row[0]), row[2]])
+			for row in FieldSpawner.CAMPS:
+				if row[0] == "frost":
+					others.append(["camp", Vector2(row[1])])
+			for nd in Gathering.all_nodes():
+				if nd[2] == "frost":
+					var g := TestMap.grid_at("frost", nd[3])
+					others.append(["gather " + String(nd[0]), Vector2(g)])
+			for c in [Vector2(3.0, 4.0), Vector2(4.4, 1.2), Vector2(6.45, 5.25), Vector2(3.5, 2.0)]:
+				others.append(["landmark", c])
+			for o in others:
+				if (o[1] as Vector2).distance_to(bc) < 1.0:
+					near.append("%s %.2f" % [o[0], (o[1] as Vector2).distance_to(bc)])
+			var boss: Node3D = get_tree().get_first_node_in_group("go_field_bosses").call("boss", "snow_bear_king")
+			var fb_ok: bool = boss != null and TestMap.region_at(boss.global_position) == "frost" and hs.max() - hs.min() < 1.0 and near.is_empty()
+			_check("field_boss", fb_ok, "boss=%s flat=%.2f near=%s" % [boss != null, hs.max() - hs.min(), near])
 			_next()
 		5: # ⑥ 상자·별조각·채집이 고원에, 명소 충돌에 안 묻힘
 			var spots: Array = []

@@ -61,6 +61,13 @@ const KINDS := {
 		"reach": 3.0, "tell": 0.9, "cd": 1.8, "exp": 0.0, "element": "fire", "shield": 0.0, "phase_shield": 400.0,
 		"phase_text": "잿불 도깨비왕이 불을 두른다 — 수로 방패를 깨라",
 		"shape": "goblin", "height": 3.4, "colors": [Color(0.55, 0.18, 0.12), Color(0.22, 0.14, 0.12), Color(1.0, 0.6, 0.2)]},
+	## 106장 ㊺ 뒤 넷째 들판 보스 — 서리봉 고원 남쪽 눈밭(산성 터 남쪽). 만년설을 뒤집어쓴 바위곰(암, 코드 몸 bear 3.4m).
+	## 패턴 내려찍기·눈사태(tide — 줄지은 원 넷)·물기·고리(halo), 2단계 암 방패(초로 깬다 — 물리도 그대로 먹는다, elements.gd).
+	"snow_bear_king": {"name": "만년설 바위곰왕", "hp": 3400.0, "atk": 30.0, "speed": 3.4, "aggro": 16.0,
+		"reach": 3.2, "tell": 1.0, "cd": 2.0, "exp": 0.0, "element": "rock", "shield": 0.0, "phase_shield": 450.0,
+		"phase_text": "만년설 바위곰왕이 얼어붙은 바위를 두른다 — 초로 방패를 깨라",
+		"rotation": ["slam", "tide", "bite", "halo"],
+		"shape": "bear", "height": 3.4, "colors": [Color(0.6, 0.58, 0.56), Color(0.93, 0.96, 1.0), Color(0.55, 0.85, 1.0)]},
 	## 106장 ㉜ 이야기 보스 "검은 가면"(6장 북쪽 봉우리) — field_boss.gd 틀, 사람 몸(VRoid)+검은 가면. 패턴 차례 rotation 에 그림자(뒤로 옮겨 붙어
 	## 내려찍기), 2단계 뇌 방패와 함께 가면 졸개 summon 을 부른다. 한 번뿐(되살아나지 않음·보상은 이야기 장).
 	"black_mask": {"name": "검은 가면", "hp": 4200.0, "atk": 32.0, "speed": 4.6, "aggro": 22.0,
