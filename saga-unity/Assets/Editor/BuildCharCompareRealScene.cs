@@ -93,6 +93,23 @@ namespace Saga.EditorTools
                 Key = "Nightshade", NowBody = NowRoot + "Nightshade/Nightshade.fbx", ForgeId = "_cmp_real_nightshade_01", Height = 1.60f,
                 NowClips = new Dictionary<string, (string, string)> { { "idle", ("Idle", "idle") } },
             },
+            new Pair
+            {
+                Key = "Hulk", NowBody = NowRoot + "Hulk/Hulk.fbx", ForgeId = "_cmp_real_rockgiant_01", Height = 1.85f,
+                NowClips = new Dictionary<string, (string, string)>
+                {
+                    { "idle", ("Idle", "idle") }, { "walk", ("Walking", "walking") }, { "run", ("Running", "running") },
+                },
+            },
+            // 잎 옷 요정 — 게임은 숲 정령 셋(0.85~0.95m 로 줄임)과 STORY 전직관(1.75m)에 같은 몸. 비교는 전직관 키로 크게 본다
+            new Pair
+            {
+                Key = "Jolleen", NowBody = NowRoot + "Jolleen/Jolleen.fbx", ForgeId = "_cmp_real_fairy_01", Height = 1.75f,
+                NowClips = new Dictionary<string, (string, string)>
+                {
+                    { "idle", ("Idle", "idle") }, { "walk", ("Walking", "walking") }, { "run", ("Running", "running") },
+                },
+            },
         };
         private const float DefaultHeight = 1.70f;
 

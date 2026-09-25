@@ -1,0 +1,25 @@
+{
+ "id": "_cmp_real_rockgiant_01",
+ "_note": "단계 3 괴물 비교용 — saga-unity Hulk(Mixamo Pumpkinhulk) 자리 후보(사가의숲 바위도깨비). 게임 인물 아님(이름 없음). 땅딸막한 거구·무거운 눈두덩·넓은 턱·작은 눈·주름진 잿빛 돌 피부·어깨·팔·등·정강이에 박힌 모난 바위 판·이끼빛 허리 천. 뿔 없음(두목·무쇠도깨비와 안 겹치게).",
+ "macro": {"gender": 1.0, "age": 0.75, "muscle": 1.0, "weight": 1.0, "height": 0.8, "proportions": 0.0,
+           "race": {"asian": 0.2, "caucasian": 0.5, "african": 0.3}},
+ "targets": {"forehead-nubian-incr": 1.0, "eyebrows-trans-down": 1.0, "eyebrows-angle-down": 0.4, "eye-scale-decr": 0.7,
+             "head-square": 1.0, "head-scale-horiz-incr": 0.4, "chin-width-incr": 1.0, "chin-height-incr": 0.5,
+             "nose-scale-horiz-incr": 1.0, "nose-flaring-incr": 0.6, "nose-volume-incr": 0.6, "mouth-scale-horiz-incr": 0.5,
+             "neck-scale-horiz-incr": 1.0, "neck-trans-forward": 0.5, "measure-neck-height-decr": 0.8,
+             "measure-shoulder-dist-incr": 1.0, "torso-muscle-dorsi-incr": 1.0, "torso-scale-horiz-incr": 0.5,
+             "upperarm-shoulder-muscle-incr": 1.0, "hand-scale-incr": 1.0, "hand-fingers-diameter-incr": 1.0,
+             "upperlegs-height-decr": 0.5, "foot-scale-incr": 0.6, "ear-scale-decr": 0.5},
+ "skin": "old_caucasian_male/old_caucasian_male.mhmat",
+ "tints": {"skin": "#a39a8c"},
+ "eyes": "high-poly/high-poly.mhclo",
+ "eyebrows": "eyebrow010/eyebrow010.mhclo",
+ "eyelashes": "eyelashes01/eyelashes01.mhclo",
+ "teeth": "teeth_base/teeth_base.mhclo",
+ "kitbash": [
+  {"part": "rocks", "count": 26, "radius": [0.035, 0.095], "flat": 0.45, "color": "#7d776d"},
+  {"part": "loincloth", "color": "#4d5a36", "length": 0.6}
+ ],
+ "anims": {"idle": "Idle_Loop", "walk": "Walk_Loop", "run": "Jog_Fwd_Loop", "attack": "Punch_Jab",
+           "hit": "Hit_Chest", "death": "Death01"}
+}

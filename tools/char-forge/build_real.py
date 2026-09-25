@@ -167,14 +167,14 @@ def _verts_world(o, group=None, min_w=0.5):
     return out
 
 
-def _new_part(arm, name, bm, weights, color, rough):
+def _new_part(arm, name, bm, weights, color, rough, smooth=True):
     """bmesh → 뼈대 자식 스킨 메시(가중치 {정점 번호: {뼈: 무게}}) + 원리 재질 하나(이름 = 칸)."""
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
     me = bpy.data.meshes.new(name)
     bm.to_mesh(me)
     bm.free()
     for p in me.polygons:
-        p.use_smooth = True
+        p.use_smooth = smooth  # 바위 판은 모난 면 그대로
     ob = bpy.data.objects.new(name, me)
     bpy.context.scene.collection.objects.link(ob)
     ob.parent = arm
@@ -240,7 +240,8 @@ def kitbash(arm, parts):
     """괴물 부품 — README §5 D(kitbash). 몸을 다 지은 뒤 실제 살 모양을 재서 자리를 잡는다. 앞 = -Y(Blender), 위 = +Z.
     horns: 머리 뼈에 붙는 굽은 원뿔 둘(`count: 1` 이면 정수리 외뿔) · tusks: 아랫입술 두 끝에서 솟는 엄니 ·
     loincloth: 허리에서 허벅지 중간까지 치마 천(위는 골반, 아래로 갈수록 허벅지 무게) ·
-    spores: 등·어깨 살에 반쯤 묻힌 혹 무리(자리·크기는 인물 id 씨앗) · robe: 쇄골 아래부터 발목까지 드리운 긴 옷자락(끝단은 해진 톱니)."""
+    spores: 등·어깨 살에 반쯤 묻힌 혹 무리(자리·크기는 인물 id 씨앗) · rocks: 어깨·팔·등·정강이에 박힌 모난 바위 판 ·
+    robe: 쇄골 아래부터 발목(`length` 면 골반→발목 몫)까지 드리운 옷자락(끝단은 해진 톱니, `teeth` 개)."""
     skin = next(o for o in arm.children if o.type == 'MESH' and o.name.endswith('_basemesh'))
     BONE_NAMES.clear()
     BONE_NAMES.update(b.name for b in arm.data.bones)
@@ -294,16 +295,22 @@ def kitbash(arm, parts):
             for v in bm.verts:
                 weights[v.index] = {'head': 1.0}
             _new_part(arm, f'{arm.name}_kitbash_tusk', bm, weights, p.get('color', '#e8dfc4'), 0.45)
-        elif kind_ == 'spores':
+        elif kind_ in ('spores', 'rocks'):
+            # spores: 등·어깨 뒤쪽 살에 65% 묻힌 둥근 혹 · rocks: 어깨·팔·등·정강이 바깥 살에 반쯤 묻힌 납작하고 모난 바위 판
+            # (면을 안 쪼갠 이십면체를 살 법선 쪽으로 눌러 판처럼, 법선 둘레로 아무렇게나 돌린다). 자리·크기는 인물 id 씨앗
             import random, zlib
-            rng = random.Random(zlib.crc32(f"{arm.name}/spores".encode()))
-            back = _groups_of(skin, p.get('groups', ('spine_02', 'spine_03', 'clavicle_l', 'clavicle_r', 'neck_01')))
+            rock = kind_ == 'rocks'
+            rng = random.Random(zlib.crc32(f"{arm.name}/{kind_}".encode()))
+            dflt = (('spine_02', 'spine_03', 'clavicle_l', 'clavicle_r', 'upperarm_l', 'upperarm_r', 'lowerarm_l', 'lowerarm_r',
+                     'calf_l', 'calf_r') if rock else ('spine_02', 'spine_03', 'clavicle_l', 'clavicle_r', 'neck_01'))
+            back = _groups_of(skin, p.get('groups', dflt))
             rot = skin.matrix_world.to_3x3()
             cand = [v for v in skin.data.vertices
-                    if sum(g.weight for g in v.groups if g.group in back) >= 0.5 and (rot @ v.normal).y > 0.35]
+                    if sum(g.weight for g in v.groups if g.group in back) >= 0.5
+                    and (rot @ v.normal).y > (p.get('facing', -0.2) if rock else 0.35)]
             if not cand:
-                sys.exit('kitbash spores: 등 살을 못 찾았다')
-            rmin, rmax = p.get('radius', (0.018, 0.05))
+                sys.exit(f'kitbash {kind_}: 붙일 살을 못 찾았다')
+            rmin, rmax = p.get('radius', (0.03, 0.08) if rock else (0.018, 0.05))
             picked = []
             for _ in range(4000):
                 if len(picked) >= p.get('count', 14):
@@ -317,15 +324,27 @@ def kitbash(arm, parts):
             for co, r, v in picked:
                 nrm = (rot @ v.normal).normalized()
                 ws = _skin_weights(skin, v)
-                geom = bmesh.ops.create_icosphere(bm, subdivisions=2, radius=r)
-                sq = Vector((1 + 0.25 * (rng.random() - 0.5), 1 + 0.25 * (rng.random() - 0.5), 1 + 0.25 * (rng.random() - 0.5)))
-                ctr = co + nrm * (r * 0.35)  # 65% 는 살 속에
-                for bv in geom['verts']:
-                    bv.co = ctr + Vector((bv.co.x * sq.x, bv.co.y * sq.y, bv.co.z * sq.z))
+                geom = bmesh.ops.create_icosphere(bm, subdivisions=1 if rock else 2, radius=r)
+                if rock:
+                    t1 = nrm.cross(Vector((0, 0, 1)) if abs(nrm.z) < 0.9 else Vector((1, 0, 0))).normalized()
+                    ang = rng.random() * 2 * math.pi
+                    t1 = t1 * math.cos(ang) + nrm.cross(t1) * math.sin(ang)
+                    t2 = nrm.cross(t1).normalized()
+                    k1, k2, kn = 1 + 0.35 * (rng.random() - 0.5), 1 + 0.35 * (rng.random() - 0.5), p.get('flat', 0.45)
+                    ctr = co + nrm * (r * kn * 0.1)  # 판 두께의 절반 조금 넘게 살 속에
+                    for bv in geom['verts']:
+                        c0 = bv.co.copy()
+                        bv.co = ctr + t1 * (c0.x * k1) + t2 * (c0.y * k2) + nrm * (c0.z * kn)
+                else:
+                    sq = Vector((1 + 0.25 * (rng.random() - 0.5), 1 + 0.25 * (rng.random() - 0.5), 1 + 0.25 * (rng.random() - 0.5)))
+                    ctr = co + nrm * (r * 0.35)  # 65% 는 살 속에
+                    for bv in geom['verts']:
+                        bv.co = ctr + Vector((bv.co.x * sq.x, bv.co.y * sq.y, bv.co.z * sq.z))
                 bm.verts.index_update()
                 for bv in geom['verts']:
                     weights[bv.index] = ws
-            _new_part(arm, f'{arm.name}_kitbash_spore', bm, weights, p.get('color', '#b8a24a'), 0.7)
+            _new_part(arm, f'{arm.name}_kitbash_{"rock" if rock else "spore"}', bm, weights,
+                      p.get('color', '#8a8378' if rock else '#b8a24a'), 0.95 if rock else 0.7, smooth=not rock)
         elif kind_ == 'loincloth':
             bones = arm.data.bones
             z_top = (arm.matrix_world @ bones['pelvis'].head_local).z + p.get('top', 0.04)
@@ -367,7 +386,7 @@ def kitbash(arm, parts):
             W = lambda b: arm.matrix_world @ bones[b].head_local  # noqa: E731
             pel, kn, an = W('pelvis'), W('calf_l'), W('foot_l')
             z_top = W('clavicle_l').z - p.get('top', 0.06)
-            z_bot = an.z + p.get('hem', 0.06)
+            z_bot = pel.z - (pel.z - an.z) * p['length'] if 'length' in p else an.z + p.get('hem', 0.06)  # length: 골반→발목 몫(짧은 옷)
             body = _groups_of(skin, ('pelvis', 'spine_01', 'spine_02', 'spine_03', 'thigh_l', 'thigh_r', 'calf_l', 'calf_r'))
             allv = [skin.matrix_world @ v.co for v in skin.data.vertices
                     if sum(g.weight for g in v.groups if g.group in body) >= 0.6]
@@ -393,7 +412,7 @@ def kitbash(arm, parts):
                 ring = _ring(bm, c, Vector((1, 0, 0)), Vector((0, 1, 0)), sx, sy, n)
                 if i == rows - 1:
                     for k, v in enumerate(ring):  # 해진 끝단
-                        v.co.z += p.get('jag', 0.05) * (0.5 + 0.5 * math.cos(k * 2 * math.pi * 3 / n) * (1 if k % 2 else -0.6))
+                        v.co.z += p.get('jag', 0.05) * (0.5 + 0.5 * math.cos(k * 2 * math.pi * p.get('teeth', 3) / n) * (1 if k % 2 else -0.6))
                 rings.append(ring)
             for i in range(rows - 1):
                 _bridge(bm, rings[i], rings[i + 1])
@@ -401,12 +420,29 @@ def kitbash(arm, parts):
             cx = pel.x
             lsign = 1.0 if W('thigh_l').x > cx else -1.0
             spine = sorted(((W(b).z, b) for b in ('spine_01', 'spine_02', 'spine_03')), reverse=True)
+            kd = None
+            if p.get('weights') == 'skin':
+                # 다리가 남는 옷(요정 잎 옷): 골반 아래 정점은 가장 가까운 다리·골반 살의 뼈 무게를 그대로 받는다 — 허벅지를 70% 만
+                # 따라가게 하면 서기에 허벅지가 28% 뚫고 나왔다(09-25). 두 다리 사이 가운데 줄만 골반 쪽으로 반쯤 되돌려 찢어지지 않게
+                from mathutils import kdtree
+                src = [v for v in skin.data.vertices if sum(g.weight for g in v.groups if g.group in body) >= 0.6]
+                kd = kdtree.KDTree(len(src))
+                for i, v in enumerate(src):
+                    kd.insert(skin.matrix_world @ v.co, i)
+                kd.balance()
             for ring in rings:
                 for v in ring:
                     z = v.co.z
                     if z >= pel.z:
                         b = next((nm for hz, nm in spine if z >= hz), 'pelvis')
                         weights[v.index] = {b: 1.0}
+                        continue
+                    if kd is not None:
+                        ws = _skin_weights(skin, src[kd.find(v.co)[1]])
+                        c = p.get('center', 0.5) * max(0.0, 1 - abs(v.co.x - cx) / 0.05)
+                        ws = {b: w * (1 - c) for b, w in ws.items()}
+                        ws['pelvis'] = ws.get('pelvis', 0.0) + c
+                        weights[v.index] = ws
                         continue
                     side = 'l' if (v.co.x - cx) * lsign > 0 else 'r'
                     t_leg = min(1.0, (pel.z - z) / max(pel.z - kn.z, 1e-6))

@@ -9127,3 +9127,10 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - 비교 장면 `BuildCharCompareRealScene` 짝 여섯(Warrok 1.75·Parasite 1.60·Nightshade 1.60m — `SetupForestCreatureModels` 키), 지금 몸 동작 검사는 가진 클립 수까지(지금 Nightshade 는 서기 하나).
 - 검증: build `--check` 땅 0cm · verify fbx ≤ 0.31°·glb 0.0° · 두 번 빌드 glb 같은 바이트 · 부품 뿌리-살 0.3~2.3mm · saga-unity 배치 `CMP_RESULT OK`(몸 열둘 키·발 y=0·앞 방향·동작·ForgeSkin·부품 색). 게임 몸은 그대로 — 판정 전.
 - 실기 확인 전(HOW_TO_PLAYTEST §9): 괴물다운가 — 공방 Warrok 은 털이 없고, Parasite 는 찢긴 살 결이 없다. 유령 옷자락은 쓰러짐 동작에서 36% 뚫린다(게임은 서기만).
+
+## 2026-09-25 — char-forge 바위도깨비·잎 옷 요정 + 비교 장면 짝 여덟 ("이어해")
+
+- 부품: `rocks`(모난 바위 판, 살 법선 쪽으로 누른 이십면체·모난 면) · `robe` `length`(짧은 옷)·`teeth`·`weights: "skin"`(가장 가까운 살의 뼈 무게 — 다리가 남는 옷). 포자 코드를 합쳤는데 포자괴물 glb 는 같은 바이트.
+- 몸: `_cmp_real_rockgiant_01`(Hulk 자리, 1.85m 비교) · `_cmp_real_fairy_01`(Jolleen 자리 — 숲 정령 셋·STORY 전직관, 1.75m 비교).
+- 측정 바로잡음: 옷자락 뚫림을 "그 방향 끝단 위의 다리"만 세게(끝단 아래 다리까지 섞어 옷을 넓힐수록 나빠 보였다). 요정 잎 옷 서기 0.8%·걷기 9%·달리기 31%(두 허벅지를 감싼 옷이 한쪽만 따라가는 몫 — 천 시뮬레이션 없이는 남는다).
+- 검증: verify fbx ≤ 0.30°·glb 0.0° · 두 번 빌드 같은 바이트 · 바위 판-살 1.5~4mm · saga-unity 배치 `CMP_RESULT OK`(몸 열여섯). 게임 몸은 그대로 — 판정 전.
