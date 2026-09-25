@@ -1,0 +1,89 @@
+{
+ "id": "_cmp_real_martialist_01",
+ "_note": "단계 3 GO 인물 비교용 — saga-unity Brady(Mixamo) 자리 후보(GO '무도복 수행자', 109-7). 게임 인물 아님. 마른 근육질 남자·짧은 머리·흰 무도복 저고리·흰 바지·검은 띠·맨발. 정찰병(삼베 저고리·감발)과 겹치지 않게.",
+ "macro": {
+  "gender": 1.0,
+  "age": 0.45,
+  "muscle": 0.8,
+  "weight": 0.3,
+  "height": 0.599,
+  "proportions": 0.9,
+  "race": {
+   "asian": 0.8,
+   "caucasian": 0.15,
+   "african": 0.05
+  }
+ },
+ "skin": "young_asian_male/young_asian_male.mhmat",
+ "eyebrows": "eyebrow011/eyebrow011.mhclo",
+ "hair": "short04/short04.mhclo",
+ "eyes": "high-poly/high-poly.mhclo",
+ "eyelashes": "eyelashes01/eyelashes01.mhclo",
+ "teeth": "teeth_base/teeth_base.mhclo",
+ "kitbash": [
+  {
+   "part": "shell",
+   "slot": "cloth",
+   "color": "#ece6d6",
+   "rough": 0.95,
+   "offset": 0.01,
+   "thick": 0.005,
+   "groups": [
+    "spine_0*",
+    "clavicle_*",
+    "pelvis",
+    "neck_01",
+    "upperarm_*",
+    "lowerarm_*"
+   ],
+   "z": [
+    0.45,
+    0.88
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "cloth_pants",
+   "color": "#ece6d6",
+   "rough": 0.95,
+   "offset": 0.012,
+   "thick": 0.004,
+   "groups": [
+    "pelvis",
+    "thigh_*",
+    "calf_*"
+   ],
+   "z": [
+    0.06,
+    0.58
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "leather_belt",
+   "color": "#141414",
+   "rough": 0.8,
+   "offset": 0.022,
+   "thick": 0.007,
+   "groups": [
+    "pelvis",
+    "spine_01"
+   ],
+   "z": [
+    0.54,
+    0.58
+   ],
+   "minw": 0.5
+  }
+ ],
+ "anims": {
+  "idle": "Idle_Loop",
+  "walk": "Walk_Loop",
+  "run": "Jog_Fwd_Loop",
+  "attack": "Punch_Cross",
+  "hit": "Hit_Chest",
+  "death": "Death01"
+ }
+}

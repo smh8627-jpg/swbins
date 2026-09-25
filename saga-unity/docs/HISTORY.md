@@ -9304,3 +9304,10 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - 진단 `PlaytestDungeonSecrets`(세 시대 꾸밈 뒤): 표·단 경계 · 무예 셋 × 여섯 배율 18칸(다른 무예 안 바뀜) · 잠금·풀기·환원·모르는 값 · 실제 버튼 경로 시전(없음 평타 0.55초·HitDamage, 신속 ×0.7·0.275초, 분노 강공격 ×2.6×1.45·1.82초, 확산 평타 셋 맞고 넷째 안 맞음, 회전베기 3.3m 없음 X·확산 O, 한기 얼림 1초 남고 3초 풀림, 흡혈 두 무예 회복 +7) · 빛기둥(표·실제 처치 셋·높이·선 둘) · 패널 진짜 onClick(열기·잠긴 칸 안 걸림·분노 걸고 풀기·딱지) · v11 필드·JSON 왕복.
 - 검증: 컴파일 0 · `PlaytestDungeonHeadless` **3연속 OK**(secrets 줄 2·3회 md5 같음, 1회는 문구 고치기 전) · `PlaytestDungeonFloorProgression` OK. 화면은 안 봄 — 실기 확인 전(비결 체감·패널/딱지 폰 자리·기둥 높이·색·소리).
 - 다음 = 109-10-2 웹 5.10 비전(비결을 키우는 전설 장비).
+
+## 2026-09-25 — char-forge 출처 검사(asset-audit origin) + 공방 후보 없던 몸 아홉 — unity Mixamo 몸 61 전부 후보 ("이어해")
+
+- `tools/asset-audit` 에 인물·동작 출처 검사(bc3aba3f): godot 🔴 0(통과) · unity 🔴 282(Mixamo 몸 61, 판정 뒤 교체로 준다).
+- 후보 없던 아홉: GO 인물 105 몸 여덟(Dreyar·CastleGuard02·Heraklios·Brady·Joe·Kachujin·Arissa·Eve — 109-7) + 맨몸 잡졸 Abe. 레시피 `_cmp_real_blackknight_01` 외 여덟(char-forge README §7 단계 3).
+- 비교 빌더: 짝 아홉(`IdlePair` 여덟 + Abe 는 Punching 클립 이름이 달라 따로).
+- 검증: verify fbx ≤ 0.55°·glb 0.0° · 두 번 빌드 같은 바이트 · 키 ±1.5% · saga-unity 배치 `CMP_RESULT OK`(짝 61·몸 122). 게임 몸은 그대로 — 판정 전.

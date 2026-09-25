@@ -1,0 +1,126 @@
+{
+ "id": "_cmp_real_swordmaiden_f_01",
+ "_note": "단계 3 GO 인물 비교용 — saga-unity Kachujin(Mixamo) 자리 후보(GO '무희·여무사', 109-7). 게임 인물 아님. 탄탄한 젊은 여자·긴 머리·이마 금 띠·다홍 민소매 윗옷·가죽 팔 가리개·무릎 위 톱니 끝단 다홍 치마·검은 바지·가죽 신.",
+ "macro": {
+  "gender": 0.0,
+  "age": 0.42,
+  "muscle": 0.7,
+  "weight": 0.35,
+  "height": 0.64,
+  "proportions": 0.95,
+  "race": {
+   "asian": 0.8,
+   "caucasian": 0.15,
+   "african": 0.05
+  }
+ },
+ "skin": "young_asian_female/young_asian_female.mhmat",
+ "eyebrows": "eyebrow006/eyebrow006.mhclo",
+ "hair": "long01/long01.mhclo",
+ "eyes": "high-poly/high-poly.mhclo",
+ "eyelashes": "eyelashes02/eyelashes02.mhclo",
+ "teeth": "teeth_base/teeth_base.mhclo",
+ "kitbash": [
+  {
+   "part": "shell",
+   "slot": "cloth",
+   "color": "#a8231e",
+   "rough": 0.8,
+   "offset": 0.006,
+   "thick": 0.004,
+   "groups": [
+    "spine_0*",
+    "clavicle_*",
+    "pelvis",
+    "neck_01"
+   ],
+   "z": [
+    0.56,
+    0.86
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "cloth_pants",
+   "color": "#1c1a1c",
+   "rough": 0.85,
+   "offset": 0.006,
+   "thick": 0.004,
+   "groups": [
+    "pelvis",
+    "thigh_*",
+    "calf_*"
+   ],
+   "z": [
+    0.06,
+    0.58
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#4a3020",
+   "rough": 0.65,
+   "offset": 0.01,
+   "thick": 0.005,
+   "groups": [
+    "foot_*",
+    "ball_*",
+    "calf_*"
+   ],
+   "z": [
+    0.0,
+    0.08
+   ],
+   "minw": 0.3
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#4a3020",
+   "rough": 0.7,
+   "offset": 0.012,
+   "thick": 0.005,
+   "groups": [
+    "lowerarm_*"
+   ],
+   "minw": 0.7
+  },
+  {
+   "part": "shell",
+   "slot": "metal_band",
+   "color": "#c9a040",
+   "rough": 0.25,
+   "offset": 0.02,
+   "thick": 0.004,
+   "groups": [
+    "head"
+   ],
+   "z_eye": [
+    0.03,
+    0.085
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "robe",
+   "color": "#a8231e",
+   "top": 0.32,
+   "length": 0.42,
+   "flare": 0.45,
+   "jag": 0.35,
+   "teeth": 10,
+   "weights": "skin"
+  }
+ ],
+ "anims": {
+  "idle": "Sword_Idle",
+  "walk": "Walk_Loop",
+  "run": "Jog_Fwd_Loop",
+  "attack": "Sword_Attack",
+  "hit": "Hit_Chest",
+  "death": "Death01"
+ }
+}

@@ -1,0 +1,127 @@
+{
+ "id": "_cmp_real_hoodedcloak_f_01",
+ "_note": "단계 3 GO 인물 비교용 — saga-unity Arissa(Mixamo) 자리 후보(GO '두건 망토 — 무녀·여왕·궁정 문필', 109-7). 게임 인물 아님. 가는 여자·얼굴 트인 짙은 청록 두건·가슴 아래 발목까지 청록 긴 옷자락·놋쇠 목 고리·가죽 장갑. 능묘지기(늙은 남자·보라 도포)·유령(해진 옷자락)과 겹치지 않게.",
+ "macro": {
+  "gender": 0.0,
+  "age": 0.45,
+  "muscle": 0.4,
+  "weight": 0.3,
+  "height": 0.603,
+  "proportions": 0.95,
+  "race": {
+   "asian": 0.3,
+   "caucasian": 0.6,
+   "african": 0.1
+  }
+ },
+ "skin": "young_caucasian_female/young_caucasian_female.mhmat",
+ "eyebrows": "eyebrow012/eyebrow012.mhclo",
+ "eyes": "high-poly/high-poly.mhclo",
+ "eyelashes": "eyelashes02/eyelashes02.mhclo",
+ "teeth": "teeth_base/teeth_base.mhclo",
+ "kitbash": [
+  {
+   "part": "shell",
+   "slot": "cloth",
+   "color": "#1f3a3c",
+   "rough": 0.9,
+   "offset": 0.005,
+   "thick": 0.004,
+   "groups": [
+    "pelvis",
+    "spine_0*",
+    "clavicle_*",
+    "upperarm_*",
+    "lowerarm_*",
+    "thigh_*",
+    "calf_*",
+    "neck_01"
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#2a2018",
+   "rough": 0.65,
+   "offset": 0.01,
+   "thick": 0.005,
+   "groups": [
+    "foot_*",
+    "ball_*",
+    "calf_*"
+   ],
+   "z": [
+    0.0,
+    0.08
+   ],
+   "minw": 0.3
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#2a2018",
+   "rough": 0.65,
+   "offset": 0.004,
+   "thick": 0.003,
+   "groups": [
+    "hand_*",
+    "index_*",
+    "middle_*",
+    "ring_*",
+    "pinky_*",
+    "thumb_*"
+   ],
+   "minw": 0.3
+  },
+  {
+   "part": "shell",
+   "slot": "metal",
+   "color": "#a8823e",
+   "rough": 0.3,
+   "offset": 0.02,
+   "thick": 0.005,
+   "groups": [
+    "neck_01",
+    "clavicle_*",
+    "spine_03"
+   ],
+   "z": [
+    0.82,
+    0.86
+   ],
+   "minw": 0.4
+  },
+  {
+   "part": "shell",
+   "slot": "cloth_hood",
+   "color": "#1a3234",
+   "rough": 0.9,
+   "offset": 0.016,
+   "thick": 0.005,
+   "groups": [
+    "head",
+    "neck_01"
+   ],
+   "open_face": true,
+   "minw": 0.5
+  },
+  {
+   "part": "robe",
+   "color": "#1f3a3c",
+   "top": 0.2,
+   "length": 0.92,
+   "flare": 0.45,
+   "jag": 0.0,
+   "weights": "skin"
+  }
+ ],
+ "anims": {
+  "idle": "Idle_Loop",
+  "walk": "Walk_Loop",
+  "run": "Jog_Fwd_Loop",
+  "attack": "Spell_Simple_Shoot",
+  "hit": "Hit_Chest",
+  "death": "Death01"
+ }
+}

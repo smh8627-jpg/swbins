@@ -1,0 +1,36 @@
+{
+ "id": "_cmp_real_suit_01",
+ "_note": "단계 3 GO 인물 비교용 — saga-unity Joe(Mixamo) 자리 후보(GO '근대 양복', 109-7 — 근대 인물 몇만). 게임 인물 아님. 중년 남자·MakeHuman 정장·중절모·구두(옷은 system assets 옷 — 껍데기 아님). 암흑가 해결사(검은 껍데기 양복·검은 안경)와 겹치지 않게.",
+ "macro": {
+  "gender": 1.0,
+  "age": 0.6,
+  "muscle": 0.5,
+  "weight": 0.55,
+  "height": 0.535,
+  "proportions": 0.8,
+  "race": {
+   "asian": 0.7,
+   "caucasian": 0.25,
+   "african": 0.05
+  }
+ },
+ "skin": "middleage_asian_male/middleage_asian_male.mhmat",
+ "eyebrows": "eyebrow002/eyebrow002.mhclo",
+ "hair": "short02/short02.mhclo",
+ "eyes": "high-poly/high-poly.mhclo",
+ "eyelashes": "eyelashes01/eyelashes01.mhclo",
+ "teeth": "teeth_base/teeth_base.mhclo",
+ "clothes": [
+  "male_elegantsuit01/male_elegantsuit01.mhclo",
+  "fedora01/fedora01.mhclo",
+  "shoes02/shoes02.mhclo"
+ ],
+ "anims": {
+  "idle": "Idle_Talking_Loop",
+  "walk": "Walk_Formal_Loop",
+  "run": "Jog_Fwd_Loop",
+  "interaction": "PickUp_Table",
+  "hit": "Hit_Chest",
+  "death": "Death01"
+ }
+}

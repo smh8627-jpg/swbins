@@ -200,6 +200,25 @@ namespace Saga.EditorTools
             FolkPair("Sophie", "_cmp_real_photographer_f_02", 1.70f),
             FolkPair("Uriel", "_cmp_real_goldexo_f_01", 1.78f),
             FolkPair("Jennifer", "_cmp_real_castaway_f_01", 1.68f),
+            // GO 인물 105 몸 여덟(109-7, SetupNpcCharacterImports.HeroBodies — 지금 몸은 서기만)
+            IdlePair("Dreyar", "_cmp_real_blackknight_01", 1.85f),
+            IdlePair("CastleGuard02", "_cmp_real_castleguard_02", 1.80f),
+            IdlePair("Heraklios", "_cmp_real_furchief_01", 1.88f),
+            IdlePair("Brady", "_cmp_real_martialist_01", 1.72f),
+            IdlePair("Joe", "_cmp_real_suit_01", 1.75f),
+            IdlePair("Kachujin", "_cmp_real_swordmaiden_f_01", 1.66f),
+            IdlePair("Arissa", "_cmp_real_hoodedcloak_f_01", 1.68f),
+            IdlePair("Eve", "_cmp_real_leatherknight_f_01", 1.70f),
+            // 맨몸 잡졸(DUNGEON·STORY)·GO 산적 동료 — 클립 파일 이름이 다르다(Punching)
+            new Pair
+            {
+                Key = "Abe", NowBody = NowRoot + "Abe/Abe.fbx", ForgeId = "_cmp_real_brawler_01", Height = 1.80f,
+                NowClips = new Dictionary<string, (string, string)>
+                {
+                    { "idle", ("Idle", "idle") }, { "walk", ("Walking", "walk") }, { "attack", ("Punching", "attack") },
+                    { "hit", ("HitReaction", "hit") }, { "death", ("Dying", "death") },
+                },
+            },
         };
 
         /// <summary>행상 짝 — 지금 몸은 서기 하나뿐이다.</summary>
