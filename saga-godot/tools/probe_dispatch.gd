@@ -4,7 +4,7 @@ extends Node
 ##
 ##   SAGA_DISPATCH_PROBE=1 "$GODOT" --headless --path saga-godot res://games/saga_go/world/TestVillage.tscn
 ##
-## ① 표(탐사지·지역·원소·재료 칸·시간 배율 오름·자리 수) ② 게시판 자리(물 밖·평평·막힘 없음·의뢰 게시판·냄비·인물·지점과 떨어짐)
+## ① 표(탐사지·지역·원소·재료 칸·시간 배율 오름·자리 수·네 지역 모두) ② 게시판 자리(물 밖·평평·막힘 없음·의뢰 게시판·냄비·인물·지점과 떨어짐)
 ## ③ 둘레에서 안내 단추·F 겹침 없음(냄비·낚시) ④ 보낼 수 있는 동료(나·들판 명단 제외) ⑤ 신상 안 켠 지역은 잠김
 ## ⑥ 보내기 → 탐사 중(명단·편성에 못 넣음) ⑦ 같은 자리·자리 수 넘기 막힘 ⑧ 부르기 = 보상 없음
 ## ⑨ 시간이 흐르면 알림·받기(한 번만) ⑩ 잘 맞는 원소 +25% ⑪ 세이브 JSON 을 거쳐도 그대로 ⑫ 화면(얼림·목록·고르기·보내기).
@@ -65,6 +65,12 @@ func _physics_process(_delta: float) -> void:
 							bad.append("%s %dh %s" % [id, h, k])
 					last = r
 			var sl := [Dispatch.slots_for_ar(1), Dispatch.slots_for_ar(5), Dispatch.slots_for_ar(10), Dispatch.slots_for_ar(15), Dispatch.slots_for_ar(60)]
+			var regs := {}
+			for id in Dispatch.ORDER:
+				regs[String(Dispatch.spot(id).region)] = int(regs.get(String(Dispatch.spot(id).region), 0)) + 1
+			for r in WorldMap.REGION_STATUE:
+				if int(regs.get(r, 0)) != 2:
+					bad.append("region %s=%d" % [r, int(regs.get(r, 0))])
 			_check("tables", bad.is_empty() and eras.size() == 3 and sl == [2, 3, 4, 5, 5], "bad=%s eras=%s slots=%s" % [bad, eras.keys(), sl])
 			_next()
 		1: # ② 게시판 자리
@@ -153,9 +159,16 @@ func _physics_process(_delta: float) -> void:
 				EventState.mark_resolved("wp_" + String(WorldMap.REGION_STATUE[k]))
 			EventState.resolved.erase("wp_" + String(WorldMap.REGION_STATUE.ruins))
 			var err := String(_d.call("send", "d_rift", _m[0], 4))
-			var locked := not bool(_d.call("unlocked", "d_rift")) and bool(_d.call("unlocked", "d_road"))
+			var locked := not bool(_d.call("unlocked", "d_rift")) and bool(_d.call("unlocked", "d_road")) and bool(_d.call("unlocked", "f_wreck"))
 			EventState.mark_resolved("wp_" + String(WorldMap.REGION_STATUE.ruins))
-			_check("locked", locked and err.contains("신상") and PartyState.dispatch.get("out", {}).is_empty(), "locked=%s err=%s" % [locked, err])
+			## ㊻-2 고원 탐사지 둘은 고원 신상으로.
+			EventState.resolved.erase("wp_" + String(WorldMap.REGION_STATUE.frost))
+			var err_f := String(_d.call("send", "f_fortress", _m[0], 4))
+			var frost_locked := not bool(_d.call("unlocked", "f_fortress")) and not bool(_d.call("unlocked", "f_wreck")) and bool(_d.call("unlocked", "d_rift"))
+			EventState.mark_resolved("wp_" + String(WorldMap.REGION_STATUE.frost))
+			var frost_open := bool(_d.call("unlocked", "f_fortress")) and bool(_d.call("unlocked", "f_wreck"))
+			_check("locked", locked and frost_locked and frost_open and err.contains("신상") and err_f.contains("신상") and PartyState.dispatch.get("out", {}).is_empty(),
+				"locked=%s frost=%s/%s err=%s err_f=%s" % [locked, frost_locked, frost_open, err, err_f])
 			_next()
 		5: # ⑥ 보내기 → 탐사 중
 			var err := String(_d.call("send", "d_road", _m[0], 4))
@@ -252,7 +265,7 @@ func _physics_process(_delta: float) -> void:
 			var sent := String(_d.call("member_at", "d_road")) == who and int((PartyState.dispatch.out.d_road as Dictionary).hours) == 8
 			var txt2: String = _d.call("list_text")
 			_d.call("close_screen")
-			_check("screen", opened and frozen and txt.contains("옛 역참 길") and txt.contains("시간 틈 관측소") and txt.contains("부르기") and pick_vis and n_btn > 0 and sent
+			_check("screen", opened and frozen and txt.contains("옛 역참 길") and txt.contains("시간 틈 관측소") and txt.contains("추락한 비행선 잔해") and txt.contains("부르기") and pick_vis and n_btn > 0 and sent
 				and txt2.contains("탐사 중") and not bool(_p.get("frozen")), "opened=%s pick=%s btns=%d sent=%s\n%s" % [opened, pick_vis, n_btn, sent, txt2.substr(0, 400)])
 			_next()
 		12:

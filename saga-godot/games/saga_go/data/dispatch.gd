@@ -36,8 +36,13 @@ const SPOTS := {
 		"desc": "옛 석공의 채석장 — 무쇠 조각과 들짐승"},
 	"d_rift": {"region": "ruins", "name": "시간 틈 관측소", "era": "미래", "element": "thunder", "base": {"polish": 1, "ore_s": 1},
 		"desc": "틈에서 흘러나온 앞 시대의 부품을 모은다"},
+	## ㊻-2 서리봉 고원 — 셋째까지 없던 빙 원소 하나, 미래 한 곳(고원 특산물은 아직이라 있는 재료로).
+	"f_fortress": {"region": "frost", "name": "얼음 아래 산성 터", "era": "과거", "element": "ice", "base": {"iron": 1, "mushroom": 2},
+		"desc": "언 호수 밑 옛 산성 — 녹슨 쇠붙이와 그늘 버섯"},
+	"f_wreck": {"region": "frost", "name": "추락한 비행선 잔해", "era": "미래", "element": "wind", "base": {"ore_s": 2, "polish": 1},
+		"desc": "눈에 묻힌 앞 시대 비행선에서 부품을 떼어 온다"},
 }
-const ORDER := ["d_road", "d_wood", "d_mudflat", "d_shipyard", "d_quarry", "d_rift"]
+const ORDER := ["d_road", "d_wood", "d_mudflat", "d_shipyard", "d_quarry", "d_rift", "f_fortress", "f_wreck"]
 
 
 static func spot(id: String) -> Dictionary:
