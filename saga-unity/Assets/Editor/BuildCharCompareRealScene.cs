@@ -101,6 +101,16 @@ namespace Saga.EditorTools
                     { "idle", ("Idle", "idle") }, { "walk", ("Walking", "walking") }, { "run", ("Running", "running") },
                 },
             },
+            // 해골 — 공방은 뼈를 코드로 짓는다(사람 몸 비틀기가 아니다)
+            new Pair
+            {
+                Key = "Skeleton", NowBody = NowRoot + "Skeleton/Skeleton.fbx", ForgeId = "_cmp_real_skeleton_01", Height = 1.80f,
+                NowClips = new Dictionary<string, (string, string)>
+                {
+                    { "idle", ("Idle", "idle") }, { "walk", ("Walking", "walking") }, { "attack", ("Attack", "attack") },
+                    { "hit", ("HitReaction", "hitreaction") }, { "death", ("Dying", "dying") },
+                },
+            },
             // 잎 옷 요정 — 게임은 숲 정령 셋(0.85~0.95m 로 줄임)과 STORY 전직관(1.75m)에 같은 몸. 비교는 전직관 키로 크게 본다
             new Pair
             {
@@ -268,7 +278,10 @@ namespace Saga.EditorTools
                 if (a.name.StartsWith("FORGE_"))
                 {
                     var skin = mats.FirstOrDefault(m => m.name.EndsWith("_skin"));
-                    ok &= skin != null && skin.shader == AssetDatabase.LoadAssetAtPath<Shader>(SkinGraph) && skin.GetTexture("_BaseMap") != null;
+                    // 해골(공방 skeleton.py)은 살이 없다 — 피부 대신 뼈 칸(bone)이 있어야 한다
+                    ok &= skin != null
+                        ? skin.shader == AssetDatabase.LoadAssetAtPath<Shader>(SkinGraph) && skin.GetTexture("_BaseMap") != null
+                        : mats.Any(m => m.name.EndsWith("_bone"));
                     // 그림 없는 부품 재질(뿔 등)은 FBX 의 바탕색을 옮겨 받아야 한다 — 흰색이면 옮기기가 빠진 것
                     foreach (var m in mats.Where(m => !m.GetTexture("_BaseMap")))
                     {

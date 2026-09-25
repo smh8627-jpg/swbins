@@ -167,9 +167,12 @@ def _verts_world(o, group=None, min_w=0.5):
     return out
 
 
-def _new_part(arm, name, bm, weights, color, rough, smooth=True):
+def _new_part(arm, name, bm, weights, color, rough, smooth=True, dark=None):
+    """dark = (면마다 참/거짓, 헥스) — 참인 면은 둘째 재질 칸 socket(해골 눈구멍·코구멍·입 틈)."""
     """bmesh → 뼈대 자식 스킨 메시(가중치 {정점 번호: {뼈: 무게}}) + 원리 재질 하나(이름 = 칸)."""
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
+    if dark:
+        bm.faces.index_update()
     me = bpy.data.meshes.new(name)
     bm.to_mesh(me)
     bm.free()
@@ -191,6 +194,16 @@ def _new_part(arm, name, bm, weights, color, rough, smooth=True):
     bsdf.inputs['Base Color'].default_value = build.hex_rgba(color)
     bsdf.inputs['Roughness'].default_value = rough
     me.materials.append(mat)
+    if dark:
+        flags, col = dark
+        m2 = bpy.data.materials.new('socket')
+        m2.use_nodes = True
+        b2 = next(n for n in m2.node_tree.nodes if n.type == 'BSDF_PRINCIPLED')
+        b2.inputs['Base Color'].default_value = build.hex_rgba(col)
+        b2.inputs['Roughness'].default_value = 0.95
+        me.materials.append(m2)
+        for poly, f in zip(me.polygons, flags):
+            poly.material_index = 1 if f else 0
     return ob
 
 
@@ -478,6 +491,23 @@ def kitbash(arm, parts):
                 sbm.free()
                 skin.data.update()
                 print('KITBASH robe hide_legs: 살 정점', len(kill), '지움')
+        elif kind_ == 'skeleton':
+            # 해골 — 살·눈·눈썹·머리를 다 걷고 뼈를 코드로 짓는다(skeleton.py). 이(teeth)는 두개골 입 틈에 남긴다. 레시피의 마지막 부품이어야 한다
+            import skeleton as SK
+            meshes = [o for o in arm.children if o.type == 'MESH' and o is not skin]
+            eyes = next(o for o in meshes if o.name.endswith('_eyes'))
+            teeth = next((o for o in meshes if o.name.endswith('_teeth')), None)
+            P, s_ = SK.build(arm, skin, meshes, p)
+            SK.skull(P, arm, skin, eyes, teeth, s_)
+            P.bm.verts.index_update()
+            P.bm.faces.index_update()
+            weights = {v.index: {P.bone_of(v): 1.0} for v in P.bm.verts}
+            flags = [bool(f[P.fl]) for f in P.bm.faces]
+            _new_part(arm, f'{arm.name}_kitbash_bone', P.bm, weights, p.get('color', '#d6ccb2'), 0.62,
+                      dark=(flags, p.get('socket', '#17120e')))
+            for o in [skin] + [o for o in meshes if o is not teeth]:
+                bpy.data.objects.remove(o, do_unlink=True)
+            print('KITBASH skeleton: 뼈 조각 정점', len(weights), '· 어두운 면', sum(flags), '· 키 비', round(s_, 3))
         else:
             sys.exit(f'kitbash: 모르는 부품 {kind_}')
 
