@@ -186,6 +186,9 @@
     if (G.dust) { s.dust = (s.dust || 0) + G.dust; }
     if (c.gainExp) { c.gainExp(G.exp); }
     var TL = global.DG.talent, mt = TL ? TL.onChest(ch.grade) : '';   // ⑲-4 무예 책·인연 매듭
+    var WPt = global.DG.weapon ? global.DG.weapon.onChest(ch) : '';     // ⑲-5 강화석·무기(진귀 ★3·화려 ★4)
+    var ARt = global.DG.artifact ? global.DG.artifact.onChest(ch.grade) : '';   // ⑲-5 성유물
+    mt = [mt, WPt, ARt].filter(Boolean).join(' · ');
     toast(G.icon + ' ' + G.name + ' 보물 상자 — 금 +' + G.gold + (G.dust ? ' · 단사 +' + G.dust : '') + ' · 경험 +' + G.exp + (mt ? ' · ' + mt : ''));
     c.log(G.icon + ' ' + G.name + ' 보물 상자를 열었다 — 금 +' + G.gold, 'discover');
     sfx('reward');

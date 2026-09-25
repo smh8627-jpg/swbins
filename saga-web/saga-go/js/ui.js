@@ -197,6 +197,20 @@
         var TLu = global.DG.talent, tk = b.getAttribute('data-key');
         if (TLu && !TLu.up(id, tk)) { toast('⚔️ ' + TLu.upCheck(id, tk).why); }
       }
+      else if (act === 'wp-up' || act === 'wp-asc') {
+        var WPa = global.DG.weapon, wid0 = b.getAttribute('data-wid');
+        if (WPa) {
+          var okW = act === 'wp-up' ? WPa.up(wid0) : WPa.ascend(wid0);
+          if (!okW) { toast('🗡️ ' + (act === 'wp-up' ? WPa.upCheck(wid0) : WPa.ascCheck(wid0)).why); }
+        }
+      }
+      else if (act === 'art-up') {
+        var ARu = global.DG.artifact, uid0 = b.getAttribute('data-uid');
+        if (ARu && !ARu.up(uid0)) { toast('🏺 ' + ARu.upCheck(uid0).why); }
+      }
+      else if (act === 'art-salvage4') {
+        if (global.DG.artifact && !global.DG.artifact.salvageLoose4()) { toast('🏺 안 낀 ★4 가 없습니다'); }
+      }
       else if (act === 'talent-con') {
         var TLc = global.DG.talent;
         if (TLc && !TLc.unlockCon(id)) { toast('🌟 ' + TLc.conCheck(id).why); }
@@ -218,6 +232,23 @@
       core.persist(); renderDetail(); renderSheet(); renderTop();
     });
     host.addEventListener('change', function (e) {
+      /* ⑲-5 무기·성유물 고르기 */
+      var ws = e.target.closest('[data-wp-equip]');
+      if (ws) {
+        if (global.DG.weapon) { global.DG.weapon.equip(ws.getAttribute('data-wp-equip'), ws.value); }
+        renderDetail(); renderSheet();
+        return;
+      }
+      var as = e.target.closest('[data-art-equip]');
+      if (as) {
+        var AR = global.DG.artifact, hid = as.getAttribute('data-art-equip');
+        if (AR) {
+          if (as.value) { AR.equip(hid, as.value); }
+          else { var cur = AR.equippedOf(hid)[as.getAttribute('data-slot')]; if (cur) { AR.unequip(cur); } }
+        }
+        renderDetail(); renderSheet();
+        return;
+      }
       var sel = e.target.closest('[data-equip]');
       if (!sel) { return; }
       var heroId = sel.getAttribute('data-equip');
@@ -1156,6 +1187,79 @@
     return out + '</div>';
   }
 
+  /** 무기(PLAN §5 ⑲-5) — 종류는 인물마다 정해져 있다, 들판 전투에만 탄다 */
+  function weaponBlock(id) {
+    var WP = global.DG.weapon;
+    if (!WP) { return ''; }
+    var wid = WP.equipped(id), w = WP.info(wid), r = WP.rec(wid) || { lv: 1, asc: 0, ref: 1 }, t = WP.typeOf(id), i;
+    var out = '<div class="dt-weapon"><div class="dt-line"><span>' + WP.TYPE_ICON[t] + ' 무기 · ' + WP.TYPE_NAMES[t] +
+      '</span><b>🪨 ' + WP.ore() + '</b></div>';
+    var ch = WP.choicesFor(id), opts = '';
+    for (i = 0; i < ch.length; i++) {
+      var ci = WP.info(ch[i]), cr = WP.rec(ch[i]), who = WP.holderOf(ch[i]);
+      var whoName = who && who !== id ? ' (' + ((data.find(who) || {}).name || who) + ' 사용 중)' : '';
+      opts += '<option value="' + ch[i] + '"' + (ch[i] === wid ? ' selected' : '') + '>★' + ci.rarity + ' ' + esc(ci.name) +
+        (WP.isShared(ch[i]) ? '' : ' Lv.' + cr.lv) + whoName + '</option>';
+    }
+    out += '<select data-wp-equip="' + id + '">' + opts + '</select>';
+    var line = '공격 ' + Math.round(WP.atkAt(wid, r.lv, r.asc));
+    if (w.sub) { line += ' · ' + WP.STAT_NAMES[w.sub] + ' +' + (WP.subAt(wid, r.lv) * 100).toFixed(1) + '%'; }
+    if (w.pas) { line += ' · ' + WP.PASSIVE_NAMES[w.pas] + ' +' + Math.round(WP.passiveAt(wid, r.ref) * 100) + '%'; }
+    if (!WP.isShared(wid)) { line += ' · Lv.' + r.lv + '/' + WP.cap(r.asc) + ' · 돌파 ' + r.asc + ' · 재련 ' + r.ref; }
+    out += '<small class="muted" style="display:block">' + line + '</small>';
+    if (!WP.isShared(wid)) {
+      var uc = WP.upCheck(wid), ac = WP.ascCheck(wid), c = WP.upCost(r.lv), a = WP.ascCost(r.asc);
+      if (r.lv < WP.MAX_LV && r.lv < WP.cap(r.asc)) {
+        out += '<button class="btn ' + (uc.ok ? 'primary' : 'ghost') + ' wide"' + (uc.ok ? '' : ' disabled') + ' data-act="wp-up" data-id="' + id + '" data-wid="' + wid + '">' +
+          '🔨 강화 Lv.' + (r.lv + 1) + ' · 🪨 ' + WP.ore() + '/' + c.ore + ' · 🪙 ' + core.fmt(c.gold) + '</button>';
+      } else if (a) {
+        out += '<button class="btn ' + (ac.ok ? 'primary' : 'ghost') + ' wide"' + (ac.ok ? '' : ' disabled') + ' data-act="wp-asc" data-id="' + id + '" data-wid="' + wid + '">' +
+          '✨ 무기 돌파 ' + (r.asc + 1) + ' · 🪙 ' + core.fmt(a.gold) + ' · 丹 ' + a.dust + '</button>';
+      }
+    } else {
+      out += '<small class="muted" style="display:block">진귀·화려 보물 상자에서 ' + WP.TYPE_NAMES[t] + ' ★3·★4 가 나옵니다.</small>';
+    }
+    return out + '</div>';
+  }
+
+  /** 성유물(PLAN §5 ⑲-5) — 부위 다섯·켜진 세트 */
+  function artifactBlock(id) {
+    var AR = global.DG.artifact;
+    if (!AR) { return ''; }
+    var eq = AR.equippedOf(id), L = AR.list(), all = Object.keys(L), i, j, k;
+    var out = '<div class="dt-artifact"><div class="dt-line"><span>🏺 성유물 (' + all.length + '/' + AR.CAP + ')</span><b>💎 ' + AR.polish() + '</b></div>';
+    for (i = 0; i < AR.SLOTS.length; i++) {
+      var slot = AR.SLOTS[i], cur = eq[slot], opts = '<option value="">' + AR.SLOT_ICON[slot] + ' ' + AR.SLOT_NAMES[slot] + ' — 비움</option>';
+      var mine = all.filter(function (u) { return L[u].slot === slot; })
+        .sort(function (x, y) { return (L[y].rarity - L[x].rarity) || (L[y].lv - L[x].lv); }).slice(0, 40);
+      if (cur && mine.indexOf(cur) < 0) { mine.unshift(cur); }
+      for (j = 0; j < mine.length; j++) {
+        var a = L[mine[j]], own = a.owner && a.owner !== id ? ' (' + ((data.find(a.owner) || {}).name || a.owner) + ')' : '';
+        opts += '<option value="' + mine[j] + '"' + (mine[j] === cur ? ' selected' : '') + '>★' + a.rarity + ' +' + a.lv + ' ' +
+          esc(AR.SETS[a.set].name) + ' · ' + esc(AR.statText(a.main, AR.mainValue(a))) + own + '</option>';
+      }
+      out += '<select data-art-equip="' + id + '" data-slot="' + slot + '">' + opts + '</select>';
+      if (cur) {
+        var ca = L[cur], subs = ca.subs.map(function (s) { return AR.statText(s[0], s[1]); }).join(' · ');
+        var uc = AR.upCheck(cur), c = AR.upCost(ca.lv);
+        out += '<small class="muted" style="display:block">' + esc(subs) + '</small>';
+        if (ca.lv < AR.MAX_LV[ca.rarity]) {
+          out += '<button class="btn ' + (uc.ok ? 'primary' : 'ghost') + ' wide"' + (uc.ok ? '' : ' disabled') + ' data-act="art-up" data-id="' + id + '" data-uid="' + cur + '">' +
+            '💎 ' + AR.SLOT_NAMES[slot] + ' +' + (ca.lv + 1) + ' · 💎 ' + AR.polish() + '/' + c.polish + ' · 🪙 ' + c.gold + '</button>';
+        }
+      }
+    }
+    var st = AR.statsOf(id);
+    for (k = 0; k < st.sets.length; k++) {
+      var S = AR.SETS[st.sets[k].id];
+      out += '<small style="display:block">◆ ' + esc(S.name) + ' ' + st.sets[k].n + '세트 — ' + esc(S.text2) + (st.sets[k].n >= 4 ? ' · ' + esc(S.text4) : '') + '</small>';
+    }
+    if (all.some(function (u) { return L[u].rarity === 4 && !L[u].owner; })) {
+      out += '<button class="btn ghost wide" data-act="art-salvage4" data-id="' + id + '">🏺 안 낀 ★4 모두 분해 → 연마석</button>';
+    }
+    return out + '</div>';
+  }
+
   /** 무예 단계·운명의 자리(PLAN §5 ⑲-4) — 들판 전투 피해에만 탄다 */
   function talentBlock(id) {
     var TL = global.DG.talent;
@@ -1273,7 +1377,7 @@
         statRow('통솔', bk.base.command, bk.grown.command, bk.final.command, cap) +
         '</div>' +
         '<div class="dt-line"><span>인물 됨됨이</span><b>' + core.fmt(hero().power(h.id)) + '</b></div>' +
-        perkBlock(h.id) + talentBlock(h.id) + bondBlock(h.id);
+        perkBlock(h.id) + weaponBlock(h.id) + artifactBlock(h.id) + talentBlock(h.id) + bondBlock(h.id);
 
       out += '<div class="dt-pet"><span>🐾 펫</span>' +
         '<select data-equip="' + h.id + '">' + petOptions(h.id) + '</select>' +

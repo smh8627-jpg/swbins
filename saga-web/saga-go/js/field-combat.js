@@ -367,19 +367,68 @@
     if (m.c6T > 0 && T) { v *= T.C6_ATK; }
     return v;
   }
+  /**
+   * ⑲-5 무기·성유물(weapon.js·artifact.js) — 도감에 든 인물만. '_me'·도감 밖 id 는 한손검 모양에 보탬 0
+   * (진단의 'fc_a' 가 옛 수치 그대로 돌게).
+   */
+  var SWORD_KIT = { mul: [0.9, 1.0, 1.5], sec: [0.34, 0.34, 0.55], reach: 3.2 };
+  function gearMods(id) {
+    var WP = global.DG.weapon, AR = global.DG.artifact, c = core();
+    var own = id !== '_me' && c && c.save && c.save.dex && c.save.dex.heroes && c.save.dex.heroes[id];
+    var out = { type: 'sword', kit: SWORD_KIT, watk: 0, st: {}, four: {}, pas: null, pasV: 0, wid: '' };
+    if (!own) { return out; }
+    if (WP) {
+      var w = WP.mods(id);
+      out.type = w.type; out.kit = w.kit; out.watk = w.atk; out.pas = w.pas; out.pasV = w.pasV; out.wid = w.wid;
+      for (var k in w.sub) { if (Object.prototype.hasOwnProperty.call(w.sub, k)) { out.st[k] = (out.st[k] || 0) + w.sub[k]; } }
+    }
+    if (AR) {
+      var a = AR.statsOf(id), q;
+      for (q in a.stats) { if (Object.prototype.hasOwnProperty.call(a.stats, q)) { out.st[q] = (out.st[q] || 0) + a.stats[q]; } }
+      out.four = a.four;
+    }
+    return out;
+  }
   function memberOf(id) {
     var h = id === '_me' ? null : (data() && data().find ? data().find(id) : null);
     var s = statsOf(id);
     var tl = talentMods(id);
-    var hpMax = Math.round((300 + s.command * 6) * tl.hpMul);
+    var g = gearMods(id), st = g.st, f4 = g.four;
+    function v(k) { return st[k] || 0; }
+    var base = Math.max(20, Math.round(s.might * 0.7 + s.wisdom * 0.3));
+    var hpMax = Math.round(((300 + s.command * 6) * (1 + v('hp_pct')) + v('hp')) * tl.hpMul);
+    var melee = g.type === 'sword' || g.type === 'claymore' || g.type === 'polearm';
+    var rf = f4.react_fire || 0;
     return {
       id: id, name: h ? h.name : '나', el: elementOf(id), shape: shapeOf(id),
-      atk: Math.max(20, Math.round(s.might * 0.7 + s.wisdom * 0.3)),
-      hpMax: hpMax, hp: hpMax, em: s.wisdom, def: s.command,
+      atk: Math.round((base + g.watk) * (1 + v('atk_pct')) + v('atk')),
+      hpMax: hpMax, hp: hpMax, em: s.wisdom, def: Math.round(s.command * (1 + v('def_pct')) + v('def')),
       tm: tl.tm, con: tl.con, cdMul: tl.cdMul, reactMul: tl.reactMul, c6: tl.c6, c6T: 0,
+      /* ⑲-5 — 무기 종류·모양, 치명, 기력, 피해 보너스(더하기), 반응 보너스 */
+      wtype: g.type, kit: g.kit, wid: g.wid,
+      cr: g.wid ? 0.05 + v('crit_rate') : 0, cdm: 0.5 + v('crit_dmg'), er: 1 + v('energy'),
+      dmgB: {
+        n: (g.pas === 'n' ? g.pasV : 0) + (melee ? (f4.normal_melee || 0) : 0),
+        s: (g.pas === 's' ? g.pasV : 0) + (f4.skill_dmg || 0),
+        b: (g.pas === 'b' ? g.pasV : 0) + (f4.burst_dmg || 0)
+      },
+      elemB: { fire: v('elem_fire'), water: v('elem_water'), elec: v('elem_elec'), wind: v('elem_wind'), ice: v('elem_ice'), rock: v('elem_rock'), grass: v('elem_grass'), phys: v('elem_phys') },
+      rxAll: g.pas === 'react' ? g.pasV : 0,
+      rx: { vaporize: rf, melt: rf, overload: rf, burning: rf, swirl: f4.react_swirl || 0 },
       skillCd: 0, burstCd: 0, energy: 0, down: false, burn: null
     };
   }
+  /** mulberry32 — 치명타 굴림(판마다 씨앗 고정, SAGA 진단 씨앗과 같은 식) */
+  function mulberry32(seed) {
+    var t = seed >>> 0;
+    return function () {
+      t = (t + 0x6D2B79F5) | 0;
+      var r = Math.imul(t ^ (t >>> 15), 1 | t);
+      r = (r + Math.imul(r ^ (r >>> 7), 61 | r)) ^ r;
+      return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function rxB(m, kind) { return 1 + ((m.rx && m.rx[kind]) || 0); }
 
   function create(partyIds) {
     var ids = (partyIds || []).slice(0, PARTY_MAX());
@@ -389,7 +438,8 @@
       stamina: STA_MAX(), staT: 9, iframe: 0, dash: null,
       combo: 0, comboT: 9, atkCd: 0, calmT: 99,
       foes: {}, camps: {}, cleared: {}, uid: 0, ev: [], kills: 0, zones: [],
-      guard: null                          // ⑲-1 결정 보호막 { hp, max, t } — 명단 전체가 나눠 쓴다
+      guard: null,                         // ⑲-1 결정 보호막 { hp, max, t } — 명단 전체가 나눠 쓴다
+      crng: mulberry32(20260824)           // ⑲-5 치명타 굴림
     };
   }
 
@@ -610,9 +660,15 @@
   function hitFoe(S, f, m, raw, el, src) {
     var out = { uid: f.uid, dmg: 0, react: null, shield: false, immune: false };
     if (f.dead) { return out; }
-    var emB = (1 + (m.em || 0) / 300) * (m.reactMul || 1);     // ⑲-4 자리 2 — 반응 피해 +15%
+    var emB = (1 + (m.em || 0) / 300) * (m.reactMul || 1) * (1 + (m.rxAll || 0));   // ⑲-4 자리 2 · ⑲-5 무기 반응 효과
     var mul = f.stun > 0 ? STUN_MUL() : 1;
     raw *= talentMul(m, src);
+    /* ⑲-5 — 피해 보너스(원소/물리 + 무기 효과 + 세트 4, 더하기)·치명타. 출처가 인물의 한 방일 때만 */
+    var TLk = global.DG.talent, gk = TLk ? TLk.keyOfSrc(src) : null;
+    if (gk && m.dmgB) {
+      raw *= 1 + (m.dmgB[gk] || 0) + ((m.elemB && m.elemB[el || 'phys']) || 0);
+      if (m.cr > 0 && S.crng && S.crng() < m.cr) { raw *= 1 + (m.cdm || 0); out.crit = true; }
+    }
     S.calmT = 0; f.hitT = S.t; wake(f);
     if (f.shield > 0) {
       var sm = shieldMul(f.shEl, el);
@@ -633,8 +689,8 @@
         rc = react(f.aura, el);
         if (!rc && attaches(el)) { f.aura = el; f.auraT = AURA_T(); }
         if (rc) { f.aura = null; f.auraT = 0; }
-        if (rc && rc.kind === 'vaporize') { extra *= VAPOR_MUL() * emB; }
-        if (rc && rc.kind === 'melt') { extra *= MELT_MUL() * emB; }
+        if (rc && rc.kind === 'vaporize') { extra *= VAPOR_MUL() * emB * rxB(m, 'vaporize'); }
+        if (rc && rc.kind === 'melt') { extra *= MELT_MUL() * emB * rxB(m, 'melt'); }
       }
       out.dmg = Math.round(raw * mul * extra);
       f.hp -= out.dmg;
@@ -654,7 +710,7 @@
             if (sg === f) { continue; }
             wake(sg);
             if (!sg.aura || sg.aura === rc.from) { sg.aura = rc.from; sg.auraT = AURA_T(); }
-            rawHit(S, sg, Math.round(m.atk * SWIRL_MUL() * emB));
+            rawHit(S, sg, Math.round(m.atk * SWIRL_MUL() * emB * rxB(m, 'swirl')));
           }
         } else if (rc.kind === 'crystallize') {
           var am = active(S), gh = Math.round((am ? am.hpMax : 600) * CRYSTAL_HP());
@@ -662,12 +718,12 @@
         } else if (rc.kind === 'bloom') {
           S.zones.push({ kind: 'seed', x: f.x, y: f.y, r: BLOOM_R(), t: BLOOM_T(), el: 'grass', dmg: Math.round(m.atk * BLOOM_MUL() * emB) });
         } else if (rc.kind === 'burning') {
-          f.burnN = BURN_N(); f.burnT = BURN_EVERY(); f.burnDmg = Math.max(1, Math.round(m.atk * BURN_MUL() * emB));
+          f.burnN = BURN_N(); f.burnT = BURN_EVERY(); f.burnDmg = Math.max(1, Math.round(m.atk * BURN_MUL() * emB * rxB(m, 'burning')));
         } else if (rc.kind === 'quicken') {
           f.quickT = QUICK_T();
         } else if (rc.kind === 'overload') {
           near = foesWithin(S, f.x, f.y, OVERLOAD_R());
-          var od = Math.round(m.atk * OVERLOAD_MUL() * emB);
+          var od = Math.round(m.atk * OVERLOAD_MUL() * emB * rxB(m, 'overload'));
           for (i = 0; i < near.length; i++) {
             var g = near[i];
             var ang = Math.atan2(g.y - f.y, g.x - f.x);
@@ -687,7 +743,7 @@
       }
       killCheck(S, f);
     }
-    push(S, { t: 'hit', uid: f.uid, x: f.x, y: f.y, dmg: out.dmg, el: el, react: out.react, src: src, shield: out.shield, immune: out.immune });
+    push(S, { t: 'hit', uid: f.uid, x: f.x, y: f.y, dmg: out.dmg, el: el, react: out.react, src: src, shield: out.shield, immune: out.immune, crit: !!out.crit });
     return out;
   }
 
@@ -697,22 +753,28 @@
   function attack(S, px, py) {
     var m = active(S);
     if (!m || m.down || S.atkCd > 0) { return { ok: false }; }
-    var tgt = nearestFoe(S, px, py, REACH());
-    if (!tgt) {
-      var n = nearestFoe(S, px, py, LUNGE_R());
-      if (n) {
-        var d = Math.hypot(n.x - px, n.y - py) || 1, go = Math.max(0, d - REACH() * 0.7);
-        S.dash = { vx: (n.x - px) / d * go / 0.14, vy: (n.y - py) / d * go / 0.14, t: 0.14 };
-        tgt = n;
+    /* ⑲-5 무기 종류마다 모양 — 한손검은 옛 3타(사거리 손잡이 그대로), 법구·활은 멀리 하나(파고들지 않는다) */
+    var kit = m.kit || SWORD_KIT, reach = kit === SWORD_KIT || m.wtype === 'sword' ? REACH() : kit.reach, tgt;
+    if (kit.range) {
+      tgt = nearestFoe(S, px, py, kit.range);
+    } else {
+      tgt = nearestFoe(S, px, py, reach);
+      if (!tgt) {
+        var n = nearestFoe(S, px, py, LUNGE_R());
+        if (n) {
+          var d = Math.hypot(n.x - px, n.y - py) || 1, go = Math.max(0, d - reach * 0.7);
+          S.dash = { vx: (n.x - px) / d * go / 0.14, vy: (n.y - py) / d * go / 0.14, t: 0.14 };
+          tgt = n;
+        }
       }
     }
     var step = S.combo % 3;
     S.combo++; S.comboT = 0;
-    S.atkCd = step === 2 ? 0.55 : 0.34;
-    if (!tgt) { push(S, { t: 'swing', step: step }); return { ok: true, miss: true, step: step }; }
-    var r = hitFoe(S, tgt, m, m.atk * [0.9, 1.0, 1.5][step], null, 'basic');
-    m.energy = Math.min(ENERGY_MAX(), m.energy + 1.5);
-    push(S, { t: 'swing', step: step, uid: tgt.uid });
+    S.atkCd = kit.sec[step];
+    if (!tgt) { push(S, { t: 'swing', step: step, w: m.wtype }); return { ok: true, miss: true, step: step }; }
+    var r = hitFoe(S, tgt, m, m.atk * kit.mul[step], kit.el ? m.el : null, kit.heavy ? 'heavy' : 'basic');
+    m.energy = Math.min(ENERGY_MAX(), m.energy + 1.5 * (m.er || 1));
+    push(S, { t: 'swing', step: step, uid: tgt.uid, w: m.wtype, ranged: !!kit.range, tx: tgt.x, ty: tgt.y, el: kit.el ? m.el : null });
     return { ok: true, step: step, hit: r };
   }
 
@@ -734,7 +796,7 @@
       return d <= CHARGE_REACH() && (d < 0.5 || (fx * dx + fy * dy) / d >= CHARGE_ARC());
     });
     for (var i = 0; i < hits.length; i++) { hitFoe(S, hits[i], m, m.atk * CHARGE_MUL(), null, 'heavy'); }
-    m.energy = Math.min(ENERGY_MAX(), m.energy + 1.5 * hits.length);
+    m.energy = Math.min(ENERGY_MAX(), m.energy + 1.5 * hits.length * (m.er || 1));
     push(S, { t: 'heavy', x: px + dx * 1.2, y: py + dy * 1.2, r: 1.8, n: hits.length });
     return { ok: true, n: hits.length };
   }
@@ -746,7 +808,7 @@
     if (!m || m.down) { return { ok: false }; }
     var mul = plungeMul(fell), hits = foesWithin(S, px, py, PLUNGE_R());
     for (var i = 0; i < hits.length; i++) { hitFoe(S, hits[i], m, m.atk * mul, null, 'heavy'); }
-    m.energy = Math.min(ENERGY_MAX(), m.energy + 1.5 * hits.length);
+    m.energy = Math.min(ENERGY_MAX(), m.energy + 1.5 * hits.length * (m.er || 1));
     push(S, { t: 'plunge', x: px, y: py, r: PLUNGE_R(), n: hits.length, mul: mul });
     return { ok: true, n: hits.length, mul: mul };
   }
@@ -776,11 +838,11 @@
       S.iframe = Math.max(S.iframe, 0.3);
       ev = { x: bx, y: by, x0: px, y0: py, r: DASH_W() };
     } else if (sh === 'field') {
-      S.zones.push({ kind: 'field', x: cx, y: cy, r: FIELD_R(), t: FIELD_T(), next: 0, el: m.el, atk: m.atk, em: m.em, uid: m.id, tm: m.tm, reactMul: m.reactMul });
+      S.zones.push({ kind: 'field', x: cx, y: cy, r: FIELD_R(), t: FIELD_T(), next: 0, el: m.el, atk: m.atk, em: m.em, uid: m.id, tm: m.tm, reactMul: m.reactMul, m: m });
       hits = foesWithin(S, cx, cy, FIELD_R());          // 기력 셈에만 — 피해는 zone 틱(바로 첫 틱)이 준다
       ev = { x: cx, y: cy, r: FIELD_R() };
     } else if (sh === 'summon') {
-      S.zones.push({ kind: 'summon', x: px + dx * 1.5, y: py + dy * 1.5, r: SUMMON_R(), t: SUMMON_T(), next: 0, el: m.el, atk: m.atk, em: m.em, uid: m.id, tm: m.tm, reactMul: m.reactMul });
+      S.zones.push({ kind: 'summon', x: px + dx * 1.5, y: py + dy * 1.5, r: SUMMON_R(), t: SUMMON_T(), next: 0, el: m.el, atk: m.atk, em: m.em, uid: m.id, tm: m.tm, reactMul: m.reactMul, m: m });
       hits = aim ? [aim] : [];
       ev = { x: px + dx * 1.5, y: py + dy * 1.5, r: SUMMON_R() };
     } else {
@@ -790,10 +852,10 @@
     }
     if (sh === 'field' || sh === 'summon') { stepZones(S, 0); }   // 놓자마자 첫 틱
     m.skillCd = m.skCdMax = SKILL_CD() * (m.cdMul || 1);        // ⑲-4 자리 1 — 대기 -20%
-    m.energy = Math.min(ENERGY_MAX(), m.energy + 6 + Math.min(6, hits.length * 2));
+    m.energy = Math.min(ENERGY_MAX(), m.energy + (6 + Math.min(6, hits.length * 2)) * (m.er || 1));
     for (var j = 0; j < S.party.length; j++) {
       var o = S.party[j];
-      if (j !== S.active && !o.down) { o.energy = Math.min(ENERGY_MAX(), o.energy + 3); }
+      if (j !== S.active && !o.down) { o.energy = Math.min(ENERGY_MAX(), o.energy + 3 * (o.er || 1)); }
     }
     push(S, { t: 'skill', el: m.el, shape: sh, x: ev.x, y: ev.y, x0: ev.x0, y0: ev.y0, r: ev.r, n: hits.length });
     return { ok: true, n: hits.length, shape: sh };
@@ -816,7 +878,7 @@
         continue;
       }
       if (z.next <= 1e-9 && z.t > 1e-9) {
-        var who = { atk: z.atk, em: z.em, tm: z.tm, reactMul: z.reactMul };
+        var who = z.m || { atk: z.atk, em: z.em, tm: z.tm, reactMul: z.reactMul };
         if (z.kind === 'field') {
           var in_ = foesWithin(S, z.x, z.y, z.r);
           for (k = 0; k < in_.length; k++) { hitFoe(S, in_[k], who, z.atk * FIELD_MUL(), z.el, 'zone'); }
@@ -1114,6 +1176,8 @@
       var ratio = m.hpMax ? m.hp / m.hpMax : 1;
       m.atk = f.atk; m.em = f.em; m.def = f.def; m.hpMax = f.hpMax;
       m.tm = f.tm; m.con = f.con; m.cdMul = f.cdMul; m.reactMul = f.reactMul; m.c6 = f.c6;
+      m.wtype = f.wtype; m.kit = f.kit; m.wid = f.wid; m.cr = f.cr; m.cdm = f.cdm; m.er = f.er;
+      m.dmgB = f.dmgB; m.elemB = f.elemB; m.rxAll = f.rxAll; m.rx = f.rx;
       m.hp = Math.round(f.hpMax * ratio);
     }
   }
@@ -1197,7 +1261,7 @@
       if (e.t === 'move') { pos.x += e.dx; pos.y += e.dy; }
       else if (e.t === 'hit') {
         sfx('hit');
-        floatNum(e.x, e.y, e.immune ? '면역' : String(e.dmg), e.el, e.react ? 1.3 : (e.src === 'burst' ? 1.25 : 1));
+        floatNum(e.x, e.y, e.immune ? '면역' : String(e.dmg) + (e.crit ? '!' : ''), e.el, (e.react ? 1.3 : (e.src === 'burst' ? 1.25 : 1)) * (e.crit ? 1.25 : 1), !!e.crit);
         var w = W3();
         if (w) {
           w.playAnim('fc' + e.uid, 'hit', 260);
@@ -1216,6 +1280,7 @@
         if (W3()) { W3().shake(0.45); W3().hold(100); }
       } else if (e.t === 'swing') {
         if (W3()) { W3().playAnim('me', 'attack', 280); }
+        if (e.ranged && e.tx != null) { ring(e.tx, e.ty, 0.8, e.el && EL[e.el] ? EL[e.el].color : '#e8e2d0', 0.25); }   // ⑲-5 법구·활
       } else if (e.t === 'skill') {
         if (e.shape === 'thrust' || e.shape === 'dash') {
           /* 선 모양 — 길을 따라 작은 원을 늘어놓는다 */
@@ -1282,6 +1347,8 @@
         if (e.elite || e.boss) { c.save.dust = (c.save.dust || 0) + (e.boss ? 6 : 2); }
         if (e.shield && global.DG.talent) {                       // ⑲-4 방패 두른 원소 괴물 — 무예 쪽지
           var tmTxt = global.DG.talent.onElite();
+          if (global.DG.weapon) { global.DG.weapon.onElite(); }                  // ⑲-5 강화석 1
+          if (global.DG.artifact) { tmTxt += ' · ' + global.DG.artifact.onElite(); }   // ⑲-5 성유물 ★4
           if (tmTxt) { floatNum(e.x, e.y + 1.2, tmTxt, null, 0.9, false); }
         }
         fieldSave().kills = (fieldSave().kills || 0) + 1;

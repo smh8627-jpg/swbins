@@ -84,6 +84,8 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/hero.js"></script>
 <script src="js/perk.js"></script>
 <script src="js/talent.js"></script>
+<script src="js/weapon.js"></script>
+<script src="js/artifact.js"></script>
 <script src="js/data-bond.js"></script>
 <script src="js/bond.js"></script>
 <script src="js/vendor/three.iife.js"></script>
@@ -8852,7 +8854,8 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
     });
 
     t('보물 ⑲-3 — 열기: 한 번만·등급 보상(진귀 금 200·단사 3)·save.chests 에 남는다', function () {
-      var TR = DG.treasure, s = C.save, keep = { chests: JSON.stringify(s.chests || {}), gold: s.player.gold, dust: s.dust, tm: JSON.stringify(s.talentMat || null) };
+      var TR = DG.treasure, s = C.save, keep = { chests: JSON.stringify(s.chests || {}), gold: s.player.gold, dust: s.dust, tm: JSON.stringify(s.talentMat || null),
+        gear: JSON.stringify({ w: s.weapons || null, a: s.artifacts || null, m: s.gearMat || null }) };
       try {
         var ch = { id: 'ctest_x_0', grade: 'precious', lock: 'camp', x: 1e6, y: 1e6, lanterns: [] };
         var g0 = s.player.gold || 0, d0 = s.dust || 0, TL = DG.talent, b0 = TL.count('guide'), k0 = TL.count('knot');
@@ -8860,7 +8863,13 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         return a && !b && (s.player.gold - g0) === 200 && (s.dust - d0) === 3 && !!s.chests[ch.id] && TR.opened(ch.id) &&
           TL.count('guide') - b0 === 2 && TL.count('knot') - k0 === 1 &&
           ('처음 열림 · 두 번째 거절 · 금 +200 · 단사 +3 · 교본 +2 · 매듭 +1(⑲-4)');
-      } finally { s.chests = JSON.parse(keep.chests); s.player.gold = keep.gold; s.dust = keep.dust; s.talentMat = JSON.parse(keep.tm) || undefined; }
+      } finally {
+        s.chests = JSON.parse(keep.chests); s.player.gold = keep.gold; s.dust = keep.dust; s.talentMat = JSON.parse(keep.tm) || undefined;
+        var kg = JSON.parse(keep.gear);
+        if (kg.w) { s.weapons = kg.w; } else { delete s.weapons; }
+        if (kg.a) { s.artifacts = kg.a; } else { delete s.artifacts; }
+        if (kg.m) { s.gearMat = kg.m; } else { delete s.gearMat; }
+      }
     });
 
     t('보물 ⑲-3 — 무리 잠금: 진귀·화려 상자에 tc: 무리가 서고(들판 populate), 치우면 풀려 다시 안 선다', function () {
@@ -9183,6 +9192,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       try {
         C.save.heroes[id].tn = 10; C.save.heroes[id].ts = 5; C.save.heroes[id].tb = 3;
         var S = fcState([id]), m = S.party[0];
+        m.cr = 0;                                                   // ⑲-5 치명은 따로 본다
         r.mods = m.tm.n === 1.8 && m.tm.s === 1.325 && m.tm.b === 1.15 && m.con === 0 && m.cdMul === 1 && m.reactMul === 1;
         function dmg(src) { var f = fcFoe(S, 'bear', 40 + S.uid * 5, 0); return FC.hitFoe(S, f, m, 1000, null, src).dmg; }
         r.basic = dmg('basic') === 1800 && dmg('heavy') === 1800;
@@ -9240,6 +9250,207 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       } finally { s.talentMat = JSON.parse(keep) || undefined; if (!s.talentMat) { delete s.talentMat; } }
       var bad = Object.keys(r).filter(function (k) { return !r[k]; });
       return bad.length === 0 ? '쪽지 4 · 교본 5 · 비전 1 · 매듭 5' : ('실패 ' + bad.join(','));
+    });
+
+    /* ── ⑲-5 무기·치명타·성유물 (`weapon.js`·`artifact.js`, PLAN §5 ⑲-5) ── */
+    function gearRig(ids) {
+      var s = C.save, keep = JSON.stringify({ w: s.weapons || null, a: s.artifacts || null, m: s.gearMat || null, gold: s.player.gold, dust: s.dust,
+        d: ids.map(function (id) { return s.dex.heroes[id] || null; }), h: ids.map(function (id) { return s.heroes[id] || null; }) });
+      s.weapons = { inv: {}, equip: {} }; s.artifacts = { seq: 0, list: {} }; s.gearMat = { ore: 0, polish: 0 };
+      ids.forEach(function (id) { s.dex.heroes[id] = { count: 1, firstAt: Date.now() }; s.heroes[id] = { lv: 1, exp: 0, rank: 0 }; });
+      return function undo() {
+        var k = JSON.parse(keep);
+        ['w', 'a', 'm'].forEach(function (q) { var f = { w: 'weapons', a: 'artifacts', m: 'gearMat' }[q]; if (k[q]) { s[f] = k[q]; } else { delete s[f]; } });
+        s.player.gold = k.gold; s.dust = k.dust;
+        ids.forEach(function (id, i) {
+          if (k.d[i]) { s.dex.heroes[id] = k.d[i]; } else { delete s.dex.heroes[id]; }
+          if (k.h[i]) { s.heroes[id] = k.h[i]; } else { delete s.heroes[id]; }
+        });
+      };
+    }
+    /** 종류마다 도감 인물 하나(없으면 null) — 둘째 인자로 몇 번째 */
+    function heroOfType(type, nth) {
+      var WP = DG.weapon, H = DG.data.heroes, n = nth || 0;
+      for (var i = 0; i < H.length; i++) { if (WP.typeOf(H[i].id) === type && n-- === 0) { return H[i].id; } }
+      return null;
+    }
+
+    t('무기 ⑲-5 — 종류: 인물 id 해시(늘 같음)·도감에 다섯 종류 모두·주인공 한손검 · 표 열다섯(★1 다섯·★3 다섯·★4 다섯)', function () {
+      var WP = DG.weapon, H = DG.data.heroes, cnt = {}, same = true, i;
+      for (i = 0; i < H.length; i++) { var t1 = WP.typeOf(H[i].id); cnt[t1] = (cnt[t1] || 0) + 1; if (WP.typeOf(H[i].id) !== t1) { same = false; } }
+      var r = { 1: 0, 3: 0, 4: 0 };
+      Object.keys(WP.WEAPONS).forEach(function (k) { r[WP.WEAPONS[k].rarity]++; });
+      return same && WP.TYPES.every(function (t2) { return cnt[t2] > 0; }) && WP.typeOf('_me') === 'sword' && r[1] === 5 && r[3] === 5 && r[4] === 5 &&
+        WP.typeOf('pt_x') === WP.typeOf('pt_x') && WP.equipped('nobody_x') === WP.defaultOf(WP.typeOf('nobody_x')) &&
+        ('도감 ' + WP.TYPES.map(function (t3) { return WP.TYPE_NAMES[t3] + ' ' + cnt[t3]; }).join(' · '));
+    });
+
+    t('무기 ⑲-5 — 기본 공격 모양: 활 14m·법구 7m(인물 원소)·한손검 12m 는 헛침 · 장병기 ×0.75 0.28초 · 양손검 쇄빙', function () {
+      var FC = DG.fieldCombat, types = ['sword', 'claymore', 'polearm', 'catalyst', 'bow'], ids = types.map(function (t1) { return heroOfType(t1); });
+      if (ids.some(function (x) { return !x; })) { return false; }
+      var undo = gearRig(ids), r = {};
+      try {
+        var st = function (i) { var S = fcState([ids[i]]); S.party[0].cr = 0; return S; };
+        var Sb = st(4); fcFoe(Sb, 'bear', 12, 0);
+        var ab = FC.attack(Sb, 0, 0); r.bow = ab.hit && ab.hit.dmg > 0 && !Sb.dash;
+        var Sc = st(3); fcFoe(Sc, 'bear', 6, 0); fcEv(Sc);
+        var ac = FC.attack(Sc, 0, 0), hc = fcEv(Sc, 'hit')[0];
+        r.cat = ac.hit && hc && hc.el === Sc.party[0].el;
+        var Ss = st(0); fcFoe(Ss, 'bear', 12, 0);
+        r.sword = FC.attack(Ss, 0, 0).miss === true;
+        var Sp = st(2), fp = fcFoe(Sp, 'bear', 3, 0), mp = Sp.party[0];
+        var ap = FC.attack(Sp, 0, 0);
+        r.pole = ap.hit.dmg === Math.round(mp.atk * 0.75) && Math.abs(Sp.atkCd - 0.28) < 1e-9 && mp.kit.reach === 4.2;
+        var Sg = st(1), fg = fcFoe(Sg, 'bear', 2, 0); fg.frozenT = 3;
+        var ag = FC.attack(Sg, 0, 0);
+        r.clay = ag.hit.react === 'shatter' && Math.abs(Sg.atkCd - 0.58) < 1e-9;
+      } finally { undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '활 12m 맞힘 · 법구 원소 · 한손검 헛침 · 장병기 ×0.75/0.28초 · 양손검 쇄빙/0.58초' : ('실패 ' + bad.join(','));
+    });
+
+    t('무기 ⑲-5 — 공격 식·상한·강화·돌파·재련(5 넘치면 강화석 10)·옮기면 먼저 인물은 수련용', function () {
+      var WP = DG.weapon, a = heroOfType('sword', 0), b2 = heroOfType('sword', 1);
+      if (!a || !b2) { return false; }
+      var undo = gearRig([a, b2]), s = C.save, r = {};
+      try {
+        r.atk = WP.atkAt('w_sword_4', 1, 0) === 44 && Math.abs(WP.atkAt('w_sword_4', 30, 5) - 44 * 3.24) < 1e-9 &&
+          [0, 1, 2, 3, 4, 5].map(WP.cap).join(',') === '10,14,18,22,26,30' && Math.abs(WP.subAt('w_sword_4', 30) - 0.04 * 4.48) < 1e-9;
+        r.give = WP.give('w_sword_4') !== '' && WP.rec('w_sword_4').lv === 1 && WP.upCheck('w_sword_4').why === '강화석 부족';
+        s.gearMat.ore = 999; s.player.gold = 99999; s.dust = 999;
+        var n = 0; while (WP.up('w_sword_4')) { n++; }
+        r.cap = n === 9 && WP.rec('w_sword_4').lv === 10 && WP.upCheck('w_sword_4').cap === true;
+        var o0 = WP.ore();
+        r.asc = WP.ascend('w_sword_4') && WP.rec('w_sword_4').asc === 1 && WP.up('w_sword_4') && WP.rec('w_sword_4').lv === 11 && o0 === 999 - (1 * 5 + 2 * 4);
+        WP.give('w_sword_4'); WP.give('w_sword_4'); WP.give('w_sword_4'); WP.give('w_sword_4');
+        var o1 = WP.ore(); WP.give('w_sword_4');
+        r.ref = WP.rec('w_sword_4').ref === 5 && WP.ore() === o1 + 10 && Math.abs(WP.passiveAt('w_sword_4', 5) - 0.32) < 1e-9;
+        r.eq = WP.equip(a, 'w_sword_4') && WP.equipped(a) === 'w_sword_4' && WP.equip(b2, 'w_sword_4') && WP.equipped(b2) === 'w_sword_4' &&
+          WP.equipped(a) === 'w_sword_0' && !WP.equip(a, 'w_bow_4');
+      } finally { undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '44 → Lv30·돌파5 142.6 · Lv1→10 아홉 번 · 돌파 뒤 11 · 재련 5 → 강화석 +10 · 옮기면 수련용' : ('실패 ' + bad.join(','));
+    });
+
+    t('무기 ⑲-5 — 들판 계산: 공격 = (인물 + 무기) × (1+공격%) · 무기 효과가 기본 공격 피해에 더해짐 · 치명(확률 100% → ×1.5) · test 는 안 굴림', function () {
+      var FC = DG.fieldCombat, WP = DG.weapon, a = heroOfType('sword', 0);
+      var undo = gearRig([a]), r = {};
+      try {
+        var s0 = DG.hero.stats(a), base = Math.max(20, Math.round(s0.might * 0.7 + s0.wisdom * 0.3));
+        var m0 = fcState([a]).party[0];
+        r.practice = m0.atk === base + 23 && Math.abs(m0.cr - 0.05) < 1e-9 && m0.cdm === 0.5 && m0.dmgB.n === 0;
+        WP.give('w_sword_3'); WP.equip(a, 'w_sword_3');
+        var S = fcState([a]), m = S.party[0];
+        r.atk = m.atk === Math.round((base + 39) * 1.077) && Math.abs(m.dmgB.n - 0.12) < 1e-9;
+        m.cr = 0;
+        var d1 = FC.hitFoe(S, fcFoe(S, 'bear', 30, 0), m, 1000, null, 'basic').dmg;
+        m.cr = 1;
+        var h2 = FC.hitFoe(S, fcFoe(S, 'bear', 40, 0), m, 1000, null, 'basic');
+        var d3 = FC.hitFoe(S, fcFoe(S, 'bear', 50, 0), m, 1000, null, 'test').dmg;
+        r.dmg = d1 === 1120 && h2.dmg === 1680 && h2.crit === true && d3 === 1000;
+        var fcm = fcState(['fc_a']).party[0];
+        r.plain = fcm.cr === 0 && fcm.atk === 60 && fcm.kit.mul[2] === 1.5;
+      } finally { undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '수련용 +23 · 청동 환도 ×1.077 · 기본 1000 → 1120 · 치명 1680 · test 1000 · 도감 밖 그대로' : ('실패 ' + bad.join(','));
+    });
+
+    t('성유물 ⑲-5 — 생성: 씨앗이 같으면 같다 · 부옵션 ★4 2~3·★5 3~4(겹침·주옵션과 같은 것 없음) · +4 마다 늘거나 오름 · 주옵션 식', function () {
+      var AR = DG.artifact, i, bad = 0, n4 = {}, n5 = {};
+      var same = JSON.stringify(AR.generate(77, 5)) === JSON.stringify(AR.generate(77, 5));
+      for (i = 0; i < 200; i++) {
+        var a = AR.generate(1000 + i, i % 2 ? 5 : 4), keys = a.subs.map(function (x) { return x[0]; });
+        (a.rarity === 5 ? n5 : n4)[a.subs.length] = 1;
+        if (keys.indexOf(a.main) >= 0 || keys.some(function (k, j) { return keys.indexOf(k) !== j; })) { bad++; }
+        if (AR.SLOT_MAINS[a.slot].indexOf(a.main) < 0) { bad++; }
+      }
+      var f = AR.generate(5, 5, 'gladiator', 'flower'), sum0 = f.subs.reduce(function (q, x) { return q + x[1]; }, 0), len0 = f.subs.length;
+      for (i = 0; i < 4; i++) { f.lv++; if (f.lv % 4 === 0) { AR.onStep(f); } }
+      var sum1 = f.subs.reduce(function (q, x) { return q + x[1]; }, 0);
+      var grew = f.subs.length === len0 + 1 || (f.subs.length === 4 && sum1 > sum0);
+      f.lv = 20;
+      var mv = AR.mainValue(f) === 420 && f.main === 'hp';
+      var g4 = AR.generate(9, 4, 'depth', 'plume'); g4.lv = 16;
+      var mv4 = Math.abs(AR.mainValue(g4) - (17 + 95 * 16 / 20) * 0.8) < 1e-9;
+      return same && bad === 0 && Object.keys(n4).sort().join() === '2,3' && Object.keys(n5).sort().join() === '3,4' && grew && mv && mv4 &&
+        ('200개 · ★4 부옵션 2~3 · ★5 3~4 · +4 단계 · 꽃 +20 체력 420');
+    });
+
+    t('성유물 ⑲-5 — 세트·계산: 떠돌이 무사 4 → 공격 +18%·한손검 기본 +35% · 꽃 체력 고정이 들판 체력에 · 끼면 다른 인물에게서 빠짐', function () {
+      var AR = DG.artifact, a = heroOfType('sword', 0), b2 = heroOfType('bow', 0), undo = gearRig([a, b2]), r = {};
+      try {
+        var u = ['flower', 'plume', 'sands', 'goblet'].map(function (sl) { return AR.add(5, 'gladiator', sl); });
+        var c5 = AR.add(4, 'depth', 'circlet');
+        u.concat([c5]).forEach(function (x) { AR.equip(a, x); });
+        var st = AR.statsOf(a);
+        r.sets = st.sets.length === 1 && st.sets[0].id === 'gladiator' && st.sets[0].n === 4 && st.four.normal_melee === 0.35;
+        var pctSelf = AR.get(u[2]).main === 'atk_pct' ? AR.mainValue(AR.get(u[2])) : 0;
+        r.two = st.stats.atk_pct >= 0.18 + pctSelf - 1e-9;
+        var m = fcState([a]).party[0], s0 = DG.hero.stats(a);
+        var hpWant = Math.round((300 + s0.command * 6) * (1 + (st.stats.hp_pct || 0)) + (st.stats.hp || 0));
+        r.hp = m.hpMax === hpWant && (st.stats.hp || 0) >= 64 && Math.abs(m.dmgB.n - 0.35) < 1e-9;
+        AR.equip(b2, u[0]);
+        r.move = AR.get(u[0]).owner === b2 && !AR.equippedOf(a).flower && AR.statsOf(a).sets.length === 1 && !AR.statsOf(a).four.normal_melee;
+        var mb = fcState([b2]).party[0];
+        r.bow = mb.dmgB.n === 0;                                     // 활은 떠돌이 무사 4 를 안 받는다(세트도 하나뿐)
+      } finally { undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '4세트 켜짐 · 공격% ≥ 18% · 체력 고정 반영 · 기본 +35% · 옮기면 세트 꺼짐' : ('실패 ' + bad.join(','));
+    });
+
+    t('성유물 ⑲-5 — 강화(연마석 ⌈0.6×(n+1)⌉)·+20 끝·분해(★5 2 + 쓴 것 8할)·안 낀 ★4 모두 분해·상한 200', function () {
+      var AR = DG.artifact, a = heroOfType('sword', 0), undo = gearRig([a]), s = C.save, r = {};
+      try {
+        var u = AR.add(5, 'emblem', 'sands');
+        r.no = !AR.up(u) && AR.upCheck(u).why === '연마석 부족';
+        s.gearMat.polish = 500; s.player.gold = 99999;
+        var n = 0; while (AR.up(u)) { n++; }
+        var art = AR.get(u), spent = 0, i;
+        for (i = 0; i < 20; i++) { spent += Math.ceil(0.6 * (i + 1)); }
+        r.up = n === 20 && art.lv === 20 && art.spent === spent && art.subs.length === 4 && s.gearMat.polish === 500 - spent;
+        var p0 = AR.polish(), v = AR.salvage(u);
+        r.salv = v === 2 + Math.floor(spent * 0.8) && AR.polish() === p0 + v && !AR.get(u);
+        var k1 = AR.add(4), k2 = AR.add(4), k3 = AR.add(5, 'depth', 'flower');
+        AR.equip(a, k3);
+        var got = AR.salvageLoose4();
+        r.loose = got === 2 && !AR.get(k1) && !AR.get(k2) && !!AR.get(k3);
+        for (i = 0; i < 205; i++) { AR.add(4); }
+        r.cap = AR.count() === 200 && !!AR.get(k3);
+      } finally { undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '+20 까지 스무 번 · 분해 되돌림 · 안 낀 ★4 둘 분해 · 205개 더해도 200' : ('실패 ' + bad.join(','));
+    });
+
+    t('무기·성유물 ⑲-5 — 얻는 곳: 진귀 ★3 무기·강화석 15 · 화려 ★4 무기·강화석 40·★5 둘 · 정교 ★4 · 평범 강화석 2 · 방패 괴물 강화석 1·★4', function () {
+      var WP = DG.weapon, AR = DG.artifact, undo = gearRig([]), r = {};
+      try {
+        var p = WP.onChest({ id: 'ctest_p', grade: 'precious' }), wp = WP.chestWeapon('ctest_p', 'precious');
+        r.pre = WP.ore() === 15 && /_3$/.test(wp) && WP.owned(wp) && p.indexOf('강화석 +15') >= 0;
+        var wl = WP.chestWeapon('ctest_l', 'luxurious'); WP.onChest({ id: 'ctest_l', grade: 'luxurious' });
+        r.lux = WP.ore() === 55 && /_4$/.test(wl) && WP.owned(wl) && WP.chestWeapon('ctest_l', 'luxurious') === wl;
+        WP.onChest({ id: 'ctest_c', grade: 'common' });
+        r.com = WP.ore() === 57 && WP.chestWeapon('ctest_c', 'common') === '';
+        AR.onChest('luxurious'); var n1 = AR.count(); AR.onChest('exquisite'); AR.onChest('common'); AR.onElite(); WP.onElite();
+        var L = AR.list(), rs = Object.keys(L).map(function (k) { return L[k].rarity; }).join(',');
+        r.art = n1 === 2 && AR.count() === 4 && rs === '5,5,4,4' && WP.ore() === 58;
+      } finally { undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '진귀 ★3·15 · 화려 ★4·40·★5 둘 · 평범 2 · 정교 ★4 · 방패 괴물 1·★4' : ('실패 ' + bad.join(','));
+    });
+
+    t('인물 상세 ⑲-4·5 — 무기 줄·고르기·강화 단추 · 성유물 부위 다섯·세트 · 무예 세 줄·운명의 자리가 그려진다', function () {
+      var WP = DG.weapon, AR = DG.artifact, a = heroOfType('polearm', 0), undo = gearRig([a]), html = '';
+      try {
+        WP.give('w_polearm_4'); WP.equip(a, 'w_polearm_4');
+        ['flower', 'plume', 'sands', 'goblet'].forEach(function (sl) { AR.equip(a, AR.add(5, 'emblem', sl)); });
+        DG.ui.openDetail('hero', a);
+        html = document.getElementById('detail').innerHTML;
+        DG.ui.closeDetail();
+      } finally { undo(); }
+      var ok = html.indexOf('봉수 월도') >= 0 && html.indexOf('data-wp-equip') >= 0 && html.indexOf('data-act="wp-up"') >= 0 &&
+        (html.match(/data-art-equip/g) || []).length === 5 && html.indexOf('절연 깃발 4세트') >= 0 &&
+        (html.match(/data-act="talent-up"/g) || []).length === 3 && html.indexOf('운명의 자리') >= 0;
+      return ok && ('상세 ' + html.length + '자 · 무기·부위 다섯·세트·무예 셋');
     });
 
     t('런타임 에러 없음', function () {
