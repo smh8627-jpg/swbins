@@ -1,6 +1,6 @@
 # char-forge — 자체 인물 공방 (VRoid·Mixamo 대체)
 
-> 상태: **saga-godot 몸 = VRoid 직접 디자인으로 확정(D4, 2026-09-25)**. 공방 툰 몸(`_cmp_*`)은 얼굴이 원신풍 애니가 아니라 쓰지 않는다. 이 도구는 VRoid 주역에 CC0 동작·얼굴 굽기·게임 배선을 맡는다(§10 `vroid_intake.sh`). saga-unity(사실풍)는 단계 3(MakeHuman 사실 몸)으로 이어 간다.
+> 상태: **saga-godot 몸 = VRoid 직접 디자인으로 확정(D4, 2026-09-25)**. 공방 툰 몸(`_cmp_*`)은 얼굴이 원신풍 애니가 아니라 쓰지 않는다. 이 도구는 VRoid 주역에 CC0 동작·얼굴 굽기·게임 배선을 맡는다(§10 `vroid_intake.sh`). saga-unity(사실풍)는 단계 3(MakeHuman 사실 몸, `build_real.py`) — 첫 비교 몸 `_cmp_real_hero_f_01` 과 비교 장면 빌더까지 됐고 사람 판정을 기다린다(2026-09-25).
 > `SAGA-DESIGN.md` 는 여기를 가리키기만 한다. `tools/asset-forge` 처럼 **빌드 도구는 공유**(게임 코드 공유 금지와는 별개).
 
 ## 1. 왜
@@ -46,12 +46,22 @@ py tools/char-forge/fetch_sources.py                                 # 입력 �
 | `verify.py` | 내보낸 **파일을 다시 열어** 원본 동작과 맞댄다: 팔다리 방향 ≤ 5° · 땅 닿음 ≤ 1cm · 걷기 손목이 움직이나 |
 | `recipes/` | 인물 레시피. `_test_*` 는 시험용, `_cmp_*` 는 단계 2 비교용(게임 인물 아님). 옷: `outfit`·`outfit_color`·`outfit_drop`(예: `Head_Hood`) |
 | `bake_for_rig.py` | 이미 있는 몸(VRoid 등)의 뼈대에 동작만 굽는다 → 뼈대+동작 `.glb`. `--map vroid --clips 게임이름=UAL이름,…` |
-| `rigmaps.py` | 표준 뼈 목록·기준 자식 표(뼈 방향)·뼈 이름 표(`identity`·`vroid`) |
+| `rigmaps.py` | 표준 뼈 목록·기준 자식 표(뼈 방향)·뼈 이름 표(`identity`·`vroid`·`mpfb`) |
+| `build_real.py` | **단계 3 사실 몸** — 레시피 → MPFB 몸(모프 `macro`)·`game_engine` 뼈·피부·눈·눈썹·속눈썹·이·머리·옷(MakeHuman system assets) → 모프 굳히기·옷 아래 살·도우미 지우기 → 재질 칸 이름 → UAL 동작 → `.fbx`(Unity Humanoid)+`.glb`. `BLENDER_USER_RESOURCES=tools/char-forge/_blender` 필요 |
 
 동작 굽기 요점(`build.py` `retarget`): 몸 팩과 동작 팩의 쉼 자세가 목 14°·발 9° 쯤 달라, 곡선을 그대로 베끼면 자세가 기운다(측정: 칼 휘두르기 15.6°).
 그래서 ① 뼈마다 쉼 방향을 원본 쪽으로 맞추는 최소 회전을 먼저 곱하고 ② 골반 이동은 **다리 길이 비**로 늘리고
 ③ 원본 발이 땅(±1cm)에 있으면 낮은 발이 땅에 닿게 골반 아래를 올리고 내린다(1~3cm 사이는 서서히 풀어 이륙·착지에서 튀지 않게).
-MPFB(MakeHuman 확장)는 아직 설치하지 않았다 — 실사 몸이 필요한 단계 3 에서 들인다.
+MPFB(MakeHuman 확장)는 `fetch_sources.py` 가 `_blender/`(gitignore)에 설치하고 system assets 를 그 사용자 데이터에 푼다 — 사용자 Blender 설정과 따로다. 사실 몸 빌드:
+
+```bash
+export BLENDER_USER_RESOURCES="$PWD/tools/char-forge/_blender"
+"$B" -b --factory-startup -P tools/char-forge/build_real.py -- --recipe tools/char-forge/recipes/_cmp_real_hero_f_01.json \
+    --out tools/char-forge/_out/_cmp_real_hero_f_01.glb --fbx tools/char-forge/_out/_cmp_real_hero_f_01.fbx --check
+"$B" -b --factory-startup -P tools/char-forge/verify.py -- --glb tools/char-forge/_out/_cmp_real_hero_f_01.fbx --map mpfb --clips idle=Sword_Idle,…
+```
+
+사실 몸 요점: 뼈를 부위보다 먼저 단다(붙이는 순간 가중치를 옮긴다 — MPFB `characterbuilder` 와 같은 순서). 재질은 `GAMEENGINE`(바탕색·노멀 그림을 원리 BSDF 에 바로 — FBX 로 그대로 간다). `bake_modifiers_remove_helpers(bake_masks=True)` 로 옷 아래 가려진 살을 실제로 지운다(운동복이면 허리 아래 몸이 빠진다). 세분화는 안 건다(폰 예산). 레시피 `macro` = MakeHuman 0~1 값(gender 0 여 · 1 남, race asian·caucasian·african).
 
 옷 입히기 요점(`build.py` `dress`·`tuck_under_cloth`): 옷 팩은 Regular 비율이라 **옷 뼈대를 인물 뼈대로** 삼고, 몸 팩(Superhero)에서 머리·목·윗가슴(`HEAD_GROUPS`)만 떼어 Head 뼈 자리로 옮긴다. 머리·목만 남기면 트인 옷깃으로 잘린 자리가 30~40% 드러났다. 비어져 나온 살은 옷 면 6mm 아래로 눌러 넣고, 완전히 덮인 가슴 살은 지운다(목은 남긴다 — 벌어진 옷깃 속이 구멍으로 보이지 않게). 빌드가 `seam.covered`(잘린 가장자리에서 바깥으로 쏜 광선이 옷에 막히는 비율, UV 이음매 짝은 뺌)를 찍는다. `face: toon` 이면 노멀·거칠기 텍스처를 뗀다(saga-godot cel_toon 은 바탕색만 읽는다 — 39.5MB → 6~10MB). 텍스처는 2048² 까지.
 
@@ -101,7 +111,7 @@ MPFB(MakeHuman 확장)는 아직 설치하지 않았다 — 실사 몸이 필요
 | 0 ✅ | 도구 뼈대: `build.py` · `verify.py` · `bonemap.json` · `sources.json` · `fetch_sources.py`, 무료판 팩 받기 | **통과(2026-09-24)** `_test_toon_01`: 뼈 65·삼각형 17,966·동작 44·빌드 41초. verify(파일 기준) glb 팔다리 0.0°·땅 0cm, fbx 0.7°·2.7mm. `.glb` 는 두 번 뽑아 sha256 이 같다. `.fbx` 는 Blender FBX 익스포터가 메모리 주소 순서로 돌아 바이트가 매번 달라 내용 검증(verify)으로 갈음한다. Godot 4.7 빈 프로젝트 임포트 오류·경고 0(`_Loop` 는 Godot 가 떼고 반복으로 표시 → `Idle`·`Walk`). Unity 6000.3 빈 프로젝트 FBX Humanoid 아바타 valid·human, 클립 44, 스킨 메시 4 |
 | 1 ✅ | **동작 먼저 바꾼다**(로컬 전용이라 다른 PC 가 막혔다) | **통과(2026-09-24, saga-godot)** `bake_for_rig.py` → VRoid 셋 `J_Bip_*` 52뼈 × 여덟 동작, verify 0.0°·0cm(뒤돌아 있는 saga_forest_avatar_01 은 원본을 180° 돌려 굽는다) → `saga-godot/tools/ual_lib_build.gd` → `anim_cc0/*_lib.res`(커밋, 자체 확인 ≤ 0.10°) → `probe_anim_cc0.gd` 3/3 · godot_regress 통과. saga-unity 동작은 몸과 함께 단계 3 에서(Mixamo 인물마다 몸·동작이 한 벌) |
 | 2 ⏳ | saga-godot 몸: VRoid 셋(`AvatarSample_A`·`saga_forest_avatar_01`·`dungeon_hero_01`) → 툰 레시피 | **판정 대기(2026-09-25)** `_cmp_go_01`(순찰자 여)·`_cmp_forest_01`(농부 여)·`_cmp_dungeon_01`(순찰자 남) → `saga-godot/assets/characters_cf/`. verify 0.0°·0cm, 목 가림 0.957·1.0·0.988, 6~10MB. 비교 장면 `tools/compare/CharCompare.tscn`(같은 해·env_pc·cel_toon·키 1.70m). 기준 = 사람이 "못하지 않다"고 한 짝만 게임에 넣는다(§8-1) |
-| 3 | saga-unity 몸: Mixamo 인물·괴물(§9) → PBR 레시피. 괴물은 같은 몸에 비율 극단값 + kitbash(뿔·갑옷·버섯갓) | `CharactersRealistic/` 에 기대는 코드가 0 이 되고, 없는 PC 용 도형 대체도 필요 없어진다 |
+| 3 ⏳ | saga-unity 몸: Mixamo 인물·괴물(§9) → PBR 레시피. **첫 짝 판정 대기(2026-09-25)**: `_cmp_real_hero_f_01`(주역 여 — 동양 0.8·운동복·말총머리) → `saga-unity/Assets/Art/CharactersForge/`. 13초 빌드·뼈 53·삼각형 4만·텍스처 ≤2048, verify fbx 0.7°·2.6mm · glb 0.0°·0mm, 두 번 빌드 glb 같은 바이트. 빈 Unity 6000.3 프로젝트: Humanoid 아바타 valid(뼈 52 자동), 클립 8 전부 Humanoid, 정점당 뼈 ≤4. 비교 장면 빌더 `Saga/Char Forge/Build Compare Real Scene`(지금 Maria | 공방, 같은 빛·키 1.70m·동작 저절로) — 빈 URP 프로젝트에서 통과, saga-unity 에서는 아직 안 돌림(다른 세션이 쓰는 중이었다). 공방 피부는 URP Lit(Maria 의 FakeSSS 는 아직 안 붙임). 괴물은 같은 몸에 비율 극단값 + kitbash(뿔·갑옷·버섯갓) | `CharactersRealistic/` 에 기대는 코드가 0 이 되고, 없는 PC 용 도형 대체도 필요 없어진다 |
 | 4 | 인물 명단 → 레시피 대량 생성(도감 `id` 마다) | 인물마다 실루엣이 다르다(키·체격·머리·옷 네 축 중 둘 이상) |
 | 5 | **상용 문턱**: `tools/asset-audit` 에 출처 검사를 추가한다. 빌드에 들어가는 파일 중 `*.license.json` 이 없거나 Mixamo·VRoid 출처가 있으면 🔴 | 두 트랙 모두 0건. 그다음 `mixamo_automation` 을 "옛 도구"로 표시한다(지우지는 않는다) |
 

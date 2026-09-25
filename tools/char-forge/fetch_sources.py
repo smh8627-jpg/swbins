@@ -5,11 +5,19 @@
 
 itch.io 무료(최소 0원) 팩은 로그인 없이 받는다: 페이지 csrf → download_url → 파일 id 로 CDN 주소.
 사람 클릭이 필요 없다. 사이트가 바뀌어 막히면 사람이 받아 _src/ 에 zip 이름대로 두면 된다(sha256 만 맞으면 쓴다).
+
+팩의 "install" 칸(단계 3, 사실 몸):
+- blender_extension — Blender 확장(MPFB)을 _blender/(gitignore, BLENDER_USER_RESOURCES)에 설치한다. 사용자 Blender 설정은 안 건드린다.
+- mpfb_user_data — MakeHuman 에셋 팩을 그 MPFB 의 사용자 데이터 폴더에 푼다.
+"license_must_contain" 이 없으면 라이선스 파일에 CC0 가 있어야 하고, "license_must_not_contain" 에 든 글자가 있으면 멈춘다.
 """
-import hashlib, http.cookiejar, json, os, re, sys, urllib.parse, urllib.request, zipfile
+import hashlib, http.cookiejar, json, os, re, subprocess, sys, urllib.parse, urllib.request, zipfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.join(HERE, '_src')
+BLENDER_HOME = os.path.join(HERE, '_blender')
+MPFB_USER_DATA = os.path.join(BLENDER_HOME, 'extensions', '.user', 'user_default', 'mpfb', 'data')
+BLENDER = os.environ.get('BLENDER', r'C:\Program Files\Blender Foundation\Blender 5.2\blender.exe')
 UA = {'User-Agent': 'Mozilla/5.0 (char-forge fetch_sources)'}
 
 
@@ -57,6 +65,7 @@ def sha256(path):
 
 
 def main():
+    sys.stdout.reconfigure(errors='replace')  # Windows 콘솔(cp949)이 못 찍는 글자(—)에서 멈추지 않게
     force = '--force' in sys.argv
     os.makedirs(SRC, exist_ok=True)
     packs = json.load(open(os.path.join(HERE, 'sources.json'), encoding='utf-8'))['packs']
@@ -73,11 +82,21 @@ def main():
         if got != p['sha256']:
             sys.exit(f'{key}: sha256 불일치 {got} — 팩이 바뀌었다. 라이선스를 다시 확인하고 sources.json 을 고친다')
         with zipfile.ZipFile(zp) as z:
-            if not os.path.exists(os.path.join(SRC, p['license_file'])):
-                z.extractall(SRC)
             lic = z.read(p['license_file']).decode('utf-8', 'replace')
-        if 'CC0' not in lic:
-            sys.exit(f'{key}: 라이선스 파일에 CC0 가 없다 — 쓰지 않는다')
+            must = p.get('license_must_contain', 'CC0')
+            if must not in lic or any(bad in lic for bad in p.get('license_must_not_contain', [])):
+                sys.exit(f'{key}: 라이선스 파일({p["license_file"]})이 기대와 다르다 — 쓰지 않는다')
+            inst = p.get('install')
+            if inst == 'mpfb_user_data':
+                if not os.path.exists(os.path.join(MPFB_USER_DATA, p['license_file'])):
+                    os.makedirs(MPFB_USER_DATA, exist_ok=True)
+                    z.extractall(MPFB_USER_DATA)
+            elif inst != 'blender_extension' and not os.path.exists(os.path.join(SRC, p['license_file'])):
+                z.extractall(SRC)
+        if inst == 'blender_extension' and not os.path.isdir(os.path.join(BLENDER_HOME, 'extensions', 'user_default', p['extension_id'])):
+            env = dict(os.environ, BLENDER_USER_RESOURCES=BLENDER_HOME)
+            subprocess.run([BLENDER, '-b', '--command', 'extension', 'install-file', '-r', 'user_default', '-e', zp],
+                           env=env, stdin=subprocess.DEVNULL, check=True)
         print('ok', key, p['license'])
 
 

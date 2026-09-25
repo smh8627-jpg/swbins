@@ -9062,3 +9062,14 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - 검증: 씬 재빌드 exit 0 · GO `PlaytestHeadless` **3연속 OK**(LOD 넣기 전·뒤 각각). 부산물(`Mobile_RPAsset`·수호장 컷 타임라인)은 되돌림.
 - 109-1 끝 → 다음 = 109-2 DUNGEON 세 시대.
 - 실기 확인 전: 잔해 크기·청록 세기·도는 속도, 차 크기(0.85배), 드럼통·방호벽이 옛 무더기와 어울리는지.
+
+## 2026-09-25 — char-forge 단계 3 첫 짝: MakeHuman 사실 몸 + 비교 장면 빌더 (사용자 "VRoid·Mixamo 대체 도구 이어서해줘")
+
+- 상용 대비 Mixamo 대체(`../tools/char-forge/README.md` §7 단계 3). 교체 문턱대로 **게임 몸은 안 바꾸고** 비교까지만.
+- 공방: MPFB 2.0.17(Blender 확장, 코드 GPL·만든 모델 CC0)을 `tools/char-forge/_blender/`(gitignore, `BLENDER_USER_RESOURCES`)에 설치 — 사용자 Blender 설정과 따로. MakeHuman system assets(CC0 94항목, CC-BY 없음 확인). 같은 사이트의 hair02 는 CC-BY 라 안 들임.
+- 새 `build_real.py`: MPFB 몸(macro 모프) → 내장 `game_engine` 뼈(UE 마네킹 이름 — 표준 뼈와 `Root`·`head` 대소문자만 다름, `rigmaps.MPFB`) → 피부·눈·눈썹·속눈썹·이·머리·옷(GAMEENGINE 재질) → 옷 아래 살·도우미 지우기 → 재질 칸 이름(skin·eye·hair·hair_brow·hair_lash·teeth·cloth_a·b) → 기존 `retarget`(UAL 여덟) → fbx+glb.
+- `Assets/Art/CharactersForge/_cmp_real_hero_f_01.fbx`(주역 여 후보, 동양 0.8·운동복·말총머리, 18MB) + license.json. 빌드 13초·뼈 53·삼각형 4만·키 1.58m, verify fbx 0.7°·2.6mm · glb 0.0°·0mm, 두 번 빌드 같은 바이트.
+- 빈 Unity 6000.3.24f1 프로젝트(스크래치): Humanoid 아바타 valid·뼈 52 자동 대응·클립 8 전부 Humanoid·정점당 뼈 ≤4, `ExtractTextures` 뒤 재질 8개 텍스처 붙음, 걷기 클립 걸면 손 27cm 움직임.
+- 새 `Assets/Editor/BuildCharCompareRealScene.cs`(메뉴 `Saga/Char Forge/Build Compare Real Scene`): 공방 FBX Humanoid·클립 이름 정리·텍스처 꺼내기·URP Lit 재질로 바꿔 끼우기(머리 셋 알파 잘라내기·양면) + 지금 Maria | 공방 몸을 같은 빛·키 1.70m(BakeMesh 로 잰 키)·같은 순서 자동 동작 컨트롤러로 나란히. 다른 saga 편집기 코드에 기대지 않는다. 빈 URP 17.3 프로젝트에 Maria FBX(.meta 째)를 복사해 돌려 CMP_RESULT OK(두 몸 1.700m·발 y=0·카메라 쪽·상태 8, 공방 재질 URP/Lit+tex).
+- **saga-unity 에서는 아직 안 돌렸다** — 같은 시각 다른 세션이 saga-unity 를 고치는 중(unity-batch 는 Packages 를 되돌린다). `.meta` 는 고정 GUID 로 손으로 썼다(fbx 는 guid 만 — 첫 임포트 때 Unity 가 채운다). 빌더를 돌리면 `Assets/Art/CharactersForge/Textures·Materials`·`Assets/Animators/CharForge/`·`Assets/Scenes/CharCompareReal.unity` 가 생긴다.
+- 사람 몫: HOW_TO_PLAYTEST §9 대로 비교 장면 보고 "바꿔도 된다/아직". 공방 피부는 URP Lit(Maria 의 FakeSSS 는 아직 안 붙임).

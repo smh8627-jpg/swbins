@@ -287,3 +287,14 @@ JSON 세이브와 달리 필드가 아직 자주 바뀌는 중이라 이 문서�
 - 무엇을 봤는지(어느 씬, 어떤 조작, 뭐가 이상했는지) 다음 세션에게
   한 줄이라도 남겨 준다 — `docs/PROJECT_STATE.md` 맨 아래(최신 항목)에
   적어 두면 "saga-unity 이어해"만으로 다음 세션이 이어서 봐줄 수 있다
+
+## 9. 공방 몸 비교 — Mixamo 대체 판정 (char-forge 단계 3)
+
+상용 대비로 Mixamo 몸을 자체 공방 몸(MakeHuman·UAL, 전부 CC0 — `tools/char-forge/README.md`)으로 바꾸려는데,
+**사람이 "지금보다 못하지 않다"고 한 짝만** 게임 몸을 바꾼다. 게임 씬은 그대로다.
+
+1. 메뉴 `Saga/Char Forge/Build Compare Real Scene` → `Assets/Scenes/CharCompareReal.unity` 가 열린다
+   (왼쪽 `NOW Mixamo` = 지금 Maria · 오른쪽 `FORGE` = 공방 몸. Maria 파일이 없는 PC 는 공방 몸만 선다)
+2. Play — 두 몸이 같은 순서로 저절로 움직인다: 서기(칼 대기) → 걷기 → 달리기 → 베기 → 맞기 → 구르기 → 줍기 → 쓰러짐
+3. 볼 것: 얼굴·피부·머리카락(띠 머리가 구멍 나 보이는지)·옷 모양 · 동작이 Mixamo 보다 어색한지(특히 달리기·베기 무게감) · 발이 미끄러지는지
+4. 판정을 한 줄로 남긴다: "바꿔도 된다 / 아직(무엇이)". 공방 피부는 아직 URP Lit 이다(Maria 의 FakeSSS 피부는 안 붙였다) — 피부결 차이는 그 탓일 수 있다

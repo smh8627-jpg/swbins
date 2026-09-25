@@ -37,4 +37,7 @@ for _s, _S in (('l', 'L'), ('r', 'R')):
         for _i in (1, 2, 3):
             VROID[f'{_f}_0{_i}_{_s}'] = f'J_Bip_{_S}_{_v}{_i}'
 
-MAPS = {'identity': IDENTITY, 'vroid': VROID}
+# MPFB(MakeHuman) 내장 "game_engine" 뼈대 — UE 마네킹 이름 그대로인데 두 개만 대소문자가 다르다(2.0.17 확인)
+MPFB = dict(IDENTITY, root='Root', Head='head')
+
+MAPS = {'identity': IDENTITY, 'vroid': VROID, 'mpfb': MPFB}
