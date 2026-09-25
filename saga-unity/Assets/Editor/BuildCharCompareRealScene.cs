@@ -50,6 +50,9 @@ namespace Saga.EditorTools
                     { "idle", ("Action Idle To Fight Idle", "idle") }, { "walk", ("Walking", "walk") }, { "run", ("Running", "run") },
                     { "attack", ("Sword And Shield Slash", "attack") }, { "hit", ("Hit Reaction", "hit") }, { "dodge", ("Stand To Roll", "dodge") },
                     { "interaction", ("Picking Up", "interaction") }, { "death", ("Two Handed Sword Death", "death") },
+                    // 이동 기술(GO 107-2, BuildMariaTraversal) — 공방은 등반·활공이 자체 키프레임(char-forge keyframes.py), 헤엄·점프는 UAL
+                    { "climb", ("Climbing", "climb") }, { "glide", ("Gliding", "glide") }, { "swim", ("Swimming", "swim") },
+                    { "tread", ("Floating", "tread") }, { "jump", ("Jumping", "jump") },
                 },
             },
             new Pair
@@ -109,6 +112,8 @@ namespace Saga.EditorTools
                 {
                     { "idle", ("Idle", "idle") }, { "walk", ("Walking", "walking") }, { "run", ("Running", "running") },
                     { "attack", ("Attack", "attack") }, { "hit", ("HitReaction", "hitreaction") }, { "death", ("Dying", "dying") },
+                    // 방패 도발·막기 중 피격(106-6) — 공방은 자체 키프레임
+                    { "taunt", ("Taunt", "taunt") }, { "blocked", ("Blocked", "blocked") },
                 },
             },
             // 동행 술사(106-6, 마을 아낙·포로 겸) · STORY 유격(106-10)
@@ -223,8 +228,9 @@ namespace Saga.EditorTools
         };
         private const float DefaultHeight = 1.70f;
 
-        private static readonly string[] Cycle = { "idle", "walk", "run", "attack", "hit", "dodge", "interaction", "death" };
-        private static readonly HashSet<string> Loops = new HashSet<string> { "idle", "walk", "run" };
+        private static readonly string[] Cycle = { "idle", "walk", "run", "attack", "hit", "dodge", "interaction",
+            "climb", "glide", "swim", "tread", "jump", "taunt", "blocked", "death" };
+        private static readonly HashSet<string> Loops = new HashSet<string> { "idle", "walk", "run", "climb", "glide", "swim", "tread" };
 
         [MenuItem("Saga/Char Forge/Build Compare Real Scene")]
         public static void Build()

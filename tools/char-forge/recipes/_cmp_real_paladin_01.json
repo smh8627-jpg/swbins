@@ -1,7 +1,7 @@
 {
  "id": "_cmp_real_paladin_01",
  "_note": "단계 3 사람 비교용 — saga-unity Paladin(Mixamo) 자리 후보(DUNGEON 동행 무사 106-6). 게임 인물 아님(이름 없음). 다부진 동양 남자·붉은 누비 옷(몸통·팔·다리)·가죽 장갑·장화·쇠 가슴판·어깨판·팔 가리개·정강이 가리개·허벅지 드림·얼굴 트인 투구 — 전부 살을 본뜬 껍데기(shell).",
- "macro": {"gender": 1.0, "age": 0.5, "muscle": 0.75, "weight": 0.55, "height": 0.75, "proportions": 0.7,
+ "macro": {"gender": 1.0, "age": 0.5, "muscle": 0.75, "weight": 0.55, "height": 0.588, "proportions": 0.7,
            "race": {"asian": 0.75, "caucasian": 0.15, "african": 0.1}},
  "targets": {"chin-width-incr": 0.3, "eyebrows-trans-down": 0.3, "neck-scale-horiz-incr": 0.4},
  "skin": "young_asian_male/young_asian_male.mhmat",
@@ -30,5 +30,5 @@
    "groups": ["head"], "open_face": true, "minw": 0.5}
  ],
  "anims": {"idle": "Sword_Idle", "walk": "Walk_Loop", "run": "Jog_Fwd_Loop", "attack": "Sword_Attack",
-           "hit": "Hit_Chest", "death": "Death01"}
+           "hit": "Hit_Chest", "death": "Death01", "taunt": "CF_Shield_Block", "blocked": "CF_Shield_Block_Hit"}
 }

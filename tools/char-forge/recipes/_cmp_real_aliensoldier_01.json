@@ -1,7 +1,7 @@
 {
  "id": "_cmp_real_aliensoldier_01",
  "_note": "단계 3 두목 비교용 — saga-unity Alien Soldier(Mixamo) 자리 후보(DUNGEON 기계화 정찰병 fusionElite · GO 미래 적). 게임 인물 아님(이름 없음). 다부진 몸·먹빛 몸 옷·잿빛 쇠 가슴판·어깨·팔·허벅지·정강이 판·쇠 장화·검은 장갑·얼굴까지 닫힌 투구·앞쪽 청록 바이저(투구 속 눈썹·속눈썹·이는 안 단다 — 안 보이는 낭비).",
- "macro": {"gender": 1.0, "age": 0.4, "muscle": 0.8, "weight": 0.45, "height": 0.75, "proportions": 0.9,
+ "macro": {"gender": 1.0, "age": 0.4, "muscle": 0.8, "weight": 0.45, "height": 0.69, "proportions": 0.9,
            "race": {"asian": 0.4, "caucasian": 0.4, "african": 0.2}},
  "targets": {"neck-scale-horiz-incr": 0.4},
  "skin": "young_caucasian_male/young_caucasian_male.mhmat",

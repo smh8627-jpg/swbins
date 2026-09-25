@@ -1,6 +1,6 @@
 # char-forge — 자체 인물 공방 (VRoid·Mixamo 대체)
 
-> 상태(2026-09-25 저녁): **saga-godot 몸 = VRoid 직접 디자인(D4)** — 이 도구는 VRoid 주역에 CC0 동작·얼굴 굽기·게임 배선을 맡는다(§10 `vroid_intake.sh`, 사람이 `.vrm` 을 Downloads 에 둘 때). **saga-unity(사실풍) = 단계 3 `build_real.py`** — Mixamo 괴물 자리 전부(Goblin·Brute·Warrok·Parasite·Nightshade·Hulk·Jolleen·Skeleton)와 동행 셋(Paladin·PeasantGirl·Archer)에 공방 후보가 있고, 두목 여섯(Maw·Ganfaul·Ninja·Demon·AlienSoldier·Morak)·GO 세 시대 아홉(들판 적 GasMask·Copzombie·ExoRed, 역참 사람 Remy·Megan·SwatGuy·ExoGray·Vanguard·Crypto)·DUNGEON 세 시대 여덟(잡졸 Brian·XBot·Swat·YBot·Boss·Zlorp, 행상 Leonard·Astra)·STORY 세 시대 열(Racer·Dummy·Warzombie·Mremireh·Jody·Yaku·Steve·Mannequin, 사람 Olivia·Ely)·STORY 정찰병 PeasantMan·FOREST 마을 사람 여섯(CastleGuard·Pelegrini·Pete·Sophie·Uriel·Jennifer)도 공방 후보가 있다 — **Mixamo 사람·괴물 자리 전부**. 비교 장면 `Saga/Char Forge/Build Compare Real Scene` 짝 쉰둘 `CMP_RESULT OK`, **사람 판정 전**(saga-unity `docs/HOW_TO_PLAYTEST.md` §9). **새 세션 다음 일**: ① 판정이 나온 짝부터 게임 몸 교체(`SetupNpcCharacterImports`·`SetupForestCreatureModels` 가 공방 FBX 를 받게) · ② 판정이 없으면 동작 빈칸(등반·활공·방패 막기 — 자체 키프레임, §4) · ③ 단계 5 출처 검사(`tools/asset-audit`, §7). 실기 확인은 재촉하지 않는다.
+> 상태(2026-09-25 저녁): **saga-godot 몸 = VRoid 직접 디자인(D4)** — 이 도구는 VRoid 주역에 CC0 동작·얼굴 굽기·게임 배선을 맡는다(§10 `vroid_intake.sh`, 사람이 `.vrm` 을 Downloads 에 둘 때). **saga-unity(사실풍) = 단계 3 `build_real.py`** — Mixamo 괴물 자리 전부(Goblin·Brute·Warrok·Parasite·Nightshade·Hulk·Jolleen·Skeleton)와 동행 셋(Paladin·PeasantGirl·Archer)에 공방 후보가 있고, 두목 여섯(Maw·Ganfaul·Ninja·Demon·AlienSoldier·Morak)·GO 세 시대 아홉(들판 적 GasMask·Copzombie·ExoRed, 역참 사람 Remy·Megan·SwatGuy·ExoGray·Vanguard·Crypto)·DUNGEON 세 시대 여덟(잡졸 Brian·XBot·Swat·YBot·Boss·Zlorp, 행상 Leonard·Astra)·STORY 세 시대 열(Racer·Dummy·Warzombie·Mremireh·Jody·Yaku·Steve·Mannequin, 사람 Olivia·Ely)·STORY 정찰병 PeasantMan·FOREST 마을 사람 여섯(CastleGuard·Pelegrini·Pete·Sophie·Uriel·Jennifer)도 공방 후보가 있다 — **Mixamo 사람·괴물 자리 전부**. 비교 장면 `Saga/Char Forge/Build Compare Real Scene` 짝 쉰둘 `CMP_RESULT OK`, **사람 판정 전**(saga-unity `docs/HOW_TO_PLAYTEST.md` §9). **새 세션 다음 일**: ① 판정이 나온 짝부터 게임 몸 교체(`SetupNpcCharacterImports`·`SetupForestCreatureModels` 가 공방 FBX 를 받게) · ② 판정이 없으면 단계 5 출처 검사(`tools/asset-audit`, §7) · ③ 남은 자체 동작(도발 몸짓·시전 — §4, `keyframes.py` 에 자세 더하기). 실기 확인은 재촉하지 않는다.
 > `SAGA-DESIGN.md` 는 여기를 가리키기만 한다. `tools/asset-forge` 처럼 **빌드 도구는 공유**(게임 코드 공유 금지와는 별개).
 
 ## 1. 왜
@@ -49,9 +49,11 @@ py tools/char-forge/fetch_sources.py                                 # 입력 �
 | `rigmaps.py` | 표준 뼈 목록·기준 자식 표(뼈 방향)·뼈 이름 표(`identity`·`vroid`·`mpfb`) |
 | `skeleton.py` | 해골 부품(`kitbash` `skeleton`, 레시피 마지막) — 뼈대 자리·살 단면 → 뼈 조각·두개골, 살·눈·눈썹은 걷고 이만 남긴다 |
 | `build_real.py` | **단계 3 사실 몸** — 레시피 → MPFB 몸(모프 `macro`)·`game_engine` 뼈·피부·눈·눈썹·속눈썹·이·머리·옷(MakeHuman system assets) → 모프 굳히기·옷 아래 살·도우미 지우기 → 재질 칸 이름 → UAL 동작 → `.fbx`(Unity Humanoid)+`.glb`. `BLENDER_USER_RESOURCES=tools/char-forge/_blender` 필요 |
+| `keyframes.py` | **자체 키프레임 동작**(`CF_*`) — UAL 무료판에 없는 동작을 동작 팩 뼈대 위에 코드로 짓는다. 자세 = 골반 이동·돌기(`yaw`)·등뼈·손발 방향(`dirs`) + 손목·발목 자리(`ik`, 두 마디 IK·팔꿈치/무릎 `pole`). `retarget`·`verify.py` 가 UAL 동작과 똑같이 받는다(레시피 `"climb": "CF_Climb_Loop"`). 지금: 등반·활공·방패 막기·막기 중 피격·활 대기·활 쏘기 |
 | `measure_shape.py` | 모양 점검(스크린샷 대신) — `.glb` 를 다시 열어 복면·바이저 띠 속 남은 살, 띠·모자·배낭 둘레(°), 옷자락 뚫림(서기·걷기·달리기), 모자 밖 머리카락을 찍는다 |
 
 동작 굽기 요점(`build.py` `retarget`): 몸 팩과 동작 팩의 쉼 자세가 목 14°·발 9° 쯤 달라, 곡선을 그대로 베끼면 자세가 기운다(측정: 칼 휘두르기 15.6°).
+verify 함정(09-25 고침): FBX 를 다시 열면 동작이 1 프레임부터 선다(glb·원본은 0) — 첫 프레임끼리 맞추지 않으면 한 프레임 밀린 채 재서 옛 fbx 오차 0.5° 대부분이 이 밀림이었다. 또 한 장면이라 frame_set 이 두 뼈대를 다 옮기니 원본 값을 먼저 읽고 과녁 프레임으로 넘어간다. 샘플은 아홉 프레임(다섯이면 열쇠 사이 튐을 놓친다).
 그래서 ① 뼈마다 쉼 방향을 원본 쪽으로 맞추는 최소 회전을 먼저 곱하고 ② 골반 이동은 **다리 길이 비**로 늘리고
 ③ 원본 발이 땅(±1cm)에 있으면 낮은 발이 땅에 닿게 골반 아래를 올리고 내린다(1~3cm 사이는 서서히 풀어 이륙·착지에서 튀지 않게).
 MPFB(MakeHuman 확장)는 `fetch_sources.py` 가 `_blender/`(gitignore)에 설치하고 system assets 를 그 사용자 데이터에 푼다 — 사용자 Blender 설정과 따로다. 사실 몸 빌드:
@@ -63,7 +65,7 @@ export BLENDER_USER_RESOURCES="$PWD/tools/char-forge/_blender"
 "$B" -b --factory-startup -P tools/char-forge/verify.py -- --glb tools/char-forge/_out/_cmp_real_hero_f_01.fbx --map mpfb --clips idle=Sword_Idle,…
 ```
 
-**사람 NPC 짝 하나 더하는 순서(saga-unity, 09-25 굳힘)**: ① 비슷한 `_cmp_real_*` 레시피를 본떠 새 레시피(자리 이름·역할을 `_note` 에, 이름은 가명·실명 금지) → ② `build_real.py --check` → ③ `verify.py`(fbx·glb, `--map mpfb --clips` 는 레시피 anims) → ④ `measure_shape.py` → ⑤ 두 번 빌드해 glb sha256 같은지 → ⑥ `.fbx`+`.license.json` 을 `saga-unity/Assets/Art/CharactersForge/` 에 → ⑦ `BuildCharCompareRealScene.Pairs` 에 짝(지금 몸 상태 수에 맞춰 `BossPair` 다섯 상태 · `FolkPair` 서기·걷기 · `IdlePair` 서기만) → ⑧ **다른 세션 Unity 가 안 돌 때**(`Get-CimInstance Win32_Process` 로 saga-unity 배치 확인 — 도는 중에 FBX 를 넣으면 그 진단에 섞인다, 남의 커밋 전 파일 컴파일 오류면 고치지 말고 그쪽 커밋을 기다린다) `-executeMethod Saga.EditorTools.BuildCharCompareRealScene.BuildAndVerifyBatch` → `CMP_RESULT OK` → ⑨ 배치가 올린 `ProjectSettings/ProjectVersion.txt`·`Packages/` 되돌리기 → ⑩ HOW_TO_PLAYTEST §9 짝 목록·saga-unity HISTORY·이 README, `git commit -- <경로>`(CharactersForge·Animators/CharForge 폴더는 이 도구 몫). 껍데기 색이 다르면 칸 이름을 달리한다(같은 칸은 첫 색으로 합친다). 셸 heredoc 에 한글과 작은따옴표가 섞이면 파싱이 깨지니 레시피·생성기는 Write 로 쓴다. **키는 `macro.height` 로 맞춘다(09-25 겪음)**: MakeHuman 키 값은 가파르고 나이·성별에 따라 달라(어른 남자 0.6 → 1.89m · 0.75 → 2.11m, 여자 0.55 → 1.56m) 감으로 넣으면 20~30% 빗나간다. 비교 장면이 짝 키로 늘려 줄이니 틀린 키는 다리 비율(`leg_ratio`)이 늘어난 몸으로 보인다 — 빌드 로그 `height_m` 이 짝 키 ±1.5% 안이 될 때까지 키 값을 선형 보정해 레시피에 적는다(두세 번이면 된다). `age` 0.5 가 스물다섯 어른이고 0.3 이면 열여섯 쯤 청소년 비율이다 — 어른 사람은 0.4 이상.
+**사람 NPC 짝 하나 더하는 순서(saga-unity, 09-25 굳힘)**: ① 비슷한 `_cmp_real_*` 레시피를 본떠 새 레시피(자리 이름·역할을 `_note` 에, 이름은 가명·실명 금지) → ② `build_real.py --check` → ③ `verify.py`(fbx·glb, `--map mpfb --clips` 는 레시피 anims) → ④ `measure_shape.py` → ⑤ 두 번 빌드해 glb sha256 같은지 → ⑥ `.fbx`+`.license.json` 을 `saga-unity/Assets/Art/CharactersForge/` 에 → ⑦ `BuildCharCompareRealScene.Pairs` 에 짝(지금 몸 상태 수에 맞춰 `BossPair` 다섯 상태 · `FolkPair` 서기·걷기 · `IdlePair` 서기만) → ⑧ **다른 세션 Unity 가 안 돌 때**(`Get-CimInstance Win32_Process` 로 saga-unity 배치 확인 — 도는 중에 FBX 를 넣으면 그 진단에 섞인다, 남의 커밋 전 파일 컴파일 오류면 고치지 말고 그쪽 커밋을 기다린다) `-executeMethod Saga.EditorTools.BuildCharCompareRealScene.BuildAndVerifyBatch` → `CMP_RESULT OK` → ⑨ 배치가 올린 `ProjectSettings/ProjectVersion.txt`·`Packages/` 되돌리기 → ⑩ HOW_TO_PLAYTEST §9 짝 목록·saga-unity HISTORY·이 README, `git commit -- <경로>`(CharactersForge·Animators/CharForge 폴더는 이 도구 몫). 껍데기 색이 다르면 칸 이름을 달리한다(같은 칸은 첫 색으로 합친다). 셸 heredoc 에 한글과 작은따옴표가 섞이면 파싱이 깨지니 레시피·생성기는 Write 로 쓴다. **키는 `macro.height` 로 맞춘다(09-25 겪음 — 사람형 옛 몸 스물둘도 이때 다시 맞췄다: 술사 1.36m·택배 기사 1.44m·무사 2.03m·능묘지기 2.17m 가 짝 키 ±1.5% 로, 괴물 열하나는 비율이 설계라 그대로)**: MakeHuman 키 값은 가파르고 나이·성별에 따라 달라(어른 남자 0.6 → 1.89m · 0.75 → 2.11m, 여자 0.55 → 1.56m) 감으로 넣으면 20~30% 빗나간다. 비교 장면이 짝 키로 늘려 줄이니 틀린 키는 다리 비율(`leg_ratio`)이 늘어난 몸으로 보인다 — 빌드 로그 `height_m` 이 짝 키 ±1.5% 안이 될 때까지 키 값을 선형 보정해 레시피에 적는다(두세 번이면 된다). `age` 0.5 가 스물다섯 어른이고 0.3 이면 열여섯 쯤 청소년 비율이다 — 어른 사람은 0.4 이상.
 
 사실 몸 요점: 뼈를 부위보다 먼저 단다(붙이는 순간 가중치를 옮긴다 — MPFB `characterbuilder` 와 같은 순서). 재질은 `GAMEENGINE`(바탕색·노멀 그림을 원리 BSDF 에 바로 — FBX 로 그대로 간다). `bake_modifiers_remove_helpers(bake_masks=True)` 로 옷 아래 가려진 살을 실제로 지운다(운동복이면 허리 아래 몸이 빠진다). 세분화는 안 건다(폰 예산). 레시피 `macro` = MakeHuman 0~1 값(gender 0 여 · 1 남, race asian·caucasian·african).
 
@@ -89,7 +91,7 @@ export BLENDER_USER_RESOURCES="$PWD/tools/char-forge/_blender"
 
 > **무료판에 실제로 든 것(2026-09-24 풀어 봄)**: 몸 = Superhero 남·여 둘(피부 밝음·어두움 두 장), 머리 6(`Hair_Long`·`Buns`·`SimpleParted`·`Buzzed`·`BuzzedFemale`·`Beard`)·눈썹 2.
 > 동작 45: 서기·걷기·조깅·질주·웅크려 걷기·뛰기(시작·공중·착지)·구르기·헤엄(앞·제자리)·칼(대기·베기)·주먹·권총·주문(시작·유지·쏘기·끝)·맞기(가슴·머리)·쓰러짐·줍기·앉기·말하기·춤·밀기·운전·고치기.
-> 없는 것(자체 키프레임 몫): 벽 오르기·활공·방패 막기·도발·활 쏘기. Regular·Teen 몸은 무료판에 없다 → 비율은 셰이프·뼈 길이로 만든다.
+> 없는 것(자체 키프레임 몫): 벽 오르기·활공·방패 막기·도발·활 쏘기 — **09-25 `keyframes.py` 로 지었다**(`CF_Climb_Loop`·`CF_Glide_Loop`·`CF_Shield_Block`·`CF_Shield_Block_Hit`·`CF_Bow_Idle_Loop`·`CF_Bow_Shoot`). 헤엄·물 위·점프는 UAL(`Swim_Fwd_Loop`·`Swim_Idle_Loop`·`Jump_Start`). 함정 둘: ① 열쇠 사이는 쿼터니언 성분별 보간이라 앞 열쇠와 부호가 반대면 사이 프레임이 먼 길로 돈다(활 쏘기 한 프레임 84°) — 열쇠마다 부호를 맞춘다 ② 팔(0.547m)·다리 길이 밖 목표는 IK 가 곧게 펴 멈춘다 — 점검이 목표 오차를 찍는다. Regular·Teen 몸은 무료판에 없다 → 비율은 셰이프·뼈 길이로 만든다.
 
 > 유료판(Pro·Source)도 CC0 이다. 무료판에 빠진 동작이 필요하면 사는 게 가장 싸다 — **결정은 사용자 몫**(§8).
 
@@ -164,7 +166,7 @@ export BLENDER_USER_RESOURCES="$PWD/tools/char-forge/_blender"
 | unity | 주역·적 Maria·Abe·Brute | Mixamo 몸 + 클립 | PBR 레시피 + UAL |
 | unity | 동행 무사(Paladin)·술사(Peasant Girl)·유격(Erika Archer)·마을 사람 | Mixamo | PBR 레시피 + 장비 소켓 |
 | unity | 짐승·괴물(Goblin·Pumpkinhulk·Warrok·Parasite·Nightshade·Jolleen·Skeletonzombie) | Mixamo | 같은 몸의 비율 극단값 + kitbash, 떠 있는 것은 Rigify 뼈 |
-| unity | 이동 기술(등반·활공·수영·물 위·점프)·방패 도발·시전 | Mixamo 클립 | UAL 에 있으면 그것, 없으면 자체 키프레임 |
+| unity | 이동 기술(등반·활공·수영·물 위·점프)·방패 도발·막기 피격·활 | Mixamo 클립 | **공방 후보 있음(09-25)** — 주역·무사·유격 레시피에 `CF_*`·UAL 동작, 비교 장면 순환에 상태 추가. 게임 교체는 판정 뒤 |
 
 클립 문구의 원래 목록은 `tools/mixamo_automation/README.md` 레시피 표에 있다. 교체가 끝난 줄은 이 표에서 **지운다**(상태 표).
 

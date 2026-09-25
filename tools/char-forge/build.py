@@ -14,6 +14,7 @@ from mathutils import Matrix, Vector
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import rigmaps  # noqa: E402
+import keyframes  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.join(HERE, '_src')
@@ -453,6 +454,8 @@ def retarget(tgt, want, check, name_map=None):
     delete([o for o in objs if o is not src])
     scene = bpy.context.scene
     scene.render.fps, scene.render.fps_base = 30, 1.0
+    # 무료판에 없는 동작(CF_*)은 동작 팩 뼈대 위에 코드로 짓는다 — 그다음은 UAL 동작과 같은 길(keyframes.py)
+    keyframes.add(src, [v for v in (want.values() if isinstance(want, dict) else want if isinstance(want, (list, tuple)) else [])])
     src_acts = [a for a in bpy.data.actions if a.name.startswith('Rig|')]
     pairs = {s: t for s, t in name_map.items() if t and s in src.data.bones and t in tgt.data.bones}
     t2s = {t: s for s, t in pairs.items()}

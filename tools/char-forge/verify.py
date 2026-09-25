@@ -2,7 +2,7 @@
 
     blender -b --factory-startup -P tools/char-forge/verify.py -- --glb <파일> [--map identity|vroid] [--clips out=UAL,...]
 
-동작마다 다섯 프레임씩:
+동작마다 아홉 프레임씩(파일 첫 프레임에 맞춰):
 - 뼈 방향: 표준 뼈마다 "기준 자식 쪽 방향"(rigmaps.REF_CHILD)이 원본과 몇 도 다른가 — ≤ 5°
 - 땅 닿음: 원본의 낮은 발이 땅(쉼 높이 ±1cm)에 있는 프레임에서, 파일 쪽 낮은 발 높이 차 — ≤ 1cm
 - 멈춤 아님: 걷기 동작의 손목이 실제로 움직였는가(원본의 절반 이상)
@@ -12,6 +12,7 @@ import bpy, json, math, os, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import rigmaps  # noqa: E402
+import keyframes  # noqa: E402
 
 UAL_FBX = os.path.join(HERE, '_src', 'Animation Library[Standard]', 'Unreal Engine', 'AL_Standard.fbx')
 
@@ -43,6 +44,7 @@ def main():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     bpy.context.scene.render.fps = 30
     src, sacts = imp(UAL_FBX)
+    sacts += keyframes.add(src, list(clips.values()) if clips else [])  # 자체 키프레임 동작(CF_*)도 원본으로 맞댄다
     tgt, tacts = imp(path)
     src.animation_data_create()
     tgt.animation_data_create()
@@ -77,21 +79,27 @@ def main():
             fails.append(f'{out}: 파일에 없음')
             continue
         f0, f1 = (int(round(x)) for x in sa.frame_range)
+        # FBX 를 다시 열면 동작이 1 프레임부터 선다(glb·원본은 0) — 첫 프레임끼리 맞춰 댄다. 안 맞추면 한 프레임 밀린 채 재서
+        # 빠른 동작일수록 오차가 커 보였다(옛 fbx 0.5° 는 대부분 이 밀림)
+        dt = int(round(ta.frame_range[0])) - f0
         ang = gnd = 0.0
         wrist_s = wrist_t = 0.0
         prev = None
-        for f in [f0 + (f1 - f0) * i // 4 for i in range(5)]:
+        for f in [f0 + (f1 - f0) * i // 8 for i in range(9)]:  # 아홉 프레임 — 다섯이면 열쇠 사이 튐을 놓친다(09-25)
+            # 한 장면이라 frame_set 이 두 뼈대를 다 옮긴다 — 원본을 먼저 읽고 과녁 프레임으로 넘어간다
             play(src, sa, f)
             play(tgt, ta, f)
+            sh = {n: head(src, n) for n in {x for d in dirs for x in d} | set(feet) | {'hand_l'}}
+            play(tgt, ta, f + dt)
             for s, c in dirs:
-                sd = (head(src, c) - head(src, s)).normalized()
+                sd = (sh[c] - sh[s]).normalized()
                 td = (head(tgt, pairs[c]) - head(tgt, pairs[s])).normalized()
                 ang = max(ang, math.degrees(sd.angle(td)))
-            s_low = min(head(src, n).z - s_rest[n] for n in feet)
+            s_low = min(sh[n].z - s_rest[n] for n in feet)
             t_low = min(head(tgt, pairs[n]).z - t_rest[n] for n in feet)
             if abs(s_low) < 0.01:
                 gnd = max(gnd, abs(t_low - s_low))
-            ws, wt = head(src, 'hand_l'), head(tgt, pairs['hand_l'])
+            ws, wt = sh['hand_l'], head(tgt, pairs['hand_l'])
             if prev is not None:
                 wrist_s += (ws - prev[0]).length
                 wrist_t += (wt - prev[1]).length

@@ -1,7 +1,7 @@
 {
  "id": "_cmp_real_ganfaul_01",
  "_note": "단계 3 두목 비교용 — saga-unity Ganfaul(Mixamo) 자리 후보(DUNGEON 능묘지기 106-4). 게임 인물 아님(이름 없음). 크고 마른 늙은 남자·잿빛 푸른 피부·짙은 두건·발목까지 보랏빛 도포(다리가 남는 옷자락)·검은 쇠 어깨판·팔 가리개·가죽 장갑.",
- "macro": {"gender": 1.0, "age": 0.95, "muscle": 0.35, "weight": 0.15, "height": 0.85, "proportions": 0.9,
+ "macro": {"gender": 1.0, "age": 0.95, "muscle": 0.35, "weight": 0.15, "height": 0.656, "proportions": 0.9,
            "race": {"asian": 0.5, "caucasian": 0.4, "african": 0.1}},
  "targets": {"cheek-bones-incr": 0.6, "cheek-volume-decr": 0.8, "eyebrows-trans-down": 0.5, "nose-scale-vert-incr": 0.3,
              "chin-height-incr": 0.4, "neck-scale-horiz-decr": 0.3},

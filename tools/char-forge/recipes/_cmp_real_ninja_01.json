@@ -1,7 +1,7 @@
 {
  "id": "_cmp_real_ninja_01",
  "_note": "단계 3 두목 비교용 — saga-unity Ninja(Mixamo) 자리 후보(DUNGEON 황건 살수, 층 진행기 miniboss·방3 고정 살수). 게임 인물 아님(이름 없음). 날랜 동양 남자·몸에 붙는 먹빛 옷·팔·정강이 감발(가죽)·장갑·버선 신·얼굴 트인 두건 위 복면(코 아래)·누런 머리띠(황건) — 전부 살을 본뜬 껍데기(shell).",
- "macro": {"gender": 1.0, "age": 0.45, "muscle": 0.7, "weight": 0.3, "height": 0.6, "proportions": 0.85,
+ "macro": {"gender": 1.0, "age": 0.45, "muscle": 0.7, "weight": 0.3, "height": 0.649, "proportions": 0.85,
            "race": {"asian": 0.85, "caucasian": 0.1, "african": 0.05}},
  "targets": {"eyebrows-angle-up": 0.4, "chin-width-decr": 0.2},
  "skin": "young_asian_male/young_asian_male.mhmat",

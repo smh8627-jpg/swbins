@@ -1,7 +1,7 @@
 {
  "id": "_cmp_real_archer_f_01",
  "_note": "단계 3 사람 비교용 — saga-unity Archer(Mixamo Erika) 자리 후보(STORY 유격 106-10). 게임 인물 아님(이름 없음). 날랜 여자·몸에 붙는 짙은 풀빛 옷·가죽 조끼·팔 가리개·장갑·무릎 아래 장화·얼굴 트인 두건 — 살을 본뜬 껍데기.",
- "macro": {"gender": 0.0, "age": 0.45, "muscle": 0.65, "weight": 0.3, "height": 0.55, "proportions": 0.9,
+ "macro": {"gender": 0.0, "age": 0.45, "muscle": 0.65, "weight": 0.3, "height": 0.637, "proportions": 0.9,
            "race": {"asian": 0.5, "caucasian": 0.35, "african": 0.15}},
  "targets": {"chin-prognathism-incr": 0.1, "eyebrows-angle-up": 0.3},
  "skin": "young_caucasian_female/young_caucasian_female.mhmat",
@@ -23,6 +23,6 @@
   {"part": "shell", "slot": "cloth", "color": "#2c3d28", "rough": 0.9, "offset": 0.014, "thick": 0.004,
    "groups": ["head", "neck_01"], "open_face": true, "minw": 0.5}
  ],
- "anims": {"idle": "Idle_Loop", "walk": "Walk_Loop", "run": "Jog_Fwd_Loop", "attack": "Spell_Simple_Shoot",
+ "anims": {"idle": "CF_Bow_Idle_Loop", "walk": "Walk_Loop", "run": "Jog_Fwd_Loop", "attack": "CF_Bow_Shoot",
            "hit": "Hit_Chest", "death": "Death01"}
 }

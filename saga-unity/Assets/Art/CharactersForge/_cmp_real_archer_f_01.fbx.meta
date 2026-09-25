@@ -71,7 +71,7 @@ ModelImporter:
       takeName: _cmp_real_archer_f_01|attack
       internalID: 8359644485835782309
       firstFrame: 0
-      lastFrame: 15
+      lastFrame: 40
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -158,7 +158,7 @@ ModelImporter:
       takeName: _cmp_real_archer_f_01|idle
       internalID: 1830194850024411125
       firstFrame: 0
-      lastFrame: 75
+      lastFrame: 60
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
