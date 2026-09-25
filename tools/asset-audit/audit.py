@@ -41,7 +41,13 @@ GENERIC = {'assets', 'models', 'textures', 'texture', 'audio', 'sfx', 'bgm', 'sp
 # 우리 도구가 구운 것 — 출처 문서 대조에서 뺀다(asset-forge → generated/, bake-portraits → portraits/)
 SELF_MADE = ['/generated/', '/portraits/']
 BUDGET = {'glb_mb': 5, 'tris': 50000, 'tex_px': 2048}
-SEV = {'public': 3, 'decoder': 3, 'gitsize': 3, 'pair': 2, 'heavy': 2, 'license': 2, 'unref': 1, 'dup': 1}
+# 인물·동작 출처(char-forge README §7 단계 5 "상용 문턱") — Mixamo 는 재배포 금지·Adobe 약관 의존이라 게임이 쓰면 🔴.
+# VRoid 는 D4(09-25)로 godot 몸 정본이라 VRM 메타의 상업·재배포 허가로 판정한다. 공방(char-forge) 몸은 옆에 *.license.json(CC0) 필수.
+MIXAMO = RESTRICTED
+FORGE = [r'(^|/)CharactersForge/[^/]+\.fbx$', r'(^|/)characters_cf/[^/]+\.glb$']
+ANIM_EXT = {'.res', '.anim'}  # 구운 동작(Godot AnimationLibrary·Unity 클립) — ASSET_EXT 밖이라 출처만 본다
+SEV = {'public': 3, 'decoder': 3, 'gitsize': 3, 'origin': 3, 'pair': 2, 'heavy': 2, 'license': 2, 'origin_left': 2,
+       'unref': 1, 'dup': 1}
 SEV_ICON = {3: '🔴', 2: '🟡', 1: '⚪'}
 
 
@@ -146,6 +152,81 @@ def glb_info(path):
             'gltf_ext': ext}
 
 
+def vrm_meta(path):
+    """VRM(0.x `VRM.meta` · 1.0 `VRMC_vrm.meta`) 라이선스 칸 → (상업 허가, 재배포 허가, 표기 필요, 요약)."""
+    try:
+        with open(path, 'rb') as f:
+            data = f.read()
+        g = json.loads(data[20:20 + struct.unpack('<I', data[12:16])[0]].decode('utf-8'))
+    except Exception:
+        return None
+    e = g.get('extensions', {})
+    if 'VRMC_vrm' in e:
+        m = e['VRMC_vrm'].get('meta', {})
+        com = m.get('commercialUsage', 'personalNonProfit') in ('personalProfit', 'corporation')
+        red = bool(m.get('allowRedistribution', False))
+        cred = m.get('creditNotation', 'required') == 'required'
+        return com, red, cred, f"VRM1 상업 {m.get('commercialUsage')} · 재배포 {red} · 표기 {m.get('creditNotation', 'required')}"
+    if 'VRM' in e:
+        m = e['VRM'].get('meta', {})
+        lic = m.get('licenseName', '')
+        com = m.get('commercialUssageName') == 'Allow'
+        red = lic not in ('Redistribution_Prohibited', 'Other', '')
+        cred = lic.startswith('CC_BY')
+        return com, red, cred, f"VRM0 {lic} · 상업 {m.get('commercialUssageName')}"
+    return None
+
+
+def mixamo_ref(rp, p, kind, gcode):
+    """Mixamo 파일을 게임(도구 폴더 밖 코드·씬)이 쓰나 — `attack`·`idle` 같은 줄기 이름은 어디에나 있어 안 본다.
+    경로(에셋 폴더 안쪽)·파일 이름 전체·Unity GUID·따옴표 낀 몸 폴더 이름(`"Racer"` — NowRoot + key + ".fbx" 식 조립)만 본다."""
+    inner = rp.split('/Assets/' if kind == 'unity' else '/assets/', 1)[-1]
+    base = os.path.basename(p)
+    if inner in gcode:
+        return True
+    if kind == 'godot':  # godot 은 anim_cc0/ 에 같은 이름의 CC0 판이 있다 — 경로로만 본다
+        return False
+    if base in gcode:
+        return True
+    if kind == 'unity':
+        if os.path.exists(p + '.meta'):
+            m = re.search(r'guid:\s*([0-9a-f]{32})', read(p + '.meta'))
+            if m and m.group(1) in gcode:
+                return True
+        folder = rp.split('/')[-2]
+        return folder not in ('CharactersRealistic', 'Textures') and ('"' + folder + '"') in gcode
+    return False
+
+
+def origin(rp, p, ext, pathset, ref):
+    """인물·동작 출처 판정 → (kind, msg) 또는 None. Mixamo 는 ref 에 mixamo_ref 결과를 넘긴다."""
+    if any(re.search(r, rp, re.I) for r in MIXAMO):
+        if ref:
+            return 'origin', 'Mixamo 출처인데 게임 코드·씬이 쓴다 — 공방 몸·CC0 동작으로 바꿀 자리(char-forge README §9)'
+        return 'origin_left', 'Mixamo 출처 파일이 남아 있다(안 씀) — 교체가 끝났으면 지워도 된다'
+    if ext == '.vrm' or (ext == '.glb' and os.path.splitext(p)[0] + '.vrm' in pathset):
+        v = vrm_meta(p if ext == '.vrm' else os.path.splitext(p)[0] + '.vrm')
+        if v is None:
+            return 'origin', 'VRoid 몸인데 VRM 라이선스 칸을 못 읽는다'
+        com, red, cred, why = v
+        if not (com and red):
+            return 'origin', f'VRoid 몸 라이선스가 상업·재배포를 막는다({why}) — VRoid Studio 에서 허가로 다시 내보낸다'
+        if cred:
+            return 'origin_left', f'VRoid 몸 — 저작자 표시가 필요한 라이선스({why}). 우리가 만든 몸이면 표기 불요로 다시 내보낸다'
+        return None
+    if any(re.search(r, rp) for r in FORGE):
+        lic = os.path.splitext(p)[0] + '.license.json'
+        if lic not in pathset:
+            return 'origin', '공방 몸인데 옆에 *.license.json 이 없다 — 입력 출처를 모른다(char-forge 원칙 2)'
+        try:
+            txt = json.load(open(lic, encoding='utf-8')).get('license', '')
+        except Exception:
+            txt = ''
+        if not str(txt).startswith('CC0'):
+            return 'origin', f'공방 몸 license.json 이 CC0 가 아니다: {str(txt)[:60]}'
+    return None
+
+
 # ---------- 트랙 정의 ----------
 
 def tracks(sel, game):
@@ -218,12 +299,13 @@ def tool_text():
     return _TOOL_TEXT
 
 
-def load_code_text(t):
+def load_code_text(t, with_tools=True):
     chunks = []
     for p in walk(t['asset_dir'], skip={'node_modules', 'Library'}):
         if p.lower().endswith('.glb'):
             chunks.extend(glb_uris(p))
-    chunks.append(tool_text())
+    if with_tools:
+        chunks.append(tool_text())
     for d in t['code_dirs']:
         for p in walk(d, skip=t['code_skip']):
             # `.glb-compress-manifest.json` 같은 처리 기록은 파일 목록일 뿐 참조가 아니다
@@ -311,6 +393,8 @@ def audit(sel, game, want_md5=True, quick=None):
             # 판 js 가 바뀌었으면 디코더 배선이 빠졌을 수 있다 → 그 판 GLB 를 전부 본다
             focus = None if kind == 'web' and any(c.startswith(base_rel + 'js/') for c in mine) else mine
         code = load_code_text(t) if quick is None else ''
+        # 출처 판정용 — 옛 도구(saga-godot/tools/mixamo_retarget.gd 등)가 부르는 건 "게임이 쓴다"가 아니다
+        gcode = load_code_text(dict(t, code_skip=t['code_skip'] | {'tools'}), with_tools=False) if quick is None and kind != 'web' else ''
         words = set(re.findall(r'\w+', code))  # id 접두어 대조용 — 정규식으로 코드 전체를 매번 훑으면 80초가 넘는다
         doc = expand_doc('\n'.join(read(p) for p in t['docs']).lower())
         # 문서의 `tile_*.png` 같은 와일드카드 표기도 출처 표기로 친다
@@ -342,6 +426,11 @@ def audit(sel, game, want_md5=True, quick=None):
                 tgt = p[:-5]
                 if tgt not in pathset and not os.path.isdir(tgt):
                     issue('pair', rp, '고아 .meta — 짝 에셋이 없다(지우거나 에셋을 되돌린다)', tid)
+                continue
+            if ext in ANIM_EXT and quick is None and any(re.search(r, rp, re.I) for r in MIXAMO):
+                o = origin(rp, p, ext, pathset, mixamo_ref(rp, p, kind, gcode))
+                if o:
+                    issue(o[0], rp, o[1], tid)
                 continue
             if ext not in ASSET_EXT:
                 continue
@@ -414,6 +503,12 @@ def audit(sel, game, want_md5=True, quick=None):
                 if why is not None:
                     ref = 'keep'; rec['keep'] = why
             rec['ref'] = ref
+            if kind != 'web' and ext in MODEL:
+                mx = any(re.search(r, rp, re.I) for r in MIXAMO)
+                o = origin(rp, p, ext, pathset, mixamo_ref(rp, p, kind, gcode) if mx else ref)
+                if o:
+                    issue(o[0], rp, o[1], tid)
+                    rec['origin'] = o[0]
             if not ref:
                 issue('unref', rp, '코드·씬에 이름/GUID 흔적 없음(동적 경로면 무시)', tid)
             # 출처 문서 대조 — 폴더 단위로 모은다
@@ -472,6 +567,13 @@ def summary(r):
     cross = [d for d in r['dups'] if d['cross_kind']]
     lines.append(f"사본 {len(r['dups'])}묶음(낭비 {sum(d['wasted'] for d in r['dups']) / 2**20:.0f}MB) · "
                  f"트랙 넘는 사본 {len(cross)}묶음 — 공용 에셋 통합 후보")
+    og = defaultdict(lambda: defaultdict(int))
+    for i in r['issues']:
+        if i['kind'] in ('origin', 'origin_left'):
+            og[i['track']][i['kind']] += 1
+    if og:  # 상용 문턱(char-forge §7 단계 5): 두 3D 트랙 모두 🔴origin 0 이 끝
+        lines.append('출처(인물·동작) ' + ' · '.join(f"{t} 🔴{v['origin']} 🟡{v['origin_left']}" for t, v in sorted(og.items()))
+                     + ' — 상용 문턱은 🔴 0')
     for i in [i for i in r['issues'] if i['sev'] == 3][:15]:
         lines.append(f"  🔴 [{i['kind']}] {i['path']} — {i['msg']}")
     return '\n'.join(lines)
