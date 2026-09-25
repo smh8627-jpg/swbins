@@ -32,6 +32,8 @@ const WEAK_COLOR := Color(1.0, 0.88, 0.35)
 const ARROW_WOOD := Color(0.92, 0.86, 0.66)
 const ENERGY_PER_HIT := 5.0 # field_combat.gd ENERGY_PER_HIT 와 같게(서로 preload 하면 돌고 돈다)
 
+signal weak_hit() # 106장 ㊸ 업적(명사수)이 센다
+
 var active := false
 var hold := false # 길게 눌러 들어온 조준 — 떼면 쏘고 나간다
 var charging := false
@@ -219,6 +221,7 @@ func _impact(a: Dictionary, h: Dictionary) -> void:
 			_fc.set("_crit_id", "")
 			if h.weak:
 				_fc.call("_reaction_text", e, "급소!", WEAK_COLOR)
+				weak_hit.emit()
 			_fc.call("_gain_energy", ENERGY_PER_HIT)
 			_fc.call("_rain_follow")
 		"target":

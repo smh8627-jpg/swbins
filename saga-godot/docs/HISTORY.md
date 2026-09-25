@@ -8788,3 +8788,12 @@ PROJECT_STATE.md` 참고. 요약:
 - 낚는 동안 플레이어는 frozen(들판 전투 입력이 안 샘), 맞으면 끝. 지도·미니맵에 낚시터 표(신상 켠 지역).
 - 점검 새 probe_fishing 11항목 fails=0(두 판 md5 같음) · WEAPON·COOK·MAP·COMBAT·GROWTH·COMMISSION fails=0 · REGRESS OK.
 - 실기 확인 전: 물고기 그림자·찌·줄 보이는지, 고리 옮기기, 입질 알아보기, 줄다리기 손맛·어려움, 폰 단추 자리, 조합 창.
+
+## GO 원신 기준 ㊸ 업적 (2026-09-25, 같은 날 새 세션, "이어해")
+
+- 남은 격차 ④ — 업적 스물둘·단계 예순셋(갈래 다섯), 새 `data/achievements.gd`·`world/achievements.gd`. 원신처럼 달성은 알림, 보상은 화면(Y)에서 받기·모두 받기.
+- 셈을 둘로: 신호(적 died·반응·채집·요리·낚시·비경·급소 화살 — 새 `aimed_shot.weak_hit`)는 `PartyState.achievements.stats` 에, 상자·별조각·지점·신상·탐험도·이야기 장·세계 임무·모험 등급·물고기/반응 가짓수는 지금 상태에서 읽음. 나중에 생기는 적(비경·임무·보스)은 `node_added` 로 붙인다(의뢰는 처음 있던 적만 붙어 있었다).
+- 불러온 직후 첫 확인은 알림 없이 채움 — 이미 해 둔 상자·장이 한꺼번에 알림으로 뜨지 않게. 옛 세이브엔 칸이 없어도 그대로 된다(버전 그대로).
+- 보상은 냥·견문록·강화석, 어려운 마지막 단계 셋에만 인연 매듭(뽑기 재화가 없는 판이라).
+- 점검 새 probe_achievements 9항목 fails=0(두 판 md5 같음) · COMBAT·COOK·FISH·DOMAIN·WEEKLY·COMMISSION·ARCHERY·STORY fails=0 · REGRESS OK.
+- 실기 확인 전: 알림 빈도·겹침, "업적 ●N" 단추 자리(폰 폭), 화면 탭·받기 단추, 실제 세이브 첫 로드 때 조용한지.
