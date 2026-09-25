@@ -124,6 +124,8 @@ namespace Saga.EditorTools
                 {
                     { "idle", ("Idle", "idle") }, { "walk", ("Walking", "walking") }, { "run", ("Running", "running") },
                     { "attack", ("Cast", "cast") },
+                    // 치유 시전·포로 무릎 꿇기(106-6) — 공방은 자체 키프레임
+                    { "heal", ("Heal", "heal") }, { "kneel", ("Kneel", "kneel") },
                 },
             },
             new Pair
@@ -248,8 +250,8 @@ namespace Saga.EditorTools
         private const float DefaultHeight = 1.70f;
 
         private static readonly string[] Cycle = { "idle", "walk", "run", "attack", "hit", "dodge", "interaction",
-            "climb", "glide", "swim", "tread", "jump", "taunt", "blocked", "death" };
-        private static readonly HashSet<string> Loops = new HashSet<string> { "idle", "walk", "run", "climb", "glide", "swim", "tread" };
+            "climb", "glide", "swim", "tread", "jump", "taunt", "blocked", "heal", "kneel", "death" };
+        private static readonly HashSet<string> Loops = new HashSet<string> { "idle", "walk", "run", "climb", "glide", "swim", "tread", "kneel" };
 
         [MenuItem("Saga/Char Forge/Build Compare Real Scene")]
         public static void Build()

@@ -4,7 +4,7 @@
 
 1) 얼굴 띠 안에 남은 앞 살 정점(복면 mask: 눈 -15~-2.8cm · 바이저 visor: -2.2~+1.8cm) — 띠 가장자리 수십 점이면 정상
 2) 띠·모자·배낭 껍데기(slot 에 band·visor·mask·lens·cap·pack)가 머리 둘레를 몇 도 감나(10° 칸, 빈 곳 목록)
-3) robe 가 있으면 서기·걷기·달리기마다 6 프레임, 끝단 위 다리 살 중 옷자락 밖 몫(그 방향 끝단 아래 다리는 안 센다).
+3) robe 가 있으면 서기·걷기·달리기(가진 몸은 무릎 꿇기·치유 시전도)마다 6 프레임, 끝단 위 다리 살 중 옷자락 밖 몫(그 방향 끝단 아래 다리는 안 센다).
    다리 살이 온몸 옷 껍데기에 덮여 지워진 몸은 그 껍데기(_kitbash_cloth)를 다리로 잰다
 4) 모자·두건 높이의 머리카락 중 껍데기 밖 몫.
 glTF 가져오기는 동작마다 NLA 트랙을 켜 둬서 겹쳐 돈다 — 트랙을 떼고 동작 하나씩, 쉼 자세는 pose 를 비우고 잰다(09-25).
@@ -73,7 +73,7 @@ if robe and skin:
     leg_idx = leg_verts(skin)
     if skin.name.find('_kitbash_') >= 0:
         print('MEASURE robe 다리 = 옷 껍데기', skin.name.split('_kitbash_')[-1], len(leg_idx))
-    for nm in ('idle', 'walk', 'run'):
+    for nm in [n for n in ('idle', 'walk', 'run', 'kneel', 'heal') if n in ACTS]:  # 무릎 꿇기·시전은 가진 몸만
         act = ACTS[nm]
         ad = arm.animation_data_create()
         ad.action = act

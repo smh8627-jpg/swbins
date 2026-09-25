@@ -6,7 +6,7 @@
 자세 하나 = 열쇠 프레임 하나. 캐릭터 좌표 (왼쪽, 앞, 위) — 몸 크기는 UAL 몸(골반 0.92m·어깨 1.44m) 기준 m:
 - `base`   : 손가락·목 등 안 적은 뼈를 가져올 UAL 동작과 프레임(없으면 Idle_Loop 0)
 - `pelvis` : 골반 이동 (왼, 앞, 위) · `yaw` : 골반을 위 축으로 도는 각(도, + = 왼쪽으로 돈다)
-- `dirs`   : 뼈 → 가리킬 방향(기준 자식 쪽, rigmaps.REF_CHILD). 등뼈·목·손·발
+- `dirs`   : 뼈 → 가리킬 방향(기준 자식 쪽, rigmaps.REF_CHILD). 등뼈·목·쇄골·손·발
 - `ik`     : `hand_l`·`foot_r` 등 → 손목·발목 자리. 두 마디(위팔·아래팔 / 허벅지·종아리)를 풀고 팔꿈치·무릎은 `pole` 쪽으로 굽는다
 좌우 대칭 자세는 `mirror(pose)` 로 뒤집는다. 난수 없음 — 같은 코드면 같은 곡선.
 """
@@ -133,6 +133,47 @@ def _bow_shoot():
     return False, [(0, idle), (8, nock), (18, draw), (26, draw), (30, loose), (40, loose)]
 
 
+def _kneel():
+    """무릎 꿇은 포로(제자리) — 두 무릎을 모아 땅에 대고 허벅지는 곧추, 정강이·발등은 뒤로 땅에 눕힌다. 두 손은 등 뒤로 모은다.
+    고개를 떨군 채 숨 쉬며 좌우로 조금 흔들린다. 무릎 관절 중심은 땅 위 5~6cm(무릎뼈가 땅에 닿는다)."""
+    def k(breath, sway):
+        return P(base=('Idle_Loop', 0), pelvis=(0, -0.06, -0.485 - breath),
+                 dirs={'pelvis': (0, 0.04, 1), 'spine_01': (sway * 0.3, 0.06, 1), 'spine_02': (sway * 0.5, 0.04, 1),
+                       'spine_03': (sway, 0.03, 1), 'neck_01': (sway, 0.38 + breath * 4, 1),
+                       'hand_l': (-0.2, -0.3, -1), 'hand_r': (0.2, -0.3, -1), 'foot_l': (0.02, -1, -0.15), 'foot_r': (-0.02, -1, -0.15),
+                       'clavicle_l': (1, -0.4, 0), 'clavicle_r': (-1, -0.4, 0)},
+                 pole={'hand_l': (1, -0.7, 0.1), 'hand_r': (-1, -0.7, 0.1), 'foot_l': (0.1, 1, -0.6), 'foot_r': (-0.1, 1, -0.6)},
+                 ik={'hand_l': (0.07, -0.25, 0.54 - breath), 'hand_r': (-0.07, -0.25, 0.56 - breath),
+                     'foot_l': (0.11, -0.45, 0.08), 'foot_r': (-0.11, -0.45, 0.08)})
+    return True, [(0, k(0, 0)), (30, k(0.010, 0.03)), (60, k(0, 0)), (90, k(0.010, -0.03)), (120, k(0, 0))]
+
+
+def _heal():
+    """치유·되살림 시전 — 두 손을 가슴 앞에 모았다가 머리 위로 들어 올려 기운을 모으고(몸이 조금 젖혀진다),
+    무릎을 굽히며 앞 아래로 두 손바닥을 펼쳐 내린다. 발은 그 자리."""
+    feet = {'foot_l': (0.14, 0.08, 0.104), 'foot_r': (-0.14, -0.08, 0.104)}
+    # 바탕 Idle_Loop 은 오른어깨를 12cm 뒤로 뺀 짝다리라 두 손 시전에선 쇄골을 좌우 같게 편다
+    fdir = {'foot_l': (0.05, 1, -0.6), 'foot_r': (-0.05, 1, -0.6), 'clavicle_l': (1, -0.3, 0), 'clavicle_r': (-1, -0.3, 0)}
+    idle = P(base=('Idle_Loop', 0), pelvis=(0, 0, -0.03), dirs=dict(fdir, hand_l=(0.05, 0.3, -1), hand_r=(-0.05, 0.3, -1)),
+             ik={'hand_l': (0.28, 0.02, 0.90), 'hand_r': (-0.28, 0.02, 0.90), **feet})
+    gather = P(base=('Idle_Loop', 0), pelvis=(0, 0, -0.06),
+               dirs=dict(fdir, spine_03=(0, 0.06, 1), neck_01=(0, 0.20, 1), hand_l=(-0.6, 0.5, 0.6), hand_r=(0.6, 0.5, 0.6)),
+               pole={'hand_l': (1, -0.3, -0.6), 'hand_r': (-1, -0.3, -0.6)},
+               ik={'hand_l': (0.07, 0.30, 1.18), 'hand_r': (-0.07, 0.30, 1.18), **feet})
+    raised = P(base=('Idle_Loop', 0), pelvis=(0, -0.01, -0.02),
+               dirs=dict(fdir, spine_01=(0, -0.04, 1), spine_02=(0, -0.08, 1), spine_03=(0, -0.10, 1), neck_01=(0, -0.25, 1),
+                         hand_l=(0.2, 0.2, 1), hand_r=(-0.2, 0.2, 1)),
+               pole={'hand_l': (1, 0, -0.4), 'hand_r': (-1, 0, -0.4)},
+               ik={'hand_l': (0.22, 0.16, 1.80), 'hand_r': (-0.22, 0.16, 1.80), **feet})
+    raised2 = dict(raised, ik={'hand_l': (0.24, 0.15, 1.82), 'hand_r': (-0.24, 0.15, 1.82), **feet})
+    release = P(base=('Idle_Loop', 0), pelvis=(0, 0.03, -0.10),
+                dirs=dict(fdir, spine_01=(0, 0.12, 1), spine_02=(0, 0.16, 1), spine_03=(0, 0.18, 1), neck_01=(0, 0.30, 1),
+                          hand_l=(0.2, 1, -0.3), hand_r=(-0.2, 1, -0.3)),
+                pole={'hand_l': (1, -0.5, -0.5), 'hand_r': (-1, -0.5, -0.5)},
+                ik={'hand_l': (0.26, 0.46, 1.06), 'hand_r': (-0.26, 0.46, 1.06), **feet})
+    return False, [(0, idle), (12, gather), (28, raised), (38, raised2), (50, release), (62, release), (80, idle)]
+
+
 CLIPS = {
     'CF_Climb_Loop': _climb,
     'CF_Glide_Loop': _glide,
@@ -140,6 +181,8 @@ CLIPS = {
     'CF_Shield_Block_Hit': _block_hit,
     'CF_Bow_Idle_Loop': _bow_idle,
     'CF_Bow_Shoot': _bow_shoot,
+    'CF_Kneel_Loop': _kneel,
+    'CF_Heal': _heal,
 }
 
 
@@ -242,7 +285,7 @@ def add(arm, names):
             rot = Matrix.Rotation(math.radians(p.get('yaw', 0.0)), 3, U) @ M.to_3x3()
             pel.matrix = mw.inverted() @ (Matrix.Translation(t) @ rot.to_4x4())
             bpy.context.view_layer.update()
-            for bone in ('pelvis', 'spine_01', 'spine_02', 'spine_03', 'neck_01'):
+            for bone in ('pelvis', 'spine_01', 'spine_02', 'spine_03', 'neck_01', 'clavicle_l', 'clavicle_r'):
                 if bone in p['dirs']:
                     _aim(arm, arm.pose.bones[bone], _world(p['dirs'][bone], axes))
             for s in ('l', 'r'):

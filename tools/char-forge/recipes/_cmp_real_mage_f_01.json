@@ -18,5 +18,5 @@
   {"part": "robe", "color": "#2f4a7a", "top": 0.12, "hem": 0.035, "flare": 0.55, "jag": 0.0, "weights": "skin"}
  ],
  "anims": {"idle": "Idle_Loop", "walk": "Walk_Loop", "run": "Jog_Fwd_Loop", "attack": "Spell_Simple_Shoot",
-           "hit": "Hit_Chest", "death": "Death01"}
+           "hit": "Hit_Chest", "death": "Death01", "heal": "CF_Heal", "kneel": "CF_Kneel_Loop"}
 }
