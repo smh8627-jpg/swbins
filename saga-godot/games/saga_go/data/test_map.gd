@@ -104,6 +104,25 @@ const REGIONS := {
 		## 마을 (5,10) 길과 이어지는 산 사이 고개다(옛 원점 z 8000m).
 		"origin": Vector3(0.0, 0.0, 432.0),
 	},
+	## "frost" — PLAN 106장 ㊺ 이야기 2부 무대, 넷째 지역 "서리봉 고원"(world/region4_frost.gd). 9×9.
+	## 마을 북쪽 변(z=-288)에 남쪽 변을 붙였다 — (4,8) 길 한 칸이 마을 (5,0) 북쪽 산길 어귀(돌무더기)와
+	## 이어지는 고개다. N 눈밭 · I 얼어붙은 호수(걸을 수 있음) · T 침엽수 숲 · R 옛 산성 터.
+	## 과거(옛 산성)·현대(기상 관측소)·미래(추락한 비행선)가 한 고원에(SAGA-DESIGN §12 전체 퓨전).
+	"frost": {
+		"rows": [
+			"^^^^^^^^^",
+			"^^NNNN^^^",
+			"^NNIINNT^",
+			"^TNNNNNN^",
+			"^NNR=NNT^",
+			"^NNN=NNN^",
+			"^TNN=NTN^",
+			"^^NN=NN^^",
+			"^^^^=^^^^",
+		],
+		"tile_size": TILE_SIZE,
+		"origin": Vector3(0.0, 0.0, -480.0),
+	},
 }
 
 ## region_id 오타 하나가 "Invalid get index 'rows' (on base: 'Nil')" 같은

@@ -26,12 +26,12 @@ const OUTSIDE := Color(0.13, 0.17, 0.23)
 const WATER := Color(0.36, 0.62, 0.84)
 const BANNER_SEC := 2.8
 
-const REGION_NAMES := {"village": "청하 마을", "coast": "갯바람 포구", "ruins": "잿빛 폐허"}
+const REGION_NAMES := {"village": "청하 마을", "coast": "갯바람 포구", "ruins": "잿빛 폐허", "frost": "서리봉 고원"}
 ## 지역마다 지도를 밝히는 신상(waypoints.gd POINTS 의 신상 id).
 ## 106장 ㊶ 임무 표식 색(story_quest.gd WQ_BLUE 와 같게).
 const STORY_GOLD := Color(1.0, 0.84, 0.35)
 const WQ_BLUE := Color(0.45, 0.8, 1.0)
-const REGION_STATUE := {"village": "v_statue", "coast": "c_dock", "ruins": "r_statue"}
+const REGION_STATUE := {"village": "v_statue", "coast": "c_dock", "ruins": "r_statue", "frost": "f_statue"}
 
 var map_texture: ImageTexture = null
 var shown_image: Image = null # map_texture 에 올린 그림(구름까지) — 점검이 읽는다
@@ -133,7 +133,7 @@ func _bake_base() -> void:
 			var world := _px_to_world(Vector2(px + 0.5, py + 0.5))
 			var g := TestMap.grid_at(rid, world)
 			var ch := TestMap.tile_at(g.x, g.y, rid)
-			var col: Color = TerrainBuilder.LEGEND[ch].color if TerrainBuilder.LEGEND.has(ch) else OUTSIDE
+			var col: Color = TerrainBuilder.color_of(rid, ch) if TerrainBuilder.LEGEND.has(ch) else OUTSIDE
 			if ch == "~" or ch == "W":
 				_base.set_pixel(px, py, WATER)
 				continue

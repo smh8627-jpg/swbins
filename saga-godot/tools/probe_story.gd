@@ -81,7 +81,7 @@ func _physics_process(_delta: float) -> void:
 			_sq.call("_enter_step")
 			_next()
 		1: # ① 표
-			var ok := Story.CHAPTERS.size() == 9
+			var ok := Story.CHAPTERS.size() == 10 # 106장 ㊺ 2부 10장(따로 probe_story2.gd)
 			for c in Story.CHAPTERS:
 				for s in c.steps:
 					match String(s.type):
@@ -1329,7 +1329,7 @@ func _physics_process(_delta: float) -> void:
 			_sq.call("toggle_journal")
 			var sky: Node = get_tree().get_first_node_in_group("go_sky_isle")
 			var bonus := int(PartyState.ar_paid) / 5 - int(_v.paid) / 5 # 이 사이에 치른 모험 등급 보상(5의 배수마다 매듭 하나)
-			var ok: bool = int(_sq.call("ch")) == 9 and _sq.call("tracker_text") == "" and _sq.call("target_pos") == Vector3.INF and jt.contains("✔ 제9장") \
+			var ok: bool = int(_sq.call("ch")) == 9 and (String(_sq.call("tracker_text")) == "" or String(_sq.call("tracker_text")).contains("제10장")) and jt.contains("✔ 제9장") \
 				and PartyState.count("fate_knot") == int(_v.knots) + 5 + bonus and PartyState.members.count("story_haesol") == 1 \
 				and not bool(sky.call("gloom_visible")) and bool(sky.call("draft_active"))
 			_check("chapter9", ok, "ch=%d knots %d→%d (+%d) haesol=%s gloom=%s draft=%s tracker='%s'" % [_sq.call("ch"), _v.knots, PartyState.count("fate_knot"), bonus,
@@ -1339,6 +1339,9 @@ func _physics_process(_delta: float) -> void:
 			var face: Node = _sq.call("face_of", "elder")
 			var body: Node3D = (_sq.get("_npcs")["elder"] as Node3D).get_node("Body")
 			if _frame == 1:
+				## 106장 ㊺ 2부(10장~)가 생겨 9장 뒤에도 촌장 대화가 이어진다 — 모든 장을 마친 자리로 옮겨 혼잣말 한 줄로(끝에 되돌림).
+				PartyState.story = {"ch": Story.CHAPTERS.size(), "step": 0}
+				_sq.call("_enter_step")
 				_near_npc("elder")
 				_v = {"hand": _hand_probe(body), "blink": 0.0, "base_y": 0.0, "base_f": 0.0, "n": 0}
 			if _frame > 1:

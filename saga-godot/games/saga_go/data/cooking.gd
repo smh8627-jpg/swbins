@@ -68,6 +68,9 @@ const PATCHES := [
 	["r_mint", "mint", "ruins", Vector2(3.0, 5.3), 2],
 	["r_ash_ne", "ash_flower", "ruins", Vector2(5.4, 1.5), 2],
 	["r_ash_w", "ash_flower", "ruins", Vector2(1.4, 3.0), 2],
+	["f_mush", "mushroom", "frost", Vector2(1.3, 3.4), 3],
+	["f_mint", "mint", "frost", Vector2(6.2, 6.3), 2],
+	["f_apple", "apple", "frost", Vector2(1.4, 6.3), 2],
 	["r_ash_se", "ash_flower", "ruins", Vector2(4.8, 5.5), 2],
 ]
 const PATCH_RING_M := 1.4

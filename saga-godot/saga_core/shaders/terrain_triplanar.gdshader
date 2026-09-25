@@ -90,4 +90,16 @@ void fragment() {
 	ALBEDO = COLOR.rgb * detail_albedo;
 	NORMAL_MAP = detail_normal * 0.5 + 0.5;
 	ROUGHNESS = detail_rough;
+	// saga-godot PLAN 106장 ㊺ 서리봉 고원 — 세 채널이 다 밝은 정점색(눈밭·눈 덮인 산)은 풀 텍스처 대신
+	// 눈으로, 푸른빛이 도는 밝은 색(얼어붙은 호수)은 매끈한 얼음으로. 기존 지형색은 가장 어두운
+	// 채널이 0.5 안팎이라 이 두 갈래에 안 걸려 화면이 그대로다. 가파른 비탈은 돌을 남긴다.
+	float lo = min(COLOR.r, min(COLOR.g, COLOR.b));
+	float snow_w = smoothstep(0.78, 0.83, lo) * (1.0 - smoothstep(0.35, 0.7, slope));
+	vec3 snow = COLOR.rgb * (0.9 + 0.1 * n2) * mix(vec3(1.0), stone_a * 1.6, 0.12);
+	ALBEDO = mix(ALBEDO, snow, snow_w);
+	ROUGHNESS = mix(ROUGHNESS, 0.75, snow_w);
+	float ice_w = smoothstep(0.55, 0.6, lo) * smoothstep(0.18, 0.24, COLOR.b - COLOR.r) * (1.0 - snow_w);
+	ALBEDO = mix(ALBEDO, COLOR.rgb * (0.94 + 0.06 * n1), ice_w);
+	ROUGHNESS = mix(ROUGHNESS, 0.12, ice_w);
+	NORMAL_MAP = mix(NORMAL_MAP, vec3(0.5, 0.5, 1.0), max(ice_w, snow_w * 0.6));
 }

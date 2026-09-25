@@ -23,7 +23,7 @@ const CompanionFollow := preload("res://saga_core/world/companion_follow.gd")
 
 ## 점검(SAGA_*_PROBE)은 실제 세이브를 불러온 채 돌고 명단을 members 로 바꿔 끼운다 — 편성(㉝)으로 줄여 둔 자리 수가 점검을 흔들지 않게.
 const PROBES := ["ADVENTURE", "ARTIFACT", "TREASURE", "FIELD_BOSS", "SHARD", "MAP", "COOK", "STORY", "DOMAIN", "WEEKLY", "COMMISSION", "GROWTH",
-	"TALENT", "SIGHT", "TRAVERSAL", "COMBAT", "PERF", "KIT", "ELEMENT", "WEAPON", "LAYOUT", "ARCHERY", "QMAP", "FISH", "ACHIEVE", "DISPATCH"]
+	"TALENT", "SIGHT", "TRAVERSAL", "COMBAT", "PERF", "KIT", "ELEMENT", "WEAPON", "LAYOUT", "ARCHERY", "QMAP", "FISH", "ACHIEVE", "DISPATCH", "FROST", "STORY2"]
 
 static func _any_probe() -> bool:
 	for p in PROBES:
@@ -35,6 +35,10 @@ func _ready() -> void:
 	SaveState.try_load()
 	if _any_probe():
 		PartyState.party_size = PartyState.PARTY_MAX
+	## PLAN 106장 ㊺ — 넷째 지역 서리봉 고원(마을 북쪽 고개 너머). 지형이 다른 것보다 먼저 서게 맨 앞에.
+	var frost := preload("res://games/saga_go/world/region4_frost.gd").new()
+	frost.name = "Region4Frost"
+	add_child(frost)
 	_remove_resolved_events()
 	if OS.get_environment("SAGA_DENSITY_REPORT") != "":
 		_print_density_report()
@@ -161,6 +165,10 @@ func _ready() -> void:
 	add_child(dispatch)
 	if OS.get_environment("SAGA_DISPATCH_PROBE") != "":
 		add_child(load("res://tools/probe_dispatch.gd").new())
+	if OS.get_environment("SAGA_FROST_PROBE") != "": # 106장 ㊺ 서리봉 고원
+		add_child(load("res://tools/probe_frost.gd").new())
+	if OS.get_environment("SAGA_STORY2_PROBE") != "": # 106장 ㊺ 이야기 2부(10장~)
+		add_child(load("res://tools/probe_story2.gd").new())
 
 	## PLAN 106장 ㊸ — 업적(다른 노드 신호에 붙으므로 맨 뒤).
 	var achievements := preload("res://games/saga_go/world/achievements.gd").new()
@@ -222,7 +230,7 @@ func _print_density_report() -> void:
 	var test_map := load("res://games/saga_go/data/test_map.gd")
 	var density := load("res://saga_core/world/density_report.gd")
 	var terrain := load("res://games/saga_go/world/terrain_builder.gd")
-	for region_id in ["village", "coast", "ruins"]:
+	for region_id in ["village", "coast", "ruins", "frost"]:
 		var origin: Vector3 = test_map.origin_of(region_id)
 		var size: Vector2i = test_map.size(region_id)
 		var tile: float = test_map.tile_size_of(region_id)

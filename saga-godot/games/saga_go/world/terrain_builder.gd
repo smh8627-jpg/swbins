@@ -51,7 +51,22 @@ const LEGEND := {
 	## 106장 ㊲ 바위섬 — 기준 높이는 바다 밑(가장자리에 절벽이 안 선다), 가운데로 ISLET_RISE 만큼 둥글게 솟는다(vertex_height).
 	## 물은 이 칸에도 깐다(_build_water) — 물 밑 비탈이 드러나지 않게.
 	"K": {"name": "islet", "color": Color(0.4, 0.5, 0.3), "walkable": true, "height": -3.0},
+	## 106장 ㊺ 서리봉 고원 — 눈밭(숲과 같은 높이 — 길과의 턱을 작게)·얼어붙은 호수(걸을 수 있는 얼음, 물 레이어 없음).
+	"N": {"name": "snow", "color": Color(0.86, 0.89, 0.93), "walkable": true, "height": 0.15},
+	"I": {"name": "ice", "color": Color(0.62, 0.78, 0.88), "walkable": true, "height": 0.0},
 }
+## 106장 ㊺ 지역마다 같은 글자의 색을 바꾼다 — 서리봉 고원의 산은 눈 덮인 흰 산, 숲 바닥은 서늘한 침엽수 빛.
+## 흰 정점색(세 채널 모두 밝음)은 terrain_triplanar.gdshader 가 풀 텍스처 대신 눈으로 칠한다(다른 지역 글자엔 해당 없음).
+const REGION_COLORS := {
+	"frost": {"^": Color(0.84, 0.87, 0.91), "T": Color(0.2, 0.3, 0.26)},
+}
+
+static func color_of(region: String, ch: String) -> Color:
+	var over: Dictionary = REGION_COLORS.get(region, {})
+	if over.has(ch):
+		return over[ch]
+	return LEGEND[ch].color if LEGEND.has(ch) else Color(0, 0, 0)
+
 const ISLET_RISE := 6.0     # 바다 밑(-3)에서 꼭대기까지 — 꼭대기 3m, 물 위 반지름 약 16m
 const ISLET_TOP_R := 0.16   # 칸 비율 — 이 안은 평평한 꼭대기(약 7.7m)
 const ISLET_SHORE_R := 0.47 # 이 밖은 바다 밑
@@ -186,7 +201,7 @@ func _build() -> void:
 			if not LEGEND.has(ch):
 				push_warning("terrain_builder: 모르는 지형 글자 '%s'" % ch)
 				continue
-			var own_color: Color = LEGEND[ch].color
+			var own_color: Color = color_of(region_id, ch)
 			var col00 := _corner_color(rows, x, y)
 			var col10 := _corner_color(rows, x + 1, y)
 			var col01 := _corner_color(rows, x, y + 1)
@@ -347,7 +362,7 @@ func _corner_color(rows: Array, cx: int, cy: int) -> Color:
 			var ch: String = row[tx]
 			if not LEGEND.has(ch):
 				continue
-			total += LEGEND[ch].color
+			total += color_of(region_id, ch)
 			n += 1
 	if n == 0:
 		return Color(0, 0, 0)

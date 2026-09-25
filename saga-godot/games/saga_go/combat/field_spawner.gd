@@ -24,6 +24,11 @@ const CAMPS := [
 	["coast", Vector2i(4, 6), ["wind_hawk", "wind_hawk", "grass_snake"]],
 	["coast", Vector2i(6, 7), ["ice_fox", "ice_fox", "grass_snake"]],
 	["ruins", Vector2i(1, 4), ["rock_bear", "rock_bear"]],
+	## PLAN 106장 ㊺ 서리봉 고원 — 순간이동 지점·별조각·발견 지점과 1.4칸+ 떨어진 자리.
+	["frost", Vector2i(2, 3), ["ice_fox", "ice_fox", "ice_fox"]],
+	["frost", Vector2i(6, 3), ["wind_hawk", "wind_hawk", "ice_fox"]],
+	["frost", Vector2i(2, 6), ["rock_bear", "rock_bear"]],
+	["frost", Vector2i(5, 6), ["thunder_cat", "thunder_cat", "ice_fox"]],
 ]
 const SPREAD := 5.0
 

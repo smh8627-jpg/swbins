@@ -35,6 +35,12 @@ const CHESTS := [
 	["r_torch_fire", "ruins", Vector2(3.0, 4.0), "precious", "torch", ["fire", "fire", "fire"]], # 주인공 혼자서도
 	["r_target_court", "ruins", Vector2(3.9, 5.2), "precious", "target", [[60, 9.0, 4.0, 0.0], [180, 10.0, 6.5, 0.0], [300, 11.0, 5.0, 2.5]]], # 셋째는 떠서 오간다
 	["r_camp_bandit", "ruins", Vector2(2.05, 2.05), "luxurious", "camp", []], # 들판 무리 (2,2) 도적 셋
+	## 서리봉 고원 9×9(106장 ㊺)
+	["f_snow_w", "frost", Vector2(1.4, 4.6), "common", "none", []],
+	["f_snow_e", "frost", Vector2(6.4, 2.4), "common", "none", []],
+	["f_ridge_n", "frost", Vector2(6.0, 1.38), "exquisite", "none", []],    # (6,1) 산 남쪽 턱 — 눈 덮인 벽 타기
+	["f_camp_fox", "frost", Vector2(2.05, 3.05), "precious", "camp", []],   # 들판 무리 (2,3) 눈여우 셋
+	["f_torch_lake", "frost", Vector2(4.4, 2.25), "luxurious", "torch", ["fire", "fire", "fire"]], # 얼음 호수 석등 — 불로 녹인다(주인공 혼자서도)
 ]
 
 

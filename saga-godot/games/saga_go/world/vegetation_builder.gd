@@ -53,6 +53,15 @@ const REGION_TREE_VARIANTS := {
 		{"glb": "res://assets/generated/variants/CommonTree_4__go_village.glb", "scale": 0.584846},
 		{"glb": "res://assets/generated/variants/CommonTree_5__go_village.glb", "scale": 0.787869},
 	],
+	## 106장 ㊺ 서리봉 고원 — 침엽수(Pine, 스냅 완비 5종). 전용 눈 팔레트는 아직 없어 마을 팔레트 변형을 쓴다.
+	## 높이는 CommonTree 와 같은 5.52m 로 역산(Pine 실측고 7.32·7.38·7.39·10.24·8.72m, trimesh bounds).
+	"frost": [
+		{"glb": "res://assets/generated/variants/Pine_1__go_village.glb", "scale": 0.754416},
+		{"glb": "res://assets/generated/variants/Pine_2__go_village.glb", "scale": 0.748349},
+		{"glb": "res://assets/generated/variants/Pine_3__go_village.glb", "scale": 0.746733},
+		{"glb": "res://assets/generated/variants/Pine_4__go_village.glb", "scale": 0.539250},
+		{"glb": "res://assets/generated/variants/Pine_5__go_village.glb", "scale": 0.632751},
+	],
 	"ruins": [
 		{"glb": "res://assets/generated/variants/DeadTree_1__go_ruins.glb", "scale": 0.581329},
 		{"glb": "res://assets/generated/variants/DeadTree_2__go_ruins.glb", "scale": 0.480492},
@@ -69,11 +78,13 @@ const REGION_ROCK_LARGE_GLB := {
 	"village": "res://assets/generated/variants/Rock_Medium_1__go_village.glb",
 	"coast": "res://assets/generated/variants/Rock_Medium_1__go_coast.glb",
 	"ruins": "res://assets/generated/variants/Rock_Medium_1__go_ruins.glb",
+	"frost": "res://assets/generated/variants/Rock_Medium_1__go_ruins.glb",
 }
 const REGION_ROCK_SMALL_GLB := {
 	"village": "res://assets/generated/variants/Rock_Medium_2__go_village.glb",
 	"coast": "res://assets/generated/variants/Rock_Medium_2__go_coast.glb",
 	"ruins": "res://assets/generated/variants/Rock_Medium_2__go_ruins.glb",
+	"frost": "res://assets/generated/variants/Rock_Medium_2__go_ruins.glb",
 }
 const ROCK_LARGE_SCALE := 0.299  # Rock_Medium_1 실측고 2.260 → 0.675/2.260
 const ROCK_SMALL_SCALE := 0.352  # Rock_Medium_2 실측고 1.899 → 0.669/1.899
