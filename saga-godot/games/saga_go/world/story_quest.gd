@@ -19,10 +19,15 @@ const FieldBoss := preload("res://games/saga_go/combat/field_boss.gd")
 const VroidBody := preload("res://games/saga_go/world/vroid_body.gd")
 const TalkFace := preload("res://games/saga_go/world/talk_face.gd")
 const SkyIsle := preload("res://games/saga_go/world/sky_isle.gd")
+const WorldQuests := preload("res://games/saga_go/data/world_quests.gd")
+const WQ_BLUE := Color(0.45, 0.8, 1.0)
 const Toast := preload("res://saga_core/ui/toast.gd")
 
 signal step_changed(ch: int, step: int)
 signal chapter_done(ch: int)
+## 106장 ㊴ 세계 임무 — 단계가 바뀔 때(끝나면 step = -1)·따라가는 임무가 바뀔 때.
+signal wq_changed(id: String, step: int)
+signal track_changed(id: String)
 
 const GOLD := Color(1.0, 0.84, 0.35)
 const KILL_SPREAD := 4.5
@@ -45,6 +50,9 @@ var _tracker: Label = null
 var _talk_btn: Button = null
 var _journal: Control = null
 var _journal_label: Label = null
+var _wq_label: Label = null # 106장 ㊴ 임무 목록 오른쪽 칸 — 세계 임무
+var _track_box: VBoxContainer = null
+var _mark_t := 0.0
 var _journal_open := false
 var _dlg: Control = null
 var _dlg_name: Label = null
@@ -100,6 +108,8 @@ func _ready() -> void:
 	_ensure_actions()
 	for id in Story.NPCS:
 		_build_npc(id)
+	for id in WorldQuests.NPCS:
+		_build_npc(id)
 	_build_marker()
 	_build_ui()
 	var fb := get_tree().get_first_node_in_group("go_field_bosses")
@@ -143,9 +153,103 @@ func st() -> int:
 	return int(PartyState.story.get("step", 0))
 
 func current_step() -> Dictionary:
+	var t := track()
+	if t != "":
+		return WorldQuests.step_of(t, wq_step(t))
 	if locked():
 		return {}
 	return Story.step_of(ch(), st())
+
+# ---------------------------------------------------------------- 세계 임무(106장 ㊴)
+
+## 이야기 인물이든 세계 임무 인물이든 그 표 칸.
+func _npc_info(id: String) -> Dictionary:
+	return Story.NPCS[id] if Story.NPCS.has(id) else WorldQuests.NPCS.get(id, {})
+
+## 따라가는 세계 임무 id(빈 글자 = 이야기 임무).
+func track() -> String:
+	var t := String(PartyState.world_quests.get("track", ""))
+	return t if wq_started(t) else ""
+
+## 그 세계 임무의 단계 — 안 맡았거나 끝났으면 -1.
+func wq_step(id: String) -> int:
+	var steps: Dictionary = PartyState.world_quests.get("steps", {})
+	return int(steps.get(id, -1))
+
+func wq_started(id: String) -> bool:
+	return id != "" and wq_step(id) >= 0
+
+func wq_done(id: String) -> bool:
+	return (PartyState.world_quests.get("done", []) as Array).has(id)
+
+## 모험 등급이 닿았고 아직 안 끝났는가.
+func wq_open(id: String) -> bool:
+	var q := WorldQuests.quest(id)
+	return not q.is_empty() and not wq_done(id) and Adventure.ar() >= int(q.ar)
+
+## 그 인물에게 말을 걸면 이어지는 세계 임무(맡기 전이면 첫 대화, 맡은 뒤면 다음 단계가 그 인물과의 대화) — 없으면 "".
+func _wq_for_npc(id: String) -> String:
+	for q in WorldQuests.ORDER:
+		if not wq_open(q):
+			continue
+		var s := WorldQuests.step_of(q, maxi(wq_step(q), 0))
+		if String(s.get("type", "")) == "talk" and String(s.npc) == id:
+			return q
+	return ""
+
+## 이야기 임무 지금 단계가 대화면 그 인물 id(따라가는 임무와 상관없이) — 아니면 "".
+func _story_talk_npc() -> String:
+	if locked():
+		return ""
+	var s := Story.step_of(ch(), st())
+	return String(s.npc) if String(s.get("type", "")) == "talk" else ""
+
+## 따라가는 임무 바꾸기("" = 이야기 임무로). 맡은 임무만. 바꾸면 그 임무 단계를 처음부터 세운다.
+func set_track(id: String) -> bool:
+	if id != "" and not wq_started(id):
+		return false
+	if id == track():
+		return true
+	PartyState.world_quests["track"] = id
+	_enter_step()
+	track_changed.emit(id)
+	var qn := String(WorldQuests.quest(id).name) if id != "" else "이야기 임무"
+	Toast.show(self, "따라가는 임무 — %s" % qn, 2.0)
+	return true
+
+## 세계 임무 맡기(첫 대화 전에) — 그 임무를 따라간다.
+func _wq_begin(id: String) -> void:
+	if not PartyState.world_quests.has("steps"):
+		PartyState.world_quests["steps"] = {}
+	var steps: Dictionary = PartyState.world_quests["steps"]
+	if not steps.has(id):
+		steps[id] = 0
+		wq_changed.emit(id, 0)
+	PartyState.world_quests["track"] = id
+	_enter_step()
+
+func _advance_wq(id: String) -> void:
+	var q := WorldQuests.quest(id)
+	PartyState.add_exp(WorldQuests.STEP_EXP)
+	var steps: Dictionary = PartyState.world_quests["steps"]
+	var next := wq_step(id) + 1
+	if next >= (q.steps as Array).size():
+		steps.erase(id)
+		if not PartyState.world_quests.has("done"):
+			PartyState.world_quests["done"] = []
+		(PartyState.world_quests["done"] as Array).append(id)
+		PartyState.world_quests["track"] = ""
+		PartyState.add_items(q.reward)
+		PartyState.add_exp(float(q.exp))
+		Toast.show(self, "세계 임무 완료 — %s\n보상: %s" % [q.name, _reward_text(q.reward)], 4.0)
+		CombatFeel.ui()
+		wq_changed.emit(id, -1)
+		track_changed.emit("")
+	else:
+		steps[id] = next
+		Toast.show(self, "◇ %s" % String(WorldQuests.step_of(id, next).text), 2.5)
+		wq_changed.emit(id, next)
+	_enter_step()
 
 ## 지금 장이 모험 등급에 막혀 있는가.
 func locked() -> bool:
@@ -226,17 +330,20 @@ func step_text() -> String:
 	return String(s.text)
 
 ## 지금 장·단계에 맞는 칸(appear·stations, data/story.gd) — 없으면 {}.
+## 세계 임무 칸({"wq": id, …})은 그 임무 단계로 본다(따라가든 아니든).
 func _window_now(v: Variant) -> Dictionary:
-	if locked():
-		return {}
 	for w in Story.windows(v):
-		if ch() == int(w.ch) and st() >= int(w.from) and st() <= int(w.to):
+		if (w as Dictionary).has("wq"):
+			var q := wq_step(String(w.wq))
+			if q >= int(w.from) and q <= int(w.to):
+				return w
+		elif not locked() and ch() == int(w.ch) and st() >= int(w.from) and st() <= int(w.to):
 			return w
 	return {}
 
 ## 그 인물이 지금 세상에 서 있는가 — appear 가 있으면 그 칸의 장·단계에만.
 func npc_visible(id: String) -> bool:
-	var info: Dictionary = Story.NPCS[id]
+	var info: Dictionary = _npc_info(id)
 	if not info.has("appear"):
 		return true
 	return not _window_now(info.appear).is_empty()
@@ -245,7 +352,7 @@ func npc_visible(id: String) -> bool:
 ## 따라가기를 지난 뒤면 길 끝, 아니면 집 자리.
 func _place_npcs() -> void:
 	for id in _npcs:
-		var info: Dictionary = Story.NPCS[id]
+		var info: Dictionary = _npc_info(id)
 		var root: Node3D = _npcs[id]
 		root.visible = npc_visible(id)
 		var p := _cell_pos(String(info.region), info.cell)
@@ -425,6 +532,9 @@ func _clear_step_objects() -> void:
 
 ## 지금 단계를 끝내고 다음으로(장 끝이면 보상).
 func advance() -> void:
+	if track() != "":
+		_advance_wq(track())
+		return
 	var c := Story.chapter(ch())
 	if c.is_empty() or locked():
 		return
@@ -511,7 +621,14 @@ func receive_element(pos: Vector3, radius: float, element: String) -> void:
 	remove_from_group("element_receiver")
 	var s := current_step()
 	if String(s.get("type", "")) == "light":
-		get_tree().create_timer(0.8).timeout.connect(advance)
+		_advance_later(0.8)
+
+## 잠깐 뒤 다음 단계로 — 그 사이 따라가는 임무·단계가 바뀌었으면(세계 임무 ↔ 이야기) 넘기지 않는다.
+func _advance_later(sec: float) -> void:
+	var at := [track(), ch(), st(), wq_step(track())]
+	get_tree().create_timer(sec).timeout.connect(func() -> void:
+		if [track(), ch(), st(), wq_step(track())] == at:
+			advance())
 
 ## seal — 원소가 닿은 꺼진 석등 가운데 다음 차례가 있으면 그것만 켜고, 없고 다른 것만 닿았으면 다 끈다.
 func _seal_hit(pos: Vector3, radius: float) -> void:
@@ -545,7 +662,7 @@ func _seal_hit(pos: Vector3, radius: float) -> void:
 			_altar_flame.visible = true
 			remove_from_group("element_receiver")
 			Toast.show(self, "봉인이 풀린다 — 제단에 불이 붙었다", 2.5)
-			get_tree().create_timer(0.8).timeout.connect(advance)
+			_advance_later(0.8)
 		else:
 			_refresh()
 	elif hit_other:
@@ -630,11 +747,16 @@ func _physics_process(delta: float) -> void:
 			if Vector2(pp.x - t.x, pp.z - t.z).length() <= float(s.radius) and pp.y >= t.y - Story.CLIMB_SLACK:
 				advance()
 				return
+	## 세계 임무 "!" — 모험 등급이 올라 새로 맡을 수 있게 되면(1초마다 본다).
+	_mark_t -= delta
+	if _mark_t <= 0.0:
+		_mark_t = 1.0
+		_refresh_quest_marks()
 	var near := near_npc()
 	_talk_btn.visible = near != "" and not _dlg_open and not _modal_open()
 	for id in _npcs:
 		var n: Node3D = _npcs[id]
-		if Story.NPCS[id].has("appear"):
+		if _npc_info(id).has("appear"):
 			n.visible = npc_visible(id) # 모험 등급이 올라 장이 풀릴 때도
 		if id == walker or not n.visible:
 			continue
@@ -654,7 +776,7 @@ func _chase_tick(s: Dictionary, delta: float) -> bool:
 	var to_me := _player.global_position - _thief.global_position
 	to_me.y = 0.0
 	if _chase_run and to_me.length() <= Story.CHASE_CATCH:
-		Toast.show(self, "%s을(를) 따라잡았다 — 노를 되찾았다" % String(s.name), 2.5)
+		Toast.show(self, String(s.get("caught", "%s을(를) 따라잡았다 — 노를 되찾았다" % String(s.name))), 2.5)
 		CombatFeel.ui()
 		advance()
 		return true
@@ -862,8 +984,16 @@ func interact() -> bool:
 		open_dialogue(s.lines, advance, id)
 	elif String(s.get("type", "")) == "sail" and String(s.npc) == id:
 		open_dialogue([s.line], func() -> void: _sail(s), id)
+	elif track() != "" and _story_talk_npc() == id:
+		set_track("") # 세계 임무를 따라가는 중에도 이야기 인물과는 이야기가 이어진다
+		open_dialogue(current_step().lines, advance, id)
+	elif _wq_for_npc(id) != "":
+		var q := _wq_for_npc(id)
+		if not wq_started(q) or track() != q:
+			_wq_begin(q) # 맡기 · 이 임무를 따라간다
+		open_dialogue(current_step().lines, advance, id)
 	else:
-		var info: Dictionary = Story.NPCS[id]
+		var info: Dictionary = _npc_info(id)
 		open_dialogue([[String(info.name), String(info.idle)]], Callable(), id)
 	return true
 
@@ -1040,8 +1170,11 @@ func _close_dialogue() -> void:
 # ---------------------------------------------------------------- 표시
 
 func _refresh() -> void:
+	_refresh_quest_marks()
 	var c := Story.chapter(ch())
-	if c.is_empty():
+	if track() != "":
+		_tracker.text = "◇ %s\n   %s" % [WorldQuests.quest(track()).name, step_text()]
+	elif c.is_empty():
 		_tracker.text = ""
 	elif locked():
 		_tracker.text = "◆ %s\n   모험 등급 %d 에 열린다" % [c.name, int(c.ar)]
@@ -1061,7 +1194,7 @@ func _refresh_marker() -> void:
 		d = roundi(Vector2(_player.global_position.x - t.x, _player.global_position.z - t.z).length())
 	_marker_label.text = "◆ %dm" % d
 	var c := Story.chapter(ch())
-	if not c.is_empty() and not locked():
+	if track() != "" or (not c.is_empty() and not locked()):
 		var lines := _tracker.text.split("\n")
 		if lines.size() >= 2:
 			_tracker.text = "%s\n   %s  %dm" % [lines[0], step_text(), d]
@@ -1100,17 +1233,59 @@ func _refresh_journal() -> void:
 				var sm := "✔" if j < st() else ("▶" if j == st() else "·")
 				out.append("    %s %s" % [sm, steps[j].text])
 	_journal_label.text = "\n".join(out)
+	_refresh_wq_journal()
+
+## 세계 임무 목록(오른쪽 칸) + 따라가기 단추(맡은 임무·이야기 임무).
+func _refresh_wq_journal() -> void:
+	if _wq_label == null:
+		return
+	var out: Array[String] = ["세계 임무"]
+	for q in WorldQuests.ORDER:
+		var d := WorldQuests.quest(q)
+		var mark := "✔" if wq_done(q) else ("◇" if wq_started(q) else ("!" if wq_open(q) else "○"))
+		var tail := ""
+		if not wq_done(q) and not wq_started(q):
+			tail = "  — %s %s" % [d.region_name, ("에서 맡을 수 있다" if wq_open(q) else "(모험 등급 %d)" % int(d.ar))]
+		out.append("\n%s %s%s%s" % [mark, d.name, "  ← 따라가는 중" if track() == q else "", tail])
+		if wq_started(q):
+			out.append("    ▶ %s" % String(WorldQuests.step_of(q, wq_step(q)).text))
+	_wq_label.text = "\n".join(out)
+	for b in _track_box.get_children():
+		_track_box.remove_child(b)
+		b.queue_free()
+	var ids: Array[String] = [""]
+	for q in WorldQuests.ORDER:
+		if wq_started(q):
+			ids.append(q)
+	if ids.size() < 2:
+		return
+	for q in ids:
+		var b := Button.new()
+		b.text = ("● " if track() == q else "") + ("이야기 임무 따라가기" if q == "" else "「%s」 따라가기" % String(WorldQuests.quest(q).name))
+		b.custom_minimum_size = Vector2(260, 38)
+		b.pressed.connect(func() -> void:
+			set_track(q)
+			_refresh_journal())
+		_track_box.add_child(b)
+
+## 세계 임무 인물 머리 위 푸른 "!"(말을 걸면 이어지는 임무가 있을 때).
+func _refresh_quest_marks() -> void:
+	for id in _npcs:
+		var m := (_npcs[id] as Node3D).get_node_or_null("QuestMark") as Label3D
+		if m:
+			m.visible = _wq_for_npc(id) != ""
 
 # ---------------------------------------------------------------- 모양
 
 func _build_npc(id: String) -> void:
-	var info: Dictionary = Story.NPCS[id]
+	var info: Dictionary = _npc_info(id)
 	var p := _cell_pos(String(info.region), info.cell)
 	var root := Node3D.new()
 	root.name = "StoryNpc_" + id
 	add_child(root)
 	root.global_position = p
-	var body := VroidBody.build("story_" + String(info.get("body", id)), int(info.rarity), info.cloth)
+	var body: Node3D = _drone_body(info.cloth) if String(info.get("body", "")) == "drone" \
+		else VroidBody.build("story_" + String(info.get("body", id)), int(info.rarity), info.cloth)
 	body.name = "Body"
 	root.add_child(body)
 	var anim := body.get_node_or_null("AnimationPlayer") as AnimationPlayer
@@ -1122,7 +1297,7 @@ func _build_npc(id: String) -> void:
 	if tf:
 		_faces[id] = tf
 	var label := Label3D.new()
-	label.text = String(info.name)
+	label.text = String(info.name) + ("  · %s" % String(info.era) if info.has("era") else "")
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	label.font_size = 34
 	label.outline_size = 8
@@ -1130,6 +1305,18 @@ func _build_npc(id: String) -> void:
 	label.modulate = Color(1.0, 0.95, 0.8)
 	label.position = Vector3(0.0, 2.1, 0.0)
 	root.add_child(label)
+	if WorldQuests.NPCS.has(id):
+		var mark := Label3D.new()
+		mark.name = "QuestMark"
+		mark.text = "!"
+		mark.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		mark.font_size = 96
+		mark.outline_size = 14
+		mark.pixel_size = 0.005
+		mark.modulate = WQ_BLUE
+		mark.position = Vector3(0.0, 2.65, 0.0)
+		mark.visible = false
+		root.add_child(mark)
 	_npcs[id] = root
 	_npc_pos[id] = p
 
@@ -1239,10 +1426,13 @@ func _build_thief(s: Dictionary) -> void:
 	_thief.name = "StoryThief"
 	add_child(_thief)
 	_thief.global_position = _cell_pos(String(s.region), (s.path as Array)[0])
-	var body := VroidBody.build("story_thief", 2, s.get("cloth", Color(0.35, 0.3, 0.28)))
+	var drone := String(s.get("body", "")) == "drone"
+	var body: Node3D = _drone_body(s.get("cloth", Color(0.55, 0.85, 0.95))) if drone \
+		else VroidBody.build("story_thief", 2, s.get("cloth", Color(0.35, 0.3, 0.28)))
 	body.name = "Body"
 	_thief.add_child(body)
-	VroidBody.add_mask(body)
+	if not drone:
+		VroidBody.add_mask(body)
 	var label := Label3D.new()
 	label.text = String(s.name)
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
@@ -1252,6 +1442,54 @@ func _build_thief(s: Dictionary) -> void:
 	label.modulate = Color(1.0, 0.6, 0.45)
 	label.position = Vector3(0.0, 2.1, 0.0)
 	_thief.add_child(label)
+
+## 106장 ㊴ 배달 기계(미래) — 코드로 그린 둥근 몸·눈 띠·프로펠러 고리 둘. 떠서 천천히 오르내린다.
+func _drone_body(tint: Color) -> Node3D:
+	var root := Node3D.new()
+	var hull := StandardMaterial3D.new()
+	hull.albedo_color = Color(0.92, 0.94, 0.97)
+	hull.metallic = 0.4
+	hull.roughness = 0.35
+	var glow := StandardMaterial3D.new()
+	glow.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	glow.albedo_color = tint
+	var float_root := Node3D.new()
+	float_root.position = Vector3(0.0, 1.3, 0.0)
+	root.add_child(float_root)
+	var body := MeshInstance3D.new()
+	var sm := SphereMesh.new()
+	sm.radius = 0.38
+	sm.height = 0.62
+	body.mesh = sm
+	body.material_override = hull
+	float_root.add_child(body)
+	var eye := MeshInstance3D.new()
+	var bm := BoxMesh.new()
+	bm.size = Vector3(0.42, 0.08, 0.06)
+	eye.mesh = bm
+	eye.material_override = glow
+	eye.position = Vector3(0.0, 0.06, 0.34)
+	float_root.add_child(eye)
+	var box := MeshInstance3D.new()
+	var bb := BoxMesh.new()
+	bb.size = Vector3(0.34, 0.26, 0.3)
+	box.mesh = bb
+	box.material_override = glow
+	box.position = Vector3(0.0, -0.36, 0.0)
+	float_root.add_child(box)
+	for x in [-0.5, 0.5]:
+		var ring := MeshInstance3D.new()
+		var tm := TorusMesh.new()
+		tm.inner_radius = 0.16
+		tm.outer_radius = 0.22
+		ring.mesh = tm
+		ring.material_override = hull
+		ring.position = Vector3(x, 0.22, 0.0)
+		float_root.add_child(ring)
+	var tw := float_root.create_tween().set_loops()
+	tw.tween_property(float_root, "position:y", 1.45, 0.9).set_trans(Tween.TRANS_SINE)
+	tw.tween_property(float_root, "position:y", 1.3, 0.9).set_trans(Tween.TRANS_SINE)
+	return root
 
 ## 옛 제단 — 돌 받침 + 붙으면 켜지는 불꽃. 붙기 전까지 element_receiver.
 func _build_altar(p: Vector3, siege := false) -> void:
@@ -1343,6 +1581,13 @@ func _build_ui() -> void:
 	_journal_label.position = Vector2(120, 80)
 	_journal_label.add_theme_font_size_override("font_size", 18)
 	_journal.add_child(_journal_label)
+	_wq_label = Label.new()
+	_wq_label.position = Vector2(700, 80)
+	_wq_label.add_theme_font_size_override("font_size", 18)
+	_journal.add_child(_wq_label)
+	_track_box = VBoxContainer.new()
+	_track_box.position = Vector2(700, 420)
+	_journal.add_child(_track_box)
 	var close := Button.new()
 	close.text = "닫기 (Esc)"
 	close.position = Vector2(120, 30)

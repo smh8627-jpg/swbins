@@ -109,6 +109,8 @@ func _ready() -> void:
 	add_child(story)
 	if OS.get_environment("SAGA_STORY_PROBE") != "":
 		add_child(load("res://tools/probe_story.gd").new())
+	if OS.get_environment("SAGA_WQ_PROBE") != "":
+		add_child(load("res://tools/probe_world_quests.gd").new())
 	if OS.get_environment("SAGA_DOMAIN_PROBE") != "":
 		add_child(load("res://tools/probe_domains.gd").new())
 	if OS.get_environment("SAGA_WEEKLY_PROBE") != "":
