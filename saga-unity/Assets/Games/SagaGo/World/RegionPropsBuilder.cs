@@ -9,6 +9,7 @@ namespace Saga.Go.World
     /// PropsBuilder.cs 와 같은 결: 편집기 빌드가 모델을 `Init()` 으로 채우고 한 번 구워 씬에 저장한다.
     /// 조각마다 렌더러 밑면을 땅(강은 강바닥)에 맞추고, 충돌이 필요한 조각은 메시 크기 상자 충돌을 단다.
     /// 그을린 조각은 원본 재질을 복제해 바탕색만 어둡게 한다(재질마다 한 벌, 씬에 함께 저장).
+    /// 109-1b 미래 조각(시간 틈 잔해)은 원본 텍스처를 쓴 URP Lit 청록 발광 재질(`_rift`)로 바꾸고 `RiftSpin` 으로 돌린다(정적 아님).
     /// </summary>
     public class RegionPropsBuilder : MonoBehaviour
     {
@@ -20,6 +21,7 @@ namespace Saga.Go.World
         [SerializeField] private Material stoneMaterial;   // castle_wall_slates(LandmarksBuilder 폐허 기둥과 같은 돌)
 
         private readonly Dictionary<Material, Material> _charred = new Dictionary<Material, Material>();
+        private readonly Dictionary<Material, Material> _rift = new Dictionary<Material, Material>();
 
         /// <summary>LOD0 → LOD1 넘어가는 화면 높이 비율 · LOD1 이 사라지는 비율(아주 먼 조각만).
         /// 0.25 = 6m 통나무가 약 20m 안일 때만 원본 — 사진측량 원본(통나무 10만 삼각형)을 곁에 설 때만 쓴다.</summary>
@@ -67,6 +69,11 @@ namespace Saga.Go.World
                 if (TryLowest(go, out float low))
                     go.transform.position += Vector3.up * (root.position.y + p.Y - p.Sink - low);
                 if (p.Charred) Char(go);
+                if (p.Era == GoEra.Future)
+                {
+                    Rift(go);
+                    go.AddComponent<RiftSpin>().Init(go.transform.rotation, i * 47f);
+                }
                 if (p.Collide) AddBoxColliders(go.transform.Find("LOD0") != null ? go.transform.Find("LOD0").gameObject : go);
             }
 
@@ -210,6 +217,38 @@ namespace Saga.Go.World
             }
         }
 
+        private void Rift(GameObject go)
+        {
+            var lit = Shader.Find("Universal Render Pipeline/Lit");
+            foreach (var r in go.GetComponentsInChildren<MeshRenderer>(true))
+            {
+                var mats = r.sharedMaterials;
+                for (int i = 0; i < mats.Length; i++)
+                {
+                    var m = mats[i];
+                    if (m == null || lit == null) continue;
+                    if (!_rift.TryGetValue(m, out var glow))
+                    {
+                        glow = new Material(lit) { name = m.name + "_rift" };
+                        // glTFast 재질 텍스처(baseColorTexture·normalTexture)를 URP Lit 칸으로 옮긴다.
+                        Texture baseTex = m.HasProperty("baseColorTexture") ? m.GetTexture("baseColorTexture") : m.HasProperty("_BaseMap") ? m.GetTexture("_BaseMap") : null;
+                        Texture normal = m.HasProperty("normalTexture") ? m.GetTexture("normalTexture") : m.HasProperty("_BumpMap") ? m.GetTexture("_BumpMap") : null;
+                        if (baseTex != null) { glow.SetTexture("_BaseMap", baseTex); glow.SetTexture("_EmissionMap", baseTex); }
+                        if (normal != null) { glow.SetTexture("_BumpMap", normal); glow.EnableKeyword("_NORMALMAP"); }
+                        glow.SetColor("_BaseColor", GoRegionProps.RiftTint);
+                        glow.SetFloat("_Metallic", 0.8f);
+                        glow.SetFloat("_Smoothness", 0.6f);
+                        glow.EnableKeyword("_EMISSION");
+                        glow.SetColor("_EmissionColor", GoRegionProps.RiftGlow);
+                        glow.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
+                        _rift[m] = glow;
+                    }
+                    mats[i] = glow;
+                }
+                r.sharedMaterials = mats;
+            }
+        }
+
         private static void AddBoxColliders(GameObject go)
         {
             foreach (var f in go.GetComponentsInChildren<MeshFilter>(true))
@@ -250,6 +289,7 @@ namespace Saga.Go.World
             foreach (Transform t in GetComponentsInChildren<Transform>(true))
             {
                 if (t.GetComponent<Light>() != null) continue;
+                if (t.GetComponentInParent<RiftSpin>() != null) continue; // 109-1b 떠서 도는 조각
                 var filter = t.GetComponent<MeshFilter>();
                 if (filter != null && filter.sharedMesh != null && filter.sharedMesh.subMeshCount > 1) continue;
                 t.gameObject.isStatic = true;

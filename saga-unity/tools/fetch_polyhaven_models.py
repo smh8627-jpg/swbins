@@ -17,6 +17,9 @@ IDS = [
     "dead_quiver_trunk", "dead_tree_trunk", "stone_fire_pit", "wine_barrel_01",
     "wooden_crate_01", "wooden_lantern_01", "kite_shield", "rock_moss_set_02",
     "wicker_basket_01", "wooden_bucket_01",
+    # PLAN.md 109-1b 세 시대 — 현대 조각(땅) · 미래 "시간 틈 잔해"(청록 재질로 떠서 돈다)
+    "barrel_03", "old_tyre", "utility_box_01", "covered_car", "concrete_road_barrier_02",
+    "vintage_spacecraft_instrument", "security_camera_02", "portable_searchlight", "power_box_01", "portable_generator",
 ]
 RES = "1k"
 HERE = os.path.dirname(os.path.abspath(__file__))

@@ -23,8 +23,8 @@ namespace Saga.EditorTools
         {
             _tag = tag;
             _ok = true;
-            string m = CheckRule() + CheckSpawned() + CheckDangerLine() + CheckFolk();
-            if (_ok) Debug.Log($"[{_tag}] eras OK - 해시 고정·역참 둘레 제 시대·다른 시대 몫·세 시대·네 몸·세운 적 시대/몸/이름·위험 줄 시간 틈·역참 사람 셋(시대 순서·자리·몸·대사·오가기) |{m}");
+            string m = CheckRule() + CheckSpawned() + CheckDangerLine() + CheckFolk() + CheckProps();
+            if (_ok) Debug.Log($"[{_tag}] eras OK - 해시 고정·역참 둘레 제 시대·다른 시대 몫·세 시대·네 몸·세운 적 시대/몸/이름·위험 줄 시간 틈·역참 사람 셋(시대 순서·자리·몸·대사·오가기)·소품 세 시대(지역마다 현대·미래·몫·잔해 뜸/돎/발광/충돌 없음) |{m}");
             return _ok;
         }
 
@@ -176,6 +176,86 @@ namespace Saga.EditorTools
                 if (eras.Count != 3) Fail($"{wp.Id} 시대 {eras.Count}가지");
             }
             return $" 사람 {fb.Folk.Count}(사실 몸 {rigged})";
+        }
+
+        /// <summary>109-1b — 지역 소품 무더기의 현대·미래 조각.</summary>
+        private static string CheckProps()
+        {
+            int past = 0, modern = 0, future = 0;
+            var perRegion = new Dictionary<string, (int m, int f)>();
+            foreach (var c in GoRegionProps.Clusters)
+            {
+                perRegion.TryGetValue(c.RegionId, out var rc);
+                foreach (var p in c.Pieces)
+                {
+                    if (p.Era == GoEra.Modern) { modern++; rc.m++; }
+                    else if (p.Era == GoEra.Future) { future++; rc.f++; }
+                    else past++;
+                }
+                perRegion[c.RegionId] = rc;
+            }
+            foreach (var kv in perRegion)
+                if (kv.Value.m == 0 || kv.Value.f == 0) Fail($"{kv.Key} 소품에 현대 {kv.Value.m}·미래 {kv.Value.f} — 둘 다 있어야");
+            float share = (float)(modern + future) / (past + modern + future);
+            if (share < 0.25f || share > 0.45f) Fail($"소품 다른 시대 몫 {share:P0} — 약 30~40% 여야");
+
+            var builder = Object.FindFirstObjectByType<RegionPropsBuilder>();
+            if (builder == null) { Fail("RegionPropsBuilder 없음"); return ""; }
+            int spun = 0;
+            foreach (var c in GoRegionProps.Clusters)
+            {
+                var root = builder.transform.Find("RegionProps_" + c.Id);
+                if (root == null) { Fail($"{c.Id} 무더기 없음"); continue; }
+                var list = new List<Transform>();
+                foreach (Transform t in root) if (t.GetComponent<Light>() == null) list.Add(t);
+                if (list.Count != c.Pieces.Length) { Fail($"{c.Id} 조각 수 {list.Count} ≠ {c.Pieces.Length}"); continue; }
+                for (int i = 0; i < list.Count; i++)
+                {
+                    var p = c.Pieces[i];
+                    var go = list[i].gameObject;
+                    var spin = go.GetComponent<RiftSpin>();
+                    bool anyRift = false, allRift = true, emissive = true;
+                    foreach (var r in go.GetComponentsInChildren<MeshRenderer>(true))
+                        foreach (var mat in r.sharedMaterials)
+                        {
+                            if (mat == null) continue;
+                            bool rift = mat.name.EndsWith("_rift");
+                            anyRift |= rift; allRift &= rift;
+                            if (rift && !mat.IsKeywordEnabled("_EMISSION")) emissive = false;
+                        }
+                    if (p.Era != GoEra.Future)
+                    {
+                        if (spin != null || anyRift) Fail($"{c.Id} {go.name} ({p.Era}) 에 잔해 재질·회전");
+                        continue;
+                    }
+                    if (spin == null) { Fail($"{c.Id} {go.name} 잔해가 안 돎"); continue; }
+                    if (!allRift || !emissive) Fail($"{c.Id} {go.name} 잔해 재질이 청록 발광 아님");
+                    if (go.isStatic) Fail($"{c.Id} {go.name} 잔해가 정적");
+                    if (go.GetComponentsInChildren<Collider>(true).Length > 0) Fail($"{c.Id} {go.name} 잔해에 충돌");
+                    if (!Bounds(go, out var b0)) continue;
+                    float floor = c.InRiver ? TestMapData.WaterSurfaceHeight : root.position.y;
+                    if (b0.min.y - floor < GoRegionProps.RiftMinHover) Fail($"{c.Id} {go.name} 잔해가 {b0.min.y - floor:F2}m 만 뜸");
+                    var keep = go.transform.rotation;
+                    go.transform.rotation = RiftSpin.RotationAt(spin.BaseRotation, 0f, 13.7f);
+                    Bounds(go, out var b1);
+                    go.transform.rotation = keep;
+                    if (Mathf.Abs(b1.min.y - b0.min.y) > 0.03f) Fail($"{c.Id} {go.name} 돌면 밑면이 변함 {b0.min.y:F2}→{b1.min.y:F2}");
+                    spun++;
+                }
+            }
+            if (spun != future) Fail($"도는 잔해 {spun} ≠ 표 미래 조각 {future}");
+            return $" 소품 과거 {past}·현대 {modern}·미래 {future}({share:P0})";
+        }
+
+        private static bool Bounds(GameObject go, out Bounds b)
+        {
+            b = default;
+            bool any = false;
+            foreach (var r in go.GetComponentsInChildren<Renderer>(true))
+            {
+                if (!any) { b = r.bounds; any = true; } else b.Encapsulate(r.bounds);
+            }
+            return any;
         }
 
         private static void Fail(string msg)

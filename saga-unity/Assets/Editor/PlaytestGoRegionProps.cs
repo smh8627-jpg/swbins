@@ -94,7 +94,7 @@ namespace Saga.EditorTools
                     float want = root.position.y + p.Y - p.Sink;
                     if (Mathf.Abs(b.min.y - want) > 0.05f) Fail($"{c.Id} {go.name} 밑면 {b.min.y:F2} ≠ {want:F2}");
                     if (!c.InRiver && p.Y == 0f) CheckGroundRay(c, go, b, root.position.y);
-                    if (c.InRiver)
+                    if (c.InRiver && p.Era != GoEra.Future) // 109-1b 시간 틈 잔해는 물 위에 떠 있다(PlaytestGoEras 가 본다)
                     {
                         bool rock = p.Model.Contains("#rock");
                         if (rock && b.max.y < TestMapData.WaterSurfaceHeight + 0.3f) Fail($"{c.Id} {go.name} 바위가 물에 잠김(꼭대기 {b.max.y:F2})");
@@ -122,6 +122,7 @@ namespace Saga.EditorTools
                     long near = Tris(lod0 != null ? lod0 : go.transform);
                     tris0 += near;
                     clusterTris += near;
+                    if (p.Era != GoEra.Future) // 109-1b 떠서 도는 조각은 정적이 아니다(PlaytestGoEras 가 본다)
                     foreach (Transform t in go.GetComponentsInChildren<Transform>(true))
                     {
                         var f = t.GetComponent<MeshFilter>();

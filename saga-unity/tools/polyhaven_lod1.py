@@ -1,7 +1,8 @@
 # PLAN.md 108 ① — Poly Haven 스캔의 먼 거리용 가벼운 메시(LOD1)를 만든다. 가까이선 원본(LOD0) 그대로 쓴다.
 # 재질·텍스처는 안 넣는다(Unity `RegionPropsBuilder` 가 LOD0 재질을 그대로 씌운다 — UV 는 decimate 가 지킨다).
-#   "C:/Program Files/Blender Foundation/Blender 5.2/blender.exe" -b -P tools/polyhaven_lod1.py
+#   "C:/Program Files/Blender Foundation/Blender 5.2/blender.exe" -b -P tools/polyhaven_lod1.py [-- id ...]   (id 를 주면 그것만)
 import os
+import sys
 import bpy
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -14,9 +15,21 @@ TARGETS = {
     "dead_quiver_trunk": 0.33,
     "wine_barrel_01": 0.35,
     "kite_shield": 0.4,
+    # PLAN.md 109-1b 세 시대 조각
+    "covered_car": 0.35,
+    "concrete_road_barrier_02": 0.2,
+    "portable_generator": 0.25,
+    "power_box_01": 0.25,
+    "portable_searchlight": 0.25,
+    "vintage_spacecraft_instrument": 0.3,
+    "security_camera_02": 0.3,
+    "utility_box_01": 0.4,
 }
+ONLY = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 
 for asset_id, ratio in TARGETS.items():
+    if ONLY and asset_id not in ONLY:
+        continue
     bpy.ops.wm.read_factory_settings(use_empty=True)
     src = os.path.join(ROOT, asset_id, f"{asset_id}_1k.gltf")
     bpy.ops.import_scene.gltf(filepath=src)
