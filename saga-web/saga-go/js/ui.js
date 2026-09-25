@@ -92,6 +92,11 @@
         if (nb && nb.inRange) { core.emit('beacon:request', nb.beacon); }
         return;
       }
+      if (e.target.closest('[data-act="domain"]')) {             // ⑲-9 비경 입구
+        var DM0 = global.DG.domain, nd0 = DM0 && DM0.nearest(DOMAIN_NEAR);
+        if (nd0 && nd0.inRange) { core.emit('domain:request', nd0.d); }
+        return;
+      }
       if (e.target.closest('[data-act="shrine"]')) {
         var SH0 = global.DG.shrine, ns0 = SH0 && SH0.nearest(SHRINE_NEAR);
         if (ns0 && ns0.inRange) { core.emit('shrine:request', ns0.shrine); }
@@ -599,6 +604,20 @@
       '</div>';
   }
 
+  /** ⑲-9 비경 입구 — 도전 중이면 안 올린다(위쪽 띠가 대신한다) */
+  function nearDomainCard(nd) {
+    var DM = global.DG.domain, d = nd.d, kd = DM.KINDS[d.kind];
+    return '<div class="near-card">' +
+        '<div class="near-ico" style="border-color:' + kd.color + '">' + kd.icon + '</div>' +
+        '<div class="near-meta"><b>' + esc(d.name) + '</b>' +
+          '<small style="color:' + kd.color + '">' + kd.loot + ' · ' + Math.round(nd.dist) + 'm · 🌙 ' + DM.resin() + '/' + DM.RESIN_MAX + '</small></div>' +
+        (nd.inRange
+          ? '<button class="btn primary" data-act="domain">비경</button>'
+          : approachBtn(d.x, d.y)) +
+      '</div>';
+  }
+  var DOMAIN_NEAR = 300;     // m
+
   var SHRINE_NEAR = 500;     // m — 이보다 먼 사당은 (보여도) 근접 패널에 안 올린다
 
   function renderNear() {
@@ -608,7 +627,8 @@
     var BC = global.DG.beacon;
     var nb = BC ? BC.nearestUnlit() : null;
     var SHR = global.DG.shrine, nsh = SHR ? SHR.nearest(SHRINE_NEAR) : null;
-    if (!n && !ns && !nb && !nsh) {
+    var DMN = global.DG.domain, ndm = DMN && !DMN.active() ? DMN.nearest(DOMAIN_NEAR) : null;
+    if (!n && !ns && !nb && !nsh && !ndm) {
       els.near.classList.remove('show');
       nearUid = null;
       return;
@@ -622,12 +642,13 @@
         (global.DG.rogue && global.DG.rogue.occupied(ns.station) ? 'R' : '-') : '-') + '||' +
       (nb ? nb.beacon.key + '|' + (nb.dist <= BC.HIT_RADIUS) + '|' + Math.round(nb.dist / 5) : '-') + '||' +
       (nsh ? nsh.shrine.key + '|' + nsh.inRange + '|' + Math.round(nsh.dist / 5) + '|' + nsh.state.clears + '|' +
-        SHR.entry(nsh.shrine).reason : '-');
+        SHR.entry(nsh.shrine).reason : '-') + '||' +
+      (ndm ? ndm.d.id + '|' + ndm.inRange + '|' + Math.round(ndm.dist / 5) + '|' + DMN.resin() : '-');
     if (key !== nearUid) {
       nearUid = key;
       els.near.innerHTML = (n ? nearSpawnCard(n) : '') + (ns ? nearStationCard(ns) : '') +
         (nb ? nearBeaconCard({ beacon: nb.beacon, dist: nb.dist, inRange: nb.dist <= BC.HIT_RADIUS }) : '') +
-        (nsh ? nearShrineCard(nsh) : '');
+        (nsh ? nearShrineCard(nsh) : '') + (ndm ? nearDomainCard(ndm) : '');
     }
     els.near.classList.add('show');
   }
@@ -1299,7 +1320,7 @@
       else if (lv >= cap) { label = head + ' <small>· 승급 ★' + TL.nextRankFor(lv + 1) + ' 에 열림</small>'; }
       else {
         label = head + ' <small>· 🪙 ' + core.fmt(c.gold) + ' · ' + TL.MATS[c.book].icon + ' ' + TL.count(c.book) + '/' + c.books +
-          ' · 丹 ' + c.dust + '</small>';
+          ' · 丹 ' + c.dust + (c.scale ? ' · ' + TL.MATS.scale.icon + ' ' + TL.count('scale') + '/' + c.scale : '') + '</small>';
       }
       out += '<button class="btn ' + (chk.ok ? 'primary' : 'ghost') + ' wide"' + (chk.ok ? '' : ' disabled') +
         ' data-act="talent-up" data-id="' + id + '" data-key="' + K.key + '">' + label + '</button>';

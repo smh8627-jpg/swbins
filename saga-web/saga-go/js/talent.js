@@ -32,7 +32,8 @@
     note:   { icon: '📃', name: '무예 쪽지' },
     guide:  { icon: '📘', name: '무예 교본' },
     secret: { icon: '📕', name: '무예 비전' },
-    knot:   { icon: '🪢', name: '인연 매듭' }
+    knot:   { icon: '🪢', name: '인연 매듭' },
+    scale:  { icon: '🐉', name: '뇌룡 비늘' }             // ⑲-9 주간 보스(domain.js 먹구름 제단)
   };
   /* 단계 n → n+1 (index n-1) — 금은 Godot 냥 ×0.05, 단사는 Godot 돌파 전리품 ×10 */
   var COST = [
@@ -42,9 +43,9 @@
     { gold: 300,  book: 'guide',  books: 6,  dust: 80 },
     { gold: 380,  book: 'guide',  books: 9,  dust: 100 },
     { gold: 1200, book: 'secret', books: 4,  dust: 120 },
-    { gold: 2600, book: 'secret', books: 6,  dust: 150 },
-    { gold: 4500, book: 'secret', books: 12, dust: 180 },
-    { gold: 7000, book: 'secret', books: 16, dust: 220 }
+    { gold: 2600, book: 'secret', books: 6,  dust: 150, scale: 1 },    // ⑲-9 7→10 은 주간 보스 비늘(Godot TALENT_WEEKLY)
+    { gold: 4500, book: 'secret', books: 12, dust: 180, scale: 2 },
+    { gold: 7000, book: 'secret', books: 16, dust: 220, scale: 2 }
   ];
 
   var CON_MAX = 6;
@@ -133,6 +134,7 @@
     if ((core.save.player.gold || 0) < c.gold) { return { ok: false, why: '금 부족', cost: c }; }
     if (count(c.book) < c.books) { return { ok: false, why: MATS[c.book].name + ' 부족', cost: c }; }
     if ((core.save.dust || 0) < c.dust) { return { ok: false, why: '단사 부족', cost: c }; }
+    if (c.scale && count('scale') < c.scale) { return { ok: false, why: MATS.scale.name + ' 부족', cost: c }; }
     return { ok: true, cost: c };
   }
   /** 그 단계를 여는 가장 낮은 승급 */
@@ -147,6 +149,7 @@
     var c = chk.cost, g = global.DG.hero.ensure(id), f = fieldOf(key);
     core.save.player.gold -= c.gold;
     mats()[c.book] -= c.books;
+    if (c.scale) { mats().scale -= c.scale; }
     core.save.dust -= c.dust;
     g[f] = baseLevel(id, key) + 1;
     var h = global.DG.data.find(id), k = kindOf(key);

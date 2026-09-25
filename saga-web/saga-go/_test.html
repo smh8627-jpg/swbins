@@ -135,6 +135,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/field-combat.js"></script>
 <script src="js/adventure.js"></script>
 <script src="js/treasure.js"></script>
+<script src="js/domain.js"></script>
 <script src="js/rogue.js"></script>
 <script src="js/fort.js"></script>
 <script src="js/raid.js"></script>
@@ -9807,6 +9808,218 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       } finally { undo(); }
       var bad = Object.keys(r).filter(function (k) { return !r[k]; });
       return bad.length === 0 ? '5·6 → 금 1100·🪨 4·🪢 1 · 옛 세이브 20 안 쏟아짐 · 경험으로 21' : ('실패 ' + bad.join(','));
+    });
+
+    /* ── ⑲-9 비경·원기·주간 보스 (`domain.js`, PLAN §5 ⑲-9) ── */
+    function dmRig() {
+      var bak = JSON.stringify(C.save), FC = DG.fieldCombat, DM = DG.domain, T = 1e12;
+      FC._resetForTest(); DM._resetForTest();
+      var ids = [D.heroes[0].id, D.heroes[1].id];
+      ids.forEach(function (id) { if (!C.save.dex.heroes[id]) { C.save.dex.heroes[id] = { count: 1, firstAt: 0 }; } });
+      C.save.party = ids.slice();
+      DG.daily.state(); C.save.daily.bonus = 1; C.save.daily.tasks = [{ key: 'walk', got: 0, need: 1e9, done: false }];
+      DM._setNowForTest(function () { return T; });
+      /* 둘레 들판 무리는 치운다 — 비경 무리만 남긴다 */
+      function quiet(S) { for (var k in S.camps) { if (S.camps.hasOwnProperty(k) && k.indexOf('dm:') !== 0) { S.camps[k].uids.forEach(function (u) { delete S.foes[u]; }); delete S.camps[k]; } } }
+      return {
+        FC: FC, DM: DM,
+        now: function (ms) { T = ms; },
+        at: function (d) { C.save.player.pos.x = d.x; C.save.player.pos.y = d.y; FC.tick(0.05); quiet(FC.state()); return FC.state(); },
+        tick: function () { FC.tick(0.05); quiet(FC.state()); },
+        wave: function () { var S = FC.state(), run = DM.run(); return FC.living(S).filter(function (f) { return run && f.camp === run.key; }); },
+        kill: function () {
+          var S = FC.state(), L = this.wave();
+          L.forEach(function (f) { for (var i = 0; i < 3; i++) { FC.hitFoe(S, f, S.party[0], 1e8, null, 'test'); } });
+          this.tick();
+          return L.length;
+        },
+        undo: function () {
+          DM._resetForTest(); DM._setNowForTest(null); FC._resetForTest();
+          var snap = JSON.parse(bak);
+          Object.keys(C.save).forEach(function (k) { delete C.save[k]; });
+          Object.keys(snap).forEach(function (k) { C.save[k] = snap[k]; });
+        }
+      };
+    }
+    function dmOf(kind) { return DG.domain.list().filter(function (d) { return d.kind === kind; })[0]; }
+
+    t('비경 ⑲-9 — 자리: 땅 열여섯마다 입구 하나(제 땅 안·물 아님) · 종류 6/5/5 · 먹구름 제단 하나(갈대 나루) · 결정성', function () {
+      var DM = DG.domain, B = DG.biome, W = DG.world, L = DM.list(), r = {}, cnt = {};
+      var ent = L.filter(function (d) { return d.kind !== 'weekly'; }), alt = L.filter(function (d) { return d.kind === 'weekly'; });
+      ent.forEach(function (d) { cnt[d.kind] = (cnt[d.kind] || 0) + 1; });
+      r.n = ent.length === 16 && alt.length === 1 && alt[0].zone === DM.ALTAR_ZONE;
+      r.zone = L.every(function (d) { var z = B.zoneAt(d.x, d.y); return z && z.key === d.zone; });
+      r.water = L.every(function (d) { return W.terrainAt(Math.floor(d.x / 48), Math.floor(d.y / 48)) !== 'water'; });
+      r.kinds = cnt.tomb === 6 && cnt.school === 5 && cnt.forge === 5;
+      r.dist = ent.every(function (d) { var m = Math.hypot(d.x, d.y); return B.zoneByKey(d.zone).ring ? m >= 7500 && m < 9000 : m >= 1600 && m < 2500; });
+      r.same = JSON.stringify(DM.entranceOf(3)) === JSON.stringify(DM.entranceOf(3));
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '입구 16(무덤 6·서당 5·쇠부리 5) + 제단 1 · 다 제 땅 안' : ('실패 ' + bad.join(','));
+    });
+
+    t('비경 ⑲-9 — 원기: 8분에 1 · 상한 160(가득이면 시각만 따라감) · 쓰기·모자람 · 처음은 가득 · 주간 30×3 → 60 · 월요일 새벽 4시 갈림', function () {
+      var DM = DG.domain, rig = dmRig(), r = {}, M = 60000;
+      try {
+        r.pure = DM.resinAt({ v: 100, t: 0 }, 8 * M).v === 101 && DM.resinAt({ v: 100, t: 0 }, 8 * M).t === 8 * M &&
+          DM.resinAt({ v: 100, t: 0 }, 17 * M).t === 16 * M && DM.resinAt({ v: 150, t: 0 }, 999 * M).v === 160 &&
+          DM.resinAt({ v: 160, t: 0 }, 5 * M).t === 5 * M;
+        delete C.save.resin;
+        rig.now(1e12);
+        r.fresh = DM.resin() === 160;
+        C.save.resin.v = 15; C.save.resin.t = 1e12;
+        rig.now(1e12 + 40 * M);
+        r.grow = DM.resin() === 20 && DM.resinNextMs() === 8 * M;
+        r.cost = DM.costOf('tomb') === 20 && DM.costOf('weekly') === 30;
+        C.save.domain.weekly.n = 3;
+        r.weekly = DM.costOf('weekly') === 60;
+        r.week = DM.weekKey(new Date(2026, 8, 28, 3, 59).getTime()) === '2026-9-21' && DM.weekKey(new Date(2026, 8, 28, 4, 0).getTime()) === '2026-9-28' &&
+          DM.weekKey(new Date(2026, 9, 4, 23, 0).getTime()) === '2026-9-28';
+      } finally { rig.undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '100 → 8분 101 · 가득 160 · 15 → 40분 20 · 주간 30 → 넷째 60 · 월 03:59 는 지난주' : ('실패 ' + bad.join(','));
+    });
+
+    t('비경 ⑲-9 — 흐름: 단계 잠금(모험 1·6·12) · 3초 → 파도 1 → 파도 2 → 보상 나무 · 단계 배율 · 세계 등급·전리품·무리 기록 없음', function () {
+      var rig = dmRig(), DM = rig.DM, FC = rig.FC, r = {};
+      try {
+        var d = dmOf('school');
+        C.save.player.level = 5;
+        r.lock = DM.stageOpen(0) && !DM.stageOpen(1) && !DM.enterCheck(d, 1).ok;
+        C.save.player.level = 12;
+        r.open = DM.stageOpen(1) && DM.stageOpen(2);
+        var S = rig.at(d);
+        r.enter = DM.enter(d, 0).ok && DM.run().phase === 'wait' && !DM.enter(d, 0).ok;
+        DM.step(2); r.wait = rig.wave().length === 0;
+        DM.step(1.1);
+        var w1 = rig.wave();
+        var S2 = FC.create(['fc_a']);
+        FC.spawnCamp(S2, { key: 'x', x: 0, y: 0, tier: DM.TIER, kind: 'plain', foes: [{ kind: 'hawk', dx: 0, dy: 0 }] });
+        var base = FC.living(S2)[0];
+        var hk = w1.filter(function (f) { return f.kind === 'hawk'; })[0];
+        r.spawn = w1.length === 3 && hk && hk.hpMax === base.hpMax && hk.atk === base.atk && hk.st === 'chase';
+        var g0 = C.save.player.gold, k0 = C.save.field.kills || 0, fc0 = JSON.stringify(C.save.field.camps || {});
+        rig.kill();
+        var w2 = rig.wave();
+        r.wave2 = DM.run().wave === 1 && w2.length === 3 && w2.some(function (f) { return f.kind === 'bolt'; });
+        rig.kill();
+        r.tree = DM.run().phase === 'tree' && rig.wave().length === 0 && !Object.keys(S.camps).some(function (k) { return k.indexOf('dm:') === 0; });
+        r.noLoot = C.save.player.gold === g0 && (C.save.field.kills || 0) === k0 && JSON.stringify(C.save.field.camps || {}) === fc0;
+        DM.leave();
+        /* 단계 II — 체력 ×2 · 공격 ×1.5 */
+        rig.at(d); DM.enter(d, 1); DM.step(3.1);
+        var hk2 = rig.wave().filter(function (f) { return f.kind === 'hawk'; })[0];
+        r.stage2 = hk2 && hk2.hpMax === base.hpMax * 2 && hk2.atk === Math.round(base.atk * 1.5);
+      } finally { rig.undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '5 에 II 잠김 · 3초 뒤 셋 → 정예 셋 → 나무 · II 체력 ×2 · 금·처치·무리 기록 그대로' : ('실패 ' + bad.join(','));
+    });
+
+    t('비경 ⑲-9 — 실패: 시간 초과·원판 밖·나가기·전멸 → 적 치움 · 원기 그대로', function () {
+      var rig = dmRig(), DM = rig.DM, FC = rig.FC, r = {};
+      try {
+        var d = dmOf('forge'), res0 = DM.resin();
+        function noDm() { var S = FC.state(); return !DM.active() && !Object.keys(S.camps).some(function (k) { return k.indexOf('dm:') === 0; }); }
+        rig.at(d); DM.enter(d, 0); DM.step(3.1); DM.step(DM.LIMIT + 1);
+        r.time = noDm();
+        rig.at(d); DM.enter(d, 0); DM.step(3.1);
+        C.save.player.pos.x += DM.ARENA_R(false) + 5; DM.step(0.1);
+        r.out = noDm();
+        rig.at(d); DM.enter(d, 0); DM.step(3.1); DM.leave();
+        r.leave = noDm();
+        rig.at(d); DM.enter(d, 0); DM.step(3.1);
+        var g0 = C.save.player.gold;
+        C.emit('field:wipe', {});
+        r.wipe = noDm() && C.save.player.gold === g0;
+        r.resin = DM.resin() === res0;
+      } finally { rig.undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '넷 다 실패 · 비경 무리 없음 · 원기 그대로' : ('실패 ' + bad.join(','));
+    });
+
+    t('비경 ⑲-9 — 보상 나무: 원기 20 · 무덤 ★4 둘+연마석 · 서당 쪽지 3+교본 1 · 쇠부리 강화석 3 · 모자라면 거절(나무는 남음) · 세트 번갈이', function () {
+      var rig = dmRig(), DM = rig.DM, AR = DG.artifact, WP = DG.weapon, TL = DG.talent, r = {};
+      try {
+        function toTree(kind) { var d = dmOf(kind); rig.at(d); DM.enter(d, 0); DM.run().phase = 'tree'; return d; }
+        toTree('tomb');
+        var a0 = AR.count(), p0 = AR.polish(), res0 = DM.resin(), c1 = DM.claim();
+        r.tomb = c1.ok && c1.cost === 20 && DM.resin() === res0 - 20 && AR.count() === a0 + 2 && AR.polish() === p0 + 1 && !DM.active();
+        toTree('school');
+        var n0 = TL.count('note'), gd0 = TL.count('guide');
+        r.school = DM.claim().ok && TL.count('note') === n0 + 3 && TL.count('guide') === gd0 + 1;
+        toTree('forge');
+        var o0 = WP.ore();
+        r.forge = DM.claim().ok && WP.ore() === o0 + 3;
+        toTree('forge');
+        C.save.resin.v = 19;
+        var no = DM.claim();
+        r.short = !no.ok && /원기/.test(no.why) && DM.run().phase === 'tree' && C.save.resin.v === 19;
+        DM.leave();
+        r.sets = DM.rewardOf('tomb', 0, 0).arts[0].set === 'crimson' && DM.rewardOf('tomb', 0, 1).arts[0].set === 'depth' &&
+          DM.rewardOf('tomb', 2, 0).arts.filter(function (a) { return a.r === 5; }).length === 2;
+      } finally { rig.undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '무덤 ★4×2 · 서당 📃3 📘1 · 쇠부리 🪨3 · 원기 19 면 거절' : ('실패 ' + bad.join(','));
+    });
+
+    t('비경 ⑲-9 — 지맥 이상: 무덤 4초마다 물 부착 · 쇠부리 공격 ×1.3 · 서당 처치마다 명단 기력 +8', function () {
+      var rig = dmRig(), DM = rig.DM, FC = rig.FC, r = {};
+      try {
+        var d = dmOf('tomb');
+        rig.at(d); DM.enter(d, 0); DM.step(3.1);
+        r.dry = rig.wave().every(function (f) { return f.aura !== 'water'; });
+        DM.step(2); DM.step(2.1);
+        r.tomb = rig.wave().every(function (f) { return f.aura === 'water'; });
+        DM.leave();
+        d = dmOf('forge');
+        rig.at(d); DM.enter(d, 0); DM.step(3.1);
+        var S2 = FC.create(['fc_a']);
+        FC.spawnCamp(S2, { key: 'x', x: 0, y: 0, tier: DM.TIER, kind: 'plain', foes: [{ kind: 'boar', dx: 0, dy: 0 }] });
+        var bo = rig.wave().filter(function (f) { return f.kind === 'boar'; })[0];
+        r.forge = bo && bo.atk === Math.round(FC.living(S2)[0].atk * 1.3);
+        DM.leave();
+        d = dmOf('school');
+        var S = rig.at(d); DM.enter(d, 0); DM.step(3.1);
+        S.party.forEach(function (m) { m.energy = 0; });
+        var one = rig.wave()[0];
+        for (var i = 0; i < 3; i++) { FC.hitFoe(S, one, S.party[0], 1e8, null, 'test'); }
+        rig.tick();
+        r.school = S.party.every(function (m) { return m.down || m.energy >= 8; });
+      } finally { rig.undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '무덤 4초 뒤 물 · 쇠부리 ×1.3 · 서당 처치 → 기력 +8' : ('실패 ' + bad.join(','));
+    });
+
+    t('비경 ⑲-9 — 주간 보스: 먹구름 이무기 하나 · 체력 50% 에서 뇌 방패(10%)·빨라짐 · 보상에 뇌룡 비늘 · 이번 주 횟수', function () {
+      var rig = dmRig(), DM = rig.DM, TL = DG.talent, r = {};
+      try {
+        var d = dmOf('weekly');
+        rig.at(d); DM.enter(d, 0); DM.step(3.1);
+        var L = rig.wave(), b = L[0];
+        r.boss = L.length === 1 && b.kind === 'w_imugi' && b.el === 'elec' && b.shield === 0;
+        DM.step(0.1); r.p1 = !DM.run().p2;
+        b.hp = Math.floor(b.hpMax * 0.5);
+        DM.step(0.1);
+        r.p2 = DM.run().p2 && b.shEl === 'elec' && b.shield === Math.round(b.hpMax * 0.1) && b.cdMul === DM.P2_CD;
+        DM.run().phase = 'tree';
+        var s0 = TL.count('scale'), res0 = DM.resin(), c = DM.claim();
+        r.claim = c.ok && c.cost === 30 && DM.resin() === res0 - 30 && TL.count('scale') === s0 + 1 && DM.weeklyUsed() === 1;
+      } finally { rig.undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '이무기 하나 · 50% → ⚡방패·간격 ×0.69 · 원기 30 · 🐉 +1 · 이번 주 1' : ('실패 ' + bad.join(','));
+    });
+
+    t('비경 ⑲-9 — 무예 7→8 은 뇌룡 비늘 1(8→9·9→10 은 2) · 없으면 거절 · 올리면 빠짐', function () {
+      var TL = DG.talent, rig = talRig(17), id = rig.id, r = {};
+      try {
+        C.save.heroes[id].rank = 5; C.save.heroes[id].tn = 7;
+        C.save.player.gold = 1e6; C.save.dust = 9999; TL.mats().secret = 99;
+        r.cost = TL.cost(7).scale === 1 && TL.cost(8).scale === 2 && TL.cost(9).scale === 2 && !TL.cost(6).scale;
+        r.no = !TL.up(id, 'n') && /비늘/.test(TL.upCheck(id, 'n').why);
+        TL.mats().scale = 1;
+        r.up = TL.up(id, 'n') && TL.baseLevel(id, 'n') === 8 && TL.count('scale') === 0;
+      } finally { rig.undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '7→8 🐉1 · 없으면 거절 · 올리면 0' : ('실패 ' + bad.join(','));
     });
 
     t('런타임 에러 없음', function () {

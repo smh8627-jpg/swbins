@@ -224,7 +224,9 @@
     g_bamboo: { name: '대숲 수호 백호',   ref: 'pt_baekho',      el: 'water', hp: 6.5, atk: 1.9, spd: 6.0, reach: 2.8, type: 'melee', wind: 0.8, cd: 1.9, h: 2.1, exp: 12, boss: true, guard: true, shields: ['water', 'fire'], sh: 1.3 },
     g_canyon: { name: '협곡 수호 주작',   ref: 'pt_jujak',       el: 'fire',  hp: 6.0, atk: 1.8, spd: 4.8, reach: 8.0, type: 'spit',  wind: 1.0, cd: 2.3, h: 2.2, exp: 12, r: 2.8, boss: true, guard: true, shields: ['fire', 'elec'], sh: 1.3 },
     g_marsh:  { name: '늪 수호 청룡',     ref: 'pt_cheongryong', el: 'water', hp: 6.5, atk: 1.8, spd: 4.5, reach: 7.5, type: 'spit',  wind: 1.0, cd: 2.4, h: 2.4, exp: 12, r: 3.0, boss: true, guard: true, shields: ['water', 'elec'], sh: 1.3 },
-    g_ruins:  { name: '성터 수호 불가사리', ref: 'pt_bulgasari', el: 'elec',  hp: 7.5, atk: 1.9, spd: 3.8, reach: 4.4, type: 'slam',  wind: 1.2, cd: 2.7, h: 2.3, exp: 12, r: 4.8, boss: true, guard: true, shields: ['elec', 'fire'], sh: 1.3 }
+    g_ruins:  { name: '성터 수호 불가사리', ref: 'pt_bulgasari', el: 'elec',  hp: 7.5, atk: 1.9, spd: 3.8, reach: 4.4, type: 'slam',  wind: 1.2, cd: 2.7, h: 2.3, exp: 12, r: 4.8, boss: true, guard: true, shields: ['elec', 'fire'], sh: 1.3 },
+    /* §5 ⑲-9 주간 보스(domain.js 먹구름 제단) — 청룡 몸을 빌린 뇌 이무기. 2단계 뇌 방패는 domain.js 가 두른다 */
+    w_imugi:  { name: '먹구름 이무기',   ref: 'pt_cheongryong', el: 'elec',  hp: 20,  atk: 2.2, spd: 4.5, reach: 4.4, type: 'slam',  wind: 1.2, cd: 3.5, h: 2.6, exp: 0,  r: 5.0, boss: true, weekly: true }
   };
   function LAYER_STUN() { return 0.8; }     // 겉 방패가 깨질 때 — 짧게 휘청(속 방패가 곧 선다)
   function CORE_STUN() { return 3; }        // 마지막 겹이 깨지면 — 길게 드러눕는다(약점)
@@ -585,7 +587,7 @@
     for (var k in S.camps) {
       if (!S.camps.hasOwnProperty(k)) { continue; }
       var cp = S.camps[k];
-      if (cp.kind === 'hero') { continue; }            // ⑯ 겨루는 판은 판이 끝날 때 치운다(duelCheck)
+      if (cp.kind === 'hero' || cp.kind === 'domain') { continue; }   // ⑯ 겨루는 판은 판이 끝날 때(duelCheck)·⑲-9 비경 파도는 domain.js 가 치운다
       if (Math.hypot(cp.x - px, cp.y - py) <= far) { continue; }
       var busy = false, j;
       for (j = 0; j < cp.uids.length; j++) {
@@ -742,7 +744,7 @@
         var near, i;
         if (rc.kind === 'frozen') {
           f.frozenT = FROZEN_T(); f.mark = null;
-          if (f.st === 'wind') { f.st = 'chase'; f.cd = FOES[f.kind].cd; }       // 휘두르던 것도 멎는다
+          if (f.st === 'wind') { f.st = 'chase'; f.cd = FOES[f.kind].cd * (f.cdMul || 1); }       // 휘두르던 것도 멎는다
         } else if (rc.kind === 'superconduct') {
           near = foesWithin(S, f.x, f.y, SUPER_R());
           for (i = 0; i < near.length; i++) { near[i].physT = SUPER_T(); wake(near[i]); rawHit(S, near[i], Math.round(m.atk * SUPER_MUL() * emB)); }
@@ -1149,7 +1151,7 @@
           if (inHit && S.iframe <= 0) { hurt(S, f); }
           else if (inHit) { push(S, { t: 'evade', uid: f.uid }); }
           push(S, { t: 'strike', uid: f.uid, type: F.type, x: f.mark ? f.mark.x : f.x, y: f.mark ? f.mark.y : f.y, r: f.mark ? f.mark.r : 0 });
-          f.mark = null; f.cd = F.cd;
+          f.mark = null; f.cd = F.cd * (f.cdMul || 1);          // ⑲-9 주간 보스 2단계는 cdMul 로 빨라진다
           /* 이 한 대로 전멸했으면 downMember 가 이미 'return' 으로 돌려놨다 — 덮지 않는다 */
           if (f.st === 'wind') { f.st = 'recover'; f.stT = 0.5; }
         }
@@ -1372,7 +1374,9 @@
         var dm = S.party[e.idx];
         c.log('💫 ' + dm.name + ' 쓰러짐 (들판 전투)', 'battle');
       } else if (e.t === 'wipe') {
-        var D = global.DG.drop, lost = D && D.lose ? D.lose() : null;
+        var inDm = !!(global.DG.domain && global.DG.domain.active());      // ⑲-9 비경 실패는 흘림 없음
+        var D = global.DG.drop, lost = !inDm && D && D.lose ? D.lose() : null;
+        c.emit('field:wipe', {});
         toast('🏳️ 모두 쓰러져 물러났다' + (lost ? ' — 금 ' + lost.gold + ' 을 흘렸다(되찾을 수 있다)' : ''));
         c.log('🏳️ 들판 전투 전멸 — 30% 로 일어났다', 'battle');
       } else if (e.t === 'yield') {
@@ -1383,6 +1387,10 @@
       } else if (e.t === 'duelEnd') {
         var ENC = global.DG.encounter;
         if (ENC && ENC.duelResult) { ENC.duelResult(e.result, e.spawnUid, e.heroId); }
+      } else if (e.t === 'kill' && String(e.camp).indexOf('dm:') === 0) {
+        /* ⑲-9 비경 적 — 전리품·경험·무리 기록 없음(domain.js 가 파도·지맥 이상을 본다) */
+        if (global.DG.daily) { global.DG.daily.progress('hunt'); }
+        c.emit('field:kill', e);
       } else if (e.t === 'kill') {
         var gold = killGold(e.tier), exp = Math.round(6 * e.tier * FOES[e.kind].exp);
         c.save.player.gold = (c.save.player.gold || 0) + gold;
@@ -1401,6 +1409,8 @@
         fieldSave().kills = (fieldSave().kills || 0) + 1;
         if (global.DG.daily) { global.DG.daily.progress('hunt'); }    // ⑲-8 일일 의뢰
         floatNum(e.x, e.y, '+' + gold + '금', null, 0.9, false);
+      } else if (e.t === 'clear' && e.kind === 'domain') {
+        c.emit('field:clear', e);                                      // ⑲-9 비경 파도 — 보상은 보상 나무에서
       } else if (e.t === 'clear' && e.kind === 'guard') {
         var gs = fieldSave(), rk = e.camp.slice(2);
         gs.guards[rk] = Date.now();
