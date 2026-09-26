@@ -69,6 +69,46 @@ namespace Saga.Title
         private TextMeshProUGUI _confirmText;
         private int _pending = -1;
 
+        // PLAN.md 110 ③ — 측정용 빌드(SAGA_PERF)에서만: 자동 측정·성능 기록표.
+        public Button BenchmarkButton { get; private set; }
+        public Button PerfButton { get; private set; }
+        public bool PerfOpen => _perf != null && _perf.activeSelf;
+        public string PerfText => _perfText != null ? _perfText.text : "";
+        private GameObject _perf;
+        private TextMeshProUGUI _perfText;
+        private static bool _openPerfNext;
+
+        static TitleScreen()
+        {
+            SagaPerf.BenchmarkFinished += () => _openPerfNext = true;
+        }
+
+        public void StartBenchmark()
+        {
+            var list = new List<(string key, string scene)>();
+            foreach (var g in Games) list.Add((g.Key, g.Scene));
+            SagaPerf.RunBenchmark(list);
+        }
+
+        public void ShowPerf(bool on)
+        {
+            if (_perf == null) return;
+            if (on) _perfText.text = PerfTable();
+            _perf.SetActive(on);
+        }
+
+        public static string PerfTable()
+        {
+            var recs = SagaPerf.LoadLog();
+            if (recs.Count == 0) return "기록 없음 — \"자동 측정\"을 누르거나 판을 한동안 놀고 돌아오세요.";
+            var sb = new System.Text.StringBuilder();
+            var last = recs[recs.Count - 1];
+            sb.AppendLine($"<color=#F2C760>{last.device} · {last.width}×{last.height} · 품질 {last.quality}</color>");
+            int from = Mathf.Max(0, recs.Count - 14);
+            for (int i = from; i < recs.Count; i++) sb.AppendLine(SagaPerf.Row(recs[i]));
+            return sb.ToString();
+        }
+
         private void Awake()
         {
             Instance = this;
@@ -180,6 +220,7 @@ namespace Saga.Title
             SagaUi.NewText(root, "v" + Version, 24f, SagaUi.InkDim, new Vector2(1f, 0f), new Vector2(-90f, 30f), new Vector2(160f, 40f));
 
             BuildConfirm(root);
+            if (SagaPerf.Enabled) BuildPerf(root);
         }
 
         private void BuildCard(RectTransform parent, int i, Vector2 pos, Vector2 size, bool narrow)
@@ -230,6 +271,29 @@ namespace Saga.Title
             ConfirmYes.onClick.AddListener(OnConfirmYes);
             ConfirmNo.onClick.AddListener(OnConfirmNo);
             _confirm.SetActive(false);
+        }
+
+        private void BuildPerf(Transform root)
+        {
+            var corner = new Vector2(1f, 1f);
+            BenchmarkButton = SagaUi.NewButton(root, "Benchmark", "자동 측정", corner, new Vector2(-150f, -60f), new Vector2(240f, 70f), SagaUi.ButtonAccent, 28f);
+            PerfButton = SagaUi.NewButton(root, "PerfLog", "성능 기록", corner, new Vector2(-150f, -140f), new Vector2(240f, 70f), SagaUi.ButtonIdle, 28f);
+            BenchmarkButton.onClick.AddListener(StartBenchmark);
+            PerfButton.onClick.AddListener(() => ShowPerf(true));
+
+            _perf = SagaUi.Fill(root, "Perf").gameObject;
+            _perf.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0.8f);
+            var panel = SagaUi.NewPanel(_perf.transform, "Panel", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1500f, 860f), SagaUi.Panel);
+            SagaUi.NewText(panel.transform, "성능 기록 — 판마다 상한(30fps 그대로) · 풀기(상한 없이 여유)", 34f, SagaUi.Gold,
+                new Vector2(0.5f, 1f), new Vector2(0f, -50f), new Vector2(1400f, 60f));
+            _perfText = SagaUi.NewText(panel.transform, "", 24f, SagaUi.Ink, new Vector2(0.5f, 1f), new Vector2(0f, -440f), new Vector2(1420f, 680f),
+                TextAlignmentOptions.TopLeft);
+            var clear = SagaUi.NewButton(panel.transform, "Clear", "기록 지우기", new Vector2(0.5f, 0f), new Vector2(-170f, 60f), new Vector2(280f, 76f), SagaUi.ButtonIdle, 28f);
+            var close = SagaUi.NewButton(panel.transform, "Close", "닫기", new Vector2(0.5f, 0f), new Vector2(170f, 60f), new Vector2(280f, 76f), SagaUi.ButtonAccent, 28f);
+            clear.onClick.AddListener(() => { SagaPerf.ClearLog(); ShowPerf(true); });
+            close.onClick.AddListener(() => ShowPerf(false));
+            _perf.SetActive(false);
+            if (_openPerfNext) { _openPerfNext = false; ShowPerf(true); }
         }
 
         /// <summary>위 먹빛 → 아래 옅은 쪽빛 세로 그러데이션(텍스처 한 장, 코드로 굽는다).</summary>

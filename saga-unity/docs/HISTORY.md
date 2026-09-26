@@ -9382,3 +9382,14 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - 진단 `PlaytestSagaFlow`: 진짜 버튼으로 ① 타이틀(카드 5·이어하기 없음·UI.Text 0·Noto·기본값 5) ② 새로 시작 → 일시정지(시간 0·저장·계속하기) → 타이틀로(자동 저장·이어하기 생김) ③ 이어하기 둘째 바퀴(사가블로 앱 일시정지 자동 저장) ④ 상태를 7777 로 바꿔 둔 뒤 새로 시작(취소는 그대로, 지우고 시작 → 기본값·판 안에서도 기본값), 오류 로그 0, 진짜 세이브 다섯 떠 두고 되돌림. **3연속 OK**(판마다 씬 세 번, 타이틀 16번). 회귀: GO·DUNGEON·FOREST 헤드리스·STORY·REALM 슬라이스 OK.
 - 빌드: Windows 863MB(폰트 +11MB) 오류 0, 화면 없이 켜서 플레이어 로그 "[TitleScreen] 카드 5 · 저장 5 · 글꼴 NotoSansKR-Regular SDF", 예외 0. 빌드가 또 바꾼 URP·Graphics·ProjectSettings 직렬화는 되돌림.
 - 다음 = 110 ③ 폰 성능(개발 APK·fps 표시 → 사람 몫 설치).
+
+## 2026-09-26 상용화 — PLAN 110 ③a 폰 성능 측정 도구 ("이어해")
+
+- 폰이 PC 에 안 꽂혀 있다(adb devices 비어 있음) → 사람이 깔기만 하면 되게: 측정용 빌드 `SAGA_PERF`(릴리스에 기호만, `BuildPlayerOptions.extraScriptingDefines`) · `SagaCore/SagaPerf.cs`.
+- 화면 줄: fps·ms·1% 낮은 fps·배터리 온도(BATTERY_CHANGED sticky — `registerReceiver(null, …)` 는 AndroidJavaObject.Call 이 null 서명을 못 짐작해 AndroidJNI 로 직접)·발열 단계(PowerManager.getCurrentThermalStatus, API 29+)·메모리·씬. 타이틀 구간은 안 잰다.
+- 기록: 씬이 바뀔 때·앱이 뒤로 갈 때 "놀이" 한 줄, 자동 측정은 판마다 "상한"(모바일 30fps 그대로 — MobileGraphics)·"풀기"(120·vsync 끔) → `perf_log.json`(최근 200). 자동 측정은 `SagaFlow.SuppressAutoSave` 로 세이브 안 씀·끝나면 저장 없이 타이틀로(`LeaveWithoutSave`)·기록표 저절로 열림. 타이틀 오른쪽 위 자동 측정·성능 기록(TMP `<pos>` 로 칸 맞춤·지우기).
+- 함정 셋: ① 에디터 배치는 초당 1천~7천 프레임이라 틱 수 대기는 16초 만에 끝남 → 진단 대기는 실제 시간 ② 프레임 목록 상한(2만)에 걸리면 시간이 안 쌓여 국지 "상한" 줄이 빠짐 → 시간·프레임 수는 따로 세고 목록만 상한 ③ **TMP 동적 글꼴은 에디터에서 쓴 글자를 아틀라스째 에셋에 저장**(3만 줄 diff) — 빌드 목록 맞추기의 SaveAssets 를 뺐는데도 남아 `SetupSagaFonts.ResetDynamicFonts`(ClearFontAssetData) 를 두 플레이 진단 끝에 부르고, 비운 상태를 커밋. 진단 뒤 md5 같음 확인.
+- 진단 `PlaytestSagaPerf`(시간 줄여 0.3·3.5·3.5초): 단추·화면 줄·자동 측정 열 줄(판 순서·구간·값)·기록표 자동 열림·세이브 바이트 그대로·놀이 한 줄·지우기·오류 0, 진짜 세이브·기록 되돌림. **3연속 OK** · `PlaytestSagaFlow` 다시 OK.
+- 빌드: `SAGA-perf.apk` 479MB·5.5분·오류 0. 작업 대상 Win64 로 되돌림, 빌드 직렬화 되돌림, adb 서버 끔.
+- 사람 몫: `HOW_TO_PLAYTEST` §10(설치 두 길·자동 측정 5분·판마다 5분 놀기·기록표 사진). 앱 id 는 아직 유니티 템플릿 기본값(⑥).
+- 다음 = ④ 재현성(③b 는 폰 결과 오면).

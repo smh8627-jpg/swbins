@@ -9,7 +9,7 @@ namespace Saga.EditorTools
 {
     /// <summary>
     /// PLAN.md 110 상용화 ① "실제 빌드 한 번" — 다섯 판 씬을 실행 파일로 묶는다(배치 모드 `-executeMethod`).
-    /// 결과물은 `Build/`(gitignore). 끝나면 `Build/<대상>/build_report.txt` 에 결과·크기·시간·경고/오류 수와
+    /// 결과물은 `Build/`(gitignore). 끝나면 `Build/<대상>/<파일>_report.txt` 에 결과·크기·시간·경고/오류 수와
     /// 가장 큰 에셋 스물을 적고, 콘솔에 "[SagaPlayerBuild] OK/FAIL" 한 줄. 실패면 종료 코드 1.
     /// 프로젝트 설정(PlayerSettings)은 건드리지 않는다 — 빌드 옵션만 이 호출 안에서 준다.
     /// </summary>
@@ -29,8 +29,8 @@ namespace Saga.EditorTools
         [MenuItem("Saga/Build/Sync Editor Build Scenes")]
         public static void SyncEditorBuildScenes()
         {
+            // 목록은 설정만으로 저장된다. SaveAssets 는 부르지 않는다 — 진단 중 동적 글꼴 아틀라스에 오른 글자까지 에셋에 써 버린다.
             EditorBuildSettings.scenes = Scenes.Where(File.Exists).Select(p => new EditorBuildSettingsScene(p, true)).ToArray();
-            AssetDatabase.SaveAssets();
         }
 
         [MenuItem("Saga/Build/Windows Player")]
@@ -44,7 +44,21 @@ namespace Saga.EditorTools
             Run(BuildTarget.Android, BuildTargetGroup.Android, "Build/Android/SAGA.apk");
         }
 
-        private static void Run(BuildTarget target, BuildTargetGroup group, string output)
+        /// <summary>PLAN.md 110 ③ 측정용 — 릴리스 빌드에 `SAGA_PERF` 만 더한다(화면 fps·온도 줄, 자동 측정, 성능 기록표). 개발 빌드는 스크립트가 느려 fps 를 낮게 잰다.</summary>
+        [MenuItem("Saga/Build/Android APK (perf)")]
+        public static void BuildAndroidPerf()
+        {
+            EditorUserBuildSettings.buildAppBundle = false;
+            Run(BuildTarget.Android, BuildTargetGroup.Android, "Build/Android/SAGA-perf.apk", PerfDefines);
+        }
+
+        [MenuItem("Saga/Build/Windows Player (perf)")]
+        public static void BuildWindowsPerf() =>
+            Run(BuildTarget.StandaloneWindows64, BuildTargetGroup.Standalone, "Build/WindowsPerf/SAGA.exe", PerfDefines);
+
+        private static readonly string[] PerfDefines = { "SAGA_PERF" };
+
+        private static void Run(BuildTarget target, BuildTargetGroup group, string output, string[] defines = null)
         {
             foreach (var s in Scenes)
                 if (!File.Exists(s)) { Finish(false, $"씬 없음 {s}", null, output); return; }
@@ -61,6 +75,7 @@ namespace Saga.EditorTools
                 target = target,
                 targetGroup = group,
                 options = BuildOptions.DetailedBuildReport,
+                extraScriptingDefines = defines,
             };
             var report = BuildPipeline.BuildPlayer(opts);
             bool ok = report.summary.result == BuildResult.Succeeded;
@@ -99,7 +114,7 @@ namespace Saga.EditorTools
             }
             var dir = Path.GetDirectoryName(output);
             Directory.CreateDirectory(dir);
-            File.WriteAllText(Path.Combine(dir, "build_report.txt"), sb.ToString());
+            File.WriteAllText(Path.Combine(dir, Path.GetFileNameWithoutExtension(output) + "_report.txt"), sb.ToString());
             Debug.Log($"[SagaPlayerBuild] {(ok ? "OK" : "FAIL")} - {output}\n{sb}");
             if (Application.isBatchMode) EditorApplication.Exit(ok ? 0 : 1);
         }

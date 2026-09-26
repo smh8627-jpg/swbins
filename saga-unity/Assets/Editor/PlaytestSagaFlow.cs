@@ -83,6 +83,7 @@ namespace Saga.EditorTools
                 EditorApplication.playModeStateChanged -= OnState;
                 EditorSettings.enterPlayModeOptionsEnabled = _origOptionsEnabled;
                 EditorSettings.enterPlayModeOptions = _origOptions;
+                SetupSagaFonts.ResetDynamicFonts(); // 진단 중 동적 글꼴에 오른 글자를 비워 에셋을 늘 같게.
                 RestoreSaves();
                 bool ok = _ok && _done;
                 Debug.Log(ok

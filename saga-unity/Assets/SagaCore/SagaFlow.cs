@@ -27,6 +27,8 @@ namespace Saga.Core
         public static string LastAutoSaveReason { get; private set; }
 
         private static Func<bool> _saver;
+        /// <summary>110 ③ 자동 측정 동안 — 세이브를 안 쓴다.</summary>
+        public static bool SuppressAutoSave;
 
         public static void Enter(string game, Func<bool> saver)
         {
@@ -38,7 +40,7 @@ namespace Saga.Core
 
         public static bool SaveCurrent(string reason)
         {
-            if (_saver == null) return false;
+            if (_saver == null || SuppressAutoSave) return false;
             bool ok = _saver();
             if (ok) LastAutoSaveReason = reason;
             return ok;
@@ -57,6 +59,9 @@ namespace Saga.Core
             Leave();
             Application.Quit();
         }
+
+        /// <summary>저장 없이 판을 떠날 때(자동 측정).</summary>
+        public static void LeaveWithoutSave() => Leave();
 
         private static void Leave()
         {

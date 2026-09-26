@@ -63,6 +63,21 @@ namespace Saga.EditorTools
             Exit(true);
         }
 
+        /// <summary>동적 글꼴 에셋을 빈 상태로 — TMP 는 에디터에서 쓴 글자를 아틀라스째 에셋에 저장해 버린다.
+        /// 플레이 진단(`PlaytestSagaFlow`·`PlaytestSagaPerf`)이 끝에 불러 저장소의 에셋을 늘 같은 바이트로 둔다.</summary>
+        [MenuItem("Saga/Setup/Reset Dynamic Font Data")]
+        public static void ResetDynamicFonts()
+        {
+            foreach (var path in new[] { RegularAsset, BoldAsset })
+            {
+                var fa = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(path);
+                if (fa == null) continue;
+                fa.ClearFontAssetData(true);
+                EditorUtility.SetDirty(fa);
+            }
+            AssetDatabase.SaveAssets();
+        }
+
         private static TMP_FontAsset MakeFontAsset(string fontPath, string assetPath)
         {
             var existing = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(assetPath);
