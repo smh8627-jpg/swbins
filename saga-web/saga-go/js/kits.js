@@ -65,6 +65,13 @@
         text: '앞으로 9m·폭 2m 물결 — 길 위의 적을 수 원소로 치고 앞으로 6m 밀어낸다(나는 제자리)' },
       burst: { name: '뱃노래', type: 'rain', r: 5, mul: 2.3, sec: 15, reach: 8, n: 2, gap: 1, rmul: 0.85,
         text: '둘레 5m 를 치고, 15초 동안 명단 누구든 기본·강·낙하 공격이 맞으면 1초에 한 번 8m 안 가까운 적 둘에 물 노(수 원소)' }
+    },
+    /* ⑲-20 해솔(9장 끝 합류) — saga-godot 106 ㊳ 을 이 판 척도로. 있는 틀(shells·infuse)만 쓴다 */
+    story_haesol: {
+      skill: { name: '먹구름 벼락', type: 'shells', cd: 8, reach: 12, n: 3, delay: 0.5, r: 2.4, mul: 2.3,
+        text: '12m 안 적 셋 자리에 0.5초 뒤 벼락(둘레 2.4m, 뇌 원소) — 적이 없으면 앞 8m 에 하나' },
+      burst: { name: '가면 없는 노래', type: 'infuse', r: 6.5, mul: 3.6, sec: 10, nmul: 1.2,
+        text: '둘레 6.5m 를 치고, 10초 동안 기본·강·낙하 공격에 뇌 원소가 실린다(피해 ×1.2)' }
     }
   };
 

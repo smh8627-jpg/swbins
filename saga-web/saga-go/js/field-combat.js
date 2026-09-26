@@ -237,7 +237,13 @@
                 boss: true, rot: ['shadow', 'spit', 'melee', 'slam', 'shadow', 'melee'] },
     /* ⑲-16 7장 금 간 검은 가면 — 같은 몸, 가면 왼쪽에 흰 금. 물 · 밀물(원 넷). 2단계 물 방패·졸개는 story.js 가 두른다 */
     b_mask2:  { name: '금 간 검은 가면', ref: null, body: 'story_blackmask', mask: 'crack', el: 'water', hp: 11.5, atk: 2.0, spd: 5.6, reach: 2.4, type: 'melee', wind: 0.6, cd: 1.6, h: 1.0, exp: 0,
-                boss: true, rot: ['tide', 'shadow', 'melee', 'tide', 'slam', 'shadow'] }
+                boss: true, rot: ['tide', 'shadow', 'melee', 'tide', 'slam', 'shadow'] },
+    /* ⑲-20 9장 구름섬 — 먹구름 가면을 쓴 해솔(해솔 몸·금 간 가면, 뇌) · 먹구름 임금(사람 몸 1.9배·왕관·어두운 가면, 뇌 — 고리 halo).
+       2단계 방패·졸개는 story.js 가 두른다 */
+    haesol_mask: { name: '먹구름 가면 해솔', ref: null, body: 'story_haesol', mask: 'crack', el: 'elec', hp: 13, atk: 2.1, spd: 5.8, reach: 2.4, type: 'melee', wind: 0.6, cd: 1.5, h: 1.0, exp: 0,
+                boss: true, rot: ['shadow', 'spit', 'tide', 'melee', 'slam', 'shadow'] },
+    storm_king:  { name: '먹구름 임금', ref: null, body: 'story_blackmask', mask: 'storm', el: 'elec', hp: 17, atk: 2.3, spd: 4.8, reach: 3.4, type: 'melee', wind: 0.7, cd: 1.7, h: 1.9, exp: 0,
+                boss: true, rot: ['slam', 'halo', 'spit', 'melee', 'shadow', 'tide', 'halo'] }
   };
   /* ⑲-14 공격 차례(`rot`)의 한 수씩 — reach 안이면 휘두른다. shadow 는 내 등 뒤 SHADOW_BACK m 로 옮겨 붙어 제 둘레 원 */
   var ROT = {
@@ -245,7 +251,8 @@
     spit:   { reach: 9,   wind: 1.0,  r: 2.4, mul: 1.0 },
     melee:  { reach: 2.4, wind: 0.55, r: 0,   mul: 1.0 },
     slam:   { reach: 3.8, wind: 1.1,  r: 4.2, mul: 1.2 },
-    tide:   { reach: 11,  wind: 1.1,  r: 2.0, mul: 1.3, n: 4, from: 2.5, gap: 3 }    // ⑲-16 밀물 — 나를 향해 원 넷 줄지어
+    tide:   { reach: 11,  wind: 1.1,  r: 2.0, mul: 1.3, n: 4, from: 2.5, gap: 3 },   // ⑲-16 밀물 — 나를 향해 원 넷 줄지어
+    halo:   { reach: 8,   wind: 1.3,  r: 9,   mul: 1.5, inner: 3 }                     // ⑲-20 고리 — 제 둘레 3~9m. 곁(3m 안)으로 파고들거나 9m 밖으로
   };
   var SHADOW_BACK = 2.2;
   /** ⑲-16 밀물 원 넷 — 가면(fx,fy)에서 나(px,py) 쪽으로 from m 부터 gap 간격 */
@@ -257,7 +264,10 @@
   /** 예고 표식에 (x,y) 가 드나 — 원 여럿(list)이면 하나라도. pad 는 맞는 쪽 몸 둘레 */
   function markHit(m, x, y, pad) {
     var L = m.list || [m];
-    for (var i = 0; i < L.length; i++) { if (Math.hypot(x - L[i].x, y - L[i].y) <= m.r + (pad || 0)) { return true; } }
+    for (var i = 0; i < L.length; i++) {
+      var d = Math.hypot(x - L[i].x, y - L[i].y);
+      if (d <= m.r + (pad || 0) && (!m.inner || d >= m.inner - (pad || 0))) { return true; }   // ⑲-20 고리는 안쪽이 빈다
+    }
     return false;
   }
   /* ⑲-16 지킬 것(siege) — 이야기 제단 지키기 무리는 제단으로 곧장 가서 치고, 내가 이 안이면 나를 친다 */
@@ -569,7 +579,7 @@
     return Math.round(A && w ? a * A.atkMul(w) / A.atkMul(0) : a);
   }
   function spawnCamp(S, c) {
-    S.camps[c.key] = { key: c.key, x: c.x, y: c.y, tier: c.tier, kind: c.kind, uids: [] };
+    S.camps[c.key] = { key: c.key, x: c.x, y: c.y, tier: c.tier, kind: c.kind, uids: [], sky: !!c.sky };
     for (var i = 0; i < c.foes.length; i++) {
       var F = FOES[c.foes[i].kind], m = tierMul(c.tier);
       var uid = ++S.uid;
@@ -585,7 +595,7 @@
         aura: null, auraT: 0, st: 'idle', stT: 0, cd: 0.4 + (uid % 5) * 0.2,
         wa: (uid * 2.39996) % 6.283, stun: 0, shockN: 0, shockT: 0, shockDmg: 0,
         frozenT: 0, physT: 0, quickT: 0, burnN: 0, burnT: 0, burnDmg: 0,
-        mark: null, dead: false, deadT: 0, hitT: -99, moving: false, phase: 0, calmReturn: 0
+        mark: null, dead: false, deadT: 0, hitT: -99, moving: false, phase: 0, calmReturn: 0, sky: !!c.sky
       };
       S.camps[c.key].uids.push(uid);
       if (F.hero && c.hero) {
@@ -649,9 +659,11 @@
 
   /* ── 판정 ─────────────────────────────────────────────── */
   function push(S, e) { S.ev.push(e); return e; }
+  /** ⑲-20 구름섬 — 나와 다른 층(섬 위·밑)의 적은 서로 못 본다(skyisle.apart). 층이 없으면 늘 false */
+  function apart(f) { var SK = global.DG.skyIsle; return !!(SK && SK.apart && SK.apart(f)); }
   function living(S) {
     var out = [];
-    for (var k in S.foes) { if (S.foes.hasOwnProperty(k) && !S.foes[k].dead && S.foes[k].st !== 'yield') { out.push(S.foes[k]); } }
+    for (var k in S.foes) { if (S.foes.hasOwnProperty(k) && !S.foes[k].dead && S.foes[k].st !== 'yield' && !apart(S.foes[k])) { out.push(S.foes[k]); } }
     return out;
   }
   function nearestFoe(S, px, py, r) {
@@ -1364,6 +1376,7 @@
         f.x += f.kb.vx * kbt; f.y += f.kb.vy * kbt; f.kb.t -= dt;
         if (f.kb.t <= 1e-9) { f.kb = null; }
       }
+      if (f.sky) { var SKc = global.DG.skyIsle; if (SKc && SKc.clampIn) { SKc.clampIn(f); } }   // ⑲-20 섬 무리는 난간을 못 넘는다
       if (f.auraT > 0) { f.auraT -= dt; if (f.auraT <= 0) { f.aura = null; } }
       if (f.shockN > 0) {
         f.shockT -= dt;
@@ -1390,7 +1403,10 @@
       if (f.frozenT > 0) { f.frozenT -= dt; continue; }   // ⑲-1 얼어붙음 — 꼼짝 못 한다
       if (f.stun > 0) { f.stun -= dt; continue; }
       var F = FOES[f.kind];
-      var d = Math.hypot(f.x - px, f.y - py);
+      /* ⑲-20 층이 갈리면(내가 섬에서 뛰어내렸다) 쫓던 적은 제자리로 — 나를 못 본다 */
+      var far = apart(f);
+      if (far && (f.st === 'chase' || f.st === 'wind' || f.st === 'recover')) { f.st = 'return'; f.mark = null; }
+      var d = far ? Infinity : Math.hypot(f.x - px, f.y - py);
       var home = Math.hypot(f.x - f.hx, f.y - f.hy);
       if (f.st !== 'return' && f.st !== 'idle' && home > LEASH_R()) { f.st = 'return'; f.mark = null; }
       if (f.st === 'idle') {
@@ -1429,9 +1445,10 @@
             f.mark = { x: tl[0].x, y: tl[0].y, r: RT.r, t: RT.wind, list: tl };
           } else {
             f.mark = AT === 'spit' ? { x: gx, y: gy, r: RT.r, t: RT.wind }
-              : (AT === 'slam' || AT === 'shadow' ? { x: f.x, y: f.y, r: RT.r, t: RT.wind } : null);
+              : (AT === 'halo' ? { x: f.x, y: f.y, r: RT.r, inner: RT.inner, t: RT.wind }
+                : (AT === 'slam' || AT === 'shadow' ? { x: f.x, y: f.y, r: RT.r, t: RT.wind } : null));
           }
-          push(S, { t: 'tell', uid: f.uid, type: AT === 'shadow' || AT === 'tide' ? 'slam' : AT, x: f.x, y: f.y });
+          push(S, { t: 'tell', uid: f.uid, type: AT === 'shadow' || AT === 'tide' || AT === 'halo' ? 'slam' : AT, x: f.x, y: f.y });
         }
       } else if (f.st === 'wind') {
         S.calmT = Math.min(S.calmT, 0);
@@ -1451,7 +1468,7 @@
           f.atkSiege = false;
           var SL = f.mark && f.mark.list ? f.mark.list : [f.mark || f];
           for (var si = 0; si < SL.length; si++) {
-            push(S, { t: 'strike', uid: f.uid, type: WT === 'shadow' || WT === 'tide' ? 'slam' : WT, x: SL[si].x, y: SL[si].y, r: f.mark ? f.mark.r : 0 });
+            push(S, { t: 'strike', uid: f.uid, type: WT === 'shadow' || WT === 'tide' || WT === 'halo' ? 'slam' : WT, x: SL[si].x, y: SL[si].y, r: f.mark ? f.mark.r : 0 });
           }
           if (F.rot) { f.rotI = ((f.rotI || 0) + 1) % F.rot.length; }
           f.mark = null; f.cd = F.cd * (f.cdMul || 1);          // ⑲-9 주간 보스 2단계는 cdMul 로 빨라진다
@@ -1914,7 +1931,7 @@
     if (!w) { return null; }
     var T3 = w.three(), cam = w.camNode();
     if (!T3 || !cam) { return null; }
-    var gy = w.groundY ? w.groundY(x, y) : 0;
+    var gy = w.standY ? w.standY(x, y) : (w.groundY ? w.groundY(x, y) : 0);
     var v = new T3.Vector3(x, gy + (up || 2), y).project(cam);
     if (v.z > 1) { return null; }
     return { x: (v.x + 1) / 2 * global.innerWidth, y: (1 - v.y) / 2 * global.innerHeight };
@@ -1987,7 +2004,7 @@
     if (!w || global.DG_NO_DRAW) { return; }
     var mesh = ringMesh(r, color, 0.9);
     if (!mesh) { return; }
-    mesh.position.set(x, (w.groundY ? w.groundY(x, y) : 0) + 0.12, y);
+    mesh.position.set(x, (w.standY ? w.standY(x, y) : (w.groundY ? w.groundY(x, y) : 0)) + 0.12, y);
     mesh.scale.setScalar(0.35);
     w.addFx(mesh);
     fx.rings.push({ mesh: mesh, t: 0, life: life || 0.4 });
@@ -2034,16 +2051,18 @@
       M = fx.marks[key] = ringMesh(f.mark.r, '#ff3b3b', 0.3);
       if (!M) { return; }
       var T3 = w.three();
-      var disk = new T3.Mesh(new T3.CircleGeometry(f.mark.r, 40).rotateX(-Math.PI / 2),
-        new T3.MeshBasicMaterial({ color: '#ff3b3b', transparent: true, opacity: 0.15, depthWrite: false }));
+      /* ⑲-20 고리는 안쪽이 빈 판 + 안쪽 테 — 빈 곳이 피할 자리다 */
+      var disk = new T3.Mesh((f.mark.inner ? new T3.RingGeometry(f.mark.inner, f.mark.r, 48) : new T3.CircleGeometry(f.mark.r, 40)).rotateX(-Math.PI / 2),
+        new T3.MeshBasicMaterial({ color: '#ff3b3b', transparent: true, opacity: 0.15, depthWrite: false, side: T3.DoubleSide }));
       M.add(disk);
-      M.userData.disk = disk;
+      if (f.mark.inner) { var inn = ringMesh(f.mark.inner, '#ff3b3b', 0.8); if (inn) { M.add(inn); } }
+      M.userData.disk = disk; M.userData.halo = !!f.mark.inner;
       w.addFx(M);
     }
-    M.position.set(q.x, (w.groundY ? w.groundY(q.x, q.y) : 0) + 0.1, q.y);
+    M.position.set(q.x, (w.standY ? w.standY(q.x, q.y, !!f.sky) : (w.groundY ? w.groundY(q.x, q.y) : 0)) + 0.1, q.y);
     var prog = 1 - Math.max(0, f.stT) / (f.mark.t || 1);
     M.material.opacity = 0.35 + 0.55 * prog;
-    M.userData.disk.scale.setScalar(Math.max(0.05, prog));
+    M.userData.disk.scale.setScalar(M.userData.halo ? 1 : Math.max(0.05, prog));
     M.userData.disk.material.opacity = 0.18 + 0.2 * prog;
   }
 
@@ -2094,7 +2113,7 @@
         : ((D && D.find && D.find(f.heroId || F.ref)) || { id: 'fc_' + f.kind, name: F.name, kind: 'beast', rarity: 2, form: 'boar' });
       out.push({ uid: f.uid, x: f.x, y: f.y, h: F.h, ref: ref, moving: f.moving, phase: f.phase,
         dead: f.dead, deadT: f.deadT, stun: f.stun > 0 && f.st !== 'yield', el: f.el, aura: f.aura, boss: !!F.boss,
-        hero: !!(F.hero || F.body), mask: F.mask || null, yielded: f.st === 'yield' });
+        hero: !!(F.hero || F.body), mask: F.mask || null, yielded: f.st === 'yield', sky: !!f.sky });
     }
     return out;
   }

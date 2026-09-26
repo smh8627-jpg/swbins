@@ -139,6 +139,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/domain.js"></script>
 <script src="js/fieldboss.js"></script>
 <script src="js/story.js"></script>
+<script src="js/skyisle.js"></script>
 <script src="js/talkface.js"></script>
 <script src="js/formation.js"></script>
 <script src="js/rogue.js"></script>
@@ -10255,8 +10256,8 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 
     t('이야기 ⑲-12 — 표·자리: 장 둘(단계 8·4, 여정 등급 1·5) · 인물 셋 = ⑮ 땅 탑 + 자리(고향 촌장·갈대 나루 사공·옛 성터 학자) · 모든 단계에 목표 · 같은 세계면 같은 자리 · 몸 셋 고정', function () {
       var ST = DG.story, A3 = DG.asset3d, r = {};
-      r.table = ST.CHAPTERS.length === 8 && ST.CHAPTERS[0].steps.length === 8 && ST.CHAPTERS[1].steps.length === 4 &&
-        ST.CHAPTERS[0].ar === 1 && ST.CHAPTERS[1].ar === 5;     // ⑲-13·14·16·19 가 3~8장을 더했다
+      r.table = ST.CHAPTERS.length === 9 && ST.CHAPTERS[0].steps.length === 8 && ST.CHAPTERS[1].steps.length === 4 &&
+        ST.CHAPTERS[0].ar === 1 && ST.CHAPTERS[1].ar === 5;     // ⑲-13·14·16·19·20 이 3~9장을 더했다
       var e = ST.npcPos('elder'), f = ST.npcPos('ferryman'), s = ST.npcPos('scholar'), ga = ST.anchorOf('galdae'), go = ST.anchorOf('gojeong');
       r.npc = e.x === -22 && e.y === 16 && f.x === ga.x - 18 && f.y === ga.y - 24 && s.x === go.x - 18 && s.y === go.y - 24 &&
         DG.biome.cellAt.apply(null, ga.key.split('_').map(Number)).zone === 'galdae' && DG.biome.cellAt.apply(null, go.key.split('_').map(Number)).zone === 'gojeong';
@@ -10849,7 +10850,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         r.kit = FC.kitFor('story_elder').skill.type === 'gust' && FC.kitFor('story_elder').burst.name === '잔칫날 순풍' &&
           FC.kitFor('story_ferryman').skill.type === 'wave' && FC.kitFor('story_ferryman').burst.type === 'rain';
         var c6 = ST.CHAPTERS[5], c7 = ST.CHAPTERS[6], l6 = c6.steps[7].lines, l7 = c7.steps[8].lines;
-        r.table = c6.join === 'story_elder' && c7.join === 'story_ferryman' && ST.CHAPTERS.filter(function (c) { return c.join; }).length === 4 &&
+        r.table = c6.join === 'story_elder' && c7.join === 'story_ferryman' && ST.CHAPTERS.filter(function (c) { return c.join; }).length >= 4 &&   // ⑲-20 9장 해솔
           /함께 가마/.test(l6[l6.length - 1][1]) && /뱃길은 내가/.test(l7[l7.length - 1][1]);
         ['story_scholar', 'story_wanderer', 'story_elder', 'story_ferryman'].forEach(function (id) { delete C.save.dex.heroes[id]; });
         C.save.party = [D.heroes[0].id];
@@ -10984,7 +10985,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       var rig = stRig(20), ST = rig.ST, r = {}, i;
       try {
         var c8 = ST.CHAPTERS[7], S8 = c8.steps;
-        r.table = ST.CHAPTERS.length === 8 && S8.length === 12 && c8.ar === 20 && c8.reward.gold === 2500 && c8.reward.secret === 3 && c8.reward.party === 850 &&
+        r.table = ST.CHAPTERS.length >= 8 && S8.length === 12 && c8.ar === 20 && c8.reward.gold === 2500 && c8.reward.secret === 3 && c8.reward.party === 850 &&
           S8[2].type === 'chase' && S8[4].type === 'sail' && S8[4].to === 'isle' && S8[10].type === 'sail' && S8[10].to === 'dock' &&
           S8[7].type === 'seal' && S8[7].order.join() === 'star,moon,sun' && ST.isTalk(S8[4]) && !ST.isTalk(S8[2]);
         var is = ST.isleSpot(), cp = ST.capeSpot(), tx = Math.floor(is.x / 48), ty = Math.floor(is.y / 48);
@@ -11060,6 +11061,152 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       } finally { rig.undo(); }
       var bad = Object.keys(r).filter(function (k) { return !r[k]; });
       return bad.length === 0 ? '나루 → 섬 남쪽 14m · 섬 → 나루(사공 곁)' : ('실패 ' + bad.join(','));
+    });
+
+    /* ── ⑲-20 이야기 9장·구름섬·바람 기둥·먹구름 임금 (story.js sky · skyisle.js · landform onSky · field-combat halo·층, PLAN §5 ⑲-20) ── */
+    t('이야기 ⑲-20 — 표·자리: 9장 12단계(Lv25)·보상·해솔 합류 · 구름섬 = 봉우리 북쪽 27m·윗면 +40m·반지름 14 · 기둥~섬 틈 10m 안 · 나그네 3째 봉우리·4~10째 섬 · 해솔 7~10째 섬(가면 없음·이름 해솔) · 섬 단계 층 · 표정 열셋', function () {
+      var rig = stRig(25), ST = rig.ST, SK = DG.skyIsle, r = {}, i;
+      try {
+        var c9 = ST.CHAPTERS[8], S9 = c9.steps;
+        r.table = ST.CHAPTERS.length === 9 && S9.length === 12 && c9.ar === 25 && c9.join === 'story_haesol' && c9.reward.knot === 5 &&
+          c9.reward.gold === 2750 && c9.reward.party === 900 && S9[3].type === 'sky' && S9[4].type === 'kill' && S9[4].sky &&
+          S9[5].kind === 'haesol_mask' && S9[7].kind === 'storm_king' && S9[5].sky && S9[7].sky && S9[10].type === 'go';
+        var pk = ST.peakSpot(), c = SK.spot();
+        C.save.story = { ch: 8, step: 0 };
+        r.isle = !!pk && !!c && c.x === pk.x + SK.ISLE_OFF[0] && c.y === pk.y + SK.ISLE_OFF[1] && SK.ISLE_R === 14 &&
+          Math.abs(SK.top() - (DG.relief3d ? DG.relief3d.heightAt(pk.x, pk.y) : 0) - 40) < 1e-9 && SK.draftTop() === SK.top() + 9;
+        var gap = Math.hypot(c.x - pk.x, c.y - pk.y) - SK.ISLE_R - SK.DRAFT_R;
+        r.gap = gap > 0 && gap <= 10;
+        function vis(k) { var v = []; for (i = 0; i < 12; i++) { C.save.story = { ch: 8, step: i }; v.push(ST.visible(k) ? (ST.npcInfo(k).sky ? 2 : 1) : 0); } return v.join(''); }
+        r.vis = vis('wanderer') === '001222222200' && vis('haesol') === '000000222200';
+        C.save.story = { ch: 8, step: 6 };
+        var hs = ST.live(c).filter(function (x) { return x.p.story === 'haesol'; })[0], wd = ST.npcPos('wanderer');
+        r.haesol = !!hs && hs.p.mask === false && hs.p.name === '해솔' && hs.sky === true && SK.inside(hs.x, hs.y) && SK.inside(wd.x, wd.y) &&
+          ST.targetOf(ST.step()).label === '해솔';
+        C.save.story = { ch: 7, step: 8 };
+        var hs8 = ST.live(ST.isleSpot()).filter(function (x) { return x.p.story === 'haesol'; })[0];
+        r.old = !!hs8 && hs8.p.mask === 'crack' && hs8.p.name === '검은 가면 해솔' && !hs8.sky;
+        var sk = [];
+        S9.forEach(function (st) { sk.push(ST.skyOf(st) ? 1 : 0); });
+        r.layer = sk.join('') === '000011111100';
+        var emo = 0;
+        S9.forEach(function (st) { (st.lines || []).forEach(function (l) { if (l[2]) { emo++; if (!DG.talkface.EMO[l[2]]) { emo = -99; } } }); });
+        r.emo = emo === 13;
+      } finally { rig.undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '9장 12단계 · 섬 북쪽 27m·+40m · 틈 ' + (function () { var S = DG.skyIsle, p = DG.story.peakSpot(), c = S.spot(); return (Math.hypot(c.x - p.x, c.y - p.y) - S.ISLE_R - S.DRAFT_R).toFixed(1); })() + 'm · 나그네·해솔 자리 · 층 여섯 · 표정 13' : ('실패 ' + bad.join(','));
+    });
+
+    t('구름섬 ⑲-20 — 바람 기둥·섬 몸: 9장 전엔 기둥 없음 · 땅에 선 채로는 안 뜸 · 기둥에서 뛰면 저절로 활공·섬보다 위로 솟다가 기둥 끝에서 멎음·기력 안 씀 · 접으면 기둥을 나갈 때까지 안 폄 · 섬 위로 날아 내리면 섬 층(sky 단계 넘어감) · 걸어서는 난간을 못 넘음 · 뛰어넘으면 날개를 폄 · 불러오면 섬 위로', function () {
+      var rig = stRig(25), ST = rig.ST, SK = DG.skyIsle, LF = DG.landform, W = DG.world, mode0 = W.mode, r = {}, g;
+      try {
+        W.mode = 'keyboard'; LF._resetForTest(); SK._resetForTest();
+        var pk = SK.peak(), c = SK.spot(), P = C.save.player.pos;
+        C.save.story = { ch: 7, step: 0 };
+        stGo(pk); LF.jump(); LF.tick(0.05);
+        r.closed = !SK.open() && !LF.gliding();
+        LF._resetForTest();
+        C.save.story = { ch: 8, step: 3 };
+        stGo(pk); for (g = 0; g < 10; g++) { LF.tick(0.05); }
+        r.ground = SK.open() && SK.inDraft(P.x, P.y) && !LF.gliding() && LF.airH() === 0;
+        var sta0 = LF.stamina();
+        LF.jump(); LF.tick(0.05);
+        r.auto = LF.gliding();
+        for (g = 0; g < 200; g++) { LF.tick(0.05); }
+        r.rise = LF.gliding() && Math.abs(LF.glideAlt() - SK.draftTop()) < 1e-6 && LF.glideAlt() > SK.top() && LF.stamina() >= sta0 - 1e-6;
+        LF.jump(); LF.tick(0.05);
+        var fold = LF.glideAlt();
+        for (g = 0; g < 400 && LF.gliding(); g++) { LF.tick(0.05); }
+        r.fold = !LF.gliding() && fold < SK.draftTop();
+        LF.jump(); LF.tick(0.05);
+        r.ban = !LF.gliding();
+        stGo({ x: pk.x + 10, y: pk.y }); LF.tick(0.6);
+        stGo(pk); LF.jump(); LF.tick(0.05);
+        r.again = LF.gliding();
+        for (g = 0; g < 200; g++) { LF.tick(0.05); }
+        stGo({ x: c.x, y: c.y + 5 });
+        for (g = 0; g < 400 && LF.gliding(); g++) { LF.tick(0.05); }
+        r.land = !LF.gliding() && LF.onSky() && Math.abs(LF.groundH(P.x, P.y) - SK.top()) < 1e-9;
+        ST.check();
+        r.step = C.save.story.step === 4;
+        stGo({ x: c.x + SK.ISLE_R - 0.5, y: c.y }); LF.tick(0.6);
+        r.rail = LF.moveMul(P.x, P.y, 1, 0, 0.05) === 0 && LF.moveMul(P.x, P.y, -1, 0, 0.05) > 0;
+        LF.jump();
+        r.hop = LF.moveMul(P.x, P.y, 1, 0, 0.05) > 0;
+        stGo({ x: c.x + SK.ISLE_R + 1, y: c.y }); LF.tick(0.05);
+        r.over = !LF.onSky() && LF.gliding() && LF.glideAlt() > SK.top();
+        LF._resetForTest(); SK._resetForTest();
+        C.save.story = { ch: 8, step: 5 }; stGo(c); SK.tick(0.05);
+        r.boot = LF.onSky();
+        LF._resetForTest(); SK._resetForTest();
+        C.save.story = { ch: 9, step: 0 }; stGo(c); SK.tick(0.05);
+        r.noBoot = !LF.onSky() && SK.open() && SK.cleared();
+      } finally { W.mode = mode0; LF._resetForTest(); SK._resetForTest(); rig.undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '닫힘 · 땅에선 안 뜸 · 저절로 활공 · 기둥 끝 멎음(기력 그대로) · 접기 → 안 폄 · 나갔다 오면 폄 · 섬에 내림 → 다음 단계 · 난간 · 뛰어넘기 → 활공 · 불러오기' : ('실패 ' + bad.join(','));
+    });
+
+    t('구름섬 ⑲-20 — 층·먹구름 가면·먹구름 임금: 섬 무리는 땅에서 못 봄(섬에 서면 봄)·난간을 못 넘음 · 해솔 뇌·금 간 가면·해솔 몸 · 절반에서 뇌 방패 + 회오리매·번개날쌘용(섬 층) · 쓰러뜨리면 다음 단계 · 임금 1.9배·왕관 가면 · 고리 6m 맞고 1.5m·11m 안 맞음', function () {
+      var rig = stRig(25), ST = rig.ST, SK = DG.skyIsle, LF = DG.landform, FC = DG.fieldCombat, W = DG.world, mode0 = W.mode, r = {}, g;
+      try {
+        W.mode = 'keyboard'; LF._resetForTest(); SK._resetForTest();
+        var c = SK.spot();
+        C.save.story = { ch: 8, step: 5 };
+        stGo({ x: c.x + 20, y: c.y }); FC.tick(0.05); ST.check();
+        var S = FC.state(), cp = S.camps[ST.keyOf()], b = cp && S.foes[cp.uids[0]];
+        var lv = b && FC.live().filter(function (x) { return x.uid === b.uid; })[0];
+        r.spawn = !!b && b.kind === 'haesol_mask' && b.el === 'elec' && b.sky && !!lv && lv.sky && lv.mask === 'crack' && lv.ref.id === 'story_haesol';
+        stGo({ x: b.x + 2, y: b.y });
+        for (g = 0; g < 10; g++) { FC.tick(0.05); }
+        r.apart = SK.apart(b) && FC.living(S).indexOf(b) < 0 && b.st !== 'chase' && b.st !== 'wind';
+        LF.setSky(true);
+        FC.tick(0.05);
+        r.see = !SK.apart(b) && FC.living(S).indexOf(b) >= 0;
+        b.x = c.x + 30; b.y = c.y; FC.tick(0.05);
+        r.rail = Math.hypot(b.x - c.x, b.y - c.y) <= SK.ISLE_R - 0.8 + 1e-6;
+        b.hp = Math.round(b.hpMax * 0.4); ST.check();
+        var ad = S.camps[ST.keyOf() + ':add'];
+        r.p2 = b.shEl === 'elec' && !!ad && ad.sky && ad.uids.map(function (u) { return S.foes[u].kind; }).join(',') === 'hawk,raptor' &&
+          ad.uids.every(function (u) { return S.foes[u].sky; }) && /먹구름 가면 해솔 \d+% · ⚡방패/.test(ST.trackText());
+        b.shield = 0; b.layers = [];
+        for (var k = 0; k < 3 && !b.dead; k++) { FC.hitFoe(S, b, S.party[0], 1e8, null, 'test'); }
+        FC.tick(0.05);
+        r.win = C.save.story.step === 6 && !S.camps[ST.keyOf() + ':add'];
+        C.save.story = { ch: 8, step: 7 };
+        stGo({ x: c.x + 5, y: c.y }); ST.check();
+        var kc = S.camps[ST.keyOf()], kb = kc && S.foes[kc.uids[0]], kl = kb && FC.live().filter(function (x) { return x.uid === kb.uid; })[0];
+        r.king = !!kb && kb.kind === 'storm_king' && kb.sky && !!kl && kl.h === 1.9 && kl.mask === 'storm' && !!DG.talkface.MASKS.storm[4];
+        kb.x = c.x; kb.y = c.y - 3;
+        stGo({ x: kb.x + 6, y: kb.y }); kb.st = 'chase'; kb.cd = 0; kb.rotI = 1;
+        FC.tick(0.02);
+        var M = kb.mark;
+        r.halo = kb.st === 'wind' && kb.atkT === 'halo' && !!M && M.inner === 3 && M.r === 9 &&
+          FC.markHit(M, kb.x + 6, kb.y) && !FC.markHit(M, kb.x + 1.5, kb.y) && !FC.markHit(M, kb.x + 11, kb.y);
+      } finally { W.mode = mode0; LF._resetForTest(); SK._resetForTest(); rig.undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '해솔 뇌·금 간 가면 · 땅에선 못 봄 → 섬에서 봄 · 난간 · 40% → ⚡방패 + 회오리매·번개날쌘용(섬) · 다음 단계 · 임금 1.9배·왕관 · 고리 3~9m' : ('실패 ' + bad.join(','));
+    });
+
+    t('이야기 동료 ⑲-20 — 해솔: 뇌 대도 ★5 · 먹구름 벼락(탄 셋)·가면 없는 노래(뇌 부여 10초) · 마을로 내려오면 다음 단계 · 촌장과 끝 대사 뒤 합류·이야기 끝 · 먹구름 덮개는 9장 끝에 걷히고 기둥은 남음', function () {
+      var rig = stRig(25), ST = rig.ST, SK = DG.skyIsle, FC = DG.fieldCombat, WP = DG.weapon, r = {};
+      try {
+        r.find = D.find('story_haesol') === ST.MEMBERS.story_haesol && FC.elementOf('story_haesol') === 'elec' && WP.typeOf('story_haesol') === 'claymore' &&
+          ST.MEMBERS.story_haesol.rarity === 5 && D.heroes.every(function (h) { return h.id !== 'story_haesol'; });
+        var k = FC.kitFor('story_haesol');
+        r.kit = !!k && k.skill.type === 'shells' && k.skill.n === 3 && k.skill.name === '먹구름 벼락' && k.burst.type === 'infuse' && k.burst.sec === 10;
+        C.save.story = { ch: 8, step: 10 };
+        stGo({ x: 900, y: 900 }); ST.check();
+        var far = C.save.story.step === 10, t0 = ST.targetOf(ST.step());
+        stGo(t0); ST.check();
+        r.go = far && C.save.story.step === 11;
+        r.cover0 = !SK.cleared() && SK.open();
+        if (C.save.dex && C.save.dex.heroes) { delete C.save.dex.heroes.story_haesol; }
+        stGo(ST.npcPos('elder'));
+        r.join = stTalkAll(ST) && C.save.story.ch === 9 && ST.hasMember('story_haesol') && ST.done();
+        r.after = SK.cleared() && SK.open();
+      } finally { rig.undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '뇌 대도 ★5 · 벼락 셋·노래 10초 · 마을 → 다음 · 합류·끝 · 덮개 걷힘·기둥 남음' : ('실패 ' + bad.join(','));
     });
 
     /* ── ⑳ 원작 겹침 정리 (PLAN §5 ⑳) ── */

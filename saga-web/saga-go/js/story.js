@@ -1,5 +1,5 @@
 /**
- * 이야기 임무 1~8장 — 대화 창·금빛 기둥·목록(O)·단계 열다섯 가지 (PLAN §5 ⑲-12~19, saga-godot PLAN 106 ㉕㉗㉘㉙㉚㉜㉞㊲)
+ * 이야기 임무 1~9장 — 대화 창·금빛 기둥·목록(O)·단계 열여섯 가지 (PLAN §5 ⑲-12~20, saga-godot PLAN 106 ㉕㉗㉘㉙㉚㉜㉞㊲㊳)
  * ---------------------------------------------------------------
  *   인물 넷    청하 촌장 누리(고향 마을) · 늙은 사공 버들(갈대 나루 탑) · 떠돌이 학자 은비(옛 성터 언덕 탑) —
  *              ⑮ 땅의 "고향에서 가장 가까운 탑" 곁에 늘 서 있다. 지금 단계가 아니면 혼잣말 한 줄.
@@ -11,8 +11,10 @@
  *              seal(제단 둘레 석등 해·달·별을 비문 차례대로 — 틀리면 다 꺼진다) · climb(⑰ 봉우리 꼭대기) ·
  *              duel(이야기 보스 검은 가면 — 들판 적 `b_mask`·`b_mask2`, 절반에서 원소 방패 + 졸개 둘) ·
  *              defend(제단 지키기 — 물결 셋이 제단으로 곧장, 제단이 무너지거나 전멸하면 4초 쉬고 처음부터) ·
- *              chase(노 도둑 쫓기 — 걸어선 못 잡는다) · sail(사공과 한 줄 → 배로 그 자리에, 키보드 판만 옮긴다)
- *   자리       ⑮ 땅 탑 + off 또는 이름 붙은 자리(SPOTS — 옛길·둘째 제단·봉우리·곶·바위섬·나루). 인물은 at·appear 칸으로 장마다 옮겨 선다
+ *              chase(노 도둑 쫓기 — 걸어선 못 잡는다) · sail(사공과 한 줄 → 배로 그 자리에, 키보드 판만 옮긴다) ·
+ *              sky(바람 기둥을 타고 구름섬 윗면에 서기 — skyisle.js · landform.onSky. GPS 판은 기둥 곁에 닿으면)
+ *   자리       ⑮ 땅 탑 + off 또는 이름 붙은 자리(SPOTS — 옛길·둘째 제단·봉우리·곶·바위섬·나루·구름섬). 인물은 at·appear 칸으로 장마다 옮겨 선다.
+ *              단계·인물 칸에 sky 면 구름섬 층(임무 적 f.sky · 인물은 섬 윗면에 선다 — ⑲-20). 인물 칸의 mask·name·idle 은 그 칸 동안만 덮는다
  *   장         여정 등급(플레이어 Lv) ar 에 열린다. 단계마다 부대 경험 10, 장 끝에 보상
  *   대화       글이 초당 30자로 흘러나온다 — F·Space·누르기 한 번이면 줄 전체, 한 번 더면 다음 줄. 고른 대답은 "나" 의 줄로
  *              한 번 나온다. 줄 셋째 칸은 표정(joy·angry·sorrow·surprised·fun). 카메라·입·손짓은 `talkShot()` 을 world3d 가
@@ -47,7 +49,7 @@
   var DUEL_P2_AT = 0.5, DUEL_P2_SHIELD = 0.12, DUEL_ADDS = ['imp', 'imp'];
   /* ⑲-14 이름 붙은 자리 — 옛길·둘째 제단은 솔숲 고개 탑 곁, 봉우리는 ⑰ 정상(peakSpot) */
   var SPOTS = { road: { zone: 'solryeong', off: [-26, -46] }, altar2: { zone: 'solryeong', off: [40, -70] }, peak: { peak: true }, cape: { cape: true },
-    isle: { isle: true }, dock: { zone: 'galdae', off: [-12, -17] } };
+    isle: { isle: true }, dock: { zone: 'galdae', off: [-12, -17] }, sky: { sky: true } };
   /* ⑲-16 제단 지키기 — 물결은 제단 둘레 DEFEND_RING m 열두 자리에서 나온다(물결 n 은 4n 째 자리부터).
      제단 체력 = DEFEND_HITS × 그 자리 등급 공격(멧돼지 기준, 천하 등급 포함) */
   var DEFEND_RING = 15, DEFEND_WAVE_SEC = 28, DEFEND_REST = 4, DEFEND_HITS = 45, DEFEND_SLOTS = 12;
@@ -77,10 +79,13 @@
       at: [{ ch: 4, from: 0, to: 3, spot: 'road' }, { ch: 4, from: 4, to: 7, spot: 'altar2', off: [-5, 7] }, { ch: 5, from: 6, to: 6, spot: 'peak', off: [-5, 6] }] },
     wanderer: { id: 'story_wanderer', name: '가면 쓴 나그네', short: '나그네', zone: 'home',  off: [8, 70],    color: '#38384a', idle: '……',
       mask: true, appear: [{ ch: 3, from: 1, to: 5 }, { ch: 4, from: 6, to: 6, spot: 'altar2', off: [7, 5] }, { ch: 5, from: 2, to: 4, spot: 'peak', off: [5, 5] },
-        { ch: 6, from: 3, to: 6, spot: 'cape', off: [6, 6] }, { ch: 7, from: 6, to: 9, spot: 'isle', off: [7, 8] }] },
-    /* ⑲-19 해솔(검은 가면의 참이름, 금 간 가면) · 노 도둑(쫓기 단계에만 — 자리는 달리는 곳) */
+        { ch: 6, from: 3, to: 6, spot: 'cape', off: [6, 6] }, { ch: 7, from: 6, to: 9, spot: 'isle', off: [7, 8] },
+        { ch: 8, from: 2, to: 2, spot: 'peak', off: [5, 5] }, { ch: 8, from: 3, to: 9, spot: 'sky', off: [5, 6], sky: true }] },
+    /* ⑲-19 해솔(검은 가면의 참이름, 금 간 가면) · 노 도둑(쫓기 단계에만 — 자리는 달리는 곳).
+       ⑲-20 9장엔 가면을 벗은 해솔이 구름섬에 선다(칸이 mask·name·idle 을 덮는다) */
     haesol:   { id: 'story_haesol',   name: '검은 가면 해솔', short: '해솔', zone: 'galdae', off: [0, 0], color: '#26222e', idle: '……',
-      mask: 'crack', appear: [{ ch: 7, from: 8, to: 8, spot: 'isle', off: [0, -9] }] },
+      mask: 'crack', appear: [{ ch: 7, from: 8, to: 8, spot: 'isle', off: [0, -9] },
+        { ch: 8, from: 6, to: 9, spot: 'sky', off: [-5, 5], sky: true, mask: false, name: '해솔', idle: '……고맙다. 노래를 다시 부를 수 있을 것 같아.' }] },
     thief:    { id: 'story_thief',    name: '노 도둑', short: '도둑', zone: 'galdae', off: [-10, -50], color: '#5a4a3a', idle: '헤헤, 못 잡지롱!',
       appear: [{ ch: 7, from: 2, to: 2 }] }
   };
@@ -97,7 +102,10 @@
     story_elder: { id: 'story_elder', name: '누리', hanja: '訥里', era: '이야기', faction: '재야', rarity: 4, trait: 'virtue', story: true,
       el: 'wind', weapon: 'catalyst', stats: { might: 48, wisdom: 80, command: 86 }, emoji: '🪭', quote: '먹구름이 걷히면 마을 잔치를 열어야지.' },
     story_ferryman: { id: 'story_ferryman', name: '버들', hanja: '柳', era: '이야기', faction: '재야', rarity: 4, trait: 'might', story: true,
-      el: 'water', weapon: 'polearm', stats: { might: 82, wisdom: 60, command: 66 }, emoji: '🛶', quote: '물 냄새가 요즘 영 비릿해.' }
+      el: 'water', weapon: 'polearm', stats: { might: 82, wisdom: 60, command: 66 }, emoji: '🛶', quote: '물 냄새가 요즘 영 비릿해.' },
+    /* ⑲-20 해솔(9장 끝) — 뇌 대도 */
+    story_haesol: { id: 'story_haesol', name: '해솔', hanja: '日松', era: '이야기', faction: '재야', rarity: 5, trait: 'might', story: true,
+      el: 'elec', weapon: 'claymore', stats: { might: 91, wisdom: 70, command: 68 }, emoji: '⛈️', quote: '……고맙다. 노래를 다시 부를 수 있을 것 같아.' }
   };
   function hookFind() {
     var D = global.DG.data;
@@ -356,6 +364,51 @@
           lines: [['누리', '해솔이라… 그 이름을 다시 듣게 될 줄이야. 어릴 적 나그네와 늘 붙어 다니던 아이였지.', 'surprised'],
             ['누리', '먹구름 위 여섯째 자리라니, 은비에게 물어보자꾸나. 오늘은 푹 쉬렴.'],
             ['누리', '바위섬까지 다녀온 수고비다. 마을 사람들이 조금씩 모았단다.', 'joy']] }
+      ] },
+    /* ⑲-20 이야기 1부 끝 — 봉우리 바람 기둥 → 구름섬(skyisle.js) → 해솔 → 먹구름 임금 → 활공으로 마을에 */
+    { id: 'ch9', name: '제9장 · 먹구름 위 여섯째 자리', ar: 25, join: 'story_haesol',
+      reward: { knot: 5, gold: 2750, guide: 3, secret: 4, party: 900 },
+      steps: [
+        { type: 'talk', npc: 'scholar', text: '떠돌이 학자에게 여섯째 자리 묻기',
+          lines: [['은비', '다섯 조각을 다 맞췄어! 끝 구절은 이래 — \'다섯 불이 모이는 곳, 봉우리 위 하늘에 여섯째 자리\'.', 'joy'],
+            ['은비', '그리고 어젯밤, 북쪽 봉우리 꼭대기에서 하늘로 바람 기둥이 솟는 걸 봤어. 다섯 제단 불빛이 거기로 모이더라.'],
+            ['?', ['봉우리로 갈게요.', '하늘로 가는 길이라고요?']],
+            ['은비', '바람을 타면 구름 위까지 오를 수 있을 거야. 나그네가 먼저 봉우리로 갔어 — 서둘러!']] },
+        { type: 'climb', spot: 'peak', text: '북쪽 봉우리 꼭대기로 오르기' },
+        { type: 'talk', npc: 'wanderer', text: '바람 기둥 곁의 나그네와 이야기하기',
+          lines: [['나그네', '왔군. 보이나 — 저 바람 기둥. 다섯 제단의 불이 하늘에 길을 냈다.', 'surprised'],
+            ['나그네', '기둥 안에서 뛰어오르게. 바람이 날개를 펴 주고, 구름섬 위까지 밀어 올려 줄 거다.'],
+            ['?', ['같이 가요.', '해솔은 거기 있을까요?']],
+            ['나그네', '…있을 거다. 이번엔 가면이 아니라 해솔을 데려온다. 먼저 올라가 있겠네.']] },
+        { type: 'sky', text: '바람 기둥을 타고 구름섬에 오르기(기둥 안에서 점프)' },
+        { type: 'kill', spot: 'sky', off: [0, 2], sky: true, kinds: ['hawk', 'raptor', 'raptor', 'imp'], text: '구름섬을 지키는 먹구름 무리 물리치기' },
+        { type: 'duel', spot: 'sky', off: [0, -3], sky: true, kind: 'haesol_mask', shield: 'elec', adds: ['hawk', 'raptor'], text: '먹구름 가면을 쓴 해솔과 맞서기',
+          enter: '🎭 먹구름을 두른 해솔이 여섯째 자리에서 내려섰다',
+          p2: '⛈️ 해솔이 먹구름 방패를 둘렀다 — 불로 깨라! 회오리매와 번개날쌘용이 뛰어든다',
+          win: '🎭 해솔의 가면이 마침내 두 쪽으로 갈라져 떨어졌다 — 해솔이 무릎을 꿇는다' },
+        { type: 'talk', npc: 'haesol', text: '가면을 벗은 해솔과 이야기하기',
+          lines: [['해솔', '……여기가, 어디지. 오래 꿈을 꾼 것 같아. 먹구름 속에서 누가 계속 노래를 부르라고…', 'sorrow'],
+            ['해솔', '아니 — 늦었다! 내가 자물쇠를 두드려 낸 틈으로 임금의 꿈이 새어 나왔어. 그 꿈이 이 섬에서 몸을 얻는다!', 'surprised'],
+            ['?', ['같이 막아요!', '해솔, 괜찮아요?']],
+            ['해솔', '몸이 아직 말을 안 들어. 네가 먹구름 임금을 막아 줘. 난 곁에서 노래로 바람을 붙들고 있을게.', 'angry']] },
+        { type: 'duel', spot: 'sky', off: [0, -3], sky: true, kind: 'storm_king', shield: 'elec', adds: ['imp', 'raptor'], text: '먹구름 임금 물리치기',
+          enter: '👑 먹구름이 뭉쳐 왕관 쓴 거인이 되었다 — 먹구름 임금!',
+          p2: '⛈️ 먹구름 임금이 번개 방패를 둘렀다 — 불로 깨라! 졸개 둘이 뛰어든다',
+          win: '👑 먹구름 임금 — 꿈이 흩어지며 하늘의 먹구름이 걷혀 간다' },
+        { type: 'talk', npc: 'wanderer', text: '나그네와 해솔 곁으로 가기',
+          lines: [['나그네', '……해솔.', 'sorrow'],
+            ['해솔', '여전하구나, 그 흰 가면. 날 찾겠다는 맹세였다고? 바보 같긴.', 'fun'],
+            ['나그네', '이제 벗어도 되겠지.', 'joy'],
+            ['?', ['다행이에요.', '두 분 다 돌아와서 기뻐요.']],
+            ['해솔', '마을로 내려가자. 누리 할머니한테 혼나야겠지만 — 날개를 펴고 곧장.']] },
+        { type: 'talk', npc: 'haesol', text: '해솔과 함께 내려갈 채비하기',
+          lines: [['해솔', '난간을 뛰어넘으면 바람이 날개를 펴 줘. 마을 쪽으로 한달음이야. 먼저 가 있어, 곧 따라갈게.', 'joy']] },
+        { type: 'go', zone: 'home', off: [-10, 10], text: '구름섬에서 뛰어내려 청하 마을로' },
+        { type: 'talk', npc: 'elder', text: '청하 촌장에게 알리기',
+          lines: [['누리', '하늘이 이렇게 파란 건 몇 해 만인지…! 먹구름이 걷혔어.', 'joy'],
+            ['누리', '해솔이 돌아왔다고? 그 녀석, 할머니 볼 낯도 없나 봐. 이따 잔칫상 앞에 끌고 오너라.', 'fun'],
+            ['누리', '늘 노래를 흥얼거리던 착한 아이였지. 이제부턴 네 곁에 서겠다더구나.', 'sorrow'],
+            ['누리', '약속대로 잔치를 열자꾸나. 이건 온 마을이 너를 위해 모은 거다. 고맙다, 정말로.', 'joy']] }
       ] }
   ];
 
@@ -462,7 +515,8 @@
   }
   /** 이름 붙은 자리 + off */
   function spotPos(name, off) {
-    var sp = SPOTS[name], b = !sp ? null : (sp.peak ? peakSpot() : (sp.cape ? capeSpot() : (sp.isle ? isleSpot() : at(sp.zone, sp.off))));
+    var SKI = global.DG.skyIsle;
+    var sp = SPOTS[name], b = !sp ? null : (sp.peak ? peakSpot() : (sp.cape ? capeSpot() : (sp.isle ? isleSpot() : (sp.sky ? (SKI ? SKI.spot() : null) : at(sp.zone, sp.off)))));
     return b ? { x: b.x + (off ? off[0] : 0), y: b.y + (off ? off[1] : 0) } : null;
   }
   /** 단계의 자리 — 이름 붙은 자리(spot) 또는 ⑮ 땅 탑 + off */
@@ -472,6 +526,22 @@
     var n = NPCS[k], L = n ? (n.appear || n.at || []) : [];
     for (var i = 0; i < L.length; i++) { if (L[i].ch === ch && si >= L[i].from && si <= L[i].to) { return L[i]; } }
     return null;
+  }
+  /** 인물 k 의 지금(또는 그 장 그 단계) 이름·혼잣말·가면·층 — 칸이 덮으면 그것(⑲-20 가면 벗은 해솔) */
+  function npcInfo(k, ch, si) {
+    var n = NPCS[k];
+    if (typeof ch !== 'number') { ch = sv().ch; si = sv().step; }
+    var pl = n ? placeOf(k, ch, si) : null;
+    return n ? { name: (pl && pl.name) || n.name, idle: (pl && pl.idle) || n.idle, mask: pl && pl.mask !== undefined ? pl.mask : (n.mask || false),
+      sky: !!(pl && pl.sky) } : null;
+  }
+  /** 단계가 구름섬 층인가 — 단계 칸 sky 또는 대화 상대가 섬 위(⑲-20) */
+  function skyOf(st) {
+    if (!st) { return false; }
+    if (st.sky) { return true; }
+    if (!isTalk(st)) { return false; }
+    var sa = stepAt(st), inf = npcInfo(st.npc, sa.c, sa.i);
+    return !!(inf && inf.sky);
   }
   /** 인물 k 가 지금 서 있나 — appear 가 없으면 늘 */
   function visible(k) {
@@ -532,7 +602,11 @@
     if (!st) { return null; }
     if (isTalk(st) || st.type === 'follow' || st.type === 'chase') {
       var sa = stepAt(st), p = npcPos(st.npc, sa.c, sa.i);
-      return p ? { x: p.x, y: p.y, r: isTalk(st) ? TALK_R() : 0, label: isTalk(st) ? NPCS[st.npc].name : st.text } : null;
+      return p ? { x: p.x, y: p.y, r: isTalk(st) ? TALK_R() : 0, label: isTalk(st) ? npcInfo(st.npc, sa.c, sa.i).name : st.text } : null;
+    }
+    if (st.type === 'sky') {                                 // ⑲-20 바람 기둥 = 봉우리 정상
+      var SKt = global.DG.skyIsle, pk = SKt ? SKt.peak() : null;
+      return pk ? { x: pk.x, y: pk.y, r: SKt.DRAFT_R, label: st.text } : null;
     }
     if (st.type === 'go' || st.type === 'climb') {
       var g = st.altar ? altarPos() : posOf(st);
@@ -724,7 +798,7 @@
       duel.p2 = true;
       b.layers = [shEl]; b.layer = 0; b.shEl = shEl;
       b.shieldMax = b.shield = Math.round(b.hpMax * DUEL_P2_SHIELD);
-      F.spawnCamp(S, { key: addKey(), x: b.x, y: b.y, tier: b.tier, kind: 'story',
+      F.spawnCamp(S, { key: addKey(), x: b.x, y: b.y, tier: b.tier, kind: 'story', sky: !!st.sky,
         foes: (st.adds || DUEL_ADDS).map(function (k, i) { return { kind: k, dx: i ? 3 : -3, dy: 2 }; }) });
       S.camps[addKey()].uids.forEach(function (u) { S.foes[u].st = 'chase'; });
       toast(st.p2 || '⛈️ 검은 가면이 먹구름을 둘렀다 — 불로 깨라! 가면 졸개가 뛰어든다');
@@ -918,12 +992,21 @@
     } else if (st && st.type === 'climb') {
       t = targetOf(st);
       if (t && Math.hypot(p.x - t.x, p.y - t.y) <= t.r) { toast('⛰️ 봉우리 꼭대기에 올랐다'); advance(); return; }
+    } else if (st && st.type === 'sky') {
+      /* ⑲-20 키보드 판은 섬 윗면에 내려서야, GPS 판은 기둥 곁(봉우리 둘레)에 닿으면 */
+      var SKc = global.DG.skyIsle, LFc = global.DG.landform;
+      if (SKc && SKc.layerOn()) {
+        if (LFc.onSky()) { toast('☁️ 구름섬에 올라섰다 — 먹구름 무리가 지키고 있다'); advance(); return; }
+      } else {
+        t = targetOf(st);
+        if (t && Math.hypot(p.x - t.x, p.y - t.y) <= CLIMB_R()) { toast('🌬️ 바람 기둥 곁에 닿았다 — 구름섬 이야기는 이 둘레에서 이어진다'); advance(); return; }
+      }
     } else if (st && (st.type === 'kill' || st.type === 'duel')) {
       t = targetOf(st);
       var F = FC(), S = F && F.state ? F.state() : null, key = keyOf();
       if (t && S && !S.camps[key] && Math.hypot(p.x - t.x, p.y - t.y) < KILL_NEAR) {
         var ks = st.type === 'duel' ? [st.kind] : st.kinds;
-        F.spawnCamp(S, { key: key, x: t.x, y: t.y, tier: F.tierAt(t.x, t.y), kind: 'story',
+        F.spawnCamp(S, { key: key, x: t.x, y: t.y, tier: F.tierAt(t.x, t.y), kind: 'story', sky: !!st.sky,
           foes: ks.map(function (k, i) { var a = i * 1.571, rr = ks.length === 1 ? 0 : 3; return { kind: k, dx: Math.cos(a) * rr, dy: Math.sin(a) * rr }; }) });
         toast(st.type === 'duel' ? (st.enter || '🎭 검은 가면이 봉우리에 내려섰다') : '⚔️ 먹구름 졸개가 나타났다');
       }
@@ -936,7 +1019,8 @@
       if (!np || (st && (isTalk(st) || st.type === 'follow' || st.type === 'chase') && st.npc === k)) { continue; }
       if (Math.hypot(p.x - np.x, p.y - np.y) <= IDLE_R && (!lastIdle[k] || now - lastIdle[k] > IDLE_GAP)) {
         lastIdle[k] = now;
-        toast('💬 ' + NPCS[k].name + ' — ' + NPCS[k].idle);
+        var inf = npcInfo(k);
+        toast('💬 ' + inf.name + ' — ' + inf.idle);
       }
     }
   }
@@ -1135,7 +1219,7 @@
     if (!w || !t || Math.hypot(t.x - p.x, t.y - p.y) > 900) { dropFx('pillar'); dropFx('altar'); dropFx('seal'); return; }
     var T3 = w.three();
     if (!T3) { return; }
-    var gy = w.groundY ? w.groundY(t.x, t.y) : 0;
+    var gy = w.standY ? w.standY(t.x, t.y, skyOf(st)) : (w.groundY ? w.groundY(t.x, t.y) : 0);   // ⑲-20 섬 위 목표는 섬 윗면에
     if (!fx.pillar) {
       var g = new T3.Group();
       var mat = new T3.MeshBasicMaterial({ color: 0xffd24a, transparent: true, opacity: 0.35, depthWrite: false, blending: T3.AdditiveBlending, fog: false });
@@ -1192,8 +1276,8 @@
       if (!q) { continue; }
       var d = Math.hypot(q.x - p0.x, q.y - p0.y);
       if (d > 110) { continue; }
-      var a = anchorOf(n.zone), face = talk && talk.st.npc === k;
-      out.push({ p: { id: n.id, name: n.name, color: n.color, rarity: 3, trait: 'virtue', story: k, mask: n.mask || false },
+      var a = anchorOf(n.zone), face = talk && talk.st.npc === k, inf = npcInfo(k);
+      out.push({ p: { id: n.id, name: inf.name, color: n.color, rarity: 3, trait: 'virtue', story: k, mask: inf.mask }, sky: inf.sky,
         x: q.x, y: q.y, walking: !!((k === 'wanderer' && fs && fs.walking) || (k === 'thief' && chase && chase.run && !(chase.pause > 0))), phase: (tms || 0) / 480,
         ang: face ? Math.atan2(pp.y - q.y, pp.x - q.x) : Math.atan2(a.y - q.y, a.x - q.x), dist: d });
     }
@@ -1264,7 +1348,7 @@
     waveKey: waveKey, pillarHex: pillarHex,
     THIEF_PATH: THIEF_PATH, CHASE_SPEED: CHASE_SPEED, CHASE_PAUSE: CHASE_PAUSE, CHASE_START: CHASE_START, CHASE_CATCH: CHASE_CATCH, ISLE_R: ISLE_R,
     isleSpot: isleSpot, wetNeighbors: wetNeighbors, stepChase: stepChase, thiefAt: thiefAt, chaseState: function () { return chase && chase.key === keyOf() ? chase : null; }, isTalk: isTalk,
-    sealLamps: sealLamps, sealHit: sealHit, sealLit: sealLit, duelBoss: duelBoss, stepDuel: stepDuel,
+    sealLamps: sealLamps, sealHit: sealHit, sealLit: sealLit, duelBoss: duelBoss, stepDuel: stepDuel, npcInfo: npcInfo, skyOf: skyOf,
     FOLLOW_NEAR: FOLLOW_NEAR, FOLLOW_LOST: FOLLOW_LOST,
     on: on, anchorOf: anchorOf, npcPos: npcPos, visible: visible, targetOf: targetOf, trackText: trackText, listHtml: listHtml,
     state: sv, chapter: chapter, step: step, locked: locked, done: done, keyOf: keyOf, gathered: gathered,

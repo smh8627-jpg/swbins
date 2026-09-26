@@ -771,6 +771,17 @@
     var R = RELIEF();
     return R ? R.heightAt(x, z) : 0;
   }
+  /**
+   * §5 ⑲-20 구름섬 — 섬 층(sky)에 선 몸은 섬 윗면에 선다. 섬 밑 땅은 그대로라 층을 모르면 안 올린다.
+   * standY 의 sky 를 안 주면 **내 층**(landform.onSky) — 예고 원·광역 고리처럼 내 곁에 그리는 것
+   */
+  function meSky() { var LF = global.DG.landform; return !!(LF && LF.onSky && LF.onSky()); }
+  function skyLift(x, z, sky) {
+    var SK = global.DG.skyIsle;
+    if (!sky || !SK || !SK.layerOn || !SK.layerOn() || !SK.inside(x, z)) { return 0; }
+    return Math.max(0, SK.top() - groundY(x, z));
+  }
+  function standY(x, z, sky) { return groundY(x, z) + skyLift(x, z, sky === undefined ? meSky() : sky); }
 
   /**
    * 타일 한 장의 정점을 실제 높이로 민다.
@@ -2119,7 +2130,7 @@
   function placeActor(a, x, y, h, bob, walk, phase, now) {
     /* **땅에 앉힌다.** 땅이 굽었으므로 y=0 에 세우면 산에서는 발이 묻히고
        골짜기에서는 허공에 뜬다(PLAN 14절) */
-    var gy0 = groundY(x, y);
+    var gy0 = groundY(x, y) + skyLift(x, y, a.sky);        // ⑲-20 섬 층이면 섬 윗면
     if (a.mesh) {
       a.node.scale.set(h, h, h);
       a.node.position.set(x, gy0, y);
@@ -2192,7 +2203,7 @@
       if (allyRef) {
         dropActorIfNot('ally', allyRef.id);
         var aa = actorOf('ally', 'hero', allyRef, 96);
-        aa.who = allyRef.id;
+        aa.who = allyRef.id; aa.sky = meSky();
         var atx = duelFoe ? pos.x + sideX * 1.5 : pos.x + backX * 2.2 + sideX * 0.9;
         var aty = duelFoe ? pos.y + sideY * 1.5 : pos.y + backY * 2.2 + sideY * 0.9;
         var af = followPos(aa, atx, aty, duelFoe ? 0.12 : 0.06);
@@ -2210,6 +2221,7 @@
       var petRef = global.DG.data.find(petId);
       if (petRef) {
         var pa = actorOf('petbuddy', 'pet', petRef, 96);
+        pa.sky = meSky();
         var ptx = duelFoe ? pos.x - sideX * 1.5 : pos.x + backX * 1.4 - sideX * 0.8;
         var pty = duelFoe ? pos.y - sideY * 1.5 : pos.y + backY * 1.4 - sideY * 0.8;
         var pf = followPos(pa, ptx, pty, duelFoe ? 0.12 : 0.08);
@@ -2291,7 +2303,7 @@
     if (!gm.visible) { return; }
     var s = Math.max(1, h / 1.7);
     gm.scale.set(s, s, s);
-    gm.position.set(x, groundY(x, y) + air + h * 1.12, y);
+    gm.position.set(x, standY(x, y) + air + h * 1.12, y);
     gm.rotation.y = meA.ang || 0;
   }
 
@@ -2329,7 +2341,7 @@
       mx += sx * sm.inSide; my += sy * sm.inSide;
       var so = actors.swapout;
       if (so && !sm.done) {
-        so.seen = frame;
+        so.seen = frame; so.sky = meSky();
         var ox = swapFx.x + bx * sm.outBack - sx * sm.outBack * 0.35, oy = swapFx.y + by * sm.outBack - sy * sm.outBack * 0.35;
         placeActor(so, ox, oy, h * farBoost(ox, oy), 0, sm.outBack < SWAP_BACK - 1e-3, now / 480, now);
       }
@@ -2339,6 +2351,7 @@
     /* §5 ⑰ 점프 — 뛰어오른 높이만큼 몸을 띄우고 jump 몸짓(없으면 asset3d 가 idle 로 물러난다) */
     var LFa = global.DG.landform, air = LFa ? LFa.airH() : 0;
     if (air > 0) { meA.animName = 'jump'; meA.animUntil = now + 120; }
+    meA.sky = meSky();
     placeActor(meA, mx, my, h * farBoost(mx, my), walkBob + air, walking && !air, mot.phase, now);
     if (air > 0 && meA.mesh) { meA.node.position.y += air; }
     /* ⑰ 여울 다리 — 상판 위면 몸을 상판 높이에 세운다(땅은 물 바닥이라 안 올리면 다리 밑을 걷는다) */
@@ -2458,6 +2471,7 @@
     for (i = 0; i < folks.length; i++) {
       var fk = folks[i];
       var fka = actorOf('fk' + fk.p.id, 'hero', fk.p, 96);
+      fka.sky = !!fk.sky;                                   // ⑲-20 구름섬에 선 이야기 인물
       placeActor(fka, fk.x, fk.y, h * 0.94 * farBoost(fk.x, fk.y), fk.walking ? 0 : Math.sin(now / 700 + i) * h * 0.014, fk.walking, fk.phase, now);
       if (!fk.walking && fka.mesh) {
         var fkd = Math.PI / 2 - fk.ang - fka.ang;          // placeActor 규약(atan2(dx,dz))으로 탑 쪽 — 미끄러지듯 돈다
@@ -2501,6 +2515,7 @@
     for (i = 0; i < fcs.length; i++) {
       var fo = fcs[i];
       var foa = actorOf('fc' + fo.uid, fo.hero ? 'hero' : 'pet', fo.ref, 96);
+      foa.sky = !!fo.sky;                                   // ⑲-20 구름섬 무리
       /* ⑯ 굴복한 인물은 사라지지 않고 무릎 꿇는다(키를 낮춘다) */
       var foh = h * fo.h * (fo.dead ? Math.max(0.05, 1 - fo.deadT) : (fo.yielded ? 0.72 : 1));
       placeActor(foa, fo.x, fo.y, foh, 0, fo.moving && !fo.dead, fo.phase, now);
@@ -2934,8 +2949,8 @@
     var lookLift = groundY(aim.look.x, aim.look.z);
     /* 활공(§5 ⑰ 다음) — 몸이 땅 위 수십 m 를 나는 동안은 카메라·시선도 몸 높이를 따라간다 */
     var LFc = global.DG.landform;
-    if (LFc && LFc.gliding && LFc.gliding()) {
-      var bodyY = groundY(pos.x, pos.y) + LFc.airH();
+    if (LFc && ((LFc.gliding && LFc.gliding()) || meSky())) {     // ⑲-20 섬 위에서도 몸 높이를 따른다
+      var bodyY = standY(pos.x, pos.y) + LFc.airH();
       camLift = Math.max(camLift, bodyY); lookLift = Math.max(lookLift, bodyY);
     }
     var want = new T.Vector3(aim.pos.x, aim.pos.y + camLift, aim.pos.z);
@@ -2948,7 +2963,7 @@
       if (cellK !== occlCell) { occlCell = cellK; occlRects = rectsNear(pos.x, pos.y); }
       occlAcc += dt;
       /* 대화 중에는 내 머리 대신 말하는 이 얼굴(시선)에서 잰다 */
-      var hx = TS ? look.x : pos.x, hz = TS ? look.z : pos.y, hy = TS ? look.y : groundY(pos.x, pos.y) + 1.7;
+      var hx = TS ? look.x : pos.x, hz = TS ? look.z : pos.y, hy = TS ? look.y : standY(pos.x, pos.y) + 1.7;
       if (occlAcc > 0.1 && occlRects.length) {
         occlAcc = 0;
         occlT = camOcclude({ x: hx, y: hy, z: hz }, { x: want.x, y: want.y, z: want.z }, occlRects);
@@ -3201,6 +3216,8 @@
     camOcclude: camOcclude,
     /** 땅 높이(m) — 들판 전투가 예고 원·숫자를 땅에 붙일 때 쓴다 */
     groundY: groundY,
+    /** ⑲-20 층을 아는 발 높이 — sky 를 안 주면 내 층(구름섬 위면 섬 윗면) */
+    standY: standY,
     /** 지금 쓰는 시야각(도) — 진단·데모가 세로 화면 보정을 값으로 본다 */
     fov: function () { return camera ? camera.fov : FOV(); },
     forceTime: forceTime,

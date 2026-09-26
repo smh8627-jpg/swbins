@@ -137,8 +137,10 @@
    * 몸 단위(키 1) 좌표라 크기는 몸 키를 따른다. 머리 뼈가 없으면 안 붙인다.
    */
   var vh = null;
-  /* 가면 빛깔 — 흰 가면(나그네) · 검은 가면(이야기 보스, ⑲-14) · 금 간 검은 가면(⑲-16, 넷째 = 왼쪽 금) = [얼굴, 눈, 줄, 금?] */
-  var MASKS = { white: [0xf2efe6, 0x15151a, 0xc0282c], black: [0x1b1a21, 0x7a1822, 0x8a4fd0], crack: [0x1b1a21, 0x7a1822, 0x8a4fd0, 0xf4f1ea] };
+  /* 가면 빛깔 — 흰 가면(나그네) · 검은 가면(이야기 보스, ⑲-14) · 금 간 검은 가면(⑲-16, 넷째 = 왼쪽 금) ·
+     먹구름 임금(⑲-20, 다섯째 = 왕관 — 금빛 눈) = [얼굴, 눈, 줄, 금?, 왕관?] */
+  var MASKS = { white: [0xf2efe6, 0x15151a, 0xc0282c], black: [0x1b1a21, 0x7a1822, 0x8a4fd0], crack: [0x1b1a21, 0x7a1822, 0x8a4fd0, 0xf4f1ea],
+    storm: [0x100f18, 0xf2d24a, 0x5b46c8, 0, 0xe0b23a] };
   function mask(T, node, kind) {
     if (!T || !node) { return false; }
     var u = node.userData, r = rig(node);
@@ -163,6 +165,17 @@
           var seg = new T.Mesh(new T.PlaneGeometry(0.004, c[3]), crack);
           seg.position.set(c[0], c[1], 0.003); seg.rotation.z = c[2]; g.add(seg);
         });
+      }
+      if (mc[4]) {                                  // ⑲-20 왕관 — 머리에 두른 금 테 + 뿔 다섯(코드 그림, SAGA-DESIGN §7)
+        var gold = new T.MeshLambertMaterial({ color: mc[4] }), cr = new T.Group();
+        var band = new T.Mesh(new T.CylinderGeometry(0.064, 0.06, 0.03, 20, 1, true), gold);
+        band.material.side = T.DoubleSide; cr.add(band);
+        for (var ci = 0; ci < 5; ci++) {
+          var ca = ci * Math.PI * 2 / 5, spike = new T.Mesh(new T.ConeGeometry(0.012, 0.04, 6), gold);
+          spike.position.set(Math.sin(ca) * 0.062, 0.034, Math.cos(ca) * 0.062); cr.add(spike);
+        }
+        cr.position.set(0, 0.07, -0.062);            // 가면(얼굴 앞)에서 머리 꼭대기 가운데로
+        g.add(cr);
       }
       node.add(g); u.tfMask = g;
     }

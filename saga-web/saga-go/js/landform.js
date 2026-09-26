@@ -23,6 +23,8 @@
  *   활공    뛰어오른 채 한 번 더 누르면 천 날개를 편다 — 초당 2.4m 가라앉으며 걸음 ×1.7, 기력 초당 4.
  *           기력이 다하면 초당 9m, 한 번 더 누르면 접고 떨어진다(초당 14m). 땅에 닿으면 끝(⑰ 다음)
  *   순간이동 오른 정상은 전체 지도(M)의 순간이동 지점이 된다 — 정상으로 날아가 활공으로 내려온다
+ *   구름섬  §5 ⑲-20 — 바람 기둥(skyisle.js) 안 공중이면 저절로 활공하며 솟는다(접으면 기둥을 나갈 때까지 안 편다).
+ *           섬 윗면에 내리면 `body.sky` — 섬 위에선 강·비탈을 안 보고, 난간 밖으로는 뛰어넘어야(점프) 나간다(나가면 날개를 편다)
  *   다리·폭포 여울마다 강을 가로지르는 다리 하나(걸으면 상판 위에 선다), 은하강·붉은내 발원지에 폭포.
  *           그림은 손그림 땅(land.js 'B'·'W')의 다리·폭포 모델을 그대로 빌린다(`markAt`)
  *   기력    100 — 가만히·평지면 초당 25 찬다. 들판 전투 기력(⑨)과는 따로다(싸움 중엔 그쪽)
@@ -323,12 +325,17 @@
   var PLUNGE_MIN_H = 2.5, PLUNGE_SINK = 30;
   /** ⑲-6 요리 모험 계열(갯소라 구이) — 스태미나 소모 배율 */
   function SAVE_MUL() { var C = global.DG.cooking; return C && C.staminaMul ? C.staminaMul() : 1; }
-  function freshBody() { return { sta: -1, state: 'walk', busy: false, climbT: 0, jumpT: -1, tired: false, ux: 0, uy: 0, glide: null }; }
+  function freshBody() { return { sta: -1, state: 'walk', busy: false, climbT: 0, jumpT: -1, tired: false, ux: 0, uy: 0, glide: null, sky: false, draftBan: false, railT: 0 }; }
   var body = freshBody();
 
   function sta() { if (body.sta < 0) { body.sta = STA_MAX(); } return body.sta; }
   function keyMode() { var W = global.DG.world; return !!(W && W.mode === 'keyboard'); }
   function reliefH(x, y) { var R = global.DG.relief3d; return R ? R.heightAt(x, y) : 0; }
+  /** §5 ⑲-20 구름섬 — 층이 있을 때만(키보드 판) */
+  function SKY() { var s = global.DG.skyIsle; return s && s.layerOn && s.layerOn() ? s : null; }
+  var RAIL_LOOK = 0.8;        // 난간 — 이만큼 앞이 섬 밖이면 걸어서는 못 나간다
+  /** 내 발밑 높이 — 섬 위에 서 있으면 섬 윗면, 아니면 화면 기복 */
+  function groundH(x, y) { var S = SKY(); return body.sky && S && S.inside(x, y) ? S.top() : reliefH(x, y); }
 
   /**
    * 걸음 배수 — `world.moveByKeys` 가 한 걸음마다 묻는다(ux·uy = 걷는 방향 단위벡터).
@@ -339,8 +346,20 @@
     if (!on() || !keyMode()) { return 1; }
     sta();
     body.ux = ux; body.uy = uy;
+    var SK = SKY(), air = body.jumpT >= 0;
+    if (SK) {
+      var nx = x + ux * RAIL_LOOK, ny = y + uy * RAIL_LOOK;
+      /* ⑲-20 섬 위 — 난간 밖으로는 뛰어올랐거나 날개를 편 채로만 */
+      if (body.sky && !SK.inside(nx, ny) && !air && !body.glide) {
+        if (body.railT <= 0) { body.railT = 4; tell('🧱 구름섬 난간 — 뛰어넘으면(점프) 날개를 펴고 내려간다'); }
+        return 0;
+      }
+      /* 섬 밖에서 윗면보다 낮게 날아 들면 섬 바위에 막힌다 */
+      if (!body.sky && body.glide && !SK.inside(x, y) && SK.inside(nx, ny) && body.glide.alt < SK.top() && body.glide.alt > SK.top() - SK.SLAB) { return 0; }
+    }
     if (body.glide) { body.state = 'glide'; return body.glide.fall ? 1 : GLIDE_MUL; }   // 날개를 편 동안은 강·비탈을 안 본다
-    var mul = 1, air = body.jumpT >= 0;
+    if (body.sky) { body.state = 'walk'; return air ? 1.15 : 1; }                          // ⑲-20 섬 윗면은 평평한 풀밭
+    var mul = 1;
     var rv = riverAt(x, y);
     if (rv && !rv.ford && !air) {
       body.state = 'swim'; body.busy = true;
@@ -385,13 +404,14 @@
     if (body.glide) {
       if (body.glide.fall) { return false; }
       body.glide.fall = true;
+      if (body.glide.draft) { body.draftBan = true; }             // ⑲-20 기둥 안에서 접으면 나갈 때까지 안 편다
       core().emit('landform:glide', { open: false });
       return true;
     }
     /* 뛰어오른 채(0.12초 뒤) 다시 누르면 날개를 편다 — 기력이 조금이라도 있어야 한다 */
     if (body.jumpT >= 0) {
       if (body.jumpT < GLIDE_OPEN_T || body.sta <= 0) { return false; }
-      body.glide = { alt: reliefH(pos.x, pos.y) + airH(), fall: false };
+      body.glide = { alt: groundH(pos.x, pos.y) + airH(), fall: false };
       body.jumpT = -1;
       body.state = 'glide';
       core().emit('landform:glide', { open: true });
@@ -422,7 +442,7 @@
   function airH() {
     if (body.glide) {
       var gp = core().save.player.pos;
-      return Math.max(0, body.glide.alt - reliefH(gp.x, gp.y));
+      return Math.max(0, body.glide.alt - groundH(gp.x, gp.y));
     }
     if (body.jumpT < 0) { return 0; }
     var u = body.jumpT / JUMP_T;
@@ -435,6 +455,8 @@
     sta();
     if (body.jumpT >= 0) { body.jumpT += dt; if (body.jumpT >= JUMP_T) { body.jumpT = -1; } }
     if (body.climbT > 0) { body.climbT -= dt; }
+    if (body.railT > 0) { body.railT -= dt; }
+    stepSky();
     if (body.glide) { stepGlide(dt); }
     if (!body.busy) {
       body.sta = Math.min(STA_MAX(), body.sta + REGEN * dt);
@@ -451,17 +473,50 @@
     if (!global.DG_NO_DRAW) { paint(); }
   }
 
-  /** 활공 한 걸음 — 가라앉고 기력을 쓰다가, 땅(화면 기복)에 닿으면 내린다. 강 위에 내리면 그대로 헤엄 */
+  /**
+   * ⑲-20 구름섬·바람 기둥 한 박자 — 난간을 뛰어넘어 섬 밖이면 날개를 편다(순간이동으로 멀리 갔으면 그냥 내린다).
+   * 기둥 안 공중(뛰어올랐거나 발밑 DRAFT_MIN_AIR 넘게)이면 저절로 날개를 펴고 솟는다. 기둥을 나가면 다시 펼 수 있다
+   */
+  function stepSky() {
+    var SK = SKY(), pos = core().save.player.pos;
+    if (!SK) { body.sky = false; return; }
+    if (body.sky && !SK.inside(pos.x, pos.y)) {
+      var c = SK.spot(), near = c && Math.hypot(pos.x - c.x, pos.y - c.y) <= SK.ISLE_R + 6, up = SK.top() + airH();
+      body.sky = false;
+      if (near && !body.glide) {
+        body.glide = { alt: up, fall: false }; body.jumpT = -1; body.state = 'glide';
+        core().emit('landform:glide', { open: true });
+        tell('🪂 난간을 넘어 날개를 폈다');
+      }
+    }
+    if (!SK.inDraft(pos.x, pos.y)) { body.draftBan = false; if (body.glide) { body.glide.draft = false; } return; }
+    if (!body.glide && !body.draftBan && (body.jumpT >= 0 || airH() >= SK.DRAFT_MIN_AIR)) {
+      body.glide = { alt: groundH(pos.x, pos.y) + airH(), fall: false }; body.jumpT = -1; body.state = 'glide';
+      core().emit('landform:glide', { open: true, draft: true });
+    }
+    if (body.glide) { body.glide.draft = !body.glide.fall && body.glide.plunge === undefined; }
+  }
+
+  /** 활공 한 걸음 — 가라앉고 기력을 쓰다가, 땅(화면 기복)에 닿으면 내린다. 강 위에 내리면 그대로 헤엄.
+   *  ⑲-20 바람 기둥 안이면 기력을 안 쓰고 솟는다(기둥 끝에서 멎는다) · 위에서 섬 윗면에 닿으면 섬에 선다 */
   function stepGlide(dt) {
-    var g = body.glide, pos = core().save.player.pos;
+    var g = body.glide, pos = core().save.player.pos, SK = SKY();
+    if (g.draft && SK) {
+      g.alt = Math.min(SK.draftTop(), g.alt + SK.DRAFT_RISE * dt);
+      body.busy = true; body.state = 'glide';
+      return;
+    }
     var sink = g.plunge !== undefined ? PLUNGE_SINK : (g.fall ? GLIDE_FALL : (body.sta > 0 ? GLIDE_SINK : GLIDE_TIRED_SINK));
+    var was = g.alt;
     g.alt -= sink * dt;
     if (!g.fall) { body.sta = Math.max(0, body.sta - GLIDE_DRAIN * SAVE_MUL() * dt); body.busy = true; }
     body.state = 'glide';
-    var ground = reliefH(pos.x, pos.y);
+    var onIsle = !!(SK && SK.inside(pos.x, pos.y) && was >= SK.top() - 0.02);
+    var ground = onIsle ? SK.top() : groundH(pos.x, pos.y);
     if (g.alt <= ground + 0.02) {
       body.glide = null;
       body.state = 'walk';
+      if (onIsle) { body.sky = true; }
       var fell = g.plunge !== undefined ? Math.max(0, g.plunge - ground) : null;
       core().emit('landform:land', { x: pos.x, y: pos.y, plunge: fell });
       var FC = global.DG.fieldCombat;
@@ -479,7 +534,7 @@
     if (!p) { return false; }
     var pos = core().save.player.pos;
     pos.x = p.x; pos.y = p.y + 6;
-    body.glide = null; body.jumpT = -1;
+    body.glide = null; body.jumpT = -1; body.sky = false;
     if (W.walkTo) { W.walkTo(pos.x, pos.y); }
     core().log('🌀 순간이동 — ' + p.name + ' 정상', 'move');
     core().emit('region:teleport', { key: 'pk:' + key });
@@ -549,6 +604,8 @@
     startPlunge: startPlunge, PLUNGE_MIN_H: PLUNGE_MIN_H, PLUNGE_SINK: PLUNGE_SINK,
     GLIDE_MUL: GLIDE_MUL, GLIDE_SINK: GLIDE_SINK, GLIDE_DRAIN: GLIDE_DRAIN, GLIDE_OPEN_T: GLIDE_OPEN_T,
     gliding: function () { return !!body.glide; },
+    /** ⑲-20 섬 위에 서 있나(날개를 편 채 섬 위도) · 불러오기에서 섬에 올린다(skyisle.boot) */
+    onSky: function () { return !!body.sky; }, setSky: function (v) { body.sky = !!v; }, groundH: groundH, glideAlt: function () { return body.glide ? body.glide.alt : null; },
     stamina: function () { return sta(); }, state: function () { return body.state; },
     /** 진단 전용 — 몸 상태와 캐시를 비운다 */
     _resetForTest: function () {
