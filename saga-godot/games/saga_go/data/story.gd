@@ -28,6 +28,8 @@ extends RefCounted
 ##   인물 helmet = true 면 머리에 옛 장수 투구(world/vroid_body.gd add_helmet) · visor = true 면 앞 시대 관측 바이저(add_visor) ·
 ##   hat = true 면 파발꾼 벙거지(add_hat) · halo = true 면 머리 위 빛 고리(add_halo — 은하 나루 나루지기) ·
 ##   beads = true 면 목에 염주·가사 띠(add_beads — 옛 절터 종지기) · goggles = true 면 이마에 기관사 고글(add_goggles — 은하역 기관사).
+##   captain_hat = true 면 남색·금띠 선장 모자(add_hat 색만 — 별배 선장).
+##   인물 자리 칸에 ch_to 가 있으면 ch ~ ch_to 장 모두(그 장들이 끝난 뒤 계속 서 있을 자리 — from 0·to 999 로). 칸은 먼저 맞는 것.
 ##   light 의 bell = true 면 제단 돌을 안 보이고, 원소가 닿으면 불 대신 종각에 건 종이 운다(world/region5_skyport.gd ring_bell — 17장).
 ##   light 의 bare = true 면 제단 돌·불 없이 그 자리 장치가 받는다(18장 변전함 — 켜진 모양은 그 지역 파일이 장·단계를 보고 바꾼다) · hit_text = 닿았을 때 알림.
 ##   chase 의 body = "drone"(배달 기계) · "horse"(놀란 역마, world/creature_builder.gd 말 — colors 세 빛깔) ·
@@ -96,6 +98,13 @@ const NPCS := {
 	## 18장을 마치면 4부 동료(MEMBERS story_dodam)가 된다.
 	"dodam": {"name": "기관사 도담", "era": "현대", "region": "skyport", "cell": Vector2(4.9, 5.27), "rarity": 4, "cloth": Color(0.22, 0.28, 0.36),
 		"goggles": true, "idle": "선로가 끊겨도 기관사는 역을 떠나지 않아요. 막차가 아직 여기 있으니까."},
+	## 106장 ㊾-2 19장 — 별배 선장 한별(미래). 틈 한가운데서 시간을 멈춰 틈이 더 벌어지지 않게 붙들고 있었다.
+	## 19장 7단계에 떠 있는 섬돌 꼭대기(lift = region6_crossing.gd TOP_H + 0.3)에 처음 서고, 8~9 섬돌 아래, 19장 뒤엔 첫 정거장 곁.
+	"hanbyeol": {"name": "별배 선장 한별", "era": "미래", "region": "crossing", "cell": Vector2(4.8, 2.4), "rarity": 5, "cloth": Color(0.14, 0.18, 0.34),
+		"captain_hat": true, "idle": "틈의 끝을 찾아야 해. 준비가 되면 말해 주게.",
+		"appear": [{"ch": 18, "from": 7, "to": 7, "region": "crossing", "cell": Vector2(2.54, 7.0), "lift": 17.9},
+			{"ch": 18, "from": 8, "to": 9, "region": "crossing", "cell": Vector2(2.95, 6.4)},
+			{"ch": 19, "ch_to": 999, "from": 0, "to": 999, "region": "crossing", "cell": Vector2(4.8, 2.4)}]},
 	"bawoo": {"name": "산성지기 바우", "era": "과거", "region": "frost", "cell": Vector2(3.0, 4.11), "rarity": 4, "cloth": Color(0.48, 0.2, 0.16),
 		"helmet": true, "idle": "……불씨가 식지 않게. 그것만이 내 일이다.",
 		"appear": [{"ch": 10, "from": 2, "to": 2},
@@ -131,9 +140,18 @@ const STATIONS := {
 		{"ch": 16, "from": 8, "to": 9, "region": "skyport", "cell": Vector2(2.64, 3.66)},
 		## ㊽-4 18장 — 처음엔 종각 곁에(0), 기적 소리를 따라 은하역 곁으로(1~9).
 		{"ch": 17, "from": 0, "to": 0, "region": "skyport", "cell": Vector2(2.64, 3.66)},
-		{"ch": 17, "from": 1, "to": 9, "region": "skyport", "cell": Vector2(5.25, 5.35)}],
+		{"ch": 17, "from": 1, "to": 9, "region": "skyport", "cell": Vector2(5.25, 5.35)},
+		## ㊾-2 19장 — 은하역(0~1) → 막차로 첫 정거장(2~4) → 시계탑 발치(5) → 떠 있는 섬돌 곁(6~9).
+		{"ch": 18, "from": 0, "to": 1, "region": "skyport", "cell": Vector2(5.25, 5.35)},
+		{"ch": 18, "from": 2, "to": 4, "region": "crossing", "cell": Vector2(4.75, 2.4)},
+		{"ch": 18, "from": 5, "to": 5, "region": "crossing", "cell": Vector2(6.2, 6.35)},
+		{"ch": 18, "from": 6, "to": 9, "region": "crossing", "cell": Vector2(3.05, 6.45)},
+		## 19장 뒤 — 별배가 매인 은하 나루 착륙판 곁(고원 별배 빈자리에 서지 않게).
+		{"ch": 19, "ch_to": 999, "from": 0, "to": 999, "region": "skyport", "cell": Vector2(5.44, 1.8)}],
 	## ㊽-4 18장 — 선장의 잔상을 따라잡은 뒤(7) 선로 남쪽 끝에 와 있다.
-	"dodam": [{"ch": 17, "from": 7, "to": 7, "region": "skyport", "cell": Vector2(5.2, 6.85)}],
+	"dodam": [{"ch": 17, "from": 7, "to": 7, "region": "skyport", "cell": Vector2(5.2, 6.85)},
+		## ㊾-2 19장 — 막차를 몰고 첫 정거장에 닿은 뒤(2~9) 선로 서쪽에.
+		{"ch": 18, "from": 2, "to": 9, "region": "crossing", "cell": Vector2(4.85, 1.9)}],
 	## ㊽-3 17장 — 비탈의 짐승을 물리친 뒤(4~7) 쓰러진 종 곁에 와 있다.
 	"hangyeol": [{"ch": 16, "from": 4, "to": 7, "region": "skyport", "cell": Vector2(1.55, 4.88)}],
 	## ㊼-3 15장 — 조각 셋을 들고 별배로 가는 동안(8~10) 달음이 먼저 별배 곁에 와 있다.
@@ -847,6 +865,48 @@ const CHAPTERS := [
 					["?", ["같이 가 줄래요, 도담?", "선장님을 만나러 가자."]],
 					["도담", "막차 기관사가 막차를 두고 갈 순 없죠. 틈 너머 첫 정거장까지 — 제가 몰게요!", "fun"],
 					["반디", "별배는 나루에, 종은 절터에, 막차는 선로에. 이 시대의 길이 다시 이어졌습니다.", "joy"]]},
+		]},
+	## ---------------------------------------------------------------- 이야기 5부(106장 ㊾) — 틈 너머, 틈새 갈림길
+	{"id": "ch19", "name": "제19장 · 틈 너머 첫 정거장", "ar": 44,
+		"reward": {"fate_knot": 6, "mora": 95000, "book_l": 6, "talent_3": 3}, "exp": 440.0,
+		"steps": [
+			{"type": "talk", "npc": "dodam", "text": "은하역의 도담과 이야기하기",
+				"lines": [["도담", "보일러도 전조등도 문제없어요. 선로 끝 고개의 틈도 활짝 열렸고요!", "joy"],
+					["반디", "삐— 선장 신호, 틈 너머에서 미약하게 수신. 끊겼다 이어졌다 합니다.", "surprised"],
+					["?", ["가자, 틈 너머로.", "선장님이 기다려."]],
+					["도담", "그럼 올라타요. 오늘은 막차가 첫차예요!", "fun"]]},
+			{"type": "sail", "npc": "dodam", "to": {"region": "crossing", "cell": Vector2(4.8, 2.0)},
+				"line": ["도담", "막차, 출발합니다! 다음 정거장은 — 틈 너머 첫 정거장!"], "text": "도담의 막차를 타고 틈 너머로(기관사에게 F)",
+				"arrive": "막차가 기적을 울리며 틈을 지나 첫 정거장에 닿았다"},
+			{"type": "talk", "npc": "bandi", "text": "첫 정거장의 반디와 이야기하기",
+				"lines": [["반디", "삐— 이곳의 시계는 모두 같은 시각에 멈춰 있습니다. 시간이 멈춘 곳에선 신호가 갇힙니다.", "surprised"],
+					["도담", "저기 성문 조각이 허공에 떠 있어요… 시간이 뒤엉킨 땅이네요.", "surprised"],
+					["?", ["신호를 풀 방법은?", "시계를 다시 돌리면?"]],
+					["반디", "남쪽 멈춘 시계탑 — 꼭대기 태엽을 풀면 신호가 풀릴 겁니다. 다만 갈림목에 틈 짐승이 모여 있습니다."]]},
+			{"type": "kill", "region": "crossing", "cell": Vector2(5.0, 4.5), "kinds": ["ice_fox", "thunder_cat", "fire_imp", "wind_hawk"],
+				"text": "갈림목에 모인 틈 짐승 물리치기"},
+			{"type": "climb", "region": "crossing", "cell": Vector2(6.6, 5.8), "radius": 3.0, "above": 18.0,
+				"text": "멈춘 시계탑을 타고 올라 태엽 풀기(꼭대기에 서기)"},
+			{"type": "talk", "npc": "bandi", "text": "시계탑 발치의 반디와 이야기하기",
+				"lines": [["반디", "삐— 시계가 다시 갑니다! 선장 신호… 선명합니다!", "joy"],
+					["반디", "발신지 서쪽, 떠 있는 섬돌 꼭대기. 섬돌을 밟고 오를 수 있습니다."],
+					["?", ["바로 갈게!", "높이는?"]],
+					["반디", "열일곱 미터 남짓. 떨어지면 날개를 펴십시오."]]},
+			{"type": "climb", "region": "crossing", "cell": Vector2(2.5, 7.0), "radius": 3.5, "above": 19.9,
+				"text": "떠 있는 섬돌을 밟고 꼭대기에 오르기"},
+			{"type": "talk", "npc": "hanbyeol", "text": "섬돌 꼭대기의 선장과 이야기하기",
+				"lines": [["한별", "정말 왔구나. 종이 울리고, 별배가 돌아오고, 막차가 달렸다는 뜻이지.", "joy"],
+					["?", ["여기서 뭘 하고 계셨어요?", "반디가 기다렸어요."]],
+					["한별", "나는 별배 선장 한별. 틈이 시대를 삼키던 날, 이 틈 한가운데서 시간을 멈춰 틈이 더 벌어지지 않게 붙들고 있었다.", "sorrow"],
+					["한별", "그런데 너희가 시계를 다시 돌렸으니 — 멈춰 있던 파수꾼도 깨어난다. 내려가자, 섬돌 아래다!", "angry"]]},
+			{"type": "duel", "kind": "time_warden", "region": "crossing", "cell": Vector2(3.2, 6.2), "text": "깨어난 멈춘 시간의 파수꾼과 맞서기",
+				"flee": "파수꾼의 금빛 가면이 부서지고 — 멈춘 시간 조각이 흩어졌다"},
+			{"type": "talk", "npc": "hanbyeol", "text": "선장 한별과 이야기하기",
+				"lines": [["한별", "고맙다. 이제 틈은 멈춰 있지 않는다. 스스로 닫히지도 않고 — 누군가 틈의 끝을 찾아가 닫아야 해.", "sorrow"],
+					["반디", "선장님… 별배는 은하 나루에 매여 있습니다.", "sorrow"],
+					["한별", "알고 있다, 반디. 잘 지켜 줬구나. 날개가 바뀌었다지?", "fun"],
+					["?", ["틈의 끝은 어디예요?", "같이 가요."]],
+					["한별", "첫 정거장 다음 역은 '갈림길 끝'. 틈이 처음 찢어진 곳이지. 준비가 되면 — 함께 가자.", "joy"]]},
 		]},
 ]
 

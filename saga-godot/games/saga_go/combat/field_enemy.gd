@@ -116,6 +116,14 @@ const KINDS := {
 		"phase_text": "이끼 이무기가 덩굴 비늘을 두르고 덩굴뱀과 매를 부른다 — 풍으로 방패를 깨라",
 		"rotation": ["slam", "tide", "bite", "halo", "storm", "tide"], "summon": ["grass_snake", "wind_hawk"],
 		"shape": "serpent", "height": 3.8, "colors": [Color(0.26, 0.4, 0.2), Color(0.64, 0.52, 0.3), Color(0.78, 0.96, 0.42)]},
+	## 106장 ㊾-2 19장 이야기 보스 "멈춘 시간의 파수꾼"(틈새 갈림길 떠 있는 섬돌 아래) — 선장이 멈춰 둔 시간 속에 서 있던 틈의 파수꾼.
+	## 시계탑이 다시 돌자 깨어났다(풍, 사람 몸 2배·금빛 가면). 패턴은 있는 틀: 고리·틈새 질주·내려찍기·회오리·그림자·밀물. 2단계 풍 방패(암으로 깬다).
+	"time_warden": {"name": "멈춘 시간의 파수꾼", "hp": 7800.0, "atk": 42.0, "speed": 4.2, "aggro": 26.0,
+		"reach": 3.2, "tell": 0.8, "cd": 1.5, "exp": 0.0, "element": "wind", "shield": 0.0, "phase_shield": 860.0,
+		"phase_text": "파수꾼이 멈춘 시간의 바람을 두르고 매와 여우를 부른다 — 암으로 방패를 깨라",
+		"rotation": ["halo", "rift", "slam", "storm", "shadow", "tide", "halo"], "summon": ["wind_hawk", "ice_fox"],
+		"vroid": true, "size": 2.0, "body_r": 0.9, "cloth": Color(0.2, 0.18, 0.3),
+		"mask": Color(0.88, 0.76, 0.42), "mask_face": Color(0.15, 0.12, 0.25)},
 }
 
 const GRAVITY := 20.0

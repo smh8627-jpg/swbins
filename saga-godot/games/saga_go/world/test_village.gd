@@ -187,6 +187,8 @@ func _ready() -> void:
 		add_child(load("res://tools/probe_story3.gd").new())
 	if OS.get_environment("SAGA_STORY4_PROBE") != "": # 106장 ㊽ 이야기 4부(16장~)
 		add_child(load("res://tools/probe_story4.gd").new())
+	if OS.get_environment("SAGA_STORY5_PROBE") != "": # 106장 ㊾ 이야기 5부(19장~)
+		add_child(load("res://tools/probe_story5.gd").new())
 	if OS.get_environment("SAGA_SKYPORT_PROBE") != "": # 106장 ㊽ 다섯째 지역 은하 나루
 		add_child(load("res://tools/probe_skyport.gd").new())
 	if OS.get_environment("SAGA_CROSSING_PROBE") != "": # 106장 ㊾ 여섯째 지역 틈새 갈림길

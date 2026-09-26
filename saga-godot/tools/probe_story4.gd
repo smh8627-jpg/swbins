@@ -381,7 +381,7 @@ func _physics_process(_delta: float) -> void:
 			var defend: Dictionary = (c.steps as Array)[8]
 			if not _hits(_cell3(defend.cell)).is_empty():
 				bad.append("defend hits %s" % _hits(_cell3(defend.cell)))
-			for w in Story.windows(Story.STATIONS.bandi).filter(func(w: Dictionary) -> bool: return int(w.ch) == CH18) + Story.windows(Story.STATIONS.dodam):
+			for w in Story.windows(Story.STATIONS.bandi).filter(func(w: Dictionary) -> bool: return int(w.ch) == CH18) + Story.windows(Story.STATIONS.dodam).filter(func(w: Dictionary) -> bool: return int(w.ch) == CH18):
 				if String(w.region) != R or not _hits(_cell3(w.cell)).is_empty():
 					bad.append("station %s" % w.cell)
 			var light: Dictionary = (c.steps as Array)[4]

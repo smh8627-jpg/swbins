@@ -9,7 +9,8 @@ extends Node3D
 ## 순간이동 지점·들판 무리·상자·별조각·채집은 각 표(waypoints·field_spawner·treasure_spawner·star_shards·cooking)에 "crossing" 줄로.
 ##   현대·미래 — 첫 정거장(H (5,2)): 선로 끝 승강장·빛 표지 지붕·시간표 판·차막이
 ##   과거 — 뒤엉킨 성문(R (2..3,4..5)): 기운 성문 누각 + 허공에 멈춘 성벽 조각 넷(올라설 수 있다)
-##   현대 — 멈춘 시계탑((6.6,5.8)): 16m 돌탑(벽 타기)·네 면 빛 문자판(바늘이 멈춤)
+##   현대 — 멈춘 시계탑((6.6,5.8)): 16m 돌탑(벽 타기 — 윗면에 턱 없이 곧게, 지붕은 모서리 기둥 위)·네 면 빛 문자판
+##     (바늘이 멈춤 — 19장 태엽을 푼 뒤(CLOCK_FROM_STEP)부터 다시 돈다)
 ##   미래·틈 — 떠 있는 섬돌(M (2..3,7)): 틈 수정 바닥 위로 나선으로 솟는 섬돌 열다섯 → 17.6m 꼭대기 판·틈 수정
 ##   틈 고개 경계비((5.35,0.65)) · 길가 틈 등롱
 
@@ -58,6 +59,10 @@ const STONE_RISE := 1.1
 const STONE_RING := 5.0
 const TOP_H := 17.6
 const CLOCK_H := 16.0
+const ROOF_POST_H := 2.6 # 탑 윗면에서 지붕 밑까지(서는 자리 위로 머리가 걸리지 않게)
+## 106장 ㊾-2 — 19장 시계탑 꼭대기에 선 뒤(CLOCK_FROM_STEP)부터 네 면 바늘이 다시 돈다.
+const CH19 := 18
+const CLOCK_FROM_STEP := 5
 
 const STONE := Color(0.56, 0.54, 0.52)
 const STONE_DARK := Color(0.38, 0.37, 0.38)
@@ -73,6 +78,8 @@ var _gate_body: StaticBody3D = null
 var _gate_veil: Node3D = null
 var _gate_open := false
 var _floaters: Array = [] # [node, base_y, phase] — 허공에 멈춘 조각이 아주 느리게 떠오르내린다(충돌 없는 것만)
+var _hands: Array = [] # [시침 축, 분침 축] 네 면
+var _clock_running := false
 var _t := 0.0
 var _check_t := 0.0
 
@@ -102,6 +109,7 @@ func _ready() -> void:
 		_build_small(String(d[0]), d[1], String(d[2]))
 		_add_discovery(String(d[0]), cell_pos(d[1]), SMALL_R)
 	_set_gate(gate_open())
+	_clock_running = clock_running()
 
 static func cell_pos(c: Vector2) -> Vector3:
 	var p := TestMap.world_pos(c.x, c.y, REGION)
@@ -114,6 +122,18 @@ static func gate_open() -> bool:
 
 func is_gate_open() -> bool:
 	return _gate_open
+
+## 19장 시계탑 태엽을 풀었거나 지났는가 — 바늘이 돈다.
+static func clock_running() -> bool:
+	var ch := int(PartyState.story.get("ch", 0))
+	return ch > CH19 or (ch == CH19 and int(PartyState.story.get("step", 0)) >= CLOCK_FROM_STEP)
+
+func is_clock_running() -> bool:
+	return _clock_running
+
+## 점검용 — 첫 면 분침 축 각도.
+func minute_angle() -> float:
+	return (_hands[0][1] as Node3D).rotation.z if not _hands.is_empty() else 0.0
 
 ## 떠 있는 섬돌 꼭대기 판 윗면 한가운데(월드).
 static func stones_top() -> Vector3:
@@ -132,6 +152,11 @@ func _process(delta: float) -> void:
 		_check_t = 1.0
 		if gate_open() != _gate_open:
 			_set_gate(gate_open())
+		_clock_running = clock_running()
+	if _clock_running:
+		for h in _hands:
+			(h[0] as Node3D).rotation.z -= delta * 0.05
+			(h[1] as Node3D).rotation.z -= delta * 0.6
 
 # ---------------------------------------------------------------- 명소
 
@@ -235,10 +260,18 @@ func _build_clock() -> void:
 		dial.rotation.x = PI * 0.5
 		dial.position = Vector3(0, dial_y, 2.05)
 		f.add_child(dial)
-		var hour := _box(f, Vector3(0.12, 0.8, 0.05), Vector3(0.2, dial_y + 0.3, 2.12), Color(0.1, 0.1, 0.12))
+		## 바늘 — 문자판 한가운데 축에 매달아 돌린다(멈춘 시각 = 시침 -0.6·분침 0.55 rad).
+		var hour := Node3D.new()
+		hour.position = Vector3(0, dial_y, 2.12)
 		hour.rotation.z = -0.6
-		var minute := _box(f, Vector3(0.08, 1.1, 0.05), Vector3(-0.3, dial_y + 0.45, 2.13), Color(0.1, 0.1, 0.12))
+		f.add_child(hour)
+		_box(hour, Vector3(0.12, 0.8, 0.05), Vector3(0, 0.4, 0), Color(0.1, 0.1, 0.12))
+		var minute := Node3D.new()
+		minute.position = Vector3(0, dial_y, 2.13)
 		minute.rotation.z = 0.55
+		f.add_child(minute)
+		_box(minute, Vector3(0.08, 1.1, 0.05), Vector3(0, 0.55, 0), Color(0.1, 0.1, 0.12))
+		_hands.append([hour, minute])
 	var roof := MeshInstance3D.new()
 	var rm := CylinderMesh.new()
 	rm.top_radius = 0.05
@@ -248,11 +281,13 @@ func _build_clock() -> void:
 	roof.mesh = rm
 	roof.material_override = _mat(ROOF)
 	roof.rotation.y = PI * 0.25
-	roof.position = Vector3(0, CLOCK_H + 1.6, 0)
+	roof.position = Vector3(0, CLOCK_H + ROOF_POST_H + 1.6, 0)
 	root.add_child(roof)
-	## 지붕 밑 올라설 난간 턱 — 탑 윗면(CLOCK_H)에 서는 자리가 지붕 처마 밑으로 둘레 1m.
-	_solid_box(root, Vector3(5.2, 0.3, 5.2), Vector3(0, CLOCK_H - 0.15, 0), STONE_DARK)
-	_label(root, "멈춘 시계탑", Vector3(0, CLOCK_H + 4.6, 0), Color(0.95, 0.9, 0.78))
+	## 지붕을 받친 모서리 기둥 넷 — 윗면 가장자리 턱이 없어 벽을 곧게 타고 올라선다(처마 밑에 걸리지 않게).
+	for x in [-1.8, 1.8]:
+		for z in [-1.8, 1.8]:
+			_solid_box(root, Vector3(0.3, ROOF_POST_H, 0.3), Vector3(x, CLOCK_H + ROOF_POST_H * 0.5, z), STONE_DARK)
+	_label(root, "멈춘 시계탑", Vector3(0, CLOCK_H + ROOF_POST_H + 4.6, 0), Color(0.95, 0.9, 0.78))
 
 ## 떠 있는 섬돌 — 틈 수정 바닥(반지름 7m) 위로 나선 섬돌 STONE_COUNT 개가 STONE_RISE m 씩 솟고, 꼭대기 판(TOP_H)에 큰 틈 수정.
 func _build_stones() -> void:

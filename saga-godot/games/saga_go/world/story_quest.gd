@@ -380,7 +380,8 @@ func _window_now(v: Variant) -> Dictionary:
 			var q := wq_step(String(w.wq))
 			if q >= int(w.from) and q <= int(w.to):
 				return w
-		elif not locked() and ch() == int(w.ch) and st() >= int(w.from) and st() <= int(w.to):
+		elif not locked() and (ch() == int(w.ch) or (w.has("ch_to") and ch() >= int(w.ch) and ch() <= int(w.ch_to))) \
+				and st() >= int(w.from) and st() <= int(w.to):
 			return w
 	return {}
 
@@ -1364,6 +1365,8 @@ func _build_npc(id: String) -> void:
 		VroidBody.add_beads(body)
 	if info.get("goggles", false):
 		VroidBody.add_goggles(body)
+	if info.get("captain_hat", false): # 106장 ㊾-2 별배 선장 — 18장 잔상과 같은 남색·금띠 모자
+		VroidBody.add_hat(body, Color(0.12, 0.16, 0.32), Color(0.9, 0.75, 0.3))
 	var tf := TalkFace.attach(body)
 	if tf:
 		_faces[id] = tf
