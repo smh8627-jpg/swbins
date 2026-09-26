@@ -523,6 +523,8 @@
       guard: null,                         // ⑲-1 굳힘 보호막 { hp, max, t } — 명단 전체가 나눠 쓴다(⑲-11 방패 틀도 여기)
       rallyT: 0, rallyMul: 1, wardT: 0, wardMul: 1, hasteT: 0,   // ⑲-11 명단 효과 — 군기(공격 곱)·맹세(받는 피해 곱)·뇌우(스킬 대기 두 배)
       loreT: 0, loreMul: 1,                // ⑲-15 옛 글자 풀이 — 명단 원소 반응 피해 곱
+      rainT: 0, rainCd: 0, rainM: null, rainK: null,   // ⑲-17 뱃노래 — 남은 초·따라 치기 쉼·놓은 인물·표
+      mx: 0, my: 0,                        // ⑲-17 지난 걸음의 내 자리(바람 자리 회복이 읽는다)
       crng: mulberry32(20260824)           // ⑲-5 치명타 굴림
     };
   }
@@ -869,6 +871,7 @@
     S.atkCd = kit.sec[step];
     if (!tgt) { push(S, { t: 'swing', step: step, w: m.wtype }); return { ok: true, miss: true, step: step }; }
     var r = hitFoe(S, tgt, m, m.atk * kit.mul[step] * infM(m), kit.el ? m.el : infEl(m), kit.heavy ? 'heavy' : 'basic');
+    rainFollow(S, px, py);                                          // ⑲-17 뱃노래
     m.energy = Math.min(ENERGY_MAX(), m.energy + 1.5 * (m.er || 1));
     push(S, { t: 'swing', step: step, uid: tgt.uid, w: m.wtype, ranged: !!kit.range, tx: tgt.x, ty: tgt.y, el: kit.el ? m.el : null });
     return { ok: true, step: step, hit: r };
@@ -893,6 +896,7 @@
       return d <= CHARGE_REACH() && (d < 0.5 || (fx * dx + fy * dy) / d >= CHARGE_ARC());
     });
     for (var i = 0; i < hits.length; i++) { hitFoe(S, hits[i], m, m.atk * CHARGE_MUL() * infM(m), infEl(m), 'heavy'); }
+    if (hits.length) { rainFollow(S, px, py); }                     // ⑲-17 뱃노래
     m.energy = Math.min(ENERGY_MAX(), m.energy + 1.5 * hits.length * (m.er || 1));
     push(S, { t: 'heavy', x: px + dx * 1.2, y: py + dy * 1.2, r: 1.8, n: hits.length });
     return { ok: true, n: hits.length };
@@ -905,6 +909,7 @@
     if (!m || m.down) { return { ok: false }; }
     var mul = plungeMul(fell), hits = foesWithin(S, px, py, PLUNGE_R());
     for (var i = 0; i < hits.length; i++) { hitFoe(S, hits[i], m, m.atk * mul * infM(m), infEl(m), 'heavy'); }
+    if (hits.length) { rainFollow(S, px, py); }                     // ⑲-17 뱃노래
     m.energy = Math.min(ENERGY_MAX(), m.energy + 1.5 * hits.length * (m.er || 1));
     push(S, { t: 'plunge', x: px, y: py, r: PLUNGE_R(), n: hits.length, mul: mul });
     return { ok: true, n: hits.length, mul: mul };
@@ -964,6 +969,29 @@
     var gh = Math.round(m.hpMax * pct), G = S.guard;
     S.guard = { hp: Math.max(gh, G ? G.hp : 0), max: Math.max(gh, G ? G.max : 0), t: Math.max(sec, G ? G.t : 0) };
   }
+  /** ⑲-17 밀어냄 — (ux,uy) 쪽으로 dist m 를 KB_T 초에 미끄러진다. 우두머리·보스·굴복한 인물은 안 밀린다 */
+  var KB_T = 0.25;
+  function knock(f, ux, uy, dist) {
+    if (!f || f.dead || f.st === 'yield' || FOES[f.kind].boss || !dist) { return; }
+    f.kb = { vx: ux * dist / KB_T, vy: uy * dist / KB_T, t: KB_T };
+  }
+  /**
+   * ⑲-17 뱃노래 따라 치기 — 기본·강·낙하 공격이 맞은 뒤 부른다. 쉼(gap)이 끝났으면 reach 안 가까운 적 n 에
+   * 놓은 인물(rainM)의 공격력으로 물 노 한 대씩(원소 부착·치명은 그 인물 것)
+   */
+  function rainFollow(S, px, py) {
+    var k = S.rainK, rm = S.rainM;
+    if (!(S.rainT > 0) || S.rainCd > 0 || !k || !rm) { return 0; }
+    var tg = living(S).filter(function (f) { return Math.hypot(f.x - px, f.y - py) <= k.reach; })
+      .sort(function (a, b) { return Math.hypot(a.x - px, a.y - py) - Math.hypot(b.x - px, b.y - py); }).slice(0, k.n);
+    if (!tg.length) { return 0; }
+    S.rainCd = k.gap;
+    for (var i = 0; i < tg.length; i++) {
+      hitFoe(S, tg[i], rm, rm.atk * k.rmul, rm.el, 'burst');
+      push(S, { t: 'zone', kind: 'rain', el: rm.el, x: tg[i].x, y: tg[i].y, r: 1.2, n: 1 });
+    }
+    return tg.length;
+  }
   /** ⑲-11 원소 덧붙임 — 물결 회복(명단)·번개 기력(다른 인물) */
   function kitExtras(S, m, k) {
     for (var i = 0; i < S.party.length; i++) {
@@ -1016,6 +1044,24 @@
       for (i = 0; i < hits.length; i++) { hitFoe(S, hits[i], m, m.atk * k.mul, m.el, 'skill'); }
       if (bt && !bt.dead) { bt.markT = k.mark; bt.markMul = k.markMul; }
       ev = { x: ex, y: ey, x0: px, y0: py, r: k.r }; shape = 'dash';
+    } else if (k.type === 'gust') {
+      /* ⑲-17 부채 바람 — 앞 r 부채꼴(내적 arc 이상)을 치고 나에게서 먼 쪽으로 밀어낸다. 회복은 kitExtras(heal) */
+      hits = living(S).filter(function (f) {
+        var fx = f.x - px, fy = f.y - py, d = Math.hypot(fx, fy);
+        return d <= k.r && (d < 0.5 || (fx * dx + fy * dy) / d >= k.arc);
+      });
+      for (i = 0; i < hits.length; i++) {
+        hitFoe(S, hits[i], m, m.atk * k.mul, m.el, 'skill');
+        var gl = Math.hypot(hits[i].x - px, hits[i].y - py);
+        knock(hits[i], gl > 0.5 ? (hits[i].x - px) / gl : dx, gl > 0.5 ? (hits[i].y - py) / gl : dy, k.knock);
+      }
+      ev = { x: px + dx * k.r * 0.5, y: py + dy * k.r * 0.5, r: k.r * 0.5 };
+    } else if (k.type === 'wave') {
+      /* ⑲-17 노 물결 — 앞으로 len·폭 w 의 길을 치고 앞으로 밀어낸다(나는 제자리) */
+      var wx = px + dx * k.len, wy = py + dy * k.len;
+      hits = living(S).filter(function (f) { return segDist(f.x, f.y, px, py, wx, wy) <= k.w; });
+      for (i = 0; i < hits.length; i++) { hitFoe(S, hits[i], m, m.atk * k.mul, m.el, 'skill'); knock(hits[i], dx, dy, k.knock); }
+      ev = { x: wx, y: wy, x0: px, y0: py, r: k.w }; shape = 'thrust';
     } else {
       S.zones.push({ kind: 'kitzone', x: px, y: py, r: k.r, t: k.sec, next: 0, every: k.every, n: k.n, mul: k.mul, energy: k.energy || 0, el: m.el, atk: m.atk, m: m });
       hits = foesWithin(S, px, py, k.r);
@@ -1041,6 +1087,10 @@
     else if (k.type === 'rally') { S.rallyT = k.sec; S.rallyMul = k.atk; }
     else if (k.type === 'ward') { S.wardT = k.sec; S.wardMul = k.taken; }
     else if (k.type === 'lore') { S.loreT = k.sec; S.loreMul = k.rmul; }          // ⑲-15 옛 글자 풀이
+    else if (k.type === 'feast') {                                                // ⑲-17 잔칫날 순풍 — 첫 틱은 every 뒤
+      S.zones.push({ kind: 'feast', x: px, y: py, r: k.r, t: k.sec, next: k.every, every: k.every, heal: k.fheal, mul: k.emul, el: m.el, atk: m.atk, m: m });
+    }
+    else if (k.type === 'rain') { S.rainT = k.sec; S.rainCd = 0; S.rainM = m; S.rainK = k; }   // ⑲-17 뱃노래
     else if (k.type === 'echo') {
       /* ⑲-15 가면 벗기 — reach 안 표식 난 적마다 every 초 간격 메아리 n(적을 따라감), 없으면 가까운 둘 */
       var near = living(S).filter(function (f) { return Math.hypot(f.x - px, f.y - py) <= k.reach; })
@@ -1124,6 +1174,14 @@
             if (!pk.down) { pk.energy = Math.min(ENERGY_MAX(), pk.energy + z.energy * kz.length * (pk.er || 1)); }
           }
           push(S, { t: 'zone', kind: 'kitzone', el: z.el, x: z.x, y: z.y, r: z.r, n: kz.length });
+          z.next += z.every;
+        } else if (z.kind === 'feast') {
+          /* ⑲-17 바람 자리 — 안에 선 지금 인물 회복(지난 걸음의 내 자리), 안의 적을 친다 */
+          var fa = active(S), fin = Math.hypot(S.mx - z.x, S.my - z.y) <= z.r;
+          if (fa && !fa.down && fin) { fa.hp = Math.min(fa.hpMax, fa.hp + Math.round(fa.hpMax * z.heal)); }
+          var fz = foesWithin(S, z.x, z.y, z.r);
+          for (k = 0; k < fz.length; k++) { hitFoe(S, fz[k], who, z.atk * z.mul, z.el, 'zone'); }
+          push(S, { t: 'zone', kind: 'feast', el: z.el, x: z.x, y: z.y, r: z.r, n: fz.length, heal: fin ? 1 : 0 });
           z.next += z.every;
         } else if (z.kind === 'vortex') {
           var vz = foesWithin(S, z.x, z.y, z.r);
@@ -1247,6 +1305,7 @@
    */
   function step(S, dt, inp) {
     var px = inp.px, py = inp.py;
+    S.mx = px; S.my = py;
     S.t += dt;
     S.calmT += dt;
     S.iframe = Math.max(0, S.iframe - dt);
@@ -1266,6 +1325,8 @@
     if (S.guard) { S.guard.t -= dt; if (S.guard.t <= 0 || S.guard.hp <= 0) { S.guard = null; } }
     if (S.rallyT > 0) { S.rallyT = Math.max(0, S.rallyT - dt); }
     if (S.loreT > 0) { S.loreT = Math.max(0, S.loreT - dt); }
+    if (S.rainT > 0) { S.rainT = Math.max(0, S.rainT - dt); }       // ⑲-17 뱃노래
+    if (S.rainCd > 0) { S.rainCd = Math.max(0, S.rainCd - dt); }
     if (S.wardT > 0) { S.wardT = Math.max(0, S.wardT - dt); }
     if (S.hasteT > 0) { S.hasteT = Math.max(0, S.hasteT - dt); }
     var i, m;
@@ -1298,6 +1359,11 @@
         continue;
       }
       f.moving = false;
+      if (f.kb) {                                         // ⑲-17 밀려남 — 멎어 있어도 미끄러진다
+        var kbt = Math.min(dt, f.kb.t);
+        f.x += f.kb.vx * kbt; f.y += f.kb.vy * kbt; f.kb.t -= dt;
+        if (f.kb.t <= 1e-9) { f.kb = null; }
+      }
       if (f.auraT > 0) { f.auraT -= dt; if (f.auraT <= 0) { f.aura = null; } }
       if (f.shockN > 0) {
         f.shockT -= dt;
@@ -1548,7 +1614,7 @@
     for (i = 0; i < ev.length; i++) {
       var e = ev[i];
       /* ⑲-3 원소 신호 — 스킬·폭발·장판 자리를 알린다(treasure.js 가 석등을 켠다) */
-      if ((e.t === 'skill' || e.t === 'burst' || (e.t === 'zone' && (e.kind === 'field' || e.kind === 'shell' || e.kind === 'kitzone' || e.kind === 'vortex'))) && e.el) {
+      if ((e.t === 'skill' || e.t === 'burst' || (e.t === 'zone' && (e.kind === 'field' || e.kind === 'shell' || e.kind === 'kitzone' || e.kind === 'vortex' || e.kind === 'feast'))) && e.el) {
         c.emit('field:element', { el: e.el, x: e.x, y: e.y, r: e.r || 3, t: e.t });
       }
       if (e.t === 'move') { pos.x += e.dx; pos.y += e.dy; }
@@ -1604,7 +1670,7 @@
         if (e.name) { floatNum(pos.x, pos.y, '💥 ' + e.name, e.el, 1.1, true, true); }
         sfx('thunder');
       } else if (e.t === 'zone') {
-        if (e.kind === 'field' || e.kind === 'seed' || e.kind === 'kitzone' || e.kind === 'vortex') { ring(e.x, e.y, e.r, EL[e.el].color, e.kind === 'seed' ? 0.7 : 0.4); }
+        if (e.kind === 'field' || e.kind === 'seed' || e.kind === 'kitzone' || e.kind === 'vortex' || e.kind === 'feast' || e.kind === 'rain') { ring(e.x, e.y, e.r, EL[e.el].color, e.kind === 'seed' ? 0.7 : 0.4); }
         else if (e.kind === 'shell') { ring(e.x, e.y, e.r, EL[e.el].color, 0.55); if (W3()) { W3().shake(0.15); } }
         else { ring(e.x, e.y, 0.9, EL[e.el].color, 0.3); ring(e.tx, e.ty, e.r, EL[e.el].color, 0.3); }
       } else if (e.t === 'dodge') { if (W3()) { W3().playAnim('me', 'dodge', 300); } }
@@ -2044,7 +2110,7 @@
 
   global.DG = global.DG || {};
   global.DG.fieldCombat = {
-    EL: EL, FOES: FOES, ROT: ROT, SHADOW_BACK: SHADOW_BACK, SIEGE_PULL: SIEGE_PULL, tideMarks: tideMarks, markHit: markHit, foeAtk: foeAtk, THEMES: THEMES, ELITES: ELITES, ERA_THEMES: ERA_THEMES, ERA_ELITES: ERA_ELITES, eraOfCamp: eraOfCamp, CELL: CELL, ENERGY_MAX: ENERGY_MAX,
+    EL: EL, FOES: FOES, ROT: ROT, SHADOW_BACK: SHADOW_BACK, SIEGE_PULL: SIEGE_PULL, tideMarks: tideMarks, markHit: markHit, foeAtk: foeAtk, KB_T: KB_T, knock: knock, rainFollow: rainFollow, THEMES: THEMES, ELITES: ELITES, ERA_THEMES: ERA_THEMES, ERA_ELITES: ERA_ELITES, eraOfCamp: eraOfCamp, CELL: CELL, ENERGY_MAX: ENERGY_MAX,
     SKILL_CD: SKILL_CD, SWAP_CD: SWAP_CD, DODGE_COST: DODGE_COST, VAPOR_MUL: VAPOR_MUL,
     /* 판정 층 — 화면 없이 굴린다(자가진단이 쓰는 문) */
     elementOf: elementOf, EL_KEYS: EL_KEYS, heavy: heavy, plunge: plunge, plungeMul: plungeMul, plungeLand: plungeLand, PLUNGE_R: PLUNGE_R(), CHARGE_COST: CHARGE_COST(), REACT: REACT, attaches: attaches, shapeOf: shapeOf, SHAPES: SHAPES, kitFor: kitFor, segDist: segDist, react: react, shieldMul: shieldMul, campAt: campAt, tierAt: tierAt, guardianAt: guardianAt, COUNTER: COUNTER,

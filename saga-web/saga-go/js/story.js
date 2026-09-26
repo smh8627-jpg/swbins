@@ -70,13 +70,18 @@
   };
   var NPC_KEYS = ['elder', 'ferryman', 'scholar', 'wanderer'];
 
-  /* ⑲-15 이야기 동료 — 도감 밖 id(도감 인물과 같은 꼴). data.js 는 다섯 벌 복사본이라 고치지 않고 아래 hookFind 가
+  /* ⑲-15·17 이야기 동료 — 도감 밖 id(도감 인물과 같은 꼴). data.js 는 다섯 벌 복사본이라 고치지 않고 아래 hookFind 가
      `DG.data.find` 앞에 끼운다. el·weapon 은 해시 대신 이 표(field-combat.elementOf·weapon.typeOf 가 읽는다) */
   var MEMBERS = {
     story_scholar: { id: 'story_scholar', name: '은비', hanja: '恩斐', era: '이야기', faction: '재야', rarity: 4, trait: 'wisdom', story: true,
       el: 'grass', weapon: 'catalyst', stats: { might: 55, wisdom: 92, command: 70 }, emoji: '📜', quote: '이 비문, 읽을수록 이상하다니까.' },
     story_wanderer: { id: 'story_wanderer', name: '가면 쓴 나그네', hanja: '假面客', era: '이야기', faction: '재야', rarity: 5, trait: 'might', story: true,
-      el: 'ice', weapon: 'sword', stats: { might: 90, wisdom: 75, command: 72 }, emoji: '🎭', quote: '너무 떨어지면 기다려 주지 않을 테니.' }
+      el: 'ice', weapon: 'sword', stats: { might: 90, wisdom: 75, command: 72 }, emoji: '🎭', quote: '너무 떨어지면 기다려 주지 않을 테니.' },
+    /* ⑲-17 치유(촌장, 6장 끝)·협동 공격(사공, 7장 끝) */
+    story_elder: { id: 'story_elder', name: '누리', hanja: '訥里', era: '이야기', faction: '재야', rarity: 4, trait: 'virtue', story: true,
+      el: 'wind', weapon: 'catalyst', stats: { might: 48, wisdom: 80, command: 86 }, emoji: '🪭', quote: '먹구름이 걷히면 마을 잔치를 열어야지.' },
+    story_ferryman: { id: 'story_ferryman', name: '버들', hanja: '柳', era: '이야기', faction: '재야', rarity: 4, trait: 'might', story: true,
+      el: 'water', weapon: 'polearm', stats: { might: 82, wisdom: 60, command: 66 }, emoji: '🛶', quote: '물 냄새가 요즘 영 비릿해.' }
   };
   function hookFind() {
     var D = global.DG.data;
@@ -223,7 +228,7 @@
           lines: [['누리', '은비가 무사하다니 다행이구나. 먹구름의 주인이라… 이름만 들어도 오싹하다.', 'sorrow'],
             ['누리', '잊혔던 옛길까지 되살려 준 셈이니 마을이 네게 진 빚이 크구나. 받아 두렴.', 'joy']] }
       ] },
-    { id: 'ch6', name: '제6장 · 봉우리의 검은 가면', ar: 15,
+    { id: 'ch6', name: '제6장 · 봉우리의 검은 가면', ar: 15, join: 'story_elder',
       reward: { knot: 4, gold: 2000, guide: 3, secret: 2, party: 750 },
       steps: [
         { type: 'talk', npc: 'scholar', text: '학자에게 셋째 제단 자리 듣기',
@@ -250,9 +255,10 @@
             ['은비', '응. 남은 제단은 둘. 그자도 급해졌을 거야 — 마을에 먼저 알리자.']] },
         { type: 'talk', npc: 'elder', text: '청하 촌장에게 알리기',
           lines: [['누리', '먹구름 임금의 신하라… 옛날 할머니가 들려주던 자장가에 그런 말이 있었지.', 'sorrow'],
-            ['누리', '봉우리까지 오르다니 장하구나. 다친 데는 없느냐? 이건 마을 사람들이 모은 거란다.', 'joy']] }
+            ['누리', '봉우리까지 오르다니 장하구나. 다친 데는 없느냐? 이건 마을 사람들이 모은 거란다.', 'joy'],
+            ['누리', '……이 늙은이도 더는 앉아만 있을 수 없구나. 다음 길엔 나도 함께 가마. 부채 바람쯤은 아직 일으킬 줄 안단다.']] }
       ] },
-    { id: 'ch7', name: '제7장 · 물가 곶의 넷째 제단', ar: 18,
+    { id: 'ch7', name: '제7장 · 물가 곶의 넷째 제단', ar: 18, join: 'story_ferryman',
       reward: { knot: 4, gold: 2250, guide: 3, secret: 2, party: 800 },
       steps: [
         { type: 'talk', npc: 'scholar', text: '학자에게 넷째 제단 자리 듣기',
@@ -286,7 +292,8 @@
           lines: [['버들', '불이 켜졌구나! 멀리서 보고 노를 저어 왔지.', 'joy'],
             ['버들', '그런데 저기 보이느냐? 물 건너 바위섬에도 불빛 하나가 깜박이는구나.', 'surprised'],
             ['?', ['다섯째 제단?', '누가 켰을까요?']],
-            ['버들', '바위섬은 뱃길이 험해 아무도 안 가는 곳이다. 촌장께 먼저 알리거라.']] },
+            ['버들', '바위섬은 뱃길이 험해 아무도 안 가는 곳이다. 촌장께 먼저 알리거라.'],
+            ['버들', '……그리고 그 뱃길은 내가 안내하마. 이 늙은 노도 아직 쓸 만하단다. 촌장께 인사를 마치면 네 곁에 서지.']] },
         { type: 'talk', npc: 'elder', text: '청하 촌장에게 알리기',
           lines: [['누리', '제단을 지켜 냈다니… 이제 남은 건 바위섬 하나로구나.', 'sorrow'],
             ['누리', '가면 반쪽이라. 나그네가 그렇게 놀라더란 말이지.'],

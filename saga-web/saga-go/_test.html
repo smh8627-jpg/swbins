@@ -10605,7 +10605,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         r.kit = FC.kitFor('story_scholar').skill.name === '비문 탁본' && FC.kitFor('story_wanderer').burst.type === 'echo' &&
           KT.labelOf('story_scholar', 'grass') === '고유';
         r.table = ST.CHAPTERS[1].join === 'story_scholar' && ST.CHAPTERS[4].join === 'story_wanderer' &&
-          ST.CHAPTERS.filter(function (c) { return c.join; }).length === 2;
+          ST.CHAPTERS.filter(function (c) { return c.join; }).length >= 2;     // ⑲-17 이 둘 더
         delete C.save.dex.heroes.story_scholar; delete C.save.dex.heroes.story_wanderer;
         C.save.party = [H0, H1];
         C.save.story = { ch: 1, step: 3 };
@@ -10835,6 +10835,94 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       } finally { rig.undo(); }
       var bad = Object.keys(r).filter(function (k) { return !r[k]; });
       return bad.length === 0 ? '물·금 간 가면 · 밀물 원 넷 2.5/5.5/8.5/11.5m · 옆 3.5m ✕ · 다음 그림자 · 40% → 💧방패 + 불도깨비·물두꺼비 · 쓰러뜨리면 다음 단계' : ('실패 ' + bad.join(','));
+    });
+
+    /* ── ⑲-17 이야기 동료 둘 더 — 치유·협동 공격 (story.js MEMBERS · kits.js · field-combat gust·wave·feast·rain, PLAN §5 ⑲-17) ── */
+    t('이야기 동료 ⑲-17 — 표: 촌장 풍 서책·사공 수 창 · 고유 스킬 이름 · 6장 끝 촌장·7장 끝 사공 합류(끝 대사 한 줄씩) · 지난 장 넷 조용히 한 번', function () {
+      var rig = stRig(15), ST = rig.ST, FC = DG.fieldCombat, WP = DG.weapon, r = {};
+      try {
+        var M = ST.MEMBERS;
+        r.find = D.find('story_elder') === M.story_elder && D.find('story_ferryman').rarity === 4 && DG.hero.stats('story_ferryman').might > 0 &&
+          D.heroes.every(function (h) { return !M[h.id]; });
+        r.el = FC.elementOf('story_elder') === 'wind' && FC.elementOf('story_ferryman') === 'water' &&
+          WP.typeOf('story_elder') === 'catalyst' && WP.typeOf('story_ferryman') === 'polearm';
+        r.kit = FC.kitFor('story_elder').skill.type === 'gust' && FC.kitFor('story_elder').burst.name === '잔칫날 순풍' &&
+          FC.kitFor('story_ferryman').skill.type === 'wave' && FC.kitFor('story_ferryman').burst.type === 'rain';
+        var c6 = ST.CHAPTERS[5], c7 = ST.CHAPTERS[6], l6 = c6.steps[7].lines, l7 = c7.steps[8].lines;
+        r.table = c6.join === 'story_elder' && c7.join === 'story_ferryman' && ST.CHAPTERS.filter(function (c) { return c.join; }).length === 4 &&
+          /함께 가마/.test(l6[l6.length - 1][1]) && /뱃길은 내가/.test(l7[l7.length - 1][1]);
+        ['story_scholar', 'story_wanderer', 'story_elder', 'story_ferryman'].forEach(function (id) { delete C.save.dex.heroes[id]; });
+        C.save.party = [D.heroes[0].id];
+        C.save.story = { ch: 5, step: 7 };
+        stGo(ST.npcPos('elder'));
+        r.join6 = stTalkAll(ST) && C.save.story.ch === 6 && ST.hasMember('story_elder') && C.save.party.indexOf('story_elder') >= 0;
+        C.save.player.level = 18; C.save.story = { ch: 6, step: 9 };
+        stGo(ST.npcPos('elder'));
+        r.join7 = stTalkAll(ST) && C.save.story.ch === 7 && ST.hasMember('story_ferryman');
+        ['story_scholar', 'story_wanderer', 'story_elder', 'story_ferryman'].forEach(function (id) { delete C.save.dex.heroes[id]; });
+        C.save.story = { ch: 7, step: 0 };
+        var n1 = ST.catchUp(), n2 = ST.catchUp();
+        r.catchUp = n1 === 4 && n2 === 0 && ST.hasMember('story_elder') && ST.hasMember('story_ferryman');
+      } finally { rig.undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? 'find 둘 · 풍 서책 / 수 창 · 부채 바람·순풍·노 물결·뱃노래 · 6장 촌장·7장 사공 · 지난 장 4 → 다시 0' : ('실패 ' + bad.join(','));
+    });
+
+    t('이야기 동료 ⑲-17 — 고유 스킬 넷: 부채 바람(앞 부채꼴만·7m 밀어냄·명단 +6%·보스 안 밀림) · 순풍(첫 틱 전엔 없음·2초에 두 번 5%·자리 밖이면 없음) · 노 물결(길 위만·앞으로 6m·나는 제자리) · 뱃노래(기본 공격 뒤 가까운 둘에 수·1초에 한 번·끝나면 없음)', function () {
+      var FC = DG.fieldCombat, KT = DG.kits, r = {}, i;
+      /* 부채 바람 */
+      var S1 = kitRig(KT.SIGS.story_elder), a1 = fcFoe(S1, 'bear', 0, 3), b1 = fcFoe(S1, 'bear', 0, -4), c1 = fcFoe(S1, 'bear', 4.5, 3.5),
+        d1 = fcFoe(S1, 'bear', 5.5, 0.5), x1 = fcFoe(S1, 'rex', 1, 5);
+      S1.party.forEach(function (p) { p.hp = Math.round(p.hpMax * 0.5); });
+      var hp0 = S1.party.map(function (p) { return p.hp; }), cd0 = Math.hypot(c1.x, c1.y);
+      var s1 = FC.skill(S1, 0, 0);
+      r.gustHit = s1.ok && s1.kit === 'gust' && a1.hp < a1.hpMax && c1.hp < c1.hpMax && x1.hp < x1.hpMax && b1.hp === b1.hpMax && d1.hp === d1.hpMax &&
+        Math.abs(S1.party[0].skillCd - 8) < 1e-9;
+      r.heal = S1.party.every(function (p, j) { return p.hp - hp0[j] === Math.round(p.hpMax * 0.06); });
+      kitRun(S1, 0.3);
+      r.knock = Math.abs(a1.y - 10) < 1e-6 && Math.abs(a1.x) < 1e-6 && Math.abs(Math.hypot(c1.x, c1.y) - (cd0 + 7)) < 1e-6 && x1.x === 1 && x1.y === 5 && !b1.kb;
+      /* 순풍 */
+      var S2 = kitRig(KT.SIGS.story_elder, true), a2 = fcFoe(S2, 'rex', 2, 0), m2 = S2.party[0];
+      m2.hp = Math.round(m2.hpMax * 0.5);
+      var h2 = m2.hp, s2 = FC.burst(S2, 0, 0), afterBurst = m2.hp === h2 && S2.zones.some(function (z) { return z.kind === 'feast'; });
+      var ha = a2.hp;
+      kitRun(S2, 0.9);
+      var none = m2.hp === h2;
+      kitRun(S2, 1.15);
+      r.feast = s2.ok && s2.kit === 'feast' && afterBurst && none && m2.hp - h2 === 2 * Math.round(m2.hpMax * 0.05) && a2.hp < ha;
+      var S3 = kitRig(KT.SIGS.story_elder, true), m3 = S3.party[0];
+      m3.hp = Math.round(m3.hpMax * 0.5);
+      var h3 = m3.hp;
+      FC.burst(S3, 0, 0);
+      S3.calmT = -30;                                                // 한가할 때 자연 회복은 빼고 본다
+      for (i = 0; i < 45; i++) { FC.step(S3, 0.05, { px: 20, py: 0, blocked: true }); }
+      r.outside = m3.hp === h3;
+      /* 노 물결 */
+      var S4 = kitRig(KT.SIGS.story_ferryman), a4 = fcFoe(S4, 'bear', 0, 5), b4 = fcFoe(S4, 'bear', 3, 5), c4 = fcFoe(S4, 'bear', 0, -6);
+      var s4 = FC.skill(S4, 0, 0);
+      r.wave = s4.ok && s4.kit === 'wave' && a4.hp < a4.hpMax && b4.hp === b4.hpMax && c4.hp === c4.hpMax && !S4.dash && Math.abs(S4.party[0].skillCd - 9) < 1e-9;
+      kitRun(S4, 0.3);
+      r.waveKnock = Math.abs(a4.y - 11) < 1e-6 && Math.abs(a4.x) < 1e-6;
+      /* 뱃노래 */
+      var S5 = kitRig(KT.SIGS.story_ferryman, true), m5 = S5.party[0];
+      m5.el = 'water';
+      var a5 = fcFoe(S5, 'rex', 1.5, 0), b5 = fcFoe(S5, 'rex', 4, 0), c5 = fcFoe(S5, 'rex', 6, 0);
+      var s5 = FC.burst(S5, 0, 0);
+      a5.aura = null; a5.auraT = 0; b5.aura = null; b5.auraT = 0;
+      var hb = b5.hp, hc = c5.hp;
+      S5.atkCd = 0; FC.attack(S5, 0, 0);
+      r.rain = s5.ok && s5.kit === 'rain' && S5.rainT === 15 && b5.hp < hb && b5.aura === 'water' && a5.aura === 'water' && c5.hp === hc && Math.abs(S5.rainCd - 1) < 1e-9;
+      var hb2 = b5.hp;
+      S5.atkCd = 0; FC.attack(S5, 0, 0);
+      var once = b5.hp === hb2;
+      kitRun(S5, 1.05);
+      S5.atkCd = 0; FC.attack(S5, 0, 0);
+      r.gap = once && b5.hp < hb2;
+      var hb3 = b5.hp;
+      S5.rainT = 0; S5.rainCd = 0; S5.atkCd = 0; FC.attack(S5, 0, 0);
+      r.over = b5.hp === hb3;
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '부채꼴 셋(뒤·옆 ✕)·+6%·7m(보스 제자리) · 순풍 0.9초 0 → 2초 두 번 · 밖 0 · 물결 길 위 하나·6m·제자리 · 뱃노래 둘 수·1초 쉼·끝나면 0' : ('실패 ' + bad.join(','));
     });
 
     /* ── ⑳ 원작 겹침 정리 (PLAN §5 ⑳) ── */
