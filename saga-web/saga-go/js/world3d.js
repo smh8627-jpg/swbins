@@ -2361,6 +2361,9 @@
       if (deck > gyMe) { meA.node.position.y += deck - gyMe; }
     }
     syncGlider(meA, LFa && LFa.gliding && LFa.gliding(), mx, my, air, h);
+    /* ⑲-22 조준 중엔 몸이 겨눈 쪽을 본다 */
+    var FCme = global.DG.fieldCombat, AVme = FCme && FCme.aimView ? FCme.aimView() : null;
+    if (AVme && meA.mesh) { meA.ang = Math.atan2(AVme.dx, AVme.dy); meA.node.rotation.y = meA.ang; }
     /* ⑲-13 대화 — 나는 대화 상대를 돌아보고, 내 줄(고른 대답)이면 손짓·입. 깜박임은 늘(talkface.js) */
     var TSm = talkShot(), TFm = global.DG.talkface;
     var tdt = talkNow ? Math.min(0.1, Math.max(0, (now - talkNow) / 1000)) : 0;
@@ -2594,6 +2597,12 @@
   var talkNow = 0;         // ⑲-13 대화 몸짓 — 지난 프레임 시각(ms)
   /** ⑲-13 이야기 대화 중이면 연출 값(story.talkShot) — 카메라·몸짓이 읽는다 */
   function talkShot() { var S = global.DG.story; return S && S.talkShot && global.DG.talkface ? S.talkShot() : null; }
+  /** ⑲-22 조준 구도(순수) — 오른 어깨 너머(뒤 2.6m·옆 0.7m·몸 키 1.25배 높이), 앞 14m 를 본다. av = {dx, dy} 겨눈 쪽 */
+  function aimCam(p, av, h) {
+    var fx = av.dx, fz = av.dy, rx = -fz, rz = fx;                  // 앞 (fx, fz) 을 볼 때 화면 오른쪽
+    return { pos: { x: p.x - fx * 2.6 + rx * 0.7, y: h * 1.25, z: p.y - fz * 2.6 + rz * 0.7 },
+      look: { x: p.x + fx * 14, y: h * 0.85, z: p.y + fz * 14 } };
+  }
   var battleOn = false;    // 교전 중인가
   var shakeAmp = 0;        // 남은 흔들림 세기(m)
   var holdUntil = 0;       // 이때까지 화면이 멎는다 (performance.now 기준)
@@ -2941,8 +2950,10 @@
     /* ⑲-13 이야기 대화 — 듣는 이 어깨 너머에서 말하는 이 얼굴을 본다(talkface.talkAim). 끝나면 아래 보통 구도로 따라 돌아온다 */
     var TS = stageAt ? null : talkShot();
     /* 조우 무대에서는 줌을 무시한다 — 무대는 늘 같은 그림이어야 한다 */
-    var aim = TS ? global.DG.talkface.talkAim(TS.spk, TS.lst, ACTOR_H()) : camAim(pos, W.tiltMode, focusLive(), stageAt,
-      stageAt ? 1 : W.zoom3d, battleOn, stageAt ? 0 : yaw, duelFoe);
+    /* ⑲-22 활 조준 — 오른 어깨 너머에서 겨눈 쪽을 본다(대화·조우 무대가 먼저) */
+    var FCv = global.DG.fieldCombat, AV = !TS && !stageAt && FCv && FCv.aimView ? FCv.aimView() : null;
+    var aim = TS ? global.DG.talkface.talkAim(TS.spk, TS.lst, ACTOR_H()) : (AV ? aimCam(pos, AV, ACTOR_H()) : camAim(pos, W.tiltMode, focusLive(), stageAt,
+      stageAt ? 1 : W.zoom3d, battleOn, stageAt ? 0 : yaw, duelFoe));
     /* **카메라와 시선도 땅을 따라 오른다.** 안 그러면 산에 오를 때 카메라가
        제자리에 남아 땅이 화면을 덮고, 골짜기에서는 하늘만 보인다.
        `camAim` 은 평면 기준으로 값을 내므로 여기서 땅 높이만 얹는다 —
@@ -3220,6 +3231,7 @@
     groundY: groundY,
     /** ⑲-20 층을 아는 발 높이 — sky 를 안 주면 내 층(구름섬 위면 섬 윗면) */
     standY: standY,
+    aimCam: aimCam,
     /** 지금 쓰는 시야각(도) — 진단·데모가 세로 화면 보정을 값으로 본다 */
     fov: function () { return camera ? camera.fov : FOV(); },
     forceTime: forceTime,

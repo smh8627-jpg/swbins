@@ -345,6 +345,9 @@
   function moveMul(x, y, ux, uy, dt) {
     if (!on() || !keyMode()) { return 1; }
     sta();
+    /* §5 ⑲-22 활 조준 중엔 걷지 않고 방향 키가 겨눈 쪽을 돌린다 */
+    var FCa = global.DG.fieldCombat;
+    if (FCa && FCa.aiming && FCa.aiming()) { FCa.aimSteerRt(ux, uy, dt); body.state = 'walk'; return 0; }
     body.ux = ux; body.uy = uy;
     var SK = SKY(), air = body.jumpT >= 0;
     if (SK) {
@@ -400,6 +403,8 @@
     if (W && W.inputBlocked && W.inputBlocked()) { return false; }
     sta();
     var pos = core().save.player.pos;
+    var FCj = global.DG.fieldCombat;
+    if (FCj && FCj.aimCancel) { FCj.aimCancel(); }                  // ⑲-22 뛰면 조준이 풀린다
     /* 활공 중에 누르면 날개를 접고 떨어진다 */
     if (body.glide) {
       if (body.glide.fall) { return false; }

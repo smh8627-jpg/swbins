@@ -3,7 +3,8 @@
  * ---------------------------------------------------------------
  *   자리     지역 칸(biome.js, 1.2km)마다 **고정** — 칸 좌표 해시라 세이브 없이 늘 같은 자리.
  *            상자 넷(나무 둘·무늬·옻칠) + 넷에 하나 꼴로 금박 · 구슬 셋(산마루·강물 위·나무 위, 없으면 들판)
- *   잠금     나무 없음 · 무늬 석등 둘(그 원소 스킬·폭발이 닿으면 켜짐, 첫 불 뒤 20초 안에 다) ·
+ *   잠금     나무 없음 · 무늬 석등 둘(그 원소 스킬·폭발이 닿으면 켜짐, 첫 불 뒤 20초 안에 다) — 고향 밖 칸 절반은 무늬가
+ *            **과녁 셋**(§5 ⑲-22 — 화살·서책·활 기본 공격이 맞히면 10초 금빛, 셋 다 빛나면 풀림) ·
  *            옻칠 무리 · 금박 정예 무리(들판 전투 무리, 키 `tc:<상자>`)
  *   봉헌     찾은 지역 탑 25m 안 — 구슬 둘마다 탑 등급 +1(최대 10) → 들판 기력 상한 +8·금 200·단사 2
  *   시야     V 누르는 동안 / 👁 단추 — 3D 화면 잿빛 + 45m 안 짚기 + 80m 안 가장 가까운 상자·구슬 흔적
@@ -31,6 +32,8 @@
   function OPEN_R(gps) { return gps ? 12 : 3; }
   function ORB_R(gps) { return gps ? 8 : 1.6; }
   var LANTERN_N = 2, LANTERN_R = 5, LANTERN_T = 20;
+  /* ⑲-22 과녁 잠금 — 상자에서 9·12·15m 셋(각 2.1 라디안씩), 맞힌 과녁은 TARGET_T 초 금빛, 판 둘레 TARGET_R */
+  var TARGET_D = [9, 12, 15], TARGET_T = 10, TARGET_R = 0.75, TARGET_SHARE = 0.5;
   var OFFER_R = 25, LV_MAX = 10, STA_PER_LV = 8, ORBS_PER_LV = 2;
   var SIGHT_R = 45, TRAIL_R = 80, TRAIL_STEP = 2.2, TRAIL_MAX = 14;
   var TILE = 48;
@@ -73,6 +76,11 @@
     for (n = 0; n < grades.length; n++) {
       var g = grades[n], p = spot(c, 100 + n * 17, home ? 90 : 120, home ? 300 : 480, terr);
       var ch = { id: 'c' + c.key + '_' + n, cell: c.key, grade: g, lock: LOCK_OF[g], x: p.x, y: p.y, lanterns: [] };
+      if (g === 'exquisite' && !home && h3(i, j, 97) < TARGET_SHARE) {           // ⑲-22 과녁 잠금
+        var ta = h3(i, j, 231 + n) * Math.PI * 2;
+        ch.lock = 'target';
+        ch.targets = TARGET_D.map(function (d, q) { var aa = ta + q * 2.1; return { x: ch.x + Math.cos(aa) * d, y: ch.y + Math.sin(aa) * d }; });
+      }
       if (ch.lock === 'lantern') {
         var e0 = Math.floor(h3(i, j, 201 + n) * 7) % 7, e1 = (e0 + 1 + Math.floor(h3(i, j, 211 + n) * 6)) % 7;
         var a0 = h3(i, j, 221 + n) * Math.PI * 2;
@@ -170,6 +178,7 @@
   var unlocked = {};       // 상자id → 잠금이 풀렸다(이번 판)
   var lit = {};            // 상자id → { on: [bool,…], t0 } 석등 불
   var hinted = {};         // 상자id → 안내를 했다
+  var shot = {};           // ⑲-22 상자id → [과녁마다 맞힌 시각|null]
   function gps() { var W = global.DG.world; return !!(W && W.mode === 'geo'); }
   function toast(msg) { if (global.DG.ui && global.DG.ui.toast && !global.DG_NO_DRAW) { global.DG.ui.toast(msg); } }
   function sfx(name) { if (global.DG.audio) { try { global.DG.audio.play(name); } catch (e) { /* 소리는 없어도 된다 */ } } }
@@ -218,6 +227,54 @@
       else { toast('🏮 석등 하나 — ' + LANTERN_T + '초 안에 나머지도'); }
     }
   }
+  /** ⑲-22 과녁이 선분 (x0,y0)-(x1,y1) 둘레 TARGET_R 안이면 켠다(점이면 x0=x1) — 켠 수. 셋이 다 빛나면 풀림 */
+  function segD(px, py, ax, ay, bx, by) {
+    var dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy, t = l2 > 0 ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / l2)) : 0;
+    return Math.hypot(px - ax - dx * t, py - ay - dy * t);
+  }
+  function shootSeg(x0, y0, x1, y1) {
+    if (!on()) { return 0; }
+    var L = near((x0 + x1) / 2, (y0 + y1) / 2, Math.hypot(x1 - x0, y1 - y0) / 2 + 20).chests, n = 0, now = nowSec(), i, q;
+    for (i = 0; i < L.length; i++) {
+      var ch = L[i];
+      if (ch.lock !== 'target' || unlocked[ch.id] || opened(ch.id)) { continue; }
+      var st = shot[ch.id] || ch.targets.map(function () { return null; }), got = 0;
+      for (q = 0; q < ch.targets.length; q++) {
+        if (segD(ch.targets[q].x, ch.targets[q].y, x0, y0, x1, y1) <= TARGET_R) { st[q] = now; got++; }
+      }
+      if (!got) { continue; }
+      n += got; shot[ch.id] = st;
+      var on3 = st.filter(function (t) { return t !== null && now - t <= TARGET_T; }).length;
+      if (on3 >= ch.targets.length) { unlocked[ch.id] = true; delete shot[ch.id]; toast('🎯 과녁 셋이 모두 빛난다 — 상자가 풀렸다'); sfx('discover'); }
+      else { toast('🎯 과녁 ' + on3 + '/' + ch.targets.length + ' — ' + TARGET_T + '초 동안 빛난다'); }
+    }
+    return n;
+  }
+  /** ⑲-22 조준에 잠길 것 — 둘레 R 안 안 켠 과녁·안 켠 석등 [{kind:'target'|'lantern', x, y, el?}] */
+  function aimPoints(px, py, R) {
+    if (!on()) { return []; }
+    var L = near(px, py, R + 20).chests, out = [], now = nowSec(), i, q;
+    for (i = 0; i < L.length; i++) {
+      var ch = L[i];
+      if (unlocked[ch.id] || opened(ch.id)) { continue; }
+      if (ch.lock === 'target') {
+        var st = shot[ch.id];
+        for (q = 0; q < ch.targets.length; q++) {
+          if (!(st && st[q] !== null && now - st[q] <= TARGET_T)) { out.push({ kind: 'target', x: ch.targets[q].x, y: ch.targets[q].y }); }
+        }
+      } else if (ch.lock === 'lantern') {
+        var ls = lit[ch.id];
+        for (q = 0; q < ch.lanterns.length; q++) { if (!(ls && ls.on[q])) { out.push({ kind: 'lantern', x: ch.lanterns[q].x, y: ch.lanterns[q].y, el: ch.lanterns[q].el }); } }
+      }
+    }
+    return out.filter(function (o) { return Math.hypot(o.x - px, o.y - py) <= R; });
+  }
+  /** ⑲-22 서책·활 기본 공격 — 사거리 R 안 가장 가까운 안 켠 과녁(없으면 null) */
+  function shootNear(px, py, R) {
+    var L = aimPoints(px, py, R).filter(function (o) { return o.kind === 'target'; }), best = null, bd = Infinity;
+    for (var i = 0; i < L.length; i++) { var d = Math.hypot(L[i].x - px, L[i].y - py); if (d < bd) { bd = d; best = L[i]; } }
+    return best;
+  }
   /** 들판 무리를 치웠다(`field:clear`) — 상자 잠금 무리면 풀린다 */
   function onClear(e) {
     if (!e || typeof e.camp !== 'string' || e.camp.indexOf('tc:') !== 0) { return; }
@@ -258,7 +315,7 @@
     if (!on()) { return false; }
     var L = near(px, py, 15 + LANTERN_R).chests;
     for (var i = 0; i < L.length; i++) {
-      if (L[i].lock === 'lantern' && !unlocked[L[i].id] && !opened(L[i].id) && Math.hypot(L[i].x - px, L[i].y - py) <= 15) { return true; }
+      if ((L[i].lock === 'lantern' || L[i].lock === 'target') && !unlocked[L[i].id] && !opened(L[i].id) && Math.hypot(L[i].x - px, L[i].y - py) <= 15) { return true; }
     }
     return false;
   }
@@ -268,6 +325,11 @@
     clock += dt;
     for (var lk in lit) {
       if (lit.hasOwnProperty(lk) && lit[lk].t0 !== null && clock - lit[lk].t0 > LANTERN_T) { delete lit[lk]; toast('🏮 석등이 꺼졌다 — 다시 켜야 한다'); }
+    }
+    for (var sk in shot) {                                        // ⑲-22 과녁 — 10초 지나면 하나씩 꺼진다
+      if (!shot.hasOwnProperty(sk)) { continue; }
+      shot[sk] = shot[sk].map(function (t) { return t !== null && clock - t > TARGET_T ? null : t; });
+      if (shot[sk].every(function (t) { return t === null; })) { delete shot[sk]; }
     }
   }
 
@@ -302,7 +364,8 @@
         hinted[ch.id] = true;
         toast(ch.lock === 'lantern'
           ? '🔒 석등 둘에 원소를 — ' + ch.lanterns.map(function (ln) { var E = FC() && FC().EL[ln.el]; return E ? E.icon + ' ' + E.name : ln.el; }).join(' · ') + ' (' + LANTERN_T + '초 안에)'
-          : '🔒 상자를 지키는 무리를 모두 쓰러뜨려라');
+          : (ch.lock === 'target' ? '🎯 과녁 셋을 ' + TARGET_T + '초 안에 모두 맞혀라 — 활 조준(R)·서책·활 기본 공격'
+            : '🔒 상자를 지키는 무리를 모두 쓰러뜨려라'));
       }
     }
     for (i = 0; i < N.orbs.length; i++) {
@@ -393,6 +456,19 @@
         if (cm) { nd.root.add(cm); }
         var gc = { common: '#d9b36a', exquisite: '#8fd8ff', precious: '#c7a0ff', luxurious: '#ffd24a' }[ch.grade];
         nd.halo = sprite(T3, gc, 2.6, 0.45); nd.halo.position.y = 0.9; nd.root.add(nd.halo);
+        nd.tgs = [];
+        (ch.targets || []).forEach(function (tq) {                     // ⑲-22 과녁 — 기둥 + 판(코드 그림)
+          var tg = new T3.Group(), wood = new T3.MeshLambertMaterial({ color: 0x7a5a3a });
+          var post = new T3.Mesh(new T3.CylinderGeometry(0.07, 0.09, 1.7, 6), wood); post.position.y = 0.85; tg.add(post);
+          var board = new T3.Mesh(new T3.CylinderGeometry(0.55, 0.55, 0.08, 20), new T3.MeshLambertMaterial({ color: 0xe8dcc4 }));
+          board.rotation.x = Math.PI / 2; board.position.y = 1.75; tg.add(board);
+          var eye = new T3.Mesh(new T3.CylinderGeometry(0.22, 0.22, 0.1, 16), new T3.MeshLambertMaterial({ color: 0xc0392b }));
+          eye.rotation.x = Math.PI / 2; eye.position.y = 1.75; tg.add(eye);
+          var gl = sprite(T3, '#ffd24a', 1.6, 0.0); gl.position.y = 1.75; tg.add(gl);
+          tg.rotation.y = Math.atan2(ch.x - tq.x, ch.y - tq.y);
+          tg.position.set(tq.x - ch.x, (w.groundY ? w.groundY(tq.x, tq.y) : 0) - (w.groundY ? w.groundY(ch.x, ch.y) : 0), tq.y - ch.y);
+          nd.root.add(tg); nd.tgs.push(gl);
+        });
         for (q = 0; q < ch.lanterns.length; q++) {
           var ln = ch.lanterns[q], lg = new T3.Group(), lm = model('lantern', 1.6);
           if (lm) { lg.add(lm); }
@@ -404,6 +480,11 @@
       }
       nd.root.position.set(ch.x, w.groundY ? w.groundY(ch.x, ch.y) : 0, ch.y);
       if (nd.halo) { nd.halo.material.opacity = lockOpen(ch) ? 0.55 + Math.sin(t * 3) * 0.15 : 0.25; }
+      var sh = shot[k];
+      for (q = 0; q < (nd.tgs || []).length; q++) {
+        var tOn = !!(unlocked[k] || (sh && sh[q] !== null));
+        nd.tgs[q].material.opacity = tOn ? 0.85 + Math.sin(t * 5 + q) * 0.1 : 0;
+      }
       var st = lit[k];
       for (q = 0; q < nd.lamps.length; q++) {
         var onq = !!(unlocked[k] || (st && st.on[q]));
@@ -516,6 +597,10 @@
           var st = lit[ch.id];
           if (!unlocked[ch.id] && !(st && st.on[q])) { dot(ch.lanterns[q].x, ch.lanterns[q].y, 1.9, elColor(ch.lanterns[q].el), 20); }
         }
+        for (q = 0; q < (ch.targets || []).length; q++) {            // ⑲-22 안 맞힌 과녁 흰빛
+          var sq = shot[ch.id];
+          if (!unlocked[ch.id] && !(sq && sq[q] !== null)) { dot(ch.targets[q].x, ch.targets[q].y, 1.75, '#ffffff', 18); }
+        }
       }
       for (i = 0; i < N.orbs.length; i++) {
         var o = N.orbs[i];
@@ -551,10 +636,11 @@
     TRAIL_STEP: TRAIL_STEP, TRAIL_MAX: TRAIL_MAX, SIGHT_R: SIGHT_R,
     on: on, cellItems: cellItems, itemsAt: itemsOf, near: near, pickable: pickable, levelOf: levelOf, trail: trail,
     campsNear: campsNear, wantsHud: wantsHud, staBonus: staBonus, level: level, held: held, opened: opened,
+    TARGET_D: TARGET_D, TARGET_T: TARGET_T, TARGET_R: TARGET_R, shootSeg: shootSeg, aimPoints: aimPoints, shootNear: shootNear, _shot: function () { return shot; },
     tick: tick, check: check, offer: offer, open: open, onElement: onElement, onClear: onClear,
     sightOn: function () { return sight.on; },
     /** 진단 전용 — 잠금·불·캐시를 비운다 */
-    _resetForTest: function () { unlocked = {}; lit = {}; hinted = {}; itemCache = {}; itemCount = 0; clock = 0; },
+    _resetForTest: function () { unlocked = {}; lit = {}; hinted = {}; shot = {}; itemCache = {}; itemCount = 0; clock = 0; },
     _unlocked: function () { return unlocked; }, _lit: function () { return lit; }, _stepLit: stepLit
   };
 })(window);

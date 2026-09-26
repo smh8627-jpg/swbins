@@ -8960,7 +8960,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
           total++;
           if (tk === 'water' || tk === 'town' || tk === 'road') { bad++; }
           if (ids[c.id]) { dup++; } ids[c.id] = 1;
-          if (c.lock !== TR.LOCK_OF[c.grade]) { okGrade = false; }
+          if (c.lock !== TR.LOCK_OF[c.grade] && !(c.grade === 'exquisite' && c.lock === 'target')) { okGrade = false; }   // ⑲-22 무늬 절반은 과녁
           if (c.lock === 'lantern') {
             var L = c.lanterns;
             if (L.length !== 2 || L[0].el === L[1].el || L.some(function (l) { return Math.abs(Math.hypot(l.x - c.x, l.y - c.y) - 5) > 1e-6; })) { okLamp = false; }
@@ -11361,6 +11361,99 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       } finally { rig.undo(); }
       var bad = Object.keys(r).filter(function (k) { return !r[k]; });
       return bad.length === 0 ? '등대 가기·한빛·무리·불 → 끝 · 석등 틀림 꺼짐 → 달·해·별 · 틈 제단 물결 1/2 · 바꾸면 물결 치움' : ('실패 ' + bad.join(','));
+    });
+
+    /* ── ⑲-22 활 조준 사격·과녁 잠금 (field-combat aim·arrows · treasure target, PLAN §5 ⑲-22) ── */
+    t('활 조준 ⑲-22 — 활 인물만 · 가까운 적에 잠김 · 방향 키로 돌리면 콘 밖은 풀림 · 덜 찬 화살 물리 · 다 찬 화살 원소 · 모르는 적 = 급소(반드시 치명) · 쫓는 적은 급소 아님 · 빈 곳은 45m 날아 멈춤 · 칼로 바꾸면 풀림', function () {
+      var FC = DG.fieldCombat, bow = heroOfType('bow'), sw = heroOfType('sword');
+      if (!bow || !sw) { return false; }
+      var undo = gearRig([bow, sw]), r = {};
+      try {
+        var So = fcState([sw]);
+        r.only = !FC.canAim(So) && !FC.aimStart(So, 0, 0).ok;
+        var S = fcState([bow, sw]), m = S.party[0];
+        m.cr = 0;
+        var f = fcFoe(S, 'boar', 20, 0);
+        r.start = FC.canAim(S) && FC.aimStart(S, 0, 0).ok && Math.abs(S.aim.dx - 1) < 1e-9 && !!S.aim.lock && S.aim.lock.uid === f.uid;
+        FC.aimSteer(S, 0, 1, 0.1); FC.aimLock(S, 0, 0);
+        var turned = Math.atan2(S.aim.dy, S.aim.dx);
+        FC.aimSteer(S, 1, 0, 1); FC.aimLock(S, 0, 0);
+        r.steer = Math.abs(turned - 0.24) < 1e-6 && S.aim.lock !== null && Math.abs(S.aim.dy) < 1e-9;
+        fcEv(S);
+        FC.aimHold(S); S.aim.t = 0.5;
+        var e0 = m.energy, hp0 = f.hp, s1 = FC.aimShoot(S, 0, 0);
+        FC.stepArrows(S, 0.2);
+        var mid = S.arrows.length === 1 && f.hp === hp0;
+        FC.stepArrows(S, 0.2);
+        var h1 = fcEv(S, 'hit')[0];
+        r.part = s1.ok && !s1.full && mid && S.arrows.length === 0 && !!h1 && h1.uid === f.uid && !h1.el && f.hp < hp0 && m.energy > e0;
+        var g = fcFoe(S, 'boar', 0, -20);
+        FC.aimSteer(S, 0, -1, 9); FC.aimLock(S, 0, 0);
+        S.atkCd = 0; FC.aimHold(S); S.aim.t = FC.AIM_FULL;
+        fcEv(S);
+        var s2 = FC.aimShoot(S, 0, 0);
+        FC.stepArrows(S, 0.5);
+        var ev2 = fcEv(S), h2 = ev2.filter(function (e) { return e.t === 'hit' && e.uid === g.uid; })[0], wk = ev2.filter(function (e) { return e.t === 'weak'; });
+        r.weak = s2.full && !!h2 && h2.el === m.el && h2.crit === true && wk.length === 1 && wk[0].uid === g.uid;
+        var gg = fcFoe(S, 'boar', 0, -25); gg.st = 'chase';
+        S.atkCd = 0; FC.aimHold(S); S.aim.t = FC.AIM_FULL; FC.aimLock(S, 0, 0);
+        fcEv(S);
+        FC.aimShoot(S, 0, 0); FC.stepArrows(S, 0.6);
+        var h3e = fcEv(S, 'hit').filter(function (e) { return e.uid === gg.uid || e.uid === g.uid; })[0];
+        r.aware = !!h3e && !h3e.crit;
+        S.atkCd = 0; S.aim.dx = -1; S.aim.dy = 0; FC.aimLock(S, 0, 0); fcEv(S);
+        FC.aimShoot(S, 0, 0);
+        for (var k = 0; k < 20 && S.arrows.length; k++) { FC.stepArrows(S, 0.1); }
+        var ar = fcEv(S, 'arrow')[0];
+        r.far = S.aim.lock === null && !!ar && Math.abs(ar.x + FC.ARROW_RANGE) < 1e-6 && !ar.el;
+        FC.swap(S, 1); FC.step(S, 0.01, { px: 0, py: 0 });
+        r.swap = S.aim === null;
+      } finally { undo(); }
+      var bad = Object.keys(r).filter(function (k2) { return !r[k2]; });
+      return bad.length === 0 ? '칼은 못 함 · 잠김 · 0.24rad 돌리면 풀림 · 덜 참 물리 · 급소 치명(원소) · 쫓는 적 급소 아님 · 45m 멈춤 · 바꾸면 풀림' : ('실패 ' + bad.join(','));
+    });
+
+    t('과녁 잠금 ⑲-22 — 고향 밖 무늬 상자 절반이 과녁 셋(9·12·15m, 석등 없음) · 조준 점 셋 · 하나 맞히면 10초 빛남 · 10초 안에 셋 → 풀림 · 늦으면 안 풀림 · 서책 기본 공격도 과녁(적이 없으면) · 이야기 석등도 조준 점', function () {
+      var TR = DG.treasure, FC = DG.fieldCombat, r = {}, i, j;
+      TR._resetForTest();
+      try {
+        var tgt = 0, lan = 0;
+        for (j = -5; j <= 5; j++) { for (i = -5; i <= 5; i++) {
+          if (!i && !j) { continue; }
+          TR.cellItems(i, j).chests.forEach(function (c) { if (c.grade === 'exquisite') { if (c.lock === 'target') { tgt++; } else if (c.lock === 'lantern') { lan++; } } });
+        } }
+        r.share = tgt > 0 && lan > 0 && tgt / (tgt + lan) > 0.3 && tgt / (tgt + lan) < 0.7 && TR.cellItems(0, 0).chests.every(function (c) { return c.lock !== 'target'; });
+        var ch = trFind(function (c) { return c.lock === 'target'; });
+        if (!ch) { return false; }
+        var T = ch.targets;
+        r.shape = T.length === 3 && ch.lanterns.length === 0 && T.every(function (q, k) { return Math.abs(Math.hypot(q.x - ch.x, q.y - ch.y) - TR.TARGET_D[k]) < 1e-6; });
+        r.points = TR.aimPoints(ch.x, ch.y, 30).filter(function (o) { return o.kind === 'target'; }).length === 3;
+        function hit(k) { return TR.shootSeg(T[k].x, T[k].y, T[k].x, T[k].y); }
+        r.one = hit(0) === 1 && TR._shot()[ch.id][0] !== null && !TR._unlocked()[ch.id] &&
+          TR.aimPoints(ch.x, ch.y, 30).filter(function (o) { return o.kind === 'target'; }).length === 2;
+        TR._stepLit(10.5);
+        r.expire = !TR._shot()[ch.id];
+        hit(0); TR._stepLit(6); hit(1); TR._stepLit(5); hit(2);
+        r.late = !TR._unlocked()[ch.id];
+        TR._resetForTest();
+        hit(0); TR._stepLit(4); hit(1); TR._stepLit(4); hit(2);
+        r.open = TR._unlocked()[ch.id] === true && TR.aimPoints(ch.x, ch.y, 30).length === 0;
+        TR._resetForTest();
+        var cat = heroOfType('catalyst'), undo = gearRig([cat]);
+        try {
+          var S = fcState([cat]), px = T[1].x + 4, py = T[1].y;
+          var near = TR.shootNear(px, py, 7), a = FC.attack(S, px, py);
+          r.cat = !!near && Math.abs(near.x - T[1].x) < 1e-9 && a.target === true && TR._shot()[ch.id][1] !== null;
+        } finally { undo(); }
+        var rig = stRig(12), ST = rig.ST;
+        try {
+          C.save.story = { ch: 4, step: 4 };
+          var st = ST.step(), ap = ST.aimPoints();
+          r.story = st.type === 'seal' && ap.length === 3 && ap.every(function (o) { return o.kind === 'lamp'; });
+        } finally { rig.undo(); }
+      } finally { TR._resetForTest(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '무늬 절반 과녁 · 9·12·15m · 점 셋 · 10초 빛남 · 셋 → 풀림 · 늦으면 ✕ · 서책도 · 석등 조준 점' : ('실패 ' + bad.join(','));
     });
 
     /* ── ⑳ 원작 겹침 정리 (PLAN §5 ⑳) ── */

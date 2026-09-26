@@ -7,6 +7,10 @@
  *   무리      160m 격자마다 해시로 자리·종류가 정해진다(세이브 없이도 늘 같은 자리).
  *             멀리(900m 마다) 갈수록 등급이 오른다 — 오픈월드 RPG의 "세계 레벨" 자리
  *   편성      동행 앞 4명. 숫자 1~4(또는 초상)로 즉시 교체, 교체 1초 쿨
+ *   조준      §5 ⑲-22 활 인물만 R(터치 🎯) — 제자리에서 방향 키로 겨누고(가까운 적·과녁·석등에 저절로 잠김) 공격을 누르는
+ *             동안 충전, 떼면 쏜다. 조준 밖에서 활 인물이 공격을 길게 누르면 강공격 대신 조준·충전 → 떼면 쏘고 나온다.
+ *             1.4초 다 차면 인물 원소 ×1.25(모르는 적이면 급소 = 반드시 치명), 덜 차면 물리 ×0.45. 화살 60m/초·45m.
+ *             충전 화살이 멈춘 자리는 원소 신호(석등·제단을 멀리서 켠다). 화살은 상자 과녁(treasure.js)도 켠다
  *   조작      기본 공격 3타 · 길게 누르면 강공격(0.4초·스태미나 20) · 활공 중엔 낙하 공격(§5 ⑲-2) ·
  *             원소 스킬(7초) · 원소 해방(기력 60) · 회피(스태미나 20)
  *   원소      일곱 — 화·수·뇌·풍·빙·암·초(§5 ⑲-1, saga-godot PLAN 106 ⑭). 인물마다 id 해시로 고정, 주인공은 화.
@@ -79,7 +83,11 @@
   function DASH_T() { return 0.18; }
   function SWAP_CD() { return K('swapCd', 1); }
   /* ⑲-2 강공격·낙하 공격 — saga-godot PLAN 106 ⑧ 칸(둘 다 물리, 깨뜨림을 낸다) */
-  function CHARGE_HOLD() { return 0.4; }  function CHARGE_COST() { return K('chargeCost', 20); }
+  function CHARGE_HOLD() { return 0.4; }
+  /* ⑲-22 조준 사격 */
+  function AIM_R() { return 40; }  function AIM_CONE() { return 0.16; }  function AIM_TURN() { return 2.4; }
+  function AIM_FULL() { return 1.4; }  function AIM_PART() { return 0.45; }  function AIM_FULLMUL() { return 1.25; }  function AIM_GAP() { return 0.3; }
+  function ARROW_V() { return 60; }  function ARROW_RANGE() { return 45; }  function ARROW_EL_R() { return 1.2; }  function CHARGE_COST() { return K('chargeCost', 20); }
   function CHARGE_MUL() { return K('chargeMul', 1.3); }  function CHARGE_REACH() { return 3.2; }  function CHARGE_ARC() { return -0.2; }
   function PLUNGE_R() { return 3.5; }     function PLUNGE_MUL() { return K('plungeMul', 1.2); }
   function PLUNGE_PER_M() { return 0.1; } function PLUNGE_MAX_M() { return 15; }
@@ -761,7 +769,7 @@
    * 한 대 — 방패·원소 부착·반응을 다 여기서 가른다.
    * @returns {{uid, dmg, react, shield, immune}}
    */
-  function hitFoe(S, f, m, raw, el, src) {
+  function hitFoe(S, f, m, raw, el, src, force) {
     var out = { uid: f.uid, dmg: 0, react: null, shield: false, immune: false };
     if (f.dead) { return out; }
     var emB = (1 + (m.em || 0) / 300) * (m.reactMul || 1) * (1 + (m.rxAll || 0));   // ⑲-4 깨달음 2 · ⑲-5 무기 반응 효과
@@ -776,6 +784,7 @@
       raw *= 1 + (m.dmgB[gk] || 0) + ((m.elemB && m.elemB[el || 'phys']) || 0);
       if (m.cr > 0 && S.crng && S.crng() < m.cr) { raw *= 1 + (m.cdm || 0); out.crit = true; }
     }
+    if (force && !out.crit) { raw *= 1 + (m.cdm || 0.5); out.crit = true; }   // ⑲-22 급소 — 반드시 치명
     S.calmT = 0; f.hitT = S.t; wake(f);
     if (f.shield > 0) {
       var sm = shieldMul(f.shEl, el);
@@ -867,6 +876,15 @@
     var kit = m.kit || SWORD_KIT, reach = kit === SWORD_KIT || m.wtype === 'sword' ? REACH() : kit.reach, tgt;
     if (kit.range) {
       tgt = nearestFoe(S, px, py, kit.range);
+      /* ⑲-22 둘레에 적이 없으면 사거리 안 상자 과녁을 친다(활잡이가 없어도 서책으로 풀린다) */
+      var TRs = global.DG.treasure, tp = !tgt && TRs && TRs.shootNear ? TRs.shootNear(px, py, kit.range) : null;
+      if (tp) {
+        TRs.shootSeg(tp.x, tp.y, tp.x, tp.y);
+        var st0 = S.combo % 3;
+        S.combo++; S.comboT = 0; S.atkCd = kit.sec[st0];
+        push(S, { t: 'swing', step: st0, w: m.wtype, ranged: true, tx: tp.x, ty: tp.y, el: kit.el ? m.el : null });
+        return { ok: true, step: st0, target: true };
+      }
     } else {
       tgt = nearestFoe(S, px, py, reach);
       if (!tgt) {
@@ -887,6 +905,100 @@
     m.energy = Math.min(ENERGY_MAX(), m.energy + 1.5 * (m.er || 1));
     push(S, { t: 'swing', step: step, uid: tgt.uid, w: m.wtype, ranged: !!kit.range, tx: tgt.x, ty: tgt.y, el: kit.el ? m.el : null });
     return { ok: true, step: step, hit: r };
+  }
+
+  /* ── ⑲-22 조준 사격 ─────────────────────────────────── */
+  function canAim(S) { var m = active(S); return !!(m && !m.down && m.wtype === 'bow'); }
+  /** 조준에 잠길 것 — 살아 있는 적 + 상자 과녁·석등(treasure) + 이야기 석등·제단(story) [{kind, x, y, uid?}] */
+  function aimCands(S, px, py) {
+    var out = living(S).map(function (f) { return { kind: 'foe', uid: f.uid, x: f.x, y: f.y }; });
+    var TR = global.DG.treasure, ST = global.DG.story;
+    if (TR && TR.aimPoints) { out = out.concat(TR.aimPoints(px, py, AIM_R())); }
+    if (ST && ST.aimPoints) { out = out.concat(ST.aimPoints()); }
+    return out;
+  }
+  /** 겨눈 쪽 AIM_CONE 안 AIM_R 안에서 각이 가장 작은 것에 잠근다 */
+  function aimLock(S, px, py) {
+    var a = S.aim, best = null, bs = Infinity, L = aimCands(S, px, py), cc = Math.cos(AIM_CONE());
+    for (var i = 0; i < L.length; i++) {
+      var c = L[i], dx = c.x - px, dy = c.y - py, d = Math.hypot(dx, dy);
+      if (d < 1 || d > AIM_R()) { continue; }
+      var cs = (dx * a.dx + dy * a.dy) / d;
+      if (cs < cc) { continue; }
+      var sc = Math.acos(Math.min(1, cs)) * 20 + d * 0.01;
+      if (sc < bs) { bs = sc; best = c; }
+    }
+    a.lock = best;
+    return best;
+  }
+  /** 조준에 들어간다 — 가까운 적 쪽(없으면 마지막으로 움직인 쪽) */
+  function aimStart(S, px, py) {
+    if (!canAim(S) || S.aim) { return { ok: false }; }
+    var n = nearestFoe(S, px, py, AIM_R()), dx = n ? n.x - px : (S.lastDx || 0), dy = n ? n.y - py : (S.lastDy || 1), dl = Math.hypot(dx, dy) || 1;
+    S.aim = { dx: dx / dl, dy: dy / dl, t: 0, hold: false, auto: false, lock: null };
+    aimLock(S, px, py);
+    push(S, { t: 'aim', on: true });
+    return { ok: true };
+  }
+  function aimEnd(S) { if (!S.aim) { return false; } S.aim = null; push(S, { t: 'aim', on: false }); return true; }
+  /** 방향 키로 겨눈 쪽을 돌린다 — 누른 쪽으로 초당 AIM_TURN 라디안까지 */
+  function aimSteer(S, ux, uy, dt) {
+    var a = S.aim, l = Math.hypot(ux, uy);
+    if (!a || l < 1e-6) { return false; }
+    var cur = Math.atan2(a.dy, a.dx), want = Math.atan2(uy / l, ux / l), d = Math.atan2(Math.sin(want - cur), Math.cos(want - cur));
+    var k = Math.max(-AIM_TURN() * (dt || 0), Math.min(AIM_TURN() * (dt || 0), d)), ang = cur + k;
+    a.dx = Math.cos(ang); a.dy = Math.sin(ang);
+    return true;
+  }
+  /** 충전 시작 */
+  function aimHold(S) { if (!S.aim) { return false; } S.aim.hold = true; S.aim.t = 0; return true; }
+  /** 쏜다 — 잠긴 것 쪽으로(점 과녁이면 그 자리에서 멈춘다), 없으면 겨눈 쪽 ARROW_RANGE */
+  function aimShoot(S, px, py) {
+    var a = S.aim, m = active(S);
+    if (!a || !m || m.down || S.atkCd > 0) { return { ok: false }; }
+    var full = a.hold && a.t >= AIM_FULL() - 1e-9, lk = a.lock;
+    var tx = lk ? lk.x : px + a.dx * ARROW_RANGE(), ty = lk ? lk.y : py + a.dy * ARROW_RANGE();
+    var dx = tx - px, dy = ty - py, dl = Math.hypot(dx, dy) || 1;
+    if (!S.arrows) { S.arrows = []; }
+    S.arrows.push({ x: px, y: py, dx: dx / dl, dy: dy / dl, left: lk && lk.kind !== 'foe' ? dl : ARROW_RANGE(), full: full, m: m });
+    a.t = 0; a.hold = false; S.atkCd = AIM_GAP();
+    push(S, { t: 'shoot', x: px, y: py, tx: tx, ty: ty, full: full, el: full ? m.el : null });
+    return { ok: true, full: full, lock: lk ? lk.kind : null };
+  }
+  function foeR(f) { return Math.max(0.6, ((FOES[f.kind] && FOES[f.kind].h) || 1) * 0.55); }
+  /** 화살이 적에 박힌다 — 충전이면 원소 ×1.25, 모르는 적(쉬는 중)이면 급소, 덜 찼으면 물리 ×0.45 */
+  function arrowHit(S, r, f) {
+    var m = r.m, weak = r.full && f.st === 'idle';
+    var out = hitFoe(S, f, m, m.atk * (r.full ? AIM_FULLMUL() : AIM_PART()) * infM(m), r.full ? m.el || null : infEl(m), 'heavy', weak);
+    if (weak) { push(S, { t: 'weak', uid: f.uid, x: f.x, y: f.y }); }
+    rainFollow(S, f.x, f.y);                                        // ⑲-17 뱃노래
+    m.energy = Math.min(ENERGY_MAX(), m.energy + 2 * (m.er || 1));
+    return out;
+  }
+  /** 화살 한 박자 — 길 위 첫 적에 박히거나, 과녁을 켜거나, 다 날면 멈춘다. 멈춘 자리 = 'arrow'(충전이면 원소 신호) */
+  function stepArrows(S, dt) {
+    var A = S.arrows || [], TR = global.DG.treasure;
+    for (var i = A.length - 1; i >= 0; i--) {
+      var r = A[i], go = Math.min(r.left, ARROW_V() * dt), x1 = r.x + r.dx * go, y1 = r.y + r.dy * go, hf = null, bt = Infinity;
+      var L = living(S);
+      for (var j = 0; j < L.length; j++) {
+        var f = L[j];
+        if (segDist(f.x, f.y, r.x, r.y, x1, y1) > foeR(f)) { continue; }
+        var al = (f.x - r.x) * r.dx + (f.y - r.y) * r.dy;
+        if (al < bt) { bt = al; hf = f; }
+      }
+      if (hf) {
+        arrowHit(S, r, hf);
+        push(S, { t: 'arrow', x: hf.x, y: hf.y, el: r.full ? r.m.el : null, r: ARROW_EL_R(), hit: hf.uid });
+        A.splice(i, 1); continue;
+      }
+      var nT = TR && TR.shootSeg ? TR.shootSeg(r.x, r.y, x1, y1) : 0;
+      r.x = x1; r.y = y1; r.left -= go;
+      if (nT > 0 || r.left <= 1e-6) {
+        push(S, { t: 'arrow', x: r.x, y: r.y, el: r.full ? r.m.el : null, r: ARROW_EL_R(), target: nT });
+        A.splice(i, 1);
+      }
+    }
   }
 
   /**
@@ -1323,6 +1435,11 @@
     S.iframe = Math.max(0, S.iframe - dt);
     S.swapCd = Math.max(0, S.swapCd - dt);
     S.atkCd = Math.max(0, S.atkCd - dt);
+    if (S.aim) {                                                    // ⑲-22 조준 — 활 아닌 인물·쓰러짐·대화면 풀린다
+      if (!canAim(S) || inp.blocked) { aimEnd(S); }
+      else { if (S.aim.hold) { S.aim.t = Math.min(AIM_FULL() + 1, S.aim.t + dt); } aimLock(S, px, py); }
+    }
+    stepArrows(S, dt);
     S.comboT += dt;
     if (S.comboT > 1.0) { S.combo = 0; }
     S.staT += dt;
@@ -1649,10 +1766,13 @@
     for (i = 0; i < ev.length; i++) {
       var e = ev[i];
       /* ⑲-3 원소 신호 — 스킬·폭발·장판 자리를 알린다(treasure.js 가 석등을 켠다) */
-      if ((e.t === 'skill' || e.t === 'burst' || (e.t === 'zone' && (e.kind === 'field' || e.kind === 'shell' || e.kind === 'kitzone' || e.kind === 'vortex' || e.kind === 'feast'))) && e.el) {
+      if ((e.t === 'skill' || e.t === 'burst' || e.t === 'arrow' || (e.t === 'zone' && (e.kind === 'field' || e.kind === 'shell' || e.kind === 'kitzone' || e.kind === 'vortex' || e.kind === 'feast'))) && e.el) {
         c.emit('field:element', { el: e.el, x: e.x, y: e.y, r: e.r || 3, t: e.t });
       }
       if (e.t === 'move') { pos.x += e.dx; pos.y += e.dy; }
+      else if (e.t === 'weak') { floatNum(e.x, e.y, '급소!', null, 1.35, true); }
+      else if (e.t === 'shoot') { sfx('hit'); }
+      else if (e.t === 'arrow') { ring(e.x, e.y, e.el ? 1.2 : 0.6, e.el && EL[e.el] ? EL[e.el].color : '#e8e2d0', 0.3); }
       else if (e.t === 'hit') {
         sfx('hit');
         floatNum(e.x, e.y, e.immune ? '면역' : String(e.dmg) + (e.crit ? '!' : ''), e.el, (e.react ? 1.3 : (e.src === 'burst' ? 1.25 : 1)) * (e.crit ? 1.25 : 1), !!e.crit);
@@ -1803,11 +1923,20 @@
       /* ⑲-2 활공 중(발밑 2.5m 넘게)이면 기본 공격 대신 내리꽂는다 — 착지는 landform 이 plungeLand 로 알린다 */
       var LF = global.DG.landform;
       if (LF && LF.startPlunge && LF.startPlunge()) { return { ok: true, plunge: true }; }
+      if (S.aim) { aimHold(S); handle(drain(S), pos); return { ok: true, aim: true }; }   // ⑲-22 조준 중엔 누르는 동안 충전
       r = attack(S, pos.x, pos.y);
-    } else if (kind === 'heavy') { r = heavy(S, pos.x, pos.y); }
+    } else if (kind === 'heavy') {
+      /* ⑲-22 활 인물은 강공격 대신 조준·충전(떼면 쏘고 나온다) */
+      if (S.aim) { r = { ok: true, aim: true }; }                     // 조준 중 길게 누름 = 충전(강공격 아님)
+      else if (aimOk() && aimStart(S, pos.x, pos.y).ok) { S.aim.auto = true; aimHold(S); r = { ok: true, aim: true }; }
+      else { r = heavy(S, pos.x, pos.y); }
+    } else if (kind === 'aim') {
+      r = S.aim ? { ok: aimEnd(S), off: true } : (aimOk() ? aimStart(S, pos.x, pos.y) : { ok: false });
+    }
     else if (kind === 'skill') { r = skill(S, pos.x, pos.y); }
     else if (kind === 'burst') { r = burst(S, pos.x, pos.y); }
     else if (kind === 'dodge') {
+      aimEnd(S);                                                    // ⑲-22 대시하면 조준이 풀린다
       var W = global.DG.world, mv = W && W.motion ? W.motion : null;
       var moving = mv && mv.speed > 1.5;
       r = dodge(S, moving ? mv.vx : 0, moving ? mv.vy : 0, pos.x, pos.y);
@@ -1837,6 +1966,7 @@
         '<button class="fc-btn fc-skill" data-fc="skill"><span>스킬</span><em>E</em><i class="fc-cd"></i></button>' +
         '<button class="fc-btn fc-dodge" data-fc="dodge"><span>회피</span><em>␣</em></button>' +
         '<button class="fc-btn fc-atk" data-fc="attack"><span>⚔️</span><em>J</em></button>' +
+        '<button class="fc-btn fc-aim" data-fc="aim" style="display:none"><span>🎯</span><em>R</em></button>' +
       '</div>';
     var btns = hudEl.querySelectorAll('[data-fc]');
     for (var i = 0; i < btns.length; i++) {
@@ -1901,13 +2031,16 @@
 
   function paint(dt) {
     var pp = core().save.player.pos, TR = global.DG.treasure;
-    var show = engaged(S) || !!nearestFoe(S, pp.x, pp.y, 22) || !!(TR && TR.wantsHud && TR.wantsHud(pp.x, pp.y));   // ⑲-3 석등 곁에서도 스킬을 쓰게
+    var show = engaged(S) || !!nearestFoe(S, pp.x, pp.y, 22) || !!(TR && TR.wantsHud && TR.wantsHud(pp.x, pp.y)) || !!S.aim;   // ⑲-3 석등 곁에서도 스킬을 쓰게
     if (!hudEl) { buildHud(); }
     hudEl.classList.toggle('show', show);
     document.body.classList.toggle('fc-on', show);
     paintMarks();
     tickRings(dt);
+    paintAim();
     if (!show) { return; }
+    var ab = hudEl.querySelector('.fc-aim');                          // ⑲-22 활 인물일 때만 🎯
+    if (ab) { ab.style.display = canAim(S) && aimOk() ? '' : 'none'; ab.classList.toggle('ready', !!S.aim); }
     /* ⑲-1 원소가 일곱으로 늘며 동행 원소가 새로 정해졌다 — 처음 한 번만 알린다(save.field.el7) */
     var fsv = fieldSave();
     if (!fsv.el7) { fsv.el7 = 1; toast('✨ 원소가 일곱(화·수·뇌·풍·빙·암·초)으로 늘었다 — 동행 원소가 새로 정해졌다'); core().persist(); }
@@ -1923,6 +2056,50 @@
     bu.querySelector('.fc-fill').style.height = Math.round(100 * m.energy / ENERGY_MAX()) + '%';
     hudEl.querySelector('.fc-sta i').style.width = Math.round(S.stamina) + '%';
     paintBars();
+  }
+
+  /* ⑲-22 조준 화면 — 가운데 조준점 + 충전 막대(DOM), 잠긴 것 발밑 금빛 고리 · 날아가는 화살(3D, 코드 그림) */
+  var aimEl = null;
+  function paintAim() {
+    var a = S.aim, w = W3(), T3 = w && w.three();
+    if (!aimEl && document.body) {
+      aimEl = document.createElement('div');
+      aimEl.id = 'fc-aim';
+      aimEl.style.cssText = 'position:fixed;left:50%;top:44%;transform:translate(-50%,-50%);pointer-events:none;z-index:40;display:none;text-align:center;' +
+        'font:700 26px/1 sans-serif;color:#fff;text-shadow:0 0 4px #000';
+      aimEl.innerHTML = '<div class="a-dot">◎</div><div style="width:84px;height:5px;margin:6px auto 0;background:rgba(0,0,0,.45);border-radius:3px;overflow:hidden">' +
+        '<i style="display:block;height:100%;width:0;background:#e8e2d0"></i></div>';
+      document.body.appendChild(aimEl);
+    }
+    if (aimEl) {
+      aimEl.style.display = a ? '' : 'none';
+      if (a) {
+        var k = Math.min(1, a.t / AIM_FULL()), full = a.hold && k >= 1, bar = aimEl.querySelector('i');
+        bar.style.width = Math.round((a.hold ? k : 0) * 100) + '%';
+        bar.style.background = full ? (EL[active(S).el] ? EL[active(S).el].color : '#ffd24a') : '#e8e2d0';
+        aimEl.querySelector('.a-dot').style.color = a.lock ? '#ffd24a' : '#ffffff';
+      }
+    }
+    if (!w || !T3) { return; }
+    if (a && a.lock) {
+      if (!fx.aimRing) { fx.aimRing = ringMesh(1.1, '#ffd24a', 0.9); if (fx.aimRing) { w.addFx(fx.aimRing); } }
+      if (fx.aimRing) { fx.aimRing.visible = true; fx.aimRing.position.set(a.lock.x, (w.standY ? w.standY(a.lock.x, a.lock.y) : 0) + 0.15, a.lock.y); }
+    } else if (fx.aimRing) { fx.aimRing.visible = false; }
+    var A = S.arrows || [];
+    if (!fx.arrows) { fx.arrows = []; }
+    while (fx.arrows.length < A.length) {
+      var am = new T3.Mesh(new T3.CylinderGeometry(0.03, 0.03, 0.9, 5), new T3.MeshBasicMaterial({ color: 0xf2ead8 }));
+      am.rotation.order = 'YXZ';
+      fx.arrows.push(w.addFx(am));
+    }
+    for (var i = 0; i < fx.arrows.length; i++) {
+      var mesh = fx.arrows[i], r = A[i];
+      mesh.visible = !!r;
+      if (!r) { continue; }
+      mesh.position.set(r.x, (w.standY ? w.standY(r.x, r.y) : 0) + 1.35, r.y);
+      mesh.rotation.set(Math.PI / 2, Math.atan2(r.dx, r.dy), 0);
+      mesh.material.color.set(r.full && EL[r.m.el] ? EL[r.m.el].color : '#f2ead8');
+    }
   }
 
   /* 3D 좌표 → 화면 좌표. 3D 가 없으면 null(2D 에선 숫자를 내 머리 위에 띄운다) */
@@ -2072,7 +2249,25 @@
     holdEnd();
     holdTimer = setTimeout(function () { holdTimer = null; act('heavy'); }, CHARGE_HOLD() * 1000);
   }
-  function holdEnd() { if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; } }
+  function holdEnd() {
+    if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
+    /* ⑲-22 조준 충전 중에 떼면 쏜다 — 길게 눌러 들어온 조준이면 쏘고 나온다 */
+    if (S && S.aim && S.aim.hold && on() && core() && core().save) {
+      var pos = core().save.player.pos, auto = S.aim.auto;
+      aimShoot(S, pos.x, pos.y);
+      if (auto) { aimEnd(S); }
+      handle(drain(S), pos);
+    }
+  }
+  /** ⑲-22 조준은 키보드 판만(GPS 판은 몸이 걷는다) */
+  function aimOk() { var W = global.DG.world; return !!(W && W.mode === 'keyboard'); }
+  /** landform 이 걸음 대신 부른다 — 조준 중이면 방향 키가 겨눈 쪽을 돌린다 */
+  function aimSteerRt(ux, uy, dt) { return !!(S && S.aim && aimSteer(S, ux, uy, dt)); }
+  function aimView() {
+    if (!S || !S.aim) { return null; }
+    var a = S.aim;
+    return { dx: a.dx, dy: a.dy, t: a.t, hold: a.hold, full: a.hold && a.t >= AIM_FULL() - 1e-9, k: Math.min(1, a.t / AIM_FULL()), lock: a.lock };
+  }
   /** ⑲-2 landform 이 내리꽂기 착지 때 부른다 — 떨어진 높이(m) */
   function plungeLand(fell) {
     if (!on() || !core() || !core().save) { return { ok: false }; }
@@ -2096,6 +2291,7 @@
       var nearby = engaged(S) || !!nearestFoe(S, core().save.player.pos.x, core().save.player.pos.y, 22);
       if (k === 'j') { var ra = act('attack'); if (!(ra && ra.plunge)) { holdStart(); } }
       else if (k === 'e') { act('skill'); }
+      else if (k === 'r') { act('aim'); }                             // ⑲-22 활 조준
       else if (k === 'q') { act('burst'); }
       else if (k === ' ' && nearby) { e.preventDefault(); act('dodge'); }
       else if (k >= '1' && k <= '4' && nearby) { act('swap', +k - 1); }
@@ -2153,6 +2349,9 @@
     elementOf: elementOf, EL_KEYS: EL_KEYS, heavy: heavy, plunge: plunge, plungeMul: plungeMul, plungeLand: plungeLand, PLUNGE_R: PLUNGE_R(), CHARGE_COST: CHARGE_COST(), REACT: REACT, attaches: attaches, shapeOf: shapeOf, SHAPES: SHAPES, kitFor: kitFor, segDist: segDist, react: react, shieldMul: shieldMul, campAt: campAt, tierAt: tierAt, guardianAt: guardianAt, COUNTER: COUNTER,
     create: create, reparty: reparty, populate: populate, spawnCamp: spawnCamp, step: step, drain: drain,
     attack: attack, skill: skill, burst: burst, dodge: dodge, swap: swap, hitFoe: hitFoe,
+    canAim: canAim, aimStart: aimStart, aimEnd: aimEnd, aimSteer: aimSteer, aimHold: aimHold, aimShoot: aimShoot, aimLock: aimLock, stepArrows: stepArrows,
+    AIM_R: AIM_R(), AIM_FULL: AIM_FULL(), AIM_PART: AIM_PART(), AIM_FULLMUL: AIM_FULLMUL(), ARROW_V: ARROW_V(), ARROW_RANGE: ARROW_RANGE(),
+    aiming: function () { return !!(S && S.aim); }, aimSteerRt: aimSteerRt, aimView: aimView, aimCancel: function () { return !!(S && aimEnd(S)); },
     engaged: engaged, inCombat: inCombat, COMBAT_R: COMBAT_R, living: living, memberOf: memberOf, applyWorld: applyWorld, rescaleWorld: rescaleWorld, killGold: killGold, clearLoot: clearLoot,
     guardBack: guardBack, duelCamp: duelCamp, canChallenge: canChallenge, challenge: challenge, duelSpawn: duelSpawn,
     /* 런타임 */

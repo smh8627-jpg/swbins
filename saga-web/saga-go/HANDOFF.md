@@ -4040,3 +4040,14 @@ SAGA-HANDOFF 열린 항목 "tower_ruin.glb(역참) 아이콘 굽기 — 여섯 �
 - 진단 706 → 710, 옛 ⑲-12 화면 시험이 촌장 곁 인물을 셀 때 세계 임무 인물(묵호 63m)이 잡혀 이야기 인물만 세게 고침. jsdom 세 번 702/710 같음(남은 8 = 캔버스·Request). sw go-v6.1.0.
 - **실기 확인 대기**: 푸른 ! 높이(사람 머리 위)·드론 둥실이 몸 크기·높이 · 목록 따라가기 단추 누름 · 등대 터가 물가로 보이는지 · 여섯 인물 몸.
 - 밖: 지도·미니맵 임무 표식(→ 순서 23). 다음 = ⑲ 순서 22(활 조준 사격·과녁 잠금).
+
+## 2026-09-26 (§5 ⑲ 순서 22) — 활 조준 사격·과녁 잠금 (saga-godot 106 ㊵)
+
+- field-combat `S.aim`(dx·dy·t·hold·auto·lock)·`S.arrows` — 순수 `aimStart/aimEnd/aimSteer/aimHold/aimShoot/aimLock/stepArrows`, 런타임 `act('aim')`(R·🎯)·`act('attack')` 조준 중이면 충전·`act('heavy')` 활이면 조준 들어가기·`holdEnd` 에서 쏘기. `step` 이 충전·잠금·풀림·화살을 돈다. `hitFoe` 7째 인자 `force`(급소).
+- landform.moveMul 이 조준 중이면 `aimSteerRt` 로 돌리고 0 을 돌려준다(걸음 막음), jump 가 조준을 푼다. world3d `aimCam`(순수)·몸이 겨눈 쪽을 본다.
+- 급소는 Godot "몸 위 70%" 대신 "다 찬 화살 × 쉬는 적" — 이 판엔 세로 조준이 없다.
+- treasure 과녁: `ch.targets`·`shot`(맞힌 시각)·`shootSeg`(선분)·`aimPoints`·`shootNear`, stepLit 가 10초 지난 과녁을 끈다. 옛 ⑲-3 등급 시험의 "잠금 = LOCK_OF[등급]" 을 "무늬는 과녁도"로 넓힘.
+- story `aimPoints()` — 따라가는 줄의 안 켠 석등·옛 제단. HUD 조준점·충전 막대는 인라인 스타일 DOM(#fc-aim), 🎯 단추 css 한 줄.
+- 진단 710 → 712, jsdom 세 번 704/712 같음(남은 8 = 캔버스·Request). sw go-v6.2.0.
+- **실기 확인 대기**: 어깨 너머 구도(몸이 화면을 가리지 않는지)·방향 키로 돌 때 입력 방향이 카메라 기준이 아니라 어색한지 · 🎯 단추 자리(회피 위) · 화살 막대 보이는지·빛깔 · 과녁 판 모양·금빛 · 폰에서 길게 눌러 충전→떼기.
+- 밖: 세로 조준·지형 가림(화살이 산을 뚫는다). 다음 = ⑲ 순서 23(지도 임무 표식).

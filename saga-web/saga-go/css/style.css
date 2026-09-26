@@ -1668,6 +1668,8 @@ body.fc-on #dock, body.fc-on #near { display: none !important; }
 #field-hud .fc-skill { right: 94px; bottom: 6px; width: 60px; height: 60px; box-shadow: 0 0 0 2px var(--el) inset; }
 #field-hud .fc-burst { right: 70px; bottom: 82px; width: 64px; height: 64px; box-shadow: 0 0 0 2px var(--el) inset; }
 #field-hud .fc-dodge { right: 4px; bottom: 96px; width: 54px; height: 54px; }
+#field-hud .fc-aim { right: 7px; bottom: 160px; width: 48px; height: 48px; font-size: 20px; }   /* ⑲-22 활 조준 — 회피 위 */
+#field-hud .fc-aim.ready { box-shadow: 0 0 0 2px #ffd24a inset; }
 #field-hud .fc-cd, #field-hud .fc-fill { position: absolute; left: 0; right: 0; bottom: 0; z-index: 1; }
 #field-hud .fc-cd { background: rgba(0,0,0,.55); }
 #field-hud .fc-fill { background: var(--el); opacity: .35; }
