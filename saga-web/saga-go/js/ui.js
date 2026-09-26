@@ -126,6 +126,13 @@
         openDetail(b.getAttribute('data-kind') || 'hero', id);
         return;
       }
+      if (act === 'fm-preset') {                                         // ⑲-18 편성 여러 벌
+        var FMp = global.DG.formation, pr = FMp && FMp.use ? FMp.use(+b.getAttribute('data-i')) : null;
+        if (pr && pr.ok) { toast('⚔ 편성 ' + (pr.preset + 1) + ' — ' + (pr.list.length ? pr.list.length + '명' : '나 혼자')); }
+        else if (pr && !pr.same) { toast('⚔ ' + pr.why); }
+        renderSheet(); renderTop();
+        return;
+      }
       if (act === 'key-remap') {
         var W0 = global.DG.world;
         if (W0 && W0.beginRemap) { W0.beginRemap(b.getAttribute('data-action')); renderSheet(); }
@@ -965,8 +972,18 @@
         : '<button class="btn sm ghost" disabled>' + (i + 1) + ' (빈자리)</button>';
       if (i === FM.FIELD - 1) { out += '<small class="muted">· 대기</small>'; }
     }
-    return '<div class="sec"><h4>⚔ 들판 명단</h4><div class="roster">' + out + '</div>' +
+    return '<div class="sec"><h4>⚔ 들판 명단</h4>' + presetStrip(FM) + '<div class="roster">' + out + '</div>' +
       '<small class="muted">앞 넷이 들판 전투 명단(숫자 1~4)입니다. 인물을 눌러 자리를 바꿉니다.</small></div>';
+  }
+  /** ⑲-18 편성 1~4 단추 줄 — 지금 칸 강조, 누르면 그 칸 명단으로(싸우는 중엔 막힘) */
+  function presetStrip(FM) {
+    if (!FM.use) { return ''; }
+    var at = FM.presetAt(), out = '';
+    for (var i = 0; i < FM.PRESETS; i++) {
+      out += '<button class="btn sm' + (i === at ? ' primary' : ' ghost') + '" data-act="fm-preset" data-i="' + i + '">편성 ' + (i + 1) +
+        ' (' + FM.presetOf(i).length + '명)</button>';
+    }
+    return '<div class="roster fm-presets">' + out + '</div>';
   }
 
   function dexBar(n, total) {

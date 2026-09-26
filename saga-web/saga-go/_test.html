@@ -10925,6 +10925,60 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       return bad.length === 0 ? '부채꼴 셋(뒤·옆 ✕)·+6%·7m(보스 제자리) · 순풍 0.9초 0 → 2초 두 번 · 밖 0 · 물결 길 위 하나·6m·제자리 · 뱃노래 둘 수·1초 쉼·끝나면 0' : ('실패 ' + bad.join(','));
     });
 
+    /* ── ⑲-18 편성 여러 벌 (formation.js presets · field-combat inCombat, PLAN §5 ⑲-18) ── */
+    t('편성 ⑲-18 — 여러 벌: 옛 세이브 = 지금 명단이 1번 · 빈 칸이면 나 혼자 · 넣기가 그 칸에 · 돌아오면 옛 명단 · 없는 인물·겹침 뺌 · 같은 칸 무시 · 세이브 왕복 · 바꾸면 들판 첫 자리 · 쫓는 적 30m 안이면 막힘(멀거나 쉬거나 제단만 치면 안 막힘) · 단추 줄', function () {
+      var rig = stRig(1), FM = DG.formation, FC = DG.fieldCombat, r = {};
+      try {
+        var H = D.heroes.slice(0, 7).map(function (h) { return h.id; });
+        H.forEach(function (id) { C.save.dex.heroes[id] = { count: 1, firstAt: 1 }; });
+        delete C.save.partyPresets; delete C.save.partyPreset;
+        C.save.party = [H[0], H[1], H[2]];
+        var p = C.save.player.pos;
+        r.old = FM.presetAt() === 0 && FM.presetOf(0).join() === [H[0], H[1], H[2]].join() && FM.presetOf(1).length === 0 && FM.PRESETS === 4;
+        var u1 = FM.use(1);
+        FC._resetForTest(); FC.tick(0.05);
+        r.solo = u1.ok && C.save.party.length === 0 && FC.state().party.length === 1 && FC.state().party[0].id === '_me';
+        FM.apply('put', H[3]); FM.apply('put', H[4]);
+        r.put = FM.presetOf(1).join() === [H[3], H[4]].join() && C.save.partyPresets[1].join() === [H[3], H[4]].join();
+        var u0 = FM.use(0);
+        r.back = u0.ok && C.save.party.join() === [H[0], H[1], H[2]].join() && FM.presetOf(1).join() === [H[3], H[4]].join();
+        C.save.partyPresets[2] = [H[5], H[5], 'nobody', H[6]];
+        delete C.save.dex.heroes[H[6]];
+        var u2 = FM.use(2);
+        r.filter = u2.ok && C.save.party.join() === H[5] && FM.pick([H[0], H[0], 3, H[1]]).join() === [H[0], H[1]].join();
+        var same = FM.use(2);
+        r.same = !same.ok && same.same && C.save.party.join() === H[5];
+        var js = JSON.parse(JSON.stringify(C.save));
+        r.save = js.partyPreset === 2 && js.partyPresets.length === 4 && js.partyPresets[0].join() === [H[0], H[1], H[2]].join() && js.partyPresets[1].join() === [H[3], H[4]].join();
+        FM.use(0); FC.tick(0.05);
+        var S = FC.state();
+        S.active = 2;
+        FM.use(1);
+        r.first = S.active === 0 && S.party[0].id === H[3];
+        /* 싸우는 중 */
+        S.calmT = 99;
+        FC.spawnCamp(S, { key: 't18', x: p.x + 10, y: p.y, tier: 1, kind: 'plain', foes: [{ kind: 'boar', dx: 0, dy: 0 }] });
+        var f = S.foes[S.uid];
+        f.st = 'chase';
+        var bl = FM.use(0), bd = FM.apply('drop', H[3]);
+        r.block = !bl.ok && /싸우는 중/.test(bl.why) && !bd.ok && C.save.party.join() === [H[3], H[4]].join();
+        f.x = p.x + 40; var far = !FM.busy();
+        f.x = p.x + 10; f.siege = { x: p.x + 25, y: p.y }; var sg = !FM.busy();
+        f.siege = null; f.st = 'idle'; var idle = !FM.busy();
+        S.calmT = 1; var calm = FM.busy(); S.calmT = 99;
+        r.free = far && sg && idle && calm && FM.use(0).ok;
+        DG.ui.openSheet('dex');
+        var bs = document.querySelectorAll('#sheet-body [data-act="fm-preset"]');
+        var look = bs.length === 4 && /편성 1 \(3명\)/.test(bs[0].textContent) && bs[0].className.indexOf('primary') >= 0 && /편성 2 \(2명\)/.test(bs[1].textContent);
+        if (bs[1]) { bs[1].click(); }
+        var bs2 = document.querySelectorAll('#sheet-body [data-act="fm-preset"]');
+        r.ui = look && C.save.party.join() === [H[3], H[4]].join() && bs2.length === 4 && bs2[1].className.indexOf('primary') >= 0;
+        DG.ui.closeSheet();
+      } finally { rig.undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '옛 = 1번 · 2번 나 혼자 · 넣기 → 2번 · 1번 돌아옴 · 없는·겹침 뺌 · 같은 칸 ✕ · 왕복 · 첫 자리 · 10m 쫓음 막힘 · 40m·제단만·쉼 안 막힘 · 단추 넷' : ('실패 ' + bad.join(','));
+    });
+
     /* ── ⑳ 원작 겹침 정리 (PLAN §5 ⑳) ── */
     t('원작 겹침 ⑳ — 화면 글자(보패·무기·무예·반응·상자·숨은 터 표 · 인물 상세 · 등급 카드)에 옛 원작 용어가 없다', function () {
       var OLD = ['성유물', '비경', '지맥', '운명의 자리', '원소 시야', '모험 등급', '세계 등급', '원소 폭발', '신상', '재련', '돌파',

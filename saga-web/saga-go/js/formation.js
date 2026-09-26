@@ -1,13 +1,17 @@
 /**
- * 편성 — 동행 다섯 = 들판 명단 앞 넷 + 대기 하나 (PLAN §5 ⑲-15, saga-godot PLAN 106 ㉝)
+ * 편성 — 동행 다섯 = 들판 명단 앞 넷 + 대기 하나 · 편성 여러 벌 (PLAN §5 ⑲-15·18, saga-godot PLAN 106 ㉝㊱)
  * ---------------------------------------------------------------
  * 자리 순서가 곧 `save.party` 순서라(들판 전투는 앞 FIELD 명, 숫자키 1~4) 세이브 모양은 그대로다.
  *   넣기       빈자리면 끝에, 꽉 찼으면 마지막(다섯째) 자리와 바뀐다
  *   빼기       자리가 비고 동행이 준다
  *   앞 자리로  바로 앞 사람과 바뀐다
  *   들판으로   대기(다섯째)를 넷째와 바꾼다
- * 들판 전투가 교전 중이면(`fieldCombat.engaged`) 막는다 — 싸우는 중에 명단이 바뀌면 교체 쿨·기력이 흐트러진다.
- * 판정은 순수(`plan`) — 세이브를 바꾸는 쪽은 `apply` 하나.
+ * 싸우는 중이면(`fieldCombat.inCombat` — 30m 안에 나를 쫓거나 치는 적·방금 싸움) 막는다 — 교체 쿨·기력이 흐트러진다.
+ * 판정은 순수(`plan`·`pick`) — 세이브를 바꾸는 쪽은 `apply`·`use` 둘.
+ *
+ * 편성 여러 벌(⑲-18, saga-godot 106 ㊱) — 칸 PRESETS 개. 지금 명단(`save.party`)이 늘 정본이라 지금 칸은 읽을 때마다
+ * 지금 명단으로 적힌다(`sync` — 어디서 명단이 바뀌든). 다른 칸을 고르면 그 칸 목록이 지금 명단(없는 인물·겹침 뺌),
+ * 빈 칸이면 나 혼자. 세이브 `partyPresets`(목록 넷)·`partyPreset`(0~) — 없으면 지금 명단이 1번.
  */
 (function (global) {
   'use strict';
@@ -43,10 +47,59 @@
     return { ok: false, list: L, why: '모르는 일' };
   }
 
-  /** 지금 싸우는 중인가 — 들판 전투 교전 */
+  /** 지금 싸우는 중인가 — ⑲-18 inCombat(없으면 옛 engaged) */
   function busy() {
+    var F = global.DG.fieldCombat, S = F && F.state ? F.state() : null, p = core().save.player.pos;
+    if (!S) { return false; }
+    return !!(F.inCombat ? F.inCombat(S, p.x, p.y) : (F.engaged && F.engaged(S)));
+  }
+
+  /* ── 편성 여러 벌(⑲-18) ─────────────────────────────── */
+
+  var PRESETS = 4;
+  /**
+   * 순수 — 칸 목록 list 를 지금 명단으로 쓸 수 있게: 가진 인물(has(id))만·겹침 뺌·MAX 까지
+   */
+  function pick(list, has) {
+    var out = [];
+    (list || []).forEach(function (id) { if (typeof id === 'string' && out.indexOf(id) < 0 && out.length < MAX && (!has || has(id))) { out.push(id); } });
+    return out;
+  }
+  function owned(id) {
+    var s = core().save, D = global.DG.data;
+    return !!(s.dex && s.dex.heroes && s.dex.heroes[id] && (!D || !D.find || D.find(id)));
+  }
+  /** 칸 넷과 지금 칸 — 읽을 때마다 지금 칸을 지금 명단으로 적는다. 옛 세이브는 지금 명단이 1번 */
+  function sync() {
+    var s = core().save, P = party();
+    if (!Array.isArray(s.partyPresets)) { s.partyPresets = []; }
+    while (s.partyPresets.length < PRESETS) { s.partyPresets.push([]); }
+    s.partyPresets.length = PRESETS;
+    for (var i = 0; i < PRESETS; i++) { if (!Array.isArray(s.partyPresets[i])) { s.partyPresets[i] = []; } }
+    var at = s.partyPreset;
+    if (typeof at !== 'number' || at < 0 || at >= PRESETS || at !== Math.floor(at)) { at = s.partyPreset = 0; }
+    s.partyPresets[at] = P.slice();
+    return { list: s.partyPresets, at: at };
+  }
+  function presetAt() { return sync().at; }
+  /** 칸 i 의 목록(지금 칸이면 지금 명단) */
+  function presetOf(i) { var q = sync(); return q.list[i] ? q.list[i].slice() : []; }
+  /**
+   * 칸 i 로 바꾼다 — 지금 명단은 지금 칸에 남고, 칸 i 목록이 지금 명단이 된다. 들판 전투는 첫 자리 인물이 앞으로.
+   * 막히면 { ok:false, why }
+   */
+  function use(i) {
+    if (typeof i !== 'number' || i < 0 || i >= PRESETS) { return { ok: false, why: '없는 편성' }; }
+    var q = sync();
+    if (i === q.at) { return { ok: false, why: '이미 편성 ' + (i + 1), same: true }; }
+    if (busy()) { return { ok: false, why: '싸우는 중에는 편성을 바꿀 수 없다' }; }
+    var s = core().save, next = pick(q.list[i], owned);
+    s.party = next; s.partyPreset = i; s.partyPresets[i] = next.slice();
     var F = global.DG.fieldCombat, S = F && F.state ? F.state() : null;
-    return !!(S && F.engaged && F.engaged(S));
+    if (S && F.reparty) { F.reparty(S, next); S.active = 0; }
+    core().emit('party:changed', { op: 'preset', preset: i });
+    core().persist();
+    return { ok: true, preset: i, list: next.slice() };
   }
   /** 세이브에 한다 — 막히면 { ok:false, why } */
   function apply(op, id) {
@@ -65,5 +118,6 @@
   function putSwap(id) { var r = plan(party(), 'put', id); return r.ok && r.swap ? r.swap : null; }
 
   global.DG = global.DG || {};
-  global.DG.formation = { MAX: MAX, FIELD: FIELD, plan: plan, apply: apply, busy: busy, onField: onField, putSwap: putSwap };
+  global.DG.formation = { MAX: MAX, FIELD: FIELD, plan: plan, apply: apply, busy: busy, onField: onField, putSwap: putSwap,
+    PRESETS: PRESETS, pick: pick, sync: sync, presetAt: presetAt, presetOf: presetOf, use: use };
 })(window);

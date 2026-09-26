@@ -1487,6 +1487,24 @@
     return false;
   }
 
+  /**
+   * ⑲-18 편성을 막는 "싸우는 중" — 방금(COMBAT_CALM 초 안) 때리거나 맞았거나, COMBAT_R m 안에 나를 쫓거나 치는 적.
+   * 쉬는 적·제단만 치는 적(siege 로 나를 안 보는 적)은 뺀다. engaged 보다 좁다(멀리서 쫓는 적은 안 친다)
+   */
+  var COMBAT_R = 30, COMBAT_CALM = 3;
+  function inCombat(S, px, py) {
+    if (!S) { return false; }
+    if (S.calmT < COMBAT_CALM) { return true; }
+    var L = living(S);
+    for (var i = 0; i < L.length; i++) {
+      var f = L[i], d = Math.hypot(f.x - px, f.y - py);
+      if (d > COMBAT_R || (f.st !== 'chase' && f.st !== 'wind' && f.st !== 'recover')) { continue; }
+      if (f.siege && d > SIEGE_PULL) { continue; }
+      return true;
+    }
+    return false;
+  }
+
   /* ══ 런타임 — 세이브·화면·입력 ═══════════════════════════ */
   var S = null, partyKey = '', popAcc = 9, refAcc = 0, bound = false, hudEl = null;
   var numLayer = null, fx = { marks: {}, rings: [] };
@@ -2116,7 +2134,7 @@
     elementOf: elementOf, EL_KEYS: EL_KEYS, heavy: heavy, plunge: plunge, plungeMul: plungeMul, plungeLand: plungeLand, PLUNGE_R: PLUNGE_R(), CHARGE_COST: CHARGE_COST(), REACT: REACT, attaches: attaches, shapeOf: shapeOf, SHAPES: SHAPES, kitFor: kitFor, segDist: segDist, react: react, shieldMul: shieldMul, campAt: campAt, tierAt: tierAt, guardianAt: guardianAt, COUNTER: COUNTER,
     create: create, reparty: reparty, populate: populate, spawnCamp: spawnCamp, step: step, drain: drain,
     attack: attack, skill: skill, burst: burst, dodge: dodge, swap: swap, hitFoe: hitFoe,
-    engaged: engaged, living: living, memberOf: memberOf, applyWorld: applyWorld, rescaleWorld: rescaleWorld, killGold: killGold, clearLoot: clearLoot,
+    engaged: engaged, inCombat: inCombat, COMBAT_R: COMBAT_R, living: living, memberOf: memberOf, applyWorld: applyWorld, rescaleWorld: rescaleWorld, killGold: killGold, clearLoot: clearLoot,
     guardBack: guardBack, duelCamp: duelCamp, canChallenge: canChallenge, challenge: challenge, duelSpawn: duelSpawn,
     /* 런타임 */
     init: init, tick: tick, act: act, live: live, leadId: leadId,
