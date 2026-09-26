@@ -9,7 +9,7 @@ namespace Saga.Core
     /// <summary>
     /// PLAN.md 110 ② — 상용화 새 UI 의 공통 도구(타이틀·일시정지 메뉴가 먼저 쓴다, 110 ⑤ 에서 판별 HUD 도 이리로).
     /// 글자는 전부 TextMeshPro(기본 폰트 = TMP 설정의 Noto Sans KR 동적 SDF — `Editor/SetupSagaFonts`).
-    /// 캔버스는 가로 1920×1080 기준·폭/높이 반반 맞춤이라 세로 폰(1080×2400)에서도 논리 폭 ≈ 966 으로 줄어든다 —
+    /// 캔버스는 가로 1920×1080 기준·Expand(기준 영역이 통째로 들어감, 20:9 = 2400×1080·4:3 = 1920×1440) —
     /// 부르는 쪽이 <see cref="IsNarrow"/> 로 줄 배치를 고른다.
     /// </summary>
     public static class SagaUi
@@ -22,6 +22,20 @@ namespace Saga.Core
         public static readonly Color ButtonIdle = new Color(0.18f, 0.17f, 0.2f, 0.95f);
         public static readonly Color ButtonAccent = new Color(0.62f, 0.42f, 0.16f, 0.98f);
 
+        /// <summary>PLAN.md 110 ⑤b — 다섯 판 HUD 캔버스의 기준(가로 1600×900, Expand). 옛 기준은 세로 1080×1920·폭 맞춤이라
+        /// 가로 화면에서 논리 높이가 607(16:9)·486(20:9)으로 줄어 버튼끼리 부딪혔다. Expand 는 기준 영역이 어느 화면비에서도
+        /// 통째로 들어가고 남는 쪽만 넓어진다(16:9 = 1600×900, 20:9 = 2000×900, 4:3 = 1600×1200).</summary>
+        public static readonly Vector2 GameReference = new Vector2(1600f, 900f);
+
+        /// <summary>판 HUD 캔버스 스케일러 한 곳 — 빌더·런타임·설정의 UI 크기(배수)가 다 이것을 부른다.</summary>
+        public static void ApplyGameScaler(CanvasScaler scaler, float uiScale = 1f)
+        {
+            if (scaler == null || scaler.GetComponent<MenuCanvas>() != null) return; // 타이틀·일시정지 메뉴는 제 기준 유지
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
+            scaler.referenceResolution = GameReference / Mathf.Max(0.01f, uiScale);
+        }
+
         public static Canvas NewCanvas(string name, int sortingOrder, Transform parent = null)
         {
             var go = new GameObject(name);
@@ -32,9 +46,9 @@ namespace Saga.Core
             var scaler = go.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = Reference;
-            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
-            scaler.matchWidthOrHeight = 0.5f;
+            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand; // 110 ⑤b — 1920×1080 이 어느 화면비에서도 통째로 들어간다
             go.AddComponent<GraphicRaycaster>();
+            go.AddComponent<MenuCanvas>();
             return canvas;
         }
 

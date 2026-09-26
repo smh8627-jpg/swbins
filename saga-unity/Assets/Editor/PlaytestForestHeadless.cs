@@ -203,7 +203,7 @@ namespace Saga.EditorTools
 
             ForestSettingsState.UiScaleMultiplier = 1.15f;
             var scaler = Object.FindFirstObjectByType<CanvasScaler>();
-            float expected = 1080f / 1.15f;
+            float expected = Saga.Core.SagaUi.GameReference.x / 1.15f; // 110 ⑤b 기준 1600×900
             if (scaler == null || Mathf.Abs(scaler.referenceResolution.x - expected) > 1f)
             {
                 Debug.LogError($"[PlaytestForestHeadless] UI 크기가 캔버스에 안 먹음 — got={(scaler == null ? "null" : scaler.referenceResolution.x.ToString())}");

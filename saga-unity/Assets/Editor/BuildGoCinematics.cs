@@ -145,8 +145,7 @@ namespace Saga.EditorTools
             canvas.sortingOrder = -5; // 토스트가 레터박스 위에 뜨게. 다른 HUD 는 컷 동안 꺼진다.
             var scaler = canvasGo.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1080, 1920);
-            scaler.matchWidthOrHeight = 0.5f;
+            Saga.Core.SagaUi.ApplyGameScaler(scaler);
 
             var top = Bar(canvasGo.transform, "TopBar", true);
             var bottom = Bar(canvasGo.transform, "BottomBar", false);

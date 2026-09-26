@@ -580,7 +580,7 @@ namespace Saga.EditorTools
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             var scaler = canvasGo.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1080, 1920);
+            Saga.Core.SagaUi.ApplyGameScaler(scaler);
             canvasGo.AddComponent<GraphicRaycaster>();
 
             var textGo = new GameObject("Label", typeof(RectTransform));
@@ -590,7 +590,7 @@ namespace Saga.EditorTools
             rect.anchorMax = new Vector2(0f, 1f);
             rect.pivot = new Vector2(0f, 1f);
             rect.anchoredPosition = new Vector2(20f, -20f);
-            rect.sizeDelta = new Vector2(600f, 100f); // 두 줄(사명+MP, StoryHud.cs 2026-09-12 확장)
+            rect.sizeDelta = new Vector2(480f, 100f); // 두 줄(사명+MP, StoryHud.cs 2026-09-12 확장) · 110 ⑤b 폭 600→480 — 가운데 대사 줄에 닿았다
 
             var text = textGo.AddComponent<TextMeshProUGUI>();
             text.fontSize = 26;
@@ -612,7 +612,7 @@ namespace Saga.EditorTools
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             var scaler = canvasGo.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1080, 1920);
+            Saga.Core.SagaUi.ApplyGameScaler(scaler);
             canvasGo.AddComponent<GraphicRaycaster>();
 
             var textGo = new GameObject("Label", typeof(RectTransform));
@@ -647,7 +647,7 @@ namespace Saga.EditorTools
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             var scaler = canvasGo.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1080, 1920);
+            Saga.Core.SagaUi.ApplyGameScaler(scaler);
             canvasGo.AddComponent<GraphicRaycaster>();
 
             var panelGo = new GameObject("Panel", typeof(RectTransform));
@@ -747,7 +747,7 @@ namespace Saga.EditorTools
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             var scaler = canvasGo.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1080, 1920);
+            Saga.Core.SagaUi.ApplyGameScaler(scaler);
             canvasGo.AddComponent<GraphicRaycaster>();
 
             var textGo = new GameObject("Label", typeof(RectTransform));
@@ -776,7 +776,7 @@ namespace Saga.EditorTools
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             var scaler = canvasGo.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1080, 1920);
+            Saga.Core.SagaUi.ApplyGameScaler(scaler);
             canvasGo.AddComponent<GraphicRaycaster>();
 
             var btnGo = new GameObject("SaveButton", typeof(RectTransform));
@@ -850,7 +850,7 @@ namespace Saga.EditorTools
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             var scaler = canvasGo.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1080, 1920);
+            Saga.Core.SagaUi.ApplyGameScaler(scaler);
             canvasGo.AddComponent<GraphicRaycaster>();
 
             var leftBtn = BuildHoldButton(canvasGo.transform, new Vector2(0f, 0f), new Vector2(120f, 200f), "◀", new Color(1f, 1f, 1f, 0.18f));
@@ -863,27 +863,27 @@ namespace Saga.EditorTools
             SetPrivateField(controller, "climbUpButton", upBtn);
             SetPrivateField(controller, "climbDownButton", downBtn);
 
-            BuildActionButton(canvasGo.transform, new Vector2(-100f, 180f), "점프", new Color(0.15f, 0.45f, 0.6f, 0.55f), controller.TriggerJump, "action.jump");
-            BuildActionButton(canvasGo.transform, new Vector2(-280f, 180f), "공격", new Color(0.7f, 0.2f, 0.15f, 0.55f), controller.TriggerAttack, "action.attack");
+            BuildActionButton(canvasGo.transform, new Vector2(-90f, 140f), "점프", new Color(0.15f, 0.45f, 0.6f, 0.55f), controller.TriggerJump, "action.jump");
+            BuildActionButton(canvasGo.transform, new Vector2(-235f, 140f), "공격", new Color(0.7f, 0.2f, 0.15f, 0.55f), controller.TriggerAttack, "action.attack");
 
             // 무예 나머지 셋(횡소·기탄·기합, "STORY 콘텐츠 확장" 2026-09-12) —
             // 점프·공격과 같은 오른쪽 아래 모서리, 한 줄 위(y=380)에 둬서
             // 이동 hold 버튼 넷(왼쪽 아래 모서리, x≤320)과 안 겹치게 한다.
-            BuildActionButton(canvasGo.transform, new Vector2(-100f, 380f), "기합", new Color(0.75f, 0.55f, 0.1f, 0.55f), controller.TriggerBrace, "action.brace");
-            BuildActionButton(canvasGo.transform, new Vector2(-280f, 380f), "기탄", new Color(0.2f, 0.4f, 0.75f, 0.55f), controller.TriggerBolt, "action.bolt");
-            BuildActionButton(canvasGo.transform, new Vector2(-460f, 380f), "횡소", new Color(0.4f, 0.6f, 0.25f, 0.55f), controller.TriggerSweep, "action.sweep");
+            BuildActionButton(canvasGo.transform, new Vector2(-90f, 285f), "기합", new Color(0.75f, 0.55f, 0.1f, 0.55f), controller.TriggerBrace, "action.brace");
+            BuildActionButton(canvasGo.transform, new Vector2(-235f, 285f), "기탄", new Color(0.2f, 0.4f, 0.75f, 0.55f), controller.TriggerBolt, "action.bolt");
+            BuildActionButton(canvasGo.transform, new Vector2(-380f, 285f), "횡소", new Color(0.4f, 0.6f, 0.25f, 0.55f), controller.TriggerSweep, "action.sweep");
 
             // PLAN.md 101-2 5-8 "동료 교대"(2026-09-21) — 무예 셋(y=380) 위
             // 한 줄(y=580)에 역할 셋. 웹판 "버튼 1개(초상 탭)" 대신 이 트랙엔
             // 초상이 없어 역할마다 버튼을 두는 쪽으로 재해석(더 명확하다).
-            BuildPartySwapButton(canvasGo.transform, new Vector2(-100f, 580f), "호법", new Color(0.55f, 0.35f, 0.65f, 0.55f), controller, 2, "action.party_guardian");
-            BuildPartySwapButton(canvasGo.transform, new Vector2(-280f, 580f), "유격", new Color(0.35f, 0.55f, 0.6f, 0.55f), controller, 1, "action.party_skirmisher");
-            BuildPartySwapButton(canvasGo.transform, new Vector2(-460f, 580f), "선봉", new Color(0.65f, 0.35f, 0.35f, 0.55f), controller, 0, "action.party_vanguard");
+            BuildPartySwapButton(canvasGo.transform, new Vector2(-90f, 430f), "호법", new Color(0.55f, 0.35f, 0.65f, 0.55f), controller, 2, "action.party_guardian");
+            BuildPartySwapButton(canvasGo.transform, new Vector2(-235f, 430f), "유격", new Color(0.35f, 0.55f, 0.6f, 0.55f), controller, 1, "action.party_skirmisher");
+            BuildPartySwapButton(canvasGo.transform, new Vector2(-380f, 430f), "선봉", new Color(0.65f, 0.35f, 0.35f, 0.55f), controller, 0, "action.party_vanguard");
             // PLAN.md 106-10 둘째 단계 — 교대 줄 왼쪽 끝에 "소환"(게이지가 차면 V 와 같다).
             var summoner = controller.GetComponent<StorySummoner>();
             if (summoner != null)
             {
-                BuildActionButton(canvasGo.transform, new Vector2(-640f, 580f), "소환", new Color(0.35f, 0.45f, 0.85f, 0.6f), summoner.TriggerSummon, "action.summon");
+                BuildActionButton(canvasGo.transform, new Vector2(-525f, 430f), "소환", new Color(0.35f, 0.45f, 0.85f, 0.6f), summoner.TriggerSummon, "action.summon");
             }
 
             // PLAN.md 101-2 5-2 1단계(2026-09-23) — 직업 무예 칸 넷(y=780, 오른쪽부터 칸 0~3)
@@ -891,12 +891,12 @@ namespace Saga.EditorTools
             // 바뀌어 StorySkillSlotButton이 그린다(LocalizedButtonLabel 대신).
             for (int i = 0; i < StorySkillState.SlotCount; i++)
             {
-                BuildSkillSlotButton(canvasGo.transform, new Vector2(-100f - 180f * i, 780f), i, controller);
+                BuildSkillSlotButton(canvasGo.transform, new Vector2(-90f - 145f * i, 575f), i, controller);
             }
             var panel = Object.FindFirstObjectByType<StorySkillPanelUi>();
             if (panel != null)
             {
-                BuildActionButton(canvasGo.transform, new Vector2(-100f, 980f), "무예", new Color(0.3f, 0.3f, 0.3f, 0.55f),
+                BuildActionButton(canvasGo.transform, new Vector2(-670f, 575f), "무예", new Color(0.3f, 0.3f, 0.3f, 0.55f),
                     panel.Toggle, "action.skill_panel");
             }
         }
@@ -915,7 +915,7 @@ namespace Saga.EditorTools
             var rect = (RectTransform)go.transform;
             rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(1f, 0f);
             rect.anchoredPosition = offset;
-            rect.sizeDelta = new Vector2(160f, 160f);
+            rect.sizeDelta = new Vector2(128f, 128f); // 110 ⑤b — 가로 900 높이에 네 줄
 
             var color = new Color(0.45f, 0.3f, 0.6f, 0.55f);
             var img = go.AddComponent<Image>();
@@ -993,7 +993,7 @@ namespace Saga.EditorTools
             rect.anchorMax = new Vector2(1f, 0f);
             rect.pivot = new Vector2(1f, 0f);
             rect.anchoredPosition = offset;
-            rect.sizeDelta = new Vector2(160f, 160f);
+            rect.sizeDelta = new Vector2(128f, 128f); // 110 ⑤b — 가로 900 높이에 네 줄
 
             var img = go.AddComponent<Image>();
             img.color = color;

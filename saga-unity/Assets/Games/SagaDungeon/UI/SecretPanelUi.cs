@@ -142,7 +142,7 @@ namespace Saga.Dungeon.UI
             canvas.sortingOrder = 20;
             var scaler = canvasGo.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1080f, 1920f);
+            Saga.Core.SagaUi.ApplyGameScaler(scaler);
             DungeonSettingsState.ApplyUiScale(scaler);
             canvasGo.AddComponent<GraphicRaycaster>();
 

@@ -249,7 +249,7 @@ namespace Saga.EditorTools
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             var scaler = hudCanvasGo.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1080, 1920);
+            Saga.Core.SagaUi.ApplyGameScaler(scaler);
             hudCanvasGo.AddComponent<GraphicRaycaster>();
 
             var textGo = new GameObject("Label", typeof(RectTransform));
@@ -305,7 +305,7 @@ namespace Saga.EditorTools
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             var scaler = canvasGo.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1080, 1920);
+            Saga.Core.SagaUi.ApplyGameScaler(scaler);
             canvasGo.AddComponent<GraphicRaycaster>();
 
             var textGo = new GameObject("Label", typeof(RectTransform));

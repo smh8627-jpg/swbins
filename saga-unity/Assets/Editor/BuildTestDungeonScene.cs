@@ -1338,7 +1338,7 @@ namespace Saga.EditorTools
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             var scaler = canvasGo.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1080, 1920);
+            Saga.Core.SagaUi.ApplyGameScaler(scaler);
             var hud = canvasGo.AddComponent<PartyHud>();
             SetPrivateField(hud, "tauntButton", taunt.GetComponent<Image>());
             SetPrivateField(hud, "healButton", heal.GetComponent<Image>());
@@ -1408,7 +1408,7 @@ namespace Saga.EditorTools
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             var scaler = canvasGo.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1080, 1920);
+            Saga.Core.SagaUi.ApplyGameScaler(scaler);
             canvasGo.AddComponent<GraphicRaycaster>();
 
             var textGo = new GameObject("Label", typeof(RectTransform));
@@ -1439,7 +1439,7 @@ namespace Saga.EditorTools
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             var scaler = canvasGo.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1080, 1920);
+            Saga.Core.SagaUi.ApplyGameScaler(scaler);
             canvasGo.AddComponent<GraphicRaycaster>();
 
             var textGo = new GameObject("Label", typeof(RectTransform));
@@ -1500,16 +1500,16 @@ namespace Saga.EditorTools
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             var scaler = canvasGo.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1080, 1920);
+            Saga.Core.SagaUi.ApplyGameScaler(scaler);
             canvasGo.AddComponent<GraphicRaycaster>();
 
             var areaGo = new GameObject("MapArea", typeof(RectTransform));
             areaGo.transform.SetParent(canvasGo.transform, false);
             var areaRect = (RectTransform)areaGo.transform;
-            areaRect.anchorMin = new Vector2(1f, 1f);
-            areaRect.anchorMax = new Vector2(1f, 1f);
-            areaRect.pivot = new Vector2(1f, 1f);
-            areaRect.anchoredPosition = new Vector2(-30f, -130f); // SaveButton(-30,-30, 160x80) 바로 아래.
+            areaRect.anchorMin = new Vector2(0f, 1f);
+            areaRect.anchorMax = new Vector2(0f, 1f);
+            areaRect.pivot = new Vector2(0f, 1f);
+            areaRect.anchoredPosition = new Vector2(20f, -330f); // 110 ⑤b — 왼쪽 파티 HUD 밑·조이스틱 위(오른쪽 기둥은 전투 버튼 칸과 겹쳤다).
             areaRect.sizeDelta = new Vector2(140f, 220f);
 
             var bgImg = areaGo.AddComponent<Image>();
@@ -1571,7 +1571,7 @@ namespace Saga.EditorTools
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             var scaler = canvasGo.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1080, 1920);
+            Saga.Core.SagaUi.ApplyGameScaler(scaler);
             canvasGo.AddComponent<GraphicRaycaster>();
 
             var panelGo = new GameObject("MapPanel", typeof(RectTransform));
@@ -1622,7 +1622,7 @@ namespace Saga.EditorTools
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             var scaler = canvasGo.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1080, 1920);
+            Saga.Core.SagaUi.ApplyGameScaler(scaler);
             canvasGo.AddComponent<GraphicRaycaster>();
 
             var textGo = new GameObject("Label", typeof(RectTransform));
@@ -1760,7 +1760,7 @@ namespace Saga.EditorTools
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             var scaler = canvasGo.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1080, 1920);
+            Saga.Core.SagaUi.ApplyGameScaler(scaler);
             canvasGo.AddComponent<GraphicRaycaster>();
 
             var btnGo = new GameObject(buttonName, typeof(RectTransform));
@@ -1805,7 +1805,7 @@ namespace Saga.EditorTools
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             var scaler = canvasGo.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1080, 1920);
+            Saga.Core.SagaUi.ApplyGameScaler(scaler);
             canvasGo.AddComponent<GraphicRaycaster>();
 
             var baseGo = new GameObject("JoystickBase", typeof(RectTransform));

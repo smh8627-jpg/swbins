@@ -1,7 +1,7 @@
 # PROJECT_STATE — saga-unity (상태만, ≤15KB, 덮어쓴다)
 
 **규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다(2026-09-16 재편 전 본문 5,532줄은 그쪽 첫 절에 그대로 있다). 넘치면 `tools/precheck.sh` 가 막는다.
-마지막 갱신: 2026-09-26 (110 ⑤a 글자 TMP 끝 — ③ 폰 결과 대기).
+마지막 갱신: 2026-09-26 (110 ⑤b 배치 0건 — ③ 폰 결과 대기).
 
 ## 캐릭터 자산 — 이 PC 기준 (2026-09-19)
 
@@ -21,7 +21,7 @@ Maria·Abe·Brute + Skeleton·Paladin·PeasantMan·PeasantGirl·Archer·두목 M
 
 ## 다음 작업 (우선순위, 상세는 PLAN 해당 장)
 
-0. **다음 = PLAN 110 ⑤b 배치 점검**(③b 폰 결과 대기). 새 글자는 TMP 만(월드 = `SagaWorldText`, 테두리 = `TmpEffect`), 씬 재빌드 = `SagaRebuildScenes.RebuildAll`. 109 멈춤.
+0. **다음 = PLAN 110 ⑤c HUD 정리**(③b 폰 결과 대기). 글자는 TMP 만(월드 `SagaWorldText`·테두리 `TmpEffect`), HUD 캔버스는 `SagaUi.ApplyGameScaler`(1600×900 Expand, 폰 가로 고정), 배치 점검 `UiLayoutCheck`, 재빌드 `SagaRebuildScenes`. 109 멈춤.
 0-1. **남은 것**: en 번역 검수 전. GO 동료 몸 Maria.controller 리타깃·무기는 주인공 손에만.
 1. STORY 판수(15→20 약 11판·20→25 약 28판)가 무거우면 `JobPromoteLevel3/4`만.
 2. **101-2·104-1 잔여(보류)** — GO⑤·Kenney 폴백·헤어카드.
@@ -35,16 +35,15 @@ Maria·Abe·Brute + Skeleton·Paladin·PeasantMan·PeasantGirl·Archer·두목 M
 - **씬 재빌드가 컷 타임라인(`*.playable`)을 새 트랙 ID 로 다시 쓴다 — 되돌리지 말고 씬과 같이 커밋한다.** 씬의 PlayableDirector 바인딩이 그 ID 를 가리켜, 타임라인만 되돌리면 컷이 빈 트랙을 튼다(DUNGEON 이름표·레터박스·컷 카메라 진단이 깨진다). 2026-09-25 전까지 DUNGEON 다섯·GO 수호장 컷이 HEAD 에서 끊겨 있었다.
 - **함정**: Unity 6000.3.24f1 > 프로젝트 6000.3.23f1 → 배치/GUI 실행이 ProjectSettings/Packages를 조용히 고친다. `tools/unity-batch.sh --`로 부르면 자동 원복(`*_RPAsset` v13·GUI 실행은 수동 checkout).
 - `GetBoneTransform()`은 `isHuman` 먼저. Mixamo 몸 일부는 휴머노이드 실패(Prisoner·Survivor·의족 Pirate) — 다른 카드로.
-- 정적 상태의 `Restore()`는 관련 이벤트(`JobChosen` 등)를 쏴야 UI가 안 낡는다.
+- 정적 상태 `Restore()` 는 관련 이벤트(`JobChosen` 등)를 쏴야 UI 가 안 낡는다.
 - URP 런타임 타입엔 asmdef에 `Unity.RenderPipelines.Universal.Runtime`(SagaDungeon·SagaGo, Story 는 asmdef 없음).
-- 레벨업 컷 체크는 세션 첫 레벨업이어야. `GroundDecal` 캡 테스트는 델타 루프 밖.
+- 레벨업 컷 체크는 세션 첫 레벨업. `GroundDecal` 캡 테스트는 델타 루프 밖.
 - `PlaytestXxx`류는 `-quit` 없이 부른다. 에디터 빌드가 채우는 참조는 `[SerializeField]` 필수. `animator?.` 대신 `if (animator != null)`.
 - 헤드리스가 진짜 버튼·공격을 누를 땐 적에게서 떨어져서. 두목 등장 컷은 진단 앞쪽에서 한 번 틀어 둔다.
 - REALM 새 성은 `RealmEnemyCity.cs`·`RealmCityData.cs` 둘 다. DUNGEON 확인용 텔레포트는 `floorRunner.enabled=false` 먼저, `CameraRig` 확인용은 `_zoom`≤3·`_pitchDeg`≤30.
-- 헤드리스가 `SaveState.Save()`를 부르면 실제 파일이 남는다 — try/finally로 원본 복원(GO·STORY 패턴).
+- 헤드리스가 `SaveState.Save()` 를 부르면 실제 파일이 남는다 — try/finally 로 복원.
 - Shader Graph internal API는 리플렉션 우회(`BuildMariaSssShaderGraph.cs`) — 매번 `ShaderHasError`, 재빌드 뒤 GUI idle 900프레임.
-- 가끔 실패 → 재실행: `PlaytestStorySlice` `PartySwapWait`(투사체 대기) · 배치 시작 `Failed to resolve packages`.
-- `CaptureScreenshot()`은 렌더 후 찍힌다 — 세팅·캡처를 다른 tick에.
+- 가끔 실패 → 재실행: STORY `PartySwapWait` · 배치 시작 `Failed to resolve packages`. `CaptureScreenshot()` 은 세팅·캡처를 다른 tick 에.
 
 ## 테스트 상태 (배치 모드, Unity 6000.3.24f1)
 

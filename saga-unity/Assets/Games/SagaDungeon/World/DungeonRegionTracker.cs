@@ -144,7 +144,7 @@ namespace Saga.Dungeon.World
             canvas.sortingOrder = 15;
             var scaler = canvasGo.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1080f, 1920f);
+            Saga.Core.SagaUi.ApplyGameScaler(scaler);
             DungeonSettingsState.ApplyUiScale(scaler);
 
             var go = new GameObject("RegionBanner", typeof(RectTransform));

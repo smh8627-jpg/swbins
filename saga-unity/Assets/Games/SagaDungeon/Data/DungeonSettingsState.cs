@@ -15,7 +15,6 @@ namespace Saga.Dungeon.Data
         private const string UiScaleKey = "saga_dungeon_ui_scale";
         private const string GraphicsQualityKey = "saga_dungeon_graphics_quality_high";
 
-        private static readonly Vector2 BaseReferenceResolution = new Vector2(1080f, 1920f);
         public static readonly float[] UiScaleSteps = { 0.85f, 1f, 1.15f };
         private static readonly string[] UiScaleKeys = { "scale.small", "scale.normal", "scale.large" };
 
@@ -93,7 +92,7 @@ namespace Saga.Dungeon.Data
         public static void ApplyUiScale(CanvasScaler scaler)
         {
             if (scaler == null) return;
-            scaler.referenceResolution = BaseReferenceResolution / Mathf.Max(0.01f, UiScaleMultiplier);
+            Saga.Core.SagaUi.ApplyGameScaler(scaler, UiScaleMultiplier); // 110 ⑤b — 기준은 SagaUi.GameReference 한 곳, 메뉴 캔버스는 건너뜀
         }
 
         public static void ApplyToAllScalers()

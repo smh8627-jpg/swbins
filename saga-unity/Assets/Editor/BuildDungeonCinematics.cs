@@ -292,8 +292,7 @@ namespace Saga.EditorTools
             canvas.sortingOrder = -5; // 토스트(DialogueUI, 0)가 레터박스 위에 뜨게. 다른 HUD 는 컷 동안 꺼진다.
             var scaler = canvasGo.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1080, 1920);
-            scaler.matchWidthOrHeight = 0.5f;
+            Saga.Core.SagaUi.ApplyGameScaler(scaler);
             // GraphicRaycaster 는 두지 않는다 — 컷을 넘기는 탭은 DungeonCutscenes 가 직접 읽는다.
 
             var top = Bar(canvasGo.transform, "TopBar");

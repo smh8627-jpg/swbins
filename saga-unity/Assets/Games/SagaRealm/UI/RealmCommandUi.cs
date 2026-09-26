@@ -177,20 +177,17 @@ namespace Saga.Realm.UI
             // 문답(REALM 다음 조각 (3))은 명령/전쟁과 달리 턴·성·무장과
             // 무관한 개인 미니게임이라 아래 다섯 버튼 행에 안 끼우고
             // 화면 오른쪽 위 구석에 따로 뒀다(HUD가 왼쪽 위를 쓰니 안 겹침).
-            var quizToggleButton = RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("command.quiz"), new Vector2(1f, 1f), new Vector2(-110f, -90f),
-                new Vector2(180f, 110f), ToggleQuizPanel);
+            var quizToggleButton = RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("command.quiz"), new Vector2(1f, 1f), new Vector2(-110f, -132f), new Vector2(180f, 104f), ToggleQuizPanel);
             _quizToggleLabel = quizToggleButton.GetComponentInChildren<TextMeshProUGUI>();
 
             // 월드맵(2-8절) — 문답과 같은 구석, 그 바로 아래에 둔다(명령/성/
             // 계략/공격/다음달 행과도, HUD 라벨과도 안 겹치는 유일한 빈 자리).
-            var mapButton = RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("command.map"), new Vector2(1f, 1f), new Vector2(-110f, -210f),
-                new Vector2(180f, 110f), ToggleMap);
+            var mapButton = RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("command.map"), new Vector2(1f, 1f), new Vector2(-110f, -244f), new Vector2(180f, 104f), ToggleMap);
             _mapLabel = mapButton.GetComponentInChildren<TextMeshProUGUI>();
 
             // 서고(godot REALM 10절) — 문답보다도 위 구석(같은 결로 명령
             // 계열과 안 겹치는 유일한 빈 자리).
-            var archiveToggleButton = RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("command.archive"), new Vector2(1f, 1f), new Vector2(-110f, 30f),
-                new Vector2(180f, 110f), ToggleArchivePanel);
+            var archiveToggleButton = RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("command.archive"), new Vector2(1f, 1f), new Vector2(-110f, -20f), new Vector2(180f, 104f), ToggleArchivePanel);
             _archiveToggleLabel = archiveToggleButton.GetComponentInChildren<TextMeshProUGUI>();
 
             // 설정(PLAN.md 67~69장 "접근성") — 문답/지도/서고와 같은 구석
@@ -198,14 +195,14 @@ namespace Saga.Realm.UI
             // 디버그 오버레이(BuildTestCityScene.cs, y -20~-140)보다 한참
             // 아래라 겹치지 않는다.
             var settingsToggleButton = RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("settings.title"),
-                new Vector2(1f, 1f), new Vector2(-110f, -330f), new Vector2(180f, 110f), ToggleSettingsPanel);
+                new Vector2(1f, 1f), new Vector2(-110f, -356f), new Vector2(180f, 104f), ToggleSettingsPanel);
             _settingsToggleLabel = settingsToggleButton.GetComponentInChildren<TextMeshProUGUI>();
 
             // 저장(2026-09-15 — GO/DUNGEON/FOREST/STORY엔 다 있던 저장 버튼이
             // REALM만 없었다) — 설정 바로 아래, 같은 구석 기둥을 한 칸 더
             // 잇는다(설정 -330 바로 아래, 10px 틈 — 같은 간격 규칙).
             var saveButton = RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("command.save"),
-                new Vector2(1f, 1f), new Vector2(-110f, -450f), new Vector2(180f, 110f), ExecuteSave);
+                new Vector2(1f, 1f), new Vector2(-110f, -468f), new Vector2(180f, 104f), ExecuteSave);
             _saveLabel = saveButton.GetComponentInChildren<TextMeshProUGUI>();
 
             // 전술 토글(101-2 5-6, 2026-09-20) — 저장 바로 아래, 같은 구석
@@ -214,13 +211,13 @@ namespace Saga.Realm.UI
             // 패널 없이 바로 공격이 나가(ExecuteAttack() 참고) 패널 안
             // 토글은 대부분의 공격에서 보이지도 않을 것이기 때문.
             var tacticToggleButton = RealmUiKit.NewButton(canvas.transform, TacticToggleLabelText(),
-                new Vector2(1f, 1f), new Vector2(-110f, -570f), new Vector2(180f, 110f), ToggleTactic);
+                new Vector2(1f, 1f), new Vector2(-110f, -580f), new Vector2(180f, 104f), ToggleTactic);
             _tacticToggleLabel = tacticToggleButton.GetComponentInChildren<TextMeshProUGUI>();
 
             // 일기토 토글(101-2 5-3, 2026-09-20) — 전술 토글 바로 아래,
             // 같은 구석 기둥을 한 칸 더 잇는다(-570 바로 아래, 같은 120px 간격).
             var duelToggleButton = RealmUiKit.NewButton(canvas.transform, DuelToggleLabelText(),
-                new Vector2(1f, 1f), new Vector2(-110f, -690f), new Vector2(180f, 110f), ToggleDuel);
+                new Vector2(1f, 1f), new Vector2(-110f, -692f), new Vector2(180f, 104f), ToggleDuel);
             _duelToggleLabel = duelToggleButton.GetComponentInChildren<TextMeshProUGUI>();
 
             BuildOrderPanel(canvas.transform);

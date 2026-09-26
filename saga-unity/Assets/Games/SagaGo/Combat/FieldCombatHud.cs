@@ -60,10 +60,10 @@ namespace Saga.Go.Combat
             _energyFill = Bar(t, new Vector2(0f, 92f), new Vector2(460f, 10f), new Color(1f, 0.85f, 0.3f, 0.95f));
             _staminaFill = Bar(t, new Vector2(0f, 196f), new Vector2(280f, 10f), new Color(0.9f, 1f, 0.6f, 0.9f));
 
-            // 오른쪽 — 명단
+            // 왼쪽 가운데 — 명단(110 ⑤b: 오른쪽은 위 버튼 줄·아래 전투 버튼과 겹쳐 비어 있는 왼쪽으로. 위 HUD 줄 밑·조이스틱 위)
             for (int i = 0; i < FieldCombat.MaxParty; i++)
             {
-                var b = EncounterUiKit.NewButton(t, "", new Vector2(1f, 0.5f), new Vector2(-20f, 170f - i * 95f), new Vector2(270f, 84f), null);
+                var b = EncounterUiKit.NewButton(t, "", new Vector2(0f, 0.5f), new Vector2(20f, 170f - i * 90f), new Vector2(270f, 80f), null);
                 switch (i)
                 {
                     case 0: b.onClick.AddListener(Swap0); break;

@@ -20,7 +20,6 @@ namespace Saga.Go.Data
         private const string UiScaleKey = "saga_go_ui_scale";
         private const string GraphicsQualityKey = "saga_go_graphics_quality_high";
 
-        private static readonly Vector2 BaseReferenceResolution = new Vector2(1080f, 1920f);
         public static readonly float[] UiScaleSteps = { 0.85f, 1f, 1.15f };
         private static readonly string[] UiScaleKeys = { "scale.small", "scale.normal", "scale.large" };
 
@@ -103,7 +102,7 @@ namespace Saga.Go.Data
             Saga.Core.MobileGraphics.ApplyQuality(HighGraphicsQuality); // URP 는 위 둘을 안 읽는다 — 폰에선 파이프라인 에셋을 직접(2026-09-24 발열 점검)
         }
 
-        /// <summary>다섯 판 모든 캔버스가 같은 기준 해상도(1080×1920)를
+        /// <summary>다섯 판 모든 HUD 캔버스가 같은 기준(`SagaUi.GameReference`)을
         /// 쓴다는 걸 확인하고 고른 값이다(BuildTestVillageScene.cs 등의
         /// `referenceResolution` 전부 이 값) — 배수를 나눠 넣으면 "크게"가
         /// 실제로 더 크게 보인다(기준 해상도가 작아질수록 화면에 꽉 차게
@@ -111,7 +110,7 @@ namespace Saga.Go.Data
         public static void ApplyUiScale(CanvasScaler scaler)
         {
             if (scaler == null) return;
-            scaler.referenceResolution = BaseReferenceResolution / Mathf.Max(0.01f, UiScaleMultiplier);
+            Saga.Core.SagaUi.ApplyGameScaler(scaler, UiScaleMultiplier); // 110 ⑤b — 기준은 SagaUi.GameReference 한 곳, 메뉴 캔버스는 건너뜀
         }
 
         /// <summary>씬에 이미 있는(에디터가 미리 지어 둔) 캔버스 전부에

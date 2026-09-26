@@ -47,7 +47,7 @@ namespace Saga.Dungeon.UI
             canvas.transform.SetParent(transform, false);
 
             var toggleButton = NewButton(canvas.transform, DungeonLocalization.T("settings.title"),
-                new Vector2(1f, 1f), new Vector2(-30f, -370f), new Vector2(160f, 80f), TogglePanel);
+                new Vector2(1f, 1f), new Vector2(-210f, -30f), new Vector2(160f, 80f), TogglePanel); // 110 ⑤b — 윗줄 저장 왼쪽
             _toggleLabel = toggleButton.GetComponentInChildren<TextMeshProUGUI>();
 
             _panel = NewPanel(canvas.transform, new Vector2(0.5f, 0.5f), new Vector2(680f, 820f),
@@ -123,7 +123,7 @@ namespace Saga.Dungeon.UI
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             var scaler = go.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1080f, 1920f);
+            Saga.Core.SagaUi.ApplyGameScaler(scaler);
             DungeonSettingsState.ApplyUiScale(scaler);
             go.AddComponent<GraphicRaycaster>();
             return canvas;

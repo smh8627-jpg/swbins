@@ -50,7 +50,7 @@ namespace Saga.Core
             canvas.sortingOrder = 100; // 다른 상시 HUD보다 위에 뜨게.
             var scaler = canvasGo.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1080f, 1920f);
+            Saga.Core.SagaUi.ApplyGameScaler(scaler);
             canvasGo.AddComponent<GraphicRaycaster>();
 
             _panel = new GameObject("Panel", typeof(RectTransform));

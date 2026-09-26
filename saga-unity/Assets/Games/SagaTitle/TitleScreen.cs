@@ -198,10 +198,10 @@ namespace Saga.Title
             bg.texture = GradientTexture();
 
             var top = new Vector2(0.5f, 1f);
-            var title = SagaUi.NewText(root, "SAGA", narrow ? 150f : 170f, SagaUi.Gold, top, new Vector2(0f, narrow ? -150f : -130f), new Vector2(900f, 190f));
+            var title = SagaUi.NewText(root, "SAGA", 150f, SagaUi.Gold, top, new Vector2(0f, narrow ? -140f : -115f), new Vector2(900f, 170f));
             title.fontStyle = FontStyles.Bold;
             title.characterSpacing = 18f;
-            SagaUi.NewText(root, "역사 인물로 노는 다섯 판", 36f, SagaUi.InkDim, top, new Vector2(0f, narrow ? -255f : -230f), new Vector2(900f, 60f));
+            SagaUi.NewText(root, "역사 인물로 노는 다섯 판", 36f, SagaUi.InkDim, top, new Vector2(0f, narrow ? -265f : -255f), new Vector2(900f, 60f));
 
             var cards = SagaUi.NewRect(root, "Cards", new Vector2(0.5f, 0.5f), new Vector2(0f, narrow ? -40f : -30f), Vector2.zero);
             Vector2 cardSize = narrow ? new Vector2(880f, 230f) : new Vector2(330f, 470f);

@@ -349,7 +349,7 @@ namespace Saga.Story.UI
             canvas.sortingOrder = 20;
             var scaler = go.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1080f, 1920f);
+            Saga.Core.SagaUi.ApplyGameScaler(scaler);
             StorySettingsState.ApplyUiScale(scaler);
             go.AddComponent<GraphicRaycaster>();
             return canvas;

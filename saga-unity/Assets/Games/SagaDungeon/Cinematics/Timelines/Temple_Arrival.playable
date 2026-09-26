@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!114 &-8726698156784765290
+--- !u!114 &-4967463249076386235
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -24,10 +24,10 @@ MonoBehaviour:
   - m_Version: 1
     m_Start: 0
     m_ClipIn: 0
-    m_Asset: {fileID: 2618348986855179793}
+    m_Asset: {fileID: -3558981842005085821}
     m_Duration: 4.5
     m_TimeScale: 1
-    m_ParentTrack: {fileID: -8726698156784765290}
+    m_ParentTrack: {fileID: -4967463249076386235}
     m_EaseInDuration: 0
     m_EaseOutDuration: 0
     m_BlendInDuration: 0
@@ -92,7 +92,7 @@ MonoBehaviour:
     m_DisplayName: CutsceneDollyClip
   m_Markers:
     m_Objects: []
---- !u!114 &-1348269225875333597
+--- !u!114 &-3971131169333939716
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -116,10 +116,10 @@ MonoBehaviour:
   - m_Version: 1
     m_Start: 0.699999988079071
     m_ClipIn: 0
-    m_Asset: {fileID: 5917885040052497485}
+    m_Asset: {fileID: 3822476296644231266}
     m_Duration: 3.200000047683716
     m_TimeScale: 1
-    m_ParentTrack: {fileID: -1348269225875333597}
+    m_ParentTrack: {fileID: -3971131169333939716}
     m_EaseInDuration: 0
     m_EaseOutDuration: 0
     m_BlendInDuration: 0
@@ -184,30 +184,19 @@ MonoBehaviour:
     m_DisplayName: "\uC78A\uD78C \uB2A5\uBB18"
   m_Markers:
     m_Objects: []
---- !u!114 &11400000
+--- !u!114 &-3558981842005085821
 MonoBehaviour:
-  m_ObjectHideFlags: 0
+  m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bfda56da833e2384a9677cd3c976a436, type: 3}
-  m_Name: Temple_Arrival
-  m_EditorClassIdentifier: Unity.Timeline::UnityEngine.Timeline.TimelineAsset
-  m_Version: 0
-  m_Tracks:
-  - {fileID: 1265523274441171079}
-  - {fileID: -8726698156784765290}
-  - {fileID: -1348269225875333597}
-  m_FixedDuration: 0
-  m_EditorSettings:
-    m_Framerate: 60
-    m_ScenePreview: 1
-  m_DurationMode: 0
-  m_MarkerTrack: {fileID: 0}
---- !u!114 &1265523274441171079
+  m_Script: {fileID: 11500000, guid: 5efe9f149a2a90b49813938af1b19b55, type: 3}
+  m_Name: CutsceneDollyClip
+  m_EditorClassIdentifier: SagaDungeon::Saga.Dungeon.Cinematics.CutsceneDollyClip
+--- !u!114 &-2068597598975554110
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -231,10 +220,10 @@ MonoBehaviour:
   - m_Version: 1
     m_Start: 0
     m_ClipIn: 0
-    m_Asset: {fileID: 5622443596392232518}
+    m_Asset: {fileID: -867584363281626713}
     m_Duration: 4.5
     m_TimeScale: 1
-    m_ParentTrack: {fileID: 1265523274441171079}
+    m_ParentTrack: {fileID: -2068597598975554110}
     m_EaseInDuration: 0.8999999761581421
     m_EaseOutDuration: 0.8999999761581421
     m_BlendInDuration: -1
@@ -300,19 +289,7 @@ MonoBehaviour:
   m_Markers:
     m_Objects: []
   TrackPriority: 0
---- !u!114 &2618348986855179793
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5efe9f149a2a90b49813938af1b19b55, type: 3}
-  m_Name: CutsceneDollyClip
-  m_EditorClassIdentifier: SagaDungeon::Saga.Dungeon.Cinematics.CutsceneDollyClip
---- !u!114 &5622443596392232518
+--- !u!114 &-867584363281626713
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -328,7 +305,30 @@ MonoBehaviour:
   VirtualCamera:
     exposedName: arrival_wide
     defaultValue: {fileID: 0}
---- !u!114 &5917885040052497485
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bfda56da833e2384a9677cd3c976a436, type: 3}
+  m_Name: Temple_Arrival
+  m_EditorClassIdentifier: Unity.Timeline::UnityEngine.Timeline.TimelineAsset
+  m_Version: 0
+  m_Tracks:
+  - {fileID: -2068597598975554110}
+  - {fileID: -4967463249076386235}
+  - {fileID: -3971131169333939716}
+  m_FixedDuration: 0
+  m_EditorSettings:
+    m_Framerate: 60
+    m_ScenePreview: 1
+  m_DurationMode: 0
+  m_MarkerTrack: {fileID: 0}
+--- !u!114 &3822476296644231266
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}

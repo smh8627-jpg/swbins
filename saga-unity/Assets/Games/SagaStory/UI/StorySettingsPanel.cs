@@ -68,7 +68,7 @@ namespace Saga.Story.UI
             canvas.transform.SetParent(transform, false);
 
             _toggleButton = NewButton(canvas.transform, StoryLocalization.T("settings.title"),
-                new Vector2(1f, 1f), new Vector2(-30f, -130f), new Vector2(160f, 80f));
+                new Vector2(1f, 1f), new Vector2(-210f, -30f), new Vector2(160f, 80f)); // 110 ⑤b — 윗줄 저장 왼쪽
             _toggleLabel = _toggleButton.GetComponentInChildren<TextMeshProUGUI>();
 
             _panel = NewPanel(canvas.transform, new Vector2(0.5f, 0.5f), new Vector2(680f, 820f),
@@ -142,7 +142,7 @@ namespace Saga.Story.UI
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             var scaler = go.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1080f, 1920f);
+            Saga.Core.SagaUi.ApplyGameScaler(scaler);
             StorySettingsState.ApplyUiScale(scaler);
             go.AddComponent<GraphicRaycaster>();
             return canvas;
