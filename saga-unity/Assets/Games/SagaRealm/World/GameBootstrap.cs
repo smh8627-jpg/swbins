@@ -14,6 +14,7 @@ namespace Saga.Realm.World
         private void Start()
         {
             RealmSaveState.TryLoad();
+            Saga.Core.SagaFlow.Enter("realm", RealmSaveState.Save); // PLAN.md 110 ② — 자동 저장·일시정지 메뉴·타이틀로.
             RealmSettingsState.ApplyToAllScalers();
             RealmSettingsState.ApplyGraphicsQuality();
             RealmAudio.PlayBgm(bgmClip);

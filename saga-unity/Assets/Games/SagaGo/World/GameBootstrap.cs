@@ -29,6 +29,7 @@ namespace Saga.Go.World
         private void Start()
         {
             SaveState.TryLoad();
+            Saga.Core.SagaFlow.Enter("go", SaveState.Save); // PLAN.md 110 ② — 자동 저장·일시정지 메뉴·타이틀로.
 
             // PLAN.md 101-2 ⑧ "패배 비용과 회수" — 앱이 꺼져 있던 사이 10분
             // 창을 넘긴 짐은 먼저 걸러내고, 남은 것만 마커로 되살린다.

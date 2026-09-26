@@ -20,6 +20,7 @@ namespace Saga.Forest.World
         private void Start()
         {
             ForestSaveState.TryLoad();
+            Saga.Core.SagaFlow.Enter("forest", ForestSaveState.Save); // PLAN.md 110 ② — 자동 저장·일시정지 메뉴·타이틀로.
             ForestSettingsState.ApplyToAllScalers();
             ForestSettingsState.ApplyGraphicsQuality();
             ForestAudio.PlayBgm(bgmClip);

@@ -15,15 +15,23 @@ namespace Saga.EditorTools
     /// </summary>
     public static class SagaPlayerBuild
     {
-        /// <summary>다섯 판 씬 — 첫 씬이 켜질 때 뜬다(타이틀·판 고르기는 110 ⑤).</summary>
+        /// <summary>빌드 씬 — 0번 타이틀(110 ②)이 켜질 때 뜨고 다섯 판을 연다. 에디터 빌드 목록도 이것으로 맞춘다(<see cref="SyncEditorBuildScenes"/>).</summary>
         public static readonly string[] Scenes =
         {
+            Saga.Core.SagaFlow.TitleScenePath,       // 타이틀·판 고르기
             "Assets/Scenes/TestVillage.unity",       // GO
             "Assets/Scenes/TestDungeon.unity",       // DUNGEON
             "Assets/Scenes/TestVillageForest.unity", // FOREST
             "Assets/Scenes/TestField.unity",         // STORY
             "Assets/Scenes/TestCity.unity",          // REALM
         };
+
+        [MenuItem("Saga/Build/Sync Editor Build Scenes")]
+        public static void SyncEditorBuildScenes()
+        {
+            EditorBuildSettings.scenes = Scenes.Where(File.Exists).Select(p => new EditorBuildSettingsScene(p, true)).ToArray();
+            AssetDatabase.SaveAssets();
+        }
 
         [MenuItem("Saga/Build/Windows Player")]
         public static void BuildWindows() =>
@@ -40,6 +48,7 @@ namespace Saga.EditorTools
         {
             foreach (var s in Scenes)
                 if (!File.Exists(s)) { Finish(false, $"씬 없음 {s}", null, output); return; }
+            SyncEditorBuildScenes();
 
             if (EditorUserBuildSettings.activeBuildTarget != target)
                 EditorUserBuildSettings.SwitchActiveBuildTarget(group, target);

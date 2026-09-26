@@ -9370,3 +9370,15 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - 켜면 첫 씬 GO 만 뜨고 판을 옮길 길이 없다 → 110 표에서 흐름(타이틀·판 고르기)을 2로 당김, 폰 성능은 3. 스토어: APK 470MB 라 Play 는 AAB + 에셋 팩으로 나눠야 한다(6 마감).
 - 검증: 두 빌드 성공 · `PlaytestDungeonHeadless` OK(진동 막은 뒤). 폰 설치·화면은 안 봄.
 - 다음 = 110 ② 흐름.
+
+## 2026-09-26 상용화 — PLAN 110 ② 타이틀·판 고르기·자동 저장 ("사가유니티 이어해")
+
+- 빌드는 첫 씬 GO 만 뜨고 판을 옮길 길이 없었고, 세이브는 다섯 판 모두 **저장 버튼을 눌러야만** 남았다(자동 저장·끌 때 저장 없음).
+- 새 UI 바탕: TextMeshPro 기본 리소스(`-importPackage` — 배치에서 `AssetDatabase.ImportPackage` 는 비동기라 끝나기 전에 종료됐다) + Noto Sans KR 보통·굵게(OFL, notofonts/noto-cjk SubsetOTF, `Assets/Art/Fonts/NotoSansKR/` + OFL.txt) 동적 SDF 폰트 에셋(`Editor/SetupSagaFonts`, `clearDynamicDataOnBuild` 는 internal 이라 직렬화 필드로) → TMP 기본 폰트. 공통 도구 `SagaCore/SagaUi.cs`(가로 1920×1080·반반 맞춤, 세로 화면이면 줄 배치).
+- `SagaCore/SagaFlow.cs`: 판 부트스트랩 다섯이 세이브를 읽은 뒤 `SagaFlow.Enter(판, 저장)` → 자동 저장(타이틀로·OnApplicationPause·OnApplicationQuit) + 일시정지 메뉴(Esc = 안드로이드 뒤로 가기, 계속하기·저장·타이틀로·게임 종료, 시간 멈춤 → 연 때 값으로). 화면 위·모서리는 목표판·HUD·저장 버튼이 차지해 눈에 보이는 단추는 ⑤ UI 로 미룸(iOS 는 뒤로 가기가 없다).
+- `Games/SagaTitle/TitleScreen.cs`(기본 어셈블리 — 다섯 판 세이브를 다 본다) + `Editor/BuildTitleScene` → `Assets/Scenes/Title.unity`(카메라 + 컴포넌트, UI 는 Play 때). 카드 다섯(사가고·사가블로·사가의숲·사가스토리·사가국지 + 원작 이름 없는 한 줄), 이어하기/새로 시작(저장 있으면 확인 창), 게임 종료, 버전.
+- "새로 시작"의 함정: 이번 실행에 이미 들어갔던 판은 정적 상태가 메모리에 남는다 → 앱을 켜고 처음 타이틀에서 다섯 판 `ToJson()` 을 떠 두고, 새로 시작 때 `ApplyJson(기본값)` 뒤 파일 삭제. 그래서 다섯 판 SaveState 를 `ToJson`(플레이어 없으면 자리 없이)/`ApplyJson`/`HasSave`/`DeleteSave`/`FileName` 으로 나눔(파일 형식·버전 그대로). 첫 치환 스크립트가 8칸 `}` 를 12칸 안에서 잡아 옛 catch 를 남긴 걸 걷어냄.
+- 빌드 씬 목록 = `SagaPlayerBuild.Scenes`(Title 0번 + 다섯 판), 에디터 목록도 `SyncEditorBuildScenes` 로 맞춤(커밋).
+- 진단 `PlaytestSagaFlow`: 진짜 버튼으로 ① 타이틀(카드 5·이어하기 없음·UI.Text 0·Noto·기본값 5) ② 새로 시작 → 일시정지(시간 0·저장·계속하기) → 타이틀로(자동 저장·이어하기 생김) ③ 이어하기 둘째 바퀴(사가블로 앱 일시정지 자동 저장) ④ 상태를 7777 로 바꿔 둔 뒤 새로 시작(취소는 그대로, 지우고 시작 → 기본값·판 안에서도 기본값), 오류 로그 0, 진짜 세이브 다섯 떠 두고 되돌림. **3연속 OK**(판마다 씬 세 번, 타이틀 16번). 회귀: GO·DUNGEON·FOREST 헤드리스·STORY·REALM 슬라이스 OK.
+- 빌드: Windows 863MB(폰트 +11MB) 오류 0, 화면 없이 켜서 플레이어 로그 "[TitleScreen] 카드 5 · 저장 5 · 글꼴 NotoSansKR-Regular SDF", 예외 0. 빌드가 또 바꾼 URP·Graphics·ProjectSettings 직렬화는 되돌림.
+- 다음 = 110 ③ 폰 성능(개발 APK·fps 표시 → 사람 몫 설치).

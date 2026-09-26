@@ -37,7 +37,16 @@ namespace Saga.Dungeon.Data
         // v12 — PLAN.md 109-10-3 시련(TrialState, 웹 §5.11 `trial = {best, open, runs, board}`). v11 이하는 0/0/0/null → 열린 단계 1.
         private const int SaveVersion = 12;
 
-        private static string SavePath => Path.Combine(Application.persistentDataPath, "save_dungeon.json");
+        /// <summary>PLAN.md 110 ② — 타이틀이 "이어하기/새로 시작"을 가른다.</summary>
+        public const string FileName = "save_dungeon.json";
+        private static string SavePath => Path.Combine(Application.persistentDataPath, FileName);
+        public static bool HasSave => File.Exists(SavePath);
+
+        public static void DeleteSave()
+        {
+            try { if (File.Exists(SavePath)) File.Delete(SavePath); }
+            catch (Exception e) { Debug.LogWarning($"[SaveState] 세이브 삭제 실패: {e.Message}"); }
+        }
 
         [Serializable]
         private class SaveData
@@ -78,13 +87,29 @@ namespace Saga.Dungeon.Data
 
         public static bool Save()
         {
+            if (FindPlayer() == null) return false;
+            try
+            {
+                File.WriteAllText(SavePath, ToJson());
+                return true;
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[SaveState] 저장 실패: {e.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>PLAN.md 110 ② — 지금 상태를 세이브 JSON 으로. 플레이어가 없으면(타이틀) 자리 없이 —
+        /// 타이틀이 앱을 켤 때 "새 게임 기본값"을 떠 두고 "새로 시작" 때 <see cref="ApplyJson"/> 으로 되돌린다.</summary>
+        public static string ToJson()
+        {
             Transform player = FindPlayer();
-            if (player == null) return false;
 
             var data = new SaveData
             {
                 version = SaveVersion,
-                playerPos = new[] { player.position.x, player.position.y, player.position.z },
+                playerPos = player != null ? new[] { player.position.x, player.position.y, player.position.z } : null,
                 level = HeroState.Level,
                 exp = HeroState.Exp,
                 gold = HeroState.Gold,
@@ -113,17 +138,7 @@ namespace Saga.Dungeon.Data
                 trialRuns = TrialState.Runs,
                 trialBoard = TrialState.SnapshotBoard(),
             };
-
-            try
-            {
-                File.WriteAllText(SavePath, JsonUtility.ToJson(data));
-                return true;
-            }
-            catch (Exception e)
-            {
-                Debug.LogWarning($"[SaveState] 저장 실패: {e.Message}");
-                return false;
-            }
+            return JsonUtility.ToJson(data);
         }
 
         /// <summary>저장 파일이 있으면 캐릭터 상태·위치에 적용하고 true,
@@ -132,10 +147,26 @@ namespace Saga.Dungeon.Data
         {
             if (!File.Exists(SavePath)) return false;
 
+            string json;
+            try
+            {
+                json = File.ReadAllText(SavePath);
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[SaveState] 로드 실패: {e.Message}");
+                return false;
+            }
+            return ApplyJson(json);
+        }
+
+        /// <summary>PLAN.md 110 ② — 세이브 JSON 을 상태에 적용(파일 로드·"새로 시작" 기본값 둘 다). 자리가 없으면 플레이어는 안 옮긴다.</summary>
+        public static bool ApplyJson(string json)
+        {
             SaveData data;
             try
             {
-                data = JsonUtility.FromJson<SaveData>(File.ReadAllText(SavePath));
+                data = JsonUtility.FromJson<SaveData>(json);
             }
             catch (Exception e)
             {

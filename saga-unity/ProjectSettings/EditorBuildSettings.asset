@@ -6,8 +6,23 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/Scenes/Title.unity
+    guid: 9c3ceb6ad3425474fa266a280bcc7205
+  - enabled: 1
     path: Assets/Scenes/TestVillage.unity
     guid: 2479abdcbab3dea418c37c46a3aa3ffe
+  - enabled: 1
+    path: Assets/Scenes/TestDungeon.unity
+    guid: 9dd7b01b45765da49b5d6a73ed4e8ed2
+  - enabled: 1
+    path: Assets/Scenes/TestVillageForest.unity
+    guid: a20bcb9e2e8fc5345864d58e5010fe61
+  - enabled: 1
+    path: Assets/Scenes/TestField.unity
+    guid: a5e6bc751d9133847a5f81499afe31fa
+  - enabled: 1
+    path: Assets/Scenes/TestCity.unity
+    guid: 74f601a3672759f4eae50008a38ad8ff
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   m_UseUCBPForAssetBundles: 0

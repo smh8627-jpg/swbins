@@ -21,7 +21,16 @@ namespace Saga.Forest.Data
         // 소원 버프 만료 시각(Ticks, 앱을 완전히 껐다 켜도 흐르게 — GO DropState와 같은 결).
         // 꽃놀이 진행 중인 60초 창은 회차성이라 세이브 대상이 아니다.
 
-        private static string SavePath => Path.Combine(Application.persistentDataPath, "save_forest.json");
+        /// <summary>PLAN.md 110 ② — 타이틀이 "이어하기/새로 시작"을 가른다.</summary>
+        public const string FileName = "save_forest.json";
+        private static string SavePath => Path.Combine(Application.persistentDataPath, FileName);
+        public static bool HasSave => File.Exists(SavePath);
+
+        public static void DeleteSave()
+        {
+            try { if (File.Exists(SavePath)) File.Delete(SavePath); }
+            catch (Exception e) { Debug.LogWarning($"[ForestSaveState] 세이브 삭제 실패: {e.Message}"); }
+        }
 
         [Serializable]
         private class SaveData
@@ -61,8 +70,24 @@ namespace Saga.Forest.Data
 
         public static bool Save()
         {
+            if (FindPlayer() == null) return false;
+            try
+            {
+                File.WriteAllText(SavePath, ToJson());
+                return true;
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[ForestSaveState] 저장 실패: {e.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>PLAN.md 110 ② — 지금 상태를 세이브 JSON 으로. 플레이어가 없으면(타이틀) 자리 없이 —
+        /// 타이틀이 앱을 켤 때 "새 게임 기본값"을 떠 두고 "새로 시작" 때 <see cref="ApplyJson"/> 으로 되돌린다.</summary>
+        public static string ToJson()
+        {
             Transform player = FindPlayer();
-            if (player == null) return false;
 
             var (stockKeys, stockCounts) = ForestHomeState.SnapshotStock();
             var finishes = ForestHomeState.SnapshotFinishes();
@@ -70,7 +95,7 @@ namespace Saga.Forest.Data
             var data = new SaveData
             {
                 version = SaveVersion,
-                playerPos = new[] { player.position.x, player.position.y, player.position.z },
+                playerPos = player != null ? new[] { player.position.x, player.position.y, player.position.z } : null,
                 fruitCount = ForestState.FruitCount,
                 homeStockKeys = stockKeys,
                 homeStockCounts = stockCounts,
@@ -86,27 +111,33 @@ namespace Saga.Forest.Data
                 festivalDoneDate = ForestFestivalState.SnapshotDoneDate(),
                 festivalWishUntilTicks = ForestFestivalState.SnapshotWishUntilTicks(),
             };
-
-            try
-            {
-                File.WriteAllText(SavePath, JsonUtility.ToJson(data));
-                return true;
-            }
-            catch (Exception e)
-            {
-                Debug.LogWarning($"[ForestSaveState] 저장 실패: {e.Message}");
-                return false;
-            }
+            return JsonUtility.ToJson(data);
         }
 
         public static bool TryLoad()
         {
             if (!File.Exists(SavePath)) return false;
 
+            string json;
+            try
+            {
+                json = File.ReadAllText(SavePath);
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[ForestSaveState] 로드 실패: {e.Message}");
+                return false;
+            }
+            return ApplyJson(json);
+        }
+
+        /// <summary>PLAN.md 110 ② — 세이브 JSON 을 상태에 적용(파일 로드·"새로 시작" 기본값 둘 다). 자리가 없으면 플레이어는 안 옮긴다.</summary>
+        public static bool ApplyJson(string json)
+        {
             SaveData data;
             try
             {
-                data = JsonUtility.FromJson<SaveData>(File.ReadAllText(SavePath));
+                data = JsonUtility.FromJson<SaveData>(json);
             }
             catch (Exception e)
             {

@@ -37,6 +37,7 @@ namespace Saga.Dungeon.World
         {
             SfxPlayer.Configure(hitClip, heavyHitClip, enemyDeathClip, levelUpClip, discoveryClip, bgmClip);
             SaveState.TryLoad();
+            Saga.Core.SagaFlow.Enter("dungeon", SaveState.Save); // PLAN.md 110 ② — 자동 저장·일시정지 메뉴·타이틀로.
             CombineStaticBatches();
             DungeonSettingsState.ApplyToAllScalers();
             DungeonSettingsState.ApplyGraphicsQuality();
