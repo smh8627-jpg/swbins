@@ -20,6 +20,7 @@ const VroidBody := preload("res://games/saga_go/world/vroid_body.gd")
 const CreatureBuilder := preload("res://games/saga_go/world/creature_builder.gd")
 const TalkFace := preload("res://games/saga_go/world/talk_face.gd")
 const SkyIsle := preload("res://games/saga_go/world/sky_isle.gd")
+const RiftEnd := preload("res://games/saga_go/world/rift_end.gd")
 const WorldQuests := preload("res://games/saga_go/data/world_quests.gd")
 const WQ_BLUE := Color(0.45, 0.8, 1.0)
 const Toast := preload("res://saga_core/ui/toast.gd")
@@ -303,7 +304,7 @@ func _step_target(s: Dictionary, tracked: bool) -> Vector3:
 			"chase":
 				return _cell_pos(String(s.region), (s.path as Array)[0])
 			"duel":
-				return _cell_pos(String(s.region), s.cell, bool(s.get("sky", false)), float(s.get("lift", 0.0)))
+				return _spot_pos(s)
 			"gather", "cook":
 				if _player == null:
 					return Vector3.INF
@@ -311,14 +312,14 @@ func _step_target(s: Dictionary, tracked: bool) -> Vector3:
 		"talk":
 			return npc_pos(String(s.npc))
 		"go", "kill", "light", "seal", "climb", "defend":
-			return _cell_pos(String(s.region), s.cell, bool(s.get("sky", false)), float(s.get("lift", 0.0)))
+			return _spot_pos(s)
 		"sky":
 			return SkyIsle.center()
 		"duel":
 			for e in _quest_enemies:
 				if is_instance_valid(e) and not e.call("is_dead"):
 					return (e as Node3D).global_position
-			return _cell_pos(String(s.region), s.cell, bool(s.get("sky", false)), float(s.get("lift", 0.0)))
+			return _spot_pos(s)
 		"boss":
 			var fb := get_tree().get_first_node_in_group("go_field_bosses")
 			if fb and fb.call("boss", String(s.boss)):
@@ -410,7 +411,7 @@ func _place_npcs() -> void:
 					p = _cell_pos(String(sj.region), path[path.size() - 1])
 		for w in [_window_now(info.get("appear")), _window_now(Story.STATIONS.get(id))]:
 			if (w as Dictionary).has("cell"):
-				p = _cell_pos(String(w.region), w.cell, bool(w.get("sky", false)), float(w.get("lift", 0.0)))
+				p = _spot_pos(w)
 		root.global_position = p
 		_npc_pos[id] = p
 
@@ -479,6 +480,18 @@ static func _cell_pos(region: String, cell: Vector2, sky := false, lift := 0.0) 
 	p.y = SkyIsle.top_y() if sky else TerrainBuilder.height_at(region, p) + lift
 	return p
 
+## 단계·인물 칸(region·cell + sky·lift·rift_end) 자리. rift_end = 갈림길 끝 섬 윗면 높이(106장 ㊾-3 20장, world/rift_end.gd).
+static func _spot_pos(d: Dictionary) -> Vector3:
+	if bool(d.get("rift_end", false)):
+		var p := TestMap.world_pos(d.cell.x, d.cell.y, String(d.region))
+		p.y = RiftEnd.top_y()
+		return p
+	return _cell_pos(String(d.region), d.cell, bool(d.get("sky", false)), float(d.get("lift", 0.0)))
+
+## 떠 있는 자리인가(구름섬·떠 있는 구조물·갈림길 끝) — 둘레·물결·석등도 그 윗면 높이로.
+static func _floating(d: Dictionary) -> bool:
+	return bool(d.get("sky", false)) or float(d.get("lift", 0.0)) > 0.0 or bool(d.get("rift_end", false))
+
 # ---------------------------------------------------------------- 단계
 
 ## 단계에 들어설 때 — 임무 적·제단을 세우고 표시를 새로.
@@ -499,8 +512,8 @@ func _enter_step() -> void:
 	var s := current_step()
 	match String(s.get("type", "")):
 		"kill":
-			var sky := bool(s.get("sky", false)) or float(s.get("lift", 0.0)) > 0.0 # 떠 있는 자리면 둘레도 그 윗면 높이로
-			var center := _cell_pos(String(s.region), s.cell, bool(s.get("sky", false)), float(s.get("lift", 0.0)))
+			var sky := _floating(s) # 떠 있는 자리면 둘레도 그 윗면 높이로
+			var center := _spot_pos(s)
 			var kinds: Array = s.kinds
 			for i in kinds.size():
 				var a := TAU * float(i) / float(kinds.size())
@@ -515,14 +528,14 @@ func _enter_step() -> void:
 				add_child(e)
 				_quest_enemies.append(e)
 		"light":
-			_build_altar(_cell_pos(String(s.region), s.cell))
+			_build_altar(_spot_pos(s))
 			## 17장 bell — 제단 돌 대신 종각에 건 종이 받는다(world/region5_skyport.gd ring_bell) · 18장 bare — 돌 없이 그 자리 장치(변전함)가 받는다.
 			if bool(s.get("bell", false)) or bool(s.get("bare", false)):
 				for mi in _altar.get_children():
 					(mi as Node3D).visible = false
 		"duel":
 			## 106장 ㉜ 이야기 보스 — field_boss.gd 틀, 한 번뿐. 위 보스 막대(world/field_bosses.gd)가 go_story_boss 를 본다.
-			var bp := _cell_pos(String(s.region), s.cell, bool(s.get("sky", false)), float(s.get("lift", 0.0))) + Vector3.UP * 0.3
+			var bp := _spot_pos(s) + Vector3.UP * 0.3
 			## 내가 그 자리에 서 있으면 몸이 겹쳐 서로 밀어 올린다(구름섬에서 둘이 20m 솟았다) — 나에게서 DUEL_CLEAR m 떨어뜨려 세운다.
 			if _player:
 				var away := bp - _player.global_position
@@ -541,12 +554,12 @@ func _enter_step() -> void:
 			boss.add_to_group("go_story_boss")
 			_quest_enemies.append(boss)
 		"seal":
-			_build_altar(_cell_pos(String(s.region), s.cell))
-			_build_seal(String(s.region))
+			_build_altar(_spot_pos(s))
+			_build_seal(String(s.region), _floating(s))
 		"chase":
 			_build_thief(s)
 		"defend":
-			_build_altar(_cell_pos(String(s.region), s.cell), true)
+			_build_altar(_spot_pos(s), true)
 			var sa := _altar as SiegeAltar
 			sa.max_hp = float(s.hp) * Adventure.atk_mul(Adventure.world_level())
 			sa.hp = sa.max_hp
@@ -772,7 +785,7 @@ func _physics_process(delta: float) -> void:
 				advance()
 				return
 		"kill", "duel":
-			if String(s.type) == "duel" or bool(s.get("sky", false)) or float(s.get("lift", 0.0)) > 0.0:
+			if String(s.type) == "duel" or _floating(s):
 				## 봉우리 보스·구름섬 무리가 밑으로 떨어지면(집보다 DUEL_FALL m 아래) 제자리로 되돌린다 — 밑에서 못 올라와 멈추지 않게.
 				for e in alive_quest_enemies():
 					var home: Vector3 = e.get("home")
@@ -891,7 +904,7 @@ func _sail(s: Dictionary) -> void:
 	if current_step() != s:
 		return
 	var to: Dictionary = s.to
-	var p := _cell_pos(String(to.region), to.cell)
+	var p := _spot_pos(to)
 	_player.global_position = p + Vector3.UP * 0.8
 	(_player as CharacterBody3D).velocity = Vector3.ZERO
 	Toast.show(self, String(s.get("arrive", "배가 닿았다")), 2.5)
@@ -938,7 +951,7 @@ func _spawn_wave(s: Dictionary, w: int) -> void:
 		else:
 			var a := TAU * float(i) / float(kinds.size()) + 0.9 * w
 			p = center + Vector3(cos(a), 0.0, sin(a)) * Story.DEFEND_RING
-		p.y = TerrainBuilder.height_at(String(s.region), p) + 0.3
+		p.y = (center.y if _floating(s) else TerrainBuilder.height_at(String(s.region), p)) + 0.3
 		var e: CharacterBody3D = FieldEnemy.new()
 		e.name = "StoryRaider_%d_%d" % [w, i]
 		e.setup(String(kinds[i]), p, 20260824 + 1000 + w * 10 + i)
@@ -1429,7 +1442,7 @@ func _build_marker() -> void:
 	_marker.add_child(_marker_label)
 
 ## seal 석등 — 제단 둘레 SEAL_RING m 에 SEAL_LAYOUT 차례로(북쪽부터 시계 방향). 돌기둥·표지 빛깔 띠·글자, 켜지면 그 빛깔 불꽃.
-func _build_seal(region: String) -> void:
+func _build_seal(region: String, floating := false) -> void:
 	var stone := StandardMaterial3D.new()
 	stone.albedo_color = Color(0.5, 0.49, 0.46)
 	var n := Story.SEAL_LAYOUT.size()
@@ -1438,7 +1451,7 @@ func _build_seal(region: String) -> void:
 		var info: Dictionary = Story.SEAL_MARKS[mark]
 		var a := TAU * float(i) / float(n)
 		var world := _altar.global_position + Vector3(sin(a), 0.0, -cos(a)) * Story.SEAL_RING
-		world.y = TerrainBuilder.height_at(region, world) - 0.05
+		world.y = (_altar.global_position.y if floating else TerrainBuilder.height_at(region, world)) - 0.05
 		var t := Node3D.new()
 		t.name = "SealLamp_" + mark
 		_altar.add_child(t)

@@ -9,6 +9,11 @@ extends Node
 ## [4] 반디(첫 정거장) → 갈림목 [5] 무리 넷 [6] 시계탑 옆면을 실제로 타고 올라 꼭대기 → 바늘이 돈다 [7] 반디(시계탑 발치) → 섬돌
 ## [8] 섬돌 꼭대기(선장이 꼭대기 높이에 섬) [9] 선장 → 대결 [10] 파수꾼(고리 예고) [11] 선장 → 19장 끝·보상·✔ 제19장 ·
 ## 선장은 첫 정거장 곁·반디는 은하 나루 착륙판 곁(ch_to 자리).
+## 20장 "갈림길 끝"(㊾-3, world/rift_end.gd 떠 있는 섬): [12] 표·자리(섬 높이·단계 칸이 섬 안·섬 위 자리가 닻·난간에 안 묻힘·틈 열림·
+## 바람 기둥·별까마귀 빙·불이 방패를 깸·동료 한별 풍·활) [13] 선장 → 막차 [14] 막차 타기(섬 위에 내림) [15] 반디(섬 위) → 한가운데
+## [16] 무리 다섯이 섬 위에 [17] 선장(섬 위) → 매듭 [18] 매듭 석등이 섬 높이에·차례(틀리면 꺼짐) → 닻이 켜지고 틈이 오므라듦
+## [19] 선장 → 지키기 [20] 매듭 제단 지키기(물결 셋이 섬 위에서) [21] 선장 → 대결 [22] 별까마귀(섬 위, 고리 예고)
+## [23] 선장 → 20장 끝·✔ 제20장·동료 한별·틈 닫힘(고요한 별빛)·선장은 첫 정거장 곁 [24] 바람 기둥 — 공중이면 솟아 섬 윗면 위로.
 ## 이야기 상태·부대 경험·가방은 끝에 되돌린다. 저장은 안 한다.
 
 const Story := preload("res://games/saga_go/data/story.gd")
@@ -17,8 +22,11 @@ const TerrainBuilder := preload("res://games/saga_go/world/terrain_builder.gd")
 const Crossing := preload("res://games/saga_go/world/region6_crossing.gd")
 const FieldEnemy := preload("res://games/saga_go/combat/field_enemy.gd")
 const Elements := preload("res://games/saga_go/combat/elements.gd")
+const RiftEnd := preload("res://games/saga_go/world/rift_end.gd")
+const Kits := preload("res://games/saga_go/data/kits.gd")
 
 const CH19 := 18 # 19장(0부터)
+const CH20 := 19
 const R := "crossing"
 
 var _p: CharacterBody3D
@@ -231,7 +239,184 @@ func _physics_process(_delta: float) -> void:
 				and _flat(bandi, _cell_any("skyport", Vector2(5.44, 1.8))) < 1.0 and Crossing.clock_running()
 			_check("chapter19", ok, "ch=%d mora +%d cap=%s bandi=%s" % [_sq.call("ch"), PartyState.count("mora") - int(_v.mora), cap, bandi])
 			_next()
-		12:
+		12: # 20장 준비 — 모험 등급 47
+			PartyState.exp = maxf(PartyState.exp, 47.0 * PartyState.EXP_PER_LEVEL)
+			PartyState.level = maxi(PartyState.level, 47)
+			PartyState.ar_paid = maxi(PartyState.ar_paid, PartyState.level + 1)
+			PartyState.story = {"ch": CH20, "step": 0}
+			_sq.call("_enter_step")
+			_next()
+		13: # [12] 표·자리
+			if _frame < 70:
+				return
+			var c := Story.chapter(CH20)
+			var bad: Array = []
+			if String(c.get("id", "")) != "ch20" or int(c.ar) <= int(Story.chapter(CH19).ar) or String(c.get("join", "")) != "story_hanbyeol" or bool(_sq.call("locked")):
+				bad.append("chapter")
+			var m: Dictionary = Story.MEMBERS.get("story_hanbyeol", {})
+			if int(m.get("rarity", 0)) != 5 or Elements.element_of("story_hanbyeol") != "wind" or String(m.get("weapon", "")) != "bow" or not Kits.KITS.has("story_hanbyeol"):
+				bad.append("member")
+			var re := get_tree().get_first_node_in_group("go_rift_end")
+			if re == null or not bool(re.call("tear_visible")) or absf(float(re.call("tear_scale")) - 1.0) > 0.01 or bool(re.call("anchors_lit")) or not bool(re.call("draft_active")):
+				bad.append("rift_end state")
+			var ctr := RiftEnd.center()
+			var rise := ctr.y - TerrainBuilder.height_at(R, ctr)
+			if rise < 35.0:
+				bad.append("rise %.1f" % rise)
+			## 섬 칸 — 단계·인물 자리가 섬 윗면 안(난간 3m 안쪽), 1.2m 위에 닻·난간 충돌 없음.
+			var spots: Array = []
+			for s in c.steps:
+				if bool(s.get("rift_end", false)):
+					spots.append(s.cell)
+				if s.has("to") and bool(s.to.get("rift_end", false)):
+					spots.append(s.to.cell)
+			for w in Story.windows(Story.NPCS.hanbyeol.appear) + Story.windows(Story.STATIONS.bandi) + Story.windows(Story.STATIONS.dodam):
+				if bool(w.get("rift_end", false)):
+					spots.append(w.cell)
+			for cell in spots:
+				var sp := TestMap.world_pos(cell.x, cell.y, R)
+				sp.y = RiftEnd.top_y()
+				if _flat(sp, ctr) > RiftEnd.RADIUS - 3.0 or _isle_hits(sp) > 0:
+					bad.append("spot %s" % cell)
+			if spots.size() < 8 or Story.DEFEND_RING > RiftEnd.RADIUS - 1.5:
+				bad.append("spots=%d" % spots.size())
+			if _flat(_sq.call("npc_pos", "hanbyeol"), _cell3(Vector2(4.8, 2.4))) > 1.0 or _flat(_sq.call("npc_pos", "dodam"), _cell3(Vector2(4.85, 1.9))) > 1.0:
+				bad.append("npcs at stop")
+			var duel: Dictionary = c.steps[9]
+			if String(duel.kind) != "rift_crow" or String(FieldEnemy.KINDS.rift_crow.element) != "ice" or Elements.shield_mul("ice", "fire") <= 1.0:
+				bad.append("duel kind")
+			_check("ch20_table", bad.is_empty(), "%s rise=%.1f spots=%d" % [bad, rise, spots.size()])
+			_next()
+		14: # [13] 선장 → 막차
+			_talk("hanbyeol", 1, "ch20_hanbyeol", Vector2(4.85, 1.9))
+		15: # [14] 막차 타기 — 섬 위에 내림
+			if _frame == 1:
+				_near_npc("dodam")
+			if _frame == 10:
+				_sq.call("interact")
+				_drain()
+			if _frame == 30:
+				var ok: bool = int(_sq.call("st")) == 2 and RiftEnd.on_isle(_p.global_position) and _p.is_on_floor()
+				_check("ch20_sail", ok, "st=%d pos=%s top=%.1f floor=%s" % [_sq.call("st"), _p.global_position, RiftEnd.top_y(), _p.is_on_floor()])
+				_next()
+		16: # [15] 반디(섬 위) → 한가운데
+			if _frame == 1:
+				var bp: Vector3 = _sq.call("npc_pos", "bandi")
+				_v = RiftEnd.on_isle(bp, 0.1) and absf(bp.y - RiftEnd.top_y()) < 0.05
+			_talk("bandi", 3, "ch20_bandi", Vector2(6.3, 2.6), "bandi_on_isle=%s" % _v, bool(_v), 1)
+		17: # [16] 무리 다섯 — 섬 위에
+			if _frame == 1:
+				_put(RiftEnd.center() + Vector3(0, 0, 9))
+			if _frame == 20:
+				var es: Array = _sq.call("alive_quest_enemies")
+				_v = {"n": es.size(), "on": es.filter(func(e: Node) -> bool: return RiftEnd.on_isle((e as Node3D).global_position, 1.0)).size()}
+				for e in es:
+					e.call("_die")
+			if _frame == 26:
+				_check("ch20_kill", int(_v.n) == 5 and int(_v.on) == 5 and int(_sq.call("st")) == 4, "n=%d on=%d st=%d" % [_v.n, _v.on, _sq.call("st")])
+				_next()
+		18: # [17] 선장(섬 위) → 매듭
+			if _frame == 1:
+				var hp: Vector3 = _sq.call("npc_pos", "hanbyeol")
+				_v = RiftEnd.on_isle(hp, 0.1) and absf(hp.y - RiftEnd.top_y()) < 0.05
+			_talk("hanbyeol", 5, "ch20_hanbyeol2", Vector2(6.3, 2.6), "cap_on_isle=%s" % _v, bool(_v), 1)
+		19: # [18] 매듭 석등 — 섬 높이, 해 먼저(틀림) → 달 → 별 → 해, 다 켜지면 닻·틈
+			if _frame == 1:
+				_put(RiftEnd.center() + Vector3(0.0, 0.0, 3.0))
+				_v = {"lit": [], "ys": []}
+			if _frame == 6:
+				for mk in ["moon", "star", "sun"]:
+					_v.ys.append(snappedf((_sq.call("seal_lamp_pos", mk) as Vector3).y - RiftEnd.top_y(), 0.01))
+				for mk in ["sun", "moon", "star", "sun"]:
+					_sq.call("receive_element", _sq.call("seal_lamp_pos", mk), 0.5, "wind")
+					_v.lit.append(int(_sq.call("seal_lit")))
+			if _frame == 90:
+				var re := get_tree().get_first_node_in_group("go_rift_end")
+				var ys_ok := (_v.ys as Array).all(func(y: float) -> bool: return absf(y) < 0.2)
+				var ok: bool = _v.lit == [0, 1, 2, 3] and int(_sq.call("st")) == 6 and ys_ok and bool(re.call("anchors_lit")) \
+					and absf(float(re.call("tear_scale")) - 0.5) < 0.01 and bool(re.call("tear_visible"))
+				_check("ch20_seal", ok, "lit=%s st=%d ys=%s anchors=%s tear=%.2f" % [_v.lit, _sq.call("st"), _v.ys, re.call("anchors_lit"), re.call("tear_scale")])
+				_next()
+		20: # [19] 선장 → 지키기
+			_talk("hanbyeol", 7, "ch20_hanbyeol3", Vector2(6.3, 2.6))
+		21: # [20] 매듭 제단 지키기 — 물결 셋이 섬 위에서
+			if _frame == 1:
+				_put(RiftEnd.center() + Vector3(2.5, 0.0, 2.5))
+				_v = {"off": 0, "n": 0, "waves": 0, "label": ""}
+			if _frame > 4 and _frame % 6 == 0 and int(_sq.call("st")) == 7:
+				var lbl := _sq.get("_defend_label") as Label3D
+				if lbl and String(_v.label) == "":
+					_v.label = lbl.text
+				for e in _sq.call("alive_quest_enemies"):
+					_v.n += 1
+					if not RiftEnd.on_isle((e as Node3D).global_position, 1.0):
+						_v.off += 1
+					e.call("_die")
+				_v.waves = maxi(int(_v.waves), int(_sq.call("defend_wave")) + 1)
+			if _frame > 4 and (int(_sq.call("st")) != 7 or _frame > 600):
+				var ok: bool = int(_sq.call("st")) == 8 and int(_v.off) == 0 and int(_v.n) == 12 and int(_v.waves) == 3 and String(_v.label).begins_with("매듭 제단")
+				_check("ch20_defend", ok, "st=%d off=%d n=%d waves=%d label='%s' frames=%d" % [_sq.call("st"), _v.off, _v.n, _v.waves, _v.label, _frame])
+				_next()
+		22: # [21] 선장 → 대결
+			_talk("hanbyeol", 9, "ch20_hanbyeol4", Vector2(6.3, 2.6))
+		23: # [22] 별까마귀 — 섬 위, 고리 예고
+			if _frame == 1:
+				_put(RiftEnd.center() + Vector3(0, 0, 9))
+			if _frame == 12:
+				var bosses := get_tree().get_nodes_in_group("go_story_boss")
+				var b: Node3D = bosses[0] if not bosses.is_empty() else null
+				_v = {"n": bosses.size(), "marks": 0, "kind": "", "on": false}
+				if b:
+					_v.kind = String(b.get("kind"))
+					_v.on = RiftEnd.on_isle(b.global_position, 1.0)
+					b.call("_clear_marks")
+					b.call("_set_tell", false)
+					b.call("begin_skill", "halo", _p)
+					_v.marks = (b.get("_marks") as Array).size()
+					b.call("_clear_marks")
+					b.call("_die")
+			if _frame == 20:
+				var ok: bool = int(_v.n) == 1 and String(_v.kind) == "rift_crow" and bool(_v.on) and int(_v.marks) >= 1 and int(_sq.call("st")) == 10
+				_check("ch20_duel", ok, "n=%d kind=%s on=%s marks=%d st=%d" % [_v.n, _v.kind, _v.on, _v.marks, _sq.call("st")])
+				_next()
+		24: # [23] 선장 → 20장 끝·동료 한별·틈 닫힘
+			if _frame == 1:
+				_v = {"mora": PartyState.count("mora")}
+				_near_npc("hanbyeol")
+			if _frame == 10:
+				_sq.call("interact")
+				_drain()
+			if _frame < 16:
+				return
+			_dismiss_prompts()
+			if _frame < 22:
+				return
+			_sq.call("toggle_journal")
+			var jt: String = _sq.call("journal_text")
+			_sq.call("toggle_journal")
+			var re := get_tree().get_first_node_in_group("go_rift_end")
+			var cap: Vector3 = _sq.call("npc_pos", "hanbyeol")
+			var ok: bool = int(_sq.call("ch")) == CH20 + 1 and jt.contains("✔ 제20장") and PartyState.count("mora") >= int(_v.mora) + 100000 \
+				and PartyState.members.has("story_hanbyeol") and not bool(re.call("tear_visible")) and bool(re.call("anchors_lit")) \
+				and RiftEnd.tear_state() == 2 and _flat(cap, _cell3(Vector2(4.8, 2.4))) < 1.0
+			_check("chapter20", ok, "ch=%d mora +%d joined=%s tear=%s cap=%s" % [_sq.call("ch"), PartyState.count("mora") - int(_v.mora), PartyState.members.has("story_hanbyeol"),
+				re.call("tear_visible"), cap])
+			_next()
+		25: # [24] 바람 기둥 — 공중이면 솟아 섬 윗면 위로
+			var b := RiftEnd.draft_base()
+			if _frame == 1:
+				_put(b + Vector3(0.0, 3.0, 0.0))
+				_p.set("stamina", float(_p.get("stamina_max")))
+				_p.call("_set_mode", _p.Mode.AIR)
+				_v = {"peak": -1e9, "glide": false}
+			if _frame > 1:
+				_v.glide = bool(_v.glide) or int(_p.get("mode")) == _p.Mode.GLIDE
+				_v.peak = maxf(float(_v.peak), _p.global_position.y)
+			if _frame == 700:
+				var ok: bool = bool(_v.glide) and float(_v.peak) > RiftEnd.top_y() + 2.0
+				_check("ch20_updraft", ok, "glide=%s peak=%.1f top=%.1f" % [_v.glide, _v.peak, RiftEnd.top_y()])
+				_next()
+		26:
 			PartyState.story = _saved.story
 			PartyState.members.assign(_saved.members)
 			PartyState.exp = _saved.exp
@@ -296,6 +481,22 @@ func _hits(pos: Vector3) -> Array:
 		if c is Node and regs.any(func(r: Node) -> bool: return r and r.is_ancestor_of(c as Node)) and not pn.begins_with("Skyport") and not pn.begins_with("Crossing"):
 			out.append(String((c as Node).get_parent().name))
 	return out
+
+## 그 자리 1.2m 위에 걸리는 갈림길 끝 섬 충돌(닻·난간 — 윗면 원판은 안 닿는다) 수.
+func _isle_hits(pos: Vector3) -> int:
+	var re := get_tree().get_first_node_in_group("go_rift_end")
+	var q := PhysicsShapeQueryParameters3D.new()
+	var sph := SphereShape3D.new()
+	sph.radius = 0.6
+	q.shape = sph
+	q.collision_mask = 1
+	q.exclude = [_p.get_rid()]
+	q.transform = Transform3D(Basis(), pos + Vector3(0, 1.2, 0))
+	var n := 0
+	for hit in _p.get_world_3d().direct_space_state.intersect_shape(q, 4):
+		if hit.collider is Node and re and re.is_ancestor_of(hit.collider as Node):
+			n += 1
+	return n
 
 func _surface(p: Vector3) -> float:
 	var q := PhysicsRayQueryParameters3D.create(Vector3(p.x, 80.0, p.z), Vector3(p.x, -20.0, p.z), 1)

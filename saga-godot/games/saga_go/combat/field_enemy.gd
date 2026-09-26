@@ -124,6 +124,14 @@ const KINDS := {
 		"rotation": ["halo", "rift", "slam", "storm", "shadow", "tide", "halo"], "summon": ["wind_hawk", "ice_fox"],
 		"vroid": true, "size": 2.0, "body_r": 0.9, "cloth": Color(0.2, 0.18, 0.3),
 		"mask": Color(0.88, 0.76, 0.42), "mask_face": Color(0.15, 0.12, 0.25)},
+	## 106장 ㊾-3 20장 이야기 보스 "틈 삼킨 별까마귀"(갈림길 끝 섬) — 세 갈래 선로를 한입에 삼키려다 틈을 처음 찢고 스스로 틈 속에 갇혔던 짐승.
+	## 코드 몸 bird 4.4m(밤빛 깃·보랏빛 날개 끝·금빛 눈). 패턴은 있는 틀: 틈새 질주·고리·회오리·내려찍기·밀물 줄. 2단계 빙 방패(불로 깬다).
+	## 섬 밖으로 옮겨 붙으면 떨어져 제자리로 돌아온다(story_quest DUEL_FALL) — 그림자(등 뒤로)는 빼 두었다.
+	"rift_crow": {"name": "틈 삼킨 별까마귀", "hp": 8400.0, "atk": 44.0, "speed": 4.6, "aggro": 28.0,
+		"reach": 3.4, "tell": 0.8, "cd": 1.5, "exp": 0.0, "element": "ice", "shield": 0.0, "phase_shield": 900.0,
+		"phase_text": "별까마귀가 틈의 서리를 두르고 여우와 매를 부른다 — 불로 방패를 깨라",
+		"rotation": ["rift", "halo", "storm", "slam", "rift", "tide", "halo"], "summon": ["ice_fox", "wind_hawk"],
+		"shape": "bird", "height": 4.4, "colors": [Color(0.14, 0.13, 0.22), Color(0.62, 0.45, 1.0), Color(1.0, 0.84, 0.35)]},
 }
 
 const GRAVITY := 20.0

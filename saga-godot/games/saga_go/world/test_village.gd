@@ -126,6 +126,10 @@ func _ready() -> void:
 	var sky_isle := preload("res://games/saga_go/world/sky_isle.gd").new()
 	sky_isle.name = "SkyIsle"
 	add_child(sky_isle)
+	## PLAN 106장 ㊾-3 — 20장 갈림길 끝(틈새 갈림길 첫 정거장 동남쪽 하늘에 뜬 섬·바람 기둥).
+	var rift_end := preload("res://games/saga_go/world/rift_end.gd").new()
+	rift_end.name = "RiftEnd"
+	add_child(rift_end)
 	var story := preload("res://games/saga_go/world/story_quest.gd").new()
 	story.name = "StoryQuest"
 	add_child(story)
