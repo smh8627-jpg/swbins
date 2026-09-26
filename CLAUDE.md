@@ -3,7 +3,7 @@
 개인 취미 저장소. 회사 일은 `C:\link` 세션, 개인 도구·대시보드는 `C:\swbins2` 세션으로 되짚어 준다.
 이 파일은 **길잡이**다 — 규칙·수치·이력은 여기 겹쳐 쓰지 않는다.
 
-- 공통 설계(재미·참고 게임·그래픽·에셋·문서 규칙): `SAGA-DESIGN.md` — 일곱 PLAN 의 상위
+- 공통 설계: `SAGA-DESIGN.md`(일곱 PLAN 의 상위) · 다섯 판 이야기 정본: `scenario/`
 - 웹 다섯 판: `saga-web/<폴더>/PLAN.md` 가 정본, 이력은 각 폴더 `HANDOFF.md`
 - 3D 두 트랙(코드 공유 없음): `saga-godot/`(Godot 4)·`saga-unity/`(Unity 6) — 각 폴더 `CLAUDE.md` 부터
 - 규칙·방향·함정: `SAGA-HANDOFF.md`(≤80KB) · 이력: `SAGA-HISTORY.md`(grep 으로만, 아래 "토큰" 절)
