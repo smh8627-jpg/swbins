@@ -67,7 +67,7 @@ namespace Saga.Dungeon.World
 
             _used = true;
             HeroState.AddGold(RewardGold);
-            DialogueLabel.Instance?.Show($"보물상자 — 돈 +{RewardGold}냥", ToastSec);
+            DialogueLabel.Instance?.Show(string.Format(DungeonLocalization.T("trove.gold", "보물상자 — 돈 +{0}냥"), RewardGold), ToastSec);
         }
     }
 }

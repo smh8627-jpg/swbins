@@ -115,7 +115,7 @@ namespace Saga.Story.UI
             foreach (var pool in StoryLabyrinthData.AxisPools)
             {
                 var b = pool[Random.Range(0, pool.Length)];
-                string label = $"[{AxisLabel(b.Axis)}] {b.Name} — {b.Description}";
+                string label = $"[{AxisLabel(b.Axis)}] {StoryLocalization.T($"labyrinth.blessing.{b.Key}", b.Name)} — {StoryLocalization.T($"labyrinth.blessing.{b.Key}.desc", b.Description)}";
                 NewButton(_blessingButtonRoot, label, new Vector2(0.5f, 1f), new Vector2(0f, y), new Vector2(760f, 110f),
                     () =>
                     {

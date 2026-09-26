@@ -112,7 +112,10 @@ namespace Saga.Dungeon.Data
         /// 웹판에 대응하는 공식이 없어 이 트랙에서 새로 정한 값.</summary>
         public static int RoomWearTier(int floor) => floor < 34 ? 0 : floor < 67 ? 1 : 2;
 
-        public static string KindDisplayName(string kind) => kind switch
+        /// <summary>방 표지 글(110 ⑤c-2c-2 — 번역 표 `room.&lt;종류&gt;`, 없으면 한국어).</summary>
+        public static string KindDisplayName(string kind) => DungeonLocalization.T("room." + kind, KindDisplayNameKo(kind));
+
+        private static string KindDisplayNameKo(string kind) => kind switch
         {
             "fight" => "잡졸 무리",
             "trove" => "보물상자",

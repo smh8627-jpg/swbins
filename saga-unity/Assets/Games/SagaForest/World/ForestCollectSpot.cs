@@ -72,9 +72,10 @@ namespace Saga.Forest.World
             string fallback = isNew
                 ? "{0}을(를) 처음으로 발견했다! (도감에 기록됨)"
                 : "{0}을(를) 발견했다(이미 도감에 있음)";
-            DialogueLabel.Instance?.Show(string.Format(ForestLocalization.T(key, fallback), item), ToastSec);
+            string shown = ForestMuseumState.DisplayName(item);
+            DialogueLabel.Instance?.Show(string.Format(ForestLocalization.T(key, fallback), shown), ToastSec);
 
-            string popupLabel = isNew ? $"NEW! {item}" : item;
+            string popupLabel = isNew ? $"NEW! {shown}" : shown;
             ForestGatherFeel.Play(transform.position + Vector3.up * 1.2f, _visual, popupLabel, gatherClips);
 
             // PLAN.md 101-2 5.6 "축제 하루"(2026-09-21) — 꽃놀이(매달 8일)만

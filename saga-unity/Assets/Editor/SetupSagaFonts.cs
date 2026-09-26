@@ -18,6 +18,9 @@ namespace Saga.EditorTools
         private const string FontDir = "Assets/Art/Fonts/NotoSansKR";
         public const string RegularAsset = FontDir + "/NotoSansKR-Regular SDF.asset";
         public const string BoldAsset = FontDir + "/NotoSansKR-Bold SDF.asset";
+        /// <summary>110 ⑤c-2c-2 — 그림 문자(⚔ 📜 🚪 🐺 …)는 한글 글꼴에 없어 □ 로 나왔다 → Noto Emoji(OFL, 흑백 윤곽)를 셋째 대체로.</summary>
+        private const string EmojiDir = "Assets/Art/Fonts/NotoEmoji";
+        public const string EmojiAsset = EmojiDir + "/NotoEmoji SDF.asset";
 
         [MenuItem("Saga/Setup/Import TMP Essentials")]
         public static void ImportTmpEssentials()
@@ -43,10 +46,11 @@ namespace Saga.EditorTools
         {
             var regular = MakeFontAsset(FontDir + "/NotoSansKR-Regular.otf", RegularAsset);
             var bold = MakeFontAsset(FontDir + "/NotoSansKR-Bold.otf", BoldAsset);
+            var emoji = MakeFontAsset(EmojiDir + "/NotoEmoji.ttf", EmojiAsset, 1024);
             var settings = Resources.Load<TMP_Settings>("TMP Settings");
-            if (regular == null || bold == null || settings == null)
+            if (regular == null || bold == null || emoji == null || settings == null)
             {
-                Debug.LogError($"[SetupSagaFonts] FAIL - regular {regular != null} bold {bold != null} settings {settings != null}");
+                Debug.LogError($"[SetupSagaFonts] FAIL - regular {regular != null} bold {bold != null} emoji {emoji != null} settings {settings != null}");
                 Exit(false);
                 return;
             }
@@ -56,10 +60,12 @@ namespace Saga.EditorTools
             fallbacks.ClearArray();
             fallbacks.InsertArrayElementAtIndex(0);
             fallbacks.GetArrayElementAtIndex(0).objectReferenceValue = bold;
+            fallbacks.InsertArrayElementAtIndex(1);
+            fallbacks.GetArrayElementAtIndex(1).objectReferenceValue = emoji;
             so.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(settings);
             AssetDatabase.SaveAssets();
-            Debug.Log("[SetupSagaFonts] OK - 기본 폰트 Noto Sans KR(동적 SDF), 대체 = 굵게");
+            Debug.Log("[SetupSagaFonts] OK - 기본 폰트 Noto Sans KR(동적 SDF), 대체 = 굵게 · Noto Emoji");
             Exit(true);
         }
 
@@ -68,7 +74,7 @@ namespace Saga.EditorTools
         [MenuItem("Saga/Setup/Reset Dynamic Font Data")]
         public static void ResetDynamicFonts()
         {
-            foreach (var path in new[] { RegularAsset, BoldAsset })
+            foreach (var path in new[] { RegularAsset, BoldAsset, EmojiAsset })
             {
                 var fa = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(path);
                 if (fa == null) continue;
@@ -78,14 +84,14 @@ namespace Saga.EditorTools
             AssetDatabase.SaveAssets();
         }
 
-        private static TMP_FontAsset MakeFontAsset(string fontPath, string assetPath)
+        private static TMP_FontAsset MakeFontAsset(string fontPath, string assetPath, int atlas = 2048)
         {
             var existing = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(assetPath);
             if (existing != null) return existing;
             var font = AssetDatabase.LoadAssetAtPath<Font>(fontPath);
             if (font == null) { Debug.LogError($"[SetupSagaFonts] 폰트 없음 {fontPath}"); return null; }
             // 샘플 90pt·여백 9·아틀라스 2048 — 한글 음절이 많아 아틀라스가 차면 새 장을 연다(multi atlas).
-            var fa = TMP_FontAsset.CreateFontAsset(font, 90, 9, GlyphRenderMode.SDFAA, 2048, 2048,
+            var fa = TMP_FontAsset.CreateFontAsset(font, 90, 9, GlyphRenderMode.SDFAA, atlas, atlas,
                 AtlasPopulationMode.Dynamic, true);
             fa.name = Path.GetFileNameWithoutExtension(assetPath);
             AssetDatabase.CreateAsset(fa, assetPath);

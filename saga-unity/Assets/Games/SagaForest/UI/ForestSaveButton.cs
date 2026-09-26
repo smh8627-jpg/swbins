@@ -11,7 +11,8 @@ namespace Saga.Forest.UI
         public void Save()
         {
             bool ok = ForestSaveState.Save();
-            DialogueLabel.Instance?.Show(ok ? "저장했다." : "저장 실패 — 플레이어를 못 찾았다.", 3f);
+            DialogueLabel.Instance?.Show(ok ? ForestLocalization.T("command.save_ok", "저장했다.")
+                : ForestLocalization.T("command.save_fail_player", "저장 실패 — 플레이어를 못 찾았다."), 3f);
         }
     }
 }

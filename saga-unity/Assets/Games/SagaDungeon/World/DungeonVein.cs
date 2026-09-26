@@ -69,7 +69,8 @@ namespace Saga.Dungeon.World
             bool socketed = HeroState.SocketIfBetter(RewardGemId);
             var gem = GemData.Get(RewardGemId);
             DialogueLabel.Instance?.Show(
-                $"광맥 · 캐냈다 — 경험치 +{RewardExp}, {gem.Name}을(를) 얻었다{(socketed ? " — 바로 세공했다." : ".")}",
+                string.Format(DungeonLocalization.T("vein.mined", "광맥 · 캐냈다 — 경험치 +{0}, {1}을(를) 얻었다{2}"), RewardExp, gem.Name,
+                    socketed ? DungeonLocalization.T("vein.socketed", " — 바로 세공했다.") : "."),
                 ToastSec);
         }
     }

@@ -490,6 +490,23 @@
     { "key": "task.wolf_win", "value": "희귀 늑대 토벌 {0}/{1}" },
     { "key": "task.cairn_wish", "value": "성황당 기원 {0}/{1}" },
     { "key": "task.all_done", "value": "오늘의 일과 완료 (도장 {0})" },
-    { "key": "task.week", "value": "일과 도장 {0}/{1}(다음 보상까지 {2})" }
+    { "key": "task.week", "value": "일과 도장 {0}/{1}(다음 보상까지 {2})" },
+    { "key": "perk.axis.atk", "value": "공(攻)" },
+    { "key": "perk.axis.def", "value": "수(守)" },
+    { "key": "perk.axis.sup", "value": "보(補)" },
+    { "key": "perk.atk_edge", "value": "매서운 손속" },
+    { "key": "perk.atk_swift", "value": "쾌속 검로" },
+    { "key": "perk.atk_reckless", "value": "필사의 기세" },
+    { "key": "perk.atk_killer", "value": "필살의 감각" },
+    { "key": "perk.def_stance", "value": "굳건한 자세" },
+    { "key": "perk.def_hide", "value": "질긴 맷집" },
+    { "key": "perk.def_brace", "value": "버팀의 요령" },
+    { "key": "perk.def_grit", "value": "불굴의 기백" },
+    { "key": "perk.sup_breath", "value": "숨 고르기" },
+    { "key": "perk.sup_flow", "value": "기의 순환" },
+    { "key": "perk.sup_focus", "value": "예기의 자각" },
+    { "key": "perk.sup_core", "value": "필살의 근원" },
+    { "key": "command.save_ok", "value": "저장했다." },
+    { "key": "command.save_fail_player", "value": "저장 실패 — 플레이어를 못 찾았다." }
   ]
 }

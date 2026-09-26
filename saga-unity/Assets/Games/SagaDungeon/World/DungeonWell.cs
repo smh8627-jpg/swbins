@@ -53,7 +53,7 @@ namespace Saga.Dungeon.World
             _used = true;
             int healAmount = Mathf.RoundToInt(HeroState.HpMax * HealFraction);
             HeroState.HealBy(healAmount);
-            DialogueLabel.Instance?.Show($"우물 — 체력 {healAmount} 회복.", ToastSec);
+            DialogueLabel.Instance?.Show(string.Format(DungeonLocalization.T("well.heal", "우물 — 체력 {0} 회복."), healAmount), ToastSec);
         }
     }
 }

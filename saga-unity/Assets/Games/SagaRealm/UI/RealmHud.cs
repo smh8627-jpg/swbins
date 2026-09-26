@@ -108,22 +108,26 @@ namespace Saga.Realm.UI
         /// 특성 배지 2개·야망 한 줄"을 이 판의 유일한 로스터 표시 자리
         /// (텍스트 한 줄짜리 HUD)에 대괄호로 욱여넣는다. 야망 달성 후엔
         /// 진행도 대신 체크 표시만 남긴다.</summary>
+        // 110 ⑤c-2c-2 — 특성·야망 이름은 번역 표 `trait.<이름>`·`ambition.<이름>`.
+        private static string TraitName(RealmOfficerTraits.Trait t) => RealmLocalization.T("trait." + t.ToString().ToLowerInvariant(), TraitLabel[t]);
+        private static string AmbitionName(RealmOfficerTraits.Ambition a) => RealmLocalization.T("ambition." + a.ToString().ToLowerInvariant(), AmbitionLabel[a]);
+
         private static string TraitsAndAmbitionOf(string officerId)
         {
             var traits = RealmOfficerTraits.TraitsOf(officerId);
-            string traitStr = traits.Length > 0 ? TraitLabel[traits[0]] : "";
-            for (int i = 1; i < traits.Length; i++) traitStr += "·" + TraitLabel[traits[i]];
+            string traitStr = traits.Length > 0 ? TraitName(traits[0]) : "";
+            for (int i = 1; i < traits.Length; i++) traitStr += "·" + TraitName(traits[i]);
 
             var kind = RealmOfficerTraits.AmbitionOf(officerId);
             string ambStr;
             if (RealmOfficerTraits.IsAmbitionDone(officerId))
             {
-                ambStr = $"야망:{AmbitionLabel[kind]} 달성✓";
+                ambStr = string.Format(RealmLocalization.T("hud.ambition_done", "야망:{0} 달성✓"), AmbitionName(kind));
             }
             else
             {
                 var (current, target) = RealmOfficerTraits.AmbitionProgress(officerId);
-                ambStr = $"야망:{AmbitionLabel[kind]} {current}/{target}";
+                ambStr = string.Format(RealmLocalization.T("hud.ambition", "야망:{0} {1}/{2}"), AmbitionName(kind), current, target);
             }
             return $"[{traitStr} {ambStr}]";
         }

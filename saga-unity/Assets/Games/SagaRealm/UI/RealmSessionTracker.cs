@@ -96,9 +96,9 @@ namespace Saga.Realm.UI
             // godot 결과 카드 스펙(HISTORY.md 2026-09-17) — "걸린 달·성·인물·
             // 기록" 중 이 슬라이스가 가진 값(연월·함락 성·로스터)만 3줄로.
             _sessionCard.Show(title,
-                $"{RealmCityState.Year}년 {RealmCityState.Month}월",
-                $"함락 {CapturedCount()}/{RealmEnemyCity.AllIds.Length}성",
-                $"로스터 {RealmCityState.RosterIds.Count}명");
+                string.Format(RealmLocalization.T("victory.card_date", "{0}년 {1}월"), RealmCityState.Year, RealmCityState.Month),
+                string.Format(RealmLocalization.T("victory.card_captured", "함락 {0}/{1}성"), CapturedCount(), RealmEnemyCity.AllIds.Length),
+                string.Format(RealmLocalization.T("victory.card_roster", "로스터 {0}명"), RealmCityState.RosterIds.Count));
         }
 
         private void ShowSummary()
@@ -106,10 +106,10 @@ namespace Saga.Realm.UI
             if (_sessionCard == null) return;
             int goldGained = RealmCityState.Gold - _sessionStartGold;
             string goldStr = goldGained >= 0 ? $"+{goldGained}" : goldGained.ToString();
-            _sessionCard.Show($"{RealmCityState.Year}년 {RealmCityState.Month}월 정리",
-                $"금 {RealmCityState.Gold}({goldStr})",
+            _sessionCard.Show(string.Format(RealmLocalization.T("summary.title", "{0}년 {1}월 정리"), RealmCityState.Year, RealmCityState.Month),
+                string.Format(RealmLocalization.T("summary.gold", "금 {0}({1})"), RealmCityState.Gold, goldStr),
                 GoalLineSession(),
-                $"다음: {GoalLineWeek()}");
+                string.Format(RealmLocalization.T("summary.next", "다음: {0}"), GoalLineWeek()));
         }
 
         public string GoalLineNow()

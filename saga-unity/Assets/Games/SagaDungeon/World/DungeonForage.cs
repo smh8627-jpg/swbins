@@ -109,7 +109,7 @@ namespace Saga.Dungeon.World
                 _picked[i] = true;
                 _herbs[i].gameObject.SetActive(false);
                 HeroState.HealBy(HerbHeal);
-                DialogueLabel.Instance?.Show($"산나물을 캤다 — 체력 +{HerbHeal}", ToastSec);
+                DialogueLabel.Instance?.Show(string.Format(DungeonLocalization.T("forage.herb", "산나물을 캤다 — 체력 +{0}"), HerbHeal), ToastSec);
             }
 
             if (!_pondUsed && _pond != null && DungeonEnemy.CountAliveInRoom(roomId) == 0
@@ -118,7 +118,7 @@ namespace Saga.Dungeon.World
                 _pondUsed = true;
                 HeroState.AddExp(PondRewardExp);
                 HeroState.AddGold(PondRewardGold);
-                DialogueLabel.Instance?.Show($"손맛 · 무언가 걸렸다 — 경험치 +{PondRewardExp} · 돈 +{PondRewardGold}냥", ToastSec);
+                DialogueLabel.Instance?.Show(string.Format(DungeonLocalization.T("forage.pond", "손맛 · 무언가 걸렸다 — 경험치 +{0} · 돈 +{1}냥"), PondRewardExp, PondRewardGold), ToastSec);
             }
         }
     }

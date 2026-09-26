@@ -214,7 +214,7 @@ namespace Saga.Forest.World
                 {
                     _isInside = true;
                     TeleportPlayer(_entryLandingPosIndoor);
-                    DialogueLabel.Instance?.Show("집 안으로 들어왔다 — 화면이 더는 휘지 않는다.", ToastSec);
+                    DialogueLabel.Instance?.Show(ForestLocalization.T("house.enter", "집 안으로 들어왔다 — 화면이 더는 휘지 않는다."), ToastSec);
                 }
             }
             else
@@ -223,7 +223,7 @@ namespace Saga.Forest.World
                 {
                     _isInside = false;
                     TeleportPlayer(_exitLandingPos);
-                    DialogueLabel.Instance?.Show("밖으로 나왔다 — 다시 마을이 휘어 보인다.", ToastSec);
+                    DialogueLabel.Instance?.Show(ForestLocalization.T("house.exit", "밖으로 나왔다 — 다시 마을이 휘어 보인다."), ToastSec);
                 }
             }
         }

@@ -49,7 +49,9 @@ namespace Saga.Forest.Data
         public static string T(string key)
         {
             EnsureLoaded();
-            return _table != null && _table.TryGetValue(key, out var value) ? value : key;
+            if (_table != null && _table.TryGetValue(key, out var value)) return value;
+            Saga.Core.SagaUi.MissingText?.Invoke("forest", key, key);
+            return key;
         }
 
         /// <summary>데이터 콘텐츠(도시/장비 이름 등) 조회용 — 번역 누락일 때
@@ -57,7 +59,9 @@ namespace Saga.Forest.Data
         public static string T(string key, string fallback)
         {
             EnsureLoaded();
-            return _table != null && _table.TryGetValue(key, out var value) ? value : fallback;
+            if (_table != null && _table.TryGetValue(key, out var value)) return value;
+            Saga.Core.SagaUi.MissingText?.Invoke("forest", key, fallback);
+            return fallback;
         }
 
 

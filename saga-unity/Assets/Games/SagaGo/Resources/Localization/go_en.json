@@ -490,6 +490,23 @@
     { "key": "task.wolf_win", "value": "Hunt the rare wolf {0}/{1}" },
     { "key": "task.cairn_wish", "value": "Pray at the shrine cairn {0}/{1}" },
     { "key": "task.all_done", "value": "Today's tasks done (stamps {0})" },
-    { "key": "task.week", "value": "Task stamps {0}/{1} ({2} to the next reward)" }
+    { "key": "task.week", "value": "Task stamps {0}/{1} ({2} to the next reward)" },
+    { "key": "perk.axis.atk", "value": "ATK" },
+    { "key": "perk.axis.def", "value": "DEF" },
+    { "key": "perk.axis.sup", "value": "SUP" },
+    { "key": "perk.atk_edge", "value": "Keen Hands" },
+    { "key": "perk.atk_swift", "value": "Swift Blade" },
+    { "key": "perk.atk_reckless", "value": "Desperate Fury" },
+    { "key": "perk.atk_killer", "value": "Killer Instinct" },
+    { "key": "perk.def_stance", "value": "Firm Stance" },
+    { "key": "perk.def_hide", "value": "Tough Hide" },
+    { "key": "perk.def_brace", "value": "Bracing Knack" },
+    { "key": "perk.def_grit", "value": "Indomitable Grit" },
+    { "key": "perk.sup_breath", "value": "Steady Breath" },
+    { "key": "perk.sup_flow", "value": "Flowing Ki" },
+    { "key": "perk.sup_focus", "value": "Sharpened Focus" },
+    { "key": "perk.sup_core", "value": "Deadly Core" },
+    { "key": "command.save_ok", "value": "Saved." },
+    { "key": "command.save_fail_player", "value": "Save failed — player not found." }
   ]
 }

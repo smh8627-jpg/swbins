@@ -39,6 +39,18 @@ namespace Saga.Forest.Data
 
         public static string[] ItemsOf(Category c) => Items[c];
 
+        // 110 ⑤c-2c-2 — 한국어 이름이 세이브 키라 그대로 두고, 화면 글만 번역 표 `museum.item.<id>` 로.
+        private static readonly Dictionary<string, string> ItemKeys = new Dictionary<string, string>
+        {
+            ["반짝벌레"] = "glowbug", ["그림자나비"] = "shadow_moth", ["야행풍뎅이"] = "night_beetle",
+            ["자주버섯"] = "purple_cap", ["방울버섯"] = "bell_cap", ["도깨비갓버섯"] = "goblin_cap",
+            ["나선화석"] = "spiral_fossil", ["이빨화석"] = "tooth_fossil", ["발자국화석"] = "footprint_fossil",
+            ["별꽃"] = "star_flower", ["은방울꽃"] = "silver_bell", ["노을꽃"] = "sunset_flower",
+        };
+
+        public static string DisplayName(string item) =>
+            item != null && ItemKeys.TryGetValue(item, out var id) ? ForestLocalization.T("museum.item." + id, item) : item;
+
         public static bool IsDiscovered(string item) => Discovered.Contains(item);
 
         public static int DiscoveredCountOf(Category c)

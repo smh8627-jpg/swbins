@@ -152,12 +152,12 @@ namespace Saga.Go.UI
                 _wpButtons.Add(b);
             }
 
-            // 109-9 발원지 폭포 — 아래끝 자리에 "≋ 이름"(그 지역이나 너른 강에 발 디디면 보임)
+            // 109-9 발원지 폭포 — 아래끝 자리에 "≈ 이름"(그 지역이나 너른 강에 발 디디면 보임)
             foreach (var w in TestMapData.Waterfalls)
             {
                 TestMapData.WaterfallGeometry(w, out _, out Vector3 foot, out _, out _);
                 Vector2 g = GoWorldMap.WorldToGridF(foot);
-                var fall = EncounterUiKit.NewText(_mapRect, "≋ " + GoLocalization.T(w.NameKey, w.NameKo), new Vector2(0.5f, 0.5f), MapPos(g.x, g.y), new Vector2(140f, 30f), 18);
+                var fall = EncounterUiKit.NewText(_mapRect, "≈ " + GoLocalization.T(w.NameKey, w.NameKo), new Vector2(0.5f, 0.5f), MapPos(g.x, g.y), new Vector2(140f, 30f), 18);
                 fall.color = new Color(0.7f, 0.9f, 1f);
                 fall.raycastTarget = false;
                 fall.GetComponent<RectTransform>().pivot = new Vector2(0.5f, 0.5f);

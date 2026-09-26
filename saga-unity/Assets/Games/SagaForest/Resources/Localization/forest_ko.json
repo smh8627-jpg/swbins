@@ -160,6 +160,22 @@
     { "key": "festival.name.wish", "value": "소원" },
     { "key": "festival.how.sebae", "value": "숲지기에게 말을 걸어 세배를 하자" },
     { "key": "festival.how.flowerhunt", "value": "1분 안에 채집 자리 넷을 모두 찾아보자" },
-    { "key": "festival.how.wish", "value": "소원돌에 소원을 빌어보자" }
+    { "key": "festival.how.wish", "value": "소원돌에 소원을 빌어보자" },
+    { "key": "museum.item.glowbug", "value": "반짝벌레" },
+    { "key": "museum.item.shadow_moth", "value": "그림자나비" },
+    { "key": "museum.item.night_beetle", "value": "야행풍뎅이" },
+    { "key": "museum.item.purple_cap", "value": "자주버섯" },
+    { "key": "museum.item.bell_cap", "value": "방울버섯" },
+    { "key": "museum.item.goblin_cap", "value": "도깨비갓버섯" },
+    { "key": "museum.item.spiral_fossil", "value": "나선화석" },
+    { "key": "museum.item.tooth_fossil", "value": "이빨화석" },
+    { "key": "museum.item.footprint_fossil", "value": "발자국화석" },
+    { "key": "museum.item.star_flower", "value": "별꽃" },
+    { "key": "museum.item.silver_bell", "value": "은방울꽃" },
+    { "key": "museum.item.sunset_flower", "value": "노을꽃" },
+    { "key": "house.enter", "value": "집 안으로 들어왔다 — 화면이 더는 휘지 않는다." },
+    { "key": "house.exit", "value": "밖으로 나왔다 — 다시 마을이 휘어 보인다." },
+    { "key": "command.save_ok", "value": "저장했다." },
+    { "key": "command.save_fail_player", "value": "저장 실패 — 플레이어를 못 찾았다." }
   ]
 }

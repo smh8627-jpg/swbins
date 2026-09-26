@@ -42,6 +42,9 @@ namespace Saga.Core
         public static bool En => Lang == "en";
         public static string L(string ko, string en) => En ? en : ko;
 
+        /// <summary>PLAN.md 110 ⑤c-2c-2 — 판 번역 표에 키가 없어 폴백(보통 한국어)을 돌려줄 때 부른다(판, 키, 폴백). 에디터 도구 `HangulWatch` 가 듣는다.</summary>
+        public static System.Action<string, string, string> MissingText;
+
         /// <summary>판 HUD 와 같은 기준(1600×900 Expand)의 메뉴 캔버스 — 판 HUD 옆에 붙는 공통 단추(일시정지)용.
         /// 판 설정의 "UI 크기"는 이 캔버스를 건너뛴다(<see cref="MenuCanvas"/>).</summary>
         public static Canvas NewHudCanvas(string name, int sortingOrder, Transform parent = null)

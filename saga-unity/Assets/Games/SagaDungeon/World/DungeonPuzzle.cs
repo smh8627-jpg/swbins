@@ -113,12 +113,13 @@ namespace Saga.Dungeon.World
                     bool equipped = HeroState.EquipIfBetter(RewardItemId);
                     var item = ItemData.Get(RewardItemId);
                     DialogueLabel.Instance?.Show(
-                        $"퍼즐을 풀었다! — 돈 +{RewardGold}냥, {item.Name}을(를) 얻었다{(equipped ? " — 바로 갖췄다." : ".")}",
+                        string.Format(DungeonLocalization.T("puzzle.solved", "퍼즐을 풀었다! — 돈 +{0}냥, {1}을(를) 얻었다{2}"), RewardGold, item.Name,
+                            equipped ? DungeonLocalization.T("puzzle.equipped", " — 바로 갖췄다.") : "."),
                         ToastSec);
                 }
                 else
                 {
-                    DialogueLabel.Instance?.Show($"✓ 다음 제단 ({_progress}/{Order.Length})", ToastSec);
+                    DialogueLabel.Instance?.Show(string.Format(DungeonLocalization.T("puzzle.next", "✓ 다음 제단 ({0}/{1})"), _progress, Order.Length), ToastSec);
                 }
             }
             else if (_progress > 0)
@@ -129,7 +130,7 @@ namespace Saga.Dungeon.World
                     _lit[i] = false;
                     _rends[i].material.color = UnlitColor;
                 }
-                DialogueLabel.Instance?.Show("✗ 순서가 틀렸다 — 처음부터.", ToastSec);
+                DialogueLabel.Instance?.Show(DungeonLocalization.T("puzzle.wrong", "× 순서가 틀렸다 — 처음부터."), ToastSec);
             }
         }
     }

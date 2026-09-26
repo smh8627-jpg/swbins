@@ -265,7 +265,7 @@ namespace Saga.EditorTools
             }
             ForestLocalization.CurrentLanguage = langBefore;
             method.Invoke(localized, null);
-            if (label.text != "저장")
+            if (label.text != (langBefore == "en" ? "Save" : "저장"))
             {
                 Debug.LogError($"[PlaytestForestHeadless] 저장 버튼이 원래 언어로 안 돌아옴 text=\"{label.text}\"(기대=저장)");
                 _hadError = true;
@@ -300,7 +300,7 @@ namespace Saga.EditorTools
 
             var labelField = typeof(GoalBoard).GetField("_label", BindingFlags.NonPublic | BindingFlags.Instance);
             var label = labelField.GetValue(board) as TextMeshProUGUI;
-            if (label == null || !label.text.Contains("지금 —") || !label.text.Contains("이번 세션 —") || !label.text.Contains("이번 주 —"))
+            if (label == null || !label.text.Contains(Saga.Core.SagaUi.L("지금", "Now") + " —") || !label.text.Contains(Saga.Core.SagaUi.L("이번 세션", "This session") + " —") || !label.text.Contains(Saga.Core.SagaUi.L("이번 주", "This week") + " —"))
             {
                 Debug.LogError($"[PlaytestForestHeadless] GoalBoard 세 줄이 안 채워짐 text=\"{(label == null ? "null" : label.text.Replace("\n", " | "))}\"");
                 _hadError = true;

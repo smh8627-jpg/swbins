@@ -160,6 +160,22 @@
     { "key": "festival.name.wish", "value": "Wishing Day" },
     { "key": "festival.how.sebae", "value": "Talk to the forest keeper and offer a New Year's bow" },
     { "key": "festival.how.flowerhunt", "value": "Find all four gathering spots within a minute" },
-    { "key": "festival.how.wish", "value": "Make a wish at the wishing stone" }
+    { "key": "festival.how.wish", "value": "Make a wish at the wishing stone" },
+    { "key": "museum.item.glowbug", "value": "Glowbug" },
+    { "key": "museum.item.shadow_moth", "value": "Shadow Moth" },
+    { "key": "museum.item.night_beetle", "value": "Night Beetle" },
+    { "key": "museum.item.purple_cap", "value": "Purple Cap" },
+    { "key": "museum.item.bell_cap", "value": "Bell Cap" },
+    { "key": "museum.item.goblin_cap", "value": "Goblin Cap" },
+    { "key": "museum.item.spiral_fossil", "value": "Spiral Fossil" },
+    { "key": "museum.item.tooth_fossil", "value": "Tooth Fossil" },
+    { "key": "museum.item.footprint_fossil", "value": "Footprint Fossil" },
+    { "key": "museum.item.star_flower", "value": "Starflower" },
+    { "key": "museum.item.silver_bell", "value": "Lily of the Valley" },
+    { "key": "museum.item.sunset_flower", "value": "Sunset Bloom" },
+    { "key": "house.enter", "value": "You step inside — the view no longer curves." },
+    { "key": "house.exit", "value": "You step outside — the village curves again." },
+    { "key": "command.save_ok", "value": "Saved." },
+    { "key": "command.save_fail_player", "value": "Save failed — player not found." }
   ]
 }

@@ -344,9 +344,9 @@ namespace Saga.Dungeon.World
             EnterFloorLayout();
             UpdateWearTier();
 
-            string msg = $"🪜 제{_floor}층으로 내려간다";
-            if (sigilBonus > 0) msg += $"\n📜 부적 층 클리어 — 금 {sigilBonus} 추가 획득";
-            if (SigilState.IsSigilFloor(_floor)) msg += $"\n⚠ 부적 층 — {SigilState.Label(SigilState.ModOf(_floor))}";
+            string msg = string.Format(DungeonLocalization.T("floor.descend", "🪜 제{0}층으로 내려간다"), _floor);
+            if (sigilBonus > 0) msg += "\n" + string.Format(DungeonLocalization.T("floor.sigil_bonus", "📜 부적 층 클리어 — 금 {0} 추가 획득"), sigilBonus);
+            if (SigilState.IsSigilFloor(_floor)) msg += "\n" + string.Format(DungeonLocalization.T("floor.sigil_warn", "⚠ 부적 층 — {0}"), SigilState.Label(SigilState.ModOf(_floor)));
             if (_landmark >= 0) msg += "\n" + DungeonLandmarkData.EnterText(_landmark); // 108 ③
             DialogueLabel.Instance?.Show(msg, _landmark >= 0 ? 5f : 4f);
             BuildRoomContent(FirstRoomKind());

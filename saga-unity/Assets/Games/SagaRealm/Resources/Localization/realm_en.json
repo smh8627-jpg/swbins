@@ -564,6 +564,20 @@
     { "key": "event.tomb_oath.rest", "value": "The general bowed his head and returned to the earth (security +10)." },
     { "key": "event.tomb_oath.treasure", "value": "The general handed over an old king's treasure and walked into the dark (+{0} gold)." },
     { "key": "goal.viewing", "value": "Viewing {0} · Gold {1}" },
-    { "key": "goal.session", "value": "Captured +{0} · Gold {1}" }
+    { "key": "goal.session", "value": "Captured +{0} · Gold {1}" },
+    { "key": "victory.card_date", "value": "Year {0}, Month {1}" },
+    { "key": "victory.card_captured", "value": "Captured {0}/{1} cities" },
+    { "key": "victory.card_roster", "value": "Roster {0}" },
+    { "key": "summary.title", "value": "Year {0}, Month {1} — Summary" },
+    { "key": "summary.gold", "value": "Gold {0} ({1})" },
+    { "key": "summary.next", "value": "Next: {0}" },
+    { "key": "trait.brave", "value": "Brave" },
+    { "key": "trait.cunning", "value": "Cunning" },
+    { "key": "trait.wise", "value": "Wise" },
+    { "key": "ambition.wealth", "value": "Wealth" },
+    { "key": "ambition.rival", "value": "Rival" },
+    { "key": "ambition.scholar", "value": "Scholar" },
+    { "key": "hud.ambition_done", "value": "Ambition: {0} ✓" },
+    { "key": "hud.ambition", "value": "Ambition: {0} {1}/{2}" }
   ]
 }

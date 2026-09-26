@@ -28,6 +28,7 @@ namespace Saga.Go.UI
         public bool IsShowing => _panel != null && _panel.activeSelf;
 
         private static readonly string[] AxisLabel = { "공(攻)", "수(守)", "보(補)" };
+        private static readonly string[] AxisKey = { "perk.axis.atk", "perk.axis.def", "perk.axis.sup" };
 
         public void Build()
         {
@@ -69,8 +70,8 @@ namespace Saga.Go.UI
             for (int i = 0; i < offer.Length; i++)
             {
                 var perk = offer[i];
-                string axis = AxisLabel[(int)perk.Axis];
-                _cardLabels[i].text = $"{axis} {perk.Name}\n(+{Mathf.RoundToInt(perk.Bonus * 100f)}%)";
+                string axis = GoLocalization.T(AxisKey[(int)perk.Axis], AxisLabel[(int)perk.Axis]);
+                _cardLabels[i].text = $"{axis} {GoLocalization.T("perk." + perk.Id, perk.Name)}\n(+{Mathf.RoundToInt(perk.Bonus * 100f)}%)";
             }
             _panel.SetActive(true);
         }

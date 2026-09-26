@@ -1629,7 +1629,7 @@ namespace Saga.EditorTools
             }
 
             var label = GetPrivateField<TextMeshProUGUI>(board, "_label");
-            if (label == null || !label.text.Contains("지금 —") || !label.text.Contains("이번 세션 —") || !label.text.Contains("이번 주 —"))
+            if (label == null || !label.text.Contains(Saga.Core.SagaUi.L("지금", "Now") + " —") || !label.text.Contains(Saga.Core.SagaUi.L("이번 세션", "This session") + " —") || !label.text.Contains(Saga.Core.SagaUi.L("이번 주", "This week") + " —"))
             {
                 Debug.LogError($"[PlaytestRealmSlice] GoalBoard 세 줄이 안 채워짐 text=\"{(label == null ? "null" : label.text.Replace("\n", " | "))}\"");
                 return false;
@@ -2175,7 +2175,7 @@ namespace Saga.EditorTools
             }
             RealmLocalization.CurrentLanguage = langBefore;
             refreshMethod.Invoke(ui, null);
-            if (ordersLabel.text != "명령")
+            if (ordersLabel.text != (langBefore == "en" ? "Orders" : "명령"))
             {
                 Debug.LogError($"[PlaytestRealmSlice] 명령 버튼이 원래 언어로 안 돌아옴 text=\"{ordersLabel.text}\"(기대=명령)");
                 return false;

@@ -58,7 +58,7 @@ namespace Saga.Story.World
 
             StoryCombat.RestoreMp(StoryCombat.MpMax);
             DialogueLabel.Instance?.Show(
-                "발판 위 망루를 발견했다 — 잠시 숨을 고르니 내공이 가득 찼다.", ToastSec);
+                StoryLocalization.T("discovery.lookout", "발판 위 망루를 발견했다 — 잠시 숨을 고르니 내공이 가득 찼다."), ToastSec);
             Destroy(gameObject);
         }
     }

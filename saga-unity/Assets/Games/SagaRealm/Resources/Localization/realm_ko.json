@@ -564,6 +564,20 @@
     { "key": "era.region.tomb", "value": "묘역" },
     { "key": "officer.tb_ganghae", "value": "강해" },
     { "key": "goal.viewing", "value": "{0} 조망 중 · 금 {1}" },
-    { "key": "goal.session", "value": "함락 +{0}성 · 금 {1}" }
+    { "key": "goal.session", "value": "함락 +{0}성 · 금 {1}" },
+    { "key": "victory.card_date", "value": "{0}년 {1}월" },
+    { "key": "victory.card_captured", "value": "함락 {0}/{1}성" },
+    { "key": "victory.card_roster", "value": "로스터 {0}명" },
+    { "key": "summary.title", "value": "{0}년 {1}월 정리" },
+    { "key": "summary.gold", "value": "금 {0}({1})" },
+    { "key": "summary.next", "value": "다음: {0}" },
+    { "key": "trait.brave", "value": "용맹" },
+    { "key": "trait.cunning", "value": "교활" },
+    { "key": "trait.wise", "value": "현명" },
+    { "key": "ambition.wealth", "value": "부귀" },
+    { "key": "ambition.rival", "value": "숙적" },
+    { "key": "ambition.scholar", "value": "학문" },
+    { "key": "hud.ambition_done", "value": "야망:{0} 달성✓" },
+    { "key": "hud.ambition", "value": "야망:{0} {1}/{2}" }
   ]
 }

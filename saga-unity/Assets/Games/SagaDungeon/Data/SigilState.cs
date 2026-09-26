@@ -57,8 +57,8 @@ namespace Saga.Dungeon.Data
 
         public static string Label(Mod mod) => mod switch
         {
-            Mod.EliteSurge => "정예 폭증(적 HP ×2)",
-            Mod.GlassCannon => "유리대포(주고받는 피해 ×1.5)",
+            Mod.EliteSurge => DungeonLocalization.T("sigil.elite_surge", "정예 폭증(적 HP ×2)"),
+            Mod.GlassCannon => DungeonLocalization.T("sigil.glass_cannon", "유리대포(주고받는 피해 ×1.5)"),
             _ => mod.ToString(),
         };
     }

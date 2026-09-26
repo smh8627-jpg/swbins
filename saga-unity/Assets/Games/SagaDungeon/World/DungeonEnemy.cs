@@ -76,6 +76,7 @@ namespace Saga.Dungeon.World
             ["강철 인형 병정"] = "enemy.era_steelbot",
             ["암흑가 해결사"] = "enemy.era_enforcer",
             ["별 너머 방문자"] = "enemy.era_visitor",
+            ["시련의 수호자"] = "enemy.trial_guardian", // PLAN.md 109-10-3 시련 끝 수호자.
         };
 
         // PLAN.md 106-2 "잊힌 능묘" 보스 — 갑주를 입은 동안 칼은 15%만 들어가고,
@@ -143,6 +144,7 @@ namespace Saga.Dungeon.World
         private const float FullBreakBonusGoldMultiplier = 0.5f; // 부위 3 전부 파괴 시 추가.
         private static readonly float[] WorldBossPartThresholds = { 0.75f, 0.50f, 0.25f };
         private static readonly string[] WorldBossPartNames = { "투구", "갑주", "무기" };
+        private static readonly string[] WorldBossPartKeys = { "worldboss.part.helm", "worldboss.part.armor", "worldboss.part.weapon" };
 
         private float _worldBossTimeLeft;
         private bool _worldBossActive;
@@ -690,7 +692,7 @@ namespace Saga.Dungeon.World
                 int bonus = Mathf.RoundToInt(rewardGold * PartBonusGoldMultiplier);
                 HeroState.AddGold(bonus);
                 string msg = string.Format(DungeonLocalization.T("worldboss.part_broken", "🛡 {0} 파괴! — 돈 +{1}냥"),
-                    WorldBossPartNames[i], bonus);
+                    DungeonLocalization.T(WorldBossPartKeys[i], WorldBossPartNames[i]), bonus);
 
                 if (_worldBossPartBroken[0] && _worldBossPartBroken[1] && _worldBossPartBroken[2])
                 {

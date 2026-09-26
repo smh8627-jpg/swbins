@@ -315,8 +315,8 @@ namespace Saga.Story.UI
             {
                 int set = StorySkillState.SchoolTier(sk.School);
                 tag = set > 0
-                    ? string.Format(StoryLocalization.T("skill.school_set", "[{0}·{1}세트] "), school.Name, set)
-                    : $"[{school.Name}] ";
+                    ? string.Format(StoryLocalization.T("skill.school_set", "[{0}·{1}세트] "), StoryLocalization.T("skill.school." + school.Id, school.Name), set)
+                    : $"[{StoryLocalization.T("skill.school." + school.Id, school.Name)}] ";
             }
             string need = "";
             if (sk.Need != null && StorySkillState.LevelOf(sk.Need) < sk.NeedLv)

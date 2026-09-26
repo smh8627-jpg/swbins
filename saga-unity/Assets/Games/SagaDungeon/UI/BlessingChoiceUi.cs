@@ -27,6 +27,7 @@ namespace Saga.Dungeon.UI
         public bool IsShowing => _panel != null && _panel.activeSelf;
 
         private static readonly string[] AxisLabel = { "공(攻)", "수(守)", "선(旋)" };
+        private static readonly string[] AxisKey = { "blessing.axis.atk", "blessing.axis.def", "blessing.axis.sweep" };
 
         public void Build()
         {
@@ -68,8 +69,8 @@ namespace Saga.Dungeon.UI
             for (int i = 0; i < offer.Length; i++)
             {
                 var blessing = offer[i];
-                string axis = AxisLabel[(int)blessing.Axis];
-                _cardLabels[i].text = $"{axis} {blessing.Name}\n(+{Mathf.RoundToInt(blessing.Bonus * 100f)}%)";
+                string axis = DungeonLocalization.T(AxisKey[(int)blessing.Axis], AxisLabel[(int)blessing.Axis]);
+                _cardLabels[i].text = $"{axis} {DungeonLocalization.T("blessing." + blessing.Id, blessing.Name)}\n(+{Mathf.RoundToInt(blessing.Bonus * 100f)}%)";
             }
             _panel.SetActive(true);
         }

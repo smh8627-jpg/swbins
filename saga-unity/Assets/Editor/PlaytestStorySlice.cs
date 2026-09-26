@@ -233,7 +233,7 @@ namespace Saga.EditorTools
                     // 앞머리가 데워지는지 본다(StoryNpc.Greeting()).
                     SetPrivate(npc, "_lastSaidTime", -1000f);
                     method.Invoke(npc, new object[] { _playerController });
-                    if (StoryNpcState.ScoutTalkCount != 2 || !label.text.Contains("또 뵙는군요"))
+                    if (StoryNpcState.ScoutTalkCount != 2 || !label.text.Contains(StoryLocalization.T("npc.scout_greeting_default_2").Trim()))
                     {
                         Debug.LogError($"[PlaytestStorySlice] 두 번째 대화 갱신 실패 count={StoryNpcState.ScoutTalkCount}(기대=2) text=\"{label.text}\"");
                         Fail();
@@ -500,7 +500,7 @@ namespace Saga.EditorTools
                     var dialogueGo = GameObject.Find("StoryDialogueUI");
                     var dialogueLabel = dialogueGo != null ? dialogueGo.GetComponent<DialogueLabel>() : null;
                     var label = dialogueLabel != null ? GetPrivate(dialogueLabel, "label") as TextMeshProUGUI : null;
-                    if (label == null || !label.text.Contains("한 잔"))
+                    if (label == null || !label.text.Contains(StoryLocalization.T("npc.scout_choice_line_a")))
                     {
                         Debug.LogError($"[PlaytestStorySlice] 선택 직후 대사가 이상함 text=\"{(label != null ? label.text : "<null>")}\"");
                         Fail();
@@ -511,7 +511,7 @@ namespace Saga.EditorTools
                     // 두 번 다시 선택 팝업이 뜨지 않아야 한다(ChoiceMade!=0).
                     SetPrivate(npc, "_lastSaidTime", -1000f);
                     method.Invoke(npc, new object[] { _playerController });
-                    if (choiceUi.IsShowing || !label.text.Contains("형씨"))
+                    if (choiceUi.IsShowing || !label.text.Contains(StoryLocalization.T("npc.scout_greeting_1").Trim()))
                     {
                         Debug.LogError($"[PlaytestStorySlice] 선택 이후 재대화가 이상함 showingChoice={choiceUi.IsShowing} text=\"{label.text}\"");
                         Fail();
@@ -2421,7 +2421,7 @@ namespace Saga.EditorTools
             }
             StoryLocalization.CurrentLanguage = langBefore;
             method.Invoke(localized, null);
-            if (label.text != "공격")
+            if (label.text != (langBefore == "en" ? "Attack" : "공격"))
             {
                 Debug.LogError($"[PlaytestStorySlice] 액션 버튼이 원래 언어로 안 돌아옴 text=\"{label.text}\"(기대=공격)");
                 return false;
@@ -2455,7 +2455,7 @@ namespace Saga.EditorTools
 
             var labelField = typeof(GoalBoard).GetField("_label", BindingFlags.NonPublic | BindingFlags.Instance);
             var label = labelField.GetValue(board) as TextMeshProUGUI;
-            if (label == null || !label.text.Contains("지금 —") || !label.text.Contains("이번 세션 —") || !label.text.Contains("이번 주 —"))
+            if (label == null || !label.text.Contains(Saga.Core.SagaUi.L("지금", "Now") + " —") || !label.text.Contains(Saga.Core.SagaUi.L("이번 세션", "This session") + " —") || !label.text.Contains(Saga.Core.SagaUi.L("이번 주", "This week") + " —"))
             {
                 Debug.LogError($"[PlaytestStorySlice] GoalBoard 세 줄이 안 채워짐 text=\"{(label == null ? "null" : label.text.Replace("\n", " | "))}\"");
                 return false;

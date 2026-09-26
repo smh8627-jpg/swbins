@@ -34,6 +34,7 @@ namespace Saga.Dungeon.World
 
         private struct Outcome
         {
+            public string Key;
             public string Text;
             public bool SpawnAmbush;
             public int Gold;
@@ -44,9 +45,9 @@ namespace Saga.Dungeon.World
         // (전투가 이 판 정체성이라 "위험"이 "이득"보다 흔한 쪽으로).
         private static readonly Outcome[] Outcomes =
         {
-            new Outcome { Text = "고요하다 — 아무 일도 없었다.", SpawnAmbush = false, Gold = 0, Weight = 55f },
-            new Outcome { Text = "매복! 그늘에서 황건적이 튀어나왔다!", SpawnAmbush = true, Gold = 0, Weight = 30f },
-            new Outcome { Text = "숨겨 둔 주머니를 찾아냈다.", SpawnAmbush = false, Gold = 12, Weight = 15f },
+            new Outcome { Key = "ambush.calm", Text = "고요하다 — 아무 일도 없었다.", SpawnAmbush = false, Gold = 0, Weight = 55f },
+            new Outcome { Key = "ambush.attack", Text = "매복! 그늘에서 황건적이 튀어나왔다!", SpawnAmbush = true, Gold = 0, Weight = 30f },
+            new Outcome { Key = "ambush.purse", Text = "숨겨 둔 주머니를 찾아냈다.", SpawnAmbush = false, Gold = 12, Weight = 15f },
         };
 
         private static readonly Color MarkerColor = new Color(0.35f, 0.3f, 0.2f); // 낙엽·잔해 더미 — 눈에 덜 띄는 흙빛
@@ -88,8 +89,9 @@ namespace Saga.Dungeon.World
             if (outcome.Gold > 0) HeroState.AddGold(outcome.Gold);
             if (outcome.SpawnAmbush) SpawnAmbushEnemy();
 
-            string reward = outcome.Gold > 0 ? $" (돈 +{outcome.Gold}냥)" : "";
-            DialogueLabel.Instance?.Show($"필드 사건 — {outcome.Text}{reward}", ToastSec);
+            string reward = outcome.Gold > 0 ? string.Format(DungeonLocalization.T("ambush.gold", " (돈 +{0}냥)"), outcome.Gold) : "";
+            DialogueLabel.Instance?.Show(string.Format(DungeonLocalization.T("ambush.toast", "필드 사건 — {0}{1}"),
+                DungeonLocalization.T(outcome.Key, outcome.Text), reward), ToastSec);
         }
 
         /// <summary>비활성 상태로 만든 뒤 값을 채우고 활성화 — DungeonEnemy
