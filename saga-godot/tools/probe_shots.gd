@@ -31,6 +31,7 @@ const SHOTS := [
 	["f_airship", "frost", Vector2(5.85, 6.0), Vector3.ZERO, Vector2(6.45, 5.25), -14.0, 10.0, ""],
 	["f_snow_bloom", "frost", Vector2(4.2, 3.5), Vector3.ZERO, Vector2(4.2, 3.4), -40.0, 6.0, ""],
 	["f_bear_king", "frost", Vector2(3.15, 6.05), Vector3.ZERO, "boss:snow_bear_king", -12.0, 10.0, ""],
+	["f_pines", "frost", Vector2(6.35, 4.3), Vector3.ZERO, Vector2(7.0, 4.0), -8.0, 9.0, ""],
 	["f_fox_camp", "frost", Vector2(2.0, 3.6), Vector3.ZERO, Vector2(2.0, 3.0), -16.0, 9.0, ""],
 	["f_top_nofog", "frost", Vector2(4.0, 4.5), Vector3.ZERO, Vector2(4.0, 3.0), -70.0, 90.0, "nofog"],
 	["f_n_close", "frost", Vector2(5.0, 3.35), Vector3.ZERO, Vector2(5.0, 3.0), -60.0, 8.0, "nofog"],

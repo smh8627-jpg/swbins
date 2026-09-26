@@ -53,7 +53,8 @@ const REGION_TREE_VARIANTS := {
 		{"glb": "res://assets/generated/variants/CommonTree_4__go_village.glb", "scale": 0.584846},
 		{"glb": "res://assets/generated/variants/CommonTree_5__go_village.glb", "scale": 0.787869},
 	],
-	## 106장 ㊺ 서리봉 고원 — 침엽수(Pine, 스냅 완비 5종). 전용 눈 팔레트는 아직 없어 마을 팔레트 변형을 쓴다.
+	## 106장 ㊺ 서리봉 고원 — 침엽수(Pine, 스냅 완비 5종). 에셋은 마을 팔레트 변형 그대로, 눈은 셰이더가 얹는다
+	## (㊻-4 REGION_TREE_SNOW — 새 GLB 없이 위를 보는 잎에 눈·잎빛 서늘하게).
 	## 높이는 CommonTree 와 같은 5.52m 로 역산(Pine 실측고 7.32·7.38·7.39·10.24·8.72m, trimesh bounds).
 	"frost": [
 		{"glb": "res://assets/generated/variants/Pine_1__go_village.glb", "scale": 0.754416},
@@ -70,6 +71,8 @@ const REGION_TREE_VARIANTS := {
 		{"glb": "res://assets/generated/variants/DeadTree_5__go_ruins.glb", "scale": 0.335820},
 	],
 }
+## 106장 ㊻-4 지역마다 나무에 얹는 눈(vegetation_wind.gdshader snow_amount). 없는 지역은 0.
+const REGION_TREE_SNOW := {"frost": 0.7}
 ## 바위도 같은 이유로 Rock_Medium_1(큰)·Rock_Medium_2(작은, 모양만 다름)
 ## 로 교체 — Pebble·RockPath 계열은 103-3 스냅 때 이미 "산책로 장식" 용도로
 ## 못박아 뒀으니(HISTORY 09-20⑰) 산 바위 자리엔 안 쓴다. 옛 최종 높이
@@ -310,6 +313,7 @@ func _apply_wind_shader(mesh: Mesh, surface_idx: int) -> void:
 	mat.set_shader_parameter("alpha_scissor_threshold", scissor)
 	mat.set_shader_parameter("roughness_value", bm.roughness)
 	mat.set_shader_parameter("specular_value", bm.metallic_specular)
+	mat.set_shader_parameter("snow_amount", float(REGION_TREE_SNOW.get(region_id, 0.0)))
 	mesh.surface_set_material(surface_idx, mat)
 
 
