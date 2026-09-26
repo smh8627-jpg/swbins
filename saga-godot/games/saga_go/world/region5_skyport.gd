@@ -8,7 +8,7 @@ extends Node3D
 ## 순간이동 지점·들판 무리·상자·별조각·채집은 각 표(waypoints·field_spawner·treasure_spawner·star_shards·cooking)에 "skyport" 줄로.
 ##   미래 — 별배 나루(M (4..6,1..2)): 둥근 착륙판·계류 탑(빛 고리)·계류 팔·떠 있는 빛 부표
 ##   과거 — 옛 절터(R (2..3,3..4)): 삼층 돌탑·주춧돌 줄·깨진 돌계단·빈 종각(17장에 종을 다시 건다)
-##   현대 — 은하역(H (5,5)): 승강장·녹슨 객차·역 간판·철로(남쪽 길 따라)
+##   현대 — 은하역(H (5,5)): 승강장·녹슨 객차(18장 막차 — 전기를 넣으면 전조등·창이 켜진다)·역 간판·철로(남쪽 길 따라)
 ##   현대·미래 — 태양광 밭(F (3..4,6)): 기운 전지판 줄·변전함
 ##   틈 고개 경계비((7.55,3.3)) · 길가 빛 가로등
 
@@ -65,6 +65,14 @@ const HANG_FROM_STEP := 8
 const BELFRY_OFF := Vector3(10.0, 0.0, 2.0) # TEMPLE_CELL 한가운데에서
 const BELL_Y := 2.6 # 종 한가운데 높이(종각 바닥 위)
 const RING_SEC := 3.0
+## 106장 ㊽-4 — 18장 태양광 밭 변전함에 전기를 넣은 뒤(POWER_FROM_STEP)부터 막차(녹슨 객차)에 전조등·창 빛이 켜지고
+## 변전함 표시등이 빨강 → 초록.
+const CH18 := 17
+const POWER_FROM_STEP := 5
+const SUBSTATION_OFF := Vector3(22.0, 0.0, 0.0) # SOLAR_CELL 한가운데에서
+const OFF_RED := Color(1.0, 0.25, 0.2)
+const ON_GREEN := Color(0.3, 1.0, 0.5)
+const LAMP := Color(1.0, 0.92, 0.6)
 
 const STONE := Color(0.6, 0.58, 0.55)
 const STONE_DARK := Color(0.42, 0.41, 0.4)
@@ -87,6 +95,10 @@ var _fallen_bell: Node3D = null
 var _hung := false
 var _ring_t := 0.0
 var rings := 0 # 점검용 — 울린 번수
+var _powered := false
+var _sub_lamp: MeshInstance3D = null
+var _train_lights: Array = [] # 전조등·창 빛(전기가 들어오면 보임)
+var _train_windows: MeshInstance3D = null
 var _t := 0.0
 var _check_t := 0.0
 
@@ -118,6 +130,7 @@ func _ready() -> void:
 	_build_docked_ship()
 	_set_dock(ship_docked())
 	_set_hung(bell_hung())
+	_set_power(train_powered())
 
 static func cell_pos(c: Vector2) -> Vector3:
 	var p := TestMap.world_pos(c.x, c.y, REGION)
@@ -143,6 +156,18 @@ static func bell_hung() -> bool:
 
 func is_hung() -> bool:
 	return _hung
+
+## 18장 변전함에 전기를 넣었거나 지났는가 — 막차 전조등이 켜져 있다.
+static func train_powered() -> bool:
+	var ch := int(PartyState.story.get("ch", 0))
+	return ch > CH18 or (ch == CH18 and int(PartyState.story.get("step", 0)) >= POWER_FROM_STEP)
+
+func is_powered() -> bool:
+	return _powered
+
+## 변전함 자리(월드, 바닥 높이).
+static func substation_pos() -> Vector3:
+	return cell_pos(SOLAR_CELL) + SUBSTATION_OFF
 
 ## 종각 자리(월드, 바닥 높이).
 static func belfry_pos() -> Vector3:
@@ -179,6 +204,8 @@ func _process(delta: float) -> void:
 			_set_dock(ship_docked())
 		if bell_hung() != _hung:
 			_set_hung(bell_hung())
+		if train_powered() != _powered:
+			_set_power(train_powered())
 	if _ring_t > 0.0:
 		_ring_t = maxf(0.0, _ring_t - delta)
 		var k := _ring_t / RING_SEC
@@ -345,8 +372,16 @@ func _build_station() -> void:
 		_box(root, Vector3(2.4, 0.06, 0.35), Vector3(0, 0.03, -18.0 + k * 3.8), Color(0.3, 0.24, 0.18))
 	## 녹슨 객차 — 승강장 곁 철로 위(몸 충돌, 창은 빛 없는 유리).
 	_solid_box(root, Vector3(3.0, 3.0, 12.0), Vector3(0, 1.8, -2.0), RUST)
-	_box(root, Vector3(3.05, 0.9, 10.0), Vector3(0, 2.3, -2.0), Color(0.35, 0.45, 0.5))
+	_train_windows = _box(root, Vector3(3.05, 0.9, 10.0), Vector3(0, 2.3, -2.0), Color(0.35, 0.45, 0.5))
 	_box(root, Vector3(3.2, 0.25, 12.4), Vector3(0, 3.4, -2.0), RUST.darkened(0.3))
+	## 18장 막차 — 남쪽 끝(선로 쪽) 전조등 둘·행선 표시판. 전기가 들어오면 보인다.
+	for x in [-0.9, 0.9]:
+		var hl := _box(root, Vector3(0.5, 0.35, 0.08), Vector3(x, 1.2, 4.05), LAMP)
+		hl.material_override = _glow(LAMP, 3.0)
+		_train_lights.append(hl)
+	var sign := _box(root, Vector3(2.2, 0.4, 0.08), Vector3(0, 2.9, 4.06), GLOW)
+	sign.material_override = _glow(GLOW, 1.6)
+	_train_lights.append(sign)
 	## 역 간판.
 	_box(root, Vector3(0.2, 1.0, 3.6), Vector3(-7.9, 3.4, 0), Color(0.15, 0.3, 0.55))
 	_label(root, "은하역", Vector3(-5.0, 6.0, 0), Color(0.85, 0.92, 1.0))
@@ -360,8 +395,8 @@ func _build_solar() -> void:
 			var panel := _box(root, Vector3(6.4, 0.08, 2.6), p + Vector3(0, 1.3, 0), PANEL)
 			panel.rotation.x = -0.45
 			_box(root, Vector3(0.12, 1.2, 0.12), p + Vector3(0, 0.6, 0), ALLOY)
-	_solid_box(root, Vector3(2.0, 2.2, 1.6), Vector3(22.0, 1.1, 0), Color(0.82, 0.84, 0.86))
-	_box(root, Vector3(0.3, 0.3, 0.05), Vector3(22.4, 1.6, 0.82), Color(0.3, 1.0, 0.5)).material_override = _glow(Color(0.3, 1.0, 0.5), 2.0)
+	_solid_box(root, Vector3(2.0, 2.2, 1.6), SUBSTATION_OFF + Vector3(0, 1.1, 0), Color(0.82, 0.84, 0.86))
+	_sub_lamp = _box(root, Vector3(0.3, 0.3, 0.05), SUBSTATION_OFF + Vector3(0.4, 1.6, 0.82), ON_GREEN)
 	_label(root, "태양광 밭", Vector3(0, 4.0, 0), Color(0.8, 0.92, 1.0))
 
 ## 틈 고개 경계비 — "은하 나루" 빛 비석(돌 받침 + 빛 판).
@@ -499,6 +534,13 @@ func _set_hung(on: bool) -> void:
 		for n in _fallen_bell.get_children():
 			if n is MeshInstance3D and String(n.name) == "Bell":
 				(n as Node3D).visible = not on
+
+func _set_power(on: bool) -> void:
+	_powered = on
+	_sub_lamp.material_override = _glow(ON_GREEN if on else OFF_RED, 2.0)
+	for n in _train_lights:
+		(n as Node3D).visible = on
+	_train_windows.material_override = _glow(LAMP, 0.7) if on else _mat(Color(0.35, 0.45, 0.5))
 
 func _set_gate(open: bool) -> void:
 	_gate_open = open

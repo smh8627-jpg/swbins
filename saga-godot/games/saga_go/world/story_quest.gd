@@ -515,7 +515,8 @@ func _enter_step() -> void:
 				_quest_enemies.append(e)
 		"light":
 			_build_altar(_cell_pos(String(s.region), s.cell))
-			if bool(s.get("bell", false)): # 17장 — 제단 돌 대신 종각에 건 종이 받는다(world/region5_skyport.gd ring_bell)
+			## 17장 bell — 제단 돌 대신 종각에 건 종이 받는다(world/region5_skyport.gd ring_bell) · 18장 bare — 돌 없이 그 자리 장치(변전함)가 받는다.
+			if bool(s.get("bell", false)) or bool(s.get("bare", false)):
 				for mi in _altar.get_children():
 					(mi as Node3D).visible = false
 		"duel":
@@ -667,7 +668,9 @@ func receive_element(pos: Vector3, radius: float, element: String) -> void:
 	if bool(s.get("bell", false)):
 		get_tree().call_group("go_skyport_region", "ring_bell")
 		Toast.show(self, "뎅— 종소리가 은하 나루에 울려 퍼진다", 2.5)
-	else:
+	elif s.has("hit_text"):
+		Toast.show(self, String(s.hit_text), 2.5)
+	if not bool(s.get("bell", false)) and not bool(s.get("bare", false)):
 		_altar_flame.visible = true
 	remove_from_group("element_receiver")
 	if String(s.get("type", "")) == "light":
@@ -1359,6 +1362,8 @@ func _build_npc(id: String) -> void:
 		VroidBody.add_halo(body)
 	if info.get("beads", false):
 		VroidBody.add_beads(body)
+	if info.get("goggles", false):
+		VroidBody.add_goggles(body)
 	var tf := TalkFace.attach(body)
 	if tf:
 		_faces[id] = tf
@@ -1494,6 +1499,7 @@ func _build_thief(s: Dictionary) -> void:
 	_thief.global_position = _cell_pos(String(s.region), (s.path as Array)[0])
 	var drone := String(s.get("body", "")) == "drone"
 	var horse := String(s.get("body", "")) == "horse" # 106장 ㊼-3 놀란 역마(코드 몸 말, 앞 = +Z)
+	var captain := String(s.get("body", "")) == "captain" # 106장 ㊽-4 선장의 잔상(사람 몸 + 선장 모자, 가면 없음)
 	var body: Node3D
 	if drone:
 		body = _drone_body(s.get("cloth", Color(0.55, 0.85, 0.95)))
@@ -1503,7 +1509,9 @@ func _build_thief(s: Dictionary) -> void:
 		body = VroidBody.build("story_thief", 2, s.get("cloth", Color(0.35, 0.3, 0.28)))
 	body.name = "Body"
 	_thief.add_child(body)
-	if not drone and not horse:
+	if captain:
+		VroidBody.add_hat(body, Color(0.12, 0.16, 0.32), Color(0.9, 0.75, 0.3))
+	elif not drone and not horse:
 		VroidBody.add_mask(body)
 	var label := Label3D.new()
 	label.text = String(s.name)

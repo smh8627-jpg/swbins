@@ -12,6 +12,10 @@ extends Node
 ## 이무기 초·풍이 방패를 깸) [12] 아라 → 절터 [13] 절터 [14] 한결 → 비탈 [15] 무리 넷 [16] 한결(종 곁) → 대결 [17] 이끼 이무기
 ## [18] 한결 → 반디(종 곁) [19] 반디 → 종 울리기 [20] 종이 종각에 걸리고 비탈의 종은 사라짐 [21] 먼 원소는 안 울림·종각에 닿으면 울림
 ## [22] 한결 → 17장 끝·보상·✔ 제17장.
+## 18장 "은하역 막차"(㊽-4, 4부 끝): [23] 표·자리(도담 고글·동료 뇌·양손검·잔상 길 선로 위 평지·변전함 칸·막차 아직 꺼짐)
+## [24] 반디(종각) → 역 [25] 역 [26] 도담 → 태양광 밭 [27] 무리 넷 [28] 변전함(돌 없음·먼 원소 안 됨) → 막차 전조등이 켜짐
+## [29] 도담 → 잔상이 달아남(선장 모자·가면 없음) [30] 따라잡기 [31] 도담(선로 끝) → 막차 [32] 지키기(북쪽 객차 쪽에서 안 나옴·물결 셋)
+## [33] 도담 → 18장 끝·보상·동료 도담·✔ 제18장.
 ## 이야기 상태·부대 경험·가방은 끝에 되돌린다. 저장은 안 한다.
 
 const Story := preload("res://games/saga_go/data/story.gd")
@@ -23,6 +27,7 @@ const Elements := preload("res://games/saga_go/combat/elements.gd")
 
 const CH16 := 15 # 16장(0부터)
 const CH17 := 16
+const CH18 := 17
 const R := "skyport"
 const MAST_OFF := Vector3(12.0, 0.0, 0.0) # region5_skyport _build_port 계류 탑 자리(착륙판 가운데에서)
 const MAST_H := 18.0
@@ -48,11 +53,11 @@ func _physics_process(_delta: float) -> void:
 	if _frame < 3 and _step == 0:
 		return
 	match _step:
-		0: # 준비 — 16장 처음, 모험 등급 41(17장까지)
+		0: # 준비 — 16장 처음, 모험 등급 43(18장까지)
 			_saved = {"story": PartyState.story.duplicate(true), "members": PartyState.members.duplicate(), "exp": PartyState.exp, "level": PartyState.level,
 				"bag": PartyState.bag.duplicate(true), "ar_paid": PartyState.ar_paid, "resolved": EventState.resolved.duplicate(), "pos": _p.global_position, "wq": PartyState.world_quests.duplicate(true)}
-			PartyState.exp = maxf(PartyState.exp, 41.0 * PartyState.EXP_PER_LEVEL)
-			PartyState.level = maxi(PartyState.level, 41)
+			PartyState.exp = maxf(PartyState.exp, 43.0 * PartyState.EXP_PER_LEVEL)
+			PartyState.level = maxi(PartyState.level, 43)
 			PartyState.ar_paid = maxi(PartyState.ar_paid, PartyState.level + 1)
 			PartyState.story = {"ch": CH16, "step": 0}
 			_sq.call("set_track", "")
@@ -344,7 +349,159 @@ func _physics_process(_delta: float) -> void:
 			var ok: bool = int(_sq.call("ch")) == CH17 + 1 and jt.contains("✔ 제17장") and PartyState.count("mora") >= int(_v.mora) + 80000 and Skyport.bell_hung()
 			_check("chapter17", ok, "ch=%d mora +%d hung=%s" % [_sq.call("ch"), PartyState.count("mora") - int(_v.mora), Skyport.bell_hung()])
 			_next()
-		23:
+		23: # [23] 18장 표·자리
+			if _frame < 3:
+				return
+			var c := Story.chapter(CH18)
+			var bad: Array = []
+			if String(c.get("id", "")) != "ch18" or int(c.ar) <= int(Story.chapter(CH17).ar) or int(_sq.call("ch")) != CH18 or bool(_sq.call("locked")):
+				bad.append("chapter ch=%d locked=%s" % [_sq.call("ch"), _sq.call("locked")])
+			var m: Variant = Story.MEMBERS.get(String(c.get("join", "")))
+			if m == null or String(m.npc) != "dodam" or String(m.element) != "thunder" or String(m.weapon) != "claymore":
+				bad.append("member")
+			var info: Dictionary = Story.NPCS.dodam
+			if String(info.region) != R or String(info.get("era", "")) != "현대" or not bool(info.get("goggles", false)):
+				bad.append("dodam info")
+			var db := _sq.find_child("StoryNpc_dodam", true, false)
+			if db == null or db.find_child("Goggles", true, false) == null:
+				bad.append("goggles")
+			var dp: Vector3 = _sq.call("npc_pos", "dodam")
+			if not _hits(dp).is_empty() or _flat(dp, _cell3(Skyport.STATION_CELL)) > 16.0:
+				bad.append("dodam at %s hits %s" % [dp, _hits(dp)])
+			for s in c.steps:
+				if s.has("cell") and ["~", "^"].has(TestMap.tile_at(roundi(s.cell.x), roundi(s.cell.y), String(s.region))):
+					bad.append("step on %s" % TestMap.tile_at(roundi(s.cell.x), roundi(s.cell.y), String(s.region)))
+			## 잔상 길 — 점마다 역 바닥과 1m 안(선로 골)·명소 충돌 없음. 막차 지키는 자리·반디·도담 자리도 안 묻힘.
+			var ground := _cell3(Skyport.STATION_CELL).y
+			var chase: Dictionary = (c.steps as Array)[6]
+			for pt in chase.path:
+				var wp := _cell3(pt)
+				if absf(wp.y - ground) > 1.0 or not _hits(wp).is_empty():
+					bad.append("path %s y=%.1f hits %s" % [pt, wp.y, _hits(wp)])
+			var defend: Dictionary = (c.steps as Array)[8]
+			if not _hits(_cell3(defend.cell)).is_empty():
+				bad.append("defend hits %s" % _hits(_cell3(defend.cell)))
+			for w in Story.windows(Story.STATIONS.bandi).filter(func(w: Dictionary) -> bool: return int(w.ch) == CH18) + Story.windows(Story.STATIONS.dodam):
+				if String(w.region) != R or not _hits(_cell3(w.cell)).is_empty():
+					bad.append("station %s" % w.cell)
+			var light: Dictionary = (c.steps as Array)[4]
+			if String(light.type) != "light" or not bool(light.get("bare", false)) or _flat(TestMap.world_pos(light.cell.x, light.cell.y, R), Skyport.substation_pos()) > 0.5:
+				bad.append("substation step")
+			var sk := get_tree().get_first_node_in_group("go_skyport_region")
+			var lamps: Array = sk.get("_train_lights")
+			if bool(sk.call("is_powered")) or lamps.is_empty() or (lamps[0] as Node3D).visible:
+				bad.append("powered early")
+			_check("ch18_table", bad.is_empty(), str(bad))
+			_next()
+		24: # [24] 반디(종각) → 역
+			if _frame == 1:
+				_v = _flat(_sq.call("npc_pos", "bandi"), TestMap.world_pos(2.64, 3.66, R))
+			_talk("bandi", 1, "ch18_bandi", Vector2(5.0, 5.0), "bandi_at_belfry=%.1f" % float(_v), float(_v) < 1.0, 1)
+		25: # [25] 역
+			_go(2, "ch18_station", Vector2.INF)
+		26: # [26] 도담 → 태양광 밭
+			_talk("dodam", 3, "ch18_dodam", Vector2(3.5, 6.0))
+		27: # [27] 무리 넷
+			if _frame == 1:
+				_put(_target() + Vector3(0, 0, 6))
+			if _frame == 10:
+				var es: Array = _sq.call("alive_quest_enemies")
+				var here := es.filter(func(e: Node) -> bool: return TestMap.region_at((e as Node3D).global_position) == R).size()
+				_v = {"n": es.size(), "here": here}
+				for e in es:
+					e.call("_die")
+			if _frame == 16:
+				_check("ch18_kill", int(_v.n) == 4 and int(_v.here) == 4 and int(_sq.call("st")) == 4, "n=%d here=%d st=%d" % [_v.n, _v.here, _sq.call("st")])
+				_next()
+		28: # [28] 변전함 — 돌 없음, 먼 원소는 안 되고 닿으면 다음 → 1초 안에 막차 전조등
+			var sk := get_tree().get_first_node_in_group("go_skyport_region")
+			var sub := Skyport.substation_pos()
+			if _frame == 1:
+				_put(sub + Vector3(0, 0, 3.0))
+				_v = {}
+			if _frame == 4:
+				var alt := _sq.get("_altar") as Node3D
+				_v.stone = alt.get_children().any(func(n: Node) -> bool: return (n as Node3D).visible)
+				_sq.call("receive_element", sub + Vector3(20.0, 0.0, 0.0), 3.0, "thunder")
+			if _frame == 6:
+				_v.far_st = int(_sq.call("st"))
+				_sq.call("receive_element", sub + Vector3(0.5, 0.0, 1.0), 3.0, "thunder")
+			if _frame == 160:
+				var lamps: Array = sk.get("_train_lights")
+				var ok: bool = int(_sq.call("st")) == 5 and int(_v.far_st) == 4 and not bool(_v.stone) and bool(sk.call("is_powered")) and (lamps[0] as Node3D).is_visible_in_tree()
+				_check("ch18_power", ok, "st=%d far_st=%d stone=%s powered=%s" % [_sq.call("st"), _v.far_st, _v.stone, sk.call("is_powered")])
+				_next()
+		29: # [29] 도담 → 잔상이 달아난다(선장 모자·가면 없음)
+			if _frame == 1:
+				_near_npc("dodam")
+			if _frame == 10:
+				_sq.call("interact")
+				_drain()
+			if _frame == 12:
+				var th := _sq.get("_thief") as Node3D
+				if th:
+					_put(th.global_position + Vector3(0.0, 0.0, -6.0))
+			if _frame == 40:
+				var cs: Dictionary = _sq.call("chase_state")
+				var th := _sq.get("_thief") as Node3D
+				var body := th.get_node_or_null("Body") if th else null
+				var cap: bool = body != null and body.find_child("Hat", true, false) != null and body.find_child("Mask", true, false) == null
+				var ok: bool = int(_sq.call("st")) == 6 and bool(cs.run) and cap and String(_sq.call("tracker_text")).contains("선장의 잔상")
+				_check("ch18_echo_runs", ok, "st=%d run=%s cap=%s tracker='%s'" % [_sq.call("st"), cs.run, cap, String(_sq.call("tracker_text")).replace("\n", " / ")])
+				_next()
+		30: # [30] 따라잡기
+			if _frame == 1:
+				_put((_sq.call("chase_state") as Dictionary).pos + Vector3(0.0, 0.5, 1.0))
+			if _frame == 12:
+				_check("ch18_catch", int(_sq.call("st")) == 7 and _sq.get("_thief") == null, "st=%d thief=%s" % [_sq.call("st"), _sq.get("_thief") != null])
+				_next()
+		31: # [31] 도담(선로 끝) → 막차
+			if _frame == 1:
+				_v = _flat(_sq.call("npc_pos", "dodam"), TestMap.world_pos(5.2, 6.85, R))
+			_talk("dodam", 8, "ch18_dodam2", Vector2(5.0, 5.2), "dodam_at_end=%.1f" % float(_v), float(_v) < 1.0, 1)
+		32: # [32] 막차 지키기 — 북쪽(객차)·산에서 안 나옴, 물결 셋
+			if _frame == 1:
+				_put(_target() + Vector3(2.5, 0.0, 2.5))
+				_v = {"north": false, "mtn": false, "waves": 0, "label": ""}
+			if _frame > 4 and _frame % 6 == 0 and int(_sq.call("st")) == 8:
+				var lbl := _sq.get("_defend_label") as Label3D
+				if lbl and String(_v.label) == "":
+					_v.label = lbl.text
+				var altar := _target()
+				for e in _sq.call("alive_quest_enemies"):
+					var ep := (e as Node3D).global_position
+					var g := TestMap.grid_at(R, ep)
+					if TestMap.tile_at(g.x, g.y, R) == "^":
+						_v.mtn = true
+					var d := Vector2(ep.x - altar.x, ep.z - altar.z)
+					if d.length() > 8.0 and absf(d.angle_to(Vector2(0, -1))) < deg_to_rad(20.0):
+						_v.north = true
+					e.call("_die")
+				_v.waves = maxi(int(_v.waves), int(_sq.call("defend_wave")) + 1)
+			if _frame > 4 and (int(_sq.call("st")) != 8 or _frame > 600):
+				var ok: bool = int(_sq.call("st")) == 9 and not bool(_v.north) and not bool(_v.mtn) and int(_v.waves) == 3 and String(_v.label).begins_with("출발을 기다리는 막차")
+				_check("ch18_defend", ok, "st=%d north=%s mtn=%s waves=%d label='%s' frames=%d" % [_sq.call("st"), _v.north, _v.mtn, _v.waves, _v.label, _frame])
+				_next()
+		33: # [33] 도담 → 18장 끝·동료 도담
+			if _frame == 1:
+				_v = {"mora": PartyState.count("mora")}
+				_near_npc("dodam")
+			if _frame == 10:
+				_sq.call("interact")
+				_drain()
+			if _frame < 16:
+				return
+			_dismiss_prompts()
+			if _frame < 22:
+				return
+			_sq.call("toggle_journal")
+			var jt: String = _sq.call("journal_text")
+			_sq.call("toggle_journal")
+			var ok: bool = int(_sq.call("ch")) == CH18 + 1 and jt.contains("✔ 제18장") and PartyState.count("mora") >= int(_v.mora) + 90000 \
+				and PartyState.members.has("story_dodam") and Skyport.train_powered()
+			_check("chapter18", ok, "ch=%d mora +%d dodam=%s powered=%s" % [_sq.call("ch"), PartyState.count("mora") - int(_v.mora), PartyState.members.has("story_dodam"), Skyport.train_powered()])
+			_next()
+		34:
 			PartyState.story = _saved.story
 			PartyState.members.assign(_saved.members)
 			PartyState.exp = _saved.exp

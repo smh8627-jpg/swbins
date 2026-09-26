@@ -27,9 +27,11 @@ extends RefCounted
 ##     defend 의 altar = 제단 머리 글자(없으면 "넷째 제단") · start = 첫 물결 알림 · dirs = 무리가 나오는 방향(도, 북쪽 0·시계 방향 — 담이 막는 쪽은 빼게)
 ##   인물 helmet = true 면 머리에 옛 장수 투구(world/vroid_body.gd add_helmet) · visor = true 면 앞 시대 관측 바이저(add_visor) ·
 ##   hat = true 면 파발꾼 벙거지(add_hat) · halo = true 면 머리 위 빛 고리(add_halo — 은하 나루 나루지기) ·
-##   beads = true 면 목에 염주·가사 띠(add_beads — 옛 절터 종지기).
+##   beads = true 면 목에 염주·가사 띠(add_beads — 옛 절터 종지기) · goggles = true 면 이마에 기관사 고글(add_goggles — 은하역 기관사).
 ##   light 의 bell = true 면 제단 돌을 안 보이고, 원소가 닿으면 불 대신 종각에 건 종이 운다(world/region5_skyport.gd ring_bell — 17장).
-##   chase 의 body = "drone"(배달 기계) · "horse"(놀란 역마, world/creature_builder.gd 말 — colors 세 빛깔) · 없으면 가면 쓴 사람.
+##   light 의 bare = true 면 제단 돌·불 없이 그 자리 장치가 받는다(18장 변전함 — 켜진 모양은 그 지역 파일이 장·단계를 보고 바꾼다) · hit_text = 닿았을 때 알림.
+##   chase 의 body = "drone"(배달 기계) · "horse"(놀란 역마, world/creature_builder.gd 말 — colors 세 빛깔) ·
+##     "captain"(선장의 잔상 — 사람 몸 + 남색 선장 모자, 가면 없음) · 없으면 가면 쓴 사람.
 ##   단계·인물 칸에 sky = true 면 그 칸의 높이는 땅이 아니라 구름섬 윗면(kill·duel·appear — 9장).
 ##   lift = m 면 그 칸 땅 높이 + lift(떠 있는 구조물 윗면 — 14장 시간 틈 관측대, world/era_sites.gd OBS_RISE)(kill·duel·appear·stations).
 ##   인물 자리: appear(보일 때만 서 있는 인물) · stations(늘 있는 인물이 그 장·단계 동안 옮겨 서는 자리) —
@@ -90,6 +92,10 @@ const NPCS := {
 	## 늘 종각 남쪽에 선다(17장 쓰러진 종 곁 동안은 STATIONS).
 	"hangyeol": {"name": "종지기 한결", "era": "과거", "region": "skyport", "cell": Vector2(2.71, 3.64), "rarity": 4, "cloth": Color(0.46, 0.43, 0.38),
 		"beads": true, "idle": "종지기는 종 곁에 있어야 하는 법이오. 종이 없어도 말이오."},
+	## 106장 ㊽-4 18장 — 은하역(world/region5_skyport.gd _build_station) 마지막 기관사(현대). 늘 승강장 남쪽 끝 아래에 선다.
+	## 18장을 마치면 4부 동료(MEMBERS story_dodam)가 된다.
+	"dodam": {"name": "기관사 도담", "era": "현대", "region": "skyport", "cell": Vector2(4.9, 5.27), "rarity": 4, "cloth": Color(0.22, 0.28, 0.36),
+		"goggles": true, "idle": "선로가 끊겨도 기관사는 역을 떠나지 않아요. 막차가 아직 여기 있으니까."},
 	"bawoo": {"name": "산성지기 바우", "era": "과거", "region": "frost", "cell": Vector2(3.0, 4.11), "rarity": 4, "cloth": Color(0.48, 0.2, 0.16),
 		"helmet": true, "idle": "……불씨가 식지 않게. 그것만이 내 일이다.",
 		"appear": [{"ch": 10, "from": 2, "to": 2},
@@ -122,7 +128,12 @@ const STATIONS := {
 		## ㊽-3 17장 — 처음엔 나루에(0~6), 별배를 몰고 쓰러진 종 곁으로(7), 종을 건 뒤엔 종각 곁에(8~9).
 		{"ch": 16, "from": 0, "to": 6, "region": "skyport", "cell": Vector2(5.44, 1.8)},
 		{"ch": 16, "from": 7, "to": 7, "region": "skyport", "cell": Vector2(1.72, 5.2)},
-		{"ch": 16, "from": 8, "to": 9, "region": "skyport", "cell": Vector2(2.64, 3.66)}],
+		{"ch": 16, "from": 8, "to": 9, "region": "skyport", "cell": Vector2(2.64, 3.66)},
+		## ㊽-4 18장 — 처음엔 종각 곁에(0), 기적 소리를 따라 은하역 곁으로(1~9).
+		{"ch": 17, "from": 0, "to": 0, "region": "skyport", "cell": Vector2(2.64, 3.66)},
+		{"ch": 17, "from": 1, "to": 9, "region": "skyport", "cell": Vector2(5.25, 5.35)}],
+	## ㊽-4 18장 — 선장의 잔상을 따라잡은 뒤(7) 선로 남쪽 끝에 와 있다.
+	"dodam": [{"ch": 17, "from": 7, "to": 7, "region": "skyport", "cell": Vector2(5.2, 6.85)}],
 	## ㊽-3 17장 — 비탈의 짐승을 물리친 뒤(4~7) 쓰러진 종 곁에 와 있다.
 	"hangyeol": [{"ch": 16, "from": 4, "to": 7, "region": "skyport", "cell": Vector2(1.55, 4.88)}],
 	## ㊼-3 15장 — 조각 셋을 들고 별배로 가는 동안(8~10) 달음이 먼저 별배 곁에 와 있다.
@@ -165,6 +176,8 @@ const MEMBERS := {
 	"story_haram": {"name": "관측원 하람", "rarity": 4, "element": "fire", "weapon": "bow", "npc": "haram"},
 	## 106장 ㊼-3 15장 보상 — 파발꾼 달음(과거, 암·장병기). 이야기 동료에 없던 원소(암).
 	"story_dareum": {"name": "파발꾼 달음", "rarity": 4, "element": "rock", "weapon": "polearm", "npc": "dareum"},
+	## 106장 ㊽-4 18장 보상 — 기관사 도담(현대, 뇌·양손검 — 대형 렌치). 선로 전류·막차 출발 신호.
+	"story_dodam": {"name": "기관사 도담", "rarity": 4, "element": "thunder", "weapon": "claymore", "npc": "dodam"},
 }
 
 ## 이야기 동료 한 명(도감 인물처럼 name·rarity 를 읽는다) — 아니면 null.
@@ -790,6 +803,50 @@ const CHAPTERS := [
 					["?", ["저 녹슨 역에서 열차가?", "선장님의 신호일까?"]],
 					["한결", "그 선장이 떠나며 말했소. '종이 다시 울리면 막차가 한 번 더 온다'고. 무슨 뜻인지는 나도 모르오."],
 					["한결", "나는 이제 종 곁을 지키겠소. 종지기가 종 곁에 있어야지. 가 보시오 — 은하역으로.", "fun"]]},
+		]},
+	{"id": "ch18", "name": "제18장 · 은하역 막차", "ar": 42, "join": "story_dodam",
+		"reward": {"fate_knot": 6, "mora": 90000, "book_l": 6, "talent_3": 3}, "exp": 420.0,
+		"steps": [
+			{"type": "talk", "npc": "bandi", "text": "종각 곁의 반디와 이야기하기",
+				"lines": [["반디", "삐— 기적 소리 분석 완료. 발신지 은하역, 신호 종류… 막차 운행 예고.", "surprised"],
+					["반디", "역에 생체 신호 하나. 녹슨 역에 사람이 있습니다."],
+					["?", ["가 보자, 은하역.", "막차라니…"]],
+					["반디", "먼저 가 주십시오. 저는 선로 위 하늘을 살피며 뒤따르겠습니다."]]},
+			{"type": "go", "region": "skyport", "cell": Vector2(5.0, 5.0), "radius": 14.0, "text": "은하 나루 남쪽 은하역으로"},
+			{"type": "talk", "npc": "dodam", "text": "은하역의 기관사 도담과 이야기하기",
+				"lines": [["도담", "종소리 들었어요? 어젯밤 이 녹슨 막차 전조등이 혼자 깜빡였어요. 십 년 만에요!", "surprised"],
+					["도담", "나는 이 역 마지막 기관사예요. 선로가 끊긴 뒤로도 막차를 두고 떠날 수가 없어서.", "sorrow"],
+					["?", ["별배 선장님을 알아요?", "막차를 움직일 수 있어요?"]],
+					["도담", "선장이요? 그 사람이 막차 표를 끊었어요 — 행선지 칸이 비어 있는 표를. 그러고는 선로 끝 틈으로 걸어 들어갔죠."],
+					["도담", "막차를 깨우려면 전기부터예요. 서쪽 태양광 밭 변전함이 틈 짐승들 때문에 꺼져 버렸어요.", "angry"]]},
+			{"type": "kill", "region": "skyport", "cell": Vector2(3.5, 6.0), "kinds": ["thunder_cat", "thunder_cat", "fire_imp", "rock_bear"],
+				"text": "태양광 밭을 헤집는 틈 짐승 물리치기"},
+			{"type": "light", "region": "skyport", "cell": Vector2(3.96, 6.0), "bare": true,
+				"hit_text": "변전함에 전기가 들어왔다 — 은하역 쪽에서 불빛이 번쩍인다", "text": "꺼진 변전함에 원소 스킬로 전기 넣기"},
+			{"type": "talk", "npc": "dodam", "text": "도담과 이야기하기",
+				"lines": [["도담", "전조등이 켜졌어요! 막차가… 숨을 쉬어요!", "joy"],
+					["도담", "어? 선로 위에 누가 — 저 모자, 선장이에요! 그런데 몸이 비쳐 보여요.", "surprised"],
+					["?", ["선장님!", "잔상이야, 쫓아가자!"]],
+					["도담", "운행 기록부를 들고 남쪽 선로로 가요! 붙잡아 줘요, 나는 막차를 데워 둘게요!", "angry"]]},
+			{"type": "chase", "name": "선장의 잔상", "region": "skyport", "body": "captain", "cloth": Color(0.14, 0.18, 0.34),
+				"path": [Vector2(5.0, 5.35), Vector2(5.15, 5.75), Vector2(4.9, 6.1), Vector2(5.1, 6.45), Vector2(4.95, 6.8), Vector2(5.15, 6.95), Vector2(4.9, 6.6)],
+				"text": "운행 기록부를 든 선장의 잔상 따라잡기(달리기)"},
+			{"type": "talk", "npc": "dodam", "text": "선로 끝의 도담과 이야기하기",
+				"lines": [["도담", "잔상은 흩어지고… 기록부만 남았네요.", "sorrow"],
+					["도담", "마지막 장 — '막차 행선지: 틈 너머 첫 정거장. 선장은 먼저 내림.'", "surprised"],
+					["?", ["선장님은 틈 너머에 있어!", "다음 줄은?"]],
+					["도담", "끝 줄은 선장 글씨예요. '종이 울리고, 별배가 돌아오고, 막차가 달리면 — 그 정거장에서 다시 만나자.'"],
+					["도담", "앗, 전조등 불빛을 보고 짐승들이 역으로 몰려가요! 막차가 데워질 때까지 지켜야 해요!", "angry"]]},
+			{"type": "defend", "region": "skyport", "cell": Vector2(5.0, 5.2), "hp": 1900.0,
+				"altar": "출발을 기다리는 막차", "start": "전조등 불빛에 시간 틈 짐승들이 몰려온다 — 막차가 데워질 때까지 지켜라", "dirs": [45, 90, 135, 180, 225],
+				"waves": [["thunder_cat", "fire_imp", "wind_hawk"], ["rock_bear", "thunder_cat", "ice_fox", "fire_imp"], ["rock_bear", "rock_bear", "thunder_cat", "wind_hawk", "grass_snake"]],
+				"text": "출발을 기다리는 막차 지키기"},
+			{"type": "talk", "npc": "dodam", "text": "도담과 이야기하기",
+				"lines": [["도담", "보일러 압력 정상, 전조등 이상 없음… 막차, 출발 준비 끝!", "joy"],
+					["반디", "삐— 별배·종·막차, 세 신호 모두 확인. 선장이 남긴 좌표가 열립니다 — 틈 너머 첫 정거장.", "surprised"],
+					["?", ["같이 가 줄래요, 도담?", "선장님을 만나러 가자."]],
+					["도담", "막차 기관사가 막차를 두고 갈 순 없죠. 틈 너머 첫 정거장까지 — 제가 몰게요!", "fun"],
+					["반디", "별배는 나루에, 종은 절터에, 막차는 선로에. 이 시대의 길이 다시 이어졌습니다.", "joy"]]},
 		]},
 ]
 

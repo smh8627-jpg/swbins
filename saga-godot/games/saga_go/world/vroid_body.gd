@@ -461,3 +461,61 @@ static func add_beads(body: Node3D, wood: Color = Color(0.36, 0.22, 0.12), sash:
 	band.position = Vector3(0.0, -0.24, 0.1)
 	band.rotation.z = 0.62
 	beads.add_child(band)
+
+## 106장 ㊽-4 기관사 고글 — 머리 뼈 이마 위(기관사 도담, 현대). 검은 끈에 둥근 렌즈 둘(구리 테·옅은 푸른 유리)을 이마에 올려 쓴다.
+## 뼈대 앞이 -Z 인 몸이면 뒤집는다(렌즈가 이마 앞에 오게). 뼈를 못 찾으면 몸 위 머리 높이.
+static func add_goggles(body: Node3D, rim: Color = Color(0.72, 0.45, 0.22), glass: Color = Color(0.55, 0.8, 0.9)) -> void:
+	var gog := Node3D.new()
+	gog.name = "Goggles"
+	var skel := body.find_children("*", "Skeleton3D", true, false)
+	var head := -1
+	if not skel.is_empty():
+		head = (skel[0] as Skeleton3D).find_bone("J_Bip_C_Head")
+	if head >= 0:
+		var att := BoneAttachment3D.new()
+		att.bone_idx = head
+		skel[0].add_child(att)
+		att.add_child(gog)
+		gog.position = Vector3(0.0, 0.12, 0.0)
+		gog.rotation.y = 0.0 if front_sign(skel[0]) > 0.0 else PI
+	else:
+		body.add_child(gog)
+		gog.position = Vector3(0.0, 1.68, 0.0)
+	var strap_m := StandardMaterial3D.new()
+	strap_m.albedo_color = Color(0.1, 0.1, 0.11)
+	var strap := MeshInstance3D.new()
+	var tm := TorusMesh.new()
+	tm.inner_radius = 0.105
+	tm.outer_radius = 0.118
+	strap.mesh = tm
+	strap.material_override = strap_m
+	strap.rotation.x = 0.25 # 앞이 살짝 내려오게
+	gog.add_child(strap)
+	var rm := StandardMaterial3D.new()
+	rm.albedo_color = rim
+	rm.metallic = 0.8
+	rm.roughness = 0.35
+	var gm := StandardMaterial3D.new()
+	gm.albedo_color = glass
+	gm.metallic = 0.3
+	gm.roughness = 0.1
+	for k in [-1.0, 1.0]:
+		var lens := MeshInstance3D.new()
+		var cm := CylinderMesh.new()
+		cm.top_radius = 0.034
+		cm.bottom_radius = 0.034
+		cm.height = 0.03
+		lens.mesh = cm
+		lens.material_override = rm
+		lens.rotation.x = PI * 0.5 + 0.25
+		lens.position = Vector3(k * 0.042, -0.02, 0.112)
+		gog.add_child(lens)
+		var g := MeshInstance3D.new()
+		var sm := SphereMesh.new()
+		sm.radius = 0.028
+		sm.height = 0.02
+		g.mesh = sm
+		g.material_override = gm
+		g.rotation.x = PI * 0.5 + 0.25
+		g.position = Vector3(k * 0.042, -0.016, 0.127)
+		gog.add_child(g)
