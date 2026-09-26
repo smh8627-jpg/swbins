@@ -53,6 +53,7 @@ py tools/char-forge/fetch_sources.py                                 # 입력 �
 | `measure_shape.py` | 모양 점검(스크린샷 대신) — `.glb` 를 다시 열어 복면·바이저 띠 속 남은 살, 띠·모자·배낭 둘레(°), 옷자락 뚫림(서기·걷기·달리기), 모자 밖 머리카락을 찍는다 |
 | `gen_hero_recipes.py` | **단계 4** — saga-unity GO 도감 105(`GoHeroes.cs` 를 그대로 읽는다) → `recipes/hero/hero_<id>.json`. 역할(`ROLE`, id 로만)마다 옷·머리·키·체격 선호, 앞사람 모두와 실루엣 네 축(키 다섯 칸·체격 넷·머리·옷 틀) 중 **둘 이상** 다른 조합 중 벌점이 가장 작은 것. 색은 세력 색일 뿐 축이 아니다. `--check` = 다시 읽어 축 검사만. 레시피는 손으로 고치지 말고 생성기를 고친다 |
 | `calib_height.py` | 레시피 `height_target_m`(맨몸 키, 살 메시) → `macro.height` 이분 탐색(몸만 만들어 여덟 번, ±0.5%)해 레시피에 적는다. 105명 7분 |
+| `garments.py` | **옷 짓기(09-26)** — 공방이 옷 메시를 지어 MakeHuman 옷(`.mhclo`)으로 쓴다: 기본 몸 살을 재서 몸통~단 통(단은 치마 도우미 `helper-skirt` 에 붙어 다리 사이가 안 갈라진다)·처지는 넓은 소매·허리띠·두께 + 천 그림(교령 깃·단·끝동·띠). MPFB MakeClothes 순서(`mesh_is_valid_as_clothes` → `create_mhclo_from_clothes_matching` → `write_mhclo`)라 어느 체형에나 맞는다. 옷 정점은 옷 지을 때만 만드는 맞춤 무리(`cf_torso`·`cf_arm_l/r`)에만 붙인다 — `body` 전체면 A 자세 손(허리 옆)에 띠가 붙어 튄다. 결과는 MPFB 사용자 데이터 `clothes/cf_<id>/`(gitignore, 생성기가 정본). 지금 `dopo`(도포·한푸 계열) |
 
 동작 굽기 요점(`build.py` `retarget`): 몸 팩과 동작 팩의 쉼 자세가 목 14°·발 9° 쯤 달라, 곡선을 그대로 베끼면 자세가 기운다(측정: 칼 휘두르기 15.6°).
 verify 함정(09-25 고침): FBX 를 다시 열면 동작이 1 프레임부터 선다(glb·원본은 0) — 첫 프레임끼리 맞추지 않으면 한 프레임 밀린 채 재서 옛 fbx 오차 0.5° 대부분이 이 밀림이었다. 또 한 장면이라 frame_set 이 두 뼈대를 다 옮기니 원본 값을 먼저 읽고 과녁 프레임으로 넘어간다. 샘플은 아홉 프레임(다섯이면 열쇠 사이 튐을 놓친다).
