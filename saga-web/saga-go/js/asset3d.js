@@ -603,7 +603,9 @@
     story_ferryman: 'quaternius_rpg/Ranger.glb',
     story_scholar: 'quaternius_rpg/Cleric.glb',
     story_wanderer: 'quaternius_rpg/Rogue.glb',     // ⑲-13 가면 쓴 나그네(흰 가면은 talkface.mask 가 얹는다)
-    story_blackmask: 'quaternius_rpg/Warrior.glb'   // ⑲-14 이야기 보스 검은 가면(들판 적 b_mask 의 body)
+    story_blackmask: 'quaternius_rpg/Warrior.glb',  // ⑲-14 이야기 보스 검은 가면(들판 적 b_mask 의 body)
+    story_haesol: 'quaternius_rpg/Warrior.glb',     // ⑲-19 해솔(검은 가면의 참이름) — 보스와 같은 몸, 가면은 talkface 'crack'
+    story_thief: 'oga_ultimate_Ninja_Sand.glb'      // ⑲-19 노 도둑
   };
   function fixedRecipe(ref) {
     var id = ref && ref.id;

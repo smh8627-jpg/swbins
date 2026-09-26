@@ -1,5 +1,5 @@
 /**
- * 이야기 임무 1~7장 — 대화 창·금빛 기둥·목록(O)·단계 열세 가지 (PLAN §5 ⑲-12~16, saga-godot PLAN 106 ㉕㉗㉘㉙㉚㉜㉞)
+ * 이야기 임무 1~8장 — 대화 창·금빛 기둥·목록(O)·단계 열다섯 가지 (PLAN §5 ⑲-12~19, saga-godot PLAN 106 ㉕㉗㉘㉙㉚㉜㉞㊲)
  * ---------------------------------------------------------------
  *   인물 넷    청하 촌장 누리(고향 마을) · 늙은 사공 버들(갈대 나루 탑) · 떠돌이 학자 은비(옛 성터 언덕 탑) —
  *              ⑮ 땅의 "고향에서 가장 가까운 탑" 곁에 늘 서 있다. 지금 단계가 아니면 혼잣말 한 줄.
@@ -10,8 +10,9 @@
  *              cook(아무 요리 하나 — `cook:done`) · follow(인물이 길 점을 따라 걷는다 — 가까우면 걷고 멀면 선다) ·
  *              seal(제단 둘레 석등 해·달·별을 비문 차례대로 — 틀리면 다 꺼진다) · climb(⑰ 봉우리 꼭대기) ·
  *              duel(이야기 보스 검은 가면 — 들판 적 `b_mask`·`b_mask2`, 절반에서 원소 방패 + 졸개 둘) ·
- *              defend(제단 지키기 — 물결 셋이 제단으로 곧장, 제단이 무너지거나 전멸하면 4초 쉬고 처음부터)
- *   자리       ⑮ 땅 탑 + off 또는 이름 붙은 자리(SPOTS — 옛길·둘째 제단·봉우리·곶). 인물은 at·appear 칸으로 장마다 옮겨 선다
+ *              defend(제단 지키기 — 물결 셋이 제단으로 곧장, 제단이 무너지거나 전멸하면 4초 쉬고 처음부터) ·
+ *              chase(노 도둑 쫓기 — 걸어선 못 잡는다) · sail(사공과 한 줄 → 배로 그 자리에, 키보드 판만 옮긴다)
+ *   자리       ⑮ 땅 탑 + off 또는 이름 붙은 자리(SPOTS — 옛길·둘째 제단·봉우리·곶·바위섬·나루). 인물은 at·appear 칸으로 장마다 옮겨 선다
  *   장         여정 등급(플레이어 Lv) ar 에 열린다. 단계마다 부대 경험 10, 장 끝에 보상
  *   대화       글이 초당 30자로 흘러나온다 — F·Space·누르기 한 번이면 줄 전체, 한 번 더면 다음 줄. 고른 대답은 "나" 의 줄로
  *              한 번 나온다. 줄 셋째 칸은 표정(joy·angry·sorrow·surprised·fun). 카메라·입·손짓은 `talkShot()` 을 world3d 가
@@ -45,7 +46,8 @@
   /* ⑲-14 이야기 보스 — 체력 절반에서 뇌 방패(체력의 몫) + 졸개 둘 */
   var DUEL_P2_AT = 0.5, DUEL_P2_SHIELD = 0.12, DUEL_ADDS = ['imp', 'imp'];
   /* ⑲-14 이름 붙은 자리 — 옛길·둘째 제단은 솔숲 고개 탑 곁, 봉우리는 ⑰ 정상(peakSpot) */
-  var SPOTS = { road: { zone: 'solryeong', off: [-26, -46] }, altar2: { zone: 'solryeong', off: [40, -70] }, peak: { peak: true }, cape: { cape: true } };
+  var SPOTS = { road: { zone: 'solryeong', off: [-26, -46] }, altar2: { zone: 'solryeong', off: [40, -70] }, peak: { peak: true }, cape: { cape: true },
+    isle: { isle: true }, dock: { zone: 'galdae', off: [-12, -17] } };
   /* ⑲-16 제단 지키기 — 물결은 제단 둘레 DEFEND_RING m 열두 자리에서 나온다(물결 n 은 4n 째 자리부터).
      제단 체력 = DEFEND_HITS × 그 자리 등급 공격(멧돼지 기준, 천하 등급 포함) */
   var DEFEND_RING = 15, DEFEND_WAVE_SEC = 28, DEFEND_REST = 4, DEFEND_HITS = 45, DEFEND_SLOTS = 12;
@@ -54,6 +56,15 @@
   /* ⑲-16 곶(넷째 제단) — 갈대 나루 탑에서 반지름 CAPE_RADII × 여덟 방향 후보. 가운데·둘레 열두 자리가 다 뭍이고
      사공에게서 CAPE_CLEAR m 넘는 첫 자리 — 둘레 CAPE_SHORE m 에 물이 있는 후보를 먼저 */
   var CAPE_ZONE = 'galdae', CAPE_RADII = [50, 70, 90], CAPE_CLEAR = 30, CAPE_SHORE = 30, TERR_TILE = 48;   // TERR_TILE = world3d 지형 칸
+  /* ⑲-19 바위섬 — 곶 둘레 ISLE_R 칸 안에서 이웃 여덟 중 물이 가장 많은 뭍 칸(같으면 곶에 가까운 것)의 가운데 */
+  var ISLE_R = 10;
+  /* ⑲-19 노 도둑 — 갈대 나루 탑에서 떨어진 길 점 일곱(+y 가 남쪽). CHASE_SPEED 로 달리고 점마다 CHASE_PAUSE 초 숨 고르기.
+     걷기 8m/초·달리기 ×2.2(world.js) 사이 — 평균 약 11m/초. GPS 판은 걸어서 잡히게 느리다 */
+  var THIEF_PATH = [[-10, -50], [-50, -70], [-90, -55], [-115, -20], [-110, 25], [-80, 55], [-40, 70]];
+  function CHASE_SPEED() { return gps() ? 1.0 : 13; }
+  function CHASE_PAUSE() { return gps() ? 3 : 0.5; }
+  function CHASE_START() { return gps() ? 30 : 14; }
+  function CHASE_CATCH() { return gps() ? 12 : 2.5; }
 
   /* 인물 — zone 은 ⑮ 땅 key(고향은 'home'), off 는 그 땅 탑에서 떨어진 자리(m).
      at 칸 [{ch(0부터), from, to, spot, off}] 이면 그 장 그 단계 동안 그 자리에 선다(⑲-14).
@@ -61,14 +72,19 @@
   var NPCS = {
     elder:    { id: 'story_elder',    name: '청하 촌장 누리', short: '누리', zone: 'home',    off: [-22, 16],  color: '#6b7f61', idle: '먹구름이 걷히면 마을 잔치를 열어야지.' },
     ferryman: { id: 'story_ferryman', name: '늙은 사공 버들', short: '버들', zone: 'galdae',  off: [-18, -24], color: '#4d6688', idle: '물 냄새가 요즘 영 비릿해.',
-      at: [{ ch: 6, from: 8, to: 8, spot: 'cape', off: [-6, 6] }] },
+      at: [{ ch: 6, from: 8, to: 8, spot: 'cape', off: [-6, 6] }, { ch: 7, from: 5, to: 10, spot: 'isle', off: [-4, 18] }] },
     scholar:  { id: 'story_scholar',  name: '떠돌이 학자 은비', short: '은비', zone: 'gojeong', off: [-18, -24], color: '#8c6b99', idle: '이 비문, 읽을수록 이상하다니까.',
       at: [{ ch: 4, from: 0, to: 3, spot: 'road' }, { ch: 4, from: 4, to: 7, spot: 'altar2', off: [-5, 7] }, { ch: 5, from: 6, to: 6, spot: 'peak', off: [-5, 6] }] },
     wanderer: { id: 'story_wanderer', name: '가면 쓴 나그네', short: '나그네', zone: 'home',  off: [8, 70],    color: '#38384a', idle: '……',
       mask: true, appear: [{ ch: 3, from: 1, to: 5 }, { ch: 4, from: 6, to: 6, spot: 'altar2', off: [7, 5] }, { ch: 5, from: 2, to: 4, spot: 'peak', off: [5, 5] },
-        { ch: 6, from: 3, to: 6, spot: 'cape', off: [6, 6] }] }
+        { ch: 6, from: 3, to: 6, spot: 'cape', off: [6, 6] }, { ch: 7, from: 6, to: 9, spot: 'isle', off: [7, 8] }] },
+    /* ⑲-19 해솔(검은 가면의 참이름, 금 간 가면) · 노 도둑(쫓기 단계에만 — 자리는 달리는 곳) */
+    haesol:   { id: 'story_haesol',   name: '검은 가면 해솔', short: '해솔', zone: 'galdae', off: [0, 0], color: '#26222e', idle: '……',
+      mask: 'crack', appear: [{ ch: 7, from: 8, to: 8, spot: 'isle', off: [0, -9] }] },
+    thief:    { id: 'story_thief',    name: '노 도둑', short: '도둑', zone: 'galdae', off: [-10, -50], color: '#5a4a3a', idle: '헤헤, 못 잡지롱!',
+      appear: [{ ch: 7, from: 2, to: 2 }] }
   };
-  var NPC_KEYS = ['elder', 'ferryman', 'scholar', 'wanderer'];
+  var NPC_KEYS = ['elder', 'ferryman', 'scholar', 'wanderer', 'haesol', 'thief'];
 
   /* ⑲-15·17 이야기 동료 — 도감 밖 id(도감 인물과 같은 꼴). data.js 는 다섯 벌 복사본이라 고치지 않고 아래 hookFind 가
      `DG.data.find` 앞에 끼운다. el·weapon 은 해시 대신 이 표(field-combat.elementOf·weapon.typeOf 가 읽는다) */
@@ -298,6 +314,48 @@
           lines: [['누리', '제단을 지켜 냈다니… 이제 남은 건 바위섬 하나로구나.', 'sorrow'],
             ['누리', '가면 반쪽이라. 나그네가 그렇게 놀라더란 말이지.'],
             ['누리', '고생 많았다. 마을 사람들이 곶의 불빛을 보고 모은 거란다.', 'joy']] }
+      ] },
+    { id: 'ch8', name: '제8장 · 바위섬의 다섯째 제단', ar: 20,
+      reward: { knot: 4, gold: 2500, guide: 3, secret: 3, party: 850 },
+      steps: [
+        { type: 'talk', npc: 'elder', text: '촌장에게 바위섬 이야기 듣기',
+          lines: [['누리', '사공이 본 바위섬 불빛 말이다, 오늘 새벽엔 더 밝아졌다는구나.', 'sorrow'],
+            ['누리', '바위섬엔 뱃길 말고는 갈 길이 없단다. 사공 버들에게 배를 부탁해 보렴.'],
+            ['?', ['나루로 갈게요.', '섬엔 뭐가 있죠?']],
+            ['누리', '옛사람들은 거기를 "별이 쉬는 바위"라 불렀지. 다섯째 제단이 있다면 거기일 게다.']] },
+        { type: 'talk', npc: 'ferryman', text: '갈대 나루의 사공에게 배를 부탁하기',
+          lines: [['버들', '배? 태워 주고말고… 그런데 노가 없어졌다!', 'angry'],
+            ['버들', '방금 웬 날랜 녀석이 노를 둘러메고 물가를 따라 내뺐어. 가면 무리 끄나풀인 게야.'],
+            ['?', ['제가 잡아 올게요.', '어느 쪽으로요?']],
+            ['버들', '걸어서는 어림없다, 그놈 발이 여간 빠른 게 아니야. 힘껏 달려야 잡는다!']] },
+        { type: 'chase', npc: 'thief', text: '노 도둑을 쫓아가 붙잡기(달리기)' },
+        { type: 'talk', npc: 'ferryman', text: '사공에게 노 돌려주기',
+          lines: [['버들', '허허, 그 날랜 놈을 잡았다고? 네 발도 보통이 아니구나.', 'joy'],
+            ['버들', '노만 있으면 바위섬쯤이야. 배에 오르거든 꽉 잡거라.']] },
+        { type: 'sail', npc: 'ferryman', to: 'isle', toOff: [0, 14], text: '사공의 배를 타고 바위섬으로',
+          lines: [['버들', '자, 간다! 물살이 세니 고개 숙이고 있거라.']] },
+        { type: 'kill', spot: 'isle', off: [0, -4], kinds: ['imp', 'imp', 'toad', 'hawk'], text: '바위섬 꼭대기의 가면 무리 물리치기' },
+        { type: 'talk', npc: 'wanderer', text: '섬의 나그네와 이야기하기',
+          lines: [['나그네', '……먼저 와 있었다. 그자가 이 섬에 올 줄 알았지.'],
+            ['나그네', '이제 말해야겠군. 검은 가면의 참이름은 해솔 — 나와 같은 마을에서 자란 옛 동무다.', 'sorrow'],
+            ['?', ['옛 동무라고요?', '왜 이런 짓을?']],
+            ['나그네', '석등을 켜 보게. 별, 달, 해 — 해솔이 어릴 때 부르던 노래 차례다. 그 녀석이라면 이 차례로 잠갔을 게다.']] },
+        { type: 'seal', spot: 'isle', order: ['star', 'moon', 'sun'], text: '다섯째 제단 석등을 해솔의 노래 차례대로 밝히기' },
+        { type: 'talk', npc: 'haesol', text: '석등 곁에 나타난 해솔과 이야기하기',
+          lines: [['해솔', '……별, 달, 해. 그 노래를 아직 기억하는 사람이 있었나.'],
+            ['해솔', '다섯 제단은 임금을 가둔 자물쇠다. 나는 그 자물쇠를 여는 열쇠고.', 'angry'],
+            ['?', ['왜 임금을 깨우려는 거죠?', '나그네가 당신을 찾고 있어요.']],
+            ['해솔', '알 것 없다. 먹구름 위 여섯째 자리에서 기다리마 — 거기서 끝을 보자.']] },
+        { type: 'talk', npc: 'wanderer', text: '나그네와 해솔이 남긴 말 되새기기',
+          lines: [['나그네', '……여전히 제멋대로군. 가면 반쪽이 깨진 채로 가다니.', 'sorrow'],
+            ['나그네', '먹구름 위 여섯째 자리라… 하늘에 뜬 섬 이야기를 들어 본 적이 있다. 학자가 알 게다.'],
+            ['나그네', '일단 뭍으로 돌아가세. 사공이 배를 대고 기다리고 있다.']] },
+        { type: 'sail', npc: 'ferryman', to: 'dock', toOff: [0, 0], text: '사공의 배를 타고 갈대 나루로 돌아가기',
+          lines: [['버들', '다 끝났느냐? 해 지기 전에 돌아가자꾸나.']] },
+        { type: 'talk', npc: 'elder', text: '청하 촌장에게 알리기',
+          lines: [['누리', '해솔이라… 그 이름을 다시 듣게 될 줄이야. 어릴 적 나그네와 늘 붙어 다니던 아이였지.', 'surprised'],
+            ['누리', '먹구름 위 여섯째 자리라니, 은비에게 물어보자꾸나. 오늘은 푹 쉬렴.'],
+            ['누리', '바위섬까지 다녀온 수고비다. 마을 사람들이 조금씩 모았단다.', 'joy']] }
       ] }
   ];
 
@@ -375,9 +433,36 @@
     capeMemo = best || first || { x: a.x, y: a.y - CAPE_RADII[0] };
     return capeMemo;
   }
+  var isleMemo = null;
+  function terrAt(tx, ty) { var W = global.DG.world; try { return W && W.terrainAt ? W.terrainAt(tx, ty) : null; } catch (e) { return null; } }
+  /** ⑲-19 칸 (tx,ty) 이웃 여덟 중 물 칸 수 */
+  function wetNeighbors(tx, ty) {
+    var n = 0;
+    for (var dy = -1; dy <= 1; dy++) { for (var dx = -1; dx <= 1; dx++) { if ((dx || dy) && terrAt(tx + dx, ty + dy) === 'water') { n++; } } }
+    return n;
+  }
+  /** ⑲-19 바위섬 — 곶 둘레 ISLE_R 칸 안 뭍 칸 가운데 이웃 물이 가장 많은 것(같으면 곶에 가까운 것)의 가운데. 같은 세계면 늘 같다 */
+  function isleSpot() {
+    if (isleMemo) { return isleMemo; }
+    var c = capeSpot();
+    if (!c) { return null; }
+    var cx = Math.floor(c.x / TERR_TILE), cy = Math.floor(c.y / TERR_TILE), best = null, tx, ty;
+    for (ty = cy - ISLE_R; ty <= cy + ISLE_R; ty++) {
+      for (tx = cx - ISLE_R; tx <= cx + ISLE_R; tx++) {
+        var k = terrAt(tx, ty);
+        if (k === 'water' || k === null) { continue; }
+        var q = { x: (tx + 0.5) * TERR_TILE, y: (ty + 0.5) * TERR_TILE, wet: wetNeighbors(tx, ty) };
+        q.d = Math.hypot(q.x - c.x, q.y - c.y);
+        if (!landAt(q.x, q.y)) { continue; }
+        if (!best || q.wet > best.wet || (q.wet === best.wet && q.d < best.d - 1e-6)) { best = q; }
+      }
+    }
+    isleMemo = best ? { x: best.x, y: best.y, wet: best.wet } : { x: c.x, y: c.y, wet: 0 };
+    return isleMemo;
+  }
   /** 이름 붙은 자리 + off */
   function spotPos(name, off) {
-    var sp = SPOTS[name], b = !sp ? null : (sp.peak ? peakSpot() : (sp.cape ? capeSpot() : at(sp.zone, sp.off)));
+    var sp = SPOTS[name], b = !sp ? null : (sp.peak ? peakSpot() : (sp.cape ? capeSpot() : (sp.isle ? isleSpot() : at(sp.zone, sp.off))));
     return b ? { x: b.x + (off ? off[0] : 0), y: b.y + (off ? off[1] : 0) } : null;
   }
   /** 단계의 자리 — 이름 붙은 자리(spot) 또는 ⑮ 땅 탑 + off */
@@ -401,6 +486,7 @@
     if (!n) { return null; }
     if (typeof ch !== 'number') { ch = sv().ch; si = sv().step; }
     if (k === 'wanderer' && ch === 3) { return wandererAt(si); }
+    if (k === 'thief') { return thiefAt(); }                         // ⑲-19 달리는 자리
     var pl = placeOf(k, ch, si);
     return pl && pl.spot ? spotPos(pl.spot, pl.off) : at(n.zone, n.off);
   }
@@ -439,12 +525,14 @@
     aimMemo = { k: mk, v: L.length ? { x: L[0].x, y: L[0].y } : at('home', [0, 0]) };
     return aimMemo.v;
   }
+  /** 대화로 끝나는 단계 — talk · sail(⑲-19, 대화 뒤 배) */
+  function isTalk(st) { return !!st && (st.type === 'talk' || st.type === 'sail'); }
   /** 단계의 목표 자리 — { x, y, r?, label }. 세계 표·세이브만 읽는다 */
   function targetOf(st) {
     if (!st) { return null; }
-    if (st.type === 'talk' || st.type === 'follow') {
+    if (isTalk(st) || st.type === 'follow' || st.type === 'chase') {
       var sa = stepAt(st), p = npcPos(st.npc, sa.c, sa.i);
-      return p ? { x: p.x, y: p.y, r: st.type === 'talk' ? TALK_R() : 0, label: st.type === 'talk' ? NPCS[st.npc].name : st.text } : null;
+      return p ? { x: p.x, y: p.y, r: isTalk(st) ? TALK_R() : 0, label: isTalk(st) ? NPCS[st.npc].name : st.text } : null;
     }
     if (st.type === 'go' || st.type === 'climb') {
       var g = st.altar ? altarPos() : posOf(st);
@@ -519,7 +607,7 @@
     if (!ch) { return false; }
     if (H && H.awardParty) { H.awardParty(STEP_EXP); }
     s.step += 1;
-    prog = { key: '', n: 0 }; fol = null; seal = { key: '', n: 0 }; duel = null; def = null;
+    prog = { key: '', n: 0 }; fol = null; seal = { key: '', n: 0 }; duel = null; def = null; chase = null;
     if (s.step >= ch.steps.length) {
       var txt = award(ch.reward);
       s.ch += 1; s.step = 0;
@@ -755,6 +843,66 @@
     return fs;
   }
 
+  /* ── 도둑 쫓기(⑲-19) ─────────────────────────────────── */
+
+  var chase = null;         // { key, i(지난 길 점), x, y, run(달아나는 중), pause } — 저장 안 함
+  function chaseState() {
+    var st = step();
+    if (!st || st.type !== 'chase') { chase = null; return null; }
+    if (!chase || chase.key !== keyOf()) {
+      var p0 = at('galdae', THIEF_PATH[0]);
+      chase = p0 ? { key: keyOf(), i: 0, x: p0.x, y: p0.y, run: false, pause: 0 } : null;
+    }
+    return chase;
+  }
+  /** 도둑 자리 — 쫓는 중이면 달리는 곳, 아니면 길 첫 점 */
+  function thiefAt() { return chase && chase.key === keyOf() ? { x: chase.x, y: chase.y } : at('galdae', THIEF_PATH[0]); }
+  /**
+   * 한 박자 — 잡혔나 먼저 보고(CHASE_CATCH), 서 있으면 CHASE_START 안에 들 때 달아난다. 달아나는 중엔 CHASE_SPEED 로
+   * 다음 점까지, 점에 닿으면 CHASE_PAUSE 초 숨 고르기. 길 끝이면 놓친 것 — 처음 자리로
+   */
+  function stepChase(dt) {
+    var cs = chaseState();
+    if (!cs) { return null; }
+    var p = pos(), d = Math.hypot(p.x - cs.x, p.y - cs.y);
+    if (d <= CHASE_CATCH()) { chase = null; toast('🏃 노 도둑을 붙잡았다 — 노를 되찾았다'); advance(); return null; }
+    if (!cs.run) {
+      if (d <= CHASE_START()) { cs.run = true; cs.pause = 0; toast('🏃 도둑이 노를 메고 달아난다 — 달려라!'); }
+      return cs;
+    }
+    if (cs.pause > 0) { cs.pause = Math.max(0, cs.pause - (dt || 0)); return cs; }
+    var left = CHASE_SPEED() * (dt || 0);
+    while (left > 0 && cs.i < THIEF_PATH.length - 1) {
+      var nx = at('galdae', THIEF_PATH[cs.i + 1]), nd = Math.hypot(nx.x - cs.x, nx.y - cs.y);
+      if (nd <= left) { cs.x = nx.x; cs.y = nx.y; cs.i += 1; cs.pause = CHASE_PAUSE(); left = 0; }
+      else { cs.x += (nx.x - cs.x) / nd * left; cs.y += (nx.y - cs.y) / nd * left; left = 0; }
+    }
+    if (cs.i >= THIEF_PATH.length - 1) {
+      var p0 = at('galdae', THIEF_PATH[0]);
+      cs.i = 0; cs.x = p0.x; cs.y = p0.y; cs.run = false; cs.pause = 0;
+      toast('💨 놓쳤다 — 도둑이 처음 자리로 숨어들었다. 다시 가까이 가면 달아난다');
+    }
+    return cs;
+  }
+
+  /* ── 배(⑲-19) ───────────────────────────────────────── */
+
+  /** sail 대화가 끝났을 때 — 키보드 판은 그 자리로 옮긴다(순간이동과 같은 길). GPS 판은 몸이 거기 있어 안 옮긴다 */
+  function sail(st) {
+    var W = global.DG.world, q = spotPos(st.to, st.toOff);
+    if (!q) { return false; }
+    if (W && W.mode === 'keyboard') {
+      var p = pos();
+      p.x = q.x; p.y = q.y;
+      if (W.walkTo) { W.walkTo(p.x, p.y); }
+      core().emit('region:teleport', { key: 'sail:' + st.to });
+      toast(st.to === 'isle' ? '⛵ 사공의 배가 물살을 가른다 — 바위섬에 닿았다' : '⛵ 배가 갈대 나루에 닿았다');
+      return true;
+    }
+    toast('⛵ 사공이 배를 띄웠다 — 물가를 따라 ' + (st.to === 'isle' ? '바위섬으로' : '나루로') + ' 걸어가자');
+    return false;
+  }
+
   /** 한 박자 — go 도착·boss 이미 쓰러짐·kill 무리 세우기·혼잣말 */
   var lastIdle = {};
   function check() {
@@ -785,7 +933,7 @@
     var now = Date.now();
     for (var i = 0; i < NPC_KEYS.length; i++) {
       var k = NPC_KEYS[i], np = visible(k) ? npcPos(k) : null;
-      if (!np || (st && (st.type === 'talk' || st.type === 'follow') && st.npc === k)) { continue; }
+      if (!np || (st && (isTalk(st) || st.type === 'follow' || st.type === 'chase') && st.npc === k)) { continue; }
       if (Math.hypot(p.x - np.x, p.y - np.y) <= IDLE_R && (!lastIdle[k] || now - lastIdle[k] > IDLE_GAP)) {
         lastIdle[k] = now;
         toast('💬 ' + NPCS[k].name + ' — ' + NPCS[k].idle);
@@ -798,7 +946,7 @@
   var talk = null;          // { st, i, shown(나온 글자 수), since(마지막 글자 뒤 초), reply(고른 대답|null) } — 창이 열려 있으면
   function nearTalk() {
     var st = step();
-    if (!st || st.type !== 'talk' || !visible(st.npc)) { return null; }
+    if (!isTalk(st) || !visible(st.npc)) { return null; }
     var np = npcPos(st.npc), p = pos();
     return np && Math.hypot(p.x - np.x, p.y - np.y) <= TALK_R() ? st : null;
   }
@@ -839,7 +987,13 @@
     if (!lineFull()) { talk.shown = lineLen(line); talk.since = 0; paintTalk(); return true; }
     if (talk.reply !== null) { talk.reply = null; }
     talk.i += 1;
-    if (talk.i >= talk.st.lines.length) { talk = null; paintTalk(); advance(); return true; }
+    if (talk.i >= talk.st.lines.length) {
+      var done0 = talk.st;
+      talk = null; paintTalk();
+      if (done0.type === 'sail') { sail(done0); }                         // ⑲-19 배
+      advance();
+      return true;
+    }
     fresh(); paintTalk();
     return true;
   }
@@ -879,6 +1033,7 @@
     var what = st.text;
     if (st.type === 'gather') { what += ' ' + gathered() + '/' + st.count; }
     if (st.type === 'follow' && d > FOLLOW_LOST()) { what = '너무 멀다, 가까이!'; }
+    if (st.type === 'chase') { what = chase && chase.key === keyOf() && chase.run ? '노 도둑 ' + Math.round(d) + 'm — 달려라!' : st.text + ' (가까이 가면 달아난다)'; }   // ⑲-19
     if (st.type === 'seal') { what += ' ' + sealLit() + '/' + (st.order || SEAL_ORDER).length + ' (' + orderText(st) + ')'; }
     if (st.type === 'duel') {
       var b = duelBoss(), FF = FC() && FC().FOES[st.kind];
@@ -1038,8 +1193,8 @@
       var d = Math.hypot(q.x - p0.x, q.y - p0.y);
       if (d > 110) { continue; }
       var a = anchorOf(n.zone), face = talk && talk.st.npc === k;
-      out.push({ p: { id: n.id, name: n.name, color: n.color, rarity: 3, trait: 'virtue', story: k, mask: !!n.mask },
-        x: q.x, y: q.y, walking: !!(k === 'wanderer' && fs && fs.walking), phase: (tms || 0) / 480,
+      out.push({ p: { id: n.id, name: n.name, color: n.color, rarity: 3, trait: 'virtue', story: k, mask: n.mask || false },
+        x: q.x, y: q.y, walking: !!((k === 'wanderer' && fs && fs.walking) || (k === 'thief' && chase && chase.run && !(chase.pause > 0))), phase: (tms || 0) / 480,
         ang: face ? Math.atan2(pp.y - q.y, pp.x - q.x) : Math.atan2(a.y - q.y, a.x - q.x), dist: d });
     }
     return out;
@@ -1056,6 +1211,7 @@
     acc += dt || 0;
     if (acc > 0.5) { acc = 0; check(); }
     stepFollow(dt);
+    stepChase(dt);
     stepDefend(dt);
     reveal(dt);
     if (!global.DG_NO_DRAW) { paintHud(); paint3d(dt); }
@@ -1106,6 +1262,8 @@
     DEFEND_RING: DEFEND_RING, DEFEND_WAVE_SEC: DEFEND_WAVE_SEC, DEFEND_REST: DEFEND_REST, DEFEND_HITS: DEFEND_HITS, DEFEND_WAVES: DEFEND_WAVES, DEFEND_START: DEFEND_START,
     CAPE_CLEAR: CAPE_CLEAR, capeSpot: capeSpot, landAt: landAt, ringAt: ringAt, stepDefend: stepDefend, defState: function () { return def && def.key === keyOf() ? def : null; },
     waveKey: waveKey, pillarHex: pillarHex,
+    THIEF_PATH: THIEF_PATH, CHASE_SPEED: CHASE_SPEED, CHASE_PAUSE: CHASE_PAUSE, CHASE_START: CHASE_START, CHASE_CATCH: CHASE_CATCH, ISLE_R: ISLE_R,
+    isleSpot: isleSpot, wetNeighbors: wetNeighbors, stepChase: stepChase, thiefAt: thiefAt, chaseState: function () { return chase && chase.key === keyOf() ? chase : null; }, isTalk: isTalk,
     sealLamps: sealLamps, sealHit: sealHit, sealLit: sealLit, duelBoss: duelBoss, stepDuel: stepDuel,
     FOLLOW_NEAR: FOLLOW_NEAR, FOLLOW_LOST: FOLLOW_LOST,
     on: on, anchorOf: anchorOf, npcPos: npcPos, visible: visible, targetOf: targetOf, trackText: trackText, listHtml: listHtml,
@@ -1116,7 +1274,7 @@
     _resetForTest: function () {
       talk = null; lastIdle = {}; anchorMemo = {}; lastTrack = ''; lastBtn = ''; listOpen = false;
       fol = null; prog = { key: '', n: 0 }; aimMemo = { k: '', v: null }; seal = { key: '', n: 0 }; duel = null; peakMemo = null;
-      def = null; capeMemo = null;
+      def = null; capeMemo = null; chase = null; isleMemo = null;
     }
   };
 })(window);

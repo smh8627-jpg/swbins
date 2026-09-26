@@ -2466,7 +2466,7 @@
       }
       /* ⑲-13 이야기 인물 — 말하는 동안 손짓·끄덕임(QRPG 라 입은 없다), 나그네는 흰 가면 */
       if (fk.p.story && fka.mesh && TFf) {
-        if (fk.p.mask) { TFf.mask(T, fka.node); }
+        if (fk.p.mask) { TFf.mask(T, fka.node, typeof fk.p.mask === 'string' ? fk.p.mask : 'white'); }   // ⑲-19 해솔은 금 간 가면
         var fkTalk = !!(TSf && TSf.who === fk.p.story);
         TFf.pose(T, fka.node, { speaking: fkTalk && TSf.speaking, vowel: fkTalk ? TSf.vowel : null, open: fkTalk ? TSf.open : 0,
           emo: fkTalk ? TSf.emo : null, t: now / 1000, dt: tdt, seed: i + 3 });

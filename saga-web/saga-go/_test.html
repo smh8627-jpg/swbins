@@ -10255,8 +10255,8 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 
     t('이야기 ⑲-12 — 표·자리: 장 둘(단계 8·4, 여정 등급 1·5) · 인물 셋 = ⑮ 땅 탑 + 자리(고향 촌장·갈대 나루 사공·옛 성터 학자) · 모든 단계에 목표 · 같은 세계면 같은 자리 · 몸 셋 고정', function () {
       var ST = DG.story, A3 = DG.asset3d, r = {};
-      r.table = ST.CHAPTERS.length === 7 && ST.CHAPTERS[0].steps.length === 8 && ST.CHAPTERS[1].steps.length === 4 &&
-        ST.CHAPTERS[0].ar === 1 && ST.CHAPTERS[1].ar === 5;     // ⑲-13·14·16 이 3~7장을 더했다
+      r.table = ST.CHAPTERS.length === 8 && ST.CHAPTERS[0].steps.length === 8 && ST.CHAPTERS[1].steps.length === 4 &&
+        ST.CHAPTERS[0].ar === 1 && ST.CHAPTERS[1].ar === 5;     // ⑲-13·14·16·19 가 3~8장을 더했다
       var e = ST.npcPos('elder'), f = ST.npcPos('ferryman'), s = ST.npcPos('scholar'), ga = ST.anchorOf('galdae'), go = ST.anchorOf('gojeong');
       r.npc = e.x === -22 && e.y === 16 && f.x === ga.x - 18 && f.y === ga.y - 24 && s.x === go.x - 18 && s.y === go.y - 24 &&
         DG.biome.cellAt.apply(null, ga.key.split('_').map(Number)).zone === 'galdae' && DG.biome.cellAt.apply(null, go.key.split('_').map(Number)).zone === 'gojeong';
@@ -10734,7 +10734,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       var rig = stRig(18), ST = rig.ST, r = {};
       try {
         var c7 = ST.CHAPTERS[6];
-        r.table = ST.CHAPTERS.length === 7 && c7.steps.length === 10 && c7.ar === 18 && c7.reward.knot === 4 && c7.reward.gold === 2250 &&
+        r.table = ST.CHAPTERS.length >= 7 && c7.steps.length === 10 && c7.ar === 18 && c7.reward.knot === 4 && c7.reward.gold === 2250 &&
           c7.reward.party === 800 && c7.steps[4].type === 'defend' && c7.steps[5].type === 'duel' && c7.steps[5].kind === 'b_mask2' && c7.steps[7].type === 'light';
         var cp = ST.capeSpot(), ga = ST.anchorOf('galdae'), fm = ST.npcPos('ferryman', 6, 0);
         r.cape = !!cp && Math.hypot(cp.x - ga.x, cp.y - ga.y) <= 90.001 && ST.landAt(cp.x, cp.y) &&
@@ -10977,6 +10977,89 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       } finally { rig.undo(); }
       var bad = Object.keys(r).filter(function (k) { return !r[k]; });
       return bad.length === 0 ? '옛 = 1번 · 2번 나 혼자 · 넣기 → 2번 · 1번 돌아옴 · 없는·겹침 뺌 · 같은 칸 ✕ · 왕복 · 첫 자리 · 10m 쫓음 막힘 · 40m·제단만·쉼 안 막힘 · 단추 넷' : ('실패 ' + bad.join(','));
+    });
+
+    /* ── ⑲-19 이야기 8장·바위섬·도둑 쫓기·배 (story.js chase·sail·isle, PLAN §5 ⑲-19) ── */
+    t('이야기 ⑲-19 — 표·섬·인물 자리: 8장 12단계(Lv20)·보상 · 바위섬 = 곶 둘레 이웃 물이 가장 많은 뭍 칸(가운데·석등·무리 자리 뭍) · 사공 섬 6~11째·나그네 7~10째·해솔 9째(금 간 가면)·도둑 3째 · 표정 여덟', function () {
+      var rig = stRig(20), ST = rig.ST, r = {}, i;
+      try {
+        var c8 = ST.CHAPTERS[7], S8 = c8.steps;
+        r.table = ST.CHAPTERS.length === 8 && S8.length === 12 && c8.ar === 20 && c8.reward.gold === 2500 && c8.reward.secret === 3 && c8.reward.party === 850 &&
+          S8[2].type === 'chase' && S8[4].type === 'sail' && S8[4].to === 'isle' && S8[10].type === 'sail' && S8[10].to === 'dock' &&
+          S8[7].type === 'seal' && S8[7].order.join() === 'star,moon,sun' && ST.isTalk(S8[4]) && !ST.isTalk(S8[2]);
+        var is = ST.isleSpot(), cp = ST.capeSpot(), tx = Math.floor(is.x / 48), ty = Math.floor(is.y / 48);
+        var lamps = ST.sealLamps(S8[7]), kt = ST.targetOf(S8[5]);
+        r.isle = ST.wetNeighbors(tx, ty) >= 5 && is.wet === ST.wetNeighbors(tx, ty) && ST.landAt(is.x, is.y) &&
+          lamps.length === 3 && lamps.every(function (l) { return ST.landAt(l.x, l.y); }) && ST.landAt(kt.x, kt.y) &&
+          Math.abs(is.x - (tx + 0.5) * 48) < 1e-9 && Math.hypot(is.x - cp.x, is.y - cp.y) <= (ST.ISLE_R + 1) * 48 * 1.4143;
+        var fm0 = ST.npcPos('ferryman', 7, 4), fm5 = ST.npcPos('ferryman', 7, 5), fm10 = ST.npcPos('ferryman', 7, 10), fm11 = ST.npcPos('ferryman', 7, 11);
+        r.ferry = fm5.x === is.x - 4 && fm5.y === is.y + 18 && fm10.x === fm5.x && fm0.x === fm11.x && fm0.x !== fm5.x;
+        function vis(k) { var v = []; for (i = 0; i < 12; i++) { C.save.story = { ch: 7, step: i }; v.push(ST.visible(k) ? 1 : 0); } return v.join(''); }
+        r.vis = vis('wanderer') === '000000111100' && vis('haesol') === '000000001000' && vis('thief') === '001000000000';
+        C.save.story = { ch: 7, step: 8 };
+        var hs = ST.live(is).filter(function (x) { return x.p.story === 'haesol'; })[0];
+        r.mask = !!hs && hs.p.mask === 'crack' && !!DG.asset3d.fixedRecipe({ id: 'story_haesol' }) && !!DG.asset3d.fixedRecipe({ id: 'story_thief' });
+        var emo = 0;
+        S8.forEach(function (st) { (st.lines || []).forEach(function (l) { if (l[2]) { emo++; if (!DG.talkface.EMO[l[2]]) { emo = -99; } } }); });
+        r.emo = emo === 8;
+      } finally { rig.undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '8장 12단계 · 섬 칸 이웃 물 ' + ST.isleSpot().wet + ' · 사공·나그네·해솔·도둑 자리 · 금 간 가면 · 표정 8' : ('실패 ' + bad.join(','));
+    });
+
+    t('이야기 ⑲-19 — 노 도둑 쫓기: 평균 속도가 걷기(8)와 달리기(17.6) 사이 · 멀면 안 달아남 · 14m 안이면 달아남 · 걸어서 쫓으면 놓치고 처음 자리 · 달리면 붙잡고 다음 단계', function () {
+      var rig = stRig(20), ST = rig.ST, r = {}, g;
+      try {
+        var P = ST.THIEF_PATH, tot = 0;
+        for (g = 1; g < P.length; g++) { tot += Math.hypot(P[g][0] - P[g - 1][0], P[g][1] - P[g - 1][1]); }
+        var avg = tot / (tot / ST.CHASE_SPEED() + ST.CHASE_PAUSE() * (P.length - 2));
+        r.speed = avg > 8 && avg < 17.6;
+        C.save.story = { ch: 7, step: 2 };
+        var t0 = ST.thiefAt();
+        stGo({ x: t0.x + 40, y: t0.y }); ST.stepChase(0.1);
+        r.far = !!ST.chaseState() && !ST.chaseState().run && / \(가까이 가면 달아난다\)/.test(ST.trackText());
+        stGo({ x: t0.x + 10, y: t0.y }); ST.stepChase(0.05);
+        r.start = ST.chaseState().run === true && /노 도둑 \d+m — 달려라!/.test(ST.trackText());
+        function run(v, sec) {
+          var p = C.save.player.pos, was = false;
+          for (var k = 0; k < sec / 0.05; k++) {
+            var cs = ST.chaseState();
+            if (!cs) { return 'caught'; }
+            if (cs.run) { was = true; } else if (was) { return 'lost'; }
+            var q = ST.thiefAt(), dx = q.x - p.x, dy = q.y - p.y, dl = Math.hypot(dx, dy) || 1, st = Math.min(dl, v * 0.05);
+            p.x += dx / dl * st; p.y += dy / dl * st;
+            ST.stepChase(0.05);
+          }
+          return 'timeout';
+        }
+        var walk = run(8, 60);
+        r.walk = walk === 'lost' && C.save.story.step === 2 && ST.chaseState().i === 0 && ST.thiefAt().x === t0.x;
+        stGo({ x: t0.x + 10, y: t0.y }); ST.stepChase(0.05);
+        var sprint = run(17.6, 60);
+        r.run = sprint === 'caught' && C.save.story.step === 3 && ST.chaseState() === null;
+      } finally { rig.undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '평균 ' + (function () { var P = DG.story.THIEF_PATH, t = 0; for (var i = 1; i < P.length; i++) { t += Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]); } return (t / (t / 13 + 0.5 * (P.length - 2))).toFixed(1); })() + 'm/초 · 40m 가만 · 10m 달아남 · 걷기 놓침 → 처음 · 달리기 잡음' : ('실패 ' + bad.join(','));
+    });
+
+    t('이야기 ⑲-19 — 배: 사공과 한 줄 뒤 섬 남쪽으로 옮김(키보드 판) · 돌아오는 배는 섬의 사공에게서 나루로 · 섬 무리 단계로 이어짐', function () {
+      var rig = stRig(20), ST = rig.ST, r = {};
+      try {
+        var is = ST.isleSpot();
+        C.save.story = { ch: 7, step: 4 };
+        stGo(ST.npcPos('ferryman'));
+        var kb = DG.world.mode === 'keyboard';
+        r.go = ST.nearTalk() === ST.step() && stTalkAll(ST) && C.save.story.step === 5 &&
+          (!kb || (C.save.player.pos.x === is.x && C.save.player.pos.y === is.y + 14));
+        C.save.story = { ch: 7, step: 10 };
+        var fm = ST.npcPos('ferryman');
+        stGo(fm);
+        var dock = ST.spotPos('dock'), home = ST.npcPos('ferryman', 7, 11);
+        r.back = Math.hypot(fm.x - is.x, fm.y - is.y) < 30 && stTalkAll(ST) && C.save.story.step === 11 &&
+          (!kb || (C.save.player.pos.x === dock.x && C.save.player.pos.y === dock.y)) && Math.hypot(dock.x - home.x, dock.y - home.y) < 15;
+      } finally { rig.undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '나루 → 섬 남쪽 14m · 섬 → 나루(사공 곁)' : ('실패 ' + bad.join(','));
     });
 
     /* ── ⑳ 원작 겹침 정리 (PLAN §5 ⑳) ── */
