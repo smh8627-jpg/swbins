@@ -517,10 +517,10 @@ class MapView extends Control:
 		for rid in REGION_NAMES:
 			var r: Rect2 = map.call("_region_px_rect", rid)
 			var at: Vector2 = offset + r.get_center() * zoom
-			var name_text: String = REGION_NAMES[rid]
+			## 이름 한 줄 + 안 밝힌 지역은 작은 둘째 줄(한 줄로 이으면 이웃 지역 이름과 겹쳐 잘렸다 — 2026-09-26 촬영).
+			draw_string(font, at - Vector2(160, 0), String(REGION_NAMES[rid]), HORIZONTAL_ALIGNMENT_CENTER, 320, 20, Color(1, 0.97, 0.88, 0.9))
 			if not map.call("revealed", rid):
-				name_text += " (신상을 찾으면 밝아진다)"
-			draw_string(font, at - Vector2(160, 0), name_text, HORIZONTAL_ALIGNMENT_CENTER, 320, 20, Color(1, 0.97, 0.88, 0.9))
+				draw_string(font, at + Vector2(-160, 18), "신상을 켜면 밝아진다", HORIZONTAL_ALIGNMENT_CENTER, 320, 13, Color(1, 0.97, 0.88, 0.7))
 		var wps: Node = map.get("_wps")
 		if wps:
 			for row in Waypoints.POINTS:

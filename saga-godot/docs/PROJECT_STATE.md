@@ -29,12 +29,13 @@
 
 ## 알려진 오류
 
-- 없음(과부하 때 종료 누수 경고 한 번 — HISTORY 09-23 ④).
+- 고치지 않은 화면 문제(09-26 창 모드 촬영, HISTORY 같은 날): 기준 화면이 세로 1080×1920 이라 가로로 들면 UI 56% · 사람 몸 VRoid 두 벌 외 둘.
 
 ## 테스트 상태
 
-- `godot_regress.sh` REGRESS OK(09-24 ㉖ 뒤, 다섯 판·재질 감사 0·잡음 없음).
-- GO 그리기 부담 `SAGA_PERF_PROBE=1`(창 모드·모바일 렌더러, PLAN 104-7 예산 draw call ≤260·삼각형 평균 ≤35만) — 09-24 마을 32만·포구 19만·폐허 22만. GO 자동 점검 스물일곱: `SAGA_FROST_PROBE=1`(10) · `SAGA_STORY2_PROBE=1`(30) · `SAGA_DISPATCH_PROBE=1`(12, ㊻-2 뒤 고원 포함) · `SAGA_ACHIEVE_PROBE=1`(9) · `SAGA_FISH_PROBE=1`(11) · `SAGA_QMAP_PROBE=1`(8) · `SAGA_ARCHERY_PROBE=1`(17) · `SAGA_STORY_PROBE=1`(87) · `SAGA_WQ_PROBE=1`(12) · `SAGA_KIT_PROBE=1`(23) · `SAGA_FIELD_BOSS_PROBE=1`(10) · `SAGA_ADVENTURE_PROBE=1`(9) · `SAGA_WEEKLY_PROBE=1`(9) · `SAGA_DOMAIN_PROBE=1`(11) · `SAGA_COMMISSION_PROBE=1`(10) · `SAGA_COOK_PROBE=1`(13) · `SAGA_TRAVERSAL_PROBE=1`(14) · `SAGA_COMBAT_PROBE=1`(19) · `SAGA_TREASURE_PROBE=1`(9) · `SAGA_MAP_PROBE=1`(10) · `SAGA_GROWTH_PROBE=1`(10) · `SAGA_SHARD_PROBE=1`(6) · `SAGA_TALENT_PROBE=1`(10) · `SAGA_SIGHT_PROBE=1`(8) · `SAGA_ELEMENT_PROBE=1`(15) · `SAGA_WEAPON_PROBE=1`(11) · `SAGA_ARTIFACT_PROBE=1`(12) · LayoutWalk `SAGA_LAYOUT_PROBE=1` — 전부 fails=0.
+- `godot_regress.sh` REGRESS OK(09-26).
+- GO 그리기 부담 `SAGA_PERF_PROBE=1`(창 모드·모바일 렌더러, PLAN 104-7 예산 draw call ≤260·삼각형 평균 ≤35만) — 09-24 마을 32만·포구 19만·폐허 22만. GO 자동 점검 스물일곱: `SAGA_FROST_PROBE=1`(10) · `SAGA_STORY2_PROBE=1`(30) · `SAGA_DISPATCH_PROBE=1`(12) · `SAGA_ACHIEVE_PROBE=1`(9) · `SAGA_FISH_PROBE=1`(11) · `SAGA_QMAP_PROBE=1`(8) · `SAGA_ARCHERY_PROBE=1`(17) · `SAGA_STORY_PROBE=1`(87) · `SAGA_WQ_PROBE=1`(12) · `SAGA_KIT_PROBE=1`(23) · `SAGA_FIELD_BOSS_PROBE=1`(10) · `SAGA_ADVENTURE_PROBE=1`(9) · `SAGA_WEEKLY_PROBE=1`(9) · `SAGA_DOMAIN_PROBE=1`(11) · `SAGA_COMMISSION_PROBE=1`(10) · `SAGA_COOK_PROBE=1`(13) · `SAGA_TRAVERSAL_PROBE=1`(14) · `SAGA_COMBAT_PROBE=1`(19) · `SAGA_TREASURE_PROBE=1`(9) · `SAGA_MAP_PROBE=1`(10) · `SAGA_GROWTH_PROBE=1`(10) · `SAGA_SHARD_PROBE=1`(6) · `SAGA_TALENT_PROBE=1`(10) · `SAGA_SIGHT_PROBE=1`(8) · `SAGA_ELEMENT_PROBE=1`(15) · `SAGA_WEAPON_PROBE=1`(11) · `SAGA_ARTIFACT_PROBE=1`(12) · LayoutWalk `SAGA_LAYOUT_PROBE=1` — 전부 fails=0.
+- 화면 촬영 `SAGA_SHOT_PROBE=1 SAGA_SHOT_DIR=<경로>`(창 모드·화면 밖, `tools/probe_shots.gd`) — 09-26 땅 뒷면·눈·안개 발견.
 - 새 스크립트는 `--check-only --script res://…` 로 먼저 문법만(자동 로드 이름 오류는 정상) — 문법 오류 판은 씬이 안 떠 timeout 까지 멈춘다.
 - 셰이더(물·하늘)는 창 모드 콘솔 exe 를 화면 밖에서 300프레임 돌려 Forward+·Mobile 오류 0(헤드리스는 셰이더를 컴파일 안 함). 미니맵 원형 셰이더(⑨)·원소 시야 막(⑬)도 창 모드 두 렌더러 오류 0(09-24).
 

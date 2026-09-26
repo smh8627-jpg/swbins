@@ -42,7 +42,11 @@ float _value_noise(vec2 p) {
 	return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
 }
 
+// saga-godot 106장 ㊺ — 눈·얼음 표시(terrain_builder.gd surface_of: CUSTOM0 .r 눈 · .g 얼음). 안 싣는 메시는 0.
+varying vec2 v_surf;
+
 void vertex() {
+	v_surf = CUSTOM0.rg;
 	world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	world_normal = (MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz;
 }
@@ -90,15 +94,15 @@ void fragment() {
 	ALBEDO = COLOR.rgb * detail_albedo;
 	NORMAL_MAP = detail_normal * 0.5 + 0.5;
 	ROUGHNESS = detail_rough;
-	// saga-godot PLAN 106장 ㊺ 서리봉 고원 — 세 채널이 다 밝은 정점색(눈밭·눈 덮인 산)은 풀 텍스처 대신
-	// 눈으로, 푸른빛이 도는 밝은 색(얼어붙은 호수)은 매끈한 얼음으로. 기존 지형색은 가장 어두운
-	// 채널이 0.5 안팎이라 이 두 갈래에 안 걸려 화면이 그대로다. 가파른 비탈은 돌을 남긴다.
-	float lo = min(COLOR.r, min(COLOR.g, COLOR.b));
-	float snow_w = smoothstep(0.78, 0.83, lo) * (1.0 - smoothstep(0.35, 0.7, slope));
-	vec3 snow = COLOR.rgb * (0.9 + 0.1 * n2) * mix(vec3(1.0), stone_a * 1.6, 0.12);
+	// saga-godot PLAN 106장 ㊺ 서리봉 고원 — 눈 표시(눈밭·눈 덮인 산)는 풀 텍스처 대신 눈으로,
+	// 얼음 표시(얼어붙은 호수)는 매끈한 얼음으로. 표시는 정점색이 아니라 CUSTOM0 로 따로 온다(가장자리 섞임에 안 흔들린다).
+	// 다른 지역·판은 표시가 0 이라 화면이 그대로다. 가파른 비탈은 돌을 남긴다.
+	float snow_w = smoothstep(0.25, 0.75, v_surf.x) * (1.0 - smoothstep(0.35, 0.7, slope));
+	// 눈은 정점색보다 한 단 희게(길·숲 바닥 색이 비치되 눈빛이 이기게) — AgX 톤매핑에서 0.86 은 회색으로 가라앉았다.
+	vec3 snow = mix(COLOR.rgb, vec3(0.95, 0.97, 1.0), 0.6) * (0.92 + 0.08 * n2) * mix(vec3(1.0), stone_a * 1.6, 0.1);
 	ALBEDO = mix(ALBEDO, snow, snow_w);
 	ROUGHNESS = mix(ROUGHNESS, 0.75, snow_w);
-	float ice_w = smoothstep(0.55, 0.6, lo) * smoothstep(0.18, 0.24, COLOR.b - COLOR.r) * (1.0 - snow_w);
+	float ice_w = smoothstep(0.25, 0.75, v_surf.y) * (1.0 - snow_w);
 	ALBEDO = mix(ALBEDO, COLOR.rgb * (0.94 + 0.06 * n1), ice_w);
 	ROUGHNESS = mix(ROUGHNESS, 0.12, ice_w);
 	NORMAL_MAP = mix(NORMAL_MAP, vec3(0.5, 0.5, 1.0), max(ice_w, snow_w * 0.6));

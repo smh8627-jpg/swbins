@@ -61,6 +61,19 @@ const REGION_COLORS := {
 	"frost": {"^": Color(0.84, 0.87, 0.91), "T": Color(0.2, 0.3, 0.26)},
 }
 
+## 눈·얼음 표시(정점 CUSTOM0 .r = 눈 · .g = 얼음) — terrain_triplanar.gdshader 가 이 값으로 눈·얼음을 칠한다.
+## 예전엔 셰이더가 정점색 밝기(가장 어두운 채널 0.78~0.83)로 눈을 알아봤는데, 눈 색(0.86)과 여유가 0.03 뿐이라
+## 길·숲·산성·호수와 맞닿은 칸 가장자리(칸의 34% 섞임)가 모두 풀로 칠해졌다(2026-09-26 창 모드 촬영에서 발견).
+const SURFACES := {"N": Color(1, 0, 0, 0), "I": Color(0, 1, 0, 0)}
+## 고원은 길(밟힌 눈 반)·숲 바닥·산성 터에도 눈이 덮인다 — 48m 칸 하나가 통째로 풀빛이면 눈 고원 한가운데 초록 띠가 된다.
+const REGION_SURFACES := {"frost": {"^": Color(1, 0, 0, 0), "=": Color(0.5, 0, 0, 0), "T": Color(0.85, 0, 0, 0), "R": Color(0.7, 0, 0, 0)}}
+
+static func surface_of(region: String, ch: String) -> Color:
+	var over: Dictionary = REGION_SURFACES.get(region, {})
+	if over.has(ch):
+		return over[ch]
+	return SURFACES.get(ch, Color(0, 0, 0, 0))
+
 static func color_of(region: String, ch: String) -> Color:
 	var over: Dictionary = REGION_COLORS.get(region, {})
 	if over.has(ch):
@@ -193,6 +206,7 @@ func _build() -> void:
 
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	st.set_custom_format(0, SurfaceTool.CUSTOM_RGBA8_UNORM)
 
 	for y in rows.size():
 		var row: String = rows[y]
@@ -206,7 +220,9 @@ func _build() -> void:
 			var col10 := _corner_color(rows, x + 1, y)
 			var col01 := _corner_color(rows, x, y + 1)
 			var col11 := _corner_color(rows, x + 1, y + 1)
-			_add_tile_quads(st, x, y, own_color, col00, col10, col01, col11)
+			var surf := [surface_of(region_id, ch), _corner_color(rows, x, y, true), _corner_color(rows, x + 1, y, true),
+				_corner_color(rows, x, y + 1, true), _corner_color(rows, x + 1, y + 1, true)]
+			_add_tile_quads(st, x, y, own_color, col00, col10, col01, col11, surf)
 			_add_cliffs(st, x, y)
 
 	var mesh := st.commit()
@@ -234,7 +250,7 @@ func _build() -> void:
 ## 법선은 높이 함수의 차분으로 직접 구한다(generate_normals 를 쓰면 절벽
 ## 테두리 정점까지 뭉개져 가장자리 음영이 번진다).
 func _add_tile_quads(st: SurfaceTool, x: int, y: int, own: Color,
-		col00: Color, col10: Color, col01: Color, col11: Color) -> void:
+		col00: Color, col10: Color, col01: Color, col11: Color, surf: Array) -> void:
 	var center := TestMap.world_pos(x, y, region_id)
 	var half := TestMap.tile_size_of(region_id) * 0.5
 	var grid := _height_grid(x, y)
@@ -254,20 +270,26 @@ func _add_tile_quads(st: SurfaceTool, x: int, y: int, own: Color,
 			var cc10 := _tile_vertex_color(own, col00, col10, col01, col11, u1, v0)
 			var cc01 := _tile_vertex_color(own, col00, col10, col01, col11, u0, v1)
 			var cc11 := _tile_vertex_color(own, col00, col10, col01, col11, u1, v1)
+			var ss00 := _tile_vertex_color(surf[0], surf[1], surf[2], surf[3], surf[4], u0, v0)
+			var ss10 := _tile_vertex_color(surf[0], surf[1], surf[2], surf[3], surf[4], u1, v0)
+			var ss01 := _tile_vertex_color(surf[0], surf[1], surf[2], surf[3], surf[4], u0, v1)
+			var ss11 := _tile_vertex_color(surf[0], surf[1], surf[2], surf[3], surf[4], u1, v1)
 
 			var n00 := _grid_normal(grid, i, j)
 			var n10 := _grid_normal(grid, i + 1, j)
 			var n01 := _grid_normal(grid, i, j + 1)
 			var n11 := _grid_normal(grid, i + 1, j + 1)
 
-			# 위(+Y)에서 봤을 때 앞면이 되는 감김 방향 — 00,11,10 / 00,01,11.
-			st.set_normal(n00); st.set_color(cc00); st.add_vertex(p00)
-			st.set_normal(n11); st.set_color(cc11); st.add_vertex(p11)
-			st.set_normal(n10); st.set_color(cc10); st.add_vertex(p10)
+			# 위(+Y)에서 봤을 때 시계 방향 = Godot 의 앞면 — 00,10,11 / 00,11,01.
+			# (2026-09-26 까지는 반시계 00,11,10 이라 땅 전체가 뒷면이었다. 셰이더가 cull_disabled 라 보이긴 했지만
+			# 뒷면은 법선을 뒤집어 아래를 보게 해서 햇빛을 못 받고 하늘빛만 받았다 — 창 모드 촬영에서 발견.)
+			st.set_normal(n00); st.set_color(cc00); st.set_custom(0, ss00); st.add_vertex(p00)
+			st.set_normal(n10); st.set_color(cc10); st.set_custom(0, ss10); st.add_vertex(p10)
+			st.set_normal(n11); st.set_color(cc11); st.set_custom(0, ss11); st.add_vertex(p11)
 
-			st.set_normal(n00); st.set_color(cc00); st.add_vertex(p00)
-			st.set_normal(n01); st.set_color(cc01); st.add_vertex(p01)
-			st.set_normal(n11); st.set_color(cc11); st.add_vertex(p11)
+			st.set_normal(n00); st.set_color(cc00); st.set_custom(0, ss00); st.add_vertex(p00)
+			st.set_normal(n11); st.set_color(cc11); st.set_custom(0, ss11); st.add_vertex(p11)
+			st.set_normal(n01); st.set_color(cc01); st.set_custom(0, ss01); st.add_vertex(p01)
 
 ## 칸 하나의 높이를 (SUB+3)² 격자로 한 번만 구한다 — 바깥 한 줄(halo)은
 ## 법선 차분용(가장자리 밖은 봉우리 굴곡이 0 이라 기준 높이가 나온다).
@@ -298,6 +320,7 @@ func _grid_normal(grid: PackedFloat32Array, i: int, j: int) -> Vector3:
 ## 굴곡은 가장자리에서 0 이라 변의 높이는 늘 기준 높이 — 옆면은 사각형 한
 ## 장이면 틈 없이 맞는다. 지도 밖으로는 OUTER_SKIRT_Y 까지 내려 긋는다.
 func _add_cliffs(st: SurfaceTool, x: int, y: int) -> void:
+	st.set_custom(0, Color(0, 0, 0, 0)) # 옆면은 눈·얼음 없음(돌)
 	var s := TestMap.size(region_id)
 	var center := TestMap.world_pos(x, y, region_id)
 	var half := TestMap.tile_size_of(region_id) * 0.5
@@ -346,8 +369,8 @@ func _tile_vertex_color(own: Color, c00: Color, c10: Color, c01: Color, c11: Col
 	var t: float = clamp((EDGE_BLEND_MARGIN - d) / EDGE_BLEND_MARGIN, 0.0, 1.0)
 	return own.lerp(corner_blend, t)
 
-## 격자 교차점(cx, cy)에 맞닿은 칸(최대 4개)의 색을 평균낸다.
-func _corner_color(rows: Array, cx: int, cy: int) -> Color:
+## 격자 교차점(cx, cy)에 맞닿은 칸(최대 4개)의 색을 평균낸다. surface 면 색 대신 눈·얼음 표시를.
+func _corner_color(rows: Array, cx: int, cy: int, surface := false) -> Color:
 	var total := Color(0, 0, 0, 0)
 	var n := 0
 	for dy in [-1, 0]:
@@ -362,7 +385,7 @@ func _corner_color(rows: Array, cx: int, cy: int) -> Color:
 			var ch: String = row[tx]
 			if not LEGEND.has(ch):
 				continue
-			total += color_of(region_id, ch)
+			total += surface_of(region_id, ch) if surface else color_of(region_id, ch)
 			n += 1
 	if n == 0:
 		return Color(0, 0, 0)

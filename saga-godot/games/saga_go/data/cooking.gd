@@ -35,7 +35,7 @@ const GATHER := {
 	"orchid": {"name": "청하란", "kind": "special", "color": Color(0.72, 0.86, 1.0)},
 	"conch": {"name": "갯소라", "kind": "special", "color": Color(1.0, 0.62, 0.52)},
 	"ash_flower": {"name": "재꽃", "kind": "special", "color": Color(0.8, 0.74, 0.9)},
-	"snow_bloom": {"name": "눈꽃", "kind": "special", "color": Color(0.9, 0.96, 1.0)},
+	"snow_bloom": {"name": "눈꽃", "kind": "special", "color": Color(0.55, 0.8, 1.0)}, # 흰 눈 위에서 보이게 하늘빛
 }
 const MEAT := "meat" # 짐승 고기 — 채집이 아니라 들판 적(growth.gd KILL_DROPS)
 

@@ -146,6 +146,8 @@ func _ready() -> void:
 		add_child(load("res://tools/probe_field_combat.gd").new())
 	if OS.get_environment("SAGA_PERF_PROBE") != "":
 		add_child(load("res://tools/probe_perf.gd").new())
+	if OS.get_environment("SAGA_SHOT_PROBE") != "":
+		add_child(load("res://tools/probe_shots.gd").new())
 	if OS.get_environment("SAGA_KIT_PROBE") != "":
 		add_child(load("res://tools/probe_kits.gd").new())
 	if OS.get_environment("SAGA_ELEMENT_PROBE") != "":

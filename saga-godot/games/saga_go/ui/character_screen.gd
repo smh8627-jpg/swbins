@@ -62,6 +62,7 @@ func _ready() -> void:
 			ev.physical_keycode = pair[1]
 			InputMap.action_add_event(pair[0], ev)
 	_build()
+	_wrap_row_buttons(_root)
 	var open_btn := Button.new()
 	open_btn.text = "인물 (C)"
 	open_btn.position = Vector2(222, 20)
@@ -276,6 +277,15 @@ func _build() -> void:
 	close.size = Vector2(90, 42)
 	close.pressed.connect(close_screen)
 	_root.add_child(close)
+
+## 2026-09-26 창 모드 촬영 — 가로줄의 긴 단추 글자(무기 돌파 재료 목록·편성 인원)가 줄을 화면보다 넓혀 오른쪽이 잘렸다.
+## 가로줄 안 단추는 글자를 줄바꿈하고 줄 폭을 나눠 갖는다(단추 높이만 늘어난다).
+func _wrap_row_buttons(root: Node) -> void:
+	for c in root.find_children("*", "Button", true, false):
+		var b := c as Button
+		if b.get_parent() is HBoxContainer:
+			b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 func _label(parent: Control, size_px: int) -> Label:
 	var l := Label.new()
