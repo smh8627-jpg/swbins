@@ -1,29 +1,63 @@
 {
  "id": "_cmp_real_morak_01",
- "_note": "단계 3 두목 비교용 — saga-unity Morak(Mixamo) 자리 후보(STORY 황건 두목, 들판·비경). 게임 인물 아님(이름 없음). 우람한 중년 동양 남자·굵은 눈썹·맨팔·누런 두건(황건)·누런 허리띠·가죽 조끼·헐렁한 흙빛 바지·청동 팔찌·장화 — 살을 본뜬 껍데기(shell).",
- "macro": {"gender": 1.0, "age": 0.62, "muscle": 0.9, "weight": 0.85, "height": 0.9, "proportions": 0.75,
-           "race": {"asian": 0.7, "caucasian": 0.15, "african": 0.15}},
- "targets": {"chin-width-incr": 0.5, "chin-prominent-incr": 0.3, "eyebrows-trans-down": 0.4, "eyebrows-angle-down": 0.4,
-             "neck-scale-horiz-incr": 0.7, "torso-scale-horiz-incr": 0.3, "nose-scale-horiz-incr": 0.3, "head-square": 0.5},
+ "_note": "단계 3 두목 비교용 — saga-unity Morak(Mixamo) 자리 후보(STORY 황건 두목, 들판·비경). 게임 인물 아님(이름 없음). 우람한 중년 동양 남자·굵은 눈썹·맨팔·누런 두건(황건)·누런 허리띠·가죽 조끼·헐렁한 흙빛 바지·청동 팔찌·장화 — 살을 본뜬 껍데기(shell). 09-26 진짜 옷(흙빛 바지·누빈 가죽 조끼·누런 허리 천(공방 baji_vest)·누런 터번(공방 turban)·장화, 청동 팔찌 껍데기 그대로 — 살 껍데기 두건은 수영모로 보였다).",
+ "macro": {
+  "gender": 1.0,
+  "age": 0.62,
+  "muscle": 0.9,
+  "weight": 0.85,
+  "height": 0.9,
+  "proportions": 0.75,
+  "race": {
+   "asian": 0.7,
+   "caucasian": 0.15,
+   "african": 0.15
+  }
+ },
+ "targets": {
+  "chin-width-incr": 0.5,
+  "chin-prominent-incr": 0.3,
+  "eyebrows-trans-down": 0.4,
+  "eyebrows-angle-down": 0.4,
+  "neck-scale-horiz-incr": 0.7,
+  "torso-scale-horiz-incr": 0.3,
+  "nose-scale-horiz-incr": 0.3,
+  "head-square": 0.5
+ },
  "skin": "middleage_asian_male/middleage_asian_male.mhmat",
  "eyes": "high-poly/high-poly.mhclo",
  "eyebrows": "eyebrow005/eyebrow005.mhclo",
  "eyelashes": "eyelashes01/eyelashes01.mhclo",
  "teeth": "teeth_base/teeth_base.mhclo",
- "kitbash": [
-  {"part": "shell", "slot": "cloth", "color": "#5a4a36", "rough": 0.95, "offset": 0.012, "thick": 0.004,
-   "groups": ["pelvis", "spine_01", "thigh_*", "calf_*"], "z": [0.12, 0.56], "minw": 0.5},
-  {"part": "shell", "slot": "leather", "color": "#4a3322", "rough": 0.65, "offset": 0.008, "thick": 0.005,
-   "groups": ["spine_0*", "clavicle_*"], "z": [0.55, 0.82], "minw": 0.5},
-  {"part": "shell", "slot": "leather", "color": "#4a3322", "rough": 0.7, "offset": 0.016, "thick": 0.005,
-   "groups": ["foot_*", "ball_*", "calf_*"], "z": [0.0, 0.2], "minw": 0.3},
-  {"part": "shell", "slot": "metal", "color": "#8a6a3a", "rough": 0.4, "offset": 0.01, "thick": 0.005,
-   "groups": ["lowerarm_*"], "minw": 0.8},
-  {"part": "shell", "slot": "cloth_turban", "color": "#c9a227", "rough": 0.85, "offset": 0.024, "thick": 0.009,
-   "groups": ["head"], "open_face": true, "minw": 0.5},
-  {"part": "shell", "slot": "cloth_turban", "color": "#c9a227", "rough": 0.85, "offset": 0.024, "thick": 0.005,
-   "groups": ["pelvis", "spine_01"], "z": [0.52, 0.575], "minw": 0.4}
+ "_garments": [
+  "baji_vest",
+  "turban@c9a227"
  ],
- "anims": {"idle": "Sword_Idle", "walk": "Walk_Loop", "run": "Jog_Fwd_Loop", "attack": "Punch_Cross",
-           "hit": "Hit_Chest", "death": "Death01"}
+ "kitbash": [
+  {
+   "part": "shell",
+   "slot": "metal",
+   "color": "#8a6a3a",
+   "rough": 0.4,
+   "offset": 0.01,
+   "thick": 0.005,
+   "groups": [
+    "lowerarm_*"
+   ],
+   "minw": 0.8
+  }
+ ],
+ "anims": {
+  "idle": "CF_Guard_Idle_Loop",
+  "walk": "Walk_Loop",
+  "run": "Jog_Fwd_Loop",
+  "attack": "Punch_Cross",
+  "hit": "Hit_Chest",
+  "death": "Death01"
+ },
+ "clothes": [
+  "cf_baji_vest/cf_baji_vest.mhclo",
+  "cf_turban_c9a227/cf_turban_c9a227.mhclo",
+  "rehmanpolanski_viking_boots/rehmanpolanski_viking_boots.mhclo"
+ ]
 }

@@ -1,6 +1,6 @@
 {
  "id": "_cmp_real_brawler_01",
- "_note": "단계 3 비교용 — saga-unity Abe(Mixamo) 자리 후보(DUNGEON·STORY 맨몸 잡졸 · GO 산적 동료). 게임 인물 아님. 우람한 맨상체 남자·짧은 머리·붉은 허리띠·짙은 쪽빛 바지·손에 흰 감은 천·감발·짚신빛 신. 황건 두목(누런 두건·가죽 조끼)과 겹치지 않게.",
+ "_note": "단계 3 비교용 — saga-unity Abe(Mixamo) 자리 후보(DUNGEON·STORY 맨몸 잡졸 · GO 산적 동료). 게임 인물 아님. 우람한 맨상체 남자·짧은 머리·붉은 허리띠·짙은 쪽빛 바지·손에 흰 감은 천·감발·짚신빛 신. 황건 두목(누런 두건·가죽 조끼)과 겹치지 않게. 09-26 진짜 옷(쪽빛 바지·붉은 허리 천(공방 baji)·천 신, 손 감은 천 껍데기 그대로 — 옷 면 감발은 넓은 바지를 본떠 흰 통으로 부풀어 지웠다).",
  "macro": {
   "gender": 1.0,
   "age": 0.45,
@@ -20,46 +20,14 @@
  "eyes": "high-poly/high-poly.mhclo",
  "eyelashes": "eyelashes01/eyelashes01.mhclo",
  "teeth": "teeth_base/teeth_base.mhclo",
+ "_garments": [
+  "baji"
+ ],
  "targets": {
   "neck-scale-horiz-incr": 0.5,
   "chin-width-incr": 0.3
  },
  "kitbash": [
-  {
-   "part": "shell",
-   "slot": "cloth_pants",
-   "color": "#1f2a44",
-   "rough": 0.95,
-   "offset": 0.006,
-   "thick": 0.004,
-   "groups": [
-    "pelvis",
-    "thigh_*",
-    "calf_*"
-   ],
-   "z": [
-    0.12,
-    0.58
-   ],
-   "minw": 0.5
-  },
-  {
-   "part": "shell",
-   "slot": "cloth_sash",
-   "color": "#9a1f1a",
-   "rough": 0.9,
-   "offset": 0.02,
-   "thick": 0.01,
-   "groups": [
-    "pelvis",
-    "spine_01"
-   ],
-   "z": [
-    0.53,
-    0.59
-   ],
-   "minw": 0.5
-  },
   {
    "part": "shell",
    "slot": "cloth_wrap",
@@ -81,48 +49,18 @@
     0.56
    ],
    "minw": 0.3
-  },
-  {
-   "part": "shell",
-   "slot": "cloth_wrap",
-   "color": "#e6e0d0",
-   "rough": 0.95,
-   "offset": 0.012,
-   "thick": 0.005,
-   "groups": [
-    "calf_*"
-   ],
-   "z": [
-    0.05,
-    0.2
-   ],
-   "minw": 0.5
-  },
-  {
-   "part": "shell",
-   "slot": "leather",
-   "color": "#b8a070",
-   "rough": 0.65,
-   "offset": 0.01,
-   "thick": 0.005,
-   "groups": [
-    "foot_*",
-    "ball_*",
-    "calf_*"
-   ],
-   "z": [
-    0.0,
-    0.05
-   ],
-   "minw": 0.3
   }
  ],
  "anims": {
-  "idle": "Sword_Idle",
+  "idle": "CF_Guard_Idle_Loop",
   "walk": "Walk_Loop",
   "run": "Jog_Fwd_Loop",
   "attack": "Punch_Cross",
   "hit": "Hit_Chest",
   "death": "Death01"
- }
+ },
+ "clothes": [
+  "cf_baji/cf_baji.mhclo",
+  "toigo_mj_cloth_shoes/toigo_mj_cloth_shoes.mhclo"
+ ]
 }

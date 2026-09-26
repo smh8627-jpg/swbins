@@ -1,32 +1,138 @@
 {
  "id": "_cmp_real_ninja_01",
- "_note": "단계 3 두목 비교용 — saga-unity Ninja(Mixamo) 자리 후보(DUNGEON 황건 살수, 층 진행기 miniboss·방3 고정 살수). 게임 인물 아님(이름 없음). 날랜 동양 남자·몸에 붙는 먹빛 옷·팔·정강이 감발(가죽)·장갑·버선 신·얼굴 트인 두건 위 복면(코 아래)·누런 머리띠(황건) — 전부 살을 본뜬 껍데기(shell).",
- "macro": {"gender": 1.0, "age": 0.45, "muscle": 0.7, "weight": 0.3, "height": 0.649, "proportions": 0.85,
-           "race": {"asian": 0.85, "caucasian": 0.1, "african": 0.05}},
- "targets": {"eyebrows-angle-up": 0.4, "chin-width-decr": 0.2},
+ "_note": "단계 3 두목 비교용 — saga-unity Ninja(Mixamo) 자리 후보(DUNGEON 황건 살수, 층 진행기 miniboss·방3 고정 살수). 게임 인물 아님(이름 없음). 날랜 동양 남자·몸에 붙는 먹빛 옷·팔·정강이 감발(가죽)·장갑·버선 신·얼굴 트인 두건 위 복면(코 아래)·누런 머리띠(황건) — 전부 살을 본뜬 껍데기(shell). 09-26 진짜 옷(먹빛 닌자복(공방 shinobi, 정강이 감발 포함), 팔 감발은 옷 면 껍데기, 두건·복면·황건 띠·장갑·버선 껍데기 그대로).",
+ "macro": {
+  "gender": 1.0,
+  "age": 0.45,
+  "muscle": 0.7,
+  "weight": 0.3,
+  "height": 0.649,
+  "proportions": 0.85,
+  "race": {
+   "asian": 0.85,
+   "caucasian": 0.1,
+   "african": 0.05
+  }
+ },
+ "targets": {
+  "eyebrows-angle-up": 0.4,
+  "chin-width-decr": 0.2
+ },
  "skin": "young_asian_male/young_asian_male.mhmat",
  "eyes": "high-poly/high-poly.mhclo",
  "eyebrows": "eyebrow009/eyebrow009.mhclo",
  "eyelashes": "eyelashes01/eyelashes01.mhclo",
  "teeth": "teeth_base/teeth_base.mhclo",
- "kitbash": [
-  {"part": "shell", "slot": "cloth", "color": "#23252e", "rough": 0.9, "offset": 0.003, "thick": 0.003,
-   "groups": ["pelvis", "spine_0*", "clavicle_*", "upperarm_*", "lowerarm_*", "thigh_*", "calf_*", "neck_01"], "minw": 0.5},
-  {"part": "shell", "slot": "leather", "color": "#3b3128", "rough": 0.75, "offset": 0.008, "thick": 0.003,
-   "groups": ["lowerarm_*"], "minw": 0.7},
-  {"part": "shell", "slot": "leather", "color": "#3b3128", "rough": 0.75, "offset": 0.008, "thick": 0.003,
-   "groups": ["calf_*"], "z": [0.06, 0.26], "minw": 0.6},
-  {"part": "shell", "slot": "leather", "color": "#3b3128", "rough": 0.75, "offset": 0.004, "thick": 0.003,
-   "groups": ["hand_*", "index_*", "middle_*", "ring_*", "pinky_*", "thumb_*"], "minw": 0.3},
-  {"part": "shell", "slot": "leather", "color": "#3b3128", "rough": 0.75, "offset": 0.006, "thick": 0.003,
-   "groups": ["foot_*", "ball_*", "calf_*"], "z": [0.0, 0.07], "minw": 0.3},
-  {"part": "shell", "slot": "cloth", "color": "#23252e", "rough": 0.9, "offset": 0.012, "thick": 0.004,
-   "groups": ["head", "neck_01"], "open_face": true, "minw": 0.5},
-  {"part": "shell", "slot": "cloth_mask", "color": "#1b1c22", "rough": 0.95, "offset": 0.018, "thick": 0.003,
-   "groups": ["head", "neck_01"], "z_eye": [-0.15, -0.028], "minw": 0.5},
-  {"part": "shell", "slot": "cloth_band", "color": "#c9a227", "rough": 0.85, "offset": 0.02, "thick": 0.004,
-   "groups": ["head"], "z_eye": [0.035, 0.09], "minw": 0.5}
+ "_garments": [
+  "shinobi@23252e,3b3128"
  ],
- "anims": {"idle": "Sword_Idle", "walk": "Crouch_Fwd_Loop", "run": "Sprint_Loop", "attack": "Sword_Attack",
-           "hit": "Hit_Chest", "dodge": "Roll", "death": "Death01"}
+ "kitbash": [
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#3b3128",
+   "rough": 0.75,
+   "offset": 0.008,
+   "thick": 0.003,
+   "groups": [
+    "lowerarm_*"
+   ],
+   "minw": 0.7,
+   "src": "cf_shinobi_23252e_3b3128"
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#3b3128",
+   "rough": 0.75,
+   "offset": 0.004,
+   "thick": 0.003,
+   "groups": [
+    "hand_*",
+    "index_*",
+    "middle_*",
+    "ring_*",
+    "pinky_*",
+    "thumb_*"
+   ],
+   "minw": 0.3
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#3b3128",
+   "rough": 0.75,
+   "offset": 0.006,
+   "thick": 0.003,
+   "groups": [
+    "foot_*",
+    "ball_*",
+    "calf_*"
+   ],
+   "z": [
+    0.0,
+    0.07
+   ],
+   "minw": 0.3
+  },
+  {
+   "part": "shell",
+   "slot": "cloth",
+   "color": "#23252e",
+   "rough": 0.9,
+   "offset": 0.012,
+   "thick": 0.004,
+   "groups": [
+    "head",
+    "neck_01"
+   ],
+   "open_face": true,
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "cloth_mask",
+   "color": "#1b1c22",
+   "rough": 0.95,
+   "offset": 0.018,
+   "thick": 0.003,
+   "groups": [
+    "head",
+    "neck_01"
+   ],
+   "z_eye": [
+    -0.15,
+    -0.028
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "cloth_band",
+   "color": "#c9a227",
+   "rough": 0.85,
+   "offset": 0.02,
+   "thick": 0.004,
+   "groups": [
+    "head"
+   ],
+   "z_eye": [
+    0.035,
+    0.09
+   ],
+   "minw": 0.5
+  }
+ ],
+ "anims": {
+  "idle": "Sword_Idle",
+  "walk": "Crouch_Fwd_Loop",
+  "run": "Sprint_Loop",
+  "attack": "Sword_Attack",
+  "hit": "Hit_Chest",
+  "dodge": "Roll",
+  "death": "Death01"
+ },
+ "clothes": [
+  "cf_shinobi_23252e_3b3128/cf_shinobi_23252e_3b3128.mhclo"
+ ]
 }

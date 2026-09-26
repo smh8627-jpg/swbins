@@ -1,6 +1,6 @@
 {
  "id": "_cmp_real_castleguard_02",
- "_note": "단계 3 GO 인물 비교용 — saga-unity Castle Guard 02(Mixamo) 자리 후보(GO '투구 쓴 성 경비', 109-7). 게임 인물 아님. 다부진 남자·밤빛 가죽 갑옷(몸통)·국방 누비 소매·바지·목 사슬 두건·얼굴 트인 쇠 투구·쇠 정강이 가리개·가죽 장화. 성 파수병(사슬 몸통·쪽빛 겉옷판)과 겹치지 않게.",
+ "_note": "단계 3 GO 인물 비교용 — saga-unity Castle Guard 02(Mixamo) 자리 후보(GO '투구 쓴 성 경비', 109-7). 게임 인물 아님. 다부진 남자·밤빛 가죽 갑옷(몸통)·국방 누비 소매·바지·목 사슬 두건·얼굴 트인 쇠 투구·쇠 정강이 가리개·가죽 장화. 성 파수병(사슬 몸통·쪽빛 겉옷판)과 겹치지 않게. 09-26 진짜 옷(국방 전포·가죽 조끼(공방 warrior_robe)·둥근 투구 비늘 목가리개·장화, 장갑 껍데기 그대로 — 장화 면 쇠 정강이는 흰 통으로 부풀어 지웠다).",
  "macro": {
   "gender": 1.0,
   "age": 0.5,
@@ -19,64 +19,11 @@
  "eyes": "high-poly/high-poly.mhclo",
  "eyelashes": "eyelashes01/eyelashes01.mhclo",
  "teeth": "teeth_base/teeth_base.mhclo",
+ "_garments": [
+  "warrior_robe@4f5a3a,5a3a22",
+  "helmet_east"
+ ],
  "kitbash": [
-  {
-   "part": "shell",
-   "slot": "cloth",
-   "color": "#4f5a3a",
-   "rough": 0.95,
-   "offset": 0.006,
-   "thick": 0.004,
-   "groups": [
-    "spine_0*",
-    "clavicle_*",
-    "pelvis",
-    "neck_01",
-    "upperarm_*",
-    "lowerarm_*"
-   ],
-   "z": [
-    0.44,
-    0.88
-   ],
-   "minw": 0.5
-  },
-  {
-   "part": "shell",
-   "slot": "cloth_pants",
-   "color": "#4f5a3a",
-   "rough": 0.95,
-   "offset": 0.006,
-   "thick": 0.004,
-   "groups": [
-    "pelvis",
-    "thigh_*",
-    "calf_*"
-   ],
-   "z": [
-    0.02,
-    0.58
-   ],
-   "minw": 0.5
-  },
-  {
-   "part": "shell",
-   "slot": "leather",
-   "color": "#3a2818",
-   "rough": 0.65,
-   "offset": 0.016,
-   "thick": 0.005,
-   "groups": [
-    "foot_*",
-    "ball_*",
-    "calf_*"
-   ],
-   "z": [
-    0.0,
-    0.22
-   ],
-   "minw": 0.3
-  },
   {
    "part": "shell",
    "slot": "leather",
@@ -93,80 +40,19 @@
     "thumb_*"
    ],
    "minw": 0.3
-  },
-  {
-   "part": "shell",
-   "slot": "leather",
-   "color": "#5a3a22",
-   "rough": 0.6,
-   "offset": 0.018,
-   "thick": 0.008,
-   "groups": [
-    "spine_0*",
-    "pelvis",
-    "clavicle_*"
-   ],
-   "z": [
-    0.46,
-    0.82
-   ],
-   "minw": 0.5
-  },
-  {
-   "part": "shell",
-   "slot": "metal_mail",
-   "color": "#7c8086",
-   "rough": 0.5,
-   "offset": 0.02,
-   "thick": 0.005,
-   "groups": [
-    "neck_01",
-    "clavicle_*",
-    "spine_03",
-    "head"
-   ],
-   "z": [
-    0.8,
-    0.88
-   ],
-   "minw": 0.35
-  },
-  {
-   "part": "shell",
-   "slot": "metal",
-   "color": "#8a9096",
-   "rough": 0.35,
-   "offset": 0.016,
-   "thick": 0.006,
-   "groups": [
-    "head"
-   ],
-   "open_face": true,
-   "minw": 0.5
-  },
-  {
-   "part": "shell",
-   "slot": "metal",
-   "color": "#8a9096",
-   "rough": 0.35,
-   "offset": 0.024,
-   "thick": 0.006,
-   "groups": [
-    "calf_*"
-   ],
-   "z": [
-    0.1,
-    0.26
-   ],
-   "minw": 0.7
   }
  ],
  "anims": {
-  "idle": "Sword_Idle",
+  "idle": "CF_Guard_Idle_Loop",
   "walk": "Walk_Loop",
   "run": "Jog_Fwd_Loop",
   "attack": "Sword_Attack",
   "hit": "Hit_Chest",
   "death": "Death01"
- }
+ },
+ "clothes": [
+  "cf_warrior_robe_4f5a3a_5a3a22/cf_warrior_robe_4f5a3a_5a3a22.mhclo",
+  "cf_helmet_east/cf_helmet_east.mhclo",
+  "rehmanpolanski_viking_boots/rehmanpolanski_viking_boots.mhclo"
+ ]
 }
