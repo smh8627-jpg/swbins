@@ -79,12 +79,12 @@ namespace Saga.Story.UI
                 new Vector2(0.5f, 1f), new Vector2(0f, -60f), new Vector2(500f, 60f), 32);
 
             _rowButtons = new Button[6];
-            (_sfxNameLabel, _sfxValueLabel) = MakeRow(-160f, "settings.sfx", 0);
-            (_vibrationNameLabel, _vibrationValueLabel) = MakeRow(-260f, "settings.vibration", 1);
-            (_uiScaleNameLabel, _uiScaleValueLabel) = MakeRow(-360f, "settings.ui_scale", 2);
-            (_qualityNameLabel, _qualityValueLabel) = MakeRow(-460f, "settings.graphics_quality", 3);
-            (_languageNameLabel, _languageValueLabel) = MakeRow(-560f, "settings.language", 4);
-            (_bgmNameLabel, _bgmValueLabel) = MakeRow(-660f, "settings.bgm", 5);
+            (_sfxNameLabel, _sfxValueLabel) = MakeRow(-140f, "settings.sfx", 0);
+            (_vibrationNameLabel, _vibrationValueLabel) = MakeRow(-235f, "settings.vibration", 1);
+            (_uiScaleNameLabel, _uiScaleValueLabel) = MakeRow(-330f, "settings.ui_scale", 2);
+            (_qualityNameLabel, _qualityValueLabel) = MakeRow(-425f, "settings.graphics_quality", 3);
+            (_languageNameLabel, _languageValueLabel) = MakeRow(-520f, "settings.language", 4);
+            (_bgmNameLabel, _bgmValueLabel) = MakeRow(-615f, "settings.bgm", 5);
 
             _closeButton = NewButton(_panel.transform, StoryLocalization.T("settings.close"),
                 new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(300f, 70f));

@@ -51,23 +51,23 @@ namespace Saga.Story.UI
             canvas.transform.SetParent(transform, false);
 
             // 2026-09-23 — 줄 영역은 EnsureChrome()이 탭·칸 줄 아래로 다시 잡는다(차수 탭, 3단계).
-            _panel = NewPanel(canvas.transform, new Vector2(0.5f, 0.5f), new Vector2(900f, 1600f),
+            _panel = NewPanel(canvas.transform, new Vector2(0.5f, 0.5f), PanelSize,
                 new Color(0f, 0f, 0f, 0.88f));
             _panel.SetActive(false);
 
-            _titleLabel = NewText(_panel.transform, "", new Vector2(0.5f, 1f), new Vector2(0f, -40f), new Vector2(840f, 80f), 30);
-            _statusLabel = NewText(_panel.transform, "", new Vector2(0.5f, 1f), new Vector2(0f, -120f), new Vector2(840f, 60f), 22);
+            _titleLabel = NewText(_panel.transform, "", new Vector2(0.5f, 1f), new Vector2(0f, -30f), new Vector2(RowsWidth, 64f), 30);
+            _statusLabel = NewText(_panel.transform, "", new Vector2(0.5f, 1f), new Vector2(0f, -95f), new Vector2(RowsWidth, 50f), 22);
 
             var rowsGo = new GameObject("Rows", typeof(RectTransform));
             rowsGo.transform.SetParent(_panel.transform, false);
             var rect = (RectTransform)rowsGo.transform;
             rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 1f);
-            rect.anchoredPosition = new Vector2(0f, -190f);
-            rect.sizeDelta = new Vector2(840f, RowsHeight);
+            rect.anchoredPosition = new Vector2(0f, RowsTop);
+            rect.sizeDelta = new Vector2(RowsWidth, RowsHeight);
             _rows = rowsGo.transform;
 
             _closeButton = NewButton(_panel.transform, StoryLocalization.T("settings.close"),
-                new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(300f, 70f), null);
+                new Vector2(0.5f, 0f), new Vector2(0f, CloseY), new Vector2(300f, 70f), null);
             _closeLabel = _closeButton.GetComponentInChildren<TextMeshProUGUI>();
         }
 
@@ -178,18 +178,25 @@ namespace Saga.Story.UI
             ClearRows();
             _rowJob = StoryJobState.Job;
             _rowTier = _tab;
-            float step = Mathf.Min(150f, RowsHeight / Mathf.Max(1, skills.Count));
-            float y = 0f;
-            foreach (var sk in skills)
+            // 두 열(왼쪽 먼저 위→아래). 하나뿐이면 가운데.
+            int perCol = Mathf.Max(1, (skills.Count + 1) / 2);
+            float step = Mathf.Min(150f, RowsHeight / perCol);
+            for (int i = 0; i < skills.Count; i++)
             {
-                _rowLabels.Add(BuildRow(sk, y, step - 10f));
-                y -= step;
+                float x = skills.Count == 1 ? 0f : (i < perCol ? -ColumnX : ColumnX);
+                _rowLabels.Add(BuildRow(skills[i], x, -(i % perCol) * step, step - 10f));
             }
         }
 
-        // 제목(-40)·상태(-120)·탭(-195)·칸 줄(-265) 아래부터 닫기 버튼 위까지.
-        private const float RowsTop = -320f;
-        private const float RowsHeight = 1140f;
+        // 110 ⑤c-2 — 가로 판(옛 900×1600 세로 판은 가로 화면 논리 높이 900 을 두 배 가까이 넘었다).
+        // 제목(-30)·상태(-95)·탭(-150)·칸 줄(-212) 아래부터 닫기(아래 30~100) 위까지, 줄은 두 열.
+        private static readonly Vector2 PanelSize = new Vector2(1500f, 860f);
+        private const float RowsWidth = 1440f;
+        private const float RowWidth = 700f;
+        private const float ColumnX = 370f;
+        private const float RowsTop = -265f;
+        private const float RowsHeight = 480f;
+        private const float CloseY = 30f;
 
         private string _rowJob;
         private int _rowTier;
@@ -210,19 +217,31 @@ namespace Saga.Story.UI
                 go.transform.SetParent(_panel.transform, false);
                 var r = (RectTransform)go.transform;
                 r.anchorMin = r.anchorMax = r.pivot = new Vector2(0.5f, 1f);
-                r.anchoredPosition = new Vector2(0f, -195f);
-                r.sizeDelta = new Vector2(840f, 64f);
+                r.anchoredPosition = new Vector2(0f, -150f);
+                r.sizeDelta = new Vector2(RowsWidth, 60f);
                 _tabsRoot = go.transform;
             }
             if (_slotsLabel == null)
             {
-                _slotsLabel = NewText(_panel.transform, "", new Vector2(0.5f, 1f), new Vector2(0f, -265f), new Vector2(840f, 50f), 22);
+                _slotsLabel = NewText(_panel.transform, "", new Vector2(0.5f, 1f), new Vector2(0f, -212f), new Vector2(RowsWidth, 44f), 22);
             }
             if (_rows is RectTransform rows)
             {
                 rows.anchoredPosition = new Vector2(0f, RowsTop);
-                rows.sizeDelta = new Vector2(840f, RowsHeight);
+                rows.sizeDelta = new Vector2(RowsWidth, RowsHeight);
             }
+            // 옛 씬(세로 판으로 지은 것)도 재빌드 없이 가로 판으로.
+            ((RectTransform)_panel.transform).sizeDelta = PanelSize;
+            Place(_titleLabel != null ? _titleLabel.rectTransform : null, new Vector2(0f, -30f), new Vector2(RowsWidth, 64f));
+            Place(_statusLabel != null ? _statusLabel.rectTransform : null, new Vector2(0f, -95f), new Vector2(RowsWidth, 50f));
+            if (_closeButton != null) ((RectTransform)_closeButton.transform).anchoredPosition = new Vector2(0f, CloseY);
+        }
+
+        private static void Place(RectTransform r, Vector2 pos, Vector2 size)
+        {
+            if (r == null) return;
+            r.anchoredPosition = pos;
+            r.sizeDelta = size;
         }
 
         /// <summary>차수 탭 1~지금 자리. 자리가 바뀔 때만 다시 짓고, 평소엔 고른 탭 색만 바꾼다
@@ -309,17 +328,17 @@ namespace Saga.Story.UI
             return $"{tag}{name}  Lv.{StorySkillState.LevelOf(sk.Key)}/{sk.Max}{need}\n{desc}";
         }
 
-        private TextMeshProUGUI BuildRow(StorySkillData.Skill sk, float y, float height)
+        private TextMeshProUGUI BuildRow(StorySkillData.Skill sk, float x, float y, float height)
         {
             var row = new GameObject($"Row_{sk.Key}", typeof(RectTransform));
             row.transform.SetParent(_rows, false);
             var rect = (RectTransform)row.transform;
             rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 1f);
-            rect.anchoredPosition = new Vector2(0f, y);
-            rect.sizeDelta = new Vector2(840f, height);
+            rect.anchoredPosition = new Vector2(x, y);
+            rect.sizeDelta = new Vector2(RowWidth, height);
 
             var label = NewText(row.transform, RowText(sk), new Vector2(0f, 0.5f),
-                new Vector2(10f, 0f), new Vector2(580f, height - 4f), height >= 110f ? 24 : 20);
+                new Vector2(10f, 0f), new Vector2(RowWidth - 260f, height - 4f), height >= 110f ? 24 : 20);
             label.alignment = TextAlignmentOptions.Left;
 
             string captured = sk.Key;

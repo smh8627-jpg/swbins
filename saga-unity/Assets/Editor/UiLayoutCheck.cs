@@ -20,6 +20,9 @@ namespace Saga.EditorTools
     ///
     /// - 위젯 = 캔버스(또는 꽉 찬 투명 틀) 바로 밑 덩어리. 한 위젯 안의 겹침(버튼 위 글자 등)은 설계라 안 센다.
     /// - 모달(화면 30% 넘는 판을 가진 위젯)은 다른 위젯과의 겹침에서 뺀다 — 일부러 위를 덮는다.
+    /// - **패널(110 ⑤c-2)**: 첫 화면을 잰 뒤 보이는 단추를 하나씩 눌러(타이틀은 설정만) 새로 나타난 그래픽이 셋 이상이면
+    ///   그것만 세 화면비로 잰다 — 단위는 단추(안의 글자·그림 포함)·단추 밖 글자, 단추 밖 그림(판·띠·아이콘)은 뺀다.
+    ///   닫기는 새 것 중 닫기·확인 류 단추 → 일시정지 메뉴 → 연 단추 한 번 더. 스크롤 마스크 밖은 잘라 낸다.
     /// - 세이브는 백업했다 되돌린다. 결과 "[UiLayoutCheck] OK/FAIL", 자세한 목록은 `Logs/ui_layout_report.txt`.
     /// `-executeMethod Saga.EditorTools.UiLayoutCheck.Run`
     /// </summary>
@@ -37,7 +40,9 @@ namespace Saga.EditorTools
 
         private static readonly string[] Scenes = SagaPlayerBuild.Scenes;
 
-        private static IEnumerator _run;
+        private static NestedCoroutine _run;
+        private static int _panels;
+        private static readonly List<string> Unclosed = new List<string>();
         private static readonly StringBuilder Report = new StringBuilder();
         private static readonly StringBuilder Map = new StringBuilder();
         private static readonly List<string> Summary = new List<string>();
@@ -50,7 +55,7 @@ namespace Saga.EditorTools
         [MenuItem("Saga/Check/UI Layout (3 aspect ratios)")]
         public static void Run()
         {
-            Report.Clear(); Map.Clear(); Summary.Clear(); _issues = 0; _done = false;
+            Report.Clear(); Map.Clear(); Summary.Clear(); _issues = 0; _done = false; _panels = 0; Unclosed.Clear();
             SaveBackup.Clear();
             foreach (var f in Directory.GetFiles(Application.persistentDataPath, "save*.json")) SaveBackup[f] = File.ReadAllBytes(f);
             _origOptionsEnabled = EditorSettings.enterPlayModeOptionsEnabled;
@@ -66,7 +71,7 @@ namespace Saga.EditorTools
         {
             if (s == PlayModeStateChange.EnteredPlayMode)
             {
-                _run = Script();
+                _run = new NestedCoroutine(Script());
                 EditorApplication.update += Tick;
             }
             else if (s == PlayModeStateChange.EnteredEditMode)
@@ -81,7 +86,7 @@ namespace Saga.EditorTools
                 Directory.CreateDirectory(Path.GetDirectoryName(ReportPath));
                 File.WriteAllText(ReportPath, Report.ToString() + System.Environment.NewLine + Map, new UTF8Encoding(false));
                 bool ok = _done && _issues == 0;
-                Debug.Log($"{T} {(ok ? "OK" : "FAIL")} - 문제 {_issues} (done={_done}) | {string.Join(" · ", Summary)}");
+                Debug.Log($"{T} {(ok ? "OK" : "FAIL")} - 문제 {_issues} (done={_done}) · 패널 {_panels} · 못 닫음 {Unclosed.Count}{(Unclosed.Count > 0 ? " [" + string.Join(", ", Unclosed) + "]" : "")} | {string.Join(" · ", Summary)}");
                 if (Application.isBatchMode) EditorApplication.Exit(ok ? 0 : 1);
             }
         }
@@ -89,7 +94,7 @@ namespace Saga.EditorTools
         private static void Tick()
         {
             bool more;
-            try { more = _run.MoveNext(); }
+            try { more = _run.Step(); }
             catch (System.Exception e) { Debug.LogError($"{T} 예외 {e}"); _issues++; more = false; }
             if (!more)
             {
@@ -108,8 +113,84 @@ namespace Saga.EditorTools
                 while (frames < 60 || Time.realtimeSinceStartup - t0 < 1.5f) { frames++; yield return null; }
                 string label = Path.GetFileNameWithoutExtension(Scenes[i]);
                 foreach (var sc in Screens) Measure(label, sc.name, sc.w, sc.h);
+                yield return Panels(label, i == 0);
             }
             _done = true;
+        }
+
+        // ───────── 패널 — 단추를 눌러 새로 뜬 것만 ─────────
+
+        private static readonly string[] CloseLabels = { "닫기", "Close", "확인", "OK", "취소", "Cancel", "돌아가기", "계속하기", "Resume", "X", "×", "✕" };
+
+        private static IEnumerator Panels(string scene, bool title)
+        {
+            var buttons = VisibleButtons().OrderBy(b => PathOf(b.transform)).ToList();
+            int n = 0;
+            foreach (var b in buttons)
+            {
+                if (b == null || !b.isActiveAndEnabled || !b.interactable) continue;
+                if (title && b.name != "Settings") continue; // 타이틀의 나머지는 판을 연다·끈다
+                var before = new HashSet<int>(VisibleGraphics().Select(g => g.GetInstanceID()));
+                string name = b.name + Label(b);
+                b.onClick.Invoke();
+                for (int f = 0; f < 20; f++) yield return null;
+                // 루트 캔버스마다 묶어 셋 이상 새로 뜬 캔버스만 — 기다리는 사이 다른 캔버스에 뜬 알림(지역 배너 등)은 패널이 아니다.
+                var fresh = VisibleGraphics().Where(g => !before.Contains(g.GetInstanceID()))
+                    .GroupBy(g => g.canvas != null ? g.canvas.rootCanvas : null).Where(grp => grp.Count() >= 3)
+                    .SelectMany(grp => grp).ToList();
+                if (fresh.Count < 3) continue; // 버튼 글자만 바뀜·토스트 한 줄은 패널 아님
+                n++; _panels++;
+                var only = new HashSet<Graphic>(fresh);
+                foreach (var sc in Screens) Measure($"{scene} ▸ {name}", sc.name, sc.w, sc.h, only);
+                yield return Close(b, fresh, $"{scene} ▸ {name}");
+            }
+            Summary.Add($"{scene} 패널 {n}");
+        }
+
+        private static IEnumerator Close(Button opener, List<Graphic> fresh, string what)
+        {
+            Button close = null;
+            foreach (var g in fresh)
+            {
+                var bb = g.GetComponentInParent<Button>();
+                if (bb != null && bb.isActiveAndEnabled && CloseLabels.Contains(Label(bb).Trim())) { close = bb; break; }
+            }
+            if (close != null) close.onClick.Invoke();
+            else if (Saga.Core.SagaPauseMenu.IsOpen) Saga.Core.SagaPauseMenu.Close();
+            else if (opener != null && opener.isActiveAndEnabled) opener.onClick.Invoke();
+            for (int f = 0; f < 20; f++) yield return null;
+            int left = fresh.Count(g => g != null && g.isActiveAndEnabled && g.gameObject.activeInHierarchy && Alpha(g) >= 0.05f);
+            if (left >= 3)
+            {
+                Unclosed.Add(what);
+                foreach (var g in fresh) if (g != null) g.enabled = false; // 다음 단추를 가리지 않게(재기에서만)
+            }
+        }
+
+        private static IEnumerable<Graphic> VisibleGraphics()
+        {
+            foreach (var c in Object.FindObjectsByType<Canvas>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
+            {
+                if (!c.isRootCanvas || !c.enabled || c.renderMode != RenderMode.ScreenSpaceOverlay) continue;
+                foreach (var g in c.GetComponentsInChildren<Graphic>(false))
+                    if (g.enabled && g.gameObject.activeInHierarchy && Alpha(g) >= 0.05f) yield return g;
+            }
+        }
+
+        private static IEnumerable<Button> VisibleButtons()
+        {
+            var seen = new HashSet<Button>();
+            foreach (var g in VisibleGraphics())
+            {
+                var b = g.GetComponentInParent<Button>();
+                if (b != null && !IsDebugOnly(b.transform) && seen.Add(b)) yield return b;
+            }
+        }
+
+        private static string Label(Button b)
+        {
+            var t = b.GetComponentInChildren<TMP_Text>();
+            return t != null ? t.text.Replace("\n", " ") : "";
         }
 
         // ───────── 재기 ─────────
@@ -122,7 +203,7 @@ namespace Saga.EditorTools
             public bool modal;
         }
 
-        private static void Measure(string scene, string screenName, int w, int h)
+        private static void Measure(string scene, string screenName, int w, int h, HashSet<Graphic> only = null)
         {
             var roots = Object.FindObjectsByType<Canvas>(FindObjectsInactive.Exclude, FindObjectsSortMode.None)
                 .Where(c => c.isRootCanvas && c.enabled && c.renderMode == RenderMode.ScreenSpaceOverlay).ToList();
@@ -147,7 +228,7 @@ namespace Saga.EditorTools
             foreach (var c in roots)
             {
                 float k = ScaleFactor(c.GetComponent<CanvasScaler>(), w, h);
-                Collect(c, k, w, h, items);
+                Collect(c, k, w, h, items, only);
             }
             // 되돌리기
             foreach (var x in saved)
@@ -189,7 +270,7 @@ namespace Saga.EditorTools
                     overlaps++;
                     lines.Add($"  겹침 {ix:F0}×{iy:F0}px  {PathOf(A.g.transform)}{TextOf(A.g)}  ↔  {PathOf(B.g.transform)}{TextOf(B.g)}");
                 }
-            if (screenName == Screens[0].name)
+            if (screenName == Screens[0].name && only == null)
             {
                 // 16:9 자리표 — 위젯마다 발자국 합집합(화면 픽셀, 왼쪽 아래 원점). 배치를 고칠 때 본다.
                 Map.AppendLine($"== {scene} {screenName} 위젯 자리(px x·y·w·h, 왼쪽 아래 원점)");
@@ -200,8 +281,8 @@ namespace Saga.EditorTools
                 }
             }
             _issues += overlaps + off;
-            Summary.Add($"{scene} {screenName} 겹침 {overlaps}·밖 {off}");
-            Report.AppendLine($"== {scene} {screenName} ({w}×{h}) — 캔버스 {roots.Count} · 보이는 것 {items.Count} · 겹침 {overlaps} · 화면 밖 {off}");
+            if (only == null || overlaps + off > 0) Summary.Add($"{scene} {screenName} 겹침 {overlaps}·밖 {off}");
+            Report.AppendLine($"== {scene} {screenName} ({w}×{h}) — {(only == null ? $"캔버스 {roots.Count} · " : "")}보이는 것 {items.Count} · 겹침 {overlaps} · 화면 밖 {off}");
             foreach (var l in lines) Report.AppendLine(l);
         }
 
@@ -222,7 +303,7 @@ namespace Saga.EditorTools
             }
         }
 
-        private static void Collect(Canvas c, float k, int w, int h, List<Item> items)
+        private static void Collect(Canvas c, float k, int w, int h, List<Item> items, HashSet<Graphic> only)
         {
             float screenArea = (float)w * h;
             var widgetOf = new Dictionary<Transform, Transform>();
@@ -232,7 +313,15 @@ namespace Saga.EditorTools
             {
                 if (!g.enabled || !g.gameObject.activeInHierarchy) continue;
                 if (Alpha(g) < 0.05f) continue;
+                if (g.GetComponentInParent<Saga.Core.LayoutFree>() != null) continue; // 움직이는 표지(지도 내 위치 등)
                 if (IsDebugOnly(g.transform)) continue; // 릴리스 빌드엔 안 뜨는 디버그 줄(DebugHud: !Debug.isDebugBuild 면 꺼짐)
+                Button unitButton = null;
+                if (only != null)
+                {
+                    if (!only.Contains(g)) continue;
+                    unitButton = g.GetComponentInParent<Button>();
+                    if (unitButton == null && !(g is TMP_Text)) continue; // 패널 안 그림(판·띠·아이콘)은 뺀다
+                }
                 Rect px;
                 if (g is TMP_Text t)
                 {
@@ -259,6 +348,18 @@ namespace Saga.EditorTools
                     px = Rect.MinMaxRect(corners[0].x * k, corners[0].y * k, corners[2].x * k, corners[2].y * k);
                     if (px.width < 2 || px.height < 2) continue;
                 }
+                var clip = ClipOf(g.transform, k);
+                if (clip.HasValue)
+                {
+                    var r = clip.Value;
+                    if (px.xMax <= r.xMin || px.xMin >= r.xMax || px.yMax <= r.yMin || px.yMin >= r.yMax) continue; // 스크롤 밖
+                    px = Rect.MinMaxRect(Mathf.Max(px.xMin, r.xMin), Mathf.Max(px.yMin, r.yMin), Mathf.Min(px.xMax, r.xMax), Mathf.Min(px.yMax, r.yMax));
+                }
+                if (only != null)
+                {
+                    found.Add(new Item { g = g, px = px, widget = unitButton != null ? unitButton.transform : g.transform });
+                    continue;
+                }
                 var widget = WidgetOf(g.transform, c.transform, w / k, h / k, widgetOf);
                 if (px.width * px.height > screenArea * 0.3f) modalWidgets.Add(widget);
                 found.Add(new Item { g = g, px = px, widget = widget });
@@ -271,6 +372,19 @@ namespace Saga.EditorTools
                 if (x.modal && x.px.width * x.px.height > screenArea * 0.3f) continue;
                 items.Add(x);
             }
+        }
+
+        /// <summary>가장 가까운 마스크(RectMask2D·Mask)의 화면 픽셀 사각형 — 스크롤 목록에서 가려진 줄을 안 세게.</summary>
+        private static Rect? ClipOf(Transform t, float k)
+        {
+            for (var p = t.parent; p != null; p = p.parent)
+            {
+                if (p.GetComponent<RectMask2D>() == null && p.GetComponent<Mask>() == null) continue;
+                var corners = new Vector3[4];
+                ((RectTransform)p).GetWorldCorners(corners);
+                return Rect.MinMaxRect(corners[0].x * k, corners[0].y * k, corners[2].x * k, corners[2].y * k);
+            }
+            return null;
         }
 
         private static bool IsDebugOnly(Transform t)

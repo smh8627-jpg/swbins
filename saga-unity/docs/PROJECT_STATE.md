@@ -1,7 +1,7 @@
 # PROJECT_STATE — saga-unity (상태만, ≤15KB, 덮어쓴다)
 
-**규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다. 넘치면 `tools/precheck.sh` 가 막는다.
-마지막 갱신: 2026-09-26 (110 ⑤c-1 일시정지 단추·타이틀 설정 — ③ 폰 결과 대기).
+**규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다.
+마지막 갱신: 2026-09-26 (110 ⑤c-2a 패널 배치 0건 — ③ 폰 결과 대기).
 
 ## 캐릭터 자산 — 이 PC 기준 (2026-09-19)
 
@@ -21,7 +21,7 @@ Maria·Abe·Brute + Skeleton·Paladin·PeasantMan·PeasantGirl·Archer·두목 M
 
 ## 다음 작업 (우선순위, 상세는 PLAN 해당 장)
 
-0. **다음 = PLAN 110 ⑤c-2 판별 HUD 정리**(첫 화면 밖 패널·팝업 재기, 판 HUD 영어) — ③b 폰 결과 대기. 글자 TMP 만(`SagaWorldText`·`TmpEffect`), HUD 캔버스 `SagaUi.ApplyGameScaler`(1600×900 Expand, 가로 고정)·공통 단추 `NewHudCanvas`(Ⅱ `SagaPauseButton`)·언어 `SagaUi.Lang`, 타이틀 설정 `TitleSettings`, 점검 `UiLayoutCheck`, 재빌드 `SagaRebuildScenes`, 진단 러너 `NestedCoroutine`. 109 멈춤.
+0. **다음 = PLAN 110 ⑤c-2b**(패널 속 패널·전투 버튼, 판 HUD 영어) — ③b 폰 결과 대기. 글자 TMP 만(`SagaWorldText`·`TmpEffect`), HUD 캔버스 `SagaUi.ApplyGameScaler`(1600×900 Expand, 가로 고정)·공통 단추 `NewHudCanvas`(Ⅱ `SagaPauseButton`)·언어 `SagaUi.Lang`, 타이틀 설정 `TitleSettings`, 점검 `UiLayoutCheck`(패널까지·`LayoutFree`), 재빌드 `SagaRebuildScenes`, 진단 러너 `NestedCoroutine`. 109 멈춤.
 0-1. **남은 것**: en 번역 검수 전. GO 동료 몸 Maria.controller 리타깃·무기는 주인공 손에만.
 1. STORY 판수(15→20 약 11판·20→25 약 28판)가 무거우면 `JobPromoteLevel3/4`만.
 2. **101-2·104-1 잔여(보류)** — GO⑤·Kenney 폴백·헤어카드.
@@ -64,4 +64,4 @@ Maria·Abe·Brute + Skeleton·Paladin·PeasantMan·PeasantGirl·Archer·두목 M
 - FOREST: **세 시대(109-4) — 잔해 크기·뜬 높이, 덮개 차, 마을 사람 여섯 발·키·대사** · **숲지기 모델** · **존 소품 — 실측 크기·휨 따라 내림·걸림** · **짐승 여덟 모델 — 키·꾸밈 자리·안개유령 투명도·숲 톤** · **특색 존(108 ②) — 명소 크기·휨 따라 내림이 가까이서 튀는지·점광 세기·자막 세 줄**, 옛 101 항목(벽지·가구·생물·좌판·번들·채집·평가·택배·축제·톤 — 세부는 HISTORY grep), **폰에서 저장·설정·밀어내기 버튼**
 - STORY: **세 시대(109-3) — 시대 적 키·타격감·알림·손님** · 두목 Morak(훅 박자) · 척후병·전직관 모델 · 곁의 동료·소환(106-10) · 두목 등장 컷(106-8) · 사건·관계·선택·전직 팝업·관문 대장·비경 · 무예 1~4차(패널 K·칸·손맛·판수·유파 세트·옷 빛깔) — 세부는 HISTORY grep · **폰에서 버튼 전부**
 - REALM: **세 시대(109-5) — 사연 한 토막 줄바꿈·퓨전 카드 뜨는 빈도·이계 무장 셈** · 월드맵, 적국 사슬, 패널 여덟, 목표판/세션카드, 공격·계략, 특성·야망, 전술 토글, 서사 카드, 계승 토글, 일기토·설전, 승리 결과 카드, 성벽 실루엣, 오빗 카메라 pull-in, **폰에서 버튼 전부**
-- 공통: Ⅱ 단추 자리·타이틀 설정, 폰 발열(30fps·"저" 버튼), BGM 음량, 설정 패널 6줄, SessionCard DoF, 접지 blob 그림자(Mobile 품질), LUT 톤 5장, Screen Space Shadows, Maria 피부 SSS
+- 공통: Ⅱ 단추·타이틀 설정·새 패널 배치(GO 지도·STORY 무예 2열·REALM 성 스크롤), 폰 발열(30fps·"저" 버튼), BGM 음량, 설정 패널 6줄, SessionCard DoF, 접지 blob 그림자(Mobile 품질), LUT 톤 5장, Screen Space Shadows, Maria 피부 SSS

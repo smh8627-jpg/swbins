@@ -333,7 +333,7 @@ namespace Saga.Realm.UI
         /// 나눠 패널 높이를 감당할 만하게 잡는다.</summary>
         private void BuildOrderPanel(Transform parent)
         {
-            _orderPanel = RealmUiKit.NewPanel(parent, new Vector2(0.5f, 0.5f), new Vector2(920f, 620f),
+            _orderPanel = RealmUiKit.NewPanel(parent, new Vector2(0.5f, 0.5f), new Vector2(920f, 720f), // 110 ⑤c-2 — 다섯째 줄이 판 밖·닫기와 겹쳤다
                 new Color(0f, 0f, 0f, 0.75f));
             _orderPanel.SetActive(false);
 
@@ -350,14 +350,14 @@ namespace Saga.Realm.UI
                 int col = i / 5; // 0=왼쪽, 1=오른쪽
                 int row = i % 5;
                 float x = col == 0 ? -230f : 230f;
-                float y = -150f - row * 100f;
+                float y = -130f - row * 96f;
                 var orderButton = RealmUiKit.NewButton(_orderPanel.transform, label, new Vector2(0.5f, 1f), new Vector2(x, y),
                     new Vector2(420f, 84f), null);
                 // 영속 리스너(인자 string) — 람다는 씬 저장 때 사라진다(SagaCore/ButtonWiring.cs).
                 Saga.Core.ButtonWiring.Wire(orderButton, ChooseOrder, key);
             }
 
-            RealmUiKit.NewButton(_orderPanel.transform, RealmLocalization.T("settings.close"), new Vector2(0.5f, 0f), new Vector2(0f, 40f),
+            RealmUiKit.NewButton(_orderPanel.transform, RealmLocalization.T("settings.close"), new Vector2(0.5f, 0f), new Vector2(0f, 30f),
                 new Vector2(300f, 70f), CloseOrderPanel);
         }
 
@@ -366,20 +366,44 @@ namespace Saga.Realm.UI
         /// RealmCityState.ActiveCityIds 기준으로 다시 짓는다.</summary>
         private void BuildCityPanel(Transform parent)
         {
-            _cityPanel = RealmUiKit.NewPanel(parent, new Vector2(0.5f, 0.5f), new Vector2(560f, 560f),
+            _cityPanel = RealmUiKit.NewPanel(parent, new Vector2(0.5f, 0.5f), new Vector2(1000f, 800f),
                 new Color(0f, 0f, 0f, 0.75f));
             _cityPanel.SetActive(false);
 
             RealmUiKit.NewText(_cityPanel.transform, RealmLocalization.T("panel.city_title"), new Vector2(0.5f, 1f), new Vector2(0f, -60f),
                 new Vector2(500f, 60f), 30);
 
-            var root = new GameObject("CityButtons", typeof(RectTransform));
-            root.transform.SetParent(_cityPanel.transform, false);
+            // 110 ⑤c-2 — 성은 함락할수록 늘어(끝판 58) 한 줄씩 쌓으면 화면 밖으로 나갔다 → 스크롤 격자(3열, 마스크).
+            var view = new GameObject("CityScroll", typeof(RectTransform), typeof(Image), typeof(RectMask2D), typeof(ScrollRect));
+            view.transform.SetParent(_cityPanel.transform, false);
+            var viewRect = (RectTransform)view.transform;
+            viewRect.anchorMin = Vector2.zero;
+            viewRect.anchorMax = Vector2.one;
+            viewRect.offsetMin = new Vector2(30f, 115f);  // 닫기(아래 30~100) 위
+            viewRect.offsetMax = new Vector2(-30f, -125f); // 제목(-60~-120) 아래
+            view.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0f); // 끌기를 받는 투명 판
+            var root = new GameObject("CityButtons", typeof(RectTransform), typeof(GridLayoutGroup), typeof(ContentSizeFitter));
+            root.transform.SetParent(view.transform, false);
             var rootRect = (RectTransform)root.transform;
-            rootRect.anchorMin = Vector2.zero;
+            rootRect.anchorMin = new Vector2(0f, 1f);
             rootRect.anchorMax = Vector2.one;
-            rootRect.sizeDelta = Vector2.zero;
+            rootRect.pivot = new Vector2(0.5f, 1f);
             rootRect.anchoredPosition = Vector2.zero;
+            rootRect.sizeDelta = Vector2.zero;
+            var grid = root.GetComponent<GridLayoutGroup>();
+            grid.cellSize = new Vector2(296f, 76f);
+            grid.spacing = new Vector2(14f, 12f);
+            grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+            grid.constraintCount = 3;
+            grid.childAlignment = TextAnchor.UpperCenter;
+            grid.padding = new RectOffset(0, 0, 4, 4);
+            root.GetComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            var scroll = view.GetComponent<ScrollRect>();
+            scroll.viewport = viewRect;
+            scroll.content = rootRect;
+            scroll.horizontal = false;
+            scroll.movementType = ScrollRect.MovementType.Clamped;
+            scroll.scrollSensitivity = 40f;
             _cityButtonsRoot = root.transform;
 
             RealmUiKit.NewButton(_cityPanel.transform, RealmLocalization.T("settings.close"), new Vector2(0.5f, 0f), new Vector2(0f, 30f),
@@ -390,7 +414,11 @@ namespace Saga.Realm.UI
         {
             for (int i = _cityButtonsRoot.childCount - 1; i >= 0; i--)
             {
-                Destroy(_cityButtonsRoot.GetChild(i).gameObject);
+                // 격자는 켜진 자식을 세므로, 떼어 끄고 지운다(Destroy 는 프레임 끝이라 같은 프레임에 새 칸과 섞인다).
+                var old = _cityButtonsRoot.GetChild(i).gameObject;
+                old.SetActive(false);
+                old.transform.SetParent(null, false);
+                Destroy(old);
             }
 
             float y = -150f;
@@ -399,7 +427,7 @@ namespace Saga.Realm.UI
                 var def = RealmCityData.Get(cityId);
                 string capturedId = cityId;
                 RealmUiKit.NewButton(_cityButtonsRoot, def.Name, new Vector2(0.5f, 1f), new Vector2(0f, y),
-                    new Vector2(460f, 84f), () => ChooseCity(capturedId));
+                    new Vector2(296f, 76f), () => ChooseCity(capturedId)); // 자리는 격자가 잡는다
                 y -= 100f;
             }
         }
@@ -647,23 +675,23 @@ namespace Saga.Realm.UI
         /// 버튼 안 Text만 갱신한다(값이 네 개뿐이라 다시 지을 이유가 없다).</summary>
         private void BuildSettingsPanel(Transform parent)
         {
-            _settingsPanel = RealmUiKit.NewPanel(parent, new Vector2(0.5f, 0.5f), new Vector2(680f, 920f),
+            _settingsPanel = RealmUiKit.NewPanel(parent, new Vector2(0.5f, 0.5f), new Vector2(680f, 860f), // 110 ⑤c-2 — 화면 논리 높이 900 안
                 new Color(0f, 0f, 0f, 0.8f));
             _settingsPanel.SetActive(false);
 
             _settingsTitleLabel = RealmUiKit.NewText(_settingsPanel.transform, RealmLocalization.T("settings.title"),
                 new Vector2(0.5f, 1f), new Vector2(0f, -60f), new Vector2(500f, 60f), 32);
 
-            (_settingsSfxNameLabel, _settingsSfxLabel) = MakeSettingsRow(-160f, "settings.sfx", ChooseSfx);
-            (_settingsVibrationNameLabel, _settingsVibrationLabel) = MakeSettingsRow(-260f, "settings.vibration", ChooseVibration);
-            (_settingsUiScaleNameLabel, _settingsUiScaleLabel) = MakeSettingsRow(-360f, "settings.ui_scale", ChooseUiScale);
-            (_settingsQualityNameLabel, _settingsQualityLabel) = MakeSettingsRow(-460f, "settings.graphics_quality", ChooseGraphicsQuality);
-            (_settingsLanguageNameLabel, _settingsLanguageLabel) = MakeSettingsRow(-560f, "settings.language", ChooseLanguage);
-            (_settingsBgmNameLabel, _settingsBgmLabel) = MakeSettingsRow(-660f, "settings.bgm", ChooseBgm);
-            (_settingsSuccessionNameLabel, _settingsSuccessionLabel) = MakeSettingsRow(-760f, "settings.succession", ChooseSuccession);
+            (_settingsSfxNameLabel, _settingsSfxLabel) = MakeSettingsRow(-130f, "settings.sfx", ChooseSfx);
+            (_settingsVibrationNameLabel, _settingsVibrationLabel) = MakeSettingsRow(-220f, "settings.vibration", ChooseVibration);
+            (_settingsUiScaleNameLabel, _settingsUiScaleLabel) = MakeSettingsRow(-310f, "settings.ui_scale", ChooseUiScale);
+            (_settingsQualityNameLabel, _settingsQualityLabel) = MakeSettingsRow(-400f, "settings.graphics_quality", ChooseGraphicsQuality);
+            (_settingsLanguageNameLabel, _settingsLanguageLabel) = MakeSettingsRow(-490f, "settings.language", ChooseLanguage);
+            (_settingsBgmNameLabel, _settingsBgmLabel) = MakeSettingsRow(-580f, "settings.bgm", ChooseBgm);
+            (_settingsSuccessionNameLabel, _settingsSuccessionLabel) = MakeSettingsRow(-670f, "settings.succession", ChooseSuccession);
 
             var closeButton = RealmUiKit.NewButton(_settingsPanel.transform, RealmLocalization.T("settings.close"),
-                new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(300f, 70f), CloseSettingsPanel);
+                new Vector2(0.5f, 0f), new Vector2(0f, 30f), new Vector2(300f, 70f), CloseSettingsPanel);
             _settingsCloseLabel = closeButton.GetComponentInChildren<TextMeshProUGUI>();
 
             RefreshSettingsPanel();

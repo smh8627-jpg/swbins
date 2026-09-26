@@ -155,26 +155,26 @@ namespace Saga.Dungeon.UI
             _panel.transform.SetParent(canvasGo.transform, false);
             var prt = (RectTransform)_panel.transform;
             prt.anchorMin = prt.anchorMax = prt.pivot = new Vector2(0.5f, 0.5f);
-            prt.sizeDelta = new Vector2(980f, 1080f);
+            prt.sizeDelta = new Vector2(980f, 860f); // 110 ⑤c-2 — 가로 화면 논리 높이 900 안(옛 1080 은 아래가 잘렸다)
             _panel.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0.88f);
 
-            _title = NewText(_panel.transform, "", new Vector2(0.5f, 1f), new Vector2(0f, -20f), new Vector2(920f, 90f), 28);
-            float y = -130f;
+            _title = NewText(_panel.transform, "", new Vector2(0.5f, 1f), new Vector2(0f, -16f), new Vector2(920f, 76f), 28);
+            float y = -100f;
             for (int m = 0; m < SecretState.MoveCount; m++)
             {
-                _rowLabels[m] = NewText(_panel.transform, "", new Vector2(0.5f, 1f), new Vector2(0f, y), new Vector2(920f, 80f), 24);
-                y -= 90f;
+                _rowLabels[m] = NewText(_panel.transform, "", new Vector2(0.5f, 1f), new Vector2(0f, y), new Vector2(920f, 50f), 24);
+                y -= 52f;
                 for (int i = 0; i < SecretState.SecretCount; i++)
                 {
                     var move = (SecretMove)m;
                     var s = (Secret)(i + 1);
                     float x = (i - 2) * 180f;
-                    var b = NewButton(_panel.transform, "", new Vector2(0.5f, 1f), new Vector2(x, y), new Vector2(165f, 120f), CellIdle, 24);
+                    var b = NewButton(_panel.transform, "", new Vector2(0.5f, 1f), new Vector2(x, y), new Vector2(165f, 104f), CellIdle, 24);
                     b.onClick.AddListener(() => Pick(move, s));
                     _cells[m, i] = b;
                     _cellTexts[m, i] = b.GetComponentInChildren<TextMeshProUGUI>();
                 }
-                y -= 170f;
+                y -= 114f;
             }
 
             var close = NewButton(_panel.transform, DungeonLocalization.T("secret.close", "닫기"), new Vector2(0.5f, 0f),

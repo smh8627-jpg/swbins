@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!114 &-8319172361120657071
+--- !u!114 &-3375440292227588817
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -16,23 +16,7 @@ MonoBehaviour:
   VirtualCamera:
     exposedName: story_summon_close
     defaultValue: {fileID: 0}
---- !u!114 &-8110811231228834742
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 90fb794a295e73545af71bcdb7375791, type: 3}
-  m_Name: CinemachineShot
-  m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineShot
-  DisplayName: story_summon_wide
-  VirtualCamera:
-    exposedName: story_summon_wide
-    defaultValue: {fileID: 0}
---- !u!114 &-516737168080166724
+--- !u!114 &-3026892135800842963
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -56,10 +40,10 @@ MonoBehaviour:
   - m_Version: 1
     m_Start: 0
     m_ClipIn: 0
-    m_Asset: {fileID: 4257284980018522722}
+    m_Asset: {fileID: 2603523380977597637}
     m_Duration: 2.5999999046325684
     m_TimeScale: 1
-    m_ParentTrack: {fileID: -516737168080166724}
+    m_ParentTrack: {fileID: -3026892135800842963}
     m_EaseInDuration: 0
     m_EaseOutDuration: 0
     m_BlendInDuration: 0
@@ -124,30 +108,7 @@ MonoBehaviour:
     m_DisplayName: StoryCutDollyClip
   m_Markers:
     m_Objects: []
---- !u!114 &11400000
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bfda56da833e2384a9677cd3c976a436, type: 3}
-  m_Name: Story_Summon
-  m_EditorClassIdentifier: Unity.Timeline::UnityEngine.Timeline.TimelineAsset
-  m_Version: 0
-  m_Tracks:
-  - {fileID: 6602094940842806304}
-  - {fileID: -516737168080166724}
-  - {fileID: 6607515033019626125}
-  m_FixedDuration: 0
-  m_EditorSettings:
-    m_Framerate: 60
-    m_ScenePreview: 1
-  m_DurationMode: 0
-  m_MarkerTrack: {fileID: 0}
---- !u!114 &1546645078446296299
+--- !u!114 &-1427409359703337052
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -159,19 +120,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f9a420cd3ee6cd043aec3fe559aa63d9, type: 3}
   m_Name: StoryCutDollyClip
   m_EditorClassIdentifier: Assembly-CSharp::Saga.Story.Cinematics.StoryCutDollyClip
---- !u!114 &4257284980018522722
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f9a420cd3ee6cd043aec3fe559aa63d9, type: 3}
-  m_Name: StoryCutDollyClip
-  m_EditorClassIdentifier: Assembly-CSharp::Saga.Story.Cinematics.StoryCutDollyClip
---- !u!114 &6602094940842806304
+--- !u!114 &-1034356321260482245
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -195,10 +144,10 @@ MonoBehaviour:
   - m_Version: 1
     m_Start: 0
     m_ClipIn: 0
-    m_Asset: {fileID: -8110811231228834742}
+    m_Asset: {fileID: 3931127024767145886}
     m_Duration: 2.5999999046325684
     m_TimeScale: 1
-    m_ParentTrack: {fileID: 6602094940842806304}
+    m_ParentTrack: {fileID: -1034356321260482245}
     m_EaseInDuration: 0.6000000238418579
     m_EaseOutDuration: 0
     m_BlendInDuration: -1
@@ -264,10 +213,10 @@ MonoBehaviour:
   - m_Version: 1
     m_Start: 2.5999999046325684
     m_ClipIn: 0
-    m_Asset: {fileID: -8319172361120657071}
+    m_Asset: {fileID: -3375440292227588817}
     m_Duration: 2.4000000953674316
     m_TimeScale: 1
-    m_ParentTrack: {fileID: 6602094940842806304}
+    m_ParentTrack: {fileID: -1034356321260482245}
     m_EaseInDuration: 0
     m_EaseOutDuration: 0.699999988079071
     m_BlendInDuration: -1
@@ -333,7 +282,58 @@ MonoBehaviour:
   m_Markers:
     m_Objects: []
   TrackPriority: 0
---- !u!114 &6607515033019626125
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bfda56da833e2384a9677cd3c976a436, type: 3}
+  m_Name: Story_Summon
+  m_EditorClassIdentifier: Unity.Timeline::UnityEngine.Timeline.TimelineAsset
+  m_Version: 0
+  m_Tracks:
+  - {fileID: -1034356321260482245}
+  - {fileID: -3026892135800842963}
+  - {fileID: 7077734665131031886}
+  m_FixedDuration: 0
+  m_EditorSettings:
+    m_Framerate: 60
+    m_ScenePreview: 1
+  m_DurationMode: 0
+  m_MarkerTrack: {fileID: 0}
+--- !u!114 &2603523380977597637
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f9a420cd3ee6cd043aec3fe559aa63d9, type: 3}
+  m_Name: StoryCutDollyClip
+  m_EditorClassIdentifier: Assembly-CSharp::Saga.Story.Cinematics.StoryCutDollyClip
+--- !u!114 &3931127024767145886
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 90fb794a295e73545af71bcdb7375791, type: 3}
+  m_Name: CinemachineShot
+  m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineShot
+  DisplayName: story_summon_wide
+  VirtualCamera:
+    exposedName: story_summon_wide
+    defaultValue: {fileID: 0}
+--- !u!114 &7077734665131031886
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -357,10 +357,10 @@ MonoBehaviour:
   - m_Version: 1
     m_Start: 2.5999999046325684
     m_ClipIn: 0
-    m_Asset: {fileID: 1546645078446296299}
+    m_Asset: {fileID: -1427409359703337052}
     m_Duration: 2.4000000953674316
     m_TimeScale: 1
-    m_ParentTrack: {fileID: 6607515033019626125}
+    m_ParentTrack: {fileID: 7077734665131031886}
     m_EaseInDuration: 0
     m_EaseOutDuration: 0
     m_BlendInDuration: 0

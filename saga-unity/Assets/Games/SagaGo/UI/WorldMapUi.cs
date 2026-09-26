@@ -19,7 +19,10 @@ namespace Saga.Go.UI
     public class WorldMapUi : MonoBehaviour
     {
         private const int TilePx = 8;
-        private const float MapW = 860f;
+        // 110 ⑤c-2 — 지도는 왼쪽(높이 MapMaxH), 제목·지역 글·안내·닫기는 오른쪽 열(ColX). 예전엔 가운데 860 폭이라 세로가 화면을 넘었다.
+        private const float MapMaxH = 820f;
+        private const float ColX = 430f;
+        private float MapW = 860f;
         private const float RegionCheckSec = 0.4f;
 
         public static WorldMapUi Instance { get; private set; }
@@ -91,22 +94,23 @@ namespace Saga.Go.UI
             pr.offsetMin = pr.offsetMax = Vector2.zero;
             _panel.AddComponent<Image>().color = new Color(0.02f, 0.03f, 0.05f, 0.9f);
 
-            _mapH = MapW * TestMapData.RowCount / TestMapData.Cols;
+            _mapH = Mathf.Min(MapMaxH, MapW * TestMapData.RowCount / TestMapData.Cols);
+            MapW = _mapH * TestMapData.Cols / TestMapData.RowCount;
             var mapGo = new GameObject("Map", typeof(RectTransform));
             mapGo.transform.SetParent(_panel.transform, false);
             _mapRect = (RectTransform)mapGo.transform;
             _mapRect.anchorMin = _mapRect.anchorMax = new Vector2(0.5f, 0.5f);
             _mapRect.sizeDelta = new Vector2(MapW, _mapH);
-            _mapRect.anchoredPosition = new Vector2(0f, 20f);
+            _mapRect.anchoredPosition = new Vector2(-300f, 0f);
             _mapImage = mapGo.AddComponent<RawImage>();
             _tex = new Texture2D(TestMapData.Cols * TilePx, TestMapData.RowCount * TilePx, TextureFormat.RGBA32, false)
             { filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp, name = "WorldMap (generated)" };
             _mapImage.texture = _tex;
 
-            var title = EncounterUiKit.NewText(_panel.transform, GoLocalization.T("map.title", "지도"), new Vector2(0.5f, 1f), new Vector2(0f, -60f), new Vector2(600f, 60f), 36);
+            var title = EncounterUiKit.NewText(_panel.transform, GoLocalization.T("map.title", "지도"), new Vector2(0.5f, 1f), new Vector2(ColX, -60f), new Vector2(620f, 60f), 36);
             title.fontStyle = FontStyles.Bold;
-            _info = EncounterUiKit.NewText(_panel.transform, "", new Vector2(0.5f, 0f), new Vector2(0f, 150f), new Vector2(900f, 60f), 22);
-            _regionInfo = EncounterUiKit.NewText(_panel.transform, "", new Vector2(0.5f, 1f), new Vector2(0f, -150f), new Vector2(1000f, 96f), 22);
+            _info = EncounterUiKit.NewText(_panel.transform, "", new Vector2(0.5f, 0f), new Vector2(ColX, 150f), new Vector2(620f, 120f), 22);
+            _regionInfo = EncounterUiKit.NewText(_panel.transform, "", new Vector2(0.5f, 1f), new Vector2(ColX, -150f), new Vector2(620f, 380f), 22);
             _regionInfo.raycastTarget = false;
 
             foreach (var r in GoWorldMap.Regions)
@@ -177,10 +181,11 @@ namespace Saga.Go.UI
             var arrowText = EncounterUiKit.NewText(_mapRect, "▲", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(48f, 48f), 36);
             arrowText.color = new Color(1f, 0.95f, 0.35f);
             arrowText.raycastTarget = false;
+            arrowText.gameObject.AddComponent<Saga.Core.LayoutFree>(); // 움직이는 표지 — 배치 점검이 겹침에서 뺀다
             _arrow = arrowText.GetComponent<RectTransform>();
             _arrow.pivot = new Vector2(0.5f, 0.5f);
 
-            var close = EncounterUiKit.NewButton(_panel.transform, GoLocalization.T("map.close", "닫기 (M)"), new Vector2(0.5f, 0f), new Vector2(0f, 50f), new Vector2(260f, 80f), null);
+            var close = EncounterUiKit.NewButton(_panel.transform, GoLocalization.T("map.close", "닫기 (M)"), new Vector2(0.5f, 0f), new Vector2(ColX, 50f), new Vector2(260f, 80f), null);
             close.onClick.AddListener(Close);
         }
 

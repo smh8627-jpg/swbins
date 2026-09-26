@@ -298,21 +298,21 @@ namespace Saga.Title
             VibrationButton = null;
             if (TitleSettings.ShowVibration) rows.Add((SagaUi.L("진동", "Vibration"), OnVibration, b => VibrationButton = b));
             const float rowH = 104f;
-            float h = 150f + rows.Count * rowH + 140f;
+            float h = 180f + rows.Count * rowH + 130f; // 제목 180 · 줄 · 닫기 칸 130 (NewRect 는 앵커 = 기준점이라 위 기준 자리는 칸의 윗변)
             var panel = SagaUi.NewPanel(_settings.transform, "Panel", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900f, h), SagaUi.Panel);
-            SagaUi.NewText(panel.transform, SagaUi.L("설정", "Settings"), 50f, SagaUi.Gold, new Vector2(0.5f, 1f), new Vector2(0f, -70f), new Vector2(800f, 80f)).fontStyle = FontStyles.Bold;
+            SagaUi.NewText(panel.transform, SagaUi.L("설정", "Settings"), 50f, SagaUi.Gold, new Vector2(0.5f, 1f), new Vector2(0f, -36f), new Vector2(800f, 80f)).fontStyle = FontStyles.Bold;
             SagaUi.NewText(panel.transform, SagaUi.L("다섯 판에 함께 적용됩니다", "Applies to all five games"), 26f, SagaUi.InkDim,
                 new Vector2(0.5f, 1f), new Vector2(0f, -122f), new Vector2(800f, 40f));
             for (int i = 0; i < rows.Count; i++)
             {
-                float y = -150f - rowH * 0.5f - i * rowH;
-                SagaUi.NewText(panel.transform, rows[i].label, 34f, SagaUi.Ink, new Vector2(0f, 1f), new Vector2(240f, y), new Vector2(380f, 70f), TextAlignmentOptions.Left);
-                var b = SagaUi.NewButton(panel.transform, "Row_" + i, "", new Vector2(1f, 1f), new Vector2(-240f, y), new Vector2(380f, 84f), SagaUi.ButtonIdle, 32f);
+                float y = -180f - i * rowH;
+                SagaUi.NewText(panel.transform, rows[i].label, 34f, SagaUi.Ink, new Vector2(0f, 1f), new Vector2(60f, y - 7f), new Vector2(380f, 70f), TextAlignmentOptions.Left);
+                var b = SagaUi.NewButton(panel.transform, "Row_" + i, "", new Vector2(1f, 1f), new Vector2(-60f, y), new Vector2(380f, 84f), SagaUi.ButtonIdle, 32f);
                 var click = rows[i].onClick;
                 b.onClick.AddListener(() => click());
                 rows[i].keep(b);
             }
-            SettingsClose = SagaUi.NewButton(panel.transform, "Close", SagaUi.L("닫기", "Close"), new Vector2(0.5f, 0f), new Vector2(0f, 70f), new Vector2(300f, 84f), SagaUi.ButtonAccent, 32f);
+            SettingsClose = SagaUi.NewButton(panel.transform, "Close", SagaUi.L("닫기", "Close"), new Vector2(0.5f, 0f), new Vector2(0f, 36f), new Vector2(300f, 84f), SagaUi.ButtonAccent, 32f);
             SettingsClose.onClick.AddListener(() => ShowSettings(false));
             _settings.SetActive(false);
         }
