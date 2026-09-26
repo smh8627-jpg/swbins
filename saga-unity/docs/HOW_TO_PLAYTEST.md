@@ -33,11 +33,11 @@ find "/c/Program Files/Unity/Hub/Editor" -maxdepth 1
 사람·괴물이 전부 캡슐로 서고, 빌드는 자산 검사(`SagaAssetGate`)가 막는다.
 
 ```bash
-bash tools/realistic-pack.sh fetch <보관함>   # 보관함 = 묶음 saga-unity-realistic-<id>.tar.NN 이 든 비공개 폴더
+bash tools/realistic-pack.sh fetch            # 보관함 기본 ~/OneDrive/saga-assets (동기화 끝난 뒤) · 다른 자리면 fetch <폴더>
 bash tools/realistic-pack.sh verify           # 언제든: 목록과 같은지 (OK 면 이 PC 빌드 = 다른 PC 빌드)
 ```
 
-몸을 새로 받거나 고친 PC 는 `manifest` → `pack <보관함>` → 목록(`tools/realistic/`) 커밋을 같이 한다.
+몸을 새로 받거나 고친 PC 는 `manifest` → `pack` → 목록(`tools/realistic/`) 커밋을 같이 한다.
 이미 열어 둔 Unity 가 있으면 닫고 받는다(폴더를 통째로 바꾼다).
 
 1. Unity Hub를 실행한다

@@ -9416,3 +9416,4 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - 빌드 부산물(글꼴 SDF·URP·Graphics·ProjectSettings 직렬화) 매번 되돌림, Mobile_RPAsset 은 남의 변경이라 그대로.
 - 사람 몫: 묶음 보관함 자리(비공개). 이번 묶음 id cb71a2102fd9 는 스크래치패드에만 있다.
 - 다음 = ⑤ UI(③b 는 폰 결과 오면).
+- 같은 날 이어서: 사용자 "OneDrive 에 둬" → 묶음을 `~/OneDrive/saga-assets/` 로 옮기고 스크립트 기본 보관함으로(`SAGA_ASSET_STORE` 로 바꿈). 이 PC 는 OneDrive 앱이 로그인·실행 전이라 아직 **로컬 폴더일 뿐** — 동기화는 로그인 뒤. 무료 5GB 에 4.2GB.

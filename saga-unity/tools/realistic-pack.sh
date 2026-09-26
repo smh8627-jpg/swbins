@@ -3,22 +3,24 @@
 # 약관상 공개 재배포 금지)를 어느 PC 에서나 "같은 파일 그대로" 두는 도구.
 #
 #   bash tools/realistic-pack.sh verify          # 지금 폴더가 목록(manifest)과 같은지 — 다르면 exit 1
-#   bash tools/realistic-pack.sh fetch <보관함>  # 새 PC: 보관함의 묶음을 풀어 넣고 verify (한 방)
+#   bash tools/realistic-pack.sh fetch [보관함]  # 새 PC: 보관함의 묶음을 풀어 넣고 verify (한 방)
 #   bash tools/realistic-pack.sh manifest        # 몸을 더하거나 고친 뒤: 목록 다시 쓰기(커밋 대상)
-#   bash tools/realistic-pack.sh pack <보관함>   # 그 다음: 목록에 맞는 묶음을 보관함에 쓰기
+#   bash tools/realistic-pack.sh pack [보관함]   # 그 다음: 목록에 맞는 묶음을 보관함에 쓰기
 #
 # 목록 tools/realistic/manifest.sha256 = `sha256sum` 형식(해시 두 칸 경로), .meta 까지 전부.
 # .meta 가 빠지면 GUID 가 새로 나 커밋된 씬의 참조가 끊기므로 Mixamo 에서 다시 받는 것으로는
 # 같은 빌드가 안 된다 — 그래서 받은 결과 폴더를 통째로 나른다.
 # 묶음 이름 = saga-unity-realistic-<목록 해시 12자>.tar.NN (1900MB 조각 — 파일 하나 2GB 제한 대비).
-# 보관함은 사람이 정한다(개인 클라우드·외장 디스크 등 **비공개** 자리 — 공개 저장소·공개 링크 금지).
+# 보관함 기본값 = $SAGA_ASSET_STORE, 없으면 ~/OneDrive/saga-assets (2026-09-26 사용자 결정).
+# **비공개** 자리만 — 공개 저장소·공개 링크 금지.
 # 빌드는 Editor/SagaAssetGate.cs 가 같은 목록으로 한 번 더 막는다.
 set -u
 cd "$(dirname "$0")/.." || exit 1
 ROOT="$PWD"
 SRC="Assets/Art/CharactersRealistic"
 MAN="$ROOT/tools/realistic/manifest.sha256"
-STAGE="$ROOT/.utmp/realistic-incoming"   # .utmp/ 는 gitignore, Assets 밖이라 Unity 가 안 읽는다
+STAGE="$ROOT/.utmp/realistic-incoming"
+DEFAULT_STORE="${SAGA_ASSET_STORE:-$HOME/OneDrive/saga-assets}"   # .utmp/ 는 gitignore, Assets 밖이라 Unity 가 안 읽는다
 
 die() { echo "[realistic-pack] $*" >&2; exit 1; }
 # 목록은 .gitattributes 로 바이트 그대로 받지만, 그래도 CR 이 끼면 떼고 읽는다(id·대조가 PC 마다 같게)
@@ -58,7 +60,7 @@ case "$cmd" in
     verify_dir "$SRC"
     ;;
   pack)
-    store="${1:-}"; [ -n "$store" ] || die "사용: pack <보관함 폴더>"
+    store="${1:-$DEFAULT_STORE}"
     verify_dir "$SRC" || die "목록과 다른 폴더는 묶지 않는다 — 먼저 manifest"
     mkdir -p "$store" || die "보관함을 못 만듦: $store"
     id=$(pack_id); base="$store/saga-unity-realistic-$id.tar"
@@ -72,7 +74,7 @@ case "$cmd" in
     ls -l "$base".* | awk '{printf "  %6.0f MB  %s\n", $5/1048576, $NF}'
     ;;
   fetch)
-    store="${1:-}"; [ -n "$store" ] || die "사용: fetch <보관함 폴더 — saga-unity-realistic-<id>.tar.NN 이 든 곳>"
+    store="${1:-$DEFAULT_STORE}"   # saga-unity-realistic-<id>.tar.NN 이 든 곳 (OneDrive 는 동기화가 끝난 뒤에)
     [ -f "$MAN" ] || die "목록 없음"
     id=$(pack_id); base="$store/saga-unity-realistic-$id.tar"
     ls "$base".[0-9][0-9] >/dev/null 2>&1 || {

@@ -5,7 +5,7 @@
 
 ## 캐릭터 자산 — 이 PC 기준 (2026-09-19)
 
-Maria·Abe·Brute + Skeleton·Paladin·PeasantMan·PeasantGirl·Archer·두목 Maw·Ganfaul·Ninja·Demon·AlienSoldier·Morak + FOREST 몸 여섯(Goblin·Hulk·Warrok·Parasite·Nightshade·Jolleen) + 세 시대 GO 아홉(`SetupEraBodies`)·DUNGEON 여덟(Brian·XBot·Swat·YBot·Boss·Zlorp·Leonard·Astra, `SetupDungeonEraBodies`)·STORY 열(Racer·Dummy·Warzombie·Mremireh·Jody·Yaku·Steve·Mannequin·Olivia·Ely, `SetupStoryEraBodies`)·FOREST 여섯(CastleGuard·Pelegrini·Pete·Sophie·Uriel·Jennifer, `SetupForestEraBodies`)·GO 인물 여덟(Kachujin·Arissa·Eve·Dreyar·CastleGuard02·Heraklios·Brady·Joe, `SetupHeroBodies`) — `Assets/Art/CharactersRealistic/`(gitignore, 4.2GB). **새 PC 는 `bash tools/realistic-pack.sh fetch <비공개 보관함>` 한 방**(다시 받기는 GUID 가 바뀜), 몸을 고치면 `manifest`·`pack`·`Write Asset Gate Deps`·커밋. 빌드는 `SagaAssetGate` 가 목록과 다르거나 폴백이면 막는다. GUI 확인: Maria·Abe 만.
+Maria·Abe·Brute + Skeleton·Paladin·PeasantMan·PeasantGirl·Archer·두목 Maw·Ganfaul·Ninja·Demon·AlienSoldier·Morak + FOREST 몸 여섯(Goblin·Hulk·Warrok·Parasite·Nightshade·Jolleen) + 세 시대 GO 아홉(`SetupEraBodies`)·DUNGEON 여덟(Brian·XBot·Swat·YBot·Boss·Zlorp·Leonard·Astra, `SetupDungeonEraBodies`)·STORY 열(Racer·Dummy·Warzombie·Mremireh·Jody·Yaku·Steve·Mannequin·Olivia·Ely, `SetupStoryEraBodies`)·FOREST 여섯(CastleGuard·Pelegrini·Pete·Sophie·Uriel·Jennifer, `SetupForestEraBodies`)·GO 인물 여덟(Kachujin·Arissa·Eve·Dreyar·CastleGuard02·Heraklios·Brady·Joe, `SetupHeroBodies`) — `Assets/Art/CharactersRealistic/`(gitignore, 4.2GB). **새 PC 는 `bash tools/realistic-pack.sh fetch` 한 방(OneDrive/saga-assets)**(다시 받기는 GUID 가 바뀜), 몸을 고치면 `manifest`·`pack`·`Write Asset Gate Deps`·커밋. 빌드는 `SagaAssetGate` 가 목록과 다르거나 폴백이면 막는다. GUI 확인: Maria·Abe 만.
 
 ## 완료 요약 — 다섯 게임 × 진척
 
@@ -21,7 +21,7 @@ Maria·Abe·Brute + Skeleton·Paladin·PeasantMan·PeasantGirl·Archer·두목 M
 
 ## 다음 작업 (우선순위, 상세는 PLAN 해당 장)
 
-0. **다음 = PLAN 110 ⑤ UI**(③b 폰 결과 대기 — HOW_TO_PLAYTEST §10 · ④ 사람 몫: 보관함 자리). 진단 PlaytestSagaFlow·PlaytestSagaPerf·SagaAssetGate. 109 멈춤.
+0. **다음 = PLAN 110 ⑤ UI**(③b 폰 결과 대기 — HOW_TO_PLAYTEST §10). 진단 PlaytestSagaFlow·PlaytestSagaPerf·SagaAssetGate. 109 멈춤.
 0-1. **남은 것**: en 번역 검수 전. GO 동료 몸 Maria.controller 리타깃·무기는 주인공 손에만.
 1. STORY 판수(15→20 약 11판, 20→25 약 28판)가 무거우면 `StoryCombat.JobPromoteLevel3/4`만.
 2. **101-2·104-1 잔여(보류)** — GO⑤(모바일 빌드 뒤)·Kenney 폴백·헤어카드.
