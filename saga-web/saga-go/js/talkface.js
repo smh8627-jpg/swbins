@@ -133,19 +133,22 @@
   }
 
   /**
-   * 흰 가면 — 머리 뼈 앞에 매 프레임 붙인다(몸 노드의 자식이라 몸과 함께 지워진다).
+   * 가면 — 머리 뼈 앞에 매 프레임 붙인다(몸 노드의 자식이라 몸과 함께 지워진다).
    * 몸 단위(키 1) 좌표라 크기는 몸 키를 따른다. 머리 뼈가 없으면 안 붙인다.
    */
   var vh = null;
-  function mask(T, node) {
+  /* 가면 빛깔 — 흰 가면(나그네) · 검은 가면(이야기 보스, ⑲-14) = [얼굴, 눈, 줄] */
+  var MASKS = { white: [0xf2efe6, 0x15151a, 0xc0282c], black: [0x1b1a21, 0x7a1822, 0x8a4fd0] };
+  function mask(T, node, kind) {
     if (!T || !node) { return false; }
     var u = node.userData, r = rig(node);
     if (!r.head) { return false; }
+    var mc = MASKS[kind] || MASKS.white;
     if (!u.tfMask || u.tfMask.parent !== node) {
       var g = new T.Group();
-      var white = new T.MeshBasicMaterial({ color: 0xf2efe6, side: T.DoubleSide });
-      var dark = new T.MeshBasicMaterial({ color: 0x15151a, side: T.DoubleSide });
-      var red = new T.MeshBasicMaterial({ color: 0xc0282c, side: T.DoubleSide });
+      var white = new T.MeshBasicMaterial({ color: mc[0], side: T.DoubleSide });
+      var dark = new T.MeshBasicMaterial({ color: mc[1], side: T.DoubleSide });
+      var red = new T.MeshBasicMaterial({ color: mc[2], side: T.DoubleSide });
       var face = new T.Mesh(new T.CircleGeometry(0.052, 20), white);
       face.scale.set(0.9, 1.12, 1); g.add(face);
       [-1, 1].forEach(function (s) {
@@ -167,7 +170,7 @@
   global.DG = global.DG || {};
   global.DG.talkface = {
     SIDE: SIDE, UP: UP, FACE: FACE, ARM_PLUS: ARM_PLUS, UPPER: UPPER, LOWER: LOWER, MOUTH_CLOSE: MOUTH_CLOSE, EMO: EMO,
-    vowelOf: vowelOf, talkAim: talkAim, rightAxis: rightAxis, rotate: rotate, blinkAt: blinkAt,
+    MASKS: MASKS, vowelOf: vowelOf, talkAim: talkAim, rightAxis: rightAxis, rotate: rotate, blinkAt: blinkAt,
     pose: pose, mask: mask
   };
 })(window);

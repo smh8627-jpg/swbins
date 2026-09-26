@@ -602,7 +602,8 @@
     story_elder: 'quaternius_rpg/Monk.glb',
     story_ferryman: 'quaternius_rpg/Ranger.glb',
     story_scholar: 'quaternius_rpg/Cleric.glb',
-    story_wanderer: 'quaternius_rpg/Rogue.glb'      // ⑲-13 가면 쓴 나그네(흰 가면은 talkface.mask 가 얹는다)
+    story_wanderer: 'quaternius_rpg/Rogue.glb',     // ⑲-13 가면 쓴 나그네(흰 가면은 talkface.mask 가 얹는다)
+    story_blackmask: 'quaternius_rpg/Warrior.glb'   // ⑲-14 이야기 보스 검은 가면(들판 적 b_mask 의 body)
   };
   function fixedRecipe(ref) {
     var id = ref && ref.id;

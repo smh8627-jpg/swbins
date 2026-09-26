@@ -10254,8 +10254,8 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 
     t('이야기 ⑲-12 — 표·자리: 장 둘(단계 8·4, 여정 등급 1·5) · 인물 셋 = ⑮ 땅 탑 + 자리(고향 촌장·갈대 나루 사공·옛 성터 학자) · 모든 단계에 목표 · 같은 세계면 같은 자리 · 몸 셋 고정', function () {
       var ST = DG.story, A3 = DG.asset3d, r = {};
-      r.table = ST.CHAPTERS.length === 4 && ST.CHAPTERS[0].steps.length === 8 && ST.CHAPTERS[1].steps.length === 4 &&
-        ST.CHAPTERS[0].ar === 1 && ST.CHAPTERS[1].ar === 5;     // ⑲-13 이 3·4장을 더했다
+      r.table = ST.CHAPTERS.length === 6 && ST.CHAPTERS[0].steps.length === 8 && ST.CHAPTERS[1].steps.length === 4 &&
+        ST.CHAPTERS[0].ar === 1 && ST.CHAPTERS[1].ar === 5;     // ⑲-13·14 가 3~6장을 더했다
       var e = ST.npcPos('elder'), f = ST.npcPos('ferryman'), s = ST.npcPos('scholar'), ga = ST.anchorOf('galdae'), go = ST.anchorOf('gojeong');
       r.npc = e.x === -22 && e.y === 16 && f.x === ga.x - 18 && f.y === ga.y - 24 && s.x === go.x - 18 && s.y === go.y - 24 &&
         DG.biome.cellAt.apply(null, ga.key.split('_').map(Number)).zone === 'galdae' && DG.biome.cellAt.apply(null, go.key.split('_').map(Number)).zone === 'gojeong';
@@ -10268,7 +10268,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       r.boss = !!boss.rk && boss.rk === ST.anchorOf('jugeup').key;
       r.body = ['story_elder', 'story_ferryman', 'story_scholar', 'story_wanderer'].every(function (id) { var fr = A3.fixedRecipe({ id: id }); return fr && /quaternius_rpg\//.test(fr.body) && fr.body.indexOf('fixed/') < 0; });
       var bad = Object.keys(r).filter(function (k) { return !r[k]; });
-      return bad.length === 0 ? ('장 4 · 사공 ' + ga.key + ' · 학자 ' + go.key + ' · 대숲 수호자 ' + boss.rk + ' · 몸 넷') : ('실패 ' + bad.join(',') + ' ' + miss.join(','));
+      return bad.length === 0 ? ('장 6 · 사공 ' + ga.key + ' · 학자 ' + go.key + ' · 대숲 수호자 ' + boss.rk + ' · 몸 넷') : ('실패 ' + bad.join(',') + ' ' + miss.join(','));
     });
 
     t('이야기 ⑲-12 — 흐름 1: 곁에서만 말(F) · 고르는 줄은 대답을 골라야 넘어감 · 말 끝 → 다음 단계·부대 경험 10 · go 도착 · boss(수호자 토벌 신호) · 잠긴 장은 여정 등급 글', function () {
@@ -10361,7 +10361,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         var tomb = DG.domain.byId('d:gamagol');
         r.tomb = !!tomb && tomb.kind === 'tomb' && c3.steps[6].did === 'd:gamagol' && ST.targetOf(c3.steps[6]).x === tomb.x;
         var emo = 0, badEmo = [], badWho = [], shorts = Object.keys(ST.NPCS).map(function (k) { return ST.NPCS[k].short; });
-        ST.CHAPTERS.forEach(function (ch) { ch.steps.forEach(function (st) { (st.lines || []).forEach(function (l) {
+        ST.CHAPTERS.slice(0, 4).forEach(function (ch) { ch.steps.forEach(function (st) { (st.lines || []).forEach(function (l) {
           if (l[2]) { emo++; if (!TF.EMO[l[2]]) { badEmo.push(l[2]); } }
           if (l[0] !== '?' && shorts.indexOf(l[0]) < 0) { badWho.push(l[0]); }
         }); }); });
@@ -10486,6 +10486,109 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       r.blink = runs >= 2 && runs <= 5 && shut / 1000 < 0.05;
       var bad = Object.keys(r).filter(function (k) { return !r[k]; });
       return bad.length === 0 ? '흘림 → 전체 → 다음 · 대답 "나" · 촌장 ↔ 나 · 입 3·3·3·7·5 · 옆 ' + side.toFixed(0) + '° 팔 ' + arm.toFixed(2) + 'm · 팔 앞 · 깜박 ' + runs + '번' : ('실패 ' + bad.join(','));
+    });
+
+
+    /* ── ⑲-14 이야기 5·6장·석등 차례·인물 자리·봉우리·이야기 보스 (story.js · field-combat b_mask, PLAN §5 ⑲-14) ── */
+    t('이야기 ⑲-14 — 표·자리: 5장 9단계(Lv12)·6장 8단계(Lv15)·보상 · 봉우리 = ⑰ 정상(고향 북쪽) · 학자는 장마다 옛길·제단 곁·봉우리로 옮겨 섬 · 나그네는 5장 7째·6장 3~5째 단계에만', function () {
+      var rig = stRig(15), ST = rig.ST, r = {};
+      try {
+        var c5 = ST.CHAPTERS[4], c6 = ST.CHAPTERS[5];
+        r.table = ST.CHAPTERS.length === 6 && c5.steps.length === 9 && c6.steps.length === 8 && c5.ar === 12 && c6.ar === 15 &&
+          c5.reward.gold === 1750 && c6.reward.knot === 4 && c6.reward.gold === 2000 && c5.steps[4].type === 'seal' && c6.steps[1].type === 'climb' && c6.steps[3].type === 'duel';
+        var pk = ST.peakSpot(), L = DG.landform.peaks(0, 0);
+        r.peak = !!pk && L.some(function (q) { return q.key === pk.key; }) && (pk.y < 0 || !L.some(function (q) { return q.y < 0; }));
+        var road = ST.spotPos('road'), alt = ST.spotPos('altar2'), def = ST.npcPos('scholar', 0, 0);
+        function at(ch, si) { var q = ST.npcPos('scholar', ch, si); return q.x + ',' + q.y; }
+        r.scholar = at(4, 0) === road.x + ',' + road.y && at(4, 3) === at(4, 0) && at(4, 5) === (alt.x - 5) + ',' + (alt.y + 7) &&
+          at(5, 6) === (pk.x - 5) + ',' + (pk.y + 6) && at(5, 0) === def.x + ',' + def.y && at(4, 8) === def.x + ',' + def.y;
+        C.save.story = { ch: 4, step: 5 };
+        r.now = ST.npcPos('scholar').x === alt.x - 5;
+        var vis = [], i;
+        for (i = 0; i < 9; i++) { C.save.story = { ch: 4, step: i }; vis.push(ST.visible('wanderer') ? 1 : 0); }
+        vis.push('/');
+        for (i = 0; i < 8; i++) { C.save.story = { ch: 5, step: i }; vis.push(ST.visible('wanderer') ? 1 : 0); }
+        r.wander = vis.join('') === '000000100/00111000';
+        C.save.story = { ch: 5, step: 2 };
+        var wp = ST.npcPos('wanderer');
+        r.wpos = wp.x === pk.x + 5 && wp.y === pk.y + 5;
+        var emo = 0;
+        ST.CHAPTERS.forEach(function (ch) { ch.steps.forEach(function (st) { (st.lines || []).forEach(function (l) { if (l[2]) { emo++; } }); }); });
+        r.emo = emo === 25;
+      } finally { rig.undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '5장 9·6장 8 · 봉우리 ' + ST.peakSpot().name + ' · 학자 옛길 → 제단 → 봉우리 · 나그네 000000100/00111000 · 표정 25' : ('실패 ' + bad.join(','));
+    });
+
+    t('이야기 ⑲-14 — 석등 차례: 해 → 달 → 별(놓인 자리는 북쪽부터 달·별·해) · 틀리면 다 꺼짐 · 해방이 셋에 다 닿아도 하나 · 켜진 것만 닿으면 그대로 · 셋 다 켜면 다음 단계', function () {
+      var rig = stRig(12), ST = rig.ST, r = {};
+      try {
+        var H = ST.sealHit;
+        r.pure = H(0, ['sun']) === 1 && H(0, ['moon']) === 0 && H(1, ['moon']) === 2 && H(1, ['star']) === 0 && H(1, ['sun']) === 1 &&
+          H(0, ['sun', 'moon', 'star']) === 1 && H(2, ['sun', 'moon']) === 2 && H(2, ['star', 'sun']) === 3 && H(3, ['moon']) === 3;
+        C.save.story = { ch: 4, step: 4 };
+        var st = ST.step(), L = ST.sealLamps(st), c = ST.targetOf(st), by = {};
+        L.forEach(function (l) { by[l.k] = l; });
+        r.layout = L[0].k === 'moon' && by.moon.y < c.y - 5.9 && Math.abs(by.moon.x - c.x) < 1e-9 && by.star.x > c.x && by.sun.x < c.x &&
+          L.every(function (l) { return Math.abs(Math.hypot(l.x - c.x, l.y - c.y) - ST.SEAL_R) < 1e-9; });
+        function fire(k, rr) { var l = k ? by[k] : c; C.emit('field:element', { el: 'fire', x: l.x, y: l.y, r: rr || 1, t: 'skill' }); }
+        fire('sun');
+        r.one = ST.sealLit() === 1 && / 1\/3 \(해 → 달 → 별\)/.test(ST.trackText());
+        fire('sun');
+        var keep = ST.sealLit() === 1;
+        fire('star');
+        r.wrong = keep && ST.sealLit() === 0;
+        fire(null, 8);
+        r.burst = ST.sealLit() === 1 && C.save.story.step === 4;
+        fire('moon'); fire('star');
+        r.done = C.save.story.step === 5 && ST.sealLit() === 0;
+      } finally { rig.undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '해 1 · 또 해 1 · 별 → 0 · 가운데 해방 → 1 · 달·별 → 제단 무리' : ('실패 ' + bad.join(','));
+    });
+
+    t('이야기 ⑲-14 — 봉우리·검은 가면: 오르기(멀면 ✕·정상 곁 ○) · 가면 무리 하나(사람 몸·검은 가면·전리품 없음) · 그림자 = 내 등 뒤 2.2m·3.2m 원·다음 수로 · 절반에서 뇌 방패 + 졸개 둘 · 되돌아가면 처음 · 쓰러뜨리면 졸개 흩어지고 다음 단계', function () {
+      var rig = stRig(15), ST = rig.ST, FC = DG.fieldCombat, r = {};
+      try {
+        C.save.story = { ch: 5, step: 1 };
+        var pk = ST.peakSpot();
+        stGo({ x: pk.x + 60, y: pk.y }); ST.check();
+        var still = C.save.story.step === 1;
+        stGo({ x: pk.x + 5, y: pk.y }); ST.check();
+        r.climb = still && C.save.story.step === 2;
+        C.save.story.step = 3;
+        var dt = ST.targetOf(ST.step());
+        stGo({ x: dt.x + 20, y: dt.y }); FC.tick(0.05); ST.check();
+        var S = FC.state(), cp = S.camps[ST.keyOf()], b = cp && S.foes[cp.uids[0]];
+        r.spawn = !!b && cp.uids.length === 1 && b.kind === 'b_mask' && cp.kind === 'story';
+        var lv = FC.live().filter(function (x) { return x.uid === b.uid; })[0];
+        r.body = !!lv && lv.hero && lv.ref.id === 'story_blackmask' && lv.mask === 'black' && lv.boss &&
+          /quaternius_rpg\//.test(DG.asset3d.fixedRecipe({ id: 'story_blackmask' }).body);
+        /* 그림자 — 8m 떨어진 가면이 나를 지나 등 뒤 2.2m 에 붙는다 */
+        stGo({ x: b.x + 8, y: b.y });
+        var ox = b.x, oy = b.y, px = b.x + 8, py = b.y;
+        b.st = 'chase'; b.cd = 0; b.rotI = 0;
+        FC.tick(0.02);
+        var dd = Math.hypot(b.x - px, b.y - py), dot = (b.x - px) * (px - ox) + (b.y - py) * (py - oy);
+        r.shadow = b.st === 'wind' && b.atkT === 'shadow' && Math.abs(dd - FC.SHADOW_BACK) < 1e-6 && dot > 0 && b.mark && b.mark.r === FC.ROT.shadow.r;
+        for (var g = 0; g < 50 && b.st === 'wind'; g++) { FC.tick(0.05); }
+        r.rot = b.rotI === 1 && FC.FOES.b_mask.rot[b.rotI] === 'spit';
+        /* 2단계 */
+        b.hp = Math.round(b.hpMax * 0.4); ST.check();
+        var ad = S.camps[ST.keyOf() + ':add'];
+        r.p2 = b.shEl === 'elec' && b.shield === Math.round(b.hpMax * ST.DUEL_P2_SHIELD) && !!ad && ad.uids.length === 2 && /⚡방패/.test(ST.trackText());
+        b.st = 'idle'; b.hp = b.hpMax; ST.check();
+        r.reset = b.shield === 0 && !b.shEl && !S.camps[ST.keyOf() + ':add'];
+        b.hp = Math.round(b.hpMax * 0.4); ST.check();
+        var addUids = S.camps[ST.keyOf() + ':add'].uids.slice();
+        var g0 = C.save.player.gold;
+        b.shield = 0; b.layers = [];
+        for (var k = 0; k < 3 && !b.dead; k++) { FC.hitFoe(S, b, S.party[0], 1e8, null, 'test'); }
+        FC.tick(0.05);
+        r.win = C.save.story.step === 4 && !S.camps[ST.keyOf() + ':add'] && addUids.every(function (u) { return !S.foes[u]; }) && C.save.player.gold === g0;
+      } finally { rig.undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '60m ✕ · 정상 곁 ○ · 가면 하나(전사 몸·검은 가면) · 그림자 등 뒤 2.2m → 벼락 차례 · 40% → ⚡방패 + 졸개 2 · 되돌아가면 0 · 쓰러뜨리면 졸개 0·금 그대로' : ('실패 ' + bad.join(','));
     });
 
 

@@ -2505,6 +2505,7 @@
       var foh = h * fo.h * (fo.dead ? Math.max(0.05, 1 - fo.deadT) : (fo.yielded ? 0.72 : 1));
       placeActor(foa, fo.x, fo.y, foh, 0, fo.moving && !fo.dead, fo.phase, now);
       if (foa.mesh) { foa.node.rotation.z = fo.stun ? Math.sin(now / 90) * 0.12 : 0; }
+      if (fo.mask && foa.mesh && TFf) { TFf.mask(T, foa.node, fo.mask); }   // ⑲-14 이야기 보스 검은 가면
     }
 
     /* 역참 · 성채 */

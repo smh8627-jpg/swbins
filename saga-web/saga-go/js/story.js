@@ -1,5 +1,5 @@
 /**
- * 이야기 임무 1~4장 — 대화 창·금빛 기둥·목록(O)·단계 아홉 가지 (PLAN §5 ⑲-12·⑲-13, saga-godot PLAN 106 ㉕㉗㉘㉙)
+ * 이야기 임무 1~6장 — 대화 창·금빛 기둥·목록(O)·단계 열두 가지 (PLAN §5 ⑲-12~14, saga-godot PLAN 106 ㉕㉗㉘㉙㉚㉜)
  * ---------------------------------------------------------------
  *   인물 넷    청하 촌장 누리(고향 마을) · 늙은 사공 버들(갈대 나루 탑) · 떠돌이 학자 은비(옛 성터 언덕 탑) —
  *              ⑮ 땅의 "고향에서 가장 가까운 탑" 곁에 늘 서 있다. 지금 단계가 아니면 혼잣말 한 줄.
@@ -7,7 +7,10 @@
  *   단계       talk(곁에서 💬/F → 대화) · go(그 자리 반경 안) · boss(그 탑 ⑪ 수호자 — 이미 쓰러져 꽃을 기다리면 바로 넘김) ·
  *              kill(임무 적 무리 `sq:` — 되살아나지 않고 전리품 없음) · light(옛 제단에 어느 원소든 스킬·해방) ·
  *              domain(먹구름 제단 또는 id 로 고른 숨은 터 깨기 — `domain:clear`) · gather(그 채집물 n 번 — `cook:gather`) ·
- *              cook(아무 요리 하나 — `cook:done`) · follow(인물이 길 점을 따라 걷는다 — 가까우면 걷고 멀면 선다)
+ *              cook(아무 요리 하나 — `cook:done`) · follow(인물이 길 점을 따라 걷는다 — 가까우면 걷고 멀면 선다) ·
+ *              seal(제단 둘레 석등 해·달·별을 비문 차례대로 — 틀리면 다 꺼진다) · climb(⑰ 봉우리 꼭대기) ·
+ *              duel(이야기 보스 검은 가면 — 들판 적 `b_mask`, 절반에서 뇌 방패 + 졸개 둘)
+ *   자리       ⑮ 땅 탑 + off 또는 이름 붙은 자리(SPOTS — 옛길·둘째 제단·봉우리). 인물은 at·appear 칸으로 장마다 옮겨 선다
  *   장         여정 등급(플레이어 Lv) ar 에 열린다. 단계마다 부대 경험 10, 장 끝에 보상
  *   대화       글이 초당 30자로 흘러나온다 — F·Space·누르기 한 번이면 줄 전체, 한 번 더면 다음 줄. 고른 대답은 "나" 의 줄로
  *              한 번 나온다. 줄 셋째 칸은 표정(joy·angry·sorrow·surprised·fun). 카메라·입·손짓은 `talkShot()` 을 world3d 가
@@ -33,16 +36,26 @@
   function FOLLOW_NEAR() { return gps() ? 25 : 12; } // 이 안이면 따라가는 인물이 걷는다
   function FOLLOW_LOST() { return gps() ? 60 : 30; } // 이보다 멀면 추적 글 "너무 멀다"
   function REVEAL_CPS() { return K('reveal', 30); }  // 초당 글자 — 0 이면 한 번에
+  function CLIMB_R() { return gps() ? 40 : 20; }     // ⑲-14 봉우리 오르기 — 정상 둘레(이 판은 땅 좌표가 둘이라 정상 곁 = 꼭대기)
   var STEP_EXP = 10, KILL_NEAR = 150, IDLE_R = 12, IDLE_GAP = 45000, FOLLOW_SPEED = 2.6, GATHER_R = 900, POT_R = 6000;
+  /* ⑲-14 석등 차례 — 제단 둘레 SEAL_R m 에 셋, 놓인 자리는 북쪽부터 시계 방향 SEAL_LAYOUT(비문 차례와 다르다) */
+  var SEAL_R = 6, SEAL_LAYOUT = ['moon', 'star', 'sun'], SEAL_ORDER = ['sun', 'moon', 'star'];
+  var SEAL_MARKS = { sun: { name: '해', color: '#ff9e40' }, moon: { name: '달', color: '#b3ccff' }, star: { name: '별', color: '#f2e68c' } };
+  /* ⑲-14 이야기 보스 — 체력 절반에서 뇌 방패(체력의 몫) + 졸개 둘 */
+  var DUEL_P2_AT = 0.5, DUEL_P2_SHIELD = 0.12, DUEL_ADDS = ['imp', 'imp'];
+  /* ⑲-14 이름 붙은 자리 — 옛길·둘째 제단은 솔숲 고개 탑 곁, 봉우리는 ⑰ 정상(peakSpot) */
+  var SPOTS = { road: { zone: 'solryeong', off: [-26, -46] }, altar2: { zone: 'solryeong', off: [40, -70] }, peak: { peak: true } };
 
   /* 인물 — zone 은 ⑮ 땅 key(고향은 'home'), off 는 그 땅 탑에서 떨어진 자리(m).
-     appear 가 있으면 그 장(ch, 0부터)의 단계 from~to 에만 선다 */
+     at 칸 [{ch(0부터), from, to, spot, off}] 이면 그 장 그 단계 동안 그 자리에 선다(⑲-14).
+     appear 가 있으면 그 칸에만 선다(나그네 — 4장은 따라가는 길, 칸에 spot 이 없다) */
   var NPCS = {
     elder:    { id: 'story_elder',    name: '청하 촌장 누리', short: '누리', zone: 'home',    off: [-22, 16],  color: '#6b7f61', idle: '먹구름이 걷히면 마을 잔치를 열어야지.' },
     ferryman: { id: 'story_ferryman', name: '늙은 사공 버들', short: '버들', zone: 'galdae',  off: [-18, -24], color: '#4d6688', idle: '물 냄새가 요즘 영 비릿해.' },
-    scholar:  { id: 'story_scholar',  name: '떠돌이 학자 은비', short: '은비', zone: 'gojeong', off: [-18, -24], color: '#8c6b99', idle: '이 비문, 읽을수록 이상하다니까.' },
+    scholar:  { id: 'story_scholar',  name: '떠돌이 학자 은비', short: '은비', zone: 'gojeong', off: [-18, -24], color: '#8c6b99', idle: '이 비문, 읽을수록 이상하다니까.',
+      at: [{ ch: 4, from: 0, to: 3, spot: 'road' }, { ch: 4, from: 4, to: 7, spot: 'altar2', off: [-5, 7] }, { ch: 5, from: 6, to: 6, spot: 'peak', off: [-5, 6] }] },
     wanderer: { id: 'story_wanderer', name: '가면 쓴 나그네', short: '나그네', zone: 'home',  off: [8, 70],    color: '#38384a', idle: '……',
-      mask: true, appear: { ch: 3, from: 1, to: 5 } }
+      mask: true, appear: [{ ch: 3, from: 1, to: 5 }, { ch: 4, from: 6, to: 6, spot: 'altar2', off: [7, 5] }, { ch: 5, from: 2, to: 4, spot: 'peak', off: [5, 5] }] }
   };
   var NPC_KEYS = ['elder', 'ferryman', 'scholar', 'wanderer'];
   /* 나그네가 걷는 길 — 고향 남쪽 다리목(첫 점 = 나그네 자리)에서 남쪽 들녘까지(+y 가 남쪽) */
@@ -148,6 +161,67 @@
         { type: 'talk', npc: 'elder', text: '청하 촌장에게 알리기',
           lines: [['누리', '나그네가 쫓는 가면 쓴 자라… 먹구름이 다섯 번이나 더 올 수 있다는 말이냐.', 'sorrow'],
             ['누리', '네가 있어 다행이구나. 마을 사람들 몫으로 모은 것이니 받아 두렴.']] }
+      ] },
+    { id: 'ch5', name: '제5장 · 솔숲 고개 옛길', ar: 12,
+      reward: { knot: 3, gold: 1750, guide: 3, secret: 2, party: 700 },
+      steps: [
+        { type: 'talk', npc: 'elder', text: '촌장에게 학자 소식 듣기',
+          lines: [['누리', '은비가 솔숲 고개 옛길로 떠난 지 사흘째란다. 그 뒤로 소식이 뚝 끊겼어.', 'sorrow'],
+            ['누리', '그 길은 사당보다도 오래된 길이야. 숲에 묻혀서 이제 아는 사람도 드물지.'],
+            ['?', ['제가 찾아볼게요.', '혼자 간 거예요?']],
+            ['누리', '솔숲 고개 탑 곁 숲으로 들어가면 옛길 어귀가 나온단다. 서두르렴.']] },
+        { type: 'go', spot: 'road', off: [0, 40], text: '솔숲 고개 옛길 어귀로' },
+        { type: 'kill', spot: 'road', off: [7, 5], kinds: ['imp', 'imp', 'vine', 'hawk'], text: '옛길에서 학자를 에워싼 가면 졸개 물리치기' },
+        { type: 'talk', npc: 'scholar', text: '옛길에서 학자와 이야기하기',
+          lines: [['은비', '휴, 살았다! 비문을 베끼다가 졸개들한테 딱 걸렸지 뭐야.', 'joy'],
+            ['은비', '둘째 제단은 이 고개 너머 숲에 있어. 석등 셋이 제단을 둘러싸고 있지.'],
+            ['은비', '비문엔 이렇게 적혀 있었어 — \'해가 뜨고, 달이 지고, 별이 남는다\'. 그 차례대로 불을 밝혀야 봉인이 풀려.'],
+            ['?', ['차례가 틀리면요?', '먼저 가 볼게요.']],
+            ['은비', '전부 꺼져 버리겠지. 해, 달, 별 — 잊으면 안 돼!']] },
+        { type: 'seal', spot: 'altar2', order: ['sun', 'moon', 'star'], text: '둘째 제단 석등을 비문 차례대로 밝히기' },
+        { type: 'kill', spot: 'altar2', off: [0, 10], kinds: ['imp', 'imp', 'raptor', 'snowfox', 'rockbear'], text: '제단에 몰려든 가면 무리 물리치기' },
+        { type: 'talk', npc: 'wanderer', text: '제단 곁의 가면 쓴 나그네와 이야기하기',
+          lines: [['나그네', '……한발 늦을 뻔했군. 그자가 이 제단을 두드리러 오던 참이었다.'],
+            ['나그네', '네가 먼저 봉인을 밝혀 두었으니 깨우지는 못하고, 졸개만 풀어 놓고 달아났지.'],
+            ['?', ['그자를 봤어요?', '어디로 갔죠?']],
+            ['나그네', '봉우리 너머로. 그자가 떨군 비문 조각이다 — 학자에게 건네게.']] },
+        { type: 'talk', npc: 'scholar', text: '학자에게 셋째 비문 조각 건네기',
+          lines: [['은비', '셋째 조각…! \'다섯 제단이 모두 깨면 먹구름의 주인이 돌아온다\'.', 'surprised'],
+            ['은비', '가면 쓴 자가 노리는 건 이무기가 아니었어. 그 \'주인\'이야.'],
+            ['?', ['먹구름의 주인?', '남은 제단은 셋이네요.']],
+            ['은비', '둘은 우리가 지켰어. 남은 셋은… 조각을 더 읽어 보고 알려 줄게.']] },
+        { type: 'talk', npc: 'elder', text: '청하 촌장에게 알리기',
+          lines: [['누리', '은비가 무사하다니 다행이구나. 먹구름의 주인이라… 이름만 들어도 오싹하다.', 'sorrow'],
+            ['누리', '잊혔던 옛길까지 되살려 준 셈이니 마을이 네게 진 빚이 크구나. 받아 두렴.', 'joy']] }
+      ] },
+    { id: 'ch6', name: '제6장 · 봉우리의 검은 가면', ar: 15,
+      reward: { knot: 4, gold: 2000, guide: 3, secret: 2, party: 750 },
+      steps: [
+        { type: 'talk', npc: 'scholar', text: '학자에게 셋째 제단 자리 듣기',
+          lines: [['은비', '조각들을 맞춰 봤어. 셋째 제단은 봉우리 꼭대기야 — 길이 없어서 벽을 타고 올라가야 해.'],
+            ['은비', '나그네는 벌써 올라갔대. 검은 가면이 그리로 가는 걸 봤다나.', 'surprised'],
+            ['?', ['바로 갈게요.', '검은 가면?']],
+            ['은비', '진짜 범인 말이야. 이번엔 도망치기 전에 붙잡아야 해! 기력 잘 보면서 올라가.']] },
+        { type: 'climb', spot: 'peak', text: '봉우리 꼭대기로 올라가기(벽 타기·활공)' },
+        { type: 'talk', npc: 'wanderer', text: '봉우리의 나그네와 이야기하기',
+          lines: [['나그네', '제법 빨리 왔군. 그자가 곧 제단을 두드리러 올 게다.'],
+            ['나그네', '그자는 그림자처럼 등 뒤로 붙는다. 붉은 원이 발밑에 생기면 곧장 몸을 빼게.'],
+            ['?', ['같이 싸워요.', '왔다!']],
+            ['나그네', '……왔군. 먹구름을 두르면 불로 깨라!', 'angry']] },
+        { type: 'duel', spot: 'peak', off: [0, -8], kind: 'b_mask', text: '검은 가면과 맞서기' },
+        { type: 'talk', npc: 'wanderer', text: '나그네와 검은 가면이 남긴 것 살피기',
+          lines: [['나그네', '……먹구름 속으로 달아났군. 하지만 가면에 금이 갔다. 다음엔 못 숨는다.'],
+            ['나그네', '그자가 떨군 비문 조각이다. 그리고 제단 — 두드린 자국이 있지만 아직 살아 있어.'],
+            ['나그네', '원소의 불을 다시 밝히게. 학자도 곧 올라올 게다.']] },
+        { type: 'light', spot: 'peak', off: [-7, -4], text: '셋째 제단에 원소 불 다시 밝히기' },
+        { type: 'talk', npc: 'scholar', text: '봉우리에 올라온 학자에게 넷째 조각 보이기',
+          lines: [['은비', '헉, 헉… 이 벽 누가 만든 거야. 조각 좀 보여 줘!', 'sorrow'],
+            ['은비', '\'먹구름 임금은 다섯 제단에 나뉘어 잠들었다. 가면은 임금의 신하의 표식이다\'…', 'surprised'],
+            ['?', ['신하라고요?', '검은 가면이 그 신하?']],
+            ['은비', '응. 남은 제단은 둘. 그자도 급해졌을 거야 — 마을에 먼저 알리자.']] },
+        { type: 'talk', npc: 'elder', text: '청하 촌장에게 알리기',
+          lines: [['누리', '먹구름 임금의 신하라… 옛날 할머니가 들려주던 자장가에 그런 말이 있었지.', 'sorrow'],
+            ['누리', '봉우리까지 오르다니 장하구나. 다친 데는 없느냐? 이건 마을 사람들이 모은 거란다.', 'joy']] }
       ] }
   ];
 
@@ -183,19 +257,43 @@
     if (si === fi && fol) { return { x: fol.x, y: fol.y }; }
     return at('home', si > fi ? WANDER_PATH[WANDER_PATH.length - 1] : WANDER_PATH[0]);
   }
+  var peakMemo = null;
+  /** ⑲-14 봉우리 — ⑰ 정상 가운데 고향 북쪽(y<0)에서 가장 가까운 것(없으면 가장 가까운 것). 같은 세계면 늘 같다 */
+  function peakSpot() {
+    if (peakMemo) { return peakMemo; }
+    var LF = global.DG.landform, L = LF && LF.on && LF.on() && LF.peaks ? LF.peaks(0, 0) : [], i;
+    for (i = 0; i < L.length && !peakMemo; i++) { if (L[i].y < 0) { peakMemo = L[i]; } }
+    if (!peakMemo && L.length) { peakMemo = L[0]; }
+    return peakMemo;
+  }
+  /** 이름 붙은 자리 + off */
+  function spotPos(name, off) {
+    var sp = SPOTS[name], b = !sp ? null : (sp.peak ? peakSpot() : at(sp.zone, sp.off));
+    return b ? { x: b.x + (off ? off[0] : 0), y: b.y + (off ? off[1] : 0) } : null;
+  }
+  /** 단계의 자리 — 이름 붙은 자리(spot) 또는 ⑮ 땅 탑 + off */
+  function posOf(st) { return st.spot ? spotPos(st.spot, st.off) : at(st.zone, st.off); }
+  /** 인물 k 의 (ch, si) 칸 — appear·at 에서 그 장 그 단계를 덮는 것 */
+  function placeOf(k, ch, si) {
+    var n = NPCS[k], L = n ? (n.appear || n.at || []) : [];
+    for (var i = 0; i < L.length; i++) { if (L[i].ch === ch && si >= L[i].from && si <= L[i].to) { return L[i]; } }
+    return null;
+  }
   /** 인물 k 가 지금 서 있나 — appear 가 없으면 늘 */
   function visible(k) {
-    var n = NPCS[k], ap = n && n.appear, s = sv();
+    var n = NPCS[k], s = sv();
     if (!n) { return false; }
-    if (!ap) { return true; }
-    return s.ch === ap.ch && s.step >= ap.from && s.step <= ap.to && !locked();
+    if (!n.appear) { return true; }
+    return !!placeOf(k, s.ch, s.step) && !locked();
   }
-  /** 인물 자리 — si(4장 단계)를 주면 그 단계 기준(목표 계산용), 안 주면 지금 기준 */
-  function npcPos(k, si) {
+  /** 인물 자리 — (ch, si)를 주면 그 장 그 단계 기준(목표 계산용), 안 주면 지금 기준 */
+  function npcPos(k, ch, si) {
     var n = NPCS[k];
     if (!n) { return null; }
-    if (k === 'wanderer') { return wandererAt(typeof si === 'number' ? si : (sv().ch === 3 ? sv().step : 0)); }
-    return at(n.zone, n.off);
+    if (typeof ch !== 'number') { ch = sv().ch; si = sv().step; }
+    if (k === 'wanderer' && ch === 3) { return wandererAt(si); }
+    var pl = placeOf(k, ch, si);
+    return pl && pl.spot ? spotPos(pl.spot, pl.off) : at(n.zone, n.off);
   }
   function altarPos() {
     var DM = global.DG.domain, L = DM && DM.list ? DM.list() : [];
@@ -206,9 +304,10 @@
     var a = anchorOf(zk), B = BM();
     return a && B ? B.cellAt.apply(null, a.key.split('_').map(Number)) : null;
   }
-  function stepIdx(st) {
-    for (var c = 0; c < CHAPTERS.length; c++) { var i = CHAPTERS[c].steps.indexOf(st); if (i >= 0) { return i; } }
-    return -1;
+  /** 단계가 몇째 장 몇째 단계인가 — { c, i } */
+  function stepAt(st) {
+    for (var c = 0; c < CHAPTERS.length; c++) { var i = CHAPTERS[c].steps.indexOf(st); if (i >= 0) { return { c: c, i: i }; } }
+    return { c: -1, i: -1 };
   }
   /* gather·cook 목표는 둘레를 훑어야 해 칸(10m)·센 수가 같으면 다시 쓴다 */
   var aimMemo = { k: '', v: null };
@@ -235,12 +334,12 @@
   function targetOf(st) {
     if (!st) { return null; }
     if (st.type === 'talk' || st.type === 'follow') {
-      var p = npcPos(st.npc, st.npc === 'wanderer' ? stepIdx(st) : undefined);
+      var sa = stepAt(st), p = npcPos(st.npc, sa.c, sa.i);
       return p ? { x: p.x, y: p.y, r: st.type === 'talk' ? TALK_R() : 0, label: st.type === 'talk' ? NPCS[st.npc].name : st.text } : null;
     }
-    if (st.type === 'go') {
-      var g = st.altar ? altarPos() : at(st.zone, st.off);
-      return g ? { x: g.x, y: g.y, r: GO_R(), label: st.text } : null;
+    if (st.type === 'go' || st.type === 'climb') {
+      var g = st.altar ? altarPos() : posOf(st);
+      return g ? { x: g.x, y: g.y, r: st.type === 'climb' ? CLIMB_R() : GO_R(), label: st.text } : null;
     }
     if (st.type === 'boss') {
       var F = FC(), gd = F ? F.guardianAt(cellOf(st.zone)) : null;
@@ -252,8 +351,26 @@
     }
     if (st.type === 'gather') { var ga = gatherAim(st); return ga ? { x: ga.x, y: ga.y, r: 0, label: st.text } : null; }
     if (st.type === 'cook') { var pa = potAim(); return pa ? { x: pa.x, y: pa.y, r: 0, label: st.text } : null; }
-    var q = at(st.zone, st.off);                             // kill · light
-    return q ? { x: q.x, y: q.y, r: st.type === 'light' ? LIGHT_R() : 0, label: st.text } : null;
+    var q = posOf(st);                                       // kill · light · seal · duel
+    return q ? { x: q.x, y: q.y, r: st.type === 'light' ? LIGHT_R() : (st.type === 'seal' ? SEAL_R : 0), label: st.text } : null;
+  }
+  /** ⑲-14 석등 셋의 자리 — [{k, x, y}], 북쪽부터 시계 방향 SEAL_LAYOUT(+y 가 남쪽) */
+  function sealLamps(st) {
+    var c = posOf(st);
+    if (!c) { return []; }
+    return SEAL_LAYOUT.map(function (k, i) { var a = i * Math.PI * 2 / 3; return { k: k, x: c.x + Math.sin(a) * SEAL_R, y: c.y - Math.cos(a) * SEAL_R }; });
+  }
+  /**
+   * 석등 차례 판정(순수) — 켠 수 n, 이번에 닿은 석등 키들, 차례 → 새 n.
+   * 다음 차례가 닿으면 그것 하나만 켜진다(해방이 셋에 다 닿아도). 다음 차례가 아닌 꺼진 것만 닿으면 다 꺼진다(0). 켜진 것만 닿으면 그대로
+   */
+  function sealHit(n, hits, order) {
+    order = order || SEAL_ORDER;
+    if (n >= order.length || !hits || !hits.length) { return n; }
+    if (hits.indexOf(order[n]) >= 0) { return n + 1; }
+    var lit = order.slice(0, n);
+    for (var i = 0; i < hits.length; i++) { if (lit.indexOf(hits[i]) < 0) { return 0; } }
+    return n;
   }
 
   /* ── 세이브 ───────────────────────────────────────────── */
@@ -293,7 +410,7 @@
     if (!ch) { return false; }
     if (H && H.awardParty) { H.awardParty(STEP_EXP); }
     s.step += 1;
-    prog = { key: '', n: 0 }; fol = null;
+    prog = { key: '', n: 0 }; fol = null; seal = { key: '', n: 0 }; duel = null;
     if (s.step >= ch.steps.length) {
       var txt = award(ch.reward);
       s.ch += 1; s.step = 0;
@@ -313,12 +430,69 @@
   /* ── 신호로 끝나는 단계 ───────────────────────────────── */
 
   function onGuard(e) { var st = step(), t = st && st.type === 'boss' ? targetOf(st) : null; if (t && e && e.region === t.rk) { advance(); } }
-  function onClear(e) { var st = step(); if (st && st.type === 'kill' && e && e.camp === keyOf()) { advance(); } }
+  function onClear(e) {
+    var st = step();
+    if (!st || (st.type !== 'kill' && st.type !== 'duel') || !e || e.camp !== keyOf()) { return; }
+    if (st.type === 'duel') { dropAdds(); toast('🎭 검은 가면이 먹구름 속으로 달아났다 — 졸개도 흩어진다'); }
+    advance();
+  }
   function onElement(e) {
     var st = step();
-    if (!st || st.type !== 'light' || !e) { return; }
+    if (!st || !e) { return; }
+    if (st.type === 'seal') { onSeal(st, e); return; }
+    if (st.type !== 'light') { return; }
     var t = targetOf(st);
     if (t && Math.hypot(e.x - t.x, e.y - t.y) <= (e.r || 3) + LIGHT_R()) { toast('🔥 옛 제단에 불이 붙었다 — 비문이 빛난다'); advance(); }
+  }
+  /* ⑲-14 석등 차례 — 켠 수는 저장 안 함 */
+  var seal = { key: '', n: 0 };
+  function sealLit() { return seal.key === keyOf() ? seal.n : 0; }
+  function orderText(st) { return (st.order || SEAL_ORDER).map(function (k) { return SEAL_MARKS[k].name; }).join(' → '); }
+  function onSeal(st, e) {
+    var hits = sealLamps(st).filter(function (l) { return Math.hypot(e.x - l.x, e.y - l.y) <= (e.r || 3) + LIGHT_R(); }).map(function (l) { return l.k; });
+    if (!hits.length) { return; }
+    var order = st.order || SEAL_ORDER, was = sealLit(), n = sealHit(was, hits, order);
+    seal = { key: keyOf(), n: n };
+    if (n > was) {
+      toast('🏮 ' + SEAL_MARKS[order[n - 1]].name + ' 석등이 켜졌다 (' + n + '/' + order.length + ')');
+      if (n >= order.length) { toast('✨ 석등 셋이 다 켜졌다 — 봉인이 풀린다'); advance(); }
+    } else if (n === 0 && was > 0) {
+      toast('💨 차례가 틀렸다 — 석등이 모두 꺼졌다 (' + orderText(st) + ')');
+    } else if (n === 0) {
+      toast('💨 불이 붙지 않는다 — 비문 차례는 ' + orderText(st));
+    }
+  }
+  /* ⑲-14 이야기 보스 — 2단계(방패·졸개) 여부. 저장 안 함 */
+  var duel = null;          // { key, p2 }
+  function addKey() { return keyOf() + ':add'; }
+  function dropAdds() {
+    var F = FC(), S = F && F.state ? F.state() : null, cp = S ? S.camps[addKey()] : null;
+    if (!cp) { return; }
+    cp.uids.forEach(function (u) { delete S.foes[u]; });
+    delete S.camps[addKey()];
+  }
+  /** 보스 한 박자 — 절반에서 뇌 방패 + 졸개 둘, 전멸해 되돌아가 다시 온전해지면 처음으로 */
+  function duelBoss() {
+    var F = FC(), S = F && F.state ? F.state() : null, cp = S ? S.camps[keyOf()] : null;
+    return cp ? S.foes[cp.uids[0]] || null : null;
+  }
+  function stepDuel() {
+    var F = FC(), S = F && F.state ? F.state() : null, b = duelBoss();
+    if (!b || b.dead) { return; }
+    if (!duel || duel.key !== keyOf()) { duel = { key: keyOf(), p2: false }; }
+    if (!duel.p2 && b.hp <= b.hpMax * DUEL_P2_AT) {
+      duel.p2 = true;
+      b.layers = ['elec']; b.layer = 0; b.shEl = 'elec';
+      b.shieldMax = b.shield = Math.round(b.hpMax * DUEL_P2_SHIELD);
+      F.spawnCamp(S, { key: addKey(), x: b.x, y: b.y, tier: b.tier, kind: 'story',
+        foes: DUEL_ADDS.map(function (k, i) { return { kind: k, dx: i ? 3 : -3, dy: 2 }; }) });
+      S.camps[addKey()].uids.forEach(function (u) { S.foes[u].st = 'chase'; });
+      toast('⛈️ 검은 가면이 먹구름을 둘렀다 — 불로 깨라! 가면 졸개가 뛰어든다');
+    } else if (duel.p2 && b.st === 'idle' && b.hp >= b.hpMax) {
+      duel.p2 = false;
+      b.layers = []; b.layer = 0; b.shEl = null; b.shield = b.shieldMax = 0;
+      dropAdds();
+    }
   }
   function onDomain(e) {
     var st = step();
@@ -378,14 +552,19 @@
       t = targetOf(st);
       var FB = global.DG.fieldBoss;
       if (t && FB && FB.bloomAt && FB.bloomAt(t.rk) !== null) { advance(); return; }   // 이미 쓰러져 꽃을 기다린다
-    } else if (st && st.type === 'kill') {
+    } else if (st && st.type === 'climb') {
+      t = targetOf(st);
+      if (t && Math.hypot(p.x - t.x, p.y - t.y) <= t.r) { toast('⛰️ 봉우리 꼭대기에 올랐다'); advance(); return; }
+    } else if (st && (st.type === 'kill' || st.type === 'duel')) {
       t = targetOf(st);
       var F = FC(), S = F && F.state ? F.state() : null, key = keyOf();
       if (t && S && !S.camps[key] && Math.hypot(p.x - t.x, p.y - t.y) < KILL_NEAR) {
+        var ks = st.type === 'duel' ? [st.kind] : st.kinds;
         F.spawnCamp(S, { key: key, x: t.x, y: t.y, tier: F.tierAt(t.x, t.y), kind: 'story',
-          foes: st.kinds.map(function (k, i) { var a = i * 1.571; return { kind: k, dx: Math.cos(a) * 3, dy: Math.sin(a) * 3 }; }) });
-        toast('⚔️ 먹구름 졸개가 나타났다');
+          foes: ks.map(function (k, i) { var a = i * 1.571, rr = ks.length === 1 ? 0 : 3; return { kind: k, dx: Math.cos(a) * rr, dy: Math.sin(a) * rr }; }) });
+        toast(st.type === 'duel' ? '🎭 검은 가면이 봉우리에 내려섰다' : '⚔️ 먹구름 졸개가 나타났다');
       }
+      if (st.type === 'duel') { stepDuel(); }
     }
     /* 지금 단계가 아닌 인물 곁 — 혼잣말 한 줄(45초에 한 번) */
     var now = Date.now();
@@ -485,6 +664,11 @@
     var what = st.text;
     if (st.type === 'gather') { what += ' ' + gathered() + '/' + st.count; }
     if (st.type === 'follow' && d > FOLLOW_LOST()) { what = '너무 멀다, 가까이!'; }
+    if (st.type === 'seal') { what += ' ' + sealLit() + '/' + (st.order || SEAL_ORDER).length + ' (' + orderText(st) + ')'; }
+    if (st.type === 'duel') {
+      var b = duelBoss();
+      if (b && !b.dead) { what = '검은 가면 ' + Math.ceil(100 * b.hp / b.hpMax) + '%' + (b.shield > 0 ? ' · ⚡방패 ' + b.shield : ''); }
+    }
     return '📖 ' + ch.name + ' — ' + what + (t ? ' · ◆ ' + fmtDist(d) : '');
   }
   function el(id, cls) {
@@ -563,7 +747,7 @@
   function paint3d(dt) {
     clock += dt || 0;
     var w = W3(), st = step(), t = st && !talk ? targetOf(st) : null, p = pos();
-    if (!w || !t || Math.hypot(t.x - p.x, t.y - p.y) > 900) { dropFx('pillar'); dropFx('altar'); return; }
+    if (!w || !t || Math.hypot(t.x - p.x, t.y - p.y) > 900) { dropFx('pillar'); dropFx('altar'); dropFx('seal'); return; }
     var T3 = w.three();
     if (!T3) { return; }
     var gy = w.groundY ? w.groundY(t.x, t.y) : 0;
@@ -584,6 +768,31 @@
       }
       fx.altar.position.set(t.x, gy, t.y);
     } else { dropFx('altar'); }
+    /* ⑲-14 석등 셋 — 등롱 위에 빛깔 구슬, 켜지면 밝고 크게 */
+    if (st.type === 'seal') {
+      var L = sealLamps(st), order = st.order || SEAL_ORDER, lit = order.slice(0, sealLit());
+      if (!fx.seal || fx.seal.userData.key !== keyOf()) {
+        dropFx('seal');
+        var sg = new T3.Group(), A3 = global.DG.asset3d;
+        sg.userData.key = keyOf();
+        L.forEach(function (l) {
+          var lg = new T3.Group(), lm = A3 && A3.build ? A3.build('lantern', { id: 'story_seal_' + l.k }) : null;
+          if (lm) { lm.scale.set(1.4, 1.4, 1.4); lg.add(lm); }
+          var orb = new T3.Mesh(new T3.SphereGeometry(0.45, 14, 10),
+            new T3.MeshBasicMaterial({ color: new T3.Color(SEAL_MARKS[l.k].color), transparent: true, opacity: 0.3, depthWrite: false, fog: false }));
+          orb.position.y = 3.2; lg.add(orb);
+          lg.userData = { k: l.k, x: l.x, y: l.y, orb: orb };
+          sg.add(lg);
+        });
+        w.addFx(sg); fx.seal = sg;
+      }
+      fx.seal.children.forEach(function (lg) {
+        var on = lit.indexOf(lg.userData.k) >= 0, u = lg.userData;
+        lg.position.set(u.x, w.groundY ? w.groundY(u.x, u.y) : gy, u.y);
+        u.orb.material.opacity = on ? 0.95 : 0.25 + Math.sin(clock * 3) * 0.05;
+        u.orb.scale.setScalar(on ? 1.35 : 1);
+      });
+    } else { dropFx('seal'); }
   }
 
   /** 지금 세울 이야기 인물 — folk.live 와 같은 모양 `{p, x, y, walking, phase, ang, dist}`. 대화 상대는 나를 본다 */
@@ -656,6 +865,9 @@
   global.DG = global.DG || {};
   global.DG.story = {
     NPCS: NPCS, CHAPTERS: CHAPTERS, STEP_EXP: STEP_EXP, WANDER_PATH: WANDER_PATH, FOLLOW_SPEED: FOLLOW_SPEED,
+    SEAL_R: SEAL_R, SEAL_LAYOUT: SEAL_LAYOUT, SEAL_ORDER: SEAL_ORDER, SEAL_MARKS: SEAL_MARKS, SPOTS: SPOTS, CLIMB_R: CLIMB_R,
+    DUEL_P2_AT: DUEL_P2_AT, DUEL_P2_SHIELD: DUEL_P2_SHIELD, peakSpot: peakSpot, spotPos: spotPos, placeOf: placeOf,
+    sealLamps: sealLamps, sealHit: sealHit, sealLit: sealLit, duelBoss: duelBoss, stepDuel: stepDuel,
     FOLLOW_NEAR: FOLLOW_NEAR, FOLLOW_LOST: FOLLOW_LOST,
     on: on, anchorOf: anchorOf, npcPos: npcPos, visible: visible, targetOf: targetOf, trackText: trackText, listHtml: listHtml,
     state: sv, chapter: chapter, step: step, locked: locked, done: done, keyOf: keyOf, gathered: gathered,
@@ -664,7 +876,7 @@
     live: live, marker: marker, toggleList: toggleList, init: init, tick: tick,
     _resetForTest: function () {
       talk = null; lastIdle = {}; anchorMemo = {}; lastTrack = ''; lastBtn = ''; listOpen = false;
-      fol = null; prog = { key: '', n: 0 }; aimMemo = { k: '', v: null };
+      fol = null; prog = { key: '', n: 0 }; aimMemo = { k: '', v: null }; seal = { key: '', n: 0 }; duel = null; peakMemo = null;
     }
   };
 })(window);

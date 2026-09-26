@@ -226,8 +226,20 @@
     g_marsh:  { name: '늪 수호 청룡',     ref: 'pt_cheongryong', el: 'water', hp: 6.5, atk: 1.8, spd: 4.5, reach: 7.5, type: 'spit',  wind: 1.0, cd: 2.4, h: 2.4, exp: 12, r: 3.0, boss: true, guard: true, shields: ['water', 'elec'], sh: 1.3 },
     g_ruins:  { name: '성터 수호 불가사리', ref: 'pt_bulgasari', el: 'elec',  hp: 7.5, atk: 1.9, spd: 3.8, reach: 4.4, type: 'slam',  wind: 1.2, cd: 2.7, h: 2.3, exp: 12, r: 4.8, boss: true, guard: true, shields: ['elec', 'fire'], sh: 1.3 },
     /* §5 ⑲-9 주간 보스(domain.js 먹구름 제단) — 청룡 몸을 빌린 뇌 이무기. 2단계 뇌 방패는 domain.js 가 두른다 */
-    w_imugi:  { name: '먹구름 이무기',   ref: 'pt_cheongryong', el: 'elec',  hp: 20,  atk: 2.2, spd: 4.5, reach: 4.4, type: 'slam',  wind: 1.2, cd: 3.5, h: 2.6, exp: 0,  r: 5.0, boss: true, weekly: true }
+    w_imugi:  { name: '먹구름 이무기',   ref: 'pt_cheongryong', el: 'elec',  hp: 20,  atk: 2.2, spd: 4.5, reach: 4.4, type: 'slam',  wind: 1.2, cd: 3.5, h: 2.6, exp: 0,  r: 5.0, boss: true, weekly: true },
+    /* §5 ⑲-14 이야기 보스(story.js 6장) — 사람 몸(body = asset3d 고정 몸 id)·검은 가면. 공격이 `rot` 차례로 바뀐다(ROT).
+       2단계 뇌 방패·졸개는 story.js 가 두른다 */
+    b_mask:   { name: '검은 가면',       ref: null, body: 'story_blackmask', mask: 'black', el: 'elec', hp: 10, atk: 1.9, spd: 5.6, reach: 2.4, type: 'melee', wind: 0.6, cd: 1.6, h: 1.0, exp: 0,
+                boss: true, rot: ['shadow', 'spit', 'melee', 'slam', 'shadow', 'melee'] }
   };
+  /* ⑲-14 공격 차례(`rot`)의 한 수씩 — reach 안이면 휘두른다. shadow 는 내 등 뒤 SHADOW_BACK m 로 옮겨 붙어 제 둘레 원 */
+  var ROT = {
+    shadow: { reach: 14,  wind: 0.8,  r: 3.2, mul: 1.4 },
+    spit:   { reach: 9,   wind: 1.0,  r: 2.4, mul: 1.0 },
+    melee:  { reach: 2.4, wind: 0.55, r: 0,   mul: 1.0 },
+    slam:   { reach: 3.8, wind: 1.1,  r: 4.2, mul: 1.2 }
+  };
+  var SHADOW_BACK = 2.2;
   function LAYER_STUN() { return 0.8; }     // 겉 방패가 깨질 때 — 짧게 휘청(속 방패가 곧 선다)
   function CORE_STUN() { return 3; }        // 마지막 겹이 깨지면 — 길게 드러눕는다(약점)
   var GUARD_OFF = { x: 16, y: 10 };         // 탑 한가운데가 아니라 둘레 빈터(biome LM_CLEAR 34m 안)
@@ -1107,10 +1119,10 @@
     return { ok: true };
   }
 
-  function hurt(S, f) {
+  function hurt(S, f, mul) {
     var m = active(S);
     if (!m || m.down) { return; }
-    var dmg = Math.max(1, Math.round(f.atk * (1 - m.def / (m.def + 300))));
+    var dmg = Math.max(1, Math.round(f.atk * (mul || 1) * (1 - m.def / (m.def + 300))));   // mul — ⑲-14 공격 차례의 한 수 배수
     if (S.wardT > 0) { dmg = Math.max(1, Math.round(dmg * S.wardMul)); }   // ⑲-11 맹세·오천의 맹세
     var rockX = f.el === 'rock' ? Math.round(dmg * 0.3) : 0;   // ⑲-1 짓눌림 — 이것만으로는 안 쓰러진다
     S.calmT = 0;
@@ -1264,23 +1276,33 @@
         }
       } else if (f.st === 'chase') {
         S.calmT = Math.min(S.calmT, 0);
-        var want = F.type === 'spit' ? F.reach * 0.85 : F.reach * 0.8;
-        if (d > want) { moveToward(f, px, py, F.spd * dt); }
+        /* ⑲-14 공격 차례(rot)가 있으면 이번 수의 reach·wind·r 을 쓴다 */
+        var AT = F.rot ? F.rot[(f.rotI || 0) % F.rot.length] : F.type, RT = F.rot ? ROT[AT] : F;
+        var want = AT === 'shadow' ? 0 : (AT === 'spit' ? RT.reach * 0.85 : RT.reach * 0.8);
+        if (d > want && AT !== 'shadow') { moveToward(f, px, py, F.spd * dt); }
         f.cd -= dt;
-        if (d <= F.reach && f.cd <= 0 && !allDown(S)) {
-          f.st = 'wind'; f.stT = F.wind;
-          f.mark = F.type === 'spit' ? { x: px, y: py, r: F.r, t: F.wind }
-            : (F.type === 'slam' ? { x: f.x, y: f.y, r: F.r, t: F.wind } : null);
-          push(S, { t: 'tell', uid: f.uid, type: F.type, x: f.x, y: f.y });
+        if (d <= RT.reach && f.cd <= 0 && !allDown(S)) {
+          f.st = 'wind'; f.stT = RT.wind; f.atkT = AT;
+          if (AT === 'shadow') {
+            /* 나를 지나 등 뒤로 — 오던 쪽의 반대편 SHADOW_BACK m 에 붙어 제 둘레를 친다 */
+            var sdx = px - f.x, sdy = py - f.y, sdl = Math.hypot(sdx, sdy) || 1;
+            f.x = px + sdx / sdl * SHADOW_BACK; f.y = py + sdy / sdl * SHADOW_BACK;
+            push(S, { t: 'blink', uid: f.uid, x: f.x, y: f.y });
+          }
+          f.mark = AT === 'spit' ? { x: px, y: py, r: RT.r, t: RT.wind }
+            : (AT === 'slam' || AT === 'shadow' ? { x: f.x, y: f.y, r: RT.r, t: RT.wind } : null);
+          push(S, { t: 'tell', uid: f.uid, type: AT === 'shadow' ? 'slam' : AT, x: f.x, y: f.y });
         }
       } else if (f.st === 'wind') {
         S.calmT = Math.min(S.calmT, 0);
         f.stT -= dt;
         if (f.stT <= 0) {
-          var inHit = f.mark ? Math.hypot(px - f.mark.x, py - f.mark.y) <= f.mark.r : d <= F.reach + 0.6;
-          if (inHit && S.iframe <= 0) { hurt(S, f); }
+          var WT = f.atkT || F.type, WR = F.rot ? ROT[WT] : F;
+          var inHit = f.mark ? Math.hypot(px - f.mark.x, py - f.mark.y) <= f.mark.r : d <= WR.reach + 0.6;
+          if (inHit && S.iframe <= 0) { hurt(S, f, WR.mul); }
           else if (inHit) { push(S, { t: 'evade', uid: f.uid }); }
-          push(S, { t: 'strike', uid: f.uid, type: F.type, x: f.mark ? f.mark.x : f.x, y: f.mark ? f.mark.y : f.y, r: f.mark ? f.mark.r : 0 });
+          push(S, { t: 'strike', uid: f.uid, type: WT === 'shadow' ? 'slam' : WT, x: f.mark ? f.mark.x : f.x, y: f.mark ? f.mark.y : f.y, r: f.mark ? f.mark.r : 0 });
+          if (F.rot) { f.rotI = ((f.rotI || 0) + 1) % F.rot.length; }
           f.mark = null; f.cd = F.cd * (f.cdMul || 1);          // ⑲-9 주간 보스 2단계는 cdMul 로 빨라진다
           /* 이 한 대로 전멸했으면 downMember 가 이미 'return' 으로 돌려놨다 — 덮지 않는다 */
           if (f.st === 'wind') { f.st = 'recover'; f.stT = 0.5; }
@@ -1893,10 +1915,11 @@
     for (var k in S.foes) {
       if (!S.foes.hasOwnProperty(k)) { continue; }
       var f = S.foes[k], F = FOES[f.kind];
-      var ref = (D && D.find && D.find(f.heroId || F.ref)) || { id: 'fc_' + f.kind, name: F.name, kind: 'beast', rarity: 2, form: 'boar' };
+      var ref = F.body ? { id: F.body, name: F.name, rarity: 5, trait: 'might', color: '#26222e' }     // ⑲-14 이야기 보스 — 고정 사람 몸
+        : ((D && D.find && D.find(f.heroId || F.ref)) || { id: 'fc_' + f.kind, name: F.name, kind: 'beast', rarity: 2, form: 'boar' });
       out.push({ uid: f.uid, x: f.x, y: f.y, h: F.h, ref: ref, moving: f.moving, phase: f.phase,
         dead: f.dead, deadT: f.deadT, stun: f.stun > 0 && f.st !== 'yield', el: f.el, aura: f.aura, boss: !!F.boss,
-        hero: !!F.hero, yielded: f.st === 'yield' });
+        hero: !!(F.hero || F.body), mask: F.mask || null, yielded: f.st === 'yield' });
     }
     return out;
   }
@@ -1930,7 +1953,7 @@
 
   global.DG = global.DG || {};
   global.DG.fieldCombat = {
-    EL: EL, FOES: FOES, THEMES: THEMES, ELITES: ELITES, ERA_THEMES: ERA_THEMES, ERA_ELITES: ERA_ELITES, eraOfCamp: eraOfCamp, CELL: CELL, ENERGY_MAX: ENERGY_MAX,
+    EL: EL, FOES: FOES, ROT: ROT, SHADOW_BACK: SHADOW_BACK, THEMES: THEMES, ELITES: ELITES, ERA_THEMES: ERA_THEMES, ERA_ELITES: ERA_ELITES, eraOfCamp: eraOfCamp, CELL: CELL, ENERGY_MAX: ENERGY_MAX,
     SKILL_CD: SKILL_CD, SWAP_CD: SWAP_CD, DODGE_COST: DODGE_COST, VAPOR_MUL: VAPOR_MUL,
     /* 판정 층 — 화면 없이 굴린다(자가진단이 쓰는 문) */
     elementOf: elementOf, EL_KEYS: EL_KEYS, heavy: heavy, plunge: plunge, plungeMul: plungeMul, plungeLand: plungeLand, PLUNGE_R: PLUNGE_R(), CHARGE_COST: CHARGE_COST(), REACT: REACT, attaches: attaches, shapeOf: shapeOf, SHAPES: SHAPES, kitFor: kitFor, segDist: segDist, react: react, shieldMul: shieldMul, campAt: campAt, tierAt: tierAt, guardianAt: guardianAt, COUNTER: COUNTER,
