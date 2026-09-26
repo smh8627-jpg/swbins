@@ -138,6 +138,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/treasure.js"></script>
 <script src="js/domain.js"></script>
 <script src="js/fieldboss.js"></script>
+<script src="js/worldquest.js"></script>
 <script src="js/story.js"></script>
 <script src="js/skyisle.js"></script>
 <script src="js/talkface.js"></script>
@@ -10342,7 +10343,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         r.track = ST.trackText() === '📖 제1장 · 먹구름이 오는 마을 — 대숲 고을 탑, 바람이 우는 곳으로 · ◆ 500m';
         var L = ST.listHtml();
         r.list = L.indexOf('제2장 · 먹구름 제단') >= 0 && L.indexOf('🔒 여정 등급 5') >= 0 && L.indexOf('✓ 청하 촌장을 찾아가기') >= 0 && L.indexOf('◆ 대숲 고을 탑') >= 0;
-        var ep = ST.npcPos('elder'), lv = ST.live({ x: ep.x + 5, y: ep.y });
+        var ep = ST.npcPos('elder'), lv = ST.live({ x: ep.x + 5, y: ep.y }).filter(function (x) { return !/^wq_/.test(x.p.id); });   // ⑲-21 세계 임무 인물(묵호)은 따로
         r.live = lv.length === 1 && lv[0].p.id === 'story_elder' && typeof lv[0].ang === 'number' && ST.live({ x: 5000, y: 5000 }).length === 0;
         var bl = DG.minimap.blips({ x: t1.x + 500, y: t1.y }, 150).filter(function (b) { return b.t === 'story'; });
         r.mini = bl.length === 1 && bl[0].edge;
@@ -11207,6 +11208,159 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       } finally { rig.undo(); }
       var bad = Object.keys(r).filter(function (k) { return !r[k]; });
       return bad.length === 0 ? '뇌 대도 ★5 · 벼락 셋·노래 10초 · 마을 → 다음 · 합류·끝 · 덮개 걷힘·기둥 남음' : ('실패 ' + bad.join(','));
+    });
+
+    /* ── ⑲-21 세계 임무 셋·따라가는 임무 바꾸기 (worldquest.js · story.js track, PLAN §5 ⑲-21) ── */
+    function wqRig(level) { var rig = stRig(level); delete C.save.wq; return rig; }
+    function wqKill(ST) {
+      var FC = DG.fieldCombat, S = FC.state(), cp = S && S.camps[ST.keyOf()];
+      if (!cp) { return false; }
+      cp.uids.forEach(function (u) { var f = S.foes[u]; f.shield = 0; f.layers = []; for (var k = 0; k < 3 && !f.dead; k++) { FC.hitFoe(S, f, S.party[0], 1e8, null, 'test'); } });
+      FC.tick(0.05);
+      return true;
+    }
+    t('세계 임무 ⑲-21 — 표·자리: 임무 셋(여정 등급 3·8·12, 단계 6·6·8) · 인물 일곱(시대 글자, 편지 임무는 과거·현대·미래) · 모든 단계 목표 · 자리·쫓기 길·석등 다 뭍 · 이야기 인물과 12m 넘게 · 몸(고정 여섯·드론) · 칸 동안만 서는 인물 · 표정', function () {
+      var rig = wqRig(30), ST = rig.ST, W = ST.WQ, r = {}, i;
+      try {
+        var Q = W.QUESTS;
+        r.table = W.ORDER.join() === 'wq_letters,wq_lighthouse,wq_rift' && Q.wq_letters.ar === 3 && Q.wq_lighthouse.ar === 8 && Q.wq_rift.ar === 12 &&
+          Q.wq_letters.steps.length === 6 && Q.wq_lighthouse.steps.length === 6 && Q.wq_rift.steps.length === 8 && W.STEP_EXP === 8 &&
+          Q.wq_letters.reward.gold === 600 && Q.wq_rift.reward.secret === 2;
+        var eras = {};
+        Q.wq_letters.steps.forEach(function (st) { if (st.npc) { eras[ST.NPCS[st.npc].era] = 1; } });
+        r.era = Object.keys(eras).sort().join() === ['과거', '미래', '현대'].sort().join() && Object.keys(W.NPCS).every(function (k) { return !!W.NPCS[k].era; });
+        var bad = [];
+        W.ORDER.forEach(function (id) {
+          Q[id].steps.forEach(function (st, j) {
+            C.save.wq = { steps: {}, done: [], track: id }; C.save.wq.steps[id] = j;
+            var tg = ST.targetOf(ST.step());
+            if (!tg || ST.step() !== st) { bad.push(id + j + '목표'); return; }
+            if (st.zone && !ST.landAt(tg.x, tg.y)) { bad.push(id + j + '물'); }
+            if (st.type === 'seal' && !ST.sealLamps(st).every(function (l) { return ST.landAt(l.x, l.y); })) { bad.push(id + j + '석등'); }
+          });
+        });
+        delete C.save.wq;
+        Object.keys(W.NPCS).forEach(function (k) {
+          var n = W.NPCS[k], a = ST.anchorOf(n.zone), q = { x: a.x + n.off[0], y: a.y + n.off[1] };
+          if (!ST.landAt(q.x, q.y)) { bad.push(k + '물'); }
+          ['elder', 'ferryman', 'scholar'].forEach(function (s) { var sp = ST.npcPos(s); if (Math.hypot(sp.x - q.x, sp.y - q.y) < 12) { bad.push(k + '-' + s); } });
+          (n.runPath || []).forEach(function (o) { if (!ST.landAt(a.x + o[0], a.y + o[1])) { bad.push(k + '길'); } });
+        });
+        r.place = bad.length === 0;
+        r.body = ['wq_postmaster', 'wq_rider', 'wq_researcher', 'wq_hanbit', 'wq_byeori', 'wq_dolsoe'].every(function (id) { return !!DG.asset3d.fixedRecipe({ id: id }); }) &&
+          W.NPCS.wq_dungsil.pet === 'drone' && !!DG.asset3d.FIXED_HERO && DG.fieldCombat.FOES.drone;
+        function vis(k, id, n) { var v = []; for (i = 0; i < n; i++) { C.save.wq = { steps: {}, done: [], track: null }; C.save.wq.steps[id] = i; v.push(ST.visible(k) ? 1 : 0); } return v.join(''); }
+        r.vis = vis('wq_rider', 'wq_letters', 6) === '011100' && vis('wq_dungsil', 'wq_letters', 6) === '001100' && vis('wq_hanbit', 'wq_lighthouse', 6) === '001110' &&
+          vis('wq_dolsoe', 'wq_rift', 8) === '00111110' && vis('wq_postmaster', 'wq_letters', 6) === '111111';
+        C.save.wq = { steps: {}, done: [], track: null };
+        r.hidden = !ST.visible('wq_rider') && ST.visible('wq_byeori');
+        var emo = 0;
+        W.ORDER.forEach(function (id) { Q[id].steps.forEach(function (st) { (st.lines || []).forEach(function (l) { if (l[2]) { emo++; if (!DG.talkface.EMO[l[2]]) { emo = -99; } } }); }); });
+        r.emo = emo > 0;
+      } finally { rig.undo(); }
+      var bad2 = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad2.length === 0 ? '셋 · 일곱(편지 = 과거·현대·미래) · 단계 20 목표 · 자리 뭍 · 몸 · 칸 인물' : ('실패 ' + bad2.join(','));
+    });
+
+    t('세계 임무 ⑲-21 — 맡기·따라가기: 여정 등급 전엔 ! 없음 · 맡길 사람 곁 F → 맡고 따라감(첫 대화) · 추적 글 🔷 · 목록 따라가기 단추 · 이야기로 바꾸면 임무 적 치움 · 안 따라가는 임무도 다음 대화 상대에게 말 걸면 그 임무로 · 이야기 인물에게 말 걸면 이야기로', function () {
+      var rig = wqRig(2), ST = rig.ST, FC = DG.fieldCombat, r = {};
+      try {
+        r.locked = !ST.wqAvail('wq_letters') && ST.wqMarks().length === 0;
+        C.save.player.level = 5;
+        var mk = ST.wqMarks();
+        r.mark = mk.length === 1 && mk[0].k === 'wq_postmaster' && mk[0].fresh;
+        stGo(ST.npcPos('wq_postmaster'));
+        var st0 = ST.nearTalk();
+        r.take = st0 === ST.WQ.QUESTS.wq_letters.steps[0] && ST.talkStart() && ST.tracking() === 'wq_letters' && ST.wqStepOf('wq_letters') === 0;
+        for (var g = 0; g < 20 && ST.talking(); g++) { if (!ST.next()) { ST.next(0); } }
+        r.adv = ST.wqStepOf('wq_letters') === 1 && ST.keyOf() === 'wq:wq_letters_1' && /^🔷 바람에 흩어진 편지 — 배달꾼 다래에게 편지 묻기/.test(ST.trackText()) &&
+          ST.visible('wq_rider') && ST.wqMarks().length === 0;
+        r.back = ST.setTrack(null) && ST.tracking() === null && /^📖 제1장/.test(ST.trackText()) && ST.step() === ST.CHAPTERS[0].steps[0] &&
+          ST.listHtml().indexOf('data-wq-track="wq_letters"') >= 0 && ST.wqMarks().length === 1 && !ST.wqMarks()[0].fresh;
+        stGo(ST.npcPos('wq_rider'));
+        r.resume = ST.nearTalk() === ST.WQ.QUESTS.wq_letters.steps[1] && ST.talkStart() && ST.tracking() === 'wq_letters';
+        for (g = 0; g < 20 && ST.talking(); g++) { if (!ST.next()) { ST.next(0); } }
+        C.save.wq.steps.wq_letters = 4;
+        var kt = ST.targetOf(ST.step());
+        stGo({ x: kt.x + 20, y: kt.y }); FC.tick(0.05); ST.check();
+        var S = FC.state(), camp = !!S.camps['wq:wq_letters_4'];
+        stGo(ST.npcPos('elder'));
+        r.story = camp && ST.nearTalk() === ST.CHAPTERS[0].steps[0] && ST.talkStart() && ST.tracking() === null && !S.camps['wq:wq_letters_4'] &&
+          ST.wqStepOf('wq_letters') === 4;
+      } finally { rig.undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '등급 전 ! 없음 · 묵호 F → 맡음·따라감 · 🔷 추적 · 이야기로 · 다래에게 말 걸어 다시 · 촌장에게 → 이야기(둥지 무리 치움)' : ('실패 ' + bad.join(','));
+    });
+
+    t('세계 임무 ⑲-21 — 편지 임무 끝까지: 둥실이 쫓기(걸으면 놓침·달리면 잡음) · 둥실이 대화 · 둥지 무리 · 묵호 → 끝(금 +600·단계마다 경험)·끝난 목록·이야기로 돌아감 · 다시 못 맡음', function () {
+      var rig = wqRig(5), ST = rig.ST, r = {}, g;
+      try {
+        ST.wqStart('wq_letters'); C.save.wq.steps.wq_letters = 2;
+        var t0 = ST.thiefAt('wq_dungsil'), dp = ST.npcPos('wq_dungsil');
+        r.start = ST.step().type === 'chase' && t0.x === dp.x && t0.y === dp.y && ST.visible('wq_dungsil');
+        function run(v, sec) {
+          var p = C.save.player.pos, was = false;
+          for (var k = 0; k < sec / 0.05; k++) {
+            var cs = ST.chaseState();
+            if (!cs) { return 'caught'; }
+            if (cs.run) { was = true; } else if (was) { return 'lost'; }
+            var q = ST.thiefAt('wq_dungsil'), dx = q.x - p.x, dy = q.y - p.y, dl = Math.hypot(dx, dy) || 1, st = Math.min(dl, v * 0.05);
+            p.x += dx / dl * st; p.y += dy / dl * st;
+            ST.stepChase(0.05);
+          }
+          return 'timeout';
+        }
+        stGo({ x: t0.x + 10, y: t0.y }); ST.stepChase(0.05);
+        r.walk = run(8, 60) === 'lost' && ST.wqStepOf('wq_letters') === 2 && /둥실이 처음 자리로|가까이 가면 달아난다/.test(ST.trackText());
+        stGo({ x: t0.x + 10, y: t0.y }); ST.stepChase(0.05);
+        r.run = run(17.6, 60) === 'caught' && ST.wqStepOf('wq_letters') === 3;
+        stGo(ST.npcPos('wq_dungsil'));
+        r.talk = ST.nearTalk() === ST.step() && stTalkAll(ST) && ST.wqStepOf('wq_letters') === 4;
+        var kt = ST.targetOf(ST.step());
+        stGo({ x: kt.x + 20, y: kt.y }); DG.fieldCombat.tick(0.05); ST.check();
+        r.kill = wqKill(ST) && ST.wqStepOf('wq_letters') === 5;
+        var g0 = C.save.player.gold || 0;
+        stGo(ST.npcPos('wq_postmaster'));
+        r.done = stTalkAll(ST) && C.save.wq.done.indexOf('wq_letters') >= 0 && ST.wqStepOf('wq_letters') === null && ST.tracking() === null &&
+          (C.save.player.gold || 0) === g0 + 600 && ST.step() === ST.CHAPTERS[0].steps[0] && /✅ 끝/.test(ST.listHtml()) && !ST.wqAvail('wq_letters') && !ST.wqStart('wq_letters');
+      } finally { rig.undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '둥실이 걷기 놓침·달리기 잡음 · 대화 · 둥지 · 묵호 → 끝 금 +600 · 이야기로' : ('실패 ' + bad.join(','));
+    });
+
+    t('세계 임무 ⑲-21 — 등대·시간 틈: 등대 터 가기·한빛·무리·원소 불 → 끝 · 틈 제단 석등(틀리면 꺼짐·달→해→별)·지키기 물결 둘(첫 물결 셋이 제단으로) · 임무마다 따로 따라감', function () {
+      var rig = wqRig(15), ST = rig.ST, FC = DG.fieldCombat, r = {};
+      try {
+        ST.wqStart('wq_lighthouse'); C.save.wq.steps.wq_lighthouse = 1;
+        var gt = ST.targetOf(ST.step());
+        stGo(gt); ST.check();
+        stGo(ST.npcPos('wq_hanbit'));
+        r.go = ST.wqStepOf('wq_lighthouse') === 2 && ST.visible('wq_hanbit') && stTalkAll(ST) && ST.wqStepOf('wq_lighthouse') === 3;
+        var kt = ST.targetOf(ST.step());
+        stGo({ x: kt.x + 20, y: kt.y }); FC.tick(0.05); ST.check();
+        r.kill = wqKill(ST) && ST.wqStepOf('wq_lighthouse') === 4;
+        var lt = ST.targetOf(ST.step());
+        C.emit('field:element', { x: lt.x, y: lt.y, r: 3, el: 'fire' });
+        r.light = ST.wqStepOf('wq_lighthouse') === 5 && !ST.visible('wq_hanbit');
+        stGo(ST.npcPos('wq_researcher'));
+        r.end = stTalkAll(ST) && C.save.wq.done.indexOf('wq_lighthouse') >= 0 && ST.tracking() === null;
+        ST.wqStart('wq_rift'); C.save.wq.steps.wq_rift = 4;
+        var st = ST.step(), L = ST.sealLamps(st), byK = {};
+        L.forEach(function (l) { byK[l.k] = l; });
+        C.emit('field:element', { x: byK.moon.x, y: byK.moon.y, r: 1 });
+        C.emit('field:element', { x: byK.star.x, y: byK.star.y, r: 1 });
+        var reset = ST.sealLit() === 0;
+        ['moon', 'sun', 'star'].forEach(function (k) { C.emit('field:element', { x: byK[k].x, y: byK[k].y, r: 1 }); });
+        r.seal = reset && ST.wqStepOf('wq_rift') === 5 && ST.visible('wq_dolsoe');
+        var c = ST.targetOf(ST.step());
+        stGo({ x: c.x, y: c.y + 12 }); ST.stepDefend(0.1);
+        var S = FC.state(), w0 = S.camps[ST.waveKey(0)];
+        r.defend = ST.step().waves.length === 2 && !!w0 && w0.uids.length === 3 && ST.keyOf() === 'wq:wq_rift_5' &&
+          w0.uids.every(function (u) { return S.foes[u].siege && S.foes[u].st === 'chase'; }) && /틈 제단 100% · 물결 1\/2/.test(ST.trackText());
+        r.two = ST.setTrack(null) && !S.camps[ST.WQ ? 'wq:wq_rift_5:w0' : ''] && ST.setTrack('wq_rift') && ST.tracking() === 'wq_rift';
+      } finally { rig.undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '등대 가기·한빛·무리·불 → 끝 · 석등 틀림 꺼짐 → 달·해·별 · 틈 제단 물결 1/2 · 바꾸면 물결 치움' : ('실패 ' + bad.join(','));
     });
 
     /* ── ⑳ 원작 겹침 정리 (PLAN §5 ⑳) ── */

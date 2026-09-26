@@ -2470,7 +2470,9 @@
     if (global.DG.story) { folks = folks.concat(global.DG.story.live(pos, now)); }   // ⑲-12 이야기 인물 셋
     for (i = 0; i < folks.length; i++) {
       var fk = folks[i];
-      var fka = actorOf('fk' + fk.p.id, 'hero', fk.p, 96);
+      /* ⑲-21 배달 기계처럼 pet 이면 사람 몸 대신 들판 적 몸(pet:fc_<pet>) */
+      var fka = fk.p.pet ? actorOf('fk' + fk.p.id, 'pet', { id: 'fc_' + fk.p.pet, name: fk.p.name, kind: 'beast', rarity: 2, form: 'boar' }, 96)
+        : actorOf('fk' + fk.p.id, 'hero', fk.p, 96);
       fka.sky = !!fk.sky;                                   // ⑲-20 구름섬에 선 이야기 인물
       placeActor(fka, fk.x, fk.y, h * 0.94 * farBoost(fk.x, fk.y), fk.walking ? 0 : Math.sin(now / 700 + i) * h * 0.014, fk.walking, fk.phase, now);
       if (!fk.walking && fka.mesh) {
@@ -2479,7 +2481,7 @@
         fka.ang += fkd * 0.08; fka.node.rotation.y = fka.ang;
       }
       /* ⑲-13 이야기 인물 — 말하는 동안 손짓·끄덕임(QRPG 라 입은 없다), 나그네는 흰 가면 */
-      if (fk.p.story && fka.mesh && TFf) {
+      if (fk.p.story && !fk.p.pet && fka.mesh && TFf) {
         if (fk.p.mask) { TFf.mask(T, fka.node, typeof fk.p.mask === 'string' ? fk.p.mask : 'white'); }   // ⑲-19 해솔은 금 간 가면
         var fkTalk = !!(TSf && TSf.who === fk.p.story);
         TFf.pose(T, fka.node, { speaking: fkTalk && TSf.speaking, vowel: fkTalk ? TSf.vowel : null, open: fkTalk ? TSf.open : 0,

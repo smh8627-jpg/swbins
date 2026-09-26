@@ -20,6 +20,9 @@
  *              한 번 나온다. 줄 셋째 칸은 표정(joy·angry·sorrow·surprised·fun). 카메라·입·손짓은 `talkShot()` 을 world3d 가
  *              읽어 `talkface.js` 로 그린다
  *   화면       목표에 금빛 기둥(3D) · 위쪽 추적 한 줄(장·목표·거리) · 미니맵 금빛 점 · O(📖 단추) 목록
+ * 세계 임무(⑲-21) — 표는 worldquest.js. 같은 단계 엔진으로 돌고 **따라가는 줄**(이야기 또는 세계 임무 하나)만 목표·추적 글·
+ *   임무 적이 선다. 맡길 사람 머리 위 푸른 ! · 곁에서 말을 걸면 그 줄로 넘어간다 · O 목록에서 따라가기를 바꾼다(바꾸면 그 단계 처음부터).
+ *   세이브 `save.wq = { steps: {id: 단계}, done: [id…], track: id|null }`(읽는 쪽 기본값).
  * 세이브 `save.story = { ch, step }` 하나(읽는 쪽 기본값 — SAVE_VERSION 그대로). 임무 적·제단·채집 센 수·따라가기 길은
  * 저장하지 않는다(불러오면 그 단계 처음). 이름·대사는 saga-godot `data/story.gd`(가상 마을 사람)를 옮겼다.
  * 손잡이 `story.on` 0 이면 다 사라진다. 자리는 칸 좌표가 아니라 ⑮ 땅의 탑이라 GPS 판에서도 같은 곳이다.
@@ -87,9 +90,12 @@
       mask: 'crack', appear: [{ ch: 7, from: 8, to: 8, spot: 'isle', off: [0, -9] },
         { ch: 8, from: 6, to: 9, spot: 'sky', off: [-5, 5], sky: true, mask: false, name: '해솔', idle: '……고맙다. 노래를 다시 부를 수 있을 것 같아.' }] },
     thief:    { id: 'story_thief',    name: '노 도둑', short: '도둑', zone: 'galdae', off: [-10, -50], color: '#5a4a3a', idle: '헤헤, 못 잡지롱!',
-      appear: [{ ch: 7, from: 2, to: 2 }] }
+      appear: [{ ch: 7, from: 2, to: 2 }], runPath: THIEF_PATH }
   };
   var NPC_KEYS = ['elder', 'ferryman', 'scholar', 'wanderer', 'haesol', 'thief'];
+  /* ⑲-21 세계 임무 인물 일곱(worldquest.js)을 같은 표에 — 대화·자리·혼잣말이 이야기 인물과 같은 길로 돈다 */
+  var WQD = global.DG.worldQuests || null;
+  if (WQD) { Object.keys(WQD.NPCS).forEach(function (k) { NPCS[k] = WQD.NPCS[k]; NPC_KEYS.push(k); }); }
 
   /* ⑲-15·17 이야기 동료 — 도감 밖 id(도감 인물과 같은 꼴). data.js 는 다섯 벌 복사본이라 고치지 않고 아래 hookFind 가
      `DG.data.find` 앞에 끼운다. el·weapon 은 해시 대신 이 표(field-combat.elementOf·weapon.typeOf 가 읽는다) */
@@ -521,17 +527,23 @@
   }
   /** 단계의 자리 — 이름 붙은 자리(spot) 또는 ⑮ 땅 탑 + off */
   function posOf(st) { return st.spot ? spotPos(st.spot, st.off) : at(st.zone, st.off); }
-  /** 인물 k 의 (ch, si) 칸 — appear·at 에서 그 장 그 단계를 덮는 것 */
-  function placeOf(k, ch, si) {
+  /** 인물 k 의 (ch, si) 칸 — appear·at 에서 그 장 그 단계를 덮는 것. ⑲-21 wq 칸은 그 세계 임무 단계(wq 를 주면 si, 아니면 지금) */
+  function placeOf(k, ch, si, wq) {
     var n = NPCS[k], L = n ? (n.appear || n.at || []) : [];
-    for (var i = 0; i < L.length; i++) { if (L[i].ch === ch && si >= L[i].from && si <= L[i].to) { return L[i]; } }
+    for (var i = 0; i < L.length; i++) {
+      var e = L[i];
+      if (e.wq) {
+        var ws = wq === e.wq ? si : wqStepOf(e.wq);
+        if (ws !== null && ws >= e.from && ws <= e.to) { return e; }
+      } else if (e.ch === ch && si >= e.from && si <= e.to) { return e; }
+    }
     return null;
   }
   /** 인물 k 의 지금(또는 그 장 그 단계) 이름·혼잣말·가면·층 — 칸이 덮으면 그것(⑲-20 가면 벗은 해솔) */
-  function npcInfo(k, ch, si) {
+  function npcInfo(k, ch, si, wq) {
     var n = NPCS[k];
     if (typeof ch !== 'number') { ch = sv().ch; si = sv().step; }
-    var pl = n ? placeOf(k, ch, si) : null;
+    var pl = n ? placeOf(k, ch, si, wq) : null;
     return n ? { name: (pl && pl.name) || n.name, idle: (pl && pl.idle) || n.idle, mask: pl && pl.mask !== undefined ? pl.mask : (n.mask || false),
       sky: !!(pl && pl.sky) } : null;
   }
@@ -540,7 +552,7 @@
     if (!st) { return false; }
     if (st.sky) { return true; }
     if (!isTalk(st)) { return false; }
-    var sa = stepAt(st), inf = npcInfo(st.npc, sa.c, sa.i);
+    var sa = stepAt(st), inf = npcInfo(st.npc, sa.c, sa.i, sa.wq);
     return !!(inf && inf.sky);
   }
   /** 인물 k 가 지금 서 있나 — appear 가 없으면 늘 */
@@ -548,16 +560,17 @@
     var n = NPCS[k], s = sv();
     if (!n) { return false; }
     if (!n.appear) { return true; }
-    return !!placeOf(k, s.ch, s.step) && !locked();
+    var pl = placeOf(k, s.ch, s.step);
+    return !!pl && (!!pl.wq || !locked());
   }
   /** 인물 자리 — (ch, si)를 주면 그 장 그 단계 기준(목표 계산용), 안 주면 지금 기준 */
-  function npcPos(k, ch, si) {
+  function npcPos(k, ch, si, wq) {
     var n = NPCS[k];
     if (!n) { return null; }
     if (typeof ch !== 'number') { ch = sv().ch; si = sv().step; }
     if (k === 'wanderer' && ch === 3) { return wandererAt(si); }
-    if (k === 'thief') { return thiefAt(); }                         // ⑲-19 달리는 자리
-    var pl = placeOf(k, ch, si);
+    if (n.runPath) { return thiefAt(k); }                           // ⑲-19·21 달리는 자리
+    var pl = placeOf(k, ch, si, wq);
     return pl && pl.spot ? spotPos(pl.spot, pl.off) : at(n.zone, n.off);
   }
   function altarPos() {
@@ -569,9 +582,10 @@
     var a = anchorOf(zk), B = BM();
     return a && B ? B.cellAt.apply(null, a.key.split('_').map(Number)) : null;
   }
-  /** 단계가 몇째 장 몇째 단계인가 — { c, i } */
+  /** 단계가 몇째 장 몇째 단계인가 — { c, i } · ⑲-21 세계 임무 단계면 { c: -1, i, wq } */
   function stepAt(st) {
     for (var c = 0; c < CHAPTERS.length; c++) { var i = CHAPTERS[c].steps.indexOf(st); if (i >= 0) { return { c: c, i: i }; } }
+    if (WQD) { for (var q in WQD.QUESTS) { var j = WQD.QUESTS[q].steps.indexOf(st); if (j >= 0) { return { c: -1, i: j, wq: q }; } } }
     return { c: -1, i: -1 };
   }
   /* gather·cook 목표는 둘레를 훑어야 해 칸(10m)·센 수가 같으면 다시 쓴다 */
@@ -601,8 +615,8 @@
   function targetOf(st) {
     if (!st) { return null; }
     if (isTalk(st) || st.type === 'follow' || st.type === 'chase') {
-      var sa = stepAt(st), p = npcPos(st.npc, sa.c, sa.i);
-      return p ? { x: p.x, y: p.y, r: isTalk(st) ? TALK_R() : 0, label: isTalk(st) ? npcInfo(st.npc, sa.c, sa.i).name : st.text } : null;
+      var sa = stepAt(st), p = npcPos(st.npc, sa.c, sa.i, sa.wq);
+      return p ? { x: p.x, y: p.y, r: isTalk(st) ? TALK_R() : 0, label: isTalk(st) ? npcInfo(st.npc, sa.c, sa.i, sa.wq).name : st.text } : null;
     }
     if (st.type === 'sky') {                                 // ⑲-20 바람 기둥 = 봉우리 정상
       var SKt = global.DG.skyIsle, pk = SKt ? SKt.peak() : null;
@@ -655,11 +669,93 @@
   }
   function chapter() { var c = sv().ch; return c < CHAPTERS.length ? CHAPTERS[c] : null; }
   function locked() { var ch = chapter(); return !!ch && (core().save.player.level || 1) < ch.ar; }
-  /** 지금 단계 — 다 끝났거나 장이 잠겼으면 null */
-  function step() { var ch = chapter(); return ch && !locked() ? ch.steps[sv().step] || null : null; }
+  /** 이야기의 지금 단계 — 다 끝났거나 장이 잠겼으면 null */
+  function storyStep() { var ch = chapter(); return ch && !locked() ? ch.steps[sv().step] || null : null; }
+  /** 지금 단계 — **따라가는 줄**의 것(⑲-21 세계 임무를 따라가면 그 임무, 아니면 이야기) */
+  function step() { var tq = tracking(); return tq ? wqDef(tq).steps[wqs().steps[tq]] || null : storyStep(); }
   function done() { return sv().ch >= CHAPTERS.length; }
   function pos() { return core().save.player.pos; }
-  function keyOf() { return 'sq:' + sv().ch + '_' + sv().step; }
+  function keyOf() { var tq = tracking(); return tq ? 'wq:' + tq + '_' + wqs().steps[tq] : 'sq:' + sv().ch + '_' + sv().step; }
+
+  /* ── 세계 임무(⑲-21) — 표는 worldquest.js ──────────────── */
+
+  function wqs() {
+    var s = core().save;
+    if (!s.wq || typeof s.wq !== 'object') { s.wq = { steps: {}, done: [], track: null }; }
+    if (!s.wq.steps || typeof s.wq.steps !== 'object') { s.wq.steps = {}; }
+    if (!Array.isArray(s.wq.done)) { s.wq.done = []; }
+    if (s.wq.track === undefined) { s.wq.track = null; }
+    return s.wq;
+  }
+  function wqDef(id) { return (WQD && WQD.QUESTS[id]) || null; }
+  function wqStepOf(id) { var w = wqs(); return typeof w.steps[id] === 'number' ? w.steps[id] : null; }
+  /** 따라가는 세계 임무 id — 없으면(이야기를 따라간다) null */
+  function tracking() { var w = wqs(), id = w.track; return id && wqDef(id) && typeof w.steps[id] === 'number' ? id : null; }
+  /** 맡을 수 있나 — 안 맡았고·안 끝났고·여정 등급이 닿는다 */
+  function wqAvail(id) {
+    var q = wqDef(id), w = wqs();
+    return !!q && w.done.indexOf(id) < 0 && typeof w.steps[id] !== 'number' && (core().save.player.level || 1) >= q.ar;
+  }
+  /** 따라가는 줄의 임무 적·제단 물결을 치운다(바꾸면 그 단계 처음부터) */
+  function dropLine() { var k = keyOf(); dropCamp(k); dropCamp(k + ':add'); for (var n = 0; n < 3; n++) { dropCamp(k + ':w' + n); } }
+  /** 따라갈 줄 — 맡은 세계 임무 id 또는 null(이야기). 바뀌면 true */
+  function setTrack(id) {
+    var w = wqs();
+    id = id && wqDef(id) && typeof w.steps[id] === 'number' ? id : null;
+    if ((w.track || null) === id) { return false; }
+    dropLine();
+    w.track = id;
+    resetStep();
+    toast(id ? '🔷 따라가는 임무 — ' + wqDef(id).name : '📖 이야기 임무를 따라간다');
+    core().emit('story:step', { track: id });
+    core().emit('changed');
+    core().persist();
+    return true;
+  }
+  /** 맡기 — 첫 단계부터, 곧 따라가는 임무가 된다 */
+  function wqStart(id) {
+    if (!wqAvail(id)) { return false; }
+    wqs().steps[id] = 0;
+    toast('🔷 세계 임무 — ' + wqDef(id).name + ' 을 맡았다');
+    core().log('🔷 세계 임무 — ' + wqDef(id).name, 'good');
+    if (!setTrack(id)) { core().persist(); }
+    return true;
+  }
+  /** 세계 임무 한 단계 — 단계마다 부대 경험 STEP_EXP, 끝나면 보상·이야기로 돌아간다 */
+  function wqAdvance(id) {
+    var w = wqs(), q = wqDef(id), H = global.DG.hero;
+    if (H && H.awardParty) { H.awardParty(WQD.STEP_EXP); }
+    w.steps[id] += 1;
+    resetStep();
+    if (w.steps[id] >= q.steps.length) {
+      var txt = award(q.reward);
+      delete w.steps[id];
+      if (w.done.indexOf(id) < 0) { w.done.push(id); }
+      w.track = null;
+      toast('🔷 ' + q.name + ' 끝 — ' + txt);
+      core().log('🔷 ' + q.name + ' 끝 — ' + txt, 'good');
+      sfx('reward');
+    } else {
+      toast('🔷 ' + q.steps[w.steps[id]].text);
+    }
+    core().emit('story:step', { wq: id, step: w.steps[id] === undefined ? -1 : w.steps[id] });
+    core().emit('changed');
+    core().persist();
+    return true;
+  }
+  /** 머리 위 푸른 ! — 맡을 수 있는 임무의 맡길 사람 · 맡았지만 안 따라가는 임무의 다음 대화 상대. [{k, x, y, id, fresh}] */
+  function wqMarks() {
+    var out = [], w = wqs(), tq = tracking();
+    if (!WQD) { return out; }
+    WQD.ORDER.forEach(function (id) {
+      var q = wqDef(id), st = null, fresh = wqAvail(id);
+      if (fresh) { st = q.steps[0]; } else if (typeof w.steps[id] === 'number' && id !== tq) { st = q.steps[w.steps[id]]; }
+      if (!isTalk(st) || !visible(st.npc)) { return; }
+      var sa = stepAt(st), np = npcPos(st.npc, sa.c, sa.i, sa.wq);
+      if (np) { out.push({ k: st.npc, x: np.x, y: np.y, id: id, fresh: fresh }); }
+    });
+    return out;
+  }
 
   /* ── 나아가기 ─────────────────────────────────────────── */
 
@@ -675,13 +771,17 @@
     if (r.party && H && H.awardParty) { H.awardParty(r.party); out.push('부대 경험 ' + r.party); }
     return out.join(' · ');
   }
-  /** 지금 단계를 끝낸다 — 장 끝이면 보상과 함께 다음 장으로 */
+  /** 단계마다 저장 안 하는 것(센 수·따라가기·석등·보스·제단·쫓기)을 비운다 */
+  function resetStep() { prog = { key: '', n: 0 }; fol = null; seal = { key: '', n: 0 }; duel = null; def = null; chase = null; }
+  /** 지금 단계를 끝낸다 — 장 끝이면 보상과 함께 다음 장으로. ⑲-21 세계 임무를 따라가면 그 임무가 나아간다 */
   function advance() {
+    var tq = tracking();
+    if (tq) { return wqAdvance(tq); }
     var s = sv(), ch = chapter(), H = global.DG.hero;
     if (!ch) { return false; }
     if (H && H.awardParty) { H.awardParty(STEP_EXP); }
     s.step += 1;
-    prog = { key: '', n: 0 }; fol = null; seal = { key: '', n: 0 }; duel = null; def = null; chase = null;
+    resetStep();
     if (s.step >= ch.steps.length) {
       var txt = award(ch.reward);
       s.ch += 1; s.step = 0;
@@ -919,18 +1019,24 @@
 
   /* ── 도둑 쫓기(⑲-19) ─────────────────────────────────── */
 
-  var chase = null;         // { key, i(지난 길 점), x, y, run(달아나는 중), pause } — 저장 안 함
+  var chase = null;         // { key, npc, i(지난 길 점), x, y, run(달아나는 중), pause } — 저장 안 함
+  /** ⑲-21 달리는 인물 k 의 길 점 i — 그 인물 땅(zone) 탑 기준 runPath(도둑은 THIEF_PATH) */
+  function runAt(k, i) { var n = NPCS[k] || NPCS.thief; return at(n.zone, (n.runPath || THIEF_PATH)[i]); }
+  function runLen(k) { var n = NPCS[k] || NPCS.thief; return (n.runPath || THIEF_PATH).length; }
   function chaseState() {
     var st = step();
     if (!st || st.type !== 'chase') { chase = null; return null; }
     if (!chase || chase.key !== keyOf()) {
-      var p0 = at('galdae', THIEF_PATH[0]);
-      chase = p0 ? { key: keyOf(), i: 0, x: p0.x, y: p0.y, run: false, pause: 0 } : null;
+      var p0 = runAt(st.npc, 0);
+      chase = p0 ? { key: keyOf(), npc: st.npc, i: 0, x: p0.x, y: p0.y, run: false, pause: 0 } : null;
     }
     return chase;
   }
-  /** 도둑 자리 — 쫓는 중이면 달리는 곳, 아니면 길 첫 점 */
-  function thiefAt() { return chase && chase.key === keyOf() ? { x: chase.x, y: chase.y } : at('galdae', THIEF_PATH[0]); }
+  /** 달리는 인물 자리(기본 노 도둑) — 쫓는 중이면 달리는 곳, 아니면 길 첫 점 */
+  function thiefAt(k) {
+    k = k || 'thief';
+    return chase && chase.key === keyOf() && chase.npc === k ? { x: chase.x, y: chase.y } : runAt(k, 0);
+  }
   /**
    * 한 박자 — 잡혔나 먼저 보고(CHASE_CATCH), 서 있으면 CHASE_START 안에 들 때 달아난다. 달아나는 중엔 CHASE_SPEED 로
    * 다음 점까지, 점에 닿으면 CHASE_PAUSE 초 숨 고르기. 길 끝이면 놓친 것 — 처음 자리로
@@ -939,22 +1045,23 @@
     var cs = chaseState();
     if (!cs) { return null; }
     var p = pos(), d = Math.hypot(p.x - cs.x, p.y - cs.y);
-    if (d <= CHASE_CATCH()) { chase = null; toast('🏃 노 도둑을 붙잡았다 — 노를 되찾았다'); advance(); return null; }
+    var cst = step() || {};
+    if (d <= CHASE_CATCH()) { chase = null; toast(cst.caught || '🏃 노 도둑을 붙잡았다 — 노를 되찾았다'); advance(); return null; }
     if (!cs.run) {
-      if (d <= CHASE_START()) { cs.run = true; cs.pause = 0; toast('🏃 도둑이 노를 메고 달아난다 — 달려라!'); }
+      if (d <= CHASE_START()) { cs.run = true; cs.pause = 0; toast(cst.flee || '🏃 도둑이 노를 메고 달아난다 — 달려라!'); }
       return cs;
     }
     if (cs.pause > 0) { cs.pause = Math.max(0, cs.pause - (dt || 0)); return cs; }
     var left = CHASE_SPEED() * (dt || 0);
-    while (left > 0 && cs.i < THIEF_PATH.length - 1) {
-      var nx = at('galdae', THIEF_PATH[cs.i + 1]), nd = Math.hypot(nx.x - cs.x, nx.y - cs.y);
+    while (left > 0 && cs.i < runLen(cs.npc) - 1) {
+      var nx = runAt(cs.npc, cs.i + 1), nd = Math.hypot(nx.x - cs.x, nx.y - cs.y);
       if (nd <= left) { cs.x = nx.x; cs.y = nx.y; cs.i += 1; cs.pause = CHASE_PAUSE(); left = 0; }
       else { cs.x += (nx.x - cs.x) / nd * left; cs.y += (nx.y - cs.y) / nd * left; left = 0; }
     }
-    if (cs.i >= THIEF_PATH.length - 1) {
-      var p0 = at('galdae', THIEF_PATH[0]);
+    if (cs.i >= runLen(cs.npc) - 1) {
+      var p0 = runAt(cs.npc, 0);
       cs.i = 0; cs.x = p0.x; cs.y = p0.y; cs.run = false; cs.pause = 0;
-      toast('💨 놓쳤다 — 도둑이 처음 자리로 숨어들었다. 다시 가까이 가면 달아난다');
+      toast(cst.lost || '💨 놓쳤다 — 도둑이 처음 자리로 숨어들었다. 다시 가까이 가면 달아난다');
     }
     return cs;
   }
@@ -1028,11 +1135,28 @@
   /* ── 대화 ─────────────────────────────────────────────── */
 
   var talk = null;          // { st, i, shown(나온 글자 수), since(마지막 글자 뒤 초), reply(고른 대답|null) } — 창이 열려 있으면
+  /** 말을 걸 수 있는 단계들 — 따라가는 줄 · (세계 임무를 따라가면) 이야기 · 맡은 세계 임무의 다음 · 맡을 수 있는 세계 임무 첫 대화 */
+  function talkables() {
+    var out = [step()], tq = tracking(), w = wqs();
+    if (tq) { out.push(storyStep()); }
+    if (WQD) {
+      WQD.ORDER.forEach(function (id) {
+        if (id === tq) { return; }
+        if (typeof w.steps[id] === 'number') { out.push(wqDef(id).steps[w.steps[id]]); } else if (wqAvail(id)) { out.push(wqDef(id).steps[0]); }
+      });
+    }
+    return out;
+  }
+  /** 곁(TALK_R)에서 말을 걸 수 있는 가장 가까운 대화 단계 — 같으면 따라가는 줄이 먼저 */
   function nearTalk() {
-    var st = step();
-    if (!isTalk(st) || !visible(st.npc)) { return null; }
-    var np = npcPos(st.npc), p = pos();
-    return np && Math.hypot(p.x - np.x, p.y - np.y) <= TALK_R() ? st : null;
+    var L = talkables(), p = pos(), best = null, bd = Infinity;
+    for (var i = 0; i < L.length; i++) {
+      var st = L[i];
+      if (!isTalk(st) || !visible(st.npc)) { continue; }
+      var sa = stepAt(st), np = npcPos(st.npc, sa.c, sa.i, sa.wq), d = np ? Math.hypot(p.x - np.x, p.y - np.y) : Infinity;
+      if (d <= TALK_R() && d < bd - 1e-9) { bd = d; best = st; }
+    }
+    return best;
   }
   function busy() {
     var D = global.DG;
@@ -1047,6 +1171,10 @@
   function talkStart() {
     var st = nearTalk();
     if (!st || talk || busy()) { return false; }
+    /* ⑲-21 그 대화의 줄로 넘어간다 — 안 맡은 세계 임무면 맡는다 */
+    var sa = stepAt(st);
+    if (sa.wq) { if (wqStepOf(sa.wq) === null) { wqStart(sa.wq); } else { setTrack(sa.wq); } } else { setTrack(null); }
+    if (step() !== st) { return false; }
     talk = { st: st, i: 0, shown: 0, since: 0, reply: null };
     fresh();
     paintTalk();
@@ -1110,14 +1238,15 @@
   function fmtDist(d) { return d >= 1000 ? (d / 1000).toFixed(1) + 'km' : Math.round(d) + 'm'; }
   /** 추적 한 줄 글 — 세이브·자리만 읽는다 */
   function trackText() {
-    if (!on() || done()) { return ''; }
+    var tq = on() ? tracking() : null;
+    if (!on() || (!tq && done())) { return ''; }
     var ch = chapter();
-    if (locked()) { return '📖 ' + ch.name + ' — 여정 등급 ' + ch.ar + ' 에 열린다'; }
+    if (!tq && locked()) { return '📖 ' + ch.name + ' — 여정 등급 ' + ch.ar + ' 에 열린다'; }
     var st = step(), t = targetOf(st), p = pos(), d = t ? Math.hypot(p.x - t.x, p.y - t.y) : 0;
     var what = st.text;
     if (st.type === 'gather') { what += ' ' + gathered() + '/' + st.count; }
     if (st.type === 'follow' && d > FOLLOW_LOST()) { what = '너무 멀다, 가까이!'; }
-    if (st.type === 'chase') { what = chase && chase.key === keyOf() && chase.run ? '노 도둑 ' + Math.round(d) + 'm — 달려라!' : st.text + ' (가까이 가면 달아난다)'; }   // ⑲-19
+    if (st.type === 'chase') { what = chase && chase.key === keyOf() && chase.run ? NPCS[st.npc].name + ' ' + Math.round(d) + 'm — 달려라!' : st.text + ' (가까이 가면 달아난다)'; }   // ⑲-19
     if (st.type === 'seal') { what += ' ' + sealLit() + '/' + (st.order || SEAL_ORDER).length + ' (' + orderText(st) + ')'; }
     if (st.type === 'duel') {
       var b = duelBoss(), FF = FC() && FC().FOES[st.kind];
@@ -1132,7 +1261,7 @@
       else if (dd && dd.wave >= 0) { what = (st.name || '제단') + ' ' + Math.ceil(100 * dd.hp / dd.hpMax) + '% · 물결 ' + (dd.wave + 1) + '/' + wavesOf(st).length; }
       else { what += ' (가까이 가면 무리가 온다)'; }
     }
-    return '📖 ' + ch.name + ' — ' + what + (t ? ' · ◆ ' + fmtDist(d) : '');
+    return (tq ? '🔷 ' + wqDef(tq).name : '📖 ' + ch.name) + ' — ' + what + (t ? ' · ◆ ' + fmtDist(d) : '');
   }
   function el(id, cls) {
     var e = document.getElementById(id);
@@ -1144,7 +1273,7 @@
     if (!document.body) { return; }
     var tr = el('story-track'), txt = trackText();
     if (txt !== lastTrack) { lastTrack = txt; tr.textContent = txt; tr.style.display = txt ? '' : 'none'; }
-    var b = el('story-btn'), st = !talk && !busy() ? nearTalk() : null, bt = st ? '💬 ' + NPCS[st.npc].short + '와 이야기 (F)' : '';
+    var b = el('story-btn'), st = !talk && !busy() ? nearTalk() : null, bt = st ? '💬 ' + NPCS[st.npc].short + (NPCS[st.npc].era ? '(' + NPCS[st.npc].era + ')' : '') + '와 이야기 (F)' : '';
     if (bt !== lastBtn) { lastBtn = bt; b.textContent = bt; b.style.display = bt ? '' : 'none'; }
   }
   function shownText() { var l = curLine(); return String(l[1]).slice(0, Math.floor(talk.shown)); }
@@ -1191,6 +1320,24 @@
         }
       }
       out += '</div>';
+    }
+    /* ⑲-21 세계 임무 — 끝·따라가는 중·맡음(따라가기 단추)·맡을 수 있음(! 누구에게)·잠김 */
+    if (WQD) {
+      var w = wqs(), tq = tracking(), lv = core().save.player.level || 1;
+      out += '<b class="st-who" style="display:block;margin-top:10px">🔷 세계 임무</b>';
+      WQD.ORDER.forEach(function (id) {
+        var q = wqDef(id), g = NPCS[q.giver], got = typeof w.steps[id] === 'number', fin = w.done.indexOf(id) >= 0;
+        var state = fin ? '✅ 끝' : (id === tq ? '▶ 따라가는 중' : (got ? '◇ 맡음' : (lv >= q.ar ? '❗ ' + q.place + ' ' + g.short + '에게' : '🔒 여정 등급 ' + q.ar)));
+        out += '<div class="st-ch"><b>' + esc(q.name) + '</b> <small>' + state + '</small>';
+        if (got && id !== tq) { out += ' <button class="btn ghost" data-wq-track="' + id + '">따라가기</button>'; }
+        if (id === tq) {
+          for (var j = 0; j < q.steps.length; j++) {
+            out += '<small style="display:block" class="' + (j < w.steps[id] ? 'muted' : '') + '">' + (j < w.steps[id] ? '✓' : (j === w.steps[id] ? '◆' : '◇')) + ' ' + esc(q.steps[j].text) + '</small>';
+          }
+        }
+        out += '</div>';
+      });
+      if (tq && !done()) { out += '<div class="st-ch"><button class="btn ghost" data-wq-track="">📖 이야기 임무 따라가기</button></div>'; }
     }
     return out + '<div class="st-acts"><button class="btn ghost" data-st-close="1">닫기 (O)</button></div></div>';
   }
@@ -1267,6 +1414,29 @@
     } else { dropFx('seal'); }
   }
 
+  /** ⑲-21 맡을 사람 머리 위 푸른 ! (코드 그림 — 막대 + 점). 맡을 수 있는 것은 밝게, 이어 갈 것은 흐리게 */
+  var markFx = {};
+  function paintMarks3d() {
+    var w = W3(), T3 = w && w.three(), seen = {}, k, p = pos();
+    if (T3) {
+      wqMarks().forEach(function (m) {
+        if (Math.hypot(m.x - p.x, m.y - p.y) > 150) { return; }
+        seen[m.k] = true;
+        if (!markFx[m.k]) {
+          var g = new T3.Group(), mat = new T3.MeshBasicMaterial({ color: 0x4aa8ff, transparent: true, opacity: 0.95, fog: false });
+          var bar = new T3.Mesh(new T3.BoxGeometry(0.16, 0.6, 0.16), mat); bar.position.y = 0.5; g.add(bar);
+          var dot = new T3.Mesh(new T3.SphereGeometry(0.1, 10, 8), mat); g.add(dot);
+          markFx[m.k] = w.addFx(g);
+        }
+        var gy = w.standY ? w.standY(m.x, m.y, false) : (w.groundY ? w.groundY(m.x, m.y) : 0);
+        markFx[m.k].position.set(m.x, gy + 2.5 + Math.sin(clock * 2.5) * 0.12, m.y);
+        markFx[m.k].rotation.y = clock * 1.4;
+        markFx[m.k].children[0].material.opacity = m.fresh ? 0.95 : 0.55;
+      });
+    }
+    for (k in markFx) { if (markFx.hasOwnProperty(k) && !seen[k]) { if (w) { w.removeFx(markFx[k]); } delete markFx[k]; } }
+  }
+
   /** 지금 세울 이야기 인물 — folk.live 와 같은 모양 `{p, x, y, walking, phase, ang, dist}`. 대화 상대는 나를 본다 */
   function live(p0, tms) {
     if (!on() || !p0) { return []; }
@@ -1277,8 +1447,8 @@
       var d = Math.hypot(q.x - p0.x, q.y - p0.y);
       if (d > 110) { continue; }
       var a = anchorOf(n.zone), face = talk && talk.st.npc === k, inf = npcInfo(k);
-      out.push({ p: { id: n.id, name: inf.name, color: n.color, rarity: 3, trait: 'virtue', story: k, mask: inf.mask }, sky: inf.sky,
-        x: q.x, y: q.y, walking: !!((k === 'wanderer' && fs && fs.walking) || (k === 'thief' && chase && chase.run && !(chase.pause > 0))), phase: (tms || 0) / 480,
+      out.push({ p: { id: n.id, name: inf.name, color: n.color, rarity: 3, trait: 'virtue', story: k, mask: inf.mask, pet: n.pet || null }, sky: inf.sky,
+        x: q.x, y: q.y, walking: !!((k === 'wanderer' && fs && fs.walking) || (n.runPath && chase && chase.npc === k && chase.run && !(chase.pause > 0))), phase: (tms || 0) / 480,
         ang: face ? Math.atan2(pp.y - q.y, pp.x - q.x) : Math.atan2(a.y - q.y, a.x - q.x), dist: d });
     }
     return out;
@@ -1298,7 +1468,7 @@
     stepChase(dt);
     stepDefend(dt);
     reveal(dt);
-    if (!global.DG_NO_DRAW) { paintHud(); paint3d(dt); }
+    if (!global.DG_NO_DRAW) { paintHud(); paint3d(dt); paintMarks3d(); }
   }
   function bind() {
     if (bound) { return; }
@@ -1320,6 +1490,7 @@
       else if (t.closest('[data-st-pick]')) { next(+t.closest('[data-st-pick]').getAttribute('data-st-pick')); }
       else if (t.closest('[data-st-next]')) { next(); }
       else if (t.closest('[data-st-close]')) { toggleList(false); }
+      else if (t.closest('[data-wq-track]')) { setTrack(t.closest('[data-wq-track]').getAttribute('data-wq-track') || null); toggleList(true); }
       else if (t.closest('#story-track')) { toggleList(); }
     });
     global.addEventListener('keydown', function (e) {
@@ -1349,6 +1520,8 @@
     THIEF_PATH: THIEF_PATH, CHASE_SPEED: CHASE_SPEED, CHASE_PAUSE: CHASE_PAUSE, CHASE_START: CHASE_START, CHASE_CATCH: CHASE_CATCH, ISLE_R: ISLE_R,
     isleSpot: isleSpot, wetNeighbors: wetNeighbors, stepChase: stepChase, thiefAt: thiefAt, chaseState: function () { return chase && chase.key === keyOf() ? chase : null; }, isTalk: isTalk,
     sealLamps: sealLamps, sealHit: sealHit, sealLit: sealLit, duelBoss: duelBoss, stepDuel: stepDuel, npcInfo: npcInfo, skyOf: skyOf,
+    WQ: WQD, wqs: wqs, wqDef: wqDef, wqStepOf: wqStepOf, tracking: tracking, setTrack: setTrack, wqStart: wqStart, wqAvail: wqAvail, wqMarks: wqMarks,
+    talkables: talkables, storyStep: storyStep, stepAt: stepAt,
     FOLLOW_NEAR: FOLLOW_NEAR, FOLLOW_LOST: FOLLOW_LOST,
     on: on, anchorOf: anchorOf, npcPos: npcPos, visible: visible, targetOf: targetOf, trackText: trackText, listHtml: listHtml,
     state: sv, chapter: chapter, step: step, locked: locked, done: done, keyOf: keyOf, gathered: gathered,

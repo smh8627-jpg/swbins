@@ -605,7 +605,14 @@
     story_wanderer: 'quaternius_rpg/Rogue.glb',     // ⑲-13 가면 쓴 나그네(흰 가면은 talkface.mask 가 얹는다)
     story_blackmask: 'quaternius_rpg/Warrior.glb',  // ⑲-14 이야기 보스 검은 가면(들판 적 b_mask 의 body)
     story_haesol: 'quaternius_rpg/Warrior.glb',     // ⑲-19 해솔(검은 가면의 참이름) — 보스와 같은 몸, 가면은 talkface 'crack'
-    story_thief: 'oga_ultimate_Ninja_Sand.glb'      // ⑲-19 노 도둑
+    story_thief: 'oga_ultimate_Ninja_Sand.glb',     // ⑲-19 노 도둑
+    /* ⑲-21 세계 임무 인물(worldquest.js) — 과거·현대·미래 옷. 둥실이는 들판 적 드론 몸(pet)이라 여기 없다 */
+    wq_postmaster: 'quaternius_rpg/Wizard.glb',      // 역참지기 묵호(과거)
+    wq_rider: 'folk/m_Hoodie.glb',                   // 배달꾼 다래(현대)
+    wq_researcher: 'folk/w_Worker.glb',              // 바다 연구원 물결(현대)
+    wq_hanbit: 'folk/w_SciFi.glb',                   // 등대 지기 한빛(미래 기계)
+    wq_byeori: 'folk/s_Astronaut2.glb',              // 시간 탐사대원 별이(미래)
+    wq_dolsoe: 'folk/m_Farmer.glb'                   // 옛 석공 돌쇠(과거)
   };
   function fixedRecipe(ref) {
     var id = ref && ref.id;
