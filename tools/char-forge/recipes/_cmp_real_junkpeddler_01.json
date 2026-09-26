@@ -1,6 +1,6 @@
 {
  "id": "_cmp_real_junkpeddler_01",
- "_note": "단계 3 행상 비교용 — saga-unity Leonard(Mixamo) 자리 후보(DUNGEON 현대 '고물 행상'). 게임 인물 아님. 늙은 남자·납작 모자·해진 밤빛 겉옷·목도리·흙빛 바지·장화·등에 큰 고물 짐.",
+ "_note": "단계 3 행상 비교용 — saga-unity Leonard(Mixamo) 자리 후보(DUNGEON 현대 '고물 행상'). 게임 인물 아님. 09-26 진짜 옷(CC0 밤빛 겉옷·흙빛 바지·장화, 납작 모자는 껍데기(CC0 jujube_newsboy_cap 은 .mhclo 에 material 줄이 없어 재질이 안 붙는다), 목도리·고물 짐은 겉옷을 본뜬 껍데기). 늙은 남자·납작 모자·해진 밤빛 겉옷·목도리·흙빛 바지·장화·등에 큰 고물 짐.",
  "macro": {
   "gender": 1.0,
   "age": 0.85,
@@ -26,66 +26,10 @@
  "kitbash": [
   {
    "part": "shell",
-   "slot": "cloth",
-   "color": "#5c4630",
-   "rough": 0.95,
-   "offset": 0.01,
-   "thick": 0.005,
-   "groups": [
-    "spine_0*",
-    "clavicle_*",
-    "upperarm_*",
-    "lowerarm_*",
-    "pelvis"
-   ],
-   "z": [
-    0.42,
-    0.86
-   ],
-   "minw": 0.5
-  },
-  {
-   "part": "shell",
-   "slot": "cloth_pants",
-   "color": "#4a4034",
-   "rough": 0.9,
-   "offset": 0.006,
-   "thick": 0.004,
-   "groups": [
-    "pelvis",
-    "thigh_*",
-    "calf_*"
-   ],
-   "z": [
-    0.02,
-    0.58
-   ],
-   "minw": 0.5
-  },
-  {
-   "part": "shell",
-   "slot": "leather",
-   "color": "#2e241a",
-   "rough": 0.65,
-   "offset": 0.014,
-   "thick": 0.005,
-   "groups": [
-    "foot_*",
-    "ball_*",
-    "calf_*"
-   ],
-   "z": [
-    0.0,
-    0.18
-   ],
-   "minw": 0.3
-  },
-  {
-   "part": "shell",
    "slot": "cloth_scarf",
    "color": "#8a6a2a",
    "rough": 0.95,
-   "offset": 0.02,
+   "offset": 0.018,
    "thick": 0.008,
    "groups": [
     "neck_01",
@@ -96,7 +40,8 @@
     0.8,
     0.88
    ],
-   "minw": 0.4
+   "minw": 0.4,
+   "src": "male_casualsuit05"
   },
   {
    "part": "shell",
@@ -119,7 +64,7 @@
    "slot": "leather_pack",
    "color": "#6a5238",
    "rough": 0.85,
-   "offset": 0.09,
+   "offset": 0.08,
    "thick": 0.012,
    "groups": [
     "spine_0*",
@@ -129,7 +74,8 @@
     0.5,
     0.86
    ],
-   "facing_back": 0.35
+   "facing_back": 0.35,
+   "src": "male_casualsuit05"
   }
  ],
  "anims": {
@@ -139,5 +85,12 @@
   "interaction": "PickUp_Table",
   "hit": "Hit_Chest",
   "death": "Death01"
+ },
+ "clothes": [
+  "male_casualsuit05/male_casualsuit05.mhclo",
+  "rehmanpolanski_viking_boots/rehmanpolanski_viking_boots.mhclo"
+ ],
+ "tints": {
+  "male_casualsuit05": "#b09070"
  }
 }

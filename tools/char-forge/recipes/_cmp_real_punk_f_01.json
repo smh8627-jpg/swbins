@@ -1,6 +1,6 @@
 {
  "id": "_cmp_real_punk_f_01",
- "_note": "단계 3 STORY 비교용 — saga-unity Jody(Mixamo) 자리 후보(STORY 현대 '뒷골목 불량배', 비경 5층~). 게임 인물 아님. 젊은 여자·단발·자홍 비니·검은 가죽 조끼 위 짧은 윗옷(맨팔)·찢긴 잿빛 바지·높은 장화.",
+ "_note": "단계 3 STORY 비교용 — saga-unity Jody(Mixamo) 자리 후보(STORY 현대 '뒷골목 불량배', 비경 5층~). 게임 인물 아님. 09-26 진짜 옷(CC0 짧은 윗옷(맨팔)·잿빛 바지·높은 장화, 가죽 조끼·비니는 껍데기). 젊은 여자·단발·자홍 비니·검은 가죽 조끼 위 짧은 윗옷(맨팔)·찢긴 잿빛 바지·높은 장화.",
  "macro": {
   "gender": 0.0,
   "age": 0.42,
@@ -23,29 +23,10 @@
  "kitbash": [
   {
    "part": "shell",
-   "slot": "cloth",
-   "color": "#d6d2c8",
-   "rough": 0.85,
-   "offset": 0.006,
-   "thick": 0.004,
-   "groups": [
-    "spine_0*",
-    "clavicle_*",
-    "pelvis",
-    "neck_01"
-   ],
-   "z": [
-    0.6,
-    0.86
-   ],
-   "minw": 0.5
-  },
-  {
-   "part": "shell",
    "slot": "leather",
    "color": "#141416",
    "rough": 0.55,
-   "offset": 0.012,
+   "offset": 0.01,
    "thick": 0.005,
    "groups": [
     "spine_0*",
@@ -56,43 +37,8 @@
     0.56,
     0.86
    ],
-   "minw": 0.5
-  },
-  {
-   "part": "shell",
-   "slot": "cloth_pants",
-   "color": "#5b5d62",
-   "rough": 0.85,
-   "offset": 0.006,
-   "thick": 0.004,
-   "groups": [
-    "pelvis",
-    "thigh_*",
-    "calf_*"
-   ],
-   "z": [
-    0.02,
-    0.6
-   ],
-   "minw": 0.5
-  },
-  {
-   "part": "shell",
-   "slot": "leather",
-   "color": "#141416",
-   "rough": 0.65,
-   "offset": 0.014,
-   "thick": 0.005,
-   "groups": [
-    "foot_*",
-    "ball_*",
-    "calf_*"
-   ],
-   "z": [
-    0.0,
-    0.24
-   ],
-   "minw": 0.3
+   "minw": 0.5,
+   "src": "toigo_keyhole_tank_top"
   },
   {
    "part": "shell",
@@ -118,5 +64,14 @@
   "attack": "Punch_Cross",
   "hit": "Hit_Chest",
   "death": "Death01"
+ },
+ "clothes": [
+  "toigo_keyhole_tank_top/toigo_keyhole_tank_top.mhclo",
+  "toigo_wool_pants/toigo_wool_pants.mhclo",
+  "grinsegold_female_pirate_boots/grinsegold_female_pirate_boots.mhclo"
+ ],
+ "tints": {
+  "toigo_keyhole_tank_top": "#d8d4c8",
+  "toigo_wool_pants": "#6a6c72"
  }
 }

@@ -1,6 +1,6 @@
 {
  "id": "_cmp_real_rioter_01",
- "_note": "단계 3 잡졸 비교용 — saga-unity Brian(Mixamo) 자리 후보(DUNGEON 현대 '폭주 청년', 층 2~9). 게임 인물 아님. 마른 젊은 남자·붉은 두건 달린 윗옷(얼굴 트인 두건)·코 아래 검은 두건 복면·청바지·운동화.",
+ "_note": "단계 3 잡졸 비교용 — saga-unity Brian(Mixamo) 자리 후보(DUNGEON 현대 '폭주 청년', 층 2~9). 게임 인물 아님. 09-26 진짜 옷(CC0 붉은 윗옷·푸른 바지·운동화, 두건·복면은 껍데기). 마른 젊은 남자·붉은 두건 달린 윗옷(얼굴 트인 두건)·코 아래 검은 두건 복면·청바지·운동화.",
  "macro": {
   "gender": 1.0,
   "age": 0.38,
@@ -20,63 +20,6 @@
  "eyelashes": "eyelashes01/eyelashes01.mhclo",
  "teeth": "teeth_base/teeth_base.mhclo",
  "kitbash": [
-  {
-   "part": "shell",
-   "slot": "cloth",
-   "color": "#8a2a26",
-   "rough": 0.9,
-   "offset": 0.007,
-   "thick": 0.004,
-   "groups": [
-    "spine_0*",
-    "clavicle_*",
-    "upperarm_*",
-    "lowerarm_*",
-    "pelvis",
-    "neck_01"
-   ],
-   "z": [
-    0.47,
-    0.9
-   ],
-   "minw": 0.5
-  },
-  {
-   "part": "shell",
-   "slot": "cloth_pants",
-   "color": "#3c4f74",
-   "rough": 0.9,
-   "offset": 0.006,
-   "thick": 0.004,
-   "groups": [
-    "pelvis",
-    "thigh_*",
-    "calf_*"
-   ],
-   "z": [
-    0.02,
-    0.58
-   ],
-   "minw": 0.5
-  },
-  {
-   "part": "shell",
-   "slot": "leather",
-   "color": "#d9d6cf",
-   "rough": 0.65,
-   "offset": 0.01,
-   "thick": 0.005,
-   "groups": [
-    "foot_*",
-    "ball_*",
-    "calf_*"
-   ],
-   "z": [
-    0.0,
-    0.06
-   ],
-   "minw": 0.3
-  },
   {
    "part": "shell",
    "slot": "cloth_hood",
@@ -116,5 +59,14 @@
   "attack": "Punch_Cross",
   "hit": "Hit_Chest",
   "death": "Death01"
+ },
+ "clothes": [
+  "elvs_crude_t-shirt_male/elvs_crude_t-shirt_male.mhclo",
+  "toigo_wool_pants/toigo_wool_pants.mhclo",
+  "shoes05/shoes05.mhclo"
+ ],
+ "tints": {
+  "elvs_crude_t-shirt_male": "#b8403a",
+  "toigo_wool_pants": "#6a86b8"
  }
 }

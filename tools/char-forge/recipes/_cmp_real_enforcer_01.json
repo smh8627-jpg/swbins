@@ -1,6 +1,6 @@
 {
  "id": "_cmp_real_enforcer_01",
- "_note": "단계 3 잡졸 비교용 — saga-unity The Boss(Mixamo) 자리 후보(DUNGEON 현대 '암흑가 해결사', 층 50~). 게임 인물 아님. 우람한 중년 남자·짧은 머리·검은 양복 저고리·흰 셔츠 앞섶·검은 바지·가죽 구두·검은 안경.",
+ "_note": "단계 3 잡졸 비교용 — saga-unity The Boss(Mixamo) 자리 후보(DUNGEON 현대 '암흑가 해결사', 층 50~). 게임 인물 아님. 09-26 진짜 옷(CC0 검은 양복·흰 셔츠·넥타이·검은 구두, 검은 안경은 껍데기). 우람한 중년 남자·짧은 머리·검은 양복 저고리·흰 셔츠 앞섶·검은 바지·가죽 구두·검은 안경.",
  "macro": {
   "gender": 1.0,
   "age": 0.6,
@@ -27,81 +27,6 @@
  "kitbash": [
   {
    "part": "shell",
-   "slot": "cloth_shirt",
-   "color": "#e8e6e0",
-   "rough": 0.7,
-   "offset": 0.004,
-   "thick": 0.003,
-   "groups": [
-    "spine_02",
-    "spine_03",
-    "neck_01",
-    "clavicle_*"
-   ],
-   "z": [
-    0.66,
-    0.85
-   ],
-   "facing": 0.75
-  },
-  {
-   "part": "shell",
-   "slot": "cloth",
-   "color": "#16171a",
-   "rough": 0.7,
-   "offset": 0.012,
-   "thick": 0.005,
-   "groups": [
-    "spine_0*",
-    "clavicle_*",
-    "upperarm_*",
-    "lowerarm_*",
-    "pelvis"
-   ],
-   "z": [
-    0.47,
-    0.86
-   ],
-   "minw": 0.5
-  },
-  {
-   "part": "shell",
-   "slot": "cloth_pants",
-   "color": "#16171a",
-   "rough": 0.9,
-   "offset": 0.006,
-   "thick": 0.004,
-   "groups": [
-    "pelvis",
-    "thigh_*",
-    "calf_*"
-   ],
-   "z": [
-    0.02,
-    0.58
-   ],
-   "minw": 0.5
-  },
-  {
-   "part": "shell",
-   "slot": "leather",
-   "color": "#0e0e0f",
-   "rough": 0.65,
-   "offset": 0.008,
-   "thick": 0.005,
-   "groups": [
-    "foot_*",
-    "ball_*",
-    "calf_*"
-   ],
-   "z": [
-    0.0,
-    0.05
-   ],
-   "minw": 0.3
-  },
-  {
-   "part": "shell",
    "slot": "metal_lens",
    "color": "#0c0c0e",
    "rough": 0.05,
@@ -125,5 +50,9 @@
   "attack": "Punch_Cross",
   "hit": "Hit_Chest",
   "death": "Death01"
- }
+ },
+ "clothes": [
+  "male_elegantsuit01/male_elegantsuit01.mhclo",
+  "shoes03/shoes03.mhclo"
+ ]
 }

@@ -1,6 +1,6 @@
 {
  "id": "_cmp_real_courier_02",
- "_note": "단계 3 FOREST 비교용 — saga-unity Pete(Mixamo) 자리 후보(FOREST 현대 '택배 기사 달음'). 게임 인물 아님. 땅딸막한 남자·짧은 머리·풀빛 반소매 제복·국방 반바지(맨 종아리)·흰 목양말 운동화·풀빛 챙 모자·등 네모 짐. GO 택배 기사(여·밤빛 겉옷·누런 모자)와 겹치지 않게.",
+ "_note": "단계 3 FOREST 비교용 — saga-unity Pete(Mixamo) 자리 후보(FOREST 현대 '택배 기사 달음'). 게임 인물 아님. 09-26 진짜 옷(CC0 풀빛 폴로·짙은 카고 바지·운동화, 챙 모자·등 짐은 껍데기(청 반바지는 남자 몸에서 속옷처럼 짧았다)). 땅딸막한 남자·짧은 머리·풀빛 반소매 제복·국방 반바지(맨 종아리)·흰 목양말 운동화·풀빛 챙 모자·등 네모 짐. GO 택배 기사(여·밤빛 겉옷·누런 모자)와 겹치지 않게.",
  "macro": {
   "gender": 1.0,
   "age": 0.45,
@@ -26,62 +26,6 @@
  "kitbash": [
   {
    "part": "shell",
-   "slot": "cloth",
-   "color": "#3f6b3a",
-   "rough": 0.85,
-   "offset": 0.007,
-   "thick": 0.004,
-   "groups": [
-    "spine_0*",
-    "clavicle_*",
-    "pelvis",
-    "neck_01",
-    "upperarm_*"
-   ],
-   "z": [
-    0.5,
-    0.88
-   ],
-   "minw": 0.5
-  },
-  {
-   "part": "shell",
-   "slot": "cloth_pants",
-   "color": "#56563c",
-   "rough": 0.85,
-   "offset": 0.006,
-   "thick": 0.004,
-   "groups": [
-    "pelvis",
-    "thigh_*",
-    "calf_*"
-   ],
-   "z": [
-    0.34,
-    0.58
-   ],
-   "minw": 0.5
-  },
-  {
-   "part": "shell",
-   "slot": "leather",
-   "color": "#e6e4de",
-   "rough": 0.65,
-   "offset": 0.01,
-   "thick": 0.005,
-   "groups": [
-    "foot_*",
-    "ball_*",
-    "calf_*"
-   ],
-   "z": [
-    0.0,
-    0.1
-   ],
-   "minw": 0.3
-  },
-  {
-   "part": "shell",
    "slot": "cloth_cap",
    "color": "#35602f",
    "rough": 0.85,
@@ -101,7 +45,7 @@
    "slot": "leather_pack",
    "color": "#b89a6a",
    "rough": 0.95,
-   "offset": 0.1,
+   "offset": 0.06,
    "thick": 0.012,
    "groups": [
     "spine_0*",
@@ -112,7 +56,8 @@
     0.84
    ],
    "facing_back": 0.35,
-   "minw": 0.5
+   "minw": 0.5,
+   "src": "namuhekam_male_polo_shirt"
   }
  ],
  "anims": {
@@ -122,5 +67,13 @@
   "interaction": "PickUp_Table",
   "hit": "Hit_Chest",
   "death": "Death01"
+ },
+ "clothes": [
+  "namuhekam_male_polo_shirt/namuhekam_male_polo_shirt.mhclo",
+  "cortu_cargo_pants/cortu_cargo_pants.mhclo",
+  "shoes05/shoes05.mhclo"
+ ],
+ "tints": {
+  "namuhekam_male_polo_shirt": "#86b070"
  }
 }

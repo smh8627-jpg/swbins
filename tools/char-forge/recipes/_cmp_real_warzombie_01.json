@@ -1,6 +1,6 @@
 {
  "id": "_cmp_real_warzombie_01",
- "_note": "단계 3 STORY 비교용 — saga-unity Warzombie(Mixamo) 자리 후보(STORY 현대 '떠도는 망자', 비경 3~4층). 게임 인물 아님. 전장 망자 — 퍼렇게 멍든 잿빛 보라 피부·꺼진 볼·해진 국방색 전투복·녹슨 철모·흙 묻은 군화. GO 떠도는 망자(남색 제복·챙 모자·잿빛 초록)와 겹치지 않게.",
+ "_note": "단계 3 STORY 비교용 — saga-unity Warzombie(Mixamo) 자리 후보(STORY 현대 '떠도는 망자', 비경 3~4층). 게임 인물 아님. 09-26 진짜 옷(CC0 국방빛 윗옷·바지·군화·M1 철모(줄무늬 셔츠 casualsuit03 은 사무직처럼 보였다)). 전장 망자 — 퍼렇게 멍든 잿빛 보라 피부·꺼진 볼·해진 국방색 전투복·녹슨 철모·흙 묻은 군화. GO 떠도는 망자(남색 제복·챙 모자·잿빛 초록)와 겹치지 않게.",
  "macro": {
   "gender": 1.0,
   "age": 0.5,
@@ -27,83 +27,10 @@
   "neck-trans-forward": 0.5
  },
  "tints": {
-  "skin": "#a79aae"
+  "skin": "#a79aae",
+  "elvs_crude_t-shirt_male": "#7a8058",
+  "toigo_wool_pants": "#6a7050"
  },
- "kitbash": [
-  {
-   "part": "shell",
-   "slot": "cloth",
-   "color": "#4e5634",
-   "rough": 0.95,
-   "offset": 0.006,
-   "thick": 0.004,
-   "groups": [
-    "spine_0*",
-    "clavicle_*",
-    "pelvis",
-    "neck_01",
-    "upperarm_*",
-    "lowerarm_*"
-   ],
-   "z": [
-    0.48,
-    0.88
-   ],
-   "minw": 0.5
-  },
-  {
-   "part": "shell",
-   "slot": "cloth_pants",
-   "color": "#474c30",
-   "rough": 0.95,
-   "offset": 0.006,
-   "thick": 0.004,
-   "groups": [
-    "pelvis",
-    "thigh_*",
-    "calf_*"
-   ],
-   "z": [
-    0.02,
-    0.58
-   ],
-   "minw": 0.5
-  },
-  {
-   "part": "shell",
-   "slot": "leather",
-   "color": "#2a241c",
-   "rough": 0.65,
-   "offset": 0.012,
-   "thick": 0.005,
-   "groups": [
-    "foot_*",
-    "ball_*",
-    "calf_*"
-   ],
-   "z": [
-    0.0,
-    0.16
-   ],
-   "minw": 0.3
-  },
-  {
-   "part": "shell",
-   "slot": "metal_helmet",
-   "color": "#4a4a36",
-   "rough": 0.6,
-   "offset": 0.022,
-   "thick": 0.007,
-   "groups": [
-    "head"
-   ],
-   "z_eye": [
-    0.03,
-    0.2
-   ],
-   "minw": 0.5
-  }
- ],
  "anims": {
   "idle": "Idle_Loop",
   "walk": "Walk_Loop",
@@ -111,5 +38,11 @@
   "attack": "Punch_Jab",
   "hit": "Hit_Chest",
   "death": "Death01"
- }
+ },
+ "clothes": [
+  "elvs_crude_t-shirt_male/elvs_crude_t-shirt_male.mhclo",
+  "toigo_wool_pants/toigo_wool_pants.mhclo",
+  "culturalibre_male_boots/culturalibre_male_boots.mhclo",
+  "mrgreaterthan_m1_helmet/mrgreaterthan_m1_helmet.mhclo"
+ ]
 }

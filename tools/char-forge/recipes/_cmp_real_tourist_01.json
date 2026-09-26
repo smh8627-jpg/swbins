@@ -1,6 +1,6 @@
 {
  "id": "_cmp_real_tourist_01",
- "_note": "단계 3 역참 사람 비교용 — saga-unity Remy(Mixamo) 자리 후보(GO 현대 여행자). 게임 인물 아님. 젊은 남자·짧은 머리·흰 반소매·청바지·흰 운동화·등에 주황 배낭.",
+ "_note": "단계 3 역참 사람 비교용 — saga-unity Remy(Mixamo) 자리 후보(GO 현대 여행자). 게임 인물 아님. 09-26 진짜 옷(CC0 흰 티·푸른 바지·흰 운동화, 배낭은 티셔츠 등판). 젊은 남자·짧은 머리·흰 반소매·청바지·흰 운동화·등에 주황 배낭.",
  "macro": {
   "gender": 1.0,
   "age": 0.42,
@@ -26,7 +26,7 @@
    "slot": "cloth",
    "color": "#e6e4dc",
    "rough": 0.85,
-   "offset": 0.004,
+   "offset": 0.05,
    "thick": 0.003,
    "groups": [
     "spine_0*",
@@ -38,60 +38,8 @@
     0.5,
     0.86
    ],
-   "minw": 0.5
-  },
-  {
-   "part": "shell",
-   "slot": "cloth_pants",
-   "color": "#34466a",
-   "rough": 0.9,
-   "offset": 0.006,
-   "thick": 0.004,
-   "groups": [
-    "pelvis",
-    "thigh_*",
-    "calf_*"
-   ],
-   "z": [
-    0.02,
-    0.58
-   ],
-   "minw": 0.5
-  },
-  {
-   "part": "shell",
-   "slot": "leather",
-   "color": "#e8e6e0",
-   "rough": 0.65,
-   "offset": 0.01,
-   "thick": 0.005,
-   "groups": [
-    "foot_*",
-    "ball_*",
-    "calf_*"
-   ],
-   "z": [
-    0.0,
-    0.06
-   ],
-   "minw": 0.3
-  },
-  {
-   "part": "shell",
-   "slot": "leather_pack",
-   "color": "#c8642a",
-   "rough": 0.75,
-   "offset": 0.06,
-   "thick": 0.01,
-   "groups": [
-    "spine_0*",
-    "clavicle_*"
-   ],
-   "z": [
-    0.56,
-    0.8
-   ],
-   "facing_back": 0.45
+   "minw": 0.5,
+   "src": "elvs_crude_t-shirt_male"
   }
  ],
  "anims": {
@@ -101,5 +49,13 @@
   "interaction": "PickUp_Table",
   "hit": "Hit_Chest",
   "death": "Death01"
+ },
+ "clothes": [
+  "elvs_crude_t-shirt_male/elvs_crude_t-shirt_male.mhclo",
+  "toigo_wool_pants/toigo_wool_pants.mhclo",
+  "shoes05/shoes05.mhclo"
+ ],
+ "tints": {
+  "toigo_wool_pants": "#7d97c8"
  }
 }

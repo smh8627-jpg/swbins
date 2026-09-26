@@ -1,6 +1,6 @@
 {
  "id": "_cmp_real_merc_01",
- "_note": "단계 3 STORY 비교용 — saga-unity Steve(Mixamo) 자리 후보(STORY 현대 '용병 돌격대', 비경 5층~). 게임 인물 아님. 다부진 용병 — 모래빛 전투복·국방색 방탄 조끼(앞뒤)·검은 장갑·무릎 받이·모래빛 군화·검은 야구모자. 진압 특공대(먹빛)·순찰 대원(남색)과 겹치지 않게.",
+ "_note": "단계 3 STORY 비교용 — saga-unity Steve(Mixamo) 자리 후보(STORY 현대 '용병 돌격대', 비경 5층~). 게임 인물 아님. 09-26 진짜 옷(CC0 모래빛 티·바지·군화·장갑, 방탄 조끼·무릎 받이·모자는 껍데기). 다부진 용병 — 모래빛 전투복·국방색 방탄 조끼(앞뒤)·검은 장갑·무릎 받이·모래빛 군화·검은 야구모자. 진압 특공대(먹빛)·순찰 대원(남색)과 겹치지 않게.",
  "macro": {
   "gender": 1.0,
   "age": 0.5,
@@ -27,84 +27,10 @@
  "kitbash": [
   {
    "part": "shell",
-   "slot": "cloth",
-   "color": "#a38d64",
-   "rough": 0.85,
-   "offset": 0.006,
-   "thick": 0.004,
-   "groups": [
-    "spine_0*",
-    "clavicle_*",
-    "pelvis",
-    "neck_01",
-    "upperarm_*",
-    "lowerarm_*"
-   ],
-   "z": [
-    0.47,
-    0.88
-   ],
-   "minw": 0.5
-  },
-  {
-   "part": "shell",
-   "slot": "cloth_pants",
-   "color": "#9a8660",
-   "rough": 0.85,
-   "offset": 0.006,
-   "thick": 0.004,
-   "groups": [
-    "pelvis",
-    "thigh_*",
-    "calf_*"
-   ],
-   "z": [
-    0.02,
-    0.58
-   ],
-   "minw": 0.5
-  },
-  {
-   "part": "shell",
-   "slot": "leather",
-   "color": "#6a5a3e",
-   "rough": 0.65,
-   "offset": 0.014,
-   "thick": 0.005,
-   "groups": [
-    "foot_*",
-    "ball_*",
-    "calf_*"
-   ],
-   "z": [
-    0.0,
-    0.18
-   ],
-   "minw": 0.3
-  },
-  {
-   "part": "shell",
-   "slot": "leather",
-   "color": "#141414",
-   "rough": 0.65,
-   "offset": 0.004,
-   "thick": 0.003,
-   "groups": [
-    "hand_*",
-    "index_*",
-    "middle_*",
-    "ring_*",
-    "pinky_*",
-    "thumb_*"
-   ],
-   "minw": 0.3
-  },
-  {
-   "part": "shell",
    "slot": "cloth_vest",
    "color": "#4a5236",
    "rough": 0.9,
-   "offset": 0.026,
+   "offset": 0.02,
    "thick": 0.012,
    "groups": [
     "spine_0*",
@@ -115,14 +41,15 @@
     0.56,
     0.82
    ],
-   "minw": 0.5
+   "minw": 0.5,
+   "src": "elvs_crude_t-shirt_male"
   },
   {
    "part": "shell",
    "slot": "leather",
    "color": "#1f1f1f",
    "rough": 0.6,
-   "offset": 0.02,
+   "offset": 0.012,
    "thick": 0.008,
    "groups": [
     "thigh_*",
@@ -132,7 +59,8 @@
     0.27,
     0.32
    ],
-   "minw": 0.4
+   "minw": 0.4,
+   "src": "toigo_wool_pants"
   },
   {
    "part": "shell",
@@ -158,5 +86,15 @@
   "attack": "Punch_Cross",
   "hit": "Hit_Chest",
   "death": "Death01"
+ },
+ "clothes": [
+  "elvs_crude_t-shirt_male/elvs_crude_t-shirt_male.mhclo",
+  "toigo_wool_pants/toigo_wool_pants.mhclo",
+  "culturalibre_male_boots/culturalibre_male_boots.mhclo",
+  "toigo_gloves_short/toigo_gloves_short.mhclo"
+ ],
+ "tints": {
+  "elvs_crude_t-shirt_male": "#c8b48c",
+  "toigo_wool_pants": "#b8a47a"
  }
 }

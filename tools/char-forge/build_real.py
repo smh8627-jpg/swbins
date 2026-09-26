@@ -91,7 +91,13 @@ def make_human(svc, r):
             HS.add_mhclo_asset(asset(svc, r[part], part), basemesh, asset_type=part, subdiv_levels=0,
                                material_type='GAMEENGINE')
     for c in r.get('clothes', []):
-        HS.add_mhclo_asset(asset(svc, c, 'clothes'), basemesh, asset_type='Clothes', subdiv_levels=0,
+        path = asset(svc, c, 'clothes')
+        # 레시피 폴더 이름 → 물체 이름(.mhclo 의 name 줄, newsboy_cap 처럼 폴더와 다르다) — tints·shell src 가 폴더 이름으로 찾는다.
+        # 물체에 붙인 사용자 값은 모프 굳히기에서 사라져 이름 표로 둔다
+        nm = next((ln.split(' ', 1)[1].strip() for ln in open(path, encoding='utf-8', errors='replace') if ln.startswith('name ')), None)
+        if nm:
+            CLOTH_NAMES[c.split('/')[0]] = nm
+        HS.add_mhclo_asset(path, basemesh, asset_type='Clothes', subdiv_levels=0,
                            material_type='GAMEENGINE')
     return basemesh
 
@@ -117,6 +123,7 @@ def name_materials(svc, arm):
     for o in sorted([c for c in arm.children if c.type == 'MESH'], key=lambda c: c.name):
         k = kind(svc, o)
         base = SLOT.get(k, 'cloth')
+        o['cf_src'] = o.name                 # 원래 이름(.mhclo name 줄) — tints·kitbash shell `src` 가 옷 이름으로 찾는다(cloth_src)
         for i, mat in enumerate(o.data.materials):
             if not mat:
                 continue
@@ -129,12 +136,25 @@ def name_materials(svc, arm):
         o.name = f'{arm.name}_{k or "mesh"}' + (f'_{used.get(base, 1)}' if base == 'cloth' else '')
 
 
+CLOTH_NAMES = {}  # 레시피 옷 폴더 이름 → .mhclo name 줄(make_human 이 채운다)
+
+
+def cloth_src(arm, key):
+    """옷 폴더 이름(또는 원래 물체 이름에 든 글자)으로 옷 물체 찾기."""
+    keys = [key] + ([CLOTH_NAMES[key]] if key in CLOTH_NAMES else [])
+    return next((o for o in arm.children if o.type == 'MESH' and any(k in o.get('cf_src', '') for k in keys)), None)
+
+
 def tint(arm, slot, hexcol, outdir):
     """재질 칸의 바탕 그림에 색을 곱해 새 그림으로 굽는다(괴물 피부 초록·잿빛 등). 노드로 곱하면 FBX 가 그림을 못 옮겨서 픽셀로 굽는다.
     그림 픽셀은 sRGB 값 그대로라 색도 sRGB(헥스 그대로)로 곱한다."""
     mat = next((m for o in arm.children if o.type == 'MESH' for m in o.data.materials if m and m.name == slot), None)
+    if mat is None:   # 옷 이름으로(칸 글자는 옷 물체 이름 차례라 레시피에서 알기 어렵다)
+        ob = cloth_src(arm, slot)
+        mat = ob.data.materials[0] if ob is not None and ob.data.materials else None
     if mat is None:
-        sys.exit(f'tints: 재질 칸 {slot} 이 없다')
+        have = [(o.get('cf_src', ''), [m.name for m in o.data.materials if m]) for o in arm.children if o.type == 'MESH']
+        sys.exit(f'tints: 재질 칸·옷 {slot} 이 없다 — 이름 표 {CLOTH_NAMES.get(slot)} · 있는 것 {have}')
     bsdf = next(n for n in mat.node_tree.nodes if n.type == 'BSDF_PRINCIPLED')
     node = bsdf.inputs['Base Color'].links[0].from_node if bsdf.inputs['Base Color'].links else None
     if node is None or node.type != 'TEX_IMAGE':
@@ -351,14 +371,22 @@ def kitbash(arm, parts):
     for p in parts:
         kind_ = p['part']
         if kind_ == 'shell':
-            # 옷·갑옷 껍데기 — 살을 본떠 띄운 두께 판. 같은 칸(slot: cloth·leather·metal …)은 한 물체로 합친다
-            faces = _shell_faces(skin, p, height, eyes)
+            # 옷·갑옷 껍데기 — 살을 본떠 띄운 두께 판. 같은 칸(slot: cloth·leather·metal …)은 한 물체로 합친다.
+            # `src` = 옷 이름(원래 이름에 든 글자)이면 살 대신 그 옷 면을 본뜬다 — 진짜 옷 아래 살은 빌드가 지워
+            # 몸통 위 배낭·조끼 껍데기가 통째로 사라졌다(09-26). 그 옷 면은 안 지운다
+            src = skin
+            if p.get('src'):
+                src = cloth_src(arm, p['src'])
+                if src is None:
+                    sys.exit(f"kitbash shell src: 옷 {p['src']} 이 없다")
+            faces = _shell_faces(src, p, height, eyes)
             slot = p.get('slot', 'cloth')
             if slot not in shells:
                 shells[slot] = (bmesh.new(), [], p.get('color', '#6b5a48'), p.get('rough', 0.8))
-            fmap = _shell_add(shells[slot][:2], skin, faces, p.get('offset', 0.005), p.get('thick', 0.004))
-            shell_log.append((slot, p.get('offset', 0.005), p.get('thick', 0.004), set(faces), fmap))
-            if p.get('hide_under', True):
+            fmap = _shell_add(shells[slot][:2], src, faces, p.get('offset', 0.005), p.get('thick', 0.004))
+            if src is skin:
+                shell_log.append((slot, p.get('offset', 0.005), p.get('thick', 0.004), set(faces), fmap))
+            if p.get('hide_under', True) and src is skin:
                 covered.update(faces)
             print('KITBASH shell', slot, '살 면', len(faces))
         elif kind_ == 'horns':

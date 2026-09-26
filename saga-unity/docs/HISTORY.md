@@ -9500,3 +9500,13 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - 결과: 두 언어 × 판 패널 40·속 패널 7(도감 탭 둘·문답 등)·첫 화면 × 세 화면비 0건, 배치 점검·흐름 진단 3연속.
 - 푸시가 거절(saga-go 커밋) → 이 트리 autostash 대신 임시 worktree cherry-pick(a9a8a77b) → 로컬은 `git reset --keep origin/main`(saga-godot 세션의 안 올린 변경 유지).
 - 남음 5c-2c: 판 HUD·대사 영어(목표판·HUD 글은 한국어 그대로 — 영어 바퀴에서도 한국어로 재짐)·전투 중 버튼(GO 폭발)·상태가 있어야 뜨는 패널(직업 뒤 STORY 무예·REALM 두 목표 성 공격).
+
+## 2026-09-26 char-forge — 현대 NPC 껍데기 15 → CC0 진짜 옷
+
+"vroid 자체툴 진행해"(둘째).
+
+- 카바 속바지가 자락을 뚫던 것 고침(f9867658).
+- build_real: `tints` 를 옷 폴더 이름으로도(칸 글자는 물체 이름 차례라 레시피에서 모른다) · kitbash `shell` 에 `src`(살 대신 옷 면을 본뜬다 — 진짜 옷 아래 살은 지워져 배낭·조끼 껍데기가 사라진다) · 옷 폴더 → .mhclo name 표.
+- 현대 NPC 15(Remy·Megan·Pete·SwatGuy·Copzombie·Boss·Leonard·Steve·Brian·Olivia·Jody·Vanguard·GasMask·Warzombie·Racer 자리): 몸 껍데기를 CC0 티·청바지·스웨터·폴로·양복·작업복·겉옷·카고·장화·장갑·M1 철모·풀페이스 헬멧으로, 머리 껍데기는 그대로, 몸통 부품은 옷 면을 본뜬 껍데기. 빌드 15 실패 0, Mixamo 와 나란히 렌더로 확인 — 청바지·티·양복·털깃 겉옷은 견줄 만하다.
+- 함정: 티셔츠 그림의 MAKEHUMAN 로고 · 청 반바지는 남자 몸에서 속옷처럼 짧음 · 뉴스보이 모자는 재질 줄 없음 · 변환이 망자 피부 tints 를 덮어썼다(되살림) · 티 밑단·바지 허리 얼룩 띠(남은 흠).
+- saga-unity CharactersForge 의 FBX 는 아직 옛 껍데기 판 — Unity 가 쉴 때 바꿔 넣는다. 다음 = 남은 껍데기 36.
