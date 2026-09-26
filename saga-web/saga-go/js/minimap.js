@@ -52,7 +52,8 @@
     'beacon-lit': { c: '#ff5a1e', r: 3.6 },
     shrine:      { c: '#f0d878', r: 3.0 },
     stele:       { c: '#d9d2c0', r: 2.2 },
-    drop:        { c: '#ffb36b', r: 3.4 }
+    drop:        { c: '#ffb36b', r: 3.4 },
+    story:       { c: '#ffd24a', r: 4.2 }
   };
 
   var node = null, canvas = null, ctx = null;
@@ -232,6 +233,10 @@
       var dl = DRP.markers();
       for (i = 0; i < dl.length; i++) { put('drop', dl[i].x, dl[i].y, '🎒 ' + dl[i].gold, true); }
     }
+
+    /* 이야기 임무 목표(PLAN §5 ⑲-12) — 금빛, 테두리에도 붙어 방향을 알린다 */
+    var STY = global.DG.story, sm = STY && STY.marker ? STY.marker() : null;
+    if (sm) { put('story', sm.x, sm.y, '📖 ' + sm.name, true); }
 
     return out;
   }

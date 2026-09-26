@@ -138,6 +138,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/treasure.js"></script>
 <script src="js/domain.js"></script>
 <script src="js/fieldboss.js"></script>
+<script src="js/story.js"></script>
 <script src="js/rogue.js"></script>
 <script src="js/fort.js"></script>
 <script src="js/raid.js"></script>
@@ -10229,6 +10230,124 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       r.vortex = !!vz && Math.abs(vz.y - 7) < 1e-9 && Math.hypot(t5.x - vz.x, t5.y - vz.y) < d0 && t5.hp < h5;
       var bad = Object.keys(r).filter(function (k) { return !r[k]; });
       return bad.length === 0 ? '검기 ' + a.hit.dmg + '(화 부착) · 회복 8% · 군기 115 → 10초 뒤 100 · 맹세 13초 · 뇌우 대기 4 → 1초 뒤 2 · 소용돌이 끌림' : ('실패 ' + bad.join(','));
+    });
+
+    /* ── ⑲-12 이야기 임무 1~2장 (\`story.js\`, PLAN §5 ⑲-12) ── */
+    function stRig(level) {
+      var bak = JSON.stringify(C.save), ST = DG.story;
+      ST._resetForTest(); DG.fieldCombat._resetForTest();
+      C.save.story = { ch: 0, step: 0 }; C.save.player.level = level || 1;
+      return { ST: ST, undo: function () {
+        ST._resetForTest(); DG.fieldCombat._resetForTest();
+        var snap = JSON.parse(bak);
+        Object.keys(C.save).forEach(function (k) { delete C.save[k]; });
+        Object.keys(snap).forEach(function (k) { C.save[k] = snap[k]; });
+      } };
+    }
+    function stGo(p) { C.save.player.pos.x = p.x; C.save.player.pos.y = p.y; }
+    function stTalkAll(ST) {
+      if (!ST.talkStart()) { return false; }
+      for (var g = 0; g < 20 && ST.talking(); g++) { if (!ST.next()) { ST.next(0); } }
+      return !ST.talking();
+    }
+
+    t('이야기 ⑲-12 — 표·자리: 장 둘(단계 8·4, 여정 등급 1·5) · 인물 셋 = ⑮ 땅 탑 + 자리(고향 촌장·갈대 나루 사공·옛 성터 학자) · 모든 단계에 목표 · 같은 세계면 같은 자리 · 몸 셋 고정', function () {
+      var ST = DG.story, A3 = DG.asset3d, r = {};
+      r.table = ST.CHAPTERS.length === 2 && ST.CHAPTERS[0].steps.length === 8 && ST.CHAPTERS[1].steps.length === 4 &&
+        ST.CHAPTERS[0].ar === 1 && ST.CHAPTERS[1].ar === 5;
+      var e = ST.npcPos('elder'), f = ST.npcPos('ferryman'), s = ST.npcPos('scholar'), ga = ST.anchorOf('galdae'), go = ST.anchorOf('gojeong');
+      r.npc = e.x === -22 && e.y === 16 && f.x === ga.x - 18 && f.y === ga.y - 24 && s.x === go.x - 18 && s.y === go.y - 24 &&
+        DG.biome.cellAt.apply(null, ga.key.split('_').map(Number)).zone === 'galdae' && DG.biome.cellAt.apply(null, go.key.split('_').map(Number)).zone === 'gojeong';
+      ST._resetForTest();
+      r.same = JSON.stringify(ST.anchorOf('jugeup')) === JSON.stringify(ST.anchorOf('jugeup')) && ST.npcPos('scholar').x === s.x;
+      var miss = [];
+      ST.CHAPTERS.forEach(function (ch) { ch.steps.forEach(function (st, i) { if (!ST.targetOf(st)) { miss.push(ch.id + ':' + i); } }); });
+      r.targets = miss.length === 0;
+      var boss = ST.targetOf(ST.CHAPTERS[0].steps[2]);
+      r.boss = !!boss.rk && boss.rk === ST.anchorOf('jugeup').key;
+      r.body = ['story_elder', 'story_ferryman', 'story_scholar'].every(function (id) { var fr = A3.fixedRecipe({ id: id }); return fr && /quaternius_rpg\//.test(fr.body) && fr.body.indexOf('fixed/') < 0; });
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? ('장 2 · 단계 12 · 사공 ' + ga.key + ' · 학자 ' + go.key + ' · 대숲 수호자 ' + boss.rk + ' · 몸 셋') : ('실패 ' + bad.join(',') + ' ' + miss.join(','));
+    });
+
+    t('이야기 ⑲-12 — 흐름 1: 곁에서만 말(F) · 고르는 줄은 대답을 골라야 넘어감 · 말 끝 → 다음 단계·부대 경험 10 · go 도착 · boss(수호자 토벌 신호) · 잠긴 장은 여정 등급 글', function () {
+      var rig = stRig(1), ST = rig.ST, r = {};
+      try {
+        stGo({ x: 300, y: 300 });
+        r.far = !ST.nearTalk() && !ST.talkStart();
+        stGo(ST.npcPos('elder'));
+        r.open = ST.talkStart() && ST.talking();
+        ST.next(); ST.next();
+        r.pick = !ST.next() && ST.talking() && ST.next(1);
+        ST.next();
+        r.step1 = !ST.talking() && C.save.story.step === 1;
+        stGo(ST.targetOf(ST.step())); ST.check();
+        r.go = C.save.story.step === 2;
+        var bt = ST.targetOf(ST.step());
+        C.emit('field:guard', { region: 'x_y', tier: 1 });
+        var still = C.save.story.step === 2;
+        C.emit('field:guard', { region: bt.rk, tier: 1 });
+        r.boss = still && C.save.story.step === 3;
+        C.save.story = { ch: 1, step: 0 };
+        r.lock = ST.locked() && ST.step() === null && /여정 등급 5 에 열린다/.test(ST.trackText());
+        C.save.story = { ch: 2, step: 0 };
+        r.done = ST.done() && ST.trackText() === '' && ST.marker() === null;
+        delete C.save.story;
+        r.fresh = ST.state().ch === 0 && ST.state().step === 0;
+      } finally { rig.undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '멀면 ✕ · 곁 → 창 · 대답 골라야 · 1 → go → boss(다른 지역 ✕) · 2장 🔒 · 다 끝나면 글 없음 · 옛 세이브 0/0' : ('실패 ' + bad.join(','));
+    });
+
+    t('이야기 ⑲-12 — 흐름 2: kill(가까이 가면 sq: 무리 넷·전리품 없음·치우면 넘김) · light(제단 곁 원소 신호만) · 장 끝 보상(매듭 2·금 500·교본 2) · 2장 domain(먹구름 제단 깨기만)', function () {
+      var rig = stRig(1), ST = rig.ST, FC = DG.fieldCombat, TL = DG.talent, r = {};
+      try {
+        C.save.story = { ch: 0, step: 4 };
+        var kt = ST.targetOf(ST.step());
+        stGo({ x: kt.x + 20, y: kt.y }); FC.tick(0.05); ST.check();
+        var S = FC.state(), cp = S.camps[ST.keyOf()];
+        r.spawn = !!cp && cp.uids.length === 4 && cp.kind === 'story';
+        var g0 = C.save.player.gold;
+        cp.uids.forEach(function (u) { var f = S.foes[u]; f.shield = 0; f.layers = []; for (var i = 0; i < 3; i++) { FC.hitFoe(S, f, S.party[0], 1e8, null, 'test'); } });
+        FC.tick(0.05);
+        r.kill = C.save.story.step === 5 && C.save.player.gold === g0;
+        C.save.story.step = 6;
+        var lt = ST.targetOf(ST.step());
+        C.emit('field:element', { el: 'fire', x: lt.x + 30, y: lt.y, r: 3, t: 'skill' });
+        var still = C.save.story.step === 6;
+        C.emit('field:element', { el: 'water', x: lt.x + 3, y: lt.y, r: 3, t: 'skill' });
+        r.light = still && C.save.story.step === 7;
+        var m = TL.mats(), k0 = m.knot || 0, gd0 = m.guide || 0, gold0 = C.save.player.gold;
+        stGo(ST.npcPos('elder'));
+        r.end = stTalkAll(ST) && C.save.story.ch === 1 && C.save.story.step === 0 && m.knot === k0 + 2 && m.guide === gd0 + 2 && C.save.player.gold === gold0 + 500;
+        C.save.player.level = 5; C.save.story = { ch: 1, step: 2 };
+        C.emit('domain:clear', { id: 'd:x', kind: 'school', stage: 0 });
+        var st2 = C.save.story.step === 2;
+        C.emit('domain:clear', { id: 'w:galdae', kind: 'weekly', stage: 0 });
+        r.domain = st2 && C.save.story.step === 3;
+      } finally { rig.undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '졸개 넷 → 금 그대로 · 먼 불 ✕ 곁 물 ○ · 1장 끝 🪢+2 📘+2 🪙+500 · 서당 ✕ 제단 ○' : ('실패 ' + bad.join(','));
+    });
+
+    t('이야기 ⑲-12 — 화면: 추적 글(장·목표·◆ 거리) · 목록(끝남·◆ 지금·잠김) · 곁 인물 셋 세움(folk 꼴) · 미니맵 금빛 점(테두리에도) · 끄면 다 사라짐', function () {
+      var rig = stRig(1), ST = rig.ST, r = {};
+      try {
+        C.save.story = { ch: 0, step: 1 };
+        var t1 = ST.targetOf(ST.step());
+        stGo({ x: t1.x + 500, y: t1.y });
+        r.track = ST.trackText() === '📖 제1장 · 먹구름이 오는 마을 — 대숲 고을 탑, 바람이 우는 곳으로 · ◆ 500m';
+        var L = ST.listHtml();
+        r.list = L.indexOf('제2장 · 먹구름 제단') >= 0 && L.indexOf('🔒 여정 등급 5') >= 0 && L.indexOf('✓ 청하 촌장을 찾아가기') >= 0 && L.indexOf('◆ 대숲 고을 탑') >= 0;
+        var ep = ST.npcPos('elder'), lv = ST.live({ x: ep.x + 5, y: ep.y });
+        r.live = lv.length === 1 && lv[0].p.id === 'story_elder' && typeof lv[0].ang === 'number' && ST.live({ x: 5000, y: 5000 }).length === 0;
+        var bl = DG.minimap.blips({ x: t1.x + 500, y: t1.y }, 150).filter(function (b) { return b.t === 'story'; });
+        r.mini = bl.length === 1 && bl[0].edge;
+        C.setTune('story.on', 0);
+        try { r.off = ST.trackText() === '' && ST.live(ep).length === 0 && !ST.on(); } finally { C.setTune('story.on', null); }
+      } finally { rig.undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '추적 500m · 목록 ✓◆🔒 · 촌장 곁 1명 · 미니맵 테두리 · 끄면 0' : ('실패 ' + bad.join(','));
     });
 
     /* ── ⑳ 원작 겹침 정리 (PLAN §5 ⑳) ── */

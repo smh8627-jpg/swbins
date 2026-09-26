@@ -309,6 +309,7 @@
     if (run.wave + 1 < waves.length) { spawnWave(run.wave + 1); return; }
     run.phase = 'tree';
     despawn();
+    core().emit('domain:clear', { id: run.d.id, kind: run.d.kind, stage: run.stage });   // ⑲-12 이야기 임무가 본다
     sfx('reward');
     toast('🌳 보상 나무가 자랐다 — 가운데로 가서 원기 ' + costOf(run.d.kind) + ' 쓰면 받는다');
     core().log('🌀 ' + run.d.name + ' ' + STAGES[run.stage].n + ' 돌파 — ' + Math.round(run.fightT) + '초', 'good');

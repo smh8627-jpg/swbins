@@ -149,6 +149,7 @@
     global.DG.overworld.init();        // 전체 지도(M키) — 마찬가지로 화면 층
     if (global.DG.fieldCombat) { global.DG.fieldCombat.init(); }   // 들판 전투 키(J·E·Q·␣·1~4)
     if (global.DG.adventure) { global.DG.adventure.init(); }       // 여정 등급 보상·천하 등급(§5⑲-7)
+    if (global.DG.story) { global.DG.story.init(); }               // 이야기 임무 1~2장(§5⑲-12) — F·O 키
 
     if (fresh) {
       core.log('여정을 시작합니다. 걸으면 보급을 받고, 만나면 도감이 쌓입니다.', 'info');
@@ -398,6 +399,7 @@
     if (global.DG.cooking) { global.DG.cooking.tick(dt); }           // 채집·솥·요리 버프(§5⑲-6)
     if (global.DG.domain) { global.DG.domain.tick(dt); }             // 숨은 터·원기·주간 보스(§5⑲-9)
     if (global.DG.fieldBoss) { global.DG.fieldBoss.tick(dt); }       // 들판 보스 보상 꽃(§5⑲-10)
+    if (global.DG.story) { global.DG.story.tick(dt); }               // 이야기 임무 — 목표·대화·금빛 기둥(§5⑲-12)
     if (!global.DG_NO_DRAW) {
       world.draw();
       global.DG.minimap.tick(dt);      // 미니맵은 매 프레임이 아니라 제 박자로 다시 그린다

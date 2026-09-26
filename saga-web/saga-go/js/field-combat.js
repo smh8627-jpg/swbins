@@ -592,7 +592,7 @@
     for (var k in S.camps) {
       if (!S.camps.hasOwnProperty(k)) { continue; }
       var cp = S.camps[k];
-      if (cp.kind === 'hero' || cp.kind === 'domain') { continue; }   // ⑯ 겨루는 판은 판이 끝날 때(duelCheck)·⑲-9 숨은 터 파도는 domain.js 가 치운다
+      if (cp.kind === 'hero' || cp.kind === 'domain' || cp.kind === 'story') { continue; }   // ⑯ 겨루는 판은 판이 끝날 때(duelCheck)·⑲-9 숨은 터 파도는 domain.js 가 치운다
       if (Math.hypot(cp.x - px, cp.y - py) <= far) { continue; }
       var busy = false, j;
       for (j = 0; j < cp.uids.length; j++) {
@@ -1370,6 +1370,7 @@
     var D = global.DG;
     return !!((D.encounter && D.encounter.active) || (D.rogue && D.rogue.active) ||
       (D.duel && D.duel.active) || (D.rogueAction && D.rogueAction.active) ||
+      (D.story && D.story.talking && D.story.talking()) ||                     // ⑲-12 이야기 대화 창
       (document.body && document.body.classList.contains('sheet-open')));
   }
 
@@ -1528,7 +1529,7 @@
       } else if (e.t === 'duelEnd') {
         var ENC = global.DG.encounter;
         if (ENC && ENC.duelResult) { ENC.duelResult(e.result, e.spawnUid, e.heroId); }
-      } else if (e.t === 'kill' && String(e.camp).indexOf('dm:') === 0) {
+      } else if (e.t === 'kill' && (String(e.camp).indexOf('dm:') === 0 || String(e.camp).indexOf('sq:') === 0)) {
         /* ⑲-9 숨은 터 적 — 전리품·경험·무리 기록 없음(domain.js 가 파도·터 기운을 본다) */
         if (global.DG.daily) { global.DG.daily.progress('hunt'); }
         c.emit('field:kill', e);
@@ -1550,7 +1551,7 @@
         fieldSave().kills = (fieldSave().kills || 0) + 1;
         if (global.DG.daily) { global.DG.daily.progress('hunt'); }    // ⑲-8 일일 의뢰
         floatNum(e.x, e.y, '+' + gold + '금', null, 0.9, false);
-      } else if (e.t === 'clear' && e.kind === 'domain') {
+      } else if (e.t === 'clear' && (e.kind === 'domain' || e.kind === 'story')) {
         c.emit('field:clear', e);                                      // ⑲-9 숨은 터 파도 — 보상은 보상 나무에서
       } else if (e.t === 'clear' && e.kind === 'guard') {
         var gs = fieldSave(), rk = e.camp.slice(2), again = !!gs.guards[rk];

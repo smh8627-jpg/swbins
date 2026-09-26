@@ -597,14 +597,18 @@
     npc_smith: 'oga_ultimate_Casual_Bald.glb',
     npc_ronin: 'oga_ultimate_Ninja_Sand.glb',
     npc_bandit: 'oga_ultimate_Viking_Male.glb',
-    npc_stranger: 'polypizza_wide_Wizard.glb'
+    npc_stranger: 'polypizza_wide_Wizard.glb',
+    /* ⑲-12 이야기 인물 셋(story.js) — QRPG 수도승·궁수·성직자(제 클립 내장). '/' 가 든 값은 people/ 기준 */
+    story_elder: 'quaternius_rpg/Monk.glb',
+    story_ferryman: 'quaternius_rpg/Ranger.glb',
+    story_scholar: 'quaternius_rpg/Cleric.glb'
   };
   function fixedRecipe(ref) {
     var id = ref && ref.id;
     if (!id || !Object.prototype.hasOwnProperty.call(FIXED_HERO, id)) { return null; }
     var C = global.DG.core;
     if (C && C.tuned && !C.tuned('asset3d.fixedBody', 1)) { return null; }
-    var url = PEOPLE + 'fixed/' + FIXED_HERO[id];
+    var url = PEOPLE + (FIXED_HERO[id].indexOf('/') >= 0 ? '' : 'fixed/') + FIXED_HERO[id];
     return { key: 'fixed:' + id, body: url, anim: url };
   }
 

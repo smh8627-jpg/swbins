@@ -2439,6 +2439,7 @@
     /* ⑱ 땅 사람 — 탑 둘레 과거·현대·미래 셋(`folk.js`). 주민처럼 잡히지 않는다. 서 있을 땐 탑을 본다 */
     var FK = global.DG.folk;
     var folks = FK ? FK.live(pos, now) : [];
+    if (global.DG.story) { folks = folks.concat(global.DG.story.live(pos, now)); }   // ⑲-12 이야기 인물 셋
     for (i = 0; i < folks.length; i++) {
       var fk = folks[i];
       var fka = actorOf('fk' + fk.p.id, 'hero', fk.p, 96);

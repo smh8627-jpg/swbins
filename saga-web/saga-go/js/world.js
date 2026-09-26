@@ -1590,6 +1590,7 @@
     var NP = global.DG.npc;
     var ppl = NP ? NP.live(pos) : [];
     if (global.DG.folk) { ppl = ppl.concat(global.DG.folk.live(pos)); }   // ⑱ 탑 둘레 세 시대 사람
+    if (global.DG.story) { ppl = ppl.concat(global.DG.story.live(pos)); }  // ⑲-12 이야기 인물 셋
     for (var pi = 0; pi < ppl.length; pi++) {
       (function (n) {
         var u = (n.x - pos.x) * sc, v = (n.y - pos.y) * sc;
