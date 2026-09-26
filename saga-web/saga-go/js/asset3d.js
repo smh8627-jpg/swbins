@@ -601,7 +601,8 @@
     /* ⑲-12 이야기 인물 셋(story.js) — QRPG 수도승·궁수·성직자(제 클립 내장). '/' 가 든 값은 people/ 기준 */
     story_elder: 'quaternius_rpg/Monk.glb',
     story_ferryman: 'quaternius_rpg/Ranger.glb',
-    story_scholar: 'quaternius_rpg/Cleric.glb'
+    story_scholar: 'quaternius_rpg/Cleric.glb',
+    story_wanderer: 'quaternius_rpg/Rogue.glb'      // ⑲-13 가면 쓴 나그네(흰 가면은 talkface.mask 가 얹는다)
   };
   function fixedRecipe(ref) {
     var id = ref && ref.id;

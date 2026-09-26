@@ -195,6 +195,7 @@
     sv().gather[node.id] = nowFn();
     add(node.item, 1);
     if (global.DG.daily) { global.DG.daily.progress('gather'); }   // ⑲-8 일일 의뢰
+    core().emit('cook:gather', { item: node.item, id: node.id });  // ⑲-13 이야기 gather 단계가 본다
     return true;
   }
   /** 다시 자란 기록은 지운다(세이브가 끝없이 안 커지게) */

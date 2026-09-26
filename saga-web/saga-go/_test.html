@@ -139,6 +139,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/domain.js"></script>
 <script src="js/fieldboss.js"></script>
 <script src="js/story.js"></script>
+<script src="js/talkface.js"></script>
 <script src="js/rogue.js"></script>
 <script src="js/fort.js"></script>
 <script src="js/raid.js"></script>
@@ -10253,8 +10254,8 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 
     t('이야기 ⑲-12 — 표·자리: 장 둘(단계 8·4, 여정 등급 1·5) · 인물 셋 = ⑮ 땅 탑 + 자리(고향 촌장·갈대 나루 사공·옛 성터 학자) · 모든 단계에 목표 · 같은 세계면 같은 자리 · 몸 셋 고정', function () {
       var ST = DG.story, A3 = DG.asset3d, r = {};
-      r.table = ST.CHAPTERS.length === 2 && ST.CHAPTERS[0].steps.length === 8 && ST.CHAPTERS[1].steps.length === 4 &&
-        ST.CHAPTERS[0].ar === 1 && ST.CHAPTERS[1].ar === 5;
+      r.table = ST.CHAPTERS.length === 4 && ST.CHAPTERS[0].steps.length === 8 && ST.CHAPTERS[1].steps.length === 4 &&
+        ST.CHAPTERS[0].ar === 1 && ST.CHAPTERS[1].ar === 5;     // ⑲-13 이 3·4장을 더했다
       var e = ST.npcPos('elder'), f = ST.npcPos('ferryman'), s = ST.npcPos('scholar'), ga = ST.anchorOf('galdae'), go = ST.anchorOf('gojeong');
       r.npc = e.x === -22 && e.y === 16 && f.x === ga.x - 18 && f.y === ga.y - 24 && s.x === go.x - 18 && s.y === go.y - 24 &&
         DG.biome.cellAt.apply(null, ga.key.split('_').map(Number)).zone === 'galdae' && DG.biome.cellAt.apply(null, go.key.split('_').map(Number)).zone === 'gojeong';
@@ -10265,9 +10266,9 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       r.targets = miss.length === 0;
       var boss = ST.targetOf(ST.CHAPTERS[0].steps[2]);
       r.boss = !!boss.rk && boss.rk === ST.anchorOf('jugeup').key;
-      r.body = ['story_elder', 'story_ferryman', 'story_scholar'].every(function (id) { var fr = A3.fixedRecipe({ id: id }); return fr && /quaternius_rpg\//.test(fr.body) && fr.body.indexOf('fixed/') < 0; });
+      r.body = ['story_elder', 'story_ferryman', 'story_scholar', 'story_wanderer'].every(function (id) { var fr = A3.fixedRecipe({ id: id }); return fr && /quaternius_rpg\//.test(fr.body) && fr.body.indexOf('fixed/') < 0; });
       var bad = Object.keys(r).filter(function (k) { return !r[k]; });
-      return bad.length === 0 ? ('장 2 · 단계 12 · 사공 ' + ga.key + ' · 학자 ' + go.key + ' · 대숲 수호자 ' + boss.rk + ' · 몸 셋') : ('실패 ' + bad.join(',') + ' ' + miss.join(','));
+      return bad.length === 0 ? ('장 4 · 사공 ' + ga.key + ' · 학자 ' + go.key + ' · 대숲 수호자 ' + boss.rk + ' · 몸 넷') : ('실패 ' + bad.join(',') + ' ' + miss.join(','));
     });
 
     t('이야기 ⑲-12 — 흐름 1: 곁에서만 말(F) · 고르는 줄은 대답을 골라야 넘어감 · 말 끝 → 다음 단계·부대 경험 10 · go 도착 · boss(수호자 토벌 신호) · 잠긴 장은 여정 등급 글', function () {
@@ -10277,9 +10278,9 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         r.far = !ST.nearTalk() && !ST.talkStart();
         stGo(ST.npcPos('elder'));
         r.open = ST.talkStart() && ST.talking();
-        ST.next(); ST.next();
+        ST.next(); ST.next(); ST.next(); ST.next();              // ⑲-13 줄마다 한 번 = 전체, 한 번 더 = 다음
         r.pick = !ST.next() && ST.talking() && ST.next(1);
-        ST.next();
+        for (var g1 = 0; g1 < 8 && ST.talking(); g1++) { ST.next(); }
         r.step1 = !ST.talking() && C.save.story.step === 1;
         stGo(ST.targetOf(ST.step())); ST.check();
         r.go = C.save.story.step === 2;
@@ -10290,8 +10291,8 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         r.boss = still && C.save.story.step === 3;
         C.save.story = { ch: 1, step: 0 };
         r.lock = ST.locked() && ST.step() === null && /여정 등급 5 에 열린다/.test(ST.trackText());
-        C.save.story = { ch: 2, step: 0 };
-        r.done = ST.done() && ST.trackText() === '' && ST.marker() === null;
+        C.save.story = { ch: ST.CHAPTERS.length, step: 0 };       // ⑲-13 장 넷 — 끝 = 장 수
+        r.done =ST.done() && ST.trackText() === '' && ST.marker() === null;
         delete C.save.story;
         r.fresh = ST.state().ch === 0 && ST.state().step === 0;
       } finally { rig.undo(); }
@@ -10349,6 +10350,144 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       var bad = Object.keys(r).filter(function (k) { return !r[k]; });
       return bad.length === 0 ? '추적 500m · 목록 ✓◆🔒 · 촌장 곁 1명 · 미니맵 테두리 · 끄면 0' : ('실패 ' + bad.join(','));
     });
+
+    /* ── ⑲-13 이야기 3·4장·대화 카메라·따라가기·몸짓 (story.js · talkface.js, PLAN §5 ⑲-13) ── */
+    t('이야기 ⑲-13 — 표: 3장 9단계(Lv7)·4장 8단계(Lv10)·보상 · 잠든 무덤 d:gamagol · 표정 열넷 · 말하는 이 전부 인물 · 나그네는 4장 2~6단계에만(다리목 → 길 끝)', function () {
+      var rig = stRig(10), ST = rig.ST, TF = DG.talkface, r = {};
+      try {
+        var c3 = ST.CHAPTERS[2], c4 = ST.CHAPTERS[3];
+        r.table = c3.steps.length === 9 && c4.steps.length === 8 && c3.ar === 7 && c4.ar === 10 &&
+          c3.reward.knot === 3 && c3.reward.gold === 1250 && c3.reward.secret === 1 && c4.reward.gold === 1500 && c4.reward.secret === 2;
+        var tomb = DG.domain.byId('d:gamagol');
+        r.tomb = !!tomb && tomb.kind === 'tomb' && c3.steps[6].did === 'd:gamagol' && ST.targetOf(c3.steps[6]).x === tomb.x;
+        var emo = 0, badEmo = [], badWho = [], shorts = Object.keys(ST.NPCS).map(function (k) { return ST.NPCS[k].short; });
+        ST.CHAPTERS.forEach(function (ch) { ch.steps.forEach(function (st) { (st.lines || []).forEach(function (l) {
+          if (l[2]) { emo++; if (!TF.EMO[l[2]]) { badEmo.push(l[2]); } }
+          if (l[0] !== '?' && shorts.indexOf(l[0]) < 0) { badWho.push(l[0]); }
+        }); }); });
+        r.emo = emo === 14 && badEmo.length === 0;
+        r.who = badWho.length === 0;
+        var P = ST.WANDER_PATH, fi = 2;
+        r.path = c4.steps[fi].type === 'follow';
+        var vis = [];
+        for (var i = 0; i < 8; i++) { C.save.story = { ch: 3, step: i }; vis.push(ST.visible('wanderer') ? 1 : 0); }
+        C.save.story = { ch: 2, step: 3 }; var v3 = ST.visible('wanderer');
+        C.save.player.level = 9; C.save.story = { ch: 3, step: 1 }; var vl = ST.visible('wanderer');
+        r.appear = vis.join('') === '01111100' && !v3 && !vl;
+        var t1 = ST.targetOf(c4.steps[1]), t3 = ST.targetOf(c4.steps[3]), t5 = ST.targetOf(c4.steps[5]);
+        r.spot = t1.x === P[0][0] && t1.y === P[0][1] && t3.x === P[P.length - 1][0] && t3.y === P[P.length - 1][1] && t5.x === t3.x;
+      } finally { rig.undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '3장 9·4장 8 · 무덤 d:gamagol · 표정 14 · 나그네 01111100 · 다리목 → 길 끝' : ('실패 ' + bad.join(','));
+    });
+
+    t('이야기 ⑲-13 — 흐름 3장: gather(청하란만 셋, 추적 n/3, 요리 모듈 줍기 신호) · cook(요리 신호) · domain id(먹구름 제단 ✕ 잠든 무덤 ○) · 끝 보상(매듭 3·금 1250·비전 1)', function () {
+      var rig = stRig(7), ST = rig.ST, TL = DG.talent, CK = DG.cooking, r = {};
+      try {
+        C.save.story = { ch: 2, step: 1 };
+        r.aim = !!ST.targetOf(ST.step()) && / 0\/3 · ◆ /.test(ST.trackText());
+        C.emit('cook:gather', { item: 'mint' });
+        C.emit('cook:gather', { item: 'orchid' }); C.emit('cook:gather', { item: 'orchid' });
+        r.count = C.save.story.step === 1 && ST.gathered() === 2 && / 2\/3 · /.test(ST.trackText());
+        r.pick = CK.pick({ id: 'test_story_orchid', item: 'orchid', special: true }) && C.save.story.step === 2;
+        r.pot = !!ST.targetOf(ST.step());
+        C.emit('cook:done', { recipe: 'honey_cake', q: 1 });
+        r.cook = C.save.story.step === 3;
+        C.save.story.step = 6;
+        C.emit('domain:clear', { id: 'w:galdae', kind: 'weekly', stage: 0 });
+        var still = C.save.story.step === 6;
+        C.emit('domain:clear', { id: 'd:gamagol', kind: 'tomb', stage: 0 });
+        r.domain = still && C.save.story.step === 7;
+        C.save.story.step = 8;
+        var m = TL.mats(), k0 = m.knot || 0, s0 = m.secret || 0, gold0 = C.save.player.gold;
+        stGo(ST.npcPos('elder'));
+        r.end = stTalkAll(ST) && C.save.story.ch === 3 && C.save.story.step === 0 && m.knot === k0 + 3 && m.secret === s0 + 1 && C.save.player.gold === gold0 + 1250;
+        C.save.player.level = 9;
+        r.lock4 = ST.locked() && /여정 등급 10 에 열린다/.test(ST.trackText());
+      } finally { rig.undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '박하 ✕ · 청하란 2/3 → 줍기 3 · 요리 → 사공 · 제단 ✕ 무덤 ○ · 🪢+3 📕+1 🪙+1250 · 4장 🔒' : ('실패 ' + bad.join(','));
+    });
+
+    t('이야기 ⑲-13 — 따라가기: 멀면 서서 기다림(먼 글) · 가까우면 초당 2.6m · 붙어 걸으면 길 끝에서 다음 단계 · 나그네는 길 끝에 서고 말 걸기 · 걷는 몸(live) · 지나면 사라짐', function () {
+      var rig = stRig(10), ST = rig.ST, r = {};
+      try {
+        C.save.story = { ch: 3, step: 2 };
+        var P = ST.WANDER_PATH, p0 = ST.npcPos('wanderer');
+        r.start = p0.x === P[0][0] && p0.y === P[0][1];
+        stGo({ x: p0.x + 200, y: p0.y });
+        var f1 = ST.stepFollow(1);
+        r.wait = f1 && !f1.walking && f1.x === p0.x && f1.y === p0.y && /너무 멀다, 가까이!/.test(ST.trackText());
+        stGo({ x: p0.x + 5, y: p0.y });
+        ST.stepFollow(1);
+        var q = ST.npcPos('wanderer');
+        r.walk = Math.abs(Math.hypot(q.x - p0.x, q.y - p0.y) - ST.FOLLOW_SPEED) < 1e-6 && !/너무 멀다/.test(ST.trackText());
+        var lv = ST.live(q).filter(function (x) { return x.p.story === 'wanderer'; });
+        r.live = lv.length === 1 && lv[0].walking && lv[0].p.mask && lv[0].p.id === 'story_wanderer';
+        var len = 0, i, n = 1;
+        for (i = 1; i < P.length; i++) { len += Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]); }
+        for (i = 0; i < 200 && C.save.story.step === 2; i++) { q = ST.npcPos('wanderer'); stGo({ x: q.x + 3, y: q.y }); ST.stepFollow(1); n++; }
+        r.arrive = C.save.story.step === 3 && Math.abs(n - Math.ceil(len / ST.FOLLOW_SPEED)) <= 1;
+        var e = ST.npcPos('wanderer');
+        r.end = e.x === P[P.length - 1][0] && e.y === P[P.length - 1][1];
+        stGo({ x: e.x + 2, y: e.y });
+        r.talk = !!ST.nearTalk() && stTalkAll(ST) && C.save.story.step === 4;
+        C.save.story.step = 6;
+        r.gone = !ST.visible('wanderer') && ST.live(e).filter(function (x) { return x.p.story === 'wanderer'; }).length === 0;
+      } finally { rig.undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '200m 섬 · 곁 2.6m/초 · 길 ' + Math.round(len) + 'm 끝 → 말 · 가면·걷기 · 학자 단계 ✕' : ('실패 ' + bad.join(','));
+    });
+
+    t('이야기 ⑲-13 — 대화 연출: 글 흘리기(한 번 = 전체·또 = 다음) · 고른 대답은 "나" 의 줄 · 말하는 이 바뀜(카메라 대상) · 입 모양 표 21 · 어깨 너머 카메라(옆 22°·위 9°·팔) · 오른팔 축 · 깜박임', function () {
+      var rig = stRig(1), ST = rig.ST, TF = DG.talkface, r = {};
+      try {
+        var ep = ST.npcPos('elder');
+        stGo({ x: ep.x + 3, y: ep.y });
+        ST.talkStart();
+        var s0 = ST.talkShot();
+        r.open = !ST.lineFull() && s0.who === 'elder' && s0.speaking && s0.spk.x === ep.x && s0.lst.x === ep.x + 3;
+        ST.reveal(0.1);
+        var s1 = ST.talkShot();
+        r.reveal = s1.vowel === 'A' && s1.open === 1 && !ST.lineFull();
+        ST.next();
+        r.full = ST.lineFull() && ST.curLine()[1].indexOf('요 며칠') >= 0;
+        ST.next(); ST.next(); ST.next();
+        var s2 = ST.talkShot();
+        r.ask = ST.curLine()[0] === '?' && s2.who === 'me' && !s2.speaking && s2.spk.x === ep.x + 3;
+        ST.next(0);
+        var s3 = ST.talkShot();
+        r.reply = ST.curLine()[0] === '나' && ST.curLine()[1] === '제가 알아볼게요.' && s3.who === 'me' && s3.speaking && s3.line === 5;
+        ST.next(); ST.next();
+        r.back = ST.talkShot().who === 'elder' && ST.talkShot().line === 6;
+        for (var g = 0; g < 6 && ST.talking(); g++) { ST.next(); }
+        r.close = !ST.talking() && ST.talkShot() === null && C.save.story.step === 1;
+      } finally { rig.undo(); }
+      /* 입 — 가운뎃소리 21 → 다섯 */
+      var cnt = { A: 0, I: 0, U: 0, E: 0, O: 0 }, j;
+      for (j = 0; j < 21; j++) { cnt[TF.vowelOf(String.fromCharCode(0xac00 + j * 28))]++; }
+      r.vowel = JSON.stringify(cnt) === '{"A":3,"I":3,"U":3,"E":7,"O":5}' && TF.vowelOf('와') === 'A' && TF.vowelOf('의') === 'I' &&
+        TF.vowelOf('을') === 'U' && TF.vowelOf('왜') === 'E' && TF.vowelOf('뭐') === 'O' && TF.vowelOf('a') === null && TF.vowelOf('.') === null;
+      /* 카메라 — 말하는 이 (0,0) · 듣는 이 (0,5) · 키 3.4 */
+      var A = TF.talkAim({ x: 0, y: 0 }, { x: 0, y: 5 }, 3.4), arm = 5 + 3.4 * TF.ARM_PLUS;
+      var hd = Math.hypot(A.pos.x, A.pos.z), side = Math.acos(A.pos.z / hd) * 180 / Math.PI;
+      r.cam = Math.abs(A.look.y - 3.4 * TF.FACE) < 1e-9 && A.look.x === 0 && A.look.z === 0 && Math.abs(side - 22) < 1e-6 &&
+        Math.abs(hd - arm * Math.cos(TF.UP)) < 1e-9 && Math.abs(A.pos.y - (3.4 * TF.FACE + arm * Math.sin(TF.UP))) < 1e-9 && hd > 5;
+      var B = TF.talkAim({ x: 0, y: 5 }, { x: 0, y: 0 }, 3.4);
+      r.swap = B.look.z === 5 && B.pos.z < 0;
+      /* 팔 — 몸이 어느 쪽을 봐도 내린 팔(0,-1,0)을 오른쪽 축으로 38° 돌리면 앞·위로 · 머리는 왼쪽 축으로 숙인다 */
+      r.arm = [0, 1, 2.5, -2, Math.PI].every(function (a) {
+        var f = [Math.sin(a), 0, Math.cos(a)], k = TF.rightAxis(a), v = TF.rotate([0, -1, 0], k, TF.UPPER), h = TF.rotate([0, 1, 0], [-k[0], 0, -k[2]], 0.1);
+        return v[0] * f[0] + v[2] * f[2] > 0.6 && v[1] > -0.8 && h[0] * f[0] + h[2] * f[2] > 0.09;
+      });
+      /* 깜박임 — 10초에 2~5번, 감은 때는 5% 안 */
+      var shut = 0, runs = 0, was = false;
+      for (j = 0; j < 1000; j++) { var b = TF.blinkAt(3, j / 100) > 0; if (b) { shut++; } if (b && !was) { runs++; } was = b; }
+      r.blink = runs >= 2 && runs <= 5 && shut / 1000 < 0.05;
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '흘림 → 전체 → 다음 · 대답 "나" · 촌장 ↔ 나 · 입 3·3·3·7·5 · 옆 ' + side.toFixed(0) + '° 팔 ' + arm.toFixed(2) + 'm · 팔 앞 · 깜박 ' + runs + '번' : ('실패 ' + bad.join(','));
+    });
+
 
     /* ── ⑳ 원작 겹침 정리 (PLAN §5 ⑳) ── */
     t('원작 겹침 ⑳ — 화면 글자(보패·무기·무예·반응·상자·숨은 터 표 · 인물 상세 · 등급 카드)에 옛 원작 용어가 없다', function () {

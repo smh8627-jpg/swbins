@@ -2348,6 +2348,21 @@
       if (deck > gyMe) { meA.node.position.y += deck - gyMe; }
     }
     syncGlider(meA, LFa && LFa.gliding && LFa.gliding(), mx, my, air, h);
+    /* ⑲-13 대화 — 나는 대화 상대를 돌아보고, 내 줄(고른 대답)이면 손짓·입. 깜박임은 늘(talkface.js) */
+    var TSm = talkShot(), TFm = global.DG.talkface;
+    var tdt = talkNow ? Math.min(0.1, Math.max(0, (now - talkNow) / 1000)) : 0;
+    talkNow = now;
+    if (TSm && meA.mesh) {
+      var npq = TSm.who === 'me' ? TSm.lst : TSm.spk;
+      var mdd = Math.atan2(npq.x - mx, npq.y - my) - meA.ang;
+      meA.ang += Math.atan2(Math.sin(mdd), Math.cos(mdd)) * 0.18;
+      meA.node.rotation.y = meA.ang;
+    }
+    if (TFm && meA.mesh) {
+      var meTalk = !!(TSm && TSm.who === 'me');
+      TFm.pose(T, meA.node, { speaking: meTalk && TSm.speaking, vowel: meTalk ? TSm.vowel : null, open: meTalk ? TSm.open : 0,
+        emo: null, t: now / 1000, dt: tdt, seed: 7 });
+    }
 
     /* 교전 상대(`duelStage()` 로 세운 임시 배우) — `spawns` 에 없으니 여기서
        직접 먹인다. 코앞이라 `farBoost` 는 안 준다(늘 가까이서 마주 선다) */
@@ -2437,7 +2452,7 @@
       placeActor(na, n.x, n.y, h * 0.94 * farBoost(n.x, n.y), nbob, n.walking, n.phase, now);
     }
     /* ⑱ 땅 사람 — 탑 둘레 과거·현대·미래 셋(`folk.js`). 주민처럼 잡히지 않는다. 서 있을 땐 탑을 본다 */
-    var FK = global.DG.folk;
+    var FK = global.DG.folk, TSf = TSm, TFf = TFm;
     var folks = FK ? FK.live(pos, now) : [];
     if (global.DG.story) { folks = folks.concat(global.DG.story.live(pos, now)); }   // ⑲-12 이야기 인물 셋
     for (i = 0; i < folks.length; i++) {
@@ -2448,6 +2463,13 @@
         var fkd = Math.PI / 2 - fk.ang - fka.ang;          // placeActor 규약(atan2(dx,dz))으로 탑 쪽 — 미끄러지듯 돈다
         fkd = Math.atan2(Math.sin(fkd), Math.cos(fkd));
         fka.ang += fkd * 0.08; fka.node.rotation.y = fka.ang;
+      }
+      /* ⑲-13 이야기 인물 — 말하는 동안 손짓·끄덕임(QRPG 라 입은 없다), 나그네는 흰 가면 */
+      if (fk.p.story && fka.mesh && TFf) {
+        if (fk.p.mask) { TFf.mask(T, fka.node); }
+        var fkTalk = !!(TSf && TSf.who === fk.p.story);
+        TFf.pose(T, fka.node, { speaking: fkTalk && TSf.speaking, vowel: fkTalk ? TSf.vowel : null, open: fkTalk ? TSf.open : 0,
+          emo: fkTalk ? TSf.emo : null, t: now / 1000, dt: tdt, seed: i + 3 });
       }
     }
 
@@ -2551,6 +2573,9 @@
    * 줌인 · 흔들림 · 잠깐 멎기(hit-stop). 셋 다 화면에만 쓴다.
    */
   var yaw = 0;             // 돌려 본 각(라디안) — 드래그로 바꾼다
+  var talkNow = 0;         // ⑲-13 대화 몸짓 — 지난 프레임 시각(ms)
+  /** ⑲-13 이야기 대화 중이면 연출 값(story.talkShot) — 카메라·몸짓이 읽는다 */
+  function talkShot() { var S = global.DG.story; return S && S.talkShot && global.DG.talkface ? S.talkShot() : null; }
   var battleOn = false;    // 교전 중인가
   var shakeAmp = 0;        // 남은 흔들림 세기(m)
   var holdUntil = 0;       // 이때까지 화면이 멎는다 (performance.now 기준)
@@ -2895,8 +2920,10 @@
 
   function syncCamera(W, dt) {
     var pos = core.save.player.pos;
+    /* ⑲-13 이야기 대화 — 듣는 이 어깨 너머에서 말하는 이 얼굴을 본다(talkface.talkAim). 끝나면 아래 보통 구도로 따라 돌아온다 */
+    var TS = stageAt ? null : talkShot();
     /* 조우 무대에서는 줌을 무시한다 — 무대는 늘 같은 그림이어야 한다 */
-    var aim = camAim(pos, W.tiltMode, focusLive(), stageAt,
+    var aim = TS ? global.DG.talkface.talkAim(TS.spk, TS.lst, ACTOR_H()) : camAim(pos, W.tiltMode, focusLive(), stageAt,
       stageAt ? 1 : W.zoom3d, battleOn, stageAt ? 0 : yaw, duelFoe);
     /* **카메라와 시선도 땅을 따라 오른다.** 안 그러면 산에 오를 때 카메라가
        제자리에 남아 땅이 화면을 덮고, 골짜기에서는 하늘만 보인다.
@@ -2919,27 +2946,27 @@
       var cellK = Math.floor(pos.x / GRID) + ':' + Math.floor(pos.y / GRID);
       if (cellK !== occlCell) { occlCell = cellK; occlRects = rectsNear(pos.x, pos.y); }
       occlAcc += dt;
+      /* 대화 중에는 내 머리 대신 말하는 이 얼굴(시선)에서 잰다 */
+      var hx = TS ? look.x : pos.x, hz = TS ? look.z : pos.y, hy = TS ? look.y : groundY(pos.x, pos.y) + 1.7;
       if (occlAcc > 0.1 && occlRects.length) {
         occlAcc = 0;
-        var head = { x: pos.x, y: groundY(pos.x, pos.y) + 1.7, z: pos.y };
-        occlT = camOcclude(head, { x: want.x, y: want.y, z: want.z }, occlRects);
+        occlT = camOcclude({ x: hx, y: hy, z: hz }, { x: want.x, y: want.y, z: want.z }, occlRects);
       } else if (!occlRects.length) { occlT = 1; }
       occl = occlT;
       if (occl < 1) {
-        var hy = groundY(pos.x, pos.y) + 1.7;
-        want.set(pos.x + (want.x - pos.x) * occl, hy + (want.y - hy) * occl, pos.y + (want.z - pos.y) * occl);
+        want.set(hx + (want.x - hx) * occl, hy + (want.y - hy) * occl, hz + (want.z - hz) * occl);
       }
     }
     if (!camPos) { camPos = want.clone(); camLook = look.clone(); }
     /* 카메라는 곧바로 붙지 않고 따라온다 — 원작의 그 미끄러지는 느낌이다.
        교전 중에는 조금 더 빨리 붙는다(줌인이 굼뜨면 때리는 맛이 죽는다) */
-    var k = Math.min(1, dt * (occl < 1 ? 14 : (battleOn ? 9 : 6.5)));
+    var k = occl < 1 ? Math.min(1, dt * 14) : (TS ? 1 - Math.exp(-7 * dt) : Math.min(1, dt * (battleOn ? 9 : 6.5)));   // 대화는 지수 7/초
     camPos.lerp(want, k);
     camLook.lerp(look, k);
     camera.position.copy(camPos);
     /* 흔들림 — **따라온 자리에 얹기만** 한다. camPos 자체를 흔들면 흔들림이
        다음 프레임의 출발점이 되어 카메라가 조금씩 밀려난다 */
-    if (shakeAmp > 0.001) {
+    if (shakeAmp > 0.001 && !TS) {             // 대화 중엔 흔들림을 안 받는다
       var ph = frame * 1.9;
       camera.position.x += Math.sin(ph) * shakeAmp;
       camera.position.y += Math.sin(ph * 1.7 + 1.1) * shakeAmp * 0.6;
@@ -3191,6 +3218,7 @@
     camNode: function () { return camera; },
     /** 돌려 보기 — 드래그가 두드린다(`world.js`). 라디안을 더한다 */
     turn: function (d) {
+      if (talkShot()) { return yaw; }            // ⑲-13 대화 중엔 끌어 돌리기를 안 받는다
       yaw += d || 0;
       while (yaw > Math.PI) { yaw -= Math.PI * 2; }
       while (yaw < -Math.PI) { yaw += Math.PI * 2; }
