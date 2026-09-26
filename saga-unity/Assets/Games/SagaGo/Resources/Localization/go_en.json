@@ -484,6 +484,12 @@
     { "key": "hero.trait.might", "value": "Might" },
     { "key": "hero.trait.wisdom", "value": "Wisdom" },
     { "key": "hero.trait.virtue", "value": "Virtue" },
-    { "key": "hero.trait.command", "value": "Command" }
+    { "key": "hero.trait.command", "value": "Command" },
+    { "key": "task.walk", "value": "Walk {0}/{1}m" },
+    { "key": "task.bandit_win", "value": "Win bandit encounters {0}/{1}" },
+    { "key": "task.wolf_win", "value": "Hunt the rare wolf {0}/{1}" },
+    { "key": "task.cairn_wish", "value": "Pray at the shrine cairn {0}/{1}" },
+    { "key": "task.all_done", "value": "Today's tasks done (stamps {0})" },
+    { "key": "task.week", "value": "Task stamps {0}/{1} ({2} to the next reward)" }
   ]
 }

@@ -324,7 +324,7 @@ namespace Saga.Story.Player
             if (!StoryPartyState.TrySwap(index)) return;
             TriggerCompanionSignature(StoryPartyState.Active.Signature);
             DialogueLabel.Instance?.Show(
-                string.Format(StoryLocalization.T("party.swapped_toast", "{0}(으)로 교대! 서명을 발동했다."), StoryPartyState.Active.Name),
+                string.Format(StoryLocalization.T("party.swapped_toast", "{0}(으)로 교대! 서명을 발동했다."), StoryPartyState.Active.DisplayName),
                 2.5f);
         }
 

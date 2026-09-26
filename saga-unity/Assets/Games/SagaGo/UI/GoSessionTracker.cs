@@ -111,10 +111,10 @@ namespace Saga.Go.UI
             if (_sessionCard == null) return;
             int goldGained = GoldState.Gold - _sessionStartGold;
             string goldStr = goldGained >= 0 ? $"+{goldGained}" : goldGained.ToString();
-            _sessionCard.Show("이번 세션 정리",
-                $"이동 {_walkedMeters:F0}m",
-                $"금 {goldStr}",
-                $"다음: {GoalLineNow()}");
+            _sessionCard.Show(Saga.Core.SagaUi.L("이번 세션 정리", "Session summary"),
+                string.Format(Saga.Core.SagaUi.L("이동 {0:F0}m", "Walked {0:F0}m"), _walkedMeters),
+                string.Format(Saga.Core.SagaUi.L("금 {0}", "Gold {0}"), goldStr),
+                string.Format(Saga.Core.SagaUi.L("다음: {0}", "Next: {0}"), GoalLineNow()));
         }
 
         /// <summary>PLAN.md 101-2 ① "봉수대" — 불을 올리기 전까지는 봉수대

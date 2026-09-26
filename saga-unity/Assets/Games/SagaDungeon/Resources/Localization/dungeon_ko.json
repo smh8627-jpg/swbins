@@ -320,6 +320,15 @@
     { "key": "region.era.future", "value": "미래" },
     { "key": "region.era.myth", "value": "신화" },
     { "key": "region.map_here", "value": "지금 — {0} {1}" },
-    { "key": "region.map_outside", "value": "지금 — 지역 밖(던전 속)" }
+    { "key": "region.map_outside", "value": "지금 — 지역 밖(던전 속)" },
+    { "key": "task.walk", "value": "걷기 {0}/{1}m" },
+    { "key": "task.enemy_kill", "value": "적 처치 {0}/{1}" },
+    { "key": "task.sigil_clear", "value": "부적 층 클리어 {0}/{1}" },
+    { "key": "task.horde_survive", "value": "난입 완주 {0}/{1}" },
+    { "key": "task.all_done", "value": "오늘의 일과 완료 (도장 {0})" },
+    { "key": "task.week", "value": "일과 도장 {0}/{1}(다음 보상까지 {2})" },
+    { "key": "goal.nearest_enemy", "value": "가장 가까운 적까지 {0:F0}m" },
+    { "key": "goal.no_enemy", "value": "가까운 적 없음" },
+    { "key": "action.jump", "value": "점프" }
   ]
 }

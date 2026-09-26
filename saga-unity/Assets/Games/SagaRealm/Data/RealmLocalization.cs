@@ -60,6 +60,46 @@ namespace Saga.Realm.Data
             return _table != null && _table.TryGetValue(key, out var value) ? value : fallback;
         }
 
+
+        // PLAN.md 110 ⑤c-2c — 에디터 빌더가 씬에 구운 글(지을 때 언어 = 한국어)을 지금 언어로 바꾼다. 한국어 표 값과
+        // 똑같은 글이면 그 키로 다시 읽는다. 글마다 (키, 마지막으로 쓴 글)을 기억해 영어 → 한국어도 되고, 코드가 글을
+        // 딴 것으로 바꿨으면(값 라벨 등) 잊는다. 씬을 열 때(설정 창 Start)·판 안에서 언어를 바꿀 때 부른다.
+        private static Dictionary<string, string> _koReverse;
+        private static Dictionary<string, string> _koByKey;
+        private static readonly Dictionary<int, (string key, string written)> _baked = new Dictionary<int, (string, string)>();
+
+        public static int RelocalizeScene()
+        {
+            Saga.Core.SagaUi.Lang = CurrentLanguage == "en" ? "en" : "ko";
+            if (_koReverse == null)
+            {
+                _koReverse = new Dictionary<string, string>();
+                _koByKey = new Dictionary<string, string>();
+                var asset = Resources.Load<TextAsset>("Localization/realm_ko");
+                var parsed = asset != null ? JsonUtility.FromJson<StringTable>(asset.text) : null;
+                if (parsed?.entries != null)
+                    foreach (var e in parsed.entries)
+                    {
+                        if (string.IsNullOrEmpty(e.value)) continue;
+                        _koByKey[e.key] = e.value;
+                        if (!_koReverse.ContainsKey(e.value)) _koReverse[e.value] = e.key;
+                    }
+            }
+            int changed = 0;
+            foreach (var t in Object.FindObjectsByType<TMPro.TMP_Text>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                if (t == null || string.IsNullOrEmpty(t.text)) continue;
+                int id = t.GetInstanceID();
+                string key = null;
+                if (_baked.TryGetValue(id, out var was) && (t.text == was.written || t.text == _koByKey[was.key])) key = was.key;
+                else if (!_koReverse.TryGetValue(t.text, out key)) { _baked.Remove(id); continue; }
+                string v = T(key);
+                if (v != t.text) { t.text = v; changed++; }
+                _baked[id] = (key, v);
+            }
+            return changed;
+        }
+
         private static void EnsureLoaded()
         {
             string lang = CurrentLanguage;

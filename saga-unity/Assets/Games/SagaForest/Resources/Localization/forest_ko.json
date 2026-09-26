@@ -149,6 +149,17 @@
     { "key": "era_folk.surveyor.0", "value": "착륙선이 시간 틈에 걸려 부서졌어요. 부품이 숲 여기저기 떠 있을 거예요." },
     { "key": "era_folk.surveyor.1", "value": "바위 지대 선돌 곁에 제 탐조등이 떠 있더라고요. 아직 불이 들어와요." },
     { "key": "era_folk.surveyor.2", "value": "이 시대 공기는 달아요. 필터를 끄고 숨 쉬어도 되겠어요." },
-    { "key": "era_folk.surveyor.3", "value": "구조 신호는 보냈어요. 도착은… 삼백 년 뒤래요." }
+    { "key": "era_folk.surveyor.3", "value": "구조 신호는 보냈어요. 도착은… 삼백 년 뒤래요." },
+    { "key": "goal.delivery", "value": "택배 → {0}까지 {1:F0}m" },
+    { "key": "goal.nearest_tree", "value": "가장 가까운 나무까지 {0:F0}m" },
+    { "key": "goal.session", "value": "이동 {0:F0}m · 과일 +{1} · 택배 {2}건" },
+    { "key": "festival.today_line", "value": "오늘은 {0}! {1}" },
+    { "key": "festival.next_line", "value": "다음 축제: {0}(D-{1})" },
+    { "key": "festival.name.sebae", "value": "세배" },
+    { "key": "festival.name.flowerhunt", "value": "꽃놀이" },
+    { "key": "festival.name.wish", "value": "소원" },
+    { "key": "festival.how.sebae", "value": "숲지기에게 말을 걸어 세배를 하자" },
+    { "key": "festival.how.flowerhunt", "value": "1분 안에 채집 자리 넷을 모두 찾아보자" },
+    { "key": "festival.how.wish", "value": "소원돌에 소원을 빌어보자" }
   ]
 }

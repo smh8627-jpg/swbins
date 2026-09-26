@@ -332,6 +332,15 @@
     { "key": "era_folk.story_chrononaut.0", "value": "제 기록엔 이 들판이 '첫 사냥터'로만 남아 있어요. 이렇게 시끄러운 줄은 몰랐네요." },
     { "key": "era_folk.story_chrononaut.1", "value": "비경 깊은 층일수록 틈이 넓어요. 강철 거신을 보면 무리하지 마세요." },
     { "key": "era_folk.story_chrononaut.2", "value": "그 무예, 제 시대 교본에 그림으로만 남아 있던 거예요." },
-    { "key": "era_folk.story_chrononaut.3", "value": "돌아갈 좌표가 자꾸 흔들려요. 당분간은 여기서 구경이나 할게요." }
+    { "key": "era_folk.story_chrononaut.3", "value": "돌아갈 좌표가 자꾸 흔들려요. 당분간은 여기서 구경이나 할게요." },
+    { "key": "goal.nearest_enemy", "value": "가장 가까운 적까지 {0:F0}m" },
+    { "key": "goal.no_enemy", "value": "가까운 적 없음" },
+    { "key": "goal.session", "value": "이동 {0:F0}m · 처치 +{1}" },
+    { "key": "goal.next_job", "value": "다음 전직 Lv.{0} (지금 Lv.{1})" },
+    { "key": "goal.job_max", "value": "마지막 차수 — 무예를 끝까지" },
+    { "key": "party.name.vanguard", "value": "선봉(先鋒)" },
+    { "key": "party.name.skirmisher", "value": "유격(遊擊)" },
+    { "key": "party.name.guardian", "value": "호법(護法)" },
+    { "key": "action.save", "value": "저장" }
   ]
 }

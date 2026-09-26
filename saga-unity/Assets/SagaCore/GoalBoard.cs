@@ -100,9 +100,9 @@ namespace Saga.Core
         private void Refresh()
         {
             if (_source == null || _label == null) return;
-            _label.text = $"지금 — {_source.GoalLineNow()}\n" +
-                $"이번 세션 — {_source.GoalLineSession()}\n" +
-                $"이번 주 — {_source.GoalLineWeek()}";
+            _label.text = $"{SagaUi.L("지금", "Now")} — {_source.GoalLineNow()}\n" +
+                $"{SagaUi.L("이번 세션", "This session")} — {_source.GoalLineSession()}\n" +
+                $"{SagaUi.L("이번 주", "This week")} — {_source.GoalLineWeek()}";
         }
     }
 }

@@ -97,17 +97,18 @@ namespace Saga.Dungeon.UI
             if (_sessionCard == null) return;
             int goldGained = HeroState.Gold - _sessionStartGold;
             string goldStr = goldGained >= 0 ? $"+{goldGained}" : goldGained.ToString();
-            _sessionCard.Show("이번 세션 정리",
-                $"이동 {_walkedMeters:F0}m",
-                $"금 {goldStr}",
-                $"다음: {GoalLineNow()}");
+            _sessionCard.Show(Saga.Core.SagaUi.L("이번 세션 정리", "Session summary"),
+                string.Format(Saga.Core.SagaUi.L("이동 {0:F0}m", "Walked {0:F0}m"), _walkedMeters),
+                string.Format(Saga.Core.SagaUi.L("금 {0}", "Gold {0}"), goldStr),
+                string.Format(Saga.Core.SagaUi.L("다음: {0}", "Next: {0}"), GoalLineNow()));
         }
 
         public string GoalLineNow()
         {
             if (_player == null) return "-";
             var nearest = DungeonEnemy.FindNearest(_player.position, float.MaxValue);
-            return nearest == null ? "가까운 적 없음" : $"가장 가까운 적까지 {Vector3.Distance(_player.position, nearest.transform.position):F0}m";
+            return nearest == null ? DungeonLocalization.T("goal.no_enemy", "가까운 적 없음")
+                : string.Format(DungeonLocalization.T("goal.nearest_enemy", "가장 가까운 적까지 {0:F0}m"), Vector3.Distance(_player.position, nearest.transform.position));
         }
 
         public string GoalLineSession() => DungeonDailyTaskState.SessionLineText();

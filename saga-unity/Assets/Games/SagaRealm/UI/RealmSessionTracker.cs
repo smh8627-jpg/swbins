@@ -116,7 +116,7 @@ namespace Saga.Realm.UI
         {
             var cityDef = RealmCityData.Get(RealmCityState.CurrentCity);
             string cityName = cityDef != null ? cityDef.Name : RealmCityState.CurrentCity;
-            return $"{cityName} 조망 중 · 금 {RealmCityState.Gold}";
+            return string.Format(RealmLocalization.T("goal.viewing", "{0} 조망 중 · 금 {1}"), cityName, RealmCityState.Gold);
         }
 
         public string GoalLineSession()
@@ -124,7 +124,7 @@ namespace Saga.Realm.UI
             int goldGained = RealmCityState.Gold - _sessionStartGold;
             string goldStr = goldGained >= 0 ? $"+{goldGained}" : goldGained.ToString();
             int capturedGained = CapturedCount() - _sessionStartCaptured;
-            return $"함락 +{capturedGained}성 · 금 {goldStr}";
+            return string.Format(RealmLocalization.T("goal.session", "함락 +{0}성 · 금 {1}"), capturedGained, goldStr);
         }
 
         /// <summary>다른 네 판은 "이번 주"(주간 사다리)지만 REALM 은 주 단위

@@ -85,7 +85,10 @@ namespace Saga.Dungeon.UI
         private void ChooseVibration() { DungeonSettingsState.VibrationOn = !DungeonSettingsState.VibrationOn; Refresh(); }
         private void ChooseUiScale() { DungeonSettingsState.CycleUiScale(); Refresh(); }
         private void ChooseGraphicsQuality() { DungeonSettingsState.CycleGraphicsQuality(); Refresh(); }
-        private void ChooseLanguage() { DungeonLocalization.CycleLanguage(); Refresh(); }
+        private void ChooseLanguage() { DungeonLocalization.CycleLanguage(); DungeonLocalization.RelocalizeScene(); Refresh(); }
+
+        /// <summary>110 ⑤c-2c — 씬에 구운 글(빌더 = 한국어)을 지금 언어로, 이 창의 글도 한 번 새로(예전엔 값을 바꿀 때만).</summary>
+        private void Start() { DungeonLocalization.RelocalizeScene(); Refresh(); }
         private void ChooseBgm() { DungeonSettingsState.BgmOn = !DungeonSettingsState.BgmOn; Refresh(); }
 
         private void TogglePanel() => _panel.SetActive(!_panel.activeSelf);

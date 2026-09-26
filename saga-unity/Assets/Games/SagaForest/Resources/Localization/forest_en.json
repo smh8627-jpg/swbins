@@ -149,6 +149,17 @@
     { "key": "era_folk.surveyor.0", "value": "My lander got caught in the time rift and broke apart. Its parts must be floating all over the forest." },
     { "key": "era_folk.surveyor.1", "value": "My searchlight is hovering by the standing stone in the rocky fields. It still lights up." },
     { "key": "era_folk.surveyor.2", "value": "The air in this era is sweet. I think I can switch off my filter and breathe." },
-    { "key": "era_folk.surveyor.3", "value": "I sent a rescue signal. Estimated arrival… three hundred years from now." }
+    { "key": "era_folk.surveyor.3", "value": "I sent a rescue signal. Estimated arrival… three hundred years from now." },
+    { "key": "goal.delivery", "value": "Delivery → {1:F0}m to {0}" },
+    { "key": "goal.nearest_tree", "value": "{0:F0}m to the nearest tree" },
+    { "key": "goal.session", "value": "Walked {0:F0}m · Fruit +{1} · Deliveries {2}" },
+    { "key": "festival.today_line", "value": "Today is {0}! {1}" },
+    { "key": "festival.next_line", "value": "Next festival: {0} (D-{1})" },
+    { "key": "festival.name.sebae", "value": "New Year's Bow" },
+    { "key": "festival.name.flowerhunt", "value": "Flower Outing" },
+    { "key": "festival.name.wish", "value": "Wishing Day" },
+    { "key": "festival.how.sebae", "value": "Talk to the forest keeper and offer a New Year's bow" },
+    { "key": "festival.how.flowerhunt", "value": "Find all four gathering spots within a minute" },
+    { "key": "festival.how.wish", "value": "Make a wish at the wishing stone" }
   ]
 }

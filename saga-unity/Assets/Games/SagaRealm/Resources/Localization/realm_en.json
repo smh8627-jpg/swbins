@@ -562,6 +562,8 @@
     { "key": "event.tomb_oath.join", "value": "{0} swore the oath with a rattle of bones." },
     { "key": "event.tomb_oath.empty", "value": "The general vanished, leaving only his spirit in the soldiers (training +10)." },
     { "key": "event.tomb_oath.rest", "value": "The general bowed his head and returned to the earth (security +10)." },
-    { "key": "event.tomb_oath.treasure", "value": "The general handed over an old king's treasure and walked into the dark (+{0} gold)." }
+    { "key": "event.tomb_oath.treasure", "value": "The general handed over an old king's treasure and walked into the dark (+{0} gold)." },
+    { "key": "goal.viewing", "value": "Viewing {0} · Gold {1}" },
+    { "key": "goal.session", "value": "Captured +{0} · Gold {1}" }
   ]
 }

@@ -89,10 +89,10 @@ namespace Saga.Story.UI
         {
             if (_sessionCard == null) return;
             int killsGained = StoryQuestState.Kills - _sessionStartKills;
-            _sessionCard.Show("이번 세션 정리",
-                $"이동 {_walkedMeters:F0}m",
-                $"처치 +{killsGained}",
-                $"다음: {GoalLineNow()}");
+            _sessionCard.Show(Saga.Core.SagaUi.L("이번 세션 정리", "Session summary"),
+                string.Format(Saga.Core.SagaUi.L("이동 {0:F0}m", "Walked {0:F0}m"), _walkedMeters),
+                string.Format(Saga.Core.SagaUi.L("처치 +{0}", "Kills +{0}"), killsGained),
+                string.Format(Saga.Core.SagaUi.L("다음: {0}", "Next: {0}"), GoalLineNow()));
         }
 
         public string GoalLineNow()
@@ -111,15 +111,23 @@ namespace Saga.Story.UI
                     nearest = e;
                 }
             }
-            return nearest == null ? "가까운 적 없음" : $"가장 가까운 적까지 {nearestDist:F0}m";
+            return nearest == null ? StoryLocalization.T("goal.no_enemy", "가까운 적 없음") : string.Format(StoryLocalization.T("goal.nearest_enemy", "가장 가까운 적까지 {0:F0}m"), nearestDist);
         }
 
         public string GoalLineSession()
         {
             int killsGained = StoryQuestState.Kills - _sessionStartKills;
-            return $"이동 {_walkedMeters:F0}m · 처치 +{killsGained}";
+            return string.Format(StoryLocalization.T("goal.session", "이동 {0:F0}m · 처치 +{1}"), _walkedMeters, killsGained);
         }
 
-        public string GoalLineWeek() => "다음 승급 이정표 준비 중(101-2 ⑦ 대기)";
+        /// <summary>110 ⑤c-2c — 예전엔 개발 자리표("다음 승급 이정표 준비 중(101-2 ⑦ 대기)")가 그대로 보였다 → 다음 전직 레벨.</summary>
+        public string GoalLineWeek()
+        {
+            int tier = StoryJobState.Tier;
+            int next = tier <= 0 ? StoryCombat.JobChangeLevel : tier == 1 ? StoryCombat.JobPromoteLevel
+                : tier == 2 ? StoryCombat.JobPromoteLevel3 : tier == 3 ? StoryCombat.JobPromoteLevel4 : 0;
+            if (next == 0) return StoryLocalization.T("goal.job_max", "마지막 차수 — 무예를 끝까지");
+            return string.Format(StoryLocalization.T("goal.next_job", "다음 전직 Lv.{0} (지금 Lv.{1})"), next, StoryJobState.Level);
+        }
     }
 }

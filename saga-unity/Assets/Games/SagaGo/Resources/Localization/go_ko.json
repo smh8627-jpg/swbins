@@ -484,6 +484,12 @@
     { "key": "hero.trait.might", "value": "무" },
     { "key": "hero.trait.wisdom", "value": "지" },
     { "key": "hero.trait.virtue", "value": "덕" },
-    { "key": "hero.trait.command", "value": "통" }
+    { "key": "hero.trait.command", "value": "통" },
+    { "key": "task.walk", "value": "걷기 {0}/{1}m" },
+    { "key": "task.bandit_win", "value": "도적 조우 승리 {0}/{1}" },
+    { "key": "task.wolf_win", "value": "희귀 늑대 토벌 {0}/{1}" },
+    { "key": "task.cairn_wish", "value": "성황당 기원 {0}/{1}" },
+    { "key": "task.all_done", "value": "오늘의 일과 완료 (도장 {0})" },
+    { "key": "task.week", "value": "일과 도장 {0}/{1}(다음 보상까지 {2})" }
   ]
 }

@@ -108,7 +108,10 @@ namespace Saga.Story.UI
         private void ChooseVibration() { StorySettingsState.VibrationOn = !StorySettingsState.VibrationOn; Refresh(); }
         private void ChooseUiScale() { StorySettingsState.CycleUiScale(); Refresh(); }
         private void ChooseGraphicsQuality() { StorySettingsState.CycleGraphicsQuality(); Refresh(); }
-        private void ChooseLanguage() { StoryLocalization.CycleLanguage(); Refresh(); }
+        private void ChooseLanguage() { StoryLocalization.CycleLanguage(); StoryLocalization.RelocalizeScene(); Refresh(); }
+
+        /// <summary>110 ⑤c-2c — 씬에 구운 글(빌더 = 한국어)을 지금 언어로, 이 창의 글도 한 번 새로(예전엔 값을 바꿀 때만).</summary>
+        private void Start() { StoryLocalization.RelocalizeScene(); Refresh(); }
         private void ChooseBgm() { StorySettingsState.BgmOn = !StorySettingsState.BgmOn; Refresh(); }
 
         private void TogglePanel() => _panel.SetActive(!_panel.activeSelf);

@@ -92,10 +92,10 @@ namespace Saga.Forest.UI
             if (_sessionCard == null) return;
             int fruitGained = ForestState.FruitCount - _sessionStartFruit;
             int delivered = ForestDeliveryState.DeliveredCount - _sessionStartDeliveries;
-            _sessionCard.Show("이번 세션 정리",
-                $"이동 {_walkedMeters:F0}m",
-                $"과일 +{fruitGained} · 택배 {delivered}건",
-                $"다음: {GoalLineNow()}");
+            _sessionCard.Show(Saga.Core.SagaUi.L("이번 세션 정리", "Session summary"),
+                string.Format(Saga.Core.SagaUi.L("이동 {0:F0}m", "Walked {0:F0}m"), _walkedMeters),
+                string.Format(Saga.Core.SagaUi.L("과일 +{0} · 택배 {1}건", "Fruit +{0} · Deliveries {1}"), fruitGained, delivered),
+                string.Format(Saga.Core.SagaUi.L("다음: {0}", "Next: {0}"), GoalLineNow()));
         }
 
         public string GoalLineNow()
@@ -107,7 +107,7 @@ namespace Saga.Forest.UI
             {
                 var zone = ForestBiomeData.Zones[ForestDeliveryState.TargetIndex];
                 float dist = Vector2.Distance(new Vector2(_player.position.x, _player.position.z), zone.Center);
-                return $"택배 → {zone.DisplayName}까지 {dist:F0}m";
+                return string.Format(ForestLocalization.T("goal.delivery", "택배 → {0}까지 {1:F0}m"), zone.DisplayName, dist);
             }
 
             var trees = Object.FindObjectsByType<ForestFruitTree>(FindObjectsSortMode.None);
@@ -124,14 +124,14 @@ namespace Saga.Forest.UI
                     nearest = t;
                 }
             }
-            return nearest == null ? "-" : $"가장 가까운 나무까지 {nearestDist:F0}m";
+            return nearest == null ? "-" : string.Format(ForestLocalization.T("goal.nearest_tree", "가장 가까운 나무까지 {0:F0}m"), nearestDist);
         }
 
         public string GoalLineSession()
         {
             int fruitGained = ForestState.FruitCount - _sessionStartFruit;
             int delivered = ForestDeliveryState.DeliveredCount - _sessionStartDeliveries;
-            return $"이동 {_walkedMeters:F0}m · 과일 +{fruitGained} · 택배 {delivered}건";
+            return string.Format(ForestLocalization.T("goal.session", "이동 {0:F0}m · 과일 +{1} · 택배 {2}건"), _walkedMeters, fruitGained, delivered);
         }
 
         public string GoalLineWeek() => ForestFestivalState.GoalLineText();

@@ -73,6 +73,9 @@ namespace Saga.Forest.Data
 
         public static bool IsDoneToday() => _doneDate == DateTime.Now.ToString("yyyy-MM-dd");
 
+        /// <summary>110 ⑤c-2c — 화면에 보이는 축제 이름(festival.name.&lt;종류&gt;, 없으면 Label).</summary>
+        public static string DisplayLabel(Kind kind) => ForestLocalization.T($"festival.name.{kind.ToString().ToLowerInvariant()}", Label(kind));
+
         public static string Label(Kind kind)
         {
             foreach (var d in Defs) if (d.Kind == kind) return d.Name;
@@ -149,7 +152,8 @@ namespace Saga.Forest.Data
         {
             var today = TodayKind();
             if (today.HasValue && !IsDoneToday())
-                return $"오늘은 {Label(today.Value)}! {Instruction(today.Value)}";
+                return string.Format(ForestLocalization.T("festival.today_line", "오늘은 {0}! {1}"), DisplayLabel(today.Value),
+                    ForestLocalization.T($"festival.how.{today.Value.ToString().ToLowerInvariant()}", Instruction(today.Value)));
 
             for (int i = 1; i <= 31; i++)
             {
@@ -159,7 +163,7 @@ namespace Saga.Forest.Data
                     : DateTime.Now.AddDays(i).Day;
                 foreach (var d in Defs)
                 {
-                    if (d.Day == day) return $"다음 축제: {d.Name}(D-{i})";
+                    if (d.Day == day) return string.Format(ForestLocalization.T("festival.next_line", "다음 축제: {0}(D-{1})"), DisplayLabel(d.Kind), i);
                 }
             }
             return "-";

@@ -80,7 +80,10 @@ namespace Saga.Forest.UI
         private void ChooseVibration() { ForestSettingsState.VibrationOn = !ForestSettingsState.VibrationOn; Refresh(); }
         private void ChooseUiScale() { ForestSettingsState.CycleUiScale(); Refresh(); }
         private void ChooseGraphicsQuality() { ForestSettingsState.CycleGraphicsQuality(); Refresh(); }
-        private void ChooseLanguage() { ForestLocalization.CycleLanguage(); Refresh(); }
+        private void ChooseLanguage() { ForestLocalization.CycleLanguage(); ForestLocalization.RelocalizeScene(); Refresh(); }
+
+        /// <summary>110 ⑤c-2c — 씬에 구운 글(빌더 = 한국어)을 지금 언어로, 이 창의 글도 한 번 새로(예전엔 값을 바꿀 때만).</summary>
+        private void Start() { ForestLocalization.RelocalizeScene(); Refresh(); }
         private void ChooseBgm() { ForestSettingsState.BgmOn = !ForestSettingsState.BgmOn; Refresh(); }
 
         private void TogglePanel() => _panel.SetActive(!_panel.activeSelf);

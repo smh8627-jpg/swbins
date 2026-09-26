@@ -87,7 +87,10 @@ namespace Saga.Go.UI
         private void ChooseVibration() { GoSettingsState.VibrationOn = !GoSettingsState.VibrationOn; Refresh(); }
         private void ChooseUiScale() { GoSettingsState.CycleUiScale(); Refresh(); }
         private void ChooseGraphicsQuality() { GoSettingsState.CycleGraphicsQuality(); Refresh(); }
-        private void ChooseLanguage() { GoLocalization.CycleLanguage(); Refresh(); }
+        private void ChooseLanguage() { GoLocalization.CycleLanguage(); GoLocalization.RelocalizeScene(); Refresh(); }
+
+        /// <summary>110 ⑤c-2c — 씬에 구운 글(빌더 = 한국어)을 지금 언어로, 이 창의 글도 한 번 새로(예전엔 값을 바꿀 때만).</summary>
+        private void Start() { GoLocalization.RelocalizeScene(); Refresh(); }
         private void ChooseBgm() { GoSettingsState.BgmOn = !GoSettingsState.BgmOn; Refresh(); }
 
         private void TogglePanel() => _panel.SetActive(!_panel.activeSelf);

@@ -30,6 +30,8 @@ namespace Saga.Story.Data
         {
             public readonly string Id;
             public readonly string Name;
+            /// <summary>110 ⑤c-2c — 화면에 보이는 이름(번역 표 party.name.&lt;id&gt;, 없으면 Name).</summary>
+            public string DisplayName => StoryLocalization.T($"party.name.{Id}", Name);
             public readonly float AtkMultiplier;
             public readonly Signature Signature;
 

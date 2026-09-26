@@ -562,6 +562,8 @@
     { "key": "era.region.ruin", "value": "폐허" },
     { "key": "officer.ru_busaeng", "value": "부생" },
     { "key": "era.region.tomb", "value": "묘역" },
-    { "key": "officer.tb_ganghae", "value": "강해" }
+    { "key": "officer.tb_ganghae", "value": "강해" },
+    { "key": "goal.viewing", "value": "{0} 조망 중 · 금 {1}" },
+    { "key": "goal.session", "value": "함락 +{0}성 · 금 {1}" }
   ]
 }

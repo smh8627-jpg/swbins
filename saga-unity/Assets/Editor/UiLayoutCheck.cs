@@ -47,6 +47,10 @@ namespace Saga.EditorTools
         private static int _panels, _subPanels;
         private const int MaxSubPresses = 40;
         private static readonly List<string> Unclosed = new List<string>();
+        // 110 ⑤c-2c — 영어 바퀴에 보이는 한글 글(번역 표를 안 거친 HUD·대사). 지금은 세기만(문제로 안 셈).
+        private static string _lang = "ko";
+        private static readonly SortedDictionary<string, int> HangulBy = new SortedDictionary<string, int>();
+        private static readonly StringBuilder HangulLines = new StringBuilder();
         private static readonly StringBuilder Report = new StringBuilder();
         private static readonly StringBuilder Map = new StringBuilder();
         private static readonly List<string> Summary = new List<string>();
@@ -59,7 +63,7 @@ namespace Saga.EditorTools
         [MenuItem("Saga/Check/UI Layout (3 aspect ratios)")]
         public static void Run()
         {
-            Report.Clear(); Map.Clear(); Summary.Clear(); _issues = 0; _done = false; _panels = 0; _subPanels = 0; Unclosed.Clear();
+            Report.Clear(); Map.Clear(); Summary.Clear(); _issues = 0; _done = false; _panels = 0; _subPanels = 0; Unclosed.Clear(); HangulBy.Clear(); HangulLines.Clear(); _lang = "ko";
             SaveBackup.Clear();
             foreach (var f in Directory.GetFiles(Application.persistentDataPath, "save*.json")) SaveBackup[f] = File.ReadAllBytes(f);
             SagaPrefsBackup.Backup();
@@ -90,9 +94,9 @@ namespace Saga.EditorTools
                 foreach (var kv in SaveBackup) File.WriteAllBytes(kv.Key, kv.Value);
                 SagaPrefsBackup.Restore();
                 Directory.CreateDirectory(Path.GetDirectoryName(ReportPath));
-                File.WriteAllText(ReportPath, Report.ToString() + System.Environment.NewLine + Map, new UTF8Encoding(false));
+                File.WriteAllText(ReportPath, Report.ToString() + System.Environment.NewLine + Map + System.Environment.NewLine + "== 영어 바퀴에 남은 한글(16:9)" + System.Environment.NewLine + HangulLines, new UTF8Encoding(false));
                 bool ok = _done && _issues == 0;
-                Debug.Log($"{T} {(ok ? "OK" : "FAIL")} - 문제 {_issues} (done={_done}) · 패널 {_panels} · 속 패널 {_subPanels} · 못 닫음 {Unclosed.Count}{(Unclosed.Count > 0 ? " [" + string.Join(", ", Unclosed) + "]" : "")} | {string.Join(" · ", Summary)}");
+                Debug.Log($"{T} {(ok ? "OK" : "FAIL")} - 문제 {_issues} (done={_done}) · 패널 {_panels} · 속 패널 {_subPanels} · 영어에 한글 {HangulBy.Values.Sum()} [{string.Join(", ", HangulBy.Select(kv => kv.Key + " " + kv.Value))}] · 못 닫음 {Unclosed.Count}{(Unclosed.Count > 0 ? " [" + string.Join(", ", Unclosed) + "]" : "")} | {string.Join(" · ", Summary)}");
                 if (Application.isBatchMode) EditorApplication.Exit(ok ? 0 : 1);
             }
         }
@@ -117,6 +121,7 @@ namespace Saga.EditorTools
             foreach (var lang in Langs)
             {
                 SetLanguage(lang);
+                _lang = lang;
                 for (int i = 0; i < Scenes.Length; i++)
                 {
                     if (i > 0 || lang != Langs[0]) EditorSceneManager.LoadSceneInPlayMode(Scenes[i], new LoadSceneParameters(LoadSceneMode.Single));
@@ -353,6 +358,18 @@ namespace Saga.EditorTools
                 }
             }
             _issues += overlaps + off;
+            if (_lang == "en" && screenName == Screens[0].name)
+            {
+                var seenText = new HashSet<Graphic>();
+                foreach (var it in items)
+                {
+                    if (!(it.g is TMP_Text t) || !seenText.Add(t) || !System.Text.RegularExpressions.Regex.IsMatch(t.text, "[가-힣]")) continue;
+                    string where = scene.Split(' ')[0];
+                    HangulBy[where] = (HangulBy.TryGetValue(where, out int c) ? c : 0) + 1;
+                    var bits = System.Text.RegularExpressions.Regex.Matches(t.text, "[가-힣][가-힣0-9 ·,()%+:~/-]*").Cast<System.Text.RegularExpressions.Match>().Select(m => m.Value.Trim()).Distinct();
+                    HangulLines.AppendLine($"  {scene} · {PathOf(t.transform)} ⟨{string.Join(" | ", bits)}⟩");
+                }
+            }
             if (only == null || overlaps + off > 0) Summary.Add($"{scene} {screenName} 겹침 {overlaps}·밖 {off}");
             Report.AppendLine($"== {scene} {screenName} ({w}×{h}) — {(only == null ? $"캔버스 {roots.Count} · " : "")}보이는 것 {items.Count} · 겹침 {overlaps} · 화면 밖 {off}");
             foreach (var l in lines) Report.AppendLine(l);

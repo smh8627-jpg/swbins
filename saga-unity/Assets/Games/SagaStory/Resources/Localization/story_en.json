@@ -332,6 +332,15 @@
     { "key": "era_folk.story_chrononaut.0", "value": "My records only call this field 'the first hunting ground'. I didn't know it was this noisy." },
     { "key": "era_folk.story_chrononaut.1", "value": "The deeper the Labyrinth floor, the wider the rift. Don't push it if you meet the Steel Colossus." },
     { "key": "era_folk.story_chrononaut.2", "value": "That martial art only survives as drawings in my era's manuals." },
-    { "key": "era_folk.story_chrononaut.3", "value": "My return coordinates keep drifting. I'll just watch from here for a while." }
+    { "key": "era_folk.story_chrononaut.3", "value": "My return coordinates keep drifting. I'll just watch from here for a while." },
+    { "key": "goal.nearest_enemy", "value": "{0:F0}m to the nearest enemy" },
+    { "key": "goal.no_enemy", "value": "No enemies nearby" },
+    { "key": "goal.session", "value": "Walked {0:F0}m · Kills +{1}" },
+    { "key": "goal.next_job", "value": "Next job change at Lv.{0} (now Lv.{1})" },
+    { "key": "goal.job_max", "value": "Final tier — master your arts" },
+    { "key": "party.name.vanguard", "value": "Vanguard" },
+    { "key": "party.name.skirmisher", "value": "Skirmisher" },
+    { "key": "party.name.guardian", "value": "Guardian" },
+    { "key": "action.save", "value": "Save" }
   ]
 }

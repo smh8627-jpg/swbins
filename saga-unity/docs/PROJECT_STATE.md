@@ -1,7 +1,7 @@
 # PROJECT_STATE — saga-unity (상태만, ≤15KB, 덮어쓴다)
 
 **규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다.
-마지막 갱신: 2026-09-26 (110 ⑤c-2b 속 패널·영어 배치 0건 — ③ 폰 결과 대기).
+마지막 갱신: 2026-09-26 (110 ⑤c-2c-1 첫 화면 영어 — ③ 폰 결과 대기).
 
 ## 캐릭터 자산 — 이 PC 기준 (2026-09-19)
 
@@ -21,7 +21,7 @@ Maria·Abe·Brute + Skeleton·Paladin·PeasantMan·PeasantGirl·Archer·두목 M
 
 ## 다음 작업 (우선순위, 상세는 PLAN 해당 장)
 
-0. **다음 = PLAN 110 ⑤c-2c**(판 HUD·대사 영어, 전투 버튼) — ③b 폰 결과 대기. 글자 TMP 만(`SagaWorldText`·`TmpEffect`), HUD 캔버스 `SagaUi.ApplyGameScaler`(1600×900 Expand, 가로 고정)·공통 단추 `NewHudCanvas`(Ⅱ `SagaPauseButton`)·언어 `SagaUi.Lang`, 타이틀 설정 `TitleSettings`, 점검 `UiLayoutCheck`(속 패널·영어까지·`LayoutFree`), 재빌드 `SagaRebuildScenes`, 진단 러너 `NestedCoroutine`. 109 멈춤.
+0. **다음 = PLAN 110 ⑤c-2c-2**(대사·도감·알림 영어, 전투 버튼) — ③b 폰 결과 대기. 글자 TMP 만(`SagaWorldText`·`TmpEffect`), HUD 캔버스 `SagaUi.ApplyGameScaler`(1600×900 Expand, 가로 고정)·공통 단추 `NewHudCanvas`(Ⅱ `SagaPauseButton`)·언어 `SagaUi.Lang`·구운 글 `XxxLocalization.RelocalizeScene`, 타이틀 설정 `TitleSettings`, 점검 `UiLayoutCheck`(속 패널·영어까지·`LayoutFree`), 재빌드 `SagaRebuildScenes`, 진단 러너 `NestedCoroutine`. 109 멈춤.
 0-1. **남은 것**: en 번역 검수 전. GO 동료 몸 Maria.controller 리타깃·무기는 주인공 손에만.
 1. STORY 판수(15→20 약 11판·20→25 약 28판)가 무거우면 `JobPromoteLevel3/4`만.
 2. **101-2·104-1 잔여(보류)** — GO⑤·Kenney 폴백·헤어카드.

@@ -711,7 +711,39 @@ namespace Saga.Realm.UI
         private void ChooseVibration() { RealmSettingsState.VibrationOn = !RealmSettingsState.VibrationOn; RefreshSettingsPanel(); }
         private void ChooseUiScale() { RealmSettingsState.CycleUiScale(); RefreshSettingsPanel(); }
         private void ChooseGraphicsQuality() { RealmSettingsState.CycleGraphicsQuality(); RefreshSettingsPanel(); }
-        private void ChooseLanguage() { RealmLocalization.CycleLanguage(); RefreshSettingsPanel(); }
+        private void ChooseLanguage() { RealmLocalization.CycleLanguage(); RelocalizeBaked(); RefreshSettingsPanel(); }
+
+        /// <summary>110 ⑤c-2c — 씬에 구운 글(빌더 = 한국어)을 지금 언어로: 표 값과 같은 글은 표로, 명령 단추("개간 (60냥)")·
+        /// 전술·일기토 단추는 만들 때와 같은 식으로 다시.</summary>
+        private void Start() { RelocalizeBaked(); RefreshSettingsPanel(); }
+
+        private void RelocalizeBaked()
+        {
+            RealmLocalization.RelocalizeScene();
+            if (_tacticToggleLabel != null)
+            {
+                // 영어는 "Tactics:Off / Plain: cavalry charge (…)" 가 세 줄로 넘쳐 밑 일기토 단추를 덮었다 — 단추 안에 맞게 줄인다.
+                if (!_tacticToggleLabel.enableAutoSizing)
+                {
+                    _tacticToggleLabel.fontSizeMax = _tacticToggleLabel.fontSize;
+                    _tacticToggleLabel.fontSizeMin = 14f;
+                    _tacticToggleLabel.enableAutoSizing = true;
+                }
+                _tacticToggleLabel.text = TacticToggleLabelText();
+            }
+            if (_duelToggleLabel != null) _duelToggleLabel.text = DuelToggleLabelText();
+            if (_orderPanel == null) return;
+            // 명령 단추는 BuildOrderPanel 이 AllKeys 순서로 지었고 닫기가 마지막이다.
+            var buttons = _orderPanel.GetComponentsInChildren<Button>(true);
+            var keys = RealmOrderData.AllKeys;
+            for (int i = 0; i < keys.Length && i < buttons.Length - 1; i++)
+            {
+                var order = RealmOrderData.Get(keys[i]);
+                var label = buttons[i].GetComponentInChildren<TMPro.TextMeshProUGUI>();
+                if (order != null && label != null)
+                    label.text = string.Format(RealmLocalization.T("ui.order_label", "{0} ({1}냥)"), order.Name, order.Gold);
+            }
+        }
         private void ChooseBgm() { RealmSettingsState.BgmOn = !RealmSettingsState.BgmOn; RefreshSettingsPanel(); }
         private void ChooseSuccession() { RealmSettingsState.SuccessionOn = !RealmSettingsState.SuccessionOn; RefreshSettingsPanel(); }
 

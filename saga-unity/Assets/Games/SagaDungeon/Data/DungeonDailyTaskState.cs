@@ -152,9 +152,9 @@ namespace Saga.Dungeon.Data
             {
                 if (_done[i]) continue;
                 var def = Pool[_selected[i]];
-                return string.Format(def.Label, _progress[i], def.Target);
+                return string.Format(DungeonLocalization.T("task." + KindKey(def.Kind), def.Label), _progress[i], def.Target);
             }
-            return _selected.Length == 0 ? "-" : $"오늘의 일과 완료 (도장 {_stamps})";
+            return _selected.Length == 0 ? "-" : string.Format(DungeonLocalization.T("task.all_done", "오늘의 일과 완료 (도장 {0})"), _stamps);
         }
 
         /// <summary>목표판 "이번 주" 줄 — 일과 도장이 쌓이는 주간 사다리 다음 단.</summary>
@@ -163,8 +163,18 @@ namespace Saga.Dungeon.Data
             EnsureToday();
             int rem = _stamps % StampsPerReward;
             int need = StampsPerReward - rem;
-            return $"일과 도장 {rem}/{StampsPerReward}(다음 보상까지 {need})";
+            return string.Format(DungeonLocalization.T("task.week", "일과 도장 {0}/{1}(다음 보상까지 {2})"), rem, StampsPerReward, need);
         }
+
+        /// <summary>110 ⑤c-2c — 번역 표 키(task.&lt;이것&gt;).</summary>
+        private static string KindKey(Kind k) => k switch
+        {
+            Kind.Walk => "walk",
+            Kind.EnemyKill => "enemy_kill",
+            Kind.SigilClear => "sigil_clear",
+            Kind.HordeSurvive => "horde_survive",
+            _ => k.ToString().ToLowerInvariant(),
+        };
 
         // ---- 저장/복원 (SaveState.cs 전용) ----
 
