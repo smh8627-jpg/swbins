@@ -1,17 +1,17 @@
 /**
- * 비경(秘境) · 원기 · 주간 보스 — 오픈월드 RPG식 (PLAN §5 ⑲-9, saga-godot PLAN 106 ⑳㉑)
+ * 숨은 터 · 원기 · 주간 보스 — 오픈월드 RPG식 (PLAN §5 ⑲-9, 이름·수치는 §5 ⑳)
  * ---------------------------------------------------------------
  *   자리     ⑮ 땅 열여섯마다 입구 하나(그 땅 방위로 안쪽 1.7km·바깥 7.6km, 물·마을·길 비킴) —
- *            종류 셋을 땅 순서로 돌린다: 잠든 무덤(성유물)·옛 서당(무예 책)·쇠부리 터(강화석).
+ *            종류 셋을 땅 순서로 돌린다: 잠든 무덤(보패)·옛 서당(무예 책)·쇠부리 터(강화석).
  *            주간 보스 "먹구름 제단" 하나 = 갈대 나루. 칸 해시가 아니라 땅 방위라 세이브가 없다.
- *   도전     입구 카드에서 단계 I·II·III(모험 등급 1·6·12) → 입구 둘레가 원판(벗어나면 실패).
+ *   도전     입구 카드에서 단계 I·II·III(여정 등급 1·6·12) → 입구 둘레가 원판(벗어나면 실패).
  *            3초 뒤 **들판 전투 무리**로 파도 둘(보통 → 정예), 120초. 다 쓰러뜨리면 가운데 보상 나무 —
- *            원기 20 을 써서 받는다. 전멸·시간·원판 밖·나가기면 실패(원기 안 씀, 흘림 없음).
- *            비경 적(무리 키 `dm:`)은 등급 2 고정 × 단계 배율 — 세계 등급·전리품·경험·무리 기록이 없다
- *            (field-combat.js 가 `dm:` 무리를 비킨다). 지맥 이상은 종류마다 하나.
+ *            원기 15 를 써서 받는다. 전멸·시간·원판 밖·나가기면 실패(원기 안 씀, 흘림 없음).
+ *            숨은 터 적(무리 키 `dm:`)은 등급 2 고정 × 단계 배율 — 천하 등급·전리품·경험·무리 기록이 없다
+ *            (field-combat.js 가 `dm:` 무리를 비킨다). 터 기운은 종류마다 하나.
  *   주간     먹구름 이무기(`w_imugi`) 하나, 180초, 체력 50% 에서 뇌 방패·공격 간격 ×0.69.
- *            원기 60, 이번 주(월요일 새벽 4시 갈림) 처음 셋은 30. 보상에 뇌룡 비늘(무예 7→10).
- *   원기     상한 160 · 실제 시각 8분에 1. 처음·옛 세이브는 가득.
+ *            원기 45, 이번 주(월요일 새벽 4시 갈림) 처음 둘은 25. 보상에 뇌룡 비늘(무예 7→10).
+ *   원기     상한 120 · 실제 시각 10분에 1. 처음·옛 세이브는 가득.
  *
  * 자리·배율·보상·원기 계산(`entranceOf`·`rewardOf`·`resinAt`·`weekKey`)은 순수 함수다.
  * 세이브는 `save.resin = { v, t }` · `save.domain = { claims, weekly: { week, n } }` 뿐 —
@@ -27,13 +27,13 @@
   function FC() { return global.DG.fieldCombat || null; }
 
   var KINDS = {
-    tomb:   { key: 'tomb',   name: '잠든 무덤', icon: '⚱️', loot: '성유물',  color: '#7fd3ff', ley: '적이 4초마다 물을 띤다',
+    tomb:   { key: 'tomb',   name: '잠든 무덤', icon: '⚱️', loot: '보패',  color: '#7fd3ff', ley: '적이 4초마다 물을 띤다',
               waves: [['toad', 'toad', 'imp'], ['tortoise', 'toad', 'toad']] },
     school: { key: 'school', name: '옛 서당',   icon: '📜', loot: '무예 책', color: '#ffd27a', ley: '적을 쓰러뜨리면 명단 기력 +8',
               waves: [['hawk', 'hawk', 'vine'], ['bolt', 'raptor', 'raptor']] },
     forge:  { key: 'forge',  name: '쇠부리 터', icon: '⚒️', loot: '강화석',  color: '#ff9a5a', ley: '적 공격 ×1.3',
               waves: [['imp', 'imp', 'boar'], ['ember', 'imp', 'imp']] },
-    weekly: { key: 'weekly', name: '먹구름 제단', icon: '⛈️', loot: '뇌룡 비늘·★5 성유물', color: '#b58cff',
+    weekly: { key: 'weekly', name: '먹구름 제단', icon: '⛈️', loot: '뇌룡 비늘·★5 보패', color: '#b58cff',
               ley: '체력 절반에서 뇌 방패를 두르고 빨라진다', waves: [['w_imugi']] }
   };
   var KIND_ORDER = ['tomb', 'school', 'forge'];
@@ -43,8 +43,8 @@
     { n: 'III', ar: 12, hp: 3.5, atk: 2.2 }
   ];
   var TIER = 2;
-  var RESIN_MAX = 160, RESIN_MS = 8 * 60 * 1000;
-  var COST = 20, WEEKLY_COST = 60, WEEKLY_HALF = 30, WEEKLY_HALF_N = 3;
+  var RESIN_MAX = 120, RESIN_MS = 10 * 60 * 1000;
+  var COST = 15, WEEKLY_COST = 45, WEEKLY_HALF = 25, WEEKLY_HALF_N = 2;
   var LIMIT = 120, WEEKLY_LIMIT = 180, START_DELAY = 3;
   var INNER_R = 1700, OUTER_R = 7600, ALTAR_ZONE = 'galdae', ALTAR_R = 2300, ALTAR_DA = 0.25;
   var FOE_RING = 6, LEY_WATER_SEC = 4, LEY_ENERGY = 8, LEY_ATK = 1.3;
@@ -69,7 +69,7 @@
     return { x: x, y: y };
   }
 
-  /** i 번째 땅(ZONES 순서)의 비경 입구 — 순수 함수 */
+  /** i 번째 땅(ZONES 순서)의 숨은 터 입구 — 순수 함수 */
   function entranceOf(i, terr, zoneAt) {
     var B = BM();
     if (!B) { return null; }
@@ -184,8 +184,8 @@
   function rewardText(r) {
     var TL = global.DG.talent, out = ['🪙 ' + r.gold, '부대 경험 ' + r.party], n4 = 0, n5 = 0, k;
     r.arts.forEach(function (a) { if (a.r === 5) { n5++; } else { n4++; } });
-    if (n4) { out.push('★4 성유물 ' + n4); }
-    if (n5) { out.push('★5 성유물 ' + n5); }
+    if (n4) { out.push('★4 보패 ' + n4); }
+    if (n5) { out.push('★5 보패 ' + n5); }
     if (r.polish) { out.push('연마석 ' + r.polish); }
     if (r.ore) { out.push('🪨 강화석 ' + r.ore); }
     for (k in r.mats) {
@@ -214,12 +214,12 @@
   function sfx(name) { if (global.DG.audio) { try { global.DG.audio.play(name); } catch (e) { /* 소리는 없어도 된다 */ } } }
 
   function enterCheck(d, stage) {
-    if (!on()) { return { ok: false, why: '비경이 꺼져 있다' }; }
+    if (!on()) { return { ok: false, why: '숨은 터가 꺼져 있다' }; }
     if (run) { return { ok: false, why: '이미 도전 중' }; }
     var F = FC();
     if (!F || !F.state || !F.state()) { return { ok: false, why: '들판 전투가 없다' }; }
     if (!d || !STAGES[stage]) { return { ok: false, why: '없는 단계' }; }
-    if (!stageOpen(stage)) { return { ok: false, why: '모험 등급 ' + STAGES[stage].ar + ' 에 열림' }; }
+    if (!stageOpen(stage)) { return { ok: false, why: '여정 등급 ' + STAGES[stage].ar + ' 에 열림' }; }
     var S = F.state(), L = F.living(S);
     for (var i = 0; i < L.length; i++) { if (L[i].st === 'chase' || L[i].st === 'wind') { return { ok: false, why: '싸우는 중엔 못 들어간다' }; } }
     return { ok: true };
@@ -251,7 +251,7 @@
     var uids = S.camps[key].uids;
     for (i = 0; i < uids.length; i++) {
       var f = S.foes[uids[i]];
-      F.applyWorld(f, 0);                                  // 세계 등급은 안 받는다 — 단계 배율만
+      F.applyWorld(f, 0);                                  // 천하 등급은 안 받는다 — 단계 배율만
       f.hpMax = f.hp = Math.round(f.hpMax * st.hp);
       f.shieldMax = f.shield = Math.round(f.shieldMax * st.hp);
       f.atk = Math.round(f.atk * st.atk * (run.d.kind === 'forge' ? K('leyAtk', LEY_ATK) : 1));
@@ -269,7 +269,7 @@
     return out;
   }
 
-  /** 비경 무리를 다 치운다 — 끝날 때 */
+  /** 숨은 터 무리를 다 치운다 — 끝날 때 */
   function despawn() {
     var F = FC(), S = F && F.state(), k, j;
     if (!S) { return; }
@@ -299,7 +299,7 @@
   }
   function leave() {
     if (!run) { return false; }
-    if (run.phase === 'tree') { end('🌳 보상을 두고 비경을 나왔다'); return true; }
+    if (run.phase === 'tree') { end('🌳 보상을 두고 숨은 터를 나왔다'); return true; }
     return fail('물러났다');
   }
 
@@ -310,7 +310,7 @@
     run.phase = 'tree';
     despawn();
     sfx('reward');
-    toast('🌳 보상 나무가 자랐다 — 가운데로 가서 원기 ' + costOf(run.d.kind) + ' 을 쓰면 받는다');
+    toast('🌳 보상 나무가 자랐다 — 가운데로 가서 원기 ' + costOf(run.d.kind) + ' 쓰면 받는다');
     core().log('🌀 ' + run.d.name + ' ' + STAGES[run.stage].n + ' 돌파 — ' + Math.round(run.fightT) + '초', 'good');
     core().emit('changed');
   }
@@ -366,7 +366,7 @@
     run.t += dt;
     var p = pos(), dd = Math.hypot(p.x - run.x, p.y - run.y), g = gps();
     if (run.phase === 'tree') {
-      if (dd > ARENA_R(g) * 1.5) { end('🌳 보상을 두고 비경을 나왔다'); return; }
+      if (dd > ARENA_R(g) * 1.5) { end('🌳 보상을 두고 숨은 터를 나왔다'); return; }
       if (dd <= TREE_R(g) && !run.asked) { run.asked = true; openTree(); }
       return;
     }
@@ -428,13 +428,13 @@
       var ok = stageOpen(i);
       btns += '<button class="btn ' + (ok ? 'primary' : 'ghost') + ' wide" data-stage="' + i + '"' + (ok ? '' : ' disabled') + '>' +
         '단계 ' + STAGES[i].n + (ok ? ' <small>' + esc(rewardText(rewardOf(d.kind, i, sd.domain.claims))) + '</small>'
-          : ' <small>모험 등급 ' + STAGES[i].ar + ' 에 열림</small>') + '</button>';
+          : ' <small>여정 등급 ' + STAGES[i].ar + ' 에 열림</small>') + '</button>';
     }
     el.innerHTML =
       '<div class="enc-card">' +
         '<div class="enc-big"><span style="font-size:56px">' + kd.icon + '</span></div>' +
         '<h3>' + esc(d.name) + '</h3>' +
-        '<p class="quote">지맥 이상 — ' + esc(kd.ley) + '</p>' +
+        '<p class="quote">터 기운 — ' + esc(kd.ley) + '</p>' +
         '<div class="enc-reward">' + resinLine() + ' · 보상 나무에 ' + cost +
           (d.kind === 'weekly' ? ' <small>(이번 주 ' + weeklyUsed() + '번 — 처음 ' + WEEKLY_HALF_N + '번은 ' + WEEKLY_HALF + ')</small>' : '') + '</div>' +
         '<div class="enc-reward">' + (d.kind === 'weekly' ? '보스 하나' : '파도 둘') + ' · 제한 ' + limitOf(d.kind) + '초 · 원판을 벗어나면 실패(원기는 안 쓴다)</div>' +
@@ -461,12 +461,12 @@
       '<div class="enc-card">' +
         '<div class="enc-big"><span style="font-size:56px">🌳</span></div>' +
         '<h3>보상 나무</h3>' +
-        '<p class="quote">' + esc(run.d.name) + ' ' + STAGES[run.stage].n + ' — 지맥의 열매가 맺혔다.</p>' +
+        '<p class="quote">' + esc(run.d.name) + ' ' + STAGES[run.stage].n + ' — 터의 열매가 맺혔다.</p>' +
         '<div class="enc-reward">' + esc(rewardText(r)) + '</div>' +
         '<div class="enc-reward">' + resinLine() + '</div>' +
         (have >= cost
-          ? '<button class="btn primary wide" data-act="claim">🌙 원기 ' + cost + ' 을 써서 받는다</button>'
-          : '<div class="enc-reward">원기가 모자라다 — ' + cost + ' 이 있어야 한다</div>') +
+          ? '<button class="btn primary wide" data-act="claim">🌙 원기 ' + cost + ' 쓰고 받는다</button>'
+          : '<div class="enc-reward">원기가 모자라다 — ' + cost + ' 만큼 있어야 한다</div>') +
         '<button class="btn ghost wide" data-act="ok">받지 않고 나간다</button>' +
       '</div>';
     el.classList.add('show');

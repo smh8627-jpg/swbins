@@ -479,7 +479,7 @@
     'gather:rock': 'assets/models/nature/Rock_1.glb',
     'cook:pot': 'assets/models/fusion/Cauldron.glb',
     'cook:fire': 'assets/models/fusion/Bonfire_Lit.glb',
-    /* §5 ⑲-9 비경 입구(아치)·주간 보스 제단(사당)·보상 나무(빛나무) — 이미 받아 둔 CC0 파일 */
+    /* §5 ⑲-9 숨은 터 입구(아치)·주간 보스 제단(사당)·보상 나무(빛나무) — 이미 받아 둔 CC0 파일 */
     'domain:gate': 'assets/models/props/Arch.glb',
     'domain:altar': 'assets/models/props/Temple.glb',
     'domain:tree': 'assets/models/fusion/Tree_Light_1.glb',

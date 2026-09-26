@@ -8,12 +8,12 @@
  *             멀리(900m 마다) 갈수록 등급이 오른다 — 오픈월드 RPG의 "세계 레벨" 자리
  *   편성      동행 앞 4명. 숫자 1~4(또는 초상)로 즉시 교체, 교체 1초 쿨
  *   조작      기본 공격 3타 · 길게 누르면 강공격(0.4초·스태미나 20) · 활공 중엔 낙하 공격(§5 ⑲-2) ·
- *             원소 스킬(7초) · 원소 폭발(기력 60) · 회피(스태미나 20)
+ *             원소 스킬(7초) · 원소 해방(기력 60) · 회피(스태미나 20)
  *   원소      일곱 — 화·수·뇌·풍·빙·암·초(§5 ⑲-1, saga-godot PLAN 106 ⑭). 인물마다 id 해시로 고정, 주인공은 화.
  *             풍·암은 적에게 안 붙고 반응만 일으킨다
- *   반응      증발·융해 ×1.5 · 과부하(4m 광역·밀침) · 감전(3초 지속) · 빙결(2.5초 멈춤 → 쇄빙 ×1.5) ·
- *             초전도(3m + 8초 물리 ×1.4) · 확산(4m 원소 옮기기) · 결정(명단 보호막) · 개화(씨앗) ·
- *             연소(0.5초 × 8) · 촉진(8초 뇌·초 ×1.25)
+ *   반응      물안개·녹임 ×1.5 · 터짐(4m 광역·밀침) · 물벼락(3초 지속) · 얼어붙음(2.5초 멈춤 → 깨뜨림 ×1.5) ·
+ *             서리번개(3m + 8초 물리 ×1.4) · 회오리(4m 원소 옮기기) · 굳힘(명단 보호막) · 꽃피움(씨앗) ·
+ *             들불(0.5초 × 8) · 싹틈(8초 뇌·초 ×1.25)
  *   원소 방패 방패 동안 체력 대신 방패만 깎인다. 같은 원소 면역·물리 ×0.4(바위는 ×1)·
  *             상성(수>화·뇌>수·화>뇌·암>풍·화>빙·초>암·풍>초) ×2.5 → 깨지면 2초 비틀거림
  *
@@ -43,18 +43,18 @@
   /* ⑲-1 — 옛 셋을 앞에 그대로 둔다. 동행 원소는 id 해시 % 7 이라 옛 동행 원소가 바뀐다(세이브엔 원소가 없다) */
   var EL_KEYS = ['fire', 'water', 'elec', 'wind', 'ice', 'rock', 'grass'];
   var NO_AURA = { wind: 1, rock: 1 };                          // 붙지 않고 반응만
-  var SWIRLABLE = { fire: 1, water: 1, elec: 1, ice: 1 };      // 확산·결정이 받는 원소
+  var SWIRLABLE = { fire: 1, water: 1, elec: 1, ice: 1 };      // 회오리·굳힘이 받는 원소
   /** 방패 원소 → 그것을 크게 깎는 원소 (수>화 · 뇌>수 · 화>뇌 · 암>풍 · 화>빙 · 초>암 · 풍>초) */
   var COUNTER = { fire: 'water', water: 'elec', elec: 'fire', wind: 'rock', ice: 'fire', rock: 'grass', grass: 'wind' };
-  /** 반응 — 이름·빛깔 원소·고리 반지름(화면용). 활성·발산은 촉진 상태에서, 쇄빙은 빙결 상태에서 난다 */
+  /** 반응 — 이름·빛깔 원소·고리 반지름(화면용). 번개싹·덩굴뻗음은 싹틈 상태에서, 깨뜨림은 얼어붙음 상태에서 난다 */
   var REACT = {
-    vaporize: { name: '증발', el: 'fire', r: 0 }, melt: { name: '융해', el: 'fire', r: 0 },
-    overload: { name: '과부하', el: 'fire', r: 4 }, charged: { name: '감전', el: 'elec', r: 3 },
-    frozen: { name: '빙결', el: 'ice', r: 0 }, superconduct: { name: '초전도', el: 'ice', r: 3 },
-    swirl: { name: '확산', el: 'wind', r: 4 }, crystallize: { name: '결정', el: 'rock', r: 0 },
-    bloom: { name: '개화', el: 'grass', r: 0 }, burning: { name: '연소', el: 'fire', r: 0 },
-    quicken: { name: '촉진', el: 'grass', r: 0 }, aggravate: { name: '활성', el: 'elec', r: 0 },
-    spread: { name: '발산', el: 'grass', r: 0 }, shatter: { name: '쇄빙', el: 'ice', r: 0 }
+    vaporize: { name: '물안개', el: 'fire', r: 0 }, melt: { name: '녹임', el: 'fire', r: 0 },
+    overload: { name: '터짐', el: 'fire', r: 4 }, charged: { name: '물벼락', el: 'elec', r: 3 },
+    frozen: { name: '얼어붙음', el: 'ice', r: 0 }, superconduct: { name: '서리번개', el: 'ice', r: 3 },
+    swirl: { name: '회오리', el: 'wind', r: 4 }, crystallize: { name: '굳힘', el: 'rock', r: 0 },
+    bloom: { name: '꽃피움', el: 'grass', r: 0 }, burning: { name: '들불', el: 'fire', r: 0 },
+    quicken: { name: '싹틈', el: 'grass', r: 0 }, aggravate: { name: '번개싹', el: 'elec', r: 0 },
+    spread: { name: '덩굴뻗음', el: 'grass', r: 0 }, shatter: { name: '깨뜨림', el: 'ice', r: 0 }
   };
   var REACT_NAME = {};
   (function () { for (var k in REACT) { if (REACT.hasOwnProperty(k)) { REACT_NAME[k] = REACT[k].name; } } })();
@@ -78,7 +78,7 @@
   function DASH_M() { return K('dashM', 3.6); }
   function DASH_T() { return 0.18; }
   function SWAP_CD() { return K('swapCd', 1); }
-  /* ⑲-2 강공격·낙하 공격 — saga-godot PLAN 106 ⑧ 칸 그대로(둘 다 물리, 쇄빙을 낸다) */
+  /* ⑲-2 강공격·낙하 공격 — saga-godot PLAN 106 ⑧ 칸(둘 다 물리, 깨뜨림을 낸다) */
   function CHARGE_HOLD() { return 0.4; }  function CHARGE_COST() { return K('chargeCost', 20); }
   function CHARGE_MUL() { return K('chargeMul', 1.3); }  function CHARGE_REACH() { return 3.2; }  function CHARGE_ARC() { return -0.2; }
   function PLUNGE_R() { return 3.5; }     function PLUNGE_MUL() { return K('plungeMul', 1.2); }
@@ -156,7 +156,7 @@
   /**
    * 원소 반응 — 이미 붙어 있는 원소(aura)에 새 원소(hit)가 닿으면.
    * 같은 원소·물리·반응 없는 쌍은 null. 풍·암은 받는 원소(화·수·뇌·빙)에만 반응한다.
-   * from = 반응 전에 붙어 있던 원소(확산이 옮겨 붙인다)
+   * from = 반응 전에 붙어 있던 원소(회오리가 옮겨 붙인다)
    */
   function react(aura, hit) {
     if (!aura || !hit || aura === hit) { return null; }
@@ -303,20 +303,20 @@
   function TIER_STEP() { return K('tierStep', 900); }
   function tierAt(x, y) { return 1 + Math.min(5, Math.floor(Math.hypot(x, y) / TIER_STEP())); }
   function tierMul(t) { return 1 + 0.3 * (t - 1); }
-  /* §5 ⑲-7 세계 등급(adventure.js) — 거리 등급 배율에 곱한다. 모듈이 없으면 세계 0 */
+  /* §5 ⑲-7 천하 등급(adventure.js) — 거리 등급 배율에 곱한다. 모듈이 없으면 세계 0 */
   function ADV() { return global.DG.adventure || null; }
   function wlNow() { var A = ADV(); return A ? A.worldLevel() : 0; }
   function lootMul() { var A = ADV(); return A ? A.lootMul(wlNow()) : 1; }
   function dustAdd() { var A = ADV(); return A ? A.dustAdd(wlNow()) : 0; }
   function lvAddOf(w) { var A = ADV(); return A && w ? A.lvAdd(w) : 0; }
-  /** 전리품 — 쓰러뜨린 적 하나의 금 · 무리/수호자 토벌의 금·단사(세계 등급 배율을 탄다) */
+  /** 전리품 — 쓰러뜨린 적 하나의 금 · 무리/수호자 토벌의 금·단사(천하 등급 배율을 탄다) */
   function killGold(tier) { return Math.round((3 + 2 * tier) * lootMul()); }
   function clearLoot(kind, tier) {
     if (kind === 'guard') { return { gold: Math.round(150 * tier * lootMul()), dust: 8 + dustAdd() }; }
     var g = 15 * tier + (kind === 'boss' ? 60 * tier : (kind === 'elite' ? 20 * tier : 0));
     return { gold: Math.round(g * lootMul()), dust: (kind === 'boss' ? 3 : 1) + dustAdd() };
   }
-  /** 적 하나를 세계 등급 w 로 앉힌다 — 지금 배율에서 깎인 비율 그대로(체력·방패 / 공격) */
+  /** 적 하나를 천하 등급 w 로 앉힌다 — 지금 배율에서 깎인 비율 그대로(체력·방패 / 공격) */
   function applyWorld(f, w) {
     var A = ADV(), from = f.wl || 0;
     if (!A || from === w) { return; }
@@ -328,7 +328,7 @@
     f.shield = Math.round(f.shield * kh);
     f.wl = w;
   }
-  /** 세계 등급이 바뀌면 살아 있는 적을 다시 앉힌다(adventure.js 가 부른다 — 판 St 를 안 주면 런타임 판) */
+  /** 천하 등급이 바뀌면 살아 있는 적을 다시 앉힌다(adventure.js 가 부른다 — 판 St 를 안 주면 런타임 판) */
   function rescaleWorld(St) {
     St = St || S;
     if (!St) { return 0; }
@@ -391,13 +391,13 @@
     }
     return { might: 60, wisdom: 60, command: 60 };
   }
-  /** ⑲-4 무예 단계·운명의 자리(talent.js) — 없거나 '_me' 면 모두 1 */
+  /** ⑲-4 무예 단계·깨달음(talent.js) — 없거나 '_me' 면 모두 1 */
   function talentMods(id) {
     var T = global.DG.talent;
     if (T && id !== '_me') { return T.combatMods(id); }
     return { tm: { n: 1, s: 1, b: 1 }, con: 0, cdMul: 1, reactMul: 1, hpMul: 1, c6: false };
   }
-  /** 피해 출처별 무예 배율 × 자리 6 폭발 뒤 공격 */
+  /** 피해 출처별 무예 배율 × 깨달음 5 해방 뒤 공격 */
   function talentMul(m, src) {
     var T = global.DG.talent, k = T ? T.keyOfSrc(src) : null, v = 1;
     if (k && m.tm) { v *= m.tm[k] || 1; }
@@ -405,7 +405,7 @@
     return v;
   }
   /**
-   * ⑲-5 무기·성유물(weapon.js·artifact.js) — 도감에 든 인물만. '_me'·도감 밖 id 는 한손검 모양에 보탬 0
+   * ⑲-5 무기·보패(weapon.js·artifact.js) — 도감에 든 인물만. '_me'·도감 밖 id 는 칼 모양에 보탬 0
    * (진단의 'fc_a' 가 옛 수치 그대로 돌게).
    */
   var SWORD_KIT = { mul: [0.9, 1.0, 1.5], sec: [0.34, 0.34, 0.55], reach: 3.2 };
@@ -548,7 +548,7 @@
         fh.layers = hh.layers.slice(); fh.shEl = hh.layers[0] || null; fh.shield = fh.shieldMax = hh.shield;
         fh.st = 'chase';                      // 겨루자 한 쪽이라 처음부터 깨어 있다
       }
-      applyWorld(S.foes[uid], wlNow());       // ⑲-7 세계 등급
+      applyWorld(S.foes[uid], wlNow());       // ⑲-7 천하 등급
     }
   }
 
@@ -587,7 +587,7 @@
     for (var k in S.camps) {
       if (!S.camps.hasOwnProperty(k)) { continue; }
       var cp = S.camps[k];
-      if (cp.kind === 'hero' || cp.kind === 'domain') { continue; }   // ⑯ 겨루는 판은 판이 끝날 때(duelCheck)·⑲-9 비경 파도는 domain.js 가 치운다
+      if (cp.kind === 'hero' || cp.kind === 'domain') { continue; }   // ⑯ 겨루는 판은 판이 끝날 때(duelCheck)·⑲-9 숨은 터 파도는 domain.js 가 치운다
       if (Math.hypot(cp.x - px, cp.y - py) <= far) { continue; }
       var busy = false, j;
       for (j = 0; j < cp.uids.length; j++) {
@@ -685,7 +685,7 @@
     push(S, { t: 'break', uid: f.uid, x: f.x, y: f.y, next: null, left: 0 });
   }
 
-  /** 방패부터 깎는 날것의 피해(광역 반응 조각·감전 틱이 쓴다) */
+  /** 방패부터 깎는 날것의 피해(광역 반응 조각·물벼락 틱이 쓴다) */
   function rawHit(S, f, dmg) {
     if (f.dead || dmg <= 0) { return 0; }
     if (f.shield > 0) {
@@ -705,7 +705,7 @@
   function hitFoe(S, f, m, raw, el, src) {
     var out = { uid: f.uid, dmg: 0, react: null, shield: false, immune: false };
     if (f.dead) { return out; }
-    var emB = (1 + (m.em || 0) / 300) * (m.reactMul || 1) * (1 + (m.rxAll || 0));   // ⑲-4 자리 2 · ⑲-5 무기 반응 효과
+    var emB = (1 + (m.em || 0) / 300) * (m.reactMul || 1) * (1 + (m.rxAll || 0));   // ⑲-4 깨달음 2 · ⑲-5 무기 반응 효과
     var mul = f.stun > 0 ? STUN_MUL() : 1;
     raw *= talentMul(m, src);
     /* ⑲-5 — 피해 보너스(원소/물리 + 무기 효과 + 세트 4, 더하기)·치명타. 출처가 인물의 한 방일 때만 */
@@ -722,12 +722,12 @@
       rawHit(S, f, out.dmg);
     } else {
       var rc = null, extra = 1;
-      if (!el && f.physT > 0) { extra *= SUPER_PHYS(); }                       // 초전도 뒤 물리
+      if (!el && f.physT > 0) { extra *= SUPER_PHYS(); }                       // 서리번개 뒤 물리
       if (f.frozenT > 0 && (el === 'rock' || src === 'heavy')) {
-        /* 쇄빙 — 얼어 멈춘 적을 암이나 3타째 기본 공격으로 깨면 크게 들어가고 풀린다 */
+        /* 깨뜨림 — 얼어 멈춘 적을 암이나 3타째 기본 공격으로 깨면 크게 들어가고 풀린다 */
         rc = { kind: 'shatter', name: REACT_NAME.shatter }; extra *= SHATTER_MUL(); f.frozenT = 0;
       } else if (f.quickT > 0 && (el === 'elec' || el === 'grass')) {
-        /* 촉진 상태 — 뇌는 활성, 초는 발산 ×1.25(붙은 원소는 안 건드린다) */
+        /* 싹틈 상태 — 뇌는 번개싹, 초는 덩굴뻗음 ×1.25(붙은 원소는 안 건드린다) */
         rc = { kind: el === 'elec' ? 'aggravate' : 'spread', name: REACT_NAME[el === 'elec' ? 'aggravate' : 'spread'] };
         extra *= QUICK_MUL() * emB;
       } else {
@@ -798,7 +798,7 @@
   function attack(S, px, py) {
     var m = active(S);
     if (!m || m.down || S.atkCd > 0) { return { ok: false }; }
-    /* ⑲-5 무기 종류마다 모양 — 한손검은 옛 3타(사거리 손잡이 그대로), 법구·활은 멀리 하나(파고들지 않는다) */
+    /* ⑲-5 무기 종류마다 모양 — 칼은 옛 3타(사거리 손잡이 그대로), 서책·활은 멀리 하나(파고들지 않는다) */
     var kit = m.kit || SWORD_KIT, reach = kit === SWORD_KIT || m.wtype === 'sword' ? REACH() : kit.reach, tgt;
     if (kit.range) {
       tgt = nearestFoe(S, px, py, kit.range);
@@ -897,7 +897,7 @@
       ev = { x: cx, y: cy, r: SKILL_R() };
     }
     if (sh === 'field' || sh === 'summon') { stepZones(S, 0); }   // 놓자마자 첫 틱
-    m.skillCd = m.skCdMax = SKILL_CD() * (m.cdMul || 1);        // ⑲-4 자리 1 — 대기 -20%
+    m.skillCd = m.skCdMax = SKILL_CD() * (m.cdMul || 1);        // ⑲-4 깨달음 1 — 대기 -15%
     m.energy = Math.min(ENERGY_MAX(), m.energy + (6 + Math.min(6, hits.length * 2)) * (m.er || 1));
     for (var j = 0; j < S.party.length; j++) {
       var o = S.party[j];
@@ -914,7 +914,7 @@
       var z = Z[i];
       z.t -= dt; z.next -= dt;
       if (z.kind === 'seed') {
-        /* ⑲-1 개화 씨앗 — 1.5초 뒤 둘레 3m 에서 터진다 */
+        /* ⑲-1 꽃피움 씨앗 — 1.5초 뒤 둘레 3m 에서 터진다 */
         if (z.t <= 1e-9) {
           var sn = foesWithin(S, z.x, z.y, z.r);
           for (k = 0; k < sn.length; k++) { wake(sn[k]); rawHit(S, sn[k], z.dmg); }
@@ -943,13 +943,13 @@
     }
   }
 
-  /** 원소 폭발 — 기력 60 을 다 쓴다. 내 둘레 7m, 1초 무적 */
+  /** 원소 해방 — 기력 60 을 다 쓴다. 내 둘레 7m, 1초 무적 */
   function burst(S, px, py) {
     var m = active(S);
     if (!m || m.down || m.energy < ENERGY_MAX() || m.burstCd > 0) { return { ok: false }; }
     m.energy = 0; m.burstCd = BURST_CD();
     S.iframe = Math.max(S.iframe, 1.0);
-    if (m.c6 && global.DG.talent) { m.c6T = global.DG.talent.C6_SEC; }   // ⑲-4 자리 6 — 폭발 뒤 공격 +25%
+    if (m.c6 && global.DG.talent) { m.c6T = global.DG.talent.C6_SEC; }   // ⑲-4 깨달음 5 — 해방 뒤 공격 +20%
     var hits = foesWithin(S, px, py, BURST_R());
     for (var i = 0; i < hits.length; i++) { hitFoe(S, hits[i], m, m.atk * BURST_MUL(), m.el, 'burst'); }
     push(S, { t: 'burst', el: m.el, x: px, y: py, r: BURST_R(), n: hits.length });
@@ -1103,7 +1103,7 @@
       }
       if (f.physT > 0) { f.physT -= dt; }
       if (f.quickT > 0) { f.quickT -= dt; }
-      if (f.burnN > 0) {                                  // ⑲-1 연소 — 0.5초마다 여덟 번
+      if (f.burnN > 0) {                                  // ⑲-1 들불 — 0.5초마다 여덟 번
         f.burnT -= dt;
         if (f.burnT <= 0) {
           f.burnT += BURN_EVERY(); f.burnN--;
@@ -1113,7 +1113,7 @@
         }
       }
       if (inp.blocked) { continue; }
-      if (f.frozenT > 0) { f.frozenT -= dt; continue; }   // ⑲-1 빙결 — 꼼짝 못 한다
+      if (f.frozenT > 0) { f.frozenT -= dt; continue; }   // ⑲-1 얼어붙음 — 꼼짝 못 한다
       if (f.stun > 0) { f.stun -= dt; continue; }
       var F = FOES[f.kind];
       var d = Math.hypot(f.x - px, f.y - py);
@@ -1272,12 +1272,12 @@
     popAcc += dt; refAcc += dt;
     if (popAcc > 0.5) {
       popAcc = 0;
+      respawnSweep();                          // 다시 설 무리를 먼저 풀고 세운다(⑲-10 수호자가 한 박자 늦던 것)
       var BM = global.DG.biome;
       populate(S, pos.x, pos.y, terrFn(), K('activeR', 200), BM && BM.on() ? BM.biomeAt : null,
         BM && BM.on() && BM.landmarks && K('guards', 1) ? BM.landmarks : null,
         BM && BM.on() && BM.zoneAt && K('eras', 1) ? BM.zoneAt : null,
         global.DG.treasure && global.DG.treasure.on() ? global.DG.treasure.campsNear : null);
-      respawnSweep();
     }
     if (refAcc > 2) { refAcc = 0; refreshStats(); }
     var bl = blocked();
@@ -1325,7 +1325,7 @@
         var RI = REACT[e.kind] || { el: 'fire', r: 2 };
         floatNum(e.x, e.y, e.name + '!', RI.el, 1.5, true);
         ring(e.x, e.y, RI.r || 1.8, e.kind === 'overload' ? '#ffb347' : EL[RI.el].color, 0.45);
-        if (global.DG.daily) { global.DG.daily.progress('react'); }   // ⑲-8 일일 의뢰(쇄빙·활성 포함)
+        if (global.DG.daily) { global.DG.daily.progress('react'); }   // ⑲-8 일일 의뢰(깨뜨림·번개싹 포함)
         if (e.kind === 'crystallize') { toast('🪨 결정 보호막 — 명단이 ' + (S.guard ? S.guard.hp : 0) + ' 만큼 막는다(15초)'); }
       } else if (e.t === 'dot') { floatNum(e.x, e.y, String(e.dmg), e.el || 'elec', 0.8); }
       else if (e.t === 'break') {
@@ -1335,7 +1335,7 @@
         if (W3()) { W3().shake(0.45); W3().hold(100); }
       } else if (e.t === 'swing') {
         if (W3()) { W3().playAnim('me', 'attack', 280); }
-        if (e.ranged && e.tx != null) { ring(e.tx, e.ty, 0.8, e.el && EL[e.el] ? EL[e.el].color : '#e8e2d0', 0.25); }   // ⑲-5 법구·활
+        if (e.ranged && e.tx != null) { ring(e.tx, e.ty, 0.8, e.el && EL[e.el] ? EL[e.el].color : '#e8e2d0', 0.25); }   // ⑲-5 서책·활
       } else if (e.t === 'skill') {
         if (e.shape === 'thrust' || e.shape === 'dash') {
           /* 선 모양 — 길을 따라 작은 원을 늘어놓는다 */
@@ -1381,7 +1381,7 @@
         var dm = S.party[e.idx];
         c.log('💫 ' + dm.name + ' 쓰러짐 (들판 전투)', 'battle');
       } else if (e.t === 'wipe') {
-        var inDm = !!(global.DG.domain && global.DG.domain.active());      // ⑲-9 비경 실패는 흘림 없음
+        var inDm = !!(global.DG.domain && global.DG.domain.active());      // ⑲-9 숨은 터 실패는 흘림 없음
         var D = global.DG.drop, lost = !inDm && D && D.lose ? D.lose() : null;
         c.emit('field:wipe', {});
         toast('🏳️ 모두 쓰러져 물러났다' + (lost ? ' — 금 ' + lost.gold + ' 을 흘렸다(되찾을 수 있다)' : ''));
@@ -1395,7 +1395,7 @@
         var ENC = global.DG.encounter;
         if (ENC && ENC.duelResult) { ENC.duelResult(e.result, e.spawnUid, e.heroId); }
       } else if (e.t === 'kill' && String(e.camp).indexOf('dm:') === 0) {
-        /* ⑲-9 비경 적 — 전리품·경험·무리 기록 없음(domain.js 가 파도·지맥 이상을 본다) */
+        /* ⑲-9 숨은 터 적 — 전리품·경험·무리 기록 없음(domain.js 가 파도·터 기운을 본다) */
         if (global.DG.daily) { global.DG.daily.progress('hunt'); }
         c.emit('field:kill', e);
       } else if (e.t === 'kill') {
@@ -1409,7 +1409,7 @@
         if (e.shield && global.DG.talent) {                       // ⑲-4 방패 두른 원소 괴물 — 무예 쪽지
           var tmTxt = global.DG.talent.onElite();
           if (global.DG.weapon) { global.DG.weapon.onElite(); }                  // ⑲-5 강화석 1
-          if (global.DG.artifact) { tmTxt += ' · ' + global.DG.artifact.onElite(); }   // ⑲-5 성유물 ★4
+          if (global.DG.artifact) { tmTxt += ' · ' + global.DG.artifact.onElite(); }   // ⑲-5 보패 ★4
           if (tmTxt) { floatNum(e.x, e.y + 1.2, tmTxt, null, 0.9, false); }
         }
         if (global.DG.cooking) { var mt6 = global.DG.cooking.onKill(e.kind); if (mt6) { floatNum(e.x, e.y + 2.2, mt6, null, 0.85, false); } }   // ⑲-6 짐승 고기
@@ -1417,13 +1417,13 @@
         if (global.DG.daily) { global.DG.daily.progress('hunt'); }    // ⑲-8 일일 의뢰
         floatNum(e.x, e.y, '+' + gold + '금', null, 0.9, false);
       } else if (e.t === 'clear' && e.kind === 'domain') {
-        c.emit('field:clear', e);                                      // ⑲-9 비경 파도 — 보상은 보상 나무에서
+        c.emit('field:clear', e);                                      // ⑲-9 숨은 터 파도 — 보상은 보상 나무에서
       } else if (e.t === 'clear' && e.kind === 'guard') {
         var gs = fieldSave(), rk = e.camp.slice(2), again = !!gs.guards[rk];
         gs.guards[rk] = Date.now();
         delete gs.guardPaid[rk];                                        // ⑲-10 보상 꽃이 다시 핀다(fieldboss.js)
         gs.clears = (gs.clears || 0) + 1;
-        /* ⑲-10 다시 선 수호자는 토벌 금·단사·경험이 없다 — 보상은 꽃에서(원기 40) */
+        /* ⑲-10 다시 선 수호자는 토벌 금·단사·경험이 없다 — 보상은 꽃에서(원기 30) */
         var gl = again ? { gold: 0, dust: 0 } : clearLoot('guard', e.tier), gg = gl.gold, gd = gl.dust;
         c.save.player.gold = (c.save.player.gold || 0) + gg;
         c.save.dust = (c.save.dust || 0) + gd;

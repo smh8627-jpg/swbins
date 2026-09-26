@@ -1,15 +1,15 @@
 /**
- * 무기 · 치명타 — 오픈월드 RPG의 무기 종류·강화·돌파·재련 (PLAN §5 ⑲-5)
+ * 무기 · 치명타 — 오픈월드 RPG의 무기 종류·강화·벼림·울림 (PLAN §5 ⑲-5, 이름·수치는 §5 ⑳)
  * ---------------------------------------------------------------
  * 들판 전투(⑨)에서 인물마다 기본 공격이 같았고, 상자·무리에서 "쓸 것" 이 나오지 않았다.
  *
  *   종류 다섯   인물 id 해시로 정해진다(saga-godot `weapons.gd` type_of 와 같은 식) — 제 종류만 든다
- *   기본 공격   종류마다 배율·빠르기·사거리가 다르다(KIT) — 법구는 인물 원소, 활은 멀리 하나
+ *   기본 공격   종류마다 배율·빠르기·사거리가 다르다(KIT) — 서책은 인물 원소, 활은 멀리 하나
  *   무기 열다섯 수련용 ★1 다섯(누구나 기본으로 든다·강화 안 함) · ★3 다섯 · ★4 다섯(부옵션 + 효과)
- *   강화·돌파   Lv 1~30, 상한은 무기 돌파 0~5 가 연다 · 같은 무기를 또 얻으면 재련(효과가 오른다)
- *   치명타      인물 기본 5%·50% + 무기 부옵션 + 성유물(artifact.js) — 굴림은 field-combat.js
+ *   강화·벼림   Lv 1~30, 상한은 무기 벼림 0~5 가 연다 · 같은 무기를 또 얻으면 울림(효과가 오른다)
+ *   치명타      인물 기본 5%·50% + 무기 부옵션 + 보패(artifact.js) — 굴림은 field-combat.js
  *
- * 수치의 원본은 saga-godot `data/weapons.gd` · `field_combat.WEAPON_KIT`(비율만 이 판 한손검에 맞춤).
+ * 기본 공격 모양 비율은 saga-godot `field_combat.WEAPON_KIT` 을 이 판 칼에 맞춘 것, 무기 표 수치는 §5 ⑳ 의 이 판 것.
  * **들판 전투에만 탄다** — `hero.stats`·부대 전투력·사건 결투는 안 건드린다.
  * 세이브 `save.weapons = { inv: { 무기id: {lv, asc, ref} }, equip: { 인물id: 무기id } }` ·
  * 재료 `save.gearMat.ore`(강화석). 모두 읽는 쪽 기본값 — SAVE_VERSION 은 그대로.
@@ -20,12 +20,12 @@
   var core = global.DG.core;
 
   var TYPES = ['sword', 'claymore', 'polearm', 'catalyst', 'bow'];
-  var TYPE_NAMES = { sword: '한손검', claymore: '양손검', polearm: '장병기', catalyst: '법구', bow: '활' };
+  var TYPE_NAMES = { sword: '칼', claymore: '대도', polearm: '창', catalyst: '서책', bow: '활' };
   var TYPE_ICON = { sword: '🗡️', claymore: '⚔️', polearm: '🔱', catalyst: '📖', bow: '🏹' };
 
   /*
-   * 기본 공격 모양 — Godot 비율(한손검 0.35·0.4·0.6)을 이 판 한손검(0.9·1.0·1.5)에 맞춰 ×2.5.
-   * reach: 붙어 치는 사거리(m) · range: 멀리 하나를 치는 사거리 · heavy: 무거운 타격(쇄빙) · el: 인물 원소로 친다
+   * 기본 공격 모양 — Godot 비율(0.35·0.4·0.6)을 이 판 칼(0.9·1.0·1.5)에 맞춰 ×2.5.
+   * reach: 붙어 치는 사거리(m) · range: 멀리 하나를 치는 사거리 · heavy: 무거운 타격(깨뜨림) · el: 인물 원소로 친다
    */
   var KIT = {
     sword:    { mul: [0.9, 1.0, 1.5],     sec: [0.34, 0.34, 0.55], reach: 3.2 },
@@ -36,25 +36,25 @@
   };
 
   var STAT_NAMES = { atk_pct: '공격력', crit_rate: '치명타 확률', crit_dmg: '치명타 피해', energy: '기력 획득', hp_pct: '체력' };
-  var PASSIVE_NAMES = { n: '기본 공격 피해', s: '원소 스킬 피해', b: '원소 폭발 피해', react: '원소 반응 피해' };
+  var PASSIVE_NAMES = { n: '기본 공격 피해', s: '원소 스킬 피해', b: '원소 해방 피해', react: '원소 반응 피해' };
 
-  /* Godot 표 그대로(낚시 작살은 이 판에 낚시가 없어 뺐다) */
+  /* §5 ⑳ 이 판 표(낚시 작살은 이 판에 낚시가 없어 뺐다) */
   var WEAPONS = {
-    w_sword_0:    { name: '수련용 목검', type: 'sword',    rarity: 1, atk: 23 },
-    w_claymore_0: { name: '수련용 목도', type: 'claymore', rarity: 1, atk: 23 },
-    w_polearm_0:  { name: '수련용 장대', type: 'polearm',  rarity: 1, atk: 23 },
-    w_catalyst_0: { name: '수련용 서첩', type: 'catalyst', rarity: 1, atk: 23 },
-    w_bow_0:      { name: '수련용 단궁', type: 'bow',      rarity: 1, atk: 23 },
-    w_sword_3:    { name: '청동 환도',     type: 'sword',    rarity: 3, atk: 39, sub: 'atk_pct',   subV: 0.077, pas: 'n',     pasV: 0.12 },
-    w_claymore_3: { name: '나무꾼 큰도끼', type: 'claymore', rarity: 3, atk: 39, sub: 'hp_pct',    subV: 0.077, pas: 'b',     pasV: 0.12 },
-    w_polearm_3:  { name: '대나무 창',     type: 'polearm',  rarity: 3, atk: 40, sub: 'crit_dmg',  subV: 0.102, pas: 'n',     pasV: 0.12 },
-    w_catalyst_3: { name: '해진 서책',     type: 'catalyst', rarity: 3, atk: 39, sub: 'energy',    subV: 0.085, pas: 'react', pasV: 0.12 },
-    w_bow_3:      { name: '사냥꾼 활',     type: 'bow',      rarity: 3, atk: 40, sub: 'crit_dmg',  subV: 0.102, pas: 'n',     pasV: 0.12 },
-    w_sword_4:    { name: '청하 보검',     type: 'sword',    rarity: 4, atk: 44, sub: 'crit_rate', subV: 0.04,  pas: 's',     pasV: 0.16 },
-    w_claymore_4: { name: '파도 참마도',   type: 'claymore', rarity: 4, atk: 42, sub: 'atk_pct',   subV: 0.09,  pas: 'react', pasV: 0.2 },
-    w_polearm_4:  { name: '봉수 월도',     type: 'polearm',  rarity: 4, atk: 44, sub: 'energy',    subV: 0.067, pas: 'b',     pasV: 0.16 },
-    w_catalyst_4: { name: '별자리 두루마리', type: 'catalyst', rarity: 4, atk: 42, sub: 'atk_pct', subV: 0.09,  pas: 's',     pasV: 0.16 },
-    w_bow_4:      { name: '갯바람 각궁',   type: 'bow',      rarity: 4, atk: 44, sub: 'crit_rate', subV: 0.04,  pas: 'b',     pasV: 0.16 }
+    w_sword_0:    { name: '수련용 목검', type: 'sword',    rarity: 1, atk: 20 },
+    w_claymore_0: { name: '수련용 목도', type: 'claymore', rarity: 1, atk: 20 },
+    w_polearm_0:  { name: '수련용 장대', type: 'polearm',  rarity: 1, atk: 20 },
+    w_catalyst_0: { name: '수련용 서첩', type: 'catalyst', rarity: 1, atk: 20 },
+    w_bow_0:      { name: '수련용 단궁', type: 'bow',      rarity: 1, atk: 20 },
+    w_sword_3:    { name: '청동 환도',     type: 'sword',    rarity: 3, atk: 34, sub: 'atk_pct',   subV: 0.07,  pas: 'n',     pasV: 0.12 },
+    w_claymore_3: { name: '나무꾼 큰도끼', type: 'claymore', rarity: 3, atk: 34, sub: 'hp_pct',    subV: 0.07,  pas: 'b',     pasV: 0.12 },
+    w_polearm_3:  { name: '대나무 창',     type: 'polearm',  rarity: 3, atk: 35, sub: 'crit_dmg',  subV: 0.09,  pas: 'n',     pasV: 0.12 },
+    w_catalyst_3: { name: '해진 서책',     type: 'catalyst', rarity: 3, atk: 34, sub: 'energy',    subV: 0.08,  pas: 'react', pasV: 0.12 },
+    w_bow_3:      { name: '사냥꾼 활',     type: 'bow',      rarity: 3, atk: 35, sub: 'crit_dmg',  subV: 0.09,  pas: 'n',     pasV: 0.12 },
+    w_sword_4:    { name: '청하 보검',     type: 'sword',    rarity: 4, atk: 40, sub: 'crit_rate', subV: 0.035, pas: 's',     pasV: 0.16 },
+    w_claymore_4: { name: '파도 참마도',   type: 'claymore', rarity: 4, atk: 38, sub: 'atk_pct',   subV: 0.08,  pas: 'react', pasV: 0.2 },
+    w_polearm_4:  { name: '봉수 월도',     type: 'polearm',  rarity: 4, atk: 40, sub: 'energy',    subV: 0.06,  pas: 'b',     pasV: 0.16 },
+    w_catalyst_4: { name: '별자리 두루마리', type: 'catalyst', rarity: 4, atk: 38, sub: 'atk_pct', subV: 0.08,  pas: 's',     pasV: 0.16 },
+    w_bow_4:      { name: '갯바람 각궁',   type: 'bow',      rarity: 4, atk: 40, sub: 'crit_rate', subV: 0.035, pas: 'b',     pasV: 0.16 }
   };
 
   var MAX_LV = 30, MAX_ASC = 5, REFINE_MAX = 5, REFINE_OVER_ORE = 10;
@@ -77,7 +77,7 @@
   function defaultOf(type) { return 'w_' + type + '_0'; }
   function isShared(wid) { return info(wid).rarity <= 1; }
 
-  /** 인물 → 종류. 주인공('_me')은 한손검. 식은 Godot `type_of` 와 같다 */
+  /** 인물 → 종류. 주인공('_me')은 칼. 식은 Godot `type_of` 와 같다 */
   function typeOf(id) {
     if (!id || id === '_me') { return 'sword'; }
     var h = 7;
@@ -92,7 +92,7 @@
   function upCost(lv) { return lv >= 1 && lv < MAX_LV ? { ore: 1 + Math.floor((lv - 1) / 5), gold: 15 * lv } : null; }
   function ascCost(asc) { return asc >= 0 && asc < MAX_ASC ? ASC_COST[asc] : null; }
 
-  /** 상자 → 무기(진귀 ★3 · 화려 ★4, 상자 id 해시로 종류 — Godot `chest_weapon` 식) */
+  /** 상자 → 무기(옻칠 ★3 · 금박 ★4, 상자 id 해시로 종류 — Godot `chest_weapon` 식) */
   function chestWeapon(chestId, grade) {
     var r = grade === 'precious' ? 3 : (grade === 'luxurious' ? 4 : 0);
     if (!r) { return ''; }
@@ -152,7 +152,7 @@
 
   /* ── 얻기·들기 ────────────────────────────────────────── */
 
-  /** 무기를 얻는다 — 처음이면 Lv1, 또 얻으면 재련 +1(5 가 넘치면 강화석 10). 글을 돌려준다 */
+  /** 무기를 얻는다 — 처음이면 Lv1, 또 얻으면 울림 +1(5 가 넘치면 강화석 10). 글을 돌려준다 */
   function give(wid) {
     var w = WEAPONS[wid];
     if (!w || isShared(wid)) { return ''; }
@@ -164,10 +164,10 @@
     }
     if ((r.ref || 1) < REFINE_MAX) {
       r.ref = (r.ref || 1) + 1;
-      return TYPE_ICON[w.type] + ' ' + w.name + ' 재련 ' + r.ref;
+      return TYPE_ICON[w.type] + ' ' + w.name + ' 울림 ' + r.ref;
     }
     addOre(REFINE_OVER_ORE);
-    return '🪨 강화석 +' + REFINE_OVER_ORE + '(' + w.name + ' 재련 끝)';
+    return '🪨 강화석 +' + REFINE_OVER_ORE + '(' + w.name + ' 울림 끝)';
   }
 
   function equip(id, wid) {
@@ -184,14 +184,14 @@
     return true;
   }
 
-  /* ── 강화·돌파 ────────────────────────────────────────── */
+  /* ── 강화·벼림 ────────────────────────────────────────── */
 
   function upCheck(wid) {
     var r = rec(wid);
     if (!r) { return { ok: false, why: '없는 무기' }; }
     if (isShared(wid)) { return { ok: false, why: '수련용은 강화 안 함' }; }
     if (r.lv >= MAX_LV) { return { ok: false, why: '최대 레벨' }; }
-    if (r.lv >= cap(r.asc)) { return { ok: false, why: '무기 돌파 필요', cap: true }; }
+    if (r.lv >= cap(r.asc)) { return { ok: false, why: '무기 벼림 필요', cap: true }; }
     var c = upCost(r.lv);
     if (ore() < c.ore) { return { ok: false, why: '강화석 부족', cost: c }; }
     if ((core.save.player.gold || 0) < c.gold) { return { ok: false, why: '금 부족', cost: c }; }
@@ -211,9 +211,9 @@
   }
   function ascCheck(wid) {
     var r = rec(wid);
-    if (!r || isShared(wid)) { return { ok: false, why: '돌파 안 함' }; }
-    if (r.asc >= MAX_ASC) { return { ok: false, why: '최대 돌파' }; }
-    if (r.lv < cap(r.asc)) { return { ok: false, why: 'Lv.' + cap(r.asc) + ' 에서 돌파' }; }
+    if (!r || isShared(wid)) { return { ok: false, why: '벼림 안 함' }; }
+    if (r.asc >= MAX_ASC) { return { ok: false, why: '최대 벼림' }; }
+    if (r.lv < cap(r.asc)) { return { ok: false, why: 'Lv.' + cap(r.asc) + ' 에서 벼림' }; }
     var c = ascCost(r.asc);
     if ((core.save.player.gold || 0) < c.gold) { return { ok: false, why: '금 부족', cost: c }; }
     if ((core.save.dust || 0) < c.dust) { return { ok: false, why: '단사 부족', cost: c }; }
@@ -226,7 +226,7 @@
     core.save.player.gold -= chk.cost.gold;
     core.save.dust -= chk.cost.dust;
     r.asc = (r.asc || 0) + 1;
-    core.emit('toast', '✨ ' + info(wid).name + ' 무기 돌파 ' + r.asc + ' — 상한 Lv.' + cap(r.asc));
+    core.emit('toast', '✨ ' + info(wid).name + ' 무기 벼림 ' + r.asc + ' — 상한 Lv.' + cap(r.asc));
     core.emit('changed');
     core.persist();
     return true;

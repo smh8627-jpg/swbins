@@ -1,13 +1,13 @@
 /**
- * 성유물 — 오픈월드 RPG의 부위 다섯·주/부옵션·세트 (PLAN §5 ⑲-5)
+ * 보패(寶貝) — 장신구 다섯 칸·주/부옵션·세트 (PLAN §5 ⑲-5, 이름·수치는 §5 ⑳)
  * ---------------------------------------------------------------
- *   부위 다섯   꽃(체력)·깃(공격력)은 주옵션이 정해져 있고, 해시계·술잔·관은 부위마다 고른다
- *   ★4·★5      최대 +16 · +20, 부옵션 처음 2~3 · 3~4. +4 마다 넷 미만이면 새로 하나, 넷이면 하나가 오른다
- *   세트 다섯   2 세트·4 세트 효과(SETS) — 이름·수치는 saga-godot `data/artifacts.gd` 의 이 판 것
+ *   부위 다섯   패옥(체력)·비녀(공격력)은 주옵션이 정해져 있고, 가락지·향낭·관모는 부위마다 고른다
+ *   ★4·★5      최대 +12 · +15, 부옵션 처음 2~3 · 3~4. +3 마다 넷 미만이면 새로 하나, 넷이면 하나가 오른다
+ *   세트 다섯   2 세트·4 세트 효과(SETS) — 이름·수치는 PLAN §5 ⑳ 표(이 판 것)
  *   강화·분해   연마석으로 강화, 분해하면 연마석이 돌아온다. 가진 것 상한 200(넘치면 안 낀 ★4 부터 분해)
  *
- * 무작위는 성유물마다 번호로 정한 씨앗(mulberry32)으로 굴린다 — 진단·세이브가 늘 같게.
- * 고정값(체력·공격력)만 이 판 규모로 줄였다: 공격 ×0.36 · 체력 ×2. 나머지 % 는 Godot 그대로.
+ * 무작위는 보패마다 번호로 정한 씨앗(mulberry32)으로 굴린다 — 진단·세이브가 늘 같게.
+ * 주옵션 곡선·부옵션 한 번·굴림 셋·칸 구성은 모두 §5 ⑳ 의 이 판 수치다. 칸·세트 id 는 세이브 키라 그대로.
  * **들판 전투에만 탄다**(field-combat.js memberOf). 세이브 `save.artifacts = { seq, list }`,
  * 연마석은 `save.gearMat.polish`(weapon.js 와 같은 칸). SAVE_VERSION 은 그대로.
  */
@@ -17,8 +17,8 @@
   var core = global.DG.core;
 
   var SLOTS = ['flower', 'plume', 'sands', 'goblet', 'circlet'];
-  var SLOT_NAMES = { flower: '꽃', plume: '깃', sands: '해시계', goblet: '술잔', circlet: '관' };
-  var SLOT_ICON = { flower: '🌸', plume: '🪶', sands: '⏳', goblet: '🏺', circlet: '👑' };
+  var SLOT_NAMES = { flower: '패옥', plume: '비녀', sands: '가락지', goblet: '향낭', circlet: '관모' };
+  var SLOT_ICON = { flower: '📿', plume: '📍', sands: '💍', goblet: '👝', circlet: '👑' };
   var STAT_NAMES = {
     hp: '체력', atk: '공격력', def: '방어력', hp_pct: '체력%', atk_pct: '공격력%', def_pct: '방어력%',
     energy: '기력 획득', crit_rate: '치명타 확률', crit_dmg: '치명타 피해',
@@ -26,41 +26,43 @@
     elem_ice: '빙 피해', elem_rock: '암 피해', elem_grass: '초 피해', elem_phys: '물리 피해'
   };
   var FLAT = { hp: 1, atk: 1, def: 1 };
-  /* 주옵션 ★5 [+0, +20] */
+  /* 주옵션 ★5 [+0, +15] — §5 ⑳ */
   var MAIN = {
-    hp: [64, 420], atk: [17, 112],
-    atk_pct: [0.07, 0.466], hp_pct: [0.07, 0.466], def_pct: [0.087, 0.583],
-    energy: [0.078, 0.518], crit_rate: [0.047, 0.311], crit_dmg: [0.093, 0.622],
-    elem_fire: [0.07, 0.466], elem_water: [0.07, 0.466], elem_elec: [0.07, 0.466], elem_wind: [0.07, 0.466],
-    elem_ice: [0.07, 0.466], elem_rock: [0.07, 0.466], elem_grass: [0.07, 0.466], elem_phys: [0.087, 0.583]
+    hp: [80, 480], atk: [20, 120],
+    atk_pct: [0.06, 0.42], hp_pct: [0.06, 0.42], def_pct: [0.08, 0.52],
+    energy: [0.07, 0.46], crit_rate: [0.04, 0.28], crit_dmg: [0.08, 0.56],
+    elem_fire: [0.06, 0.42], elem_water: [0.06, 0.42], elem_elec: [0.06, 0.42], elem_wind: [0.06, 0.42],
+    elem_ice: [0.06, 0.42], elem_rock: [0.06, 0.42], elem_grass: [0.06, 0.42], elem_phys: [0.08, 0.52]
   };
+  /* 칸 구성 — 가락지 = 치명, 향낭 = 원소·체력·방어, 관모 = 기력 */
   var SLOT_MAINS = {
     flower: ['hp'],
     plume: ['atk'],
-    sands: ['atk_pct', 'hp_pct', 'def_pct', 'energy'],
-    goblet: ['atk_pct', 'hp_pct', 'def_pct', 'elem_fire', 'elem_water', 'elem_elec', 'elem_wind', 'elem_ice', 'elem_rock', 'elem_grass', 'elem_phys'],
-    circlet: ['crit_rate', 'crit_dmg', 'atk_pct', 'hp_pct', 'def_pct']
+    sands: ['atk_pct', 'crit_rate', 'crit_dmg'],
+    goblet: ['hp_pct', 'def_pct', 'elem_fire', 'elem_water', 'elem_elec', 'elem_wind', 'elem_ice', 'elem_rock', 'elem_grass', 'elem_phys'],
+    circlet: ['atk_pct', 'hp_pct', 'def_pct', 'energy']
   };
   /* 부옵션 ★5 한 번 최대치 */
-  var SUB_ROLL = { hp: 26, atk: 7, def: 4.6, hp_pct: 0.0583, atk_pct: 0.0583, def_pct: 0.0729, energy: 0.0648, crit_rate: 0.0389, crit_dmg: 0.0777 };
+  var SUB_ROLL = { hp: 30, atk: 8, def: 5, hp_pct: 0.05, atk_pct: 0.05, def_pct: 0.065, energy: 0.055, crit_rate: 0.033, crit_dmg: 0.066 };
   var SUB_KEYS = ['hp', 'atk', 'def', 'hp_pct', 'atk_pct', 'def_pct', 'energy', 'crit_rate', 'crit_dmg'];
-  var ROLL_TIERS = [0.7, 0.8, 0.9, 1.0];
+  var ROLL_TIERS = [0.75, 0.85, 1.0];
   var RARITY_MUL = { 4: 0.8, 5: 1.0 };
-  var MAX_LV = { 4: 16, 5: 20 };
+  var MAX_LV = { 4: 12, 5: 15 };
+  var STEP = 3;                                          // 이 단마다 부옵션 하나
   var SALVAGE = { 4: 1, 5: 2 };
   var CAP = 200;
 
   var SETS = {
-    gladiator:   { name: '떠돌이 무사', two: { atk_pct: 0.18 },   four: { normal_melee: 0.35 }, text2: '공격력 +18%', text4: '한손검·양손검·장병기 기본 공격 피해 +35%' },
-    crimson:     { name: '불꽃 무녀',   two: { elem_fire: 0.15 }, four: { react_fire: 0.4 },    text2: '화 피해 +15%', text4: '증발·융해·과부하·연소 피해 +40%' },
-    viridescent: { name: '바람 나그네', two: { elem_wind: 0.15 }, four: { react_swirl: 0.6 },   text2: '풍 피해 +15%', text4: '확산 피해 +60%' },
-    emblem:      { name: '절연 깃발',   two: { energy: 0.2 },     four: { burst_dmg: 0.25 },    text2: '기력 획득 +20%', text4: '원소 폭발 피해 +25%' },
-    depth:       { name: '물결 성자',   two: { elem_water: 0.15 }, four: { skill_dmg: 0.3 },    text2: '수 피해 +15%', text4: '원소 스킬 피해 +30%' }
+    gladiator:   { name: '떠돌이 무사', two: { atk_pct: 0.15 },   four: { normal_melee: 0.3 },  text2: '공격력 +15%', text4: '칼·대도·창 기본 공격 피해 +30%' },
+    crimson:     { name: '대장간 불씨', two: { elem_fire: 0.12 }, four: { react_fire: 0.35 },   text2: '화 피해 +12%', text4: '물안개·녹임·터짐·들불 피해 +35%' },
+    viridescent: { name: '솔바람 피리', two: { elem_wind: 0.12 }, four: { react_swirl: 0.5 },   text2: '풍 피해 +12%', text4: '회오리 피해 +50%' },
+    emblem:      { name: '봉화 깃발',   two: { energy: 0.18 },    four: { burst_dmg: 0.2 },     text2: '기력 획득 +18%', text4: '원소 해방 피해 +20%' },
+    depth:       { name: '나루 안개',   two: { elem_water: 0.12 }, four: { skill_dmg: 0.25 },   text2: '수 피해 +12%', text4: '원소 스킬 피해 +25%' }
   };
   var SET_IDS = ['gladiator', 'crimson', 'viridescent', 'emblem', 'depth'];
   var FIRE_REACTIONS = { vaporize: 1, melt: 1, overload: 1, burning: 1 };
 
-  /* 얻는 곳 — Godot 그대로 */
+  /* 얻는 곳 */
   var CHEST_ARTS = { exquisite: [4], precious: [5], luxurious: [5, 5] };
 
   function mulberry32(seed) {
@@ -86,7 +88,7 @@
     var key = pick(r, pool);
     art.subs.push([key, roll(key, art.rarity, r)]);
   }
-  /** 새 성유물 하나 — set·slot 이 비면 씨앗으로 고른다 */
+  /** 새 보패 하나 — set·slot 이 비면 씨앗으로 고른다 */
   function generate(seed, rarity, setId, slot) {
     var r = mulberry32(seed);
     rarity = rarity >= 5 ? 5 : 4;
@@ -97,7 +99,7 @@
     for (var i = 0; i < n; i++) { addSub(art, r); }
     return art;
   }
-  /** +4 에 닿을 때 — 넷 미만이면 새로, 넷이면 하나 올린다(씨앗 = 성유물 씨앗 × 31 + Lv) */
+  /** +3 에 닿을 때 — 넷 미만이면 새로, 넷이면 하나 올린다(씨앗 = 보패 씨앗 × 31 + Lv) */
   function onStep(art) {
     var r = mulberry32(art.seed * 31 + art.lv);
     if (art.subs.length < 4) { addSub(art, r); }
@@ -105,7 +107,7 @@
   }
   function mainValue(art) {
     var t = MAIN[art.main];
-    return (t[0] + (t[1] - t[0]) * art.lv / 20) * RARITY_MUL[art.rarity];
+    return (t[0] + (t[1] - t[0]) * art.lv / MAX_LV[5]) * RARITY_MUL[art.rarity];
   }
   function statText(key, v) {
     return FLAT[key] ? STAT_NAMES[key] + ' +' + Math.round(v) : STAT_NAMES[key] + ' +' + (v * 100).toFixed(1) + '%';
@@ -213,7 +215,7 @@
     core.save.player.gold -= chk.cost.gold;
     art.spent = (art.spent || 0) + chk.cost.polish;
     art.lv += 1;
-    if (art.lv % 4 === 0) { onStep(art); }
+    if (art.lv % STEP === 0) { onStep(art); }
     core.emit('changed');
     core.persist();
     return true;
@@ -262,7 +264,7 @@
   global.DG = global.DG || {};
   global.DG.artifact = {
     SLOTS: SLOTS, SLOT_NAMES: SLOT_NAMES, SLOT_ICON: SLOT_ICON, STAT_NAMES: STAT_NAMES, MAIN: MAIN, SLOT_MAINS: SLOT_MAINS,
-    SUB_ROLL: SUB_ROLL, ROLL_TIERS: ROLL_TIERS, RARITY_MUL: RARITY_MUL, MAX_LV: MAX_LV, SALVAGE: SALVAGE, CAP: CAP,
+    SUB_ROLL: SUB_ROLL, ROLL_TIERS: ROLL_TIERS, RARITY_MUL: RARITY_MUL, MAX_LV: MAX_LV, STEP: STEP, SALVAGE: SALVAGE, CAP: CAP,
     SETS: SETS, SET_IDS: SET_IDS, FIRE_REACTIONS: FIRE_REACTIONS, CHEST_ARTS: CHEST_ARTS,
     mulberry32: mulberry32, generate: generate, onStep: onStep, mainValue: mainValue, statText: statText,
     upCost: upCost, salvageValue: salvageValue,

@@ -1773,7 +1773,7 @@ body.fc-on #dock, body.fc-on #near { display: none !important; }
 #lf-jump em { font-size: 11px; font-style: normal; opacity: .7; }
 #lf-jump:active { transform: scale(.94); }
 @media (max-height: 500px) { #lf-jump { left: 142px; bottom: calc(150px + var(--safe-b)); } }   /* 가로: 위가 #top 이라 조이스틱 오른쪽 */
-/* ── 원소 시야(treasure.js, PLAN §5 ⑲-3) — V 누르는 동안 / 👁 단추. 3D 화면만 잿빛, HUD 는 제 색 ── */
+/* ── 기척 보기(treasure.js, PLAN §5 ⑲-3) — V 누르는 동안 / 👁 단추. 3D 화면만 잿빛, HUD 는 제 색 ── */
 #map3d { transition: filter .2s ease; }
 body.sight-on #map3d { filter: grayscale(.92) brightness(.62) contrast(1.15) sepia(.12) hue-rotate(170deg); }
 #tr-sight-layer { position: fixed; inset: 0; z-index: 12; pointer-events: none; overflow: hidden; }

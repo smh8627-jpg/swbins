@@ -1,11 +1,11 @@
 /**
- * 보물 상자 · 수집 구슬 · 신상 봉헌 · 원소 시야 — 오픈월드 RPG식 (PLAN §5 ⑲-3, saga-godot PLAN 106 ⑥⑪⑬)
+ * 보물 상자 · 수집 구슬 · 탑 봉헌 · 기척 보기 — 오픈월드 RPG식 (PLAN §5 ⑲-3, 이름은 §5 ⑳)
  * ---------------------------------------------------------------
  *   자리     지역 칸(biome.js, 1.2km)마다 **고정** — 칸 좌표 해시라 세이브 없이 늘 같은 자리.
- *            상자 넷(평범 둘·정교·진귀) + 넷에 하나 꼴로 화려 · 구슬 셋(산마루·강물 위·나무 위, 없으면 들판)
- *   잠금     평범 없음 · 정교 석등 둘(그 원소 스킬·폭발이 닿으면 켜짐, 첫 불 뒤 20초 안에 다) ·
- *            진귀 무리 · 화려 정예 무리(들판 전투 무리, 키 `tc:<상자>`)
- *   봉헌     찾은 지역 탑 25m 안 — 구슬 둘마다 신상 등급 +1(최대 10) → 들판 기력 상한 +8·금 200·단사 2
+ *            상자 넷(나무 둘·무늬·옻칠) + 넷에 하나 꼴로 금박 · 구슬 셋(산마루·강물 위·나무 위, 없으면 들판)
+ *   잠금     나무 없음 · 무늬 석등 둘(그 원소 스킬·폭발이 닿으면 켜짐, 첫 불 뒤 20초 안에 다) ·
+ *            옻칠 무리 · 금박 정예 무리(들판 전투 무리, 키 `tc:<상자>`)
+ *   봉헌     찾은 지역 탑 25m 안 — 구슬 둘마다 탑 등급 +1(최대 10) → 들판 기력 상한 +8·금 200·단사 2
  *   시야     V 누르는 동안 / 👁 단추 — 3D 화면 잿빛 + 45m 안 짚기 + 80m 안 가장 가까운 상자·구슬 흔적
  *
  * **자리·잠금·줍기 판정(`cellItems`·`pickable`·`trail`·`levelOf`)은 순수 함수**다. 세이브는
@@ -21,10 +21,10 @@
   function FC() { return global.DG.fieldCombat || null; }
 
   var GRADES = {
-    common:    { key: 'common',    name: '평범', icon: '📦', exp: 5,  gold: 30,  dust: 0 },
-    exquisite: { key: 'exquisite', name: '정교', icon: '🎁', exp: 15, gold: 80,  dust: 1 },
-    precious:  { key: 'precious',  name: '진귀', icon: '💠', exp: 30, gold: 200, dust: 3 },
-    luxurious: { key: 'luxurious', name: '화려', icon: '👑', exp: 60, gold: 500, dust: 6 }
+    common:    { key: 'common',    name: '나무', icon: '📦', exp: 5,  gold: 30,  dust: 0 },
+    exquisite: { key: 'exquisite', name: '무늬', icon: '🎁', exp: 15, gold: 80,  dust: 1 },
+    precious:  { key: 'precious',  name: '옻칠', icon: '💠', exp: 30, gold: 200, dust: 3 },
+    luxurious: { key: 'luxurious', name: '금박', icon: '👑', exp: 60, gold: 500, dust: 6 }
   };
   var LOCK_OF = { common: 'none', exquisite: 'lantern', precious: 'camp', luxurious: 'elite' };
   var EL7 = ['fire', 'water', 'elec', 'wind', 'ice', 'rock', 'grass'];
@@ -140,10 +140,10 @@
     return gps || o.h <= 1.5 || (air || 0) >= o.h - 1.3;
   }
 
-  /** 바친 구슬 수 → 신상 등급(최대 10) */
+  /** 바친 구슬 수 → 탑 등급(최대 10) */
   function levelOf(given) { return Math.min(LV_MAX, Math.floor((given || 0) / ORBS_PER_LV)); }
 
-  /** 원소 시야 흔적 — from 에서 to 쪽으로 2.2m 마다 점, 최대 14. 순수 함수 */
+  /** 기척 보기 흔적 — from 에서 to 쪽으로 2.2m 마다 점, 최대 14. 순수 함수 */
   function trail(fx, fy, tx, ty) {
     var d = Math.hypot(tx - fx, ty - fy), out = [], k;
     if (d < 1e-6) { return out; }
@@ -186,8 +186,8 @@
     if (G.dust) { s.dust = (s.dust || 0) + G.dust; }
     if (c.gainExp) { c.gainExp(G.exp); }
     var TL = global.DG.talent, mt = TL ? TL.onChest(ch.grade) : '';   // ⑲-4 무예 책·인연 매듭
-    var WPt = global.DG.weapon ? global.DG.weapon.onChest(ch) : '';     // ⑲-5 강화석·무기(진귀 ★3·화려 ★4)
-    var ARt = global.DG.artifact ? global.DG.artifact.onChest(ch.grade) : '';   // ⑲-5 성유물
+    var WPt = global.DG.weapon ? global.DG.weapon.onChest(ch) : '';     // ⑲-5 강화석·무기(옻칠 ★3·금박 ★4)
+    var ARt = global.DG.artifact ? global.DG.artifact.onChest(ch.grade) : '';   // ⑲-5 보패
     mt = [mt, WPt, ARt].filter(Boolean).join(' · ');
     toast(G.icon + ' ' + G.name + ' 보물 상자 — 금 +' + G.gold + (G.dust ? ' · 단사 +' + G.dust : '') + ' · 경험 +' + G.exp + (mt ? ' · ' + mt : ''));
     c.log(G.icon + ' ' + G.name + ' 보물 상자를 열었다 — 금 +' + G.gold, 'discover');
@@ -331,8 +331,8 @@
       s.player.gold = (s.player.gold || 0) + 200 * up;
       s.dust = (s.dust || 0) + 2 * up;
       var mk = global.DG.talent ? global.DG.talent.onShrine(up) : '';   // ⑲-4 등급마다 인연 매듭 1
-      toast('🗿 신상 등급 ' + lv1 + ' — 들판 기력 상한 +' + STA_PER_LV * up + ' · 금 +' + 200 * up + (mk ? ' · ' + mk : ''));
-      c.log('🗿 ' + near1.name + ' 탑에 구슬을 바쳤다 — 신상 등급 ' + lv1, 'discover');
+      toast('🗿 탑 등급 ' + lv1 + ' — 들판 기력 상한 +' + STA_PER_LV * up + ' · 금 +' + 200 * up + (mk ? ' · ' + mk : ''));
+      c.log('🗿 ' + near1.name + ' 탑에 구슬을 바쳤다 — 탑 등급 ' + lv1, 'discover');
       sfx('reward');
     } else {
       toast('🗿 구슬을 바쳤다 — 다음 등급까지 ' + (ORBS_PER_LV - s.orbs.given % ORBS_PER_LV));
@@ -437,7 +437,7 @@
     }
   }
 
-  /* ── 원소 시야 ────────────────────────────────────────── */
+  /* ── 기척 보기 ────────────────────────────────────────── */
   var sight = { key: false, toggle: false, on: false, layer: null, dots: [], btn: null, wave: null };
   function sightWanted() {
     if (!(sight.key || sight.toggle)) { return false; }
@@ -470,7 +470,7 @@
     if (!sight.btn) {
       sight.btn = document.createElement('button');
       sight.btn.id = 'tr-sight'; sight.btn.type = 'button';
-      sight.btn.setAttribute('aria-label', '원소 시야');
+      sight.btn.setAttribute('aria-label', '기척 보기');
       sight.btn.innerHTML = '<span>👁</span><em>시야</em>';
       sight.btn.addEventListener('pointerdown', function (e) { e.preventDefault(); e.stopPropagation(); sight.toggle = !sight.toggle; });
       document.body.appendChild(sight.btn);

@@ -154,11 +154,14 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
   var out = [], errors = [];
   window.addEventListener('error', function (e) { errors.push(e.message); });
 
+  /* 설명 글을 돌려주는 시험 중 "실패 …" 로 시작하는 글은 실패다 — 전엔 빈 글이 아니라서 PASS 로 찍혔다 */
   function t(name, fn) {
     try {
       var r = fn();
-      out.push((r ? '<span class="pass">PASS</span> ' : '<span class="fail">FAIL</span> ') + name + (typeof r === 'string' ? ' — ' + r : ''));
-      return !!r;
+      if (typeof r === 'string' && /^실패 /.test(r)) { r = { failText: r }; }
+      var ok = !!r && !r.failText, txt = typeof r === 'string' ? r : (r && r.failText) || '';
+      out.push((ok ? '<span class="pass">PASS</span> ' : '<span class="fail">FAIL</span> ') + name + (txt ? ' — ' + txt : ''));
+      return ok;
     } catch (e) {
       out.push('<span class="fail">FAIL</span> ' + name + ' — 예외: ' + e.message);
       return false;
@@ -612,7 +615,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       var passLeft = R.passCount();
       return r.ok && passLeft === 2 && r.rounds.length > 0 &&
         (r.win ? C.save.player.gold > g0 : C.save.player.gold === g0) &&
-        ((r.win ? '격파' : '실패') + ' · ' + r.rounds.length + '합 · 격문 3→' + passLeft);
+        ((r.win ? '격파' : '패배') + ' · ' + r.rounds.length + '합 · 격문 3→' + passLeft);
     });
 
     t('한 판에는 한 번만 도전한다', function () {
@@ -785,7 +788,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
     }
     function fcEv(S, kind) { return DG.fieldCombat.drain(S).filter(function (e) { return !kind || e.t === kind; }); }
 
-    t('들판 전투 ⑲-1 — 원소 반응: 열한 쌍(증발·과부하·감전·융해·빙결·초전도·확산·결정·개화·연소·촉진) · 풍·암은 받는 원소에만 · 같은 원소·물리는 없음', function () {
+    t('들판 전투 ⑲-1 — 원소 반응: 열한 쌍(물안개·터짐·물벼락·녹임·얼어붙음·서리번개·회오리·굳힘·꽃피움·들불·싹틈) · 풍·암은 받는 원소에만 · 같은 원소·물리는 없음', function () {
       var FC = DG.fieldCombat, R = FC.react, K = function (a, b) { var r = R(a, b); return r ? r.kind : null; };
       var want = { 'water|fire': 'vaporize', 'fire|water': 'vaporize', 'elec|fire': 'overload', 'fire|elec': 'overload',
         'water|elec': 'charged', 'elec|water': 'charged', 'ice|fire': 'melt', 'fire|ice': 'melt', 'water|ice': 'frozen', 'ice|water': 'frozen',
@@ -798,7 +801,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       var names = Object.keys(FC.REACT).length;
       return bad.length === 0 && none.length === 0 && names === 14 && R('fire', 'wind').from === 'fire' &&
         !FC.attaches('wind') && !FC.attaches('rock') && FC.attaches('ice') && FC.attaches('grass') &&
-        ('반응 ' + Object.keys(want).length + '방향 · 무반응 8 · 이름 ' + names + '(활성·발산·쇄빙 포함)');
+        ('반응 ' + Object.keys(want).length + '방향 · 무반응 8 · 이름 ' + names + '(번개싹·덩굴뻗음·깨뜨림 포함)');
     });
 
     t('들판 전투 — 원소 방패: 같은 원소 면역·물리 0.4(바위 1)·상성 2.5(수>화·뇌>수·화>뇌·암>풍·화>빙·초>암·풍>초)', function () {
@@ -833,7 +836,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       return dm.join(',') === '54,60,90' && f.hp === f.hpMax - 204 && ('피해 ' + dm.join(' → '));
     });
 
-    t('들판 전투 — 증발은 ×1.5(숙련 보정 포함), 반응 뒤 원소는 지워진다', function () {
+    t('들판 전투 — 물안개은 ×1.5(숙련 보정 포함), 반응 뒤 원소는 지워진다', function () {
       var FC = DG.fieldCombat, S = fcState(), f = fcFoe(S, 'bear', 3, 0);
       S.party[0].el = 'fire'; S.party[0].shape = 'circle';        // ⑫ 모양은 따로 본다 — 여기선 옛 원형
       FC.skill(S, 0, 0);
@@ -845,10 +848,10 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       var hit = ev.filter(function (e) { return e.t === 'hit'; })[0];
       return plain === 132 && f.aura === 'fire' && hit.react === 'vaporize' && hit.dmg === 238 && g.aura === null &&
         ev.some(function (e) { return e.t === 'react' && e.kind === 'vaporize'; }) &&
-        ('맨 스킬 ' + plain + ' → 증발 ' + hit.dmg);
+        ('맨 스킬 ' + plain + ' → 물안개 ' + hit.dmg);
     });
 
-    t('들판 전투 — 과부하는 4m 둘레 적까지 치고 밀어낸다', function () {
+    t('들판 전투 — 터짐는 4m 둘레 적까지 치고 밀어낸다', function () {
       var FC = DG.fieldCombat, S = fcState(), a = fcFoe(S, 'bear', 10, 0), b = fcFoe(S, 'bear', 12, 0);
       a.aura = 'elec'; a.auraT = 5;
       var bx = b.x;
@@ -858,7 +861,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ('옆 적도 ' + od + ' · ' + (b.x - bx).toFixed(1) + 'm 밀림');
     });
 
-    t('들판 전투 — 감전은 1초마다 세 번 깎는다', function () {
+    t('들판 전투 — 물벼락은 1초마다 세 번 깎는다', function () {
       var FC = DG.fieldCombat, S = fcState(), f = fcFoe(S, 'bear', 10, 0);
       f.aura = 'water'; f.auraT = 5;
       FC.hitFoe(S, f, S.party[0], 1, 'elec', 'test');
@@ -891,7 +894,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ('도감 ' + H.length + '명 — ' + ks.map(function (k) { return FC.EL[k].icon + (cnt[k] || 0); }).join(' '));
     });
 
-    t('들판 전투 ⑲-1 — 빙결: 2.5초 꼼짝 못 하고, 강공격·낙하(heavy)로 치면 쇄빙 ×1.5·풀림', function () {
+    t('들판 전투 ⑲-1 — 얼어붙음: 2.5초 꼼짝 못 하고, 강공격·낙하(heavy)로 치면 깨뜨림 ×1.5·풀림', function () {
       var FC = DG.fieldCombat, S = fcState(), f = fcFoe(S, 'bear', 2, 0), m = S.party[0];
       f.aura = 'water'; f.auraT = 5;
       FC.hitFoe(S, f, m, 10, 'ice', 'test');
@@ -902,10 +905,10 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       var still = f.x === x0 && f.y === y0 && fcEv(S, 'tell').length === 0 && Math.abs(f.frozenT - 1.5) < 1e-6;
       var hp0 = f.hp, r = FC.hitFoe(S, f, m, 100, null, 'heavy');
       return okFreeze && still && r.react === 'shatter' && r.dmg === 150 && f.hp === hp0 - 150 && f.frozenT === 0 &&
-        ('빙결 2.5초 · 1초 뒤 제자리 · 쇄빙 ' + r.dmg);
+        ('얼어붙음 2.5초 · 1초 뒤 제자리 · 깨뜨림 ' + r.dmg);
     });
 
-    t('들판 전투 ⑲-1 — 초전도(3m ×0.5 + 8초 물리 ×1.4) · 확산(4m 옆 적에 원소를 옮기고 ×0.6, 풍·암은 안 붙음)', function () {
+    t('들판 전투 ⑲-1 — 서리번개(3m ×0.5 + 8초 물리 ×1.4) · 회오리(4m 옆 적에 원소를 옮기고 ×0.6, 풍·암은 안 붙음)', function () {
       var FC = DG.fieldCombat, S = fcState(), a = fcFoe(S, 'bear', 10, 0), b = fcFoe(S, 'bear', 12, 0), m = S.party[0];
       a.aura = 'ice'; a.auraT = 5;
       FC.hitFoe(S, a, m, 10, 'elec', 'test');
@@ -920,10 +923,10 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       var S3 = fcState(), g = fcFoe(S3, 'bear', 10, 0);
       FC.hitFoe(S3, g, S3.party[0], 10, 'wind', 'test'); FC.hitFoe(S3, g, S3.party[0], 10, 'rock', 'test');
       return okSuper && okSwirl && g.aura === null &&
-        ('초전도 옆 ' + sc + ' → 물리 100 이 ' + r.dmg + ' · 확산 옆 ' + sw + '·불 옮겨 붙음 · 풍·암 맨몸엔 안 붙음');
+        ('서리번개 옆 ' + sc + ' → 물리 100 이 ' + r.dmg + ' · 회오리 옆 ' + sw + '·불 옮겨 붙음 · 풍·암 맨몸엔 안 붙음');
     });
 
-    t('들판 전투 ⑲-1 — 결정 보호막: 지금 인물 최대 체력 20%·15초, 피해를 먼저 막고 다 막으면 원소 효과(화상)도 없다', function () {
+    t('들판 전투 ⑲-1 — 굳힘 보호막: 지금 인물 최대 체력 20%·15초, 피해를 먼저 막고 다 막으면 원소 효과(화상)도 없다', function () {
       var FC = DG.fieldCombat, S = fcState(), a = fcFoe(S, 'bear', 10, 0), m = S.party[0];
       a.aura = 'water'; a.auraT = 5;
       FC.hitFoe(S, a, m, 10, 'rock', 'test');
@@ -938,7 +941,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ('보호막 ' + gmax + ' · 불도깨비 ' + base + ' 다 막음(화상 없음) · 15초 뒤 사라짐');
     });
 
-    t('들판 전투 ⑲-1 — 개화(1.5초 뒤 3m ×1.5) · 연소(0.5초마다 ×0.2 여덟 번) · 촉진(8초 뇌 활성·초 발산 ×1.25)', function () {
+    t('들판 전투 ⑲-1 — 꽃피움(1.5초 뒤 3m ×1.5) · 들불(0.5초마다 ×0.2 여덟 번) · 싹틈(8초 뇌 번개싹·초 덩굴뻗음 ×1.25)', function () {
       var FC = DG.fieldCombat, i;
       var S1 = fcState(), a = fcFoe(S1, 'bear', 10, 0), b = fcFoe(S1, 'bear', 12, 0);
       a.aura = 'water'; a.auraT = 5;
@@ -961,7 +964,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       var r1 = FC.hitFoe(S3, d, S3.party[0], 100, 'elec', 'test'), r2 = FC.hitFoe(S3, d, S3.party[0], 100, 'grass', 'test');
       var okQuick = q1 && r1.react === 'aggravate' && r1.dmg === 150 && r2.react === 'spread' && r2.dmg === 150 && d.aura === null;
       return okBloom && okBurn && okQuick &&
-        ('개화 ' + bl + ' · 연소 ' + bu + '×8 · 활성·발산 100→150');
+        ('꽃피움 ' + bl + ' · 들불 ' + bu + '×8 · 번개싹·덩굴뻗음 100→150');
     });
 
     t('들판 전투 ⑲-1 — 새 원소 괴물 넷: 제 원소 방패(얇게·정예 보상 없음)·서로 다른 몸·바이옴 무리에 선다·맞으면 원소 효과', function () {
@@ -1004,7 +1007,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ('51×51칸 — ' + Object.keys(NEW).map(function (x) { return F[x].name + ' ' + seen[x]; }).join(' · '));
     });
 
-    t('들판 전투 ⑲-2 — 강공격: 스태미나 20·×1.3 물리·앞쪽만(3.2m)·모자라면 안 됨·빙결 적은 쇄빙, 3타째 기본 공격은 쇄빙 안 함', function () {
+    t('들판 전투 ⑲-2 — 강공격: 스태미나 20·×1.3 물리·앞쪽만(3.2m)·모자라면 안 됨·얼어붙음 적은 깨뜨림, 3타째 기본 공격은 깨뜨림 안 함', function () {
       var FC = DG.fieldCombat, S = fcState(), a = fcFoe(S, 'bear', 2, 0), b = fcFoe(S, 'bear', -2.5, 0), c = fcFoe(S, 'bear', 0, 3.0);
       var r = FC.heavy(S, 0, 0);
       var ok1 = r.ok && r.n === 2 && a.hp === a.hpMax - 78 && c.hp === c.hpMax - 78 && b.hp === b.hpMax && S.stamina === 80 && S.combo === 0;
@@ -1018,7 +1021,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       g.frozenT = 2; S3.combo = 2;
       FC.attack(S3, 0, 0);
       var h3 = fcEv(S3, 'hit')[0], ok4 = h3.react === null && h3.dmg === 90 && g.frozenT === 2;
-      return ok1 && ok2 && ok3 && ok4 && ('앞 둘 ' + 78 + ' · 뒤 0 · 스태미나 100→80 · 모자라면 거절 · 쇄빙 ' + h.dmg + ' · 3타째 ' + h3.dmg + '(안 깨짐)');
+      return ok1 && ok2 && ok3 && ok4 && ('앞 둘 ' + 78 + ' · 뒤 0 · 스태미나 100→80 · 모자라면 거절 · 깨뜨림 ' + h.dmg + ' · 3타째 ' + h3.dmg + '(안 깨짐)');
     });
 
     t('들판 전투 ⑲-2 — 낙하 공격: 둘레 3.5m ×(1.2 + 0.1×떨어진 m), 15m 에서 막힘', function () {
@@ -8925,7 +8928,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         (function () { throw new Error(JSON.stringify(r)); })();
     });
 
-    /* ── ⑲-3 보물 상자·수집 구슬·신상 봉헌·원소 시야 (`treasure.js`, PLAN §5 ⑲-3) ── */
+    /* ── ⑲-3 보물 상자·수집 구슬·탑 봉헌·기척 보기 (`treasure.js`, PLAN §5 ⑲-3) ── */
     function trFind(pred) {
       var TR = DG.treasure, i, j, n, it;
       for (j = -4; j <= 4; j++) { for (i = -4; i <= 4; i++) {
@@ -8935,7 +8938,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       return null;
     }
 
-    t('보물 ⑲-3 — 자리: 지역 칸마다 고정·칸당 평범 둘·정교·진귀(+화려 넷에 하나 꼴)·고향은 셋·물·마을·길 비킴·석등 둘은 5m·다른 원소', function () {
+    t('보물 ⑲-3 — 자리: 지역 칸마다 고정·칸당 나무 둘·무늬·옻칠(+금박 넷에 하나 꼴)·고향은 셋·물·마을·길 비킴·석등 둘은 5m·다른 원소', function () {
       var TR = DG.treasure, W = DG.world, i, j, n, lux = 0, cells = 0, bad = 0, total = 0, ids = {}, dup = 0, okGrade = true, okLamp = true;
       var terr = function (tx, ty) { return W.terrainAt(tx, ty); };
       var same = JSON.stringify(TR.cellItems(3, 2)) === JSON.stringify(TR.cellItems(3, 2));
@@ -8960,10 +8963,10 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       } }
       var share = lux / cells;
       return same && home === 'common,common,exquisite' && okGrade && okLamp && dup === 0 && bad <= total * 0.02 && share > 0.15 && share < 0.35 &&
-        ('칸 ' + cells + ' · 상자 ' + total + ' · 화려 ' + Math.round(share * 100) + '% · 물·마을·길 ' + bad + ' · 고향 ' + home.split(',').length);
+        ('칸 ' + cells + ' · 상자 ' + total + ' · 금박 ' + Math.round(share * 100) + '% · 물·마을·길 ' + bad + ' · 고향 ' + home.split(',').length);
     });
 
-    t('보물 ⑲-3 — 열기: 한 번만·등급 보상(진귀 금 200·단사 3)·save.chests 에 남는다', function () {
+    t('보물 ⑲-3 — 열기: 한 번만·등급 보상(옻칠 금 200·단사 3)·save.chests 에 남는다', function () {
       var TR = DG.treasure, s = C.save, keep = { chests: JSON.stringify(s.chests || {}), gold: s.player.gold, dust: s.dust, tm: JSON.stringify(s.talentMat || null),
         gear: JSON.stringify({ w: s.weapons || null, a: s.artifacts || null, m: s.gearMat || null }) };
       try {
@@ -8982,7 +8985,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       }
     });
 
-    t('보물 ⑲-3 — 무리 잠금: 진귀·화려 상자에 tc: 무리가 서고(들판 populate), 치우면 풀려 다시 안 선다', function () {
+    t('보물 ⑲-3 — 무리 잠금: 옻칠·금박 상자에 tc: 무리가 서고(들판 populate), 치우면 풀려 다시 안 선다', function () {
       var TR = DG.treasure, FC = DG.fieldCombat;
       TR._resetForTest();
       var ch = trFind(function (c) { return c.lock === 'camp'; }), lux = trFind(function (c) { return c.lock === 'elite'; });
@@ -8996,7 +8999,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       var gone = TR.campsNear(ch.x, ch.y, 30).every(function (c) { return c.key !== 'tc:' + ch.id; }) && TR._unlocked()[ch.id] === true;
       TR._resetForTest();
       return !!cs && cs.foes.length >= 2 && cs.kind === 'plain' && !!ce && ce.kind === 'elite' && spawned && gone &&
-        ('진귀 무리 ' + cs.foes.map(function (f) { return FC.FOES[f.kind].name; }).join('·') + ' · 화려 정예 ' + FC.FOES[ce.foes[0].kind].name + ' · 치우면 풀림');
+        ('옻칠 무리 ' + cs.foes.map(function (f) { return FC.FOES[f.kind].name; }).join('·') + ' · 금박 정예 ' + FC.FOES[ce.foes[0].kind].name + ' · 치우면 풀림');
     });
 
     t('보물 ⑲-3 — 석등 잠금: 맞는 원소가 닿아야 켜지고, 첫 불 뒤 20초 안에 둘 다 켜야 풀린다', function () {
@@ -9033,7 +9036,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ('121칸 — ' + Object.keys(kinds).map(function (k) { return k + ' ' + kinds[k]; }).join(' · ') + ' · 나무 위는 발밑 1.1m+');
     });
 
-    t('보물 ⑲-3 — 봉헌: 찾은 탑 25m 안에서 구슬을 바치면 둘마다 신상 등급 +1(최대 10) → 들판 기력 상한 +8·금 200', function () {
+    t('보물 ⑲-3 — 봉헌: 찾은 탑 25m 안에서 구슬을 바치면 둘마다 탑 등급 +1(최대 10) → 들판 기력 상한 +8·금 200', function () {
       var TR = DG.treasure, BMb = DG.biome, LF = DG.landform, s = C.save;
       var keep = { orbs: JSON.stringify(s.orbs || { got: {}, given: 0 }), regions: JSON.stringify(s.regions || {}), gold: s.player.gold, dust: s.dust, tm: JSON.stringify(s.talentMat || null) };
       try {
@@ -9057,7 +9060,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       }
     });
 
-    t('보물 ⑲-3 — 원소 시야 흔적: 가장 가까운 것 쪽으로 2.2m 마다 빛 점·최대 14', function () {
+    t('보물 ⑲-3 — 기척 보기 흔적: 가장 가까운 것 쪽으로 2.2m 마다 빛 점·최대 14', function () {
       var TR = DG.treasure, a = TR.trail(0, 0, 10, 0), b = TR.trail(0, 0, 100, 0), z = TR.trail(3, 3, 3, 3);
       return a.length === 4 && Math.abs(a[0].x - 2.2) < 1e-9 && Math.abs(a[3].x - 8.8) < 1e-9 && b.length === 14 && z.length === 0 &&
         ('10m → 점 4 · 100m → 14(최대)');
@@ -9227,7 +9230,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         (function () { throw new Error(bad.slice(0, 5).join(' ') + ' moved=' + moved + ' far=' + far.toFixed(2) + ' josa=' + josaOk + ' here=' + here + ' home=' + home + ' off=' + off); })();
     });
 
-    /* ── ⑲-4 무예 단계·운명의 자리 (`talent.js`, PLAN §5 ⑲-4) ── */
+    /* ── ⑲-4 무예 단계·깨달음 (`talent.js`, PLAN §5 ⑲-4) ── */
     function talRig(idx) {
       var id = DG.data.heroes[idx].id;
       var keep = JSON.stringify({ d: C.save.dex.heroes[id] || null, h: C.save.heroes[id] || null, gold: C.save.player.gold,
@@ -9244,13 +9247,13 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       } };
     }
 
-    t('무예 ⑲-4 — 표: 상한 ★0~5 = 2·2·4·6·8·10 · 배율 1.0~1.8(13 → 2.125) · 값 아홉(쪽지 → 교본 → 비전) · 자리 여섯', function () {
+    t('무예 ⑲-4 — 표: 상한 ★0~5 = 3·4·5·7·9·10 · 배율 1.0~1.78(13 → 2.1) · 값 아홉(쪽지 → 교본 → 비전) · 깨달음 다섯', function () {
       var TL = DG.talent;
       var caps = [0, 1, 2, 3, 4, 5].map(TL.cap).join(','), c = TL.COST;
       var books = c.map(function (x) { return x.book[0] + x.books; }).join(',');
-      return caps === '2,2,4,6,8,10' && TL.mulAt(1) === 1 && TL.mulAt(10) === 1.8 && TL.mulAt(13) === 2.125 && TL.mulAt(99) === 2.125 &&
-        c.length === 9 && books === 'n3,g2,g4,g6,g9,s4,s6,s12,s16' && c[0].gold === 120 && c[8].gold === 7000 && c[8].dust === 220 &&
-        TL.cost(10) === null && TL.CON_TEXT.length === 6 && TL.nextRankFor(3) === 2 && TL.nextRankFor(10) === 5 &&
+      return caps === '3,4,5,7,9,10' && TL.mulAt(1) === 1 && TL.mulAt(10) === 1.78 && TL.mulAt(13) === 2.1 && TL.mulAt(99) === 2.1 &&
+        c.length === 9 && books === 'n2,g2,g3,g5,g8,s3,s5,s10,s14' && c[0].gold === 100 && c[8].gold === 6500 && c[8].dust === 220 &&
+        TL.cost(10) === null && TL.CON_TEXT.length === 5 && TL.nextRankFor(4) === 1 && TL.nextRankFor(6) === 3 && TL.nextRankFor(10) === 5 &&
         ('상한 ' + caps + ' · 책 ' + books);
     });
 
@@ -9258,28 +9261,28 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       var TL = DG.talent, rig = talRig(17), id = rig.id, r = {};
       try {
         r.old = TL.baseLevel(id, 'n') === 1 && TL.level(id, 's') === 1 && TL.con(id) === 0 && TL.mulOf(id, 'b') === 1;
-        C.save.player.gold = 100; C.save.dust = 999; TL.mats().note = 9;
+        C.save.player.gold = 99; C.save.dust = 999; TL.mats().note = 9;
         r.noGold = !TL.up(id, 'n') && TL.upCheck(id, 'n').why === '금 부족';
-        C.save.player.gold = 99999; TL.mats().note = 2;
+        C.save.player.gold = 99999; TL.mats().note = 1;
         r.noBook = !TL.up(id, 'n') && /쪽지/.test(TL.upCheck(id, 'n').why);
         TL.mats().note = 5;
         var g0 = C.save.player.gold, d0 = C.save.dust;
-        r.up = TL.up(id, 'n') && TL.baseLevel(id, 'n') === 2 && C.save.player.gold === g0 - 120 && C.save.dust === d0 - 30 && TL.count('note') === 2 &&
-          C.save.heroes[id].tn === 2 && TL.mulOf(id, 'n') === 1.075;
+        r.up = TL.up(id, 'n') && TL.baseLevel(id, 'n') === 2 && C.save.player.gold === g0 - 100 && C.save.dust === d0 - 30 && TL.count('note') === 3 &&
+          C.save.heroes[id].tn === 2 && TL.mulOf(id, 'n') === 1.08;
         TL.mats().guide = 99;
-        r.cap = !TL.up(id, 'n') && TL.upCheck(id, 'n').cap === true;             // ★0 은 2 까지
+        r.cap = TL.up(id, 'n') && TL.baseLevel(id, 'n') === 3 && !TL.up(id, 'n') && TL.upCheck(id, 'n').cap === true;   // ★0 은 3 까지
         C.save.heroes[id].rank = 2;
-        r.open = TL.up(id, 'n') && TL.up(id, 'n') && !TL.up(id, 'n') && TL.baseLevel(id, 'n') === 4 && TL.count('guide') === 93;
+        r.open = TL.up(id, 'n') && TL.up(id, 'n') && !TL.up(id, 'n') && TL.baseLevel(id, 'n') === 5 && TL.count('guide') === 89;
         C.save.heroes[id].rank = 5; C.save.heroes[id].tn = 10;
         r.max = !TL.up(id, 'n') && TL.upCheck(id, 'n').why === '최대 단계';
         delete C.save.dex.heroes[id];
         r.notOwned = TL.upCheck(id, 's').why === '미획득';
       } finally { rig.undo(); }
       var bad = Object.keys(r).filter(function (k) { return !r[k]; });
-      return bad.length === 0 ? '옛 1단 · 금·쪽지 거절 · 1→2(금 120·丹 30·쪽지 3) · ★0 상한 2 · ★2 → 4 · 10 최대' : ('실패 ' + bad.join(','));
+      return bad.length === 0 ? '옛 1단 · 금·쪽지 거절 · 1→2(금 100·丹 30·쪽지 2) · ★0 상한 3 · ★2 → 5 · 10 최대' : ('실패 ' + bad.join(','));
     });
 
-    t('무예 ⑲-4 — 운명의 자리: 매듭 하나로 한 자리 · 6 에서 멈춤 · 자리 3·5 는 스킬·폭발 +3(10 → 13 ×2.125)', function () {
+    t('무예 ⑲-4 — 깨달음: 매듭 하나로 한 단 · 5 에서 멈춤 · 3 은 스킬·해방 +2(10 → 12 ×1.98)', function () {
       var TL = DG.talent, rig = talRig(18), id = rig.id, r = {};
       try {
         r.none = !TL.unlockCon(id) && TL.conCheck(id).why === '인연 매듭 부족';
@@ -9288,63 +9291,62 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         C.save.heroes[id].ts = 10; C.save.heroes[id].tb = 10;
         r.c2 = TL.level(id, 's') === 10;
         TL.unlockCon(id); TL.unlockCon(id);
-        r.c3 = TL.con(id) === 3 && TL.level(id, 's') === 13 && TL.mulOf(id, 's') === 2.125 && TL.level(id, 'b') === 10 && TL.baseLevel(id, 's') === 10;
-        TL.unlockCon(id); TL.unlockCon(id);
-        r.c5 = TL.level(id, 'b') === 13 && TL.level(id, 'n') === 1;
-        r.six = TL.unlockCon(id) && TL.con(id) === 6 && !TL.unlockCon(id) && TL.count('knot') === 3 && TL.conCheck(id).why === '모두 열림';
+        r.c3 = TL.con(id) === 3 && TL.level(id, 's') === 12 && TL.mulOf(id, 's') === 1.98 && TL.level(id, 'b') === 12 && TL.baseLevel(id, 's') === 10;
+        r.five = TL.unlockCon(id) && TL.unlockCon(id) && TL.con(id) === 5 && !TL.unlockCon(id) && TL.count('knot') === 4 && TL.conCheck(id).why === '모두 열림' &&
+          TL.level(id, 'n') === 1;
       } finally { rig.undo(); }
       var bad = Object.keys(r).filter(function (k) { return !r[k]; });
-      return bad.length === 0 ? '매듭 0 거절 · 자리 1~6(매듭 9 → 3) · 3 → 스킬 13 · 5 → 폭발 13 · 7 번째 거절' : ('실패 ' + bad.join(','));
+      return bad.length === 0 ? '매듭 0 거절 · 깨달음 1~5(매듭 9 → 4) · 3 → 스킬·해방 12 · 6 번째 거절' : ('실패 ' + bad.join(','));
     });
 
-    t('무예 ⑲-4 — 들판 피해: 출처별로 단계를 탄다(basic·heavy→기본 · skill·zone→스킬 · burst→폭발 · test 는 안 탐)', function () {
+    t('무예 ⑲-4 — 들판 피해: 출처별로 단계를 탄다(basic·heavy→기본 · skill·zone→스킬 · burst→해방 · test 는 안 탐)', function () {
       var TL = DG.talent, FC = DG.fieldCombat, rig = talRig(19), id = rig.id, r = {};
       try {
         C.save.heroes[id].tn = 10; C.save.heroes[id].ts = 5; C.save.heroes[id].tb = 3;
         var S = fcState([id]), m = S.party[0];
         m.cr = 0;                                                   // ⑲-5 치명은 따로 본다
-        r.mods = m.tm.n === 1.8 && m.tm.s === 1.325 && m.tm.b === 1.15 && m.con === 0 && m.cdMul === 1 && m.reactMul === 1;
+        r.mods = m.tm.n === 1.78 && m.tm.s === 1.32 && m.tm.b === 1.16 && m.con === 0 && m.cdMul === 1 && m.reactMul === 1;
         function dmg(src) { var f = fcFoe(S, 'bear', 40 + S.uid * 5, 0); return FC.hitFoe(S, f, m, 1000, null, src).dmg; }
-        r.basic = dmg('basic') === 1800 && dmg('heavy') === 1800;
-        r.skill = dmg('skill') === 1325 && dmg('zone') === 1325;
-        r.burst = dmg('burst') === 1150;
+        r.basic = dmg('basic') === 1780 && dmg('heavy') === 1780;
+        r.skill = dmg('skill') === 1320 && dmg('zone') === 1320;
+        r.burst = dmg('burst') === 1160;
         r.test = dmg('test') === 1000;
         var me = fcState(['_me']).party[0];
         r.me = me.tm.n === 1 && me.tm.s === 1 && me.tm.b === 1;
       } finally { rig.undo(); }
       var bad = Object.keys(r).filter(function (k) { return !r[k]; });
-      return bad.length === 0 ? '1000 → 기본 1800 · 스킬·장판 1325 · 폭발 1150 · test 1000 · 나(_me) 1' : ('실패 ' + bad.join(','));
+      return bad.length === 0 ? '1000 → 기본 1780 · 스킬·장판 1320 · 해방 1160 · test 1000 · 나(_me) 1' : ('실패 ' + bad.join(','));
     });
 
-    t('무예 ⑲-4 — 자리 효과: 1 스킬 대기 ×0.8 · 2 반응 ×1.15 · 4 체력 ×1.2 · 6 폭발 뒤 10초 공격 ×1.25', function () {
+    t('무예 ⑲-4 — 깨달음 효과: 1 스킬 대기 ×0.85 · 2 반응 ×1.2 · 4 체력 ×1.15 · 5 해방 뒤 8초 공격 ×1.2', function () {
       var TL = DG.talent, FC = DG.fieldCombat, rig = talRig(20), id = rig.id, r = {};
       try {
         var S0 = fcState([id]), hp0 = S0.party[0].hpMax;
-        C.save.heroes[id].con = 6;
+        C.save.heroes[id].con = 5;
         var S = fcState([id]), m = S.party[0];
-        r.hp = m.hpMax === Math.round(hp0 * 1.2) && m.cdMul === 0.8 && m.reactMul === 1.15 && m.c6;
+        r.hp = m.hpMax === Math.round(hp0 * 1.15) && m.cdMul === 0.85 && m.reactMul === 1.2 && m.c6;
         FC.skill(S, 0, 0);
-        r.cd = Math.abs(m.skillCd - FC.SKILL_CD() * 0.8) < 1e-9 && Math.abs(m.skCdMax - m.skillCd) < 1e-9;
-        /* 반응 — 같은 em 의 자리 0 인물과 증발 피해 비교 */
+        r.cd = Math.abs(m.skillCd - FC.SKILL_CD() * 0.85) < 1e-9 && Math.abs(m.skCdMax - m.skillCd) < 1e-9;
+        /* 반응 — 같은 em 의 깨달음 0 인물과 물안개 피해 비교 */
         var S2 = fcState([id]), a = fcFoe(S2, 'bear', 60, 0), plain = fcState(['fc_a']), b2 = fcFoe(plain, 'bear', 60, 0);
         var mp = plain.party[0]; mp.em = S2.party[0].em; mp.reactMul = 1;
         a.aura = 'water'; a.auraT = 5; b2.aura = 'water'; b2.auraT = 5;
         var d1 = FC.hitFoe(S2, a, S2.party[0], 100, 'fire', 'test').dmg, d0 = FC.hitFoe(plain, b2, mp, 100, 'fire', 'test').dmg;
-        r.react = Math.abs(d1 / d0 - 1.15) < 0.02;
-        /* 자리 6 — 폭발 뒤 10초 */
+        r.react = Math.abs(d1 / d0 - 1.2) < 0.02;
+        /* 깨달음 5 — 해방 뒤 8초 */
         m.energy = FC.ENERGY_MAX(); m.burstCd = 0;
         FC.burst(S, 0, 0);
         var f6 = fcFoe(S, 'bear', 90, 0);
-        r.c6on = m.c6T === 10 && FC.hitFoe(S, f6, m, 100, null, 'test').dmg === 125;
+        r.c6on = m.c6T === 8 && FC.hitFoe(S, f6, m, 100, null, 'test').dmg === 120;
         for (var i = 0; i < 101; i++) { FC.step(S, 0.1, { px: 0, py: 0, blocked: true }); }
         var f7 = fcFoe(S, 'bear', 120, 0);
         r.c6off = m.c6T === 0 && FC.hitFoe(S, f7, m, 100, null, 'test').dmg === 100;
       } finally { rig.undo(); }
       var bad = Object.keys(r).filter(function (k) { return !r[k]; });
-      return bad.length === 0 ? '체력 ×1.2 · 대기 ' + (FC.SKILL_CD() * 0.8).toFixed(1) + '초 · 증발 ×1.15 · 폭발 뒤 125 → 10초 뒤 100' : ('실패 ' + bad.join(','));
+      return bad.length === 0 ? '체력 ×1.15 · 대기 ' + (FC.SKILL_CD() * 0.85).toFixed(2) + '초 · 물안개 ×1.2 · 해방 뒤 120 → 8초 뒤 100' : ('실패 ' + bad.join(','));
     });
 
-    t('무예 ⑲-4 — 얻는 곳: 상자 평범 쪽지 1·정교 쪽지 2·진귀 교본 2+매듭 1·화려 교본 3+비전 1+매듭 2 · 방패 괴물 쪽지 1 · 신상 등급마다 매듭 1', function () {
+    t('무예 ⑲-4 — 얻는 곳: 상자 나무 쪽지 1·무늬 쪽지 2·옻칠 교본 2+매듭 1·금박 교본 3+비전 1+매듭 2 · 방패 괴물 쪽지 1 · 탑 등급마다 매듭 1', function () {
       var TL = DG.talent, s = C.save, keep = JSON.stringify(s.talentMat || null), r = {};
       try {
         s.talentMat = { note: 0, guide: 0, secret: 0, knot: 0 };
@@ -9362,7 +9364,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       return bad.length === 0 ? '쪽지 4 · 교본 5 · 비전 1 · 매듭 5' : ('실패 ' + bad.join(','));
     });
 
-    /* ── ⑲-5 무기·치명타·성유물 (`weapon.js`·`artifact.js`, PLAN §5 ⑲-5) ── */
+    /* ── ⑲-5 무기·치명타·보패 (`weapon.js`·`artifact.js`, PLAN §5 ⑲-5) ── */
     function gearRig(ids) {
       var s = C.save, keep = JSON.stringify({ w: s.weapons || null, a: s.artifacts || null, m: s.gearMat || null, gold: s.player.gold, dust: s.dust,
         d: ids.map(function (id) { return s.dex.heroes[id] || null; }), h: ids.map(function (id) { return s.heroes[id] || null; }) });
@@ -9385,7 +9387,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       return null;
     }
 
-    t('무기 ⑲-5 — 종류: 인물 id 해시(늘 같음)·도감에 다섯 종류 모두·주인공 한손검 · 표 열다섯(★1 다섯·★3 다섯·★4 다섯)', function () {
+    t('무기 ⑲-5 — 종류: 인물 id 해시(늘 같음)·도감에 다섯 종류 모두·주인공 칼 · 표 열다섯(★1 다섯·★3 다섯·★4 다섯)', function () {
       var WP = DG.weapon, H = DG.data.heroes, cnt = {}, same = true, i;
       for (i = 0; i < H.length; i++) { var t1 = WP.typeOf(H[i].id); cnt[t1] = (cnt[t1] || 0) + 1; if (WP.typeOf(H[i].id) !== t1) { same = false; } }
       var r = { 1: 0, 3: 0, 4: 0 };
@@ -9395,7 +9397,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ('도감 ' + WP.TYPES.map(function (t3) { return WP.TYPE_NAMES[t3] + ' ' + cnt[t3]; }).join(' · '));
     });
 
-    t('무기 ⑲-5 — 기본 공격 모양: 활 14m·법구 7m(인물 원소)·한손검 12m 는 헛침 · 장병기 ×0.75 0.28초 · 양손검 쇄빙', function () {
+    t('무기 ⑲-5 — 기본 공격 모양: 활 14m·서책 7m(인물 원소)·칼 12m 는 헛침 · 창 ×0.75 0.28초 · 대도 깨뜨림', function () {
       var FC = DG.fieldCombat, types = ['sword', 'claymore', 'polearm', 'catalyst', 'bow'], ids = types.map(function (t1) { return heroOfType(t1); });
       if (ids.some(function (x) { return !x; })) { return false; }
       var undo = gearRig(ids), r = {};
@@ -9416,16 +9418,16 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         r.clay = ag.hit.react === 'shatter' && Math.abs(Sg.atkCd - 0.58) < 1e-9;
       } finally { undo(); }
       var bad = Object.keys(r).filter(function (k) { return !r[k]; });
-      return bad.length === 0 ? '활 12m 맞힘 · 법구 원소 · 한손검 헛침 · 장병기 ×0.75/0.28초 · 양손검 쇄빙/0.58초' : ('실패 ' + bad.join(','));
+      return bad.length === 0 ? '활 12m 맞힘 · 서책 원소 · 칼 헛침 · 창 ×0.75/0.28초 · 대도 깨뜨림/0.58초' : ('실패 ' + bad.join(','));
     });
 
-    t('무기 ⑲-5 — 공격 식·상한·강화·돌파·재련(5 넘치면 강화석 10)·옮기면 먼저 인물은 수련용', function () {
+    t('무기 ⑲-5 — 공격 식·상한·강화·벼림·울림(5 넘치면 강화석 10)·옮기면 먼저 인물은 수련용', function () {
       var WP = DG.weapon, a = heroOfType('sword', 0), b2 = heroOfType('sword', 1);
       if (!a || !b2) { return false; }
       var undo = gearRig([a, b2]), s = C.save, r = {};
       try {
-        r.atk = WP.atkAt('w_sword_4', 1, 0) === 44 && Math.abs(WP.atkAt('w_sword_4', 30, 5) - 44 * 3.24) < 1e-9 &&
-          [0, 1, 2, 3, 4, 5].map(WP.cap).join(',') === '10,14,18,22,26,30' && Math.abs(WP.subAt('w_sword_4', 30) - 0.04 * 4.48) < 1e-9;
+        r.atk = WP.atkAt('w_sword_4', 1, 0) === 40 && Math.abs(WP.atkAt('w_sword_4', 30, 5) - 40 * 3.24) < 1e-9 &&
+          [0, 1, 2, 3, 4, 5].map(WP.cap).join(',') === '10,14,18,22,26,30' && Math.abs(WP.subAt('w_sword_4', 30) - 0.035 * 4.48) < 1e-9;
         r.give = WP.give('w_sword_4') !== '' && WP.rec('w_sword_4').lv === 1 && WP.upCheck('w_sword_4').why === '강화석 부족';
         s.gearMat.ore = 999; s.player.gold = 99999; s.dust = 999;
         var n = 0; while (WP.up('w_sword_4')) { n++; }
@@ -9439,7 +9441,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
           WP.equipped(a) === 'w_sword_0' && !WP.equip(a, 'w_bow_4');
       } finally { undo(); }
       var bad = Object.keys(r).filter(function (k) { return !r[k]; });
-      return bad.length === 0 ? '44 → Lv30·돌파5 142.6 · Lv1→10 아홉 번 · 돌파 뒤 11 · 재련 5 → 강화석 +10 · 옮기면 수련용' : ('실패 ' + bad.join(','));
+      return bad.length === 0 ? '40 → Lv30·벼림5 129.6 · Lv1→10 아홉 번 · 벼림 뒤 11 · 울림 5 → 강화석 +10 · 옮기면 수련용' : ('실패 ' + bad.join(','));
     });
 
     t('무기 ⑲-5 — 들판 계산: 공격 = (인물 + 무기) × (1+공격%) · 무기 효과가 기본 공격 피해에 더해짐 · 치명(확률 100% → ×1.5) · test 는 안 굴림', function () {
@@ -9448,10 +9450,10 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       try {
         var s0 = DG.hero.stats(a), base = Math.max(20, Math.round(s0.might * 0.7 + s0.wisdom * 0.3));
         var m0 = fcState([a]).party[0];
-        r.practice = m0.atk === base + 23 && Math.abs(m0.cr - 0.05) < 1e-9 && m0.cdm === 0.5 && m0.dmgB.n === 0;
+        r.practice = m0.atk === base + 20 && Math.abs(m0.cr - 0.05) < 1e-9 && m0.cdm === 0.5 && m0.dmgB.n === 0;
         WP.give('w_sword_3'); WP.equip(a, 'w_sword_3');
         var S = fcState([a]), m = S.party[0];
-        r.atk = m.atk === Math.round((base + 39) * 1.077) && Math.abs(m.dmgB.n - 0.12) < 1e-9;
+        r.atk = m.atk === Math.round((base + 34) * 1.07) && Math.abs(m.dmgB.n - 0.12) < 1e-9;
         m.cr = 0;
         var d1 = FC.hitFoe(S, fcFoe(S, 'bear', 30, 0), m, 1000, null, 'basic').dmg;
         m.cr = 1;
@@ -9462,10 +9464,10 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         r.plain = fcm.cr === 0 && fcm.atk === 60 && fcm.kit.mul[2] === 1.5;
       } finally { undo(); }
       var bad = Object.keys(r).filter(function (k) { return !r[k]; });
-      return bad.length === 0 ? '수련용 +23 · 청동 환도 ×1.077 · 기본 1000 → 1120 · 치명 1680 · test 1000 · 도감 밖 그대로' : ('실패 ' + bad.join(','));
+      return bad.length === 0 ? '수련용 +20 · 청동 환도 ×1.07 · 기본 1000 → 1120 · 치명 1680 · test 1000 · 도감 밖 그대로' : ('실패 ' + bad.join(','));
     });
 
-    t('성유물 ⑲-5 — 생성: 씨앗이 같으면 같다 · 부옵션 ★4 2~3·★5 3~4(겹침·주옵션과 같은 것 없음) · +4 마다 늘거나 오름 · 주옵션 식', function () {
+    t('보패 ⑲-5 — 생성: 씨앗이 같으면 같다 · 부옵션 ★4 2~3·★5 3~4(겹침·주옵션과 같은 것 없음) · +3 마다 늘거나 오름 · 주옵션 식', function () {
       var AR = DG.artifact, i, bad = 0, n4 = {}, n5 = {};
       var same = JSON.stringify(AR.generate(77, 5)) === JSON.stringify(AR.generate(77, 5));
       for (i = 0; i < 200; i++) {
@@ -9475,40 +9477,40 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         if (AR.SLOT_MAINS[a.slot].indexOf(a.main) < 0) { bad++; }
       }
       var f = AR.generate(5, 5, 'gladiator', 'flower'), sum0 = f.subs.reduce(function (q, x) { return q + x[1]; }, 0), len0 = f.subs.length;
-      for (i = 0; i < 4; i++) { f.lv++; if (f.lv % 4 === 0) { AR.onStep(f); } }
+      for (i = 0; i < 3; i++) { f.lv++; if (f.lv % AR.STEP === 0) { AR.onStep(f); } }
       var sum1 = f.subs.reduce(function (q, x) { return q + x[1]; }, 0);
       var grew = f.subs.length === len0 + 1 || (f.subs.length === 4 && sum1 > sum0);
-      f.lv = 20;
-      var mv = AR.mainValue(f) === 420 && f.main === 'hp';
-      var g4 = AR.generate(9, 4, 'depth', 'plume'); g4.lv = 16;
-      var mv4 = Math.abs(AR.mainValue(g4) - (17 + 95 * 16 / 20) * 0.8) < 1e-9;
+      f.lv = 15;
+      var mv = AR.mainValue(f) === 480 && f.main === 'hp';
+      var g4 = AR.generate(9, 4, 'depth', 'plume'); g4.lv = 12;
+      var mv4 = Math.abs(AR.mainValue(g4) - (20 + 100 * 12 / 15) * 0.8) < 1e-9;
       return same && bad === 0 && Object.keys(n4).sort().join() === '2,3' && Object.keys(n5).sort().join() === '3,4' && grew && mv && mv4 &&
-        ('200개 · ★4 부옵션 2~3 · ★5 3~4 · +4 단계 · 꽃 +20 체력 420');
+        ('200개 · ★4 부옵션 2~3 · ★5 3~4 · +3 단계 · 패옥 +15 체력 480');
     });
 
-    t('성유물 ⑲-5 — 세트·계산: 떠돌이 무사 4 → 공격 +18%·한손검 기본 +35% · 꽃 체력 고정이 들판 체력에 · 끼면 다른 인물에게서 빠짐', function () {
+    t('보패 ⑲-5 — 세트·계산: 떠돌이 무사 4 → 공격 +15%·칼 기본 +30% · 패옥 체력 고정이 들판 체력에 · 끼면 다른 인물에게서 빠짐', function () {
       var AR = DG.artifact, a = heroOfType('sword', 0), b2 = heroOfType('bow', 0), undo = gearRig([a, b2]), r = {};
       try {
         var u = ['flower', 'plume', 'sands', 'goblet'].map(function (sl) { return AR.add(5, 'gladiator', sl); });
         var c5 = AR.add(4, 'depth', 'circlet');
         u.concat([c5]).forEach(function (x) { AR.equip(a, x); });
         var st = AR.statsOf(a);
-        r.sets = st.sets.length === 1 && st.sets[0].id === 'gladiator' && st.sets[0].n === 4 && st.four.normal_melee === 0.35;
+        r.sets = st.sets.length === 1 && st.sets[0].id === 'gladiator' && st.sets[0].n === 4 && st.four.normal_melee === 0.3;
         var pctSelf = AR.get(u[2]).main === 'atk_pct' ? AR.mainValue(AR.get(u[2])) : 0;
-        r.two = st.stats.atk_pct >= 0.18 + pctSelf - 1e-9;
+        r.two = st.stats.atk_pct >= 0.15 + pctSelf - 1e-9;
         var m = fcState([a]).party[0], s0 = DG.hero.stats(a);
         var hpWant = Math.round((300 + s0.command * 6) * (1 + (st.stats.hp_pct || 0)) + (st.stats.hp || 0));
-        r.hp = m.hpMax === hpWant && (st.stats.hp || 0) >= 64 && Math.abs(m.dmgB.n - 0.35) < 1e-9;
+        r.hp = m.hpMax === hpWant && (st.stats.hp || 0) >= 80 && Math.abs(m.dmgB.n - 0.3) < 1e-9;
         AR.equip(b2, u[0]);
         r.move = AR.get(u[0]).owner === b2 && !AR.equippedOf(a).flower && AR.statsOf(a).sets.length === 1 && !AR.statsOf(a).four.normal_melee;
         var mb = fcState([b2]).party[0];
         r.bow = mb.dmgB.n === 0;                                     // 활은 떠돌이 무사 4 를 안 받는다(세트도 하나뿐)
       } finally { undo(); }
       var bad = Object.keys(r).filter(function (k) { return !r[k]; });
-      return bad.length === 0 ? '4세트 켜짐 · 공격% ≥ 18% · 체력 고정 반영 · 기본 +35% · 옮기면 세트 꺼짐' : ('실패 ' + bad.join(','));
+      return bad.length === 0 ? '4세트 켜짐 · 공격% ≥ 15% · 체력 고정 반영 · 기본 +30% · 옮기면 세트 꺼짐' : ('실패 ' + bad.join(','));
     });
 
-    t('성유물 ⑲-5 — 강화(연마석 ⌈0.6×(n+1)⌉)·+20 끝·분해(★5 2 + 쓴 것 8할)·안 낀 ★4 모두 분해·상한 200', function () {
+    t('보패 ⑲-5 — 강화(연마석 ⌈0.6×(n+1)⌉)·+15 끝·분해(★5 2 + 쓴 것 8할)·안 낀 ★4 모두 분해·상한 200', function () {
       var AR = DG.artifact, a = heroOfType('sword', 0), undo = gearRig([a]), s = C.save, r = {};
       try {
         var u = AR.add(5, 'emblem', 'sands');
@@ -9516,8 +9518,8 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         s.gearMat.polish = 500; s.player.gold = 99999;
         var n = 0; while (AR.up(u)) { n++; }
         var art = AR.get(u), spent = 0, i;
-        for (i = 0; i < 20; i++) { spent += Math.ceil(0.6 * (i + 1)); }
-        r.up = n === 20 && art.lv === 20 && art.spent === spent && art.subs.length === 4 && s.gearMat.polish === 500 - spent;
+        for (i = 0; i < 15; i++) { spent += Math.ceil(0.6 * (i + 1)); }
+        r.up = n === 15 && art.lv === 15 && art.spent === spent && art.subs.length === 4 && s.gearMat.polish === 500 - spent;
         var p0 = AR.polish(), v = AR.salvage(u);
         r.salv = v === 2 + Math.floor(spent * 0.8) && AR.polish() === p0 + v && !AR.get(u);
         var k1 = AR.add(4), k2 = AR.add(4), k3 = AR.add(5, 'depth', 'flower');
@@ -9528,10 +9530,10 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         r.cap = AR.count() === 200 && !!AR.get(k3);
       } finally { undo(); }
       var bad = Object.keys(r).filter(function (k) { return !r[k]; });
-      return bad.length === 0 ? '+20 까지 스무 번 · 분해 되돌림 · 안 낀 ★4 둘 분해 · 205개 더해도 200' : ('실패 ' + bad.join(','));
+      return bad.length === 0 ? '+15 까지 열다섯 번 · 분해 되돌림 · 안 낀 ★4 둘 분해 · 205개 더해도 200' : ('실패 ' + bad.join(','));
     });
 
-    t('무기·성유물 ⑲-5 — 얻는 곳: 진귀 ★3 무기·강화석 15 · 화려 ★4 무기·강화석 40·★5 둘 · 정교 ★4 · 평범 강화석 2 · 방패 괴물 강화석 1·★4', function () {
+    t('무기·보패 ⑲-5 — 얻는 곳: 옻칠 ★3 무기·강화석 15 · 금박 ★4 무기·강화석 40·★5 둘 · 무늬 ★4 · 나무 강화석 2 · 방패 괴물 강화석 1·★4', function () {
       var WP = DG.weapon, AR = DG.artifact, undo = gearRig([]), r = {};
       try {
         var p = WP.onChest({ id: 'ctest_p', grade: 'precious' }), wp = WP.chestWeapon('ctest_p', 'precious');
@@ -9545,10 +9547,10 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         r.art = n1 === 2 && AR.count() === 4 && rs === '5,5,4,4' && WP.ore() === 58;
       } finally { undo(); }
       var bad = Object.keys(r).filter(function (k) { return !r[k]; });
-      return bad.length === 0 ? '진귀 ★3·15 · 화려 ★4·40·★5 둘 · 평범 2 · 정교 ★4 · 방패 괴물 1·★4' : ('실패 ' + bad.join(','));
+      return bad.length === 0 ? '옻칠 ★3·15 · 금박 ★4·40·★5 둘 · 나무 2 · 무늬 ★4 · 방패 괴물 1·★4' : ('실패 ' + bad.join(','));
     });
 
-    t('인물 상세 ⑲-4·5 — 무기 줄·고르기·강화 단추 · 성유물 부위 다섯·세트 · 무예 세 줄·운명의 자리가 그려진다', function () {
+    t('인물 상세 ⑲-4·5 — 무기 줄·고르기·강화 단추 · 보패 부위 다섯·세트 · 무예 세 줄·깨달음가 그려진다', function () {
       var WP = DG.weapon, AR = DG.artifact, a = heroOfType('polearm', 0), undo = gearRig([a]), html = '';
       try {
         WP.give('w_polearm_4'); WP.equip(a, 'w_polearm_4');
@@ -9558,8 +9560,8 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         DG.ui.closeDetail();
       } finally { undo(); }
       var ok = html.indexOf('봉수 월도') >= 0 && html.indexOf('data-wp-equip') >= 0 && html.indexOf('data-act="wp-up"') >= 0 &&
-        (html.match(/data-art-equip/g) || []).length === 5 && html.indexOf('절연 깃발 4세트') >= 0 &&
-        (html.match(/data-act="talent-up"/g) || []).length === 3 && html.indexOf('운명의 자리') >= 0;
+        (html.match(/data-art-equip/g) || []).length === 5 && html.indexOf('봉화 깃발 4세트') >= 0 &&
+        (html.match(/data-act="talent-up"/g) || []).length === 3 && html.indexOf('깨달음') >= 0;
       return ok && ('상세 ' + html.length + '자 · 무기·부위 다섯·세트·무예 셋');
     });
 
@@ -9709,7 +9711,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       return bad.length === 0 ? '★1 에 3 · 모자라면 거절 · 5 → 2 · 셋 모두 쓰임 · 멧돼지 고기 1' : ('실패 ' + bad.join(','));
     });
 
-    /* ── ⑲-7 모험 등급·세계 등급 (`adventure.js`, PLAN §5 ⑲-7) ── */
+    /* ── ⑲-7 여정 등급·천하 등급 (`adventure.js`, PLAN §5 ⑲-7) ── */
     function advRig(level) {
       var s = C.save, keep = JSON.stringify({ lv: s.player.level, exp: s.player.exp, gold: s.player.gold, a: s.adventure || null,
         gm: s.gearMat || null, tm: s.talentMat || null, hs: s.heroes || null });
@@ -9813,7 +9815,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       return bad.length === 0 ? '5·6 → 금 1100·🪨 4·🪢 1 · 옛 세이브 20 안 쏟아짐 · 경험으로 21' : ('실패 ' + bad.join(','));
     });
 
-    /* ── ⑲-9 비경·원기·주간 보스 (`domain.js`, PLAN §5 ⑲-9) ── */
+    /* ── ⑲-9 숨은 터·원기·주간 보스 (`domain.js`, PLAN §5 ⑲-9) ── */
     function dmRig() {
       var bak = JSON.stringify(C.save), FC = DG.fieldCombat, DM = DG.domain, T = 1e12;
       FC._resetForTest(); DM._resetForTest();
@@ -9822,7 +9824,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       C.save.party = ids.slice();
       DG.daily.state(); C.save.daily.bonus = 1; C.save.daily.tasks = [{ key: 'walk', got: 0, need: 1e9, done: false }];
       DM._setNowForTest(function () { return T; });
-      /* 둘레 들판 무리는 치운다 — 비경 무리만 남긴다 */
+      /* 둘레 들판 무리는 치운다 — 숨은 터 무리만 남긴다 */
       function quiet(S) { for (var k in S.camps) { if (S.camps.hasOwnProperty(k) && k.indexOf('dm:') !== 0) { S.camps[k].uids.forEach(function (u) { delete S.foes[u]; }); delete S.camps[k]; } } }
       return {
         FC: FC, DM: DM,
@@ -9846,7 +9848,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
     }
     function dmOf(kind) { return DG.domain.list().filter(function (d) { return d.kind === kind; })[0]; }
 
-    t('비경 ⑲-9 — 자리: 땅 열여섯마다 입구 하나(제 땅 안·물 아님) · 종류 6/5/5 · 먹구름 제단 하나(갈대 나루) · 결정성', function () {
+    t('숨은 터 ⑲-9 — 자리: 땅 열여섯마다 입구 하나(제 땅 안·물 아님) · 종류 6/5/5 · 먹구름 제단 하나(갈대 나루) · 결정성', function () {
       var DM = DG.domain, B = DG.biome, W = DG.world, L = DM.list(), r = {}, cnt = {};
       var ent = L.filter(function (d) { return d.kind !== 'weekly'; }), alt = L.filter(function (d) { return d.kind === 'weekly'; });
       ent.forEach(function (d) { cnt[d.kind] = (cnt[d.kind] || 0) + 1; });
@@ -9860,29 +9862,29 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       return bad.length === 0 ? '입구 16(무덤 6·서당 5·쇠부리 5) + 제단 1 · 다 제 땅 안' : ('실패 ' + bad.join(','));
     });
 
-    t('비경 ⑲-9 — 원기: 8분에 1 · 상한 160(가득이면 시각만 따라감) · 쓰기·모자람 · 처음은 가득 · 주간 30×3 → 60 · 월요일 새벽 4시 갈림', function () {
+    t('숨은 터 ⑲-9 — 원기: 10분에 1 · 상한 120(가득이면 시각만 따라감) · 쓰기·모자람 · 처음은 가득 · 주간 25×2 → 45 · 월요일 새벽 4시 갈림', function () {
       var DM = DG.domain, rig = dmRig(), r = {}, M = 60000;
       try {
-        r.pure = DM.resinAt({ v: 100, t: 0 }, 8 * M).v === 101 && DM.resinAt({ v: 100, t: 0 }, 8 * M).t === 8 * M &&
-          DM.resinAt({ v: 100, t: 0 }, 17 * M).t === 16 * M && DM.resinAt({ v: 150, t: 0 }, 999 * M).v === 160 &&
-          DM.resinAt({ v: 160, t: 0 }, 5 * M).t === 5 * M;
+        r.pure = DM.resinAt({ v: 100, t: 0 }, 10 * M).v === 101 && DM.resinAt({ v: 100, t: 0 }, 10 * M).t === 10 * M &&
+          DM.resinAt({ v: 100, t: 0 }, 21 * M).t === 20 * M && DM.resinAt({ v: 110, t: 0 }, 999 * M).v === 120 &&
+          DM.resinAt({ v: 120, t: 0 }, 5 * M).t === 5 * M;
         delete C.save.resin;
         rig.now(1e12);
-        r.fresh = DM.resin() === 160;
+        r.fresh = DM.resin() === 120;
         C.save.resin.v = 15; C.save.resin.t = 1e12;
         rig.now(1e12 + 40 * M);
-        r.grow = DM.resin() === 20 && DM.resinNextMs() === 8 * M;
-        r.cost = DM.costOf('tomb') === 20 && DM.costOf('weekly') === 30;
-        C.save.domain.weekly.n = 3;
-        r.weekly = DM.costOf('weekly') === 60;
+        r.grow = DM.resin() === 19 && DM.resinNextMs() === 10 * M;
+        r.cost = DM.costOf('tomb') === 15 && DM.costOf('weekly') === 25;
+        C.save.domain.weekly.n = 2;
+        r.weekly = DM.costOf('weekly') === 45;
         r.week = DM.weekKey(new Date(2026, 8, 28, 3, 59).getTime()) === '2026-9-21' && DM.weekKey(new Date(2026, 8, 28, 4, 0).getTime()) === '2026-9-28' &&
           DM.weekKey(new Date(2026, 9, 4, 23, 0).getTime()) === '2026-9-28';
       } finally { rig.undo(); }
       var bad = Object.keys(r).filter(function (k) { return !r[k]; });
-      return bad.length === 0 ? '100 → 8분 101 · 가득 160 · 15 → 40분 20 · 주간 30 → 넷째 60 · 월 03:59 는 지난주' : ('실패 ' + bad.join(','));
+      return bad.length === 0 ? '100 → 10분 101 · 가득 120 · 15 → 40분 19 · 주간 25 → 셋째 45 · 월 03:59 는 지난주' : ('실패 ' + bad.join(','));
     });
 
-    t('비경 ⑲-9 — 흐름: 단계 잠금(모험 1·6·12) · 3초 → 파도 1 → 파도 2 → 보상 나무 · 단계 배율 · 세계 등급·전리품·무리 기록 없음', function () {
+    t('숨은 터 ⑲-9 — 흐름: 단계 잠금(모험 1·6·12) · 3초 → 파도 1 → 파도 2 → 보상 나무 · 단계 배율 · 천하 등급·전리품·무리 기록 없음', function () {
       var rig = dmRig(), DM = rig.DM, FC = rig.FC, r = {};
       try {
         var d = dmOf('school');
@@ -9917,7 +9919,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       return bad.length === 0 ? '5 에 II 잠김 · 3초 뒤 셋 → 정예 셋 → 나무 · II 체력 ×2 · 금·처치·무리 기록 그대로' : ('실패 ' + bad.join(','));
     });
 
-    t('비경 ⑲-9 — 실패: 시간 초과·원판 밖·나가기·전멸 → 적 치움 · 원기 그대로', function () {
+    t('숨은 터 ⑲-9 — 실패: 시간 초과·원판 밖·나가기·전멸 → 적 치움 · 원기 그대로', function () {
       var rig = dmRig(), DM = rig.DM, FC = rig.FC, r = {};
       try {
         var d = dmOf('forge'), res0 = DM.resin();
@@ -9936,16 +9938,16 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         r.resin = DM.resin() === res0;
       } finally { rig.undo(); }
       var bad = Object.keys(r).filter(function (k) { return !r[k]; });
-      return bad.length === 0 ? '넷 다 실패 · 비경 무리 없음 · 원기 그대로' : ('실패 ' + bad.join(','));
+      return bad.length === 0 ? '넷 다 실패 · 숨은 터 무리 없음 · 원기 그대로' : ('실패 ' + bad.join(','));
     });
 
-    t('비경 ⑲-9 — 보상 나무: 원기 20 · 무덤 ★4 둘+연마석 · 서당 쪽지 3+교본 1 · 쇠부리 강화석 3 · 모자라면 거절(나무는 남음) · 세트 번갈이', function () {
+    t('숨은 터 ⑲-9 — 보상 나무: 원기 15 · 무덤 ★4 둘+연마석 · 서당 쪽지 3+교본 1 · 쇠부리 강화석 3 · 모자라면 거절(나무는 남음) · 세트 번갈이', function () {
       var rig = dmRig(), DM = rig.DM, AR = DG.artifact, WP = DG.weapon, TL = DG.talent, r = {};
       try {
         function toTree(kind) { var d = dmOf(kind); rig.at(d); DM.enter(d, 0); DM.run().phase = 'tree'; return d; }
         toTree('tomb');
         var a0 = AR.count(), p0 = AR.polish(), res0 = DM.resin(), c1 = DM.claim();
-        r.tomb = c1.ok && c1.cost === 20 && DM.resin() === res0 - 20 && AR.count() === a0 + 2 && AR.polish() === p0 + 1 && !DM.active();
+        r.tomb = c1.ok && c1.cost === 15 && DM.resin() === res0 - 15 && AR.count() === a0 + 2 && AR.polish() === p0 + 1 && !DM.active();
         toTree('school');
         var n0 = TL.count('note'), gd0 = TL.count('guide');
         r.school = DM.claim().ok && TL.count('note') === n0 + 3 && TL.count('guide') === gd0 + 1;
@@ -9953,18 +9955,18 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         var o0 = WP.ore();
         r.forge = DM.claim().ok && WP.ore() === o0 + 3;
         toTree('forge');
-        C.save.resin.v = 19;
+        C.save.resin.v = 14;
         var no = DM.claim();
-        r.short = !no.ok && /원기/.test(no.why) && DM.run().phase === 'tree' && C.save.resin.v === 19;
+        r.short = !no.ok && /원기/.test(no.why) && DM.run().phase === 'tree' && C.save.resin.v === 14;
         DM.leave();
         r.sets = DM.rewardOf('tomb', 0, 0).arts[0].set === 'crimson' && DM.rewardOf('tomb', 0, 1).arts[0].set === 'depth' &&
           DM.rewardOf('tomb', 2, 0).arts.filter(function (a) { return a.r === 5; }).length === 2;
       } finally { rig.undo(); }
       var bad = Object.keys(r).filter(function (k) { return !r[k]; });
-      return bad.length === 0 ? '무덤 ★4×2 · 서당 📃3 📘1 · 쇠부리 🪨3 · 원기 19 면 거절' : ('실패 ' + bad.join(','));
+      return bad.length === 0 ? '무덤 ★4×2 · 서당 📃3 📘1 · 쇠부리 🪨3 · 원기 14 면 거절' : ('실패 ' + bad.join(','));
     });
 
-    t('비경 ⑲-9 — 지맥 이상: 무덤 4초마다 물 부착 · 쇠부리 공격 ×1.3 · 서당 처치마다 명단 기력 +8', function () {
+    t('숨은 터 ⑲-9 — 터 기운: 무덤 4초마다 물 부착 · 쇠부리 공격 ×1.3 · 서당 처치마다 명단 기력 +8', function () {
       var rig = dmRig(), DM = rig.DM, FC = rig.FC, r = {};
       try {
         var d = dmOf('tomb');
@@ -9992,7 +9994,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       return bad.length === 0 ? '무덤 4초 뒤 물 · 쇠부리 ×1.3 · 서당 처치 → 기력 +8' : ('실패 ' + bad.join(','));
     });
 
-    t('비경 ⑲-9 — 주간 보스: 먹구름 이무기 하나 · 체력 50% 에서 뇌 방패(10%)·빨라짐 · 보상에 뇌룡 비늘 · 이번 주 횟수', function () {
+    t('숨은 터 ⑲-9 — 주간 보스: 먹구름 이무기 하나 · 체력 50% 에서 뇌 방패(10%)·빨라짐 · 보상에 뇌룡 비늘 · 이번 주 횟수', function () {
       var rig = dmRig(), DM = rig.DM, TL = DG.talent, r = {};
       try {
         var d = dmOf('weekly');
@@ -10005,13 +10007,13 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         r.p2 = DM.run().p2 && b.shEl === 'elec' && b.shield === Math.round(b.hpMax * 0.1) && b.cdMul === DM.P2_CD;
         DM.run().phase = 'tree';
         var s0 = TL.count('scale'), res0 = DM.resin(), c = DM.claim();
-        r.claim = c.ok && c.cost === 30 && DM.resin() === res0 - 30 && TL.count('scale') === s0 + 1 && DM.weeklyUsed() === 1;
+        r.claim = c.ok && c.cost === 25 && DM.resin() === res0 - 25 && TL.count('scale') === s0 + 1 && DM.weeklyUsed() === 1;
       } finally { rig.undo(); }
       var bad = Object.keys(r).filter(function (k) { return !r[k]; });
-      return bad.length === 0 ? '이무기 하나 · 50% → ⚡방패·간격 ×0.69 · 원기 30 · 🐉 +1 · 이번 주 1' : ('실패 ' + bad.join(','));
+      return bad.length === 0 ? '이무기 하나 · 50% → ⚡방패·간격 ×0.69 · 원기 25 · 🐉 +1 · 이번 주 1' : ('실패 ' + bad.join(','));
     });
 
-    t('비경 ⑲-9 — 무예 7→8 은 뇌룡 비늘 1(8→9·9→10 은 2) · 없으면 거절 · 올리면 빠짐', function () {
+    t('숨은 터 ⑲-9 — 무예 7→8 은 뇌룡 비늘 1(8→9·9→10 은 2) · 없으면 거절 · 올리면 빠짐', function () {
       var TL = DG.talent, rig = talRig(17), id = rig.id, r = {};
       try {
         C.save.heroes[id].rank = 5; C.save.heroes[id].tn = 7;
@@ -10025,14 +10027,14 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       return bad.length === 0 ? '7→8 🐉1 · 없으면 거절 · 올리면 0' : ('실패 ' + bad.join(','));
     });
 
-    /* ── ⑲-10 들판 보스 — 보상 꽃·다시 서기·돌파 재료 (`fieldboss.js`, PLAN §5 ⑲-10) ── */
+    /* ── ⑲-10 들판 보스 — 보상 꽃·다시 서기·승급 재료 (`fieldboss.js`, PLAN §5 ⑲-10) ── */
     function fbCell() {
       var B = DG.biome, F = DG.fieldCombat;
       for (var j = -3; j <= 3; j++) { for (var i = -3; i <= 3; i++) { var c = B.cellAt(i, j), g = F.guardianAt(c); if (g) { return { cell: c, g: g, rk: c.key }; } } }
       return null;
     }
 
-    t('들판 보스 ⑲-10 — 돌파 재료: 다섯 · 인물마다 해시로 하나(결정성·다섯 고루) · 승급 ★2~★5 에 2·4·8·12(★1 은 없음)', function () {
+    t('들판 보스 ⑲-10 — 승급 재료: 다섯 · 인물마다 해시로 하나(결정성·다섯 고루) · 승급 ★2~★5 에 2·4·8·12(★1 은 없음)', function () {
       var FB = DG.fieldBoss, seen = {}, i;
       for (i = 0; i < 100; i++) { seen[FB.bossOf(D.heroes[i].id)] = (seen[FB.bossOf(D.heroes[i].id)] || 0) + 1; }
       var id = D.heroes[3].id;
@@ -10057,7 +10059,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       return bad.length === 0 ? '1 개면 거절 · 3 → 1(두 개 씀)' : ('실패 ' + bad.join(','));
     });
 
-    t('들판 보스 ⑲-10 — 보상 꽃: 쓰러진 수호자 자리에 핌 · 원기 40 · 재료 2·★4·금·부대 경험 · 두 번 안 줌 · 모자라면 남음 · 옛 세이브도 핌', function () {
+    t('들판 보스 ⑲-10 — 보상 꽃: 쓰러진 수호자 자리에 핌 · 원기 30 · 재료 2·★4·금·부대 경험 · 두 번 안 줌 · 모자라면 남음 · 옛 세이브도 핌', function () {
       var FB = DG.fieldBoss, rig = dmRig(), DM = rig.DM, AR = DG.artifact, r = {};
       try {
         var fc = fbCell(), rk = fc.rk;
@@ -10071,16 +10073,16 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         var res0 = DM.resin(), a0 = AR.count(), g0 = C.save.player.gold;
         C.save.field.guardPaid = {};
         var c1 = FB.claim(rk);
-        r.claim = c1.ok && DM.resin() === res0 - 40 && FB.count(fc.cell.biome) === 2 && AR.count() === a0 + 1 &&
+        r.claim = c1.ok && DM.resin() === res0 - 30 && FB.count(fc.cell.biome) === 2 && AR.count() === a0 + 1 &&
           C.save.player.gold === g0 + 100 * fc.g.tier && C.save.field.guardPaid[rk] > 0 && FB.bloomAt(rk) === null;
         r.once = !FB.claim(rk).ok;
         delete C.save.field.guardPaid[rk];
-        C.save.resin.v = 39;
+        C.save.resin.v = 29;
         var c2 = FB.claim(rk);
-        r.short = !c2.ok && /원기/.test(c2.why) && FB.bloomAt(rk) !== null && C.save.resin.v === 39;
+        r.short = !c2.ok && /원기/.test(c2.why) && FB.bloomAt(rk) !== null && C.save.resin.v === 29;
       } finally { rig.undo(); }
       var bad = Object.keys(r).filter(function (k) { return !r[k]; });
-      return bad.length === 0 ? '꽃 → 원기 40 · 재료 2 · ★4 1 · 금 100×등급 · 한 번만 · 39 면 남음' : ('실패 ' + bad.join(','));
+      return bad.length === 0 ? '꽃 → 원기 30 · 재료 2 · ★4 1 · 금 100×등급 · 한 번만 · 29 면 남음' : ('실패 ' + bad.join(','));
     });
 
     t('들판 보스 ⑲-10 — 다시 서기(런타임): 꽃을 받고 150초 전엔 안 서고 · 뒤엔 선다(불러올 때·둘러볼 때 둘 다) · 안 받은 수호자는 안 선다', function () {
@@ -10122,11 +10124,35 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         FC.tick(0.05);
         var gain = C.save.player.gold - g0;
         r.loot = gain === FC.killGold(fc.g.tier) * foes.length && gain < FC.clearLoot('guard', fc.g.tier).gold;
-        r.exp = C.save.player.level === lv0 && C.save.player.exp - e0 < 30 * fc.g.tier;
+        /* 처치 경험(적 하나 몫)은 그대로 받는다 — 막는 것은 토벌 경험 30×등급뿐 */
+        var killExp = foes.reduce(function (q, f) { return q + Math.max(1, Math.round(Math.round(6 * f.tier * FC.FOES[f.kind].exp) / 2)); }, 0);
+        r.exp = C.save.player.level === lv0 && C.save.player.exp - e0 - killExp < 30 * fc.g.tier;
         r.bloom = !C.save.field.guardPaid[rk] && FB.bloomAt(rk) !== null;
       } finally { rig.undo(); }
       var bad = Object.keys(r).filter(function (k) { return !r[k]; });
       return bad.length === 0 ? '적 하나 금만 · 토벌 금·경험 없음 · 꽃 다시' : ('실패 ' + bad.join(','));
+    });
+
+    /* ── ⑳ 원작 겹침 정리 (PLAN §5 ⑳) ── */
+    t('원작 겹침 ⑳ — 화면 글자(보패·무기·무예·반응·상자·숨은 터 표 · 인물 상세 · 등급 카드)에 옛 원작 용어가 없다', function () {
+      var OLD = ['성유물', '비경', '지맥', '운명의 자리', '원소 시야', '모험 등급', '세계 등급', '원소 폭발', '신상', '재련', '돌파',
+        '한손검', '양손검', '장병기', '법구', '증발', '융해', '과부하', '감전', '빙결', '초전도', '확산', '개화', '연소', '촉진', '활성',
+        '발산', '쇄빙', '해시계', '술잔', '절연', '평범', '정교', '진귀', '화려'];
+      var AR = DG.artifact, WP = DG.weapon, TL = DG.talent, FC = DG.fieldCombat, parts = [], html = '';
+      [AR.SLOT_NAMES, AR.STAT_NAMES, AR.SETS, WP.TYPE_NAMES, WP.STAT_NAMES, WP.PASSIVE_NAMES, WP.WEAPONS, TL.KINDS, TL.CON_TEXT, TL.MATS,
+        FC.REACT, FC.EL, DG.treasure.GRADES, DG.domain.KINDS, DG.fieldBoss.MATS].forEach(function (o) { parts.push(JSON.stringify(o)); });
+      if (DG.adventure) { parts.push(DG.adventure.cardHtml()); }
+      var a = heroOfType('sword', 0), undo = gearRig([a]);
+      try {
+        WP.give('w_sword_4'); WP.equip(a, 'w_sword_4');
+        AR.SLOTS.forEach(function (sl) { AR.equip(a, AR.add(5, 'emblem', sl)); });
+        DG.ui.openDetail('hero', a);
+        html = document.getElementById('detail').innerHTML;
+        DG.ui.closeDetail();
+      } finally { undo(); }
+      parts.push(html);
+      var txt = parts.join(' | '), hit = OLD.filter(function (w) { return txt.indexOf(w) >= 0; });
+      return hit.length === 0 && html.length > 500 ? ('옛 용어 ' + OLD.length + '개 · 글 ' + txt.length + '자에서 0') : ('실패 ' + (hit.join(',') || '상세 ' + html.length + '자'));
     });
 
     t('런타임 에러 없음', function () {

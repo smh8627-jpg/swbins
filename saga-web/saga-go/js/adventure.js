@@ -1,14 +1,14 @@
 /**
- * 모험 등급 · 세계 등급 — 오픈월드 RPG의 모험 등급·세계 레벨 (PLAN §5 ⑲-7, saga-godot PLAN 106 ㉒, Q9 권장안)
+ * 여정 등급 · 천하 등급 — 오픈월드 RPG의 여정 등급·세계 레벨 (PLAN §5 ⑲-7, saga-godot PLAN 106 ㉒, Q9 권장안)
  * ---------------------------------------------------------------
- *   모험 등급  이미 있는 플레이어 Lv(`core.gainExp` 경험 곡선 그대로) — 새 경험 체계를 만들지 않는다.
+ *   여정 등급  이미 있는 플레이어 Lv(`core.gainExp` 경험 곡선 그대로) — 새 경험 체계를 만들지 않는다.
  *              오를 때마다 금 100×등급 · 부대 경험 40×등급 · 강화석 2, 5 의 배수면 인연 매듭 1.
- *   세계 등급  0~8 — 모험 등급 1·3·6·9·12·15·18·21·24(Godot 1·5·10…40 을 이 판 1.28배 곡선으로 당김).
+ *   천하 등급  0~8 — 여정 등급 1·3·6·9·12·15·18·21·24(Godot 1·5·10…40 을 이 판 1.28배 곡선으로 당김).
  *              들판 적(무리·정예·우두머리·겨루기 인물·수호자) 체력·방패 ×(1+0.35·세계), 공격 ×(1+0.22·세계)
- *              — **거리 등급 배율에 곱한다**(거리 등급 1+거리/900m 은 그대로). 사당 시련·비경·주간 보스는 안 받는다.
+ *              — **거리 등급 배율에 곱한다**(거리 등급 1+거리/900m 은 그대로). 사당 시련·숨은 터·주간 보스는 안 받는다.
  *              전리품 금 ×(1+0.25·세계), 3 단계마다 단사 +1. 한 단계 낮추기·되돌리기(들판 전투 중엔 막음).
  *
- * 세이브 `save.adventure = { lowered: 0|1, paid: 보상을 받은 모험 등급 }`(읽는 쪽 기본값 — 없으면 paid = 지금 Lv,
+ * 세이브 `save.adventure = { lowered: 0|1, paid: 보상을 받은 여정 등급 }`(읽는 쪽 기본값 — 없으면 paid = 지금 Lv,
  * 옛 세이브에 지난 보상이 쏟아지지 않게). 문턱·배율은 손잡이 `adventure.*`. 표·계산(`naturalOf`·`hpMul`·`atkMul`·
  * `lootMul`·`dustAdd`·`lvAdd`·`rewardOf`)은 순수 함수.
  */
@@ -24,13 +24,13 @@
   function toast(msg) { if (global.DG.ui && global.DG.ui.toast && !global.DG_NO_DRAW) { global.DG.ui.toast(msg); } }
 
   /* ── 표 ─────────────────────────────────────────────── */
-  var WL_AT = [1, 3, 6, 9, 12, 15, 18, 21, 24];       // 세계 등급 0~8 이 열리는 모험 등급
+  var WL_AT = [1, 3, 6, 9, 12, 15, 18, 21, 24];       // 천하 등급 0~8 이 열리는 여정 등급
   var WL_MAX = WL_AT.length - 1;
   var LV_ADD = [0, 12, 18, 28, 37, 46, 55, 64, 77];   // 머리 위 Lv 덧셈(Godot 8·20·26·36·45·54·63·72·85 의 차이)
   var HP_STEP = 0.35, ATK_STEP = 0.22, LOOT_STEP = 0.25;
 
   /* ── 판정 층(순수) ───────────────────────────────────── */
-  /** 모험 등급 ar 에서 저절로 열리는 세계 등급 */
+  /** 여정 등급 ar 에서 저절로 열리는 천하 등급 */
   function naturalOf(ar) {
     var w = 0;
     for (var i = 1; i <= WL_MAX; i++) { if (ar >= WL_AT[i]) { w = i; } }
@@ -42,7 +42,7 @@
   function lootMul(w) { return 1 + K('lootStep', LOOT_STEP) * clampW(w); }
   function dustAdd(w) { return Math.floor(clampW(w) / 3); }
   function lvAdd(w) { return LV_ADD[clampW(w)]; }
-  /** 모험 등급 ar 에 오르면 받는 것 */
+  /** 여정 등급 ar 에 오르면 받는 것 */
   function rewardOf(ar) {
     return { gold: 100 * ar, exp: 40 * ar, ore: 2, knot: ar % 5 === 0 ? 1 : 0 };
   }
@@ -85,7 +85,7 @@
       if (H && H.awardParty) { H.awardParty(r.exp); }
       if (WP && WP.addOre) { WP.addOre(r.ore); }
       if (r.knot && TL && TL.addMats) { TL.addMats({ knot: r.knot }); }
-      out.push('모험 등급 ' + a.paid + ' — 🪙 ' + r.gold + ' · 부대 경험 ' + r.exp + ' · 🪨 ' + r.ore + (r.knot ? ' · 🪢 ' + r.knot : ''));
+      out.push('여정 등급 ' + a.paid + ' — 🪙 ' + r.gold + ' · 부대 경험 ' + r.exp + ' · 🪨 ' + r.ore + (r.knot ? ' · 🪢 ' + r.knot : ''));
     }
     return out;
   }
@@ -97,7 +97,7 @@
     for (var i = 0; i < got.length; i++) { core().log('🧭 ' + got[i], 'level'); }
     var w = worldLevel();
     if (lastWL !== null && w !== lastWL) {
-      if (w > lastWL) { toast('🌍 세계 등급 ' + w + ' — 들판 적이 세지고 전리품이 늘어납니다'); core().log('🌍 세계 등급 ' + w + ' 로 올랐다', 'level'); }
+      if (w > lastWL) { toast('🌍 천하 등급 ' + w + ' — 들판 적이 세지고 전리품이 늘어납니다'); core().log('🌍 천하 등급 ' + w + ' 로 올랐다', 'level'); }
       worldChanged(lastWL, w);
     }
     lastWL = w;
@@ -106,9 +106,9 @@
   /** 한 단계 낮추기 — 세계 0 이거나 들판에서 싸우는 중이면 거절 */
   function lowerCheck() {
     var F = FC(), S = F && F.state ? F.state() : null;
-    if (!on()) { return { ok: false, why: '모험 등급이 꺼져 있습니다' }; }
+    if (!on()) { return { ok: false, why: '여정 등급이 꺼져 있습니다' }; }
     if (st().lowered) { return { ok: false, why: '이미 한 단계 낮췄습니다' }; }
-    if (natural() < 1) { return { ok: false, why: '세계 등급 0 은 더 낮출 수 없습니다' }; }
+    if (natural() < 1) { return { ok: false, why: '천하 등급 0 은 더 낮출 수 없습니다' }; }
     if (S && F.engaged && F.engaged(S)) { return { ok: false, why: '싸우는 중엔 바꿀 수 없습니다' }; }
     return { ok: true };
   }
@@ -151,14 +151,14 @@
   function cardHtml() {
     var a = st(), ar = rank(), n = natural(), w = worldLevel(), nx = nextAt();
     var btn = a.lowered
-      ? '<button class="btn wide" data-act="wl-restore">🌍 세계 등급 되돌리기 (' + w + ' → ' + n + ')</button>'
-      : (n > 0 ? '<button class="btn ghost wide" data-act="wl-lower">🌍 세계 등급 한 단계 낮추기 (' + w + ' → ' + (w - 1) + ')</button>' : '');
-    return '<div class="sec"><h4>🧭 모험 등급 <small class="muted">' + ar + ' · 세계 등급 ' + w + (a.lowered ? ' (낮춤)' : '') + '</small></h4>' +
+      ? '<button class="btn wide" data-act="wl-restore">🌍 천하 등급 되돌리기 (' + w + ' → ' + n + ')</button>'
+      : (n > 0 ? '<button class="btn ghost wide" data-act="wl-lower">🌍 천하 등급 한 단계 낮추기 (' + w + ' → ' + (w - 1) + ')</button>' : '');
+    return '<div class="sec"><h4>🧭 여정 등급 <small class="muted">' + ar + ' · 천하 등급 ' + w + (a.lowered ? ' (낮춤)' : '') + '</small></h4>' +
       '<div class="card">' +
         '<div class="stat-row"><span>들판 적 체력·방패 / 공격</span><b>×' + hpMul(w).toFixed(2) + ' / ×' + atkMul(w).toFixed(2) + '</b></div>' +
         '<div class="stat-row"><span>전리품 금</span><b>×' + lootMul(w).toFixed(2) + (dustAdd(w) ? ' · 단사 +' + dustAdd(w) : '') + '</b></div>' +
-        '<small class="muted">' + (nx ? '모험 등급 <b>' + nx + '</b> 에 세계 등급 ' + (n + 1) + ' 이 열립니다.' : '세계 등급 끝까지 올랐습니다.') +
-          ' 모험 등급이 오를 때마다 금·부대 경험·강화석(5 의 배수면 인연 매듭)을 받습니다.</small>' +
+        '<small class="muted">' + (nx ? '여정 등급 <b>' + nx + '</b> 에 천하 등급 ' + (n + 1) + ' 이 열립니다.' : '천하 등급 끝까지 올랐습니다.') +
+          ' 여정 등급이 오를 때마다 금·부대 경험·강화석(5 의 배수면 인연 매듭)을 받습니다.</small>' +
         btn +
       '</div></div>';
   }

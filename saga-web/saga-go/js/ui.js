@@ -97,7 +97,7 @@
         if (nb0 && nb0.inRange) { core.emit('fieldboss:request', nb0.b); }
         return;
       }
-      if (e.target.closest('[data-act="domain"]')) {             // ⑲-9 비경 입구
+      if (e.target.closest('[data-act="domain"]')) {             // ⑲-9 숨은 터 입구
         var DM0 = global.DG.domain, nd0 = DM0 && DM0.nearest(DOMAIN_NEAR);
         if (nd0 && nd0.inRange) { core.emit('domain:request', nd0.d); }
         return;
@@ -152,7 +152,7 @@
         global.DG.auto.toggleFlag(b.getAttribute('data-flag'));
       } else if (act === 'wl-lower' || act === 'wl-restore') {
         var AD = global.DG.adventure, wr = AD ? (act === 'wl-lower' ? AD.lower() : AD.restore()) : null;
-        if (wr) { toast(wr.ok ? '🌍 세계 등급 ' + wr.wl + ' — 들판 적이 ' + (act === 'wl-lower' ? '약해졌습니다' : '되돌아왔습니다') : '🌍 ' + wr.why); }
+        if (wr) { toast(wr.ok ? '🌍 천하 등급 ' + wr.wl + ' — 들판 적이 ' + (act === 'wl-lower' ? '약해졌습니다' : '되돌아왔습니다') : '🌍 ' + wr.why); }
       } else if (act === 'quest-claim') {
         var qr = global.DG.quest.claim(parseInt(b.getAttribute('data-i'), 10));
         if (qr && qr.breakthrough) { closeSheet(); }
@@ -245,7 +245,7 @@
       core.persist(); renderDetail(); renderSheet(); renderTop();
     });
     host.addEventListener('change', function (e) {
-      /* ⑲-5 무기·성유물 고르기 */
+      /* ⑲-5 무기·보패 고르기 */
       var ws = e.target.closest('[data-wp-equip]');
       if (ws) {
         if (global.DG.weapon) { global.DG.weapon.equip(ws.getAttribute('data-wp-equip'), ws.value); }
@@ -467,7 +467,7 @@
       (M ? '<div class="p-goal" data-act="open-quest">🚩 ' + goalWeekText() + '</div>' : '');
   }
 
-  /** 윗단 등급 글 — ⑲-7 모험 등급·세계 등급(adventure.js 가 없으면 예전 "Lv.N") */
+  /** 윗단 등급 글 — ⑲-7 여정 등급·천하 등급(adventure.js 가 없으면 예전 "Lv.N") */
   function advText(lv) {
     var A = global.DG.adventure;
     return A ? '모험 ' + lv + ' · 세계 ' + A.worldLevel() : 'Lv.' + lv;
@@ -609,7 +609,7 @@
       '</div>';
   }
 
-  /** ⑲-9 비경 입구 — 도전 중이면 안 올린다(위쪽 띠가 대신한다) */
+  /** ⑲-9 숨은 터 입구 — 도전 중이면 안 올린다(위쪽 띠가 대신한다) */
   function nearDomainCard(nd) {
     var DM = global.DG.domain, d = nd.d, kd = DM.KINDS[d.kind];
     return '<div class="near-card">' +
@@ -617,7 +617,7 @@
         '<div class="near-meta"><b>' + esc(d.name) + '</b>' +
           '<small style="color:' + kd.color + '">' + kd.loot + ' · ' + Math.round(nd.dist) + 'm · 🌙 ' + DM.resin() + '/' + DM.RESIN_MAX + '</small></div>' +
         (nd.inRange
-          ? '<button class="btn primary" data-act="domain">비경</button>'
+          ? '<button class="btn primary" data-act="domain">숨은 터</button>'
           : approachBtn(d.x, d.y)) +
       '</div>';
   }
@@ -708,7 +708,7 @@
     var Q = global.DG.quest;
     var st = Q.state();
     var list = Q.list();
-    var html = (global.DG.adventure ? global.DG.adventure.cardHtml() : '') + dailySection();   // ⑲-7 모험 등급 카드
+    var html = (global.DG.adventure ? global.DG.adventure.cardHtml() : '') + dailySection();   // ⑲-7 여정 등급 카드
     html += '<div class="sec"><h4>인장(印章) <small class="muted">' +
       st.stamps + ' / ' + Q.STAMPS_FOR_BREAK + '</small></h4><div class="card">' +
       '<div class="bar blue"><i style="width:' +
@@ -1265,7 +1265,7 @@
     var line = '공격 ' + Math.round(WP.atkAt(wid, r.lv, r.asc));
     if (w.sub) { line += ' · ' + WP.STAT_NAMES[w.sub] + ' +' + (WP.subAt(wid, r.lv) * 100).toFixed(1) + '%'; }
     if (w.pas) { line += ' · ' + WP.PASSIVE_NAMES[w.pas] + ' +' + Math.round(WP.passiveAt(wid, r.ref) * 100) + '%'; }
-    if (!WP.isShared(wid)) { line += ' · Lv.' + r.lv + '/' + WP.cap(r.asc) + ' · 돌파 ' + r.asc + ' · 재련 ' + r.ref; }
+    if (!WP.isShared(wid)) { line += ' · Lv.' + r.lv + '/' + WP.cap(r.asc) + ' · 벼림 ' + r.asc + ' · 울림 ' + r.ref; }
     out += '<small class="muted" style="display:block">' + line + '</small>';
     if (!WP.isShared(wid)) {
       var uc = WP.upCheck(wid), ac = WP.ascCheck(wid), c = WP.upCost(r.lv), a = WP.ascCost(r.asc);
@@ -1274,20 +1274,20 @@
           '🔨 강화 Lv.' + (r.lv + 1) + ' · 🪨 ' + WP.ore() + '/' + c.ore + ' · 🪙 ' + core.fmt(c.gold) + '</button>';
       } else if (a) {
         out += '<button class="btn ' + (ac.ok ? 'primary' : 'ghost') + ' wide"' + (ac.ok ? '' : ' disabled') + ' data-act="wp-asc" data-id="' + id + '" data-wid="' + wid + '">' +
-          '✨ 무기 돌파 ' + (r.asc + 1) + ' · 🪙 ' + core.fmt(a.gold) + ' · 丹 ' + a.dust + '</button>';
+          '✨ 무기 벼림 ' + (r.asc + 1) + ' · 🪙 ' + core.fmt(a.gold) + ' · 丹 ' + a.dust + '</button>';
       }
     } else {
-      out += '<small class="muted" style="display:block">진귀·화려 보물 상자에서 ' + WP.TYPE_NAMES[t] + ' ★3·★4 가 나옵니다.</small>';
+      out += '<small class="muted" style="display:block">옻칠·금박 보물 상자에서 ' + WP.TYPE_NAMES[t] + ' ★3·★4 가 나옵니다.</small>';
     }
     return out + '</div>';
   }
 
-  /** 성유물(PLAN §5 ⑲-5) — 부위 다섯·켜진 세트 */
+  /** 보패(PLAN §5 ⑲-5) — 부위 다섯·켜진 세트 */
   function artifactBlock(id) {
     var AR = global.DG.artifact;
     if (!AR) { return ''; }
     var eq = AR.equippedOf(id), L = AR.list(), all = Object.keys(L), i, j, k;
-    var out = '<div class="dt-artifact"><div class="dt-line"><span>🏺 성유물 (' + all.length + '/' + AR.CAP + ')</span><b>💎 ' + AR.polish() + '</b></div>';
+    var out = '<div class="dt-artifact"><div class="dt-line"><span>🏺 보패 (' + all.length + '/' + AR.CAP + ')</span><b>💎 ' + AR.polish() + '</b></div>';
     for (i = 0; i < AR.SLOTS.length; i++) {
       var slot = AR.SLOTS[i], cur = eq[slot], opts = '<option value="">' + AR.SLOT_ICON[slot] + ' ' + AR.SLOT_NAMES[slot] + ' — 비움</option>';
       var mine = all.filter(function (u) { return L[u].slot === slot; })
@@ -1320,7 +1320,7 @@
     return out + '</div>';
   }
 
-  /** 무예 단계·운명의 자리(PLAN §5 ⑲-4) — 들판 전투 피해에만 탄다 */
+  /** 무예 단계·깨달음(PLAN §5 ⑲-4) — 들판 전투 피해에만 탄다 */
   function talentBlock(id) {
     var TL = global.DG.talent;
     if (!TL) { return ''; }
@@ -1346,7 +1346,7 @@
     }
     var con = TL.con(id), dots = '';
     for (i = 0; i < TL.CON_MAX; i++) { dots += i < con ? '●' : '○'; }
-    out += '<div class="dt-line"><span>🌟 운명의 자리 ' + dots + '</span><b>' + con + '/' + TL.CON_MAX + '</b></div>';
+    out += '<div class="dt-line"><span>🌟 깨달음 ' + dots + '</span><b>' + con + '/' + TL.CON_MAX + '</b></div>';
     for (i = 0; i < TL.CON_MAX; i++) {
       out += '<small class="' + (i < con ? '' : 'muted') + '" style="display:block">' + (i < con ? '◆' : '◇') + ' ' + (i + 1) + '. ' + esc(TL.CON_TEXT[i]) + '</small>';
     }
@@ -1679,7 +1679,7 @@
   var levelupTimer = null;
   function showLevelUp(lv) {
     if (!els.levelup) { return; }
-    els.levelup.innerHTML = '<div class="lv-banner"><b>LEVEL UP</b><span>' + (global.DG.adventure ? '모험 등급 ' : 'Lv.') + lv + '</span></div>';
+    els.levelup.innerHTML = '<div class="lv-banner"><b>LEVEL UP</b><span>' + (global.DG.adventure ? '여정 등급 ' : 'Lv.') + lv + '</span></div>';
     els.levelup.classList.remove('show');
     void els.levelup.offsetWidth;               // 리플로우를 강제해 연타 레벨업도 매번 다시 재생한다
     els.levelup.classList.add('show');

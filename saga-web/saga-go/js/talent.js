@@ -1,12 +1,12 @@
 /**
- * 무예 단계 · 운명의 자리 — 오픈월드 RPG의 특성 레벨·운명의 자리 (PLAN §5 ⑲-4)
+ * 무예 단계 · 깨달음 — 오픈월드 RPG의 기술 레벨·돌파 단계 문법 (PLAN §5 ⑲-4, 이름·수치는 §5 ⑳)
  * ---------------------------------------------------------------
  * 인물의 힘은 레벨·승급 배율(`hero.js`) 하나뿐이었다. 들판 전투(⑨)에서
- * "기본 공격·원소 스킬·원소 폭발 중 무엇을 키우나" 를 고르는 축이 없었다.
+ * "기본 공격·원소 스킬·원소 해방 중 무엇을 키우나" 를 고르는 축이 없었다.
  *
- *   특성 레벨     → 무예 단계 셋(기본·스킬·폭발 1~10)  — "특성"은 ⑦ 승급 특성(perk.js)과 겹쳐 이름을 바꿨다
- *   돌파          → 승급 ★0~5 가 단계 상한을 연다     — 승급은 그대로(중복+금 · 3택)
- *   운명의 자리   → 인연 매듭 하나로 한 자리(0~6)      — 중복 등용은 승급 몫이라 겹치지 않는다
+ *   기술 레벨     → 무예 단계 셋(기본·스킬·해방 1~10)  — "특성"은 ⑦ 승급 특성(perk.js)과 겹쳐 이름을 바꿨다
+ *   단계 상한     → 승급 ★0~5 가 3·4·5·7·9·10 을 연다  — 승급은 그대로(중복+금 · 3택)
+ *   깨달음        → 인연 매듭 하나로 한 단(0~5)        — 중복 등용은 승급 몫이라 겹치지 않는다
  *
  * 수치의 원본은 saga-godot `data/growth.gd`(TALENT_*·CONSTELLATION_*). 코드는 공유하지 않는다.
  * 단계는 **들판 전투 피해에만** 탄다 — 사건 결투·부대 전투력(`hero.stats`)은 안 건드린다.
@@ -21,12 +21,12 @@
   var KINDS = [
     { key: 'n', field: 'tn', icon: '🗡️', name: '기본 공격' },
     { key: 's', field: 'ts', icon: '🌀', name: '원소 스킬' },
-    { key: 'b', field: 'tb', icon: '💥', name: '원소 폭발' }
+    { key: 'b', field: 'tb', icon: '💥', name: '원소 해방' }
   ];
   var MAX = 10;
-  var BONUS = 3;                                         // 자리 3·5 가 더하는 단계
-  var CAP_BY_RANK = [2, 2, 4, 6, 8, 10];                 // 승급 ★0~5
-  var MUL = [1.0, 1.075, 1.15, 1.25, 1.325, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.125];
+  var BONUS = 2;                                         // 깨달음 3 이 스킬·해방에 더하는 단계
+  var CAP_BY_RANK = [3, 4, 5, 7, 9, 10];                 // 승급 ★0~5
+  var MUL = [1.0, 1.08, 1.16, 1.24, 1.32, 1.4, 1.48, 1.58, 1.68, 1.78, 1.88, 1.98, 2.1];   // §5 ⑳ — 8단부터 +0.1
 
   var MATS = {
     note:   { icon: '📃', name: '무예 쪽지' },
@@ -35,31 +35,31 @@
     knot:   { icon: '🪢', name: '인연 매듭' },
     scale:  { icon: '🐉', name: '뇌룡 비늘' }             // ⑲-9 주간 보스(domain.js 먹구름 제단)
   };
-  /* 단계 n → n+1 (index n-1) — 금은 Godot 냥 ×0.05, 단사는 Godot 돌파 전리품 ×10 */
+  /* 단계 n → n+1 (index n-1) — §5 ⑳ 이 판 비용 */
   var COST = [
-    { gold: 120,  book: 'note',   books: 3,  dust: 30 },
-    { gold: 180,  book: 'guide',  books: 2,  dust: 40 },
-    { gold: 250,  book: 'guide',  books: 4,  dust: 60 },
-    { gold: 300,  book: 'guide',  books: 6,  dust: 80 },
-    { gold: 380,  book: 'guide',  books: 9,  dust: 100 },
-    { gold: 1200, book: 'secret', books: 4,  dust: 120 },
-    { gold: 2600, book: 'secret', books: 6,  dust: 150, scale: 1 },    // ⑲-9 7→10 은 주간 보스 비늘(Godot TALENT_WEEKLY)
-    { gold: 4500, book: 'secret', books: 12, dust: 180, scale: 2 },
-    { gold: 7000, book: 'secret', books: 16, dust: 220, scale: 2 }
+    { gold: 100,  book: 'note',   books: 2,  dust: 30 },
+    { gold: 160,  book: 'guide',  books: 2,  dust: 40 },
+    { gold: 220,  book: 'guide',  books: 3,  dust: 60 },
+    { gold: 300,  book: 'guide',  books: 5,  dust: 80 },
+    { gold: 400,  book: 'guide',  books: 8,  dust: 100 },
+    { gold: 1000, book: 'secret', books: 3,  dust: 120 },
+    { gold: 2200, book: 'secret', books: 5,  dust: 150, scale: 1 },    // ⑲-9 7→10 은 주간 보스 비늘
+    { gold: 4000, book: 'secret', books: 10, dust: 180, scale: 2 },
+    { gold: 6500, book: 'secret', books: 14, dust: 220, scale: 2 }
   ];
 
-  var CON_MAX = 6;
-  var C1_CD = 0.8, C2_REACT = 1.15, C4_HP = 1.2, C6_SEC = 10, C6_ATK = 1.25;
+  /* 깨달음 다섯 — ③ 이 스킬·해방 둘 다 +2. 칸 이름(C1_CD…C6_ATK)은 옛 자리 번호 그대로 두고 단만 옮겼다 */
+  var CON_MAX = 5;
+  var C1_CD = 0.85, C2_REACT = 1.2, C4_HP = 1.15, C6_SEC = 8, C6_ATK = 1.2;
   var CON_TEXT = [
-    '원소 스킬 재사용 대기 -20%',
-    '원소 반응 피해 +15%',
-    '원소 스킬 무예 +3',
-    '최대 체력 +20%',
-    '원소 폭발 무예 +3',
-    '원소 폭발 뒤 10초 공격 +25%'
+    '원소 스킬 재사용 대기 -15%',
+    '원소 반응 피해 +20%',
+    '원소 스킬·해방 무예 +2',
+    '최대 체력 +15%',
+    '원소 해방 뒤 8초 공격 +20%'
   ];
 
-  /* 얻는 곳 — Godot ⑫ 그대로 */
+  /* 얻는 곳 */
   var CHEST_MATS = {
     common:    { note: 1 },
     exquisite: { note: 2 },
@@ -67,7 +67,7 @@
     luxurious: { guide: 3, secret: 1, knot: 2 }
   };
   var ELITE_MATS = { note: 1 };                           // 방패 두른 원소 괴물 하나
-  var SHRINE_MATS = { knot: 1 };                          // 신상 등급 하나마다
+  var SHRINE_MATS = { knot: 1 };                          // 탑 등급 하나마다
 
   /* ── 세이브 칸 ────────────────────────────────────────── */
 
@@ -110,10 +110,10 @@
     var g = rec(id), v = g ? g.con : 0;
     return typeof v === 'number' && v > 0 ? Math.min(CON_MAX, Math.floor(v)) : 0;
   }
-  /** 싸움에 쓰는 단계 — 자리 3(스킬)·5(폭발)가 +3 */
+  /** 싸움에 쓰는 단계 — 깨달음 3 이 스킬·해방에 +2 */
   function level(id, key) {
     var c = con(id), lv = baseLevel(id, key);
-    if ((key === 's' && c >= 3) || (key === 'b' && c >= 5)) { lv += BONUS; }
+    if ((key === 's' || key === 'b') && c >= 3) { lv += BONUS; }
     return lv;
   }
   function cap(rank) { return CAP_BY_RANK[Math.max(0, Math.min(CAP_BY_RANK.length - 1, rank || 0))]; }
@@ -165,7 +165,7 @@
     return null;
   }
 
-  /* ── 운명의 자리 ──────────────────────────────────────── */
+  /* ── 깨달음 ──────────────────────────────────────────── */
 
   function conCheck(id) {
     if (!core.save.dex.heroes[id]) { return { ok: false, why: '미획득' }; }
@@ -179,8 +179,8 @@
     mats().knot -= 1;
     g.con = con(id) + 1;
     var h = global.DG.data.find(id);
-    core.log('🌟 ' + (h ? h.name : id) + ' 운명의 자리 ' + g.con + ' — ' + CON_TEXT[g.con - 1], 'good');
-    core.emit('toast', '🌟 ' + (h ? h.name : id) + ' 운명의 자리 ' + g.con + ' — ' + CON_TEXT[g.con - 1]);
+    core.log('🌟 ' + (h ? h.name : id) + ' 깨달음 ' + g.con + ' — ' + CON_TEXT[g.con - 1], 'good');
+    core.emit('toast', '🌟 ' + (h ? h.name : id) + ' 깨달음 ' + g.con + ' — ' + CON_TEXT[g.con - 1]);
     core.emit('talent:con', { id: id, con: g.con });
     core.emit('changed');
     core.persist();
@@ -189,7 +189,7 @@
 
   /**
    * 들판 전투가 한 사람을 세울 때 읽는 묶음(field-combat.js memberOf).
-   * '_me'·도감 밖 id 는 기본값(단계 1·자리 0)이라 배율이 모두 1 이다.
+   * '_me'·도감 밖 id 는 기본값(단계 1·깨달음 0)이라 배율이 모두 1 이다.
    */
   function combatMods(id) {
     var c = con(id);
@@ -199,7 +199,7 @@
       cdMul: c >= 1 ? C1_CD : 1,
       reactMul: c >= 2 ? C2_REACT : 1,
       hpMul: c >= 4 ? C4_HP : 1,
-      c6: c >= 6
+      c6: c >= 5
     };
   }
   /** 피해 출처 → 무예 갈래 (반응 조각·시험용 'test' 는 안 탄다) */

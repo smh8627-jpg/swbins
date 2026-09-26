@@ -1,8 +1,8 @@
 /**
- * 들판 보스 — 보상 꽃 · 다시 서기 · 돌파 재료 (PLAN §5 ⑲-10, saga-godot PLAN 106 ㉓)
+ * 들판 보스 — 보상 꽃 · 다시 서기 · 승급 재료 (PLAN §5 ⑲-10, 수치는 §5 ⑳)
  * ---------------------------------------------------------------
  * 새 보스를 세우지 않는다 — ⑪ 지역 수호자(바이옴 다섯 꼴)가 들판 보스다.
- *   꽃       수호자를 쓰러뜨리면 그 자리에 보상 꽃(수호자 원소 빛). 곁에서 원기 40(⑲-9)을 써서 받는다.
+ *   꽃       수호자를 쓰러뜨리면 그 자리에 보상 꽃(수호자 원소 빛). 곁에서 원기 30(⑲-9)을 써서 받는다.
  *            모자라면 꽃이 남는다. 받으면 150초 뒤 수호자가 다시 선다(field-combat `guardBack`).
  *            다시 쓰러뜨리면 토벌 금·단사·경험 없이 꽃만 다시 핀다.
  *   재료     바이옴마다 보스 재료 하나. 인물은 id 해시로 하나를 쓴다 — 승급 ★2~★5 에 2·4·8·12.
@@ -30,7 +30,7 @@
   };
   var MAT_KEYS = ['plain', 'bamboo', 'canyon', 'marsh', 'ruins'];
   var RANK_BOSS = [0, 2, 4, 8, 12];                    // 승급 ★1~★5 (★1 은 없음)
-  var COST = 40;
+  var COST = 30;
   var BASE_MAT = 2, ART_RARITY = 4, GOLD_PER_TIER = 100, PARTY_EXP = 60;
   function CLAIM_R(gps) { return gps ? 12 : 3; }
 
@@ -67,14 +67,14 @@
     return true;
   }
 
-  /** 꽃 보상 — 바이옴·등급·세계 등급 → 묶음. **순수 함수** */
+  /** 꽃 보상 — 바이옴·등급·천하 등급 → 묶음. **순수 함수** */
   function rewardOf(biome, tier, wl, lootMul) {
     return { mat: biome, n: BASE_MAT + Math.floor(Math.max(0, wl | 0) / 3), art: ART_RARITY,
              gold: Math.round(GOLD_PER_TIER * Math.max(1, tier | 0) * (lootMul || 1)), party: PARTY_EXP };
   }
   function rewardText(r) {
     var M = MATS[r.mat];
-    return (M ? M.icon + ' ' + M.name + ' ' + r.n + ' · ' : '') + '★' + r.art + ' 성유물 1 · 🪙 ' + r.gold + ' · 부대 경험 ' + r.party;
+    return (M ? M.icon + ' ' + M.name + ' ' + r.n + ' · ' : '') + '★' + r.art + ' 보패 1 · 🪙 ' + r.gold + ' · 부대 경험 ' + r.party;
   }
 
   /* ── 꽃 ──────────────────────────────────────────────── */
@@ -111,7 +111,7 @@
   function wl() { var A = global.DG.adventure; return A ? A.worldLevel() : 0; }
   function lootMul() { var A = global.DG.adventure; return A ? A.lootMul(wl()) : 1; }
 
-  /** 받는다 — 원기 40. { ok, why?, reward?, text? } */
+  /** 받는다 — 원기 30. { ok, why?, reward?, text? } */
   function claim(rk) {
     var b = bloomAt(rk), D = DM();
     if (!b) { return { ok: false, why: '꽃이 없다' }; }
@@ -150,9 +150,9 @@
         '<h3>보상 꽃</h3>' +
         '<p class="quote">' + esc(b.region) + ' — 쓰러진 ' + esc(b.name) + ' 자리에 꽃이 피었다.</p>' +
         '<div class="enc-reward">' + esc(rewardText(r)) + '</div>' +
-        '<div class="enc-reward">🌙 원기 ' + have + '/' + (D ? D.RESIN_MAX : 160) + ' · 받으면 150초 뒤 수호자가 다시 선다</div>' +
+        '<div class="enc-reward">🌙 원기 ' + have + '/' + (D ? D.RESIN_MAX : 120) + ' · 받으면 150초 뒤 수호자가 다시 선다</div>' +
         (have >= COST
-          ? '<button class="btn primary wide" data-act="claim">🌙 원기 ' + COST + ' 을 써서 받는다</button>'
+          ? '<button class="btn primary wide" data-act="claim">🌙 원기 ' + COST + ' 쓰고 받는다</button>'
           : '<div class="enc-reward">원기가 모자라다 — 꽃은 그대로 남는다</div>') +
         '<button class="btn ghost wide" data-act="ok">둔다</button>' +
       '</div>';
