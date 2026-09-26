@@ -26,13 +26,14 @@
  "eyebrows": "eyebrow012/eyebrow012.mhclo",
  "eyelashes": "eyelashes01/eyelashes01.mhclo",
  "teeth": "teeth_base/teeth_base.mhclo",
- "hair": "short01/short01.mhclo",
  "_garments": [
-  "gonryongpo@2f6a6a"
+  "gonryongpo@2f6a6a",
+  "sangtu"
  ],
  "clothes": [
   "cf_gonryongpo_2f6a6a/cf_gonryongpo_2f6a6a.mhclo",
-  "toigo_mj_cloth_shoes/toigo_mj_cloth_shoes.mhclo"
+  "toigo_mj_cloth_shoes/toigo_mj_cloth_shoes.mhclo",
+  "cf_sangtu/cf_sangtu.mhclo"
  ],
  "anims": {
   "idle": "Idle_Loop",

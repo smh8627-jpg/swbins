@@ -26,13 +26,14 @@
  "eyebrows": "eyebrow010/eyebrow010.mhclo",
  "eyelashes": "eyelashes01/eyelashes01.mhclo",
  "teeth": "teeth_base/teeth_base.mhclo",
- "hair": "short02/short02.mhclo",
  "_garments": [
-  "chalgap@3f6b3a"
+  "chalgap@3f6b3a",
+  "sangtu_bun"
  ],
  "clothes": [
   "cf_chalgap_3f6b3a/cf_chalgap_3f6b3a.mhclo",
-  "rehmanpolanski_viking_boots/rehmanpolanski_viking_boots.mhclo"
+  "rehmanpolanski_viking_boots/rehmanpolanski_viking_boots.mhclo",
+  "cf_sangtu_bun/cf_sangtu_bun.mhclo"
  ],
  "anims": {
   "idle": "CF_Guard_Idle_Loop",

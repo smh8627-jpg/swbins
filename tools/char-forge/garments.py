@@ -10,7 +10,7 @@
           `arc`(도) = 팔 바깥쪽만 두르는 판(소데), `bag` = 팔꿈치부터 네모나게 늘어진 자루(기모노)
   band    띠 — 그 높이 통 둘레 바깥
   leggings 다리 통(정강이 가리개·바지) · discs 가슴 둥근 판(호심경) · bow 등 매듭(오비) · sash 비스듬한 띠(토가)
-  mangeon·topknot·gat·helmet·neckguard·kuwagata·tassel·samo·boktu·myeollyu·beads·eboshi·turban  머리 부품 — 머리 살에 붙는다
+  mangeon·topknot·gat·helmet·neckguard·kuwagata·tassel·samo·boktu·myeollyu·beads·eboshi·turban·hairdome·mage  머리 부품 — 머리 살에 붙는다
 색 변형: `<id>@<헥스>[,<헥스>]` — 틀의 `colors`(C1·C2)를 바꾼 cf_<id>_<헥스>… (메시·맞춤은 기본 옷을 베끼고 그림만 새로)
 그다음 MPFB MakeClothes 와 같은 순서(`mesh_is_valid_as_clothes` → `create_mhclo_from_clothes_matching` → `write_mhclo`)로 기본 몸에 맞춘
 .mhclo 를 쓰므로 어느 체형에나 MakeHuman 이 맞춰 입힌다. 레시피에서는 받은 CC0 옷과 똑같이 `"clothes": ["cf_dopo/cf_dopo.mhclo"]`.
@@ -23,6 +23,7 @@
 import bpy, bmesh, math, os, sys, uuid, random
 import numpy as np
 from mathutils import Vector
+from mathutils.bvhtree import BVHTree
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import build_real  # noqa: E402
@@ -298,6 +299,67 @@ GARMENTS = {
     # 복두 — 네모진 두 층 모자·뒤 양옆 긴 곧은 날개(당·송·고려 관리)
     'boktu': dict(desc='복두 — 네모진 두 층 모자·양옆 긴 곧은 날개', tags=['hat', 'official', 'historical', 'east'], parts=[
         dict(kind='boktu', slot=6, paint=dict(base=BLACK, pattern='weave')),
+    ]),
+    # ---- 09-26 셋째: 껍데기 남은 넷·맨머리 동쪽 남자 ----
+    # 배자 바지저고리 — 바지저고리 위 엉덩이 길이 민소매 배자(앞 여밈 단) — 바지저고리(robe_short)와 가르는 덧옷
+    'baeja': dict(desc='배자 바지저고리 — 저고리·통 넓은 바지 위 민소매 배자', tags=['hanbok', 'historical', 'east'],
+                  colors=dict(C1='#3a4a6a', C2='#6b5a48'), parts=[
+        dict(kind='tube', top=('waist', 0.03), bottom=('crotch', 0.0), ease=0.03, slot=0, paint=dict(base='C2', pattern='weave')),
+        dict(kind='leggings', top=('crotch', 0.01), bottom=('ankle', 0.03), ease=0.045, flare=-0.25, slot=5, paint=dict(base='C2', pattern='weave',
+             trims=[('bottom', 0.012, '#2a2a2a')])),
+        dict(kind='tube', top=('neck', 0), bottom=('hip', -0.04), ease=0.018, over=0.014, slot=1,
+             paint=dict(base='#e6dfcc', trims=[('cross', WHITE, 0.7)])),
+        dict(kind='sleeves', length=1.0, ease=0.016, drop=0.03, cuff=0.01, slot=2, paint=dict(base='#e6dfcc')),
+        dict(kind='tube', top=('neck', 0), bottom=('hip', -0.07), ease=0.02, over=0.03, slot=6,
+             paint=dict(base='C1', pattern='quilt', trims=[('front', 0.03, '#e9e4d6'), ('top', 0.014, '#e9e4d6'), ('bottom', 0.012, '#e9e4d6')])),
+    ]),
+    # 가미시모 — 고소데 위 어깨가 옆으로 뻗은 견의(가타기누)와 같은 빛 하카마(에도 무가 예복)
+    'kamishimo': dict(desc='가미시모 — 어깨 날개 견의와 같은 빛 하카마, 고소데', tags=['hakama', 'historical', 'east'],
+                      colors=dict(C1='#2a3450', C2='#d8d2c0'), parts=[
+        dict(kind='tube', top=('neck', 0), bottom=('hip', -0.05), ease=0.016, slot=1, paint=dict(base='C2', trims=[('cross', WHITE, 1.2)])),
+        dict(kind='sleeves', length=1.0, ease=0.01, drop=0.1, bag=True, cuff=0.0, slot=2, paint=dict(base='C2')),
+        dict(kind='tube', top=('waist', 0.03), bottom=('ankle', 0.01), ease=0.02, over=0.014, flare=0.25, folds=0.035, nfolds=16, slot=0,
+             paint=dict(base='C1', pattern='stripes')),
+        dict(kind='tube', top=('neck', 0), bottom=('waist', 0.02), ease=0.016, over=0.03, slot=5,
+             paint=dict(base='C1', pattern='weave', trims=[('cross', 'C2', 1.6), ('top', 0.01, 'C2')])),
+        dict(kind='sleeves', length=0.2, ease=0.035, over=0.035, flare=1.1, arc=170, drop=0.0, cuff=0.0, slot=4, paint=dict(base='C1', pattern='weave')),
+        dict(kind='band', at=('waist', 0.03), width=0.045, over=0.036, slot=3, paint=dict(base='C1', pattern='weave')),
+    ]),
+    # 더블릿 — 허벅지 윗옷(앞 여밈·흰 깃·흰 끝동)·부푼 어깨 소매·허리띠·붙는 긴 양말바지(서유럽 르네상스 장인)
+    'doublet': dict(desc='더블릿 — 허벅지 윗옷·부푼 어깨 소매·흰 깃·긴 양말바지', tags=['doublet', 'historical', 'west'],
+                    colors=dict(C1='#5a3a2a', C2='#3a3a44'), parts=[
+        dict(kind='leggings', top=('crotch', 0.0), bottom=('ankle', 0.02), ease=0.008, slot=5, paint=dict(base='C2', pattern='weave')),
+        dict(kind='tube', top=('neck', 0), bottom=('crotch', -0.1), ease=0.016, flare=0.22, folds=0.012, slot=0,
+             paint=dict(base='C1', pattern='weave', trims=[('front', 0.018, '#2a1c14'), ('top', 0.014, '#e9e4d6'), ('bottom', 0.012, '#2a1c14')])),
+        dict(kind='sleeves', length=1.0, ease=0.012, drop=0.0, cuff=0.015, slot=2, paint=dict(base='C1', pattern='weave', trims=[('top', 0.025, '#e9e4d6')])),
+        dict(kind='sleeves', length=0.3, ease=0.035, over=0.015, flare=0.25, drop=0.0, cuff=0.0, slot=4,
+             paint=dict(base='C1', pattern='quilt', trims=[('top', 0.012, '#2a1c14')])),
+        dict(kind='band', at=('waist', 0.0), width=0.03, over=0.02, slot=3, paint=dict(base='#2a1c14')),
+    ]),
+    # 카바 — 무릎 길이 비스듬히 여민 겉옷·끝동·허리 띠 + 헐렁한 바지(서역·페르시아 학자·의원)
+    'qaba': dict(desc='카바 — 무릎 겉옷·비스듬한 여밈·허리 띠·헐렁한 바지', tags=['robe', 'historical', 'world'],
+                 colors=dict(C1='#3a5a6a', C2=GOLD), parts=[
+        dict(kind='leggings', top=('crotch', 0.01), bottom=('ankle', 0.03), ease=0.04, flare=-0.2, slot=5, paint=dict(base='#e6dfcc', pattern='weave')),
+        dict(kind='tube', top=('neck', 0), bottom=('knee', 0.02), ease=0.02, flare=0.3, folds=0.02, slot=0,
+             paint=dict(base='C1', pattern='weave', trims=[('cross', 'C2', 1.0), ('top', 0.012, 'C2'), ('bottom', 0.015, 'C2')])),
+        dict(kind='sleeves', length=1.0, ease=0.016, drop=0.03, cuff=0.015, slot=2, paint=dict(base='C1', pattern='weave', trims=[('top', 0.04, 'C2')])),
+        dict(kind='band', at=('waist', 0.02), width=0.06, over=0.03, slot=3, paint=dict(base='C2', pattern='weave')),
+    ]),
+    # 상투 — 빗어 올린 머리·망건·상투(갓 없는 선비·무장). 머리카락 메시 대신이다
+    'sangtu': dict(desc='빗어 올린 머리·망건·상투', tags=['hair', 'historical', 'east'], colors=dict(C1='#1b1512'), parts=[
+        dict(kind='hairdome', front=0.055, side=0.015, back=-0.03, ease=0.0045, slot=0, paint=dict(base='C1', pattern='sleek')),
+        dict(kind='mangeon', tight=True, ease=0.0075, slot=3, paint=dict(base=BLACK, pattern='mesh')),
+        dict(kind='topknot', r=0.02, tall=1.5, slot=4, paint=dict(base='C1', pattern='sleek')),
+    ]),
+    # 속발 — 빗어 올린 머리·정수리 상투(삼국 장수·의원, 망건 없음)
+    'sangtu_bun': dict(desc='빗어 올린 머리·정수리 상투(속발)', tags=['hair', 'historical', 'east'], colors=dict(C1='#1b1512'), parts=[
+        dict(kind='hairdome', front=0.06, side=0.015, back=-0.03, ease=0.0045, slot=0, paint=dict(base='C1', pattern='sleek')),
+        dict(kind='topknot', r=0.023, tall=1.25, slot=4, paint=dict(base='C1', pattern='sleek')),
+    ]),
+    # 존마게 — 앞머리~정수리를 민 사카야키 + 뒤에서 묶어 앞으로 눕힌 상투
+    'chonmage': dict(desc='사카야키·존마게', tags=['hair', 'historical', 'east'], colors=dict(C1='#1b1512'), parts=[
+        dict(kind='hairdome', open=True, front=0.06, side=0.035, back=-0.03, ease=0.0045, slot=0, paint=dict(base='C1', pattern='sleek')),
+        dict(kind='mage', slot=4, paint=dict(base='C1', pattern='sleek')),
     ]),
 }
 
@@ -625,28 +687,166 @@ class Builder:
         pts = [(B.co[i].x, B.co[i].y) for i in B.head if abs(B.co[i].z - z) < 0.012]
         return ring_radii(pts, 0.0, B.head_cy if cy is None else cy, HSEG, ease)
 
-    def _rings(self, specs, slot, cy, group='cf_head', closed_top=False):
-        """specs = [(z, 반지름 배열 또는 수)] 아래→위 → 격자. closed_top 이면 꼭대기를 작은 고리로 오므린다(사각형만 — 가운데 1mm 구멍)."""
+    def _rings(self, specs, slot, cy, group='cf_head', closed_top=False, half=False):
+        """specs = [(z, 반지름 배열 또는 수)] 아래→위 → 격자. closed_top 이면 꼭대기를 작은 고리로 오므린다(사각형만 — 가운데 1mm 구멍).
+        half 면 칸 s 의 각을 칸 가운데(s + 0.5) — _scalp_r 로 잰 반지름과 맞춘다."""
         rows, refs = [], []
+        h = 0.5 if half else 0.0
         for z, r in specs:
             rr = r if isinstance(r, np.ndarray) else np.full(HSEG, r)
-            rows.append([self.vert((rr[s] * math.cos(2 * math.pi * s / HSEG), cy + rr[s] * math.sin(2 * math.pi * s / HSEG), z), group)
+            rows.append([self.vert((rr[s] * math.cos(2 * math.pi * (s + h) / HSEG), cy + rr[s] * math.sin(2 * math.pi * (s + h) / HSEG), z), group)
                          for s in range(HSEG)])
             refs.append(Vector((0, cy, z - 0.05)))
         self.grid(rows, slot, refs)
 
     def mangeon(self, p):
+        """망건 — 이마 위 띠. `tight` 면 머리 앞뒤 한가운데로 쏜 광선으로 살에 붙인다(상투 — 빗어 올린 머리 위에 ease 만큼).
+        기본(갓 속)은 옛 방식: 얼굴 쪽으로 쏠린 head_cy 둘레 가장 먼 점 — 09-26 상투에서 1cm 가까이 떠 두꺼운 띠로 보였다."""
         B = self.B
         z0, z1 = B.eye_z + 0.03, B.eye_z + 0.075
-        self._rings([(z, self._head_ring(z, 0.004)) for z in np.linspace(z0, z1, 4)], p['slot'], B.head_cy)
+        if p.get('tight'):
+            hy = [B.co[i].y for i in B.head]
+            cy = (min(hy) + max(hy)) / 2
+            specs = [(z, np.array([self._scalp_r(z, s, p.get('ease', 0.004), cy) or 0.09 for s in range(HSEG)])) for z in np.linspace(z0, z1, 4)]
+            self._rings([(z, np.maximum(r, (np.roll(r, 1) + np.roll(r, -1)) / 2)) for z, r in specs], p['slot'], cy, half=True)
+            return
+        self._rings([(z, self._head_ring(z, p.get('ease', 0.004))) for z in np.linspace(z0, z1, 4)], p['slot'], B.head_cy)
+
+    def _scalp_r(self, z, s, ease, cy=None):
+        """머리 살의 (높이 z, 둘레 칸 s 가운데 각) 반지름 + ease — 바깥 0.35m 에서 머리 가운데 줄로 수평 광선을 쏴 처음 맞는 살 면
+        (헬퍼 뺀 'body' 면만). 안 맞으면(정수리 위) None. cy = 광선이 향하는 앞뒤 가운데(기본 head_cy).
+        09-26: 정점으로 재면 틀렸다 — 뒤통수 정점은 1.5cm 넘게 성겨 점 사이 볼록한 면을 놓쳐 덮개가 6~8mm 살 속으로 들어갔고,
+        높이 창의 가장 먼 점만 쓰면 창에 안쪽 점(입안·눈구멍)만 걸린 줄은 반지름이 절반이 됐다."""
+        if not hasattr(self, '_scalp_bvh'):
+            B = self.B
+            bs = set(B.body)
+            polys = [list(pl.vertices) for pl in B.bm.data.polygons if all(i in bs for i in pl.vertices)]
+            self._scalp_bvh = BVHTree.FromPolygons([tuple(c) for c in B.co], polys)
+        a = 2 * math.pi * (s + 0.5) / HSEG
+        d = Vector((math.cos(a), math.sin(a), 0.0))
+        c = Vector((0.0, self.B.head_cy if cy is None else cy, z))
+        hit = self._scalp_bvh.ray_cast(c + d * 0.35, -d, 0.35)
+        if hit[0] is None:
+            return None
+        return (hit[0] - c).length + ease
+
+    def hairdome(self, p):
+        """빗어 올린 머리(상투·존마게 밑) — 머리 속 한 점(앞뒤 한가운데 · 눈 높이 + 2cm)에서 둘레 각 θ·올려본 각 φ 로 쏜 광선이
+        바깥에서 처음 맞는 살 + 법선 쪽 여유. 머리선 높이는 둘레 각마다 다르다(눈 높이에서 m: 앞 `front`·옆 `side`·뒤 `back`) —
+        그 높이에 닿는 φ 를 이분법으로 찾고, 거기서 정수리(φ 89.5°)까지 줄 14. `open` 이면 앞머리~정수리를 민다(사카야키 —
+        앞 ±35° 는 비우고, 남은 띠는 정수리까지 가는 길의 뒤 0.9·옆 0.6 몫까지만, 머리 살이 드러난다). 무늬 결은 v(아래→위)로 선다.
+        09-26: 처음엔 높이마다 수평 고리로 쌓고 정수리를 타원 뚜껑으로 닫았더니 넓고 평평한 뒤 정수리를 뚜껑이 파고들어
+        입힌 몸에서 살이 비쳤다(수평 반지름 재기의 함정은 _scalp_r)."""
+        B = self.B
+        ease, opened = p.get('ease', 0.006), p.get('open', False)
+        hy = [B.co[i].y for i in B.head]
+        cy = (min(hy) + max(hy)) / 2        # 머리 앞뒤 한가운데 — head_cy 는 얼굴 점이 많아 앞으로 4.5cm 쏠린다
+        C = Vector((0.0, cy, B.eye_z + 0.02))
+        self._scalp_r(B.eye_z, 0, 0.0)      # BVH 준비
+        bvh = self._scalp_bvh
+        th = lambda s: 2 * math.pi * (s + 0.5) / HSEG  # noqa: E731
+        dirv = lambda t, f: Vector((math.cos(f) * math.cos(t), math.cos(f) * math.sin(t), math.sin(f)))  # noqa: E731
+
+        def hit(t, f):
+            d = dirv(t, f)
+            h = bvh.ray_cast(C + d * 0.35, -d, 0.35)
+            if h[0] is None:
+                return None
+            n = h[1] if h[1].dot(d) >= 0 else -h[1]
+            return h[0], n, (h[0] - C).length
+
+        def z0(s):
+            c = math.sin(th(s))              # -1 앞(270°) · +1 뒤(90°)
+            return B.eye_z + p.get('side', 0.035) * (1 - abs(c)) + (p.get('front', 0.055) if c < 0 else p.get('back', -0.03)) * abs(c)
+
+        def phi0(s):                         # 맞은 살 높이가 머리선이 되는 φ
+            lo, hi = math.radians(-50), math.radians(80)
+            for _ in range(24):
+                mid = (lo + hi) / 2
+                h = hit(th(s), mid)
+                if h is not None and h[0].z < z0(s):
+                    lo = mid
+                else:
+                    hi = mid
+            return (lo + hi) / 2
+
+        def reach(s):                        # 머리선 → 정수리 사이 어디까지 덮나
+            if not opened:
+                return 1.0
+            c = math.sin(th(s))
+            return 0.6 + 0.3 * c if c >= 0 else 0.6 * (1 + c) + 0.3 * (-c)
+        cols = list(range(HSEG))
+        if opened:
+            cols = sorted((s for s in cols if abs((360 * (s + 0.5) / HSEG - 270 + 180) % 360 - 180) > 35),
+                          key=lambda s: (360 * (s + 0.5) / HSEG - 305) % 360)
+        top = math.radians(89.5)
+        ref_ear = {}
+        # 덮는 범위(칸마다 φ 아래·위) — delete_group 이 이 안의 두피 살을 지운다. 입힌 몸은 나이·몸무게 모프로 뒤통수가
+        # 기본 몸보다 불룩해져 맞춤이 못 따라가 7mm 까지 살 속에 들었다(09-26 렌더 — 뒤통수에 살이 비침)
+        self.scalp_cover = dict(C=C, opened=opened, cols={s: (phi0(s), phi0(s) + (top - phi0(s)) * reach(s)) for s in cols})
+        NK = 14
+        rows = []
+        for k in range(NK):
+            f = k / (NK - 1)
+            row = []
+            for j, s in enumerate(cols):
+                t, f0 = th(s), phi0(s)
+                ph = f0 + (top - f0) * f * reach(s)
+                e = ease
+                if opened:                   # 민 자리에 닿는 가장자리(윗단·앞 끝 두 칸)는 살에 붙인다 — 떠 있으면 관자놀이에 날개로 보였다
+                    e *= min(1 - 0.5 * f ** 2, (0.4, 0.7)[j] if j < 2 else (0.4, 0.7)[len(cols) - 1 - j] if j >= len(cols) - 2 else 1.0)
+                h = hit(t, ph)
+                if h is None:                # 안 맞으면(생길 일은 없다) 가운데에서 9cm
+                    q = C + dirv(t, ph) * 0.09
+                else:
+                    q = h[0] + h[1] * e
+                    if abs(math.cos(t)) > 0.55 and h[0].z < B.eye_z + 0.05:   # 귀 — 옆 아래 광선이 귓바퀴에 맞아 뻗쳤다(09-26 렌더)
+                        if s not in ref_ear:
+                            lo, hi = f0, top
+                            for _ in range(20):
+                                mid = (lo + hi) / 2
+                                hm = hit(t, mid)
+                                lo, hi = (mid, hi) if hm is not None and hm[0].z < B.eye_z + 0.05 else (lo, mid)
+                            hm = hit(t, (lo + hi) / 2)
+                            ref_ear[s] = hm[2] if hm else None
+                        if ref_ear[s] and h[2] > ref_ear[s] * 1.04:
+                            q = C + dirv(t, ph) * (ref_ear[s] * 1.04 + e)
+                row.append(self.vert(tuple(q), 'cf_head'))
+            rows.append(row)
+        self.grid(rows, p['slot'], C, closed=not opened)
+
+    def mage(self, p):
+        """존마게 — 뒤 정수리에서 묶어 앞으로 눕힌 짧은 상투(사카야키 위). 자리는 실제 정수리(머리 살 가장 높은 점)의 앞뒤 —
+        head_cy 는 얼굴 점이 많아 앞으로 쏠려(09-26 첫판은 이마 위에 서서 뿔처럼 보였다). 뒤 끝만 머리에 묻히고 나머지는 거의 수평."""
+        B = self.B
+        crown = max(B.head, key=lambda i: B.co[i].z)
+        cy, cz = B.co[crown].y, B.head_top
+        top = {}
+        def top_at(y):
+            k = round(y, 3)
+            if k not in top:
+                zs = [B.co[i].z for i in B.head if abs(B.co[i].x) < 0.02 and abs(B.co[i].y - y) < 0.012]
+                top[k] = max(zs) if zs else B.head_top
+            return top[k]
+        # (앞뒤 자리, 정수리 위 높이 — None 이면 그 자리 머리 살 + 4mm, 반지름)
+        path = [(cy + 0.045, None, 0.004), (cy + 0.038, None, 0.009), (cy + 0.025, 0.010, 0.011), (cy + 0.008, 0.012, 0.010),
+                (cy - 0.010, 0.011, 0.009), (cy - 0.025, 0.009, 0.008), (cy - 0.035, 0.007, 0.006), (cy - 0.040, 0.006, 0.002)]
+        rows, refs = [], []
+        for y, dz, r in path:
+            c = Vector((0.0, y, top_at(y) + 0.004 if dz is None else max(top_at(y) + 0.006, cz + dz)))
+            rows.append([self.vert(c + Vector((r * 1.15 * math.cos(b), 0.0, r * math.sin(b))), 'cf_head')
+                         for b in (2 * math.pi * s / HSEG for s in range(HSEG))])
+            refs.append(c)
+        self.grid(rows, p['slot'], refs)
 
     def topknot(self, p):
         B = self.B
-        cy, zt, R = B.head_cy + 0.01, B.head_top - 0.012, 0.03
+        cy, zt, R, tall = B.head_cy + 0.01, B.head_top - 0.012 - p.get('sink', 0.0), p.get('r', 0.03), p.get('tall', 1.0)
         specs = []
-        for k in range(9):  # 아래는 머리에 묻히고 위로 둥근 혹
+        for k in range(9):  # 아래는 머리에 묻히고 위로 둥근 혹(tall 만큼 위로 길쭉)
             ph = -0.2 + (math.pi / 2 + 0.2) * k / 8
-            specs.append((zt + R * (0.7 + math.sin(ph)), max(0.002, R * math.cos(ph))))
+            sz = math.sin(ph)
+            specs.append((zt + R * (0.7 + sz * (tall if sz > 0 else 1.0)), max(0.002, R * math.cos(ph))))
         self._rings(specs, p['slot'], cy)
 
     def gat(self, p):
@@ -917,7 +1117,7 @@ class Builder:
         return ob
 
     def delete_group(self):
-        """옷에 덮이는 살 — 빌드가 지워 뚫림을 막는다(목·손·발·머리는 남긴다)."""
+        """옷에 덮이는 살 — 빌드가 지워 뚫림을 막는다(목·손·발은 남기고, 머리는 hairdome 이 덮은 두피만)."""
         B = self.B
         idx = []
         tubes = [c for c in self.cover if c[0] == 'tube']
@@ -934,6 +1134,18 @@ class Builder:
                     idx.append(i)
             elif full and part_sum(w, ['upperarm_*', 'lowerarm_*']) >= 0.5:
                 if (B.co[i] - wz['l' if B.co[i].x > 0 else 'r']).length > 0.07:
+                    idx.append(i)
+        sc = getattr(self, 'scalp_cover', None)
+        if sc:                                # 머리 덮개 밑 두피 — 머리선에서 0.1 rad(약 9mm) 안쪽부터, 귀는 남긴다
+            for i in B.head:
+                v = B.co[i] - sc['C']
+                t = math.atan2(v.y, v.x) % (2 * math.pi)
+                s = int(t / (2 * math.pi) * HSEG) % HSEG
+                if s not in sc['cols'] or (abs(math.cos(t)) > 0.55 and B.co[i].z < B.eye_z + 0.05):
+                    continue
+                f = math.atan2(v.z, math.hypot(v.x, v.y))
+                f0, f1 = sc['cols'][s]
+                if f0 + 0.1 < f and (f < f1 - 0.1 or not sc['opened']):
                     idx.append(i)
         g = B.bm.vertex_groups.new(name='cf_delete')
         g.add(idx, 1.0, 'REPLACE')
@@ -967,6 +1179,9 @@ def paint(g, dpath, npath):
             if pat == 'hair':
                 shade = 1 + 0.12 * np.sin(xx * 0.35 + noise * 0.8)
                 h = np.sin(xx * 0.35)
+        elif pat == 'sleek':                         # 빗어 넘긴 머리 — 가는 결, 요철 약하게(hair 는 뜨개처럼 보였다)
+            shade = 1 + 0.07 * np.sin(xx * 1.3 + np.sin(yy * 0.02) * 2.0) + 0.02 * noise
+            h = 0.15 * np.sin(xx * 1.3)
         elif pat == 'quilt':
             ln = (np.abs(((t * 40) % 1) - 0.5) < 0.06)
             shade = 1 - 0.18 * ln + 0.03 * noise

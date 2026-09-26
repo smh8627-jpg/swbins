@@ -346,6 +346,10 @@ def real_outfit(reg, role, key, female, c1, c2, c3):
             o = [cf('warrior_robe', c1 if not light else '#8a2f2a')]
         elif key == 'ninja':
             o = [cf('shinobi', c1 if lum(c1) < 0.15 else '#1e1e24')]
+        elif key == 'tunic' and reg == 'kr':   # robe_short(바지저고리)와 가르는 덧옷
+            o = [cf('baeja', c1 if not light else '#3a4a6a')]
+        elif key == 'tunic' and reg == 'jp':
+            o = [cf('kamishimo', c1 if not light else '#2a3450')]
         elif key == 'monk':
             return ['donitz_monk_robe', CLOTH_SHOES], []
         else:
@@ -366,6 +370,8 @@ def real_outfit(reg, role, key, female, c1, c2, c3):
         o, shoes = cf('gown', c1 if not light else '#6a2a3a', '#e2c070'), 'toigo_ballet_flats'
     elif key in ('lamellar', 'robe_armored'):
         o, shoes = cf('hauberk', c1 if light else '#e8e2d0', c1 if not light else '#2a3a7a'), BOOTS
+    elif key == 'robe_short':
+        o, shoes = (cf('qaba', c1 if not light else '#3a5a6a'), 'shoes02') if reg == 'wd' else (cf('doublet', c1 if not light else '#5a3a2a'), BOOTS)
     elif key in ('robe_wide', 'robe_long', 'royal'):
         o, shoes = cf('kaftan', c1 if not light else '#2a6a4a', '#c9a64a' if key == 'royal' else '#d8d0bc'), 'shoes02'
     if o:
@@ -379,8 +385,12 @@ def real_outfit(reg, role, key, female, c1, c2, c3):
     return None
 
 
-def real_head(reg, role, key, c1):
-    """머리 → (머리카락 또는 None, 옷 이름들, garments.py 인자들) 또는 None."""
+MODERN = ('suit', 'worksuit', 'casualsuit', 'uniform')
+
+
+def real_head(reg, role, key, c1, outfit=None, female=False, age=0.5):
+    """머리 → (머리카락 또는 None, 옷 이름들, garments.py 인자들) 또는 None.
+    동쪽 옛 남자의 짧은 머리(short01~04)는 머리카락 메시 대신 빗어 올린 머리 + 상투(한국 망건·삼국 속발·일본 존마게) — 근대 옷·부족은 그대로."""
     if reg not in EAST_REG:
         if key == 'helmet':
             return None, ['grinsegold_corinthian_helmet' if role == 'hoplite' else 'javherre_casco_caballero_templario_templar_knight_helmet'], []
@@ -397,6 +407,9 @@ def real_head(reg, role, key, c1):
             o = {'sg': cf('boktu'), 'jp': cf('eboshi')}[reg]
     elif key == 'crown':
         o = {'kr': cf('ikseongwan'), 'sg': cf('myeollyugwan'), 'jp': cf('eboshi')}[reg]
+    elif key.startswith('short') and not female and outfit not in MODERN and outfit != 'tribal':
+        gid = {'kr': 'sangtu', 'sg': 'sangtu_bun', 'jp': 'chonmage'}[reg]
+        o = cf(gid, '#77736c') if age >= 0.75 else cf(gid)   # 늙은이는 센머리
     else:
         return None
     return None, [o[0]], [o[1]]
@@ -480,7 +493,7 @@ def make(h):
     if ro:                     # 진짜 옷이 있는 틀 — 껍데기 옷을 빼고 옷 메시로
         parts, mh = [], list(ro[0])
         specs += ro[1]
-    rh = real_head(reg, role, h['axes']['head'], c1)
+    rh = real_head(reg, role, h['axes']['head'], c1, h['axes']['outfit'], female, age)
     if rh:
         hair, hparts = rh[0], []
         mh = mh + rh[1]

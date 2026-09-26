@@ -26,13 +26,14 @@
  "eyebrows": "eyebrow002/eyebrow002.mhclo",
  "eyelashes": "eyelashes01/eyelashes01.mhclo",
  "teeth": "teeth_base/teeth_base.mhclo",
- "hair": "short02/short02.mhclo",
  "_garments": [
-  "baji_jeogori@e6dfcc,6b5a48"
+  "baji_jeogori@e6dfcc,6b5a48",
+  "sangtu"
  ],
  "clothes": [
   "cf_baji_jeogori_e6dfcc_6b5a48/cf_baji_jeogori_e6dfcc_6b5a48.mhclo",
-  "toigo_mj_cloth_shoes/toigo_mj_cloth_shoes.mhclo"
+  "toigo_mj_cloth_shoes/toigo_mj_cloth_shoes.mhclo",
+  "cf_sangtu/cf_sangtu.mhclo"
  ],
  "anims": {
   "idle": "Idle_Loop",

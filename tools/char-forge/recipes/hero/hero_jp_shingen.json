@@ -26,13 +26,14 @@
  "eyebrows": "eyebrow004/eyebrow004.mhclo",
  "eyelashes": "eyelashes01/eyelashes01.mhclo",
  "teeth": "teeth_base/teeth_base.mhclo",
- "hair": "short03/short03.mhclo",
  "_garments": [
-  "gusoku@8a2a24,26262e"
+  "gusoku@8a2a24,26262e",
+  "chonmage"
  ],
  "clothes": [
   "cf_gusoku_8a2a24_26262e/cf_gusoku_8a2a24_26262e.mhclo",
-  "rehmanpolanski_viking_boots/rehmanpolanski_viking_boots.mhclo"
+  "rehmanpolanski_viking_boots/rehmanpolanski_viking_boots.mhclo",
+  "cf_chonmage/cf_chonmage.mhclo"
  ],
  "anims": {
   "idle": "CF_Guard_Idle_Loop",
