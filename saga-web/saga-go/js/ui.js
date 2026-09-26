@@ -1320,6 +1320,15 @@
     return out + '</div>';
   }
 
+  /** ⑲-11 고유·갈래 스킬 — [갈래] 스킬 이름·설명 두 줄(지략은 원소 기본이라 갈래 이름만) */
+  function kitLines(id) {
+    var FC = global.DG.fieldCombat, KT = global.DG.kits;
+    if (!FC || !KT || !FC.kitFor) { return ''; }
+    var el = FC.elementOf(id), k = FC.kitFor(id), E = FC.EL[el], lb = KT.labelOf(id, el);
+    if (!k) { return lb ? '<small class="muted" style="display:block">[' + lb + '] ' + E.icon + ' 원소 스킬·해방 — 원소 기본(모양은 인물마다)</small>' : ''; }
+    return '<small style="display:block">[' + k.label + '] 🌀 <b>' + esc(k.skill.name) + '</b> — ' + esc(k.skill.text) + '</small>' +
+      '<small style="display:block">[' + k.label + '] 💥 <b>' + esc(k.burst.name) + '</b> — ' + esc(k.burst.text) + '</small>';
+  }
   /** 무예 단계·깨달음(PLAN §5 ⑲-4) — 들판 전투 피해에만 탄다 */
   function talentBlock(id) {
     var TL = global.DG.talent;
@@ -1330,6 +1339,7 @@
       if (Object.prototype.hasOwnProperty.call(TL.MATS, k)) { mt.push(TL.MATS[k].icon + ' ' + TL.count(k)); }
     }
     out += '<div class="dt-line"><span>⚔️ 무예 (상한 ' + cap + ' · 승급 ★' + rank + ')</span><b>' + mt.join(' ') + '</b></div>';
+    out += kitLines(id);                                               // ⑲-11 고유·갈래 스킬 이름·설명
     for (i = 0; i < TL.KINDS.length; i++) {
       var K = TL.KINDS[i], lv = TL.baseLevel(id, K.key), eff = TL.level(id, K.key);
       var chk = TL.upCheck(id, K.key), c = TL.cost(lv), label;
@@ -1353,7 +1363,7 @@
     if (con < TL.CON_MAX) {
       var ok = TL.conCheck(id).ok;
       out += '<button class="btn ' + (ok ? 'primary' : 'ghost') + ' wide"' + (ok ? '' : ' disabled') + ' data-act="talent-con" data-id="' + id + '">' +
-        '🌟 ' + (con + 1) + '번째 자리 열기 · ' + TL.MATS.knot.icon + ' ' + TL.count('knot') + '/1</button>';
+        '🌟 ' + (con + 1) + '번째 깨달음 열기 · ' + TL.MATS.knot.icon + ' ' + TL.count('knot') + '/1</button>';
     }
     return out + '</div>';
   }

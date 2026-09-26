@@ -431,8 +431,11 @@
     }
     return out;
   }
+  /* ⑲-11 고유·갈래 스킬(kits.js) — 지략·도감 밖은 null(⑫ 모양 그대로). 손잡이 field.kits 0 이면 모두 옛 ⑫ */
+  function kitFor(id) { var KT = global.DG.kits; return KT && K('kits', 1) ? KT.kitOf(id, elementOf(id)) : null; }
   function memberOf(id) {
     var h = id === '_me' ? null : (data() && data().find ? data().find(id) : null);
+    var kt = kitFor(id);
     var s = statsOf(id);
     var tl = talentMods(id);
     var g = gearMods(id), st = g.st, f4 = g.four;
@@ -443,6 +446,7 @@
     var rf = f4.react_fire || 0;
     return {
       id: id, name: h ? h.name : '나', el: elementOf(id), shape: shapeOf(id),
+      kitS: kt ? kt.skill : null, kitB: kt ? kt.burst : null, kitL: kt ? kt.label : '', infT: 0, infMul: 1,
       atk: Math.round((base + g.watk) * (1 + v('atk_pct')) + v('atk')),
       hpMax: hpMax, hp: hpMax, em: s.wisdom, def: Math.round(s.command * (1 + v('def_pct')) + v('def')),
       tm: tl.tm, con: tl.con, cdMul: tl.cdMul, reactMul: tl.reactMul, c6: tl.c6, c6T: 0,
@@ -482,7 +486,8 @@
       stamina: STA_MAX(), staT: 9, iframe: 0, dash: null,
       combo: 0, comboT: 9, atkCd: 0, calmT: 99,
       foes: {}, camps: {}, cleared: {}, uid: 0, ev: [], kills: 0, zones: [],
-      guard: null,                         // ⑲-1 결정 보호막 { hp, max, t } — 명단 전체가 나눠 쓴다
+      guard: null,                         // ⑲-1 굳힘 보호막 { hp, max, t } — 명단 전체가 나눠 쓴다(⑲-11 방패 틀도 여기)
+      rallyT: 0, rallyMul: 1, wardT: 0, wardMul: 1, hasteT: 0,   // ⑲-11 명단 효과 — 군기(공격 곱)·맹세(받는 피해 곱)·뇌우(스킬 대기 두 배)
       crng: mulberry32(20260824)           // ⑲-5 치명타 굴림
     };
   }
@@ -497,7 +502,7 @@
       var o = old[fresh[i].id], m = fresh[i];
       if (!o) { continue; }
       m.hp = Math.round(m.hpMax * (o.hp / o.hpMax)); m.down = o.down;
-      m.skillCd = o.skillCd; m.burstCd = o.burstCd; m.energy = o.energy; m.skCdMax = o.skCdMax; m.c6T = o.c6T || 0;
+      m.skillCd = o.skillCd; m.burstCd = o.burstCd; m.energy = o.energy; m.skCdMax = o.skCdMax; m.c6T = o.c6T || 0; m.infT = o.infT || 0; m.infMul = o.infMul || 1;
     }
     S.party = fresh;
     S.active = 0;
@@ -708,6 +713,7 @@
     var emB = (1 + (m.em || 0) / 300) * (m.reactMul || 1) * (1 + (m.rxAll || 0));   // ⑲-4 깨달음 2 · ⑲-5 무기 반응 효과
     var mul = f.stun > 0 ? STUN_MUL() : 1;
     raw *= talentMul(m, src);
+    if (S.rallyT > 0 && src !== 'test') { raw *= S.rallyMul; }        // ⑲-11 군기·학날개 진
     /* ⑲-5 — 피해 보너스(원소/물리 + 무기 효과 + 세트 4, 더하기)·치명타. 출처가 인물의 한 방일 때만 */
     var TLk = global.DG.talent, gk = TLk ? TLk.keyOfSrc(src) : null;
     if (gk && m.dmgB) {
@@ -793,6 +799,9 @@
   }
 
   function active(S) { return S.party[S.active]; }
+  /* ⑲-11 검기·불새 깃 — 부여 중이면 기본·강·낙하 공격이 인물 원소로, 피해 곱 */
+  function infEl(m) { return m.infT > 0 ? m.el : null; }
+  function infM(m) { return m.infT > 0 ? m.infMul || 1 : 1; }
 
   /** 기본 공격 — 3타 사슬(0.9·1.0·1.5). 사거리 밖이면 6m 안의 적에게 파고든다 */
   function attack(S, px, py) {
@@ -817,7 +826,7 @@
     S.combo++; S.comboT = 0;
     S.atkCd = kit.sec[step];
     if (!tgt) { push(S, { t: 'swing', step: step, w: m.wtype }); return { ok: true, miss: true, step: step }; }
-    var r = hitFoe(S, tgt, m, m.atk * kit.mul[step], kit.el ? m.el : null, kit.heavy ? 'heavy' : 'basic');
+    var r = hitFoe(S, tgt, m, m.atk * kit.mul[step] * infM(m), kit.el ? m.el : infEl(m), kit.heavy ? 'heavy' : 'basic');
     m.energy = Math.min(ENERGY_MAX(), m.energy + 1.5 * (m.er || 1));
     push(S, { t: 'swing', step: step, uid: tgt.uid, w: m.wtype, ranged: !!kit.range, tx: tgt.x, ty: tgt.y, el: kit.el ? m.el : null });
     return { ok: true, step: step, hit: r };
@@ -841,7 +850,7 @@
       var fx = f.x - px, fy = f.y - py, d = Math.hypot(fx, fy);
       return d <= CHARGE_REACH() && (d < 0.5 || (fx * dx + fy * dy) / d >= CHARGE_ARC());
     });
-    for (var i = 0; i < hits.length; i++) { hitFoe(S, hits[i], m, m.atk * CHARGE_MUL(), null, 'heavy'); }
+    for (var i = 0; i < hits.length; i++) { hitFoe(S, hits[i], m, m.atk * CHARGE_MUL() * infM(m), infEl(m), 'heavy'); }
     m.energy = Math.min(ENERGY_MAX(), m.energy + 1.5 * hits.length * (m.er || 1));
     push(S, { t: 'heavy', x: px + dx * 1.2, y: py + dy * 1.2, r: 1.8, n: hits.length });
     return { ok: true, n: hits.length };
@@ -853,7 +862,7 @@
     var m = active(S);
     if (!m || m.down) { return { ok: false }; }
     var mul = plungeMul(fell), hits = foesWithin(S, px, py, PLUNGE_R());
-    for (var i = 0; i < hits.length; i++) { hitFoe(S, hits[i], m, m.atk * mul, null, 'heavy'); }
+    for (var i = 0; i < hits.length; i++) { hitFoe(S, hits[i], m, m.atk * mul * infM(m), infEl(m), 'heavy'); }
     m.energy = Math.min(ENERGY_MAX(), m.energy + 1.5 * hits.length * (m.er || 1));
     push(S, { t: 'plunge', x: px, y: py, r: PLUNGE_R(), n: hits.length, mul: mul });
     return { ok: true, n: hits.length, mul: mul };
@@ -863,6 +872,7 @@
   function skill(S, px, py) {
     var m = active(S);
     if (!m || m.down || m.skillCd > 0) { return { ok: false, cd: m ? m.skillCd : 0 }; }
+    if (m.kitS) { return kitSkill(S, m, px, py); }                   // ⑲-11 고유·갈래
     var aim = nearestFoe(S, px, py, SKILL_AIM());
     var cx = aim ? aim.x : px, cy = aim ? aim.y : py;
     var sh = m.shape || 'circle', hits = [], i, ev;
@@ -907,6 +917,87 @@
     return { ok: true, n: hits.length, shape: sh };
   }
 
+  /** ⑲-11 명단 보호막 — 지금 인물 최대 체력 × pct, 있던 것보다 크면 바꾼다 */
+  function giveGuard(S, m, pct, sec) {
+    var gh = Math.round(m.hpMax * pct), G = S.guard;
+    S.guard = { hp: Math.max(gh, G ? G.hp : 0), max: Math.max(gh, G ? G.max : 0), t: Math.max(sec, G ? G.t : 0) };
+  }
+  /** ⑲-11 원소 덧붙임 — 물결 회복(명단)·번개 기력(다른 인물) */
+  function kitExtras(S, m, k) {
+    for (var i = 0; i < S.party.length; i++) {
+      var o = S.party[i];
+      if (o.down) { continue; }
+      if (k.heal) { o.hp = Math.min(o.hpMax, o.hp + Math.round(o.hpMax * k.heal)); }
+      if (k.team && o !== m) { o.energy = Math.min(ENERGY_MAX(), o.energy + k.team * (o.er || 1)); }
+    }
+  }
+  /**
+   * ⑲-11 고유·갈래 스킬(kits.js 표의 type) — 대기·기력·대기 동료 몫은 옛 스킬과 같다.
+   * 깨달음 1(대기 곱)·무예 배율(출처 skill/zone)·치명·군기는 hitFoe 가 그대로 태운다.
+   */
+  function kitSkill(S, m, px, py) {
+    var k = m.kitS, aim = nearestFoe(S, px, py, Math.max(SKILL_AIM(), k.reach || 0)), hits = [], i, ev, shape = 'circle';
+    var dx = aim ? aim.x - px : 0, dy = aim ? aim.y - py : 0, dl = Math.hypot(dx, dy), far = dl;
+    if (dl < 1e-6) { dx = S.lastDx || 0; dy = S.lastDy || 1; dl = Math.hypot(dx, dy) || 1; }
+    dx /= dl; dy /= dl;
+    if (k.type === 'dash') {
+      var go = aim ? Math.min(k.len, Math.max(0, far - 1.2)) : k.len, bx = px + dx * go, by = py + dy * go;
+      hits = living(S).filter(function (f) { return segDist(f.x, f.y, px, py, bx + dx * 1.2, by + dy * 1.2) <= k.w; });
+      for (i = 0; i < hits.length; i++) { hitFoe(S, hits[i], m, m.atk * k.mul, m.el, 'skill'); }
+      S.dash = { vx: dx * go / DASH_T(), vy: dy * go / DASH_T(), t: DASH_T() };
+      S.iframe = Math.max(S.iframe, 0.3);
+      ev = { x: bx, y: by, x0: px, y0: py, r: k.w }; shape = 'dash';
+    } else if (k.type === 'shells') {
+      var tg = living(S).filter(function (f) { return Math.hypot(f.x - px, f.y - py) <= k.reach; })
+        .sort(function (a, b) { return Math.hypot(a.x - px, a.y - py) - Math.hypot(b.x - px, b.y - py); }).slice(0, k.n);
+      var spots = tg.length ? tg.map(function (f) { return { x: f.x, y: f.y }; }) : [{ x: px + dx * 8, y: py + dy * 8 }];
+      for (i = 0; i < spots.length; i++) {
+        S.zones.push({ kind: 'shell', x: spots[i].x, y: spots[i].y, r: k.r, t: k.delay, el: m.el, m: m, mul: k.mul });
+      }
+      hits = tg;
+      ev = { x: spots[0].x, y: spots[0].y, r: k.r };
+    } else if (k.type === 'guard') {
+      hits = foesWithin(S, px, py, k.r);
+      for (i = 0; i < hits.length; i++) { hitFoe(S, hits[i], m, m.atk * k.mul, m.el, 'skill'); }
+      giveGuard(S, m, k.shield + (k.shieldAdd || 0), k.sec);
+      ev = { x: px, y: py, r: k.r };
+    } else {
+      S.zones.push({ kind: 'kitzone', x: px, y: py, r: k.r, t: k.sec, next: 0, every: k.every, n: k.n, mul: k.mul, energy: k.energy || 0, el: m.el, atk: m.atk, m: m });
+      hits = foesWithin(S, px, py, k.r);
+      stepZones(S, 0);                                                // 놓자마자 첫 틱
+      ev = { x: px, y: py, r: k.r }; shape = 'field';
+    }
+    if (k.shieldAdd && k.type !== 'guard') { giveGuard(S, m, k.shieldAdd, 12); }   // 바위 — 방패 틀이 아니면 새 보호막
+    kitExtras(S, m, k);
+    m.skillCd = m.skCdMax = Math.max(1, k.cd) * (m.cdMul || 1);
+    m.energy = Math.min(ENERGY_MAX(), m.energy + (6 + Math.min(6, hits.length * 2)) * (m.er || 1));
+    for (var j = 0; j < S.party.length; j++) {
+      var o = S.party[j];
+      if (j !== S.active && !o.down) { o.energy = Math.min(ENERGY_MAX(), o.energy + 3 * (o.er || 1)); }
+    }
+    push(S, { t: 'skill', el: m.el, shape: shape, kit: k.type, name: k.name, x: ev.x, y: ev.y, x0: ev.x0, y0: ev.y0, r: ev.r, n: hits.length });
+    return { ok: true, n: hits.length, shape: shape, kit: k.type, name: k.name };
+  }
+  /** ⑲-11 고유·갈래 해방 — 둘레 r 에 mul 한 번 + type 효과. 기력·대기·무적·깨달음 5 는 burst 가 먼저 치렀다 */
+  function kitBurst(S, m, px, py) {
+    var k = m.kitB, hits = foesWithin(S, px, py, k.r), i;
+    for (i = 0; i < hits.length; i++) { hitFoe(S, hits[i], m, m.atk * k.mul, m.el, 'burst'); }
+    if (k.type === 'infuse') { m.infT = k.sec; m.infMul = k.nmul; }
+    else if (k.type === 'rally') { S.rallyT = k.sec; S.rallyMul = k.atk; }
+    else if (k.type === 'ward') { S.wardT = k.sec; S.wardMul = k.taken; }
+    else if (k.type === 'haste') {
+      S.hasteT = k.sec;
+      for (i = 0; i < S.party.length; i++) { var o = S.party[i]; if (o !== m && !o.down) { o.energy = Math.min(ENERGY_MAX(), o.energy + k.energy * (o.er || 1)); } }
+    } else if (k.type === 'vortex') {
+      var n = nearestFoe(S, px, py, 12), dx = n ? n.x - px : (S.lastDx || 0), dy = n ? n.y - py : (S.lastDy || 1), dl = Math.hypot(dx, dy) || 1;
+      S.zones.push({ kind: 'vortex', x: px + dx / dl * k.ahead, y: py + dy / dl * k.ahead, r: k.r, t: k.sec, next: k.every, every: k.every,
+        mul: k.tick, pull: k.pull, el: m.el, atk: m.atk, m: m });
+    }
+    kitExtras(S, m, k);
+    push(S, { t: 'burst', el: m.el, x: px, y: py, r: k.r, n: hits.length, name: k.name, kit: k.type });
+    return { ok: true, n: hits.length, name: k.name, kit: k.type };
+  }
+
   /** 장판·소환 — 놓은 사람 공격력으로 틱마다 친다(그 사이 교체해도 남는다) */
   function stepZones(S, dt) {
     var Z = S.zones || [], i, k;
@@ -923,6 +1014,24 @@
         }
         continue;
       }
+      if (z.kind === 'shell') {
+        /* ⑲-11 늦게 떨어지는 탄 — delay 뒤 둘레 r 을 친다 */
+        if (z.t <= 1e-9) {
+          var sh = foesWithin(S, z.x, z.y, z.r);
+          for (k = 0; k < sh.length; k++) { hitFoe(S, sh[k], z.m, z.m.atk * z.mul, z.el, 'skill'); }
+          push(S, { t: 'zone', kind: 'shell', el: z.el, x: z.x, y: z.y, r: z.r, n: sh.length });
+          Z.splice(i, 1);
+        }
+        continue;
+      }
+      if (z.kind === 'vortex' && dt > 0) {
+        /* ⑲-11 소용돌이 — 둘레 r+2 의 적을 늘 가운데로 끈다 */
+        var vs = foesWithin(S, z.x, z.y, z.r + 2);
+        for (k = 0; k < vs.length; k++) {
+          var vd = Math.hypot(z.x - vs[k].x, z.y - vs[k].y);
+          if (vd > 0.6) { var pl = Math.min(vd - 0.5, z.pull * dt); vs[k].x += (z.x - vs[k].x) / vd * pl; vs[k].y += (z.y - vs[k].y) / vd * pl; }
+        }
+      }
       if (z.next <= 1e-9 && z.t > 1e-9) {
         var who = z.m || { atk: z.atk, em: z.em, tm: z.tm, reactMul: z.reactMul };
         if (z.kind === 'field') {
@@ -930,6 +1039,21 @@
           for (k = 0; k < in_.length; k++) { hitFoe(S, in_[k], who, z.atk * FIELD_MUL(), z.el, 'zone'); }
           push(S, { t: 'zone', kind: 'field', el: z.el, x: z.x, y: z.y, r: z.r, n: in_.length });
           z.next += 1;
+        } else if (z.kind === 'kitzone') {
+          /* ⑲-11 팔괘진 — 안의 가까운 적 n 을 치고, 맞힐 때마다 명단 기력 */
+          var kz = foesWithin(S, z.x, z.y, z.r).sort(function (a, b) { return Math.hypot(a.x - z.x, a.y - z.y) - Math.hypot(b.x - z.x, b.y - z.y); }).slice(0, z.n);
+          for (k = 0; k < kz.length; k++) { hitFoe(S, kz[k], who, z.atk * z.mul, z.el, 'zone'); }
+          for (k = 0; k < S.party.length && kz.length && z.energy; k++) {
+            var pk = S.party[k];
+            if (!pk.down) { pk.energy = Math.min(ENERGY_MAX(), pk.energy + z.energy * kz.length * (pk.er || 1)); }
+          }
+          push(S, { t: 'zone', kind: 'kitzone', el: z.el, x: z.x, y: z.y, r: z.r, n: kz.length });
+          z.next += z.every;
+        } else if (z.kind === 'vortex') {
+          var vz = foesWithin(S, z.x, z.y, z.r);
+          for (k = 0; k < vz.length; k++) { hitFoe(S, vz[k], who, z.atk * z.mul, z.el, 'zone'); }
+          push(S, { t: 'zone', kind: 'vortex', el: z.el, x: z.x, y: z.y, r: z.r, n: vz.length });
+          z.next += z.every;
         } else {
           var tg = nearestFoe(S, z.x, z.y, z.r);
           if (tg) {
@@ -950,6 +1074,7 @@
     m.energy = 0; m.burstCd = BURST_CD();
     S.iframe = Math.max(S.iframe, 1.0);
     if (m.c6 && global.DG.talent) { m.c6T = global.DG.talent.C6_SEC; }   // ⑲-4 깨달음 5 — 해방 뒤 공격 +20%
+    if (m.kitB) { return kitBurst(S, m, px, py); }                    // ⑲-11 고유·갈래
     var hits = foesWithin(S, px, py, BURST_R());
     for (var i = 0; i < hits.length; i++) { hitFoe(S, hits[i], m, m.atk * BURST_MUL(), m.el, 'burst'); }
     push(S, { t: 'burst', el: m.el, x: px, y: py, r: BURST_R(), n: hits.length });
@@ -986,6 +1111,7 @@
     var m = active(S);
     if (!m || m.down) { return; }
     var dmg = Math.max(1, Math.round(f.atk * (1 - m.def / (m.def + 300))));
+    if (S.wardT > 0) { dmg = Math.max(1, Math.round(dmg * S.wardMul)); }   // ⑲-11 맹세·오천의 맹세
     var rockX = f.el === 'rock' ? Math.round(dmg * 0.3) : 0;   // ⑲-1 짓눌림 — 이것만으로는 안 쓰러진다
     S.calmT = 0;
     /* ⑲-1 결정 보호막이 먼저 막는다 — 다 막으면 원소 효과도 없다 */
@@ -1062,12 +1188,16 @@
     }
     if (S.zones && S.zones.length) { stepZones(S, dt); }
     if (S.guard) { S.guard.t -= dt; if (S.guard.t <= 0 || S.guard.hp <= 0) { S.guard = null; } }
+    if (S.rallyT > 0) { S.rallyT = Math.max(0, S.rallyT - dt); }
+    if (S.wardT > 0) { S.wardT = Math.max(0, S.wardT - dt); }
+    if (S.hasteT > 0) { S.hasteT = Math.max(0, S.hasteT - dt); }
     var i, m;
     for (i = 0; i < S.party.length; i++) {
       m = S.party[i];
-      m.skillCd = Math.max(0, m.skillCd - dt);
+      m.skillCd = Math.max(0, m.skillCd - dt * (S.hasteT > 0 ? 2 : 1));   // ⑲-11 천기 뇌우 — 두 배로 돈다
       m.burstCd = Math.max(0, m.burstCd - dt);
       if (m.c6T > 0) { m.c6T = Math.max(0, m.c6T - dt); }
+      if (m.infT > 0) { m.infT = Math.max(0, m.infT - dt); }
       if (m.burn && !m.down) {
         m.burn.t -= dt;
         if (m.burn.t <= 0) {
@@ -1229,6 +1359,7 @@
       var ratio = m.hpMax ? m.hp / m.hpMax : 1;
       m.atk = f.atk; m.em = f.em; m.def = f.def; m.hpMax = f.hpMax;
       m.tm = f.tm; m.con = f.con; m.cdMul = f.cdMul; m.reactMul = f.reactMul; m.c6 = f.c6;
+      m.kitS = f.kitS; m.kitB = f.kitB; m.kitL = f.kitL;
       m.wtype = f.wtype; m.kit = f.kit; m.wid = f.wid; m.cr = f.cr; m.cdm = f.cdm; m.er = f.er;
       m.dmgB = f.dmgB; m.elemB = f.elemB; m.rxAll = f.rxAll; m.rx = f.rx;
       m.hp = Math.round(f.hpMax * ratio);
@@ -1309,7 +1440,7 @@
     for (i = 0; i < ev.length; i++) {
       var e = ev[i];
       /* ⑲-3 원소 신호 — 스킬·폭발·장판 자리를 알린다(treasure.js 가 석등을 켠다) */
-      if ((e.t === 'skill' || e.t === 'burst' || (e.t === 'zone' && e.kind === 'field')) && e.el) {
+      if ((e.t === 'skill' || e.t === 'burst' || (e.t === 'zone' && (e.kind === 'field' || e.kind === 'shell' || e.kind === 'kitzone' || e.kind === 'vortex'))) && e.el) {
         c.emit('field:element', { el: e.el, x: e.x, y: e.y, r: e.r || 3, t: e.t });
       }
       if (e.t === 'move') { pos.x += e.dx; pos.y += e.dy; }
@@ -1326,7 +1457,7 @@
         floatNum(e.x, e.y, e.name + '!', RI.el, 1.5, true);
         ring(e.x, e.y, RI.r || 1.8, e.kind === 'overload' ? '#ffb347' : EL[RI.el].color, 0.45);
         if (global.DG.daily) { global.DG.daily.progress('react'); }   // ⑲-8 일일 의뢰(깨뜨림·번개싹 포함)
-        if (e.kind === 'crystallize') { toast('🪨 결정 보호막 — 명단이 ' + (S.guard ? S.guard.hp : 0) + ' 만큼 막는다(15초)'); }
+        if (e.kind === 'crystallize') { toast('🪨 굳힘 보호막 — 명단이 ' + (S.guard ? S.guard.hp : 0) + ' 만큼 막는다(15초)'); }
       } else if (e.t === 'dot') { floatNum(e.x, e.y, String(e.dmg), e.el || 'elec', 0.8); }
       else if (e.t === 'break') {
         floatNum(e.x, e.y, e.next ? '겉 방패 깨짐! ' + EL[e.next].icon + ' 속 방패' : '방패 깨짐!', null, 1.4, true);
@@ -1346,7 +1477,8 @@
         } else {
           ring(e.x, e.y, e.r, EL[e.el].color, e.shape === 'field' ? 0.9 : 0.5);
         }
-        if (e.shape && e.shape !== 'circle') { floatNum(pos.x, pos.y, SHAPES[e.shape].icon + ' ' + SHAPES[e.shape].name, e.el, 0.9, true, true); }
+        if (e.name) { floatNum(pos.x, pos.y, EL[e.el].icon + ' ' + e.name, e.el, 0.95, true, true); }       // ⑲-11 고유·갈래
+        else if (e.shape && e.shape !== 'circle') { floatNum(pos.x, pos.y, SHAPES[e.shape].icon + ' ' + SHAPES[e.shape].name, e.el, 0.9, true, true); }
         if (W3()) { W3().playAnim('me', 'attack', 380); }
       } else if (e.t === 'heavy') {
         ring(e.x, e.y, e.r, '#f4f1e2', 0.5);
@@ -1361,9 +1493,11 @@
       } else if (e.t === 'burst') {
         ring(e.x, e.y, e.r, EL[e.el].color, 0.8);
         ring(e.x, e.y, e.r * 0.55, '#ffffff', 0.5);
+        if (e.name) { floatNum(pos.x, pos.y, '💥 ' + e.name, e.el, 1.1, true, true); }
         sfx('thunder');
       } else if (e.t === 'zone') {
-        if (e.kind === 'field' || e.kind === 'seed') { ring(e.x, e.y, e.r, EL[e.el].color, e.kind === 'seed' ? 0.7 : 0.4); }
+        if (e.kind === 'field' || e.kind === 'seed' || e.kind === 'kitzone' || e.kind === 'vortex') { ring(e.x, e.y, e.r, EL[e.el].color, e.kind === 'seed' ? 0.7 : 0.4); }
+        else if (e.kind === 'shell') { ring(e.x, e.y, e.r, EL[e.el].color, 0.55); if (W3()) { W3().shake(0.15); } }
         else { ring(e.x, e.y, 0.9, EL[e.el].color, 0.3); ring(e.tx, e.ty, e.r, EL[e.el].color, 0.3); }
       } else if (e.t === 'dodge') { if (W3()) { W3().playAnim('me', 'dodge', 300); } }
       else if (e.t === 'tell') { if (W3()) { W3().playAnim('fc' + e.uid, 'attack', 700); } }
@@ -1573,7 +1707,7 @@
     sk.style.setProperty('--el', EL[m.el].color);
     bu.style.setProperty('--el', EL[m.el].color);
     sk.querySelector('.fc-cd').style.height = Math.round(100 * Math.min(1, m.skillCd / (m.skCdMax || SKILL_CD()))) + '%';
-    sk.querySelector('span').textContent = m.skillCd > 0 ? m.skillCd.toFixed(1) : EL[m.el].icon + ' ' + (SHAPES[m.shape] && m.shape !== 'circle' ? SHAPES[m.shape].name : '스킬');
+    sk.querySelector('span').textContent = m.skillCd > 0 ? m.skillCd.toFixed(1) : EL[m.el].icon + ' ' + (m.kitS ? m.kitS.name : (SHAPES[m.shape] && m.shape !== 'circle' ? SHAPES[m.shape].name : '스킬'));
     var ready = m.energy >= ENERGY_MAX() && m.burstCd <= 0;
     bu.classList.toggle('ready', ready);
     bu.querySelector('.fc-fill').style.height = Math.round(100 * m.energy / ENERGY_MAX()) + '%';
@@ -1798,7 +1932,7 @@
     EL: EL, FOES: FOES, THEMES: THEMES, ELITES: ELITES, ERA_THEMES: ERA_THEMES, ERA_ELITES: ERA_ELITES, eraOfCamp: eraOfCamp, CELL: CELL, ENERGY_MAX: ENERGY_MAX,
     SKILL_CD: SKILL_CD, SWAP_CD: SWAP_CD, DODGE_COST: DODGE_COST, VAPOR_MUL: VAPOR_MUL,
     /* 판정 층 — 화면 없이 굴린다(자가진단이 쓰는 문) */
-    elementOf: elementOf, EL_KEYS: EL_KEYS, heavy: heavy, plunge: plunge, plungeMul: plungeMul, plungeLand: plungeLand, PLUNGE_R: PLUNGE_R(), CHARGE_COST: CHARGE_COST(), REACT: REACT, attaches: attaches, shapeOf: shapeOf, SHAPES: SHAPES, segDist: segDist, react: react, shieldMul: shieldMul, campAt: campAt, tierAt: tierAt, guardianAt: guardianAt, COUNTER: COUNTER,
+    elementOf: elementOf, EL_KEYS: EL_KEYS, heavy: heavy, plunge: plunge, plungeMul: plungeMul, plungeLand: plungeLand, PLUNGE_R: PLUNGE_R(), CHARGE_COST: CHARGE_COST(), REACT: REACT, attaches: attaches, shapeOf: shapeOf, SHAPES: SHAPES, kitFor: kitFor, segDist: segDist, react: react, shieldMul: shieldMul, campAt: campAt, tierAt: tierAt, guardianAt: guardianAt, COUNTER: COUNTER,
     create: create, reparty: reparty, populate: populate, spawnCamp: spawnCamp, step: step, drain: drain,
     attack: attack, skill: skill, burst: burst, dodge: dodge, swap: swap, hitFoe: hitFoe,
     engaged: engaged, living: living, memberOf: memberOf, applyWorld: applyWorld, rescaleWorld: rescaleWorld, killGold: killGold, clearLoot: clearLoot,

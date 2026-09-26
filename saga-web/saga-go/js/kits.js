@@ -1,0 +1,128 @@
+/**
+ * 고유·갈래 스킬 표 — 인물마다 원소 스킬(E)·원소 해방(Q)이 다르다 (PLAN §5 ⑲-11, saga-godot PLAN 106 ㉔㉖)
+ * ---------------------------------------------------------------
+ *   고유 다섯(SIGS)   나 · 현책 · 해장 · 결사 · 노궁 — 그 갈래의 "대표"라 갈래보다 한 단 위
+ *   갈래(FAMILIES)   도감 trait 가 틀 — 무용 돌격/검기 · 통솔 호령/군기 · 인덕 방패/맹세
+ *   원소(EXTRA)      갈래 스킬에 이름 앞말과 덧붙는 것 하나 — 같은 틀이라도 원소마다 쓰임이 갈린다
+ *   지략·도감 밖     null → field-combat 의 ⑫ 모양(id 해시)과 해방 기본 그대로
+ * 원소 자체는 field-combat `elementOf`(id 해시) 가 정한다. 표만 든 순수 모듈 — 쓰는 곳은 field-combat.js
+ * `kitSkill`·`kitBurst`. 세이브 없음. 수치는 이 판 척도(기본 스킬 ×2.2·해방 ×4.5·기력 60)로 새로 잡았다.
+ */
+(function (global) {
+  'use strict';
+
+  /*
+   * 스킬 type: dash(앞으로 돌진하며 지나간 길) · shells(앞 적 몇 자리에 늦게 떨어지는 탄) ·
+   *   guard(둘레를 치고 명단 보호막) · zone(발밑 진 — 인물을 바꿔도 남아 몇 초마다 가까운 적을 친다)
+   * 해방 type(모두 먼저 둘레 r 에 mul 한 번): infuse(그 인물 기본·강·낙하 공격에 원소 부여) · rally(명단 공격 곱) ·
+   *   ward(명단이 받는 피해 곱) · haste(명단 스킬 대기가 두 배로 돌고 다른 인물 기력) · vortex(앞 지점에 적을 빨아들이는 소용돌이)
+   */
+  var SIGS = {
+    _me: {
+      skill: { name: '불꽃 돌진', type: 'dash', cd: 6, len: 5.5, w: 2, mul: 3.0, text: '앞으로 5.5m 돌진하며 지나간 길의 적을 벤다(돌진 중 무적)' },
+      burst: { name: '불새 깃', type: 'infuse', r: 6, mul: 3.8, sec: 8, nmul: 1.2, text: '둘레 6m 를 태우고, 8초 동안 기본·강·낙하 공격에 원소가 실린다(피해 ×1.2)' }
+    },
+    sg_zhugeliang: {
+      skill: { name: '팔괘진', type: 'zone', cd: 12, r: 4.5, sec: 10, every: 1.5, n: 2, mul: 1.0, energy: 1.2,
+        text: '발밑에 10초 진 — 1.5초마다 안의 가까운 적 둘을 치고, 맞힐 때마다 명단 기력 +1.2. 인물을 바꿔도 남는다' },
+      burst: { name: '천기 뇌우', type: 'haste', r: 7, mul: 3.0, sec: 12, energy: 9, text: '둘레 7m 를 치고, 12초 동안 명단 원소 스킬 대기가 두 배로 돌며 다른 인물 기력 +9' }
+    },
+    kr_yisunsin: {
+      skill: { name: '일제 포격', type: 'shells', cd: 7, reach: 12, n: 3, delay: 0.6, r: 2.5, mul: 2.4, text: '12m 안 적 셋 자리에 0.6초 뒤 포탄(둘레 2.5m) — 적이 없으면 앞 8m 에 하나' },
+      burst: { name: '학날개 진', type: 'rally', r: 8, mul: 3.4, sec: 10, atk: 1.2, text: '둘레 8m 를 쏘고, 10초 동안 명단 공격 +20%' }
+    },
+    kr_gyebaek: {
+      skill: { name: '결사 방진', type: 'guard', cd: 12, r: 3.5, mul: 1.9, shield: 0.25, sec: 12, text: '둘레 3.5m 를 치고, 명단에 보호막(지금 인물 최대 체력 25%, 12초)' },
+      burst: { name: '오천의 맹세', type: 'ward', r: 7, mul: 3.0, sec: 10, taken: 0.7, text: '둘레 7m 를 치고, 10초 동안 명단이 받는 피해 -30%' }
+    },
+    sg_huangzhong: {
+      skill: { name: '화살비', type: 'shells', cd: 8, reach: 14, n: 4, delay: 0.5, r: 1.8, mul: 1.9, text: '14m 안 적 넷 자리에 0.5초 뒤 화살비(둘레 1.8m) — 적이 없으면 앞 8m 에 하나' },
+      burst: { name: '돌개 화살', type: 'vortex', r: 5, mul: 2.4, ahead: 7, sec: 8, every: 0.5, tick: 0.5, pull: 5, text: '둘레 5m 를 쏘고, 앞 7m 에 8초 소용돌이 — 적을 빨아들이며 0.5초마다 친다' }
+    }
+  };
+
+  /* 갈래 — 고유보다 한 단 낮게. text 의 {el} 자리에 원소 이름 */
+  var FAMILIES = {
+    might: {
+      label: '무용',
+      skill: { noun: '돌격', type: 'dash', cd: 7, len: 5, w: 1.8, mul: 2.6, text: '앞으로 5m 돌진하며 지나간 길의 적을 {el} 원소로 벤다(돌진 중 무적)' },
+      burst: { noun: '검기', type: 'infuse', r: 6, mul: 3.6, sec: 8, nmul: 1.15, text: '둘레 6m 를 치고, 8초 동안 기본·강·낙하 공격이 {el} 원소(피해 ×1.15)' }
+    },
+    command: {
+      label: '통솔',
+      skill: { noun: '호령', type: 'shells', cd: 8, reach: 10, n: 2, delay: 0.6, r: 2.2, mul: 2.2, text: '10m 안 적 둘 자리에 0.6초 뒤 {el} 원소 탄(둘레 2.2m) — 적이 없으면 앞 8m 에 하나' },
+      burst: { noun: '군기', type: 'rally', r: 7, mul: 3.0, sec: 10, atk: 1.15, text: '둘레 7m 를 {el} 원소로 치고, 10초 동안 명단 공격 +15%' }
+    },
+    virtue: {
+      label: '인덕',
+      skill: { noun: '방패', type: 'guard', cd: 12, r: 3, mul: 1.6, shield: 0.2, sec: 12, text: '둘레 3m 를 {el} 원소로 치고, 명단에 보호막(지금 인물 최대 체력 20%, 12초)' },
+      burst: { noun: '맹세', type: 'ward', r: 6.5, mul: 2.8, sec: 10, taken: 0.8, text: '둘레 6.5m 를 {el} 원소로 치고, 10초 동안 명단이 받는 피해 -20%' }
+    }
+  };
+
+  /*
+   * 원소가 갈래 스킬에 붙이는 것 — heal 명단 회복(최대 체력 비율) · team 다른 인물 기력 · cdAdd 스킬 대기 더하기 ·
+   * smul 스킬 피해 곱 · bmul 해방 피해 곱 · secAdd 해방 효과 시간 · shield 보호막(방패 틀이면 그 보호막에 더하고, 아니면 새로)
+   */
+  var EXTRA = {
+    fire:  { word: '불꽃', burst: { bmul: 1.15 }, noteB: '해방 피해 ×1.15' },
+    water: { word: '물결', skill: { heal: 0.04 }, burst: { heal: 0.08 }, noteS: '명단 체력 4% 회복', noteB: '명단 체력 8% 회복' },
+    elec:  { word: '번개', skill: { team: 2 }, burst: { team: 6 }, noteS: '다른 인물 기력 +2', noteB: '다른 인물 기력 +6' },
+    wind:  { word: '바람', skill: { cdAdd: -1.5 }, noteS: '대기 1.5초 짧음' },
+    ice:   { word: '서리', skill: { smul: 1.15 }, noteS: '스킬 피해 ×1.15' },
+    rock:  { word: '바위', skill: { shield: 0.12 }, noteS: '보호막 +12%' },
+    grass: { word: '덩굴', burst: { secAdd: 3 }, noteB: '해방 효과 3초 더' }
+  };
+  var EL_NAME = { fire: '화', water: '수', elec: '뇌', wind: '풍', ice: '빙', rock: '암', grass: '초' };
+
+  function copy(o) { var r = {}, k; for (k in o) { if (Object.prototype.hasOwnProperty.call(o, k)) { r[k] = o[k]; } } return r; }
+
+  /** 갈래 × 원소 → 스킬·해방 한 벌. **순수 함수** */
+  function familyKit(trait, el) {
+    var F = FAMILIES[trait], X = EXTRA[el] || { word: '' };
+    if (!F) { return null; }
+    var s = copy(F.skill), b = copy(F.burst), xs = X.skill || {}, xb = X.burst || {}, en = EL_NAME[el] || '';
+    s.name = X.word + ' ' + F.skill.noun; b.name = X.word + ' ' + F.burst.noun;
+    s.text = F.skill.text.replace('{el}', en) + (X.noteS ? ' · ' + X.noteS : '');
+    b.text = F.burst.text.replace('{el}', en) + (X.noteB ? ' · ' + X.noteB : '');
+    if (xs.cdAdd) { s.cd += xs.cdAdd; }
+    if (xs.smul) { s.mul *= xs.smul; }
+    if (xs.heal) { s.heal = xs.heal; }
+    if (xs.team) { s.team = xs.team; }
+    if (xs.shield) { s.shieldAdd = xs.shield; }
+    if (xb.bmul) { b.mul *= xb.bmul; }
+    if (xb.heal) { b.heal = xb.heal; }
+    if (xb.team) { b.team = xb.team; }
+    if (xb.secAdd) { b.sec += xb.secAdd; }
+    return { family: trait, label: F.label, sig: false, skill: s, burst: b };
+  }
+
+  /**
+   * 인물 → 스킬 한 벌 { family, label, sig, skill, burst } 또는 null(지략·도감 밖 — ⑫ 모양 그대로).
+   * trait 를 안 주면 도감(`DG.data.find`)에서 읽는다. **순수 함수**(표·도감만 읽는다)
+   */
+  function kitOf(id, el, trait) {
+    if (SIGS[id]) {
+      var g = SIGS[id];
+      return { family: 'sig', label: '고유', sig: true, skill: copy(g.skill), burst: copy(g.burst) };
+    }
+    if (trait === undefined) {
+      var D = global.DG.data, h = D && D.find ? D.find(id) : null;
+      trait = h ? h.trait : null;
+    }
+    return trait ? familyKit(trait, el) : null;
+  }
+  /** 인물 상세에 붙이는 갈래 이름 — 고유·무용·통솔·인덕, 아니면 지략(도감 밖은 '') */
+  function labelOf(id, el) {
+    var k = kitOf(id, el);
+    if (k) { return k.label; }
+    var D = global.DG.data;
+    return D && D.find && D.find(id) ? '지략' : '';
+  }
+
+  global.DG = global.DG || {};
+  global.DG.kits = {
+    SIGS: SIGS, FAMILIES: FAMILIES, EXTRA: EXTRA,
+    familyKit: familyKit, kitOf: kitOf, labelOf: labelOf
+  };
+})(window);

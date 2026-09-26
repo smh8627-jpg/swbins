@@ -84,6 +84,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/hero.js"></script>
 <script src="js/perk.js"></script>
 <script src="js/talent.js"></script>
+<script src="js/kits.js"></script>
 <script src="js/weapon.js"></script>
 <script src="js/artifact.js"></script>
 <script src="js/cooking.js"></script>
@@ -9326,7 +9327,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         var S = fcState([id]), m = S.party[0];
         r.hp = m.hpMax === Math.round(hp0 * 1.15) && m.cdMul === 0.85 && m.reactMul === 1.2 && m.c6;
         FC.skill(S, 0, 0);
-        r.cd = Math.abs(m.skillCd - FC.SKILL_CD() * 0.85) < 1e-9 && Math.abs(m.skCdMax - m.skillCd) < 1e-9;
+        r.cd = Math.abs(m.skillCd - (m.kitS ? m.kitS.cd : FC.SKILL_CD()) * 0.85) < 1e-9 && Math.abs(m.skCdMax - m.skillCd) < 1e-9;   // ⑲-11 고유·갈래는 표의 대기
         /* 반응 — 같은 em 의 깨달음 0 인물과 물안개 피해 비교 */
         var S2 = fcState([id]), a = fcFoe(S2, 'bear', 60, 0), plain = fcState(['fc_a']), b2 = fcFoe(plain, 'bear', 60, 0);
         var mp = plain.party[0]; mp.em = S2.party[0].em; mp.reactMul = 1;
@@ -10131,6 +10132,103 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       } finally { rig.undo(); }
       var bad = Object.keys(r).filter(function (k) { return !r[k]; });
       return bad.length === 0 ? '적 하나 금만 · 토벌 금·경험 없음 · 꽃 다시' : ('실패 ' + bad.join(','));
+    });
+
+    /* ── ⑲-11 고유·갈래 스킬 (\`kits.js\`, PLAN §5 ⑲-11) ── */
+    t('고유·갈래 ⑲-11 — 배정: 고유 다섯(나·현책·해장·결사·노궁) · 갈래 = 도감 trait(무용·통솔·인덕) · 지략·도감 밖은 null · 갈래×원소 42 이름 모두 다름 · 원소 덧붙임 · 끄면 옛 ⑫', function () {
+      var KT = DG.kits, FC = DG.fieldCombat, r = {};
+      r.sig = ['_me', 'sg_zhugeliang', 'kr_yisunsin', 'kr_gyebaek', 'sg_huangzhong'].every(function (id) { var k = KT.kitOf(id, 'fire'); return k && k.sig && k.label === '고유'; }) &&
+        KT.kitOf('_me', 'fire').skill.name === '불꽃 돌진' && FC.kitFor('sg_zhugeliang').skill.type === 'zone';
+      function first(tr) { return D.heroes.filter(function (h) { return h.trait === tr && !KT.SIGS[h.id]; })[0]; }
+      var hm = first('might'), hv = first('virtue'), hw = first('wisdom');
+      var km = FC.kitFor(hm.id), kv = FC.kitFor(hv.id);
+      r.family = km.family === 'might' && km.skill.type === 'dash' && km.burst.type === 'infuse' && km.skill.name === KT.EXTRA[FC.elementOf(hm.id)].word + ' 돌격' &&
+        kv.skill.type === 'guard' && kv.burst.type === 'ward' && FC.kitFor(hw.id) === null && KT.labelOf(hw.id, 'fire') === '지략' &&
+        FC.kitFor('fc_a') === null && KT.labelOf('fc_a', 'fire') === '';
+      var names = {}, n = 0;
+      ['might', 'command', 'virtue'].forEach(function (tr) { FC.EL_KEYS.forEach(function (el) { var k = KT.familyKit(tr, el); names[k.skill.name] = 1; names[k.burst.name] = 1; n += 2; }); });
+      r.names = n === 42 && Object.keys(names).length === 42;
+      var F = KT.familyKit;
+      r.extra = F('might', 'wind').skill.cd === 5.5 && Math.abs(F('might', 'ice').skill.mul - 2.6 * 1.15) < 1e-9 && Math.abs(F('command', 'fire').burst.mul - 3.0 * 1.15) < 1e-9 &&
+        F('virtue', 'rock').skill.shieldAdd === 0.12 && F('command', 'grass').burst.sec === 13 && F('might', 'water').skill.heal === 0.04 && F('might', 'water').burst.heal === 0.08 &&
+        F('command', 'elec').skill.team === 2 && F('command', 'elec').burst.team === 6 && F('might', 'fire').skill.mul === 2.6 && /화 원소/.test(F('might', 'fire').skill.text) &&
+        KT.SIGS.sg_zhugeliang.skill.cd === 12;
+      var m0 = FC.memberOf(hm.id);
+      r.member = m0.kitS && m0.kitS.name === km.skill.name && m0.kitL === '무용';
+      C.setTune('field.kits', 0);
+      try { r.off = FC.kitFor(hm.id) === null && FC.kitFor('_me') === null && !FC.memberOf(hm.id).kitS; } finally { C.setTune('field.kits', null); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? ('고유 5 · ' + hm.name + ' ' + km.skill.name + '/' + km.burst.name + ' · 지략 ' + hw.name + ' ⑫ · 이름 42 · 덧붙임 일곱 · 끄면 옛 ⑫') : ('실패 ' + bad.join(','));
+    });
+
+    function kitRig(kit, full) {
+      var S = fcState(['fc_a', 'fc_b']), m = S.party[0];
+      m.el = 'fire'; m.kitS = kit.skill; m.kitB = kit.burst; m.cr = 0;
+      if (full) { m.energy = DG.fieldCombat.ENERGY_MAX(); m.burstCd = 0; }
+      return S;
+    }
+    function kitRun(S, sec) { for (var i = 0; i < Math.round(sec / 0.05); i++) { DG.fieldCombat.step(S, 0.05, { px: 0, py: 0, blocked: true }); } }
+
+    t('고유·갈래 ⑲-11 — 스킬 틀: 돌격(길 위만·무적) · 호령(0.6초 뒤 탄, 그 전엔 0) · 방패(명단 보호막 20%, 바위 +12%) · 팔괘진(틱마다 가까운 둘·명단 기력) · 대기 = 표 × 깨달음 1', function () {
+      var FC = DG.fieldCombat, KT = DG.kits, r = {};
+      var S1 = kitRig(KT.familyKit('might', 'fire')), a1 = fcFoe(S1, 'bear', 0, 4), b1 = fcFoe(S1, 'bear', 5, 0), h1a = a1.hp, h1b = b1.hp;
+      var s1 = FC.skill(S1, 0, 0);
+      r.dash = s1.ok && s1.kit === 'dash' && a1.hp < h1a && b1.hp === h1b && S1.iframe > 0 && !!S1.dash && Math.abs(S1.party[0].skillCd - 7) < 1e-9;
+      var S2 = kitRig(KT.familyKit('command', 'fire')), a2 = fcFoe(S2, 'bear', 6, 0), b2 = fcFoe(S2, 'bear', -7, 0), c2 = fcFoe(S2, 'bear', 0, 15), h2 = [a2.hp, b2.hp, c2.hp];
+      var s2 = FC.skill(S2, 0, 0), before = a2.hp === h2[0] && b2.hp === h2[1];
+      kitRun(S2, 0.7);
+      r.shells = s2.ok && s2.kit === 'shells' && s2.n === 2 && before && a2.hp < h2[0] && b2.hp < h2[1] && c2.hp === h2[2];
+      var S3 = kitRig(KT.familyKit('virtue', 'rock')), m3 = S3.party[0];
+      fcFoe(S3, 'bear', 2, 0);
+      FC.skill(S3, 0, 0);
+      r.guard = !!S3.guard && S3.guard.hp === Math.round(m3.hpMax * 0.32) && Math.abs(S3.guard.t - 12) < 1e-9 && Math.abs(m3.skillCd - 12) < 1e-9;
+      var S4 = kitRig(KT.kitOf('sg_zhugeliang', 'elec')), m4 = S4.party[0], o4 = S4.party[1];
+      fcFoe(S4, 'bear', 1, 0); fcFoe(S4, 'bear', 0, 2);
+      var z3 = fcFoe(S4, 'bear', 4, 0), hz3 = z3.hp;
+      o4.energy = 0; m4.energy = 0;
+      FC.skill(S4, 0, 0);
+      var e1 = o4.energy, hz3a = z3.hp;
+      kitRun(S4, 1.6);
+      r.zone = hz3a === hz3 && S4.zones.some(function (z) { return z.kind === 'kitzone'; }) && Math.abs(e1 - (3 + 2.4)) < 1e-9 && o4.energy > e1;
+      var S5 = kitRig(KT.familyKit('might', 'wind'));
+      S5.party[0].cdMul = 0.85;
+      FC.skill(S5, 0, 0);
+      r.cd = Math.abs(S5.party[0].skillCd - 5.5 * 0.85) < 1e-9;
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '돌격 앞만 · 탄 둘 0.6초 뒤 · 보호막 32% 12초 · 진 첫 틱 둘·기력 +2.4 · 바람 5.5초 × 0.85' : ('실패 ' + bad.join(','));
+    });
+
+    t('고유·갈래 ⑲-11 — 해방 틀: 검기(기본 공격에 원소·×1.15, 8초) · 군기(명단 공격 ×1.15, 10초)·물결 회복 · 맹세(받는 피해 ×0.8)·덩굴 +3초 · 천기 뇌우(스킬 대기 두 배·다른 인물 기력 +9) · 소용돌이(끌어당김·틱)', function () {
+      var FC = DG.fieldCombat, KT = DG.kits, r = {};
+      var S1 = kitRig(KT.familyKit('might', 'fire'), true), m1 = S1.party[0];
+      var b = FC.burst(S1, 0, 0);
+      var f1 = fcFoe(S1, 'bear', 2, 0);
+      S1.atkCd = 0; S1.combo = 0;
+      var a = FC.attack(S1, 0, 0);
+      r.infuse = b.ok && b.kit === 'infuse' && m1.infT === 8 && !!a.hit && a.hit.dmg === Math.round(m1.atk * m1.kit.mul[0] * 1.15) && f1.aura === 'fire';
+      var S2 = kitRig(KT.familyKit('command', 'water'), true), o2 = S2.party[1];
+      o2.hp = 10;
+      FC.burst(S2, 0, 0);
+      r.heal = o2.hp === 10 + Math.round(o2.hpMax * 0.08);
+      var f2 = fcFoe(S2, 'bear', 3, 0), d2 = FC.hitFoe(S2, f2, o2, 100, null, 'skill').dmg;
+      kitRun(S2, 10.1);
+      var f2b = fcFoe(S2, 'bear', 30, 0), d2b = FC.hitFoe(S2, f2b, o2, 100, null, 'skill').dmg;
+      r.rally = d2 === 115 && d2b === 100 && S2.rallyT === 0;
+      var S3 = kitRig(KT.familyKit('virtue', 'grass'), true);
+      FC.burst(S3, 0, 0);
+      r.ward = S3.wardT === 13 && S3.wardMul === 0.8;
+      var S4 = kitRig(KT.kitOf('sg_zhugeliang', 'elec'), true), o4 = S4.party[1];
+      o4.energy = 0; o4.skillCd = 4;
+      FC.burst(S4, 0, 0);
+      kitRun(S4, 1);
+      r.haste = S4.hasteT > 10.9 && o4.energy === 9 && Math.abs(o4.skillCd - 2) < 1e-6;
+      var S5 = kitRig(KT.kitOf('sg_huangzhong', 'wind'), true), t5 = fcFoe(S5, 'bear', 0, 8);
+      FC.burst(S5, 0, 0);
+      var vz = S5.zones.filter(function (z) { return z.kind === 'vortex'; })[0], h5 = t5.hp, d0 = vz ? Math.hypot(t5.x - vz.x, t5.y - vz.y) : 0;
+      kitRun(S5, 1.1);
+      r.vortex = !!vz && Math.abs(vz.y - 7) < 1e-9 && Math.hypot(t5.x - vz.x, t5.y - vz.y) < d0 && t5.hp < h5;
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '검기 ' + a.hit.dmg + '(화 부착) · 회복 8% · 군기 115 → 10초 뒤 100 · 맹세 13초 · 뇌우 대기 4 → 1초 뒤 2 · 소용돌이 끌림' : ('실패 ' + bad.join(','));
     });
 
     /* ── ⑳ 원작 겹침 정리 (PLAN §5 ⑳) ── */
