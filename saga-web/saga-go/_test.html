@@ -140,6 +140,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/fieldboss.js"></script>
 <script src="js/story.js"></script>
 <script src="js/talkface.js"></script>
+<script src="js/formation.js"></script>
 <script src="js/rogue.js"></script>
 <script src="js/fort.js"></script>
 <script src="js/raid.js"></script>
@@ -10589,6 +10590,131 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       } finally { rig.undo(); }
       var bad = Object.keys(r).filter(function (k) { return !r[k]; });
       return bad.length === 0 ? '60m ✕ · 정상 곁 ○ · 가면 하나(전사 몸·검은 가면) · 그림자 등 뒤 2.2m → 벼락 차례 · 40% → ⚡방패 + 졸개 2 · 되돌아가면 0 · 쓰러뜨리면 졸개 0·금 그대로' : ('실패 ' + bad.join(','));
+    });
+
+
+    /* ── ⑲-15 이야기 동료·고유 스킬 둘·편성 (story.js MEMBERS · kits.js · formation.js, PLAN §5 ⑲-15) ── */
+    t('이야기 동료 ⑲-15 — 표·find(도감 밖 id)·원소·무기·고유 스킬 · 2장 끝 은비·5장 끝 나그네 합류(빈자리 채움 · 꽉 차면 동행 그대로) · 지난 장 합류는 조용히 한 번', function () {
+      var rig = stRig(5), ST = rig.ST, FC = DG.fieldCombat, WP = DG.weapon, KT = DG.kits, r = {};
+      try {
+        var M = ST.MEMBERS, H0 = D.heroes[0].id, H1 = D.heroes[1].id;
+        r.find = D.find('story_scholar') === M.story_scholar && D.find('story_wanderer').rarity === 5 && D.find(H0) === D.heroes[0] &&
+          D.heroes.every(function (h) { return !M[h.id]; }) && DG.hero.stats('story_wanderer').might > 0;
+        r.el = FC.elementOf('story_scholar') === 'grass' && FC.elementOf('story_wanderer') === 'ice' &&
+          WP.typeOf('story_scholar') === 'catalyst' && WP.typeOf('story_wanderer') === 'sword';
+        r.kit = FC.kitFor('story_scholar').skill.name === '비문 탁본' && FC.kitFor('story_wanderer').burst.type === 'echo' &&
+          KT.labelOf('story_scholar', 'grass') === '고유';
+        r.table = ST.CHAPTERS[1].join === 'story_scholar' && ST.CHAPTERS[4].join === 'story_wanderer' &&
+          ST.CHAPTERS.filter(function (c) { return c.join; }).length === 2;
+        delete C.save.dex.heroes.story_scholar; delete C.save.dex.heroes.story_wanderer;
+        C.save.party = [H0, H1];
+        C.save.story = { ch: 1, step: 3 };
+        stGo(ST.npcPos('elder'));
+        r.join = stTalkAll(ST) && C.save.story.ch === 2 && ST.hasMember('story_scholar') && C.save.party.join() === [H0, H1, 'story_scholar'].join() &&
+          !!C.save.heroes.story_scholar;
+        C.save.party = D.heroes.slice(0, 5).map(function (h) { return h.id; });
+        var full = C.save.party.join();
+        C.save.player.level = 12; C.save.story = { ch: 4, step: 8 };
+        stGo(ST.npcPos('elder'));
+        r.full = stTalkAll(ST) && ST.hasMember('story_wanderer') && C.save.party.join() === full;
+        delete C.save.dex.heroes.story_scholar; delete C.save.dex.heroes.story_wanderer;
+        C.save.party = [H0];
+        C.save.story = { ch: 5, step: 0 };
+        var n1 = ST.catchUp(), n2 = ST.catchUp();
+        r.catchUp = n1 === 2 && n2 === 0 && C.save.party.join() === [H0, 'story_scholar', 'story_wanderer'].join();
+        C.save.story = { ch: 2, step: 0 };
+        delete C.save.dex.heroes.story_wanderer;
+        r.notYet = ST.catchUp() === 0 && !ST.hasMember('story_wanderer');
+      } finally { rig.undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? 'find 둘 · 초 서책 / 빙 칼 · 탁본·가면 벗기 · 은비 → 3번째 · 꽉 차면 그대로 · 지난 장 2 → 다시 0' : ('실패 ' + bad.join(','));
+    });
+
+    t('이야기 동료 ⑲-15 — 고유 스킬 넷: 탁본(발밑 진·적 넷까지·명단 기력) · 옛 글자 풀이(12초 반응 피해 ×1.4) · 그림자 걸음(적 뒤 1.5m 로 돌진·표식 ×1.25, 적 없으면 앞 4m) · 가면 벗기(표식 난 적마다 메아리 셋·따라감, 없으면 가까운 둘)', function () {
+      var FC = DG.fieldCombat, KT = DG.kits, r = {};
+      /* 탁본 */
+      var S1 = kitRig(KT.SIGS.story_scholar), f1 = [];
+      for (var i = 0; i < 5; i++) { f1.push(fcFoe(S1, 'bear', Math.cos(i) * 2, Math.sin(i) * 2)); }
+      var e0 = S1.party[1].energy, s1 = FC.skill(S1, 0, 0), hit1 = f1.filter(function (f) { return f.hp < f.hpMax; }).length;
+      r.zone = s1.ok && s1.kit === 'zone' && hit1 === 4 && S1.party[1].energy > e0 && Math.abs(S1.party[0].skillCd - 10) < 1e-9;
+      /* 옛 글자 풀이 — 물 얹힌 적에 불(물안개) 한 대, 풀이 전후 */
+      var S2 = kitRig(KT.SIGS.story_scholar, true), a2 = fcFoe(S2, 'bear', 20, 0), b2 = fcFoe(S2, 'bear', -20, 0), m2 = S2.party[0];
+      a2.aura = 'water'; a2.auraT = 9;
+      var d0 = FC.hitFoe(S2, a2, m2, 100, 'fire', 'normal').dmg;
+      var s2 = FC.burst(S2, 0, 0);
+      b2.aura = 'water'; b2.auraT = 9;
+      var d1 = FC.hitFoe(S2, b2, m2, 100, 'fire', 'normal').dmg;
+      r.lore = s2.ok && s2.kit === 'lore' && S2.loreT === 12 && Math.abs(d1 / d0 - 1.4) < 0.03;
+      /* 그림자 걸음 */
+      var S3 = kitRig(KT.SIGS.story_wanderer), a3 = fcFoe(S3, 'bear', 6, 0), b3 = fcFoe(S3, 'bear', -8, 0), m3 = S3.party[0];
+      var s3 = FC.skill(S3, 0, 0), go = S3.dash ? S3.dash.vx * S3.dash.t : 0;
+      r.blink = s3.ok && s3.kit === 'blink' && Math.abs(go - 7.5) < 1e-6 && a3.hp < a3.hpMax && a3.markT === 8 && !b3.markT && S3.iframe > 0;
+      var hA = a3.hp, hB = b3.hp;
+      FC.hitFoe(S3, a3, m3, 100, null, 'normal'); FC.hitFoe(S3, b3, m3, 100, null, 'normal');
+      r.mark = Math.abs((hA - a3.hp) / (hB - b3.hp) - 1.25) < 0.03;
+      var S4 = kitRig(KT.SIGS.story_wanderer);
+      S4.lastDx = 0; S4.lastDy = 1;
+      FC.skill(S4, 0, 0);
+      r.empty = !!S4.dash && Math.abs(S4.dash.vy * S4.dash.t - 4) < 1e-6;
+      /* 가면 벗기 */
+      var S5 = kitRig(KT.SIGS.story_wanderer, true), a5 = fcFoe(S5, 'rex', 3, 0), b5 = fcFoe(S5, 'rex', 0, 10), c5 = fcFoe(S5, 'rex', 0, 13);
+      a5.markT = 6; a5.markMul = 1.25;
+      var s5 = FC.burst(S5, 0, 0), ez = S5.zones.filter(function (z) { return z.kind === 'echo'; });
+      var hA5 = a5.hp, hB5 = b5.hp;
+      a5.x = 4; a5.y = 1;
+      kitRun(S5, 1.0);
+      var echoEv = fcEv(S5, 'zone').filter(function (e) { return e.kind === 'echo'; });
+      r.echo = s5.ok && s5.kit === 'echo' && ez.length === 3 && ez.every(function (z) { return z.uid === a5.uid; }) && a5.hp < hA5 && b5.hp === hB5 &&
+        echoEv.length === 3 && echoEv.every(function (e) { return e.x === 4 && e.y === 1; });
+      var S6 = kitRig(KT.SIGS.story_wanderer, true), b6 = fcFoe(S6, 'rex', 0, 10), c6 = fcFoe(S6, 'rex', 0, 13), d6 = fcFoe(S6, 'rex', 0, 14);
+      FC.burst(S6, 0, 0);
+      var ez6 = S6.zones.filter(function (z) { return z.kind === 'echo'; }), who6 = {};
+      ez6.forEach(function (z) { who6[z.uid] = 1; });
+      r.near2 = ez6.length === 6 && who6[b6.uid] && who6[c6.uid] && !who6[d6.uid];
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '탁본 넷·기력 · 풀이 ×' + (d1 / d0).toFixed(2) + ' · 걸음 7.5m·표식 · 빈 곳 4m · 메아리 3(따라감) · 표식 없으면 둘 × 3' : ('실패 ' + bad.join(','));
+    });
+
+    t('편성 ⑲-15 — 넣기(빈자리 끝·꽉 차면 다섯째와 바뀜) · 빼기 · ◀ 앞 자리로 · ⚔ 대기 → 들판 · 싸우는 중 막음 · 상세 단추·도감 탭 명단 한 줄·이야기 동료 칸', function () {
+      var FM = DG.formation, P = FM.plan, r = {}, bak = JSON.stringify(C.save);
+      try {
+        var A = ['a', 'b', 'c'], F5 = ['a', 'b', 'c', 'd', 'e'];
+        var p1 = P(A, 'put', 'z'), p2 = P(F5, 'put', 'z'), p3 = P(F5, 'up', 'c'), p4 = P(F5, 'field', 'e');
+        r.pure = p1.list.join('') === 'abcz' && !p1.swap && p2.list.join('') === 'abcdz' && p2.swap === 'e' &&
+          P(F5, 'drop', 'b').list.join('') === 'acde' && p3.list.join('') === 'acbde' && p3.swap === 'b' && !P(F5, 'up', 'a').ok &&
+          p4.list.join('') === 'abced' && p4.swap === 'd' && !P(F5, 'field', 'c').ok && !P(F5, 'put', 'a').ok && !P(A, 'drop', 'z').ok;
+        var ids = D.heroes.slice(0, 6).map(function (h) { return h.id; });
+        ids.forEach(function (id) { C.save.dex.heroes[id] = C.save.dex.heroes[id] || { count: 1, firstAt: 1 }; DG.hero.ensure(id); });
+        C.save.dex.heroes.story_scholar = { count: 1, firstAt: 1 }; DG.hero.ensure('story_scholar');
+        C.save.party = ids.slice(0, 5);
+        DG.fieldCombat.tick(0.05);
+        var S = DG.fieldCombat.state();
+        S.calmT = 0;
+        var blocked = FM.apply('up', ids[2]);
+        S.calmT = 99;
+        var ok = FM.apply('up', ids[2]);
+        r.apply = !blocked.ok && /싸우는 중/.test(blocked.why) && ok.ok && C.save.party[1] === ids[2];
+        DG.ui.openDetail('hero', ids[4]);
+        var dt = document.getElementById('detail'), html = dt.innerHTML;
+        r.detail = html.indexOf('◀ 앞 자리로') >= 0 && html.indexOf('⚔ 들판 명단에 넣기') >= 0 && html.indexOf('대기 5') >= 0;
+        var fb = dt.querySelector('[data-act="party-field"]');
+        if (fb) { fb.click(); }
+        r.click = C.save.party[3] === ids[4] && C.save.party[4] === ids[3];
+        DG.ui.closeDetail();
+        DG.ui.openDetail('hero', ids[5]);
+        r.swapTxt = document.getElementById('detail').innerHTML.indexOf('(다섯째 ' + D.find(ids[3]).name + '와 바꿈)') >= 0;
+        DG.ui.closeDetail();
+        DG.ui.openSheet('dex');
+        var sh = document.getElementById('sheet-body').innerHTML;
+        r.sheet = sh.indexOf('⚔ 들판 명단') >= 0 && sh.indexOf('1 ' + D.find(ids[0]).name) >= 0 && sh.indexOf('📖 이야기 동료') >= 0 && sh.indexOf('은비') >= 0;
+        DG.ui.closeSheet();
+      } finally {
+        var snap = JSON.parse(bak);
+        Object.keys(C.save).forEach(function (k) { delete C.save[k]; });
+        Object.keys(snap).forEach(function (k) { C.save[k] = snap[k]; });
+      }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '넣기·빼기·앞·들판 · 교전 중 ✕ · 상세 단추 셋 · 대기 → 넷째 · 바꿈 안내 · 명단 한 줄·이야기 동료' : ('실패 ' + bad.join(','));
     });
 
 

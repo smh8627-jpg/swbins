@@ -128,7 +128,11 @@
   }
 
   /** 인물의 원소 — id 해시로 고정(바뀌지 않는다). 주인공 '_me' 는 화(saga-godot 와 같게) */
-  function elementOf(id) { return id === '_me' ? 'fire' : EL_KEYS[Math.floor(hs(id) * EL_KEYS.length) % EL_KEYS.length]; }
+  function elementOf(id) {
+    var SM = global.DG.story && global.DG.story.MEMBERS;                 // ⑲-15 이야기 동료는 표
+    if (SM && SM[id]) { return SM[id].el; }
+    return id === '_me' ? 'fire' : EL_KEYS[Math.floor(hs(id) * EL_KEYS.length) % EL_KEYS.length];
+  }
 
   /* ⑫ 스킬 모양 — 인물마다 다르다(원소와 다른 해시). 주인공 '나'는 옛 원형 광역 그대로.
      찌르기: 앞으로 좁고 길게 세게 · 돌진: 파고들며 길 위를 친다(짧은 무적) ·
@@ -500,6 +504,7 @@
       foes: {}, camps: {}, cleared: {}, uid: 0, ev: [], kills: 0, zones: [],
       guard: null,                         // ⑲-1 굳힘 보호막 { hp, max, t } — 명단 전체가 나눠 쓴다(⑲-11 방패 틀도 여기)
       rallyT: 0, rallyMul: 1, wardT: 0, wardMul: 1, hasteT: 0,   // ⑲-11 명단 효과 — 군기(공격 곱)·맹세(받는 피해 곱)·뇌우(스킬 대기 두 배)
+      loreT: 0, loreMul: 1,                // ⑲-15 옛 글자 풀이 — 명단 원소 반응 피해 곱
       crng: mulberry32(20260824)           // ⑲-5 치명타 굴림
     };
   }
@@ -723,9 +728,11 @@
     var out = { uid: f.uid, dmg: 0, react: null, shield: false, immune: false };
     if (f.dead) { return out; }
     var emB = (1 + (m.em || 0) / 300) * (m.reactMul || 1) * (1 + (m.rxAll || 0));   // ⑲-4 깨달음 2 · ⑲-5 무기 반응 효과
+    if (S.loreT > 0) { emB *= S.loreMul; }                            // ⑲-15 옛 글자 풀이 — 명단 반응 피해
     var mul = f.stun > 0 ? STUN_MUL() : 1;
     raw *= talentMul(m, src);
     if (S.rallyT > 0 && src !== 'test') { raw *= S.rallyMul; }        // ⑲-11 군기·학날개 진
+    if (f.markT > 0 && src !== 'test') { raw *= f.markMul || 1; }     // ⑲-15 그림자 걸음 표식 — 누구에게든
     /* ⑲-5 — 피해 보너스(원소/물리 + 무기 효과 + 세트 4, 더하기)·치명타. 출처가 인물의 한 방일 때만 */
     var TLk = global.DG.talent, gk = TLk ? TLk.keyOfSrc(src) : null;
     if (gk && m.dmgB) {
@@ -973,6 +980,19 @@
       for (i = 0; i < hits.length; i++) { hitFoe(S, hits[i], m, m.atk * k.mul, m.el, 'skill'); }
       giveGuard(S, m, k.shield + (k.shieldAdd || 0), k.sec);
       ev = { x: px, y: py, r: k.r };
+    } else if (k.type === 'blink') {
+      /* ⑲-15 그림자 걸음 — 가까운 적을 지나 그 뒤 back m 까지 돌진, 도착 둘레를 베고 그 적에 표식 */
+      var bt = nearestFoe(S, px, py, k.reach), ex, ey;
+      if (bt) { var bl = Math.hypot(bt.x - px, bt.y - py) || 1; ex = bt.x + (bt.x - px) / bl * k.back; ey = bt.y + (bt.y - py) / bl * k.back; }
+      else { ex = px + dx * k.len; ey = py + dy * k.len; }
+      var bgo = Math.hypot(ex - px, ey - py), bux = bgo > 1e-6 ? (ex - px) / bgo : dx, buy = bgo > 1e-6 ? (ey - py) / bgo : dy;
+      S.dash = { vx: bux * bgo / DASH_T(), vy: buy * bgo / DASH_T(), t: DASH_T() };
+      S.iframe = Math.max(S.iframe, 0.3);
+      hits = foesWithin(S, ex, ey, k.r);
+      if (bt && hits.indexOf(bt) < 0) { hits.push(bt); }
+      for (i = 0; i < hits.length; i++) { hitFoe(S, hits[i], m, m.atk * k.mul, m.el, 'skill'); }
+      if (bt && !bt.dead) { bt.markT = k.mark; bt.markMul = k.markMul; }
+      ev = { x: ex, y: ey, x0: px, y0: py, r: k.r }; shape = 'dash';
     } else {
       S.zones.push({ kind: 'kitzone', x: px, y: py, r: k.r, t: k.sec, next: 0, every: k.every, n: k.n, mul: k.mul, energy: k.energy || 0, el: m.el, atk: m.atk, m: m });
       hits = foesWithin(S, px, py, k.r);
@@ -997,6 +1017,16 @@
     if (k.type === 'infuse') { m.infT = k.sec; m.infMul = k.nmul; }
     else if (k.type === 'rally') { S.rallyT = k.sec; S.rallyMul = k.atk; }
     else if (k.type === 'ward') { S.wardT = k.sec; S.wardMul = k.taken; }
+    else if (k.type === 'lore') { S.loreT = k.sec; S.loreMul = k.rmul; }          // ⑲-15 옛 글자 풀이
+    else if (k.type === 'echo') {
+      /* ⑲-15 가면 벗기 — reach 안 표식 난 적마다 every 초 간격 메아리 n(적을 따라감), 없으면 가까운 둘 */
+      var near = living(S).filter(function (f) { return Math.hypot(f.x - px, f.y - py) <= k.reach; })
+        .sort(function (a, b) { return Math.hypot(a.x - px, a.y - py) - Math.hypot(b.x - px, b.y - py); });
+      var marked = near.filter(function (f) { return f.markT > 0; }), tgs = marked.length ? marked : near.slice(0, 2), e2;
+      for (i = 0; i < tgs.length; i++) {
+        for (e2 = 1; e2 <= k.n; e2++) { S.zones.push({ kind: 'echo', uid: tgs[i].uid, x: tgs[i].x, y: tgs[i].y, r: 1.2, t: k.every * e2, el: m.el, m: m, mul: k.emul }); }
+      }
+    }
     else if (k.type === 'haste') {
       S.hasteT = k.sec;
       for (i = 0; i < S.party.length; i++) { var o = S.party[i]; if (o !== m && !o.down) { o.energy = Math.min(ENERGY_MAX(), o.energy + k.energy * (o.er || 1)); } }
@@ -1022,6 +1052,17 @@
           var sn = foesWithin(S, z.x, z.y, z.r);
           for (k = 0; k < sn.length; k++) { wake(sn[k]); rawHit(S, sn[k], z.dmg); }
           push(S, { t: 'zone', kind: 'seed', el: 'grass', x: z.x, y: z.y, r: z.r, n: sn.length });
+          Z.splice(i, 1);
+        }
+        continue;
+      }
+      if (z.kind === 'echo') {
+        /* ⑲-15 가면 벗기 메아리 — 그 적을 따라가 t 뒤에 친다(이미 쓰러졌으면 헛친다) */
+        var ef = S.foes[z.uid];
+        if (ef && !ef.dead) { z.x = ef.x; z.y = ef.y; }
+        if (z.t <= 1e-9) {
+          if (ef && !ef.dead) { hitFoe(S, ef, z.m, z.m.atk * z.mul, z.el, 'burst'); }
+          push(S, { t: 'zone', kind: 'echo', el: z.el, x: z.x, y: z.y, r: z.r, n: ef && !ef.dead ? 1 : 0 });
           Z.splice(i, 1);
         }
         continue;
@@ -1201,6 +1242,7 @@
     if (S.zones && S.zones.length) { stepZones(S, dt); }
     if (S.guard) { S.guard.t -= dt; if (S.guard.t <= 0 || S.guard.hp <= 0) { S.guard = null; } }
     if (S.rallyT > 0) { S.rallyT = Math.max(0, S.rallyT - dt); }
+    if (S.loreT > 0) { S.loreT = Math.max(0, S.loreT - dt); }
     if (S.wardT > 0) { S.wardT = Math.max(0, S.wardT - dt); }
     if (S.hasteT > 0) { S.hasteT = Math.max(0, S.hasteT - dt); }
     var i, m;
@@ -1244,6 +1286,7 @@
         }
       }
       if (f.physT > 0) { f.physT -= dt; }
+      if (f.markT > 0) { f.markT -= dt; }                 // ⑲-15 표식
       if (f.quickT > 0) { f.quickT -= dt; }
       if (f.burnN > 0) {                                  // ⑲-1 들불 — 0.5초마다 여덟 번
         f.burnT -= dt;

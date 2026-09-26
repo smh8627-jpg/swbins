@@ -236,11 +236,18 @@
       }
       else if (act === 'refine') { if (growth()) { growth().refine(id); } }
       else if (act === 'ascend') { if (growth()) { growth().ascend(id); } }
-      else if (act === 'join') {
-        if (core.save.party.length < 5 && core.save.party.indexOf(id) < 0) { core.save.party.push(id); }
-      } else if (act === 'drop') {
-        core.save.party = core.save.party.filter(function (x) { return x !== id; });
-        delete core.save.petEquip[id];
+      else if (act === 'join' || act === 'drop' || act === 'party-up' || act === 'party-field') {
+        var FMa = global.DG.formation;                                   // ⑲-15 편성
+        if (FMa) {
+          var fr = FMa.apply({ join: 'put', drop: 'drop', 'party-up': 'up', 'party-field': 'field' }[act], id);
+          if (!fr.ok) { toast('⚔ ' + fr.why); }
+          else if (fr.swap) { var sh = data.find(fr.swap); toast('⚔ ' + (sh ? sh.name : fr.swap) + '와 자리를 바꿨다'); }
+        } else if (act === 'join') {
+          if (core.save.party.length < 5 && core.save.party.indexOf(id) < 0) { core.save.party.push(id); }
+        } else if (act === 'drop') {
+          core.save.party = core.save.party.filter(function (x) { return x !== id; });
+          delete core.save.petEquip[id];
+        }
       } else { return; }
       core.persist(); renderDetail(); renderSheet(); renderTop();
     });
@@ -933,15 +940,33 @@
   }
 
   function viewDex() {
-    var hC = Object.keys(core.save.dex.heroes).length;
+    var hC = data.heroes.filter(function (e) { return core.save.dex.heroes[e.id]; }).length;   // ⑲-15 이야기 동료는 세지 않는다
     var pC = Object.keys(core.save.dex.pets).length;
-    return darkStrip() + buddyStrip() +
+    var ST = global.DG.story, mem = ST && ST.MEMBERS ? Object.keys(ST.MEMBERS).map(function (k) { return ST.MEMBERS[k]; })
+      .filter(function (e) { return core.save.dex.heroes[e.id]; }) : [];
+    return darkStrip() + buddyStrip() + rosterStrip() +
            '<div class="sec"><h4>인물</h4>' + dexBar(hC, data.heroes.length) +
              dexGrid(data.heroes, core.save.dex.heroes) + '</div>' +
+           (mem.length ? '<div class="sec"><h4>📖 이야기 동료</h4>' + dexGrid(mem, core.save.dex.heroes) + '</div>' : '') +
            '<div class="sec"><h4>펫</h4>' + dexBar(pC, data.pets.length) +
              dexGrid(data.pets, core.save.dex.pets) + '</div>' +
            '<div class="hint">카드를 누르면 열전·승급·펫 장착 화면이 열립니다. ' +
            '같은 인물을 또 등용하면 <b>중복(+n)</b>이 쌓여 승급 재료가 됩니다.</div>';
+  }
+
+  /** ⑲-15 들판 명단 한 줄 — 1~4 ⚔ · 5 대기. 누르면 그 인물 상세 */
+  function rosterStrip() {
+    var FM = global.DG.formation, P = core.save.party || [], out = '', i;
+    if (!FM) { return ''; }
+    for (i = 0; i < FM.MAX; i++) {
+      var h = P[i] ? data.find(P[i]) : null;
+      out += h ? '<button class="btn sm' + (i < FM.FIELD ? ' primary' : ' ghost') + '" data-act="detail" data-kind="hero" data-id="' + h.id + '">' +
+          (i + 1) + ' ' + esc(h.name) + '</button>'
+        : '<button class="btn sm ghost" disabled>' + (i + 1) + ' (빈자리)</button>';
+      if (i === FM.FIELD - 1) { out += '<small class="muted">· 대기</small>'; }
+    }
+    return '<div class="sec"><h4>⚔ 들판 명단</h4><div class="roster">' + out + '</div>' +
+      '<small class="muted">앞 넷이 들판 전투 명단(숫자 1~4)입니다. 인물을 눌러 자리를 바꿉니다.</small></div>';
   }
 
   function dexBar(n, total) {
@@ -1397,6 +1422,27 @@
     host.innerHTML = openDetailRef.kind === 'pet' ? detailPet(ref) : detailHero(ref);
   }
 
+  /**
+   * ⑲-15 편성 단추 — 동행이면 자리(⚔ 들판 1~4 · 대기 5)·◀ 앞 자리로·⚔ 들판 명단에 넣기·빼기,
+   * 아니면 넣기(꽉 찼으면 다섯째와 바뀜). formation.js 가 없으면 옛 두 단추
+   */
+  function partyButtons(h) {
+    var FM = global.DG.formation, P = core.save.party, i = P.indexOf(h.id);
+    if (!FM) {
+      return i >= 0 ? '<button class="btn ghost wide" data-act="drop" data-id="' + h.id + '">동행에서 뺀다</button>'
+        : '<button class="btn wide"' + (P.length >= 5 ? ' disabled' : '') + ' data-act="join" data-id="' + h.id + '">동행에 넣는다</button>';
+    }
+    if (i < 0) {
+      var sw = FM.putSwap(h.id), sh = sw ? data.find(sw) : null;
+      return '<button class="btn wide" data-act="join" data-id="' + h.id + '">동행에 넣는다' +
+        (sw ? ' (다섯째 ' + esc(sh ? sh.name : sw) + '와 바꿈)' : '') + '</button>';
+    }
+    var out = '<div class="stat-row"><span>자리</span><b>' + (i < FM.FIELD ? '⚔ 들판 명단 ' + (i + 1) : '대기 ' + (i + 1)) + '</b></div>';
+    if (i > 0) { out += '<button class="btn wide" data-act="party-up" data-id="' + h.id + '">◀ 앞 자리로</button>'; }
+    if (i >= FM.FIELD) { out += '<button class="btn wide" data-act="party-field" data-id="' + h.id + '">⚔ 들판 명단에 넣기</button>'; }
+    return out + '<button class="btn ghost wide" data-act="drop" data-id="' + h.id + '">동행에서 뺀다</button>';
+  }
+
   function detailHero(h) {
     var owned = !!core.save.dex.heroes[h.id];
     var rar = data.rarity[h.rarity];
@@ -1483,11 +1529,7 @@
       if (net().online()) {
         out += '<button class="btn wide" data-act="dt-talk" data-id="' + h.id + '">💬 말을 건다 (사관)</button>';
       }
-      out += (inParty
-        ? '<button class="btn ghost wide" data-act="drop" data-id="' + h.id + '">동행에서 뺀다</button>'
-        : '<button class="btn wide"' + (core.save.party.length >= 5 ? ' disabled' : '') +
-          ' data-act="join" data-id="' + h.id + '">동행에 넣는다' +
-          (core.save.party.length >= 5 ? ' (가득 찼음)' : '') + '</button>');
+      out += partyButtons(h);                                            // ⑲-15 편성 — 넣기·빼기·앞으로·들판으로
       out += '</div>' +
         '<small class="muted dt-tip">승급은 <b>같은 인물을 또 등용해 생긴 중복분</b>과 금을 씁니다. ' +
         '동행 선두가 지도 위 내 모습이 되고, 조우 성공 때 동행 전원이 경험치를 받습니다.</small>';

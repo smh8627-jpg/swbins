@@ -80,6 +80,8 @@
   /** 인물 → 종류. 주인공('_me')은 칼. 식은 Godot `type_of` 와 같다 */
   function typeOf(id) {
     if (!id || id === '_me') { return 'sword'; }
+    var SM = global.DG.story && global.DG.story.MEMBERS;                 // ⑲-15 이야기 동료는 표
+    if (SM && SM[id]) { return SM[id].weapon; }
     var h = 7;
     for (var i = 0; i < id.length; i++) { h = (h * 37 + id.charCodeAt(i)) & 0x7fffffff; }
     return TYPES[h % TYPES.length];

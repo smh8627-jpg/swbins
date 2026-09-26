@@ -38,6 +38,18 @@
     sg_huangzhong: {
       skill: { name: '화살비', type: 'shells', cd: 8, reach: 14, n: 4, delay: 0.5, r: 1.8, mul: 1.9, text: '14m 안 적 넷 자리에 0.5초 뒤 화살비(둘레 1.8m) — 적이 없으면 앞 8m 에 하나' },
       burst: { name: '돌개 화살', type: 'vortex', r: 5, mul: 2.4, ahead: 7, sec: 8, every: 0.5, tick: 0.5, pull: 5, text: '둘레 5m 를 쏘고, 앞 7m 에 8초 소용돌이 — 적을 빨아들이며 0.5초마다 친다' }
+    },
+    /* ⑲-15 이야기 동료(story.js MEMBERS) — saga-godot 106 ㉛ 을 이 판 척도로 */
+    story_scholar: {
+      skill: { name: '비문 탁본', type: 'zone', cd: 10, r: 4.5, sec: 9, every: 1.5, n: 4, mul: 0.7, energy: 1.5,
+        text: '발밑에 9초 탁본 — 1.5초마다 안의 적 넷까지 초 원소로 치고, 맞힐 때마다 명단 기력 +1.5. 인물을 바꿔도 남는다' },
+      burst: { name: '옛 글자 풀이', type: 'lore', r: 7.5, mul: 2.8, sec: 12, rmul: 1.4, text: '둘레 7.5m 를 치고, 12초 동안 명단 원소 반응 피해 ×1.4' }
+    },
+    story_wanderer: {
+      skill: { name: '그림자 걸음', type: 'blink', cd: 8, reach: 10, back: 1.5, r: 2.5, mul: 3.2, mark: 8, markMul: 1.25, len: 4,
+        text: '10m 안 가까운 적을 지나 그 뒤 1.5m 로 돌진(무적) — 도착 둘레 2.5m 를 베고, 그 적에 8초 표식(누구에게든 받는 피해 ×1.25)' },
+      burst: { name: '가면 벗기', type: 'echo', r: 6, mul: 3.4, reach: 15, n: 3, every: 0.3, emul: 1.5,
+        text: '둘레 6m 를 베고, 15m 안 표식 난 적마다 0.3초 간격 메아리 셋(적을 따라감) — 표식 난 적이 없으면 가까운 둘' }
     }
   };
 

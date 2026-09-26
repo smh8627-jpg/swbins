@@ -58,6 +58,23 @@
       mask: true, appear: [{ ch: 3, from: 1, to: 5 }, { ch: 4, from: 6, to: 6, spot: 'altar2', off: [7, 5] }, { ch: 5, from: 2, to: 4, spot: 'peak', off: [5, 5] }] }
   };
   var NPC_KEYS = ['elder', 'ferryman', 'scholar', 'wanderer'];
+
+  /* ⑲-15 이야기 동료 — 도감 밖 id(도감 인물과 같은 꼴). data.js 는 다섯 벌 복사본이라 고치지 않고 아래 hookFind 가
+     `DG.data.find` 앞에 끼운다. el·weapon 은 해시 대신 이 표(field-combat.elementOf·weapon.typeOf 가 읽는다) */
+  var MEMBERS = {
+    story_scholar: { id: 'story_scholar', name: '은비', hanja: '恩斐', era: '이야기', faction: '재야', rarity: 4, trait: 'wisdom', story: true,
+      el: 'grass', weapon: 'catalyst', stats: { might: 55, wisdom: 92, command: 70 }, emoji: '📜', quote: '이 비문, 읽을수록 이상하다니까.' },
+    story_wanderer: { id: 'story_wanderer', name: '가면 쓴 나그네', hanja: '假面客', era: '이야기', faction: '재야', rarity: 5, trait: 'might', story: true,
+      el: 'ice', weapon: 'sword', stats: { might: 90, wisdom: 75, command: 72 }, emoji: '🎭', quote: '너무 떨어지면 기다려 주지 않을 테니.' }
+  };
+  function hookFind() {
+    var D = global.DG.data;
+    if (!D || !D.find || D.find._story) { return; }
+    var base = D.find;
+    D.find = function (id) { return (typeof id === 'string' && MEMBERS[id]) || base.apply(D, arguments); };
+    D.find._story = true;
+  }
+  hookFind();
   /* 나그네가 걷는 길 — 고향 남쪽 다리목(첫 점 = 나그네 자리)에서 남쪽 들녘까지(+y 가 남쪽) */
   var WANDER_PATH = [[8, 70], [-4, 76], [-4, 104], [-4, 122], [20, 134], [38, 138]];
 
@@ -88,7 +105,7 @@
             ['누리', '고맙다. 네 덕에 마을이 한시름 놓았구나. 이건 마을이 모은 작은 성의란다.', 'joy'],
             ['누리', '이무기를 상대하려면 더 강해져야 할 게다. 모험을 더 쌓고 오렴.']] }
       ] },
-    { id: 'ch2', name: '제2장 · 먹구름 제단', ar: 5,
+    { id: 'ch2', name: '제2장 · 먹구름 제단', ar: 5, join: 'story_scholar',
       reward: { knot: 3, gold: 1000, secret: 1, party: 500 },
       steps: [
         { type: 'talk', npc: 'scholar', text: '학자에게 제단 가는 길을 묻기',
@@ -162,7 +179,7 @@
           lines: [['누리', '나그네가 쫓는 가면 쓴 자라… 먹구름이 다섯 번이나 더 올 수 있다는 말이냐.', 'sorrow'],
             ['누리', '네가 있어 다행이구나. 마을 사람들 몫으로 모은 것이니 받아 두렴.']] }
       ] },
-    { id: 'ch5', name: '제5장 · 솔숲 고개 옛길', ar: 12,
+    { id: 'ch5', name: '제5장 · 솔숲 고개 옛길', ar: 12, join: 'story_wanderer',
       reward: { knot: 3, gold: 1750, guide: 3, secret: 2, party: 700 },
       steps: [
         { type: 'talk', npc: 'elder', text: '촌장에게 학자 소식 듣기',
@@ -184,7 +201,8 @@
           lines: [['나그네', '……한발 늦을 뻔했군. 그자가 이 제단을 두드리러 오던 참이었다.'],
             ['나그네', '네가 먼저 봉인을 밝혀 두었으니 깨우지는 못하고, 졸개만 풀어 놓고 달아났지.'],
             ['?', ['그자를 봤어요?', '어디로 갔죠?']],
-            ['나그네', '봉우리 너머로. 그자가 떨군 비문 조각이다 — 학자에게 건네게.']] },
+            ['나그네', '봉우리 너머로. 그자가 떨군 비문 조각이다 — 학자에게 건네게.'],
+            ['나그네', '……그자를 쫓는 길, 이제부턴 혼자보다 둘이 낫겠군. 촌장에게 인사를 마치면 네 곁에 서지.']] },
         { type: 'talk', npc: 'scholar', text: '학자에게 셋째 비문 조각 건네기',
           lines: [['은비', '셋째 조각…! \'다섯 제단이 모두 깨면 먹구름의 주인이 돌아온다\'.', 'surprised'],
             ['은비', '가면 쓴 자가 노리는 건 이무기가 아니었어. 그 \'주인\'이야.'],
@@ -417,6 +435,7 @@
       toast('📖 ' + ch.name + ' 끝 — ' + txt);
       core().log('📖 ' + ch.name + ' 끝 — ' + txt, 'good');
       sfx('reward');
+      if (ch.join) { join(ch.join, false); }                          // ⑲-15 이야기 동료
     } else {
       var nx = ch.steps[s.step];
       toast('📖 ' + nx.text);
@@ -425,6 +444,39 @@
     core().emit('changed');
     core().persist();
     return true;
+  }
+
+  /* ── 이야기 동료(⑲-15) ────────────────────────────────── */
+
+  function hasMember(id) { var d = core().save.dex; return !!(d && d.heroes && d.heroes[id]); }
+  /**
+   * 동료가 된다 — 도감 기록·성장 기록, 동행에 빈자리가 있으면 채운다. 이미 있으면 아무것도 안 한다.
+   * quiet 면 알림 없이(이 기능 전에 그 장을 끝낸 세이브) — 기록 한 줄만
+   */
+  function join(id, quiet) {
+    var c = core(), m = MEMBERS[id];
+    if (!m || hasMember(id)) { return false; }
+    if (!c.save.dex) { c.save.dex = { heroes: {}, pets: {} }; }
+    if (!c.save.dex.heroes) { c.save.dex.heroes = {}; }
+    c.save.dex.heroes[id] = { count: 1, firstAt: Date.now() };
+    if (global.DG.hero && global.DG.hero.ensure) { global.DG.hero.ensure(id); }
+    if (!Array.isArray(c.save.party)) { c.save.party = []; }
+    var FM = global.DG.formation, room = c.save.party.length < (FM ? FM.MAX : 5);
+    if (room) { c.save.party.push(id); }
+    var msg = '🤝 ' + m.name + ' — 이야기 동료가 됐다' + (room ? ' · 동행에 들어왔다' : ' · 동행이 꽉 찼다 — 도감 탭에서 편성');
+    c.log(msg, 'good');
+    if (!quiet) { toast(msg); }                                     // dex:new 는 안 쏜다 — '도감 신규 등록' 알림이 뜨면 도감 인물로 읽힌다
+    c.emit('changed');
+    return true;
+  }
+  /** 지난 장의 동료가 빠졌으면 조용히 들인다(두 번 불러도 한 명) */
+  function catchUp() {
+    var s = sv(), n = 0;
+    for (var c = 0; c < Math.min(s.ch, CHAPTERS.length); c++) {
+      if (CHAPTERS[c].join && join(CHAPTERS[c].join, true)) { n++; }
+    }
+    if (n) { core().persist(); }
+    return n;
   }
 
   /* ── 신호로 끝나는 단계 ───────────────────────────────── */
@@ -860,11 +912,11 @@
       else if (k === 'escape' && listOpen) { toggleList(false); }
     });
   }
-  function init() { if (on()) { sv(); } bind(); }
+  function init() { hookFind(); if (on()) { sv(); catchUp(); } bind(); }
 
   global.DG = global.DG || {};
   global.DG.story = {
-    NPCS: NPCS, CHAPTERS: CHAPTERS, STEP_EXP: STEP_EXP, WANDER_PATH: WANDER_PATH, FOLLOW_SPEED: FOLLOW_SPEED,
+    NPCS: NPCS, CHAPTERS: CHAPTERS, MEMBERS: MEMBERS, join: join, catchUp: catchUp, hasMember: hasMember, STEP_EXP: STEP_EXP, WANDER_PATH: WANDER_PATH, FOLLOW_SPEED: FOLLOW_SPEED,
     SEAL_R: SEAL_R, SEAL_LAYOUT: SEAL_LAYOUT, SEAL_ORDER: SEAL_ORDER, SEAL_MARKS: SEAL_MARKS, SPOTS: SPOTS, CLIMB_R: CLIMB_R,
     DUEL_P2_AT: DUEL_P2_AT, DUEL_P2_SHIELD: DUEL_P2_SHIELD, peakSpot: peakSpot, spotPos: spotPos, placeOf: placeOf,
     sealLamps: sealLamps, sealHit: sealHit, sealLit: sealLit, duelBoss: duelBoss, stepDuel: stepDuel,

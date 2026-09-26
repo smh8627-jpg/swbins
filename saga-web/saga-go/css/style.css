@@ -1855,3 +1855,6 @@ body.sight-on #map3d { filter: grayscale(.92) brightness(.62) contrast(1.15) sep
 #ck-sheet .ck-bar .ck-ok { position: absolute; top: 0; bottom: 0; background: rgba(255, 210, 120, .35); }
 #ck-sheet .ck-bar .ck-best { position: absolute; top: 0; bottom: 0; background: rgba(255, 170, 60, .85); }
 #ck-sheet .ck-bar .ck-needle { position: absolute; top: -2px; bottom: -2px; width: 4px; margin-left: -2px; background: #fff; border-radius: 2px; }
+/* ⑲-15 들판 명단 한 줄(ui.js rosterStrip) */
+#sheet-body .roster { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 4px 0 6px; }
+#sheet-body .roster .btn { width: auto; padding: 6px 10px; font-size: 13px; }
