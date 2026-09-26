@@ -137,8 +137,8 @@
    * 몸 단위(키 1) 좌표라 크기는 몸 키를 따른다. 머리 뼈가 없으면 안 붙인다.
    */
   var vh = null;
-  /* 가면 빛깔 — 흰 가면(나그네) · 검은 가면(이야기 보스, ⑲-14) = [얼굴, 눈, 줄] */
-  var MASKS = { white: [0xf2efe6, 0x15151a, 0xc0282c], black: [0x1b1a21, 0x7a1822, 0x8a4fd0] };
+  /* 가면 빛깔 — 흰 가면(나그네) · 검은 가면(이야기 보스, ⑲-14) · 금 간 검은 가면(⑲-16, 넷째 = 왼쪽 금) = [얼굴, 눈, 줄, 금?] */
+  var MASKS = { white: [0xf2efe6, 0x15151a, 0xc0282c], black: [0x1b1a21, 0x7a1822, 0x8a4fd0], crack: [0x1b1a21, 0x7a1822, 0x8a4fd0, 0xf4f1ea] };
   function mask(T, node, kind) {
     if (!T || !node) { return false; }
     var u = node.userData, r = rig(node);
@@ -157,6 +157,13 @@
       });
       var stripe = new T.Mesh(new T.PlaneGeometry(0.008, 0.07), red);
       stripe.position.set(0.019, -0.012, 0.002); g.add(stripe);
+      if (mc[3]) {                                  // 금 — 이마에서 왼뺨으로 꺾여 내려가는 흰 줄 둘
+        var crack = new T.MeshBasicMaterial({ color: mc[3], side: T.DoubleSide });
+        [[-0.014, 0.034, 0.5, 0.03], [-0.024, 0.006, -0.35, 0.034]].forEach(function (c) {
+          var seg = new T.Mesh(new T.PlaneGeometry(0.004, c[3]), crack);
+          seg.position.set(c[0], c[1], 0.003); seg.rotation.z = c[2]; g.add(seg);
+        });
+      }
       node.add(g); u.tfMask = g;
     }
     if (!vh) { vh = new T.Vector3(); }

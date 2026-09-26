@@ -10255,8 +10255,8 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 
     t('이야기 ⑲-12 — 표·자리: 장 둘(단계 8·4, 여정 등급 1·5) · 인물 셋 = ⑮ 땅 탑 + 자리(고향 촌장·갈대 나루 사공·옛 성터 학자) · 모든 단계에 목표 · 같은 세계면 같은 자리 · 몸 셋 고정', function () {
       var ST = DG.story, A3 = DG.asset3d, r = {};
-      r.table = ST.CHAPTERS.length === 6 && ST.CHAPTERS[0].steps.length === 8 && ST.CHAPTERS[1].steps.length === 4 &&
-        ST.CHAPTERS[0].ar === 1 && ST.CHAPTERS[1].ar === 5;     // ⑲-13·14 가 3~6장을 더했다
+      r.table = ST.CHAPTERS.length === 7 && ST.CHAPTERS[0].steps.length === 8 && ST.CHAPTERS[1].steps.length === 4 &&
+        ST.CHAPTERS[0].ar === 1 && ST.CHAPTERS[1].ar === 5;     // ⑲-13·14·16 이 3~7장을 더했다
       var e = ST.npcPos('elder'), f = ST.npcPos('ferryman'), s = ST.npcPos('scholar'), ga = ST.anchorOf('galdae'), go = ST.anchorOf('gojeong');
       r.npc = e.x === -22 && e.y === 16 && f.x === ga.x - 18 && f.y === ga.y - 24 && s.x === go.x - 18 && s.y === go.y - 24 &&
         DG.biome.cellAt.apply(null, ga.key.split('_').map(Number)).zone === 'galdae' && DG.biome.cellAt.apply(null, go.key.split('_').map(Number)).zone === 'gojeong';
@@ -10495,7 +10495,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       var rig = stRig(15), ST = rig.ST, r = {};
       try {
         var c5 = ST.CHAPTERS[4], c6 = ST.CHAPTERS[5];
-        r.table = ST.CHAPTERS.length === 6 && c5.steps.length === 9 && c6.steps.length === 8 && c5.ar === 12 && c6.ar === 15 &&
+        r.table = ST.CHAPTERS.length >= 6 && c5.steps.length === 9 && c6.steps.length === 8 && c5.ar === 12 && c6.ar === 15 &&
           c5.reward.gold === 1750 && c6.reward.knot === 4 && c6.reward.gold === 2000 && c5.steps[4].type === 'seal' && c6.steps[1].type === 'climb' && c6.steps[3].type === 'duel';
         var pk = ST.peakSpot(), L = DG.landform.peaks(0, 0);
         r.peak = !!pk && L.some(function (q) { return q.key === pk.key; }) && (pk.y < 0 || !L.some(function (q) { return q.y < 0; }));
@@ -10514,7 +10514,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         var wp = ST.npcPos('wanderer');
         r.wpos = wp.x === pk.x + 5 && wp.y === pk.y + 5;
         var emo = 0;
-        ST.CHAPTERS.forEach(function (ch) { ch.steps.forEach(function (st) { (st.lines || []).forEach(function (l) { if (l[2]) { emo++; } }); }); });
+        ST.CHAPTERS.slice(0, 6).forEach(function (ch) { ch.steps.forEach(function (st) { (st.lines || []).forEach(function (l) { if (l[2]) { emo++; } }); }); });
         r.emo = emo === 25;
       } finally { rig.undo(); }
       var bad = Object.keys(r).filter(function (k) { return !r[k]; });
@@ -10717,6 +10717,125 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       return bad.length === 0 ? '넣기·빼기·앞·들판 · 교전 중 ✕ · 상세 단추 셋 · 대기 → 넷째 · 바꿈 안내 · 명단 한 줄·이야기 동료' : ('실패 ' + bad.join(','));
     });
 
+
+    /* ── ⑲-16 이야기 7장·제단 지키기·금 간 검은 가면 (story.js defend · field-combat siege·tide·b_mask2, PLAN §5 ⑲-16) ── */
+    function stKillCamp(S, key) {
+      var cp = S.camps[key];
+      if (!cp) { return false; }
+      cp.uids.forEach(function (u) {
+        var f = S.foes[u];
+        if (!f || f.dead) { return; }
+        f.shield = 0; f.layers = []; f.shEl = null;
+        for (var k = 0; k < 3 && !f.dead; k++) { DG.fieldCombat.hitFoe(S, f, S.party[0], 1e8, null, 'test'); }
+      });
+      return true;
+    }
+    t('이야기 ⑲-16 — 표·자리: 7장 10단계(Lv18)·보상 · 곶 = 갈대 나루 탑 곁 뭍(가운데·둘레 15m 열두 자리)·사공에게서 30m 넘게 · 나그네는 7장 4~7째 단계에만 · 사공은 9째 단계에 곶으로 · 표정 여덟', function () {
+      var rig = stRig(18), ST = rig.ST, r = {};
+      try {
+        var c7 = ST.CHAPTERS[6];
+        r.table = ST.CHAPTERS.length === 7 && c7.steps.length === 10 && c7.ar === 18 && c7.reward.knot === 4 && c7.reward.gold === 2250 &&
+          c7.reward.party === 800 && c7.steps[4].type === 'defend' && c7.steps[5].type === 'duel' && c7.steps[5].kind === 'b_mask2' && c7.steps[7].type === 'light';
+        var cp = ST.capeSpot(), ga = ST.anchorOf('galdae'), fm = ST.npcPos('ferryman', 6, 0);
+        r.cape = !!cp && Math.hypot(cp.x - ga.x, cp.y - ga.y) <= 90.001 && ST.landAt(cp.x, cp.y) &&
+          ST.ringAt(cp.x, cp.y, ST.DEFEND_RING, 12).every(function (q) { return ST.landAt(q.x, q.y); }) &&
+          Math.hypot(cp.x - fm.x, cp.y - fm.y) > ST.CAPE_CLEAR && ST.spotPos('cape').x === cp.x;
+        var vis = [], i;
+        for (i = 0; i < 10; i++) { C.save.story = { ch: 6, step: i }; vis.push(ST.visible('wanderer') ? 1 : 0); }
+        r.wander = vis.join('') === '0001111000';
+        var f8 = ST.npcPos('ferryman', 6, 8);
+        r.ferry = f8.x === cp.x - 6 && f8.y === cp.y + 6 && ST.npcPos('ferryman', 6, 1).x === fm.x;
+        var emo = 0;
+        c7.steps.forEach(function (st) { (st.lines || []).forEach(function (l) { if (l[2]) { emo++; if (!DG.talkface.EMO[l[2]]) { emo = -99; } } }); });
+        r.emo = emo === 8;
+        r.hex = ST.pillarHex(1) === 0x4cd964 && ST.pillarHex(0) === 0xff4040;
+      } finally { rig.undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '7장 10단계 · 곶 뭍(둘레 열둘) · 나그네 0001111000 · 사공 9째 곶 · 표정 8' : ('실패 ' + bad.join(','));
+    });
+
+    t('이야기 ⑲-16 — 제단 지키기: 멀면 안 옴 · 25m 안이면 첫 물결(둘레 15m·제단으로 곧장) · 제단을 침 · 내가 5m 안이면 나를 침 · 28초/다 잡으면 다음 물결 · 절반 경고 · 무너지면 4초 쉬고 처음부터 · 전멸도 처음부터 · 셋 다 잡으면 다음 단계(전리품 없음)', function () {
+      var rig = stRig(18), ST = rig.ST, FC = DG.fieldCombat, r = {};
+      try {
+        C.save.story = { ch: 6, step: 4 };
+        var c = ST.targetOf(ST.step()), i, g;
+        stGo({ x: c.x, y: c.y + 60 }); FC.tick(0.05); ST.stepDefend(0.1);
+        var S = FC.state();
+        r.far = !S.camps[ST.waveKey(0)] && / \(가까이 가면 무리가 온다\)/.test(ST.trackText());
+        stGo({ x: c.x, y: c.y + 12 }); ST.stepDefend(0.1);
+        var D = ST.defState(), w0 = S.camps[ST.waveKey(0)];
+        r.wave0 = !!w0 && w0.uids.length === 3 && D.wave === 0 && D.hpMax === Math.round(ST.DEFEND_HITS * FC.foeAtk('boar', FC.tierAt(c.x, c.y))) &&
+          w0.uids.every(function (u) { var f = S.foes[u]; return f.siege && f.siege.x === c.x && f.st === 'chase' && Math.abs(Math.hypot(f.x - c.x, f.y - c.y) - ST.DEFEND_RING) < 1e-6; }) &&
+          /넷째 제단 100% · 물결 1\/3/.test(ST.trackText());
+        var sawSiege = false;
+        for (g = 0; g < 160 && D.hp >= D.hpMax; g++) {
+          FC.tick(0.05);
+          w0.uids.forEach(function (u) { var f = S.foes[u]; if (f && f.st === 'wind' && f.atkSiege) { sawSiege = true; } });
+        }
+        r.hit = sawSiege && D.hp < D.hpMax && D.wave === 0;
+        var imp = S.foes[w0.uids[0]];
+        stGo({ x: imp.x + 2, y: imp.y }); imp.st = 'chase'; imp.cd = 0; FC.tick(0.02);
+        r.pull = imp.st === 'wind' && imp.atkSiege === false;
+        stGo({ x: c.x, y: c.y + 12 });
+        D.t = ST.DEFEND_WAVE_SEC; ST.stepDefend(0.01);
+        r.time = D.wave === 1 && !!S.camps[ST.waveKey(1)] && S.camps[ST.waveKey(1)].uids.length === 4 && !!S.camps[ST.waveKey(0)];
+        stKillCamp(S, ST.waveKey(1)); FC.tick(0.05); ST.stepDefend(0.01);
+        r.clear = D.wave === 2 && D.clr[1] === true && !!S.camps[ST.waveKey(2)];
+        C.emit('field:siege', { camp: ST.waveKey(2), dmg: Math.round(D.hp - D.hpMax * 0.4) });
+        r.warn = D.warned && D.hp > 0 && D.rest === 0;
+        C.emit('field:siege', { camp: ST.waveKey(2), dmg: D.hpMax });
+        D = ST.defState();
+        r.fall = D.wave === -1 && D.rest === ST.DEFEND_REST && D.hp === D.hpMax && [0, 1, 2].every(function (n) { return !S.camps[ST.waveKey(n)]; }) &&
+          / · 4초 뒤 다시/.test(ST.trackText()) && C.save.story.step === 4;
+        ST.stepDefend(3); var still = !S.camps[ST.waveKey(0)];
+        ST.stepDefend(1.1); ST.stepDefend(0.01);
+        r.again = still && !!S.camps[ST.waveKey(0)] && ST.defState().wave === 0;
+        C.emit('field:wipe', {});
+        r.wipe = ST.defState().wave === -1 && ST.defState().rest === ST.DEFEND_REST && !S.camps[ST.waveKey(0)];
+        ST.stepDefend(5); ST.stepDefend(0.01);
+        var g0 = C.save.player.gold;
+        for (i = 0; i < 3; i++) {
+          if (i) { ST.defState().t = ST.DEFEND_WAVE_SEC; ST.stepDefend(0.01); }
+          stKillCamp(S, ST.waveKey(i)); FC.tick(0.05);
+        }
+        ST.stepDefend(0.01);
+        r.win = C.save.story.step === 5 && C.save.player.gold === g0 && ST.defState() === null;
+      } finally { rig.undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '60m ✕ · 12m → 물결 1(셋·15m) · 제단 맞음 · 2m 면 나 · 28초 → 물결 2 · 다 잡음 → 물결 3 · 60% 경고 · 무너짐 → 4초 · 전멸 → 처음 · 셋 다 → 다음 단계' : ('실패 ' + bad.join(','));
+    });
+
+    t('이야기 ⑲-16 — 금 간 검은 가면: 물·금 간 가면 · 밀물 = 나를 향해 원 넷(2.5m 부터 3m 간격·반경 2m)·옆은 안 맞음·다음 수 그림자 · 절반에서 물 방패 + 졸개(불도깨비·물두꺼비) · 쓰러뜨리면 다음 단계', function () {
+      var rig = stRig(18), ST = rig.ST, FC = DG.fieldCombat, r = {};
+      try {
+        C.save.story = { ch: 6, step: 5 };
+        var dt = ST.targetOf(ST.step());
+        stGo({ x: dt.x + 20, y: dt.y }); FC.tick(0.05); ST.check();
+        var S = FC.state(), cp = S.camps[ST.keyOf()], b = cp && S.foes[cp.uids[0]];
+        var lv = b && FC.live().filter(function (x) { return x.uid === b.uid; })[0];
+        r.spawn = !!b && b.kind === 'b_mask2' && b.el === 'water' && !!lv && lv.mask === 'crack' && lv.ref.id === 'story_blackmask' && !!DG.talkface.MASKS.crack[3];
+        stGo({ x: b.x + 8, y: b.y });
+        b.st = 'chase'; b.cd = 0; b.rotI = 0;
+        FC.tick(0.02);
+        var M = b.mark, L = M && M.list, T = FC.ROT.tide;
+        r.tide = b.st === 'wind' && b.atkT === 'tide' && !!L && L.length === 4 && M.r === T.r &&
+          Math.abs(Math.hypot(L[0].x - b.x, L[0].y - b.y) - 2.5) < 1e-6 &&
+          [1, 2, 3].every(function (j) { return Math.abs(Math.hypot(L[j].x - L[j - 1].x, L[j].y - L[j - 1].y) - 3) < 1e-6 && L[j].x > L[j - 1].x; });
+        r.dodge = FC.markHit(M, L[2].x, L[2].y + 1.5) && !FC.markHit(M, L[1].x, L[1].y + 3.5);
+        for (var g = 0; g < 50 && b.st === 'wind'; g++) { FC.tick(0.05); }
+        r.rot = b.rotI === 1 && FC.FOES.b_mask2.rot[1] === 'shadow';
+        b.hp = Math.round(b.hpMax * 0.4); ST.check();
+        var ad = S.camps[ST.keyOf() + ':add'];
+        r.p2 = b.shEl === 'water' && b.shield === Math.round(b.hpMax * ST.DUEL_P2_SHIELD) && !!ad &&
+          ad.uids.map(function (u) { return S.foes[u].kind; }).join(',') === 'imp,toad' && /금 간 검은 가면 \d+% · 💧방패/.test(ST.trackText());
+        b.shield = 0; b.layers = [];
+        for (var k = 0; k < 3 && !b.dead; k++) { FC.hitFoe(S, b, S.party[0], 1e8, null, 'test'); }
+        FC.tick(0.05);
+        r.win = C.save.story.step === 6 && !S.camps[ST.keyOf() + ':add'];
+      } finally { rig.undo(); }
+      var bad = Object.keys(r).filter(function (k) { return !r[k]; });
+      return bad.length === 0 ? '물·금 간 가면 · 밀물 원 넷 2.5/5.5/8.5/11.5m · 옆 3.5m ✕ · 다음 그림자 · 40% → 💧방패 + 불도깨비·물두꺼비 · 쓰러뜨리면 다음 단계' : ('실패 ' + bad.join(','));
+    });
 
     /* ── ⑳ 원작 겹침 정리 (PLAN §5 ⑳) ── */
     t('원작 겹침 ⑳ — 화면 글자(보패·무기·무예·반응·상자·숨은 터 표 · 인물 상세 · 등급 카드)에 옛 원작 용어가 없다', function () {

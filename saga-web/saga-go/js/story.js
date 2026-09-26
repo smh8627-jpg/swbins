@@ -1,5 +1,5 @@
 /**
- * 이야기 임무 1~6장 — 대화 창·금빛 기둥·목록(O)·단계 열두 가지 (PLAN §5 ⑲-12~14, saga-godot PLAN 106 ㉕㉗㉘㉙㉚㉜)
+ * 이야기 임무 1~7장 — 대화 창·금빛 기둥·목록(O)·단계 열세 가지 (PLAN §5 ⑲-12~16, saga-godot PLAN 106 ㉕㉗㉘㉙㉚㉜㉞)
  * ---------------------------------------------------------------
  *   인물 넷    청하 촌장 누리(고향 마을) · 늙은 사공 버들(갈대 나루 탑) · 떠돌이 학자 은비(옛 성터 언덕 탑) —
  *              ⑮ 땅의 "고향에서 가장 가까운 탑" 곁에 늘 서 있다. 지금 단계가 아니면 혼잣말 한 줄.
@@ -9,8 +9,9 @@
  *              domain(먹구름 제단 또는 id 로 고른 숨은 터 깨기 — `domain:clear`) · gather(그 채집물 n 번 — `cook:gather`) ·
  *              cook(아무 요리 하나 — `cook:done`) · follow(인물이 길 점을 따라 걷는다 — 가까우면 걷고 멀면 선다) ·
  *              seal(제단 둘레 석등 해·달·별을 비문 차례대로 — 틀리면 다 꺼진다) · climb(⑰ 봉우리 꼭대기) ·
- *              duel(이야기 보스 검은 가면 — 들판 적 `b_mask`, 절반에서 뇌 방패 + 졸개 둘)
- *   자리       ⑮ 땅 탑 + off 또는 이름 붙은 자리(SPOTS — 옛길·둘째 제단·봉우리). 인물은 at·appear 칸으로 장마다 옮겨 선다
+ *              duel(이야기 보스 검은 가면 — 들판 적 `b_mask`·`b_mask2`, 절반에서 원소 방패 + 졸개 둘) ·
+ *              defend(제단 지키기 — 물결 셋이 제단으로 곧장, 제단이 무너지거나 전멸하면 4초 쉬고 처음부터)
+ *   자리       ⑮ 땅 탑 + off 또는 이름 붙은 자리(SPOTS — 옛길·둘째 제단·봉우리·곶). 인물은 at·appear 칸으로 장마다 옮겨 선다
  *   장         여정 등급(플레이어 Lv) ar 에 열린다. 단계마다 부대 경험 10, 장 끝에 보상
  *   대화       글이 초당 30자로 흘러나온다 — F·Space·누르기 한 번이면 줄 전체, 한 번 더면 다음 줄. 고른 대답은 "나" 의 줄로
  *              한 번 나온다. 줄 셋째 칸은 표정(joy·angry·sorrow·surprised·fun). 카메라·입·손짓은 `talkShot()` 을 world3d 가
@@ -44,18 +45,28 @@
   /* ⑲-14 이야기 보스 — 체력 절반에서 뇌 방패(체력의 몫) + 졸개 둘 */
   var DUEL_P2_AT = 0.5, DUEL_P2_SHIELD = 0.12, DUEL_ADDS = ['imp', 'imp'];
   /* ⑲-14 이름 붙은 자리 — 옛길·둘째 제단은 솔숲 고개 탑 곁, 봉우리는 ⑰ 정상(peakSpot) */
-  var SPOTS = { road: { zone: 'solryeong', off: [-26, -46] }, altar2: { zone: 'solryeong', off: [40, -70] }, peak: { peak: true } };
+  var SPOTS = { road: { zone: 'solryeong', off: [-26, -46] }, altar2: { zone: 'solryeong', off: [40, -70] }, peak: { peak: true }, cape: { cape: true } };
+  /* ⑲-16 제단 지키기 — 물결은 제단 둘레 DEFEND_RING m 열두 자리에서 나온다(물결 n 은 4n 째 자리부터).
+     제단 체력 = DEFEND_HITS × 그 자리 등급 공격(멧돼지 기준, 천하 등급 포함) */
+  var DEFEND_RING = 15, DEFEND_WAVE_SEC = 28, DEFEND_REST = 4, DEFEND_HITS = 45, DEFEND_SLOTS = 12;
+  var DEFEND_WAVES = [['imp', 'imp', 'toad'], ['imp', 'imp', 'toad', 'raptor'], ['imp', 'imp', 'rockbear', 'snowfox']];
+  function DEFEND_START() { return gps() ? 50 : 25; }
+  /* ⑲-16 곶(넷째 제단) — 갈대 나루 탑에서 반지름 CAPE_RADII × 여덟 방향 후보. 가운데·둘레 열두 자리가 다 뭍이고
+     사공에게서 CAPE_CLEAR m 넘는 첫 자리 — 둘레 CAPE_SHORE m 에 물이 있는 후보를 먼저 */
+  var CAPE_ZONE = 'galdae', CAPE_RADII = [50, 70, 90], CAPE_CLEAR = 30, CAPE_SHORE = 30, TERR_TILE = 48;   // TERR_TILE = world3d 지형 칸
 
   /* 인물 — zone 은 ⑮ 땅 key(고향은 'home'), off 는 그 땅 탑에서 떨어진 자리(m).
      at 칸 [{ch(0부터), from, to, spot, off}] 이면 그 장 그 단계 동안 그 자리에 선다(⑲-14).
      appear 가 있으면 그 칸에만 선다(나그네 — 4장은 따라가는 길, 칸에 spot 이 없다) */
   var NPCS = {
     elder:    { id: 'story_elder',    name: '청하 촌장 누리', short: '누리', zone: 'home',    off: [-22, 16],  color: '#6b7f61', idle: '먹구름이 걷히면 마을 잔치를 열어야지.' },
-    ferryman: { id: 'story_ferryman', name: '늙은 사공 버들', short: '버들', zone: 'galdae',  off: [-18, -24], color: '#4d6688', idle: '물 냄새가 요즘 영 비릿해.' },
+    ferryman: { id: 'story_ferryman', name: '늙은 사공 버들', short: '버들', zone: 'galdae',  off: [-18, -24], color: '#4d6688', idle: '물 냄새가 요즘 영 비릿해.',
+      at: [{ ch: 6, from: 8, to: 8, spot: 'cape', off: [-6, 6] }] },
     scholar:  { id: 'story_scholar',  name: '떠돌이 학자 은비', short: '은비', zone: 'gojeong', off: [-18, -24], color: '#8c6b99', idle: '이 비문, 읽을수록 이상하다니까.',
       at: [{ ch: 4, from: 0, to: 3, spot: 'road' }, { ch: 4, from: 4, to: 7, spot: 'altar2', off: [-5, 7] }, { ch: 5, from: 6, to: 6, spot: 'peak', off: [-5, 6] }] },
     wanderer: { id: 'story_wanderer', name: '가면 쓴 나그네', short: '나그네', zone: 'home',  off: [8, 70],    color: '#38384a', idle: '……',
-      mask: true, appear: [{ ch: 3, from: 1, to: 5 }, { ch: 4, from: 6, to: 6, spot: 'altar2', off: [7, 5] }, { ch: 5, from: 2, to: 4, spot: 'peak', off: [5, 5] }] }
+      mask: true, appear: [{ ch: 3, from: 1, to: 5 }, { ch: 4, from: 6, to: 6, spot: 'altar2', off: [7, 5] }, { ch: 5, from: 2, to: 4, spot: 'peak', off: [5, 5] },
+        { ch: 6, from: 3, to: 6, spot: 'cape', off: [6, 6] }] }
   };
   var NPC_KEYS = ['elder', 'ferryman', 'scholar', 'wanderer'];
 
@@ -240,6 +251,46 @@
         { type: 'talk', npc: 'elder', text: '청하 촌장에게 알리기',
           lines: [['누리', '먹구름 임금의 신하라… 옛날 할머니가 들려주던 자장가에 그런 말이 있었지.', 'sorrow'],
             ['누리', '봉우리까지 오르다니 장하구나. 다친 데는 없느냐? 이건 마을 사람들이 모은 거란다.', 'joy']] }
+      ] },
+    { id: 'ch7', name: '제7장 · 물가 곶의 넷째 제단', ar: 18,
+      reward: { knot: 4, gold: 2250, guide: 3, secret: 2, party: 800 },
+      steps: [
+        { type: 'talk', npc: 'scholar', text: '학자에게 넷째 제단 자리 듣기',
+          lines: [['은비', '넷째 조각 뒷면에 지도가 새겨져 있었어. 넷째 제단은 갈대 나루 곁, 물이 휘감아 도는 곶이야.'],
+            ['은비', '근데 이상해. 곶 쪽에서 밤마다 불빛이 오락가락한대. 사공 할아버지가 제일 잘 알 거야.', 'surprised'],
+            ['?', ['사공에게 가 볼게요.', '불빛이요?']],
+            ['은비', '검은 가면이 이번엔 혼자 오지 않을지도 몰라. 조심해!']] },
+        { type: 'talk', npc: 'ferryman', text: '갈대 나루의 사공에게 곶 소식 묻기',
+          lines: [['버들', '곶 말이냐? 요 며칠 밤마다 가면 쓴 무리가 떼로 몰려가더구나.', 'sorrow'],
+            ['버들', '제단 돌을 두드리는 소리가 여기까지 들려. 이 늙은이 배로는 어림도 없고.'],
+            ['?', ['제가 지킬게요.', '몇이나 되던가요?']],
+            ['버들', '셀 수가 없었다. 한 떼를 쫓으면 또 한 떼가 오더구나. 제단이 무너지기 전에 서두르거라.']] },
+        { type: 'go', spot: 'cape', off: [0, 22], text: '갈대 나루 곁 곶, 넷째 제단으로' },
+        { type: 'talk', npc: 'wanderer', text: '곶의 나그네와 이야기하기',
+          lines: [['나그네', '왔군. 그자가 이번엔 제 손을 더럽히지 않을 셈이다 — 무리부터 보냈어.'],
+            ['나그네', '제단이 무너지면 먹구름 임금의 넷째 조각이 풀려난다. 무리를 제단에 붙이지 마라.'],
+            ['?', ['제단 곁을 지킬게요.', '그자는 어디 있죠?']],
+            ['나그네', '물결 뒤에 숨어 보고 있겠지. 무리가 다 쓰러지면 제 발로 나올 게다.', 'angry']] },
+        { type: 'defend', spot: 'cape', name: '넷째 제단', text: '넷째 제단을 가면 무리에게서 지키기' },
+        { type: 'duel', spot: 'cape', off: [0, -8], kind: 'b_mask2', shield: 'water', adds: ['imp', 'toad'], text: '금 간 검은 가면과 맞서기',
+          enter: '🎭 금 간 검은 가면이 물결을 가르고 곶에 올라섰다',
+          p2: '🌊 금 간 검은 가면이 물 방패를 둘렀다 — 번개로 깨라! 졸개가 뛰어든다',
+          win: '🎭 가면 반쪽이 떨어졌다 — 금 간 검은 가면이 물속으로 몸을 던졌다. 졸개도 흩어진다' },
+        { type: 'talk', npc: 'wanderer', text: '나그네와 깨진 가면 반쪽 살피기',
+          lines: [['나그네', '……물속으로 달아났군. 하지만 가면 반쪽을 두고 갔다.'],
+            ['나그네', '방금 그 얼굴… 아니, 그럴 리가 없지.', 'surprised'],
+            ['?', ['아는 얼굴이에요?', '괜찮아요?']],
+            ['나그네', '아직은 말할 수 없다. 제단부터 다시 밝히게 — 그자가 두드린 자국이 깊다.']] },
+        { type: 'light', spot: 'cape', text: '넷째 제단에 원소 불 다시 밝히기' },
+        { type: 'talk', npc: 'ferryman', text: '곶에 온 사공과 물 건너 불빛 보기',
+          lines: [['버들', '불이 켜졌구나! 멀리서 보고 노를 저어 왔지.', 'joy'],
+            ['버들', '그런데 저기 보이느냐? 물 건너 바위섬에도 불빛 하나가 깜박이는구나.', 'surprised'],
+            ['?', ['다섯째 제단?', '누가 켰을까요?']],
+            ['버들', '바위섬은 뱃길이 험해 아무도 안 가는 곳이다. 촌장께 먼저 알리거라.']] },
+        { type: 'talk', npc: 'elder', text: '청하 촌장에게 알리기',
+          lines: [['누리', '제단을 지켜 냈다니… 이제 남은 건 바위섬 하나로구나.', 'sorrow'],
+            ['누리', '가면 반쪽이라. 나그네가 그렇게 놀라더란 말이지.'],
+            ['누리', '고생 많았다. 마을 사람들이 곶의 불빛을 보고 모은 거란다.', 'joy']] }
       ] }
   ];
 
@@ -284,9 +335,42 @@
     if (!peakMemo && L.length) { peakMemo = L[0]; }
     return peakMemo;
   }
+  /** ⑲-16 뭍인가 — 지형 칸이 물이 아니고 강(여울 빼고) 위가 아니다. 지형을 모르면 뭍 */
+  function landAt(x, y) {
+    var W = global.DG.world, LF = global.DG.landform, k = null;
+    if (W && W.terrainAt) { try { k = W.terrainAt(Math.floor(x / TERR_TILE), Math.floor(y / TERR_TILE)); } catch (e) { k = null; } }
+    if (k === 'water') { return false; }
+    var rv = LF && LF.on && LF.on() && LF.riverAt ? LF.riverAt(x, y) : null;
+    return !(rv && !rv.ford);
+  }
+  /** (x,y) 둘레 r m 에 n 자리(북쪽부터 시계 방향, +y 가 남쪽) */
+  function ringAt(x, y, r, n) {
+    var out = [];
+    for (var i = 0; i < n; i++) { var a = i * Math.PI * 2 / n; out.push({ x: x + Math.sin(a) * r, y: y - Math.cos(a) * r }); }
+    return out;
+  }
+  function allLand(L) { for (var i = 0; i < L.length; i++) { if (!landAt(L[i].x, L[i].y)) { return false; } } return true; }
+  var capeMemo = null;
+  /** ⑲-16 곶 — 넷째 제단 자리. 같은 세계면 늘 같다 */
+  function capeSpot() {
+    if (capeMemo) { return capeMemo; }
+    var a = anchorOf(CAPE_ZONE), fm = at(NPCS.ferryman.zone, NPCS.ferryman.off), first = null, best = null, i, k;
+    if (!a) { return null; }
+    for (i = 0; i < CAPE_RADII.length && !best; i++) {
+      for (k = 0; k < 8 && !best; k++) {
+        var q = ringAt(a.x, a.y, CAPE_RADII[i], 8)[k];
+        if (fm && Math.hypot(q.x - fm.x, q.y - fm.y) <= CAPE_CLEAR) { continue; }
+        if (!landAt(q.x, q.y) || !allLand(ringAt(q.x, q.y, DEFEND_RING, DEFEND_SLOTS))) { continue; }
+        if (!first) { first = q; }
+        if (!allLand(ringAt(q.x, q.y, CAPE_SHORE, 8))) { best = q; }       // 둘레에 물 — 곶답다
+      }
+    }
+    capeMemo = best || first || { x: a.x, y: a.y - CAPE_RADII[0] };
+    return capeMemo;
+  }
   /** 이름 붙은 자리 + off */
   function spotPos(name, off) {
-    var sp = SPOTS[name], b = !sp ? null : (sp.peak ? peakSpot() : at(sp.zone, sp.off));
+    var sp = SPOTS[name], b = !sp ? null : (sp.peak ? peakSpot() : (sp.cape ? capeSpot() : at(sp.zone, sp.off)));
     return b ? { x: b.x + (off ? off[0] : 0), y: b.y + (off ? off[1] : 0) } : null;
   }
   /** 단계의 자리 — 이름 붙은 자리(spot) 또는 ⑮ 땅 탑 + off */
@@ -369,8 +453,8 @@
     }
     if (st.type === 'gather') { var ga = gatherAim(st); return ga ? { x: ga.x, y: ga.y, r: 0, label: st.text } : null; }
     if (st.type === 'cook') { var pa = potAim(); return pa ? { x: pa.x, y: pa.y, r: 0, label: st.text } : null; }
-    var q = posOf(st);                                       // kill · light · seal · duel
-    return q ? { x: q.x, y: q.y, r: st.type === 'light' ? LIGHT_R() : (st.type === 'seal' ? SEAL_R : 0), label: st.text } : null;
+    var q = posOf(st);                                       // kill · light · seal · duel · defend
+    return q ? { x: q.x, y: q.y, r: st.type === 'light' ? LIGHT_R() : (st.type === 'seal' ? SEAL_R : (st.type === 'defend' ? DEFEND_START() : 0)), label: st.text } : null;
   }
   /** ⑲-14 석등 셋의 자리 — [{k, x, y}], 북쪽부터 시계 방향 SEAL_LAYOUT(+y 가 남쪽) */
   function sealLamps(st) {
@@ -428,7 +512,7 @@
     if (!ch) { return false; }
     if (H && H.awardParty) { H.awardParty(STEP_EXP); }
     s.step += 1;
-    prog = { key: '', n: 0 }; fol = null; seal = { key: '', n: 0 }; duel = null;
+    prog = { key: '', n: 0 }; fol = null; seal = { key: '', n: 0 }; duel = null; def = null;
     if (s.step >= ch.steps.length) {
       var txt = award(ch.reward);
       s.ch += 1; s.step = 0;
@@ -484,8 +568,12 @@
   function onGuard(e) { var st = step(), t = st && st.type === 'boss' ? targetOf(st) : null; if (t && e && e.region === t.rk) { advance(); } }
   function onClear(e) {
     var st = step();
+    if (st && st.type === 'defend' && e && typeof e.camp === 'string' && e.camp.indexOf(keyOf() + ':w') === 0) {
+      defState().clr[+e.camp.slice(keyOf().length + 2)] = true;     // 마지막 물결까지 다 잡았는지는 stepDefend 가 본다
+      return;
+    }
     if (!st || (st.type !== 'kill' && st.type !== 'duel') || !e || e.camp !== keyOf()) { return; }
-    if (st.type === 'duel') { dropAdds(); toast('🎭 검은 가면이 먹구름 속으로 달아났다 — 졸개도 흩어진다'); }
+    if (st.type === 'duel') { dropAdds(); toast(st.win || '🎭 검은 가면이 먹구름 속으로 달아났다 — 졸개도 흩어진다'); }
     advance();
   }
   function onElement(e) {
@@ -517,34 +605,102 @@
   /* ⑲-14 이야기 보스 — 2단계(방패·졸개) 여부. 저장 안 함 */
   var duel = null;          // { key, p2 }
   function addKey() { return keyOf() + ':add'; }
-  function dropAdds() {
-    var F = FC(), S = F && F.state ? F.state() : null, cp = S ? S.camps[addKey()] : null;
+  /** 무리 하나를 통째로 치운다(흩어짐) */
+  function dropCamp(key) {
+    var F = FC(), S = F && F.state ? F.state() : null, cp = S ? S.camps[key] : null;
     if (!cp) { return; }
     cp.uids.forEach(function (u) { delete S.foes[u]; });
-    delete S.camps[addKey()];
+    delete S.camps[key];
+    delete S.cleared[key];
   }
+  function dropAdds() { dropCamp(addKey()); }
   /** 보스 한 박자 — 절반에서 뇌 방패 + 졸개 둘, 전멸해 되돌아가 다시 온전해지면 처음으로 */
   function duelBoss() {
     var F = FC(), S = F && F.state ? F.state() : null, cp = S ? S.camps[keyOf()] : null;
     return cp ? S.foes[cp.uids[0]] || null : null;
   }
+  /** 2단계 방패 원소·졸개는 단계 칸(shield·adds, ⑲-16) — 없으면 6장 값 */
   function stepDuel() {
-    var F = FC(), S = F && F.state ? F.state() : null, b = duelBoss();
+    var F = FC(), S = F && F.state ? F.state() : null, b = duelBoss(), st = step() || {};
     if (!b || b.dead) { return; }
     if (!duel || duel.key !== keyOf()) { duel = { key: keyOf(), p2: false }; }
     if (!duel.p2 && b.hp <= b.hpMax * DUEL_P2_AT) {
+      var shEl = st.shield || 'elec';
       duel.p2 = true;
-      b.layers = ['elec']; b.layer = 0; b.shEl = 'elec';
+      b.layers = [shEl]; b.layer = 0; b.shEl = shEl;
       b.shieldMax = b.shield = Math.round(b.hpMax * DUEL_P2_SHIELD);
       F.spawnCamp(S, { key: addKey(), x: b.x, y: b.y, tier: b.tier, kind: 'story',
-        foes: DUEL_ADDS.map(function (k, i) { return { kind: k, dx: i ? 3 : -3, dy: 2 }; }) });
+        foes: (st.adds || DUEL_ADDS).map(function (k, i) { return { kind: k, dx: i ? 3 : -3, dy: 2 }; }) });
       S.camps[addKey()].uids.forEach(function (u) { S.foes[u].st = 'chase'; });
-      toast('⛈️ 검은 가면이 먹구름을 둘렀다 — 불로 깨라! 가면 졸개가 뛰어든다');
+      toast(st.p2 || '⛈️ 검은 가면이 먹구름을 둘렀다 — 불로 깨라! 가면 졸개가 뛰어든다');
     } else if (duel.p2 && b.st === 'idle' && b.hp >= b.hpMax) {
       duel.p2 = false;
       b.layers = []; b.layer = 0; b.shEl = null; b.shield = b.shieldMax = 0;
       dropAdds();
     }
+  }
+  /* ⑲-16 제단 지키기 — 제단 체력·물결은 저장 안 함(불러오면 그 단계 처음) */
+  var def = null;           // { key, wave(-1 = 아직), t(이 물결 뒤 초), rest(쉬는 틈 초), hp, hpMax, warned, clr{물결: 다 잡음} }
+  function defState() {
+    if (!def || def.key !== keyOf()) { def = { key: keyOf(), wave: -1, t: 0, rest: 0, hp: 0, hpMax: 0, warned: false, clr: {} }; }
+    return def;
+  }
+  function waveKey(n) { return keyOf() + ':w' + n; }
+  function wavesOf(st) { return st.waves || DEFEND_WAVES; }
+  function altarHpMax(c) { var F = FC(); return Math.round(DEFEND_HITS * (F && F.foeAtk ? F.foeAtk('boar', F.tierAt(c.x, c.y)) : 80)); }
+  /** 물결 n — 둘레 열두 자리 중 4n 째부터, 처음부터 제단으로 곧장(siege) */
+  function spawnWave(st, n) {
+    var F = FC(), S = F && F.state ? F.state() : null, c = posOf(st), d = defState(), ks = wavesOf(st)[n];
+    if (!S || !c || !ks) { return false; }
+    var slots = ringAt(0, 0, DEFEND_RING, DEFEND_SLOTS);
+    F.spawnCamp(S, { key: waveKey(n), x: c.x, y: c.y, tier: F.tierAt(c.x, c.y), kind: 'story',
+      foes: ks.map(function (k, i) { var q = slots[(n * 4 + i) % DEFEND_SLOTS]; return { kind: k, dx: q.x, dy: q.y }; }) });
+    S.camps[waveKey(n)].uids.forEach(function (u) { S.foes[u].siege = { x: c.x, y: c.y }; S.foes[u].st = 'chase'; });
+    d.wave = n; d.t = 0;
+    toast('🌊 물결 ' + (n + 1) + '/' + wavesOf(st).length + ' — 가면 무리가 ' + (st.name || '제단') + '으로 몰려온다');
+    return true;
+  }
+  /** 무너짐·전멸 — 무리가 흩어지고 DEFEND_REST 초 쉰 뒤 그 단계 처음부터 */
+  function resetDefend(msg) {
+    var st = step(), d = defState(), W = st ? wavesOf(st) : DEFEND_WAVES;
+    for (var n = 0; n < W.length; n++) { dropCamp(waveKey(n)); }
+    def = { key: keyOf(), wave: -1, t: 0, rest: DEFEND_REST, hp: d.hpMax, hpMax: d.hpMax, warned: false, clr: {} };
+    toast(msg);
+  }
+  /** 한 박자 — 가까이 오면 첫 물결, 다 잡았거나 DEFEND_WAVE_SEC 초면 다음, 마지막까지 다 잡으면 다음 단계 */
+  function stepDefend(dt) {
+    var st = step();
+    if (!st || st.type !== 'defend') { return null; }
+    var F = FC(), S = F && F.state ? F.state() : null, c = posOf(st), d = defState(), W = wavesOf(st), p = pos();
+    if (!S || !c) { return null; }
+    if (!d.hpMax) { d.hpMax = d.hp = altarHpMax(c); }
+    if (d.rest > 0) { d.rest = Math.max(0, d.rest - (dt || 0)); return d; }
+    if (d.wave < 0) {
+      if (Math.hypot(p.x - c.x, p.y - c.y) <= DEFEND_START()) { spawnWave(st, 0); }
+      return d;
+    }
+    d.t += dt || 0;
+    if (d.wave + 1 < W.length) {
+      if (d.clr[d.wave] || d.t >= DEFEND_WAVE_SEC) { spawnWave(st, d.wave + 1); }
+      return d;
+    }
+    for (var n = 0; n < W.length; n++) { if (!d.clr[n]) { return d; } }
+    toast('🛡️ ' + (st.name || '제단') + '을 지켜 냈다 — 무리가 물러간다');
+    advance();
+    return null;
+  }
+  function onSiege(e) {
+    var st = step();
+    if (!st || st.type !== 'defend' || !e || typeof e.camp !== 'string' || e.camp.indexOf(keyOf() + ':w') !== 0) { return; }
+    var d = defState(), nm = st.name || '제단';
+    if (!d.hpMax || d.rest > 0) { return; }
+    d.hp = Math.max(0, d.hp - (e.dmg || 0));
+    if (d.hp <= 0) { resetDefend('💥 ' + nm + '이 무너졌다 — 무리가 흩어진다. ' + DEFEND_REST + '초 뒤 처음부터'); return; }
+    if (!d.warned && d.hp <= d.hpMax / 2) { d.warned = true; toast('⚠️ ' + nm + '이 흔들린다 — 절반이 깎였다!'); }
+  }
+  function onWipe() {
+    var st = step();
+    if (st && st.type === 'defend' && def && def.key === keyOf() && def.wave >= 0) { resetDefend('🏳️ 물러난 사이 무리가 흩어졌다 — ' + DEFEND_REST + '초 뒤 처음부터'); }
   }
   function onDomain(e) {
     var st = step();
@@ -614,7 +770,7 @@
         var ks = st.type === 'duel' ? [st.kind] : st.kinds;
         F.spawnCamp(S, { key: key, x: t.x, y: t.y, tier: F.tierAt(t.x, t.y), kind: 'story',
           foes: ks.map(function (k, i) { var a = i * 1.571, rr = ks.length === 1 ? 0 : 3; return { kind: k, dx: Math.cos(a) * rr, dy: Math.sin(a) * rr }; }) });
-        toast(st.type === 'duel' ? '🎭 검은 가면이 봉우리에 내려섰다' : '⚔️ 먹구름 졸개가 나타났다');
+        toast(st.type === 'duel' ? (st.enter || '🎭 검은 가면이 봉우리에 내려섰다') : '⚔️ 먹구름 졸개가 나타났다');
       }
       if (st.type === 'duel') { stepDuel(); }
     }
@@ -718,8 +874,17 @@
     if (st.type === 'follow' && d > FOLLOW_LOST()) { what = '너무 멀다, 가까이!'; }
     if (st.type === 'seal') { what += ' ' + sealLit() + '/' + (st.order || SEAL_ORDER).length + ' (' + orderText(st) + ')'; }
     if (st.type === 'duel') {
-      var b = duelBoss();
-      if (b && !b.dead) { what = '검은 가면 ' + Math.ceil(100 * b.hp / b.hpMax) + '%' + (b.shield > 0 ? ' · ⚡방패 ' + b.shield : ''); }
+      var b = duelBoss(), FF = FC() && FC().FOES[st.kind];
+      if (b && !b.dead) {
+        what = (FF ? FF.name : '검은 가면') + ' ' + Math.ceil(100 * b.hp / b.hpMax) + '%' +
+          (b.shield > 0 ? ' · ' + ({ elec: '⚡', water: '💧' }[b.shEl] || '🛡️') + '방패 ' + b.shield : '');
+      }
+    }
+    if (st.type === 'defend') {                                // ⑲-16
+      var dd = def && def.key === keyOf() ? def : null;
+      if (dd && dd.rest > 0) { what += ' · ' + Math.ceil(dd.rest) + '초 뒤 다시'; }
+      else if (dd && dd.wave >= 0) { what = (st.name || '제단') + ' ' + Math.ceil(100 * dd.hp / dd.hpMax) + '% · 물결 ' + (dd.wave + 1) + '/' + wavesOf(st).length; }
+      else { what += ' (가까이 가면 무리가 온다)'; }
     }
     return '📖 ' + ch.name + ' — ' + what + (t ? ' · ◆ ' + fmtDist(d) : '');
   }
@@ -792,8 +957,14 @@
     box.classList.toggle('show', listOpen);
   }
 
-  /* 3D — 목표 금빛 기둥 · 옛 제단(light 단계) */
+  /* 3D — 목표 금빛 기둥 · 옛 제단(light·defend 단계) */
   var fx = {}, clock = 0;
+  /** ⑲-16 제단 체력 몫(0~1) → 기둥 빛깔(빨강 0xff4040 ↔ 초록 0x4cd964) */
+  function pillarHex(k) {
+    k = Math.max(0, Math.min(1, k));
+    var r = Math.round(0xff + (0x4c - 0xff) * k), g = Math.round(0x40 + (0xd9 - 0x40) * k), b = Math.round(0x40 + (0x64 - 0x40) * k);
+    return (r << 16) | (g << 8) | b;
+  }
   function W3() { var w = global.DG.world3d; return w && w.active && w.active() ? w : null; }
   function dropFx(k) { var w = W3(); if (w && fx[k]) { w.removeFx(fx[k]); } delete fx[k]; }
   function paint3d(dt) {
@@ -812,7 +983,10 @@
     }
     fx.pillar.position.set(t.x, gy, t.y);
     fx.pillar.children[0].material.opacity = 0.28 + Math.sin(clock * 2.2) * 0.08;
-    if (st.type === 'light') {
+    /* ⑲-16 지키는 동안은 기둥이 제단 체력 — 초록 → 빨강 */
+    var dd = st.type === 'defend' && def && def.key === keyOf() && def.hpMax && def.wave >= 0 ? def : null;
+    fx.pillar.children[0].material.color.setHex(dd ? pillarHex(dd.hp / dd.hpMax) : 0xffd24a);
+    if (st.type === 'light' || st.type === 'defend') {
       if (!fx.altar) {
         var A = global.DG.asset3d, m = A && A.build ? A.build('lantern', { id: 'story_altar' }) : null, ag = new T3.Group();
         if (m) { m.scale.set(1.8, 1.8, 1.8); ag.add(m); }
@@ -875,6 +1049,7 @@
     acc += dt || 0;
     if (acc > 0.5) { acc = 0; check(); }
     stepFollow(dt);
+    stepDefend(dt);
     reveal(dt);
     if (!global.DG_NO_DRAW) { paintHud(); paint3d(dt); }
   }
@@ -885,6 +1060,8 @@
     c.on('field:guard', onGuard);
     c.on('field:clear', onClear);
     c.on('field:element', onElement);
+    c.on('field:siege', onSiege);
+    c.on('field:wipe', onWipe);
     c.on('domain:clear', onDomain);
     c.on('cook:gather', onGather);
     c.on('cook:done', onCook);
@@ -919,6 +1096,9 @@
     NPCS: NPCS, CHAPTERS: CHAPTERS, MEMBERS: MEMBERS, join: join, catchUp: catchUp, hasMember: hasMember, STEP_EXP: STEP_EXP, WANDER_PATH: WANDER_PATH, FOLLOW_SPEED: FOLLOW_SPEED,
     SEAL_R: SEAL_R, SEAL_LAYOUT: SEAL_LAYOUT, SEAL_ORDER: SEAL_ORDER, SEAL_MARKS: SEAL_MARKS, SPOTS: SPOTS, CLIMB_R: CLIMB_R,
     DUEL_P2_AT: DUEL_P2_AT, DUEL_P2_SHIELD: DUEL_P2_SHIELD, peakSpot: peakSpot, spotPos: spotPos, placeOf: placeOf,
+    DEFEND_RING: DEFEND_RING, DEFEND_WAVE_SEC: DEFEND_WAVE_SEC, DEFEND_REST: DEFEND_REST, DEFEND_HITS: DEFEND_HITS, DEFEND_WAVES: DEFEND_WAVES, DEFEND_START: DEFEND_START,
+    CAPE_CLEAR: CAPE_CLEAR, capeSpot: capeSpot, landAt: landAt, ringAt: ringAt, stepDefend: stepDefend, defState: function () { return def && def.key === keyOf() ? def : null; },
+    waveKey: waveKey, pillarHex: pillarHex,
     sealLamps: sealLamps, sealHit: sealHit, sealLit: sealLit, duelBoss: duelBoss, stepDuel: stepDuel,
     FOLLOW_NEAR: FOLLOW_NEAR, FOLLOW_LOST: FOLLOW_LOST,
     on: on, anchorOf: anchorOf, npcPos: npcPos, visible: visible, targetOf: targetOf, trackText: trackText, listHtml: listHtml,
@@ -929,6 +1109,7 @@
     _resetForTest: function () {
       talk = null; lastIdle = {}; anchorMemo = {}; lastTrack = ''; lastBtn = ''; listOpen = false;
       fol = null; prog = { key: '', n: 0 }; aimMemo = { k: '', v: null }; seal = { key: '', n: 0 }; duel = null; peakMemo = null;
+      def = null; capeMemo = null;
     }
   };
 })(window);

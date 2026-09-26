@@ -234,16 +234,34 @@
     /* §5 ⑲-14 이야기 보스(story.js 6장) — 사람 몸(body = asset3d 고정 몸 id)·검은 가면. 공격이 `rot` 차례로 바뀐다(ROT).
        2단계 뇌 방패·졸개는 story.js 가 두른다 */
     b_mask:   { name: '검은 가면',       ref: null, body: 'story_blackmask', mask: 'black', el: 'elec', hp: 10, atk: 1.9, spd: 5.6, reach: 2.4, type: 'melee', wind: 0.6, cd: 1.6, h: 1.0, exp: 0,
-                boss: true, rot: ['shadow', 'spit', 'melee', 'slam', 'shadow', 'melee'] }
+                boss: true, rot: ['shadow', 'spit', 'melee', 'slam', 'shadow', 'melee'] },
+    /* ⑲-16 7장 금 간 검은 가면 — 같은 몸, 가면 왼쪽에 흰 금. 물 · 밀물(원 넷). 2단계 물 방패·졸개는 story.js 가 두른다 */
+    b_mask2:  { name: '금 간 검은 가면', ref: null, body: 'story_blackmask', mask: 'crack', el: 'water', hp: 11.5, atk: 2.0, spd: 5.6, reach: 2.4, type: 'melee', wind: 0.6, cd: 1.6, h: 1.0, exp: 0,
+                boss: true, rot: ['tide', 'shadow', 'melee', 'tide', 'slam', 'shadow'] }
   };
   /* ⑲-14 공격 차례(`rot`)의 한 수씩 — reach 안이면 휘두른다. shadow 는 내 등 뒤 SHADOW_BACK m 로 옮겨 붙어 제 둘레 원 */
   var ROT = {
     shadow: { reach: 14,  wind: 0.8,  r: 3.2, mul: 1.4 },
     spit:   { reach: 9,   wind: 1.0,  r: 2.4, mul: 1.0 },
     melee:  { reach: 2.4, wind: 0.55, r: 0,   mul: 1.0 },
-    slam:   { reach: 3.8, wind: 1.1,  r: 4.2, mul: 1.2 }
+    slam:   { reach: 3.8, wind: 1.1,  r: 4.2, mul: 1.2 },
+    tide:   { reach: 11,  wind: 1.1,  r: 2.0, mul: 1.3, n: 4, from: 2.5, gap: 3 }    // ⑲-16 밀물 — 나를 향해 원 넷 줄지어
   };
   var SHADOW_BACK = 2.2;
+  /** ⑲-16 밀물 원 넷 — 가면(fx,fy)에서 나(px,py) 쪽으로 from m 부터 gap 간격 */
+  function tideMarks(fx, fy, px, py) {
+    var T = ROT.tide, dx = px - fx, dy = py - fy, dl = Math.hypot(dx, dy) || 1, out = [];
+    for (var i = 0; i < T.n; i++) { var s = T.from + T.gap * i; out.push({ x: fx + dx / dl * s, y: fy + dy / dl * s }); }
+    return out;
+  }
+  /** 예고 표식에 (x,y) 가 드나 — 원 여럿(list)이면 하나라도. pad 는 맞는 쪽 몸 둘레 */
+  function markHit(m, x, y, pad) {
+    var L = m.list || [m];
+    for (var i = 0; i < L.length; i++) { if (Math.hypot(x - L[i].x, y - L[i].y) <= m.r + (pad || 0)) { return true; } }
+    return false;
+  }
+  /* ⑲-16 지킬 것(siege) — 이야기 제단 지키기 무리는 제단으로 곧장 가서 치고, 내가 이 안이면 나를 친다 */
+  var SIEGE_PULL = 5, SIEGE_BODY = 1.5;
   function LAYER_STUN() { return 0.8; }     // 겉 방패가 깨질 때 — 짧게 휘청(속 방패가 곧 선다)
   function CORE_STUN() { return 3; }        // 마지막 겹이 깨지면 — 길게 드러눕는다(약점)
   var GUARD_OFF = { x: 16, y: 10 };         // 탑 한가운데가 아니라 둘레 빈터(biome LM_CLEAR 34m 안)
@@ -543,6 +561,11 @@
   function allDown(S) { return aliveIdx(S).length === 0; }
 
   /* ── 무리 들이기·치우기 ───────────────────────────────── */
+  /** ⑲-16 그 등급에서 kind 의 공격(천하 등급 배율 포함) — 이야기 제단 체력을 이것으로 잰다 */
+  function foeAtk(kind, tier) {
+    var A = ADV(), w = wlNow(), a = ATK_BASE() * FOES[kind].atk * tierMul(tier);
+    return Math.round(A && w ? a * A.atkMul(w) / A.atkMul(0) : a);
+  }
   function spawnCamp(S, c) {
     S.camps[c.key] = { key: c.key, x: c.x, y: c.y, tier: c.tier, kind: c.kind, uids: [] };
     for (var i = 0; i < c.foes.length; i++) {
@@ -1308,7 +1331,7 @@
         f.wa += dt * 0.35;
         var tx = f.hx + Math.cos(f.wa) * 2.2, ty = f.hy + Math.sin(f.wa * 0.8) * 2.2;
         moveToward(f, tx, ty, 1.1 * dt);
-        if (d < AGGRO_R() && !allDown(S)) { f.st = 'chase'; push(S, { t: 'aggro', uid: f.uid, camp: f.camp }); }
+        if ((d < AGGRO_R() || f.siege) && !allDown(S)) { f.st = 'chase'; push(S, { t: 'aggro', uid: f.uid, camp: f.camp }); }
       } else if (f.st === 'return') {
         f.calmReturn = Math.max(0, f.calmReturn - dt);
         moveToward(f, f.hx, f.hy, F.spd * 1.2 * dt);
@@ -1322,29 +1345,48 @@
         /* ⑲-14 공격 차례(rot)가 있으면 이번 수의 reach·wind·r 을 쓴다 */
         var AT = F.rot ? F.rot[(f.rotI || 0) % F.rot.length] : F.type, RT = F.rot ? ROT[AT] : F;
         var want = AT === 'shadow' ? 0 : (AT === 'spit' ? RT.reach * 0.85 : RT.reach * 0.8);
-        if (d > want && AT !== 'shadow') { moveToward(f, px, py, F.spd * dt); }
+        /* ⑲-16 지킬 것 — 내가 SIEGE_PULL 밖이면 제단이 과녁(제단 몸 둘레만큼 덜 다가간다) */
+        var sg = f.siege && d > SIEGE_PULL ? f.siege : null;
+        var gx = sg ? sg.x : px, gy = sg ? sg.y : py, gd = sg ? Math.max(0, Math.hypot(f.x - gx, f.y - gy) - SIEGE_BODY) : d;
+        if (gd > want && AT !== 'shadow') { moveToward(f, gx, gy, F.spd * dt); }
         f.cd -= dt;
-        if (d <= RT.reach && f.cd <= 0 && !allDown(S)) {
-          f.st = 'wind'; f.stT = RT.wind; f.atkT = AT;
+        if (gd <= RT.reach && f.cd <= 0 && !allDown(S)) {
+          f.st = 'wind'; f.stT = RT.wind; f.atkT = AT; f.atkSiege = !!sg;
           if (AT === 'shadow') {
             /* 나를 지나 등 뒤로 — 오던 쪽의 반대편 SHADOW_BACK m 에 붙어 제 둘레를 친다 */
             var sdx = px - f.x, sdy = py - f.y, sdl = Math.hypot(sdx, sdy) || 1;
             f.x = px + sdx / sdl * SHADOW_BACK; f.y = py + sdy / sdl * SHADOW_BACK;
             push(S, { t: 'blink', uid: f.uid, x: f.x, y: f.y });
           }
-          f.mark = AT === 'spit' ? { x: px, y: py, r: RT.r, t: RT.wind }
-            : (AT === 'slam' || AT === 'shadow' ? { x: f.x, y: f.y, r: RT.r, t: RT.wind } : null);
-          push(S, { t: 'tell', uid: f.uid, type: AT === 'shadow' ? 'slam' : AT, x: f.x, y: f.y });
+          if (AT === 'tide') {
+            var tl = tideMarks(f.x, f.y, gx, gy);
+            f.mark = { x: tl[0].x, y: tl[0].y, r: RT.r, t: RT.wind, list: tl };
+          } else {
+            f.mark = AT === 'spit' ? { x: gx, y: gy, r: RT.r, t: RT.wind }
+              : (AT === 'slam' || AT === 'shadow' ? { x: f.x, y: f.y, r: RT.r, t: RT.wind } : null);
+          }
+          push(S, { t: 'tell', uid: f.uid, type: AT === 'shadow' || AT === 'tide' ? 'slam' : AT, x: f.x, y: f.y });
         }
       } else if (f.st === 'wind') {
         S.calmT = Math.min(S.calmT, 0);
         f.stT -= dt;
         if (f.stT <= 0) {
           var WT = f.atkT || F.type, WR = F.rot ? ROT[WT] : F;
-          var inHit = f.mark ? Math.hypot(px - f.mark.x, py - f.mark.y) <= f.mark.r : d <= WR.reach + 0.6;
+          /* ⑲-16 제단을 노린 코앞 한 대는 나를 안 친다(원 예고는 누구든 맞는다) */
+          var inHit = f.mark ? markHit(f.mark, px, py, 0) : (!f.atkSiege && d <= WR.reach + 0.6);
           if (inHit && S.iframe <= 0) { hurt(S, f, WR.mul); }
           else if (inHit) { push(S, { t: 'evade', uid: f.uid }); }
-          push(S, { t: 'strike', uid: f.uid, type: WT === 'shadow' ? 'slam' : WT, x: f.mark ? f.mark.x : f.x, y: f.mark ? f.mark.y : f.y, r: f.mark ? f.mark.r : 0 });
+          if (f.atkSiege && f.siege) {
+            var sx = f.siege.x, sy = f.siege.y;
+            if (f.mark ? markHit(f.mark, sx, sy, SIEGE_BODY) : Math.hypot(f.x - sx, f.y - sy) <= WR.reach + 0.6 + SIEGE_BODY) {
+              push(S, { t: 'siege', uid: f.uid, camp: f.camp, x: sx, y: sy, dmg: Math.max(1, Math.round(f.atk * (WR.mul || 1))) });
+            }
+          }
+          f.atkSiege = false;
+          var SL = f.mark && f.mark.list ? f.mark.list : [f.mark || f];
+          for (var si = 0; si < SL.length; si++) {
+            push(S, { t: 'strike', uid: f.uid, type: WT === 'shadow' || WT === 'tide' ? 'slam' : WT, x: SL[si].x, y: SL[si].y, r: f.mark ? f.mark.r : 0 });
+          }
           if (F.rot) { f.rotI = ((f.rotI || 0) + 1) % F.rot.length; }
           f.mark = null; f.cd = F.cd * (f.cdMul || 1);          // ⑲-9 주간 보스 2단계는 cdMul 로 빨라진다
           /* 이 한 대로 전멸했으면 downMember 가 이미 'return' 으로 돌려놨다 — 덮지 않는다 */
@@ -1568,6 +1610,7 @@
       } else if (e.t === 'dodge') { if (W3()) { W3().playAnim('me', 'dodge', 300); } }
       else if (e.t === 'tell') { if (W3()) { W3().playAnim('fc' + e.uid, 'attack', 700); } }
       else if (e.t === 'strike') { if (e.r) { ring(e.x, e.y, e.r, '#ff4d4d', 0.3); } }
+      else if (e.t === 'siege') { floatNum(e.x, e.y + 1.5, '-' + e.dmg, null, 0.9, false); c.emit('field:siege', e); }   // ⑲-16 제단이 맞았다(story.js)
       else if (e.t === 'hurt' && !e.dmg) { floatNum(pos.x, pos.y, '🪨 막음', 'rock', 1, true, true); }
       else if (e.t === 'hurt') {
         floatNum(pos.x, pos.y, '-' + e.dmg, e.el, 1, false, true);
@@ -1888,23 +1931,9 @@
     for (var i = 0; i < L.length; i++) {
       var f = L[i];
       if (!f.mark) { continue; }
-      seen[f.uid] = true;
-      var M = fx.marks[f.uid];
-      if (!M) {
-        M = fx.marks[f.uid] = ringMesh(f.mark.r, '#ff3b3b', 0.3);
-        if (!M) { continue; }
-        var T3 = w.three();
-        var disk = new T3.Mesh(new T3.CircleGeometry(f.mark.r, 40).rotateX(-Math.PI / 2),
-          new T3.MeshBasicMaterial({ color: '#ff3b3b', transparent: true, opacity: 0.15, depthWrite: false }));
-        M.add(disk);
-        M.userData.disk = disk;
-        w.addFx(M);
-      }
-      M.position.set(f.mark.x, (w.groundY ? w.groundY(f.mark.x, f.mark.y) : 0) + 0.1, f.mark.y);
-      var prog = 1 - Math.max(0, f.stT) / (f.mark.t || 1);
-      M.material.opacity = 0.35 + 0.55 * prog;
-      M.userData.disk.scale.setScalar(Math.max(0.05, prog));
-      M.userData.disk.material.opacity = 0.18 + 0.2 * prog;
+      /* ⑲-16 밀물처럼 원이 여럿이면 원마다 표식 하나(키 uid:j) */
+      var ML = f.mark.list || [f.mark];
+      for (var j = 0; j < ML.length; j++) { paintMark(w, f, ML[j], j ? f.uid + ':' + j : f.uid, seen); }
     }
     for (k in fx.marks) {
       if (fx.marks.hasOwnProperty(k) && !seen[k]) {
@@ -1913,6 +1942,25 @@
         delete fx.marks[k];
       }
     }
+  }
+  function paintMark(w, f, q, key, seen) {
+    seen[key] = true;
+    var M = fx.marks[key];
+    if (!M) {
+      M = fx.marks[key] = ringMesh(f.mark.r, '#ff3b3b', 0.3);
+      if (!M) { return; }
+      var T3 = w.three();
+      var disk = new T3.Mesh(new T3.CircleGeometry(f.mark.r, 40).rotateX(-Math.PI / 2),
+        new T3.MeshBasicMaterial({ color: '#ff3b3b', transparent: true, opacity: 0.15, depthWrite: false }));
+      M.add(disk);
+      M.userData.disk = disk;
+      w.addFx(M);
+    }
+    M.position.set(q.x, (w.groundY ? w.groundY(q.x, q.y) : 0) + 0.1, q.y);
+    var prog = 1 - Math.max(0, f.stT) / (f.mark.t || 1);
+    M.material.opacity = 0.35 + 0.55 * prog;
+    M.userData.disk.scale.setScalar(Math.max(0.05, prog));
+    M.userData.disk.material.opacity = 0.18 + 0.2 * prog;
   }
 
   /* ⑲-2 공격 누르고 있기 — 0.4초 넘으면 강공격 한 번(떼면 풀린다) */
@@ -1996,7 +2044,7 @@
 
   global.DG = global.DG || {};
   global.DG.fieldCombat = {
-    EL: EL, FOES: FOES, ROT: ROT, SHADOW_BACK: SHADOW_BACK, THEMES: THEMES, ELITES: ELITES, ERA_THEMES: ERA_THEMES, ERA_ELITES: ERA_ELITES, eraOfCamp: eraOfCamp, CELL: CELL, ENERGY_MAX: ENERGY_MAX,
+    EL: EL, FOES: FOES, ROT: ROT, SHADOW_BACK: SHADOW_BACK, SIEGE_PULL: SIEGE_PULL, tideMarks: tideMarks, markHit: markHit, foeAtk: foeAtk, THEMES: THEMES, ELITES: ELITES, ERA_THEMES: ERA_THEMES, ERA_ELITES: ERA_ELITES, eraOfCamp: eraOfCamp, CELL: CELL, ENERGY_MAX: ENERGY_MAX,
     SKILL_CD: SKILL_CD, SWAP_CD: SWAP_CD, DODGE_COST: DODGE_COST, VAPOR_MUL: VAPOR_MUL,
     /* 판정 층 — 화면 없이 굴린다(자가진단이 쓰는 문) */
     elementOf: elementOf, EL_KEYS: EL_KEYS, heavy: heavy, plunge: plunge, plungeMul: plungeMul, plungeLand: plungeLand, PLUNGE_R: PLUNGE_R(), CHARGE_COST: CHARGE_COST(), REACT: REACT, attaches: attaches, shapeOf: shapeOf, SHAPES: SHAPES, kitFor: kitFor, segDist: segDist, react: react, shieldMul: shieldMul, campAt: campAt, tierAt: tierAt, guardianAt: guardianAt, COUNTER: COUNTER,
