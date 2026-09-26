@@ -9,8 +9,8 @@
   sleeves 소매 — `length` 팔 몫(1 = 손목, 0.35 = 어깨 갑옷), `drop` 처짐, `flare` 끝 넓힘
           `arc`(도) = 팔 바깥쪽만 두르는 판(소데), `bag` = 팔꿈치부터 네모나게 늘어진 자루(기모노)
   band    띠 — 그 높이 통 둘레 바깥
-  leggings 다리 통(정강이 가리개) · discs 가슴 둥근 판(호심경) · bow 등 매듭(오비)
-  mangeon·topknot·gat·helmet·neckguard·kuwagata·tassel·samo·boktu·myeollyu·beads·eboshi  머리 부품 — 머리 살에 붙는다
+  leggings 다리 통(정강이 가리개·바지) · discs 가슴 둥근 판(호심경) · bow 등 매듭(오비) · sash 비스듬한 띠(토가)
+  mangeon·topknot·gat·helmet·neckguard·kuwagata·tassel·samo·boktu·myeollyu·beads·eboshi·turban  머리 부품 — 머리 살에 붙는다
 색 변형: `<id>@<헥스>[,<헥스>]` — 틀의 `colors`(C1·C2)를 바꾼 cf_<id>_<헥스>… (메시·맞춤은 기본 옷을 베끼고 그림만 새로)
 그다음 MPFB MakeClothes 와 같은 순서(`mesh_is_valid_as_clothes` → `create_mhclo_from_clothes_matching` → `write_mhclo`)로 기본 몸에 맞춘
 .mhclo 를 쓰므로 어느 체형에나 MakeHuman 이 맞춰 입힌다. 레시피에서는 받은 CC0 옷과 똑같이 `"clothes": ["cf_dopo/cf_dopo.mhclo"]`.
@@ -38,7 +38,7 @@ SLOTS = [(0.00, 0.00, 0.36, 1.00), (0.36, 0.00, 0.60, 1.00), (0.60, 0.00, 0.78, 
 NAVY, IVORY, BROWN, BLACK = '#1f2a44', '#e9e4d6', '#3a2e28', '#141416'
 STEEL, LACE = '#8d949b', '#4a2a1a'
 LACQUER, GOLD, BRONZE, WHITE = '#1c1714', '#c9a64a', '#a87a43', '#f4f1e8'
-METAL_PATTERNS = ('lamellar', 'plate', 'scale', 'ribs')
+METAL_PATTERNS = ('lamellar', 'plate', 'scale', 'ribs', 'mail')
 
 # ---- 옷 틀 ----
 # 색 칸 'C1'·'C2' 는 틀의 `colors` 기본값이고, `<id>@<헥스>[,<헥스>]` 로 부르면 그 색으로 바꾼 변형(cf_<id>_<헥스>)을 만든다(세력 색).
@@ -189,6 +189,111 @@ GARMENTS = {
     # 에보시 — 이마에서 높이 솟아 뒤로 기운 검은 옻칠 관(일본 귀족·무가)
     'eboshi': dict(desc='에보시 — 높이 솟아 뒤로 기운 검은 관', tags=['hat', 'historical', 'east'], parts=[
         dict(kind='eboshi', slot=6, paint=dict(base='#141214', pattern='weave')),
+    ]),
+    # ---- 서쪽·세계 ----
+    # 토가 — 발목 긴 옷 + 왼어깨에서 오른허리로 두른 넓은 띠(원로원 자줏빛 단)
+    'toga': dict(desc='토가 — 발목 흰 옷·짧은 소매·왼어깨에서 비스듬히 두른 띠', tags=['toga', 'historical', 'west'],
+                 colors=dict(C1='#e6e0d0', C2='#5a2a6a'), parts=[
+        dict(kind='tube', top=('neck', 0), bottom=('ankle', 0.04), ease=0.02, flare=0.4, folds=0.03, nfolds=13, slot=0,
+             paint=dict(base='C1', pattern='weave', trims=[('bottom', 0.01, 'C2')])),
+        dict(kind='sleeves', length=0.32, ease=0.02, drop=0.0, cuff=0.0, slot=2, paint=dict(base='C1', pattern='weave')),
+        dict(kind='sash', top=('shoulder', 0.02), bottom=('hip', -0.06), width=0.2, over=0.02, slot=1,
+             paint=dict(base='C1', pattern='weave', trims=[('top', 0.012, 'C2'), ('bottom', 0.012, 'C2')])),
+    ]),
+    # 키톤 흉갑 — 허벅지 키톤·청동 흉갑·가죽 띠 치마(프테루게스)·청동 정강이
+    'chiton_armor': dict(desc='그리스 보병 — 붉은 키톤·청동 흉갑·가죽 띠 치마·정강이 가리개', tags=['armor', 'historical', 'west'],
+                         colors=dict(C1='#8a2a24', C2=BRONZE), parts=[
+        dict(kind='tube', top=('neck', 0), bottom=('crotch', -0.14), ease=0.018, flare=0.25, folds=0.02, slot=0, paint=dict(base='C1')),
+        dict(kind='sleeves', length=0.26, ease=0.02, cuff=0.0, slot=2, paint=dict(base='C1')),
+        dict(kind='tube', top=('shoulder', -0.05), bottom=('waist', -0.03), ease=0.018, over=0.024, slot=1,
+             paint=dict(base='C2', pattern='plate', trims=[('top', 0.012, '#6a4a2a'), ('bottom', 0.012, '#6a4a2a')])),
+        dict(kind='tube', top=('waist', -0.02), bottom=('crotch', -0.1), ease=0.02, over=0.036, flare=0.15, mono=True, slot=5,
+             paint=dict(base='#6a4a2a', pattern='weave', trims=[('panels', 16, 0.1, '#2a1c14'), ('bottom', 0.02, 'C2')])),
+        dict(kind='leggings', top=('knee', 0.05), bottom=('ankle', 0.04), ease=0.01, flare=0.1, slot=3, paint=dict(base='C2', pattern='plate')),
+        dict(kind='band', at=('waist', -0.025), width=0.03, over=0.05, slot=6, paint=dict(base='#2a1c14')),
+    ]),
+    # 델 — 오른쪽으로 여미는 유목 긴 옷·좁은 긴 소매·넓은 허리띠
+    'deel': dict(desc='델 — 비스듬히 여민 유목 긴 옷·좁은 소매·넓은 띠', tags=['robe', 'nomad', 'historical'],
+                 colors=dict(C1='#3a5a8a', C2='#c9a64a', C3='#b0282a'), parts=[
+        dict(kind='tube', top=('neck', 0), bottom=('ankle', 0.12), ease=0.024, flare=0.35, folds=0.02, slot=0,
+             paint=dict(base='C1', pattern='brocade', motif='C1',
+                        trims=[('cross', 'C2', 1.1), ('top', 0.012, 'C2'), ('bottom', 0.02, 'C2')])),
+        dict(kind='sleeves', length=1.06, ease=0.012, drop=0.0, cuff=0.02, slot=2, paint=dict(base='C1', trims=[('top', 0.05, 'C2')])),
+        dict(kind='band', at=('waist', 0.0), width=0.09, over=0.03, slot=3, paint=dict(base='C3', pattern='weave')),
+    ]),
+    # 장교 외투 — 무릎 외투·선 깃·단추 두 줄·금빛 견장·허리 띠 + 흰 바지(장화는 CC0)
+    'officer_coat': dict(desc='장교 외투 — 무릎 외투·단추 두 줄·견장·허리띠·흰 바지', tags=['uniform', 'modern', 'west'],
+                         colors=dict(C1='#2a3450', C2=GOLD, C3='#f0ece0'), parts=[
+        dict(kind='leggings', top=('crotch', 0.0), bottom=('ankle', 0.02), ease=0.012, slot=3, paint=dict(base='C3', pattern='weave')),
+        dict(kind='tube', top=('neck', 0), bottom=('knee', 0.03), ease=0.018, over=0.004, flare=0.18, slot=0,
+             paint=dict(base='C1', pattern='weave', trims=[('top', 0.012, 'C2'), ('bottom', 0.008, 'C2'), ('buttons', 'C2', 0.52, 0.9)])),
+        dict(kind='sleeves', length=1.0, ease=0.014, drop=0.0, cuff=0.02, slot=2, paint=dict(base='C1', trims=[('top', 0.05, 'C2')])),
+        dict(kind='sleeves', length=0.14, ease=0.03, over=0.018, flare=0.7, arc=140, cuff=0.0, slot=4, paint=dict(base='C2', pattern='studs', motif='#f4e2a0')),
+        dict(kind='band', at=('waist', 0.0), width=0.05, over=0.02, slot=6, paint=dict(base='#e8e2d0')),
+    ]),
+    # 드레스 — 몸에 붙는 윗몸·부푼 짧은 소매·허리에서 크게 퍼지는 금란 치마
+    'gown': dict(desc='드레스 — 윗몸·부푼 소매·허리에서 퍼지는 금란 치마', tags=['dress', 'royal', 'historical', 'west', 'female'],
+                 colors=dict(C1='#6a2a3a', C2='#e2c070'), parts=[
+        dict(kind='tube', top=('waist', 0.02), bottom=('ankle', -0.02), ease=0.03, flare=1.3, mono=True, folds=0.05, nfolds=11, slot=0,
+             paint=dict(base='C1', pattern='brocade', motif='C2', per=(22, 90), trims=[('bottom', 0.02, 'C2')])),
+        dict(kind='tube', top=('neck', 0), bottom=('waist', -0.01), ease=0.012, over=0.01, slot=1,
+             paint=dict(base='C1', trims=[('top', 0.02, 'C2'), ('front', 0.03, 'C2')])),
+        dict(kind='sleeves', length=0.62, ease=0.03, drop=0.02, flare=0.35, cuff=0.02, slot=2, paint=dict(base='C1', trims=[('top', 0.03, 'C2')])),
+        dict(kind='band', at=('waist', 0.02), width=0.03, over=0.03, slot=3, paint=dict(base='C2')),
+    ]),
+    # 카프탄 — 앞 가운데 띠가 긴 서역·세계 긴 옷·넓은 소매·허리띠
+    'kaftan': dict(desc='카프탄 — 앞 가운데 띠 긴 옷·넓은 소매·허리 띠', tags=['robe', 'historical', 'world'],
+                   colors=dict(C1='#2a6a4a', C2=GOLD), parts=[
+        dict(kind='tube', top=('neck', 0), bottom=('ankle', 0.03), ease=0.024, flare=0.45, folds=0.02, slot=0,
+             paint=dict(base='C1', pattern='brocade', motif='C1', trims=[('front', 0.03, 'C2'), ('bottom', 0.015, 'C2'), ('top', 0.012, 'C2')])),
+        dict(kind='sleeves', length=1.0, ease=0.024, drop=0.09, cuff=0.02, slot=2, paint=dict(base='C1', trims=[('top', 0.05, 'C2')])),
+        dict(kind='band', at=('waist', 0.02), width=0.07, over=0.03, slot=3, paint=dict(base='C2', pattern='weave')),
+    ]),
+    # 바지저고리 — 엉덩이까지 저고리(고름)·통 넓은 바지·발목 대님
+    'baji_jeogori': dict(desc='바지저고리 — 저고리·통 넓은 바지·대님', tags=['hanbok', 'historical', 'east'],
+                         colors=dict(C1='#e6dfcc', C2='#6b5a48'), parts=[
+        dict(kind='tube', top=('waist', 0.03), bottom=('crotch', 0.0), ease=0.03, slot=0, paint=dict(base='C2', pattern='weave')),
+        dict(kind='leggings', top=('crotch', 0.01), bottom=('ankle', 0.03), ease=0.045, flare=-0.25, slot=5, paint=dict(base='C2', pattern='weave',
+             trims=[('bottom', 0.012, '#2a2a2a')])),
+        dict(kind='tube', top=('neck', 0), bottom=('hip', -0.04), ease=0.018, over=0.014, slot=1,
+             paint=dict(base='C1', trims=[('cross', WHITE, 0.7), ('ribbon', 'C2')])),
+        dict(kind='sleeves', length=1.0, ease=0.016, drop=0.03, cuff=0.01, slot=2, paint=dict(base='C1')),
+    ]),
+    # 터번 — 이마 위로 두툼하게 감아 올린 천
+    'turban': dict(desc='터번 — 두툼하게 감은 천', tags=['hat', 'historical', 'world'], colors=dict(C1='#e6e0d0'), parts=[
+        dict(kind='turban', slot=6, paint=dict(base='C1', pattern='wrap')),
+    ]),
+    # 사슬 갑옷 + 겉옷 — 무릎 사슬 옷·사슬 소매 위 민소매 겉옷(서양 기사)
+    'hauberk': dict(desc='사슬 갑옷·민소매 겉옷·허리띠(서양 기사)', tags=['armor', 'historical', 'west'],
+                    colors=dict(C1='#e8e2d0', C2='#2a3a7a'), parts=[
+        dict(kind='tube', top=('neck', 0), bottom=('knee', -0.03), ease=0.018, flare=0.3, folds=0.015, slot=0, paint=dict(base='#8d949b', pattern='mail')),
+        dict(kind='sleeves', length=1.0, ease=0.012, cuff=0.0, slot=2, paint=dict(base='#8d949b', pattern='mail')),
+        dict(kind='tube', top=('neck', 0), bottom=('knee', 0.02), ease=0.02, over=0.014, flare=0.35, folds=0.02, slot=1,
+             paint=dict(base='C1', pattern='weave', trims=[('front', 0.035, 'C2'), ('patch', 'C2', 'C2', 0.72, 0.84), ('bottom', 0.012, 'C2')])),
+        dict(kind='band', at=('waist', 0.0), width=0.035, over=0.04, slot=3, paint=dict(base='#3a2a1e', pattern='studs', motif='#c0c4c8')),
+        dict(kind='leggings', top=('knee', 0.06), bottom=('ankle', 0.02), ease=0.01, slot=5, paint=dict(base='#8d949b', pattern='mail')),
+    ]),
+    # 가죽 조끼 무사복 — 무릎 전포·좁은 소매·누빈 가죽 조끼·각반(동쪽 가죽 무장)
+    'warrior_robe': dict(desc='무사복 — 무릎 전포·가죽 조끼·각반', tags=['armor', 'historical', 'east'],
+                         colors=dict(C1='#8a2f2a', C2='#4a3526'), parts=[
+        dict(kind='tube', top=('neck', 0), bottom=('knee', -0.02), ease=0.02, flare=0.3, folds=0.02, slot=0,
+             paint=dict(base='C1', trims=[('cross', '#2a2a2a', 0.9), ('bottom', 0.012, '#2a2a2a')])),
+        dict(kind='sleeves', length=1.0, ease=0.012, cuff=0.0, slot=2, paint=dict(base='C1', trims=[('top', 0.08, 'C2')])),
+        dict(kind='tube', top=('chest', 0.12), bottom=('hip', -0.03), ease=0.02, over=0.02, slot=1,
+             paint=dict(base='C2', pattern='quilt', trims=[('top', 0.01, '#2a1c14'), ('bottom', 0.01, '#2a1c14')])),
+        dict(kind='leggings', top=('knee', 0.02), bottom=('ankle', 0.03), ease=0.012, slot=5, paint=dict(base='#d8d0bc', pattern='wrap')),
+        dict(kind='band', at=('waist', 0.0), width=0.05, over=0.04, slot=3, paint=dict(base='#1f1a16')),
+    ]),
+    # 닌자복 — 몸에 붙는 윗옷·좁은 바지·정강이 감발·허리띠
+    'shinobi': dict(desc='닌자복 — 붙는 윗옷·좁은 바지·감발·띠', tags=['ninja', 'historical', 'east'],
+                    colors=dict(C1='#1e1e24', C2='#3a3a44'), parts=[
+        dict(kind='tube', top=('waist', 0.02), bottom=('crotch', 0.0), ease=0.014, slot=0, paint=dict(base='C1', pattern='weave')),
+        dict(kind='leggings', top=('crotch', 0.01), bottom=('knee', -0.02), ease=0.018, slot=5, paint=dict(base='C1', pattern='weave')),
+        dict(kind='leggings', top=('knee', 0.0), bottom=('ankle', 0.02), ease=0.01, slot=4, paint=dict(base='C2', pattern='wrap')),
+        dict(kind='tube', top=('neck', 0), bottom=('hip', -0.05), ease=0.014, over=0.012, slot=1, paint=dict(base='C1', pattern='weave',
+             trims=[('cross', 'C2', 0.9)])),
+        dict(kind='sleeves', length=1.0, ease=0.01, cuff=0.0, slot=2, paint=dict(base='C1', pattern='weave')),
+        dict(kind='band', at=('waist', 0.02), width=0.05, over=0.03, slot=3, paint=dict(base='C2')),
     ]),
     # 복두 — 네모진 두 층 모자·뒤 양옆 긴 곧은 날개(당·송·고려 관리)
     'boktu': dict(desc='복두 — 네모진 두 층 모자·양옆 긴 곧은 날개', tags=['hat', 'official', 'historical', 'east'], parts=[
@@ -407,7 +512,7 @@ class Builder:
                 w_ = dirv.cross(v_)
                 near = [q for q in armv if abs((q - P).dot(dirv)) < 0.025]
                 r = max(((q - P) - dirv * (q - P).dot(dirv)).length for q in near) if near else 0.045
-                r = min(r, 0.052 + 0.015 * min(1.0, t * 2)) + p.get('ease', 0.02) * min(1.0, 0.35 + t) + p.get('over', 0.0)
+                r = min(r, 0.045 + 0.01 * min(1.0, t * 2)) + p.get('ease', 0.02) * min(1.0, 0.35 + t) + p.get('over', 0.0)
                 r *= 1 + p.get('flare', 0.0) * (k / NT)
                 if p.get('bag'):
                     tt = max(0.0, min(1.0, (t - 0.36) / 0.16))
@@ -727,6 +832,46 @@ class Builder:
             refs.append(Vector((0, yc, z - 0.05)))
         self.grid(rows, p['slot'], refs)
 
+    def sash(self, p):
+        """비스듬한 띠(토가) — 왼쪽(+X) 위 `top` 에서 오른쪽 아래 `bottom` 으로 몸을 한 바퀴 두른다."""
+        B = self.B
+        zt, zb = B.level(p['top']), B.level(p['bottom'])
+        zm, hh = (zt + zb) / 2, (zt - zb) / 2
+        rows = []
+        for dz in (-p['width'] / 2, 0.0, p['width'] / 2):
+            ring = []
+            for s in range(SEG):
+                a = 2 * math.pi * s / SEG
+                z = zm + hh * math.cos(a) + dz
+                pts = B.band_pts(B.torso, z, 0.03)
+                rr = ring_radii(pts, B.cx, B.cy, SEG, 0.0) if pts else None
+                r = rr[s] if rr is not None else 0.15
+                for zs, RR in self.tubes:
+                    if zs[0] <= z <= zs[-1]:
+                        k = min(range(len(zs)), key=lambda i: abs(zs[i] - z))
+                        r = max(r, RR[k][s])
+                r += p.get('over', 0.02) * (1.3 if dz == 0.0 else 1.0)
+                ring.append(self.vert((B.cx + r * math.cos(a), B.cy + r * math.sin(a), z), 'cf_torso'))
+            rows.append(ring)
+        self.grid(rows, p['slot'], Vector((B.cx, B.cy, zm)))
+
+    def turban(self, p):
+        """터번 — 이마부터 머리를 감싸며 부풀었다가 위에서 닫힌다."""
+        B = self.B
+        cy = B.head_cy
+        z0, z1 = B.eye_z + 0.03, B.head_top + 0.07
+        base = self._head_ring(z0, 0.02)
+        specs = []
+        for k in range(9):
+            f = k / 8
+            z = z0 + (z1 - z0) * f
+            rh = self._head_ring(min(z, B.head_top - 0.01), 0.02)
+            r = np.maximum(rh, base * 0.7) * (1 + 0.28 * math.sin(math.pi * min(1.0, f * 1.4)))
+            if f > 0.75:
+                r = r * math.cos((f - 0.75) / 0.25 * math.pi / 2) + 0.002
+            specs.append((z, r))
+        self._rings(specs, p['slot'], cy)
+
     def boktu(self, p):
         """복두 — 네모진 두 층 모자 + 뒤 양옆으로 길고 곧게 뻗은 날개."""
         B = self.B
@@ -827,8 +972,8 @@ def paint(g, dpath, npath):
             shade = 1 - 0.18 * ln + 0.03 * noise
             h = -ln.astype(np.float32)
         elif pat == 'brocade':                       # 금란 — 엇갈린 마름모 꽃 무늬(motif 색)
-            per = 48
-            cu, cv = (xx % per) / per, ((yy + per / 2 * ((xx // per) % 2)) % per) / per
+            px, py = P.get('per', (48, 48))
+            cu, cv = (xx % px) / px, ((yy + py / 2 * ((xx // px) % 2)) % py) / py
             dia = np.abs(cu - 0.5) + np.abs(cv - 0.5)
             petal = (dia < 0.26) & (dia > 0.12) | (dia < 0.05)
             shade = 1 + 0.04 * np.sin(xx * 0.9) * np.sin(yy * 0.9) + 0.03 * noise
@@ -861,6 +1006,17 @@ def paint(g, dpath, npath):
             plate = np.clip(edge / 0.1, 0, 1)
             shade = 0.5 + 0.45 * plate + 0.15 * fv * plate + 0.03 * noise
             h = plate * (0.4 + 0.6 * fv)
+        elif pat == 'mail':                          # 사슬 — 엇갈린 작은 고리
+            cu = (xx % 10) / 10
+            cv = ((yy + 5 * ((xx // 10) % 2)) % 10) / 10
+            rr_ = np.hypot(cu - 0.5, cv - 0.5)
+            ring_ = (rr_ > 0.22) & (rr_ < 0.42)
+            shade = np.where(ring_, 1.05 + 0.1 * noise, 0.45)
+            h = ring_ * 1.0
+        elif pat == 'wrap':                          # 감은 천 — 비스듬한 겹
+            ph = (s * 14 + t * 5) % 1
+            shade = 0.82 + 0.25 * np.sin(ph * math.pi) + 0.03 * noise
+            h = np.sin(ph * math.pi)
         elif pat == 'beads':                         # 구슬 줄 — 세로로 구슬(motif 색 섞어)과 끈
             fb = (t * P.get('count', 9)) % 1
             bead = np.abs(fb - 0.5) < 0.38
@@ -920,6 +1076,13 @@ def paint(g, dpath, npath):
             elif k == 'panels':                     # 쿠사즈리 — n 장 판 사이 틈
                 fu_ = (s * tr_[1] + 0.5) % 1
                 fill((fu_ < tr_[2] * tr_[1]) | (fu_ > 1 - tr_[2] * tr_[1]), tr_[3])
+            elif k == 'front':                      # 앞 가운데 세로 띠(카프탄 여밈·드레스 가슴)
+                fill(np.abs(s - 0.75) < tr_[1], tr_[2])
+            elif k == 'buttons':                    # 단추 두 줄(앞 가운데 ±0.035), t0~t1 사이 여섯 쌍
+                for sc_ in (0.715, 0.785):
+                    for j in range(6):
+                        tc_ = tr_[2] + (tr_[3] - tr_[2]) * j / 5
+                        fill(np.hypot((s - sc_) * 3.0, t - tc_) < 0.012, tr_[1])
             elif k == 'roundel':                    # 둥근 금빛 보 — 가슴·등(t = tr_[2])과 두 어깨
                 for sc_, tc_, rr_ in ((0.75, tr_[2], 0.07), (0.25, tr_[2], 0.07), (0.0, 0.955, 0.04), (0.5, 0.955, 0.04)):
                     ds = np.minimum(np.abs(s - sc_), 1 - np.abs(s - sc_))

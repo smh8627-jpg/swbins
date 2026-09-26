@@ -27,91 +27,15 @@
  "eyelashes": "eyelashes01/eyelashes01.mhclo",
  "teeth": "teeth_base/teeth_base.mhclo",
  "hair": "short02/short02.mhclo",
- "kitbash": [
-  {
-   "part": "shell",
-   "slot": "cloth",
-   "color": "#2a3a7a",
-   "rough": 0.85,
-   "offset": 0.004,
-   "thick": 0.004,
-   "groups": [
-    "pelvis",
-    "spine_0*",
-    "clavicle_*",
-    "upperarm_*",
-    "lowerarm_*",
-    "thigh_*",
-    "calf_*",
-    "neck_01"
-   ],
-   "minw": 0.5
-  },
-  {
-   "part": "shell",
-   "slot": "leather_glove",
-   "color": "#1f2226",
-   "rough": 0.8,
-   "offset": 0.006,
-   "thick": 0.004,
-   "groups": [
-    "hand_*",
-    "index_*",
-    "middle_*",
-    "ring_*",
-    "pinky_*",
-    "thumb_*"
-   ],
-   "minw": 0.3
-  },
-  {
-   "part": "shell",
-   "slot": "leather",
-   "color": "#141414",
-   "rough": 0.7,
-   "offset": 0.012,
-   "thick": 0.005,
-   "groups": [
-    "foot_*",
-    "ball_*",
-    "calf_*"
-   ],
-   "z": [
-    0.0,
-    0.27
-   ],
-   "minw": 0.3
-  },
-  {
-   "part": "robe",
-   "color": "#2a3a7a",
-   "top": 0.14,
-   "flare": 0.3,
-   "jag": 0.0,
-   "weights": "skin",
-   "rough": 0.85,
-   "length": 0.5
-  },
-  {
-   "part": "shell",
-   "slot": "metal_gold",
-   "color": "#c9a64a",
-   "rough": 0.3,
-   "offset": 0.018,
-   "thick": 0.008,
-   "groups": [
-    "clavicle_*",
-    "upperarm_*"
-   ],
-   "z": [
-    0.8,
-    0.845
-   ],
-   "minw": 0.4
-  }
+ "_garments": [
+  "officer_coat@2a3a7a"
+ ],
+ "clothes": [
+  "cf_officer_coat_2a3a7a/cf_officer_coat_2a3a7a.mhclo",
+  "rehmanpolanski_viking_boots/rehmanpolanski_viking_boots.mhclo"
  ],
  "anims": {
-  "idle": "Sword_Idle",
+  "idle": "CF_Guard_Idle_Loop",
   "walk": "Walk_Loop",
   "run": "Jog_Fwd_Loop",
   "attack": "Sword_Attack",

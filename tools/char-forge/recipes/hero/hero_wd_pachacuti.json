@@ -27,45 +27,14 @@
  "eyelashes": "eyelashes01/eyelashes01.mhclo",
  "teeth": "teeth_base/teeth_base.mhclo",
  "hair": "short01/short01.mhclo",
+ "_garments": [
+  "kaftan@9a4a2a,d8d0bc"
+ ],
+ "clothes": [
+  "cf_kaftan_9a4a2a_d8d0bc/cf_kaftan_9a4a2a_d8d0bc.mhclo",
+  "shoes02/shoes02.mhclo"
+ ],
  "kitbash": [
-  {
-   "part": "shell",
-   "slot": "cloth",
-   "color": "#e0d6c4",
-   "rough": 0.85,
-   "offset": 0.004,
-   "thick": 0.004,
-   "groups": [
-    "spine_0*",
-    "clavicle_*",
-    "upperarm_*",
-    "lowerarm_*"
-   ],
-   "minw": 0.5
-  },
-  {
-   "part": "shell",
-   "slot": "leather",
-   "color": "#5a4030",
-   "rough": 0.7,
-   "offset": 0.007,
-   "thick": 0.004,
-   "groups": [
-    "foot_*",
-    "ball_*"
-   ],
-   "minw": 0.4
-  },
-  {
-   "part": "robe",
-   "color": "#9a4a2a",
-   "top": 0.12,
-   "flare": 0.5,
-   "jag": 0.0,
-   "weights": "skin",
-   "rough": 0.85,
-   "hem": 0.035
-  },
   {
    "part": "shell",
    "slot": "metal_gold",

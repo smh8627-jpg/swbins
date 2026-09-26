@@ -27,48 +27,12 @@
  "eyelashes": "eyelashes01/eyelashes01.mhclo",
  "teeth": "teeth_base/teeth_base.mhclo",
  "hair": "short03/short03.mhclo",
- "kitbash": [
-  {
-   "part": "shell",
-   "slot": "leather",
-   "color": "#4a3526",
-   "rough": 0.7,
-   "offset": 0.007,
-   "thick": 0.004,
-   "groups": [
-    "foot_*",
-    "ball_*"
-   ],
-   "minw": 0.4
-  },
-  {
-   "part": "robe",
-   "color": "#e6e0d0",
-   "top": 0.1,
-   "flare": 0.45,
-   "jag": 0.0,
-   "weights": "skin",
-   "rough": 0.85,
-   "hem": 0.03
-  },
-  {
-   "part": "shell",
-   "slot": "cloth_sash",
-   "color": "#1f2226",
-   "rough": 0.85,
-   "offset": 0.02,
-   "thick": 0.006,
-   "groups": [
-    "spine_03",
-    "clavicle_l",
-    "upperarm_l"
-   ],
-   "z": [
-    0.7,
-    0.84
-   ],
-   "minw": 0.4
-  }
+ "_garments": [
+  "toga@e6e0d0,5a2a6a"
+ ],
+ "clothes": [
+  "cf_toga_e6e0d0_5a2a6a/cf_toga_e6e0d0_5a2a6a.mhclo",
+  "shoes01/shoes01.mhclo"
  ],
  "anims": {
   "idle": "Idle_Loop",

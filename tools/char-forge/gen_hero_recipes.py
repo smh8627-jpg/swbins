@@ -338,13 +338,38 @@ def real_outfit(reg, role, key, female, c1, c2, c3):
                 o = [cf('hanbok_f', c1 if not light else '#a8323a', '#efd98c' if key in ('royal_f', 'dancer') else c2 if lum(c2) > 0.5 else '#e9e4d6')]
         elif key == 'robe_short' and reg == 'jp':
             o = [cf('hakama', '#e6dfcc', c1 if not light else '#2a3450')]
+        elif key == 'robe_short':
+            o = [cf('baji_jeogori', '#e6dfcc', c1 if lum(c1) < 0.45 else '#6b5a48')]
+        elif key == 'uniform':
+            o = [cf('officer_coat', c1 if not light else '#2a3450')]
+        elif key == 'leather':
+            o = [cf('warrior_robe', c1 if not light else '#8a2f2a')]
+        elif key == 'ninja':
+            o = [cf('shinobi', c1 if lum(c1) < 0.15 else '#1e1e24')]
         elif key == 'monk':
             return ['donitz_monk_robe', CLOTH_SHOES], []
         else:
             return None
         names, specs = [n for n, _ in o], [s for _, s in o]
-        armored = key in ('samurai', 'lamellar', 'robe_armored')
+        armored = key in ('samurai', 'lamellar', 'robe_armored', 'leather')
         return names + [BOOTS if armored else CLOTH_SHOES], specs
+    o, shoes = None, CLOTH_SHOES
+    if key == 'toga':
+        o, shoes = cf('toga', c1 if light else '#e6e0d0', '#5a2a6a' if light else c1), 'shoes01'
+    elif key == 'hoplite':
+        o, shoes = cf('chiton_armor', c1 if not light else '#8a2a24'), 'shoes01'
+    elif key == 'nomad':
+        o, shoes = cf('deel', c1 if not light else '#3a5a8a', '#c9a64a', '#b0282a'), BOOTS
+    elif key == 'uniform':
+        o, shoes = cf('officer_coat', c1 if not light else '#2a3450'), BOOTS
+    elif key in ('royal_f', 'court', 'dress'):
+        o, shoes = cf('gown', c1 if not light else '#6a2a3a', '#e2c070'), 'toigo_ballet_flats'
+    elif key in ('lamellar', 'robe_armored'):
+        o, shoes = cf('hauberk', c1 if light else '#e8e2d0', c1 if not light else '#2a3a7a'), BOOTS
+    elif key in ('robe_wide', 'robe_long', 'royal'):
+        o, shoes = cf('kaftan', c1 if not light else '#2a6a4a', '#c9a64a' if key == 'royal' else '#d8d0bc'), 'shoes02'
+    if o:
+        return [o[0], shoes], [o[1]]
     if key == 'leather':
         return ['rehmanpolanski_viking_tunic', 'rehmanpolanski_viking_pants', BOOTS], []
     if key == 'tunic':
@@ -357,6 +382,11 @@ def real_outfit(reg, role, key, female, c1, c2, c3):
 def real_head(reg, role, key, c1):
     """머리 → (머리카락 또는 None, 옷 이름들, garments.py 인자들) 또는 None."""
     if reg not in EAST_REG:
+        if key == 'helmet':
+            return None, ['grinsegold_corinthian_helmet' if role == 'hoplite' else 'javherre_casco_caballero_templario_templar_knight_helmet'], []
+        if key == 'turban':
+            o = cf('turban')
+            return None, [o[0]], [o[1]]
         return None
     if key == 'helmet':
         o = {'kr': cf('helmet_east'), 'sg': cf('helmet_general'), 'jp': cf('kabuto', vivid(c1))}[reg]

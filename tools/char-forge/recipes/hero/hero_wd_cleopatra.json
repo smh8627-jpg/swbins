@@ -27,45 +27,14 @@
  "eyelashes": "eyelashes04/eyelashes04.mhclo",
  "teeth": "teeth_base/teeth_base.mhclo",
  "hair": "long01/long01.mhclo",
+ "_garments": [
+  "gown@6a2a3a,e2c070"
+ ],
+ "clothes": [
+  "cf_gown_6a2a3a_e2c070/cf_gown_6a2a3a_e2c070.mhclo",
+  "toigo_ballet_flats/toigo_ballet_flats.mhclo"
+ ],
  "kitbash": [
-  {
-   "part": "shell",
-   "slot": "cloth",
-   "color": "#e6e0d0",
-   "rough": 0.85,
-   "offset": 0.004,
-   "thick": 0.004,
-   "groups": [
-    "spine_0*",
-    "clavicle_*",
-    "upperarm_*",
-    "lowerarm_*"
-   ],
-   "minw": 0.5
-  },
-  {
-   "part": "shell",
-   "slot": "leather",
-   "color": "#3a2a1e",
-   "rough": 0.7,
-   "offset": 0.007,
-   "thick": 0.004,
-   "groups": [
-    "foot_*",
-    "ball_*"
-   ],
-   "minw": 0.4
-  },
-  {
-   "part": "robe",
-   "color": "#1f2226",
-   "top": 0.08,
-   "flare": 1.0,
-   "jag": 0.0,
-   "weights": "skin",
-   "rough": 0.85,
-   "hem": 0.0
-  },
   {
    "part": "shell",
    "slot": "metal_gold",

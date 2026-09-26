@@ -27,63 +27,12 @@
  "eyelashes": "eyelashes01/eyelashes01.mhclo",
  "teeth": "teeth_base/teeth_base.mhclo",
  "hair": "short01/short01.mhclo",
- "kitbash": [
-  {
-   "part": "shell",
-   "slot": "cloth",
-   "color": "#ece5d3",
-   "rough": 0.85,
-   "offset": 0.004,
-   "thick": 0.004,
-   "groups": [
-    "spine_0*",
-    "clavicle_*",
-    "upperarm_*",
-    "lowerarm_*"
-   ],
-   "minw": 0.5
-  },
-  {
-   "part": "shell",
-   "slot": "leather",
-   "color": "#5a4030",
-   "rough": 0.7,
-   "offset": 0.007,
-   "thick": 0.004,
-   "groups": [
-    "foot_*",
-    "ball_*"
-   ],
-   "minw": 0.4
-  },
-  {
-   "part": "robe",
-   "color": "#c07a2a",
-   "top": 0.1,
-   "flare": 0.75,
-   "jag": 0.0,
-   "weights": "skin",
-   "rough": 0.85,
-   "hem": 0.015
-  },
-  {
-   "part": "shell",
-   "slot": "metal_gold",
-   "color": "#c9a64a",
-   "rough": 0.3,
-   "offset": 0.02,
-   "thick": 0.006,
-   "groups": [
-    "clavicle_*",
-    "upperarm_*",
-    "spine_03"
-   ],
-   "z": [
-    0.79,
-    0.85
-   ],
-   "minw": 0.4
-  }
+ "_garments": [
+  "kaftan@c07a2a,c9a64a"
+ ],
+ "clothes": [
+  "cf_kaftan_c07a2a_c9a64a/cf_kaftan_c07a2a_c9a64a.mhclo",
+  "shoes02/shoes02.mhclo"
  ],
  "anims": {
   "idle": "Idle_Loop",

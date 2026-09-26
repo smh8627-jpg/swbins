@@ -27,62 +27,12 @@
  "eyelashes": "eyelashes02/eyelashes02.mhclo",
  "teeth": "teeth_base/teeth_base.mhclo",
  "hair": "long01/long01.mhclo",
- "kitbash": [
-  {
-   "part": "shell",
-   "slot": "cloth",
-   "color": "#e0d6c4",
-   "rough": 0.85,
-   "offset": 0.004,
-   "thick": 0.004,
-   "groups": [
-    "spine_0*",
-    "clavicle_*",
-    "upperarm_*",
-    "lowerarm_*"
-   ],
-   "minw": 0.5
-  },
-  {
-   "part": "shell",
-   "slot": "leather",
-   "color": "#4a3526",
-   "rough": 0.7,
-   "offset": 0.007,
-   "thick": 0.004,
-   "groups": [
-    "foot_*",
-    "ball_*"
-   ],
-   "minw": 0.4
-  },
-  {
-   "part": "robe",
-   "color": "#2a3a7a",
-   "top": 0.1,
-   "flare": 0.85,
-   "jag": 0.0,
-   "weights": "skin",
-   "rough": 0.85,
-   "hem": 0.0
-  },
-  {
-   "part": "shell",
-   "slot": "metal_gold",
-   "color": "#c9a64a",
-   "rough": 0.3,
-   "offset": 0.012,
-   "thick": 0.005,
-   "groups": [
-    "clavicle_*",
-    "spine_03"
-   ],
-   "z": [
-    0.78,
-    0.83
-   ],
-   "minw": 0.4
-  }
+ "_garments": [
+  "gown@2a3a7a,e2c070"
+ ],
+ "clothes": [
+  "cf_gown_2a3a7a_e2c070/cf_gown_2a3a7a_e2c070.mhclo",
+  "toigo_ballet_flats/toigo_ballet_flats.mhclo"
  ],
  "anims": {
   "idle": "Idle_Loop",
