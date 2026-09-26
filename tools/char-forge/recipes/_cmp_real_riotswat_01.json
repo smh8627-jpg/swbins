@@ -1,6 +1,6 @@
 {
  "id": "_cmp_real_riotswat_01",
- "_note": "단계 3 잡졸 비교용 — saga-unity Swat(Mixamo) 자리 후보(DUNGEON 현대 '진압 특공대', 층 25~49). 게임 인물 아님. 다부진 남자·먹빛 전투복·두꺼운 방탄 조끼·어깨 받이·무릎 받이·장갑·장화·얼굴 트인 먹빛 투구·앞 어두운 가리개. 순찰 대원(남색·챙 모자)과 겹치지 않게.",
+ "_note": "단계 3 잡졸 비교용 — saga-unity Swat(Mixamo) 자리 후보(DUNGEON 현대 '진압 특공대', 층 25~49). 게임 인물 아님. 다부진 남자·먹빛 전투복·두꺼운 방탄 조끼·어깨 받이·무릎 받이·장갑·장화·얼굴 트인 먹빛 투구·앞 어두운 가리개. 순찰 대원(남색·챙 모자)과 겹치지 않게. 09-26 진짜 옷(먹빛 몸 옷·검게 염색한 주피터 판금(가슴·허리·어깨·무릎·장화, CC0)·검은 장갑, 투구·가리개 껍데기 그대로 — 옷 면 조끼 껍데기는 고무 덩어리로 보여 판금으로).",
  "macro": {
   "gender": 1.0,
   "age": 0.4,
@@ -20,112 +20,6 @@
  "eyelashes": "eyelashes01/eyelashes01.mhclo",
  "teeth": "teeth_base/teeth_base.mhclo",
  "kitbash": [
-  {
-   "part": "shell",
-   "slot": "cloth",
-   "color": "#23252a",
-   "rough": 0.85,
-   "offset": 0.004,
-   "thick": 0.003,
-   "groups": [
-    "pelvis",
-    "spine_0*",
-    "clavicle_*",
-    "upperarm_*",
-    "lowerarm_*",
-    "thigh_*",
-    "calf_*",
-    "neck_01"
-   ],
-   "minw": 0.5
-  },
-  {
-   "part": "shell",
-   "slot": "leather",
-   "color": "#101113",
-   "rough": 0.65,
-   "offset": 0.005,
-   "thick": 0.003,
-   "groups": [
-    "hand_*",
-    "index_*",
-    "middle_*",
-    "ring_*",
-    "pinky_*",
-    "thumb_*"
-   ],
-   "minw": 0.3
-  },
-  {
-   "part": "shell",
-   "slot": "leather",
-   "color": "#101113",
-   "rough": 0.65,
-   "offset": 0.014,
-   "thick": 0.005,
-   "groups": [
-    "foot_*",
-    "ball_*",
-    "calf_*"
-   ],
-   "z": [
-    0.0,
-    0.24
-   ],
-   "minw": 0.3
-  },
-  {
-   "part": "shell",
-   "slot": "leather",
-   "color": "#15171a",
-   "rough": 0.6,
-   "offset": 0.024,
-   "thick": 0.012,
-   "groups": [
-    "spine_0*",
-    "pelvis",
-    "clavicle_*"
-   ],
-   "z": [
-    0.5,
-    0.8
-   ]
-  },
-  {
-   "part": "shell",
-   "slot": "leather",
-   "color": "#15171a",
-   "rough": 0.6,
-   "offset": 0.026,
-   "thick": 0.008,
-   "groups": [
-    "upperarm_*",
-    "clavicle_*"
-   ],
-   "z": [
-    0.74,
-    0.85
-   ],
-   "minw": 0.4
-  },
-  {
-   "part": "shell",
-   "slot": "leather",
-   "color": "#15171a",
-   "rough": 0.6,
-   "offset": 0.018,
-   "thick": 0.008,
-   "groups": [
-    "calf_*",
-    "thigh_*"
-   ],
-   "z": [
-    0.26,
-    0.32
-   ],
-   "minw": 0.4,
-   "facing": 0.1
-  },
   {
    "part": "shell",
    "slot": "metal",
@@ -165,5 +59,13 @@
   "attack": "Punch_Cross",
   "hit": "Hit_Chest",
   "death": "Death01"
+ },
+ "clothes": [
+  "matcreator_mc-bodysuit-2021/matcreator_mc-bodysuit-2021.mhclo",
+  "matcreator_mc-scifi-armor_jupiter7/matcreator_mc-scifi-armor_jupiter7.mhclo",
+  "culturalibre_hero-heroine_gloves_1/culturalibre_hero-heroine_gloves_1.mhclo"
+ ],
+ "tints": {
+  "matcreator_mc-scifi-armor_jupiter7": "=#2e3238"
  }
 }

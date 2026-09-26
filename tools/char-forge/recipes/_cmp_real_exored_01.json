@@ -1,6 +1,6 @@
 {
  "id": "_cmp_real_exored_01",
- "_note": "단계 3 들판 적 비교용 — saga-unity Exo Red(Mixamo) 자리 후보(GO 미래 '강철 경비병'). 게임 인물 아님. 큰 몸·먹빛 몸 옷·붉은 쇠 가슴판·넓은 어깨판·팔·허벅지·정강이·장화 판·얼굴 트인 붉은 투구. 정찰병(잿빛·닫힌 투구·청록 바이저)과 겹치지 않게.",
+ "_note": "단계 3 들판 적 비교용 — saga-unity Exo Red(Mixamo) 자리 후보(GO 미래 '강철 경비병'). 게임 인물 아님. 큰 몸·먹빛 몸 옷·붉은 쇠 가슴판·넓은 어깨판·팔·허벅지·정강이·장화 판·얼굴 트인 붉은 투구. 정찰병(잿빛·닫힌 투구·청록 바이저)과 겹치지 않게. 09-26 진짜 옷(먹빛 몸 옷·붉게 곱한 헬리오스 판금(가슴·어깨·팔·허벅지·정강이·장화, CC0)·검은 장갑, 붉은 투구 껍데기 그대로).",
  "macro": {
   "gender": 1.0,
   "age": 0.45,
@@ -26,137 +26,6 @@
  "kitbash": [
   {
    "part": "shell",
-   "slot": "cloth",
-   "color": "#1c1d21",
-   "rough": 0.8,
-   "offset": 0.003,
-   "thick": 0.003,
-   "groups": [
-    "pelvis",
-    "spine_0*",
-    "clavicle_*",
-    "upperarm_*",
-    "lowerarm_*",
-    "thigh_*",
-    "calf_*",
-    "neck_01"
-   ],
-   "minw": 0.5
-  },
-  {
-   "part": "shell",
-   "slot": "leather",
-   "color": "#141416",
-   "rough": 0.65,
-   "offset": 0.005,
-   "thick": 0.003,
-   "groups": [
-    "hand_*",
-    "index_*",
-    "middle_*",
-    "ring_*",
-    "pinky_*",
-    "thumb_*"
-   ],
-   "minw": 0.3
-  },
-  {
-   "part": "shell",
-   "slot": "metal",
-   "color": "#8e2a22",
-   "rough": 0.65,
-   "offset": 0.016,
-   "thick": 0.005,
-   "groups": [
-    "foot_*",
-    "ball_*",
-    "calf_*"
-   ],
-   "z": [
-    0.0,
-    0.12
-   ],
-   "minw": 0.3
-  },
-  {
-   "part": "shell",
-   "slot": "metal",
-   "color": "#8e2a22",
-   "rough": 0.35,
-   "offset": 0.02,
-   "thick": 0.008,
-   "groups": [
-    "spine_0*",
-    "pelvis"
-   ],
-   "z": [
-    0.5,
-    0.8
-   ]
-  },
-  {
-   "part": "shell",
-   "slot": "metal",
-   "color": "#8e2a22",
-   "rough": 0.35,
-   "offset": 0.034,
-   "thick": 0.008,
-   "groups": [
-    "upperarm_*",
-    "clavicle_*"
-   ],
-   "z": [
-    0.72,
-    0.87
-   ],
-   "minw": 0.35
-  },
-  {
-   "part": "shell",
-   "slot": "metal",
-   "color": "#8e2a22",
-   "rough": 0.35,
-   "offset": 0.014,
-   "thick": 0.006,
-   "groups": [
-    "lowerarm_*"
-   ],
-   "minw": 0.7
-  },
-  {
-   "part": "shell",
-   "slot": "metal",
-   "color": "#8e2a22",
-   "rough": 0.35,
-   "offset": 0.016,
-   "thick": 0.006,
-   "groups": [
-    "thigh_*"
-   ],
-   "z": [
-    0.3,
-    0.46
-   ],
-   "minw": 0.7
-  },
-  {
-   "part": "shell",
-   "slot": "metal",
-   "color": "#8e2a22",
-   "rough": 0.35,
-   "offset": 0.018,
-   "thick": 0.006,
-   "groups": [
-    "calf_*"
-   ],
-   "z": [
-    0.12,
-    0.27
-   ],
-   "minw": 0.7
-  },
-  {
-   "part": "shell",
    "slot": "metal",
    "color": "#8e2a22",
    "rough": 0.35,
@@ -177,5 +46,13 @@
   "attack": "Punch_Cross",
   "hit": "Hit_Chest",
   "death": "Death01"
+ },
+ "clothes": [
+  "matcreator_mc-bodysuit-2021/matcreator_mc-bodysuit-2021.mhclo",
+  "matcreator_mc-scifi-armor_helios/matcreator_mc-scifi-armor_helios.mhclo",
+  "culturalibre_hero-heroine_gloves_1/culturalibre_hero-heroine_gloves_1.mhclo"
+ ],
+ "tints": {
+  "matcreator_mc-scifi-armor_helios": "#d0503f"
  }
 }

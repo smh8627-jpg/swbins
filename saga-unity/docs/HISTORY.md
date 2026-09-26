@@ -9530,3 +9530,12 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - 레시피 열(PeasantMan·Brady·PeasantGirl·Ninja·Paladin·Morak·CastleGuard02·CastleGuard·Pelegrini·Abe 자리): 몸 껍데기 → 바지저고리·치마저고리·닌자복·찰갑·무사복·사슬 갑옷 겉옷·터번·투구(공방) + 장화·천 신(CC0). 무장 셋·맨손 둘 대기 `CF_Guard_Idle_Loop`.
 - 검사: 빌드 열 실패 0, verify fbx·glb 실패 0, sha256 두 번 같음. Mixamo 와 나란히·네 방향·머리 렌더로 고침: 넓은 옷 위 옷 면 껍데기(감발·팔 가리개·쇠 정강이)는 흰 통으로 부풀어 지움 · 맨살 위 바지 윗단 턱 → 허리 천을 덮게 · 공방 천 두건은 상자·양동이 모양이라 틀을 지우고 순례 기사는 살 껍데기 두건 그대로.
 - 남은 흠: 어깨 뒤 살 비침 한 점(찰갑·전포) · 닌자 팔 감발 네모 · 두건은 빈칸. CharactersForge FBX 는 아직 옛 판. 다음 = 남은 껍데기 26(미래 판금·옛 가죽·인형).
+
+## 2026-09-26 char-forge — 미래 사람 아홉 → CC0 SF 옷
+
+"vroid 자체툴 이어해"(넷째).
+
+- build_real `tints` 염색 `"=#헥스"`: 곱하기가 안 먹는 검은 몸 옷(SF bodysuit·skinsuit)에 밝기 결만 남기고 색을 새로 입힌다.
+- 레시피 아홉(Alien Soldier·Exo Red·Uriel·Exo Gray·Jennifer·Ely·Crypto·Astra·Swat 자리): 몸 껍데기 → CC0 SF 판금 셋(헬리오스·주피터·가디언)·몸 옷 둘·우주 제복·닫힌 헬멧·장갑·장화, 긴 옷 둘은 공방 kaftan·qaba. 머리 띠·투구·가리개·등 짐 껍데기는 그대로.
+- 검사: 빌드 아홉 실패 0, verify fbx·glb 실패 0, sha256 두 번 같음. 렌더로 고침: 사이보그 몸 옷은 각진 상자라 안 씀 · 몸 옷 위 조끼·받이·가슴판 껍데기는 고무·톱니라 판금 옷으로 · 은빛 단은 흰 털처럼 보여 짙게.
+- 남은 흠: 판금 셋이 같은 틀이라 판금 입은 셋의 실루엣이 비슷함 · 닫힌 헬멧 아래 목 살. CharactersForge FBX 는 아직 옛 판. 다음 = 남은 껍데기 17(옛 가죽·털·인형·괴물).

@@ -1,6 +1,6 @@
 {
  "id": "_cmp_real_goldexo_f_01",
- "_note": "단계 3 FOREST 비교용 — saga-unity Uriel(Mixamo) 자리 후보(FOREST 미래 '금빛 외골격 시간 여행자'). 게임 인물 아님. 키 큰 여자·짧은 머리·먹빛 몸 옷 위 금빛 외골격(가슴·어깨·팔·허벅지·정강이 판)·이마 금 띠. GO 시간 여행자(쪽빛 겉옷자락)·기계화 정찰병(잿빛 판·닫힌 투구)과 겹치지 않게 얼굴이 드러난다.",
+ "_note": "단계 3 FOREST 비교용 — saga-unity Uriel(Mixamo) 자리 후보(FOREST 미래 '금빛 외골격 시간 여행자'). 게임 인물 아님. 키 큰 여자·짧은 머리·먹빛 몸 옷 위 금빛 외골격(가슴·어깨·팔·허벅지·정강이 판)·이마 금 띠. GO 시간 여행자(쪽빛 겉옷자락)·기계화 정찰병(잿빛 판·닫힌 투구)과 겹치지 않게 얼굴이 드러난다. 09-26 진짜 옷(먹빛 몸 옷·금빛으로 곱한 주피터 판금(CC0)·검은 장갑, 이마 금 띠 껍데기 그대로).",
  "macro": {
   "gender": 0.0,
   "age": 0.4,
@@ -21,140 +21,6 @@
  "eyelashes": "eyelashes02/eyelashes02.mhclo",
  "teeth": "teeth_base/teeth_base.mhclo",
  "kitbash": [
-  {
-   "part": "shell",
-   "slot": "cloth",
-   "color": "#1e1f26",
-   "rough": 0.85,
-   "offset": 0.004,
-   "thick": 0.003,
-   "groups": [
-    "pelvis",
-    "spine_0*",
-    "clavicle_*",
-    "upperarm_*",
-    "lowerarm_*",
-    "thigh_*",
-    "calf_*",
-    "neck_01"
-   ],
-   "minw": 0.5
-  },
-  {
-   "part": "shell",
-   "slot": "metal",
-   "color": "#b8913a",
-   "rough": 0.65,
-   "offset": 0.014,
-   "thick": 0.005,
-   "groups": [
-    "foot_*",
-    "ball_*",
-    "calf_*"
-   ],
-   "z": [
-    0.0,
-    0.08
-   ],
-   "minw": 0.3
-  },
-  {
-   "part": "shell",
-   "slot": "leather",
-   "color": "#1e1f26",
-   "rough": 0.65,
-   "offset": 0.004,
-   "thick": 0.003,
-   "groups": [
-    "hand_*",
-    "index_*",
-    "middle_*",
-    "ring_*",
-    "pinky_*",
-    "thumb_*"
-   ],
-   "minw": 0.3
-  },
-  {
-   "part": "shell",
-   "slot": "metal",
-   "color": "#c9a040",
-   "rough": 0.3,
-   "offset": 0.016,
-   "thick": 0.005,
-   "groups": [
-    "spine_01",
-    "spine_02",
-    "spine_03"
-   ],
-   "z": [
-    0.6,
-    0.8
-   ],
-   "facing": 0.2,
-   "minw": 0.5
-  },
-  {
-   "part": "shell",
-   "slot": "metal",
-   "color": "#c9a040",
-   "rough": 0.3,
-   "offset": 0.022,
-   "thick": 0.006,
-   "groups": [
-    "upperarm_*",
-    "clavicle_*"
-   ],
-   "z": [
-    0.76,
-    0.86
-   ],
-   "minw": 0.4
-  },
-  {
-   "part": "shell",
-   "slot": "metal",
-   "color": "#c9a040",
-   "rough": 0.3,
-   "offset": 0.012,
-   "thick": 0.005,
-   "groups": [
-    "lowerarm_*"
-   ],
-   "minw": 0.75
-  },
-  {
-   "part": "shell",
-   "slot": "metal",
-   "color": "#c9a040",
-   "rough": 0.3,
-   "offset": 0.014,
-   "thick": 0.005,
-   "groups": [
-    "thigh_*"
-   ],
-   "z": [
-    0.34,
-    0.46
-   ],
-   "minw": 0.7
-  },
-  {
-   "part": "shell",
-   "slot": "metal",
-   "color": "#c9a040",
-   "rough": 0.3,
-   "offset": 0.016,
-   "thick": 0.005,
-   "groups": [
-    "calf_*"
-   ],
-   "z": [
-    0.08,
-    0.26
-   ],
-   "minw": 0.7
-  },
   {
    "part": "shell",
    "slot": "metal_band",
@@ -179,5 +45,13 @@
   "interaction": "PickUp_Table",
   "hit": "Hit_Chest",
   "death": "Death01"
+ },
+ "clothes": [
+  "matcreator_mc-skinsuit_2022/matcreator_mc-skinsuit_2022.mhclo",
+  "matcreator_mc-scifi-armor_jupiter7/matcreator_mc-scifi-armor_jupiter7.mhclo",
+  "culturalibre_hero-heroine_gloves_1/culturalibre_hero-heroine_gloves_1.mhclo"
+ ],
+ "tints": {
+  "matcreator_mc-scifi-armor_jupiter7": "#e8c060"
  }
 }

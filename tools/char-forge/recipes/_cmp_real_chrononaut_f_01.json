@@ -1,6 +1,6 @@
 {
  "id": "_cmp_real_chrononaut_f_01",
- "_note": "단계 3 역참 사람 비교용 — saga-unity Crypto(Mixamo) 자리 후보(GO 미래 시간 여행자). 게임 인물 아님. 여자·긴 머리·먹빛 몸 옷·무릎 아래까지 쪽빛 긴 겉옷자락·놋쇠 팔 가리개·장화·이마의 놋쇠 눈 띠.",
+ "_note": "단계 3 역참 사람 비교용 — saga-unity Crypto(Mixamo) 자리 후보(GO 미래 시간 여행자). 게임 인물 아님. 여자·긴 머리·먹빛 몸 옷·무릎 아래까지 쪽빛 긴 겉옷자락·놋쇠 팔 가리개·장화·이마의 놋쇠 눈 띠. 09-26 진짜 옷(쪽빛 긴 겉옷·놋쇠 단(공방 kaftan)·검은 장화(CC0), 놋쇠 눈 띠 껍데기 그대로 — 옛 robe 통 대신).",
  "macro": {
   "gender": 0.0,
   "age": 0.45,
@@ -20,56 +20,10 @@
  "eyes": "high-poly/high-poly.mhclo",
  "eyelashes": "eyelashes02/eyelashes02.mhclo",
  "teeth": "teeth_base/teeth_base.mhclo",
+ "_garments": [
+  "kaftan@2c4468,a8823e"
+ ],
  "kitbash": [
-  {
-   "part": "shell",
-   "slot": "cloth",
-   "color": "#23252e",
-   "rough": 0.85,
-   "offset": 0.004,
-   "thick": 0.003,
-   "groups": [
-    "pelvis",
-    "spine_0*",
-    "clavicle_*",
-    "upperarm_*",
-    "lowerarm_*",
-    "thigh_*",
-    "calf_*",
-    "neck_01"
-   ],
-   "minw": 0.5
-  },
-  {
-   "part": "shell",
-   "slot": "leather",
-   "color": "#2a1f18",
-   "rough": 0.65,
-   "offset": 0.014,
-   "thick": 0.005,
-   "groups": [
-    "foot_*",
-    "ball_*",
-    "calf_*"
-   ],
-   "z": [
-    0.0,
-    0.24
-   ],
-   "minw": 0.3
-  },
-  {
-   "part": "shell",
-   "slot": "metal",
-   "color": "#a8823e",
-   "rough": 0.35,
-   "offset": 0.012,
-   "thick": 0.005,
-   "groups": [
-    "lowerarm_*"
-   ],
-   "minw": 0.75
-  },
   {
    "part": "shell",
    "slot": "metal_lens",
@@ -85,15 +39,6 @@
     0.09
    ],
    "minw": 0.5
-  },
-  {
-   "part": "robe",
-   "color": "#2c4468",
-   "top": 0.1,
-   "length": 0.7,
-   "flare": 0.4,
-   "jag": 0.0,
-   "weights": "skin"
   }
  ],
  "anims": {
@@ -103,5 +48,9 @@
   "interaction": "PickUp_Table",
   "hit": "Hit_Chest",
   "death": "Death01"
- }
+ },
+ "clothes": [
+  "cf_kaftan_2c4468_a8823e/cf_kaftan_2c4468_a8823e.mhclo",
+  "culturalibre_heroine_boots_1/culturalibre_heroine_boots_1.mhclo"
+ ]
 }

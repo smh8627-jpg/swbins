@@ -164,8 +164,19 @@ def tint(arm, slot, hexcol, outdir):
     px = np.empty(w * h * 4, np.float32)
     src.pixels.foreach_get(px)
     px = px.reshape(-1, 4)
-    hx = hexcol.lstrip('#')
-    px[:, :3] *= np.array([int(hx[i:i + 2], 16) / 255 for i in (0, 2, 4)], np.float32)
+    dye = hexcol.startswith('=')
+    hx = hexcol.lstrip('=#')
+    col = np.array([int(hx[i:i + 2], 16) / 255 for i in (0, 2, 4)], np.float32)
+    if dye:
+        # 염색 `=#헥스` — 곱하기는 검은 몸 옷(SF bodysuit 평균 0)에 안 먹는다. 밝기 결(쓰는 칸의 평균·편차로 잰 치우침)만 남기고 색을 새로 입힌다.
+        # 결이 없는 그림은 고른 색 — 주름·솔기는 노멀 그림이 맡는다
+        lum = px[:, :3] @ np.array([0.2126, 0.7152, 0.0722], np.float32)
+        used = lum > 0.02
+        ref = lum[used] if used.mean() > 0.01 else lum
+        d = np.clip((lum - np.median(ref)) / (ref.std() + 1e-3), -2.0, 2.0)
+        px[:, :3] = np.clip(col[None, :] * (1.0 + 0.18 * d)[:, None], 0.0, 1.0)
+    else:
+        px[:, :3] *= col
     os.makedirs(outdir, exist_ok=True)
     path = os.path.join(outdir, f'{arm.name}_{slot}.png')
     img = bpy.data.images.new(f'{arm.name}_{slot}', w, h, alpha=True)

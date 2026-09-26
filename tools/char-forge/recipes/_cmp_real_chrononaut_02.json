@@ -1,6 +1,6 @@
 {
  "id": "_cmp_real_chrononaut_02",
- "_note": "단계 3 STORY 비교용 — saga-unity Ely(Mixamo) 자리 후보(STORY 미래 '시간 여행자'). 게임 인물 아님. 남자·곱슬 머리·옅은 연보라 몸 옷·은빛 목 고리·가슴 청록 빛 띠·은 팔 가리개·흰 장화. GO 시간 여행자(여·쪽빛 긴 겉옷자락·놋쇠)와 겹치지 않게.",
+ "_note": "단계 3 STORY 비교용 — saga-unity Ely(Mixamo) 자리 후보(STORY 미래 '시간 여행자'). 게임 인물 아님. 남자·곱슬 머리·옅은 연보라 몸 옷·은빛 목 고리·가슴 청록 빛 띠·은 팔 가리개·흰 장화. GO 시간 여행자(여·쪽빛 긴 겉옷자락·놋쇠)와 겹치지 않게. 09-26 진짜 옷(연보라로 염색한 몸 옷·가디언 은 팔 가리개·장화(CC0), 은빛 목 고리·가슴 빛 띠는 옷 면 껍데기).",
  "macro": {
   "gender": 1.0,
   "age": 0.35,
@@ -23,43 +23,6 @@
  "kitbash": [
   {
    "part": "shell",
-   "slot": "cloth",
-   "color": "#c9c3dc",
-   "rough": 0.85,
-   "offset": 0.004,
-   "thick": 0.003,
-   "groups": [
-    "pelvis",
-    "spine_0*",
-    "clavicle_*",
-    "upperarm_*",
-    "lowerarm_*",
-    "thigh_*",
-    "calf_*",
-    "neck_01"
-   ],
-   "minw": 0.5
-  },
-  {
-   "part": "shell",
-   "slot": "leather",
-   "color": "#ecebf0",
-   "rough": 0.65,
-   "offset": 0.014,
-   "thick": 0.005,
-   "groups": [
-    "foot_*",
-    "ball_*",
-    "calf_*"
-   ],
-   "z": [
-    0.0,
-    0.2
-   ],
-   "minw": 0.3
-  },
-  {
-   "part": "shell",
    "slot": "metal",
    "color": "#bcc2ca",
    "rough": 0.3,
@@ -74,19 +37,8 @@
     0.8,
     0.86
    ],
-   "minw": 0.4
-  },
-  {
-   "part": "shell",
-   "slot": "metal",
-   "color": "#bcc2ca",
-   "rough": 0.3,
-   "offset": 0.012,
-   "thick": 0.005,
-   "groups": [
-    "lowerarm_*"
-   ],
-   "minw": 0.75
+   "minw": 0.4,
+   "src": "matcreator_mc-skinsuit_2022"
   },
   {
    "part": "shell",
@@ -102,7 +54,8 @@
     0.68,
     0.71
    ],
-   "minw": 0.5
+   "minw": 0.5,
+   "src": "matcreator_mc-skinsuit_2022"
   }
  ],
  "anims": {
@@ -112,5 +65,12 @@
   "interaction": "PickUp_Table",
   "hit": "Hit_Chest",
   "death": "Death01"
+ },
+ "clothes": [
+  "matcreator_mc-skinsuit_2022/matcreator_mc-skinsuit_2022.mhclo",
+  "matcreator_mc-scifi-armor_guardian/matcreator_mc-scifi-armor_guardian.mhclo"
+ ],
+ "tints": {
+  "matcreator_mc-skinsuit_2022": "=#c9c3dc"
  }
 }
