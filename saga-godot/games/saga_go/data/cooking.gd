@@ -82,6 +82,11 @@ const PATCHES := [
 	["s_mint", "mint", "skyport", Vector2(7.2, 5.5), 2],
 	["s_apple", "apple", "skyport", Vector2(1.6, 6.2), 2],
 	["s_honey", "honey_flower", "skyport", Vector2(3.6, 2.3), 2],
+	## 106장 ㊾ 틈새 갈림길 — 있는 채집물만.
+	["x_mush", "mushroom", "crossing", Vector2(1.3, 1.8), 3],
+	["x_mint", "mint", "crossing", Vector2(6.4, 2.6), 2],
+	["x_apple", "apple", "crossing", Vector2(1.3, 4.3), 2],
+	["x_honey", "honey_flower", "crossing", Vector2(6.2, 7.1), 2],
 	["r_ash_se", "ash_flower", "ruins", Vector2(4.8, 5.5), 2],
 ]
 const PATCH_RING_M := 1.4

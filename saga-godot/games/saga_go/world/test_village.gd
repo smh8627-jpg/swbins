@@ -44,6 +44,10 @@ func _ready() -> void:
 	var skyport := preload("res://games/saga_go/world/region5_skyport.gd").new()
 	skyport.name = "Region5Skyport"
 	add_child(skyport)
+	## PLAN 106장 ㊾ — 여섯째 지역 틈새 갈림길(은하 나루 남쪽, 은하역 선로 너머 — 4부 뒤 열림).
+	var crossing := preload("res://games/saga_go/world/region6_crossing.gd").new()
+	crossing.name = "Region6Crossing"
+	add_child(crossing)
 	var era := preload("res://games/saga_go/world/era_sites.gd").new()
 	era.name = "EraSites"
 	add_child(era)
@@ -185,6 +189,8 @@ func _ready() -> void:
 		add_child(load("res://tools/probe_story4.gd").new())
 	if OS.get_environment("SAGA_SKYPORT_PROBE") != "": # 106장 ㊽ 다섯째 지역 은하 나루
 		add_child(load("res://tools/probe_skyport.gd").new())
+	if OS.get_environment("SAGA_CROSSING_PROBE") != "": # 106장 ㊾ 여섯째 지역 틈새 갈림길
+		add_child(load("res://tools/probe_crossing.gd").new())
 
 	## PLAN 106장 ㊸ — 업적(다른 노드 신호에 붙으므로 맨 뒤).
 	var achievements := preload("res://games/saga_go/world/achievements.gd").new()
@@ -246,7 +252,7 @@ func _print_density_report() -> void:
 	var test_map := load("res://games/saga_go/data/test_map.gd")
 	var density := load("res://saga_core/world/density_report.gd")
 	var terrain := load("res://games/saga_go/world/terrain_builder.gd")
-	for region_id in ["village", "coast", "ruins", "frost", "skyport"]:
+	for region_id in ["village", "coast", "ruins", "frost", "skyport", "crossing"]:
 		var origin: Vector3 = test_map.origin_of(region_id)
 		var size: Vector2i = test_map.size(region_id)
 		var tile: float = test_map.tile_size_of(region_id)

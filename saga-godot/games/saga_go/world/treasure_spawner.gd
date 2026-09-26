@@ -47,6 +47,12 @@ const CHESTS := [
 	["s_ridge_n", "skyport", Vector2(7.0, 1.38), "exquisite", "none", []],   # (7,1) 산 남쪽 턱 — 벽 타기
 	["s_camp_cat", "skyport", Vector2(2.05, 2.05), "precious", "camp", []],  # 들판 무리 (2,2) 번개살쾡이 둘+매
 	["s_torch_temple", "skyport", Vector2(2.1, 4.35), "luxurious", "torch", ["fire", "fire", "fire"]], # 옛 절터 석등(주인공 혼자서도)
+	## 틈새 갈림길 9×9(106장 ㊾)
+	["x_field_n", "crossing", Vector2(3.0, 2.2), "common", "none", []],
+	["x_field_e", "crossing", Vector2(7.0, 4.6), "common", "none", []],
+	["x_ridge_w", "crossing", Vector2(0.38, 5.0), "exquisite", "none", []],  # (0,5) 서쪽 테두리 산 턱 — 벽 타기
+	["x_camp_fox", "crossing", Vector2(2.05, 2.05), "precious", "camp", []], # 들판 무리 (2,2) 눈여우 둘+매
+	["x_torch_gate", "crossing", Vector2(3.4, 5.3), "luxurious", "torch", ["fire", "fire", "fire"]], # 뒤엉킨 성문 등롱(주인공 혼자서도)
 ]
 
 

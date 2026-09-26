@@ -52,6 +52,10 @@ const SHARDS := [
 	["s_peak_w", "skyport", Vector2(0.0, 4.0), "peak"],
 	["s_peak_se", "skyport", Vector2(8.0, 6.0), "peak"],
 	["s_tree_e", "skyport", Vector2(7.0, 4.0), "air"],
+	## 106장 ㊾ 틈새 갈림길
+	["x_peak_w", "crossing", Vector2(0.0, 3.0), "peak"],
+	["x_peak_se", "crossing", Vector2(8.0, 6.0), "peak"],
+	["x_tree_e", "crossing", Vector2(7.0, 3.0), "air"],
 ]
 
 var _nodes: Dictionary = {} # id → MeshInstance3D

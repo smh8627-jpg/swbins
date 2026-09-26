@@ -36,6 +36,10 @@ const POINTS := [
 	["s_pass", "skyport", Vector2(7.3, 3.05), false, "틈 고개"],
 	["s_statue", "skyport", Vector2(4.4, 4.0), true, "나루 신상"],
 	["s_port", "skyport", Vector2(4.35, 1.35), false, "별배 나루"],
+	## 106장 ㊾ 틈새 갈림길 — 첫 정거장 곁·갈림목 신상·섬돌 곁.
+	["x_stop", "crossing", Vector2(4.6, 1.1), false, "첫 정거장"],
+	["x_statue", "crossing", Vector2(4.0, 3.6), true, "갈림길 신상"],
+	["x_stones", "crossing", Vector2(4.1, 7.1), false, "떠 있는 섬돌"],
 ]
 
 const INACTIVE := Color(0.46, 0.5, 0.58)

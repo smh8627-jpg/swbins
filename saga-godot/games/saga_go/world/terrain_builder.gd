@@ -61,6 +61,8 @@ const LEGEND := {
 ## 흰 정점색(세 채널 모두 밝음)은 terrain_triplanar.gdshader 가 풀 텍스처 대신 눈으로 칠한다(다른 지역 글자엔 해당 없음).
 const REGION_COLORS := {
 	"frost": {"^": Color(0.84, 0.87, 0.91), "T": Color(0.2, 0.3, 0.26)},
+	## 106장 ㊾ 틈새 갈림길 — 시간 틈 안쪽이라 풀빛이 푸르스름하게 바래고, 산은 보랏빛 돌.
+	"crossing": {".": Color(0.34, 0.5, 0.4), "T": Color(0.16, 0.26, 0.26), "^": Color(0.46, 0.42, 0.54)},
 }
 
 ## 눈·얼음·모래 표시(정점 CUSTOM0 .r = 눈 · .g = 얼음 · .b = 모래) — terrain_triplanar.gdshader 가 이 값으로 칠한다.

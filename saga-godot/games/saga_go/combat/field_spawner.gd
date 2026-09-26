@@ -33,6 +33,10 @@ const CAMPS := [
 	["skyport", Vector2i(2, 2), ["thunder_cat", "thunder_cat", "wind_hawk"]],
 	["skyport", Vector2i(6, 5), ["rock_bear", "fire_imp"]],
 	["skyport", Vector2i(2, 6), ["grass_snake", "grass_snake", "ice_fox"]],
+	## PLAN 106장 ㊾ 틈새 갈림길 — 순간이동 지점·명소와 1칸+ 떨어진 자리.
+	["crossing", Vector2i(2, 2), ["ice_fox", "ice_fox", "wind_hawk"]],
+	["crossing", Vector2i(6, 4), ["rock_bear", "thunder_cat"]],
+	["crossing", Vector2i(1, 6), ["fire_imp", "fire_imp", "grass_snake"]],
 ]
 const SPREAD := 5.0
 

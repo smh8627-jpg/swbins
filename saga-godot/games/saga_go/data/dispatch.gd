@@ -46,8 +46,13 @@ const SPOTS := {
 		"desc": "주인 잃은 화물 상자에서 쓸 만한 부품을 고른다"},
 	"s_temple": {"region": "skyport", "name": "옛 절터 주춧돌", "era": "과거", "element": "grass", "base": {"mushroom": 2, "mint": 1, "iron": 1},
 		"desc": "주춧돌 틈에 자란 버섯과 옛 쇠붙이를 줍는다"},
+	## ㊾ 틈새 갈림길 — 현대·미래 첫 정거장 분실물 창고(풍)·과거 뒤엉킨 성문(암). 갈림길 신상 x_statue 를 켜야 열린다.
+	"x_stop": {"region": "crossing", "name": "첫 정거장 분실물 창고", "era": "현대", "element": "wind", "base": {"polish": 1, "ore_s": 1, "iron": 1},
+		"desc": "여러 시대 손님이 두고 간 짐에서 쓸 만한 것을 고른다"},
+	"x_gate": {"region": "crossing", "name": "뒤엉킨 성문 아래", "era": "과거", "element": "rock", "base": {"iron": 2, "mushroom": 1},
+		"desc": "허공에 멈춘 성벽 조각 밑에서 옛 쇠붙이를 줍는다"},
 }
-const ORDER := ["d_road", "d_wood", "d_mudflat", "d_shipyard", "d_quarry", "d_rift", "f_fortress", "f_wreck", "s_depot", "s_temple"]
+const ORDER := ["d_road", "d_wood", "d_mudflat", "d_shipyard", "d_quarry", "d_rift", "f_fortress", "f_wreck", "s_depot", "s_temple", "x_stop", "x_gate"]
 
 
 static func spot(id: String) -> Dictionary:
