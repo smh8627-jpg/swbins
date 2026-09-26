@@ -9,6 +9,7 @@ itch.io 무료(최소 0원) 팩은 로그인 없이 받는다: 페이지 csrf �
 팩의 "install" 칸(단계 3, 사실 몸):
 - blender_extension — Blender 확장(MPFB)을 _blender/(gitignore, BLENDER_USER_RESOURCES)에 설치한다. 사용자 Blender 설정은 안 건드린다.
 - mpfb_user_data — MakeHuman 에셋 팩을 그 MPFB 의 사용자 데이터 폴더에 푼다.
+"item_licenses" 면 팩 목록 json 의 항목마다 CC0 여야 하고, "exclude" 항목(CC-BY·원작 캐릭터 옷 등)은 풀지 않는다.
 "license_must_contain" 이 없으면 라이선스 파일에 CC0 가 있어야 하고, "license_must_not_contain" 에 든 글자가 있으면 멈춘다.
 """
 import hashlib, http.cookiejar, json, os, re, subprocess, sys, urllib.parse, urllib.request, zipfile
@@ -87,10 +88,18 @@ def main():
             if must not in lic or any(bad in lic for bad in p.get('license_must_not_contain', [])):
                 sys.exit(f'{key}: 라이선스 파일({p["license_file"]})이 기대와 다르다 — 쓰지 않는다')
             inst = p.get('install')
+            skip = set(p.get('exclude', []))
+            if p.get('item_licenses'):  # 팩 목록 json 의 항목마다 CC0 인지(뺄 항목은 exclude)
+                items = json.loads(lic)
+                bad = [k for k, v in items.items() if k not in skip
+                       and not str(v.get('license', '')).upper().replace('-', '').replace(' ', '').startswith('CC0')]
+                if bad:
+                    sys.exit(f'{key}: CC0 아닌 항목 {bad} — exclude 에 넣거나 쓰지 않는다')
             if inst == 'mpfb_user_data':
                 if not os.path.exists(os.path.join(MPFB_USER_DATA, p['license_file'])):
                     os.makedirs(MPFB_USER_DATA, exist_ok=True)
-                    z.extractall(MPFB_USER_DATA)
+                    # exclude 항목 폴더(<종류>/<항목>/)는 풀지 않는다
+                    z.extractall(MPFB_USER_DATA, [n for n in z.namelist() if not (n.count('/') >= 2 and n.split('/')[1] in skip)])
             elif inst != 'blender_extension' and not os.path.exists(os.path.join(SRC, p['license_file'])):
                 z.extractall(SRC)
         if inst == 'blender_extension' and not os.path.isdir(os.path.join(BLENDER_HOME, 'extensions', 'user_default', p['extension_id'])):

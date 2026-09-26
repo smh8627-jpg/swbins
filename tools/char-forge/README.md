@@ -85,6 +85,7 @@ export BLENDER_USER_RESOURCES="$PWD/tools/char-forge/_blender"
 | 입력 | 쓰임 | 라이선스(확인한 곳) |
 |---|---|---|
 | **MakeHuman / MPFB 기본 몸·모프·스킨** | 몸 비율(키·체격·나이·얼굴형)을 수치로 조절 | 기본 에셋 CC0, 내보낸 모델 CC0 — 닫힌 소스 상용 게임 OK. GPL 은 애드온 **코드**에만 걸린다(makehumancommunity.org FAQ "use in closed source"·"can I sell models"). **제3자 에셋은 따로 확인** |
+| **MakeHuman 커뮤니티 CC0 옷 팩 14**(09-26, `mh_*`) | 진짜 옷 메시 126벌·머리카락 34·수염 5(드레스·기모노·윗옷·바지·치마·신·장갑·모자·투구·정장·수도복·바이킹 셋, 기본 양복·머리 색 바꿈) | 팩 목록 json 의 항목마다 CC0(`fetch_sources.py` 가 검사). 뺀 것(`exclude`): CC-BY 장화 하나 · 원작 캐릭터 옷 셋 · 정치 문구 모자 · 원작 이름 머리. 가면 팩(masks01)은 슈퍼히어로풍이라 안 들인다 |
 | **Quaternius Universal Base Characters** | 이미 뼈가 심긴 기본 몸 6(보통·10대·영웅 비율 × 남녀) + 머리 모양 20 | CC0(quaternius.com). 무료판은 60~70%만 들어 있다 |
 | **Quaternius Universal Animation Library 1·2** | 동작 120+·130+(걷기 여러 방향·전투·총·감정 표현). 위 몸과 같은 뼈 | CC0(quaternius.com, Godot Asset Store 에도 올라와 있다). 무료판은 일부만 들어 있다 |
 | **Quaternius Modular Character Outfits - Fantasy** | 옷(무료판 넷: 여자·남자 × 순찰자·농부, 색 두 벌씩). 위 몸·동작과 같은 뼈 | CC0(quaternius.com·itch). 옷은 **Regular 비율**로 재단돼 있고 "머리만 쓰라"(팩 Readme) |
@@ -163,6 +164,8 @@ export BLENDER_USER_RESOURCES="$PWD/tools/char-forge/_blender"
 | unity 실사 | Mixamo 인물(오래된 게임 급 텍스처) | MPFB 사실 몸·CC0 스킨이라 **피부·몸은 같거나 낫다**(Maria 에 쓴 `FakeSSS` 를 그대로 붙인다). 헤어카드는 지금 없던 걸 새로 얻는다. **괴물(Warrok·Goblin 류)은 첫판이 못하다** — 조각한 모델을 비율 조정 + 부품으로 따라가기 어렵다 | 괴물은 Rigify 뼈 + 전용 조형(뿔·피부 결 노멀)을 따로 짠다 |
 
 **09-26 처음 눈으로 봄**(사용자 "직접 확인해봐" — Blender Eevee, Mixamo | 공방 같은 빛·같은 키 1.70m): 얼굴(MakeHuman)은 사실적이고 괜찮다 · MakeHuman 양복(clothes)도 괜찮다. 그러나 **껍데기 옷(`shell`)은 몸에 붙은 쫄쫄이·플라스틱**(가장자리 톱니, 쇠 투구는 수영모, 금관은 머리 위 접시) · **`robe` 는 울퉁불퉁한 통에 살이 뚫고 나온다** · 괴물(Goblin·Warrok)은 초록·갈색 맨몸 사람이다 — 모두 Mixamo 보다 확연히 못하다. 그동안 통과한 수치(CMP_RESULT OK·verify 각도·땅·measure)는 이것을 못 잡았다. → 옷을 진짜 옷 메시로 바꾸기 전엔 짝을 더 찍지 않는다. 함정: Blender glTF 가져오기는 피부를 BLEND 로 둬서 이·눈이 얼굴 위에 그려진다(피부·옷 알파를 끊고 머리카락·눈썹·속눈썹·눈만 알파).
+
+**09-26 진짜 옷 메시 시험**(같은 렌더): 바이킹 사슬 윗옷·바지·장화·수염, 긴 드레스, 수도복·두건은 Mixamo 마을 사람과 견줄 만하다 — 껍데기보다 확연히 낫다. 못한 것: 기모노(분홍 목욕가운), 전사 투구(붉은 가시). **빈칸 = 동양 역사 옷(한복·한푸·사무라이 갑옷)** — CC0 에 없다(도감 105 중 동양 68). → 다음 = 공방이 옷 메시를 지어 MPFB `create_mhclo_from_clothes_matching`·`write_mhclo` 로 `.mhclo` 를 만들어 입힌다(어느 체형에나 맞는다).
 
 **교체 문턱(규칙)**: 새 모델은 **지금 것보다 못하지 않을 때만** 자리를 바꾼다. 같은 장면·같은 빛에서 둘을 나란히 두고, 그 판정은 실기 확인 때 사용자가 한다.
 그때까지 지금 모델이 남는다. 그래서 화질이 떨어지는 구간은 생기지 않는다. 동작(§7 단계 1)은 모양이 아니라 움직임이라 이 문턱이 가볍다.

@@ -1,98 +1,332 @@
 {
-  "_note": "char-forge 입력 장부. 여기 없는 파일은 build.py 가 쓰지 않는다. 원본 zip 은 _src/ (gitignore) — fetch_sources.py 가 받아 sha256 을 맞춘다. 단계 3: mpfb(Blender 확장, _blender/ 에 설치)·mh_system_assets(그 MPFB 사용자 데이터에 풂). 같은 사이트의 hair02 등 CC-BY 팩은 들이지 않는다.",
-  "packs": {
-    "ual1_standard": {
-      "title": "Quaternius Universal Animation Library [Standard]",
-      "license": "CC0-1.0",
-      "license_file": "Animation Library[Standard]/License.txt",
-      "page": "https://opengameart.org/content/universal-animation-library",
-      "download": {
-        "kind": "direct",
-        "url": "https://opengameart.org/sites/default/files/universal_animation_librarystandard.zip"
-      },
-      "zip": "ual1_standard.zip",
-      "sha256": "18ff1a7215f4852b320203e8aaf02a1578b5c8eef9027fbaedfcedc7b85a3ac2",
-      "checked": "2026-09-24"
-    },
-    "ubc_standard": {
-      "title": "Quaternius Universal Base Characters [Standard]",
-      "license": "CC0-1.0",
-      "license_file": "Universal Base Characters[Standard]/License_Standard.txt",
-      "page": "https://quaternius.itch.io/universal-base-characters",
-      "download": {
-        "kind": "itch_free",
-        "game": "quaternius.itch.io/universal-base-characters",
-        "upload_name": "Universal Base Characters[Standard].zip"
-      },
-      "zip": "ubc_standard.zip",
-      "sha256": "fdbf1804c90dfc1ea03e992bff7da2dfd1a79318e13270a660180f9308455f40",
-      "checked": "2026-09-24"
-    },
-    "mcof_standard": {
-      "title": "Quaternius Modular Character Outfits - Fantasy [Standard]",
-      "license": "CC0-1.0",
-      "license_file": "Modular Character Outfits - Fantasy[Standard]/License_Standard.txt",
-      "page": "https://quaternius.itch.io/modular-character-outfits-fantasy",
-      "download": {
-        "kind": "itch_free",
-        "game": "quaternius.itch.io/modular-character-outfits-fantasy",
-        "upload_name": "Modular Character Outfits - Fantasy[Standard].zip"
-      },
-      "zip": "mcof_standard.zip",
-      "sha256": "c3468b18871cc8c8f05ab14df7712baf22cb9f389cbd870babf130e595187f70",
-      "checked": "2026-09-25"
-    },
-    "mpfb": {
-      "title": "MPFB 2 (MakeHuman plugin for Blender) 2.0.17 — Blender 확장",
-      "license": "GPL-3.0-or-later (애드온 코드만 — 만든 모델·기본 몸·모프는 CC0, makehumancommunity.org FAQ \"use in closed source\")",
-      "license_file": "blender_manifest.toml",
-      "license_must_contain": "GPL-3.0",
-      "page": "https://extensions.blender.org/add-ons/mpfb/",
-      "download": {
-        "kind": "direct",
-        "url": "https://extensions.blender.org/download/sha256:4f0a879d64a39bf646fbf5f53601ac678855da329d650617dca5737548239a87/add-on-mpfb-v2.0.17.zip"
-      },
-      "zip": "mpfb-2.0.17.zip",
-      "sha256": "4f0a879d64a39bf646fbf5f53601ac678855da329d650617dca5737548239a87",
-      "install": "blender_extension",
-      "extension_id": "mpfb",
-      "checked": "2026-09-25"
-    },
-    "mh_system_assets": {
-      "title": "MakeHuman system assets(피부 23·머리 10·눈·눈썹·속눈썹·이·옷 20)",
-      "license": "CC0-1.0 (팩 목록의 94항목 전부 CC0 — CC-BY 없음 확인)",
-      "license_file": "packs/makehuman_system_assets.json",
-      "license_must_not_contain": [
-        "CC-BY",
-        "AGPL"
-      ],
-      "page": "http://static.makehumancommunity.org/assets/assetpacks/makehuman_system_assets.html",
-      "download": {
-        "kind": "direct",
-        "url": "https://files2.makehumancommunity.org/asset_packs/makehuman_system_assets/makehuman_system_assets_cc0.zip"
-      },
-      "zip": "makehuman_system_assets_cc0.zip",
-      "sha256": "b542127a8e25547c7c29c19f2d1d2adb9a664c80396ecd694095dbc8028a0107",
-      "install": "mpfb_user_data",
-      "checked": "2026-09-25"
-    },
-    "mh_animal01": {
-      "title": "MakeHuman asset pack animal01 — 짐승·괴물 얼굴 모프 다섯(돼지 코·파우누스 얼굴·당나귀/말 머리·고양이 귀)",
-      "license": "CC0-1.0 (팩 목록 다섯 항목 전부 CC0 — 같은 사이트의 animal02~04 는 CC-BY 라 안 들임)",
-      "license_file": "packs/animal01.json",
-      "license_must_not_contain": [
-        "CC-BY",
-        "AGPL"
-      ],
-      "page": "http://static.makehumancommunity.org/assets/assetpacks/animal01.html",
-      "download": {
-        "kind": "direct",
-        "url": "https://files2.makehumancommunity.org/asset_packs/animal01/animal01_cc0.zip"
-      },
-      "zip": "animal01_cc0.zip",
-      "sha256": "03cdf572f3dce0b57fde0add54c12e8523e0cfd811c2ab0752cb7a324cd14bed",
-      "install": "mpfb_user_data",
-      "checked": "2026-09-25"
-    }
+ "_note": "char-forge 입력 장부. 여기 없는 파일은 build.py 가 쓰지 않는다. 원본 zip 은 _src/ (gitignore) — fetch_sources.py 가 받아 sha256 을 맞춘다. 단계 3: mpfb(Blender 확장, _blender/ 에 설치)·mh_system_assets(그 MPFB 사용자 데이터에 풂). 같은 사이트의 hair02 등 CC-BY 팩은 들이지 않는다. 09-26: 커뮤니티 CC0 옷 팩(mh_*) — 항목마다 CC0 검사, CC-BY·원작 캐릭터 옷·정치 문구는 exclude. masks01(슈퍼히어로풍 가면)은 안 들인다.",
+ "packs": {
+  "ual1_standard": {
+   "title": "Quaternius Universal Animation Library [Standard]",
+   "license": "CC0-1.0",
+   "license_file": "Animation Library[Standard]/License.txt",
+   "page": "https://opengameart.org/content/universal-animation-library",
+   "download": {
+    "kind": "direct",
+    "url": "https://opengameart.org/sites/default/files/universal_animation_librarystandard.zip"
+   },
+   "zip": "ual1_standard.zip",
+   "sha256": "18ff1a7215f4852b320203e8aaf02a1578b5c8eef9027fbaedfcedc7b85a3ac2",
+   "checked": "2026-09-24"
+  },
+  "ubc_standard": {
+   "title": "Quaternius Universal Base Characters [Standard]",
+   "license": "CC0-1.0",
+   "license_file": "Universal Base Characters[Standard]/License_Standard.txt",
+   "page": "https://quaternius.itch.io/universal-base-characters",
+   "download": {
+    "kind": "itch_free",
+    "game": "quaternius.itch.io/universal-base-characters",
+    "upload_name": "Universal Base Characters[Standard].zip"
+   },
+   "zip": "ubc_standard.zip",
+   "sha256": "fdbf1804c90dfc1ea03e992bff7da2dfd1a79318e13270a660180f9308455f40",
+   "checked": "2026-09-24"
+  },
+  "mcof_standard": {
+   "title": "Quaternius Modular Character Outfits - Fantasy [Standard]",
+   "license": "CC0-1.0",
+   "license_file": "Modular Character Outfits - Fantasy[Standard]/License_Standard.txt",
+   "page": "https://quaternius.itch.io/modular-character-outfits-fantasy",
+   "download": {
+    "kind": "itch_free",
+    "game": "quaternius.itch.io/modular-character-outfits-fantasy",
+    "upload_name": "Modular Character Outfits - Fantasy[Standard].zip"
+   },
+   "zip": "mcof_standard.zip",
+   "sha256": "c3468b18871cc8c8f05ab14df7712baf22cb9f389cbd870babf130e595187f70",
+   "checked": "2026-09-25"
+  },
+  "mpfb": {
+   "title": "MPFB 2 (MakeHuman plugin for Blender) 2.0.17 — Blender 확장",
+   "license": "GPL-3.0-or-later (애드온 코드만 — 만든 모델·기본 몸·모프는 CC0, makehumancommunity.org FAQ \"use in closed source\")",
+   "license_file": "blender_manifest.toml",
+   "license_must_contain": "GPL-3.0",
+   "page": "https://extensions.blender.org/add-ons/mpfb/",
+   "download": {
+    "kind": "direct",
+    "url": "https://extensions.blender.org/download/sha256:4f0a879d64a39bf646fbf5f53601ac678855da329d650617dca5737548239a87/add-on-mpfb-v2.0.17.zip"
+   },
+   "zip": "mpfb-2.0.17.zip",
+   "sha256": "4f0a879d64a39bf646fbf5f53601ac678855da329d650617dca5737548239a87",
+   "install": "blender_extension",
+   "extension_id": "mpfb",
+   "checked": "2026-09-25"
+  },
+  "mh_system_assets": {
+   "title": "MakeHuman system assets(피부 23·머리 10·눈·눈썹·속눈썹·이·옷 20)",
+   "license": "CC0-1.0 (팩 목록의 94항목 전부 CC0 — CC-BY 없음 확인)",
+   "license_file": "packs/makehuman_system_assets.json",
+   "license_must_not_contain": [
+    "CC-BY",
+    "AGPL"
+   ],
+   "page": "http://static.makehumancommunity.org/assets/assetpacks/makehuman_system_assets.html",
+   "download": {
+    "kind": "direct",
+    "url": "https://files2.makehumancommunity.org/asset_packs/makehuman_system_assets/makehuman_system_assets_cc0.zip"
+   },
+   "zip": "makehuman_system_assets_cc0.zip",
+   "sha256": "b542127a8e25547c7c29c19f2d1d2adb9a664c80396ecd694095dbc8028a0107",
+   "install": "mpfb_user_data",
+   "checked": "2026-09-25"
+  },
+  "mh_animal01": {
+   "title": "MakeHuman asset pack animal01 — 짐승·괴물 얼굴 모프 다섯(돼지 코·파우누스 얼굴·당나귀/말 머리·고양이 귀)",
+   "license": "CC0-1.0 (팩 목록 다섯 항목 전부 CC0 — 같은 사이트의 animal02~04 는 CC-BY 라 안 들임)",
+   "license_file": "packs/animal01.json",
+   "license_must_not_contain": [
+    "CC-BY",
+    "AGPL"
+   ],
+   "page": "http://static.makehumancommunity.org/assets/assetpacks/animal01.html",
+   "download": {
+    "kind": "direct",
+    "url": "https://files2.makehumancommunity.org/asset_packs/animal01/animal01_cc0.zip"
+   },
+   "zip": "animal01_cc0.zip",
+   "sha256": "03cdf572f3dce0b57fde0add54c12e8523e0cfd811c2ab0752cb7a324cd14bed",
+   "install": "mpfb_user_data",
+   "checked": "2026-09-25"
+  },
+  "mh_dress01": {
+   "title": "MakeHuman 커뮤니티 dress01 (드레스·기모노 13)",
+   "license": "CC0-1.0 (팩 목록 json 의 항목 license 칸 — exclude 항목 뺀 전부 CC0 확인)",
+   "license_file": "packs/dress01.json",
+   "item_licenses": true,
+   "exclude": [],
+   "page": "http://static.makehumancommunity.org/assets/assetpacks/dress01.html",
+   "download": {
+    "kind": "direct",
+    "url": "https://files2.makehumancommunity.org/asset_packs/dress01/dress01_cc0.zip"
+   },
+   "zip": "dress01_cc0.zip",
+   "sha256": "f49ba54a3c93acd3c3307cc5a96cfc65daf8abfed9212a7e580791d821c9e93a",
+   "install": "mpfb_user_data",
+   "checked": "2026-09-26"
+  },
+  "mh_hats01": {
+   "title": "MakeHuman 커뮤니티 hats01 (모자 6)",
+   "license": "CC0-1.0 (팩 목록 json 의 항목 license 칸 — exclude 항목 뺀 전부 CC0 확인)",
+   "license_file": "packs/hats01.json",
+   "item_licenses": true,
+   "exclude": [
+    "toigo_maga_hat"
+   ],
+   "page": "http://static.makehumancommunity.org/assets/assetpacks/hats01.html",
+   "download": {
+    "kind": "direct",
+    "url": "https://files2.makehumancommunity.org/asset_packs/hats01/hats01_cc0.zip"
+   },
+   "zip": "hats01_cc0.zip",
+   "sha256": "97b70d7bd90e74ee87a49faeb7c4a1b2762b311902974db575851daaae05b50e",
+   "install": "mpfb_user_data",
+   "checked": "2026-09-26"
+  },
+  "mh_hats02": {
+   "title": "MakeHuman 커뮤니티 hats02 (투구 6)",
+   "license": "CC0-1.0 (팩 목록 json 의 항목 license 칸 — exclude 항목 뺀 전부 CC0 확인)",
+   "license_file": "packs/hats02.json",
+   "item_licenses": true,
+   "exclude": [],
+   "page": "http://static.makehumancommunity.org/assets/assetpacks/hats02.html",
+   "download": {
+    "kind": "direct",
+    "url": "https://files2.makehumancommunity.org/asset_packs/hats02/hats02_cc0.zip"
+   },
+   "zip": "hats02_cc0.zip",
+   "sha256": "838b9b51ba31d27f21198ad4506eb9b23e1c03eb246fe68f26da99e26b40e1aa",
+   "install": "mpfb_user_data",
+   "checked": "2026-09-26"
+  },
+  "mh_shirts01": {
+   "title": "MakeHuman 커뮤니티 shirts01 (윗옷 10)",
+   "license": "CC0-1.0 (팩 목록 json 의 항목 license 칸 — exclude 항목 뺀 전부 CC0 확인)",
+   "license_file": "packs/shirts01.json",
+   "item_licenses": true,
+   "exclude": [],
+   "page": "http://static.makehumancommunity.org/assets/assetpacks/shirts01.html",
+   "download": {
+    "kind": "direct",
+    "url": "https://files2.makehumancommunity.org/asset_packs/shirts01/shirts01_cc0.zip"
+   },
+   "zip": "shirts01_cc0.zip",
+   "sha256": "a5a723b0e84a109bb190fcfeac7f1de4138d875da3e30fe5b3340eac9f38bcd3",
+   "install": "mpfb_user_data",
+   "checked": "2026-09-26"
+  },
+  "mh_pants01": {
+   "title": "MakeHuman 커뮤니티 pants01 (바지 4)",
+   "license": "CC0-1.0 (팩 목록 json 의 항목 license 칸 — exclude 항목 뺀 전부 CC0 확인)",
+   "license_file": "packs/pants01.json",
+   "item_licenses": true,
+   "exclude": [],
+   "page": "http://static.makehumancommunity.org/assets/assetpacks/pants01.html",
+   "download": {
+    "kind": "direct",
+    "url": "https://files2.makehumancommunity.org/asset_packs/pants01/pants01_cc0.zip"
+   },
+   "zip": "pants01_cc0.zip",
+   "sha256": "e4e0ec60db34f279be291a83cfd7b342a7c5cf09bb7676682a5f39f4f6ac4ad9",
+   "install": "mpfb_user_data",
+   "checked": "2026-09-26"
+  },
+  "mh_shoes01": {
+   "title": "MakeHuman 커뮤니티 shoes01 (신·장화 23)",
+   "license": "CC0-1.0 (팩 목록 json 의 항목 license 칸 — exclude 항목 뺀 전부 CC0 확인)",
+   "license_file": "packs/shoes01.json",
+   "item_licenses": true,
+   "exclude": [
+    "culturalibre_heroine_boots_4"
+   ],
+   "page": "http://static.makehumancommunity.org/assets/assetpacks/shoes01.html",
+   "download": {
+    "kind": "direct",
+    "url": "https://files2.makehumancommunity.org/asset_packs/shoes01/shoes01_cc0.zip"
+   },
+   "zip": "shoes01_cc0.zip",
+   "sha256": "ded3f70428505eabbf1f6d7b5f61196a7366ef20757103d276ad0ed336c35ada",
+   "install": "mpfb_user_data",
+   "checked": "2026-09-26"
+  },
+  "mh_skirts01": {
+   "title": "MakeHuman 커뮤니티 skirts01 (치마 6)",
+   "license": "CC0-1.0 (팩 목록 json 의 항목 license 칸 — exclude 항목 뺀 전부 CC0 확인)",
+   "license_file": "packs/skirts01.json",
+   "item_licenses": true,
+   "exclude": [],
+   "page": "http://static.makehumancommunity.org/assets/assetpacks/skirts01.html",
+   "download": {
+    "kind": "direct",
+    "url": "https://files2.makehumancommunity.org/asset_packs/skirts01/skirts01_cc0.zip"
+   },
+   "zip": "skirts01_cc0.zip",
+   "sha256": "293fa0c15e28e8dcea8dfff20cae31aa4b0d1268a6e6ba0a53a92ebb0f36c882",
+   "install": "mpfb_user_data",
+   "checked": "2026-09-26"
+  },
+  "mh_suits01": {
+   "title": "MakeHuman 커뮤니티 suits01 (정장 8)",
+   "license": "CC0-1.0 (팩 목록 json 의 항목 license 칸 — exclude 항목 뺀 전부 CC0 확인)",
+   "license_file": "packs/suits01.json",
+   "item_licenses": true,
+   "exclude": [],
+   "page": "http://static.makehumancommunity.org/assets/assetpacks/suits01.html",
+   "download": {
+    "kind": "direct",
+    "url": "https://files2.makehumancommunity.org/asset_packs/suits01/suits01_cc0.zip"
+   },
+   "zip": "suits01_cc0.zip",
+   "sha256": "2b1d8676f3863b188e9eea98c1d8f234543d54c440e791d92b819f8ee1861f19",
+   "install": "mpfb_user_data",
+   "checked": "2026-09-26"
+  },
+  "mh_suits02": {
+   "title": "MakeHuman 커뮤니티 suits02 (판타지·SF 옷(수도복·바이킹 셋 등) 21)",
+   "license": "CC0-1.0 (팩 목록 json 의 항목 license 칸 — exclude 항목 뺀 전부 CC0 확인)",
+   "license_file": "packs/suits02.json",
+   "item_licenses": true,
+   "exclude": [
+    "green_tomato_rei_ayanami",
+    "green_tomato_yoko_tsuno",
+    "slayer227_spider-gwen"
+   ],
+   "page": "http://static.makehumancommunity.org/assets/assetpacks/suits02.html",
+   "download": {
+    "kind": "direct",
+    "url": "https://files2.makehumancommunity.org/asset_packs/suits02/suits02_cc0.zip"
+   },
+   "zip": "suits02_cc0.zip",
+   "sha256": "437f4d7ab92b698c1fb1047e7d62b22c11f195b2473e936118661dc8e6b7eb7a",
+   "install": "mpfb_user_data",
+   "checked": "2026-09-26"
+  },
+  "mh_bodyparts05": {
+   "title": "MakeHuman 커뮤니티 bodyparts05 (수염·콧수염 5)",
+   "license": "CC0-1.0 (팩 목록 json 의 항목 license 칸 — exclude 항목 뺀 전부 CC0 확인)",
+   "license_file": "packs/bodyparts05.json",
+   "item_licenses": true,
+   "exclude": [],
+   "page": "http://static.makehumancommunity.org/assets/assetpacks/bodyparts05.html",
+   "download": {
+    "kind": "direct",
+    "url": "https://files2.makehumancommunity.org/asset_packs/bodyparts05/bodyparts05_cc0.zip"
+   },
+   "zip": "bodyparts05_cc0.zip",
+   "sha256": "262bba42246f85b2a91f493dd920296b258a3b4544eb495c91c4d08e57c528fd",
+   "install": "mpfb_user_data",
+   "checked": "2026-09-26"
+  },
+  "mh_gloves01": {
+   "title": "MakeHuman 커뮤니티 gloves01 (장갑 9)",
+   "license": "CC0-1.0 (팩 목록 json 의 항목 license 칸 — exclude 항목 뺀 전부 CC0 확인)",
+   "license_file": "packs/gloves01.json",
+   "item_licenses": true,
+   "exclude": [],
+   "page": "http://static.makehumancommunity.org/assets/assetpacks/gloves01.html",
+   "download": {
+    "kind": "direct",
+    "url": "https://files2.makehumancommunity.org/asset_packs/gloves01/gloves01_cc0.zip"
+   },
+   "zip": "gloves01_cc0.zip",
+   "sha256": "ecdaee1d02749d17352791d415cb622a883350cc8a4b90eda3725aef35d9afb2",
+   "install": "mpfb_user_data",
+   "checked": "2026-09-26"
+  },
+  "mh_hair01": {
+   "title": "MakeHuman 커뮤니티 hair01 (머리카락 25)",
+   "license": "CC0-1.0 (팩 목록 json 의 항목 license 칸 — exclude 항목 뺀 전부 CC0 확인)",
+   "license_file": "packs/hair01.json",
+   "item_licenses": true,
+   "exclude": [
+    "sonntag78_junglebook_hair"
+   ],
+   "page": "http://static.makehumancommunity.org/assets/assetpacks/hair01.html",
+   "download": {
+    "kind": "direct",
+    "url": "https://files2.makehumancommunity.org/asset_packs/hair01/hair01_cc0.zip"
+   },
+   "zip": "hair01_cc0.zip",
+   "sha256": "49445d69848a313ec41a9970f6a0fe4bcf925c9f1c6ef40a76f119c2e07940c9",
+   "install": "mpfb_user_data",
+   "checked": "2026-09-26"
+  },
+  "mh_system_clothes_materials01": {
+   "title": "MakeHuman 커뮤니티 system_clothes_materials01 (기본 양복 색 16)",
+   "license": "CC0-1.0 (팩 목록 json 의 항목 license 칸 — exclude 항목 뺀 전부 CC0 확인)",
+   "license_file": "packs/system_clothes_materials01.json",
+   "item_licenses": true,
+   "exclude": [],
+   "page": "http://static.makehumancommunity.org/assets/assetpacks/system_clothes_materials01.html",
+   "download": {
+    "kind": "direct",
+    "url": "https://files2.makehumancommunity.org/asset_packs/system_clothes_materials01/system_clothes_materials01_cc0.zip"
+   },
+   "zip": "system_clothes_materials01_cc0.zip",
+   "sha256": "d99fdd8d393b46c545ad40ac6f1304c43dd47e215300e0021d740124b5cd05f5",
+   "install": "mpfb_user_data",
+   "checked": "2026-09-26"
+  },
+  "mh_system_hair_materials01": {
+   "title": "MakeHuman 커뮤니티 system_hair_materials01 (기본 머리카락 색 38(흰머리 포함))",
+   "license": "CC0-1.0 (팩 목록 json 의 항목 license 칸 — exclude 항목 뺀 전부 CC0 확인)",
+   "license_file": "packs/system_hair_materials01.json",
+   "item_licenses": true,
+   "exclude": [],
+   "page": "http://static.makehumancommunity.org/assets/assetpacks/system_hair_materials01.html",
+   "download": {
+    "kind": "direct",
+    "url": "https://files2.makehumancommunity.org/asset_packs/system_hair_materials01/system_hair_materials01_cc0.zip"
+   },
+   "zip": "system_hair_materials01_cc0.zip",
+   "sha256": "bfdbbf3407a7877e2ad5bee211310709b51cc6203e73c90bbb2adf71375848fe",
+   "install": "mpfb_user_data",
+   "checked": "2026-09-26"
   }
+ }
 }
