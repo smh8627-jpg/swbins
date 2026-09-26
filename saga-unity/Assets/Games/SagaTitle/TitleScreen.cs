@@ -21,6 +21,8 @@ namespace Saga.Title
             public string Key;
             public string Name;
             public string Tagline;
+            public string NameEn;
+            public string TaglineEn;
             public string Scene;
             public Func<bool> HasSave;
             public Action DeleteSave;
@@ -30,24 +32,27 @@ namespace Saga.Title
 
         public static readonly Game[] Games =
         {
-            new Game { Key = "go", Name = "사가고", Tagline = "들판을 누비며 인물을 모으는 수집 모험", Scene = "TestVillage",
+            new Game { Key = "go", Name = "사가고", Tagline = "들판을 누비며 인물을 모으는 수집 모험", NameEn = "Saga GO", TaglineEn = "Roam the fields and gather heroes", Scene = "TestVillage",
                 HasSave = () => Saga.Go.Data.SaveState.HasSave, DeleteSave = Saga.Go.Data.SaveState.DeleteSave,
                 ToJson = Saga.Go.Data.SaveState.ToJson, ApplyJson = Saga.Go.Data.SaveState.ApplyJson },
-            new Game { Key = "dungeon", Name = "사가블로", Tagline = "층을 내려가며 베어 넘기는 핵앤슬래시 던전", Scene = "TestDungeon",
+            new Game { Key = "dungeon", Name = "사가블로", Tagline = "층을 내려가며 베어 넘기는 핵앤슬래시 던전", NameEn = "Sagablo", TaglineEn = "Hack and slash down floor after floor", Scene = "TestDungeon",
                 HasSave = () => Saga.Dungeon.Data.SaveState.HasSave, DeleteSave = Saga.Dungeon.Data.SaveState.DeleteSave,
                 ToJson = Saga.Dungeon.Data.SaveState.ToJson, ApplyJson = Saga.Dungeon.Data.SaveState.ApplyJson },
-            new Game { Key = "forest", Name = "사가의숲", Tagline = "숲속 마을을 가꾸는 느긋한 하루", Scene = "TestVillageForest",
+            new Game { Key = "forest", Name = "사가의숲", Tagline = "숲속 마을을 가꾸는 느긋한 하루", NameEn = "Saga Forest", TaglineEn = "Slow days tending a village in the woods", Scene = "TestVillageForest",
                 HasSave = () => Saga.Forest.Data.ForestSaveState.HasSave, DeleteSave = Saga.Forest.Data.ForestSaveState.DeleteSave,
                 ToJson = Saga.Forest.Data.ForestSaveState.ToJson, ApplyJson = Saga.Forest.Data.ForestSaveState.ApplyJson },
-            new Game { Key = "story", Name = "사가스토리", Tagline = "옆으로 달리며 무예를 키우는 성장 액션", Scene = "TestField",
+            new Game { Key = "story", Name = "사가스토리", Tagline = "옆으로 달리며 무예를 키우는 성장 액션", NameEn = "Saga Story", TaglineEn = "Side-scrolling action, growing your arts", Scene = "TestField",
                 HasSave = () => Saga.Story.Data.StorySaveState.HasSave, DeleteSave = Saga.Story.Data.StorySaveState.DeleteSave,
                 ToJson = Saga.Story.Data.StorySaveState.ToJson, ApplyJson = Saga.Story.Data.StorySaveState.ApplyJson },
-            new Game { Key = "realm", Name = "사가국지", Tagline = "성을 다스려 천하를 겨루는 경영 전략", Scene = "TestCity",
+            new Game { Key = "realm", Name = "사가국지", Tagline = "성을 다스려 천하를 겨루는 경영 전략", NameEn = "Saga Realm", TaglineEn = "Rule castles and contend for the realm", Scene = "TestCity",
                 HasSave = () => Saga.Realm.Data.RealmSaveState.HasSave, DeleteSave = Saga.Realm.Data.RealmSaveState.DeleteSave,
                 ToJson = Saga.Realm.Data.RealmSaveState.ToJson, ApplyJson = Saga.Realm.Data.RealmSaveState.ApplyJson },
         };
 
         public const string Version = "0.1.0";
+
+        public static string DisplayName(Game g) => SagaUi.L(g.Name, g.NameEn);
+        public static string DisplayTagline(Game g) => SagaUi.L(g.Tagline, g.TaglineEn);
 
         /// <summary>앱을 켜고 어느 판에도 들어가기 전에 뜬 기본 상태(판 키 → 세이브 JSON). 판을 먼저 연 실행이면 비어 있다.</summary>
         private static readonly Dictionary<string, string> Defaults = new Dictionary<string, string>();
@@ -64,6 +69,17 @@ namespace Saga.Title
         public bool ConfirmOpen => _confirm != null && _confirm.activeSelf;
         public string ConfirmText => _confirmText != null ? _confirmText.text : "";
         public Canvas Canvas { get; private set; }
+
+        // PLAN.md 110 ⑤c — 타이틀 설정(다섯 판 공통, `TitleSettings`).
+        public Button SettingsButton { get; private set; }
+        public Button LanguageButton { get; private set; }
+        public Button VolumeButton { get; private set; }
+        public Button BgmButton { get; private set; }
+        public Button SfxButton { get; private set; }
+        public Button VibrationButton { get; private set; }
+        public Button SettingsClose { get; private set; }
+        public bool SettingsOpen => _settings != null && _settings.activeSelf;
+        private GameObject _settings;
 
         private GameObject _confirm;
         private TextMeshProUGUI _confirmText;
@@ -114,6 +130,7 @@ namespace Saga.Title
             Instance = this;
             Time.timeScale = 1f;
             CaptureDefaults();
+            TitleSettings.SyncCoreLanguage();
             SagaUi.EnsureEventSystem();
             Build();
             int saved = 0;
@@ -150,7 +167,9 @@ namespace Saga.Title
         {
             if (!Games[i].HasSave()) { StartNew(i); return; }
             _pending = i;
-            _confirmText.text = $"{Games[i].Name}의 저장을 지우고 처음부터 시작할까요?\n<size=70%><color=#B8B2A8>지운 저장은 되돌릴 수 없습니다.</color></size>";
+            _confirmText.text = SagaUi.En
+                ? $"Delete the {Games[i].NameEn} save and start over?\n<size=70%><color=#B8B2A8>A deleted save can't be recovered.</color></size>"
+                : $"{Games[i].Name}의 저장을 지우고 처음부터 시작할까요?\n<size=70%><color=#B8B2A8>지운 저장은 되돌릴 수 없습니다.</color></size>";
             _confirm.SetActive(true);
         }
 
@@ -201,7 +220,7 @@ namespace Saga.Title
             var title = SagaUi.NewText(root, "SAGA", 150f, SagaUi.Gold, top, new Vector2(0f, narrow ? -140f : -115f), new Vector2(900f, 170f));
             title.fontStyle = FontStyles.Bold;
             title.characterSpacing = 18f;
-            SagaUi.NewText(root, "역사 인물로 노는 다섯 판", 36f, SagaUi.InkDim, top, new Vector2(0f, narrow ? -265f : -255f), new Vector2(900f, 60f));
+            SagaUi.NewText(root, SagaUi.L("역사 인물로 노는 다섯 판", "Five games with figures from history"), 36f, SagaUi.InkDim, top, new Vector2(0f, narrow ? -265f : -255f), new Vector2(900f, 60f));
 
             var cards = SagaUi.NewRect(root, "Cards", new Vector2(0.5f, 0.5f), new Vector2(0f, narrow ? -40f : -30f), Vector2.zero);
             Vector2 cardSize = narrow ? new Vector2(880f, 230f) : new Vector2(330f, 470f);
@@ -214,13 +233,88 @@ namespace Saga.Title
             }
 
             var bottom = new Vector2(0.5f, 0f);
-            QuitButton = SagaUi.NewButton(root, "Quit", "게임 종료", bottom, new Vector2(0f, 70f), new Vector2(300f, 80f), SagaUi.ButtonIdle, 30f);
+            bool canQuit = Application.platform != RuntimePlatform.IPhonePlayer;
+            SettingsButton = SagaUi.NewButton(root, "Settings", SagaUi.L("설정", "Settings"), bottom, new Vector2(canQuit ? -170f : 0f, 70f), new Vector2(300f, 80f), SagaUi.ButtonIdle, 30f);
+            SettingsButton.onClick.AddListener(() => ShowSettings(true));
+            QuitButton = SagaUi.NewButton(root, "Quit", SagaUi.L("게임 종료", "Quit game"), bottom, new Vector2(170f, 70f), new Vector2(300f, 80f), SagaUi.ButtonIdle, 30f);
             QuitButton.onClick.AddListener(Application.Quit);
-            QuitButton.gameObject.SetActive(Application.platform != RuntimePlatform.IPhonePlayer);
+            QuitButton.gameObject.SetActive(canQuit);
             SagaUi.NewText(root, "v" + Version, 24f, SagaUi.InkDim, new Vector2(1f, 0f), new Vector2(-90f, 30f), new Vector2(160f, 40f));
 
             BuildConfirm(root);
+            BuildSettings(root);
             if (SagaPerf.Enabled) BuildPerf(root);
+        }
+
+        /// <summary>언어를 바꾸면 타이틀 글자를 새 언어로 다시 짓는다(설정 창은 연 채로). 옛 캔버스는 떼어 끄고 지운다
+        /// (onClick 안이라 같은 프레임에 새로 지어도 안 쌓이게).</summary>
+        private void Rebuild()
+        {
+            var old = Canvas.gameObject;
+            old.SetActive(false);
+            old.transform.SetParent(null);
+            Destroy(old);
+            ContinueButtons.Clear();
+            NewButtons.Clear();
+            Build();
+            ShowSettings(true);
+        }
+
+        public void ShowSettings(bool on)
+        {
+            if (_settings == null) return;
+            if (on) RefreshSettings();
+            _settings.SetActive(on);
+        }
+
+        private void RefreshSettings()
+        {
+            SetLabel(LanguageButton, TitleSettings.LanguageLabel());
+            SetLabel(VolumeButton, TitleSettings.VolumeLabel());
+            SetLabel(BgmButton, TitleSettings.BgmLabel());
+            SetLabel(SfxButton, TitleSettings.SfxLabel());
+            if (VibrationButton != null) SetLabel(VibrationButton, TitleSettings.VibrationLabel());
+        }
+
+        private static void SetLabel(Button b, string text) => b.GetComponentInChildren<TMP_Text>().text = text;
+
+        private void OnLanguage() { TitleSettings.CycleLanguage(); Rebuild(); }
+        private void OnVolume() { TitleSettings.CycleVolume(); RefreshSettings(); }
+        private void OnBgm() { TitleSettings.ToggleBgm(); RefreshSettings(); }
+        private void OnSfx() { TitleSettings.ToggleSfx(); RefreshSettings(); }
+        private void OnVibration() { TitleSettings.ToggleVibration(); RefreshSettings(); }
+
+        private void BuildSettings(Transform root)
+        {
+            _settings = SagaUi.Fill(root, "SettingsModal").gameObject;
+            _settings.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0.7f);
+            var rows = new List<(string label, Action onClick, Action<Button> keep)>
+            {
+                (SagaUi.L("언어", "Language"), OnLanguage, b => LanguageButton = b),
+                (SagaUi.L("전체 음량", "Master volume"), OnVolume, b => VolumeButton = b),
+                (SagaUi.L("배경음", "Music"), OnBgm, b => BgmButton = b),
+                (SagaUi.L("효과음", "Sound effects"), OnSfx, b => SfxButton = b),
+            };
+            VibrationButton = null;
+            if (TitleSettings.ShowVibration) rows.Add((SagaUi.L("진동", "Vibration"), OnVibration, b => VibrationButton = b));
+            const float rowH = 104f;
+            float h = 150f + rows.Count * rowH + 140f;
+            var panel = SagaUi.NewPanel(_settings.transform, "Panel", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900f, h), SagaUi.Panel);
+            SagaUi.NewText(panel.transform, SagaUi.L("설정", "Settings"), 50f, SagaUi.Gold, new Vector2(0.5f, 1f), new Vector2(0f, -70f), new Vector2(800f, 80f)).fontStyle = FontStyles.Bold;
+            SagaUi.NewText(panel.transform, SagaUi.L("다섯 판에 함께 적용됩니다", "Applies to all five games"), 26f, SagaUi.InkDim,
+                new Vector2(0.5f, 1f), new Vector2(0f, -122f), new Vector2(800f, 40f));
+            for (int i = 0; i < rows.Count; i++)
+            {
+                float y = -150f - rowH * 0.5f - i * rowH;
+                SagaUi.NewText(panel.transform, rows[i].label, 34f, SagaUi.Ink, new Vector2(0f, 1f), new Vector2(240f, y), new Vector2(380f, 70f), TextAlignmentOptions.Left);
+                var b = SagaUi.NewButton(panel.transform, "Row_" + i, "", new Vector2(1f, 1f), new Vector2(-240f, y), new Vector2(380f, 84f), SagaUi.ButtonIdle, 32f);
+                var click = rows[i].onClick;
+                b.onClick.AddListener(() => click());
+                rows[i].keep(b);
+            }
+            SettingsClose = SagaUi.NewButton(panel.transform, "Close", SagaUi.L("닫기", "Close"), new Vector2(0.5f, 0f), new Vector2(0f, 70f), new Vector2(300f, 84f), SagaUi.ButtonAccent, 32f);
+            SettingsClose.onClick.AddListener(() => ShowSettings(false));
+            _settings.SetActive(false);
         }
 
         private void BuildCard(RectTransform parent, int i, Vector2 pos, Vector2 size, bool narrow)
@@ -230,16 +324,16 @@ namespace Saga.Title
             bool saved = g.HasSave();
             if (narrow)
             {
-                SagaUi.NewText(card.transform, g.Name, 48f, SagaUi.Ink, new Vector2(0f, 1f), new Vector2(250f, -55f), new Vector2(460f, 70f), TextAlignmentOptions.Left).fontStyle = FontStyles.Bold;
-                SagaUi.NewText(card.transform, g.Tagline, 28f, SagaUi.InkDim, new Vector2(0f, 1f), new Vector2(250f, -120f), new Vector2(460f, 80f), TextAlignmentOptions.TopLeft);
-                SagaUi.NewText(card.transform, saved ? "저장 있음" : "처음", 26f, saved ? SagaUi.Gold : SagaUi.InkDim, new Vector2(0f, 0f), new Vector2(250f, 30f), new Vector2(460f, 40f), TextAlignmentOptions.Left);
+                SagaUi.NewText(card.transform, DisplayName(g), 48f, SagaUi.Ink, new Vector2(0f, 1f), new Vector2(250f, -55f), new Vector2(460f, 70f), TextAlignmentOptions.Left).fontStyle = FontStyles.Bold;
+                SagaUi.NewText(card.transform, DisplayTagline(g), 28f, SagaUi.InkDim, new Vector2(0f, 1f), new Vector2(250f, -120f), new Vector2(460f, 80f), TextAlignmentOptions.TopLeft);
+                SagaUi.NewText(card.transform, saved ? SagaUi.L("저장 있음", "Saved") : SagaUi.L("처음", "New"), 26f, saved ? SagaUi.Gold : SagaUi.InkDim, new Vector2(0f, 0f), new Vector2(250f, 30f), new Vector2(460f, 40f), TextAlignmentOptions.Left);
                 AddButtons(card.transform, i, saved, new Vector2(1f, 0.5f), new Vector2(-150f, 45f), new Vector2(-150f, -50f), new Vector2(260f, 80f));
             }
             else
             {
-                SagaUi.NewText(card.transform, g.Name, 50f, SagaUi.Ink, new Vector2(0.5f, 1f), new Vector2(0f, -60f), new Vector2(300f, 70f)).fontStyle = FontStyles.Bold;
-                SagaUi.NewText(card.transform, g.Tagline, 28f, SagaUi.InkDim, new Vector2(0.5f, 1f), new Vector2(0f, -160f), new Vector2(280f, 120f), TextAlignmentOptions.Top);
-                SagaUi.NewText(card.transform, saved ? "저장 있음" : "처음", 26f, saved ? SagaUi.Gold : SagaUi.InkDim, new Vector2(0.5f, 1f), new Vector2(0f, -250f), new Vector2(280f, 40f));
+                SagaUi.NewText(card.transform, DisplayName(g), 50f, SagaUi.Ink, new Vector2(0.5f, 1f), new Vector2(0f, -60f), new Vector2(300f, 70f)).fontStyle = FontStyles.Bold;
+                SagaUi.NewText(card.transform, DisplayTagline(g), 28f, SagaUi.InkDim, new Vector2(0.5f, 1f), new Vector2(0f, -160f), new Vector2(280f, 120f), TextAlignmentOptions.Top);
+                SagaUi.NewText(card.transform, saved ? SagaUi.L("저장 있음", "Saved") : SagaUi.L("처음", "New"), 26f, saved ? SagaUi.Gold : SagaUi.InkDim, new Vector2(0.5f, 1f), new Vector2(0f, -250f), new Vector2(280f, 40f));
                 AddButtons(card.transform, i, saved, new Vector2(0.5f, 0f), new Vector2(0f, 150f), new Vector2(0f, 55f), new Vector2(280f, 80f));
             }
         }
@@ -250,10 +344,10 @@ namespace Saga.Title
             Button cont = null;
             if (saved)
             {
-                cont = SagaUi.NewButton(card, "Continue", "이어하기", anchor, firstPos, size, SagaUi.ButtonAccent, 32f);
+                cont = SagaUi.NewButton(card, "Continue", SagaUi.L("이어하기", "Continue"), anchor, firstPos, size, SagaUi.ButtonAccent, 32f);
                 cont.onClick.AddListener(() => Continue(idx));
             }
-            var fresh = SagaUi.NewButton(card, "New", "새로 시작", anchor, saved ? secondPos : firstPos, size,
+            var fresh = SagaUi.NewButton(card, "New", SagaUi.L("새로 시작", "New game"), anchor, saved ? secondPos : firstPos, size,
                 saved ? SagaUi.ButtonIdle : SagaUi.ButtonAccent, 32f);
             fresh.onClick.AddListener(() => RequestNew(idx));
             ContinueButtons.Add(cont);
@@ -266,8 +360,8 @@ namespace Saga.Title
             _confirm.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0.7f);
             var panel = SagaUi.NewPanel(_confirm.transform, "Panel", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(820f, 380f), SagaUi.Panel);
             _confirmText = SagaUi.NewText(panel.transform, "", 36f, SagaUi.Ink, new Vector2(0.5f, 1f), new Vector2(0f, -110f), new Vector2(740f, 160f));
-            ConfirmYes = SagaUi.NewButton(panel.transform, "Yes", "지우고 시작", new Vector2(0.5f, 0f), new Vector2(-170f, 70f), new Vector2(300f, 84f), SagaUi.ButtonAccent, 32f);
-            ConfirmNo = SagaUi.NewButton(panel.transform, "No", "취소", new Vector2(0.5f, 0f), new Vector2(170f, 70f), new Vector2(300f, 84f), SagaUi.ButtonIdle, 32f);
+            ConfirmYes = SagaUi.NewButton(panel.transform, "Yes", SagaUi.L("지우고 시작", "Delete & start"), new Vector2(0.5f, 0f), new Vector2(-170f, 70f), new Vector2(300f, 84f), SagaUi.ButtonAccent, 32f);
+            ConfirmNo = SagaUi.NewButton(panel.transform, "No", SagaUi.L("취소", "Cancel"), new Vector2(0.5f, 0f), new Vector2(170f, 70f), new Vector2(300f, 84f), SagaUi.ButtonIdle, 32f);
             ConfirmYes.onClick.AddListener(OnConfirmYes);
             ConfirmNo.onClick.AddListener(OnConfirmNo);
             _confirm.SetActive(false);

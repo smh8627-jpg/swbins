@@ -2331,7 +2331,7 @@ namespace Saga.EditorTools
             }
 
             StorySettingsState.UiScaleMultiplier = 1.15f;
-            var scaler = Object.FindFirstObjectByType<CanvasScaler>();
+            var scaler = Saga.Core.SagaUi.FirstGameScaler(); // Ⅱ 단추 등 메뉴 캔버스는 뺀다(110 ⑤c)
             float expected = Saga.Core.SagaUi.GameReference.x / 1.15f; // 110 ⑤b 기준 1600×900
             if (scaler == null || Mathf.Abs(scaler.referenceResolution.x - expected) > 1f)
             {

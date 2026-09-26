@@ -36,6 +36,29 @@ namespace Saga.Core
             scaler.referenceResolution = GameReference / Mathf.Max(0.01f, uiScale);
         }
 
+        /// <summary>PLAN.md 110 ⑤c — 공통 UI(타이틀·일시정지)의 언어. 판 설정의 언어는 판마다 따로 저장되고(PlayerPrefs),
+        /// 타이틀이 켜질 때·타이틀 설정에서 바꿀 때 여기에 적는다(SagaCore 는 판 어셈블리를 모른다). 기본 "ko".</summary>
+        public static string Lang = "ko";
+        public static bool En => Lang == "en";
+        public static string L(string ko, string en) => En ? en : ko;
+
+        /// <summary>판 HUD 와 같은 기준(1600×900 Expand)의 메뉴 캔버스 — 판 HUD 옆에 붙는 공통 단추(일시정지)용.
+        /// 판 설정의 "UI 크기"는 이 캔버스를 건너뛴다(<see cref="MenuCanvas"/>).</summary>
+        public static Canvas NewHudCanvas(string name, int sortingOrder, Transform parent = null)
+        {
+            var canvas = NewCanvas(name, sortingOrder, parent);
+            canvas.GetComponent<CanvasScaler>().referenceResolution = GameReference;
+            return canvas;
+        }
+
+        /// <summary>씬의 판 HUD 스케일러 하나(메뉴 캔버스 — 타이틀·일시정지·Ⅱ 단추 — 는 뺀다). 진단의 "UI 크기가 먹나" 검사용.</summary>
+        public static CanvasScaler FirstGameScaler()
+        {
+            foreach (var s in Object.FindObjectsByType<CanvasScaler>(FindObjectsSortMode.InstanceID))
+                if (s.GetComponent<MenuCanvas>() == null) return s;
+            return null;
+        }
+
         public static Canvas NewCanvas(string name, int sortingOrder, Transform parent = null)
         {
             var go = new GameObject(name);

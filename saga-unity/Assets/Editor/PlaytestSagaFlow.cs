@@ -15,7 +15,8 @@ namespace Saga.EditorTools
     /// <summary>
     /// PLAN.md 110 ② 흐름 진단 — 타이틀에서 진짜 버튼을 눌러 다섯 판을 **두 바퀴** 오간다(`-executeMethod`, `-quit` 없이).
     /// ① 타이틀: 카드 다섯·저장 없으면 이어하기 없음·옛 `UI.Text` 0·TMP 글꼴 Noto·기본값 다섯 떠 둠
-    /// ② 첫 바퀴(새로 시작): 판이 뜨고 흐름에 들어옴 → 일시정지(시간 멈춤·저장 단추·계속하기로 시간 되돌림) → 타이틀로(자동 저장 → 그 카드에 이어하기)
+    ///    + 설정(110 ⑤c): 언어 두 번(다섯 판·공통 UI 언어·타이틀 다시 짓기)·섞인 음량 → 다음 칸·배경음/효과음 — 판 설정 키는 떠 뒀다 끝에 되돌림
+    /// ② 첫 바퀴(새로 시작): 판이 뜨고 흐름에 들어옴 → Ⅱ 단추로 일시정지(시간 멈춤·저장 단추·계속하기로 시간 되돌림) → 타이틀로(자동 저장 → 그 카드에 이어하기)
     /// ③ 둘째 바퀴(이어하기): 다시 들어가도 오류 없음, 사가블로에선 앱 일시정지 자동 저장
     /// ④ 새로 시작 되돌리기: 판마다 상태를 바꿔 둔 뒤 새로 시작 → 확인 창(취소는 그대로) → 지우고 시작 → 기본값과 같아짐·판 안에서도 기본값
     /// 도는 내내 오류·예외 로그 0. 진짜 세이브 다섯은 시작 때 떠 두고 끝에(실패해도) 되돌린다.
@@ -29,7 +30,7 @@ namespace Saga.EditorTools
 
         private static readonly Dictionary<string, byte[]> Backup = new Dictionary<string, byte[]>();
         private static readonly List<string> Notes = new List<string>();
-        private static IEnumerator _run;
+        private static NestedCoroutine _run;
         private static bool _ok;
         private static bool _done;
         private static int _ticks;
@@ -50,6 +51,7 @@ namespace Saga.EditorTools
             _ticks = 0;
             Notes.Clear();
             BackupSaves();
+            BackupPrefs();
             SagaPlayerBuild.SyncEditorBuildScenes();
             _origOptionsEnabled = EditorSettings.enterPlayModeOptionsEnabled;
             _origOptions = EditorSettings.enterPlayModeOptions;
@@ -74,7 +76,7 @@ namespace Saga.EditorTools
         {
             if (s == PlayModeStateChange.EnteredPlayMode)
             {
-                _run = Script();
+                _run = new NestedCoroutine(Script());
                 EditorApplication.update += Tick;
             }
             else if (s == PlayModeStateChange.EnteredEditMode)
@@ -85,6 +87,7 @@ namespace Saga.EditorTools
                 EditorSettings.enterPlayModeOptions = _origOptions;
                 SetupSagaFonts.ResetDynamicFonts(); // 진단 중 동적 글꼴에 오른 글자를 비워 에셋을 늘 같게.
                 RestoreSaves();
+                RestorePrefs();
                 bool ok = _ok && _done;
                 Debug.Log(ok
                     ? $"{T} OK - 타이틀·두 바퀴 다섯 판·일시정지·자동 저장·새로 시작 되돌리기·오류 0 | {string.Join(" · ", Notes)}"
@@ -97,7 +100,7 @@ namespace Saga.EditorTools
         {
             _ticks++;
             bool more;
-            try { more = _run.MoveNext(); }
+            try { more = _run.Step(); }
             catch (System.Exception e)
             {
                 Fail("진단 예외 " + e);
@@ -125,6 +128,9 @@ namespace Saga.EditorTools
             foreach (var g in TitleScreen.Games) if (!TitleScreen.HasDefaults(g.Key)) Fail($"{g.Key} 기본값 안 떠 둠");
             Notes.Add($"타이틀 TMP {tmps.Length}");
 
+            // ①-2 타이틀 설정(110 ⑤c) — 진짜 단추로 언어·음량·배경음·효과음을 다섯 판에 한꺼번에
+            yield return TitleSettingsCheck();
+
             // ② 첫 바퀴 — 새로 시작
             for (int i = 0; i < TitleScreen.Games.Length; i++)
             {
@@ -134,7 +140,12 @@ namespace Saga.EditorTools
                 if (SagaFlow.CurrentGame != g.Key) { Fail($"{g.Key} 안 들어옴"); yield break; }
                 if (SagaFlowRunner.Instance == null) Fail($"{g.Key} 흐름 러너 없음");
                 float ts = Time.timeScale;
-                SagaPauseMenu.Open();
+                if (SagaPauseButton.Instance == null || !SagaPauseButton.Instance.Button.gameObject.activeInHierarchy)
+                {
+                    Fail($"{g.Key} 일시정지 단추 없음");
+                    SagaPauseMenu.Open();
+                }
+                else SagaPauseButton.Instance.Button.onClick.Invoke(); // 110 ⑤c — 눈에 보이는 단추로 연다
                 if (!SagaPauseMenu.IsOpen || Time.timeScale != 0f) Fail($"{g.Key} 일시정지 안 됨(ts {Time.timeScale})");
                 var menu = SagaPauseMenu.Instance;
                 if (!menu.TitleButton.gameObject.activeSelf) Fail($"{g.Key} 타이틀로 단추 숨음");
@@ -200,6 +211,91 @@ namespace Saga.EditorTools
             }
             Notes.Add("새로 시작 5");
             _done = true;
+        }
+
+        private static IEnumerator TitleSettingsCheck()
+        {
+            var t = TitleScreen.Instance;
+            t.SettingsButton.onClick.Invoke();
+            if (!t.SettingsOpen) { Fail("타이틀 설정 창 안 열림"); yield break; }
+
+            string lang0 = TitleSettings.Language;
+            t.LanguageButton.onClick.Invoke(); // 언어 → 타이틀을 새 언어로 다시 짓는다
+            yield return null;
+            t = TitleScreen.Instance;
+            string lang1 = TitleSettings.Language;
+            if (lang1 == lang0 || !TitleSettings.AllSameLanguage()) Fail($"언어가 다섯 판에 안 먹음({lang0}→{lang1})");
+            if (SagaUi.Lang != (lang1 == "en" ? "en" : "ko")) Fail($"공통 UI 언어 {SagaUi.Lang} ≠ {lang1}");
+            if (!t.SettingsOpen || t.NewButtons.Count != TitleScreen.Games.Length) Fail($"언어 바꾼 뒤 다시 짓기 이상(창 {t.SettingsOpen}·카드 {t.NewButtons.Count})");
+            if (lang1 == "en" && SagaUi.Label(t.SettingsButton) != "Settings") Fail($"영어 타이틀 설정 단추 '{SagaUi.Label(t.SettingsButton)}'");
+            int canvases = 0;
+            foreach (var c in Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None)) if (c.isRootCanvas && c.name == "TitleCanvas") canvases++;
+            if (canvases != 1) Fail($"다시 지은 뒤 타이틀 캔버스 {canvases}");
+            t.LanguageButton.onClick.Invoke();
+            yield return null;
+            t = TitleScreen.Instance;
+            if (TitleSettings.Language != lang0 || !TitleSettings.AllSameLanguage()) Fail($"언어 되돌리기 {TitleSettings.Language}");
+            if (lang0 == "ko" && SagaUi.Label(t.SettingsButton) != "설정") Fail($"한국어 타이틀 설정 단추 '{SagaUi.Label(t.SettingsButton)}'");
+
+            // 음량 — 판 하나만 칸 사이 값이면 "판마다 다름", 누르면 다섯이 같은 다음 칸
+            Saga.Dungeon.Audio.SfxPlayer.MasterVolume = 0.3f;
+            t.ShowSettings(true);
+            if (TitleSettings.AllSameVolume() || SagaUi.Label(t.VolumeButton) != SagaUi.L("판마다 다름", "Varies by game")) Fail($"섞인 음량 표시 '{SagaUi.Label(t.VolumeButton)}'");
+            float v0 = TitleSettings.MasterVolume;
+            t.VolumeButton.onClick.Invoke();
+            float v1 = TitleSettings.MasterVolume;
+            if (!TitleSettings.AllSameVolume() || v1 == v0 || System.Array.IndexOf(TitleSettings.VolumeSteps, v1) < 0) Fail($"음량 {v0}→{v1} 다섯 같음 {TitleSettings.AllSameVolume()}");
+            if (SagaUi.Label(t.VolumeButton) != $"{Mathf.RoundToInt(v1 * 100f)}%") Fail($"음량 글 '{SagaUi.Label(t.VolumeButton)}'");
+
+            bool bgm0 = TitleSettings.BgmOn, sfx0 = TitleSettings.SfxOn;
+            t.BgmButton.onClick.Invoke();
+            t.SfxButton.onClick.Invoke();
+            if (TitleSettings.BgmOn == bgm0 || !TitleSettings.AllSameBgm()) Fail("배경음 끄고 켜기가 다섯 판에 안 먹음");
+            if (TitleSettings.SfxOn == sfx0 || !TitleSettings.AllSameSfx()) Fail("효과음 끄고 켜기가 다섯 판에 안 먹음");
+            t.BgmButton.onClick.Invoke();
+            t.SfxButton.onClick.Invoke();
+            if (TitleSettings.BgmOn != bgm0 || TitleSettings.SfxOn != sfx0) Fail("배경음·효과음 되돌리기");
+
+            t.SettingsClose.onClick.Invoke();
+            if (t.SettingsOpen) Fail("타이틀 설정 닫기");
+            Notes.Add($"타이틀 설정 언어 {lang0}→{lang1}→{lang0}·음량 {v0:0.##}→{v1:0.##}");
+        }
+
+        // 타이틀 설정이 건드리는 판 설정 — 진단 앞에서 떠 두고 끝에(실패해도) 되돌린다.
+        private static readonly string[] PrefGames = { "go", "dungeon", "forest", "story", "realm" };
+        private static readonly Dictionary<string, object> PrefBackup = new Dictionary<string, object>();
+
+        private static IEnumerable<(string key, char kind)> PrefKeys()
+        {
+            foreach (var g in PrefGames)
+            {
+                yield return ($"saga_{g}_language", 's');
+                yield return ($"saga_{g}_vol_master", 'f');
+                yield return ($"saga_{g}_vol_sfx", 'f');
+                yield return ($"saga_{g}_vol_bgm", 'f');
+                yield return ($"saga_{g}_vibration_on", 'i');
+            }
+        }
+
+        private static void BackupPrefs()
+        {
+            PrefBackup.Clear();
+            foreach (var (key, kind) in PrefKeys())
+                PrefBackup[key] = !PlayerPrefs.HasKey(key) ? null
+                    : kind == 's' ? PlayerPrefs.GetString(key) : kind == 'f' ? (object)PlayerPrefs.GetFloat(key) : PlayerPrefs.GetInt(key);
+        }
+
+        private static void RestorePrefs()
+        {
+            foreach (var kv in PrefBackup)
+            {
+                if (kv.Value == null) PlayerPrefs.DeleteKey(kv.Key);
+                else if (kv.Value is string sv) PlayerPrefs.SetString(kv.Key, sv);
+                else if (kv.Value is float fv) PlayerPrefs.SetFloat(kv.Key, fv);
+                else PlayerPrefs.SetInt(kv.Key, (int)kv.Value);
+            }
+            PlayerPrefs.Save();
+            SagaUi.Lang = "ko";
         }
 
         private static IEnumerator WaitTitle()

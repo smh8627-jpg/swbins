@@ -80,6 +80,7 @@ namespace Saga.Core
         {
             if (Instance != null) return;
             Instance = new GameObject("SagaFlowRunner").AddComponent<SagaFlowRunner>();
+            SagaPauseButton.Create(Instance.transform);
         }
 
         private void OnDestroy()
@@ -99,6 +100,41 @@ namespace Saga.Core
         }
 
         private void OnApplicationQuit() => SagaFlow.SaveCurrent("quit");
+    }
+
+    /// <summary>
+    /// PLAN.md 110 ⑤c — 눈에 보이는 일시정지 단추(iOS 는 뒤로 가기가 없고, 폰에선 Esc 도 없다). 판 HUD 와 같은 기준(1600×900)의
+    /// 오른쪽 위, 다섯 판 공통 설정·저장 줄(오른쪽에서 370 안쪽까지) 왼쪽 빈칸에 둔다 — 자리를 옮기면 `UiLayoutCheck` 로 다시 잰다.
+    /// 그림은 글꼴에 기대지 않게 막대 둘(Ⅱ). 러너 밑에 달려 판 씬과 같이 사라진다.
+    /// </summary>
+    public class SagaPauseButton : MonoBehaviour
+    {
+        public static readonly Vector2 Size = new Vector2(80f, 80f);
+        /// <summary>오른쪽 위 모서리 기준 — 판 설정 단추(오른쪽에서 370)보다 16 더 안쪽, 위 여백은 그 줄과 같은 30.</summary>
+        public static readonly Vector2 Offset = new Vector2(-386f, -30f);
+
+        public static SagaPauseButton Instance { get; private set; }
+        public Button Button { get; private set; }
+
+        public static void Create(Transform parent)
+        {
+            SagaUi.EnsureEventSystem();
+            var canvas = SagaUi.NewHudCanvas("PauseButtonCanvas", 90, parent); // SessionCard(100) 밑, 판 HUD(≤21) 위
+            Instance = canvas.gameObject.AddComponent<SagaPauseButton>();
+            var b = SagaUi.NewButton(canvas.transform, "Btn_일시정지", "", new Vector2(1f, 1f), Offset, Size, SagaUi.ButtonIdle);
+            foreach (float x in new[] { -12f, 12f })
+            {
+                var bar = SagaUi.NewPanel(b.transform, "Bar", new Vector2(0.5f, 0.5f), new Vector2(x, 0f), new Vector2(12f, 38f), SagaUi.Ink);
+                bar.raycastTarget = false;
+            }
+            b.onClick.AddListener(SagaPauseMenu.Open);
+            Instance.Button = b;
+        }
+
+        private void OnDestroy()
+        {
+            if (Instance == this) Instance = null;
+        }
     }
 
     /// <summary>일시정지 메뉴 — 열린 동안 시간을 멈추고(연 때의 timeScale 로 되돌린다) 판 UI 위에 뜬다.</summary>
@@ -174,12 +210,12 @@ namespace Saga.Core
             dim.color = new Color(0f, 0f, 0f, 0.6f);
             var center = new Vector2(0.5f, 0.5f);
             var panel = SagaUi.NewPanel(canvas.transform, "Panel", center, Vector2.zero, new Vector2(620f, 640f), SagaUi.Panel);
-            SagaUi.NewText(panel.transform, "일시 정지", 52f, SagaUi.Gold, new Vector2(0.5f, 1f), new Vector2(0f, -70f), new Vector2(560f, 80f));
+            SagaUi.NewText(panel.transform, SagaUi.L("일시 정지", "Paused"), 52f, SagaUi.Gold, new Vector2(0.5f, 1f), new Vector2(0f, -70f), new Vector2(560f, 80f));
             var size = new Vector2(480f, 86f);
-            ResumeButton = SagaUi.NewButton(panel.transform, "Resume", "계속하기", new Vector2(0.5f, 1f), new Vector2(0f, -170f), size, SagaUi.ButtonAccent);
-            SaveButton = SagaUi.NewButton(panel.transform, "Save", "저장", new Vector2(0.5f, 1f), new Vector2(0f, -272f), size, SagaUi.ButtonIdle);
-            TitleButton = SagaUi.NewButton(panel.transform, "Title", "타이틀로", new Vector2(0.5f, 1f), new Vector2(0f, -374f), size, SagaUi.ButtonIdle);
-            QuitButton = SagaUi.NewButton(panel.transform, "Quit", "게임 종료", new Vector2(0.5f, 1f), new Vector2(0f, -476f), size, SagaUi.ButtonIdle);
+            ResumeButton = SagaUi.NewButton(panel.transform, "Resume", SagaUi.L("계속하기", "Resume"), new Vector2(0.5f, 1f), new Vector2(0f, -170f), size, SagaUi.ButtonAccent);
+            SaveButton = SagaUi.NewButton(panel.transform, "Save", SagaUi.L("저장", "Save"), new Vector2(0.5f, 1f), new Vector2(0f, -272f), size, SagaUi.ButtonIdle);
+            TitleButton = SagaUi.NewButton(panel.transform, "Title", SagaUi.L("타이틀로", "Title screen"), new Vector2(0.5f, 1f), new Vector2(0f, -374f), size, SagaUi.ButtonIdle);
+            QuitButton = SagaUi.NewButton(panel.transform, "Quit", SagaUi.L("게임 종료", "Quit game"), new Vector2(0.5f, 1f), new Vector2(0f, -476f), size, SagaUi.ButtonIdle);
             _status = SagaUi.NewText(panel.transform, "", 28f, SagaUi.InkDim, new Vector2(0.5f, 0f), new Vector2(0f, 50f), new Vector2(560f, 50f));
             ResumeButton.onClick.AddListener(Close);
             SaveButton.onClick.AddListener(OnSave);
@@ -189,7 +225,7 @@ namespace Saga.Core
 
         private void OnSave()
         {
-            _status.text = SagaFlow.SaveCurrent("menu") ? "저장했다" : "지금은 저장할 수 없다";
+            _status.text = SagaFlow.SaveCurrent("menu") ? SagaUi.L("저장했다", "Saved") : SagaUi.L("지금은 저장할 수 없다", "Can't save right now");
         }
     }
 }

@@ -9458,3 +9458,14 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - 생성기: 서쪽 틀·동쪽 가죽·짧은 옷·닌자도 진짜 옷, 서쪽 투구는 CC0(코린트·템플러) → 몸 껍데기 남은 사람 41 → 6(부족 허리 천 둘·동쪽 윗옷 둘·서쪽 짧은 옷 둘). 옷 103벌(26분)·105벌 빌드 실패 0(50분). 커밋 38780b6b.
 - 시도했다 버림: 옷자락 뒤 불룩을 없애려 가랑이 아래 정점의 좌우 다리 무게를 평균 → 반대쪽 고관절을 축으로 돌아 연필 치마처럼 오므라듦. 옷 메시 뒤 윤곽은 곧아서(측정) 한쪽 허벅지를 따라 밀리는 몫 — 천 시뮬레이션 없이 못 없앤다.
 - 다음 = ④ Mixamo 와 나란히 사용자 판정(그림은 스크래치패드, 저장소 밖).
+
+## 2026-09-26 상용화 — PLAN 110 ⑤c-1 일시정지 단추·타이틀 설정 ("사가유니티 이어해")
+
+- ⑤c 가 셋(HUD 정리·보이는 일시정지·타이틀 설정)이라 첫 조각 = 뒤의 둘. HUD 정리는 5c-2.
+- **Ⅱ 단추** `SagaCore/SagaPauseButton`: `SagaFlow.Enter` → 러너가 만들 때 같이 붙는다(판 씬과 같이 사라짐). 캔버스는 새 `SagaUi.NewHudCanvas`(판 HUD 와 같은 1600×900 Expand + `MenuCanvas` 라 판 "UI 크기"에 안 흔들림), 정렬 90(SessionCard 100 밑·판 HUD ≤21 위). 자리는 5b 자리표로 고름 — 다섯 판 오른쪽 위 줄이 오른쪽에서 370 안쪽까지(DUNGEON·STORY 설정 단추), 가운데 목표판은 폭 ≤549px → 오른쪽에서 386·위 30, 80×80. 그림은 막대 둘(글꼴에 기대지 않음). 컷의 HUD 숨기기(DUNGEON·GO·STORY)가 루트 캔버스를 다 꺼 같이 숨는다.
+- **타이틀 설정** `Games/SagaTitle/TitleSettings`: 판 설정 키가 판마다 따로(`saga_<판>_language`·`_vol_master` 등)라 합치지 않고, 다섯 판 공개 API(`GoLocalization.CurrentLanguage`·`GoAudio.MasterVolume`·`GoSettingsState.BgmOn` …)를 차례로 부른다. 줄: 언어·전체 음량(0/25/50/75/100 — 판 설정엔 없던 것)·배경음·효과음·진동(폰만). 서로 다르면 "판마다 다름", 누르면 사가고 값의 다음 칸으로 다섯을 맞춤. UI 크기·그래픽은 판마다 HUD 가 달라 판 설정에만.
+- 공통 UI 언어 `SagaUi.Lang`(SagaCore 는 판 어셈블리를 몰라 타이틀이 사가고 언어를 읽어 적는다) — 타이틀·일시정지 메뉴 두 언어, 판 영문 이름 Saga GO·Sagablo·Saga Forest·Saga Story·Saga Realm(원작 이름 안 씀). 언어를 바꾸면 타이틀 캔버스를 떼어 끄고 지운 뒤 다시 짓는다(설정 창 연 채로).
+- **도중 발견(진단 결함)**: `PlaytestSagaFlow`·`PlaytestSagaPerf` 러너가 `_run.MoveNext()` 하나라 `yield return WaitTitle()`·`WaitGame()` 같은 중첩 IEnumerator 를 펼치지 않고 한 틱으로 흘렸다 — 씬이 뜰 때까지 기다리기·90틱 안정화·"씬 안 뜸" 검사가 한 번도 안 돌았다(씬 전환이 한 틱 안에 끝나 우연히 통과). 새 설정 검사도 같은 이유로 안 돌아 요약에 줄이 빠진 걸 보고 찾음 → `Editor/NestedCoroutine`(스택으로 펼침) 둘 다에. 다른 진단은 중첩 yield 없음(grep).
+- 진단: `PlaytestSagaFlow` 에 타이틀 설정(진짜 단추·언어 ko→en→ko·다시 지은 캔버스 하나·섞인 음량 → 다음 칸·배경음/효과음 뒤집고 되돌리기) + ② 첫 열기를 Ⅱ 단추로 — 판 설정 PlayerPrefs 25 키는 시작 때 떠 두고 끝에 되돌림. 3연속 OK(이제 대기가 실제로 돔). `PlaytestSagaPerf` OK · `UiLayoutCheck` 다섯 판 × 세 화면비 0건(Ⅱ 16:9 x1361·y948).
+- 판별 헤드리스 다섯 첫 회: FOREST·STORY·REALM 이 "UI 크기가 캔버스에 안 먹음 got=1600" — 검사가 `FindFirstObjectByType<CanvasScaler>()` 로 아무 스케일러나 집어 Ⅱ 캔버스(메뉴 캔버스라 일부러 UI 크기 안 받음)를 봤다(GO·DUNGEON 은 찾는 순서 운으로 통과). 동작은 정상 → `SagaUi.FirstGameScaler()`(메뉴 캔버스 뺌)로 다섯 곳. 그 뒤 흐름 + 판별 다섯(DUNGEON·STORY 는 세이브 빼고, 매번 같은 세이브 백업에서) 3연속.
+- 다음 = 5c-2 판별 HUD 정리(첫 화면 밖 패널·팝업·나중 버튼을 열어 가며 재기, 판 HUD 영어). 실기: Ⅱ 자리·타이틀 설정 — 확인 전.

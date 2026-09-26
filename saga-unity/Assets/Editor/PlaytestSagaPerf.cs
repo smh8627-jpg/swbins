@@ -22,7 +22,7 @@ namespace Saga.EditorTools
         private const string T = "[PlaytestSagaPerf]";
         private static readonly Dictionary<string, byte[]> Backup = new Dictionary<string, byte[]>();
         private static readonly List<string> Notes = new List<string>();
-        private static IEnumerator _run;
+        private static NestedCoroutine _run; // 중첩 WaitTitle 을 펼친다
         private static bool _ok, _done;
         private static bool _origOptionsEnabled;
         private static EnterPlayModeOptions _origOptions;
@@ -69,7 +69,7 @@ namespace Saga.EditorTools
         {
             if (s == PlayModeStateChange.EnteredPlayMode)
             {
-                _run = Script();
+                _run = new NestedCoroutine(Script());
                 EditorApplication.update += Tick;
             }
             else if (s == PlayModeStateChange.EnteredEditMode)
@@ -99,7 +99,7 @@ namespace Saga.EditorTools
         private static void Tick()
         {
             bool more;
-            try { more = _run.MoveNext(); }
+            try { more = _run.Step(); }
             catch (System.Exception e) { Fail("진단 예외 " + e); more = false; }
             if (!more)
             {

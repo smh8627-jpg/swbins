@@ -1,7 +1,7 @@
 # PROJECT_STATE — saga-unity (상태만, ≤15KB, 덮어쓴다)
 
-**규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다(2026-09-16 재편 전 본문 5,532줄은 그쪽 첫 절에 그대로 있다). 넘치면 `tools/precheck.sh` 가 막는다.
-마지막 갱신: 2026-09-26 (110 ⑤b 배치 0건 — ③ 폰 결과 대기).
+**규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다. 넘치면 `tools/precheck.sh` 가 막는다.
+마지막 갱신: 2026-09-26 (110 ⑤c-1 일시정지 단추·타이틀 설정 — ③ 폰 결과 대기).
 
 ## 캐릭터 자산 — 이 PC 기준 (2026-09-19)
 
@@ -17,11 +17,11 @@ Maria·Abe·Brute + Skeleton·Paladin·PeasantMan·PeasantGirl·Archer·두목 M
 | STORY | `TestField` | 완료 — 2.5D 횡스크롤(Z 고정)·잡졸 10·두목·사명 2·볼트·로프 | 척후병 NPC·사건·관계·선택·전직 · 관문 대장(5-4)·비경(5-3)·동료 교대(5-8) · **106-8 두목 등장 컷** · **106-10 교대 셋이 곁에서 싸움**(Paladin·Archer·Peasant Girl) + 소환 우레뿔 거수(V) · **5-2 전부**: 무예 1~4차(`StorySkillData`·`StorySkillState`·패널 K·칸 4 자동/고정)·전직 1~4차(Lv.10/15/20/25)·유파 세트·옷 빛깔(차수×12%) · **109-3** 시대 적 여덟(들판 4/10·비경 40%)·손님 둘 | 척후병·전직관·마을 사람·숲지기 Mixamo(106-4) | 전부 붙음. 목표판/세션카드. 101-3 C·F·G 전부 완료 |
 | REALM | `TestCity` | 완료(경영형) — 명령·계략·문답 36·서고·월드맵·전투·함락 편입 | 적국 55·성 58 · 5-1·5-6·5-2·5-8·5-3·5-5 — **101-2 REALM 전부 완료**(5-4 제외 확정) · **109-5** 시간 틈 아홉(적국 성에 재야)·퓨전 사연 셋(관문 운중·오원·일남) | 도시 Environment/Building · 103-1 성벽 3단 | 전부 붙음. 목표판/세션카드. 101-3 해당 없음 |
 
-렌더러: 66-1장 PC(Forward+·MSAA 4)/Mobile(Forward·MSAA 2) + `FF16Volume_*` + 데칼. 아트 방향 **사실적 PBR(FF16 톤)** — 66-2장·102장. Maria 피부 SSS는 `BuildMariaSssShaderGraph.cs`(Intensity=15). DUNGEON 카메라는 `CameraRig`→가상 카메라 `PlayerView`→`CinemachineBrain`(106-3), 컷은 `Cinematics/Timelines/Temple_*.playable`.
+렌더러: 66-1장 PC(Forward+·MSAA 4)/Mobile(Forward·MSAA 2) + `FF16Volume_*` + 데칼. 아트 방향 **사실적 PBR(FF16 톤)** — 66-2장·102장. Maria 피부 SSS는 `BuildMariaSssShaderGraph.cs`. DUNGEON 카메라는 `CameraRig`→가상 카메라 `PlayerView`→`CinemachineBrain`(106-3), 컷은 `Cinematics/Timelines/Temple_*.playable`.
 
 ## 다음 작업 (우선순위, 상세는 PLAN 해당 장)
 
-0. **다음 = PLAN 110 ⑤c HUD 정리**(③b 폰 결과 대기). 글자는 TMP 만(월드 `SagaWorldText`·테두리 `TmpEffect`), HUD 캔버스는 `SagaUi.ApplyGameScaler`(1600×900 Expand, 폰 가로 고정), 배치 점검 `UiLayoutCheck`, 재빌드 `SagaRebuildScenes`. 109 멈춤.
+0. **다음 = PLAN 110 ⑤c-2 판별 HUD 정리**(첫 화면 밖 패널·팝업 재기, 판 HUD 영어) — ③b 폰 결과 대기. 글자 TMP 만(`SagaWorldText`·`TmpEffect`), HUD 캔버스 `SagaUi.ApplyGameScaler`(1600×900 Expand, 가로 고정)·공통 단추 `NewHudCanvas`(Ⅱ `SagaPauseButton`)·언어 `SagaUi.Lang`, 타이틀 설정 `TitleSettings`, 점검 `UiLayoutCheck`, 재빌드 `SagaRebuildScenes`, 진단 러너 `NestedCoroutine`. 109 멈춤.
 0-1. **남은 것**: en 번역 검수 전. GO 동료 몸 Maria.controller 리타깃·무기는 주인공 손에만.
 1. STORY 판수(15→20 약 11판·20→25 약 28판)가 무거우면 `JobPromoteLevel3/4`만.
 2. **101-2·104-1 잔여(보류)** — GO⑤·Kenney 폴백·헤어카드.
@@ -32,7 +32,7 @@ Maria·Abe·Brute + Skeleton·Paladin·PeasantMan·PeasantGirl·Archer·두목 M
 - **씬 빌더(에디터)에서 건 `onClick.AddListener`는 저장 안 된다** — 새 버튼은 `Saga.Core.ButtonWiring.Wire(button, 메서드)`(에디터면 영속·Play면 런타임, 인자 하나는 string/int 오버로드). 람다 불가(경고 남김) → 이름 있는 메서드로. 정적 메서드는 대상 컴포넌트 하나(`XxxSaveButton`). STORY는 `[SerializeField]`+`Awake()` 방식(둘 다 유효). 진단은 `Editor/ButtonWiringCheck.cs`(씬 전체 죽은 버튼 + 진짜 onClick).
 - 영속 리스너 메서드 이름을 바꾸면 **씬 재빌드** 필요 — 안 하면 먹통(`ButtonWiringCheck`가 대상 메서드 존재까지 보니 진단이 잡는다).
 - **`Destroy()`로 자식을 지우고 같은 프레임에 다시 그리면 쌓인다** — onClick 중이면 `DestroyImmediate` 말고 떼어 내고(`SetParent(null)`)·끄고 `Destroy`(`StoryLabyrinthMapUi.ClearChildren`).
-- **씬 재빌드가 컷 타임라인(`*.playable`)을 새 트랙 ID 로 다시 쓴다 — 되돌리지 말고 씬과 같이 커밋한다.** 씬의 PlayableDirector 바인딩이 그 ID 를 가리켜, 타임라인만 되돌리면 컷이 빈 트랙을 튼다(DUNGEON 이름표·레터박스·컷 카메라 진단이 깨진다). 2026-09-25 전까지 DUNGEON 다섯·GO 수호장 컷이 HEAD 에서 끊겨 있었다.
+- **씬 재빌드가 컷 타임라인(`*.playable`)을 새 트랙 ID 로 다시 쓴다 — 되돌리지 말고 씬과 같이 커밋한다.** 씬의 PlayableDirector 바인딩이 그 ID 를 가리켜, 타임라인만 되돌리면 컷이 빈 트랙을 튼다(DUNGEON 이름표·레터박스·컷 카메라 진단이 깨진다).
 - **함정**: Unity 6000.3.24f1 > 프로젝트 6000.3.23f1 → 배치/GUI 실행이 ProjectSettings/Packages를 조용히 고친다. `tools/unity-batch.sh --`로 부르면 자동 원복(`*_RPAsset` v13·GUI 실행은 수동 checkout).
 - `GetBoneTransform()`은 `isHuman` 먼저. Mixamo 몸 일부는 휴머노이드 실패(Prisoner·Survivor·의족 Pirate) — 다른 카드로.
 - 정적 상태 `Restore()` 는 관련 이벤트(`JobChosen` 등)를 쏴야 UI 가 안 낡는다.
@@ -49,13 +49,13 @@ Maria·Abe·Brute + Skeleton·Paladin·PeasantMan·PeasantGirl·Archer·두목 M
 
 | 검증 | 결과 |
 |---|---|
-| 재빌드·전체 | 옛 Text 0·헤드리스 18종 3연속 OK(09-26) — **DUNGEON·STORY 진단은 남은 세이브(고레벨)면 실패**, 빼고 돈다 |
+| 재빌드·전체 | 헤드리스 18종 3연속 OK(09-26) · `PlaytestSagaFlow`(타이틀 설정·Ⅱ)·`UiLayoutCheck` 0건(⑤c-1) — **DUNGEON·STORY 는 남은 고레벨 세이브면 실패**, 빼고 돈다 |
 | `PlaytestStorySlice` | **3연속 OK(2026-09-25, 세 시대 뒤)** — `PlaytestStoryEras`·`PlaytestStoryCompanions`·`PlaytestStorySummon`·`PlaytestStoryBossIntro`·`CheckOutfitTint`·`CheckUpperTiersAndPins`·`CheckPromotionAndSchools`·`CheckButtonWiring`(진짜 onClick)·`CheckJobSkills`·무예 세이브 왕복·옛 형식 로드 |
 | `PlaytestDungeonHeadless` | **3연속 OK(2026-09-26, 지역 뒤)** — Regions·Trial·Secrets·EraDecor·Eras·Landmarks·BossIntro·Party·Explore·NpcModels·Temple(+컷)·LockOn·EnemyTelegraph. 같은 씬 `FloorProgression`·`OverworldMap` OK |
-| GO `PlaytestHeadless` | **3연속 OK(2026-09-25, 109-9 뒤)** — `PlaytestGo` Peaks(정상·폭포·카메라·v18/v17)·SkillShapes·HeroLooks·HeroDex·Heroes·Eras·RegionProps·RegionTraits·RegionMission(v17/v15)·Guardian·SlopesBiome·PartyBodies·ElementalFoe·Treasure·WorldMap(v17/v13)·Traversal·FieldCombat |
-| `PlaytestForestHeadless` | **3연속 OK(2026-09-25, 세 시대 뒤)** — `PlaytestForestEras`(사람 6/6 몸·소품 38%·잔해 돎 6)·`Zones`·`ZoneProps` 포함 · `PlaytestForestCreatures` 3연속(models 8/8, 씨앗 고정) · Finish·Furniture·HouseTransition OK |
+| GO `PlaytestHeadless` | **3연속 OK(2026-09-25, 109-9 뒤)** — `PlaytestGo` Peaks·SkillShapes·HeroLooks·HeroDex·Heroes·Eras·RegionProps·RegionTraits·RegionMission·Guardian·SlopesBiome·PartyBodies·ElementalFoe·Treasure·WorldMap·Traversal·FieldCombat |
+| `PlaytestForestHeadless` | **3연속 OK(2026-09-25, 세 시대 뒤)** — `PlaytestForestEras`(사람 6/6 몸·소품 38%·잔해 돎 6)·`Zones`·`ZoneProps` 포함 · `PlaytestForestCreatures` 3연속 · Finish·Furniture·HouseTransition OK |
 | REALM 헤드리스 | **3연속 OK(2026-09-25, 세 시대 뒤)** — `PlaytestRealmEras`(전 성 함락 뒤·문답 앞)·`CheckButtonWiring` |
-| GUI 실제 Play | GO 라이팅·Maria 동작·Dungeon 카메라(yaw=180)·SSS(Intensity=15, 셰이더 그래프 exit 0 09-23) |
+| GUI 실제 Play | GO 라이팅·Maria 동작·Dungeon 카메라(yaw=180)·SSS(Intensity=15) |
 
 ## 실기 확인 대기 (항목명만 — 경위는 HISTORY grep)
 
@@ -64,4 +64,4 @@ Maria·Abe·Brute + Skeleton·Paladin·PeasantMan·PeasantGirl·Archer·두목 M
 - FOREST: **세 시대(109-4) — 잔해 크기·뜬 높이, 덮개 차, 마을 사람 여섯 발·키·대사** · **숲지기 모델** · **존 소품 — 실측 크기·휨 따라 내림·걸림** · **짐승 여덟 모델 — 키·꾸밈 자리·안개유령 투명도·숲 톤** · **특색 존(108 ②) — 명소 크기·휨 따라 내림이 가까이서 튀는지·점광 세기·자막 세 줄**, 옛 101 항목(벽지·가구·생물·좌판·번들·채집·평가·택배·축제·톤 — 세부는 HISTORY grep), **폰에서 저장·설정·밀어내기 버튼**
 - STORY: **세 시대(109-3) — 시대 적 키·타격감·알림·손님** · 두목 Morak(훅 박자) · 척후병·전직관 모델 · 곁의 동료·소환(106-10) · 두목 등장 컷(106-8) · 사건·관계·선택·전직 팝업·관문 대장·비경 · 무예 1~4차(패널 K·칸·손맛·판수·유파 세트·옷 빛깔) — 세부는 HISTORY grep · **폰에서 버튼 전부**
 - REALM: **세 시대(109-5) — 사연 한 토막 줄바꿈·퓨전 카드 뜨는 빈도·이계 무장 셈** · 월드맵, 적국 사슬, 패널 여덟, 목표판/세션카드, 공격·계략, 특성·야망, 전술 토글, 서사 카드, 계승 토글, 일기토·설전, 승리 결과 카드, 성벽 실루엣, 오빗 카메라 pull-in, **폰에서 버튼 전부**
-- 공통: 폰 발열(30fps·"저" 버튼), BGM 음량, 설정 패널 6줄, SessionCard DoF, 접지 blob 그림자(Mobile 품질), LUT 톤 5장, Screen Space Shadows, Maria 피부 SSS
+- 공통: Ⅱ 단추 자리·타이틀 설정, 폰 발열(30fps·"저" 버튼), BGM 음량, 설정 패널 6줄, SessionCard DoF, 접지 blob 그림자(Mobile 품질), LUT 톤 5장, Screen Space Shadows, Maria 피부 SSS
