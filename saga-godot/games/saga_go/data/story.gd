@@ -26,7 +26,9 @@ extends RefCounted
 ##     duel 의 flee = 쓰러뜨렸을 때 알림 글자(없으면 "가면에 금이 가고 — 먹구름 속으로 달아났다")
 ##     defend 의 altar = 제단 머리 글자(없으면 "넷째 제단") · start = 첫 물결 알림 · dirs = 무리가 나오는 방향(도, 북쪽 0·시계 방향 — 담이 막는 쪽은 빼게)
 ##   인물 helmet = true 면 머리에 옛 장수 투구(world/vroid_body.gd add_helmet) · visor = true 면 앞 시대 관측 바이저(add_visor) ·
-##   hat = true 면 파발꾼 벙거지(add_hat) · halo = true 면 머리 위 빛 고리(add_halo — 은하 나루 나루지기).
+##   hat = true 면 파발꾼 벙거지(add_hat) · halo = true 면 머리 위 빛 고리(add_halo — 은하 나루 나루지기) ·
+##   beads = true 면 목에 염주·가사 띠(add_beads — 옛 절터 종지기).
+##   light 의 bell = true 면 제단 돌을 안 보이고, 원소가 닿으면 불 대신 종각에 건 종이 운다(world/region5_skyport.gd ring_bell — 17장).
 ##   chase 의 body = "drone"(배달 기계) · "horse"(놀란 역마, world/creature_builder.gd 말 — colors 세 빛깔) · 없으면 가면 쓴 사람.
 ##   단계·인물 칸에 sky = true 면 그 칸의 높이는 땅이 아니라 구름섬 윗면(kill·duel·appear — 9장).
 ##   lift = m 면 그 칸 땅 높이 + lift(떠 있는 구조물 윗면 — 14장 시간 틈 관측대, world/era_sites.gd OBS_RISE)(kill·duel·appear·stations).
@@ -84,6 +86,10 @@ const NPCS := {
 	## 106장 ㊽-2 16장 — 은하 나루(world/region5_skyport.gd) 별배 나루의 나루지기(미래). 늘 표지 부스 앞에 선다.
 	"ara": {"name": "나루지기 아라", "era": "미래", "region": "skyport", "cell": Vector2(5.1, 1.68), "rarity": 4, "cloth": Color(0.28, 0.4, 0.62),
 		"halo": true, "idle": "별배 나루는 오늘도 비어 있어요. …기다리는 게 제 일이니까요."},
+	## 106장 ㊽-3 17장 — 옛 절터(world/region5_skyport.gd BELFRY_OFF) 종각 앞의 종지기(과거). 종각이 무너지던 밤 시간 틈에 휩쓸려 이 시대로 왔다.
+	## 늘 종각 남쪽에 선다(17장 쓰러진 종 곁 동안은 STATIONS).
+	"hangyeol": {"name": "종지기 한결", "era": "과거", "region": "skyport", "cell": Vector2(2.71, 3.64), "rarity": 4, "cloth": Color(0.46, 0.43, 0.38),
+		"beads": true, "idle": "종지기는 종 곁에 있어야 하는 법이오. 종이 없어도 말이오."},
 	"bawoo": {"name": "산성지기 바우", "era": "과거", "region": "frost", "cell": Vector2(3.0, 4.11), "rarity": 4, "cloth": Color(0.48, 0.2, 0.16),
 		"helmet": true, "idle": "……불씨가 식지 않게. 그것만이 내 일이다.",
 		"appear": [{"ch": 10, "from": 2, "to": 2},
@@ -112,7 +118,13 @@ const STATIONS := {
 		## ㊼-2 14장 — 관측대 위 파수를 물리친 뒤(9) 떠 있는 관측대 위로 날아와 있다(lift = era_sites.gd OBS_RISE).
 		{"ch": 13, "from": 9, "to": 9, "region": "ruins", "cell": Vector2(1.26, 2.24), "lift": 24.0},
 		## ㊽-2 16장 — 별배를 몰고 은하 나루에 매단 뒤(6~8) 착륙판 남쪽에 떠 있다.
-		{"ch": 15, "from": 6, "to": 8, "region": "skyport", "cell": Vector2(5.44, 1.8)}],
+		{"ch": 15, "from": 6, "to": 8, "region": "skyport", "cell": Vector2(5.44, 1.8)},
+		## ㊽-3 17장 — 처음엔 나루에(0~6), 별배를 몰고 쓰러진 종 곁으로(7), 종을 건 뒤엔 종각 곁에(8~9).
+		{"ch": 16, "from": 0, "to": 6, "region": "skyport", "cell": Vector2(5.44, 1.8)},
+		{"ch": 16, "from": 7, "to": 7, "region": "skyport", "cell": Vector2(1.72, 5.2)},
+		{"ch": 16, "from": 8, "to": 9, "region": "skyport", "cell": Vector2(2.64, 3.66)}],
+	## ㊽-3 17장 — 비탈의 짐승을 물리친 뒤(4~7) 쓰러진 종 곁에 와 있다.
+	"hangyeol": [{"ch": 16, "from": 4, "to": 7, "region": "skyport", "cell": Vector2(1.55, 4.88)}],
 	## ㊼-3 15장 — 조각 셋을 들고 별배로 가는 동안(8~10) 달음이 먼저 별배 곁에 와 있다.
 	"dareum": [{"ch": 14, "from": 8, "to": 10, "region": "frost", "cell": Vector2(5.62, 4.95)}],
 }
@@ -735,6 +747,49 @@ const CHAPTERS := [
 					["?", ["선장님이 절터로?", "종소리?"]],
 					["아라", "절터 종은 수백 년 전에 떨어져 나뒹구는데… 가끔 밤마다 울려요. 선장님이 거기서 무언가를 들으셨나 봐요.", "sorrow"],
 					["아라", "나루는 제가 지킬게요. 별배도 여기 쉬게 두세요. 이제 여기가 여러분 나루이기도 하니까!", "fun"]]},
+		]},
+	{"id": "ch17", "name": "제17장 · 옛 절터의 종", "ar": 40,
+		"reward": {"fate_knot": 5, "mora": 80000, "book_l": 5, "talent_3": 3}, "exp": 400.0,
+		"steps": [
+			{"type": "talk", "npc": "ara", "text": "나루지기 아라와 이야기하기",
+				"lines": [["아라", "어젯밤에도 울렸어요. 옛 절터 쪽에서 — 뎅, 하고 딱 한 번.", "surprised"],
+					["?", ["떨어진 종이 운다고?", "선장님 기록의 그 종소리?"]],
+					["아라", "절터엔 늘 한 분이 계세요. 스스로 종지기라고 하시는데… 종이 떨어진 지 수백 년인데도요.", "sorrow"],
+					["아라", "선장님이 무얼 들으셨는지, 그분이라면 알 거예요."]]},
+			{"type": "go", "region": "skyport", "cell": Vector2(2.5, 3.5), "radius": 14.0, "text": "은하 나루 서쪽 옛 절터로"},
+			{"type": "talk", "npc": "hangyeol", "text": "옛 절터의 종지기 한결과 이야기하기",
+				"lines": [["한결", "종을 찾아왔소? …별배를 탄 그 선장도 같은 말을 했지.", "surprised"],
+					["?", ["선장님을 만났어요?", "종은 어디 있어요?"]],
+					["한결", "나는 이 절의 종지기요. 종각이 무너지던 밤 종을 붙들다 시간 틈에 휩쓸려 — 눈을 떠 보니 절은 주춧돌만 남았더군.", "sorrow"],
+					["한결", "종은 그때 서쪽 비탈로 굴러떨어졌소. 요즘 밤마다 우는 건 종이 아니오 — 종을 감은 무언가가 틈 짐승을 부르는 소리지.", "angry"],
+					["한결", "선장도 그 울음을 따라 비탈로 갔소. 먼저 비탈에 몰린 짐승들부터 쫓아 주시오."]]},
+			{"type": "kill", "region": "skyport", "cell": Vector2(1.6, 5.0), "kinds": ["grass_snake", "grass_snake", "thunder_cat", "wind_hawk"],
+				"text": "쓰러진 종 곁에 몰려든 틈 짐승 물리치기"},
+			{"type": "talk", "npc": "hangyeol", "text": "쓰러진 종 곁의 한결과 이야기하기",
+				"lines": [["한결", "이 종이오. 이끼가 두껍게 덮였어도 소리는 그대로요.", "joy"],
+					["한결", "…쉿. 종 속에서 무언가 몸을 뒤채는 소리가 들리오?", "surprised"],
+					["?", ["뭔가 있어요!", "물러나요!"]],
+					["한결", "이무기요! 틈에서 기어 나와 종에 똬리를 틀고 수백 년 이끼를 먹은 놈 — 덩굴 비늘은 바람이 찢소!", "angry"]]},
+			{"type": "duel", "kind": "moss_serpent", "region": "skyport", "cell": Vector2(2.0, 5.05), "text": "종을 감은 이끼 이무기와 맞서기",
+				"flee": "이무기가 종에서 풀려나 — 틈 속으로 스르르 사라졌다"},
+			{"type": "talk", "npc": "hangyeol", "text": "한결과 이야기하기",
+				"lines": [["한결", "풀려났소… 종이 다시 숨을 쉬는구려.", "joy"],
+					["한결", "허나 이 무게를 어찌 종각까지 올린단 말이오. 옛날엔 스님 서른이 밧줄로 끌어 올렸소.", "sorrow"],
+					["?", ["별배라면 들 수 있어요.", "반디를 불러 볼게요."]],
+					["한결", "하늘 배로 종을 든다고? …허허, 오래 살고 볼 일이오.", "fun"]]},
+			{"type": "talk", "npc": "bandi", "text": "별배를 몰고 온 반디와 이야기하기",
+				"lines": [["반디", "삐— 별배 견인 빛줄 연결. 무게 십이 톤. 들어 올립니다.", "surprised"],
+					["한결", "종이… 하늘을 나는구려!", "surprised"],
+					["?", ["종각 들보에 맞춰!", "천천히, 반디."]],
+					["반디", "삐— 종각 들보에 걸었습니다. 새 종고리는 별배 계류 쇠붙이로 만들었습니다.", "joy"],
+					["한결", "앞날의 쇠로 옛 종을 걸다니. 자, 이제 종을 울려 주시오 — 무엇으로든 힘껏!", "fun"]]},
+			{"type": "light", "region": "skyport", "cell": Vector2(2.71, 3.54), "bell": true, "text": "종각에 다시 건 종을 원소 스킬로 울리기"},
+			{"type": "talk", "npc": "hangyeol", "text": "한결과 이야기하기",
+				"lines": [["한결", "…삼백 년 만의 종소리요. 이 소리를 다시 듣다니.", "sorrow"],
+					["반디", "삐— 종소리에 응답 신호. 남쪽, 은하역 방향 — 열차 기적 소리입니다.", "surprised"],
+					["?", ["저 녹슨 역에서 열차가?", "선장님의 신호일까?"]],
+					["한결", "그 선장이 떠나며 말했소. '종이 다시 울리면 막차가 한 번 더 온다'고. 무슨 뜻인지는 나도 모르오."],
+					["한결", "나는 이제 종 곁을 지키겠소. 종지기가 종 곁에 있어야지. 가 보시오 — 은하역으로.", "fun"]]},
 		]},
 ]
 

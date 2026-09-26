@@ -8,14 +8,21 @@ extends Node
 ## 틈 문 열림·별배는 아직 고원에) [2] 반디(고원) → 틈 고개 [3] 틈 고개 [4] 아라 → 무리 [5] 무리 넷(나루에 섬) [6] 아라 → 계류 탑
 ## [7] 오르기(땅에선 안 넘어감·탑 옆면을 실제로 타고 올라 꼭대기에 섬) → 별배가 나루에 매이고 고원 별배는 사라짐
 ## [8] 반디(나루) → 계류대 [9] 지키기(동쪽 탑 쪽에서 안 나옴·산에서 안 나옴·물결 셋·"계류된 별배") [10] 아라 → 16장 끝·보상·✔ 제16장.
+## 17장 "옛 절터의 종"(㊽-3): [11] 표·자리(한결 염주·종각 기단·지붕 충돌·종 울리는 칸 = 종각·쓰러진 종은 비탈에·대결 둘레 평탄·
+## 이무기 초·풍이 방패를 깸) [12] 아라 → 절터 [13] 절터 [14] 한결 → 비탈 [15] 무리 넷 [16] 한결(종 곁) → 대결 [17] 이끼 이무기
+## [18] 한결 → 반디(종 곁) [19] 반디 → 종 울리기 [20] 종이 종각에 걸리고 비탈의 종은 사라짐 [21] 먼 원소는 안 울림·종각에 닿으면 울림
+## [22] 한결 → 17장 끝·보상·✔ 제17장.
 ## 이야기 상태·부대 경험·가방은 끝에 되돌린다. 저장은 안 한다.
 
 const Story := preload("res://games/saga_go/data/story.gd")
 const TestMap := preload("res://games/saga_go/data/test_map.gd")
 const TerrainBuilder := preload("res://games/saga_go/world/terrain_builder.gd")
 const Skyport := preload("res://games/saga_go/world/region5_skyport.gd")
+const FieldEnemy := preload("res://games/saga_go/combat/field_enemy.gd")
+const Elements := preload("res://games/saga_go/combat/elements.gd")
 
 const CH16 := 15 # 16장(0부터)
+const CH17 := 16
 const R := "skyport"
 const MAST_OFF := Vector3(12.0, 0.0, 0.0) # region5_skyport _build_port 계류 탑 자리(착륙판 가운데에서)
 const MAST_H := 18.0
@@ -41,11 +48,11 @@ func _physics_process(_delta: float) -> void:
 	if _frame < 3 and _step == 0:
 		return
 	match _step:
-		0: # 준비 — 16장 처음, 모험 등급 39
+		0: # 준비 — 16장 처음, 모험 등급 41(17장까지)
 			_saved = {"story": PartyState.story.duplicate(true), "members": PartyState.members.duplicate(), "exp": PartyState.exp, "level": PartyState.level,
 				"bag": PartyState.bag.duplicate(true), "ar_paid": PartyState.ar_paid, "resolved": EventState.resolved.duplicate(), "pos": _p.global_position, "wq": PartyState.world_quests.duplicate(true)}
-			PartyState.exp = maxf(PartyState.exp, 39.0 * PartyState.EXP_PER_LEVEL)
-			PartyState.level = maxi(PartyState.level, 39)
+			PartyState.exp = maxf(PartyState.exp, 41.0 * PartyState.EXP_PER_LEVEL)
+			PartyState.level = maxi(PartyState.level, 41)
 			PartyState.ar_paid = maxi(PartyState.ar_paid, PartyState.level + 1)
 			PartyState.story = {"ch": CH16, "step": 0}
 			_sq.call("set_track", "")
@@ -193,7 +200,151 @@ func _physics_process(_delta: float) -> void:
 			var ok: bool = int(_sq.call("ch")) == CH16 + 1 and jt.contains("✔ 제16장") and PartyState.count("mora") >= int(_v.mora) + 75000 and Skyport.ship_docked()
 			_check("chapter16", ok, "ch=%d mora +%d docked=%s" % [_sq.call("ch"), PartyState.count("mora") - int(_v.mora), sk.call("is_docked")])
 			_next()
-		11:
+		11: # [11] 17장 표·자리
+			if _frame < 3:
+				return
+			var c := Story.chapter(CH17)
+			var bad: Array = []
+			if String(c.get("id", "")) != "ch17" or int(c.ar) <= int(Story.chapter(CH16).ar) or int(_sq.call("ch")) != CH17 or bool(_sq.call("locked")):
+				bad.append("chapter ch=%d locked=%s" % [_sq.call("ch"), _sq.call("locked")])
+			var info: Dictionary = Story.NPCS.hangyeol
+			if String(info.region) != R or String(info.get("era", "")) != "과거" or not bool(info.get("beads", false)):
+				bad.append("hangyeol info")
+			var hb := _sq.find_child("StoryNpc_hangyeol", true, false)
+			if hb == null or hb.find_child("Beads", true, false) == null:
+				bad.append("beads")
+			var hp: Vector3 = _sq.call("npc_pos", "hangyeol")
+			if not _hits(hp).is_empty() or _flat(hp, Skyport.belfry_pos()) > 6.0:
+				bad.append("hangyeol at %s hits %s" % [hp, _hits(hp)])
+			for s in c.steps:
+				if s.has("cell") and ["~", "^"].has(TestMap.tile_at(roundi(s.cell.x), roundi(s.cell.y), String(s.region))):
+					bad.append("step on %s" % TestMap.tile_at(roundi(s.cell.x), roundi(s.cell.y), String(s.region)))
+			## 종각 — 기단 윗면(바닥 + 0.4)·지붕 윗면(바닥 + 4.9)이 충돌로 선다. 종 울리는 칸이 종각 자리.
+			var bp := Skyport.belfry_pos()
+			for off in [Vector3(2.4, 0, 2.4), Vector3(-2.4, 0, 0.5)]:
+				if absf(_surface(bp + off) - (bp.y + 4.9)) > 0.15:
+					bad.append("belfry roof %.2f want %.2f" % [_surface(bp + off), bp.y + 4.9])
+			var ring: Dictionary = (c.steps as Array)[8]
+			if String(ring.type) != "light" or not bool(ring.get("bell", false)) or _flat(TestMap.world_pos(ring.cell.x, ring.cell.y, R), bp) > 0.5:
+				bad.append("ring step")
+			## 쓰러진 종 곁 — 한결·반디 자리가 명소에 안 묻힘, 대결 둘레 8m 가 가운데와 1.5m 안(비탈이 너무 가파르지 않게).
+			var hw: Dictionary = Story.windows(Story.STATIONS.hangyeol)[0]
+			var bw: Array = Story.windows(Story.STATIONS.bandi).filter(func(w: Dictionary) -> bool: return int(w.ch) == CH17)
+			if bw.size() != 3 or not _hits(_cell3(hw.cell)).is_empty():
+				bad.append("stations")
+			for w in bw:
+				if String(w.region) != R or not _hits(_cell3(w.cell)).is_empty():
+					bad.append("bandi station %s" % w.cell)
+			var duel: Dictionary = (c.steps as Array)[5]
+			var dc := _cell3(duel.cell)
+			for k in 8:
+				var q := dc + Vector3(cos(TAU * k / 8.0), 0.0, sin(TAU * k / 8.0)) * 8.0
+				if absf(TerrainBuilder.height_at(R, q) - dc.y) > 1.5:
+					bad.append("duel edge %d dy=%.1f" % [k, TerrainBuilder.height_at(R, q) - dc.y])
+			if String(duel.kind) != "moss_serpent" or String(FieldEnemy.KINDS.moss_serpent.element) != "grass" or Elements.shield_mul("grass", "wind") <= 1.0:
+				bad.append("duel kind")
+			var sk := get_tree().get_first_node_in_group("go_skyport_region")
+			var fallen := sk.find_child("Small_skyport_bell", true, false)
+			if bool(sk.call("is_hung")) or fallen == null or not (fallen.get_node("Bell") as Node3D).visible:
+				bad.append("hung early")
+			_check("ch17_table", bad.is_empty(), str(bad))
+			_next()
+		12: # [12] 아라 → 절터
+			_talk("ara", 1, "ch17_ara", Vector2(2.5, 3.5))
+		13: # [13] 절터
+			_go(2, "ch17_temple", Vector2.INF)
+		14: # [14] 한결 → 비탈
+			_talk("hangyeol", 3, "ch17_hangyeol", Vector2(1.6, 5.0))
+		15: # [15] 무리 넷
+			if _frame == 1:
+				_put(_target() + Vector3(0, 0, 6))
+			if _frame == 10:
+				var es: Array = _sq.call("alive_quest_enemies")
+				var here := es.filter(func(e: Node) -> bool: return TestMap.region_at((e as Node3D).global_position) == R).size()
+				_v = {"n": es.size(), "here": here}
+				for e in es:
+					e.call("_die")
+			if _frame == 16:
+				_check("ch17_kill", int(_v.n) == 4 and int(_v.here) == 4 and int(_sq.call("st")) == 4, "n=%d here=%d st=%d" % [_v.n, _v.here, _sq.call("st")])
+				_next()
+		16: # [16] 한결(종 곁) → 대결
+			if _frame == 1:
+				_v = _flat(_sq.call("npc_pos", "hangyeol"), TestMap.world_pos(1.55, 4.88, R))
+			_talk("hangyeol", 5, "ch17_hangyeol2", Vector2(2.0, 5.05), "hangyeol_at_bell=%.1f" % float(_v), float(_v) < 1.0, 1)
+		17: # [17] 이끼 이무기 — 초, 밀물 줄 넷
+			if _frame == 1:
+				_put(_target() + Vector3(0, 0, 8))
+			if _frame == 12:
+				var bosses := get_tree().get_nodes_in_group("go_story_boss")
+				var b: Node3D = bosses[0] if not bosses.is_empty() else null
+				_v = {"n": bosses.size(), "marks": 0, "kind": "", "region": ""}
+				if b:
+					_v.kind = String(b.get("kind"))
+					_v.region = TestMap.region_at(b.global_position)
+					b.call("_clear_marks")
+					b.call("_set_tell", false)
+					b.call("begin_skill", "tide", _p)
+					_v.marks = (b.get("_marks") as Array).size()
+					b.call("_clear_marks")
+					b.call("_die")
+			if _frame == 20:
+				var ok: bool = int(_v.n) == 1 and String(_v.kind) == "moss_serpent" and String(_v.region) == R and int(_v.marks) == 4 and int(_sq.call("st")) == 6
+				_check("ch17_duel", ok, "n=%d kind=%s region=%s marks=%d st=%d" % [_v.n, _v.kind, _v.region, _v.marks, _sq.call("st")])
+				_next()
+		18: # [18] 한결 → 반디(종 곁) — 반디는 7단계에 들어서야 옮긴다(대화 뒤에 잰다)
+			if _frame == 1:
+				_v = -1.0
+			if _frame == 15:
+				_v = _flat(_sq.call("npc_pos", "bandi"), TestMap.world_pos(1.72, 5.2, R))
+			_talk("hangyeol", 7, "ch17_hangyeol3", Vector2.INF, "bandi_at_bell=%.1f" % float(_v), float(_v) < 1.0, 1)
+		19: # [19] 반디 → 종 울리기(목표 = 종각)
+			_talk("bandi", 8, "ch17_bandi", Vector2(2.71, 3.54))
+		20: # [20] 종이 종각에 — 1초마다 본다
+			if _frame < 70:
+				return
+			var sk := get_tree().get_first_node_in_group("go_skyport_region")
+			var fallen := sk.find_child("Small_skyport_bell", true, false)
+			var hung := sk.find_child("HungBell", true, false) as Node3D
+			var ok: bool = bool(sk.call("is_hung")) and hung != null and hung.is_visible_in_tree() and not (fallen.get_node("Bell") as Node3D).visible
+			_check("ch17_hung", ok, "hung=%s fallen_visible=%s" % [sk.call("is_hung"), (fallen.get_node("Bell") as Node3D).visible])
+			_next()
+		21: # [21] 종 울리기 — 먼 원소는 안 울리고, 종각에 닿으면 울린다(제단 돌은 안 보임)
+			var sk := get_tree().get_first_node_in_group("go_skyport_region")
+			if _frame == 1:
+				_put(Skyport.belfry_pos() + Vector3(0, 0.4, 3.5))
+				_v = {"r0": int(sk.get("rings"))}
+			if _frame == 4:
+				var alt := _sq.get("_altar") as Node3D
+				_v.stone = alt.get_children().any(func(n: Node) -> bool: return (n as Node3D).visible)
+				_sq.call("receive_element", Skyport.belfry_pos() + Vector3(20.0, 0.0, 0.0), 3.0, "wind")
+			if _frame == 6:
+				_v.far = int(sk.get("rings")) - int(_v.r0)
+				_sq.call("receive_element", Skyport.belfry_pos() + Vector3(1.0, 0.0, 1.0), 3.0, "wind")
+			if _frame == 30:
+				_v.swing = absf((sk.find_child("HungBell", true, false) as Node3D).rotation.x)
+			if _frame == 80:
+				var ok: bool = int(_sq.call("st")) == 9 and int(_v.far) == 0 and int(sk.get("rings")) - int(_v.r0) == 1 and not bool(_v.stone) and float(_v.swing) > 0.01
+				_check("ch17_ring", ok, "st=%d far=%d rings=%d stone=%s swing=%.3f" % [_sq.call("st"), _v.far, int(sk.get("rings")) - int(_v.r0), _v.stone, _v.swing])
+				_next()
+		22: # [22] 한결 → 17장 끝
+			if _frame == 1:
+				_v = {"mora": PartyState.count("mora")}
+				_near_npc("hangyeol")
+			if _frame == 10:
+				_sq.call("interact")
+				_drain()
+			if _frame < 16:
+				return
+			_dismiss_prompts()
+			if _frame < 22:
+				return
+			_sq.call("toggle_journal")
+			var jt: String = _sq.call("journal_text")
+			_sq.call("toggle_journal")
+			var ok: bool = int(_sq.call("ch")) == CH17 + 1 and jt.contains("✔ 제17장") and PartyState.count("mora") >= int(_v.mora) + 80000 and Skyport.bell_hung()
+			_check("chapter17", ok, "ch=%d mora +%d hung=%s" % [_sq.call("ch"), PartyState.count("mora") - int(_v.mora), Skyport.bell_hung()])
+			_next()
+		23:
 			PartyState.story = _saved.story
 			PartyState.members.assign(_saved.members)
 			PartyState.exp = _saved.exp

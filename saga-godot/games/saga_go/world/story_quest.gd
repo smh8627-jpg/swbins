@@ -515,6 +515,9 @@ func _enter_step() -> void:
 				_quest_enemies.append(e)
 		"light":
 			_build_altar(_cell_pos(String(s.region), s.cell))
+			if bool(s.get("bell", false)): # 17장 — 제단 돌 대신 종각에 건 종이 받는다(world/region5_skyport.gd ring_bell)
+				for mi in _altar.get_children():
+					(mi as Node3D).visible = false
 		"duel":
 			## 106장 ㉜ 이야기 보스 — field_boss.gd 틀, 한 번뿐. 위 보스 막대(world/field_bosses.gd)가 go_story_boss 를 본다.
 			var bp := _cell_pos(String(s.region), s.cell, bool(s.get("sky", false)), float(s.get("lift", 0.0))) + Vector3.UP * 0.3
@@ -660,9 +663,13 @@ func receive_element(pos: Vector3, radius: float, element: String) -> void:
 	var ap := _altar.global_position
 	if Vector2(ap.x - pos.x, ap.z - pos.z).length() > radius + ALTAR_REACH:
 		return
-	_altar_flame.visible = true
-	remove_from_group("element_receiver")
 	var s := current_step()
+	if bool(s.get("bell", false)):
+		get_tree().call_group("go_skyport_region", "ring_bell")
+		Toast.show(self, "뎅— 종소리가 은하 나루에 울려 퍼진다", 2.5)
+	else:
+		_altar_flame.visible = true
+	remove_from_group("element_receiver")
 	if String(s.get("type", "")) == "light":
 		_advance_later(0.8)
 
@@ -1350,6 +1357,8 @@ func _build_npc(id: String) -> void:
 		VroidBody.add_hat(body)
 	if info.get("halo", false):
 		VroidBody.add_halo(body)
+	if info.get("beads", false):
+		VroidBody.add_beads(body)
 	var tf := TalkFace.attach(body)
 	if tf:
 		_faces[id] = tf

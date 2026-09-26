@@ -108,6 +108,14 @@ const KINDS := {
 		"phase_text": "여우불 구미호가 옛 길의 여우불을 두르고 도깨비와 살쾡이를 부른다 — 물로 방패를 깨라",
 		"rotation": ["rift", "shadow", "bite", "rift", "tide", "halo"], "summon": ["fire_imp", "thunder_cat"],
 		"shape": "fox9", "height": 3.4, "colors": [Color(1.0, 0.93, 0.82), Color(1.0, 0.45, 0.18), Color(1.0, 0.8, 0.3)]},
+	## 106장 ㊽-3 17장 이야기 보스 "종 감은 이끼 이무기"(은하 나루 옛 절터 서쪽 비탈, 쓰러진 종 곁) — 틈에서 기어 나와 떨어진 종에
+	## 똬리를 틀고 수백 년 이끼를 먹었다(초, 코드 몸 serpent 3.8m — 이끼 초록·청동 배). 패턴은 있는 틀: 내려찍기·밀물 줄·물기·고리·회오리.
+	## 2단계 초 방패(풍으로 깬다 — elements.gd SHIELD_COUNTER).
+	"moss_serpent": {"name": "종 감은 이끼 이무기", "hp": 7400.0, "atk": 40.0, "speed": 3.8, "aggro": 24.0,
+		"reach": 3.2, "tell": 0.8, "cd": 1.6, "exp": 0.0, "element": "grass", "shield": 0.0, "phase_shield": 820.0,
+		"phase_text": "이끼 이무기가 덩굴 비늘을 두르고 덩굴뱀과 매를 부른다 — 풍으로 방패를 깨라",
+		"rotation": ["slam", "tide", "bite", "halo", "storm", "tide"], "summon": ["grass_snake", "wind_hawk"],
+		"shape": "serpent", "height": 3.8, "colors": [Color(0.26, 0.4, 0.2), Color(0.64, 0.52, 0.3), Color(0.78, 0.96, 0.42)]},
 }
 
 const GRAVITY := 20.0

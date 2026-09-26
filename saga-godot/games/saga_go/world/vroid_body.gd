@@ -413,3 +413,51 @@ static func add_halo(body: Node3D, glow: Color = Color(0.6, 0.85, 1.0)) -> void:
 		bit.material_override = lit
 		bit.position = Vector3(k * 0.1, 0.05, 0.0)
 		halo.add_child(bit)
+
+## 106장 ㊽-3 종지기 염주·가사 띠 — 목 뼈(종지기 한결, 과거). 목에 늘어진 굵은 나무 염주(앞이 처지게 기울임) +
+## 왼 어깨에서 오른 옆구리로 가로지른 붉은 가사 띠. 뼈대 앞이 -Z 인 몸이면 뒤집는다. 뼈를 못 찾으면 몸 위 목 높이.
+static func add_beads(body: Node3D, wood: Color = Color(0.36, 0.22, 0.12), sash: Color = Color(0.62, 0.2, 0.12)) -> void:
+	var beads := Node3D.new()
+	beads.name = "Beads"
+	var skel := body.find_children("*", "Skeleton3D", true, false)
+	var neck := -1
+	if not skel.is_empty():
+		neck = (skel[0] as Skeleton3D).find_bone("J_Bip_C_Neck")
+	if neck >= 0:
+		var att := BoneAttachment3D.new()
+		att.bone_idx = neck
+		skel[0].add_child(att)
+		att.add_child(beads)
+		beads.rotation.y = 0.0 if front_sign(skel[0]) > 0.0 else PI
+	else:
+		body.add_child(beads)
+		beads.position = Vector3(0.0, 1.42, 0.0)
+	var wm := StandardMaterial3D.new()
+	wm.albedo_color = wood
+	wm.roughness = 0.7
+	var ring := Node3D.new()
+	ring.position = Vector3(0.0, -0.02, 0.01)
+	ring.rotation.x = 0.55 # 앞이 가슴 쪽으로 처지게
+	beads.add_child(ring)
+	for i in 16:
+		var a := TAU * float(i) / 16.0
+		var b := MeshInstance3D.new()
+		var sm := SphereMesh.new()
+		sm.radius = 0.02 if i != 0 else 0.03 # 앞 한가운데 큰 알
+		sm.height = sm.radius * 2.0
+		sm.radial_segments = 8
+		sm.rings = 4
+		b.mesh = sm
+		b.material_override = wm
+		b.position = Vector3(sin(a) * 0.11, 0.0, cos(a) * 0.1)
+		ring.add_child(b)
+	var sm2 := StandardMaterial3D.new()
+	sm2.albedo_color = sash
+	var band := MeshInstance3D.new()
+	var bm := BoxMesh.new()
+	bm.size = Vector3(0.07, 0.5, 0.012)
+	band.mesh = bm
+	band.material_override = sm2
+	band.position = Vector3(0.0, -0.24, 0.1)
+	band.rotation.z = 0.62
+	beads.add_child(band)

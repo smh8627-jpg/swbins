@@ -7,7 +7,7 @@ extends Node3D
 ## 틈 고개 경계비·시간 틈 문 · 발견 지점.
 ## 순간이동 지점·들판 무리·상자·별조각·채집은 각 표(waypoints·field_spawner·treasure_spawner·star_shards·cooking)에 "skyport" 줄로.
 ##   미래 — 별배 나루(M (4..6,1..2)): 둥근 착륙판·계류 탑(빛 고리)·계류 팔·떠 있는 빛 부표
-##   과거 — 옛 절터(R (2..3,3..4)): 삼층 돌탑·주춧돌 줄·깨진 돌계단
+##   과거 — 옛 절터(R (2..3,3..4)): 삼층 돌탑·주춧돌 줄·깨진 돌계단·빈 종각(17장에 종을 다시 건다)
 ##   현대 — 은하역(H (5,5)): 승강장·녹슨 객차·역 간판·철로(남쪽 길 따라)
 ##   현대·미래 — 태양광 밭(F (3..4,6)): 기운 전지판 줄·변전함
 ##   틈 고개 경계비((7.55,3.3)) · 길가 빛 가로등
@@ -58,6 +58,13 @@ const PAD_R := 9.0 # 착륙판 반지름 — 4부에서 별배가 내려앉는�
 const CH16 := 15
 const DOCK_FROM_STEP := 6
 const DOCK_H := 6.0
+## 106장 ㊽-3 — 절터 종각(탑 동쪽). 17장 반디가 별배로 쓰러진 종을 들어 건 뒤(HANG_FROM_STEP)부터 종이 걸려 있고,
+## 서쪽 비탈의 쓰러진 종(작은 발견 skyport_bell 모양)은 사라진다. 원소로 울리면(story_quest light bell) 흔들린다.
+const CH17 := 16
+const HANG_FROM_STEP := 8
+const BELFRY_OFF := Vector3(10.0, 0.0, 2.0) # TEMPLE_CELL 한가운데에서
+const BELL_Y := 2.6 # 종 한가운데 높이(종각 바닥 위)
+const RING_SEC := 3.0
 
 const STONE := Color(0.6, 0.58, 0.55)
 const STONE_DARK := Color(0.42, 0.41, 0.4)
@@ -75,6 +82,11 @@ var _gate_body: StaticBody3D = null
 var _gate_veil: Node3D = null
 var _gate_open := false
 var _beacon_rings: Array = []
+var _hung_bell: Node3D = null
+var _fallen_bell: Node3D = null
+var _hung := false
+var _ring_t := 0.0
+var rings := 0 # 점검용 — 울린 번수
 var _t := 0.0
 var _check_t := 0.0
 
@@ -105,6 +117,7 @@ func _ready() -> void:
 	_set_gate(gate_open())
 	_build_docked_ship()
 	_set_dock(ship_docked())
+	_set_hung(bell_hung())
 
 static func cell_pos(c: Vector2) -> Vector3:
 	var p := TestMap.world_pos(c.x, c.y, REGION)
@@ -122,6 +135,27 @@ static func ship_docked() -> bool:
 
 func is_docked() -> bool:
 	return _docked
+
+## 17장 종을 다시 걸었거나 지났는가 — 절터 종각에 종이 걸려 있다.
+static func bell_hung() -> bool:
+	var ch := int(PartyState.story.get("ch", 0))
+	return ch > CH17 or (ch == CH17 and int(PartyState.story.get("step", 0)) >= HANG_FROM_STEP)
+
+func is_hung() -> bool:
+	return _hung
+
+## 종각 자리(월드, 바닥 높이).
+static func belfry_pos() -> Vector3:
+	return cell_pos(TEMPLE_CELL) + BELFRY_OFF
+
+## 걸린 종을 울린다 — RING_SEC 초 동안 잦아드는 흔들림(story_quest light bell 이 부른다).
+func ring_bell() -> void:
+	if bell_hung() != _hung: # 1초 확인보다 먼저 울려도 걸린 종이 흔들리게
+		_set_hung(bell_hung())
+	if not _hung:
+		return
+	rings += 1
+	_ring_t = RING_SEC
 
 func is_gate_open() -> bool:
 	return _gate_open
@@ -143,6 +177,12 @@ func _process(delta: float) -> void:
 			_set_gate(gate_open())
 		if ship_docked() != _docked:
 			_set_dock(ship_docked())
+		if bell_hung() != _hung:
+			_set_hung(bell_hung())
+	if _ring_t > 0.0:
+		_ring_t = maxf(0.0, _ring_t - delta)
+		var k := _ring_t / RING_SEC
+		_hung_bell.rotation.x = sin((RING_SEC - _ring_t) * 9.0) * 0.28 * k * k
 
 # ---------------------------------------------------------------- 명소
 
@@ -235,6 +275,59 @@ func _build_temple() -> void:
 	for k in 3:
 		_box(root, Vector3(4.0 - k * 0.4, 0.25, 1.0), Vector3(0, 0.12 + k * 0.25, 6.0 - k * 1.0), STONE_DARK)
 	_label(root, "옛 절터", Vector3(0, y + 2.4, 0), Color(0.95, 0.88, 0.72))
+	_build_belfry(root)
+
+## 절터 종각 — 돌 기단(올라설 수 있다)·나무 기둥 넷(충돌)·들보·기와 지붕 둘. 들보 한가운데 종(17장부터 보임) —
+## 걸기 전엔 부러진 종고리만 늘어져 있다.
+func _build_belfry(temple: Node3D) -> void:
+	var b := Node3D.new()
+	b.name = "Belfry"
+	temple.add_child(b)
+	b.position = BELFRY_OFF
+	var wood := Color(0.42, 0.22, 0.14)
+	_solid_box(b, Vector3(4.6, 0.4, 4.6), Vector3(0, 0.2, 0), STONE_DARK)
+	for x in [-1.7, 1.7]:
+		for z in [-1.7, 1.7]:
+			_solid_cyl(b, 0.16, 4.2, Vector3(x, 0.4 + 2.1, z))
+			var post := MeshInstance3D.new()
+			var pm := CylinderMesh.new()
+			pm.top_radius = 0.16
+			pm.bottom_radius = 0.18
+			pm.height = 4.2
+			post.mesh = pm
+			post.material_override = _mat(wood)
+			post.position = Vector3(x, 0.4 + 2.1, z)
+			b.add_child(post)
+	_box(b, Vector3(4.0, 0.25, 0.3), Vector3(0, 4.45, 0), wood) # 들보(동서)
+	_box(b, Vector3(0.3, 0.25, 4.0), Vector3(0, 4.45, 0), wood)
+	var roof := Color(0.26, 0.27, 0.3)
+	_solid_box(b, Vector3(5.6, 0.3, 5.6), Vector3(0, 4.75, 0), roof)
+	_box(b, Vector3(3.6, 0.5, 3.6), Vector3(0, 5.1, 0), roof)
+	_box(b, Vector3(4.2, 0.14, 0.2), Vector3(0, 5.42, 0), Color(0.72, 0.7, 0.66)) # 용마루
+	var hook := _box(b, Vector3(0.08, 0.5, 0.08), Vector3(0.1, 4.08, 0), ALLOY_DARK) # 부러진 옛 종고리
+	hook.rotation.z = 0.5
+	_hung_bell = Node3D.new()
+	_hung_bell.name = "HungBell"
+	_hung_bell.position = Vector3(0, 4.3, 0) # 흔들림 축 = 고리
+	b.add_child(_hung_bell)
+	_box(_hung_bell, Vector3(0.12, 0.5, 0.12), Vector3(0, -0.2, 0), GLOW).material_override = _glow(GLOW, 1.2) # 새 종고리(별배 쇠)
+	var bell := MeshInstance3D.new()
+	var cm := CylinderMesh.new()
+	cm.top_radius = 0.55
+	cm.bottom_radius = 0.9
+	cm.height = 1.8
+	bell.mesh = cm
+	bell.material_override = _mat(Color(0.35, 0.42, 0.35))
+	bell.position = Vector3(0, BELL_Y - 4.3, 0)
+	_hung_bell.add_child(bell)
+	var lip := MeshInstance3D.new()
+	var lm := TorusMesh.new()
+	lm.inner_radius = 0.82
+	lm.outer_radius = 0.95
+	lip.mesh = lm
+	lip.material_override = _mat(Color(0.3, 0.36, 0.3))
+	lip.position = Vector3(0, BELL_Y - 4.3 - 0.85, 0)
+	_hung_bell.add_child(lip)
 
 ## 은하역 — 승강장(올라설 수 있다)·녹슨 객차 한 칸·역 간판·철로(남쪽 길 두 칸 따라).
 func _build_station() -> void:
@@ -399,6 +492,14 @@ func _set_dock(on: bool) -> void:
 	_dock.visible = on
 	_dock_body.collision_layer = 1 if on else 0
 
+func _set_hung(on: bool) -> void:
+	_hung = on
+	_hung_bell.visible = on
+	if _fallen_bell:
+		for n in _fallen_bell.get_children():
+			if n is MeshInstance3D and String(n.name) == "Bell":
+				(n as Node3D).visible = not on
+
 func _set_gate(open: bool) -> void:
 	_gate_open = open
 	_gate_veil.visible = not open
@@ -431,7 +532,9 @@ func _build_small(id: String, c: Vector2, shape: String) -> void:
 			bell.material_override = _mat(Color(0.35, 0.42, 0.35))
 			bell.rotation.z = PI * 0.5
 			bell.position = Vector3(0, 0.85, 0)
+			bell.name = "Bell"
 			r.add_child(bell)
+			_fallen_bell = r # 17장에 종각으로 옮겨 걸면 종만 사라진다(부러진 들보 조각은 남음)
 			_box(r, Vector3(0.2, 2.6, 0.2), Vector3(-1.6, 1.3, 0.6), Color(0.35, 0.26, 0.18))
 			_box(r, Vector3(0.2, 1.1, 0.2), Vector3(1.4, 0.55, -0.7), Color(0.35, 0.26, 0.18))
 		"phone":
