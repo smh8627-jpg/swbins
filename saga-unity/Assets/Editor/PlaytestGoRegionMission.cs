@@ -144,7 +144,7 @@ namespace Saga.EditorTools
             hud.Tick(at, RegionMissionHud.RefreshSec + 0.01f);
             if (GoldState.Gold != g0) Fail("발견 전에 보상이 들어왔다");
             if (!hud.LineShown || !hud.LineText.Contains("0/3") || !hud.LineText.Contains(GoWorldMap.RegionName(R))) Fail($"사명 한 줄 \"{hud.LineText}\"");
-            if (!hud.LineText.Contains("역참")) Fail($"첫 단 할 일이 역참이 아니다: \"{hud.LineText}\"");
+            if (!hud.LineText.Contains(GoLocalization.T("wp.east"))) Fail($"첫 단 할 일이 역참이 아니다: \"{hud.LineText}\"");
 
             // 역참을 켜는 순간 둘째 단까지
             WorldMapState.Activate("wp_east");
@@ -157,7 +157,7 @@ namespace Saga.EditorTools
             if (!hud.Flashing || !hud.LineText.Contains("2/3")) Fail($"보상 글 \"{hud.LineText}\"");
             hud.Tick(at, RegionMissionHud.FlashSec + 0.01f);
             hud.Tick(at, RegionMissionHud.RefreshSec + 0.01f);
-            if (hud.Flashing || !hud.LineText.Contains("2/3") || !hud.LineText.Contains("보물 상자 0/")) Fail($"셋째 단 할 일 \"{hud.LineText}\"");
+            if (hud.Flashing || !hud.LineText.Contains("2/3") || !hud.LineText.Contains(string.Format(GoLocalization.T("mission.next.chests"), 0, ""))) Fail($"셋째 단 할 일 \"{hud.LineText}\"");
             hud.Tick(at, RegionMissionHud.RefreshSec + 0.01f);
             if (GoldState.Gold != g0 + want) Fail("같은 단 보상을 두 번 줬다");
             // 다른 지역에 서면 그 지역 줄 — 마을은 사명이 없어 숨는다
@@ -192,7 +192,7 @@ namespace Saga.EditorTools
             hud.Tick(at, RegionMissionHud.RefreshSec + 0.01f);
             int want = GoRegionMission.FinalGoldPerGrade * 1;
             if (GoldState.Gold != g0 + want) Fail($"평정 금 {GoldState.Gold - g0} ≠ {want}");
-            if (!hud.Flashing || !hud.LineText.Contains("평정")) Fail($"평정 글 \"{hud.LineText}\"");
+            if (!hud.Flashing || !hud.LineText.Contains(Seg("mission.clear"))) Fail($"평정 글 \"{hud.LineText}\"");
             hud.Tick(at, RegionMissionHud.FlashSec + 0.01f);
             hud.Tick(at, RegionMissionHud.RefreshSec + 0.01f);
             if (hud.LineShown) Fail("평정한 지역인데 사명 줄이 남아 있다");
@@ -209,8 +209,8 @@ namespace Saga.EditorTools
                     if (GoWorldMap.Regions[i].Id == R) east = i;
                     if (GoWorldMap.Regions[i].Id == "south_glade") south = i;
                 }
-                if (!ui.RegionLabel(east).Contains("평정")) Fail($"지도 동쪽 숲 이름표 \"{ui.RegionLabel(east)}\"");
-                if (!ui.RegionLabel(south).Contains("사명 0/3")) Fail($"지도 남쪽 공터 이름표 \"{ui.RegionLabel(south)}\"");
+                if (!ui.RegionLabel(east).Contains(GoLocalization.T("map.mission_clear"))) Fail($"지도 동쪽 숲 이름표 \"{ui.RegionLabel(east)}\"");
+                if (!ui.RegionLabel(south).Contains(string.Format(GoLocalization.T("map.mission"), 0, 3))) Fail($"지도 남쪽 공터 이름표 \"{ui.RegionLabel(south)}\"");
                 ui.Close();
             }
         }
@@ -222,7 +222,7 @@ namespace Saga.EditorTools
             WorldMapState.RevealAll();
             hud.Tick(at, RegionMissionHud.RefreshSec + 0.01f);
             if (RegionMissionState.StageOf(R) != 1) Fail($"망루에 오른 뒤 남쪽 공터 단 {RegionMissionState.StageOf(R)} ≠ 1");
-            if (!hud.LineText.Contains("토벌 0/2")) Fail($"둘째 단 할 일 \"{hud.LineText}\"");
+            if (!hud.LineText.Contains(string.Format(GoLocalization.T("mission.next.clears"), 0, 2))) Fail($"둘째 단 할 일 \"{hud.LineText}\"");
             int g0 = GoldState.Gold;
             var group = Members("south_glade_e");
             foreach (var e in group) Kill(e);
@@ -233,12 +233,12 @@ namespace Saga.EditorTools
             if (GoldState.Gold != g0 + want2) Fail($"남쪽 공터 둘째 단 금 {GoldState.Gold - g0} ≠ {want2}");
             hud.Tick(at, RegionMissionHud.FlashSec + 0.01f);
             hud.Tick(at, RegionMissionHud.RefreshSec + 0.01f);
-            if (!hud.LineText.Contains("수호장")) Fail($"셋째 단 할 일이 수호장이 아니다: \"{hud.LineText}\"");
+            if (!hud.LineText.Contains(GoLocalization.T("mission.next.guardian"))) Fail($"셋째 단 할 일이 수호장이 아니다: \"{hud.LineText}\"");
             GuardianState.MarkDefeated();
             hud.Tick(at, RegionMissionHud.RefreshSec + 0.01f);
             int want3 = GoRegionMission.FinalGoldPerGrade * 3;
             if (GoldState.Gold != g0 + want2 + want3) Fail($"남쪽 공터 평정 금 {GoldState.Gold - g0 - want2} ≠ {want3}");
-            if (!hud.LineText.Contains("평정")) Fail($"수호장 뒤 평정 글 \"{hud.LineText}\"");
+            if (!hud.LineText.Contains(Seg("mission.clear"))) Fail($"수호장 뒤 평정 글 \"{hud.LineText}\"");
             hud.Tick(at, RegionMissionHud.FlashSec + 0.01f);
         }
 
@@ -269,6 +269,14 @@ namespace Saga.EditorTools
         private static void Kill(FieldEnemy e)
         {
             if (e.Alive) e.TakeHit(999999f, GoElement.Physical, 100f, out _);
+        }
+
+        /// <summary>번역 표 서식 글에서 자리표({n}) 사이 가장 긴 고정 조각 — 지금 언어로 "평정!" 같은 말을 찾는다(110 ⑤c-2c-2).</summary>
+        private static string Seg(string key)
+        {
+            string best = "";
+            foreach (var part in Regex.Split(GoLocalization.T(key), @"\{[^}]*\}")) if (part.Trim().Length > best.Trim().Length) best = part;
+            return best.Trim();
         }
 
         private static void Fail(string msg)

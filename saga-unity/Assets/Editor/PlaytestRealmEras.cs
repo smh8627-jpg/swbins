@@ -104,7 +104,7 @@ namespace Saga.EditorTools
                 if (System.Linq.Enumerable.Contains(RealmCityState.FoundIds, t.Id)) foundMsg = r.Message;
             }
             if (foundMsg == null) { Fail($"{t.CityId} 수색으로 {t.Id} 를 못 찾음"); return ""; }
-            if (!foundMsg.Contains("⏳") || !foundMsg.Contains(t.QuoteKo)) Fail($"찾은 글에 사연 없음: {foundMsg}");
+            if (!foundMsg.Contains("⏳") || !foundMsg.Contains(RealmLocalization.T("officer." + t.Id + ".quote", t.QuoteKo))) Fail($"찾은 글에 사연 없음: {foundMsg.Replace("\n", " | ")}");
 
             int months = 0;
             while (!ContainsRoster(t.Id) && months < 80)

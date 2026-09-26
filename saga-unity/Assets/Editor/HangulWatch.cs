@@ -34,9 +34,13 @@ namespace Saga.EditorTools
         private static readonly UTF8Encoding Utf8 = new UTF8Encoding(false);
         private static double _next;
 
+        /// <summary>이번 실행이 감시 모드인가 — 시작에서 언어를 ko 로 못 박는 진단(국지)이 대신 en 으로 박게.</summary>
+        public static bool Active { get; private set; }
+
         static HangulWatch()
         {
             if (System.Array.IndexOf(System.Environment.GetCommandLineArgs(), "-hangulWatch") < 0) return;
+            Active = true;
             Directory.CreateDirectory("Logs");
             // 원래 언어는 파일에 떠 둔다(도메인 재시작·강제 종료에도 남게) — 파일이 있으면 이미 떠 둔 것.
             if (!File.Exists(LangBackup))

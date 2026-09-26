@@ -114,7 +114,9 @@ namespace Saga.EditorTools
             // 실행(또는 사람이 에디터에서 언어를 바꾼 뒤 안 되돌리고 끈 세션)이
             // "en"을 남기면 이번 실행이 처음부터 어긋난 이름으로 시작해 버튼을
             // 영영 못 찾는다 — 위 세이브 삭제와 같은 이유로 여기서 먼저 고정한다.
-            RealmLocalization.CurrentLanguage = "ko";
+            // 110 ⑤c-2c-2 — 영어 감시(HangulWatch)로 돌 때는 en 으로 박는다.
+            RealmLocalization.CurrentLanguage = HangulWatch.Active ? "en" : "ko";
+            Saga.Core.SagaUi.Lang = RealmLocalization.CurrentLanguage;
             EditorSceneManager.OpenScene(ScenePath);
 
             _hadError = false;

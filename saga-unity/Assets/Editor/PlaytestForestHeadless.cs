@@ -660,7 +660,7 @@ namespace Saga.EditorTools
             ForestDeliveryState.TryPickup(ForestDeliveryState.Kind.Normal, 0);
             string goalLine = tracker != null ? tracker.GoalLineNow() : "";
             ForestDeliveryState.ResetForTest();
-            if (!goalLine.Contains("택배"))
+            if (!goalLine.StartsWith(ForestLocalization.T("goal.delivery").Split('{')[0]))
             {
                 Debug.LogError($"[PlaytestForestHeadless] 소포를 든 상태에서 GoalLineNow()가 택배를 안 알려줌 — \"{goalLine}\"");
                 _hadError = true;
@@ -813,9 +813,10 @@ namespace Saga.EditorTools
             // ---- 목표판 D-day 문구 — 행사날이 아닌 날 ----
             ForestFestivalState.ForceDayForTest(20);
             string goalLine = ForestFestivalState.GoalLineText();
-            if (goalLine != "다음 축제: 세배(D-12)")
+            string wantLine = string.Format(ForestLocalization.T("festival.next_line"), ForestLocalization.T("festival.name.sebae"), 12);
+            if (goalLine != wantLine)
             {
-                Debug.LogError($"[PlaytestForestHeadless] 축제 D-day 문구가 이상함 — \"{goalLine}\"(기대 \"다음 축제: 세배(D-12)\")");
+                Debug.LogError($"[PlaytestForestHeadless] 축제 D-day 문구가 이상함 — \"{goalLine}\"(기대 \"{wantLine}\")");
                 _hadError = true;
                 return;
             }
