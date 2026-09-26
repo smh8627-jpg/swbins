@@ -312,3 +312,64 @@ static func add_visor(body: Node3D, metal: Color = Color(0.78, 0.8, 0.84), glow:
 	tip.material_override = lit
 	tip.position = Vector3(0.13, 0.12, 0.0)
 	visor.add_child(tip)
+
+## 106장 ㊼-3 파발꾼 벙거지 — 머리 뼈 위(파발꾼 달음, 과거). 검은 펠트 둥근 몸 + 넓고 처진 챙 + 붉은 띠 + 뒤로 늘어진 붉은 끈 둘.
+## 뼈대 앞이 -Z 인 몸이면 뒤집는다(끈이 등 쪽에 오게). 뼈를 못 찾으면 몸 위 머리 높이.
+static func add_hat(body: Node3D, felt: Color = Color(0.12, 0.11, 0.12), band: Color = Color(0.72, 0.14, 0.12)) -> void:
+	var hat := Node3D.new()
+	hat.name = "Hat"
+	var skel := body.find_children("*", "Skeleton3D", true, false)
+	var head := -1
+	if not skel.is_empty():
+		head = (skel[0] as Skeleton3D).find_bone("J_Bip_C_Head")
+	if head >= 0:
+		var att := BoneAttachment3D.new()
+		att.bone_idx = head
+		skel[0].add_child(att)
+		att.add_child(hat)
+		var front := front_sign(skel[0])
+		hat.position = Vector3(0.0, 0.13, 0.0)
+		hat.rotation.y = 0.0 if front > 0.0 else PI
+	else:
+		body.add_child(hat)
+		hat.position = Vector3(0.0, 1.69, 0.0)
+	var fm := StandardMaterial3D.new()
+	fm.albedo_color = felt
+	fm.roughness = 0.9
+	var dome := MeshInstance3D.new()
+	var sm := SphereMesh.new()
+	sm.radius = 0.12
+	sm.height = 0.14
+	sm.is_hemisphere = true
+	dome.mesh = sm
+	dome.material_override = fm
+	hat.add_child(dome)
+	var brim := MeshInstance3D.new()
+	var bm := CylinderMesh.new()
+	bm.top_radius = 0.2
+	bm.bottom_radius = 0.26
+	bm.height = 0.03
+	brim.mesh = bm
+	brim.material_override = fm
+	brim.position = Vector3(0.0, -0.01, 0.0)
+	hat.add_child(brim)
+	var red := StandardMaterial3D.new()
+	red.albedo_color = band
+	var ring := MeshInstance3D.new()
+	var rm := CylinderMesh.new()
+	rm.top_radius = 0.123
+	rm.bottom_radius = 0.123
+	rm.height = 0.025
+	ring.mesh = rm
+	ring.material_override = red
+	ring.position = Vector3(0.0, 0.02, 0.0)
+	hat.add_child(ring)
+	for k in [-1.0, 1.0]:
+		var tail := MeshInstance3D.new()
+		var tm := BoxMesh.new()
+		tm.size = Vector3(0.025, 0.2, 0.006)
+		tail.mesh = tm
+		tail.material_override = red
+		tail.position = Vector3(k * 0.035, -0.08, -0.2)
+		tail.rotation = Vector3(-0.35, 0.0, k * 0.12)
+		hat.add_child(tail)

@@ -25,7 +25,9 @@ extends RefCounted
 ##     sky    — 바람 기둥을 타고 구름섬(world/sky_isle.gd — 북쪽 봉우리 옆 하늘) 윗면에 서기(106장 ㊳)
 ##     duel 의 flee = 쓰러뜨렸을 때 알림 글자(없으면 "가면에 금이 가고 — 먹구름 속으로 달아났다")
 ##     defend 의 altar = 제단 머리 글자(없으면 "넷째 제단") · start = 첫 물결 알림 · dirs = 무리가 나오는 방향(도, 북쪽 0·시계 방향 — 담이 막는 쪽은 빼게)
-##   인물 helmet = true 면 머리에 옛 장수 투구(world/vroid_body.gd add_helmet) · visor = true 면 앞 시대 관측 바이저(add_visor).
+##   인물 helmet = true 면 머리에 옛 장수 투구(world/vroid_body.gd add_helmet) · visor = true 면 앞 시대 관측 바이저(add_visor) ·
+##   hat = true 면 파발꾼 벙거지(add_hat).
+##   chase 의 body = "drone"(배달 기계) · "horse"(놀란 역마, world/creature_builder.gd 말 — colors 세 빛깔) · 없으면 가면 쓴 사람.
 ##   단계·인물 칸에 sky = true 면 그 칸의 높이는 땅이 아니라 구름섬 윗면(kill·duel·appear — 9장).
 ##   lift = m 면 그 칸 땅 높이 + lift(떠 있는 구조물 윗면 — 14장 시간 틈 관측대, world/era_sites.gd OBS_RISE)(kill·duel·appear·stations).
 ##   인물 자리: appear(보일 때만 서 있는 인물) · stations(늘 있는 인물이 그 장·단계 동안 옮겨 서는 자리) —
@@ -75,6 +77,10 @@ const NPCS := {
 	## 106장 ㊼-2 14장 — 잿빛 폐허 서쪽 시간 틈 관측소(world/era_sites.gd)의 관측사(미래). 늘 관측소 남서쪽 발치에 선다.
 	"gaon": {"name": "시간 틈 관측사 가온", "era": "미래", "region": "ruins", "cell": Vector2(1.05, 2.33), "rarity": 4, "cloth": Color(0.86, 0.88, 0.92),
 		"visor": true, "idle": "관측대가 또 한 뼘 기울었어요. 기록만 하고 있을 순 없는데…"},
+	## 106장 ㊼-3 15장 — 청하 마을 남쪽 산골 옛 역참 터(world/era_sites.gd)의 파발꾼(과거). 늘 역참 터 앞에 선다(15장 8~10 은 별배 곁).
+	## 15장을 마치면 3부 동료(MEMBERS story_dareum)가 된다.
+	"dareum": {"name": "파발꾼 달음", "era": "과거", "region": "village", "cell": Vector2(4.86, 8.72), "rarity": 4, "cloth": Color(0.5, 0.34, 0.22),
+		"hat": true, "idle": "파발은 멈추면 파발이 아니지요. …말이 좀 쉬어야 해서 그렇지."},
 	"bawoo": {"name": "산성지기 바우", "era": "과거", "region": "frost", "cell": Vector2(3.0, 4.11), "rarity": 4, "cloth": Color(0.48, 0.2, 0.16),
 		"helmet": true, "idle": "……불씨가 식지 않게. 그것만이 내 일이다.",
 		"appear": [{"ch": 10, "from": 2, "to": 2},
@@ -102,6 +108,8 @@ const STATIONS := {
 		{"ch": 12, "from": 6, "to": 8, "region": "coast", "cell": Vector2(7.05, 4.02)},
 		## ㊼-2 14장 — 관측대 위 파수를 물리친 뒤(9) 떠 있는 관측대 위로 날아와 있다(lift = era_sites.gd OBS_RISE).
 		{"ch": 13, "from": 9, "to": 9, "region": "ruins", "cell": Vector2(1.26, 2.24), "lift": 24.0}],
+	## ㊼-3 15장 — 조각 셋을 들고 별배로 가는 동안(8~10) 달음이 먼저 별배 곁에 와 있다.
+	"dareum": [{"ch": 14, "from": 8, "to": 10, "region": "frost", "cell": Vector2(5.62, 4.95)}],
 }
 
 const CLIMB_SLACK := 2.5
@@ -138,6 +146,8 @@ const MEMBERS := {
 	"story_haesol": {"name": "해솔", "rarity": 5, "element": "thunder", "weapon": "claymore", "npc": "haesol_free"},
 	## 106장 ㊺-4 12장 보상 — 관측원 하람(현대, 화·활 — 신호탄). 명단에 없던 원소·무기.
 	"story_haram": {"name": "관측원 하람", "rarity": 4, "element": "fire", "weapon": "bow", "npc": "haram"},
+	## 106장 ㊼-3 15장 보상 — 파발꾼 달음(과거, 암·장병기). 이야기 동료에 없던 원소(암).
+	"story_dareum": {"name": "파발꾼 달음", "rarity": 4, "element": "rock", "weapon": "polearm", "npc": "dareum"},
 }
 
 ## 이야기 동료 한 명(도감 인물처럼 name·rarity 를 읽는다) — 아니면 null.
@@ -639,6 +649,47 @@ const CHAPTERS := [
 					["?", ["그 구미호가…", "어느 쪽으로?"]],
 					["반디", "마지막 조각은 뒤 시대 신호. 옛 역참 길 쪽입니다. 구미호도 같은 곳을 향했을 확률이 높습니다.", "angry"],
 					["가온", "(아래에서) 시간 기둥은 켜 둘게요. 언제든 다시 올라와 하늘을 봐요!", "fun"]]},
+		]},
+	{"id": "ch15", "name": "제15장 · 옛 역참 길", "ar": 36, "join": "story_dareum",
+		"reward": {"fate_knot": 5, "mora": 70000, "book_l": 5, "talent_3": 3}, "exp": 360.0,
+		"steps": [
+			{"type": "talk", "npc": "bandi", "text": "추락한 비행선의 반디와 이야기하기",
+				"lines": [["반디", "삐— 셋째 조각 신호. 시대 표지는 뒤 — 아주 오래전. 좌표는 청하 마을 남쪽 산골 길입니다.", "surprised"],
+					["반디", "같은 자리에 차가운 신호가 하나 더. 꼬리 아홉… 구미호입니다. 그런데 이번엔 뜨겁습니다.", "angry"],
+					["?", ["뜨겁다고?", "구미호가 먼저 가 있구나."]],
+					["반디", "옛 시대의 여우불을 먹은 것으로 보입니다. 조심하십시오."]]},
+			{"type": "go", "region": "village", "cell": Vector2(4.9, 8.8), "radius": 12.0, "text": "청하 마을 남쪽 산골 옛 역참 길로"},
+			{"type": "talk", "npc": "dareum", "text": "역참 터 앞의 파발꾼 달음과 이야기하기",
+				"lines": [["달음", "어이쿠, 길손이구려! 여기가 어딘지 아시오? 나는 분명 한양 가는 파발을 달리던 참인데…", "surprised"],
+					["달음", "사흘 전 밤, 하늘에서 떨어진 빛 조각을 주웠소. 파발 주머니에 넣은 순간 눈앞이 번쩍 — 정신 차려 보니 이 길이오.", "sorrow"],
+					["?", ["그 조각, 우리가 찾던 거예요.", "지금 조각은 어디 있어요?"]],
+					["달음", "말 안장 주머니에… 아니, 저놈! 흰 여우불에 놀라 말이 달아나오! 저 말부터 잡아 주시오!", "angry"]]},
+			{"type": "chase", "name": "놀란 역마", "region": "village", "body": "horse",
+				"colors": [Color(0.42, 0.28, 0.18), Color(0.16, 0.12, 0.1), Color(0.1, 0.08, 0.06)],
+				"path": [Vector2(4.95, 8.95), Vector2(5.2, 9.3), Vector2(4.8, 9.65), Vector2(5.15, 10.05), Vector2(4.75, 9.85), Vector2(5.25, 9.5), Vector2(4.9, 9.2)],
+				"text": "여우불에 놀라 달아난 역마 따라잡기(달리기)"},
+			{"type": "talk", "npc": "dareum", "text": "달음에게 역마 데려다주기",
+				"lines": [["달음", "워, 워— 착하지. 고맙소, 길손. 그런데 이걸 보시오. 안장 주머니가 불에 그을려 찢겼소.", "sorrow"],
+					["달음", "여우불이 말을 쫓은 게 아니었소. 주머니를 노린 게요. 조각을 문 흰 여우가 길 남쪽 끝으로 갔소.", "angry"],
+					["?", ["구미호예요. 되찾아 올게요.", "같이 가요."]],
+					["달음", "파발꾼은 길을 잃은 짐을 끝까지 쫓는 법이오. 앞장서시오!"]]},
+			{"type": "kill", "region": "village", "cell": Vector2(5.0, 9.35), "kinds": ["fire_imp", "fire_imp", "ice_fox", "wind_hawk"],
+				"text": "길을 막은 여우불 무리 물리치기"},
+			{"type": "duel", "kind": "rift_fox_ember", "region": "village", "cell": Vector2(5.0, 9.6), "text": "셋째 조각을 문 여우불 구미호와 맞서기",
+				"flee": "여우불 구미호가 날개 조각을 떨구고 — 닫히는 시간 틈 속으로 흩어졌다"},
+			{"type": "talk", "npc": "dareum", "text": "달음과 이야기하기",
+				"lines": [["달음", "해냈소! 그 여우, 이제 틈 너머로도 못 돌아오겠구려. 자, 셋째 조각이오.", "joy"],
+					["달음", "그런데 길손, 이 조각이 가야 할 곳이 있다고 했지요? 파발은 받는 이 손에 닿아야 끝나는 법이오.", "fun"],
+					["?", ["서리봉 고원 별배로 가요.", "같이 가 줄래요?"]],
+					["달음", "말은 여기 두고, 발로 먼저 가 있겠소. 파발꾼 다리를 얕보지 마시오!"]]},
+			{"type": "go", "region": "frost", "cell": Vector2(6.1, 5.05), "radius": 12.0, "text": "날개 조각 셋을 들고 서리봉 고원 별배로"},
+			{"type": "light", "region": "frost", "cell": Vector2(6.53, 5.37), "text": "별배 날개 이음매에 조각 셋을 끼우고 원소 스킬로 불 넣기"},
+			{"type": "talk", "npc": "bandi", "text": "반디와 이야기하기",
+				"lines": [["반디", "삐— 날개 조각 셋, 연결 완료. 별배 심장 출력 백 퍼센트. 기동합니다!", "joy"],
+					["달음", "허어, 쇳덩이 배가 하늘로… 내 평생 이런 파발은 처음이오.", "surprised"],
+					["?", ["드디어 떴다!", "반디, 이제 어디로 가?"]],
+					["반디", "틈이 닫히는 방향을 따라가면 이 배가 온 시대에 닿을 겁니다. 그 전까지 — 이 하늘은 여러분 것입니다.", "fun"],
+					["달음", "그 길, 나도 따라가겠소. 파발꾼은 길 끝을 봐야 직성이 풀리니까!", "fun"]]},
 		]},
 ]
 

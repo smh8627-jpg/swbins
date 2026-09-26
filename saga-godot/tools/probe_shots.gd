@@ -34,6 +34,8 @@ const SHOTS := [
 	["c_shipyard", "coast", Vector2(6.6, 4.55), Vector3.ZERO, Vector2(7.3, 3.85), -12.0, 11.0, ""],
 	["r_observatory", "ruins", Vector2(1.2, 2.85), Vector3.ZERO, Vector2(1.2, 2.2), 8.0, 12.0, ""],
 	["r_obs_deck", "ruins", Vector2(1.2, 2.2), Vector3(0.0, 24.5, 6.0), Vector2(1.2, 2.1), -20.0, 9.0, ""],
+	["v_old_station", "village", Vector2(5.15, 8.95), Vector3.ZERO, Vector2(4.72, 8.8), -10.0, 11.0, ""],
+	["f_starship_up", "frost", Vector2(5.85, 5.9), Vector3.ZERO, Vector2(6.45, 5.25), 10.0, 14.0, ""],
 	["c_shipyard_side", "coast", Vector2(7.85, 4.6), Vector3.ZERO, Vector2(7.3, 3.8), -15.0, 10.0, ""],
 	["f_pines", "frost", Vector2(6.35, 4.3), Vector3.ZERO, Vector2(7.0, 4.0), -8.0, 9.0, ""],
 	["f_fox_camp", "frost", Vector2(2.0, 3.6), Vector3.ZERO, Vector2(2.0, 3.0), -16.0, 9.0, ""],

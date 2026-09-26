@@ -13,15 +13,23 @@ extends Node
 ## [16] 가온 → 석등(목표 글자 "별 → 해 → 달") [17] 석등 차례(틀리면 꺼짐 [0,1,0,3]·석등이 기둥에 안 가림·다 켜면 시간 기둥이 섬)
 ## [18] 가온 → 오르기 [19] 오르기(땅에 서면 안 넘어감 · 시간 기둥에 실제로 뛰어들어 솟고 → 앞으로 활공해 관측대에 내려앉음)
 ## [20] 관측대 파수 셋(관측대 위에 섬·떨어지면 제자리로) [21] 반디(관측대 위) → 14장 끝·보상·✔ 제14장·시간 기둥은 남음.
+## 15장 "옛 역참 길"(㊼-3): [22] 표·자리(달음 벙거지·명소 몸에 안 묻힘·역마 길이 골짜기 평지·동료 표·별배 아직 안 뜸·도감)
+## [23] 반디 → 마을 [24] 옛 역참 길 [25] 달음 → 역마가 달아남(코드 몸 말·마구간이 빔) [26] 따라잡기 → 마구간에 말이 돌아옴
+## [27] 달음 → 무리 [28] 무리 넷(마을에 섬) [29] 여우불 구미호(화·틈새 질주 원 다섯) [30] 달음 → 별배 [31] 별배(달음이 먼저 와 있음)
+## [32] 날개 이음매에 불 [33] 반디 → 15장 끝·보상·달음 동료·✔ 제15장 → 별배가 FLY_H 위로 뜨고 날개가 보임.
 ## 이야기 상태·부대 경험·가방은 끝에 되돌린다. 저장은 안 한다.
 
 const Story := preload("res://games/saga_go/data/story.gd")
 const TestMap := preload("res://games/saga_go/data/test_map.gd")
 const TerrainBuilder := preload("res://games/saga_go/world/terrain_builder.gd")
 const EraSites := preload("res://games/saga_go/world/era_sites.gd")
+const Kits := preload("res://games/saga_go/data/kits.gd")
+const FieldEnemy := preload("res://games/saga_go/combat/field_enemy.gd")
 
 const CH13 := 12 # 13장(0부터)
 const CH14 := 13
+const CH15 := 14
+const Frost := preload("res://games/saga_go/world/region4_frost.gd")
 
 var _p: CharacterBody3D
 var _sq: Node
@@ -44,11 +52,11 @@ func _physics_process(_delta: float) -> void:
 	if _frame < 3 and _step == 0:
 		return
 	match _step:
-		0: # 준비 — 13장 처음, 모험 등급 35(14장 ar 34 까지 열림)
+		0: # 준비 — 13장 처음, 모험 등급 37(15장 ar 36 까지 열림)
 			_saved = {"story": PartyState.story.duplicate(true), "members": PartyState.members.duplicate(), "exp": PartyState.exp, "level": PartyState.level,
 				"bag": PartyState.bag.duplicate(true), "ar_paid": PartyState.ar_paid, "resolved": EventState.resolved.duplicate(), "pos": _p.global_position, "wq": PartyState.world_quests.duplicate(true)}
-			PartyState.exp = maxf(PartyState.exp, 35.0 * PartyState.EXP_PER_LEVEL)
-			PartyState.level = maxi(PartyState.level, 35)
+			PartyState.exp = maxf(PartyState.exp, 37.0 * PartyState.EXP_PER_LEVEL)
+			PartyState.level = maxi(PartyState.level, 37)
 			PartyState.ar_paid = maxi(PartyState.ar_paid, PartyState.level + 1)
 			PartyState.story = {"ch": CH13, "step": 0}
 			_sq.call("set_track", "")
@@ -342,7 +350,163 @@ func _physics_process(_delta: float) -> void:
 			var ok: bool = int(_sq.call("ch")) == CH14 + 1 and jt.contains("✔ 제14장") and PartyState.count("mora") >= int(_v.mora) + 60000 and bool(_v.bandi_on) and on
 			_check("chapter14", ok, "ch=%d mora +%d bandi_on=%s draft=%s" % [_sq.call("ch"), PartyState.count("mora") - int(_v.mora), _v.bandi_on, on])
 			_next()
-		22:
+		22: # [22] 15장 표·자리
+			if _frame < 3:
+				return
+			var c := Story.chapter(CH15)
+			var bad: Array = []
+			if String(c.get("id", "")) != "ch15" or int(c.ar) <= int(Story.chapter(CH14).ar) or int(_sq.call("ch")) != CH15 or bool(_sq.call("locked")) \
+					or String(c.get("join", "")) != "story_dareum":
+				bad.append("chapter ch=%d locked=%s" % [_sq.call("ch"), _sq.call("locked")])
+			var m: Dictionary = Story.MEMBERS.get("story_dareum", {})
+			if String(m.get("element", "")) != "rock" or String(m.get("weapon", "")) != "polearm" or String(m.get("npc", "")) != "dareum" or not Kits.KITS.has("story_dareum"):
+				bad.append("member")
+			var info: Dictionary = Story.NPCS.dareum
+			if String(info.region) != "village" or String(info.get("era", "")) != "과거" or not bool(info.get("hat", false)):
+				bad.append("dareum info")
+			var dh := _hits(_sq.call("npc_pos", "dareum"))
+			if not dh.is_empty():
+				bad.append("dareum in %s" % dh)
+			var dbody := get_tree().get_first_node_in_group("go_story").find_child("StoryNpc_dareum", true, false)
+			if dbody == null or dbody.find_child("Hat", true, false) == null:
+				bad.append("hat")
+			for s in c.steps:
+				if s.has("cell") and ["~", "^"].has(TestMap.tile_at(roundi(s.cell.x), roundi(s.cell.y), String(s.region))):
+					bad.append("step on %s" % TestMap.tile_at(roundi(s.cell.x), roundi(s.cell.y), String(s.region)))
+			## 역마 길 — 점마다 골짜기 평지(높이 1m 아래)·명소 충돌 없음.
+			var chase: Dictionary = (c.steps as Array)[3]
+			for pt in chase.path:
+				var wp := TestMap.world_pos(pt.x, pt.y, "village")
+				wp.y = TerrainBuilder.height_at("village", wp)
+				if wp.y > 1.0 or not _hits(wp).is_empty():
+					bad.append("path %s y=%.1f" % [pt, wp.y])
+			## 구미호 자리 둘레 8m 가 평지(틈새 질주가 막히지 않게).
+			var duel: Dictionary = (c.steps as Array)[6]
+			var dc := TestMap.world_pos(duel.cell.x, duel.cell.y, "village")
+			for k in 8:
+				var q := dc + Vector3(cos(TAU * k / 8.0), 0.0, sin(TAU * k / 8.0)) * 8.0
+				if TerrainBuilder.height_at("village", q) > 1.0:
+					bad.append("duel edge %d" % k)
+			if String(duel.kind) != "rift_fox_ember" or String(FieldEnemy.KINDS.rift_fox_ember.element) != "fire":
+				bad.append("duel kind")
+			var es := get_tree().get_first_node_in_group("go_era_sites")
+			if not es.find_child("Discover_village_old_road", true, false) or int(CodexState.TOTAL.place) < 59:
+				bad.append("discovery")
+			var horse := es.find_child("StationHorse", true, false) as Node3D
+			if horse == null or not horse.visible:
+				bad.append("station horse")
+			var fr := get_tree().get_first_node_in_group("go_frost_region")
+			if fr == null or bool(fr.call("ship_up")):
+				bad.append("ship early")
+			_check("ch15_table", bad.is_empty(), str(bad))
+			_next()
+		23: # [23] 반디 → 옛 역참 길
+			_talk("bandi", 1, "ch15_bandi", Vector2(4.9, 8.8))
+		24: # [24] 옛 역참 길
+			_go(2, "ch15_road", Vector2.INF)
+		25: # [25] 달음 → 역마가 달아난다(말 몸·마구간이 빔)
+			if _frame == 1:
+				_near_npc("dareum")
+			if _frame == 10:
+				_sq.call("interact")
+				_drain()
+			if _frame == 30:
+				var cs: Dictionary = _sq.call("chase_state")
+				var th := _sq.get("_thief") as Node3D
+				var body := th.get_node_or_null("Body") if th else null
+				var is_horse: bool = body != null and body.get_node_or_null("Body") != null and body.find_children("*", "Skeleton3D", true, false).is_empty()
+				var horse := get_tree().get_first_node_in_group("go_era_sites").find_child("StationHorse", true, false) as Node3D
+				var ok: bool = int(_sq.call("st")) == 3 and bool(cs.run) and is_horse and not horse.visible and String(_sq.call("tracker_text")).contains("놀란 역마")
+				_check("ch15_horse_runs", ok, "st=%d run=%s horse_body=%s station_horse=%s tracker='%s'" % [_sq.call("st"), cs.run, is_horse, horse.visible, String(_sq.call("tracker_text")).replace("\n", " / ")])
+				_next()
+		26: # [26] 따라잡기 — 마구간에 말이 돌아온다
+			if _frame == 1:
+				_put((_sq.call("chase_state") as Dictionary).pos + Vector3(0.0, 0.5, 1.0))
+			if _frame == 12:
+				var horse := get_tree().get_first_node_in_group("go_era_sites").find_child("StationHorse", true, false) as Node3D
+				var ok: bool = int(_sq.call("st")) == 4 and _sq.get("_thief") == null and horse.visible
+				_check("ch15_catch", ok, "st=%d thief=%s station_horse=%s" % [_sq.call("st"), _sq.get("_thief") != null, horse.visible])
+				_next()
+		27: # [27] 달음 → 무리
+			_talk("dareum", 5, "ch15_dareum2", Vector2(5.0, 9.35))
+		28: # [28] 무리 넷
+			if _frame == 1:
+				_put(_target() + Vector3(0, 0, 6))
+			if _frame == 10:
+				var es: Array = _sq.call("alive_quest_enemies")
+				var here := es.filter(func(e: Node) -> bool: return TestMap.region_at((e as Node3D).global_position) == "village").size()
+				_v = {"n": es.size(), "village": here}
+				for e in es:
+					e.call("_die")
+			if _frame == 16:
+				_check("ch15_kill", int(_v.n) == 4 and int(_v.village) == 4 and int(_sq.call("st")) == 6, "n=%d village=%d st=%d" % [_v.n, _v.village, _sq.call("st")])
+				_next()
+		29: # [29] 여우불 구미호 — 화, 틈새 질주 원 다섯·줄 끝으로 옮겨 나타남
+			if _frame == 1:
+				_put(_target() + Vector3(0, 0, 8))
+			if _frame == 12:
+				var bosses := get_tree().get_nodes_in_group("go_story_boss")
+				var b: Node3D = bosses[0] if not bosses.is_empty() else null
+				_v = {"n": bosses.size(), "marks": 0, "moved": -1.0, "kind": ""}
+				if b:
+					_v.kind = String(b.get("kind"))
+					b.call("_clear_marks")
+					b.call("_set_tell", false)
+					b.call("begin_skill", "rift", _p)
+					var marks: Array = b.get("_marks")
+					_v.marks = marks.size()
+					var end: Vector3 = marks[marks.size() - 1].pos if not marks.is_empty() else Vector3.INF
+					b.call("_fire")
+					_v.moved = _flat(b.global_position, end)
+					b.call("_die")
+			if _frame == 20:
+				var ok: bool = int(_v.n) == 1 and String(_v.kind) == "rift_fox_ember" and int(_v.marks) == 5 and float(_v.moved) < 0.5 and int(_sq.call("st")) == 7
+				_check("ch15_duel", ok, "n=%d kind=%s marks=%d moved=%.2f st=%d" % [_v.n, _v.kind, _v.marks, _v.moved, _sq.call("st")])
+				_next()
+		30: # [30] 달음 → 별배
+			_talk("dareum", 8, "ch15_dareum3", Vector2(6.1, 5.05))
+		31: # [31] 별배 — 달음이 먼저 와 있다
+			if _frame == 1:
+				_put(_target())
+			if _frame == 12:
+				var d := _flat(_sq.call("npc_pos", "dareum"), TestMap.world_pos(5.62, 4.95, "frost"))
+				_check("ch15_ship", int(_sq.call("st")) == 9 and d < 1.0, "st=%d dareum_at_ship=%.1f" % [_sq.call("st"), d])
+				_next()
+		32: # [32] 날개 이음매에 불
+			if _frame == 1:
+				_put(_target() + Vector3(2.5, 0.0, 2.5))
+			if _frame == 6:
+				_sq.call("receive_element", (_sq.get("_altar") as Node3D).global_position, 2.0, "rock")
+			if _frame == 80:
+				_check("ch15_light", int(_sq.call("st")) == 10, "st=%d" % _sq.call("st"))
+				_next()
+		33: # [33] 반디 → 15장 끝 · 달음 동료 · 별배가 뜬다
+			if _frame == 1:
+				_v = {"mora": PartyState.count("mora")}
+				_near_npc("bandi")
+			if _frame == 10:
+				_sq.call("interact")
+				_drain()
+			if _frame < 16:
+				return
+			_dismiss_prompts()
+			if _frame < 22:
+				return
+			if _frame == 22:
+				_sq.call("toggle_journal")
+				_v.jt = String(_sq.call("journal_text"))
+				_sq.call("toggle_journal")
+			var fr := get_tree().get_first_node_in_group("go_frost_region")
+			var ship := fr.find_child("Ship", true, false) as Node3D
+			if _frame < 22 + int(60.0 * (Frost.FLY_SEC + 1.5)) and not (bool(fr.call("ship_up")) and ship.position.y > Frost.FLY_H - 0.05):
+				return
+			var wings := fr.find_child("StarWings", true, false) as Node3D
+			var ok: bool = int(_sq.call("ch")) == CH15 + 1 and String(_v.jt).contains("✔ 제15장") and PartyState.count("mora") >= int(_v.mora) + 70000 \
+				and PartyState.members.count("story_dareum") == 1 and bool(fr.call("ship_up")) and ship.position.y > Frost.FLY_H - 0.05 and wings.visible
+			_check("chapter15", ok, "ch=%d mora +%d dareum=%s ship_up=%s ship_y=%.2f wings=%s frames=%d" % [_sq.call("ch"), PartyState.count("mora") - int(_v.mora),
+				PartyState.members.has("story_dareum"), fr.call("ship_up"), ship.position.y, wings.visible, _frame])
+			_next()
+		34:
 			PartyState.story = _saved.story
 			PartyState.members.assign(_saved.members)
 			PartyState.exp = _saved.exp

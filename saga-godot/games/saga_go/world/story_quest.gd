@@ -17,6 +17,7 @@ const FieldEnemy := preload("res://games/saga_go/combat/field_enemy.gd")
 const FieldBosses := preload("res://games/saga_go/world/field_bosses.gd")
 const FieldBoss := preload("res://games/saga_go/combat/field_boss.gd")
 const VroidBody := preload("res://games/saga_go/world/vroid_body.gd")
+const CreatureBuilder := preload("res://games/saga_go/world/creature_builder.gd")
 const TalkFace := preload("res://games/saga_go/world/talk_face.gd")
 const SkyIsle := preload("res://games/saga_go/world/sky_isle.gd")
 const WorldQuests := preload("res://games/saga_go/data/world_quests.gd")
@@ -1345,6 +1346,8 @@ func _build_npc(id: String) -> void:
 		VroidBody.add_helmet(body)
 	if info.get("visor", false):
 		VroidBody.add_visor(body)
+	if info.get("hat", false):
+		VroidBody.add_hat(body)
 	var tf := TalkFace.attach(body)
 	if tf:
 		_faces[id] = tf
@@ -1479,11 +1482,17 @@ func _build_thief(s: Dictionary) -> void:
 	add_child(_thief)
 	_thief.global_position = _cell_pos(String(s.region), (s.path as Array)[0])
 	var drone := String(s.get("body", "")) == "drone"
-	var body: Node3D = _drone_body(s.get("cloth", Color(0.55, 0.85, 0.95))) if drone \
-		else VroidBody.build("story_thief", 2, s.get("cloth", Color(0.35, 0.3, 0.28)))
+	var horse := String(s.get("body", "")) == "horse" # 106장 ㊼-3 놀란 역마(코드 몸 말, 앞 = +Z)
+	var body: Node3D
+	if drone:
+		body = _drone_body(s.get("cloth", Color(0.55, 0.85, 0.95)))
+	elif horse:
+		body = CreatureBuilder.build("horse", s.get("colors", [Color(0.42, 0.28, 0.18), Color(0.16, 0.12, 0.1), Color(0.1, 0.08, 0.06)]))
+	else:
+		body = VroidBody.build("story_thief", 2, s.get("cloth", Color(0.35, 0.3, 0.28)))
 	body.name = "Body"
 	_thief.add_child(body)
-	if not drone:
+	if not drone and not horse:
 		VroidBody.add_mask(body)
 	var label := Label3D.new()
 	label.text = String(s.name)

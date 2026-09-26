@@ -55,6 +55,17 @@ var _vane: Node3D = null
 var _snow: CPUParticles3D = null
 ## 106장 ㊺-4 — 이야기 12장(별배 심장)을 마치면 눈이 잦아든다. PartyState.story.ch 가 이 값 이상이면 SNOW_CALM 알갱이.
 const CALM_AFTER_CH := 12
+## 106장 ㊼-3 — 이야기 15장(날개 조각 셋)을 마치면 추락한 비행선(별배)이 수평으로 서서 FLY_H m 위에 뜬다(충돌도 같이 — 활공으로 올라설 수 있다).
+## 파편은 땅에 남는다. 장이 끝나는 걸 보고 있으면 FLY_SEC 초 동안 떠오르고, 불러올 땐 이미 떠 있다.
+const FLY_AFTER_CH := 15
+const FLY_H := 9.0
+const FLY_SEC := 4.0
+const SHIP_TILT := 0.18
+var _ship: Node3D = null
+var _hull: Node3D = null
+var _wings: Node3D = null
+var _ship_label: Label3D = null
+var _ship_flown := false
 const SNOW_FULL := 260
 const SNOW_CALM := 60
 var _calm_t := 0.0
@@ -202,10 +213,15 @@ func _build_observatory() -> void:
 func _build_airship() -> void:
 	var root := _root("CrashedAirship", AIRSHIP_CELL)
 	root.rotation.y = 0.6
+	## 선체·충돌·이름표는 _ship 아래 — 15장 뒤 통째로 뜬다(파편은 root 에 남는다).
+	_ship = Node3D.new()
+	_ship.name = "Ship"
+	root.add_child(_ship)
 	var hull_node := Node3D.new()
-	hull_node.rotation = Vector3(0.0, 0.0, 0.18)
+	hull_node.rotation = Vector3(0.0, 0.0, SHIP_TILT)
 	hull_node.position = Vector3(0, 1.0, 0)
-	root.add_child(hull_node)
+	_ship.add_child(hull_node)
+	_hull = hull_node
 	var hull := MeshInstance3D.new()
 	var cap := CapsuleMesh.new()
 	cap.radius = 2.4
@@ -236,6 +252,23 @@ func _build_airship() -> void:
 	nose.material_override = _mat(Color(0.18, 0.18, 0.2))
 	nose.position = Vector3(8.2, -0.2, 0)
 	hull_node.add_child(nose)
+	## 날개 셋(조각 셋을 끼운 모양) — 뜬 뒤에만 보인다. 양옆 빛 날개 + 등 지느러미.
+	_wings = Node3D.new()
+	_wings.name = "StarWings"
+	hull_node.add_child(_wings)
+	for k in [-1, 1]:
+		var wing := _box(_wings, Vector3(5.0, 0.16, 4.2), Vector3(-0.5, 0.2, k * 4.3), GLOW)
+		wing.rotation = Vector3(k * -0.12, 0.0, 0.0)
+		var wm := wing.material_override as StandardMaterial3D
+		wm.emission_enabled = true
+		wm.emission = GLOW
+		wm.emission_energy_multiplier = 1.2
+	var fin := _box(_wings, Vector3(3.2, 1.8, 0.14), Vector3(0.8, 3.1, 0), GLOW.lightened(0.3))
+	var fnm := fin.material_override as StandardMaterial3D
+	fnm.emission_enabled = true
+	fnm.emission = GLOW
+	fnm.emission_energy_multiplier = 1.0
+	_wings.visible = false
 	## 흩어진 파편.
 	for k in 5:
 		var a := 0.9 + k * 1.1
@@ -243,8 +276,32 @@ func _build_airship() -> void:
 		var shard := _box(root, Vector3(1.2 - k * 0.12, 0.25, 0.8), Vector3(cos(a) * d, 0.15, sin(a) * d), HULL.darkened(0.25))
 		shard.rotation = Vector3(0.3 * k, a, 0.2)
 	## 충돌 — 선체를 감싸는 상자 하나(기울기는 무시, 올라설 수 있게 윗면 평평).
-	_solid_box(root, Vector3(16.0, 4.2, 4.6), Vector3(0, 2.1, 0), Color(0, 0, 0), false)
-	_label(root, "추락한 비행선", Vector3(0, 6.2, 0), Color(0.6, 0.95, 1.0))
+	_solid_box(_ship, Vector3(16.0, 4.2, 4.6), Vector3(0, 2.1, 0), Color(0, 0, 0), false)
+	_label(_ship, "추락한 비행선", Vector3(0, 6.2, 0), Color(0.6, 0.95, 1.0))
+	_ship_label = _ship.get_child(_ship.get_child_count() - 1) as Label3D
+	_set_ship(flown(), false)
+
+## 15장을 마쳤는가 — 별배가 떠 있다.
+static func flown() -> bool:
+	return int(PartyState.story.get("ch", 0)) >= FLY_AFTER_CH
+
+func ship_up() -> bool:
+	return _ship_flown
+
+## 뜬 모양/내려앉은 모양. animate 면 FLY_SEC 초에 걸쳐 떠오른다.
+func _set_ship(up: bool, animate: bool) -> void:
+	_ship_flown = up
+	_wings.visible = up
+	_ship_label.text = "별배" if up else "추락한 비행선"
+	var y := FLY_H if up else 0.0
+	var tilt := 0.0 if up else SHIP_TILT
+	if animate:
+		var tw := _ship.create_tween().set_parallel()
+		tw.tween_property(_ship, "position:y", y, FLY_SEC).set_trans(Tween.TRANS_SINE)
+		tw.tween_property(_hull, "rotation:z", tilt, FLY_SEC * 0.6)
+	else:
+		_ship.position.y = y
+		_hull.rotation.z = tilt
 
 ## 얼어붙은 호수 — 가장자리 얼음 결정 몇 개와 얼음 낚시 구멍.
 func _build_lake() -> void:
@@ -421,6 +478,8 @@ func _process(delta: float) -> void:
 		var want := SNOW_CALM if calm() else SNOW_FULL
 		if _snow.amount != want:
 			_snow.amount = want
+		if flown() != _ship_flown:
+			_set_ship(flown(), true)
 	if _snow.emitting != inside:
 		_snow.emitting = inside
 	if inside:

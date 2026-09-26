@@ -5,12 +5,14 @@ extends Node3D
 ##   ㊼-1 갯바람 포구 동쪽 물가 "녹슨 조선소"(현대) — 13장. 바다로 내려가는 선대·짓다 만 배 뼈대·올라갈 수 있는 문형 기중기.
 ##   ㊼-2 잿빛 폐허 서쪽 "시간 틈 관측소"(미래) — 14장. 땅엔 부서진 탑 터·틈(보랏빛 금), 24m 위에 떠 있는 관측대(난간·관측경 돔),
 ##        남쪽에 시간 기둥(상승 기류, sky_isle.gd 바람 기둥과 같은 틀) — 14장 석등을 켠 뒤(DRAFT_FROM_STEP)부터 선다.
-##   (㊼-3 청하 마을 "옛 역참 길"(과거)은 다음 장에서 여기에 더한다.)
+##   ㊼-3 청하 마을 남쪽 산골 "옛 역참 길"(과거) — 15장. 골짜기 길(폭 48m, 양옆 절벽) 서쪽에 돌담 두른 역참 터·초가 마구간·구유·
+##        역참 깃대, 골짜기 북쪽 어귀에 돌장승 둘, 마구간에 역마 한 마리(15장 쫓기 동안만 비운다). 한가운데 이정표(landmarks_builder)는 그대로.
 ## 모양은 코드로 그린 상자·원기둥(고원 명소 region4_frost.gd 와 같은 결). 기중기 다리 바깥면은 들보 끝면과 같은 면이라
 ## 다리를 타고 오르면 그대로 들보 위로 넘어선다(벽 타기 — 정적 몸체 옆면).
 
 const TestMap := preload("res://games/saga_go/data/test_map.gd")
 const TerrainBuilder := preload("res://games/saga_go/world/terrain_builder.gd")
+const CreatureBuilder := preload("res://games/saga_go/world/creature_builder.gd")
 
 const DISCOVER_R := 30.0
 ## 조선소 칸(바다 칸 (7,3) 남쪽 물가 — 북쪽 = 바다). 둘레 1칸 안의 가장 가까운 것: 조개 무리 (6.8,4.1) 29m · 쇠부리 터 비경 (7.3,4.6) 36m.
@@ -30,6 +32,10 @@ const DRAFT_R := 3.0
 const DRAFT_OVER := 8.0 # 관측대 윗면보다 이만큼 위까지 솟는다
 const DRAFT_VY := 9.0
 const CH14 := 13 # 14장(0부터)
+## 옛 역참 터 — 마을 남쪽 산골 길 (5,8)~(5,10) 서쪽(땅 높이 칸 x 4.5~5.4 가 평지). 이정표 (5,9) 에서 서북쪽 15m.
+const STATION_CELL := Vector2(4.72, 8.8)
+const CH15 := 14
+const HORSE_AWAY_STEP := 3 # 15장 쫓기 단계 — 이때만 마구간이 빈다
 const DRAFT_FROM_STEP := 6 # 석등(5)을 다 켠 뒤 단계부터
 
 const RUST := Color(0.52, 0.3, 0.18)
@@ -41,6 +47,11 @@ const ALLOY := Color(0.74, 0.77, 0.82)
 const ALLOY_DARK := Color(0.3, 0.33, 0.4)
 const RIFT_GLOW := Color(0.72, 0.5, 1.0)
 const DRAFT_GLOW := Color(0.6, 0.85, 1.0)
+const FIELDSTONE := Color(0.55, 0.52, 0.47)
+const THATCH := Color(0.66, 0.55, 0.32)
+const TIMBER := Color(0.36, 0.25, 0.16)
+
+var _horse: Node3D = null
 
 var _draft: Node3D = null
 var _player: Node3D = null
@@ -49,6 +60,7 @@ func _ready() -> void:
 	add_to_group("go_era_sites")
 	_build_shipyard()
 	_build_observatory()
+	_build_old_station()
 	_refresh_draft()
 
 static func cell_pos(region: String, c: Vector2) -> Vector3:
@@ -81,6 +93,12 @@ func draft_active() -> bool:
 func _refresh_draft() -> void:
 	if _draft:
 		_draft.visible = draft_open()
+	if _horse:
+		_horse.visible = horse_home()
+
+## 마구간 역마가 제자리에 있는가 — 15장 쫓기(story_quest chase 가 따로 달리는 말을 세운다) 동안만 비운다.
+static func horse_home() -> bool:
+	return not (int(PartyState.story.get("ch", 0)) == CH15 and int(PartyState.story.get("step", 0)) == HORSE_AWAY_STEP)
 
 ## 시간 기둥 안 공중이면 솟는다(go_player.gd updraft — 땅에 서 있으면 안 뜬다, 뛰어오르면 탄다).
 func _physics_process(_delta: float) -> void:
@@ -326,6 +344,47 @@ func _build_observatory() -> void:
 	_label(root, "시간 틈 관측소", Vector3(0, OBS_RISE + 5.2, 0), Color(0.78, 0.9, 1.0))
 	_add_discovery("ruins_rift_observatory", root.position, DISCOVER_R)
 	_build_draft()
+
+func _build_old_station() -> void:
+	var root := Node3D.new()
+	root.name = "OldStation"
+	add_child(root)
+	root.position = cell_pos("village", STATION_CELL)
+	## 돌담 — 서·북·남 세 변(0.9m, 동쪽 = 길 쪽이 트였다). 서쪽 변 뒤는 절벽.
+	_solid_box(root, Vector3(0.7, 0.9, 12.0), Vector3(-9.0, 0.45, 0.0), FIELDSTONE)
+	_solid_box(root, Vector3(6.0, 0.9, 0.7), Vector3(-6.0, 0.45, -6.0), FIELDSTONE)
+	_solid_box(root, Vector3(6.0, 0.9, 0.7), Vector3(-6.0, 0.45, 6.0), FIELDSTONE)
+	_box(root, Vector3(1.4, 0.35, 0.7), Vector3(-2.4, 0.18, 6.0), FIELDSTONE.darkened(0.15)) # 무너진 담 끝
+	## 초가 마구간 — 기둥 넷 + 기운 초가 지붕(보이는 것만) + 구유.
+	for x in [-8.2, -3.8]:
+		for z in [-4.4, -0.6]:
+			_solid_box(root, Vector3(0.28, 2.6, 0.28), Vector3(x, 1.3, z), TIMBER)
+	var roof := _box(root, Vector3(5.6, 0.35, 4.8), Vector3(-6.0, 2.85, -2.5), THATCH)
+	roof.rotation.x = deg_to_rad(8.0)
+	_solid_box(root, Vector3(2.2, 0.55, 0.7), Vector3(-6.0, 0.28, -3.6), TIMBER.lightened(0.1)) # 구유
+	## 역참 깃대 — 장대 + 붉은 천.
+	_box(root, Vector3(0.16, 6.0, 0.16), Vector3(-3.0, 3.0, 4.2), TIMBER)
+	var flag := _box(root, Vector3(0.04, 1.1, 1.6), Vector3(-3.0, 5.2, 3.35), Color(0.72, 0.16, 0.14))
+	flag.rotation.x = deg_to_rad(4.0)
+	## 역마 — 마구간 앞(코드 몸 말, 앞 = +Z 를 길 쪽으로).
+	_horse = CreatureBuilder.build("horse", [Color(0.42, 0.28, 0.18), Color(0.16, 0.12, 0.1), Color(0.1, 0.08, 0.06)])
+	_horse.name = "StationHorse"
+	_horse.position = Vector3(-5.2, 0.0, 1.6)
+	_horse.rotation.y = PI * 0.5
+	root.add_child(_horse)
+	## 골짜기 북쪽 어귀 돌장승 둘 — 길 양쪽 가장자리.
+	for cx in [4.58, 5.38]:
+		var jp := cell_pos("village", Vector2(cx, 8.3))
+		var pole := Node3D.new()
+		pole.name = "Jangseung"
+		add_child(pole)
+		pole.position = jp
+		_solid_box(pole, Vector3(0.7, 2.6, 0.7), Vector3(0, 1.3, 0), FIELDSTONE.lightened(0.08))
+		_box(pole, Vector3(0.78, 0.5, 0.78), Vector3(0, 2.85, 0), FIELDSTONE.darkened(0.1)) # 머리 갓
+		_box(pole, Vector3(0.5, 0.08, 0.05), Vector3(0, 2.1, 0.37), Color(0.2, 0.18, 0.16)) # 눈썹
+		_box(pole, Vector3(0.3, 0.1, 0.05), Vector3(0, 1.55, 0.37), Color(0.55, 0.16, 0.12)) # 입
+	_label(root, "옛 역참 터", Vector3(-6.0, 4.6, 0.0), Color(1.0, 0.86, 0.62))
+	_add_discovery("village_old_road", root.position, DISCOVER_R)
 
 ## 시간 기둥 — 빛 원기둥 + 밑에서 위로 흘러가는 고리 넷(sky_isle.gd 바람 기둥과 같은 결, 빛깔만 청백).
 func _build_draft() -> void:

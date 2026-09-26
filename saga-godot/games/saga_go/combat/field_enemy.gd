@@ -101,6 +101,13 @@ const KINDS := {
 		"phase_text": "틈새 서리 구미호가 시간 틈의 서리를 두르고 여우와 매를 부른다 — 불로 방패를 깨라",
 		"rotation": ["rift", "bite", "storm", "rift", "slam", "halo"], "summon": ["ice_fox", "wind_hawk"],
 		"shape": "fox9", "height": 3.2, "colors": [Color(0.92, 0.96, 1.0), Color(0.6, 0.55, 0.95), Color(0.45, 0.95, 1.0)]},
+	## 106장 ㊼-3 15장 이야기 보스 "여우불 구미호"(청하 마을 남쪽 옛 역참 길) — 12장에 달아난 구미호가 옛 시대 여우불을 먹었다(화).
+	## 패턴은 있는 틀: 틈새 질주·그림자(등 뒤로 옮겨 붙기)·밀물 줄·고리. 2단계 화 방패(물로 깬다).
+	"rift_fox_ember": {"name": "여우불 구미호", "hp": 7000.0, "atk": 40.0, "speed": 5.4, "aggro": 24.0,
+		"reach": 3.0, "tell": 0.7, "cd": 1.4, "exp": 0.0, "element": "fire", "shield": 0.0, "phase_shield": 800.0,
+		"phase_text": "여우불 구미호가 옛 길의 여우불을 두르고 도깨비와 살쾡이를 부른다 — 물로 방패를 깨라",
+		"rotation": ["rift", "shadow", "bite", "rift", "tide", "halo"], "summon": ["fire_imp", "thunder_cat"],
+		"shape": "fox9", "height": 3.4, "colors": [Color(1.0, 0.93, 0.82), Color(1.0, 0.45, 0.18), Color(1.0, 0.8, 0.3)]},
 }
 
 const GRAVITY := 20.0
