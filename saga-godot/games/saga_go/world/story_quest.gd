@@ -302,7 +302,7 @@ func _step_target(s: Dictionary, tracked: bool) -> Vector3:
 			"chase":
 				return _cell_pos(String(s.region), (s.path as Array)[0])
 			"duel":
-				return _cell_pos(String(s.region), s.cell, bool(s.get("sky", false)))
+				return _cell_pos(String(s.region), s.cell, bool(s.get("sky", false)), float(s.get("lift", 0.0)))
 			"gather", "cook":
 				if _player == null:
 					return Vector3.INF
@@ -310,14 +310,14 @@ func _step_target(s: Dictionary, tracked: bool) -> Vector3:
 		"talk":
 			return npc_pos(String(s.npc))
 		"go", "kill", "light", "seal", "climb", "defend":
-			return _cell_pos(String(s.region), s.cell, bool(s.get("sky", false)))
+			return _cell_pos(String(s.region), s.cell, bool(s.get("sky", false)), float(s.get("lift", 0.0)))
 		"sky":
 			return SkyIsle.center()
 		"duel":
 			for e in _quest_enemies:
 				if is_instance_valid(e) and not e.call("is_dead"):
 					return (e as Node3D).global_position
-			return _cell_pos(String(s.region), s.cell, bool(s.get("sky", false)))
+			return _cell_pos(String(s.region), s.cell, bool(s.get("sky", false)), float(s.get("lift", 0.0)))
 		"boss":
 			var fb := get_tree().get_first_node_in_group("go_field_bosses")
 			if fb and fb.call("boss", String(s.boss)):
@@ -408,7 +408,7 @@ func _place_npcs() -> void:
 					p = _cell_pos(String(sj.region), path[path.size() - 1])
 		for w in [_window_now(info.get("appear")), _window_now(Story.STATIONS.get(id))]:
 			if (w as Dictionary).has("cell"):
-				p = _cell_pos(String(w.region), w.cell, bool(w.get("sky", false)))
+				p = _cell_pos(String(w.region), w.cell, bool(w.get("sky", false)), float(w.get("lift", 0.0)))
 		root.global_position = p
 		_npc_pos[id] = p
 
@@ -471,10 +471,10 @@ func _ground_y(region: String, p: Vector3) -> float:
 func gathered_count() -> int:
 	return _count
 
-## sky = 구름섬 윗면 높이(106장 ㊳ 9장, world/sky_isle.gd) — 아니면 땅 높이.
-static func _cell_pos(region: String, cell: Vector2, sky := false) -> Vector3:
+## sky = 구름섬 윗면 높이(106장 ㊳ 9장, world/sky_isle.gd) — 아니면 땅 높이 + lift(106장 ㊼-2 14장 떠 있는 관측대 윗면 등).
+static func _cell_pos(region: String, cell: Vector2, sky := false, lift := 0.0) -> Vector3:
 	var p := TestMap.world_pos(cell.x, cell.y, region)
-	p.y = SkyIsle.top_y() if sky else TerrainBuilder.height_at(region, p)
+	p.y = SkyIsle.top_y() if sky else TerrainBuilder.height_at(region, p) + lift
 	return p
 
 # ---------------------------------------------------------------- 단계
@@ -497,8 +497,8 @@ func _enter_step() -> void:
 	var s := current_step()
 	match String(s.get("type", "")):
 		"kill":
-			var sky := bool(s.get("sky", false))
-			var center := _cell_pos(String(s.region), s.cell, sky)
+			var sky := bool(s.get("sky", false)) or float(s.get("lift", 0.0)) > 0.0 # 떠 있는 자리면 둘레도 그 윗면 높이로
+			var center := _cell_pos(String(s.region), s.cell, bool(s.get("sky", false)), float(s.get("lift", 0.0)))
 			var kinds: Array = s.kinds
 			for i in kinds.size():
 				var a := TAU * float(i) / float(kinds.size())
@@ -516,7 +516,7 @@ func _enter_step() -> void:
 			_build_altar(_cell_pos(String(s.region), s.cell))
 		"duel":
 			## 106장 ㉜ 이야기 보스 — field_boss.gd 틀, 한 번뿐. 위 보스 막대(world/field_bosses.gd)가 go_story_boss 를 본다.
-			var bp := _cell_pos(String(s.region), s.cell, bool(s.get("sky", false))) + Vector3.UP * 0.3
+			var bp := _cell_pos(String(s.region), s.cell, bool(s.get("sky", false)), float(s.get("lift", 0.0))) + Vector3.UP * 0.3
 			## 내가 그 자리에 서 있으면 몸이 겹쳐 서로 밀어 올린다(구름섬에서 둘이 20m 솟았다) — 나에게서 DUEL_CLEAR m 떨어뜨려 세운다.
 			if _player:
 				var away := bp - _player.global_position
@@ -760,7 +760,7 @@ func _physics_process(delta: float) -> void:
 				advance()
 				return
 		"kill", "duel":
-			if String(s.type) == "duel" or bool(s.get("sky", false)):
+			if String(s.type) == "duel" or bool(s.get("sky", false)) or float(s.get("lift", 0.0)) > 0.0:
 				## 봉우리 보스·구름섬 무리가 밑으로 떨어지면(집보다 DUEL_FALL m 아래) 제자리로 되돌린다 — 밑에서 못 올라와 멈추지 않게.
 				for e in alive_quest_enemies():
 					var home: Vector3 = e.get("home")
@@ -1343,6 +1343,8 @@ func _build_npc(id: String) -> void:
 		VroidBody.add_mask(body, info.get("mask_color", Color(0.72, 0.12, 0.12)), info.get("mask_face", Color(0.94, 0.92, 0.86)), info.get("crack", false))
 	if info.get("helmet", false):
 		VroidBody.add_helmet(body)
+	if info.get("visor", false):
+		VroidBody.add_visor(body)
 	var tf := TalkFace.attach(body)
 	if tf:
 		_faces[id] = tf

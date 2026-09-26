@@ -3,7 +3,9 @@ extends Node3D
 ## PLAN 106장 ㊼ 이야기 3부 — "별배 날개 조각 셋이 여러 시대에 흩어졌다"(12장 끝 실마리)의 세 자리.
 ## 탐사 파견(data/dispatch.gd)이 이미 이름만 쓰던 자리를 실제 명소로 세운다:
 ##   ㊼-1 갯바람 포구 동쪽 물가 "녹슨 조선소"(현대) — 13장. 바다로 내려가는 선대·짓다 만 배 뼈대·올라갈 수 있는 문형 기중기.
-##   (㊼-2 잿빛 폐허 "시간 틈 관측소"(미래) · ㊼-3 청하 마을 "옛 역참 길"(과거)은 다음 장에서 여기에 더한다.)
+##   ㊼-2 잿빛 폐허 서쪽 "시간 틈 관측소"(미래) — 14장. 땅엔 부서진 탑 터·틈(보랏빛 금), 24m 위에 떠 있는 관측대(난간·관측경 돔),
+##        남쪽에 시간 기둥(상승 기류, sky_isle.gd 바람 기둥과 같은 틀) — 14장 석등을 켠 뒤(DRAFT_FROM_STEP)부터 선다.
+##   (㊼-3 청하 마을 "옛 역참 길"(과거)은 다음 장에서 여기에 더한다.)
 ## 모양은 코드로 그린 상자·원기둥(고원 명소 region4_frost.gd 와 같은 결). 기중기 다리 바깥면은 들보 끝면과 같은 면이라
 ## 다리를 타고 오르면 그대로 들보 위로 넘어선다(벽 타기 — 정적 몸체 옆면).
 
@@ -17,20 +19,81 @@ const SHIPYARD_CELL := Vector2(7.3, 3.85)
 const CRANE_TOP := 12.6
 const CRANE_HALF := 7.0 # 들보 반 길이 — 다리 바깥면이 여기
 
+## 시간 틈 관측소 — 폐허 서쪽 R 칸(가장 가까운 것: 잿빛 꽃 (1.4,3.0)·꿀꽃 (1.3,1.4)·기둥 유물 (1,3) 39~40m · 도적 야영 상자 (2.05,2.05) 41m).
+const RIFT_CELL := Vector2(1.2, 2.2)
+const OBS_RISE := 24.0 # 땅 위 관측대 윗면 높이 — 14장 kill lift·반디 자리 lift 와 같다, climb above = 이 값 + 2.0
+const OBS_R := 9.0 # 관측대 윗면 반지름
+const OBS_RIM_H := 1.0 # 난간 — 나는 넘고(턱 넘기 1.3m) 적은 못 넘는다
+const PILLAR_R := 7.5 # 땅 위 부서진 탑 기둥 둘레(석등 둘레 Story.SEAL_RING 6m 보다 바깥)
+const DRAFT_OFF := Vector3(0.0, 0.0, 13.0) # 시간 기둥 — 관측대 남쪽 바깥(가장자리에서 4m)
+const DRAFT_R := 3.0
+const DRAFT_OVER := 8.0 # 관측대 윗면보다 이만큼 위까지 솟는다
+const DRAFT_VY := 9.0
+const CH14 := 13 # 14장(0부터)
+const DRAFT_FROM_STEP := 6 # 석등(5)을 다 켠 뒤 단계부터
+
 const RUST := Color(0.52, 0.3, 0.18)
 const RUST_DARK := Color(0.34, 0.2, 0.13)
 const CONCRETE := Color(0.62, 0.62, 0.6)
 const CRANE_PAINT := Color(0.82, 0.62, 0.18)
 const HULL_GRAY := Color(0.45, 0.47, 0.5)
+const ALLOY := Color(0.74, 0.77, 0.82)
+const ALLOY_DARK := Color(0.3, 0.33, 0.4)
+const RIFT_GLOW := Color(0.72, 0.5, 1.0)
+const DRAFT_GLOW := Color(0.6, 0.85, 1.0)
+
+var _draft: Node3D = null
+var _player: Node3D = null
 
 func _ready() -> void:
 	add_to_group("go_era_sites")
 	_build_shipyard()
+	_build_observatory()
+	_refresh_draft()
 
 static func cell_pos(region: String, c: Vector2) -> Vector3:
 	var p := TestMap.world_pos(c.x, c.y, region)
 	p.y = TerrainBuilder.height_at(region, p)
 	return p
+
+## 떠 있는 관측대 윗면 한가운데(월드).
+static func obs_top() -> Vector3:
+	return cell_pos("ruins", RIFT_CELL) + Vector3(0, OBS_RISE, 0)
+
+static func draft_base() -> Vector3:
+	var p := cell_pos("ruins", RIFT_CELL) + DRAFT_OFF
+	p.y = TerrainBuilder.height_at("ruins", p)
+	return p
+
+## 관측대 윗면 위에 서 있는가(가로 반지름 안·윗면 근처).
+static func on_obs(p: Vector3, slack := 1.5) -> bool:
+	var c := obs_top()
+	return Vector2(p.x - c.x, p.z - c.z).length() <= OBS_R and p.y >= c.y - slack and p.y <= c.y + 6.0
+
+## 14장 석등을 켰거나 지났는가 — 시간 기둥이 선다(끝난 뒤에도 남아 다시 오를 수 있다).
+static func draft_open() -> bool:
+	var ch := int(PartyState.story.get("ch", 0))
+	return ch > CH14 or (ch == CH14 and int(PartyState.story.get("step", 0)) >= DRAFT_FROM_STEP)
+
+func draft_active() -> bool:
+	return _draft != null and _draft.visible
+
+func _refresh_draft() -> void:
+	if _draft:
+		_draft.visible = draft_open()
+
+## 시간 기둥 안 공중이면 솟는다(go_player.gd updraft — 땅에 서 있으면 안 뜬다, 뛰어오르면 탄다).
+func _physics_process(_delta: float) -> void:
+	if _player == null:
+		_player = get_tree().get_first_node_in_group("player")
+		return
+	_refresh_draft()
+	if not draft_active() or not _player.has_method("updraft"):
+		return
+	var b := draft_base()
+	var pp := _player.global_position
+	if Vector2(pp.x - b.x, pp.z - b.z).length() <= DRAFT_R and pp.y >= b.y - 1.0 and pp.y <= obs_top().y + DRAFT_OVER:
+		_player.call("updraft", DRAFT_VY)
 
 ## 기중기 들보 윗면 한가운데(월드).
 static func crane_top() -> Vector3:
@@ -89,11 +152,234 @@ func _build_shipyard() -> void:
 	_label(root, "녹슨 조선소", Vector3(0, CRANE_TOP + 2.2, -2.0), Color(1.0, 0.86, 0.6))
 	_add_discovery("coast_shipyard", root.position, DISCOVER_R)
 
+func _build_observatory() -> void:
+	var root := Node3D.new()
+	root.name = "RiftObservatory"
+	add_child(root)
+	root.position = cell_pos("ruins", RIFT_CELL)
+	## 땅 — 탑이 뽑혀 나간 육각 쇠 바닥(얇은 판, 충돌 없음 — 석등·제단이 땅 높이에 선다) + 부서진 기둥 여섯.
+	var floor_mi := MeshInstance3D.new()
+	var fm := CylinderMesh.new()
+	fm.top_radius = PILLAR_R + 0.8
+	fm.bottom_radius = PILLAR_R + 0.8
+	fm.height = 0.08
+	fm.radial_segments = 6
+	floor_mi.mesh = fm
+	floor_mi.material_override = _mat(ALLOY_DARK)
+	floor_mi.position = Vector3(0, 0.02, 0)
+	root.add_child(floor_mi)
+	var heights := [3.8, 1.6, 2.9, 1.2, 4.4, 2.2]
+	for i in 6:
+		var a := TAU * i / 6.0
+		var h: float = heights[i]
+		var pos := Vector3(cos(a), 0.0, sin(a)) * PILLAR_R
+		_solid_box(root, Vector3(0.9, h, 0.9), pos + Vector3(0, h * 0.5, 0), ALLOY)
+		_box(root, Vector3(1.0, 0.1, 1.0), pos + Vector3(0, h * 0.6, 0), RIFT_GLOW.darkened(0.3)) # 빛 띠
+	## 틈 — 관측대 밑 허공에 선 보랏빛 금(충돌 없음). 둘레를 느리게 도는 고리 둘.
+	var rift := MeshInstance3D.new()
+	var rs := SphereMesh.new()
+	rs.radius = 1.6
+	rs.height = 6.0
+	rs.radial_segments = 16
+	rs.rings = 8
+	rift.mesh = rs
+	rift.material_override = _glow(RIFT_GLOW, 0.55)
+	rift.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	rift.scale = Vector3(1.0, 1.0, 0.18)
+	rift.position = Vector3(0, 10.0, 0)
+	root.add_child(rift)
+	var ring := TorusMesh.new()
+	ring.inner_radius = 2.6
+	ring.outer_radius = 2.8
+	for k in 2:
+		var rm := MeshInstance3D.new()
+		rm.mesh = ring
+		rm.material_override = _glow(RIFT_GLOW.lightened(0.2), 0.5)
+		rm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		rm.position = Vector3(0, 10.0, 0)
+		rm.rotation = Vector3(deg_to_rad(70.0 + 40.0 * k), 0.0, deg_to_rad(20.0 * k))
+		root.add_child(rm)
+		var tw := rm.create_tween().set_loops()
+		tw.tween_property(rm, "rotation:y", TAU * (1.0 if k == 0 else -1.0), 9.0 + 4.0 * k).as_relative()
+	## 떠 있는 관측대 — 쇠 원판(두께 1.0m) + 밑의 거꾸로 선 쇠 뿔(충돌 볼록) + 난간 + 북쪽 관측경 돔.
+	var body := StaticBody3D.new()
+	body.name = "ObsDeck"
+	body.collision_layer = 1
+	body.position = Vector3(0, OBS_RISE, 0)
+	root.add_child(body)
+	var top := CylinderMesh.new()
+	top.top_radius = OBS_R
+	top.bottom_radius = OBS_R - 0.6
+	top.height = 1.0
+	top.radial_segments = 24
+	var top_mi := MeshInstance3D.new()
+	top_mi.mesh = top
+	top_mi.material_override = _mat(ALLOY)
+	top_mi.position = Vector3(0, -0.5, 0)
+	body.add_child(top_mi)
+	var ts := CylinderShape3D.new()
+	ts.radius = OBS_R
+	ts.height = 1.0
+	var tcs := CollisionShape3D.new()
+	tcs.shape = ts
+	tcs.position = Vector3(0, -0.5, 0)
+	body.add_child(tcs)
+	var cone := CylinderMesh.new()
+	cone.top_radius = OBS_R - 0.6
+	cone.bottom_radius = 0.8
+	cone.height = 6.0
+	cone.radial_segments = 12
+	cone.rings = 1
+	var cone_mi := MeshInstance3D.new()
+	cone_mi.mesh = cone
+	cone_mi.material_override = _mat(ALLOY_DARK)
+	cone_mi.position = Vector3(0, -4.0, 0)
+	body.add_child(cone_mi)
+	var ccs := CollisionShape3D.new()
+	ccs.shape = cone.create_convex_shape()
+	ccs.position = Vector3(0, -4.0, 0)
+	body.add_child(ccs)
+	## 윗면 빛줄 고리(장식) — 가장자리 안쪽 청록 띠.
+	var inlay := TorusMesh.new()
+	inlay.inner_radius = OBS_R - 1.6
+	inlay.outer_radius = OBS_R - 1.35
+	inlay.rings = 32
+	var inlay_mi := MeshInstance3D.new()
+	inlay_mi.mesh = inlay
+	inlay_mi.material_override = _glow(DRAFT_GLOW, 0.7)
+	inlay_mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	inlay_mi.scale = Vector3(1.0, 0.1, 1.0)
+	inlay_mi.position = Vector3(0, 0.02, 0)
+	body.add_child(inlay_mi)
+	## 난간 — 보이는 쇠 고리 하나 + 기둥 여덟, 충돌은 상자 열여섯 조각(sky_isle.gd 와 같은 틀).
+	var rim := TorusMesh.new()
+	rim.inner_radius = OBS_R - 0.6
+	rim.outer_radius = OBS_R - 0.25
+	rim.rings = 32
+	var rim_mi := MeshInstance3D.new()
+	rim_mi.mesh = rim
+	rim_mi.material_override = _mat(ALLOY_DARK)
+	rim_mi.scale = Vector3(1.0, 1.4, 1.0)
+	rim_mi.position = Vector3(0, OBS_RIM_H * 0.55, 0)
+	body.add_child(rim_mi)
+	for i in 8:
+		var a := TAU * i / 8.0
+		_box(body, Vector3(0.4, OBS_RIM_H + 0.4, 0.4), Vector3(cos(a), 0.0, sin(a)) * (OBS_R - 0.42) + Vector3.UP * (OBS_RIM_H + 0.4) * 0.5, ALLOY)
+	var seg_n := 16
+	var seg_len := TAU * (OBS_R - 0.42) / seg_n + 0.3
+	for i in seg_n:
+		var a := TAU * (i + 0.5) / seg_n
+		var bs := BoxShape3D.new()
+		bs.size = Vector3(seg_len, OBS_RIM_H, 0.4)
+		var cs := CollisionShape3D.new()
+		cs.shape = bs
+		cs.position = Vector3(cos(a), 0.0, sin(a)) * (OBS_R - 0.42) + Vector3.UP * OBS_RIM_H * 0.5
+		cs.rotation.y = -a + PI * 0.5
+		body.add_child(cs)
+	## 관측경 돔 — 북쪽 끝(싸움터 가운데를 비워 둔다). 둥근 벽(충돌) + 반구 지붕 + 하늘로 기운 망원경.
+	var dome_at := Vector3(0, 0, -(OBS_R - 2.7))
+	var drum := CylinderMesh.new()
+	drum.top_radius = 1.8
+	drum.bottom_radius = 1.8
+	drum.height = 1.6
+	drum.radial_segments = 16
+	var drum_mi := MeshInstance3D.new()
+	drum_mi.mesh = drum
+	drum_mi.material_override = _mat(ALLOY)
+	drum_mi.position = dome_at + Vector3(0, 0.8, 0)
+	body.add_child(drum_mi)
+	var dcs := CollisionShape3D.new()
+	var dsh := CylinderShape3D.new()
+	dsh.radius = 1.8
+	dsh.height = 1.6
+	dcs.shape = dsh
+	dcs.position = dome_at + Vector3(0, 0.8, 0)
+	body.add_child(dcs)
+	var cap := MeshInstance3D.new()
+	var cap_m := SphereMesh.new()
+	cap_m.radius = 1.8
+	cap_m.height = 1.8
+	cap_m.is_hemisphere = true
+	cap.mesh = cap_m
+	cap.material_override = _mat(Color(0.9, 0.92, 0.95))
+	cap.position = dome_at + Vector3(0, 1.6, 0)
+	body.add_child(cap)
+	var scope := MeshInstance3D.new()
+	var sc := CylinderMesh.new()
+	sc.top_radius = 0.28
+	sc.bottom_radius = 0.4
+	sc.height = 3.0
+	scope.mesh = sc
+	scope.material_override = _mat(ALLOY_DARK)
+	scope.position = dome_at + Vector3(0, 2.7, 0.6)
+	scope.rotation.x = deg_to_rad(-35.0)
+	body.add_child(scope)
+	var lens := MeshInstance3D.new()
+	var lm := CylinderMesh.new()
+	lm.top_radius = 0.3
+	lm.bottom_radius = 0.3
+	lm.height = 0.06
+	lens.mesh = lm
+	lens.material_override = _glow(DRAFT_GLOW, 0.85)
+	lens.position = Vector3(0, 1.52, 0)
+	scope.add_child(lens)
+	_label(root, "시간 틈 관측소", Vector3(0, OBS_RISE + 5.2, 0), Color(0.78, 0.9, 1.0))
+	_add_discovery("ruins_rift_observatory", root.position, DISCOVER_R)
+	_build_draft()
+
+## 시간 기둥 — 빛 원기둥 + 밑에서 위로 흘러가는 고리 넷(sky_isle.gd 바람 기둥과 같은 결, 빛깔만 청백).
+func _build_draft() -> void:
+	_draft = Node3D.new()
+	_draft.name = "TimeDraft"
+	add_child(_draft)
+	var b := draft_base()
+	_draft.position = b
+	var h := obs_top().y + DRAFT_OVER - b.y
+	var col := CylinderMesh.new()
+	col.top_radius = DRAFT_R
+	col.bottom_radius = DRAFT_R
+	col.height = h
+	col.radial_segments = 20
+	col.rings = 1
+	col.cap_top = false
+	col.cap_bottom = false
+	var col_mi := MeshInstance3D.new()
+	col_mi.mesh = col
+	col_mi.material_override = _glow(DRAFT_GLOW, 0.1)
+	col_mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	col_mi.position = Vector3.UP * h * 0.5
+	_draft.add_child(col_mi)
+	var ring := TorusMesh.new()
+	ring.inner_radius = DRAFT_R - 0.35
+	ring.outer_radius = DRAFT_R
+	var rm := _glow(DRAFT_GLOW.lightened(0.3), 0.45)
+	for i in 4:
+		var mi := MeshInstance3D.new()
+		mi.mesh = ring
+		mi.material_override = rm
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mi.scale = Vector3(1.0, 0.2, 1.0)
+		var from := h * i / 4.0
+		mi.position = Vector3.UP * from
+		_draft.add_child(mi)
+		var tw := mi.create_tween().set_loops()
+		tw.tween_property(mi, "position:y", h, (h - from) / 12.0)
+		tw.tween_property(mi, "position:y", 0.0, 0.0)
+		tw.tween_property(mi, "position:y", from, maxf(from / 12.0, 0.05))
+
 # ---------------------------------------------------------------- 도우미(region4_frost.gd 와 같은 결)
 
 func _mat(c: Color) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.albedo_color = c
+	return m
+
+func _glow(c: Color, alpha: float) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.albedo_color = Color(c.r, c.g, c.b, alpha)
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
 	return m
 
 func _box(parent: Node3D, size: Vector3, pos: Vector3, color: Color) -> MeshInstance3D:

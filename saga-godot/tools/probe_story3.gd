@@ -8,6 +8,11 @@ extends Node
 ## 다리 바깥면이 들보 끝면과 같은 면·도감 발견 자리) [2] 반디 → 조선소 목표(포구) [3] 조선소 [4] 다온 → 무리 [5] 무리 넷(포구에 섬)
 ## [6] 다온 → 기중기 [7] 오르기(땅에 서면 안 넘어감·들보 위에 서면 넘어감) [8] 반디(조선소에 날아와 있음) → 용접대
 ## [9] 지키기(바다 쪽 북쪽에서 안 나옴·물결 셋·"용접대") [10] 다온 → 13장 끝·보상·✔ 제13장·반디는 비행선으로.
+## 14장 "시간 틈 관측소"(㊼-2): [11] 표·자리(가온·반디 자리가 명소 몸에 안 묻힘·관측대 윗면 높이·climb above·kill lift·
+## 시간 기둥 밑이 관측대에 안 가림·아직 안 섬·도감) [12] 반디(비행선) → 폐허 [13] 관측소 [14] 가온(바이저) → 무리 [15] 무리 넷(폐허에 섬)
+## [16] 가온 → 석등(목표 글자 "별 → 해 → 달") [17] 석등 차례(틀리면 꺼짐 [0,1,0,3]·석등이 기둥에 안 가림·다 켜면 시간 기둥이 섬)
+## [18] 가온 → 오르기 [19] 오르기(땅에 서면 안 넘어감 · 시간 기둥에 실제로 뛰어들어 솟고 → 앞으로 활공해 관측대에 내려앉음)
+## [20] 관측대 파수 셋(관측대 위에 섬·떨어지면 제자리로) [21] 반디(관측대 위) → 14장 끝·보상·✔ 제14장·시간 기둥은 남음.
 ## 이야기 상태·부대 경험·가방은 끝에 되돌린다. 저장은 안 한다.
 
 const Story := preload("res://games/saga_go/data/story.gd")
@@ -16,6 +21,7 @@ const TerrainBuilder := preload("res://games/saga_go/world/terrain_builder.gd")
 const EraSites := preload("res://games/saga_go/world/era_sites.gd")
 
 const CH13 := 12 # 13장(0부터)
+const CH14 := 13
 
 var _p: CharacterBody3D
 var _sq: Node
@@ -38,11 +44,11 @@ func _physics_process(_delta: float) -> void:
 	if _frame < 3 and _step == 0:
 		return
 	match _step:
-		0: # 준비 — 13장 처음, 모험 등급 33
+		0: # 준비 — 13장 처음, 모험 등급 35(14장 ar 34 까지 열림)
 			_saved = {"story": PartyState.story.duplicate(true), "members": PartyState.members.duplicate(), "exp": PartyState.exp, "level": PartyState.level,
 				"bag": PartyState.bag.duplicate(true), "ar_paid": PartyState.ar_paid, "resolved": EventState.resolved.duplicate(), "pos": _p.global_position, "wq": PartyState.world_quests.duplicate(true)}
-			PartyState.exp = maxf(PartyState.exp, 33.0 * PartyState.EXP_PER_LEVEL)
-			PartyState.level = maxi(PartyState.level, 33)
+			PartyState.exp = maxf(PartyState.exp, 35.0 * PartyState.EXP_PER_LEVEL)
+			PartyState.level = maxi(PartyState.level, 35)
 			PartyState.ar_paid = maxi(PartyState.ar_paid, PartyState.level + 1)
 			PartyState.story = {"ch": CH13, "step": 0}
 			_sq.call("set_track", "")
@@ -176,7 +182,167 @@ func _physics_process(_delta: float) -> void:
 			var ok: bool = int(_sq.call("ch")) == CH13 + 1 and jt.contains("✔ 제13장") and PartyState.count("mora") >= int(_v.mora) + 55000 and bandi_home < 1.0
 			_check("chapter13", ok, "ch=%d mora +%d bandi_home=%.1f" % [_sq.call("ch"), PartyState.count("mora") - int(_v.mora), bandi_home])
 			_next()
-		11:
+		11: # [11] 14장 표·자리
+			if _frame < 3:
+				return
+			var c := Story.chapter(CH14)
+			var bad: Array = []
+			if String(c.get("id", "")) != "ch14" or int(c.ar) <= int(Story.chapter(CH13).ar) or int(_sq.call("ch")) != CH14 or bool(_sq.call("locked")):
+				bad.append("chapter ch=%d locked=%s" % [_sq.call("ch"), _sq.call("locked")])
+			var info: Dictionary = Story.NPCS.gaon
+			if String(info.region) != "ruins" or String(info.get("era", "")) != "미래" or not bool(info.get("visor", false)):
+				bad.append("gaon info")
+			var gh := _hits(_sq.call("npc_pos", "gaon"))
+			if not gh.is_empty():
+				bad.append("gaon in %s" % gh)
+			var gbody := get_tree().get_first_node_in_group("go_story").find_child("StoryNpc_gaon", true, false)
+			if gbody == null or gbody.find_child("Visor", true, false) == null:
+				bad.append("visor")
+			for s in c.steps:
+				if s.has("cell") and ["~", "^"].has(TestMap.tile_at(roundi(s.cell.x), roundi(s.cell.y), String(s.region))):
+					bad.append("step on %s" % TestMap.tile_at(roundi(s.cell.x), roundi(s.cell.y), String(s.region)))
+			var top := EraSites.obs_top()
+			if absf(_surface(top) - top.y) > 0.15:
+				bad.append("deck %.2f want %.2f" % [_surface(top), top.y])
+			var climb: Dictionary = (c.steps as Array)[7]
+			var guard: Dictionary = (c.steps as Array)[8]
+			if String(climb.type) != "climb" or absf(float(climb.above) - (EraSites.OBS_RISE + 2.0)) > 0.01 or absf(float(guard.get("lift", 0.0)) - EraSites.OBS_RISE) > 0.01:
+				bad.append("climb/lift")
+			var bw: Dictionary = Story.windows(Story.STATIONS.bandi).filter(func(w: Dictionary) -> bool: return int(w.ch) == CH14)[0]
+			var bp := TestMap.world_pos(bw.cell.x, bw.cell.y, "ruins")
+			bp.y = TerrainBuilder.height_at("ruins", bp) + float(bw.lift)
+			if absf(float(bw.lift) - EraSites.OBS_RISE) > 0.01 or not EraSites.on_obs(bp) or not _hits(bp).is_empty():
+				bad.append("bandi deck %s" % _hits(bp))
+			## 시간 기둥 밑 — 위가 트여 있다(관측대에 안 가림), 땅 높이 차 작다. 아직(0단계) 안 섬.
+			var db := EraSites.draft_base()
+			if _surface(db) > db.y + 1.0 or Vector2(db.x - top.x, db.z - top.z).length() < EraSites.OBS_R + EraSites.DRAFT_R:
+				bad.append("draft covered %.1f" % _surface(db))
+			var es := get_tree().get_first_node_in_group("go_era_sites")
+			if bool(es.call("draft_active")):
+				bad.append("draft early")
+			if not es.find_child("Discover_ruins_rift_observatory", true, false) or int(CodexState.TOTAL.place) < 58:
+				bad.append("discovery")
+			_check("ch14_table", bad.is_empty(), str(bad))
+			_next()
+		12: # [12] 반디(비행선) → 관측소
+			_talk("bandi", 1, "ch14_bandi", Vector2(1.2, 2.3))
+		13: # [13] 관측소
+			_go(2, "ch14_observatory", Vector2.INF)
+		14: # [14] 가온 → 무리
+			_talk("gaon", 3, "ch14_gaon", Vector2(1.2, 2.34))
+		15: # [15] 무리 넷
+			if _frame == 1:
+				_put(_target() + Vector3(0, 0, 6))
+			if _frame == 10:
+				var es: Array = _sq.call("alive_quest_enemies")
+				var here := es.filter(func(e: Node) -> bool: return TestMap.region_at((e as Node3D).global_position) == "ruins").size()
+				_v = {"n": es.size(), "ruins": here}
+				for e in es:
+					e.call("_die")
+			if _frame == 16:
+				_check("ch14_kill", int(_v.n) == 4 and int(_v.ruins) == 4 and int(_sq.call("st")) == 4, "n=%d ruins=%d st=%d" % [_v.n, _v.ruins, _sq.call("st")])
+				_next()
+		16: # [16] 가온 → 석등
+			if _frame < 14:
+				_talk("gaon", 5, "ch14_gaon2", Vector2(1.2, 2.2))
+				return
+			_talk("gaon", 5, "ch14_gaon2", Vector2(1.2, 2.2), "tracker='%s'" % String(_sq.call("tracker_text")).replace("\n", " / "),
+				String(_sq.call("tracker_text")).contains("별 → 해 → 달"))
+		17: # [17] 석등 차례 — 해 먼저(틀림) → 별 → 달(해 앞에 — 다 꺼짐) → 별·해·달, 다 켜지면 시간 기둥
+			if _frame == 1:
+				_put(_target() + Vector3(0.0, 0.0, 3.0))
+				_v = {"lit": [], "blocked": [], "early": false}
+			if _frame == 6:
+				_v.early = bool(get_tree().get_first_node_in_group("go_era_sites").call("draft_active"))
+				## 석등이 부서진 기둥에 안 묻힘 — 석등 자리 둘레에 명소 충돌이 없다.
+				for m in ["star", "sun", "moon"]:
+					var lp: Vector3 = _sq.call("seal_lamp_pos", m)
+					if not _hits(lp - Vector3(0, 0.6, 0)).is_empty():
+						_v.blocked.append(m)
+				_sq.call("receive_element", _sq.call("seal_lamp_pos", "sun"), 0.5, "fire")
+				_v.lit.append(int(_sq.call("seal_lit")))
+				_sq.call("receive_element", _sq.call("seal_lamp_pos", "star"), 0.5, "thunder")
+				_v.lit.append(int(_sq.call("seal_lit")))
+				_sq.call("receive_element", _sq.call("seal_lamp_pos", "moon"), 0.5, "fire")
+				_v.lit.append(int(_sq.call("seal_lit")))
+				for m in ["star", "sun", "moon"]:
+					_sq.call("receive_element", _sq.call("seal_lamp_pos", m), 0.5, "fire")
+				_v.lit.append(int(_sq.call("seal_lit")))
+			if _frame == 90: # 다 켜면 0.8초 뒤 다음 단계(story_quest _advance_later)
+				var on: bool = get_tree().get_first_node_in_group("go_era_sites").call("draft_active")
+				var ok: bool = _v.lit == [0, 1, 0, 3] and int(_sq.call("st")) == 6 and (_v.blocked as Array).is_empty() and not bool(_v.early) and on
+				_check("ch14_seal", ok, "lit=%s st=%d blocked=%s early=%s draft=%s" % [_v.lit, _sq.call("st"), _v.blocked, _v.early, on])
+				_next()
+		18: # [18] 가온 → 오르기
+			_talk("gaon", 7, "ch14_gaon3", Vector2(1.2, 2.2))
+		19: # [19] 오르기 — 땅에선 안 넘어가고, 시간 기둥에 뛰어들어 솟은 뒤 북쪽(관측대)으로 활공해 내려앉으면 넘어간다
+			var top := EraSites.obs_top()
+			var b := EraSites.draft_base()
+			if _frame == 1:
+				_put(_cell3r(Vector2(1.2, 2.2)) + Vector3(3.0, 0.0, 3.0))
+			if _frame == 12:
+				_v = {"ground_st": int(_sq.call("st")), "peak": -1e9, "glide": false, "pushed": false}
+				_p.set("stamina", float(_p.get("stamina_max")))
+				_put(b + Vector3(0.0, 2.5, 0.0))
+				_p.call("_set_mode", _p.Mode.AIR)
+			if _frame >= 12:
+				var rig := get_tree().get_first_node_in_group("camera_rig") as Node3D
+				if rig:
+					rig.global_rotation = Vector3(rig.global_rotation.x, 0.0, 0.0)
+				_v.peak = maxf(float(_v.peak), _p.global_position.y)
+				_v.glide = bool(_v.glide) or _p.mode == _p.Mode.GLIDE
+			if _frame > 12 and not bool(_v.pushed) and _p.global_position.y > top.y + 4.0:
+				_v.pushed = true
+				Input.action_press("move_forward") # 북쪽 = 관측대 쪽
+			## 관측대 한가운데 위에 오면 손을 떼고 활공을 접어(점프) 내려앉는다 — 계속 밀면 반지름 9m 를 지나 북쪽으로 넘어간다.
+			if _frame > 12 and bool(_v.pushed) and not _v.has("fold") and Vector2(_p.global_position.x - top.x, _p.global_position.z - top.z).length() < 3.0:
+				_v.fold = _frame
+				Input.action_release("move_forward")
+				if _p.mode == _p.Mode.GLIDE:
+					_p.set("_jump_buffer", 0.12)
+			var landed: bool = _frame > 12 and bool(_v.pushed) and _p.mode == _p.Mode.GROUND and _p.is_on_floor()
+			if landed or _frame > 1500:
+				Input.action_release("move_forward")
+				var ok: bool = _v.has("fold") and int(_v.ground_st) == 7 and bool(_v.glide) and float(_v.peak) > top.y + 4.0 and int(_sq.call("st")) == 8 and EraSites.on_obs(_p.global_position)
+				_check("ch14_climb", ok, "ground_st=%d glide=%s peak=%.1f top=%.1f st=%d y=%.1f off=%.1f,%.1f on_obs=%s frames=%d" % [_v.ground_st, _v.glide, _v.peak, top.y, _sq.call("st"), _p.global_position.y,
+					_p.global_position.x - top.x, _p.global_position.z - top.z, EraSites.on_obs(_p.global_position), _frame])
+				_next()
+		20: # [20] 관측대 파수 셋 — 관측대 위에 서고, 떨어지면 제자리로
+			if _frame == 1:
+				_put(EraSites.obs_top() + Vector3(0.0, 0.2, 5.0))
+			if _frame == 6:
+				var es: Array = _sq.call("alive_quest_enemies")
+				_v = {"n": es.size(), "high": es.all(func(e: Variant) -> bool: return EraSites.on_obs((e as Node3D).global_position)), "back": false}
+				if not es.is_empty():
+					_v.fell = es[0]
+					(es[0] as Node3D).global_position = EraSites.cell_pos("ruins", EraSites.RIFT_CELL) + Vector3(12.0, 0.5, 0.0)
+			if _frame == 12:
+				_v.back = _v.has("fell") and EraSites.on_obs((_v.fell as Node3D).global_position)
+				for e in _sq.call("alive_quest_enemies"):
+					e.call("_die")
+			if _frame == 18:
+				_check("ch14_guards", int(_v.n) == 3 and bool(_v.high) and bool(_v.back) and int(_sq.call("st")) == 9, "n=%d high=%s back=%s st=%d" % [_v.n, _v.high, _v.back, _sq.call("st")])
+				_next()
+		21: # [21] 반디(관측대 위) → 14장 끝
+			if _frame == 1:
+				_v = {"mora": PartyState.count("mora"), "bandi_on": EraSites.on_obs(_sq.call("npc_pos", "bandi"))}
+				_near_npc("bandi")
+			if _frame == 10:
+				_sq.call("interact")
+				_drain()
+			if _frame < 16:
+				return
+			_dismiss_prompts()
+			if _frame < 22:
+				return
+			_sq.call("toggle_journal")
+			var jt: String = _sq.call("journal_text")
+			_sq.call("toggle_journal")
+			var on: bool = get_tree().get_first_node_in_group("go_era_sites").call("draft_active")
+			var ok: bool = int(_sq.call("ch")) == CH14 + 1 and jt.contains("✔ 제14장") and PartyState.count("mora") >= int(_v.mora) + 60000 and bool(_v.bandi_on) and on
+			_check("chapter14", ok, "ch=%d mora +%d bandi_on=%s draft=%s" % [_sq.call("ch"), PartyState.count("mora") - int(_v.mora), _v.bandi_on, on])
+			_next()
+		22:
 			PartyState.story = _saved.story
 			PartyState.members.assign(_saved.members)
 			PartyState.exp = _saved.exp
@@ -210,10 +376,15 @@ func _go(want_st: int, name: String, next_cell: Vector2) -> void:
 		_next()
 
 func _step_region(st: int) -> String:
-	return String(Story.step_of(CH13, st).get("region", "coast"))
+	return String(Story.step_of(int(_sq.call("ch")), st).get("region", "coast"))
 
 func _target() -> Vector3:
 	return _sq.call("target_pos")
+
+func _cell3r(cell: Vector2) -> Vector3:
+	var p := TestMap.world_pos(cell.x, cell.y, "ruins")
+	p.y = TerrainBuilder.height_at("ruins", p)
+	return p
 
 func _cell3(cell: Vector2) -> Vector3:
 	var p := TestMap.world_pos(cell.x, cell.y, "coast")

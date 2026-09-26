@@ -248,3 +248,67 @@ static func add_helmet(body: Node3D, iron: Color = Color(0.36, 0.35, 0.36), tass
 	tuft.material_override = red
 	tuft.position = Vector3(0.0, 0.25, 0.0)
 	helm.add_child(tuft)
+
+## 106장 ㊼-2 앞 시대 관측 바이저 — 머리 뼈 위(시간 틈 관측사 가온, 미래). 은빛 머리띠 + 눈앞 청록 빛 띠 + 한쪽 귀 안테나.
+## 뼈대 앞이 -Z 인 몸이면 가면(add_mask)처럼 뒤집는다. 뼈를 못 찾으면 몸 위 눈 높이.
+static func add_visor(body: Node3D, metal: Color = Color(0.78, 0.8, 0.84), glow: Color = Color(0.35, 0.95, 0.9)) -> void:
+	var visor := Node3D.new()
+	visor.name = "Visor"
+	var skel := body.find_children("*", "Skeleton3D", true, false)
+	var head := -1
+	if not skel.is_empty():
+		head = (skel[0] as Skeleton3D).find_bone("J_Bip_C_Head")
+	if head >= 0:
+		var att := BoneAttachment3D.new()
+		att.bone_idx = head
+		skel[0].add_child(att)
+		att.add_child(visor)
+		var front := front_sign(skel[0])
+		visor.position = Vector3(0.0, 0.07, 0.0)
+		visor.rotation.y = 0.0 if front > 0.0 else PI
+	else:
+		body.add_child(visor)
+		visor.position = Vector3(0.0, 1.52, 0.0)
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = metal
+	mat.metallic = 0.8
+	mat.roughness = 0.3
+	var band := MeshInstance3D.new()
+	var tm := TorusMesh.new()
+	tm.inner_radius = 0.1
+	tm.outer_radius = 0.118
+	band.mesh = tm
+	band.material_override = mat
+	band.scale = Vector3(1.0, 1.4, 1.1)
+	visor.add_child(band)
+	var lit := StandardMaterial3D.new()
+	lit.albedo_color = glow
+	lit.emission_enabled = true
+	lit.emission = glow
+	lit.emission_energy_multiplier = 1.6
+	var shield := MeshInstance3D.new()
+	var bm := BoxMesh.new()
+	bm.size = Vector3(0.17, 0.035, 0.012)
+	shield.mesh = bm
+	shield.material_override = lit
+	shield.position = Vector3(0.0, 0.0, 0.122)
+	visor.add_child(shield)
+	var ant := MeshInstance3D.new()
+	var cm := CylinderMesh.new()
+	cm.top_radius = 0.004
+	cm.bottom_radius = 0.008
+	cm.height = 0.12
+	cm.radial_segments = 6
+	ant.mesh = cm
+	ant.material_override = mat
+	ant.position = Vector3(0.115, 0.06, 0.0)
+	ant.rotation.z = -0.25
+	visor.add_child(ant)
+	var tip := MeshInstance3D.new()
+	var sm := SphereMesh.new()
+	sm.radius = 0.014
+	sm.height = 0.028
+	tip.mesh = sm
+	tip.material_override = lit
+	tip.position = Vector3(0.13, 0.12, 0.0)
+	visor.add_child(tip)
