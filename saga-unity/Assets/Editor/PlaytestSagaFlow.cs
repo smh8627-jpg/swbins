@@ -51,7 +51,7 @@ namespace Saga.EditorTools
             _ticks = 0;
             Notes.Clear();
             BackupSaves();
-            BackupPrefs();
+            SagaPrefsBackup.Backup(); // 타이틀 설정이 판 설정을 돌린다
             SagaPlayerBuild.SyncEditorBuildScenes();
             _origOptionsEnabled = EditorSettings.enterPlayModeOptionsEnabled;
             _origOptions = EditorSettings.enterPlayModeOptions;
@@ -87,7 +87,7 @@ namespace Saga.EditorTools
                 EditorSettings.enterPlayModeOptions = _origOptions;
                 SetupSagaFonts.ResetDynamicFonts(); // 진단 중 동적 글꼴에 오른 글자를 비워 에셋을 늘 같게.
                 RestoreSaves();
-                RestorePrefs();
+                SagaPrefsBackup.Restore();
                 bool ok = _ok && _done;
                 Debug.Log(ok
                     ? $"{T} OK - 타이틀·두 바퀴 다섯 판·일시정지·자동 저장·새로 시작 되돌리기·오류 0 | {string.Join(" · ", Notes)}"
@@ -259,43 +259,6 @@ namespace Saga.EditorTools
             t.SettingsClose.onClick.Invoke();
             if (t.SettingsOpen) Fail("타이틀 설정 닫기");
             Notes.Add($"타이틀 설정 언어 {lang0}→{lang1}→{lang0}·음량 {v0:0.##}→{v1:0.##}");
-        }
-
-        // 타이틀 설정이 건드리는 판 설정 — 진단 앞에서 떠 두고 끝에(실패해도) 되돌린다.
-        private static readonly string[] PrefGames = { "go", "dungeon", "forest", "story", "realm" };
-        private static readonly Dictionary<string, object> PrefBackup = new Dictionary<string, object>();
-
-        private static IEnumerable<(string key, char kind)> PrefKeys()
-        {
-            foreach (var g in PrefGames)
-            {
-                yield return ($"saga_{g}_language", 's');
-                yield return ($"saga_{g}_vol_master", 'f');
-                yield return ($"saga_{g}_vol_sfx", 'f');
-                yield return ($"saga_{g}_vol_bgm", 'f');
-                yield return ($"saga_{g}_vibration_on", 'i');
-            }
-        }
-
-        private static void BackupPrefs()
-        {
-            PrefBackup.Clear();
-            foreach (var (key, kind) in PrefKeys())
-                PrefBackup[key] = !PlayerPrefs.HasKey(key) ? null
-                    : kind == 's' ? PlayerPrefs.GetString(key) : kind == 'f' ? (object)PlayerPrefs.GetFloat(key) : PlayerPrefs.GetInt(key);
-        }
-
-        private static void RestorePrefs()
-        {
-            foreach (var kv in PrefBackup)
-            {
-                if (kv.Value == null) PlayerPrefs.DeleteKey(kv.Key);
-                else if (kv.Value is string sv) PlayerPrefs.SetString(kv.Key, sv);
-                else if (kv.Value is float fv) PlayerPrefs.SetFloat(kv.Key, fv);
-                else PlayerPrefs.SetInt(kv.Key, (int)kv.Value);
-            }
-            PlayerPrefs.Save();
-            SagaUi.Lang = "ko";
         }
 
         private static IEnumerator WaitTitle()

@@ -23,6 +23,9 @@ namespace Saga.EditorTools
     /// - **패널(110 ⑤c-2)**: 첫 화면을 잰 뒤 보이는 단추를 하나씩 눌러(타이틀은 설정만) 새로 나타난 그래픽이 셋 이상이면
     ///   그것만 세 화면비로 잰다 — 단위는 단추(안의 글자·그림 포함)·단추 밖 글자, 단추 밖 그림(판·띠·아이콘)은 뺀다.
     ///   닫기는 새 것 중 닫기·확인 류 단추 → 일시정지 메뉴 → 연 단추 한 번 더. 스크롤 마스크 밖은 잘라 낸다.
+    /// - **패널 속 패널(⑤c-2b)**: 판 패널 안의 단추(닫기 류 빼고, 패널마다 <see cref="MaxSubPresses"/> 까지)를 또 눌러 둘째 단계
+    ///   (탭·목표 고르기 등)가 뜨면 같은 식으로 잰다 — 같은 모양(새 그래픽 이름 묶음)은 한 번만. 누르면 설정 값도 도니
+    ///   판 설정 PlayerPrefs 는 `SagaPrefsBackup` 으로 떠 뒀다 되돌린다.
     /// - 세이브는 백업했다 되돌린다. 결과 "[UiLayoutCheck] OK/FAIL", 자세한 목록은 `Logs/ui_layout_report.txt`.
     /// `-executeMethod Saga.EditorTools.UiLayoutCheck.Run`
     /// </summary>
@@ -41,7 +44,8 @@ namespace Saga.EditorTools
         private static readonly string[] Scenes = SagaPlayerBuild.Scenes;
 
         private static NestedCoroutine _run;
-        private static int _panels;
+        private static int _panels, _subPanels;
+        private const int MaxSubPresses = 40;
         private static readonly List<string> Unclosed = new List<string>();
         private static readonly StringBuilder Report = new StringBuilder();
         private static readonly StringBuilder Map = new StringBuilder();
@@ -55,9 +59,10 @@ namespace Saga.EditorTools
         [MenuItem("Saga/Check/UI Layout (3 aspect ratios)")]
         public static void Run()
         {
-            Report.Clear(); Map.Clear(); Summary.Clear(); _issues = 0; _done = false; _panels = 0; Unclosed.Clear();
+            Report.Clear(); Map.Clear(); Summary.Clear(); _issues = 0; _done = false; _panels = 0; _subPanels = 0; Unclosed.Clear();
             SaveBackup.Clear();
             foreach (var f in Directory.GetFiles(Application.persistentDataPath, "save*.json")) SaveBackup[f] = File.ReadAllBytes(f);
+            SagaPrefsBackup.Backup();
             _origOptionsEnabled = EditorSettings.enterPlayModeOptionsEnabled;
             _origOptions = EditorSettings.enterPlayModeOptions;
             EditorSettings.enterPlayModeOptionsEnabled = true;
@@ -83,10 +88,11 @@ namespace Saga.EditorTools
                 foreach (var f in Directory.GetFiles(Application.persistentDataPath, "save*.json"))
                     if (!SaveBackup.ContainsKey(f)) File.Delete(f);
                 foreach (var kv in SaveBackup) File.WriteAllBytes(kv.Key, kv.Value);
+                SagaPrefsBackup.Restore();
                 Directory.CreateDirectory(Path.GetDirectoryName(ReportPath));
                 File.WriteAllText(ReportPath, Report.ToString() + System.Environment.NewLine + Map, new UTF8Encoding(false));
                 bool ok = _done && _issues == 0;
-                Debug.Log($"{T} {(ok ? "OK" : "FAIL")} - 문제 {_issues} (done={_done}) · 패널 {_panels} · 못 닫음 {Unclosed.Count}{(Unclosed.Count > 0 ? " [" + string.Join(", ", Unclosed) + "]" : "")} | {string.Join(" · ", Summary)}");
+                Debug.Log($"{T} {(ok ? "OK" : "FAIL")} - 문제 {_issues} (done={_done}) · 패널 {_panels} · 속 패널 {_subPanels} · 못 닫음 {Unclosed.Count}{(Unclosed.Count > 0 ? " [" + string.Join(", ", Unclosed) + "]" : "")} | {string.Join(" · ", Summary)}");
                 if (Application.isBatchMode) EditorApplication.Exit(ok ? 0 : 1);
             }
         }
@@ -103,24 +109,38 @@ namespace Saga.EditorTools
             }
         }
 
+        /// <summary>한국어 한 바퀴 → 다섯 판 언어를 영어로 바꿔 타이틀부터 한 바퀴 더(110 ⑤c-2b — 영어 글자가 길어 넘치는 것).</summary>
+        private static readonly string[] Langs = { "ko", "en" };
+
         private static IEnumerator Script()
         {
-            for (int i = 0; i < Scenes.Length; i++)
+            foreach (var lang in Langs)
             {
-                if (i > 0) EditorSceneManager.LoadSceneInPlayMode(Scenes[i], new LoadSceneParameters(LoadSceneMode.Single));
-                float t0 = Time.realtimeSinceStartup;
-                int frames = 0;
-                while (frames < 60 || Time.realtimeSinceStartup - t0 < 1.5f) { frames++; yield return null; }
-                string label = Path.GetFileNameWithoutExtension(Scenes[i]);
-                foreach (var sc in Screens) Measure(label, sc.name, sc.w, sc.h);
-                yield return Panels(label, i == 0);
+                SetLanguage(lang);
+                for (int i = 0; i < Scenes.Length; i++)
+                {
+                    if (i > 0 || lang != Langs[0]) EditorSceneManager.LoadSceneInPlayMode(Scenes[i], new LoadSceneParameters(LoadSceneMode.Single));
+                    float t0 = Time.realtimeSinceStartup;
+                    int frames = 0;
+                    while (frames < 60 || Time.realtimeSinceStartup - t0 < 1.5f) { frames++; yield return null; }
+                    string label = (lang == Langs[0] ? "" : lang + ":") + Path.GetFileNameWithoutExtension(Scenes[i]);
+                    foreach (var sc in Screens) Measure(label, sc.name, sc.w, sc.h);
+                    yield return Panels(label, i == 0);
+                }
             }
             _done = true;
         }
 
+        /// <summary>다섯 판 언어 키를 한꺼번에(타이틀 설정과 같은 키) — 판은 다음 씬을 열 때 새 언어로 짓는다.</summary>
+        private static void SetLanguage(string lang)
+        {
+            foreach (var g in new[] { "go", "dungeon", "forest", "story", "realm" }) PlayerPrefs.SetString($"saga_{g}_language", lang);
+            Saga.Core.SagaUi.Lang = lang;
+        }
+
         // ───────── 패널 — 단추를 눌러 새로 뜬 것만 ─────────
 
-        private static readonly string[] CloseLabels = { "닫기", "Close", "확인", "OK", "취소", "Cancel", "돌아가기", "계속하기", "Resume", "X", "×", "✕" };
+        private static readonly string[] CloseLabels = { "닫기", "닫는다", "Close", "확인", "OK", "취소", "Cancel", "돌아가기", "계속하기", "Resume", "X", "×", "✕" };
 
         private static IEnumerator Panels(string scene, bool title)
         {
@@ -142,29 +162,81 @@ namespace Saga.EditorTools
                 n++; _panels++;
                 var only = new HashSet<Graphic>(fresh);
                 foreach (var sc in Screens) Measure($"{scene} ▸ {name}", sc.name, sc.w, sc.h, only);
+                // 설정 창의 단추는 둘째 단계가 아니라 전역 값(언어·UI 크기·품질)을 돌린다 — 뒤 패널이 다른 언어로 재진다
+                if (!title && !b.name.Contains("설정") && !Label(b).Contains("설정")) yield return SubPanels($"{scene} ▸ {name}", fresh);
                 yield return Close(b, fresh, $"{scene} ▸ {name}");
             }
             Summary.Add($"{scene} 패널 {n}");
         }
 
-        private static IEnumerator Close(Button opener, List<Graphic> fresh, string what)
+        /// <summary>판 패널 안 단추를 눌러 둘째 단계를 잰다. 누른 단추가 패널을 닫았으면(고르기 → 닫힘) 남은 단추는 건너뛴다.</summary>
+        private static IEnumerator SubPanels(string parent, List<Graphic> panel)
         {
+            var inside = new List<Button>();
+            foreach (var g in panel)
+            {
+                if (g == null) continue;
+                var bb = g.GetComponentInParent<Button>();
+                if (bb != null && !inside.Contains(bb) && !IsClose(bb)) inside.Add(bb);
+            }
+            var seen = new HashSet<string>();
+            int pressed = 0;
+            foreach (var b in inside.OrderBy(x => PathOf(x.transform)))
+            {
+                if (pressed >= MaxSubPresses) break;
+                if (b == null || !b.isActiveAndEnabled || !b.interactable) continue;
+                if (!panel.Any(g => g != null && g.isActiveAndEnabled && g.gameObject.activeInHierarchy)) break; // 패널이 닫혔다
+                pressed++;
+                var before = new HashSet<int>(VisibleGraphics().Select(g => g.GetInstanceID()));
+                string name = b.name + Label(b);
+                b.onClick.Invoke();
+                for (int f = 0; f < 20; f++) yield return null;
+                var fresh = VisibleGraphics().Where(g => !before.Contains(g.GetInstanceID()))
+                    .GroupBy(g => g.canvas != null ? g.canvas.rootCanvas : null).Where(grp => grp.Count() >= 3)
+                    .SelectMany(grp => grp).ToList();
+                if (fresh.Count < 3) continue;
+                string sig = string.Join("|", fresh.Select(g => g.name).OrderBy(x => x));
+                string what = $"{parent} ▸ {name}";
+                if (seen.Add(sig))
+                {
+                    _subPanels++;
+                    var only = new HashSet<Graphic>(fresh);
+                    foreach (var sc in Screens) Measure(what, sc.name, sc.w, sc.h, only);
+                }
+                yield return Close(b, fresh, what, true);
+            }
+        }
+
+        private static IEnumerator Close(Button opener, List<Graphic> fresh, string what, bool sub = false)
+        {
+            if (Alive(fresh) < 3) yield break; // 안 단추(고르기)가 이미 닫았다 — 연 단추를 또 누르면 다시 열린다
             Button close = null;
             foreach (var g in fresh)
             {
+                if (g == null) continue; // 패널이 다시 그려 지운 것
                 var bb = g.GetComponentInParent<Button>();
-                if (bb != null && bb.isActiveAndEnabled && CloseLabels.Contains(Label(bb).Trim())) { close = bb; break; }
+                if (bb != null && bb.isActiveAndEnabled && IsClose(bb)) { close = bb; break; }
             }
             if (close != null) close.onClick.Invoke();
+            else if (sub) yield break; // 둘째 단계에 닫기가 없으면 패널 안의 바뀜(탭·상세) — 같은 단추를 또 누르면 행동이 한 번 더 된다
             else if (Saga.Core.SagaPauseMenu.IsOpen) Saga.Core.SagaPauseMenu.Close();
             else if (opener != null && opener.isActiveAndEnabled) opener.onClick.Invoke();
             for (int f = 0; f < 20; f++) yield return null;
-            int left = fresh.Count(g => g != null && g.isActiveAndEnabled && g.gameObject.activeInHierarchy && Alpha(g) >= 0.05f);
+            int left = Alive(fresh);
             if (left >= 3)
             {
                 Unclosed.Add(what);
                 foreach (var g in fresh) if (g != null) g.enabled = false; // 다음 단추를 가리지 않게(재기에서만)
             }
+        }
+
+        private static int Alive(List<Graphic> gs) => gs.Count(g => g != null && g.isActiveAndEnabled && g.gameObject.activeInHierarchy && Alpha(g) >= 0.05f);
+
+        /// <summary>닫기 류 단추 — 글자가 닫기 말로 시작("닫기 (M)"·"Close" 등).</summary>
+        private static bool IsClose(Button b)
+        {
+            string t = Label(b).Trim();
+            return CloseLabels.Any(c => t == c || (c.Length > 1 && t.StartsWith(c)));
         }
 
         private static IEnumerable<Graphic> VisibleGraphics()
@@ -313,6 +385,7 @@ namespace Saga.EditorTools
             {
                 if (!g.enabled || !g.gameObject.activeInHierarchy) continue;
                 if (Alpha(g) < 0.05f) continue;
+                if (g is TMP_SubMeshUI) continue; // 글꼴 아틀라스 둘째 장의 보조 그림 — 글자 잉크는 부모 TMP 가 이미 다 센다(사각형은 글자와 무관)
                 if (g.GetComponentInParent<Saga.Core.LayoutFree>() != null) continue; // 움직이는 표지(지도 내 위치 등)
                 if (IsDebugOnly(g.transform)) continue; // 릴리스 빌드엔 안 뜨는 디버그 줄(DebugHud: !Debug.isDebugBuild 면 꺼짐)
                 Button unitButton = null;
