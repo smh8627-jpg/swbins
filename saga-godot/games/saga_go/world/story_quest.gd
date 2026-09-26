@@ -786,7 +786,7 @@ func _physics_process(delta: float) -> void:
 		"climb":
 			var t := _cell_pos(String(s.region), s.cell)
 			var pp := _player.global_position
-			if Vector2(pp.x - t.x, pp.z - t.z).length() <= float(s.radius) and pp.y >= t.y - Story.CLIMB_SLACK:
+			if Vector2(pp.x - t.x, pp.z - t.z).length() <= float(s.radius) and pp.y >= t.y + float(s.get("above", 0.0)) - Story.CLIMB_SLACK:
 				advance()
 				return
 	## 세계 임무 "!" — 모험 등급이 올라 새로 맡을 수 있게 되면(1초마다 본다).

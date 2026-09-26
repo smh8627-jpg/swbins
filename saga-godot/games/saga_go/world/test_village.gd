@@ -39,6 +39,10 @@ func _ready() -> void:
 	var frost := preload("res://games/saga_go/world/region4_frost.gd").new()
 	frost.name = "Region4Frost"
 	add_child(frost)
+	## PLAN 106장 ㊼ 이야기 3부 — 날개 조각이 떨어진 시대 명소(포구 녹슨 조선소 …).
+	var era := preload("res://games/saga_go/world/era_sites.gd").new()
+	era.name = "EraSites"
+	add_child(era)
 	_remove_resolved_events()
 	if OS.get_environment("SAGA_DENSITY_REPORT") != "":
 		_print_density_report()
@@ -171,6 +175,8 @@ func _ready() -> void:
 		add_child(load("res://tools/probe_frost.gd").new())
 	if OS.get_environment("SAGA_STORY2_PROBE") != "": # 106장 ㊺ 이야기 2부(10장~)
 		add_child(load("res://tools/probe_story2.gd").new())
+	if OS.get_environment("SAGA_STORY3_PROBE") != "": # 106장 ㊼ 이야기 3부(13장~)
+		add_child(load("res://tools/probe_story3.gd").new())
 
 	## PLAN 106장 ㊸ — 업적(다른 노드 신호에 붙으므로 맨 뒤).
 	var achievements := preload("res://games/saga_go/world/achievements.gd").new()

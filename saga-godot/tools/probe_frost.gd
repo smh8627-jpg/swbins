@@ -230,7 +230,7 @@ func _physics_process(_delta: float) -> void:
 				CodexState.book.erase("place:frost_fort")
 				_p.global_position = Frost.cell_pos(Vector2(3.0, 4.35)) + Vector3(0, 1.0, 0)
 			if _frame == 20:
-				_check("discovery", int(_saved.areas) == 13 and CodexState.has("place", "frost_fort") and int(CodexState.TOTAL.place) == 56, "areas=%d fort=%s" % [_saved.areas, CodexState.has("place", "frost_fort")])
+				_check("discovery", int(_saved.areas) == 13 and CodexState.has("place", "frost_fort") and int(CodexState.TOTAL.place) >= 56, "areas=%d fort=%s" % [_saved.areas, CodexState.has("place", "frost_fort")])
 				_next()
 		8: # ⑨ 눈
 			if _frame == 1:

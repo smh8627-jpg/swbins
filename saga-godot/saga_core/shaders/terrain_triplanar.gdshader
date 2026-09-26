@@ -42,11 +42,11 @@ float _value_noise(vec2 p) {
 	return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
 }
 
-// saga-godot 106장 ㊺ — 눈·얼음 표시(terrain_builder.gd surface_of: CUSTOM0 .r 눈 · .g 얼음). 안 싣는 메시는 0.
-varying vec2 v_surf;
+// saga-godot 106장 ㊺ — 눈·얼음·모래 표시(terrain_builder.gd surface_of: CUSTOM0 .r 눈 · .g 얼음 · .b 모래). 안 싣는 메시는 0.
+varying vec3 v_surf;
 
 void vertex() {
-	v_surf = CUSTOM0.rg;
+	v_surf = CUSTOM0.rgb;
 	world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	world_normal = (MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz;
 }
@@ -94,6 +94,12 @@ void fragment() {
 	ALBEDO = COLOR.rgb * detail_albedo;
 	NORMAL_MAP = detail_normal * 0.5 + 0.5;
 	ROUGHNESS = detail_rough;
+	// 모래 표시 — 풀 텍스처 대신 모래색에 흙결만 옅게(평평한 모래밭).
+	// 정점색은 sRGB 로 적은 값이라(풀·흙은 어두운 텍스처와 곱해져 맞았다) 그대로 칠하는 모래는 선형으로 — 안 그러면 한 단 허옇게 뜬다.
+	float sand_w = smoothstep(0.25, 0.75, v_surf.z) * (1.0 - smoothstep(0.35, 0.7, slope));
+	vec3 sand = pow(COLOR.rgb, vec3(2.2)) * mix(vec3(1.0), dirt_a * 2.5, 0.25) * (0.93 + 0.07 * n2);
+	ALBEDO = mix(ALBEDO, sand, sand_w);
+	ROUGHNESS = mix(ROUGHNESS, 0.9, sand_w);
 	// saga-godot PLAN 106장 ㊺ 서리봉 고원 — 눈 표시(눈밭·눈 덮인 산)는 풀 텍스처 대신 눈으로,
 	// 얼음 표시(얼어붙은 호수)는 매끈한 얼음으로. 표시는 정점색이 아니라 CUSTOM0 로 따로 온다(가장자리 섞임에 안 흔들린다).
 	// 다른 지역·판은 표시가 0 이라 화면이 그대로다. 가파른 비탈은 돌을 남긴다.
