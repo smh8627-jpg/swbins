@@ -40,6 +40,10 @@ func _ready() -> void:
 	frost.name = "Region4Frost"
 	add_child(frost)
 	## PLAN 106장 ㊼ 이야기 3부 — 날개 조각이 떨어진 시대 명소(포구 녹슨 조선소 …).
+	## PLAN 106장 ㊽ — 다섯째 지역 은하 나루(마을 서쪽 틈 고개 너머, 15장 뒤 열림).
+	var skyport := preload("res://games/saga_go/world/region5_skyport.gd").new()
+	skyport.name = "Region5Skyport"
+	add_child(skyport)
 	var era := preload("res://games/saga_go/world/era_sites.gd").new()
 	era.name = "EraSites"
 	add_child(era)
@@ -177,6 +181,8 @@ func _ready() -> void:
 		add_child(load("res://tools/probe_story2.gd").new())
 	if OS.get_environment("SAGA_STORY3_PROBE") != "": # 106장 ㊼ 이야기 3부(13장~)
 		add_child(load("res://tools/probe_story3.gd").new())
+	if OS.get_environment("SAGA_SKYPORT_PROBE") != "": # 106장 ㊽ 다섯째 지역 은하 나루
+		add_child(load("res://tools/probe_skyport.gd").new())
 
 	## PLAN 106장 ㊸ — 업적(다른 노드 신호에 붙으므로 맨 뒤).
 	var achievements := preload("res://games/saga_go/world/achievements.gd").new()
@@ -238,7 +244,7 @@ func _print_density_report() -> void:
 	var test_map := load("res://games/saga_go/data/test_map.gd")
 	var density := load("res://saga_core/world/density_report.gd")
 	var terrain := load("res://games/saga_go/world/terrain_builder.gd")
-	for region_id in ["village", "coast", "ruins", "frost"]:
+	for region_id in ["village", "coast", "ruins", "frost", "skyport"]:
 		var origin: Vector3 = test_map.origin_of(region_id)
 		var size: Vector2i = test_map.size(region_id)
 		var tile: float = test_map.tile_size_of(region_id)

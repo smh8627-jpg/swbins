@@ -48,6 +48,10 @@ const SHARDS := [
 	["f_peak_nw", "frost", Vector2(1.0, 1.0), "peak"],
 	["f_peak_e", "frost", Vector2(8.0, 5.0), "peak"],
 	["f_tree_ne", "frost", Vector2(7.0, 2.0), "air"],
+	## 106장 ㊽ 은하 나루
+	["s_peak_w", "skyport", Vector2(0.0, 4.0), "peak"],
+	["s_peak_se", "skyport", Vector2(8.0, 6.0), "peak"],
+	["s_tree_e", "skyport", Vector2(7.0, 4.0), "air"],
 ]
 
 var _nodes: Dictionary = {} # id → MeshInstance3D

@@ -41,6 +41,12 @@ const CHESTS := [
 	["f_ridge_n", "frost", Vector2(6.0, 1.38), "exquisite", "none", []],    # (6,1) 산 남쪽 턱 — 눈 덮인 벽 타기
 	["f_camp_fox", "frost", Vector2(2.05, 3.05), "precious", "camp", []],   # 들판 무리 (2,3) 눈여우 셋
 	["f_torch_lake", "frost", Vector2(4.4, 2.25), "luxurious", "torch", ["fire", "fire", "fire"]], # 얼음 호수 석등 — 불로 녹인다(주인공 혼자서도)
+	## 은하 나루 9×9(106장 ㊽)
+	["s_field_w", "skyport", Vector2(1.4, 4.2), "common", "none", []],
+	["s_field_e", "skyport", Vector2(6.3, 4.4), "common", "none", []],
+	["s_ridge_n", "skyport", Vector2(7.0, 1.38), "exquisite", "none", []],   # (7,1) 산 남쪽 턱 — 벽 타기
+	["s_camp_cat", "skyport", Vector2(2.05, 2.05), "precious", "camp", []],  # 들판 무리 (2,2) 번개살쾡이 둘+매
+	["s_torch_temple", "skyport", Vector2(2.1, 4.35), "luxurious", "torch", ["fire", "fire", "fire"]], # 옛 절터 석등(주인공 혼자서도)
 ]
 
 

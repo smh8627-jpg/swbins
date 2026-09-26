@@ -41,8 +41,13 @@ const SPOTS := {
 		"desc": "언 호수 밑 옛 산성 — 녹슨 쇠붙이와 그늘 버섯"},
 	"f_wreck": {"region": "frost", "name": "추락한 비행선 잔해", "era": "미래", "element": "wind", "base": {"ore_s": 2, "polish": 1, "snow_bloom": 1},
 		"desc": "눈에 묻힌 앞 시대 비행선에서 부품을 떼어 온다"},
+	## ㊽-1 은하 나루 — 미래 나루 창고(뇌)·과거 옛 절터(초). 나루 신상 s_statue 를 켜야 열린다.
+	"s_depot": {"region": "skyport", "name": "별배 나루 창고", "era": "미래", "element": "thunder", "base": {"polish": 1, "ore_s": 2},
+		"desc": "주인 잃은 화물 상자에서 쓸 만한 부품을 고른다"},
+	"s_temple": {"region": "skyport", "name": "옛 절터 주춧돌", "era": "과거", "element": "grass", "base": {"mushroom": 2, "mint": 1, "iron": 1},
+		"desc": "주춧돌 틈에 자란 버섯과 옛 쇠붙이를 줍는다"},
 }
-const ORDER := ["d_road", "d_wood", "d_mudflat", "d_shipyard", "d_quarry", "d_rift", "f_fortress", "f_wreck"]
+const ORDER := ["d_road", "d_wood", "d_mudflat", "d_shipyard", "d_quarry", "d_rift", "f_fortress", "f_wreck", "s_depot", "s_temple"]
 
 
 static func spot(id: String) -> Dictionary:

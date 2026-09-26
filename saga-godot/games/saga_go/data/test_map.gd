@@ -123,6 +123,25 @@ const REGIONS := {
 		"tile_size": TILE_SIZE,
 		"origin": Vector3(0.0, 0.0, -480.0),
 	},
+	## "skyport" — PLAN 106장 ㊽ 이야기 4부 무대, 다섯째 지역 "은하 나루"(world/region5_skyport.gd). 9×9.
+	## 마을 서쪽 변(x=−264)에 동쪽 변을 붙였다(포구의 거울 자리) — (8,3) 길 한 칸이 마을 (0,4) 숲 칸과 맞닿는 틈 고개다
+	## (15장을 마치기 전엔 시간 틈 문이 막는다). M 별배 나루 금속 바닥 · R 옛 절터 · H 은하역 · F 태양광 밭.
+	## 미래(나루)가 중심, 과거(절터)·현대(역·전지판)가 한 땅에(SAGA-DESIGN §13 전체 퓨전).
+	"skyport": {
+		"rows": [
+			"^^^^^^^^^",
+			"^TT.MMM^^",
+			"^T...MM.^",
+			"^.RR..===",
+			"^.RR.=.T^",
+			"^T..=H..^",
+			"^..FF=.T^",
+			"^^T..=^^^",
+			"^^^^^^^^^",
+		],
+		"tile_size": TILE_SIZE,
+		"origin": Vector3(-480.0, 0.0, 0.0),
+	},
 }
 
 ## region_id 오타 하나가 "Invalid get index 'rows' (on base: 'Nil')" 같은

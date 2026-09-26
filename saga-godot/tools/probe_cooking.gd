@@ -49,9 +49,9 @@ func _physics_process(_delta: float) -> void:
 				if Cooking.is_special(row[1]):
 					special[row[2]] = int(special.get(row[2], 0)) + 1
 			var total := Gathering.all_nodes().size()
-			var ok: bool = total == 68 and regions.size() == 4 and special.get("village") == 6 and special.get("coast") == 6 \
-				and special.get("ruins") == 6 and special.get("frost") == 6 and int(_ga.call("grown_count")) + PartyState.gather_t.size() == 68 \
-				and (_ki.call("pots") as Array).size() == 4 # 106장 ㊺ 고원 채집 일곱·신상 냄비 하나 더 · ㊻-3 고원 눈꽃 여섯
+			var ok: bool = total == 77 and regions.size() == 5 and special.get("village") == 6 and special.get("coast") == 6 \
+				and special.get("ruins") == 6 and special.get("frost") == 6 and int(_ga.call("grown_count")) + PartyState.gather_t.size() == 77 \
+				and (_ki.call("pots") as Array).size() == 5 # 106장 ㊺ 고원 채집 일곱·신상 냄비 하나 더 · ㊻-3 고원 눈꽃 여섯 · ㊽ 은하 나루 채집 넷·냄비 하나
 			_check("layout", ok, "total=%d regions=%s special=%s pots=%d" % [total, regions, special, (_ki.call("pots") as Array).size()])
 			_next()
 		1: # ② 줍기 — 마을 서쪽 박하

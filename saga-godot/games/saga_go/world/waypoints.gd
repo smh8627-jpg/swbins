@@ -32,6 +32,10 @@ const POINTS := [
 	["f_pass", "frost", Vector2(4.35, 7.25), false, "서리 고개"],
 	["f_statue", "frost", Vector2(5.0, 4.5), true, "고원 신상"],
 	["f_observatory", "frost", Vector2(3.4, 1.35), false, "기상 관측소"],
+	## 106장 ㊽ 은하 나루 — 틈 고개 안쪽·가운데 신상·별배 나루 곁.
+	["s_pass", "skyport", Vector2(7.3, 3.05), false, "틈 고개"],
+	["s_statue", "skyport", Vector2(4.4, 4.0), true, "나루 신상"],
+	["s_port", "skyport", Vector2(4.35, 1.35), false, "별배 나루"],
 ]
 
 const INACTIVE := Color(0.46, 0.5, 0.58)

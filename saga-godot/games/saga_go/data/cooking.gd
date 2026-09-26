@@ -77,6 +77,11 @@ const PATCHES := [
 	["f_snow_nw", "snow_bloom", "frost", Vector2(2.3, 2.3), 2],
 	["f_snow_mid", "snow_bloom", "frost", Vector2(4.2, 3.4), 2],
 	["f_snow_e", "snow_bloom", "frost", Vector2(6.4, 4.2), 2],
+	## 106장 ㊽ 은하 나루 — 있는 채집물만(특산물은 인물 돌파 재료와 묶여 사용자와).
+	["s_mush", "mushroom", "skyport", Vector2(1.3, 1.5), 3],
+	["s_mint", "mint", "skyport", Vector2(7.2, 5.5), 2],
+	["s_apple", "apple", "skyport", Vector2(1.6, 6.2), 2],
+	["s_honey", "honey_flower", "skyport", Vector2(3.6, 2.3), 2],
 	["r_ash_se", "ash_flower", "ruins", Vector2(4.8, 5.5), 2],
 ]
 const PATCH_RING_M := 1.4

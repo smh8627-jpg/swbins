@@ -29,6 +29,10 @@ const CAMPS := [
 	["frost", Vector2i(6, 3), ["wind_hawk", "wind_hawk", "ice_fox"]],
 	["frost", Vector2i(2, 6), ["rock_bear", "rock_bear"]],
 	["frost", Vector2i(5, 6), ["thunder_cat", "thunder_cat", "ice_fox"]],
+	## PLAN 106장 ㊽ 은하 나루 — 순간이동 지점·명소와 1칸+ 떨어진 자리.
+	["skyport", Vector2i(2, 2), ["thunder_cat", "thunder_cat", "wind_hawk"]],
+	["skyport", Vector2i(6, 5), ["rock_bear", "fire_imp"]],
+	["skyport", Vector2i(2, 6), ["grass_snake", "grass_snake", "ice_fox"]],
 ]
 const SPREAD := 5.0
 
