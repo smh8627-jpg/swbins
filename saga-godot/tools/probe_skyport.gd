@@ -78,12 +78,13 @@ func _physics_process(_delta: float) -> void:
 		2: # ③ 시간 틈 문 — 15장 전
 			if _frame == 1:
 				PartyState.story = {"ch": 14, "step": 0}
-			if _frame == 70: # 1초마다 본다
-				var from := TestMap.world_pos(0.3, 4.0, "village")
-				var to := TestMap.world_pos(7.6, 3.0, R)
-				var hit := _cast(from, to)
+			if _frame == 70: # 1초마다 본다 — 고개 칸 폭(북쪽 끝·가운데·남쪽 끝 세 줄)이 모두 문 자리(월드 x −288, 86m 중 43m)에서 막힌다
+				var hits: Array = []
+				for y in [2.62, 3.0, 3.38]:
+					hits.append(snappedf(_cast(TestMap.world_pos(0.4, y + 1.0, "village"), TestMap.world_pos(7.6, y, R)), 0.01))
 				var veil := _sk.find_child("Veil", true, false) as Node3D
-				_check("gate_closed", not bool(_sk.call("is_gate_open")) and veil.visible and hit < 1.0, "open=%s veil=%s hit=%.2f" % [_sk.call("is_gate_open"), veil.visible, hit])
+				_check("gate_closed", not bool(_sk.call("is_gate_open")) and veil.visible and hits.all(func(h: float) -> bool: return h > 0.4 and h < 0.52),
+					"open=%s veil=%s hits=%s" % [_sk.call("is_gate_open"), veil.visible, hits])
 				_next()
 		3: # ④ 15장 뒤 — 문이 열리고 걸어서 넘는다
 			if _frame == 1:

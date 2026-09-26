@@ -44,14 +44,20 @@ const SMALL := [
 const SMALL_R := 14.0
 
 const PORT_CELL := Vector2(5.3, 1.6)
+## 칸 좌표는 정수가 칸 한가운데(TestMap.world_pos — 칸 i 는 i ± 0.5). R 넷 (2..3,3..4) 가운데 = (2.5,3.5), F 둘 가운데 = (3.5,6).
 const TEMPLE_CELL := Vector2(2.5, 3.5)
 const STATION_CELL := Vector2(5.0, 5.0)
 const SOLAR_CELL := Vector2(3.5, 6.0)
 const PASS_STONE_CELL := Vector2(7.55, 3.3)
-## 시간 틈 문 — 이 지역 (8,3) 칸 동쪽 변(= 마을 (0,4) 서쪽 변). 15장(ch 14)을 마치면 열린다.
+## 시간 틈 문 — 이 지역 (8,3) 고개 칸 동쪽 변(x 8.5 = 마을 (0,4) 서쪽 변, 월드 x −288), 칸 폭 가운데(y 3.0). 15장(ch 14)을 마치면 열린다.
 const GATE_CELL := Vector2(8.5, 3.0)
 const GATE_OPEN_CH := 15
 const PAD_R := 9.0 # 착륙판 반지름 — 4부에서 별배가 내려앉는다
+## 106장 ㊽-2 — 16장 계류 탑 신호를 켠 뒤(DOCK_FROM_STEP)부터 별배가 착륙판 위 DOCK_H m 에 매여 있다(고원의 별배는 사라진다).
+## 선체 밑은 비어 있어 무리가 지나다닌다(계류대 지키기). 윗면은 올라설 수 있다.
+const CH16 := 15
+const DOCK_FROM_STEP := 6
+const DOCK_H := 6.0
 
 const STONE := Color(0.6, 0.58, 0.55)
 const STONE_DARK := Color(0.42, 0.41, 0.4)
@@ -62,6 +68,9 @@ const RIFT := Color(0.72, 0.5, 1.0)
 const RUST := Color(0.5, 0.3, 0.2)
 const PANEL := Color(0.1, 0.17, 0.34)
 
+var _dock: Node3D = null
+var _dock_body: StaticBody3D = null
+var _docked := false
 var _gate_body: StaticBody3D = null
 var _gate_veil: Node3D = null
 var _gate_open := false
@@ -94,6 +103,8 @@ func _ready() -> void:
 		_build_small(String(d[0]), d[1], String(d[2]))
 		_add_discovery(String(d[0]), cell_pos(d[1]), SMALL_R)
 	_set_gate(gate_open())
+	_build_docked_ship()
+	_set_dock(ship_docked())
 
 static func cell_pos(c: Vector2) -> Vector3:
 	var p := TestMap.world_pos(c.x, c.y, REGION)
@@ -103,6 +114,14 @@ static func cell_pos(c: Vector2) -> Vector3:
 ## 15장을 마쳤는가 — 틈 고개 시간 틈 문이 열려 있다.
 static func gate_open() -> bool:
 	return int(PartyState.story.get("ch", 0)) >= GATE_OPEN_CH
+
+## 16장 계류 신호를 켰거나 지났는가 — 별배가 나루에 매여 있다(region4_frost.gd 는 고원의 별배를 숨긴다).
+static func ship_docked() -> bool:
+	var ch := int(PartyState.story.get("ch", 0))
+	return ch > CH16 or (ch == CH16 and int(PartyState.story.get("step", 0)) >= DOCK_FROM_STEP)
+
+func is_docked() -> bool:
+	return _docked
 
 func is_gate_open() -> bool:
 	return _gate_open
@@ -122,6 +141,8 @@ func _process(delta: float) -> void:
 		_check_t = 1.0
 		if gate_open() != _gate_open:
 			_set_gate(gate_open())
+		if ship_docked() != _docked:
+			_set_dock(ship_docked())
 
 # ---------------------------------------------------------------- 명소
 
@@ -165,7 +186,7 @@ func _build_port() -> void:
 	ts.height = 1.6
 	top.mesh = ts
 	top.material_override = _glow(GLOW, 2.0)
-	top.position = mast + Vector3(0, 18.6, 0)
+	top.position = mast + Vector3(0, 20.4, 0) # 꼭대기(18m)에 서는 자리 위로 띄운다 — 16장 오르기
 	root.add_child(top)
 	for i in 3:
 		var ring := MeshInstance3D.new()
@@ -320,6 +341,63 @@ func _build_gate() -> void:
 	_gate_body.add_child(cs)
 	_gate_body.position = Vector3(0, 10.0, 0)
 	root.add_child(_gate_body)
+
+## 나루에 매인 별배 — 고원 별배(region4_frost _build_airship)와 같은 모양을 수평으로, 날개 셋까지. 계류 팔 사이(동서로 길게).
+func _build_docked_ship() -> void:
+	_dock = Node3D.new()
+	_dock.name = "DockedShip"
+	add_child(_dock)
+	_dock.position = cell_pos(PORT_CELL) + Vector3(0, DOCK_H, 0)
+	var hull := MeshInstance3D.new()
+	var cap := CapsuleMesh.new()
+	cap.radius = 2.4
+	cap.height = 16.0
+	hull.mesh = cap
+	var hm := _mat(Color(0.72, 0.76, 0.82))
+	hm.metallic = 0.7
+	hm.roughness = 0.35
+	hull.material_override = hm
+	hull.rotation.z = PI * 0.5
+	_dock.add_child(hull)
+	for k in [-1, 1]:
+		_box(_dock, Vector3(11.0, 0.18, 0.1), Vector3(0.5, 0.6, k * 2.36), GLOW).material_override = _glow(GLOW, 1.6)
+		var wing := _box(_dock, Vector3(5.0, 0.16, 4.2), Vector3(-0.5, 0.2, k * 4.3), GLOW)
+		wing.material_override = _glow(GLOW, 1.2)
+		wing.rotation.x = k * -0.12
+	_box(_dock, Vector3(3.2, 1.8, 0.14), Vector3(0.8, 3.1, 0), GLOW).material_override = _glow(GLOW, 1.0)
+	_box(_dock, Vector3(2.4, 2.6, 0.2), Vector3(-7.4, 2.2, 0), Color(0.72, 0.76, 0.82))
+	_box(_dock, Vector3(2.2, 0.2, 5.2), Vector3(-7.4, 0.2, 0), Color(0.72, 0.76, 0.82))
+	var nose := MeshInstance3D.new()
+	var ns := SphereMesh.new()
+	ns.radius = 1.6
+	ns.height = 2.6
+	nose.mesh = ns
+	nose.material_override = _mat(Color(0.3, 0.5, 0.7))
+	nose.position = Vector3(8.0, 0.1, 0)
+	_dock.add_child(nose)
+	_dock_body = StaticBody3D.new()
+	_dock_body.name = "DockBody"
+	var cs := CollisionShape3D.new()
+	var bs := BoxShape3D.new()
+	bs.size = Vector3(16.0, 4.2, 4.6)
+	cs.shape = bs
+	_dock_body.add_child(cs)
+	_dock_body.position = Vector3(0, 0.0, 0)
+	_dock.add_child(_dock_body)
+	var l := Label3D.new()
+	l.text = "별배"
+	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	l.font_size = 44
+	l.outline_size = 8
+	l.pixel_size = 0.008
+	l.modulate = Color(0.6, 0.95, 1.0)
+	l.position = Vector3(0, 4.6, 0)
+	_dock.add_child(l)
+
+func _set_dock(on: bool) -> void:
+	_docked = on
+	_dock.visible = on
+	_dock_body.collision_layer = 1 if on else 0
 
 func _set_gate(open: bool) -> void:
 	_gate_open = open

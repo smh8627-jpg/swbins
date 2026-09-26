@@ -13,6 +13,7 @@ extends Node3D
 const TestMap := preload("res://games/saga_go/data/test_map.gd")
 const TerrainBuilder := preload("res://games/saga_go/world/terrain_builder.gd")
 const VegetationBuilder := preload("res://games/saga_go/world/vegetation_builder.gd")
+const Skyport := preload("res://games/saga_go/world/region5_skyport.gd")
 
 const REGION := "frost"
 const DISCOVER_R := 30.0
@@ -280,6 +281,18 @@ func _build_airship() -> void:
 	_label(_ship, "추락한 비행선", Vector3(0, 6.2, 0), Color(0.6, 0.95, 1.0))
 	_ship_label = _ship.get_child(_ship.get_child_count() - 1) as Label3D
 	_set_ship(flown(), false)
+	_refresh_away()
+
+## 106장 ㊽-2 — 16장에 별배가 은하 나루로 날아가면(region5_skyport ship_docked) 고원의 별배(선체·충돌·이름표)는 사라진다. 파편은 남는다.
+func _refresh_away() -> void:
+	var away := Skyport.ship_docked()
+	_ship.visible = not away
+	for c in _ship.get_children():
+		if c is StaticBody3D:
+			(c as StaticBody3D).collision_layer = 0 if away else 1
+
+func ship_away() -> bool:
+	return not _ship.visible
 
 ## 15장을 마쳤는가 — 별배가 떠 있다.
 static func flown() -> bool:
@@ -480,6 +493,7 @@ func _process(delta: float) -> void:
 			_snow.amount = want
 		if flown() != _ship_flown:
 			_set_ship(flown(), true)
+		_refresh_away()
 	if _snow.emitting != inside:
 		_snow.emitting = inside
 	if inside:

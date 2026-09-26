@@ -373,3 +373,43 @@ static func add_hat(body: Node3D, felt: Color = Color(0.12, 0.11, 0.12), band: C
 		tail.position = Vector3(k * 0.035, -0.08, -0.2)
 		tail.rotation = Vector3(-0.35, 0.0, k * 0.12)
 		hat.add_child(tail)
+
+## 106장 ㊽-2 머리 위 빛 고리 — 머리 뼈 위(나루지기 아라, 미래). 머리 위 떠 있는 청백 빛 고리 + 양쪽 귀 옆 작은 빛 조각 둘.
+## 뼈를 못 찾으면 몸 위 머리 높이. 고리는 몸 앞뒤와 무관(둥글다)이라 뒤집지 않는다.
+static func add_halo(body: Node3D, glow: Color = Color(0.6, 0.85, 1.0)) -> void:
+	var halo := Node3D.new()
+	halo.name = "Halo"
+	var skel := body.find_children("*", "Skeleton3D", true, false)
+	var head := -1
+	if not skel.is_empty():
+		head = (skel[0] as Skeleton3D).find_bone("J_Bip_C_Head")
+	if head >= 0:
+		var att := BoneAttachment3D.new()
+		att.bone_idx = head
+		skel[0].add_child(att)
+		att.add_child(halo)
+		halo.position = Vector3(0.0, 0.0, 0.0)
+	else:
+		body.add_child(halo)
+		halo.position = Vector3(0.0, 1.5, 0.0)
+	var lit := StandardMaterial3D.new()
+	lit.albedo_color = glow
+	lit.emission_enabled = true
+	lit.emission = glow
+	lit.emission_energy_multiplier = 1.8
+	var ring := MeshInstance3D.new()
+	var tm := TorusMesh.new()
+	tm.inner_radius = 0.11
+	tm.outer_radius = 0.13
+	ring.mesh = tm
+	ring.material_override = lit
+	ring.position = Vector3(0.0, 0.28, 0.0)
+	halo.add_child(ring)
+	for k in [-1.0, 1.0]:
+		var bit := MeshInstance3D.new()
+		var bm := BoxMesh.new()
+		bm.size = Vector3(0.012, 0.05, 0.03)
+		bit.mesh = bm
+		bit.material_override = lit
+		bit.position = Vector3(k * 0.1, 0.05, 0.0)
+		halo.add_child(bit)

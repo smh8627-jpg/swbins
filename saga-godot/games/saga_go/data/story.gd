@@ -26,7 +26,7 @@ extends RefCounted
 ##     duel 의 flee = 쓰러뜨렸을 때 알림 글자(없으면 "가면에 금이 가고 — 먹구름 속으로 달아났다")
 ##     defend 의 altar = 제단 머리 글자(없으면 "넷째 제단") · start = 첫 물결 알림 · dirs = 무리가 나오는 방향(도, 북쪽 0·시계 방향 — 담이 막는 쪽은 빼게)
 ##   인물 helmet = true 면 머리에 옛 장수 투구(world/vroid_body.gd add_helmet) · visor = true 면 앞 시대 관측 바이저(add_visor) ·
-##   hat = true 면 파발꾼 벙거지(add_hat).
+##   hat = true 면 파발꾼 벙거지(add_hat) · halo = true 면 머리 위 빛 고리(add_halo — 은하 나루 나루지기).
 ##   chase 의 body = "drone"(배달 기계) · "horse"(놀란 역마, world/creature_builder.gd 말 — colors 세 빛깔) · 없으면 가면 쓴 사람.
 ##   단계·인물 칸에 sky = true 면 그 칸의 높이는 땅이 아니라 구름섬 윗면(kill·duel·appear — 9장).
 ##   lift = m 면 그 칸 땅 높이 + lift(떠 있는 구조물 윗면 — 14장 시간 틈 관측대, world/era_sites.gd OBS_RISE)(kill·duel·appear·stations).
@@ -81,6 +81,9 @@ const NPCS := {
 	## 15장을 마치면 3부 동료(MEMBERS story_dareum)가 된다.
 	"dareum": {"name": "파발꾼 달음", "era": "과거", "region": "village", "cell": Vector2(4.86, 8.72), "rarity": 4, "cloth": Color(0.5, 0.34, 0.22),
 		"hat": true, "idle": "파발은 멈추면 파발이 아니지요. …말이 좀 쉬어야 해서 그렇지."},
+	## 106장 ㊽-2 16장 — 은하 나루(world/region5_skyport.gd) 별배 나루의 나루지기(미래). 늘 표지 부스 앞에 선다.
+	"ara": {"name": "나루지기 아라", "era": "미래", "region": "skyport", "cell": Vector2(5.1, 1.68), "rarity": 4, "cloth": Color(0.28, 0.4, 0.62),
+		"halo": true, "idle": "별배 나루는 오늘도 비어 있어요. …기다리는 게 제 일이니까요."},
 	"bawoo": {"name": "산성지기 바우", "era": "과거", "region": "frost", "cell": Vector2(3.0, 4.11), "rarity": 4, "cloth": Color(0.48, 0.2, 0.16),
 		"helmet": true, "idle": "……불씨가 식지 않게. 그것만이 내 일이다.",
 		"appear": [{"ch": 10, "from": 2, "to": 2},
@@ -107,7 +110,9 @@ const STATIONS := {
 		## ㊼-1 13장 — 날개 조각을 꺼낸 뒤(6~8) 조선소로 날아와 있다.
 		{"ch": 12, "from": 6, "to": 8, "region": "coast", "cell": Vector2(7.05, 4.02)},
 		## ㊼-2 14장 — 관측대 위 파수를 물리친 뒤(9) 떠 있는 관측대 위로 날아와 있다(lift = era_sites.gd OBS_RISE).
-		{"ch": 13, "from": 9, "to": 9, "region": "ruins", "cell": Vector2(1.26, 2.24), "lift": 24.0}],
+		{"ch": 13, "from": 9, "to": 9, "region": "ruins", "cell": Vector2(1.26, 2.24), "lift": 24.0},
+		## ㊽-2 16장 — 별배를 몰고 은하 나루에 매단 뒤(6~8) 착륙판 남쪽에 떠 있다.
+		{"ch": 15, "from": 6, "to": 8, "region": "skyport", "cell": Vector2(5.44, 1.8)}],
 	## ㊼-3 15장 — 조각 셋을 들고 별배로 가는 동안(8~10) 달음이 먼저 별배 곁에 와 있다.
 	"dareum": [{"ch": 14, "from": 8, "to": 10, "region": "frost", "cell": Vector2(5.62, 4.95)}],
 }
@@ -690,6 +695,46 @@ const CHAPTERS := [
 					["?", ["드디어 떴다!", "반디, 이제 어디로 가?"]],
 					["반디", "틈이 닫히는 방향을 따라가면 이 배가 온 시대에 닿을 겁니다. 그 전까지 — 이 하늘은 여러분 것입니다.", "fun"],
 					["달음", "그 길, 나도 따라가겠소. 파발꾼은 길 끝을 봐야 직성이 풀리니까!", "fun"]]},
+		]},
+	## ---------------------------------------------------------------- 이야기 4부(106장 ㊽) — 별배가 온 시대, 은하 나루
+	{"id": "ch16", "name": "제16장 · 별배가 돌아온 나루", "ar": 38,
+		"reward": {"fate_knot": 5, "mora": 75000, "book_l": 5, "talent_3": 3}, "exp": 380.0,
+		"steps": [
+			{"type": "talk", "npc": "bandi", "text": "별배 곁의 반디와 이야기하기",
+				"lines": [["반디", "삐— 별배가 뜨고 나서 틈이 닫히는 방향을 쫓았습니다. 청하 마을 서쪽 숲 끝입니다.", "surprised"],
+					["반디", "그곳에 틈이 문처럼 열렸습니다. 문 너머 좌표는… 제 기억 속 별배의 집, 은하 나루.", "sorrow"],
+					["?", ["별배가 온 곳이구나.", "같이 가 보자."]],
+					["반디", "먼저 가 주십시오. 나루의 계류 신호가 살아 있으면 별배를 몰고 뒤따르겠습니다."]]},
+			{"type": "go", "region": "skyport", "cell": Vector2(7.4, 3.0), "radius": 12.0, "text": "청하 마을 서쪽 숲 끝, 틈 고개 너머로"},
+			{"type": "talk", "npc": "ara", "text": "별배 나루의 나루지기 아라와 이야기하기",
+				"lines": [["아라", "…손님? 틈 고개로 사람이 넘어온 건 몇 해 만이에요!", "surprised"],
+					["?", ["별배를 알아요?", "여기가 은하 나루예요?"]],
+					["아라", "별배는 이 나루의 배였어요. 어느 밤 선장님을 태우고 틈으로 떠난 뒤로 돌아오지 않았죠. 저는 그날부터 기다렸고요.", "sorrow"],
+					["아라", "별배가 살아 있다고요? 그럼 — 앗, 틈 짐승들이 착륙판을 차지했어요!", "angry"]]},
+			{"type": "kill", "region": "skyport", "cell": Vector2(5.3, 1.75), "kinds": ["thunder_cat", "wind_hawk", "wind_hawk", "rock_bear"],
+				"text": "착륙판을 차지한 시간 틈 무리 물리치기"},
+			{"type": "talk", "npc": "ara", "text": "아라와 이야기하기",
+				"lines": [["아라", "고마워요. 이제 계류 탑 신호만 켜면 돼요. 꼭대기 빛 공이 꺼져서 별배가 길을 못 찾을 거예요.", "joy"],
+					["아라", "승강기는 녹아내렸고… 탑 옆면을 타고 오를 수 있겠어요? 열여덟 미터예요."],
+					["?", ["올라가 볼게요.", "높네요…"]],
+					["아라", "꼭대기에 서면 신호가 저절로 켜져요. 떨어지면 날개를 펴요!"]]},
+			{"type": "climb", "region": "skyport", "cell": Vector2(5.55, 1.6), "radius": 3.0, "above": 20.0,
+				"text": "계류 탑 옆면을 타고 꼭대기로 올라 신호 켜기"},
+			{"type": "talk", "npc": "bandi", "text": "별배를 몰고 온 반디와 이야기하기",
+				"lines": [["반디", "삐— 계류 신호 수신. 별배, 은하 나루에 계류 완료. …돌아왔습니다.", "joy"],
+					["아라", "정말 별배예요… 날개가 바뀌었지만 틀림없어요!", "surprised"],
+					["?", ["어서 와, 별배.", "반디, 수고했어."]],
+					["아라", "그런데 계류 불빛에 틈 짐승들이 또 몰려와요. 계류 팔이 풀리면 별배가 또 떠내려가요!", "angry"]]},
+			{"type": "defend", "region": "skyport", "cell": Vector2(5.3, 1.75), "hp": 1800.0,
+				"altar": "계류된 별배", "start": "계류 불빛에 시간 틈 짐승들이 몰려온다 — 별배 계류대를 지켜라", "dirs": [0, 45, 135, 180, 225, 270, 315],
+				"waves": [["thunder_cat", "wind_hawk", "wind_hawk"], ["rock_bear", "thunder_cat", "fire_imp", "ice_fox"], ["rock_bear", "thunder_cat", "thunder_cat", "wind_hawk", "grass_snake"]],
+				"text": "별배 계류대 지키기"},
+			{"type": "talk", "npc": "ara", "text": "아라와 이야기하기",
+				"lines": [["아라", "지켰어요… 별배가 다시 나루에 있어요. 고마워요.", "joy"],
+					["반디", "삐— 별배 항해 기록 복구. 마지막 기록: 선장, 옛 절터 종소리를 따라 틈으로.", "surprised"],
+					["?", ["선장님이 절터로?", "종소리?"]],
+					["아라", "절터 종은 수백 년 전에 떨어져 나뒹구는데… 가끔 밤마다 울려요. 선장님이 거기서 무언가를 들으셨나 봐요.", "sorrow"],
+					["아라", "나루는 제가 지킬게요. 별배도 여기 쉬게 두세요. 이제 여기가 여러분 나루이기도 하니까!", "fun"]]},
 		]},
 ]
 

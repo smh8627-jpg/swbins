@@ -1348,6 +1348,8 @@ func _build_npc(id: String) -> void:
 		VroidBody.add_visor(body)
 	if info.get("hat", false):
 		VroidBody.add_hat(body)
+	if info.get("halo", false):
+		VroidBody.add_halo(body)
 	var tf := TalkFace.attach(body)
 	if tf:
 		_faces[id] = tf

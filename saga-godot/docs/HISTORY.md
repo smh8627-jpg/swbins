@@ -8940,3 +8940,14 @@ PROJECT_STATE.md` 참고. 요약:
 - 점검 새 probe_skyport 10항목 fails=0 — 문 닫힘(막 보임·고개가 막힘), 열림 뒤 마을 숲 끝 → 고개 → 나루 → 역 → 태양광 밭 487걸음 턱 최대 0.10m·막힘 없음.
 - 점검: godot_regress REGRESS OK · SKYPORT·MAP·TREASURE·SHARD·COOK·COMBAT·FROST·STORY·STORY2·STORY3·ACHIEVE·QMAP·WQ·DISPATCH·TRAVERSAL·SIGHT·ELEMENT·FIELD_BOSS·GROWTH·KIT fails=0.
 - 실기 확인 전: 금속 바닥 색, 명소 넷 모양·크기(계류 탑 18m), 시간 틈 문 막, 틈 고개 넘을 때 끊김. 촬영 자리 `s_port`·`s_temple_station`·`s_gate` 는 넣기만 했다.
+
+## GO 원신 기준 ㊽-2 이야기 4부 제16장 · 별배가 돌아온 나루 (2026-09-26, 같은 세션, "이어해")
+
+- 4부 첫 장(모험 등급 38). 반디(고원) → 틈 고개 → 새 인물 나루지기 아라(미래) → 착륙판 무리 넷 → 아라 → **계류 탑 벽 타기**(18m, climb above 20 — 기중기와 같은 틀) → 반디(별배를 몰고 옴) → **매인 별배 계류대 지키기**(defend, 동쪽 탑 쪽은 dirs 에서 뺌) → 아라(항해 기록: 선장이 옛 절터 종소리를 따라 틈으로 — 17장).
+- 별배가 나루로: 계류 신호를 켠 뒤(6단계)부터 region5 `DockedShip` 이 착륙판 위 6m 에 매여 보이고, region4_frost 는 고원의 별배(선체·충돌·이름표)를 숨긴다(파편은 남음). 선체 밑은 비어 무리가 지나다니고 윗면엔 올라설 수 있다.
+- 아라 몸: VRoid + 새 `VroidBody.add_halo`(머리 위 빛 고리·귀 옆 빛 조각 둘) — 바우 투구·가온 바이저·달음 벙거지처럼 모양으로 갈리게.
+- 계류 탑 꼭대기 빛 공이 서는 자리(18m)와 겹쳐 20.4m 로 띄웠다.
+- 함정(내 쪽, 되돌림): 점검 결과 좌표를 잘못 읽고 "칸 좌표 정수 = 모서리"로 착각해 시간 틈 문·절터·역·태양광 밭을 반 칸씩 옮겼다가, 땅 높이를 직접 재 보니 **정수 = 칸 한가운데**(고개 평지 y 2.5~3.5, 경계 x −288)라 처음 자리가 맞았다 — 모두 되돌렸다. 대신 문 점검을 고개 폭 세 줄(북·가운데·남)이 모두 문 자리에서 막히는지로 강화(0.49·0.49·0.49).
+- 점검 새 probe_story4 10항목 fails=0(첫판). 오르기는 실제 입력(동쪽 옆면으로 밀어 붙은 순간 위로).
+- 점검: godot_regress REGRESS OK · STORY4(10)·SKYPORT(10, 문 세 줄)·STORY·STORY2·STORY3·FROST·COMBAT·MAP·QMAP·ACHIEVE·WQ·KIT·TRAVERSAL·DISPATCH fails=0
+- 실기 확인 전: 아라 빛 고리 자리, 계류 탑 오르는 손맛(폭 1.2m), 나루에 매인 별배 모양·높이, 계류대 지키기 무리 방향. 촬영 자리 `s_docked` 는 넣기만 했다.
