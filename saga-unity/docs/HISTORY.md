@@ -9393,3 +9393,13 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - 빌드: `SAGA-perf.apk` 479MB·5.5분·오류 0. 작업 대상 Win64 로 되돌림, 빌드 직렬화 되돌림, adb 서버 끔.
 - 사람 몫: `HOW_TO_PLAYTEST` §10(설치 두 길·자동 측정 5분·판마다 5분 놀기·기록표 사진). 앱 id 는 아직 유니티 템플릿 기본값(⑥).
 - 다음 = ④ 재현성(③b 는 폰 결과 오면).
+
+## 2026-09-26 char-forge — CC0 옷장 들이기·옷 짓기(garments.py)·렌더 비교 도구
+
+"vroid 같은 자체 툴 이어 해줘"(두 번) → "새로운 세션 이어하자".
+
+- CC0 옷 팩 14(682c2670): MakeHuman 커뮤니티 옷 126·머리 34·수염 5, 항목마다 CC0 검사(CC-BY·원작 캐릭터 옷·정치 모자 exclude, 가면 팩 안 들임). 렌더: 바이킹 셋·드레스·수도복·두건은 Mixamo 마을 사람급, 기모노·전사 투구는 못함. 빈칸 = 동양 역사 옷.
+- `garments.py`(5a71a73e → 68554b90): 옷 메시를 지어 MPFB MakeClothes 순서로 .mhclo — 부품 조합(tube·sleeves·band·망건·상투·갓·투구·앞 트인 비늘 드림) + 천 무늬·노멀. 옷 다섯 dopo·hanbok_f·chalgap·gat·helmet_east — 선비·장수·여인으로 읽힌다(Mixamo 기사만큼 세밀하진 않음).
+- 함정: Blender 파이썬엔 PIL 없음 · write_mhclo 는 also_export_mhmat=True 라야 material 줄 · 옷 정점을 body 전체에 맞추면 A 자세 손에 붙는다(맞춤 무리 cf_torso·cf_arm·cf_head) · 앞 트인 둘레는 이음매에서 순서를 끊는다.
+- 렌더 비교 스크립트를 저장소로(`tools/char-forge/render/`). 게임 몸은 그대로(D5 Mixamo 유지).
+- 다음 = char-forge README §7 단계 4 줄의 "다음 세션 순서" ①~④.
