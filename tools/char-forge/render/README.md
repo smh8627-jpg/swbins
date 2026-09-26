@@ -13,6 +13,8 @@ A=saga-unity/Assets/Art/CharactersRealistic
 "$B" -b --factory-startup -P tools/char-forge/render/render_pairs.py -- out.png full $A/Paladin tools/char-forge/_out/_cmp_real_paladin_01.glb - my.glb
 # 머리만 가까이(얼굴·모자) — 모델 여럿
 "$B" -b --factory-startup -P tools/char-forge/render/render_heads.py -- heads.png a.glb b.glb "$A/Maria WProp J J Ong.fbx"
+# 한 몸 앞·비스듬·옆·뒤 네 방향(등 매듭·소데·모자 날개처럼 앞에서 안 보이는 것) — 모델 하나가 한 줄
+"$B" -b --factory-startup -P tools/char-forge/render/render_turn.py -- turn.png a.glb b.glb c.glb
 ```
 
 - `render_common.py` — 가져오기(glTF 뼈 모양 Icosphere 지움)·대기 동작 한 프레임·빛·Eevee·`fix_materials`

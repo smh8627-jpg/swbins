@@ -27,45 +27,12 @@
  "eyelashes": "eyelashes04/eyelashes04.mhclo",
  "teeth": "teeth_base/teeth_base.mhclo",
  "hair": "braid01/braid01.mhclo",
- "kitbash": [
-  {
-   "part": "shell",
-   "slot": "cloth",
-   "color": "#d8d0bc",
-   "rough": 0.85,
-   "offset": 0.004,
-   "thick": 0.004,
-   "groups": [
-    "spine_0*",
-    "clavicle_*",
-    "upperarm_*",
-    "lowerarm_*"
-   ],
-   "minw": 0.5
-  },
-  {
-   "part": "shell",
-   "slot": "leather",
-   "color": "#3a2a1e",
-   "rough": 0.7,
-   "offset": 0.007,
-   "thick": 0.004,
-   "groups": [
-    "foot_*",
-    "ball_*"
-   ],
-   "minw": 0.4
-  },
-  {
-   "part": "robe",
-   "color": "#3a3a3a",
-   "top": 0.2,
-   "flare": 0.45,
-   "jag": 0.0,
-   "weights": "skin",
-   "rough": 0.85,
-   "length": 0.8
-  }
+ "_garments": [
+  "hanbok_f@1a1a1c,f4f1e8"
+ ],
+ "clothes": [
+  "cf_hanbok_f_1a1a1c_f4f1e8/cf_hanbok_f_1a1a1c_f4f1e8.mhclo",
+  "toigo_mj_cloth_shoes/toigo_mj_cloth_shoes.mhclo"
  ],
  "anims": {
   "idle": "Idle_Loop",

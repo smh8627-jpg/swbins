@@ -7,8 +7,11 @@
   tube    몸통 통 — 위(목·가슴·허리)에서 아래(발목·무릎·엉덩이)까지. 가랑이 아래는 치마 도우미(helper-skirt)에 붙어 다리 사이가 안 갈라진다.
           `over` 만큼 밖에 겹쳐 입는다(저고리 위 치마 끝, 갑옷 위 비늘 치마). `mono` 면 아래로 좁아지지 않는다(가슴에서 시작하는 치마).
   sleeves 소매 — `length` 팔 몫(1 = 손목, 0.35 = 어깨 갑옷), `drop` 처짐, `flare` 끝 넓힘
+          `arc`(도) = 팔 바깥쪽만 두르는 판(소데), `bag` = 팔꿈치부터 네모나게 늘어진 자루(기모노)
   band    띠 — 그 높이 통 둘레 바깥
-  mangeon·topknot·gat·helmet  머리 부품(망건·상투·갓·투구) — 머리 살에 붙는다
+  leggings 다리 통(정강이 가리개) · discs 가슴 둥근 판(호심경) · bow 등 매듭(오비)
+  mangeon·topknot·gat·helmet·neckguard·kuwagata·tassel·samo·boktu·myeollyu·beads·eboshi  머리 부품 — 머리 살에 붙는다
+색 변형: `<id>@<헥스>[,<헥스>]` — 틀의 `colors`(C1·C2)를 바꾼 cf_<id>_<헥스>… (메시·맞춤은 기본 옷을 베끼고 그림만 새로)
 그다음 MPFB MakeClothes 와 같은 순서(`mesh_is_valid_as_clothes` → `create_mhclo_from_clothes_matching` → `write_mhclo`)로 기본 몸에 맞춘
 .mhclo 를 쓰므로 어느 체형에나 MakeHuman 이 맞춰 입힌다. 레시피에서는 받은 CC0 옷과 똑같이 `"clothes": ["cf_dopo/cf_dopo.mhclo"]`.
 옷 정점은 옷 지을 때만 만드는 맞춤 무리(cf_torso·cf_arm_l/r·cf_head)에만 붙인다 — 'body' 전체면 A 자세 손(허리 옆)에 띠가 붙어 튄다.
@@ -34,32 +37,36 @@ SLOTS = [(0.00, 0.00, 0.36, 1.00), (0.36, 0.00, 0.60, 1.00), (0.60, 0.00, 0.78, 
 
 NAVY, IVORY, BROWN, BLACK = '#1f2a44', '#e9e4d6', '#3a2e28', '#141416'
 STEEL, LACE = '#8d949b', '#4a2a1a'
+LACQUER, GOLD, BRONZE, WHITE = '#1c1714', '#c9a64a', '#a87a43', '#f4f1e8'
+METAL_PATTERNS = ('lamellar', 'plate', 'scale', 'ribs')
 
 # ---- 옷 틀 ----
+# 색 칸 'C1'·'C2' 는 틀의 `colors` 기본값이고, `<id>@<헥스>[,<헥스>]` 로 부르면 그 색으로 바꾼 변형(cf_<id>_<헥스>)을 만든다(세력 색).
 GARMENTS = {
     # 도포·심의·한푸 계열 — 선비·책사·임금 평상
-    'dopo': dict(desc='교령 넓은 소매 긴 옷(도포·심의·한푸 계열)', tags=['robe', 'historical', 'east'], parts=[
+    'dopo': dict(desc='교령 넓은 소매 긴 옷(도포·심의·한푸 계열)', tags=['robe', 'historical', 'east'], colors=dict(C1=IVORY, C2=NAVY), parts=[
         dict(kind='tube', top=('neck', 0), bottom=('ankle', 0.06), ease=0.022, flare=0.55, folds=0.02, slot=0,
-             paint=dict(base=IVORY, trims=[('bottom', 0.04, NAVY), ('top', 0.012, NAVY), ('cross', NAVY)])),
+             paint=dict(base='C1', trims=[('bottom', 0.04, 'C2'), ('top', 0.012, 'C2'), ('cross', 'C2')])),
         dict(kind='sleeves', length=1.0, ease=0.028, drop=0.13, cuff=0.035, slot=2,
-             paint=dict(base=IVORY, trims=[('top', 0.05, NAVY)])),
+             paint=dict(base='C1', trims=[('top', 0.05, 'C2')])),
         dict(kind='band', at=('waist', 0.02), width=0.05, over=0.012, slot=3, paint=dict(base=BROWN)),
     ]),
     # 저고리 + 치마 — 여자(조선·고려·삼국 공통 틀, 색은 레시피 tints 로 바꾸지 않고 틀마다 굽는다)
-    'hanbok_f': dict(desc='저고리(교령·고름·끝동)와 가슴에서 떨어지는 긴 치마', tags=['hanbok', 'historical', 'east', 'female'], parts=[
+    'hanbok_f': dict(desc='저고리(교령·고름·끝동)와 가슴에서 떨어지는 긴 치마', tags=['hanbok', 'historical', 'east', 'female'],
+                     colors=dict(C1='#a8323a', C2='#efd98c'), parts=[
         dict(kind='tube', top=('chest', 0.03), bottom=('ankle', 0.005), ease=0.035, flare=1.4, mono=True, folds=0.04, slot=0,
-             paint=dict(base='#a8323a', pattern='weave')),
+             paint=dict(base='C1', pattern='weave')),
         dict(kind='tube', top=('neck', 0), bottom=('chest', -0.035), ease=0.016, over=0.012, slot=1,
-             paint=dict(base='#efd98c', trims=[('cross', '#f4f1e8', 0.6), ('top', 0.01, '#f4f1e8'), ('ribbon', '#a8323a')])),
+             paint=dict(base='C2', trims=[('cross', WHITE, 0.6), ('top', 0.01, WHITE), ('ribbon', 'C1')])),
         dict(kind='sleeves', length=1.0, ease=0.012, drop=0.0, cuff=0.012, slot=2,
-             paint=dict(base='#efd98c', trims=[('top', 0.07, '#3c5aa8')])),
+             paint=dict(base='C2', trims=[('top', 0.07, '#3c5aa8')])),
     ]),
     # 찰갑 무장 — 붉은 속옷(무릎) + 비늘 가슴갑옷 + 어깨 비늘 + 비늘 치마 + 띠
-    'chalgap': dict(desc='찰갑 — 비늘 가슴갑옷·어깨·치마, 붉은 속옷', tags=['armor', 'historical', 'east'], parts=[
+    'chalgap': dict(desc='찰갑 — 비늘 가슴갑옷·어깨·치마, 붉은 속옷', tags=['armor', 'historical', 'east'], colors=dict(C1='#7a2a24'), parts=[
         dict(kind='tube', top=('neck', 0), bottom=('knee', -0.06), ease=0.02, flare=0.3, folds=0.015, slot=0,
-             paint=dict(base='#7a2a24', trims=[('cross', BLACK), ('top', 0.012, BLACK), ('bottom', 0.03, BLACK)])),
+             paint=dict(base='C1', trims=[('cross', BLACK), ('top', 0.012, BLACK), ('bottom', 0.03, BLACK)])),
         dict(kind='sleeves', length=1.0, ease=0.02, drop=0.03, cuff=0.01, slot=2,
-             paint=dict(base='#7a2a24', trims=[('top', 0.06, BLACK)])),
+             paint=dict(base='C1', trims=[('top', 0.06, BLACK)])),
         dict(kind='tube', top=('chest', 0.07), bottom=('hip', -0.03), ease=0.02, over=0.024, slot=1,
              paint=dict(base=STEEL, pattern='lamellar', lace=LACE, trims=[('top', 0.012, LACE), ('bottom', 0.01, LACE)])),
         dict(kind='tube', top=('waist', 0.0), bottom=('knee', 0.04), ease=0.02, over=0.034, flare=0.35, mono=True, slot=5,
@@ -78,6 +85,114 @@ GARMENTS = {
     'helmet_east': dict(desc='둥근 투구·비늘 목가리개·꼭지', tags=['helmet', 'historical', 'east'], parts=[
         dict(kind='helmet', slot=0, paint=dict(base=STEEL, pattern='plate')),
         dict(kind='neckguard', slot=1, paint=dict(base=STEEL, pattern='lamellar', lace=LACE, trims=[('bottom', 0.02, LACE)])),
+    ]),
+    # ---- 일본 ----
+    # 기모노 — 곧은 긴 옷·흰 깃·네모 자루 소매(후리소데 쪽)·넓은 오비·등 매듭
+    'kimono': dict(desc='기모노 — 곧은 긴 옷·흰 깃·자루 소매·넓은 오비와 등 매듭', tags=['kimono', 'historical', 'east'],
+                   colors=dict(C1='#7a2a4a', C2='#e2b85a'), parts=[
+        dict(kind='tube', top=('neck', 0), bottom=('ankle', 0.004), ease=0.014, flare=0.14, folds=0.008, slot=0,
+             paint=dict(base='C1', pattern='brocade', motif='C2', trims=[('cross', WHITE, 1.2), ('bottom', 0.012, '#2a1a24')])),
+        dict(kind='sleeves', length=1.0, ease=0.016, drop=0.24, bag=True, cuff=0.0, slot=2,
+             paint=dict(base='C1', pattern='brocade', motif='C2', trims=[('top', 0.01, '#2a1a24')])),
+        dict(kind='band', at=('waist', 0.05), width=0.15, over=0.018, slot=3, paint=dict(base='C2', pattern='brocade', motif='#8a5a2a')),
+        dict(kind='band', at=('waist', 0.05), width=0.012, over=0.03, slot=6, paint=dict(base='#c8324a')),   # 오비지메 끈
+        dict(kind='bow', at=('waist', 0.07), width=0.28, height=0.16, depth=0.07, over=0.02, slot=4,
+             paint=dict(base='C2', pattern='brocade', motif='#8a5a2a')),
+    ]),
+    # 고소데 + 하카마 — 무사·낭인 평상. 하카마는 주름 잡힌 넓은 치마로 보인다(다리 사이는 치마 도우미)
+    'hakama': dict(desc='고소데(짧은 자루 소매)와 주름 하카마·허리끈', tags=['hakama', 'historical', 'east'],
+                   colors=dict(C1='#e6dfcc', C2='#2a3450'), parts=[
+        dict(kind='tube', top=('neck', 0), bottom=('hip', -0.05), ease=0.016, slot=1,
+             paint=dict(base='C1', trims=[('cross', 'C2', 1.4)])),
+        dict(kind='sleeves', length=1.0, ease=0.01, drop=0.1, bag=True, cuff=0.0, slot=2, paint=dict(base='C1')),
+        dict(kind='tube', top=('waist', 0.03), bottom=('ankle', 0.01), ease=0.02, over=0.014, flare=0.25, folds=0.035, nfolds=16, slot=0,
+             paint=dict(base='C2', pattern='stripes')),
+        dict(kind='band', at=('waist', 0.03), width=0.05, over=0.03, slot=3, paint=dict(base='C2', pattern='weave')),
+    ]),
+    # 구소쿠 — 옻칠 판을 색 끈으로 엮은(오도시) 동·쿠사즈리·소데 + 히타타레·정강이 가리개
+    'gusoku': dict(desc='구소쿠 — 오도시 동·쿠사즈리·큰 소데·정강이 가리개, 히타타레', tags=['armor', 'samurai', 'historical', 'east'],
+                   colors=dict(C1='#a8322a', C2='#2a2622'), parts=[
+        dict(kind='tube', top=('neck', 0), bottom=('knee', -0.04), ease=0.02, flare=0.35, folds=0.02, slot=0,
+             paint=dict(base='C2', trims=[('cross', WHITE, 0.8)])),
+        dict(kind='sleeves', length=1.0, ease=0.014, drop=0.02, cuff=0.0, slot=2, paint=dict(base='C2', pattern='quilt')),
+        dict(kind='tube', top=('chest', 0.15), bottom=('waist', -0.03), ease=0.02, over=0.026, slot=1,
+             paint=dict(base=LACQUER, pattern='odoshi', lace='C1', rows=9, trims=[('top', 0.012, LACQUER)])),
+        dict(kind='tube', top=('waist', -0.02), bottom=('knee', 0.07), ease=0.02, over=0.036, flare=0.45, mono=True, slot=5,
+             paint=dict(base=LACQUER, pattern='odoshi', lace='C1', rows=5, trims=[('panels', 7, 0.012, BLACK)])),
+        dict(kind='sleeves', length=0.44, ease=0.03, over=0.04, flare=0.18, arc=150, cuff=0.0, slot=4,
+             paint=dict(base=LACQUER, pattern='odoshi', lace='C1', rows=6)),
+        dict(kind='leggings', top=('knee', 0.03), bottom=('ankle', 0.03), ease=0.012, flare=0.12, slot=3,
+             paint=dict(base=LACQUER, pattern='ribs', ribs=10, trims=[('top', 0.01, 'C1'), ('bottom', 0.01, 'C1')])),
+        dict(kind='band', at=('waist', -0.025), width=0.035, over=0.05, slot=6, paint=dict(base='C1')),
+    ]),
+    # 가부토 — 골 진 사발·앞챙·넓게 벌어진 시코로·금빛 쿠와가타
+    'kabuto': dict(desc='가부토 — 골 진 사발·앞챙·벌어진 시코로·쿠와가타', tags=['helmet', 'samurai', 'historical', 'east'],
+                   colors=dict(C1='#a8322a'), parts=[
+        dict(kind='helmet', ease=0.024, knob=False, dome=0.04, visor=0.035, slot=0, paint=dict(base=LACQUER, pattern='ribs', ribs=32)),
+        dict(kind='neckguard', drop=0.12, flare=0.6, open=70, slot=1, paint=dict(base=LACQUER, pattern='odoshi', lace='C1', rows=4)),
+        dict(kind='kuwagata', slot=3, paint=dict(base=GOLD, pattern='plate')),
+    ]),
+    # ---- 삼국 ----
+    # 장수 갑옷 — 발목 전포 위 어린갑 가슴·어깨·치마 + 가슴 호심경 둘
+    'samguk_armor': dict(desc='삼국 장수 — 발목 전포 위 어린갑(물고기 비늘)·어깨·치마·호심경 둘', tags=['armor', 'general', 'historical', 'east'],
+                         colors=dict(C1='#2f4a7a', C2=STEEL), parts=[
+        dict(kind='tube', top=('neck', 0), bottom=('ankle', 0.07), ease=0.022, flare=0.5, folds=0.022, slot=0,
+             paint=dict(base='C1', trims=[('cross', GOLD, 0.8), ('bottom', 0.012, GOLD)])),
+        dict(kind='sleeves', length=1.0, ease=0.024, drop=0.06, cuff=0.02, slot=2, paint=dict(base='C1', trims=[('top', 0.04, GOLD)])),
+        dict(kind='tube', top=('chest', 0.08), bottom=('hip', -0.04), ease=0.02, over=0.024, slot=1,
+             paint=dict(base='C2', pattern='scale', trims=[('top', 0.014, LACE), ('bottom', 0.012, LACE)])),
+        dict(kind='tube', top=('waist', 0.0), bottom=('knee', 0.02), ease=0.02, over=0.036, flare=0.4, mono=True, slot=5,
+             paint=dict(base='C2', pattern='scale', trims=[('bottom', 0.016, LACE), ('split', 0.008, BLACK)])),
+        dict(kind='sleeves', length=0.36, ease=0.03, over=0.024, flare=0.55, drop=0.0, cuff=0.0, slot=4,
+             paint=dict(base='C2', pattern='scale', trims=[('top', 0.03, LACE)])),
+        dict(kind='discs', at=('chest', -0.03), spread=24, radius=0.058, over=0.006, slot=6,
+             paint=dict(base='#b4bbc2', pattern='plate', trims=[('top', 0.03, GOLD)])),
+        dict(kind='band', at=('waist', 0.0), width=0.05, over=0.047, slot=3, paint=dict(base='#2a1c14', trims=[('top', 0.006, GOLD)])),
+    ]),
+    # 장수 투구 — 둥근 투구·비늘 목가리개·붉은 술
+    'helmet_general': dict(desc='장수 투구 — 둥근 투구·목가리개·붉은 술', tags=['helmet', 'general', 'historical', 'east'],
+                           colors=dict(C1='#b0282a', C2=STEEL), parts=[
+        dict(kind='helmet', ease=0.022, knob=False, dome=0.045, visor=0.02, slot=0, paint=dict(base='C2', pattern='plate')),
+        dict(kind='neckguard', drop=0.12, flare=0.5, slot=1, paint=dict(base='C2', pattern='scale', trims=[('bottom', 0.02, LACE)])),
+        dict(kind='tassel', slot=4, paint=dict(base='C1', pattern='hair')),
+    ]),
+    # ---- 관복 ----
+    # 단령 — 둥근 깃 관복·가슴과 등 흉배·각대
+    'dallyeong': dict(desc='단령 — 둥근 깃 관복·흉배·각대', tags=['robe', 'official', 'historical', 'east'],
+                      colors=dict(C1='#8a2a2a', C2='#2a3a6a'), parts=[
+        dict(kind='tube', top=('neck', 0), bottom=('ankle', 0.03), ease=0.024, flare=0.5, folds=0.02, slot=0,
+             paint=dict(base='C1', trims=[('top', 0.005, '#1a1414'), ('patch', 'C2', GOLD, 0.66, 0.83)])),
+        dict(kind='sleeves', length=1.0, ease=0.026, drop=0.12, cuff=0.03, slot=2, paint=dict(base='C1')),
+        dict(kind='band', at=('waist', 0.02), width=0.035, over=0.045, slot=3, paint=dict(base='#3a1a14', pattern='studs', motif=GOLD)),
+    ]),
+    # 사모 — 둥근 두 층 검은 모자·뒤 양옆 둥근 날개(조선 관리)
+    'samo': dict(desc='사모 — 두 층 검은 모자·뒤 양옆 둥근 날개', tags=['hat', 'official', 'historical', 'east'], parts=[
+        dict(kind='samo', slot=6, paint=dict(base=BLACK, pattern='mesh')),
+    ]),
+    # 곤룡포 — 둥근 깃 임금 옷·가슴·등·두 어깨 둥근 금빛 흉배(보)·옥대
+    'gonryongpo': dict(desc='곤룡포 — 둥근 깃·가슴 등 어깨 둥근 금빛 보·옥대', tags=['robe', 'royal', 'historical', 'east'],
+                       colors=dict(C1='#a8282a', C2=GOLD), parts=[
+        dict(kind='tube', top=('neck', 0), bottom=('ankle', 0.02), ease=0.026, flare=0.6, folds=0.02, slot=0,
+             paint=dict(base='C1', trims=[('top', 0.005, '#1a1414'), ('roundel', 'C2', 0.75)])),
+        dict(kind='sleeves', length=1.0, ease=0.026, drop=0.12, cuff=0.03, slot=2, paint=dict(base='C1')),
+        dict(kind='band', at=('waist', 0.02), width=0.04, over=0.05, slot=3, paint=dict(base='#1f2a44', pattern='studs', motif='#cfe3d0')),
+    ]),
+    # 익선관 — 사모 꼴에 뒤 날개 둘이 위로 선 임금 모자
+    'ikseongwan': dict(desc='익선관 — 두 층 검은 모자·뒤에서 위로 선 날개 둘', tags=['hat', 'royal', 'historical', 'east'], parts=[
+        dict(kind='samo', wing=(0.05, 0.03), tilt=62, slot=6, paint=dict(base='#1a1614', pattern='mesh')),
+    ]),
+    # 면류관 — 모자 위 앞뒤로 긴 판·앞뒤 끝에서 늘어진 구슬 줄
+    'myeollyugwan': dict(desc='면류관 — 검은 관·위 긴 판·앞뒤 구슬 줄', tags=['hat', 'royal', 'historical', 'east'], parts=[
+        dict(kind='myeollyu', slot=6, paint=dict(base=BLACK, pattern='weave', trims=[('top', 0.01, GOLD)])),
+        dict(kind='beads', slot=4, paint=dict(base='#d8b04a', pattern='beads', motif='#b0282a')),
+    ]),
+    # 에보시 — 이마에서 높이 솟아 뒤로 기운 검은 옻칠 관(일본 귀족·무가)
+    'eboshi': dict(desc='에보시 — 높이 솟아 뒤로 기운 검은 관', tags=['hat', 'historical', 'east'], parts=[
+        dict(kind='eboshi', slot=6, paint=dict(base='#141214', pattern='weave')),
+    ]),
+    # 복두 — 네모진 두 층 모자·뒤 양옆 긴 곧은 날개(당·송·고려 관리)
+    'boktu': dict(desc='복두 — 네모진 두 층 모자·양옆 긴 곧은 날개', tags=['hat', 'official', 'historical', 'east'], parts=[
+        dict(kind='boktu', slot=6, paint=dict(base=BLACK, pattern='weave')),
     ]),
 }
 
@@ -141,6 +256,8 @@ class Body:
         for gname, idx in (('cf_torso', [i for i in self.body if part_sum(W[i], ['pelvis', 'spine_0*', 'clavicle_*', 'neck_01', 'thigh_*']) >= 0.6]),
                            ('cf_arm_l', [i for i in self.body if part_sum(W[i], ['upperarm_l', 'lowerarm_l', 'clavicle_l']) >= 0.6]),
                            ('cf_arm_r', [i for i in self.body if part_sum(W[i], ['upperarm_r', 'lowerarm_r', 'clavicle_r']) >= 0.6]),
+                           ('cf_leg_l', [i for i in self.body if part_sum(W[i], ['thigh_l', 'calf_l']) >= 0.6]),
+                           ('cf_leg_r', [i for i in self.body if part_sum(W[i], ['thigh_r', 'calf_r']) >= 0.6]),
                            ('cf_head', self.head)):
             if gname not in bm.vertex_groups:
                 bm.vertex_groups.new(name=gname).add(idx, 1.0, 'REPLACE')
@@ -224,7 +341,11 @@ class Builder:
             elif p.get('mono') and p.get('flare') and z >= z_cr and prev is not None and zb >= z_cr - 0.02:
                 r = r * (1 + p['flare']) ** (1 / NR)  # 가랑이 위에서 끝나는 치마(비늘 치마)도 아래로 넓힌다
             RR[k] = prev = r
-        for _ in range(2):
+        for k, z in enumerate(zs):   # 가랑이 아래는 둘레를 평균 쪽으로 모은다 — 엉덩이 불룩이 끝단까지 번져 뒤가 혹처럼 튀지 않게
+            if z < z_cr:
+                al = p.get('round', 0.6) * min(1.0, (z_cr - z) / 0.25)
+                RR[k] = np.maximum(RR[k], RR[k] * (1 - al) + al * float(np.max(RR[k])) * 0.92)   # 줄이지 않고 모자란 쪽만 늘린다
+        for _ in range(3):
             RR = [RR[0]] + [(RR[k - 1] + 2 * RR[k] + RR[k + 1]) / 4 for k in range(1, NR - 1)] + [RR[-1]]
         rows, refs, ringz = [], [], []
         for k, z in enumerate(zs):
@@ -232,7 +353,7 @@ class Builder:
             below = max(0.0, (z_cr - z) / max(z_cr - zb, 1e-3))
             for s in range(SEG):
                 a = 2 * math.pi * s / SEG
-                fold = 1 + p.get('folds', 0.0) * below * math.sin(a * 9 + 0.7)
+                fold = 1 + p.get('folds', 0.0) * below * math.sin(a * p.get('nfolds', 9) + 0.7)
                 ring.append(self.vert((B.cx + RR[k][s] * fold * math.cos(a), B.cy + RR[k][s] * fold * math.sin(a), z),
                                       'helper-skirt' if z < z_cr - 0.02 else 'cf_torso'))
             rows.append(ring)
@@ -261,8 +382,11 @@ class Builder:
         self.cover.append(('tube', zb, ringz[-1], neck_top))
 
     def sleeves(self, p):
+        """소매 — `arc`(도) 면 팔 바깥쪽만 두르는 판(소데·어깨판), `bag` 이면 팔꿈치부터 네모나게 늘어지는 자루(기모노)."""
         B = self.B
+        arc = p.get('arc')
         for side in 'lr':
+            outv = Vector((1.0 if side == 'l' else -1.0, 0, 0))   # 왼쪽 = +X
             S, E, Wr = B.bone(f'upperarm_{side}'), B.bone(f'lowerarm_{side}'), B.bone(f'hand_{side}')
             armv = [B.co[i] for i in B.body if part_sum(B.W[i], [f'upperarm_{side}', f'lowerarm_{side}']) >= 0.5]
             L1, L2 = (E - S).length, (Wr - E).length
@@ -285,20 +409,32 @@ class Builder:
                 r = max(((q - P) - dirv * (q - P).dot(dirv)).length for q in near) if near else 0.045
                 r = min(r, 0.052 + 0.015 * min(1.0, t * 2)) + p.get('ease', 0.02) * min(1.0, 0.35 + t) + p.get('over', 0.0)
                 r *= 1 + p.get('flare', 0.0) * (k / NT)
-                tt = max(0.0, min(1.0, (t - 0.3) / 0.55))
-                drop = p.get('drop', 0.0) * (3 * tt * tt - 2 * tt * tt * tt)
-                if t > 0.85:
-                    drop *= 1 - 0.5 * min(1.0, (t - 0.85) / 0.2)
+                if p.get('bag'):
+                    tt = max(0.0, min(1.0, (t - 0.36) / 0.16))
+                    drop, dpow = p.get('drop', 0.0) * (3 * tt * tt - 2 * tt * tt * tt), 1.0
+                else:
+                    tt = max(0.0, min(1.0, (t - 0.3) / 0.55))
+                    drop, dpow = p.get('drop', 0.0) * (3 * tt * tt - 2 * tt * tt * tt), 2.0
+                    if t > 0.85:
+                        drop *= 1 - 0.5 * min(1.0, (t - 0.85) / 0.2)
+                if arc:
+                    o = outv - dirv * outv.dot(dirv)
+                    ph0 = math.atan2(o.dot(v_), o.dot(w_) / 1.1)
+                    na = SSEG // 2 + 1
+                    phs = [ph0 + math.radians(arc) * (j / (na - 1) - 0.5) for j in range(na)]
+                else:
+                    phs = [2 * math.pi * s / SSEG for s in range(SSEG)]
                 ring = []
-                for s in range(SSEG):
-                    ph = 2 * math.pi * s / SSEG
+                fo = p.get('folds', 0.0 if arc else 0.035) * min(1.0, t * 1.5)
+                for ph in phs:
                     sv = math.sin(ph)
-                    off = w_ * (r * 1.1 * math.cos(ph)) + v_ * (r * sv + drop * ((1 + sv) / 2) ** 2)
+                    rf = r * (1 + fo * math.sin(ph * 5 + 2.2 * t))
+                    off = w_ * (rf * 1.1 * math.cos(ph)) + v_ * (rf * sv + drop * ((1 + sv) / 2) ** dpow)
                     ring.append(self.vert(P + off, f'cf_arm_{side}'))
                 rows.append(ring)
                 refs.append(P)
             # 소매 격자는 둘레 방향이 반대(안쪽을 보게 지어진다) — 기준점으로 뒤집는다
-            self.grid(rows, p['slot'], refs)
+            self.grid(rows, p['slot'], refs, closed=not arc)
         self.cover.append(('sleeves', p.get('length', 1.0)))
 
     def band(self, p):
@@ -316,6 +452,68 @@ class Builder:
                 ring.append(self.vert((B.cx + r * math.cos(a), B.cy + r * math.sin(a), z + dz), 'cf_torso'))
             rows.append(ring)
         self.grid(rows, p['slot'], Vector((B.cx, B.cy, z)))
+
+    def _tube_at(self, z):
+        """그 높이를 지나는 가장 바깥(나중에 지은) 통의 둘레 반지름 배열."""
+        zs, RR = next(((zs, RR) for zs, RR in reversed(self.tubes) if zs[0] <= z <= zs[-1]), self.tubes[-1])
+        k = min(range(len(zs)), key=lambda i: abs(zs[i] - z))
+        return RR[k]
+
+    def leggings(self, p):
+        """다리 통(정강이 가리개·각반) — 다리마다 높이 칸의 살 둘레 + 여유, `flare` 만큼 발목 쪽을 넓힌다."""
+        B = self.B
+        zt, zb = B.level(p['top']), B.level(p['bottom'])
+        NR = max(4, int((zt - zb) / 0.03) + 1)
+        for side in 'lr':
+            legv = [i for i in B.body if part_sum(B.W[i], [f'thigh_{side}', f'calf_{side}']) >= 0.5]
+            rows, refs, prev = [], [], None
+            for k in range(NR):
+                z = zb + (zt - zb) * k / (NR - 1)
+                pts = B.band_pts(legv, z, 0.015)
+                if pts:
+                    c = (float(np.mean([q[0] for q in pts])), float(np.mean([q[1] for q in pts])))
+                    r = ring_radii(pts, c[0], c[1], SSEG, p.get('ease', 0.012) + p.get('over', 0.0))
+                    prev = (c, r)
+                c, r = prev
+                r = r * (1 + p.get('flare', 0.0) * (1 - k / (NR - 1)) ** 2)
+                rows.append([self.vert((c[0] + r[s] * math.cos(2 * math.pi * s / SSEG), c[1] + r[s] * math.sin(2 * math.pi * s / SSEG), z),
+                                       f'cf_leg_{side}') for s in range(SSEG)])
+                refs.append(Vector((c[0], c[1], z)))
+            self.grid(rows, p['slot'], refs)
+        self.cover.append(('leggings', zb, zt))
+
+    def discs(self, p):
+        """가슴 둥근 판 둘(호심경) — 그 높이 바깥 통 위, 앞 가운데에서 ±spread 도."""
+        B = self.B
+        z = B.level(p['at'])
+        R = self._tube_at(z)
+        r = p.get('radius', 0.055)
+        for sgn in (-1, 1):
+            a = math.radians(270 + sgn * p.get('spread', 24))
+            Rr = R[int(round(a / (2 * math.pi) * SEG)) % SEG] + p.get('over', 0.006)
+            c = Vector((B.cx + Rr * math.cos(a), B.cy + Rr * math.sin(a), z))
+            nrm, tu, tw = Vector((math.cos(a), math.sin(a), 0)), Vector((-math.sin(a), math.cos(a), 0)), Vector((0, 0, 1))
+            rows = []
+            for f in (0.03, 0.35, 0.7, 0.9, 1.0):
+                bulge = 0.01 * (1 - f * f)
+                rows.append([self.vert(c + nrm * bulge + (tu * math.cos(b) + tw * math.sin(b)) * (r * f), 'cf_torso')
+                             for b in (2 * math.pi * s / HSEG for s in range(HSEG))])
+            self.grid(rows, p['slot'], c - nrm * 0.1)
+
+    def bow(self, p):
+        """등 매듭(오비) — 허리 뒤에 붙는 네모난 베개 꼴."""
+        B = self.B
+        z = B.level(p['at'])
+        R = self._tube_at(z)
+        y0 = B.cy + R[SEG // 4] + p.get('over', 0.02)
+        Wd, Ht, D = p.get('width', 0.26), p.get('height', 0.14), p.get('depth', 0.06)
+        n = 32
+        sq = lambda x: math.copysign(abs(x) ** 0.45, x)  # noqa: E731  (둥근 네모)
+        rows = []
+        for yy, sc in ((y0 - 0.015, 0.8), (y0 + D * 0.3, 1.0), (y0 + D * 0.75, 0.97), (y0 + D, 0.7), (y0 + D + 0.006, 0.3), (y0 + D + 0.008, 0.02)):
+            rows.append([self.vert((B.cx + Wd / 2 * sc * sq(math.cos(b)), yy, z + Ht / 2 * sc * sq(math.sin(b))), 'cf_torso')
+                         for b in (2 * math.pi * s / n for s in range(n))])
+        self.grid(rows, p['slot'], Vector((B.cx, y0 - 0.05, z)))
 
     def _head_ring(self, z, ease, cy=None):
         B = self.B
@@ -359,35 +557,197 @@ class Builder:
         crown = [(zb + (zc - zb) * k / 6, 0.078 - 0.006 * k / 6) for k in range(7)] + [(zc, 0.05), (zc, 0.02), (zc, 0.002)]
         self._rings(crown, p['slot'], cy)
 
+    def _dome(self, ease, brow, dome, cy=None):
+        """이마(눈 + brow)부터 머리 살을 따라 올라가 둥글게 닫는 고리들 → (고리, 꼭대기 높이)."""
+        B = self.B
+        specs = [(z, self._head_ring(z, ease, cy)) for z in np.linspace(B.eye_z + brow, B.head_top - 0.02, 5)]
+        rtop = specs[-1][1]
+        for k in range(1, 6):
+            f = k / 5
+            specs.append((B.head_top - 0.02 + dome * math.sin(f * math.pi / 2), rtop * math.cos(f * math.pi / 2) + 0.003))
+        return specs, B.head_top - 0.02 + dome
+
+    @staticmethod
+    def _front_arc(half):
+        """얼굴 앞(각 270°) ±half 도 안의 둘레 칸 — 왼쪽 끝부터 이어지게."""
+        return sorted((s for s in range(HSEG) if abs(((360 * s / HSEG) - 270 + 180) % 360 - 180) <= half),
+                      key=lambda s: ((360 * s / HSEG) - (270 - half)) % 360)
+
     def helmet(self, p):
+        """투구 사발 — `knob` 꼭지, `visor` 앞챙 길이(m)."""
         B = self.B
         cy = B.head_cy
-        z0 = B.eye_z + 0.04
-        specs = [(z, self._head_ring(z, 0.02)) for z in np.linspace(z0, B.head_top - 0.02, 5)]
-        rtop = specs[-1][1]
-        for k in range(1, 6):  # 둥근 윗머리
-            f = k / 5
-            specs.append((B.head_top - 0.02 + 0.035 * math.sin(f * math.pi / 2), rtop * math.cos(f * math.pi / 2) + 0.003))
-        specs += [(B.head_top + 0.02 + 0.04 * k / 3, 0.008 - 0.002 * k) for k in range(1, 4)]  # 꼭지
+        specs, self.top_z = self._dome(p.get('ease', 0.02), p.get('brow', 0.04), p.get('dome', 0.035))
+        if p.get('knob', True):
+            specs += [(B.head_top + 0.02 + 0.04 * k / 3, 0.008 - 0.002 * k) for k in range(1, 4)]
+            self.top_z = B.head_top + 0.06
         self._rings(specs, p['slot'], cy)
+        if p.get('visor'):
+            z0, r0 = specs[0]
+            arc = self._front_arc(70)
+            rows = []
+            for f in (0.0, 0.6, 1.0):
+                rows.append([self.vert(((r0[s] + p['visor'] * f) * math.cos(2 * math.pi * s / HSEG),
+                                        cy + (r0[s] + p['visor'] * f) * math.sin(2 * math.pi * s / HSEG), z0 - 0.012 * f * f), 'cf_head')
+                             for s in arc])
+            self.grid(rows, p['slot'], Vector((0, cy, z0 + 0.2)), closed=False)
 
     def neckguard(self, p):
+        """뒤·옆 드림(비늘 목가리개·시코로) — 얼굴 앞 ±`open` 도는 튼다, `flare` 아래로 벌어짐, `drop` 길이."""
         B = self.B
         cy = B.head_cy + 0.01
-        z0 = B.eye_z + 0.045
-        r0 = self._head_ring(z0, 0.026)
-        # 얼굴 앞(-Y, 각 270°) ±75° 는 튼다 — 뒤·옆만 두르는 비늘 드림
-        arc = [s for s in range(HSEG) if abs(((360 * s / HSEG) - 270 + 180) % 360 - 180) > 75]
-        arc.sort(key=lambda s: ((360 * s / HSEG) - 345) % 360)  # 트인 곳 바로 뒤에서 시작해야 앞을 가로지르는 면이 안 생긴다
+        z0 = B.eye_z + p.get('z', 0.045)
+        r0 = self._head_ring(z0, p.get('ease', 0.026))
+        half = p.get('open', 75)
+        arc = [s for s in range(HSEG) if abs(((360 * s / HSEG) - 270 + 180) % 360 - 180) > half]
+        arc.sort(key=lambda s: ((360 * s / HSEG) - (270 + half)) % 360)  # 트인 곳 바로 뒤에서 시작해야 앞을 가로지르는 면이 안 생긴다
         rows, refs = [], []
+        drop, flare = p.get('drop', 0.13), p.get('flare', 0.35)
         for k in range(6):
-            z = z0 - 0.13 * k / 5
-            rr = r0 * (1 + 0.35 * (k / 5) ** 1.3)
+            z = z0 - drop * k / 5
+            rr = r0 * (1 + flare * (k / 5) ** 1.3)
             rows.append([self.vert((rr[s] * math.cos(2 * math.pi * s / HSEG), cy + rr[s] * math.sin(2 * math.pi * s / HSEG), z), 'cf_head')
                          for s in arc])
             refs.append(Vector((0, cy, z)))
         self.grid(rows[::-1], p['slot'], refs[::-1], closed=False)
         self.cover.append(('neckguard',))
+
+    def kuwagata(self, p):
+        """이마 앞 V 자로 솟는 납작한 뿔 둘(가부토 앞장식)."""
+        B = self.B
+        z0 = B.eye_z + p.get('z', 0.05)
+        r0 = self._head_ring(z0, 0.03)
+        y0 = B.head_cy - r0[int(0.75 * HSEG)] - 0.008
+        L, spread, wd = p.get('length', 0.17), p.get('spread', 0.1), p.get('width', 0.026)
+        for sx in (-1, 1):
+            rows, refs = [], []
+            for k in range(11):
+                t = k / 10
+                P = Vector((sx * (0.01 + spread * t ** 1.5), y0 - 0.02 * t, z0 + L * t))
+                d = Vector((sx * spread * 1.5 * max(t, 0.02) ** 0.5, -0.02, L)).normalized()
+                wv = Vector((d.z, 0, -d.x)).normalized()   # 곡선에 수직(앞에서 본 판의 너비)
+                w = wd * (1 - 0.6 * t) + 0.003
+                rows.append([self.vert(P - wv * (w / 2), 'cf_head'), self.vert(P + wv * (w / 2), 'cf_head')])
+                refs.append(P + Vector((0, 0.1, 0)))
+            self.grid(rows, p['slot'], refs, closed=False)
+
+    def tassel(self, p):
+        """투구 꼭대기 붉은 술 — 위가 좁고 아래로 퍼져 늘어진 실 다발."""
+        B = self.B
+        z0 = getattr(self, 'top_z', B.head_top + 0.015)
+        specs = [(z0 - 0.045, 0.085), (z0 - 0.02, 0.07), (z0 + 0.01, 0.048), (z0 + 0.04, 0.026), (z0 + 0.065, 0.012), (z0 + 0.08, 0.007),
+                 (z0 + 0.1, 0.009), (z0 + 0.112, 0.006), (z0 + 0.115, 0.001)]
+        self._rings(specs, p['slot'], B.head_cy)
+
+    def _wing(self, c, a, b, slot, n=HSEG, tilt=0.0, sx=1):
+        """앞뒤를 보는 납작한 타원 판(사모 날개) — 중심 c, 가로 반지름 a, 세로 b. tilt 도만큼 안쪽 끝을 축으로 바깥이 들린다."""
+        ca, sa = math.cos(math.radians(tilt)), math.sin(math.radians(tilt))
+        piv = c - Vector((sx * a, 0, 0))
+        rows = []
+        for f in (0.05, 0.45, 0.8, 1.0):
+            ring = []
+            for t in (2 * math.pi * s / n for s in range(n)):
+                dx, dz = a + a * f * math.cos(t), b * f * math.sin(t)     # 안쪽 끝(piv)에서 잰 자리
+                ring.append(self.vert(piv + Vector((sx * (dx * ca - dz * sa), 0, dx * sa + dz * ca)), 'cf_head'))
+            rows.append(ring)
+        self.grid(rows, slot, c + Vector((0, 0.1, 0)))
+
+    def samo(self, p):
+        """사모 — 앞이 낮고 뒤가 솟은 두 층 모자 + 뒤 양옆 둥근 날개."""
+        B = self.B
+        cy = B.head_cy
+        specs, top = self._dome(0.013, 0.03, 0.02)
+        self._rings(specs, p['slot'], cy)
+        cb, rb = cy + 0.035, 0.07          # 뒤 높은 층
+        back = [(B.head_top - 0.04, rb), (B.head_top + 0.02, rb * 0.98)]
+        for k in range(1, 6):
+            f = k / 5
+            back.append((B.head_top + 0.02 + 0.035 * math.sin(f * math.pi / 2), rb * 0.98 * math.cos(f * math.pi / 2) + 0.002))
+        self._rings(back, p['slot'], cb)
+        wa, wb = p.get('wing', (0.078, 0.026))
+        tilt = p.get('tilt', 0.0)
+        for sx in (-1, 1):
+            self._wing(Vector((sx * (rb - 0.01 + wa), cb + 0.02, B.head_top + 0.008 + (0.01 if tilt else 0))), wa, wb, p['slot'], tilt=tilt, sx=sx)
+
+    def myeollyu(self, p):
+        """면류관 — 머리를 감싼 검은 관 + 위 앞뒤로 긴 판(앞으로 살짝 숙임)."""
+        B = self.B
+        cy = B.head_cy
+        specs = [(z, self._head_ring(z, 0.014)) for z in np.linspace(B.eye_z + 0.05, B.head_top - 0.01, 5)]
+        rtop = specs[-1][1]
+        specs += [(B.head_top + 0.04, rtop * 0.9), (B.head_top + 0.05, rtop * 0.6), (B.head_top + 0.052, rtop * 0.03)]
+        self._rings(specs, p['slot'], cy)
+        zb, hx, hy = B.head_top + 0.055, 0.085, 0.17
+        self.board = (zb, hx, hy, cy)
+        rows = []
+        for f in (0.05, 0.5, 0.85, 1.0):
+            ring = []
+            for s in range(HSEG):
+                t = 2 * math.pi * s / HSEG
+                cx_, cy_ = math.cos(t), math.sin(t)
+                m = max(abs(cx_), abs(cy_))
+                x, y = hx * f * cx_ / m, hy * f * cy_ / m          # 둥근 원 → 네모 둘레
+                ring.append(self.vert((x, cy + y, zb - 0.06 * y), 'cf_head'))   # 앞(-Y)이 내려간다
+            rows.append(ring)
+        self.grid(rows, p['slot'], Vector((0, cy, zb - 0.2)))
+
+    def beads(self, p):
+        """면류관 판 앞뒤 끝에서 늘어진 구슬 줄 — 줄마다 좁은 띠(앞을 보는 판)."""
+        zb, hx, hy, cy = self.board
+        n = p.get('count', 9)
+        for yy in (-hy, hy):
+            z0 = zb - 0.06 * yy
+            for j in range(n):
+                x = -hx * 0.9 + 1.8 * hx * j / (n - 1)
+                L = p.get('length', 0.13)
+                rows = [[self.vert((x - 0.0035, cy + yy, z0 - L * k / 4), 'cf_head'), self.vert((x + 0.0035, cy + yy, z0 - L * k / 4), 'cf_head')]
+                        for k in range(5)]
+                self.grid(rows, p['slot'], [Vector((x, cy + yy * 2, z0))] * 5, closed=False)
+
+    def eboshi(self, p):
+        """에보시 — 이마 둘레에서 위로 솟으며 뒤로 기울고 옆으로 납작해지는 관."""
+        B = self.B
+        cy = B.head_cy
+        rows, refs = [], []
+        base = self._head_ring(B.eye_z + 0.05, 0.012)
+        H = p.get('height', 0.24)
+        for k in range(12):
+            f = k / 11
+            z = B.eye_z + 0.05 + (B.head_top + H - B.eye_z - 0.05) * f
+            yc = cy + 0.07 * f * f                       # 뒤로 기운다
+            ring = []
+            for s in range(HSEG):
+                a = 2 * math.pi * s / HSEG
+                r0 = base[s]
+                rx = r0 * (1 - 0.45 * f) * abs(math.cos(a))
+                ry = r0 * (1 - 0.15 * f) * abs(math.sin(a))
+                rr = math.hypot(rx, ry) * (1 - 0.9 * max(0.0, f - 0.85) / 0.15)
+                ring.append(self.vert((rr * math.cos(a), yc + rr * math.sin(a), z), 'cf_head'))
+            rows.append(ring)
+            refs.append(Vector((0, yc, z - 0.05)))
+        self.grid(rows, p['slot'], refs)
+
+    def boktu(self, p):
+        """복두 — 네모진 두 층 모자 + 뒤 양옆으로 길고 곧게 뻗은 날개."""
+        B = self.B
+        cy = B.head_cy
+        sqz = np.array([1 + 0.1 * abs(math.cos(2 * (2 * math.pi * s / HSEG))) for s in range(HSEG)])   # 네 모서리를 부풀려 네모지게
+        specs = [(z, self._head_ring(z, 0.014) * sqz) for z in np.linspace(B.eye_z + 0.05, B.head_top - 0.01, 5)]
+        rtop = specs[-1][1]
+        specs += [(B.head_top + 0.012, rtop * 0.96), (B.head_top + 0.02, rtop * 0.75), (B.head_top + 0.024, rtop * 0.4),
+                  (B.head_top + 0.025, rtop * 0.03)]
+        self._rings(specs, p['slot'], cy)
+        cb, rb, zt = cy + 0.04, 0.066, B.head_top + 0.075
+        back = [(B.head_top - 0.03, rb * sqz), (zt - 0.012, rb * sqz), (zt - 0.003, rb * 0.8 * sqz), (zt, rb * 0.4 * sqz), (zt, rb * 0.02 * sqz)]
+        self._rings(back, p['slot'], cb)
+        L, wd, zw, yw = p.get('length', 0.34), 0.03, B.head_top + 0.035, cb + 0.045
+        for sx in (-1, 1):
+            rows = []
+            for k in range(12):
+                x = sx * (0.05 + L * k / 11)
+                w = wd * (1 - 0.25 * k / 11)
+                rows.append([self.vert((x, yw, zw - w / 2), 'cf_head'), self.vert((x, yw, zw + w / 2), 'cf_head')])
+            self.grid(rows, p['slot'], Vector((0, yw + 0.1, zw)), closed=False)
 
     # -- 마무리 --
     def finish(self):
@@ -416,6 +776,7 @@ class Builder:
         B = self.B
         idx = []
         tubes = [c for c in self.cover if c[0] == 'tube']
+        legs = [c for c in self.cover if c[0] == 'leggings']
         full = any(c[0] == 'sleeves' and c[1] >= 0.95 for c in self.cover)
         wz = {s: B.bone(f'hand_{s}') for s in 'lr'}
         for i in B.body:
@@ -423,6 +784,8 @@ class Builder:
             if part_sum(w, ['pelvis', 'spine_0*', 'clavicle_*', 'thigh_*', 'calf_*']) >= 0.5:
                 top_ok = lambda c: z <= (B.lv['neck'] - 0.04 if c[3] else c[2] - 0.02)  # noqa: E731
                 if any(c[1] + 0.03 <= z and top_ok(c) for c in tubes):
+                    idx.append(i)
+                elif part_sum(w, ['thigh_*', 'calf_*']) >= 0.5 and any(c[1] + 0.03 <= z <= c[2] - 0.02 for c in legs):
                     idx.append(i)
             elif full and part_sum(w, ['upperarm_*', 'lowerarm_*']) >= 0.5:
                 if (B.co[i] - wz['l' if B.co[i].x > 0 else 'r']).length > 0.07:
@@ -463,10 +826,55 @@ def paint(g, dpath, npath):
             ln = (np.abs(((t * 40) % 1) - 0.5) < 0.06)
             shade = 1 - 0.18 * ln + 0.03 * noise
             h = -ln.astype(np.float32)
+        elif pat == 'brocade':                       # 금란 — 엇갈린 마름모 꽃 무늬(motif 색)
+            per = 48
+            cu, cv = (xx % per) / per, ((yy + per / 2 * ((xx // per) % 2)) % per) / per
+            dia = np.abs(cu - 0.5) + np.abs(cv - 0.5)
+            petal = (dia < 0.26) & (dia > 0.12) | (dia < 0.05)
+            shade = 1 + 0.04 * np.sin(xx * 0.9) * np.sin(yy * 0.9) + 0.03 * noise
+            h = 0.25 * np.sin(xx * 0.9) * np.sin(yy * 0.9) + 0.5 * petal
+        elif pat == 'stripes':                       # 가는 세로 줄(하카마)
+            ln = (xx % 22) < 3
+            shade = 1 - 0.22 * ln + 0.03 * noise + 0.03 * np.sin(yy * 0.9)
+            h = -0.4 * ln
+        elif pat == 'ribs':                          # 세로 골(투구 사발·정강이 판)
+            n_ = P.get('ribs', 24)
+            cr = np.cos(s * 2 * math.pi * n_)
+            shade = 0.9 + 0.14 * cr + 0.03 * noise
+            h = cr
+        elif pat == 'odoshi':                        # 옻칠 판 줄마다 색 끈을 촘촘히 세로로 엮는다
+            rows_ = P.get('rows', 7)
+            tr = t * rows_
+            fv = tr % 1
+            fu = (s * P.get('cols', 64)) % 1
+            lace_m = (fu < 0.58) & (fv > 0.1) & (fv < 0.9)
+            gap = fv < 0.07
+            shade = np.where(lace_m, 0.85 + 0.25 * np.sin(fu / 0.58 * math.pi), 0.75 + 0.35 * (1 - fv)) - 0.4 * gap + 0.03 * noise
+            h = np.where(lace_m, 0.6 * np.sin(fu / 0.58 * math.pi), 0.3 * (1 - fv)) - gap
+        elif pat == 'scale':                         # 어린갑 — 아래가 둥근 비늘을 엇갈려 겹친다
+            rows_, cols_ = 30, 44
+            tr = t * rows_
+            row = np.floor(tr)
+            sc = s * cols_ + 0.5 * (row % 2)
+            fu, fv = sc % 1, tr % 1
+            edge = np.clip(0.55 - np.hypot(fu - 0.5, np.maximum(0.62 - fv, 0) * 0.9), 0, None)
+            plate = np.clip(edge / 0.1, 0, 1)
+            shade = 0.5 + 0.45 * plate + 0.15 * fv * plate + 0.03 * noise
+            h = plate * (0.4 + 0.6 * fv)
+        elif pat == 'beads':                         # 구슬 줄 — 세로로 구슬(motif 색 섞어)과 끈
+            fb = (t * P.get('count', 9)) % 1
+            bead = np.abs(fb - 0.5) < 0.38
+            shade = np.where(bead, 0.8 + 0.4 * np.sin(fb * math.pi), 0.35)
+            h = bead * np.sin(fb * math.pi)
+        elif pat == 'studs':                         # 가죽 띠에 박은 둥근 장식(각대)
+            cu = (xx % 90) / 90
+            stud = np.hypot(cu - 0.5, (t - 0.5) * 2.2) < 0.18
+            shade = 1 + 0.03 * noise
+            h = stud * 1.0
         elif pat in ('lamellar', 'plate'):
             if pat == 'plate':
-                shade = 1 + 0.06 * noise * 0.4 + 0.08 * np.sin(t * 6)
-                h = 0.2 * np.sin(t * 40)
+                shade = 1 + 0.025 * noise + 0.07 * np.sin(t * 5)
+                h = 0.05 * noise
             else:
                 rows_, cols_ = 26, 46
                 tr = t * rows_
@@ -483,6 +891,18 @@ def paint(g, dpath, npath):
         if pat == 'lamellar':  # 비늘을 꿴 끈
             holes = m & (np.abs(fu - 0.5) < 0.06) & (np.abs(fv - 0.22) < 0.07)
             img[holes] = hexrgb(P.get('lace', LACE))
+        elif pat == 'odoshi':
+            lm = m & lace_m
+            img[lm] = (hexrgb(P['lace'])[None, :] * shade[lm][:, None])
+        elif pat == 'brocade':
+            pm = m & petal
+            img[pm] = hexrgb(P['motif'])[None, :] * (1 + 0.05 * noise[pm])[:, None]
+        elif pat == 'beads':
+            alt = m & bead & ((np.floor(t * P.get('count', 9)) % 2) == 1)
+            img[alt] = hexrgb(P['motif'])[None, :] * shade[alt][:, None]
+        elif pat == 'studs':
+            sm = m & stud
+            img[sm] = hexrgb(P['motif'])
 
         def fill(mask, colr):
             mm = m & mask
@@ -497,6 +917,24 @@ def paint(g, dpath, npath):
                 fill(t > 1 - tr_[1] * 4, tr_[2])
             elif k == 'split':                      # 앞뒤 트임 줄(비늘 치마)
                 fill((np.abs(s - 0.75) < tr_[1]) | (np.abs(s - 0.25) < tr_[1]), tr_[2])
+            elif k == 'panels':                     # 쿠사즈리 — n 장 판 사이 틈
+                fu_ = (s * tr_[1] + 0.5) % 1
+                fill((fu_ < tr_[2] * tr_[1]) | (fu_ > 1 - tr_[2] * tr_[1]), tr_[3])
+            elif k == 'roundel':                    # 둥근 금빛 보 — 가슴·등(t = tr_[2])과 두 어깨
+                for sc_, tc_, rr_ in ((0.75, tr_[2], 0.07), (0.25, tr_[2], 0.07), (0.0, 0.955, 0.04), (0.5, 0.955, 0.04)):
+                    ds = np.minimum(np.abs(s - sc_), 1 - np.abs(s - sc_))
+                    d = np.hypot(ds / rr_, (t - tc_) / (rr_ * 0.75))
+                    fill(d < 1.0, tr_[1])
+                    fill((d < 0.72) & (d > 0.6), '#7a1a1a')
+                    fill(d < 0.25, '#7a1a1a')
+            elif k == 'patch':                      # 흉배 — 가슴(s 0.75)·등(s 0.25) 네모, 금 테두리와 가운데 둥근 무늬
+                t0, t1 = tr_[3], tr_[4]
+                hw = (t1 - t0) * 0.7
+                for sc_ in (0.75, 0.25):
+                    inside = (np.abs(s - sc_) < hw) & (t > t0) & (t < t1)
+                    fill(inside, tr_[2])
+                    fill((np.abs(s - sc_) < hw * 0.85) & (t > t0 + hw * 0.3) & (t < t1 - hw * 0.3), tr_[1])
+                    fill(np.hypot((s - sc_) / hw, (t - (t0 + t1) / 2) / (hw * 1.2)) < 0.35, tr_[2])
             elif k == 'cross':                      # 왼깃이 오른쪽으로 내려와 덮는다(교령 우임) — 앞 가운데 s 0.75
                 wk = tr_[2] if len(tr_) > 2 else 1.0   # 너비 몫(저고리 동정은 가늘게)
                 for (sa, ta), (sb, tb), wdt in (((0.70, 1.0), (0.83, 0.62), 0.022 * wk), ((0.80, 1.0), (0.755, 0.80), 0.017 * wk)):
@@ -524,8 +962,40 @@ def paint(g, dpath, npath):
         im.save()
 
 
+def resolve(g, cols=None):
+    """틀의 색 칸('C1'·'C2')을 헥스로 바꾼 부품 목록. cols = 변형 색(앞에서부터 C1, C2 …)."""
+    cmap = dict(g.get('colors', {}))
+    for k, c in zip(sorted(cmap), cols or []):
+        cmap[k] = c
+    sub = lambda v: cmap.get(v, v) if isinstance(v, str) else [sub(x) for x in v] if isinstance(v, (list, tuple)) else v  # noqa: E731
+    return dict(g, parts=[dict(p, paint={k: sub(v) for k, v in p['paint'].items()}) for p in g['parts']])
+
+
+def write_mhmat(path, name, g):
+    pats = [p['paint'].get('pattern') for p in g['parts']]
+    metal = any(x in METAL_PATTERNS for x in pats)
+    rough = 0.55 if metal else 0.7 if 'odoshi' in pats else 0.9
+    open(path, 'w', encoding='utf-8', newline='\n').write(f"""# char-forge garments.py material (CC0)
+name {name}
+license CC0
+author char-forge
+diffuseColor 1.0 1.0 1.0
+diffuseIntensity 1.0
+diffuseTexture {name}_diffuse.png
+normalmapTexture {name}_normal.png
+normalmapIntensity 1.0
+metallic {0.35 if metal else 0.0}
+roughness {rough}
+opacity 1.0
+""")
+
+
+def uuid_of(name):
+    return str(uuid.UUID(int=random.Random(name).getrandbits(128)))
+
+
 def make(gid, svc):
-    g = GARMENTS[gid]
+    g = resolve(GARMENTS[gid])
     bm, arm = human(svc)
     from bl_ext.user_default.mpfb.services import ClothesService, LocationService
     from bl_ext.user_default.mpfb.entities.meshcrossref import MeshCrossRef
@@ -545,39 +1015,56 @@ def make(gid, svc):
     name = 'cf_' + gid
     out = os.path.join(LocationService.get_user_data('clothes'), name)
     os.makedirs(out, exist_ok=True)
-    tex, nrm = name + '_diffuse.png', name + '_normal.png'
-    paint(g, os.path.join(out, tex), os.path.join(out, nrm))
-    metal = any(p['paint'].get('pattern') in ('lamellar', 'plate') for p in g['parts'])
-    mhmat = f"""# char-forge garments.py material (CC0)
-name {name}
-license CC0
-author char-forge
-diffuseColor 1.0 1.0 1.0
-diffuseIntensity 1.0
-diffuseTexture {tex}
-normalmapTexture {nrm}
-normalmapIntensity 1.0
-metallic {0.35 if metal else 0.0}
-roughness {0.55 if metal else 0.9}
-opacity 1.0
-"""
-    props = dict(author='char-forge', name=name, license='CC0', description=g['desc'], homepage='',
-                 uuid=str(uuid.UUID(int=random.Random(name).getrandbits(128))))
+    paint(g, os.path.join(out, name + '_diffuse.png'), os.path.join(out, name + '_normal.png'))
+    props = dict(author='char-forge', name=name, license='CC0', description=g['desc'], homepage='', uuid=uuid_of(name))
     mh = ClothesService.create_mhclo_from_clothes_matching(bm, ob, properties_dict=props, delete_group=dg if ndel else None)
     mh.material = name + '.mhmat'
     mh.tags = ','.join(g['tags'])
     mh.write_mhclo(os.path.join(out, name + '.mhclo'), reference_scale=ClothesService.get_reference_scale(bm), also_export_mhmat=True)
-    open(os.path.join(out, name + '.mhmat'), 'w', encoding='utf-8', newline='\n').write(mhmat)  # material 줄만 쓰게 하고 내용은 우리 것
+    write_mhmat(os.path.join(out, name + '.mhmat'), name, g)  # material 줄만 쓰게 하고 내용은 우리 것
     print('GARMENT', gid, 'verts', len(ob.data.vertices), 'faces', len(ob.data.polygons), 'delete', ndel, '->', out)
+
+
+def recolor(gid, cols, svc):
+    """색 변형 — 기본 옷의 메시·맞춤(.obj·.mhclo)은 그대로 베끼고 이름·uuid·그림만 새로. 기본 옷이 없으면 먼저 짓는다."""
+    from bl_ext.user_default.mpfb.services import LocationService
+    root = LocationService.get_user_data('clothes')
+    base = 'cf_' + gid
+    src = os.path.join(root, base)
+    if not os.path.exists(os.path.join(src, base + '.mhclo')):
+        make(gid, svc)
+    name = base + '_' + '_'.join(c.lstrip('#').lower() for c in cols)
+    out = os.path.join(root, name)
+    os.makedirs(out, exist_ok=True)
+    g = resolve(GARMENTS[gid], ['#' + c.lstrip('#') for c in cols])
+    lines = []
+    for ln in open(os.path.join(src, base + '.mhclo'), encoding='utf-8').read().split('\n'):
+        key = ln.split(' ', 1)[0]
+        ln = {'name': f'name {name}', 'uuid': f'uuid {uuid_of(name)}', 'obj_file': f'obj_file {name}.obj',
+              'material': f'material {name}.mhmat'}.get(key, ln)
+        lines.append(ln)
+    open(os.path.join(out, name + '.mhclo'), 'w', encoding='utf-8', newline='\n').write('\n'.join(lines))
+    with open(os.path.join(src, base + '.obj'), 'rb') as f:
+        obj = f.read()
+    with open(os.path.join(out, name + '.obj'), 'wb') as f:
+        f.write(obj)
+    paint(g, os.path.join(out, name + '_diffuse.png'), os.path.join(out, name + '_normal.png'))
+    write_mhmat(os.path.join(out, name + '.mhmat'), name, g)
+    print('GARMENT', gid, 'colors', cols, '->', out)
 
 
 def main():
     ids = sys.argv[sys.argv.index('--') + 1:]
-    if ids == ['all']:
-        ids = list(GARMENTS)
+    if 'all' in ids:          # all = 기본 옷 전부(뒤에 변형 인자를 같이 줄 수 있다)
+        i = ids.index('all')
+        ids = ids[:i] + list(GARMENTS) + ids[i + 1:]
     svc = build_real.mpfb()
-    for gid in ids:
-        make(gid, svc)
+    for spec in ids:
+        gid, _, cols = spec.partition('@')
+        if cols:
+            recolor(gid, cols.split(','), svc)
+        else:
+            make(gid, svc)
 
 
 main()

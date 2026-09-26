@@ -285,6 +285,93 @@ def head_parts(key, c3, mt, gold, fur):
     raise KeyError(key)
 
 
+# ---- 진짜 옷(README §7 단계 4 ③) — 공방이 지은 옷(garments.py, 세력 색 변형)과 CC0 MakeHuman 옷 ----
+# 맞는 옷이 없는 틀은 None → 껍데기(outfit_parts) 그대로. 옷 틀(축)은 바꾸지 않는다 — 입히는 재료만 바꾼다.
+EAST_REG = ('kr', 'sg', 'jp')
+CLOTH_SHOES, BOOTS = 'toigo_mj_cloth_shoes', 'rehmanpolanski_viking_boots'
+
+
+def lum(c):
+    r, g, b = (int(c.lstrip('#')[i:i + 2], 16) / 255 for i in (0, 2, 4))
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+
+def mix(a, b, f):
+    pa, pb = ([int(c.lstrip('#')[i:i + 2], 16) for i in (0, 2, 4)] for c in (a, b))
+    return '#' + ''.join(f'{round(x * (1 - f) + y * f):02x}' for x, y in zip(pa, pb))
+
+
+def vivid(c):
+    """끈·술처럼 옻칠·검은 바탕 위에 보여야 하는 색 — 너무 어두우면 밝힌다."""
+    return c if lum(c) > 0.2 else mix(c, '#b8a47a', 0.55)
+
+
+def cf(gid, *cols):
+    """공방 옷 이름과 garments.py 에 줄 인자 — 색을 주면 변형(cf_<id>_<헥스>…)."""
+    cs = [c.lstrip('#').lower() for c in cols]
+    return 'cf_' + gid + ''.join('_' + c for c in cs), gid + ('@' + ','.join(cs) if cs else '')
+
+
+def real_outfit(reg, role, key, female, c1, c2, c3):
+    """옷 틀 → (옷 이름들, garments.py 인자들) 또는 None."""
+    east = reg in EAST_REG
+    light = lum(c1) > 0.6
+    if east:
+        if key == 'samurai':
+            o = [cf('gusoku', vivid(c1), c3)]
+        elif key == 'lamellar':
+            o = [cf('chalgap', c1 if not light else '#7a2a24')]
+        elif key == 'robe_armored':
+            o = [cf('samguk_armor', c1 if not light else '#2f4a7a')]
+        elif key == 'robe_long':
+            o = [cf('dallyeong', c1 if not light else '#8a2a2a', c3 if lum(c3) < 0.3 and not light else '#2a3a6a')]
+        elif key == 'robe_wide':
+            o = [cf('dopo', c1, c3) if light else cf('dopo', c2 if lum(c2) > 0.6 else '#e9e4d6', c1)]
+        elif key == 'royal':
+            o = [cf('dallyeong', c1, c1)] if reg == 'jp' else [cf('gonryongpo', c1 if not light else '#a8282a')]
+        elif key in ('court', 'dress', 'dancer', 'royal_f', 'skirt'):
+            if reg == 'jp':
+                o = [cf('kimono', c1 if not light else '#7a2a4a', '#e2b85a' if key in ('royal_f', 'court') else c2)]
+            elif role == 'student':
+                o = [cf('hanbok_f', '#1a1a1c', '#f4f1e8')]
+            else:
+                o = [cf('hanbok_f', c1 if not light else '#a8323a', '#efd98c' if key in ('royal_f', 'dancer') else c2 if lum(c2) > 0.5 else '#e9e4d6')]
+        elif key == 'robe_short' and reg == 'jp':
+            o = [cf('hakama', '#e6dfcc', c1 if not light else '#2a3450')]
+        elif key == 'monk':
+            return ['donitz_monk_robe', CLOTH_SHOES], []
+        else:
+            return None
+        names, specs = [n for n, _ in o], [s for _, s in o]
+        armored = key in ('samurai', 'lamellar', 'robe_armored')
+        return names + [BOOTS if armored else CLOTH_SHOES], specs
+    if key == 'leather':
+        return ['rehmanpolanski_viking_tunic', 'rehmanpolanski_viking_pants', BOOTS], []
+    if key == 'tunic':
+        return ['wdg_mycenaean_tunic', BOOTS], []
+    if key == 'monk':
+        return ['donitz_monk_robe', CLOTH_SHOES], []
+    return None
+
+
+def real_head(reg, role, key, c1):
+    """머리 → (머리카락 또는 None, 옷 이름들, garments.py 인자들) 또는 None."""
+    if reg not in EAST_REG:
+        return None
+    if key == 'helmet':
+        o = {'kr': cf('helmet_east'), 'sg': cf('helmet_general'), 'jp': cf('kabuto', vivid(c1))}[reg]
+    elif key == 'cap':
+        if reg == 'kr':
+            o = cf('gat') if role in ('scholar', 'healer', 'strategist', 'traveler', 'artist', 'monk') else cf('samo')
+        else:
+            o = {'sg': cf('boktu'), 'jp': cf('eboshi')}[reg]
+    elif key == 'crown':
+        o = {'kr': cf('ikseongwan'), 'sg': cf('myeollyugwan'), 'jp': cf('eboshi')}[reg]
+    else:
+        return None
+    return None, [o[0]], [o[1]]
+
+
 def skin_of(race, age, female):
     eth = max(race, key=race.get)
     band = 'young' if age < 0.55 else 'middleage' if age < 0.75 else 'old'
@@ -358,6 +445,16 @@ def make(h):
     else:
         mh = []
     hair, hparts = head_parts(h['axes']['head'], c3, mt, gold, fur)
+    reg, specs = h['id'][:2], []
+    ro = real_outfit(reg, role, h['axes']['outfit'], female, c1, c2, c3)
+    if ro:                     # 진짜 옷이 있는 틀 — 껍데기 옷을 빼고 옷 메시로
+        parts, mh = [], list(ro[0])
+        specs += ro[1]
+    rh = real_head(reg, role, h['axes']['head'], c1)
+    if rh:
+        hair, hparts = rh[0], []
+        mh = mh + rh[1]
+        specs += rh[2]
     r = {
         'id': 'hero_' + h['id'],
         '_note': f"단계 4 도감 인물 몸 — saga-unity GO 도감 id {h['id']}(가명 {h['name']}) 자리 후보. 역할 {role}·{h['faction']}·★{h['rarity']}. "
@@ -375,12 +472,15 @@ def make(h):
     }
     if hair:
         r['hair'] = f'{hair}/{hair}.mhclo'
+    if specs:
+        r['_garments'] = specs   # garments.py 로 먼저 지을 공방 옷(--garments 가 모아 준다)
     if mh:
         r['clothes'] = [f'{c}/{c}.mhclo' for c in mh]
     kb = parts + hparts
     if kb:
         r['kitbash'] = kb
-    r['anims'] = {'idle': 'Sword_Idle' if arms else 'Idle_Loop', 'walk': 'Walk_Loop', 'run': 'Jog_Fwd_Loop',
+    # 진짜 옷(긴 옷자락·갑옷 치마)은 Sword_Idle 의 넓은 다리를 따라 부푼다 — 발을 모은 자체 대기(keyframes.py)
+    r['anims'] = {'idle': ('CF_Guard_Idle_Loop' if ro else 'Sword_Idle') if arms else 'Idle_Loop', 'walk': 'Walk_Loop', 'run': 'Jog_Fwd_Loop',
                   'attack': 'Sword_Attack' if arms else 'Spell_Simple_Shoot', 'hit': 'Hit_Chest', 'death': 'Death01',
                   'kneel': 'CF_Kneel_Loop'}
     return r
@@ -399,6 +499,10 @@ def check(recipes):
 
 
 def main():
+    if '--garments' in sys.argv:   # 105 레시피가 쓰는 공방 옷 인자 — garments.py -- $(…) 로 넘긴다
+        heroes = assign(load_heroes())
+        print(' '.join(sorted({g for h in heroes for g in make(h).get('_garments', [])})))
+        return
     if '--check' in sys.argv:
         rs = [json.load(open(os.path.join(OUT, f), encoding='utf-8')) for f in sorted(os.listdir(OUT)) if f.endswith('.json')]
         sys.exit(0 if check(rs) else 1)

@@ -27,63 +27,12 @@
  "eyelashes": "eyelashes03/eyelashes03.mhclo",
  "teeth": "teeth_base/teeth_base.mhclo",
  "hair": "short01/short01.mhclo",
- "kitbash": [
-  {
-   "part": "shell",
-   "slot": "cloth",
-   "color": "#cfc6b0",
-   "rough": 0.85,
-   "offset": 0.004,
-   "thick": 0.004,
-   "groups": [
-    "spine_0*",
-    "clavicle_*",
-    "upperarm_*",
-    "lowerarm_*"
-   ],
-   "minw": 0.5
-  },
-  {
-   "part": "shell",
-   "slot": "leather",
-   "color": "#3a2a1e",
-   "rough": 0.7,
-   "offset": 0.007,
-   "thick": 0.004,
-   "groups": [
-    "foot_*",
-    "ball_*"
-   ],
-   "minw": 0.4
-  },
-  {
-   "part": "robe",
-   "color": "#9a7a2a",
-   "top": 0.1,
-   "flare": 0.75,
-   "jag": 0.0,
-   "weights": "skin",
-   "rough": 0.85,
-   "hem": 0.015
-  },
-  {
-   "part": "shell",
-   "slot": "metal_gold",
-   "color": "#c9a64a",
-   "rough": 0.3,
-   "offset": 0.02,
-   "thick": 0.006,
-   "groups": [
-    "clavicle_*",
-    "upperarm_*",
-    "spine_03"
-   ],
-   "z": [
-    0.79,
-    0.85
-   ],
-   "minw": 0.4
-  }
+ "_garments": [
+  "dallyeong@9a7a2a,9a7a2a"
+ ],
+ "clothes": [
+  "cf_dallyeong_9a7a2a_9a7a2a/cf_dallyeong_9a7a2a_9a7a2a.mhclo",
+  "toigo_mj_cloth_shoes/toigo_mj_cloth_shoes.mhclo"
  ],
  "anims": {
   "idle": "Idle_Loop",

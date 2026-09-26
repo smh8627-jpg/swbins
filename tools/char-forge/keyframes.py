@@ -174,7 +174,24 @@ def _heal():
     return False, [(0, idle), (12, gather), (28, raised), (38, raised2), (50, release), (62, release), (80, idle)]
 
 
+def _guard_pose(b=0.0):
+    return P(base=('Sword_Idle', 0), pelvis=(0, 0, -0.02 - b),
+             dirs={'pelvis': (0, 0.04, 1), 'spine_01': (0, 0.06, 1), 'spine_02': (0, 0.05, 1), 'spine_03': (0, 0.03, 1),
+                   'neck_01': (0, 0.04, 1), 'hand_l': (0.05, 0.2, -1), 'hand_r': (0, 1, 0.15),
+                   'foot_l': (0.08, 1, -0.55), 'foot_r': (-0.08, 1, -0.55)},
+             pole={'hand_r': (-1, -0.8, -0.3)},
+             ik={'hand_l': (0.27, 0.03, 0.9 - b), 'hand_r': (-0.27, 0.3, 0.97 - b),   # 갑옷·호심경을 뚫지 않게 몸에서 띄운다
+                 'foot_l': (0.12, 0.05, 0.104), 'foot_r': (-0.12, -0.04, 0.104)})
+
+
+def _guard_idle():
+    """칼 쥐고 서기(좁은 자세) — Sword_Idle 손가락·어깨를 받되 발은 어깨너비로 모은다. 긴 옷자락·갑옷 치마가
+    Sword_Idle 의 넓게 벌린 다리를 따라 부풀지 않게(천 시뮬레이션이 없다). 오른손 칼은 허리 앞, 왼손은 옆."""
+    return True, [(0, _guard_pose()), (30, _guard_pose(0.008)), (60, _guard_pose())]
+
+
 CLIPS = {
+    'CF_Guard_Idle_Loop': _guard_idle,
     'CF_Climb_Loop': _climb,
     'CF_Glide_Loop': _glide,
     'CF_Shield_Block': _block,

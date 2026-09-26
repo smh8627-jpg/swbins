@@ -26,79 +26,14 @@
  "eyebrows": "eyebrow012/eyebrow012.mhclo",
  "eyelashes": "eyelashes01/eyelashes01.mhclo",
  "teeth": "teeth_base/teeth_base.mhclo",
- "kitbash": [
-  {
-   "part": "shell",
-   "slot": "cloth",
-   "color": "#cfc6b0",
-   "rough": 0.85,
-   "offset": 0.004,
-   "thick": 0.004,
-   "groups": [
-    "spine_0*",
-    "clavicle_*",
-    "upperarm_*",
-    "lowerarm_*"
-   ],
-   "minw": 0.5
-  },
-  {
-   "part": "shell",
-   "slot": "leather",
-   "color": "#5a4030",
-   "rough": 0.7,
-   "offset": 0.007,
-   "thick": 0.004,
-   "groups": [
-    "foot_*",
-    "ball_*"
-   ],
-   "minw": 0.4
-  },
-  {
-   "part": "robe",
-   "color": "#8a2f2a",
-   "top": 0.1,
-   "flare": 0.75,
-   "jag": 0.0,
-   "weights": "skin",
-   "rough": 0.85,
-   "hem": 0.015
-  },
-  {
-   "part": "shell",
-   "slot": "metal_gold",
-   "color": "#c9a64a",
-   "rough": 0.3,
-   "offset": 0.02,
-   "thick": 0.006,
-   "groups": [
-    "clavicle_*",
-    "upperarm_*",
-    "spine_03"
-   ],
-   "z": [
-    0.79,
-    0.85
-   ],
-   "minw": 0.4
-  },
-  {
-   "part": "shell",
-   "slot": "cloth_cap",
-   "color": "#26262e",
-   "rough": 0.8,
-   "offset": 0.012,
-   "thick": 0.006,
-   "groups": [
-    "head"
-   ],
-   "z_eye": [
-    0.035,
-    0.3
-   ],
-   "minw": 0.5
-  }
+ "_garments": [
+  "gonryongpo@8a2f2a",
+  "boktu"
+ ],
+ "clothes": [
+  "cf_gonryongpo_8a2f2a/cf_gonryongpo_8a2f2a.mhclo",
+  "toigo_mj_cloth_shoes/toigo_mj_cloth_shoes.mhclo",
+  "cf_boktu/cf_boktu.mhclo"
  ],
  "anims": {
   "idle": "Idle_Loop",

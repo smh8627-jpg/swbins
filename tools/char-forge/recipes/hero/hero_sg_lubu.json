@@ -26,6 +26,12 @@
  "eyebrows": "eyebrow012/eyebrow012.mhclo",
  "eyelashes": "eyelashes03/eyelashes03.mhclo",
  "teeth": "teeth_base/teeth_base.mhclo",
+ "_garments": [
+  "helmet_general"
+ ],
+ "clothes": [
+  "cf_helmet_general/cf_helmet_general.mhclo"
+ ],
  "kitbash": [
   {
    "part": "shell",
@@ -108,19 +114,6 @@
     0.22
    ],
    "minw": 0.3
-  },
-  {
-   "part": "shell",
-   "slot": "metal",
-   "color": "#9ba3ab",
-   "rough": 0.35,
-   "offset": 0.012,
-   "thick": 0.006,
-   "groups": [
-    "head"
-   ],
-   "open_face": true,
-   "minw": 0.5
   }
  ],
  "anims": {

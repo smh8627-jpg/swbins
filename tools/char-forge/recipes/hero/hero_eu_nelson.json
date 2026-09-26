@@ -27,66 +27,12 @@
  "eyelashes": "eyelashes03/eyelashes03.mhclo",
  "teeth": "teeth_base/teeth_base.mhclo",
  "hair": "short02/short02.mhclo",
- "kitbash": [
-  {
-   "part": "shell",
-   "slot": "cloth",
-   "color": "#8a2a2a",
-   "rough": 0.85,
-   "offset": 0.004,
-   "thick": 0.004,
-   "groups": [
-    "spine_0*",
-    "clavicle_*",
-    "upperarm_*",
-    "lowerarm_*"
-   ],
-   "minw": 0.5
-  },
-  {
-   "part": "shell",
-   "slot": "cloth_pants",
-   "color": "#26262e",
-   "rough": 0.85,
-   "offset": 0.004,
-   "thick": 0.004,
-   "groups": [
-    "thigh_*",
-    "calf_*"
-   ],
-   "minw": 0.5
-  },
-  {
-   "part": "shell",
-   "slot": "leather",
-   "color": "#3a2a1e",
-   "rough": 0.7,
-   "offset": 0.012,
-   "thick": 0.005,
-   "groups": [
-    "foot_*",
-    "ball_*",
-    "calf_*"
-   ],
-   "z": [
-    0.0,
-    0.25
-   ],
-   "minw": 0.3
-  },
-  {
-   "part": "robe",
-   "color": "#8a2a2a",
-   "top": 0.14,
-   "flare": 0.3,
-   "jag": 0.0,
-   "weights": "skin",
-   "rough": 0.85,
-   "length": 0.45
-  }
+ "clothes": [
+  "wdg_mycenaean_tunic/wdg_mycenaean_tunic.mhclo",
+  "rehmanpolanski_viking_boots/rehmanpolanski_viking_boots.mhclo"
  ],
  "anims": {
-  "idle": "Sword_Idle",
+  "idle": "CF_Guard_Idle_Loop",
   "walk": "Walk_Loop",
   "run": "Jog_Fwd_Loop",
   "attack": "Sword_Attack",

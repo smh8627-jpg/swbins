@@ -26,61 +26,14 @@
  "eyebrows": "eyebrow001/eyebrow001.mhclo",
  "eyelashes": "eyelashes01/eyelashes01.mhclo",
  "teeth": "teeth_base/teeth_base.mhclo",
- "kitbash": [
-  {
-   "part": "shell",
-   "slot": "cloth",
-   "color": "#3f6b3a",
-   "rough": 0.85,
-   "offset": 0.004,
-   "thick": 0.004,
-   "groups": [
-    "spine_0*",
-    "clavicle_*",
-    "upperarm_*",
-    "lowerarm_*"
-   ],
-   "minw": 0.5
-  },
-  {
-   "part": "shell",
-   "slot": "leather",
-   "color": "#5a4030",
-   "rough": 0.7,
-   "offset": 0.007,
-   "thick": 0.004,
-   "groups": [
-    "foot_*",
-    "ball_*"
-   ],
-   "minw": 0.4
-  },
-  {
-   "part": "robe",
-   "color": "#2a2522",
-   "top": 0.08,
-   "flare": 0.9,
-   "jag": 0.0,
-   "weights": "skin",
-   "rough": 0.85,
-   "hem": 0.015
-  },
-  {
-   "part": "shell",
-   "slot": "cloth_cap",
-   "color": "#2a2522",
-   "rough": 0.8,
-   "offset": 0.012,
-   "thick": 0.006,
-   "groups": [
-    "head"
-   ],
-   "z_eye": [
-    0.035,
-    0.3
-   ],
-   "minw": 0.5
-  }
+ "_garments": [
+  "dopo@e9e4d6,3f6b3a",
+  "boktu"
+ ],
+ "clothes": [
+  "cf_dopo_e9e4d6_3f6b3a/cf_dopo_e9e4d6_3f6b3a.mhclo",
+  "toigo_mj_cloth_shoes/toigo_mj_cloth_shoes.mhclo",
+  "cf_boktu/cf_boktu.mhclo"
  ],
  "anims": {
   "idle": "Idle_Loop",

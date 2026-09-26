@@ -26,62 +26,14 @@
  "eyebrows": "eyebrow008/eyebrow008.mhclo",
  "eyelashes": "eyelashes03/eyelashes03.mhclo",
  "teeth": "teeth_base/teeth_base.mhclo",
- "hair": "short01/short01.mhclo",
- "kitbash": [
-  {
-   "part": "shell",
-   "slot": "cloth",
-   "color": "#3a4a3a",
-   "rough": 0.85,
-   "offset": 0.004,
-   "thick": 0.004,
-   "groups": [
-    "spine_0*",
-    "clavicle_*",
-    "upperarm_*",
-    "lowerarm_*"
-   ],
-   "minw": 0.5
-  },
-  {
-   "part": "shell",
-   "slot": "leather",
-   "color": "#3a2a1e",
-   "rough": 0.7,
-   "offset": 0.007,
-   "thick": 0.004,
-   "groups": [
-    "foot_*",
-    "ball_*"
-   ],
-   "minw": 0.4
-  },
-  {
-   "part": "robe",
-   "color": "#d8d0bc",
-   "top": 0.08,
-   "flare": 0.9,
-   "jag": 0.0,
-   "weights": "skin",
-   "rough": 0.85,
-   "hem": 0.015
-  },
-  {
-   "part": "shell",
-   "slot": "metal_gold",
-   "color": "#c9a64a",
-   "rough": 0.3,
-   "offset": 0.024,
-   "thick": 0.012,
-   "groups": [
-    "head"
-   ],
-   "z_eye": [
-    0.04,
-    0.1
-   ],
-   "minw": 0.5
-  }
+ "_garments": [
+  "dopo@d8d0bc,3a4a3a",
+  "eboshi"
+ ],
+ "clothes": [
+  "cf_dopo_d8d0bc_3a4a3a/cf_dopo_d8d0bc_3a4a3a.mhclo",
+  "toigo_mj_cloth_shoes/toigo_mj_cloth_shoes.mhclo",
+  "cf_eboshi/cf_eboshi.mhclo"
  ],
  "anims": {
   "idle": "Idle_Loop",
