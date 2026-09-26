@@ -9350,3 +9350,12 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - 진단 `PlaytestDungeonRegions`(시련 뒤): 표(아홉·웹 키 순서·방위 여덟 + 가운데·칸 겹침·글·시대 1~2·땅빛 흰색 아님) · 자리(칸 방 열하나가 씬에 있고 제 지역·ProcRoom/능묘 속 넷/난입 방/남쪽 밖 = 없음·Room4·Corridor4 북방 설산·남쪽 들길 −14/−16 에서 바뀜·난입 표식 중원) · 땅빛(열하나 전부 원래 빛 × 색조) · 배너(2초 전 없음·1.3초 뜸·글에 이름 한자 자리·스침 안 뜸·던전 층 다녀와도 안 뜸·새 지역 뜸·4초 뒤 꺼짐) · M 지도(아홉 칸 글·서남에서 그 칸만 금빛·지금 줄·던전 층은 다 꺼짐) · ko/en 키 54+시대 넷.
 - 검증: 컴파일 오류 0 → `PlaytestDungeonHeadless` **3연속 OK**(regions 줄 세 번 같음, "칸 9 방 11 배너 2 지도 9 키 54") · `PlaytestOverworldMap` OK · `PlaytestDungeonFloorProgression` OK. 화면은 안 봄 — 실기 확인 전(배너 자리·글 크기, 땅빛 세기, M 지도 칸 글 넘침).
 - 다음 = 109-10-5 웹 5.13 지역 몬스터·위험도·우두머리.
+
+## 2026-09-26 char-forge — 도감 105 몸 도구·처음 눈으로 봄·D5 Mixamo 유지
+
+"vroid 같은 자체 툴 이어 해줘" → "saga-unity 몸은 직접 확인해봐" → "1번으로 해줘".
+
+- 출처 검사로 새 Mixamo 몸 없음 확인(🔴 282 그대로) → char-forge 단계 4: `gen_hero_recipes.py`(GO 도감 105 → 레시피, 네 축 중 둘 이상 다름, 두 축 미만 쌍 0) · `calib_height.py`(macro.height 이분 탐색, 목표 키 ±0.3%) · 105벌 빌드 실패 0(로컬 `_out/hero/`, 커밋 안 함).
+- **처음 눈으로 봄**(Blender Eevee, Mixamo | 공방 같은 빛·키 1.70m): 얼굴·MakeHuman 양복은 괜찮고, 껍데기 옷은 쫄쫄이·플라스틱, robe 는 살이 뚫는 통, 괴물은 맨몸 사람 — 모두 Mixamo 보다 못함. 그동안의 CMP OK·verify·measure 수치가 못 잡았다(char-forge README §8-1).
+- **D5 사용자 결정**: Mixamo 몸 유지 + 공개 저장소 밖. 원본은 처음부터 .gitignore 라 이력에도 없음(웹도 로컬 보너스). 출처 검사 규칙을 바꿈 — Mixamo 로컬 전용 = 🟡`origin_local`, 공개되거나 .gitignore 가 안 막으면 🔴public. 수치: godot 🔴0 · unity 🔴0(🟡local 282) · web 🔴public 0 → 단계 5 통과.
+- 게임 몸은 그대로(교체 없음). 공방 unity 몸은 후보로만 남김 — 옷을 진짜 옷 메시로 바꾸기 전엔 짝을 더 찍지 않는다.

@@ -1,0 +1,82 @@
+{
+ "id": "hero_eu_augustus",
+ "_note": "단계 4 도감 인물 몸 — saga-unity GO 도감 id eu_augustus(가명 세레누스) 자리 후보. 역할 roman·로마·★4. gen_hero_recipes.py 가 쓴다(손으로 고치지 말 것 — 생성기를 고친다). 게임 몸 교체는 사용자 판정 뒤.",
+ "axes": {
+  "height": 2,
+  "build": 0,
+  "head": "short03",
+  "outfit": "toga"
+ },
+ "height_target_m": 1.76,
+ "macro": {
+  "gender": 1.0,
+  "age": 0.682,
+  "muscle": 0.3,
+  "weight": 0.35,
+  "height": 0.5449,
+  "proportions": 0.7,
+  "race": {
+   "caucasian": 0.9,
+   "asian": 0.05,
+   "african": 0.05
+  }
+ },
+ "skin": "middleage_caucasian_male/middleage_caucasian_male.mhmat",
+ "eyes": "high-poly/high-poly.mhclo",
+ "eyebrows": "eyebrow002/eyebrow002.mhclo",
+ "eyelashes": "eyelashes01/eyelashes01.mhclo",
+ "teeth": "teeth_base/teeth_base.mhclo",
+ "hair": "short03/short03.mhclo",
+ "kitbash": [
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#4a3526",
+   "rough": 0.7,
+   "offset": 0.007,
+   "thick": 0.004,
+   "groups": [
+    "foot_*",
+    "ball_*"
+   ],
+   "minw": 0.4
+  },
+  {
+   "part": "robe",
+   "color": "#e6e0d0",
+   "top": 0.1,
+   "flare": 0.45,
+   "jag": 0.0,
+   "weights": "skin",
+   "rough": 0.85,
+   "hem": 0.03
+  },
+  {
+   "part": "shell",
+   "slot": "cloth_sash",
+   "color": "#302a24",
+   "rough": 0.85,
+   "offset": 0.02,
+   "thick": 0.006,
+   "groups": [
+    "spine_03",
+    "clavicle_l",
+    "upperarm_l"
+   ],
+   "z": [
+    0.7,
+    0.84
+   ],
+   "minw": 0.4
+  }
+ ],
+ "anims": {
+  "idle": "Idle_Loop",
+  "walk": "Walk_Loop",
+  "run": "Jog_Fwd_Loop",
+  "attack": "Spell_Simple_Shoot",
+  "hit": "Hit_Chest",
+  "death": "Death01",
+  "kneel": "CF_Kneel_Loop"
+ }
+}

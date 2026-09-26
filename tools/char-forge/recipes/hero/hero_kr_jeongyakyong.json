@@ -1,0 +1,94 @@
+{
+ "id": "hero_kr_jeongyakyong",
+ "_note": "단계 4 도감 인물 몸 — saga-unity GO 도감 id kr_jeongyakyong(가명 만기) 자리 후보. 역할 scholar·조선·★4. gen_hero_recipes.py 가 쓴다(손으로 고치지 말 것 — 생성기를 고친다). 게임 몸 교체는 사용자 판정 뒤.",
+ "axes": {
+  "height": 0,
+  "build": 3,
+  "head": "cap",
+  "outfit": "robe_long"
+ },
+ "height_target_m": 1.6,
+ "macro": {
+  "gender": 1.0,
+  "age": 0.628,
+  "muscle": 0.6,
+  "weight": 0.85,
+  "height": 0.4199,
+  "proportions": 0.7,
+  "race": {
+   "asian": 0.85,
+   "caucasian": 0.1,
+   "african": 0.05
+  }
+ },
+ "skin": "middleage_asian_male/middleage_asian_male.mhmat",
+ "eyes": "high-poly/high-poly.mhclo",
+ "eyebrows": "eyebrow012/eyebrow012.mhclo",
+ "eyelashes": "eyelashes03/eyelashes03.mhclo",
+ "teeth": "teeth_base/teeth_base.mhclo",
+ "kitbash": [
+  {
+   "part": "shell",
+   "slot": "cloth",
+   "color": "#2a2522",
+   "rough": 0.85,
+   "offset": 0.004,
+   "thick": 0.004,
+   "groups": [
+    "spine_0*",
+    "clavicle_*",
+    "upperarm_*",
+    "lowerarm_*"
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#2e2218",
+   "rough": 0.7,
+   "offset": 0.007,
+   "thick": 0.004,
+   "groups": [
+    "foot_*",
+    "ball_*"
+   ],
+   "minw": 0.4
+  },
+  {
+   "part": "robe",
+   "color": "#e8e2d0",
+   "top": 0.12,
+   "flare": 0.5,
+   "jag": 0.0,
+   "weights": "skin",
+   "rough": 0.85,
+   "hem": 0.035
+  },
+  {
+   "part": "shell",
+   "slot": "cloth_cap",
+   "color": "#26262e",
+   "rough": 0.8,
+   "offset": 0.012,
+   "thick": 0.006,
+   "groups": [
+    "head"
+   ],
+   "z_eye": [
+    0.035,
+    0.3
+   ],
+   "minw": 0.5
+  }
+ ],
+ "anims": {
+  "idle": "Idle_Loop",
+  "walk": "Walk_Loop",
+  "run": "Jog_Fwd_Loop",
+  "attack": "Spell_Simple_Shoot",
+  "hit": "Hit_Chest",
+  "death": "Death01",
+  "kneel": "CF_Kneel_Loop"
+ }
+}

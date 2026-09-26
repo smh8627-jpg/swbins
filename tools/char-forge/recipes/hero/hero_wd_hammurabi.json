@@ -1,0 +1,79 @@
+{
+ "id": "hero_wd_hammurabi",
+ "_note": "단계 4 도감 인물 몸 — saga-unity GO 도감 id wd_hammurabi(가명 율법석) 자리 후보. 역할 king·바빌로니아·★4. gen_hero_recipes.py 가 쓴다(손으로 고치지 말 것 — 생성기를 고친다). 게임 몸 교체는 사용자 판정 뒤.",
+ "axes": {
+  "height": 3,
+  "build": 2,
+  "head": "short03",
+  "outfit": "robe_wide"
+ },
+ "height_target_m": 1.84,
+ "macro": {
+  "gender": 1.0,
+  "age": 0.566,
+  "muscle": 0.8,
+  "weight": 0.55,
+  "height": 0.5918,
+  "proportions": 0.7,
+  "race": {
+   "caucasian": 0.6,
+   "african": 0.25,
+   "asian": 0.15
+  }
+ },
+ "skin": "middleage_caucasian_male/middleage_caucasian_male.mhmat",
+ "eyes": "high-poly/high-poly.mhclo",
+ "eyebrows": "eyebrow008/eyebrow008.mhclo",
+ "eyelashes": "eyelashes01/eyelashes01.mhclo",
+ "teeth": "teeth_base/teeth_base.mhclo",
+ "hair": "short03/short03.mhclo",
+ "kitbash": [
+  {
+   "part": "shell",
+   "slot": "cloth",
+   "color": "#3a4a7a",
+   "rough": 0.85,
+   "offset": 0.004,
+   "thick": 0.004,
+   "groups": [
+    "spine_0*",
+    "clavicle_*",
+    "upperarm_*",
+    "lowerarm_*"
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#5a4030",
+   "rough": 0.7,
+   "offset": 0.007,
+   "thick": 0.004,
+   "groups": [
+    "foot_*",
+    "ball_*"
+   ],
+   "minw": 0.4
+  },
+  {
+   "part": "robe",
+   "color": "#d8d0bc",
+   "top": 0.08,
+   "flare": 0.9,
+   "jag": 0.0,
+   "weights": "skin",
+   "rough": 0.85,
+   "hem": 0.015
+  }
+ ],
+ "anims": {
+  "idle": "Idle_Loop",
+  "walk": "Walk_Loop",
+  "run": "Jog_Fwd_Loop",
+  "attack": "Spell_Simple_Shoot",
+  "hit": "Hit_Chest",
+  "death": "Death01",
+  "kneel": "CF_Kneel_Loop"
+ }
+}

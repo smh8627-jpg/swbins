@@ -1,0 +1,92 @@
+{
+ "id": "hero_jp_musashi",
+ "_note": "단계 4 도감 인물 몸 — saga-unity GO 도감 id jp_musashi(가명 이도인) 자리 후보. 역할 ronin·낭인·★4. gen_hero_recipes.py 가 쓴다(손으로 고치지 말 것 — 생성기를 고친다). 게임 몸 교체는 사용자 판정 뒤.",
+ "axes": {
+  "height": 3,
+  "build": 3,
+  "head": "ponytail01",
+  "outfit": "robe_short"
+ },
+ "height_target_m": 1.84,
+ "macro": {
+  "gender": 1.0,
+  "age": 0.468,
+  "muscle": 0.6,
+  "weight": 0.85,
+  "height": 0.6738,
+  "proportions": 0.7,
+  "race": {
+   "asian": 0.85,
+   "caucasian": 0.1,
+   "african": 0.05
+  }
+ },
+ "skin": "young_asian_male/young_asian_male.mhmat",
+ "eyes": "high-poly/high-poly.mhclo",
+ "eyebrows": "eyebrow010/eyebrow010.mhclo",
+ "eyelashes": "eyelashes03/eyelashes03.mhclo",
+ "teeth": "teeth_base/teeth_base.mhclo",
+ "hair": "ponytail01/ponytail01.mhclo",
+ "kitbash": [
+  {
+   "part": "shell",
+   "slot": "cloth",
+   "color": "#26262e",
+   "rough": 0.85,
+   "offset": 0.004,
+   "thick": 0.004,
+   "groups": [
+    "spine_0*",
+    "clavicle_*",
+    "upperarm_*",
+    "lowerarm_*"
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "cloth_pants",
+   "color": "#2a2522",
+   "rough": 0.85,
+   "offset": 0.004,
+   "thick": 0.004,
+   "groups": [
+    "thigh_*",
+    "calf_*"
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#3a2a1e",
+   "rough": 0.7,
+   "offset": 0.007,
+   "thick": 0.004,
+   "groups": [
+    "foot_*",
+    "ball_*"
+   ],
+   "minw": 0.4
+  },
+  {
+   "part": "robe",
+   "color": "#4a4038",
+   "top": 0.12,
+   "flare": 0.35,
+   "jag": 0.0,
+   "weights": "skin",
+   "rough": 0.85,
+   "length": 0.6
+  }
+ ],
+ "anims": {
+  "idle": "Sword_Idle",
+  "walk": "Walk_Loop",
+  "run": "Jog_Fwd_Loop",
+  "attack": "Sword_Attack",
+  "hit": "Hit_Chest",
+  "death": "Death01",
+  "kneel": "CF_Kneel_Loop"
+ }
+}

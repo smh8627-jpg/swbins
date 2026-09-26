@@ -1,0 +1,173 @@
+{
+ "id": "hero_sg_huangzhong",
+ "_note": "단계 4 도감 인물 몸 — saga-unity GO 도감 id sg_huangzhong(가명 노궁) 자리 후보. 역할 warrior·촉·★4. gen_hero_recipes.py 가 쓴다(손으로 고치지 말 것 — 생성기를 고친다). 게임 몸 교체는 사용자 판정 뒤.",
+ "axes": {
+  "height": 4,
+  "build": 3,
+  "head": "short02",
+  "outfit": "lamellar"
+ },
+ "height_target_m": 1.92,
+ "macro": {
+  "gender": 1.0,
+  "age": 0.78,
+  "muscle": 0.6,
+  "weight": 0.85,
+  "height": 0.709,
+  "proportions": 0.7,
+  "race": {
+   "asian": 0.85,
+   "caucasian": 0.1,
+   "african": 0.05
+  }
+ },
+ "skin": "old_asian_male/old_asian_male.mhmat",
+ "eyes": "high-poly/high-poly.mhclo",
+ "eyebrows": "eyebrow007/eyebrow007.mhclo",
+ "eyelashes": "eyelashes01/eyelashes01.mhclo",
+ "teeth": "teeth_base/teeth_base.mhclo",
+ "hair": "short02/short02.mhclo",
+ "kitbash": [
+  {
+   "part": "shell",
+   "slot": "cloth",
+   "color": "#3f6b3a",
+   "rough": 0.9,
+   "offset": 0.004,
+   "thick": 0.004,
+   "groups": [
+    "pelvis",
+    "spine_0*",
+    "clavicle_*",
+    "upperarm_*",
+    "lowerarm_*",
+    "thigh_*",
+    "calf_*",
+    "neck_01"
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#4a3526",
+   "rough": 0.7,
+   "offset": 0.006,
+   "thick": 0.004,
+   "groups": [
+    "hand_*",
+    "index_*",
+    "middle_*",
+    "ring_*",
+    "pinky_*",
+    "thumb_*"
+   ],
+   "minw": 0.3
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#4a3526",
+   "rough": 0.7,
+   "offset": 0.012,
+   "thick": 0.005,
+   "groups": [
+    "foot_*",
+    "ball_*",
+    "calf_*"
+   ],
+   "z": [
+    0.0,
+    0.17
+   ],
+   "minw": 0.3
+  },
+  {
+   "part": "shell",
+   "slot": "metal",
+   "color": "#9ba3ab",
+   "rough": 0.35,
+   "offset": 0.018,
+   "thick": 0.006,
+   "groups": [
+    "spine_01",
+    "spine_02",
+    "spine_03"
+   ],
+   "z": [
+    0.52,
+    0.8
+   ]
+  },
+  {
+   "part": "shell",
+   "slot": "metal",
+   "color": "#9ba3ab",
+   "rough": 0.35,
+   "offset": 0.024,
+   "thick": 0.006,
+   "groups": [
+    "upperarm_*",
+    "clavicle_*"
+   ],
+   "z": [
+    0.74,
+    0.86
+   ],
+   "minw": 0.4
+  },
+  {
+   "part": "shell",
+   "slot": "metal",
+   "color": "#9ba3ab",
+   "rough": 0.35,
+   "offset": 0.014,
+   "thick": 0.005,
+   "groups": [
+    "lowerarm_*"
+   ],
+   "minw": 0.7
+  },
+  {
+   "part": "shell",
+   "slot": "metal",
+   "color": "#9ba3ab",
+   "rough": 0.35,
+   "offset": 0.018,
+   "thick": 0.005,
+   "groups": [
+    "calf_*"
+   ],
+   "z": [
+    0.17,
+    0.27
+   ],
+   "minw": 0.7
+  },
+  {
+   "part": "shell",
+   "slot": "metal",
+   "color": "#9ba3ab",
+   "rough": 0.35,
+   "offset": 0.02,
+   "thick": 0.005,
+   "groups": [
+    "thigh_*"
+   ],
+   "z": [
+    0.4,
+    0.49
+   ],
+   "minw": 0.6
+  }
+ ],
+ "anims": {
+  "idle": "Sword_Idle",
+  "walk": "Walk_Loop",
+  "run": "Jog_Fwd_Loop",
+  "attack": "Sword_Attack",
+  "hit": "Hit_Chest",
+  "death": "Death01",
+  "kneel": "CF_Kneel_Loop"
+ }
+}

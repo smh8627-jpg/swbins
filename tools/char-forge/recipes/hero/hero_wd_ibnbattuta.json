@@ -1,0 +1,130 @@
+{
+ "id": "hero_wd_ibnbattuta",
+ "_note": "단계 4 도감 인물 몸 — saga-unity GO 도감 id wd_ibnbattuta(가명 천리객) 자리 후보. 역할 traveler·여행자·★3. gen_hero_recipes.py 가 쓴다(손으로 고치지 말 것 — 생성기를 고친다). 게임 몸 교체는 사용자 판정 뒤.",
+ "axes": {
+  "height": 2,
+  "build": 0,
+  "head": "turban",
+  "outfit": "nomad"
+ },
+ "height_target_m": 1.76,
+ "macro": {
+  "gender": 1.0,
+  "age": 0.53,
+  "muscle": 0.3,
+  "weight": 0.35,
+  "height": 0.5293,
+  "proportions": 0.7,
+  "race": {
+   "caucasian": 0.6,
+   "african": 0.25,
+   "asian": 0.15
+  }
+ },
+ "skin": "young_caucasian_male/young_caucasian_male.mhmat",
+ "eyes": "high-poly/high-poly.mhclo",
+ "eyebrows": "eyebrow011/eyebrow011.mhclo",
+ "eyelashes": "eyelashes03/eyelashes03.mhclo",
+ "teeth": "teeth_base/teeth_base.mhclo",
+ "kitbash": [
+  {
+   "part": "shell",
+   "slot": "cloth",
+   "color": "#b0986a",
+   "rough": 0.85,
+   "offset": 0.004,
+   "thick": 0.004,
+   "groups": [
+    "spine_0*",
+    "clavicle_*",
+    "upperarm_*",
+    "lowerarm_*"
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "cloth_pants",
+   "color": "#1f2226",
+   "rough": 0.85,
+   "offset": 0.004,
+   "thick": 0.004,
+   "groups": [
+    "thigh_*",
+    "calf_*"
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#3a2a1e",
+   "rough": 0.7,
+   "offset": 0.012,
+   "thick": 0.005,
+   "groups": [
+    "foot_*",
+    "ball_*",
+    "calf_*"
+   ],
+   "z": [
+    0.0,
+    0.3
+   ],
+   "minw": 0.3
+  },
+  {
+   "part": "robe",
+   "color": "#b0986a",
+   "top": 0.12,
+   "flare": 0.35,
+   "jag": 0.0,
+   "weights": "skin",
+   "rough": 0.85,
+   "length": 0.8
+  },
+  {
+   "part": "shell",
+   "slot": "cloth_fur",
+   "color": "#302a24",
+   "rough": 0.95,
+   "offset": 0.03,
+   "thick": 0.015,
+   "groups": [
+    "clavicle_*",
+    "upperarm_*",
+    "spine_03"
+   ],
+   "z": [
+    0.74,
+    0.85
+   ],
+   "minw": 0.4
+  },
+  {
+   "part": "shell",
+   "slot": "cloth_turban",
+   "color": "#e6e0d0",
+   "rough": 0.9,
+   "offset": 0.035,
+   "thick": 0.03,
+   "groups": [
+    "head"
+   ],
+   "z_eye": [
+    0.02,
+    0.3
+   ],
+   "minw": 0.5
+  }
+ ],
+ "anims": {
+  "idle": "Idle_Loop",
+  "walk": "Walk_Loop",
+  "run": "Jog_Fwd_Loop",
+  "attack": "Spell_Simple_Shoot",
+  "hit": "Hit_Chest",
+  "death": "Death01",
+  "kneel": "CF_Kneel_Loop"
+ }
+}

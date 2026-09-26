@@ -1,0 +1,91 @@
+{
+ "id": "hero_sg_menghuo",
+ "_note": "단계 4 도감 인물 몸 — saga-unity GO 도감 id sg_menghuo(가명 만왕) 자리 후보. 역할 tribal·남만·★3. gen_hero_recipes.py 가 쓴다(손으로 고치지 말 것 — 생성기를 고친다). 게임 몸 교체는 사용자 판정 뒤.",
+ "axes": {
+  "height": 4,
+  "build": 3,
+  "head": "short04",
+  "outfit": "tribal"
+ },
+ "height_target_m": 1.92,
+ "macro": {
+  "gender": 1.0,
+  "age": 0.529,
+  "muscle": 0.6,
+  "weight": 0.85,
+  "height": 0.6738,
+  "proportions": 0.7,
+  "race": {
+   "asian": 0.6,
+   "african": 0.3,
+   "caucasian": 0.1
+  }
+ },
+ "skin": "young_asian_male/young_asian_male.mhmat",
+ "eyes": "high-poly/high-poly.mhclo",
+ "eyebrows": "eyebrow009/eyebrow009.mhclo",
+ "eyelashes": "eyelashes01/eyelashes01.mhclo",
+ "teeth": "teeth_base/teeth_base.mhclo",
+ "hair": "short04/short04.mhclo",
+ "kitbash": [
+  {
+   "part": "loincloth",
+   "color": "#5a4030",
+   "length": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#5a4030",
+   "rough": 0.7,
+   "offset": 0.01,
+   "thick": 0.004,
+   "groups": [
+    "lowerarm_*"
+   ],
+   "minw": 0.7
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#5a4030",
+   "rough": 0.7,
+   "offset": 0.01,
+   "thick": 0.004,
+   "groups": [
+    "calf_*"
+   ],
+   "z": [
+    0.1,
+    0.2
+   ],
+   "minw": 0.7
+  },
+  {
+   "part": "shell",
+   "slot": "cloth_fur",
+   "color": "#302a24",
+   "rough": 0.95,
+   "offset": 0.02,
+   "thick": 0.01,
+   "groups": [
+    "clavicle_*",
+    "spine_03"
+   ],
+   "z": [
+    0.76,
+    0.83
+   ],
+   "minw": 0.4
+  }
+ ],
+ "anims": {
+  "idle": "Sword_Idle",
+  "walk": "Walk_Loop",
+  "run": "Jog_Fwd_Loop",
+  "attack": "Sword_Attack",
+  "hit": "Hit_Chest",
+  "death": "Death01",
+  "kneel": "CF_Kneel_Loop"
+ }
+}

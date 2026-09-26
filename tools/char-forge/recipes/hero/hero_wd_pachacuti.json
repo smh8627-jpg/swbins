@@ -1,0 +1,95 @@
+{
+ "id": "hero_wd_pachacuti",
+ "_note": "단계 4 도감 인물 몸 — saga-unity GO 도감 id wd_pachacuti(가명 태양개) 자리 후보. 역할 king·잉카제국·★4. gen_hero_recipes.py 가 쓴다(손으로 고치지 말 것 — 생성기를 고친다). 게임 몸 교체는 사용자 판정 뒤.",
+ "axes": {
+  "height": 3,
+  "build": 2,
+  "head": "crown",
+  "outfit": "robe_long"
+ },
+ "height_target_m": 1.84,
+ "macro": {
+  "gender": 1.0,
+  "age": 0.707,
+  "muscle": 0.8,
+  "weight": 0.55,
+  "height": 0.6387,
+  "proportions": 0.7,
+  "race": {
+   "asian": 0.6,
+   "caucasian": 0.25,
+   "african": 0.15
+  }
+ },
+ "skin": "middleage_asian_male/middleage_asian_male.mhmat",
+ "eyes": "high-poly/high-poly.mhclo",
+ "eyebrows": "eyebrow010/eyebrow010.mhclo",
+ "eyelashes": "eyelashes01/eyelashes01.mhclo",
+ "teeth": "teeth_base/teeth_base.mhclo",
+ "hair": "short01/short01.mhclo",
+ "kitbash": [
+  {
+   "part": "shell",
+   "slot": "cloth",
+   "color": "#e0d6c4",
+   "rough": 0.85,
+   "offset": 0.004,
+   "thick": 0.004,
+   "groups": [
+    "spine_0*",
+    "clavicle_*",
+    "upperarm_*",
+    "lowerarm_*"
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#5a4030",
+   "rough": 0.7,
+   "offset": 0.007,
+   "thick": 0.004,
+   "groups": [
+    "foot_*",
+    "ball_*"
+   ],
+   "minw": 0.4
+  },
+  {
+   "part": "robe",
+   "color": "#9a4a2a",
+   "top": 0.12,
+   "flare": 0.5,
+   "jag": 0.0,
+   "weights": "skin",
+   "rough": 0.85,
+   "hem": 0.035
+  },
+  {
+   "part": "shell",
+   "slot": "metal_gold",
+   "color": "#c9a64a",
+   "rough": 0.3,
+   "offset": 0.024,
+   "thick": 0.012,
+   "groups": [
+    "head"
+   ],
+   "z_eye": [
+    0.04,
+    0.1
+   ],
+   "minw": 0.5
+  }
+ ],
+ "anims": {
+  "idle": "Idle_Loop",
+  "walk": "Walk_Loop",
+  "run": "Jog_Fwd_Loop",
+  "attack": "Spell_Simple_Shoot",
+  "hit": "Hit_Chest",
+  "death": "Death01",
+  "kneel": "CF_Kneel_Loop"
+ }
+}

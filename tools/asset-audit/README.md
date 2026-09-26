@@ -14,10 +14,11 @@ py -3 tools/asset-audit/audit.py --strict         # 🔴 가 있으면 종료 �
 
 | 종류 | 심각 | 무엇 |
 |---|---|---|
-| public | 🔴 | `.gitignore` 가 막는 경로·재배포 금지 폴더(Mixamo·CharactersRealistic 등)인데 git 에 올라감 |
+| public | 🔴 | `.gitignore` 가 막는 경로·재배포 금지 폴더(Mixamo·CharactersRealistic 등)인데 git 에 올라감 · 재배포 금지 파일인데 `.gitignore` 가 안 막음(add 한 번이면 공개) |
 | decoder | 🔴 | 웹 GLB 가 Meshopt/Draco/KTX2 압축인데 그 판 js(vendor 제외)가 `setMeshoptDecoder(`/`setDRACOLoader(`/`setKTX2Loader(` 를 안 부름 → 로드 실패 |
 | gitsize | 🔴/🟡 | git 에 올라간 파일 100MB 초과(GitHub 거부) / 50MB 초과 |
-| origin | 🔴 | **인물·동작 출처**(char-forge 단계 5 상용 문턱): 게임 코드·씬(도구 폴더 밖)이 쓰는 Mixamo 파일 · 상업·재배포를 막는 VRoid(VRM 메타) · `*.license.json`(CC0) 없는 공방 몸. "쓴다"는 경로·파일 이름 전체·Unity GUID·따옴표 낀 몸 폴더 이름으로만 본다(`idle` 같은 줄기 이름은 어디에나 있다). 전체 점검에만 — `--quick`(커밋 훅)은 안 본다 |
+| origin | 🔴 | **인물·동작 출처**(char-forge 단계 5 상용 문턱): 상업·재배포를 막는 VRoid(VRM 메타) · `*.license.json`(CC0) 없는 공방 몸. "쓴다"는 경로·파일 이름 전체·Unity GUID·따옴표 낀 몸 폴더 이름으로만 본다(`idle` 같은 줄기 이름은 어디에나 있다). 전체 점검에만 — `--quick`(커밋 훅)은 안 본다 |
+| origin_local | 🟡 | 게임이 쓰는 Mixamo 인데 로컬 전용(.gitignore) — char-forge D5 로 허용(게임 판매 OK·재배포 금지). 다른 PC 는 다시 받는다 |
 | origin_left | 🟡 | 디스크에 남았지만 안 쓰는 Mixamo 파일 · 저작자 표시가 필요한 VRoid 라이선스 |
 | pair | 🟡 | Unity `.meta` 짝 없음·고아 `.meta`, Godot `.import` 짝 없음 |
 | heavy | 🟡 | 웹 GLB 5MB·삼각형 5만·텍스처 2048px 초과(폰 기준, `BUDGET`) |

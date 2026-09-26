@@ -1,0 +1,130 @@
+{
+ "id": "hero_wd_khubilai",
+ "_note": "단계 4 도감 인물 몸 — saga-unity GO 도감 id wd_khubilai(가명 대원조) 자리 후보. 역할 khan·원·★5. gen_hero_recipes.py 가 쓴다(손으로 고치지 말 것 — 생성기를 고친다). 게임 몸 교체는 사용자 판정 뒤.",
+ "axes": {
+  "height": 1,
+  "build": 3,
+  "head": "furhat",
+  "outfit": "nomad"
+ },
+ "height_target_m": 1.68,
+ "macro": {
+  "gender": 1.0,
+  "age": 0.678,
+  "muscle": 0.6,
+  "weight": 0.85,
+  "height": 0.5488,
+  "proportions": 0.7,
+  "race": {
+   "asian": 0.85,
+   "caucasian": 0.1,
+   "african": 0.05
+  }
+ },
+ "skin": "middleage_asian_male/middleage_asian_male.mhmat",
+ "eyes": "high-poly/high-poly.mhclo",
+ "eyebrows": "eyebrow003/eyebrow003.mhclo",
+ "eyelashes": "eyelashes01/eyelashes01.mhclo",
+ "teeth": "teeth_base/teeth_base.mhclo",
+ "kitbash": [
+  {
+   "part": "shell",
+   "slot": "cloth",
+   "color": "#6a4a2a",
+   "rough": 0.85,
+   "offset": 0.004,
+   "thick": 0.004,
+   "groups": [
+    "spine_0*",
+    "clavicle_*",
+    "upperarm_*",
+    "lowerarm_*"
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "cloth_pants",
+   "color": "#1f2226",
+   "rough": 0.85,
+   "offset": 0.004,
+   "thick": 0.004,
+   "groups": [
+    "thigh_*",
+    "calf_*"
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#5a4030",
+   "rough": 0.7,
+   "offset": 0.012,
+   "thick": 0.005,
+   "groups": [
+    "foot_*",
+    "ball_*",
+    "calf_*"
+   ],
+   "z": [
+    0.0,
+    0.3
+   ],
+   "minw": 0.3
+  },
+  {
+   "part": "robe",
+   "color": "#6a4a2a",
+   "top": 0.12,
+   "flare": 0.35,
+   "jag": 0.0,
+   "weights": "skin",
+   "rough": 0.85,
+   "length": 0.8
+  },
+  {
+   "part": "shell",
+   "slot": "cloth_fur",
+   "color": "#cfc6b0",
+   "rough": 0.95,
+   "offset": 0.03,
+   "thick": 0.015,
+   "groups": [
+    "clavicle_*",
+    "upperarm_*",
+    "spine_03"
+   ],
+   "z": [
+    0.74,
+    0.85
+   ],
+   "minw": 0.4
+  },
+  {
+   "part": "shell",
+   "slot": "cloth_fur",
+   "color": "#6a5238",
+   "rough": 0.95,
+   "offset": 0.03,
+   "thick": 0.02,
+   "groups": [
+    "head"
+   ],
+   "z_eye": [
+    0.03,
+    0.3
+   ],
+   "minw": 0.5
+  }
+ ],
+ "anims": {
+  "idle": "Idle_Loop",
+  "walk": "Walk_Loop",
+  "run": "Jog_Fwd_Loop",
+  "attack": "Spell_Simple_Shoot",
+  "hit": "Hit_Chest",
+  "death": "Death01",
+  "kneel": "CF_Kneel_Loop"
+ }
+}

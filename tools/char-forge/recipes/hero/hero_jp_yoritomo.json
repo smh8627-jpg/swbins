@@ -1,0 +1,95 @@
+{
+ "id": "hero_jp_yoritomo",
+ "_note": "단계 4 도감 인물 몸 — saga-unity GO 도감 id jp_yoritomo(가명 막부조) 자리 후보. 역할 king·가마쿠라막부·★5. gen_hero_recipes.py 가 쓴다(손으로 고치지 말 것 — 생성기를 고친다). 게임 몸 교체는 사용자 판정 뒤.",
+ "axes": {
+  "height": 2,
+  "build": 2,
+  "head": "crown",
+  "outfit": "robe_wide"
+ },
+ "height_target_m": 1.76,
+ "macro": {
+  "gender": 1.0,
+  "age": 0.709,
+  "muscle": 0.8,
+  "weight": 0.55,
+  "height": 0.6035,
+  "proportions": 0.7,
+  "race": {
+   "asian": 0.85,
+   "caucasian": 0.1,
+   "african": 0.05
+  }
+ },
+ "skin": "middleage_asian_male/middleage_asian_male.mhmat",
+ "eyes": "high-poly/high-poly.mhclo",
+ "eyebrows": "eyebrow008/eyebrow008.mhclo",
+ "eyelashes": "eyelashes03/eyelashes03.mhclo",
+ "teeth": "teeth_base/teeth_base.mhclo",
+ "hair": "short01/short01.mhclo",
+ "kitbash": [
+  {
+   "part": "shell",
+   "slot": "cloth",
+   "color": "#3a4a3a",
+   "rough": 0.85,
+   "offset": 0.004,
+   "thick": 0.004,
+   "groups": [
+    "spine_0*",
+    "clavicle_*",
+    "upperarm_*",
+    "lowerarm_*"
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#3a2a1e",
+   "rough": 0.7,
+   "offset": 0.007,
+   "thick": 0.004,
+   "groups": [
+    "foot_*",
+    "ball_*"
+   ],
+   "minw": 0.4
+  },
+  {
+   "part": "robe",
+   "color": "#d8d0bc",
+   "top": 0.08,
+   "flare": 0.9,
+   "jag": 0.0,
+   "weights": "skin",
+   "rough": 0.85,
+   "hem": 0.015
+  },
+  {
+   "part": "shell",
+   "slot": "metal_gold",
+   "color": "#c9a64a",
+   "rough": 0.3,
+   "offset": 0.024,
+   "thick": 0.012,
+   "groups": [
+    "head"
+   ],
+   "z_eye": [
+    0.04,
+    0.1
+   ],
+   "minw": 0.5
+  }
+ ],
+ "anims": {
+  "idle": "Idle_Loop",
+  "walk": "Walk_Loop",
+  "run": "Jog_Fwd_Loop",
+  "attack": "Spell_Simple_Shoot",
+  "hit": "Hit_Chest",
+  "death": "Death01",
+  "kneel": "CF_Kneel_Loop"
+ }
+}

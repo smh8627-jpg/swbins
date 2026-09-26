@@ -1,0 +1,79 @@
+{
+ "id": "hero_kr_yugwansun",
+ "_note": "단계 4 도감 인물 몸 — saga-unity GO 도감 id kr_yugwansun(가명 소녀화) 자리 후보. 역할 student·일제강점기·★5. gen_hero_recipes.py 가 쓴다(손으로 고치지 말 것 — 생성기를 고친다). 게임 몸 교체는 사용자 판정 뒤.",
+ "axes": {
+  "height": 0,
+  "build": 0,
+  "head": "braid01",
+  "outfit": "skirt"
+ },
+ "height_target_m": 1.5,
+ "macro": {
+  "gender": 0.0,
+  "age": 0.42,
+  "muscle": 0.225,
+  "weight": 0.35,
+  "height": 0.5605,
+  "proportions": 0.8,
+  "race": {
+   "asian": 0.85,
+   "caucasian": 0.1,
+   "african": 0.05
+  }
+ },
+ "skin": "young_asian_female/young_asian_female.mhmat",
+ "eyes": "high-poly/high-poly.mhclo",
+ "eyebrows": "eyebrow010/eyebrow010.mhclo",
+ "eyelashes": "eyelashes04/eyelashes04.mhclo",
+ "teeth": "teeth_base/teeth_base.mhclo",
+ "hair": "braid01/braid01.mhclo",
+ "kitbash": [
+  {
+   "part": "shell",
+   "slot": "cloth",
+   "color": "#d8d0bc",
+   "rough": 0.85,
+   "offset": 0.004,
+   "thick": 0.004,
+   "groups": [
+    "spine_0*",
+    "clavicle_*",
+    "upperarm_*",
+    "lowerarm_*"
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#3a2a1e",
+   "rough": 0.7,
+   "offset": 0.007,
+   "thick": 0.004,
+   "groups": [
+    "foot_*",
+    "ball_*"
+   ],
+   "minw": 0.4
+  },
+  {
+   "part": "robe",
+   "color": "#3a3a3a",
+   "top": 0.2,
+   "flare": 0.45,
+   "jag": 0.0,
+   "weights": "skin",
+   "rough": 0.85,
+   "length": 0.8
+  }
+ ],
+ "anims": {
+  "idle": "Idle_Loop",
+  "walk": "Walk_Loop",
+  "run": "Jog_Fwd_Loop",
+  "attack": "Spell_Simple_Shoot",
+  "hit": "Hit_Chest",
+  "death": "Death01",
+  "kneel": "CF_Kneel_Loop"
+ }
+}

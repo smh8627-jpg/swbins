@@ -46,7 +46,7 @@ BUDGET = {'glb_mb': 5, 'tris': 50000, 'tex_px': 2048}
 MIXAMO = RESTRICTED
 FORGE = [r'(^|/)CharactersForge/[^/]+\.fbx$', r'(^|/)characters_cf/[^/]+\.glb$']
 ANIM_EXT = {'.res', '.anim'}  # 구운 동작(Godot AnimationLibrary·Unity 클립) — ASSET_EXT 밖이라 출처만 본다
-SEV = {'public': 3, 'decoder': 3, 'gitsize': 3, 'origin': 3, 'pair': 2, 'heavy': 2, 'license': 2, 'origin_left': 2,
+SEV = {'public': 3, 'decoder': 3, 'gitsize': 3, 'origin': 3, 'pair': 2, 'heavy': 2, 'license': 2, 'origin_local': 2, 'origin_left': 2,
        'unref': 1, 'dup': 1}
 SEV_ICON = {3: '🔴', 2: '🟡', 1: '⚪'}
 
@@ -201,8 +201,8 @@ def mixamo_ref(rp, p, kind, gcode):
 def origin(rp, p, ext, pathset, ref):
     """인물·동작 출처 판정 → (kind, msg) 또는 None. Mixamo 는 ref 에 mixamo_ref 결과를 넘긴다."""
     if any(re.search(r, rp, re.I) for r in MIXAMO):
-        if ref:
-            return 'origin', 'Mixamo 출처인데 게임 코드·씬이 쓴다 — 공방 몸·CC0 동작으로 바꿀 자리(char-forge README §9)'
+        if ref:  # D5(2026-09-26): Mixamo 는 게임에 넣어 팔기 OK·재배포 금지 → 로컬 전용이면 허용(공개 저장소에 오르면 'public' 🔴)
+            return 'origin_local', 'Mixamo 로컬 전용(D5 허용 — 게임 판매 OK·재배포 금지) — 다른 PC 는 다시 받는다(tools/mixamo_automation)'
         return 'origin_left', 'Mixamo 출처 파일이 남아 있다(안 씀) — 교체가 끝났으면 지워도 된다'
     if ext == '.vrm' or (ext == '.glb' and os.path.splitext(p)[0] + '.vrm' in pathset):
         v = vrm_meta(p if ext == '.vrm' else os.path.splitext(p)[0] + '.vrm')
@@ -372,6 +372,8 @@ def audit(sel, game, want_md5=True, quick=None):
     if quick is not None:  # 빠른 모드는 바뀐 에셋 경로만 넘긴다(폴더 전체면 30초)
         dirs = sorted(c for c in quick if os.path.splitext(c)[1].lower() in ASSET_EXT and os.path.exists(os.path.join(ROOT, c)))
     ignored_but_tracked = set(git('ls-files', '-ci', '--exclude-standard', '--', *dirs).splitlines()) if dirs else set()
+    # 추적 안 되는데 .gitignore 도 안 막는 파일 — `git add .` 한 번이면 공개 저장소에 오른다
+    untracked_open = set(git('ls-files', '-o', '--exclude-standard', '--', *dirs).splitlines()) if dirs else set()
 
     files, issues = [], []
     global KEEP
@@ -467,6 +469,8 @@ def audit(sel, game, want_md5=True, quick=None):
                     if kind == 'web' and max(d) > BUDGET['tex_px']:
                         issue('heavy', rp, f"텍스처 {d[0]}×{d[1]} > {BUDGET['tex_px']}px", tid)
             # 공개 저장소 위험
+            if not rec['git'] and rp in untracked_open and any(re.search(r, rp, re.I) for r in RESTRICTED):
+                issue('public', rp, '재배포 금지(Mixamo 등)인데 .gitignore 가 안 막는다 — add 한 번이면 공개된다', tid)
             if rec['git']:
                 if rp in ignored_but_tracked:
                     issue('public', rp, '.gitignore 가 막는 경로인데 git 에 올라가 있다(강제 add?)', tid)
@@ -569,11 +573,11 @@ def summary(r):
                  f"트랙 넘는 사본 {len(cross)}묶음 — 공용 에셋 통합 후보")
     og = defaultdict(lambda: defaultdict(int))
     for i in r['issues']:
-        if i['kind'] in ('origin', 'origin_left'):
+        if i['kind'] in ('origin', 'origin_local', 'origin_left'):
             og[i['track']][i['kind']] += 1
-    if og:  # 상용 문턱(char-forge §7 단계 5): 두 3D 트랙 모두 🔴origin 0 이 끝
-        lines.append('출처(인물·동작) ' + ' · '.join(f"{t} 🔴{v['origin']} 🟡{v['origin_left']}" for t, v in sorted(og.items()))
-                     + ' — 상용 문턱은 🔴 0')
+    if og:  # 상용 문턱(char-forge §7 단계 5, D5): 🔴origin 0 + 🔴public 0 — Mixamo 로컬 전용(🟡local)은 허용
+        lines.append('출처(인물·동작) ' + ' · '.join(f"{t} 🔴{v['origin']} 🟡local {v['origin_local']} 🟡{v['origin_left']}" for t, v in sorted(og.items()))
+                     + ' — 상용 문턱은 🔴 0(Mixamo 로컬 전용은 D5 허용, 공개 저장소에 오르면 🔴public)')
     for i in [i for i in r['issues'] if i['sev'] == 3][:15]:
         lines.append(f"  🔴 [{i['kind']}] {i['path']} — {i['msg']}")
     return '\n'.join(lines)

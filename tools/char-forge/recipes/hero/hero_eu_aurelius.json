@@ -1,0 +1,98 @@
+{
+ "id": "hero_eu_aurelius",
+ "_note": "단계 4 도감 인물 몸 — saga-unity GO 도감 id eu_aurelius(가명 베렌델) 자리 후보. 역할 roman·로마·★4. gen_hero_recipes.py 가 쓴다(손으로 고치지 말 것 — 생성기를 고친다). 게임 몸 교체는 사용자 판정 뒤.",
+ "axes": {
+  "height": 2,
+  "build": 1,
+  "head": "band",
+  "outfit": "toga"
+ },
+ "height_target_m": 1.76,
+ "macro": {
+  "gender": 1.0,
+  "age": 0.633,
+  "muscle": 0.5,
+  "weight": 0.5,
+  "height": 0.5293,
+  "proportions": 0.7,
+  "race": {
+   "caucasian": 0.9,
+   "asian": 0.05,
+   "african": 0.05
+  }
+ },
+ "skin": "middleage_caucasian_male/middleage_caucasian_male.mhmat",
+ "eyes": "high-poly/high-poly.mhclo",
+ "eyebrows": "eyebrow011/eyebrow011.mhclo",
+ "eyelashes": "eyelashes03/eyelashes03.mhclo",
+ "teeth": "teeth_base/teeth_base.mhclo",
+ "hair": "short04/short04.mhclo",
+ "kitbash": [
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#3a2a1e",
+   "rough": 0.7,
+   "offset": 0.007,
+   "thick": 0.004,
+   "groups": [
+    "foot_*",
+    "ball_*"
+   ],
+   "minw": 0.4
+  },
+  {
+   "part": "robe",
+   "color": "#e6e0d0",
+   "top": 0.1,
+   "flare": 0.45,
+   "jag": 0.0,
+   "weights": "skin",
+   "rough": 0.85,
+   "hem": 0.03
+  },
+  {
+   "part": "shell",
+   "slot": "cloth_sash",
+   "color": "#2a2522",
+   "rough": 0.85,
+   "offset": 0.02,
+   "thick": 0.006,
+   "groups": [
+    "spine_03",
+    "clavicle_l",
+    "upperarm_l"
+   ],
+   "z": [
+    0.7,
+    0.84
+   ],
+   "minw": 0.4
+  },
+  {
+   "part": "shell",
+   "slot": "cloth_band",
+   "color": "#1f2226",
+   "rough": 0.8,
+   "offset": 0.02,
+   "thick": 0.006,
+   "groups": [
+    "head"
+   ],
+   "z_eye": [
+    0.035,
+    0.085
+   ],
+   "minw": 0.5
+  }
+ ],
+ "anims": {
+  "idle": "Idle_Loop",
+  "walk": "Walk_Loop",
+  "run": "Jog_Fwd_Loop",
+  "attack": "Spell_Simple_Shoot",
+  "hit": "Hit_Chest",
+  "death": "Death01",
+  "kneel": "CF_Kneel_Loop"
+ }
+}

@@ -1,0 +1,113 @@
+{
+ "id": "hero_kr_sejong",
+ "_note": "단계 4 도감 인물 몸 — saga-unity GO 도감 id kr_sejong(가명 훈민) 자리 후보. 역할 king·조선·★5. gen_hero_recipes.py 가 쓴다(손으로 고치지 말 것 — 생성기를 고친다). 게임 몸 교체는 사용자 판정 뒤.",
+ "axes": {
+  "height": 1,
+  "build": 2,
+  "head": "crown",
+  "outfit": "royal"
+ },
+ "height_target_m": 1.68,
+ "macro": {
+  "gender": 1.0,
+  "age": 0.652,
+  "muscle": 0.8,
+  "weight": 0.55,
+  "height": 0.5449,
+  "proportions": 0.7,
+  "race": {
+   "asian": 0.85,
+   "caucasian": 0.1,
+   "african": 0.05
+  }
+ },
+ "skin": "middleage_asian_male/middleage_asian_male.mhmat",
+ "eyes": "high-poly/high-poly.mhclo",
+ "eyebrows": "eyebrow009/eyebrow009.mhclo",
+ "eyelashes": "eyelashes01/eyelashes01.mhclo",
+ "teeth": "teeth_base/teeth_base.mhclo",
+ "hair": "short01/short01.mhclo",
+ "kitbash": [
+  {
+   "part": "shell",
+   "slot": "cloth",
+   "color": "#1f2226",
+   "rough": 0.85,
+   "offset": 0.004,
+   "thick": 0.004,
+   "groups": [
+    "spine_0*",
+    "clavicle_*",
+    "upperarm_*",
+    "lowerarm_*"
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#4a3526",
+   "rough": 0.7,
+   "offset": 0.007,
+   "thick": 0.004,
+   "groups": [
+    "foot_*",
+    "ball_*"
+   ],
+   "minw": 0.4
+  },
+  {
+   "part": "robe",
+   "color": "#e8e2d0",
+   "top": 0.1,
+   "flare": 0.75,
+   "jag": 0.0,
+   "weights": "skin",
+   "rough": 0.85,
+   "hem": 0.015
+  },
+  {
+   "part": "shell",
+   "slot": "metal_gold",
+   "color": "#c9a64a",
+   "rough": 0.3,
+   "offset": 0.02,
+   "thick": 0.006,
+   "groups": [
+    "clavicle_*",
+    "upperarm_*",
+    "spine_03"
+   ],
+   "z": [
+    0.79,
+    0.85
+   ],
+   "minw": 0.4
+  },
+  {
+   "part": "shell",
+   "slot": "metal_gold",
+   "color": "#c9a64a",
+   "rough": 0.3,
+   "offset": 0.024,
+   "thick": 0.012,
+   "groups": [
+    "head"
+   ],
+   "z_eye": [
+    0.04,
+    0.1
+   ],
+   "minw": 0.5
+  }
+ ],
+ "anims": {
+  "idle": "Idle_Loop",
+  "walk": "Walk_Loop",
+  "run": "Jog_Fwd_Loop",
+  "attack": "Spell_Simple_Shoot",
+  "hit": "Hit_Chest",
+  "death": "Death01",
+  "kneel": "CF_Kneel_Loop"
+ }
+}

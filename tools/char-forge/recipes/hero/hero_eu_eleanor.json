@@ -1,0 +1,96 @@
+{
+ "id": "hero_eu_eleanor",
+ "_note": "단계 4 도감 인물 몸 — saga-unity GO 도감 id eu_eleanor(가명 바엘린) 자리 후보. 역할 queen·프랑스·★3. gen_hero_recipes.py 가 쓴다(손으로 고치지 말 것 — 생성기를 고친다). 게임 몸 교체는 사용자 판정 뒤.",
+ "axes": {
+  "height": 3,
+  "build": 1,
+  "head": "long01",
+  "outfit": "royal_f"
+ },
+ "height_target_m": 1.68,
+ "macro": {
+  "gender": 0.0,
+  "age": 0.585,
+  "muscle": 0.375,
+  "weight": 0.5,
+  "height": 0.5605,
+  "proportions": 0.8,
+  "race": {
+   "caucasian": 0.9,
+   "asian": 0.05,
+   "african": 0.05
+  }
+ },
+ "skin": "middleage_caucasian_female/middleage_caucasian_female.mhmat",
+ "eyes": "high-poly/high-poly.mhclo",
+ "eyebrows": "eyebrow003/eyebrow003.mhclo",
+ "eyelashes": "eyelashes02/eyelashes02.mhclo",
+ "teeth": "teeth_base/teeth_base.mhclo",
+ "hair": "long01/long01.mhclo",
+ "kitbash": [
+  {
+   "part": "shell",
+   "slot": "cloth",
+   "color": "#e0d6c4",
+   "rough": 0.85,
+   "offset": 0.004,
+   "thick": 0.004,
+   "groups": [
+    "spine_0*",
+    "clavicle_*",
+    "upperarm_*",
+    "lowerarm_*"
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#4a3526",
+   "rough": 0.7,
+   "offset": 0.007,
+   "thick": 0.004,
+   "groups": [
+    "foot_*",
+    "ball_*"
+   ],
+   "minw": 0.4
+  },
+  {
+   "part": "robe",
+   "color": "#2a3a7a",
+   "top": 0.1,
+   "flare": 0.85,
+   "jag": 0.0,
+   "weights": "skin",
+   "rough": 0.85,
+   "hem": 0.0
+  },
+  {
+   "part": "shell",
+   "slot": "metal_gold",
+   "color": "#c9a64a",
+   "rough": 0.3,
+   "offset": 0.012,
+   "thick": 0.005,
+   "groups": [
+    "clavicle_*",
+    "spine_03"
+   ],
+   "z": [
+    0.78,
+    0.83
+   ],
+   "minw": 0.4
+  }
+ ],
+ "anims": {
+  "idle": "Idle_Loop",
+  "walk": "Walk_Loop",
+  "run": "Jog_Fwd_Loop",
+  "attack": "Spell_Simple_Shoot",
+  "hit": "Hit_Chest",
+  "death": "Death01",
+  "kneel": "CF_Kneel_Loop"
+ }
+}

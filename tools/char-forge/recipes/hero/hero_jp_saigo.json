@@ -1,0 +1,122 @@
+{
+ "id": "hero_jp_saigo",
+ "_note": "단계 4 도감 인물 몸 — saga-unity GO 도감 id jp_saigo(가명 최후향) 자리 후보. 역할 officer·메이지유신·★5. gen_hero_recipes.py 가 쓴다(손으로 고치지 말 것 — 생성기를 고친다). 게임 몸 교체는 사용자 판정 뒤.",
+ "axes": {
+  "height": 1,
+  "build": 1,
+  "head": "short02",
+  "outfit": "uniform"
+ },
+ "height_target_m": 1.68,
+ "macro": {
+  "gender": 1.0,
+  "age": 0.572,
+  "muscle": 0.5,
+  "weight": 0.5,
+  "height": 0.5371,
+  "proportions": 0.7,
+  "race": {
+   "asian": 0.85,
+   "caucasian": 0.1,
+   "african": 0.05
+  }
+ },
+ "skin": "middleage_asian_male/middleage_asian_male.mhmat",
+ "eyes": "high-poly/high-poly.mhclo",
+ "eyebrows": "eyebrow002/eyebrow002.mhclo",
+ "eyelashes": "eyelashes03/eyelashes03.mhclo",
+ "teeth": "teeth_base/teeth_base.mhclo",
+ "hair": "short02/short02.mhclo",
+ "kitbash": [
+  {
+   "part": "shell",
+   "slot": "cloth",
+   "color": "#2a2a30",
+   "rough": 0.85,
+   "offset": 0.004,
+   "thick": 0.004,
+   "groups": [
+    "pelvis",
+    "spine_0*",
+    "clavicle_*",
+    "upperarm_*",
+    "lowerarm_*",
+    "thigh_*",
+    "calf_*",
+    "neck_01"
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "leather_glove",
+   "color": "#302a24",
+   "rough": 0.8,
+   "offset": 0.006,
+   "thick": 0.004,
+   "groups": [
+    "hand_*",
+    "index_*",
+    "middle_*",
+    "ring_*",
+    "pinky_*",
+    "thumb_*"
+   ],
+   "minw": 0.3
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#141414",
+   "rough": 0.7,
+   "offset": 0.012,
+   "thick": 0.005,
+   "groups": [
+    "foot_*",
+    "ball_*",
+    "calf_*"
+   ],
+   "z": [
+    0.0,
+    0.27
+   ],
+   "minw": 0.3
+  },
+  {
+   "part": "robe",
+   "color": "#2a2a30",
+   "top": 0.14,
+   "flare": 0.3,
+   "jag": 0.0,
+   "weights": "skin",
+   "rough": 0.85,
+   "length": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "metal_gold",
+   "color": "#c9a64a",
+   "rough": 0.3,
+   "offset": 0.018,
+   "thick": 0.008,
+   "groups": [
+    "clavicle_*",
+    "upperarm_*"
+   ],
+   "z": [
+    0.8,
+    0.845
+   ],
+   "minw": 0.4
+  }
+ ],
+ "anims": {
+  "idle": "Sword_Idle",
+  "walk": "Walk_Loop",
+  "run": "Jog_Fwd_Loop",
+  "attack": "Sword_Attack",
+  "hit": "Hit_Chest",
+  "death": "Death01",
+  "kneel": "CF_Kneel_Loop"
+ }
+}

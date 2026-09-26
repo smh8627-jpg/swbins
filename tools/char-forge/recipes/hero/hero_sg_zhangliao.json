@@ -1,0 +1,151 @@
+{
+ "id": "hero_sg_zhangliao",
+ "_note": "단계 4 도감 인물 몸 — saga-unity GO 도감 id sg_zhangliao(가명 철벽) 자리 후보. 역할 general·위·★4. gen_hero_recipes.py 가 쓴다(손으로 고치지 말 것 — 생성기를 고친다). 게임 몸 교체는 사용자 판정 뒤.",
+ "axes": {
+  "height": 2,
+  "build": 2,
+  "head": "cap",
+  "outfit": "robe_armored"
+ },
+ "height_target_m": 1.76,
+ "macro": {
+  "gender": 1.0,
+  "age": 0.516,
+  "muscle": 0.8,
+  "weight": 0.55,
+  "height": 0.5996,
+  "proportions": 0.7,
+  "race": {
+   "asian": 0.85,
+   "caucasian": 0.1,
+   "african": 0.05
+  }
+ },
+ "skin": "young_asian_male/young_asian_male.mhmat",
+ "eyes": "high-poly/high-poly.mhclo",
+ "eyebrows": "eyebrow003/eyebrow003.mhclo",
+ "eyelashes": "eyelashes01/eyelashes01.mhclo",
+ "teeth": "teeth_base/teeth_base.mhclo",
+ "kitbash": [
+  {
+   "part": "shell",
+   "slot": "cloth",
+   "color": "#2f4a7a",
+   "rough": 0.9,
+   "offset": 0.004,
+   "thick": 0.004,
+   "groups": [
+    "spine_0*",
+    "clavicle_*",
+    "upperarm_*",
+    "lowerarm_*",
+    "neck_01"
+   ],
+   "minw": 0.5
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#4a3526",
+   "rough": 0.7,
+   "offset": 0.006,
+   "thick": 0.004,
+   "groups": [
+    "hand_*",
+    "index_*",
+    "middle_*",
+    "ring_*",
+    "pinky_*",
+    "thumb_*"
+   ],
+   "minw": 0.3
+  },
+  {
+   "part": "shell",
+   "slot": "metal",
+   "color": "#9ba3ab",
+   "rough": 0.35,
+   "offset": 0.018,
+   "thick": 0.006,
+   "groups": [
+    "spine_01",
+    "spine_02",
+    "spine_03"
+   ],
+   "z": [
+    0.55,
+    0.8
+   ]
+  },
+  {
+   "part": "shell",
+   "slot": "metal",
+   "color": "#9ba3ab",
+   "rough": 0.35,
+   "offset": 0.026,
+   "thick": 0.007,
+   "groups": [
+    "upperarm_*",
+    "clavicle_*"
+   ],
+   "z": [
+    0.72,
+    0.86
+   ],
+   "minw": 0.4
+  },
+  {
+   "part": "robe",
+   "color": "#1f2226",
+   "top": 0.3,
+   "flare": 0.5,
+   "jag": 0.0,
+   "weights": "skin",
+   "rough": 0.85,
+   "hem": 0.035
+  },
+  {
+   "part": "shell",
+   "slot": "leather",
+   "color": "#4a3526",
+   "rough": 0.7,
+   "offset": 0.012,
+   "thick": 0.005,
+   "groups": [
+    "foot_*",
+    "ball_*",
+    "calf_*"
+   ],
+   "z": [
+    0.0,
+    0.17
+   ],
+   "minw": 0.3
+  },
+  {
+   "part": "shell",
+   "slot": "cloth_cap",
+   "color": "#26262e",
+   "rough": 0.8,
+   "offset": 0.012,
+   "thick": 0.006,
+   "groups": [
+    "head"
+   ],
+   "z_eye": [
+    0.035,
+    0.3
+   ],
+   "minw": 0.5
+  }
+ ],
+ "anims": {
+  "idle": "Sword_Idle",
+  "walk": "Walk_Loop",
+  "run": "Jog_Fwd_Loop",
+  "attack": "Sword_Attack",
+  "hit": "Hit_Chest",
+  "death": "Death01",
+  "kneel": "CF_Kneel_Loop"
+ }
+}
