@@ -74,7 +74,9 @@ namespace Saga.Dungeon.Audio
             if (clip == null) return;
             EnsureSource();
             _source.PlayOneShot(clip, MasterVolume * SfxVolume * volumeScale);
-            if (DungeonSettingsState.VibrationOn) Handheld.Vibrate();
+#if UNITY_ANDROID || UNITY_IOS
+            if (DungeonSettingsState.VibrationOn) Handheld.Vibrate(); // PLAN.md 110 ① — PC 빌드엔 진동 API 가 없다.
+#endif
         }
 
         private static void EnsureSource()

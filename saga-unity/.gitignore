@@ -7,6 +7,8 @@
 [Ll]ogs/
 [Uu]serSettings/
 [Mm]emoryCaptures/
+# PLAN.md 110 — 안드로이드 빌드(IL2CPP·Bee) 임시 폴더
+.utmp/
 
 # Visual Studio / Rider generated project files (재생성 가능)
 .vs/

@@ -9359,3 +9359,14 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - **처음 눈으로 봄**(Blender Eevee, Mixamo | 공방 같은 빛·키 1.70m): 얼굴·MakeHuman 양복은 괜찮고, 껍데기 옷은 쫄쫄이·플라스틱, robe 는 살이 뚫는 통, 괴물은 맨몸 사람 — 모두 Mixamo 보다 못함. 그동안의 CMP OK·verify·measure 수치가 못 잡았다(char-forge README §8-1).
 - **D5 사용자 결정**: Mixamo 몸 유지 + 공개 저장소 밖. 원본은 처음부터 .gitignore 라 이력에도 없음(웹도 로컬 보너스). 출처 검사 규칙을 바꿈 — Mixamo 로컬 전용 = 🟡`origin_local`, 공개되거나 .gitignore 가 안 막으면 🔴public. 수치: godot 🔴0 · unity 🔴0(🟡local 282) · web 🔴public 0 → 단계 5 통과.
 - 게임 몸은 그대로(교체 없음). 공방 unity 몸은 후보로만 남김 — 옷을 진짜 옷 메시로 바꾸기 전엔 짝을 더 찍지 않는다.
+
+## 2026-09-26 상용화 — PLAN 110 ① 실제 빌드 (사용자 "상용화 급인지 확인" → "상용화")
+
+- 점검: 실행 파일을 한 번도 안 만들었다(빌드 씬 TestVillage 하나) · 검증은 헤드리스 로직뿐 · 사실 몸 git 밖 · UI 는 옛 `UI.Text` 29 파일(TMP 0)·세로 1080×1920 · 타이틀·판 고르기 없음 · en 검수 전 → "상용 급 아님(기능 시제품)". PLAN 110장 순서표 세움, 109 표는 멈춤(10-5 는 설계만: 옛 VS 적엔 위험도 안 곱함 — 북방 설산 위험 4 칸이 던전 가는 첫 길 · 우두머리 몸은 색 바꿔 돌려쓰기 대신 다른 판 몸 빌림).
+- 새 `Editor/SagaPlayerBuild.cs`(`BuildWindows`·`BuildAndroid`, 다섯 판 씬, `Build/<대상>/build_report.txt` 에 결과·크기·시간·오류·큰 에셋 스물, 성능 테스트 패키지가 남기는 `Assets/Resources/PerformanceTestRun*` 치움).
+- 첫 Windows 빌드 실패 — 에디터에선 안 보이던 오류: 다섯 판 사운드(`SfxPlayer`·`GoAudio`·`ForestAudio`·`StoryAudio`·`RealmAudio`)가 PC 에 없는 `Handheld.Vibrate` 를 부름 → `#if UNITY_ANDROID || UNITY_IOS`.
+- 결과: Windows 852MB·9.4분·오류 0, 화면 없이(-batchmode) 85초 켜 예외 0(엔진 JobTempAlloc 경고만) · Android APK 470.7MB(압축 전 1.85GB)·8.7분·오류 0(Gradle 9.1). 큰 에셋: PC = Mixamo 몸 텍스처 장당 5.3MB, 폰 = BGM mp3/ogg·fbx.
+- 빌드·대상 전환이 바꾼 설정(URP 에셋 직렬화·batching·preloadedAssets·Graphics/ShaderGraph)은 되돌림, `Mobile_RPAsset` 은 세션 전부터 남의 변경이라 안 건드림. 작업 대상은 Win64 로 되돌림. 안드로이드 임시 `.utmp/` 는 gitignore.
+- 켜면 첫 씬 GO 만 뜨고 판을 옮길 길이 없다 → 110 표에서 흐름(타이틀·판 고르기)을 2로 당김, 폰 성능은 3. 스토어: APK 470MB 라 Play 는 AAB + 에셋 팩으로 나눠야 한다(6 마감).
+- 검증: 두 빌드 성공 · `PlaytestDungeonHeadless` OK(진동 막은 뒤). 폰 설치·화면은 안 봄.
+- 다음 = 110 ② 흐름.

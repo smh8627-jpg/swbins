@@ -55,7 +55,9 @@ namespace Saga.Story.Audio
         {
             if (clip == null) return;
             EnsureSfxSource().PlayOneShot(clip, MasterVolume * SfxVolume * volumeScale);
-            if (StorySettingsState.VibrationOn) Handheld.Vibrate();
+#if UNITY_ANDROID || UNITY_IOS
+            if (StorySettingsState.VibrationOn) Handheld.Vibrate(); // PLAN.md 110 ① — PC 빌드엔 진동 API 가 없다.
+#endif
         }
 
         private static AudioSource _bgmSource;
