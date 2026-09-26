@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -26,14 +27,14 @@ namespace Saga.Dungeon.UI
         private Transform _player;
         private bool _visible;
         private Image[] _cells;
-        private Text _where;
+        private TextMeshProUGUI _where;
         private int _shown = -2;
 
         public bool Visible => _visible;
         public int CellCount => _cells != null ? _cells.Length : 0;
         public string WhereText => _where != null ? _where.text : "";
         public Color CellColor(int i) => _cells[i].color;
-        public string CellText(int i) => _cells[i].GetComponentInChildren<Text>().text;
+        public string CellText(int i) => _cells[i].GetComponentInChildren<TextMeshProUGUI>().text;
 
         private void Awake()
         {
@@ -113,7 +114,7 @@ namespace Saga.Dungeon.UI
             }
         }
 
-        private static Text NewText(Transform parent, string content, Vector2 anchor, Vector2 pos, Vector2 size, int fontSize)
+        private static TextMeshProUGUI NewText(Transform parent, string content, Vector2 anchor, Vector2 pos, Vector2 size, int fontSize)
         {
             var go = new GameObject("Text", typeof(RectTransform));
             go.transform.SetParent(parent, false);
@@ -121,19 +122,16 @@ namespace Saga.Dungeon.UI
             rt.anchorMin = rt.anchorMax = rt.pivot = anchor;
             rt.anchoredPosition = pos;
             rt.sizeDelta = size;
-            var t = go.AddComponent<Text>();
-            t.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var t = go.AddComponent<TextMeshProUGUI>();
             t.fontSize = fontSize;
-            t.alignment = TextAnchor.MiddleCenter;
+            t.alignment = TextAlignmentOptions.Center;
             t.color = Color.white;
-            t.supportRichText = true;
-            t.horizontalOverflow = HorizontalWrapMode.Wrap;
-            t.verticalOverflow = VerticalWrapMode.Overflow;
+            t.richText = true;
+            t.textWrappingMode = TextWrappingModes.Normal;
+            t.overflowMode = TextOverflowModes.Overflow;
             t.raycastTarget = false;
             t.text = content;
-            var o = go.AddComponent<Outline>();
-            o.effectColor = new Color(0f, 0f, 0f, 0.8f);
-            o.effectDistance = new Vector2(1.5f, -1.5f);
+            Saga.Core.TmpEffect.Add(go, Saga.Core.TmpEffect.Kind.Outline, new Color(0f, 0f, 0f, 0.8f), 0.18f);
             return t;
         }
     }

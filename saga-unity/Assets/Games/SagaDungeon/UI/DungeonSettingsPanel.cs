@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using Saga.Dungeon.Data;
@@ -24,21 +25,21 @@ namespace Saga.Dungeon.UI
         // PLAN.md 104-1 ③ — Build()를 부르는 게 에디터 스크립트뿐이라(런타임 재호출 없음)
         // 씬 저장→재로드 후에도 참조가 남으려면 [SerializeField]가 필수(REALM/LocalizedButtonLabel과 같은 함정).
         [SerializeField] private GameObject _panel;
-        [SerializeField] private Text _toggleLabel;
-        [SerializeField] private Text _titleLabel;
-        [SerializeField] private Text _closeLabel;
-        [SerializeField] private Text _sfxNameLabel;
-        [SerializeField] private Text _sfxValueLabel;
-        [SerializeField] private Text _vibrationNameLabel;
-        [SerializeField] private Text _vibrationValueLabel;
-        [SerializeField] private Text _uiScaleNameLabel;
-        [SerializeField] private Text _uiScaleValueLabel;
-        [SerializeField] private Text _qualityNameLabel;
-        [SerializeField] private Text _qualityValueLabel;
-        [SerializeField] private Text _languageNameLabel;
-        [SerializeField] private Text _languageValueLabel;
-        [SerializeField] private Text _bgmNameLabel;
-        [SerializeField] private Text _bgmValueLabel;
+        [SerializeField] private TextMeshProUGUI _toggleLabel;
+        [SerializeField] private TextMeshProUGUI _titleLabel;
+        [SerializeField] private TextMeshProUGUI _closeLabel;
+        [SerializeField] private TextMeshProUGUI _sfxNameLabel;
+        [SerializeField] private TextMeshProUGUI _sfxValueLabel;
+        [SerializeField] private TextMeshProUGUI _vibrationNameLabel;
+        [SerializeField] private TextMeshProUGUI _vibrationValueLabel;
+        [SerializeField] private TextMeshProUGUI _uiScaleNameLabel;
+        [SerializeField] private TextMeshProUGUI _uiScaleValueLabel;
+        [SerializeField] private TextMeshProUGUI _qualityNameLabel;
+        [SerializeField] private TextMeshProUGUI _qualityValueLabel;
+        [SerializeField] private TextMeshProUGUI _languageNameLabel;
+        [SerializeField] private TextMeshProUGUI _languageValueLabel;
+        [SerializeField] private TextMeshProUGUI _bgmNameLabel;
+        [SerializeField] private TextMeshProUGUI _bgmValueLabel;
 
         public void Build()
         {
@@ -47,7 +48,7 @@ namespace Saga.Dungeon.UI
 
             var toggleButton = NewButton(canvas.transform, DungeonLocalization.T("settings.title"),
                 new Vector2(1f, 1f), new Vector2(-30f, -370f), new Vector2(160f, 80f), TogglePanel);
-            _toggleLabel = toggleButton.GetComponentInChildren<Text>();
+            _toggleLabel = toggleButton.GetComponentInChildren<TextMeshProUGUI>();
 
             _panel = NewPanel(canvas.transform, new Vector2(0.5f, 0.5f), new Vector2(680f, 820f),
                 new Color(0f, 0f, 0f, 0.8f));
@@ -65,19 +66,19 @@ namespace Saga.Dungeon.UI
 
             var closeButton = NewButton(_panel.transform, DungeonLocalization.T("settings.close"),
                 new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(300f, 70f), ClosePanel);
-            _closeLabel = closeButton.GetComponentInChildren<Text>();
+            _closeLabel = closeButton.GetComponentInChildren<TextMeshProUGUI>();
 
             Refresh();
         }
 
-        private (Text name, Text value) MakeRow(float y, string nameKey, UnityEngine.Events.UnityAction onClick)
+        private (TextMeshProUGUI name, TextMeshProUGUI value) MakeRow(float y, string nameKey, UnityEngine.Events.UnityAction onClick)
         {
             var name = NewText(_panel.transform, DungeonLocalization.T(nameKey), new Vector2(0f, 1f),
                 new Vector2(60f, y), new Vector2(260f, 70f), 26);
-            name.alignment = TextAnchor.MiddleLeft;
+            name.alignment = TextAlignmentOptions.Left;
             var button = NewButton(_panel.transform, "", new Vector2(1f, 1f), new Vector2(-60f, y),
                 new Vector2(260f, 70f), onClick);
-            return (name, button.GetComponentInChildren<Text>());
+            return (name, button.GetComponentInChildren<TextMeshProUGUI>());
         }
 
         private void ChooseSfx() { DungeonSettingsState.SfxOn = !DungeonSettingsState.SfxOn; Refresh(); }
@@ -143,7 +144,7 @@ namespace Saga.Dungeon.UI
             return go;
         }
 
-        private static Text NewText(Transform parent, string content, Vector2 anchor, Vector2 pos, Vector2 size, int fontSize)
+        private static TextMeshProUGUI NewText(Transform parent, string content, Vector2 anchor, Vector2 pos, Vector2 size, int fontSize)
         {
             var go = new GameObject("Text", typeof(RectTransform));
             go.transform.SetParent(parent, false);
@@ -154,12 +155,11 @@ namespace Saga.Dungeon.UI
             rect.anchoredPosition = pos;
             rect.sizeDelta = size;
 
-            var text = go.AddComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var text = go.AddComponent<TextMeshProUGUI>();
             text.fontSize = fontSize;
-            text.alignment = TextAnchor.MiddleCenter;
+            text.alignment = TextAlignmentOptions.Center;
             text.color = Color.white;
-            text.horizontalOverflow = HorizontalWrapMode.Wrap;
+            text.textWrappingMode = TextWrappingModes.Normal;
             text.text = content;
             return text;
         }

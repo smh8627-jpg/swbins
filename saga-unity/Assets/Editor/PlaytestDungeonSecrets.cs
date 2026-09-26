@@ -1,3 +1,4 @@
+using TMPro;
 using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
@@ -331,7 +332,7 @@ namespace Saga.EditorTools
             if (!panel.CellText(SecretMove.Whirl, Secret.Rage).Contains(SecretState.LoreName(Secret.Rage)) || panel.CellText(SecretMove.Whirl, Secret.Swift).Contains(SecretState.LoreName(Secret.Swift)))
                 Fail("비전 칸 표시");
             var hud = Object.FindFirstObjectByType<PlayerHud>();
-            var hudLabel = hud != null ? typeof(PlayerHud).GetField("label", BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(hud) as UnityEngine.UI.Text : null;
+            var hudLabel = hud != null ? typeof(PlayerHud).GetField("label", BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(hud) as TMPro.TextMeshProUGUI : null;
             var refresh = typeof(PlayerHud).GetMethod("Refresh", BindingFlags.NonPublic | BindingFlags.Instance);
             if (hudLabel == null || refresh == null) Fail("HUD 글 못 찾음");
             else
@@ -351,7 +352,7 @@ namespace Saga.EditorTools
             var drop = Dummy(p + Vector3.right * 6f, "wp_lm_palace");
             drop.e.TakeDamage(1e7f);
             var dl = DialogueLabel.Instance;
-            var dlText = dl != null ? typeof(DialogueLabel).GetField("label", BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(dl) as UnityEngine.UI.Text : null;
+            var dlText = dl != null ? typeof(DialogueLabel).GetField("label", BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(dl) as TMPro.TextMeshProUGUI : null;
             if (dlText == null || !dlText.text.Contains(SecretState.LoreLine(Secret.Frost))) Fail($"줍기 글에 비전 줄 없음 '{dlText?.text}'");
             SecretState.Restore(null);
             _weapon = "wp_start";

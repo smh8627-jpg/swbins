@@ -1,3 +1,4 @@
+using TMPro;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -33,8 +34,8 @@ namespace Saga.Go.UI
         public static HeroDexUi Instance { get; private set; }
 
         private GameObject _panel;
-        private Text _title;
-        private Text _detail;
+        private TextMeshProUGUI _title;
+        private TextMeshProUGUI _detail;
         private readonly List<Button> _tabs = new List<Button>();
         private readonly List<Button> _cards = new List<Button>();
         private readonly List<string> _cardIds = new List<string>();
@@ -49,7 +50,7 @@ namespace Saga.Go.UI
         public string DetailText => _detail.text;
         public int TabCount => _tabs.Count;
         public Button TabButton(int i) => _tabs[i];
-        public string TabText(int i) => _tabs[i].GetComponentInChildren<Text>().text;
+        public string TabText(int i) => _tabs[i].GetComponentInChildren<TextMeshProUGUI>().text;
         /// <summary>지금 시대 탭에서 켜진 칸 수(= 그 시대 인물 수).</summary>
         public int CardCount
         {
@@ -62,7 +63,7 @@ namespace Saga.Go.UI
         }
         public Button CardButton(int i) => _cards[i];
         public string CardHeroId(int i) => i < _cardIds.Count ? _cardIds[i] : null;
-        public string CardText(int i) => _cards[i].GetComponentInChildren<Text>().text;
+        public string CardText(int i) => _cards[i].GetComponentInChildren<TextMeshProUGUI>().text;
         public Color CardColor(int i) => _cards[i].GetComponent<Image>().color;
         public CardState StateOfCard(int i) => i < _cardIds.Count && _cards[i].gameObject.activeSelf ? StateOf(_cardIds[i]) : CardState.Hidden;
 
@@ -114,7 +115,7 @@ namespace Saga.Go.UI
             var mid = new Vector2(0.5f, 0.5f);
 
             _title = EncounterUiKit.NewText(_panel.transform, "", mid, new Vector2(0f, 268f), new Vector2(1000f, 44f), 28);
-            _title.fontStyle = FontStyle.Bold;
+            _title.fontStyle = FontStyles.Bold;
             Center(_title.rectTransform);
 
             float tabW = 250f;
@@ -122,7 +123,7 @@ namespace Saga.Go.UI
             {
                 var tab = EncounterUiKit.NewButton(_panel.transform, "", mid, new Vector2((i - 1.5f) * (tabW + 6f), 222f), new Vector2(tabW, 44f), null);
                 Center((RectTransform)tab.transform);
-                tab.GetComponentInChildren<Text>().fontSize = 22;
+                tab.GetComponentInChildren<TextMeshProUGUI>().fontSize = 22;
                 var era = Eras[i];
                 tab.onClick.AddListener(() => SelectEra(era));
                 _tabs.Add(tab);
@@ -137,9 +138,9 @@ namespace Saga.Go.UI
                 float y = GridTop - row * (CardH + Gap) - CardH * 0.5f;
                 var card = EncounterUiKit.NewButton(_panel.transform, "", mid, new Vector2(x, y), new Vector2(CardW, CardH), null);
                 Center((RectTransform)card.transform);
-                var label = card.GetComponentInChildren<Text>();
+                var label = card.GetComponentInChildren<TextMeshProUGUI>();
                 label.fontSize = 17;
-                label.lineSpacing = 0.95f;
+                label.lineSpacing = -5f; // TMP: em/100 더하기(옛 UI.Text 배수 0.95)
                 int k = i;
                 card.onClick.AddListener(() => Select(k));
                 _cards.Add(card);
@@ -204,7 +205,7 @@ namespace Saga.Go.UI
             for (int i = 0; i < Eras.Length; i++)
             {
                 var c = HeroDexState.CountOf(Eras[i]);
-                var txt = _tabs[i].GetComponentInChildren<Text>();
+                var txt = _tabs[i].GetComponentInChildren<TextMeshProUGUI>();
                 txt.text = $"{GoHeroes.EraName(Eras[i])} {c.Got}/{c.Total}";
                 bool on = Eras[i] == _era;
                 txt.color = on ? new Color(1f, 0.88f, 0.5f) : new Color(0.75f, 0.75f, 0.8f);
@@ -221,7 +222,7 @@ namespace Saga.Go.UI
                 _cardIds.Add(h.Id);
                 card.gameObject.SetActive(true);
                 var img = card.GetComponent<Image>();
-                var label = card.GetComponentInChildren<Text>();
+                var label = card.GetComponentInChildren<TextMeshProUGUI>();
                 switch (StateOf(h.Id))
                 {
                     case CardState.Got:

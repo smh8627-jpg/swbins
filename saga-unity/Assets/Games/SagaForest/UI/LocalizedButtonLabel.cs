@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using Saga.Forest.Data;
@@ -20,7 +21,7 @@ namespace Saga.Forest.UI
         [SerializeField] private string key;
         [SerializeField] private string fallback;
 
-        private Text _text;
+        private TextMeshProUGUI _text;
         private string _lastLang;
 
         public void Init(string locKey, string locFallback)
@@ -31,7 +32,7 @@ namespace Saga.Forest.UI
 
         private void Awake()
         {
-            _text = GetComponentInChildren<Text>();
+            _text = GetComponentInChildren<TextMeshProUGUI>();
             _lastLang = null;
         }
 

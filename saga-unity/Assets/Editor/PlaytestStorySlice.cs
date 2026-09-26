@@ -1,3 +1,4 @@
+using TMPro;
 using System.Reflection;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -213,7 +214,7 @@ namespace Saga.EditorTools
 
                     var dialogueGo = GameObject.Find("StoryDialogueUI");
                     var dialogueLabel = dialogueGo != null ? dialogueGo.GetComponent<DialogueLabel>() : null;
-                    var label = dialogueLabel != null ? GetPrivate(dialogueLabel, "label") as Text : null;
+                    var label = dialogueLabel != null ? GetPrivate(dialogueLabel, "label") as TextMeshProUGUI : null;
                     if (label == null || !label.gameObject.activeSelf || string.IsNullOrEmpty(label.text))
                     {
                         Debug.LogError("[PlaytestStorySlice] 척후병에게 말을 걸었는데 DialogueLabel이 안 뜸");
@@ -498,7 +499,7 @@ namespace Saga.EditorTools
 
                     var dialogueGo = GameObject.Find("StoryDialogueUI");
                     var dialogueLabel = dialogueGo != null ? dialogueGo.GetComponent<DialogueLabel>() : null;
-                    var label = dialogueLabel != null ? GetPrivate(dialogueLabel, "label") as Text : null;
+                    var label = dialogueLabel != null ? GetPrivate(dialogueLabel, "label") as TextMeshProUGUI : null;
                     if (label == null || !label.text.Contains("한 잔"))
                     {
                         Debug.LogError($"[PlaytestStorySlice] 선택 직후 대사가 이상함 text=\"{(label != null ? label.text : "<null>")}\"");
@@ -2303,7 +2304,7 @@ namespace Saga.EditorTools
             }
 
             var sfxValueLabelField = typeof(StorySettingsPanel).GetField("_sfxValueLabel", BindingFlags.NonPublic | BindingFlags.Instance);
-            var sfxValueLabel = sfxValueLabelField.GetValue(panel) as Text;
+            var sfxValueLabel = sfxValueLabelField.GetValue(panel) as TextMeshProUGUI;
             if (sfxValueLabel == null)
             {
                 Debug.LogError("[PlaytestStorySlice] StorySettingsPanel._sfxValueLabel이 null");
@@ -2368,7 +2369,7 @@ namespace Saga.EditorTools
         {
             var hudGo = GameObject.Find("StoryHudUI");
             var hud = hudGo != null ? hudGo.GetComponent<StoryHud>() : null;
-            var label = hudGo != null ? hudGo.GetComponentInChildren<Text>() : null;
+            var label = hudGo != null ? hudGo.GetComponentInChildren<TextMeshProUGUI>() : null;
             if (hud == null || label == null)
             {
                 Debug.LogError("[PlaytestStorySlice] StoryHudUI/Label을 못 찾음");
@@ -2400,7 +2401,7 @@ namespace Saga.EditorTools
         {
             var go = GameObject.Find("ActionButton_공격");
             var localized = go != null ? go.GetComponent<LocalizedButtonLabel>() : null;
-            var label = go != null ? go.GetComponentInChildren<Text>() : null;
+            var label = go != null ? go.GetComponentInChildren<TextMeshProUGUI>() : null;
             if (localized == null || label == null)
             {
                 Debug.LogError("[PlaytestStorySlice] ActionButton_공격/LocalizedButtonLabel을 못 찾음");
@@ -2453,7 +2454,7 @@ namespace Saga.EditorTools
             }
 
             var labelField = typeof(GoalBoard).GetField("_label", BindingFlags.NonPublic | BindingFlags.Instance);
-            var label = labelField.GetValue(board) as Text;
+            var label = labelField.GetValue(board) as TextMeshProUGUI;
             if (label == null || !label.text.Contains("지금 —") || !label.text.Contains("이번 세션 —") || !label.text.Contains("이번 주 —"))
             {
                 Debug.LogError($"[PlaytestStorySlice] GoalBoard 세 줄이 안 채워짐 text=\"{(label == null ? "null" : label.text.Replace("\n", " | "))}\"");

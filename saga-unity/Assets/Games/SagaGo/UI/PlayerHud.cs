@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using Saga.Go.Data;
@@ -14,7 +15,7 @@ namespace Saga.Go.UI
     /// </summary>
     public class PlayerHud : MonoBehaviour
     {
-        [SerializeField] private Text label;
+        [SerializeField] private TextMeshProUGUI label;
 
         private const float RefreshGapSec = 0.5f;
         private float _timer;

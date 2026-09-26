@@ -1,3 +1,4 @@
+using TMPro;
 using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
@@ -107,7 +108,7 @@ namespace Saga.EditorTools
                 PartyState.Fill(PartyRole.Guard);
                 if (party.TryOrderGuard()) Fail("쓰러진 무사에게 도발이 먹었다");
                 hud.Refresh();
-                var guardLabel = hud.transform.Find("GuardName")?.GetComponent<UnityEngine.UI.Text>();
+                var guardLabel = hud.transform.Find("GuardName")?.GetComponent<TMPro.TextMeshProUGUI>();
                 if (guardLabel == null || !guardLabel.text.Contains(DungeonLocalization.T("party.hud_down", "쓰러짐")))
                     Fail($"HUD 무사 줄이 쓰러짐을 안 보인다 ({guardLabel?.text})");
                 Kill(foe);

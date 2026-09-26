@@ -1,3 +1,4 @@
+using TMPro;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
@@ -10,7 +11,7 @@ namespace Saga.Realm.UI
     {
         public static RealmToast Instance { get; private set; }
 
-        [SerializeField] private Text label;
+        [SerializeField] private TextMeshProUGUI label;
 
         private Coroutine _hideRoutine;
 

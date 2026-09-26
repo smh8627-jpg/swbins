@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -709,12 +710,11 @@ namespace Saga.EditorTools
             rect.anchoredPosition = new Vector2(0f, -80f);
             rect.sizeDelta = new Vector2(920f, 160f);
 
-            var text = textGo.AddComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var text = textGo.AddComponent<TextMeshProUGUI>();
             text.fontSize = 32;
-            text.alignment = TextAnchor.MiddleCenter;
+            text.alignment = TextAlignmentOptions.Center;
             text.color = Color.white;
-            text.horizontalOverflow = HorizontalWrapMode.Wrap;
+            text.textWrappingMode = TextWrappingModes.Normal;
             text.text = "";
 
             var dialogueLabel = canvasGo.AddComponent<DialogueLabel>();
@@ -772,10 +772,9 @@ namespace Saga.EditorTools
             rect.anchoredPosition = new Vector2(20f, -20f);
             rect.sizeDelta = new Vector2(600f, 120f);
 
-            var text = textGo.AddComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var text = textGo.AddComponent<TextMeshProUGUI>();
             text.fontSize = 22;
-            text.alignment = TextAnchor.UpperLeft;
+            text.alignment = TextAlignmentOptions.TopLeft;
             text.color = new Color(1f, 1f, 1f, 0.8f);
             text.text = "";
 
@@ -817,10 +816,9 @@ namespace Saga.EditorTools
             textRect.anchorMax = Vector2.one;
             textRect.offsetMin = Vector2.zero;
             textRect.offsetMax = Vector2.zero;
-            var text = textGo.AddComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var text = textGo.AddComponent<TextMeshProUGUI>();
             text.fontSize = 26;
-            text.alignment = TextAnchor.MiddleCenter;
+            text.alignment = TextAlignmentOptions.Center;
             text.color = Color.white;
             text.text = ForestLocalization.T("action.save", "저장");
 

@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -112,12 +113,11 @@ namespace Saga.EditorTools
             rect.anchoredPosition = new Vector2(0f, -80f);
             rect.sizeDelta = new Vector2(920f, 140f);
 
-            var text = textGo.AddComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var text = textGo.AddComponent<TextMeshProUGUI>();
             text.fontSize = 34;
-            text.alignment = TextAnchor.MiddleCenter;
+            text.alignment = TextAlignmentOptions.Center;
             text.color = Color.white;
-            text.horizontalOverflow = HorizontalWrapMode.Wrap;
+            text.textWrappingMode = TextWrappingModes.Normal;
             text.text = "";
 
             var dialogueLabel = canvasGo.AddComponent<DialogueLabel>();
@@ -127,7 +127,7 @@ namespace Saga.EditorTools
 
         /// <summary>화면 위 "📍 명소 n/13" 줄 — GO 도감 줄(CodexLabel)과 같은 자리·글꼴,
         /// 이 씬에만 있는 전용 라벨이라 GO 세이브·도감과는 무관하다.</summary>
-        private static Text BuildPlaceCountUi()
+        private static TextMeshProUGUI BuildPlaceCountUi()
         {
             var canvasGo = new GameObject("PlaceCountUI");
             var canvas = canvasGo.AddComponent<Canvas>();
@@ -146,10 +146,9 @@ namespace Saga.EditorTools
             rect.anchoredPosition = new Vector2(20f, -20f);
             rect.sizeDelta = new Vector2(500f, 60f);
 
-            var text = textGo.AddComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var text = textGo.AddComponent<TextMeshProUGUI>();
             text.fontSize = 28;
-            text.alignment = TextAnchor.UpperLeft;
+            text.alignment = TextAlignmentOptions.TopLeft;
             text.color = Color.white;
             text.text = "";
             return text;
@@ -192,7 +191,7 @@ namespace Saga.EditorTools
             return joystick;
         }
 
-        private static void BuildLayoutWalkBootstrap(Text placeLabel)
+        private static void BuildLayoutWalkBootstrap(TextMeshProUGUI placeLabel)
         {
             var go = new GameObject("LayoutWalk");
             var walk = go.AddComponent<LayoutWalk>();

@@ -1,3 +1,4 @@
+using TMPro;
 using System.Linq;
 using Unity.Cinemachine;
 using UnityEditor;
@@ -26,7 +27,6 @@ namespace Saga.EditorTools
         private static readonly Color SubColor = new Color(0.86f, 0.84f, 0.8f);
         private static readonly Color LineColor = new Color(0.85f, 0.68f, 0.38f, 0.9f);
 
-        private static Font _font;
 
         public static void Build(CinemachineBrain brain)
         {
@@ -35,7 +35,6 @@ namespace Saga.EditorTools
                 Debug.LogError("[BuildGoCinematics] 실제 카메라에 CinemachineBrain 이 없다 — 컷을 만들지 않는다.");
                 return;
             }
-            _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             EnsureFolder(TimelineDir);
 
             var root = new GameObject("GoCutscenes");
@@ -138,7 +137,7 @@ namespace Saga.EditorTools
             return vcam;
         }
 
-        private static (Canvas, RectTransform, RectTransform, GameObject, CanvasGroup, Text, Text) BuildOverlay()
+        private static (Canvas, RectTransform, RectTransform, GameObject, CanvasGroup, TextMeshProUGUI, TextMeshProUGUI) BuildOverlay()
         {
             var canvasGo = new GameObject("GoCutsceneOverlay");
             var canvas = canvasGo.AddComponent<Canvas>();
@@ -153,7 +152,7 @@ namespace Saga.EditorTools
             var bottom = Bar(canvasGo.transform, "BottomBar", false);
 
             string skipText = GoLocalization.T("cut.skip", "건너뛰기 ▶ 아무 키 · 탭");
-            var skip = Label(bottom, "SkipHint", skipText, 26, SubColor, TextAnchor.MiddleRight);
+            var skip = Label(bottom, "SkipHint", skipText, 26, SubColor, TextAlignmentOptions.Right);
             var skipRt = (RectTransform)skip.transform;
             skipRt.anchorMin = Vector2.zero;
             skipRt.anchorMax = Vector2.one;
@@ -173,9 +172,9 @@ namespace Saga.EditorTools
             group.alpha = 0f;
             group.blocksRaycasts = false;
             group.interactable = false;
-            var sub = Label(groupGo.transform, "Sub", "", 32, SubColor, TextAnchor.LowerLeft);
+            var sub = Label(groupGo.transform, "Sub", "", 32, SubColor, TextAlignmentOptions.BottomLeft);
             Place(sub, new Vector2(0f, 150f), new Vector2(900f, 50f));
-            var title = Label(groupGo.transform, "Title", "", 78, BossColor, TextAnchor.LowerLeft);
+            var title = Label(groupGo.transform, "Title", "", 78, BossColor, TextAlignmentOptions.BottomLeft);
             Place(title, new Vector2(0f, 40f), new Vector2(900f, 110f));
             var lineGo = new GameObject("Line", typeof(RectTransform));
             lineGo.transform.SetParent(groupGo.transform, false);
@@ -204,26 +203,23 @@ namespace Saga.EditorTools
             return rt;
         }
 
-        private static Text Label(Transform parent, string name, string text, int size, Color color, TextAnchor align)
+        private static TextMeshProUGUI Label(Transform parent, string name, string text, int size, Color color, TextAlignmentOptions align)
         {
             var go = new GameObject(name, typeof(RectTransform));
             go.transform.SetParent(parent, false);
-            var t = go.AddComponent<Text>();
-            t.font = _font;
+            var t = go.AddComponent<TextMeshProUGUI>();
             t.fontSize = size;
             t.color = color;
             t.alignment = align;
-            t.horizontalOverflow = HorizontalWrapMode.Overflow;
-            t.verticalOverflow = VerticalWrapMode.Overflow;
+            t.textWrappingMode = TextWrappingModes.NoWrap;
+            t.overflowMode = TextOverflowModes.Overflow;
             t.raycastTarget = false;
             t.text = text;
-            var shadow = go.AddComponent<Shadow>();
-            shadow.effectColor = new Color(0f, 0f, 0f, 0.75f);
-            shadow.effectDistance = new Vector2(2f, -2f);
+            Saga.Core.TmpEffect.Add(go, Saga.Core.TmpEffect.Kind.Shadow, new Color(0f, 0f, 0f, 0.75f), 0.6f);
             return t;
         }
 
-        private static void Place(Text t, Vector2 pos, Vector2 size)
+        private static void Place(TextMeshProUGUI t, Vector2 pos, Vector2 size)
         {
             var rt = (RectTransform)t.transform;
             rt.anchorMin = rt.anchorMax = rt.pivot = Vector2.zero;

@@ -3,6 +3,7 @@
     "rootNamespace": "Saga.Forest",
     "references": [
         "SagaCore",
+        "Unity.TextMeshPro",
         "Unity.InputSystem",
         "Unity.RenderPipelines.Core.Runtime"
     ],

@@ -18,7 +18,7 @@ namespace Saga.Story.World
         private static readonly Color CritColor = new Color(1f, 0.55f, 0.1f);
 
         private float _t;
-        private TextMesh _mesh;
+        private TMPro.TextMeshPro _mesh;
         private Camera _cam;
 
         public static void Spawn(Vector3 worldPos, float amount, bool crit)
@@ -26,22 +26,14 @@ namespace Saga.Story.World
             var go = new GameObject("DamagePopup");
             go.transform.position = worldPos;
 
-            var mesh = go.AddComponent<TextMesh>();
-            mesh.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            go.GetComponent<MeshRenderer>().sharedMaterial = mesh.font.material;
-            mesh.text = Mathf.RoundToInt(amount).ToString();
-            mesh.characterSize = crit ? 0.32f : 0.22f;
-            mesh.fontSize = 48;
-            mesh.color = crit ? CritColor : NormalColor;
-            mesh.anchor = TextAnchor.MiddleCenter;
-            mesh.alignment = TextAlignment.Center;
+            var mesh = Saga.Core.SagaWorldText.Add(go, Mathf.RoundToInt(amount).ToString(), 48f * (crit ? 0.32f : 0.22f), crit ? CritColor : NormalColor);
 
             go.AddComponent<DamagePopup>();
         }
 
         private void Awake()
         {
-            _mesh = GetComponent<TextMesh>();
+            _mesh = GetComponent<TMPro.TextMeshPro>();
             _cam = Camera.main;
         }
 

@@ -3,6 +3,7 @@
     "rootNamespace": "Saga.Go",
     "references": [
         "SagaCore",
+        "Unity.TextMeshPro",
         "Unity.Cinemachine",
         "Unity.Timeline",
         "Unity.InputSystem",

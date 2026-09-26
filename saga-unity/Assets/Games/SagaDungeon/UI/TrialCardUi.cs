@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using Saga.Dungeon.Data;
@@ -15,10 +16,10 @@ namespace Saga.Dungeon.UI
         public static TrialCardUi Instance { get; private set; }
 
         private GameObject _panel;
-        private Text _title;
-        private Text _board;
+        private TextMeshProUGUI _title;
+        private TextMeshProUGUI _board;
         private readonly Button[] _stageButtons = new Button[3];
-        private readonly Text[] _stageTexts = new Text[3];
+        private readonly TextMeshProUGUI[] _stageTexts = new TextMeshProUGUI[3];
         private readonly int[] _stageOf = new int[3];
         private Vector3 _returnPos;
 
@@ -97,17 +98,17 @@ namespace Saga.Dungeon.UI
                     new Color(0.8f, 0.62f, 0.2f, 0.45f), 28);
                 b.onClick.AddListener(() => Pick(idx));
                 _stageButtons[i] = b;
-                _stageTexts[i] = b.GetComponentInChildren<Text>();
+                _stageTexts[i] = b.GetComponentInChildren<TextMeshProUGUI>();
             }
             _board = NewText(_panel.transform, "", new Vector2(0.5f, 1f), new Vector2(0f, -330f), new Vector2(880f, 480f), 24);
-            _board.alignment = TextAnchor.UpperCenter;
+            _board.alignment = TextAlignmentOptions.Top;
             var close = NewButton(_panel.transform, DungeonLocalization.T("secret.close", "닫기"), new Vector2(0.5f, 0f),
                 new Vector2(0f, 30f), new Vector2(260f, 80f), new Color(1f, 1f, 1f, 0.16f), 26);
             close.onClick.AddListener(Close);
             _panel.SetActive(false);
         }
 
-        private static Text NewText(Transform parent, string content, Vector2 anchor, Vector2 pos, Vector2 size, int fontSize)
+        private static TextMeshProUGUI NewText(Transform parent, string content, Vector2 anchor, Vector2 pos, Vector2 size, int fontSize)
         {
             var go = new GameObject("Text", typeof(RectTransform));
             go.transform.SetParent(parent, false);
@@ -115,12 +116,11 @@ namespace Saga.Dungeon.UI
             rect.anchorMin = rect.anchorMax = rect.pivot = anchor;
             rect.anchoredPosition = pos;
             rect.sizeDelta = size;
-            var text = go.AddComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var text = go.AddComponent<TextMeshProUGUI>();
             text.fontSize = fontSize;
-            text.alignment = TextAnchor.MiddleCenter;
+            text.alignment = TextAlignmentOptions.Center;
             text.color = Color.white;
-            text.horizontalOverflow = HorizontalWrapMode.Wrap;
+            text.textWrappingMode = TextWrappingModes.Normal;
             text.text = content;
             return text;
         }

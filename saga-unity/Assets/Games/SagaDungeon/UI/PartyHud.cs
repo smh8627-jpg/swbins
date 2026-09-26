@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using Saga.Dungeon.Data;
@@ -27,7 +28,7 @@ namespace Saga.Dungeon.UI
         private const float Top = -205f;
         private const float RowH = 40f;
 
-        private Text _guardName, _mysticName, _summonName;
+        private TextMeshProUGUI _guardName, _mysticName, _summonName;
         private Image _guardHp, _guardAtb, _mysticAtb, _summon;
         private Color _tauntBase, _healBase, _summonBase;
 
@@ -91,7 +92,7 @@ namespace Saga.Dungeon.UI
             img.color = new Color(baseColor.r, baseColor.g, baseColor.b, ready ? Mathf.Max(0.8f, baseColor.a) : baseColor.a * 0.45f);
         }
 
-        private static Text Label(RectTransform root, string name, int row)
+        private static TextMeshProUGUI Label(RectTransform root, string name, int row)
         {
             var go = new GameObject(name, typeof(RectTransform));
             go.transform.SetParent(root, false);
@@ -99,15 +100,13 @@ namespace Saga.Dungeon.UI
             rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0f, 1f);
             rt.anchoredPosition = new Vector2(20f, Top - row * RowH);
             rt.sizeDelta = new Vector2(180f, 30f);
-            var t = go.AddComponent<Text>();
-            t.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var t = go.AddComponent<TextMeshProUGUI>();
             t.fontSize = 22;
             t.color = Color.white;
-            t.alignment = TextAnchor.MiddleLeft;
-            t.horizontalOverflow = HorizontalWrapMode.Overflow;
+            t.alignment = TextAlignmentOptions.Left;
+            t.textWrappingMode = TextWrappingModes.NoWrap;
             t.raycastTarget = false;
-            var shadow = go.AddComponent<Shadow>();
-            shadow.effectColor = new Color(0f, 0f, 0f, 0.8f);
+            Saga.Core.TmpEffect.Add(go, Saga.Core.TmpEffect.Kind.Shadow, new Color(0f, 0f, 0f, 0.8f), 0.3f);
             return t;
         }
 

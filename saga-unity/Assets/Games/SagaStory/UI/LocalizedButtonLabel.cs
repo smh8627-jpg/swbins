@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using Saga.Story.Data;
@@ -26,7 +27,7 @@ namespace Saga.Story.UI
         [SerializeField] private string key;
         [SerializeField] private string fallback;
 
-        private Text _text;
+        private TextMeshProUGUI _text;
         private string _lastLang;
 
         public void Init(string locKey, string locFallback)
@@ -37,7 +38,7 @@ namespace Saga.Story.UI
 
         private void Awake()
         {
-            _text = GetComponentInChildren<Text>();
+            _text = GetComponentInChildren<TextMeshProUGUI>();
             _lastLang = null; // 첫 Update에서 한 번은 무조건 반영.
         }
 

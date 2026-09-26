@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using Saga.Go.Data;
@@ -44,7 +45,7 @@ namespace Saga.Go.UI
             return go;
         }
 
-        public static Text NewText(Transform parent, string content, Vector2 anchor, Vector2 pos, Vector2 size, int fontSize)
+        public static TextMeshProUGUI NewText(Transform parent, string content, Vector2 anchor, Vector2 pos, Vector2 size, int fontSize)
         {
             var go = new GameObject("Text", typeof(RectTransform));
             go.transform.SetParent(parent, false);
@@ -55,12 +56,11 @@ namespace Saga.Go.UI
             rect.anchoredPosition = pos;
             rect.sizeDelta = size;
 
-            var text = go.AddComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var text = go.AddComponent<TextMeshProUGUI>();
             text.fontSize = fontSize;
-            text.alignment = TextAnchor.MiddleCenter;
+            text.alignment = TextAlignmentOptions.Center;
             text.color = Color.white;
-            text.horizontalOverflow = HorizontalWrapMode.Wrap;
+            text.textWrappingMode = TextWrappingModes.Normal;
             text.text = content;
             return text;
         }
@@ -91,7 +91,7 @@ namespace Saga.Go.UI
         /// <summary>왼쪽 라벨 + 오른쪽으로 차는 막대 하나(Image.fillAmount 기반).</summary>
         public static Image NewBarRow(Transform parent, string label, float y, out Image background)
         {
-            NewText(parent, label, new Vector2(0f, 1f), new Vector2(30f, y), new Vector2(110f, 40f), 22).alignment = TextAnchor.MiddleLeft;
+            NewText(parent, label, new Vector2(0f, 1f), new Vector2(30f, y), new Vector2(110f, 40f), 22).alignment = TextAlignmentOptions.Left;
 
             var bgGo = new GameObject($"{label}Bar", typeof(RectTransform));
             bgGo.transform.SetParent(parent, false);

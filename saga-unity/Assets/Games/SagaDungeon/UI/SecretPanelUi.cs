@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -22,14 +23,14 @@ namespace Saga.Dungeon.UI
         private static readonly Color CellLocked = new Color(0.25f, 0.25f, 0.25f, 0.6f);
 
         private GameObject _panel;
-        private Text _title;
+        private TextMeshProUGUI _title;
         private Button _toggle;
-        private Text _toggleText;
-        private Text _closeText;
-        private readonly Text[] _rowLabels = new Text[SecretState.MoveCount];
+        private TextMeshProUGUI _toggleText;
+        private TextMeshProUGUI _closeText;
+        private readonly TextMeshProUGUI[] _rowLabels = new TextMeshProUGUI[SecretState.MoveCount];
         private readonly Button[,] _cells = new Button[SecretState.MoveCount, SecretState.SecretCount];
-        private readonly Text[,] _cellTexts = new Text[SecretState.MoveCount, SecretState.SecretCount];
-        private readonly Text[] _badges = new Text[SecretState.MoveCount];
+        private readonly TextMeshProUGUI[,] _cellTexts = new TextMeshProUGUI[SecretState.MoveCount, SecretState.SecretCount];
+        private readonly TextMeshProUGUI[] _badges = new TextMeshProUGUI[SecretState.MoveCount];
         private string _lastLang;
 
         public static SecretPanelUi Instance { get; private set; }
@@ -148,7 +149,7 @@ namespace Saga.Dungeon.UI
             _toggle = NewButton(canvasGo.transform, DungeonLocalization.T("action.secret", "비결"), new Vector2(1f, 0f),
                 new Vector2(-460f, 630f), new Vector2(130f, 130f), new Color(0.3f, 0.45f, 0.8f, 0.55f), 26);
             _toggle.onClick.AddListener(Toggle);
-            _toggleText = _toggle.GetComponentInChildren<Text>();
+            _toggleText = _toggle.GetComponentInChildren<TextMeshProUGUI>();
 
             _panel = new GameObject("SecretPanel", typeof(RectTransform));
             _panel.transform.SetParent(canvasGo.transform, false);
@@ -171,7 +172,7 @@ namespace Saga.Dungeon.UI
                     var b = NewButton(_panel.transform, "", new Vector2(0.5f, 1f), new Vector2(x, y), new Vector2(165f, 120f), CellIdle, 24);
                     b.onClick.AddListener(() => Pick(move, s));
                     _cells[m, i] = b;
-                    _cellTexts[m, i] = b.GetComponentInChildren<Text>();
+                    _cellTexts[m, i] = b.GetComponentInChildren<TextMeshProUGUI>();
                 }
                 y -= 170f;
             }
@@ -179,7 +180,7 @@ namespace Saga.Dungeon.UI
             var close = NewButton(_panel.transform, DungeonLocalization.T("secret.close", "닫기"), new Vector2(0.5f, 0f),
                 new Vector2(0f, 30f), new Vector2(260f, 80f), CellIdle, 26);
             close.onClick.AddListener(Close);
-            _closeText = close.GetComponentInChildren<Text>();
+            _closeText = close.GetComponentInChildren<TextMeshProUGUI>();
             _panel.SetActive(false);
 
             for (int m = 0; m < SecretState.MoveCount; m++)
@@ -195,7 +196,7 @@ namespace Saga.Dungeon.UI
             Refresh();
         }
 
-        private static Text NewText(Transform parent, string content, Vector2 anchor, Vector2 pos, Vector2 size, int fontSize)
+        private static TextMeshProUGUI NewText(Transform parent, string content, Vector2 anchor, Vector2 pos, Vector2 size, int fontSize)
         {
             var go = new GameObject("Text", typeof(RectTransform));
             go.transform.SetParent(parent, false);
@@ -203,12 +204,11 @@ namespace Saga.Dungeon.UI
             rect.anchorMin = rect.anchorMax = rect.pivot = anchor;
             rect.anchoredPosition = pos;
             rect.sizeDelta = size;
-            var text = go.AddComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var text = go.AddComponent<TextMeshProUGUI>();
             text.fontSize = fontSize;
-            text.alignment = TextAnchor.MiddleCenter;
+            text.alignment = TextAlignmentOptions.Center;
             text.color = Color.white;
-            text.horizontalOverflow = HorizontalWrapMode.Wrap;
+            text.textWrappingMode = TextWrappingModes.Normal;
             text.text = content;
             return text;
         }

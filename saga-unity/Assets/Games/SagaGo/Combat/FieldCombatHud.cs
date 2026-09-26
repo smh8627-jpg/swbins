@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using Saga.Go.Data;
@@ -17,16 +18,16 @@ namespace Saga.Go.Combat
 
         private FieldCombat _combat;
         private GameObject _root;
-        private Text _nameText;
+        private TextMeshProUGUI _nameText;
         private Image _hpFill;
         private Image _energyFill;
         private Image _staminaFill;
-        private Text _skillLabel;
+        private TextMeshProUGUI _skillLabel;
         private Image _skillImage;
-        private Text _burstLabel;
+        private TextMeshProUGUI _burstLabel;
         private Image _burstImage;
         private readonly Button[] _rosterButtons = new Button[FieldCombat.MaxParty];
-        private readonly Text[] _rosterTexts = new Text[FieldCombat.MaxParty];
+        private readonly TextMeshProUGUI[] _rosterTexts = new TextMeshProUGUI[FieldCombat.MaxParty];
         private readonly Image[] _rosterHp = new Image[FieldCombat.MaxParty];
         private float _refresh;
 
@@ -71,9 +72,9 @@ namespace Saga.Go.Combat
                     default: b.onClick.AddListener(Swap3); break;
                 }
                 _rosterButtons[i] = b;
-                _rosterTexts[i] = b.GetComponentInChildren<Text>();
+                _rosterTexts[i] = b.GetComponentInChildren<TextMeshProUGUI>();
                 _rosterTexts[i].fontSize = 24;
-                _rosterTexts[i].alignment = TextAnchor.UpperCenter;
+                _rosterTexts[i].alignment = TextAlignmentOptions.Top;
                 _rosterHp[i] = Bar(b.transform, new Vector2(0f, 10f), new Vector2(230f, 8f), new Color(0.35f, 0.85f, 0.35f, 0.9f), new Vector2(0.5f, 0f));
             }
 
@@ -82,11 +83,11 @@ namespace Saga.Go.Combat
             AttackButton.onClick.AddListener(OnAttack);
             SkillButton = EncounterUiKit.NewButton(t, "", new Vector2(1f, 0f), new Vector2(-270f, 70f), new Vector2(150f, 150f), null);
             SkillButton.onClick.AddListener(OnSkill);
-            _skillLabel = SkillButton.GetComponentInChildren<Text>();
+            _skillLabel = SkillButton.GetComponentInChildren<TextMeshProUGUI>();
             _skillImage = SkillButton.GetComponent<Image>();
             BurstButton = EncounterUiKit.NewButton(t, "", new Vector2(1f, 0f), new Vector2(-70f, 280f), new Vector2(150f, 150f), null);
             BurstButton.onClick.AddListener(OnBurst);
-            _burstLabel = BurstButton.GetComponentInChildren<Text>();
+            _burstLabel = BurstButton.GetComponentInChildren<TextMeshProUGUI>();
             _burstImage = BurstButton.GetComponent<Image>();
             DodgeButton = EncounterUiKit.NewButton(t, GoLocalization.T("field.btn.dodge", "회피"), new Vector2(1f, 0f), new Vector2(-260f, 250f), new Vector2(140f, 110f), null);
             DodgeButton.onClick.AddListener(OnDodge);

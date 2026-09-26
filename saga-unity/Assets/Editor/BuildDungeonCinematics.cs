@@ -1,3 +1,4 @@
+using TMPro;
 using System.Collections.Generic;
 using System.Linq;
 using Unity.Cinemachine;
@@ -41,7 +42,6 @@ namespace Saga.EditorTools
         private static readonly Color SubColor = new Color(0.86f, 0.84f, 0.8f);
         private static readonly Color LineColor = new Color(0.85f, 0.68f, 0.38f, 0.9f);
 
-        private static Font _font;
 
         public static void Build(GameObject playerGo, DungeonEnemy guardian)
         {
@@ -51,7 +51,6 @@ namespace Saga.EditorTools
                 Debug.LogError("[BuildDungeonCinematics] 플레이어 카메라에 CinemachineBrain 이 없다 — 컷을 만들지 않는다.");
                 return;
             }
-            _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             EnsureFolder(TimelineDir);
 
             var (overlay, topBar, bottomBar, skipHint, card) = BuildOverlay();
@@ -300,7 +299,7 @@ namespace Saga.EditorTools
             var top = Bar(canvasGo.transform, "TopBar");
             var bottom = Bar(canvasGo.transform, "BottomBar");
 
-            var skip = Label(bottom, "SkipHint", "건너뛰기 ▶ 아무 키 · 탭", 26, SubColor, TextAnchor.MiddleRight);
+            var skip = Label(bottom, "SkipHint", "건너뛰기 ▶ 아무 키 · 탭", 26, SubColor, TextAlignmentOptions.Right);
             var skipRt = (RectTransform)skip.transform;
             skipRt.anchorMin = new Vector2(0f, 0f);
             skipRt.anchorMax = new Vector2(1f, 1f);
@@ -315,18 +314,18 @@ namespace Saga.EditorTools
 
             // 가운데 지역명 — 큰 제목, 금빛 가는 선, 작은 부제.
             var region = Group(cardGo.transform, "Region", new Vector2(0.5f, 0.56f), new Vector2(1000f, 320f));
-            var regionTitle = Label(region.transform, "Title", "", 92, RegionColor, TextAnchor.MiddleCenter);
+            var regionTitle = Label(region.transform, "Title", "", 92, RegionColor, TextAlignmentOptions.Center);
             Place(regionTitle, new Vector2(0f, 60f), new Vector2(1000f, 140f));
             Line(region.transform, new Vector2(0f, -10f), new Vector2(520f, 3f));
-            var regionSub = Label(region.transform, "Sub", "", 36, SubColor, TextAnchor.MiddleCenter);
+            var regionSub = Label(region.transform, "Sub", "", 36, SubColor, TextAlignmentOptions.Center);
             Place(regionSub, new Vector2(0f, -60f), new Vector2(1000f, 60f));
 
             // 왼쪽 아래 보스 이름표 — 레터박스 바로 위.
             var bossGroup = Group(cardGo.transform, "Boss", new Vector2(0f, 0.16f), new Vector2(900f, 220f), new Vector2(0f, 0f));
             ((RectTransform)bossGroup.transform).anchoredPosition = new Vector2(70f, 0f);
-            var bossSub = Label(bossGroup.transform, "Sub", "", 32, SubColor, TextAnchor.LowerLeft);
+            var bossSub = Label(bossGroup.transform, "Sub", "", 32, SubColor, TextAlignmentOptions.BottomLeft);
             Place(bossSub, new Vector2(0f, 150f), new Vector2(900f, 50f), new Vector2(0f, 0f));
-            var bossTitle = Label(bossGroup.transform, "Title", "", 78, BossColor, TextAnchor.LowerLeft);
+            var bossTitle = Label(bossGroup.transform, "Title", "", 78, BossColor, TextAlignmentOptions.BottomLeft);
             Place(bossTitle, new Vector2(0f, 40f), new Vector2(900f, 110f), new Vector2(0f, 0f));
             var bossLine = Line(bossGroup.transform, new Vector2(0f, 30f), new Vector2(420f, 3f));
             bossLine.pivot = Vector2.zero;
@@ -375,26 +374,23 @@ namespace Saga.EditorTools
             return g;
         }
 
-        private static Text Label(Transform parent, string name, string text, int size, Color color, TextAnchor align)
+        private static TextMeshProUGUI Label(Transform parent, string name, string text, int size, Color color, TextAlignmentOptions align)
         {
             var go = new GameObject(name, typeof(RectTransform));
             go.transform.SetParent(parent, false);
-            var t = go.AddComponent<Text>();
-            t.font = _font;
+            var t = go.AddComponent<TextMeshProUGUI>();
             t.fontSize = size;
             t.color = color;
             t.alignment = align;
-            t.horizontalOverflow = HorizontalWrapMode.Overflow;
-            t.verticalOverflow = VerticalWrapMode.Overflow;
+            t.textWrappingMode = TextWrappingModes.NoWrap;
+            t.overflowMode = TextOverflowModes.Overflow;
             t.raycastTarget = false;
             t.text = text;
-            var shadow = go.AddComponent<Shadow>();
-            shadow.effectColor = new Color(0f, 0f, 0f, 0.75f);
-            shadow.effectDistance = new Vector2(2f, -2f);
+            Saga.Core.TmpEffect.Add(go, Saga.Core.TmpEffect.Kind.Shadow, new Color(0f, 0f, 0f, 0.75f), 0.6f);
             return t;
         }
 
-        private static void Place(Text t, Vector2 pos, Vector2 size, Vector2? anchor = null)
+        private static void Place(TextMeshProUGUI t, Vector2 pos, Vector2 size, Vector2? anchor = null)
         {
             var rt = (RectTransform)t.transform;
             rt.anchorMin = rt.anchorMax = anchor ?? new Vector2(0.5f, 0.5f);

@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using Saga.Story.Data;
@@ -18,8 +19,8 @@ namespace Saga.Story.UI
         // PLAN.md 104-1 ③ — Build()를 부르는 게 에디터 스크립트뿐이라(런타임 재호출 없음)
         // 씬 저장→재로드 후에도 참조가 남으려면 [SerializeField]가 필수(REALM/LocalizedButtonLabel과 같은 함정).
         [SerializeField] private GameObject _panel;
-        [SerializeField] private Text _titleLabel;
-        [SerializeField] private Text _closeLabel;
+        [SerializeField] private TextMeshProUGUI _titleLabel;
+        [SerializeField] private TextMeshProUGUI _closeLabel;
         // 2026-09-23 — Build()(에디터 전용)에서 onClick.AddListener로 건 리스너는 런타임
         // 전용이라 씬 저장 때 안 남는다: 저장된 TestField.unity의 버튼 onClick이 전부 비어
         // 있었다(실제 플레이에서 전직 버튼이 먹통). 버튼 참조만 직렬화해 두고 Awake()에서 건다.
@@ -73,7 +74,7 @@ namespace Saga.Story.UI
 
             _closeButton = NewButton(_panel.transform, StoryLocalization.T("settings.close"),
                 new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(300f, 70f));
-            _closeLabel = _closeButton.GetComponentInChildren<Text>();
+            _closeLabel = _closeButton.GetComponentInChildren<TextMeshProUGUI>();
         }
 
         private static string JobLabel(string jobKey)
@@ -127,7 +128,7 @@ namespace Saga.Story.UI
             return go;
         }
 
-        private static Text NewText(Transform parent, string content, Vector2 anchor, Vector2 pos, Vector2 size, int fontSize)
+        private static TextMeshProUGUI NewText(Transform parent, string content, Vector2 anchor, Vector2 pos, Vector2 size, int fontSize)
         {
             var go = new GameObject("Text", typeof(RectTransform));
             go.transform.SetParent(parent, false);
@@ -138,12 +139,11 @@ namespace Saga.Story.UI
             rect.anchoredPosition = pos;
             rect.sizeDelta = size;
 
-            var text = go.AddComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var text = go.AddComponent<TextMeshProUGUI>();
             text.fontSize = fontSize;
-            text.alignment = TextAnchor.MiddleCenter;
+            text.alignment = TextAlignmentOptions.Center;
             text.color = Color.white;
-            text.horizontalOverflow = HorizontalWrapMode.Wrap;
+            text.textWrappingMode = TextWrappingModes.Normal;
             text.text = content;
             return text;
         }

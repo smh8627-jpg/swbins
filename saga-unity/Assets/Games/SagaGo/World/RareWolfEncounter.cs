@@ -1,3 +1,4 @@
+using TMPro;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
@@ -75,8 +76,8 @@ namespace Saga.Go.World
         private Image _hpFill;
         private Image _moraleFill;
         private Image _kiFill;
-        private Text _timerText;
-        private Text _partsText; // PLAN.md 101-2 ③ 부위 3 게이지(텍스트로 대신).
+        private TextMeshProUGUI _timerText;
+        private TextMeshProUGUI _partsText; // PLAN.md 101-2 ③ 부위 3 게이지(텍스트로 대신).
         private Button _ultButton;
 
         private Coroutine _flashRoutine;
@@ -252,10 +253,10 @@ namespace Saga.Go.World
             _flashImage.raycastTarget = false;
 
             var titleText = EncounterUiKit.NewText(canvas.transform, $"🐺 {GoLocalization.T("foe.rare_wolf", FoeName)}", new Vector2(0f, 1f), new Vector2(220f, -50f), new Vector2(380f, 60f), 30);
-            titleText.alignment = TextAnchor.MiddleLeft;
+            titleText.alignment = TextAlignmentOptions.Left;
 
             _timerText = EncounterUiKit.NewText(canvas.transform, string.Format(GoLocalization.T("combat.timer", "{0}초"), 60), new Vector2(1f, 1f), new Vector2(-140f, -50f), new Vector2(220f, 60f), 30);
-            _timerText.alignment = TextAnchor.MiddleRight;
+            _timerText.alignment = TextAlignmentOptions.Right;
 
             _hpFill = EncounterUiKit.NewBarRow(canvas.transform, GoLocalization.T("combat.momentum", "기세"), -110f, out _);
             _moraleFill = EncounterUiKit.NewBarRow(canvas.transform, GoLocalization.T("combat.morale", "사기"), -160f, out _);
@@ -264,7 +265,7 @@ namespace Saga.Go.World
             // PLAN.md 101-2 ③ "75초 토벌" 부위 3 게이지 — 새 UI 부품을 안
             // 만들고(EncounterUiKit엔 바 로우뿐) 기세 바로 아래 한 줄 텍스트로.
             _partsText = EncounterUiKit.NewText(canvas.transform, "", new Vector2(0f, 1f), new Vector2(150f, -260f), new Vector2(500f, 40f), 22);
-            _partsText.alignment = TextAnchor.MiddleLeft;
+            _partsText.alignment = TextAlignmentOptions.Left;
 
             Saga.Core.ButtonWiring.Wire(EncounterUiKit.NewButton(canvas.transform, GoLocalization.T("combat.quick"), new Vector2(0f, 0f), new Vector2(150f, 130f), new Vector2(220f, 110f), null), DoAct, "quick");
             _ultButton = EncounterUiKit.NewButton(canvas.transform, GoLocalization.T("combat.ult"), new Vector2(0.5f, 0f), new Vector2(0f, 130f), new Vector2(220f, 110f), null);

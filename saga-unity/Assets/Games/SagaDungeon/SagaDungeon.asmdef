@@ -3,6 +3,7 @@
     "rootNamespace": "Saga.Dungeon",
     "references": [
         "SagaCore",
+        "Unity.TextMeshPro",
         "Unity.Cinemachine",
         "Unity.Timeline",
         "Unity.InputSystem",

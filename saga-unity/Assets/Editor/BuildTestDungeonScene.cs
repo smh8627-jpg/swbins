@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -1419,12 +1420,11 @@ namespace Saga.EditorTools
             rect.anchoredPosition = new Vector2(0f, -80f);
             rect.sizeDelta = new Vector2(920f, 140f);
 
-            var text = textGo.AddComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var text = textGo.AddComponent<TextMeshProUGUI>();
             text.fontSize = 34;
-            text.alignment = TextAnchor.MiddleCenter;
+            text.alignment = TextAlignmentOptions.Center;
             text.color = Color.white;
-            text.horizontalOverflow = HorizontalWrapMode.Wrap;
+            text.textWrappingMode = TextWrappingModes.Normal;
             text.text = "";
 
             var dialogueLabel = canvasGo.AddComponent<DialogueLabel>();
@@ -1451,10 +1451,9 @@ namespace Saga.EditorTools
             rect.anchoredPosition = new Vector2(20f, -20f);
             rect.sizeDelta = new Vector2(700f, 140f); // "퀘스트 시스템" 슬라이스 — 퀘스트 목표 줄 추가로 100→140
 
-            var text = textGo.AddComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var text = textGo.AddComponent<TextMeshProUGUI>();
             text.fontSize = 24;
-            text.alignment = TextAnchor.UpperLeft;
+            text.alignment = TextAlignmentOptions.TopLeft;
             text.color = Color.white;
             text.text = "";
 
@@ -1593,10 +1592,9 @@ namespace Saga.EditorTools
             titleRect.pivot = new Vector2(0.5f, 1f);
             titleRect.anchoredPosition = new Vector2(0f, -20f);
             titleRect.sizeDelta = new Vector2(420f, 50f);
-            var titleText = titleGo.AddComponent<Text>();
-            titleText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var titleText = titleGo.AddComponent<TextMeshProUGUI>();
             titleText.fontSize = 28;
-            titleText.alignment = TextAnchor.MiddleCenter;
+            titleText.alignment = TextAlignmentOptions.Center;
             titleText.color = Color.white;
             titleText.text = "지역 지도 (M)";
 
@@ -1636,10 +1634,9 @@ namespace Saga.EditorTools
             rect.anchoredPosition = new Vector2(20f, -20f);
             rect.sizeDelta = new Vector2(700f, 220f);
 
-            var text = textGo.AddComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var text = textGo.AddComponent<TextMeshProUGUI>();
             text.fontSize = 22;
-            text.alignment = TextAnchor.UpperLeft;
+            text.alignment = TextAlignmentOptions.TopLeft;
             text.color = new Color(1f, 1f, 1f, 0.8f);
             text.text = "";
 
@@ -1790,10 +1787,9 @@ namespace Saga.EditorTools
             textRect.anchorMax = Vector2.one;
             textRect.offsetMin = Vector2.zero;
             textRect.offsetMax = Vector2.zero;
-            var text = textGo.AddComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var text = textGo.AddComponent<TextMeshProUGUI>();
             text.fontSize = fontSize;
-            text.alignment = TextAnchor.MiddleCenter;
+            text.alignment = TextAlignmentOptions.Center;
             text.color = Color.white;
             text.text = DungeonLocalization.T(locKey, label);
 

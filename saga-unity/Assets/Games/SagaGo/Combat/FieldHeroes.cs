@@ -117,13 +117,7 @@ namespace Saga.Go.Combat
             var tag = new GameObject("NameTag");
             tag.transform.SetParent(root.transform, false);
             tag.transform.localPosition = new Vector3(0f, CharacterVisual.HumanHeight + 1.1f, 0f);
-            var text = tag.AddComponent<TextMesh>();
-            text.text = GoHeroes.Label(hero);
-            text.anchor = TextAnchor.MiddleCenter;
-            text.alignment = TextAlignment.Center;
-            text.fontSize = 64;
-            text.characterSize = 0.035f;
-            text.color = Color.Lerp(Color.white, GoElements.ColorOf(GoHeroes.ElementOf(hero)), 0.5f);
+            var text = Saga.Core.SagaWorldText.Add(tag, GoHeroes.Label(hero), 64f * 0.035f, Color.Lerp(Color.white, GoElements.ColorOf(GoHeroes.ElementOf(hero)), 0.5f));
             slot.Idle = root;
         }
 

@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using Saga.Story.Data;
@@ -17,10 +18,10 @@ namespace Saga.Story.UI
         public static StoryLabyrinthMapUi Instance { get; private set; }
 
         [SerializeField] private GameObject _mapPanel;
-        [SerializeField] private Text _floorLabel;
+        [SerializeField] private TextMeshProUGUI _floorLabel;
         [SerializeField] private Transform _nodeButtonRoot;
         [SerializeField] private GameObject _blessingPanel;
-        [SerializeField] private Text _blessingTitle;
+        [SerializeField] private TextMeshProUGUI _blessingTitle;
         [SerializeField] private Transform _blessingButtonRoot;
 
         // `StoryJobChoiceUi.cs`는 Instance를 Build()(에디터 전용, 런타임
@@ -242,7 +243,7 @@ namespace Saga.Story.UI
             return go;
         }
 
-        private static Text NewText(Transform parent, string content, Vector2 anchor, Vector2 pos, Vector2 size, int fontSize)
+        private static TextMeshProUGUI NewText(Transform parent, string content, Vector2 anchor, Vector2 pos, Vector2 size, int fontSize)
         {
             var go = new GameObject("Text", typeof(RectTransform));
             go.transform.SetParent(parent, false);
@@ -253,12 +254,11 @@ namespace Saga.Story.UI
             rect.anchoredPosition = pos;
             rect.sizeDelta = size;
 
-            var text = go.AddComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var text = go.AddComponent<TextMeshProUGUI>();
             text.fontSize = fontSize;
-            text.alignment = TextAnchor.MiddleCenter;
+            text.alignment = TextAlignmentOptions.Center;
             text.color = Color.white;
-            text.horizontalOverflow = HorizontalWrapMode.Wrap;
+            text.textWrappingMode = TextWrappingModes.Normal;
             text.text = content;
             return text;
         }

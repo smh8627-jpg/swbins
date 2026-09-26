@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.UI;
@@ -24,7 +25,7 @@ namespace Saga.Go.UI
     // 겹쳐 컴파일 에러(CS0104)가 난다. DebugHud로 피했다.
     public class DebugHud : MonoBehaviour
     {
-        [SerializeField] private Text label;
+        [SerializeField] private TextMeshProUGUI label;
 
         private float _fpsTimer;
         private int _frameCount;

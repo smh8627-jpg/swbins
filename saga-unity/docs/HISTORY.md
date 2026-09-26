@@ -9428,3 +9428,14 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - 남은 흠: 긴 옷 뒤 엉덩이 아래 불룩(치마 도우미 맞춤 쪽)·소매 두툼·서쪽 틀(토가·호플리테·유목·군복·왕비 드레스)·닌자는 껍데기. 게임 몸은 그대로(D5).
 - 함정: rtk 훅이 `grep` 에 준 캐리지 리턴 패턴(달러 따옴표 CR)을 지워 grep 이 표준 입력을 기다리며 멈춘다(바이트 세기는 py 로) · `rtk grep -h` 는 도움말이 뜬다.
 - 다음 = ④ Mixamo 와 나란히 사용자 판정.
+
+## 2026-09-26 상용화 — PLAN 110 ⑤a 글자 전부 TextMeshPro ("이어해")
+
+- 규모: 옛 `UI.Text` 쓰는 스크립트 73(런타임 ~50·빌더·진단), 씬 안 컴포넌트 251. 한 조각 = 글자 전환만(배치 점검·HUD 정리는 5b·5c).
+- 기계 치환 스크립트(문자열·주석을 가리고): 타입·AddComponent·GetComponent 의 `Text` → `TextMeshProUGUI`, `TextAnchor.*` → `TextAlignmentOptions.*`(Upper→Top, Middle→가운데 줄, Lower→Bottom), `FontStyle` → `FontStyles`, 넘침 → `textWrappingMode`/`overflowMode`, `supportRichText` → `richText`, 옛 글꼴 대입 문장 삭제(TMP 기본 = Noto Sans KR). 손으로: asmdef GO·DUNGEON·FOREST 에 `Unity.TextMeshPro`, 줄 간격 배수 → em/100, 3D `TextMesh.anchor`(치환이 잘못 건드림) 되돌림, 타이틀 진단의 "옛 Text 있으면 실패" 검사가 TMP 를 세게 바뀐 것 되돌림.
+- 컴파일 확인은 Unity 대신 생성된 csproj 를 `dotnet build`(7초) — asmdef 에 새 참조를 넣으면 csproj 에도 손으로 넣어야 dotnet 이 안다(csproj 는 gitignore).
+- uGUI `Outline`/`Shadow` 7곳 → `SagaCore/TmpEffect`(글꼴 재질 복사로 SDF OUTLINE_ON/UNDERLAY_ON, 같은 설정 공유, 에디터에서 만든 임시 재질은 씬에 안 남아 Awake 때 입힘).
+- 월드 글자 `TextMesh` 7곳(DUNGEON·STORY 피해 숫자·DUNGEON 층 표지·FOREST 줍기 글·GO 피해 숫자·적 이름·동료 이름표)은 내장 글꼴이라 폰에서 한글이 □ 로 나올 자리 → `SagaCore/SagaWorldText`(TMP 3D, 크기 = 옛 fontSize×characterSize — 둘 다 fontSize/10 m 결).
+- 씬 재빌드 묶음 `Editor/SagaRebuildScenes.RebuildAll`(다섯 판 + LayoutWalk, 35초) → 옛 Text 0. DUNGEON 은 TMP 40 으로 5 적음 = 10-4 에서 플레이 때 짓는 3×3 으로 바뀐 옛 지도 다섯 칸이 씬에 굳어 있던 것. 컷 타임라인 트랙 ID 가 새로 써져 씬과 같이 커밋.
+- 진단: 1회차에 DUNGEON(무기 등급 → 칼날 크기)·STORY(유품 마커) 실패 → 세이브 둘을 빼니 통과 = **앞 진단들이 남긴 세이브(Lv12·wp_greatblade 등)에 따라 갈리는 검사**, 이번 변경과 무관. 진단마다 세이브를 같은 백업으로 맞추고 둘은 뺀 채 헤드리스 18종(SagaFlow·GO·DUNGEON 여덟·FOREST 다섯·STORY·REALM·LayoutWalk·Perf) 3연속 — 2회차 GO 한 번은 패키지 관리자 IPC 끊김으로 5초 만에 끝나 다시 돌림. 세이브는 백업대로 되돌림.
+- 남음: 빌드 밖 LayoutWalk·CharCompare 의 TextMesh. 다음 = 5b 배치 점검 도구.

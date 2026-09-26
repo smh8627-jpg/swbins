@@ -3,7 +3,7 @@ using UnityEngine;
 namespace Saga.Go.Combat
 {
     /// <summary>
-    /// PLAN.md 107-1 "피해 숫자" — 맞은 자리 위로 떠오르며 흐려지는 글자(TextMesh, 새 셰이더 없음).
+    /// PLAN.md 107-1 "피해 숫자" — 맞은 자리 위로 떠오르며 흐려지는 글자(TMPro.TextMeshPro, 새 셰이더 없음).
     /// 반응 이름은 반응 색으로 크게. 카메라를 늘 바라본다.
     /// </summary>
     public class FieldDamageText : MonoBehaviour
@@ -11,7 +11,7 @@ namespace Saga.Go.Combat
         private const float LifeSec = 0.9f;
         private const float RiseSpeed = 2.4f;
 
-        private TextMesh _text;
+        private TMPro.TextMeshPro _text;
         private Color _color;
         private float _age;
 
@@ -19,13 +19,7 @@ namespace Saga.Go.Combat
         {
             var go = new GameObject("FieldDamageText (generated)");
             go.transform.position = worldPos + new Vector3(Random.Range(-0.6f, 0.6f), 0f, Random.Range(-0.6f, 0.6f));
-            var t = go.AddComponent<TextMesh>();
-            t.text = text;
-            t.anchor = TextAnchor.MiddleCenter;
-            t.alignment = TextAlignment.Center;
-            t.fontSize = 64;
-            t.characterSize = 0.06f * size;
-            t.color = color;
+            var t = Saga.Core.SagaWorldText.Add(go, text, 64f * 0.06f * size, color);
             var d = go.AddComponent<FieldDamageText>();
             d._text = t;
             d._color = color;

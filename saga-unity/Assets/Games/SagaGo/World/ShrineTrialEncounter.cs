@@ -1,3 +1,4 @@
+using TMPro;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
@@ -77,8 +78,8 @@ namespace Saga.Go.World
         private Image _hpFill;
         private Image _moraleFill;
         private Image _kiFill;
-        private Text _titleText;
-        private Text _timerText;
+        private TextMeshProUGUI _titleText;
+        private TextMeshProUGUI _timerText;
         private Button _ultButton;
 
         private Coroutine _flashRoutine;
@@ -266,10 +267,10 @@ namespace Saga.Go.World
             _flashImage.raycastTarget = false;
 
             _titleText = EncounterUiKit.NewText(canvas.transform, "⛩", new Vector2(0f, 1f), new Vector2(220f, -50f), new Vector2(420f, 60f), 28);
-            _titleText.alignment = TextAnchor.MiddleLeft;
+            _titleText.alignment = TextAlignmentOptions.Left;
 
             _timerText = EncounterUiKit.NewText(canvas.transform, string.Format(GoLocalization.T("combat.timer", "{0}초"), 60), new Vector2(1f, 1f), new Vector2(-140f, -50f), new Vector2(220f, 60f), 30);
-            _timerText.alignment = TextAnchor.MiddleRight;
+            _timerText.alignment = TextAlignmentOptions.Right;
 
             _hpFill = EncounterUiKit.NewBarRow(canvas.transform, GoLocalization.T("combat.momentum", "기세"), -110f, out _);
             _moraleFill = EncounterUiKit.NewBarRow(canvas.transform, GoLocalization.T("combat.morale", "사기"), -160f, out _);

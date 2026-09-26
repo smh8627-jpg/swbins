@@ -1,3 +1,4 @@
+using TMPro;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -58,11 +59,11 @@ namespace Saga.Realm.UI
         // [SerializeField] 승격 사고(2026-09-15) 재발을 막으려고 처음부터
         // [SerializeField]로 선언한다.
         [SerializeField] private GameObject _duelPanel;
-        [SerializeField] private Text _duelRoundText;
+        [SerializeField] private TextMeshProUGUI _duelRoundText;
         [SerializeField] private GameObject _debatePanel;
         [SerializeField] private Transform _debateButtonsRoot;
-        [SerializeField] private Text _debateQuestionText;
-        [SerializeField] private Text _debateProgressText;
+        [SerializeField] private TextMeshProUGUI _debateQuestionText;
+        [SerializeField] private TextMeshProUGUI _debateProgressText;
         // 101-2 5-2 "관계·이벤트 체인"(2026-09-20) — 월간 서사 카드. 다른
         // 패널과 달리 사용자가 여닫는 게 아니라 RealmEventState.Presented가
         // 뜰 때 스스로 열린다(OnEventPresented). CloseAllPanels()가 안
@@ -70,28 +71,28 @@ namespace Saga.Realm.UI
         // 남아 있어야 카드가 사라지지 않는다(Build()에서 맨 마지막에 지어
         // 항상 다른 패널 위에 그려진다).
         [SerializeField] private GameObject _eventPanel;
-        [SerializeField] private Text _eventTitleText;
-        [SerializeField] private Text _eventBodyText;
+        [SerializeField] private TextMeshProUGUI _eventTitleText;
+        [SerializeField] private TextMeshProUGUI _eventBodyText;
         [SerializeField] private Transform _eventButtonsRoot;
-        [SerializeField] private Text _quizQuestionText;
-        [SerializeField] private Text _quizProgressText;
-        [SerializeField] private Text _settingsToggleLabel;
-        [SerializeField] private Text _settingsTitleLabel;
-        [SerializeField] private Text _settingsCloseLabel;
-        [SerializeField] private Text _settingsSfxNameLabel;
-        [SerializeField] private Text _settingsSfxLabel;
-        [SerializeField] private Text _settingsVibrationNameLabel;
-        [SerializeField] private Text _settingsVibrationLabel;
-        [SerializeField] private Text _settingsUiScaleNameLabel;
-        [SerializeField] private Text _settingsUiScaleLabel;
-        [SerializeField] private Text _settingsQualityNameLabel;
-        [SerializeField] private Text _settingsQualityLabel;
-        [SerializeField] private Text _settingsLanguageNameLabel;
-        [SerializeField] private Text _settingsLanguageLabel;
-        [SerializeField] private Text _settingsBgmNameLabel;
-        [SerializeField] private Text _settingsBgmLabel;
-        [SerializeField] private Text _settingsSuccessionNameLabel;
-        [SerializeField] private Text _settingsSuccessionLabel;
+        [SerializeField] private TextMeshProUGUI _quizQuestionText;
+        [SerializeField] private TextMeshProUGUI _quizProgressText;
+        [SerializeField] private TextMeshProUGUI _settingsToggleLabel;
+        [SerializeField] private TextMeshProUGUI _settingsTitleLabel;
+        [SerializeField] private TextMeshProUGUI _settingsCloseLabel;
+        [SerializeField] private TextMeshProUGUI _settingsSfxNameLabel;
+        [SerializeField] private TextMeshProUGUI _settingsSfxLabel;
+        [SerializeField] private TextMeshProUGUI _settingsVibrationNameLabel;
+        [SerializeField] private TextMeshProUGUI _settingsVibrationLabel;
+        [SerializeField] private TextMeshProUGUI _settingsUiScaleNameLabel;
+        [SerializeField] private TextMeshProUGUI _settingsUiScaleLabel;
+        [SerializeField] private TextMeshProUGUI _settingsQualityNameLabel;
+        [SerializeField] private TextMeshProUGUI _settingsQualityLabel;
+        [SerializeField] private TextMeshProUGUI _settingsLanguageNameLabel;
+        [SerializeField] private TextMeshProUGUI _settingsLanguageLabel;
+        [SerializeField] private TextMeshProUGUI _settingsBgmNameLabel;
+        [SerializeField] private TextMeshProUGUI _settingsBgmLabel;
+        [SerializeField] private TextMeshProUGUI _settingsSuccessionNameLabel;
+        [SerializeField] private TextMeshProUGUI _settingsSuccessionLabel;
         private RealmQuizState.Presented? _currentQuiz; // 런타임 전용 상태 — 저장할 이유 없음, 그대로 둔다.
 
         // 2026-09-15 — 위 [SerializeField] 승격과 같은 세션, 별개 버그.
@@ -99,17 +100,17 @@ namespace Saga.Realm.UI
         // 지금까지 아예 참조를 저장하지 않아 ChooseLanguage() 후
         // RefreshSettingsPanel()이 불려도 못 바꿨다 — "설정" 버튼 자신만
         // 언어가 바뀌고 나머지 여덟은 그대로 굳어 있던 것.
-        [SerializeField] private Text _ordersLabel;
-        [SerializeField] private Text _cityToggleLabel;
-        [SerializeField] private Text _plotToggleLabel;
-        [SerializeField] private Text _attackLabel;
-        [SerializeField] private Text _nextMonthLabel;
-        [SerializeField] private Text _quizToggleLabel;
-        [SerializeField] private Text _mapLabel;
-        [SerializeField] private Text _archiveToggleLabel;
-        [SerializeField] private Text _saveLabel;
-        [SerializeField] private Text _tacticToggleLabel;
-        [SerializeField] private Text _duelToggleLabel;
+        [SerializeField] private TextMeshProUGUI _ordersLabel;
+        [SerializeField] private TextMeshProUGUI _cityToggleLabel;
+        [SerializeField] private TextMeshProUGUI _plotToggleLabel;
+        [SerializeField] private TextMeshProUGUI _attackLabel;
+        [SerializeField] private TextMeshProUGUI _nextMonthLabel;
+        [SerializeField] private TextMeshProUGUI _quizToggleLabel;
+        [SerializeField] private TextMeshProUGUI _mapLabel;
+        [SerializeField] private TextMeshProUGUI _archiveToggleLabel;
+        [SerializeField] private TextMeshProUGUI _saveLabel;
+        [SerializeField] private TextMeshProUGUI _tacticToggleLabel;
+        [SerializeField] private TextMeshProUGUI _duelToggleLabel;
 
         // PLAN.md 101-2 5-6 "지형·진형 전술 개입"(2026-09-20) — 다음 공격에
         // 전술을 쓸지 말지 켜 두는 토글. 값 자체는 위 GameObject 참조들과
@@ -159,38 +160,38 @@ namespace Saga.Realm.UI
             // 넷에서 다섯으로 늘며 간격만 좁혔다(폭 190→180, 간격 270→210).
             var ordersButton = RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("command.orders"), new Vector2(0.5f, 0f), new Vector2(-420f, 100f),
                 new Vector2(180f, 110f), ToggleOrderPanel);
-            _ordersLabel = ordersButton.GetComponentInChildren<Text>();
+            _ordersLabel = ordersButton.GetComponentInChildren<TextMeshProUGUI>();
             var cityButton = RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("command.city"), new Vector2(0.5f, 0f), new Vector2(-210f, 100f),
                 new Vector2(180f, 110f), ToggleCityPanel);
-            _cityToggleLabel = cityButton.GetComponentInChildren<Text>();
+            _cityToggleLabel = cityButton.GetComponentInChildren<TextMeshProUGUI>();
             var plotButton = RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("command.plot"), new Vector2(0.5f, 0f), new Vector2(0f, 100f),
                 new Vector2(180f, 110f), TogglePlotPanel);
-            _plotToggleLabel = plotButton.GetComponentInChildren<Text>();
+            _plotToggleLabel = plotButton.GetComponentInChildren<TextMeshProUGUI>();
             var attackButton = RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("command.attack"), new Vector2(0.5f, 0f), new Vector2(210f, 100f),
                 new Vector2(180f, 110f), ExecuteAttack);
-            _attackLabel = attackButton.GetComponentInChildren<Text>();
+            _attackLabel = attackButton.GetComponentInChildren<TextMeshProUGUI>();
             var nextMonthButton = RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("command.next_month"), new Vector2(0.5f, 0f), new Vector2(420f, 100f),
                 new Vector2(180f, 110f), ExecuteNextMonth);
-            _nextMonthLabel = nextMonthButton.GetComponentInChildren<Text>();
+            _nextMonthLabel = nextMonthButton.GetComponentInChildren<TextMeshProUGUI>();
 
             // 문답(REALM 다음 조각 (3))은 명령/전쟁과 달리 턴·성·무장과
             // 무관한 개인 미니게임이라 아래 다섯 버튼 행에 안 끼우고
             // 화면 오른쪽 위 구석에 따로 뒀다(HUD가 왼쪽 위를 쓰니 안 겹침).
             var quizToggleButton = RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("command.quiz"), new Vector2(1f, 1f), new Vector2(-110f, -90f),
                 new Vector2(180f, 110f), ToggleQuizPanel);
-            _quizToggleLabel = quizToggleButton.GetComponentInChildren<Text>();
+            _quizToggleLabel = quizToggleButton.GetComponentInChildren<TextMeshProUGUI>();
 
             // 월드맵(2-8절) — 문답과 같은 구석, 그 바로 아래에 둔다(명령/성/
             // 계략/공격/다음달 행과도, HUD 라벨과도 안 겹치는 유일한 빈 자리).
             var mapButton = RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("command.map"), new Vector2(1f, 1f), new Vector2(-110f, -210f),
                 new Vector2(180f, 110f), ToggleMap);
-            _mapLabel = mapButton.GetComponentInChildren<Text>();
+            _mapLabel = mapButton.GetComponentInChildren<TextMeshProUGUI>();
 
             // 서고(godot REALM 10절) — 문답보다도 위 구석(같은 결로 명령
             // 계열과 안 겹치는 유일한 빈 자리).
             var archiveToggleButton = RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("command.archive"), new Vector2(1f, 1f), new Vector2(-110f, 30f),
                 new Vector2(180f, 110f), ToggleArchivePanel);
-            _archiveToggleLabel = archiveToggleButton.GetComponentInChildren<Text>();
+            _archiveToggleLabel = archiveToggleButton.GetComponentInChildren<TextMeshProUGUI>();
 
             // 설정(PLAN.md 67~69장 "접근성") — 문답/지도/서고와 같은 구석
             // 기둥을 한 칸 더 내려 잇는다(지도 -210 바로 아래, 10px 틈).
@@ -198,14 +199,14 @@ namespace Saga.Realm.UI
             // 아래라 겹치지 않는다.
             var settingsToggleButton = RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("settings.title"),
                 new Vector2(1f, 1f), new Vector2(-110f, -330f), new Vector2(180f, 110f), ToggleSettingsPanel);
-            _settingsToggleLabel = settingsToggleButton.GetComponentInChildren<Text>();
+            _settingsToggleLabel = settingsToggleButton.GetComponentInChildren<TextMeshProUGUI>();
 
             // 저장(2026-09-15 — GO/DUNGEON/FOREST/STORY엔 다 있던 저장 버튼이
             // REALM만 없었다) — 설정 바로 아래, 같은 구석 기둥을 한 칸 더
             // 잇는다(설정 -330 바로 아래, 10px 틈 — 같은 간격 규칙).
             var saveButton = RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("command.save"),
                 new Vector2(1f, 1f), new Vector2(-110f, -450f), new Vector2(180f, 110f), ExecuteSave);
-            _saveLabel = saveButton.GetComponentInChildren<Text>();
+            _saveLabel = saveButton.GetComponentInChildren<TextMeshProUGUI>();
 
             // 전술 토글(101-2 5-6, 2026-09-20) — 저장 바로 아래, 같은 구석
             // 기둥을 한 칸 더 잇는다(-450 바로 아래, 같은 120px 간격).
@@ -214,13 +215,13 @@ namespace Saga.Realm.UI
             // 토글은 대부분의 공격에서 보이지도 않을 것이기 때문.
             var tacticToggleButton = RealmUiKit.NewButton(canvas.transform, TacticToggleLabelText(),
                 new Vector2(1f, 1f), new Vector2(-110f, -570f), new Vector2(180f, 110f), ToggleTactic);
-            _tacticToggleLabel = tacticToggleButton.GetComponentInChildren<Text>();
+            _tacticToggleLabel = tacticToggleButton.GetComponentInChildren<TextMeshProUGUI>();
 
             // 일기토 토글(101-2 5-3, 2026-09-20) — 전술 토글 바로 아래,
             // 같은 구석 기둥을 한 칸 더 잇는다(-570 바로 아래, 같은 120px 간격).
             var duelToggleButton = RealmUiKit.NewButton(canvas.transform, DuelToggleLabelText(),
                 new Vector2(1f, 1f), new Vector2(-110f, -690f), new Vector2(180f, 110f), ToggleDuel);
-            _duelToggleLabel = duelToggleButton.GetComponentInChildren<Text>();
+            _duelToggleLabel = duelToggleButton.GetComponentInChildren<TextMeshProUGUI>();
 
             BuildOrderPanel(canvas.transform);
             BuildCityPanel(canvas.transform);
@@ -666,19 +667,19 @@ namespace Saga.Realm.UI
 
             var closeButton = RealmUiKit.NewButton(_settingsPanel.transform, RealmLocalization.T("settings.close"),
                 new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(300f, 70f), CloseSettingsPanel);
-            _settingsCloseLabel = closeButton.GetComponentInChildren<Text>();
+            _settingsCloseLabel = closeButton.GetComponentInChildren<TextMeshProUGUI>();
 
             RefreshSettingsPanel();
         }
 
-        private (Text name, Text value) MakeSettingsRow(float y, string nameKey, UnityEngine.Events.UnityAction onClick)
+        private (TextMeshProUGUI name, TextMeshProUGUI value) MakeSettingsRow(float y, string nameKey, UnityEngine.Events.UnityAction onClick)
         {
             var name = RealmUiKit.NewText(_settingsPanel.transform, RealmLocalization.T(nameKey), new Vector2(0f, 1f),
                 new Vector2(60f, y), new Vector2(260f, 70f), 26);
-            name.alignment = TextAnchor.MiddleLeft;
+            name.alignment = TextAlignmentOptions.Left;
             var button = RealmUiKit.NewButton(_settingsPanel.transform, "", new Vector2(1f, 1f), new Vector2(-60f, y),
                 new Vector2(260f, 70f), onClick);
-            return (name, button.GetComponentInChildren<Text>());
+            return (name, button.GetComponentInChildren<TextMeshProUGUI>());
         }
 
         private void ChooseSfx() { RealmSettingsState.SfxOn = !RealmSettingsState.SfxOn; RefreshSettingsPanel(); }

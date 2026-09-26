@@ -1,3 +1,4 @@
+using TMPro;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
@@ -14,7 +15,7 @@ namespace Saga.Story.UI
     {
         public static DialogueLabel Instance { get; private set; }
 
-        [SerializeField] private Text label;
+        [SerializeField] private TextMeshProUGUI label;
 
         private Coroutine _hideRoutine;
 

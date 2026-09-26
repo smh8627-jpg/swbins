@@ -1,3 +1,4 @@
+using TMPro;
 using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
@@ -116,7 +117,7 @@ namespace Saga.EditorTools
             if (root == null) return null;
             foreach (var b in root.GetComponentsInChildren<Button>(true))
             {
-                var t = b.GetComponentInChildren<Text>(true);
+                var t = b.GetComponentInChildren<TextMeshProUGUI>(true);
                 if (t != null && t.text == label) return b;
             }
             return null;

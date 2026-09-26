@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using Saga.Dungeon.Data;
@@ -12,7 +13,7 @@ namespace Saga.Dungeon.UI
     /// </summary>
     public class PlayerHud : MonoBehaviour
     {
-        [SerializeField] private Text label;
+        [SerializeField] private TextMeshProUGUI label;
 
         // "HUD 개선" 슬라이스(PLAN.md 26장) — 숫자 텍스트뿐이던 체력 표시에
         // 시각적 게이지를 더한다. Image.Type.Filled(Horizontal)라 값만

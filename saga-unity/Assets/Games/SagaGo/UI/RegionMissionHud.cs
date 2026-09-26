@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using Saga.Go.Combat;
@@ -19,7 +20,7 @@ namespace Saga.Go.UI
 
         public static RegionMissionHud Instance { get; private set; }
 
-        private Text _line;
+        private TextMeshProUGUI _line;
         private float _refresh;
         private float _flashLeft;
 
@@ -35,9 +36,7 @@ namespace Saga.Go.UI
             canvas.sortingOrder = 4;
             _line = EncounterUiKit.NewText(canvas.transform, "", new Vector2(0.5f, 1f), new Vector2(0f, -228f), new Vector2(680f, 46f), 24);
             _line.raycastTarget = false;
-            var outline = _line.gameObject.AddComponent<Outline>();
-            outline.effectColor = new Color(0f, 0f, 0f, 0.8f);
-            outline.effectDistance = new Vector2(1.5f, -1.5f);
+            Saga.Core.TmpEffect.Add(_line.gameObject, Saga.Core.TmpEffect.Kind.Outline, new Color(0f, 0f, 0f, 0.8f), 0.18f);
             _line.gameObject.SetActive(false);
             FieldEnemy.Killed += OnKilled;
         }

@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -260,10 +261,9 @@ namespace Saga.EditorTools
             rect.anchoredPosition = new Vector2(20f, -20f);
             rect.sizeDelta = new Vector2(760f, 340f);
 
-            var text = textGo.AddComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var text = textGo.AddComponent<TextMeshProUGUI>();
             text.fontSize = 26;
-            text.alignment = TextAnchor.UpperLeft;
+            text.alignment = TextAlignmentOptions.TopLeft;
             text.color = Color.white;
             text.text = "";
 
@@ -278,10 +278,9 @@ namespace Saga.EditorTools
             toastRect.pivot = new Vector2(0.5f, 0f);
             toastRect.anchoredPosition = new Vector2(0f, 260f);
             toastRect.sizeDelta = new Vector2(900f, 90f);
-            var toastText = toastGo.AddComponent<Text>();
-            toastText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var toastText = toastGo.AddComponent<TextMeshProUGUI>();
             toastText.fontSize = 28;
-            toastText.alignment = TextAnchor.MiddleCenter;
+            toastText.alignment = TextAlignmentOptions.Center;
             toastText.color = Color.white;
             var toast = hudCanvasGo.AddComponent<RealmToast>();
             SetPrivateField(toast, "label", toastText);
@@ -318,10 +317,9 @@ namespace Saga.EditorTools
             rect.anchoredPosition = new Vector2(-20f, -20f);
             rect.sizeDelta = new Vector2(500f, 120f);
 
-            var text = textGo.AddComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var text = textGo.AddComponent<TextMeshProUGUI>();
             text.fontSize = 22;
-            text.alignment = TextAnchor.UpperRight;
+            text.alignment = TextAlignmentOptions.TopRight;
             text.color = new Color(1f, 1f, 1f, 0.8f);
             text.text = "";
 

@@ -1,3 +1,4 @@
+using TMPro;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -543,12 +544,11 @@ namespace Saga.EditorTools
             rect.anchoredPosition = new Vector2(0f, -80f);
             rect.sizeDelta = new Vector2(920f, 140f);
 
-            var text = textGo.AddComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var text = textGo.AddComponent<TextMeshProUGUI>();
             text.fontSize = 34;
-            text.alignment = TextAnchor.MiddleCenter;
+            text.alignment = TextAlignmentOptions.Center;
             text.color = Color.white;
-            text.horizontalOverflow = HorizontalWrapMode.Wrap;
+            text.textWrappingMode = TextWrappingModes.Normal;
             text.text = "";
 
             var dialogueLabel = canvasGo.AddComponent<DialogueLabel>();
@@ -593,10 +593,9 @@ namespace Saga.EditorTools
             textRect.anchorMax = Vector2.one;
             textRect.offsetMin = Vector2.zero;
             textRect.offsetMax = Vector2.zero;
-            var text = textGo.AddComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var text = textGo.AddComponent<TextMeshProUGUI>();
             text.fontSize = 26;
-            text.alignment = TextAnchor.MiddleCenter;
+            text.alignment = TextAlignmentOptions.Center;
             text.color = Color.white;
             text.text = GoLocalization.T("action.save", "저장");
 
@@ -625,10 +624,9 @@ namespace Saga.EditorTools
             rect.anchoredPosition = new Vector2(20f, -130f);
             rect.sizeDelta = new Vector2(500f, 90f);
 
-            var text = textGo.AddComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var text = textGo.AddComponent<TextMeshProUGUI>();
             text.fontSize = 24;
-            text.alignment = TextAnchor.UpperLeft;
+            text.alignment = TextAlignmentOptions.TopLeft;
             text.color = Color.white;
             text.text = "";
 
@@ -658,10 +656,9 @@ namespace Saga.EditorTools
             rect.anchoredPosition = new Vector2(20f, -20f);
             rect.sizeDelta = new Vector2(700f, 220f);
 
-            var text = textGo.AddComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var text = textGo.AddComponent<TextMeshProUGUI>();
             text.fontSize = 22;
-            text.alignment = TextAnchor.UpperLeft;
+            text.alignment = TextAlignmentOptions.TopLeft;
             text.color = new Color(1f, 1f, 1f, 0.8f);
             text.text = "";
 

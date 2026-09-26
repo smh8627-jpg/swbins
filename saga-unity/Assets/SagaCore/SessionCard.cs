@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Rendering;
@@ -26,7 +27,7 @@ namespace Saga.Core
         private const float AutoCloseSeconds = 5f;
 
         private GameObject _panel;
-        private Text _label;
+        private TextMeshProUGUI _label;
         private float _closeTimer = -1f;
 
         public bool IsShowing => _panel != null && _panel.activeSelf;
@@ -70,12 +71,11 @@ namespace Saga.Core
             rect.offsetMin = new Vector2(40f, 40f);
             rect.offsetMax = new Vector2(-40f, -40f);
 
-            _label = textGo.AddComponent<Text>();
-            _label.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            _label = textGo.AddComponent<TextMeshProUGUI>();
             _label.fontSize = 30;
-            _label.alignment = TextAnchor.MiddleCenter;
+            _label.alignment = TextAlignmentOptions.Center;
             _label.color = Color.white;
-            _label.horizontalOverflow = HorizontalWrapMode.Wrap;
+            _label.textWrappingMode = TextWrappingModes.Normal;
             _label.text = "";
 
             _panel.SetActive(false);

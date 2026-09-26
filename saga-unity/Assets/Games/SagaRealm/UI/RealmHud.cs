@@ -1,3 +1,4 @@
+using TMPro;
 using System.Text;
 using UnityEngine;
 using UnityEngine.UI;
@@ -14,7 +15,7 @@ namespace Saga.Realm.UI
     /// 경합을 피하려 첫 Update 프레임에 한 번 더 강제 갱신한다.</summary>
     public class RealmHud : MonoBehaviour
     {
-        [SerializeField] private Text label;
+        [SerializeField] private TextMeshProUGUI label;
 
         private bool _synced;
 

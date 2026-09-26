@@ -1,7 +1,7 @@
 # PROJECT_STATE — saga-unity (상태만, ≤15KB, 덮어쓴다)
 
 **규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다(2026-09-16 재편 전 본문 5,532줄은 그쪽 첫 절에 그대로 있다). 넘치면 `tools/precheck.sh` 가 막는다.
-마지막 갱신: 2026-09-26 (110 ④ 재현성 끝 — ③ 폰 결과 대기).
+마지막 갱신: 2026-09-26 (110 ⑤a 글자 TMP 끝 — ③ 폰 결과 대기).
 
 ## 캐릭터 자산 — 이 PC 기준 (2026-09-19)
 
@@ -21,10 +21,10 @@ Maria·Abe·Brute + Skeleton·Paladin·PeasantMan·PeasantGirl·Archer·두목 M
 
 ## 다음 작업 (우선순위, 상세는 PLAN 해당 장)
 
-0. **다음 = PLAN 110 ⑤ UI**(③b 폰 결과 대기 — HOW_TO_PLAYTEST §10). 진단 PlaytestSagaFlow·PlaytestSagaPerf·SagaAssetGate. 109 멈춤.
+0. **다음 = PLAN 110 ⑤b 배치 점검**(③b 폰 결과 대기). 새 글자는 TMP 만(월드 = `SagaWorldText`, 테두리 = `TmpEffect`), 씬 재빌드 = `SagaRebuildScenes.RebuildAll`. 109 멈춤.
 0-1. **남은 것**: en 번역 검수 전. GO 동료 몸 Maria.controller 리타깃·무기는 주인공 손에만.
-1. STORY 판수(15→20 약 11판, 20→25 약 28판)가 무거우면 `StoryCombat.JobPromoteLevel3/4`만.
-2. **101-2·104-1 잔여(보류)** — GO⑤(모바일 빌드 뒤)·Kenney 폴백·헤어카드.
+1. STORY 판수(15→20 약 11판·20→25 약 28판)가 무거우면 `JobPromoteLevel3/4`만.
+2. **101-2·104-1 잔여(보류)** — GO⑤·Kenney 폴백·헤어카드.
 
 
 ## 알려진 오류
@@ -50,14 +50,13 @@ Maria·Abe·Brute + Skeleton·Paladin·PeasantMan·PeasantGirl·Archer·두목 M
 
 | 검증 | 결과 |
 |---|---|
-| 컴파일·씬 재빌드 | exit 0(GO·DUNGEON 2026-09-25), 영속 리스너 32·17·10·39(09-23) |
+| 재빌드·전체 | 옛 Text 0·헤드리스 18종 3연속 OK(09-26) — **DUNGEON·STORY 진단은 남은 세이브(고레벨)면 실패**, 빼고 돈다 |
 | `PlaytestStorySlice` | **3연속 OK(2026-09-25, 세 시대 뒤)** — `PlaytestStoryEras`·`PlaytestStoryCompanions`·`PlaytestStorySummon`·`PlaytestStoryBossIntro`·`CheckOutfitTint`·`CheckUpperTiersAndPins`·`CheckPromotionAndSchools`·`CheckButtonWiring`(진짜 onClick)·`CheckJobSkills`·무예 세이브 왕복·옛 형식 로드 |
 | `PlaytestDungeonHeadless` | **3연속 OK(2026-09-26, 지역 뒤)** — Regions·Trial·Secrets·EraDecor·Eras·Landmarks·BossIntro·Party·Explore·NpcModels·Temple(+컷)·LockOn·EnemyTelegraph. 같은 씬 `FloorProgression`·`OverworldMap` OK |
 | GO `PlaytestHeadless` | **3연속 OK(2026-09-25, 109-9 뒤)** — `PlaytestGo` Peaks(정상·폭포·카메라·v18/v17)·SkillShapes·HeroLooks·HeroDex·Heroes·Eras·RegionProps·RegionTraits·RegionMission(v17/v15)·Guardian·SlopesBiome·PartyBodies·ElementalFoe·Treasure·WorldMap(v17/v13)·Traversal·FieldCombat |
 | `PlaytestForestHeadless` | **3연속 OK(2026-09-25, 세 시대 뒤)** — `PlaytestForestEras`(사람 6/6 몸·소품 38%·잔해 돎 6)·`Zones`·`ZoneProps` 포함 · `PlaytestForestCreatures` 3연속(models 8/8, 씨앗 고정) · Finish·Furniture·HouseTransition OK |
 | REALM 헤드리스 | **3연속 OK(2026-09-25, 세 시대 뒤)** — `PlaytestRealmEras`(전 성 함락 뒤·문답 앞)·`CheckButtonWiring` |
-| GUI 실제 Play | GO 라이팅·Maria 동작·Dungeon 카메라(yaw=180)·SSS(Intensity=15) |
-| `BuildMariaSssShaderGraph` | exit 0, `ShaderHasError=False`(09-23) |
+| GUI 실제 Play | GO 라이팅·Maria 동작·Dungeon 카메라(yaw=180)·SSS(Intensity=15, 셰이더 그래프 exit 0 09-23) |
 
 ## 실기 확인 대기 (항목명만 — 경위는 HISTORY grep)
 

@@ -1,3 +1,4 @@
+using TMPro;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -1627,7 +1628,7 @@ namespace Saga.EditorTools
                 return false;
             }
 
-            var label = GetPrivateField<Text>(board, "_label");
+            var label = GetPrivateField<TextMeshProUGUI>(board, "_label");
             if (label == null || !label.text.Contains("지금 —") || !label.text.Contains("이번 세션 —") || !label.text.Contains("이번 주 —"))
             {
                 Debug.LogError($"[PlaytestRealmSlice] GoalBoard 세 줄이 안 채워짐 text=\"{(label == null ? "null" : label.text.Replace("\n", " | "))}\"");
@@ -2156,7 +2157,7 @@ namespace Saga.EditorTools
             // 여덟 상시 버튼(명령/성/계략/공격/다음달/문답/지도/서고)도
             // 같은 세션에서 같이 고친 언어 전환 반영을 확인한다.
             var ordersLabelField = typeof(RealmCommandUi).GetField("_ordersLabel", BindingFlags.NonPublic | BindingFlags.Instance);
-            var ordersLabel = ordersLabelField.GetValue(ui) as Text;
+            var ordersLabel = ordersLabelField.GetValue(ui) as TextMeshProUGUI;
             if (ordersLabel == null)
             {
                 Debug.LogError("[PlaytestRealmSlice] RealmCommandUi._ordersLabel이 null");
@@ -2183,7 +2184,7 @@ namespace Saga.EditorTools
             // 저장 버튼(2026-09-15 신설 — REALM만 없던 저장 버튼을 이번에
             // 같이 채웠다) — 실제로 눌러서 파일이 생기는지까지 본다.
             var saveLabelField = typeof(RealmCommandUi).GetField("_saveLabel", BindingFlags.NonPublic | BindingFlags.Instance);
-            var saveLabel = saveLabelField.GetValue(ui) as Text;
+            var saveLabel = saveLabelField.GetValue(ui) as TextMeshProUGUI;
             if (saveLabel == null)
             {
                 Debug.LogError("[PlaytestRealmSlice] RealmCommandUi._saveLabel이 null");
@@ -2349,7 +2350,7 @@ namespace Saga.EditorTools
         {
             var hudGo = GameObject.Find("RealmHudUI");
             var hud = hudGo != null ? hudGo.GetComponent<RealmHud>() : null;
-            var label = hudGo != null ? hudGo.GetComponentInChildren<Text>() : null;
+            var label = hudGo != null ? hudGo.GetComponentInChildren<TextMeshProUGUI>() : null;
             if (hud == null || label == null)
             {
                 Debug.LogError("[PlaytestRealmSlice] RealmHudUI/Label을 못 찾음");

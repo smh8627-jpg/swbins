@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -10,11 +11,11 @@ namespace Saga.Dungeon.Cinematics
     public class CutsceneTitleCard : MonoBehaviour
     {
         [SerializeField] private CanvasGroup regionGroup;
-        [SerializeField] private Text regionTitle;
-        [SerializeField] private Text regionSub;
+        [SerializeField] private TextMeshProUGUI regionTitle;
+        [SerializeField] private TextMeshProUGUI regionSub;
         [SerializeField] private CanvasGroup bossGroup;
-        [SerializeField] private Text bossTitle;
-        [SerializeField] private Text bossSub;
+        [SerializeField] private TextMeshProUGUI bossTitle;
+        [SerializeField] private TextMeshProUGUI bossSub;
 
         public string ShownTitle { get; private set; } = string.Empty;
         public float ShownAlpha { get; private set; }

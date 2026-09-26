@@ -139,7 +139,7 @@ namespace Saga.EditorTools
                 if (s.HeroId == null || s.Idle == null) { Fail($"{s.Stand.RegionId} 에 서 있는 사람이 없다"); continue; }
                 if (s.HeroId != FieldHeroes.NextHero(s.Roster, 0)) Fail($"{s.Stand.RegionId} 첫 사람이 {s.HeroId}");
                 if (s.Fighter != null) Fail($"{s.Stand.RegionId} 겨루지 않았는데 들판 적이 있다");
-                var tag = s.Idle.GetComponentInChildren<TextMesh>();
+                var tag = s.Idle.GetComponentInChildren<TMPro.TextMeshPro>();
                 GoHeroes.TryGet(s.HeroId, out var h);
                 if (tag == null || tag.text != GoHeroes.Label(h)) Fail($"{s.Stand.RegionId} 이름표 {tag?.text}");
             }

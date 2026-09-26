@@ -1,3 +1,4 @@
+using TMPro;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -29,10 +30,10 @@ namespace Saga.Go.UI
         private RectTransform _mapRect;
         private RectTransform _arrow;
         private readonly List<Button> _wpButtons = new List<Button>();
-        private readonly List<Text> _regionLabels = new List<Text>();
-        private Text _info;
-        private Text _regionInfo;
-        private readonly List<Text> _rampLabels = new List<Text>();
+        private readonly List<TextMeshProUGUI> _regionLabels = new List<TextMeshProUGUI>();
+        private TextMeshProUGUI _info;
+        private TextMeshProUGUI _regionInfo;
+        private readonly List<TextMeshProUGUI> _rampLabels = new List<TextMeshProUGUI>();
         private readonly List<string> _rampRegions = new List<string>();
         public int RampLabelCount => _rampLabels.Count;
         public bool RampLabelShown(int i) => _rampLabels[i].gameObject.activeSelf;
@@ -46,7 +47,7 @@ namespace Saga.Go.UI
         /// <summary>109-9 정상 ▲(오른 정상 = 누르면 순간이동).</summary>
         public Button PeakButton(int i) => _peakButtons[i];
         private readonly List<Button> _peakButtons = new List<Button>();
-        private readonly List<Text> _fallLabels = new List<Text>();
+        private readonly List<TextMeshProUGUI> _fallLabels = new List<TextMeshProUGUI>();
         private readonly List<string> _fallRegions = new List<string>();
         public int FallLabelCount => _fallLabels.Count;
         public bool FallLabelShown(int i) => _fallLabels[i].gameObject.activeSelf;
@@ -103,7 +104,7 @@ namespace Saga.Go.UI
             _mapImage.texture = _tex;
 
             var title = EncounterUiKit.NewText(_panel.transform, GoLocalization.T("map.title", "지도"), new Vector2(0.5f, 1f), new Vector2(0f, -60f), new Vector2(600f, 60f), 36);
-            title.fontStyle = FontStyle.Bold;
+            title.fontStyle = FontStyles.Bold;
             _info = EncounterUiKit.NewText(_panel.transform, "", new Vector2(0.5f, 0f), new Vector2(0f, 150f), new Vector2(900f, 60f), 22);
             _regionInfo = EncounterUiKit.NewText(_panel.transform, "", new Vector2(0.5f, 1f), new Vector2(0f, -150f), new Vector2(1000f, 96f), 22);
             _regionInfo.raycastTarget = false;
@@ -111,7 +112,7 @@ namespace Saga.Go.UI
             foreach (var r in GoWorldMap.Regions)
             {
                 var label = EncounterUiKit.NewText(_mapRect, "", new Vector2(0.5f, 0.5f), MapPos(r.LabelGx, r.LabelGy), new Vector2(220f, 64f), 22);
-                label.fontStyle = FontStyle.Bold;
+                label.fontStyle = FontStyles.Bold;
                 label.raycastTarget = false;
                 label.GetComponent<RectTransform>().pivot = new Vector2(0.5f, 0.5f);
                 _regionLabels.Add(label);
@@ -141,7 +142,7 @@ namespace Saga.Go.UI
                 var w = GoWorldMap.Waypoints[i];
                 var b = EncounterUiKit.NewButton(_mapRect, "◆", new Vector2(0.5f, 0.5f), MapPos(w.Gx, w.Gy), new Vector2(64f, 64f), null);
                 b.GetComponent<RectTransform>().pivot = new Vector2(0.5f, 0.5f);
-                b.GetComponentInChildren<Text>().fontSize = 34;
+                b.GetComponentInChildren<TextMeshProUGUI>().fontSize = 34;
                 int idx = i;
                 b.onClick.AddListener(() => TeleportTo(idx));
                 _wpButtons.Add(b);
@@ -167,7 +168,7 @@ namespace Saga.Go.UI
                 Vector2 g = GoWorldMap.WorldToGridF(p.Top);
                 var b = EncounterUiKit.NewButton(_mapRect, "▲", new Vector2(0.5f, 0.5f), MapPos(g.x, g.y), new Vector2(44f, 44f), null);
                 b.GetComponent<RectTransform>().pivot = new Vector2(0.5f, 0.5f);
-                b.GetComponentInChildren<Text>().fontSize = 24;
+                b.GetComponentInChildren<TextMeshProUGUI>().fontSize = 24;
                 int idx = i;
                 b.onClick.AddListener(() => TeleportToPeak(idx));
                 _peakButtons.Add(b);
@@ -205,7 +206,7 @@ namespace Saga.Go.UI
             {
                 var w = GoWorldMap.Waypoints[i];
                 bool on = WorldMapState.IsActive(w.Id);
-                var txt = _wpButtons[i].GetComponentInChildren<Text>();
+                var txt = _wpButtons[i].GetComponentInChildren<TextMeshProUGUI>();
                 txt.color = on ? new Color(0.35f, 0.95f, 1f) : new Color(0.55f, 0.55f, 0.6f);
                 _wpButtons[i].GetComponent<Image>().color = on ? new Color(0.2f, 0.6f, 0.8f, 0.35f) : new Color(1f, 1f, 1f, 0.08f);
                 _wpButtons[i].gameObject.SetActive(WorldMapState.IsVisited(GoWorldMap.RegionAt(GoWorldMap.WaypointPos(w))) || on);
@@ -217,7 +218,7 @@ namespace Saga.Go.UI
             {
                 var p = GoWorldMap.Peaks[i];
                 bool found = WorldMapState.IsPeakFound(p.Id);
-                _peakButtons[i].GetComponentInChildren<Text>().color = found ? new Color(1f, 0.82f, 0.35f) : new Color(0.6f, 0.58f, 0.55f);
+                _peakButtons[i].GetComponentInChildren<TextMeshProUGUI>().color = found ? new Color(1f, 0.82f, 0.35f) : new Color(0.6f, 0.58f, 0.55f);
                 _peakButtons[i].GetComponent<Image>().color = found ? new Color(0.8f, 0.6f, 0.2f, 0.35f) : new Color(1f, 1f, 1f, 0.05f);
                 _peakButtons[i].gameObject.SetActive(found || WorldMapState.IsVisited(p.RegionId));
             }

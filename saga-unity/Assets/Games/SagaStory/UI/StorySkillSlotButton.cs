@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using Saga.Story.Data;
@@ -15,14 +16,14 @@ namespace Saga.Story.UI
     {
         [SerializeField] private int slot;
         [SerializeField] private StoryPlayerController controller;
-        [SerializeField] private Text label;
+        [SerializeField] private TextMeshProUGUI label;
         [SerializeField] private Image image;
         [SerializeField] private Color readyColor = new Color(0.45f, 0.3f, 0.6f, 0.55f);
 
         private const float RefreshGapSec = 0.1f;
         private float _timer;
 
-        public void Init(int slotIndex, StoryPlayerController owner, Text text, Image img, Color color)
+        public void Init(int slotIndex, StoryPlayerController owner, TextMeshProUGUI text, Image img, Color color)
         {
             slot = slotIndex;
             controller = owner;

@@ -1,3 +1,4 @@
+using TMPro;
 using System;
 using UnityEngine;
 using UnityEngine.UI;
@@ -18,11 +19,11 @@ namespace Saga.Story.UI
         public static StoryChoiceUi Instance { get; private set; }
 
         [SerializeField] private GameObject panel;
-        [SerializeField] private Text promptLabel;
+        [SerializeField] private TextMeshProUGUI promptLabel;
         [SerializeField] private Button optionAButton;
-        [SerializeField] private Text optionALabel;
+        [SerializeField] private TextMeshProUGUI optionALabel;
         [SerializeField] private Button optionBButton;
-        [SerializeField] private Text optionBLabel;
+        [SerializeField] private TextMeshProUGUI optionBLabel;
 
         public bool IsShowing => panel != null && panel.activeSelf;
 

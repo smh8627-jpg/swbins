@@ -1,3 +1,4 @@
+using TMPro;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -32,7 +33,7 @@ namespace Saga.Go.Layout
         private const float ToastSeconds = 3f;
 
         [SerializeField] private string generatedScenePath = "Assets/Scenes/Generated/HebeiLayout.unity";
-        [SerializeField] private Text placeCountLabel;
+        [SerializeField] private TextMeshProUGUI placeCountLabel;
 
         private readonly Dictionary<string, bool> _found = new Dictionary<string, bool>();
         private readonly Dictionary<string, TextMesh> _labels = new Dictionary<string, TextMesh>();

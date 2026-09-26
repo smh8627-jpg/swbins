@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -22,10 +23,10 @@ namespace Saga.Story.UI
         public static StorySkillPanelUi Instance { get; private set; }
 
         [SerializeField] private GameObject _panel;
-        [SerializeField] private Text _titleLabel;
-        [SerializeField] private Text _statusLabel;
+        [SerializeField] private TextMeshProUGUI _titleLabel;
+        [SerializeField] private TextMeshProUGUI _statusLabel;
         [SerializeField] private Transform _rows;
-        [SerializeField] private Text _closeLabel;
+        [SerializeField] private TextMeshProUGUI _closeLabel;
         // Build()(에디터 전용)가 거는 onClick은 씬 저장 때 안 남아 참조만 두고 Awake()에서 건다
         // (StoryJobChoiceUi 클래스의 같은 주석 참고). 줄 버튼은 Redraw()가 런타임에 지어 괜찮다.
         [SerializeField] private Button _closeButton;
@@ -67,7 +68,7 @@ namespace Saga.Story.UI
 
             _closeButton = NewButton(_panel.transform, StoryLocalization.T("settings.close"),
                 new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(300f, 70f), null);
-            _closeLabel = _closeButton.GetComponentInChildren<Text>();
+            _closeLabel = _closeButton.GetComponentInChildren<TextMeshProUGUI>();
         }
 
         private void Update()
@@ -193,11 +194,11 @@ namespace Saga.Story.UI
         private string _rowJob;
         private int _rowTier;
         private int _tab = 1;
-        private readonly System.Collections.Generic.List<Text> _rowLabels = new System.Collections.Generic.List<Text>();
-        private readonly System.Collections.Generic.List<Text> _pinLabels = new System.Collections.Generic.List<Text>();
+        private readonly System.Collections.Generic.List<TextMeshProUGUI> _rowLabels = new System.Collections.Generic.List<TextMeshProUGUI>();
+        private readonly System.Collections.Generic.List<TextMeshProUGUI> _pinLabels = new System.Collections.Generic.List<TextMeshProUGUI>();
         private readonly System.Collections.Generic.List<Button> _tabButtons = new System.Collections.Generic.List<Button>();
         private Transform _tabsRoot;
-        private Text _slotsLabel;
+        private TextMeshProUGUI _slotsLabel;
 
         /// <summary>탭 줄·칸 줄을 (없으면) 짓고 줄 영역을 그 아래로 내린다 — 옛 씬(3단계 전
         /// Build)도 재빌드 없이 맞는다.</summary>
@@ -247,7 +248,7 @@ namespace Saga.Story.UI
             {
                 var img = _tabButtons[i].targetGraphic as Image;
                 if (img != null) img.color = i + 1 == _tab ? new Color(0.95f, 0.8f, 0.4f, 0.55f) : new Color(1f, 1f, 1f, 0.18f);
-                var label = _tabButtons[i].GetComponentInChildren<Text>();
+                var label = _tabButtons[i].GetComponentInChildren<TextMeshProUGUI>();
                 if (label != null) label.text = string.Format(StoryLocalization.T("skill.tab", "{0}차"), i + 1);
             }
         }
@@ -308,7 +309,7 @@ namespace Saga.Story.UI
             return $"{tag}{name}  Lv.{StorySkillState.LevelOf(sk.Key)}/{sk.Max}{need}\n{desc}";
         }
 
-        private Text BuildRow(StorySkillData.Skill sk, float y, float height)
+        private TextMeshProUGUI BuildRow(StorySkillData.Skill sk, float y, float height)
         {
             var row = new GameObject($"Row_{sk.Key}", typeof(RectTransform));
             row.transform.SetParent(_rows, false);
@@ -319,12 +320,12 @@ namespace Saga.Story.UI
 
             var label = NewText(row.transform, RowText(sk), new Vector2(0f, 0.5f),
                 new Vector2(10f, 0f), new Vector2(580f, height - 4f), height >= 110f ? 24 : 20);
-            label.alignment = TextAnchor.MiddleLeft;
+            label.alignment = TextAlignmentOptions.Left;
 
             string captured = sk.Key;
             var pin = NewButton(row.transform, PinText(sk), new Vector2(1f, 0.5f), new Vector2(-130f, 0f), new Vector2(110f, height - 10f),
                 () => ClickPin(captured));
-            _pinLabels.Add(pin.GetComponentInChildren<Text>());
+            _pinLabels.Add(pin.GetComponentInChildren<TextMeshProUGUI>());
             NewButton(row.transform, "+", new Vector2(1f, 0.5f), new Vector2(-10f, 0f), new Vector2(110f, height - 10f),
                 () => ClickRaise(captured));
             return label;
@@ -366,7 +367,7 @@ namespace Saga.Story.UI
             return go;
         }
 
-        private static Text NewText(Transform parent, string content, Vector2 anchor, Vector2 pos, Vector2 size, int fontSize)
+        private static TextMeshProUGUI NewText(Transform parent, string content, Vector2 anchor, Vector2 pos, Vector2 size, int fontSize)
         {
             var go = new GameObject("Text", typeof(RectTransform));
             go.transform.SetParent(parent, false);
@@ -375,12 +376,11 @@ namespace Saga.Story.UI
             rect.anchoredPosition = pos;
             rect.sizeDelta = size;
 
-            var text = go.AddComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var text = go.AddComponent<TextMeshProUGUI>();
             text.fontSize = fontSize;
-            text.alignment = TextAnchor.MiddleCenter;
+            text.alignment = TextAlignmentOptions.Center;
             text.color = Color.white;
-            text.horizontalOverflow = HorizontalWrapMode.Wrap;
+            text.textWrappingMode = TextWrappingModes.Normal;
             text.text = content;
             return text;
         }

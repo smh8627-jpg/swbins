@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using Saga.Dungeon.Data;
@@ -14,10 +15,10 @@ namespace Saga.Dungeon.UI
     public class BlessingChoiceUi : MonoBehaviour
     {
         [SerializeField] private GameObject _panel;
-        [SerializeField] private Text _titleLabel;
-        [SerializeField] private Text[] _cardLabels = new Text[3];
+        [SerializeField] private TextMeshProUGUI _titleLabel;
+        [SerializeField] private TextMeshProUGUI[] _cardLabels = new TextMeshProUGUI[3];
         [SerializeField] private Button[] _cardButtons = new Button[3];
-        [SerializeField] private Text _rejectLabel;
+        [SerializeField] private TextMeshProUGUI _rejectLabel;
 
         private BlessingState.BlessingDef[] _offer = System.Array.Empty<BlessingState.BlessingDef>();
         private System.Action<BlessingState.BlessingDef> _onChosen;
@@ -46,14 +47,14 @@ namespace Saga.Dungeon.UI
                     new Vector2(0f, y), new Vector2(600f, 140f), null);
                 // 영속 리스너(인자 int) — 람다는 씬 저장 때 사라진다(SagaCore/ButtonWiring.cs).
                 Saga.Core.ButtonWiring.Wire(_cardButtons[i], ChooseIndex, i);
-                _cardLabels[i] = _cardButtons[i].GetComponentInChildren<Text>();
+                _cardLabels[i] = _cardButtons[i].GetComponentInChildren<TextMeshProUGUI>();
                 y -= 170f;
             }
 
             _rejectLabel = NewButton(_panel.transform,
                 DungeonLocalization.T("blessing.reject", "거절 — 층수만큼 금 획득"),
                 new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(320f, 80f), Reject)
-                .GetComponentInChildren<Text>();
+                .GetComponentInChildren<TextMeshProUGUI>();
         }
 
         public void Show(BlessingState.BlessingDef[] offer, System.Action<BlessingState.BlessingDef> onChosen, System.Action onRejected)
@@ -116,7 +117,7 @@ namespace Saga.Dungeon.UI
             return go;
         }
 
-        private static Text NewText(Transform parent, string content, Vector2 anchor, Vector2 pos, Vector2 size, int fontSize)
+        private static TextMeshProUGUI NewText(Transform parent, string content, Vector2 anchor, Vector2 pos, Vector2 size, int fontSize)
         {
             var go = new GameObject("Text", typeof(RectTransform));
             go.transform.SetParent(parent, false);
@@ -127,12 +128,11 @@ namespace Saga.Dungeon.UI
             rect.anchoredPosition = pos;
             rect.sizeDelta = size;
 
-            var text = go.AddComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var text = go.AddComponent<TextMeshProUGUI>();
             text.fontSize = fontSize;
-            text.alignment = TextAnchor.MiddleCenter;
+            text.alignment = TextAlignmentOptions.Center;
             text.color = Color.white;
-            text.horizontalOverflow = HorizontalWrapMode.Wrap;
+            text.textWrappingMode = TextWrappingModes.Normal;
             text.text = content;
             return text;
         }

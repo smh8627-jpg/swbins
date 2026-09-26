@@ -152,8 +152,8 @@ namespace Saga.Go.Combat
         private bool _tinted;
 
         private Transform _headUi;
-        private TextMesh _nameText;
-        private TextMesh _alertText;
+        private TMPro.TextMeshPro _nameText;
+        private TMPro.TextMeshPro _alertText;
         private Transform _hpFill;
         private Renderer _auraDot;
         private LineRenderer _warnRing;
@@ -450,18 +450,12 @@ namespace Saga.Go.Combat
             }
         }
 
-        private static TextMesh NewText(Transform parent, string text, Vector3 local, float size, Color color)
+        private static TMPro.TextMeshPro NewText(Transform parent, string text, Vector3 local, float size, Color color)
         {
             var go = new GameObject("Text");
             go.transform.SetParent(parent, false);
             go.transform.localPosition = local;
-            var t = go.AddComponent<TextMesh>();
-            t.text = text;
-            t.anchor = TextAnchor.MiddleCenter;
-            t.alignment = TextAlignment.Center;
-            t.fontSize = 64;
-            t.characterSize = size;
-            t.color = color;
+            var t = Saga.Core.SagaWorldText.Add(go, text, 64f * size, color);
             return t;
         }
 

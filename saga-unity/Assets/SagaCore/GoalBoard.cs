@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -19,7 +20,7 @@ namespace Saga.Core
         private const float RefreshInterval = 1f;
 
         private IGoalSource _source;
-        private Text _label;
+        private TextMeshProUGUI _label;
         private float _refreshTimer;
 
         /// <summary>게임 쪽 IGoalSource 구현을 넘긴다. Awake()가 이미 UI를
@@ -80,12 +81,11 @@ namespace Saga.Core
             rect.anchoredPosition = new Vector2(0f, -10f);
             rect.sizeDelta = new Vector2(900f, 90f);
 
-            _label = textGo.AddComponent<Text>();
-            _label.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            _label = textGo.AddComponent<TextMeshProUGUI>();
             _label.fontSize = 22;
-            _label.alignment = TextAnchor.UpperCenter;
+            _label.alignment = TextAlignmentOptions.Top;
             _label.color = Color.white;
-            _label.horizontalOverflow = HorizontalWrapMode.Wrap;
+            _label.textWrappingMode = TextWrappingModes.Normal;
             _label.text = "";
         }
 

@@ -1,3 +1,4 @@
+using TMPro;
 using System;
 using UnityEngine;
 using UnityEngine.UI;
@@ -37,7 +38,7 @@ namespace Saga.Dungeon.World
         private int _candidate = -1;
         private float _dwell;
         private float _bannerLeft;
-        private Text _banner;
+        private TextMeshProUGUI _banner;
         private CanvasGroup _bannerGroup;
 
         public static DungeonRegionTracker Install()
@@ -156,18 +157,15 @@ namespace Saga.Dungeon.World
             _bannerGroup = go.AddComponent<CanvasGroup>();
             _bannerGroup.blocksRaycasts = false;
             _bannerGroup.interactable = false;
-            _banner = go.AddComponent<Text>();
-            _banner.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            _banner = go.AddComponent<TextMeshProUGUI>();
             _banner.fontSize = 34;
-            _banner.lineSpacing = 1.1f;
-            _banner.alignment = TextAnchor.UpperCenter;
-            _banner.horizontalOverflow = HorizontalWrapMode.Wrap;
-            _banner.verticalOverflow = VerticalWrapMode.Overflow;
+            _banner.lineSpacing = 10f; // TMP: em/100 더하기(옛 UI.Text 배수 1.1)
+            _banner.alignment = TextAlignmentOptions.Top;
+            _banner.textWrappingMode = TextWrappingModes.Normal;
+            _banner.overflowMode = TextOverflowModes.Overflow;
             _banner.raycastTarget = false;
-            _banner.supportRichText = true;
-            var shadow = go.AddComponent<Outline>();
-            shadow.effectColor = new Color(0f, 0f, 0f, 0.85f);
-            shadow.effectDistance = new Vector2(2f, -2f);
+            _banner.richText = true;
+            Saga.Core.TmpEffect.Add(go, Saga.Core.TmpEffect.Kind.Outline, new Color(0f, 0f, 0f, 0.85f), 0.24f);
             go.SetActive(false);
         }
     }

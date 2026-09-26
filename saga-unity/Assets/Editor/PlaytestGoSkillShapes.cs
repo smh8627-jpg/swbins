@@ -1,3 +1,4 @@
+using TMPro;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -149,7 +150,7 @@ namespace Saga.EditorTools
             if (hud != null && hud.SkillButton != null)
             {
                 hud.Refresh();
-                label = hud.SkillButton.GetComponentInChildren<Text>().text;
+                label = hud.SkillButton.GetComponentInChildren<TextMeshProUGUI>().text;
                 if (!label.StartsWith(GoSkillShapes.Name(SkillShape.Thrust))) Fail($"스킬 칸이 모양 이름이 아님({label})");
             }
             foreach (var e in foes) e.RestoreHomeForTest();

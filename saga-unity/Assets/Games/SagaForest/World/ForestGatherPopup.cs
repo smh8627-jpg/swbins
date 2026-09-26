@@ -6,7 +6,7 @@ namespace Saga.Forest.World
     /// PLAN.md 101-2 5.8① "수확 팝" — 웹판 "아이템 아이콘 0.6s 포물선 →
     /// 가방"(177행)은 가방이 없어(<see cref="Data.ForestMuseumState"/> 클래스
     /// 주석) 옮길 대상이 없다. 대신 `SagaDungeon/World/DamagePopup.cs`와 같은
-    /// 결(TextMesh, 카메라를 바라보며 0.6초 떠오르다 사라짐)로 발견한
+    /// 결(TMPro.TextMeshPro, 카메라를 바라보며 0.6초 떠오르다 사라짐)로 발견한
     /// 이름을 그대로 띄운다 — 다섯 판이 각자 복사해 쓰는 관례 그대로,
     /// 새 코드를 이 판에 따로 만든다.
     /// </summary>
@@ -19,7 +19,7 @@ namespace Saga.Forest.World
         private static readonly Color BonusColor = new Color(1f, 0.82f, 0.2f); // 리듬 보너스 — 금색.
 
         private float _t;
-        private TextMesh _mesh;
+        private TMPro.TextMeshPro _mesh;
         private Camera _cam;
 
         public static void Spawn(Vector3 worldPos, string text, bool bonus)
@@ -27,22 +27,14 @@ namespace Saga.Forest.World
             var go = new GameObject("ForestGatherPopup");
             go.transform.position = worldPos;
 
-            var mesh = go.AddComponent<TextMesh>();
-            mesh.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            go.GetComponent<MeshRenderer>().sharedMaterial = mesh.font.material;
-            mesh.text = text;
-            mesh.characterSize = bonus ? 0.24f : 0.18f;
-            mesh.fontSize = 40;
-            mesh.color = bonus ? BonusColor : NormalColor;
-            mesh.anchor = TextAnchor.MiddleCenter;
-            mesh.alignment = TextAlignment.Center;
+            var mesh = Saga.Core.SagaWorldText.Add(go, text, 40f * (bonus ? 0.24f : 0.18f), bonus ? BonusColor : NormalColor);
 
             go.AddComponent<ForestGatherPopup>();
         }
 
         private void Awake()
         {
-            _mesh = GetComponent<TextMesh>();
+            _mesh = GetComponent<TMPro.TextMeshPro>();
             _cam = Camera.main;
         }
 

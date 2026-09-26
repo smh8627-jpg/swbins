@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using Saga.Go.Data;
@@ -15,10 +16,10 @@ namespace Saga.Go.UI
     public class PerkChoiceUi : MonoBehaviour
     {
         [SerializeField] private GameObject _panel;
-        [SerializeField] private Text _titleLabel;
-        [SerializeField] private Text[] _cardLabels = new Text[3];
+        [SerializeField] private TextMeshProUGUI _titleLabel;
+        [SerializeField] private TextMeshProUGUI[] _cardLabels = new TextMeshProUGUI[3];
         [SerializeField] private Button[] _cardButtons = new Button[3];
-        [SerializeField] private Text _rejectLabel;
+        [SerializeField] private TextMeshProUGUI _rejectLabel;
 
         private PerkState.PerkDef[] _offer = System.Array.Empty<PerkState.PerkDef>();
         private System.Action<PerkState.PerkDef> _onChosen;
@@ -47,14 +48,14 @@ namespace Saga.Go.UI
                     new Vector2(0f, y), new Vector2(600f, 140f), null);
                 // 영속 리스너(인자 int) — 람다는 씬 저장 때 사라진다(SagaCore/ButtonWiring.cs).
                 Saga.Core.ButtonWiring.Wire(_cardButtons[i], ChooseIndex, i);
-                _cardLabels[i] = _cardButtons[i].GetComponentInChildren<Text>();
+                _cardLabels[i] = _cardButtons[i].GetComponentInChildren<TextMeshProUGUI>();
                 y -= 170f;
             }
 
             _rejectLabel = EncounterUiKit.NewButton(_panel.transform,
                 GoLocalization.T("perk.reject", $"거절 — 돈 +{PerkState.RejectGoldReward}"),
                 new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(320f, 80f), Reject)
-                .GetComponentInChildren<Text>();
+                .GetComponentInChildren<TextMeshProUGUI>();
         }
 
         public void Show(PerkState.PerkDef[] offer, System.Action<PerkState.PerkDef> onChosen, System.Action onRejected)

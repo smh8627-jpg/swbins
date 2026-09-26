@@ -19,7 +19,7 @@ namespace Saga.Dungeon.World
     /// 문 선택은 화면 UI 버튼 대신 이 프로젝트의 기존 관례(우물·사당·퍼즐
     /// 제단처럼 "걸어서 가까이 가면 반응하는" 트리거)를 그대로 따른다 —
     /// 새 Canvas/EventSystem 배선이 필요 없다. 방이 갱신될 때마다 문 자리에
-    /// 작은 표지(원기둥)+월드 공간 라벨(`DamagePopup.cs`와 같은 TextMesh
+    /// 작은 표지(원기둥)+월드 공간 라벨(`DamagePopup.cs`와 같은 TMPro.TextMeshPro
     /// 빌보드 패턴)을 세우고, 그 위로 걸어가면 그 종류로 다음 방이 열린다.
     ///
     /// 난수는 이 파일 안에서만 쓰는 시드 고정 `System.Random`(프로젝트 관례인
@@ -113,7 +113,7 @@ namespace Saga.Dungeon.World
             foreach (var d in _doorPods)
             {
                 if (d.Pod == null) continue;
-                var mesh = d.Pod.GetComponentInChildren<TextMesh>();
+                var mesh = d.Pod.GetComponentInChildren<TMPro.TextMeshPro>();
                 yield return (d.Kind, mesh != null ? mesh.text : "");
             }
         }
@@ -301,15 +301,7 @@ namespace Saga.Dungeon.World
             var labelGo = new GameObject("Label");
             labelGo.transform.SetParent(go.transform, false);
             labelGo.transform.localPosition = new Vector3(0f, 1.6f, 0f);
-            var mesh = labelGo.AddComponent<TextMesh>();
-            mesh.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            labelGo.GetComponent<MeshRenderer>().sharedMaterial = mesh.font.material;
-            mesh.text = label ?? DungeonFormulas.KindDisplayName(kind);
-            mesh.characterSize = 0.22f;
-            mesh.fontSize = 40;
-            mesh.color = Color.white;
-            mesh.anchor = TextAnchor.MiddleCenter;
-            mesh.alignment = TextAlignment.Center;
+            var mesh = Saga.Core.SagaWorldText.Add(labelGo, label ?? DungeonFormulas.KindDisplayName(kind), 40f * 0.22f, Color.white);
             labelGo.AddComponent<DoorLabelBillboard>();
 
             return go.transform;

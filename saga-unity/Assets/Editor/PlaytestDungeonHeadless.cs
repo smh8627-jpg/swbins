@@ -1,3 +1,4 @@
+using TMPro;
 using System.Collections.Generic;
 using System.Reflection;
 using Unity.Cinemachine;
@@ -629,7 +630,7 @@ namespace Saga.EditorTools
             var hudGo = GameObject.Find("DebugUI");
             var hud = hudGo != null ? hudGo.GetComponent<DebugHud>() : null;
             var labelGo = hudGo != null ? hudGo.transform.Find("Label") : null;
-            var label = labelGo != null ? labelGo.GetComponent<Text>() : null;
+            var label = labelGo != null ? labelGo.GetComponent<TextMeshProUGUI>() : null;
             if (hud == null || label == null)
             {
                 Debug.LogError("[PlaytestDungeonHeadless] DebugUI/Label을 못 찾음");
@@ -692,7 +693,7 @@ namespace Saga.EditorTools
             }
 
             var sfxValueLabelField = typeof(DungeonSettingsPanel).GetField("_sfxValueLabel", BindingFlags.NonPublic | BindingFlags.Instance);
-            var sfxValueLabel = sfxValueLabelField.GetValue(panel) as Text;
+            var sfxValueLabel = sfxValueLabelField.GetValue(panel) as TextMeshProUGUI;
             if (sfxValueLabel == null)
             {
                 Debug.LogError("[PlaytestDungeonHeadless] DungeonSettingsPanel._sfxValueLabel이 null");
@@ -762,7 +763,7 @@ namespace Saga.EditorTools
         {
             var hudGo = GameObject.Find("PlayerHudUI");
             var hud = hudGo != null ? hudGo.GetComponent<PlayerHud>() : null;
-            var label = hudGo != null ? hudGo.GetComponentInChildren<Text>() : null;
+            var label = hudGo != null ? hudGo.GetComponentInChildren<TextMeshProUGUI>() : null;
             if (hud == null || label == null)
             {
                 Debug.LogError("[PlaytestDungeonHeadless] PlayerHudUI/Label을 못 찾음");
@@ -795,7 +796,7 @@ namespace Saga.EditorTools
         {
             var go = GameObject.Find("AttackButton");
             var localized = go != null ? go.GetComponent<LocalizedButtonLabel>() : null;
-            var label = go != null ? go.GetComponentInChildren<Text>() : null;
+            var label = go != null ? go.GetComponentInChildren<TextMeshProUGUI>() : null;
             if (localized == null || label == null)
             {
                 Debug.LogError("[PlaytestDungeonHeadless] AttackButton/LocalizedButtonLabel을 못 찾음");
@@ -850,7 +851,7 @@ namespace Saga.EditorTools
             }
 
             var labelField = typeof(GoalBoard).GetField("_label", BindingFlags.NonPublic | BindingFlags.Instance);
-            var label = labelField.GetValue(board) as Text;
+            var label = labelField.GetValue(board) as TextMeshProUGUI;
             if (label == null || !label.text.Contains("지금 —") || !label.text.Contains("이번 세션 —") || !label.text.Contains("이번 주 —"))
             {
                 Debug.LogError($"[PlaytestDungeonHeadless] GoalBoard 세 줄이 안 채워짐 text=\"{(label == null ? "null" : label.text.Replace("\n", " | "))}\"");

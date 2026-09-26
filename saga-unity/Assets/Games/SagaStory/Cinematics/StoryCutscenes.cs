@@ -1,3 +1,4 @@
+using TMPro;
 using System;
 using System.Collections.Generic;
 using Unity.Cinemachine;
@@ -54,8 +55,8 @@ namespace Saga.Story.Cinematics
         [SerializeField] private RectTransform bottomBar;
         [SerializeField] private GameObject skipHint;
         [SerializeField] private CanvasGroup nameGroup;
-        [SerializeField] private Text nameTitle;
-        [SerializeField] private Text nameSub;
+        [SerializeField] private TextMeshProUGUI nameTitle;
+        [SerializeField] private TextMeshProUGUI nameSub;
 
         public static StoryCutscenes Instance { get; private set; }
         public static bool Playing => Instance != null && Instance._playing;
