@@ -220,10 +220,10 @@
     pt_magpie: 'bird', pt_crane: 'bird', pt_toad: 'toad', pt_carp: 'fish',
     pt_panda: 'quad', pt_monkey: 'quad', pt_deer: 'quad', pt_boar: 'quad',
     pt_owl: 'bird', pt_cat: 'quad',
-    /* 포켓몬 — 형태는 있는 것(quad·dragon·turtle·bird·fish·ogre) 안에서 고른다 */
-    pk_bulbasaur: 'quad', pk_charmander: 'quad', pk_squirtle: 'turtle', pk_magikarp: 'fish',
-    pk_pikachu: 'quad', pk_eevee: 'quad', pk_slowbro: 'quad', pk_gengar: 'ogre',
-    pk_snorlax: 'quad', pk_lapras: 'turtle', pk_alakazam: 'ogre', pk_dragonite: 'dragon',
+    /* 창작 짐승 열여섯(2026-09-26, 옛 오마주 자리 — id 만 남았다). 모양은 입고 있는 CC0 모델(`asset3d` standin)을 따른다 */
+    pk_bulbasaur: 'toad', pk_charmander: 'ogre', pk_squirtle: 'ogre', pk_magikarp: 'bird',
+    pk_pikachu: 'quad', pk_eevee: 'ogre', pk_slowbro: 'toad', pk_gengar: 'ogre',
+    pk_snorlax: 'ogre', pk_lapras: 'bird', pk_alakazam: 'ogre', pk_dragonite: 'bird',
     pk_charizard: 'dragon', pk_gyarados: 'dragon', pk_mewtwo: 'ogre', pk_mew: 'quad',
 
     /* REG 확장분 64종(2026-09-22, 펫 이미지 공백 처리) — 여긴 원래 form 이
@@ -261,10 +261,10 @@
     pt_magpie: '#2f3340', pt_crane: '#eceff5', pt_toad: '#6a9a4a', pt_carp: '#d98a5a',
     pt_panda: '#e8e8ee', pt_monkey: '#a87c52', pt_deer: '#c39a6a', pt_boar: '#6b5544',
     pt_owl: '#8a7358', pt_cat: '#9a9aa6',
-    pk_bulbasaur: '#6aa84f', pk_charmander: '#e06c3a', pk_squirtle: '#5a9ad9', pk_magikarp: '#e0703a',
-    pk_pikachu: '#e8c93a', pk_eevee: '#b98a5a', pk_slowbro: '#e8a0b0', pk_gengar: '#6a4a8c',
-    pk_snorlax: '#4a6a7a', pk_lapras: '#7ab0d9', pk_alakazam: '#d9a83a', pk_dragonite: '#e8b45a',
-    pk_charizard: '#e06c3a', pk_gyarados: '#4a7ad9', pk_mewtwo: '#d9c8e8', pk_mew: '#f0a8c0',
+    pk_bulbasaur: '#1f7f99', pk_charmander: '#b0306e', pk_squirtle: '#b83a6e', pk_magikarp: '#2f2a78',
+    pk_pikachu: '#ecebe6', pk_eevee: '#8ccf3a', pk_slowbro: '#a8285e', pk_gengar: '#3a1d52',
+    pk_snorlax: '#2f9aa8', pk_lapras: '#2f2a78', pk_alakazam: '#43205e', pk_dragonite: '#e8b82a',
+    pk_charizard: '#e0801f', pk_gyarados: '#3fa58a', pk_mewtwo: '#5e2a8c', pk_mew: '#e0901f',
 
     /* REG 확장분 64종(2026-09-22, 펫 이미지 공백 처리) — 위 BEAST_FORM 과 짝 */
     pt_fox: '#c9743a', pt_dolphin: '#7a96a8', pt_shark: '#7a828c', pt_whale: '#465562',

@@ -345,6 +345,6 @@ Quaternius "Ultimate Monsters"(CC0, 사가블로 `assets/models/monsters/quatern
 | 현무 | Snake | 
 | 도깨비 | Orc |
 | 불가사리 | **Elephant**(쇠를 먹는 코끼리 코 짐승) |
-| 싹등이·불꼬리·물뿜이·뜀잉어·번개볼·떡잎이 | Mushnub·Dino·Squidle·Glub·Bunny·Monkroose |
-| 늘보소라·그늘귀·누운산·나룻고래·만권 | Pink_Slime·Ghost·Yeti·Glub_Evolved·Wizard |
-| 순룡·화룡·이무기·의조·시조 | Alpaking·Dragon·Snake_angry·Alien_2(두발 외계인 — 방울형 Alien 은 사가고 들판 적과 같은 파일이라 피함)·Cat(괴물 고양이) |
+| 삿갓동이·뿔도롱·뿔낙지·날주머니·방아토끼·이끼잔나비 | Mushnub·Dino·Squidle·Glub·Bunny·Monkroose |
+| 묵방울·어둑귀·눈머리·겹날주머니·고깔도사 | Pink_Slime·Ghost·Yeti·Glub_Evolved·Wizard |
+| 누렁날개·노을용·물이무기·별손님·복고양이 | Alpaking·Dragon·Snake_angry·Alien_2(두발 외계인 — 방울형 Alien 은 사가고 들판 적과 같은 파일이라 피함)·Cat(괴물 고양이) |

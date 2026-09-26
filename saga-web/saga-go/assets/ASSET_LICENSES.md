@@ -72,7 +72,7 @@ Quaternius 원 사이트(`quaternius.com`)는 이 망에서 안 열린다. 그�
 | `Alpaca.glb`·`Bull.glb`·`Donkey.glb`·`Fox.glb`·`Husky.glb`·`ShibaInu.glb`·`Stag.glb` | `quad` (네발 짐승, 기존 사슴·늑대·소와 섞어 쓴다) | `animals_pack` |
 | `Horse.glb`·`Horse_White.glb` | `horse` (적토마·절영) | `animals_pack` |
 | `Frog.glb` | `toad` (두꺼비) | `easy_enemies_pack` |
-| `Trex.glb`·`Triceratops.glb`·`Stegosaurus.glb`·`Velociraptor.glb` | `dragon` (청룡·순룡·화룡·이무기) — CC0 용 모델이 없어 파충류로 가장 가까운 공룡으로 대신했다 | `dinosaurs_pack` |
+| `Trex.glb`·`Triceratops.glb`·`Stegosaurus.glb`·`Velociraptor.glb` | `dragon` (청룡·누렁날개·노을용·물이무기) — CC0 용 모델이 없어 파충류로 가장 가까운 공룡으로 대신했다 | `dinosaurs_pack` |
 | `Shark.glb`·`Dolphin.glb`·`Manta_ray.glb` | `fish` (잉어와 섞어 쓴다) | `fish_pack` |
 
 **같은 날 조금 뒤 — 오우거 형태(`pet:form:ogre`) 채움.**
@@ -82,7 +82,7 @@ Quaternius 원 사이트(`quaternius.com`)는 이 망에서 안 열린다. 그�
 | **원본** | Quaternius `Ultimate Monsters` 팩 (<https://quaternius.com/packs/ultimatemonsters.html>) |
 | **라이선스** | **CC0** — 원본 페이지·독립된 배포 소개(itch.io·gamedev 블로그)에서 "50 fully animated monsters, free for personal and commercial use, CC0"로 확인 |
 | **받은 곳** | <https://github.com/511action/descent-3d-assets> `models/` — 원본은 FBX/OBJ/Blend 인데, 이 저장소가 이미 glTF 로 구워 올려 뒀다(저장소 설명 자체가 "CC0 monster models (Quaternius Ultimate Monsters pack, public domain)") |
-| **넣은 파일** | `Orc.gltf`·`Demon.gltf`·`BlueDemon.gltf` — 셋 다 같은 뼈대(Idle·Walk·Run·Punch·Death·HitReact 등 14클립), 사람 모양이라 도깨비·그늘귀 같은 오우거 형태 펫에 사슴보다 훨씬 잘 맞는다 |
+| **넣은 파일** | `Orc.gltf`·`Demon.gltf`·`BlueDemon.gltf` — 셋 다 같은 뼈대(Idle·Walk·Run·Punch·Death·HitReact 등 14클립), 사람 모양이라 도깨비·어둑귀 같은 오우거 형태 펫에 사슴보다 훨씬 잘 맞는다 |
 
 이 환경엔 Blender 가 없어 원본(FBX)을 직접 구울 수 없었다 — 이미 glTF 로
 구워 올려 둔 미러를 썼다(사가고 8절 "Photoshop/Blender 없이" 원칙과 같은 결).
@@ -1289,7 +1289,7 @@ QRPG와 같은 결로 `anim`을 `body`와 같은 파일로 줘(제 클립을 그
 |---|---|---|
 | `quad`(제일 많다) | Deer·Wolf·Cow 셋을 섞어 씀(`oneOf()`가 id 해시로 고정 배정) | 해태·백호·구미호·호랑이·곰·판다 등 |
 | `bird` | Mesh_Crow(까치, 지금은 Pigeon·Birb로 바뀜) | 삼족오·주작·학·까치·올빼미 |
-| `fish` | Koi(잉어) | 잉어·뜀잉어 |
+| `fish` | Koi(잉어) | 잉어 |
 | 그 외(`turtle`·`dragon`·`horse`·`toad`·`ogre`) | 마지막 `pet` 한 줄(Deer·Wolf·Cow) | 당시엔 대응 CC0 없음 — 지금은 다 채워짐(위 절 참고) |
 
 모양이 원래 뜻과 안 맞는 자리가 많았다(거북 도감에 사슴이 뜨는 식) — 갓·투구를
@@ -1430,14 +1430,14 @@ Quaternius "Ultimate Monsters"(CC0, 사가블로 `assets/models/monsters/quatern
 | 현무 | Snake | 
 | 도깨비 | Orc |
 | 불가사리 | **Elephant**(쇠를 먹는 코끼리 코 짐승) |
-| 싹등이·불꼬리·물뿜이·뜀잉어·번개볼·떡잎이 | Mushnub·Dino·Squidle·Glub·Bunny·Monkroose |
-| 늘보소라·그늘귀·누운산·나룻고래·만권 | Pink_Slime·Ghost·Yeti·Glub_Evolved·Wizard |
-| 순룡·화룡·이무기·의조·시조 | Alpaking·Dragon·Snake_angry·Alien_2(두발 외계인 — 방울형 Alien 은 사가고 들판 적과 같은 파일이라 피함)·Cat(괴물 고양이) |
+| 삿갓동이·뿔도롱·뿔낙지·날주머니·방아토끼·이끼잔나비 | Mushnub·Dino·Squidle·Glub·Bunny·Monkroose |
+| 묵방울·어둑귀·눈머리·겹날주머니·고깔도사 | Pink_Slime·Ghost·Yeti·Glub_Evolved·Wizard |
+| 누렁날개·노을용·물이무기·별손님·복고양이 | Alpaking·Dragon·Snake_angry·Alien_2(두발 외계인 — 방울형 Alien 은 사가고 들판 적과 같은 파일이라 피함)·Cat(괴물 고양이) |
 
-## 지도 스탬프 추가 — 들판 적·의조 (2026-09-25, `assets/sprites2d/beast_*.png`)
+## 지도 스탬프 추가 — 들판 적·별손님 (2026-09-25, `assets/sprites2d/beast_*.png`)
 
 `beast_Rat`·`Wasp`·`Zombie`·`Robot_Drone`·`Robot_Walker`·`Robot_Large`(들판 적 `assets/models/foes/`, Quaternius CC0)·
-`beast_Alien_2`(의조, Ultimate Monsters CC0)를 `tools/bake-icons/bake-beasts.mjs` 로 구운 파생 그림. 절차 펫은 이미 있던 땅짐승 그림 스물셋을 쓴다.
+`beast_Alien_2`(별손님, Ultimate Monsters CC0)를 `tools/bake-icons/bake-beasts.mjs` 로 구운 파생 그림. 절차 펫은 이미 있던 땅짐승 그림 스물셋을 쓴다.
 
 ## 보물 상자 (`models/props/Chest.glb`, PLAN §5 ⑲-3, 2026-09-25)
 

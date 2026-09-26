@@ -244,22 +244,22 @@
 
     // ── 포켓몬 ─────────────────────────────────────────────
     // 원작(포켓몬GO)에서 건너온 손님들. 전설급은 신수(divine) 자리에 앉힌다.
-    { id: 'pk_bulbasaur', name: '싹등이',   kind: 'beast',  rarity: 2, emoji: '🌱', catchBase: 0.66, bonus: { stat: 'virtue',  value: 3 }, desc: '등의 씨앗이 햇빛을 먹고 자란다.' },
-    { id: 'pk_charmander', name: '불꼬리',    kind: 'beast',  rarity: 2, emoji: '🔥', catchBase: 0.64, bonus: { stat: 'might',   value: 3 }, desc: '꼬리의 불꽃이 기분을 그대로 보여준다.' },
-    { id: 'pk_squirtle',  name: '물뿜이',     kind: 'beast',  rarity: 2, emoji: '💧', catchBase: 0.66, bonus: { stat: 'command', value: 3 }, desc: '등껍질에 숨어 물을 뿜는다.' },
-    { id: 'pk_magikarp',  name: '뜀잉어',     kind: 'beast',  rarity: 2, emoji: '🐠', catchBase: 0.70, bonus: { stat: 'wisdom',  value: 2 }, desc: '지금은 튀어오를 뿐이지만, 언젠가는.' },
-    { id: 'pk_pikachu',   name: '번개볼',     kind: 'beast',  rarity: 3, emoji: '⚡', catchBase: 0.48, bonus: { stat: 'might',   value: 5 }, desc: '볼주머니에 전기를 모아 둔다.' },
-    { id: 'pk_eevee',     name: '떡잎이',     kind: 'beast',  rarity: 3, emoji: '🤎', catchBase: 0.48, bonus: { stat: 'virtue',  value: 5 }, desc: '어느 쪽으로도 자랄 수 있는 씨앗 같은 짐승.' },
-    { id: 'pk_slowbro',   name: '늘보소라',     kind: 'beast',  rarity: 3, emoji: '🐚', catchBase: 0.50, bonus: { stat: 'wisdom',  value: 5 }, desc: '느긋해서 아픈 것도 한참 뒤에 안다.' },
-    { id: 'pk_gengar',    name: '그늘귀',       kind: 'beast',  rarity: 3, emoji: '👻', catchBase: 0.44, bonus: { stat: 'wisdom',  value: 6 }, desc: '그림자에 섞여 따라다닌다.' },
-    { id: 'pk_snorlax',   name: '누운산',     kind: 'beast',  rarity: 4, emoji: '😴', catchBase: 0.34, bonus: { stat: 'command', value: 8 }, desc: '먹고 자는 것 말고는 관심이 없다.' },
-    { id: 'pk_lapras',    name: '나룻고래',   kind: 'beast',  rarity: 4, emoji: '🌊', catchBase: 0.34, bonus: { stat: 'virtue',  value: 8 }, desc: '등에 사람을 태우고 바다를 건넌다.' },
-    { id: 'pk_alakazam',  name: '만권',       kind: 'beast',  rarity: 4, emoji: '🥄', catchBase: 0.32, bonus: { stat: 'wisdom',  value: 9 }, desc: '기억한 것을 하나도 잊지 않는다.' },
-    { id: 'pk_dragonite', name: '순룡',     kind: 'beast',  rarity: 4, emoji: '🐲', catchBase: 0.30, bonus: { stat: 'command', value: 9 }, desc: '몸집과 달리 마음이 순하다.' },
-    { id: 'pk_charizard', name: '화룡',     kind: 'beast',  rarity: 5, emoji: '🦖', catchBase: 0.22, bonus: { stat: 'might',   value: 13 }, desc: '날아오른 뒤에야 제 힘을 다 쓴다.' },
-    { id: 'pk_gyarados',  name: '이무기',   kind: 'beast',  rarity: 5, emoji: '🌀', catchBase: 0.22, bonus: { stat: 'might',   value: 13 }, desc: '한번 성이 나면 좀처럼 가라앉지 않는다.' },
-    { id: 'pk_mewtwo',    name: '의조',       kind: 'divine', rarity: 5, emoji: '🧬', catchBase: 0.18, bonus: { stat: 'wisdom',  value: 15 }, desc: '사람의 손으로 만들어진 것의 눈빛.' },
-    { id: 'pk_mew',       name: '시조',         kind: 'divine', rarity: 5, emoji: '🩷', catchBase: 0.18, bonus: { stat: 'virtue',  value: 15 }, desc: '모든 것의 처음이라 전해진다.' }
+    { id: 'pk_bulbasaur', name: '삿갓동이',   kind: 'beast',  rarity: 2, emoji: '🍄', catchBase: 0.66, bonus: { stat: 'virtue',  value: 3 }, desc: '비 갠 뒤 숲 그늘에서 푸른 삿갓을 쓰고 걸어 나온다.' },
+    { id: 'pk_charmander', name: '뿔도롱',    kind: 'beast',  rarity: 2, emoji: '🦎', catchBase: 0.64, bonus: { stat: 'might',   value: 3 }, desc: '이마의 뿔 하나로 바위를 긁어 제 길을 낸다.' },
+    { id: 'pk_squirtle',  name: '뿔낙지',     kind: 'beast',  rarity: 2, emoji: '🦑', catchBase: 0.66, bonus: { stat: 'command', value: 3 }, desc: '갯바위 틈에 살며 긴 팔로 먹이를 끌어당긴다.' },
+    { id: 'pk_magikarp',  name: '날주머니',     kind: 'beast',  rarity: 2, emoji: '🫐', catchBase: 0.70, bonus: { stat: 'wisdom',  value: 2 }, desc: '작은 날개로 한 뼘씩 떠올라 밤이슬을 모은다.' },
+    { id: 'pk_pikachu',   name: '방아토끼',     kind: 'beast',  rarity: 3, emoji: '🐇', catchBase: 0.48, bonus: { stat: 'might',   value: 5 }, desc: '달에서 떡방아를 찧다 내려왔다는 흰 토끼.' },
+    { id: 'pk_eevee',     name: '이끼잔나비',     kind: 'beast',  rarity: 3, emoji: '🐒', catchBase: 0.48, bonus: { stat: 'virtue',  value: 5 }, desc: '등에 이끼가 자라도 개의치 않는 느긋한 잔나비.' },
+    { id: 'pk_slowbro',   name: '묵방울',     kind: 'beast',  rarity: 3, emoji: '🫧', catchBase: 0.50, bonus: { stat: 'wisdom',  value: 5 }, desc: '말랑한 몸으로 굴러다니다 무엇이든 감싸 버린다.' },
+    { id: 'pk_gengar',    name: '어둑귀',       kind: 'beast',  rarity: 3, emoji: '👻', catchBase: 0.44, bonus: { stat: 'wisdom',  value: 6 }, desc: '초롱불이 꺼지면 두 뿔을 내밀고 길 잃은 이를 놀린다.' },
+    { id: 'pk_snorlax',   name: '눈머리',     kind: 'beast',  rarity: 4, emoji: '❄️', catchBase: 0.34, bonus: { stat: 'command', value: 8 }, desc: '눈보라 치는 날 산마루에서 커다란 웃음소리가 들린다.' },
+    { id: 'pk_lapras',    name: '겹날주머니',   kind: 'beast',  rarity: 4, emoji: '🪽', catchBase: 0.34, bonus: { stat: 'virtue',  value: 8 }, desc: '날주머니 둘이 한 몸이 되어 먼 산까지 떠간다.' },
+    { id: 'pk_alakazam',  name: '고깔도사',       kind: 'beast',  rarity: 4, emoji: '🧙', catchBase: 0.32, bonus: { stat: 'wisdom',  value: 9 }, desc: '고깔 아래서 별자리를 외며 앞날을 점친다.' },
+    { id: 'pk_dragonite', name: '누렁날개',     kind: 'beast',  rarity: 4, emoji: '🐤', catchBase: 0.30, bonus: { stat: 'command', value: 9 }, desc: '거친 두건을 쓰고 들판 위를 낮게 난다.' },
+    { id: 'pk_charizard', name: '노을용',     kind: 'beast',  rarity: 5, emoji: '🐉', catchBase: 0.22, bonus: { stat: 'might',   value: 13 }, desc: '저녁노을을 등지고 날 때 비늘이 불처럼 빛난다.' },
+    { id: 'pk_gyarados',  name: '물이무기',   kind: 'beast',  rarity: 5, emoji: '🐍', catchBase: 0.22, bonus: { stat: 'might',   value: 13 }, desc: '천 년을 채우지 못해 용이 되지 못한 뱀. 깊은 소에서 때를 기다린다.' },
+    { id: 'pk_mewtwo',    name: '별손님',       kind: 'divine', rarity: 5, emoji: '🌌', catchBase: 0.18, bonus: { stat: 'wisdom',  value: 15 }, desc: '별똥별이 떨어진 밤에 나타나 말없이 하늘을 올려다본다.' },
+    { id: 'pk_mew',       name: '복고양이',         kind: 'divine', rarity: 5, emoji: '🐱', catchBase: 0.18, bonus: { stat: 'virtue',  value: 15 }, desc: '문간에 앉아 있으면 그 집에 복이 든다고 한다.' }
   ];
 
 

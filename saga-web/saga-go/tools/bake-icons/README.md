@@ -29,7 +29,7 @@
 파싱 단계에서 멎는다):
 
 - `Orc.gltf`·`Demon.gltf`·`BlueDemon.gltf` (ogre 형태 펫 셋 — 도깨비·
-  그늘귀·만권·의조)
+  어둑귀·고깔도사·별손님)
 - `tower_round.glb`(성채 3등급/웅진), `tower_ruin.glb`(역참)
 
 **같은 날 이어서 재조사한 결과 — GPU(소프트웨어 렌더 vs `--use-angle=d3d11`

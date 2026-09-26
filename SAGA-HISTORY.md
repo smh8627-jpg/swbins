@@ -5183,3 +5183,10 @@ saga-go 정본을 다른 네 판에도 동일 반영, 가드돼 있어 그 판�
 - 함정: dom.mjs 가 옛 자리에서도 터졌다(Node 24.19) — 글로 만든 판을 연 직후 창을 닫아, 닫힌 창에 `/api/assets` 응답이 와서 document 없음. 시험 쪽 fetch 가 진행 중 요청을 세고 `shut()` 이 기다린다. 에셋 목록 캐시는 묶음 구성이 바뀌면 다시 훑는다.
 - swbins 쪽: `saga-web/tools/engine/` 지움 · precheck 엔진 절 뺌 · `run-tools.bat` 은 옆에 `..\swbins4` 가 있을 때만 켜고 다섯 판 assets 를 묶음으로 붙여 옛 참조 `lib:saga-go/models/…` 도 풀린다(확인: saga-go 223·saga-dungeon 399·quaternius 122) · 허브 카드·tools/README·루트 README 가 swbins4 를 가리킨다.
 - 실제 그림·조작감은 여전히 사용자 몫(확인 전). 커밋: swbins4 e582b28(첫 커밋·푸시).
+
+## 2026-09-26 도감 옛 포켓몬 오마주 16종 → 창작 짐승 16종 (다섯 판 공통)
+- 상용화 점검에서 원작 겹침 1순위로 나옴: 표시 이름은 가명이었지만 id(`pk_*`)·설명("볼주머니에 전기", "지금은 튀어오를 뿐" 등)·2D 색·승화 사슬(불꼬리→화룡·뜀잉어→이무기)이 원작 종을 가리켰다.
+- **id·등급·잡기 확률·능력치는 그대로**(루트 CLAUDE.md "도감 펫 id 바꾸기 금지" — 세이브 호환). 바꾼 것: 이름·이모지·설명(`data.js` 다섯 벌, md5 같음 60897b59) · 2D 모양·색·무늬(`sprite.js` 네 벌 — 입고 있는 CC0 standin 모델 모습에 맞춤) · 사가고 승화 사슬 둘(뿔도롱→노을용, 날주머니→겹날주머니 — Glub→Glub_Evolved 로 모델 짝이 맞는 쪽) · 코드 주석·ASSET_LICENSES 대역 표·`tools/asset-audit/CHARACTER_UNIQUENESS.md`(원작 종 이름이 글자로 남은 유일한 문서)·bake-icons README.
+- 새 종(모델): 삿갓동이(Mushnub)·뿔도롱(Dino)·뿔낙지(Squidle)·날주머니(Glub)·방아토끼(Bunny)·이끼잔나비(Monkroose)·묵방울(Pink_Slime — '물컹이'는 기존 심해물컹이와 겹쳐 뺌)·어둑귀(Ghost)·눈머리(Yeti)·겹날주머니(Glub_Evolved)·고깔도사(Wizard)·누렁날개(Alpaking)·노을용(Dragon)·물이무기(Snake_angry)·별손님(Alien_2)·복고양이(Cat_Monster). 3D 모델·구운 초상은 원래 원작과 무관한 CC0 괴물이라 그대로(다시 굽기 없음).
+- 남은 것: id 문자열(`pk_pikachu` 등)은 공개 저장소 코드에 그대로 남는다 — 없애려면 세이브 마이그레이션(옛 id → 새 id, 도감·파티·반려·연성·승화 기록)이 필요해 사용자 결정 대기. HANDOFF·README 의 옛 이름은 이력이라 안 고침.
+- 진단(jsdom): 사가고 673/675 · 사가블로 420/420 · 사가의숲 376/377 · 사가스토리 244/245 · 사가국지 249/249 — 실패 넷은 전부 이전부터 있던 jsdom 한계(Request·깃발 캔버스·화면 넷 분할). sw 다섯 판 한 칸씩 올림.

@@ -393,16 +393,16 @@
     'pet:form:horse': ['assets/models/animals/Horse.glb', 'assets/models/animals/Horse_White.glb'],
     /* 두꺼비 — easy_enemies_pack 의 Frog */
     'pet:form:toad': 'assets/models/animals/Frog.glb',
-    /* 용 형태(청룡·순룡·화룡·이무기) — CC0 용 모델이 없어 파충류로 가장 가까운
+    /* 용 형태(청룡·누렁날개·노을용·물이무기) — CC0 용 모델이 없어 파충류로 가장 가까운
        공룡 넷으로 돌려 쓴다(사슴보다 훨씬 낫다는 판단) */
     'pet:form:dragon': ['assets/models/animals/Trex.glb', 'assets/models/animals/Triceratops.glb',
       'assets/models/animals/Stegosaurus.glb', 'assets/models/animals/Velociraptor.glb'],
-    /* 오우거 형태(도깨비·그늘귀·만권·의조) — Quaternius `Ultimate Monsters`
+    /* 오우거 형태(도깨비·어둑귀·고깔도사·별손님) — Quaternius `Ultimate Monsters`
        팩(CC0, `github.com/511action/descent-3d-assets` 미러). 사람 모양
        악마·오크라 오우거·도깨비의 결에 사슴보다 훨씬 가깝다 */
     'pet:form:ogre': ['assets/models/animals/Orc.gltf', 'assets/models/animals/Demon.gltf',
       'assets/models/animals/BlueDemon.gltf'],
-    /* 거북 형태(현무·물뿜이·나룻고래) — 2026-09-07, 리깅된 CC0 거북을 못 찾아
+    /* 거북 형태(현무·뿔낙지·겹날주머니) — 2026-09-07, 리깅된 CC0 거북을 못 찾아
        한동안 정지 모델(Poly by Google → Polygonal Mind)을 거쳐 왔다. 사용자가
        "꼭 거북 모양일 필요 없다, 움직이는 걸로"로 정해 뱀(easy_enemies_pack,
        CC0)으로 바꿨다 — 현무가 애초에 "거북과 뱀"을 합친 신수(PLAN 원문)라

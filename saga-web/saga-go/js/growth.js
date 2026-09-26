@@ -42,8 +42,8 @@
     pt_tiger:      { to: 'pt_baekho',      herb: 50,  why: '산군(山君)이 사신(四神)의 자리에 오른다' },
     pt_crane:      { to: 'pt_jujak',       herb: 50,  why: '선비의 벗이 남방의 붉은 새가 된다' },
     pt_bear:       { to: 'pt_bulgasari',   herb: 25,  why: '쇠를 먹고 자란다' },
-    pk_charmander: { to: 'pk_charizard',   herb: 100, why: '꼬리의 불꽃이 날개를 얻는다' },
-    pk_magikarp:   { to: 'pk_gyarados',    herb: 100, why: '"언젠가는" 하던 그 언젠가' }
+    pk_charmander: { to: 'pk_charizard',   herb: 100, why: '뿔도롱이 노을을 삼켜 날개를 얻는다' },
+    pk_magikarp:   { to: 'pk_lapras',      herb: 100, why: '날주머니 둘이 한 몸이 된다' }
   };
 
   /* ── 세이브 칸 ────────────────────────────────────────── */

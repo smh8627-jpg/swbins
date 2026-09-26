@@ -443,7 +443,7 @@ SAGA WEB.md "F. 소품" 목록의 "초"·"병". 계단과 같은 KayKit 팩에�
 **펫(짐승)은 처음부터 빠져 있었다**(`kind !== 'hero'`면 곧바로 되돌아가게
 짜여 있었다). 사용자가 "도감 일러스트 실사화 확인해줘"로 감사를 시작 —
 펫 41종을 나눠 보니 신수(神獸) 11종(삼족오·해태·청룡·백호…)과 포켓몬
-오마주 16종(번개볼·불꼬리…)은 창작물이라 CC0 모델이 있을 리 없어 손 안
+창작 짐승 16종(방아토끼·뿔도롱…, 옛 오마주 자리)은 창작물이라 CC0 모델이 있을 리 없어 손 안
 대고, **실제 동물 14종만** 채웠다(사용자가 이 범위로 골랐다).
 
 ### 새로 받은 것 — Poly Pizza (poly.pizza)
@@ -1898,6 +1898,6 @@ Orc·Demon 은 Ultimate Monsters). 사용자 결정("사가고처럼 대역 입�
 | 현무 | Snake | 
 | 도깨비 | Orc |
 | 불가사리 | **Elephant**(쇠를 먹는 코끼리 코 짐승) |
-| 싹등이·불꼬리·물뿜이·뜀잉어·번개볼·떡잎이 | Mushnub·Dino·Squidle·Glub·Bunny·Monkroose |
-| 늘보소라·그늘귀·누운산·나룻고래·만권 | Pink_Slime·Ghost·Yeti·Glub_Evolved·Wizard |
-| 순룡·화룡·이무기·의조·시조 | Alpaking·Dragon·Snake_angry·Alien_2(두발 외계인 — 방울형 Alien 은 사가고 들판 적과 같은 파일이라 피함)·Cat(괴물 고양이) |
+| 삿갓동이·뿔도롱·뿔낙지·날주머니·방아토끼·이끼잔나비 | Mushnub·Dino·Squidle·Glub·Bunny·Monkroose |
+| 묵방울·어둑귀·눈머리·겹날주머니·고깔도사 | Pink_Slime·Ghost·Yeti·Glub_Evolved·Wizard |
+| 누렁날개·노을용·물이무기·별손님·복고양이 | Alpaking·Dragon·Snake_angry·Alien_2(두발 외계인 — 방울형 Alien 은 사가고 들판 적과 같은 파일이라 피함)·Cat(괴물 고양이) |
