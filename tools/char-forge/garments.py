@@ -339,8 +339,9 @@ GARMENTS = {
     # 카바 — 무릎 길이 비스듬히 여민 겉옷·끝동·허리 띠 + 헐렁한 바지(서역·페르시아 학자·의원)
     'qaba': dict(desc='카바 — 무릎 겉옷·비스듬한 여밈·허리 띠·헐렁한 바지', tags=['robe', 'historical', 'world'],
                  colors=dict(C1='#3a5a6a', C2=GOLD), parts=[
-        dict(kind='leggings', top=('crotch', 0.01), bottom=('ankle', 0.03), ease=0.04, flare=-0.2, slot=5, paint=dict(base='#e6dfcc', pattern='weave')),
-        dict(kind='tube', top=('neck', 0), bottom=('knee', 0.02), ease=0.02, flare=0.3, folds=0.02, slot=0,
+        # 바지는 자락 속 — 여유 4cm 면 허벅지에서 자락(2cm)을 뚫고 상아색 얼룩으로 보였다(09-26 렌더). 자락은 바지 위에 over 로 겹친다
+        dict(kind='leggings', top=('crotch', 0.01), bottom=('ankle', 0.03), ease=0.022, flare=-0.1, slot=5, paint=dict(base='#e6dfcc', pattern='weave')),
+        dict(kind='tube', top=('neck', 0), bottom=('knee', 0.02), ease=0.02, over=0.02, flare=0.3, folds=0.02, slot=0,
              paint=dict(base='C1', pattern='weave', trims=[('cross', 'C2', 1.0), ('top', 0.012, 'C2'), ('bottom', 0.015, 'C2')])),
         dict(kind='sleeves', length=1.0, ease=0.016, drop=0.03, cuff=0.015, slot=2, paint=dict(base='C1', pattern='weave', trims=[('top', 0.04, 'C2')])),
         dict(kind='band', at=('waist', 0.02), width=0.06, over=0.03, slot=3, paint=dict(base='C2', pattern='weave')),
