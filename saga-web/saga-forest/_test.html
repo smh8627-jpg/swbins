@@ -301,7 +301,7 @@ window.DG_NO_TUNE = true;
     });
 
     t('vroid-variant — 머리카락 하이라이트 띠(천사 고리): _HAIR 재질에만, 툰 템플릿 자리에 꽂히고 림과 함께 산다, 손잡이 끄면 없음', function () {
-      /* 2026-09-23 "원신급" — 화면 기준 법선의 위쪽 성분이 일정 범위인 곳(머리를 가로로 두르는 띠)에 밝기 비례 광택.
+      /* 2026-09-23 "고품질 셀 셰이딩급" — 화면 기준 법선의 위쪽 성분이 일정 범위인 곳(머리를 가로로 두르는 띠)에 밝기 비례 광택.
          렌더 결과는 스크래치 확인 페이지 스크린샷으로 맞췄다 — 여기선 셰이더가 제자리에 꽂히는지·손잡이만 본다 */
       var V = DG.vroidVariant, TH = window.THREE, TN = DG.toon3d, C = DG.core;
       var toon = !TN.TOON_ON || TN.TOON_ON();
@@ -334,7 +334,7 @@ window.DG_NO_TUNE = true;
     });
 
     t('vroid-variant — shade: VRM 의 빛 안 받는 재질을 툰으로(이름 유지 → 색 변형이 먹는다), 얼굴에만 머리뼈 기준 얼굴 그림자', function () {
-      /* 2026-09-23 "원신급" — VRM(unlit → MeshBasic)이 네 판에서 명암 없이 평면으로 떴고, 사가의숲은 툰 재질에
+      /* 2026-09-23 "고품질 셀 셰이딩급" — VRM(unlit → MeshBasic)이 네 판에서 명암 없이 평면으로 떴고, 사가의숲은 툰 재질에
          이름이 안 옮겨져 색 변형이 한 칸도 안 먹었다. 실제 GLB 처럼 MeshBasic + 뼈대로 조립해 잰다 */
       var V = DG.vroidVariant, TH = window.THREE, TN = DG.toon3d, C = DG.core;
       function avatar() {
@@ -648,7 +648,7 @@ window.DG_NO_TUNE = true;
       return before === 1 && '손잡이를 끄면 자식 그대로 1개';
     });
 
-    /* ── VRM 애니메 아바타 뼈 매핑 (2026-09-19, §"원신급" 요청 ②) ─────── */
+    /* ── VRM 애니메 아바타 뼈 매핑 (2026-09-19, §"고품질 셀 셰이딩급" 요청 ②) ─────── */
 
     t('asset3d.boneNameMap — VRM(J_Bip_*) 몸은 항등 매칭이 0개라 VRM_TO_UAL1_BONES 표로 보충된다', function () {
       var A3 = DG.asset3d;

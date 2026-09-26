@@ -175,7 +175,7 @@
        우선"). 아래는 위 14종처럼 한반도 설화 동물은 아니지만(이국·관상용·
        고생물), 이미 판다처럼 비한반도 동물도 이 자리에 섞여 있었다.
        `id`는 `pt_<asset3d.js REG 키>`로 그대로 맞춰 3D가 저절로 물린다
-       — 사가블로 밖 네 판은 이 REG가 없어 신수·포켓몬 27종이 이미 그래
+       — 사가블로 밖 네 판은 이 REG가 없어 신수·창작 짐승 27종이 이미 그래
        왔듯 그림 없이 이름·이모지만 뜬다(기존과 같은 동작, 회귀 아님). */
     { id: 'pt_fox',       name: '여우',       kind: 'beast', rarity: 3, emoji: '🦊', catchBase: 0.46, bonus: { stat: 'wisdom',  value: 5 }, desc: '꾀가 많아 쉽사리 안 잡힌다.' },
     { id: 'pt_dolphin',   name: '돌고래',     kind: 'beast', rarity: 3, emoji: '🐬', catchBase: 0.40, bonus: { stat: 'wisdom',  value: 6 }, desc: '무리 지어 뱃길을 따라온다.' },
@@ -242,8 +242,8 @@
     { id: 'pt_yellow_tang', name: '노랑탱돔', kind: 'beast', rarity: 2, emoji: '🐠', catchBase: 0.56, bonus: { stat: 'wisdom',  value: 4 }, desc: '샛노란 빛깔이 산호밭에서 눈에 띈다.' },
     { id: 'pt_zebra_clown_fish', name: '줄무늬흰동가리', kind: 'beast', rarity: 2, emoji: '🐠', catchBase: 0.56, bonus: { stat: 'virtue',  value: 4 }, desc: '흰동가리보다 줄이 하나 더 있다.' },
 
-    // ── 포켓몬 ─────────────────────────────────────────────
-    // 원작(포켓몬GO)에서 건너온 손님들. 전설급은 신수(divine) 자리에 앉힌다.
+    // ── 창작 짐승 열여섯 ───────────────────────────────────
+    // 2026-09-26 옛 오마주 자리를 새 종으로(id 는 세이브 호환으로 그대로). 전설급은 신수(divine) 자리에 앉힌다.
     { id: 'pk_bulbasaur', name: '삿갓동이',   kind: 'beast',  rarity: 2, emoji: '🍄', catchBase: 0.66, bonus: { stat: 'virtue',  value: 3 }, desc: '비 갠 뒤 숲 그늘에서 푸른 삿갓을 쓰고 걸어 나온다.' },
     { id: 'pk_charmander', name: '뿔도롱',    kind: 'beast',  rarity: 2, emoji: '🦎', catchBase: 0.64, bonus: { stat: 'might',   value: 3 }, desc: '이마의 뿔 하나로 바위를 긁어 제 길을 낸다.' },
     { id: 'pk_squirtle',  name: '뿔낙지',     kind: 'beast',  rarity: 2, emoji: '🦑', catchBase: 0.66, bonus: { stat: 'command', value: 3 }, desc: '갯바위 틈에 살며 긴 팔로 먹이를 끌어당긴다.' },

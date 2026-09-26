@@ -84,7 +84,7 @@
   ];
   var ANIM_SRC = ANIM_DIR + 'UAL1_Standard.glb';
 
-  /* 2026-09-20 — "원신급" VRM 애니메 아바타(사가의숲 asset3d.js에서 먼저 만든 것,
+  /* 2026-09-20 — "고품질 셀 셰이딩급" VRM 애니메 아바타(사가의숲 asset3d.js에서 먼저 만든 것,
      경위는 saga-forest HANDOFF.md 2026-09-19 절)를 이 판에도 옮긴다. VRoid Studio
      공식 CC0 샘플 AvatarSample_A/B/C(github.com/madjin/vrm-samples) + 이 저장소가
      GUI 자동화로 새로 빚은 avatar_custom_01. **위 MPFB와 같은 이유로 리타깃을
@@ -427,7 +427,7 @@
          `acquire()`와 같은 줄을 그대로 가져왔다(그쪽은 이미 실전 검증됨) */
       c.clips = gltf.animations || [];
       /* 2026-09-23 — VRoid(unlit → MeshBasic)는 delam 이 안 보는 재질이라 명암 없이 평면으로 떴다.
-         먼저 툰 + 원신식 얼굴 그림자로 바꾼다(다섯 판 공용 vroid-variant.js) */
+         먼저 툰 + 오픈월드 RPG식 얼굴 그림자로 바꾼다(다섯 판 공용 vroid-variant.js) */
       if (global.DG.vroidVariant && global.DG.vroidVariant.shade) { global.DG.vroidVariant.shade(gltf.scene, url); }
       delam(gltf.scene);
       flush(c, c);

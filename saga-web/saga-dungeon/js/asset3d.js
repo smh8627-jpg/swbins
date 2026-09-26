@@ -92,7 +92,7 @@
     })
   );
 
-  /* 2026-09-20 — "원신급" VRM 애니메 아바타(사가의숲 asset3d.js에서 먼저 만든 것,
+  /* 2026-09-20 — "고품질 셀 셰이딩급" VRM 애니메 아바타(사가의숲 asset3d.js에서 먼저 만든 것,
      경위는 saga-forest HANDOFF.md 2026-09-19 절)를 이 판에도 옮긴다. VRoid Studio
      공식 CC0 샘플 AvatarSample_A/B/C(github.com/madjin/vrm-samples) + 이 저장소가
      GUI 자동화로 새로 빚은 avatar_custom_01 — 넷 다 사가의숲과 같은 파일(md5 동일,
@@ -503,7 +503,7 @@
        미러로 받음 — 개별 몬스터 45종, 클립 이름이 `CharacterArmature|Idle`처럼
        `|` 로 묶여 있는데 `mapClips()`의 `normName()`이 이미 그 구분자를
        걷어내게 돼 있어(사가고에서부터 있던 처리) 그대로 받는다). 표시 이름은
-       원작 포켓몬류를 연상시키는 것(Alpaking·Armabee 등)이 섞여 있으니
+       수집 몬스터류를 연상시키는 것(Alpaking·Armabee 등)이 섞여 있으니
        실제 게임에 노출할 때 이름 정책(CLAUDE.md, 가명)을 지킨다 — 여기 키는
        내부 식별자일 뿐 화면에 그대로 안 띄운다. */
     'monster:alien': PEOPLE_MONSTERS_Q + 'Alien_0bb74be9.glb',
@@ -620,7 +620,7 @@
     'monster:demon_green': 'assets/models/monsters/quaternius_cute/GreenDemon.glb',
     /* 2026-09-04 — 도감(펫) 초상 실사화. "코드로 그리지 말고 에셋으로"가
        인물 초상은 이미 되는데(`portrait3d.js`) 펫(짐승)은 여태 빠져 있었다.
-       펫 41종 중 신수(神獸) 11종·포켓몬 오마주 16종은 CC0로 존재할 리 없는
+       펫 41종 중 신수(神獸) 11종·창작 짐승(옛 오마주) 16종은 CC0로 존재할 리 없는
        창작물이라 손 안 대고, **실제 동물 14종만** 이번에 채운다. `pet:` 로
        묶어 들판 소품(`beast`=늑대, `beast_big`=소)과는 다른 자리임을 표시한다.
        출처는 `assets/ASSET_LICENSES.md` "도감(펫) 초상" 절 참고 */
@@ -715,7 +715,7 @@
     /* 2026-09-25 — **대역도 종마다 한 벌**(tools/asset-audit/CHARACTER_UNIQUENESS.md ④): 신수·오마주·까치 28종이 서로 안 겹친다 —
        Quaternius "Ultimate Monsters"(CC0) 열여덟 벌(용·유령·예티·버섯이…) + 코끼리(불가사리) · 범·여우·말·흰말은 같은 종이라 그 모델.
        다섯 판 같은 배정(사가고 asset3d.js 주석). 아래는 옛 경위.
-       신수·포켓몬 오마주 대역(2026-09-23, 사용자 "사가고처럼 대역 입히기") — CC0 로 있을 리 없는 창작물이라 예전엔 뺐다.
+       신수·창작 짐승(옛 오마주) 대역(2026-09-23, 사용자 "사가고처럼 대역 입히기") — CC0 로 있을 리 없는 창작물이라 예전엔 뺐다.
        사가고가 형태별 풀에서 id 해시로 고른 것과 **같은 모델**을 입힌다(해태=당나귀·청룡=스테고사우루스 등, 세 판이 같은 대역).
        이 판에 없던 여섯(Birb·Pigeon·Snake 둘·Orc·Demon)만 사가고에서 `standin/` 으로 복사, 나머지는 이미 있는 같은 종 모델 */
     'pet:samjogo': STANDIN + 'Birb.glb',
@@ -1247,7 +1247,7 @@
         if (toon) {
           nm = TN.toonify(m);
           nm.side = t.DoubleSide;   // 이 판의 방침(위 주석) — 툰이어도 그대로 지킨다
-          /* 2026-09-23 "원신급" 2단계 — 배우(사람·짐승·몬스터)에만 밝기 비례 림 라이트(toon3d.applyRimLight) */
+          /* 2026-09-23 "고품질 셀 셰이딩급" 2단계 — 배우(사람·짐승·몬스터)에만 밝기 비례 림 라이트(toon3d.applyRimLight) */
           if (TN.applyRimLight && isActorAsset(url)) { TN.applyRimLight(nm); }
         } else {
           /* vertexColors 를 안 옮기면(정점빛깔로 색을 주고 baseColorFactor 는
@@ -1352,7 +1352,7 @@
           inflight--;
           c.state = 'ok'; c.gltf = gltf;
           /* 2026-09-23 — VRoid(unlit → MeshBasic)는 delam 이 안 보는 재질이라 명암 없이 평면으로 떴다.
-             먼저 툰 + 원신식 얼굴 그림자로 바꾼다(다섯 판 공용 vroid-variant.js). 외곽선은 아래 delam 이 그대로 두른다 */
+             먼저 툰 + 오픈월드 RPG식 얼굴 그림자로 바꾼다(다섯 판 공용 vroid-variant.js). 외곽선은 아래 delam 이 그대로 두른다 */
           if (global.DG.vroidVariant && global.DG.vroidVariant.shade) { global.DG.vroidVariant.shade(gltf.scene, url); }
           delam(gltf.scene, url);
           c.clips = gltf.animations || [];

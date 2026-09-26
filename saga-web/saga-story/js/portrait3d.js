@@ -67,7 +67,7 @@
    *  CC0 모델이 없다(다섯 판 통틀어 있는 개는 셰퍼드형 셋(늑대·시바·허스키)
    *  뿐, 소형견 없음) — 억지로 셋 중 하나를 물리면 오히려 "발바리인데
    *  중형견 몸"으로 더 어긋나 보이므로, 2D 그림 그대로 둔다. */
-  /* 2026-09-23 — 실제 동물 펫 전부로 넓힘(asset3d `critter:*`, 사가블로 모델 복사). 신수·포켓몬 오마주는 여전히 없다 */
+  /* 2026-09-23 — 실제 동물 펫 전부로 넓힘(asset3d `critter:*`, 사가블로 모델 복사). 신수·창작 짐승(옛 오마주)는 여전히 없다 */
   var PET_MAP = {
     pt_alpaca: 'critter:alpaca', pt_anglerfish: 'critter:anglerfish', pt_apatosaurus: 'critter:apatosaurus',
     pt_armored_catfish: 'critter:armored_catfish', pt_bear: 'critter:bear', pt_betta: 'critter:betta',
@@ -118,7 +118,7 @@
   }
 
   /** 카메라를 어디에 두나 — **키 1 로 눕힌 모델** 기준의 순수 계산이다 */
-  /** 2026-09-23 "원신급" — 사람 초상은 **흉상**(가슴 위). 예전 구도(머리~허벅지)는 카드에서 얼굴이 작았다.
+  /** 2026-09-23 "고품질 셀 셰이딩급" — 사람 초상은 **흉상**(가슴 위). 예전 구도(머리~허벅지)는 카드에서 얼굴이 작았다.
    *  손잡이 `portrait3d.bust`(0 이면 예전 구도). 키 1 모델에서 0.65~1.07 쯤이 카드 세로에 들어온다 */
   function BUST() {
     var c = global.DG && global.DG.core;

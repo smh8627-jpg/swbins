@@ -134,7 +134,7 @@
     return null;
   }
 
-  /** 이름이 있으면 "가 볼 이름난 자리" 후보 — PLAN 47·48절, 젤다식 구경거리 */
+  /** 이름이 있으면 "가 볼 이름난 자리" 후보 — PLAN 47·48절, 오픈월드 모험식 구경거리 */
   function nameOf(tags) {
     if (!tags) { return null; }
     if (tags.name && (tags.place || tags.natural === 'peak' || tags.tourism || tags.historic)) {

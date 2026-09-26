@@ -201,7 +201,7 @@
     /* 지난 승급의 특성 카드를 아직 안 골랐다 — 고르거나 물려야 다음 승급이 열린다(perk.js) */
     if (global.DG.perk && global.DG.perk.pending(id)) { return { ok: false, why: '특성 카드부터' }; }
     var c = rankUpCost(g.rank);
-    /* 지역 특산물(cooking.js, PLAN §5 ⑲-6) — 원신 돌파 문법. 그 모듈이 없으면 예전 그대로 */
+    /* 지역 특산물(cooking.js, PLAN §5 ⑲-6) — 오픈월드 RPG 돌파 문법. 그 모듈이 없으면 예전 그대로 */
     var sp = global.DG.cooking ? global.DG.cooking.rankNeed(id, g.rank) : null;
     if (sp) { c.sp = sp; }
     /* 들판 보스 재료(fieldboss.js, PLAN §5 ⑲-10) — 승급 ★2 부터. 그 모듈이 없으면 예전 그대로 */

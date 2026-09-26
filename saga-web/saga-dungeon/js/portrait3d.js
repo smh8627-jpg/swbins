@@ -65,7 +65,7 @@
    * 낮은 곳을 보고(look 낮춤) 옆모습에 가깝게(yaw 키움)** 잡는다.
    */
   var UNIT = 42;               // pump() 가 buildHero·build 에 주는 키(mul) 값과 같다
-  /** 2026-09-23 "원신급" — 사람 초상은 **흉상**(가슴 위). 예전 구도(머리~허벅지)는 카드에서 얼굴이 작았다.
+  /** 2026-09-23 "고품질 셀 셰이딩급" — 사람 초상은 **흉상**(가슴 위). 예전 구도(머리~허벅지)는 카드에서 얼굴이 작았다.
    *  손잡이 `portrait3d.bust`(0 이면 예전 구도). 키 1 모델에서 0.65~1.07 쯤이 카드 세로에 들어온다 */
   function BUST() {
     var c = global.DG && global.DG.core;
@@ -329,7 +329,7 @@
    * 원인이었다).
    */
   /** 펫 id → `asset3d.js` 표의 키. 2026-09-04, 도감 초상 실사화 —
-   *  실제 동물 14종만 채운다(신수·포켓몬 오마주는 CC0 모델이 없어 뺀다) */
+   *  실제 동물 14종만 채운다(신수·창작 짐승(옛 오마주)는 CC0 모델이 없어 뺀다) */
   var PET_ASSET = {
     pt_jindo: 'pet:jindo', pt_sapsal: 'pet:sapsal', pt_tiger: 'pet:tiger',
     pt_bear: 'pet:bear', pt_magpie: 'pet:magpie', pt_crane: 'pet:crane',
@@ -403,7 +403,7 @@
   /** 줄에 올린다. `asset3d.buildHero`(인물)·`asset3d.build`(펫)가 준 껍데기는
    *  GLB 가 오는 순간 안이 갈리는데, 그 순간을 알려 주지 않으므로 잠깐씩
    *  다시 본다(최대 여남은 번). 2026-09-04 — 펫(`kind==='pet'`)도 받는다,
-   *  단 CC0 모델이 있는 실제 동물 14종(`PET_ASSET`)뿐이다 — 신수·포켓몬
+   *  단 CC0 모델이 있는 실제 동물 14종(`PET_ASSET`)뿐이다 — 신수·몬스터
    *  오마주는 표에 없어 `pump()`가 곧바로 포기하고 도형 그림으로 남는다 */
   function warm(kind, ref, w, h) {
     if (diskOf(kind, ref, w, h)) { return false; }      // 구워 둔 파일이 있으면 다시 안 굽는다

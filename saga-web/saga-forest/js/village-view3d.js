@@ -73,7 +73,7 @@
     }
     return FOG_ON();
   }
-  /** 하늘 그라디언트(2026-09-19, "원신급" 요청 이어서 ③환경 레버) — PLAN §6.1
+  /** 하늘 그라디언트(2026-09-19, "고품질 셀 셰이딩급" 요청 이어서 ③환경 레버) — PLAN §6.1
    *  이 예전부터 적어 둔 "camTiltMix 를 낮추는 게 아니라 원경 안개·하늘
    *  그라디언트로 지평선을 밝게" 를 실제로 얹는다. **기본 켬**(1) — 안개
    *  (기본 꺼짐)와 달리 그림자·InstancedMesh 처럼 드로우콜을 늘리는 게
@@ -448,7 +448,7 @@
   var INST_KIND = { weed: 1, flower: 1, mushroom: 1, herb: 1, plant: 1, stump: 1, log: 1, bush: 1 };
 
   /**
-   * 2026-09-09 — 원작(동물의숲)처럼 계절이 나무 겉모습을 바꾼다("남은 일 표"의
+   * 2026-09-09 — 원작처럼 계절이 나무 겉모습을 바꾼다("남은 일 표"의
    * 가을·눈·자작나무 항목). `tree:common`(2D 'tree' kind)·`tree:pine`(2D 'pine'
    * kind) 둘만 대상이다 — 봄·여름은 기존 실사 나무 그대로(회귀 없음), 가을·겨울만
    * `asset3d.js`에 준비된 저다각형 표(`:autumn`/`:snow`, 자작나무는 tree:common
@@ -750,7 +750,7 @@
   var weatherClock = 0;
   var RAIN_N = 140, RAIN_H = 14, RAIN_SPEED = 9;
   var SNOW_N = 90, SNOW_H = 12, SNOW_SPEED = 1.6;
-  /* 2026-09-19 — "원신급" 요청 이어서 파티클 확장: 40→64. Points 는 드로우콜
+  /* 2026-09-19 — "고품질 셀 셰이딩급" 요청 이어서 파티클 확장: 40→64. Points 는 드로우콜
      하나뿐이라(정점 수만 늘어남) 이 정도 증가는 QUALITY_PRESET 등급과 무관하게
      저사양에서도 무리 없다고 보고 등급별 분기는 안 뒀다 — 체감 무거우면
      다음에 QUALITY_PRESET 표에 편입 */
@@ -817,7 +817,7 @@
       pts.visible = false;
       pts.userData.base = base;
       pts.userData.spreadY = spreadY;
-      /* 반딧불이 반짝임(§ "원신급" 요청 이어서) — 정점색을 밝기 스칼라로
+      /* 반딧불이 반짝임(§ "고품질 셀 셰이딩급" 요청 이어서) — 정점색을 밝기 스칼라로
          써서(vertexColors, 세 채널 같은 값) 재질 고유색(노란빛)에 곱해진다.
          `floatStep(pts, true)` 가 매 프레임 이 값을 위아래 흔들림과 같은
          sin 계열로 다시 먹인다(위상만 다르게 줘 흔들림과 안 겹친다) */
@@ -1252,12 +1252,12 @@
    *  완전히 안 맞물린다(진폭이 4.5cm 뿐이라 눈에 크게 띄진 않는다). 물 전체를
    *  하나의 큰 평면으로 잇는 편이 이음매는 없겠지만 지금의 칸별 InstancedMesh
    *  구조를 갈아엎어야 해서 이번엔 안 건드렸다 */
-  /** 물비늘 반짝임(2026-09-19, "원신급" 요청 이어서 §"물 재질도 다시 검토") —
+  /** 물비늘 반짝임(2026-09-19, "고품질 셀 셰이딩급" 요청 이어서 §"물 재질도 다시 검토") —
    *  **재질 자체(PBR+HDRI 반사)는 그대로 둔다**, "반사는 공짜로 얻는다"는
    *  기존 이유가 여전히 맞다(§waterMaterial 머리말). 대신 같은 `onBeforeCompile`
    *  자리에 프래그먼트 항 하나만 더해 — 월드 xz 를 격자로 잘라 칸마다
    *  해시 난수를 뽑고, 문턱값을 넘는 칸만 `uTime`에 따라 반짝이게 한다
-   *  (원신류 스타일라이즈드 물의 "표면에 잔별처럼 반짝이는" 인상). 손잡이
+   *  (셀 셰이딩 애니메풍 스타일라이즈드 물의 "표면에 잔별처럼 반짝이는" 인상). 손잡이
    *  `village3d.waterSparkle`(기본 1) — 꺼지면 예전 그대로 순수 PBR 반사뿐. */
   function WATER_SPARKLE_ON() { return C().tuned('village3d.waterSparkle', 1) ? true : false; }
   function waterMaterial(t, color, map) {
@@ -1477,7 +1477,7 @@
     camera.position.set(pos.x, pos.y, pos.z);
     camera.lookAt(0, PLAYER_H() * 0.75, 0);
 
-    /* 화각도 거리·높이와 함께 섞는다 — 좁아질수록(정사영에 가까워질수록) 디아블로류
+    /* 화각도 거리·높이와 함께 섞는다 — 좁아질수록(정사영에 가까워질수록) 핵앤슬래시류
        특유의 평평한 쿼터뷰가 된다. fov 가 안 바뀐 프레임엔 updateProjectionMatrix
        를 또 부르지 않는다(third 에 머물 때 매 프레임 헛일하지 않게) */
     var fov = camFov(camTiltMix, FOV(), ISO_FOV());

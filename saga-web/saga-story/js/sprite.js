@@ -374,7 +374,7 @@
         loadingMark(c, footX, footY, H, o.color);
       }
     }
-    /* 메이플풍은 여기서 한 번 훑는다 — 지도 위 스탬프는 어두운 배경에 서므로
+    /* 원작풍은 여기서 한 번 훑는다 — 지도 위 스탬프는 어두운 배경에 서므로
        실루엣만 진하게 둘러 형태가 묻히지 않게 한다 */
     if (!useImg || kind === 'beast') { storyize(cv, mapleOpts(H < 40)); }
     return { cv: cv, w: w, h: h, footX: footX, footY: footY, base: base, sc: sc, img: useImg };
@@ -457,7 +457,7 @@
     try { img = c.getImageData(0, 0, W, H); } catch (e) { return; }   // 오염된 캔버스면 그냥 둔다
     var d = img.data, n = W * H, i, q;
 
-    /* 색 처리 손잡이 — 그림책(story)과 메이플풍(maple)이 같은 훑기를 값만 달리 쓴다 */
+    /* 색 처리 손잡이 — 그림책(story)과 원작풍(maple)이 같은 훑기를 값만 달리 쓴다 */
     var sat = opts.sat === undefined ? 0.74 : opts.sat;
     var mulL = opts.mulL === undefined ? 0.90 : opts.mulL;
     var addL = opts.addL || [22, 20, 15];
@@ -472,7 +472,7 @@
       if (!a) { continue; }
       var r = d[q], g = d[q + 1], b = d[q + 2];
       var y = 0.299 * r + 0.587 * g + 0.114 * b;
-      r = y + (r - y) * sat;                     // 채도 (그림책은 낮추고, 메이플풍은 올린다)
+      r = y + (r - y) * sat;                     // 채도 (그림책은 낮추고, 원작풍은 올린다)
       g = y + (g - y) * sat;
       b = y + (b - y) * sat;
       r = r * mulL + addL[0]; g = g * mulL + addL[1]; b = b * mulL + addL[2];
@@ -543,7 +543,7 @@
   }
 
   /**
-   * 메이플풍 — 원작의 그림 문법을 옮긴 것이다(에셋은 가져오지 않는다).
+   * 원작풍 — 원작의 그림 문법을 옮긴 것이다(에셋은 가져오지 않는다).
    * 셋이 전부다: **채도를 올리고 · 색을 넓은 계단으로 눕히고 · 실루엣을 진하게 두른다.**
    * storyize() 와 같은 훑기를 값만 달리 쓴다 — 안쪽 선은 옅게 둬서
    * 플랫한 면이 살고, 실루엣만 굵게 둘러 밝은 배경에서도 형태가 또렷하다.

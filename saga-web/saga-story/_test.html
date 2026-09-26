@@ -4269,7 +4269,7 @@ window.DG_NO_TUNE = true;
     });
 
     t('vroid-variant — 머리카락 하이라이트 띠(천사 고리): _HAIR 재질에만, 툰 템플릿 자리에 꽂히고 림과 함께 산다, 손잡이 끄면 없음', function () {
-      /* 2026-09-23 "원신급" — 화면 기준 법선의 위쪽 성분이 일정 범위인 곳(머리를 가로로 두르는 띠)에 밝기 비례 광택.
+      /* 2026-09-23 "고품질 셀 셰이딩급" — 화면 기준 법선의 위쪽 성분이 일정 범위인 곳(머리를 가로로 두르는 띠)에 밝기 비례 광택.
          렌더 결과는 스크래치 확인 페이지 스크린샷으로 맞췄다 — 여기선 셰이더가 제자리에 꽂히는지·손잡이만 본다 */
       var V = DG.vroidVariant, TH = window.THREE, TN = DG.toon3d, C = DG.core;
       var toon = !TN.TOON_ON || TN.TOON_ON();
@@ -4302,7 +4302,7 @@ window.DG_NO_TUNE = true;
     });
 
     t('vroid-variant — shade: VRM 의 빛 안 받는 재질을 툰으로(이름 유지 → 색 변형이 먹는다), 얼굴에만 머리뼈 기준 얼굴 그림자', function () {
-      /* 2026-09-23 "원신급" — VRM(unlit → MeshBasic)이 네 판에서 명암 없이 평면으로 떴고, 사가의숲은 툰 재질에
+      /* 2026-09-23 "고품질 셀 셰이딩급" — VRM(unlit → MeshBasic)이 네 판에서 명암 없이 평면으로 떴고, 사가의숲은 툰 재질에
          이름이 안 옮겨져 색 변형이 한 칸도 안 먹었다. 실제 GLB 처럼 MeshBasic + 뼈대로 조립해 잰다 */
       var V = DG.vroidVariant, TH = window.THREE, TN = DG.toon3d, C = DG.core;
       function avatar() {
@@ -4373,7 +4373,7 @@ window.DG_NO_TUNE = true;
     });
 
     t('toon3d — 림 라이트(밝기 비례)가 툰 템플릿 자리에 다 꽂히고, cloneMat 사본도 달고 간다, 손잡이 끄면 없음', function () {
-      /* 2026-09-23 "원신급" 2단계 — three 의 기본 clone() 은 onBeforeCompile 을 떨궈, 맞으면 번쩍이는 사본(ownAllMat)이
+      /* 2026-09-23 "고품질 셀 셰이딩급" 2단계 — three 의 기본 clone() 은 onBeforeCompile 을 떨궈, 맞으면 번쩍이는 사본(ownAllMat)이
          림·VRoid 얼굴 그림자를 잃었다. cloneMat 이 그걸 옮긴다 */
       var TN = DG.toon3d, TH = window.THREE, C = DG.core, own = Object.prototype.hasOwnProperty;
       var m = TN.applyRimLight(TN.toonify(new TH.MeshStandardMaterial({ color: 0x808080 })));
@@ -4582,7 +4582,7 @@ window.DG_NO_TUNE = true;
       return on && others && 'anime 경로만 켜짐';
     });
 
-    t('초상 — 펫 105종 전부 3D 로 굽는다: 실제 동물은 제 모델, 신수·포켓몬 오마주는 사가고와 같은 대역', function () {
+    t('초상 — 펫 105종 전부 3D 로 굽는다: 실제 동물은 제 모델, 신수·창작 짐승(옛 오마주)는 사가고와 같은 대역', function () {
       /* 2026-09-23 — 예전엔 PET_MAP 9종뿐이라 나머지는 코드 그림 초상이었고, 그래서 human()/beast() 를 펫용으로 남겨 뒀다(이제 삭제) */
       var P3 = DG.portrait3d, D = DG.data, REG = DG.asset3d.REG(), S = DG.sprite;   // 이 판은 REG 가 함수
       var no = D.pets.filter(function (p) { return !P3.supports('pet', p); });

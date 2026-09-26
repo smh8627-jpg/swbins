@@ -1419,7 +1419,7 @@ window.requestAnimationFrame = function () { return 0; };
       return fired && hurt1 && hurt2 && (chainSk.name + ' — 둘 다 맞았다');
     });
 
-    /* ── 비결(秘訣, §5.9, `secret.js`) — 디아블로3 룬 자리 ────────────── */
+    /* ── 비결(秘訣, §5.9, `secret.js`) — 원작 3편 룬 자리 ────────────── */
 
     t('비결 — 다섯 가지, 무예 단수 1~5 마다 하나씩 열린다', function () {
       var SC = DG.secret;
@@ -3028,7 +3028,7 @@ window.requestAnimationFrame = function () { return 0; };
       return okd && ('금 ' + row.price + ' · 칸 다시 채움');
     });
 
-    /* ── 연단(鍊丹) — 원작의 호라드릭 큐브 ──────────────── */
+    /* ── 연단(鍊丹) — 원작의 조합 상자 ──────────────── */
 
     var FG = DG.forge;
 
@@ -4890,7 +4890,7 @@ window.requestAnimationFrame = function () { return 0; };
       return ok && (bs.length + '개 문, 전부 오른쪽 벽 자리');
     });
 
-    /* ── 전체 지도(자동지도) — M키식, 디아블로처럼(PLAN, 2026-09-06) ──
+    /* ── 전체 지도(자동지도) — M키식, 원작처럼(PLAN, 2026-09-06) ──
      * "M키 지도가 점만 보인다"는 지적으로 예전 오버월드 상자 그림을
      * minimap.js의 blips·norm 재사용 큰 판으로 갈아 끼웠다. 그리기(canvas)는
      * 안 보고, 순수 계산(bigLayout)과 켜짐 상태만 여기서 본다.
@@ -5854,7 +5854,7 @@ window.requestAnimationFrame = function () { return 0; };
     });
 
     t('vroid-variant — 머리카락 하이라이트 띠(천사 고리): _HAIR 재질에만, 툰 템플릿 자리에 꽂히고 림과 함께 산다, 손잡이 끄면 없음', function () {
-      /* 2026-09-23 "원신급" — 화면 기준 법선의 위쪽 성분이 일정 범위인 곳(머리를 가로로 두르는 띠)에 밝기 비례 광택.
+      /* 2026-09-23 "고품질 셀 셰이딩급" — 화면 기준 법선의 위쪽 성분이 일정 범위인 곳(머리를 가로로 두르는 띠)에 밝기 비례 광택.
          렌더 결과는 스크래치 확인 페이지 스크린샷으로 맞췄다 — 여기선 셰이더가 제자리에 꽂히는지·손잡이만 본다 */
       var V = DG.vroidVariant, TH = window.THREE, TN = DG.toon3d, C = DG.core;
       var toon = !TN.TOON_ON || TN.TOON_ON();
@@ -5887,7 +5887,7 @@ window.requestAnimationFrame = function () { return 0; };
     });
 
     t('vroid-variant — shade: VRM 의 빛 안 받는 재질을 툰으로(이름 유지 → 색 변형이 먹는다), 얼굴에만 머리뼈 기준 얼굴 그림자', function () {
-      /* 2026-09-23 "원신급" — VRM(unlit → MeshBasic)이 네 판에서 명암 없이 평면으로 떴고, 사가의숲은 툰 재질에
+      /* 2026-09-23 "고품질 셀 셰이딩급" — VRM(unlit → MeshBasic)이 네 판에서 명암 없이 평면으로 떴고, 사가의숲은 툰 재질에
          이름이 안 옮겨져 색 변형이 한 칸도 안 먹었다. 실제 GLB 처럼 MeshBasic + 뼈대로 조립해 잰다 */
       var V = DG.vroidVariant, TH = window.THREE, TN = DG.toon3d, C = DG.core;
       function avatar() {
@@ -5958,7 +5958,7 @@ window.requestAnimationFrame = function () { return 0; };
     });
 
     t('toon3d — 림 라이트(밝기 비례)가 툰 템플릿 자리에 다 꽂히고, cloneMat 사본도 달고 간다, 손잡이 끄면 없음', function () {
-      /* 2026-09-23 "원신급" 2단계 — three 의 기본 clone() 은 onBeforeCompile 을 떨궈, 맞으면 번쩍이는 사본(ownAllMat)이
+      /* 2026-09-23 "고품질 셀 셰이딩급" 2단계 — three 의 기본 clone() 은 onBeforeCompile 을 떨궈, 맞으면 번쩍이는 사본(ownAllMat)이
          림·VRoid 얼굴 그림자를 잃었다. cloneMat 이 그걸 옮긴다 */
       var TN = DG.toon3d, TH = window.THREE, C = DG.core, own = Object.prototype.hasOwnProperty;
       var m = TN.applyRimLight(TN.toonify(new TH.MeshStandardMaterial({ color: 0x808080 })));

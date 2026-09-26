@@ -55,7 +55,7 @@
   var PEOPLE = 'assets/models/people/regular/';
   /* 2026-09-19 — VRoid Studio 공식 CC0 샘플 아바타(AvatarSample_A/B/C,
      `github.com/madjin/vrm-samples`, 저작권 포기·상업 이용 무료·표시
-     의무 없음 확인). 애니메 비례(§"원신급" 요청 ②) 시험용 — pygltflib 로
+     의무 없음 확인). 애니메 비례(§"고품질 셀 셰이딩급" 요청 ②) 시험용 — pygltflib 로
      텍스처만 512px 이하로 줄였다(정점·스킨은 그대로, ASSET_LICENSES.md
      참고). VRM 뼈 이름(`J_Bip_*`)은 UAL1 과 안 맞아 `boneNameMap()`의
      VRM_TO_UAL1_BONES 표를 거쳐야 걷는다(아래 `retargetInto` 앞 참고) */
@@ -766,7 +766,7 @@
     });
   }
 
-  /** 2026-09-19 — VRoid CC0 샘플 아바타(§"원신급" 요청 ②인물 레버,
+  /** 2026-09-19 — VRoid CC0 샘플 아바타(§"고품질 셀 셰이딩급" 요청 ②인물 레버,
    *  `assets/models/people/anime/`). VRM 은 재질을 `KHR_materials_unlit`
    *  로 내보내 GLTFLoader 가 `MeshStandardMaterial`이 아니라
    *  `MeshBasicMaterial`로 읽는다 — 그래서 아래 `delam()`(Standard/Physical만
@@ -777,7 +777,7 @@
   function looksAnime(url) { return typeof url === 'string' && url.indexOf('/people/anime/') >= 0; }
   /* 2026-09-23 — 이 판 전용 몸통을 다섯 판 공용 `vroidVariant.shade()` 로 옮겼다: 옛 몸통은 새 재질에
      이름을 안 옮겨 인물 색 변형(`vroid-variant.js` apply — 재질 이름으로 머리·옷·눈을 고른다)이 한 칸도
-     안 먹었다. 공용 쪽은 이름·깊이쓰기를 지키고 원신식 얼굴 그림자까지 건다(툰이 꺼지면 예전처럼 Lambert) */
+     안 먹었다. 공용 쪽은 이름·깊이쓰기를 지키고 오픈월드 RPG식 얼굴 그림자까지 건다(툰이 꺼지면 예전처럼 Lambert) */
   function toonifyAnime(root, url) {
     var V = global.DG.vroidVariant;
     if (V && V.shade) { V.shade(root, url); }
@@ -955,7 +955,7 @@
   }
 
   /** VRM Humanoid(VRoid, `J_Bip_C/L/R_*`) → UAL1/UE 마네킹 이름 표(2026-09-19,
-   *  "원신급" 요청 ②인물 레버). 손가락은 뺐다 — UAL1 로코모션 클립이 손가락을
+   *  "고품질 셀 셰이딩급" 요청 ②인물 레버). 손가락은 뺐다 — UAL1 로코모션 클립이 손가락을
    *  안 건드려 굳이 안 옮겨도 무방하다(§PLAN 참고). `boneNameMap()`의 항등
    *  매칭이 하나도 안 걸리는 이 몸에만 덧붙는 보충표라, 기존 QRPG·MPFB(이미
    *  UAL1과 이름이 같아 항등만으로 되던 몸)는 이 표를 안 거친다 — 손 안 댐. */
@@ -1272,7 +1272,7 @@
     BUSH_STYLIZED: BUSH_STYLIZED,
     LOG_STYLIZED: LOG_STYLIZED,
     stats: function () { return { built: built, swapped: swapped, broke: broke }; },
-    /** 진단 전용 — VRM 애니메 아바타(§"원신급" 요청 ②) 손잡이·레시피·뼈 매핑표 조회 */
+    /** 진단 전용 — VRM 애니메 아바타(§"고품질 셀 셰이딩급" 요청 ②) 손잡이·레시피·뼈 매핑표 조회 */
     wantsAnimeAvatar: wantsAnimeAvatar, wantsOwnAnim: wantsOwnAnim,
     heroRecipesAnime: function () { return HERO_RECIPES_ANIME; },
     heroRecipesAnimeNpc: function () { return HERO_RECIPES_ANIME_NPC; },

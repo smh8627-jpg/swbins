@@ -176,7 +176,7 @@
     { key: 'mpfb_v23', body: PEOPLE_MPFB + 'v23.glb', realistic: true }   // young_caucasian_male2 + long01 + male_casualsuit01
   ]);
 
-  /* 2026-09-20 — "원신급" VRM 애니메 아바타(사가의숲 asset3d.js에서 먼저 만든 것,
+  /* 2026-09-20 — "고품질 셀 셰이딩급" VRM 애니메 아바타(사가의숲 asset3d.js에서 먼저 만든 것,
      경위는 saga-forest HANDOFF.md 2026-09-19 절)를 이 판에도 옮긴다. VRoid Studio
      공식 CC0 샘플 AvatarSample_A/B/C(github.com/madjin/vrm-samples) + 이 저장소가
      GUI 자동화로 새로 빚은 avatar_custom_01 — 넷 다 사가의숲과 같은 파일(md5 동일,
@@ -271,7 +271,7 @@
        `quad` 로 떨어져 네발 열 벌 중 id 해시로 하나를 입었다(고래가 사슴·흰동가리가 소·호랑이가 사슴 — 펫 초상
        다시 굽다 발견). 사가블로가 2026-09-07 "펫 100개" 로 받아 둔 Quaternius CC0 모델(범·곰·판다 등 8 +
        `animals_extra/` 11 + `animals_extra2/` 38, 출처 `assets/ASSET_LICENSES.md`)을 옮겨 오고, 이미 있던 모델은
-       그대로 이어 붙였다. 신수·포켓몬 오마주·까치(사용자가 정한 비둘기)는 여전히 아래 형태 표로 간다 */
+       그대로 이어 붙였다. 신수·창작 짐승(옛 오마주)·까치(사용자가 정한 비둘기)는 여전히 아래 형태 표로 간다 */
     'pet:pt_fox': 'assets/models/animals/Fox.glb',
     'pet:pt_bull': 'assets/models/animals/Bull.glb',
     'pet:pt_cow': 'assets/models/animals/Cow.glb',
@@ -1046,7 +1046,7 @@
       c.state = 'ok';
       c.gltf = gltf;
       /* 2026-09-23 — VRoid(unlit → MeshBasic)는 delam 이 안 보는 재질이라 명암 없이 평면으로 떴다.
-         먼저 툰 + 원신식 얼굴 그림자로 바꾼다(다섯 판 공용 vroid-variant.js). 외곽선은 아래 delam 이 그대로 두른다 */
+         먼저 툰 + 오픈월드 RPG식 얼굴 그림자로 바꾼다(다섯 판 공용 vroid-variant.js). 외곽선은 아래 delam 이 그대로 두른다 */
       if (global.DG.vroidVariant && global.DG.vroidVariant.shade) { global.DG.vroidVariant.shade(gltf.scene, url); }
       delam(gltf.scene, url);
       c.clips = gltf.animations || [];

@@ -120,7 +120,7 @@
     /* 도감 초상 3D화 — **실제 동물 펫 전부**(2026-09-23). 사가블로가 받아 둔 Quaternius CC0(범·곰·물고기·공룡 등)를
        `animals/`·`animals_extra/`·`animals_extra2/` 에 그대로 복사하고 키만 붙였다(출처는 사가블로 `ASSET_LICENSES.md`). 위 다섯 키
        (사슴·여우·소·시바·허스키)는 옆면 뷰가 부르므로 그대로 두고, 큰사슴·황소·젖소는 이제 제 모델이 있어 옮겼다(portrait3d PET_MAP).
-       발바리도 이제 Pug 가 있다(예전 "소형견 CC0 없음" 판단은 이걸로 풀림). 신수·포켓몬 오마주는 여전히 뺀다 */
+       발바리도 이제 Pug 가 있다(예전 "소형견 CC0 없음" 판단은 이걸로 풀림). 신수·창작 짐승(옛 오마주)는 여전히 뺀다 */
     'critter:tiger': ANIMALS + 'Tiger.glb',
     'critter:bear': ANIMALS + 'Bear.glb',
     'critter:magpie': STANDIN + 'Pigeon.glb',
@@ -197,7 +197,7 @@
     /* 2026-09-25 — **대역도 종마다 한 벌**(tools/asset-audit/CHARACTER_UNIQUENESS.md ④): 신수·오마주·까치 28종이 서로 안 겹친다 —
        Quaternius "Ultimate Monsters"(CC0) 열여덟 벌(용·유령·예티·버섯이…) + 코끼리(불가사리) · 범·여우·말·흰말은 같은 종이라 그 모델.
        다섯 판 같은 배정(사가고 asset3d.js 주석). 아래는 옛 경위.
-       신수·포켓몬 오마주 대역(2026-09-23, 사용자 "사가고처럼 대역 입히기") — CC0 로 있을 리 없는 창작물이라 예전엔 뺐다.
+       신수·창작 짐승(옛 오마주) 대역(2026-09-23, 사용자 "사가고처럼 대역 입히기") — CC0 로 있을 리 없는 창작물이라 예전엔 뺐다.
        사가고가 형태별 풀에서 id 해시로 고른 것과 **같은 모델**을 입힌다(해태=당나귀·청룡=스테고사우루스 등, 세 판이 같은 대역).
        이 판에 없던 여섯(Birb·Pigeon·Snake 둘·Orc·Demon)만 사가고에서 `standin/` 으로 복사, 나머지는 이미 있는 같은 종 모델 */
     'critter:samjogo': STANDIN + 'Birb.glb',
@@ -318,7 +318,7 @@
         /* 2026-09-17 — SAGA-DESIGN §6.1: 손잡이가 켜져 있으면 툰으로, 꺼지면 예전 Lambert */
         if (toon) {
           var tm = TN.toonify(m);
-          /* 2026-09-23 "원신급" 2단계 — 배우(사람·짐승)에만 밝기 비례 림 라이트(toon3d.applyRimLight) */
+          /* 2026-09-23 "고품질 셀 셰이딩급" 2단계 — 배우(사람·짐승)에만 밝기 비례 림 라이트(toon3d.applyRimLight) */
           if (TN.applyRimLight && isActorAsset(url)) { TN.applyRimLight(tm); }
           return tm;
         }
@@ -376,7 +376,7 @@
       c.state = 'ok';
       c.gltf = gltf;
       /* 2026-09-23 — VRoid(unlit → MeshBasic)는 delam 이 안 보는 재질이라 명암 없이 평면으로 떴다.
-         먼저 툰 + 원신식 얼굴 그림자로 바꾼다(다섯 판 공용 vroid-variant.js). 외곽선은 아래 delam 이 그대로 두른다 */
+         먼저 툰 + 오픈월드 RPG식 얼굴 그림자로 바꾼다(다섯 판 공용 vroid-variant.js). 외곽선은 아래 delam 이 그대로 두른다 */
       if (global.DG.vroidVariant && global.DG.vroidVariant.shade) { global.DG.vroidVariant.shade(gltf.scene, url); }
       delam(gltf.scene, url);
       c.clips = gltf.animations || [];
@@ -395,7 +395,7 @@
     return gltf.scene.clone(true);
   }
 
-  /* 2026-09-20 — "원신급" VRM 애니메 아바타(사가의숲 asset3d.js에서 먼저 만든 것,
+  /* 2026-09-20 — "고품질 셀 셰이딩급" VRM 애니메 아바타(사가의숲 asset3d.js에서 먼저 만든 것,
      경위는 saga-forest HANDOFF.md 2026-09-19 절)를 이 판에도 옮긴다. VRoid Studio
      공식 CC0 샘플 AvatarSample_A/B/C(github.com/madjin/vrm-samples) + 이 저장소가
      GUI 자동화로 새로 빚은 avatar_custom_01 — 넷 다 사가의숲과 같은 파일(md5 동일,

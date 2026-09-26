@@ -191,7 +191,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       return dup.length ? false : '고유 id ' + Object.keys(seen).length + '개';
     });
 
-    t('이 게임에 실린 것만 실려 있다 (포켓몬고식)', function () {
+    t('이 게임에 실린 것만 실려 있다 (원작식)', function () {
       /* 던전·장비는 saga-dungeon, 문답은 saga-quiz 로 갈라져 나갔다.
          경영(영지·건설)은 saga-quiz 가 맡는다. 여기는 걷기·조우·도감만. */
       var here = ['world', 'encounter', 'auto', 'hero', 'sprite'];
@@ -309,7 +309,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       return p.supplyMark <= p.distance && '기준점 보정 확인';
     });
 
-    /* ── 역참(驛站) — 원작의 포켓스탑 ─────────────────── */
+    /* ── 역참(驛站) — 원작의 보급 거점 ─────────────────── */
 
     t('역참 자리는 늘 같다 (좌표 해시)', function () {
       var a = DG.world.stationsIn(3, -2), b = DG.world.stationsIn(3, -2);
@@ -395,7 +395,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ('자동이 들러 등용서 ' + s0 + '→' + C.save.items.scroll);
     });
 
-    /* ── 적도(賊徒) — 원작의 로켓단 ─────────────────────
+    /* ── 적도(賊徒) — 원작의 악당 조직 ─────────────────────
        살피는 내내 **칸의 첫머리**에서 본다. 머무는 시간을 칸 첫머리부터 재므로,
        그냥 Date.now() 로 보면 진단이 **돌린 시각**에 끌려다닌다(토벌에서 밟은 함정). */
 
@@ -774,7 +774,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ('제한 20초 소진 · timeUsed ' + p.timeUsed);
     });
 
-    /* ── 들판 전투(野戰) — 원신식 (`field-combat.js`, PLAN §5 ⑨) ──────────
+    /* ── 들판 전투(野戰) — 오픈월드 RPG식 (`field-combat.js`, PLAN §5 ⑨) ──────────
      * 판정 층만 굴린다(화면·세이브 없음). 편성은 도감에 없는 id 를 써서 능력치를
      * 기본값(60·60·60 → 공격 60·체력 660·숙련 60)으로 고정한다. 원소는 손으로 박는다. */
     function fcState(ids) { return DG.fieldCombat.create(ids || ['fc_a']); }
@@ -1236,7 +1236,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       }
     });
 
-    /* ── 지역(地域) — 원신식 지역 지도 (`biome.js`, PLAN §5 ⑩) ────────── */
+    /* ── 지역(地域) — 오픈월드 RPG식 지역 지도 (`biome.js`, PLAN §5 ⑩) ────────── */
     function bmFind(biome) {
       var BM = DG.biome, best = null;
       for (var j = -8; j <= 8; j++) {
@@ -1600,7 +1600,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ('rogue.js가 그대로 먹는 모양 · dealt=' + p.dealt + ' · fold ' + f.length + '덩이');
     });
 
-    /* ── 전투를 더 잼나게 (2026-09-06, "몬스터헌터 나우처럼") ─────────
+    /* ── 전투를 더 잼나게 (2026-09-06, "실시간 위치 사냥 게임처럼") ─────────
      * 스태거(기절)·적 공격 패턴 다양화·연타 회심·차지 일격 넷을 도적전에 얹었다.
      * 넷 다 `rogue-action.js`의 판정 층에만 있고 화면 없이 값으로 굴려 본다.
      */
@@ -2713,7 +2713,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       return a === 1 && b === 2 && c === 0 && t3 && back && '0→1→2→0 · tilted3 클래스';
     });
 
-    t('3D 는 플레이어를 화면 아래쪽에 세운다 (포켓몬GO식)', function () {
+    t('3D 는 플레이어를 화면 아래쪽에 세운다 (원작식)', function () {
       C.save.settings.tilt = 1; W.resize();
       var y25 = W.project(0, 0).y;
       C.save.settings.tilt = 2; W.resize();
@@ -6637,7 +6637,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         '평상시 0개 · 길조 때 1개';
     });
 
-    /* -- 던전 (디아블로식) -- */
+    /* -- 던전 (핵앤슬래시식) -- */
 
     /* -- 장비 -- */
 
@@ -8309,7 +8309,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
     });
 
     t('vroid-variant — 머리카락 하이라이트 띠(천사 고리): _HAIR 재질에만, 툰 템플릿 자리에 꽂히고 림과 함께 산다, 손잡이 끄면 없음', function () {
-      /* 2026-09-23 "원신급" — 화면 기준 법선의 위쪽 성분이 일정 범위인 곳(머리를 가로로 두르는 띠)에 밝기 비례 광택.
+      /* 2026-09-23 "고품질 셀 셰이딩급" — 화면 기준 법선의 위쪽 성분이 일정 범위인 곳(머리를 가로로 두르는 띠)에 밝기 비례 광택.
          렌더 결과는 스크래치 확인 페이지 스크린샷으로 맞췄다 — 여기선 셰이더가 제자리에 꽂히는지·손잡이만 본다 */
       var V = DG.vroidVariant, TH = window.THREE, TN = DG.toon3d, C = DG.core;
       var toon = !TN.TOON_ON || TN.TOON_ON();
@@ -8342,7 +8342,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
     });
 
     t('vroid-variant — shade: VRM 의 빛 안 받는 재질을 툰으로(이름 유지 → 색 변형이 먹는다), 얼굴에만 머리뼈 기준 얼굴 그림자', function () {
-      /* 2026-09-23 "원신급" — VRM(unlit → MeshBasic)이 네 판에서 명암 없이 평면으로 떴고, 사가의숲은 툰 재질에
+      /* 2026-09-23 "고품질 셀 셰이딩급" — VRM(unlit → MeshBasic)이 네 판에서 명암 없이 평면으로 떴고, 사가의숲은 툰 재질에
          이름이 안 옮겨져 색 변형이 한 칸도 안 먹었다. 실제 GLB 처럼 MeshBasic + 뼈대로 조립해 잰다 */
       var V = DG.vroidVariant, TH = window.THREE, TN = DG.toon3d, C = DG.core;
       function avatar() {
@@ -8413,7 +8413,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
     });
 
     t('toon3d — 림 라이트(밝기 비례)가 툰 템플릿 자리에 다 꽂히고, cloneMat 사본도 달고 간다, 손잡이 끄면 없음', function () {
-      /* 2026-09-23 "원신급" 2단계 — three 의 기본 clone() 은 onBeforeCompile 을 떨궈, 맞으면 번쩍이는 사본(ownAllMat)이
+      /* 2026-09-23 "고품질 셀 셰이딩급" 2단계 — three 의 기본 clone() 은 onBeforeCompile 을 떨궈, 맞으면 번쩍이는 사본(ownAllMat)이
          림·VRoid 얼굴 그림자를 잃었다. cloneMat 이 그걸 옮긴다 */
       var TN = DG.toon3d, TH = window.THREE, C = DG.core, own = Object.prototype.hasOwnProperty;
       var m = TN.applyRimLight(TN.toonify(new TH.MeshStandardMaterial({ color: 0x808080 })));

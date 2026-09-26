@@ -44,7 +44,7 @@
    * 사람 스프라이트의 비례. 값은 키(H)에 대한 비율이다.
    *   headR 머리 반지름 · headY 머리 중심 · shoY 어깨 · hipY 골반
    *   leg 다리 길이 · arm 팔 길이 · thick 팔다리 굵기 배율
-   * 원작(동물의숲)처럼 2등신 고정이다.
+   * 원작처럼 2등신 고정이다.
    */
   var PROPS_NORMAL = { headR: 0.240, headY: 0.735, shoY: 0.500, hipY: 0.300, leg: 0.270, arm: 0.230, thick: 1.45 };
 
