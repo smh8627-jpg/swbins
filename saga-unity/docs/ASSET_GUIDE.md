@@ -609,3 +609,12 @@ GO와 같은 procgen 나무로 바꿨다 — 단, GO의 12종 변종 풀과 달�
 - **웹 판의 같은 스캔(`saga-web/*/assets/models/*/realistic/`)은 못 쓴다** — 웹용으로 `EXT_meshopt_compression`·`EXT_texture_webp` 압축돼 있어 glTFast 가 안 읽는다(meshopt 해제 패키지 없음·WebP 미지원). 원본을 새로 받았다.
 - 사진측량 원본이 무겁다(쓰러진 통나무 10만 삼각형) → `tools/polyhaven_lod1.py`(Blender 5.2 배치 decimate)로 `<id>_lod1.glb` 여섯 벌, `RegionPropsBuilder` 가 LODGroup(화면 높이 25% 넘을 때만 원본, 0.4% 밑이면 안 그림). 텍스처·가까이 모양은 원본 그대로.
 - 합계 약 29MB(텍스처가 대부분). 치수는 실측 미터 → `GoRegionProps.WorldScale`(1.9, 사람 키 3.4 기준) 배.
+
+## 2026-09-26 — 사실 몸 폴더를 PC 사이로 나르기 (PLAN.md 110 ④)
+
+- `Assets/Art/CharactersRealistic/`(Mixamo 원본 + 그 안에서 구운 프리팹·재질·셰이더 그래프, 4.2GB·1520파일)는 계속 gitignore. **다시 받기로는 같은 빌드가 안 된다** — 커밋된 씬·컨트롤러가 그 폴더 `.meta` 의 GUID 를 물고 있어, Mixamo 에서 새로 받으면 GUID 가 새로 나 참조가 끊긴다. 그래서 받은 결과 폴더를 통째로 나른다.
+- `tools/realistic-pack.sh`: `manifest`(해시 목록 `tools/realistic/manifest.sha256`, 커밋) · `pack <보관함>`(목록 순서대로 tar, 1900MB 조각 `saga-unity-realistic-<목록 해시 12자>.tar.NN`) · `fetch <보관함>`(`.utmp/` 에 풀어 대조 → 제자리) · `verify`.
+- 보관함은 **비공개**(개인 클라우드·외장 디스크) — Mixamo 약관상 원본을 공개로 재배포하지 않는다. 공개 저장소·공개 링크 금지.
+- 빌드 문지기 `Editor/SagaAssetGate.cs`(빌드마다 먼저): ① 폴더 = 목록 ② 빌드 씬이 쓰는 그 폴더 파일 ⊂ 목록 ③ `tools/realistic/build_deps.txt`(빌드가 쓰던 몸 576) ⊂ 지금 쓰는 몸 — 줄면 씬이 몸 없는 PC 에서 지어져 폴백 ④ 빌드 씬·텍스트 의존의 끊긴 GUID 0.
+- 몸을 더하거나 고치면: 받기·`Saga/Setup …` → `realistic-pack.sh manifest` → `pack <보관함>` → `Saga/Build/Write Asset Gate Deps` → 목록 둘 커밋.
+- Mixamo 에서 처음부터 다시 받아야 할 때(보관함을 잃었을 때)는 `tools/mixamo_automation/README.md` 레시피 표 — 그 뒤 씬·컨트롤러를 다시 지어야 하고 빌드는 달라진다.

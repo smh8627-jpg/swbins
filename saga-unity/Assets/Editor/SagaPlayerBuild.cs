@@ -63,6 +63,8 @@ namespace Saga.EditorTools
             foreach (var s in Scenes)
                 if (!File.Exists(s)) { Finish(false, $"씬 없음 {s}", null, output); return; }
             SyncEditorBuildScenes();
+            // 110 ④ — git 밖 사실 몸이 목록과 다르거나 씬이 폴백으로 지어졌으면 빌드하지 않는다.
+            if (!SagaAssetGate.Check(out var gate)) { Finish(false, "자산 검사 실패\n" + gate, null, output); return; }
 
             if (EditorUserBuildSettings.activeBuildTarget != target)
                 EditorUserBuildSettings.SwitchActiveBuildTarget(group, target);
@@ -111,6 +113,16 @@ namespace Saga.EditorTools
                     .OrderByDescending(x => x.bytes).Take(20);
                 sb.AppendLine("largest assets:");
                 foreach (var (path, bytes) in packed) sb.AppendLine($"  {bytes / (1024f * 1024f),7:F1} MB  {path}");
+
+                // 110 ④ 빌드 지문 — 들어간 에셋 전부(경로·바이트, 경로순). 두 PC 의 빌드를 diff 로 대조한다.
+                // 빌드 파일은 바이트 단위로 같지 않다(내부 번호 순서) — 같은지는 이 목록으로 본다.
+                var all = report.packedAssets.SelectMany(p => p.contents)
+                    .GroupBy(c => c.sourceAssetPath)
+                    .Select(g => $"{g.Sum(c => (long)c.packedSize)}\t{g.Key}")
+                    .OrderBy(l => l.Substring(l.IndexOf('\t') + 1), System.StringComparer.Ordinal);
+                var fp = Path.Combine(Path.GetDirectoryName(output), Path.GetFileNameWithoutExtension(output) + "_assets.txt");
+                Directory.CreateDirectory(Path.GetDirectoryName(fp));
+                File.WriteAllLines(fp, all);
             }
             var dir = Path.GetDirectoryName(output);
             Directory.CreateDirectory(dir);

@@ -1,0 +1,6 @@
+# PLAN.md 110 ④ — 사실 몸 목록은 바이트 그대로(autocrlf 가 CRLF 로 풀면 해시 대조·묶음 id 가 PC 마다 달라진다)
+tools/realistic/** -text
+tools/realistic-pack.sh text eol=lf
+# 텍스트 에셋(TextAsset)은 바이트 그대로 빌드에 들어간다 — PC 마다 CRLF/LF 가 갈리면 빌드 지문이 달라진다
+Assets/**/*.json text eol=lf
+Assets/**/*.txt text eol=lf

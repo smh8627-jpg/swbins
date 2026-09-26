@@ -9403,3 +9403,16 @@ PROJECT_STATE에 코딩으로 더 갈 수 있는 항목이 없어(101-2·104-1 �
 - 함정: Blender 파이썬엔 PIL 없음 · write_mhclo 는 also_export_mhmat=True 라야 material 줄 · 옷 정점을 body 전체에 맞추면 A 자세 손에 붙는다(맞춤 무리 cf_torso·cf_arm·cf_head) · 앞 트인 둘레는 이음매에서 순서를 끊는다.
 - 렌더 비교 스크립트를 저장소로(`tools/char-forge/render/`). 게임 몸은 그대로(D5 Mixamo 유지).
 - 다음 = char-forge README §7 단계 4 줄의 "다음 세션 순서" ①~④.
+
+## 2026-09-26 상용화 — PLAN 110 ④ 빌드 재현성 ("사가유니티 이어해")
+
+③b 는 폰 결과가 아직 없어(Downloads 도 확인) ④ 를 먼저.
+
+- git 밖은 `Assets/Art/CharactersRealistic/` 하나(4.2GB·1520파일 — Mixamo 원본 + 그 안에서 구운 프리팹·재질·셰이더 그래프). Poly Haven 스캔은 이미 커밋. 커밋된 씬·`Assets/Animators/*.controller` 가 그 폴더 `.meta` GUID 를 물어, Mixamo 자동 받기(`tools/mixamo_automation`)로 다시 받으면 GUID 가 새로 나 참조가 끊긴다 → **폴더를 통째로 나르는 쪽**으로.
+- `tools/realistic-pack.sh`: manifest(sha256sum 형식, .meta 까지) · pack(목록 순서 tar → 1900MB 조각, 이름 = 목록 해시 12자라 목록 커밋과 묶음이 짝) · fetch(.utmp 에 풀어 대조 뒤 제자리, 든 게 있는 옛 폴더는 옆으로, 빈 폴더는 치움) · verify. 해시 15초.
+- `Editor/SagaAssetGate.cs`, `SagaPlayerBuild.Run` 이 빌드 전에 부름: ① 폴더 = 목록(C# SHA256, 38초) ② 빌드 의존 중 그 폴더 파일 ⊂ 목록 ③ `tools/realistic/build_deps.txt`(576) ⊂ 지금 의존 — 줄면 씬이 몸 없는 PC 에서 지어진 것 ④ 빌드 씬·텍스트 직렬화 의존의 `guid:` 가 전부 풀림. 보고는 칸마다 여덟 줄. 빌드마다 지문 `Build/<대상>/<이름>_assets.txt`.
+- 시험(`C:\sgc` 새 클론, sparse saga-unity, 새 파일은 복사): 몸 없이 검사 → FAIL exit 1(① 1520 빠짐·③ 576·④ 컨트롤러 열몇·TestField 24·TestDungeon 34 끊김) · fetch 33초 → 가져오기+검사 OK+빌드 11.2분 → 이 PC 빌드와 파일 181 같음·863.0MB 같음. 빌드 파일은 바이트로는 다르다(내부 번호, 같은 크기에 수백 바이트 차) — 그래서 지문으로 대조: 3916 에셋 중 처음 12줄 차.
+- 발견: **autocrlf=true 가 클론에서 텍스트 에셋을 CRLF 로 푼다** — 스토리 현지화 JSON 두 개가 이 PC(LF)와 달라 빌드가 달랐다. 목록 파일도 CRLF 로 풀리면 묶음 id 가 달라질 뻔. → `saga-unity/.gitattributes`(tools/realistic -text · 스크립트 eol=lf · Assets json/txt eol=lf), 이 PC 에서 CRLF 였던 json/txt 78개 LF 로 다시 꺼냄(남이 고친 파일 없음 확인), 스크립트도 CR 을 떼고 읽음(CRLF 목록으로 verify OK·같은 id 시험). 다시 대조 → 3줄만 남음: glb 둘(rock_s108_08·wine_barrel_01_lod1, 원본·meta 같고 차이 둘 다 1904B — 이 PC 옛 가져오기 캐시로 봄) · TMP_SDF-Mobile 셰이더 24B.
+- 빌드 부산물(글꼴 SDF·URP·Graphics·ProjectSettings 직렬화) 매번 되돌림, Mobile_RPAsset 은 남의 변경이라 그대로.
+- 사람 몫: 묶음 보관함 자리(비공개). 이번 묶음 id cb71a2102fd9 는 스크래치패드에만 있다.
+- 다음 = ⑤ UI(③b 는 폰 결과 오면).

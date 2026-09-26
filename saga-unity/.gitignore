@@ -46,8 +46,8 @@ crashlytics-build.properties
 # "원본 캐릭터·애니메이션을 독립 에셋으로 재배포" 금지라 이 공개 저장소엔
 # 안 올린다(saga-forest가 같은 이유로 assets/models/people/realistic/를
 # 막아 둔 것과 동일 원칙, PLAN.md 66-2장 "③ 캐릭터 에셋" 참고). 로컬엔
-# 그대로 남아 게임은 정상 동작한다 — 다른 PC에서 다시 받는 절차는
-# docs/ASSET_GUIDE.md에 적어 둔다.
+# 그대로 남아 게임은 정상 동작한다 — 다른 PC 로는 tools/realistic-pack.sh
+# (목록 tools/realistic/manifest.sha256 은 커밋, 묶음은 비공개 보관함)로 나른다(PLAN 110 ④).
 Assets/Art/CharactersRealistic/
 
 # Crash reports
